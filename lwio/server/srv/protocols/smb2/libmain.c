@@ -318,6 +318,15 @@ SrvProtocolExecute_SMB_V2(
 
                 break;
 
+            case COM2_SETINFO:
+
+                ntStatus = SrvProcessSetInfo_SMB_V2(
+                                &context,
+                                pRequest,
+                                request.pResponse);
+
+                break;
+
             default:
 
                 ntStatus = STATUS_NOT_IMPLEMENTED;
@@ -325,28 +334,25 @@ SrvProtocolExecute_SMB_V2(
                 break;
         }
 
-        if (ntStatus == STATUS_SUCCESS)
+        if (ntStatus != STATUS_SUCCESS)
         {
-            ulResponseSize_ending = request.pResponse->bufferUsed;
-            pResponse->ulSize = ulResponseSize_ending - ulResponseSize_starting;
-
-            if (pPrevResponse)
-            {
-                pPrevResponse->pHeader->ulChainOffset = pPrevResponse->ulSize;
-            }
+            ntStatus = SrvBuildErrorResponse_SMB_V2(
+                            pConnection,
+                            pRequest->pHeader,
+                            ntStatus,
+                            NULL,
+                            0,
+                            request.pResponse);
+            BAIL_ON_NT_STATUS(ntStatus);
         }
-    }
 
-    if (ntStatus)
-    {
-        ntStatus = SrvBuildErrorResponse_SMB_V2(
-                        pConnection,
-                        pSmbRequest->pSMB2Header,
-                        ntStatus,
-                        NULL,
-                        0,
-                        request.pResponse);
-        BAIL_ON_NT_STATUS(ntStatus);
+        ulResponseSize_ending = request.pResponse->bufferUsed;
+        pResponse->ulSize = ulResponseSize_ending - ulResponseSize_starting;
+
+        if (pPrevResponse)
+        {
+            pPrevResponse->pHeader->ulChainOffset = pPrevResponse->ulSize;
+        }
     }
 
     ntStatus = SMB2MarshalFooter(request.pResponse);

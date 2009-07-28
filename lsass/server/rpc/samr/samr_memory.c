@@ -48,71 +48,15 @@
 
 
 NTSTATUS
-SamrSrvInitMemory(
-    void
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
-    int locked = 0;
-
-    GLOBAL_DATA_LOCK(locked);
-
-    if (!bSamrSrvInitialised && !pSamrSrvMemRoot) {
-        pSamrSrvMemRoot = talloc(NULL, 0, NULL);
-        BAIL_ON_NO_MEMORY(pSamrSrvMemRoot);
-    }
-
-cleanup:
-    GLOBAL_DATA_UNLOCK(locked);
-
-    return status;
-
-error:
-    goto cleanup;
-}
-
-
-NTSTATUS
-SamrSrvDestroyMemory(
-    void
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
-    int locked = 0;
-
-    GLOBAL_DATA_LOCK(locked);
-
-    if (bSamrSrvInitialised && pSamrSrvMemRoot) {
-        tfree(pSamrSrvMemRoot);
-    }
-
-cleanup:
-    GLOBAL_DATA_UNLOCK(locked);
-
-    return status;
-
-error:
-    goto cleanup;
-}
-
-
-NTSTATUS
 SamrSrvAllocateMemory(
     void **ppOut,
-    DWORD dwSize,
-    void *pDep
+    DWORD dwSize
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
     void *pOut = NULL;
-    void *pParent = NULL;
-    int locked = 0;
 
-    pParent = (pDep) ? pDep : pSamrSrvMemRoot;
-
-    GLOBAL_DATA_LOCK(locked);
-
-    pOut = talloc(pParent, dwSize, NULL);
+    pOut = rpc_ss_allocate(dwSize);
     BAIL_ON_NO_MEMORY(pOut);
 
     memset(pOut, 0, dwSize);
@@ -120,67 +64,10 @@ SamrSrvAllocateMemory(
     *ppOut = pOut;
 
 cleanup:
-    GLOBAL_DATA_UNLOCK(locked);
-
     return status;
 
 error:
     *ppOut = NULL;
-    goto cleanup;
-}
-
-
-NTSTATUS
-SamrSrvReallocMemory(
-    void **ppOut,
-    DWORD dwNewSize,
-    void *pIn
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
-    void *pOut = NULL;
-    int locked = 0;
-
-    GLOBAL_DATA_LOCK(locked);
-
-    pOut = trealloc(pIn, dwNewSize);
-    BAIL_ON_NO_MEMORY(pOut);
-
-    *ppOut = pOut;
-
-cleanup:
-    GLOBAL_DATA_UNLOCK(locked);
-
-    return status;
-
-error:
-    *ppOut = NULL;
-    goto cleanup;
-}
-
-
-NTSTATUS
-SamrSrvAddDepMemory(
-    void *pIn,
-    void *pDep
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
-    void *pParent = NULL;
-    int locked = 0;
-
-    pParent = (pDep) ? pDep : pSamrSrvMemRoot;
-
-    GLOBAL_DATA_LOCK(locked);
-
-    tlink(pParent, pIn);
-
-cleanup:
-    GLOBAL_DATA_UNLOCK(locked);
-
-    return status;
-
-error:
     goto cleanup;
 }
 
@@ -190,23 +77,14 @@ SamrSrvFreeMemory(
     void *pPtr
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    int locked = 0;
-
-    GLOBAL_DATA_LOCK(locked);
-
-    tfree(pPtr);
-
-error:
-    GLOBAL_DATA_UNLOCK(locked);
+    rpc_ss_free(pPtr);
 }
 
 
 NTSTATUS
 SamrSrvAllocateSidFromWC16String(
     PSID *ppSid,
-    PCWSTR pwszSidStr,
-    void *pParent
+    PCWSTR pwszSidStr
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -220,8 +98,7 @@ SamrSrvAllocateSidFromWC16String(
 
     ulSidSize = RtlLengthSid(pSid);
     status = SamrSrvAllocateMemory((void**)&pSidCopy,
-                                   ulSidSize,
-                                   pParent);
+                                   ulSidSize);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     status = RtlCopySid(ulSidSize, pSidCopy, pSid);
@@ -238,7 +115,7 @@ cleanup:
 
 error:
     if (pSidCopy) {
-        RTL_FREE(&pSidCopy);
+        SamrSrvFreeMemory(pSidCopy);
     }
 
     *ppSid = NULL;
@@ -249,8 +126,7 @@ error:
 NTSTATUS
 SamrSrvDuplicateSid(
     PSID *ppSidOut,
-    PSID pSidIn,
-    void *pParent
+    PSID pSidIn
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -259,8 +135,7 @@ SamrSrvDuplicateSid(
 
     ulSidSize = RtlLengthSid(pSidIn);
     status = SamrSrvAllocateMemory((void**)&pSid,
-                                   ulSidSize,
-                                   pParent);
+                                   ulSidSize);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     status = RtlCopySid(ulSidSize, pSid, pSidIn);
@@ -273,7 +148,7 @@ cleanup:
 
 error:
     if (pSid) {
-        RTL_FREE(&pSid);
+        SamrSrvFreeMemory(pSid);
     }
 
     *ppSidOut = NULL;
@@ -284,16 +159,14 @@ error:
 NTSTATUS
 SamrSrvGetFromUnicodeString(
     PWSTR *ppwszOut,
-    UnicodeString *pIn,
-    void *pParent
+    UnicodeString *pIn
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
     PWSTR pwszStr = NULL;
 
     status = SamrSrvAllocateMemory((void**)&pwszStr,
-                                   (pIn->size + 1) * sizeof(WCHAR),
-                                   pParent);
+                                   (pIn->size + 1) * sizeof(WCHAR));
     BAIL_ON_NTSTATUS_ERROR(status);
 
     wc16sncpy(pwszStr, pIn->string, (pIn->len / sizeof(WCHAR)));
@@ -315,16 +188,14 @@ error:
 NTSTATUS
 SamrSrvGetFromUnicodeStringEx(
     PWSTR *ppwszOut,
-    UnicodeStringEx *pIn,
-    void *pParent
+    UnicodeStringEx *pIn
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
     PWSTR pwszStr = NULL;
 
     status = SamrSrvAllocateMemory((void**)&pwszStr,
-                                   (pIn->size) * sizeof(WCHAR),
-                                   pParent);
+                                   (pIn->size) * sizeof(WCHAR));
     BAIL_ON_NTSTATUS_ERROR(status);
 
     wc16sncpy(pwszStr, pIn->string, (pIn->len / sizeof(WCHAR)));
@@ -346,8 +217,7 @@ error:
 NTSTATUS
 SamrSrvInitUnicodeString(
     UnicodeString *pOut,
-    PCWSTR pwszIn,
-    void *pParent
+    PCWSTR pwszIn
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -358,8 +228,7 @@ SamrSrvInitUnicodeString(
     dwSize = dwLen * sizeof(WCHAR);
 
     status = SamrSrvAllocateMemory((void**)&(pOut->string),
-                                   dwSize,
-                                   pParent);
+                                   dwSize);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     memcpy(pOut->string, pwszIn, dwSize);
@@ -383,8 +252,7 @@ error:
 NTSTATUS
 SamrSrvInitUnicodeStringEx(
     UnicodeStringEx *pOut,
-    PCWSTR pwszIn,
-    void *pParent
+    PCWSTR pwszIn
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -395,8 +263,7 @@ SamrSrvInitUnicodeStringEx(
     dwSize = (dwLen + 1) * sizeof(WCHAR);
 
     status = SamrSrvAllocateMemory((void**)&(pOut->string),
-                                   dwSize,
-                                   pParent);
+                                   dwSize);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     memcpy(pOut->string, pwszIn, dwSize - 1);

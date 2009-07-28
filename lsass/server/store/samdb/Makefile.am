@@ -1,3 +1,5 @@
+AM_CPPFLAGS = @AM_CPPFLAGS@ -I$(top_srcdir)/include
+
 provider_LTLIBRARIES = libsamdb.la
 
 libsamdb_la_SOURCES =     \
@@ -21,6 +23,7 @@ libsamdb_la_SOURCES =     \
         samdbuser.c
 
 libsamdb_la_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
         -DLW_ENABLE_THREADS=1         \
         -I$(top_srcdir)/server/include \
         -I$(top_srcdir)/server/store/include \

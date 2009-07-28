@@ -28,7 +28,7 @@ ep_sstub.c: $(IDL_INCLUDE_DIR)/ep.idl
 	$(IDL) $(MY_IDLFLAGS) -client none $<
 
 dsm.h:	dsm.idl
-	$(IDL) $(MY_IDLFLAGS) -client none -server none dsm.idl
+	$(IDL) $(MY_IDLFLAGS) -client none -server none $<
 
 install-data-local:
 	$(mkinstalldirs) $(DESTDIR)$(localstatedir)/rpc

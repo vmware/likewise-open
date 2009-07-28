@@ -1,3 +1,5 @@
+AM_CPPFLAGS = -I$(top_srcdir)/include
+
 noinst_PROGRAMS = test_parse_config
 
 test_parse_config_SOURCES = main.c

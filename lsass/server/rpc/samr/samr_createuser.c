@@ -69,13 +69,11 @@ SamrSrvCreateUser(
     }
 
     status = SamrSrvGetFromUnicodeString(&pwszUserName,
-                                         account_name,
-                                         pDomCtx);
+                                         account_name);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     status = SamrSrvInitUnicodeStringEx(&UserName,
-                                        pwszUserName,
-                                        pDomCtx);
+                                        pwszUserName);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     status = SamrSrvCreateAccount(hBinding,

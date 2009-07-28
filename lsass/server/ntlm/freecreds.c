@@ -52,7 +52,6 @@ NtlmServerFreeCredentialsHandle(
     IN PLSA_CRED_HANDLE phCredential
     )
 {
-    DWORD dwError = 0;
-
-    return(dwError);
+    LsaReleaseCredential(*phCredential);
+    return LW_ERROR_SUCCESS;
 }

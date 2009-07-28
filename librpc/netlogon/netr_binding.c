@@ -95,7 +95,7 @@ InitNetlogonBindingFull(
     unsigned char *options        = NULL;
     unsigned char *address        = NULL;
     handle_t hNetrBinding = NULL;
-    rpc_transport_info_handle_t info;
+    rpc_transport_info_handle_t info = NULL;
 
     BAIL_ON_INVALID_PTR_RPCSTATUS(phNetrBinding, rpcStatus);
     BAIL_ON_INVALID_PTR_RPCSTATUS(pszHostname, rpcStatus);

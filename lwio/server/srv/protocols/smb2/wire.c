@@ -77,6 +77,9 @@ SMB2InitPacket(
 
     pSmbPacket->pNetBIOSHeader = (NETBIOS_HEADER *) (pBuffer);
     pSmbPacket->bufferUsed += sizeof(NETBIOS_HEADER);
+    pBuffer += sizeof(NETBIOS_HEADER);
+
+    pSmbPacket->pSMB2Header = (PSMB2_HEADER)pBuffer;
 
     pSmbPacket->protocolVer = SMB_PROTOCOL_VERSION_2;
     pSmbPacket->allowSignature = bAllowSignature;
@@ -100,6 +103,7 @@ SMB2MarshalHeader(
     IN              ULONG64       ullSessionId,
     IN              NTSTATUS      status,
     IN              BOOLEAN       bIsResponse,
+    IN              BOOLEAN       bIsPartOfCompoundMessage,
     IN OUT OPTIONAL PSMB2_HEADER* ppSMB2Header,
     IN OUT          PULONG        pulBytesUsed
     )
@@ -137,6 +141,10 @@ SMB2MarshalHeader(
     if (bIsResponse)
     {
         pSMB2Header->ulFlags |= SMB2_FLAGS_SERVER_TO_REDIR;
+    }
+    if (bIsPartOfCompoundMessage)
+    {
+        pSMB2Header->ulFlags |= SMB2_FLAGS_RELATED_OPERATION;
     }
 
     *pulBytesUsed = ulBytesUsed;
@@ -1177,6 +1185,64 @@ error:
 }
 
 NTSTATUS
+SMB2UnmarshalSetInfoRequest(
+    IN     PSMB2_MESSAGE                  pSmbRequest,
+    IN OUT PSMB2_SET_INFO_REQUEST_HEADER* ppHeader,
+    IN OUT PBYTE*                         ppData
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    ULONG ulOffset = 0;
+    PBYTE pDataCursor = (PBYTE)pSmbRequest->pHeader;
+    ULONG ulBytesAvailable = pSmbRequest->ulSize;
+    ULONG ulPacketSize = pSmbRequest->ulSize;
+    PSMB2_SET_INFO_REQUEST_HEADER pHeader = NULL; // Do not free
+    PBYTE pData = NULL; // Do not free
+
+    if (ulBytesAvailable < sizeof(SMB2_HEADER))
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    ulBytesAvailable -= sizeof(SMB2_HEADER);
+    ulOffset += sizeof(SMB2_HEADER);
+    pDataCursor += sizeof(SMB2_HEADER);
+
+    if (ulBytesAvailable < sizeof(SMB2_SET_INFO_REQUEST_HEADER))
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pHeader = (PSMB2_SET_INFO_REQUEST_HEADER)pDataCursor;
+
+    if ((pHeader->usInputBufferOffset > ulPacketSize) ||
+        ((pHeader->usInputBufferOffset + pHeader->ulInputBufferLen) > ulPacketSize))
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pData = (PBYTE)pSmbRequest->pHeader + pHeader->usInputBufferOffset;
+
+    *ppHeader = pHeader;
+    *ppData = pData;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppHeader = NULL;
+    *ppData = NULL;
+
+    goto cleanup;
+}
+
+
+NTSTATUS
 SMB2UnmarshalReadRequest(
     IN     PSMB2_MESSAGE              pSmbRequest,
     IN OUT PSMB2_READ_REQUEST_HEADER* ppRequestHeader
@@ -1762,7 +1828,7 @@ SMB2MarshalFindResponse(
     ulBytesAvailable -= sizeof(SMB2_FIND_RESPONSE_HEADER);
     pDataCursor += sizeof(SMB2_FIND_RESPONSE_HEADER);
 
-    pResponseHeader->usLength = sizeof(SMB2_FIND_RESPONSE_HEADER);
+    pResponseHeader->usLength = sizeof(SMB2_FIND_RESPONSE_HEADER) + 1;
 
     if (ulDataOffset % 8)
     {

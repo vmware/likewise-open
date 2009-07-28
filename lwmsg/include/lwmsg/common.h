@@ -51,6 +51,14 @@
  */
 
 /**
+ * @internal
+ * @defgroup private Internal APIs
+ *
+ * These APIs are used internally within lwmsg, are not publically visible, and
+ * are not API or ABI stable.
+ */
+
+/**
  * @defgroup common Common definitions
  * @ingroup public
  * @brief Definitions of common types

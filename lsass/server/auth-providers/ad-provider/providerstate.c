@@ -48,37 +48,6 @@
 #include "adprovider.h"
 #include "providerstate_p.h"
 
-BOOLEAN
-ADProviderIsShuttingDown(
-    VOID
-    )
-{
-    BOOLEAN bResult = FALSE;
-    BOOLEAN bInLock = FALSE;
-    
-    ENTER_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
-    
-    bResult = gbShutdownProvider;
-    
-    LEAVE_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
-    
-    return bResult;
-}
-
-VOID
-ADProviderSetShutdownFlag(
-    BOOLEAN bFlag
-    )
-{
-    BOOLEAN bInLock = FALSE;
-    
-    ENTER_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
-    
-    gbShutdownProvider = bFlag;
-    
-    LEAVE_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
-}
-
 VOID
 ADProviderFreeCellInfo(
     IN OUT PAD_LINKED_CELL_INFO pCell

@@ -76,13 +76,11 @@ SamrSrvCreateAccount(
 
 
     status = SamrSrvAllocateMemory((void**)&pAccCtx,
-                                   sizeof(*pAccCtx),
-                                   NULL);
+                                   sizeof(*pAccCtx));
     BAIL_ON_NTSTATUS_ERROR(status);
 
     status = SamrSrvGetFromUnicodeStringEx(&pwszAccountName,
-                                           account_name,
-                                           pAccCtx);
+                                           account_name);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     hDirectory = pDomCtx->pConnCtx->hDirectory;
@@ -93,8 +91,7 @@ SamrSrvCreateAccount(
                      wc16slen(pwszAccountName);
 
     status = SamrSrvAllocateMemory((void**)pwszAccountDn,
-                                   dwAccountDnLen * sizeof(WCHAR),
-                                   pAccCtx);
+                                   dwAccountDnLen * sizeof(WCHAR));
     BAIL_ON_NTSTATUS_ERROR(status);
 
     AttrValObjectClass.Type                = DIRECTORY_ATTR_TYPE_ANSI_STRING;
@@ -135,9 +132,8 @@ SamrSrvCreateAccount(
     BAIL_ON_LSA_ERROR(dwError);
 
     status = SamrSrvInitUnicodeString(&AccountName,
-                                      pwszAccountName,
-                                      pAccCtx);
-    BAIL_ON_LSA_ERROR(dwError);
+                                      pwszAccountName);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     status = SamrSrvLookupNames(hBinding,
                                 hDomain,

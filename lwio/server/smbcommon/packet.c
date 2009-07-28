@@ -550,32 +550,41 @@ SMB2PacketVerifySignature(
     )
 {
     NTSTATUS ntStatus = 0;
-    uint8_t  digest[32];
-    uint8_t  origSignature[16];
-    SHA256_CTX sha256Value;
-
-    memcpy(origSignature, pPacket->pSMB2Header->signature, sizeof(pPacket->pSMB2Header->signature));
-    memset(&pPacket->pSMB2Header->signature[0], 0, sizeof(pPacket->pSMB2Header->signature));
-
-    SHA256_Init(&sha256Value);
 
     if (pSessionKey)
     {
-        SHA256_Update(&sha256Value, pSessionKey, ulSessionKeyLength);
+        uint8_t  origSignature[16];
+        UCHAR    ucDigest[EVP_MAX_MD_SIZE];
+        ULONG    ulDigest = sizeof(ucDigest);
+
+        memcpy(origSignature,
+               pPacket->pSMB2Header->signature,
+               sizeof(pPacket->pSMB2Header->signature));
+
+        memset(&pPacket->pSMB2Header->signature[0],
+               0,
+               sizeof(pPacket->pSMB2Header->signature));
+
+        HMAC(EVP_sha256(),
+             pSessionKey,
+             ulSessionKeyLength,
+             (PBYTE)pPacket->pSMB2Header,
+             pPacket->pNetBIOSHeader->len,
+             &ucDigest[0],
+             &ulDigest);
+
+        if (memcmp(&origSignature[0], &ucDigest[0], sizeof(origSignature)))
+        {
+            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        }
+
+        // restore signature
+        memcpy(&pPacket->pSMB2Header->signature[0],
+               &origSignature[0],
+               sizeof(origSignature));
+
+        BAIL_ON_NT_STATUS(ntStatus);
     }
-
-    SHA256_Update(&sha256Value, (PBYTE)pPacket->pSMB2Header, pPacket->pNetBIOSHeader->len);
-    SHA256_Final(digest, &sha256Value);
-
-    if (memcmp(&origSignature[0], &digest[0], sizeof(origSignature)))
-    {
-        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
-    }
-
-    // restore signature
-    memcpy(&pPacket->pSMB2Header->signature[0], &origSignature[0], sizeof(origSignature));
-
-    BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
 
@@ -662,25 +671,30 @@ SMB2PacketSign(
     )
 {
     NTSTATUS ntStatus = 0;
-    uint8_t digest[32];
-    SHA256_CTX sha256Value;
-
-    memset(&pPacket->pSMB2Header->signature[0], 0, sizeof(pPacket->pSMB2Header->signature));
-
-    SHA256_Init(&sha256Value);
 
     if (pSessionKey)
     {
-        SHA256_Update(&sha256Value, pSessionKey, ulSessionKeyLength);
+        UCHAR ucDigest[EVP_MAX_MD_SIZE];
+        ULONG ulDigest = sizeof(ucDigest);
+
+        pPacket->pSMB2Header->ulFlags |= SMB2_FLAGS_SIGNED;
+
+        memset(&pPacket->pSMB2Header->signature[0],
+               0,
+               sizeof(pPacket->pSMB2Header->signature));
+
+        HMAC(EVP_sha256(),
+             pSessionKey,
+             ulSessionKeyLength,
+             (PBYTE)pPacket->pSMB2Header,
+             ntohl(pPacket->pNetBIOSHeader->len),
+             &ucDigest[0],
+             &ulDigest);
+
+        memcpy(&pPacket->pSMB2Header->signature[0],
+               &ucDigest[0],
+               sizeof(pPacket->pSMB2Header->signature));
     }
-
-    pPacket->pSMB2Header->ulFlags |= SMB2_FLAGS_SIGNED;
-
-    SHA256_Update(&sha256Value, (PBYTE)pPacket->pSMB2Header, ntohl(pPacket->pNetBIOSHeader->len));
-
-    SHA256_Final(digest, &sha256Value);
-
-    memcpy(&pPacket->pSMB2Header->signature[0], &digest[0], sizeof(pPacket->pSMB2Header->signature));
 
     return ntStatus;
 }

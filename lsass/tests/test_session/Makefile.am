@@ -1,3 +1,5 @@
+AM_CPPFLAGS = @AM_CPPFLAGS@ -I$(top_srcdir)/include
+
 noinst_PROGRAMS = test_session
 
 test_session_SOURCES = main.c

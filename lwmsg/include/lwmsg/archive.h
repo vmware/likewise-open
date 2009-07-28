@@ -277,10 +277,11 @@ lwmsg_archive_delete(
  * Returns a "view" of the given archive handle as an association.
  * The association may then be used as usual to "send" and "receive"
  * messages, although some features (session, nonblocking operation)
- * will not be available.
+ * will not be available.  Using #lwmsg_assoc_delete() on the
+ * returned pointer is equivalent to deleting the archive handle.
  *
  * @param[in] archive the archive handle
- * @return assoc a view of the archive as an association
+ * @return a view of the archive as an association
  */
 LWMsgAssoc*
 lwmsg_archive_as_assoc(

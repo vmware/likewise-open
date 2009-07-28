@@ -55,17 +55,13 @@ LsaInitializeRpcSrv(
     )
 {
     DWORD dwError = 0;
-    NTSTATUS status = STATUS_SUCCESS;
 
     pthread_mutex_init(&gDsrSrvDataMutex, NULL);
-
-    status = DsrSrvInitMemory();
-    BAIL_ON_NTSTATUS_ERROR(status);
 
     dwError = RpcSvcRegisterRpcInterface(dssetup_v0_0_s_ifspec);
     BAIL_ON_LSA_ERROR(dwError);
 
-    *ppszRpcSrvName = (PSTR)gpszRpcSrvName;
+    *ppszRpcSrvName = (PSTR)gpszDsrRpcSrvName;
     *ppFnTable      = &gDsrRpcFuncTable;
 
     if (!IsNullOrEmptyString(pszConfigFilePath)) {
@@ -95,13 +91,9 @@ LsaShutdownRpcSrv(
     )
 {
     DWORD dwError = 0;
-    NTSTATUS status = STATUS_SUCCESS;
 
     dwError = RpcSvcUnregisterRpcInterface(dssetup_v0_0_s_ifspec);
     BAIL_ON_LSA_ERROR(dwError);
-
-    status = DsrSrvDestroyMemory();
-    BAIL_ON_NTSTATUS_ERROR(status);
 
     pthread_mutex_destroy(&gDsrSrvDataMutex);
 

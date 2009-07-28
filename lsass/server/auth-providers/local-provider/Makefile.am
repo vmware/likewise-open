@@ -1,3 +1,5 @@
+AM_CPPFLAGS = @AM_CPPFLAGS@ -I$(top_srcdir)/include
+
 if ENABLE_STATIC_PROVIDERS
 noinst_LTLIBRARIES = liblsass_auth_provider_local.la
 PROVIDER_CFLAGS =
@@ -24,6 +26,7 @@ liblsass_auth_provider_local_la_SOURCES = \
     lpuser.c
 
 liblsass_auth_provider_local_la_CPPFLAGS = \
+    $(AM_CPPFLAGS) \
     -DLW_ENABLE_THREADS=1              \
     -I@top_srcdir@/server/include
 

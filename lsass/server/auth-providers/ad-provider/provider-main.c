@@ -319,9 +319,6 @@ LSA_INITIALIZE_PROVIDER(ad)(
     dwError = LsaUmInitialize();
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = ADInitCacheReaper();
-    BAIL_ON_LSA_ERROR(dwError);
-
     dwError = ADStartMachinePasswordSync();
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -377,7 +374,6 @@ error:
                            dwError);
     }
 
-    ADShutdownCacheReaper();
     ADShutdownMachinePasswordSync();
 
     // This will clean up media sense too.
@@ -407,11 +403,8 @@ LSA_SHUTDOWN_PROVIDER(ad)(
     DWORD dwError = 0;
     BOOLEAN bInLock = FALSE;
 
-    ADProviderSetShutdownFlag(TRUE);
-
     ADUnprovPlugin_Cleanup();
 
-    ADShutdownCacheReaper();
     ADShutdownMachinePasswordSync();
 
     dwError = AD_NetShutdownMemory();
@@ -434,16 +427,6 @@ LSA_SHUTDOWN_PROVIDER(ad)(
     {
         LSA_LOG_DEBUG("AD Provider Shutdown: Failed to shutdown krb5 (error = %d)", dwError);
         dwError = 0;
-    }
-
-    if (gpLsaAdProviderState && gpLsaAdProviderState->hCacheConnection)
-    {
-        dwError = ADCacheFlushToDisk(gpLsaAdProviderState->hCacheConnection);
-        if (dwError)
-        {
-            LSA_LOG_DEBUG("AD Provider Shutdown: unable to persist in memory cache (error = %d)", dwError);
-            dwError = 0;
-        }
     }
 
     AD_FreeAllowedSIDs_InLock();

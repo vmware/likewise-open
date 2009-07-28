@@ -1,3 +1,5 @@
+AM_CPPFLAGS = -I$(top_srcdir)/include
+
 bin_PROGRAMS = lw-addevent
 
 lw_addevent_SOURCES = main.c

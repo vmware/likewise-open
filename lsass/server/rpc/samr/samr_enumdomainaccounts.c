@@ -109,8 +109,7 @@ SamrSrvEnumDomainAccounts(
                   (sizeof(wszFilterFmt)/sizeof(wszFilterFmt[0]));
 
     status = SamrSrvAllocateMemory((void**)&pwszFilter,
-                                   dwFilterLen * sizeof(*pwszFilter),
-                                   pDomCtx);
+                                   dwFilterLen * sizeof(*pwszFilter));
     BAIL_ON_NTSTATUS_ERROR(status);
 
     sw16printfw(pwszFilter, dwFilterLen, wszFilterFmt,
@@ -135,11 +134,10 @@ SamrSrvEnumDomainAccounts(
     BAIL_ON_LSA_ERROR(dwError);
 
     status = SamrSrvAllocateMemory((void**)&pNames,
-                                   sizeof(RidNameArray),
-                                   pDomCtx);
+                                   sizeof(RidNameArray));
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    i       = (*resume);
+    i = (*resume);
 
     if (i >= dwEntriesNum) {
         i = 0;
@@ -179,8 +177,7 @@ SamrSrvEnumDomainAccounts(
     dwResume = (*resume) + dwCount;
 
     status = SamrSrvAllocateMemory((void**)&pNames->entries,
-                                   sizeof(pNames->entries[0]) * dwCount,
-                                   pNames);
+                                   sizeof(pNames->entries[0]) * dwCount);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     dwCount = 0;
@@ -213,8 +210,7 @@ SamrSrvEnumDomainAccounts(
 
         pName = &(pNames->entries[i - (*resume)]);
 
-        status = SamrSrvAllocateSidFromWC16String(&pSid, pwszSid,
-                                                  pNames->entries);
+        status = SamrSrvAllocateSidFromWC16String(&pSid, pwszSid);
         BAIL_ON_NTSTATUS_ERROR(status);
 
         dwRid = pSid->SubAuthority[pSid->SubAuthorityCount - 1];
@@ -222,8 +218,7 @@ SamrSrvEnumDomainAccounts(
         pName->rid = (uint32)dwRid;
 
         status = SamrSrvInitUnicodeString(&pName->name,
-                                          pwszName,
-                                          pNames->entries);
+                                          pwszName);
         BAIL_ON_NTSTATUS_ERROR(status);
 
         if (pSid) {

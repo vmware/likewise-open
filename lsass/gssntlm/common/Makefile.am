@@ -1,3 +1,5 @@
+AM_CPPFLAGS = @AM_CPPFLAGS@ -I$(top_srcdir)/include -I$(top_srcdir)/gssntlm/include
+
 noinst_LTLIBRARIES = libntlmcommon.la
 
 libntlmcommon_la_SOURCES = \
@@ -9,7 +11,6 @@ libntlmcommon_la_SOURCES = \
        ntlmencode.c \
        utils.c
 
-libntlmcommon_la_CPPFLAGS = -I@top_srcdir@/gssntlm/include
 libntlmcommon_la_LDFLAGS = @CRYPTO_LDFLAGS@
 libntlmcommon_la_LIBADD = \
 	@top_builddir@/common/liblsacommon.la \

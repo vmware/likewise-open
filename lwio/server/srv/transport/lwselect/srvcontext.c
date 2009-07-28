@@ -50,12 +50,10 @@ SrvContextCreate(
 
             case SMB_PROTOCOL_VERSION_2:
 
-#if 0
                 ntStatus = SMB2PacketVerifySignature(
                                 pRequest,
                                 pConnection->pSessionKey,
                                 pConnection->ulSessionKeyLength);
-#endif
 
                 break;
 

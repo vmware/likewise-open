@@ -182,6 +182,15 @@ SrvProcessSessionSetup_SMB_V2(
     IN OUT PSMB_PACKET   pSmbResponse
     );
 
+// setinfo.c
+
+NTSTATUS
+SrvProcessSetInfo_SMB_V2(
+    IN     PSMB2_CONTEXT pContext,
+    IN     PSMB2_MESSAGE pSmbRequest,
+    IN OUT PSMB_PACKET   pSmbResponse
+    );
+
 // error.c
 
 NTSTATUS
@@ -253,6 +262,7 @@ SMB2MarshalHeader(
     IN              ULONG64       ullSessionId,
     IN              NTSTATUS      status,
     IN              BOOLEAN       bIsResponse,
+    IN              BOOLEAN       bIsPartOfCompoundMessage,
     IN OUT OPTIONAL PSMB2_HEADER* ppSMB2Header,
     IN OUT          PULONG        pulBytesUsed
     );
@@ -375,6 +385,13 @@ NTSTATUS
 SMB2UnmarshalGetInfoRequest(
     IN     PSMB2_MESSAGE                  pSmbRequest,
     IN OUT PSMB2_GET_INFO_REQUEST_HEADER* ppHeader
+    );
+
+NTSTATUS
+SMB2UnmarshalSetInfoRequest(
+    IN     PSMB2_MESSAGE                  pSmbRequest,
+    IN OUT PSMB2_SET_INFO_REQUEST_HEADER* ppHeader,
+    IN OUT PBYTE*                         ppData
     );
 
 NTSTATUS

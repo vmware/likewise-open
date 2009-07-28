@@ -57,6 +57,8 @@ static LWMsgTypeSpec gLsaSecurityObjectVersionSpec[] =
     LWMSG_STRUCT_BEGIN(LSA_SECURITY_OBJECT_VERSION_INFO),
     LWMSG_MEMBER_INT64(LSA_SECURITY_OBJECT_VERSION_INFO, qwDbId),
     LWMSG_MEMBER_INT64(LSA_SECURITY_OBJECT_VERSION_INFO, tLastUpdated),
+    LWMSG_MEMBER_UINT32(LSA_SECURITY_OBJECT_VERSION_INFO, dwObjectSize),
+    LWMSG_MEMBER_UINT32(LSA_SECURITY_OBJECT_VERSION_INFO, dwWeight),
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END
 };
@@ -178,6 +180,64 @@ MemCacheFreePasswordVerifier(
     {
         ADCacheFreePasswordVerifier((PLSA_PASSWORD_VERIFIER)pEntry->pValue);
     }
+}
+
+void *
+MemCacheBackupRoutine(
+    void* pDb
+    )
+{
+    DWORD dwError = 0;
+    PMEM_DB_CONNECTION pConn = (PMEM_DB_CONNECTION)pDb;
+    struct timespec timeout = {0, 0};
+    BOOLEAN bMutexLocked = FALSE;
+
+    ENTER_MUTEX(&pConn->backupMutex, bMutexLocked);
+
+    while (!pConn->bNeedShutdown)
+    {
+        while (!pConn->bNeedBackup && !pConn->bNeedShutdown)
+        {
+            dwError = pthread_cond_wait(
+                            &pConn->signalBackup,
+                            &pConn->backupMutex);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+        if (!pConn->bNeedBackup)
+        {
+            break;
+        }
+        LSA_LOG_INFO("Delayed backup scheduled");
+
+        timeout.tv_sec = time(NULL) + pConn->dwBackupDelay;
+        timeout.tv_nsec = 0;
+        while (!pConn->bNeedShutdown && time(NULL) < timeout.tv_sec)
+        {
+            dwError = pthread_cond_timedwait(
+                            &pConn->signalShutdown,
+                            &pConn->backupMutex,
+                            &timeout);
+            if (dwError == ETIMEDOUT)
+            {
+                dwError = 0;
+            }
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        LSA_LOG_INFO("Performing backup");
+        dwError = MemCacheStoreFile((LSA_DB_HANDLE)pConn);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pConn->bNeedBackup = FALSE;
+    }
+
+cleanup:
+    LEAVE_MUTEX(&pConn->backupMutex, bMutexLocked);
+    return (void *)(size_t)dwError;
+
+error:
+    LSA_LOG_INFO("The in-memory backup thread is exiting with error code %d\n", dwError);
+    goto cleanup;
 }
 
 DWORD
@@ -306,6 +366,34 @@ MemCacheOpen(
     dwError = MemCacheLoadFile((LSA_DB_HANDLE)pConn);
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = pthread_mutex_init(
+            &pConn->backupMutex,
+            NULL);
+    BAIL_ON_LSA_ERROR(dwError);
+    pConn->bBackupMutexCreated = TRUE;
+
+    pConn->dwBackupDelay = 5 * 60;
+
+    pConn->bNeedBackup = FALSE;
+    dwError = pthread_cond_init(
+                    &pConn->signalBackup,
+                    NULL);
+    pConn->bSignalBackupCreated = TRUE;
+
+    pConn->bNeedShutdown = FALSE;
+    dwError = pthread_cond_init(
+                    &pConn->signalShutdown,
+                    NULL);
+    pConn->bSignalShutdownCreated = TRUE;
+
+    dwError = pthread_create(
+                    &pConn->backupThread,
+                    NULL,
+                    MemCacheBackupRoutine,
+                    pConn);
+    BAIL_ON_LSA_ERROR(dwError);
+    pConn->bBackupThreadCreated = TRUE;
+
     *phDb = (LSA_DB_HANDLE)pConn;
 
 cleanup:
@@ -331,7 +419,9 @@ MemCacheLoadFile(
     DWORD dwError = 0;
     LWMsgMessage message = LWMSG_MESSAGE_INITIALIZER;
     PMEM_GROUP_MEMBERSHIP pMemCacheMembership = NULL;
+    BOOLEAN bMutexLocked = FALSE;
 
+    ENTER_MUTEX(&pConn->backupMutex, bMutexLocked);
     ENTER_WRITER_RW_LOCK(&pConn->lock, bInLock);
 
     dwError = MAP_LWMSG_ERROR(lwmsg_protocol_new(
@@ -407,6 +497,8 @@ MemCacheLoadFile(
                                 ((PLSA_PASSWORD_VERIFIER)message.data)->pszObjectSid,
                                 message.data);
                 BAIL_ON_LSA_ERROR(dwError);
+                pConn->sCacheSize += ((PLSA_PASSWORD_VERIFIER)message.data)->
+                                        version.dwObjectSize;
                 // It is now owned by the global datastructures
                 message.data = NULL;
                 message.tag = -1;
@@ -417,8 +509,13 @@ MemCacheLoadFile(
     dwError = MAP_LWMSG_ERROR(lwmsg_archive_close(pArchive));
     BAIL_ON_LSA_ERROR(dwError);
 
+    pConn->bNeedBackup = TRUE;
+    dwError = pthread_cond_signal(&pConn->signalBackup);
+    BAIL_ON_LSA_ERROR(dwError);
+
 cleanup:
     LEAVE_RW_LOCK(&pConn->lock, bInLock);
+    LEAVE_MUTEX(&pConn->backupMutex, bMutexLocked);
     if (pArchive)
     {
         lwmsg_archive_destroy_message(pArchive, &message);
@@ -451,11 +548,12 @@ MemCacheStoreFile(
     // do not free
     LSA_HASH_ENTRY *pEntry = NULL;
     // do not free
-    PMEM_LIST_NODE pGuardian = NULL;
+    PLSA_LIST_LINKS pGuardian = NULL;
     // do not free
-    PMEM_LIST_NODE pMemPos = NULL;
+    PLSA_LIST_LINKS pMemPos = NULL;
     // do not free
     PDLINKEDLIST pPos = NULL;
+    PSTR pszTempFile = NULL;
 
     ENTER_READER_RW_LOCK(&pConn->lock, bInLock);
 
@@ -468,6 +566,11 @@ MemCacheStoreFile(
                     gMemCachePersistence));
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = LsaAllocateStringPrintf(
+                    &pszTempFile,
+                    "%s.new",
+                    pConn->pszFilename);
+    BAIL_ON_LSA_ERROR(dwError);
     dwError = MAP_LWMSG_ERROR(lwmsg_archive_new(
                     NULL,
                     pArchiveProtocol,
@@ -475,7 +578,7 @@ MemCacheStoreFile(
     BAIL_ON_LSA_ERROR(dwError);
     dwError = MAP_LWMSG_ERROR(lwmsg_archive_set_file(
                     pArchive,
-                    pConn->pszFilename,
+                    pszTempFile,
                     LWMSG_ARCHIVE_WRITE,
                     0600));
     BAIL_ON_LSA_ERROR(dwError);
@@ -503,8 +606,8 @@ MemCacheStoreFile(
     BAIL_ON_LSA_ERROR(dwError);
     while ((pEntry = LsaHashNext(&iterator)) != NULL)
     {
-        pGuardian = (PMEM_LIST_NODE) pEntry->pValue;
-        pMemPos = pGuardian->pNext;
+        pGuardian = (PLSA_LIST_LINKS) pEntry->pValue;
+        pMemPos = pGuardian->Next;
         while (pMemPos != pGuardian)
         {
             message.data = PARENT_NODE_TO_MEMBERSHIP(pMemPos);
@@ -513,7 +616,7 @@ MemCacheStoreFile(
                             &message));
             BAIL_ON_LSA_ERROR(dwError);
 
-            pMemPos = pMemPos->pNext;
+            pMemPos = pMemPos->Next;
         }
     }
 
@@ -534,6 +637,9 @@ MemCacheStoreFile(
     dwError = MAP_LWMSG_ERROR(lwmsg_archive_close(pArchive));
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = LsaMoveFile(pszTempFile, pConn->pszFilename);
+    BAIL_ON_LSA_ERROR(dwError);
+
 cleanup:
     LEAVE_RW_LOCK(&pConn->lock, bInLock);
     if (pArchive)
@@ -545,6 +651,8 @@ cleanup:
     {
         lwmsg_protocol_delete(pArchiveProtocol);
     }
+
+    LSA_SAFE_FREE_STRING(pszTempFile);
 
     return dwError;
 
@@ -571,10 +679,11 @@ MemCacheRemoveMembership(
 {
     DWORD dwError = 0;
 
-    pMembership->parentListNode.pPrev->pNext = pMembership->parentListNode.pNext;
-    pMembership->parentListNode.pNext->pPrev = pMembership->parentListNode.pPrev;
+    pConn->sCacheSize -= pMembership->membership.version.dwObjectSize;
 
-    if (pMembership->parentListNode.pPrev->pPrev == pMembership->parentListNode.pPrev)
+    LsaListRemove(&pMembership->parentListNode);
+
+    if (pMembership->parentListNode.Prev->Prev == pMembership->parentListNode.Prev)
     {
         // Only the guardian is left, so remove the hash entry
         dwError = LsaHashRemoveKey(
@@ -583,10 +692,9 @@ MemCacheRemoveMembership(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    pMembership->childListNode.pPrev->pNext = pMembership->childListNode.pNext;
-    pMembership->childListNode.pNext->pPrev = pMembership->childListNode.pPrev;
+    LsaListRemove(&pMembership->childListNode);
 
-    if (pMembership->childListNode.pPrev->pPrev == pMembership->childListNode.pPrev)
+    if (pMembership->childListNode.Prev->Prev == pMembership->childListNode.Prev)
     {
         // Only the guardian is left, so remove the hash entry
         dwError = LsaHashRemoveKey(
@@ -611,9 +719,30 @@ MemCacheSafeClose(
 {
     PMEM_DB_CONNECTION pConn = (PMEM_DB_CONNECTION)*phDb;
     DWORD dwError = 0;
+    void* pError = NULL;
 
     if (pConn)
     {
+        if (pConn->bBackupThreadCreated)
+        {
+            // Notify the backup thread that it needs to shutdown. It will
+            // backup one last time if necessary.
+            dwError = pthread_mutex_lock(&pConn->backupMutex);
+            LSA_ASSERT(dwError == 0);
+            pConn->bNeedShutdown = TRUE;
+            dwError = pthread_cond_signal(&pConn->signalBackup);
+            LSA_ASSERT(dwError == 0);
+            dwError = pthread_cond_signal(&pConn->signalShutdown);
+            LSA_ASSERT(dwError == 0);
+            dwError = pthread_mutex_unlock(&pConn->backupMutex);
+            LSA_ASSERT(dwError == 0);
+
+            // Wait for the thread to exit
+            dwError = pthread_join(pConn->backupThread, &pError);
+            LSA_ASSERT(dwError == 0);
+            LSA_ASSERT(pError == NULL);
+        }
+
         dwError = MemCacheEmptyCache(*phDb);
         LSA_ASSERT(dwError == 0);
 
@@ -638,6 +767,22 @@ MemCacheSafeClose(
         {
             pthread_rwlock_destroy(&pConn->lock);
         }
+        if (pConn->bBackupMutexCreated)
+        {
+            dwError = pthread_mutex_destroy(&pConn->backupMutex);
+            LSA_ASSERT(dwError == 0);
+        }
+        if (pConn->bSignalBackupCreated)
+        {
+            dwError = pthread_cond_destroy(&pConn->signalBackup);
+            LSA_ASSERT(dwError == 0);
+        }
+        if (pConn->bSignalShutdownCreated)
+        {
+            dwError = pthread_cond_destroy(&pConn->signalShutdown);
+            LSA_ASSERT(dwError == 0);
+        }
+
         LSA_SAFE_FREE_MEMORY(*phDb);
     }
 }
@@ -934,7 +1079,9 @@ MemCacheRemoveUserBySid(
     DWORD dwError = 0;
     PMEM_DB_CONNECTION pConn = (PMEM_DB_CONNECTION)hDb;
     BOOLEAN bInLock = FALSE;
+    BOOLEAN bMutexLocked = FALSE;
 
+    ENTER_MUTEX(&pConn->backupMutex, bMutexLocked);
     ENTER_WRITER_RW_LOCK(&pConn->lock, bInLock);
 
     dwError = MemCacheRemoveObjectByHashKey(
@@ -943,8 +1090,13 @@ MemCacheRemoveUserBySid(
                     pszSid);
     BAIL_ON_LSA_ERROR(dwError);
 
+    pConn->bNeedBackup = TRUE;
+    dwError = pthread_cond_signal(&pConn->signalBackup);
+    BAIL_ON_LSA_ERROR(dwError);
+
 cleanup:
     LEAVE_RW_LOCK(&pConn->lock, bInLock);
+    LEAVE_MUTEX(&pConn->backupMutex, bMutexLocked);
     return dwError;
 
 error:
@@ -960,7 +1112,9 @@ MemCacheRemoveGroupBySid(
     DWORD dwError = 0;
     PMEM_DB_CONNECTION pConn = (PMEM_DB_CONNECTION)hDb;
     BOOLEAN bInLock = FALSE;
+    BOOLEAN bMutexLocked = FALSE;
 
+    ENTER_MUTEX(&pConn->backupMutex, bMutexLocked);
     ENTER_WRITER_RW_LOCK(&pConn->lock, bInLock);
 
     dwError = MemCacheRemoveObjectByHashKey(
@@ -969,8 +1123,13 @@ MemCacheRemoveGroupBySid(
                     pszSid);
     BAIL_ON_LSA_ERROR(dwError);
 
+    pConn->bNeedBackup = TRUE;
+    dwError = pthread_cond_signal(&pConn->signalBackup);
+    BAIL_ON_LSA_ERROR(dwError);
+
 cleanup:
     LEAVE_RW_LOCK(&pConn->lock, bInLock);
+    LEAVE_MUTEX(&pConn->backupMutex, bMutexLocked);
     return dwError;
 
 error:
@@ -988,6 +1147,12 @@ MemCacheEmptyCache(
     LSA_HASH_ITERATOR iterator = {0};
     // Do not free
     LSA_HASH_ENTRY *pEntry = NULL;
+    BOOLEAN bMutexLocked = FALSE;
+
+    if (pConn->bBackupMutexCreated)
+    {
+        ENTER_MUTEX(&pConn->backupMutex, bMutexLocked);
+    }
 
     if (pConn->bLockCreated)
     {
@@ -1043,14 +1208,14 @@ MemCacheEmptyCache(
 
     while ((pEntry = LsaHashNext(&iterator)) != NULL)
     {
-        PMEM_LIST_NODE pGuardian = (PMEM_LIST_NODE)pEntry->pValue;
+        PLSA_LIST_LINKS pGuardian = (PLSA_LIST_LINKS)pEntry->pValue;
         // Since the hash entry exists, the list must be non-empty
         BOOLEAN bListNonempty = TRUE;
 
         while (bListNonempty)
         {
-            LSA_ASSERT(pGuardian->pNext != pGuardian);
-            if (pGuardian->pNext->pNext == pGuardian)
+            LSA_ASSERT(!LsaListIsEmpty(pGuardian));
+            if (pGuardian->Next->Next == pGuardian)
             {
                 // At this point, there is a guardian node plus one other
                 // entry. MemCacheRemoveMembership will remove the last
@@ -1063,7 +1228,7 @@ MemCacheEmptyCache(
             }
             dwError = MemCacheRemoveMembership(
                             pConn,
-                            PARENT_NODE_TO_MEMBERSHIP(pGuardian->pNext));
+                            PARENT_NODE_TO_MEMBERSHIP(pGuardian->Next));
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
@@ -1078,8 +1243,18 @@ MemCacheEmptyCache(
     LsaDLinkedListFree(pConn->pObjects);
     pConn->pObjects = NULL;
 
+    pConn->sCacheSize = 0;
+
+    if (bMutexLocked)
+    {
+        pConn->bNeedBackup = TRUE;
+        dwError = pthread_cond_signal(&pConn->signalBackup);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
 cleanup:
     LEAVE_RW_LOCK(&pConn->lock, bInLock);
+    LEAVE_MUTEX(&pConn->backupMutex, bMutexLocked);
     return dwError;
 
 error:
@@ -1189,6 +1364,8 @@ MemCacheRemoveObjectByHashKey(
         pListEntry->pNext->pPrev = pListEntry->pPrev;
     }
     LSA_SAFE_FREE_MEMORY(pListEntry);
+    pConn->sCacheSize -= pObject->version.dwObjectSize;
+
     ADCacheSafeFreeObject(&pObject);
 
 cleanup:
@@ -1315,10 +1492,12 @@ MemCacheStoreObjectEntries(
     PLSA_SECURITY_OBJECT pObject = NULL;
     PSTR pszKey = NULL;
     time_t now = 0;
+    BOOLEAN bMutexLocked = FALSE;
 
     dwError = LsaGetCurrentTimeSeconds(&now);
     BAIL_ON_LSA_ERROR(dwError);
 
+    ENTER_MUTEX(&pConn->backupMutex, bMutexLocked);
     ENTER_WRITER_RW_LOCK(&pConn->lock, bInLock);
 
     // For simplicity, don't check whether keys exist for sure or whether the
@@ -1386,15 +1565,35 @@ MemCacheStoreObjectEntries(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
+    pConn->bNeedBackup = TRUE;
+    dwError = pthread_cond_signal(&pConn->signalBackup);
+    BAIL_ON_LSA_ERROR(dwError);
+
 cleanup:
     LSA_SAFE_FREE_STRING(pszKey);
     LEAVE_RW_LOCK(&pConn->lock, bInLock);
+    LEAVE_MUTEX(&pConn->backupMutex, bMutexLocked);
 
     return dwError;
 
 error:
     ADCacheSafeFreeObject(&pObject);
     goto cleanup;
+}
+
+size_t
+MemCacheGetStringSpace(
+    IN PCSTR pszStr
+    )
+{
+    if (pszStr)
+    {
+        return strlen(pszStr) + HEAP_HEADER_SIZE;
+    }
+    else
+    {
+        return 0;
+    }
 }
 
 DWORD
@@ -1405,6 +1604,9 @@ MemCacheStoreObjectEntryInLock(
 {
     DWORD dwError = 0;
     PSTR pszKey = NULL;
+    // Keep track of how much space is used to store the object (including hash
+    // space)
+    size_t sObjectSize = sizeof(*pObject) + HEAP_HEADER_SIZE;
 
     dwError = MemCacheClearExistingObjectKeys(
                     pConn,
@@ -1418,8 +1620,13 @@ MemCacheStoreObjectEntryInLock(
                     pObject);
     BAIL_ON_LSA_ERROR(dwError);
 
+    sObjectSize += sizeof(*pConn->pObjects) + HEAP_HEADER_SIZE;
+
     if (pObject->pszDN != NULL)
     {
+        sObjectSize += MemCacheGetStringSpace(pObject->pszDN);
+
+        sObjectSize += HASH_ENTRY_SPACE;
         dwError = LsaHashSetValue(
                         pConn->pDNToSecurityObject,
                         pObject->pszDN,
@@ -1427,14 +1634,28 @@ MemCacheStoreObjectEntryInLock(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
+    LSA_ASSERT(pObject->pszObjectSid);
+    sObjectSize += MemCacheGetStringSpace(pObject->pszObjectSid);
+    sObjectSize += HASH_ENTRY_SPACE;
+    dwError = LsaHashSetValue(
+                    pConn->pSIDToSecurityObject,
+                    pObject->pszObjectSid,
+                    pConn->pObjects);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    sObjectSize += MemCacheGetStringSpace(pObject->pszNetbiosDomainName);
+    sObjectSize += MemCacheGetStringSpace(pObject->pszSamAccountName);
+
     dwError = LsaAllocateStringPrintf(
                     &pszKey,
                     "%s\\%s",
                     pObject->pszNetbiosDomainName,
                     pObject->pszSamAccountName);
     BAIL_ON_LSA_ERROR(dwError);
+    sObjectSize += MemCacheGetStringSpace(pszKey);
 
     LSA_ASSERT(pszKey != NULL);
+    sObjectSize += HASH_ENTRY_SPACE;
     dwError = LsaHashSetValue(
                     pConn->pNT4ToSecurityObject,
                     pszKey,
@@ -1443,16 +1664,10 @@ MemCacheStoreObjectEntryInLock(
     // The key is now owned by the hash table
     pszKey = NULL;
 
-    LSA_ASSERT(pObject->pszObjectSid);
-    dwError = LsaHashSetValue(
-                    pConn->pSIDToSecurityObject,
-                    pObject->pszObjectSid,
-                    pConn->pObjects);
-    BAIL_ON_LSA_ERROR(dwError);
-
     switch(pObject->type)
     {
         case AccountType_Group:
+            sObjectSize += HASH_ENTRY_SPACE;
             dwError = LsaHashSetValue(
                             pConn->pGIDToSecurityObject,
                             (PVOID)(size_t)pObject->groupInfo.gid,
@@ -1461,22 +1676,41 @@ MemCacheStoreObjectEntryInLock(
 
             if (pObject->groupInfo.pszAliasName)
             {
+                sObjectSize += HASH_ENTRY_SPACE;
                 dwError = LsaHashSetValue(
                                 pConn->pGroupAliasToSecurityObject,
                                 pObject->groupInfo.pszAliasName,
                                 pConn->pObjects);
                 BAIL_ON_LSA_ERROR(dwError);
+
+                sObjectSize += MemCacheGetStringSpace(pObject->groupInfo.pszAliasName);
             }
+
+            sObjectSize += MemCacheGetStringSpace(pObject->groupInfo.pszPasswd);
             break;
         case AccountType_User:
+            sObjectSize += HASH_ENTRY_SPACE;
             dwError = LsaHashSetValue(
                             pConn->pUIDToSecurityObject,
                             (PVOID)(size_t)pObject->userInfo.uid,
                             pConn->pObjects);
             BAIL_ON_LSA_ERROR(dwError);
 
+            if (pObject->userInfo.pszUPN)
+            {
+                sObjectSize += MemCacheGetStringSpace(pObject->userInfo.pszUPN);
+                sObjectSize += HASH_ENTRY_SPACE;
+                dwError = LsaHashSetValue(
+                                pConn->pUPNToSecurityObject,
+                                pObject->userInfo.pszUPN,
+                                pConn->pObjects);
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+
             if (pObject->userInfo.pszAliasName)
             {
+                sObjectSize += MemCacheGetStringSpace(pObject->userInfo.pszAliasName);
+                sObjectSize += HASH_ENTRY_SPACE;
                 dwError = LsaHashSetValue(
                                 pConn->pUserAliasToSecurityObject,
                                 pObject->userInfo.pszAliasName,
@@ -1484,16 +1718,17 @@ MemCacheStoreObjectEntryInLock(
                 BAIL_ON_LSA_ERROR(dwError);
             }
 
-            if (pObject->userInfo.pszUPN)
-            {
-                dwError = LsaHashSetValue(
-                                pConn->pUPNToSecurityObject,
-                                pObject->userInfo.pszUPN,
-                                pConn->pObjects);
-                BAIL_ON_LSA_ERROR(dwError);
-            }
+            sObjectSize += MemCacheGetStringSpace(pObject->userInfo.pszPasswd);
+            sObjectSize += MemCacheGetStringSpace(pObject->userInfo.pszGecos);
+            sObjectSize += MemCacheGetStringSpace(pObject->userInfo.pszShell);
+            sObjectSize += MemCacheGetStringSpace(pObject->userInfo.pszHomedir);
             break;
     }
+
+    pObject = (PLSA_SECURITY_OBJECT)pConn->pObjects->pItem;
+    pObject->version.dwObjectSize = sObjectSize;
+
+    pConn->sCacheSize += sObjectSize;
 
 cleanup:
     LSA_SAFE_FREE_STRING(pszKey);
@@ -1563,10 +1798,23 @@ MemCacheAddMembership(
     )
 {
     // Do not free
-    PMEM_LIST_NODE pGuardian = NULL;
+    PLSA_LIST_LINKS pGuardian = NULL;
     DWORD dwError = 0;
-    PMEM_LIST_NODE pGuardianTemp = NULL;
+    PLSA_LIST_LINKS pGuardianTemp = NULL;
     PSTR pszSidCopy = NULL;
+    size_t sObjectSize = sizeof(*pMembership) + HEAP_HEADER_SIZE;
+
+    sObjectSize += MemCacheGetStringSpace(pMembership->membership.pszParentSid);
+    sObjectSize += MemCacheGetStringSpace(pMembership->membership.pszChildSid);
+
+    // For simplicity assume we always add a guardian node with regards to
+    // space calculations
+    sObjectSize += HASH_ENTRY_SPACE;
+    sObjectSize += MemCacheGetStringSpace(pMembership->membership.pszParentSid);
+    sObjectSize += HASH_ENTRY_SPACE;
+    sObjectSize += MemCacheGetStringSpace(pMembership->membership.pszChildSid);
+
+    pMembership->membership.version.dwObjectSize = sObjectSize;
 
     dwError = LsaHashGetValue(
                     pConn->pParentSIDToMembershipList,
@@ -1582,8 +1830,7 @@ MemCacheAddMembership(
                         (PVOID*)&pGuardianTemp);
         BAIL_ON_LSA_ERROR(dwError);
 
-        pGuardianTemp->pNext = pGuardianTemp;
-        pGuardianTemp->pPrev = pGuardianTemp;
+        LsaListInit(pGuardianTemp);
 
         dwError = LsaStrDupOrNull(
                         pMembership->membership.pszParentSid,
@@ -1607,11 +1854,9 @@ MemCacheAddMembership(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    pMembership->parentListNode.pNext = pGuardian->pNext;
-    pMembership->parentListNode.pPrev = pGuardian;
-
-    pGuardian->pNext->pPrev = &pMembership->parentListNode;
-    pGuardian->pNext = &pMembership->parentListNode;
+    LsaListInsertAfter(
+        pGuardian,
+        &pMembership->parentListNode);
 
     dwError = LsaHashGetValue(
                     pConn->pChildSIDToMembershipList,
@@ -1627,8 +1872,7 @@ MemCacheAddMembership(
                         (PVOID*)&pGuardianTemp);
         BAIL_ON_LSA_ERROR(dwError);
 
-        pGuardianTemp->pNext = pGuardianTemp;
-        pGuardianTemp->pPrev = pGuardianTemp;
+        LsaListInit(pGuardianTemp);
 
         dwError = LsaStrDupOrNull(
                         pMembership->membership.pszChildSid,
@@ -1652,11 +1896,11 @@ MemCacheAddMembership(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    pMembership->childListNode.pNext = pGuardian->pNext;
-    pMembership->childListNode.pPrev = pGuardian;
+    LsaListInsertAfter(
+            pGuardian,
+            &pMembership->childListNode);
 
-    pGuardian->pNext->pPrev = &pMembership->childListNode;
-    pGuardian->pNext = &pMembership->childListNode;
+    pConn->sCacheSize += sObjectSize;
 
 cleanup:
     LSA_SAFE_FREE_MEMORY(pGuardianTemp);
@@ -1682,9 +1926,9 @@ MemCacheStoreGroupMembership(
     // Do not free
     PMEM_GROUP_MEMBERSHIP pExistingMembership = NULL;
     // Do not free
-    PMEM_LIST_NODE pGuardian = NULL;
+    PLSA_LIST_LINKS pGuardian = NULL;
     // Do not free
-    PMEM_LIST_NODE pPos = NULL;
+    PLSA_LIST_LINKS pPos = NULL;
     BOOLEAN bListNonempty = FALSE;
     LSA_HASH_ITERATOR iterator = {0};
     size_t sIndex = 0;
@@ -1693,6 +1937,7 @@ MemCacheStoreGroupMembership(
     // Do not free
     LSA_HASH_ENTRY *pEntry = NULL;
     time_t now = 0;
+    BOOLEAN bMutexLocked = FALSE;
 
     dwError = LsaGetCurrentTimeSeconds(&now);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1728,6 +1973,7 @@ MemCacheStoreGroupMembership(
         pMembership = NULL;
     }
 
+    ENTER_MUTEX(&pConn->backupMutex, bMutexLocked);
     ENTER_WRITER_RW_LOCK(&pConn->lock, bInLock);
 
     dwError = MemCacheEnsureHashSpace(
@@ -1754,7 +2000,7 @@ MemCacheStoreGroupMembership(
 
     if (pGuardian)
     {
-        pPos = pGuardian->pNext;
+        pPos = pGuardian->Next;
     }
     else
     {
@@ -1797,7 +2043,7 @@ MemCacheStoreGroupMembership(
             // it from getting double freed.
             pMembership = NULL;
         }
-        pPos = pPos->pNext;
+        pPos = pPos->Next;
     }
 
     // Remove all of the existing memberships in the child hash and parent hash
@@ -1809,8 +2055,8 @@ MemCacheStoreGroupMembership(
 
     while (bListNonempty)
     {
-        LSA_ASSERT(pGuardian->pNext != pGuardian);
-        if (pGuardian->pNext->pNext == pGuardian)
+        LSA_ASSERT(!LsaListIsEmpty(pGuardian));
+        if (pGuardian->Next->Next == pGuardian)
         {
             // At this point, there is a guardian node plus one other
             // entry. MemCacheRemoveMembership will remove the last
@@ -1823,7 +2069,7 @@ MemCacheStoreGroupMembership(
         }
         dwError = MemCacheRemoveMembership(
                         pConn,
-                        PARENT_NODE_TO_MEMBERSHIP(pGuardian->pNext));
+                        PARENT_NODE_TO_MEMBERSHIP(pGuardian->Next));
         LSA_ASSERT(dwError == 0);
     }
 
@@ -1843,8 +2089,13 @@ MemCacheStoreGroupMembership(
         pEntry->pValue = NULL;
     }
 
+    pConn->bNeedBackup = TRUE;
+    dwError = pthread_cond_signal(&pConn->signalBackup);
+    BAIL_ON_LSA_ERROR(dwError);
+
 cleanup:
     LEAVE_RW_LOCK(&pConn->lock, bInLock);
+    LEAVE_MUTEX(&pConn->backupMutex, bMutexLocked);
     LsaHashSafeFree(&pCombined);
 
     return dwError;
@@ -1870,9 +2121,9 @@ MemCacheStoreGroupsForUser(
     // Do not free
     PMEM_GROUP_MEMBERSHIP pExistingMembership = NULL;
     // Do not free
-    PMEM_LIST_NODE pGuardian = NULL;
+    PLSA_LIST_LINKS pGuardian = NULL;
     // Do not free
-    PMEM_LIST_NODE pPos = NULL;
+    PLSA_LIST_LINKS pPos = NULL;
     BOOLEAN bListNonempty = FALSE;
     LSA_HASH_ITERATOR iterator = {0};
     size_t sIndex = 0;
@@ -1881,6 +2132,7 @@ MemCacheStoreGroupsForUser(
     // Do not free
     LSA_HASH_ENTRY *pEntry = NULL;
     time_t now = 0;
+    BOOLEAN bMutexLocked = FALSE;
 
     dwError = LsaGetCurrentTimeSeconds(&now);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1916,6 +2168,7 @@ MemCacheStoreGroupsForUser(
         pMembership = NULL;
     }
 
+    ENTER_MUTEX(&pConn->backupMutex, bMutexLocked);
     ENTER_WRITER_RW_LOCK(&pConn->lock, bInLock);
 
     dwError = MemCacheEnsureHashSpace(
@@ -1942,7 +2195,7 @@ MemCacheStoreGroupsForUser(
     {
         // Copy the existing pac and primary domain memberships to the
         // temporary hash table
-        pPos = pGuardian->pNext;
+        pPos = pGuardian->Next;
 
         while(pPos != pGuardian)
         {
@@ -1981,7 +2234,7 @@ MemCacheStoreGroupsForUser(
                 // it from getting double freed.
                 pMembership = NULL;
             }
-            pPos = pPos->pNext;
+            pPos = pPos->Next;
         }
     }
 
@@ -1994,8 +2247,8 @@ MemCacheStoreGroupsForUser(
 
     while (bListNonempty)
     {
-        LSA_ASSERT(pGuardian->pNext != pGuardian);
-        if (pGuardian->pNext->pNext == pGuardian)
+        LSA_ASSERT(!LsaListIsEmpty(pGuardian));
+        if (pGuardian->Next->Next == pGuardian)
         {
             // At this point, there is a guardian node plus one other
             // entry. MemCacheRemoveMembership will remove the last
@@ -2008,7 +2261,7 @@ MemCacheStoreGroupsForUser(
         }
         dwError = MemCacheRemoveMembership(
                         pConn,
-                        CHILD_NODE_TO_MEMBERSHIP(pGuardian->pNext));
+                        CHILD_NODE_TO_MEMBERSHIP(pGuardian->Next));
         LSA_ASSERT(dwError == 0);
     }
 
@@ -2028,8 +2281,13 @@ MemCacheStoreGroupsForUser(
         pEntry->pValue = NULL;
     }
 
+    pConn->bNeedBackup = TRUE;
+    dwError = pthread_cond_signal(&pConn->signalBackup);
+    BAIL_ON_LSA_ERROR(dwError);
+
 cleanup:
     LEAVE_RW_LOCK(&pConn->lock, bInLock);
+    LEAVE_MUTEX(&pConn->backupMutex, bMutexLocked);
     LsaHashSafeFree(&pCombined);
 
     return dwError;
@@ -2056,9 +2314,9 @@ MemCacheGetMemberships(
     // Do not free
     PLSA_HASH_TABLE pIndex = NULL;
     // Do not free
-    PMEM_LIST_NODE pGuardian = NULL;
+    PLSA_LIST_LINKS pGuardian = NULL;
     // Do not free
-    PMEM_LIST_NODE pPos = NULL;
+    PLSA_LIST_LINKS pPos = NULL;
     size_t sCount = 0;
     // Do not free
     PMEM_GROUP_MEMBERSHIP pMembership = NULL;
@@ -2089,7 +2347,7 @@ MemCacheGetMemberships(
 
     if (pGuardian)
     {
-        pPos = pGuardian->pNext;
+        pPos = pGuardian->Next;
     }
     else
     {
@@ -2098,7 +2356,7 @@ MemCacheGetMemberships(
     while (pPos != pGuardian)
     {
         sCount++;
-        pPos = pPos->pNext;
+        pPos = pPos->Next;
     }
 
     dwError = LsaAllocateMemory(
@@ -2108,7 +2366,7 @@ MemCacheGetMemberships(
 
     if (pGuardian)
     {
-        pPos = pGuardian->pNext;
+        pPos = pGuardian->Next;
     }
     else
     {
@@ -2143,7 +2401,7 @@ MemCacheGetMemberships(
             sCount++;
         }
 
-        pPos = pPos->pNext;
+        pPos = pPos->Next;
     }
 
     *pppResults = ppResults;
@@ -2589,7 +2847,10 @@ MemCacheStorePasswordVerifier(
     PLSA_PASSWORD_VERIFIER pCopy = NULL;
     // Do not free
     PLSA_HASH_TABLE pIndex = NULL;
+    BOOLEAN bMutexLocked = FALSE;
+    size_t sObjectSize = sizeof(*pVerifier) + HEAP_HEADER_SIZE;
 
+    ENTER_MUTEX(&pConn->backupMutex, bMutexLocked);
     ENTER_WRITER_RW_LOCK(&pConn->lock, bInLock);
 
     pIndex = pConn->pSIDToPasswordVerifier;
@@ -2599,6 +2860,12 @@ MemCacheStorePasswordVerifier(
                     pVerifier);
     BAIL_ON_LSA_ERROR(dwError);
 
+    sObjectSize += MemCacheGetStringSpace(pVerifier->pszObjectSid);
+    sObjectSize += MemCacheGetStringSpace(pVerifier->pszPasswordVerifier);
+    sObjectSize += HASH_ENTRY_SPACE;
+
+    pCopy->version.dwObjectSize = sObjectSize;
+
     dwError = LsaHashSetValue(
                     pIndex,
                     pCopy->pszObjectSid,
@@ -2607,9 +2874,16 @@ MemCacheStorePasswordVerifier(
     // This is now owned by the hash
     pCopy = NULL;
 
+    pConn->sCacheSize += sObjectSize;
+
+    pConn->bNeedBackup = TRUE;
+    dwError = pthread_cond_signal(&pConn->signalBackup);
+    BAIL_ON_LSA_ERROR(dwError);
+
 cleanup:
     LSA_DB_SAFE_FREE_PASSWORD_VERIFIER(pCopy);
     LEAVE_RW_LOCK(&pConn->lock, bInLock);
+    LEAVE_MUTEX(&pConn->backupMutex, bMutexLocked);
 
     return dwError;
 

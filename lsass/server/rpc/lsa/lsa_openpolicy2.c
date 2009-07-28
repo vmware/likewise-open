@@ -61,10 +61,8 @@ LsaSrvOpenPolicy2(
     PPOLICY_CONTEXT pPolCtx = NULL;
     HANDLE hDirectory = NULL;
 
-    status = LsaSrvAllocateMemory((void**)&pPolCtx,
-                                  sizeof(*pPolCtx),
-                                  NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    RTL_ALLOCATE(&pPolCtx, POLICY_CONTEXT, sizeof(*pPolCtx));
+    BAIL_ON_NO_MEMORY(pPolCtx);
 
     dwError = DirectoryOpen(&hDirectory);
     BAIL_ON_LSA_ERROR(dwError);

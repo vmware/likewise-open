@@ -265,10 +265,10 @@ DWORD
 NtlmCreateResponseMessage(
     IN PNTLM_CHALLENGE_MESSAGE pChlngMsg,
     IN PCHAR pAuthTargetName,
-    IN PCHAR pUserName,
+    IN PCSTR pUserName,
     IN PCHAR pWorkstation,
     IN PBYTE pOsVersion,
-    IN PCHAR pPassword,
+    IN PCSTR pPassword,
     IN DWORD dwNtRespType,
     IN DWORD dwLmRespType,
     OUT PDWORD pdwSize,
@@ -283,7 +283,7 @@ NtlmValidateResponseMessage(
 DWORD
 NtlmBuildResponse(
     IN PNTLM_CHALLENGE_MESSAGE pChlngMsg,
-    IN PCHAR pPassword,
+    IN PCSTR pPassword,
     IN DWORD dwResponseType,
     IN DWORD dwBufferSize,
     OUT PBYTE pBuffer
@@ -292,7 +292,7 @@ NtlmBuildResponse(
 DWORD
 NtlmBuildLmResponse(
     IN PNTLM_CHALLENGE_MESSAGE pChlngMsg,
-    IN PCHAR pPassword,
+    IN PCSTR pPassword,
     IN DWORD dwLength,
     OUT PBYTE pResponse
     );
@@ -300,7 +300,7 @@ NtlmBuildLmResponse(
 DWORD
 NtlmBuildNtlmResponse(
     IN PNTLM_CHALLENGE_MESSAGE pChlngMsg,
-    IN PCHAR pPassword,
+    IN PCSTR pPassword,
     IN DWORD dwLength,
     OUT PBYTE pResponse
     );

@@ -65,19 +65,23 @@
            bInLock = TRUE;                                 \
         }
 
-typedef struct _MEM_LIST_NODE MEM_LIST_NODE, *PMEM_LIST_NODE;
+#define ENTER_MUTEX(pMutex, bInLock) \
+        if (!bInLock) {                                    \
+           pthread_mutex_lock(pMutex);            \
+           bInLock = TRUE;                                 \
+        }
 
-struct _MEM_LIST_NODE
-{
-    PMEM_LIST_NODE pNext;
-    PMEM_LIST_NODE pPrev;
-};
+#define LEAVE_MUTEX(pMutex, bInLock) \
+        if (bInLock) {                                     \
+           pthread_mutex_unlock(pMutex);            \
+           bInLock = FALSE;                                \
+        }
 
 typedef struct _MEM_GROUP_MEMBERSHIP
 {
     LSA_GROUP_MEMBERSHIP membership;
-    MEM_LIST_NODE parentListNode;
-    MEM_LIST_NODE childListNode;
+    LSA_LIST_LINKS parentListNode;
+    LSA_LIST_LINKS childListNode;
 } MEM_GROUP_MEMBERSHIP, *PMEM_GROUP_MEMBERSHIP;
 
 #define PARENT_NODE_TO_MEMBERSHIP(x) (PMEM_GROUP_MEMBERSHIP) \
@@ -86,12 +90,37 @@ typedef struct _MEM_GROUP_MEMBERSHIP
 #define CHILD_NODE_TO_MEMBERSHIP(x) (PMEM_GROUP_MEMBERSHIP) \
     ((char *)x - (char *)&((PMEM_GROUP_MEMBERSHIP)0)->childListNode)
 
+// An estimate of how many bytes of overhead are used for every item allocated
+// on the heap
+#define HEAP_HEADER_SIZE    16
+
+// Space for the hash entry on the heap, plus enough space in the table for it
+// to be half full (room for an extra pointer)
+#define HASH_ENTRY_SPACE (sizeof(LSA_HASH_ENTRY) + \
+                            HEAP_HEADER_SIZE + \
+                            2 * sizeof(LSA_HASH_ENTRY *))
+
 typedef struct _MEM_DB_CONNECTION
 {
     BOOLEAN bLockCreated;
     pthread_rwlock_t lock;
 
+    pthread_mutex_t backupMutex;
+    BOOLEAN bBackupMutexCreated;
+    pthread_t backupThread;
+    BOOLEAN bBackupThreadCreated;
+    DWORD dwBackupDelay;
+    BOOLEAN bNeedBackup;
+    pthread_cond_t signalBackup;
+    BOOLEAN bSignalBackupCreated;
+    BOOLEAN bNeedShutdown;
+    pthread_cond_t signalShutdown;
+    BOOLEAN bSignalShutdownCreated;
+
     PSTR pszFilename;
+
+    size_t sCacheSize;
+    size_t sSizeCap;
 
     //linked lists
     // pItem is of type PLSA_SECURITY_OBJECT
@@ -111,12 +140,12 @@ typedef struct _MEM_DB_CONNECTION
     PLSA_HASH_TABLE pGIDToSecurityObject;
     PLSA_HASH_TABLE pGroupAliasToSecurityObject;
 
-    // Points to a guardian MEM_LIST_NODE. The rest of the linked list points
-    // to MEM_LIST_NODEs from the parentListNode field in MEM_GROUP_MEMBERSHIP
+    // Points to a guardian LSA_LIST_LINKS. The rest of the linked list points
+    // to LSA_LIST_LINKS from the parentListNode field in MEM_GROUP_MEMBERSHIP
     // objects.
     PLSA_HASH_TABLE pParentSIDToMembershipList;
-    // Points to a guardian MEM_LIST_NODE. The rest of the linked list points
-    // to MEM_LIST_NODEs from the childListNode field in MEM_GROUP_MEMBERSHIP
+    // Points to a guardian LSA_LIST_LINKS. The rest of the linked list points
+    // to LSA_LIST_LINKS from the childListNode field in MEM_GROUP_MEMBERSHIP
     // objects.
     PLSA_HASH_TABLE pChildSIDToMembershipList;
 } MEM_DB_CONNECTION, *PMEM_DB_CONNECTION;
@@ -238,6 +267,11 @@ MemCacheStoreObjectEntries(
     IN LSA_DB_HANDLE hDb,
     IN size_t  sObjectCount,
     IN PLSA_SECURITY_OBJECT* ppObjects
+    );
+
+size_t
+MemCacheGetStringSpace(
+    IN PCSTR pszStr
     );
 
 DWORD

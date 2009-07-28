@@ -303,6 +303,21 @@ then
 	AC_DEFINE([ENABLE_STATIC_DRIVERS], [], [Define if drivers should be built directly into lwiod])
 fi
 
+ENABLE_IOTEST=true
+
+AC_ARG_ENABLE([iotest],
+        [AC_HELP_STRING([--disable-iotest], [disable iotest (default: enabled)])],
+        [
+                if test x"$enableval" = x"yes"
+                then
+                        ENABLE_IOTEST=true
+                else
+                        ENABLE_IOTEST=false
+                fi
+        ])
+
+AM_CONDITIONAL(ENABLE_IOTEST, [$ENABLE_IOTEST])
+
 
 #####
 ## Unit tests

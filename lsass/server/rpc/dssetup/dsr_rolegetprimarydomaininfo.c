@@ -81,8 +81,7 @@ DsrSrvRoleGetPrimaryDomainInformation(
     PDS_ROLE_INFO pInfo = NULL;
 
     status = DsrSrvAllocateMemory((void**)&pInfo,
-                                  sizeof(*pInfo),
-                                  NULL);
+                                  sizeof(*pInfo));
     BAIL_ON_NTSTATUS_ERROR(status);
 
     switch (uiLevel) {
@@ -194,18 +193,15 @@ DsrSrvRoleGetPDCInfoBasic(
     BAIL_ON_NTSTATUS_ERROR(status);
 
     status = DsrSrvGetFromUnicodeStringEx(&pwszDomain,
-                                          &pPolInfo->dns.name,
-                                          pParent);
+                                          &pPolInfo->dns.name);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     status = DsrSrvGetFromUnicodeStringEx(&pwszDnsDomain,
-                                          &pPolInfo->dns.dns_domain,
-                                          pParent);
+                                          &pPolInfo->dns.dns_domain);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     status = DsrSrvGetFromUnicodeStringEx(&pwszForest,
-                                          &pPolInfo->dns.dns_forest,
-                                          pParent);
+                                          &pPolInfo->dns.dns_forest);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     memcpy(&pInfo->DomainGuid, &pPolInfo->dns.domain_guid,

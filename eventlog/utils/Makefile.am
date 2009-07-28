@@ -1,3 +1,5 @@
+AM_CPPFLAGS = -I$(top_srcdir)/include
+
 lib_LTLIBRARIES = libeventlogutils.la
 
 libeventlogutils_la_SOURCES = \
@@ -18,6 +20,7 @@ libeventlogutils_la_LIBADD = \
     @LIBUNISTR_LIBS@
 
 libeventlogutils_la_CPPFLAGS = \
+    $(AM_CPPFLAGS) \
     @DCERPC_INCLUDES@   \
     @LIBUNISTR_INCLUDES@
 

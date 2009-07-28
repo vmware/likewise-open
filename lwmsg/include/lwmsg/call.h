@@ -116,7 +116,13 @@ typedef void
  * @brief Destroy parameters
  *
  * Destroys the contents of a parameters structure that was
- * previously filled in by the given call handle.
+ * previously filled in by the given call handle.  If the
+ * parameters structure contains no data (e.g. tag is
+ * #LWMSG_TAG_INVALID), this function will take no action
+ * and return #LWMSG_STATUS_SUCCESS.  Therefore, you may always
+ * safely use this function on a #LWMsgParams structure that
+ * has been correctly initialized (e.g. with #LWMSG_PARAMS_INITIALIZER)
+ * to free any data it might contain.
  *
  * @param call the call handle
  * @param params the parameters structure
@@ -196,7 +202,7 @@ lwmsg_call_complete(
  * @brief Cancel a pending call
  *
  * Cancels the given call.  The function must only be used by callers, and
- * only after #lwmsg_call_transact() has returned #LWMSG_STATUS_PENDING for the
+ * only after #lwmsg_call_dispatch() has returned #LWMSG_STATUS_PENDING for the
  * call.  When successfully cancelled, the completion function passed to
  * #lwmsg_call_transact() will be invoked with a status of #LWMSG_STATUS_CANCELLED.
  *
@@ -220,12 +226,26 @@ lwmsg_call_release(
     LWMsgCall* call
     );
 
+/**
+ * @brief Get session for call
+ *
+ * Returns the #LWMsgSession in which the given call handle's call
+ * takes places.  This function may be used by both callers and callees.
+ *
+ * @param call the call handle
+ * @return the session for the call
+ */
 LWMsgSession*
 lwmsg_call_get_session(
     LWMsgCall* call
     );
 
 /**
+ * @brief Static initializer for #LWMsgParams
+ *
+ * A constant which may be used to initialize automatic variables
+ * of #LWMsgParams to sane default values
+ *
  * @hideinitializer
  */
 #define LWMSG_PARAMS_INITIALIZER { LWMSG_TAG_INVALID, NULL }

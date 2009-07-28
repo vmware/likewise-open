@@ -438,6 +438,7 @@ SrvFreeLockRequest(
     }
 
     SRV_SAFE_FREE_MEMORY(pLockRequest->pLockContexts);
+    SRV_SAFE_FREE_MEMORY(pLockRequest);
 }
 
 static

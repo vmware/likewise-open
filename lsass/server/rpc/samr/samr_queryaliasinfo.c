@@ -112,8 +112,7 @@ SamrSrvQueryAliasInfo(
                   (sizeof(wszFilterFmt)/sizeof(wszFilterFmt[0]));
 
     status = SamrSrvAllocateMemory((void**)&pwszFilter,
-                                   dwFilterLen * sizeof(WCHAR),
-                                   pAcctCtx);
+                                   dwFilterLen * sizeof(WCHAR));
     BAIL_ON_NTSTATUS_ERROR(status);
 
     sw16printfw(pwszFilter, dwFilterLen, wszFilterFmt,
@@ -139,8 +138,7 @@ SamrSrvQueryAliasInfo(
     BAIL_ON_NTSTATUS_ERROR(status);
 
     status = SamrSrvAllocateMemory((void**)&pAliasInfo,
-                                   sizeof(*pAliasInfo),
-                                   pAcctCtx);
+                                   sizeof(*pAliasInfo));
     BAIL_ON_NTSTATUS_ERROR(status);
 
     switch (level) {
@@ -209,7 +207,7 @@ SamrFillAliasInfo1(
                                                &pwszName);
     BAIL_ON_LSA_ERROR(dwError);
 
-    status = SamrSrvInitUnicodeString(&pInfoAll->name, pwszName, pInfo);
+    status = SamrSrvInitUnicodeString(&pInfoAll->name, pwszName);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     /* num_members */
@@ -222,8 +220,7 @@ SamrFillAliasInfo1(
                                                &pwszDescription);
     BAIL_ON_LSA_ERROR(dwError);
 
-    status = SamrSrvInitUnicodeString(&pInfoAll->description, pwszDescription,
-                                      pInfo);
+    status = SamrSrvInitUnicodeString(&pInfoAll->description, pwszDescription);
     BAIL_ON_NTSTATUS_ERROR(status);
 
 cleanup:
@@ -254,7 +251,7 @@ SamrFillAliasInfo2(
                                                &pwszName);
     BAIL_ON_LSA_ERROR(dwError);
 
-    status = SamrSrvInitUnicodeString(&pInfo->name, pwszName, pInfo);
+    status = SamrSrvInitUnicodeString(&pInfo->name, pwszName);
     BAIL_ON_NTSTATUS_ERROR(status);
 
 cleanup:
@@ -285,8 +282,7 @@ SamrFillAliasInfo3(
                                                &pwszDescription);
     BAIL_ON_LSA_ERROR(dwError);
 
-    status = SamrSrvInitUnicodeString(&pInfo->description, pwszDescription,
-                                      pInfo);
+    status = SamrSrvInitUnicodeString(&pInfo->description, pwszDescription);
     BAIL_ON_NTSTATUS_ERROR(status);
 
 cleanup:

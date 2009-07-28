@@ -1,3 +1,5 @@
+AM_CPPFLAGS = @AM_CPPFLAGS@ -I$(top_srcdir)/include
+
 lib_LTLIBRARIES = liblwmapsecurity_lsass.la
 
 liblwmapsecurity_lsass_la_SOURCES = \

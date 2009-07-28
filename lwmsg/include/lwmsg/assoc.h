@@ -275,7 +275,7 @@ lwmsg_assoc_recv_message_transact(
 
 /**
  * @ingroup assoc
- * @brief Send a message (simple)
+ * @brief Send a message (simple) <b>[DEPRECATED]</b>
  *
  * This function sends a message without the complexity of constructing an LWMsgMessage
  * structure.
@@ -288,7 +288,8 @@ lwmsg_assoc_recv_message_transact(
  * @lwmsg_code{TIMEOUT, operation timed out}
  * @lwmsg_etc{implementation-specific failure}
  * @lwmsg_endstatus
- * @deprecated
+ *
+ * @deprecated Use #lwmsg_assoc_send_message()
  */
 LWMsgStatus
 lwmsg_assoc_send(
@@ -299,7 +300,7 @@ lwmsg_assoc_send(
 
 /**
  * @ingroup assoc
- * @brief Receive a message (simple)
+ * @brief Receive a message (simple) <b>[DEPRECATED]</b>
  *
  * This function receives a message without the complexity of using an LWMsgMessage structure.
  *
@@ -311,7 +312,8 @@ lwmsg_assoc_send(
  * @lwmsg_code{TIMEOUT, operation timed out}
  * @lwmsg_etc{implementation-specific failure}
  * @lwmsg_endstatus
- * @deprecated
+ *
+ * @deprecated Use #lwmsg_assoc_recv_message()
  */
 LWMsgStatus
 lwmsg_assoc_recv(
@@ -322,7 +324,7 @@ lwmsg_assoc_recv(
 
 /**
  * @ingroup assoc
- * @brief Send a message and receive a reply (simple)
+ * @brief Send a message and receive a reply (simple) <b>[DEPRECATED]</b>
  *
  * This function sends a message and receives a reply without the
  * complexity of using LWMsgMessage structures.
@@ -337,7 +339,8 @@ lwmsg_assoc_recv(
  * @lwmsg_code{TIMEOUT, operation timed out}
  * @lwmsg_etc{implementation-specific failure}
  * @lwmsg_endstatus
- * @deprecated
+ *
+ * @deprecated Use #lwmsg_assoc_send_message_transact()
  */
 LWMsgStatus
 lwmsg_assoc_send_transact(
@@ -421,7 +424,7 @@ lwmsg_assoc_set_nonblock(
 
 /**
  * @ingroup assoc
- * @brief Register a handle
+ * @brief Register a handle <b>[DEPRECATED]</b>
  *
  * Explicitly registers a handle with the specified association.
  * Handles are pointers to structures which may be transmitted back
@@ -439,6 +442,8 @@ lwmsg_assoc_set_nonblock(
  * @lwmsg_memory
  * @lwmsg_code{INVALID_PARAMETER, the specified handle was already registered}
  * @lwmsg_endstatus
+ *
+ * @deprecated Use #lwmsg_assoc_get_session() and #lwmsg_session_register_handle()
  */
 LWMsgStatus
 lwmsg_assoc_register_handle(
@@ -450,7 +455,7 @@ lwmsg_assoc_register_handle(
 
 /**
  * @ingroup assoc
- * @brief Retain a handle
+ * @brief Retain a handle <b>[DEPRECATED]</b>
  *
  * Indicates that there is an additional reference to a handle,
  * and that it should remain available in the session until the
@@ -462,6 +467,8 @@ lwmsg_assoc_register_handle(
  * @lwmsg_success
  * @lwmsg_code{INVALID_HANDLE, the specified handle was not known}
  * @lwmsg_endstatus
+ *
+ * @deprecated Use #lwmsg_assoc_get_session() and #lwmsg_session_retain_handle()
  */
 LWMsgStatus
 lwmsg_assoc_retain_handle(
@@ -471,7 +478,7 @@ lwmsg_assoc_retain_handle(
 
 /**
  * @ingroup assoc
- * @brief Release a handle
+ * @brief Release a handle <b>[DEPRECATED]</b>
  *
  * Releases a reference to a handle.  The handle will be
  * cleaned up when the last reference to it is released.
@@ -482,6 +489,8 @@ lwmsg_assoc_retain_handle(
  * @lwmsg_success
  * @lwmsg_code{INVALID_HANDLE, the specified handle was not known}
  * @lwmsg_endstatus
+ *
+ * @deprecated Use #lwmsg_assoc_get_session() and #lwmsg_session_release_handle()
  */
 LWMsgStatus
 lwmsg_assoc_release_handle(
@@ -491,7 +500,7 @@ lwmsg_assoc_release_handle(
 
 /**
  * @ingroup assoc
- * @brief Unregister a handle
+ * @brief Unregister a handle <b>[DEPRECATED]</b>
  *
  * Releases a reference to a handle and unregisters it.
  * Subsequent calls to #lwmsg_assoc_retain_handle()
@@ -510,6 +519,8 @@ lwmsg_assoc_release_handle(
  * @lwmsg_success
  * @lwmsg_code{INVALID_HANDLE, the specified handle was not registered}
  * @lwmsg_endstatus
+ *
+ * @deprecated Use #lwmsg_assoc_get_session() and #lwmsg_session_unregister_handle()
  */
 LWMsgStatus
 lwmsg_assoc_unregister_handle(
@@ -563,8 +574,8 @@ lwmsg_assoc_destroy_message(
     );
 
 /**
- * @brief Alias for #lwmsg_assoc_destroy_message()
- * @deprecated
+ * @brief Destroy a message <b>[DEPRECATED]</b>
+ * @deprecated Use #lwmsg_assoc_destroy_message()
  * @hideinitializer
  */
 #define lwmsg_assoc_free_message(assoc, message) \
@@ -572,7 +583,7 @@ lwmsg_assoc_destroy_message(
 
 /**
  * @ingroup assoc
- * @brief Free a message (simple)
+ * @brief Free a message (simple) <b>[DEPRECATED]</b>
  *
  * Frees the object graph of a message using the memory manager and
  * protocol of the specified association.  This function does not
@@ -584,7 +595,7 @@ lwmsg_assoc_destroy_message(
  * @lwmsg_status
  * @lwmsg_success
  * @lwmsg_endstatus
- * @deprecated
+ * @deprecated Use #lwmsg_assoc_destroy_message()
  */
 LWMsgStatus
 lwmsg_assoc_free_graph(
@@ -673,24 +684,22 @@ lwmsg_assoc_set_session_manager(
 
 /**
  * @ingroup assoc
- * @brief Get session manager
+ * @brief Get current session
  * 
- * Gets the session manager for the specified association.  If manager was not specifically
- * set, the association will implicitly create a private session manager.
+ * Gets the current session for the specified association.  The session can be used
+ * for handle management and authentication of the peer.  A session will only be
+ * available after calling #lwmsg_assoc_establish() and before calling
+ * #lwmsg_assoc_close().  Some types of associations may not support sessions,
+ * in which case this function will return #LWMSG_STATUS_SUCCESS and set session
+ * to NULL.
  *
  * @param[in] assoc the association
- * @param[out] manager the session manager
+ * @param[out] session the session
  * @lwmsg_status
  * @lwmsg_success
- * @lwmsg_memory
+ * @lwmsg_code{INVALID_STATE, the association is closed or not yet established}
  * @lwmsg_endstatus
  */
-LWMsgStatus
-lwmsg_assoc_get_session_manager(
-    LWMsgAssoc* assoc,
-    LWMsgSessionManager** manager
-    );
-
 LWMsgStatus
 lwmsg_assoc_get_session(
     LWMsgAssoc* assoc,
@@ -718,7 +727,7 @@ lwmsg_assoc_get_state(
 
 /**
  * @ingroup assoc
- * @brief Get user data for session
+ * @brief Get user data for session <b>[DEPRECATED]</b>
  *
  * Gets a user data pointer for the session which the specified assocation
  * is part of.
@@ -729,6 +738,8 @@ lwmsg_assoc_get_state(
  * @lwmsg_success
  * @lwmsg_code{INVALID_STATE, no session was established}
  * @lwmsg_endstatus
+ *
+ * @deprecated Use #lwmsg_assoc_get_session() and #lwmsg_session_get_data()
  */
 LWMsgStatus
 lwmsg_assoc_get_session_data(
@@ -792,6 +803,22 @@ lwmsg_assoc_print_message_alloc(
     char** result
     );
 
+/**
+ * @ingroup assoc
+ * @brief Acquire call handle
+ *
+ * Acquires a call handle that can be used to make a call across an
+ * association as a send followed by a receive.  Only one such call
+ * handle may be acquired until it is released with #lwmsg_call_release().
+ *
+ * @param[in,out] assoc the association
+ * @param[out] call the call handle
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_code{BUSY, a call handle has already been acquired}
+ * @lwmsg_code{UNSUPPORTED, the association does not support calls}
+ * @lwmsg_endstatus
+ */
 LWMsgStatus
 lwmsg_assoc_acquire_call(
     LWMsgAssoc* assoc,

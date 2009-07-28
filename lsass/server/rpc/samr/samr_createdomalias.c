@@ -71,13 +71,11 @@ SamrSrvCreateDomAlias(
     }
 
     status = SamrSrvGetFromUnicodeString(&pwszAliasName,
-                                         alias_name,
-                                         pDomCtx);
+                                         alias_name);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     status = SamrSrvInitUnicodeStringEx(&Name,
-                                        pwszAliasName,
-                                        pDomCtx);
+                                        pwszAliasName);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     status = SamrSrvCreateAccount(hBinding,

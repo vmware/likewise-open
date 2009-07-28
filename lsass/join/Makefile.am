@@ -1,3 +1,5 @@
+AM_CPPFLAGS = @AM_CPPFLAGS@ -I$(top_srcdir)/include
+
 lib_LTLIBRARIES = liblsajoin.la
 
 liblsajoin_la_SOURCES = \
@@ -16,6 +18,7 @@ liblsajoin_la_SOURCES = \
 
 
 liblsajoin_la_CPPFLAGS =              \
+	$(AM_CPPFLAGS)                \
         -DLW_ENABLE_THREADS=1         \
 	-I@top_srcdir@/server/include \
 	@NETLOGON_INCLUDES@           \

@@ -1,3 +1,5 @@
+AM_CPPFLAGS = @AM_CPPFLAGS@ -I$(top_srcdir)/include
+
 MODE_NAMES = \
 	ad-cache \
 	add-group \
@@ -64,5 +66,5 @@ install-exec-hook:
 	cd $(DESTDIR)$(bindir) && \
 	    for name in $(MODE_NAMES); \
 	    do \
-	        $(LN_S) lw-lsa$(EXEEXT) lw-$${name}$(EXEEXT) || return $$?; \
+	        $(LN_S) -f lw-lsa$(EXEEXT) lw-$${name}$(EXEEXT) || exit $$?; \
 	    done

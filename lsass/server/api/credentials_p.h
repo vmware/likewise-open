@@ -49,7 +49,7 @@
 #include <lwdef.h>
 #include <lwerror.h>
 #include <lwsecurityidentifier.h>
-#include <lwio/lwlist.h>
+#include <lsalist.h>
 
 #define ENTER_CREDS_LIST(bInLock)                               \
     do                                                          \
@@ -77,13 +77,38 @@ typedef struct _LSA_CREDENTIALS
     PSTR            pPassword;
     DWORD           dwUserId;
     LONG            nRefCount;
-    LW_LIST_LINKS   ListEntry;
+    LSA_LIST_LINKS   ListEntry;
 } LSA_CREDENTIALS,  *PLSA_CREDENTIALS;
 
 typedef struct _LSA_CREDENTIALS_STATE
 {
-    LW_LIST_LINKS LsaCredsList;
+    LSA_LIST_LINKS LsaCredsList;
     pthread_mutex_t LsaCredsListLock;
 } LSA_CREDENTIALS_STATE, *PLSA_CREDENTIALS_STATE;
+
+PLSA_CREDENTIALS
+LsaFindCredByUid(
+    IN DWORD dwUid
+    );
+
+DWORD
+LsaCreateCred(
+    IN PCSTR pszUserName,
+    IN PCSTR pszPassword,
+    IN OPTIONAL const PDWORD pdwUid,
+    OUT PLSA_CREDENTIALS* ppCredential
+    );
+
+DWORD
+LsaCredContains(
+    PLSA_CREDENTIALS pCred,
+    PCSTR pszUserName,
+    PCSTR pszPassword
+    );
+
+VOID
+LsaReleaseCredentialUnsafe(
+    IN LSA_CRED_HANDLE hCredential
+    );
 
 #endif /* __CREDENTIALS_P_H__ */

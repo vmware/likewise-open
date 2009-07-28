@@ -79,29 +79,9 @@ extern PSTR    gpszADProviderName;
 
 extern PSTR    gpszADConfigFilePath;
 
-extern BOOLEAN gbShutdownProvider;
-
 extern PAD_PROVIDER_DATA  gpADProviderData;
 
-extern pthread_t       gCacheReaperThread;
-extern pthread_mutex_t gCacheReaperThreadLock;
-extern pthread_cond_t  gCacheReaperThreadCondition;
-extern pthread_t*      gpCacheReaperThread;
-
-extern DWORD gdwMachinePasswordSyncThreadWaitSecs;
-
-extern pthread_t       gMachinePasswordSyncThread;
-extern pthread_mutex_t gMachinePasswordSyncThreadLock;
-extern pthread_cond_t  gMachinePasswordSyncThreadCondition;
-extern pthread_t*      gpMachinePasswordSyncThread;
-
-extern HANDLE ghPasswordStore;
-
 extern LSA_PROVIDER_FUNCTION_TABLE gADProviderAPITable;
-
-extern DWORD gdwMachineTGTExpiry;
-
-extern double gdwMachineTGTExpiryGraceSeconds;
 
 extern PLSA_HASH_TABLE gpAllowedSIDs;
 

@@ -126,28 +126,23 @@ LsaSrvLookupNames3(
     hDirectory = pPolCtx->hDirectory;
 
     status = LsaSrvAllocateMemory((void**)&pSidArray,
-                                  sizeof(*pSidArray),
-                                  pPolCtx);
+                                  sizeof(*pSidArray));
     BAIL_ON_NTSTATUS_ERROR(status);
 
     status = LsaSrvAllocateMemory((void**)&(pSidArray->sids),
-                                  sizeof(*pSidArray->sids) * num_names,
-                                  pPolCtx);
+                                  sizeof(*pSidArray->sids) * num_names);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     status = LsaSrvAllocateMemory((void**)&pDomains,
-                                  sizeof(*pDomains),
-                                  pPolCtx);
+                                  sizeof(*pDomains));
     BAIL_ON_NTSTATUS_ERROR(status);
 
     status = LsaSrvAllocateMemory((void**)&(pDomains->domains),
-                                  sizeof(*pDomains->domains) * num_names,
-                                  pPolCtx);
+                                  sizeof(*pDomains->domains) * num_names);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     status = LsaSrvAllocateMemory((void**)&pSamrDomain,
-                                  sizeof(*pSamrDomain) * num_names,
-                                  pPolCtx);
+                                  sizeof(*pSamrDomain) * num_names);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     pPolCtx->dwSamrDomainsNum = num_names;
@@ -244,12 +239,10 @@ LsaSrvLookupNames3(
             pInfo      = &(pDomains->domains[dwDomIndex]);
 
             status = LsaSrvDuplicateUnicodeStringEx(&pInfo->name,
-                                                    &pDomInfo->name,
-                                                    pDomains);
+                                                    &pDomInfo->name);
             BAIL_ON_NTSTATUS_ERROR(status);
 
-            status = LsaSrvDuplicateSid(&pInfo->sid, pDomInfo->sid,
-                                        pDomains);
+            status = LsaSrvDuplicateSid(&pInfo->sid, pDomInfo->sid);
             BAIL_ON_NTSTATUS_ERROR(status);
 
             pDomains->count  = (++dwDomIndex);
@@ -260,8 +253,7 @@ LsaSrvLookupNames3(
             TranslatedSid3 *pSid = &(pSidArray->sids[i]);
             PSID pAcctSid = NULL;
 
-            status = LsaSrvDuplicateSid(&pAcctSid, pRemoteSid->sid,
-                                        pPolCtx);
+            status = LsaSrvDuplicateSid(&pAcctSid, pRemoteSid->sid);
             BAIL_ON_NTSTATUS_ERROR(status);
 
             pSid->type     = pRemoteSid->type;
@@ -298,13 +290,11 @@ LsaSrvLookupNames3(
         BAIL_ON_NTSTATUS_ERROR(status);
 
         status = LsaSrvInitUnicodeStringEx(&pLocalDomainInfo->name,
-                                           SamrDomain.pwszName,
-                                           pDomains->domains);
+                                           SamrDomain.pwszName);
         BAIL_ON_NTSTATUS_ERROR(status);
 
         status = LsaSrvDuplicateSid(&pLocalDomainInfo->sid,
-                                    SamrDomain.pSid,
-                                    pDomains->domains);
+                                    SamrDomain.pSid);
         BAIL_ON_NTSTATUS_ERROR(status);
 
         status = SamrLookupNames(hSamrBinding,
@@ -327,8 +317,7 @@ LsaSrvLookupNames3(
             PSID pDomainSid = SamrDomain.pSid;
             PSID pAcctSid = NULL;
 
-            status = LsaSrvSidAppendRid(&pAcctSid, pDomainSid, dwRids[i],
-                                        pPolCtx);
+            status = LsaSrvSidAppendRid(&pAcctSid, pDomainSid, dwRids[i]);
             BAIL_ON_NTSTATUS_ERROR(status);
 
             pSid->type     = dwTypes[i];
@@ -353,13 +342,11 @@ LsaSrvLookupNames3(
         BAIL_ON_NTSTATUS_ERROR(status);
 
         status = LsaSrvInitUnicodeStringEx(&pBuiltinDomainInfo->name,
-                                           SamrDomain.pwszName,
-                                           pDomains->domains);
+                                           SamrDomain.pwszName);
         BAIL_ON_NTSTATUS_ERROR(status);
 
         status = LsaSrvDuplicateSid(&pBuiltinDomainInfo->sid,
-                                    SamrDomain.pSid,
-                                    pDomains->domains);
+                                    SamrDomain.pSid);
         BAIL_ON_NTSTATUS_ERROR(status);
 
         dwRids  = NULL;
@@ -386,8 +373,7 @@ LsaSrvLookupNames3(
             PSID pDomainSid = SamrDomain.pSid;
             PSID pAcctSid = NULL;
 
-            status = LsaSrvSidAppendRid(&pAcctSid, pDomainSid, dwRids[i],
-                                        pPolCtx);
+            status = LsaSrvSidAppendRid(&pAcctSid, pDomainSid, dwRids[i]);
             BAIL_ON_NTSTATUS_ERROR(status);
 
             pSid->type     = dwTypes[i];
@@ -490,8 +476,7 @@ LsaSrvParseAccountName(
     if ((*pwszCursor) == (WCHAR)'\\') {
         dwDomainNameLen = (DWORD)(pwszCursor - pwszName);
         status = LsaSrvAllocateMemory((void**)&pwszDomainName,
-                                      (dwDomainNameLen + 1) * sizeof(WCHAR),
-                                      NULL);
+                                      (dwDomainNameLen + 1) * sizeof(WCHAR));
         BAIL_ON_NTSTATUS_ERROR(status);
 
         wc16sncpy(pwszDomainName, pwszName, dwDomainNameLen);
@@ -503,8 +488,7 @@ LsaSrvParseAccountName(
 
     dwAcctNameLen = wc16slen(pwszCursor);
     status = LsaSrvAllocateMemory((void**)&pwszAcctName,
-                                  (dwAcctNameLen + 1) * sizeof(WCHAR),
-                                  NULL);
+                                  (dwAcctNameLen + 1) * sizeof(WCHAR));
     BAIL_ON_NTSTATUS_ERROR(status);
 
     wc16sncpy(pwszAcctName, pwszCursor, dwAcctNameLen);
@@ -585,14 +569,12 @@ LsaSrvSetSamrDomain(
     pDomain = &(pPolCtx->pSamrDomain[i]);
 
     status = LsaSrvDuplicateWC16String(&(pDomain->pwszName),
-                                       pSamrDomain->pwszName,
-                                       pPolCtx->pSamrDomain);
+                                       pSamrDomain->pwszName);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     if (pSamrDomain->pSid) {
         status = LsaSrvDuplicateSid(&pDomain->pSid,
-                                    pSamrDomain->pSid,
-                                    pPolCtx->pSamrDomain);
+                                    pSamrDomain->pSid);
         BAIL_ON_NTSTATUS_ERROR(status);
     }
 
@@ -705,41 +687,40 @@ LsaSrvLookupDomainsByAccountName(
     PolicyHandle hDomain;
     PSID pDomainSid = NULL;
 
-    status = LsaSrvAllocateMemory((void**)&pDomainAccounts,
-                                  sizeof(*pDomainAccounts),
-                                  pPolCtx);
+    status = LsaSrvAllocateMemory(
+                            (void**)&pDomainAccounts,
+                            sizeof(*pDomainAccounts));
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = LsaSrvAllocateMemory((void**)&pDomainAccounts->ppwszNames,
-                                  sizeof(*pDomainAccounts->ppwszNames) * dwNumNames,
-                                  pDomainAccounts);
+    status = LsaSrvAllocateMemory(
+                            (void**)&pDomainAccounts->ppwszNames,
+                            sizeof(*pDomainAccounts->ppwszNames) * dwNumNames);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = LsaSrvAllocateMemory((void**)&pLocalAccounts,
-                                  sizeof(*pLocalAccounts),
-                                  pPolCtx);
+    status = LsaSrvAllocateMemory(
+                            (void**)&pLocalAccounts,
+                            sizeof(*pLocalAccounts));
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = LsaSrvAllocateMemory((void**)&pLocalAccounts->ppwszNames,
-                                  sizeof(*pLocalAccounts->ppwszNames) * dwNumNames,
-                                  pLocalAccounts);
+    status = LsaSrvAllocateMemory(
+                            (void**)&pLocalAccounts->ppwszNames,
+                            sizeof(*pLocalAccounts->ppwszNames) * dwNumNames);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = LsaSrvAllocateMemory((void**)&pBuiltinAccounts,
-                                  sizeof(*pBuiltinAccounts),
-                                  pPolCtx);
+    status = LsaSrvAllocateMemory(
+                            (void**)&pBuiltinAccounts,
+                            sizeof(*pBuiltinAccounts));
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = LsaSrvAllocateMemory((void**)&pBuiltinAccounts->ppwszNames,
-                                  sizeof(*pBuiltinAccounts->ppwszNames) * dwNumNames,
-                                  pBuiltinAccounts);
+    status = LsaSrvAllocateMemory(
+                            (void**)&pBuiltinAccounts->ppwszNames,
+                            sizeof(*pBuiltinAccounts->ppwszNames) * dwNumNames);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     for (i = 0; i < dwNumNames; i++) {
         UnicodeStringEx *name = &(pNames[i]);
 
-        status = LsaSrvGetFromUnicodeStringEx(&pwszName, name,
-                                              pPolCtx);
+        status = LsaSrvGetFromUnicodeStringEx(&pwszName, name);
         BAIL_ON_NTSTATUS_ERROR(status);
 
         status = LsaSrvParseAccountName(pwszName,
@@ -761,8 +742,7 @@ LsaSrvLookupDomainsByAccountName(
             for (i = 0; i < dwCount; i++) {
                 if (wc16scasecmp(pwszLocalDomainNames[i], pwszBuiltin)) {
                     status = LsaSrvDuplicateWC16String(&pwszDomainName,
-                                                       pwszLocalDomainNames[i],
-                                                       pPolCtx);
+                                                       pwszLocalDomainNames[i]);
                     BAIL_ON_NTSTATUS_ERROR(status);
                 }
             }
@@ -822,18 +802,16 @@ LsaSrvLookupDomainsByAccountName(
         if (SamrDomain.bLocal) {
             if (!wc16scasecmp(SamrDomain.pwszName, pwszBuiltin)) {
                 status = LsaSrvDuplicateWC16String(
-                                       &(pBuiltinAccounts->ppwszNames[dwBuiltinNamesNum]),
-                                       pwszAcctName,
-                                       pBuiltinAccounts->ppwszNames);
+                             &(pBuiltinAccounts->ppwszNames[dwBuiltinNamesNum]),
+                             pwszAcctName);
                 BAIL_ON_NTSTATUS_ERROR(status);
 
                 dwBuiltinNamesNum++;
 
             } else {
                 status = LsaSrvDuplicateWC16String(
-                                       &(pLocalAccounts->ppwszNames[dwLocalNamesNum]),
-                                       pwszAcctName,
-                                       pLocalAccounts->ppwszNames);
+                             &(pLocalAccounts->ppwszNames[dwLocalNamesNum]),
+                             pwszAcctName);
                 BAIL_ON_NTSTATUS_ERROR(status);
 
                 dwLocalNamesNum++;
@@ -841,9 +819,8 @@ LsaSrvLookupDomainsByAccountName(
 
         } else {
             status = LsaSrvDuplicateWC16String(
-                                  &(pDomainAccounts->ppwszNames[dwDomainNamesNum]),
-                                  pwszName,
-                                  pDomainAccounts->ppwszNames);
+                             &(pDomainAccounts->ppwszNames[dwDomainNamesNum]),
+                             pwszName);
             BAIL_ON_NTSTATUS_ERROR(status);
 
             dwDomainNamesNum++;

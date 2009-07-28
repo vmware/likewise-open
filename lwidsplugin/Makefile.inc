@@ -126,7 +126,7 @@ $(OUT_INFO): $(INFO)
 
 ifneq ($(OUT_REZ),)
 $(OUT_REZ): $(REZ_FILES)
-	mkdir $(OUT_REZ_DIR)
+	mkdir -p $(OUT_REZ_DIR)
 	$(TOOL_RESMERGER) -dstIs DF $(REZ_FILES) -o $(OUT_REZ)
 endif
 

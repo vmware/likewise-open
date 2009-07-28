@@ -1,3 +1,5 @@
+AM_CPPFLAGS = -I$(top_srcdir)/include
+
 noinst_PROGRAMS = addkey getkey rmkey
 
 CFLAGS = @LIBUNISTR_INCLUDES@

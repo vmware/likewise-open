@@ -85,8 +85,7 @@ LsaSrvQueryInfoPolicy2(
     }
 
     status = LsaSrvAllocateMemory((void**)&pInfo,
-                                  sizeof(*pInfo),
-                                  pPolCtx);
+                                  sizeof(*pInfo));
     BAIL_ON_NTSTATUS_ERROR(status);
 
     switch (level) {
@@ -170,13 +169,11 @@ LsaQueryDomainInfo(
 
     if (pPassInfo) {
         status = LsaSrvInitUnicodeStringEx(&pInfo->name,
-                                           pPassInfo->pwszDomainName,
-                                           pPolCtx);
+                                           pPassInfo->pwszDomainName);
         BAIL_ON_NTSTATUS_ERROR(status);
 
         status = LsaSrvAllocateSidFromWC16String(&pInfo->sid,
-                                                 pPassInfo->pwszSID,
-                                                 pPolCtx);
+                                                 pPassInfo->pwszSID);
         BAIL_ON_NTSTATUS_ERROR(status);
 
         LwpsFreePasswordInfo(hStore, pPassInfo);
@@ -234,18 +231,15 @@ LsaQueryDnsDomainInfo(
 
     if (pPassInfo) {
         status = LsaSrvInitUnicodeStringEx(&pInfo->name,
-                                           pPassInfo->pwszDomainName,
-                                           pPolCtx);
+                                           pPassInfo->pwszDomainName);
         BAIL_ON_NTSTATUS_ERROR(status);
 
         status = LsaSrvInitUnicodeStringEx(&pInfo->dns_domain,
-                                           pPassInfo->pwszDnsDomainName,
-                                           pPolCtx);
+                                           pPassInfo->pwszDnsDomainName);
         BAIL_ON_NTSTATUS_ERROR(status);
 
         status = LsaSrvAllocateSidFromWC16String(&pInfo->sid,
-                                                 pPassInfo->pwszSID,
-                                                 pPolCtx);
+                                                 pPassInfo->pwszSID);
         BAIL_ON_NTSTATUS_ERROR(status);
 
         pszDomainFqdn = awc16stombs(pPassInfo->pwszDnsDomainName);
@@ -262,8 +256,7 @@ LsaQueryDnsDomainInfo(
         BAIL_ON_NO_MEMORY(pwszDnsForest);
 
         status = LsaSrvInitUnicodeStringEx(&pInfo->dns_forest,
-                                           pwszDnsForest,
-                                           pPolCtx);
+                                           pwszDnsForest);
         BAIL_ON_NTSTATUS_ERROR(status);
 
         memcpy(&pInfo->domain_guid, pDcInfo->pucDomainGUID,

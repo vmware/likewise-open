@@ -1,3 +1,5 @@
+AM_CPPFLAGS = @AM_CPPFLAGS@ -I$(top_srcdir)/include -I$(srcdir)/../include
+
 pamlib_LTLIBRARIES = pam_lsass.la
 
 pam_lsass_la_SOURCES = \
@@ -10,10 +12,6 @@ pam_lsass_la_SOURCES = \
        pam-passwd.c    \
        pam-session.c   \
        pam-notify.c
-
-pam_lsass_la_CPPFLAGS = \
-    -I@srcdir@ \
-    -I@srcdir@/../include
 
 pam_lsass_la_CFLAGS = -shared $(AM_CFLAGS)
 

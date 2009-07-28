@@ -86,12 +86,17 @@ PvfsCreate(
         BAIL_ON_NT_STATUS(ntError);
 
         ntError = PvfsLookupPath(&pszDiskFilename, pszFilename, FALSE);
-        BAIL_ON_NT_STATUS(ntError);
 
-        ntError = PvfsSysStat(pszDiskFilename, &Stat);
-        BAIL_ON_NT_STATUS(ntError);
+        /* The path lookup may fail which is ok.  We'll catch whether
+           or not this is a real error later on */
 
-        bIsDirectory = S_ISDIR(Stat.s_mode);
+        if (ntError == STATUS_SUCCESS)
+        {
+            ntError = PvfsSysStat(pszDiskFilename, &Stat);
+
+            bIsDirectory = (ntError == STATUS_SUCCESS) ?
+                           S_ISDIR(Stat.s_mode) : FALSE;
+        }
     }
 
 

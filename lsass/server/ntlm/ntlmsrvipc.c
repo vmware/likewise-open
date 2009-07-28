@@ -55,7 +55,11 @@ NtlmSrvApiInit(
     DWORD dwError = 0;
 
     dwError = NtlmInitializeContextDatabase();
+    BAIL_ON_LW_ERROR(dwError);
 
+    LsaInitializeCredentialsDatabase();
+
+error:
     return dwError;
 }
 
@@ -88,7 +92,7 @@ NtlmSrvIpcCreateError(
     DWORD dwError = 0;
     PNTLM_IPC_ERROR pError = NULL;
 
-    dwError = LwAllocateMemory(sizeof(*pError), (PVOID*)(PVOID)&pError);
+    dwError = LsaAllocateMemory(sizeof(*pError), (PVOID*)(PVOID)&pError);
     BAIL_ON_NTLM_ERROR(dwError);
 
     pError->dwError = dwErrorCode;
@@ -112,7 +116,7 @@ NtlmSrvIpcAcceptSecurityContext(
     PNTLM_IPC_ACCEPT_SEC_CTXT_RESPONSE pNtlmResp = NULL;
     PNTLM_IPC_ERROR pError = NULL;
 
-    dwError = LwAllocateMemory(
+    dwError = LsaAllocateMemory(
         sizeof(NTLM_IPC_ACCEPT_SEC_CTXT_RESPONSE),
         (PVOID*)(PVOID)&pNtlmResp
         );
@@ -153,7 +157,7 @@ cleanup:
 error:
     if(pNtlmResp)
     {
-        LwFreeMemory(pNtlmResp);
+        LsaFreeMemory(pNtlmResp);
     }
     goto cleanup;
 }
@@ -171,7 +175,7 @@ NtlmSrvIpcAcquireCredentialsHandle(
     PNTLM_IPC_ACQUIRE_CREDS_RESPONSE pNtlmResp = NULL;
     PNTLM_IPC_ERROR pError = NULL;
 
-    dwError = LwAllocateMemory(
+    dwError = LsaAllocateMemory(
         sizeof(NTLM_IPC_ACQUIRE_CREDS_RESPONSE),
         (PVOID*)(PVOID)&pNtlmResp
         );
@@ -193,6 +197,17 @@ NtlmSrvIpcAcquireCredentialsHandle(
 
     if(!pError->dwError)
     {
+        dwError = MAP_LWMSG_ERROR(lwmsg_assoc_register_handle(
+                                      pAssoc,
+                                      "LSA_CRED_HANDLE",
+                                      pNtlmResp->hCredential,
+                                      NtlmSrvFreeCredHandle));
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = MAP_LWMSG_ERROR(lwmsg_assoc_retain_handle(pAssoc, pNtlmResp->hCredential));
+        BAIL_ON_LSA_ERROR(dwError);
+
+
         pResponse->tag = NTLM_R_ACQUIRE_CREDS_SUCCESS;
         pResponse->object = pNtlmResp;
     }
@@ -207,7 +222,7 @@ cleanup:
 error:
     if(pNtlmResp)
     {
-        LwFreeMemory(pNtlmResp);
+        LsaFreeMemory(pNtlmResp);
     }
     goto cleanup;
 }
@@ -225,7 +240,7 @@ NtlmSrvIpcDecryptMessage(
     PNTLM_IPC_DECRYPT_MSG_RESPONSE pNtlmResp = NULL;
     PNTLM_IPC_ERROR pError = NULL;
 
-    dwError = LwAllocateMemory(
+    dwError = LsaAllocateMemory(
         sizeof(NTLM_IPC_DECRYPT_MSG_RESPONSE),
         (PVOID*)(PVOID)&pNtlmResp
         );
@@ -259,7 +274,7 @@ cleanup:
 error:
     if(pNtlmResp)
     {
-        LwFreeMemory(pNtlmResp);
+        LsaFreeMemory(pNtlmResp);
     }
     goto cleanup;
 }
@@ -313,7 +328,7 @@ NtlmSrvIpcEncryptMessage(
     PNTLM_IPC_ENCRYPT_MSG_RESPONSE pNtlmResp = NULL;
     PNTLM_IPC_ERROR pError = NULL;
 
-    dwError = LwAllocateMemory(
+    dwError = LsaAllocateMemory(
         sizeof(NTLM_IPC_ENCRYPT_MSG_RESPONSE),
         (PVOID*)(PVOID)&pNtlmResp
         );
@@ -347,7 +362,7 @@ cleanup:
 error:
     if(pNtlmResp)
     {
-        LwFreeMemory(pNtlmResp);
+        LsaFreeMemory(pNtlmResp);
     }
     goto cleanup;
 }
@@ -365,7 +380,7 @@ NtlmSrvIpcExportSecurityContext(
     PNTLM_IPC_EXPORT_SEC_CTXT_RESPONSE pNtlmResp = NULL;
     PNTLM_IPC_ERROR pError = NULL;
 
-    dwError = LwAllocateMemory(
+    dwError = LsaAllocateMemory(
         sizeof(NTLM_IPC_EXPORT_SEC_CTXT_RESPONSE),
         (PVOID*)(PVOID)&pNtlmResp
         );
@@ -397,7 +412,7 @@ cleanup:
 error:
     if(pNtlmResp)
     {
-        LwFreeMemory(pNtlmResp);
+        LsaFreeMemory(pNtlmResp);
     }
     goto cleanup;
 }
@@ -417,9 +432,16 @@ NtlmSrvIpcFreeCredentialsHandle(
     dwError = NtlmSrvIpcCreateError(dwError, &pError);
     BAIL_ON_NTLM_ERROR(dwError);
 
-    pError->dwError = NtlmServerFreeCredentialsHandle(
-        pReq->phCredential
-        );
+    // TODO: Remove this during code cleanup... leave it here as a reminder of
+    // why we're not calling this function... when we unregister_handle, the
+    // free function we set earlier will be called for us.  Just deref here,
+    // and the lwmsg system takes care of it for us.
+    //pError->dwError = NtlmServerFreeCredentialsHandle(
+    //    pReq->phCredential
+    //    );
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_unregister_handle(pAssoc, pReq->phCredential));
+    BAIL_ON_NTLM_ERROR(dwError);
 
     if(!pError->dwError)
     {
@@ -451,7 +473,7 @@ NtlmSrvIpcImportSecurityContext(
     PNTLM_IPC_IMPORT_SEC_CTXT_RESPONSE pNtlmResp = NULL;
     PNTLM_IPC_ERROR pError = NULL;
 
-    dwError = LwAllocateMemory(
+    dwError = LsaAllocateMemory(
         sizeof(NTLM_IPC_IMPORT_SEC_CTXT_RESPONSE),
         (PVOID*)(PVOID)&pNtlmResp
         );
@@ -483,7 +505,7 @@ cleanup:
 error:
     if(pNtlmResp)
     {
-        LwFreeMemory(pNtlmResp);
+        LsaFreeMemory(pNtlmResp);
     }
     goto cleanup;
 }
@@ -501,7 +523,7 @@ NtlmSrvIpcInitializeSecurityContext(
     PNTLM_IPC_INIT_SEC_CTXT_RESPONSE pNtlmResp = NULL;
     PNTLM_IPC_ERROR pError = NULL;
 
-    dwError = LwAllocateMemory(
+    dwError = LsaAllocateMemory(
         sizeof(NTLM_IPC_INIT_SEC_CTXT_RESPONSE),
         (PVOID*)(PVOID)&pNtlmResp
         );
@@ -544,7 +566,7 @@ cleanup:
 error:
     if(pNtlmResp)
     {
-        LwFreeMemory(pNtlmResp);
+        LsaFreeMemory(pNtlmResp);
     }
     goto cleanup;
 }
@@ -562,7 +584,7 @@ NtlmSrvIpcMakeSignature(
     PNTLM_IPC_MAKE_SIGN_RESPONSE pNtlmResp = NULL;
     PNTLM_IPC_ERROR pError = NULL;
 
-    dwError = LwAllocateMemory(
+    dwError = LsaAllocateMemory(
         sizeof(NTLM_IPC_MAKE_SIGN_RESPONSE),
         (PVOID*)(PVOID)&pNtlmResp
         );
@@ -596,7 +618,7 @@ cleanup:
 error:
     if(pNtlmResp)
     {
-        LwFreeMemory(pNtlmResp);
+        LsaFreeMemory(pNtlmResp);
     }
     goto cleanup;
 }
@@ -614,7 +636,7 @@ NtlmSrvIpcQueryCredentialsAttributes(
     PNTLM_IPC_QUERY_CREDS_RESPONSE pNtlmResp = NULL;
     PNTLM_IPC_ERROR pError = NULL;
 
-    dwError = LwAllocateMemory(
+    dwError = LsaAllocateMemory(
         sizeof(NTLM_IPC_QUERY_CREDS_RESPONSE),
         (PVOID*)(PVOID)&pNtlmResp
         );
@@ -649,7 +671,7 @@ cleanup:
 error:
     if(pNtlmResp)
     {
-        LwFreeMemory(pNtlmResp);
+        LsaFreeMemory(pNtlmResp);
     }
     goto cleanup;
 }
@@ -667,7 +689,7 @@ NtlmSrvIpcQueryContextAttributes(
     PNTLM_IPC_QUERY_CTXT_RESPONSE pNtlmResp = NULL;
     PNTLM_IPC_ERROR pError = NULL;
 
-    dwError = LwAllocateMemory(
+    dwError = LsaAllocateMemory(
         sizeof(NTLM_IPC_QUERY_CTXT_RESPONSE),
         (PVOID*)(PVOID)&pNtlmResp
         );
@@ -701,7 +723,7 @@ cleanup:
 error:
     if(pNtlmResp)
     {
-        LwFreeMemory(pNtlmResp);
+        LsaFreeMemory(pNtlmResp);
     }
     goto cleanup;
 }
@@ -719,7 +741,7 @@ NtlmSrvIpcVerifySignature(
     PNTLM_IPC_VERIFY_SIGN_RESPONSE pNtlmResp = NULL;
     PNTLM_IPC_ERROR pError = NULL;
 
-    dwError = LwAllocateMemory(
+    dwError = LsaAllocateMemory(
         sizeof(NTLM_IPC_VERIFY_SIGN_RESPONSE),
         (PVOID*)(PVOID)&pNtlmResp
         );
@@ -752,7 +774,15 @@ cleanup:
 error:
     if(pNtlmResp)
     {
-        LwFreeMemory(pNtlmResp);
+        LsaFreeMemory(pNtlmResp);
     }
     goto cleanup;
+}
+
+VOID
+NtlmSrvFreeCredHandle(
+    PVOID pData
+    )
+{
+    LsaReleaseCredential((LSA_CRED_HANDLE)pData);
 }

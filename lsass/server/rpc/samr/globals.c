@@ -39,20 +39,15 @@
 /* Library initialisation guard */
 pthread_mutex_t gSamrSrvDataMutex;
 
-
-void *pSamrSrvMemRoot = NULL;
 int bSamrSrvInitialised = 0;
 
-
-PCSTR gpszRpcSrvName = "samr";
+PCSTR gpszSamrRpcSrvName = "samr";
 LSA_RPCSRV_FUNCTION_TABLE gSamrRpcFuncTable = {
     &SamrRpcStartServer,
     &SamrRpcStopServer
 };
 
 rpc_binding_vector_p_t gpSamrSrvBinding = NULL;
-
-SAMR_RPC_WORKER gWorker;
 
 PSTR gpszConfigFilePath = NULL;
 SAMR_SRV_CONFIG gSamrSrvConfig;

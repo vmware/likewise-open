@@ -101,7 +101,6 @@
 #include "ad_marshal_nss_artefact_p.h"
 #include "ad_marshal_user.h"
 #include "ad_marshal_user_p.h"
-#include "cache.h"
 #include "cellldap.h"
 #include "defldap.h"
 #include "enumstate.h"

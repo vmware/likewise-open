@@ -1,3 +1,5 @@
+AM_CPPFLAGS = @AM_CPPFLAGS@ -I$(top_srcdir)/include
+
 noinst_LTLIBRARIES = liblsaclient_ad.la
 
 liblsaclient_ad_la_SOURCES = \
@@ -6,6 +8,7 @@ liblsaclient_ad_la_SOURCES = \
     users.c
 
 liblsaclient_ad_la_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
 	@LWMSG_INCLUDES@
 
 liblsaclient_ad_la_LIBADD = \

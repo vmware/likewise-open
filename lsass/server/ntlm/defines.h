@@ -88,7 +88,7 @@
     } while(0)
 
 
-#define MAP_LWMSG_ERROR(_e_) ((_e_) ? LwMapLwmsgStatusToLwError(_e_) : 0)
+//#define MAP_LWMSG_ERROR(_e_) ((_e_) ? NtlmMapLwmsgStatus(_e_) : 0)
 #define MAP_LWNET_ERROR(_e_) ((_e_) ? LWMSG_STATUS_ERROR : LWMSG_STATUS_SUCCESS)
 
 // Message signature and sizes

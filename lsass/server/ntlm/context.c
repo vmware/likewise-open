@@ -59,11 +59,11 @@ NtlmInitializeContextDatabase(
     dwError = pthread_rwlock_init(&gContextState.LsaContextListLock, NULL);
     if(LW_ERROR_SUCCESS != dwError)
     {
-        dwError = LwMapErrnoToLwError(errno);
+        dwError = LW_ERROR_INTERNAL; //LwMapErrnoToLwError(errno);
         BAIL_ON_NTLM_ERROR(dwError);
     }
 
-    LwListInit(&gContextState.LsaContextList);
+    LsaListInit(&gContextState.LsaContextList);
 
 error:
     return dwError;
@@ -77,14 +77,14 @@ NtlmShutdownContextDatabase(
 {
     BOOL bInLock = FALSE;
     PLSA_CONTEXT pContext = NULL;
-    PLW_LIST_LINKS pContextListEntry = NULL;
+    PLSA_LIST_LINKS pContextListEntry = NULL;
 
     ENTER_CONTEXT_LIST_WRITER(bInLock);
 
         // sweep the context list
-        while(!LwListIsEmpty(&gContextState.LsaContextList))
+        while(!LsaListIsEmpty(&gContextState.LsaContextList))
         {
-            pContextListEntry = LwListRemoveHead(&gContextState.LsaContextList);
+            pContextListEntry = LsaListRemoveHead(&gContextState.LsaContextList);
             pContext = LW_STRUCT_FROM_FIELD(
                 pContextListEntry,
                 LSA_CONTEXT,
@@ -111,7 +111,7 @@ NtlmAddContext(
 
     ENTER_CONTEXT_LIST_WRITER(bInLock);
 
-        LwListInsertBefore(&gContextState.LsaContextList, &pContext->ListEntry);
+        LsaListInsertBefore(&gContextState.LsaContextList, &pContext->ListEntry);
 
     LEAVE_CONTEXT_LIST_WRITER(bInLock);
 
@@ -137,7 +137,7 @@ NtlmReleaseContext(
 
         if (!(pContext->nRefCount))
         {
-            LwListRemove(&pContext->ListEntry);
+            LsaListRemove(&pContext->ListEntry);
             NtlmFreeContext(pContext);
         }
 
@@ -198,7 +198,7 @@ NtlmInitContext(
 
     *ppNtlmContext = NULL;
 
-    dwError = LwAllocateMemory(
+    dwError = LsaAllocateMemory(
         sizeof(LSA_CONTEXT),
         (PVOID*)(PVOID)pContext
         );
@@ -270,14 +270,14 @@ NtlmCreateContextFromSecBufferDesc(
         BAIL_ON_NTLM_ERROR(dwError);
     }
 
-    dwError = LwAllocateMemory(
+    dwError = LsaAllocateMemory(
         sizeof(LSA_CONTEXT),
         (PVOID*)(PVOID)&pContext
         );
 
     BAIL_ON_NTLM_ERROR(dwError);
 
-    dwError = LwAllocateMemory(
+    dwError = LsaAllocateMemory(
         pSecBuffer->cbBuffer,
         &(pContext->pMessage)
         );
@@ -367,7 +367,7 @@ NtlmGetRandomBuffer(
         nFileDesc = open(NTLM_RANDOM_DEV, O_RDONLY);
         if(-1 == nFileDesc)
         {
-            dwError = LwMapErrnoToLwError(errno);
+            dwError = LW_ERROR_INTERNAL; //LwMapErrnoToLwError(errno);
             BAIL_ON_NTLM_ERROR(dwError);
         }
     }
@@ -453,7 +453,7 @@ DWORD NtlmCreateNegotiateMessage(
         dwSize += sizeof(NTLM_SEC_BUFFER);
     }
 
-    dwError = LwAllocateMemory(dwSize, (PVOID*)(PVOID)&pMessage);
+    dwError = LsaAllocateMemory(dwSize, (PVOID*)(PVOID)&pMessage);
     BAIL_ON_NTLM_ERROR(dwError);
 
     // Data is checked and memory is allocated; fill in the structure
@@ -625,7 +625,7 @@ NtlmCreateChallengeMessage(
 
     dwSize += dwTargetInfoSize;
 
-    dwError = LwAllocateMemory(dwSize, (PVOID*)(PVOID)&pMessage);
+    dwError = LsaAllocateMemory(dwSize, (PVOID*)(PVOID)&pMessage);
     BAIL_ON_NTLM_ERROR(dwError);
 
     // We need to build up the challenge options based on the negotiate options
@@ -885,10 +885,10 @@ DWORD
 NtlmCreateResponseMessage(
     IN PNTLM_CHALLENGE_MESSAGE  pChlngMsg,
     IN PCHAR                    pAuthTargetName,
-    IN PCHAR                    pUserName,
+    IN PCSTR                    pUserName,
     IN PCHAR                    pWorkstation,
     IN PBYTE                    pOsVersion,
-    IN PCHAR                    pPassword,
+    IN PCSTR                    pPassword,
     IN DWORD                    dwNtRespType,
     IN DWORD                    dwLmRespType,
     OUT PDWORD                  pdwSize,
@@ -963,7 +963,7 @@ NtlmCreateResponseMessage(
         dwSize += NTLM_WIN_SPOOF_SIZE;
     }
 
-    dwError = LwAllocateMemory(dwSize, (PVOID*)(PVOID)&pMessage);
+    dwError = LsaAllocateMemory(dwSize, (PVOID*)(PVOID)&pMessage);
     BAIL_ON_NTLM_ERROR(dwError);
 
     // Data is checked and memory is allocated; fill in the structure
@@ -1129,7 +1129,7 @@ NtlmValidatResponseMessage(
 DWORD
 NtlmBuildResponse(
     IN PNTLM_CHALLENGE_MESSAGE  pChlngMsg,
-    IN PCHAR                    pPassword,
+    IN PCSTR                    pPassword,
     IN DWORD                    dwResponseType,
     IN DWORD                    dwBufferSize,
     OUT PBYTE                   pBuffer
@@ -1208,7 +1208,7 @@ error:
 DWORD
 NtlmBuildLmResponse(
     IN PNTLM_CHALLENGE_MESSAGE  pChlngMsg,
-    IN PCHAR                    pPassword,
+    IN PCSTR                    pPassword,
     IN DWORD                    dwLength,
     OUT PBYTE                   pResponse
     )
@@ -1310,7 +1310,7 @@ error:
 DWORD
 NtlmBuildNtlmResponse(
     IN PNTLM_CHALLENGE_MESSAGE  pChlngMsg,
-    IN PCHAR                    pPassword,
+    IN PCSTR                    pPassword,
     IN DWORD                    dwLength,
     OUT PBYTE                   pResponse
     )
@@ -1332,7 +1332,7 @@ NtlmBuildNtlmResponse(
         BAIL_ON_NTLM_ERROR(dwError);
     }
 
-    dwError = LwAllocateMemory(dwTempPassSize, (PVOID*)(PVOID)&pwcTempPass);
+    dwError = LsaAllocateMemory(dwTempPassSize, (PVOID*)(PVOID)&pwcTempPass);
     BAIL_ON_NTLM_ERROR(dwError);
 
     while(*pPassword)
@@ -1387,7 +1387,7 @@ NtlmBuildNtlmResponse(
 cleanup:
     if(pwcTempPass)
     {
-        LwFreeMemory(pwcTempPass);
+        LsaFreeMemory(pwcTempPass);
     }
     return dwError;
 error:

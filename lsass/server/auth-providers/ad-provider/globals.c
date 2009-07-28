@@ -54,30 +54,7 @@ PSTR gpszADProviderName = "lsa-activedirectory-provider";
 
 PSTR gpszADConfigFilePath = NULL;
 
-BOOLEAN gbShutdownProvider = FALSE;
-
 PAD_PROVIDER_DATA gpADProviderData = NULL;
-
-pthread_t       gCacheReaperThread;
-pthread_mutex_t gCacheReaperThreadLock      = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t  gCacheReaperThreadCondition = PTHREAD_COND_INITIALIZER;
-pthread_t*      gpCacheReaperThread = NULL;
-
-/*
- * Machine Password
- */
-DWORD gdwMachinePasswordSyncThreadWaitSecs           = 30 * LSA_SECONDS_IN_MINUTE;
-
-pthread_t       gMachinePasswordSyncThread;
-pthread_mutex_t gMachinePasswordSyncThreadLock       = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t  gMachinePasswordSyncThreadCondition  = PTHREAD_COND_INITIALIZER;
-pthread_t*      gpMachinePasswordSyncThread          = NULL;
-
-HANDLE ghPasswordStore = (HANDLE)NULL;
-
-DWORD gdwMachineTGTExpiry = 0;
-
-double gdwMachineTGTExpiryGraceSeconds = (60 * 60);
 
 LSA_PROVIDER_FUNCTION_TABLE gADProviderAPITable =
     {

@@ -120,12 +120,12 @@ typedef struct _LSA_CONTEXT
     PVOID                   pMessage;
     LSA_CRED_HANDLE         CredHandle;
     LONG                    nRefCount;
-    LW_LIST_LINKS           ListEntry;
+    LSA_LIST_LINKS           ListEntry;
 } LSA_CONTEXT, *PLSA_CONTEXT;
 
 typedef struct _LSA_CONTEXT_STATE
 {
-    LW_LIST_LINKS LsaContextList;
+    LSA_LIST_LINKS LsaContextList;
     pthread_rwlock_t LsaContextListLock;
 } LSA_CONTEXT_STATE, *PLSA_CONTEXT_STATE;
 

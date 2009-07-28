@@ -49,16 +49,13 @@
 #define __NTLMIPC_H__
 
 #include <lwmsg/lwmsg.h>
+#include <lsaipc.h>
 
-#define LSA_CLIENT_PATH_FORMAT "/var/tmp/.lsaclient_%05ld"
-#define LSA_SERVER_FILENAME    ".lsasd"
-
-#define NTLM_CLIENT_PATH_FORMAT LSA_CLIENT_PATH_FORMAT //"/var/tmp/.ntlmclient_%05ld"
-#define NTLM_SERVER_FILENAME LSA_SERVER_FILENAME //".ntlmsd"
+#define NTLM_SERVER_FILENAME LSA_SERVER_FILENAME
 
 typedef enum __NTLM_IPC_TAG
 {
-    NTLM_Q_ACCEPT_SEC_CTXT,
+    NTLM_Q_ACCEPT_SEC_CTXT = LSA_IPC_TAG_FINAL,
     NTLM_R_ACCEPT_SEC_CTXT_SUCCESS,
     NTLM_R_ACCEPT_SEC_CTXT_FAILURE,
     NTLM_Q_ACQUIRE_CREDS,
@@ -308,6 +305,16 @@ typedef struct __NTLM_IPC_VERIFY_SIGN_RESPONSE
 #define NTLM_MAP_LWMSG_ERROR(_e_) (NtlmMapLwmsgStatus(_e_))
 #define MAP_NTLM_ERROR_IPC(_e_) ((_e_) ? LWMSG_STATUS_ERROR : LWMSG_STATUS_SUCCESS)
 
+DWORD
+NtlmSrvApiInit(
+    PCSTR pszConfigFilePath
+    );
+
+DWORD
+NtlmSrvApiShutdown(
+    VOID
+    );
+
 LWMsgProtocolSpec*
 NtlmIpcGetProtocolSpec(
     void
@@ -441,6 +448,11 @@ NtlmSrvIpcVerifySignature(
     const LWMsgMessage* pRequest,
     LWMsgMessage* pResponse,
     void* data
+    );
+
+VOID
+NtlmSrvFreeCredHandle(
+    PVOID pData
     );
 
 #endif /*__NTLMIPC_H__*/

@@ -1,3 +1,5 @@
+AM_CPPFLAGS = @AM_CPPFLAGS@ -I$(top_srcdir)/include
+
 testlib_LTLIBRARIES = libperflsass.la
 
 libperflsass_la_SOURCES = tests.c

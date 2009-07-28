@@ -18,6 +18,7 @@ libsrv_protocols_smb2_la_SOURCES = \
     read.c           \
     session.c        \
     session_setup.c  \
+    setinfo.c        \
     tree.c           \
     treeconnect.c    \
     treedisconnect.c \

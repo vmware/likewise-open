@@ -1,2 +1,3 @@
-SUBDIRS = \
-    iotest
+if ENABLE_IOTEST
+SUBDIRS = iotest
+endif

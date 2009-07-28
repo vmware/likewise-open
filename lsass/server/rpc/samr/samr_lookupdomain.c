@@ -79,6 +79,13 @@ SamrSrvLookupDomain(
     PATTRIBUTE_VALUE pAttrVal = NULL;
     PSID pDomainSid = NULL;
 
+    BAIL_ON_INVALID_PARAMETER(ppSid);
+    BAIL_ON_INVALID_PARAMETER((domain_name &&
+                               domain_name->string &&
+                               domain_name->len > 0 &&
+                               domain_name->size > 0));
+    BAIL_ON_INVALID_PARAMETER((domain_name->size >= domain_name->len));
+
     memset(wszAttributes, 0, sizeof(wszAttributes));
 
     pConnCtx = (PCONNECT_CONTEXT)hConn;
@@ -89,8 +96,7 @@ SamrSrvLookupDomain(
     }
 
     status = SamrSrvGetFromUnicodeString(&pwszDomainName,
-                                         domain_name,
-                                         pConnCtx);
+                                         domain_name);
     BAIL_ON_NO_MEMORY(pwszDomainName);
 
     if (!wc16scasecmp(pwszDomainName, wszBuiltinDomainName)) {
@@ -107,8 +113,7 @@ SamrSrvLookupDomain(
                   sizeof(wszFilter);
 
     status = SamrSrvAllocateMemory((void**)&pwszFilter,
-                                   dwFilterLen,
-                                   pConnCtx);
+                                   dwFilterLen);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     sw16printfw(pwszFilter, dwFilterLen/sizeof(WCHAR), wszFilter,
@@ -139,8 +144,7 @@ SamrSrvLookupDomain(
         if (pAttrVal->Type == DIRECTORY_ATTR_TYPE_UNICODE_STRING) {
             status = SamrSrvAllocateSidFromWC16String(
                             &pDomainSid,
-                            pAttrVal->data.pwszStringValue,
-                            pConnCtx);
+                            pAttrVal->data.pwszStringValue);
             BAIL_ON_NTSTATUS_ERROR(status);
 
         } else {

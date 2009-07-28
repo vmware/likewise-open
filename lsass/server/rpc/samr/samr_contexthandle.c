@@ -65,7 +65,7 @@ CONNECT_HANDLE_rundown(
       free access token
     */
 
-    SamrSrvFreeMemory(pConnCtx);
+    RTL_FREE(&pConnCtx);
 }
 
 
@@ -79,20 +79,12 @@ DOMAIN_HANDLE_rundown(
     InterlockedDecrement(&pDomCtx->refcount);
     if (pDomCtx->refcount) return;
 
-    if (pDomCtx->pDomainSid) {
-        SamrSrvFreeMemory(pDomCtx->pDomainSid);
-    }
-
-    if (pDomCtx->pwszDomainName) {
-        SamrSrvFreeMemory(pDomCtx->pwszDomainName);
-    }
-
-    if (pDomCtx->pwszDn) {
-        SamrSrvFreeMemory(pDomCtx->pwszDn);
-    }
+    RTL_FREE(&pDomCtx->pDomainSid);
+    RTL_FREE(&pDomCtx->pwszDomainName);
+    RTL_FREE(&pDomCtx->pwszDn);
 
     CONNECT_HANDLE_rundown((CONNECT_HANDLE)pDomCtx->pConnCtx);
-    SamrSrvFreeMemory(pDomCtx);
+    RTL_FREE(&pDomCtx);
 }
 
 
@@ -106,21 +98,12 @@ ACCOUNT_HANDLE_rundown(
     InterlockedDecrement(&pAcctCtx->refcount);
     if (pAcctCtx->refcount) return;
 
-    if (pAcctCtx->pwszDn) {
-        SamrSrvFreeMemory(pAcctCtx->pwszDn);
-    }
-
-    if (pAcctCtx->pwszName) {
-        SamrSrvFreeMemory(pAcctCtx->pwszName);
-    }
-
-    if (pAcctCtx->pSid) {
-        SamrSrvFreeMemory(pAcctCtx->pSid);
-    }
-
+    RTL_FREE(&pAcctCtx->pwszDn);
+    RTL_FREE(&pAcctCtx->pwszName);
+    RTL_FREE(&pAcctCtx->pSid);
 
     DOMAIN_HANDLE_rundown((DOMAIN_HANDLE)pAcctCtx->pDomCtx);
-    SamrSrvFreeMemory(pAcctCtx);
+    RTL_FREE(&pAcctCtx);
 }
 
 

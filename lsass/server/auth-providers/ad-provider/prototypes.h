@@ -180,11 +180,6 @@ AD_GetLDAPSignAndSeal(
     VOID
     );
 
-double
-AD_GetMachineTGTGraceSeconds(
-    VOID
-    );
-
 DWORD
 AD_AddAllowedMember(
     IN PCSTR pszSID,

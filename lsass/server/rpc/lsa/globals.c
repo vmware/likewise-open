@@ -39,11 +39,9 @@
 /* Library initialisation guard */
 pthread_mutex_t gLsaSrvDataMutex;
 
-void *pLsaSrvMemRoot = NULL;
 int bLsaSrvInitialised = 0;
 
-
-PCSTR gpszRpcSrvName = "lsarpc";
+PCSTR gpszLsaRpcSrvName = "lsarpc";
 LSA_RPCSRV_FUNCTION_TABLE gLsaRpcFuncTable = {
     &LsaRpcStartServer,
     &LsaRpcStopServer

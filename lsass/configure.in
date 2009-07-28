@@ -612,6 +612,21 @@ then
 	AC_DEFINE([ENABLE_STATIC_PROVIDERS], [], [Define if providers should be built directly into lsassd])
 fi
 
+AC_ARG_ENABLE([rpcserver], [AC_HELP_STRING([--enable-rpcserver], [build rpc server modules])],
+              [], [enable_rpcserver="yes"])
+AM_CONDITIONAL(ENABLE_RPCSERVER, test x"$enable_rpcserver" = x"yes")
+if test x"$enable_rpcserver" = x"yes"
+then
+	AC_DEFINE([ENABLE_RPCSERVER], [], [Define if rpc server modules should be built])
+fi
+
+AC_ARG_ENABLE([static-rpcservers], [AC_HELP_STRING([--enable-static-rpcservers], [build rpc servers directly into lsassd])])
+AM_CONDITIONAL(ENABLE_STATIC_RPCSERVERS, test x"$enable_static_rpcservers" = x"yes")
+if test x"$enable_static_rpcservers" = x"yes"
+then
+	AC_DEFINE([ENABLE_STATIC_RPCSERVERS], [], [Define if rpc servers should be built directly into lsassd])
+fi
+
 # debugging
 
 AC_ARG_ENABLE([debug],
