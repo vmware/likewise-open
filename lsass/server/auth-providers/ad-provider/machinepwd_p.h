@@ -58,11 +58,6 @@ ADStartMachinePasswordSync(
     VOID
     );
 
-PVOID
-ADSyncMachinePasswords(
-    PVOID pData
-    );
-
 VOID
 ADSyncTimeToDC(
     PCSTR pszDomainFQDN
@@ -73,32 +68,9 @@ ADShutdownMachinePasswordSync(
     VOID
     );
 
-BOOLEAN
-ADShouldRefreshMachineTGT();
-
 VOID
 ADSetMachineTGTExpiry(
     DWORD dwGoodUntil
-    );
-
-VOID
-ADLogMachinePWUpdateSuccessEvent(
-    VOID
-    );
-
-VOID
-ADLogMachinePWUpdateFailureEvent(
-    DWORD dwErrCode
-    );
-
-VOID
-ADLogMachineTGTRefreshSuccessEvent(
-    VOID
-    );
-
-VOID
-ADLogMachineTGTRefreshFailureEvent(
-    DWORD dwErrCode
     );
 
 #endif /* __MACHINEPWD_P_H__ */

@@ -403,8 +403,6 @@ LSA_SHUTDOWN_PROVIDER(ad)(
     DWORD dwError = 0;
     BOOLEAN bInLock = FALSE;
 
-    ADProviderSetShutdownFlag(TRUE);
-
     ADUnprovPlugin_Cleanup();
 
     ADShutdownMachinePasswordSync();

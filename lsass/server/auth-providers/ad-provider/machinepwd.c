@@ -48,6 +48,88 @@
 
 #include "adprovider.h"
 
+
+//
+// Global Module State Type
+//
+
+typedef struct _AD_MACHINE_PASSWORD_SYNC_STATE {
+    BOOLEAN bThreadShutdown;
+    DWORD dwThreadWaitSecs;
+    pthread_t Thread;
+    pthread_mutex_t ThreadLock;
+    pthread_cond_t ThreadCondition;
+    pthread_t* pThread;
+    HANDLE hPasswordStore;
+    DWORD dwTgtExpiry;
+    DWORD dwTgtExpiryGraceSeconds;
+} AD_MACHINE_PASSWORD_SYNC_STATE, *PAD_MACHINE_PASSWORD_SYNC_STATE;
+
+//
+// Global Module State Variable
+//
+
+//
+// ISSUE-2009/07/24-dalmeida -- Make the global state be
+// dynamically initialized rather than be statically
+// initialized as a global so we can easily restart.
+//
+
+static AD_MACHINE_PASSWORD_SYNC_STATE gAdMachinePasswordSyncState = {
+    .bThreadShutdown = FALSE,
+    .dwThreadWaitSecs = 30 * LSA_SECONDS_IN_MINUTE,
+    .ThreadLock = PTHREAD_MUTEX_INITIALIZER,
+    .ThreadCondition = PTHREAD_COND_INITIALIZER,
+    .pThread = NULL,
+    .hPasswordStore = NULL,
+    .dwTgtExpiry = 0,
+    .dwTgtExpiryGraceSeconds = 60 * LSA_SECONDS_IN_MINUTE,
+};
+
+//
+// Static Function Prototypes
+//
+
+static
+BOOLEAN
+ADShouldRefreshMachineTGT(
+    VOID
+    );
+
+static
+PVOID
+ADSyncMachinePasswordThreadRoutine(
+    PVOID pData
+    );
+
+static
+VOID
+ADLogMachinePWUpdateSuccessEvent(
+    VOID
+    );
+
+static
+VOID
+ADLogMachinePWUpdateFailureEvent(
+    DWORD dwErrCode
+    );
+
+static
+VOID
+ADLogMachineTGTRefreshSuccessEvent(
+    VOID
+    );
+
+static
+VOID
+ADLogMachineTGTRefreshFailureEvent(
+    DWORD dwErrCode
+    );
+
+//
+// Function Implementations
+//
+
 DWORD
 ADInitMachinePasswordSync(
     VOID
@@ -57,7 +139,7 @@ ADInitMachinePasswordSync(
     
     dwError = LwpsOpenPasswordStore(
                     LWPS_PASSWORD_STORE_DEFAULT,
-                    &ghPasswordStore);
+                    &gAdMachinePasswordSyncState.hPasswordStore);
     BAIL_ON_LSA_ERROR(dwError);
     
 cleanup:
@@ -76,13 +158,13 @@ ADStartMachinePasswordSync(
 {
     DWORD dwError = 0;
 
-    dwError = pthread_create(&gMachinePasswordSyncThread,
+    dwError = pthread_create(&gAdMachinePasswordSyncState.Thread,
                              NULL,
-                             ADSyncMachinePasswords,
+                             ADSyncMachinePasswordThreadRoutine,
                              NULL);
     BAIL_ON_LSA_ERROR(dwError);
 
-    gpMachinePasswordSyncThread = &gMachinePasswordSyncThread;
+    gAdMachinePasswordSyncState.pThread = &gAdMachinePasswordSyncState.Thread;
 
 cleanup:
 
@@ -90,13 +172,14 @@ cleanup:
 
 error:
 
-    gpMachinePasswordSyncThread = NULL;
+    gAdMachinePasswordSyncState.pThread = NULL;
 
     goto cleanup;
 }
 
+static
 PVOID
-ADSyncMachinePasswords(
+ADSyncMachinePasswordThreadRoutine(
     PVOID pData
     )
 {
@@ -109,39 +192,41 @@ ADSyncMachinePasswords(
 
     LSA_LOG_INFO("Machine Password Sync Thread starting");
 
-    pthread_mutex_lock(&gMachinePasswordSyncThreadLock);
-    
-    do
+    pthread_mutex_lock(&gAdMachinePasswordSyncState.ThreadLock);
+
+    for (;;)
     {
         DWORD dwReapingAge = 0;
         DWORD dwCurrentPasswordAge = 0;
         BOOLEAN bRefreshTGT = FALSE;
-        
+
         dwError = LsaDnsGetHostInfo(&pszHostname);
-        if (dwError) {
-           LSA_LOG_ERROR("Error: Failed to find hostname (Error code: %ld)",
-                         dwError);
-           dwError = 0;
-           goto lsa_wait_resync;
+        if (dwError)
+        {
+            LSA_LOG_ERROR("Error: Failed to find hostname (Error code: %ld)",
+                          dwError);
+            dwError = 0;
+            goto lsa_wait_resync;
         }
 
         ADSyncTimeToDC(gpADProviderData->szDomain);
         
         dwError = LwpsGetPasswordByHostName(
-                        ghPasswordStore,
+                        gAdMachinePasswordSyncState.hPasswordStore,
                         pszHostname,
                         &pAcctInfo);
-        if (dwError) {
+        if (dwError)
+        {
             LSA_LOG_ERROR("Error: Failed to re-sync machine account (Error code: %ld)", dwError);
             dwError = 0;
             goto lsa_wait_resync;
         }
-        
+
         dwCurrentPasswordAge = 
                          difftime(
                               time(NULL),
                               pAcctInfo->last_change_time);
-        
+
         dwPasswordSyncLifetime = AD_GetMachinePasswordSyncPwdLifetime();
         dwReapingAge = dwPasswordSyncLifetime / 2;
 
@@ -156,36 +241,37 @@ ADSyncMachinePasswords(
         if (dwCurrentPasswordAge >= dwReapingAge)
         {
             LSA_LOG_VERBOSE("Changing machine password");
-            dwError = NetMachineChangePassword();           
-            if (dwError) {
-                LSA_LOG_ERROR("Error: Failed to re-sync machine account [Error code: %ld]", dwError);                
-                
+            dwError = NetMachineChangePassword();
+            if (dwError)
+            {
+                LSA_LOG_ERROR("Error: Failed to re-sync machine account [Error code: %ld]", dwError);
+
                 if (AD_EventlogEnabled())
                 {
-                    ADLogMachinePWUpdateFailureEvent(dwError);      
+                    ADLogMachinePWUpdateFailureEvent(dwError);
                 }
-                
+
                 dwError = 0;
                 goto lsa_wait_resync;
-            }            
-            
+            }
+
             if (AD_EventlogEnabled())
             {
                 ADLogMachinePWUpdateSuccessEvent();
-            }            
-            
+            }
+
             bRefreshTGT = TRUE;
         }
         else
         {
-        	bRefreshTGT = ADShouldRefreshMachineTGT();
+            bRefreshTGT = ADShouldRefreshMachineTGT();
         }
-        
+
         if (bRefreshTGT)
         {
-		dwError = LwKrb5RefreshMachineTGT(&dwGoodUntilTime);
-        	if (dwError)
-        	{
+            dwError = LwKrb5RefreshMachineTGT(&dwGoodUntilTime);
+            if (dwError)
+            {
                     if (AD_EventlogEnabled())
                     {
                         ADLogMachineTGTRefreshFailureEvent(dwError);
@@ -194,64 +280,64 @@ ADSyncMachinePasswords(
                     LSA_LOG_ERROR("Error: Failed to refresh machine TGT [Error code: %ld]", dwError);
                     dwError = 0;
                     goto lsa_wait_resync;
-        	}
-                ADSetMachineTGTExpiry(dwGoodUntilTime);
-        	
-        	LSA_LOG_VERBOSE("Machine TGT was refreshed successfully");
+            }
+            ADSetMachineTGTExpiry(dwGoodUntilTime);
 
-                if (AD_EventlogEnabled())
-                {
-                    ADLogMachineTGTRefreshSuccessEvent();
-                }
+            LSA_LOG_VERBOSE("Machine TGT was refreshed successfully");
+
+            if (AD_EventlogEnabled())
+            {
+                ADLogMachineTGTRefreshSuccessEvent();
+            }
         }
-        
+
 lsa_wait_resync:
 
-        if (pAcctInfo) {
-            LwpsFreePasswordInfo(ghPasswordStore, pAcctInfo);
+        if (pAcctInfo)
+        {
+            LwpsFreePasswordInfo(gAdMachinePasswordSyncState.hPasswordStore, pAcctInfo);
             pAcctInfo = NULL;
         }
 
         LSA_SAFE_FREE_STRING(pszHostname);
-        
-        timeout.tv_sec = time(NULL) + 
-                     gdwMachinePasswordSyncThreadWaitSecs;
+
+        timeout.tv_sec = time(NULL) + gAdMachinePasswordSyncState.dwThreadWaitSecs;
         timeout.tv_nsec = 0;
-        
+
 retry_wait:
 
-        dwError = pthread_cond_timedwait(&gMachinePasswordSyncThreadCondition,
-                                         &gMachinePasswordSyncThreadLock,
+        dwError = pthread_cond_timedwait(&gAdMachinePasswordSyncState.ThreadCondition,
+                                         &gAdMachinePasswordSyncState.ThreadLock,
                                          &timeout);
-        
-        if (ADProviderIsShuttingDown())
-           break;
 
-        if (dwError) {
-           if (dwError == ETIMEDOUT) {
-              dwError = 0;
-              if (time(NULL) < timeout.tv_sec)
-              {
-                  // It didn't really timeout. Something else happened
-                  goto retry_wait;
-              }
-           } else {
-              BAIL_ON_LSA_ERROR(dwError);
-           }
+        if (gAdMachinePasswordSyncState.bThreadShutdown)
+        {
+           break;
         }
-        
-    } while (1);
-    
+
+        if (dwError == ETIMEDOUT)
+        {
+            dwError = 0;
+            if (time(NULL) < timeout.tv_sec)
+            {
+                // It didn't really timeout. Something else happened
+                goto retry_wait;
+            }
+        }
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
 cleanup:
 
-    if (pAcctInfo) {
-        LwpsFreePasswordInfo(ghPasswordStore, pAcctInfo);
+    if (pAcctInfo)
+    {
+        LwpsFreePasswordInfo(gAdMachinePasswordSyncState.hPasswordStore, pAcctInfo);
     }
 
     LSA_SAFE_FREE_STRING(pszHostname);
 
-    pthread_mutex_unlock(&gMachinePasswordSyncThreadLock);
-    
+    pthread_mutex_unlock(&gAdMachinePasswordSyncState.ThreadLock);
+
     LSA_LOG_INFO("Machine Password Sync Thread stopping");
 
     return NULL;
@@ -312,69 +398,61 @@ ADShutdownMachinePasswordSync(
     VOID
     )
 {
-    DWORD dwError = 0;
-    
-    if (gpMachinePasswordSyncThread)
+    if (gAdMachinePasswordSyncState.pThread)
     {   
-        pthread_mutex_lock(&gMachinePasswordSyncThreadLock);
-        pthread_cond_signal(&gMachinePasswordSyncThreadCondition);
-        pthread_mutex_unlock(&gMachinePasswordSyncThreadLock);
-        
-        dwError = pthread_cancel(gMachinePasswordSyncThread);
-        if (ESRCH == dwError)
-        {
-            dwError = 0;
-        }
-        if (dwError)
-        {
-            LSA_LOG_ERROR("Unexpected error trying to cancel thread (error = %d)", dwError);
-            dwError = 0;
-        }
-        
-        pthread_join(gMachinePasswordSyncThread, NULL);
-        gpMachinePasswordSyncThread = NULL;
+        pthread_mutex_lock(&gAdMachinePasswordSyncState.ThreadLock);
+        gAdMachinePasswordSyncState.bThreadShutdown = TRUE;
+        pthread_cond_signal(&gAdMachinePasswordSyncState.ThreadCondition);
+        pthread_mutex_unlock(&gAdMachinePasswordSyncState.ThreadLock);
+
+        pthread_join(gAdMachinePasswordSyncState.Thread, NULL);
+        gAdMachinePasswordSyncState.pThread = NULL;
     }
 
-    if (ghPasswordStore)
+    if (gAdMachinePasswordSyncState.hPasswordStore)
     {
-        LwpsClosePasswordStore(ghPasswordStore);
-        ghPasswordStore = (HANDLE)NULL;
+        LwpsClosePasswordStore(gAdMachinePasswordSyncState.hPasswordStore);
+        gAdMachinePasswordSyncState.hPasswordStore = NULL;
     }
 }
 
+static
 BOOLEAN
-ADShouldRefreshMachineTGT()
+ADShouldRefreshMachineTGT(
+    VOID
+    )
 {
-	BOOLEAN bRefresh = FALSE;
-	BOOLEAN bInLock = FALSE;
-	
-	ENTER_AD_GLOBAL_DATA_RW_READER_LOCK(bInLock);
-	
-	if (!gdwMachineTGTExpiry ||
-            (difftime(gdwMachineTGTExpiry, time(NULL)) <= gdwMachineTGTExpiryGraceSeconds))
-	{
-		bRefresh = TRUE;
-	}
-	
-	LEAVE_AD_GLOBAL_DATA_RW_READER_LOCK(bInLock);
-	
-	return bRefresh;
+    BOOLEAN bRefresh = FALSE;
+    BOOLEAN bInLock = FALSE;
+
+    ENTER_AD_GLOBAL_DATA_RW_READER_LOCK(bInLock);
+
+    if (!gAdMachinePasswordSyncState.dwTgtExpiry ||
+        (difftime(gAdMachinePasswordSyncState.dwTgtExpiry, time(NULL)) <= gAdMachinePasswordSyncState.dwTgtExpiryGraceSeconds))
+    {
+        bRefresh = TRUE;
+    }
+
+    LEAVE_AD_GLOBAL_DATA_RW_READER_LOCK(bInLock);
+
+    return bRefresh;
 }
 
 VOID
 ADSetMachineTGTExpiry(
-	DWORD dwGoodUntil
-	)
-{
-	BOOLEAN bInLock = FALSE;
-	
-	ENTER_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
-	
-	gdwMachineTGTExpiry = dwGoodUntil;
-	
-	LEAVE_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
+    DWORD dwGoodUntil
+    )
+    {
+    BOOLEAN bInLock = FALSE;
+
+    ENTER_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
+
+    gAdMachinePasswordSyncState.dwTgtExpiry = dwGoodUntil;
+
+    LEAVE_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
 }
 
+static
 VOID
 ADLogMachinePWUpdateSuccessEvent(
     VOID
@@ -407,6 +485,7 @@ error:
     goto cleanup;
 }
 
+static
 VOID
 ADLogMachinePWUpdateFailureEvent(
     DWORD dwErrCode
@@ -445,6 +524,7 @@ error:
     goto cleanup;
 }
 
+static
 VOID
 ADLogMachineTGTRefreshSuccessEvent(
     VOID
@@ -477,6 +557,7 @@ error:
     goto cleanup;
 }
 
+static
 VOID
 ADLogMachineTGTRefreshFailureEvent(
     DWORD dwErrCode
@@ -514,4 +595,3 @@ error:
 
     goto cleanup;
 }
-

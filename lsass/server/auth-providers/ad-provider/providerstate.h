@@ -50,16 +50,6 @@
 #ifndef __PROVIDER_STATE_H__
 #define __PROVIDER_STATE_H__
 
-BOOLEAN
-ADProviderIsShuttingDown(
-    VOID
-    );
-
-VOID
-ADProviderSetShutdownFlag(
-    BOOLEAN bFlag
-    );
-
 VOID
 ADProviderFreeCellInfo(
     IN OUT PAD_LINKED_CELL_INFO pCell

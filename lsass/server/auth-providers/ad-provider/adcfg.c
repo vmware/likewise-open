@@ -1685,21 +1685,6 @@ AD_GetLDAPSignAndSeal(
     return bResult;
 }
 
-double
-AD_GetMachineTGTGraceSeconds()
-{
-    double dGraceSeconds = 0;
-    BOOLEAN bInLock = FALSE;
-
-    ENTER_AD_GLOBAL_DATA_RW_READER_LOCK(bInLock);
-
-    dGraceSeconds = gdwMachineTGTExpiryGraceSeconds;
-
-    LEAVE_AD_GLOBAL_DATA_RW_READER_LOCK(bInLock);
-
-    return dGraceSeconds;
-}
-
 static
 BOOLEAN
 AD_IsInMembersList_InLock(
