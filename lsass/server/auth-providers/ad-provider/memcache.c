@@ -1790,6 +1790,39 @@ MemCacheMaintainSizeCap(
         }
     }
 
+    // Remove any orphaned password verifiers (password verifiers where the
+    // corresponding user security object is not cached)
+
+    dwError = LsaHashGetIterator(
+                    pConn->pSIDToPasswordVerifier,
+                    &iterator);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    while ((pEntry = LsaHashNext(&iterator)) != NULL)
+    {
+        PLSA_PASSWORD_VERIFIER pFromHash = (PLSA_PASSWORD_VERIFIER)
+            pEntry->pValue;
+
+        dwError = LsaHashGetValue(
+                        pConn->pSIDToSecurityObject,
+                        pFromHash->pszObjectSid,
+                        (PVOID*)&pListEntry);
+        if (dwError == ENOENT)
+        {
+            LSA_LOG_INFO("Removing orphaned password verifier for sid %s",
+                    pFromHash->pszObjectSid);
+            pConn->sCacheSize -= pFromHash->version.dwObjectSize;
+
+            // It is safe to remove this key because the iterator already
+            // points to the next item.
+            dwError = LsaHashRemoveKey(
+                            pConn->pSIDToPasswordVerifier,
+                            pEntry->pKey);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
 cleanup:
     return dwError;
 
