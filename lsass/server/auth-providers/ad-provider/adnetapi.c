@@ -125,10 +125,9 @@ error:
     goto cleanup;
 }
 
-static
 DWORD
 AD_SetSystemAccess(
-    LW_PIO_ACCESS_TOKEN* ppOldToken
+    OUT OPTIONAL LW_PIO_ACCESS_TOKEN* ppOldToken
     )
 {
     LW_PIO_ACCESS_TOKEN pOldToken = NULL;
@@ -138,27 +137,34 @@ AD_SetSystemAccess(
     dwError = AD_GetSystemAccessToken(&pSystemToken);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LwIoGetThreadAccessToken(&pOldToken);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (ppOldToken)
+    {
+        dwError = LwIoGetThreadAccessToken(&pOldToken);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     dwError = LwIoSetThreadAccessToken(pSystemToken);
     BAIL_ON_LSA_ERROR(dwError);
-
-    *ppOldToken = pOldToken;
 
 cleanup:
     if (pSystemToken != NULL)
     {
         LwIoDeleteAccessToken(pSystemToken);
     }
+
+    if (ppOldToken)
+    {
+        *ppOldToken = pOldToken;
+    }
+
     return dwError;
 
 error:
     if (pOldToken != NULL)
     {
         LwIoDeleteAccessToken(pOldToken);
+        pOldToken = NULL;
     }
-    *ppOldToken = NULL;
 
     goto cleanup;
 }
