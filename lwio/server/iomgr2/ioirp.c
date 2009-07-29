@@ -128,8 +128,10 @@ IopIrpCreate(
     pIrp->DriverHandle = pFileObject->pDevice->Driver;
 
     // XXX - LOCK...
+    LwRtlLockMutex(&pFileObject->IrpListMutex);
     LwListInsertTail(&pFileObject->IrpList,
                      &irpInternal->FileObjectLinks);
+    LwRtlUnlockMutex(&pFileObject->IrpListMutex);
 
 cleanup:
     if (status)
@@ -155,6 +157,7 @@ IopIrpFree(
     if (pIrp)
     {
         PIRP_INTERNAL irpInternal = IopIrpGetInternal(pIrp);
+        PIO_FILE_OBJECT pFileObject = pIrp->FileHandle;
 
         LWIO_ASSERT(0 == irpInternal->ReferenceCount);
         LWIO_ASSERT(STATUS_PENDING != pIrp->IoStatusBlock.Status);
@@ -177,7 +180,10 @@ IopIrpFree(
                 break;
         }
 
+        LwRtlLockMutex(&pFileObject->IrpListMutex);
         LwListRemove(&irpInternal->FileObjectLinks);
+        LwRtlUnlockMutex(&pFileObject->IrpListMutex);
+
         IopFileObjectDereference(&pIrp->FileHandle);
 
         IoMemoryFree(pIrp);
