@@ -407,6 +407,12 @@
 #define LW_ERROR_UNSUPPORTED_SUBPROTO                      40508
 #define LW_ERROR_UNSUPPORTED_CRYPTO_OP                     40509
 
+/* range 40601 - 40699 is reserved for lwtest specific errors */
+
+#define LW_ERROR_TEST_FAILED                               40601
+#define LW_ERROR_CSV_BAD_FORMAT                            40602
+#define LW_ERROR_CSV_NO_SUCH_FIELD                         40603
+
 size_t
 LwGetErrorString(
     LW_IN LW_DWORD dwError,
