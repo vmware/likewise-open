@@ -90,6 +90,7 @@ typedef struct _LSA_AD_CONFIG {
 
     DWORD               dwCacheReaperTimeoutSecs;
     DWORD               dwCacheEntryExpirySecs;
+    DWORD               dwCacheSizeCap;
     CHAR                chSpaceReplacement;
     CHAR                chDomainSeparator;
     BOOLEAN             bEnableEventLog;

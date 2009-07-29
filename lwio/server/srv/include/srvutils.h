@@ -168,6 +168,12 @@ SrvWc16sToMbs(
     );
 
 NTSTATUS
+SrvAllocateStringW(
+    IN  PWSTR  pwszInputString,
+    OUT PWSTR* ppwszOutputString
+    );
+
+NTSTATUS
 SrvAllocateStringPrintf(
     PSTR* ppszOutputString,
     PCSTR pszFormat,

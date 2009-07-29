@@ -108,6 +108,7 @@ struct _IO_DEVICE_OBJECT {
     PVOID Context;
 
     // File objects for this device.
+    LW_RTL_MUTEX FileObjectMutex;
     LW_LIST_LINKS FileObjectsList;
 
     // For each list to which this object belongs.
@@ -125,6 +126,7 @@ struct _IO_FILE_OBJECT {
     // TODO -- Track file vs named pipe
 
     // IRPs for this file object.
+    LW_RTL_MUTEX IrpListMutex;
     LW_LIST_LINKS IrpList;
 
     // For each list to which this object belongs.

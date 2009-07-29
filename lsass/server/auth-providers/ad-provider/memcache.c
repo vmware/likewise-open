@@ -509,6 +509,9 @@ MemCacheLoadFile(
     dwError = MAP_LWMSG_ERROR(lwmsg_archive_close(pArchive));
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = MemCacheMaintainSizeCap(pConn);
+    BAIL_ON_LSA_ERROR(dwError);
+
     pConn->bNeedBackup = TRUE;
     dwError = pthread_cond_signal(&pConn->signalBackup);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1565,6 +1568,9 @@ MemCacheStoreObjectEntries(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
+    dwError = MemCacheMaintainSizeCap(pConn);
+    BAIL_ON_LSA_ERROR(dwError);
+
     pConn->bNeedBackup = TRUE;
     dwError = pthread_cond_signal(&pConn->signalBackup);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1594,6 +1600,234 @@ MemCacheGetStringSpace(
     {
         return 0;
     }
+}
+
+PMEM_GROUP_MEMBERSHIP
+MemCacheFindMembership(
+    IN PMEM_DB_CONNECTION pConn,
+    IN PCSTR pszParentSid,
+    IN PCSTR pszChildSid
+    )
+{
+    DWORD dwError = 0;
+    // Do not free
+    PLSA_LIST_LINKS pGuardian = NULL;
+    // Do not free
+    PLSA_LIST_LINKS pPos = NULL;
+    // Do not free
+    PMEM_GROUP_MEMBERSHIP pMembership = NULL;
+
+    dwError = LsaHashGetValue(
+                    pConn->pParentSIDToMembershipList,
+                    pszParentSid,
+                    (PVOID*)&pGuardian);
+    if (dwError == ENOENT)
+    {
+        return NULL;
+    }
+    LSA_ASSERT(dwError == 0);
+
+    LSA_ASSERT(pGuardian != NULL);
+    pPos = pGuardian->Next;
+    while (pPos != pGuardian)
+    {
+        pMembership = PARENT_NODE_TO_MEMBERSHIP(pPos);
+        // The == comparison takes care of the case where both strings are null
+        if (!strcmp(LsaEmptyStrForNull(pMembership->membership.pszParentSid),
+                    LsaEmptyStrForNull(pszParentSid)) &&
+            !strcmp(LsaEmptyStrForNull(pMembership->membership.pszChildSid),
+                    LsaEmptyStrForNull(pszChildSid)))
+        {
+            return pMembership;
+        }
+
+        pPos = pPos->Next;
+    }
+
+    return NULL;
+}
+
+DWORD
+MemCacheMaintainSizeCap(
+    IN PMEM_DB_CONNECTION pConn
+    )
+{
+    DWORD dwError = 0;
+    // Do not free
+    PMEM_GROUP_MEMBERSHIP pMembership = NULL;
+    // Do not free
+    PMEM_GROUP_MEMBERSHIP pCompleteness = NULL;
+    // Do not free
+    PDLINKEDLIST pListEntry = NULL;
+    // Do not free
+    LSA_HASH_ENTRY *pEntry = NULL;
+    LSA_HASH_ITERATOR iterator = {0};
+    BOOLEAN bOrphaned = FALSE;
+
+    if (!pConn->sSizeCap)
+    {
+        goto cleanup;
+    }
+
+    if (pConn->sCacheSize <= pConn->sSizeCap)
+    {
+        goto cleanup;
+    }
+
+    LSA_LOG_WARNING("The current cache size (%d) is larger than the cap (%d) - trimming", pConn->sCacheSize, pConn->sSizeCap);
+
+    // Remove any orphaned memberships (memberships where the parent or child
+    // security object is not cached)
+
+    // Only one table needs to be enumerated to see all memberships
+    dwError = LsaHashGetIterator(
+                    pConn->pParentSIDToMembershipList,
+                    &iterator);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    while ((pEntry = LsaHashNext(&iterator)) != NULL)
+    {
+        PLSA_LIST_LINKS pGuardian = (PLSA_LIST_LINKS)pEntry->pValue;
+        PLSA_LIST_LINKS pPos = pGuardian->Next;
+
+        while (pPos != pGuardian)
+        {
+            pMembership = PARENT_NODE_TO_MEMBERSHIP(pPos);
+            bOrphaned = FALSE;
+
+            if (pMembership->membership.pszParentSid != NULL)
+            {
+                dwError = LsaHashGetValue(
+                                pConn->pSIDToSecurityObject,
+                                pMembership->membership.pszParentSid,
+                                (PVOID*)&pListEntry);
+                if (dwError == ENOENT)
+                {
+                    bOrphaned = TRUE;
+                    dwError = 0;
+                }
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+
+            if (pMembership->membership.pszChildSid != NULL)
+            {
+                dwError = LsaHashGetValue(
+                                pConn->pSIDToSecurityObject,
+                                pMembership->membership.pszChildSid,
+                                (PVOID*)&pListEntry);
+                if (dwError == ENOENT)
+                {
+                    bOrphaned = TRUE;
+                    dwError = 0;
+                }
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+
+            pPos = pPos->Next;
+
+            if (bOrphaned)
+            {
+                LSA_LOG_INFO("Removing orphaned membership between %s and %s",
+                        LSA_SAFE_LOG_STRING(pMembership->
+                            membership.pszParentSid),
+                        LSA_SAFE_LOG_STRING(pMembership->
+                            membership.pszChildSid));
+
+                // The parent group's member list will no longer be complete.
+                // Remove the completeness node.
+                pCompleteness = MemCacheFindMembership(
+                                        pConn,
+                                        pMembership->membership.pszParentSid,
+                                        NULL);
+                if (pCompleteness && pCompleteness != pMembership)
+                {
+                    if (pPos == &pCompleteness->parentListNode)
+                    {
+                        pPos = pPos->Next;
+                    }
+                    dwError = MemCacheRemoveMembership(
+                                    pConn,
+                                    pCompleteness);
+                    BAIL_ON_LSA_ERROR(dwError);
+                }
+
+                // The list of groups the object is a member of will no longer
+                // be complete.  Remove the completeness node.
+                pCompleteness = MemCacheFindMembership(
+                                        pConn,
+                                        NULL,
+                                        pMembership->membership.pszChildSid);
+                if (pCompleteness && pCompleteness != pMembership)
+                {
+                    if (pPos == &pCompleteness->parentListNode)
+                    {
+                        pPos = pPos->Next;
+                    }
+                    dwError = MemCacheRemoveMembership(
+                                    pConn,
+                                    pCompleteness);
+                    BAIL_ON_LSA_ERROR(dwError);
+
+                    // The hash iterator always points to the next entry to
+                    // return. It is possible that entry was just deleted.
+                    // Resetting this pointer to NULL may cause the iterator to
+                    // repeat items, but it guarentees that the iterator will
+                    // not access a deleted entry.
+                    //
+                    // This was not an issue for deleting the parent
+                    // completeness node, since it was guarenteed to be in the
+                    // same linked list (and thus the same hash entry).
+                    iterator.pEntryPos = NULL;
+                }
+
+                // It is safe to remove this membership since pPos points to
+                // the entry after it.
+                dwError = MemCacheRemoveMembership(
+                                pConn,
+                                pMembership);
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+        }
+    }
+
+    // Remove any orphaned password verifiers (password verifiers where the
+    // corresponding user security object is not cached)
+
+    dwError = LsaHashGetIterator(
+                    pConn->pSIDToPasswordVerifier,
+                    &iterator);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    while ((pEntry = LsaHashNext(&iterator)) != NULL)
+    {
+        PLSA_PASSWORD_VERIFIER pFromHash = (PLSA_PASSWORD_VERIFIER)
+            pEntry->pValue;
+
+        dwError = LsaHashGetValue(
+                        pConn->pSIDToSecurityObject,
+                        pFromHash->pszObjectSid,
+                        (PVOID*)&pListEntry);
+        if (dwError == ENOENT)
+        {
+            LSA_LOG_INFO("Removing orphaned password verifier for sid %s",
+                    pFromHash->pszObjectSid);
+            pConn->sCacheSize -= pFromHash->version.dwObjectSize;
+
+            // It is safe to remove this key because the iterator already
+            // points to the next item.
+            dwError = LsaHashRemoveKey(
+                            pConn->pSIDToPasswordVerifier,
+                            pEntry->pKey);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
 }
 
 DWORD
@@ -2089,6 +2323,9 @@ MemCacheStoreGroupMembership(
         pEntry->pValue = NULL;
     }
 
+    dwError = MemCacheMaintainSizeCap(pConn);
+    BAIL_ON_LSA_ERROR(dwError);
+
     pConn->bNeedBackup = TRUE;
     dwError = pthread_cond_signal(&pConn->signalBackup);
     BAIL_ON_LSA_ERROR(dwError);
@@ -2280,6 +2517,9 @@ MemCacheStoreGroupsForUser(
 
         pEntry->pValue = NULL;
     }
+
+    dwError = MemCacheMaintainSizeCap(pConn);
+    BAIL_ON_LSA_ERROR(dwError);
 
     pConn->bNeedBackup = TRUE;
     dwError = pthread_cond_signal(&pConn->signalBackup);
@@ -2876,6 +3116,9 @@ MemCacheStorePasswordVerifier(
 
     pConn->sCacheSize += sObjectSize;
 
+    dwError = MemCacheMaintainSizeCap(pConn);
+    BAIL_ON_LSA_ERROR(dwError);
+
     pConn->bNeedBackup = TRUE;
     dwError = pthread_cond_signal(&pConn->signalBackup);
     BAIL_ON_LSA_ERROR(dwError);
@@ -2889,6 +3132,25 @@ cleanup:
 
 error:
     goto cleanup;
+}
+
+DWORD
+MemCacheSetSizeCap(
+    IN LSA_DB_HANDLE hDb,
+    IN size_t sMemoryCap
+    )
+{
+    // Do not free
+    PMEM_DB_CONNECTION pConn = (PMEM_DB_CONNECTION)hDb;
+    BOOLEAN bInLock = FALSE;
+
+    ENTER_WRITER_RW_LOCK(&pConn->lock, bInLock);
+
+    pConn->sSizeCap = sMemoryCap;
+
+    LEAVE_RW_LOCK(&pConn->lock, bInLock);
+
+    return 0;
 }
 
 void

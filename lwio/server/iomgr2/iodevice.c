@@ -77,6 +77,9 @@ IoDeviceCreate(
     IoMemoryZero(&deviceName, sizeof(deviceName));
     pDeviceObject->Context = DeviceContext;
 
+    status = LwRtlInitializeMutex(&pDeviceObject->FileObjectMutex, TRUE);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
     LwListInit(&pDeviceObject->FileObjectsList);
 
     IopDriverInsertDevice(pDeviceObject->Driver, &pDeviceObject->DriverLinks);
@@ -117,6 +120,7 @@ IoDeviceDelete(
         IopRootInsertDevice(pDeviceObject->Driver->Root, &pDeviceObject->RootLinks);
         RtlUnicodeStringFree(&pDeviceObject->DeviceName);
         LwRtlCleanupMutex(&pDeviceObject->CancelMutex);
+        LwRtlCleanupMutex(&pDeviceObject->FileObjectMutex);
         IoMemoryFree(pDeviceObject);
         *pDeviceHandle = NULL;
     }

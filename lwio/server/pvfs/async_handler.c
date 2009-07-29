@@ -88,6 +88,8 @@ PvfsPendIrp(
         IoIrpComplete(pIrpCtx->pIrp);
 
         PvfsFreeIrpContext(&pIrpCtx);
+
+        return ntError;
     }
 
     /* Always return STATUS_PENDING here */
@@ -249,6 +251,7 @@ PvfsPendLockControlIrp(
         IoIrpComplete(pIrpCtx->pIrp);
 
         PvfsFreeIrpContext(&pIrpCtx);
+        return ntError;
     }
 
     /* Always return STATUS_PENDING here */

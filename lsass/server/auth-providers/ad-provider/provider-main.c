@@ -304,8 +304,12 @@ LSA_INITIALIZE_PROVIDER(ad)(
 #endif
         case AD_CACHE_IN_MEMORY:
             dwError = ADCacheOpen(
-                        LSASS_AD_MEMORY_CACHE_DB,
-                        &gpLsaAdProviderState->hCacheConnection);
+                            LSASS_AD_MEMORY_CACHE_DB,
+                            &gpLsaAdProviderState->hCacheConnection);
+            BAIL_ON_LSA_ERROR(dwError);
+            dwError = MemCacheSetSizeCap(
+                            gpLsaAdProviderState->hCacheConnection,
+                            AD_GetCacheSizeCap());
             BAIL_ON_LSA_ERROR(dwError);
             break;
     }
@@ -3272,6 +3276,14 @@ AD_RefreshConfiguration(
                         &gpLsaAdProviderState->config.DomainManager.dwCheckDomainOnlineSeconds,
                         &gpLsaAdProviderState->config.DomainManager.dwUnknownDomainCacheTimeoutSeconds);
         BAIL_ON_LSA_ERROR(dwError);
+
+        if (gpLsaAdProviderState->config.CacheBackend == AD_CACHE_IN_MEMORY)
+        {
+            dwError = MemCacheSetSizeCap(
+                            gpLsaAdProviderState->hCacheConnection,
+                            AD_GetCacheSizeCap());
+            BAIL_ON_LSA_ERROR(dwError);
+        }
 
         LEAVE_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
 

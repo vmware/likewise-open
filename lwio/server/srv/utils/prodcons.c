@@ -140,8 +140,6 @@ SrvProdConsEnqueue(
 
     pQueue->ulNumItems++;
 
-    LWIO_UNLOCK_MUTEX(bInLock, &pQueue->mutex);
-
     if (bSignalEvent)
     {
         pthread_cond_broadcast(&pQueue->event);

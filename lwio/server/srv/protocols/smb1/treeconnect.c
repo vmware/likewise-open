@@ -449,7 +449,7 @@ SrvGetNativeFilesystem(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = SMBAllocateStringW(
+    ntStatus = SrvAllocateStringW(
                     pFsAttrInfo->FileSystemName,
                     &pwszNativeFilesystem);
     BAIL_ON_NT_STATUS(ntStatus);

@@ -69,6 +69,11 @@ typedef struct _LSA_TRANSLATED_NAME_OR_SID {
 } LSA_TRANSLATED_NAME_OR_SID, *PLSA_TRANSLATED_NAME_OR_SID;
 
 DWORD
+AD_SetSystemAccess(
+    OUT OPTIONAL LW_PIO_ACCESS_TOKEN* ppOldToken
+    );
+
+DWORD
 AD_NetInitMemory(
     VOID
     );

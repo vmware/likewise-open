@@ -191,7 +191,7 @@ SrvUnmarshallSessionSetupRequest(
     }
     if (pwszNativeOS)
     {
-        ntStatus = SMBAllocateStringW(
+        ntStatus = SrvAllocateStringW(
                         pwszNativeOS,
                         &pConnection->clientProperties.pwszNativeOS);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -204,7 +204,7 @@ SrvUnmarshallSessionSetupRequest(
     }
     if (pwszNativeLanMan)
     {
-        ntStatus = SMBAllocateStringW(
+        ntStatus = SrvAllocateStringW(
                         pwszNativeLanMan,
                         &pConnection->clientProperties.pwszNativeLanMan);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -217,7 +217,7 @@ SrvUnmarshallSessionSetupRequest(
     }
     if (pwszNativeDomain)
     {
-        ntStatus = SMBAllocateStringW(
+        ntStatus = SrvAllocateStringW(
                         pwszNativeDomain,
                         &pConnection->clientProperties.pwszNativeDomain);
         BAIL_ON_NT_STATUS(ntStatus);

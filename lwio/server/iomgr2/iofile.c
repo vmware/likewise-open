@@ -74,9 +74,14 @@ IopFileObjectAllocate(
     pFileObject->ReferenceCount = 1;
     pFileObject->pDevice = pDevice;
 
+    status = LwRtlInitializeMutex(&pFileObject->IrpListMutex, TRUE);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
     LwListInit(&pFileObject->IrpList);
 
+    LwRtlLockMutex(&pDevice->FileObjectMutex);
     LwListInsertTail(&pDevice->FileObjectsList, &pFileObject->DeviceLinks);
+    LwRtlUnlockMutex(&pDevice->FileObjectMutex);
 
 cleanup:
     if (status)
@@ -100,7 +105,13 @@ IopFileObjectFree(
     if (pFileObject)
     {
         LWIO_ASSERT(LwListIsEmpty(&pFileObject->IrpList));
+
+        LwRtlCleanupMutex(&pFileObject->IrpListMutex);
+
+        LwRtlLockMutex(&pFileObject->pDevice->FileObjectMutex);
         LwListRemove(&pFileObject->DeviceLinks);
+        LwRtlUnlockMutex(&pFileObject->pDevice->FileObjectMutex);
+
         IoMemoryFree(pFileObject);
         *ppFileObject = NULL;
     }

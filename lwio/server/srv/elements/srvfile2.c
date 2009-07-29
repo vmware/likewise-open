@@ -86,9 +86,7 @@ SrvFile2Create(
     pthread_rwlock_init(&pFile->mutex, NULL);
     pFile->pMutex = &pFile->mutex;
 
-    ntStatus = SMBAllocateStringW(
-                    pwszFilename,
-                    &pFile->pwszFilename);
+    ntStatus = SrvAllocateStringW(pwszFilename, &pFile->pwszFilename);
     BAIL_ON_NT_STATUS(ntStatus);
 
     uuid_generate(pFile->GUID);

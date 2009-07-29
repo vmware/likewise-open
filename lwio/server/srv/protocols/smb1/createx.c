@@ -32,13 +32,52 @@
 
 static
 NTSTATUS
-SrvBuildNTCreateResponse(
-    PLWIO_SRV_CONNECTION pConnection,
-    PSMB_PACKET         pSmbRequest,
-    PIO_STATUS_BLOCK    pIoStatusBlock,
-    PLWIO_SRV_TREE       pTree,
-    PLWIO_SRV_FILE       pFile,
-    PSMB_PACKET*        ppSmbResponse
+SrvBuildNTCreateResponse_inlock(
+    PSRV_SMB_CREATE_REQUEST pCreateRequest,
+    PSMB_PACKET*            ppSmbResponse
+    );
+
+static
+VOID
+SrvExecuteCreateAsyncCB(
+    PVOID pContext
+    );
+
+static
+VOID
+SrvExecuteCreateAsyncCB(
+    PVOID pContext
+    );
+
+static
+VOID
+SrvCreateRequestExpiredCB(
+    PSRV_TIMER_REQUEST pTimerRequest,
+    PVOID              pUserData
+    );
+
+static
+NTSTATUS
+SrvBuildCreateRequest(
+    PLWIO_SRV_CONNECTION     pConnection,
+    PLWIO_SRV_SESSION        pSession,
+    PLWIO_SRV_TREE           pTree,
+    PSMB_PACKET              pSmbRequest,
+    PCREATE_REQUEST_HEADER   pRequestHeader,
+    PWSTR                    pwszFilename,
+    PSRV_SMB_CREATE_REQUEST* ppCreateRequest
+    );
+
+static
+VOID
+SrvReleaseCreateRequest(
+    PSRV_SMB_CREATE_REQUEST pCreateRequest
+    );
+
+static
+VOID
+SrvFreeCreateRequest(
+    PSRV_SMB_CREATE_REQUEST pCreateRequest
     );
 
 NTSTATUS
@@ -48,22 +87,15 @@ SrvProcessNTCreateAndX(
     OUT PSMB_PACKET*         ppSmbResponse
     )
 {
-    NTSTATUS ntStatus = 0;
-    PSMB_PACKET         pSmbResponse = NULL;
-    PLWIO_SRV_SESSION    pSession = NULL;
-    PLWIO_SRV_TREE       pTree = NULL;
-    PLWIO_SRV_FILE       pFile = NULL;
-    BOOLEAN             bRemoveFileFromTree = FALSE;
-    PCREATE_REQUEST_HEADER pRequestHeader = NULL; // Do not free
-    PWSTR               pwszFilename = NULL; // Do not free
-    IO_FILE_HANDLE      hFile = NULL;
-    PIO_ASYNC_CONTROL_BLOCK pAsyncControlBlock = NULL;
-    IO_STATUS_BLOCK     ioStatusBlock = {0};
-    PVOID               pSecurityDescriptor = NULL;
-    PVOID               pSecurityQOS = NULL;
-    PIO_FILE_NAME       pFilename = NULL;
-    PIO_ECP_LIST        pEcpList = NULL;
-    ULONG               ulOffset = 0;
+    NTSTATUS                ntStatus = 0;
+    PSMB_PACKET             pSmbResponse = NULL;
+    PLWIO_SRV_SESSION       pSession = NULL;
+    PLWIO_SRV_TREE          pTree = NULL;
+    PCREATE_REQUEST_HEADER  pRequestHeader = NULL; // Do not free
+    PWSTR                   pwszFilename = NULL; // Do not free
+    ULONG                   ulOffset = 0;
+    PSRV_SMB_CREATE_REQUEST pCreateRequest = NULL;
+    BOOLEAN                 bInLock = FALSE;
 
     ntStatus = SrvConnectionFindSession(
                     pConnection,
@@ -87,50 +119,26 @@ SrvProcessNTCreateAndX(
                     &pwszFilename);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    // TODO: Handle root fids
-    ntStatus = SrvAllocateMemory(sizeof(IO_FILE_NAME), (PVOID*)&pFilename);
+    ntStatus = SrvBuildCreateRequest(
+                        pConnection,
+                        pSession,
+                        pTree,
+                        pSmbRequest,
+                        pRequestHeader,
+                        pwszFilename,
+                        &pCreateRequest);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvBuildFilePath(
-                    pTree->pShareInfo->pwszPath,
-                    pwszFilename,
-                    &pFilename->FileName);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    /* For named pipes, we need to pipe some extra data into the npfs driver:
-     *  - Session key
-     *  - Client principal name
-     *  - Client address
-     */
-    if (SrvTreeIsNamedPipe(pTree))
-    {
-        ntStatus = IoRtlEcpListAllocate(&pEcpList);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        ntStatus = SrvConnectionGetNamedPipeSessionKey(
-                       pConnection,
-                       pEcpList);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        ntStatus = SrvSessionGetNamedPipeClientPrincipal(
-                       pSession,
-                       pEcpList);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        ntStatus = SrvConnectionGetNamedPipeClientAddress(
-                       pConnection,
-                       pEcpList);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
+    LWIO_LOCK_MUTEX(bInLock, &pCreateRequest->mutex);
 
     ntStatus = IoCreateFile(
-                    &hFile,
-                    pAsyncControlBlock,
-                    &ioStatusBlock,
+                    &pCreateRequest->hFile,
+                    pCreateRequest->pAcb,
+                    &pCreateRequest->ioStatusBlock,
                     pSession->pIoSecurityContext,
-                    pFilename,
-                    pSecurityDescriptor,
-                    pSecurityQOS,
+                    pCreateRequest->pFilename,
+                    pCreateRequest->pSecurityDescriptor,
+                    pCreateRequest->pSecurityQOS,
                     pRequestHeader->desiredAccess,
                     pRequestHeader->allocationSize,
                     pRequestHeader->extFileAttributes,
@@ -139,42 +147,47 @@ SrvProcessNTCreateAndX(
                     pRequestHeader->createOptions,
                     NULL, /* EA Buffer */
                     0,    /* EA Length */
-                    pEcpList);
-    BAIL_ON_NT_STATUS(ntStatus);
+                    pCreateRequest->pEcpList);
 
-    ntStatus = SrvTreeCreateFile(
-                    pTree,
-                    pwszFilename,
-                    &hFile,
-                    &pFilename,
-                    pRequestHeader->desiredAccess,
-                    pRequestHeader->allocationSize,
-                    pRequestHeader->extFileAttributes,
-                    pRequestHeader->shareAccess,
-                    pRequestHeader->createDisposition,
-                    pRequestHeader->createOptions,
-                    &pFile);
-    BAIL_ON_NT_STATUS(ntStatus);
+    switch (ntStatus)
+    {
+        case STATUS_PENDING:
 
-    bRemoveFileFromTree = TRUE;
+            {
+                LONG64 llExpiry = 0LL;
 
-    ntStatus = SrvBuildNTCreateResponse(
-                    pConnection,
-                    pSmbRequest,
-                    &ioStatusBlock,
-                    pTree,
-                    pFile,
-                    &pSmbResponse);
+                llExpiry = (time(NULL) +
+                            (pCreateRequest->ulTimeout/1000) + 11644473600LL) * 10000000LL;
+
+                ntStatus = SrvTimerPostRequest(
+                                llExpiry,
+                                pCreateRequest,
+                                &SrvCreateRequestExpiredCB,
+                                &pCreateRequest->pTimerRequest);
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                InterlockedIncrement(&pCreateRequest->refCount);
+            }
+
+            break;
+
+        case STATUS_SUCCESS:
+
+            ntStatus = SrvBuildNTCreateResponse_inlock(
+                            pCreateRequest,
+                            &pSmbResponse);
+
+            break;
+
+        default:
+
+            break;
+    }
     BAIL_ON_NT_STATUS(ntStatus);
 
     *ppSmbResponse = pSmbResponse;
 
 cleanup:
-
-    if (pFile)
-    {
-        SrvFileRelease(pFile);
-    }
 
     if (pTree)
     {
@@ -186,9 +199,11 @@ cleanup:
         SrvSessionRelease(pSession);
     }
 
-    if (pEcpList)
+    LWIO_UNLOCK_MUTEX(bInLock, &pCreateRequest->mutex);
+
+    if (pCreateRequest)
     {
-        IoRtlEcpListFree(&pEcpList);
+        SrvReleaseCreateRequest(pCreateRequest);
     }
 
     return (ntStatus);
@@ -196,37 +211,6 @@ cleanup:
 error:
 
     *ppSmbResponse = NULL;
-
-    if (pFilename)
-    {
-        if (pFilename->FileName)
-        {
-            SrvFreeMemory(pFilename->FileName);
-        }
-
-        SrvFreeMemory(pFilename);
-    }
-
-    if (hFile)
-    {
-        IoCloseFile(hFile);
-    }
-
-    if (bRemoveFileFromTree)
-    {
-        NTSTATUS ntStatus2 = 0;
-
-        ntStatus2 = SrvTreeRemoveFile(
-                        pTree,
-                        pFile->fid);
-        if (ntStatus2)
-        {
-            LWIO_LOG_ERROR("Failed to remove file from tree [Tid:%d][Fid:%d][code:%d]",
-                          pTree->tid,
-                          pFile->fid,
-                          ntStatus2);
-        }
-    }
 
     if (pSmbResponse)
     {
@@ -240,26 +224,39 @@ error:
 
 static
 NTSTATUS
-SrvBuildNTCreateResponse(
-    PLWIO_SRV_CONNECTION pConnection,
-    PSMB_PACKET         pSmbRequest,
-    PIO_STATUS_BLOCK    pIoStatusBlock,
-    PLWIO_SRV_TREE       pTree,
-    PLWIO_SRV_FILE       pFile,
-    PSMB_PACKET*        ppSmbResponse
+SrvBuildNTCreateResponse_inlock(
+    PSRV_SMB_CREATE_REQUEST pCreateRequest,
+    PSMB_PACKET*            ppSmbResponse
     )
 {
-    NTSTATUS    ntStatus = 0;
-    PSMB_PACKET pSmbResponse = NULL;
-    PCREATE_RESPONSE_HEADER pResponseHeader = NULL;
-    FILE_BASIC_INFORMATION fileBasicInfo = {0};
-    FILE_STANDARD_INFORMATION fileStdInfo = {0};
-    FILE_PIPE_INFORMATION filePipeInfo = {0};
+    NTSTATUS                    ntStatus = 0;
+    PSMB_PACKET                 pSmbResponse = NULL;
+    PCREATE_RESPONSE_HEADER     pResponseHeader = NULL;
+    FILE_BASIC_INFORMATION      fileBasicInfo = {0};
+    FILE_STANDARD_INFORMATION   fileStdInfo = {0};
+    FILE_PIPE_INFORMATION       filePipeInfo = {0};
     FILE_PIPE_LOCAL_INFORMATION filePipeLocalInfo = {0};
-    IO_STATUS_BLOCK ioStatusBlock = {0};
+    IO_STATUS_BLOCK             ioStatusBlock = {0};
+    BOOLEAN                     bRemoveFileFromTree = FALSE;
+
+    ntStatus = SrvTreeCreateFile(
+                    pCreateRequest->pTree,
+                    pCreateRequest->pwszFilename,
+                    &pCreateRequest->hFile,
+                    &pCreateRequest->pFilename,
+                    pCreateRequest->ulDesiredAccess,
+                    pCreateRequest->llAllocationSize,
+                    pCreateRequest->ulExtFileAttributes,
+                    pCreateRequest->ulShareAccess,
+                    pCreateRequest->ulCreateDisposition,
+                    pCreateRequest->ulCreateOptions,
+                    &pCreateRequest->pFile);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    bRemoveFileFromTree = TRUE;
 
     ntStatus = IoQueryInformationFile(
-                    pFile->hFile,
+                    pCreateRequest->pFile->hFile,
                     NULL,
                     &ioStatusBlock,
                     &fileBasicInfo,
@@ -268,7 +265,7 @@ SrvBuildNTCreateResponse(
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = IoQueryInformationFile(
-                    pFile->hFile,
+                    pCreateRequest->pFile->hFile,
                     NULL,
                     &ioStatusBlock,
                     &fileStdInfo,
@@ -277,12 +274,12 @@ SrvBuildNTCreateResponse(
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBPacketAllocate(
-                    pConnection->hPacketAllocator,
+                    pCreateRequest->pConnection->hPacketAllocator,
                     &pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBPacketBufferAllocate(
-                    pConnection->hPacketAllocator,
+                    pCreateRequest->pConnection->hPacketAllocator,
                     64 * 1024,
                     &pSmbResponse->pRawBuffer,
                     &pSmbResponse->bufferLen);
@@ -294,11 +291,11 @@ SrvBuildNTCreateResponse(
                 COM_NT_CREATE_ANDX,
                 0,
                 TRUE,
-                pSmbRequest->pSMBHeader->tid,
-                pSmbRequest->pSMBHeader->pid,
-                pSmbRequest->pSMBHeader->uid,
-                pSmbRequest->pSMBHeader->mid,
-                pConnection->serverProperties.bRequireSecuritySignatures,
+                pCreateRequest->pTree->tid,
+                pCreateRequest->usPid,
+                pCreateRequest->pSession->uid,
+                pCreateRequest->usMid,
+                pCreateRequest->pConnection->serverProperties.bRequireSecuritySignatures,
                 pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -308,8 +305,8 @@ SrvBuildNTCreateResponse(
     pSmbResponse->pData = pSmbResponse->pParams + sizeof(CREATE_RESPONSE_HEADER);
     pSmbResponse->bufferUsed += sizeof(CREATE_RESPONSE_HEADER);
 
-    pResponseHeader->fid = pFile->fid;
-    pResponseHeader->createAction = pIoStatusBlock->CreateResult;
+    pResponseHeader->fid = pCreateRequest->pFile->fid;
+    pResponseHeader->createAction = pCreateRequest->ioStatusBlock.CreateResult;
     pResponseHeader->creationTime = fileBasicInfo.CreationTime;
     pResponseHeader->lastAccessTime = fileBasicInfo.LastAccessTime;
     pResponseHeader->lastWriteTime = fileBasicInfo.LastWriteTime;
@@ -318,10 +315,10 @@ SrvBuildNTCreateResponse(
     pResponseHeader->allocationSize = fileStdInfo.AllocationSize;
     pResponseHeader->endOfFile = fileStdInfo.EndOfFile;
 
-    if (SrvTreeIsNamedPipe(pTree))
+    if (SrvTreeIsNamedPipe(pCreateRequest->pTree))
     {
         ntStatus = IoQueryInformationFile(
-                        pFile->hFile,
+                        pCreateRequest->pFile->hFile,
                         NULL,
                         &ioStatusBlock,
                         &filePipeInfo,
@@ -330,7 +327,7 @@ SrvBuildNTCreateResponse(
         BAIL_ON_NT_STATUS(ntStatus);
 
         ntStatus = IoQueryInformationFile(
-                        pFile->hFile,
+                        pCreateRequest->pFile->hFile,
                         NULL,
                         &ioStatusBlock,
                         &filePipeLocalInfo,
@@ -350,7 +347,9 @@ SrvBuildNTCreateResponse(
     {
         pResponseHeader->fileType = 0;
         // TODO: Get these values from the driver
-        pResponseHeader->deviceState = SMB_DEVICE_STATE_NO_EAS | SMB_DEVICE_STATE_NO_SUBSTREAMS | SMB_DEVICE_STATE_NO_REPARSE_TAG;
+        pResponseHeader->deviceState = SMB_DEVICE_STATE_NO_EAS |
+                                       SMB_DEVICE_STATE_NO_SUBSTREAMS |
+                                       SMB_DEVICE_STATE_NO_REPARSE_TAG;
     }
     pResponseHeader->isDirectory = fileStdInfo.Directory;
     pResponseHeader->byteCount = 0;
@@ -371,13 +370,364 @@ error:
 
     *ppSmbResponse = NULL;
 
+    if (bRemoveFileFromTree)
+    {
+        NTSTATUS ntStatus2 = 0;
+
+        ntStatus2 = SrvTreeRemoveFile(
+                        pCreateRequest->pTree,
+                        pCreateRequest->pFile->fid);
+        if (ntStatus2)
+        {
+            LWIO_LOG_ERROR("Failed to remove file from tree [Tid:%d][Fid:%d][code:%d]",
+                           pCreateRequest->pTree->tid,
+                           pCreateRequest->pFile->fid,
+                           ntStatus2);
+        }
+    }
+
     if (pSmbResponse)
     {
         SMBPacketFree(
-            pConnection->hPacketAllocator,
-            pSmbResponse);
+                pCreateRequest->pConnection->hPacketAllocator,
+                pSmbResponse);
     }
 
     goto cleanup;
 }
 
+static
+VOID
+SrvExecuteCreateAsyncCB(
+    PVOID pContext
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_SMB_CREATE_REQUEST pCreateRequest = (PSRV_SMB_CREATE_REQUEST)pContext;
+    BOOLEAN bInLock = FALSE;
+    PSMB_PACKET pSmbResponse = NULL;
+
+    LWIO_LOCK_MUTEX(bInLock, &pCreateRequest->mutex);
+
+    if (!pCreateRequest->bExpired && !pCreateRequest->bResponseSent)
+    {
+        if (pCreateRequest->ioStatusBlock.Status == STATUS_SUCCESS)
+        {
+            ntStatus = SrvBuildNTCreateResponse_inlock(
+                                pCreateRequest,
+                                &pSmbResponse);
+        }
+        else
+        {
+            ntStatus = SrvProtocolBuildErrorResponse(
+                            pCreateRequest->pConnection,
+                            COM_NT_CREATE_ANDX,
+                            pCreateRequest->pTree->tid,
+                            pCreateRequest->usPid,
+                            pCreateRequest->pSession->uid,
+                            pCreateRequest->usMid,
+                            pCreateRequest->ioStatusBlock.Status,
+                            &pSmbResponse);
+        }
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pSmbResponse->sequence = pCreateRequest->ulResponseSequence;
+
+        ntStatus = SrvTransportSendResponse(
+                            pCreateRequest->pConnection,
+                            pSmbResponse);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pCreateRequest->bResponseSent = TRUE;
+    }
+
+cleanup:
+
+    if (pCreateRequest->pAcb->AsyncCancelContext)
+    {
+        IoDereferenceAsyncCancelContext(&pCreateRequest->pAcb->AsyncCancelContext);
+    }
+
+    LWIO_UNLOCK_MUTEX(bInLock, &pCreateRequest->mutex);
+
+    if (pSmbResponse)
+    {
+        SMBPacketFree(
+                pCreateRequest->pConnection->hPacketAllocator,
+                pSmbResponse);
+    }
+
+    SrvReleaseCreateRequest(pCreateRequest);
+
+    return;
+
+error:
+
+    goto cleanup;
+}
+
+static
+VOID
+SrvCreateRequestExpiredCB(
+    PSRV_TIMER_REQUEST pTimerRequest,
+    PVOID              pUserData
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_SMB_CREATE_REQUEST pCreateRequest = (PSRV_SMB_CREATE_REQUEST)pUserData;
+    BOOLEAN bInLock = FALSE;
+    PSMB_PACKET pSmbResponse = NULL;
+
+    LWIO_LOCK_MUTEX(bInLock, &pCreateRequest->mutex);
+
+    pCreateRequest->bExpired = TRUE;
+
+    if (!pCreateRequest->bResponseSent)
+    {
+        // The timer expired first
+
+        ntStatus = SrvProtocolBuildErrorResponse(
+                        pCreateRequest->pConnection,
+                        COM_NT_CREATE_ANDX,
+                        pCreateRequest->pTree->tid,
+                        pCreateRequest->usPid,
+                        pCreateRequest->pSession->uid,
+                        pCreateRequest->usMid,
+                        STATUS_IO_TIMEOUT,
+                        &pSmbResponse);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pSmbResponse->sequence = pCreateRequest->ulResponseSequence;
+
+        ntStatus = SrvTransportSendResponse(
+                        pCreateRequest->pConnection,
+                        pSmbResponse);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pCreateRequest->bResponseSent = TRUE;
+    }
+
+cleanup:
+
+    LWIO_UNLOCK_MUTEX(bInLock, &pCreateRequest->mutex);
+
+    if (pSmbResponse)
+    {
+        SMBPacketFree(
+                pCreateRequest->pConnection->hPacketAllocator,
+                pSmbResponse);
+    }
+
+    SrvReleaseCreateRequest(pCreateRequest);
+
+    return;
+
+error:
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvBuildCreateRequest(
+    PLWIO_SRV_CONNECTION     pConnection,
+    PLWIO_SRV_SESSION        pSession,
+    PLWIO_SRV_TREE           pTree,
+    PSMB_PACKET              pSmbRequest,
+    PCREATE_REQUEST_HEADER   pRequestHeader,
+    PWSTR                    pwszFilename,
+    PSRV_SMB_CREATE_REQUEST* ppCreateRequest
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_SMB_CREATE_REQUEST pCreateRequest = NULL;
+    BOOLEAN bTreeInLock = FALSE;
+
+    ntStatus = SrvAllocateMemory(
+                    sizeof(SRV_SMB_CREATE_REQUEST),
+                    (PVOID*)&pCreateRequest);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pCreateRequest->refCount = 1;
+
+    // TODO: Handle root fids
+    ntStatus = SrvAllocateMemory(
+                    sizeof(IO_FILE_NAME),
+                    (PVOID*)&pCreateRequest->pFilename);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    LWIO_LOCK_RWMUTEX_SHARED(bTreeInLock, &pTree->mutex);
+
+    ntStatus = SrvBuildFilePath(
+                    pTree->pShareInfo->pwszPath,
+                    pwszFilename,
+                    &pCreateRequest->pFilename->FileName);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    LWIO_UNLOCK_RWMUTEX(bTreeInLock, &pTree->mutex);
+
+    ntStatus = SrvAllocateStringW(pwszFilename, &pCreateRequest->pwszFilename);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    /* For named pipes, we need to pipe some extra data into the npfs driver:
+     *  - Session key
+     *  - Client principal name
+     *  - Client address
+     */
+    if (SrvTreeIsNamedPipe(pTree))
+    {
+        ntStatus = IoRtlEcpListAllocate(&pCreateRequest->pEcpList);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = SrvConnectionGetNamedPipeSessionKey(
+                       pConnection,
+                       pCreateRequest->pEcpList);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = SrvSessionGetNamedPipeClientPrincipal(
+                       pSession,
+                       pCreateRequest->pEcpList);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = SrvConnectionGetNamedPipeClientAddress(
+                       pConnection,
+                       pCreateRequest->pEcpList);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pthread_mutex_init(&pCreateRequest->mutex, NULL);
+    pCreateRequest->pMutex = &pCreateRequest->mutex;
+
+    pCreateRequest->pConnection = pConnection;
+    InterlockedIncrement(&pConnection->refCount);
+
+    pCreateRequest->pSession = pSession;
+    InterlockedIncrement(&pSession->refcount);
+
+    pCreateRequest->pTree = pTree;
+    InterlockedIncrement(&pTree->refcount);
+
+    pCreateRequest->ulDesiredAccess     = pRequestHeader->desiredAccess;
+    pCreateRequest->llAllocationSize    = pRequestHeader->allocationSize;
+    pCreateRequest->ulExtFileAttributes = pRequestHeader->extFileAttributes;
+    pCreateRequest->ulShareAccess       = pRequestHeader->shareAccess;
+    pCreateRequest->ulCreateDisposition = pRequestHeader->createDisposition;
+    pCreateRequest->ulCreateOptions     = pRequestHeader->createOptions;
+
+    pCreateRequest->usPid = pSmbRequest->pSMBHeader->pid;
+    pCreateRequest->usMid = pSmbRequest->pSMBHeader->mid;
+    pCreateRequest->ulResponseSequence = pSmbRequest->sequence + 1;
+
+    pCreateRequest->bExpired = FALSE;
+    pCreateRequest->bResponseSent = FALSE;
+
+    pCreateRequest->ulTimeout = LWIO_SRV_DEFAULT_TIMEOUT_MSECS;
+
+    pCreateRequest->acb.Callback = &SrvExecuteCreateAsyncCB;
+    pCreateRequest->acb.CallbackContext = pCreateRequest;
+
+    if (pCreateRequest->ulTimeout)
+    {
+        pCreateRequest->pAcb = &pCreateRequest->acb;
+    }
+
+    *ppCreateRequest = pCreateRequest;
+
+cleanup:
+
+    LWIO_UNLOCK_RWMUTEX(bTreeInLock, &pTree->mutex);
+
+    return ntStatus;
+
+error:
+
+    *ppCreateRequest = NULL;
+
+    if (pCreateRequest)
+    {
+        SrvFreeCreateRequest(pCreateRequest);
+    }
+
+    goto cleanup;
+}
+
+static
+VOID
+SrvReleaseCreateRequest(
+    PSRV_SMB_CREATE_REQUEST pCreateRequest
+    )
+{
+    if (InterlockedDecrement(&pCreateRequest->refCount) == 0)
+    {
+        SrvFreeCreateRequest(pCreateRequest);
+    }
+}
+
+static
+VOID
+SrvFreeCreateRequest(
+    PSRV_SMB_CREATE_REQUEST pCreateRequest
+    )
+{
+    if (pCreateRequest->pConnection)
+    {
+        SrvConnectionRelease(pCreateRequest->pConnection);
+    }
+
+    if (pCreateRequest->pSession)
+    {
+        SrvSessionRelease(pCreateRequest->pSession);
+    }
+
+    if (pCreateRequest->pTree)
+    {
+        SrvTreeRelease(pCreateRequest->pTree);
+    }
+
+    if (pCreateRequest->pFile)
+    {
+        SrvFileRelease(pCreateRequest->pFile);
+    }
+
+    if (pCreateRequest->pEcpList)
+    {
+        IoRtlEcpListFree(&pCreateRequest->pEcpList);
+    }
+
+    // TODO: Free the following if set
+    // pSecurityDescriptor;
+    // pSecurityQOS;
+
+    if (pCreateRequest->pFilename)
+    {
+        if (pCreateRequest->pFilename->FileName)
+        {
+            SrvFreeMemory(pCreateRequest->pFilename->FileName);
+        }
+
+        SrvFreeMemory(pCreateRequest->pFilename);
+    }
+
+    if (pCreateRequest->hFile)
+    {
+        IoCloseFile(pCreateRequest->hFile);
+    }
+
+    if (pCreateRequest->pwszFilename)
+    {
+        SrvFreeMemory(pCreateRequest->pwszFilename);
+    }
+
+    if (pCreateRequest->pMutex)
+    {
+        pthread_mutex_destroy(&pCreateRequest->mutex);
+    }
+
+    if (pCreateRequest->pTimerRequest)
+    {
+        SrvTimerCancelRequest(pCreateRequest->pTimerRequest);
+        SrvTimerRelease(pCreateRequest->pTimerRequest);
+    }
+
+    SrvFreeMemory(pCreateRequest);
+}

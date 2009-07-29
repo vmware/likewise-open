@@ -90,7 +90,7 @@ SrvProcessDelete(
 
     LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pTree->pShareInfo->mutex);
 
-    ntStatus = SMBAllocateStringW(
+    ntStatus = SrvAllocateStringW(
                     pTree->pShareInfo->pwszPath,
                     &pwszFilesystemPath);
     BAIL_ON_NT_STATUS(ntStatus);

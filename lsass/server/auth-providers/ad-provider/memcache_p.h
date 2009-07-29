@@ -274,6 +274,18 @@ MemCacheGetStringSpace(
     IN PCSTR pszStr
     );
 
+PMEM_GROUP_MEMBERSHIP
+MemCacheFindMembership(
+    IN PMEM_DB_CONNECTION pConn,
+    IN PCSTR pszParentSid,
+    IN PCSTR pszChildSid
+    );
+
+DWORD
+MemCacheMaintainSizeCap(
+    IN PMEM_DB_CONNECTION pConn
+    );
+
 DWORD
 MemCacheStoreObjectEntryInLock(
     IN PMEM_DB_CONNECTION pConn,
@@ -388,6 +400,12 @@ DWORD
 MemCacheStorePasswordVerifier(
     IN LSA_DB_HANDLE hDb,
     IN PLSA_PASSWORD_VERIFIER pVerifier
+    );
+
+DWORD
+MemCacheSetSizeCap(
+    IN LSA_DB_HANDLE hDb,
+    IN size_t sMemoryCap
     );
 
 void

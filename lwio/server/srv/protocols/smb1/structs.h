@@ -83,35 +83,141 @@ typedef struct _SRV_SMB_LOCK_CONTEXT
 
 typedef struct _SRV_SMB_LOCK_REQUEST
 {
-    LONG              refCount;
+    LONG                  refCount;
 
-    pthread_mutex_t   mutex;
-    pthread_mutex_t*  pMutex;
+    pthread_mutex_t       mutex;
+    pthread_mutex_t*      pMutex;
 
-    PLWIO_SRV_FILE       pFile;
-    PLWIO_SRV_CONNECTION pConnection;
+    PLWIO_SRV_FILE        pFile;
+    PLWIO_SRV_CONNECTION  pConnection;
 
-    USHORT            usTid;
-    USHORT            usMid;
-    USHORT            usUid;
-    USHORT            usPid;
+    USHORT                usTid;
+    USHORT                usMid;
+    USHORT                usUid;
+    USHORT                usPid;
 
-    ULONG             ulTimeout;
+    ULONG                 ulTimeout;
 
-    USHORT            usNumUnlocks;
-    USHORT            usNumLocks;
+    USHORT                usNumUnlocks;
+    USHORT                usNumLocks;
 
     PSRV_SMB_LOCK_CONTEXT pLockContexts; /* unlocks and locks */
 
-    LONG              lPendingContexts;
+    LONG                  lPendingContexts;
 
-    BOOLEAN            bExpired;
-    BOOLEAN            bResponseSent;
+    BOOLEAN               bExpired;
+    BOOLEAN               bResponseSent;
 
-    PSRV_TIMER_REQUEST pTimerRequest;
+    PSRV_TIMER_REQUEST    pTimerRequest;
 
-    ULONG              ulResponseSequence;
+    ULONG                 ulResponseSequence;
 
 } SRV_SMB_LOCK_REQUEST;
+
+typedef struct _SRV_SMB_CREATE_REQUEST
+{
+    LONG                    refCount;
+
+    pthread_mutex_t         mutex;
+    pthread_mutex_t*        pMutex;
+
+    PLWIO_SRV_CONNECTION    pConnection;
+    PLWIO_SRV_SESSION       pSession;
+    PLWIO_SRV_TREE          pTree;
+    PLWIO_SRV_FILE          pFile;
+    PVOID                   pSecurityDescriptor;
+    PVOID                   pSecurityQOS;
+    PWSTR                   pwszFilename;
+    PIO_FILE_NAME           pFilename;
+    PIO_ECP_LIST            pEcpList;
+    IO_FILE_HANDLE          hFile;
+
+    IO_ASYNC_CONTROL_BLOCK  acb;
+    PIO_ASYNC_CONTROL_BLOCK pAcb;
+
+    IO_STATUS_BLOCK         ioStatusBlock;
+
+    USHORT                  usMid;
+    USHORT                  usPid;
+
+    ULONG                   ulDesiredAccess;
+    LONG64                  llAllocationSize;
+    ULONG                   ulExtFileAttributes;
+    ULONG                   ulShareAccess;
+    ULONG                   ulCreateDisposition;
+    ULONG                   ulCreateOptions;
+
+    ULONG                   ulTimeout;
+
+    BOOLEAN                 bExpired;
+    BOOLEAN                 bResponseSent;
+
+    PSRV_TIMER_REQUEST      pTimerRequest;
+
+    ULONG                   ulResponseSequence;
+
+} SRV_SMB_CREATE_REQUEST, *PSRV_SMB_CREATE_REQUEST;
+
+typedef struct _SRV_SMB_READ_REQUEST
+{
+    LONG                    refCount;
+
+    pthread_mutex_t         mutex;
+    pthread_mutex_t*        pMutex;
+
+    PLWIO_SRV_CONNECTION    pConnection;
+    PLWIO_SRV_FILE          pFile;
+
+    IO_ASYNC_CONTROL_BLOCK  acb;
+    PIO_ASYNC_CONTROL_BLOCK pAcb;
+
+    IO_STATUS_BLOCK         ioStatusBlock;
+
+    USHORT                  usTid;
+    USHORT                  usMid;
+    USHORT                  usUid;
+    USHORT                  usPid;
+
+    ULONG                   ulTimeout;
+
+    BOOLEAN                 bExpired;
+    BOOLEAN                 bResponseSent;
+
+    PSRV_TIMER_REQUEST      pTimerRequest;
+
+    ULONG                   ulResponseSequence;
+
+} SRV_SMB_READ_REQUEST, *PSRV_SMB_READ_REQUEST;
+
+typedef struct _SRV_SMB_WRITE_REQUEST
+{
+    LONG                    refCount;
+
+    pthread_mutex_t         mutex;
+    pthread_mutex_t*        pMutex;
+
+    PLWIO_SRV_CONNECTION    pConnection;
+    PLWIO_SRV_FILE          pFile;
+
+    IO_ASYNC_CONTROL_BLOCK  acb;
+    PIO_ASYNC_CONTROL_BLOCK pAcb;
+
+    IO_STATUS_BLOCK         ioStatusBlock;
+
+    USHORT                  usTid;
+    USHORT                  usMid;
+    USHORT                  usUid;
+    USHORT                  usPid;
+
+    ULONG                   ulTimeout;
+
+    BOOLEAN                 bExpired;
+    BOOLEAN                 bResponseSent;
+
+    PSRV_TIMER_REQUEST      pTimerRequest;
+
+    ULONG                   ulResponseSequence;
+
+} SRV_SMB_WRITE_REQUEST, *PSRV_SMB_WRITE_REQUEST;
 
 #endif /* __STRUCTS_H__ */

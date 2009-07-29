@@ -262,13 +262,16 @@ AC_SUBST(LSASS_LDFLAGS)
 
 # minimal
 
+AC_ARG_WITH([version], [AC_HELP_STRING([--with-version], [build version])],
+                       [], [with_version="0.0.0"])
+
 AC_ARG_ENABLE([minimal], [AC_HELP_STRING([--enable-minimal], [build minimal domain join])])
 AM_CONDITIONAL(ENABLE_MINIMAL, test x"$enable_minimal" = x"yes")
 if test x"$enable_minimal" = x"yes"
 then
         AC_DEFINE([ENABLE_MINIMAL], [], [Define if should build minimal domain join])
+        AC_DEFINE_UNQUOTED(BUILD_VERSION, ["$with_version"], [build version])
 fi
-
 
 AC_CHECK_LIB(iconv, iconv)
 
