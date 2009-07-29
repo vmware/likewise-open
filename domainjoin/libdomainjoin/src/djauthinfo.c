@@ -1112,12 +1112,18 @@ void DJCreateComputerAccount(
     LW_CLEANUP_CTERR(exc, DJGetDistroInfo(NULL, &distro));
     LW_CLEANUP_CTERR(exc, DJGetDistroString(distro.distro, &osName));
 
+#ifdef MINIMAL_JOIN
+    LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&likewiseOSServicePack,
+                "Likewise Identity %s",
+                BUILD_VERSION));
+#else
     LW_CLEANUP_CTERR(exc, DJGetLikewiseVersion(&likewiseVersion,
                 &likewiseBuild, &likewiseRevision));
 
     LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&likewiseOSServicePack,
                 "Likewise Identity %s.%s.%s",
                 likewiseVersion, likewiseBuild, likewiseRevision));
+#endif
 
     LW_CLEANUP_CTERR(exc, CTCreateTempDirectory(&tempDir));
 
