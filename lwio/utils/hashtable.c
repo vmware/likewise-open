@@ -318,7 +318,7 @@ SMBHashNext(
 DWORD
 SMBHashRemoveKey(
         SMB_HASH_TABLE *pTable,
-        PVOID  pKey)
+        PCVOID  pKey)
 {
     DWORD dwError = LWIO_ERROR_SUCCESS;
     size_t sBucket = pTable->fnHash(pKey) % pTable->sTableSize;
