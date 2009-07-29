@@ -84,7 +84,7 @@ KtLdapBind(
     *ldret = ld;
 
 cleanup:
-    return lderr;
+    return dwError;
 
 error:
     if (ld) ldap_memfree(ld);
