@@ -292,14 +292,27 @@ SrvTimerDetachRequest_inlock(
     if (pTimerRequest->pPrev)
     {
         pTimerRequest->pPrev->pNext = pTimerRequest->pNext;
+
+        if (pTimerRequest->pNext)
+        {
+            pTimerRequest->pNext->pPrev = pTimerRequest->pPrev;
+        }
     }
     else
     {
         pContext->pRequests = pTimerRequest->pNext;
+
+        if (pTimerRequest->pNext)
+        {
+            pTimerRequest->pNext->pPrev = NULL;
+        }
     }
 
     pTimerRequest->pPrev = NULL;
     pTimerRequest->pNext = NULL;
+
+    // Removed from timer queue
+    InterlockedDecrement(&pTimerRequest->refCount);
 
     return STATUS_SUCCESS;
 }
@@ -370,11 +383,15 @@ SrvTimerPostRequestSpecific(
         }
     }
 
+    // +1 for timer queue
     InterlockedIncrement(&pTimerRequest->refCount);
 
     LWIO_UNLOCK_MUTEX(bInLock, &pTimer->context.mutex);
 
     pthread_cond_signal(&pTimer->context.event);
+
+    // +1 for caller
+    InterlockedIncrement(&pTimerRequest->refCount);
 
     *ppTimerRequest = pTimerRequest;
 
@@ -382,13 +399,16 @@ cleanup:
 
     LWIO_UNLOCK_MUTEX(bInLock, &pTimer->context.mutex);
 
+    if (pTimerRequest)
+    {
+        SrvTimerRelease(pTimerRequest);
+    }
+
     return status;
 
 error:
 
-    *ppTimerRequest = pTimerRequest;
-
-    SrvTimerRelease(pTimerRequest);
+    *ppTimerRequest = NULL;
 
     goto cleanup;
 }
@@ -418,6 +438,10 @@ SrvTimerCancelRequestSpecific(
         {
             pPrev->pNext = pIter->pNext;
         }
+        else
+        {
+            pTimer->context.pRequests = pIter->pNext;
+        }
 
         if (pIter->pNext)
         {
@@ -445,12 +469,12 @@ SrvTimerCancelRequestSpecific(
 
 cleanup:
 
+    LWIO_UNLOCK_MUTEX(bInLock, &pTimer->context.mutex);
+
     if (pIter)
     {
         SrvTimerRelease(pIter);
     }
-
-    LWIO_UNLOCK_MUTEX(bInLock, &pTimer->context.mutex);
 
     return status;
 

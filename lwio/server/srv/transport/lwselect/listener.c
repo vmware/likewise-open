@@ -116,6 +116,7 @@ SrvListenerInit(
     pListener->context.serverProperties.Capabilities |= CAP_NT_SMBS;
     pListener->context.serverProperties.Capabilities |= CAP_RPC_REMOTE_APIS;
     pListener->context.serverProperties.Capabilities |= CAP_STATUS32;
+    // pListener->context.serverProperties.Capabilities |= CAP_LEVEL_II_OPLOCKS;
     pListener->context.serverProperties.Capabilities |= CAP_LARGE_READX;
     pListener->context.serverProperties.Capabilities |= CAP_LARGE_WRITEX;
     pListener->context.serverProperties.Capabilities |= CAP_EXTENDED_SECURITY;

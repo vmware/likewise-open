@@ -284,19 +284,19 @@ SrvShareAdd(
     pthread_rwlock_init(&pShareInfo->mutex, NULL);
     pShareInfo->pMutex = &pShareInfo->mutex;
 
-    ntStatus = SMBAllocateStringW(
+    ntStatus = SrvAllocateStringW(
                     pwszShareName,
                     &pShareInfo->pwszName);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBAllocateStringW(
+    ntStatus = SrvAllocateStringW(
                     pwszSharePath,
                     &pShareInfo->pwszPath);
     BAIL_ON_NT_STATUS(ntStatus);
 
     if (pwszShareComment)
     {
-        ntStatus = SMBAllocateStringW(
+        ntStatus = SrvAllocateStringW(
                         pwszShareComment,
                         &pShareInfo->pwszComment);
         BAIL_ON_NT_STATUS(ntStatus);

@@ -162,10 +162,7 @@ SrvFinderBuildSearchPath(
     if (pwszSearchPattern && *pwszSearchPattern)
     {
 
-        ntStatus = SMBAllocateStringW(
-                       pwszSearchPattern,
-                       &pwszSearchPattern3);
-
+        ntStatus = SrvAllocateStringW(pwszSearchPattern, &pwszSearchPattern3);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -250,7 +247,7 @@ SrvFinderBuildSearchPath(
     }
     else
     {
-        ntStatus = SMBAllocateStringW(
+        ntStatus = SrvAllocateStringW(
                         pwszPath,
                         &pwszFilesystemPath);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -259,14 +256,14 @@ SrvFinderBuildSearchPath(
     pwszCursor = (pwszLastSlash ? ++pwszLastSlash : pwszSearchPattern3);
     if (pwszCursor && *pwszCursor)
     {
-        ntStatus = SMBAllocateStringW(
+        ntStatus = SrvAllocateStringW(
                         pwszCursor,
                         &pwszSearchPattern2);
         BAIL_ON_NT_STATUS(ntStatus);
     }
     else
     {
-        ntStatus = SMBAllocateStringW(
+        ntStatus = SrvAllocateStringW(
                         wszStar,
                         &pwszSearchPattern2);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -400,7 +397,7 @@ SrvFinderCreateSearchSpace(
     pSearchSpace->ulSearchStorageType = ulSearchStorageType;
     pSearchSpace->bUseLongFilenames = bUseLongFilenames;
 
-    ntStatus = SMBAllocateStringW(
+    ntStatus = SrvAllocateStringW(
                     pwszSearchPattern,
                     &pSearchSpace->pwszSearchPattern);
     BAIL_ON_NT_STATUS(ntStatus);

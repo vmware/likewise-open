@@ -48,6 +48,8 @@
 #ifndef __DEFS_H__
 #define __DEFS_H__
 
+#define LWIO_SRV_DEFAULT_TIMEOUT_MSECS (30 * 60 * 1000)
+
 typedef enum
 {
     SRV_SMB_LOCK_TYPE_UNKNOWN = 0,
