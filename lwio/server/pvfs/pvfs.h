@@ -275,7 +275,7 @@ PvfsPathCacheAdd(
 
 NTSTATUS
 PvfsPathCacheLookup(
-    OUT PSTR *ppResolvedPath,
+    OUT PSTR *ppszResolvedPath,
     IN  PCSTR pszOriginalPath
     );
 

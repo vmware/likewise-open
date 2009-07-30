@@ -27,7 +27,6 @@ libnpfs_sys_la_SOURCES = \
     read.c \
     setinfo.c \
     memory.c \
-    misc.c \
     pipe.c \
     mdl.c \
     write.c

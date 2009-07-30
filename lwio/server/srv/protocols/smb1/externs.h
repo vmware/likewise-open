@@ -28,73 +28,28 @@
  * license@likewisesoftware.com
  */
 
-
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        misc.c
+ *        externs.h
  *
  * Abstract:
  *
- *        Likewise Named Pipe File System Driver (NPFS)
+ *        Likewise IO (LWIO) - SRV
  *
- *        Memory Management Functions
+ *        Protocols - SMB V1
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *        Externs
+ *
+ * Authors: Sriram Nambakam (snambakam@likewise.com)
+ *
  */
 
-#include "npfs.h"
+#ifndef __EXTERNS_H__
+#define __EXTERNS_H__
 
-VOID
-NpfsInterlockedIncrement(
-    PNPFS_INTERLOCKED_ULONG pCounter
-    )
-{
-    pthread_mutex_lock(&pCounter->CounterMutex);
+extern SRV_RUNTIME_GLOBALS_SMB_V1 gProtocolGlobals_SMB_V1;
 
-    pCounter->ulCounter++;
-
-    pthread_mutex_unlock(&pCounter->CounterMutex);
-}
-
-VOID
-NpfsInterlockedDecrement(
-    PNPFS_INTERLOCKED_ULONG pCounter
-    )
-{
-    pthread_mutex_lock(&pCounter->CounterMutex);
-
-    pCounter->ulCounter--;
-
-    pthread_mutex_unlock(&pCounter->CounterMutex);
-}
-
-VOID
-NpfsInitializeInterlockedCounter(
-    PNPFS_INTERLOCKED_ULONG pCounter
-    )
-{
-    pthread_mutex_init(&pCounter->CounterMutex, NULL);
-    pCounter->ulCounter = 0;
-}
-
-ULONG
-NpfsInterlockedCounter(
-    PNPFS_INTERLOCKED_ULONG pCounter
-    )
-{
-    ULONG ulCounter = 0;
-
-    pthread_mutex_lock(&pCounter->CounterMutex);
-
-    ulCounter = pCounter->ulCounter;
-
-    pthread_mutex_unlock(&pCounter->CounterMutex);
-
-    return ulCounter;
-
-}
+#endif /* __EXTERNS_H__ */

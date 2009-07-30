@@ -77,7 +77,6 @@ error:
     return ntStatus;
 }
 
-
 NTSTATUS
 NpfsCommonCreateNamedPipe(
     PNPFS_IRP_CONTEXT pIrpContext,
@@ -90,65 +89,54 @@ NpfsCommonCreateNamedPipe(
     PNPFS_PIPE pPipe = NULL;
     PNPFS_CCB pSCB = NULL;
 
-    ntStatus = NpfsValidateCreateNamedPipe(
-                    pIrpContext,
-                    &PathName
-                    );
-    BAIL_ON_NT_STATUS(ntStatus);
-
     ENTER_WRITER_RW_LOCK(&gServerLock);
 
-    ntStatus = NpfsFindFCB(
-                    &PathName,
-                    &pFCB
-                    );
-    if (ntStatus == STATUS_OBJECT_NAME_NOT_FOUND) {
+    ntStatus = NpfsValidateCreateNamedPipe(pIrpContext, &PathName);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-        ntStatus =  NpfsCreateFCB(
-                        &PathName,
-                        &pFCB
-                        );
+    ntStatus = NpfsFindFCB(&PathName, &pFCB);
+    if (ntStatus == STATUS_OBJECT_NAME_NOT_FOUND)
+    {
+        ntStatus = NpfsCreateFCB(&PathName, &pFCB);
     }
-    NpfsAddRefFCB(pFCB);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = NpfsCreatePipe(pFCB, &pPipe);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = NpfsCreateSCB(pIrpContext, pPipe, &pSCB);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = NpfsSetCCB(pIrpContext->pIrp->FileHandle, pSCB);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
     LEAVE_WRITER_RW_LOCK(&gServerLock);
-
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = NpfsCreatePipe(
-                    pFCB,
-                    &pPipe
-                    );
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = NpfsCreateSCB(
-                    pIrpContext,
-                    &pSCB
-                    );
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pPipe->pSCB = pSCB;
-    pPipe->pFCB = pFCB;
-
-    pSCB->pPipe = pPipe;
-
-    //
-    // This is the add reference for the SCB for the pPipe
-    //
-    NpfsAddRefPipe(pPipe);
-
-    ntStatus = NpfsSetCCB(
-                        pIrpContext->pIrp->FileHandle,
-                        pSCB
-                        );
-    BAIL_ON_NT_STATUS(ntStatus);
-
-error:
 
     pIrpContext->pIrp->IoStatusBlock.Status = ntStatus;
 
-    return(ntStatus);
-}
+    if (pFCB)
+    {
+        NpfsReleaseFCB(pFCB);
+    }
 
+    if (pPipe)
+    {
+        NpfsReleasePipe(pPipe);
+    }
+
+    if (pSCB)
+    {
+        NpfsReleaseCCB(pSCB);
+    }
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
+}
 
 NTSTATUS
 NpfsValidateCreateNamedPipe(

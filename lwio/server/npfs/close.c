@@ -157,20 +157,19 @@ NpfsServerCloseHandle(
     pPipe->PipeServerState = PIPE_SERVER_CLOSED;
     pthread_cond_signal(&pPipe->PipeCondition);
 
-    NpfsReleaseCCB(pSCB);
-
-    if (pPipe->PipeClientState == PIPE_CLIENT_CLOSED) {
-
-        ntStatus = NpfsFreePipeContext(
-                        pPipe
-                        );
+    if (pPipe->PipeClientState == PIPE_CLIENT_CLOSED)
+    {
+        ntStatus = NpfsFreePipeContext(pPipe);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
 error:
 
     LEAVE_MUTEX(&pPipe->PipeMutex);
-    return(ntStatus);
+
+    NpfsReleaseCCB(pSCB);
+
+    return ntStatus;
 }
 
 
@@ -189,18 +188,17 @@ NpfsClientCloseHandle(
     pPipe->PipeClientState = PIPE_CLIENT_CLOSED;
     pthread_cond_signal(&pPipe->PipeCondition);
 
-    NpfsReleaseCCB( pCCB);
-
-    if (pPipe->PipeServerState == PIPE_SERVER_CLOSED) {
-
-        ntStatus = NpfsFreePipeContext(
-                        pPipe
-                        );
+    if (pPipe->PipeServerState == PIPE_SERVER_CLOSED)
+    {
+        ntStatus = NpfsFreePipeContext(pPipe);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
 error:
 
     LEAVE_MUTEX(&pPipe->PipeMutex);
+
+    NpfsReleaseCCB(pCCB);
+
     return(ntStatus);
 }

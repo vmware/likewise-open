@@ -29,6 +29,7 @@
 NTSTATUS
 NpfsCreateSCB(
     PNPFS_IRP_CONTEXT pIrpContext,
+    PNPFS_PIPE pPipe,
     PNPFS_CCB * ppSCB
     )
 {
@@ -41,26 +42,33 @@ NpfsCreateSCB(
                     );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pSCB->CcbType = NPFS_CCB_SERVER;
+    LwListInit(&pSCB->link);
+    LwListInit(&pSCB->mdlList);
 
-    NpfsInitializeInterlockedCounter(&pSCB->cRef);
-    NpfsAddRefCCB(pSCB);
+    pSCB->CcbType = NPFS_CCB_SERVER;
+    pSCB->lRefCount = 1;
+    pSCB->pPipe = pPipe;
+    pPipe->pSCB = pSCB;
+
+    NpfsAddRefPipe(pPipe);
 
     *ppSCB = pSCB;
 
-    return(ntStatus);
+cleanup:
 
+    return ntStatus;
 
 error:
 
     *ppSCB = NULL;
 
-    return(ntStatus);
+    goto cleanup;
 }
 
 NTSTATUS
 NpfsCreateCCB(
     PNPFS_IRP_CONTEXT pIrpContext,
+    PNPFS_PIPE pPipe,
     PNPFS_CCB * ppCCB
     )
 {
@@ -73,21 +81,27 @@ NpfsCreateCCB(
                     );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pCCB->CcbType = NPFS_CCB_CLIENT;
+    LwListInit(&pCCB->link);
+    LwListInit(&pCCB->mdlList);
 
-    NpfsInitializeInterlockedCounter(&pCCB->cRef);
-    NpfsAddRefCCB(pCCB);
+    pCCB->CcbType = NPFS_CCB_CLIENT;
+    pCCB->lRefCount = 1;
+    pCCB->pPipe = pPipe;
+    pPipe->pCCB = pCCB;
+
+    NpfsAddRefPipe(pPipe);
 
     *ppCCB = pCCB;
 
-    return(ntStatus);
+cleanup:
 
+    return ntStatus;
 
 error:
 
     *ppCCB = NULL;
 
-    return(ntStatus);
+    goto cleanup;
 }
 
 
@@ -96,8 +110,7 @@ NpfsReleaseCCB(
     PNPFS_CCB pCCB
     )
 {
-    NpfsInterlockedDecrement(&pCCB->cRef);
-    if (!NpfsInterlockedCounter(&pCCB->cRef))
+    if (InterlockedDecrement(&pCCB->lRefCount) == 0)
     {
         NpfsFreeCCB(pCCB);
     }
@@ -109,31 +122,17 @@ NpfsAddRefCCB(
     PNPFS_CCB pCCB
     )
 {
-    NpfsInterlockedIncrement(&pCCB->cRef);
-    return;
+    InterlockedIncrement(&pCCB->lRefCount);
 }
 
-
-NTSTATUS
+VOID
 NpfsFreeCCB(
     PNPFS_CCB pCCB
     )
 {
-
-    NTSTATUS ntStatus = 0;
-
+    NpfsFreeMdlList(&pCCB->mdlList);
     NpfsReleasePipe(pCCB->pPipe);
-
-    ntStatus = NpfsFreeMdlList(
-                    pCCB->pMdlList
-                    );
-    BAIL_ON_NT_STATUS(ntStatus);
-
     NpfsFreeMemory(pCCB);
-
-error:
-
-    return(ntStatus);
 }
 
 NTSTATUS
@@ -175,11 +174,10 @@ NpfsSetCCB(
 {
     NTSTATUS ntStatus = 0;
 
-    ntStatus = IoFileSetContext(
-                        FileHandle,
-                        pCCB
-                        );
+    ntStatus = IoFileSetContext(FileHandle, pCCB);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    NpfsAddRefCCB(pCCB);
 
 error:
 

@@ -157,26 +157,26 @@ NpfsServerReadFile(
     switch(pPipe->PipeServerState)
     {
     case PIPE_SERVER_CONNECTED:
-        while (NpfsMdlListIsEmpty(pSCB->pMdlList) &&
+        while (NpfsMdlListIsEmpty(&pSCB->mdlList) &&
                (pPipe->PipeClientState == PIPE_CLIENT_CONNECTED))
         {
             pthread_cond_wait(&pPipe->PipeCondition,&pPipe->PipeMutex);
         }
 
         if ((pPipe->PipeClientState == PIPE_CLIENT_CLOSED)
-            && (NpfsMdlListIsEmpty(pSCB->pMdlList)))
+            && (NpfsMdlListIsEmpty(&pSCB->mdlList)))
         {
             ntStatus = STATUS_END_OF_FILE;
             BAIL_ON_NT_STATUS(ntStatus);
         }
         else if ((pPipe->PipeClientState == PIPE_CLIENT_CLOSED)
-                 && (!NpfsMdlListIsEmpty(pSCB->pMdlList)))
+                 && (!NpfsMdlListIsEmpty(&pSCB->mdlList)))
         {
             ntStatus = NpfsServerReadFile_Connected(pSCB, pIrpContext);
             BAIL_ON_NT_STATUS(ntStatus);
         }
         else if ((pPipe->PipeClientState == PIPE_CLIENT_CONNECTED)
-                 && (!NpfsMdlListIsEmpty(pSCB->pMdlList)))
+                 && (!NpfsMdlListIsEmpty(&pSCB->mdlList)))
         {
             ntStatus = NpfsServerReadFile_Connected(pSCB, pIrpContext);
             BAIL_ON_NT_STATUS(ntStatus);
@@ -229,11 +229,10 @@ NpfsServerReadFile_Connected(
     }
 
     ntStatus = NpfsDequeueBuffer(
-                        pSCB->pMdlList,
+                        &pSCB->mdlList,
                         pBuffer,
                         Length,
-                        &ulBytesTransferred,
-                        &pSCB->pMdlList
+                        &ulBytesTransferred
                         );
     BAIL_ON_NT_STATUS(ntStatus);
     pIrpContext->pIrp->IoStatusBlock.BytesTransferred = ulBytesTransferred;
@@ -261,7 +260,7 @@ NpfsClientReadFile(
     switch(pPipe->PipeClientState)
     {
     case PIPE_CLIENT_CONNECTED:
-        while (NpfsMdlListIsEmpty(pCCB->pMdlList) &&
+        while (NpfsMdlListIsEmpty(&pCCB->mdlList) &&
                (pPipe->PipeServerState == PIPE_SERVER_CONNECTED)&&
                (pPipe->PipeClientState == PIPE_CLIENT_CONNECTED))
         {
@@ -269,19 +268,19 @@ NpfsClientReadFile(
         }
 
         if ((pPipe->PipeServerState == PIPE_SERVER_CLOSED)
-            && (NpfsMdlListIsEmpty(pCCB->pMdlList)))
+            && (NpfsMdlListIsEmpty(&pCCB->mdlList)))
         {
             ntStatus = STATUS_END_OF_FILE;
             BAIL_ON_NT_STATUS(ntStatus);
         }
         else if ((pPipe->PipeServerState == PIPE_SERVER_CLOSED)
-                 && (!NpfsMdlListIsEmpty(pCCB->pMdlList)))
+                 && (!NpfsMdlListIsEmpty(&pCCB->mdlList)))
         {
             ntStatus = NpfsClientReadFile_Connected(pCCB, pIrpContext);
             BAIL_ON_NT_STATUS(ntStatus);
         }
         else if ((pPipe->PipeServerState == PIPE_SERVER_CONNECTED)
-                 && (!NpfsMdlListIsEmpty(pCCB->pMdlList)))
+                 && (!NpfsMdlListIsEmpty(&pCCB->mdlList)))
         {
             ntStatus = NpfsClientReadFile_Connected(pCCB, pIrpContext);
             BAIL_ON_NT_STATUS(ntStatus);
@@ -332,12 +331,10 @@ NpfsClientReadFile_Connected(
     }
 
     ntStatus = NpfsDequeueBuffer(
-                        pCCB->pMdlList,
+                        &pCCB->mdlList,
                         pBuffer,
                         Length,
-                        &ulBytesTransferred,
-                        &pCCB->pMdlList
-                        );
+                        &ulBytesTransferred);
     BAIL_ON_NT_STATUS(ntStatus);
     pIrpContext->pIrp->IoStatusBlock.BytesTransferred = ulBytesTransferred;
 

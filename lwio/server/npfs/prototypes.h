@@ -106,12 +106,14 @@ NpfsValidateCreateNamedPipe(
 NTSTATUS
 NpfsCreateSCB(
     PNPFS_IRP_CONTEXT pIrpContext,
+    PNPFS_PIPE pPipe,
     PNPFS_CCB * ppSCB
     );
 
 NTSTATUS
 NpfsCreateCCB(
     PNPFS_IRP_CONTEXT pIrpContext,
+    PNPFS_PIPE pPipe,
     PNPFS_CCB * ppCCB
     );
 
@@ -126,7 +128,7 @@ NpfsAddRefCCB(
     PNPFS_CCB pCCB
     );
 
-NTSTATUS
+VOID
 NpfsFreeCCB(
     PNPFS_CCB pCCB
     );
@@ -238,20 +240,18 @@ NpfsCommonFsCtl(
 /* mdl.c */
 NTSTATUS
 NpfsEnqueueBuffer(
-    PNPFS_MDL pMdlList,
+    PLW_LIST_LINKS pMdlList,
     PVOID pBuffer,
     ULONG Length,
-    PULONG pulBytesTransferred,
-    PNPFS_MDL * ppMdlList
+    PULONG pulBytesTransferred
     );
 
 NTSTATUS
 NpfsDequeueBuffer(
-    PNPFS_MDL pMdlList,
+    PLW_LIST_LINKS pMdlList,
     PVOID pBuffer,
     ULONG Length,
-    PULONG pulBytesTransferred,
-    PNPFS_MDL * ppMdlList
+    PULONG pulBytesTransferred
     );
 
 NTSTATUS
@@ -261,18 +261,16 @@ NpfsCreateMdl(
     PNPFS_MDL * ppMdl
     );
 
-NTSTATUS
+VOID
 NpfsEnqueueMdl(
-    PNPFS_MDL pMdlList,
-    PNPFS_MDL pMdl,
-    PNPFS_MDL *ppMdlList
+    PLW_LIST_LINKS pMdlList,
+    PNPFS_MDL pMdl
     );
 
-NTSTATUS
+VOID
 NpfsDequeueMdl(
-    PNPFS_MDL pMdlList,
-    PNPFS_MDL * ppMdl,
-    PNPFS_MDL *ppMdlList
+    PLW_LIST_LINKS pMdlList,
+    PNPFS_MDL *ppMdl
     );
 
 NTSTATUS
@@ -294,9 +292,9 @@ NpfsAddMdltoInboundQueue(
     PNPFS_MDL pMdl
     );
 
-NTSTATUS
+VOID
 NpfsFreeMdlList(
-    PNPFS_MDL pNpfsMdlList
+    PLW_LIST_LINKS pMdlList
     );
 
 VOID
@@ -306,30 +304,7 @@ NpfsFreeMdl(
 
 BOOLEAN
 NpfsMdlListIsEmpty(
-    PNPFS_MDL pNpfsMdlList
-    );
-
-
-/* misc.c */
-
-VOID
-NpfsInterlockedIncrement(
-    PNPFS_INTERLOCKED_ULONG pCounter
-    );
-
-VOID
-NpfsInterlockedDecrement(
-    PNPFS_INTERLOCKED_ULONG pCounter
-    );
-
-VOID
-NpfsInitializeInterlockedCounter(
-    PNPFS_INTERLOCKED_ULONG pCounter
-    );
-
-ULONG
-NpfsInterlockedCounter(
-    PNPFS_INTERLOCKED_ULONG pCounter
+    PLW_LIST_LINKS pMdlList
     );
 
 /* queryinfo.c */

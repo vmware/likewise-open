@@ -51,10 +51,17 @@
 
 NTSTATUS
 SrvProtocolInit_SMB_V1(
-    VOID
+    PSMB_PROD_CONS_QUEUE pAsyncWorkQueue
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_LOCK_MUTEX(bInLock, &gProtocolGlobals_SMB_V1.mutex);
+
+    gProtocolGlobals_SMB_V1.pAsyncWorkQueue = pAsyncWorkQueue;
+
+    LWIO_UNLOCK_MUTEX(bInLock, &gProtocolGlobals_SMB_V1.mutex);
 
     return status;
 }
@@ -441,6 +448,13 @@ SrvProtocolShutdown_SMB_V1(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_LOCK_MUTEX(bInLock, &gProtocolGlobals_SMB_V1.mutex);
+
+    gProtocolGlobals_SMB_V1.pAsyncWorkQueue = NULL;
+
+    LWIO_UNLOCK_MUTEX(bInLock, &gProtocolGlobals_SMB_V1.mutex);
 
     return status;
 }

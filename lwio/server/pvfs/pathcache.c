@@ -46,17 +46,29 @@
 
 #include "pvfs.h"
 
-/* Forward declarations */
+#define PVFS_PATH_CACHE_SIZE        1021
+#define PVFS_PATH_HASH_MULTIPLIER   31
+#define PVFS_PATH_CACHE_EXPIRY      120
+
+static PSMB_HASH_TABLE gpPathCache = NULL;
+static pthread_rwlock_t gPathCacheRwLock = PTHREAD_RWLOCK_INITIALIZER;
+
+typedef struct _PVFS_PATH_CACHE_ENTRY
+{
+    PSTR pszPathname;
+    time_t LastAccess;
+
+} PVFS_PATH_CACHE_ENTRY, *PPVFS_PATH_CACHE_ENTRY;
 
 
-/* Structs */
 
+/*****************************************************************************
+ ****************************************************************************/
 
-/* Code */
-
-
-/********************************************************
- *******************************************************/
+static NTSTATUS
+PvfsPathCacheInit(
+    VOID
+    );
 
 NTSTATUS
 PvfsPathCacheAdd(
@@ -64,35 +76,235 @@ PvfsPathCacheAdd(
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
+    DWORD dwError = LWIO_ERROR_SUCCESS;
+    PSTR pszPathname = NULL;
+    PPVFS_PATH_CACHE_ENTRY pCacheRecord = NULL;
+    BOOLEAN bLocked = FALSE;
 
+    if (gpPathCache == NULL)
+    {
+        ntError = PvfsPathCacheInit();
+        if (ntError != STATUS_SUCCESS) {
+            ntError = STATUS_SUCCESS;
+            goto cleanup;
+        }
+    }
+
+    ntError = LwRtlCStringDuplicate(&pszPathname, pszResolvedPath);
     BAIL_ON_NT_STATUS(ntError);
 
+    ntError = PvfsAllocateMemory(
+                  (PVOID*)&pCacheRecord,
+                  sizeof(PVFS_PATH_CACHE_ENTRY));
+    BAIL_ON_NT_STATUS(ntError);
+
+    pCacheRecord->pszPathname = pszPathname;
+    pCacheRecord->LastAccess = time(NULL);
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bLocked, &gPathCacheRwLock);
+    dwError = SMBHashSetValue(
+                  gpPathCache,
+                  (PVOID)pszPathname,
+                  (PVOID)pCacheRecord);
+    LWIO_UNLOCK_RWMUTEX(bLocked, &gPathCacheRwLock);
+
+    if (dwError != LWIO_ERROR_SUCCESS) {
+        ntError = STATUS_INSUFFICIENT_RESOURCES;
+    }
+    BAIL_ON_NT_STATUS(ntError);
+
+    pszPathname = NULL;
+    pCacheRecord = NULL;
+
 cleanup:
+    LwRtlCStringFree(&pszPathname);
+    PVFS_FREE(&pCacheRecord);
+
     return ntError;
 
 error:
     goto cleanup;
 }
 
-/********************************************************
- *******************************************************/
+/*****************************************************************************
+ ****************************************************************************/
 
 NTSTATUS
 PvfsPathCacheLookup(
-    OUT PSTR *ppResolvedPath,
+    OUT PSTR *ppszResolvedPath,
     IN  PCSTR pszOriginalPath
     )
 {
-    NTSTATUS ntError = STATUS_OBJECT_PATH_NOT_FOUND;
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    DWORD dwError = FALSE;
+    BOOLEAN bLocked = FALSE;
+    PPVFS_PATH_CACHE_ENTRY pCacheRecord = NULL;
+    PSTR pszResolvedPath = NULL;
+    time_t now = 0;
 
+    if (gpPathCache == NULL)
+    {
+        ntError = STATUS_OBJECT_PATH_NOT_FOUND;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bLocked, &gPathCacheRwLock);
+    dwError = SMBHashGetValue(
+                  gpPathCache,
+                  (PCVOID)pszOriginalPath,
+                  (PVOID*)&pCacheRecord);
+    if (dwError != LWIO_ERROR_SUCCESS) {
+        ntError = STATUS_OBJECT_PATH_NOT_FOUND;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    now = time(NULL);
+
+    /* Expire cache records > EXPIRE seconds old.  Check for time warps
+       that sent us back in time (system clock changed) */
+
+    if (((pCacheRecord->LastAccess + PVFS_PATH_CACHE_EXPIRY) < now) ||
+        (pCacheRecord->LastAccess > now))
+    {
+        dwError = SMBHashRemoveKey(gpPathCache, (PCVOID)pszOriginalPath);
+        /* Ignore errors from the remove */
+
+        ntError = STATUS_OBJECT_PATH_NOT_FOUND;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    pCacheRecord->LastAccess = now;
+
+    ntError = LwRtlCStringDuplicate(
+                  &pszResolvedPath,
+                  pCacheRecord->pszPathname);
     BAIL_ON_NT_STATUS(ntError);
 
+    *ppszResolvedPath = pszResolvedPath;
+    pszResolvedPath = NULL;
+
 cleanup:
+    LWIO_UNLOCK_RWMUTEX(bLocked, &gPathCacheRwLock);
+
+    LwRtlCStringFree(&pszResolvedPath);
+
     return ntError;
 
 error:
     goto cleanup;
 }
+
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static int
+PvfsPathCachePathCompare(
+    PCVOID pKey1,
+    PCVOID pKey2
+    );
+
+static size_t
+PvfsPathCacheKey(
+    PCVOID pszPath
+    );
+
+static VOID
+PvfsPathCacheFreeEntry(
+    const SMB_HASH_ENTRY *pEntry
+    );
+
+static NTSTATUS
+PvfsPathCacheInit(
+    VOID
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    DWORD dwError = 0;
+    PSMB_HASH_TABLE pHashTable = NULL;
+
+    dwError = SMBHashCreate(
+                  PVFS_PATH_CACHE_SIZE,
+                  PvfsPathCachePathCompare,
+                  PvfsPathCacheKey,
+                  PvfsPathCacheFreeEntry,
+                  &pHashTable);
+    BAIL_ON_LWIO_ERROR(dwError);
+
+    gpPathCache = pHashTable;
+    pHashTable = NULL;
+
+cleanup:
+    SMBHashSafeFree(&pHashTable);
+
+    ntError = (dwError == LWIO_ERROR_SUCCESS) ?
+               STATUS_SUCCESS :
+               STATUS_INSUFFICIENT_RESOURCES;
+
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static size_t
+PvfsPathCacheKey(
+    PCVOID pszPath
+    )
+{
+    size_t KeyResult = 0;
+    PCSTR pszPathname = (PCSTR)pszPath;
+    PCSTR pszChar = NULL;
+
+    for (pszChar=pszPathname; pszChar && *pszChar; pszChar++)
+    {
+        KeyResult = (PVFS_PATH_HASH_MULTIPLIER * KeyResult) + (size_t)*pszChar;
+    }
+
+    return KeyResult;
+}
+
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static VOID
+PvfsPathCacheFreeEntry(
+    const SMB_HASH_ENTRY *pEntry
+    )
+{
+    if (pEntry)
+    {
+        PSTR pszPath = (PSTR)pEntry->pKey;
+
+        LwRtlCStringFree(&pszPath);
+
+        PVFS_FREE(&pEntry->pValue);
+    }
+
+    return;
+}
+
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static int
+PvfsPathCachePathCompare(
+    PCVOID pKey1,
+    PCVOID pKey2
+    )
+{
+    PSTR pszPath1 = (PSTR)pKey1;
+    PSTR pszPath2 = (PSTR)pKey2;
+
+    return strcasecmp(pszPath1, pszPath2);
+}
+
 
 
 

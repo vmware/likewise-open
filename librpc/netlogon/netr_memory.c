@@ -784,14 +784,14 @@ NetrAllocateSamInfo3(
     if (pIn) {
         ntStatus = NetrInitSamBaseInfo(&pInfo->base,
                                        &pIn->base,
-                                       (void*)pInfo);
+                                       (void*)pDep);
         BAIL_ON_NT_STATUS(ntStatus);
 
         pInfo->sidcount = pIn->sidcount;
 
         ntStatus = NetrAllocateMemory((void*)&pInfo->sids,
                                       sizeof(NetrSidAttr) * pInfo->sidcount,
-                                      (void*)pInfo);
+                                      (void*)pDep);
         BAIL_ON_NT_STATUS(ntStatus);
 
         for (i = 0; i < pInfo->sidcount; i++) {
@@ -803,7 +803,7 @@ NetrAllocateSamInfo3(
                 BAIL_ON_NULL_PTR(pSidAttrOut->sid, ntStatus);
 
                 ntStatus = NetrAddDepMemory((void*)pSidAttrOut->sid,
-                                            (void*)pInfo);
+                                            (void*)pDep);
                 BAIL_ON_NT_STATUS(ntStatus);
 
             } else {

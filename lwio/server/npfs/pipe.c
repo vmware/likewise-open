@@ -57,33 +57,43 @@ NpfsFindAvailablePipe(
 {
     NTSTATUS ntStatus = 0;
     PNPFS_PIPE pPipe = NULL;
+    PLW_LIST_LINKS pLink = NULL;
 
     ENTER_WRITER_RW_LOCK(&pFCB->PipeListRWLock);
 
-    pPipe = pFCB->pPipes;
-
-
-    while(pPipe) {
-
+    while ((pLink = LwListTraverse(&pFCB->pipeList, pLink)))
+    {
+        pPipe = LW_STRUCT_FROM_FIELD(pLink, NPFS_PIPE, link);
         ENTER_MUTEX(&pPipe->PipeMutex);
 
-        if (pPipe->PipeServerState == PIPE_SERVER_WAITING_FOR_CONNECTION){
+        if (pPipe->PipeServerState == PIPE_SERVER_WAITING_FOR_CONNECTION)
+        {
             *ppPipe = pPipe;
 
             LEAVE_MUTEX(&pPipe->PipeMutex);
-            LEAVE_WRITER_RW_LOCK(&pFCB->PipeListRWLock);
 
-            return(ntStatus);
+            NpfsAddRefPipe(pPipe);
+
+            goto cleanup;
         }
 
         LEAVE_MUTEX(&pPipe->PipeMutex);
-        pPipe = pPipe->pNext;
     }
+
+    ntStatus = STATUS_PIPE_NOT_AVAILABLE;
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
 
     LEAVE_WRITER_RW_LOCK(&pFCB->PipeListRWLock);
 
+    return ntStatus;
+
+error:
+
     *ppPipe = NULL;
-    return(STATUS_PIPE_NOT_AVAILABLE);
+
+    goto cleanup;
 }
 
 NTSTATUS
@@ -103,14 +113,18 @@ NpfsCreatePipe(
                     );
     BAIL_ON_NT_STATUS(ntStatus);
 
+    LwListInit(&pPipe->link);
     pthread_cond_init(&pPipe->PipeCondition,NULL);
     pthread_mutex_init(&pPipe->PipeMutex, NULL);
-    NpfsInitializeInterlockedCounter(&pPipe->cRef);
+    pPipe->lRefCount = 1;
 
     pPipe->PipeServerState = PIPE_SERVER_INIT_STATE;
     pPipe->PipeClientState = PIPE_CLIENT_INIT_STATE;
-    pPipe->pNext = pFCB->pPipes;
-    pFCB->pPipes = pPipe;
+    pPipe->pFCB = pFCB;
+
+    NpfsAddRefFCB(pFCB);
+
+    LwListInsertBefore(&pFCB->pipeList, &pPipe->link);
     pFCB->CurrentNumberOfInstances++;
 
     *ppPipe = pPipe;
@@ -145,12 +159,22 @@ NpfsReleasePipe(
     PNPFS_PIPE pPipe
     )
 {
-    NpfsInterlockedDecrement(&pPipe->cRef);
-    if (!NpfsInterlockedCounter(&pPipe->cRef)) {
+    BOOLEAN bFreePipe = FALSE;
 
+    ENTER_WRITER_RW_LOCK(&pPipe->pFCB->PipeListRWLock);
+
+    if (InterlockedDecrement(&pPipe->lRefCount) == 0)
+    {
+        NpfsRemovePipeFromFCB(pPipe->pFCB, pPipe);
+        bFreePipe = TRUE;
+    }
+
+    LEAVE_WRITER_RW_LOCK(&pPipe->pFCB->PipeListRWLock);
+
+    if (bFreePipe)
+    {
         NpfsFreePipe(pPipe);
     }
-    return;
 }
 
 VOID
@@ -158,8 +182,7 @@ NpfsAddRefPipe(
     PNPFS_PIPE pPipe
     )
 {
-    NpfsInterlockedIncrement(&pPipe->cRef);
-    return;
+    InterlockedIncrement(&pPipe->lRefCount);
 }
 
 
@@ -173,19 +196,10 @@ NpfsFreePipe(
 
     pFCB = pPipe->pFCB;
 
-    NpfsRemovePipeFromFCB(
-            pFCB,
-            pPipe
-            );
-
     NpfsReleaseFCB(pFCB);
-
-    if (pPipe)
-    {
-        RTL_FREE(&pPipe->pSessionKey);
-        RTL_FREE(&pPipe->pszClientPrincipalName);
-        NpfsFreeMemory(pPipe);
-    }
+    RTL_FREE(&pPipe->pSessionKey);
+    RTL_FREE(&pPipe->pszClientPrincipalName);
+    NpfsFreeMemory(pPipe);
 
     return(ntStatus);
 }
@@ -196,40 +210,8 @@ NpfsRemovePipeFromFCB(
     PNPFS_PIPE pPipe
     )
 {
-    PNPFS_PIPE pPipeCursor = pFCB->pPipes;
-
-    ENTER_WRITER_RW_LOCK(&pFCB->PipeListRWLock);
-
-    // Case #1: entry is first in list
-
-    if (pPipeCursor == pPipe)
-    {
-        pFCB->pPipes = pPipe->pNext;
-        goto cleanup;
-    }
-
-
-    // Case #2: pipe struct is somewhere in the list
-
-    for (/* no init */;
-         pPipeCursor && pPipeCursor->pNext != pPipe;
-         pPipeCursor = pPipeCursor->pNext)
-    {
-        /* do nothing */;
-    }
-
-    // Remove
-
-    if (pPipeCursor != NULL)
-    {
-        pPipeCursor->pNext = pPipe->pNext;
-    }
-
-cleanup:
-    LEAVE_WRITER_RW_LOCK(&pFCB->PipeListRWLock);
+    LwListRemove(&pPipe->link);
 }
-
-
 
 /*
 local variables:

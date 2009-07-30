@@ -30,6 +30,6 @@
 
 #include "npfs.h"
 
-PNPFS_FCB  gpFCB = NULL;
+LW_LIST_LINKS gFCBList = { &gFCBList, &gFCBList };
 
 pthread_rwlock_t gServerLock;

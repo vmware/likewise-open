@@ -394,6 +394,7 @@
 #define LW_ERROR_LDAP_TYPE_OR_VALUE_EXISTS                 40316
 #define LW_ERROR_LDAP_INVALID_SYNTAX                       40317
 
+
 /* range 40500 - 40600 are reserved for GSS specific errors */
 
 #define LW_ERROR_BAD_MECH                                  40500
@@ -406,6 +407,17 @@
 #define LW_ERROR_INVALID_TOKEN                             40507
 #define LW_ERROR_UNSUPPORTED_SUBPROTO                      40508
 #define LW_ERROR_UNSUPPORTED_CRYPTO_OP                     40509
+
+/* range 40601 - 40699 is reserved for lwtest specific errors */
+
+#define LW_ERROR_TEST_FAILED                               40601
+#define LW_ERROR_CSV_BAD_FORMAT                            40602
+#define LW_ERROR_CSV_NO_SUCH_FIELD                         40603
+
+
+/*Range 40700 - 41200 is reserved for registry specific error*/
+#define LW_ERROR_DUPLICATE_KEYNAME                         40700
+
 
 size_t
 LwGetErrorString(

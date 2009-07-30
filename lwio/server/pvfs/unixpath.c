@@ -272,13 +272,25 @@ PvfsLookupPath(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PVFS_STAT Stat = {0};
+    PSTR pszDiskPath = NULL;
 
     /* Check the cache */
 
-    ntError = PvfsPathCacheLookup(ppszDiskPath, pszPath);
+    ntError = PvfsPathCacheLookup(&pszDiskPath, pszPath);
     if (ntError == STATUS_SUCCESS)
     {
-        goto cleanup;
+        /* Check that the path is still good.  If not fallback
+           to manual checks */
+
+        ntError = PvfsSysStat(pszDiskPath, &Stat);
+        if (ntError == STATUS_SUCCESS) {
+            *ppszDiskPath = pszDiskPath;
+            pszDiskPath = NULL;
+            goto cleanup;
+        }
+
+        LwRtlCStringFree(&pszDiskPath);
+        pszDiskPath = NULL;
     }
 
     /* See if we are lucky */
@@ -307,10 +319,18 @@ PvfsLookupPath(
     ntError = PvfsResolvePath(ppszDiskPath, pszPath);
     BAIL_ON_NT_STATUS(ntError);
 
+    /* This should succeed now */
+    ntError = PvfsSysStat(*ppszDiskPath, &Stat);
+    BAIL_ON_NT_STATUS(ntError);
+
 cleanup:
+    LwRtlCStringFree(&pszDiskPath);
+
     return ntError;
 
 error:
+    LwRtlCStringFree(ppszDiskPath);
+
     goto cleanup;
 }
 
@@ -396,7 +416,8 @@ PvfsResolvePath(
 
         /* Try cache first */
 
-        if(PvfsPathCacheLookup(&pszResWorkingPath, pszWorkingPath) == STATUS_SUCCESS)
+        ntError = PvfsPathCacheLookup(&pszResWorkingPath, pszWorkingPath);
+        if(ntError == STATUS_SUCCESS)
         {
             strncpy(pszResolvedPath, pszResWorkingPath, PATH_MAX-1);
             Length = PATH_MAX - RtlCStringNumChars(pszResolvedPath);
@@ -405,7 +426,7 @@ PvfsResolvePath(
 
         /* Maybe an exact match on disk? */
 
-        else if (PvfsSysStat(pszWorkingPath, &Stat)== STATUS_SUCCESS)
+        else if (PvfsSysStat(pszWorkingPath, &Stat) == STATUS_SUCCESS)
         {
             strncpy(pszResolvedPath, pszWorkingPath, PATH_MAX-1);
             Length = PATH_MAX - RtlCStringNumChars(pszResolvedPath);

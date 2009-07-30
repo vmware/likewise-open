@@ -57,23 +57,53 @@ SrvProtocolExecute_SMB_V1_Filter(
     PSMB_PACKET*         ppSmbResponse
     );
 
+static
+VOID
+SrvProtocolAsyncContextFree(
+    PVOID pAsyncContext
+    );
+
 NTSTATUS
 SrvProtocolInit(
     VOID
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    BOOLEAN bSupportSMBV2 = FALSE;
+    ULONG    iWorker = 0;
+    BOOLEAN  bSupportSMBV2 = FALSE;
+
+    status = SrvProdConsInitContents(
+                    &gProtocolApiGlobals.asyncWorkQueue,
+                    gProtocolApiGlobals.ulMaxNumAsyncWorkItemsInQueue,
+                    &SrvProtocolAsyncContextFree);
+    BAIL_ON_NT_STATUS(status);
+
+    status = SrvAllocateMemory(
+                    gProtocolApiGlobals.ulNumAsyncWorkers * sizeof(LWIO_SRV_PROTOCOL_WORKER),
+                    (PVOID*)&gProtocolApiGlobals.pAsyncWorkerArray);
+    BAIL_ON_NT_STATUS(status);
+
+    for (; iWorker < gProtocolApiGlobals.ulNumAsyncWorkers; iWorker++)
+    {
+        PLWIO_SRV_PROTOCOL_WORKER pWorker = &gProtocolApiGlobals.pAsyncWorkerArray[iWorker];
+
+        pWorker->workerId = iWorker + 1;
+
+        status = SrvProtocolWorkerInit(
+                        pWorker,
+                        &gProtocolApiGlobals.asyncWorkQueue);
+        BAIL_ON_NT_STATUS(status);
+    }
 
     status = SrvProtocolConfigSupports_SMB_V2(&bSupportSMBV2);
     BAIL_ON_NT_STATUS(status);
 
-    status = SrvProtocolInit_SMB_V1();
+    status = SrvProtocolInit_SMB_V1(&gProtocolApiGlobals.asyncWorkQueue);
     BAIL_ON_NT_STATUS(status);
 
     if (bSupportSMBV2)
     {
-        status = SrvProtocolInit_SMB_V2();
+        status = SrvProtocolInit_SMB_V2(&gProtocolApiGlobals.asyncWorkQueue);
         BAIL_ON_NT_STATUS(status);
     }
 
@@ -213,6 +243,15 @@ error:
     goto cleanup;
 }
 
+static
+VOID
+SrvProtocolAsyncContextFree(
+    PVOID pAsyncContext
+    )
+{
+    // TODO
+}
+
 NTSTATUS
 SrvProtocolShutdown(
     VOID
@@ -220,6 +259,32 @@ SrvProtocolShutdown(
 {
     NTSTATUS status = STATUS_SUCCESS;
     BOOLEAN bSupportSMBV2 = FALSE;
+
+    if (gProtocolApiGlobals.pAsyncWorkerArray)
+    {
+        INT iWorker = 0;
+
+        for (; iWorker < gProtocolApiGlobals.ulNumAsyncWorkers; iWorker++)
+        {
+            PLWIO_SRV_PROTOCOL_WORKER pWorker =
+                            &gProtocolApiGlobals.pAsyncWorkerArray[iWorker];
+
+            SrvProtocolWorkerIndicateStop(pWorker);
+        }
+
+        for (iWorker = 0;
+             iWorker < gProtocolApiGlobals.ulNumAsyncWorkers;
+             iWorker++)
+        {
+            PLWIO_SRV_PROTOCOL_WORKER pWorker =
+                            &gProtocolApiGlobals.pAsyncWorkerArray[iWorker];
+
+            SrvProtocolWorkerFreeContents(pWorker);
+        }
+
+        SrvFreeMemory(gProtocolApiGlobals.pAsyncWorkerArray);
+        gProtocolApiGlobals.pAsyncWorkerArray = NULL;
+    }
 
     status = SrvProtocolConfigSupports_SMB_V2(&bSupportSMBV2);
     BAIL_ON_NT_STATUS(status);
@@ -229,9 +294,11 @@ SrvProtocolShutdown(
 
     if (bSupportSMBV2)
     {
-        status = SrvProtocolInit_SMB_V2();
+        status = SrvProtocolShutdown_SMB_V2();
         BAIL_ON_NT_STATUS(status);
     }
+
+    SrvProdConsFreeContents(&gProtocolApiGlobals.asyncWorkQueue);
 
 error:
 

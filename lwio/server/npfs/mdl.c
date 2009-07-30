@@ -29,53 +29,44 @@
 
 NTSTATUS
 NpfsEnqueueBuffer(
-    PNPFS_MDL pMdlList,
+    PLW_LIST_LINKS pMdlList,
     PVOID pBuffer,
     ULONG Length,
-    PULONG pulBytesTransferred,
-    PNPFS_MDL * ppMdlList
+    PULONG pulBytesTransferred
     )
 {
     NTSTATUS ntStatus = 0;
     PNPFS_MDL pMdl = NULL;
-    PNPFS_MDL pNewMdlList = NULL;
 
-    ntStatus = NpfsCreateMdl(
-                    Length,
-                    pBuffer,
-                    &pMdl
-                    );
+    ntStatus = NpfsCreateMdl(Length, pBuffer, &pMdl);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = NpfsEnqueueMdl(
-                    pMdlList,
-                    pMdl,
-                    &pNewMdlList
-                    );
-    BAIL_ON_NT_STATUS(ntStatus);
+    NpfsEnqueueMdl(pMdlList, pMdl);
 
-    *ppMdlList = pNewMdlList;
     *pulBytesTransferred = Length;
-    return(ntStatus);
+
+cleanup:
+
+    return ntStatus;
 
 error:
 
-    if (pMdl) {
+    if (pMdl)
+    {
         NpfsFreeMdl(pMdl);
     }
-    *pulBytesTransferred = 0;
-    *ppMdlList = NULL;
-    return(ntStatus);
 
+    *pulBytesTransferred = 0;
+
+    goto cleanup;
 }
 
 NTSTATUS
 NpfsDequeueBuffer(
-    PNPFS_MDL pMdlList,
+    PLW_LIST_LINKS pMdlList,
     PVOID pBuffer,
     ULONG Length,
-    PULONG pulBytesTransferred,
-    PNPFS_MDL * ppMdlList
+    PULONG pulBytesTransferred
     )
 {
     NTSTATUS ntStatus = 0;
@@ -85,39 +76,41 @@ NpfsDequeueBuffer(
     ULONG BytesCopied = 0;
     PNPFS_MDL pMdl = NULL;
 
-    if (!pMdlList) {
+    if (!pMdlList)
+    {
         ntStatus = STATUS_INVALID_PARAMETER;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
     LengthRemaining = Length;
-    while (LengthRemaining && pMdlList){
-
-        BytesAvail = pMdlList->Length - pMdlList->Offset;
+    while (LengthRemaining && !NpfsMdlListIsEmpty(pMdlList))
+    {
+        pMdl = LW_STRUCT_FROM_FIELD(pMdlList->Next, NPFS_MDL, link);
+        BytesAvail = pMdl->Length - pMdl->Offset;
         BytesToCopy = min(BytesAvail, LengthRemaining);
-        memcpy(pBuffer, pMdlList->Buffer + pMdlList->Offset, BytesToCopy);
+        memcpy(pBuffer, pMdl->Buffer + pMdl->Offset, BytesToCopy);
         BytesCopied += BytesToCopy;
-        pMdlList->Offset += BytesToCopy;
+        pMdl->Offset += BytesToCopy;
         LengthRemaining -= BytesToCopy;
-        if (pMdlList->Length - pMdlList->Offset == 0){
-            NpfsDequeueMdl(pMdlList, &pMdl, &pMdlList);
+        if (pMdl->Length - pMdl->Offset == 0)
+        {
+            NpfsDequeueMdl(pMdlList, &pMdl);
             NpfsFreeMdl(pMdl);
-
         }
     }
+
     *pulBytesTransferred = BytesCopied;
-    *ppMdlList = pMdlList;
-    return(ntStatus);
+
+cleanup:
+
+    return ntStatus;
 
 error:
+
     *pulBytesTransferred = 0;
-    *ppMdlList = NULL;
-    return(ntStatus);
+
+    goto cleanup;
 }
-
-
-
-
 
 NTSTATUS
 NpfsCreateMdl(
@@ -165,49 +158,28 @@ error:
     return(ntStatus);
 }
 
-NTSTATUS
+VOID
 NpfsEnqueueMdl(
-    PNPFS_MDL pMdlList,
-    PNPFS_MDL pMdl,
-    PNPFS_MDL *ppMdlList
+    PLW_LIST_LINKS pMdlList,
+    PNPFS_MDL pMdl
     )
 {
-    NTSTATUS ntStatus = 0;
-
-    if (!pMdl) {
-        return (STATUS_INVALID_PARAMETER);
-    }
-
-    pMdl->pNext = pMdlList;
-    *ppMdlList = pMdl;
-
-    return (ntStatus);
+    LwListInsertBefore(pMdlList, &pMdl->link);
 }
 
-NTSTATUS
+VOID
 NpfsDequeueMdl(
-    PNPFS_MDL pMdlList,
-    PNPFS_MDL * ppMdl,
-    PNPFS_MDL *ppMdlList
+    PLW_LIST_LINKS pMdlList,
+    PNPFS_MDL* ppMdl
     )
 {
-    NTSTATUS ntStatus = 0;
     PNPFS_MDL pMdl = NULL;
+    PLW_LIST_LINKS pLink = NULL;
 
-    if (!pMdlList) {
-        *ppMdlList = NULL;
-        ntStatus = STATUS_INVALID_PARAMETER;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    pMdl = pMdlList;
-    pMdlList = pMdl->pNext;
+    pLink = LwListRemoveAfter(pMdlList);
+    pMdl = LW_STRUCT_FROM_FIELD(pLink, NPFS_MDL, link);
 
     *ppMdl = pMdl;
-    *ppMdlList = pMdlList;
-
-error:
-    return(ntStatus);
 }
 
 NTSTATUS
@@ -229,6 +201,13 @@ NpfsFreeMdl(
     PNPFS_MDL pMdl
     )
 {
+    if (pMdl->Buffer)
+    {
+        NpfsFreeMemory(pMdl->Buffer);
+    }
+
+    NpfsFreeMemory(pMdl);
+
     return;
 }
 
@@ -245,25 +224,28 @@ NpfsAddMdltoInboundQueue(
     return(ntStatus);
 }
 
-NTSTATUS
+VOID
 NpfsFreeMdlList(
-    PNPFS_MDL pNpfsMdlList
+    PLW_LIST_LINKS pMdlList
     )
 {
-    NTSTATUS ntStatus = 0;
+    PLW_LIST_LINKS pLink = NULL;
+    PLW_LIST_LINKS pNext = NULL;
+    PNPFS_MDL pMdl = NULL;
 
-    return(ntStatus);
+    for (pLink = pMdlList->Next; pLink != pMdlList; pLink = pNext)
+    {
+        pNext = pLink->Next;
+        pMdl = LW_STRUCT_FROM_FIELD(pLink, NPFS_MDL, link);
+
+        NpfsFreeMdl(pMdl);
+    }
 }
 
 BOOLEAN
 NpfsMdlListIsEmpty(
-    PNPFS_MDL pNpfsMdlList
+    PLW_LIST_LINKS pMdlList
     )
 {
-    if (!pNpfsMdlList) {
-        return TRUE;
-    }else {
-        return FALSE;
-    }
+    return LwListIsEmpty(pMdlList);
 }
-

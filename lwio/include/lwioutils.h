@@ -444,7 +444,7 @@ typedef struct __SMB_BIT_VECTOR
     PDWORD pVector;
 } SMB_BIT_VECTOR, *PSMB_BIT_VECTOR;
 
-typedef struct __SMB_HASH_ENTRY SMB_HASH_ENTRY;
+typedef struct __SMB_HASH_ENTRY SMB_HASH_ENTRY, *PSMB_HASH_ENTRY;
 
 typedef int (*SMB_HASH_KEY_COMPARE)(PCVOID, PCVOID);
 typedef size_t (*SMB_HASH_KEY)(PCVOID);
@@ -980,7 +980,7 @@ SMBHashNext(
 DWORD
 SMBHashRemoveKey(
         SMB_HASH_TABLE *pTable,
-        PVOID  pKey);
+        PCVOID  pKey);
 
 int
 SMBHashCaselessStringCompare(
