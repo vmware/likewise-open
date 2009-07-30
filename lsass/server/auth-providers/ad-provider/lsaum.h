@@ -79,4 +79,9 @@ LsaUmRemoveUser(
     IN uid_t Uid
     );
 
+VOID
+LsaUmTriggerCheckUsersThread(
+    VOID
+    );
+
 #endif /* __LSA_UM_H__ */

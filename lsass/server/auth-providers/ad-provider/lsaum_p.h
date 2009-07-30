@@ -64,6 +64,11 @@ LsaUmpStateCreate(
     OUT PLSA_UM_STATE_HANDLE pHandle
     );
 
+VOID
+LsaUmpTriggerCheckUsersThread(
+    IN LSA_UM_STATE_HANDLE Handle
+    );
+
 DWORD
 LsaUmpAddUser(
     IN LSA_UM_STATE_HANDLE Handle,

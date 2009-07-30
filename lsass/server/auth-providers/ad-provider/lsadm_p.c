@@ -756,6 +756,7 @@ LsaDmpModifyStateFlags(
             {
                 // Have to ignore dwError because this function returns void
                 LsaSrvFlushSystemCache();
+                LsaUmTriggerCheckUsersThread();
             }
         }
 
@@ -770,6 +771,7 @@ LsaDmpModifyStateFlags(
             {
                 // Have to ignore dwError because this function returns void
                 LsaSrvFlushSystemCache();
+                LsaUmTriggerCheckUsersThread();
             }
         }
 
@@ -2217,6 +2219,8 @@ LsaDmpModifyDomainFlagsByRef(
     {
         // Have to ignore dwError because this function returns void
         LsaSrvFlushSystemCache();
+
+        LsaUmTriggerCheckUsersThread();
     }
 }
 

@@ -495,6 +495,17 @@ error:
     goto cleanup;
 }
 
+VOID
+LsaUmpTriggerCheckUsersThread(
+    IN LSA_UM_STATE_HANDLE Handle
+    )
+{
+    LsaUmpAcquireMutex(Handle->CheckUsersThread.pMutex);
+    Handle->CheckUsersThread.bTrigger = TRUE;
+    pthread_cond_signal(Handle->CheckUsersThread.pCondition);
+    LsaUmpReleaseMutex(Handle->CheckUsersThread.pMutex);
+}
+
 static
 PVOID
 LsaUmpThreadRoutine(
