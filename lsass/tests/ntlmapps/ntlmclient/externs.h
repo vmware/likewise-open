@@ -23,4 +23,6 @@
 #ifndef _NTLM_CLIENT_EXTERNS_
 #define _NTLM_CLIENT_EXTERNS_
 
+extern HANDLE ghServer;
+
 #endif //_NTLM_CLIENT_EXTERNS_

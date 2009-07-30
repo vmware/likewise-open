@@ -6,6 +6,7 @@ ntlm_client_CFLAGS =    \
     @LWMSG_INCLUDES@
 
 ntlm_client_SOURCES =   \
+    globals.c           \
     ntlmclient.c
 
 ntlm_client_LDADD =                             \
