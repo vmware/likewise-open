@@ -58,7 +58,7 @@ static LWMsgTypeSpec gLsaSecurityObjectVersionSpec[] =
     LWMSG_MEMBER_INT64(LSA_SECURITY_OBJECT_VERSION_INFO, qwDbId),
     LWMSG_MEMBER_INT64(LSA_SECURITY_OBJECT_VERSION_INFO, tLastUpdated),
     LWMSG_MEMBER_UINT32(LSA_SECURITY_OBJECT_VERSION_INFO, dwObjectSize),
-    LWMSG_MEMBER_UINT32(LSA_SECURITY_OBJECT_VERSION_INFO, dwWeight),
+    LWMSG_MEMBER_UINT32(LSA_SECURITY_OBJECT_VERSION_INFO, fWeight),
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END
 };
@@ -372,7 +372,7 @@ MemCacheOpen(
     BAIL_ON_LSA_ERROR(dwError);
     pConn->bBackupMutexCreated = TRUE;
 
-    pConn->dwBackupDelay = 5 * 60;
+    pConn->dwBackupDelay = BACKUP_DELAY;
 
     pConn->bNeedBackup = FALSE;
     dwError = pthread_cond_init(
@@ -1647,37 +1647,181 @@ MemCacheFindMembership(
     return NULL;
 }
 
+VOID
+MemCacheResetWeight(
+    IN PVOID pData,
+    IN PVOID pNow
+    )
+{
+    PLSA_SECURITY_OBJECT pObject = (PLSA_SECURITY_OBJECT)pData;
+    time_t age = *(time_t*)pNow - pObject->version.tLastUpdated;
+
+    if (age < 0)
+    {
+        age = 0;
+    }
+
+    pObject->version.fWeight = 1.0 / (age + LOGGED_IN_VS_NSEC);
+}
+
+VOID
+MemCacheMergeLists(
+    IN OUT PDLINKEDLIST pList1,
+    IN OUT PDLINKEDLIST pList2,
+    IN OUT PDLINKEDLIST pList2End
+    )
+{
+    PLSA_SECURITY_OBJECT pObject1 = NULL;
+    PLSA_SECURITY_OBJECT pObject2 = NULL;
+    PDLINKEDLIST pInsertAfter = pList1->pPrev;
+    PDLINKEDLIST pList1End = pList2;
+
+    while (pList1 != pList1End && pList2 != pList2End)
+    {
+        pObject1 = (PLSA_SECURITY_OBJECT)pList1->pItem;
+        pObject2 = (PLSA_SECURITY_OBJECT)pList2->pItem;
+
+        if (pObject1->version.fWeight < pObject2->version.fWeight)
+        {
+            pInsertAfter->pNext = pList1;
+            pList1->pPrev = pInsertAfter;
+
+            pInsertAfter = pList1;
+            pList1 = pList1->pNext;
+        }
+        else
+        {
+            pInsertAfter->pNext = pList2;
+            pList2->pPrev = pInsertAfter;
+
+            pInsertAfter = pList2;
+            pList2 = pList2->pNext;
+        }
+    }
+
+    if (pList1 != pList1End)
+    {
+        pInsertAfter->pNext = pList1;
+        pList1->pPrev = pInsertAfter;
+
+        while (pList1->pNext != pList1End)
+        {
+            pList1 = pList1->pNext;
+        }
+        pList1->pNext = pList2End;
+        if (pList2End != NULL)
+        {
+            pList2End->pPrev = pList1;
+        }
+    }
+    else
+    {
+        pInsertAfter->pNext = pList2;
+        pList2->pPrev = pInsertAfter;
+    }
+}
+
+// Returns the first item in the object list that is out of order, or NULL if
+// the entire list is ordered.
+PDLINKEDLIST
+MemCacheFindOutOfOrderNode(
+    IN PDLINKEDLIST pList
+    )
+{
+    PLSA_SECURITY_OBJECT pCurObject = NULL;
+    PLSA_SECURITY_OBJECT pNextObject = NULL;
+
+    while (pList->pNext != NULL)
+    {
+        pCurObject = (PLSA_SECURITY_OBJECT)pList->pItem;
+        pNextObject = (PLSA_SECURITY_OBJECT)pList->pNext->pItem;
+
+        if (pCurObject->version.fWeight > pNextObject->version.fWeight)
+        {
+            // The next object is out of order
+            break;
+        }
+
+        pList = pList->pNext;
+    }
+    return pList->pNext;
+}
+
+VOID
+MemCacheSortObjectList(
+    IN OUT PDLINKEDLIST* ppObjects
+    )
+{
+    DLINKEDLIST guardian = { 0 };
+    PDLINKEDLIST pObjects = *ppObjects;
+    PDLINKEDLIST pList1 = NULL;
+    PDLINKEDLIST pList2 = NULL;
+    PDLINKEDLIST pList2End = NULL;
+
+    if (pObjects)
+    {
+        // Add a fake first node to simplify the calculations. This node will be
+        // removed after the list is sorted.
+        pObjects->pPrev = &guardian;
+        guardian.pNext = pObjects;
+
+        do
+        {
+            pList2End = guardian.pNext;
+            while (pList2End != NULL)
+            {
+                // Find two consecutive lists which are ordered
+                pList1 = pList2End;
+                pList2 = MemCacheFindOutOfOrderNode(pList1);
+                if (pList2 != NULL)
+                {
+                    pList2End = MemCacheFindOutOfOrderNode(pList2);
+                    // Merge them together to make one ordered list
+                    MemCacheMergeLists(pList1, pList2, pList2End);
+                }
+                else
+                {
+                    break;
+                }
+            }
+        // while the entire list is not ordered
+        } while (pList1 != guardian.pNext);
+
+        // Double check the sort worked
+        pList1 = guardian.pNext;
+        while (pList1)
+        {
+            if (pList1->pNext)
+            {
+                PLSA_SECURITY_OBJECT pCurObject = NULL;
+                PLSA_SECURITY_OBJECT pNextObject = NULL;
+
+                pCurObject = (PLSA_SECURITY_OBJECT)pList1->pItem;
+                pNextObject = (PLSA_SECURITY_OBJECT)pList1->pNext->pItem;
+
+                LSA_ASSERT(pCurObject->version.fWeight <=
+                        pNextObject->version.fWeight);
+            }
+            pList1 = pList1->pNext;
+        }
+
+        *ppObjects = guardian.pNext;
+        guardian.pNext->pPrev = NULL;
+    }
+}
+
 DWORD
-MemCacheMaintainSizeCap(
+MemCacheRemoveOrphanedMemberships(
     IN PMEM_DB_CONNECTION pConn
     )
 {
     DWORD dwError = 0;
-    // Do not free
-    PMEM_GROUP_MEMBERSHIP pMembership = NULL;
-    // Do not free
-    PMEM_GROUP_MEMBERSHIP pCompleteness = NULL;
-    // Do not free
-    PDLINKEDLIST pListEntry = NULL;
-    // Do not free
-    LSA_HASH_ENTRY *pEntry = NULL;
     LSA_HASH_ITERATOR iterator = {0};
+    LSA_HASH_ENTRY *pEntry = NULL;
+    PMEM_GROUP_MEMBERSHIP pMembership = NULL;
     BOOLEAN bOrphaned = FALSE;
-
-    if (!pConn->sSizeCap)
-    {
-        goto cleanup;
-    }
-
-    if (pConn->sCacheSize <= pConn->sSizeCap)
-    {
-        goto cleanup;
-    }
-
-    LSA_LOG_WARNING("The current cache size (%d) is larger than the cap (%d) - trimming", pConn->sCacheSize, pConn->sSizeCap);
-
-    // Remove any orphaned memberships (memberships where the parent or child
-    // security object is not cached)
+    PDLINKEDLIST pListEntry = NULL;
+    PMEM_GROUP_MEMBERSHIP pCompleteness = NULL;
 
     // Only one table needs to be enumerated to see all memberships
     dwError = LsaHashGetIterator(
@@ -1790,8 +1934,176 @@ MemCacheMaintainSizeCap(
         }
     }
 
+cleanup:
+    return dwError;
+error:
+    goto cleanup;
+}
+
+VOID
+MemCacheAddPinnedObject(
+    IN OUT PLSA_SECURITY_OBJECT pPinnedObjects[PINNED_USER_COUNT],
+    IN PLSA_SECURITY_OBJECT pObject
+    )
+{
+    ssize_t ssIndex = 0;
+
+    for (ssIndex = PINNED_USER_COUNT - 1;
+        ssIndex >= 0;
+        ssIndex--)
+    {
+        if (!pPinnedObjects[ssIndex] ||
+                pObject->version.tLastUpdated >
+                pPinnedObjects[ssIndex]->version.tLastUpdated)
+        {
+            memmove(pPinnedObjects, pPinnedObjects + 1, ssIndex);
+            pPinnedObjects[ssIndex] = pObject;
+            return;
+        }
+    }
+}
+
+DWORD
+MemCacheSetPinnedObjectWeights(
+    IN PMEM_DB_CONNECTION pConn,
+    IN OUT PLSA_SECURITY_OBJECT pPinnedObjects[PINNED_USER_COUNT]
+    )
+{
+    DWORD dwError = 0;
+    size_t ssIndex = 0;
+    time_t age = 0;
+    PLSA_SECURITY_OBJECT pObject = NULL;
+    // Do not free
+    PLSA_LIST_LINKS pGuardian = NULL;
+    // Do not free
+    PLSA_LIST_LINKS pPos = NULL;
+    // Do not free
+    PMEM_GROUP_MEMBERSHIP pMembership = NULL;
+    // Do not free
+    PDLINKEDLIST pListEntry = NULL;
+
+    for (ssIndex = 0; ssIndex < PINNED_USER_COUNT; ssIndex++)
+    {
+        pObject = pPinnedObjects[ssIndex];
+        if (pObject)
+        {
+            LSA_LOG_VERBOSE("User object %s\\%s (sid %s) is pinned (cannot be evicted before unpinned objects)",
+                    pObject->pszNetbiosDomainName,
+                    pObject->pszSamAccountName,
+                    pObject->pszObjectSid);
+
+            pObject->version.fWeight = 1.0 / (age + LOGGED_IN_VS_NSEC) *
+                ((LOGGED_IN_VS_ZERO_SEC + LOGGED_IN_VS_NSEC)/
+                 LOGGED_IN_VS_NSEC);
+
+            // Increase the weight of all the groups the user is a member of
+            dwError = LsaHashGetValue(
+                            pConn->pChildSIDToMembershipList,
+                            pObject->pszObjectSid,
+                            (PVOID*)&pGuardian);
+            if (dwError == ENOENT)
+            {
+                dwError = 0;
+            }
+            BAIL_ON_LSA_ERROR(dwError);
+
+            if (pGuardian)
+            {
+                pPos = pGuardian->Next;
+            }
+            else
+            {
+                pPos = pGuardian;
+            }
+            while (pPos != pGuardian)
+            {
+                pMembership = CHILD_NODE_TO_MEMBERSHIP(pPos);
+
+                dwError = LsaHashGetValue(
+                                pConn->pSIDToSecurityObject,
+                                pMembership->membership.pszParentSid,
+                                (PVOID*)&pListEntry);
+                if (dwError == ENOENT)
+                {
+                    dwError = 0;
+                }
+                BAIL_ON_LSA_ERROR(dwError);
+
+                if (pListEntry)
+                {
+                    pObject = (PLSA_SECURITY_OBJECT)pListEntry->pItem;
+
+                    pObject->version.fWeight = 1.0 / (age + LOGGED_IN_VS_NSEC) *
+                        ((LOGGED_IN_VS_ZERO_SEC + LOGGED_IN_VS_NSEC)/
+                             LOGGED_IN_VS_NSEC);
+                }
+
+                pPos = pPos->Next;
+            }
+        }
+    }
+
+cleanup:
+    return dwError;
+error:
+    goto cleanup;
+}
+
+DWORD
+MemCacheMaintainSizeCap(
+    IN PMEM_DB_CONNECTION pConn
+    )
+{
+    DWORD dwError = 0;
+    // Do not free
+    PMEM_GROUP_MEMBERSHIP pMembership = NULL;
+    // Do not free
+    PDLINKEDLIST pListEntry = NULL;
+    // Do not free
+    LSA_HASH_ENTRY *pEntry = NULL;
+    LSA_HASH_ITERATOR iterator = {0};
+    time_t now = 0;
+    PLSA_SECURITY_OBJECT pObject = NULL;
+    time_t age = 0;
+    // Do not free
+    PLSA_LIST_LINKS pGuardian = NULL;
+    // Do not free
+    PLSA_LIST_LINKS pPos = NULL;
+    // Do not free
+    PSTR pszSid = NULL;
+    PLSA_SECURITY_OBJECT pPinnedObjects[PINNED_USER_COUNT] = { 0 };
+
+    dwError = LsaGetCurrentTimeSeconds(&now);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    // The connection already has a write lock
+
+    if (!pConn->sSizeCap)
+    {
+        goto cleanup;
+    }
+
+    if (pConn->sCacheSize <= pConn->sSizeCap)
+    {
+        goto cleanup;
+    }
+
+    LSA_LOG_WARNING("The current cache size (%d) is larger than the cap (%d) - evicting old objects", pConn->sCacheSize, pConn->sSizeCap);
+
+    // Remove any orphaned memberships (memberships where the parent or child
+    // security object is not cached)
+
+    dwError = MemCacheRemoveOrphanedMemberships(pConn);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    LsaDLinkedListForEach(
+        pConn->pObjects,
+        MemCacheResetWeight,
+        &now);
+
     // Remove any orphaned password verifiers (password verifiers where the
-    // corresponding user security object is not cached)
+    // corresponding user security object is not cached). Also increase the
+    // weight of security objects associated with users who have logged in.
 
     dwError = LsaHashGetIterator(
                     pConn->pSIDToPasswordVerifier,
@@ -1821,7 +2133,144 @@ MemCacheMaintainSizeCap(
             BAIL_ON_LSA_ERROR(dwError);
         }
         BAIL_ON_LSA_ERROR(dwError);
+
+        if (pListEntry != NULL)
+        {
+            pObject = (PLSA_SECURITY_OBJECT)pListEntry->pItem;
+
+            if (!pPinnedObjects[0] || pObject->version.tLastUpdated > pPinnedObjects[0]->version.tLastUpdated)
+            {
+                MemCacheAddPinnedObject(pPinnedObjects, pObject);
+            }
+
+            age = now - pObject->version.tLastUpdated;
+            if (age < 0)
+            {
+                age = 0;
+            }
+            pObject->version.fWeight = 1.0 / (age + LOGGED_IN_VS_NSEC) *
+                ((LOGGED_IN_VS_ZERO_SEC + LOGGED_IN_VS_NSEC)/ LOGGED_IN_VS_NSEC);
+
+            // Increase the weight of all the groups the user is a member of
+            dwError = LsaHashGetValue(
+                            pConn->pChildSIDToMembershipList,
+                            pFromHash->pszObjectSid,
+                            (PVOID*)&pGuardian);
+            if (dwError == ENOENT)
+            {
+                dwError = 0;
+            }
+            BAIL_ON_LSA_ERROR(dwError);
+
+            if (pGuardian)
+            {
+                pPos = pGuardian->Next;
+            }
+            else
+            {
+                pPos = pGuardian;
+            }
+            while (pPos != pGuardian)
+            {
+                pMembership = CHILD_NODE_TO_MEMBERSHIP(pPos);
+
+                dwError = LsaHashGetValue(
+                                pConn->pSIDToSecurityObject,
+                                pMembership->membership.pszParentSid,
+                                (PVOID*)&pListEntry);
+                if (dwError == ENOENT)
+                {
+                    dwError = 0;
+                }
+                BAIL_ON_LSA_ERROR(dwError);
+
+                if (pListEntry)
+                {
+                    pObject = (PLSA_SECURITY_OBJECT)pListEntry->pItem;
+
+                    age = now - pObject->version.tLastUpdated;
+                    if (age < 0)
+                    {
+                        age = 0;
+                    }
+                    pObject->version.fWeight = 1.0 / (age + LOGGED_IN_VS_NSEC) *
+                        ((LOGGED_IN_VS_ZERO_SEC + LOGGED_IN_VS_NSEC)/
+                             LOGGED_IN_VS_NSEC);
+                }
+
+                pPos = pPos->Next;
+            }
+        }
     }
+
+    dwError = MemCacheSetPinnedObjectWeights(
+                    pConn,
+                    pPinnedObjects);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    MemCacheSortObjectList(&pConn->pObjects);
+
+    while (pConn->sCacheSize > pConn->sSizeCap * 3/4)
+    {
+        pObject = (PLSA_SECURITY_OBJECT)pConn->pObjects->pItem;
+        pszSid = pObject->pszObjectSid;
+
+        if (pObject->type == AccountType_User)
+        {
+            LSA_LOG_VERBOSE("Evicting user %s\\%s (sid %s)",
+                    pObject->pszNetbiosDomainName,
+                    pObject->pszSamAccountName,
+                    pszSid);
+        }
+        else if (pObject->type == AccountType_Group)
+        {
+            LSA_LOG_VERBOSE("Evicting group %s\\%s (sid %s)",
+                    pObject->pszNetbiosDomainName,
+                    pObject->pszSamAccountName,
+                    pszSid);
+        }
+        else
+        {
+            LSA_LOG_VERBOSE("Evicting object with sid %s", pszSid);
+        }
+
+        dwError = LsaHashRemoveKey(
+                        pConn->pSIDToPasswordVerifier,
+                        pszSid);
+        if (dwError == ENOENT)
+        {
+            // The password verifier did not exist
+            dwError = 0;
+        }
+        BAIL_ON_LSA_ERROR(dwError);
+
+        // Remove all membership information for what this group contains (and
+        // remove the completeness entry in the children's member-of list)
+        MemCacheRemoveMembershipsBySid(
+            pConn,
+            pszSid,
+            TRUE,
+            TRUE);
+
+        // Remove all membership information for what groups this user is a
+        // member of (and remove the completeness entry in the parent group's
+        // member-of list)
+        MemCacheRemoveMembershipsBySid(
+            pConn,
+            pszSid,
+            FALSE,
+            TRUE);
+
+        dwError = MemCacheRemoveObjectByHashKey(
+                        pConn,
+                        pConn->pSIDToSecurityObject,
+                        pszSid);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    LSA_LOG_VERBOSE("The cache size reduced to (%d)", pConn->sCacheSize);
+
+    // The caller will notify the backup thread
 
 cleanup:
     return dwError;
@@ -2145,6 +2594,107 @@ error:
     goto cleanup;
 }
 
+VOID
+MemCacheRemoveMembershipsBySid(
+    IN PMEM_DB_CONNECTION pConn,
+    IN PCSTR pszSid,
+    IN BOOLEAN bIsParentSid,
+    IN BOOLEAN bRemoveCompleteness
+    )
+{
+    // Do not free
+    PLSA_LIST_LINKS pGuardian = NULL;
+    BOOLEAN bListNonempty = FALSE;
+    // Do not free
+    PLSA_HASH_TABLE pIndex = NULL;
+    // Do not free
+    PMEM_GROUP_MEMBERSHIP pMembership = NULL;
+    // Do not free
+    PMEM_GROUP_MEMBERSHIP pCompleteness = NULL;
+    DWORD dwError = 0;
+
+    if (bIsParentSid)
+    {
+        pIndex = pConn->pParentSIDToMembershipList;
+    }
+    else
+    {
+        pIndex = pConn->pChildSIDToMembershipList;
+    }
+
+    // Copy the existing pac and primary domain memberships to the temporary
+    // hash table
+    dwError = LsaHashGetValue(
+                    pIndex,
+                    pszSid,
+                    (PVOID*)&pGuardian);
+    if (dwError == ENOENT)
+    {
+        dwError = 0;
+    }
+    LSA_ASSERT(dwError == 0);
+
+    // Remove all of the existing memberships in the child hash and parent hash
+    if (pGuardian)
+    {
+        // Since the hash entry exists, the list must be non-empty
+        bListNonempty = TRUE;
+    }
+
+    while (bListNonempty)
+    {
+        LSA_ASSERT(!LsaListIsEmpty(pGuardian));
+        if (pGuardian->Next->Next == pGuardian)
+        {
+            // At this point, there is a guardian node plus one other
+            // entry. MemCacheRemoveMembership will remove the last
+            // entry and the guardian node in the next call. Since the
+            // entry hash entry will have been deleted, the loop can
+            // then exit. The pGuardian pointer will be invalid, so
+            // this condition has to be checked before the last
+            // membership is removed.
+            bListNonempty = FALSE;
+        }
+        if (bIsParentSid)
+        {
+            pMembership = PARENT_NODE_TO_MEMBERSHIP(pGuardian->Next);
+        }
+        else
+        {
+            pMembership = CHILD_NODE_TO_MEMBERSHIP(pGuardian->Next);
+        }
+        if (bRemoveCompleteness)
+        {
+            if (bIsParentSid)
+            {
+                pCompleteness = MemCacheFindMembership(
+                                    pConn,
+                                    NULL,
+                                    pMembership->membership.pszChildSid);
+            }
+            else
+            {
+                pCompleteness = MemCacheFindMembership(
+                                    pConn,
+                                    pMembership->membership.pszParentSid,
+                                    NULL);
+            }
+            if (pCompleteness && pCompleteness != pMembership)
+            {
+                dwError = MemCacheRemoveMembership(
+                                pConn,
+                                pCompleteness);
+                LSA_ASSERT(dwError == 0);
+            }
+
+        }
+        dwError = MemCacheRemoveMembership(
+                        pConn,
+                        pMembership);
+        LSA_ASSERT(dwError == 0);
+    }
+}
+
 DWORD
 MemCacheStoreGroupMembership(
     IN LSA_DB_HANDLE hDb,
@@ -2163,7 +2713,6 @@ MemCacheStoreGroupMembership(
     PLSA_LIST_LINKS pGuardian = NULL;
     // Do not free
     PLSA_LIST_LINKS pPos = NULL;
-    BOOLEAN bListNonempty = FALSE;
     LSA_HASH_ITERATOR iterator = {0};
     size_t sIndex = 0;
     BOOLEAN bInLock = FALSE;
@@ -2281,31 +2830,11 @@ MemCacheStoreGroupMembership(
     }
 
     // Remove all of the existing memberships in the child hash and parent hash
-    if (pGuardian)
-    {
-        // Since the hash entry exists, the list must be non-empty
-        bListNonempty = TRUE;
-    }
-
-    while (bListNonempty)
-    {
-        LSA_ASSERT(!LsaListIsEmpty(pGuardian));
-        if (pGuardian->Next->Next == pGuardian)
-        {
-            // At this point, there is a guardian node plus one other
-            // entry. MemCacheRemoveMembership will remove the last
-            // entry and the guardian node in the next call. Since the
-            // entry hash entry will have been deleted, the loop can
-            // then exit. The pGuardian pointer will be invalid, so
-            // this condition has to be checked before the last
-            // membership is removed.
-            bListNonempty = FALSE;
-        }
-        dwError = MemCacheRemoveMembership(
-                        pConn,
-                        PARENT_NODE_TO_MEMBERSHIP(pGuardian->Next));
-        LSA_ASSERT(dwError == 0);
-    }
+    MemCacheRemoveMembershipsBySid(
+        pConn,
+        pszParentSid,
+        TRUE,
+        FALSE);
 
     // Copy the combined list into the parent and child hashes
     dwError = LsaHashGetIterator(
@@ -2361,7 +2890,6 @@ MemCacheStoreGroupsForUser(
     PLSA_LIST_LINKS pGuardian = NULL;
     // Do not free
     PLSA_LIST_LINKS pPos = NULL;
-    BOOLEAN bListNonempty = FALSE;
     LSA_HASH_ITERATOR iterator = {0};
     size_t sIndex = 0;
     BOOLEAN bInLock = FALSE;
@@ -2476,31 +3004,11 @@ MemCacheStoreGroupsForUser(
     }
 
     // Remove all of the existing memberships in the child hash and parent hash
-    if (pGuardian)
-    {
-        // Since the hash entry exists, the list must be non-empty
-        bListNonempty = TRUE;
-    }
-
-    while (bListNonempty)
-    {
-        LSA_ASSERT(!LsaListIsEmpty(pGuardian));
-        if (pGuardian->Next->Next == pGuardian)
-        {
-            // At this point, there is a guardian node plus one other
-            // entry. MemCacheRemoveMembership will remove the last
-            // entry and the guardian node in the next call. Since the
-            // entry hash entry will have been deleted, the loop can
-            // then exit. The pGuardian pointer will be invalid, so
-            // this condition has to be checked before the last
-            // membership is removed.
-            bListNonempty = FALSE;
-        }
-        dwError = MemCacheRemoveMembership(
-                        pConn,
-                        CHILD_NODE_TO_MEMBERSHIP(pGuardian->Next));
-        LSA_ASSERT(dwError == 0);
-    }
+    MemCacheRemoveMembershipsBySid(
+        pConn,
+        pszChildSid,
+        FALSE,
+        FALSE);
 
     // Copy the combined list into the parent and child hashes
     dwError = LsaHashGetIterator(

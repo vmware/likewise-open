@@ -100,6 +100,20 @@ typedef struct _MEM_GROUP_MEMBERSHIP
                             HEAP_HEADER_SIZE + \
                             2 * sizeof(LSA_HASH_ENTRY *))
 
+// A user who has logged in must be this old before it can be evicted by a 0
+// second object
+#define LOGGED_IN_VS_ZERO_SEC (30 * 24 * 60 * 60)
+
+// A user who has logged in must be LOGGED_IN_VS_ZERO*2 seconds old before it can be evicted by a LOGGED_IN_VS_NSEC old object.
+#define LOGGED_IN_VS_NSEC 5
+
+// This many logged in users cannot be evicted by non-logged in users, no
+// matter how old the entries are
+#define PINNED_USER_COUNT 10
+
+#define BACKUP_DELAY (5 * 60)
+
+
 typedef struct _MEM_DB_CONNECTION
 {
     BOOLEAN bLockCreated;
@@ -281,6 +295,45 @@ MemCacheFindMembership(
     IN PCSTR pszChildSid
     );
 
+VOID
+MemCacheResetWeight(
+    IN PVOID pData,
+    IN PVOID pNow
+    );
+
+VOID
+MemCacheMergeLists(
+    IN OUT PDLINKEDLIST pList1,
+    IN OUT PDLINKEDLIST pList2,
+    IN OUT PDLINKEDLIST pList2End
+    );
+
+PDLINKEDLIST
+MemCacheFindOutOfOrderNode(
+    IN PDLINKEDLIST pList
+    );
+
+VOID
+MemCacheSortObjectList(
+    IN OUT PDLINKEDLIST* ppObjects
+    );
+
+DWORD
+MemCacheRemoveOrphanedMemberships(
+    IN PMEM_DB_CONNECTION pConn
+    );
+
+VOID
+MemCacheAddPinnedObject(
+    IN OUT PLSA_SECURITY_OBJECT pPinnedObjects[PINNED_USER_COUNT],
+    IN PLSA_SECURITY_OBJECT pObject
+    );
+
+DWORD
+MemCacheMaintainSizeCap(
+    IN PMEM_DB_CONNECTION pConn
+    );
+
 DWORD
 MemCacheMaintainSizeCap(
     IN PMEM_DB_CONNECTION pConn
@@ -312,6 +365,14 @@ DWORD
 MemCacheAddMembership(
     IN PMEM_DB_CONNECTION pConn,
     IN PMEM_GROUP_MEMBERSHIP pMembership
+    );
+
+VOID
+MemCacheRemoveMembershipsBySid(
+    IN PMEM_DB_CONNECTION pConn,
+    IN PCSTR pszSid,
+    IN BOOLEAN bIsParentSid,
+    IN BOOLEAN bRemoveCompleteness
     );
 
 DWORD
