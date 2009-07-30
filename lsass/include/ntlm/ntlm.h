@@ -53,11 +53,16 @@
 #include <lw/types.h>
 #include <lw/attrs.h>
 #include <lwmsg/lwmsg.h>
+
 #include <lsasystem.h>
+#include <lsa/lsa.h>
+#include <lsasystem.h>
+#include <lsadef.h>
+#include <lwsecurityidentifier.h>
+#include <lsautils.h>
 #include <lwdef.h>
 #include <lwerror.h>
 #include <lwmem.h>
-#include <lwsecurityidentifier.h>
 #include <lsasrvcred.h>
 
 //******************************************************************************
@@ -184,10 +189,10 @@ typedef struct _LSA_CONTEXT *LSA_CONTEXT_HANDLE, **PLSA_CONTEXT_HANDLE;
 
 #define SECPKG_ATTR_SIZES           0
 
-#define SECBUFFER_DATA    0
-#define SECBUFFER_PADDING 1
-#define SECBUFFER_TOKEN   2
-#define SECBUFFER_STREAM  3
+#define SECBUFFER_TOKEN   0
+#define SECBUFFER_DATA    1
+#define SECBUFFER_PADDING 2
+#define SECBUFFER_STREAM  10
 
 #define LW_STRING_TYPE_UNICODE  0
 #define LW_STRING_TYPE_ANSI     1
@@ -221,14 +226,13 @@ typedef struct _LSA_CONTEXT *LSA_CONTEXT_HANDLE, **PLSA_CONTEXT_HANDLE;
 #define NTLM_FLAG_56                    0x80000000  /* 56-bit encryption */
 
 #define NTLM_FLAG_NEGOTIATE_DEFAULT ( \
-    NTLM_FLAG_UNICODE         | \
-    NTLM_FLAG_OEM             | \
-    NTLM_FLAG_REQUEST_TARGET  | \
-    NTLM_FLAG_NTLM            | \
-    NTLM_FLAG_WORKSTATION     | \
-    NTLM_FLAG_NTLM2           | \
-    NTLM_FLAG_128             | \
-    NTLM_FLAG_56              )
+    NTLM_FLAG_UNICODE               | \
+    NTLM_FLAG_OEM                   | \
+    NTLM_FLAG_REQUEST_TARGET        | \
+    NTLM_FLAG_NTLM                  | \
+    NTLM_FLAG_DOMAIN                | \
+    NTLM_FLAG_128                   | \
+    NTLM_FLAG_56                    )
 
 #define NTLM_FLAG_SRV_SUPPORTS ( \
     NTLM_FLAG_UNICODE          | \
@@ -259,6 +263,7 @@ typedef struct _LSA_CONTEXT *LSA_CONTEXT_HANDLE, **PLSA_CONTEXT_HANDLE;
 
 DWORD
 NtlmClientAcceptSecurityContext(
+    IN HANDLE hServer,
     IN PLSA_CRED_HANDLE phCredential,
     IN OUT PLSA_CONTEXT_HANDLE phContext,
     IN PSecBufferDesc pInput,
@@ -272,6 +277,7 @@ NtlmClientAcceptSecurityContext(
 
 DWORD
 NtlmClientAcquireCredentialsHandle(
+    IN HANDLE hServer,
     IN SEC_CHAR *pszPrincipal,
     IN SEC_CHAR *pszPackage,
     IN DWORD fCredentialUse,
@@ -283,6 +289,7 @@ NtlmClientAcquireCredentialsHandle(
 
 DWORD
 NtlmClientDecryptMessage(
+    IN HANDLE hServer,
     IN PLSA_CONTEXT_HANDLE phContext,
     IN OUT PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo,
@@ -291,11 +298,13 @@ NtlmClientDecryptMessage(
 
 DWORD
 NtlmClientDeleteSecurityContext(
+    IN HANDLE hServer,
     IN PLSA_CONTEXT_HANDLE phContext
     );
 
 DWORD
 NtlmClientEncryptMessage(
+    IN HANDLE hServer,
     IN PLSA_CONTEXT_HANDLE phContext,
     IN BOOL bEncrypt,
     IN OUT PSecBufferDesc pMessage,
@@ -304,6 +313,7 @@ NtlmClientEncryptMessage(
 
 DWORD
 NtlmClientExportSecurityContext(
+    IN HANDLE hServer,
     IN PLSA_CONTEXT_HANDLE phContext,
     IN DWORD fFlags,
     OUT PSecBuffer pPackedContext,
@@ -312,11 +322,13 @@ NtlmClientExportSecurityContext(
 
 DWORD
 NtlmClientFreeCredentialsHandle(
+    IN HANDLE hServer,
     IN PLSA_CRED_HANDLE phCredential
     );
 
 DWORD
 NtlmClientImportSecurityContext(
+    IN HANDLE hServer,
     IN PSECURITY_STRING *pszPackage,
     IN PSecBuffer pPackedContext,
     IN OPTIONAL HANDLE pToken,
@@ -325,6 +337,7 @@ NtlmClientImportSecurityContext(
 
 DWORD
 NtlmClientInitializeSecurityContext(
+    IN HANDLE hServer,
     IN OPTIONAL PLSA_CRED_HANDLE phCredential,
     IN OPTIONAL PLSA_CONTEXT_HANDLE phContext,
     IN OPTIONAL SEC_CHAR * pszTargetName,
@@ -341,6 +354,7 @@ NtlmClientInitializeSecurityContext(
 
 DWORD
 NtlmClientMakeSignature(
+    IN HANDLE hServer,
     IN PLSA_CONTEXT_HANDLE phContext,
     IN BOOL bEncrypt,
     IN OUT PSecBufferDesc pMessage,
@@ -349,6 +363,7 @@ NtlmClientMakeSignature(
 
 DWORD
 NtlmClientQueryCredentialsAttributes(
+    IN HANDLE hServer,
     IN PLSA_CRED_HANDLE phCredential,
     IN DWORD ulAttribute,
     OUT PVOID pBuffer
@@ -356,6 +371,7 @@ NtlmClientQueryCredentialsAttributes(
 
 DWORD
 NtlmClientQueryContextAttributes(
+    IN HANDLE hServer,
     IN PLSA_CONTEXT_HANDLE phContext,
     IN DWORD ulAttribute,
     OUT PVOID pBuffer
@@ -363,11 +379,22 @@ NtlmClientQueryContextAttributes(
 
 DWORD
 NtlmClientVerifySignature(
+    IN HANDLE hServer,
     IN PLSA_CONTEXT_HANDLE phContext,
     IN PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo,
     OUT PBOOL pbVerified,
     OUT PBOOL pbEncryted
+    );
+
+DWORD
+NtlmOpenServer(
+    PHANDLE phConnection
+    );
+
+DWORD
+NtlmCloseServer(
+    HANDLE hConnection
     );
 
 /*
