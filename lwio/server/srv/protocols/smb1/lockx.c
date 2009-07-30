@@ -67,12 +67,6 @@ SrvBuildLockRequest(
 
 static
 VOID
-SrvReleaseLockRequest(
-    PSRV_SMB_LOCK_REQUEST pLockRequest
-    );
-
-static
-VOID
 SrvFreeLockRequest(
     PSRV_SMB_LOCK_REQUEST pLockRequest
     );
@@ -398,7 +392,6 @@ error:
     goto cleanup;
 }
 
-static
 VOID
 SrvReleaseLockRequest(
     PSRV_SMB_LOCK_REQUEST pLockRequest

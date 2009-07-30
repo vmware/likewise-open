@@ -147,13 +147,6 @@ typedef struct _SRV_SMB_CREATE_REQUEST
     ULONG                   ulCreateDisposition;
     ULONG                   ulCreateOptions;
 
-    ULONG                   ulTimeout;
-
-    BOOLEAN                 bExpired;
-    BOOLEAN                 bResponseSent;
-
-    PSRV_TIMER_REQUEST      pTimerRequest;
-
     ULONG                   ulResponseSequence;
 
 } SRV_SMB_CREATE_REQUEST, *PSRV_SMB_CREATE_REQUEST;
@@ -219,6 +212,20 @@ typedef struct _SRV_SMB_WRITE_REQUEST
     ULONG                   ulResponseSequence;
 
 } SRV_SMB_WRITE_REQUEST, *PSRV_SMB_WRITE_REQUEST;
+
+typedef struct _SRV_ASYNC_CONTEXT_SMB_V1
+{
+    USHORT usCommand;
+
+    union
+    {
+        PSRV_SMB_LOCK_REQUEST   pLockRequest;
+        PSRV_SMB_CREATE_REQUEST pCreateRequest;
+        PSRV_SMB_READ_REQUEST   pReadRequest;
+        PSRV_SMB_WRITE_REQUEST  pWriteRequest;
+    } data;
+
+} SRV_ASYNC_CONTEXT_SMB_V1, *PSRV_ASYNC_CONTEXT_SMB_V1;
 
 typedef struct _SRV_RUNTIME_GLOBALS_SMB_V1
 {

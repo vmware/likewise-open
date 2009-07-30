@@ -249,7 +249,7 @@ SrvProtocolAsyncContextFree(
     PVOID pAsyncContext
     )
 {
-    // TODO
+    SrvProtocolFreeWorkItem((PSRV_PROTOCOL_WORK_ITEM) pAsyncContext);
 }
 
 NTSTATUS

@@ -1,6 +1,7 @@
 noinst_LTLIBRARIES = libsrv.protocols.smb1.la
 
 libsrv_protocols_smb1_la_SOURCES = \
+    async.c          \
     checkdir.c       \
     close.c          \
     creatdir.c       \

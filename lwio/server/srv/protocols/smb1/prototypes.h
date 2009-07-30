@@ -50,6 +50,16 @@
 #ifndef __PROTOTYPES_H__
 #define __PROTOTYPES_H__
 
+VOID
+SrvExecuteAsyncRequest_SMB_V1(
+    PVOID pData
+    );
+
+VOID
+SrvReleaseAsyncRequest_SMB_V1(
+    PVOID pData
+    );
+
 NTSTATUS
 SrvProcessCheckDirectory(
     IN  PLWIO_SRV_CONNECTION pConnection,
@@ -76,6 +86,16 @@ SrvProcessNTCreateAndX(
     IN  PLWIO_SRV_CONNECTION pConnection,
     IN  PSMB_PACKET          pSmbRequest,
     OUT PSMB_PACKET*         ppSmbResponse
+    );
+
+VOID
+SrvExecuteCreateRequest(
+    PSRV_SMB_CREATE_REQUEST pCreateRequest
+    );
+
+VOID
+SrvReleaseCreateRequest(
+    PSRV_SMB_CREATE_REQUEST pCreateRequest
     );
 
 NTSTATUS
@@ -142,6 +162,11 @@ SrvProcessLockAndX(
     IN  PLWIO_SRV_CONNECTION pConnection,
     IN  PSMB_PACKET          pSmbRequest,
     OUT PSMB_PACKET*         ppSmbResponse
+    );
+
+VOID
+SrvReleaseLockRequest(
+    PSRV_SMB_LOCK_REQUEST pLockRequest
     );
 
 NTSTATUS
