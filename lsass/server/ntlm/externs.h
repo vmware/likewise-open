@@ -49,11 +49,7 @@
 extern pthread_rwlock_t gpNtlmContextList_rwlock;
 extern PLSA_CONTEXT gpNtlmContextList;
 
-#if 0
-extern pthread_rwlock_t gpNtlmCredsList_rwlock;
-extern PNTLM_CREDENTIALS gpNtlmCredsList;
-#endif
-
+extern WIN_VERSION_INFO gW2KSpoof;
 extern WIN_VERSION_INFO gXpSpoof;
 
 extern LWMsgDispatchSpec gNtlmMessageHandlers[];

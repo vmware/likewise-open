@@ -89,7 +89,7 @@ NtlmServerAcceptSecurityContext(
 
         // In this case we need to build up a temp context for the response
         // message sent in
-        dwError = NtlmInitContext(&pNtlmCtxtIn);
+        dwError = NtlmCreateContext(&pNtlmCtxtIn);
         BAIL_ON_NTLM_ERROR(dwError);
 
         pNtlmCtxtIn->NtlmState = NtlmStateResponse;
@@ -147,6 +147,10 @@ error:
     {
         NtlmReleaseContext(pNtlmCtxtChlng);
     }
+    if(pNtlmCtxtIn)
+    {
+        NtlmReleaseContext(pNtlmCtxtIn);
+    }
     goto cleanup;
 }
 
@@ -164,7 +168,7 @@ NtlmCreateChallengeContext(
         BAIL_ON_NTLM_ERROR(dwError);
     }
 
-    dwError = NtlmInitContext(ppNtlmContext);
+    dwError = NtlmCreateContext(ppNtlmContext);
 
     BAIL_ON_NTLM_ERROR(dwError);
 
