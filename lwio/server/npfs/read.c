@@ -69,7 +69,8 @@ NpfsRead(
 
 error:
 
-    if(pIrpContext) {
+    if (pIrpContext)
+    {
         NpfsFreeIrpContext(pIrpContext);
     }
 
@@ -86,24 +87,16 @@ NpfsCommonRead(
     NTSTATUS ntStatus = 0;
     PNPFS_CCB pCCB = NULL;
 
-    ntStatus = NpfsGetCCB(
-                    pIrpContext->pIrp->FileHandle,
-                    &pCCB
-                    );
+    ntStatus = NpfsGetCCB(pIrpContext->pIrp->FileHandle, &pCCB);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = NpfsReadFile(
-                    pCCB,
-                    pIrpContext
-                    );
+    ntStatus = NpfsReadFile(pCCB, pIrpContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
 
 error:
-    if (pCCB) {
-        NpfsReleaseCCB(pCCB);
-    }
-    return(ntStatus);
+
+    return ntStatus;
 }
 
 
@@ -116,27 +109,22 @@ NpfsReadFile(
 {
     NTSTATUS ntStatus = 0;
 
-    switch(pCCB->CcbType) {
+    switch(pCCB->CcbType)
+    {
+    case NPFS_CCB_SERVER:
+        ntStatus = NpfsServerReadFile(pCCB, pIrpContext);
+        BAIL_ON_NT_STATUS(ntStatus);
+        break;
 
-        case NPFS_CCB_SERVER:
-            ntStatus = NpfsServerReadFile(
-                            pCCB,
-                            pIrpContext
-                            );
-            BAIL_ON_NT_STATUS(ntStatus);
-            break;
-
-        case NPFS_CCB_CLIENT:
-            ntStatus = NpfsClientReadFile(
-                            pCCB,
-                            pIrpContext
-                            );
-            BAIL_ON_NT_STATUS(ntStatus);
-            break;
+    case NPFS_CCB_CLIENT:
+        ntStatus = NpfsClientReadFile(pCCB, pIrpContext);
+        BAIL_ON_NT_STATUS(ntStatus);
+        break;
     }
 
 error:
-    return(ntStatus);
+
+    return ntStatus;
 }
 
 
@@ -148,8 +136,6 @@ NpfsServerReadFile(
 {
     NTSTATUS ntStatus = 0;
     PNPFS_PIPE pPipe = NULL;
-
-    NpfsAddRefCCB(pSCB);
 
     pPipe = pSCB->pPipe;
     ENTER_MUTEX(&pPipe->PipeMutex);
@@ -195,9 +181,7 @@ error:
     pIrpContext->pIrp->IoStatusBlock.Status = ntStatus;
     LEAVE_MUTEX(&pPipe->PipeMutex);
 
-    NpfsReleaseCCB(pSCB);
-
-    return(ntStatus);
+    return ntStatus;
 }
 
 NTSTATUS
@@ -240,7 +224,8 @@ NpfsServerReadFile_Connected(
 error:
 
     pIrpContext->pIrp->IoStatusBlock.Status = ntStatus;
-    return(ntStatus);
+
+    return ntStatus;
 }
 
 NTSTATUS
@@ -251,8 +236,6 @@ NpfsClientReadFile(
 {
     NTSTATUS ntStatus = 0;
     PNPFS_PIPE pPipe = NULL;
-
-    NpfsAddRefCCB(pCCB);
 
     pPipe = pCCB->pPipe;
     ENTER_MUTEX(&pPipe->PipeMutex);
@@ -292,13 +275,12 @@ NpfsClientReadFile(
     }
 
 error:
+
     pIrpContext->pIrp->IoStatusBlock.Status = ntStatus;
 
     LEAVE_MUTEX(&pPipe->PipeMutex);
 
-    NpfsReleaseCCB(pCCB);
-
-    return(ntStatus);
+    return ntStatus;
 }
 
 
@@ -341,5 +323,6 @@ NpfsClientReadFile_Connected(
 error:
 
     pIrpContext->pIrp->IoStatusBlock.Status = ntStatus;
-    return(ntStatus);
+
+    return ntStatus;
 }

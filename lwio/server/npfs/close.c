@@ -88,21 +88,13 @@ NpfsCommonClose(
     NTSTATUS ntStatus = 0;
     PNPFS_CCB pCCB = NULL;
 
-    ntStatus = NpfsGetCCB(
-                    pIrpContext->pIrp->FileHandle,
-                    &pCCB
-                    );
+    ntStatus = NpfsGetCCB(pIrpContext->pIrp->FileHandle, &pCCB);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = NpfsCloseHandle(
-                        pCCB
-                        );
+    ntStatus = NpfsCloseHandle(pCCB);
     BAIL_ON_NT_STATUS(ntStatus);
 
 error:
-    if (pCCB) {
-        NpfsReleaseCCB(pCCB);
-    }
 
     return(ntStatus);
 }
@@ -114,31 +106,22 @@ NpfsCloseHandle(
     PNPFS_CCB pCCB
     )
 {
-
-    NpfsAddRefCCB(pCCB);
-
     NTSTATUS ntStatus = 0;
 
     switch (pCCB->CcbType) {
 
     case NPFS_CCB_SERVER:
-        ntStatus = NpfsServerCloseHandle(
-            pCCB
-            );
+        ntStatus = NpfsServerCloseHandle(pCCB);
         BAIL_ON_NT_STATUS(ntStatus);
         break;
 
     case NPFS_CCB_CLIENT:
-        ntStatus = NpfsClientCloseHandle(
-            pCCB
-            );
+        ntStatus = NpfsClientCloseHandle(pCCB);
         BAIL_ON_NT_STATUS(ntStatus);
         break;
     }
 
 error:
-
-    NpfsReleaseCCB(pCCB);
 
     return(ntStatus);
 }

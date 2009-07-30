@@ -58,10 +58,7 @@ NpfsPeekNamedPipe(
     NTSTATUS ntStatus = 0;
     PNPFS_IRP_CONTEXT pIrpContext = NULL;
 
-    ntStatus = NpfsAllocateIrpContext(
-                        pIrp,
-                        &pIrpContext
-                        );
+    ntStatus = NpfsAllocateIrpContext(pIrp, &pIrpContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = NpfsCommonPeekNamedPipe(pIrpContext, pIrp);
@@ -83,18 +80,13 @@ NpfsCommonPeekNamedPipe(
     PNPFS_CCB pCCB = NULL;
 
     pCCB = (PNPFS_CCB)IoFileGetContext(pIrpContext->pIrp->FileHandle);
-    NpfsAddRefCCB(pCCB);
 
-    ntStatus = NpfsPeekNamedPipeFile(
-                    pCCB,
-                    pIrpContext
-                    );
+    ntStatus = NpfsPeekNamedPipeFile(pCCB, pIrpContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
-
 error:
-    NpfsReleaseCCB(pCCB);
-    return(ntStatus);
+
+    return ntStatus;
 }
 
 
@@ -108,22 +100,15 @@ NpfsPeekNamedPipeFile(
     NTSTATUS ntStatus = 0;
 
     switch(pCCB->CcbType) {
+    case NPFS_CCB_SERVER:
+        ntStatus = NpfsServerPeekNamedPipeFile(pCCB, pIrpContext);
+        BAIL_ON_NT_STATUS(ntStatus);
+        break;
 
-        case NPFS_CCB_SERVER:
-            ntStatus = NpfsServerPeekNamedPipeFile(
-                            pCCB,
-                            pIrpContext
-                            );
-            BAIL_ON_NT_STATUS(ntStatus);
-            break;
-
-        case NPFS_CCB_CLIENT:
-            ntStatus = NpfsClientPeekNamedPipeFile(
-                            pCCB,
-                            pIrpContext
-                            );
-            BAIL_ON_NT_STATUS(ntStatus);
-            break;
+    case NPFS_CCB_CLIENT:
+        ntStatus = NpfsClientPeekNamedPipeFile(pCCB, pIrpContext);
+        BAIL_ON_NT_STATUS(ntStatus);
+        break;
     }
 
 error:
@@ -140,7 +125,6 @@ NpfsServerPeekNamedPipeFile(
     NTSTATUS ntStatus = 0;
     PNPFS_PIPE pPipe = NULL;
 
-    NpfsAddRefCCB(pSCB);
     pPipe = pSCB->pPipe;
     ENTER_MUTEX(&pPipe->PipeMutex);
 
@@ -165,11 +149,11 @@ NpfsServerPeekNamedPipeFile(
     }
 
 error:
+
     pIrpContext->pIrp->IoStatusBlock.Status = ntStatus;
     LEAVE_MUTEX(&pPipe->PipeMutex);
-    NpfsReleaseCCB(pSCB);
 
-    return(ntStatus);
+    return ntStatus;
 }
 
 NTSTATUS
@@ -199,7 +183,8 @@ NpfsServerPeekNamedPipeFile_Connected(
 error:
 
     pIrpContext->pIrp->IoStatusBlock.Status = ntStatus;
-    return(ntStatus);
+
+    return ntStatus;
 }
 
 NTSTATUS
@@ -211,7 +196,6 @@ NpfsClientPeekNamedPipeFile(
     NTSTATUS ntStatus = 0;
     PNPFS_PIPE pPipe = NULL;
 
-    NpfsAddRefCCB(pCCB);
     pPipe = pCCB->pPipe;
     ENTER_MUTEX(&pPipe->PipeMutex);
 
@@ -248,7 +232,6 @@ error:
     pIrpContext->pIrp->IoStatusBlock.Status = ntStatus;
 
     LEAVE_MUTEX(&pPipe->PipeMutex);
-    NpfsReleaseCCB(pCCB);
 
     return(ntStatus);
 }

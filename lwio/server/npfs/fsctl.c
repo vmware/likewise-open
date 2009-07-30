@@ -154,10 +154,7 @@ NpfsCommonGetSessionKey(
     BOOL bReleasePipeLock = FALSE;
     ULONG ulSessionKeyLength = 0;
 
-    ntStatus = NpfsGetCCB(
-        pIrpContext->pIrp->FileHandle,
-        &pCCB
-        );
+    ntStatus = NpfsGetCCB(pIrpContext->pIrp->FileHandle, &pCCB);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pPipe = pCCB->pPipe;
@@ -195,11 +192,6 @@ cleanup:
         LEAVE_MUTEX(&pPipe->PipeMutex);
     }
 
-    if (pCCB)
-    {
-        NpfsReleaseCCB(pCCB);
-    }
-
     pIrp->IoStatusBlock.Status = ntStatus;
 
     return ntStatus;
@@ -224,10 +216,7 @@ NpfsCommonGetPeerPrincipal(
     BOOL bReleasePipeLock = FALSE;
     ULONG ulPrincipalLength = 0;
 
-    ntStatus = NpfsGetCCB(
-        pIrpContext->pIrp->FileHandle,
-        &pCCB
-        );
+    ntStatus = NpfsGetCCB(pIrpContext->pIrp->FileHandle, &pCCB);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pPipe = pCCB->pPipe;
@@ -264,11 +253,6 @@ cleanup:
         LEAVE_MUTEX(&pPipe->PipeMutex);
     }
 
-    if (pCCB)
-    {
-        NpfsReleaseCCB(pCCB);
-    }
-
     pIrp->IoStatusBlock.Status = ntStatus;
 
     return ntStatus;
@@ -293,10 +277,7 @@ NpfsCommonGetPeerAddress(
     BOOL bReleasePipeLock = FALSE;
     ULONG ulAddrLength = 0;
 
-    ntStatus = NpfsGetCCB(
-        pIrpContext->pIrp->FileHandle,
-        &pCCB
-        );
+    ntStatus = NpfsGetCCB(pIrpContext->pIrp->FileHandle, &pCCB);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pPipe = pCCB->pPipe;
@@ -331,11 +312,6 @@ cleanup:
     if (bReleasePipeLock)
     {
         LEAVE_MUTEX(&pPipe->PipeMutex);
-    }
-
-    if (pCCB)
-    {
-        NpfsReleaseCCB(pCCB);
     }
 
     pIrp->IoStatusBlock.Status = ntStatus;

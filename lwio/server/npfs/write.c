@@ -58,19 +58,16 @@ NpfsWrite(
     NTSTATUS ntStatus = 0;
     PNPFS_IRP_CONTEXT pIrpContext = NULL;
 
-    ntStatus = NpfsAllocateIrpContext(
-                        pIrp,
-                        &pIrpContext
-                        );
+    ntStatus = NpfsAllocateIrpContext(pIrp, &pIrpContext);
     BAIL_ON_NT_STATUS(ntStatus);
-
 
     ntStatus = NpfsCommonWrite(pIrpContext, pIrp);
     BAIL_ON_NT_STATUS(ntStatus);
 
 error:
 
-    if(pIrpContext) {
+    if (pIrpContext)
+    {
         NpfsFreeIrpContext(pIrpContext);
     }
 
@@ -88,24 +85,15 @@ NpfsCommonWrite(
     NTSTATUS ntStatus = 0;
     PNPFS_CCB pCCB = NULL;
 
-    ntStatus = NpfsGetCCB(
-                    pIrpContext->pIrp->FileHandle,
-                    &pCCB
-                    );
+    ntStatus = NpfsGetCCB(pIrpContext->pIrp->FileHandle, &pCCB);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = NpfsWriteFile(
-                    pCCB,
-                    pIrpContext
-                    );
+    ntStatus = NpfsWriteFile(pCCB, pIrpContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
 
 error:
 
-    if (pCCB) {
-        NpfsReleaseCCB(pCCB);
-    }
     return(ntStatus);
 }
 
@@ -122,25 +110,19 @@ NpfsWriteFile(
     switch(pCCB->CcbType) {
 
         case NPFS_CCB_SERVER:
-            ntStatus = NpfsServerWriteFile(
-                            pCCB,
-                            pIrpContext
-                            );
+            ntStatus = NpfsServerWriteFile(pCCB, pIrpContext);
             BAIL_ON_NT_STATUS(ntStatus);
             break;
 
         case NPFS_CCB_CLIENT:
-            ntStatus = NpfsClientWriteFile(
-                            pCCB,
-                            pIrpContext
-                            );
+            ntStatus = NpfsClientWriteFile(pCCB, pIrpContext);
             BAIL_ON_NT_STATUS(ntStatus);
             break;
     }
 
 error:
 
-    return(ntStatus);
+    return ntStatus;
 }
 
 
@@ -154,18 +136,13 @@ NpfsServerWriteFile(
     NTSTATUS ntStatus = 0;
     PNPFS_PIPE pPipe = NULL;
 
-    NpfsAddRefCCB(pSCB);
-
     pPipe = pSCB->pPipe;
     ENTER_MUTEX(&pPipe->PipeMutex);
 
     switch(pPipe->PipeServerState)
     {
     case PIPE_SERVER_CONNECTED:
-        ntStatus = NpfsServerWriteFile_Connected(
-            pSCB,
-            pIrpContext
-            );
+        ntStatus = NpfsServerWriteFile_Connected(pSCB, pIrpContext);
         pthread_cond_signal(&pPipe->PipeCondition);
         BAIL_ON_NT_STATUS(ntStatus);
         break;
@@ -179,12 +156,11 @@ NpfsServerWriteFile(
     }
 
 error:
+
     pIrpContext->pIrp->IoStatusBlock.Status = ntStatus;
     LEAVE_MUTEX(&pPipe->PipeMutex);
 
-    NpfsReleaseCCB(pSCB);
-
-    return(ntStatus);
+    return ntStatus;
 }
 
 
@@ -197,17 +173,13 @@ NpfsClientWriteFile(
     NTSTATUS ntStatus = 0;
     PNPFS_PIPE pPipe = NULL;
 
-    NpfsAddRefCCB(pCCB);
-
     pPipe = pCCB->pPipe;
     ENTER_MUTEX(&pPipe->PipeMutex);
 
     switch(pPipe->PipeClientState)
     {
     case PIPE_CLIENT_CONNECTED:
-        ntStatus = NpfsClientWriteFile_Connected(
-            pCCB,
-            pIrpContext);
+        ntStatus = NpfsClientWriteFile_Connected(pCCB, pIrpContext);
         pthread_cond_signal(&pPipe->PipeCondition);
         BAIL_ON_NT_STATUS(ntStatus);
         break;
@@ -220,9 +192,7 @@ error:
     pIrpContext->pIrp->IoStatusBlock.Status = ntStatus;
     LEAVE_MUTEX(&pPipe->PipeMutex);
 
-    NpfsReleaseCCB(pCCB);
-
-    return(ntStatus);
+    return ntStatus;
 }
 
 
@@ -269,11 +239,12 @@ NpfsServerWriteFile_Connected(
     BAIL_ON_NT_STATUS(ntStatus);
 
     pIrpContext->pIrp->IoStatusBlock.BytesTransferred = ulBytesTransferred;
+
 error:
 
     pIrpContext->pIrp->IoStatusBlock.Status = ntStatus;
 
-    return(ntStatus);
+    return ntStatus;
 }
 
 NTSTATUS
