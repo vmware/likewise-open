@@ -13,6 +13,7 @@ libsrv_protocols_smb1_la_SOURCES = \
     findfirst2.c     \
     findnext2.c      \
     flush.c          \
+    globals.c        \
     libmain.c        \
     lockx.c          \
     logoff.c         \

@@ -50,11 +50,41 @@
 #ifndef __STRUCTS_H__
 #define __STRUCTS_H__
 
+typedef struct _LWIO_SRV_PROTOCOL_WORKER_CONTEXT
+{
+    pthread_mutex_t  mutex;
+    pthread_mutex_t* pMutex;
+
+    BOOLEAN bStop;
+
+    ULONG   workerId;
+
+    PSMB_PROD_CONS_QUEUE pWorkQueue;
+
+} LWIO_SRV_PROTOCOL_WORKER_CONTEXT, *PLWIO_SRV_PROTOCOL_WORKER_CONTEXT;
+
+typedef struct _LWIO_SRV_PROTOCOL_WORKER
+{
+    pthread_t  worker;
+    pthread_t* pWorker;
+
+    ULONG      workerId;
+
+    LWIO_SRV_PROTOCOL_WORKER_CONTEXT context;
+
+} LWIO_SRV_PROTOCOL_WORKER, *PLWIO_SRV_PROTOCOL_WORKER;
+
 typedef struct __SRV_PROTOCOL_API_GLOBALS
 {
-    pthread_mutex_t mutex;
+    pthread_mutex_t           mutex;
 
-    BOOLEAN         bSupportSMB2;
+    BOOLEAN                   bSupportSMB2;
+
+    SMB_PROD_CONS_QUEUE       asyncWorkQueue;
+    ULONG                     ulMaxNumAsyncWorkItemsInQueue;
+
+    ULONG                     ulNumAsyncWorkers;
+    PLWIO_SRV_PROTOCOL_WORKER pAsyncWorkerArray;
 
 } SRV_PROTOCOL_API_GLOBALS, *PSRV_PROTOCOL_API_GLOBALS;
 

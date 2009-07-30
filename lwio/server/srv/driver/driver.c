@@ -407,6 +407,9 @@ SrvShutdown(
 
                 SrvWorkerFreeContents(pWorker);
             }
+
+            SrvFreeMemory(gSMBSrvGlobals.pWorkerArray);
+            gSMBSrvGlobals.pWorkerArray = NULL;
         }
 
         SrvTransportShutdown();

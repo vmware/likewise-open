@@ -10,6 +10,7 @@ libsrv_protocols_smb2_la_SOURCES = \
     find.c           \
     flush.c          \
     getinfo.c        \
+    globals.c        \
     ioctl.c          \
     libmain.c        \
     lock.c           \

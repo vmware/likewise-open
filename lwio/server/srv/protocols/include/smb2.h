@@ -50,8 +50,8 @@
 
 NTSTATUS
 SrvProtocolInit_SMB_V2(
-    VOID
-    );
+    PSMB_PROD_CONS_QUEUE pAsyncWorkQueue
+    );;
 
 NTSTATUS
 SrvProtocolExecute_SMB_V2(

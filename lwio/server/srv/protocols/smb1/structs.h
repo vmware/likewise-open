@@ -220,4 +220,12 @@ typedef struct _SRV_SMB_WRITE_REQUEST
 
 } SRV_SMB_WRITE_REQUEST, *PSRV_SMB_WRITE_REQUEST;
 
+typedef struct _SRV_RUNTIME_GLOBALS_SMB_V1
+{
+    pthread_mutex_t         mutex;
+
+    PSMB_PROD_CONS_QUEUE    pAsyncWorkQueue;
+
+} SRV_RUNTIME_GLOBALS_SMB_V1, *PSRV_RUNTIME_GLOBALS_SMB_V1;
+
 #endif /* __STRUCTS_H__ */

@@ -576,4 +576,12 @@ typedef struct __SMB2_CONTEXT
 
 } SMB2_CONTEXT, *PSMB2_CONTEXT;
 
+typedef struct _SRV_RUNTIME_GLOBALS_SMB_V2
+{
+    pthread_mutex_t         mutex;
+
+    PSMB_PROD_CONS_QUEUE    pAsyncWorkQueue;
+
+} SRV_RUNTIME_GLOBALS_SMB_V2, *PSRV_RUNTIME_GLOBALS_SMB_V2;
+
 #endif /* __STRUCTS_H__ */

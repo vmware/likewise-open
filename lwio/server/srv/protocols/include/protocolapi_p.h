@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software
@@ -28,57 +28,55 @@
  * license@likewisesoftware.com
  */
 
-
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        includes.h
+ *        protocolapi_p.h
  *
  * Abstract:
  *
  *        Likewise IO (LWIO) - SRV
  *
- *        Protocols
+ *        Protocol API (Private to protocol handlers)
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
+ *
  */
 
-#include <config.h>
-#include <lwiosys.h>
+#ifndef __PROTOCOL_API_P_H__
+#define __PROTOCOL_API_P_H__
 
-#include <uuid/uuid.h>
+typedef VOID (*PFN_SRV_PROTOCOL_WORK_ITEM_EXECUTE)(HANDLE hItem);
+typedef VOID (*PFN_SRV_PROTOCOL_WORK_ITEM_RELEASE)(HANDLE hItem);
 
-#include <lwio/lwio.h>
+typedef struct _SRV_PROTOCOL_WORK_ITEM
+{
+    HANDLE hData;
 
-#include <lwiodef.h>
-#include <lwioutils.h>
-#include <lwiolog_r.h>
-#include <lwnet.h>
+    PFN_SRV_PROTOCOL_WORK_ITEM_EXECUTE pfnExecute;
+    PFN_SRV_PROTOCOL_WORK_ITEM_RELEASE pfnRelease;
 
-#include <lw/ntstatus.h>
+} SRV_PROTOCOL_WORK_ITEM, *PSRV_PROTOCOL_WORK_ITEM;
 
-#include <lwio/lmshare.h>
-#include <lwio/lwshareinfo.h>
+NTSTATUS
+SrvProtocolBuildWorkItem(
+    HANDLE                             hData,
+    PFN_SRV_PROTOCOL_WORK_ITEM_EXECUTE pfnExecute,
+    PFN_SRV_PROTOCOL_WORK_ITEM_RELEASE pfnRelease,
+    PSRV_PROTOCOL_WORK_ITEM*           ppWorkItem
+    );
 
-#include <iodriver.h>
-#include <ioapi.h>
+NTSTATUS
+SrvProtocolEnqueueWorkItem(
+    PSRV_PROTOCOL_WORK_ITEM pWorkItem
+    );
 
-#include <smbwire.h>
+VOID
+SrvProtocolFreeWorkItem(
+    PSRV_PROTOCOL_WORK_ITEM pWorkItem
+    );
 
-#include <srvutils.h>
-#include <shareapi.h>
-#include <elementsapi.h>
-#include <transportapi.h>
-#include <protocolapi.h>
-#include <protocolapi_p.h>
-#include <smb2.h>
-
-#include "defs.h"
-#include "structs.h"
-#include "prototypes.h"
-
-#include "externs.h"
+#endif /* __PROTOCOL_API_P_H__ */
 

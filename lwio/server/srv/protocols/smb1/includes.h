@@ -73,6 +73,7 @@
 #include <elementsapi.h>
 #include <transportapi.h>
 #include <protocolapi.h>
+#include <protocolapi_p.h>
 #include <smb1.h>
 
 #include "defs.h"
@@ -84,6 +85,9 @@
 #include "trans2qfsi.h"
 #include "trans2qpi.h"
 #include "trans2sfi.h"
+
+#include "externs.h"
+
 
 
 

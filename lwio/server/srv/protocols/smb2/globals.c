@@ -28,14 +28,12 @@
  * license@likewisesoftware.com
  */
 
-
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        includes.h
+ *        structs.h
  *
  * Abstract:
  *
@@ -43,42 +41,18 @@
  *
  *        Protocols
  *
+ *        Globals
+ *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
+ *
  */
 
-#include <config.h>
-#include <lwiosys.h>
+#include "includes.h"
 
-#include <uuid/uuid.h>
+SRV_RUNTIME_GLOBALS_SMB_V2 gProtocolGlobals_SMB_V2 =
+{
+    .mutex           = PTHREAD_MUTEX_INITIALIZER,
+    .pAsyncWorkQueue = NULL
+};
 
-#include <lwio/lwio.h>
-
-#include <lwiodef.h>
-#include <lwioutils.h>
-#include <lwiolog_r.h>
-#include <lwnet.h>
-
-#include <lw/ntstatus.h>
-
-#include <lwio/lmshare.h>
-#include <lwio/lwshareinfo.h>
-
-#include <iodriver.h>
-#include <ioapi.h>
-
-#include <smbwire.h>
-
-#include <srvutils.h>
-#include <shareapi.h>
-#include <elementsapi.h>
-#include <transportapi.h>
-#include <protocolapi.h>
-#include <protocolapi_p.h>
-#include <smb2.h>
-
-#include "defs.h"
-#include "structs.h"
-#include "prototypes.h"
-
-#include "externs.h"
 
