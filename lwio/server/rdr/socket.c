@@ -570,7 +570,6 @@ SMBSocketReaderMain(
         int ret = 0;
         fd_set fdset;
 
-        FD_ZERO(&fdset);
         FD_SET(pSocket->fd, &fdset);
 
         ret = select(pSocket->fd + 1, &fdset, NULL, &fdset, NULL);
