@@ -91,26 +91,18 @@ typedef enum _NpfsClientState
 struct _NPFS_PIPE;
 struct _NPFS_FCB;
 
-typedef struct _NPFS_INTERLOCKED_ULONG
-{
-    ULONG           ulCounter;
-    pthread_mutex_t CounterMutex;
-
-} NPFS_INTERLOCKED_ULONG, *PNPFS_INTERLOCKED_ULONG;
-
 typedef struct _NPFS_MDL
 {
     ULONG Length;
     ULONG Offset;
     PVOID Buffer;
 
-    struct _NPFS_MDL *pNext;
-
+    LW_LIST_LINKS link;
 } NPFS_MDL, *PNPFS_MDL;
 
 typedef struct _NPFS_CCB
 {
-    NPFS_INTERLOCKED_ULONG cRef;
+    LONG lRefCount;
 
     NpfsCcbType CcbType;
 
@@ -118,16 +110,16 @@ typedef struct _NPFS_CCB
     ULONG ReadMode;
 
     struct _NPFS_PIPE * pPipe;
-    PNPFS_MDL pMdlList;
 
-    struct _NPFS_CCB * pNext;
+    LW_LIST_LINKS mdlList;
 
+    LW_LIST_LINKS link;
 } NPFS_CCB, *PNPFS_CCB;
 
 
 typedef struct _NPFS_PIPE
 {
-    NPFS_INTERLOCKED_ULONG cRef;
+    LONG lRefCount;
 
     struct _NPFS_FCB *pFCB;
     pthread_mutex_t PipeMutex;
@@ -143,13 +135,12 @@ typedef struct _NPFS_PIPE
 
     PNPFS_IRP_CONTEXT pPendingServerConnect;
 
-    struct _NPFS_PIPE *pNext;
-
+    LW_LIST_LINKS link;
 } NPFS_PIPE, *PNPFS_PIPE;
 
 typedef struct _NPFS_FCB
 {
-    NPFS_INTERLOCKED_ULONG cRef;
+    LONG lRefCount;
 
     pthread_rwlock_t       PipeListRWLock;
     UNICODE_STRING         PipeName;
@@ -158,10 +149,8 @@ typedef struct _NPFS_FCB
     ULONG                  MaxNumberOfInstances;
     ULONG                  CurrentNumberOfInstances;
     ULONG                  Max;
-    PNPFS_PIPE             pPipes;
-
-    struct _NPFS_FCB *pNext;
-
+    LW_LIST_LINKS          pipeList;
+    LW_LIST_LINKS          link;
 }NPFS_FCB, *PNPFS_FCB;
 
 typedef enum _PVFS_INFO_TYPE
@@ -287,7 +276,7 @@ NpfsClientFreeCCB(
     PNPFS_CCB pCCB
     );
 
-extern PNPFS_FCB gpFCB;
+extern LW_LIST_LINKS gFCBList;
 extern pthread_rwlock_t gServerLock;
 
 #define ENTER_READER_RW_LOCK(pMutex) pthread_rwlock_rdlock(pMutex)
@@ -306,6 +295,3 @@ extern pthread_rwlock_t gServerLock;
 #include "prototypes.h"
 
 #endif /* __PVFS_H__ */
-
-
-

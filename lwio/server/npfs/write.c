@@ -261,11 +261,10 @@ NpfsServerWriteFile_Connected(
     pCCB = pPipe->pCCB;
 
     ntStatus = NpfsEnqueueBuffer(
-                        pCCB->pMdlList,
+                        &pCCB->mdlList,
                         pBuffer,
                         Length,
-                        &ulBytesTransferred,
-                        &pCCB->pMdlList
+                        &ulBytesTransferred
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -312,12 +311,10 @@ NpfsClientWriteFile_Connected(
 
 
     ntStatus = NpfsEnqueueBuffer(
-                        pSCB->pMdlList,
+                        &pSCB->mdlList,
                         pBuffer,
                         Length,
-                        &ulBytesTransferred,
-                        &pSCB->pMdlList
-                        );
+                        &ulBytesTransferred);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pIrpContext->pIrp->IoStatusBlock.BytesTransferred = ulBytesTransferred;

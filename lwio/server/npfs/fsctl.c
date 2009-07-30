@@ -160,8 +160,6 @@ NpfsCommonGetSessionKey(
         );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    NpfsAddRefCCB(pCCB);
-
     pPipe = pCCB->pPipe;
 
     ENTER_MUTEX(&pPipe->PipeMutex);
@@ -232,8 +230,6 @@ NpfsCommonGetPeerPrincipal(
         );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    NpfsAddRefCCB(pCCB);
-
     pPipe = pCCB->pPipe;
 
     ENTER_MUTEX(&pPipe->PipeMutex);
@@ -302,8 +298,6 @@ NpfsCommonGetPeerAddress(
         &pCCB
         );
     BAIL_ON_NT_STATUS(ntStatus);
-
-    NpfsAddRefCCB(pCCB);
 
     pPipe = pCCB->pPipe;
 

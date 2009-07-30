@@ -41,6 +41,9 @@ NpfsCreateFCB(
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
+    LwListInit(&pFCB->link);
+    LwListInit(&pFCB->pipeList);
+
     ntStatus = RtlUnicodeStringDuplicate(
                     &pFCB->PipeName,
                     pUnicodeString
@@ -48,7 +51,8 @@ NpfsCreateFCB(
     BAIL_ON_NT_STATUS(ntStatus);
 
     pthread_rwlock_init(&pFCB->PipeListRWLock, NULL);
-    NpfsInitializeInterlockedCounter(&pFCB->cRef);
+
+    pFCB->lRefCount = 1;
 
     pFCB->MaxNumberOfInstances = 0xFF;
     // Number of currently available instances
@@ -56,22 +60,22 @@ NpfsCreateFCB(
     // TODO: This should be the default type
     pFCB->NamedPipeType = FILE_PIPE_MESSAGE_TYPE;
 
-    pFCB->pNext = gpFCB;
-    gpFCB = pFCB;
+    LwListInsertBefore(&gFCBList, &pFCB->link);
 
     *ppFCB = pFCB;
 
-    return(ntStatus);
+    return ntStatus;
 
 error:
 
-    if (pFCB) {
+    if (pFCB)
+    {
         NpfsFreeMemory(pFCB);
     }
 
     *ppFCB = NULL;
 
-    return(ntStatus);
+    return ntStatus;
 }
 
 NTSTATUS
@@ -82,25 +86,32 @@ NpfsFindFCB(
 {
     NTSTATUS ntStatus = 0;
     PNPFS_FCB pFCB = NULL;
-    BOOLEAN bEqual = FALSE;
+    PLW_LIST_LINKS pLink = NULL;
 
-    pFCB = gpFCB;
-    while (pFCB) {
-         bEqual = RtlUnicodeStringIsEqual(
-                            pUnicodeString,
-                            &pFCB->PipeName,
-                            FALSE
-                            );
-        if (bEqual) {
+    for (pLink = gFCBList.Next; pLink != &gFCBList; pLink = pLink->Next)
+    {
+        pFCB = LW_STRUCT_FROM_FIELD(pLink, NPFS_FCB, link);
+
+        if (RtlUnicodeStringIsEqual(pUnicodeString, &pFCB->PipeName, FALSE))
+        {
             NpfsAddRefFCB(pFCB);
             *ppFCB = pFCB;
-            return (ntStatus);
+            goto cleanup;
         }
-        pFCB = pFCB->pNext;
     }
+
     ntStatus = STATUS_OBJECT_NAME_NOT_FOUND;
-    *ppFCB = NULL;
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
     return(ntStatus);
+
+error:
+
+    *ppFCB = NULL;
+
+    goto cleanup;
 }
 
 VOID
@@ -108,11 +119,23 @@ NpfsReleaseFCB(
     PNPFS_FCB pFCB
     )
 {
-    NpfsInterlockedDecrement(&pFCB->cRef);
-    if (!NpfsInterlockedCounter(&pFCB->cRef)) {
+    BOOLEAN bFreeFCB = FALSE;
 
+    ENTER_WRITER_RW_LOCK(&gServerLock);
+
+    if (InterlockedDecrement(&pFCB->lRefCount) == 0)
+    {
+        LwListRemove(&pFCB->link);
+        bFreeFCB = TRUE;
+    }
+
+    LEAVE_WRITER_RW_LOCK(&gServerLock);
+
+    if (bFreeFCB)
+    {
         NpfsFreeFCB(pFCB);
     }
+
     return;
 }
 
@@ -121,8 +144,7 @@ NpfsAddRefFCB(
     PNPFS_FCB pFCB
     )
 {
-    NpfsInterlockedIncrement(&pFCB->cRef);
-    return;
+    InterlockedIncrement(&pFCB->lRefCount);
 }
 
 
@@ -133,13 +155,10 @@ NpfsFreeFCB(
 {
     NTSTATUS ntStatus = 0;
 
+    pthread_rwlock_destroy(&pFCB->PipeListRWLock);
+    LwRtlUnicodeStringFree(&pFCB->PipeName);
 
     NpfsFreeMemory(pFCB);
 
-
     return(ntStatus);
 }
-
-
-
-

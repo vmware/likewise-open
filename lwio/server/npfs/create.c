@@ -140,22 +140,15 @@ NpfsCommonCreate(
     BOOLEAN bReleaseLock = FALSE;
     PNPFS_IRP_CONTEXT pConnectContext = NULL;
 
-    ntStatus = NpfsValidateCreate(
-                    pIrpContext,
-                    &PipeName
-                    );
+    ntStatus = NpfsValidateCreate(pIrpContext, &PipeName);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = NpfsFindFCB(
-                    &PipeName,
-                    &pFCB
-                    );
+    ENTER_READER_RW_LOCK(&gServerLock);
+    ntStatus = NpfsFindFCB(&PipeName, &pFCB);
+    LEAVE_READER_RW_LOCK(&gServerLock);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = NpfsFindAvailablePipe(
-                    pFCB,
-                    &pPipe
-                    );
+    ntStatus = NpfsFindAvailablePipe(pFCB, &pPipe);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ENTER_MUTEX(&pPipe->PipeMutex);
@@ -167,26 +160,12 @@ NpfsCommonCreate(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = NpfsCreateCCB(
-                    pIrpContext,
-                    &pCCB
-                    );
+    ntStatus = NpfsCreateCCB(pIrpContext, pPipe, &pCCB);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pPipe->pCCB = pCCB;
     pPipe->PipeClientState = PIPE_CLIENT_CONNECTED;
 
-    //
-    // This is the Add Reference for the Pipe for the CCB
-    //
-    NpfsAddRefPipe(pPipe);
-
-    pCCB->pPipe = pPipe;
-
-    ntStatus = NpfsCommonProcessCreateEcp(
-        pIrpContext,
-        pIrp,
-        pCCB);
+    ntStatus = NpfsCommonProcessCreateEcp(pIrpContext, pIrp, pCCB);
     BAIL_ON_NT_STATUS(ntStatus);
 
     /* Wake up blocking pipe waiters */
@@ -211,14 +190,7 @@ NpfsCommonCreate(
         IO_FREE(&pConnectContext);
     }
 
-    // Complete the transfer the pipe handle to the CCB
-
-    pPipe = NULL;
-
-    ntStatus = NpfsSetCCB(
-                        pIrpContext->pIrp->FileHandle,
-                        pCCB
-                        );
+    ntStatus = NpfsSetCCB(pIrpContext->pIrp->FileHandle, pCCB);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pIrpContext->pIrp->IoStatusBlock.CreateResult = FILE_OPENED;
@@ -230,21 +202,26 @@ cleanup:
         LEAVE_MUTEX(&pPipe->PipeMutex);
     }
 
-    if (pPipe) {
+    if (pFCB)
+    {
+        NpfsReleaseFCB(pFCB);
+    }
+
+    if (pPipe)
+    {
         NpfsReleasePipe(pPipe);
     }
 
-    if (pFCB) {
-        NpfsReleaseFCB(pFCB);
+    if (pCCB)
+    {
+        NpfsReleaseCCB(pCCB);
     }
 
     pIrpContext->pIrp->IoStatusBlock.Status = ntStatus;
 
-    return(ntStatus);
+    return ntStatus;
 
 error:
-
-    // Need to clean up CCB here
 
     pIrpContext->pIrp->IoStatusBlock.CreateResult = FILE_DOES_NOT_EXIST;
 
