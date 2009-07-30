@@ -57,7 +57,7 @@ NtlmOpenServer(
 
     BAIL_ON_NTLM_INVALID_POINTER(phConnection);
 
-    dwError = LwAllocateMemory(
+    dwError = LsaAllocateMemory(
         sizeof(NTLM_CLIENT_CONNECTION_CONTEXT),
         (PVOID*)(PVOID)&pContext
         );
@@ -90,28 +90,6 @@ NtlmOpenServer(
                                   CACHEDIR "/" NTLM_SERVER_FILENAME));
     BAIL_ON_NTLM_ERROR(dwError);
 
-    /* Attempt to automatically restore the connection if the server closes it.
-       This allows us to transparently recover from lsassd being restarted
-       as long as:
-
-       1. No operation is attempted during the window that lsassd is down
-       2. The shutdown did not wipe out any state such as enumeration handles
-
-       lwmsg will handle reconnecting for us if these conditions are met.
-    */
-
-    dwError = NTLM_MAP_LWMSG_ERROR(lwmsg_assoc_set_action(
-                                  pContext->pAssoc,
-                                  LWMSG_STATUS_PEER_RESET,
-                                  LWMSG_ASSOC_ACTION_RESET_AND_RETRY));
-    BAIL_ON_NTLM_ERROR(dwError);
-
-    dwError = NTLM_MAP_LWMSG_ERROR(lwmsg_assoc_set_action(
-                                  pContext->pAssoc,
-                                  LWMSG_STATUS_PEER_CLOSE,
-                                  LWMSG_ASSOC_ACTION_RESET_AND_RETRY));
-    BAIL_ON_NTLM_ERROR(dwError);
-
     if(getenv("LW_DISABLE_CONNECT_TIMEOUT") == NULL)
     {
         /* Give up connecting within 2 seconds in case lsassd
@@ -141,7 +119,7 @@ error:
         {
             lwmsg_protocol_delete(pContext->pProtocol);
         }
-        LwFreeMemory(pContext);
+        LsaFreeMemory(pContext);
     }
     if(phConnection)
     {
@@ -170,7 +148,7 @@ NtlmCloseServer(
         lwmsg_protocol_delete(pContext->pProtocol);
     }
 
-    LwFreeMemory(pContext);
+    LsaFreeMemory(pContext);
 
     return dwError;
 }
@@ -206,12 +184,12 @@ NtlmTransactAcceptSecurityContext(
     LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
     LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
-    AcceptSecCtxtReq.phCredential = phCredential;
-    AcceptSecCtxtReq.phContext = phContext;
+    AcceptSecCtxtReq.hCredential = *phCredential;
+    AcceptSecCtxtReq.hContext = *phContext;
     AcceptSecCtxtReq.pInput = pInput;
     AcceptSecCtxtReq.fContextReq = fContextReq;
     AcceptSecCtxtReq.TargetDataRep = TargetDataRep;
-    AcceptSecCtxtReq.phNewContext = phNewContext;
+    AcceptSecCtxtReq.hNewContext = *phNewContext;
     AcceptSecCtxtReq.pOutput = pOutput;
 
     request.tag = NTLM_Q_ACCEPT_SEC_CTXT;
@@ -228,13 +206,13 @@ NtlmTransactAcceptSecurityContext(
         case NTLM_R_ACCEPT_SEC_CTXT_SUCCESS:
             pResultList = (PNTLM_IPC_ACCEPT_SEC_CTXT_RESPONSE)response.object;
 
-            dwError = NtlmDuplicateSecBufferDesc(pOutput, &pResultList->Output);
+            dwError = NtlmTransferSecBufferDesc(pOutput, &pResultList->Output);
             BAIL_ON_NTLM_ERROR(dwError);
 
-            memcpy(phContext, &pResultList->hContext, sizeof(LSA_CONTEXT_HANDLE));
-            memcpy(phNewContext, &pResultList->hNewContext, sizeof(LSA_CONTEXT_HANDLE));
-            memcpy(pfContextAttr, &pResultList->fContextAttr, sizeof(DWORD));
-            memcpy(ptsTimeStamp, &pResultList->tsTimeStamp, sizeof(TimeStamp));
+            *phContext = pResultList->hContext;
+            *phNewContext = pResultList->hNewContext;
+            *pfContextAttr = pResultList->fContextAttr;
+            *ptsTimeStamp = pResultList->tsTimeStamp;
 
             break;
         case NTLM_R_ACCEPT_SEC_CTXT_FAILURE:
@@ -248,12 +226,12 @@ NtlmTransactAcceptSecurityContext(
     }
 
 cleanup:
+    return dwError;
+error:
     if(response.object)
     {
         lwmsg_assoc_free_message(pContext->pAssoc, &response);
     }
-    return dwError;
-error:
     goto cleanup;
 }
 
@@ -276,7 +254,7 @@ NtlmTransactAcquireCredentialsHandle(
 
     NTLM_IPC_ACQUIRE_CREDS_REQ AcquireCredsReq;
 
-    memset(&AcquireCredsReq, 0, sizeof(NTLM_IPC_ACQUIRE_CREDS_REQ));
+    memset(&AcquireCredsReq, 0, sizeof(AcquireCredsReq));
 
     // Do not free pResult and pError
     // Change this to the correct result list when ready.
@@ -306,12 +284,8 @@ NtlmTransactAcquireCredentialsHandle(
         case NTLM_R_ACQUIRE_CREDS_SUCCESS:
             pResultList = (PNTLM_IPC_ACQUIRE_CREDS_RESPONSE)response.object;
 
-            memcpy(
-                phCredential,
-                &pResultList->hCredential,
-                sizeof(LSA_CRED_HANDLE));
-
-            memcpy(ptsExpiry, &pResultList->tsExpiry, sizeof(TimeStamp));
+            *phCredential = pResultList->hCredential;
+            *ptsExpiry = pResultList->tsExpiry;
 
             break;
         case NTLM_R_ACQUIRE_CREDS_FAILURE:
@@ -325,12 +299,13 @@ NtlmTransactAcquireCredentialsHandle(
     }
 
 cleanup:
-    if(response.object)
+    return dwError;
+error:
+    if (response.object)
     {
         lwmsg_assoc_free_message(pContext->pAssoc, &response);
     }
-    return dwError;
-error:
+
     goto cleanup;
 }
 
@@ -360,7 +335,7 @@ NtlmTransactDecryptMessage(
     LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
     LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
-    DecryptMsgReq.phContext = phContext;
+    DecryptMsgReq.hContext = *phContext;
     DecryptMsgReq.pMessage = pMessage;
     DecryptMsgReq.MessageSeqNo = MessageSeqNo;
 
@@ -378,7 +353,7 @@ NtlmTransactDecryptMessage(
         case NTLM_R_DECRYPT_MSG_SUCCESS:
             pResultList = (PNTLM_IPC_DECRYPT_MSG_RESPONSE)response.object;
 
-            dwError = NtlmDuplicateSecBufferDesc(
+            dwError = NtlmTransferSecBufferDesc(
                 pMessage,
                 &pResultList->Message
                 );
@@ -398,12 +373,12 @@ NtlmTransactDecryptMessage(
     }
 
 cleanup:
+    return dwError;
+error:
     if(response.object)
     {
         lwmsg_assoc_free_message(pContext->pAssoc, &response);
     }
-    return dwError;
-error:
     goto cleanup;
 }
 
@@ -429,7 +404,7 @@ NtlmTransactDeleteSecurityContext(
     LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
     LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
-    DeleteSecCtxtReq.phContext = phContext;
+    DeleteSecCtxtReq.hContext = *phContext;
 
     request.tag = NTLM_Q_DELETE_SEC_CTXT;
     request.object = &DeleteSecCtxtReq;
@@ -455,12 +430,12 @@ NtlmTransactDeleteSecurityContext(
     }
 
 cleanup:
+    return dwError;
+error:
     if(response.object)
     {
         lwmsg_assoc_free_message(pContext->pAssoc, &response);
     }
-    return dwError;
-error:
     goto cleanup;
 }
 
@@ -490,7 +465,7 @@ NtlmTransactEncryptMessage(
     LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
     LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
-    EncryptMsgReq.phContext = phContext;
+    EncryptMsgReq.hContext = *phContext;
     EncryptMsgReq.bEncrypt = bEncrypt;
     EncryptMsgReq.pMessage = pMessage;
     EncryptMsgReq.MessageSeqNo = MessageSeqNo;
@@ -509,7 +484,7 @@ NtlmTransactEncryptMessage(
         case NTLM_R_ENCRYPT_MSG_SUCCESS:
             pResultList = (PNTLM_IPC_ENCRYPT_MSG_RESPONSE)response.object;
 
-            dwError = NtlmDuplicateSecBufferDesc(
+            dwError = NtlmTransferSecBufferDesc(
                 pMessage,
                 &pResultList->Message
                 );
@@ -527,12 +502,12 @@ NtlmTransactEncryptMessage(
     }
 
 cleanup:
+    return dwError;
+error:
     if(response.object)
     {
         lwmsg_assoc_free_message(pContext->pAssoc, &response);
     }
-    return dwError;
-error:
     goto cleanup;
 }
 
@@ -562,7 +537,7 @@ NtlmTransactExportSecurityContext(
     LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
     LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
-    ExportSecCtxtReq.phContext = phContext;
+    ExportSecCtxtReq.hContext = *phContext;
     ExportSecCtxtReq.fFlags = fFlags;
 
     request.tag = NTLM_Q_EXPORT_SEC_CTXT;
@@ -579,11 +554,9 @@ NtlmTransactExportSecurityContext(
         case NTLM_R_EXPORT_SEC_CTXT_SUCCESS:
             pResultList = (PNTLM_IPC_EXPORT_SEC_CTXT_RESPONSE)response.object;
 
-            dwError = NtlmDuplicateSecBuffer(
-                pPackedContext,
-                &pResultList->PackedContext
-                );
-            BAIL_ON_NTLM_ERROR(dwError);
+            pPackedContext->cbBuffer = pResultList->PackedContext.cbBuffer;
+            pPackedContext->BufferType = pResultList->PackedContext.BufferType;
+            pPackedContext->pvBuffer = pResultList->PackedContext.pvBuffer;
 
             if(pToken)
             {
@@ -602,12 +575,12 @@ NtlmTransactExportSecurityContext(
     }
 
 cleanup:
+    return dwError;
+error:
     if(response.object)
     {
         lwmsg_assoc_free_message(pContext->pAssoc, &response);
     }
-    return dwError;
-error:
     goto cleanup;
 }
 
@@ -633,7 +606,7 @@ NtlmTransactFreeCredentialsHandle(
     LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
     LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
-    FreeCredsReq.phCredential = phCredential;
+    FreeCredsReq.hCredential = *phCredential;
 
     request.tag = NTLM_Q_FREE_CREDS;
     request.object = &FreeCredsReq;
@@ -659,12 +632,12 @@ NtlmTransactFreeCredentialsHandle(
     }
 
 cleanup:
+    return dwError;
+error:
     if(response.object)
     {
         lwmsg_assoc_free_message(pContext->pAssoc, &response);
     }
-    return dwError;
-error:
     goto cleanup;
 }
 
@@ -712,7 +685,7 @@ NtlmTransactImportSecurityContext(
         case NTLM_R_IMPORT_SEC_CTXT_SUCCESS:
             pResultList = (PNTLM_IPC_IMPORT_SEC_CTXT_RESPONSE)response.object;
 
-            memcpy(phContext, &pResultList->hContext, sizeof(LSA_CONTEXT_HANDLE));
+            *phContext = pResultList->hContext;
 
             break;
         case NTLM_R_IMPORT_SEC_CTXT_FAILURE:
@@ -726,12 +699,12 @@ NtlmTransactImportSecurityContext(
     }
 
 cleanup:
+    return dwError;
+error:
     if(response.object)
     {
         lwmsg_assoc_free_message(pContext->pAssoc, &response);
     }
-    return dwError;
-error:
     goto cleanup;
 }
 
@@ -769,17 +742,25 @@ NtlmTransactInitializeSecurityContext(
     LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
     LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
-    InitSecCtxtReq.phCredential = phCredential;
-    InitSecCtxtReq.phContext = phContext;
+    if(phCredential)
+    {
+        InitSecCtxtReq.hCredential = *phCredential;
+    }
+    if(phContext)
+    {
+        InitSecCtxtReq.hContext = *phContext;
+    }
     InitSecCtxtReq.pszTargetName = pszTargetName;
     InitSecCtxtReq.fContextReq = fContextReq;
     InitSecCtxtReq.Reserved1 = Reserved1;
     InitSecCtxtReq.TargetDataRep = TargetDataRep;
     InitSecCtxtReq.pInput = pInput;
     InitSecCtxtReq.Reserved2 = Reserved2;
-    InitSecCtxtReq.phNewContext = phNewContext;
+    if(phNewContext)
+    {
+        InitSecCtxtReq.hNewContext = *phNewContext;
+    }
     InitSecCtxtReq.pOutput = pOutput;
-
 
     request.tag = NTLM_Q_INIT_SEC_CTXT;
     request.object = &InitSecCtxtReq;
@@ -797,28 +778,28 @@ NtlmTransactInitializeSecurityContext(
 
             if(pOutput)
             {
-                dwError = NtlmDuplicateSecBufferDesc(
+
+                dwError = NtlmTransferSecBufferDesc(
                     pOutput,
                     &pResultList->Output
                     );
                 BAIL_ON_NTLM_ERROR(dwError);
+
             }
 
             if(phNewContext)
             {
-                memcpy(
-                    phNewContext,
-                    &pResultList->hNewContext,
-                    sizeof(LSA_CONTEXT_HANDLE)
-                    );
+                *phNewContext = pResultList->hNewContext;
             }
 
-            memcpy(pfContextAttr, &pResultList->fContextAttr, sizeof(DWORD));
+            *pfContextAttr = pResultList->fContextAttr;
 
             if(ptsExpiry)
             {
-               memcpy(ptsExpiry, &pResultList->tsExpiry, sizeof(TimeStamp));
+               *ptsExpiry = pResultList->tsExpiry;
             }
+
+            dwError = pResultList->dwStatus;
 
             break;
         case NTLM_R_INIT_SEC_CTXT_FAILURE:
@@ -832,17 +813,17 @@ NtlmTransactInitializeSecurityContext(
     }
 
 cleanup:
+    return dwError;
+
+error:
     if(response.object)
     {
         lwmsg_assoc_free_message(pContext->pAssoc, &response);
     }
 
-    return dwError;
-
-error:
-    memset(phNewContext, 0, sizeof(LSA_CONTEXT_HANDLE));
-    pfContextAttr = 0;
-    memset(ptsExpiry, 0, sizeof(TimeStamp));
+    *phNewContext = NULL;
+    *pfContextAttr = 0;
+    *ptsExpiry = 0;
     memset(pOutput, 0, sizeof(SecBufferDesc));
     goto cleanup;
 }
@@ -873,7 +854,7 @@ NtlmTransactMakeSignature(
     LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
     LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
-    MakeSignReq.phContext = phContext;
+    MakeSignReq.hContext = *phContext;
     MakeSignReq.bEncrypt = bEncrypt;
     MakeSignReq.pMessage = pMessage;
     MakeSignReq.MessageSeqNo = MessageSeqNo;
@@ -892,7 +873,7 @@ NtlmTransactMakeSignature(
         case NTLM_R_MAKE_SIGN_SUCCESS:
             pResultList = (PNTLM_IPC_MAKE_SIGN_RESPONSE)response.object;
 
-            dwError = NtlmDuplicateSecBufferDesc(
+            dwError = NtlmTransferSecBufferDesc(
                 pMessage,
                 &pResultList->Message
                 );
@@ -910,12 +891,12 @@ NtlmTransactMakeSignature(
     }
 
 cleanup:
+    return dwError;
+error:
     if(response.object)
     {
         lwmsg_assoc_free_message(pContext->pAssoc, &response);
     }
-    return dwError;
-error:
     goto cleanup;
 }
 
@@ -944,7 +925,7 @@ NtlmTransactQueryContextAttributes(
     LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
     LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
-    QueryCtxtReq.phContext = phContext;
+    QueryCtxtReq.hContext = *phContext;
     QueryCtxtReq.ulAttribute = ulAttribute;
 
     request.tag = NTLM_Q_QUERY_CTXT;
@@ -977,12 +958,12 @@ NtlmTransactQueryContextAttributes(
     }
 
 cleanup:
+    return dwError;
+error:
     if(response.object)
     {
         lwmsg_assoc_free_message(pContext->pAssoc, &response);
     }
-    return dwError;
-error:
     goto cleanup;
 }
 
@@ -1011,7 +992,7 @@ NtlmTransactQueryCredentialsAttributes(
     LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
     LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
-    QueryCredsReq.phCredential = phCredential;
+    QueryCredsReq.hCredential = *phCredential;
     QueryCredsReq.ulAttribute = ulAttribute;
 
     request.tag = NTLM_Q_QUERY_CREDS;
@@ -1044,12 +1025,12 @@ NtlmTransactQueryCredentialsAttributes(
     }
 
 cleanup:
+    return dwError;
+error:
     if(response.object)
     {
         lwmsg_assoc_free_message(pContext->pAssoc, &response);
     }
-    return dwError;
-error:
     goto cleanup;
 }
 
@@ -1080,7 +1061,7 @@ NtlmTransactVerifySignature(
     LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
     LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
-    VerifySignReq.phContext = phContext;
+    VerifySignReq.hContext = *phContext;
     VerifySignReq.pMessage = pMessage;
     VerifySignReq.MessageSeqNo = MessageSeqNo;
 
@@ -1113,17 +1094,17 @@ NtlmTransactVerifySignature(
     }
 
 cleanup:
+    return dwError;
+error:
     if(response.object)
     {
         lwmsg_assoc_free_message(pContext->pAssoc, &response);
     }
-    return dwError;
-error:
     goto cleanup;
 }
 
 DWORD
-NtlmDuplicateSecBufferDesc(
+NtlmTransferSecBufferDesc(
     OUT PSecBufferDesc pOut,
     IN PSecBufferDesc pIn
     )
@@ -1131,45 +1112,18 @@ NtlmDuplicateSecBufferDesc(
     DWORD dwError = LW_ERROR_SUCCESS;
     DWORD nIndex = 0;
 
-    dwError = LwAllocateMemory(
-        pIn->cBuffers * sizeof(SecBuffer),
-        (PVOID*)(PVOID)&pOut->pBuffers
-        );
-    BAIL_ON_NTLM_ERROR(dwError);
+    if(pOut->cBuffers != pIn->cBuffers)
+    {
+        dwError = LW_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LW_ERROR(dwError);
+    }
 
     for(nIndex= 0; nIndex < pIn->cBuffers; nIndex++)
     {
-        dwError = NtlmDuplicateSecBuffer(
-            &pOut->pBuffers[nIndex],
-            &pIn->pBuffers[nIndex]
-            );
-        BAIL_ON_NTLM_ERROR(dwError);
+        pOut->pBuffers[nIndex].pvBuffer = pIn->pBuffers[nIndex].pvBuffer;
+        pOut->pBuffers[nIndex].BufferType = pIn->pBuffers[nIndex].BufferType;
+        pOut->pBuffers[nIndex].cbBuffer = pIn->pBuffers[nIndex].cbBuffer;
     }
-
-    pOut->cBuffers = pIn->cBuffers;
-
-cleanup:
-    return dwError;
-error:
-    goto cleanup;
-
-}
-
-DWORD
-NtlmDuplicateSecBuffer(
-    OUT PSecBuffer pOut,
-    IN PSecBuffer pIn
-    )
-{
-    DWORD dwError = LW_ERROR_SUCCESS;
-
-    dwError = LwAllocateMemory(pIn->cbBuffer, &pOut->pvBuffer);
-    BAIL_ON_NTLM_ERROR(dwError);
-
-    memcpy(pOut->pvBuffer, pIn->pvBuffer, pIn->cbBuffer);
-
-    pOut->BufferType = pIn->BufferType;
-    pOut->cbBuffer = pIn->cbBuffer;
 
 cleanup:
     return dwError;

@@ -49,18 +49,13 @@
 
 DWORD
 NtlmClientQueryContextAttributes(
+    IN HANDLE hServer,
     IN PLSA_CONTEXT_HANDLE phContext,
     IN DWORD ulAttribute,
     OUT PVOID pBuffer
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
-    HANDLE hServer = INVALID_HANDLE;
-
-    dwError = NtlmOpenServer(
-        &hServer
-        );
-    BAIL_ON_NTLM_ERROR(dwError);
 
     dwError = NtlmTransactQueryContextAttributes(
         hServer,
@@ -69,12 +64,5 @@ NtlmClientQueryContextAttributes(
         pBuffer
         );
 
-cleanup:
-    if(INVALID_HANDLE != hServer)
-    {
-        NtlmCloseServer(hServer);
-    }
-    return(dwError);
-error:
-    goto cleanup;
+    return dwError;
 }

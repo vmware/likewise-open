@@ -27,6 +27,5 @@ liblsaclient_ntlm_la_LDFLAGS = \
 
 liblsaclient_ntlm_la_LIBADD =  \
     @top_builddir@/common/liblsacommon.la   \
-    $(LWADVAPI_LIBS)                        \
     @LWMSG_NOTHR_LIBS@                      \
     @SOCKET_LIBS@

@@ -49,6 +49,7 @@
 
 DWORD
 NtlmClientAcquireCredentialsHandle(
+    IN HANDLE hServer,
     IN SEC_CHAR *pszPrincipal,
     IN SEC_CHAR *pszPackage,
     IN DWORD fCredentialUse,
@@ -59,13 +60,9 @@ NtlmClientAcquireCredentialsHandle(
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
-    HANDLE hServer = INVALID_HANDLE;
 
-    memset(phCredential, 0, sizeof(LSA_CRED_HANDLE));
-    memset(ptsExpiry, 0, sizeof(TimeStamp));
-
-    dwError = NtlmOpenServer(&hServer);
-    BAIL_ON_NTLM_ERROR(dwError);
+    *phCredential = NULL;
+    *ptsExpiry = 0;
 
     dwError = NtlmTransactAcquireCredentialsHandle(
         hServer,
@@ -78,14 +75,12 @@ NtlmClientAcquireCredentialsHandle(
         ptsExpiry
         );
 
+    BAIL_ON_NTLM_ERROR(dwError);
+
 cleanup:
-    if(INVALID_HANDLE != hServer)
-    {
-        NtlmCloseServer(hServer);
-    }
     return(dwError);
 error:
-    memset(phCredential, 0, sizeof(LSA_CRED_HANDLE));
-    memset(ptsExpiry, 0, sizeof(TimeStamp));
+    *phCredential = NULL;
+    *ptsExpiry = 0;
     goto cleanup;
 }

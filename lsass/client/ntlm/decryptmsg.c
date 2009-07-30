@@ -49,6 +49,7 @@
 
 DWORD
 NtlmClientDecryptMessage(
+    IN HANDLE hServer,
     IN PLSA_CONTEXT_HANDLE phContext,
     IN OUT PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo,
@@ -56,12 +57,8 @@ NtlmClientDecryptMessage(
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
-    HANDLE hServer = INVALID_HANDLE;
 
     *pbEncrypted = 0;
-
-    dwError = NtlmOpenServer(&hServer);
-    BAIL_ON_NTLM_ERROR(dwError);
 
     dwError = NtlmTransactDecryptMessage(
         hServer,
@@ -74,10 +71,6 @@ NtlmClientDecryptMessage(
     BAIL_ON_NTLM_ERROR(dwError);
 
 cleanup:
-    if(INVALID_HANDLE != hServer)
-    {
-        NtlmCloseServer(hServer);
-    }
     return(dwError);
 error:
     // we may not want to clear the IN OUT params on error
