@@ -205,8 +205,10 @@ lwmsg_client_acquire_call(
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     ClientCall* call = NULL;
     size_t i;
+    LWMsgBool locked = LWMSG_FALSE;
 
     lwmsg_client_lock(client);
+    locked = LWMSG_TRUE;
 
     while (!client->call_pool_available && client->call_pool_created == client->call_pool_capacity)
     {
@@ -239,11 +241,21 @@ lwmsg_client_acquire_call(
 
 done:
 
-    lwmsg_client_unlock(client);
+    if (locked)
+    {
+        lwmsg_client_unlock(client);
+        locked = LWMSG_FALSE;
+    }
 
     return status;
 
 error:
+
+   if (locked)
+    {
+        lwmsg_client_unlock(client);
+        locked = LWMSG_FALSE;
+    }
 
     if (call)
     {
