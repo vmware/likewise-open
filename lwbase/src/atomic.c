@@ -70,18 +70,10 @@ LwInterlockedRead(
     IN LONG volatile *plSource
     )
 {
-    LONG lValue = 0;
-
     /*
-     * Read the memory location with a full barrier by
-     * adding and exchanging with 0.
+     * All 32-bit reads on x86 are atomic
      */
-    __asm__ __volatile__ (
-        "lock; xaddl %0, %1"
-        : "=r" (lValue), "=m" (*plSource)
-        : "0" (lValue), "m" (*plSource));
-
-    return lValue;
+    return *plSource;
 }
 
 LONG
@@ -151,14 +143,7 @@ LwInterlockedRead(
     IN LONG volatile *plSource
     )
 {
-    LONG lValue = 0;
-
-    __asm__ __volatile__ (
-        "lock; xaddl %0, %1"
-        : "=r" (lValue), "=m" (*plSource)
-        : "0" (lValue), "m" (*plSource));
-
-    return lValue;
+    return *plSource;
 }
 
 LONG
