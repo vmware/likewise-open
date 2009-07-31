@@ -57,6 +57,9 @@ GENERIC_MAPPING gPvfsFileGenericMapping = {
 
 PPVFS_WORK_QUEUE gpPvfsIoWorkQueue = NULL;
 
+PSMB_HASH_TABLE gpPathCache = NULL;
+pthread_rwlock_t gPathCacheRwLock;
+
 
 /*
 local variables:

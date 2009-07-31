@@ -268,6 +268,11 @@ PvfsLookupFile(
 /* From pathcache.c */
 
 NTSTATUS
+PvfsPathCacheInit(
+    VOID
+    );
+
+NTSTATUS
 PvfsPathCacheAdd(
     IN PCSTR pszResolvedPath
     );

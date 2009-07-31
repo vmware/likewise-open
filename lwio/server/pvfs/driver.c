@@ -119,6 +119,8 @@ PvfsDriverShutdown(
 {
     PvfsDestroyFCBTable();
 
+    pthread_rwlock_destroy(&gPathCacheRwLock);
+
     IO_LOG_ENTER_LEAVE("");
 }
 
@@ -228,6 +230,9 @@ PvfsDriverInitialize(
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsInitWorkerThreads();
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsPathCacheInit();
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
