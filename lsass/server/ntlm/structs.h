@@ -60,11 +60,11 @@ typedef struct _NTLM_NEGOTIATE_MESSAGE
 
 typedef struct _NTLM_CHALLENGE_MESSAGE
 {
-    UCHAR             NtlmSignature[NTLM_SIGNATURE_SIZE];
-    DWORD             MessageType;
-    NTLM_SEC_BUFFER   Target;
-    DWORD             NtlmFlags;
-    UCHAR             Challenge[NTLM_CHALLENGE_SIZE];
+    UCHAR NtlmSignature[NTLM_SIGNATURE_SIZE];
+    DWORD MessageType;
+    NTLM_SEC_BUFFER Target;
+    DWORD NtlmFlags;
+    UCHAR Challenge[NTLM_CHALLENGE_SIZE];
     // Optional Context 8 bytes
     // Optional Target Information NTLM_SEC_BUFFER
     // Optional OS Version 8 bytes
@@ -73,13 +73,13 @@ typedef struct _NTLM_CHALLENGE_MESSAGE
 
 typedef struct _NTLM_RESPONSE_MESSAGE
 {
-    UCHAR               NtlmSignature[NTLM_SIGNATURE_SIZE];
-    DWORD               MessageType;
-    NTLM_SEC_BUFFER     LmResponse;
-    NTLM_SEC_BUFFER     NtResponse;
-    NTLM_SEC_BUFFER     AuthTargetName;
-    NTLM_SEC_BUFFER     UserName;
-    NTLM_SEC_BUFFER     Workstation;
+    UCHAR NtlmSignature[NTLM_SIGNATURE_SIZE];
+    DWORD MessageType;
+    NTLM_SEC_BUFFER LmResponse;
+    NTLM_SEC_BUFFER NtResponse;
+    NTLM_SEC_BUFFER AuthTargetName;
+    NTLM_SEC_BUFFER UserName;
+    NTLM_SEC_BUFFER Workstation;
     // Optional Session Key NTLM_SEC_BUFFER
     // Optional Flags 4 bytes
     // Optional OS Version 8 bytes
@@ -101,26 +101,20 @@ typedef enum
     NtlmStateResponse
 } NTLM_STATE, *PNTLM_STATE;
 
-// We've switched to the more generic LSA_CRED_HANDLE now
-#if 0
-typedef struct _NTLM_CREDENTIALS
-{
-    PCHAR                       pUserName;
-    PCHAR                       pPassword;
-    LSA_CRED_HANDLE             CredHandle;
-    DWORD                       dwRefCount;
-    struct _NTLM_CREDENTIALS    *pNext;
-} NTLM_CREDENTIALS, *PNTLM_CREDENTIALS;
-#endif
-
 typedef struct _LSA_CONTEXT
 {
-    NTLM_STATE              NtlmState;
-    DWORD                   dwMessageSize;
-    PVOID                   pMessage;
-    LSA_CRED_HANDLE         CredHandle;
-    LONG                    nRefCount;
-    LSA_LIST_LINKS           ListEntry;
+    NTLM_STATE NtlmState;
+    DWORD dwMessageSize;
+    PVOID pMessage;
+    LSA_CRED_HANDLE CredHandle;
+    LONG nRefCount;
+    //BYTE LmUserSessionKey[NTLM_SESSION_KEY_SIZE];
+    //BYTE NtlmUserSessionKey[NTLM_SESSION_KEY_SIZE];
+    //BYTE LanManagerSessionKey[NTLM_SESSION_KEY_SIZE];
+    //BYTE SecondaryKey[NTLM_SESSION_KEY_SIZE];
+    BYTE SessionKey[NTLM_SESSION_KEY_SIZE];
+    DWORD cbSessionKeyLen;
+    LSA_LIST_LINKS ListEntry;
 } LSA_CONTEXT, *PLSA_CONTEXT;
 
 typedef struct _LSA_CONTEXT_STATE

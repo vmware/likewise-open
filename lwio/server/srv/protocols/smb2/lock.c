@@ -499,7 +499,7 @@ cleanup:
 
     if (pSmbResponse)
     {
-        SMBPacketFree(
+        SMBPacketRelease(
                 pLockRequest->pConnection->hPacketAllocator,
                 pSmbResponse);
     }

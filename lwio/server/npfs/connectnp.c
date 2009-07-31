@@ -68,9 +68,7 @@ NpfsAsyncConnectNamedPipe(
     PNPFS_PIPE pPipe = NULL;
     PNPFS_CCB pSCB = NULL;
 
-    ntStatus = NpfsGetCCB(
-                    pIrpContext->pIrp->FileHandle,
-                    &pSCB);
+    ntStatus = NpfsGetCCB(pIrpContext->pIrp->FileHandle, &pSCB);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pPipe = pSCB->pPipe;
@@ -79,18 +77,9 @@ NpfsAsyncConnectNamedPipe(
 
     if (pPipe->PipeServerState != PIPE_SERVER_INIT_STATE)
     {
-        ntStatus = STATUS_INVALID_SERVER_STATE;
-
-        pIrpContext->pIrp->IoStatusBlock.Status = ntStatus;
-
         LEAVE_MUTEX(&pPipe->PipeMutex);
-
-        if (pSCB)
-        {
-            NpfsReleaseCCB(pSCB);
-        }
-
-        return (ntStatus);
+        ntStatus = STATUS_INVALID_SERVER_STATE;
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
     pPipe->PipeServerState = PIPE_SERVER_WAITING_FOR_CONNECTION;
@@ -110,14 +99,15 @@ NpfsAsyncConnectNamedPipe(
 
     LEAVE_MUTEX(&pPipe->PipeMutex);
 
-    if (pSCB)
-    {
-        NpfsReleaseCCB(pSCB);
-    }
+cleanup:
+
+    pIrpContext->pIrp->IoStatusBlock.Status = ntStatus;
+
+    return ntStatus;
 
 error:
 
-    return (ntStatus);
+    goto cleanup;
 }
 
 static
@@ -133,9 +123,7 @@ NpfsCancelConnectNamedPipe(
     PNPFS_IRP_CONTEXT pIrpContext = pCallbackContext;
     BOOLEAN bDoComplete = FALSE;
 
-    ntStatus = NpfsGetCCB(
-                    pIrpContext->pIrp->FileHandle,
-                    &pSCB);
+    ntStatus = NpfsGetCCB(pIrpContext->pIrp->FileHandle, &pSCB);
     if (ntStatus == STATUS_SUCCESS)
     {
         LWIO_LOG_DEBUG("ConnectNamedPipe() cancelled");
@@ -144,6 +132,7 @@ NpfsCancelConnectNamedPipe(
 
         ENTER_MUTEX(&pPipe->PipeMutex);
 
+        /* Check if the operation was already completed */
         if (pPipe->pPendingServerConnect == pIrpContext)
         {
             bDoComplete = TRUE;
@@ -152,8 +141,6 @@ NpfsCancelConnectNamedPipe(
         }
 
         LEAVE_MUTEX(&pPipe->PipeMutex);
-
-        NpfsReleaseCCB(pSCB);
 
         if (bDoComplete)
         {

@@ -24,6 +24,18 @@ case "$host_os:$host_cpu" in
 		;;	
 esac
 
+case "$host_cpu" in
+	i?86)
+		AC_DEFINE([LWBASE_ATOMIC_X86], [], [x86 atomic operations])
+		;;
+	x86_64)
+		AC_DEFINE([LWBASE_ATOMIC_X86_64], [], [x86_64 atomic operations])
+		;;
+	*)
+		AC_DEFINE([LWBASE_ATOMIC_LOCK], [], [lock atomic operations])
+		;;
+esac
+
 AC_SUBST(LWBASE_CPPFLAGS)
 AC_SUBST(LWBASE_CFLAGS)
 AC_SUBST(LWBASE_LDFLAGS)

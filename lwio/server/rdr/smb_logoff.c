@@ -109,7 +109,7 @@ Logoff(
 cleanup:
     if (pResponsePacket)
     {
-        SMBPacketFree(pSession->pSocket->hPacketAllocator, pResponsePacket);
+        SMBPacketRelease(pSession->pSocket->hPacketAllocator, pResponsePacket);
     }
 
     if (packet.bufferLen)

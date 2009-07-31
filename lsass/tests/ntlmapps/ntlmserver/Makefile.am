@@ -5,7 +5,8 @@ ntlm_server_CFLAGS =        \
     @LWBASE_INCLUDES@       \
     @LIBUNISTR_INCLUDES@
 
-ntlm_server_SOURCES = \
+ntlm_server_SOURCES =   \
+    globals.c           \
     ntlm-server.c
 
 ntlm_server_LDADD =                             \

@@ -3,7 +3,7 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -33,61 +33,78 @@
  *
  * Module Name:
  *
- *        provider-main.h
+ *        async.c
  *
  * Abstract:
  *
- *        Likewise Security and Authentication Subsystem (LSASS)
+ *        Likewise SMB Server
  *
- *        Active Directory Authentication Provider
+ *        Asynchronous messaging
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
- *          Wei Fu (wfu@likewisesoftware.com)
- *          Brian Dunstan (bdunstan@likewisesoftware.com)
- *          Kyle Stemen (kstemen@likewisesoftware.com)
+ * Authors: Sriram Nambakam <snambakam@likewise.com>
  */
 
-#ifndef __LSA_UM_P_H__
-#define __LSA_UM_P_H__
-
-struct _LSA_UM_STATE;
-typedef struct _LSA_UM_STATE *LSA_UM_STATE_HANDLE, **PLSA_UM_STATE_HANDLE;
+#include "includes.h"
 
 VOID
-LsaUmpStateDestroy(
-    IN OUT LSA_UM_STATE_HANDLE Handle
-    );
+SrvExecuteAsyncRequest_SMB_V1(
+    PVOID pData
+    )
+{
+    PSRV_ASYNC_CONTEXT_SMB_V1 pAsyncContext = (PSRV_ASYNC_CONTEXT_SMB_V1)pData;
 
-DWORD
-LsaUmpStateCreate(
-    OUT PLSA_UM_STATE_HANDLE pHandle
-    );
+    switch (pAsyncContext->usCommand)
+    {
+        case COM_NT_CREATE_ANDX:
+
+            SrvExecuteCreateRequest(pAsyncContext->data.pCreateRequest);
+
+            break;
+
+        case COM_LOCKING_ANDX:
+
+            break;
+
+        default:
+
+            break;
+    }
+}
 
 VOID
-LsaUmpTriggerCheckUsersThread(
-    IN LSA_UM_STATE_HANDLE Handle
-    );
+SrvReleaseAsyncRequest_SMB_V1(
+    PVOID pData
+    )
+{
+    PSRV_ASYNC_CONTEXT_SMB_V1 pAsyncContext = (PSRV_ASYNC_CONTEXT_SMB_V1)pData;
 
-DWORD
-LsaUmpAddUser(
-    IN LSA_UM_STATE_HANDLE Handle,
-    IN uid_t               uUid,
-    IN PCSTR               pszPassword,
-    IN DWORD               dwEndTime
-    );
+    if (pAsyncContext)
+    {
+        switch (pAsyncContext->usCommand)
+        {
+            case COM_NT_CREATE_ANDX:
 
-DWORD
-LsaUmpModifyUser(
-    IN LSA_UM_STATE_HANDLE Handle,
-    IN uid_t               uUid,
-    IN PCSTR               pszPassword
-    );
+                if (pAsyncContext->data.pCreateRequest)
+                {
+                    SrvReleaseCreateRequest(pAsyncContext->data.pCreateRequest);
+                }
 
-DWORD
-LsaUmpRemoveUser(
-    IN LSA_UM_STATE_HANDLE Handle,
-    IN uid_t               uUid
-    );
+                break;
 
-#endif /* __LSA_UM_P_H__ */
+            case COM_LOCKING_ANDX:
+
+                if (pAsyncContext->data.pLockRequest)
+                {
+                    SrvReleaseLockRequest(pAsyncContext->data.pLockRequest);
+                }
+
+                break;
+
+            default:
+
+                break;
+        }
+
+        SrvFreeMemory(pAsyncContext);
+    }
+}

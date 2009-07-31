@@ -50,13 +50,6 @@ SrvExecuteCreateAsyncCB(
     );
 
 static
-VOID
-SrvCreateRequestExpiredCB(
-    PSRV_TIMER_REQUEST pTimerRequest,
-    PVOID              pUserData
-    );
-
-static
 NTSTATUS
 SrvBuildCreateRequest(
     PLWIO_SRV_CONNECTION     pConnection,
@@ -66,12 +59,6 @@ SrvBuildCreateRequest(
     PCREATE_REQUEST_HEADER   pRequestHeader,
     PWSTR                    pwszFilename,
     PSRV_SMB_CREATE_REQUEST* ppCreateRequest
-    );
-
-static
-VOID
-SrvReleaseCreateRequest(
-    PSRV_SMB_CREATE_REQUEST pCreateRequest
     );
 
 static
@@ -154,17 +141,11 @@ SrvProcessNTCreateAndX(
         case STATUS_PENDING:
 
             {
-                LONG64 llExpiry = 0LL;
+                ntStatus = STATUS_SUCCESS;
 
-                llExpiry = (time(NULL) +
-                            (pCreateRequest->ulTimeout/1000) + 11644473600LL) * 10000000LL;
-
-                ntStatus = SrvTimerPostRequest(
-                                llExpiry,
-                                pCreateRequest,
-                                &SrvCreateRequestExpiredCB,
-                                &pCreateRequest->pTimerRequest);
-                BAIL_ON_NT_STATUS(ntStatus);
+                // TODO: Add an indicator to the file object to trigger a
+                //       cleanup if the connection gets closed and all the
+                //       files involved have to be closed
 
                 InterlockedIncrement(&pCreateRequest->refCount);
             }
@@ -214,7 +195,7 @@ error:
 
     if (pSmbResponse)
     {
-        SMBPacketFree(
+        SMBPacketRelease(
             pConnection->hPacketAllocator,
             pSmbResponse);
     }
@@ -388,7 +369,7 @@ error:
 
     if (pSmbResponse)
     {
-        SMBPacketFree(
+        SMBPacketRelease(
                 pCreateRequest->pConnection->hPacketAllocator,
                 pSmbResponse);
     }
@@ -404,42 +385,94 @@ SrvExecuteCreateAsyncCB(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     PSRV_SMB_CREATE_REQUEST pCreateRequest = (PSRV_SMB_CREATE_REQUEST)pContext;
+    PSRV_PROTOCOL_WORK_ITEM pWorkItem = NULL;
+    PSRV_ASYNC_CONTEXT_SMB_V1 pAsyncContext = NULL;
+
+    ntStatus = SrvAllocateMemory(
+                    sizeof(SRV_ASYNC_CONTEXT_SMB_V1),
+                    (PVOID*)&pAsyncContext);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pAsyncContext->usCommand = COM_NT_CREATE_ANDX;
+    pAsyncContext->data.pCreateRequest = pCreateRequest;
+    InterlockedIncrement(&pCreateRequest->refCount);
+
+    ntStatus = SrvProtocolBuildWorkItem(
+                    pAsyncContext,
+                    &SrvExecuteAsyncRequest_SMB_V1,
+                    &SrvReleaseAsyncRequest_SMB_V1,
+                    &pWorkItem);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pAsyncContext = NULL;
+
+    ntStatus = SrvProtocolEnqueueWorkItem(pWorkItem);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pWorkItem = NULL;
+
+cleanup:
+
+    if (pCreateRequest)
+    {
+        SrvReleaseCreateRequest(pCreateRequest);
+    }
+
+    if (pWorkItem)
+    {
+        SrvProtocolFreeWorkItem(pWorkItem);
+    }
+
+    if (pAsyncContext)
+    {
+        SrvReleaseAsyncRequest_SMB_V1(pAsyncContext);
+    }
+
+    return;
+
+error:
+
+    goto cleanup;
+}
+
+VOID
+SrvExecuteCreateRequest(
+    PSRV_SMB_CREATE_REQUEST pCreateRequest
+    )
+{
+
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     BOOLEAN bInLock = FALSE;
     PSMB_PACKET pSmbResponse = NULL;
 
     LWIO_LOCK_MUTEX(bInLock, &pCreateRequest->mutex);
 
-    if (!pCreateRequest->bExpired && !pCreateRequest->bResponseSent)
+    if (pCreateRequest->ioStatusBlock.Status == STATUS_SUCCESS)
     {
-        if (pCreateRequest->ioStatusBlock.Status == STATUS_SUCCESS)
-        {
-            ntStatus = SrvBuildNTCreateResponse_inlock(
-                                pCreateRequest,
-                                &pSmbResponse);
-        }
-        else
-        {
-            ntStatus = SrvProtocolBuildErrorResponse(
-                            pCreateRequest->pConnection,
-                            COM_NT_CREATE_ANDX,
-                            pCreateRequest->pTree->tid,
-                            pCreateRequest->usPid,
-                            pCreateRequest->pSession->uid,
-                            pCreateRequest->usMid,
-                            pCreateRequest->ioStatusBlock.Status,
+        ntStatus = SrvBuildNTCreateResponse_inlock(
+                            pCreateRequest,
                             &pSmbResponse);
-        }
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        pSmbResponse->sequence = pCreateRequest->ulResponseSequence;
-
-        ntStatus = SrvTransportSendResponse(
-                            pCreateRequest->pConnection,
-                            pSmbResponse);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        pCreateRequest->bResponseSent = TRUE;
     }
+    else
+    {
+        ntStatus = SrvProtocolBuildErrorResponse(
+                        pCreateRequest->pConnection,
+                        COM_NT_CREATE_ANDX,
+                        pCreateRequest->pTree->tid,
+                        pCreateRequest->usPid,
+                        pCreateRequest->pSession->uid,
+                        pCreateRequest->usMid,
+                        pCreateRequest->ioStatusBlock.Status,
+                        &pSmbResponse);
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pSmbResponse->sequence = pCreateRequest->ulResponseSequence;
+
+    ntStatus = SrvTransportSendResponse(
+                        pCreateRequest->pConnection,
+                        pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
 
@@ -452,73 +485,10 @@ cleanup:
 
     if (pSmbResponse)
     {
-        SMBPacketFree(
+        SMBPacketRelease(
                 pCreateRequest->pConnection->hPacketAllocator,
                 pSmbResponse);
     }
-
-    SrvReleaseCreateRequest(pCreateRequest);
-
-    return;
-
-error:
-
-    goto cleanup;
-}
-
-static
-VOID
-SrvCreateRequestExpiredCB(
-    PSRV_TIMER_REQUEST pTimerRequest,
-    PVOID              pUserData
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSRV_SMB_CREATE_REQUEST pCreateRequest = (PSRV_SMB_CREATE_REQUEST)pUserData;
-    BOOLEAN bInLock = FALSE;
-    PSMB_PACKET pSmbResponse = NULL;
-
-    LWIO_LOCK_MUTEX(bInLock, &pCreateRequest->mutex);
-
-    pCreateRequest->bExpired = TRUE;
-
-    if (!pCreateRequest->bResponseSent)
-    {
-        // The timer expired first
-
-        ntStatus = SrvProtocolBuildErrorResponse(
-                        pCreateRequest->pConnection,
-                        COM_NT_CREATE_ANDX,
-                        pCreateRequest->pTree->tid,
-                        pCreateRequest->usPid,
-                        pCreateRequest->pSession->uid,
-                        pCreateRequest->usMid,
-                        STATUS_IO_TIMEOUT,
-                        &pSmbResponse);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        pSmbResponse->sequence = pCreateRequest->ulResponseSequence;
-
-        ntStatus = SrvTransportSendResponse(
-                        pCreateRequest->pConnection,
-                        pSmbResponse);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        pCreateRequest->bResponseSent = TRUE;
-    }
-
-cleanup:
-
-    LWIO_UNLOCK_MUTEX(bInLock, &pCreateRequest->mutex);
-
-    if (pSmbResponse)
-    {
-        SMBPacketFree(
-                pCreateRequest->pConnection->hPacketAllocator,
-                pSmbResponse);
-    }
-
-    SrvReleaseCreateRequest(pCreateRequest);
 
     return;
 
@@ -618,18 +588,9 @@ SrvBuildCreateRequest(
     pCreateRequest->usMid = pSmbRequest->pSMBHeader->mid;
     pCreateRequest->ulResponseSequence = pSmbRequest->sequence + 1;
 
-    pCreateRequest->bExpired = FALSE;
-    pCreateRequest->bResponseSent = FALSE;
-
-    pCreateRequest->ulTimeout = LWIO_SRV_DEFAULT_TIMEOUT_MSECS;
-
     pCreateRequest->acb.Callback = &SrvExecuteCreateAsyncCB;
     pCreateRequest->acb.CallbackContext = pCreateRequest;
-
-    if (pCreateRequest->ulTimeout)
-    {
-        pCreateRequest->pAcb = &pCreateRequest->acb;
-    }
+    pCreateRequest->pAcb = &pCreateRequest->acb;
 
     *ppCreateRequest = pCreateRequest;
 
@@ -651,7 +612,6 @@ error:
     goto cleanup;
 }
 
-static
 VOID
 SrvReleaseCreateRequest(
     PSRV_SMB_CREATE_REQUEST pCreateRequest
@@ -721,12 +681,6 @@ SrvFreeCreateRequest(
     if (pCreateRequest->pMutex)
     {
         pthread_mutex_destroy(&pCreateRequest->mutex);
-    }
-
-    if (pCreateRequest->pTimerRequest)
-    {
-        SrvTimerCancelRequest(pCreateRequest->pTimerRequest);
-        SrvTimerRelease(pCreateRequest->pTimerRequest);
     }
 
     SrvFreeMemory(pCreateRequest);

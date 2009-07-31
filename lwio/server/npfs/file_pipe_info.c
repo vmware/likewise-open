@@ -89,10 +89,7 @@ NpfsQueryFilePipeInfo(
 
     /* Sanity checks */
 
-    ntStatus = NpfsGetCCB(
-                    pIrp->FileHandle,
-                    &pCcb
-                    );
+    ntStatus = NpfsGetCCB(pIrp->FileHandle, &pCcb);
     BAIL_ON_NT_STATUS(ntStatus);
 
     /* No access checked needed for this call */
@@ -114,10 +111,6 @@ NpfsQueryFilePipeInfo(
     pIrp->IoStatusBlock.BytesTransferred = sizeof(*pPipeInfo);
 
 cleanup:
-
-    if (pCcb) {
-        NpfsReleaseCCB(pCcb);
-    }
 
     return ntStatus;
 

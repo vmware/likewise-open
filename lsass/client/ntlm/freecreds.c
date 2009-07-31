@@ -49,26 +49,16 @@
 
 DWORD
 NtlmClientFreeCredentialsHandle(
+    IN HANDLE hServer,
     IN PLSA_CRED_HANDLE phCredential
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
-    HANDLE hServer = INVALID_HANDLE;
-
-    dwError = NtlmOpenServer(
-        &hServer
-        );
-    BAIL_ON_NTLM_ERROR(dwError);
 
     dwError = NtlmTransactFreeCredentialsHandle(
         hServer,
         phCredential
         );
 
-error:
-    if(INVALID_HANDLE != hServer)
-    {
-        NtlmCloseServer(hServer);
-    }
     return(dwError);
 }

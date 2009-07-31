@@ -320,11 +320,17 @@ SrvConnectionFindSession(
 
     LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pConnection->mutex);
 
-    ntStatus = LwRtlRBTreeFind(
-                    pConnection->pSessionCollection,
-                    &uid,
-                    (PVOID*)&pSession);
-    BAIL_ON_NT_STATUS(ntStatus);
+    pSession = pConnection->lruSession[ uid % SRV_LRU_CAPACITY ];
+    if (!pSession || (pSession->uid != uid))
+    {
+        ntStatus = LwRtlRBTreeFind(
+                        pConnection->pSessionCollection,
+                        &uid,
+                        (PVOID*)&pSession);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pConnection->lruSession[ uid % SRV_LRU_CAPACITY ] = pSession;
+    }
 
     InterlockedIncrement(&pSession->refcount);
 
@@ -356,11 +362,17 @@ SrvConnection2FindSession(
 
     LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pConnection->mutex);
 
-    ntStatus = LwRtlRBTreeFind(
-                    pConnection->pSessionCollection,
-                    &ullUid,
-                    (PVOID*)&pSession);
-    BAIL_ON_NT_STATUS(ntStatus);
+    pSession = pConnection->lruSession2[ ullUid % SRV_LRU_CAPACITY ];
+    if (!pSession || (pSession->ullUid != ullUid))
+    {
+        ntStatus = LwRtlRBTreeFind(
+                        pConnection->pSessionCollection,
+                        &ullUid,
+                        (PVOID*)&pSession);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pConnection->lruSession2[ ullUid % SRV_LRU_CAPACITY ] = pSession;
+    }
 
     InterlockedIncrement(&pSession->refcount);
 
@@ -387,8 +399,15 @@ SrvConnectionRemoveSession(
 {
     NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
+    PLWIO_SRV_SESSION pSession = NULL;
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
+
+    pSession = pConnection->lruSession[ uid % SRV_LRU_CAPACITY ];
+    if (pSession && (pSession->uid == uid))
+    {
+        pConnection->lruSession[ uid % SRV_LRU_CAPACITY ] = NULL;
+    }
 
     ntStatus = LwRtlRBTreeRemove(
                     pConnection->pSessionCollection,
@@ -414,8 +433,15 @@ SrvConnection2RemoveSession(
 {
     NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
+    PLWIO_SRV_SESSION_2 pSession = NULL;
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
+
+    pSession = pConnection->lruSession2[ ullUid % SRV_LRU_CAPACITY ];
+    if (pSession && (pSession->ullUid == ullUid))
+    {
+        pConnection->lruSession2[ ullUid % SRV_LRU_CAPACITY ] = NULL;
+    }
 
     ntStatus = LwRtlRBTreeRemove(
                     pConnection->pSessionCollection,
@@ -573,7 +599,7 @@ SrvConnectionRelease(
     {
         if (pConnection->readerState.pRequestPacket)
         {
-            SMBPacketFree(
+            SMBPacketRelease(
                 pConnection->hPacketAllocator,
                 pConnection->readerState.pRequestPacket);
         }

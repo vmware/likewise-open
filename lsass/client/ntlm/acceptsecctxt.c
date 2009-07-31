@@ -49,6 +49,7 @@
 
 DWORD
 NtlmClientAcceptSecurityContext(
+    IN HANDLE hServer,
     IN PLSA_CRED_HANDLE phCredential,
     IN OUT PLSA_CONTEXT_HANDLE phContext,
     IN PSecBufferDesc pInput,
@@ -61,13 +62,9 @@ NtlmClientAcceptSecurityContext(
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
-    HANDLE hServer = INVALID_HANDLE;
 
     memset(ptsTimeStamp, 0, sizeof(TimeStamp));
     *pfContextAttr = 0;
-
-    dwError = NtlmOpenServer(&hServer);
-    BAIL_ON_NTLM_ERROR(dwError);
 
     dwError = NtlmTransactAcceptSecurityContext(
         hServer,
@@ -82,18 +79,17 @@ NtlmClientAcceptSecurityContext(
         ptsTimeStamp
         );
 
-    BAIL_ON_NTLM_ERROR(dwError);
+    if(dwError != LW_WARNING_CONTINUE_NEEDED)
+    {
+        BAIL_ON_NTLM_ERROR(dwError);
+    }
 
 cleanup:
-    if(INVALID_HANDLE != hServer)
-    {
-        NtlmCloseServer(hServer);
-    }
     return(dwError);
 error:
     // we may not want to clear the IN OUT params on error
-    memset(phContext, 0, sizeof(LSA_CONTEXT_HANDLE));
-    memset(phNewContext, 0, sizeof(LSA_CONTEXT_HANDLE));
+    *phContext = NULL;
+    *phNewContext = NULL;
     memset(pOutput, 0, sizeof(SecBufferDesc));
     memset(ptsTimeStamp, 0, sizeof(TimeStamp));
     *pfContextAttr = 0;

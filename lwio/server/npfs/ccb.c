@@ -151,8 +151,6 @@ NpfsGetCCB(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    NpfsAddRefCCB(pCCB);
-
     *ppCCB = pCCB;
 
 cleanup:

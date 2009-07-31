@@ -552,7 +552,7 @@ error:
 
     if (pPacket)
     {
-        SMBPacketFree(pConnection->hPacketAllocator, pPacket);
+        SMBPacketRelease(pConnection->hPacketAllocator, pPacket);
     }
 
     goto cleanup;

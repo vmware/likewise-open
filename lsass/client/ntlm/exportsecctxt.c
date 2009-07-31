@@ -49,6 +49,7 @@
 
 DWORD
 NtlmClientExportSecurityContext(
+    IN HANDLE hServer,
     IN PLSA_CONTEXT_HANDLE phContext,
     IN DWORD fFlags,
     OUT PSecBuffer pPackedContext,
@@ -56,7 +57,6 @@ NtlmClientExportSecurityContext(
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
-    HANDLE hServer = INVALID_HANDLE;
 
     // We don't want to zero out the SecBuffers, but we may want to initialize
     // some of their members to zero.
@@ -65,9 +65,6 @@ NtlmClientExportSecurityContext(
     {
         *pToken = INVALID_HANDLE;
     }
-
-    dwError = NtlmOpenServer(&hServer);
-    BAIL_ON_NTLM_ERROR(dwError);
 
     dwError = NtlmTransactExportSecurityContext(
         hServer,
@@ -80,10 +77,6 @@ NtlmClientExportSecurityContext(
     BAIL_ON_NTLM_ERROR(dwError);
 
 cleanup:
-    if(INVALID_HANDLE != hServer)
-    {
-        NtlmCloseServer(hServer);
-    }
     return(dwError);
 error:
     // we may not want to clear the IN OUT params on error

@@ -49,6 +49,7 @@
 
 DWORD
 NtlmClientInitializeSecurityContext(
+    IN HANDLE hServer,
     IN OPTIONAL PLSA_CRED_HANDLE phCredential,
     IN OPTIONAL PLSA_CONTEXT_HANDLE phContext,
     IN OPTIONAL SEC_CHAR * pszTargetName,
@@ -64,10 +65,9 @@ NtlmClientInitializeSecurityContext(
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
-    HANDLE hServer = INVALID_HANDLE;
 
-    dwError = NtlmOpenServer(&hServer);
-    BAIL_ON_NTLM_ERROR(dwError);
+    *pfContextAttr = 0;
+    *ptsExpiry = 0;
 
     dwError = NtlmTransactInitializeSecurityContext(
         hServer,
@@ -85,13 +85,17 @@ NtlmClientInitializeSecurityContext(
         ptsExpiry
         );
 
-cleanup:
-    if(INVALID_HANDLE != hServer)
+    if(dwError != LW_WARNING_CONTINUE_NEEDED)
     {
-        NtlmCloseServer(hServer);
+        BAIL_ON_NTLM_ERROR(dwError);
     }
+
+cleanup:
     return(dwError);
 error:
     // we may not want to clear the IN OUT params on error
+    *pfContextAttr = 0;
+    *ptsExpiry = 0;
+
     goto cleanup;
 }

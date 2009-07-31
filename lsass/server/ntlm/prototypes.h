@@ -171,7 +171,7 @@ NtlmShutdownContextDatabase(
 
 VOID
 NtlmAddContext(
-    IN PLSA_CONTEXT         pContext,
+    IN PLSA_CONTEXT pContext,
     OUT PLSA_CONTEXT_HANDLE pContextHandle
     );
 
@@ -182,15 +182,15 @@ NtlmReleaseContext(
 
 VOID
 NtlmGetContextInfo(
-    IN LSA_CONTEXT_HANDLE           ContextHandle,
-    OUT OPTIONAL PNTLM_STATE        pNtlmState,
-    OUT OPTIONAL PVOID*             ppMessage,
-    OUT OPTIONAL PDWORD             pdwMessageSize,
-    OUT OPTIONAL PLSA_CRED_HANDLE   pCredHandle
+    IN LSA_CONTEXT_HANDLE ContextHandle,
+    OUT OPTIONAL PNTLM_STATE pNtlmState,
+    OUT OPTIONAL PVOID* ppMessage,
+    OUT OPTIONAL PDWORD pdwMessageSize,
+    OUT OPTIONAL PLSA_CRED_HANDLE pCredHandle
     );
 
 DWORD
-NtlmInitContext(
+NtlmCreateContext(
     OUT PLSA_CONTEXT *ppNtlmContext
     );
 
@@ -264,15 +264,29 @@ NtlmCreateChallengeMessage(
 DWORD
 NtlmCreateResponseMessage(
     IN PNTLM_CHALLENGE_MESSAGE pChlngMsg,
-    IN PCHAR pAuthTargetName,
     IN PCSTR pUserName,
-    IN PCHAR pWorkstation,
-    IN PBYTE pOsVersion,
     IN PCSTR pPassword,
+    IN PBYTE pOsVersion,
     IN DWORD dwNtRespType,
     IN DWORD dwLmRespType,
     OUT PDWORD pdwSize,
-    OUT PNTLM_RESPONSE_MESSAGE *ppRespMsg
+    OUT PNTLM_RESPONSE_MESSAGE *ppRespMsg,
+    OUT PBYTE pLmUserSessionKey,
+    OUT PBYTE pNtlmUserSessionKey
+    );
+
+VOID
+NtlmStoreSecondaryKey(
+    IN PBYTE pMasterKey,
+    IN PBYTE pSecondaryKey,
+    IN OUT PNTLM_RESPONSE_MESSAGE pMessage
+    );
+
+VOID
+NtlmWeakenSessionKey(
+    IN PNTLM_CHALLENGE_MESSAGE pChlngMsg,
+    IN OUT PBYTE pMasterKey,
+    OUT PDWORD pcbKeyLength
     );
 
 DWORD
@@ -281,19 +295,27 @@ NtlmValidateResponseMessage(
     );
 
 DWORD
+NtlmGetAuthTargetNameFromChallenge(
+    IN PNTLM_CHALLENGE_MESSAGE pChlngMsg,
+    OUT PCHAR* ppAuthTargetName
+    );
+
+DWORD
 NtlmBuildResponse(
     IN PNTLM_CHALLENGE_MESSAGE pChlngMsg,
     IN PCSTR pPassword,
     IN DWORD dwResponseType,
     IN DWORD dwBufferSize,
+    OUT PBYTE pUserSessionKey,
     OUT PBYTE pBuffer
     );
 
-DWORD
+VOID
 NtlmBuildLmResponse(
     IN PNTLM_CHALLENGE_MESSAGE pChlngMsg,
     IN PCSTR pPassword,
-    IN DWORD dwLength,
+    IN DWORD dwResponseSize,
+    OUT PBYTE pUserSessionKey,
     OUT PBYTE pResponse
     );
 
@@ -301,7 +323,8 @@ DWORD
 NtlmBuildNtlmResponse(
     IN PNTLM_CHALLENGE_MESSAGE pChlngMsg,
     IN PCSTR pPassword,
-    IN DWORD dwLength,
+    IN DWORD dwResponseSize,
+    OUT PBYTE pUserSessionKey,
     OUT PBYTE pResponse
     );
 
@@ -343,7 +366,19 @@ NtlmCreateChallengeContext(
 DWORD
 NtlmCreateResponseContext(
     IN PLSA_CONTEXT pChlngCtxt,
-    OUT PLSA_CONTEXT *ppNtlmContext
+    IN OUT PLSA_CONTEXT *ppNtlmContext
+    );
+
+DWORD
+NtlmGetDomainFromCredential(
+    PLSA_CRED_HANDLE pCredential,
+    PSTR* ppDomain
+    );
+
+DWORD
+NtlmFixUserName(
+    IN PCSTR pOriginalUserName,
+    OUT PSTR* ppUserName
     );
 
 DWORD
@@ -362,16 +397,29 @@ NtlmCalculateNtlmV2ResponseSize(
     OUT PDWORD pdwSize
     );
 
-DWORD
-NtlmCreateMD4Digest(
-    PBYTE pBuffer,
-    DWORD dwBufferLen,
-    BYTE MD4Digest[MD4_DIGEST_LENGTH]
+VOID
+NtlmGenerateLanManagerSessionKey(
+    IN PNTLM_RESPONSE_MESSAGE pMessage,
+    IN PBYTE pLmUserSessionKey,
+    OUT PBYTE pLanManagerSessionKey
     );
 
 DWORD
+NtlmCreateMD4Digest(
+    IN PBYTE pBuffer,
+    IN DWORD dwBufferLen,
+    OUT BYTE MD4Digest[MD4_DIGEST_LENGTH]
+    );
+
+ULONG64
+NtlmCreateKeyFromHash(
+    IN PBYTE pBuffer,
+    IN DWORD dwLength
+    );
+
+VOID
 NtlmSetParityBit(
-    PULONG64 pKey
+    IN OUT PULONG64 pKey
     );
 
 DWORD

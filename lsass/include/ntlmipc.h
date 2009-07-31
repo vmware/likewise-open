@@ -107,12 +107,12 @@ typedef struct __NTLM_IPC_ERROR
 
 typedef struct __NTLM_IPC_ACCEPT_SEC_CTXT_REQ
 {
-    PLSA_CRED_HANDLE phCredential;
-    PLSA_CONTEXT_HANDLE phContext;
+    LSA_CRED_HANDLE hCredential;
+    LSA_CONTEXT_HANDLE hContext;
     PSecBufferDesc pInput;
     DWORD fContextReq;
     DWORD TargetDataRep;
-    PLSA_CONTEXT_HANDLE phNewContext;
+    LSA_CONTEXT_HANDLE hNewContext;
     PSecBufferDesc pOutput;
 } NTLM_IPC_ACCEPT_SEC_CTXT_REQ, *PNTLM_IPC_ACCEPT_SEC_CTXT_REQ;
 
@@ -146,7 +146,7 @@ typedef struct __NTLM_IPC_ACQUIRE_CREDS_RESPONSE
 
 typedef struct __NTLM_IPC_DECRYPT_MSG_REQ
 {
-    PLSA_CONTEXT_HANDLE phContext;
+    LSA_CONTEXT_HANDLE hContext;
     PSecBufferDesc pMessage;
     DWORD MessageSeqNo;
 } NTLM_IPC_DECRYPT_MSG_REQ, *PNTLM_IPC_DECRYPT_MSG_REQ;
@@ -161,7 +161,7 @@ typedef struct __NTLM_IPC_DECRYPT_MSG_RESPONSE
 
 typedef struct __NTLM_IPC_DELETE_SEC_CTXT_REQ
 {
-    PLSA_CONTEXT_HANDLE phContext;
+    LSA_CONTEXT_HANDLE hContext;
 } NTLM_IPC_DELETE_SEC_CTXT_REQ, *PNTLM_IPC_DELETE_SEC_CTXT_REQ;
 
 // No Response
@@ -170,7 +170,7 @@ typedef struct __NTLM_IPC_DELETE_SEC_CTXT_REQ
 
 typedef struct __NTLM_IPC_ENCRYPT_MSG_REQ
 {
-    PLSA_CONTEXT_HANDLE phContext;
+    LSA_CONTEXT_HANDLE hContext;
     BOOL bEncrypt;
     PSecBufferDesc pMessage;
     DWORD MessageSeqNo;
@@ -185,7 +185,7 @@ typedef struct __NTLM_IPC_ENCRYPT_MSG_RESPONSE
 
 typedef struct __NTLM_IPC_EXPORT_SEC_CTXT_REQ
 {
-    PLSA_CONTEXT_HANDLE phContext;
+    LSA_CONTEXT_HANDLE hContext;
     DWORD fFlags;
 } NTLM_IPC_EXPORT_SEC_CTXT_REQ, *PNTLM_IPC_EXPORT_SEC_CTXT_REQ;
 
@@ -199,7 +199,7 @@ typedef struct __NTLM_IPC_EXPORT_SEC_CTXT_RESPONSE
 
 typedef struct __NTLM_IPC_FREE_CREDS_REQ
 {
-    PLSA_CRED_HANDLE phCredential;
+    LSA_CRED_HANDLE hCredential;
 } NTLM_IPC_FREE_CREDS_REQ, *PNTLM_IPC_FREE_CREDS_REQ;
 
 // No Response
@@ -222,15 +222,15 @@ typedef struct __NTLM_IPC_IMPORT_SEC_CTXT_RESPONSE
 
 typedef struct __NTLM_IPC_INIT_SEC_CTXT_REQ
 {
-    PLSA_CRED_HANDLE phCredential;
-    PLSA_CONTEXT_HANDLE phContext;
+    LSA_CRED_HANDLE hCredential;
+    LSA_CONTEXT_HANDLE hContext;
     SEC_CHAR * pszTargetName;
     DWORD fContextReq;
     DWORD Reserved1;
     DWORD TargetDataRep;
     PSecBufferDesc pInput;
     DWORD Reserved2;
-    PLSA_CONTEXT_HANDLE phNewContext;
+    LSA_CONTEXT_HANDLE hNewContext;
     PSecBufferDesc pOutput;
 } NTLM_IPC_INIT_SEC_CTXT_REQ, *PNTLM_IPC_INIT_SEC_CTXT_REQ;
 
@@ -240,13 +240,14 @@ typedef struct __NTLM_IPC_INIT_SEC_CTXT_RESPONSE
     SecBufferDesc Output;
     DWORD fContextAttr;
     TimeStamp tsExpiry;
+    DWORD dwStatus;
 } NTLM_IPC_INIT_SEC_CTXT_RESPONSE, *PNTLM_IPC_INIT_SEC_CTXT_RESPONSE;
 
 /******************************************************************************/
 
 typedef struct __NTLM_IPC_MAKE_SIGN_REQ
 {
-    PLSA_CONTEXT_HANDLE phContext;
+    LSA_CONTEXT_HANDLE hContext;
     BOOL bEncrypt;
     PSecBufferDesc pMessage;
     DWORD MessageSeqNo;
@@ -261,7 +262,7 @@ typedef struct __NTLM_IPC_MAKE_SIGN_RESPONSE
 
 typedef struct __NTLM_IPC_QUERY_CREDS_REQ
 {
-    PLSA_CRED_HANDLE phCredential;
+    LSA_CRED_HANDLE hCredential;
     DWORD ulAttribute;
 } NTLM_IPC_QUERY_CREDS_REQ, *PNTLM_IPC_QUERY_CREDS_REQ;
 
@@ -275,7 +276,7 @@ typedef struct __NTLM_IPC_QUERY_CREDS_RESPONSE
 
 typedef struct __NTLM_IPC_QUERY_CTXT_REQ
 {
-    PLSA_CONTEXT_HANDLE phContext;
+    LSA_CONTEXT_HANDLE hContext;
     DWORD ulAttribute;
 } NTLM_IPC_QUERY_CTXT_REQ, *PNTLM_IPC_QUERY_CTXT_REQ;
 
@@ -289,7 +290,7 @@ typedef struct __NTLM_IPC_QUERY_CTXT_RESPONSE
 
 typedef struct __NTLM_IPC_VERIFY_SIGN_REQ
 {
-    PLSA_CONTEXT_HANDLE phContext;
+    LSA_CONTEXT_HANDLE hContext;
     PSecBufferDesc pMessage;
     DWORD MessageSeqNo;
 } NTLM_IPC_VERIFY_SIGN_REQ, *PNTLM_IPC_VERIFY_SIGN_REQ;
@@ -323,16 +324,6 @@ NtlmIpcGetProtocolSpec(
 LWMsgDispatchSpec*
 NtlmSrvGetDispatchSpec(
     VOID
-    );
-
-DWORD
-NtlmOpenServer(
-    PHANDLE phConnection
-    );
-
-DWORD
-NtlmCloseServer(
-    HANDLE hConnection
     );
 
 DWORD
@@ -452,6 +443,11 @@ NtlmSrvIpcVerifySignature(
 
 VOID
 NtlmSrvFreeCredHandle(
+    PVOID pData
+    );
+
+VOID
+NtlmSrvFreeContextHandle(
     PVOID pData
     );
 

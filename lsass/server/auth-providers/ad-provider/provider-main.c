@@ -3245,6 +3245,7 @@ AD_RefreshConfiguration(
     PSTR  pszConfigFilePath = NULL;
     LSA_AD_CONFIG config = {0};
     BOOLEAN bInLock = FALSE;
+    BOOLEAN bUpdateCap = FALSE;
 
     dwError = AD_GetConfigFilePath(&pszConfigFilePath);
     BAIL_ON_LSA_ERROR(dwError);
@@ -3279,14 +3280,18 @@ AD_RefreshConfiguration(
 
         if (gpLsaAdProviderState->config.CacheBackend == AD_CACHE_IN_MEMORY)
         {
+            bUpdateCap = TRUE;
+        }
+
+        LEAVE_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
+
+        if (bUpdateCap)
+        {
             dwError = MemCacheSetSizeCap(
                             gpLsaAdProviderState->hCacheConnection,
                             AD_GetCacheSizeCap());
             BAIL_ON_LSA_ERROR(dwError);
         }
-
-        LEAVE_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
-
         LsaAdProviderLogConfigReloadEvent();
         LsaAdProviderLogRequireMembershipOfChangeEvent(hProvider);
         LsaAdProviderLogEventLogEnableChangeEvent();

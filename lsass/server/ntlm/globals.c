@@ -66,4 +66,5 @@ LWMsgDispatchSpec gNtlmMessageHandlers[] =
 
 pthread_t gRpcSrvWorker;
 
-WIN_VERSION_INFO gXpSpoof = {5, 1, 0x280a, 0xf};
+WIN_VERSION_INFO gW2KSpoof = {5, 0, 2195, 0x0f000000};
+WIN_VERSION_INFO gXpSpoof = {5, 1, 2600, 0x0f000000};

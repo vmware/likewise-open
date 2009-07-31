@@ -95,6 +95,8 @@ main(
     pServiceName = *argv++;
     pMsg = *argv++;
 
+    NtlmOpenServer(&ghServer);
+
     dwError = CallServer(
         pServerHost,
         usPort,
@@ -108,6 +110,11 @@ main(
     BAIL_ON_LW_ERROR(dwError);
 
 error:
+    if(ghServer)
+    {
+        NtlmCloseServer(ghServer);
+    }
+
     return dwError;
 }
 
@@ -173,6 +180,7 @@ CallServer(
     nContextAcquired = 1;
 
     dwError = NtlmClientQueryContextAttributes(
+        ghServer,
         &Context,
         SECPKG_ATTR_SIZES,
         &Sizes
@@ -229,6 +237,7 @@ CallServer(
     }
 
     dwError = NtlmClientEncryptMessage(
+        ghServer,
         &Context,
         !nSignOnly,
         &InBufferDesc,
@@ -291,6 +300,7 @@ CallServer(
     WrapBuffers[1].BufferType = SECBUFFER_TOKEN;
 
     dwError = NtlmClientVerifySignature(
+        ghServer,
         &Context,
         &InBufferDesc,
         0,
@@ -303,7 +313,7 @@ CallServer(
     OutBuffer.pvBuffer = NULL;
 
     /* Delete context */
-    dwError = NtlmClientDeleteSecurityContext(&Context);
+    dwError = NtlmClientDeleteSecurityContext(ghServer, &Context);
     BAIL_ON_LW_ERROR(dwError);
 
     close(nSocket);
@@ -313,7 +323,7 @@ finish:
 error:
     if(nContextAcquired)
     {
-        NtlmClientDeleteSecurityContext(&Context);
+        NtlmClientDeleteSecurityContext(ghServer, &Context);
     }
     if(INVALID_SOCKET != nSocket)
     {
@@ -358,7 +368,7 @@ ConnectToServer(
 
     if(pHostEnt == NULL)
     {
-        dwError = LwMapErrnoToLwError(h_errno);
+        dwError = LW_ERROR_INTERNAL; //LwMapErrnoToLwError(h_errno);
         BAIL_ON_LW_ERROR(dwError);
     }
 
@@ -369,14 +379,14 @@ ConnectToServer(
     *pSocket = (INT)socket(PF_INET, SOCK_STREAM, 0);
     if(INVALID_SOCKET == *pSocket)
     {
-        dwError = LwMapErrnoToLwError(errno);
+        dwError = LW_ERROR_INTERNAL; //LwMapErrnoToLwError(errno);
         BAIL_ON_LW_ERROR(dwError);
     }
 
     dwError = connect(*pSocket, (struct sockaddr *)&sAddr, sizeof(sAddr));
     if(dwError == SOCKET_ERROR)
     {
-        dwError = LwMapErrnoToLwError(errno);
+        dwError = LW_ERROR_INTERNAL; //LwMapErrnoToLwError(errno);
         BAIL_ON_LW_ERROR(dwError);
     }
 
@@ -418,10 +428,10 @@ ClientEstablishContext(
     memset(&RecvTokenBuffer, 0, sizeof(SecBuffer));
     memset(&InputDesc, 0, sizeof(SecBufferDesc));
     memset(&OutputDesc, 0, sizeof(SecBufferDesc));
-    memset(&CredHandle, 0, sizeof(LSA_CRED_HANDLE));
-    memset(&Expiry, 0, sizeof(TimeStamp));
+    CredHandle = 0;
+    Expiry = 0;
 
-    memset(pSspiContext, 0, sizeof(LSA_CONTEXT_HANDLE));
+    *pSspiContext = NULL;
     *pRetFlags = 0;
 
     InputDesc.cBuffers = 1;
@@ -441,6 +451,7 @@ ClientEstablishContext(
     SendTokenBuffer.pvBuffer = NULL;
 
     dwError = NtlmClientAcquireCredentialsHandle(
+        ghServer,
         NULL,                       // no principal name
         pSecPkgName,                // package name
         0, //SECPKG_CRED_OUTBOUND,
@@ -466,6 +477,7 @@ ClientEstablishContext(
         // calls.
         dwLoopError =
             NtlmClientInitializeSecurityContext(
+                ghServer,
                 &CredHandle,
                 pContextHandle,
                 pServiceName,
@@ -515,19 +527,19 @@ ClientEstablishContext(
 
     } while (dwLoopError == LW_WARNING_CONTINUE_NEEDED);
 
-    NtlmClientFreeCredentialsHandle(&CredHandle);
+    NtlmClientFreeCredentialsHandle(ghServer, &CredHandle);
 
 finish:
     return dwError;
 error:
     if(nCredentialsAcquired)
     {
-        NtlmClientFreeCredentialsHandle(&CredHandle);
+        NtlmClientFreeCredentialsHandle(ghServer, &CredHandle);
     }
     if(nContextAcquired)
     {
-        NtlmClientDeleteSecurityContext(pSspiContext);
-        memset(pSspiContext, 0, sizeof(LSA_CONTEXT_HANDLE));
+        NtlmClientDeleteSecurityContext(ghServer, pSspiContext);
+        *pSspiContext = 0;
     }
     if(RecvTokenBuffer.pvBuffer)
     {
@@ -621,7 +633,7 @@ WriteAll(
 
         if(nReturn < 0)
         {
-            dwError = LwMapErrnoToLwError(errno);
+            dwError = LW_ERROR_INTERNAL; //LwMapErrnoToLwError(errno);
             BAIL_ON_LW_ERROR(dwError);
         }
 
@@ -719,7 +731,7 @@ ReadAll(
 
         if(nReturn < 0)
         {
-            dwError = LwMapErrnoToLwError(errno);
+            dwError = LW_ERROR_INTERNAL; //LwMapErrnoToLwError(errno);
             BAIL_ON_LW_ERROR(dwError);
         }
 

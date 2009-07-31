@@ -218,7 +218,7 @@ error:
 
     if (pSmbResponse)
     {
-        SMBPacketFree(pConnection->hPacketAllocator, pSmbResponse);
+        SMBPacketRelease(pConnection->hPacketAllocator, pSmbResponse);
     }
 
     goto cleanup;

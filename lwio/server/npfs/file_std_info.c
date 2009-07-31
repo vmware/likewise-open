@@ -97,10 +97,7 @@ NpfsQueryFileStandardInfo(
 
     /* Sanity checks */
 
-    ntStatus = NpfsGetCCB(
-                    pIrp->FileHandle,
-                    &pCcb
-                    );
+    ntStatus = NpfsGetCCB(pIrp->FileHandle, &pCcb);
     BAIL_ON_NT_STATUS(ntStatus);
 
     /* No access checked needed for this call */
@@ -125,12 +122,10 @@ NpfsQueryFileStandardInfo(
 
 cleanup:
 
-    if (pCcb) {
-        NpfsReleaseCCB(pCcb);
-    }
     return ntStatus;
 
 error:
+
     goto cleanup;
 }
 

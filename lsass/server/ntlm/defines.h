@@ -127,6 +127,7 @@
 
 #define NTLM_LM_MAX_PASSWORD_SIZE       14
 #define NTLM_LM_HASH_SIZE               16
+#define NTLM_SESSION_KEY_SIZE           16
 #define NTLM_LM_DES_STRING              "KGS!@#$%"
 
 // Name types

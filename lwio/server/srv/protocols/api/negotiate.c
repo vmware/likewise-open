@@ -84,7 +84,7 @@ error:
 
     if (pSmbResponse)
     {
-        SMBPacketFree(
+        SMBPacketRelease(
             pConnection->hPacketAllocator,
             pSmbResponse);
     }
@@ -169,7 +169,7 @@ error:
 
     if (pSmbResponse)
     {
-        SMBPacketFree(pConnection->hPacketAllocator, pSmbResponse);
+        SMBPacketRelease(pConnection->hPacketAllocator, pSmbResponse);
     }
 
     goto cleanup;

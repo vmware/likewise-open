@@ -49,6 +49,7 @@
 
 DWORD
 NtlmClientVerifySignature(
+    IN HANDLE hServer,
     IN PLSA_CONTEXT_HANDLE phContext,
     IN PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo,
@@ -57,12 +58,9 @@ NtlmClientVerifySignature(
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
-    HANDLE hServer = INVALID_HANDLE;
 
-    dwError = NtlmOpenServer(
-        &hServer
-        );
-    BAIL_ON_NTLM_ERROR(dwError);
+    *pbVerified = 0;
+    *pbEncrypted = 0;
 
     dwError = NtlmTransactVerifySignature(
         hServer,
@@ -73,12 +71,13 @@ NtlmClientVerifySignature(
         pbEncrypted
         );
 
+    BAIL_ON_NTLM_ERROR(dwError);
+
 cleanup:
-    if(INVALID_HANDLE != hServer)
-    {
-        NtlmCloseServer(hServer);
-    }
     return(dwError);
 error:
+    *pbVerified = 0;
+    *pbEncrypted = 0;
+
     goto cleanup;
 }

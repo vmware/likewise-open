@@ -93,7 +93,7 @@ error:
 
     if (pSmbResponse)
     {
-        SMBPacketFree(
+        SMBPacketRelease(
             pConnection->hPacketAllocator,
             pSmbResponse);
     }
@@ -367,7 +367,7 @@ error:
 
     if (pSmbResponse)
     {
-        SMBPacketFree(
+        SMBPacketRelease(
             pConnection->hPacketAllocator,
             pSmbResponse);
     }

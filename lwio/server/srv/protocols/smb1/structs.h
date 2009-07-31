@@ -147,13 +147,6 @@ typedef struct _SRV_SMB_CREATE_REQUEST
     ULONG                   ulCreateDisposition;
     ULONG                   ulCreateOptions;
 
-    ULONG                   ulTimeout;
-
-    BOOLEAN                 bExpired;
-    BOOLEAN                 bResponseSent;
-
-    PSRV_TIMER_REQUEST      pTimerRequest;
-
     ULONG                   ulResponseSequence;
 
 } SRV_SMB_CREATE_REQUEST, *PSRV_SMB_CREATE_REQUEST;
@@ -219,6 +212,52 @@ typedef struct _SRV_SMB_WRITE_REQUEST
     ULONG                   ulResponseSequence;
 
 } SRV_SMB_WRITE_REQUEST, *PSRV_SMB_WRITE_REQUEST;
+
+typedef struct _SRV_ASYNC_CONTEXT_SMB_V1
+{
+    USHORT usCommand;
+
+    union
+    {
+        PSRV_SMB_LOCK_REQUEST   pLockRequest;
+        PSRV_SMB_CREATE_REQUEST pCreateRequest;
+        PSRV_SMB_READ_REQUEST   pReadRequest;
+        PSRV_SMB_WRITE_REQUEST  pWriteRequest;
+    } data;
+
+} SRV_ASYNC_CONTEXT_SMB_V1, *PSRV_ASYNC_CONTEXT_SMB_V1;
+
+typedef VOID (*PFN_SRV_MESSAGE_DATA_RELEASE)(HANDLE hData);
+
+typedef struct __SRV_MESSAGE_SMB_V1
+{
+    PSMB_HEADER pHeader;
+    PBYTE       pParams;
+    PBYTE       pData;
+    ULONG       ulMessageSize;
+
+} SRV_MESSAGE_SMB_V1, *PSRV_MESSAGE_SMB_V1;
+
+typedef struct _SRV_EXEC_CONTEXT_SMB_V1
+{
+    LONG                         refCount;
+
+    PSMB_PACKET                  pSmbRequest;
+    PSRV_MESSAGE_SMB_V1          pMessageArray;
+    ULONG                        ulNumMessages;
+    ULONG                        ulMessageCursor;
+
+    PLWIO_SRV_CONNECTION         pConnection;
+    PLWIO_SRV_SESSION            pSession;
+    PLWIO_SRV_TREE               pTree;
+    PLWIO_SRV_FILE               pFile;
+
+    HANDLE                       hProtocolData;
+    PFN_SRV_MESSAGE_DATA_RELEASE pfnProtocolDataRelease;
+
+    PSMB_PACKET                  pSmbResponse;
+
+} SRV_EXEC_CONTEXT_SMB_V1, *PSRV_EXEC_CONTEXT_SMB_V1;
 
 typedef struct _SRV_RUNTIME_GLOBALS_SMB_V1
 {

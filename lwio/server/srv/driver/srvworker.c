@@ -118,7 +118,7 @@ SrvWorkerMain(
                 LWIO_LOG_ERROR("Failed to execute server task [code:%d]", ntStatus2);
             }
 
-            SMBPacketFree(pConnection->hPacketAllocator, pSmbRequest);
+            SMBPacketRelease(pConnection->hPacketAllocator, pSmbRequest);
             pSmbRequest = NULL;
         }
     }
@@ -127,7 +127,7 @@ cleanup:
 
     if (pSmbRequest)
     {
-        SMBPacketFree(pConnection->hPacketAllocator, pSmbRequest);
+        SMBPacketRelease(pConnection->hPacketAllocator, pSmbRequest);
         pSmbRequest = NULL;
     }
 

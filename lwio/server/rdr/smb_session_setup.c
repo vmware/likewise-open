@@ -188,7 +188,7 @@ SessionSetup(
 
         if (pResponsePacket)
         {
-            SMBPacketFree(pSocket->hPacketAllocator, pResponsePacket);
+            SMBPacketRelease(pSocket->hPacketAllocator, pResponsePacket);
             pResponsePacket = NULL;
         }
 
@@ -259,7 +259,7 @@ cleanup:
 
     if (pResponsePacket)
     {
-        SMBPacketFree(pSocket->hPacketAllocator, pResponsePacket);
+        SMBPacketRelease(pSocket->hPacketAllocator, pResponsePacket);
     }
 
     if (packet.bufferLen)

@@ -67,12 +67,6 @@ SrvBuildLockRequest(
 
 static
 VOID
-SrvReleaseLockRequest(
-    PSRV_SMB_LOCK_REQUEST pLockRequest
-    );
-
-static
-VOID
 SrvFreeLockRequest(
     PSRV_SMB_LOCK_REQUEST pLockRequest
     );
@@ -220,7 +214,7 @@ error:
 
     if (pSmbResponse)
     {
-        SMBPacketFree(
+        SMBPacketRelease(
             pConnection->hPacketAllocator,
             pSmbResponse);
     }
@@ -398,7 +392,6 @@ error:
     goto cleanup;
 }
 
-static
 VOID
 SrvReleaseLockRequest(
     PSRV_SMB_LOCK_REQUEST pLockRequest
@@ -541,7 +534,7 @@ error:
 
     if (pSmbResponse)
     {
-        SMBPacketFree(
+        SMBPacketRelease(
             pLockRequest->pConnection->hPacketAllocator,
             pSmbResponse);
     }
@@ -596,7 +589,7 @@ cleanup:
 
     if (pSmbResponse)
     {
-        SMBPacketFree(
+        SMBPacketRelease(
                 pLockRequest->pConnection->hPacketAllocator,
                 pSmbResponse);
     }
@@ -686,7 +679,7 @@ cleanup:
 
     if (pSmbResponse)
     {
-        SMBPacketFree(
+        SMBPacketRelease(
                 pLockRequest->pConnection->hPacketAllocator,
                 pSmbResponse);
     }
@@ -972,7 +965,7 @@ error:
 
     if (pSmbResponse)
     {
-        SMBPacketFree(pConnection->hPacketAllocator, pSmbResponse);
+        SMBPacketRelease(pConnection->hPacketAllocator, pSmbResponse);
     }
 
     goto cleanup;

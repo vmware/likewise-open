@@ -627,7 +627,7 @@ cleanup:
 
     if (pPacket)
     {
-        SMBPacketFree(pSocket->hPacketAllocator, pPacket);
+        SMBPacketRelease(pSocket->hPacketAllocator, pPacket);
     }
 
     LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
@@ -1087,7 +1087,7 @@ cleanup:
 error:
     if (pPacket)
     {
-        SMBPacketFree(pSocket->hPacketAllocator, pPacket);
+        SMBPacketRelease(pSocket->hPacketAllocator, pPacket);
         pPacket = NULL;
     }
 

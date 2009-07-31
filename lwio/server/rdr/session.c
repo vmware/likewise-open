@@ -462,7 +462,7 @@ cleanup:
 error:
     if (pPacket)
     {
-        SMBPacketFree(pSession->pSocket->hPacketAllocator, pPacket);
+        SMBPacketRelease(pSession->pSocket->hPacketAllocator, pPacket);
         pPacket = NULL;
     }
 
