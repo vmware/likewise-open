@@ -124,3 +124,11 @@ LsaUmRemoveUser(
 {
     return LsaUmpRemoveUser(gLsaUmState, Uid);
 }
+
+VOID
+LsaUmTriggerCheckUsersThread(
+    VOID
+    )
+{
+    LsaUmpTriggerCheckUsersThread(gLsaUmState);
+}
