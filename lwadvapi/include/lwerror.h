@@ -417,6 +417,9 @@
 
 /*Range 40700 - 41200 is reserved for registry specific error*/
 #define LW_ERROR_DUPLICATE_KEYNAME                         40700
+#define LW_ERROR_NO_ACTIVE_KEY_FOUND                       40701
+#define LW_ERROR_NO_SUCH_KEY                               40702
+#define LW_ERROR_KEY_REFCOUNT_NONZERO                      40703
 
 
 size_t
