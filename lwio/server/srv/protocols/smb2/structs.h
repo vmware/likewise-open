@@ -576,6 +576,30 @@ typedef struct __SMB2_CONTEXT
 
 } SMB2_CONTEXT, *PSMB2_CONTEXT;
 
+typedef VOID (*PFN_SRV_MESSAGE_STATE_RELEASE_SMB_V2)(HANDLE hState);
+
+typedef struct __SRV_MESSAGE_SMB_V2
+{
+    PSMB2_HEADER pHeader;
+    ULONG        ulMessageSize;
+
+} SRV_MESSAGE_SMB_V2, *PSRV_MESSAGE_SMB_V2;
+
+typedef struct _SRV_EXEC_CONTEXT_SMB_V2
+{
+    PSRV_MESSAGE_SMB_V2             pMessageArray;
+    ULONG                           ulNumMessages;
+    ULONG                           ulMessageCursor;
+
+    PLWIO_SRV_SESSION_2             pSession;
+    PLWIO_SRV_TREE_2                pTree;
+    PLWIO_SRV_FILE_2                pFile;
+
+    HANDLE                               hState;
+    PFN_SRV_MESSAGE_STATE_RELEASE_SMB_V2 pfnStateRelease;
+
+} SRV_EXEC_CONTEXT_SMB_V2;
+
 typedef struct _SRV_RUNTIME_GLOBALS_SMB_V2
 {
     pthread_mutex_t         mutex;

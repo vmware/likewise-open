@@ -385,6 +385,21 @@ typedef struct _SMB_FILE_EA_INFO_HEADER
 } __attribute__((__packed__)) SMB_FILE_EA_INFO_HEADER,
                              *PSMB_FILE_EA_INFO_HEADER;
 
+typedef struct _SRV_PROTOCOL_EXEC_CONTEXT* PSRV_PROTOCOL_EXEC_CONTEXT;
+
+typedef struct _SRV_EXEC_CONTEXT
+{
+    LONG                           refCount;
+
+    PLWIO_SRV_CONNECTION           pConnection;
+    PSMB_PACKET                    pSmbRequest;
+
+    PSRV_PROTOCOL_EXEC_CONTEXT     pProtocolContext;
+
+    PSMB_PACKET                    pSmbResponse;
+
+} SRV_EXEC_CONTEXT, *PSRV_EXEC_CONTEXT;
+
 NTSTATUS
 SrvElementsInit(
     VOID
