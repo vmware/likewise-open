@@ -44,6 +44,8 @@
 #ifndef __ELEMENTSAPI_H__
 #define __ELEMENTSAPI_H__
 
+#define SRV_LRU_CAPACITY             64
+
 #define SMB_FIND_CLOSE_AFTER_REQUEST 0x1
 #define SMB_FIND_CLOSE_IF_EOS        0x2
 #define SMB_FIND_RETURN_RESUME_KEYS  0x4
@@ -120,6 +122,8 @@ typedef struct _LWIO_SRV_TREE
 
     PSRV_SHARE_INFO   pShareInfo;
 
+    PLWIO_SRV_FILE    lruFile[SRV_LRU_CAPACITY];
+
     PLWRTL_RB_TREE    pFileCollection;
 
     USHORT            nextAvailableFid;
@@ -137,6 +141,8 @@ typedef struct _LWIO_SRV_TREE_2
 
     PSRV_SHARE_INFO   pShareInfo;
 
+    PLWIO_SRV_FILE_2  lruFile[SRV_LRU_CAPACITY];
+
     PLWRTL_RB_TREE    pFileCollection;
 
     ULONG64           ullNextAvailableFid;
@@ -151,6 +157,8 @@ typedef struct _LWIO_SRV_SESSION
     pthread_rwlock_t*  pMutex;
 
     USHORT            uid;
+
+    PLWIO_SRV_TREE    lruTree[SRV_LRU_CAPACITY];
 
     PLWRTL_RB_TREE    pTreeCollection;
 
@@ -172,6 +180,8 @@ typedef struct _LWIO_SRV_SESSION_2
     pthread_rwlock_t*  pMutex;
 
     ULONG64           ullUid;
+
+    PLWIO_SRV_TREE_2  lruTree[SRV_LRU_CAPACITY];
 
     PLWRTL_RB_TREE    pTreeCollection;
 

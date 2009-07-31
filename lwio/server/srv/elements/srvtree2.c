@@ -142,11 +142,18 @@ SrvTree2FindFile(
 
     LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pTree->mutex);
 
-    ntStatus = LwRtlRBTreeFind(
-                    pTree->pFileCollection,
-                    &ullFid,
-                    (PVOID*)&pFile);
-    BAIL_ON_NT_STATUS(ntStatus);
+    pFile = pTree->lruFile[ ullFid % SRV_LRU_CAPACITY ];
+
+    if (!pFile || (pFile->ullFid != ullFid))
+    {
+        ntStatus = LwRtlRBTreeFind(
+                        pTree->pFileCollection,
+                        &ullFid,
+                        (PVOID*)&pFile);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pTree->lruFile[ullFid % SRV_LRU_CAPACITY] = pFile;
+    }
 
     InterlockedIncrement(&pFile->refcount);
 
@@ -242,8 +249,15 @@ SrvTree2RemoveFile(
 {
     NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
+    PLWIO_SRV_FILE_2 pFile = NULL;
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pTree->mutex);
+
+    pFile = pTree->lruFile[ ullFid % SRV_LRU_CAPACITY ];
+    if (pFile && (pFile->ullFid == ullFid))
+    {
+        pTree->lruFile[ ullFid % SRV_LRU_CAPACITY ] = NULL;
+    }
 
     ntStatus = LwRtlRBTreeRemove(
                     pTree->pFileCollection,
