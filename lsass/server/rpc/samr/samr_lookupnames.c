@@ -245,7 +245,7 @@ SamrSrvLookupNames(
 
     if (status == STATUS_SUCCESS) {
         if (bNamesFound && bNamesNotFound) {
-            status = STATUS_SOME_UNMAPPED;
+            status = LW_STATUS_SOME_NOT_MAPPED;
 
         } else if (!bNamesFound && bNamesNotFound) {
             status = STATUS_NONE_MAPPED;

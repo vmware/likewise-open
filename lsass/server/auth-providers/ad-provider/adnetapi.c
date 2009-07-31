@@ -327,10 +327,6 @@ error:
 #define STATUS_UNHANDLED_EXCEPTION 0xc0000144
 #endif
 
-#ifndef STATUS_SOME_UNMAPPED
-#define STATUS_SOME_UNMAPPED 0x00000107
-#endif
-
 static
 ADAccountType
 GetObjectType(
@@ -518,7 +514,7 @@ AD_NetLookupObjectSidsByNames(
                    &dwFoundSidsCount);
     if (status != 0)
     {
-        if (STATUS_SOME_UNMAPPED == status)
+        if (LW_STATUS_SOME_NOT_MAPPED == status)
         {
             dwError = 0;
             LSA_LOG_DEBUG("LsaLookupNames2() succeeded incomplete results with %d (0x%08x) -- Partial results returned (got %u, expected %u)",
@@ -551,7 +547,7 @@ AD_NetLookupObjectSidsByNames(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    // For incomplete results (STATUS_SOME_UNMAPPED == status), leave ppTranslatedSids[i] as NULL for those NOT found
+    // For incomplete results (LW_STATUS_SOME_NOT_MAPPED == status), leave ppTranslatedSids[i] as NULL for those NOT found
     // to maintain ppszNames[i] -> ppTranslatedSids[i]
     dwError = LsaAllocateMemory(
                     sizeof(*ppTranslatedSids)*dwNamesCount,
@@ -843,7 +839,7 @@ AD_NetLookupObjectNamesBySids(
                    &dwFoundNamesCount);
     if (status != 0)
     {
-        if (STATUS_SOME_UNMAPPED == status)
+        if (LW_STATUS_SOME_NOT_MAPPED == status)
         {
             dwError = 0;
             LSA_LOG_DEBUG("LsaLookupSids() succeeded incomplete results with %d (0x%08x) -- Partial results returned (got %u, expected %u)",
@@ -894,7 +890,7 @@ AD_NetLookupObjectNamesBySids(
         }
     }
 
-    // For incomplete results (STATUS_SOME_UNMAPPED == status), leave ppTranslatedNames[i] as NULL for those NOT found
+    // For incomplete results (LW_STATUS_SOME_NOT_MAPPED == status), leave ppTranslatedNames[i] as NULL for those NOT found
     // to maintain ppszObjectSids[i] -> ppTranslatedNames[i]
     dwError = LsaAllocateMemory(
                     sizeof(*ppTranslatedNames)*dwSidsCount,

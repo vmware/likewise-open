@@ -53,12 +53,12 @@
         break;                                           \
     case STATUS_NONE_MAPPED:                             \
         if ((status) == STATUS_SUCCESS ||                \
-            (status) == STATUS_SOME_UNMAPPED)            \
+            (status) == LW_STATUS_SOME_NOT_MAPPED)            \
         {                                                \
-            (lookup) = STATUS_SOME_UNMAPPED;             \
+            (lookup) = LW_STATUS_SOME_NOT_MAPPED;             \
         }                                                \
-    case STATUS_SOME_UNMAPPED:                           \
-        (lookup) = STATUS_SOME_UNMAPPED;                 \
+    case LW_STATUS_SOME_NOT_MAPPED:                           \
+        (lookup) = LW_STATUS_SOME_NOT_MAPPED;                 \
     }
 
 
@@ -223,7 +223,7 @@ LsaSrvLookupNames3(
                                  &dwRemoteSidsCount);
 
         if (status != STATUS_SUCCESS ||
-            status != STATUS_SOME_UNMAPPED ||
+            status != LW_STATUS_SOME_NOT_MAPPED ||
             status != STATUS_NONE_MAPPED) {
             BAIL_ON_NTSTATUS_ERROR(status);
         }
@@ -305,7 +305,7 @@ LsaSrvLookupNames3(
                                  &dwTypes,
                                  &dwCount);
         if (status != STATUS_SUCCESS ||
-            status != STATUS_SOME_UNMAPPED ||
+            status != LW_STATUS_SOME_NOT_MAPPED ||
             status != STATUS_NONE_MAPPED) {
             BAIL_ON_NTSTATUS_ERROR(status);
         }
@@ -361,7 +361,7 @@ LsaSrvLookupNames3(
                                  &dwTypes,
                                  &dwCount);
         if (status != STATUS_SUCCESS ||
-            status != STATUS_SOME_UNMAPPED ||
+            status != LW_STATUS_SOME_NOT_MAPPED ||
             status != STATUS_NONE_MAPPED) {
             BAIL_ON_NTSTATUS_ERROR(status);
         }

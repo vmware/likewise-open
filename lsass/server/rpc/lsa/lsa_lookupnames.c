@@ -101,7 +101,7 @@ LsaSrvLookupNames(
                                 &dwCount,
                                 0, 0);
     if (status != STATUS_SUCCESS ||
-        status != STATUS_SOME_UNMAPPED ||
+        status != LW_STATUS_SOME_NOT_MAPPED ||
         status != STATUS_NONE_MAPPED) {
         BAIL_ON_NTSTATUS_ERROR(status);
     }
