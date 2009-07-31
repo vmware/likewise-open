@@ -281,6 +281,12 @@ typedef struct _LWIO_SRV_CONNECTION
     HANDLE              hGssContext;
     HANDLE              hGssNegotiate;
 
+    union
+    {
+        PLWIO_SRV_SESSION   lruSession[SRV_LRU_CAPACITY];
+        PLWIO_SRV_SESSION_2 lruSession2[SRV_LRU_CAPACITY];
+    };
+
     PLWRTL_RB_TREE      pSessionCollection;
 
 } LWIO_SRV_CONNECTION, *PLWIO_SRV_CONNECTION;
