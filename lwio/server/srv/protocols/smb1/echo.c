@@ -126,7 +126,7 @@ error:
 
     if (pSmbResponse)
     {
-        SMBPacketFree(
+        SMBPacketRelease(
             pConnection->hPacketAllocator,
             pSmbResponse);
     }

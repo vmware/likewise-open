@@ -218,7 +218,7 @@ cleanup:
 
     if (pResponsePacket)
     {
-        SMBPacketFree(
+        SMBPacketRelease(
             pTree->pSession->pSocket->hPacketAllocator,
             pResponsePacket);
     }

@@ -573,7 +573,7 @@ SrvConnectionRelease(
     {
         if (pConnection->readerState.pRequestPacket)
         {
-            SMBPacketFree(
+            SMBPacketRelease(
                 pConnection->hPacketAllocator,
                 pConnection->readerState.pRequestPacket);
         }

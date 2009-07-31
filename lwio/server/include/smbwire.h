@@ -488,6 +488,8 @@ typedef enum
 
 typedef struct
 {
+    LONG            refCount;
+
     NETBIOS_HEADER *pNetBIOSHeader;
 
     SMB_PROTOCOL_VERSION protocolVer;
@@ -2142,24 +2144,24 @@ SMBIsAndXCommand(
 NTSTATUS
 SMBPacketCreateAllocator(
     IN ULONG ulNumMaxPackets,
-    OUT PLWIO_PACKET_ALLOCATOR* phPacketAllocator
+    OUT PLWIO_PACKET_ALLOCATOR* ppPacketAllocator
     );
 
 NTSTATUS
 SMBPacketAllocate(
-    IN PLWIO_PACKET_ALLOCATOR hPacketAllocator,
+    IN PLWIO_PACKET_ALLOCATOR pPacketAllocator,
     OUT PSMB_PACKET* ppPacket
     );
 
 VOID
-SMBPacketFree(
-    IN PLWIO_PACKET_ALLOCATOR hPacketAllocator,
+SMBPacketRelease(
+    IN PLWIO_PACKET_ALLOCATOR pPacketAllocator,
     IN OUT PSMB_PACKET pPacket
     );
 
 NTSTATUS
 SMBPacketBufferAllocate(
-    IN PLWIO_PACKET_ALLOCATOR hPacketAllocator,
+    IN PLWIO_PACKET_ALLOCATOR pPacketAllocator,
     IN size_t len,
     OUT uint8_t** ppBuffer,
     OUT size_t* pAllocatedLen
@@ -2167,7 +2169,7 @@ SMBPacketBufferAllocate(
 
 VOID
 SMBPacketBufferFree(
-    IN PLWIO_PACKET_ALLOCATOR hPacketAllocator,
+    IN PLWIO_PACKET_ALLOCATOR pPacketAllocator,
     OUT uint8_t* pBuffer,
     IN size_t bufferLen
     );
@@ -2179,7 +2181,7 @@ SMBPacketResetBuffer(
 
 VOID
 SMBPacketFreeAllocator(
-    IN OUT PLWIO_PACKET_ALLOCATOR hPacketAllocator
+    IN OUT PLWIO_PACKET_ALLOCATOR pPacketAllocator
     );
 
 VOID

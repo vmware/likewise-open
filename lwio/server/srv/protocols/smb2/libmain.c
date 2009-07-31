@@ -377,7 +377,7 @@ cleanup:
 
     if (request.pResponse)
     {
-        SMBPacketFree(request.pConnection->hPacketAllocator, request.pResponse);
+        SMBPacketRelease(request.pConnection->hPacketAllocator, request.pResponse);
     }
 
     return ntStatus;

@@ -82,7 +82,7 @@ SMBIsAndXCommand(
 NTSTATUS
 SMBPacketCreateAllocator(
     IN ULONG ulNumMaxPackets,
-    OUT PLWIO_PACKET_ALLOCATOR* phPacketAllocator
+    OUT PLWIO_PACKET_ALLOCATOR* ppPacketAllocator
     )
 {
     NTSTATUS ntStatus = 0;
@@ -102,7 +102,7 @@ SMBPacketCreateAllocator(
     pPacketAllocator->pMutex = &pPacketAllocator->mutex;
     pPacketAllocator->ulNumMaxPackets = ulNumMaxPackets;
 
-    *phPacketAllocator = (HANDLE)pPacketAllocator;
+    *ppPacketAllocator = pPacketAllocator;
 
 cleanup:
 
@@ -110,23 +110,20 @@ cleanup:
 
 error:
 
-    *phPacketAllocator = NULL;
+    *ppPacketAllocator = NULL;
 
     goto cleanup;
 }
 
 NTSTATUS
 SMBPacketAllocate(
-    IN PLWIO_PACKET_ALLOCATOR hPacketAllocator,
+    IN PLWIO_PACKET_ALLOCATOR pPacketAllocator,
     OUT PSMB_PACKET* ppPacket
     )
 {
     NTSTATUS ntStatus = 0;
-    PLWIO_PACKET_ALLOCATOR pPacketAllocator = NULL;
     BOOLEAN bInLock = FALSE;
     PSMB_PACKET pPacket = NULL;
-
-    pPacketAllocator = hPacketAllocator;
 
     LWIO_LOCK_MUTEX(bInLock, &pPacketAllocator->mutex);
 
@@ -142,11 +139,11 @@ SMBPacketAllocate(
     }
     else
     {
-        ntStatus = SMBAllocateMemory(
-                        sizeof(SMB_PACKET),
-                        (PVOID *) &pPacket);
+        ntStatus = SMBAllocateMemory(sizeof(SMB_PACKET), (PVOID *) &pPacket);
         BAIL_ON_NT_STATUS(ntStatus);
     }
+
+    InterlockedIncrement(&pPacket->refCount);
 
     *ppPacket = pPacket;
 
@@ -164,55 +161,58 @@ error:
 }
 
 VOID
-SMBPacketFree(
-    IN PLWIO_PACKET_ALLOCATOR hPacketAllocator,
-    IN OUT PSMB_PACKET pPacket
+SMBPacketRelease(
+    IN PLWIO_PACKET_ALLOCATOR pPacketAllocator,
+    IN OUT PSMB_PACKET        pPacket
     )
 {
-    PLWIO_PACKET_ALLOCATOR pPacketAllocator = NULL;
-    BOOLEAN bInLock = FALSE;
-
-    if (pPacket->pRawBuffer)
+    if (InterlockedDecrement(&pPacket->refCount) == 0)
     {
-        SMBPacketBufferFree(
-            hPacketAllocator,
-            pPacket->pRawBuffer,
-            pPacket->bufferLen);
+        BOOLEAN bInLock = FALSE;
+
+        if (pPacket->pRawBuffer)
+        {
+            SMBPacketBufferFree(
+                pPacketAllocator,
+                pPacket->pRawBuffer,
+                pPacket->bufferLen);
+
+            pPacket->pRawBuffer = NULL;
+            pPacket->bufferLen = 0;
+        }
+
+        LWIO_LOCK_MUTEX(bInLock, &pPacketAllocator->mutex);
+
+        /* If the len is greater than our current allocator len, adjust */
+        /* @todo: make free list configurable */
+        if (pPacketAllocator->freePacketCount < pPacketAllocator->ulNumMaxPackets)
+        {
+            assert(sizeof(SMB_PACKET) > sizeof(SMB_STACK));
+            SMBStackPushNoAlloc(&pPacketAllocator->pFreePacketStack,
+                                (PSMB_STACK) pPacket);
+            pPacketAllocator->freePacketCount++;
+        }
+        else
+        {
+            SMBFreeMemory(pPacket);
+        }
+
+        LWIO_UNLOCK_MUTEX(bInLock, &pPacketAllocator->mutex);
     }
-
-    pPacketAllocator = hPacketAllocator;
-
-    LWIO_LOCK_MUTEX(bInLock, &pPacketAllocator->mutex);
-
-    /* If the len is greater than our current allocator len, adjust */
-    /* @todo: make free list configurable */
-    if (pPacketAllocator->freePacketCount < pPacketAllocator->ulNumMaxPackets)
-    {
-        assert(sizeof(SMB_PACKET) > sizeof(SMB_STACK));
-        SMBStackPushNoAlloc(&pPacketAllocator->pFreePacketStack, (PSMB_STACK) pPacket);
-        pPacketAllocator->freePacketCount++;
-    }
-    else
-    {
-        SMBFreeMemory(pPacket);
-    }
-
-    LWIO_UNLOCK_MUTEX(bInLock, &pPacketAllocator->mutex);
 }
 
 NTSTATUS
 SMBPacketBufferAllocate(
-    IN PLWIO_PACKET_ALLOCATOR hPacketAllocator,
-    IN size_t len,
-    OUT uint8_t** ppBuffer,
-    OUT size_t* pAllocatedLen
+    IN  PLWIO_PACKET_ALLOCATOR pPacketAllocator,
+    IN  size_t                 len,
+    OUT uint8_t**              ppBuffer,
+    OUT size_t*                pAllocatedLen
     )
 {
     NTSTATUS ntStatus = 0;
-    PLWIO_PACKET_ALLOCATOR pPacketAllocator = NULL;
+    uint8_t* pBuffer = NULL;
+    size_t   allocatedLen  = 0;
     BOOLEAN bInLock = FALSE;
-
-    pPacketAllocator = hPacketAllocator;
 
     LWIO_LOCK_MUTEX(bInLock, &pPacketAllocator->mutex);
 
@@ -220,28 +220,34 @@ SMBPacketBufferAllocate(
     if (len > pPacketAllocator->freeBufferLen)
     {
         SMBStackFree(pPacketAllocator->pFreeBufferStack);
-        pPacketAllocator->pFreeBufferStack = NULL;
 
+        pPacketAllocator->pFreeBufferStack = NULL;
         pPacketAllocator->freeBufferLen = len;
     }
 
     if (pPacketAllocator->pFreeBufferStack)
     {
-        *ppBuffer = (uint8_t *) pPacketAllocator->pFreeBufferStack;
-        *pAllocatedLen = pPacketAllocator->freeBufferLen;
+        pBuffer = (uint8_t *) pPacketAllocator->pFreeBufferStack;
+        allocatedLen = pPacketAllocator->freeBufferLen;
+
         SMBStackPopNoFree(&pPacketAllocator->pFreeBufferStack);
-        memset(*ppBuffer, 0, *pAllocatedLen);
+
         pPacketAllocator->freeBufferCount--;
+
+        memset(pBuffer, 0, allocatedLen);
     }
     else
     {
         ntStatus = SMBAllocateMemory(
                         pPacketAllocator->freeBufferLen,
-                        (PVOID *) ppBuffer);
+                        (PVOID *) &pBuffer);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        *pAllocatedLen = pPacketAllocator->freeBufferLen;
+        allocatedLen = pPacketAllocator->freeBufferLen;
     }
+
+    *ppBuffer = pBuffer;
+    *pAllocatedLen = allocatedLen;
 
 cleanup:
 
@@ -251,20 +257,20 @@ cleanup:
 
 error:
 
+    *ppBuffer = NULL;
+    *pAllocatedLen = 0;
+
     goto cleanup;
 }
 
 VOID
 SMBPacketBufferFree(
-    IN PLWIO_PACKET_ALLOCATOR hPacketAllocator,
-    OUT uint8_t* pBuffer,
-    IN size_t bufferLen
+    IN  PLWIO_PACKET_ALLOCATOR pPacketAllocator,
+    OUT uint8_t*               pBuffer,
+    IN  size_t                 bufferLen
     )
 {
     BOOLEAN bInLock = FALSE;
-    PLWIO_PACKET_ALLOCATOR pPacketAllocator = NULL;
-
-    pPacketAllocator = hPacketAllocator;
 
     LWIO_LOCK_MUTEX(bInLock, &pPacketAllocator->mutex);
 
@@ -300,28 +306,26 @@ SMBPacketResetBuffer(
 
 VOID
 SMBPacketFreeAllocator(
-    IN OUT PLWIO_PACKET_ALLOCATOR hPacketAllocator
+    IN OUT PLWIO_PACKET_ALLOCATOR pPacketAllocator
     )
 {
-    PLWIO_PACKET_ALLOCATOR pAllocator = hPacketAllocator;
-
-    if (pAllocator->pMutex)
+    if (pPacketAllocator->pMutex)
     {
-        pthread_mutex_destroy(&pAllocator->mutex);
-        pAllocator->pMutex = NULL;
+        pthread_mutex_destroy(&pPacketAllocator->mutex);
+        pPacketAllocator->pMutex = NULL;
     }
 
-    if (pAllocator->pFreeBufferStack)
+    if (pPacketAllocator->pFreeBufferStack)
     {
-        SMBStackFree(pAllocator->pFreeBufferStack);
+        SMBStackFree(pPacketAllocator->pFreeBufferStack);
     }
 
-    if (pAllocator->pFreePacketStack)
+    if (pPacketAllocator->pFreePacketStack)
     {
-        SMBStackFree(pAllocator->pFreePacketStack);
+        SMBStackFree(pPacketAllocator->pFreePacketStack);
     }
 
-    SMBFreeMemory(pAllocator);
+    SMBFreeMemory(pPacketAllocator);
 }
 
 static
@@ -507,9 +511,17 @@ SMBPacketVerifySignature(
 
     assert (sizeof(origSignature) == sizeof(pPacket->pSMBHeader->extra.securitySignature));
 
-    memcpy(origSignature, pPacket->pSMBHeader->extra.securitySignature, sizeof(pPacket->pSMBHeader->extra.securitySignature));
-    memset(&pPacket->pSMBHeader->extra.securitySignature[0], 0, sizeof(pPacket->pSMBHeader->extra.securitySignature));
-    memcpy(&pPacket->pSMBHeader->extra.securitySignature[0], &littleEndianSequence, sizeof(littleEndianSequence));
+    memcpy(origSignature,
+           pPacket->pSMBHeader->extra.securitySignature,
+           sizeof(pPacket->pSMBHeader->extra.securitySignature));
+
+    memset(&pPacket->pSMBHeader->extra.securitySignature[0],
+           0,
+           sizeof(pPacket->pSMBHeader->extra.securitySignature));
+
+    memcpy(&pPacket->pSMBHeader->extra.securitySignature[0],
+           &littleEndianSequence,
+           sizeof(littleEndianSequence));
 
     MD5_Init(&md5Value);
 
@@ -518,7 +530,9 @@ SMBPacketVerifySignature(
         MD5_Update(&md5Value, pSessionKey, ulSessionKeyLength);
     }
 
-    MD5_Update(&md5Value, (PBYTE)pPacket->pSMBHeader, pPacket->pNetBIOSHeader->len);
+    MD5_Update(&md5Value,
+               (PBYTE)pPacket->pSMBHeader,
+               pPacket->pNetBIOSHeader->len);
     MD5_Final(digest, &md5Value);
 
     if (memcmp(&origSignature[0], &digest[0], sizeof(origSignature)))
@@ -527,7 +541,9 @@ SMBPacketVerifySignature(
     }
 
     // restore signature
-    memcpy(&pPacket->pSMBHeader->extra.securitySignature[0], &origSignature[0], sizeof(origSignature));
+    memcpy(&pPacket->pSMBHeader->extra.securitySignature[0],
+           &origSignature[0],
+           sizeof(origSignature));
 
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -645,8 +661,13 @@ SMBPacketSign(
     MD5_CTX md5Value;
     uint32_t littleEndianSequence = SMB_HTOL32(ulSequence);
 
-    memset(&pPacket->pSMBHeader->extra.securitySignature[0], 0, sizeof(pPacket->pSMBHeader->extra.securitySignature));
-    memcpy(&pPacket->pSMBHeader->extra.securitySignature[0], &littleEndianSequence, sizeof(littleEndianSequence));
+    memset(&pPacket->pSMBHeader->extra.securitySignature[0],
+           0,
+           sizeof(pPacket->pSMBHeader->extra.securitySignature));
+
+    memcpy(&pPacket->pSMBHeader->extra.securitySignature[0],
+           &littleEndianSequence,
+           sizeof(littleEndianSequence));
 
     MD5_Init(&md5Value);
 
@@ -658,7 +679,9 @@ SMBPacketSign(
     MD5_Update(&md5Value, (PBYTE)pPacket->pSMBHeader, ntohl(pPacket->pNetBIOSHeader->len));
     MD5_Final(digest, &md5Value);
 
-    memcpy(&pPacket->pSMBHeader->extra.securitySignature[0], &digest[0], sizeof(pPacket->pSMBHeader->extra.securitySignature));
+    memcpy(&pPacket->pSMBHeader->extra.securitySignature[0],
+           &digest[0],
+           sizeof(pPacket->pSMBHeader->extra.securitySignature));
 
     return ntStatus;
 }
@@ -738,7 +761,10 @@ SMBPacketAppendUnicodeString(
     }
 
     pOutputBuffer = (wchar16_t *) (pBuffer + bufferUsed);
-    writeLength = wc16stowc16les(pOutputBuffer, pwszString, bytesNeeded / sizeof(pwszString[0]));
+    writeLength = wc16stowc16les(pOutputBuffer,
+                                 pwszString,
+                                 bytesNeeded / sizeof(pwszString[0]));
+
     // Verify that expected write length was returned.  Note that the
     // returned length does not include the NULL though the NULL gets
     // written out.

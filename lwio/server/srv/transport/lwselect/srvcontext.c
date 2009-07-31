@@ -96,7 +96,7 @@ SrvContextFree(
     {
         if (pIOContext->pRequest)
         {
-            SMBPacketFree(
+            SMBPacketRelease(
                     pIOContext->pConnection->hPacketAllocator,
                     pIOContext->pRequest);
         }
