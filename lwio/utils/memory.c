@@ -90,19 +90,7 @@ SMBAllocateMemory(
     PVOID * ppMemory
     )
 {
-    DWORD dwError = 0;
-    PVOID pMemory = NULL;
-
-    pMemory = malloc(dwSize);
-    if (!pMemory){
-        dwError = ENOMEM;
-        *ppMemory = NULL;
-    }else {
-        memset(pMemory,0, dwSize);
-        *ppMemory = pMemory;
-    }
-
-    return dwError;
+    return LwIoAllocateMemory((size_t) dwSize, ppMemory);
 }
 
 DWORD
@@ -112,23 +100,7 @@ SMBReallocMemory(
     DWORD dwSize
     )
 {
-    DWORD dwError = 0;
-    PVOID pNewMemory = NULL;
-
-    if (pMemory == NULL) {
-       pNewMemory = malloc(dwSize);
-       memset(pNewMemory, 0, dwSize);
-    }else {
-       pNewMemory = realloc(pMemory, dwSize);
-    }
-    if (!pNewMemory){
-       dwError = ENOMEM;
-       *ppNewMemory = NULL;
-    }else {
-       *ppNewMemory = pNewMemory;
-    }
-
-    return dwError;
+    return LwIoReallocMemory(pMemory, (size_t) dwSize, ppNewMemory);
 }
 
 VOID
@@ -136,7 +108,7 @@ SMBFreeMemory(
     PVOID pMemory
     )
 {
-    free(pMemory);
+    LwIoFreeMemory(pMemory);
 }
 
 
