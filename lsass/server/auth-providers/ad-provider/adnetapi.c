@@ -54,18 +54,6 @@ static handle_t ghSchannelBinding = NULL;
 static pthread_mutex_t gSchannelLock = PTHREAD_MUTEX_INITIALIZER;
 
 static
-BOOLEAN
-AD_NtStatusIsConnectionError(
-    NTSTATUS status
-    );
-
-static
-BOOLEAN
-AD_WinErrorIsConnectionError(
-    WINERROR winError
-    );
-
-static
 DWORD
 AD_GetSystemAccessToken(
     LW_PIO_ACCESS_TOKEN* ppAccessToken
@@ -506,7 +494,7 @@ AD_NetLookupObjectSidsByNames(
     {
         LSA_LOG_DEBUG("LsaOpenPolicy2() failed with %d (0x%08x)", status, status);
         dwError = LW_ERROR_RPC_OPENPOLICY_FAILED;
-        if (AD_NtStatusIsConnectionError(status))
+        if (IsDceRpcConnError(status))
         {
             bIsNetworkError = TRUE;
         }
@@ -536,7 +524,7 @@ AD_NetLookupObjectSidsByNames(
         {
             LSA_LOG_DEBUG("LsaLookupNames2() failed with %d (0x%08x)", status, status);
             dwError = LW_ERROR_RPC_LSA_LOOKUPNAME2_FAILED;
-            if (AD_NtStatusIsConnectionError(status))
+            if (IsDceRpcConnError(status))
             {
                 bIsNetworkError = TRUE;
             }
@@ -833,7 +821,7 @@ AD_NetLookupObjectNamesBySids(
     {
         LSA_LOG_DEBUG("LsaOpenPolicy2() failed with %d (0x%08x)", status, status);
         dwError = LW_ERROR_RPC_OPENPOLICY_FAILED;
-        if (AD_NtStatusIsConnectionError(status))
+        if (IsDceRpcConnError(status))
         {
             bIsNetworkError = TRUE;
         }
@@ -862,7 +850,7 @@ AD_NetLookupObjectNamesBySids(
             LSA_LOG_DEBUG("LsaLookupSids() failed with %d (0x%08x)", status, status);
 
             dwError = LW_ERROR_RPC_LSA_LOOKUPSIDS_FAILED;
-            if (AD_NtStatusIsConnectionError(status))
+            if (IsDceRpcConnError(status))
             {
                 bIsNetworkError = TRUE;
             }
@@ -1106,8 +1094,8 @@ AD_DsEnumerateDomainTrusts(
         LSA_LOG_DEBUG("Failed to enumerate trusts at %s (error %d)",
                       pszDomainControllerName, winError);
         dwError = LW_ERROR_ENUM_DOMAIN_TRUSTS_FAILED;
-
-        if (AD_WinErrorIsConnectionError(winError))
+        // ISSUE-2008/08/25-dalmeida -- Bad error propagation.
+        if (IsDceRpcConnError(winError))
         {
             bIsNetworkError = TRUE;
         }
@@ -1229,7 +1217,7 @@ AD_DsGetDcName(
                       pszServerName,
                       winError);
         dwError = LW_ERROR_GET_DC_NAME_FAILED;
-        if (AD_WinErrorIsConnectionError(winError))
+        if (IsDceRpcConnError(winError))
         {
             bIsNetworkError = TRUE;
         }
@@ -1727,36 +1715,6 @@ AD_ClearSchannelState(
     }
 
     pthread_mutex_unlock(&gSchannelLock);
-}
-
-static
-BOOLEAN
-AD_NtStatusIsConnectionError(
-    NTSTATUS status
-    )
-{
-    switch (status)
-    {
-    case STATUS_INVALID_CONNECTION:
-        return TRUE;
-    default:
-        return FALSE;
-    }
-}
-
-static
-BOOLEAN
-AD_WinErrorIsConnectionError(
-    WINERROR winError
-    )
-{
-    switch (winError)
-    {
-    case ERROR_UNEXP_NET_ERR:
-        return TRUE;
-    default:
-        return FALSE;
-    }
 }
 
 /*
