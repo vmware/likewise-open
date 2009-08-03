@@ -48,7 +48,7 @@ NetpGetDcName(
     dns_domain_name_mbs = awc16stombs(DnsDomainName);
     if (!dns_domain_name_mbs)
     {
-        dwError = LWNET_ERROR_OUT_OF_MEMORY;
+        dwError = ERROR_OUTOFMEMORY;
         goto cleanup;
     }
 
