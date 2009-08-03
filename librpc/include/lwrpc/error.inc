@@ -40,7 +40,7 @@
 /* Win32 codes*/
 #ifdef __ERROR_WIN32__
 
-#include <compat/winerror.h>
+#include <winerror.h>
 
 #endif
 
