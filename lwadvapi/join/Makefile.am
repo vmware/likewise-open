@@ -5,7 +5,6 @@ liblwadvapi_join_la_SOURCES = \
        krbtgt.c \
        lwkrb5.c \
        lwldap.c   \
-       lwfile.c   \
        lwsecurityidentifier.c   \
        lwtime.c
 
