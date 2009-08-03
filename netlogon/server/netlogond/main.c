@@ -164,7 +164,7 @@ LWNetStartupPreCheck(
 
     if (iter >= STARTUP_PRE_CHECK_WAIT)
     {
-        dwError = LWNET_ERROR_FAILED_STARTUP_PREREQUISITE_CHECK;
+        dwError = ERROR_SERVICE_DEPENDENCY_FAIL;
         LWNET_LOG_ERROR("LWNet start up pre-check failed to get updated hostname after 2 minutes of waiting [Code:%d]", dwError);
         BAIL_ON_LWNET_ERROR(dwError);
     }
@@ -534,7 +534,7 @@ LWNetSrvGetCachePath(
     LWNET_LOCK_SERVERINFO(bInLock);
     
     if (IsNullOrEmptyString(gpServerInfo->szCachePath)) {
-      dwError = LWNET_ERROR_INVALID_CACHE_PATH;
+      dwError = ERROR_PATH_NOT_FOUND;
       BAIL_ON_LWNET_ERROR(dwError);
     }
     
@@ -570,7 +570,7 @@ LWNetSrvGetPrefixPath(
     LWNET_LOCK_SERVERINFO(bInLock);
     
     if (IsNullOrEmptyString(gpServerInfo->szPrefixPath)) {
-      dwError = LWNET_ERROR_INVALID_PREFIX_PATH;
+      dwError = ERROR_PATH_NOT_FOUND;
       BAIL_ON_LWNET_ERROR(dwError);
     }
     
@@ -922,7 +922,7 @@ LWNetGetErrorMessageForLoggingEvent(
     PSTR  pszErrorMsg = NULL;
     PSTR  pszErrorBuffer = NULL;
 
-    dwErrorBufferSize = LWNetGetErrorString(dwErrCode, NULL, 0);
+    dwErrorBufferSize = LwGetErrorString(dwErrCode, NULL, 0);
 
     if (!dwErrorBufferSize)
         goto cleanup;
@@ -932,7 +932,7 @@ LWNetGetErrorMessageForLoggingEvent(
                 (PVOID*)&pszErrorBuffer);
     BAIL_ON_LWNET_ERROR(dwError);
 
-    dwLen = LWNetGetErrorString(dwErrCode, pszErrorBuffer, dwErrorBufferSize);
+    dwLen = LwGetErrorString(dwErrCode, pszErrorBuffer, dwErrorBufferSize);
 
     if ((dwLen == dwErrorBufferSize) && !IsNullOrEmptyString(pszErrorBuffer))
     {

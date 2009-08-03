@@ -48,6 +48,8 @@
 #ifndef __LWNET_DEF_H__
 #define __LWNET_DEF_H__
 
+#include <winerror.h>
+
 #ifndef WIN32
 #define PATH_SEPARATOR_STR "/"
 #else
@@ -168,19 +170,19 @@
 
 #define BAIL_ON_INVALID_STRING(pszParam)             \
         if (IsNullOrEmptyString(pszParam)) {         \
-           dwError = LWNET_ERROR_INVALID_PARAMETER; \
+           dwError = ERROR_INVALID_PARAMETER; \
            BAIL_ON_LWNET_ERROR(dwError);            \
         }
 
 #define BAIL_ON_INVALID_HANDLE(hParam)               \
         if (hParam == (HANDLE)NULL) {                \
-           dwError = LWNET_ERROR_INVALID_PARAMETER; \
+           dwError = ERROR_INVALID_PARAMETER; \
            BAIL_ON_LWNET_ERROR(dwError);            \
         }
 
 #define BAIL_ON_INVALID_POINTER(p)                   \
         if (NULL == p) {                             \
-           dwError = LWNET_ERROR_INVALID_PARAMETER; \
+           dwError = ERROR_INVALID_PARAMETER; \
            BAIL_ON_LWNET_ERROR(dwError);            \
         }
 

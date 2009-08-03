@@ -138,14 +138,14 @@ main(
     if (!localtime_r(&dcTimeCopy, &dcDateTime))
     {
         fprintf(stderr, "Error: Failed to convert DC time\n");
-        dwError = LWNET_ERROR_FAILED_TIME_CONVERSION;
+        dwError = ERROR_INVALID_TIME;
         BAIL_ON_LWNET_ERROR(dwError);
     }
 
     if (!strftime(szTime, sizeof(szTime)-1, pszTimeFormat, &dcDateTime))
     {
         fprintf(stderr, "Error: Failed to format DC time\n");
-        dwError = LWNET_ERROR_FAILED_TIME_CONVERSION;
+        dwError = ERROR_INVALID_TIME;
         BAIL_ON_LWNET_ERROR(dwError);
     }
     

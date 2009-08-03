@@ -443,13 +443,13 @@ LWNetMbsToWc16s(
     PWSTR pszOutput = NULL;
     
     if (!pszInput) {
-        dwError = LWNET_ERROR_INVALID_PARAMETER;
+        dwError = ERROR_INVALID_PARAMETER;
         BAIL_ON_LWNET_ERROR(dwError);
     }
     
     pszOutput = ambstowc16s(pszInput);
     if (!pszOutput) {
-        dwError = LWNET_ERROR_STRING_CONV_FAILED;
+        dwError = ERROR_ILLEGAL_CHARACTER;
         BAIL_ON_LWNET_ERROR(dwError);
     }
     
@@ -476,13 +476,13 @@ LWNetWc16sToMbs(
     PSTR pszOutput = NULL;
     
     if (!pwszInput) {
-        dwError = LWNET_ERROR_INVALID_PARAMETER;
+        dwError = ERROR_INVALID_PARAMETER;
         BAIL_ON_LWNET_ERROR(dwError);
     }
     
     pszOutput = awc16stombs(pwszInput);
     if (!pszOutput) {
-        dwError = LWNET_ERROR_STRING_CONV_FAILED;
+        dwError = ERROR_ILLEGAL_CHARACTER;
         BAIL_ON_LWNET_ERROR(dwError);
     }
     
@@ -526,7 +526,7 @@ LWNetStrDupOrNull(
     if (pszInputString == NULL)
     {
         *ppszOutputString = NULL;
-        return LWNET_ERROR_SUCCESS;
+        return ERROR_SUCCESS;
     }
     else
     {
@@ -562,7 +562,7 @@ LWNetHexStrToByteArray(
     
     if ((dwHexChars & 0x00000001) != 0) 
     {
-       dwError = LWNET_ERROR_INVALID_PARAMETER;
+       dwError = ERROR_INVALID_PARAMETER;
        BAIL_ON_LWNET_ERROR(dwError);
     }
     
@@ -662,7 +662,7 @@ LWNetHexCharToByte(
     }
     else 
     {
-       dwError = LWNET_ERROR_INVALID_PARAMETER;
+       dwError = ERROR_INVALID_PARAMETER;
        BAIL_ON_LWNET_ERROR(dwError);
     }
     

@@ -355,7 +355,7 @@ LWNetCfgParse(
             }
             default:
             {
-                dwError = LWNET_ERROR_INVALID_CONFIG;
+                dwError = ERROR_BAD_CONFIGURATION;
                 BAIL_ON_LWNET_ERROR(dwError);
             }
         }
@@ -372,7 +372,7 @@ cleanup:
     
 error: 
 
-    if (dwError == LWNET_ERROR_INVALID_CONFIG)
+    if (dwError == ERROR_BAD_CONFIGURATION)
     {
         if (pParseState) {                                                             
             LWNET_LOG_ERROR ("Parse error at line=%d, column=%d of file [%s]",  
@@ -475,7 +475,7 @@ LWNetCfgParseSections(
             }
             default:
             {
-                dwError = LWNET_ERROR_INVALID_CONFIG;
+                dwError = ERROR_BAD_CONFIGURATION;
                 BAIL_ON_LWNET_ERROR(dwError);
             }
         }
@@ -636,7 +636,7 @@ LWNetCfgParseSectionHeader(
             }
             default:
             {
-                dwError = LWNET_ERROR_INVALID_CONFIG;
+                dwError = ERROR_BAD_CONFIGURATION;
                 BAIL_ON_LWNET_ERROR(dwError);
             }
         }
@@ -683,7 +683,7 @@ LWNetCfgParseSectionHeader(
         }
         default:
         {
-            dwError = LWNET_ERROR_INVALID_CONFIG;
+            dwError = ERROR_BAD_CONFIGURATION;
             BAIL_ON_LWNET_ERROR(dwError);
         }
     }
@@ -731,7 +731,7 @@ LWNetAssertWhitespaceOnly(
                 DWORD i = 0;
                 for (; i < pToken->dwLen; i++) {
                     if (!isspace((int)pToken->pszToken[i])) {
-                        dwError = LWNET_ERROR_INVALID_CONFIG;
+                        dwError = ERROR_BAD_CONFIGURATION;
                         BAIL_ON_LWNET_ERROR(dwError);
                     }
                 }
@@ -751,7 +751,7 @@ LWNetAssertWhitespaceOnly(
             }
             default:
             {
-                dwError = LWNET_ERROR_INVALID_CONFIG;
+                dwError = ERROR_BAD_CONFIGURATION;
                 BAIL_ON_LWNET_ERROR(dwError);
             }
         }
@@ -798,7 +798,7 @@ LWNetCfgParseNameValuePair(
     }
     else
     {
-        dwError = LWNET_ERROR_INVALID_CONFIG;
+        dwError = ERROR_BAD_CONFIGURATION;
         BAIL_ON_LWNET_ERROR(dwError);
     }
 
@@ -816,7 +816,7 @@ LWNetCfgParseNameValuePair(
     }
     else
     {
-        dwError = LWNET_ERROR_INVALID_CONFIG;
+        dwError = ERROR_BAD_CONFIGURATION;
         BAIL_ON_LWNET_ERROR(dwError);
     }
 
@@ -864,7 +864,7 @@ LWNetCfgParseNameValuePair(
             }
             default:
             {
-                dwError = LWNET_ERROR_INVALID_CONFIG;
+                dwError = ERROR_BAD_CONFIGURATION;
                 BAIL_ON_LWNET_ERROR(dwError);
             }
         }
@@ -946,7 +946,7 @@ LWNetCfgProcessBeginSection(
     BAIL_ON_LWNET_ERROR(dwError);
     
     if (IsNullOrEmptyString(pszSectionName)) {
-        dwError = LWNET_ERROR_INVALID_CONFIG;
+        dwError = ERROR_BAD_CONFIGURATION;
         BAIL_ON_LWNET_ERROR(dwError);
     }
     
@@ -1007,7 +1007,7 @@ LWNetCfgProcessNameValuePair(
     }
     
     if (IsNullOrEmptyString(pszName)) {
-        dwError = LWNET_ERROR_INVALID_CONFIG;
+        dwError = ERROR_BAD_CONFIGURATION;
         BAIL_ON_LWNET_ERROR(dwError);
     }
     
@@ -1017,7 +1017,7 @@ LWNetCfgProcessNameValuePair(
     pToken = (PLWNET_CFG_TOKEN)LWNetStackPop(ppTokenStack);
     if (!pToken || pToken->tokenType != LWNetCfgEquals) 
     {
-        dwError = LWNET_ERROR_INVALID_CONFIG;
+        dwError = ERROR_BAD_CONFIGURATION;
         BAIL_ON_LWNET_ERROR(dwError);
     }
     

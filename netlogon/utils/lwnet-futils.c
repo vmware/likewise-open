@@ -917,7 +917,7 @@ LWNetGetMatchingFilePathsInFolder(
     }
 
     if (regcomp(&rx, pszFileNameRegExp, REG_EXTENDED) != 0) {
-        dwError = LWNET_ERROR_REGEX_COMPILE_FAILED;
+        dwError = ERROR_BAD_FORMAT;
         BAIL_ON_LWNET_ERROR(dwError);
     }
     rxAllocated = TRUE;

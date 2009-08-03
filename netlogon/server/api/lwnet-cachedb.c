@@ -281,28 +281,28 @@ LWNetCacheDbReadFromFile(
     Cnt = fread(&FormatType, sizeof(FormatType), 1, pFileDb);
     if (Cnt == 0)
     {
-        dwError = LWNET_ERROR_UNEXPECTED_DB_RESULT;
+        dwError = ERROR_BAD_FORMAT;
     }
     else if (Cnt != 1)
     {
-        dwError = LWNET_ERROR_UNEXPECTED_DB_RESULT;
+        dwError = ERROR_BAD_FORMAT;
     }
     BAIL_ON_LWNET_ERROR(dwError);
 
     if (memcmp(FormatType, FILEDB_FORMAT_TYPE, sizeof(FormatType)))
     {
-        dwError = LWNET_ERROR_UNEXPECTED_DB_RESULT;
+        dwError = ERROR_BAD_FORMAT;
     }
     BAIL_ON_LWNET_ERROR(dwError);
 
     Cnt = fread(&dwVersion, sizeof(dwVersion), 1, pFileDb);
     if (Cnt == 0)
     {
-        dwError = LWNET_ERROR_UNEXPECTED_DB_RESULT;
+        dwError = ERROR_BAD_FORMAT;
     }
     else if (Cnt != 1)
     {
-        dwError = LWNET_ERROR_UNEXPECTED_DB_RESULT;
+        dwError = ERROR_BAD_FORMAT;
     }
     BAIL_ON_LWNET_ERROR(dwError);
 
@@ -321,7 +321,7 @@ LWNetCacheDbReadFromFile(
         }
         else if (Cnt != 1)
         {
-            dwError = LWNET_ERROR_UNEXPECTED_DB_RESULT;
+            dwError = ERROR_BAD_FORMAT;
         }
         BAIL_ON_LWNET_ERROR(dwError);
 
@@ -339,7 +339,7 @@ LWNetCacheDbReadFromFile(
         Cnt = fread(pData, DataSize, 1, pFileDb);
         if (Cnt != 1)
         {
-            dwError = LWNET_ERROR_UNEXPECTED_DB_RESULT;
+            dwError = ERROR_BAD_FORMAT;
         }
         BAIL_ON_LWNET_ERROR(dwError);
 
@@ -455,14 +455,14 @@ LWNetCacheDbWriteToFile(
     Cnt = fwrite(FormatType, sizeof(BYTE) * 4, 1, pFileDb);
     if (Cnt != 1)
     {
-        dwError = LWNET_ERROR_UNEXPECTED_DB_RESULT;
+        dwError = ERROR_BAD_FORMAT;
     }
     BAIL_ON_LWNET_ERROR(dwError);
 
     Cnt = fwrite(&dwVersion, sizeof(dwVersion), 1, pFileDb);
     if (Cnt != 1)
     {
-        dwError = LWNET_ERROR_UNEXPECTED_DB_RESULT;
+        dwError = ERROR_BAD_FORMAT;
     }
     BAIL_ON_LWNET_ERROR(dwError);
 
@@ -489,14 +489,14 @@ LWNetCacheDbWriteToFile(
         Cnt = fwrite(&DataSize, sizeof(DataSize), 1, pFileDb);
         if (Cnt != 1)
         {
-            dwError = LWNET_ERROR_UNEXPECTED_DB_RESULT;
+            dwError = ERROR_BAD_FORMAT;
         }
         BAIL_ON_LWNET_ERROR(dwError);
 
         Cnt = fwrite(pData, DataSize, 1, pFileDb);
         if (Cnt != 1)
         {
-            dwError = LWNET_ERROR_UNEXPECTED_DB_RESULT;
+            dwError = ERROR_BAD_FORMAT;
         }
         BAIL_ON_LWNET_ERROR(dwError);
 
@@ -942,7 +942,7 @@ LWNetCacheDbExport(
     OUT PDWORD pdwCount
     )
 {
-    return LWNET_ERROR_NOT_IMPLEMENTED;
+    return ERROR_CALL_NOT_IMPLEMENTED;
 }
 
 DWORD

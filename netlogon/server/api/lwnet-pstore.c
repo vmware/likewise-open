@@ -78,7 +78,7 @@ LWNetSrvGetCurrentDomain(
         // we at least return something more sensible (and what
         // LSASS checks for).  Note that pstore's (lack of proper)
         // error propagation/translation is the underlying problem.
-        dwError = LWNET_ERROR_NOT_JOINED_TO_AD;
+        dwError = ERROR_NOT_JOINED;
     }
     BAIL_ON_LWNET_ERROR(dwError);
 

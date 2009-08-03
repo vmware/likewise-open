@@ -92,7 +92,7 @@ LWNetGetDCName(
     {
         LWNET_LOG_ERROR("LWNetGetDcInfo may be called with no more than one of the following flags: " \
                         "DS_GC_SERVER_REQUIRED, DS_PDC_REQUIRED, DS_KDC_REQUIRED");
-        dwError = LWNET_ERROR_INVALID_PARAMETER;
+        dwError = ERROR_INVALID_PARAMETER;
         BAIL_ON_LWNET_ERROR(dwError);
     }
     
@@ -109,7 +109,7 @@ LWNetGetDCName(
     {
         LWNET_LOG_ERROR("LWNetGetDcInfo may be called with no more than one of the following flags: " \
                         "DS_BACKGROUND_ONLY, DS_FORCE_REDISCOVERY");
-        dwError = LWNET_ERROR_INVALID_PARAMETER;
+        dwError = ERROR_INVALID_PARAMETER;
         BAIL_ON_LWNET_ERROR(dwError);
     }
 

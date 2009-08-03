@@ -49,6 +49,7 @@
 #include "lwnet-def.h"
 #include "lwnet.h"
 #include "lwnet-utils.h"
+#include "lwerror.h"
 
 static
 void
@@ -73,12 +74,12 @@ AddFlag(
     if(dwFlags & dwFlag)
     {
         printf("Duplicate flag entered: [0x%.8X]\n", dwFlag);
-        dwError = LWNET_ERROR_INVALID_PARAMETER;
+        dwError = ERROR_INVALID_PARAMETER;
     }
     else if(!(dwFlag & LWNET_SUPPORTED_DS_INPUT_FLAGS))
     {
         printf("Invalid flag entered: [0x%.8X]\n", dwFlag);
-        dwError = LWNET_ERROR_INVALID_PARAMETER;
+        dwError = ERROR_INVALID_PARAMETER;
     }
     BAIL_ON_LWNET_ERROR(dwError);
 
@@ -199,7 +200,7 @@ ParseArgs(
                 else
                 {
                     LWNET_LOG_ERROR("Invalid argument: %s", pszArg);
-                    dwError = LWNET_ERROR_INVALID_PARAMETER;
+                    dwError = ERROR_INVALID_PARAMETER;
                     BAIL_ON_LWNET_ERROR(dwError);
                 }
                 break;
@@ -208,7 +209,7 @@ ParseArgs(
                 if(!IsNullOrEmptyString(pszSiteName))
                 {
                     LWNET_LOG_ERROR("Invalid argument: %s", pszArg);
-                    dwError = LWNET_ERROR_INVALID_PARAMETER;
+                    dwError = ERROR_INVALID_PARAMETER;
                     BAIL_ON_LWNET_ERROR(dwError);
                 }
 
@@ -316,7 +317,7 @@ main(
 error:
     if (dwError)
     {
-        LWNetGetErrorString(dwError, szErrorBuf, 1024);
+        LwGetErrorString(dwError, szErrorBuf, 1024);
         LWNET_LOG_ERROR("Error: [%s] [code=%u]", szErrorBuf, dwError);
     }
     if (pDcList)

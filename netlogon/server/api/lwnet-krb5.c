@@ -99,7 +99,7 @@ LWNetKrb5SetupServerAddressArray(
                                                                 pDcInfo->pszDomainControllerName);
     if (!pServerAddressArray[dwOutputIndex])
     {
-        dwError = LWNET_ERROR_DATA_ERROR;
+        dwError = ERROR_NOT_FOUND;
         BAIL_ON_LWNET_ERROR(dwError);
     }
     dwOutputIndex++;
@@ -145,9 +145,7 @@ LWNetKrb5PrintfFile(
     ret = vfprintf(File, pszFormat, args);
     if (ret < 0)
     {
-        // ISSUE-2008/07/03-dalmeida -- Error code conversion
-        dwError = errno;
-        dwError = LWNET_ERROR_KRB5_CONF_FILE_WRITE_FAILED;
+        dwError = ERROR_WRITE_FAULT;
     }
     
     va_end(args);
@@ -181,7 +179,7 @@ LWNetKrb5WriteAffinityFile(
     newFile = fopen(pszNewFileName, "w");
     if (!newFile)
     { 
-        dwError = LWNET_ERROR_KRB5_CONF_FILE_OPEN_FAILED;
+        dwError = ERROR_BAD_CONFIGURATION;
         BAIL_ON_LWNET_ERROR(dwError);
     }
 
