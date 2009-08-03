@@ -2,4 +2,4 @@
 include $(top_srcdir)/include.mk
 compatincludedir = $(includedir)/compat
 
-compatinclude_HEADERS=dcerpc.h rpcfields.h dcerpc.idl.include baserpc.h dce2msrpc.h winerror.h
+compatinclude_HEADERS=dcerpc.h rpcfields.h dcerpc.idl.include baserpc.h dce2msrpc.h
