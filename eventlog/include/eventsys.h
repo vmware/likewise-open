@@ -52,9 +52,7 @@
   #include <dirent.h>
   #include <pwd.h>
   #include <lwrpcrt.h>
-  //#include <compat/dcerpc.h>
-  //#include <dce/dcethread.h>
-  #include <compat/winerror.h>
+  #include <winerror.h>
   #include <dlfcn.h>
   #include <dce/rpcexc.h>
 
