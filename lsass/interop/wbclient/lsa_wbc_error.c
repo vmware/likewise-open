@@ -67,11 +67,6 @@ static struct _ErrorMap LsaErrorTable[] = {
     { LW_ERROR_AUTH_ERROR, WBC_ERR_AUTH_ERROR }
 };
 
-static struct _ErrorMap NetlogonErrorTable[] = {
-    { LWNET_ERROR_SUCCESS, WBC_ERR_SUCCESS },
-
-};
-
 static struct _ErrorMap WbcErrorTable[] = {
     { LW_ERROR_SUCCESS, WBC_ERR_SUCCESS },
     { LW_ERROR_NOT_IMPLEMENTED, WBC_ERR_NOT_IMPLEMENTED },
@@ -100,29 +95,10 @@ static wbcErr map_lsa_to_wbc_error(DWORD err)
     return WBC_ERR_UNKNOWN_FAILURE;
 }
 
-static wbcErr map_netlogon_to_wbc_error(DWORD err)
-{
-    int i = 0;
-    size_t num_map_entries = sizeof(NetlogonErrorTable) / sizeof(struct _ErrorMap);
-
-    for (i=0; i<num_map_entries; i++) {
-        if (NetlogonErrorTable[i].dwError == err) {
-            return NetlogonErrorTable[i].wbcError;
-        }
-    }
-
-    return WBC_ERR_UNKNOWN_FAILURE;
-}
-
 wbcErr map_error_to_wbc_status(DWORD err)
 {
     if (err == 0)
         return WBC_ERR_SUCCESS;
-
-    /* Use the correct mapping table */
-
-    if (LWNET_ERROR_MASK(err) == LWNET_ERROR_MASK(LWNET_ERROR_SUCCESS))
-        return map_netlogon_to_wbc_error(err);
 
     return map_lsa_to_wbc_error(err);
 }

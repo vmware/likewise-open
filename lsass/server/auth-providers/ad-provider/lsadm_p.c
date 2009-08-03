@@ -3035,8 +3035,8 @@ LsaDmpIsNetworkError(
     switch (dwError)
     {
         case LW_ERROR_DOMAIN_IS_OFFLINE:
-        case LWNET_ERROR_INVALID_DNS_RESPONSE:
-        case LWNET_ERROR_FAILED_FIND_DC:
+        case DNS_ERROR_BAD_PACKET:
+        case NERR_DCNotFound:
             bIsNetworkError = TRUE;
             break;
         default:

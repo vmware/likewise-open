@@ -310,7 +310,7 @@ cleanup:
 
 error:
 
-    if (dwError == LWNET_ERROR_NOT_JOINED_TO_AD)
+    if (dwError == ERROR_NOT_JOINED)
     {
         dwError = 0;
     }
