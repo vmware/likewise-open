@@ -31,7 +31,7 @@ main(
     DWORD dwError = LW_ERROR_SUCCESS;
     INT nListenSocket = INVALID_SOCKET;
     INT nAcceptSocket = INVALID_SOCKET;
-    USHORT usPort = 4444;
+    USHORT usPort = 5555;
     INT nOnce = 0;
     PCHAR pServiceName = NULL;
     PCHAR pServicePassword = NULL;

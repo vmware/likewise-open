@@ -70,20 +70,6 @@
 // S T R U C T S
 //
 
-#if 0
-typedef struct _SecHandle
-{
-    DWORD       dwLower;
-    DWORD       dwUpper;
-} SecHandle, * PSecHandle;
-
-typedef SecHandle    CredHandle;
-typedef PSecHandle   PCredHandle;
-
-typedef SecHandle    CtxtHandle;
-typedef PSecHandle   PCtxtHandle;
-#endif
-
 typedef CHAR SEC_CHAR;
 
 typedef struct _SecBuffer
@@ -231,8 +217,8 @@ typedef struct _LSA_CONTEXT *LSA_CONTEXT_HANDLE, **PLSA_CONTEXT_HANDLE;
     NTLM_FLAG_REQUEST_TARGET        | \
     NTLM_FLAG_NTLM                  | \
     NTLM_FLAG_DOMAIN                | \
-    NTLM_FLAG_128                   | \
     NTLM_FLAG_56                    )
+    //NTLM_FLAG_128                   |
 
 #define NTLM_FLAG_SRV_SUPPORTS ( \
     NTLM_FLAG_UNICODE          | \
@@ -242,10 +228,10 @@ typedef struct _LSA_CONTEXT *LSA_CONTEXT_HANDLE, **PLSA_CONTEXT_HANDLE;
     NTLM_FLAG_LOCAL_CALL       | \
     NTLM_FLAG_ALWAYS_SIGN      | \
     NTLM_FLAG_WORKSTATION      | \
-    NTLM_FLAG_NTLM2            | \
     NTLM_FLAG_TARGET_INFO      | \
-    NTLM_FLAG_128              | \
     NTLM_FLAG_56               )
+    //NTLM_FLAG_128              |
+    //NTLM_FLAG_NTLM2            |
 
 #ifndef HOST_NAME_MAX
 #define HOST_NAME_MAX 255

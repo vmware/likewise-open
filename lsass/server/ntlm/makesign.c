@@ -55,7 +55,17 @@ NtlmServerMakeSignature(
     IN DWORD MessageSeqNo
     )
 {
-    DWORD dwError = 0;
+    DWORD dwError = LW_ERROR_SUCCESS;
+    //PSecBuffer pToken = NULL;
+    //PSecBuffer pData = NULL;
 
-    return(dwError);
+    // The message should be in the format of:
+    // SECBUFFER_TOKEN      - Where the signature is placed
+    // SECBUFFER_DATA       - The data we are signing
+    // SECBUFFER_PADDING    - Padding (for RC4?)
+
+    // Verify pMessage
+
+
+    return dwError;
 }

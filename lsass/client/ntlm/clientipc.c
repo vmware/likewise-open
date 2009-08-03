@@ -62,12 +62,12 @@ NtlmOpenServer(
         (PVOID*)(PVOID)&pContext
         );
 
-    BAIL_ON_NTLM_ERROR(dwError);
+    BAIL_ON_LW_ERROR(dwError);
 
     dwError = NTLM_MAP_LWMSG_ERROR(
         lwmsg_protocol_new(NULL, &pContext->pProtocol)
         );
-    BAIL_ON_NTLM_ERROR(dwError);
+    BAIL_ON_LW_ERROR(dwError);
 
     dwError = NTLM_MAP_LWMSG_ERROR(
         lwmsg_protocol_add_protocol_spec(
@@ -76,19 +76,19 @@ NtlmOpenServer(
             )
         );
 
-    BAIL_ON_NTLM_ERROR(dwError);
+    BAIL_ON_LW_ERROR(dwError);
 
     dwError = NTLM_MAP_LWMSG_ERROR(
         lwmsg_connection_new(NULL, pContext->pProtocol, &pContext->pAssoc)
         );
 
-    BAIL_ON_NTLM_ERROR(dwError);
+    BAIL_ON_LW_ERROR(dwError);
 
     dwError = NTLM_MAP_LWMSG_ERROR(lwmsg_connection_set_endpoint(
                                   pContext->pAssoc,
                                   LWMSG_CONNECTION_MODE_LOCAL,
                                   CACHEDIR "/" NTLM_SERVER_FILENAME));
-    BAIL_ON_NTLM_ERROR(dwError);
+    BAIL_ON_LW_ERROR(dwError);
 
     if(getenv("LW_DISABLE_CONNECT_TIMEOUT") == NULL)
     {
@@ -98,11 +98,11 @@ NtlmOpenServer(
                                       pContext->pAssoc,
                                       LWMSG_TIMEOUT_ESTABLISH,
                                       &connectTimeout));
-        BAIL_ON_NTLM_ERROR(dwError);
+        BAIL_ON_LW_ERROR(dwError);
     }
 
     dwError = NTLM_MAP_LWMSG_ERROR(lwmsg_assoc_establish(pContext->pAssoc));
-    BAIL_ON_NTLM_ERROR(dwError);
+    BAIL_ON_LW_ERROR(dwError);
 
     *phConnection = (HANDLE)pContext;
 
@@ -199,7 +199,7 @@ NtlmTransactAcceptSecurityContext(
                               pContext->pAssoc,
                               &request,
                               &response));
-    BAIL_ON_NTLM_ERROR(dwError);
+    BAIL_ON_LW_ERROR(dwError);
 
     switch(response.tag)
     {
@@ -207,7 +207,7 @@ NtlmTransactAcceptSecurityContext(
             pResultList = (PNTLM_IPC_ACCEPT_SEC_CTXT_RESPONSE)response.object;
 
             dwError = NtlmTransferSecBufferDesc(pOutput, &pResultList->Output);
-            BAIL_ON_NTLM_ERROR(dwError);
+            BAIL_ON_LW_ERROR(dwError);
 
             *phContext = pResultList->hContext;
             *phNewContext = pResultList->hNewContext;
@@ -218,11 +218,11 @@ NtlmTransactAcceptSecurityContext(
         case NTLM_R_ACCEPT_SEC_CTXT_FAILURE:
             pError = (PNTLM_IPC_ERROR) response.object;
             dwError = pError->dwError;
-            BAIL_ON_NTLM_ERROR(dwError);
+            BAIL_ON_LW_ERROR(dwError);
             break;
         default:
             dwError = EINVAL;
-            BAIL_ON_NTLM_ERROR(dwError);
+            BAIL_ON_LW_ERROR(dwError);
     }
 
 cleanup:
@@ -277,7 +277,7 @@ NtlmTransactAcquireCredentialsHandle(
                               pContext->pAssoc,
                               &request,
                               &response));
-    BAIL_ON_NTLM_ERROR(dwError);
+    BAIL_ON_LW_ERROR(dwError);
 
     switch(response.tag)
     {
@@ -291,11 +291,11 @@ NtlmTransactAcquireCredentialsHandle(
         case NTLM_R_ACQUIRE_CREDS_FAILURE:
             pError = (PNTLM_IPC_ERROR) response.object;
             dwError = pError->dwError;
-            BAIL_ON_NTLM_ERROR(dwError);
+            BAIL_ON_LW_ERROR(dwError);
             break;
         default:
             dwError = EINVAL;
-            BAIL_ON_NTLM_ERROR(dwError);
+            BAIL_ON_LW_ERROR(dwError);
     }
 
 cleanup:
@@ -346,7 +346,7 @@ NtlmTransactDecryptMessage(
                               pContext->pAssoc,
                               &request,
                               &response));
-    BAIL_ON_NTLM_ERROR(dwError);
+    BAIL_ON_LW_ERROR(dwError);
 
     switch(response.tag)
     {
@@ -357,7 +357,7 @@ NtlmTransactDecryptMessage(
                 pMessage,
                 &pResultList->Message
                 );
-            BAIL_ON_NTLM_ERROR(dwError);
+            BAIL_ON_LW_ERROR(dwError);
 
             memcpy(pbEncrypted, &pResultList->bEncrypted, sizeof(BOOL));
 
@@ -365,11 +365,11 @@ NtlmTransactDecryptMessage(
         case NTLM_R_DECRYPT_MSG_FAILURE:
             pError = (PNTLM_IPC_ERROR) response.object;
             dwError = pError->dwError;
-            BAIL_ON_NTLM_ERROR(dwError);
+            BAIL_ON_LW_ERROR(dwError);
             break;
         default:
             dwError = EINVAL;
-            BAIL_ON_NTLM_ERROR(dwError);
+            BAIL_ON_LW_ERROR(dwError);
     }
 
 cleanup:
@@ -413,7 +413,7 @@ NtlmTransactDeleteSecurityContext(
                               pContext->pAssoc,
                               &request,
                               &response));
-    BAIL_ON_NTLM_ERROR(dwError);
+    BAIL_ON_LW_ERROR(dwError);
 
     switch(response.tag)
     {
@@ -422,11 +422,11 @@ NtlmTransactDeleteSecurityContext(
         case NTLM_R_DELETE_SEC_CTXT_FAILURE:
             pError = (PNTLM_IPC_ERROR) response.object;
             dwError = pError->dwError;
-            BAIL_ON_NTLM_ERROR(dwError);
+            BAIL_ON_LW_ERROR(dwError);
             break;
         default:
             dwError = EINVAL;
-            BAIL_ON_NTLM_ERROR(dwError);
+            BAIL_ON_LW_ERROR(dwError);
     }
 
 cleanup:
@@ -477,7 +477,7 @@ NtlmTransactEncryptMessage(
                               pContext->pAssoc,
                               &request,
                               &response));
-    BAIL_ON_NTLM_ERROR(dwError);
+    BAIL_ON_LW_ERROR(dwError);
 
     switch(response.tag)
     {
@@ -488,17 +488,17 @@ NtlmTransactEncryptMessage(
                 pMessage,
                 &pResultList->Message
                 );
-            BAIL_ON_NTLM_ERROR(dwError);
+            BAIL_ON_LW_ERROR(dwError);
 
             break;
         case NTLM_R_ENCRYPT_MSG_FAILURE:
             pError = (PNTLM_IPC_ERROR) response.object;
             dwError = pError->dwError;
-            BAIL_ON_NTLM_ERROR(dwError);
+            BAIL_ON_LW_ERROR(dwError);
             break;
         default:
             dwError = EINVAL;
-            BAIL_ON_NTLM_ERROR(dwError);
+            BAIL_ON_LW_ERROR(dwError);
     }
 
 cleanup:
@@ -547,7 +547,7 @@ NtlmTransactExportSecurityContext(
                               pContext->pAssoc,
                               &request,
                               &response));
-    BAIL_ON_NTLM_ERROR(dwError);
+    BAIL_ON_LW_ERROR(dwError);
 
     switch(response.tag)
     {
@@ -567,11 +567,11 @@ NtlmTransactExportSecurityContext(
         case NTLM_R_EXPORT_SEC_CTXT_FAILURE:
             pError = (PNTLM_IPC_ERROR) response.object;
             dwError = pError->dwError;
-            BAIL_ON_NTLM_ERROR(dwError);
+            BAIL_ON_LW_ERROR(dwError);
             break;
         default:
             dwError = EINVAL;
-            BAIL_ON_NTLM_ERROR(dwError);
+            BAIL_ON_LW_ERROR(dwError);
     }
 
 cleanup:
@@ -615,7 +615,7 @@ NtlmTransactFreeCredentialsHandle(
                               pContext->pAssoc,
                               &request,
                               &response));
-    BAIL_ON_NTLM_ERROR(dwError);
+    BAIL_ON_LW_ERROR(dwError);
 
     switch(response.tag)
     {
@@ -624,11 +624,11 @@ NtlmTransactFreeCredentialsHandle(
         case NTLM_R_FREE_CREDS_FAILURE:
             pError = (PNTLM_IPC_ERROR) response.object;
             dwError = pError->dwError;
-            BAIL_ON_NTLM_ERROR(dwError);
+            BAIL_ON_LW_ERROR(dwError);
             break;
         default:
             dwError = EINVAL;
-            BAIL_ON_NTLM_ERROR(dwError);
+            BAIL_ON_LW_ERROR(dwError);
     }
 
 cleanup:
@@ -678,7 +678,7 @@ NtlmTransactImportSecurityContext(
                               pContext->pAssoc,
                               &request,
                               &response));
-    BAIL_ON_NTLM_ERROR(dwError);
+    BAIL_ON_LW_ERROR(dwError);
 
     switch(response.tag)
     {
@@ -691,11 +691,11 @@ NtlmTransactImportSecurityContext(
         case NTLM_R_IMPORT_SEC_CTXT_FAILURE:
             pError = (PNTLM_IPC_ERROR) response.object;
             dwError = pError->dwError;
-            BAIL_ON_NTLM_ERROR(dwError);
+            BAIL_ON_LW_ERROR(dwError);
             break;
         default:
             dwError = EINVAL;
-            BAIL_ON_NTLM_ERROR(dwError);
+            BAIL_ON_LW_ERROR(dwError);
     }
 
 cleanup:
@@ -769,7 +769,7 @@ NtlmTransactInitializeSecurityContext(
                               pContext->pAssoc,
                               &request,
                               &response));
-    BAIL_ON_NTLM_ERROR(dwError);
+    BAIL_ON_LW_ERROR(dwError);
 
     switch(response.tag)
     {
@@ -783,7 +783,7 @@ NtlmTransactInitializeSecurityContext(
                     pOutput,
                     &pResultList->Output
                     );
-                BAIL_ON_NTLM_ERROR(dwError);
+                BAIL_ON_LW_ERROR(dwError);
 
             }
 
@@ -805,11 +805,11 @@ NtlmTransactInitializeSecurityContext(
         case NTLM_R_INIT_SEC_CTXT_FAILURE:
             pError = (PNTLM_IPC_ERROR) response.object;
             dwError = pError->dwError;
-            BAIL_ON_NTLM_ERROR(dwError);
+            BAIL_ON_LW_ERROR(dwError);
             break;
         default:
             dwError = EINVAL;
-            BAIL_ON_NTLM_ERROR(dwError);
+            BAIL_ON_LW_ERROR(dwError);
     }
 
 cleanup:
@@ -866,7 +866,7 @@ NtlmTransactMakeSignature(
                               pContext->pAssoc,
                               &request,
                               &response));
-    BAIL_ON_NTLM_ERROR(dwError);
+    BAIL_ON_LW_ERROR(dwError);
 
     switch(response.tag)
     {
@@ -877,17 +877,17 @@ NtlmTransactMakeSignature(
                 pMessage,
                 &pResultList->Message
                 );
-            BAIL_ON_NTLM_ERROR(dwError);
+            BAIL_ON_LW_ERROR(dwError);
 
             break;
         case NTLM_R_MAKE_SIGN_FAILURE:
             pError = (PNTLM_IPC_ERROR) response.object;
             dwError = pError->dwError;
-            BAIL_ON_NTLM_ERROR(dwError);
+            BAIL_ON_LW_ERROR(dwError);
             break;
         default:
             dwError = EINVAL;
-            BAIL_ON_NTLM_ERROR(dwError);
+            BAIL_ON_LW_ERROR(dwError);
     }
 
 cleanup:
@@ -935,7 +935,7 @@ NtlmTransactQueryContextAttributes(
                               pContext->pAssoc,
                               &request,
                               &response));
-    BAIL_ON_NTLM_ERROR(dwError);
+    BAIL_ON_LW_ERROR(dwError);
 
     switch(response.tag)
     {
@@ -950,11 +950,11 @@ NtlmTransactQueryContextAttributes(
         case NTLM_R_QUERY_CTXT_FAILURE:
             pError = (PNTLM_IPC_ERROR) response.object;
             dwError = pError->dwError;
-            BAIL_ON_NTLM_ERROR(dwError);
+            BAIL_ON_LW_ERROR(dwError);
             break;
         default:
             dwError = EINVAL;
-            BAIL_ON_NTLM_ERROR(dwError);
+            BAIL_ON_LW_ERROR(dwError);
     }
 
 cleanup:
@@ -1002,7 +1002,7 @@ NtlmTransactQueryCredentialsAttributes(
                               pContext->pAssoc,
                               &request,
                               &response));
-    BAIL_ON_NTLM_ERROR(dwError);
+    BAIL_ON_LW_ERROR(dwError);
 
     switch(response.tag)
     {
@@ -1017,11 +1017,11 @@ NtlmTransactQueryCredentialsAttributes(
         case NTLM_R_QUERY_CREDS_FAILURE:
             pError = (PNTLM_IPC_ERROR) response.object;
             dwError = pError->dwError;
-            BAIL_ON_NTLM_ERROR(dwError);
+            BAIL_ON_LW_ERROR(dwError);
             break;
         default:
             dwError = EINVAL;
-            BAIL_ON_NTLM_ERROR(dwError);
+            BAIL_ON_LW_ERROR(dwError);
     }
 
 cleanup:
@@ -1072,7 +1072,7 @@ NtlmTransactVerifySignature(
                               pContext->pAssoc,
                               &request,
                               &response));
-    BAIL_ON_NTLM_ERROR(dwError);
+    BAIL_ON_LW_ERROR(dwError);
 
     switch(response.tag)
     {
@@ -1086,11 +1086,11 @@ NtlmTransactVerifySignature(
         case NTLM_R_VERIFY_SIGN_FAILURE:
             pError = (PNTLM_IPC_ERROR) response.object;
             dwError = pError->dwError;
-            BAIL_ON_NTLM_ERROR(dwError);
+            BAIL_ON_LW_ERROR(dwError);
             break;
         default:
             dwError = EINVAL;
-            BAIL_ON_NTLM_ERROR(dwError);
+            BAIL_ON_LW_ERROR(dwError);
     }
 
 cleanup:

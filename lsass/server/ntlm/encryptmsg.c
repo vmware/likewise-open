@@ -52,10 +52,74 @@ NtlmServerEncryptMessage(
     IN PLSA_CONTEXT_HANDLE phContext,
     IN BOOL bEncrypt,
     IN OUT PSecBufferDesc pMessage,
-    IN DWORD MessageSeqNo
+    IN DWORD dwMsgSeqNum
     )
 {
-    DWORD dwError = 0;
+    DWORD dwError = LW_ERROR_SUCCESS;
+    PLSA_CONTEXT pContext = *phContext;
+    DWORD dwIndex = 0;
+    PBYTE pToken = NULL;
+    PBYTE pData = NULL;
+    PBYTE pPadding = NULL;
+    DWORD dwTokenSize = 0;
+    DWORD dwDataSize = 0;
+    DWORD dwPaddingSize = 0;
+    RC4_KEY Rc4Key;
 
-    return(dwError);
+    memset(&Rc4Key, 0, sizeof(Rc4Key));
+
+    // The message should be in the format of:
+    // SECBUFFER_TOKEN      - Where the signature is placed
+    // SECBUFFER_DATA       - The data we are signing
+    // SECBUFFER_PADDING    - Padding (for RC4 or CRC32?)
+    //
+    // Find these buffers... the first one found of each type will be the one
+    // that is used.
+    for(dwIndex = 0; dwIndex < pMessage->cBuffers; dwIndex++)
+    {
+        if(pMessage->pBuffers[dwIndex].BufferType == SECBUFFER_TOKEN)
+        {
+            if(!pToken)
+            {
+                pToken = pMessage->pBuffers[dwIndex].pvBuffer;
+                dwTokenSize = pMessage->pBuffers[dwIndex].cbBuffer;
+            }
+        }
+        else if(pMessage->pBuffers[dwIndex].BufferType == SECBUFFER_DATA)
+        {
+            if(!pData)
+            {
+                pData = pMessage->pBuffers[dwIndex].pvBuffer;
+                dwDataSize = pMessage->pBuffers[dwIndex].cbBuffer;
+            }
+        }
+        else if(pMessage->pBuffers[dwIndex].BufferType == SECBUFFER_PADDING)
+        {
+            if(!pPadding)
+            {
+                pPadding = pMessage->pBuffers[dwIndex].pvBuffer;
+                dwPaddingSize = pMessage->pBuffers[dwIndex].cbBuffer;
+            }
+        }
+    }
+
+    if (dwTokenSize != NTLM_SIGNATURE_SIZE ||
+        !pToken || !pData || !pPadding || !dwDataSize || !dwPaddingSize)
+    {
+        dwError = LW_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LW_ERROR(dwError);
+    }
+
+    if(bEncrypt)
+    {
+        RC4_set_key(&Rc4Key, pContext->cbSessionKeyLen, pContext->SessionKey);
+        RC4(&Rc4Key, dwDataSize, pData, pData);
+    }
+
+    NtlmMakeSignature(pContext, pData, dwDataSize, dwMsgSeqNum, pToken);
+
+cleanup:
+    return dwError;
+error:
+    goto cleanup;
 }

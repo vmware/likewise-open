@@ -49,7 +49,7 @@
 // optional members will just hang off the end
 typedef struct _NTLM_NEGOTIATE_MESSAGE
 {
-    UCHAR NtlmSignature[NTLM_SIGNATURE_SIZE];
+    UCHAR NtlmSignature[NTLM_NETWORK_SIGNATURE_SIZE];
     DWORD MessageType;
     DWORD NtlmFlags;
     // Optional Supplied Domain NTLM_SEC_BUFFER
@@ -60,7 +60,7 @@ typedef struct _NTLM_NEGOTIATE_MESSAGE
 
 typedef struct _NTLM_CHALLENGE_MESSAGE
 {
-    UCHAR NtlmSignature[NTLM_SIGNATURE_SIZE];
+    UCHAR NtlmSignature[NTLM_NETWORK_SIGNATURE_SIZE];
     DWORD MessageType;
     NTLM_SEC_BUFFER Target;
     DWORD NtlmFlags;
@@ -73,7 +73,7 @@ typedef struct _NTLM_CHALLENGE_MESSAGE
 
 typedef struct _NTLM_RESPONSE_MESSAGE
 {
-    UCHAR NtlmSignature[NTLM_SIGNATURE_SIZE];
+    UCHAR NtlmSignature[NTLM_NETWORK_SIGNATURE_SIZE];
     DWORD MessageType;
     NTLM_SEC_BUFFER LmResponse;
     NTLM_SEC_BUFFER NtResponse;
@@ -108,10 +108,6 @@ typedef struct _LSA_CONTEXT
     PVOID pMessage;
     LSA_CRED_HANDLE CredHandle;
     LONG nRefCount;
-    //BYTE LmUserSessionKey[NTLM_SESSION_KEY_SIZE];
-    //BYTE NtlmUserSessionKey[NTLM_SESSION_KEY_SIZE];
-    //BYTE LanManagerSessionKey[NTLM_SESSION_KEY_SIZE];
-    //BYTE SecondaryKey[NTLM_SESSION_KEY_SIZE];
     BYTE SessionKey[NTLM_SESSION_KEY_SIZE];
     DWORD cbSessionKeyLen;
     LSA_LIST_LINKS ListEntry;
