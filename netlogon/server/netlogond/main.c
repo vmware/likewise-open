@@ -362,7 +362,7 @@ LWNetSrvExitHandler(
     BAIL_ON_LWNET_ERROR(dwError);
 
     if (bFileExists) {
-        dwError = LWNetRemoveFile(szErrCodeFilePath);
+        dwError = LwRemoveFile(szErrCodeFilePath);
         BAIL_ON_LWNET_ERROR(dwError);
     }
 

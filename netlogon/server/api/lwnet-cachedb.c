@@ -437,7 +437,7 @@ LWNetCacheDbWriteToFile(
     }
 
     /* restrict access to u+rwx to the db folder */
-    dwError = LWNetChangeOwnerAndPermissions(NETLOGON_DB_DIR, 0, 0, S_IRWXU);
+    dwError = LwChangeOwnerAndPermissions(NETLOGON_DB_DIR, 0, 0, S_IRWXU);
     BAIL_ON_LWNET_ERROR(dwError);
 
     dwError = LWNetCheckFileExists(
@@ -467,7 +467,7 @@ LWNetCacheDbWriteToFile(
     BAIL_ON_LWNET_ERROR(dwError);
 
     // Make sure that we are secured
-    dwError = LWNetChangePermissions(NETLOGON_DB, S_IRWXU);
+    dwError = LwChangePermissions(NETLOGON_DB, S_IRWXU);
     BAIL_ON_LWNET_ERROR(dwError);
 
     dwError = MAP_LWMSG_ERROR(lwmsg_context_new(NULL, &pContext));
@@ -510,7 +510,7 @@ LWNetCacheDbWriteToFile(
 
     if (!bExists)
     {
-        dwError = LWNetChangePermissions(NETLOGON_DB, S_IRWXU);
+        dwError = LwChangePermissions(NETLOGON_DB, S_IRWXU);
         BAIL_ON_LWNET_ERROR(dwError);
     }
 
@@ -543,7 +543,7 @@ error:
         fclose(pFileDb);
         pFileDb = NULL;
     }
-    LWNetRemoveFile(NETLOGON_DB);
+    LwRemoveFile(NETLOGON_DB);
 
     goto cleanup;
 }

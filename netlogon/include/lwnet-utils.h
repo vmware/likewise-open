@@ -339,11 +339,6 @@ LWNetDnsSrvQuery(
     );
 
 DWORD
-LWNetRemoveFile(
-    PCSTR pszPath
-    );
-
-DWORD
 LWNetCheckFileExists(
     PCSTR pszPath,
     PBOOLEAN pbFileExists
@@ -353,38 +348,6 @@ DWORD
 LWNetCheckSockExists(
     PCSTR pszPath,
     PBOOLEAN pbFileExists
-    );
-
-DWORD
-LWNetMoveFile(
-    PCSTR pszSrcPath,
-    PCSTR pszDstPath
-    );
-
-DWORD
-LWNetChangePermissions(
-    PCSTR pszPath,
-    mode_t dwFileMode
-    );
-
-DWORD
-LWNetChangeOwner(
-    PCSTR pszPath,
-    uid_t uid,
-    gid_t gid
-    );
-
-DWORD
-LWNetChangeOwnerAndPermissions(
-    PCSTR pszPath,
-    uid_t uid,
-    gid_t gid,
-    mode_t dwFileMode
-    );
-
-DWORD
-LWNetGetCurrentDirectoryPath(
-    PSTR* ppszPath
     );
 
 DWORD
@@ -422,14 +385,6 @@ LWNetCopyFileWithPerms(
     PCSTR pszSrcPath,
     PCSTR pszDstPath,
     mode_t dwPerms
-    );
-
-DWORD
-LWNetGetOwnerAndPermissions(
-    PCSTR pszSrcPath,
-    uid_t * uid,
-    gid_t * gid,
-    mode_t * mode
     );
 
 DWORD

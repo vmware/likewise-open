@@ -54,6 +54,7 @@
 #include <lwldap.h>
 #include <lwerror.h>
 #include <lwmsg/lwmsg.h>
+#include <lwfile.h>
 
 #include "lwnet.h"
 #include "lwnet-utils.h"
