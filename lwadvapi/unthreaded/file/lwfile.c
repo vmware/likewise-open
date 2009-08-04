@@ -232,7 +232,10 @@ LwCheckFileTypeExists(
             dwError = 0;
             *pbExists = 0;
         }
-        dwError = LwMapErrnoToLwError(errno);
+        else
+        {
+            dwError = LwMapErrnoToLwError(errno);
+        }
         BAIL_ON_LW_ERROR(dwError);
     }
     else
