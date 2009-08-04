@@ -43,6 +43,7 @@
 #include <netinet/tcp.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <limits.h>
 
 #include "lwdef.h"
 #include "lwerror.h"
