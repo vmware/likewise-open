@@ -665,6 +665,8 @@ error:
 /**********************************************************
  *********************************************************/
 
+#define PVFS_DISABLE_FSYNC   1
+
 NTSTATUS
 PvfsSysFsync(
     PPVFS_CCB pCcb
@@ -673,7 +675,9 @@ PvfsSysFsync(
     NTSTATUS ntError = STATUS_SUCCESS;
     int unixerr = 0;
 
-#if defined(HAVE_FDATASYNC)
+#ifdef PVFS_DISABLE_FSYNC
+    BAIL_ON_NT_STATUS(ntError);
+#elif defined(HAVE_FDATASYNC)
     if (fdatasync(pCcb->fd) == -1 ) {
         PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
     }
@@ -685,6 +689,31 @@ PvfsSysFsync(
     ntError = STATUS_NOT_SUPPORTED;
     BAIL_ON_NT_STATUS(ntError);
 #endif
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+
+/**********************************************************
+ *********************************************************/
+
+NTSTATUS
+PvfsSysNanoSleep(
+    const struct timespec *pRequestedTime,
+    struct timespec *pRemainingTime
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    int unixerr = 0;
+
+    if (nanosleep(pRequestedTime, pRemainingTime) == -1)
+    {
+        PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
+    }
 
 cleanup:
     return ntError;
