@@ -57,7 +57,7 @@ LWNetStackPush(
     PLWNET_STACK pStack = NULL;
     
     if (!ppStack) {
-        dwError = LWNET_ERROR_INVALID_PARAMETER;
+        dwError = ERROR_INVALID_PARAMETER;
         BAIL_ON_LWNET_ERROR(dwError);
     }
     

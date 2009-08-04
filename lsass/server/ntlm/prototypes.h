@@ -91,6 +91,21 @@ NtlmServerEncryptMessage(
     IN DWORD MessageSeqNo
     );
 
+VOID
+NtlmMakeSignature(
+    IN PLSA_CONTEXT pContext,
+    IN PBYTE pData,
+    IN DWORD dwDataSize,
+    IN DWORD dwMsgSeqNum,
+    IN OUT PBYTE pToken
+    );
+
+DWORD
+NtlmCrc32(
+    IN PBYTE pData,
+    IN DWORD dwDataSize
+    );
+
 DWORD
 NtlmServerExportSecurityContext(
     IN PLSA_CONTEXT_HANDLE phContext,
@@ -191,6 +206,7 @@ NtlmGetContextInfo(
 
 DWORD
 NtlmCreateContext(
+    IN PLSA_CRED_HANDLE pCredHandle,
     OUT PLSA_CONTEXT *ppNtlmContext
     );
 
@@ -220,11 +236,20 @@ NtlmFreeContext(
     PLSA_CONTEXT pNtlmContext
     );
 
+#if 0
 DWORD
 NtlmCreateContextFromSecBufferDesc(
     PSecBufferDesc pSecBufferDesc,
     NTLM_STATE nsContextType,
     PLSA_CONTEXT *ppNtlmContext
+    );
+#endif
+
+DWORD
+NtlmGetMessageFromSecBufferDesc(
+    IN PSecBufferDesc pSecBufferDesc,
+    OUT PDWORD pdwMessageSize,
+    OUT PVOID *ppMessage
     );
 
 DWORD
@@ -252,10 +277,10 @@ NtlmCreateNegotiateMessage(
 DWORD
 NtlmCreateChallengeMessage(
     IN PNTLM_NEGOTIATE_MESSAGE pNegMsg,
-    IN PCHAR pServerName,
-    IN PCHAR pDomainName,
-    IN PCHAR pDnsHostName,
-    IN PCHAR pDnsDomainName,
+    IN PSTR pServerName,
+    IN PSTR pDomainName,
+    IN PSTR pDnsHostName,
+    IN PSTR pDnsDomainName,
     IN PBYTE  pOsVersion,
     OUT PDWORD pdwSize,
     OUT PNTLM_CHALLENGE_MESSAGE *ppChlngMsg
@@ -350,6 +375,7 @@ NtlmBuildAnonymousResponse(
 
 DWORD
 NtlmCreateNegotiateContext(
+    IN PLSA_CRED_HANDLE pCredHandle,
     IN DWORD dwOptions,
     IN PCHAR pDomain,
     IN PCHAR pWorkstation,
@@ -359,13 +385,15 @@ NtlmCreateNegotiateContext(
 
 DWORD
 NtlmCreateChallengeContext(
-    IN PLSA_CONTEXT pNtlmNegCtxt,
+    IN PNTLM_NEGOTIATE_MESSAGE pNtlmNegMsg,
+    IN PLSA_CRED_HANDLE pCredHandle,
     OUT PLSA_CONTEXT *ppNtlmContext
     );
 
 DWORD
 NtlmCreateResponseContext(
-    IN PLSA_CONTEXT pChlngCtxt,
+    IN PNTLM_CHALLENGE_MESSAGE pChlngMsg,
+    IN PLSA_CRED_HANDLE pCredHandle,
     IN OUT PLSA_CONTEXT *ppNtlmContext
     );
 
@@ -383,6 +411,12 @@ NtlmFixUserName(
 
 DWORD
 NtlmValidateResponse();
+
+DWORD
+NtlmGetNetBiosName(
+    PCSTR pDnsDomainName,
+    PSTR *ppDomainName
+    );
 
 DWORD
 NtlmCalculateResponseSize(

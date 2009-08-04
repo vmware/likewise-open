@@ -50,6 +50,7 @@
 #include <lwerror.h>
 #include <lwsecurityidentifier.h>
 #include <lsalist.h>
+#include <lsasrvcred.h>
 
 #define ENTER_CREDS_LIST(bInLock)                               \
     do                                                          \

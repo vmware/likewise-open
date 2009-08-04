@@ -714,9 +714,9 @@ LwMapErrnoToLwError(
         case 0:
             return LW_ERROR_SUCCESS;
         case EPERM:
-            return LW_ERROR_ACCESS_DENIED;
+            return ERROR_ACCESS_DENIED;
         case ENOENT:
-            return LW_ERROR_NO_SUCH_OBJECT;
+            return ERROR_FILE_NOT_FOUND;
         case ESRCH:
             return LW_ERROR_NO_SUCH_PROCESS;
         case EINTR:

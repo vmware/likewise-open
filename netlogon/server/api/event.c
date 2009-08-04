@@ -121,7 +121,10 @@ LWNetSrvInitEventlogInterface(
     sprintf(szEventLogLibPath, "%s/libeventlog.%s", pszLibDirPath, MOD_EXT);
 #endif
     
-    dwError = LWNetCheckFileExists(szEventLogLibPath, &bExists);
+    dwError = LwCheckFileTypeExists(
+                    szEventLogLibPath,
+                    LWFILE_REGULAR,
+                    &bExists);
     BAIL_ON_LWNET_ERROR(dwError);
     
     if (!bExists) {
@@ -138,7 +141,7 @@ LWNetSrvInitEventlogInterface(
         LWNET_LOG_ERROR("Error: Failed to load Likewise Eventlog Module [%s]",
              IsNullOrEmptyString(pszError) ? "" : pszError);
         
-        dwError = LWNET_ERROR_LOAD_LIBRARY_FAILED;
+        dwError = ERROR_DLL_INIT_FAILED;
         BAIL_ON_LWNET_ERROR(dwError);
     }
     
@@ -158,7 +161,7 @@ LWNetSrvInitEventlogInterface(
                       EVENTAPI_FREE_EVENT_RECORD_FUNCTION,
                       IsNullOrEmptyString(pszError) ? "" : pszError);
         
-        dwError = LWNET_ERROR_LOOKUP_SYMBOL_FAILED;
+        dwError = ERROR_BAD_DLL_ENTRYPOINT;
         BAIL_ON_LWNET_ERROR(dwError);
     }
 
@@ -173,7 +176,7 @@ LWNetSrvInitEventlogInterface(
                       EVENTAPI_OPEN_EVENT_LOG_EX_FUNCTION,
                       IsNullOrEmptyString(pszError) ? "" : pszError);
         
-        dwError = LWNET_ERROR_LOOKUP_SYMBOL_FAILED;
+        dwError = ERROR_BAD_DLL_ENTRYPOINT;
         BAIL_ON_LWNET_ERROR(dwError);
     }
 
@@ -188,7 +191,7 @@ LWNetSrvInitEventlogInterface(
                       EVENTAPI_CLOSE_EVENT_LOG_FUNCTION,
                       IsNullOrEmptyString(pszError) ? "" : pszError);
 
-        dwError = LWNET_ERROR_LOOKUP_SYMBOL_FAILED;
+        dwError = ERROR_BAD_DLL_ENTRYPOINT;
         BAIL_ON_LWNET_ERROR(dwError);
     }
 
@@ -203,7 +206,7 @@ LWNetSrvInitEventlogInterface(
                       EVENTAPI_WRITE_EVENT_LOG_BASE_FUNCTION,
                       IsNullOrEmptyString(pszError) ? "" : pszError);
 
-        dwError = LWNET_ERROR_LOOKUP_SYMBOL_FAILED;
+        dwError = ERROR_BAD_DLL_ENTRYPOINT;
         BAIL_ON_LWNET_ERROR(dwError);
     }
 
@@ -254,7 +257,7 @@ LWNetSrvValidateEventlogInterface(
         !pFuncTable->pfnOpenEventLogEx ||
         !pFuncTable->pfnWriteEventLogBase)
     {
-       dwError = LWNET_ERROR_INVALID_EVENTLOG;
+       dwError = ERROR_EVENTLOG_CANT_START;
     }
     
     return dwError;

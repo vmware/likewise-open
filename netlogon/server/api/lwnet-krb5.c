@@ -99,7 +99,7 @@ LWNetKrb5SetupServerAddressArray(
                                                                 pDcInfo->pszDomainControllerName);
     if (!pServerAddressArray[dwOutputIndex])
     {
-        dwError = LWNET_ERROR_DATA_ERROR;
+        dwError = ERROR_NOT_FOUND;
         BAIL_ON_LWNET_ERROR(dwError);
     }
     dwOutputIndex++;
@@ -145,9 +145,7 @@ LWNetKrb5PrintfFile(
     ret = vfprintf(File, pszFormat, args);
     if (ret < 0)
     {
-        // ISSUE-2008/07/03-dalmeida -- Error code conversion
-        dwError = errno;
-        dwError = LWNET_ERROR_KRB5_CONF_FILE_WRITE_FAILED;
+        dwError = ERROR_WRITE_FAULT;
     }
     
     va_end(args);
@@ -181,11 +179,11 @@ LWNetKrb5WriteAffinityFile(
     newFile = fopen(pszNewFileName, "w");
     if (!newFile)
     { 
-        dwError = LWNET_ERROR_KRB5_CONF_FILE_OPEN_FAILED;
+        dwError = ERROR_BAD_CONFIGURATION;
         BAIL_ON_LWNET_ERROR(dwError);
     }
 
-    dwError = LWNetChangePermissions(pszNewFileName, LWNET_MODE_BITS_URW_GR_OR);
+    dwError = LwChangePermissions(pszNewFileName, LWNET_MODE_BITS_URW_GR_OR);
     BAIL_ON_LWNET_ERROR(dwError);
 
     dwError = LWNetKrb5PrintfFile(newFile, "[realms]\n\n");
@@ -286,7 +284,7 @@ error:
 
     if (dwError)
     {
-        LWNetRemoveFile(pszNewFileName);
+        LwRemoveFile(pszNewFileName);
     }
 
     pthread_mutex_unlock(&gLWNetKrb5AffinityLock);
@@ -318,7 +316,10 @@ LWNetKrb5UpdateAffinity(
                                                dwServerCount);
     BAIL_ON_LWNET_ERROR(dwError);
 
-    dwError = LWNetCheckDirectoryExists(LWNET_KRB5_CONF_DIRNAME, &bExists);
+    dwError = LwCheckFileTypeExists(
+                    LWNET_KRB5_CONF_DIRNAME,
+                    LWFILE_DIRECTORY,
+                    &bExists);
     BAIL_ON_LWNET_ERROR(dwError);
 
     if (!bExists)
@@ -328,12 +329,15 @@ LWNetKrb5UpdateAffinity(
         BAIL_ON_LWNET_ERROR(dwError); 
     }
 
-    dwError = LWNetCheckFileExists(LWNET_KRB5_CONF_PATH_TEMP, &bExists);
+    dwError = LwCheckFileTypeExists(
+            LWNET_KRB5_CONF_PATH_TEMP,
+            LWFILE_REGULAR,
+            &bExists);
     BAIL_ON_LWNET_ERROR(dwError);
 
     if (bExists)
     {
-        dwError = LWNetRemoveFile(LWNET_KRB5_CONF_PATH_TEMP);
+        dwError = LwRemoveFile(LWNET_KRB5_CONF_PATH_TEMP);
         BAIL_ON_LWNET_ERROR(dwError);
     }
 
@@ -345,14 +349,14 @@ LWNetKrb5UpdateAffinity(
                   dwServerAddressCount);
     BAIL_ON_LWNET_ERROR(dwError);
 
-    dwError = LWNetMoveFile(LWNET_KRB5_CONF_PATH_TEMP, LWNET_KRB5_CONF_PATH);
+    dwError = LwMoveFile(LWNET_KRB5_CONF_PATH_TEMP, LWNET_KRB5_CONF_PATH);
     BAIL_ON_LWNET_ERROR(dwError);
 
 error:
     LWNET_SAFE_FREE_MEMORY(pServerAddressArray);
     if (dwError)
     {
-        LWNetRemoveFile(LWNET_KRB5_CONF_PATH_TEMP);
+        LwRemoveFile(LWNET_KRB5_CONF_PATH_TEMP);
     }
     return dwError;
 }

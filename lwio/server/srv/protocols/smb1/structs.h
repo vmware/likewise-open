@@ -227,7 +227,7 @@ typedef struct _SRV_ASYNC_CONTEXT_SMB_V1
 
 } SRV_ASYNC_CONTEXT_SMB_V1, *PSRV_ASYNC_CONTEXT_SMB_V1;
 
-typedef VOID (*PFN_SRV_MESSAGE_DATA_RELEASE)(HANDLE hData);
+typedef VOID (*PFN_SRV_MESSAGE_STATE_RELEASE_SMB_V1)(HANDLE hState);
 
 typedef struct __SRV_MESSAGE_SMB_V1
 {
@@ -240,24 +240,18 @@ typedef struct __SRV_MESSAGE_SMB_V1
 
 typedef struct _SRV_EXEC_CONTEXT_SMB_V1
 {
-    LONG                         refCount;
+    PSRV_MESSAGE_SMB_V1           pMessageArray;
+    ULONG                         ulNumMessages;
+    ULONG                         ulMessageCursor;
 
-    PSMB_PACKET                  pSmbRequest;
-    PSRV_MESSAGE_SMB_V1          pMessageArray;
-    ULONG                        ulNumMessages;
-    ULONG                        ulMessageCursor;
+    PLWIO_SRV_SESSION             pSession;
+    PLWIO_SRV_TREE                pTree;
+    PLWIO_SRV_FILE                pFile;
 
-    PLWIO_SRV_CONNECTION         pConnection;
-    PLWIO_SRV_SESSION            pSession;
-    PLWIO_SRV_TREE               pTree;
-    PLWIO_SRV_FILE               pFile;
+    HANDLE                               hState;
+    PFN_SRV_MESSAGE_STATE_RELEASE_SMB_V1 pfnStateRelease;
 
-    HANDLE                       hProtocolData;
-    PFN_SRV_MESSAGE_DATA_RELEASE pfnProtocolDataRelease;
-
-    PSMB_PACKET                  pSmbResponse;
-
-} SRV_EXEC_CONTEXT_SMB_V1, *PSRV_EXEC_CONTEXT_SMB_V1;
+} SRV_EXEC_CONTEXT_SMB_V1;
 
 typedef struct _SRV_RUNTIME_GLOBALS_SMB_V1
 {

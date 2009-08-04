@@ -79,7 +79,7 @@ NtlmServerAcquireCredentialsHandle(
     if(strcmp("NTLM", pszPackage))
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_NTLM_ERROR(dwError);
+        BAIL_ON_LW_ERROR(dwError);
     }
 
     dwError = NtlmGetProcessSecurity(pAssoc, &Uid, &Gid);

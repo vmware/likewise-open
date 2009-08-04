@@ -457,13 +457,13 @@ LWNetSrvPingCLdapArray(
     isAcquired = TRUE;
     if (ETIMEDOUT == dwError)
     {
-        dwError = LWNET_ERROR_FAILED_FIND_DC;
+        dwError = NERR_DCNotFound;
     }
     BAIL_ON_LWNET_ERROR(dwError);
 
     if (!pContext->pDcInfo)
     {
-        dwError = LWNET_ERROR_FAILED_FIND_DC;
+        dwError = NERR_DCNotFound;
         BAIL_ON_LWNET_ERROR(dwError);
     }
 
@@ -600,7 +600,7 @@ LWNetSrvGetDCNameDiscover(
                   ppDcInfo,
                   ppServerArray,
                   pdwServerCount);
-    if (dwError == LWNET_ERROR_SUCCESS)
+    if (dwError == ERROR_SUCCESS)
     {
         goto cleanup;
     }
@@ -673,7 +673,7 @@ LWNetSrvGetDCNameDiscoverInternal(
         pServerArray);
     if (!dwServerCount)
     {
-        dwError = LWNET_ERROR_INVALID_DNS_RESPONSE;
+        dwError = DNS_ERROR_BAD_PACKET;
         BAIL_ON_LWNET_ERROR(dwError);
     }
 
@@ -854,7 +854,7 @@ LWNetReadLEDword(
 {
     if (pArray->totalSize + pArray->pStart - pArray->pCur < sizeof(DWORD))
     {
-        return LWNET_ERROR_DATA_ERROR;
+        return DNS_ERROR_BAD_PACKET;
     }
 #if defined(WORDS_BIGENDIAN)
     *pdwDest = LW_ENDIAN_SWAP32(LWNetReadUnalignedDword(pArray->pCur));
@@ -862,7 +862,7 @@ LWNetReadLEDword(
     *pdwDest = LWNetReadUnalignedDword(pArray->pCur);
 #endif
     pArray->pCur += sizeof(DWORD);
-    return LWNET_ERROR_SUCCESS;
+    return ERROR_SUCCESS;
 }
 
 static
@@ -886,7 +886,7 @@ LWNetReadLEWord(
 {
     if (pArray->totalSize + pArray->pStart - pArray->pCur < sizeof(WORD))
     {
-        return LWNET_ERROR_DATA_ERROR;
+        return DNS_ERROR_BAD_PACKET;
     }
 #if defined(WORDS_BIGENDIAN)
     *pwDest = LW_ENDIAN_SWAP16(LWNetReadUnalignedWord(pArray->pCur));
@@ -894,7 +894,7 @@ LWNetReadLEWord(
     *pwDest = LWNetReadUnalignedWord(pArray->pCur);
 #endif
     pArray->pCur += sizeof(WORD);
-    return LWNET_ERROR_SUCCESS;
+    return ERROR_SUCCESS;
 }
 
 DWORD
@@ -907,7 +907,7 @@ LWNetReadGUID(
     
     if (BYTES_REMAINING((*pArray)) < LWNET_GUID_SIZE)
     {
-        dwError = LWNET_ERROR_DATA_ERROR;
+        dwError = DNS_ERROR_BAD_PACKET;
         BAIL_ON_LWNET_ERROR(dwError);
     }
     memcpy(pbtDest, pArray->pCur, LWNET_GUID_SIZE);
@@ -946,7 +946,7 @@ LWNetReadString(
                 if (followOffset >= pArray->totalSize)
                 {
                     //Offset out of bounds
-                    dwError = LWNET_ERROR_DATA_ERROR;
+                    dwError = DNS_ERROR_BAD_PACKET;
                     goto error;
                 }
                 *pCur += 2;
@@ -956,7 +956,7 @@ LWNetReadString(
                 {
                     // This is definitely redundant, and it could be an infinite
                     // loop.
-                    dwError = LWNET_ERROR_DATA_ERROR;
+                    dwError = DNS_ERROR_BAD_PACKET;
                     goto error;
                 }
                 break;
@@ -968,13 +968,13 @@ LWNetReadString(
                 {
                     // This goes out of bounds of the output buffer. There must be
                     // an infinite loop in the encoding.
-                    dwError = LWNET_ERROR_DATA_ERROR;
+                    dwError = DNS_ERROR_BAD_PACKET;
                     goto error;
                 }
                 if (copyLen + 1 + *pCur - pArray->pStart > pArray->totalSize)
                 {
                     // The label goes out of bounds of the message
-                    dwError = LWNET_ERROR_DATA_ERROR;
+                    dwError = DNS_ERROR_BAD_PACKET;
                     goto error;
                 }
                 if (outOffset > 0)
@@ -988,7 +988,7 @@ LWNetReadString(
                 break;
             default:
                 // Illegal reserved value
-                dwError = LWNET_ERROR_DATA_ERROR;
+                dwError = DNS_ERROR_BAD_PACKET;
                 goto error;
         }
     }

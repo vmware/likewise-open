@@ -93,7 +93,7 @@ NtlmSrvIpcCreateError(
     PNTLM_IPC_ERROR pError = NULL;
 
     dwError = LsaAllocateMemory(sizeof(*pError), (PVOID*)(PVOID)&pError);
-    BAIL_ON_NTLM_ERROR(dwError);
+    BAIL_ON_LW_ERROR(dwError);
 
     pError->dwError = dwErrorCode;
 
@@ -134,8 +134,11 @@ NtlmSrvIpcAcceptSecurityContext(
         &(pNtlmResp->tsTimeStamp)
         );
 
-    if(!dwError)
+    if(dwError == LW_ERROR_SUCCESS || dwError == LW_WARNING_CONTINUE_NEEDED)
     {
+        pNtlmResp->dwStatus = dwError;
+        dwError = LW_ERROR_SUCCESS;
+
         pNtlmResp->hContext = pReq->hContext;
         pReq->hContext = NULL;
 
@@ -151,10 +154,23 @@ NtlmSrvIpcAcceptSecurityContext(
     else
     {
         dwError = NtlmSrvIpcCreateError(dwError, &pError);
-        BAIL_ON_NTLM_ERROR(dwError);
+        BAIL_ON_LW_ERROR(dwError);
 
         pResponse->tag = NTLM_R_ACCEPT_SEC_CTXT_FAILURE;
         pResponse->object = pError;
+    }
+
+    if(pReq->hContext)
+    {
+        dwError = MAP_LWMSG_ERROR(lwmsg_assoc_unregister_handle(
+            pAssoc,
+            pReq->hContext));
+        BAIL_ON_LW_ERROR(dwError);
+
+        dwError = MAP_LWMSG_ERROR(lwmsg_assoc_release_handle(
+            pAssoc,
+            pReq->hContext));
+        BAIL_ON_LW_ERROR(dwError);
     }
 
 cleanup:
@@ -204,10 +220,10 @@ NtlmSrvIpcAcquireCredentialsHandle(
                                       "LSA_CRED_HANDLE",
                                       pNtlmResp->hCredential,
                                       NtlmSrvFreeCredHandle));
-        BAIL_ON_LSA_ERROR(dwError);
+        BAIL_ON_LW_ERROR(dwError);
 
         dwError = MAP_LWMSG_ERROR(lwmsg_assoc_retain_handle(pAssoc, pNtlmResp->hCredential));
-        BAIL_ON_LSA_ERROR(dwError);
+        BAIL_ON_LW_ERROR(dwError);
 
 
         pResponse->tag = NTLM_R_ACQUIRE_CREDS_SUCCESS;
@@ -216,7 +232,7 @@ NtlmSrvIpcAcquireCredentialsHandle(
     else
     {
         dwError = NtlmSrvIpcCreateError(dwError, &pError);
-        BAIL_ON_NTLM_ERROR(dwError);
+        BAIL_ON_LW_ERROR(dwError);
 
         pResponse->tag = NTLM_R_ACQUIRE_CREDS_FAILURE;
         pResponse->object = pError;
@@ -269,7 +285,7 @@ NtlmSrvIpcDecryptMessage(
     else
     {
         dwError = NtlmSrvIpcCreateError(dwError, &pError);
-        BAIL_ON_NTLM_ERROR(dwError);
+        BAIL_ON_LW_ERROR(dwError);
 
         pResponse->tag = NTLM_R_DECRYPT_MSG_FAILURE;
         pResponse->object = pError;
@@ -302,7 +318,7 @@ NtlmSrvIpcDeleteSecurityContext(
     //    );
 
     dwError = MAP_LWMSG_ERROR(lwmsg_assoc_unregister_handle(pAssoc, pReq->hContext));
-    BAIL_ON_NTLM_ERROR(dwError);
+    BAIL_ON_LW_ERROR(dwError);
 
     if(!dwError)
     {
@@ -312,7 +328,7 @@ NtlmSrvIpcDeleteSecurityContext(
     else
     {
         dwError = NtlmSrvIpcCreateError(dwError, &pError);
-        BAIL_ON_NTLM_ERROR(dwError);
+        BAIL_ON_LW_ERROR(dwError);
 
         pResponse->tag = NTLM_R_DELETE_SEC_CTXT_FAILURE;
         pResponse->object = pError;
@@ -361,7 +377,7 @@ NtlmSrvIpcEncryptMessage(
     else
     {
         dwError = NtlmSrvIpcCreateError(dwError, &pError);
-        BAIL_ON_NTLM_ERROR(dwError);
+        BAIL_ON_LW_ERROR(dwError);
 
         pResponse->tag = NTLM_R_ENCRYPT_MSG_FAILURE;
         pResponse->object = pError;
@@ -411,7 +427,7 @@ NtlmSrvIpcExportSecurityContext(
     else
     {
         dwError = NtlmSrvIpcCreateError(dwError, &pError);
-        BAIL_ON_NTLM_ERROR(dwError);
+        BAIL_ON_LW_ERROR(dwError);
 
         pResponse->tag = NTLM_R_EXPORT_SEC_CTXT_FAILURE;
         pResponse->object = pError;
@@ -448,7 +464,7 @@ NtlmSrvIpcFreeCredentialsHandle(
     //    );
 
     dwError = MAP_LWMSG_ERROR(lwmsg_assoc_unregister_handle(pAssoc, pReq->hCredential));
-    BAIL_ON_NTLM_ERROR(dwError);
+    BAIL_ON_LW_ERROR(dwError);
 
     if(!dwError)
     {
@@ -458,7 +474,7 @@ NtlmSrvIpcFreeCredentialsHandle(
     else
     {
         dwError = NtlmSrvIpcCreateError(dwError, &pError);
-        BAIL_ON_NTLM_ERROR(dwError);
+        BAIL_ON_LW_ERROR(dwError);
 
         pResponse->tag = NTLM_R_FREE_CREDS_FAILURE;
         pResponse->object = pError;
@@ -504,7 +520,7 @@ NtlmSrvIpcImportSecurityContext(
     else
     {
         dwError = NtlmSrvIpcCreateError(dwError, &pError);
-        BAIL_ON_NTLM_ERROR(dwError);
+        BAIL_ON_LW_ERROR(dwError);
 
         pResponse->tag = NTLM_R_IMPORT_SEC_CTXT_FAILURE;
         pResponse->object = pError;
@@ -528,16 +544,10 @@ NtlmSrvIpcInitializeSecurityContext(
     PVOID pData
     )
 {
-    DWORD dwError = 0;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PNTLM_IPC_INIT_SEC_CTXT_REQ pReq = pRequest->object;
     PNTLM_IPC_INIT_SEC_CTXT_RESPONSE pNtlmResp = NULL;
     PNTLM_IPC_ERROR pError = NULL;
-    DWORD dwStatus = LW_ERROR_SUCCESS;
-
-    if(!pReq->hContext)
-    {
-        dwStatus = LW_WARNING_CONTINUE_NEEDED;
-    }
 
     dwError = LsaAllocateMemory(sizeof(*pNtlmResp), OUT_PPVOID(&pNtlmResp));
     BAIL_ON_LW_ERROR(dwError);
@@ -557,12 +567,14 @@ NtlmSrvIpcInitializeSecurityContext(
         &pNtlmResp->tsExpiry
         );
 
-    if(!dwError)
+    if(dwError == LW_ERROR_SUCCESS || dwError == LW_WARNING_CONTINUE_NEEDED)
     {
+        pNtlmResp->dwStatus = dwError;
+        dwError = LW_ERROR_SUCCESS;
+
         pNtlmResp->hNewContext = pReq->hNewContext;
         pReq->hNewContext = NULL;
 
-        pNtlmResp->dwStatus = dwStatus;
         memcpy(&(pNtlmResp->Output), pReq->pOutput, sizeof(SecBufferDesc));
 
         pReq->pOutput = NULL;
@@ -575,7 +587,7 @@ NtlmSrvIpcInitializeSecurityContext(
         BAIL_ON_LW_ERROR(dwError);
 
         dwError = MAP_LWMSG_ERROR(lwmsg_assoc_retain_handle(pAssoc, pNtlmResp->hNewContext));
-        BAIL_ON_LSA_ERROR(dwError);
+        BAIL_ON_LW_ERROR(dwError);
 
 
         pResponse->tag = NTLM_R_INIT_SEC_CTXT_SUCCESS;
@@ -584,10 +596,23 @@ NtlmSrvIpcInitializeSecurityContext(
     else
     {
         dwError = NtlmSrvIpcCreateError(dwError, &pError);
-        BAIL_ON_NTLM_ERROR(dwError);
+        BAIL_ON_LW_ERROR(dwError);
 
         pResponse->tag = NTLM_R_INIT_SEC_CTXT_FAILURE;
         pResponse->object = pError;
+    }
+
+    if(pReq->hContext)
+    {
+        dwError = MAP_LWMSG_ERROR(lwmsg_assoc_unregister_handle(
+            pAssoc,
+            pReq->hContext));
+        BAIL_ON_LW_ERROR(dwError);
+
+        dwError = MAP_LWMSG_ERROR(lwmsg_assoc_release_handle(
+            pAssoc,
+            pReq->hContext));
+        BAIL_ON_LW_ERROR(dwError);
     }
 
 cleanup:
@@ -637,7 +662,7 @@ NtlmSrvIpcMakeSignature(
     else
     {
         dwError = NtlmSrvIpcCreateError(dwError, &pError);
-        BAIL_ON_NTLM_ERROR(dwError);
+        BAIL_ON_LW_ERROR(dwError);
 
         pResponse->tag = NTLM_R_MAKE_SIGN_FAILURE;
         pResponse->object = pError;
@@ -690,7 +715,7 @@ NtlmSrvIpcQueryCredentialsAttributes(
     else
     {
         dwError = NtlmSrvIpcCreateError(dwError, &pError);
-        BAIL_ON_NTLM_ERROR(dwError);
+        BAIL_ON_LW_ERROR(dwError);
 
         pResponse->tag = NTLM_R_QUERY_CREDS_FAILURE;
         pResponse->object = pError;
@@ -742,7 +767,7 @@ NtlmSrvIpcQueryContextAttributes(
     else
     {
         dwError = NtlmSrvIpcCreateError(dwError, &pError);
-        BAIL_ON_NTLM_ERROR(dwError);
+        BAIL_ON_LW_ERROR(dwError);
 
         pResponse->tag = NTLM_R_QUERY_CTXT_FAILURE;
         pResponse->object = pError;
@@ -793,7 +818,7 @@ NtlmSrvIpcVerifySignature(
     else
     {
         dwError = NtlmSrvIpcCreateError(dwError, &pError);
-        BAIL_ON_NTLM_ERROR(dwError);
+        BAIL_ON_LW_ERROR(dwError);
 
         pResponse->tag = NTLM_R_VERIFY_SIGN_FAILURE;
         pResponse->object = pError;
@@ -823,4 +848,66 @@ NtlmSrvFreeContextHandle(
     )
 {
     NtlmReleaseContext((LSA_CONTEXT_HANDLE)pData);
+}
+
+VOID
+NtlmMakeSignature(
+    IN PLSA_CONTEXT pContext,
+    IN PBYTE pData,
+    IN DWORD dwDataSize,
+    IN DWORD dwMsgSeqNum,
+    IN OUT PBYTE pToken
+    )
+{
+    RC4_KEY Rc4Key;
+    DWORD dwCrc32 = 0;
+
+    memset(&Rc4Key, 0, sizeof(Rc4Key));
+
+    memset(pToken, 0, NTLM_SIGNATURE_SIZE);
+    RC4_set_key(&Rc4Key, pContext->cbSessionKeyLen, pContext->SessionKey);
+
+    dwCrc32 = NtlmCrc32(pData, dwDataSize);
+}
+
+DWORD
+NtlmGetDomainFromCredential(
+    PLSA_CRED_HANDLE pCredHandle,
+    PSTR* ppDomain
+    )
+{
+    DWORD dwError = LW_ERROR_SUCCESS;
+    PCSTR pDomain = NULL;
+
+    LsaGetCredentialInfo(*pCredHandle, &pDomain, NULL, NULL);
+
+    pDomain = strchr(pDomain, '@');
+
+    if(!pDomain)
+    {
+        dwError = LW_ERROR_INVALID_CREDENTIAL;
+        BAIL_ON_LW_ERROR(dwError);
+    }
+
+    pDomain++;
+
+    dwError = LsaAllocateString(pDomain, ppDomain);
+
+cleanup:
+    return dwError;
+error:
+    *ppDomain = NULL;
+
+    goto cleanup;
+}
+
+DWORD
+NtlmCrc32(
+    IN PBYTE pData,
+    IN DWORD dwDataSize
+    )
+{
+    DWORD dwCrc32 = 0;
+
+    return dwCrc32;
 }

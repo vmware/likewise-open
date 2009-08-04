@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software
@@ -33,74 +33,100 @@
  *
  * Module Name:
  *
- *        structs.h
+ *        context.c
  *
  * Abstract:
  *
  *        Likewise IO (LWIO) - SRV
  *
- *        Protocols
+ *        Elements
  *
- *        Structures
+ *        Execution Context
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
  *
  */
 
-#ifndef __STRUCTS_H__
-#define __STRUCTS_H__
+#include "includes.h"
 
-typedef struct _LWIO_SRV_PROTOCOL_WORKER_CONTEXT
+static
+VOID
+SrvFreeExecContext(
+   IN PSRV_EXEC_CONTEXT pContext
+   );
+
+NTSTATUS
+SrvBuildExecContext(
+   IN  PLWIO_SRV_CONNECTION pConnection,
+   IN  PSMB_PACKET          pSmbRequest,
+   OUT PSRV_EXEC_CONTEXT*   ppContext
+   )
 {
-    pthread_mutex_t  mutex;
-    pthread_mutex_t* pMutex;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_EXEC_CONTEXT pContext = NULL;
 
-    BOOLEAN bStop;
+    ntStatus = SrvAllocateMemory(
+                    sizeof(SRV_EXEC_CONTEXT),
+                    (PVOID*)&pContext);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    ULONG   workerId;
+    pContext->pConnection = pConnection;
+    InterlockedIncrement(&pConnection->refCount);
 
-    PSMB_PROD_CONS_QUEUE pWorkQueue;
+    pContext->pSmbRequest = pSmbRequest;
+    InterlockedIncrement(&pSmbRequest->refCount);
 
-} LWIO_SRV_PROTOCOL_WORKER_CONTEXT, *PLWIO_SRV_PROTOCOL_WORKER_CONTEXT;
+    *ppContext = pContext;
 
-typedef struct _LWIO_SRV_PROTOCOL_WORKER
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppContext = NULL;
+
+    goto cleanup;
+}
+
+VOID
+SrvReleaseExecContext(
+   IN PSRV_EXEC_CONTEXT pContext
+   )
 {
-    pthread_t  worker;
-    pthread_t* pWorker;
-
-    ULONG      workerId;
-
-    LWIO_SRV_PROTOCOL_WORKER_CONTEXT context;
-
-} LWIO_SRV_PROTOCOL_WORKER, *PLWIO_SRV_PROTOCOL_WORKER;
-
-typedef struct _SRV_EXEC_CONTEXT_SMB_V1* PSRV_EXEC_CONTEXT_SMB_V1;
-typedef struct _SRV_EXEC_CONTEXT_SMB_V2* PSRV_EXEC_CONTEXT_SMB_V2;
-
-typedef struct _SRV_PROTOCOL_EXEC_CONTEXT
-{
-    SMB_PROTOCOL_VERSION protocolVersion;
-
-    union
+    if (InterlockedDecrement(&pContext->refCount) == 0)
     {
-        PSRV_EXEC_CONTEXT_SMB_V1 pSmb1Context;
-        PSRV_EXEC_CONTEXT_SMB_V2 pSmb2Context;
-    };
+        SrvFreeExecContext(pContext);
+    }
+}
 
-} SRV_PROTOCOL_EXEC_CONTEXT;
-
-typedef struct __SRV_PROTOCOL_API_GLOBALS
+static
+VOID
+SrvFreeExecContext(
+   IN PSRV_EXEC_CONTEXT pContext
+   )
 {
-    pthread_mutex_t           mutex;
+    if (pContext->pProtocolContext)
+    {
+        pContext->pfnFreeContext(pContext->pProtocolContext);
+    }
 
-    BOOLEAN                   bSupportSMB2;
+    if (pContext->pSmbRequest)
+    {
+        SMBPacketRelease(
+            pContext->pConnection->hPacketAllocator,
+            pContext->pSmbRequest);
+    }
 
-    SMB_PROD_CONS_QUEUE       asyncWorkQueue;
-    ULONG                     ulMaxNumAsyncWorkItemsInQueue;
+    if (pContext->pSmbResponse)
+    {
+        SMBPacketRelease(
+            pContext->pConnection->hPacketAllocator,
+            pContext->pSmbResponse);
+    }
 
-    ULONG                     ulNumAsyncWorkers;
-    PLWIO_SRV_PROTOCOL_WORKER pAsyncWorkerArray;
-
-} SRV_PROTOCOL_API_GLOBALS, *PSRV_PROTOCOL_API_GLOBALS;
-
-#endif /* __STRUCTS_H__ */
+    if (pContext->pConnection)
+    {
+        SrvConnectionRelease(pContext->pConnection);
+    }
+}

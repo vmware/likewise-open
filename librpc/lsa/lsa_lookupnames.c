@@ -95,7 +95,7 @@ LsaLookupNames(
        failure here */
 
     if (ntRetStatus != STATUS_SUCCESS &&
-        ntRetStatus != STATUS_SOME_UNMAPPED)
+        ntRetStatus != LW_STATUS_SOME_NOT_MAPPED)
     {
         BAIL_ON_NT_STATUS(ntRetStatus);
     }
@@ -123,7 +123,7 @@ cleanup:
 
     if (ntStatus == STATUS_SUCCESS &&
         (ntRetStatus == STATUS_SUCCESS ||
-         ntRetStatus == STATUS_SOME_UNMAPPED))
+         ntRetStatus == LW_STATUS_SOME_NOT_MAPPED))
     {
         ntStatus = ntRetStatus;
     }

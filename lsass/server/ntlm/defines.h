@@ -93,20 +93,18 @@
 
 // Message signature and sizes
 
-#define NTLM_SIGNATURE          "NTLMSSP"
-#define NTLM_WIN_SPOOF_SIZE     8
-#define NTLM_SIGNATURE_SIZE     8
-#define NTLM_CHALLENGE_SIZE     8
-#define NTLM_OS_VER_INFO_SIZE   8
-#define NTLM_LOCAL_CONTEXT_SIZE 8
+#define NTLM_NETWORK_SIGNATURE      "NTLMSSP"
+#define NTLM_NETWORK_SIGNATURE_SIZE 8
+#define NTLM_WIN_SPOOF_SIZE         8
+#define NTLM_CHALLENGE_SIZE         8
+#define NTLM_OS_VER_INFO_SIZE       8
+#define NTLM_LOCAL_CONTEXT_SIZE     8
 
 // Message type
 
 #define NTLM_NEGOTIATE_MSG           1
 #define NTLM_CHALLENGE_MSG           2
 #define NTLM_RESPONSE_MSG            3
-#define NTLM_MAX_MSG                 NTLM_RESPONSE_MSG
-#define NTLM_UNKNOWN_MSG             8
 
 // Response type
 
@@ -128,6 +126,7 @@
 #define NTLM_LM_MAX_PASSWORD_SIZE       14
 #define NTLM_LM_HASH_SIZE               16
 #define NTLM_SESSION_KEY_SIZE           16
+#define NTLM_SIGNATURE_SIZE             16
 #define NTLM_LM_DES_STRING              "KGS!@#$%"
 
 // Name types

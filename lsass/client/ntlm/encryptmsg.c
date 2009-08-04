@@ -66,7 +66,7 @@ NtlmClientEncryptMessage(
         MessageSeqNo
         );
 
-    BAIL_ON_NTLM_ERROR(dwError);
+    BAIL_ON_LW_ERROR(dwError);
 
 cleanup:
     return(dwError);

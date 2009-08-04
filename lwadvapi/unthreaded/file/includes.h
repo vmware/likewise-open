@@ -3,8 +3,7 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software    2004-2008
- * All rights reserved.
+ * Copyright (c) Likewise Software.  All rights Reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -12,7 +11,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -28,45 +27,27 @@
  * license@likewisesoftware.com
  */
 
-/*
- * Copyright (C) Likewise Software. All rights reserved.
- *
- * Module Name:
- *
- *        lwnet-error_p.h
- *
- * Abstract:
- *
- *        Likewise Site Manager
- * 
- *        Error API (Private Header)
- *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
- * 
- */
-#ifndef __LWNETERROR_P_H__
-#define __LWNETERROR_P_H__
+#ifndef __INCLUDES_H__
+#define __INCLUDES_H__
 
-size_t
-LWNetMapLWNetErrorToString(
-    DWORD  dwError,
-    PSTR   pszBuffer,
-    size_t stBufSize
-    );
+#include "config.h"
+#include <lw/rtlmemory.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <ctype.h>
+#include <sys/stat.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+#include <unistd.h>
+#include <fcntl.h>
 
-size_t
-LWNetGetSystemErrorString(
-    DWORD  dwError,
-    PSTR   pszBuffer,
-    size_t stBufSize
-    );
+#include "lwdef.h"
+#include "lwerror.h"
+#include "lwmem.h"
+#include "lwstr.h"
+#include "lwfile.h"
 
-size_t
-LWNetGetUnmappedErrorString(
-    DWORD  dwError,
-    PSTR   pszBuffer,
-    size_t stBufSize
-    );
-
-#endif /* __LWNETERROR_P_H__ */
+#endif /* __INCLUDES_H__ */

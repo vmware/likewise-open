@@ -385,6 +385,26 @@ typedef struct _SMB_FILE_EA_INFO_HEADER
 } __attribute__((__packed__)) SMB_FILE_EA_INFO_HEADER,
                              *PSMB_FILE_EA_INFO_HEADER;
 
+typedef struct _SRV_PROTOCOL_EXEC_CONTEXT* PSRV_PROTOCOL_EXEC_CONTEXT;
+
+typedef VOID (*PFN_SRV_PROTOCOL_FREE_EXEC_CONTEXT)(
+                        PSRV_PROTOCOL_EXEC_CONTEXT pContext
+                        );
+
+typedef struct _SRV_EXEC_CONTEXT
+{
+    LONG                               refCount;
+
+    PLWIO_SRV_CONNECTION               pConnection;
+    PSMB_PACKET                        pSmbRequest;
+
+    PSRV_PROTOCOL_EXEC_CONTEXT         pProtocolContext;
+    PFN_SRV_PROTOCOL_FREE_EXEC_CONTEXT pfnFreeContext;
+
+    PSMB_PACKET                        pSmbResponse;
+
+} SRV_EXEC_CONTEXT, *PSRV_EXEC_CONTEXT;
+
 NTSTATUS
 SrvElementsInit(
     VOID
@@ -804,6 +824,18 @@ VOID
 SrvFinderCloseRepository(
     IN HANDLE hFinderRepository
     );
+
+NTSTATUS
+SrvBuildExecContext(
+   IN  PLWIO_SRV_CONNECTION pConnection,
+   IN  PSMB_PACKET          pSmbRequest,
+   OUT PSRV_EXEC_CONTEXT*   ppContext
+   );
+
+VOID
+SrvReleaseExecContext(
+   IN PSRV_EXEC_CONTEXT pContext
+   );
 
 NTSTATUS
 SrvElementsShutdown(

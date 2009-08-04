@@ -50,9 +50,6 @@
 #define PVFS_PATH_HASH_MULTIPLIER   31
 #define PVFS_PATH_CACHE_EXPIRY      120
 
-static PSMB_HASH_TABLE gpPathCache = NULL;
-static pthread_rwlock_t gPathCacheRwLock = PTHREAD_RWLOCK_INITIALIZER;
-
 typedef struct _PVFS_PATH_CACHE_ENTRY
 {
     PSTR pszPathname;
@@ -64,11 +61,6 @@ typedef struct _PVFS_PATH_CACHE_ENTRY
 
 /*****************************************************************************
  ****************************************************************************/
-
-static NTSTATUS
-PvfsPathCacheInit(
-    VOID
-    );
 
 NTSTATUS
 PvfsPathCacheAdd(
@@ -83,11 +75,10 @@ PvfsPathCacheAdd(
 
     if (gpPathCache == NULL)
     {
-        ntError = PvfsPathCacheInit();
-        if (ntError != STATUS_SUCCESS) {
-            ntError = STATUS_SUCCESS;
-            goto cleanup;
-        }
+        /* If the PathCache has been disabled or is not
+           initialized, just report success and move on */
+        ntError = STATUS_SUCCESS;
+        goto cleanup;
     }
 
     ntError = LwRtlCStringDuplicate(&pszPathname, pszResolvedPath);
@@ -144,6 +135,8 @@ PvfsPathCacheLookup(
 
     if (gpPathCache == NULL)
     {
+        /* If the PathCache has been disabled, just fail
+           the lookup and move on */
         ntError = STATUS_OBJECT_PATH_NOT_FOUND;
         BAIL_ON_NT_STATUS(ntError);
     }
@@ -214,7 +207,7 @@ PvfsPathCacheFreeEntry(
     const SMB_HASH_ENTRY *pEntry
     );
 
-static NTSTATUS
+NTSTATUS
 PvfsPathCacheInit(
     VOID
     )
@@ -222,6 +215,8 @@ PvfsPathCacheInit(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     DWORD dwError = 0;
     PSMB_HASH_TABLE pHashTable = NULL;
+
+    pthread_rwlock_init(&gPathCacheRwLock, NULL);
 
     dwError = SMBHashCreate(
                   PVFS_PATH_CACHE_SIZE,

@@ -231,6 +231,26 @@ LsaCredContains(
 }
 
 VOID
+LsaReferenceCredential(
+    IN LSA_CRED_HANDLE hCredential
+    )
+{
+    BOOL bInLock = FALSE;
+    PLSA_CREDENTIALS pCred = NULL;
+
+    if(hCredential)
+    {
+        pCred = hCredential;
+
+        ENTER_CREDS_LIST(bInLock);
+
+        pCred->nRefCount++;
+
+        LEAVE_CREDS_LIST(bInLock);
+    }
+}
+
+VOID
 LsaReleaseCredential(
     IN LSA_CRED_HANDLE hCredential
     )
@@ -252,9 +272,11 @@ LsaReleaseCredentialUnsafe(
     IN LSA_CRED_HANDLE hCredential
     )
 {
+    PLSA_CREDENTIALS pCred = NULL;
+
     if(hCredential)
     {
-        PLSA_CREDENTIALS pCred = (PLSA_CREDENTIALS)hCredential;
+        pCred = hCredential;
 
         pCred->nRefCount--;
 

@@ -2885,7 +2885,7 @@ AD_GetStatus(
                         NULL,
                         DS_BACKGROUND_ONLY,
                         &pDCInfo);
-        if (LWNET_ERROR_DOMAIN_NOT_FOUND == dwError)
+        if (ERROR_NO_SUCH_DOMAIN == dwError)
         {
             dwError = 0;
         }
@@ -3092,7 +3092,7 @@ AD_FillTrustedDomainInfo(
                     NULL,
                     DS_BACKGROUND_ONLY,
                     &pDcInfo);
-        if (LWNET_ERROR_DOMAIN_NOT_FOUND == dwError)
+        if (ERROR_NO_SUCH_DOMAIN == dwError)
         {
             dwError = 0;
         }
@@ -3136,7 +3136,7 @@ AD_FillTrustedDomainInfo(
                     NULL,
                     DS_GC_SERVER_REQUIRED | DS_BACKGROUND_ONLY,
                     &pDcInfo);
-        if (LWNET_ERROR_DOMAIN_NOT_FOUND == dwError)
+        if (ERROR_NO_SUCH_DOMAIN == dwError)
         {
             dwError = 0;
         }

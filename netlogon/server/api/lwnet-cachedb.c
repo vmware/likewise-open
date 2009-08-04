@@ -261,9 +261,10 @@ LWNetCacheDbReadFromFile(
 
     memset(FormatType, 0, sizeof(FormatType));
 
-    dwError = LWNetCheckFileExists(
-                  NETLOGON_DB,
-                  &bExists);
+    dwError = LwCheckFileTypeExists(
+                    NETLOGON_DB,
+                    LWFILE_REGULAR,
+                    &bExists);
     BAIL_ON_LWNET_ERROR(dwError);
 
     if (!bExists)
@@ -281,28 +282,28 @@ LWNetCacheDbReadFromFile(
     Cnt = fread(&FormatType, sizeof(FormatType), 1, pFileDb);
     if (Cnt == 0)
     {
-        dwError = LWNET_ERROR_UNEXPECTED_DB_RESULT;
+        dwError = ERROR_BAD_FORMAT;
     }
     else if (Cnt != 1)
     {
-        dwError = LWNET_ERROR_UNEXPECTED_DB_RESULT;
+        dwError = ERROR_BAD_FORMAT;
     }
     BAIL_ON_LWNET_ERROR(dwError);
 
     if (memcmp(FormatType, FILEDB_FORMAT_TYPE, sizeof(FormatType)))
     {
-        dwError = LWNET_ERROR_UNEXPECTED_DB_RESULT;
+        dwError = ERROR_BAD_FORMAT;
     }
     BAIL_ON_LWNET_ERROR(dwError);
 
     Cnt = fread(&dwVersion, sizeof(dwVersion), 1, pFileDb);
     if (Cnt == 0)
     {
-        dwError = LWNET_ERROR_UNEXPECTED_DB_RESULT;
+        dwError = ERROR_BAD_FORMAT;
     }
     else if (Cnt != 1)
     {
-        dwError = LWNET_ERROR_UNEXPECTED_DB_RESULT;
+        dwError = ERROR_BAD_FORMAT;
     }
     BAIL_ON_LWNET_ERROR(dwError);
 
@@ -321,7 +322,7 @@ LWNetCacheDbReadFromFile(
         }
         else if (Cnt != 1)
         {
-            dwError = LWNET_ERROR_UNEXPECTED_DB_RESULT;
+            dwError = ERROR_BAD_FORMAT;
         }
         BAIL_ON_LWNET_ERROR(dwError);
 
@@ -339,7 +340,7 @@ LWNetCacheDbReadFromFile(
         Cnt = fread(pData, DataSize, 1, pFileDb);
         if (Cnt != 1)
         {
-            dwError = LWNET_ERROR_UNEXPECTED_DB_RESULT;
+            dwError = ERROR_BAD_FORMAT;
         }
         BAIL_ON_LWNET_ERROR(dwError);
 
@@ -422,9 +423,10 @@ LWNetCacheDbWriteToFile(
     PVOID pData = NULL;
     size_t DataSize = 0;
 
-    dwError = LWNetCheckDirectoryExists(
-                  NETLOGON_DB_DIR,
-                  &bExists);
+    dwError = LwCheckFileTypeExists(
+                    NETLOGON_DB_DIR,
+                    LWFILE_DIRECTORY,
+                    &bExists);
     BAIL_ON_LWNET_ERROR(dwError);
 
     if (!bExists)
@@ -437,12 +439,13 @@ LWNetCacheDbWriteToFile(
     }
 
     /* restrict access to u+rwx to the db folder */
-    dwError = LWNetChangeOwnerAndPermissions(NETLOGON_DB_DIR, 0, 0, S_IRWXU);
+    dwError = LwChangeOwnerAndPermissions(NETLOGON_DB_DIR, 0, 0, S_IRWXU);
     BAIL_ON_LWNET_ERROR(dwError);
 
-    dwError = LWNetCheckFileExists(
-                  NETLOGON_DB,
-                  &bExists);
+    dwError = LwCheckFileTypeExists(
+                    NETLOGON_DB,
+                    LWFILE_REGULAR,
+                    &bExists);
     BAIL_ON_LWNET_ERROR(dwError);
 
     pFileDb = fopen(NETLOGON_DB, "w");
@@ -455,19 +458,19 @@ LWNetCacheDbWriteToFile(
     Cnt = fwrite(FormatType, sizeof(BYTE) * 4, 1, pFileDb);
     if (Cnt != 1)
     {
-        dwError = LWNET_ERROR_UNEXPECTED_DB_RESULT;
+        dwError = ERROR_BAD_FORMAT;
     }
     BAIL_ON_LWNET_ERROR(dwError);
 
     Cnt = fwrite(&dwVersion, sizeof(dwVersion), 1, pFileDb);
     if (Cnt != 1)
     {
-        dwError = LWNET_ERROR_UNEXPECTED_DB_RESULT;
+        dwError = ERROR_BAD_FORMAT;
     }
     BAIL_ON_LWNET_ERROR(dwError);
 
     // Make sure that we are secured
-    dwError = LWNetChangePermissions(NETLOGON_DB, S_IRWXU);
+    dwError = LwChangePermissions(NETLOGON_DB, S_IRWXU);
     BAIL_ON_LWNET_ERROR(dwError);
 
     dwError = MAP_LWMSG_ERROR(lwmsg_context_new(NULL, &pContext));
@@ -489,14 +492,14 @@ LWNetCacheDbWriteToFile(
         Cnt = fwrite(&DataSize, sizeof(DataSize), 1, pFileDb);
         if (Cnt != 1)
         {
-            dwError = LWNET_ERROR_UNEXPECTED_DB_RESULT;
+            dwError = ERROR_BAD_FORMAT;
         }
         BAIL_ON_LWNET_ERROR(dwError);
 
         Cnt = fwrite(pData, DataSize, 1, pFileDb);
         if (Cnt != 1)
         {
-            dwError = LWNET_ERROR_UNEXPECTED_DB_RESULT;
+            dwError = ERROR_BAD_FORMAT;
         }
         BAIL_ON_LWNET_ERROR(dwError);
 
@@ -510,7 +513,7 @@ LWNetCacheDbWriteToFile(
 
     if (!bExists)
     {
-        dwError = LWNetChangePermissions(NETLOGON_DB, S_IRWXU);
+        dwError = LwChangePermissions(NETLOGON_DB, S_IRWXU);
         BAIL_ON_LWNET_ERROR(dwError);
     }
 
@@ -543,7 +546,7 @@ error:
         fclose(pFileDb);
         pFileDb = NULL;
     }
-    LWNetRemoveFile(NETLOGON_DB);
+    LwRemoveFile(NETLOGON_DB);
 
     goto cleanup;
 }
@@ -942,7 +945,7 @@ LWNetCacheDbExport(
     OUT PDWORD pdwCount
     )
 {
-    return LWNET_ERROR_NOT_IMPLEMENTED;
+    return ERROR_CALL_NOT_IMPLEMENTED;
 }
 
 DWORD

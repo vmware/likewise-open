@@ -504,8 +504,8 @@ LsaDmEngineDiscoverTrusts(
     dwError = LWNetGetDCName(NULL, pszDnsPrimaryDomainName, NULL, 0, &pDcInfo);
     switch (dwError)
     {
-        case LWNET_ERROR_INVALID_DNS_RESPONSE:
-        case LWNET_ERROR_FAILED_FIND_DC:
+        case DNS_ERROR_BAD_PACKET:
+        case NERR_DCNotFound:
             // We pinged a DC earlier, so we must have gone offline
             // in the last few seconds.
             dwError = LW_ERROR_DOMAIN_IS_OFFLINE;

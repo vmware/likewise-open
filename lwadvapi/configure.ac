@@ -230,6 +230,7 @@ AC_CONFIG_FILES([Makefile
                  unthreaded/memory/Makefile
                  unthreaded/lwunistr/Makefile
                  unthreaded/error/Makefile
+                 unthreaded/file/Makefile
                  join/Makefile])
 
 AC_OUTPUT

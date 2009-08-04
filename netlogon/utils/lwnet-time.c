@@ -107,7 +107,7 @@ LWNetParseDateString(
                 break;
 
             default:
-                dwError = LWNET_ERROR_INVALID_PARAMETER;
+                dwError = ERROR_INVALID_PARAMETER;
                 BAIL_ON_LWNET_ERROR(dwError);
                 break;
         }
@@ -194,7 +194,7 @@ LWNetSetSystemTime(
     
     if (!bTimeset)
     {
-        dwError = LWNET_ERROR_FAILED_TO_SET_TIME;
+        dwError = ERROR_INVALID_TIME;
         BAIL_ON_LWNET_ERROR(dwError);
     }
 
@@ -217,7 +217,7 @@ LWNetSetSystemTime(
 #endif
     
     if (!bTimeset) {
-        dwError = LWNET_ERROR_FAILED_TO_SET_TIME;
+        dwError = ERROR_INVALID_TIME;
         BAIL_ON_LWNET_ERROR(dwError);
     }
         
@@ -225,7 +225,7 @@ LWNetSetSystemTime(
     if (labs(readTime - ttCurTime) > 5)
     {
         LWNET_LOG_ERROR("Attempted to set time to %ld, but it is now %ld.", ttCurTime, readTime);
-        dwError = LWNET_ERROR_FAILED_TO_SET_TIME;
+        dwError = ERROR_INVALID_TIME;
         BAIL_ON_LWNET_ERROR(dwError);
     }
 
@@ -300,7 +300,7 @@ LWNetSleepInMs(
     IN LWNET_UNIX_MS_TIME_T Time
     )
 {
-    DWORD dwError = LWNET_ERROR_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
     pthread_mutex_t retryLock = PTHREAD_MUTEX_INITIALIZER;
     pthread_cond_t retryCondition = PTHREAD_COND_INITIALIZER;
     LWNET_UNIX_MS_TIME_T now = 0;

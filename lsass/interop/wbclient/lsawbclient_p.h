@@ -95,7 +95,7 @@
 
 #define BAIL_ON_NETLOGON_ERR(x)            \
     do {                    \
-        if (x != LWNET_ERROR_SUCCESS)    \
+        if (x != ERROR_SUCCESS)    \
             goto done;            \
     } while(0);
 

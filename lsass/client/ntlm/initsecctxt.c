@@ -87,7 +87,7 @@ NtlmClientInitializeSecurityContext(
 
     if(dwError != LW_WARNING_CONTINUE_NEEDED)
     {
-        BAIL_ON_NTLM_ERROR(dwError);
+        BAIL_ON_LW_ERROR(dwError);
     }
 
 cleanup:

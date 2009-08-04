@@ -48,205 +48,6 @@
 #include "includes.h"
 
 DWORD
-LWNetRemoveFile(
-    PCSTR pszPath
-    )
-{
-    DWORD dwError = 0;
-
-    while (1) {
-        if (unlink(pszPath) < 0) {
-            if (errno == EINTR) {
-                continue;
-            }
-            dwError = errno;
-            BAIL_ON_LWNET_ERROR(dwError);
-        } else {
-            break;
-        }
-    }
-
-error:
-
-    return dwError;
-}
-
-DWORD
-LWNetCheckFileExists(
-    PCSTR pszPath,
-    PBOOLEAN pbFileExists
-    )
-{
-    DWORD dwError = 0;
-
-    struct stat statbuf;
-
-    memset(&statbuf, 0, sizeof(struct stat));
-
-    while (1) {
-        if (stat(pszPath, &statbuf) < 0) {
-           if (errno == EINTR) {
-              continue;
-           } else if (errno == ENOENT) {
-             *pbFileExists = 0;
-             break;
-           }
-           dwError = errno;
-           BAIL_ON_LWNET_ERROR(dwError);
-        } else {
-          *pbFileExists = 1;
-          break;
-        }
-    }
-
-error:
-
-    return dwError;
-}
-
-DWORD
-LWNetCheckSockExists(
-    PCSTR pszPath,
-    PBOOLEAN pbSockExists
-    )
-{
-    DWORD dwError = 0;
-
-    struct stat statbuf;
-
-    memset(&statbuf, 0, sizeof(struct stat));
-
-    while (1) {
-        if (stat(pszPath, &statbuf) < 0) {
-           if (errno == EINTR) {
-              continue;
-           } else if (errno == ENOENT || errno == ENOTDIR) {
-             *pbSockExists = 0;
-             break;
-           }
-           dwError = errno;
-           BAIL_ON_LWNET_ERROR(dwError);
-        } else {
-          *pbSockExists = (((statbuf.st_mode & S_IFMT) == S_IFSOCK) ? TRUE : FALSE);
-          break;
-        }
-    }
-
-error:
-
-    return dwError;
-}
-
-DWORD
-LWNetMoveFile(    
-    PCSTR pszSrcPath,
-    PCSTR pszDstPath
-    )
-{
-    DWORD dwError = 0;
-
-    if (rename(pszSrcPath, pszDstPath) < 0) {
-        dwError = errno;
-    }
-
-    return dwError;
-}
-
-DWORD
-LWNetChangePermissions(
-    PCSTR pszPath,
-    mode_t dwFileMode
-    )
-{
-    DWORD dwError = 0;
-
-    while (1) {
-        if (chmod(pszPath, dwFileMode) < 0) {
-            if (errno == EINTR) {
-                continue;
-            }
-            dwError = errno;
-            BAIL_ON_LWNET_ERROR(dwError);
-        } else {
-            break;
-        }
-    }
-
-error:
-
-    return dwError;
-}
-
-DWORD
-LWNetChangeOwner(
-    PCSTR pszPath,
-    uid_t uid,
-    gid_t gid
-    )
-{
-    DWORD dwError = 0;
-    struct stat statbuf = {0};
-    
-    if (lstat(pszPath, &statbuf) < 0) {
-        dwError = errno;
-        BAIL_ON_LWNET_ERROR(dwError);
-    }
-    
-    while (1) {
-
-        if (S_ISLNK(statbuf.st_mode)) {
-            
-            if (lchown(pszPath, uid, gid) < 0) {
-                if (errno == EINTR) {
-                    continue;
-                }
-                dwError = errno;
-                BAIL_ON_LWNET_ERROR(dwError);
-            } else {
-                break;
-            }
-            
-        } else {
-            
-            if (chown(pszPath, uid, gid) < 0) {
-                if (errno == EINTR) {
-                    continue;
-                }
-                dwError = errno;
-                BAIL_ON_LWNET_ERROR(dwError);
-            } else {
-                break;
-            }
-        }
-    }
-
-error:
-
-    return dwError;
-}
-
-DWORD
-LWNetChangeOwnerAndPermissions(
-    PCSTR pszPath,
-    uid_t uid,
-    gid_t gid,
-    mode_t dwFileMode
-    )
-{
-    DWORD dwError = 0;
-
-    dwError = LWNetChangeOwner(pszPath, uid, gid);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    dwError = LWNetChangePermissions(pszPath, dwFileMode);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-error:
-
-    return dwError;
-}
-
-DWORD
 LWNetChangeDirectory(
     PSTR pszPath
     )
@@ -305,7 +106,7 @@ LWNetRemoveDirectory(
 
         } else {
 
-            dwError = LWNetRemoveFile(szBuf);
+            dwError = LwRemoveFile(szBuf);
             BAIL_ON_LWNET_ERROR(dwError);
 
         }
@@ -315,77 +116,6 @@ error:
 
     if (pDir)
         closedir(pDir);
-
-    return dwError;
-}
-
-DWORD
-LWNetCheckDirectoryExists(
-    PCSTR pszPath,
-    PBOOLEAN pbDirExists
-    )
-{
-    DWORD dwError = 0;
-
-    struct stat statbuf;
-
-    while (1) {
-
-        memset(&statbuf, 0, sizeof(struct stat));
-
-        if (stat(pszPath, &statbuf) < 0) {
-
-            if (errno == EINTR) {
-                continue;
-            }
-            else if (errno == ENOENT || errno == ENOTDIR) {
-                *pbDirExists = FALSE;
-                break;
-            }
-            dwError = errno;
-            BAIL_ON_LWNET_ERROR(dwError);
-
-        }
-
-        /*
-           The path exists. Is it a directory?
-         */
-
-        *pbDirExists = (((statbuf.st_mode & S_IFMT) == S_IFDIR) ? TRUE : FALSE);
-        break;
-    }
-
-error:
-
-    return dwError;
-}
-
-DWORD
-LWNetGetCurrentDirectoryPath(
-    PSTR* ppszPath
-    )
-{
-    DWORD dwError = 0;
-    CHAR szBuf[PATH_MAX+1];
-    PSTR pszPath = NULL;
-
-    if (getcwd(szBuf, PATH_MAX) == NULL) {
-        dwError = errno;
-        BAIL_ON_LWNET_ERROR(dwError);
-    }
-
-    dwError = LWNetAllocateString(szBuf, &pszPath);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    *ppszPath = pszPath;
-
-    return dwError;
-
-error:
-
-    if (pszPath) {
-        LWNetFreeString(pszPath);
-    }
 
     return dwError;
 }
@@ -421,7 +151,10 @@ LWNetCreateDirectoryRecursive(
                 pszToken);
 
 
-        dwError = LWNetCheckDirectoryExists(pszDirPath, &bDirExists);
+        dwError = LwCheckFileTypeExists(
+                        pszDirPath,
+                        LWFILE_DIRECTORY,
+                        &bDirExists);
         BAIL_ON_LWNET_ERROR(dwError);
 
         if (!bDirExists) {
@@ -447,7 +180,7 @@ LWNetCreateDirectoryRecursive(
     }
 
     if (bDirCreated && (dwFileMode != dwWorkingFileMode)) {
-        dwError = LWNetChangePermissions(pszDirPath, dwFileMode);
+        dwError = LwChangePermissions(pszDirPath, dwFileMode);
         BAIL_ON_LWNET_ERROR(dwError);
     }
     if (pszDirPath) {
@@ -495,7 +228,7 @@ LWNetCreateDirectory(
         dwWorkingFileMode |= S_IXUSR;
     }
 
-    dwError = LWNetGetCurrentDirectoryPath(&pszCurDirPath);
+    dwError = LwGetCurrentDirectoryPath(&pszCurDirPath);
     BAIL_ON_LWNET_ERROR(dwError);
 
     dwError = LWNetAllocateString(pszPath, &pszTmpPath);
@@ -529,33 +262,6 @@ error:
         LWNetFreeMemory(pszTmpPath);
     }
 
-    return dwError;
-}
-
-DWORD
-LWNetGetOwnerAndPermissions(
-    PCSTR pszSrcPath,
-    uid_t * uid,
-    gid_t * gid,
-    mode_t * mode
-    )
-{
-    DWORD dwError = 0;
-    struct stat statbuf;
-
-    memset(&statbuf, 0, sizeof(struct stat));
-
-    if (stat(pszSrcPath, &statbuf) < 0) {
-        dwError = errno;
-        BAIL_ON_LWNET_ERROR(dwError);
-    }
-
-    *uid = statbuf.st_uid;
-    *gid = statbuf.st_gid;
-    *mode = statbuf.st_mode;
-
-error:
- 
     return dwError;
 }
 
@@ -628,12 +334,12 @@ LWNetCopyFileWithPerms(
     close(iFd); iFd = -1;
     close(oFd); oFd = -1;
 
-    dwError = LWNetMoveFile(pszTmpPath, pszDstPath);
+    dwError = LwMoveFile(pszTmpPath, pszDstPath);
     BAIL_ON_LWNET_ERROR(dwError);
 
     bRemoveFile = FALSE;
 
-    dwError = LWNetChangePermissions(pszDstPath, dwPerms);
+    dwError = LwChangePermissions(pszDstPath, dwPerms);
     BAIL_ON_LWNET_ERROR(dwError);
 
 error:
@@ -646,7 +352,7 @@ error:
 
 
     if (bRemoveFile) {
-        LWNetRemoveFile(pszTmpPath);
+        LwRemoveFile(pszTmpPath);
     }
 
     LWNET_SAFE_FREE_STRING (pszTmpPath);
@@ -666,13 +372,13 @@ LWNetCopyFileWithOriginalPerms(
     gid_t gid;
     mode_t mode;
 
-    dwError = LWNetGetOwnerAndPermissions(pszSrcPath, &uid, &gid, &mode);
+    dwError = LwGetOwnerAndPermissions(pszSrcPath, &uid, &gid, &mode);
     BAIL_ON_LWNET_ERROR(dwError);
 
     dwError = LWNetCopyFileWithPerms(pszSrcPath, pszDstPath, mode);
     BAIL_ON_LWNET_ERROR(dwError);
 
-    dwError = LWNetChangeOwnerAndPermissions(pszDstPath, uid, gid, mode);
+    dwError = LwChangeOwnerAndPermissions(pszDstPath, uid, gid, mode);
     BAIL_ON_LWNET_ERROR(dwError);
 
 error:
@@ -689,7 +395,10 @@ LWNetBackupFile(
     BOOLEAN bExists = FALSE;
     CHAR    szBackupPath[PATH_MAX];
 
-    dwError = LWNetCheckFileExists(pszPath, &bExists);
+    dwError = LwCheckFileTypeExists(
+                    pszPath,
+                    LWFILE_REGULAR,
+                    &bExists);
     BAIL_ON_LWNET_ERROR(dwError);
 
     if (!bExists)
@@ -700,7 +409,10 @@ LWNetBackupFile(
 
     sprintf(szBackupPath, "%s.likewise_lwnet.orig", pszPath);
 
-    dwError = LWNetCheckFileExists(szBackupPath, &bExists);
+    dwError = LwCheckFileTypeExists(
+                    szBackupPath,
+                    LWFILE_REGULAR,
+                    &bExists);
     BAIL_ON_LWNET_ERROR(dwError);
 
     if (bExists)
@@ -817,7 +529,7 @@ LWNetCopyDirectory(
                             statbuf.st_mode);
             BAIL_ON_LWNET_ERROR(dwError);
             
-            dwError = LWNetChangeOwner(
+            dwError = LwChangeOwner(
                             szDstPath,
                             ownerUid,
                             ownerGid);
@@ -837,7 +549,7 @@ LWNetCopyDirectory(
                             szDstPath);
             BAIL_ON_LWNET_ERROR(dwError);
             
-            dwError = LWNetChangeOwner(
+            dwError = LwChangeOwner(
                             szDstPath,
                             ownerUid,
                             ownerGid);
@@ -855,7 +567,7 @@ LWNetCopyDirectory(
                             szDstPath);
             BAIL_ON_LWNET_ERROR(dwError);
             
-            dwError = LWNetChangeOwner(
+            dwError = LwChangeOwner(
                             szDstPath,
                             ownerUid,
                             ownerGid);
@@ -908,7 +620,10 @@ LWNetGetMatchingFilePathsInFolder(
     PPATHNODE pPathNode = NULL;
     BOOLEAN bDirExists = FALSE;
 
-    dwError = LWNetCheckDirectoryExists(pszDirPath, &bDirExists);
+    dwError = LwCheckFileTypeExists(
+                    pszDirPath,
+                    LWFILE_DIRECTORY,
+                    &bDirExists);
     BAIL_ON_LWNET_ERROR(dwError);
 
     if(!bDirExists) {
@@ -917,7 +632,7 @@ LWNetGetMatchingFilePathsInFolder(
     }
 
     if (regcomp(&rx, pszFileNameRegExp, REG_EXTENDED) != 0) {
-        dwError = LWNET_ERROR_REGEX_COMPILE_FAILED;
+        dwError = ERROR_BAD_FORMAT;
         BAIL_ON_LWNET_ERROR(dwError);
     }
     rxAllocated = TRUE;

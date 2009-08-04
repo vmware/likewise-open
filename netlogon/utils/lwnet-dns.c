@@ -68,7 +68,7 @@ LWNetDnsGetHostInfoEx(
 
     if (!ppszHostname && !ppszFqdn && !ppszDomain)
     {
-        dwError = LWNET_ERROR_INVALID_PARAMETER;
+        dwError = ERROR_INVALID_PARAMETER;
         BAIL_ON_LWNET_ERROR(dwError);
     }
 
@@ -156,8 +156,7 @@ LWNetDnsGetHostInfoEx(
         }
         else
         {
-            // TODO: Better error message
-            dwError = LWNET_ERROR_DATA_ERROR;
+            dwError = ERROR_NOT_FOUND;
             BAIL_ON_LWNET_ERROR(dwError);
         }
     }
@@ -171,8 +170,7 @@ LWNetDnsGetHostInfoEx(
         }
         else
         {
-            // TODO: Better error message
-            dwError = LWNET_ERROR_DATA_ERROR;
+            dwError = ERROR_NOT_FOUND;
             BAIL_ON_LWNET_ERROR(dwError);
         }
     }
@@ -234,11 +232,14 @@ LWNetDnsGetNameServerList(
     memset(&rx, 0, sizeof(rx));
     
     if (regcomp(&rx, "^nameserver[[:space:]].*$", REG_EXTENDED) < 0) {
-        dwError = LWNET_ERROR_REGEX_COMPILE_FAILED;
+        dwError = ERROR_BAD_FORMAT;
         BAIL_ON_LWNET_ERROR(dwError);
     }
     
-    dwError = LWNetCheckFileExists(pszConfigFilePath, &bFileExists);
+    dwError = LwCheckFileTypeExists(
+                    pszConfigFilePath,
+                    LWFILE_REGULAR,
+                    &bFileExists);
     BAIL_ON_LWNET_ERROR(dwError);
     
     if (!bFileExists) {
@@ -884,7 +885,7 @@ LWNetDnsBuildSRVRecord(
     
     if (pAnswerRecord->wDataLen < (4 * sizeof(WORD)))
     {
-        dwError = LWNET_ERROR_INVALID_DNS_RESPONSE;
+        dwError = DNS_ERROR_BAD_PACKET;
         BAIL_ON_LWNET_ERROR(dwError);
     }
 
@@ -977,7 +978,7 @@ LWNetDnsGetAddressForServer(
 
     if (IsNullOrEmptyString(pszAddress))
     {
-        dwError = LWNET_ERROR_DNS_RESOLUTION_FAILED;
+        dwError = ERROR_NOT_FOUND;
         BAIL_ON_LWNET_ERROR(dwError);
     }
     
@@ -1139,14 +1140,14 @@ LWNetDnsQueryWithBuffer(
     {
         if (res_init() != 0)
         {
-            dwError = LWNET_ERROR_DNS_RESOLUTION_FAILED;
+            dwError = ERROR_NOT_FOUND;
             BAIL_ON_LWNET_ERROR(dwError);
         }
     }
 
     if (dwBufferSize < CT_MIN(sizeof(DNS_RESPONSE_HEADER), MAX_DNS_UDP_BUFFER))
     {
-        dwError = LWNET_ERROR_INVALID_PARAMETER;
+        dwError = ERROR_INVALID_PARAMETER;
         BAIL_ON_LWNET_ERROR(dwError);
     }
 
@@ -1166,17 +1167,17 @@ LWNetDnsQueryWithBuffer(
     if (responseSize < 0)
     {
         LWNET_LOG_ERROR("DNS lookup for '%s' failed with errno %d, h_errno = %d", pszQuestion, errno, h_errno);
-        dwError = LWNET_ERROR_INVALID_DNS_RESPONSE;
+        dwError = DNS_ERROR_BAD_PACKET;
         BAIL_ON_LWNET_ERROR(dwError);
     }
     if (responseSize < CT_FIELD_OFFSET(DNS_RESPONSE_HEADER, data))
     {
-       dwError = LWNET_ERROR_INVALID_DNS_RESPONSE;
-       BAIL_ON_LWNET_ERROR(dwError);
+        dwError = DNS_ERROR_BAD_PACKET;
+        BAIL_ON_LWNET_ERROR(dwError);
     }
     if (responseSize > dwBufferSize)
     {
-        dwError = LWNET_ERROR_INVALID_DNS_RESPONSE;
+        dwError = DNS_ERROR_BAD_PACKET;
         BAIL_ON_LWNET_ERROR(dwError);
     }
 
@@ -1184,7 +1185,7 @@ LWNetDnsQueryWithBuffer(
 
     if (!LWNetDnsIsValidResponse(pHeader))
     {
-        dwError = LWNET_ERROR_INVALID_DNS_RESPONSE;
+        dwError = DNS_ERROR_BAD_PACKET;
         BAIL_ON_LWNET_ERROR(dwError);
     }
 

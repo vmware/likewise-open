@@ -147,7 +147,7 @@ const uint16 lookup_level = 1;
     status = LsaLookupSids(lsa_b, &lsa_h, sid_array, &domains,
                            &names, lookup_level, &count);
     if (status != STATUS_SUCCESS &&
-        status != STATUS_SOME_UNMAPPED) {
+        status != LW_STATUS_SOME_NOT_MAPPED) {
         /* bail out only if there's no mapping or any other error occurs */
         err = NtStatusToWin32Error(status);
         goto error;

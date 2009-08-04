@@ -60,13 +60,10 @@ LwRtlMemoryAllocate(
     }
 
     // Note -- If this allocator changes, need to change iostring routines.
-    pMemory = malloc(Size);
-    if (pMemory)
-    {
-        memset(pMemory, 0, Size);
-    }
+    pMemory = calloc(1, Size);
 
 cleanup:
+
     return pMemory;
 }
 

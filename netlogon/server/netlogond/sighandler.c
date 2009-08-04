@@ -179,11 +179,14 @@ FakeClientConnection(
 
     sprintf(szClientPath, LWNET_CLIENT_PATH_FORMAT, (long)getpid());
 
-    dwError = LWNetCheckSockExists(szClientPath, &bFileExists);
+    dwError = LwCheckFileTypeExists(
+                    szClientPath,
+                    LWFILE_SOCKET,
+                    &bFileExists);
     BAIL_ON_LWNET_ERROR(dwError);
 
     if (bFileExists) {
-        dwError = LWNetRemoveFile(szClientPath);
+        dwError = LwRemoveFile(szClientPath);
         BAIL_ON_LWNET_ERROR(dwError);
     }
 
@@ -199,7 +202,7 @@ FakeClientConnection(
 
     bFileExists = TRUE;
 
-    dwError = LWNetChangePermissions(unixaddr.sun_path, S_IRWXU);
+    dwError = LwChangePermissions(unixaddr.sun_path, S_IRWXU);
     BAIL_ON_LWNET_ERROR(dwError);
 
     memset(&unixaddr, 0, sizeof(unixaddr));
@@ -219,7 +222,7 @@ error:
 
     if (bFileExists)
     {
-        LWNetRemoveFile(szClientPath);
+        LwRemoveFile(szClientPath);
     }
 
     LWNET_SAFE_FREE_STRING(pszCachePath);

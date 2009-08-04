@@ -111,7 +111,7 @@ LWNetInitializePlugin(
 
         LWNET_LOG_ERROR("Failed to load %s (%s (%d))", gLWNetPluginState.pszLibraryPath, LWNET_SAFE_LOG_STRING(pszError), error);
 
-        dwError = LWNET_ERROR_INTERNAL;
+        dwError = ERROR_DLL_INIT_FAILED;
         BAIL_ON_LWNET_ERROR(dwError);
     }
 
@@ -124,7 +124,7 @@ LWNetInitializePlugin(
         LWNET_LOG_ERROR("Failed to load " LWNET_PLUGIN_GET_INTERFACE_FUNCTION_NAME " function from %s (%s)",
                         gLWNetPluginState.pszLibraryPath, LWNET_SAFE_LOG_STRING(pszError));
 
-        dwError = LWNET_ERROR_INTERNAL;
+        dwError = ERROR_DLL_INIT_FAILED;
         BAIL_ON_LWNET_ERROR(dwError);
     }
 
@@ -180,7 +180,7 @@ LWNetGetPreferredDcList(
 
     if (!gLWNetPluginState.pInterface)
     {
-        dwError = LWNET_ERROR_FAILED_FIND_DC;
+        dwError = NERR_DCNotFound;
         BAIL_ON_LWNET_ERROR(dwError);
     }
 
@@ -240,7 +240,7 @@ LWNetPreferredDcPluginBuildServerArray(
 
     if (dwDcCount < 1)
     {
-        dwError = LWNET_ERROR_FAILED_FIND_DC;
+        dwError = NERR_DCNotFound;
         BAIL_ON_LWNET_ERROR(dwError);
     }
 
@@ -254,7 +254,7 @@ LWNetPreferredDcPluginBuildServerArray(
                             "at entry number %u (IP = '%s')",
                             i, LWNET_SAFE_LOG_STRING(pDcInfo->pszIpAddress));
 
-            dwError = LWNET_ERROR_INTERNAL;
+            dwError = ERROR_INTERNAL_ERROR;
             BAIL_ON_LWNET_ERROR(dwError);
         }
 
@@ -264,7 +264,7 @@ LWNetPreferredDcPluginBuildServerArray(
                             "at entry number %u (name = '%s')",
                             i, LWNET_SAFE_LOG_STRING(pDcInfo->pszDnsName));
 
-            dwError = LWNET_ERROR_INTERNAL;
+            dwError = ERROR_INTERNAL_ERROR;
             BAIL_ON_LWNET_ERROR(dwError);
         }
 

@@ -54,9 +54,9 @@
 
 #include "lwnet-def.h"
 #include "lwnet-utils.h"
+#include <lwfile.h>
 
 #include "lwnet-cfg_p.h"
 #include "lwnet-dns_p.h"
-#include "lwnet-error_p.h"
 #include "lwnet-sysfuncs_p.h"
 #include "externs.h"

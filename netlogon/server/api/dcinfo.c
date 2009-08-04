@@ -85,7 +85,7 @@ LWNetSrvGetDCName(
     if (!IsNullOrEmptyString(pszServerName))
     {
         LWNET_LOG_ERROR("Cannot specify computer name: '%s'", pszServerName);
-        dwError = LWNET_ERROR_INVALID_PARAMETER;
+        dwError = ERROR_INVALID_PARAMETER;
         BAIL_ON_LWNET_ERROR(dwError);
     }
 
@@ -93,7 +93,7 @@ LWNetSrvGetDCName(
     {
         if (!ppszAddressBlackList[dwIndex])
         {
-            dwError = LWNET_ERROR_INVALID_PARAMETER;
+            dwError = ERROR_INVALID_PARAMETER;
             BAIL_ON_LWNET_ERROR(dwError);
         }
     }
@@ -108,7 +108,7 @@ LWNetSrvGetDCName(
         // If in background mode, we do not care about any expiration
         if (dwDsFlags & DS_BACKGROUND_ONLY)
         {
-            dwError = pDcInfo ? 0 : LWNET_ERROR_DOMAIN_NOT_FOUND;
+            dwError = pDcInfo ? 0 : ERROR_NO_SUCH_DOMAIN;
             BAIL_ON_LWNET_ERROR(dwError);
             goto error;
         }
@@ -121,7 +121,7 @@ LWNetSrvGetDCName(
         {
             if ((now - lastDiscovered) <= LWNET_NEGATIVE_CACHE_EXPIRATION_SECONDS)
             {
-                dwError = LWNET_ERROR_DOMAIN_NOT_FOUND;
+                dwError = ERROR_NO_SUCH_DOMAIN;
                 BAIL_ON_LWNET_ERROR(dwError);
             }
         }
@@ -395,7 +395,7 @@ LWNetSrvGetDCTime(
     {
         if (dwError == EINVAL)
         {
-            dwError = LWNET_ERROR_FAILED_TIME_CONVERSION;
+            dwError = ERROR_INVALID_TIME;
         }
         BAIL_ON_LWNET_ERROR(dwError);
     }
