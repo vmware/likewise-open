@@ -212,6 +212,14 @@ SrvListenerMain(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
+#ifdef TCP_NODELAY
+    if (setsockopt(sockFd, IPPROTO_TCP, TCP_NODELAY, &on, sizeof(on)) < 0)
+    {
+        ntStatus = LwUnixErrnoToNtStatus(errno);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+#endif
+
     memset(&servaddr, 0, sizeof(servaddr));
     servaddr.sin_family = AF_INET;
     servaddr.sin_addr.s_addr  = htonl(INADDR_ANY);
