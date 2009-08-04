@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -30,7 +30,7 @@
 
 /*
  *  Copyright (C) Likewise Software. All rights reserved.
- *  
+ *
  *  Module Name:
  *
  *     provider-main.c
@@ -58,33 +58,32 @@
 #define MAXSUBAUTHS 15 /* max sub authorities in a SID */
 
 typedef struct __DomainSid {
-	BYTE   sid_rev_num;
-	BYTE   num_auths;
-	BYTE   id_auth[6];
-	DWORD  sub_auths[MAXSUBAUTHS];
+    BYTE   sid_rev_num;
+    BYTE   num_auths;
+    BYTE   id_auth[6];
+    DWORD  sub_auths[MAXSUBAUTHS];
 } DOMAIN_SID, *PDOMAIN_SID;
 
-DWORD 
+DWORD
 SidToString(
-	PDOMAIN_SID pSid,
-	PSTR *pszSidString
-	);
+    PDOMAIN_SID pSid,
+    PSTR *pszSidString
+    );
 
 DWORD
 StringToSid(
-	PCSTR pszSidString,
-	PDOMAIN_SID pSid
-	);
+    PCSTR pszSidString,
+    PDOMAIN_SID pSid
+    );
 
 #endif  /* __UTIL_SID_H */
 
 
 /*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
+  local variables:
+  mode: c
+  c-basic-offset: 4
+  indent-tabs-mode: nil
+  tab-width: 4
+  end:
 */
-

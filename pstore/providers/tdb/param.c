@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -30,7 +30,7 @@
 
 /*
  *  Copyright (C) Likewise Software. All rights reserved.
- *  
+ *
  *  Module Name:
  *
  *     provider-main.c
@@ -50,16 +50,16 @@
 #include "lwps-provider.h"
 #include "provider-main_p.h"
 
-#define FREE_PARAM_STRING(x)			\
-	if (x != NULL) {			\
-		LwpsFreeMemory(x);		\
-		x = NULL;			\
-	}
+#define FREE_PARAM_STRING(x) \
+    if (x != NULL) { \
+         LwpsFreeMemory(x); \
+         x = NULL; \
+    }
 
 typedef struct __Tdb_providers_Params {
-	BOOLEAN bInitialized;	
-	pthread_rwlock_t mutex;	
-	PSTR pszDbPath;
+    BOOLEAN bInitialized;
+    pthread_rwlock_t mutex;
+    PSTR pszDbPath;
 } TDB_PROVIDER_PARAMS, *PTDB_PROVIDER_PARAMS;
 
 static TDB_PROVIDER_PARAMS Globals;
@@ -69,15 +69,15 @@ static TDB_PROVIDER_PARAMS Globals;
 
 DWORD TdbInitProviderParams(void)
 {
-	if (Globals.bInitialized == TRUE) {		
-		return LWPS_ERROR_SUCCESS;
-	}
+    if (Globals.bInitialized == TRUE) {
+        return LWPS_ERROR_SUCCESS;
+    }
 
-       	pthread_rwlock_init(&Globals.mutex, NULL);
+    pthread_rwlock_init(&Globals.mutex, NULL);
 
-	Globals.bInitialized = TRUE;
-	
-	return LWPS_ERROR_SUCCESS;
+    Globals.bInitialized = TRUE;
+
+    return LWPS_ERROR_SUCCESS;
 }
 
 /******************************************************************
@@ -85,9 +85,9 @@ DWORD TdbInitProviderParams(void)
 
 DWORD TdbReleaseProviderParams(void)
 {
-	FREE_PARAM_STRING(Globals.pszDbPath);
+    FREE_PARAM_STRING(Globals.pszDbPath);
 
-	return LWPS_ERROR_SUCCESS;
+    return LWPS_ERROR_SUCCESS;
 }
 
 /******************************************************************
@@ -95,15 +95,15 @@ DWORD TdbReleaseProviderParams(void)
 
 DWORD TdbSetDbPath(PCSTR pszPath)
 {
-	DWORD dwError = LWPS_ERROR_INTERNAL;
+    DWORD dwError = LWPS_ERROR_INTERNAL;
 
-	FREE_PARAM_STRING(Globals.pszDbPath);
+    FREE_PARAM_STRING(Globals.pszDbPath);
 
-	dwError = LwpsAllocateString(pszPath, &Globals.pszDbPath);
-	BAIL_ON_LWPS_ERROR(dwError);
+    dwError = LwpsAllocateString(pszPath, &Globals.pszDbPath);
+    BAIL_ON_LWPS_ERROR(dwError);
 
 error:
-	return dwError;	
+    return dwError;
 }
 
 
@@ -112,27 +112,26 @@ error:
 
 DWORD TdbGetDbPath(PSTR *pszPath)
 {
-	DWORD dwError = LWPS_ERROR_INTERNAL;
+    DWORD dwError = LWPS_ERROR_INTERNAL;
 
-	if (Globals.pszDbPath == NULL) {
-		dwError = LWPS_ERROR_DATA_ERROR;
-		BAIL_ON_LWPS_ERROR(dwError);
-	}
+    if (Globals.pszDbPath == NULL) {
+        dwError = LWPS_ERROR_DATA_ERROR;
+        BAIL_ON_LWPS_ERROR(dwError);
+    }
 
-	*pszPath = Globals.pszDbPath;
-	dwError = LWPS_ERROR_SUCCESS;	
-	
+    *pszPath = Globals.pszDbPath;
+    dwError = LWPS_ERROR_SUCCESS;
+
 error:
-	return dwError;	
+    return dwError;
 }
 
 
 /*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
+  local variables:
+  mode: c
+  c-basic-offset: 4
+  indent-tabs-mode: nil
+  tab-width: 4
+  end:
 */
-

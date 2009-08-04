@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -30,7 +30,7 @@
 
 /*
  *  Copyright (C) Likewise Software. All rights reserved.
- *  
+ *
  *  Module Name:
  *
  *     provider-main.c
@@ -54,34 +54,33 @@
 #include "util_str.h"
 #include "provider-main_p.h"
 
-DWORD 
+DWORD
 TdbStoreMachineAccountInfo(
-	PTDB_PROVIDER_CONTEXT pCtx,
-	PCSTR pszDomain,
-	PMACHINE_ACCT_INFO pAcctInfo
-	);
+    PTDB_PROVIDER_CONTEXT pCtx,
+    PCSTR pszDomain,
+    PMACHINE_ACCT_INFO pAcctInfo
+    );
 
-DWORD 
+DWORD
 TdbFetchMachineAccountInfo(
-	PTDB_PROVIDER_CONTEXT pCtx,
-	PCSTR pszDomain,
-	PMACHINE_ACCT_INFO *ppAcctInfo
-	);
+    PTDB_PROVIDER_CONTEXT pCtx,
+    PCSTR pszDomain,
+    PMACHINE_ACCT_INFO *ppAcctInfo
+    );
 
-DWORD 
+DWORD
 TdbDeleteMachineAccountInfo(
-	PTDB_PROVIDER_CONTEXT pCtx,
-	PCSTR pszDomain
-	);
+    PTDB_PROVIDER_CONTEXT pCtx,
+    PCSTR pszDomain
+    );
 
 #endif  /* __UTIL_TDBKEY_H */
 
 /*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
+  local variables:
+  mode: c
+  c-basic-offset: 4
+  indent-tabs-mode: nil
+  tab-width: 4
+  end:
 */
-

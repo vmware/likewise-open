@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -30,7 +30,7 @@
 
 /*
  *  Copyright (C) Likewise Software. All rights reserved.
- *  
+ *
  *  Module Name:
  *
  *     provider-main.c
@@ -57,137 +57,136 @@
 
 #define MAX_SID_STRING_LEN 1024
 
-DWORD 
+DWORD
 SidToString(
-	PDOMAIN_SID pSid,
-	PSTR *pszSidString
-	)
+    PDOMAIN_SID pSid,
+    PSTR *pszSidString
+    )
 {
-	DWORD dwError = LWPS_ERROR_INTERNAL;
-	CHAR pszSidStr[MAX_SID_STRING_LEN] = "";
-	uint32_t dwAuthId = 0;
-	int i = 0;
+    DWORD dwError = LWPS_ERROR_INTERNAL;
+    CHAR pszSidStr[MAX_SID_STRING_LEN] = "";
+    uint32_t dwAuthId = 0;
+    int i = 0;
 
-	BAIL_ON_INVALID_POINTER(pSid);
-	BAIL_ON_INVALID_POINTER(pszSidString);
+    BAIL_ON_INVALID_POINTER(pSid);
+    BAIL_ON_INVALID_POINTER(pszSidString);
 
-	dwAuthId = pSid->id_auth[5] +
-		(pSid->id_auth[4] << 8) +
-		(pSid->id_auth[3] << 16) +
-		(pSid->id_auth[2] << 24);
+    dwAuthId = pSid->id_auth[5] +
+        (pSid->id_auth[4] << 8) +
+        (pSid->id_auth[3] << 16) +
+        (pSid->id_auth[2] << 24);
 
-	snprintf(pszSidStr, 
-		 sizeof(pszSidStr)-strlen(pszSidStr),
-		 "S-%d-%d", 
-		 pSid->sid_rev_num,
-		 dwAuthId);
+    snprintf(pszSidStr,
+             sizeof(pszSidStr)-strlen(pszSidStr),
+             "S-%d-%d",
+             pSid->sid_rev_num,
+             dwAuthId);
 
-	for (i=0; i<pSid->num_auths; i++) {
-		CHAR pszAuth[12];
+    for (i=0; i<pSid->num_auths; i++) {
+        CHAR pszAuth[12];
 
-		snprintf(pszAuth, sizeof(pszAuth), "-%u", pSid->sub_auths[i]);		
-		strncat(pszSidStr, pszAuth, sizeof(pszSidStr)-strlen(pszSidStr));
-	}
+        snprintf(pszAuth, sizeof(pszAuth), "-%u", pSid->sub_auths[i]);
+        strncat(pszSidStr, pszAuth, sizeof(pszSidStr)-strlen(pszSidStr));
+    }
 
-	dwError = LwpsAllocateString(pszSidStr, pszSidString);
-	BAIL_ON_LWPS_ERROR(dwError);	
-		
-	dwError = LWPS_ERROR_SUCCESS;
+    dwError = LwpsAllocateString(pszSidStr, pszSidString);
+    BAIL_ON_LWPS_ERROR(dwError);
+
+    dwError = LWPS_ERROR_SUCCESS;
 
 error:
-	return dwError;	
+    return dwError;
 }
 
 
 DWORD
 StringToSid(
-	PCSTR pszSidString,
-	PDOMAIN_SID pSid
-	)
+    PCSTR pszSidString,
+    PDOMAIN_SID pSid
+    )
 {
-	DWORD dwError = LWPS_ERROR_INTERNAL;
-	CHAR *pszStrToken = NULL;
-	CHAR *pszStrNextToken = NULL;
-	DWORD dwX;
+    DWORD dwError = LWPS_ERROR_INTERNAL;
+    CHAR *pszStrToken = NULL;
+    CHAR *pszStrNextToken = NULL;
+    DWORD dwX;
 
-	BAIL_ON_INVALID_POINTER(pSid);
-	BAIL_ON_INVALID_POINTER(pszSidString);
+    BAIL_ON_INVALID_POINTER(pSid);
+    BAIL_ON_INVALID_POINTER(pszSidString);
 
-	/* Some additional sanity checks on the SID string format */
+    /* Some additional sanity checks on the SID string format */
 
-	if ((strlen((const char*) pszSidString) < 2) 
-	    || (pszSidString[0] != 's' && pszSidString[0] != 'S')
-	    || (pszSidString[1] != '-'))
-	{
-		dwError = LWPS_ERROR_INVALID_SID;
-		BAIL_ON_LWPS_ERROR(dwError);		
-	}
+    if ((strlen((const char*) pszSidString) < 2)
+        || (pszSidString[0] != 's' && pszSidString[0] != 'S')
+        || (pszSidString[1] != '-'))
+    {
+        dwError = LWPS_ERROR_INVALID_SID;
+        BAIL_ON_LWPS_ERROR(dwError);
+    }
 
-	/* Revision */
+    /* Revision */
 
-	pszStrToken = (PSTR)pszSidString+2;
-	dwX = (DWORD)strtol(pszStrToken, &pszStrNextToken, 10);
-	if ((dwX == 0) || !pszStrNextToken || (pszStrNextToken[0] != '-')) {
-		dwError = LWPS_ERROR_INVALID_SID;
-		BAIL_ON_LWPS_ERROR(dwError);
-	}
-	pSid->sid_rev_num = (uint8_t)dwX;
+    pszStrToken = (PSTR)pszSidString+2;
+    dwX = (DWORD)strtol(pszStrToken, &pszStrNextToken, 10);
+    if ((dwX == 0) || !pszStrNextToken || (pszStrNextToken[0] != '-')) {
+        dwError = LWPS_ERROR_INVALID_SID;
+        BAIL_ON_LWPS_ERROR(dwError);
+    }
+    pSid->sid_rev_num = (uint8_t)dwX;
 
-	/* Id Auth */
+    /* Id Auth */
 
-	pszStrToken = pszStrNextToken + 1;
-	dwX = (DWORD)strtol(pszStrToken, &pszStrNextToken, 10);
-	if ((dwX == 0) || !pszStrNextToken || (pszStrNextToken[0] != '-')) {
-		dwError = LWPS_ERROR_INVALID_SID;
-		BAIL_ON_LWPS_ERROR(dwError);
-	}
+    pszStrToken = pszStrNextToken + 1;
+    dwX = (DWORD)strtol(pszStrToken, &pszStrNextToken, 10);
+    if ((dwX == 0) || !pszStrNextToken || (pszStrNextToken[0] != '-')) {
+        dwError = LWPS_ERROR_INVALID_SID;
+        BAIL_ON_LWPS_ERROR(dwError);
+    }
 
-	pSid->id_auth[5] = (dwX & 0x000000FF);
-	pSid->id_auth[4] = (dwX & 0x0000FF00) >> 8;
-	pSid->id_auth[3] = (dwX & 0x00FF0000) >> 16;
-	pSid->id_auth[2] = (dwX & 0xFF000000) >> 24;
-	pSid->id_auth[1] = 0;
-	pSid->id_auth[0] = 0;
+    pSid->id_auth[5] = (dwX & 0x000000FF);
+    pSid->id_auth[4] = (dwX & 0x0000FF00) >> 8;
+    pSid->id_auth[3] = (dwX & 0x00FF0000) >> 16;
+    pSid->id_auth[2] = (dwX & 0xFF000000) >> 24;
+    pSid->id_auth[1] = 0;
+    pSid->id_auth[0] = 0;
 
-	/* Subauths */
+    /* Subauths */
 
-	pSid->num_auths = 0;
-	do {
-		pszStrToken = pszStrNextToken + 1;
+    pSid->num_auths = 0;
+    do {
+        pszStrToken = pszStrNextToken + 1;
 
-		dwX = (DWORD)strtol(pszStrToken, &pszStrNextToken, 10);
-		if (dwX == 0) {			
-			break;
-		}
-		
-		pSid->sub_auths[pSid->num_auths++] = dwX;
+        dwX = (DWORD)strtol(pszStrToken, &pszStrNextToken, 10);
+        if (dwX == 0) {
+            break;
+        }
 
-		if (!pszStrNextToken || (pszStrNextToken[0] != '-')) {
-			break;
-		}
+        pSid->sub_auths[pSid->num_auths++] = dwX;
 
-	} while (pSid->num_auths < MAXSUBAUTHS);
+        if (!pszStrNextToken || (pszStrNextToken[0] != '-')) {
+            break;
+        }
 
-	/* Check for a premature end to the above loop */
+    } while (pSid->num_auths < MAXSUBAUTHS);
 
-	if (pszStrNextToken && (pszStrNextToken[0] != '\0')) {
-		dwError = LWPS_ERROR_INVALID_SID;
-		BAIL_ON_LWPS_ERROR(dwError);
-	}
+    /* Check for a premature end to the above loop */
 
-	dwError = LWPS_ERROR_SUCCESS;
+    if (pszStrNextToken && (pszStrNextToken[0] != '\0')) {
+        dwError = LWPS_ERROR_INVALID_SID;
+        BAIL_ON_LWPS_ERROR(dwError);
+    }
+
+    dwError = LWPS_ERROR_SUCCESS;
 
 error:
 
-	return dwError;	
+    return dwError;
 }
 
 /*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
+  local variables:
+  mode: c
+  c-basic-offset: 4
+  indent-tabs-mode: nil
+  tab-width: 4
+  end:
 */
-

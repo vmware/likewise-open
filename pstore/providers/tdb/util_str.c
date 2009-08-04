@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -30,7 +30,7 @@
 
 /*
  *  Copyright (C) Likewise Software. All rights reserved.
- *  
+ *
  *  Module Name:
  *
  *     provider-main.c
@@ -55,17 +55,17 @@
 
 VOID
 StrUpper(
-	PSTR pszString
-	)
+    PSTR pszString
+    )
 {
-	CHAR *p = pszString;
-	
-	while (p && *p) {
-		*p = toupper(*p);
-		p++;		
-	}
-	
-	return;	
+    CHAR *p = pszString;
+
+    while (p && *p) {
+        *p = toupper(*p);
+        p++;
+    }
+
+    return;
 }
 
 
@@ -75,52 +75,52 @@ StrUpper(
 
 BOOLEAN
 StrEqual(
-	PCSTR pszStr1,
-	PCSTR pszStr2
-	)
+    PCSTR pszStr1,
+    PCSTR pszStr2
+    )
 {
-	DWORD dwError = LWPS_ERROR_INTERNAL;	
-	PSTR pszCopy1 = NULL;
-	PSTR pszCopy2 = NULL;
-	BOOLEAN bEqual = FALSE;	
-	
-	/* If same pointer, then must be equal */
+    DWORD dwError = LWPS_ERROR_INTERNAL;
+    PSTR pszCopy1 = NULL;
+    PSTR pszCopy2 = NULL;
+    BOOLEAN bEqual = FALSE;
 
-	if (pszStr1 == pszStr2)
-		return TRUE;
+    /* If same pointer, then must be equal */
 
-	/* If either is NULL, cannot be substrings */
+    if (pszStr1 == pszStr2)
+        return TRUE;
 
-	if (!pszStr1 || !pszStr2)
-		return FALSE;
+    /* If either is NULL, cannot be substrings */
 
-	/* Check lengths */
+    if (!pszStr1 || !pszStr2)
+        return FALSE;
 
-	if (strlen(pszStr1) != strlen(pszStr2))
-		return FALSE;	
+    /* Check lengths */
 
-	/* Now copy, convert to upper case, and compare */
+    if (strlen(pszStr1) != strlen(pszStr2))
+        return FALSE;
 
-	dwError = LwpsAllocateString(pszStr1, &pszCopy1);
-	BAIL_ON_LWPS_ERROR(dwError);
+    /* Now copy, convert to upper case, and compare */
 
-	dwError = LwpsAllocateString(pszStr2, &pszCopy2);
-	BAIL_ON_LWPS_ERROR(dwError);
+    dwError = LwpsAllocateString(pszStr1, &pszCopy1);
+    BAIL_ON_LWPS_ERROR(dwError);
 
-	StrUpper(pszCopy1);
-	StrUpper(pszCopy2);
-	
-	if (strcmp(pszCopy1, pszCopy2) == 0) {		
-		bEqual = TRUE;		
-	}
-	
+    dwError = LwpsAllocateString(pszStr2, &pszCopy2);
+    BAIL_ON_LWPS_ERROR(dwError);
+
+    StrUpper(pszCopy1);
+    StrUpper(pszCopy2);
+
+    if (strcmp(pszCopy1, pszCopy2) == 0) {
+        bEqual = TRUE;
+    }
+
 error:
-	if (pszCopy1)
-		LwpsFreeMemory(pszCopy1);
-	if (pszCopy2)	
-		LwpsFreeMemory(pszCopy2);
+    if (pszCopy1)
+        LwpsFreeMemory(pszCopy1);
+    if (pszCopy2)
+        LwpsFreeMemory(pszCopy2);
 
-	return bEqual;	
+    return bEqual;
 }
 
 /***********************************************************
@@ -128,62 +128,62 @@ error:
 
 BOOLEAN
 StrnEqual(
-	PCSTR pszStr1,
-	PCSTR pszStr2,
-	DWORD dwChars
-	)
+    PCSTR pszStr1,
+    PCSTR pszStr2,
+    DWORD dwChars
+    )
 {
-	DWORD dwLen1, dwLen2;
-	DWORD dwError = LWPS_ERROR_INTERNAL;	
-	PSTR pszCopy1 = NULL;	
-	PSTR pszCopy2 = NULL;
-	BOOLEAN bResult = FALSE;	
-	
-	/* If same pointer, then must be equal */
+    DWORD dwLen1, dwLen2;
+    DWORD dwError = LWPS_ERROR_INTERNAL;
+    PSTR pszCopy1 = NULL;
+    PSTR pszCopy2 = NULL;
+    BOOLEAN bResult = FALSE;
 
-	if (pszStr1 == pszStr2)
-		return TRUE;
+    /* If same pointer, then must be equal */
 
-	/* If either is NULL, cannot be substrings */
+    if (pszStr1 == pszStr2)
+        return TRUE;
 
-	if (!pszStr1 || !pszStr2)
-		return FALSE;
+    /* If either is NULL, cannot be substrings */
 
-	dwLen1 = strlen(pszStr1);
-	dwLen2 = strlen(pszStr2);
+    if (!pszStr1 || !pszStr2)
+        return FALSE;
 
-	dwError = LwpsAllocateString(pszStr1, &pszCopy1);
-	BAIL_ON_LWPS_ERROR(dwError);
+    dwLen1 = strlen(pszStr1);
+    dwLen2 = strlen(pszStr2);
 
-	dwError = LwpsAllocateString(pszStr2, &pszCopy2);
-	BAIL_ON_LWPS_ERROR(dwError);
+    dwError = LwpsAllocateString(pszStr1, &pszCopy1);
+    BAIL_ON_LWPS_ERROR(dwError);
 
-	if (dwLen1 > dwChars) {
-		*(pszCopy1 + dwChars) = '\0';		
-	}
-	if (dwLen2 > dwChars) {
-		*(pszCopy2 + dwChars) = '\0';		
-	}
+    dwError = LwpsAllocateString(pszStr2, &pszCopy2);
+    BAIL_ON_LWPS_ERROR(dwError);
 
-	bResult = StrEqual(pszCopy1, pszCopy2);
+    if (dwLen1 > dwChars) {
+        *(pszCopy1 + dwChars) = '\0';
+    }
+    if (dwLen2 > dwChars) {
+        *(pszCopy2 + dwChars) = '\0';
+    }
+
+    bResult = StrEqual(pszCopy1, pszCopy2);
 
 error:
-	if (pszCopy1)
-		LwpsFreeMemory(pszCopy1);
-	if (pszCopy2)
-		LwpsFreeMemory(pszCopy2);
+    if (pszCopy1)
+        LwpsFreeMemory(pszCopy1);
+    if (pszCopy2)
+        LwpsFreeMemory(pszCopy2);
 
-	return bResult;	
+    return bResult;
 }
 
 
 
 /*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
+  local variables:
+  mode: c
+  c-basic-offset: 4
+  indent-tabs-mode: nil
+  tab-width: 4
+  end:
 */
 
