@@ -197,6 +197,8 @@ SrvSocketReaderEnqueueConnection(
                     pConnection);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    pReader->context.ulNumSockets++;
+
     ntStatus = SrvSocketReaderInterrupt(
                     pReader);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -580,6 +582,10 @@ SrvSocketReaderPurgeConnections(
             LwRtlRBTreeRemove(
                     pReaderContext->pConnections,
                     &pSocket->fd);
+
+	    pReaderContext->ulNumSockets--;
+
+	    assert(pReaderContext->ulNumSockets >= 0);
 
             pthread_mutex_unlock(pReaderContext->pMutex);
         }
