@@ -121,7 +121,10 @@ LWNetSrvInitEventlogInterface(
     sprintf(szEventLogLibPath, "%s/libeventlog.%s", pszLibDirPath, MOD_EXT);
 #endif
     
-    dwError = LWNetCheckFileExists(szEventLogLibPath, &bExists);
+    dwError = LwCheckFileTypeExists(
+                    szEventLogLibPath,
+                    LWFILE_REGULAR,
+                    &bExists);
     BAIL_ON_LWNET_ERROR(dwError);
     
     if (!bExists) {

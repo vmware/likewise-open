@@ -179,7 +179,10 @@ FakeClientConnection(
 
     sprintf(szClientPath, LWNET_CLIENT_PATH_FORMAT, (long)getpid());
 
-    dwError = LWNetCheckSockExists(szClientPath, &bFileExists);
+    dwError = LwCheckFileTypeExists(
+                    szClientPath,
+                    LWFILE_SOCKET,
+                    &bFileExists);
     BAIL_ON_LWNET_ERROR(dwError);
 
     if (bFileExists) {

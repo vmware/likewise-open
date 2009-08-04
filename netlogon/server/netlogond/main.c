@@ -358,7 +358,10 @@ LWNetSrvExitHandler(
 
     sprintf(szErrCodeFilePath, "%s/LWNetsd.err", pszCachePath);
 
-    dwError = LWNetCheckFileExists(szErrCodeFilePath, &bFileExists);
+    dwError = LwCheckFileTypeExists(
+                    szErrCodeFilePath,
+                    LWFILE_REGULAR,
+                    &bFileExists);
     BAIL_ON_LWNET_ERROR(dwError);
 
     if (bFileExists) {

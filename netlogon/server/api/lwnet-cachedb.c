@@ -261,9 +261,10 @@ LWNetCacheDbReadFromFile(
 
     memset(FormatType, 0, sizeof(FormatType));
 
-    dwError = LWNetCheckFileExists(
-                  NETLOGON_DB,
-                  &bExists);
+    dwError = LwCheckFileTypeExists(
+                    NETLOGON_DB,
+                    LWFILE_REGULAR,
+                    &bExists);
     BAIL_ON_LWNET_ERROR(dwError);
 
     if (!bExists)
@@ -422,9 +423,10 @@ LWNetCacheDbWriteToFile(
     PVOID pData = NULL;
     size_t DataSize = 0;
 
-    dwError = LWNetCheckDirectoryExists(
-                  NETLOGON_DB_DIR,
-                  &bExists);
+    dwError = LwCheckFileTypeExists(
+                    NETLOGON_DB_DIR,
+                    LWFILE_DIRECTORY,
+                    &bExists);
     BAIL_ON_LWNET_ERROR(dwError);
 
     if (!bExists)
@@ -440,9 +442,10 @@ LWNetCacheDbWriteToFile(
     dwError = LwChangeOwnerAndPermissions(NETLOGON_DB_DIR, 0, 0, S_IRWXU);
     BAIL_ON_LWNET_ERROR(dwError);
 
-    dwError = LWNetCheckFileExists(
-                  NETLOGON_DB,
-                  &bExists);
+    dwError = LwCheckFileTypeExists(
+                    NETLOGON_DB,
+                    LWFILE_REGULAR,
+                    &bExists);
     BAIL_ON_LWNET_ERROR(dwError);
 
     pFileDb = fopen(NETLOGON_DB, "w");

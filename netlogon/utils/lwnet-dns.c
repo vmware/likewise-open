@@ -236,7 +236,10 @@ LWNetDnsGetNameServerList(
         BAIL_ON_LWNET_ERROR(dwError);
     }
     
-    dwError = LWNetCheckFileExists(pszConfigFilePath, &bFileExists);
+    dwError = LwCheckFileTypeExists(
+                    pszConfigFilePath,
+                    LWFILE_REGULAR,
+                    &bFileExists);
     BAIL_ON_LWNET_ERROR(dwError);
     
     if (!bFileExists) {

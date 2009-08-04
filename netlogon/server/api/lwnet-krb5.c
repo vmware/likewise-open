@@ -316,7 +316,10 @@ LWNetKrb5UpdateAffinity(
                                                dwServerCount);
     BAIL_ON_LWNET_ERROR(dwError);
 
-    dwError = LWNetCheckDirectoryExists(LWNET_KRB5_CONF_DIRNAME, &bExists);
+    dwError = LwCheckFileTypeExists(
+                    LWNET_KRB5_CONF_DIRNAME,
+                    LWFILE_DIRECTORY,
+                    &bExists);
     BAIL_ON_LWNET_ERROR(dwError);
 
     if (!bExists)
@@ -326,7 +329,10 @@ LWNetKrb5UpdateAffinity(
         BAIL_ON_LWNET_ERROR(dwError); 
     }
 
-    dwError = LWNetCheckFileExists(LWNET_KRB5_CONF_PATH_TEMP, &bExists);
+    dwError = LwCheckFileTypeExists(
+            LWNET_KRB5_CONF_PATH_TEMP,
+            LWFILE_REGULAR,
+            &bExists);
     BAIL_ON_LWNET_ERROR(dwError);
 
     if (bExists)

@@ -48,72 +48,6 @@
 #include "includes.h"
 
 DWORD
-LWNetCheckFileExists(
-    PCSTR pszPath,
-    PBOOLEAN pbFileExists
-    )
-{
-    DWORD dwError = 0;
-
-    struct stat statbuf;
-
-    memset(&statbuf, 0, sizeof(struct stat));
-
-    while (1) {
-        if (stat(pszPath, &statbuf) < 0) {
-           if (errno == EINTR) {
-              continue;
-           } else if (errno == ENOENT) {
-             *pbFileExists = 0;
-             break;
-           }
-           dwError = errno;
-           BAIL_ON_LWNET_ERROR(dwError);
-        } else {
-          *pbFileExists = 1;
-          break;
-        }
-    }
-
-error:
-
-    return dwError;
-}
-
-DWORD
-LWNetCheckSockExists(
-    PCSTR pszPath,
-    PBOOLEAN pbSockExists
-    )
-{
-    DWORD dwError = 0;
-
-    struct stat statbuf;
-
-    memset(&statbuf, 0, sizeof(struct stat));
-
-    while (1) {
-        if (stat(pszPath, &statbuf) < 0) {
-           if (errno == EINTR) {
-              continue;
-           } else if (errno == ENOENT || errno == ENOTDIR) {
-             *pbSockExists = 0;
-             break;
-           }
-           dwError = errno;
-           BAIL_ON_LWNET_ERROR(dwError);
-        } else {
-          *pbSockExists = (((statbuf.st_mode & S_IFMT) == S_IFSOCK) ? TRUE : FALSE);
-          break;
-        }
-    }
-
-error:
-
-    return dwError;
-}
-
-DWORD
 LWNetChangeDirectory(
     PSTR pszPath
     )
@@ -186,47 +120,6 @@ error:
     return dwError;
 }
 
-DWORD
-LWNetCheckDirectoryExists(
-    PCSTR pszPath,
-    PBOOLEAN pbDirExists
-    )
-{
-    DWORD dwError = 0;
-
-    struct stat statbuf;
-
-    while (1) {
-
-        memset(&statbuf, 0, sizeof(struct stat));
-
-        if (stat(pszPath, &statbuf) < 0) {
-
-            if (errno == EINTR) {
-                continue;
-            }
-            else if (errno == ENOENT || errno == ENOTDIR) {
-                *pbDirExists = FALSE;
-                break;
-            }
-            dwError = errno;
-            BAIL_ON_LWNET_ERROR(dwError);
-
-        }
-
-        /*
-           The path exists. Is it a directory?
-         */
-
-        *pbDirExists = (((statbuf.st_mode & S_IFMT) == S_IFDIR) ? TRUE : FALSE);
-        break;
-    }
-
-error:
-
-    return dwError;
-}
-
 static
 DWORD
 LWNetCreateDirectoryRecursive(
@@ -258,7 +151,10 @@ LWNetCreateDirectoryRecursive(
                 pszToken);
 
 
-        dwError = LWNetCheckDirectoryExists(pszDirPath, &bDirExists);
+        dwError = LwCheckFileTypeExists(
+                        pszDirPath,
+                        LWFILE_DIRECTORY,
+                        &bDirExists);
         BAIL_ON_LWNET_ERROR(dwError);
 
         if (!bDirExists) {
@@ -499,7 +395,10 @@ LWNetBackupFile(
     BOOLEAN bExists = FALSE;
     CHAR    szBackupPath[PATH_MAX];
 
-    dwError = LWNetCheckFileExists(pszPath, &bExists);
+    dwError = LwCheckFileTypeExists(
+                    pszPath,
+                    LWFILE_REGULAR,
+                    &bExists);
     BAIL_ON_LWNET_ERROR(dwError);
 
     if (!bExists)
@@ -510,7 +409,10 @@ LWNetBackupFile(
 
     sprintf(szBackupPath, "%s.likewise_lwnet.orig", pszPath);
 
-    dwError = LWNetCheckFileExists(szBackupPath, &bExists);
+    dwError = LwCheckFileTypeExists(
+                    szBackupPath,
+                    LWFILE_REGULAR,
+                    &bExists);
     BAIL_ON_LWNET_ERROR(dwError);
 
     if (bExists)
@@ -718,7 +620,10 @@ LWNetGetMatchingFilePathsInFolder(
     PPATHNODE pPathNode = NULL;
     BOOLEAN bDirExists = FALSE;
 
-    dwError = LWNetCheckDirectoryExists(pszDirPath, &bDirExists);
+    dwError = LwCheckFileTypeExists(
+                    pszDirPath,
+                    LWFILE_DIRECTORY,
+                    &bDirExists);
     BAIL_ON_LWNET_ERROR(dwError);
 
     if(!bDirExists) {

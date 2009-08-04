@@ -62,7 +62,10 @@ LWNetSrvStartListenThread(
     dwError = LWNetSrvGetCachePath(&pszCachePath);
     BAIL_ON_LWNET_ERROR(dwError);
 
-    dwError = LWNetCheckDirectoryExists(pszCachePath, &bDirExists);
+    dwError = LwCheckFileTypeExists(
+                    pszCachePath,
+                    LWFILE_DIRECTORY,
+                    &bDirExists);
     BAIL_ON_LWNET_ERROR(dwError);
 
     if (!bDirExists)

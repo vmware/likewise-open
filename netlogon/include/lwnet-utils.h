@@ -339,18 +339,6 @@ LWNetDnsSrvQuery(
     );
 
 DWORD
-LWNetCheckFileExists(
-    PCSTR pszPath,
-    PBOOLEAN pbFileExists
-    );
-
-DWORD
-LWNetCheckSockExists(
-    PCSTR pszPath,
-    PBOOLEAN pbFileExists
-    );
-
-DWORD
 LWNetChangeDirectory(
     PSTR pszPath
     );
@@ -366,12 +354,6 @@ LWNetCopyDirectory(
     uid_t ownerUid,
     gid_t ownerGid,
     PCSTR pszDestDirPath
-    );
-
-DWORD
-LWNetCheckDirectoryExists(
-    PCSTR pszPath,
-    PBOOLEAN pbDirExists
     );
 
 DWORD

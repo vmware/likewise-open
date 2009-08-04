@@ -82,8 +82,9 @@ LWNetGetLibDirPath(
     BOOLEAN bExists = FALSE;
     PSTR    pszLibPath = NULL;
         
-    dwError = LWNetCheckDirectoryExists(
+    dwError = LwCheckFileTypeExists(
                         PREFIXDIR "/lib64",
+                        LWFILE_DIRECTORY,
                         &bExists);
     BAIL_ON_LWNET_ERROR(dwError);
         
