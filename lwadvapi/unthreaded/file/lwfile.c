@@ -264,3 +264,93 @@ error:
 
     return dwError;
 }
+
+DWORD
+LwCreateDirectory(
+    PCSTR pszPath,
+    mode_t dwFileMode
+    )
+{
+    DWORD dwError = 0;
+    PSTR pszCopy = NULL;
+    // Do not free
+    PSTR pszSlashPos = NULL;
+    // Do not free
+    PSTR pszCopyEnd = NULL;
+    BOOLEAN bExists = FALSE;
+
+    if (LW_IS_NULL_OR_EMPTY_STR(pszPath))
+    {
+        dwError = ERROR_INVALID_PARAMETER;
+        BAIL_ON_LW_ERROR(dwError);
+    }
+
+    dwError = LwAllocateString(pszPath, &pszCopy);
+    BAIL_ON_LW_ERROR(dwError);
+    pszCopyEnd = pszCopy + strlen(pszCopy);
+
+    // Find the first path component. This skips the leading slash if one
+    // exists.
+    pszSlashPos = strchr(pszCopy + 1, '/');
+    if (pszSlashPos == NULL)
+    {
+        pszSlashPos = pszCopyEnd;
+    }
+    while (1)
+    {
+        *pszSlashPos = 0;
+
+        dwError = LwCheckFileTypeExists(
+                        pszCopy,
+                        LWFILE_DIRECTORY,
+                        &bExists);
+        BAIL_ON_LW_ERROR(dwError);
+
+        if (!bExists)
+        {
+            // This path component does not exist. Create this path component
+            // and all components underneath it.
+            while (1)
+            {
+                *pszSlashPos = 0;
+
+                if (mkdir(pszCopy, dwFileMode) < 0) {
+                    dwError = LwMapErrnoToLwError(errno);
+                    BAIL_ON_LW_ERROR(dwError);
+                }
+
+                // Find the next path component, or exit the loop if there are
+                // no more.
+                if (pszSlashPos == pszCopyEnd)
+                {
+                    break;
+                }
+                *pszSlashPos = '/';
+                pszSlashPos = strchr(pszSlashPos + 1, '/');
+                if (pszSlashPos == NULL)
+                {
+                    pszSlashPos = pszCopyEnd;
+                }
+            }
+        }
+
+        if (pszSlashPos == pszCopyEnd)
+        {
+            break;
+        }
+        *pszSlashPos = '/';
+        pszSlashPos = strchr(pszSlashPos + 1, '/');
+        if (pszSlashPos == NULL)
+        {
+            pszSlashPos = pszCopyEnd;
+        }
+    }
+
+cleanup:
+    LW_SAFE_FREE_STRING(pszCopy);
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
