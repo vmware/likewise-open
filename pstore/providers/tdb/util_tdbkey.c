@@ -388,8 +388,9 @@ TdbFetchMachineAccountInfo(
     PSTR pszKeySid = NULL;
     PSTR pszKeySchannel = NULL;
     PSTR pszKeyLCT = NULL;
+    PMACHINE_ACCT_INFO pAcctInfo = NULL;
 
-    dwError = LwpsAllocateMemory(sizeof(MACHINE_ACCT_INFO), (PVOID*)*ppAcctInfo);
+    dwError = LwpsAllocateMemory(sizeof(*pAcctInfo), (PVOID*)&pAcctInfo);
     BAIL_ON_LWPS_ERROR(dwError);
 
     /* Machine Password
@@ -403,7 +404,7 @@ TdbFetchMachineAccountInfo(
     BAIL_ON_LWPS_ERROR(dwError);
 
     dwError = LwpsAllocateString((PCSTR)data.dptr,
-                                 &(*ppAcctInfo)->pszMachineAccountPassword);
+                                 &pAcctInfo->pszMachineAccountPassword);
     BAIL_ON_LWPS_ERROR(dwError);
 
     if (data.dptr) {
@@ -414,7 +415,7 @@ TdbFetchMachineAccountInfo(
     /* Copy short domain name */
 
     dwError = LwpsAllocateString(pszDomain,
-                                 &(*ppAcctInfo)->pszDomainName);
+                                 &pAcctInfo->pszDomainName);
     BAIL_ON_LWPS_ERROR(dwError);
 
     /* Domain Sid */
@@ -426,7 +427,7 @@ TdbFetchMachineAccountInfo(
     BAIL_ON_LWPS_ERROR(dwError);
 
     dwError = SidToString((PDOMAIN_SID)data.dptr,
-                          &(*ppAcctInfo)->pszDomainSID);
+                          &pAcctInfo->pszDomainSID);
     BAIL_ON_LWPS_ERROR(dwError);
 
     if (data.dptr) {
@@ -442,7 +443,7 @@ TdbFetchMachineAccountInfo(
     dwError = TdbFetch(pCtx, pszKeyLCT, &data);
     BAIL_ON_LWPS_ERROR(dwError);
 
-    (*ppAcctInfo)->tPwdClientModifyTimestamp  = LW_HTOL32(*data.dptr);
+    pAcctInfo->tPwdClientModifyTimestamp  = LW_HTOL32(*data.dptr);
 
     if (data.dptr) {
         free(data.dptr);
@@ -457,7 +458,7 @@ TdbFetchMachineAccountInfo(
     dwError = TdbFetch(pCtx, pszKeySchannel, &data);
     BAIL_ON_LWPS_ERROR(dwError);
 
-    (*ppAcctInfo)->dwSchannelType = LW_HTOL32(*data.dptr);
+    pAcctInfo->dwSchannelType = LW_HTOL32(*data.dptr);
 
     if (data.dptr) {
         free(data.dptr);
@@ -474,11 +475,14 @@ cleanup:
         free(data.dptr);
     }
 
+    *ppAcctInfo = pAcctInfo;
+
     return dwError;
 
 error:
-    if (*ppAcctInfo) {
-        TDB_FreeMachineAccountInfo(*ppAcctInfo);
+    if (pAcctInfo) {
+        TDB_FreeMachineAccountInfo(pAcctInfo);
+        pAcctInfo = NULL;
     }
 
     goto cleanup;

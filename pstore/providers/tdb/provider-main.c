@@ -179,15 +179,17 @@ ConvertPasswordInfoFromMb(
 
     /* Done */
 
-    *ppInfo = pInfo;
     dwError = LWPS_ERROR_SUCCESS;
 
 cleanup:
+    *ppInfo = pInfo;
+
     return dwError;
 
 error:
     if (pInfo) {
         FreePasswordInfoStruct(pInfo);
+        pInfo = NULL;
     }
 
     goto cleanup;
@@ -451,8 +453,8 @@ TDB_ReadPasswordByDomain(
 {
     DWORD dwError = LWPS_ERROR_INTERNAL;
     PTDB_PROVIDER_CONTEXT pContext = (PTDB_PROVIDER_CONTEXT)hProvider;
-    PSTR pszMachineKey = NULL;
     PMACHINE_ACCT_INFO pAcctInfo = NULL;
+    PLWPS_PASSWORD_INFO pPasswordInfo = NULL;
 
     BAIL_IF_NOT_SUPERUSER(geteuid());
     BAIL_ON_INVALID_POINTER(ppInfo);
@@ -465,18 +467,26 @@ TDB_ReadPasswordByDomain(
     BAIL_ON_LWPS_ERROR(dwError);
 
     dwError = ConvertPasswordInfoFromMb(pAcctInfo,
-                                        ppInfo);
+                                        &pPasswordInfo);
     BAIL_ON_LWPS_ERROR(dwError);
 
 cleanup:
-    if (pszMachineKey)
-        LwpsFreeMemory(pszMachineKey);
+    if (pAcctInfo)
+    {
+        TDB_FreeMachineAccountInfo(pAcctInfo);
+        pAcctInfo = NULL;
+    }
+
+    *ppInfo = pPasswordInfo;
 
     return dwError;
 
 error:
-    TDB_FreeMachineAccountInfo(pAcctInfo);
-    FreePasswordInfoStruct(*ppInfo);
+    if (pPasswordInfo)
+    {
+        FreePasswordInfoStruct(pPasswordInfo);
+        pPasswordInfo = NULL;
+    }
 
     goto cleanup;
 }
