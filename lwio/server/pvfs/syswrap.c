@@ -676,6 +676,8 @@ PvfsSysFsync(
     int unixerr = 0;
 
 #ifdef PVFS_DISABLE_FSYNC
+    ntError = STATUS_SUCCESS;
+    unixerr = 0;
     BAIL_ON_NT_STATUS(ntError);
 #elif defined(HAVE_FDATASYNC)
     if (fdatasync(pCcb->fd) == -1 ) {
