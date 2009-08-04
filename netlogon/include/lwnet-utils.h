@@ -349,14 +349,6 @@ LWNetRemoveDirectory(
     );
 
 DWORD
-LWNetCopyDirectory(
-    PCSTR pszSourceDirPath,
-    uid_t ownerUid,
-    gid_t ownerGid,
-    PCSTR pszDestDirPath
-    );
-
-DWORD
 LWNetCreateDirectory(
     PCSTR pszPath,
     mode_t dwFileMode

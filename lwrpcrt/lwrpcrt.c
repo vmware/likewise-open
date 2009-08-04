@@ -1,4 +1,33 @@
-/* ex: set shiftwidth=4 softtabstop=4 expandtab: */
+/* Editor Settings: expandtabs and use 4 spaces for indentation
+ * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+ * -*- mode: c, c-basic-offset: 4 -*- */
+
+/*
+ * Copyright Likewise Software
+ * All rights reserved.
+ *
+ * This library is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation; either version 2.1 of the license, or (at
+ * your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
+ * General Public License for more details.  You should have received a copy
+ * of the GNU Lesser General Public License along with this program.  If
+ * not, see <http://www.gnu.org/licenses/>.
+ *
+ * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
+ * TERMS AS WELL.  IF YOU HAVE ENTERED INTO A SEPARATE LICENSE AGREEMENT
+ * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
+ * TERMS OF THAT SOFTWARE LICENSE AGREEMENT INSTEAD OF THE TERMS OF THE GNU
+ * LESSER GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
+ * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
+ * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
+ * license@likewisesoftware.com
+ */
+
 #include "lwrpcrt.h"
 #include <winerror.h>
 #include <stdlib.h>
@@ -13,7 +42,7 @@ RPC_STATUS WideChar16ToMultiByte(PWSTR input, idl_char **output)
     }
     else
     {
-        *output = awc16stombs(input);
+        *output = (idl_char *)awc16stombs(input);
         if(*output == NULL)
         {
             if(errno == ENOMEM)
@@ -26,7 +55,7 @@ RPC_STATUS WideChar16ToMultiByte(PWSTR input, idl_char **output)
 
 RPC_STATUS MultiByteToWideChar16(idl_char *input, PWSTR *output)
 {
-    *output = ambstowc16s(input);
+    *output = ambstowc16s((char *)input);
     if(*output == NULL)
     {
         if(errno == ENOMEM)
@@ -522,9 +551,11 @@ RPC_STATUS DceErrorInqTextA(
     /* [out] */ UCHAR *error_text
 )
 {
-    RPC_STATUS status = rpc_s_ok;
-    dce_error_inq_text(convert_status, (idl_char *)error_text, &status);
-    return LwMapDCEStatusToWinerror(status);
+    int dce_status = 0;
+
+    dce_error_inq_text(convert_status, (idl_char *)error_text, &dce_status);
+
+    return LwMapDCEStatusToWinerror(dce_status);
 }
 
 RPC_STATUS DceErrorInqTextW(
@@ -532,15 +563,15 @@ RPC_STATUS DceErrorInqTextW(
     /* [out] */ PWSTR error_text
 )
 {
-    RPC_STATUS status = rpc_s_ok;
+    int dce_status = 0;
     dce_error_string_t errstr;
 
-    dce_error_inq_text(convert_status, errstr, &status);
+    dce_error_inq_text(convert_status, (idl_char *)errstr, &dce_status);
 
-    if (status == rpc_s_ok)
+    if (dce_status == rpc_s_ok)
     {
         mbstowc16s(error_text, errstr, DCE_C_ERROR_STRING_LEN);
     }
 
-    return LwMapDCEStatusToWinerror(status);
+    return LwMapDCEStatusToWinerror(dce_status);
 }
