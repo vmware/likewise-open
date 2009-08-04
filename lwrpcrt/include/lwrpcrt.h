@@ -43,7 +43,7 @@
 extern "C" {
 #endif
 
-typedef unsigned int RPC_STATUS;
+typedef unsigned32 RPC_STATUS;
 typedef handle_t RPC_BINDING_HANDLE;
 typedef rpc_if_handle_t RPC_IF_HANDLE;
 typedef uuid_t UUID;
