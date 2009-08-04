@@ -412,8 +412,8 @@ error:
     *ppszCachePath = NULL;
     *ppszSourcePath = NULL;
     *ppszTargetPath = NULL;
-    *ppszPrincipal = pszPrincipal;
-    *ppszPassword  = pszPassword;
+    *ppszPrincipal = NULL;
+    *ppszPassword  = NULL;
     *pbCopyRecursive = FALSE;
 
     LWIO_SAFE_FREE_STRING(pszTargetPath);
