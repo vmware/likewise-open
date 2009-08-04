@@ -103,7 +103,7 @@ SrvConnectionReadPacket(
 
         ntStatus = SMBPacketBufferAllocate(
                         pConnection->hPacketAllocator,
-                        64 * 1024,
+                        (64 * 1024) + 4096,
                         &pConnection->readerState.pRequestPacket->pRawBuffer,
                         &pConnection->readerState.pRequestPacket->bufferLen);
         BAIL_ON_NT_STATUS(ntStatus);
