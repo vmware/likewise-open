@@ -7,7 +7,7 @@ umask 022
 
 PKG="libs"
 COMPONENTS="krb5 openldap lwbase libunistr \
-            lwmsg lwadvapi centutils lwmapsecurity \
+            lwmsg lwadvapi lwrpcrt centutils lwmapsecurity \
             libkeytab libgss sqlite"
 
 for comp in ${COMPONENTS}; do

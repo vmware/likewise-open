@@ -14,7 +14,7 @@ __COMP_LIST="krb5 openldap libunistr lwbase \
     lwmapsecurity lwmsg centutils \
     sqlite libtdb pstore \
     lwadvapi netlogon lwio libkeytab libgss \
-    dcerpc librpc eventlog lsass \
+    dcerpc lwrpcrt librpc eventlog lsass \
     lwdns domainjoin srvsvc \
 "
 
