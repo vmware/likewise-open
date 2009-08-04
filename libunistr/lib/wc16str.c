@@ -34,6 +34,7 @@
 #include <config.h>
 #endif
 
+#include <locale.h>
 #include <wc16str.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -758,7 +759,7 @@ cleanup:
 }
 #endif
 
-size_t wc16stombs(char *dest, const wchar16_t *src, size_t cbcopy)
+static size_t wc16stombs_slow(char *dest, const wchar16_t *src, size_t cbcopy)
 {
 #ifdef WCHAR16_IS_WCHAR
     return wcstombs(dest, src, cbcopy);
@@ -800,6 +801,58 @@ size_t wc16stombs(char *dest, const wchar16_t *src, size_t cbcopy)
 #endif
 }
 
+static size_t wc16stombs_fast(char* dest, const wchar16_t *src, size_t cbcopy)
+{
+    size_t i = 0;
+    size_t res = 0;
+
+    for (i = 0; !dest || i < cbcopy; i++)
+    {
+        wchar16_t wc = src[i];
+        wchar16_t upper = wc & 0xFF00;
+        wchar16_t lower = wc & 0x00FF;
+
+        if (upper == 0 && lower <= 127)
+        {
+            if (dest)
+            {
+                dest[i] = (char) lower;
+            }
+
+            if (lower == 0)
+            {
+                break;
+            }
+        }
+        else
+        {
+            /* We encountered a character we couldn't handle, so fall back
+               on slow but accurate conversion path */
+            res = wc16stombs_slow((dest ? dest + i : NULL),
+                                  src + i,
+                                  (i > cbcopy ? 0 : cbcopy - i));
+            return res == (size_t) -1 ? res : i + res;
+        }
+    }
+
+    return i;
+}
+
+size_t wc16stombs(char *dest, const wchar16_t *src, size_t cbcopy)
+{
+    char* lcname = setlocale(LC_CTYPE, NULL);
+
+    if (strstr (lcname, ".UTF-8") ||
+        !strcmp (lcname, "C") ||
+        !strcmp (lcname, "POSIX"))
+    {
+        return wc16stombs_fast(dest, src, cbcopy);
+    }
+    else
+    {
+        return wc16stombs_slow(dest, src, cbcopy);
+    }
+}
 
 /*
   These case conversions aren't exactly right, because toupper
