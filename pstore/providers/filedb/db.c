@@ -45,9 +45,6 @@
  */
 #include "includes.h"
 
-#define MACHINEPWD_DB_DIR LWPS_CACHE_DIR "/db"
-#define MACHINEPWD_DB     MACHINEPWD_DB_DIR "/pstore.filedb"
-
 #define FILEDB_FORMAT_VERSION 1
 
 static pthread_rwlock_t g_MachinePwdDBLock;

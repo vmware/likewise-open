@@ -63,6 +63,12 @@ LWPS_INITIALIZE_PROVIDER(filedb)(
     dwError = LwpsCreateRWLock(
                   LWPS_CONFIG_DIR "/pstore.conf",
                   &hLock);
+    if (dwError)
+    {
+        dwError = LwpsCreateRWLock(
+                      MACHINEPWD_DB,
+                      &hLock);
+    }
     BAIL_ON_LWPS_ERROR(dwError);
 
     dwError = LwpsAcquireWriteLock(hLock);
@@ -121,6 +127,12 @@ FileDB_OpenProvider(
     dwError = LwpsCreateRWLock(
                   LWPS_CONFIG_DIR "/pstore.conf",
                   &pContext->hRWLock);
+    if (dwError)
+    {
+        dwError = LwpsCreateRWLock(
+                      MACHINEPWD_DB,
+                      &pContext->hRWLock);
+    }
     BAIL_ON_LWPS_ERROR(dwError);
 
     *phProvider = (HANDLE)pContext;

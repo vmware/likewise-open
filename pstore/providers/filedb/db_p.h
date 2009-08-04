@@ -48,6 +48,9 @@
 #ifndef __DB_P_H__
 #define __DB_P_H__
 
+#define MACHINEPWD_DB_DIR LWPS_CACHE_DIR "/db"
+#define MACHINEPWD_DB     MACHINEPWD_DB_DIR "/pstore.filedb"
+
 DWORD
 FileDBDbInitGlobals();
 

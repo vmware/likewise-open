@@ -77,6 +77,12 @@ static LWPS_STATIC_PROVIDER gStaticProviders[] =
 
 #endif
 
+static
+DWORD
+LwpsBuiltInProviders(
+    PLWPS_STACK* ppProviderStack
+    );
+
 DWORD
 LwpsOpenProvider(
     LwpsPasswordStoreType storeType,
@@ -93,22 +99,24 @@ LwpsOpenProvider(
                   &bExists);
     BAIL_ON_LWPS_ERROR(dwError);
 
-    if (!bExists) {
-       dwError = LWPS_ERROR_NO_SUCH_PROVIDER;
-       BAIL_ON_LWPS_ERROR(dwError);
+    if (bExists)
+    {
+        dwError = LwpsParseConfigFile(
+                      LWPS_CONFIG_PATH,
+                      LWPS_CFG_OPTION_STRIP_ALL,
+                      &LwpsConfigStartSection,
+                      NULL,
+                      &LwpsConfigNameValuePair,
+                      NULL,
+                      (PVOID)&pProviderStack);
+
+        pProviderStack = LwpsStackReverse(pProviderStack);
     }
-
-    dwError = LwpsParseConfigFile(
-                  LWPS_CONFIG_PATH,
-                  LWPS_CFG_OPTION_STRIP_ALL,
-                  &LwpsConfigStartSection,
-                  NULL,
-                  &LwpsConfigNameValuePair,
-                  NULL,
-                  (PVOID)&pProviderStack);
-    BAIL_ON_LWPS_ERROR(dwError);
-
-    pProviderStack = LwpsStackReverse(pProviderStack);
+    else
+    {
+        dwError = LwpsBuiltInProviders(&pProviderStack);
+        BAIL_ON_LWPS_ERROR(dwError);
+    }
 
     if (storeType == LWPS_PASSWORD_STORE_DEFAULT) {
 
@@ -267,20 +275,23 @@ LwpsFindAllProviders(
                   &bExists);
     BAIL_ON_LWPS_ERROR(dwError);
 
-    if (!bExists) {
-       dwError = LWPS_ERROR_NO_SUCH_PROVIDER;
-       BAIL_ON_LWPS_ERROR(dwError);
+    if (bExists)
+    {
+        dwError = LwpsParseConfigFile(
+                      LWPS_CONFIG_PATH,
+                      LWPS_CFG_OPTION_STRIP_ALL,
+                      &LwpsConfigStartSection,
+                      NULL,
+                      &LwpsConfigNameValuePair,
+                      NULL,
+                      (PVOID)&pProviderStack);
+        BAIL_ON_LWPS_ERROR(dwError);
     }
-
-    dwError = LwpsParseConfigFile(
-                  LWPS_CONFIG_PATH,
-                  LWPS_CFG_OPTION_STRIP_ALL,
-                  &LwpsConfigStartSection,
-                  NULL,
-                  &LwpsConfigNameValuePair,
-                  NULL,
-                  (PVOID)&pProviderStack);
-    BAIL_ON_LWPS_ERROR(dwError);
+    else
+    {
+        dwError = LwpsBuiltInProviders(&pProviderStack);
+        BAIL_ON_LWPS_ERROR(dwError);
+    }
 
     *ppStack = LwpsStackReverse(pProviderStack);
 
@@ -690,5 +701,65 @@ error:
 
     goto cleanup;
 
+}
+
+static
+DWORD
+LwpsBuiltInProviders(
+    PLWPS_STACK* ppProviderStack
+    )
+{
+    DWORD dwError = 0;
+    PLWPS_STORAGE_PROVIDER pProvider = NULL;
+    PLWPS_STACK pProviderStack = NULL;
+
+    dwError = LwpsAllocateMemory(
+                  sizeof(LWPS_STORAGE_PROVIDER),
+                  (PVOID*)&pProvider);
+    BAIL_ON_LWPS_ERROR(dwError);
+
+    dwError = LwpsStackPush(
+                  pProvider,
+                  &pProviderStack);
+    BAIL_ON_LWPS_ERROR(dwError);
+
+#if defined(ENABLE_FILEDB)
+    dwError = LwpsAllocateString(
+                  "filedb",
+                  &pProvider->pszId);
+    BAIL_ON_LWPS_ERROR(dwError);
+
+    dwError = LwpsAllocateString(
+                  "/opt/likewise/lib/liblwps-filedb.so",
+                  &pProvider->pszLibPath);
+    BAIL_ON_LWPS_ERROR(dwError);
+
+    pProvider->storeType = LWPS_PASSWORD_STORE_FILEDB;
+    pProvider->bDefault = TRUE;
+
+#else
+    dwError = LWPS_ERROR_NO_SUCH_PROVIDER;
+    BAIL_ON_LWPS_ERROR(dwError);
+#endif
+
+    *ppProviderStack = pProviderStack;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    *ppProviderStack = NULL;
+
+    if (ppProviderStack) {
+       LwpsStackForeach(
+            pProviderStack,
+            &LwpsConfigFreeProviderInStack,
+            NULL);
+       LwpsStackFree(pProviderStack);
+    }
+
+    goto cleanup;
 }
 
