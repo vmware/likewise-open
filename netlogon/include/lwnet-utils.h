@@ -339,59 +339,6 @@ LWNetDnsSrvQuery(
     );
 
 DWORD
-LWNetChangeDirectory(
-    PSTR pszPath
-    );
-
-DWORD
-LWNetRemoveDirectory(
-    PCSTR pszPath
-    );
-
-DWORD
-LWNetCreateDirectory(
-    PCSTR pszPath,
-    mode_t dwFileMode
-    );
-
-DWORD
-LWNetCopyFileWithPerms(
-    PCSTR pszSrcPath,
-    PCSTR pszDstPath,
-    mode_t dwPerms
-    );
-
-DWORD
-LWNetCopyFileWithOriginalPerms(
-    PCSTR pszSrcPath,
-    PCSTR pszDstPath
-    );
-
-DWORD
-LWNetBackupFile(
-    PCSTR pszPath
-    );
-
-DWORD
-LWNetGetSymlinkTarget(
-   PCSTR pszPath,
-   PSTR* ppszTargetPath
-   );
-
-DWORD
-LWNetCreateSymlink(
-   PCSTR pszOldPath,
-   PCSTR pszNewPath
-   );
-
-DWORD
-LWNetGetMatchingFilePathsInFolder(
-    PCSTR pszDirPath,
-    PCSTR pszFileNameRegExp,
-    PSTR** pppszHostFilePaths,
-    PDWORD pdwNPaths
-    );
-DWORD
 LWNetReadNextLine(
     FILE* fp,
     PSTR *output,

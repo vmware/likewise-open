@@ -434,7 +434,7 @@ LWNetCacheDbWriteToFile(
         mode_t cacheDirMode = S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH;
 
         /* Allow go+rx to the base cache folder */
-        dwError = LWNetCreateDirectory(NETLOGON_DB_DIR, cacheDirMode);
+        dwError = LwCreateDirectory(NETLOGON_DB_DIR, cacheDirMode);
         BAIL_ON_LWNET_ERROR(dwError);
     }
 

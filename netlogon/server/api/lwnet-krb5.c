@@ -324,7 +324,7 @@ LWNetKrb5UpdateAffinity(
 
     if (!bExists)
     {
-        dwError = LWNetCreateDirectory(LWNET_KRB5_CONF_DIRNAME,
+        dwError = LwCreateDirectory(LWNET_KRB5_CONF_DIRNAME,
                                        LWNET_MODE_BITS_URWX_GRX_ORX);
         BAIL_ON_LWNET_ERROR(dwError); 
     }
