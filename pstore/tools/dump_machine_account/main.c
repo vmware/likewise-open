@@ -143,6 +143,9 @@ error:
 /***************************************************
  */
 
+#define LW_SAFE_LOG_STRING(x) \
+    ( (x) ? (x) : "<null>" )
+
 int
 main(
     int argc,
@@ -177,49 +180,70 @@ main(
                     &pMachineAcctInfo);
     BAIL_ON_LWPS_ERROR(dwError);
 
-    dwError = LwpsWc16sToMbs(
-                    pMachineAcctInfo->pwszDomainName,
-                    &pszDomainName);
-    BAIL_ON_LWPS_ERROR(dwError);
+    if (pMachineAcctInfo->pwszDomainName)
+    {
+        dwError = LwpsWc16sToMbs(
+                        pMachineAcctInfo->pwszDomainName,
+                        &pszDomainName);
+        BAIL_ON_LWPS_ERROR(dwError);
+    }
 
-    dwError = LwpsWc16sToMbs(
-                    pMachineAcctInfo->pwszSID,
-                    &pszDomainSID);
-    BAIL_ON_LWPS_ERROR(dwError);
+    if (pMachineAcctInfo->pwszSID)
+    {
+        dwError = LwpsWc16sToMbs(
+                        pMachineAcctInfo->pwszSID,
+                        &pszDomainSID);
+        BAIL_ON_LWPS_ERROR(dwError);
+    }
 
-    dwError = LwpsWc16sToMbs(
-                    pMachineAcctInfo->pwszMachineAccount,
-                    &pszMachineAccount);
-    BAIL_ON_LWPS_ERROR(dwError);
+    if (pMachineAcctInfo->pwszMachineAccount)
+    {
+        dwError = LwpsWc16sToMbs(
+                        pMachineAcctInfo->pwszMachineAccount,
+                        &pszMachineAccount);
+        BAIL_ON_LWPS_ERROR(dwError);
+    }
 
-    dwError = LwpsWc16sToMbs(
-                    pMachineAcctInfo->pwszMachinePassword,
-                    &pszMachinePassword);
-    BAIL_ON_LWPS_ERROR(dwError);
+    if (pMachineAcctInfo->pwszMachinePassword)
+    {
+        dwError = LwpsWc16sToMbs(
+                        pMachineAcctInfo->pwszMachinePassword,
+                        &pszMachinePassword);
+        BAIL_ON_LWPS_ERROR(dwError);
+    }
 
-    dwError = LwpsWc16sToMbs(
-                    pMachineAcctInfo->pwszDnsDomainName,
-                    &pszDomainDnsName);
-    BAIL_ON_LWPS_ERROR(dwError);
+    if (pMachineAcctInfo->pwszDnsDomainName)
+    {
+        dwError = LwpsWc16sToMbs(
+                        pMachineAcctInfo->pwszDnsDomainName,
+                        &pszDomainDnsName);
+        BAIL_ON_LWPS_ERROR(dwError);
+    }
 
-    dwError = LwpsWc16sToMbs(
-                    pMachineAcctInfo->pwszHostname,
-                    &pszHostName);
-    BAIL_ON_LWPS_ERROR(dwError);
+    if (pMachineAcctInfo->pwszHostname)
+    {
+        dwError = LwpsWc16sToMbs(
+                        pMachineAcctInfo->pwszHostname,
+                        &pszHostName);
+        BAIL_ON_LWPS_ERROR(dwError);
+    }
 
-    dwError = LwpsWc16sToMbs(
-                    pMachineAcctInfo->pwszHostDnsDomain,
-                    &pszHostDnsDomain);
-    BAIL_ON_LWPS_ERROR(dwError);
+    if (pMachineAcctInfo->pwszHostDnsDomain)
+    {
+        dwError = LwpsWc16sToMbs(
+                        pMachineAcctInfo->pwszHostDnsDomain,
+                        &pszHostDnsDomain);
+        BAIL_ON_LWPS_ERROR(dwError);
+    }
 
     printf("\n");
-    printf("DomainSID                = %s\n", pszDomainSID);
-    printf("DomainName               = %s\n", pszDomainName);
-    printf("Domain DNS Name          = %s\n", pszDomainDnsName);
-    printf("HostName                 = %s\n", pszHostName);
-    printf("HostName DNS Domain      = %s\n", pszHostDnsDomain);
-    printf("Machine Account Name     = %s\n", pszMachineAccount);
-    printf("Machine Account Password = %s\n", pszMachinePassword);
+    printf("DomainSID                = %s\n", LW_SAFE_LOG_STRING(pszDomainSID));
+    printf("DomainName               = %s\n", LW_SAFE_LOG_STRING(pszDomainName));
+    printf("Domain DNS Name          = %s\n", LW_SAFE_LOG_STRING(pszDomainDnsName));
+    printf("HostName                 = %s\n", LW_SAFE_LOG_STRING(pszHostName));
+    printf("HostName DNS Domain      = %s\n", LW_SAFE_LOG_STRING(pszHostDnsDomain));
+    printf("Machine Account Name     = %s\n", LW_SAFE_LOG_STRING(pszMachineAccount));
+    printf("Machine Account Password = %s\n", LW_SAFE_LOG_STRING(pszMachinePassword));
     printf("\n");
 
 cleanup:
@@ -237,7 +261,7 @@ cleanup:
         LwpsFreePasswordInfo(hPasswordStore, pMachineAcctInfo);
     }
 
-    if (hPasswordStore != (HANDLE)NULL) {
+    if (hPasswordStore) {
        LwpsClosePasswordStore(hPasswordStore);
     }
 
