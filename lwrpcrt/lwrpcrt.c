@@ -42,7 +42,7 @@ RPC_STATUS WideChar16ToMultiByte(PWSTR input, idl_char **output)
     }
     else
     {
-        *output = awc16stombs(input);
+        *output = (idl_char *)awc16stombs(input);
         if(*output == NULL)
         {
             if(errno == ENOMEM)
@@ -55,7 +55,7 @@ RPC_STATUS WideChar16ToMultiByte(PWSTR input, idl_char **output)
 
 RPC_STATUS MultiByteToWideChar16(idl_char *input, PWSTR *output)
 {
-    *output = ambstowc16s(input);
+    *output = ambstowc16s((char *)input);
     if(*output == NULL)
     {
         if(errno == ENOMEM)
@@ -551,9 +551,11 @@ RPC_STATUS DceErrorInqTextA(
     /* [out] */ UCHAR *error_text
 )
 {
-    RPC_STATUS status = rpc_s_ok;
-    dce_error_inq_text(convert_status, (idl_char *)error_text, &status);
-    return LwMapDCEStatusToWinerror(status);
+    int dce_status = 0;
+
+    dce_error_inq_text(convert_status, (idl_char *)error_text, &dce_status);
+
+    return LwMapDCEStatusToWinerror(dce_status);
 }
 
 RPC_STATUS DceErrorInqTextW(
@@ -561,15 +563,15 @@ RPC_STATUS DceErrorInqTextW(
     /* [out] */ PWSTR error_text
 )
 {
-    RPC_STATUS status = rpc_s_ok;
+    int dce_status = 0;
     dce_error_string_t errstr;
 
-    dce_error_inq_text(convert_status, errstr, &status);
+    dce_error_inq_text(convert_status, (idl_char *)errstr, &dce_status);
 
-    if (status == rpc_s_ok)
+    if (dce_status == rpc_s_ok)
     {
         mbstowc16s(error_text, errstr, DCE_C_ERROR_STRING_LEN);
     }
 
-    return LwMapDCEStatusToWinerror(status);
+    return LwMapDCEStatusToWinerror(dce_status);
 }
