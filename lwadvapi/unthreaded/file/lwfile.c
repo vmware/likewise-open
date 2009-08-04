@@ -203,3 +203,64 @@ error:
 
     return dwError;
 }
+
+DWORD
+LwCheckFileTypeExists(
+    PCSTR pszPath,
+    LWFILE_TYPE type,
+    PBOOLEAN pbExists
+    )
+{
+    DWORD dwError = 0;
+    struct stat statbuf;
+    int result = 0;
+
+    memset(&statbuf, 0, sizeof(struct stat));
+
+    if (type == LWFILE_SYMLINK)
+    {
+        result = lstat(pszPath, &statbuf);
+    }
+    else
+    {
+        result = stat(pszPath, &statbuf);
+    }
+    if (result < 0)
+    {
+        if (errno == ENOENT || errno == ENOTDIR)
+        {
+            dwError = 0;
+            *pbExists = 0;
+        }
+        dwError = LwMapErrnoToLwError(errno);
+        BAIL_ON_LW_ERROR(dwError);
+    }
+    else
+    {
+        switch(type)
+        {
+            case LWFILE_REGULAR:
+                *pbExists = S_ISREG(statbuf.st_mode & S_IFMT);
+                break;
+            case LWFILE_DIRECTORY:
+                *pbExists = S_ISDIR(statbuf.st_mode & S_IFMT);
+                break;
+            case LWFILE_SYMLINK:
+                *pbExists = S_ISLNK(statbuf.st_mode & S_IFMT);
+                break;
+            case LWFILE_SOCKET:
+                *pbExists = S_ISSOCK(statbuf.st_mode & S_IFMT);
+                break;
+            case LWFILE_PIPE:
+                *pbExists = S_ISFIFO(statbuf.st_mode & S_IFMT);
+                break;
+            default:
+                dwError = ERROR_INVALID_PARAMETER;
+                BAIL_ON_LW_ERROR(dwError);
+        }
+    }
+
+error:
+
+    return dwError;
+}
