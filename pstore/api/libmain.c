@@ -291,7 +291,9 @@ error:
 }
 
 DWORD
-LwpsDeleteEntriesInAllStores()
+LwpsDeleteEntriesInAllStores(
+    VOID
+    )
 {
     DWORD dwError = 0;
     PLWPS_STACK pProviderStack = NULL;
