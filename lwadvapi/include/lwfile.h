@@ -44,6 +44,15 @@
 #ifndef __LWFILE_H__
 #define __LWFILE_H__
 
+typedef enum _LWFILE_TYPE
+{
+    LWFILE_REGULAR,
+    LWFILE_DIRECTORY,
+    LWFILE_SYMLINK,
+    LWFILE_SOCKET,
+    LWFILE_PIPE,
+} LWFILE_TYPE;
+
 DWORD
 LwRemoveFile(
     PCSTR pszPath
@@ -87,6 +96,13 @@ LwGetOwnerAndPermissions(
     uid_t * uid,
     gid_t * gid,
     mode_t * mode
+    );
+
+DWORD
+LwCheckFileTypeExists(
+    PCSTR pszPath,
+    LWFILE_TYPE type,
+    PBOOLEAN pbExists
     );
 
 #endif /* __LWFILE_H__ */
