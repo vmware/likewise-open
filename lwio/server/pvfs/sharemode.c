@@ -106,6 +106,61 @@ error:
 /***********************************************************
  **********************************************************/
 
+static NTSTATUS
+_PvfsEnforceShareMode(
+    IN PPVFS_FCB pFcb,
+    IN FILE_SHARE_FLAGS ShareAccess,
+    IN ACCESS_MASK DesiredAccess
+    );
+
+NTSTATUS
+PvfsEnforceShareMode(
+    IN PPVFS_FCB pFcb,
+    IN FILE_SHARE_FLAGS ShareAccess,
+    IN ACCESS_MASK DesiredAccess
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    int i = 0;
+    ULONG RetryMax = 4;
+    struct timespec SleepTime = {0};
+    struct timespec RemainingTime = {0};
+
+    for (i=0; i<RetryMax; i++)
+    {
+        ntError = _PvfsEnforceShareMode(pFcb, ShareAccess, DesiredAccess);
+        if ((ntError == STATUS_SHARING_VIOLATION) && (i<(RetryMax-1)))
+        {
+            /* 2 milliseconds */
+            RemainingTime.tv_sec = 0;
+            RemainingTime.tv_nsec = 2 * 1000000;
+
+            do {
+                SleepTime.tv_sec = RemainingTime.tv_sec;
+                SleepTime.tv_nsec = RemainingTime.tv_nsec;
+
+                ntError = PvfsSysNanoSleep(&SleepTime, &RemainingTime);
+            } while (ntError == STATUS_MORE_PROCESSING_REQUIRED);
+
+            ntError = STATUS_SUCCESS;
+        }
+        BAIL_ON_NT_STATUS(ntError);
+
+        /* All done */
+        break;
+    }
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+
+/***********************************************************
+ **********************************************************/
+
 struct _SHARE_MODE_ACCESS_COMPATIBILITY
 {
     FILE_SHARE_FLAGS ShareFlag;
@@ -117,7 +172,7 @@ struct _SHARE_MODE_ACCESS_COMPATIBILITY
 };
 
 NTSTATUS
-PvfsEnforceShareMode(
+_PvfsEnforceShareMode(
     IN PPVFS_FCB pFcb,
     IN FILE_SHARE_FLAGS ShareAccess,
     IN ACCESS_MASK DesiredAccess

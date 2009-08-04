@@ -75,6 +75,12 @@ PvfsClose(
     ntError =  PvfsAcquireCCBClose(pIrp->FileHandle, &pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
+    /* Go ahead and set the ccess granted to 0 in case
+       we have a new open coming in at the same time
+       in an effort to prevent a potential sharing violation */
+
+    pCcb->AccessGranted = 0;
+
     ntError = PvfsValidatePath(pCcb);
     bValidPath = (ntError == STATUS_SUCCESS);
 

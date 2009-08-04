@@ -100,8 +100,8 @@ SrvProcessWriteAndX(
                     &pFile);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    llDataOffset = (((LONG64)pRequestHeader->offsetHigh) << 32) | ((LONG64)pRequestHeader->offset);
-    llDataLength = (((LONG64)pRequestHeader->dataLengthHigh) << 32) | ((LONG64)pRequestHeader->dataLength);
+    llDataOffset = (((LONG64)pRequestHeader->offsetHigh) << 16) | ((LONG64)pRequestHeader->offset);
+    llDataLength = (((LONG64)pRequestHeader->dataLengthHigh) << 16) | ((LONG64)pRequestHeader->dataLength);
 
     ulKey = pSmbRequest->pSMBHeader->pid;
 

@@ -183,6 +183,13 @@ PvfsSysFsync(
     PPVFS_CCB pCcb
     );
 
+NTSTATUS
+PvfsSysNanoSleep(
+    const struct timespec *pRequestedTime,
+    struct timespec *pRemainingTime
+    );
+
+
 #endif     /* _PVFS_SYSWRAP_P_H */
 
 

@@ -96,8 +96,8 @@ SrvProcessReadAndX(
                     &pFile);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    llByteOffset = (((LONG64)pRequestHeader->offsetHigh) << 32) | ((LONG64)pRequestHeader->offset);
-    ullBytesToRead = (((ULONG64)pRequestHeader->maxCountHigh) << 32) | ((ULONG64)pRequestHeader->maxCount);
+    llByteOffset = (((LONG64)pRequestHeader->offsetHigh) << 16) | ((LONG64)pRequestHeader->offset);
+    ullBytesToRead = (((ULONG64)pRequestHeader->maxCountHigh) << 16) | ((ULONG64)pRequestHeader->maxCount);
 
     ntStatus = SrvBuildReadAndXResponse(
                     pConnection,
@@ -171,7 +171,7 @@ SrvBuildReadAndXResponse(
 
     ntStatus = SMBPacketBufferAllocate(
                     pConnection->hPacketAllocator,
-                    64 * 1024,
+                    (64 * 1024) + 4096,
                     &pSmbResponse->pRawBuffer,
                     &pSmbResponse->bufferLen);
     BAIL_ON_NT_STATUS(ntStatus);
