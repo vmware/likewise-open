@@ -42,34 +42,43 @@
 #include <stdlib.h>
 #include <errno.h>
 
-static const char* default_message[] =
+typedef struct
 {
-    [LWMSG_STATUS_SUCCESS] = "Success",
-    [LWMSG_STATUS_ERROR] = "Error",
-    [LWMSG_STATUS_AGAIN] = "Retry",
-    [LWMSG_STATUS_MEMORY] = "Out of memory",
-    [LWMSG_STATUS_MALFORMED] = "Malformed type or message",
-    [LWMSG_STATUS_EOF] = "End of file",
-    [LWMSG_STATUS_NOT_FOUND] = "Item not found",
-    [LWMSG_STATUS_UNIMPLEMENTED] = "Unimplemented",
-    [LWMSG_STATUS_INVALID_PARAMETER] = "Invalid parameter",
-    [LWMSG_STATUS_INVALID_STATE] = "Invalid state",
-    [LWMSG_STATUS_OVERFLOW] = "Arithmetic overflow",
-    [LWMSG_STATUS_UNDERFLOW] = "Arithmetic underflow",
-    [LWMSG_STATUS_SYSTEM] = "Unhandled system error",
-    [LWMSG_STATUS_TIMEOUT] = "Operation timed out",
-    [LWMSG_STATUS_SECURITY] = "Security violation",
-    [LWMSG_STATUS_CANCELLED] = "Operation cancelled",
-    [LWMSG_STATUS_FILE_NOT_FOUND] = "File not found",
-    [LWMSG_STATUS_CONNECTION_REFUSED] = "Connection refused",
-    [LWMSG_STATUS_PEER_CLOSE] = "Connection closed by peer",
-    [LWMSG_STATUS_PEER_RESET] = "Connection reset by peer",
-    [LWMSG_STATUS_PEER_ABORT] = "Connection aborted by peer",
-    [LWMSG_STATUS_SESSION_LOST] = "Session lost",
-    [LWMSG_STATUS_UNSUPPORTED] = "Unsupported operation",
-    [LWMSG_STATUS_INVALID_HANDLE] = "Invalid handle",
-    [LWMSG_STATUS_BUSY] = "Conflicting operation already in progress",
-    [LWMSG_STATUS_PENDING] = "Operating is pending"
+    LWMsgStatus status;
+    const char* symbol;
+    const char* message;
+} StatusInfo;
+
+#define STATUS_INFO(st, msg) [st] = { st, #st, msg }
+
+static const StatusInfo status_info[] =
+{
+    STATUS_INFO(LWMSG_STATUS_SUCCESS, "Success"),
+    STATUS_INFO(LWMSG_STATUS_ERROR, "Error"),
+    STATUS_INFO(LWMSG_STATUS_AGAIN, "Retry"),
+    STATUS_INFO(LWMSG_STATUS_MEMORY, "Out of memory"),
+    STATUS_INFO(LWMSG_STATUS_MALFORMED, "Malformed type or message"),
+    STATUS_INFO(LWMSG_STATUS_EOF, "End of file"),
+    STATUS_INFO(LWMSG_STATUS_NOT_FOUND, "Item not found"),
+    STATUS_INFO(LWMSG_STATUS_UNIMPLEMENTED, "Unimplemented"),
+    STATUS_INFO(LWMSG_STATUS_INVALID_PARAMETER, "Invalid parameter"),
+    STATUS_INFO(LWMSG_STATUS_INVALID_STATE, "Invalid state"),
+    STATUS_INFO(LWMSG_STATUS_OVERFLOW, "Arithmetic overflow"),
+    STATUS_INFO(LWMSG_STATUS_UNDERFLOW, "Arithmetic underflow"),
+    STATUS_INFO(LWMSG_STATUS_SYSTEM, "Unhandled system error"),
+    STATUS_INFO(LWMSG_STATUS_TIMEOUT, "Operation timed out"),
+    STATUS_INFO(LWMSG_STATUS_SECURITY, "Security violation"),
+    STATUS_INFO(LWMSG_STATUS_CANCELLED, "Operation cancelled"),
+    STATUS_INFO(LWMSG_STATUS_FILE_NOT_FOUND, "File not found"),
+    STATUS_INFO(LWMSG_STATUS_CONNECTION_REFUSED, "Connection refused"),
+    STATUS_INFO(LWMSG_STATUS_PEER_CLOSE, "Connection closed by peer"),
+    STATUS_INFO(LWMSG_STATUS_PEER_RESET, "Connection reset by peer"),
+    STATUS_INFO(LWMSG_STATUS_PEER_ABORT, "Connection aborted by peer"),
+    STATUS_INFO(LWMSG_STATUS_SESSION_LOST, "Session lost"),
+    STATUS_INFO(LWMSG_STATUS_UNSUPPORTED, "Unsupported operation"),
+    STATUS_INFO(LWMSG_STATUS_INVALID_HANDLE, "Invalid handle"),
+    STATUS_INFO(LWMSG_STATUS_BUSY, "Conflicting operation already in progress"),
+    STATUS_INFO(LWMSG_STATUS_PENDING, "Operating is pending")
 };
 
 LWMsgStatus
@@ -222,9 +231,24 @@ lwmsg_error_message(
     {
         return context->message;
     }
-    else if (status < (sizeof(default_message) / sizeof(*default_message)))
+    else if (status < (sizeof(status_info) / sizeof(*status_info)) && status_info[status].message)
     {
-        return default_message[status];
+        return status_info[status].message;
+    }
+    else
+    {
+        return "unknown";
+    }
+}
+
+const char*
+lwmsg_error_name(
+    LWMsgStatus status
+    )
+{
+    if (status < (sizeof(status_info) / sizeof(*status_info)) && status_info[status].symbol)
+    {
+        return status_info[status].symbol;
     }
     else
     {

@@ -122,7 +122,13 @@ lwmsg_connection_fragment_is_complete(
 }
 
 static LWMsgStatus
-lwmsg_connection_recvmsg(int fd, struct msghdr* msghdr, int flags, size_t* out_received)
+lwmsg_connection_recvmsg(
+    const LWMsgContext* context,
+    int fd,
+    struct msghdr* msghdr,
+    int flags,
+    size_t* out_received
+    )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     ssize_t received;
@@ -149,7 +155,8 @@ lwmsg_connection_recvmsg(int fd, struct msghdr* msghdr, int flags, size_t* out_r
             status = LWMSG_STATUS_EOF;
             break;
         default:
-            status = LWMSG_STATUS_ERROR;
+            LWMSG_LOG_ERROR(context, "Unexpected system error from recvmsg(): %i\n", errno);
+            status = LWMSG_STATUS_SYSTEM;
             break;
         }
         BAIL_ON_ERROR(status);
@@ -212,7 +219,7 @@ lwmsg_connection_recv_fragment(
         msghdr.msg_control = buf_un.buf;
         msghdr.msg_controllen = sizeof(buf_un.buf);
 
-        BAIL_ON_ERROR(status = lwmsg_connection_recvmsg(priv->fd, &msghdr, 0, &received));
+        BAIL_ON_ERROR(status = lwmsg_connection_recvmsg(&assoc->context, priv->fd, &msghdr, 0, &received));
 
         fragment->cursor += received;
 
@@ -239,7 +246,13 @@ error:
 }
 
 static LWMsgStatus
-lwmsg_connection_sendmsg(int fd, struct msghdr* msghdr, int flags, size_t* out_sent)
+lwmsg_connection_sendmsg(
+    const LWMsgContext* context,
+    int fd,
+    struct msghdr* msghdr,
+    int flags,
+    size_t* out_sent
+    )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     ssize_t sent;
@@ -266,7 +279,8 @@ lwmsg_connection_sendmsg(int fd, struct msghdr* msghdr, int flags, size_t* out_s
             status = LWMSG_STATUS_EOF;
             break;
         default:
-            status = LWMSG_STATUS_ERROR;
+            LWMSG_LOG_ERROR(context, "Unexpected system error from sendmsg(): %i\n", errno);
+            status = LWMSG_STATUS_SYSTEM;
             break;
         }
         BAIL_ON_ERROR(status);
@@ -331,7 +345,7 @@ lwmsg_connection_send_fragment(
             memcpy(CMSG_DATA(cmsg), buffer->fd, sizeof(int) * fds_to_send);
         }
 
-        BAIL_ON_ERROR(status = lwmsg_connection_sendmsg(priv->fd, &msghdr, 0, &sent));
+        BAIL_ON_ERROR(status = lwmsg_connection_sendmsg(&assoc->context, priv->fd, &msghdr, 0, &sent));
 
         fragment->cursor += sent;
 

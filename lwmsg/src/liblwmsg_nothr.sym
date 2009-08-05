@@ -133,3 +133,4 @@ lwmsg_archive_read_message
 lwmsg_archive_destroy_message
 lwmsg_fd_type_class
 lwmsg_handle_type_class
+lwmsg_error_name

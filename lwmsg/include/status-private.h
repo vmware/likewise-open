@@ -48,6 +48,11 @@ typedef struct LWMsgErrorContext
     char* message;
 } LWMsgErrorContext;
 
+const char*
+lwmsg_error_name(
+    LWMsgStatus status
+    );
+
 LWMsgStatus
 lwmsg_error_map_errno(
     int err

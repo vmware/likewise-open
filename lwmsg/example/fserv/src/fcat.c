@@ -34,7 +34,7 @@ main(int argc, char** argv)
             {
                 goto error;
             }
-            
+
             if (size_read)
             {
                 if (fwrite(buffer, 1, size_read, stdout) < size_read)
@@ -52,7 +52,7 @@ main(int argc, char** argv)
             goto error;
         }
     }
-    
+
 error:
     
     if (file)
