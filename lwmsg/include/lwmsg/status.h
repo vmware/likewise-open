@@ -178,8 +178,9 @@ typedef enum
      * @hideinitializer
      */
     LWMSG_STATUS_INTERNAL = 26,
+#ifndef DOXYGEN
+    LWMSG_STATUS_COUNT
+#endif
 } LWMsgStatus;
-
-#define LWMSG_STATUS_COUNT (27)
 
 #endif

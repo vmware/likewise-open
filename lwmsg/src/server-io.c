@@ -270,7 +270,7 @@ lwmsg_server_io_loop(
            cleanly shut down the server in response. */
         if (status)
         {
-            LWMSG_LOG_WARNING(server->context, "Caught exception %i", status);
+            LWMSG_LOG_WARNING(server->context, "Caught exception: %s", lwmsg_error_name(status));
             if (server->except)
             {
                 server->except(server, status, server->except_data);

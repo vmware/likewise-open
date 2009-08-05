@@ -876,6 +876,16 @@ lwmsg_server_task_finish_call(
             lwmsg_assoc_destroy_message((*task)->info.call.assoc, &(*task)->info.call.incoming);
             break;
         default:
+            if (lwmsg_context_would_log(server->context, LWMSG_LOGLEVEL_WARNING))
+            {
+                const char* name = NULL;
+
+                LWMSG_ASSERT_SUCCESS(
+                    lwmsg_protocol_get_message_name(server->protocol, (*task)->info.call.incoming.tag, &name));
+
+                LWMSG_LOG_WARNING(server->context, "Dispatch function for %s failed: %s", name, lwmsg_error_name(status));
+            }
+            lwmsg_assoc_destroy_message((*task)->info.call.assoc, &(*task)->info.call.incoming);
             BAIL_ON_ERROR(status = lwmsg_server_task_handle_assoc_error(server, task, status));
             break;
         }
