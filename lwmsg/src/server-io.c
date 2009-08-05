@@ -218,6 +218,7 @@ lwmsg_server_io_loop(
 
         if (res < 0)
         {
+            LWMSG_LOG_ERROR(server->context, "Unexpected system error in select(): %i\n", errno);
             BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
         }
 
