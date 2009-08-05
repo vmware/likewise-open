@@ -67,8 +67,7 @@ srvsvcd_LDADD = \
 CLEANFILES = srvsvc_h.h srvsvc_cstub.c srvsvc_sstub.c \
              wkssvc_h.h wkssvc_cstub.c wkssvc_sstub.c
 
-BUILT_SOURCES = srvsvc_h.h srvsvc_cstub.c \
-                wkssvc_h.h wkssvc_cstub.c
+BUILT_SOURCES = srvsvc_h.h wkssvc_h.h
 
 srvsvc_h.h srvsvc_cstub.c srvsvc_sstub.c: $(idl_srcdir)/srvsvc.idl
 	$(IDL) $(IDLFLAGS) -keep c_source -header srvsvc_h.h \
