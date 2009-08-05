@@ -135,10 +135,14 @@ SMBPacketAllocate(
 
         pPacketAllocator->freePacketCount--;
 
+        LWIO_UNLOCK_MUTEX(bInLock, &pPacketAllocator->mutex);
+
         memset(pPacket, 0, sizeof(SMB_PACKET));
     }
     else
     {
+        LWIO_UNLOCK_MUTEX(bInLock, &pPacketAllocator->mutex);
+
         ntStatus = SMBAllocateMemory(sizeof(SMB_PACKET), (PVOID *) &pPacket);
         BAIL_ON_NT_STATUS(ntStatus);
     }
@@ -194,6 +198,8 @@ SMBPacketRelease(
         }
         else
         {
+            LWIO_UNLOCK_MUTEX(bInLock, &pPacketAllocator->mutex);
+
             SMBFreeMemory(pPacket);
         }
 
@@ -234,16 +240,18 @@ SMBPacketBufferAllocate(
 
         pPacketAllocator->freeBufferCount--;
 
+        LWIO_UNLOCK_MUTEX(bInLock, &pPacketAllocator->mutex);
+
         memset(pBuffer, 0, allocatedLen);
     }
     else
     {
-        ntStatus = SMBAllocateMemory(
-                        pPacketAllocator->freeBufferLen,
-                        (PVOID *) &pBuffer);
-        BAIL_ON_NT_STATUS(ntStatus);
-
         allocatedLen = pPacketAllocator->freeBufferLen;
+
+        LWIO_UNLOCK_MUTEX(bInLock, &pPacketAllocator->mutex);
+
+        ntStatus = SMBAllocateMemory(allocatedLen, (PVOID *) &pBuffer);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
     *ppBuffer = pBuffer;
@@ -287,6 +295,8 @@ SMBPacketBufferFree(
     }
     else
     {
+        LWIO_UNLOCK_MUTEX(bInLock, &pPacketAllocator->mutex);
+
         SMBFreeMemory(pBuffer);
     }
 
