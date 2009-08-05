@@ -24,7 +24,7 @@ function component_configure
     run_autogen ${COMP_SOURCES}
     exit_on_error $?
 
-    ./configure \
+    run_configure \
 	--prefix=${PREFIXDIR} \
 	--libdir=${PREFIXDIR}/${_lib} \
 	--sysconfdir=${SYSCONFDIR} \

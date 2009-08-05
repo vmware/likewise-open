@@ -35,7 +35,7 @@ function component_configure
     run_autogen ${COMP_SOURCES}
     exit_on_error $?
 
-    ./configure                                 \
+    run_configure                                 \
         --prefix=${PREFIXDIR}                   \
         --libexecdir=${LIBEXECDIR}              \
         --libdir=${PREFIXDIR}/${_lib}           \

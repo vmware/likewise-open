@@ -27,7 +27,7 @@ function component_configure
     run_autogen ${COMP_SOURCES}/replace
     exit_on_error $?
 
-    ./configure \
+    run_configure \
 	--disable-shared \
 	--prefix=${PREFIXDIR} \
 	--libdir=${PREFIXDIR}/${_lib} \
@@ -40,7 +40,7 @@ function component_configure
     run_autogen ${COMP_SOURCES}
     exit_on_error $?
 
-    ./configure \
+    run_configure \
 	--disable-static \
 	--prefix=${PREFIXDIR} \
 	--libdir=${PREFIXDIR}/${_lib} \

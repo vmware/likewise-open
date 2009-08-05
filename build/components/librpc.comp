@@ -30,7 +30,7 @@ function component_configure
     run_autogen ${COMP_SOURCES}
     exit_on_error $?
 
-    ./configure \
+    run_configure \
 	--enable-dependency-tracking \
 	--prefix=${PREFIXDIR} \
 	--libdir=${PREFIXDIR}/${_lib} 

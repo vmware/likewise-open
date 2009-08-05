@@ -25,11 +25,11 @@ function component_configure
     exit_on_error $?
 
     pushd libedit
-    ./configure
+    run_configure
     exit_on_error $?
     popd
 
-    ./configure                          \
+    run_configure                        \
 	--prefix=${PREFIXDIR}            \
         --libdir=${PREFIXDIR}/${_lib}    \
         --localstatedir=${LOCALSTATEDIR} \

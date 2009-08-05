@@ -184,3 +184,34 @@ function run_autogen
 
     return 0
 }
+
+function run_configure
+{
+    local _configure="./configure"
+    local _mf="./Makefile"
+    local _must_run_configure=0
+    local _config_args=${BUILD_CONFIGURE_ARGS}
+
+    while [ ! -z "$1" ]
+    do
+        _config_args="${_config_args} \"$1\""
+        shift;
+    done
+
+    if [ -e ${_mf} ]; then
+	_configure_modtime=`_get_mtime ${_configure}`
+	_mf_modtime=`_get_mtime ${_mf}`
+
+	if [ ${_configure_modtime} -ge ${_mf_modtime} ]; then
+	    _must_run_configure=1
+	fi
+    else
+	_must_run_configure=1
+    fi
+
+    if [ ${_must_run_configure} -eq 1 ]; then
+	echo "Running ./configure ${_config_args}"
+	eval ./configure ${_config_args}
+	return $?
+    fi
+}

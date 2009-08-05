@@ -31,7 +31,7 @@ function component_configure
     run_autogen ${COMP_SOURCES}/src
     exit_on_error $?
 
-    ./configure \
+    run_configure \
         CC="${CC}" \
         CFLAGS="${CFLAGS}" \
         CPPFLAGS="${CPPFLAGS}" \
