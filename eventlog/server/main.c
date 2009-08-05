@@ -604,7 +604,7 @@ EVTStartAsDaemon()
     return (dwError);
 }
 
-#define DAEMON_NAME "likewise-eventlogd"
+#define DAEMON_NAME "eventlogd"
 #define PID_DIR "/var/run"
 #define PID_FILE PID_DIR "/" DAEMON_NAME ".pid"
 
