@@ -436,6 +436,11 @@ LwMapErrnoToLwError(
     );
 
 LW_DWORD
+LwMapHErrnoToLwError(
+    LW_IN LW_DWORD dwHErrno
+    );
+
+LW_DWORD
 LwMapLdapErrorToLwError(
     LW_IN LW_DWORD dwErrno
     );
