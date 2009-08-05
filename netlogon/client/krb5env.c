@@ -119,7 +119,7 @@ LWNetExtendEnvironmentForKrb5Affinity(
     dwError = putenv(pszPutenvSetting);
     if(dwError)
     {
-        dwError = errno;
+        dwError = LwMapErrnoToLwError(errno);
         BAIL_ON_LWNET_ERROR(dwError);
     }
 

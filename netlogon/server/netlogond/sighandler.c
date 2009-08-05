@@ -88,7 +88,7 @@ LWNetSrvHandleSignals(
     action.sa_handler = LWNetSrvInterruptHandler;
 
     sysRet = sigaction(SIGINT, &action, NULL);
-    dwError = (sysRet != 0) ? errno : 0;
+    dwError = (sysRet != 0) ? LwMapErrnoToLwError(errno) : 0;
     BAIL_ON_LWNET_ERROR(dwError);
 
     // Unblock SIGINT

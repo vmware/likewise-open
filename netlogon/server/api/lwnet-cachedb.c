@@ -275,7 +275,7 @@ LWNetCacheDbReadFromFile(
     pFileDb = fopen(NETLOGON_DB, "r");
     if (pFileDb == NULL)
     {
-        dwError = errno;
+        dwError = LwMapErrnoToLwError(errno);
     }
     BAIL_ON_LWNET_ERROR(dwError);
 
@@ -451,7 +451,7 @@ LWNetCacheDbWriteToFile(
     pFileDb = fopen(NETLOGON_DB, "w");
     if (pFileDb == NULL)
     {
-        dwError = errno;
+        dwError = LwMapErrnoToLwError(errno);
     }
     BAIL_ON_LWNET_ERROR(dwError);
 

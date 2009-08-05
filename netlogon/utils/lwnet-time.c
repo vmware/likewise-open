@@ -249,7 +249,7 @@ LWNetGetSystemTime(
     if (now == (time_t) -1)
     {
         // ISSUE-2008/07/01-dalmeida -- erro code conversion
-        dwError = errno;
+        dwError = LwMapErrnoToLwError(errno);
         now = 0;
         BAIL_ON_LWNET_ERROR(dwError);
     }
@@ -270,7 +270,7 @@ LWNetGetSystemTimeInMs(
     if (gettimeofday(&now, NULL) < 0)
     {
         // ISSUE-2008/07/01-dalmeida -- erro code conversion
-        dwError = errno;
+        dwError = LwMapErrnoToLwError(errno);
         now.tv_sec = 0;
         now.tv_usec = 0;
         BAIL_ON_LWNET_ERROR(dwError);

@@ -75,7 +75,7 @@ main(
 
     if (atexit(LWNetSrvExitHandler) < 0)
     {
-       dwError = errno;
+       dwError = LwMapErrnoToLwError(errno);
        BAIL_ON_LWNET_ERROR(dwError);
     }
 
@@ -373,8 +373,8 @@ LWNetSrvExitHandler(
     if (dwExitCode) {
        fp = fopen(szErrCodeFilePath, "w");
        if (fp == NULL) {
-          dwError = errno;
-          BAIL_ON_LWNET_ERROR(dwError);
+            dwError = LwMapErrnoToLwError(errno);
+            BAIL_ON_LWNET_ERROR(dwError);
        }
        fprintf(fp, "%d\n", dwExitCode);
     }
@@ -449,7 +449,7 @@ LWNetSrvStartAsDaemon(
     // this signal, we are ensuring that our second child will
     // ignore this signal and will continue execution.
     if (signal(SIGHUP, SIG_IGN) < 0) {
-        dwError = errno;
+        dwError = LwMapErrnoToLwError(errno);
         BAIL_ON_LWNET_ERROR(dwError);
     }
 
