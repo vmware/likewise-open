@@ -3,6 +3,8 @@
 #include <errno.h>
 #include <string.h>
 
+#define ITERATIONS 100000
+
 int 
 main(int argc, char** argv)
 {
@@ -12,6 +14,7 @@ main(int argc, char** argv)
     FServFile* file = NULL;
     char buffer[2048];
     unsigned long size_read = 0;
+    int iter = 0;
 
     ret = fserv_connect(&fserv);
     if (ret)
@@ -19,37 +22,40 @@ main(int argc, char** argv)
         goto error;
     }
 
-    for (i = 1; i < argc; i++)
+    for (iter = 0; iter < ITERATIONS; iter++)
     {
-        ret = fserv_open(fserv, argv[i], FSERV_MODE_READ, &file);
-        if (ret)
+        for (i = 1; i < argc; i++)
         {
-            goto error;
-        }
-
-        do
-        {
-            ret = fserv_read(file, sizeof(buffer), buffer, &size_read);
+            ret = fserv_open(fserv, argv[i], FSERV_MODE_READ, &file);
             if (ret)
             {
                 goto error;
             }
             
-            if (size_read)
+            do
             {
-                if (fwrite(buffer, 1, size_read, stdout) < size_read)
+                ret = fserv_read(file, sizeof(buffer), buffer, &size_read);
+                if (ret)
                 {
-                    ret = errno;
                     goto error;
                 }
-            }
-        } while (size_read > 0);
 
-        ret = fserv_close(file);
-        file = NULL;
-        if (ret)
-        {
-            goto error;
+                if (size_read)
+                {
+                    if (fwrite(buffer, 1, size_read, stdout) < size_read)
+                    {
+                        ret = errno;
+                        goto error;
+                    }
+                }
+            } while (size_read > 0);
+
+            ret = fserv_close(file);
+            file = NULL;
+            if (ret)
+            {
+                goto error;
+            }
         }
     }
     

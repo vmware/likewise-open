@@ -114,16 +114,16 @@ fserv_free_handle(
 static LWMsgStatus
 fserv_open_srv(
     LWMsgCall* call,
-    const LWMsgMessage* in,
-    LWMsgMessage* out,
+    const LWMsgParams* in,
+    LWMsgParams* out,
     void* data
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    OpenRequest* req = (OpenRequest*) in->object;
+    OpenRequest* req = (OpenRequest*) in->data;
     FileHandle* handle = NULL;
     StatusReply* sreply = NULL;
-    LWMsgSession* session = lwmsg_server_call_get_session(call);
+    LWMsgSession* session = lwmsg_call_get_session(call);
     int flags = 0;
     int fd = -1;
     int ret;
@@ -145,7 +145,7 @@ fserv_open_srv(
         sreply->err = ret;
 
         out->tag = FSERV_OPEN_FAILED;
-        out->object = (void*) sreply;
+        out->data = (void*) sreply;
     }
     else
     {
@@ -191,10 +191,10 @@ fserv_open_srv(
             }
 
             out->tag = FSERV_OPEN_SUCCESS;
-            out->object = (void*) handle;
+            out->data = (void*) handle;
             handle = NULL;
 
-            status = lwmsg_session_retain_handle(session, out->object);
+            status = lwmsg_session_retain_handle(session, out->data);
             if (status)
             {
                 goto error;
@@ -215,7 +215,7 @@ fserv_open_srv(
             
             sreply->err = errno;
             out->tag = FSERV_OPEN_FAILED;
-            out->object = (void*) sreply;
+            out->data = (void*) sreply;
         }
     }
 
@@ -232,16 +232,16 @@ error:
 static LWMsgStatus
 fserv_write_srv(
     LWMsgCall* call,
-    const LWMsgMessage* in,
-    LWMsgMessage* out,
+    const LWMsgParams* in,
+    LWMsgParams* out,
     void* data
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    WriteRequest* req = (WriteRequest*) in->object;
+    WriteRequest* req = (WriteRequest*) in->data;
     StatusReply* sreply = NULL;
     int fd = req->handle->fd;
-    LWMsgSession* session = lwmsg_server_call_get_session(call);
+    LWMsgSession* session = lwmsg_call_get_session(call);
     
     LOG("fserv_write() of %lu bytes to fd %i on session %p\n",
         (unsigned long) req->size, fd, session);
@@ -265,7 +265,7 @@ fserv_write_srv(
         out->tag = FSERV_WRITE_FAILED;
     }
 
-    out->object = (void*) sreply;
+    out->data = (void*) sreply;
 
 error:
     
@@ -275,18 +275,18 @@ error:
 static LWMsgStatus
 fserv_read_srv(
     LWMsgCall* call,
-    const LWMsgMessage* in,
-    LWMsgMessage* out,
+    const LWMsgParams* in,
+    LWMsgParams* out,
     void* data
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ReadRequest* req = (ReadRequest*) in->object;
+    ReadRequest* req = (ReadRequest*) in->data;
     StatusReply* sreply = NULL;
     ReadReply* rreply = NULL;
     int fd = req->handle->fd;
     int ret = 0;
-    LWMsgSession* session = lwmsg_server_call_get_session(call);
+    LWMsgSession* session = lwmsg_call_get_session(call);
     
     LOG("fserv_read() of %lu bytes from fd %i on session %p\n",
         (unsigned long) req->size, fd, session);
@@ -326,7 +326,7 @@ fserv_read_srv(
 
         sreply->err = err;
         out->tag = FSERV_READ_FAILED;
-        out->object = (void*) sreply;
+        out->data = (void*) sreply;
     }
     else if (ret == 0)
     {
@@ -334,13 +334,13 @@ fserv_read_srv(
         rreply->data = NULL;
         rreply->size = 0;
         out->tag = FSERV_READ_SUCCESS;
-        out->object = (void*) rreply;
+        out->data = (void*) rreply;
     }
     else
     {
         rreply->size = ret;
         out->tag = FSERV_READ_SUCCESS;
-        out->object = (void*) rreply;
+        out->data = (void*) rreply;
     }
 
 error:
@@ -351,14 +351,14 @@ error:
 static LWMsgStatus
 fserv_close_srv(
     LWMsgCall* call,
-    const LWMsgMessage* in,
-    LWMsgMessage* out,
+    const LWMsgParams* in,
+    LWMsgParams* out,
     void* data
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    LWMsgSession* session = lwmsg_server_call_get_session(call);
-    FileHandle* handle = (FileHandle*) in->object;
+    LWMsgSession* session = lwmsg_call_get_session(call);
+    FileHandle* handle = (FileHandle*) in->data;
     StatusReply* sreply = NULL;
 
     LOG("fserv_close() on fd %i for session %p\n", handle->fd, session);
@@ -382,13 +382,13 @@ fserv_close_srv(
     {
         sreply->err = errno;
         out->tag = FSERV_CLOSE_FAILED;
-        out->object = sreply;
+        out->data = sreply;
     }
     else
     {
         sreply->err = 0;
         out->tag = FSERV_CLOSE_SUCCESS;
-        out->object = sreply;       
+        out->data = sreply;
     }
 
 error:
