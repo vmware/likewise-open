@@ -110,10 +110,6 @@
 #include <wc16str.h>
 #endif
 
-#if defined(__hpux__) && defined(_XOPEN_SOURCE_EXTENDED)
-#    include "xpg_socket.h"
-#endif
-
 #include <uuid/uuid.h>
 
 /*

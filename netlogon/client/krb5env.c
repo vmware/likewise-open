@@ -100,7 +100,7 @@ LWNetExtendEnvironmentForKrb5Affinity(
 
     if (bNoDefault)
     {
-        dwError = LWNetAllocateStringPrintf(&pszPutenvSetting,
+        dwError = LwAllocateStringPrintf(&pszPutenvSetting,
                                             "%s=%s",
                                             LWNET_KRB5_CONFIG_VARIABLE_NAME,
                                             LWNET_KRB5_ENV_PREFIX);
@@ -108,7 +108,7 @@ LWNetExtendEnvironmentForKrb5Affinity(
     }
     else
     {
-        dwError = LWNetAllocateStringPrintf(&pszPutenvSetting,
+        dwError = LwAllocateStringPrintf(&pszPutenvSetting,
                                             "%s=%s:%s",
                                             LWNET_KRB5_CONFIG_VARIABLE_NAME,
                                             LWNET_KRB5_ENV_PREFIX,

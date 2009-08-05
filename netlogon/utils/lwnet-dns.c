@@ -74,8 +74,7 @@ LWNetDnsGetHostInfoEx(
 
     if (gethostname(szBuffer, sizeof(szBuffer)-1) != 0)
     {
-        /* TODO: Convert error code? */
-        dwError = errno;
+        dwError = LwMapErrnoToLwError(errno);
         BAIL_ON_LWNET_ERROR(dwError);
     }
 
@@ -103,7 +102,7 @@ LWNetDnsGetHostInfoEx(
     host = gethostbyname(szBuffer);
     if ( !host )
     {
-        dwError = h_errno;
+        dwError = LwMapHErrnoToLwError(h_errno);
         BAIL_ON_LWNET_ERROR(dwError);
     }
 
@@ -249,22 +248,22 @@ LWNetDnsGetNameServerList(
     }
     
     if ((fp = fopen(pszConfigFilePath, "r")) == NULL) {
-       dwError = errno;
-       BAIL_ON_LWNET_ERROR(dwError);
+        dwError = LwMapErrnoToLwError(errno);
+        BAIL_ON_LWNET_ERROR(dwError);
     } 
     
     while (1)
     {
           if (fgets(szBuf, dwMaxLineLen, fp) == NULL) {
              if (!feof(fp)) {
-                dwError = errno;
+                dwError = LwMapErrnoToLwError(errno);
                 BAIL_ON_LWNET_ERROR(dwError);
              } else {
                 break;
              }
           }
           
-          LWNetStripWhitespace(szBuf, TRUE, TRUE);
+          LwStripWhitespace(szBuf, TRUE, TRUE);
           
           if (!LWNetDnsConfigLineIsComment(szBuf) &&
               !regexec(&rx, szBuf, (size_t)0, NULL, 0))
@@ -948,7 +947,7 @@ LWNetDnsGetAddressForServer(
         if ( (pRecord->wType == ns_t_a ) &&
              !strcasecmp( pRecord->pszName, pszHostname ) )
         {
-            dwError = LWNetAllocateStringPrintf(&pszAddress, "%d.%d.%d.%d",
+            dwError = LwAllocateStringPrintf(&pszAddress, "%d.%d.%d.%d",
                                                 pRecord->pData[0],
                                                 pRecord->pData[1],
                                                 pRecord->pData[2],
@@ -1234,7 +1233,7 @@ LWNetDnsGetSrvRecordQuestion(
 
     if (IsNullOrEmptyString(pszSiteName))
     {
-        dwError = LWNetAllocateStringPrintf(&question,
+        dwError = LwAllocateStringPrintf(&question,
                                             "%s._tcp.%s._msdcs.%s",
                                             service, kind,
                                             pszDomainName);
@@ -1242,7 +1241,7 @@ LWNetDnsGetSrvRecordQuestion(
     }
     else
     {
-        dwError = LWNetAllocateStringPrintf(&question,
+        dwError = LwAllocateStringPrintf(&question,
                                             "%s._tcp.%s._sites.%s._msdcs.%s",
                                             service, pszSiteName, kind,
                                             pszDomainName);

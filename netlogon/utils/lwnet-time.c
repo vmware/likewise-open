@@ -62,7 +62,7 @@ LWNetParseDateString(
     DWORD  dwUnitMultiplier = 0;
     PSTR   pszUnitCode = NULL;
     
-    LWNetStripWhitespace(pszTimeIntervalLocal, TRUE, TRUE);
+    LwStripWhitespace(pszTimeIntervalLocal, TRUE, TRUE);
 
     BAIL_ON_INVALID_STRING(pszTimeInterval);
         
@@ -115,7 +115,7 @@ LWNetParseDateString(
         *pszUnitCode = ' ';
     }
     
-    LWNetStripWhitespace(pszTimeIntervalLocal, TRUE, TRUE);
+    LwStripWhitespace(pszTimeIntervalLocal, TRUE, TRUE);
     
     dwTimeInterval = (DWORD) atoi(pszTimeIntervalLocal) * dwUnitMultiplier;
     

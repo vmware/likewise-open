@@ -124,8 +124,6 @@ LWNetSrvHandleSignals(
         case SIGQUIT:
           
           {
-            LWNetSrvStopProcess();
-
             bWaitForSignals = FALSE;
             
             break;
@@ -145,87 +143,3 @@ LWNetSrvHandleSignals(
 error:
     return dwError;
 }
-
-DWORD
-LWNetSrvStopProcess(
-    VOID
-    )
-{
-    LWNetSrvSetProcessToExit(TRUE);
-    FakeClientConnection();
-
-    return 0;
-}
-
-VOID
-FakeClientConnection(
-    VOID
-    )
-{
-    DWORD dwError = 0;
-    CHAR  szClientPath[PATH_MAX+1];
-    DWORD dwFd = -1;
-    BOOLEAN bFileExists = FALSE;
-    struct sockaddr_un unixaddr;
-    PSTR  pszCachePath = NULL;
-
-    dwError = LWNetSrvGetCachePath(&pszCachePath);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    if ((dwFd = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
-        dwError = errno;
-        BAIL_ON_LWNET_ERROR(dwError);
-    }
-
-    sprintf(szClientPath, LWNET_CLIENT_PATH_FORMAT, (long)getpid());
-
-    dwError = LwCheckFileTypeExists(
-                    szClientPath,
-                    LWFILE_SOCKET,
-                    &bFileExists);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    if (bFileExists) {
-        dwError = LwRemoveFile(szClientPath);
-        BAIL_ON_LWNET_ERROR(dwError);
-    }
-
-    bFileExists = FALSE;
-
-    memset(&unixaddr, 0, sizeof(unixaddr));
-    unixaddr.sun_family = AF_UNIX;
-    strcpy(unixaddr.sun_path, szClientPath);
-    if (bind(dwFd, (struct sockaddr*)&unixaddr, sizeof(unixaddr)) < 0) {
-        dwError = errno;
-        BAIL_ON_LWNET_ERROR(dwError);
-    }
-
-    bFileExists = TRUE;
-
-    dwError = LwChangePermissions(unixaddr.sun_path, S_IRWXU);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    memset(&unixaddr, 0, sizeof(unixaddr));
-    unixaddr.sun_family = AF_UNIX;
-    sprintf(unixaddr.sun_path, "%s/%s", pszCachePath, LWNET_SERVER_FILENAME);
-
-    if (connect(dwFd, (struct sockaddr*)&unixaddr, sizeof(unixaddr)) < 0) {
-        dwError = errno;
-        BAIL_ON_LWNET_ERROR(dwError);
-    }
-
-error:
-
-    if (dwFd >= 0) {
-        close(dwFd);
-    }
-
-    if (bFileExists)
-    {
-        LwRemoveFile(szClientPath);
-    }
-
-    LWNET_SAFE_FREE_STRING(pszCachePath);
-}
-
-

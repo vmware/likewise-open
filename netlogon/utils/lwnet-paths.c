@@ -89,13 +89,13 @@ LWNetGetLibDirPath(
     BAIL_ON_LWNET_ERROR(dwError);
         
     if (bExists) {
-       dwError = LWNetStrndup(
+       dwError = LwStrndup(
                      PREFIXDIR "/lib64",
                      strlen(PREFIXDIR "/lib64"),
                      &pszLibPath);
        BAIL_ON_LWNET_ERROR(dwError);
     } else {
-       dwError = LWNetStrndup(
+       dwError = LwStrndup(
                       PREFIXDIR "/lib",
                       strlen(PREFIXDIR "/lib"),
                       &pszLibPath);

@@ -198,7 +198,7 @@ LWNetKrb5WriteAffinityFile(
                       &pszDnsDomainNameUpper);
         BAIL_ON_LWNET_ERROR(dwError);
 
-        LWNetStrToUpper(pszDnsDomainNameUpper);
+        LwStrToUpper(pszDnsDomainNameUpper);
 
         dwError = LWNetKrb5PrintfFile(newFile, "    %s = {\n", pszDnsDomainNameUpper);
         BAIL_ON_LWNET_ERROR(dwError);
@@ -225,13 +225,13 @@ LWNetKrb5WriteAffinityFile(
         goto error;
     }
 
-    dwError = LWNetAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                   &pszCompareRealm,
                   " %s ",
                   pszDnsDomainName);
     BAIL_ON_LWNET_ERROR(dwError);
 
-    LWNetStrToUpper(pszCompareRealm);
+    LwStrToUpper(pszCompareRealm);
 
     bFindNextRealm = TRUE;
 

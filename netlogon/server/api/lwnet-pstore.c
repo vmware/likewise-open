@@ -82,7 +82,7 @@ LWNetSrvGetCurrentDomain(
     }
     BAIL_ON_LWNET_ERROR(dwError);
 
-    dwError = LWNetWc16sToMbs(
+    dwError = LwWc16sToMbs(
                 pPassInfo->pwszDnsDomainName,
                 &pszDomain
                 );

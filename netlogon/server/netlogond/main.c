@@ -109,8 +109,6 @@ main(
     // Post service stopped event to eventlog
     LWNetSrvLogProcessStoppedEvent(dwError);
 
-    LWNetSrvStopProcess();
-
     LWNetSrvStopListenThread();
 
     LWNetSrvApiShutdown();
@@ -806,7 +804,7 @@ LWNetSrvLogProcessStartedEvent(
     DWORD dwError = 0;
     PSTR pszDescription = NULL;
 
-    dwError = LWNetAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                  &pszDescription,
                  "The Likewise site manager service was started.");
     BAIL_ON_LWNET_ERROR(dwError);
@@ -837,7 +835,7 @@ LWNetSrvLogProcessStoppedEvent(
     PSTR pszDescription = NULL;
     PSTR pszData = NULL;
 
-    dwError = LWNetAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                  &pszDescription,
                  "The Likewise site manager service was stopped");
     BAIL_ON_LWNET_ERROR(dwError);
@@ -885,7 +883,7 @@ LWNetSrvLogProcessFailureEvent(
     PSTR pszDescription = NULL;
     PSTR pszData = NULL;
 
-    dwError = LWNetAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                  &pszDescription,
                  "The Likewise site manager service stopped running due to an error");
     BAIL_ON_LWNET_ERROR(dwError);
@@ -939,7 +937,7 @@ LWNetGetErrorMessageForLoggingEvent(
 
     if ((dwLen == dwErrorBufferSize) && !IsNullOrEmptyString(pszErrorBuffer))
     {
-        dwError = LWNetAllocateStringPrintf(
+        dwError = LwAllocateStringPrintf(
                      &pszErrorMsg,
                      "Error: %s [error code: %d]",
                      pszErrorBuffer,

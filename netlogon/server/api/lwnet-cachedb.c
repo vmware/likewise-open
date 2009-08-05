@@ -607,7 +607,7 @@ LWNetCacheDbQuery(
         goto error;
     }
 
-    LWNetStrToLower(pszDnsDomainNameLower);
+    LwStrToLower(pszDnsDomainNameLower);
 
     if (pszSiteName)
     {
@@ -616,7 +616,7 @@ LWNetCacheDbQuery(
                       &pszSiteNameLower);
         BAIL_ON_LWNET_ERROR(dwError);
 
-        LWNetStrToLower(pszSiteNameLower);
+        LwStrToLower(pszSiteNameLower);
     }
 
     queryType = LWNetCacheDbQueryToQueryType(dwDsFlags);
@@ -765,7 +765,7 @@ LWNetCacheDbUpdate(
                   &pNewEntry->pszDnsDomainName);
     BAIL_ON_LWNET_ERROR(dwError);
 
-    LWNetStrToLower(pNewEntry->pszDnsDomainName);
+    LwStrToLower(pNewEntry->pszDnsDomainName);
 
     if (pszSiteName)
     {
@@ -774,7 +774,7 @@ LWNetCacheDbUpdate(
                       &pNewEntry->pszSiteName);
         BAIL_ON_LWNET_ERROR(dwError);
 
-        LWNetStrToLower(pNewEntry->pszSiteName);
+        LwStrToLower(pNewEntry->pszSiteName);
     }
 
     pNewEntry->QueryType = QueryType;

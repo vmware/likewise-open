@@ -54,14 +54,4 @@ LWNetSrvHandleSignals(
     VOID
     );
 
-DWORD
-LWNetSrvStopProcess(
-    VOID
-    );
-
-VOID
-FakeClientConnection(
-    VOID
-    );
-
 #endif /* __SIGHANDLER_H__ */

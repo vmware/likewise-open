@@ -50,6 +50,7 @@
 #include "config.h"
 #include "lwnet-system.h"
 #include "lwnet-def.h"
+#include <lwstr.h>
 
 #include "lwnet.h"
 

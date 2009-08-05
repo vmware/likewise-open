@@ -61,7 +61,7 @@ lwnet_vsyslog(
     DWORD dwError = 0;
     PSTR buffer = NULL;
 
-    dwError = LWNetAllocateStringPrintfV(&buffer, format, ap);
+    dwError = LwAllocateStringPrintfV(&buffer, format, ap);
     if (!dwError)
     {
         syslog(priority, "%s", buffer);

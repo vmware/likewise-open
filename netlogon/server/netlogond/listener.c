@@ -77,7 +77,7 @@ LWNetSrvStartListenThread(
         BAIL_ON_LWNET_ERROR(dwError);
     }
 
-    dwError = LWNetAllocateStringPrintf(&pszCommPath, "%s/%s",
+    dwError = LwAllocateStringPrintf(&pszCommPath, "%s/%s",
                                         pszCachePath, LWNET_SERVER_FILENAME);
     BAIL_ON_LWNET_ERROR(dwError);
 
