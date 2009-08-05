@@ -234,6 +234,7 @@ PvfsCreateFileSupersede(
     BAIL_ON_NT_STATUS(ntError);
 
     pCreateCtx->GrantedAccess = Args.DesiredAccess;
+    RtlMapGenericMask(&pCreateCtx->GrantedAccess, &gPvfsFileGenericMapping);
 
     ntError = PvfsCheckReadOnlyDeleteOnClose(Args, NULL);
     BAIL_ON_NT_STATUS(ntError);
@@ -370,6 +371,7 @@ PvfsCreateFileCreate(
     BAIL_ON_NT_STATUS(ntError);
 
     pCreateCtx->GrantedAccess = Args.DesiredAccess;
+    RtlMapGenericMask(&pCreateCtx->GrantedAccess, &gPvfsFileGenericMapping);
 
     ntError = PvfsCheckReadOnlyDeleteOnClose(Args, NULL);
     BAIL_ON_NT_STATUS(ntError);
@@ -584,6 +586,10 @@ PvfsCreateFileOpenOrOverwriteIf(
         BAIL_ON_NT_STATUS(ntError);
 
         pCreateCtx->GrantedAccess = Args.DesiredAccess;
+        RtlMapGenericMask(
+            &pCreateCtx->GrantedAccess,
+            &gPvfsFileGenericMapping);
+
 
         ntError = RtlCStringAllocatePrintf(
                       &pCreateCtx->pszDiskFilename,
