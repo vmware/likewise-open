@@ -13,10 +13,8 @@ liblwnetutils_la_SOURCES = \
 	lwnet-mem.c         \
 	lwnet-paths.c       \
 	lwnet-stack.c       \
-	lwnet-str.c         \
 	lwnet-time.c        \
-	lwnet-sysfuncs.c    \
-	lwnet-xnet.c
+	lwnet-sysfuncs.c
 
 noinst_HEADERS = \
         externs.h       \

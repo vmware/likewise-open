@@ -55,6 +55,7 @@
 #include "lwnet-ipc.h"
 
 #include <lwfile.h>
+#include <lwstr.h>
 
 #include "lwnet-server.h"
 #include "lwnet-server-api.h"

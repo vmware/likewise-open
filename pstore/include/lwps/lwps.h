@@ -148,7 +148,9 @@ LwpsWritePasswordToAllStores(
     );
 
 DWORD
-LwpsDeleteEntriesInAllStores();
+LwpsDeleteEntriesInAllStores(
+    VOID
+    );
 
 DWORD
 LwpsDeleteHostInAllStores(

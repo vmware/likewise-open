@@ -54,6 +54,8 @@
 
 #include "lwnet-def.h"
 #include "lwnet-utils.h"
+#include <lwstr.h>
+#include <lwerror.h>
 #include <lwfile.h>
 
 #include "lwnet-cfg_p.h"

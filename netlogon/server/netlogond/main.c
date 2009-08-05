@@ -75,7 +75,7 @@ main(
 
     if (atexit(LWNetSrvExitHandler) < 0)
     {
-       dwError = errno;
+       dwError = LwMapErrnoToLwError(errno);
        BAIL_ON_LWNET_ERROR(dwError);
     }
 
@@ -108,8 +108,6 @@ main(
 
     // Post service stopped event to eventlog
     LWNetSrvLogProcessStoppedEvent(dwError);
-
-    LWNetSrvStopProcess();
 
     LWNetSrvStopListenThread();
 
@@ -375,8 +373,8 @@ LWNetSrvExitHandler(
     if (dwExitCode) {
        fp = fopen(szErrCodeFilePath, "w");
        if (fp == NULL) {
-          dwError = errno;
-          BAIL_ON_LWNET_ERROR(dwError);
+            dwError = LwMapErrnoToLwError(errno);
+            BAIL_ON_LWNET_ERROR(dwError);
        }
        fprintf(fp, "%d\n", dwExitCode);
     }
@@ -451,7 +449,7 @@ LWNetSrvStartAsDaemon(
     // this signal, we are ensuring that our second child will
     // ignore this signal and will continue execution.
     if (signal(SIGHUP, SIG_IGN) < 0) {
-        dwError = errno;
+        dwError = LwMapErrnoToLwError(errno);
         BAIL_ON_LWNET_ERROR(dwError);
     }
 
@@ -806,7 +804,7 @@ LWNetSrvLogProcessStartedEvent(
     DWORD dwError = 0;
     PSTR pszDescription = NULL;
 
-    dwError = LWNetAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                  &pszDescription,
                  "The Likewise site manager service was started.");
     BAIL_ON_LWNET_ERROR(dwError);
@@ -837,7 +835,7 @@ LWNetSrvLogProcessStoppedEvent(
     PSTR pszDescription = NULL;
     PSTR pszData = NULL;
 
-    dwError = LWNetAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                  &pszDescription,
                  "The Likewise site manager service was stopped");
     BAIL_ON_LWNET_ERROR(dwError);
@@ -885,7 +883,7 @@ LWNetSrvLogProcessFailureEvent(
     PSTR pszDescription = NULL;
     PSTR pszData = NULL;
 
-    dwError = LWNetAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                  &pszDescription,
                  "The Likewise site manager service stopped running due to an error");
     BAIL_ON_LWNET_ERROR(dwError);
@@ -939,7 +937,7 @@ LWNetGetErrorMessageForLoggingEvent(
 
     if ((dwLen == dwErrorBufferSize) && !IsNullOrEmptyString(pszErrorBuffer))
     {
-        dwError = LWNetAllocateStringPrintf(
+        dwError = LwAllocateStringPrintf(
                      &pszErrorMsg,
                      "Error: %s [error code: %d]",
                      pszErrorBuffer,

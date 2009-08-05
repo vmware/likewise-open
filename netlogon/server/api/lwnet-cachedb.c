@@ -275,7 +275,7 @@ LWNetCacheDbReadFromFile(
     pFileDb = fopen(NETLOGON_DB, "r");
     if (pFileDb == NULL)
     {
-        dwError = errno;
+        dwError = LwMapErrnoToLwError(errno);
     }
     BAIL_ON_LWNET_ERROR(dwError);
 
@@ -434,7 +434,7 @@ LWNetCacheDbWriteToFile(
         mode_t cacheDirMode = S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH;
 
         /* Allow go+rx to the base cache folder */
-        dwError = LWNetCreateDirectory(NETLOGON_DB_DIR, cacheDirMode);
+        dwError = LwCreateDirectory(NETLOGON_DB_DIR, cacheDirMode);
         BAIL_ON_LWNET_ERROR(dwError);
     }
 
@@ -451,7 +451,7 @@ LWNetCacheDbWriteToFile(
     pFileDb = fopen(NETLOGON_DB, "w");
     if (pFileDb == NULL)
     {
-        dwError = errno;
+        dwError = LwMapErrnoToLwError(errno);
     }
     BAIL_ON_LWNET_ERROR(dwError);
 
@@ -607,7 +607,7 @@ LWNetCacheDbQuery(
         goto error;
     }
 
-    LWNetStrToLower(pszDnsDomainNameLower);
+    LwStrToLower(pszDnsDomainNameLower);
 
     if (pszSiteName)
     {
@@ -616,7 +616,7 @@ LWNetCacheDbQuery(
                       &pszSiteNameLower);
         BAIL_ON_LWNET_ERROR(dwError);
 
-        LWNetStrToLower(pszSiteNameLower);
+        LwStrToLower(pszSiteNameLower);
     }
 
     queryType = LWNetCacheDbQueryToQueryType(dwDsFlags);
@@ -765,7 +765,7 @@ LWNetCacheDbUpdate(
                   &pNewEntry->pszDnsDomainName);
     BAIL_ON_LWNET_ERROR(dwError);
 
-    LWNetStrToLower(pNewEntry->pszDnsDomainName);
+    LwStrToLower(pNewEntry->pszDnsDomainName);
 
     if (pszSiteName)
     {
@@ -774,7 +774,7 @@ LWNetCacheDbUpdate(
                       &pNewEntry->pszSiteName);
         BAIL_ON_LWNET_ERROR(dwError);
 
-        LWNetStrToLower(pNewEntry->pszSiteName);
+        LwStrToLower(pNewEntry->pszSiteName);
     }
 
     pNewEntry->QueryType = QueryType;

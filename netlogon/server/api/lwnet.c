@@ -68,7 +68,7 @@ LWNetSrvPingCLdap(
     LWNET_UNIX_MS_TIME_T startTime = 0;
     LWNET_UNIX_MS_TIME_T stopTime = 0;
 
-    dwError = LWNetAllocateStringPrintf(&pszQuery,
+    dwError = LwAllocateStringPrintf(&pszQuery,
                                         "(&(DnsDomain=%s)(NtVer=\\06\\00\\00\\80))",
                                         pszDnsDomainName);
     BAIL_ON_LWNET_ERROR(dwError);

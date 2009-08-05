@@ -187,7 +187,7 @@ lwnet_init_logging_to_file(
        if (gLwnetLogInfo.logfile.szLogPath[0] != '\0') {
           gLwnetLogInfo.logfile.logHandle = fopen(gLwnetLogInfo.logfile.szLogPath, "w");
           if (gLwnetLogInfo.logfile.logHandle == NULL) {
-             dwError = errno;
+             dwError = LwMapErrnoToLwError(errno);
              fprintf(stderr, "Failed to redirect logging. %s", strerror(errno));
              goto error;
           }

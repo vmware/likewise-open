@@ -398,7 +398,6 @@ SMBHashCaselessString(
         result = (result << 3) | (result >> (sizeof(size_t)*8 - 3));
 
         lowerChar = tolower(*pos);
-        result ^= lowerChar;
         result += lowerChar;
         pos++;
     }

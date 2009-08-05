@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -38,9 +38,9 @@
  * Abstract:
  *
  *        Likewise Password Storage (LWPS)
- * 
+ *
  *        TDB Storage Provider
- * 
+ *
  *        Main
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -55,10 +55,10 @@
 #include <tdb.h>
 #include <lw/swab.h>
 
-typedef struct __TDB_PROVIDER_CONTEXT 
+typedef struct __TDB_PROVIDER_CONTEXT
 {
-	DWORD magic;
-	TDB_CONTEXT *pTdb;	
+    DWORD magic;
+    TDB_CONTEXT *pTdb;
 } TDB_PROVIDER_CONTEXT, *PTDB_PROVIDER_CONTEXT;
 
 typedef struct _MACHINE_ACCT_INFO {
@@ -75,18 +75,17 @@ typedef struct _MACHINE_ACCT_INFO {
 
 VOID
 TDB_FreeMachineAccountInfo(
-	PMACHINE_ACCT_INFO pAcctInfo
-	);
+    PMACHINE_ACCT_INFO pAcctInfo
+    );
 
 
 #endif /* __PROVIDER_MAIN_H__ */
 
 /*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
+  local variables:
+  mode: c
+  c-basic-offset: 4
+  indent-tabs-mode: nil
+  tab-width: 4
+  end:
 */
-

@@ -1057,6 +1057,33 @@ LwMapErrnoToLwError(
     }
 }
 
+LW_DWORD
+LwMapHErrnoToLwError(
+    LW_IN LW_DWORD dwHErrno
+    )
+{
+    switch(dwHErrno)
+    {
+        case 0:
+            return LW_ERROR_SUCCESS;
+        case HOST_NOT_FOUND:
+            return WSAHOST_NOT_FOUND;
+        case NO_DATA:
+#if defined(NO_ADDRESS) && NO_DATA != NO_ADDRESS
+        case NO_ADDRESS:
+#endif
+            return WSANO_DATA;
+        case NO_RECOVERY:
+            return WSANO_RECOVERY;
+        case TRY_AGAIN:
+            return WSATRY_AGAIN;
+        default:
+            LW_LOG_ERROR("Unable to map h_errno %d", dwHErrno);
+            return LW_ERROR_UNKNOWN;
+    }
+}
+
+
 DWORD
 LwMapLdapErrorToLwError(
     DWORD dwErr

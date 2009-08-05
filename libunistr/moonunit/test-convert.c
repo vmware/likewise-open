@@ -96,6 +96,13 @@ MU_TEST(mbstowc16s, simple)
     CheckCharToWchar16("a simple test string");
 }
 
+MU_TEST(mbstowc16s, japanese)
+{
+    setlocale(LC_ALL, "en_US.UTF-8");
+
+    CheckCharToWchar16("this is a 日本語 test");
+}
+
 MU_TEST(mbstowc16s, longstr)
 {
     char buffer[1024];

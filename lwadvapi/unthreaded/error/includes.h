@@ -36,6 +36,7 @@
 #include <unistd.h>
 #include <assert.h>
 #include <stdio.h>
+#include <netdb.h>
 
 #include <lw/rtlmemory.h>
 #include <lw/attrs.h>

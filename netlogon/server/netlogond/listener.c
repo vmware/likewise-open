@@ -73,11 +73,11 @@ LWNetSrvStartListenThread(
         // Directory should be RWX for root and accessible to all
         // (so they can see the socket.
         mode_t mode = S_IRWXU | S_IRGRP| S_IXGRP | S_IROTH | S_IXOTH;
-        dwError = LWNetCreateDirectory(pszCachePath, mode);
+        dwError = LwCreateDirectory(pszCachePath, mode);
         BAIL_ON_LWNET_ERROR(dwError);
     }
 
-    dwError = LWNetAllocateStringPrintf(&pszCommPath, "%s/%s",
+    dwError = LwAllocateStringPrintf(&pszCommPath, "%s/%s",
                                         pszCachePath, LWNET_SERVER_FILENAME);
     BAIL_ON_LWNET_ERROR(dwError);
 

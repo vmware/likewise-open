@@ -105,5 +105,11 @@ LwCheckFileTypeExists(
     PBOOLEAN pbExists
     );
 
+DWORD
+LwCreateDirectory(
+    PCSTR pszPath,
+    mode_t dwFileMode
+    );
+
 #endif /* __LWFILE_H__ */
 

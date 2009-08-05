@@ -1604,10 +1604,11 @@ AD_EnumGroupsFromCache(
 {
     DWORD                 dwError = 0;
     DWORD                 dwObjectCount = 0;
+    DWORD                 dwIndex = 0;
     DWORD                 dwInfoCount = 0;
     PLSA_SECURITY_OBJECT* ppGroupObjectList = NULL;
     PVOID*                ppGroupInfoList = NULL;
-    PVOID                 pBlob;
+    PVOID                 pBlob = NULL;
     size_t                BlobSize;
     LWMsgContext*         context = NULL;
     LWMsgDataContext*      pDataContext = NULL;
@@ -1667,17 +1668,26 @@ AD_EnumGroupsFromCache(
         BAIL_ON_LSA_ERROR(dwError);
 
         // marshal the GroupInfoList data
-        for (dwInfoCount = 0; dwInfoCount < dwObjectCount; dwInfoCount++)
+        for (dwIndex = 0, dwInfoCount = 0; dwIndex < dwObjectCount; dwIndex++)
         {
             dwError = AD_GroupObjectToGroupInfo(
                           hProvider,
-                          ppGroupObjectList[dwInfoCount],
+                          ppGroupObjectList[dwIndex],
                           TRUE,
                           request->dwInfoLevel,
                           &ppGroupInfoList[dwInfoCount]);
-            BAIL_ON_LSA_ERROR(dwError);
+            if (dwError == LW_ERROR_OBJECT_NOT_ENABLED)
+            {
+                dwError = 0;
+            }
+            else
+            {
+                BAIL_ON_LSA_ERROR(dwError);
 
-            ADCacheSafeFreeObject(&ppGroupObjectList[dwInfoCount]);
+                dwInfoCount++;
+            }
+
+            ADCacheSafeFreeObject(&ppGroupObjectList[dwIndex]);
         }
 
         if (AD_ShouldAssumeDefaultDomain())

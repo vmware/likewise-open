@@ -219,7 +219,7 @@ LWNetCfgInitParseState(
     FILE* fp = NULL;
 
     if ((fp = fopen(pszFilePath, "r")) == NULL) {
-        dwError = errno;
+        dwError = LwMapErrnoToLwError(errno);
         BAIL_ON_LWNET_ERROR(dwError);
     }
     
@@ -415,7 +415,7 @@ LWNetCfgParseSections(
             {
                 BOOLEAN bIsAllSpace = FALSE;
                 
-                dwError = LWNetStrIsAllSpace(
+                dwError = LwStrIsAllSpace(
                                 pToken->pszToken,
                                 &bIsAllSpace
                                 );
@@ -954,7 +954,7 @@ LWNetCfgProcessBeginSection(
         
         if(pParseState->dwOptions & LWNET_CFG_OPTION_STRIP_SECTION) 
         {
-            LWNetStripWhitespace(pszSectionName, TRUE, TRUE); 
+            LwStripWhitespace(pszSectionName, TRUE, TRUE);
         }
         
         dwError = pParseState->pfnStartSectionHandler(
@@ -999,7 +999,7 @@ LWNetCfgProcessNameValuePair(
     *ppTokenStack = LWNetStackReverse(*ppTokenStack);
     pToken = (PLWNET_CFG_TOKEN)LWNetStackPop(ppTokenStack);
     if (pToken && pToken->dwLen) {
-        dwError = LWNetStrndup(
+        dwError = LwStrndup(
                     pToken->pszToken,
                     pToken->dwLen,
                     &pszName);
@@ -1035,8 +1035,8 @@ LWNetCfgProcessNameValuePair(
         
         if(pParseState->dwOptions & LWNET_CFG_OPTION_STRIP_NAME_VALUE_PAIR) 
         {
-            LWNetStripWhitespace(pszName, TRUE, TRUE); 
-            LWNetStripWhitespace(pszValue, TRUE, TRUE); 
+            LwStripWhitespace(pszName, TRUE, TRUE);
+            LwStripWhitespace(pszValue, TRUE, TRUE);
         }
         
         dwError = pParseState->pfnNameValuePairHandler( 
@@ -1086,7 +1086,7 @@ LWNetCfgProcessEndSection(
         
         if(pParseState->dwOptions & LWNET_CFG_OPTION_STRIP_SECTION) 
         {
-            LWNetStripWhitespace(pParseState->pszSectionName, TRUE, TRUE); 
+            LwStripWhitespace(pParseState->pszSectionName, TRUE, TRUE);
         }
         
         
@@ -1525,7 +1525,7 @@ LWNetCfgPushBackCharacter(
     BYTE ch
     )
 {
-    return ((EOF == ungetc(ch, pParseState->fp)) ? errno : 0);
+    return ((EOF == ungetc(ch, pParseState->fp)) ? LwMapErrnoToLwError(errno) : 0);
 }
 
 LWNetCfgLexState

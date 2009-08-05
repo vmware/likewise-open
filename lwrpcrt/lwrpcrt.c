@@ -123,7 +123,14 @@ RPC_STATUS RpcStringBindingComposeA(
 )
 {
     RPC_STATUS status;
-    rpc_string_binding_compose((idl_char *)string_object_uuid, (idl_char *)string_protseq, (idl_char *)string_netaddr, (idl_char *)string_endpoint, (idl_char *)string_options, (idl_char **)string_binding, &status);
+    rpc_string_binding_compose(
+            (idl_char *)string_object_uuid,
+            (idl_char *)string_protseq,
+            (idl_char *)string_netaddr,
+            (idl_char *)string_endpoint,
+            (idl_char *)string_options,
+            (idl_char **)string_binding,
+            &status);
     return LwMapDCEStatusToWinerror(status);
 }
 
