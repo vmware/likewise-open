@@ -81,7 +81,6 @@ DNSCreatePtrRecord(
     DWORD dwError = 0;
     PDNS_RR_RECORD pDNSRRRecord = NULL;
     PDNS_DOMAIN_NAME pDomainName = NULL;
-    PBYTE pRData = NULL;
 
     dwError = DNSDomainNameFromString(
                     pszName,
@@ -100,11 +99,6 @@ DNSCreatePtrRecord(
     pDomainName = NULL;
     pDNSRRRecord->RRHeader.wRDataSize = 0;
 
-    dwError = DNSAllocateMemory(
-                    sizeof(DWORD),
-                    (PVOID *)&pRData);
-    BAIL_ON_LWDNS_ERROR(dwError);
-
     dwError = DNSDomainNameFromString(
                     pszDest,
                     &pDomainName);
@@ -115,21 +109,17 @@ DNSCreatePtrRecord(
     *ppDNSRecord = pDNSRRRecord;
 
 cleanup:
+    if (pDomainName)
+    {
+        DNSFreeDomainName(pDomainName);
+    }
 
     return dwError;
 
 error:
-
-    if (pDomainName) {
-        DNSFreeDomainName(pDomainName);
-    }
-
-    if (pDNSRRRecord) {
+    if (pDNSRRRecord)
+    {
         DNSFreeRecord(pDNSRRRecord);
-    }
-
-    if (pRData) {
-        DNSFreeMemory(pRData);
     }
 
     *ppDNSRecord = NULL;
