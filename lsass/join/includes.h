@@ -65,34 +65,12 @@
 #include "join_p.h"
 
 
-#include "config.h"
-#include "lsasystem.h"
-#include "lsadef.h"
-#include "lsa/lsa.h"
-#include "lwmem.h"
-#include "lwstr.h"
-#include "lwsecurityidentifier.h"
-#include "lsautils.h"
 #include <lwldap.h>
 #include "lsaldap_p.h"
-#include "lwnet.h"
 
-
-#include "config.h"
-#include "lsasystem.h"
-#include "lsadef.h"
-#include "lsa/lsa.h"
-#include "lwmem.h"
-#include "lwstr.h"
-#include "lwsecurityidentifier.h"
-#include "lsautils.h"
-#include "lsaunistr.h"
-
-#include "lwnet.h"
 #include "externs.h"
 
 #include <lber.h>
-#include "lwps/lwps.h"
 #include <lwrpc/krb5pac.h>
 
 #endif /* __INCLUDES_H__ */
