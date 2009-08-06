@@ -304,14 +304,16 @@ LwKrb5SetProcessDefaultCachePath(
     DWORD dwError = 0;
     PSTR pszEnvironmentEntry = NULL;
     static volatile PSTR pszSavedEnvironmentEntry = NULL;
+    static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+    BOOLEAN bLocked = FALSE;
 
-    // ISSUE-2008/07/18-dalmeida -- Better atomicity.
-
-    if (pszSavedEnvironmentEntry)
+    dwError = pthread_mutex_lock(&lock);
+    if (dwError)
     {
-        dwError = LW_ERROR_INTERNAL;
+        dwError = LwMapErrnoToLwError(dwError);
         BAIL_ON_LW_ERROR(dwError);
     }
+    bLocked = TRUE;
 
     dwError = LwAllocateStringPrintf(&pszEnvironmentEntry,
                                       "KRB5CCNAME=%s",
@@ -327,12 +329,18 @@ LwKrb5SetProcessDefaultCachePath(
         BAIL_ON_LW_ERROR(dwError);
     }
 
+    LW_SAFE_FREE_STRING(pszSavedEnvironmentEntry);
     pszSavedEnvironmentEntry = pszEnvironmentEntry;
     pszEnvironmentEntry = NULL;
 
 error:
     LW_SAFE_FREE_STRING(pszEnvironmentEntry);
     
+    if (bLocked)
+    {
+        pthread_mutex_unlock(&lock);
+    }
+
     return dwError;
 }
 

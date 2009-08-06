@@ -72,11 +72,6 @@ LwKrb5GetServiceTicketForUser(
     Krb5CacheType cacheType
     );
 
-VOID
-LwKrb5RealmTransitionOffline(
-    IN PCSTR pszRealm
-    );
-
 #endif /* __KRBTGT_P_H__ */
 
 

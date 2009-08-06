@@ -52,6 +52,9 @@
 //#include <uuid/uuid.h>
 //#include <lwrpc/krb5pac.h>
 //#include <lwio/lwio.h>
+#include <krb5.h>
+
+#include <lwdef.h>
 
 typedef enum
 {
@@ -182,6 +185,11 @@ LwTranslateKrb5Error(
     krb5_error_code krbError,
     PCSTR pszFile,
     DWORD dwLine
+    );
+
+VOID
+LwKrb5RealmTransitionOffline(
+    IN PCSTR pszRealm
     );
 
 #endif /* __LWKRB5_H__ */
