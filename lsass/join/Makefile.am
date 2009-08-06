@@ -11,8 +11,6 @@ liblsajoin_la_SOURCES = \
         lwkrb5.c \
         lwkrb5smb.c \
        lsaldap.c   \
-       lwtime.c   \
-       common.c   \
        query.c
 
 

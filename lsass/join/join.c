@@ -90,12 +90,19 @@ LsaNetJoinDomain(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaSetSMBAccessTokenWithFlags(
+    if ( !(dwFlags & LSA_NET_JOIN_DOMAIN_NOTIMESYNC) )
+    {
+        dwError = LsaSyncTimeToDC(pszDomain);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LsaSetSMBAccessToken(
                 pszDomain,
                 pszUsername,
                 pszPassword,
-                dwFlags,
-                &pAccessInfo);
+                TRUE,
+                &pAccessInfo,
+                NULL);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaMbsToWc16s(

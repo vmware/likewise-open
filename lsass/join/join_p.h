@@ -81,16 +81,6 @@ LsaFreeSMBAccessToken(
     IN OUT PLSA_ACCESS_TOKEN_FREE_INFO* ppFreeInfo
     );
 
-DWORD
-LsaSetSMBAccessTokenWithFlags(
-    IN PCSTR pszDomain,
-    IN PCSTR pszUsername,
-    IN PCSTR pszPassword,
-    IN DWORD dwFlags,
-    OUT PLSA_ACCESS_TOKEN_FREE_INFO* ppFreeInfo
-    );
-
-
 size_t
 LsaNetGetErrorString(
     DWORD  dwErrorCode,
