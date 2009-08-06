@@ -69,7 +69,7 @@ function component_install
     local INSTALL_PREFIX_ROOT="${INSTALL_ROOT}/${PREFIXDIR}"
     local STAGING_PREFIX_DIR=${STAGE_INSTALL_DIR}/${PREFIXDIR}
 
-    [ "$INSTALL_ROOT" != "/" ] && rm -rf $INSTALL_ROOT
+    [ "$INSTALL_ROOT" != "/" ] && [ -z "${BUILD_PRESERVE_STAGING}" ] && rm -rf $INSTALL_ROOT
     mkdir -p ${INSTALL_ROOT}
     mkdir -p ${INSTALL_PREFIX_ROOT}
     mkdir -p ${STAGE_INSTALL_DIR}

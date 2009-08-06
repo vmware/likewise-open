@@ -48,7 +48,7 @@ function component_install
 
     local INSTALL_ROOT="${STAGE_COMP_DIR}/${COMP_NAME}"
 
-    [ "$INSTALL_ROOT" != "/" ] && rm -rf $INSTALL_ROOT
+    [ "$INSTALL_ROOT" != "/" ] && [ -z "${BUILD_PRESERVE_STAGING}" ] && rm -rf $INSTALL_ROOT
     mkdir -p ${INSTALL_ROOT}
     mkdir -p ${STAGE_INSTALL_DIR}
 
