@@ -420,6 +420,7 @@ MemCacheLoadFile(
     LWMsgMessage message = LWMSG_MESSAGE_INITIALIZER;
     PMEM_GROUP_MEMBERSHIP pMemCacheMembership = NULL;
     BOOLEAN bMutexLocked = FALSE;
+    PLSA_PASSWORD_VERIFIER pFromHash = NULL;
 
     ENTER_MUTEX(&pConn->backupMutex, bMutexLocked);
     ENTER_WRITER_RW_LOCK(&pConn->lock, bInLock);
@@ -492,6 +493,20 @@ MemCacheLoadFile(
                 pMemCacheMembership = NULL;
                 break;
             case MEM_CACHE_PASSWORD:
+                dwError = LsaHashGetValue(
+                                pConn->pSIDToPasswordVerifier,
+                                ((PLSA_PASSWORD_VERIFIER)message.data)->pszObjectSid,
+                                (PVOID*)&pFromHash);
+                if (dwError == ENOENT)
+                {
+                    dwError = 0;
+                }
+                else if (!dwError)
+                {
+                    pConn->sCacheSize -= pFromHash->version.dwObjectSize;
+                }
+                BAIL_ON_LSA_ERROR(dwError);
+
                 dwError = LsaHashSetValue(
                                 pConn->pSIDToPasswordVerifier,
                                 ((PLSA_PASSWORD_VERIFIER)message.data)->pszObjectSid,
