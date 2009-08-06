@@ -37,7 +37,7 @@
  * Abstract:
  *
  *        Likewise Advanced API (lwadvapi)
- *                    
+ *
  *        Time Utilities
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
