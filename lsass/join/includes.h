@@ -62,6 +62,7 @@
 #include <lwio/lwio.h>
 
 #include <lsa/join.h>
+#include <lsakrb5.h>
 #include "join_p.h"
 
 

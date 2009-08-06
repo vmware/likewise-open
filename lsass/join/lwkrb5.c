@@ -52,12 +52,6 @@
 
 #define AD_IF_RELEVANT_TYPE 1
 #define AD_WIN2K_PAC        128
-#define BAIL_ON_DCE_ERROR(dest, status)                   \
-    if ((status) != 0) {                    \
-        LSA_LOG_ERROR("DCE Error [Code:%d]", (status));   \
-        (dest) = LW_ERROR_DCE_CALL_FAILED;               \
-        goto error;                                       \
-    }
 
 #define PAC_TYPE_LOGON_INFO              1
 #define PAC_TYPE_SRV_CHECKSUM            6
@@ -90,12 +84,13 @@ typedef struct _PAC_LOGON_NAME {
 } PAC_LOGON_NAME;
 
 DWORD
-LwKrb5DecodePac(
+LwKrb5VerifyPac(
     krb5_context ctx,
     const krb5_ticket *pTgsTicket,
     const struct berval *pPacBerVal,
     const krb5_keyblock *serviceKey,
-    PAC_LOGON_INFO **ppLogonInfo
+    char** ppchLogonInfo,
+    size_t* psLogonInfo
     )
 {
     krb5_error_code ret = 0;
@@ -114,13 +109,12 @@ LwKrb5DecodePac(
     char *pchLogonInfoStart = NULL;
     size_t sLogonInfoLen = 0;
     krb5_boolean bHasGoodChecksum = FALSE;
-    error_status_t dceStatus = 0;
     uint64_t qwNtAuthTime;
     DWORD dwError = LW_ERROR_SUCCESS;
     //Free with krb5_free_unparsed_name
     PSTR pszClientPrincipal = NULL;
     PSTR pszLogonName = NULL;
-    PAC_LOGON_INFO *pLogonInfo = NULL;
+    char* pchLogonInfo = NULL;
 
     #if defined(WORDS_BIGENDIAN)
     WORD * pwNameLocal = NULL;
@@ -329,13 +323,14 @@ LwKrb5DecodePac(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dceStatus = DecodePacLogonInfo(
-        pchLogonInfoStart,
-        sLogonInfoLen,
-        &pLogonInfo);
-    BAIL_ON_DCE_ERROR(dwError, dceStatus);
+    dwError = LsaAllocateMemory(
+                sLogonInfoLen,
+                (PVOID*)&pchLogonInfo);
+    BAIL_ON_LSA_ERROR(dwError);
 
-    *ppLogonInfo = pLogonInfo;
+    memcpy(pchLogonInfo, pchLogonInfoStart, sLogonInfoLen);
+    *ppchLogonInfo = pchLogonInfo;
+    *psLogonInfo = sLogonInfoLen;
 
 cleanup:
     LSA_SAFE_FREE_STRING(pszLogonName);
@@ -348,11 +343,8 @@ cleanup:
     return dwError;
 
 error:
-    if (pLogonInfo != NULL)
-    {
-        FreePacLogonInfo(pLogonInfo);
-    }
-    *ppLogonInfo = NULL;
+    LSA_SAFE_FREE_MEMORY(pchLogonInfo);
+    *ppchLogonInfo = NULL;
     goto cleanup;
 }
 
@@ -361,7 +353,8 @@ LwKrb5FindPac(
     krb5_context ctx,
     const krb5_ticket *pTgsTicket,
     const krb5_keyblock *serviceKey,
-    PAC_LOGON_INFO **ppLogonInfo
+    char** ppchLogonInfo,
+    size_t* psLogonInfo
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -378,7 +371,8 @@ LwKrb5FindPac(
     char *cookie = NULL;
     int adType;
     ber_tag_t seqTag, context0Tag, context1Tag;
-    PAC_LOGON_INFO *pLogonInfo = NULL;
+    char* pchLogonInfo = NULL;
+    size_t sLogonInfo = 0;
 
     ber = ber_alloc_t(0);
 
@@ -428,12 +422,13 @@ LwKrb5FindPac(
 
                 if (adType == AD_WIN2K_PAC)
                 {
-                    dwError = LwKrb5DecodePac(
+                    dwError = LwKrb5VerifyPac(
                         ctx,
                         pTgsTicket,
                         &contents,
                         serviceKey,
-                        &pLogonInfo);
+                        &pchLogonInfo,
+                        &sLogonInfo);
                     if (dwError == LW_ERROR_INVALID_MESSAGE)
                     {
                         dwError = LW_ERROR_SUCCESS;
@@ -453,7 +448,8 @@ LwKrb5FindPac(
     }
 end_search:
 
-    *ppLogonInfo = pLogonInfo;
+    *ppchLogonInfo = pchLogonInfo;
+    *psLogonInfo = sLogonInfo;
 
 cleanup:
     if (contents.bv_val != NULL)
@@ -468,11 +464,8 @@ cleanup:
     return dwError;
 
 error:
-    if (pLogonInfo != NULL)
-    {
-        FreePacLogonInfo(pLogonInfo);
-    }
-    *ppLogonInfo = NULL;
+    LSA_SAFE_FREE_MEMORY(pchLogonInfo);
+    *ppchLogonInfo = NULL;
     goto cleanup;
 }
 
@@ -716,7 +709,8 @@ LsaSetupUserLoginSession(
     BOOLEAN bUpdateUserCache,
     PCSTR pszServicePrincipal,
     PCSTR pszServicePassword,
-    PAC_LOGON_INFO **ppLogonInfo,
+    char** ppchLogonInfo,
+    size_t* psLogonInfo,
     PDWORD pdwGoodUntilTime
     )
 {
@@ -737,11 +731,12 @@ LsaSetupUserLoginSession(
     krb5_data machinePassword = {0};
     krb5_flags flags = 0;
     krb5_int32 authcon_flags = 0;
-    PAC_LOGON_INFO *pLogonInfo = NULL;
     BOOLEAN bInLock = FALSE;
     PCSTR pszTempCacheName = NULL;
     PSTR pszTempCachePath = NULL;
     PSTR pszUnreachableRealm = NULL;
+    char* pchLogonInfo = NULL;
+    size_t sLogonInfo = 0;
 
     ret = krb5_init_context(&ctx);
     BAIL_ON_KRB_ERROR(ctx, ret);
@@ -900,7 +895,8 @@ LsaSetupUserLoginSession(
         ctx,
         pDecryptedTgs,
         &serviceKey,
-        &pLogonInfo);
+        &pchLogonInfo,
+        &sLogonInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
     if (bUpdateUserCache)
@@ -954,7 +950,8 @@ LsaSetupUserLoginSession(
         }
     }
 
-    *ppLogonInfo = pLogonInfo;
+    *ppchLogonInfo = pchLogonInfo;
+    *psLogonInfo = sLogonInfo;
 
 cleanup:
     LSA_SAFE_FREE_STRING(pszUnreachableRealm);
@@ -1012,11 +1009,8 @@ error:
         dwError = LW_ERROR_DOMAIN_IS_OFFLINE;
     }
 
-    if (pLogonInfo != NULL)
-    {
-        FreePacLogonInfo(pLogonInfo);
-    }
-    *ppLogonInfo = NULL;
+    LSA_SAFE_FREE_MEMORY(pchLogonInfo);
+    *ppchLogonInfo = NULL;
 
     goto cleanup;
 }

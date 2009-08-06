@@ -182,6 +182,14 @@ AD_OnlineAuthenticateUser(
     );
 
 DWORD
+AD_OnlineCheckUserPassword(
+    HANDLE hProvider,
+    PLSA_SECURITY_OBJECT pUserInfo,
+    PCSTR  pszPassword,
+    PDWORD pdwGoodUntilTime
+    );
+
+DWORD
 AD_CrackDomainQualifiedName(
     PCSTR pszId,
     PLSA_LOGIN_NAME_INFO* ppNameInfo

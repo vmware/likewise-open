@@ -110,7 +110,8 @@ LsaSetupUserLoginSession(
     BOOLEAN bUpdateUserCache,
     PCSTR         pszServicePrincipal,
     PCSTR         pszServicePassword,
-    PAC_LOGON_INFO **ppLogonInfo,
+    char** ppchLogonInfo,
+    size_t* psLogonInfo,
     PDWORD pdwGoodUntilTime
     );
 
