@@ -336,7 +336,7 @@ LsaGetComputerDN(
     dwError = LwKrb5SetDefaultCachePath(pszKrb5CachePath, NULL);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LwLdapOpenDirectoryDomain(pszDomain, 0, &hDirectory);
+    dwError = LsaLdapOpenDirectoryDomain(pszDomain, 0, &hDirectory);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LwLdapConvertDomainToDN(

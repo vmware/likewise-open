@@ -184,7 +184,6 @@ LSA_INITIALIZE_PROVIDER(ad)(
     PSTR  pszPassword = NULL;
     PSTR  pszDomainDnsName = NULL;
     PSTR  pszHostDnsDomain = NULL;
-    PSTR pszKrb5CcPath = NULL;
     BOOLEAN bIsDomainOffline = FALSE;
     LSA_AD_CONFIG config = {0};
 
@@ -237,7 +236,6 @@ LSA_INITIALIZE_PROVIDER(ad)(
     LsaStrToUpper(pszHostname);
 
     dwError = LwKrb5GetMachineCreds(
-                    pszHostname,
                     &pszUsername,
                     &pszPassword,
                     &pszDomainDnsName,
@@ -281,10 +279,7 @@ LSA_INITIALIZE_PROVIDER(ad)(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LwKrb5GetSystemCachePath(KRB5_File_Cache, &pszKrb5CcPath);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LwKrb5SetProcessDefaultCachePath(pszKrb5CcPath);
+    dwError = LwKrb5SetProcessDefaultCachePath(LSASS_CACHE_PATH);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = ADState_OpenDb(
@@ -350,7 +345,6 @@ cleanup:
     LSA_SAFE_CLEAR_FREE_STRING(pszPassword);
     LSA_SAFE_FREE_STRING(pszDomainDnsName);
     LSA_SAFE_FREE_STRING(pszHostDnsDomain);
-    LSA_SAFE_FREE_STRING(pszKrb5CcPath);
 
     return dwError;
 
@@ -3935,7 +3929,6 @@ AD_MachineCredentialsCacheInitialize(
 
     // Read password info before acquiring the lock.
     dwError = LwKrb5GetMachineCreds(
-                    pszHostname,
                     &pszUsername,
                     &pszPassword,
                     &pszDomainDnsName,
@@ -3959,8 +3952,10 @@ AD_MachineCredentialsCacheInitialize(
 
     ADSyncTimeToDC(pszDomainDnsName);
 
-    dwError = LsaSetupMachineSession(
-                    pszHostname,
+    dwError = LwKrb5SetProcessDefaultCachePath(LSASS_CACHE_PATH);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LwSetupMachineSession(
                     pszUsername,
                     pszPassword,
                     pszDomainDnsName,

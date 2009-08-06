@@ -704,7 +704,7 @@ LsaDmLdapDirectoryOnePagedSearch(
     IN PCSTR pszQuery,
     IN PSTR* ppszAttributeList,
     IN DWORD dwPageSize,
-    IN OUT PLSA_SEARCH_COOKIE pCookie,
+    IN OUT PLW_SEARCH_COOKIE pCookie,
     IN int scope,
     OUT HANDLE* phDirectory,
     OUT LDAPMessage** ppMessage

@@ -47,51 +47,15 @@
  *          Kyle Stemen (kstemen@likewisesoftware.com)
  *          Brian Dunstan (bdunstan@likewisesoftware.com)
  */
-#ifndef __LWLDAP_P_H__
-#define __LWLDAP_P_H__
-
-typedef struct _LSA_LDAP_DIRECTORY_CONTEXT {
-    LDAP *ld;
-} LSA_LDAP_DIRECTORY_CONTEXT, *PLSA_LDAP_DIRECTORY_CONTEXT;
-
+#ifndef __LSALDAP_P_H__
+#define __LSALDAP_P_H__
 
 DWORD
-LwLdapOpenDirectoryWithReaffinity(
+LsaLdapOpenDirectoryWithReaffinity(
     IN PCSTR pszDnsDomainOrForestName,
     IN DWORD dwFlags,
     IN BOOLEAN bNeedGc,
     OUT PHANDLE phDirectory
     );
 
-
-DWORD
-LwLdapBindDirectoryAnonymous(
-    HANDLE hDirectory
-    );
-
-
-DWORD
-LwLdapBindDirectory(
-    HANDLE hDirectory,
-    PCSTR pszServerName
-    );
-
-
-DWORD
-LwLdapOpenDirectoryServerSingleAttempt(
-    IN PCSTR pszServerAddress,
-    IN PCSTR pszServerName,
-    IN DWORD dwTimeoutSec,
-    IN DWORD dwFlags,
-    OUT PAD_DIRECTORY_CONTEXT* ppDirectory
-    );
-
-void display_status(char *msg, OM_uint32 maj_stat, OM_uint32 min_stat);
-
-void display_status_1(char *m, OM_uint32 code, int type);
-
-#ifndef WIN32
-typedef gss_ctx_id_t CtxtHandle, *PCtxtHandle;
-#endif
-
-#endif /* __LWLDAP_P_H__ */
+#endif /* __LSALDAP_P_H__ */

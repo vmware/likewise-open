@@ -53,33 +53,6 @@
 #include <lwrpc/krb5pac.h>
 #include <lwio/lwio.h>
 
-typedef enum
-{
-    KRB5_InMemory_Cache,
-    KRB5_File_Cache
-} Krb5CacheType;
-
-#ifdef WIN32
-
-#define BAIL_ON_SEC_ERROR(dwMajorStatus)                        \
-    if ((dwMajorStatus!= SEC_E_OK) &&                           \
-        (dwMajorStatus != SEC_I_CONTINUE_NEEDED)) {             \
-        LSA_LOG_ERROR("GSS API Error: %d", dwMajorStatus);      \
-        dwError = LW_ERROR_GSS_CALL_FAILED;                    \
-        goto error;                                             \
-    }
-
-#else
-
-#define BAIL_ON_SEC_ERROR(dwMajorStatus)                        \
-    if ((dwMajorStatus!= GSS_S_COMPLETE) &&                     \
-        (dwMajorStatus != GSS_S_CONTINUE_NEEDED)) {             \
-        LSA_LOG_ERROR("GSS API Error: %d", dwMajorStatus);      \
-        dwError = LW_ERROR_GSS_CALL_FAILED;                    \
-        goto error;                                             \
-    }
-
-#endif /* WIN32 */
 
 typedef BOOLEAN (*LSA_KRB5_REALM_IS_OFFLINE_CALLBACK)(IN PCSTR pszRealmName);
 typedef VOID (*LSA_KRB5_REALM_TRANSITION_OFFLINE_CALLBACK)(IN PCSTR pszRealmName);
@@ -93,12 +66,6 @@ LwKrb5Init(
 DWORD
 LwKrb5GetDefaultRealm(
     PSTR* ppszRealm
-    );
-
-DWORD
-LwKrb5GetSystemCachePath(
-    Krb5CacheType cacheType,
-    PSTR*         ppszCachePath
     );
 
 DWORD
@@ -172,15 +139,6 @@ LwKrb5Shutdown(
 DWORD
 LwKrb5RefreshMachineTGT(
     PDWORD pdwGoodUntilTime
-    );
-
-DWORD
-LwKrb5GetMachineCreds(
-    PCSTR pszHostname,
-    PSTR* ppszUsername,
-    PSTR* ppszPassword,
-    PSTR* ppszDomainDnsName,
-    PSTR* ppszHostDnsDomain
     );
 
 typedef struct _LSA_ACCESS_TOKEN_FREE_INFO *PLSA_ACCESS_TOKEN_FREE_INFO;

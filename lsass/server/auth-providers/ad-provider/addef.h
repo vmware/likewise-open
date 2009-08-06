@@ -149,5 +149,7 @@ typedef enum
 #define LSASS_AD_SQLITE_CACHE_DB     LSASS_DB_DIR "/lsass-adcache.db"
 #define LSASS_AD_MEMORY_CACHE_DB     LSASS_DB_DIR "/lsass-adcache.filedb"
 
+#define LSASS_CACHE_PATH    ("FILE:" CACHEDIR "/krb5cc_lsass")
+
 #endif /* __AD_DEF_H__ */
 

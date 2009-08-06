@@ -77,7 +77,7 @@ LsaAdBatchFindSingleObject(
 
 DWORD
 LsaAdBatchEnumObjects(
-    IN OUT PLSA_SEARCH_COOKIE pCookie,
+    IN OUT PLW_SEARCH_COOKIE pCookie,
     IN ADAccountType AccountType,
     IN DWORD dwMaxObjectsCount,
     OUT PDWORD pdwObjectsCount,

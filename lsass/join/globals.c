@@ -47,4 +47,4 @@
 
 #include "includes.h"
 
-LSA_KRB5_STATE gLwKrb5State;
+pthread_mutex_t gUserCacheMutex;
