@@ -143,6 +143,11 @@ _LBREWRITE=${BUILD_ROOT}/build/lib/libtool-dependency-rewrite.sh
 
 function libtool_rewrite_staging
 {
+    if [ ! -z "${BUILD_DESTROY_LAS}" ]; then
+        find ${STAGE_INSTALL_DIR} -name "*.la" | xargs rm
+        return
+    fi
+
     for lafile in `find ${STAGE_INSTALL_DIR} -name "*.la"`; do
 	${_LBREWRITE} -staging ${lafile} ${PREFIXDIR} ${STAGE_INSTALL_DIR}
     done
