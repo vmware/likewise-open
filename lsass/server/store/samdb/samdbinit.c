@@ -806,6 +806,17 @@ SamDbAddBuiltinAccounts(
             .flags          = 0,
             .objectClass    = SAMDB_OBJECT_CLASS_LOCAL_GROUP
         },
+        {
+            .pszName        = "Backup Operators",
+            .pszSID         = "S-1-5-32-551",
+            .dwGID          = SAM_DB_GID_FROM_RID(DOMAIN_ALIAS_RID_BACKUP_OPS),
+            .pszDescription = "Backup Operators have the privilege to do "
+                              "backup/restore operations",
+            .pszDomainName  = "BUILTIN",
+            .pszNetBIOSDomain = "BUILTIN",
+            .flags          = 0,
+            .objectClass    = SAMDB_OBJECT_CLASS_LOCAL_GROUP
+        },
     };
 
     DWORD dwError = 0;
