@@ -84,7 +84,7 @@ LWNetSrvIpcGetDCName(
 {
     DWORD dwError = 0;
     PLWNET_DC_INFO pDCInfo = NULL;
-    PLWNET_IPC_DCNAME_REQ pReq = pIn->data;
+    PLWNET_IPC_GET_DC pReq = pIn->data;
     PLWNET_IPC_ERROR pError = NULL;
 
     dwError = LWNetSrvGetDCName(
@@ -98,7 +98,7 @@ LWNetSrvIpcGetDCName(
 
     if (!dwError)
     {
-        pOut->tag = LWNET_R_DCINFO_SUCCESS;
+        pOut->tag = LWNET_R_GET_DC_NAME;
         pOut->data = pDCInfo;
     }
     else
@@ -106,7 +106,7 @@ LWNetSrvIpcGetDCName(
         dwError = LWNetSrvIpcCreateError(dwError, NULL, &pError);
         BAIL_ON_LWNET_ERROR(dwError);
         
-        pOut->tag = LWNET_R_DCINFO_FAILURE;;
+        pOut->tag = LWNET_R_ERROR;
         pOut->data = pError;
     }
     
@@ -135,7 +135,7 @@ LWNetSrvIpcGetDCList(
     DWORD dwError = 0;
     PLWNET_DC_ADDRESS pDcList = NULL;
     DWORD dwDcCount = 0;
-    PLWNET_IPC_DCNAME_REQ pReq = pIn->data;
+    PLWNET_IPC_GET_DC pReq = pIn->data;
 
     dwError = LWNetSrvGetDCList(
                     pReq->pszDomainFQDN,
@@ -145,12 +145,12 @@ LWNetSrvIpcGetDCList(
                     &dwDcCount);
     if (!dwError)
     {
-        PLWNET_IPC_DCLIST_RES pRes = NULL;
+        PLWNET_IPC_DC_LIST pRes = NULL;
 
         dwError = LWNetAllocateMemory(sizeof(*pRes), (PVOID*)&pRes);
         BAIL_ON_LWNET_ERROR(dwError);
 
-        pOut->tag = LWNET_R_DCLIST_SUCCESS;
+        pOut->tag = LWNET_R_GET_DC_LIST;
         pOut->data = pRes;
         pRes->pDcList = pDcList;
         pDcList = NULL;
@@ -163,7 +163,7 @@ LWNetSrvIpcGetDCList(
         dwError = LWNetSrvIpcCreateError(dwError, NULL, &pError);
         BAIL_ON_LWNET_ERROR(dwError);
 
-        pOut->tag = LWNET_R_DCLIST_FAILURE;;
+        pOut->tag = LWNET_R_ERROR;;
         pOut->data = pError;
     }
 
@@ -190,20 +190,20 @@ LWNetSrvIpcGetDCTime(
     )
 {
     DWORD dwError = 0;
-    PLWNET_IPC_DCTIME_REQ pReq = pIn->data;
-    PLWNET_IPC_DCTIME_RES pRes = NULL;
+    PLWNET_IPC_CONST_STRING pReq = pIn->data;
+    PLWNET_IPC_TIME pRes = NULL;
     PLWNET_IPC_ERROR pError = NULL;
 
     dwError = LWNetAllocateMemory(sizeof(*pRes), (void**) (void*) &pRes);
     BAIL_ON_LWNET_ERROR(dwError);
 
     dwError = LWNetSrvGetDCTime(
-        pReq->pszDomainFQDN,
-        &pRes->dcTime);
+        pReq->pszString,
+        &pRes->Time);
 
     if (!dwError)
     {
-        pOut->tag = LWNET_R_DCTIME_SUCCESS;
+        pOut->tag = LWNET_R_GET_DC_TIME;
         pOut->data = pRes;
     }
     else
@@ -211,7 +211,7 @@ LWNetSrvIpcGetDCTime(
         dwError = LWNetSrvIpcCreateError(dwError, NULL, &pError);
         BAIL_ON_LWNET_ERROR(dwError);
         
-        pOut->tag = LWNET_R_DCTIME_FAILURE;
+        pOut->tag = LWNET_R_ERROR;
         pOut->data = pError;
     }
 
@@ -239,21 +239,21 @@ LWNetSrvIpcGetDomainController(
     )
 {
     DWORD dwError = 0;
-    PLWNET_IPC_DC_REQ pReq = pIn->data;
-    PLWNET_IPC_DC_RES pRes = NULL;
+    PLWNET_IPC_CONST_STRING pReq = pIn->data;
+    PLWNET_IPC_STRING pRes = NULL;
     PLWNET_IPC_ERROR pError = NULL;
     
     dwError = LWNetAllocateMemory(sizeof(*pRes), (void**) (void*) &pRes);
     BAIL_ON_LWNET_ERROR(dwError);
     
     dwError = LWNetSrvGetDomainController(
-        pReq->pszDomainFQDN,
-        &pRes->pszDCFQDN
+        pReq->pszString,
+        &pRes->pszString
         );
     
     if (!dwError)
     {
-        pOut->tag = LWNET_R_DC_SUCCESS;
+        pOut->tag = LWNET_R_GET_DOMAIN_CONTROLLER;
         pOut->data = pRes;
         
     }
@@ -262,7 +262,7 @@ LWNetSrvIpcGetDomainController(
         dwError = LWNetSrvIpcCreateError(dwError, NULL, &pError);
         BAIL_ON_LWNET_ERROR(dwError);
         
-        pOut->tag = LWNET_R_DC_FAILURE;
+        pOut->tag = LWNET_R_ERROR;
         pOut->data = pError;
     }
 
@@ -292,19 +292,19 @@ LWNetSrvIpcGetCurrentDomain(
     )
 {
     DWORD dwError = 0;
-    PLWNET_IPC_CURRENT_RES pRes = NULL;
+    PLWNET_IPC_STRING pRes = NULL;
     PLWNET_IPC_ERROR pError = NULL;
     
     dwError = LWNetAllocateMemory(sizeof(*pRes), (void**) (void*) &pRes);
     BAIL_ON_LWNET_ERROR(dwError);
     
     dwError = LWNetSrvGetCurrentDomain(
-        &pRes->pszDomainFQDN
+        &pRes->pszString
         );
     
     if (!dwError)
     {
-        pOut->tag = LWNET_R_CURRENT_DOMAIN_SUCCESS;
+        pOut->tag = LWNET_R_GET_CURRENT_DOMAIN;
         pOut->data = pRes;
     }
     else
@@ -312,7 +312,7 @@ LWNetSrvIpcGetCurrentDomain(
         dwError = LWNetSrvIpcCreateError(dwError, NULL, &pError);
         BAIL_ON_LWNET_ERROR(dwError);
         
-        pOut->tag = LWNET_R_CURRENT_DOMAIN_FAILURE;
+        pOut->tag = LWNET_R_ERROR;
         pOut->data = pError;
     }
     
