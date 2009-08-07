@@ -66,6 +66,7 @@
 #include "externs.h"
 
 #include "lwldap_p.h"
+#include "lwkrb5_p.h"
 #include "lwtime.h"
 #include "lwsecurityidentifier.h"
 

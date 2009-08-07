@@ -464,8 +464,6 @@ error:
     goto cleanup;
 }
 
-#define AD_IF_RELEVANT_TYPE 1
-#define AD_WIN2K_PAC        128
 #define BAIL_ON_DCE_ERROR(dest, status)                   \
     if ((status) != 0) {                    \
         LW_LOG_ERROR("DCE Error [Code:%d]", (status));   \
@@ -946,6 +944,707 @@ LwTranslateKrb5Error(
         krb5_free_error_message(ctx, pszKrb5Error);
     }
     return dwError;
+}
+
+DWORD
+LwKrb5VerifyPac(
+    krb5_context ctx,
+    const krb5_ticket *pTgsTicket,
+    const struct berval *pPacBerVal,
+    const krb5_keyblock *serviceKey,
+    char** ppchLogonInfo,
+    size_t* psLogonInfo
+    )
+{
+    krb5_error_code ret = 0;
+    PAC_DATA *pPacData = NULL;
+    DWORD i;
+    char *pchPacCopy = NULL;
+    //Do not free
+    krb5_data krbPacData = {0};
+    //Do not free
+    krb5_checksum checksum = {0};
+    //Do not free
+    PAC_SIGNATURE_DATA *pServerSig = NULL;
+    PAC_LOGON_NAME *pLogonName = NULL;
+    size_t sServerSig = 0;
+    //Do not free
+    char *pchLogonInfoStart = NULL;
+    size_t sLogonInfoLen = 0;
+    krb5_boolean bHasGoodChecksum = FALSE;
+    uint64_t qwNtAuthTime;
+    DWORD dwError = LW_ERROR_SUCCESS;
+    //Free with krb5_free_unparsed_name
+    PSTR pszClientPrincipal = NULL;
+    PSTR pszLogonName = NULL;
+    char* pchLogonInfo = NULL;
+
+    #if defined(WORDS_BIGENDIAN)
+    WORD * pwNameLocal = NULL;
+    DWORD dwCount = 0;
+    #endif
+
+    dwError = LwAllocateMemory(
+                pPacBerVal->bv_len,
+                (PVOID*)&pPacData);
+    BAIL_ON_LW_ERROR(dwError);
+
+    memcpy(pPacData, pPacBerVal->bv_val, pPacBerVal->bv_len);
+
+    #if defined(WORDS_BIGENDIAN)
+        pPacData->dwBufferCount = LW_ENDIAN_SWAP32(pPacData->dwBufferCount);
+        pPacData->dwVersion = LW_ENDIAN_SWAP32(pPacData->dwVersion);
+    #endif
+
+    // We only know about version 0
+    if (pPacData->dwVersion != 0)
+    {
+        dwError = LW_ERROR_INVALID_MESSAGE;
+        BAIL_ON_LW_ERROR(dwError);
+    }
+    // Make sure that the last buffer in the pac data doesn't go out of bounds
+    // of the parent buffer
+    if ((void *)&pPacData->buffers[pPacData->dwBufferCount] -
+            (void *)pPacData > pPacBerVal->bv_len)
+    {
+        dwError = LW_ERROR_INVALID_MESSAGE;
+        BAIL_ON_LW_ERROR(dwError);
+    }
+
+    // Make sure the data associated with each buffer doesn't go out of
+    // bounds
+    for (i = 0; i < pPacData->dwBufferCount; i++)
+    {
+        #if defined(WORDS_BIGENDIAN)
+            pPacData->buffers[i].dwType = LW_ENDIAN_SWAP32(pPacData->buffers[i].dwType);
+            pPacData->buffers[i].dwSize = LW_ENDIAN_SWAP32(pPacData->buffers[i].dwSize);
+            pPacData->buffers[i].qwOffset = LW_ENDIAN_SWAP64(pPacData->buffers[i].qwOffset);
+        #endif
+
+        if (pPacData->buffers[i].qwOffset + pPacData->buffers[i].dwSize <
+                pPacData->buffers[i].qwOffset)
+        {
+            dwError = LW_ERROR_INVALID_MESSAGE;
+            BAIL_ON_LW_ERROR(dwError);
+        }
+        if (pPacData->buffers[i].qwOffset + pPacData->buffers[i].dwSize >
+                pPacBerVal->bv_len)
+        {
+            dwError = LW_ERROR_INVALID_MESSAGE;
+            BAIL_ON_LW_ERROR(dwError);
+        }
+    }
+
+    dwError = LwAllocateMemory(
+                pPacBerVal->bv_len,
+                (PVOID*)&pchPacCopy);
+    BAIL_ON_LW_ERROR(dwError);
+
+    memcpy(pchPacCopy, pPacBerVal->bv_val, pPacBerVal->bv_len);
+
+    krbPacData.magic = KV5M_DATA;
+    krbPacData.length = pPacBerVal->bv_len;
+    krbPacData.data = pchPacCopy;
+
+    for (i = 0; i < pPacData->dwBufferCount; i++)
+    {
+	switch (pPacData->buffers[i].dwType)
+	{
+	    case PAC_TYPE_LOGON_INFO:
+	        pchLogonInfoStart = (char *)pPacData + pPacData->buffers[i].qwOffset;
+                sLogonInfoLen = pPacData->buffers[i].dwSize;
+                break;
+            case PAC_TYPE_SRV_CHECKSUM:
+                pServerSig = (PAC_SIGNATURE_DATA *)((char *)pPacData +
+                             pPacData->buffers[i].qwOffset);
+
+                #if defined(WORDS_BIGENDIAN)
+                    pServerSig->dwType = LW_ENDIAN_SWAP32(pServerSig->dwType);
+                #endif
+
+                sServerSig = pPacData->buffers[i].dwSize -
+                        (size_t)&((PAC_SIGNATURE_DATA *)0)->pchSignature;
+                /* The checksum is calculated with the signatures zeroed out. */
+                memset(pchPacCopy + pPacData->buffers[i].qwOffset +
+                       (size_t)&((PAC_SIGNATURE_DATA *)0)->pchSignature,
+                       0,
+                       pPacData->buffers[i].dwSize -
+                           (size_t)&((PAC_SIGNATURE_DATA *)0)->pchSignature);
+                break;
+            case PAC_TYPE_KDC_CHECKSUM:
+                /* The checksum is calculated with the signatures zeroed out. */
+		memset(pchPacCopy + pPacData->buffers[i].qwOffset +
+	               (size_t)&((PAC_SIGNATURE_DATA *)0)->pchSignature,
+		       0,
+		       pPacData->buffers[i].dwSize -
+		           (size_t)&((PAC_SIGNATURE_DATA *)0)->pchSignature);
+		break;
+            case PAC_TYPE_LOGON_NAME:
+                pLogonName = (PAC_LOGON_NAME *)((char *)pPacData +
+                             pPacData->buffers[i].qwOffset);
+
+                #if defined(WORDS_BIGENDIAN)
+                    pLogonName->ticketTime = LW_ENDIAN_SWAP64(pLogonName->ticketTime);
+                    pLogonName->wAccountNameLen = LW_ENDIAN_SWAP16(pLogonName->wAccountNameLen);
+                    pwNameLocal = pLogonName->pwszName;
+
+                    for ( dwCount = 0 ;
+                          dwCount < pLogonName->wAccountNameLen / 2 ;
+                          dwCount++ )
+                    {
+                        pwNameLocal[dwCount] = LW_ENDIAN_SWAP16(pwNameLocal[dwCount]);
+                    }
+                #endif
+
+                if ((char *)&pLogonName->pwszName +
+                    pLogonName->wAccountNameLen >
+                    (char *)pPacData + pPacData->buffers[i].qwOffset +
+                    pPacData->buffers[i].dwSize)
+                {
+                    // The message is invalid because the terminating null
+                    // of the name lands outside of the buffer.
+                    dwError = LW_ERROR_INVALID_MESSAGE;
+                    BAIL_ON_LW_ERROR(dwError);
+                }
+                break;
+            default:
+                break;
+	}
+    }
+
+    if (pServerSig == NULL)
+    {
+        dwError = LW_ERROR_INVALID_MESSAGE;
+        BAIL_ON_LW_ERROR(dwError);
+    }
+
+    if (pLogonName == NULL)
+    {
+        //We need the logon name to verify the pac is for the right user
+        dwError = LW_ERROR_INVALID_MESSAGE;
+        BAIL_ON_LW_ERROR(dwError);
+    }
+
+    if (pchLogonInfoStart == NULL)
+    {
+        /* The buffer we really care about isn't in the pac. */
+        dwError = LW_ERROR_INVALID_MESSAGE;
+        BAIL_ON_LW_ERROR(dwError);
+    }
+
+    checksum.magic = KV5M_CHECKSUM;
+    checksum.checksum_type = pServerSig->dwType;
+    checksum.length = sServerSig;
+    checksum.contents = (unsigned char *)pServerSig->pchSignature;
+
+    ret = krb5_c_verify_checksum(
+                    ctx,
+                    serviceKey,
+                    KRB5_KEYUSAGE_APP_DATA_CKSUM,
+                    &krbPacData,
+                    &checksum,
+                    &bHasGoodChecksum);
+    BAIL_ON_KRB_ERROR(ctx, ret);
+
+    if (!bHasGoodChecksum)
+    {
+        dwError = LW_ERROR_INVALID_MESSAGE;
+        BAIL_ON_LW_ERROR(dwError);
+    }
+
+    // Make sure the pac was issued with this ticket, not an old ticket
+    qwNtAuthTime = pTgsTicket->enc_part2->times.authtime;
+    qwNtAuthTime += 11644473600LL;
+    qwNtAuthTime *= 1000*1000*10;
+    if (pLogonName->ticketTime != qwNtAuthTime)
+    {
+        dwError = LW_ERROR_CLOCK_SKEW;
+        BAIL_ON_LW_ERROR(dwError);
+    }
+    ret = krb5_unparse_name(
+                    ctx,
+                    pTgsTicket->enc_part2->client,
+                    &pszClientPrincipal);
+    BAIL_ON_KRB_ERROR(ctx, ret);
+
+    // Strip off the domain name
+    if (strchr(pszClientPrincipal, '@') != NULL)
+    {
+        strchr(pszClientPrincipal, '@')[0] = '\0';
+    }
+
+    dwError = LwWc16snToMbs(
+        pLogonName->pwszName,
+        &pszLogonName,
+        pLogonName->wAccountNameLen / 2);
+    BAIL_ON_LW_ERROR(dwError);
+
+    if (strcasecmp(pszClientPrincipal, pszLogonName))
+    {
+        // The pac belongs to a different user
+        dwError = LW_ERROR_INVALID_LOGIN_ID;
+        BAIL_ON_LW_ERROR(dwError);
+    }
+
+    dwError = LwAllocateMemory(
+                sLogonInfoLen,
+                (PVOID*)&pchLogonInfo);
+    BAIL_ON_LW_ERROR(dwError);
+
+    memcpy(pchLogonInfo, pchLogonInfoStart, sLogonInfoLen);
+    *ppchLogonInfo = pchLogonInfo;
+    *psLogonInfo = sLogonInfoLen;
+
+cleanup:
+    LW_SAFE_FREE_STRING(pszLogonName);
+    LW_SAFE_FREE_MEMORY(pPacData);
+    LW_SAFE_FREE_MEMORY(pchPacCopy);
+    if (pszClientPrincipal != NULL)
+    {
+        krb5_free_unparsed_name(ctx, pszClientPrincipal);
+    }
+    return dwError;
+
+error:
+    LW_SAFE_FREE_MEMORY(pchLogonInfo);
+    *ppchLogonInfo = NULL;
+    goto cleanup;
+}
+
+DWORD
+LwKrb5FindPac(
+    krb5_context ctx,
+    const krb5_ticket *pTgsTicket,
+    const krb5_keyblock *serviceKey,
+    char** ppchLogonInfo,
+    size_t* psLogonInfo
+    )
+{
+    DWORD dwError = LW_ERROR_SUCCESS;
+    //Do not free
+    struct berval bv = {0};
+    struct berval contents = {0};
+    //Do not free
+    krb5_authdata **ppCur = NULL;
+    //Do not free associated buffer
+    BerElement *ber = NULL;
+    ber_tag_t tag = 0;
+    ber_len_t len = 0;
+    // Do not free
+    char *cookie = NULL;
+    int adType;
+    ber_tag_t seqTag, context0Tag, context1Tag;
+    char* pchLogonInfo = NULL;
+    size_t sLogonInfo = 0;
+
+    ber = ber_alloc_t(0);
+
+    if (pTgsTicket && pTgsTicket->enc_part2)
+    {
+        ppCur = pTgsTicket->enc_part2->authorization_data;
+    }
+
+    while (ppCur && (*ppCur != NULL))
+    {
+        if (ppCur[0]->ad_type == AD_IF_RELEVANT_TYPE)
+        {
+            // This auth data contains a DER encoded sequence of more
+            // auth data. One of them could be a pac.
+            bv.bv_len = ppCur[0]->length;
+            bv.bv_val = (char *)ppCur[0]->contents;
+            ber_init2(ber, &bv, 0);
+
+            tag = ber_first_element(ber, &len, &cookie);
+            while (tag != LBER_ERROR)
+            {
+                // Free does nothing if pointer is NULL
+                ber_memfree(contents.bv_val);
+                contents.bv_val = NULL;
+
+                tag = ber_scanf(ber,
+                        "t{t[i]t[",
+                        &seqTag,
+                        &context0Tag,
+                        &adType,
+                        &context1Tag);
+                if (tag == LBER_ERROR)
+                {
+                    // This auth data is invalid. Skip it and try
+                    // the next one
+                    break;
+                }
+                tag = ber_scanf(ber,
+                        "o]}",
+                        &contents);
+                if (tag == LBER_ERROR)
+                {
+                    // This auth data is invalid. Skip it and try
+                    // the next one
+                    break;
+                }
+
+                if (adType == AD_WIN2K_PAC)
+                {
+                    dwError = LwKrb5VerifyPac(
+                        ctx,
+                        pTgsTicket,
+                        &contents,
+                        serviceKey,
+                        &pchLogonInfo,
+                        &sLogonInfo);
+                    if (dwError == LW_ERROR_INVALID_MESSAGE)
+                    {
+                        dwError = LW_ERROR_SUCCESS;
+                        continue;
+                    }
+                    BAIL_ON_LW_ERROR(dwError);
+                    // Found a good PAC !
+                    goto end_search;
+                }
+
+                //returns LBER_ERROR when there are no more elements left.
+                tag = ber_next_element(ber, &len, cookie);
+            }
+        }
+
+        ppCur++;
+    }
+end_search:
+
+    *ppchLogonInfo = pchLogonInfo;
+    *psLogonInfo = sLogonInfo;
+
+cleanup:
+    if (contents.bv_val != NULL)
+    {
+        ber_memfree(contents.bv_val);
+    }
+    if (ber != NULL)
+    {
+        ber_free(ber, 0);
+    }
+
+    return dwError;
+
+error:
+    LW_SAFE_FREE_MEMORY(pchLogonInfo);
+    *ppchLogonInfo = NULL;
+    goto cleanup;
+}
+
+DWORD
+LwSetupUserLoginSession(
+    uid_t uid,
+    gid_t gid,
+    PCSTR pszUsername,
+    PCSTR pszPassword,
+    BOOLEAN bUpdateUserCache,
+    PCSTR pszServicePrincipal,
+    PCSTR pszServicePassword,
+    char** ppchLogonInfo,
+    size_t* psLogonInfo,
+    PDWORD pdwGoodUntilTime
+    )
+{
+    DWORD dwError = 0;
+    krb5_error_code ret = 0;
+    krb5_context ctx = NULL;
+    krb5_ccache cc = NULL;
+    // Free with krb5_free_cred_contents
+    krb5_creds credsRequest = {0};
+    krb5_creds *pTgsCreds = NULL;
+    krb5_ticket *pTgsTicket = NULL;
+    krb5_ticket *pDecryptedTgs = NULL;
+    krb5_auth_context authContext = NULL;
+    krb5_data apReqPacket = {0};
+    krb5_keyblock serviceKey = {0};
+    krb5_data salt = {0};
+    // Do not free
+    krb5_data machinePassword = {0};
+    krb5_flags flags = 0;
+    krb5_int32 authcon_flags = 0;
+    BOOLEAN bInLock = FALSE;
+    PCSTR pszTempCacheName = NULL;
+    PSTR pszTempCachePath = NULL;
+    PSTR pszUnreachableRealm = NULL;
+    char* pchLogonInfo = NULL;
+    size_t sLogonInfo = 0;
+
+    ret = krb5_init_context(&ctx);
+    BAIL_ON_KRB_ERROR(ctx, ret);
+
+    /* Generates a new filed based credentials cache in /tmp. The file will
+     * be owned by root and only accessible by root.
+     */
+    ret = krb5_cc_new_unique(
+            ctx,
+            "FILE",
+            "hint",
+            &cc);
+    BAIL_ON_KRB_ERROR(ctx, ret);
+
+    dwError = LwKrb5GetTgt(
+            pszUsername,
+            pszPassword,
+            krb5_cc_get_name(ctx, cc),
+            pdwGoodUntilTime
+            );
+    BAIL_ON_LW_ERROR(dwError);
+
+    ret = krb5_parse_name(ctx, pszServicePrincipal, &credsRequest.server);
+    BAIL_ON_KRB_ERROR(ctx, ret);
+
+    ret = krb5_cc_get_principal(ctx, cc, &credsRequest.client);
+    BAIL_ON_KRB_ERROR(ctx, ret);
+
+    /* Get a TGS for our service using the tgt in the cache */
+    ret = krb5_get_credentials(
+            ctx,
+            0, /*no options (not user to user encryption,
+                 and not only cached) */
+            cc,
+            &credsRequest,
+            &pTgsCreds);
+
+    // Don't trust pTgsCreds on an unsuccessful return
+    // This may be non-zero due to the krb5 libs following referrals
+    // but has been freed in the krb5 libs themselves and any useful
+    // tickets have already been cached.
+    if (ret != 0) {
+        pTgsCreds = NULL;
+    }
+
+    if (KRB5_KDC_UNREACH == ret)
+    {
+        // ISSUE-2008/09/22-dalmeida -- I think that we do not
+        // necessarily know the domain here because there
+        // may be been some traversal issue in a trust scenario.
+        // It may be ok to just transition the user's domain offline since
+        // logons from that domain will have problems.
+        // Figuring out how to solve this issue so that we
+        // can transition the proper domain offline is left as
+        // a future enhancement.  One way would be to save off realm from
+        // the error message (see krb5_sendto_kdc).  However, that
+        // would be dependent of the version of Kerberos being used.
+        pszUnreachableRealm = NULL;
+    }
+    BAIL_ON_KRB_ERROR(ctx, ret);
+
+    //No need to store the tgs in the cc. Kerberos does that automatically
+
+    /* Generate an ap_req message, but don't send it anywhere. Just decode it
+     * immediately. This is the only way to get kerberos to decrypt the tgs
+     * using public APIs */
+    ret = krb5_mk_req_extended(
+            ctx,
+            &authContext,
+            0, /* no options necessary */
+            NULL, /* since this isn't a real ap_req, we don't have any
+                     supplemental data to send with it. */
+            pTgsCreds,
+            &apReqPacket);
+    BAIL_ON_KRB_ERROR(ctx, ret);
+
+    /* Decode (but not decrypt) the tgs ticket so that we can figure out
+     * which encryption type was used in it. */
+    ret = krb5_decode_ticket(&pTgsCreds->ticket, &pTgsTicket);
+
+    /* The TGS ticket is encrypted with the machine password and salted with
+     * the service principal. pszServicePrincipal could probably be used
+     * directly, but it's safer to unparse pTgsCreds->server, because the KDC
+     * sent that to us.
+     */
+    salt.magic = KV5M_DATA;
+    ret = krb5_unparse_name(
+            ctx,
+            pTgsCreds->server,
+            &salt.data);
+    BAIL_ON_KRB_ERROR(ctx, ret);
+    salt.length = strlen(salt.data);
+
+    machinePassword.magic = KV5M_DATA;
+    machinePassword.data = (PSTR)pszServicePassword,
+    machinePassword.length = strlen(pszServicePassword),
+
+    /* Generate a key to decrypt the TGS */
+    ret = krb5_c_string_to_key(
+            ctx,
+            pTgsTicket->enc_part.enctype,
+	    &machinePassword,
+            &salt,
+            &serviceKey);
+    BAIL_ON_KRB_ERROR(ctx, ret);
+
+    /* Typically krb5_rd_req would decode the AP_REQ using the keytab, but
+     * we don't want to depend on the keytab. As a side effect of kerberos'
+     * user to user authentication support, if a key is explictly set on the
+     * auth context, that key will be used to decrypt the TGS instead of the
+     * keytab.
+     *
+     * By manually generating the key and setting it, we don't require
+     * a keytab.
+     */
+    if (authContext != NULL)
+    {
+        ret = krb5_auth_con_free(ctx, authContext);
+        BAIL_ON_KRB_ERROR(ctx, ret);
+    }
+
+    ret = krb5_auth_con_init(ctx, &authContext);
+    BAIL_ON_KRB_ERROR(ctx, ret);
+
+    ret = krb5_auth_con_setuseruserkey(
+            ctx,
+            authContext,
+            &serviceKey);
+    BAIL_ON_KRB_ERROR(ctx, ret);
+
+    /* Disable replay detection which is unnecessary and
+     * can fail when authenticating large numbers of users.
+     */
+    krb5_auth_con_getflags(ctx,
+                           authContext,
+                           &authcon_flags);
+    krb5_auth_con_setflags(ctx,
+                           authContext,
+                           authcon_flags & ~KRB5_AUTH_CONTEXT_DO_TIME);
+
+    /* This decrypts the TGS. As a side effect it ensures that the KDC that
+     * the user's TGT came from is in the same realm that the machine was
+     * joined to (this prevents users from spoofing the KDC).
+     */
+    ret = krb5_rd_req(
+            ctx,
+            &authContext,
+            &apReqPacket,
+            pTgsCreds->server,
+            NULL, /* we're not using the keytab */
+            &flags,
+	    &pDecryptedTgs);
+    BAIL_ON_KRB_ERROR(ctx, ret);
+
+    dwError = LwKrb5FindPac(
+        ctx,
+        pDecryptedTgs,
+        &serviceKey,
+        &pchLogonInfo,
+        &sLogonInfo);
+    BAIL_ON_LW_ERROR(dwError);
+
+    if (bUpdateUserCache)
+    {
+        /* 1. Copy old credentials from the existing user creds cache to
+         *      the temporary cache.
+         * 2. Delete the existing creds cache.
+         * 3. Move the temporary cache file into the final path.
+         */
+        dwError = pthread_mutex_lock(&gLwKrb5State.UserCacheMutex);
+        BAIL_ON_LW_ERROR(dwError);
+        bInLock = TRUE;
+
+        dwError = LwKrb5CopyFromUserCache(
+                    ctx,
+                    cc,
+                    uid
+                    );
+        BAIL_ON_LW_ERROR(dwError);
+
+        pszTempCacheName = krb5_cc_get_name(ctx, cc);
+        if (!strncasecmp(pszTempCacheName, "FILE:", sizeof("FILE:")-1)) {
+            pszTempCacheName += sizeof("FILE:") - 1;
+        }
+
+        dwError = LwAllocateString(pszTempCacheName, &pszTempCachePath);
+        BAIL_ON_LW_ERROR(dwError);
+
+        krb5_cc_close(ctx, cc);
+        // Just to make sure no one accesses this now invalid pointer
+        cc = NULL;
+
+        dwError = LwKrb5MoveCCacheToUserPath(
+                    ctx,
+                    pszTempCachePath,
+                    uid,
+                    gid);
+        if (dwError != LW_ERROR_SUCCESS)
+        {
+            /* Let the user login, even if we couldn't create the ccache for
+             * them. Possible causes are:
+             * 1. /tmp is readonly
+             * 2. Another user maliciously setup a weird file (such as a
+             *    directory) where the ccache would go.
+             * 3. Someone created a ccache in the small window after we delete
+             *    the old one and before we move in the new one.
+             */
+            LW_LOG_WARNING("Unable to set up credentials cache with tgt for uid %ld", (long)uid);
+            dwError = LwRemoveFile(pszTempCachePath);
+            BAIL_ON_LW_ERROR(dwError);
+        }
+    }
+
+    *ppchLogonInfo = pchLogonInfo;
+    *psLogonInfo = sLogonInfo;
+
+cleanup:
+    LW_SAFE_FREE_STRING(pszUnreachableRealm);
+    if (ctx)
+    {
+        // This function skips fields which are NULL
+        krb5_free_cred_contents(ctx, &credsRequest);
+
+        if (pTgsCreds != NULL)
+        {
+            krb5_free_creds(ctx, pTgsCreds);
+        }
+
+        if (pTgsTicket != NULL)
+        {
+            krb5_free_ticket(ctx, pTgsTicket);
+        }
+
+        if (pDecryptedTgs != NULL)
+        {
+            krb5_free_ticket(ctx, pDecryptedTgs);
+        }
+
+        if (authContext != NULL)
+        {
+            krb5_auth_con_free(ctx, authContext);
+        }
+
+        krb5_free_data_contents(ctx, &apReqPacket);
+        krb5_free_data_contents(ctx, &salt);
+        krb5_free_keyblock_contents(ctx, &serviceKey);
+
+        if (cc != NULL)
+        {
+            krb5_cc_destroy(ctx, cc);
+        }
+        krb5_free_context(ctx);
+    }
+    if (bInLock)
+    {
+        pthread_mutex_unlock(&gLwKrb5State.UserCacheMutex);
+    }
+    LW_SAFE_FREE_STRING(pszTempCachePath);
+
+    return dwError;
+
+error:
+    if ((LW_ERROR_KRB5_CALL_FAILED == dwError) &&
+        (KRB5_KDC_UNREACH == ret))
+    {
+        if (pszUnreachableRealm)
+        {
+            LwKrb5RealmTransitionOffline(pszUnreachableRealm);
+        }
+        dwError = LW_ERROR_DOMAIN_IS_OFFLINE;
+    }
+
+    LW_SAFE_FREE_MEMORY(pchLogonInfo);
+    *ppchLogonInfo = NULL;
+
+    goto cleanup;
 }
 
 /*

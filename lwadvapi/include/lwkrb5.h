@@ -192,6 +192,20 @@ LwKrb5RealmTransitionOffline(
     IN PCSTR pszRealm
     );
 
+DWORD
+LwSetupUserLoginSession(
+    uid_t uid,
+    gid_t gid,
+    PCSTR pszUsername,
+    PCSTR pszPassword,
+    BOOLEAN bUpdateUserCache,
+    PCSTR pszServicePrincipal,
+    PCSTR pszServicePassword,
+    char** ppchLogonInfo,
+    size_t* psLogonInfo,
+    PDWORD pdwGoodUntilTime
+    );
+
 #endif /* __LWKRB5_H__ */
 
 
