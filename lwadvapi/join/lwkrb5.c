@@ -746,7 +746,7 @@ LwKrb5GetMachineCreds(
     HANDLE hPasswordStore = (HANDLE)NULL;
 
     dwError = LwpsOpenPasswordStore(
-                    LWPS_PASSWORD_STORE_SQLDB,
+                    LWPS_PASSWORD_STORE_DEFAULT,
                     &hPasswordStore);
     BAIL_ON_LW_ERROR(dwError);
     
