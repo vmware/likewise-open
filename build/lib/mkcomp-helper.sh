@@ -1,5 +1,32 @@
 #!/bin/bash
 
+function _get_ncpu
+{
+    case `uname -s` in
+	Linux)
+	    cat /proc/cpuinfo | grep '^processor' | wc -l
+	    ;;
+	FreeBSD)
+	    sysctl -n hw.ncpu
+	    ;;
+	*)
+	    echo 1
+	    ;;
+    esac
+}
+
+function _get_mtime
+{
+    case `uname -s` in
+	FreeBSD)
+	    stat -f "%Uc" $1
+	    ;;
+	*)
+	    stat -c %Y $1
+	    ;;
+    esac
+}
+
 function _get_lib_dir
 {
     local dir=
@@ -72,7 +99,7 @@ function _get_base_mflags
 {
     local flags=
 
-    flags="-j$((`cat /proc/cpuinfo | grep '^processor' | wc -l` * 2))"
+    flags="-j$((`_get_ncpu` * 2))"
 
     echo "$flags"
 }
@@ -138,8 +165,8 @@ function run_autogen
     then
 	if [ -f "${_autogen}" -o -h  "${_autogen}" ] && [ -x "${_autogen}" ]; 
 	then
-	    _autogen_modtime=`stat -c %Y ${_autogen}`
-	    _configure_modtime=`stat -c %Y ${_configure}`
+	    _autogen_modtime=`_get_mtime ${_autogen}`
+	    _configure_modtime=`_get_mtime ${_configure}`
 
 	    if [ ${_autogen_modtime} -ge ${_configure_modtime} ]; then
 		_must_run_autogen=1
