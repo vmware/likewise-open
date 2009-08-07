@@ -422,6 +422,7 @@
 #define LW_ERROR_KEY_EXIST                                 40702
 #define LW_ERROR_NO_SUCH_KEY                               40703
 #define LW_ERROR_KEY_REFCOUNT_NONZERO                      40704
+#define LW_ERROR_DUPLICATE_KEYVALUENAME                    40705
 
 
 size_t

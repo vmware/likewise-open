@@ -667,6 +667,26 @@ static struct
         LW_ERROR_MEMBER_NOT_IN_LOCAL_GROUP,
         "No such member in local group"
     },
+    {
+        LW_ERROR_DUPLICATE_KEYNAME,
+        "Duplicate Registry Keys were found"
+    },
+    {
+        LW_ERROR_NO_ACTIVE_KEY_FOUND,
+        "No specified active opened registry was found"
+    },
+    {
+        LW_ERROR_KEY_EXIST,
+        "A key with specified key name already exists in registry"
+    },
+    {
+        LW_ERROR_NO_SUCH_KEY,
+        "The specified key cannot be found in registry"
+    },
+    {
+        LW_ERROR_DUPLICATE_KEYVALUENAME,
+        "Duplicate key/value pair were found in registry"
+    }
 };
 
 size_t
