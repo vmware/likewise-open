@@ -121,4 +121,4 @@
 #include "sqlcache_p.h"
 #include "memcache_p.h"
 #include "specialdomain.h"
-#include "lsakrb5.h"
+#include "lsakrb5smb.h"

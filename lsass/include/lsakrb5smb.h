@@ -56,11 +56,23 @@
 
 #include "lwnet.h"
 
-#include "lsakrb5.h"
-
-#include "krb5sys.h"
-#include "lsakrb5_error.h"
-
-#include "krbtgt.h"
 #include "externs.h"
+#include <lwio/lwio.h>
+
+typedef struct _LSA_ACCESS_TOKEN_FREE_INFO *PLSA_ACCESS_TOKEN_FREE_INFO;
+
+DWORD
+LsaSetSMBAccessToken(
+    IN PCSTR pszDomain,
+    IN PCSTR pszUsername,
+    IN PCSTR pszPassword,
+    IN BOOLEAN bSetDefaultCachePath,
+    OUT PLSA_ACCESS_TOKEN_FREE_INFO* ppFreeInfo,
+    OUT OPTIONAL LW_PIO_ACCESS_TOKEN* ppOldToken
+    );
+
+void
+LsaFreeSMBAccessToken(
+    IN OUT PLSA_ACCESS_TOKEN_FREE_INFO* ppFreeInfo
+    );
 

@@ -40,6 +40,7 @@
 #include "lwmem.h"
 #include <lwstr.h>
 #include <lwkrb5.h>
+#include "lsakrb5smb.h"
 #include <uuid/uuid.h>
 #include "lwsecurityidentifier.h"
 
@@ -62,7 +63,6 @@
 #include <lwio/lwio.h>
 
 #include <lsa/join.h>
-#include <lsakrb5.h>
 #include "join_p.h"
 
 

@@ -1456,7 +1456,7 @@ AD_OnlineCheckUserPassword(
         pszUpn = pszFreeUpn;
     }
 
-    dwError = LsaSetupUserLoginSession(
+    dwError = LwSetupUserLoginSession(
                     pUserInfo->userInfo.uid,
                     pUserInfo->userInfo.gid,
                     pszUpn,
@@ -1480,7 +1480,7 @@ AD_OnlineCheckUserPassword(
 		      pszDomainDnsName);
         BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = LsaSetupUserLoginSession(
+        dwError = LwSetupUserLoginSession(
                       pUserInfo->userInfo.uid,
                       pUserInfo->userInfo.gid,
                       pszUpn,
