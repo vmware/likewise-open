@@ -82,7 +82,15 @@ function set_compiler_env
     GCC="gcc"
 
     CC="${GCC} -pipe"
-    MAKE=make
+
+    case `uname -s` in
+	FreeBSD)
+	    MAKE=gmake
+	    ;;
+	*)
+	    MAKE=make
+	    ;;
+    esac
 
     # Collapse spaces to stop krb5 configure
     # script from complaining about CC changing
