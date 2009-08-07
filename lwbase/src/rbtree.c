@@ -333,9 +333,9 @@ LwRtlRBTreeAdd(
     NTSTATUS ntStatus = 0;
     PLWRTL_RB_TREE_NODE pTreeNode = NULL;
     BOOLEAN bFree = FALSE;
-    PLWRTL_RB_TREE_NODE Uncle = NULL;
-    PLWRTL_RB_TREE_NODE Parent = NULL;
-    PLWRTL_RB_TREE_NODE GrandParent = NULL;
+    PLWRTL_RB_TREE_NODE pUncle = NULL;
+    PLWRTL_RB_TREE_NODE pParent = NULL;
+    PLWRTL_RB_TREE_NODE pGrandParent = NULL;
 
     if (!pKey)
     {
@@ -365,69 +365,69 @@ LwRtlRBTreeAdd(
 
     while ((pTreeNode != pRBTree->pRoot) && RB_IS_RED(pTreeNode->pParent))
     {
-        Parent = RB_PARENT(pTreeNode);
-        GrandParent = RB_PARENT(Parent);
+        pParent = RB_PARENT(pTreeNode);
+        pGrandParent = RB_PARENT(pParent);
 
-        if (Parent == GrandParent->pLeft)
+        if (pParent == pGrandParent->pLeft)
         {
-            if (!RB_IS_NIL(pRBTree, GrandParent))
+            if (!RB_IS_NIL(pRBTree, pGrandParent))
             {
-                Uncle = GrandParent->pRight;
+                pUncle = pGrandParent->pRight;
 
-                if (RB_IS_RED(Uncle))
+                if (RB_IS_RED(pUncle))
                 {
-                    RB_COLOR_BLACK(Parent);
-                    RB_COLOR_BLACK(Uncle);
-                    RB_COLOR_RED(GrandParent);
-                    pTreeNode = GrandParent;
+                    RB_COLOR_BLACK(pParent);
+                    RB_COLOR_BLACK(pUncle);
+                    RB_COLOR_RED(pGrandParent);
+                    pTreeNode = pGrandParent;
                     continue;
                 }
             }
 
-            if (pTreeNode == Parent->pRight)
+            if (pTreeNode == pParent->pRight)
             {
-                pTreeNode = Parent;
+                pTreeNode = pParent;
                 LwRtlRBTreeRotateLeft(pRBTree, pTreeNode);
 
-                Parent = RB_PARENT(pTreeNode);
+                pParent = RB_PARENT(pTreeNode);
             }
 
-            RB_COLOR_BLACK(Parent);
-            if (!RB_IS_NIL(pRBTree, GrandParent))
+            RB_COLOR_BLACK(pParent);
+            if (!RB_IS_NIL(pRBTree, pGrandParent))
             {
-                RB_COLOR_RED(GrandParent);
-                LwRtlRBTreeRotateRight(pRBTree, GrandParent);
+                RB_COLOR_RED(pGrandParent);
+                LwRtlRBTreeRotateRight(pRBTree, pGrandParent);
             }
         }
         else
         {
-            if (!RB_IS_NIL(pRBTree, GrandParent))
+            if (!RB_IS_NIL(pRBTree, pGrandParent))
             {
-                Uncle = GrandParent->pLeft;
+                pUncle = pGrandParent->pLeft;
 
-                if (RB_IS_RED(Uncle))
+                if (RB_IS_RED(pUncle))
                 {
-                    RB_COLOR_BLACK(Parent);
-                    RB_COLOR_BLACK(Uncle);
-                    RB_COLOR_RED(GrandParent);
-                    pTreeNode = GrandParent;
+                    RB_COLOR_BLACK(pParent);
+                    RB_COLOR_BLACK(pUncle);
+                    RB_COLOR_RED(pGrandParent);
+                    pTreeNode = pGrandParent;
                     continue;
                 }
             }
 
-            if (pTreeNode == Parent->pLeft)
+            if (pTreeNode == pParent->pLeft)
             {
-                pTreeNode = Parent;
+                pTreeNode = pParent;
                 LwRtlRBTreeRotateRight(pRBTree, pTreeNode);
 
-                Parent = RB_PARENT(pTreeNode);
+                pParent = RB_PARENT(pTreeNode);
             }
 
-            RB_COLOR_BLACK(Parent);
-            if (!RB_IS_NIL(pRBTree, GrandParent))
+            RB_COLOR_BLACK(pParent);
+            if (!RB_IS_NIL(pRBTree, pGrandParent))
             {
-                RB_COLOR_RED(GrandParent);
-                LwRtlRBTreeRotateLeft(pRBTree, GrandParent);
+                RB_COLOR_RED(pGrandParent);
+                LwRtlRBTreeRotateLeft(pRBTree, pGrandParent);
             }
         }
     }
@@ -894,93 +894,93 @@ LwRtlRBTreeFixColors(
     PLWRTL_RB_TREE_NODE pTreeNode
     )
 {
-    PLWRTL_RB_TREE_NODE Uncle = NULL;
-    PLWRTL_RB_TREE_NODE Parent = NULL;
-    PLWRTL_RB_TREE_NODE GrandParent = NULL;
+    PLWRTL_RB_TREE_NODE pUncle = NULL;
+    PLWRTL_RB_TREE_NODE pParent = NULL;
+    PLWRTL_RB_TREE_NODE pGrandParent = NULL;
 
     while ((pRBTree->pRoot != pTreeNode) && RB_IS_BLACK(pTreeNode))
     {
-        Parent = RB_PARENT(pTreeNode);
-        GrandParent = RB_PARENT(Parent);
+        pParent = RB_PARENT(pTreeNode);
+        pGrandParent = RB_PARENT(pParent);
 
-        if (pTreeNode == Parent->pLeft)
+        if (pTreeNode == pParent->pLeft)
         {
-             Uncle = Parent->pRight;
+             pUncle = pParent->pRight;
 
-            if (!RB_IS_NIL(pRBTree, Uncle) && RB_IS_RED(Uncle))
+            if (!RB_IS_NIL(pRBTree, pUncle) && RB_IS_RED(pUncle))
             {
-                RB_COLOR_BLACK(Uncle);
-                RB_COLOR_RED(Parent);
-                LwRtlRBTreeRotateLeft(pRBTree, Parent);
-                Uncle = Parent->pRight;
+                RB_COLOR_BLACK(pUncle);
+                RB_COLOR_RED(pParent);
+                LwRtlRBTreeRotateLeft(pRBTree, pParent);
+                pUncle = pParent->pRight;
             }
 
-            if (!RB_IS_NIL(pRBTree, Uncle) &&
-                RB_IS_BLACK(Uncle->pLeft) && RB_IS_BLACK(Uncle->pRight))
+            if (!RB_IS_NIL(pRBTree, pUncle) &&
+                RB_IS_BLACK(pUncle->pLeft) && RB_IS_BLACK(pUncle->pRight))
             {
-                RB_COLOR_RED(Uncle);
-                pTreeNode = Parent;
+                RB_COLOR_RED(pUncle);
+                pTreeNode = pParent;
                 continue;
             }
 
-            if (!RB_IS_NIL(pRBTree, Uncle) && RB_IS_BLACK(Uncle->pRight))
+            if (!RB_IS_NIL(pRBTree, pUncle) && RB_IS_BLACK(pUncle->pRight))
             {
-                RB_COLOR_BLACK(Uncle->pLeft);
-                RB_COLOR_RED(Uncle);
+                RB_COLOR_BLACK(pUncle->pLeft);
+                RB_COLOR_RED(pUncle);
 
-                LwRtlRBTreeRotateRight(pRBTree, Uncle);
-                Uncle = Parent->pRight;
+                LwRtlRBTreeRotateRight(pRBTree, pUncle);
+                pUncle = pParent->pRight;
             }
 
-            if (!RB_IS_NIL(pRBTree, Uncle))
+            if (!RB_IS_NIL(pRBTree, pUncle))
             {
-                RB_COPY_COLOR(Uncle, Parent);
+                RB_COPY_COLOR(pUncle, pParent);
             }
-            RB_COLOR_BLACK(Parent);
-            if (!RB_IS_NIL(pRBTree, Uncle))
+            RB_COLOR_BLACK(pParent);
+            if (!RB_IS_NIL(pRBTree, pUncle))
             {
-                RB_COLOR_BLACK(Uncle->pRight);
-                LwRtlRBTreeRotateLeft(pRBTree, Parent);
+                RB_COLOR_BLACK(pUncle->pRight);
+                LwRtlRBTreeRotateLeft(pRBTree, pParent);
             }
             pTreeNode = pRBTree->pRoot;
         }
         else
         {
-            Uncle = Parent->pLeft;
+            pUncle = pParent->pLeft;
 
-            if (!RB_IS_NIL(pRBTree, Uncle) && RB_IS_RED(Uncle))
+            if (!RB_IS_NIL(pRBTree, pUncle) && RB_IS_RED(pUncle))
             {
-                RB_COLOR_BLACK(Uncle);
-                RB_COLOR_RED(Parent);
-                LwRtlRBTreeRotateRight(pRBTree, Parent);
-                Uncle = Parent->pLeft;
+                RB_COLOR_BLACK(pUncle);
+                RB_COLOR_RED(pParent);
+                LwRtlRBTreeRotateRight(pRBTree, pParent);
+                pUncle = pParent->pLeft;
             }
 
-            if (!RB_IS_NIL(pRBTree, Uncle) &&
-                 RB_IS_BLACK(Uncle->pLeft) && RB_IS_BLACK(Uncle->pRight))
+            if (!RB_IS_NIL(pRBTree, pUncle) &&
+                 RB_IS_BLACK(pUncle->pLeft) && RB_IS_BLACK(pUncle->pRight))
             {
-                RB_COLOR_RED(Uncle);
-                pTreeNode = Parent;
+                RB_COLOR_RED(pUncle);
+                pTreeNode = pParent;
                 continue;
             }
 
-            if (!RB_IS_NIL(pRBTree, Uncle) && RB_IS_BLACK(Uncle->pLeft))
+            if (!RB_IS_NIL(pRBTree, pUncle) && RB_IS_BLACK(pUncle->pLeft))
             {
-                RB_COLOR_BLACK(Uncle->pRight);
-                RB_COLOR_RED(Uncle);
-                LwRtlRBTreeRotateLeft(pRBTree, Uncle);
-                Uncle = Parent->pLeft;
+                RB_COLOR_BLACK(pUncle->pRight);
+                RB_COLOR_RED(pUncle);
+                LwRtlRBTreeRotateLeft(pRBTree, pUncle);
+                pUncle = pParent->pLeft;
             }
 
-            if (!RB_IS_NIL(pRBTree, Uncle))
+            if (!RB_IS_NIL(pRBTree, pUncle))
             {
-                RB_COPY_COLOR(Uncle, Parent);
+                RB_COPY_COLOR(pUncle, pParent);
             }
-            RB_COLOR_BLACK(Parent);
-            if (!RB_IS_NIL(pRBTree, Uncle))
+            RB_COLOR_BLACK(pParent);
+            if (!RB_IS_NIL(pRBTree, pUncle))
             {
-                RB_COLOR_BLACK(Uncle->pLeft);
-                LwRtlRBTreeRotateRight(pRBTree, Parent);
+                RB_COLOR_BLACK(pUncle->pLeft);
+                LwRtlRBTreeRotateRight(pRBTree, pParent);
             }
             pTreeNode = pRBTree->pRoot;
         }
