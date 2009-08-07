@@ -83,8 +83,10 @@ main(
     dwError = LWNetStartupPreCheck();
     BAIL_ON_LWNET_ERROR(dwError);
 
+#ifdef ENABLE_PIDFILE
     // ISSUE-2008/07/03-dalmeida -- Should return/check for errors
     LWNetSrvCreatePIDFile();
+#endif
 
     dwError = LWNetBlockSelectedSignals();
     BAIL_ON_LWNET_ERROR(dwError);
