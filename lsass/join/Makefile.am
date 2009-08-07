@@ -8,7 +8,7 @@ liblsajoin_la_SOURCES = \
        join.c     \
        leave.c    \
        libmain.c  \
-        lwkrb5smb.c \
+       lsakrb5smb.c \
        lsaldap.c   \
        query.c
 
