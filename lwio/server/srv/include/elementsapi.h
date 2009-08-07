@@ -362,8 +362,8 @@ typedef struct _SMB_FS_INFO_VOLUME_HEADER
 
 typedef struct _SMB_FS_FULL_INFO_HEADER
 {
-    ULONG64 ullAllocationSize;
     ULONG64 ullTotalAllocationUnits;
+    ULONG64 ullCallerAvailableAllocationUnits;
     ULONG64 ullAvailableAllocationUnits;
     ULONG   ulSectorsPerAllocationUnit;
     ULONG   ulBytesPerSector;
@@ -402,6 +402,7 @@ typedef struct _SRV_EXEC_CONTEXT
     PFN_SRV_PROTOCOL_FREE_EXEC_CONTEXT pfnFreeContext;
 
     PSMB_PACKET                        pSmbResponse;
+    ULONG                              ulNumDuplicates;
 
 } SRV_EXEC_CONTEXT, *PSRV_EXEC_CONTEXT;
 
@@ -830,6 +831,11 @@ SrvBuildExecContext(
    IN  PLWIO_SRV_CONNECTION pConnection,
    IN  PSMB_PACKET          pSmbRequest,
    OUT PSRV_EXEC_CONTEXT*   ppContext
+   );
+
+VOID
+SrvReleaseExecContextHandle(
+   IN HANDLE hExecContext
    );
 
 VOID

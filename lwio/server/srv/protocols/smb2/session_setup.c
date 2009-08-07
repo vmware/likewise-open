@@ -50,29 +50,29 @@
 
 NTSTATUS
 SrvProcessSessionSetup_SMB_V2(
-    IN OUT PSMB2_CONTEXT pContext,
-    IN     PSMB2_MESSAGE pSmbRequest,
-    IN OUT PSMB_PACKET   pSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
-    PSMB2_HEADER                       pSMB2Header = NULL; // Do not free
+    PLWIO_SRV_CONNECTION pConnection = pExecContext->pConnection;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    ULONG                      iMsg          = pCtxSmb2->iMsg;
+    PSRV_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
+    PSRV_MESSAGE_SMB_V2        pSmbResponse  = &pCtxSmb2->pResponses[iMsg];
     PSMB2_SESSION_SETUP_REQUEST_HEADER pSessionSetupHeader = NULL;// Do not free
     PBYTE       pSecurityBlob = NULL; // Do not free
     ULONG       ulSecurityBlobLen = 0;
     PBYTE       pReplySecurityBlob = NULL;
     ULONG       ulReplySecurityBlobLength = 0;
     UNICODE_STRING uniUsername = {0};
-    PLWIO_SRV_SESSION_2 pSession = NULL;
-    PBYTE pOutBufferRef = pSmbResponse->pRawBuffer + pSmbResponse->bufferUsed;
-    PBYTE pOutBuffer = pOutBufferRef;
-    ULONG ulBytesAvailable = pSmbResponse->bufferLen - pSmbResponse->bufferUsed;
-    ULONG ulOffset    = pSmbResponse->bufferUsed - sizeof(NETBIOS_HEADER);
+    PBYTE pOutBuffer = pSmbResponse->pBuffer;
+    ULONG ulBytesAvailable = pSmbResponse->ulBytesAvailable;
+    ULONG ulOffset    = 0;
     ULONG ulBytesUsed = 0;
     ULONG ulTotalBytesUsed = 0;
 
-    if (pContext->pSession)
+    if (pCtxSmb2->pSession)
     {
         ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
         BAIL_ON_NT_STATUS(ntStatus);
@@ -108,25 +108,25 @@ SrvProcessSessionSetup_SMB_V2(
                     STATUS_SUCCESS,
                     TRUE,
                     pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
-                    &pSMB2Header,
-                    &ulBytesUsed);
+                    &pSmbResponse->pHeader,
+                    &pSmbResponse->ulHeaderSize);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ulTotalBytesUsed += ulBytesUsed;
-    pOutBuffer += ulBytesUsed;
-    ulOffset += ulBytesUsed;
-    ulBytesAvailable -= ulBytesUsed;
+    pOutBuffer       += pSmbResponse->ulHeaderSize;
+    ulOffset         += pSmbResponse->ulHeaderSize;
+    ulBytesAvailable -= pSmbResponse->ulHeaderSize;
+    ulTotalBytesUsed += pSmbResponse->ulHeaderSize;
 
     if (!SrvGssNegotiateIsComplete(pConnection->hGssContext,
                                    pConnection->hGssNegotiate))
     {
-        pSMB2Header->error = STATUS_MORE_PROCESSING_REQUIRED;
+        pSmbResponse->pHeader->error = STATUS_MORE_PROCESSING_REQUIRED;
     }
     else
     {
         ntStatus = SrvConnection2CreateSession(
-                            pConnection,
-                            &pSession);
+                        pConnection,
+                        &pCtxSmb2->pSession);
         BAIL_ON_NT_STATUS(ntStatus);
 
         if (!pConnection->pSessionKey)
@@ -136,7 +136,7 @@ SrvProcessSessionSetup_SMB_V2(
                              pConnection->hGssNegotiate,
                              &pConnection->pSessionKey,
                              &pConnection->ulSessionKeyLength,
-                             &pSession->pszClientPrincipalName);
+                             &pCtxSmb2->pSession->pszClientPrincipalName);
         }
         else
         {
@@ -145,7 +145,7 @@ SrvProcessSessionSetup_SMB_V2(
                              pConnection->hGssNegotiate,
                              NULL,
                              NULL,
-                             &pSession->pszClientPrincipalName);
+                             &pCtxSmb2->pSession->pszClientPrincipalName);
         }
         BAIL_ON_NT_STATUS(ntStatus);
 
@@ -153,18 +153,15 @@ SrvProcessSessionSetup_SMB_V2(
 
         ntStatus = RtlUnicodeStringAllocateFromCString(
                        &uniUsername,
-                       pSession->pszClientPrincipalName);
+                       pCtxSmb2->pSession->pszClientPrincipalName);
         BAIL_ON_NT_STATUS(ntStatus);
 
         ntStatus = IoSecurityCreateSecurityContextFromUsername(
-                       &pSession->pIoSecurityContext,
+                       &pCtxSmb2->pSession->pIoSecurityContext,
                        &uniUsername);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        pSMB2Header->ullSessionId = pSession->ullUid;
-
-        pContext->pSession = pSession;
-        InterlockedIncrement(&pContext->pSession->refcount);
+        pSmbResponse->pHeader->ullSessionId = pCtxSmb2->pSession->ullUid;
 
         SrvConnectionSetState(pConnection, LWIO_SRV_CONN_STATE_READY);
     }
@@ -179,19 +176,14 @@ SrvProcessSessionSetup_SMB_V2(
                     &ulBytesUsed);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ulTotalBytesUsed += ulBytesUsed;
-    // pOutBuffer += ulBytesUsed;
-    // ulOffset += ulBytesUsed;
+    // pOutBuffer       += ulBytesUsed;
+    // ulOffset         += ulBytesUsed;
     // ulBytesAvailable -= ulBytesUsed;
+    ulTotalBytesUsed += ulBytesUsed;
 
-    pSmbResponse->bufferUsed += ulTotalBytesUsed;
+    pSmbResponse->ulMessageSize = ulTotalBytesUsed;
 
 cleanup:
-
-    if (pSession)
-    {
-        SrvSession2Release(pSession);
-    }
 
     RtlUnicodeStringFree(&uniUsername);
 
@@ -203,8 +195,12 @@ error:
 
     if (ulTotalBytesUsed)
     {
-        memset(pOutBufferRef, 0, ulTotalBytesUsed);
+        pSmbResponse->pHeader      = NULL;
+        pSmbResponse->ulHeaderSize = 0;
+        memset(pSmbResponse->pBuffer, 0, ulTotalBytesUsed);
     }
+
+    pSmbResponse->ulMessageSize = 0;
 
     goto cleanup;
 }

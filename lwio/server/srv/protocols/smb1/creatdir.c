@@ -30,48 +30,56 @@
 
 #include "includes.h"
 
+static
+NTSTATUS
+SrvBuildCreateDirectoryResponse(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
 NTSTATUS
 SrvProcessCreateDirectory(
-    IN  PLWIO_SRV_CONNECTION pConnection,
-    IN  PSMB_PACKET          pSmbRequest,
-    OUT PSMB_PACKET*         ppSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext
     )
 {
     NTSTATUS ntStatus = 0;
-    PLWIO_SRV_SESSION pSession = NULL;
-    PLWIO_SRV_TREE    pTree = NULL;
-    PSMB_CREATE_DIRECTORY_REQUEST_HEADER pRequestHeader = NULL; // Do not free
-    PWSTR       pwszPathFragment = NULL; // Do not free
-    ULONG       ulOffset = 0;
-    PSMB_CREATE_DIRECTORY_RESPONSE_HEADER pResponseHeader = NULL; // Do not free
-    USHORT      usPacketByteCount = 0;
-    PWSTR       pwszFilesystemPath = NULL;
-    PSMB_PACKET pSmbResponse = NULL;
-    BOOLEAN     bInLock = FALSE;
-    IO_FILE_HANDLE hFile = NULL;
-    IO_STATUS_BLOCK ioStatusBlock = {0};
-    PVOID           pSecurityDescriptor = NULL;
-    PVOID           pSecurityQOS = NULL;
-    IO_FILE_NAME    fileName = {0};
-    PIO_ASYNC_CONTROL_BLOCK     pAsyncControlBlock = NULL;
+    PLWIO_SRV_CONNECTION       pConnection  = pExecContext->pConnection;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
+    ULONG                      iMsg         = pCtxSmb1->iMsg;
+    PSRV_MESSAGE_SMB_V1        pSmbRequest  = &pCtxSmb1->pRequests[iMsg];
+    PBYTE pBuffer          = pSmbRequest->pBuffer + pSmbRequest->usHeaderSize;
+    ULONG ulOffset         = pSmbRequest->usHeaderSize;
+    ULONG ulBytesAvailable = pSmbRequest->ulMessageSize - pSmbRequest->usHeaderSize;
+    PSMB_CREATE_DIRECTORY_REQUEST_HEADER pRequestHeader   = NULL; // Do not free
+    PWSTR                                pwszPathFragment = NULL; // Do not free
+    PLWIO_SRV_SESSION                    pSession = NULL;
+    PLWIO_SRV_TREE                       pTree = NULL;
+    PWSTR                   pwszFilesystemPath = NULL;
+    BOOLEAN                 bInLock = FALSE;
+    IO_FILE_HANDLE          hFile = NULL;
+    IO_STATUS_BLOCK         ioStatusBlock = {0};
+    PVOID                   pSecurityDescriptor = NULL;
+    PVOID                   pSecurityQOS = NULL;
+    IO_FILE_NAME            fileName = {0};
+    PIO_ASYNC_CONTROL_BLOCK pAsyncControlBlock = NULL;
 
-    ntStatus = SrvConnectionFindSession(
+    ntStatus = SrvConnectionFindSession_SMB_V1(
+                    pCtxSmb1,
                     pConnection,
-                    pSmbRequest->pSMBHeader->uid,
+                    pSmbRequest->pHeader->uid,
                     &pSession);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvSessionFindTree(
+    ntStatus = SrvSessionFindTree_SMB_V1(
+                    pCtxSmb1,
                     pSession,
-                    pSmbRequest->pSMBHeader->tid,
+                    pSmbRequest->pHeader->tid,
                     &pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ulOffset = (PBYTE)pSmbRequest->pParams - (PBYTE)pSmbRequest->pSMBHeader;
-
     ntStatus = WireUnmarshallCreateDirectoryRequest(
-                    pSmbRequest->pParams,
-                    pSmbRequest->pNetBIOSHeader->len - ulOffset,
+                    pBuffer,
+                    ulBytesAvailable,
                     ulOffset,
                     &pRequestHeader,
                     &pwszPathFragment);
@@ -114,46 +122,8 @@ SrvProcessCreateDirectory(
                     NULL);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBPacketAllocate(
-                    pConnection->hPacketAllocator,
-                    &pSmbResponse);
+    ntStatus = SrvBuildCreateDirectoryResponse(pExecContext);
     BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SMBPacketBufferAllocate(
-                    pConnection->hPacketAllocator,
-                    64 * 1024,
-                    &pSmbResponse->pRawBuffer,
-                    &pSmbResponse->bufferLen);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SMBPacketMarshallHeader(
-                pSmbResponse->pRawBuffer,
-                pSmbResponse->bufferLen,
-                COM_CREATE_DIRECTORY,
-                0,
-                TRUE,
-                pSmbRequest->pSMBHeader->tid,
-                pSmbRequest->pSMBHeader->pid,
-                pSmbRequest->pSMBHeader->uid,
-                pSmbRequest->pSMBHeader->mid,
-                pConnection->serverProperties.bRequireSecuritySignatures,
-                pSmbResponse);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = WireMarshallCreateDirectoryResponse(
-                    pSmbResponse->pParams,
-                    pSmbResponse->bufferLen - pSmbResponse->bufferUsed,
-                    (PBYTE)pSmbResponse->pParams - (PBYTE)pSmbResponse->pSMBHeader,
-                    &pResponseHeader,
-                    &usPacketByteCount);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pSmbResponse->bufferUsed += usPacketByteCount;
-
-    ntStatus = SMBPacketMarshallFooter(pSmbResponse);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    *ppSmbResponse = pSmbResponse;
 
 cleanup:
 
@@ -183,14 +153,80 @@ cleanup:
 
 error:
 
-    *ppSmbResponse = NULL;
+    goto cleanup;
+}
 
-    if (pSmbResponse)
+static
+NTSTATUS
+SrvBuildCreateDirectoryResponse(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PLWIO_SRV_CONNECTION       pConnection  = pExecContext->pConnection;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
+    ULONG                      iMsg         = pCtxSmb1->iMsg;
+    PSRV_MESSAGE_SMB_V1        pSmbRequest  = &pCtxSmb1->pRequests[iMsg];
+    PSRV_MESSAGE_SMB_V1        pSmbResponse = &pCtxSmb1->pResponses[iMsg];
+    PSMB_CREATE_DIRECTORY_RESPONSE_HEADER pResponseHeader = NULL; // Do not free
+    PBYTE pOutBuffer           = pSmbResponse->pBuffer;
+    ULONG ulBytesAvailable     = pSmbResponse->ulBytesAvailable;
+    ULONG ulOffset             = 0;
+    USHORT usBytesUsed          = 0;
+    ULONG ulTotalBytesUsed     = 0;
+
+    ntStatus = SrvMarshalHeader_SMB_V1(
+                    pOutBuffer,
+                    ulOffset,
+                    ulBytesAvailable,
+                    COM_CREATE_DIRECTORY,
+                    STATUS_SUCCESS,
+                    TRUE,
+                    pCtxSmb1->pTree->tid,
+                    pSmbRequest->pHeader->pid,
+                    pCtxSmb1->pSession->uid,
+                    pSmbRequest->pHeader->mid,
+                    pConnection->serverProperties.bRequireSecuritySignatures,
+                    &pSmbResponse->pHeader,
+                    &pSmbResponse->pAndXHeader,
+                    &pSmbResponse->usHeaderSize);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pOutBuffer       += pSmbResponse->usHeaderSize;
+    ulOffset         += pSmbResponse->usHeaderSize;
+    ulBytesAvailable -= pSmbResponse->usHeaderSize;
+    ulTotalBytesUsed += pSmbResponse->usHeaderSize;
+
+    ntStatus = WireMarshallCreateDirectoryResponse(
+                    pOutBuffer,
+                    ulBytesAvailable,
+                    ulOffset,
+                    &pResponseHeader,
+                    &usBytesUsed);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    // pOutBuffer       += usBytesUsed;
+    // ulOffset         += usBytesUsed;
+    // ulBytesAvailable -= usBytesUsed;
+    ulTotalBytesUsed += usBytesUsed;
+
+    pSmbResponse->ulMessageSize = ulTotalBytesUsed;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    if (ulTotalBytesUsed)
     {
-        SMBPacketRelease(
-            pConnection->hPacketAllocator,
-            pSmbResponse);
+        pSmbResponse->pHeader = NULL;
+        pSmbResponse->pAndXHeader = NULL;
+        memset(pSmbResponse->pBuffer, 0, ulTotalBytesUsed);
     }
+
+    pSmbResponse->ulMessageSize = 0;
 
     goto cleanup;
 }

@@ -53,6 +53,7 @@ typedef struct _LWIO_SRV_CONFIG
 {
     ULONG ulNumWorkers;
     ULONG ulMaxNumPackets;
+    ULONG ulMaxNumWorkItemsInQueue;
 
 } LWIO_SRV_CONFIG, *PLWIO_SRV_CONFIG;
 
@@ -114,8 +115,11 @@ typedef struct _LWIO_SRV_RUNTIME_GLOBALS
 
     LWIO_SRV_SHARE_ENTRY_LIST shareList;
 
-    PLWIO_SRV_WORKER         pWorkerArray;
-    ULONG                    ulNumWorkers;
+    SMB_PROD_CONS_QUEUE       workQueue;
+    ULONG                     ulMaxNumWorkItemsInQueue;
+
+    PLWIO_SRV_WORKER          pWorkerArray;
+    ULONG                     ulNumWorkers;
 
     PLWIO_PACKET_ALLOCATOR    hPacketAllocator;
 

@@ -53,12 +53,13 @@ NTSTATUS
 SrvPollTransportInit(
     PLWIO_PACKET_ALLOCATOR         hPacketAllocator,
     PLWIO_SRV_SHARE_ENTRY_LIST     pShareList,
+    PSMB_PROD_CONS_QUEUE           pWorkQueue,
     PSRV_TRANSPORT_FUNCTION_TABLE* ppFnTable
     );
 
 NTSTATUS
 SrvPollTransportShutdown(
-    VOID
+    PSRV_TRANSPORT_FUNCTION_TABLE pFnTable
     );
 
 #endif /* __LWEPOLL_H__ */

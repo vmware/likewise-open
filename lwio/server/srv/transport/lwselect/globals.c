@@ -52,8 +52,9 @@
 
 LWIO_SRV_SELECT_TRANSPORT_GLOBALS gSrvSelectTransport =
 {
-        .mutex = PTHREAD_MUTEX_INITIALIZER,
-        .fnTable =
+        .mutex      = PTHREAD_MUTEX_INITIALIZER,
+        .pWorkQueue = NULL,
+        .fnTable    =
             {
                 &SrvSelectTransportGetRequest,
                 &SrvSelectTransportSendResponse

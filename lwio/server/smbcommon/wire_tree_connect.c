@@ -252,14 +252,14 @@ MarshallTreeConnectResponseData(
     uint8_t         *pBuffer,
     uint32_t         bufferAvailable,
     uint32_t         bufferUsed,
-    uint32_t        *pBufferUsed,
+    uint16_t        *pBufferUsed,
     const uchar8_t  *pszService,
     const wchar16_t *pwszNativeFileSystem
     )
 {
     NTSTATUS ntStatus = 0;
     uint8_t* pData = pBuffer;
-    uint32_t dataBufferUsed = 0;
+    uint16_t dataBufferUsed = 0;
     uint32_t alignment = 0;
     uint32_t wstrlen = 0;
     int iCh = 0;

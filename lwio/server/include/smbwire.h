@@ -471,7 +471,7 @@ typedef struct
     uint16_t    andXOffset;     /* Offset to next command wordCount */
 
     /* Message specific parameters immediately follow */
-} __attribute__((__packed__)) ANDX_HEADER;
+} __attribute__((__packed__)) ANDX_HEADER, *PANDX_HEADER;
 
 typedef struct
 {
@@ -1724,7 +1724,7 @@ MarshallTreeConnectResponseData(
     uint8_t         *pBuffer,
     uint32_t         bufferAvailable,
     uint32_t         bufferUsed,
-    uint32_t        *pBufferUsed,
+    uint16_t        *pBufferUsed,
     const uchar8_t  *pszService,
     const wchar16_t *pwszNativeFileSystem
     );
@@ -2133,7 +2133,7 @@ WireMarshallErrorResponse(
     ULONG                   ulBytesAvailable,
     ULONG                   ulOffset,
     PERROR_RESPONSE_HEADER* ppResponseHeader,
-    PULONG                  pulParamBytesUsed
+    PUSHORT                 pusParamBytesUsed
     );
 
 BOOLEAN

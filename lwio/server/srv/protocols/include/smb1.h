@@ -50,7 +50,7 @@
 
 NTSTATUS
 SrvProtocolInit_SMB_V1(
-    PSMB_PROD_CONS_QUEUE pAsyncWorkQueue
+    PSMB_PROD_CONS_QUEUE pWorkQueue
     );
 
 NTSTATUS
@@ -70,21 +70,20 @@ SrvBuildNegotiateResponse_SMB_V1_Invalid(
 
 NTSTATUS
 SrvProtocolExecute_SMB_V1(
-    IN  PLWIO_SRV_CONNECTION pConnection,
-    IN  PSMB_PACKET          pSmbRequest,
-    OUT PSMB_PACKET*         ppSmbResponse
+    PSRV_EXEC_CONTEXT pContext
     );
 
 NTSTATUS
-SrvProtocolBuildErrorResponse(
+SrvProtocolBuildErrorResponse_SMB_V1(
     PLWIO_SRV_CONNECTION pConnection,
-    BYTE                 ucCommand,
-    USHORT               usTid,
-    USHORT               usPid,
-    USHORT               usUid,
-    USHORT               usMid,
+    PSMB_HEADER          pRequestHeader,
     NTSTATUS             errorStatus,
     PSMB_PACKET*         ppSmbResponse
+    );
+
+VOID
+SrvProtocolFreeContext_SMB_V1(
+    PSRV_EXEC_CONTEXT_SMB_V1 pProtocolContext
     );
 
 NTSTATUS

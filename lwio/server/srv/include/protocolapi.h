@@ -52,13 +52,12 @@
 
 NTSTATUS
 SrvProtocolInit(
-    VOID
+    PSMB_PROD_CONS_QUEUE pWorkQueue
     );
 
 NTSTATUS
 SrvProtocolExecute(
-    IN  PLWIO_SRV_CONNECTION pConnection,
-    IN  PSMB_PACKET          pSmbRequest
+    PSRV_EXEC_CONTEXT pContext
     );
 
 NTSTATUS

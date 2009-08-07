@@ -54,24 +54,24 @@
 static
 NTSTATUS
 SrvBuildLogoffResponse_SMB_V2(
-    PLWIO_SRV_CONNECTION pConnection,
-    PSMB2_MESSAGE        pSmbRequest,
-    PSMB_PACKET          pSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext
     );
 
 NTSTATUS
 SrvProcessLogoff_SMB_V2(
-    IN OUT PSMB2_CONTEXT pContext,
-    IN     PSMB2_MESSAGE pSmbRequest,
-    IN OUT PSMB_PACKET   pSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext
     )
 {
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
-    PLWIO_SRV_SESSION_2 pSession = NULL;
+    NTSTATUS                   ntStatus      = STATUS_SUCCESS;
+    PLWIO_SRV_CONNECTION       pConnection   = pExecContext->pConnection;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    ULONG                      iMsg          = pCtxSmb2->iMsg;
+    PSRV_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
+    PLWIO_SRV_SESSION_2        pSession      = NULL;
 
     ntStatus = SrvConnection2FindSession_SMB_V2(
-                    pContext,
+                    pCtxSmb2,
                     pConnection,
                     pSmbRequest->pHeader->ullSessionId,
                     &pSession);
@@ -82,16 +82,13 @@ SrvProcessLogoff_SMB_V2(
                     pSmbRequest->pHeader->ullSessionId);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvBuildLogoffResponse_SMB_V2(
-                    pConnection,
-                    pSmbRequest,
-                    pSmbResponse);
+    ntStatus = SrvBuildLogoffResponse_SMB_V2(pExecContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    if (pContext->pSession)
+    if (pCtxSmb2->pSession)
     {
-        SrvSession2Release(pContext->pSession);
-        pContext->pSession = NULL;
+        SrvSession2Release(pCtxSmb2->pSession);
+        pCtxSmb2->pSession = NULL;
     }
 
 cleanup:
@@ -111,16 +108,18 @@ error:
 static
 NTSTATUS
 SrvBuildLogoffResponse_SMB_V2(
-    PLWIO_SRV_CONNECTION pConnection,
-    PSMB2_MESSAGE        pSmbRequest,
-    PSMB_PACKET          pSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext
     )
 {
     NTSTATUS ntStatus = 0;
-    PBYTE pOutBufferRef = pSmbResponse->pRawBuffer + pSmbResponse->bufferUsed;
-    PBYTE pOutBuffer = pOutBufferRef;
-    ULONG ulBytesAvailable = pSmbResponse->bufferLen - pSmbResponse->bufferUsed;
-    ULONG ulOffset    = pSmbResponse->bufferUsed - sizeof(NETBIOS_HEADER);
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    ULONG                      iMsg          = pCtxSmb2->iMsg;
+    PSRV_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
+    PSRV_MESSAGE_SMB_V2        pSmbResponse  = &pCtxSmb2->pResponses[iMsg];
+    PBYTE pOutBuffer = pSmbResponse->pBuffer;
+    ULONG ulBytesAvailable = pSmbResponse->ulBytesAvailable;
+    ULONG ulOffset    = 0;
     ULONG ulBytesUsed = 0;
     ULONG ulTotalBytesUsed = 0;
 
@@ -134,18 +133,18 @@ SrvBuildLogoffResponse_SMB_V2(
                     pSmbRequest->pHeader->ulPid,
                     pSmbRequest->pHeader->ullCommandSequence,
                     pSmbRequest->pHeader->ulTid,
-                    pSmbRequest->pHeader->ullSessionId,
+                    pCtxSmb2->pSession->ullUid,
                     STATUS_SUCCESS,
                     TRUE,
                     pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
-                    NULL,
-                    &ulBytesUsed);
+                    &pSmbResponse->pHeader,
+                    &pSmbResponse->ulHeaderSize);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ulTotalBytesUsed += ulBytesUsed;
-    pOutBuffer += ulBytesUsed;
-    ulOffset += ulBytesUsed;
-    ulBytesAvailable -= ulBytesUsed;
+    pOutBuffer       += pSmbResponse->ulHeaderSize;
+    ulOffset         += pSmbResponse->ulHeaderSize;
+    ulBytesAvailable -= pSmbResponse->ulHeaderSize;
+    ulTotalBytesUsed += pSmbResponse->ulHeaderSize;
 
     ntStatus = SMB2MarshalLogoffResponse(
                     pOutBuffer,
@@ -154,12 +153,12 @@ SrvBuildLogoffResponse_SMB_V2(
                     &ulBytesUsed);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ulTotalBytesUsed += ulBytesUsed;
     // pOutBuffer += ulBytesUsed;
     // ulOffset += ulBytesUsed;
     // ulBytesAvailable -= ulBytesUsed;
+    ulTotalBytesUsed += ulBytesUsed;
 
-    pSmbResponse->bufferUsed += ulTotalBytesUsed;
+    pSmbResponse->ulMessageSize = ulTotalBytesUsed;
 
 cleanup:
 
@@ -169,8 +168,12 @@ error:
 
     if (ulTotalBytesUsed)
     {
-        memset(pOutBufferRef, 0, ulTotalBytesUsed);
+        pSmbResponse->pHeader      = NULL;
+        pSmbResponse->ulHeaderSize = 0;
+        memset(pSmbResponse->pBuffer, 0, ulTotalBytesUsed);
     }
+
+    pSmbResponse->ulMessageSize = 0;
 
     goto cleanup;
 }

@@ -81,7 +81,6 @@
 #include "reader.h"
 #include "srvconnection.h"
 #include "srvsocket.h"
-#include "srvcontext.h"
 
 #include "externs.h"
 

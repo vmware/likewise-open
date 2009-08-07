@@ -51,10 +51,10 @@
 
 NTSTATUS
 SrvSession2FindTree_SMB_V2(
-    PSMB2_CONTEXT       pContext,
-    PLWIO_SRV_SESSION_2 pSession,
-    ULONG               ulTid,
-    PLWIO_SRV_TREE_2*   ppTree
+    PSRV_EXEC_CONTEXT_SMB_V2 pSmb2Context,
+    PLWIO_SRV_SESSION_2      pSession,
+    ULONG                    ulTid,
+    PLWIO_SRV_TREE_2*        ppTree
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -62,14 +62,34 @@ SrvSession2FindTree_SMB_V2(
 
     if (ulTid)
     {
-        ntStatus = SrvSession2FindTree(
-                        pSession,
-                        ulTid,
-                        &pTree);
+        if (pSmb2Context->pTree)
+        {
+            if (pSmb2Context->pTree->ulTid != ulTid)
+            {
+                ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+            else
+            {
+                pTree = pSmb2Context->pTree;
+                InterlockedIncrement(&pTree->refcount);
+            }
+        }
+        else
+        {
+            ntStatus = SrvSession2FindTree(
+                            pSession,
+                            ulTid,
+                            &pTree);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            pSmb2Context->pTree = pTree;
+            InterlockedIncrement(&pTree->refcount);
+        }
     }
-    else if (pContext->pTree)
+    else if (pSmb2Context->pTree)
     {
-        pTree = pContext->pTree;
+        pTree = pSmb2Context->pTree;
         InterlockedIncrement(&pTree->refcount);
     }
     else

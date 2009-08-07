@@ -37,6 +37,13 @@ SrvWorkerMain(
     );
 
 static
+NTSTATUS
+SrvGetNextExecutionContext(
+    struct timespec*   pTimespec,
+    PSRV_EXEC_CONTEXT* ppContext
+    );
+
+static
 BOOLEAN
 SrvWorkerMustStop(
     PLWIO_SRV_WORKER_CONTEXT pContext
@@ -85,8 +92,7 @@ SrvWorkerMain(
 {
     NTSTATUS ntStatus = 0;
     PLWIO_SRV_WORKER_CONTEXT pContext = (PLWIO_SRV_WORKER_CONTEXT)pData;
-    PLWIO_SRV_CONNECTION pConnection = NULL;
-    PSMB_PACKET pSmbRequest = NULL;
+    PSRV_EXEC_CONTEXT pExecContext = NULL;
     struct timespec ts = {0, 0};
 
     LWIO_LOG_DEBUG("Srv worker [id:%u] starting", pContext->workerId);
@@ -96,7 +102,7 @@ SrvWorkerMain(
         ts.tv_sec = time(NULL) + 30;
         ts.tv_nsec = 0;
 
-        ntStatus = SrvTransportGetRequest(&ts, &pConnection, &pSmbRequest);
+        ntStatus = SrvGetNextExecutionContext(&ts, &pExecContext);
         if (ntStatus == STATUS_IO_TIMEOUT)
         {
             ntStatus = 0;
@@ -108,27 +114,24 @@ SrvWorkerMain(
             break;
         }
 
-        if (pConnection && pSmbRequest)
+        if (pExecContext)
         {
-            NTSTATUS ntStatus2 = SrvProtocolExecute(
-                                    pConnection,
-                                    pSmbRequest);
+            NTSTATUS ntStatus2 = SrvProtocolExecute(pExecContext);
             if (ntStatus2)
             {
                 LWIO_LOG_ERROR("Failed to execute server task [code:%d]", ntStatus2);
             }
 
-            SMBPacketRelease(pConnection->hPacketAllocator, pSmbRequest);
-            pSmbRequest = NULL;
+            SrvReleaseExecContext(pExecContext);
+            pExecContext = NULL;
         }
     }
 
 cleanup:
 
-    if (pSmbRequest)
+    if (pExecContext)
     {
-        SMBPacketRelease(pConnection->hPacketAllocator, pSmbRequest);
-        pSmbRequest = NULL;
+        SrvReleaseExecContext(pExecContext);
     }
 
     LWIO_LOG_DEBUG("Srv worker [id:%u] stopping", pContext->workerId);
@@ -168,6 +171,38 @@ SrvWorkerFreeContents(
         pthread_mutex_destroy(pWorker->context.pMutex);
         pWorker->context.pMutex = NULL;
     }
+}
+
+static
+NTSTATUS
+SrvGetNextExecutionContext(
+    struct timespec*   pTimespec,
+    PSRV_EXEC_CONTEXT* ppContext
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PSRV_EXEC_CONTEXT pContext = NULL;
+
+    status = SrvProdConsTimedDequeue(
+                    &gSMBSrvGlobals.workQueue,
+                    pTimespec,
+                    (PVOID*)&pContext);
+    if (status != STATUS_SUCCESS)
+    {
+        goto error;
+    }
+
+    *ppContext = pContext;
+
+cleanup:
+
+    return status;
+
+error:
+
+    *ppContext = NULL;
+
+    goto cleanup;
 }
 
 static

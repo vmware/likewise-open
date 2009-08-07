@@ -47,28 +47,24 @@ SrvUnmarshallFindNext2Params(
 static
 NTSTATUS
 SrvBuildFindNext2Response(
-    PLWIO_SRV_CONNECTION pConnection,
-    PSMB_PACKET         pSmbRequest,
-    USHORT              usSearchId,
-    USHORT              usSearchCount,
-    USHORT              usFlags,
-    SMB_INFO_LEVEL      infoLevel,
-    ULONG               ulResumeHandle,
-    PWSTR               pwszResumeFilename,
-    USHORT              usMaxDataCount,
-    PSMB_PACKET*        ppSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext,
+    USHORT            usSearchId,
+    USHORT            usSearchCount,
+    USHORT            usFlags,
+    SMB_INFO_LEVEL    infoLevel,
+    ULONG             ulResumeHandle,
+    PWSTR             pwszResumeFilename,
+    USHORT            usMaxDataCount
     );
 
 NTSTATUS
 SrvProcessTrans2FindNext2(
-    IN  PLWIO_SRV_CONNECTION         pConnection,
-    IN  PSMB_PACKET                 pSmbRequest,
+    IN  PSRV_EXEC_CONTEXT           pExecContext,
     IN  PTRANSACTION_REQUEST_HEADER pRequestHeader,
     IN  PUSHORT                     pSetup,
     IN  PUSHORT                     pByteCount,
     IN  PBYTE                       pParameters,
-    IN  PBYTE                       pData,
-    OUT PSMB_PACKET*                ppSmbResponse
+    IN  PBYTE                       pData
     )
 {
     NTSTATUS ntStatus = 0;
@@ -78,7 +74,6 @@ SrvProcessTrans2FindNext2(
     USHORT         usFlags = 0;
     SMB_INFO_LEVEL infoLevel = 0;
     PWSTR          pwszResumeFilename = NULL; // Do not free
-    PSMB_PACKET    pSmbResponse = NULL;
 
     ntStatus = SrvUnmarshallFindNext2Params(
                     pParameters,
@@ -93,34 +88,21 @@ SrvProcessTrans2FindNext2(
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvBuildFindNext2Response(
-                    pConnection,
-                    pSmbRequest,
+                    pExecContext,
                     usSearchId,
                     usSearchCount,
                     usFlags,
                     infoLevel,
                     ulResumeHandle,
                     pwszResumeFilename,
-                    pRequestHeader->maxDataCount,
-                    &pSmbResponse);
+                    pRequestHeader->maxDataCount);
     BAIL_ON_NT_STATUS(ntStatus);
-
-    *ppSmbResponse = pSmbResponse;
 
 cleanup:
 
     return ntStatus;
 
 error:
-
-    *ppSmbResponse = NULL;
-
-    if (pSmbResponse)
-    {
-        SMBPacketRelease(
-            pConnection->hPacketAllocator,
-            pSmbResponse);
-    }
 
     goto cleanup;
 }
@@ -155,7 +137,7 @@ SrvUnmarshallFindNext2Params(
 
     if (usBytesAvailable < usAlignment)
     {
-        ntStatus = STATUS_DATA_ERROR;
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -164,7 +146,7 @@ SrvUnmarshallFindNext2Params(
 
     if (usBytesAvailable < sizeof(usSearchCount))
     {
-        ntStatus = STATUS_DATA_ERROR;
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -173,7 +155,7 @@ SrvUnmarshallFindNext2Params(
 
     if (usBytesAvailable < sizeof(infoLevel))
     {
-        ntStatus = STATUS_DATA_ERROR;
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -182,7 +164,7 @@ SrvUnmarshallFindNext2Params(
 
     if (usBytesAvailable < sizeof(ulResumeHandle))
     {
-        ntStatus = STATUS_DATA_ERROR;
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -191,7 +173,7 @@ SrvUnmarshallFindNext2Params(
 
     if (usBytesAvailable < sizeof(usFlags))
     {
-        ntStatus = STATUS_DATA_ERROR;
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -202,7 +184,7 @@ SrvUnmarshallFindNext2Params(
     {
         if (!(usFlags & SMB_FIND_CONTINUE_SEARCH))
         {
-            ntStatus = STATUS_DATA_ERROR;
+            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
             BAIL_ON_NT_STATUS(ntStatus);
         }
     }
@@ -212,7 +194,7 @@ SrvUnmarshallFindNext2Params(
 
         if (wc16slen(pwszResumeFilename) > 256 * sizeof(wchar16_t))
         {
-            ntStatus = STATUS_DATA_ERROR;
+            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
             BAIL_ON_NT_STATUS(ntStatus);
         }
     }
@@ -241,19 +223,28 @@ error:
 static
 NTSTATUS
 SrvBuildFindNext2Response(
-    PLWIO_SRV_CONNECTION pConnection,
-    PSMB_PACKET         pSmbRequest,
-    USHORT              usSearchId,
-    USHORT              usSearchCount,
-    USHORT              usFlags,
-    SMB_INFO_LEVEL      infoLevel,
-    ULONG               ulResumeHandle,
-    PWSTR               pwszResumeFilename,
-    USHORT              usMaxDataCount,
-    PSMB_PACKET*        ppSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext,
+    USHORT            usSearchId,
+    USHORT            usSearchCount,
+    USHORT            usFlags,
+    SMB_INFO_LEVEL    infoLevel,
+    ULONG             ulResumeHandle,
+    PWSTR             pwszResumeFilename,
+    USHORT            usMaxDataCount
     )
 {
     NTSTATUS ntStatus = 0;
+    PLWIO_SRV_CONNECTION       pConnection  = pExecContext->pConnection;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
+    ULONG                      iMsg         = pCtxSmb1->iMsg;
+    PSRV_MESSAGE_SMB_V1        pSmbRequest  = &pCtxSmb1->pRequests[iMsg];
+    PSRV_MESSAGE_SMB_V1        pSmbResponse = &pCtxSmb1->pResponses[iMsg];
+    PBYTE pOutBuffer           = pSmbResponse->pBuffer;
+    ULONG ulBytesAvailable     = pSmbResponse->ulBytesAvailable;
+    ULONG ulOffset             = 0;
+    USHORT usBytesUsed          = 0;
+    ULONG ulTotalBytesUsed     = 0;
     PLWIO_SRV_SESSION pSession = NULL;
     HANDLE           hSearchSpace = NULL;
     BOOLEAN          bEndOfSearch = FALSE;
@@ -263,16 +254,15 @@ SrvBuildFindNext2Response(
     USHORT           usSearchResultLen = 0;
     USHORT           usDataOffset = 0;
     USHORT           usParameterOffset = 0;
-    USHORT           usNumPackageBytesUsed = 0;
     ULONG            usBytesAvailable = 0;
     PUSHORT          pSetup = NULL;
     BYTE             setupCount = 0;
     SMB_FIND_NEXT2_RESPONSE_PARAMETERS responseParams = {0};
-    PSMB_PACKET      pSmbResponse = NULL;
 
-    ntStatus = SrvConnectionFindSession(
+    ntStatus = SrvConnectionFindSession_SMB_V1(
+                    pCtxSmb1,
                     pConnection,
-                    pSmbRequest->pSMBHeader->uid,
+                    pSmbRequest->pHeader->uid,
                     &pSession);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -282,38 +272,34 @@ SrvBuildFindNext2Response(
                     &hSearchSpace);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBPacketAllocate(
-                    pConnection->hPacketAllocator,
-                    &pSmbResponse);
+    ntStatus = SrvMarshalHeader_SMB_V1(
+                    pOutBuffer,
+                    ulOffset,
+                    ulBytesAvailable,
+                    COM_TRANSACTION2,
+                    STATUS_SUCCESS,
+                    TRUE,
+                    pSmbRequest->pHeader->tid,
+                    pSmbRequest->pHeader->pid,
+                    pCtxSmb1->pSession->uid,
+                    pSmbRequest->pHeader->mid,
+                    pConnection->serverProperties.bRequireSecuritySignatures,
+                    &pSmbResponse->pHeader,
+                    &pSmbResponse->pAndXHeader,
+                    &pSmbResponse->usHeaderSize);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBPacketBufferAllocate(
-                    pConnection->hPacketAllocator,
-                    64 * 1024,
-                    &pSmbResponse->pRawBuffer,
-                    &pSmbResponse->bufferLen);
-    BAIL_ON_NT_STATUS(ntStatus);
+    pOutBuffer       += pSmbResponse->usHeaderSize;
+    ulOffset         += pSmbResponse->usHeaderSize;
+    ulBytesAvailable -= pSmbResponse->usHeaderSize;
+    ulTotalBytesUsed += pSmbResponse->usHeaderSize;
 
-    ntStatus = SMBPacketMarshallHeader(
-                pSmbResponse->pRawBuffer,
-                pSmbResponse->bufferLen,
-                COM_TRANSACTION2,
-                0,
-                TRUE,
-                pSmbRequest->pSMBHeader->tid,
-                pSmbRequest->pSMBHeader->pid,
-                pSmbRequest->pSMBHeader->uid,
-                pSmbRequest->pSMBHeader->mid,
-                pConnection->serverProperties.bRequireSecuritySignatures,
-                pSmbResponse);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pSmbResponse->pSMBHeader->wordCount = 10 + setupCount;
+    pSmbResponse->pHeader->wordCount = 10 + setupCount;
 
     ntStatus = WireMarshallTransaction2Response(
-                    pSmbResponse->pParams,
-                    pSmbResponse->bufferLen - pSmbResponse->bufferUsed,
-                    (PBYTE)pSmbResponse->pParams - (PBYTE)pSmbResponse->pSMBHeader,
+                    pOutBuffer,
+                    ulBytesAvailable,
+                    ulOffset,
                     pSetup,
                     setupCount,
                     (PBYTE)&responseParams,
@@ -322,10 +308,12 @@ SrvBuildFindNext2Response(
                     0,
                     &usDataOffset,
                     &usParameterOffset,
-                    &usNumPackageBytesUsed);
+                    &usBytesUsed);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    usBytesAvailable = SMB_MIN(usMaxDataCount, pConnection->serverProperties.MaxBufferSize - usNumPackageBytesUsed);
+    usBytesAvailable =
+        SMB_MIN(usMaxDataCount,
+                pConnection->serverProperties.MaxBufferSize - usBytesUsed);
 
     ntStatus = SrvFinderGetSearchResults(
                     hSearchSpace,
@@ -346,9 +334,9 @@ SrvBuildFindNext2Response(
     }
 
     ntStatus = WireMarshallTransaction2Response(
-                    pSmbResponse->pParams,
-                    pSmbResponse->bufferLen - pSmbResponse->bufferUsed,
-                    (PBYTE)pSmbResponse->pParams - (PBYTE)pSmbResponse->pSMBHeader,
+                    pOutBuffer,
+                    ulBytesAvailable,
+                    ulOffset,
                     pSetup,
                     setupCount,
                     (PBYTE)&responseParams,
@@ -357,18 +345,15 @@ SrvBuildFindNext2Response(
                     usSearchResultLen,
                     &usDataOffset,
                     &usParameterOffset,
-                    &usNumPackageBytesUsed);
+                    &usBytesUsed);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pSmbResponse->bufferUsed += usNumPackageBytesUsed;
+    // pOutBuffer       += usBytesUsed;
+    // ulOffset         += usBytesUsed;
+    // ulBytesAvailable -= usBytesUsed;
+    ulTotalBytesUsed += usBytesUsed;
 
-    ntStatus = SMBPacketUpdateAndXOffset(pSmbResponse);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SMBPacketMarshallFooter(pSmbResponse);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    *ppSmbResponse = pSmbResponse;
+    pSmbResponse->ulMessageSize = ulTotalBytesUsed;
 
 cleanup:
 
@@ -394,18 +379,19 @@ cleanup:
 
 error:
 
-    *ppSmbResponse = NULL;
-
-    if (pSmbResponse)
+    if (ntStatus == STATUS_NO_MORE_MATCHES)
     {
-        SMBPacketRelease(
-            pConnection->hPacketAllocator,
-            pSmbResponse);
-    }
-
-    if (ntStatus == STATUS_NO_MORE_MATCHES) {
         ntStatus = STATUS_NO_SUCH_FILE;
     }
+
+    if (ulTotalBytesUsed)
+    {
+        pSmbResponse->pHeader = NULL;
+        pSmbResponse->pAndXHeader = NULL;
+        memset(pSmbResponse->pBuffer, 0, ulTotalBytesUsed);
+    }
+
+    pSmbResponse->ulMessageSize = 0;
 
     goto cleanup;
 }

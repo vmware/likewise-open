@@ -2,25 +2,26 @@
 
 NTSTATUS
 SrvProcessTransaction2(
-    IN  PLWIO_SRV_CONNECTION pConnection,
-    IN  PSMB_PACKET          pSmbRequest,
-    OUT PSMB_PACKET*         ppSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext
     )
 {
-    NTSTATUS ntStatus = 0;
+    NTSTATUS                    ntStatus     = 0;
+    PSRV_PROTOCOL_EXEC_CONTEXT  pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1    pCtxSmb1     = pCtxProtocol->pSmb1Context;
+    ULONG                       iMsg         = pCtxSmb1->iMsg;
+    PSRV_MESSAGE_SMB_V1         pSmbRequest  = &pCtxSmb1->pRequests[iMsg];
+    PBYTE pBuffer          = pSmbRequest->pBuffer + pSmbRequest->usHeaderSize;
+    ULONG ulOffset         = pSmbRequest->usHeaderSize;
+    ULONG ulBytesAvailable = pSmbRequest->ulMessageSize - pSmbRequest->usHeaderSize;
     PTRANSACTION_REQUEST_HEADER pRequestHeader = NULL; // Do not free
-    PUSHORT pBytecount = NULL; // Do not free
-    PUSHORT pSetup = NULL; // Do not free
-    PBYTE   pParameters = NULL; // Do not free
-    PBYTE   pData = NULL; // Do not free
-    PSMB_PACKET pSmbResponse = NULL;
-    ULONG   ulOffset = 0;
-
-    ulOffset = (PBYTE)pSmbRequest->pParams - (PBYTE)pSmbRequest->pSMBHeader;
+    PUSHORT                     pBytecount = NULL;     // Do not free
+    PUSHORT                     pSetup = NULL;         // Do not free
+    PBYTE                       pParameters = NULL;    // Do not free
+    PBYTE                       pData = NULL;          // Do not free
 
     ntStatus = WireUnmarshallTransactionRequest(
-                    pSmbRequest->pParams,
-                    pSmbRequest->pNetBIOSHeader->len - ulOffset,
+                    pBuffer,
+                    ulBytesAvailable,
                     ulOffset,
                     &pRequestHeader,
                     &pSetup,
@@ -32,180 +33,112 @@ SrvProcessTransaction2(
 
     if (pSetup == NULL)
     {
-        ntStatus = STATUS_DATA_ERROR;
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
     switch (*pSetup)
     {
-        case SMB_SUB_COMMAND_TRANS2_OPEN2 :
-
-            ntStatus = STATUS_NOT_IMPLEMENTED;
-
-            break;
-
         case SMB_SUB_COMMAND_TRANS2_FIND_FIRST2 :
 
             ntStatus = SrvProcessTrans2FindFirst2(
-                          pConnection,
-                          pSmbRequest,
+                          pExecContext,
                           pRequestHeader,
                           pSetup,
                           pBytecount,
                           pParameters,
-                          pData,
-                          &pSmbResponse);
+                          pData);
 
             break;
 
         case SMB_SUB_COMMAND_TRANS2_FIND_NEXT2 :
 
             ntStatus = SrvProcessTrans2FindNext2(
-                          pConnection,
-                          pSmbRequest,
+                          pExecContext,
                           pRequestHeader,
                           pSetup,
                           pBytecount,
                           pParameters,
-                          pData,
-                          &pSmbResponse);
+                          pData);
 
             break;
 
         case SMB_SUB_COMMAND_TRANS2_QUERY_FS_INFORMATION :
 
             ntStatus = SrvProcessTrans2QueryFilesystemInformation(
-                          pConnection,
-                          pSmbRequest,
+                          pExecContext,
                           pRequestHeader,
                           pSetup,
                           pBytecount,
                           pParameters,
-                          pData,
-                          &pSmbResponse);
+                          pData);
 
             break;
 
         case SMB_SUB_COMMAND_TRANS2_QUERY_PATH_INFORMATION :
 
             ntStatus = SrvProcessTrans2QueryPathInformation(
-                          pConnection,
-                          pSmbRequest,
+                          pExecContext,
                           pRequestHeader,
                           pSetup,
                           pBytecount,
                           pParameters,
-                          pData,
-                          &pSmbResponse);
-
-            break;
-
-        case SMB_SUB_COMMAND_TRANS2_SET_PATH_INFORMATION :
-
-            ntStatus = STATUS_NOT_IMPLEMENTED;
+                          pData);
 
             break;
 
         case SMB_SUB_COMMAND_TRANS2_QUERY_FILE_INFORMATION :
 
             ntStatus = SrvProcessTrans2QueryFileInformation(
-                          pConnection,
-                          pSmbRequest,
+                          pExecContext,
                           pRequestHeader,
                           pSetup,
                           pBytecount,
                           pParameters,
-                          pData,
-                          &pSmbResponse);
+                          pData);
 
             break;
 
         case SMB_SUB_COMMAND_TRANS2_SET_FILE_INFORMATION :
 
             ntStatus = SrvProcessTrans2SetFileInformation(
-                            pConnection,
-                            pSmbRequest,
+                            pExecContext,
                             pRequestHeader,
                             pSetup,
                             pBytecount,
                             pParameters,
-                            pData,
-                            &pSmbResponse);
+                            pData);
 
             break;
 
+        case SMB_SUB_COMMAND_TRANS2_OPEN2 :
         case SMB_SUB_COMMAND_TRANS2_FSCTL :
-
-            ntStatus = STATUS_NOT_IMPLEMENTED;
-
-            break;
-
         case SMB_SUB_COMMAND_TRANS2_IOCTL2 :
-
-            ntStatus = STATUS_NOT_IMPLEMENTED;
-
-            break;
-
         case SMB_SUB_COMMAND_TRANS2_FIND_NOTIFY_FIRST :
-
-            ntStatus = STATUS_NOT_IMPLEMENTED;
-
-            break;
-
         case SMB_SUB_COMMAND_TRANS2_FIND_NOTIFY_NEXT :
-
-            ntStatus = STATUS_NOT_IMPLEMENTED;
-
-            break;
-
         case SMB_SUB_COMMAND_TRANS2_CREATE_DIRECTORY :
-
-            ntStatus = STATUS_NOT_IMPLEMENTED;
-
-            break;
-
         case SMB_SUB_COMMAND_TRANS2_SESSION_SETUP :
-
-            ntStatus = STATUS_NOT_IMPLEMENTED;
-
-            break;
-
         case SMB_SUB_COMMAND_TRANS2_GET_DFS_REFERRAL :
-
-            ntStatus = STATUS_NOT_IMPLEMENTED;
-
-            break;
-
         case SMB_SUB_COMMAND_TRANS2_REPORT_DFS_INCONSISTENCY :
+        case SMB_SUB_COMMAND_TRANS2_SET_PATH_INFORMATION :
 
-            ntStatus = STATUS_NOT_IMPLEMENTED;
+            ntStatus = STATUS_NOT_SUPPORTED;
 
             break;
 
         default:
 
-            ntStatus = STATUS_DATA_ERROR;
+            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
 
             break;
     }
     BAIL_ON_NT_STATUS(ntStatus);
-
-    *ppSmbResponse = pSmbResponse;
 
 cleanup:
 
     return ntStatus;
 
 error:
-
-    *ppSmbResponse = NULL;
-
-    if (pSmbResponse)
-    {
-        SMBPacketRelease(
-            pConnection->hPacketAllocator,
-            pSmbResponse);
-    }
 
     goto cleanup;
 }

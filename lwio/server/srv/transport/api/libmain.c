@@ -52,7 +52,8 @@
 NTSTATUS
 SrvTransportInit(
     PLWIO_PACKET_ALLOCATOR     hPacketAllocator,
-    PLWIO_SRV_SHARE_ENTRY_LIST pShareList
+    PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
+    PSMB_PROD_CONS_QUEUE       pWorkQueue
     )
 {
     NTSTATUS status = STATUS_NOT_IMPLEMENTED;
@@ -62,6 +63,7 @@ SrvTransportInit(
     status = SrvEPollTransportInit(
                     hPacketAllocator,
                     pShareList,
+                    pWorkQueue,
                     &gpSrvTransportApi);
 
 #elif defined (LW_USE_KQUEUE)
@@ -69,6 +71,7 @@ SrvTransportInit(
     status = SrvKQueueTransportInit(
                     hPacketAllocator,
                     pShareList,
+                    pWorkQueue,
                     &gpSrvTransportApi);
 
 #elif defined (LW_USE_POLL)
@@ -76,6 +79,7 @@ SrvTransportInit(
     status = SrvPollTransportInit(
                     hPacketAllocator,
                     pShareList,
+                    pWorkQueue,
                     &gpSrvTransportApi);
 
 #elif defined (LW_USE_SELECT)
@@ -83,6 +87,7 @@ SrvTransportInit(
     status = SrvSelectTransportInit(
                     hPacketAllocator,
                     pShareList,
+                    pWorkQueue,
                     &gpSrvTransportApi);
 
 #endif
@@ -92,21 +97,17 @@ SrvTransportInit(
 
 NTSTATUS
 SrvTransportGetRequest(
-    IN  struct timespec*      pTimeSpec,
-    OUT PLWIO_SRV_CONNECTION* ppConnection,
-    OUT PSMB_PACKET*          ppRequest
+    IN  struct timespec*   pTimeSpec,
+    OUT PSRV_EXEC_CONTEXT* ppContext
     )
 {
-    return gpSrvTransportApi->pfnTransportGetRequest(
-                                    pTimeSpec,
-                                    ppConnection,
-                                    ppRequest);
+    return gpSrvTransportApi->pfnTransportGetRequest(pTimeSpec, ppContext);
 }
 
 NTSTATUS
 SrvTransportSendResponse(
-    IN          PLWIO_SRV_CONNECTION pConnection,
-    IN          PSMB_PACKET          pResponse
+    IN PLWIO_SRV_CONNECTION pConnection,
+    IN PSMB_PACKET          pResponse
     )
 {
     return gpSrvTransportApi->pfnTransportSendResponse(pConnection, pResponse);

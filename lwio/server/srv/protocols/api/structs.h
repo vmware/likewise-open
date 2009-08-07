@@ -74,32 +74,13 @@ typedef struct _LWIO_SRV_PROTOCOL_WORKER
 
 } LWIO_SRV_PROTOCOL_WORKER, *PLWIO_SRV_PROTOCOL_WORKER;
 
-typedef struct _SRV_EXEC_CONTEXT_SMB_V1* PSRV_EXEC_CONTEXT_SMB_V1;
-typedef struct _SRV_EXEC_CONTEXT_SMB_V2* PSRV_EXEC_CONTEXT_SMB_V2;
-
-typedef struct _SRV_PROTOCOL_EXEC_CONTEXT
-{
-    SMB_PROTOCOL_VERSION protocolVersion;
-
-    union
-    {
-        PSRV_EXEC_CONTEXT_SMB_V1 pSmb1Context;
-        PSRV_EXEC_CONTEXT_SMB_V2 pSmb2Context;
-    };
-
-} SRV_PROTOCOL_EXEC_CONTEXT;
-
 typedef struct __SRV_PROTOCOL_API_GLOBALS
 {
     pthread_mutex_t           mutex;
 
     BOOLEAN                   bSupportSMB2;
 
-    SMB_PROD_CONS_QUEUE       asyncWorkQueue;
-    ULONG                     ulMaxNumAsyncWorkItemsInQueue;
-
-    ULONG                     ulNumAsyncWorkers;
-    PLWIO_SRV_PROTOCOL_WORKER pAsyncWorkerArray;
+    PSMB_PROD_CONS_QUEUE      pWorkQueue;
 
 } SRV_PROTOCOL_API_GLOBALS, *PSRV_PROTOCOL_API_GLOBALS;
 

@@ -1,9 +1,9 @@
 noinst_LTLIBRARIES = libsrv.protocols.smb1.la
 
 libsrv_protocols_smb1_la_SOURCES = \
-    async.c          \
     checkdir.c       \
     close.c          \
+    connection.c     \
     creatdir.c       \
     createx.c        \
     deldir.c         \
@@ -25,6 +25,7 @@ libsrv_protocols_smb1_la_SOURCES = \
     read.c           \
     readx.c          \
     rename.c         \
+    session.c        \
     sessionsetup.c   \
     trans2.c         \
     trans2qfi.c      \
@@ -32,8 +33,10 @@ libsrv_protocols_smb1_la_SOURCES = \
     trans2qpi.c      \
     trans2sfi.c      \
     trans.c          \
+    tree.c           \
     treeconnect.c    \
     treedisconnect.c \
+    wire.c           \
     write.c          \
     writex.c
 

@@ -4,8 +4,7 @@ libsrv_protocols_api_la_SOURCES = \
     config.c    \
     globals.c   \
     libmain.c   \
-    negotiate.c \
-    worker.c
+    negotiate.c
 
 libsrv_protocols_api_la_CPPFLAGS = \
     -DLW_ENABLE_THREADS=1  \

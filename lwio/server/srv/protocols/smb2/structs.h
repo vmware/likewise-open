@@ -460,6 +460,7 @@ typedef struct _SRV_SMB2_LOCK_CONTEXT
     IO_STATUS_BLOCK         ioStatusBlock;
 
     PSRV_SMB2_LOCK_REQUEST  pLockRequest;
+    PSRV_EXEC_CONTEXT       pExecContext;
 
 } SRV_SMB2_LOCK_CONTEXT, *PSRV_SMB2_LOCK_CONTEXT;
 
@@ -470,22 +471,15 @@ typedef struct _SRV_SMB2_LOCK_REQUEST
     pthread_mutex_t        mutex;
     pthread_mutex_t*       pMutex;
 
-    PLWIO_SRV_FILE_2       pFile;
-    PLWIO_SRV_CONNECTION   pConnection;
-
-    ULONG                  ulTid;
-    ULONG64                ullCommandSequence;
-    ULONG64                ullSessionId;
-    ULONG                  ulPid;
-
     ULONG                  ulNumContexts;
 
     PSRV_SMB2_LOCK_CONTEXT pLockContexts; /* unlocks and locks */
 
     LONG                   lPendingContexts;
 
-    BOOLEAN                bResponseSent;
-    BOOLEAN                bIsPartOfCompoundRequest;
+    IO_STATUS_BLOCK        ioStatusBlock;
+
+    BOOLEAN                bComplete;
 
 } SRV_SMB2_LOCK_REQUEST;
 
@@ -545,66 +539,42 @@ typedef struct _SMB2_FILE_BOTH_DIR_INFORMATION
 } __attribute__((__packed__)) SMB2_FILE_BOTH_DIR_INFO_HEADER,
                              *PSMB2_FILE_BOTH_DIR_INFO_HEADER;
 
-typedef struct __SMB2_MESSAGE
-{
-    PSMB2_HEADER pHeader;
-    ULONG        ulSize;
-
-} SMB2_MESSAGE, *PSMB2_MESSAGE;
-
-typedef struct __SMB2_REQUEST
-{
-    PLWIO_SRV_CONNECTION  pConnection;
-
-    PSMB_PACKET   pRequest;
-    ULONG         ulNumChainedRequests;
-    PSMB2_MESSAGE pChainedRequests;
-
-    PSMB_PACKET   pResponse;
-
-    ULONG         ulNumChainedResponses;
-    PSMB2_MESSAGE pChainedResponses;
-
-} SMB2_REQUEST, *PSMB2_REQUEST;
-
-typedef struct __SMB2_CONTEXT
-{
-    PLWIO_SRV_CONNECTION pConnection;
-    PLWIO_SRV_SESSION_2  pSession;
-    PLWIO_SRV_TREE_2     pTree;
-    PLWIO_SRV_FILE_2     pFile;
-
-} SMB2_CONTEXT, *PSMB2_CONTEXT;
-
 typedef VOID (*PFN_SRV_MESSAGE_STATE_RELEASE_SMB_V2)(HANDLE hState);
 
 typedef struct __SRV_MESSAGE_SMB_V2
 {
+    PBYTE        pBuffer;
     PSMB2_HEADER pHeader;
+    ULONG        ulHeaderSize;
     ULONG        ulMessageSize;
+
+    ULONG        ulBytesAvailable;
 
 } SRV_MESSAGE_SMB_V2, *PSRV_MESSAGE_SMB_V2;
 
 typedef struct _SRV_EXEC_CONTEXT_SMB_V2
 {
-    PSRV_MESSAGE_SMB_V2             pMessageArray;
-    ULONG                           ulNumMessages;
-    ULONG                           ulMessageCursor;
+    PSRV_MESSAGE_SMB_V2                  pRequests;
+    ULONG                                ulNumRequests;
+    ULONG                                iMsg;
 
-    PLWIO_SRV_SESSION_2             pSession;
-    PLWIO_SRV_TREE_2                pTree;
-    PLWIO_SRV_FILE_2                pFile;
+    PLWIO_SRV_SESSION_2                  pSession;
+    PLWIO_SRV_TREE_2                     pTree;
+    PLWIO_SRV_FILE_2                     pFile;
 
     HANDLE                               hState;
     PFN_SRV_MESSAGE_STATE_RELEASE_SMB_V2 pfnStateRelease;
+
+    ULONG                                ulNumResponses;
+    PSRV_MESSAGE_SMB_V2                  pResponses;
 
 } SRV_EXEC_CONTEXT_SMB_V2;
 
 typedef struct _SRV_RUNTIME_GLOBALS_SMB_V2
 {
-    pthread_mutex_t         mutex;
+    pthread_mutex_t      mutex;
 
-    PSMB_PROD_CONS_QUEUE    pAsyncWorkQueue;
+    PSMB_PROD_CONS_QUEUE pWorkQueue;
 
 } SRV_RUNTIME_GLOBALS_SMB_V2, *PSRV_RUNTIME_GLOBALS_SMB_V2;
 

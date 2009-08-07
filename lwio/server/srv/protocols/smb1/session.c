@@ -33,15 +33,15 @@
  *
  * Module Name:
  *
- *        context.c
+ *        session.c
  *
  * Abstract:
  *
  *        Likewise IO (LWIO) - SRV
  *
- *        Protocols API - SMBV2
+ *        Protocols API - SMBV1
  *
- *        Context to hold items corresponding to the current state
+ *        Session
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
  *
@@ -50,48 +50,68 @@
 #include "includes.h"
 
 NTSTATUS
-SrvInitContextContents_SMB_V2(
-    IN     PLWIO_SRV_CONNECTION pConnection,
-    IN OUT PSMB2_CONTEXT        pContext
+SrvSessionFindTree_SMB_V1(
+    PSRV_EXEC_CONTEXT_SMB_V1 pSmb1Context,
+    PLWIO_SRV_SESSION        pSession,
+    USHORT                   usTid,
+    PLWIO_SRV_TREE*          ppTree
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    PLWIO_SRV_TREE pTree = NULL;
 
-    if (!pConnection || !pContext)
+    if (usTid)
     {
-        ntStatus = STATUS_INVALID_PARAMETER;
+        if (pSmb1Context->pTree)
+        {
+            if (pSmb1Context->pTree->tid != usTid)
+            {
+                ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+            else
+            {
+                pTree = pSmb1Context->pTree;
+                InterlockedIncrement(&pTree->refcount);
+            }
+        }
+        else
+        {
+            ntStatus = SrvSessionFindTree(
+                            pSession,
+                            usTid,
+                            &pTree);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            pSmb1Context->pTree = pTree;
+            InterlockedIncrement(&pTree->refcount);
+        }
+    }
+    else if (pSmb1Context->pTree)
+    {
+        pTree = pSmb1Context->pTree;
+        InterlockedIncrement(&pTree->refcount);
+    }
+    else
+    {
+        ntStatus = STATUS_BAD_NETWORK_NAME;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    memset(pContext, 0, sizeof(SMB2_CONTEXT));
+    *ppTree = pTree;
 
-    pContext->pConnection = pConnection;
-    InterlockedIncrement(&pContext->pConnection->refCount);
+cleanup:
+
+    return ntStatus;
 
 error:
 
-    return ntStatus;
-}
+    *ppTree = NULL;
 
-VOID
-SrvFreeContextContents_SMB_V2(
-    IN  PSMB2_CONTEXT pContext
-    )
-{
-    if (pContext->pFile)
+    if (pTree)
     {
-        SrvFile2Release(pContext->pFile);
+        SrvTreeRelease(pTree);
     }
-    if (pContext->pTree)
-    {
-        SrvTree2Release(pContext->pTree);
-    }
-    if (pContext->pSession)
-    {
-        SrvSession2Release(pContext->pSession);
-    }
-    if (pContext->pConnection)
-    {
-        SrvConnectionRelease(pContext->pConnection);
-    }
+
+    goto cleanup;
 }

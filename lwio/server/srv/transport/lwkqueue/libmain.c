@@ -52,8 +52,8 @@
 NTSTATUS
 SrvKQueueTransportInit(
     PLWIO_PACKET_ALLOCATOR         hPacketAllocator,
-    ULONG                          ulMaxQueueSize,
     PLWIO_SRV_SHARE_ENTRY_LIST     pShareList,
+    PSMB_PROD_CONS_QUEUE           pWorkQueue,
     PSRV_TRANSPORT_FUNCTION_TABLE* ppFnTable
     )
 {
@@ -64,7 +64,7 @@ SrvKQueueTransportInit(
 
 NTSTATUS
 SrvKQueueTransportShutdown(
-    VOID
+    PSRV_TRANSPORT_FUNCTION_TABLE pFnTable
     )
 {
     NTSTATUS status = STATUS_SUCCESS;

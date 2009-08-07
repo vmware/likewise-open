@@ -51,6 +51,12 @@ SrvSocketReaderReadMessage(
     );
 
 static
+NTSTATUS
+SrvVerifyContext(
+    PSRV_EXEC_CONTEXT pContext
+    );
+
+static
 VOID
 SrvSocketReaderPurgeConnections(
     PLWIO_SRV_SOCKET_READER_CONTEXT pReaderContext,
@@ -515,33 +521,36 @@ static
 NTSTATUS
 SrvSocketReaderReadMessage(
     PLWIO_SRV_SOCKET_READER_CONTEXT pReaderContext,
-    PLWIO_SRV_CONNECTION pConnection
+    PLWIO_SRV_CONNECTION            pConnection
     )
 {
     NTSTATUS ntStatus = 0;
-    PLWIO_SRV_CONTEXT pContext = NULL;
+    PSRV_EXEC_CONTEXT pContext = NULL;
     PSMB_PACKET pPacket = NULL;
 
-    ntStatus = SrvConnectionReadPacket(
-                    pConnection,
-                    &pPacket);
+    ntStatus = SrvConnectionReadPacket(pConnection, &pPacket);
     BAIL_ON_NT_STATUS(ntStatus);
 
     if (pPacket)
     {
-        ntStatus = SrvContextCreate(
-                        pConnection,
-                        pPacket,
-                        &pContext);
+        ntStatus = SrvBuildExecContext(pConnection, pPacket, &pContext);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        ntStatus = SrvProdConsEnqueue(
-                        pReaderContext->pWorkQueue,
-                        pContext);
+        ntStatus = SrvVerifyContext(pContext);
         BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = SrvProdConsEnqueue(pReaderContext->pWorkQueue, pContext);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pContext = NULL;
     }
 
 cleanup:
+
+    if (pPacket)
+    {
+        SMBPacketRelease(pConnection->hPacketAllocator, pPacket);
+    }
 
     return ntStatus;
 
@@ -549,16 +558,77 @@ error:
 
     if (pContext)
     {
-        SrvContextFree(pContext);
-    }
-
-    if (pPacket)
-    {
-        SMBPacketRelease(pConnection->hPacketAllocator, pPacket);
+        SrvReleaseExecContext(pContext);
     }
 
     goto cleanup;
 }
+
+static
+NTSTATUS
+SrvVerifyContext(
+    PSRV_EXEC_CONTEXT pContext
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
+
+    switch (pConnection->protocolVer)
+    {
+        case SMB_PROTOCOL_VERSION_1:
+
+            // Update the sequence whether we end up signing or not
+            ntStatus = SrvConnectionGetNextSequence(
+                            pConnection,
+                            pContext->pSmbRequest,
+                            &pContext->pSmbRequest->sequence);
+
+            break;
+
+        default:
+
+            break;
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (pConnection->serverProperties.bRequireSecuritySignatures &&
+        pConnection->pSessionKey)
+    {
+        switch (pConnection->protocolVer)
+        {
+            case SMB_PROTOCOL_VERSION_1:
+
+                ntStatus = SMBPacketVerifySignature(
+                                pContext->pSmbRequest,
+                                pContext->pSmbRequest->sequence,
+                                pConnection->pSessionKey,
+                                pConnection->ulSessionKeyLength);
+
+                break;
+
+            case SMB_PROTOCOL_VERSION_2:
+
+                ntStatus = SMB2PacketVerifySignature(
+                                pContext->pSmbRequest,
+                                pConnection->pSessionKey,
+                                pConnection->ulSessionKeyLength);
+
+                break;
+
+            default:
+
+                ntStatus = STATUS_INTERNAL_ERROR;
+
+                break;
+        }
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+error:
+
+    return ntStatus;
+}
+
 
 static
 VOID

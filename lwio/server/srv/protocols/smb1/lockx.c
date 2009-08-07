@@ -54,15 +54,19 @@
 static
 NTSTATUS
 SrvBuildLockRequest(
-    PLWIO_SRV_CONNECTION             pConnection,
-    PLWIO_SRV_FILE                   pFile,
-    PSMB_PACKET                      pSmbRequest,
+    PSRV_EXEC_CONTEXT                pExecContext,
     PSMB_LOCKING_ANDX_REQUEST_HEADER pRequestHeader,
     PLOCKING_ANDX_RANGE_LARGE_FILE   pUnlockRangeLarge,
     PLOCKING_ANDX_RANGE_LARGE_FILE   pLockRangeLarge,
-    PLOCKING_ANDX_RANGE                pUnlockRange,
+    PLOCKING_ANDX_RANGE              pUnlockRange,
     PLOCKING_ANDX_RANGE              pLockRange,
     PSRV_SMB_LOCK_REQUEST*           ppLockRequest
+    );
+
+static
+VOID
+SrvReleaseLockRequestState(
+    HANDLE hState
     );
 
 static
@@ -74,8 +78,8 @@ SrvFreeLockRequest(
 static
 NTSTATUS
 SrvExecuteLockRequest(
-    PSRV_SMB_LOCK_REQUEST pLockRequest,
-    PSMB_PACKET*          ppSmbResponse
+    PSRV_EXEC_CONTEXT     pExecContext,
+    PSRV_SMB_LOCK_REQUEST pLockRequest
     );
 
 static
@@ -118,74 +122,114 @@ SrvLockFile_inlock(
 static
 NTSTATUS
 SrvBuildLockingAndXResponse(
-    PSRV_SMB_LOCK_REQUEST pLockRequest,
-    PSMB_PACKET*          ppSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext
     );
 
 NTSTATUS
 SrvProcessLockAndX(
-    IN  PLWIO_SRV_CONNECTION pConnection,
-    IN  PSMB_PACKET          pSmbRequest,
-    OUT PSMB_PACKET*         ppSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext
     )
 {
     NTSTATUS ntStatus = 0;
-    PLWIO_SRV_SESSION pSession = NULL;
-    PLWIO_SRV_TREE pTree = NULL;
-    PLWIO_SRV_FILE pFile = NULL;
+    PLWIO_SRV_CONNECTION       pConnection  = pExecContext->pConnection;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
+    ULONG                      iMsg         = pCtxSmb1->iMsg;
+    PSRV_MESSAGE_SMB_V1        pSmbRequest  = &pCtxSmb1->pRequests[iMsg];
+    PBYTE pBuffer          = pSmbRequest->pBuffer + pSmbRequest->usHeaderSize;
+    ULONG ulOffset         = pSmbRequest->usHeaderSize;
+    ULONG ulBytesAvailable = pSmbRequest->ulMessageSize - pSmbRequest->usHeaderSize;
     PSMB_LOCKING_ANDX_REQUEST_HEADER pRequestHeader = NULL;  // Do not free
     PLOCKING_ANDX_RANGE              pUnlockRange = NULL;    // Do not free
     PLOCKING_ANDX_RANGE_LARGE_FILE   pUnlockRangeLarge = NULL; // Do not free
     PLOCKING_ANDX_RANGE              pLockRange = NULL;      // Do not free
     PLOCKING_ANDX_RANGE_LARGE_FILE   pLockRangeLarge = NULL; // Do not free
+    PLWIO_SRV_SESSION pSession = NULL;
+    PLWIO_SRV_TREE    pTree = NULL;
+    PLWIO_SRV_FILE    pFile = NULL;
     PSRV_SMB_LOCK_REQUEST pLockRequest = NULL;
-    PSMB_PACKET pSmbResponse = NULL;
-    ULONG ulOffset = 0;
+    BOOLEAN bInLock = FALSE;
 
-    ntStatus = SrvConnectionFindSession(
-                    pConnection,
-                    pSmbRequest->pSMBHeader->uid,
-                    &pSession);
-    BAIL_ON_NT_STATUS(ntStatus);
+    pLockRequest = (PSRV_SMB_LOCK_REQUEST)(pCtxSmb1->hState);
 
-    ntStatus = SrvSessionFindTree(
-                    pSession,
-                    pSmbRequest->pSMBHeader->tid,
-                    &pTree);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ulOffset = (PBYTE)pSmbRequest->pParams - (PBYTE)pSmbRequest->pSMBHeader;
-
-    ntStatus = WireUnmarshallLockingAndXRequest(
-                    pSmbRequest->pParams,
-                    pSmbRequest->pNetBIOSHeader->len - ulOffset,
-                    ulOffset,
-                    &pRequestHeader,
-                    &pUnlockRange,
-                    &pUnlockRangeLarge,
-                    &pLockRange,
-                    &pLockRangeLarge);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SrvTreeFindFile(pTree, pRequestHeader->usFid, &pFile);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SrvBuildLockRequest(
+    if (pLockRequest)
+    {
+        InterlockedIncrement(&pLockRequest->refCount);
+    }
+    else
+    {
+        ntStatus = SrvConnectionFindSession_SMB_V1(
+                        pCtxSmb1,
                         pConnection,
-                        pFile,
-                        pSmbRequest,
-                        pRequestHeader,
-                        pUnlockRangeLarge,
-                        pLockRangeLarge,
-                        pUnlockRange,
-                        pLockRange,
-                        &pLockRequest);
-    BAIL_ON_NT_STATUS(ntStatus);
+                        pSmbRequest->pHeader->uid,
+                        &pSession);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvExecuteLockRequest(pLockRequest, &pSmbResponse);
-    BAIL_ON_NT_STATUS(ntStatus);
+        ntStatus = SrvSessionFindTree_SMB_V1(
+                        pCtxSmb1,
+                        pSession,
+                        pSmbRequest->pHeader->tid,
+                        &pTree);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-    *ppSmbResponse = pSmbResponse;
+        ntStatus = WireUnmarshallLockingAndXRequest(
+                        pBuffer,
+                        ulBytesAvailable,
+                        ulOffset,
+                        &pRequestHeader,
+                        &pUnlockRange,
+                        &pUnlockRangeLarge,
+                        &pLockRange,
+                        &pLockRangeLarge);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = SrvTreeFindFile_SMB_V1(
+                        pCtxSmb1,
+                        pTree,
+                        pRequestHeader->usFid,
+                        &pFile);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = SrvBuildLockRequest(
+                            pExecContext,
+                            pRequestHeader,
+                            pUnlockRangeLarge,
+                            pLockRangeLarge,
+                            pUnlockRange,
+                            pLockRange,
+                            &pLockRequest);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pCtxSmb1->hState = pLockRequest;
+        pCtxSmb1->pfnStateRelease = &SrvReleaseLockRequestState;
+        InterlockedIncrement(&pLockRequest->refCount);
+
+        ntStatus = SrvExecuteLockRequest(pExecContext, pLockRequest);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (pLockRequest->bExpired && !pLockRequest->bResponseSent)
+    {
+        pLockRequest->bResponseSent = TRUE;
+
+        ntStatus = STATUS_FILE_LOCK_CONFLICT;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    LWIO_LOCK_MUTEX(bInLock, &pLockRequest->mutex);
+
+    if (pLockRequest->bCompleted && !pLockRequest->bResponseSent)
+    {
+        pLockRequest->bResponseSent = TRUE;
+
+        ntStatus = pLockRequest->ioStatusBlock.Status;
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        LWIO_UNLOCK_MUTEX(bInLock, &pLockRequest->mutex);
+
+        ntStatus = SrvBuildLockingAndXResponse(pExecContext);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
 cleanup:
 
@@ -193,16 +237,21 @@ cleanup:
     {
         SrvFileRelease(pFile);
     }
+
     if (pTree)
     {
         SrvTreeRelease(pTree);
     }
+
     if (pSession)
     {
         SrvSessionRelease(pSession);
     }
+
     if (pLockRequest)
     {
+        LWIO_UNLOCK_MUTEX(bInLock, &pLockRequest->mutex);
+
         SrvReleaseLockRequest(pLockRequest);
     }
 
@@ -210,28 +259,17 @@ cleanup:
 
 error:
 
-    *ppSmbResponse = NULL;
-
-    if (pSmbResponse)
-    {
-        SMBPacketRelease(
-            pConnection->hPacketAllocator,
-            pSmbResponse);
-    }
-
     goto cleanup;
 }
 
 static
 NTSTATUS
 SrvBuildLockRequest(
-    PLWIO_SRV_CONNECTION             pConnection,
-    PLWIO_SRV_FILE                   pFile,
-    PSMB_PACKET                      pSmbRequest,
+    PSRV_EXEC_CONTEXT                pExecContext,
     PSMB_LOCKING_ANDX_REQUEST_HEADER pRequestHeader,
     PLOCKING_ANDX_RANGE_LARGE_FILE   pUnlockRangeLarge,
     PLOCKING_ANDX_RANGE_LARGE_FILE   pLockRangeLarge,
-    PLOCKING_ANDX_RANGE                pUnlockRange,
+    PLOCKING_ANDX_RANGE              pUnlockRange,
     PLOCKING_ANDX_RANGE              pLockRange,
     PSRV_SMB_LOCK_REQUEST*           ppLockRequest
     )
@@ -247,7 +285,7 @@ SrvBuildLockRequest(
         if ((pRequestHeader->usNumUnlocks && !pUnlockRangeLarge) ||
             (pRequestHeader->usNumLocks && !pLockRangeLarge))
         {
-            ntStatus = STATUS_DATA_ERROR;
+            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
         }
     }
     else
@@ -255,7 +293,7 @@ SrvBuildLockRequest(
         if ((pRequestHeader->usNumUnlocks && !pUnlockRange) ||
             (pRequestHeader->usNumLocks && !pLockRange))
         {
-            ntStatus = STATUS_DATA_ERROR;
+            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
         }
     }
     BAIL_ON_NT_STATUS(ntStatus);
@@ -270,18 +308,7 @@ SrvBuildLockRequest(
 
     pLockRequest->refCount = 1;
 
-    pLockRequest->pFile = pFile;
-    InterlockedIncrement(&pFile->refcount);
-
-    pLockRequest->pConnection = pConnection;
-    InterlockedIncrement(&pConnection->refCount);
-
-    pLockRequest->usTid = pSmbRequest->pSMBHeader->tid;
-    pLockRequest->usMid = pSmbRequest->pSMBHeader->mid;
-    pLockRequest->usUid = pSmbRequest->pSMBHeader->uid;
-    pLockRequest->usPid = pSmbRequest->pSMBHeader->pid;
     pLockRequest->ulTimeout = pRequestHeader->ulTimeout;
-    pLockRequest->ulResponseSequence = pSmbRequest->sequence + 1;
 
     pLockRequest->usNumUnlocks = pRequestHeader->usNumUnlocks;
     pLockRequest->usNumLocks = pRequestHeader->usNumLocks;
@@ -374,6 +401,9 @@ SrvBuildLockRequest(
 
     pLockRequest->bExpired = FALSE;
 
+    pLockRequest->pExecContext_async = pExecContext;
+    InterlockedIncrement(&pExecContext->refCount);
+
     *ppLockRequest = pLockRequest;
 
 cleanup:
@@ -390,6 +420,15 @@ error:
     }
 
     goto cleanup;
+}
+
+static
+VOID
+SrvReleaseLockRequestState(
+    HANDLE hState
+    )
+{
+    SrvReleaseLockRequest((PSRV_SMB_LOCK_REQUEST)hState);
 }
 
 VOID
@@ -414,20 +453,20 @@ SrvFreeLockRequest(
         pthread_mutex_destroy(&pLockRequest->mutex);
     }
 
-    if (pLockRequest->pFile)
-    {
-        SrvFileRelease(pLockRequest->pFile);
-    }
-
-    if (pLockRequest->pConnection)
-    {
-        SrvConnectionRelease(pLockRequest->pConnection);
-    }
-
     if (pLockRequest->pTimerRequest)
     {
         SrvTimerCancelRequest(pLockRequest->pTimerRequest);
         SrvTimerRelease(pLockRequest->pTimerRequest);
+    }
+
+    if (pLockRequest->pExecContext_timer)
+    {
+        SrvReleaseExecContext(pLockRequest->pExecContext_timer);
+    }
+
+    if (pLockRequest->pExecContext_async)
+    {
+        SrvReleaseExecContext(pLockRequest->pExecContext_async);
     }
 
     SRV_SAFE_FREE_MEMORY(pLockRequest->pLockContexts);
@@ -437,8 +476,8 @@ SrvFreeLockRequest(
 static
 NTSTATUS
 SrvExecuteLockRequest(
-    PSRV_SMB_LOCK_REQUEST pLockRequest,
-    PSMB_PACKET*          ppSmbResponse
+    PSRV_EXEC_CONTEXT     pExecContext,
+    PSRV_SMB_LOCK_REQUEST pLockRequest
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -447,7 +486,6 @@ SrvExecuteLockRequest(
     BOOLEAN  bAsync = FALSE;
     ULONG iLock = 0;
     LONG  lNumContexts = 0;
-    PSMB_PACKET pSmbResponse = NULL;
     BOOLEAN bInLock = FALSE;
 
     /*
@@ -495,25 +533,24 @@ SrvExecuteLockRequest(
         llExpiry = (time(NULL) +
                     (pLockRequest->ulTimeout/1000) + 11644473600LL) * 10000000LL;
 
+        pLockRequest->pExecContext_timer = pExecContext;
+        InterlockedIncrement(&pExecContext->refCount);
+
         ntStatus = SrvTimerPostRequest(
                         llExpiry,
-                        pLockRequest,
+                        pExecContext,
                         &SrvLockRequestExpiredCB,
                         &pLockRequest->pTimerRequest);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        InterlockedIncrement(&pLockRequest->refCount);
-    }
-
-    LWIO_UNLOCK_MUTEX(bInLock, &pLockRequest->mutex);
-
-    if (bFailImmediately || !bAsync)
-    {
-        ntStatus = SrvBuildLockingAndXResponse(pLockRequest, &pSmbResponse);
+        ntStatus = STATUS_PENDING;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    *ppSmbResponse = pSmbResponse;
+    if (bFailImmediately || !bAsync)
+    {
+        pLockRequest->bCompleted = TRUE;
+    }
 
 cleanup:
 
@@ -525,18 +562,17 @@ error:
 
     LWIO_UNLOCK_MUTEX(bInLock, &pLockRequest->mutex);
 
-    if (!bAsync)
+    switch (ntStatus)
     {
-        SrvClearLocks(pLockRequest);
-    }
+        case STATUS_PENDING:
 
-    *ppSmbResponse = NULL;
+            break;
 
-    if (pSmbResponse)
-    {
-        SMBPacketRelease(
-            pLockRequest->pConnection->hPacketAllocator,
-            pSmbResponse);
+        default:
+
+            SrvClearLocks(pLockRequest);
+
+            break;
     }
 
     goto cleanup;
@@ -550,55 +586,41 @@ SrvLockRequestExpiredCB(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSRV_SMB_LOCK_REQUEST pLockRequest = (PSRV_SMB_LOCK_REQUEST)pUserData;
+    PSRV_EXEC_CONTEXT pExecContext = (PSRV_EXEC_CONTEXT)pUserData;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
+    PSRV_SMB_LOCK_REQUEST pLockRequest = (PSRV_SMB_LOCK_REQUEST)pCtxSmb1->hState;
     BOOLEAN bInLock = FALSE;
-    PSMB_PACKET pSmbResponse = NULL;
 
     LWIO_LOCK_MUTEX(bInLock, &pLockRequest->mutex);
 
-    pLockRequest->bExpired = TRUE;
-
-    if (!pLockRequest->bResponseSent)
+    if (!pLockRequest->bCompleted)
     {
-        // The timer expired first
-
-        ntStatus = SrvProtocolBuildErrorResponse(
-                        pLockRequest->pConnection,
-                        COM_LOCKING_ANDX,
-                        pLockRequest->usTid,
-                        pLockRequest->usPid,
-                        pLockRequest->usUid,
-                        pLockRequest->usMid,
-                        STATUS_FILE_LOCK_CONFLICT,
-                        &pSmbResponse);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        pSmbResponse->sequence = pLockRequest->ulResponseSequence;
-
-        ntStatus = SrvTransportSendResponse(
-                            pLockRequest->pConnection,
-                            pSmbResponse);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        pLockRequest->bResponseSent = TRUE;
+        pLockRequest->bExpired = TRUE;
     }
 
-cleanup:
+    pLockRequest->pExecContext_timer = NULL;
 
     LWIO_UNLOCK_MUTEX(bInLock, &pLockRequest->mutex);
 
-    if (pSmbResponse)
-    {
-        SMBPacketRelease(
-                pLockRequest->pConnection->hPacketAllocator,
-                pSmbResponse);
-    }
+    ntStatus = SrvProdConsEnqueue(
+                    gProtocolGlobals_SMB_V1.pWorkQueue,
+                    pExecContext);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    SrvReleaseLockRequest(pLockRequest);
+cleanup:
 
     return;
 
 error:
+
+    LWIO_LOG_ERROR("Failed to enqueue execution context [status:0x%x]",
+                   ntStatus);
+
+    if (pExecContext)
+    {
+        SrvReleaseExecContext(pExecContext);
+    }
 
     goto cleanup;
 }
@@ -612,8 +634,8 @@ SrvExecuteLockContextAsyncCB(
     NTSTATUS ntStatus = STATUS_SUCCESS;
     PSRV_SMB_LOCK_CONTEXT pLockContext = (PSRV_SMB_LOCK_CONTEXT)pContext;
     PSRV_SMB_LOCK_REQUEST pLockRequest = pLockContext->pLockRequest;
+    PSRV_EXEC_CONTEXT     pExecContext = NULL;
     BOOLEAN bInLock = FALSE;
-    PSMB_PACKET pSmbResponse = NULL;
 
     if (InterlockedDecrement(&pLockRequest->lPendingContexts) == 0)
     {
@@ -622,50 +644,40 @@ SrvExecuteLockContextAsyncCB(
 
         LWIO_LOCK_MUTEX(bInLock, &pLockRequest->mutex);
 
-        if (!pLockRequest->bExpired && !pLockRequest->bResponseSent)
+        for (; iCtx < pLockRequest->usNumLocks; iCtx++)
         {
-            for (; iCtx < pLockRequest->usNumLocks; iCtx++)
+            PSRV_SMB_LOCK_CONTEXT pIter = &pLockRequest->pLockContexts[iCtx];
+
+            if (pIter->ioStatusBlock.Status != STATUS_SUCCESS)
             {
-                PSRV_SMB_LOCK_CONTEXT pIter = &pLockRequest->pLockContexts[iCtx];
+                bSuccess = FALSE;
 
-                if (pIter->ioStatusBlock.Status != STATUS_SUCCESS)
-                {
-                    bSuccess = FALSE;
-                    break;
-                }
+                pLockRequest->ioStatusBlock = pIter->ioStatusBlock;
+
+                break;
             }
-
-            if (bSuccess)
-            {
-                ntStatus = SrvBuildLockingAndXResponse(
-                                pLockRequest,
-                                &pSmbResponse);
-                BAIL_ON_NT_STATUS(ntStatus);
-            }
-            else
-            {
-                SrvClearLocks_inlock(pLockRequest);
-
-                ntStatus = SrvProtocolBuildErrorResponse(
-                                pLockRequest->pConnection,
-                                COM_LOCKING_ANDX,
-                                pLockRequest->usTid,
-                                pLockRequest->usPid,
-                                pLockRequest->usUid,
-                                pLockRequest->usMid,
-                                STATUS_FILE_LOCK_CONFLICT,
-                                &pSmbResponse);
-            }
-
-            pSmbResponse->sequence = pLockRequest->ulResponseSequence;
-
-            ntStatus = SrvTransportSendResponse(
-                                pLockRequest->pConnection,
-                                pSmbResponse);
-            BAIL_ON_NT_STATUS(ntStatus);
-
-            pLockRequest->bResponseSent = TRUE;
         }
+
+        if (bSuccess)
+        {
+            pLockRequest->ioStatusBlock.Status = STATUS_SUCCESS;
+        }
+        else
+        {
+            SrvClearLocks_inlock(pLockRequest);
+        }
+
+        pLockRequest->bCompleted = TRUE;
+
+        pExecContext = pLockRequest->pExecContext_async;
+        pLockRequest->pExecContext_async = NULL;
+
+        LWIO_UNLOCK_MUTEX(bInLock, &pLockRequest->mutex);
+
+        ntStatus = SrvProdConsEnqueue(
+                        gProtocolGlobals_SMB_V1.pWorkQueue,
+                        pExecContext);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
 cleanup:
@@ -677,18 +689,19 @@ cleanup:
 
     LWIO_UNLOCK_MUTEX(bInLock, &pLockRequest->mutex);
 
-    if (pSmbResponse)
-    {
-        SMBPacketRelease(
-                pLockRequest->pConnection->hPacketAllocator,
-                pSmbResponse);
-    }
-
     SrvReleaseLockRequest(pLockRequest);
 
     return;
 
 error:
+
+    if (pExecContext)
+    {
+        SrvReleaseExecContext(pExecContext);
+    }
+
+    LWIO_LOG_ERROR("Failed to enqueue execution context [status:0x%x]",
+                     ntStatus);
 
     goto cleanup;
 }
@@ -758,6 +771,9 @@ SrvLockFile_inlock(
     )
 {
     NTSTATUS ntStatus = 0;
+    PSRV_EXEC_CONTEXT pExecContext = pLockContext->pLockRequest->pExecContext_async;
+    PSRV_PROTOCOL_EXEC_CONTEXT pProtocolContext = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1 = pProtocolContext->pSmb1Context;
     LONG64   llOffset = 0;
     LONG64   llLength = 0;
 
@@ -790,14 +806,14 @@ SrvLockFile_inlock(
 
         case SRV_SMB_LOCK_TYPE_UNKNOWN:
 
-            ntStatus = STATUS_DATA_ERROR;
+            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
             BAIL_ON_NT_STATUS(ntStatus);
 
             break;
     }
 
     ntStatus = IoLockFile(
-                    pLockContext->pLockRequest->pFile->hFile,
+                    pCtxSmb1->pFile->hFile,
                     pLockContext->pAcb,
                     &pLockContext->ioStatusBlock,
                     llOffset,
@@ -832,6 +848,9 @@ SrvUnlockFile_inlock(
     )
 {
     NTSTATUS ntStatus = 0;
+    PSRV_EXEC_CONTEXT pExecContext = pLockContext->pLockRequest->pExecContext_async;
+    PSRV_PROTOCOL_EXEC_CONTEXT pProtocolContext = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1 = pProtocolContext->pSmb1Context;
     LONG64   llOffset = 0;
     LONG64   llLength = 0;
 
@@ -864,14 +883,14 @@ SrvUnlockFile_inlock(
 
         case SRV_SMB_LOCK_TYPE_UNKNOWN:
 
-            ntStatus = STATUS_DATA_ERROR;
+            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
             BAIL_ON_NT_STATUS(ntStatus);
 
             break;
     }
 
     ntStatus = IoUnlockFile(
-                    pLockContext->pLockRequest->pFile->hFile,
+                    pCtxSmb1->pFile->hFile,
                     pLockContext->pAcb,
                     &pLockContext->ioStatusBlock,
                     llOffset,
@@ -900,60 +919,63 @@ error:
 static
 NTSTATUS
 SrvBuildLockingAndXResponse(
-    PSRV_SMB_LOCK_REQUEST pLockRequest,
-    PSMB_PACKET*          ppSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB_LOCKING_ANDX_RESPONSE_HEADER pResponseHeader = NULL;
-    PLWIO_SRV_CONNECTION pConnection = pLockRequest->pConnection;
-    USHORT usNumPackageBytesUsed = 0;
-    PSMB_PACKET pSmbResponse = NULL;
+    PLWIO_SRV_CONNECTION       pConnection  = pExecContext->pConnection;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
+    ULONG                      iMsg         = pCtxSmb1->iMsg;
+    PSRV_MESSAGE_SMB_V1        pSmbRequest  = &pCtxSmb1->pRequests[iMsg];
+    PSRV_MESSAGE_SMB_V1        pSmbResponse = &pCtxSmb1->pResponses[iMsg];
+    PSMB_LOCKING_ANDX_RESPONSE_HEADER pResponseHeader = NULL; // Do not free
+    PBYTE pOutBuffer           = pSmbResponse->pBuffer;
+    ULONG ulBytesAvailable     = pSmbResponse->ulBytesAvailable;
+    ULONG ulOffset             = 0;
+    USHORT usBytesUsed          = 0;
+    ULONG ulTotalBytesUsed     = 0;
 
-    ntStatus = SMBPacketAllocate(
-                    pConnection->hPacketAllocator,
-                    &pSmbResponse);
+    ntStatus = SrvMarshalHeader_SMB_V1(
+                    pOutBuffer,
+                    ulOffset,
+                    ulBytesAvailable,
+                    COM_LOCKING_ANDX,
+                    STATUS_SUCCESS,
+                    TRUE,
+                    pCtxSmb1->pTree->tid,
+                    pSmbRequest->pHeader->pid,
+                    pCtxSmb1->pSession->uid,
+                    pSmbRequest->pHeader->mid,
+                    pConnection->serverProperties.bRequireSecuritySignatures,
+                    &pSmbResponse->pHeader,
+                    &pSmbResponse->pAndXHeader,
+                    &pSmbResponse->usHeaderSize);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBPacketBufferAllocate(
-                    pConnection->hPacketAllocator,
-                    64 * 1024,
-                    &pSmbResponse->pRawBuffer,
-                    &pSmbResponse->bufferLen);
-    BAIL_ON_NT_STATUS(ntStatus);
+    pOutBuffer       += pSmbResponse->usHeaderSize;
+    ulOffset         += pSmbResponse->usHeaderSize;
+    ulBytesAvailable -= pSmbResponse->usHeaderSize;
+    ulTotalBytesUsed += pSmbResponse->usHeaderSize;
 
-    ntStatus = SMBPacketMarshallHeader(
-                pSmbResponse->pRawBuffer,
-                pSmbResponse->bufferLen,
-                COM_LOCKING_ANDX,
-                0,
-                TRUE,
-                pLockRequest->usTid,
-                pLockRequest->usPid,
-                pLockRequest->usUid,
-                pLockRequest->usMid,
-                pConnection->serverProperties.bRequireSecuritySignatures,
-                pSmbResponse);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pSmbResponse->pSMBHeader->wordCount = 2;
+    pSmbResponse->pHeader->wordCount = 2;
 
     ntStatus = WireMarshallLockingAndXResponse(
-                    pSmbResponse->pParams,
-                    pSmbResponse->bufferLen - pSmbResponse->bufferUsed,
-                    (PBYTE)pSmbResponse->pParams - (PBYTE)pSmbResponse->pSMBHeader,
+                    pOutBuffer,
+                    ulBytesAvailable,
+                    ulOffset,
                     &pResponseHeader,
-                    &usNumPackageBytesUsed);
+                    &usBytesUsed);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pResponseHeader->usByteCount = 0;
 
-    pSmbResponse->bufferUsed += usNumPackageBytesUsed;
+    // pOutBuffer       += usBytesUsed;
+    // ulOffset         += usBytesUsed;
+    // ulBytesAvailable -= usBytesUsed;
+    ulTotalBytesUsed += usBytesUsed;
 
-    ntStatus = SMBPacketMarshallFooter(pSmbResponse);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    *ppSmbResponse = pSmbResponse;
+    pSmbResponse->ulMessageSize = ulTotalBytesUsed;
 
 cleanup:
 
@@ -961,12 +983,14 @@ cleanup:
 
 error:
 
-    *ppSmbResponse = NULL;
-
-    if (pSmbResponse)
+    if (ulTotalBytesUsed)
     {
-        SMBPacketRelease(pConnection->hPacketAllocator, pSmbResponse);
+        pSmbResponse->pHeader = NULL;
+        pSmbResponse->pAndXHeader = NULL;
+        memset(pSmbResponse->pBuffer, 0, ulTotalBytesUsed);
     }
+
+    pSmbResponse->ulMessageSize = 0;
 
     goto cleanup;
 }

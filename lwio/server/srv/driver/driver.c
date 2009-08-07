@@ -241,10 +241,18 @@ SrvInitialize(
 
     gSMBSrvGlobals.config.ulMaxNumPackets = LWIO_SRV_DEFAULT_NUM_MAX_PACKETS;
     gSMBSrvGlobals.config.ulNumWorkers = LWIO_SRV_DEFAULT_NUM_WORKERS;
+    gSMBSrvGlobals.config.ulMaxNumWorkItemsInQueue =
+                                        LWIO_SRV_DEFAULT_NUM_MAX_QUEUE_ITEMS;
 
     ntStatus = SMBPacketCreateAllocator(
                     gSMBSrvGlobals.config.ulMaxNumPackets,
                     &gSMBSrvGlobals.hPacketAllocator);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvProdConsInitContents(
+                    &gSMBSrvGlobals.workQueue,
+                    gSMBSrvGlobals.config.ulMaxNumWorkItemsInQueue,
+                    &SrvReleaseExecContextHandle);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvShareInit();
@@ -259,12 +267,13 @@ SrvInitialize(
     ntStatus = SrvElementsInit();
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvProtocolInit();
+    ntStatus = SrvProtocolInit(&gSMBSrvGlobals.workQueue);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvTransportInit(
                     gSMBSrvGlobals.hPacketAllocator,
-                    &gSMBSrvGlobals.shareList);
+                    &gSMBSrvGlobals.shareList,
+                    &gSMBSrvGlobals.workQueue);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvAllocateMemory(
@@ -434,6 +443,8 @@ SrvShutdown(
 
             SrvCCBRelease(pCCB);
         }
+
+        SrvProdConsFreeContents(&gSMBSrvGlobals.workQueue);
     }
 
     if (gSMBSrvGlobals.pMutex)

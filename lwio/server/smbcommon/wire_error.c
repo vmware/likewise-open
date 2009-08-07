@@ -36,13 +36,13 @@ WireMarshallErrorResponse(
     ULONG                   ulBytesAvailable,
     ULONG                   ulOffset,
     PERROR_RESPONSE_HEADER* ppResponseHeader,
-    PULONG                  pulParamBytesUsed
+    PUSHORT                 pusParamBytesUsed
     )
 {
     NTSTATUS ntStatus = 0;
     PBYTE pDataCursor = pParams;
     PERROR_RESPONSE_HEADER pResponseHeader = NULL;
-    ULONG ulParamBytesUsed = 0;
+    USHORT usParamBytesUsed = 0;
 
     if (ulBytesAvailable < sizeof(ERROR_RESPONSE_HEADER))
     {
@@ -53,12 +53,12 @@ WireMarshallErrorResponse(
     pResponseHeader = (PERROR_RESPONSE_HEADER)pDataCursor;
 
     pDataCursor += sizeof(ERROR_RESPONSE_HEADER);
-    ulParamBytesUsed += sizeof(ERROR_RESPONSE_HEADER);
+    usParamBytesUsed += sizeof(ERROR_RESPONSE_HEADER);
     // ulBytesAvailable -= sizeof(ERROR_RESPONSE_HEADER);
     // ulOffset += sizeof(ERROR_RESPONSE_HEADER);
 
     *ppResponseHeader = pResponseHeader;
-    *pulParamBytesUsed = ulParamBytesUsed;
+    *pusParamBytesUsed = usParamBytesUsed;
 
 cleanup:
 
@@ -67,7 +67,7 @@ cleanup:
 error:
 
     *ppResponseHeader = NULL;
-    *pulParamBytesUsed = 0;
+    *pusParamBytesUsed = 0;
 
     goto cleanup;
 }

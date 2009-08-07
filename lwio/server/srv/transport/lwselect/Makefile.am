@@ -6,7 +6,6 @@ libsrv_transport_select_la_SOURCES = \
     listener.c      \
     reader.c        \
     srvconnection.c \
-    srvcontext.c    \
     srvsocket.c
 
 libsrv_transport_select_la_CPPFLAGS = \

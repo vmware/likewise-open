@@ -88,13 +88,7 @@ typedef struct _SRV_SMB_LOCK_REQUEST
     pthread_mutex_t       mutex;
     pthread_mutex_t*      pMutex;
 
-    PLWIO_SRV_FILE        pFile;
-    PLWIO_SRV_CONNECTION  pConnection;
-
-    USHORT                usTid;
-    USHORT                usMid;
-    USHORT                usUid;
-    USHORT                usPid;
+    IO_STATUS_BLOCK       ioStatusBlock;
 
     ULONG                 ulTimeout;
 
@@ -106,11 +100,13 @@ typedef struct _SRV_SMB_LOCK_REQUEST
     LONG                  lPendingContexts;
 
     BOOLEAN               bExpired;
+    BOOLEAN               bCompleted;
     BOOLEAN               bResponseSent;
 
     PSRV_TIMER_REQUEST    pTimerRequest;
 
-    ULONG                 ulResponseSequence;
+    PSRV_EXEC_CONTEXT     pExecContext_timer;
+    PSRV_EXEC_CONTEXT     pExecContext_async;
 
 } SRV_SMB_LOCK_REQUEST;
 
@@ -121,13 +117,9 @@ typedef struct _SRV_SMB_CREATE_REQUEST
     pthread_mutex_t         mutex;
     pthread_mutex_t*        pMutex;
 
-    PLWIO_SRV_CONNECTION    pConnection;
-    PLWIO_SRV_SESSION       pSession;
-    PLWIO_SRV_TREE          pTree;
-    PLWIO_SRV_FILE          pFile;
     PVOID                   pSecurityDescriptor;
     PVOID                   pSecurityQOS;
-    PWSTR                   pwszFilename;
+    PWSTR                   pwszFilename; // Do not free
     PIO_FILE_NAME           pFilename;
     PIO_ECP_LIST            pEcpList;
     IO_FILE_HANDLE          hFile;
@@ -137,17 +129,12 @@ typedef struct _SRV_SMB_CREATE_REQUEST
 
     IO_STATUS_BLOCK         ioStatusBlock;
 
-    USHORT                  usMid;
-    USHORT                  usPid;
-
     ULONG                   ulDesiredAccess;
     LONG64                  llAllocationSize;
     ULONG                   ulExtFileAttributes;
     ULONG                   ulShareAccess;
     ULONG                   ulCreateDisposition;
     ULONG                   ulCreateOptions;
-
-    ULONG                   ulResponseSequence;
 
 } SRV_SMB_CREATE_REQUEST, *PSRV_SMB_CREATE_REQUEST;
 
@@ -158,27 +145,10 @@ typedef struct _SRV_SMB_READ_REQUEST
     pthread_mutex_t         mutex;
     pthread_mutex_t*        pMutex;
 
-    PLWIO_SRV_CONNECTION    pConnection;
-    PLWIO_SRV_FILE          pFile;
-
     IO_ASYNC_CONTROL_BLOCK  acb;
     PIO_ASYNC_CONTROL_BLOCK pAcb;
 
     IO_STATUS_BLOCK         ioStatusBlock;
-
-    USHORT                  usTid;
-    USHORT                  usMid;
-    USHORT                  usUid;
-    USHORT                  usPid;
-
-    ULONG                   ulTimeout;
-
-    BOOLEAN                 bExpired;
-    BOOLEAN                 bResponseSent;
-
-    PSRV_TIMER_REQUEST      pTimerRequest;
-
-    ULONG                   ulResponseSequence;
 
 } SRV_SMB_READ_REQUEST, *PSRV_SMB_READ_REQUEST;
 
@@ -189,67 +159,42 @@ typedef struct _SRV_SMB_WRITE_REQUEST
     pthread_mutex_t         mutex;
     pthread_mutex_t*        pMutex;
 
-    PLWIO_SRV_CONNECTION    pConnection;
-    PLWIO_SRV_FILE          pFile;
-
     IO_ASYNC_CONTROL_BLOCK  acb;
     PIO_ASYNC_CONTROL_BLOCK pAcb;
 
     IO_STATUS_BLOCK         ioStatusBlock;
 
-    USHORT                  usTid;
-    USHORT                  usMid;
-    USHORT                  usUid;
-    USHORT                  usPid;
-
-    ULONG                   ulTimeout;
-
-    BOOLEAN                 bExpired;
-    BOOLEAN                 bResponseSent;
-
-    PSRV_TIMER_REQUEST      pTimerRequest;
-
-    ULONG                   ulResponseSequence;
-
 } SRV_SMB_WRITE_REQUEST, *PSRV_SMB_WRITE_REQUEST;
-
-typedef struct _SRV_ASYNC_CONTEXT_SMB_V1
-{
-    USHORT usCommand;
-
-    union
-    {
-        PSRV_SMB_LOCK_REQUEST   pLockRequest;
-        PSRV_SMB_CREATE_REQUEST pCreateRequest;
-        PSRV_SMB_READ_REQUEST   pReadRequest;
-        PSRV_SMB_WRITE_REQUEST  pWriteRequest;
-    } data;
-
-} SRV_ASYNC_CONTEXT_SMB_V1, *PSRV_ASYNC_CONTEXT_SMB_V1;
 
 typedef VOID (*PFN_SRV_MESSAGE_STATE_RELEASE_SMB_V1)(HANDLE hState);
 
 typedef struct __SRV_MESSAGE_SMB_V1
 {
-    PSMB_HEADER pHeader;
-    PBYTE       pParams;
-    PBYTE       pData;
-    ULONG       ulMessageSize;
+    PBYTE        pBuffer;
+    PSMB_HEADER  pHeader;
+    PANDX_HEADER pAndXHeader;
+    USHORT       usHeaderSize;
+    ULONG        ulMessageSize;
+
+    ULONG        ulBytesAvailable;
 
 } SRV_MESSAGE_SMB_V1, *PSRV_MESSAGE_SMB_V1;
 
 typedef struct _SRV_EXEC_CONTEXT_SMB_V1
 {
-    PSRV_MESSAGE_SMB_V1           pMessageArray;
-    ULONG                         ulNumMessages;
-    ULONG                         ulMessageCursor;
+    PSRV_MESSAGE_SMB_V1                  pRequests;
+    ULONG                                ulNumRequests;
+    ULONG                                iMsg;
 
-    PLWIO_SRV_SESSION             pSession;
-    PLWIO_SRV_TREE                pTree;
-    PLWIO_SRV_FILE                pFile;
+    PLWIO_SRV_SESSION                    pSession;
+    PLWIO_SRV_TREE                       pTree;
+    PLWIO_SRV_FILE                       pFile;
 
     HANDLE                               hState;
     PFN_SRV_MESSAGE_STATE_RELEASE_SMB_V1 pfnStateRelease;
+
+    ULONG                                ulNumResponses;
+    PSRV_MESSAGE_SMB_V1                  pResponses;
 
 } SRV_EXEC_CONTEXT_SMB_V1;
 
@@ -257,7 +202,7 @@ typedef struct _SRV_RUNTIME_GLOBALS_SMB_V1
 {
     pthread_mutex_t         mutex;
 
-    PSMB_PROD_CONS_QUEUE    pAsyncWorkQueue;
+    PSMB_PROD_CONS_QUEUE    pWorkQueue;
 
 } SRV_RUNTIME_GLOBALS_SMB_V1, *PSRV_RUNTIME_GLOBALS_SMB_V1;
 

@@ -30,112 +30,74 @@
 
 #include "includes.h"
 
-static
-NTSTATUS
-SrvBuildTreeDisconnectResponse(
-    IN  PLWIO_SRV_CONNECTION pConnection,
-    IN  PSMB_PACKET          pSmbRequest,
-    OUT PSMB_PACKET*         ppSmbResponse
-    );
-
 NTSTATUS
 SrvProcessTreeDisconnectAndX(
-    IN  PLWIO_SRV_CONNECTION pConnection,
-    IN  PSMB_PACKET          pSmbRequest,
-    OUT PSMB_PACKET*         ppSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB_PACKET pSmbResponse = NULL;
-    PLWIO_SRV_SESSION pSession = NULL;
+    PLWIO_SRV_CONNECTION       pConnection  = pExecContext->pConnection;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
+    ULONG                      iMsg         = pCtxSmb1->iMsg;
+    PSRV_MESSAGE_SMB_V1        pSmbRequest  = &pCtxSmb1->pRequests[iMsg];
+    PSRV_MESSAGE_SMB_V1        pSmbResponse = &pCtxSmb1->pResponses[iMsg];
+    PBYTE pOutBuffer           = pSmbResponse->pBuffer;
+    ULONG ulBytesAvailable     = pSmbResponse->ulBytesAvailable;
+    ULONG ulOffset             = 0;
+    ULONG ulTotalBytesUsed     = 0;
+    PTREE_DISCONNECT_RESPONSE_HEADER pResponseHeader = NULL; // Do not free
+    PLWIO_SRV_SESSION                pSession = NULL;
 
-    ntStatus = SrvConnectionFindSession(
+    ntStatus = SrvConnectionFindSession_SMB_V1(
+                    pCtxSmb1,
                     pConnection,
-                    pSmbRequest->pSMBHeader->uid,
+                    pSmbRequest->pHeader->uid,
                     &pSession);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvSessionRemoveTree(
-                    pSession,
-                    pSmbRequest->pSMBHeader->tid);
+    ntStatus = SrvSessionRemoveTree(pSession, pSmbRequest->pHeader->tid);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvBuildTreeDisconnectResponse(
-                    pConnection,
-                    pSmbRequest,
-                    &pSmbResponse);
+    ntStatus = SrvMarshalHeader_SMB_V1(
+                    pOutBuffer,
+                    ulOffset,
+                    ulBytesAvailable,
+                    COM_TREE_DISCONNECT,
+                    STATUS_SUCCESS,
+                    TRUE,
+                    pSmbRequest->pHeader->tid,
+                    pSmbRequest->pHeader->pid,
+                    pSession->uid,
+                    pSmbRequest->pHeader->mid,
+                    pConnection->serverProperties.bRequireSecuritySignatures,
+                    &pSmbResponse->pHeader,
+                    &pSmbResponse->pAndXHeader,
+                    &pSmbResponse->usHeaderSize);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    *ppSmbResponse = pSmbResponse;
+    pOutBuffer       += pSmbResponse->usHeaderSize;
+    ulOffset         += pSmbResponse->usHeaderSize;
+    ulBytesAvailable -= pSmbResponse->usHeaderSize;
+    ulTotalBytesUsed += pSmbResponse->usHeaderSize;
 
-cleanup:
+    pSmbResponse->pHeader->wordCount = 0;
 
-    return (ntStatus);
-
-error:
-
-    *ppSmbResponse = NULL;
-
-    if (pSmbResponse)
+    if (ulBytesAvailable < sizeof(TREE_DISCONNECT_RESPONSE_HEADER))
     {
-        SMBPacketRelease(
-            pConnection->hPacketAllocator,
-            pSmbResponse);
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    goto cleanup;
-}
-
-static
-NTSTATUS
-SrvBuildTreeDisconnectResponse(
-    IN  PLWIO_SRV_CONNECTION pConnection,
-    IN  PSMB_PACKET          pSmbRequest,
-    OUT PSMB_PACKET*         ppSmbResponse
-    )
-{
-    NTSTATUS ntStatus = 0;
-    PSMB_PACKET pSmbResponse = NULL;
-    PTREE_DISCONNECT_RESPONSE_HEADER pResponseHeader = NULL;
-
-    ntStatus = SMBPacketAllocate(
-                    pConnection->hPacketAllocator,
-                    &pSmbResponse);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SMBPacketBufferAllocate(
-                    pConnection->hPacketAllocator,
-                    64 * 1024,
-                    &pSmbResponse->pRawBuffer,
-                    &pSmbResponse->bufferLen);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SMBPacketMarshallHeader(
-                pSmbResponse->pRawBuffer,
-                pSmbResponse->bufferLen,
-                COM_TREE_DISCONNECT,
-                0,
-                TRUE,
-                pSmbRequest->pSMBHeader->tid,
-                pSmbRequest->pSMBHeader->pid,
-                pSmbRequest->pSMBHeader->uid,
-                pSmbRequest->pSMBHeader->mid,
-                pConnection->serverProperties.bRequireSecuritySignatures,
-                pSmbResponse);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pSmbResponse->pSMBHeader->wordCount = 0;
-
-    pResponseHeader = (PTREE_DISCONNECT_RESPONSE_HEADER)pSmbResponse->pParams;
-    pSmbResponse->pData = pSmbResponse->pParams + sizeof(TREE_DISCONNECT_RESPONSE_HEADER);
-    pSmbResponse->bufferUsed += sizeof(TREE_DISCONNECT_RESPONSE_HEADER);
-
+    pResponseHeader = (PTREE_DISCONNECT_RESPONSE_HEADER)pOutBuffer;
     pResponseHeader->byteCount = 0;
 
-    ntStatus = SMBPacketMarshallFooter(pSmbResponse);
-    BAIL_ON_NT_STATUS(ntStatus);
+    // pOutBuffer       += sizeof(TREE_DISCONNECT_RESPONSE_HEADER);
+    // ulOffset         += sizeof(TREE_DISCONNECT_RESPONSE_HEADER);
+    // ulBytesAvailable -= sizeof(TREE_DISCONNECT_RESPONSE_HEADER);
+    ulTotalBytesUsed += sizeof(TREE_DISCONNECT_RESPONSE_HEADER);
 
-    *ppSmbResponse = pSmbResponse;
+    pSmbResponse->ulMessageSize = ulTotalBytesUsed;
 
 cleanup:
 
@@ -143,13 +105,16 @@ cleanup:
 
 error:
 
-    if (pSmbResponse)
+    if (ulTotalBytesUsed)
     {
-        SMBPacketRelease(
-            pConnection->hPacketAllocator,
-            pSmbResponse);
+        pSmbResponse->pHeader = NULL;
+        pSmbResponse->pAndXHeader = NULL;
+        memset(pSmbResponse->pBuffer, 0, ulTotalBytesUsed);
     }
+
+    pSmbResponse->ulMessageSize = 0;
 
     goto cleanup;
 }
+
 

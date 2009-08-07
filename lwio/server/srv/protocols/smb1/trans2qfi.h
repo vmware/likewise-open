@@ -32,46 +32,36 @@
 
 NTSTATUS
 SrvProcessTrans2QueryFileInformation(
-    PLWIO_SRV_CONNECTION         pConnection,
-    PSMB_PACKET                 pSmbRequest,
+    PSRV_EXEC_CONTEXT           pExecContext,
     PTRANSACTION_REQUEST_HEADER pRequestHeader,
     PUSHORT                     pSetup,
     PUSHORT                     pByteCount,
     PBYTE                       pParameters,
-    PBYTE                       pData,
-    PSMB_PACKET*                ppSmbResponse
+    PBYTE                       pData
     );
 
 NTSTATUS
 SrvBuildQueryFileBasicInfoResponse(
-    PLWIO_SRV_CONNECTION pConnection,
-    PSMB_PACKET         pSmbRequest,
-    IO_FILE_HANDLE      hFile,
-    PSMB_PACKET*        ppSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext,
+    IO_FILE_HANDLE    hFile
     );
 
 NTSTATUS
 SrvBuildQueryFileStandardInfoResponse(
-    PLWIO_SRV_CONNECTION pConnection,
-    PSMB_PACKET         pSmbRequest,
-    IO_FILE_HANDLE      hFile,
-    PSMB_PACKET*        ppSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext,
+    IO_FILE_HANDLE    hFile
     );
 
 NTSTATUS
 SrvBuildQueryFileEAInfoResponse(
-    PLWIO_SRV_CONNECTION pConnection,
-    PSMB_PACKET         pSmbRequest,
-    IO_FILE_HANDLE      hFile,
-    PSMB_PACKET*        ppSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext,
+    IO_FILE_HANDLE    hFile
     );
 
 NTSTATUS
 SrvBuildQueryFileStreamInfoResponse(
-    PLWIO_SRV_CONNECTION pConnection,
-    PSMB_PACKET         pSmbRequest,
-    IO_FILE_HANDLE      hFile,
-    PSMB_PACKET*        ppSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext,
+    IO_FILE_HANDLE    hFile
     );
 
 #endif /* __SRV_TRANS2QFI_H__ */

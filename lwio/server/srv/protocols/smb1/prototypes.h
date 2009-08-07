@@ -50,118 +50,118 @@
 #ifndef __PROTOTYPES_H__
 #define __PROTOTYPES_H__
 
-VOID
-SrvExecuteAsyncRequest_SMB_V1(
-    PVOID pData
-    );
-
-VOID
-SrvReleaseAsyncRequest_SMB_V1(
-    PVOID pData
-    );
+// checkdir.c
 
 NTSTATUS
 SrvProcessCheckDirectory(
-    IN  PLWIO_SRV_CONNECTION pConnection,
-    IN  PSMB_PACKET          pSmbRequest,
-    OUT PSMB_PACKET*         ppSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext
     );
+
+// close.c
 
 NTSTATUS
 SrvProcessCloseAndX(
-    IN  PLWIO_SRV_CONNECTION pConneciton,
-    IN  PSMB_PACKET          pSmbRequest,
-    OUT PSMB_PACKET*         ppSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext
     );
+
+// connection.c
+
+NTSTATUS
+SrvConnectionFindSession_SMB_V1(
+    PSRV_EXEC_CONTEXT_SMB_V1 pSmb1Context,
+    PLWIO_SRV_CONNECTION     pConnection,
+    USHORT                   usUid,
+    PLWIO_SRV_SESSION*       ppSession
+    );
+
+// createdir.c
 
 NTSTATUS
 SrvProcessCreateDirectory(
-    IN  PLWIO_SRV_CONNECTION pConnection,
-    IN  PSMB_PACKET          pSmbRequest,
-    OUT PSMB_PACKET*         ppSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext
     );
+
+// createx.c
 
 NTSTATUS
 SrvProcessNTCreateAndX(
-    IN  PLWIO_SRV_CONNECTION pConnection,
-    IN  PSMB_PACKET          pSmbRequest,
-    OUT PSMB_PACKET*         ppSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext
     );
 
-VOID
-SrvExecuteCreateRequest(
-    PSRV_SMB_CREATE_REQUEST pCreateRequest
-    );
-
-VOID
-SrvReleaseCreateRequest(
-    PSRV_SMB_CREATE_REQUEST pCreateRequest
-    );
+// deldir.c
 
 NTSTATUS
 SrvProcessDeleteDirectory(
-    IN  PLWIO_SRV_CONNECTION pConnection,
-    IN  PSMB_PACKET          pSmbRequest,
-    OUT PSMB_PACKET*         ppSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext
     );
+
+// delete.c
 
 NTSTATUS
 SrvProcessDelete(
-    IN  PLWIO_SRV_CONNECTION pConnection,
-    IN  PSMB_PACKET          pSmbRequest,
-    OUT PSMB_PACKET*         ppSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext
     );
+
+// echo.c
 
 NTSTATUS
 SrvProcessEchoAndX(
-    IN  PLWIO_SRV_CONNECTION pConnection,
-    IN  PSMB_PACKET          pSmbRequest,
-    OUT PSMB_PACKET*         ppSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext
     );
+
+// findfirst2.c
 
 NTSTATUS
 SrvProcessTrans2FindFirst2(
-    IN  PLWIO_SRV_CONNECTION        pConnection,
-    IN  PSMB_PACKET                 pSmbRequest,
+    IN  PSRV_EXEC_CONTEXT           pExecContext,
     IN  PTRANSACTION_REQUEST_HEADER pRequestHeader,
     IN  PUSHORT                     pSetup,
     IN  PUSHORT                     pByteCount,
     IN  PBYTE                       pParameters,
-    IN  PBYTE                       pData,
-    OUT PSMB_PACKET*                ppSmbResponse
+    IN  PBYTE                       pData
     );
+
+// findnext2.c
 
 NTSTATUS
 SrvProcessTrans2FindNext2(
-    IN  PLWIO_SRV_CONNECTION         pConnection,
-    IN  PSMB_PACKET                 pSmbRequest,
+    IN  PSRV_EXEC_CONTEXT           pExecContext,
     IN  PTRANSACTION_REQUEST_HEADER pRequestHeader,
     IN  PUSHORT                     pSetup,
     IN  PUSHORT                     pByteCount,
     IN  PBYTE                       pParameters,
-    IN  PBYTE                       pData,
-    OUT PSMB_PACKET*                ppSmbResponse
+    IN  PBYTE                       pData
     );
+
+// findclose2.c
 
 NTSTATUS
 SrvProcessFindClose2(
-    IN  PLWIO_SRV_CONNECTION pConnection,
-    IN  PSMB_PACKET          pSmbRequest,
-    OUT PSMB_PACKET*         ppSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext
     );
+
+// flush.c
 
 NTSTATUS
 SrvProcessFlush(
-    IN  PLWIO_SRV_CONNECTION pConnection,
-    IN  PSMB_PACKET          pSmbRequest,
-    OUT PSMB_PACKET*         ppSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext
     );
+
+// libmain.c
+
+NTSTATUS
+SrvBuildErrorResponse_SMB_V1(
+    PLWIO_SRV_CONNECTION pConnection,
+    PSMB_HEADER          pRequestHeader,
+    NTSTATUS             errorStatus,
+    PSRV_MESSAGE_SMB_V1  pSmbResponse
+    );
+
+// lockx.c
 
 NTSTATUS
 SrvProcessLockAndX(
-    IN  PLWIO_SRV_CONNECTION pConnection,
-    IN  PSMB_PACKET          pSmbRequest,
-    OUT PSMB_PACKET*         ppSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext
     );
 
 VOID
@@ -169,95 +169,151 @@ SrvReleaseLockRequest(
     PSRV_SMB_LOCK_REQUEST pLockRequest
     );
 
+// logoff.c
+
 NTSTATUS
 SrvProcessLogoffAndX(
-    IN  PLWIO_SRV_CONNECTION pConnection,
-    IN  PSMB_PACKET          pSmbRequest,
-    OUT PSMB_PACKET*         ppSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext
     );
+
+// nttransact.c
 
 NTSTATUS
 SrvProcessNtTransact(
-    IN  PLWIO_SRV_CONNECTION pConnection,
-    IN  PSMB_PACKET          pSmbRequest,
-    OUT PSMB_PACKET*         ppSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext
     );
+
+// openx.c
 
 NTSTATUS
 SrvProcessOpenAndX(
-    IN  PLWIO_SRV_CONNECTION pConnection,
-    IN  PSMB_PACKET          pSmbRequest,
-    OUT PSMB_PACKET*         ppSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext
     );
+
+// read.c
 
 NTSTATUS
 SrvProcessRead(
-    IN  PLWIO_SRV_CONNECTION pConnection,
-    IN  PSMB_PACKET          pSmbRequest,
-    OUT PSMB_PACKET*         ppSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext
     );
+
+// readx.c
 
 NTSTATUS
 SrvProcessReadAndX(
-    IN  PLWIO_SRV_CONNECTION pConnection,
-    IN  PSMB_PACKET          pSmbRequest,
-    OUT PSMB_PACKET*         ppSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext
     );
+
+// rename.c
 
 NTSTATUS
 SrvProcessRename(
-    IN  PLWIO_SRV_CONNECTION pConnection,
-    IN  PSMB_PACKET          pSmbRequest,
-    OUT PSMB_PACKET*         ppSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext
     );
+
+// session.c
+
+NTSTATUS
+SrvSessionFindTree_SMB_V1(
+    PSRV_EXEC_CONTEXT_SMB_V1 pSmb1Context,
+    PLWIO_SRV_SESSION        pSession,
+    USHORT                   usTid,
+    PLWIO_SRV_TREE*          ppTree
+    );
+
+// sessionsetup.c
 
 NTSTATUS
 SrvProcessSessionSetup(
-    IN  PLWIO_SRV_CONNECTION pConnection,
-    IN  PSMB_PACKET          pSmbRequest,
-    OUT PSMB_PACKET*         ppSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext
     );
+
+// trans.c
 
 NTSTATUS
 SrvProcessTransaction(
-    IN  PLWIO_SRV_CONNECTION pConnection,
-    IN  PSMB_PACKET          pSmbRequest,
-    OUT PSMB_PACKET*         ppSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext
     );
+
+// trans2.c
 
 NTSTATUS
 SrvProcessTransaction2(
-    IN  PLWIO_SRV_CONNECTION pConnection,
-    IN  PSMB_PACKET          pSmbRequest,
-    OUT PSMB_PACKET*         ppSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext
     );
 
+// tree.c
+
 NTSTATUS
-SrvProcessTreeConnectAndX(
-    IN  PLWIO_SRV_CONNECTION pConnection,
-    IN  PSMB_PACKET          pSmbRequest,
-    OUT PSMB_PACKET*         ppSmbResponse
+SrvTreeFindFile_SMB_V1(
+    PSRV_EXEC_CONTEXT_SMB_V1 pSmb1Context,
+    PLWIO_SRV_TREE           pTree,
+    USHORT                   usFid,
+    PLWIO_SRV_FILE*          ppFile
     );
+
+// treedisconnect.c
 
 NTSTATUS
 SrvProcessTreeDisconnectAndX(
-    IN  PLWIO_SRV_CONNECTION pConnection,
-    IN  PSMB_PACKET          pSmbRequest,
-    OUT PSMB_PACKET*         ppSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext
     );
+
+// treeconnect.c
+
+NTSTATUS
+SrvProcessTreeConnectAndX(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+// wire.c
+
+NTSTATUS
+SrvInitPacket_SMB_V1(
+    PSMB_PACKET pSmbPacket,
+    BOOLEAN     bAllowSignature     /* in     */
+    );
+
+NTSTATUS
+SrvMarshalHeader_SMB_V1(
+    PBYTE         pBuffer,
+    ULONG         ulOffset,
+    ULONG         ulBytesAvailable,
+    UCHAR         ucCommand,
+    ULONG         ulError,
+    BOOLEAN       bIsResponse,
+    USHORT        usTid,
+    ULONG         ulPid,
+    USHORT        usUid,
+    USHORT        usMid,
+    BOOLEAN       bCommandAllowsSignature,
+    PSMB_HEADER*  ppHeader,
+    PANDX_HEADER* ppAndXHeader,
+    PUSHORT       pusBytesUsed
+    );
+
+NTSTATUS
+SrvUnmarshalHeader_SMB_V1(
+    PBYTE         pBuffer,
+    ULONG         ulOffset,
+    ULONG         ulBytesAvailable,
+    PSMB_HEADER*  ppHeader,
+    PANDX_HEADER* ppAndXHeader,
+    PUSHORT       pusBytesUsed
+    );
+
+// write.c
 
 NTSTATUS
 SrvProcessWrite(
-    IN  PLWIO_SRV_CONNECTION pConnection,
-    IN  PSMB_PACKET          pSmbRequest,
-    OUT PSMB_PACKET*         ppSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext
     );
+
+// writex.c
 
 NTSTATUS
 SrvProcessWriteAndX(
-    IN  PLWIO_SRV_CONNECTION pConnection,
-    IN  PSMB_PACKET          pSmbRequest,
-    OUT PSMB_PACKET*         ppSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext
     );
 
 #endif /* __PROTOTYPES_H__ */

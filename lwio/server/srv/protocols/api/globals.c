@@ -51,11 +51,9 @@
 
 SRV_PROTOCOL_API_GLOBALS gProtocolApiGlobals =
 {
-    .mutex                         = PTHREAD_MUTEX_INITIALIZER,
-    .bSupportSMB2                  = FALSE,
-    .ulMaxNumAsyncWorkItemsInQueue = SRV_DEFAULT_NUM_MAX_ASYNC_ITEMS_IN_QUEUE,
-    .ulNumAsyncWorkers             = SRV_DEFAULT_NUM_ASYNC_WORKERS,
-    .pAsyncWorkerArray             = NULL
+    .mutex         = PTHREAD_MUTEX_INITIALIZER,
+    .bSupportSMB2  = FALSE,
+    .pWorkQueue    = NULL
 };
 
 

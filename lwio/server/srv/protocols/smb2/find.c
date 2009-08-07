@@ -54,14 +54,12 @@
 static
 NTSTATUS
 SrvFindBothDirInformation(
-    IN     PLWIO_SRV_CONNECTION      pConnection,
-    IN     PSMB2_MESSAGE             pSmbRequest,
-    IN OUT PLWIO_SRV_FILE_2          pFile,
-    IN     PSMB2_FIND_REQUEST_HEADER pRequestHeader,
-    IN OUT PBYTE                     pDataBuffer,
-    IN     ULONG                     ulDataOffset,
-    IN     ULONG                     ulMaxDataLength,
-    IN OUT PULONG                    pulDataLength
+    PSRV_EXEC_CONTEXT         pExecContext,
+    PSMB2_FIND_REQUEST_HEADER pRequestHeader,
+    PBYTE                     pDataBuffer,
+    ULONG                     ulDataOffset,
+    ULONG                     ulMaxDataLength,
+    PULONG                    pulDataLength
     );
 
 static
@@ -78,19 +76,21 @@ SrvMarshalBothDirInfoSearchResults(
 
 NTSTATUS
 SrvProcessFind_SMB_V2(
-    IN     PSMB2_CONTEXT pContext,
-    IN     PSMB2_MESSAGE pSmbRequest,
-    IN OUT PSMB_PACKET   pSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext
     )
 {
     NTSTATUS ntStatus                = STATUS_SUCCESS;
-    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
+    PLWIO_SRV_CONNECTION       pConnection   = pExecContext->pConnection;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    ULONG                      iMsg          = pCtxSmb2->iMsg;
+    PSRV_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
+    PSRV_MESSAGE_SMB_V2        pSmbResponse  = &pCtxSmb2->pResponses[iMsg];
     PLWIO_SRV_SESSION_2 pSession     = NULL;
     PLWIO_SRV_TREE_2    pTree        = NULL;
     PLWIO_SRV_FILE_2    pFile        = NULL;
     PSMB2_FIND_REQUEST_HEADER  pRequestHeader  = NULL; // Do not free
     PSMB2_FIND_RESPONSE_HEADER pResponseHeader = NULL; // Do not free
-    PSMB2_HEADER               pResponseSMBHeader = NULL; // Do not free
     UNICODE_STRING             wszFilename     = {0};
     PWSTR    pwszFilePath       = NULL;
     PWSTR    pwszFilesystemPath = NULL;
@@ -100,23 +100,22 @@ SrvProcessFind_SMB_V2(
     PBYTE    pData             = NULL; // Do not free
     ULONG    ulMaxDataLength   = 0;
     ULONG    ulDataLength      = 0;
-    PBYTE pOutBufferRef   = pSmbResponse->pRawBuffer + pSmbResponse->bufferUsed;
-    PBYTE pOutBuffer       = pOutBufferRef;
-    ULONG ulBytesAvailable = pSmbResponse->bufferLen - pSmbResponse->bufferUsed;
+    PBYTE pOutBuffer       = pSmbResponse->pBuffer;
+    ULONG ulBytesAvailable = pSmbResponse->ulBytesAvailable;
     ULONG ulOffset         = 0;
     ULONG ulDataOffset     = 0;
     ULONG ulBytesUsed      = 0;
     ULONG ulTotalBytesUsed = 0;
 
     ntStatus = SrvConnection2FindSession_SMB_V2(
-                    pContext,
+                    pCtxSmb2,
                     pConnection,
                     pSmbRequest->pHeader->ullSessionId,
                     &pSession);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvSession2FindTree_SMB_V2(
-                    pContext,
+                    pCtxSmb2,
                     pSession,
                     pSmbRequest->pHeader->ulTid,
                     &pTree);
@@ -129,7 +128,7 @@ SrvProcessFind_SMB_V2(
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvTree2FindFile_SMB_V2(
-                    pContext,
+                    pCtxSmb2,
                     pTree,
                     &pRequestHeader->fid,
                     &pFile);
@@ -204,14 +203,14 @@ SrvProcessFind_SMB_V2(
                     STATUS_SUCCESS,
                     TRUE,
                     pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
-                    &pResponseSMBHeader,
-                    &ulBytesUsed);
+                    &pSmbResponse->pHeader,
+                    &pSmbResponse->ulHeaderSize);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ulTotalBytesUsed += ulBytesUsed;
-    pOutBuffer += ulBytesUsed;
-    ulOffset += ulBytesUsed;
-    ulBytesAvailable -= ulBytesUsed;
+    pOutBuffer       += pSmbResponse->ulHeaderSize;
+    ulOffset         += pSmbResponse->ulHeaderSize;
+    ulBytesAvailable -= pSmbResponse->ulHeaderSize;
+    ulTotalBytesUsed += pSmbResponse->ulHeaderSize;
 
     ntStatus = SMB2MarshalFindResponse(
                     pOutBuffer,
@@ -224,12 +223,13 @@ SrvProcessFind_SMB_V2(
                     &ulBytesUsed);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ulTotalBytesUsed += ulBytesUsed;
-    pOutBuffer += ulBytesUsed;
-    ulOffset += ulBytesUsed;
+    pOutBuffer       += ulBytesUsed;
+    ulOffset         += ulBytesUsed;
     ulBytesAvailable -= ulBytesUsed;
+    ulTotalBytesUsed += ulBytesUsed;
 
-    pData = pOutBufferRef + ulDataOffset;
+    pData = pSmbResponse->pBuffer + ulDataOffset;
+
     ulMaxDataLength = SMB_MIN(pRequestHeader->ulOutBufferLength,
                               ulBytesAvailable);
 
@@ -238,9 +238,7 @@ SrvProcessFind_SMB_V2(
         case SMB2_FILE_INFO_CLASS_BOTH_DIR:
 
             ntStatus = SrvFindBothDirInformation(
-                            pConnection,
-                            pSmbRequest,
-                            pFile,
+                            pExecContext,
                             pRequestHeader,
                             pData,
                             ulDataOffset,
@@ -260,7 +258,7 @@ SrvProcessFind_SMB_V2(
     {
         case STATUS_NO_MORE_MATCHES:
 
-            pResponseSMBHeader->error = STATUS_NO_MORE_FILES;
+            pSmbResponse->pHeader->error = STATUS_NO_MORE_FILES;
             pResponseHeader->usOutBufferOffset = 0;
             pResponseHeader->ulOutBufferLength = 0;
 
@@ -284,10 +282,10 @@ SrvProcessFind_SMB_V2(
                     BAIL_ON_NT_STATUS(ntStatus);
                 }
 
-                ulTotalBytesUsed += usAlign;
-                ulDataLength += usAlign;
-                ulOffset += usAlign;
+                ulDataLength     += usAlign;
+                ulOffset         += usAlign;
                 ulBytesAvailable -= usAlign;
+                ulTotalBytesUsed += usAlign;
             }
 
             ntStatus = STATUS_SUCCESS;
@@ -296,10 +294,10 @@ SrvProcessFind_SMB_V2(
 
         case STATUS_SUCCESS:
 
-            ulTotalBytesUsed += ulDataLength;
-            pOutBuffer += ulDataLength;
-            ulOffset += ulDataLength;
+            pOutBuffer       += ulDataLength;
+            ulOffset         += ulDataLength;
             ulBytesAvailable -= ulDataLength;
+            ulTotalBytesUsed += ulDataLength;
 
             pResponseHeader->usOutBufferOffset = ulDataOffset;
             pResponseHeader->ulOutBufferLength = ulDataLength;
@@ -312,7 +310,7 @@ SrvProcessFind_SMB_V2(
     }
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pSmbResponse->bufferUsed += ulTotalBytesUsed;
+    pSmbResponse->ulMessageSize = ulTotalBytesUsed;
 
 cleanup:
 
@@ -355,8 +353,12 @@ error:
 
     if (ulTotalBytesUsed)
     {
-        memset(pOutBufferRef, 0, ulTotalBytesUsed);
+        pSmbResponse->pHeader = NULL;
+        pSmbResponse->ulHeaderSize = 0;
+        memset(pSmbResponse->pBuffer, 0, ulTotalBytesUsed);
     }
+
+    pSmbResponse->ulMessageSize = 0;
 
     goto cleanup;
 }
@@ -364,18 +366,18 @@ error:
 static
 NTSTATUS
 SrvFindBothDirInformation(
-    IN     PLWIO_SRV_CONNECTION      pConnection,
-    IN     PSMB2_MESSAGE             pSmbRequest,
-    IN OUT PLWIO_SRV_FILE_2          pFile,
-    IN     PSMB2_FIND_REQUEST_HEADER pRequestHeader,
-    IN OUT PBYTE                     pDataBuffer,
-    IN     ULONG                     ulDataOffset,
-    IN     ULONG                     ulMaxDataLength,
-    IN OUT PULONG                    pulDataLength
+    PSRV_EXEC_CONTEXT         pExecContext,
+    PSMB2_FIND_REQUEST_HEADER pRequestHeader,
+    PBYTE                     pDataBuffer,
+    ULONG                     ulDataOffset,
+    ULONG                     ulMaxDataLength,
+    PULONG                    pulDataLength
     )
 {
     NTSTATUS ntStatus = 0;
     BOOLEAN  bInLock = FALSE;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
     PBYTE    pData = pDataBuffer;
     ULONG    ulDataLength = 0;
     ULONG    ulSearchResultCount = 0;
@@ -389,9 +391,9 @@ SrvFindBothDirInformation(
     PSMB2_FILE_BOTH_DIR_INFO_HEADER pLastInfoHeader = NULL; // Do not free
     PLWIO_SRV_SEARCH_SPACE_2 pSearchSpace = NULL;
 
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pFile->mutex);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pCtxSmb2->pFile->mutex);
 
-    pSearchSpace = pFile->pSearchSpace;
+    pSearchSpace = pCtxSmb2->pFile->pSearchSpace;
 
     if (!pSearchSpace->pFileInfo)
     {
@@ -430,7 +432,7 @@ SrvFindBothDirInformation(
                 memset(pSearchSpace->pFileInfo, 0x0, pSearchSpace->usFileInfoLen);
 
                 ntStatus = IoQueryDirectoryFile(
-                                pFile->hFile,
+                                pCtxSmb2->pFile->hFile,
                                 NULL,
                                 &ioStatusBlock,
                                 pSearchSpace->pFileInfo,
@@ -493,9 +495,9 @@ SrvFindBothDirInformation(
             }
             else
             {
-                pData += ulBytesUsed;
-                ulDataLength += ulBytesUsed;
-                ulOffset += ulBytesUsed;
+                pData            += ulBytesUsed;
+                ulDataLength     += ulBytesUsed;
+                ulOffset         += ulBytesUsed;
                 ulBytesAvailable -= ulBytesUsed;
             }
 
@@ -518,7 +520,7 @@ SrvFindBothDirInformation(
 
 cleanup:
 
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pFile->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pCtxSmb2->pFile->mutex);
 
     return ntStatus;
 

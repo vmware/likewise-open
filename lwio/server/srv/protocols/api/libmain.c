@@ -52,58 +52,34 @@
 static
 NTSTATUS
 SrvProtocolExecute_SMB_V1_Filter(
-    PLWIO_SRV_CONNECTION pConnection,
-    PSMB_PACKET          pSmbRequest,
-    PSMB_PACKET*         ppSmbResponse
+    PSRV_EXEC_CONTEXT pContext
     );
 
 static
 VOID
-SrvProtocolAsyncContextFree(
-    PVOID pAsyncContext
+SrvProtocolFreeExecContext(
+    PSRV_PROTOCOL_EXEC_CONTEXT pContext
     );
 
 NTSTATUS
 SrvProtocolInit(
-    VOID
+    PSMB_PROD_CONS_QUEUE pWorkQueue
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    ULONG    iWorker = 0;
     BOOLEAN  bSupportSMBV2 = FALSE;
 
-    status = SrvProdConsInitContents(
-                    &gProtocolApiGlobals.asyncWorkQueue,
-                    gProtocolApiGlobals.ulMaxNumAsyncWorkItemsInQueue,
-                    &SrvProtocolAsyncContextFree);
-    BAIL_ON_NT_STATUS(status);
-
-    status = SrvAllocateMemory(
-                    gProtocolApiGlobals.ulNumAsyncWorkers * sizeof(LWIO_SRV_PROTOCOL_WORKER),
-                    (PVOID*)&gProtocolApiGlobals.pAsyncWorkerArray);
-    BAIL_ON_NT_STATUS(status);
-
-    for (; iWorker < gProtocolApiGlobals.ulNumAsyncWorkers; iWorker++)
-    {
-        PLWIO_SRV_PROTOCOL_WORKER pWorker = &gProtocolApiGlobals.pAsyncWorkerArray[iWorker];
-
-        pWorker->workerId = iWorker + 1;
-
-        status = SrvProtocolWorkerInit(
-                        pWorker,
-                        &gProtocolApiGlobals.asyncWorkQueue);
-        BAIL_ON_NT_STATUS(status);
-    }
+    gProtocolApiGlobals.pWorkQueue = pWorkQueue;
 
     status = SrvProtocolConfigSupports_SMB_V2(&bSupportSMBV2);
     BAIL_ON_NT_STATUS(status);
 
-    status = SrvProtocolInit_SMB_V1(&gProtocolApiGlobals.asyncWorkQueue);
+    status = SrvProtocolInit_SMB_V1(pWorkQueue);
     BAIL_ON_NT_STATUS(status);
 
     if (bSupportSMBV2)
     {
-        status = SrvProtocolInit_SMB_V2(&gProtocolApiGlobals.asyncWorkQueue);
+        status = SrvProtocolInit_SMB_V2(pWorkQueue);
         BAIL_ON_NT_STATUS(status);
     }
 
@@ -114,54 +90,77 @@ error:
 
 NTSTATUS
 SrvProtocolExecute(
-    IN  PLWIO_SRV_CONNECTION pConnection,
-    IN  PSMB_PACKET          pSmbRequest
+    PSRV_EXEC_CONTEXT pContext
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSMB_PACKET pSmbResponse = NULL;
 
-    switch (pSmbRequest->protocolVer)
+    if (!pContext->pProtocolContext)
+    {
+        ntStatus = SrvAllocateMemory(
+                        sizeof(SRV_PROTOCOL_EXEC_CONTEXT),
+                        (PVOID*)&pContext->pProtocolContext);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pContext->pProtocolContext->protocolVersion =
+                            pContext->pConnection->protocolVer;
+
+        pContext->pfnFreeContext = &SrvProtocolFreeExecContext;
+    }
+
+    switch (pContext->pSmbRequest->protocolVer)
     {
         case SMB_PROTOCOL_VERSION_1:
 
-            ntStatus = SrvProtocolExecute_SMB_V1_Filter(
-                                pConnection,
-                                pSmbRequest,
-                                &pSmbResponse);
+            ntStatus = SrvProtocolExecute_SMB_V1_Filter(pContext);
 
             break;
 
         case SMB_PROTOCOL_VERSION_2:
 
-            ntStatus = SrvProtocolExecute_SMB_V2(
-                                pConnection,
-                                pSmbRequest,
-                                &pSmbResponse);
+            ntStatus = SrvProtocolExecute_SMB_V2(pContext);
 
             break;
     }
     BAIL_ON_NT_STATUS(ntStatus);
 
-    if (pSmbResponse)
+    if (pContext->pSmbResponse && pContext->pSmbResponse->pNetBIOSHeader->len)
     {
-        /* synchronous response */
-        ntStatus = SrvTransportSendResponse(
-                        pConnection,
-                        pSmbResponse);
-        BAIL_ON_NT_STATUS(ntStatus);
+        ULONG iRepeat = 0;
+
+        //
+        // Note: An echo request might result in duplicates being sent
+        // TODO: Find out if the repeats must have different sequence numbers
+        for (; iRepeat < (pContext->ulNumDuplicates + 1); iRepeat++)
+        {
+            /* synchronous response */
+            ntStatus = SrvTransportSendResponse(
+                            pContext->pConnection,
+                            pContext->pSmbResponse);
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
     }
 
 cleanup:
 
-    if (pSmbResponse)
-    {
-        SMBPacketRelease(pConnection->hPacketAllocator, pSmbResponse);
-    }
-
     return ntStatus;
 
 error:
+
+    switch (ntStatus)
+    {
+        case STATUS_PENDING:
+
+            // Asynchronous processing
+
+            ntStatus = STATUS_SUCCESS;
+
+            break;
+
+        default:
+
+            break;
+    }
 
     goto cleanup;
 }
@@ -169,15 +168,14 @@ error:
 static
 NTSTATUS
 SrvProtocolExecute_SMB_V1_Filter(
-    PLWIO_SRV_CONNECTION pConnection,
-    PSMB_PACKET          pSmbRequest,
-    PSMB_PACKET*         ppSmbResponse
+    PSRV_EXEC_CONTEXT pContext
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSMB_PACKET pSmbResponse = NULL;
+    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
+    PSMB_PACKET pSmbRequest = pContext->pSmbRequest;
 
-    switch (pSmbRequest->pSMBHeader->command)
+    switch (pContext->pSmbRequest->pSMBHeader->command)
     {
         case COM_NEGOTIATE:
 
@@ -197,59 +195,60 @@ SrvProtocolExecute_SMB_V1_Filter(
                 ntStatus = SrvProcessNegotiate(
                                 pConnection,
                                 pSmbRequest,
-                                &pSmbResponse);
+                                &pContext->pSmbResponse);
 
                 if (ntStatus)
                 {
-                    ntStatus = SrvProtocolBuildErrorResponse(
+                    ntStatus = SrvProtocolBuildErrorResponse_SMB_V1(
                                     pConnection,
-                                    pSmbRequest->pSMBHeader->command,
-                                    pSmbRequest->pSMBHeader->tid,
-                                    pSmbRequest->pSMBHeader->pid,
-                                    pSmbRequest->pSMBHeader->uid,
-                                    pSmbRequest->pSMBHeader->mid,
+                                    pSmbRequest->pSMBHeader,
                                     ntStatus,
-                                    &pSmbResponse);
+                                    &pContext->pSmbResponse);
                 }
 
                 break;
 
         default:
 
-                ntStatus = SrvProtocolExecute_SMB_V1(
-                                pConnection,
-                                pSmbRequest,
-                                &pSmbResponse);
+                ntStatus = SrvProtocolExecute_SMB_V1(pContext);
 
                 break;
     }
     BAIL_ON_NT_STATUS(ntStatus);
 
-    *ppSmbResponse = pSmbResponse;
-
-cleanup:
-
-    return ntStatus;
-
 error:
 
-    *ppSmbResponse = NULL;
-
-    if (pSmbResponse)
-    {
-        SMBPacketRelease(pConnection->hPacketAllocator, pSmbResponse);
-    }
-
-    goto cleanup;
+    return ntStatus;
 }
 
 static
 VOID
-SrvProtocolAsyncContextFree(
-    PVOID pAsyncContext
+SrvProtocolFreeExecContext(
+    PSRV_PROTOCOL_EXEC_CONTEXT pProtocolContext
     )
 {
-    SrvProtocolFreeWorkItem((PSRV_PROTOCOL_WORK_ITEM) pAsyncContext);
+    switch (pProtocolContext->protocolVersion)
+    {
+        case SMB_PROTOCOL_VERSION_1:
+
+            if (pProtocolContext->pSmb1Context)
+            {
+                SrvProtocolFreeContext_SMB_V1(pProtocolContext->pSmb1Context);
+            }
+
+            break;
+
+        case SMB_PROTOCOL_VERSION_2:
+
+            if (pProtocolContext->pSmb2Context)
+            {
+                SrvProtocolFreeContext_SMB_V2(pProtocolContext->pSmb2Context);
+            }
+
+            break;
+    }
+
+    SrvFreeMemory(pProtocolContext);
 }
 
 NTSTATUS
@@ -259,32 +258,6 @@ SrvProtocolShutdown(
 {
     NTSTATUS status = STATUS_SUCCESS;
     BOOLEAN bSupportSMBV2 = FALSE;
-
-    if (gProtocolApiGlobals.pAsyncWorkerArray)
-    {
-        INT iWorker = 0;
-
-        for (; iWorker < gProtocolApiGlobals.ulNumAsyncWorkers; iWorker++)
-        {
-            PLWIO_SRV_PROTOCOL_WORKER pWorker =
-                            &gProtocolApiGlobals.pAsyncWorkerArray[iWorker];
-
-            SrvProtocolWorkerIndicateStop(pWorker);
-        }
-
-        for (iWorker = 0;
-             iWorker < gProtocolApiGlobals.ulNumAsyncWorkers;
-             iWorker++)
-        {
-            PLWIO_SRV_PROTOCOL_WORKER pWorker =
-                            &gProtocolApiGlobals.pAsyncWorkerArray[iWorker];
-
-            SrvProtocolWorkerFreeContents(pWorker);
-        }
-
-        SrvFreeMemory(gProtocolApiGlobals.pAsyncWorkerArray);
-        gProtocolApiGlobals.pAsyncWorkerArray = NULL;
-    }
 
     status = SrvProtocolConfigSupports_SMB_V2(&bSupportSMBV2);
     BAIL_ON_NT_STATUS(status);
@@ -298,7 +271,7 @@ SrvProtocolShutdown(
         BAIL_ON_NT_STATUS(status);
     }
 
-    SrvProdConsFreeContents(&gProtocolApiGlobals.asyncWorkQueue);
+    gProtocolApiGlobals.pWorkQueue = NULL;
 
 error:
 

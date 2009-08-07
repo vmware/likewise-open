@@ -73,15 +73,14 @@
 #include <elementsapi.h>
 #include <transportapi.h>
 #include <protocolapi.h>
-#include <protocolapi_p.h>
 
+#include <protocolapi_p.h>
 #include <smb1.h>
 #include <smb2.h>
 
 #include "defs.h"
 #include "structs.h"
 #include "prototypes.h"
-#include "worker.h"
 #include "externs.h"
 
 
