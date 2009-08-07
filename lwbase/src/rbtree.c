@@ -53,9 +53,9 @@
     if (ntStatus) goto error;
 #endif
 
-#define RB_IS_NIL(x)   ((x) == gpRBTreeSentinel)
-#define RB_IS_RED(x)   (!RB_IS_NIL(x) && (x)->color == RBTreeNodeColor_Red)
-#define RB_IS_BLACK(x) (!RB_IS_NIL(x) && (x)->color == RBTreeNodeColor_Black)
+#define RB_IS_NIL(T, x)   ((x) == (T)->pSentinel)
+#define RB_IS_RED(x)      ((x)->color == RBTreeNodeColor_Red)
+#define RB_IS_BLACK(x)    ((x)->color == RBTreeNodeColor_Black)
 
 #define RB_COPY_COLOR(x, y)   { (x)->color = (x)->color; }
 #define RB_COLOR_RED(x)       { (x)->color = RBTreeNodeColor_Red; }
@@ -93,20 +93,9 @@ typedef struct LWRTL_RB_TREE
     PFN_LWRTL_RB_TREE_FREE_DATA pfnFreeData;
 
     PLWRTL_RB_TREE_NODE pRoot;
+    PLWRTL_RB_TREE_NODE pSentinel;
 
 } LWRTL_RB_TREE;
-
-static LWRTL_RB_TREE_NODE gRBTreeSentinel =
-{
-    RBTreeNodeColor_Black,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL
-};
-
-static PLWRTL_RB_TREE_NODE gpRBTreeSentinel = &gRBTreeSentinel;
 
 static
 VOID
@@ -118,6 +107,7 @@ LwRtlRBTreeInsert(
 static
 NTSTATUS
 LwRtlRBTreeTraversePreOrder(
+    PLWRTL_RB_TREE          pRBTree,
     PLWRTL_RB_TREE_NODE     pNode,
     PFN_LWRTL_RB_TREE_VISIT pfnVisit,
     PVOID                 pUserData,
@@ -127,6 +117,7 @@ LwRtlRBTreeTraversePreOrder(
 static
 NTSTATUS
 LwRtlRBTreeTraverseInOrder(
+    PLWRTL_RB_TREE          pRBTree,
     PLWRTL_RB_TREE_NODE     pNode,
     PFN_LWRTL_RB_TREE_VISIT pfnVisit,
     PVOID                 pUserData,
@@ -136,6 +127,7 @@ LwRtlRBTreeTraverseInOrder(
 static
 NTSTATUS
 LwRtlRBTreeTraversePostOrder(
+    PLWRTL_RB_TREE          pRBTree,
     PLWRTL_RB_TREE_NODE     pNode,
     PFN_LWRTL_RB_TREE_VISIT pfnVisit,
     PVOID                 pUserData,
@@ -220,6 +212,7 @@ LwRtlRBTreeCreate(
 {
     NTSTATUS ntStatus = 0;
     PLWRTL_RB_TREE pRBTree = NULL;
+    PLWRTL_RB_TREE_NODE pSentinel = NULL;
 
     if (!pfnRBTreeCompare)
     {
@@ -234,7 +227,16 @@ LwRtlRBTreeCreate(
     pRBTree->pfnFreeKey  = pfnRBTreeFreeKey;
     pRBTree->pfnFreeData = pfnRBTreeFreeData;
 
-    pRBTree->pRoot = gpRBTreeSentinel;
+    ntStatus = LW_RTL_ALLOCATE(
+                   &pSentinel,
+                   LWRTL_RB_TREE_NODE,
+                   sizeof(LWRTL_RB_TREE_NODE));
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    RB_COLOR_BLACK(pSentinel);
+
+    pRBTree->pRoot = pSentinel;
+    pRBTree->pSentinel = pSentinel;
 
     *ppRBTree = pRBTree;
 
@@ -299,7 +301,7 @@ LwRtlRBTreeFindNode(
 
     pIter = pRBTree->pRoot;
 
-    while (pIter && !RB_IS_NIL(pIter))
+    while (pIter && !RB_IS_NIL(pRBTree, pIter))
     {
         int compResult = pRBTree->pfnCompare(pKey, pIter->pKey);
 
@@ -349,8 +351,8 @@ LwRtlRBTreeAdd(
 
     pTreeNode->pKey = pKey;
     pTreeNode->pData = pData;
-    pTreeNode->pRight = gpRBTreeSentinel;
-    pTreeNode->pLeft = gpRBTreeSentinel;
+    pTreeNode->pRight = pRBTree->pSentinel;
+    pTreeNode->pLeft = pRBTree->pSentinel;
     pTreeNode->pParent = NULL;
 
     bFree = TRUE;
@@ -368,15 +370,18 @@ LwRtlRBTreeAdd(
 
         if (Parent == GrandParent->pLeft)
         {
-            Uncle = GrandParent->pRight;
-
-            if (RB_IS_RED(Uncle))
+            if (!RB_IS_NIL(pRBTree, GrandParent))
             {
-                RB_COLOR_BLACK(Parent);
-                RB_COLOR_BLACK(Uncle);
-                RB_COLOR_RED(GrandParent);
-                pTreeNode = GrandParent;
-                continue;
+                Uncle = GrandParent->pRight;
+
+                if (RB_IS_RED(Uncle))
+                {
+                    RB_COLOR_BLACK(Parent);
+                    RB_COLOR_BLACK(Uncle);
+                    RB_COLOR_RED(GrandParent);
+                    pTreeNode = GrandParent;
+                    continue;
+                }
             }
 
             if (pTreeNode == Parent->pRight)
@@ -388,20 +393,26 @@ LwRtlRBTreeAdd(
             }
 
             RB_COLOR_BLACK(Parent);
-            RB_COLOR_RED(GrandParent);
-            LwRtlRBTreeRotateRight(pRBTree, GrandParent);
+            if (!RB_IS_NIL(pRBTree, GrandParent))
+            {
+                RB_COLOR_RED(GrandParent);
+                LwRtlRBTreeRotateRight(pRBTree, GrandParent);
+            }
         }
         else
         {
-            Uncle = GrandParent->pLeft;
-
-            if (RB_IS_RED(Uncle))
+            if (!RB_IS_NIL(pRBTree, GrandParent))
             {
-                RB_COLOR_BLACK(Parent);
-                RB_COLOR_BLACK(Uncle);
-                RB_COLOR_RED(GrandParent);
-                pTreeNode = GrandParent;
-                continue;
+                Uncle = GrandParent->pLeft;
+
+                if (RB_IS_RED(Uncle))
+                {
+                    RB_COLOR_BLACK(Parent);
+                    RB_COLOR_BLACK(Uncle);
+                    RB_COLOR_RED(GrandParent);
+                    pTreeNode = GrandParent;
+                    continue;
+                }
             }
 
             if (pTreeNode == Parent->pLeft)
@@ -413,8 +424,11 @@ LwRtlRBTreeAdd(
             }
 
             RB_COLOR_BLACK(Parent);
-            RB_COLOR_RED(GrandParent);
-            LwRtlRBTreeRotateLeft(pRBTree, GrandParent);
+            if (!RB_IS_NIL(pRBTree, GrandParent))
+            {
+                RB_COLOR_RED(GrandParent);
+                LwRtlRBTreeRotateLeft(pRBTree, GrandParent);
+            }
         }
     }
 
@@ -440,10 +454,10 @@ LwRtlRBTreeInsert(
     PLWRTL_RB_TREE_NODE pTreeNode
     )
 {
-    PLWRTL_RB_TREE_NODE pParent = gpRBTreeSentinel;
+    PLWRTL_RB_TREE_NODE pParent = pRBTree->pSentinel;
     PLWRTL_RB_TREE_NODE pCurrent = pRBTree->pRoot;
 
-    while (!RB_IS_NIL(pCurrent))
+    while (!RB_IS_NIL(pRBTree, pCurrent))
     {
         pParent = pCurrent;
 
@@ -459,7 +473,7 @@ LwRtlRBTreeInsert(
 
     RB_SET_PARENT(pTreeNode, pParent);
 
-    if (RB_IS_NIL(RB_PARENT(pTreeNode)))
+    if (RB_IS_NIL(pRBTree, RB_PARENT(pTreeNode)))
     {
         pRBTree->pRoot = pTreeNode;
     }
@@ -485,16 +499,14 @@ LwRtlRBTreeRotateLeft(
 {
     PLWRTL_RB_TREE_NODE pNode = pTreeNode->pRight;
 
-    if (RB_IS_NIL(pNode)) {
-        return;
-    }
+    assert(!RB_IS_NIL(pRBTree, pNode));
 
     pTreeNode->pRight = pNode->pLeft;
 
     RB_SET_PARENT(pNode->pLeft, pTreeNode);
     RB_SET_PARENT(pNode, pTreeNode->pParent);
 
-    if (RB_IS_NIL(pTreeNode->pParent))
+    if (RB_IS_NIL(pRBTree, pTreeNode->pParent))
     {
         pRBTree->pRoot = pNode;
     }
@@ -523,16 +535,14 @@ LwRtlRBTreeRotateRight(
 {
     PLWRTL_RB_TREE_NODE pNode = pTreeNode->pLeft;
 
-    if (RB_IS_NIL(pNode)) {
-        return;
-    }
+    assert(!RB_IS_NIL(pRBTree, pNode));
 
     pTreeNode->pLeft = pNode->pRight;
 
     RB_SET_PARENT(pNode->pRight, pTreeNode);
     RB_SET_PARENT(pNode, pTreeNode->pParent);
 
-    if (RB_IS_NIL(pTreeNode->pParent))
+    if (RB_IS_NIL(pRBTree, pTreeNode->pParent))
     {
         pRBTree->pRoot = pNode;
     }
@@ -574,6 +584,7 @@ LwRtlRBTreeTraverse(
         case LWRTL_TREE_TRAVERSAL_TYPE_PRE_ORDER:
 
             ntStatus = LwRtlRBTreeTraversePreOrder(
+                            pRBTree,
                             pRootNode,
                             pfnVisit,
                             pUserData,
@@ -584,6 +595,7 @@ LwRtlRBTreeTraverse(
         case LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER:
 
             ntStatus = LwRtlRBTreeTraverseInOrder(
+                            pRBTree,
                             pRootNode,
                             pfnVisit,
                             pUserData,
@@ -594,6 +606,7 @@ LwRtlRBTreeTraverse(
         case LWRTL_TREE_TRAVERSAL_TYPE_POST_ORDER:
 
             ntStatus = LwRtlRBTreeTraversePostOrder(
+                            pRBTree,
                             pRootNode,
                             pfnVisit,
                             pUserData,
@@ -610,6 +623,7 @@ cleanup:
 static
 NTSTATUS
 LwRtlRBTreeTraversePreOrder(
+    PLWRTL_RB_TREE          pRBTree,
     PLWRTL_RB_TREE_NODE     pNode,
     PFN_LWRTL_RB_TREE_VISIT pfnVisit,
     PVOID                 pUserData,
@@ -618,7 +632,7 @@ LwRtlRBTreeTraversePreOrder(
 {
     NTSTATUS ntStatus = 0;
 
-    if (pNode && !RB_IS_NIL(pNode))
+    if (pNode && !RB_IS_NIL(pRBTree, pNode))
     {
         ntStatus = pfnVisit(pNode->pKey, pNode->pData, pUserData, pbContinue);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -626,6 +640,7 @@ LwRtlRBTreeTraversePreOrder(
         if (*pbContinue && pNode->pLeft)
         {
             ntStatus = LwRtlRBTreeTraversePreOrder(
+                            pRBTree,
                             pNode->pLeft,
                             pfnVisit,
                             pUserData,
@@ -636,6 +651,7 @@ LwRtlRBTreeTraversePreOrder(
         if (*pbContinue && pNode->pRight)
         {
             ntStatus = LwRtlRBTreeTraversePreOrder(
+                            pRBTree,
                             pNode->pRight,
                             pfnVisit,
                             pUserData,
@@ -652,6 +668,7 @@ error:
 static
 NTSTATUS
 LwRtlRBTreeTraverseInOrder(
+    PLWRTL_RB_TREE          pRBTree,
     PLWRTL_RB_TREE_NODE     pNode,
     PFN_LWRTL_RB_TREE_VISIT pfnVisit,
     PVOID                 pUserData,
@@ -660,11 +677,12 @@ LwRtlRBTreeTraverseInOrder(
 {
     NTSTATUS ntStatus = 0;
 
-    if (pNode && !RB_IS_NIL(pNode))
+    if (pNode && !RB_IS_NIL(pRBTree, pNode))
     {
         if (*pbContinue && pNode->pLeft)
         {
             ntStatus = LwRtlRBTreeTraverseInOrder(
+                            pRBTree,
                             pNode->pLeft,
                             pfnVisit,
                             pUserData,
@@ -678,6 +696,7 @@ LwRtlRBTreeTraverseInOrder(
         if (*pbContinue && pNode->pRight)
         {
             ntStatus = LwRtlRBTreeTraverseInOrder(
+                            pRBTree,
                             pNode->pRight,
                             pfnVisit,
                             pUserData,
@@ -694,6 +713,7 @@ error:
 static
 NTSTATUS
 LwRtlRBTreeTraversePostOrder(
+    PLWRTL_RB_TREE          pRBTree,
     PLWRTL_RB_TREE_NODE     pNode,
     PFN_LWRTL_RB_TREE_VISIT pfnVisit,
     PVOID                 pUserData,
@@ -702,11 +722,12 @@ LwRtlRBTreeTraversePostOrder(
 {
     NTSTATUS ntStatus = 0;
 
-    if (pNode && !RB_IS_NIL(pNode))
+    if (pNode && !RB_IS_NIL(pRBTree, pNode))
     {
         if (*pbContinue && pNode->pLeft)
         {
             ntStatus = LwRtlRBTreeTraversePostOrder(
+                            pRBTree,
                             pNode->pLeft,
                             pfnVisit,
                             pUserData,
@@ -717,6 +738,7 @@ LwRtlRBTreeTraversePostOrder(
         if (*pbContinue && pNode->pRight)
         {
             ntStatus = LwRtlRBTreeTraversePostOrder(
+                            pRBTree,
                             pNode->pRight,
                             pfnVisit,
                             pUserData,
@@ -769,12 +791,13 @@ LwRtlRBTreeFree(
 {
     PLWRTL_RB_TREE_NODE pRootNode = pRBTree->pRoot;
 
-    if (pRootNode && !RB_IS_NIL(pRootNode))
+    if (pRootNode && !RB_IS_NIL(pRBTree, pRootNode))
     {
         LwRtlRBTreeRemoveAllNodes(pRBTree, pRootNode);
     }
 
-    LwRtlMemoryFree(pRBTree);
+    LW_RTL_FREE(&pRBTree->pSentinel);
+    LW_RTL_FREE(&pRBTree);
 }
 
 static
@@ -787,8 +810,8 @@ LwRtlRBTreeRemoveNode(
     PLWRTL_RB_TREE_NODE pSuccessor = NULL;
     PLWRTL_RB_TREE_NODE pTmp = NULL;
 
-    if (RB_IS_NIL(pTreeNode->pRight) ||
-        RB_IS_NIL(pTreeNode->pLeft))
+    if (RB_IS_NIL(pRBTree, pTreeNode->pRight) ||
+        RB_IS_NIL(pRBTree, pTreeNode->pLeft))
     {
         pSuccessor = pTreeNode;
     }
@@ -797,7 +820,7 @@ LwRtlRBTreeRemoveNode(
         pSuccessor = LwRtlRBTreeGetSuccessor(pRBTree, pTreeNode);
     }
 
-    if (!RB_IS_NIL(pSuccessor->pLeft))
+    if (!RB_IS_NIL(pRBTree, pSuccessor->pLeft))
     {
         pTmp = pSuccessor->pLeft;
     }
@@ -808,7 +831,7 @@ LwRtlRBTreeRemoveNode(
 
     RB_SET_PARENT(pTmp, pSuccessor->pParent);
 
-    if (RB_IS_NIL(pSuccessor->pParent))
+    if (RB_IS_NIL(pRBTree, pSuccessor->pParent))
     {
         pRBTree->pRoot = pTmp;
     }
@@ -851,12 +874,12 @@ LwRtlRBTreeRemoveAllNodes(
     PLWRTL_RB_TREE_NODE pNode
     )
 {
-    if (!RB_IS_NIL(pNode->pLeft))
+    if (!RB_IS_NIL(pRBTree, pNode->pLeft))
     {
         LwRtlRBTreeRemoveAllNodes(pRBTree, pNode->pLeft);
     }
 
-    if (!RB_IS_NIL(pNode->pRight))
+    if (!RB_IS_NIL(pRBTree, pNode->pRight))
     {
         LwRtlRBTreeRemoveAllNodes(pRBTree, pNode->pRight);
     }
@@ -884,7 +907,7 @@ LwRtlRBTreeFixColors(
         {
              Uncle = Parent->pRight;
 
-            if (!RB_IS_NIL(Uncle) && RB_IS_RED(Uncle))
+            if (!RB_IS_NIL(pRBTree, Uncle) && RB_IS_RED(Uncle))
             {
                 RB_COLOR_BLACK(Uncle);
                 RB_COLOR_RED(Parent);
@@ -892,7 +915,7 @@ LwRtlRBTreeFixColors(
                 Uncle = Parent->pRight;
             }
 
-            if (!RB_IS_NIL(Uncle) &&
+            if (!RB_IS_NIL(pRBTree, Uncle) &&
                 RB_IS_BLACK(Uncle->pLeft) && RB_IS_BLACK(Uncle->pRight))
             {
                 RB_COLOR_RED(Uncle);
@@ -900,7 +923,7 @@ LwRtlRBTreeFixColors(
                 continue;
             }
 
-            if (!RB_IS_NIL(Uncle) && RB_IS_BLACK(Uncle->pRight))
+            if (!RB_IS_NIL(pRBTree, Uncle) && RB_IS_BLACK(Uncle->pRight))
             {
                 RB_COLOR_BLACK(Uncle->pLeft);
                 RB_COLOR_RED(Uncle);
@@ -909,12 +932,12 @@ LwRtlRBTreeFixColors(
                 Uncle = Parent->pRight;
             }
 
-            if (!RB_IS_NIL(Uncle))
+            if (!RB_IS_NIL(pRBTree, Uncle))
             {
                 RB_COPY_COLOR(Uncle, Parent);
             }
             RB_COLOR_BLACK(Parent);
-            if (!RB_IS_NIL(Uncle))
+            if (!RB_IS_NIL(pRBTree, Uncle))
             {
                 RB_COLOR_BLACK(Uncle->pRight);
                 LwRtlRBTreeRotateLeft(pRBTree, Parent);
@@ -925,7 +948,7 @@ LwRtlRBTreeFixColors(
         {
             Uncle = Parent->pLeft;
 
-            if (!RB_IS_NIL(Uncle) && RB_IS_RED(Uncle))
+            if (!RB_IS_NIL(pRBTree, Uncle) && RB_IS_RED(Uncle))
             {
                 RB_COLOR_BLACK(Uncle);
                 RB_COLOR_RED(Parent);
@@ -933,7 +956,7 @@ LwRtlRBTreeFixColors(
                 Uncle = Parent->pLeft;
             }
 
-            if (!RB_IS_NIL(Uncle) &&
+            if (!RB_IS_NIL(pRBTree, Uncle) &&
                  RB_IS_BLACK(Uncle->pLeft) && RB_IS_BLACK(Uncle->pRight))
             {
                 RB_COLOR_RED(Uncle);
@@ -941,7 +964,7 @@ LwRtlRBTreeFixColors(
                 continue;
             }
 
-            if (!RB_IS_NIL(Uncle) && RB_IS_BLACK(Uncle->pLeft))
+            if (!RB_IS_NIL(pRBTree, Uncle) && RB_IS_BLACK(Uncle->pLeft))
             {
                 RB_COLOR_BLACK(Uncle->pRight);
                 RB_COLOR_RED(Uncle);
@@ -949,12 +972,12 @@ LwRtlRBTreeFixColors(
                 Uncle = Parent->pLeft;
             }
 
-            if (!RB_IS_NIL(Uncle))
+            if (!RB_IS_NIL(pRBTree, Uncle))
             {
                 RB_COPY_COLOR(Uncle, Parent);
             }
             RB_COLOR_BLACK(Parent);
-            if (!RB_IS_NIL(Uncle))
+            if (!RB_IS_NIL(pRBTree, Uncle))
             {
                 RB_COLOR_BLACK(Uncle->pLeft);
                 LwRtlRBTreeRotateRight(pRBTree, Parent);
@@ -975,7 +998,7 @@ LwRtlRBTreeGetSuccessor(
 {
     PLWRTL_RB_TREE_NODE pResult = NULL;
 
-    if (!RB_IS_NIL(pTreeNode->pRight))
+    if (!RB_IS_NIL(pRBTree, pTreeNode->pRight))
     {
         pResult = LwRtlRBTreeGetMinimum(pRBTree, pTreeNode->pRight);
     }
@@ -983,7 +1006,7 @@ LwRtlRBTreeGetSuccessor(
     {
         pResult = pTreeNode->pParent;
 
-        while (pResult && !RB_IS_NIL(pResult) && (pTreeNode == pResult->pRight))
+        while (pResult && !RB_IS_NIL(pRBTree, pResult) && (pTreeNode == pResult->pRight))
         {
             pTreeNode = pResult;
             pResult = pTreeNode->pParent;
@@ -1000,7 +1023,7 @@ LwRtlRBTreeGetMinimum(
     PLWRTL_RB_TREE_NODE pTreeNode
     )
 {
-    while (!RB_IS_NIL(pTreeNode->pLeft))
+    while (!RB_IS_NIL(pRBTree, pTreeNode->pLeft))
     {
         pTreeNode = pTreeNode->pLeft;
     }
