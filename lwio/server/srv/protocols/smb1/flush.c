@@ -143,7 +143,7 @@ SrvBuildFlushResponse(
                     STATUS_SUCCESS,
                     TRUE,
                     pCtxSmb1->pTree->tid,
-                    pSmbRequest->pHeader->pid,
+                    SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
                     pCtxSmb1->pSession->uid,
                     pSmbRequest->pHeader->mid,
                     pConnection->serverProperties.bRequireSecuritySignatures,

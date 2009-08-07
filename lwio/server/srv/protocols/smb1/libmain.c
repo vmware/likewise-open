@@ -663,7 +663,7 @@ SrvBuildErrorResponse_SMB_V1(
                     errorStatus,
                     TRUE,
                     pRequestHeader->tid,
-                    pRequestHeader->pid,
+                    SMB_V1_GET_PROCESS_ID(pRequestHeader),
                     pRequestHeader->uid,
                     pRequestHeader->mid,
                     pConnection->serverProperties.bRequireSecuritySignatures,

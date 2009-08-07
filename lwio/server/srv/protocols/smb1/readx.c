@@ -169,7 +169,7 @@ SrvBuildReadAndXResponse(
                     STATUS_SUCCESS,
                     TRUE,
                     pCtxSmb1->pTree->tid,
-                    pSmbRequest->pHeader->pid,
+                    SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
                     pCtxSmb1->pSession->uid,
                     pSmbRequest->pHeader->mid,
                     pConnection->serverProperties.bRequireSecuritySignatures,
@@ -223,7 +223,7 @@ SrvBuildReadAndXResponse(
     ulBytesToRead =
         SMB_MIN(ullBytesToRead,
                 pConnection->serverProperties.MaxBufferSize - ulDataOffset);
-    ulKey = pSmbRequest->pHeader->pid;
+    ulKey = SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader);
 
     ntStatus = SrvExecuteReadFileAndX(
                     pCtxSmb1->pFile,

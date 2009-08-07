@@ -68,7 +68,7 @@ SrvBuildNegotiateResponse_SMB_V1_NTLM_0_12(
                 0,
                 TRUE,
                 pSmbRequest->pSMBHeader->tid,
-                pSmbRequest->pSMBHeader->pid,
+                SMB_V1_GET_PROCESS_ID(pSmbRequest->pSMBHeader),
                 0,
                 pSmbRequest->pSMBHeader->mid,
                 FALSE,
