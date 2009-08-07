@@ -318,6 +318,13 @@ AC_ARG_ENABLE([iotest],
 
 AM_CONDITIONAL(ENABLE_IOTEST, [$ENABLE_IOTEST])
 
+AC_ARG_ENABLE([pidfile], [AC_HELP_STRING([--disable-pidfile], [disable pid file creation (default: enabled)])],
+              [], [enable_pidfile="yes"])
+if test x"$enable_pidfile" = x"yes"
+then
+        AC_DEFINE([ENABLE_PIDFILE], [], [Define if pid file should be created])
+fi
+
 
 #####
 ## Unit tests
