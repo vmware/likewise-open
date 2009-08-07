@@ -91,7 +91,7 @@ main(
     DWORD dwError = 0;
     HANDLE hLWNetConnection = (HANDLE)NULL;
 
-    lwnet_init_logging_to_file(LOG_LEVEL_VERBOSE, TRUE, "");
+    lwnet_init_logging_to_file(LWNET_LOG_LEVEL_VERBOSE, TRUE, "");
 
     ParseArgs(argc, argv);
 

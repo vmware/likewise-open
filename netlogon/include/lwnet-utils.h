@@ -126,22 +126,9 @@ typedef struct _DNS_SERVER_INFO
     PSTR pszAddress;
 } DNS_SERVER_INFO, *PDNS_SERVER_INFO;
 
-/*
- * Log levels
- */
-#define LOG_LEVEL_ALWAYS  0
-#define LOG_LEVEL_ERROR   1
-#define LOG_LEVEL_WARNING 2
-#define LOG_LEVEL_INFO    3
-#define LOG_LEVEL_VERBOSE 4
-#define LOG_LEVEL_DEBUG   5
-
-/*
- * Logging targets
- */
-#define LOG_TO_SYSLOG 0
-#define LOG_TO_FILE   1
-#define LOG_DISABLED  3
+//
+// Logging
+//
 
 typedef struct _LOGFILEINFO {
     CHAR  szLogPath[PATH_MAX+1];
@@ -182,22 +169,22 @@ extern LOGINFO gLwnetLogInfo;
     ( (x) ? (x) : "<null>" )
 
 #define LWNET_LOG_ALWAYS(szFmt, ...) \
-    _LWNET_LOG_ALWAYS(LOG_LEVEL_ALWAYS, szFmt, ## __VA_ARGS__)
+    _LWNET_LOG_ALWAYS(LWNET_LOG_LEVEL_ALWAYS, szFmt, ## __VA_ARGS__)
 
 #define LWNET_LOG_ERROR(szFmt, ...) \
-    _LWNET_LOG_IF(LOG_LEVEL_ERROR, szFmt, ## __VA_ARGS__)
+    _LWNET_LOG_IF(LWNET_LOG_LEVEL_ERROR, szFmt, ## __VA_ARGS__)
 
 #define LWNET_LOG_WARNING(szFmt, ...) \
-    _LWNET_LOG_IF(LOG_LEVEL_WARNING, szFmt, ## __VA_ARGS__)
+    _LWNET_LOG_IF(LWNET_LOG_LEVEL_WARNING, szFmt, ## __VA_ARGS__)
 
 #define LWNET_LOG_INFO(szFmt, ...) \
-    _LWNET_LOG_IF(LOG_LEVEL_INFO, szFmt, ## __VA_ARGS__)
+    _LWNET_LOG_IF(LWNET_LOG_LEVEL_INFO, szFmt, ## __VA_ARGS__)
 
 #define LWNET_LOG_VERBOSE(szFmt, ...) \
-    _LWNET_LOG_IF(LOG_LEVEL_VERBOSE, szFmt, ## __VA_ARGS__)
+    _LWNET_LOG_IF(LWNET_LOG_LEVEL_VERBOSE, szFmt, ## __VA_ARGS__)
 
 #define LWNET_LOG_DEBUG(szFmt, ...) \
-    _LWNET_LOG_IF(LOG_LEVEL_DEBUG, szFmt, ## __VA_ARGS__)
+    _LWNET_LOG_IF(LWNET_LOG_LEVEL_DEBUG, szFmt, ## __VA_ARGS__)
 
 DWORD
 LWNetAllocateMemory(
@@ -428,6 +415,13 @@ lwnet_init_logging_to_syslog(
 DWORD
 lwnet_set_log_level(
     DWORD dwLogLevel
+    );
+
+DWORD
+lwnet_get_log_info(
+    OUT PDWORD pdwLogLevel,
+    OUT PDWORD pdwLogTarget,
+    OUT PSTR* ppszLogPath
     );
 
 DWORD

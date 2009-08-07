@@ -190,7 +190,7 @@ LWNetSrvSetDefaults(
 {
     DWORD dwError = 0;
 
-    gpServerInfo->dwLogLevel = LOG_LEVEL_ERROR;
+    gpServerInfo->dwLogLevel = LWNET_LOG_LEVEL_ERROR;
 
     *(gpServerInfo->szLogFilePath) = '\0';
 
@@ -252,24 +252,24 @@ LWNetSrvParseArgs(
             pArg = argv[++iArg];
             if (!strcasecmp(pArg, "error"))
             {
-                pLWNetServerInfo->dwLogLevel = LOG_LEVEL_ERROR;
+                pLWNetServerInfo->dwLogLevel = LWNET_LOG_LEVEL_ERROR;
             }
             else if (!strcasecmp(pArg, "warning"))
             {
-                pLWNetServerInfo->dwLogLevel = LOG_LEVEL_WARNING;
+                pLWNetServerInfo->dwLogLevel = LWNET_LOG_LEVEL_WARNING;
             }
             else if (!strcasecmp(pArg, "info"))
             {
-                pLWNetServerInfo->dwLogLevel = LOG_LEVEL_INFO;
+                pLWNetServerInfo->dwLogLevel = LWNET_LOG_LEVEL_INFO;
             }
             else if (!strcasecmp(pArg, "verbose"))
             {
-                pLWNetServerInfo->dwLogLevel = LOG_LEVEL_VERBOSE;
+                pLWNetServerInfo->dwLogLevel = LWNET_LOG_LEVEL_VERBOSE;
             }
             else if (!strcasecmp(pArg, "debug"))
             {
                 pLWNetServerInfo->bEnableDebugLogs = TRUE;
-                pLWNetServerInfo->dwLogLevel = LOG_LEVEL_DEBUG;
+                pLWNetServerInfo->dwLogLevel = LWNET_LOG_LEVEL_DEBUG;
             }
             else
             {
