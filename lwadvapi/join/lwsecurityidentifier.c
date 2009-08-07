@@ -535,40 +535,6 @@ error:
 }
 
 DWORD
-LwByteArrayToHexStr(
-    IN UCHAR* pucByteArray,
-    IN DWORD dwByteArrayLength,
-    OUT PSTR* ppszHexString
-    )
-{
-    DWORD dwError = 0;
-    DWORD i = 0;
-    PSTR pszHexString = NULL;
-
-    dwError = LwAllocateMemory(
-                (dwByteArrayLength*2 + 1) * sizeof(CHAR),
-                OUT_PPVOID(&pszHexString));
-    BAIL_ON_LW_ERROR(dwError);
-
-    for (i = 0; i < dwByteArrayLength; i++)
-    {
-        sprintf(pszHexString+(2*i), "%.2X", pucByteArray[i]);
-    }
-
-    *ppszHexString = pszHexString;
-
-cleanup:
-
-    return dwError;
-
-error:
-    LW_SAFE_FREE_STRING(pszHexString);
-
-    *ppszHexString = NULL;
-    goto cleanup;
-}
-
-DWORD
 LwByteArrayToLdapFormatHexStr(
     IN UCHAR* pucByteArray,
     IN DWORD dwByteArrayLength,
