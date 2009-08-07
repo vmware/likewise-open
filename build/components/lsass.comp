@@ -13,6 +13,10 @@ function _setup_dirs
 	    NSS_DIR="/${_lib}"
 	    PAM_DIR="/${_lib}/security"
 	    ;;
+	FreeBSD)
+	    NSS_DIR="/usr/local/${_lib}"
+	    PAM_DIR="/usr/local/${_lib}"
+	    ;;
     esac
 
     export NSS_DIR PAM_DIR
