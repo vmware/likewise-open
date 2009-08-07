@@ -358,7 +358,10 @@ LWNetSrvGetDCTime(
         };
     LWNET_UNIX_TIME_T result = 0;
 #ifndef HAVE_TIMEGM
-    struct tm epochTime = {0};
+    struct tm utcTm = {0};
+    struct tm utcTmAdjusted = {0};
+    struct tm dcTimeCopy = {0};
+    time_t now = -1;
 #endif
 
     BAIL_ON_INVALID_POINTER(pDCTime);
@@ -403,33 +406,36 @@ LWNetSrvGetDCTime(
 #ifdef HAVE_TIMEGM
     ttDcTimeUTC = timegm(&dcTime);
 #else
-    epochTime.tm_mday = 2;
-    epochTime.tm_mon = 0;
-    epochTime.tm_year = 70;
-    /* AIX does not honor value 0 in tm_isdst (which should mean that daylight
-     * savings is not in effect). Instead AIX treats 0 like value -1 (check
-     * whether daylight savings is in effect based on time of year).
-     *
-     * AIX does however honor value 1 (which means that daylight savings is in
-     * effect). By setting tm_isdst to 1 in both epochTime and dcTime, they
-     * will cancel each other out.
-     */
-    epochTime.tm_isdst = 1;
-    dcTime.tm_isdst = 1;
+    // We need to convert a universal time in a time structure to
+    // seconds since the epoch but the only function that is available
+    // assumes it's a local time and applies the timezone offset.  We
+    // have to determine what the offset is for today's date which could
+    // vary depending on whether daylight savings time is in effect and
+    // adjust the results.  It is possible that the local time and the DC
+    // time are on opposite sides of the daylight savings time change
+    // boundary so the result could be off by as much as an hour and may
+    // may need to be adjusted again.  Note that we're saving a copy of
+    // dcTime because mktime has a tendency to modify the structure.
+    now = time(NULL);
+    gmtime_r(&now, &utcTm);
+    dcTimeCopy = dcTime;
+    ttDcTimeUTC = mktime(&dcTime) + now - mktime(&utcTm);
 
-    /* 00:00 Jan 1, 1970 should be 0(time_t). Converting the epoch time
-     * and subtracting it adjusts for the local time zone.
-     *
-     * mktime(&epochTime) should be the same as the timezone global variable,
-     * but for some reason that variable is set to 0 on AIX, even after calling
-     * tzset.
-     *
-     * Note that Jan 2 is used instead of Jan 1 because a Jan 1 1970
-     * local time is not representable as an epoch time for timezones
-     * ahead of GMT.  Then the value is corrected by adding back
-     * a day (24 hours).
-     */
-    ttDcTimeUTC = mktime(&dcTime) - mktime(&epochTime) + (24 * 60 * 60);
+    gmtime_r(&ttDcTimeUTC, &utcTmAdjusted);
+
+    if (utcTmAdjusted.tm_hour == 0 && dcTimeCopy.tm_hour != 0)
+    {
+        ttDcTimeUTC += (dcTimeCopy.tm_hour - 24) * 60 * 60;
+    }
+    else if (utcTmAdjusted.tm_hour != 0 && dcTimeCopy.tm_hour == 0)
+    {
+        ttDcTimeUTC += (24 - utcTmAdjusted.tm_hour) * 60 * 60;
+    }
+    else
+    {
+        ttDcTimeUTC += (dcTimeCopy.tm_hour - utcTmAdjusted.tm_hour) * 60 * 60;
+    }
+    ttDcTimeUTC += (dcTimeCopy.tm_min - utcTmAdjusted.tm_min) * 60;
 #endif
 
     result = ttDcTimeUTC;
