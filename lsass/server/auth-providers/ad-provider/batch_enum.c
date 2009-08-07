@@ -56,7 +56,7 @@ typedef struct __AD_CELL_COOKIE_DATA
     // should be searched.
     const DLINKEDLIST* pCurrentCell;
     PLSA_DM_LDAP_CONNECTION pLdapConn;
-    LSA_SEARCH_COOKIE LdapCookie;
+    LW_SEARCH_COOKIE LdapCookie;
 
     // This hash table is used to ensure that the same user/group is not
     // returned twice through linked cells. It is only allocated if linked
@@ -528,7 +528,7 @@ static
 DWORD
 LsaAdBatchEnumObjectsInCell(
     IN PLSA_DM_LDAP_CONNECTION pConn,
-    IN OUT PLSA_SEARCH_COOKIE pCookie,
+    IN OUT PLW_SEARCH_COOKIE pCookie,
     IN LSA_AD_BATCH_OBJECT_TYPE ObjectType,
     IN DWORD dwDirectoryMode,
     IN ADConfigurationMode adMode,
@@ -684,7 +684,7 @@ error:
 static
 DWORD
 LsaAdBatchEnumObjectsInLinkedCells(
-    IN OUT PLSA_SEARCH_COOKIE pCookie,
+    IN OUT PLW_SEARCH_COOKIE pCookie,
     IN LSA_AD_BATCH_OBJECT_TYPE ObjectType,
     IN DWORD dwMaxObjectsCount,
     OUT PDWORD pdwObjectsCount,
@@ -783,7 +783,7 @@ error:
 // error.
 DWORD
 LsaAdBatchEnumObjects(
-    IN OUT PLSA_SEARCH_COOKIE pCookie,
+    IN OUT PLW_SEARCH_COOKIE pCookie,
     IN ADAccountType AccountType,
     IN DWORD dwMaxObjectsCount,
     OUT PDWORD pdwObjectsCount,

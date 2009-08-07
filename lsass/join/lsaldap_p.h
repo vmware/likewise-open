@@ -1,9 +1,9 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software
+ * Copyright Likewise Software    2004-2008
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -33,65 +33,29 @@
  *
  * Module Name:
  *
- *        context.c
+ *        lsaldap_p.h
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        Protocols API - SMBV2
+ *        LDAP API (Private Header)
  *
- *        Context to hold items corresponding to the current state
- *
- * Authors: Sriram Nambakam (snambakam@likewise.com)
- *
+ * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
+ *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *          Wei Fu (wfu@likewisesoftware.com)
+ *          Kyle Stemen (kstemen@likewisesoftware.com)
+ *          Brian Dunstan (bdunstan@likewisesoftware.com)
  */
+#ifndef __LSALDAP_P_H__
+#define __LSALDAP_P_H__
 
-#include "includes.h"
+DWORD
+LsaLdapOpenDirectoryWithReaffinity(
+    IN PCSTR pszDnsDomainOrForestName,
+    IN DWORD dwFlags,
+    IN BOOLEAN bNeedGc,
+    OUT PHANDLE phDirectory
+    );
 
-NTSTATUS
-SrvInitContextContents_SMB_V2(
-    IN     PLWIO_SRV_CONNECTION pConnection,
-    IN OUT PSMB2_CONTEXT        pContext
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    if (!pConnection || !pContext)
-    {
-        ntStatus = STATUS_INVALID_PARAMETER;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    memset(pContext, 0, sizeof(SMB2_CONTEXT));
-
-    pContext->pConnection = pConnection;
-    InterlockedIncrement(&pContext->pConnection->refCount);
-
-error:
-
-    return ntStatus;
-}
-
-VOID
-SrvFreeContextContents_SMB_V2(
-    IN  PSMB2_CONTEXT pContext
-    )
-{
-    if (pContext->pFile)
-    {
-        SrvFile2Release(pContext->pFile);
-    }
-    if (pContext->pTree)
-    {
-        SrvTree2Release(pContext->pTree);
-    }
-    if (pContext->pSession)
-    {
-        SrvSession2Release(pContext->pSession);
-    }
-    if (pContext->pConnection)
-    {
-        SrvConnectionRelease(pContext->pConnection);
-    }
-}
+#endif /* __LSALDAP_P_H__ */

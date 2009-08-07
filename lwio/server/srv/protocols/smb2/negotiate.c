@@ -51,21 +51,24 @@
 static
 NTSTATUS
 SrvMarshalNegotiateResponse_SMB_V2(
-    IN     PLWIO_SRV_CONNECTION pConnection,
-    IN     PBYTE                pSessionKey,
-    IN     ULONG                ulSessionKeyLength,
-    IN OUT PSMB_PACKET          pSmbResponse
+    PLWIO_SRV_CONNECTION pConnection,
+    PBYTE                pSessionKey,
+    ULONG                ulSessionKeyLength,
+    PSRV_MESSAGE_SMB_V2  pSmbResponse
     );
 
 NTSTATUS
 SrvProcessNegotiate_SMB_V2(
-    IN OUT PSMB2_CONTEXT pContext,
-    IN     PSMB2_MESSAGE pSmbRequest,
-    IN OUT PSMB_PACKET   pSmbResponse
+    IN OUT PSRV_EXEC_CONTEXT pExecContext
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
+    PLWIO_SRV_CONNECTION pConnection = pExecContext->pConnection;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    ULONG                      iMsg          = pCtxSmb2->iMsg;
+    PSRV_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
+    PSRV_MESSAGE_SMB_V2        pSmbResponse  = &pCtxSmb2->pResponses[iMsg];
     PSMB2_NEGOTIATE_REQUEST_HEADER pNegotiateRequestHeader = NULL;// Do not free
     PUSHORT pusDialects = NULL; // Do not free
     USHORT  iDialect = 0;
@@ -151,10 +154,11 @@ SrvBuildNegotiateResponse_SMB_V2(
     OUT PSMB_PACKET*         ppSmbResponse
     )
 {
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSMB_PACKET pSmbResponse = NULL;
-    PBYTE  pSessionKey = NULL;
-    ULONG  ulSessionKeyLength = 0;
+    NTSTATUS    ntStatus           = STATUS_SUCCESS;
+    PSMB_PACKET pSmbResponse       = NULL;
+    PBYTE       pSessionKey        = NULL;
+    ULONG       ulSessionKeyLength = 0;
+    SRV_MESSAGE_SMB_V2 response = {0};
 
     ntStatus = SMBPacketAllocate(
                     pConnection->hPacketAllocator,
@@ -163,7 +167,7 @@ SrvBuildNegotiateResponse_SMB_V2(
 
     ntStatus = SMBPacketBufferAllocate(
                     pConnection->hPacketAllocator,
-                    64 * 1024,
+                    (64 * 1024) + 4096,
                     &pSmbResponse->pRawBuffer,
                     &pSmbResponse->bufferLen);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -191,12 +195,17 @@ SrvBuildNegotiateResponse_SMB_V2(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
+    response.pBuffer = pSmbResponse->pRawBuffer + pSmbResponse->bufferUsed;
+    response.ulBytesAvailable = pSmbResponse->bufferLen - pSmbResponse->bufferUsed;
+
     ntStatus = SrvMarshalNegotiateResponse_SMB_V2(
                     pConnection,
                     pSessionKey,
                     ulSessionKeyLength,
-                    pSmbResponse);
+                    &response);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    pSmbResponse->bufferUsed += response.ulMessageSize;
 
     ntStatus = SMB2MarshalFooter(pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -227,30 +236,23 @@ error:
 static
 NTSTATUS
 SrvMarshalNegotiateResponse_SMB_V2(
-    IN     PLWIO_SRV_CONNECTION pConnection,
-    IN     PBYTE                pSessionKey,
-    IN     ULONG                ulSessionKeyLength,
-    IN OUT PSMB_PACKET          pSmbResponse
+    PLWIO_SRV_CONNECTION pConnection,
+    PBYTE                pSessionKey,
+    ULONG                ulSessionKeyLength,
+    PSRV_MESSAGE_SMB_V2  pSmbResponse
     )
 {
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSMB2_NEGOTIATE_RESPONSE_HEADER pNegotiateHeader = NULL;
-    USHORT usAlign = 0;
-    PBYTE  pDataCursor = NULL;
+    NTSTATUS ntStatus         = STATUS_SUCCESS;
+    PSMB2_NEGOTIATE_RESPONSE_HEADER pNegotiateHeader = NULL; // Do not free
     PSRV_PROPERTIES pServerProperties = &pConnection->serverProperties;
-    PBYTE pOutBufferRef = NULL;
-    PBYTE pOutBuffer = NULL;
-    ULONG ulBytesAvailable = 0;
-    ULONG ulOffset    = 0;
-    ULONG ulBytesUsed = 0;
-    ULONG ulTotalBytesUsed = 0;
-    LONG64 llCurTime = 0LL;
-    time_t curTime = 0;
-
-    pOutBufferRef = pSmbResponse->pRawBuffer + pSmbResponse->bufferUsed;
-    pOutBuffer = pOutBufferRef;
-    ulBytesAvailable = pSmbResponse->bufferLen - pSmbResponse->bufferUsed;
-    ulOffset = pSmbResponse->bufferUsed - sizeof(NETBIOS_HEADER);
+    PBYTE  pDataCursor      = NULL;
+    PBYTE  pOutBuffer       = pSmbResponse->pBuffer;
+    ULONG  ulBytesAvailable = pSmbResponse->ulBytesAvailable;
+    ULONG  ulOffset         = 0;
+    ULONG  ulBytesUsed      = 0;
+    ULONG  ulTotalBytesUsed = 0;
+    LONG64 llCurTime        = 0LL;
+    time_t curTime          = 0;
 
     ntStatus = SMB2MarshalHeader(
                 pOutBuffer,
@@ -266,14 +268,14 @@ SrvMarshalNegotiateResponse_SMB_V2(
                 0, /* status       */
                 TRUE, /* response */
                 FALSE,
-                NULL,
-                &ulBytesUsed);
+                &pSmbResponse->pHeader,
+                &pSmbResponse->ulHeaderSize);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ulTotalBytesUsed += ulBytesUsed;
-    pOutBuffer += ulBytesUsed;
-    ulOffset += ulBytesUsed;
-    ulBytesAvailable -= ulBytesUsed;
+    pOutBuffer       += pSmbResponse->ulHeaderSize;
+    ulOffset         += pSmbResponse->ulHeaderSize;
+    ulBytesAvailable -= pSmbResponse->ulHeaderSize;
+    ulTotalBytesUsed += pSmbResponse->ulHeaderSize;
 
     if (ulBytesAvailable < sizeof(SMB2_NEGOTIATE_RESPONSE_HEADER))
     {
@@ -283,11 +285,11 @@ SrvMarshalNegotiateResponse_SMB_V2(
 
     pNegotiateHeader = (PSMB2_NEGOTIATE_RESPONSE_HEADER)pOutBuffer;
 
-    ulTotalBytesUsed += sizeof(SMB2_NEGOTIATE_RESPONSE_HEADER);
-    ulBytesUsed      = sizeof(SMB2_NEGOTIATE_RESPONSE_HEADER);
-    pOutBuffer += sizeof(SMB2_NEGOTIATE_RESPONSE_HEADER);
+    ulBytesUsed       = sizeof(SMB2_NEGOTIATE_RESPONSE_HEADER);
+    pOutBuffer       += sizeof(SMB2_NEGOTIATE_RESPONSE_HEADER);
+    ulOffset         += sizeof(SMB2_NEGOTIATE_RESPONSE_HEADER);
     ulBytesAvailable -= sizeof(SMB2_NEGOTIATE_RESPONSE_HEADER);
-    ulOffset += sizeof(SMB2_NEGOTIATE_RESPONSE_HEADER);
+    ulTotalBytesUsed += sizeof(SMB2_NEGOTIATE_RESPONSE_HEADER);
 
     pNegotiateHeader->usDialect = 0x0202;
 
@@ -319,18 +321,22 @@ SrvMarshalNegotiateResponse_SMB_V2(
             pServerProperties->GUID,
             sizeof(pServerProperties->GUID));
 
-    usAlign = ulOffset % 8;
-    if (ulBytesAvailable < usAlign)
+    if (ulOffset % 8)
     {
-        ntStatus = STATUS_INVALID_BUFFER_SIZE;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
+        USHORT usAlign = (8 - (ulOffset % 8));
 
-    ulOffset += usAlign;
-    pOutBuffer += usAlign;
-    ulTotalBytesUsed += usAlign;
-    ulBytesUsed += usAlign;
-    ulBytesAvailable -= usAlign;
+        if (ulBytesAvailable < usAlign)
+        {
+            ntStatus = STATUS_INVALID_BUFFER_SIZE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        pOutBuffer       += usAlign;
+        ulBytesUsed      += usAlign;
+        ulOffset         += usAlign;
+        ulBytesAvailable -= usAlign;
+        ulTotalBytesUsed += usAlign;
+    }
 
     pNegotiateHeader->usBlobOffset = ulOffset;
     pNegotiateHeader->usBlobLength = ulSessionKeyLength;
@@ -341,7 +347,7 @@ SrvMarshalNegotiateResponse_SMB_V2(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    pDataCursor = pOutBufferRef + ulOffset;
+    pDataCursor = pSmbResponse->pBuffer + ulOffset;
 
     memcpy(pDataCursor, pSessionKey, ulSessionKeyLength);
 
@@ -350,7 +356,7 @@ SrvMarshalNegotiateResponse_SMB_V2(
     ulTotalBytesUsed += ulSessionKeyLength;
     // ulBytesUsed += ulSessionKeyLength;
 
-    pSmbResponse->bufferUsed += ulTotalBytesUsed;
+    pSmbResponse->ulMessageSize = ulTotalBytesUsed;
 
 cleanup:
 
@@ -360,8 +366,12 @@ error:
 
     if (ulTotalBytesUsed)
     {
-        memset(pOutBufferRef, 0, ulTotalBytesUsed);
+        pSmbResponse->pHeader      = NULL;
+        pSmbResponse->ulHeaderSize = 0;
+        memset(pSmbResponse->pBuffer, 0, ulTotalBytesUsed);
     }
+
+    pSmbResponse->ulMessageSize = 0;
 
     goto cleanup;
 }

@@ -32,9 +32,7 @@
 
 NTSTATUS
 SrvProcessRead(
-    IN  PLWIO_SRV_CONNECTION pConnection,
-    IN  PSMB_PACKET          pSmbRequest,
-    OUT PSMB_PACKET*         ppSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext
     )
 {
     return STATUS_NOT_SUPPORTED;

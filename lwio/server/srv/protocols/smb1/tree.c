@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software
@@ -28,58 +28,90 @@
  * license@likewisesoftware.com
  */
 
-
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        includes.h
+ *        tree.c
  *
  * Abstract:
  *
  *        Likewise IO (LWIO) - SRV
  *
- *        Protocols
+ *        Protocols API - SMBV1
+ *
+ *        Tree
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
+ *
  */
 
-#include <config.h>
-#include <lwiosys.h>
+#include "includes.h"
 
-#include <uuid/uuid.h>
+NTSTATUS
+SrvTreeFindFile_SMB_V1(
+    PSRV_EXEC_CONTEXT_SMB_V1 pSmb1Context,
+    PLWIO_SRV_TREE           pTree,
+    USHORT                   usFid,
+    PLWIO_SRV_FILE*          ppFile
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PLWIO_SRV_FILE pFile = NULL;
 
-#include <lwio/lwio.h>
+    if (usFid)
+    {
+        if (pSmb1Context->pFile)
+        {
+            if (pSmb1Context->pFile->fid != usFid)
+            {
+                ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+            else
+            {
+                pFile = pSmb1Context->pFile;
+                InterlockedIncrement(&pFile->refcount);
+            }
+        }
+        else
+        {
+            ntStatus = SrvTreeFindFile(
+                            pTree,
+                            usFid,
+                            &pFile);
+            BAIL_ON_NT_STATUS(ntStatus);
 
-#include <lwiodef.h>
-#include <lwioutils.h>
-#include <lwiolog_r.h>
-#include <lwnet.h>
+            pSmb1Context->pFile = pFile;
+            InterlockedIncrement(&pFile->refcount);
+        }
+    }
+    else if (pSmb1Context->pFile)
+    {
+        pFile = pSmb1Context->pFile;
+        InterlockedIncrement(&pFile->refcount);
+    }
+    else
+    {
+        ntStatus = STATUS_NOT_FOUND;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
-#include <lw/ntstatus.h>
+    *ppFile = pFile;
 
-#include <lwio/lmshare.h>
-#include <lwio/lwshareinfo.h>
+cleanup:
 
-#include <iodriver.h>
-#include <ioapi.h>
+    return ntStatus;
 
-#include <smbwire.h>
+error:
 
-#include <srvutils.h>
-#include <shareapi.h>
-#include <elementsapi.h>
-#include <transportapi.h>
-#include <protocolapi.h>
+    *ppFile = NULL;
 
-#include <protocolapi_p.h>
-#include <smb2.h>
+    if (pFile)
+    {
+        SrvFileRelease(pFile);
+    }
 
-#include "defs.h"
-#include "structs.h"
-#include "prototypes.h"
-
-#include "externs.h"
-
+    goto cleanup;
+}

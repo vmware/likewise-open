@@ -481,8 +481,6 @@ lwmsg_server_task_handle_assoc_error(
     LWMsgStatus status
     )
 {
-    LWMsgSessionString buffer;
-
     switch (status)
     {
     case LWMSG_STATUS_SUCCESS:
@@ -496,18 +494,16 @@ lwmsg_server_task_handle_assoc_error(
     case LWMSG_STATUS_OVERFLOW:
     case LWMSG_STATUS_UNDERFLOW:
     case LWMSG_STATUS_CANCELLED:
-        if (lwmsg_context_would_log(server->context, LWMSG_LOGLEVEL_VERBOSE))
-        {
-            lwmsg_server_session_string_for_assoc((*task)->info.call.assoc, buffer);
-            LWMSG_LOG_VERBOSE(server->context, "(assoc:0x%lx) %s",
-                              LWMSG_POINTER_AS_ULONG((*task)->info.call.assoc),
-                              lwmsg_assoc_get_error_message((*task)->info.call.assoc, status));
-        }
-
+        LWMSG_LOG_VERBOSE(server->context, "(assoc:0x%lx) Dropping: %s",
+                          LWMSG_POINTER_AS_ULONG((*task)->info.call.assoc),
+                          lwmsg_assoc_get_error_message((*task)->info.call.assoc, status));
         lwmsg_server_task_drop(server, task);
         status = LWMSG_STATUS_SUCCESS;
         break;
     default:
+        LWMSG_LOG_ERROR(server->context, "(assoc:0x%lx) Dropping: %s",
+                        LWMSG_POINTER_AS_ULONG((*task)->info.call.assoc),
+                        lwmsg_assoc_get_error_message((*task)->info.call.assoc, status));
         lwmsg_server_task_drop(server, task);
         BAIL_ON_ERROR(status);
         break;

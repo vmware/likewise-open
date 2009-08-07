@@ -54,7 +54,7 @@ SrvMarshallPipeInfo(
 
         default:
 
-            ntStatus = STATUS_DATA_ERROR;
+            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
 
             break;
     }
@@ -74,7 +74,7 @@ SrvMarshallPipeInfo(
 
         default:
 
-            ntStatus = STATUS_DATA_ERROR;
+            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
 
             break;
     }
@@ -94,7 +94,7 @@ SrvMarshallPipeInfo(
 
         default:
 
-            ntStatus = STATUS_DATA_ERROR;
+            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
 
             break;
     }
@@ -114,7 +114,7 @@ SrvMarshallPipeInfo(
 
         default:
 
-            ntStatus = STATUS_DATA_ERROR;
+            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
 
             break;
     }

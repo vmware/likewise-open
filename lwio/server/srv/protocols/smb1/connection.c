@@ -39,7 +39,7 @@
  *
  *        Likewise IO (LWIO) - SRV
  *
- *        Protocols API - SMBV2
+ *        Protocols API - SMBV1
  *
  *        Connection
  *
@@ -50,46 +50,46 @@
 #include "includes.h"
 
 NTSTATUS
-SrvConnection2FindSession_SMB_V2(
-    PSRV_EXEC_CONTEXT_SMB_V2 pSmb2Context,
+SrvConnectionFindSession_SMB_V1(
+    PSRV_EXEC_CONTEXT_SMB_V1 pSmb1Context,
     PLWIO_SRV_CONNECTION     pConnection,
-    ULONG64                  ullUid,
-    PLWIO_SRV_SESSION_2*     ppSession
+    USHORT                   usUid,
+    PLWIO_SRV_SESSION*       ppSession
     )
 {
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    PLWIO_SRV_SESSION_2 pSession = NULL;
+    NTSTATUS          ntStatus = STATUS_SUCCESS;
+    PLWIO_SRV_SESSION pSession = NULL;
 
-    if (ullUid)
+    if (usUid)
     {
-        if (pSmb2Context->pSession)
+        if (pSmb1Context->pSession)
         {
-            if (pSmb2Context->pSession->ullUid != ullUid)
+            if (pSmb1Context->pSession->uid != usUid)
             {
                 ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
                 BAIL_ON_NT_STATUS(ntStatus);
             }
             else
             {
-                pSession = pSmb2Context->pSession;
+                pSession = pSmb1Context->pSession;
                 InterlockedIncrement(&pSession->refcount);
             }
         }
         else
         {
-            ntStatus = SrvConnection2FindSession(
+            ntStatus = SrvConnectionFindSession(
                             pConnection,
-                            ullUid,
+                            usUid,
                             &pSession);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            pSmb2Context->pSession = pSession;
+            pSmb1Context->pSession = pSession;
             InterlockedIncrement(&pSession->refcount);
         }
     }
-    else if (pSmb2Context->pSession)
+    else if (pSmb1Context->pSession)
     {
-        pSession = pSmb2Context->pSession;
+        pSession = pSmb1Context->pSession;
         InterlockedIncrement(&pSession->refcount);
     }
     else
@@ -107,6 +107,11 @@ cleanup:
 error:
 
     *ppSession = NULL;
+
+    if (pSession)
+    {
+        SrvSessionRelease(pSession);
+    }
 
     goto cleanup;
 }

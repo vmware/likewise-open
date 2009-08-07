@@ -33,58 +33,46 @@
  *
  * Module Name:
  *
- *        common.c
+ *        lsakrb.h
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        Join to Active Directory
+ *        Krb5 (Private Header)
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Kyle Stemen (kstemen@likewisesoftware.com)
+ *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
+#include "config.h"
+#include "lsasystem.h"
+#include "lsadef.h"
+#include "lsa/lsa.h"
+#include "lwmem.h"
+#include "lwstr.h"
+#include "lwsecurityidentifier.h"
+#include "lsautils.h"
+#include "lsaunistr.h"
 
-#include "includes.h"
+#include "lwnet.h"
+
+#include "externs.h"
+#include <lwio/lwio.h>
+
+typedef struct _LSA_ACCESS_TOKEN_FREE_INFO *PLSA_ACCESS_TOKEN_FREE_INFO;
 
 DWORD
-LsaSetSMBAccessTokenWithFlags(
+LsaSetSMBAccessToken(
     IN PCSTR pszDomain,
     IN PCSTR pszUsername,
     IN PCSTR pszPassword,
-    IN DWORD dwFlags,
-    OUT PLSA_ACCESS_TOKEN_FREE_INFO* ppFreeInfo
-    )
-{
-    DWORD dwError = 0;
-    PLSA_ACCESS_TOKEN_FREE_INFO pFreeInfo = NULL;
+    IN BOOLEAN bSetDefaultCachePath,
+    OUT PLSA_ACCESS_TOKEN_FREE_INFO* ppFreeInfo,
+    OUT OPTIONAL LW_PIO_ACCESS_TOKEN* ppOldToken
+    );
 
-    BAIL_ON_INVALID_POINTER(ppFreeInfo);
-    BAIL_ON_INVALID_STRING(pszDomain);
-    BAIL_ON_INVALID_STRING(pszUsername);
-
-    if ( !(dwFlags & LSA_NET_JOIN_DOMAIN_NOTIMESYNC) && geteuid() == 0)
-    {
-        dwError = LsaSyncTimeToDC(pszDomain);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = LsaSetSMBAccessToken(
-                    pszDomain,
-                    pszUsername,
-                    pszPassword,
-                    TRUE,
-                    &pFreeInfo,
-                    NULL);
-    BAIL_ON_LSA_ERROR(dwError);
-
-cleanup:
-    *ppFreeInfo = pFreeInfo;
-
-    return dwError;
-
-error:
-    LsaFreeSMBAccessToken(&pFreeInfo);
-    goto cleanup;
-}
+void
+LsaFreeSMBAccessToken(
+    IN OUT PLSA_ACCESS_TOKEN_FREE_INFO* ppFreeInfo
+    );
 

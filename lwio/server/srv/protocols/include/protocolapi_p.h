@@ -48,35 +48,20 @@
 #ifndef __PROTOCOL_API_P_H__
 #define __PROTOCOL_API_P_H__
 
-typedef VOID (*PFN_SRV_PROTOCOL_WORK_ITEM_EXECUTE)(HANDLE hItem);
-typedef VOID (*PFN_SRV_PROTOCOL_WORK_ITEM_RELEASE)(HANDLE hItem);
+typedef struct _SRV_EXEC_CONTEXT_SMB_V1* PSRV_EXEC_CONTEXT_SMB_V1;
+typedef struct _SRV_EXEC_CONTEXT_SMB_V2* PSRV_EXEC_CONTEXT_SMB_V2;
 
-typedef struct _SRV_PROTOCOL_WORK_ITEM
+typedef struct _SRV_PROTOCOL_EXEC_CONTEXT
 {
-    HANDLE hData;
+    SMB_PROTOCOL_VERSION protocolVersion;
 
-    PFN_SRV_PROTOCOL_WORK_ITEM_EXECUTE pfnExecute;
-    PFN_SRV_PROTOCOL_WORK_ITEM_RELEASE pfnRelease;
+    union
+    {
+        PSRV_EXEC_CONTEXT_SMB_V1 pSmb1Context;
+        PSRV_EXEC_CONTEXT_SMB_V2 pSmb2Context;
+    };
 
-} SRV_PROTOCOL_WORK_ITEM, *PSRV_PROTOCOL_WORK_ITEM;
-
-NTSTATUS
-SrvProtocolBuildWorkItem(
-    HANDLE                             hData,
-    PFN_SRV_PROTOCOL_WORK_ITEM_EXECUTE pfnExecute,
-    PFN_SRV_PROTOCOL_WORK_ITEM_RELEASE pfnRelease,
-    PSRV_PROTOCOL_WORK_ITEM*           ppWorkItem
-    );
-
-NTSTATUS
-SrvProtocolEnqueueWorkItem(
-    PSRV_PROTOCOL_WORK_ITEM pWorkItem
-    );
-
-VOID
-SrvProtocolFreeWorkItem(
-    PSRV_PROTOCOL_WORK_ITEM pWorkItem
-    );
+} SRV_PROTOCOL_EXEC_CONTEXT;
 
 #endif /* __PROTOCOL_API_P_H__ */
 

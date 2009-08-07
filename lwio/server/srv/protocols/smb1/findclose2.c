@@ -32,32 +32,37 @@
 
 NTSTATUS
 SrvProcessFindClose2(
-    IN  PLWIO_SRV_CONNECTION pConnection,
-    IN  PSMB_PACKET          pSmbRequest,
-    OUT PSMB_PACKET*         ppSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext
     )
 {
-    NTSTATUS ntStatus = 0;
-    PLWIO_SRV_SESSION pSession = NULL;
-    PSMB_PACKET      pSmbResponse = NULL;
-    USHORT           usSearchId;
-    USHORT           usResponseBytesUsed = 0;
+    NTSTATUS                     ntStatus     = 0;
+    PLWIO_SRV_CONNECTION         pConnection  = pExecContext->pConnection;
+    PSRV_PROTOCOL_EXEC_CONTEXT   pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1     pCtxSmb1     = pCtxProtocol->pSmb1Context;
+    ULONG                        iMsg         = pCtxSmb1->iMsg;
+    PSRV_MESSAGE_SMB_V1          pSmbRequest  = &pCtxSmb1->pRequests[iMsg];
+    PSRV_MESSAGE_SMB_V1          pSmbResponse = &pCtxSmb1->pResponses[iMsg];
+    PBYTE pBuffer          = pSmbRequest->pBuffer + pSmbRequest->usHeaderSize;
+    ULONG ulOffset         = pSmbRequest->usHeaderSize;
+    ULONG ulBytesAvailable = pSmbRequest->ulMessageSize - pSmbRequest->usHeaderSize;
+    USHORT usBytesUsed = 0;
+    ULONG ulTotalBytesUsed = 0;
     PFIND_CLOSE2_RESPONSE_HEADER pResponseHeader = NULL; // Do not free
-    ULONG            ulOffset = 0;
+    PLWIO_SRV_SESSION pSession = NULL;
+    USHORT            usSearchId;
 
-    ulOffset = (PBYTE)pSmbRequest->pParams - (PBYTE)pSmbRequest->pSMBHeader;
-
-    ntStatus = WireUnmarshallFindClose2Request(
-                    pSmbRequest->pParams,
-                    pSmbRequest->pNetBIOSHeader->len - ulOffset,
-                    ulOffset,
-                    &usSearchId);
+    ntStatus = SrvConnectionFindSession_SMB_V1(
+                    pCtxSmb1,
+                    pConnection,
+                    pSmbRequest->pHeader->uid,
+                    &pSession);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvConnectionFindSession(
-                    pConnection,
-                    pSmbRequest->pSMBHeader->uid,
-                    &pSession);
+    ntStatus = WireUnmarshallFindClose2Request(
+                    pBuffer,
+                    ulBytesAvailable,
+                    ulOffset,
+                    &usSearchId);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvFinderCloseSearchSpace(
@@ -65,52 +70,50 @@ SrvProcessFindClose2(
                     usSearchId);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBPacketAllocate(
-                    pConnection->hPacketAllocator,
-                    &pSmbResponse);
+    pBuffer = pSmbResponse->pBuffer;
+    ulBytesAvailable = pSmbResponse->ulBytesAvailable;
+    ulOffset         = 0;
+
+    ntStatus = SrvMarshalHeader_SMB_V1(
+                    pBuffer,
+                    ulOffset,
+                    ulBytesAvailable,
+                    COM_FIND_CLOSE2,
+                    STATUS_SUCCESS,
+                    TRUE,
+                    pSmbRequest->pHeader->tid,
+                    SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
+                    pCtxSmb1->pSession->uid,
+                    pSmbRequest->pHeader->mid,
+                    pConnection->serverProperties.bRequireSecuritySignatures,
+                    &pSmbResponse->pHeader,
+                    &pSmbResponse->pAndXHeader,
+                    &pSmbResponse->usHeaderSize);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBPacketBufferAllocate(
-                    pConnection->hPacketAllocator,
-                    64 * 1024,
-                    &pSmbResponse->pRawBuffer,
-                    &pSmbResponse->bufferLen);
-    BAIL_ON_NT_STATUS(ntStatus);
+    pBuffer          += pSmbResponse->usHeaderSize;
+    ulOffset         += pSmbResponse->usHeaderSize;
+    ulBytesAvailable -= pSmbResponse->usHeaderSize;
+    ulTotalBytesUsed += pSmbResponse->usHeaderSize;
 
-    ntStatus = SMBPacketMarshallHeader(
-                pSmbResponse->pRawBuffer,
-                pSmbResponse->bufferLen,
-                COM_FIND_CLOSE2,
-                0,
-                TRUE,
-                pSmbRequest->pSMBHeader->tid,
-                pSmbRequest->pSMBHeader->pid,
-                pSmbRequest->pSMBHeader->uid,
-                pSmbRequest->pSMBHeader->mid,
-                pConnection->serverProperties.bRequireSecuritySignatures,
-                pSmbResponse);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pSmbResponse->pSMBHeader->wordCount = 0;
+    pSmbResponse->pHeader->wordCount = 0;
 
     ntStatus = WireMarshallFindClose2Response(
-                    pSmbResponse->pParams,
-                    pSmbResponse->bufferLen - pSmbResponse->bufferUsed,
-                    (PBYTE)pSmbResponse->pParams - (PBYTE)pSmbResponse->pSMBHeader,
-                    &usResponseBytesUsed,
+                    pBuffer,
+                    ulBytesAvailable,
+                    ulOffset,
+                    &usBytesUsed,
                     &pResponseHeader);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pSmbResponse->bufferUsed += usResponseBytesUsed;
+    // pBuffer          += pSmbResponse->usHeaderSize;
+    // ulOffset         += pSmbResponse->usHeaderSize;
+    // ulBytesAvailable -= pSmbResponse->usHeaderSize;
+    ulTotalBytesUsed += usBytesUsed;
+
     pResponseHeader->usByteCount = 0;
 
-    ntStatus = SMBPacketUpdateAndXOffset(pSmbResponse);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SMBPacketMarshallFooter(pSmbResponse);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    *ppSmbResponse = pSmbResponse;
+    pSmbResponse->ulMessageSize = ulTotalBytesUsed;
 
 cleanup:
 
@@ -123,14 +126,14 @@ cleanup:
 
 error:
 
-    *ppSmbResponse = NULL;
-
-    if (pSmbResponse)
+    if (ulTotalBytesUsed)
     {
-        SMBPacketRelease(
-            pConnection->hPacketAllocator,
-            pSmbResponse);
+        pSmbResponse->pHeader = NULL;
+        pSmbResponse->pAndXHeader = NULL;
+        memset(pSmbResponse->pBuffer, 0, ulTotalBytesUsed);
     }
+
+    pSmbResponse->ulMessageSize = 0;
 
     goto cleanup;
 }

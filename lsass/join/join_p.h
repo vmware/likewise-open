@@ -64,16 +64,6 @@ typedef struct __LSA_MACHINE_ACCT_INFO
 
 } LSA_MACHINE_ACCT_INFO, *PLSA_MACHINE_ACCT_INFO;
 
-DWORD
-LsaSetSMBAccessTokenWithFlags(
-    IN PCSTR pszDomain,
-    IN PCSTR pszUsername,
-    IN PCSTR pszPassword,
-    IN DWORD dwFlags,
-    OUT PLSA_ACCESS_TOKEN_FREE_INFO* ppFreeInfo
-    );
-
-
 size_t
 LsaNetGetErrorString(
     DWORD  dwErrorCode,

@@ -56,7 +56,7 @@ SrvBuildNegotiateResponse_SMB_V1_NTLM_0_12(
 
     ntStatus = SMBPacketBufferAllocate(
                     pConnection->hPacketAllocator,
-                    64 * 1024,
+                    (64 * 1024) + 4096,
                     &pSmbResponse->pRawBuffer,
                     &pSmbResponse->bufferLen);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -68,7 +68,7 @@ SrvBuildNegotiateResponse_SMB_V1_NTLM_0_12(
                 0,
                 TRUE,
                 pSmbRequest->pSMBHeader->tid,
-                pSmbRequest->pSMBHeader->pid,
+                SMB_V1_GET_PROCESS_ID(pSmbRequest->pSMBHeader),
                 0,
                 pSmbRequest->pSMBHeader->mid,
                 FALSE,
@@ -202,7 +202,7 @@ SrvBuildNegotiateResponse_SMB_V1_Invalid(
 
     ntStatus = SMBPacketBufferAllocate(
                     pConnection->hPacketAllocator,
-                    64 * 1024,
+                    (64 * 1024) + 4096,
                     &pSmbResponse->pRawBuffer,
                     &pSmbResponse->bufferLen);
     BAIL_ON_NT_STATUS(ntStatus);

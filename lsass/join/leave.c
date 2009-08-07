@@ -105,14 +105,15 @@ LsaNetLeaveDomain(
     BAIL_ON_LSA_ERROR(dwError);
 
     if (!IsNullOrEmptyString(pszUsername) &&
-        !IsNullOrEmptyString(pszPassword)) {
-
-        dwError = LsaSetSMBAccessTokenWithFlags(
+        !IsNullOrEmptyString(pszPassword))
+    {
+        dwError = LsaSetSMBAccessToken(
                     pAcct->pszDnsDomainName,
                     pszUsername,
                     pszPassword,
-                    LSA_NET_JOIN_DOMAIN_NOTIMESYNC,
-                    &pAccessInfo);
+                    TRUE,
+                    &pAccessInfo,
+                    NULL);
         BAIL_ON_LSA_ERROR(dwError);
 
         dwError = Win32ErrorToErrno(

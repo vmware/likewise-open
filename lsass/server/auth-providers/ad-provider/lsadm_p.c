@@ -2688,19 +2688,19 @@ LsaDmpLdapReconnectCallback(
 
     if (AD_GetLDAPSignAndSeal())
     {
-        dwFlags |= LSA_LDAP_OPT_SIGN_AND_SEAL;
+        dwFlags |= LW_LDAP_OPT_SIGN_AND_SEAL;
     }
 
     if (pLdap->bIsGc)
     {
-        dwError = LwLdapOpenDirectoryGc(
+        dwError = LsaLdapOpenDirectoryGc(
                         pLdap->pszDnsDomainName,
                         dwFlags,
                         &hNew);
     }
     else
     {
-        dwError = LwLdapOpenDirectoryDomain(
+        dwError = LsaLdapOpenDirectoryDomain(
                         pLdap->pszDnsDomainName,
                         dwFlags,
                         &hNew);

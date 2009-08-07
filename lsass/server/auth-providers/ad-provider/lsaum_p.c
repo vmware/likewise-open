@@ -770,7 +770,6 @@ LsaUmpCreateKeys(
         LsaStrToLower(pszHostname);
 
         dwError = LwKrb5GetMachineCreds(
-                      pszHostname,
                       &pszUsername,
                       &pszServicePassword,
                       &pszDomainDnsName,
@@ -1478,17 +1477,6 @@ LsaUmpRefreshUserCreds(
 {
     DWORD                dwError = 0;
     PLSA_SECURITY_OBJECT pUserInfo = NULL;
-    PSTR                 pszHostname = NULL;
-    PSTR                 pszMachineAccountName = NULL;
-    PSTR                 pszServicePassword = NULL;
-    PSTR                 pszDomainDnsName = NULL;
-    PSTR                 pszHostDnsDomain = NULL;
-    PSTR                 pszServicePrincipal = NULL;
-    LSA_TRUST_DIRECTION  dwTrustDirection = LSA_TRUST_DIRECTION_UNKNOWN;
-    PAC_LOGON_INFO *     pPac = NULL;
-    PSTR                 pszUserDnsDomainName = NULL;
-    PSTR                 pszFreeUpn = NULL;
-    PSTR                 pszUpn = NULL;
     PSTR                 pszPassword = NULL;
 
     if ( pUserItem->dwFailedCount > 5 )
@@ -1512,54 +1500,6 @@ LsaUmpRefreshUserCreds(
                   &pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaDnsGetHostInfo(&pszHostname);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    LsaStrToLower(pszHostname);
-
-    dwError = LwKrb5GetMachineCreds(
-                  pszHostname,
-                  &pszMachineAccountName,
-                  &pszServicePassword,
-                  &pszDomainDnsName,
-                  &pszHostDnsDomain);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    // Leave the realm empty so that kerberos referrals are turned on.
-    dwError = LsaAllocateStringPrintf(
-                  &pszServicePrincipal,
-                  "host/%s.%s@",
-                  pszHostname,
-                  pszHostDnsDomain);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (pUserInfo->userInfo.bIsGeneratedUPN)
-    {
-        pszUpn = pUserInfo->userInfo.pszUPN;
-    }
-    else
-    {
-        BOOLEAN bIsGeneratedUpn = FALSE;
-
-        dwError = LsaDmEngineGetDomainNameAndSidByObjectSidWithDiscovery(
-                         pUserInfo->pszObjectSid,
-                         &pszUserDnsDomainName,
-                         NULL,
-                         NULL);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwError = ADGetLDAPUPNString(
-                      0,
-                      NULL,
-                      pszUserDnsDomainName,
-                      pUserInfo->pszSamAccountName,
-                      &pszFreeUpn,
-                      &bIsGeneratedUpn);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        pszUpn = pszFreeUpn;
-    }
-
     dwError = LsaUmpDecryptString(
                   Handle,
                   pUserItem->pPassword,
@@ -1567,40 +1507,11 @@ LsaUmpRefreshUserCreds(
                   &pszPassword);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaSetupUserLoginSession(
-                  pUserItem->uUid,
-                  pUserInfo->userInfo.gid,
-                  pszUpn,
-                  pszPassword,
-                  KRB5_File_Cache,
-                  pszServicePrincipal,
-                  pszServicePassword,
-                  &pPac,
-                  &pUserItem->dwTgtEndTime);
-    if (dwError == LW_ERROR_KRB5_S_PRINCIPAL_UNKNOWN)
-    {
-        LSA_SAFE_FREE_STRING(pszServicePrincipal);
-
-        // Perhaps the host has no SPN or UPN.  Try again
-        // Using the sAMAccountName
-        dwError = LsaAllocateStringPrintf(
-                      &pszServicePrincipal,
-                      "%s@%s",
-                      pszMachineAccountName,
-                      pszDomainDnsName);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwError = LsaSetupUserLoginSession(
-                      pUserItem->uUid,
-                      pUserInfo->userInfo.gid,
-                      pszUpn,
-                      pszPassword,
-                      KRB5_File_Cache,
-                      pszServicePrincipal,
-                      pszServicePassword,
-                      &pPac,
-                      &pUserItem->dwTgtEndTime);
-    }
+    dwError = AD_OnlineCheckUserPassword(
+                    (HANDLE)NULL,
+                    pUserInfo,
+                    pszPassword,
+                    &pUserItem->dwTgtEndTime);
     BAIL_ON_LSA_ERROR(dwError);
 
     // At this point the user's TGT has been refreshed.
@@ -1611,45 +1522,15 @@ LsaUmpRefreshUserCreds(
 
     if (AD_EventlogEnabled())
     {
-        LsaUmpLogUserTGTRefreshSuccessEvent(pszUpn,
+        LsaUmpLogUserTGTRefreshSuccessEvent(pUserInfo->userInfo.pszUPN,
                                             pUserItem->uUid,
-                                            pszUserDnsDomainName,
+                                            pUserInfo->pszNetbiosDomainName,
                                             pUserItem->dwTgtEndTime);
-    }
-
-    if (pPac != NULL)
-    {
-        dwError = AD_CacheGroupMembershipFromPac(
-                      (HANDLE)NULL,
-                      dwTrustDirection,
-                      pUserInfo,
-                      pPac);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwError = AD_CacheUserRealInfoFromPac(
-                      pUserInfo,
-                      pPac);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        LSA_ASSERT(pUserInfo->userInfo.bIsAccountInfoKnown);
     }
 
 cleanup:
 
-    if (pPac)
-    {
-        FreePacLogonInfo(pPac);
-    }
-
     ADCacheSafeFreeObject(&pUserInfo);
-    LSA_SAFE_FREE_STRING(pszHostname);
-    LSA_SAFE_FREE_STRING(pszMachineAccountName);
-    LSA_SAFE_CLEAR_FREE_STRING(pszServicePassword);
-    LSA_SAFE_FREE_STRING(pszDomainDnsName);
-    LSA_SAFE_FREE_STRING(pszHostDnsDomain);
-    LSA_SAFE_FREE_STRING(pszServicePrincipal);
-    LSA_SAFE_FREE_STRING(pszUserDnsDomainName);
-    LSA_SAFE_FREE_STRING(pszFreeUpn);
     LSA_SAFE_CLEAR_FREE_STRING(pszPassword);
 
     return dwError;
@@ -1663,9 +1544,9 @@ error:
 
         if (AD_EventlogEnabled())
         {
-            LsaUmpLogUserTGTRefreshFailureEvent(pszUpn,
+            LsaUmpLogUserTGTRefreshFailureEvent(pUserInfo->userInfo.pszUPN,
                                                 pUserItem->uUid,
-                                                pszUserDnsDomainName,
+                                                pUserInfo->pszNetbiosDomainName,
                                                 pUserItem->dwFailedCount,
                                                 dwError);
         }

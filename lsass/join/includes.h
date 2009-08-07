@@ -39,19 +39,20 @@
 
 #include "lwmem.h"
 #include <lwstr.h>
+#include <lwkrb5.h>
+#include "lsakrb5smb.h"
+#include <uuid/uuid.h>
 #include "lwsecurityidentifier.h"
 
 #include "lsautils.h"
 #include "lsaunistr.h"
 
 #include "lsasrvutils.h"
-#include "lsakrb5.h"
 #include "lwtime.h"
-#include "lwldap.h"
+#include "lsaldap.h"
 
 #include <lwps/lwps.h>
 #include <lwnet.h>
-#include "lsakrb5_error.h"
 
 #include <lwrpc/LM.h>
 #include <lwrpc/lsa.h>
@@ -65,45 +66,12 @@
 #include "join_p.h"
 
 
-#include "config.h"
-#include "lsasystem.h"
-#include "lsadef.h"
-#include "lsa/lsa.h"
-#include "lwmem.h"
-#include "lwstr.h"
-#include "lwsecurityidentifier.h"
-#include "lsautils.h"
-#include "lwldap.h"
-#include "lsakrb5.h"
-#include "lsakrb5_error.h"
-#include "lwldap_p.h"
-#include "lwnet.h"
+#include <lwldap.h>
+#include "lsaldap_p.h"
 
-
-#include "config.h"
-#include "lsasystem.h"
-#include "lsadef.h"
-#include "lsa/lsa.h"
-#include "lwmem.h"
-#include "lwstr.h"
-#include "lwsecurityidentifier.h"
-#include "lsautils.h"
-#include "lsaunistr.h"
-
-#include "lwnet.h"
-
-#include "lsakrb5.h"
-
-#include "krb5sys.h"
-#include "lsakrb5_error.h"
-
-#include "krbtgt.h"
 #include "externs.h"
 
-#include "lsakrb.h"
-#include "lsakrb5_p.h"
 #include <lber.h>
-#include "lwps/lwps.h"
-
+#include <lwrpc/krb5pac.h>
 
 #endif /* __INCLUDES_H__ */

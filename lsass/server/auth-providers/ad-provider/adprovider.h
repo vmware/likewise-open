@@ -64,6 +64,8 @@
 
 #include "lwmem.h"
 #include "lwstr.h"
+#include <lwkrb5.h>
+#include <lwrpc/krb5pac.h>
 #include "lwsecurityidentifier.h"
 #include "lsautils.h"
 #include "lsaunistr.h"
@@ -73,8 +75,8 @@
 #include "lsalocalclient.h"
 
 #include "lsasrvutils.h"
-#include "lsakrb5.h"
 #include "lwldap.h"
+#include "lsaldap.h"
 //#include "lsadb.h"
 #include "adcache.h"
 #include "adcachespi.h"
@@ -119,3 +121,4 @@
 #include "sqlcache_p.h"
 #include "memcache_p.h"
 #include "specialdomain.h"
+#include "lsakrb5smb.h"

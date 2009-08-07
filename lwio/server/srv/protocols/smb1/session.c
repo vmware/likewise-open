@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software
@@ -33,78 +33,85 @@
  *
  * Module Name:
  *
- *        async.c
+ *        session.c
  *
  * Abstract:
  *
- *        Likewise SMB Server
+ *        Likewise IO (LWIO) - SRV
  *
- *        Asynchronous messaging
+ *        Protocols API - SMBV1
  *
- * Authors: Sriram Nambakam <snambakam@likewise.com>
+ *        Session
+ *
+ * Authors: Sriram Nambakam (snambakam@likewise.com)
+ *
  */
 
 #include "includes.h"
 
-VOID
-SrvExecuteAsyncRequest_SMB_V1(
-    PVOID pData
+NTSTATUS
+SrvSessionFindTree_SMB_V1(
+    PSRV_EXEC_CONTEXT_SMB_V1 pSmb1Context,
+    PLWIO_SRV_SESSION        pSession,
+    USHORT                   usTid,
+    PLWIO_SRV_TREE*          ppTree
     )
 {
-    PSRV_ASYNC_CONTEXT_SMB_V1 pAsyncContext = (PSRV_ASYNC_CONTEXT_SMB_V1)pData;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PLWIO_SRV_TREE pTree = NULL;
 
-    switch (pAsyncContext->usCommand)
+    if (usTid)
     {
-        case COM_NT_CREATE_ANDX:
-
-            SrvExecuteCreateRequest(pAsyncContext->data.pCreateRequest);
-
-            break;
-
-        case COM_LOCKING_ANDX:
-
-            break;
-
-        default:
-
-            break;
-    }
-}
-
-VOID
-SrvReleaseAsyncRequest_SMB_V1(
-    PVOID pData
-    )
-{
-    PSRV_ASYNC_CONTEXT_SMB_V1 pAsyncContext = (PSRV_ASYNC_CONTEXT_SMB_V1)pData;
-
-    if (pAsyncContext)
-    {
-        switch (pAsyncContext->usCommand)
+        if (pSmb1Context->pTree)
         {
-            case COM_NT_CREATE_ANDX:
-
-                if (pAsyncContext->data.pCreateRequest)
-                {
-                    SrvReleaseCreateRequest(pAsyncContext->data.pCreateRequest);
-                }
-
-                break;
-
-            case COM_LOCKING_ANDX:
-
-                if (pAsyncContext->data.pLockRequest)
-                {
-                    SrvReleaseLockRequest(pAsyncContext->data.pLockRequest);
-                }
-
-                break;
-
-            default:
-
-                break;
+            if (pSmb1Context->pTree->tid != usTid)
+            {
+                ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+            else
+            {
+                pTree = pSmb1Context->pTree;
+                InterlockedIncrement(&pTree->refcount);
+            }
         }
+        else
+        {
+            ntStatus = SrvSessionFindTree(
+                            pSession,
+                            usTid,
+                            &pTree);
+            BAIL_ON_NT_STATUS(ntStatus);
 
-        SrvFreeMemory(pAsyncContext);
+            pSmb1Context->pTree = pTree;
+            InterlockedIncrement(&pTree->refcount);
+        }
     }
+    else if (pSmb1Context->pTree)
+    {
+        pTree = pSmb1Context->pTree;
+        InterlockedIncrement(&pTree->refcount);
+    }
+    else
+    {
+        ntStatus = STATUS_BAD_NETWORK_NAME;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    *ppTree = pTree;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppTree = NULL;
+
+    if (pTree)
+    {
+        SrvTreeRelease(pTree);
+    }
+
+    goto cleanup;
 }

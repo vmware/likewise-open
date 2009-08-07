@@ -51,10 +51,10 @@
 
 NTSTATUS
 SrvTree2FindFile_SMB_V2(
-    PSMB2_CONTEXT     pContext,
-    PLWIO_SRV_TREE_2  pTree,
-    PSMB2_FID         pFid,
-    PLWIO_SRV_FILE_2* ppFile
+    PSRV_EXEC_CONTEXT_SMB_V2 pSmb2Context,
+    PLWIO_SRV_TREE_2         pTree,
+    PSMB2_FID                pFid,
+    PLWIO_SRV_FILE_2*        ppFile
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -63,14 +63,34 @@ SrvTree2FindFile_SMB_V2(
     if (pFid && !(pFid->ullPersistentId == 0xFFFFFFFFFFFFFFFFLL &&
                   pFid->ullVolatileId == 0xFFFFFFFFFFFFFFFFLL))
     {
-        ntStatus = SrvTree2FindFile(
-                        pTree,
-                        pFid->ullVolatileId,
-                        &pFile);
+        if (pSmb2Context->pFile)
+        {
+            if (pSmb2Context->pFile->ullFid != pFid->ullVolatileId)
+            {
+                ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+            else
+            {
+                pFile = pSmb2Context->pFile;
+                InterlockedIncrement(&pFile->refcount);
+            }
+        }
+        else
+        {
+            ntStatus = SrvTree2FindFile(
+                            pTree,
+                            pFid->ullVolatileId,
+                            &pFile);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            pSmb2Context->pFile = pFile;
+            InterlockedIncrement(&pFile->refcount);
+        }
     }
-    else if (pContext->pFile)
+    else if (pSmb2Context->pFile)
     {
-        pFile = pContext->pFile;
+        pFile = pSmb2Context->pFile;
         InterlockedIncrement(&pFile->refcount);
     }
     else

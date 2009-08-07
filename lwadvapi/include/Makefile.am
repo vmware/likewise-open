@@ -7,4 +7,5 @@ include_HEADERS = \
 	lwmem.h \
 	lwsecurityidentifier.h \
 	lwstr.h \
+	lwtime.h \
 	winerror.h

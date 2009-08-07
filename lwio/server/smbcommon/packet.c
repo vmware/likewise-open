@@ -579,37 +579,80 @@ SMB2PacketVerifySignature(
 
     if (pSessionKey)
     {
-        uint8_t  origSignature[16];
-        UCHAR    ucDigest[EVP_MAX_MD_SIZE];
-        ULONG    ulDigest = sizeof(ucDigest);
+        PBYTE   pBuffer          = pPacket->pRawBuffer + sizeof(NETBIOS_HEADER);
+        ULONG   ulBytesAvailable = pPacket->pNetBIOSHeader->len;
+        uint8_t origSignature[16];
+        UCHAR   ucDigest[EVP_MAX_MD_SIZE];
+        ULONG   ulDigest = sizeof(ucDigest);
 
-        memcpy(origSignature,
-               pPacket->pSMB2Header->signature,
-               sizeof(pPacket->pSMB2Header->signature));
-
-        memset(&pPacket->pSMB2Header->signature[0],
-               0,
-               sizeof(pPacket->pSMB2Header->signature));
-
-        HMAC(EVP_sha256(),
-             pSessionKey,
-             ulSessionKeyLength,
-             (PBYTE)pPacket->pSMB2Header,
-             pPacket->pNetBIOSHeader->len,
-             &ucDigest[0],
-             &ulDigest);
-
-        if (memcmp(&origSignature[0], &ucDigest[0], sizeof(origSignature)))
+        if (!pBuffer)
         {
             ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+            BAIL_ON_NT_STATUS(ntStatus);
         }
 
-        // restore signature
-        memcpy(&pPacket->pSMB2Header->signature[0],
-               &origSignature[0],
-               sizeof(origSignature));
+        while (pBuffer)
+        {
+            PSMB2_HEADER pHeader      = NULL;
+            ULONG        ulPacketSize = ulBytesAvailable;
 
-        BAIL_ON_NT_STATUS(ntStatus);
+            if (ulBytesAvailable < sizeof(SMB2_HEADER))
+            {
+                ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+
+            pHeader = (PSMB2_HEADER)pBuffer;
+
+            if (pHeader->ulChainOffset)
+            {
+                if (ulBytesAvailable < pHeader->ulChainOffset)
+                {
+                    ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+                    BAIL_ON_NT_STATUS(ntStatus);
+                }
+
+                ulPacketSize = pHeader->ulChainOffset;
+            }
+
+            memcpy(origSignature,
+                   &pHeader->signature[0],
+                   sizeof(pHeader->signature));
+
+            memset(&pHeader->signature[0],
+                   0,
+                   sizeof(pHeader->signature));
+
+            HMAC(EVP_sha256(),
+                 pSessionKey,
+                 ulSessionKeyLength,
+                 pBuffer,
+                 ulPacketSize,
+                 &ucDigest[0],
+                 &ulDigest);
+
+            if (memcmp(&origSignature[0], &ucDigest[0], sizeof(origSignature)))
+            {
+                ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+            }
+
+            // restore signature
+            memcpy(&pHeader->signature[0],
+                   &origSignature[0],
+                   sizeof(origSignature));
+
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            if (pHeader->ulChainOffset)
+            {
+                pBuffer          += pHeader->ulChainOffset;
+                ulBytesAvailable -= pHeader->ulChainOffset;
+            }
+            else
+            {
+                pBuffer = NULL;
+            }
+        }
     }
 
 cleanup:
@@ -707,27 +750,66 @@ SMB2PacketSign(
 
     if (pSessionKey)
     {
-        UCHAR ucDigest[EVP_MAX_MD_SIZE];
-        ULONG ulDigest = sizeof(ucDigest);
+        PBYTE pBuffer = (PBYTE)pPacket->pSMB2Header;
+        ULONG ulBytesAvailable = htonl(pPacket->pNetBIOSHeader->len);
 
-        pPacket->pSMB2Header->ulFlags |= SMB2_FLAGS_SIGNED;
+        while (pBuffer)
+        {
+            UCHAR ucDigest[EVP_MAX_MD_SIZE];
+            ULONG ulDigest = sizeof(ucDigest);
+            PSMB2_HEADER pHeader = NULL;
+            ULONG ulPacketSize = ulBytesAvailable;
 
-        memset(&pPacket->pSMB2Header->signature[0],
-               0,
-               sizeof(pPacket->pSMB2Header->signature));
+            if (ulBytesAvailable < sizeof(SMB2_HEADER))
+            {
+                ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
 
-        HMAC(EVP_sha256(),
-             pSessionKey,
-             ulSessionKeyLength,
-             (PBYTE)pPacket->pSMB2Header,
-             ntohl(pPacket->pNetBIOSHeader->len),
-             &ucDigest[0],
-             &ulDigest);
+            pHeader = (PSMB2_HEADER)pBuffer;
 
-        memcpy(&pPacket->pSMB2Header->signature[0],
-               &ucDigest[0],
-               sizeof(pPacket->pSMB2Header->signature));
+            if (pHeader->ulChainOffset)
+            {
+                if (ulBytesAvailable < pHeader->ulChainOffset)
+                {
+                    ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+                    BAIL_ON_NT_STATUS(ntStatus);
+                }
+
+                ulPacketSize = pHeader->ulChainOffset;
+            }
+
+            pHeader->ulFlags |= SMB2_FLAGS_SIGNED;
+
+            memset(&pHeader->signature[0],
+                   0,
+                   sizeof(pHeader->signature));
+
+            HMAC(EVP_sha256(),
+                 pSessionKey,
+                 ulSessionKeyLength,
+                 (PBYTE)pHeader,
+                 ulPacketSize,
+                 &ucDigest[0],
+                 &ulDigest);
+
+            memcpy(&pHeader->signature[0],
+                   &ucDigest[0],
+                   sizeof(pHeader->signature));
+
+            if (pHeader->ulChainOffset)
+            {
+                pBuffer          += pHeader->ulChainOffset;
+                ulBytesAvailable -= pHeader->ulChainOffset;
+            }
+            else
+            {
+                pBuffer = NULL;
+            }
+        }
     }
+
+error:
 
     return ntStatus;
 }

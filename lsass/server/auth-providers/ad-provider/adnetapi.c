@@ -77,17 +77,9 @@ AD_GetSystemAccessToken(
     PSTR pszPassword = NULL;
     PSTR pszDomainDnsName = NULL;
     PSTR pszHostDnsDomain = NULL;
-    PSTR pszHostname = NULL;
     PSTR pszMachPrincipal = NULL;
-    PSTR pszKrb5CcPath = NULL;
-
-    dwError = LsaDnsGetHostInfo(&pszHostname);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    LsaStrToUpper(pszHostname);
 
     dwError = LwKrb5GetMachineCreds(
-                    pszHostname,
                     &pszUsername,
                     &pszPassword,
                     &pszDomainDnsName,
@@ -101,14 +93,9 @@ AD_GetSystemAccessToken(
                     pszDomainDnsName);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LwKrb5GetSystemCachePath(
-                    KRB5_File_Cache,
-                    &pszKrb5CcPath);
-    BAIL_ON_LSA_ERROR(dwError);
-
     dwError = LwIoCreateKrb5AccessTokenA(
                     pszMachPrincipal,
-                    pszKrb5CcPath,
+                    LSASS_CACHE_PATH,
                     &pAccessToken);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -119,9 +106,7 @@ cleanup:
     LSA_SAFE_FREE_STRING(pszPassword);
     LSA_SAFE_FREE_STRING(pszDomainDnsName);
     LSA_SAFE_FREE_STRING(pszHostDnsDomain);
-    LSA_SAFE_FREE_STRING(pszHostname);
     LSA_SAFE_FREE_STRING(pszMachPrincipal);
-    LSA_SAFE_FREE_STRING(pszKrb5CcPath);
 
     return dwError;
 

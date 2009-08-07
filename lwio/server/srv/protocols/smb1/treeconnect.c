@@ -33,58 +33,57 @@
 static
 NTSTATUS
 SrvBuildTreeConnectResponse(
-    PLWIO_SRV_CONNECTION pConnection,
-    PSMB_PACKET         pSmbRequest,
-    PLWIO_SRV_TREE       pTree,
-    PSMB_PACKET*        ppSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext
     );
 
 static
 NTSTATUS
 SrvGetServiceName(
     PSRV_SHARE_INFO pShareInfo,
-    PSTR* ppszService
+    PSTR*           ppszService
     );
 
 static
 NTSTATUS
 SrvGetNativeFilesystem(
     PSRV_SHARE_INFO pShareInfo,
-    PWSTR* ppwszNativeFilesystem
+    PWSTR*          ppwszNativeFilesystem
     );
 
 NTSTATUS
 SrvProcessTreeConnectAndX(
-    IN  PLWIO_SRV_CONNECTION pConnection,
-    IN  PSMB_PACKET          pSmbRequest,
-    OUT PSMB_PACKET*         ppSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext
     )
 {
-    NTSTATUS ntStatus = 0;
-    PSMB_PACKET pSmbResponse = NULL;
-    PLWIO_SRV_SESSION pSession = NULL;
-    PLWIO_SRV_TREE pTree = NULL;
-    BOOLEAN       bRemoveTreeFromSession = FALSE;
-    PSRV_SHARE_INFO pShareInfo = NULL;
-    ULONG ulOffset = 0;
-    TREE_CONNECT_REQUEST_HEADER* pRequestHeader = NULL; // Do not free
-    uint8_t* pszPassword = NULL; // Do not free
-    uint8_t* pszService = NULL; // Do not free
-    PWSTR    pwszPath = NULL; // Do not free
-    PWSTR    pwszSharename = NULL;
-    BOOLEAN  bInLock = FALSE;
+    NTSTATUS                   ntStatus     = 0;
+    PLWIO_SRV_CONNECTION       pConnection  = pExecContext->pConnection;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
+    ULONG                      iMsg         = pCtxSmb1->iMsg;
+    PSRV_MESSAGE_SMB_V1        pSmbRequest  = &pCtxSmb1->pRequests[iMsg];
+    BOOLEAN                    bRemoveTreeFromSession  = FALSE;
+    PSRV_SHARE_INFO            pShareInfo = NULL;
+    PWSTR                      pwszSharename = NULL;
+    BOOLEAN                    bInLock = FALSE;
+    PBYTE pBuffer          = pSmbRequest->pBuffer + pSmbRequest->usHeaderSize;
+    ULONG ulOffset         = pSmbRequest->usHeaderSize;
+    ULONG ulBytesAvailable = pSmbRequest->ulMessageSize - pSmbRequest->usHeaderSize;
+    PTREE_CONNECT_REQUEST_HEADER pRequestHeader = NULL; // Do not free
+    PBYTE                        pszPassword   = NULL; // Do not free
+    PBYTE                        pszService    = NULL; // Do not free
+    PWSTR                        pwszPath      = NULL; // Do not free
+    PLWIO_SRV_SESSION            pSession = NULL;
 
-    ntStatus = SrvConnectionFindSession(
+    ntStatus = SrvConnectionFindSession_SMB_V1(
+                    pCtxSmb1,
                     pConnection,
-                    pSmbRequest->pSMBHeader->uid,
+                    pSmbRequest->pHeader->uid,
                     &pSession);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ulOffset = (PBYTE)pSmbRequest->pParams - (PBYTE)pSmbRequest->pSMBHeader;
-
     ntStatus = UnmarshallTreeConnectRequest(
-                    pSmbRequest->pParams,
-                    pSmbRequest->pNetBIOSHeader->len - ulOffset,
+                    pBuffer,
+                    ulBytesAvailable,
                     ulOffset,
                     &pRequestHeader,
                     &pszPassword,
@@ -98,12 +97,12 @@ SrvProcessTreeConnectAndX(
 
         ntStatus2 = SrvSessionRemoveTree(
                         pSession,
-                        pSmbRequest->pSMBHeader->tid);
+                        pSmbRequest->pHeader->tid);
         if (ntStatus2)
         {
             LWIO_LOG_ERROR("Failed to remove tid [%u] from session [uid=%u]. [code:%d]",
-                            pSmbRequest->pSMBHeader->tid,
-                            pSmbRequest->pSMBHeader->uid,
+                            pSmbRequest->pHeader->tid,
+                            pSession->uid,
                             ntStatus2);
         }
     }
@@ -123,7 +122,8 @@ SrvProcessTreeConnectAndX(
                     pConnection->pShareList,
                     pwszSharename,
                     &pShareInfo);
-    if (ntStatus == STATUS_NOT_FOUND) {
+    if (ntStatus == STATUS_NOT_FOUND)
+    {
         ntStatus = STATUS_BAD_NETWORK_NAME;
     }
     BAIL_ON_NT_STATUS(ntStatus);
@@ -131,19 +131,13 @@ SrvProcessTreeConnectAndX(
     ntStatus = SrvSessionCreateTree(
                     pSession,
                     pShareInfo,
-                    &pTree);
+                    &pCtxSmb1->pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
     bRemoveTreeFromSession = TRUE;
 
-    ntStatus = SrvBuildTreeConnectResponse(
-                    pConnection,
-                    pSmbRequest,
-                    pTree,
-                    &pSmbResponse);
+    ntStatus = SrvBuildTreeConnectResponse(pExecContext);
     BAIL_ON_NT_STATUS(ntStatus);
-
-    *ppSmbResponse = pSmbResponse;
 
 cleanup:
 
@@ -152,11 +146,6 @@ cleanup:
     if (pSession)
     {
         SrvSessionRelease(pSession);
-    }
-
-    if (pTree)
-    {
-        SrvTreeRelease(pTree);
     }
 
     if (pShareInfo)
@@ -169,11 +158,9 @@ cleanup:
         SrvFreeMemory(pwszSharename);
     }
 
-    return (ntStatus);
+    return ntStatus;
 
 error:
-
-    *ppSmbResponse = NULL;
 
     if (bRemoveTreeFromSession)
     {
@@ -181,21 +168,17 @@ error:
 
         ntStatus2 = SrvSessionRemoveTree(
                         pSession,
-                        pSmbRequest->pSMBHeader->tid);
+                        pCtxSmb1->pTree->tid);
         if (ntStatus2)
         {
             LWIO_LOG_ERROR("Failed to remove tid [%u] from session [uid=%u][code:%d]",
-                            pSmbRequest->pSMBHeader->tid,
-                            pSmbRequest->pSMBHeader->uid,
+                            pSmbRequest->pHeader->tid,
+                            pSmbRequest->pHeader->uid,
                             ntStatus2);
         }
-    }
 
-    if (pSmbResponse)
-    {
-        SMBPacketRelease(
-            pConnection->hPacketAllocator,
-            pSmbResponse);
+        SrvTreeRelease(pCtxSmb1->pTree);
+        pCtxSmb1->pTree = NULL;
     }
 
     goto cleanup;
@@ -204,95 +187,102 @@ error:
 static
 NTSTATUS
 SrvBuildTreeConnectResponse(
-    PLWIO_SRV_CONNECTION pConnection,
-    PSMB_PACKET         pSmbRequest,
-    PLWIO_SRV_TREE       pTree,
-    PSMB_PACKET*        ppSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB_PACKET pSmbResponse = NULL;
-    PTREE_CONNECT_RESPONSE_HEADER pResponseHeader = NULL;
-    ULONG  packetByteCount = 0;
-    PSTR   pszService = NULL;
-    PWSTR  pwszNativeFileSystem = NULL;
+    PLWIO_SRV_CONNECTION       pConnection  = pExecContext->pConnection;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
+    ULONG                      iMsg         = pCtxSmb1->iMsg;
+    PSRV_MESSAGE_SMB_V1        pSmbRequest  = &pCtxSmb1->pRequests[iMsg];
+    PSRV_MESSAGE_SMB_V1        pSmbResponse = &pCtxSmb1->pResponses[iMsg];
+    PTREE_CONNECT_RESPONSE_HEADER pResponseHeader = NULL; // Do not free
+    PBYTE pOutBuffer           = pSmbResponse->pBuffer;
+    ULONG ulBytesAvailable     = pSmbResponse->ulBytesAvailable;
+    ULONG ulOffset             = 0;
+    USHORT usBytesUsed          = 0;
+    ULONG ulTotalBytesUsed     = 0;
+    PSTR  pszService           = NULL;
+    PWSTR pwszNativeFileSystem = NULL;
 
-    ntStatus = SMBPacketAllocate(
-                    pConnection->hPacketAllocator,
-                    &pSmbResponse);
+    ntStatus = SrvMarshalHeader_SMB_V1(
+                    pOutBuffer,
+                    ulOffset,
+                    ulBytesAvailable,
+                    COM_TREE_CONNECT_ANDX,
+                    STATUS_SUCCESS,
+                    TRUE,
+                    pCtxSmb1->pTree->tid,
+                    SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
+                    pCtxSmb1->pSession->uid,
+                    pSmbRequest->pHeader->mid,
+                    pConnection->serverProperties.bRequireSecuritySignatures,
+                    &pSmbResponse->pHeader,
+                    &pSmbResponse->pAndXHeader,
+                    &pSmbResponse->usHeaderSize);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBPacketBufferAllocate(
-                    pConnection->hPacketAllocator,
-                    64 * 1024,
-                    &pSmbResponse->pRawBuffer,
-                    &pSmbResponse->bufferLen);
-    BAIL_ON_NT_STATUS(ntStatus);
+    pOutBuffer       += pSmbResponse->usHeaderSize;
+    ulOffset         += pSmbResponse->usHeaderSize;
+    ulBytesAvailable -= pSmbResponse->usHeaderSize;
+    ulTotalBytesUsed += pSmbResponse->usHeaderSize;
 
-    ntStatus = SMBPacketMarshallHeader(
-                pSmbResponse->pRawBuffer,
-                pSmbResponse->bufferLen,
-                COM_TREE_CONNECT_ANDX,
-                0,
-                TRUE,
-                pTree->tid,
-                pSmbRequest->pSMBHeader->pid,
-                pSmbRequest->pSMBHeader->uid,
-                pSmbRequest->pSMBHeader->mid,
-                pConnection->serverProperties.bRequireSecuritySignatures,
-                pSmbResponse);
-    BAIL_ON_NT_STATUS(ntStatus);
+    pSmbResponse->pHeader->wordCount = 7;
 
-    pSmbResponse->pSMBHeader->wordCount = 7;
+    if (ulBytesAvailable < sizeof(TREE_CONNECT_RESPONSE_HEADER))
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
-    pResponseHeader = (PTREE_CONNECT_RESPONSE_HEADER)pSmbResponse->pParams;
-    pSmbResponse->pData = pSmbResponse->pParams + sizeof(TREE_CONNECT_RESPONSE_HEADER);
-    pSmbResponse->bufferUsed += sizeof(TREE_CONNECT_RESPONSE_HEADER);
+    pResponseHeader = (PTREE_CONNECT_RESPONSE_HEADER)pOutBuffer;
+
+    pOutBuffer       += sizeof(TREE_CONNECT_RESPONSE_HEADER);
+    ulOffset         += sizeof(TREE_CONNECT_RESPONSE_HEADER);
+    ulBytesAvailable -= sizeof(TREE_CONNECT_RESPONSE_HEADER);
+    ulTotalBytesUsed += sizeof(TREE_CONNECT_RESPONSE_HEADER);
 
     ntStatus = SrvGetMaximalShareAccessMask(
-                    pTree->pShareInfo,
+                    pCtxSmb1->pTree->pShareInfo,
                     &pResponseHeader->maximalShareAccessMask);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvGetGuestShareAccessMask(
-                    pTree->pShareInfo,
+                    pCtxSmb1->pTree->pShareInfo,
                     &pResponseHeader->guestMaximalShareAccessMask);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvGetServiceName(
-                    pTree->pShareInfo,
+                    pCtxSmb1->pTree->pShareInfo,
                     &pszService);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    if (pTree->pShareInfo->service == SHARE_SERVICE_DISK_SHARE)
+    if (pCtxSmb1->pTree->pShareInfo->service == SHARE_SERVICE_DISK_SHARE)
     {
         ntStatus = SrvGetNativeFilesystem(
-                        pTree->pShareInfo,
+                        pCtxSmb1->pTree->pShareInfo,
                         &pwszNativeFileSystem);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
     ntStatus = MarshallTreeConnectResponseData(
-                    pSmbResponse->pData,
-                    pSmbResponse->bufferLen - pSmbResponse->bufferUsed,
-                    pSmbResponse->bufferUsed,
-                    &packetByteCount,
-                    (const uint8_t*)pszService,
+                    pOutBuffer,
+                    ulBytesAvailable,
+                    ulOffset,
+                    &usBytesUsed,
+                    (const PBYTE)pszService,
                     pwszNativeFileSystem);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    assert(packetByteCount <= UINT16_MAX);
-    pResponseHeader->byteCount = (USHORT)packetByteCount;
+    // pOutBuffer       += usBytesUsed;
+    // ulOffset         += usBytesUsed;
+    // ulBytesAvailable -= usBytesUsed;
+    ulTotalBytesUsed += usBytesUsed;
 
-    pSmbResponse->bufferUsed += packetByteCount;
+    pResponseHeader->byteCount = usBytesUsed;
 
-    ntStatus = SMBPacketUpdateAndXOffset(pSmbResponse);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SMBPacketMarshallFooter(pSmbResponse);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    *ppSmbResponse = pSmbResponse;
+    pSmbResponse->ulMessageSize = ulTotalBytesUsed;
 
 cleanup:
 
@@ -300,6 +290,7 @@ cleanup:
     {
         SrvFreeMemory(pszService);
     }
+
     if (pwszNativeFileSystem)
     {
         SrvFreeMemory(pwszNativeFileSystem);
@@ -309,12 +300,14 @@ cleanup:
 
 error:
 
-    if (pSmbResponse)
+    if (ulTotalBytesUsed)
     {
-        SMBPacketRelease(
-            pConnection->hPacketAllocator,
-            pSmbResponse);
+        pSmbResponse->pHeader = NULL;
+        pSmbResponse->pAndXHeader = NULL;
+        memset(pSmbResponse->pBuffer, 0, ulTotalBytesUsed);
     }
+
+    pSmbResponse->ulMessageSize = 0;
 
     goto cleanup;
 }

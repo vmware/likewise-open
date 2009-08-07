@@ -55,7 +55,7 @@ typedef struct __AD_ENUM_STATE {
     LSA_NIS_MAP_QUERY_FLAGS dwMapFlags;
     PSTR  pszMapName;
 
-    LSA_SEARCH_COOKIE Cookie;
+    LW_SEARCH_COOKIE Cookie;
 } AD_ENUM_STATE, *PAD_ENUM_STATE;
 
 typedef struct __AD_PROVIDER_CONTEXT

@@ -52,25 +52,27 @@
 
 NTSTATUS
 SrvProcessTreeDisconnect_SMB_V2(
-    IN OUT PSMB2_CONTEXT pContext,
-    IN     PSMB2_MESSAGE pSmbRequest,
-    IN OUT PSMB_PACKET   pSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
+    PLWIO_SRV_CONNECTION pConnection = pExecContext->pConnection;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    ULONG                      iMsg          = pCtxSmb2->iMsg;
+    PSRV_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
+    PSRV_MESSAGE_SMB_V2        pSmbResponse  = &pCtxSmb2->pResponses[iMsg];
     PLWIO_SRV_SESSION_2  pSession = NULL;
     PLWIO_SRV_TREE_2     pTree = NULL;
     PSMB2_TREE_DISCONNECT_REQUEST_HEADER pTreeDisconnectHeader = NULL; // Do not free
-    PBYTE pOutBufferRef = pSmbResponse->pRawBuffer + pSmbResponse->bufferUsed;
-    PBYTE pOutBuffer       = pOutBufferRef;
-    ULONG ulBytesAvailable = pSmbResponse->bufferLen - pSmbResponse->bufferUsed;
-    ULONG ulOffset         = pSmbResponse->bufferUsed - sizeof(NETBIOS_HEADER);
+    PBYTE pOutBuffer       = pSmbResponse->pBuffer;
+    ULONG ulBytesAvailable = pSmbResponse->ulBytesAvailable;
+    ULONG ulOffset         = 0;
     ULONG ulBytesUsed      = 0;
     ULONG ulTotalBytesUsed = 0;
 
     ntStatus = SrvConnection2FindSession_SMB_V2(
-                    pContext,
+                    pCtxSmb2,
                     pConnection,
                     pSmbRequest->pHeader->ullSessionId,
                     &pSession);
@@ -82,15 +84,15 @@ SrvProcessTreeDisconnect_SMB_V2(
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvSession2FindTree_SMB_V2(
-                    pContext,
+                    pCtxSmb2,
                     pSession,
                     pSmbRequest->pHeader->ulTid,
                     &pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvSession2RemoveTree(
-                        pSession,
-                        pSmbRequest->pHeader->ulTid);
+                    pSession,
+                    pSmbRequest->pHeader->ulTid);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMB2MarshalHeader(
@@ -107,14 +109,14 @@ SrvProcessTreeDisconnect_SMB_V2(
                     STATUS_SUCCESS,
                     TRUE,
                     pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
-                    NULL,
-                    &ulBytesUsed);
+                    &pSmbResponse->pHeader,
+                    &pSmbResponse->ulHeaderSize);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ulTotalBytesUsed += ulBytesUsed;
-    pOutBuffer += ulBytesUsed;
-    ulOffset += ulBytesUsed;
-    ulBytesAvailable -= ulBytesUsed;
+    pOutBuffer       += pSmbResponse->ulHeaderSize;
+    ulOffset         += pSmbResponse->ulHeaderSize;
+    ulBytesAvailable -= pSmbResponse->ulHeaderSize;
+    ulTotalBytesUsed += pSmbResponse->ulHeaderSize;
 
     ntStatus = SMB2MarshalTreeDisconnectResponse(
                     pOutBuffer,
@@ -123,17 +125,17 @@ SrvProcessTreeDisconnect_SMB_V2(
                     &ulBytesUsed);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ulTotalBytesUsed += ulBytesUsed;
-    // pOutBuffer += ulBytesUsed;
-    // ulOffset += ulBytesUsed;
+    // pOutBuffer       += ulBytesUsed;
+    // ulOffset         += ulBytesUsed;
     // ulBytesAvailable -= ulBytesUsed;
+    ulTotalBytesUsed += ulBytesUsed;
 
-    pSmbResponse->bufferUsed += ulTotalBytesUsed;
+    pSmbResponse->ulMessageSize = ulTotalBytesUsed;
 
-    if (pContext->pTree)
+    if (pCtxSmb2->pTree)
     {
-        SrvTree2Release(pContext->pTree);
-        pContext->pTree = NULL;
+        SrvTree2Release(pCtxSmb2->pTree);
+        pCtxSmb2->pTree = NULL;
     }
 
 cleanup:
@@ -154,8 +156,11 @@ error:
 
     if (ulTotalBytesUsed)
     {
-        memset(pOutBufferRef, 0, ulTotalBytesUsed);
+        pSmbResponse->pHeader = NULL;
+        memset(pSmbResponse->pBuffer, 0, ulTotalBytesUsed);
     }
+
+    pSmbResponse->ulMessageSize = 0;
 
     goto cleanup;
 }

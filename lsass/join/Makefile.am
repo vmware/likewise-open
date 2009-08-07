@@ -8,12 +8,8 @@ liblsajoin_la_SOURCES = \
        join.c     \
        leave.c    \
        libmain.c  \
-        krbtgt.c \
-        lwkrb5.c \
-        lwkrb5smb.c \
-       lwldap.c   \
-       lwtime.c   \
-       common.c   \
+       lsakrb5smb.c \
+       lsaldap.c   \
        query.c
 
 
@@ -37,6 +33,7 @@ liblsajoin_la_LIBADD = \
     @top_builddir@/logging_r/liblsalog_r.la \
 	@KRB5_LIBS@ \
 	@LWIO_LIBS@ \
+	$(LWADVAPI_LIBS) \
 	-llber
 
 liblsajoin_la_LDFLAGS = \

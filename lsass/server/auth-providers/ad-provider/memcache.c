@@ -420,6 +420,7 @@ MemCacheLoadFile(
     LWMsgMessage message = LWMSG_MESSAGE_INITIALIZER;
     PMEM_GROUP_MEMBERSHIP pMemCacheMembership = NULL;
     BOOLEAN bMutexLocked = FALSE;
+    PLSA_PASSWORD_VERIFIER pFromHash = NULL;
 
     ENTER_MUTEX(&pConn->backupMutex, bMutexLocked);
     ENTER_WRITER_RW_LOCK(&pConn->lock, bInLock);
@@ -492,6 +493,20 @@ MemCacheLoadFile(
                 pMemCacheMembership = NULL;
                 break;
             case MEM_CACHE_PASSWORD:
+                dwError = LsaHashGetValue(
+                                pConn->pSIDToPasswordVerifier,
+                                ((PLSA_PASSWORD_VERIFIER)message.data)->pszObjectSid,
+                                (PVOID*)&pFromHash);
+                if (dwError == ENOENT)
+                {
+                    dwError = 0;
+                }
+                else if (!dwError)
+                {
+                    pConn->sCacheSize -= pFromHash->version.dwObjectSize;
+                }
+                BAIL_ON_LSA_ERROR(dwError);
+
                 dwError = LsaHashSetValue(
                                 pConn->pSIDToPasswordVerifier,
                                 ((PLSA_PASSWORD_VERIFIER)message.data)->pszObjectSid,
@@ -2212,6 +2227,8 @@ MemCacheMaintainSizeCap(
 
     while (pConn->sCacheSize > pConn->sSizeCap * 3/4)
     {
+        PLSA_PASSWORD_VERIFIER pFromHash = NULL;
+
         pObject = (PLSA_SECURITY_OBJECT)pConn->pObjects->pItem;
         pszSid = pObject->pszObjectSid;
 
@@ -2234,15 +2251,28 @@ MemCacheMaintainSizeCap(
             LSA_LOG_VERBOSE("Evicting object with sid %s", pszSid);
         }
 
-        dwError = LsaHashRemoveKey(
+        dwError = LsaHashGetValue(
                         pConn->pSIDToPasswordVerifier,
-                        pszSid);
+                        pszSid,
+                        (PVOID*)&pFromHash);
         if (dwError == ENOENT)
         {
             // The password verifier did not exist
             dwError = 0;
         }
-        BAIL_ON_LSA_ERROR(dwError);
+        else if (dwError)
+        {
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+        else
+        {
+            pConn->sCacheSize -= pFromHash->version.dwObjectSize;
+
+            dwError = LsaHashRemoveKey(
+                            pConn->pSIDToPasswordVerifier,
+                            pszSid);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
 
         // Remove all membership information for what this group contains (and
         // remove the completeness entry in the children's member-of list)

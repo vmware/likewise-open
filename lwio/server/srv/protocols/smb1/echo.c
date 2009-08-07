@@ -33,36 +33,30 @@
 static
 NTSTATUS
 SrvMarshallEchoResponse(
-    PLWIO_SRV_CONNECTION pConnection,
-    PSMB_PACKET         pSmbResponse,
-    PSMB_PACKET         pSmbRequest,
-    USHORT              usUid,
-    USHORT              usMid,
-    USHORT              usSequenceNumber,
-    PBYTE               pEchoBlob,
-    USHORT              ulEchoBlobLength
+    PSRV_EXEC_CONTEXT pExecContext,
+    PBYTE             pEchoBlob,
+    USHORT            usEchoBlobLength
     );
 
 NTSTATUS
 SrvProcessEchoAndX(
-    IN  PLWIO_SRV_CONNECTION pConnection,
-    IN  PSMB_PACKET          pSmbRequest,
-    OUT PSMB_PACKET*         ppSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext
     )
 {
     NTSTATUS ntStatus = 0;
-    USHORT   iEchoCount = 0;
-    PSMB_PACKET pSmbResponse = NULL;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
+    ULONG                      iMsg         = pCtxSmb1->iMsg;
+    PSRV_MESSAGE_SMB_V1        pSmbRequest  = &pCtxSmb1->pRequests[iMsg];
+    PBYTE pBuffer          = pSmbRequest->pBuffer + pSmbRequest->usHeaderSize;
+    // ULONG ulOffset         = pSmbRequest->usHeaderSize;
+    ULONG ulBytesAvailable = pSmbRequest->ulMessageSize - pSmbRequest->usHeaderSize;
     PECHO_REQUEST_HEADER pEchoHeader = NULL; // Do not Free
-    PBYTE       pEchoBlob = NULL; // Do Not Free
-    USHORT  usNumEchoesToSend = 0;
-    ULONG   ulOffset = 0;
-
-    ulOffset = (PBYTE)pSmbRequest->pParams - (PBYTE)pSmbRequest->pSMBHeader;
+    PBYTE                pEchoBlob   = NULL; // Do Not Free
 
     ntStatus = WireUnmarshallEchoRequest(
-                    pSmbRequest->pParams,
-                    pSmbRequest->pNetBIOSHeader->len - ulOffset,
+                    pBuffer,
+                    ulBytesAvailable,
                     &pEchoHeader,
                     &pEchoBlob);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -73,48 +67,13 @@ SrvProcessEchoAndX(
         goto cleanup;
     }
 
-    ntStatus = SMBPacketAllocate(
-                        pConnection->hPacketAllocator,
-                        &pSmbResponse);
-    BAIL_ON_NT_STATUS(ntStatus);
+    pExecContext->ulNumDuplicates = pEchoHeader->echoCount - 1;
 
-    ntStatus = SMBPacketBufferAllocate(
-                    pConnection->hPacketAllocator,
-                    64 * 1024,
-                    &pSmbResponse->pRawBuffer,
-                    &pSmbResponse->bufferLen);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    usNumEchoesToSend = pEchoHeader->echoCount - 1;
-
-    for (; iEchoCount < pEchoHeader->echoCount; iEchoCount++)
-    {
-        SMBPacketResetBuffer(pSmbResponse);
-
-        ntStatus = SrvMarshallEchoResponse(
-                        pConnection,
-                        pSmbRequest,
-                        pSmbResponse,
-                        pSmbRequest->pSMBHeader->uid,
-                        pSmbRequest->pSMBHeader->mid,
-                        iEchoCount,
+    ntStatus = SrvMarshallEchoResponse(
+                        pExecContext,
                         pEchoBlob,
                         pEchoHeader->byteCount);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        // This API always expects a response to be returned
-        // So, don't send out the last echo message
-        // Give that last response back to the caller
-        if (usNumEchoesToSend--)
-        {
-            pSmbResponse->sequence = pSmbRequest->sequence + 1;
-
-            ntStatus = SrvTransportSendResponse(pConnection, pSmbResponse);
-            BAIL_ON_NT_STATUS(ntStatus);
-        }
-    }
-
-    *ppSmbResponse = pSmbResponse;
+    BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
 
@@ -122,75 +81,100 @@ cleanup:
 
 error:
 
-    *ppSmbResponse = NULL;
-
-    if (pSmbResponse)
-    {
-        SMBPacketRelease(
-            pConnection->hPacketAllocator,
-            pSmbResponse);
-    }
-
     goto cleanup;
 }
 
 static
 NTSTATUS
 SrvMarshallEchoResponse(
-    PLWIO_SRV_CONNECTION pConnection,
-    PSMB_PACKET         pSmbRequest,
-    PSMB_PACKET         pSmbResponse,
-    USHORT              usUid,
-    USHORT              usMid,
-    USHORT              usSequenceNumber,
-    PBYTE               pEchoBlob,
-    USHORT              usEchoBlobLength
+    PSRV_EXEC_CONTEXT pExecContext,
+    PBYTE             pEchoBlob,
+    USHORT            usEchoBlobLength
     )
 {
     NTSTATUS ntStatus = 0;
-    PECHO_RESPONSE_HEADER pResponseHeader = NULL;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
+    ULONG                      iMsg         = pCtxSmb1->iMsg;
+    PSRV_MESSAGE_SMB_V1        pSmbRequest  = &pCtxSmb1->pRequests[iMsg];
+    PSRV_MESSAGE_SMB_V1        pSmbResponse = &pCtxSmb1->pResponses[iMsg];
+    PECHO_RESPONSE_HEADER      pResponseHeader = NULL; // Do not free
+    PBYTE pOutBuffer           = pSmbResponse->pBuffer;
+    ULONG ulBytesAvailable     = pSmbResponse->ulBytesAvailable;
+    ULONG ulOffset             = 0;
+    USHORT usBytesUsed          = 0;
+    ULONG ulTotalBytesUsed     = 0;
     PCSTR    pMinEchoBlob = "lwio";
-    USHORT   usPackageByteCount = 0;
 
-    ntStatus = SMBPacketMarshallHeader(
-                pSmbResponse->pRawBuffer,
-                pSmbResponse->bufferLen,
-                COM_ECHO,
-                0,
-                TRUE,
-                0,
-                pSmbRequest->pSMBHeader->pid,
-                usUid,
-                usMid,
-                FALSE,
-                pSmbResponse);
+    ntStatus = SrvMarshalHeader_SMB_V1(
+                    pOutBuffer,
+                    ulOffset,
+                    ulBytesAvailable,
+                    COM_ECHO,
+                    STATUS_SUCCESS,
+                    TRUE,
+                    pSmbRequest->pHeader->tid,
+                    SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
+                    pSmbRequest->pHeader->uid,
+                    pSmbRequest->pHeader->mid,
+                    FALSE,
+                    &pSmbResponse->pHeader,
+                    &pSmbResponse->pAndXHeader,
+                    &pSmbResponse->usHeaderSize);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pSmbResponse->pSMBHeader->wordCount = 1;
+    pOutBuffer       += pSmbResponse->usHeaderSize;
+    ulOffset         += pSmbResponse->usHeaderSize;
+    ulBytesAvailable -= pSmbResponse->usHeaderSize;
+    ulTotalBytesUsed += pSmbResponse->usHeaderSize;
 
-    pResponseHeader = (ECHO_RESPONSE_HEADER*)pSmbResponse->pParams;
-    pSmbResponse->pData = pSmbResponse->pParams + sizeof(ECHO_RESPONSE_HEADER);
-    pSmbResponse->bufferUsed += sizeof(ECHO_RESPONSE_HEADER);
+    pSmbResponse->pHeader->wordCount = 1;
 
-    pResponseHeader->sequenceNumber = usSequenceNumber;
+    if (ulBytesAvailable < sizeof(ECHO_RESPONSE_HEADER))
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pResponseHeader = (PECHO_RESPONSE_HEADER)pOutBuffer;
+
+    pOutBuffer       += sizeof(ECHO_RESPONSE_HEADER);
+    ulOffset         += sizeof(ECHO_RESPONSE_HEADER);
+    ulBytesAvailable -= sizeof(ECHO_RESPONSE_HEADER);
+    ulTotalBytesUsed += sizeof(ECHO_RESPONSE_HEADER);
 
     ntStatus = WireMarshallEchoResponseData(
-                    pSmbResponse->pData,
-                    pSmbResponse->bufferLen - pSmbResponse->bufferUsed,
+                    pOutBuffer,
+                    ulBytesAvailable,
                     (usEchoBlobLength > 4 ? pEchoBlob : (PBYTE)pMinEchoBlob),
                     (usEchoBlobLength > 4 ? usEchoBlobLength : strlen(pMinEchoBlob)),
-                    &usPackageByteCount);
+                    &usBytesUsed);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pResponseHeader->byteCount = usPackageByteCount;
+    pResponseHeader->byteCount = (USHORT)usBytesUsed;
 
-    pSmbResponse->bufferUsed += usPackageByteCount;
+    // pOutBuffer       += usBytesUsed;
+    // ulOffset         += usBytesUsed;
+    // ulBytesAvailable -= usBytesUsed;
+    ulTotalBytesUsed += usBytesUsed;
 
-    ntStatus = SMBPacketMarshallFooter(pSmbResponse);
-    BAIL_ON_NT_STATUS(ntStatus);
+    pSmbResponse->ulMessageSize = ulTotalBytesUsed;
+
+cleanup:
+
+    return ntStatus;
 
 error:
 
-    return ntStatus;
+    if (ulTotalBytesUsed)
+    {
+        pSmbResponse->pHeader = NULL;
+        pSmbResponse->pAndXHeader = NULL;
+        memset(pSmbResponse->pBuffer, 0, ulTotalBytesUsed);
+    }
+
+    pSmbResponse->ulMessageSize = 0;
+
+    goto cleanup;
 }
 

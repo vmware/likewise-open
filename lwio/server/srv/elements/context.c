@@ -70,6 +70,8 @@ SrvBuildExecContext(
                     (PVOID*)&pContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    pContext->refCount = 1;
+
     pContext->pConnection = pConnection;
     InterlockedIncrement(&pConnection->refCount);
 
@@ -87,6 +89,14 @@ error:
     *ppContext = NULL;
 
     goto cleanup;
+}
+
+VOID
+SrvReleaseExecContextHandle(
+   IN HANDLE hExecContext
+   )
+{
+    SrvReleaseExecContext((PSRV_EXEC_CONTEXT)hExecContext);
 }
 
 VOID
@@ -129,4 +139,6 @@ SrvFreeExecContext(
     {
         SrvConnectionRelease(pContext->pConnection);
     }
+
+    SrvFreeMemory(pContext);
 }

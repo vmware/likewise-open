@@ -53,6 +53,7 @@ NTSTATUS
 SrvSelectTransportInit(
     PLWIO_PACKET_ALLOCATOR         hPacketAllocator,
     PLWIO_SRV_SHARE_ENTRY_LIST     pShareList,
+    PSMB_PROD_CONS_QUEUE           pWorkQueue,
     PSRV_TRANSPORT_FUNCTION_TABLE* ppFnTable
     )
 {
@@ -62,13 +63,8 @@ SrvSelectTransportInit(
     gSrvSelectTransport.hPacketAllocator = hPacketAllocator;
     gSrvSelectTransport.pShareList = pShareList;
     gSrvSelectTransport.ulNumReaders = LWIO_SRV_DEFAULT_NUM_READERS;
-    gSrvSelectTransport.ulMaxNumWorkItemsInQueue = LWIO_SRV_DEFAULT_NUM_MAX_QUEUE_ITEMS;
 
-    status = SrvProdConsInitContents(
-                    &gSrvSelectTransport.workQueue,
-                    gSrvSelectTransport.ulMaxNumWorkItemsInQueue,
-                    &SrvContextFree);
-    BAIL_ON_NT_STATUS(status);
+    gSrvSelectTransport.pWorkQueue = pWorkQueue;
 
     status = SrvAllocateMemory(
                     gSrvSelectTransport.ulNumReaders * sizeof(LWIO_SRV_SOCKET_READER),
@@ -83,9 +79,7 @@ SrvSelectTransportInit(
 
         pReader->readerId = iReader + 1;
 
-        status = SrvSocketReaderInit(
-                        &gSrvSelectTransport.workQueue,
-                        pReader);
+        status = SrvSocketReaderInit(gSrvSelectTransport.pWorkQueue, pReader);
         BAIL_ON_NT_STATUS(status);
     }
 
@@ -112,44 +106,11 @@ error:
 
 NTSTATUS
 SrvSelectTransportGetRequest(
-    IN  struct timespec*      pTimespec,
-    OUT PLWIO_SRV_CONNECTION* ppConnection,
-    OUT PSMB_PACKET*          ppRequest
+    IN  struct timespec*   pTimespec,
+    OUT PSRV_EXEC_CONTEXT* ppContext
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    PLWIO_SRV_CONTEXT pContext = NULL;
-
-    status = SrvProdConsTimedDequeue(
-                    &gSrvSelectTransport.workQueue,
-                    pTimespec,
-                    (PVOID*)&pContext);
-    if (status != STATUS_SUCCESS)
-    {
-        goto error;
-    }
-
-    *ppConnection = pContext->pConnection;
-    pContext->pConnection = NULL;
-
-    *ppRequest = pContext->pRequest;
-    pContext->pRequest = NULL;
-
-cleanup:
-
-    if (pContext)
-    {
-        SrvContextFree(pContext);
-    }
-
-    return status;
-
-error:
-
-    *ppConnection = NULL;
-    *ppRequest = NULL;
-
-    goto cleanup;
+    return STATUS_NOT_IMPLEMENTED;
 }
 
 NTSTATUS
@@ -188,7 +149,7 @@ SrvSelectTransportShutdown(
         SrvFreeMemory(gSrvSelectTransport.pReaderArray);
     }
 
-    SrvProdConsFreeContents(&gSrvSelectTransport.workQueue);
+    gSrvSelectTransport.pWorkQueue = NULL;
 
 error:
 

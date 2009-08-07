@@ -1,14 +1,6 @@
 #ifndef __STRUCTS_H__
 #define __STRUCTS_H__
 
-typedef struct _LWIO_SRV_CONTEXT
-{
-    PLWIO_SRV_CONNECTION pConnection;
-
-    PSMB_PACKET         pRequest;
-
-} LWIO_SRV_CONTEXT, *PLWIO_SRV_CONTEXT;
-
 typedef struct _LWIO_SRV_SOCKET
 {
     pthread_mutex_t  mutex;
@@ -85,8 +77,7 @@ typedef struct _LWIO_SRV_SELECT_TRANSPORT_GLOBALS
 
     SRV_TRANSPORT_FUNCTION_TABLE fnTable;
 
-    SMB_PROD_CONS_QUEUE          workQueue;
-    ULONG                        ulMaxNumWorkItemsInQueue;
+    PSMB_PROD_CONS_QUEUE         pWorkQueue;
 
     PLWIO_SRV_SOCKET_READER      pReaderArray;
     ULONG                        ulNumReaders;

@@ -55,440 +55,404 @@
 
 NTSTATUS
 SrvProcessClose_SMB_V2(
-    IN OUT PSMB2_CONTEXT pContext,
-    IN     PSMB2_MESSAGE pSmbRequest,
-    IN OUT PSMB_PACKET   pSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext
     );
 
 // connection.c
 
 NTSTATUS
 SrvConnection2FindSession_SMB_V2(
-    PSMB2_CONTEXT        pContext,
-    PLWIO_SRV_CONNECTION pConnection,
-    ULONG64              ullUid,
-    PLWIO_SRV_SESSION_2* ppSession
-    );
-
-// context.c
-
-NTSTATUS
-SrvInitContextContents_SMB_V2(
-    IN     PLWIO_SRV_CONNECTION pConnection,
-    IN OUT PSMB2_CONTEXT        pContext
-    );
-
-VOID
-SrvFreeContextContents_SMB_V2(
-    IN  PSMB2_CONTEXT pContext
+    PSRV_EXEC_CONTEXT_SMB_V2 pSmb2Context,
+    PLWIO_SRV_CONNECTION     pConnection,
+    ULONG64                  ullUid,
+    PLWIO_SRV_SESSION_2*     ppSession
     );
 
 // create.c
 
 NTSTATUS
 SrvProcessCreate_SMB_V2(
-    IN OUT PSMB2_CONTEXT pContext,
-    IN     PSMB2_MESSAGE pSmbRequest,
-    IN OUT PSMB_PACKET   pSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext
     );
 
 // echo.c
 
 NTSTATUS
 SrvProcessEcho_SMB_V2(
-    IN     PSMB2_CONTEXT pContext,
-    IN     PSMB2_MESSAGE pSmbRequest,
-    IN OUT PSMB_PACKET   pSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext
     );
 
 // find.c
 
 NTSTATUS
 SrvProcessFind_SMB_V2(
-    IN     PSMB2_CONTEXT pContext,
-    IN     PSMB2_MESSAGE pSmbRequest,
-    IN OUT PSMB_PACKET   pSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext
     );
 
 // flush.c
 
 NTSTATUS
 SrvProcessFlush_SMB_V2(
-    IN     PSMB2_CONTEXT pContext,
-    IN     PSMB2_MESSAGE pSmbRequest,
-    IN OUT PSMB_PACKET   pSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext
     );
 
 // getinfo.c
 NTSTATUS
 SrvProcessGetInfo_SMB_V2(
-    IN     PSMB2_CONTEXT pContext,
-    IN     PSMB2_MESSAGE pSmbRequest,
-    IN OUT PSMB_PACKET   pSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext
     );
 
 // ioctl.c
 
 NTSTATUS
 SrvProcessIOCTL_SMB_V2(
-    IN     PSMB2_CONTEXT pContext,
-    IN     PSMB2_MESSAGE pSmbRequest,
-    IN OUT PSMB_PACKET   pSmbResponse
+    PSRV_EXEC_CONTEXT pContext
     );
 
 // lock.c
 
 NTSTATUS
 SrvProcessLock_SMB_V2(
-    IN     PSMB2_CONTEXT pContext,
-    IN     PSMB2_MESSAGE pSmbRequest,
-    IN OUT PSMB_PACKET   pSmbResponse
+    PSRV_EXEC_CONTEXT pContext
     );
 
 // logoff.c
 
 NTSTATUS
 SrvProcessLogoff_SMB_V2(
-    IN OUT PSMB2_CONTEXT pContext,
-    IN     PSMB2_MESSAGE pSmbRequest,
-    IN OUT PSMB_PACKET   pSmbResponse
+    PSRV_EXEC_CONTEXT pContext
     );
 
 // negotiate.c
 
 NTSTATUS
 SrvProcessNegotiate_SMB_V2(
-    IN OUT PSMB2_CONTEXT pContext,
-    IN     PSMB2_MESSAGE pSmbRequest,
-    IN OUT PSMB_PACKET   pSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext
     );
 
 // session.c
 
 NTSTATUS
 SrvSession2FindTree_SMB_V2(
-    PSMB2_CONTEXT       pContext,
-    PLWIO_SRV_SESSION_2 pSession,
-    ULONG               ulTid,
-    PLWIO_SRV_TREE_2*   ppTree
+    PSRV_EXEC_CONTEXT_SMB_V2 pSmb2Context,
+    PLWIO_SRV_SESSION_2      pSession,
+    ULONG                    ulTid,
+    PLWIO_SRV_TREE_2*        ppTree
     );
 
 // session_setup.c
 
 NTSTATUS
 SrvProcessSessionSetup_SMB_V2(
-    IN OUT PSMB2_CONTEXT pContext,
-    IN     PSMB2_MESSAGE pRequest,
-    IN OUT PSMB_PACKET   pSmbResponse
+    PSRV_EXEC_CONTEXT pContext
     );
 
 // setinfo.c
 
 NTSTATUS
 SrvProcessSetInfo_SMB_V2(
-    IN     PSMB2_CONTEXT pContext,
-    IN     PSMB2_MESSAGE pSmbRequest,
-    IN OUT PSMB_PACKET   pSmbResponse
+    PSRV_EXEC_CONTEXT pContext
     );
 
 // error.c
 
 NTSTATUS
 SrvBuildErrorResponse_SMB_V2(
-    PLWIO_SRV_CONNECTION pConnection,
-    PSMB2_HEADER         pSmbRequestHeader,
+    PSRV_EXEC_CONTEXT    pExecContext,
     NTSTATUS             errorStatus,
     PBYTE                pMessage,
-    ULONG                ulMessageLength,
-    PSMB_PACKET          pSmbResponse
+    ULONG                ulMessageLength
     );
 
 // read.c
 
 NTSTATUS
 SrvProcessRead_SMB_V2(
-    IN     PSMB2_CONTEXT pContext,
-    IN     PSMB2_MESSAGE pSmbRequest,
-    IN OUT PSMB_PACKET   pSmbResponse
+    PSRV_EXEC_CONTEXT pContext
     );
 
 // tree.c
 
 NTSTATUS
 SrvTree2FindFile_SMB_V2(
-    PSMB2_CONTEXT     pContext,
-    PLWIO_SRV_TREE_2  pTree,
-    PSMB2_FID         pFid,
-    PLWIO_SRV_FILE_2* ppFile
+    PSRV_EXEC_CONTEXT_SMB_V2 pSmb2Context,
+    PLWIO_SRV_TREE_2         pTree,
+    PSMB2_FID                pFid,
+    PLWIO_SRV_FILE_2*        ppFile
     );
 
 // tree_connect.c
 
 NTSTATUS
 SrvProcessTreeConnect_SMB_V2(
-    IN OUT PSMB2_CONTEXT pContext,
-    IN     PSMB2_MESSAGE pSmbRequest,
-    IN OUT PSMB_PACKET   pSmbResponse
+    PSRV_EXEC_CONTEXT pContext
     );
 
 // tree_disconnect.c
 
 NTSTATUS
 SrvProcessTreeDisconnect_SMB_V2(
-    IN OUT PSMB2_CONTEXT pContext,
-    IN     PSMB2_MESSAGE pSmbRequest,
-    IN OUT PSMB_PACKET   pSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext
     );
 
 // wire.c
 
 NTSTATUS
 SMB2InitPacket(
-    IN OUT PSMB_PACKET pSmbPacket,
-    IN     BOOLEAN     bAllowSignature
+    PSMB_PACKET pSmbPacket,
+    BOOLEAN     bAllowSignature
+    );
+
+NTSTATUS
+SrvUnmarshalHeader_SMB_V2(
+    PBYTE         pBuffer,
+    ULONG         ulOffset,
+    ULONG         ulBytesAvailable,
+    PSMB2_HEADER* ppHeader,
+    PULONG        pulBytesUsed
     );
 
 NTSTATUS
 SMB2MarshalHeader(
-    IN OUT          PBYTE         pBuffer,
-    IN              ULONG         ulOffset,
-    IN              ULONG         ulBytesAvailable,
-    IN              USHORT        usCommand,
-    IN              USHORT        usEpoch,
-    IN              USHORT        usCredits,
-    IN              ULONG         ulPid,
-    IN              ULONG64       ullMid,
-    IN              ULONG         ulTid,
-    IN              ULONG64       ullSessionId,
-    IN              NTSTATUS      status,
-    IN              BOOLEAN       bIsResponse,
-    IN              BOOLEAN       bIsPartOfCompoundMessage,
-    IN OUT OPTIONAL PSMB2_HEADER* ppSMB2Header,
-    IN OUT          PULONG        pulBytesUsed
+    PBYTE         pBuffer,
+    ULONG         ulOffset,
+    ULONG         ulBytesAvailable,
+    USHORT        usCommand,
+    USHORT        usEpoch,
+    USHORT        usCredits,
+    ULONG         ulPid,
+    ULONG64       ullMid,
+    ULONG         ulTid,
+    ULONG64       ullSessionId,
+    NTSTATUS      status,
+    BOOLEAN       bIsResponse,
+    BOOLEAN       bIsPartOfCompoundMessage,
+    PSMB2_HEADER* ppSMB2Header,
+    PULONG        pulBytesUsed
     );
 
 NTSTATUS
 SMB2UnmarshalNegotiateRequest(
-    PSMB2_MESSAGE                   pRequest,
+    PSRV_MESSAGE_SMB_V2             pRequest,
     PSMB2_NEGOTIATE_REQUEST_HEADER* ppHeader,
     PUSHORT*                        ppusDialects
     );
 
 NTSTATUS
 SMB2UnmarshallSessionSetup(
-    IN     PSMB2_MESSAGE                       pRequest,
-    IN OUT PSMB2_SESSION_SETUP_REQUEST_HEADER* ppHeader,
-    IN OUT PBYTE*                              ppSecurityBlob,
-    IN OUT PULONG                              pulSecurityBlobLen
+    PSRV_MESSAGE_SMB_V2                 pRequest,
+    PSMB2_SESSION_SETUP_REQUEST_HEADER* ppHeader,
+    PBYTE*                              ppSecurityBlob,
+    PULONG                              pulSecurityBlobLen
     );
 
 NTSTATUS
 SMB2MarshalSessionSetup(
-    IN OUT PBYTE              pBuffer,
-    IN     ULONG              ulOffset,
-    IN     ULONG              ulBytesAvailable,
-    IN     SMB2_SESSION_FLAGS usFlags,
-    IN     PBYTE              pSecurityBlob,
-    IN     ULONG              ulSecurityBlobLen,
-    IN OUT PULONG             pulBytesUsed
+    PBYTE              pBuffer,
+    ULONG              ulOffset,
+    ULONG              ulBytesAvailable,
+    SMB2_SESSION_FLAGS usFlags,
+    PBYTE              pSecurityBlob,
+    ULONG              ulSecurityBlobLen,
+    PULONG             pulBytesUsed
     );
 
 NTSTATUS
 SMB2UnmarshalLogoffRequest(
-    IN     PSMB2_MESSAGE                pRequest,
-    IN OUT PSMB2_LOGOFF_REQUEST_HEADER* ppHeader
+    PSRV_MESSAGE_SMB_V2          pRequest,
+    PSMB2_LOGOFF_REQUEST_HEADER* ppHeader
     );
 
 NTSTATUS
 SMB2MarshalLogoffResponse(
-    IN OUT PBYTE  pBuffer,
-    IN     ULONG  ulOffset,
-    IN     ULONG  ulBytesAvailable,
-    IN OUT PULONG pulBytesUsed
+    PBYTE  pBuffer,
+    ULONG  ulOffset,
+    ULONG  ulBytesAvailable,
+    PULONG pulBytesUsed
     );
 
 NTSTATUS
 SMB2UnmarshalTreeConnect(
-    IN     PSMB2_MESSAGE                      pRequest,
-    IN OUT PSMB2_TREE_CONNECT_REQUEST_HEADER* ppHeader,
-    IN OUT PUNICODE_STRING                    pwszPath
+    PSRV_MESSAGE_SMB_V2                pRequest,
+    PSMB2_TREE_CONNECT_REQUEST_HEADER* ppHeader,
+    PUNICODE_STRING                    pwszPath
     );
 
 NTSTATUS
 SMB2MarshalTreeConnectResponse(
-    IN OUT PBYTE                pBuffer,
-    IN     ULONG                ulOffset,
-    IN     ULONG                ulBytesAvailable,
-    IN     PLWIO_SRV_CONNECTION pConnection,
-    IN     PLWIO_SRV_TREE_2     pTree,
-    IN OUT PULONG               pulBytesUsed
+    PBYTE                pBuffer,
+    ULONG                ulOffset,
+    ULONG                ulBytesAvailable,
+    PLWIO_SRV_CONNECTION pConnection,
+    PLWIO_SRV_TREE_2     pTree,
+    PULONG               pulBytesUsed
     );
 
 NTSTATUS
 SMB2UnmarshalTreeDisconnectRequest(
-    IN  PSMB2_MESSAGE                         pSmbRequest,
-    OUT PSMB2_TREE_DISCONNECT_REQUEST_HEADER* ppTreeDisconnectHeader
+    PSRV_MESSAGE_SMB_V2                   pSmbRequest,
+    PSMB2_TREE_DISCONNECT_REQUEST_HEADER* ppTreeDisconnectHeader
     );
 
 NTSTATUS
 SMB2MarshalTreeDisconnectResponse(
-    IN OUT PBYTE                pBuffer,
-    IN     ULONG                ulOffset,
-    IN     ULONG                ulBytesAvailable,
-    IN OUT PULONG               pulBytesUsed
+    PBYTE                pBuffer,
+    ULONG                ulOffset,
+    ULONG                ulBytesAvailable,
+    PULONG               pulBytesUsed
     );
 
 NTSTATUS
 SMB2UnmarshalCreateRequest(
-    IN     PSMB2_MESSAGE                pSmbRequest,
-    IN OUT PSMB2_CREATE_REQUEST_HEADER* ppCreateRequestHeader,
-    IN OUT PUNICODE_STRING              pwszFileName,
-    OUT    PSRV_CREATE_CONTEXT*         ppCreateContexts,
-    IN OUT PULONG                       pulNumContexts
+    PSRV_MESSAGE_SMB_V2          pSmbRequest,
+    PSMB2_CREATE_REQUEST_HEADER* ppCreateRequestHeader,
+    PUNICODE_STRING              pwszFileName,
+    PSRV_CREATE_CONTEXT*         ppCreateContexts,
+    PULONG                       pulNumContexts
     );
 
 NTSTATUS
 SMB2UnmarshalCloseRequest(
-    IN     PSMB2_MESSAGE pSmbRequest,
-    IN OUT PSMB2_FID*  ppFid
+    PSRV_MESSAGE_SMB_V2 pSmbRequest,
+    PSMB2_FID*          ppFid
     );
 
 NTSTATUS
 SMB2UnmarshalFlushRequest(
-    IN     PSMB2_MESSAGE pSmbRequest,
-    IN OUT PSMB2_FID*    ppFid
+    PSRV_MESSAGE_SMB_V2 pSmbRequest,
+    PSMB2_FID*          ppFid
     );
 
 NTSTATUS
 SMB2MarshalFlushResponse(
-    IN OUT PBYTE                pBuffer,
-    IN     ULONG                ulOffset,
-    IN     ULONG                ulBytesAvailable,
-    IN OUT PULONG               pulBytesUsed
+    PBYTE                pBuffer,
+    ULONG                ulOffset,
+    ULONG                ulBytesAvailable,
+    PULONG               pulBytesUsed
     );
 
 NTSTATUS
 SMB2UnmarshalEchoRequest(
-   IN     PSMB2_MESSAGE               pSmbRequest,
-   IN OUT PSMB2_ECHO_REQUEST_HEADER*  ppHeader
+   PSRV_MESSAGE_SMB_V2         pSmbRequest,
+   PSMB2_ECHO_REQUEST_HEADER*  ppHeader
    );
 
 NTSTATUS
 SMB2MarshalEchoResponse(
-    IN OUT PBYTE  pBuffer,
-    IN     ULONG  ulOffset,
-    IN     ULONG  ulBytesAvailable,
-    IN OUT PULONG pulBytesUsed
+    PBYTE  pBuffer,
+    ULONG  ulOffset,
+    ULONG  ulBytesAvailable,
+    PULONG pulBytesUsed
     );
 
 NTSTATUS
 SMB2UnmarshalGetInfoRequest(
-    IN     PSMB2_MESSAGE                  pSmbRequest,
-    IN OUT PSMB2_GET_INFO_REQUEST_HEADER* ppHeader
+    PSRV_MESSAGE_SMB_V2            pSmbRequest,
+    PSMB2_GET_INFO_REQUEST_HEADER* ppHeader
     );
 
 NTSTATUS
 SMB2UnmarshalSetInfoRequest(
-    IN     PSMB2_MESSAGE                  pSmbRequest,
-    IN OUT PSMB2_SET_INFO_REQUEST_HEADER* ppHeader,
-    IN OUT PBYTE*                         ppData
+    PSRV_MESSAGE_SMB_V2            pSmbRequest,
+    PSMB2_SET_INFO_REQUEST_HEADER* ppHeader,
+    PBYTE*                         ppData
     );
 
 NTSTATUS
 SMB2UnmarshalReadRequest(
-    IN     PSMB2_MESSAGE              pSmbRequest,
-    IN OUT PSMB2_READ_REQUEST_HEADER* ppRequestHeader
+    PSRV_MESSAGE_SMB_V2        pSmbRequest,
+    PSMB2_READ_REQUEST_HEADER* ppRequestHeader
     );
 
 NTSTATUS
 SMB2MarshalReadResponse(
-    IN OUT PBYTE  pBuffer,
-    IN     ULONG  ulOffset,
-    IN     ULONG  ulBytesAvailable,
-    IN     PBYTE  pData,
-    IN     ULONG  ulBytesRead,
-    IN     ULONG  ulBytesRemaining,
-    IN OUT PULONG pulDataOffset,
-    IN OUT PULONG pulBytesUsed
+    PBYTE  pBuffer,
+    ULONG  ulOffset,
+    ULONG  ulBytesAvailable,
+    PBYTE  pData,
+    ULONG  ulBytesRead,
+    ULONG  ulBytesRemaining,
+    PULONG pulDataOffset,
+    PULONG pulBytesUsed
     );
 
 NTSTATUS
 SMB2UnmarshalWriteRequest(
-    IN     PSMB2_MESSAGE               pSmbRequest,
-    IN OUT PSMB2_WRITE_REQUEST_HEADER* ppRequestHeader,
-    IN OUT PBYTE*                      ppData
+    PSRV_MESSAGE_SMB_V2         pSmbRequest,
+    PSMB2_WRITE_REQUEST_HEADER* ppRequestHeader,
+    PBYTE*                      ppData
     );
 
 NTSTATUS
 SMB2MarshalWriteResponse(
-    IN OUT PBYTE  pBuffer,
-    IN     ULONG  ulOffset,
-    IN     ULONG  ulBytesAvailable,
-    IN     ULONG  ulBytesWritten,
-    IN     ULONG  ulBytesRemaining,
-    IN OUT PULONG pulBytesUsed
+    PBYTE  pBuffer,
+    ULONG  ulOffset,
+    ULONG  ulBytesAvailable,
+    ULONG  ulBytesWritten,
+    ULONG  ulBytesRemaining,
+    PULONG pulBytesUsed
     );
 
 NTSTATUS
 SMB2UnmarshalLockRequest(
-    IN     PSMB2_MESSAGE              pSmbRequest,
-    IN OUT PSMB2_LOCK_REQUEST_HEADER* ppRequestHeader
+    PSRV_MESSAGE_SMB_V2        pSmbRequest,
+    PSMB2_LOCK_REQUEST_HEADER* ppRequestHeader
     );
 
 NTSTATUS
 SMB2MarshalLockResponse(
-    IN OUT PBYTE                  pBuffer,
-    IN     ULONG                  ulOffset,
-    IN     ULONG                  ulBytesAvailable,
-    IN     PSRV_SMB2_LOCK_REQUEST pLockRequest,
-    IN OUT PULONG                 pulBytesUsed
+    PBYTE                  pBuffer,
+    ULONG                  ulOffset,
+    ULONG                  ulBytesAvailable,
+    PSRV_SMB2_LOCK_REQUEST pLockRequest,
+    PULONG                 pulBytesUsed
     );
 
 NTSTATUS
 SMB2UnmarshalIOCTLRequest(
-    IN     PSMB2_MESSAGE               pSmbRequest,
-    IN OUT PSMB2_IOCTL_REQUEST_HEADER* ppRequestHeader,
-    IN OUT PBYTE*                      ppData
+    PSRV_MESSAGE_SMB_V2         pSmbRequest,
+    PSMB2_IOCTL_REQUEST_HEADER* ppRequestHeader,
+    PBYTE*                      ppData
     );
 
 NTSTATUS
 SMB2MarshalIOCTLResponse(
-    IN OUT PBYTE                      pBuffer,
-    IN     ULONG                      ulOffset,
-    IN     ULONG                      ulBytesAvailable,
-    IN     PSMB2_IOCTL_REQUEST_HEADER pRequestHeader,
-    IN     PBYTE                      pOutBuffer,
-    IN     ULONG                      ulOutLength,
-    IN OUT PULONG                     pulBytesUsed
+    PBYTE                      pBuffer,
+    ULONG                      ulOffset,
+    ULONG                      ulBytesAvailable,
+    PSMB2_IOCTL_REQUEST_HEADER pRequestHeader,
+    PBYTE                      pOutBuffer,
+    ULONG                      ulOutLength,
+    PULONG                     pulBytesUsed
     );
 
 NTSTATUS
 SMB2UnmarshalFindRequest(
-    IN     PSMB2_MESSAGE              pSmbRequest,
-    IN OUT PSMB2_FIND_REQUEST_HEADER* ppRequestHeader,
-    IN OUT PUNICODE_STRING            pwszFilename
+    PSRV_MESSAGE_SMB_V2        pSmbRequest,
+    PSMB2_FIND_REQUEST_HEADER* ppRequestHeader,
+    PUNICODE_STRING            pwszFilename
     );
 
 NTSTATUS
 SMB2MarshalFindResponse(
-    IN OUT PBYTE                       pBuffer,
-    IN     ULONG                       ulOffset,
-    IN     ULONG                       ulBytesAvailable,
-    IN OUT PBYTE                       pData,
-    IN     ULONG                       ulDataLength,
-    IN OUT PULONG                      pulDataOffset,
-    IN OUT PSMB2_FIND_RESPONSE_HEADER* ppHeader,
-    IN OUT PULONG                      pulBytesUsed
+    PBYTE                       pBuffer,
+    ULONG                       ulOffset,
+    ULONG                       ulBytesAvailable,
+    PBYTE                       pData,
+    ULONG                       ulDataLength,
+    PULONG                      pulDataOffset,
+    PSMB2_FIND_RESPONSE_HEADER* ppHeader,
+    PULONG                      pulBytesUsed
     );
 
 NTSTATUS
 SMB2MarshalError(
-    IN OUT PBYTE    pBuffer,
-    IN     ULONG    ulOffset,
-    IN     ULONG    ulBytesAvailable,
-    IN     PBYTE    pMessage,
-    IN     ULONG    ulMessageLength,
-    IN OUT PULONG   pulBytesUsed
+    PBYTE    pBuffer,
+    ULONG    ulOffset,
+    ULONG    ulBytesAvailable,
+    PBYTE    pMessage,
+    ULONG    ulMessageLength,
+    PULONG   pulBytesUsed
     );
 
 NTSTATUS
@@ -500,9 +464,7 @@ SMB2MarshalFooter(
 
 NTSTATUS
 SrvProcessWrite_SMB_V2(
-    IN     PSMB2_CONTEXT pContext,
-    IN     PSMB2_MESSAGE pSmbRequest,
-    IN OUT PSMB_PACKET   pSmbResponse
+    PSRV_EXEC_CONTEXT pContext
     );
 
 #endif /* __PROTOTYPES_H__ */

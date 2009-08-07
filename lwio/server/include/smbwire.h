@@ -422,6 +422,9 @@ typedef UCHAR SMB_BUFFER_FORMAT;
 #define SMB_BUFFER_FORMAT_ASCII         0x4 /* null terminated string */
 #define SMB_BUFFER_FORMAT_VARIABLE      0x5
 
+#define SMB_V1_GET_PROCESS_ID(pHdr) \
+    ((((ULONG)pHdr->extra.pidHigh) << 16) | ((ULONG)pHdr->pid))
+
 typedef struct
 {
     uchar8_t        smb[4];     /* Contains 0xFF 'SMB' */
@@ -471,7 +474,7 @@ typedef struct
     uint16_t    andXOffset;     /* Offset to next command wordCount */
 
     /* Message specific parameters immediately follow */
-} __attribute__((__packed__)) ANDX_HEADER;
+} __attribute__((__packed__)) ANDX_HEADER, *PANDX_HEADER;
 
 typedef struct
 {
@@ -1724,7 +1727,7 @@ MarshallTreeConnectResponseData(
     uint8_t         *pBuffer,
     uint32_t         bufferAvailable,
     uint32_t         bufferUsed,
-    uint32_t        *pBufferUsed,
+    uint16_t        *pBufferUsed,
     const uchar8_t  *pszService,
     const wchar16_t *pwszNativeFileSystem
     );
@@ -2133,7 +2136,7 @@ WireMarshallErrorResponse(
     ULONG                   ulBytesAvailable,
     ULONG                   ulOffset,
     PERROR_RESPONSE_HEADER* ppResponseHeader,
-    PULONG                  pulParamBytesUsed
+    PUSHORT                 pusParamBytesUsed
     );
 
 BOOLEAN

@@ -49,6 +49,13 @@
  */
 #include "adprovider.h"
 
+#define BAIL_ON_DCE_ERROR(dest, status)                   \
+    if ((status) != 0) {                    \
+        LSA_LOG_ERROR("DCE Error [Code:%d]", (status));   \
+        (dest) = LW_ERROR_DCE_CALL_FAILED;               \
+        goto error;                                       \
+    }
+
 DWORD
 AD_OnlineFindCellDN(
     IN PLSA_DM_LDAP_CONNECTION pConn,
@@ -1369,63 +1376,35 @@ error:
 }
 
 DWORD
-AD_OnlineAuthenticateUser(
+AD_OnlineCheckUserPassword(
     HANDLE hProvider,
-    PCSTR  pszLoginId,
-    PCSTR  pszPassword
+    PLSA_SECURITY_OBJECT pUserInfo,
+    PCSTR  pszPassword,
+    PDWORD pdwGoodUntilTime
     )
 {
     DWORD dwError = 0;
-    PLSA_LOGIN_NAME_INFO pLoginInfo = NULL;
-    PLSA_SECURITY_OBJECT pUserInfo = NULL;
-    PAC_LOGON_INFO *pPac = NULL;
     PSTR pszHostname = NULL;
     PSTR pszMachineAccountName = NULL;
     PSTR pszServicePassword = NULL;
     PSTR pszDomainDnsName = NULL;
     PSTR pszHostDnsDomain = NULL;
     PSTR pszServicePrincipal = NULL;
-    DWORD dwGoodUntilTime = 0;
-    LSA_TRUST_DIRECTION dwTrustDirection = LSA_TRUST_DIRECTION_UNKNOWN;
+    PSTR pszUpn = NULL;
     PSTR pszUserDnsDomainName = NULL;
     PSTR pszFreeUpn = NULL;
-    PSTR pszUpn = NULL;
-    BOOLEAN bFoundDomain = FALSE;
-
-    dwError = LsaCrackDomainQualifiedName(
-                    pszLoginId,
-                    gpADProviderData->szDomain,
-                    &pLoginInfo);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = AD_ServicesDomainWithDiscovery(
-                    pLoginInfo->pszDomainNetBiosName,
-                    &bFoundDomain);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (!bFoundDomain) {
-        dwError = LW_ERROR_NOT_HANDLED;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    LSA_SAFE_FREE_STRING(pLoginInfo->pszFullDomainName);
-
-    dwError = AD_FindUserObjectByName(
-                    hProvider,
-                    pszLoginId,
-                    &pUserInfo);
-    BAIL_ON_LSA_ERROR(dwError);
+    char* pchNdrEncodedPac = NULL;
+    size_t sNdrEncodedPac = 0;
+    PAC_LOGON_INFO *pPac = NULL;
+    LSA_TRUST_DIRECTION dwTrustDirection = LSA_TRUST_DIRECTION_UNKNOWN;
+    error_status_t dceStatus = 0;
 
     dwError = AD_DetermineTrustModeandDomainName(
                         pUserInfo->pszNetbiosDomainName,
                         &dwTrustDirection,
                         NULL,
-                        &pLoginInfo->pszFullDomainName,
+                        NULL,
                         NULL);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = AD_VerifyUserAccountCanLogin(
-                pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaDnsGetHostInfo(&pszHostname);
@@ -1434,7 +1413,6 @@ AD_OnlineAuthenticateUser(
     LsaStrToLower(pszHostname);
 
     dwError = LwKrb5GetMachineCreds(
-                    pszHostname,
                     &pszMachineAccountName,
                     &pszServicePassword,
                     &pszDomainDnsName,
@@ -1478,7 +1456,7 @@ AD_OnlineAuthenticateUser(
         pszUpn = pszFreeUpn;
     }
 
-    dwError = LsaSetupUserLoginSession(
+    dwError = LwSetupUserLoginSession(
                     pUserInfo->userInfo.uid,
                     pUserInfo->userInfo.gid,
                     pszUpn,
@@ -1486,8 +1464,9 @@ AD_OnlineAuthenticateUser(
                     KRB5_File_Cache,
                     pszServicePrincipal,
                     pszServicePassword,
-                    &pPac,
-                    &dwGoodUntilTime);
+                    &pchNdrEncodedPac,
+                    &sNdrEncodedPac,
+                    pdwGoodUntilTime);
     if (dwError == LW_ERROR_KRB5_S_PRINCIPAL_UNKNOWN)
     {
         LSA_SAFE_FREE_STRING(pszServicePrincipal);
@@ -1501,7 +1480,7 @@ AD_OnlineAuthenticateUser(
 		      pszDomainDnsName);
         BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = LsaSetupUserLoginSession(
+        dwError = LwSetupUserLoginSession(
                       pUserInfo->userInfo.uid,
                       pUserInfo->userInfo.gid,
                       pszUpn,
@@ -1509,10 +1488,17 @@ AD_OnlineAuthenticateUser(
                       KRB5_File_Cache,
                       pszServicePrincipal,
                       pszServicePassword,
-                      &pPac,
-		      &dwGoodUntilTime);
+                      &pchNdrEncodedPac,
+                      &sNdrEncodedPac,
+		      pdwGoodUntilTime);
     }
     BAIL_ON_LSA_ERROR(dwError);
+
+    dceStatus = DecodePacLogonInfo(
+        pchNdrEncodedPac,
+        sNdrEncodedPac,
+        &pPac);
+    BAIL_ON_DCE_ERROR(dwError, dceStatus);
 
     if (pPac != NULL)
     {
@@ -1531,6 +1517,75 @@ AD_OnlineAuthenticateUser(
         LSA_ASSERT(pUserInfo->userInfo.bIsAccountInfoKnown);
     }
 
+cleanup:
+    if (pPac)
+    {
+        FreePacLogonInfo(pPac);
+    }
+    LSA_SAFE_FREE_STRING(pszHostname);
+    LSA_SAFE_FREE_STRING(pszMachineAccountName);
+    LSA_SAFE_FREE_STRING(pszServicePassword);
+    LSA_SAFE_FREE_STRING(pszDomainDnsName);
+    LSA_SAFE_FREE_STRING(pszHostDnsDomain);
+    LSA_SAFE_FREE_STRING(pszServicePrincipal);
+    LSA_SAFE_FREE_STRING(pszUserDnsDomainName);
+    LSA_SAFE_FREE_STRING(pszFreeUpn);
+    LSA_SAFE_FREE_MEMORY(pchNdrEncodedPac);
+
+    return dwError;
+
+error:
+    *pdwGoodUntilTime = 0;
+
+    goto cleanup;
+}
+
+DWORD
+AD_OnlineAuthenticateUser(
+    HANDLE hProvider,
+    PCSTR  pszLoginId,
+    PCSTR  pszPassword
+    )
+{
+    DWORD dwError = 0;
+    PLSA_LOGIN_NAME_INFO pLoginInfo = NULL;
+    PLSA_SECURITY_OBJECT pUserInfo = NULL;
+    DWORD dwGoodUntilTime = 0;
+    BOOLEAN bFoundDomain = FALSE;
+
+    dwError = LsaCrackDomainQualifiedName(
+                    pszLoginId,
+                    gpADProviderData->szDomain,
+                    &pLoginInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = AD_ServicesDomainWithDiscovery(
+                    pLoginInfo->pszDomainNetBiosName,
+                    &bFoundDomain);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (!bFoundDomain) {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = AD_FindUserObjectByName(
+                    hProvider,
+                    pszLoginId,
+                    &pUserInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = AD_VerifyUserAccountCanLogin(
+                pUserInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = AD_OnlineCheckUserPassword(
+                    hProvider,
+                    pUserInfo,
+                    pszPassword,
+                    &dwGoodUntilTime);
+    BAIL_ON_LSA_ERROR(dwError);
+
     dwError = AD_OnlineCachePasswordVerifier(
                     pUserInfo,
                     pszPassword);
@@ -1544,25 +1599,12 @@ AD_OnlineAuthenticateUser(
 
 cleanup:
 
-    if (pPac)
-    {
-        FreePacLogonInfo(pPac);
-    }
-
     if (pLoginInfo)
     {
         LsaFreeNameInfo(pLoginInfo);
     }
 
     ADCacheSafeFreeObject(&pUserInfo);
-    LSA_SAFE_FREE_STRING(pszHostname);
-    LSA_SAFE_FREE_STRING(pszMachineAccountName);
-    LSA_SAFE_FREE_STRING(pszServicePassword);
-    LSA_SAFE_FREE_STRING(pszDomainDnsName);
-    LSA_SAFE_FREE_STRING(pszHostDnsDomain);
-    LSA_SAFE_FREE_STRING(pszServicePrincipal);
-    LSA_SAFE_FREE_STRING(pszUserDnsDomainName);
-    LSA_SAFE_FREE_STRING(pszFreeUpn);
 
     return dwError;
 

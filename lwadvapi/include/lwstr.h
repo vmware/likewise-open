@@ -208,6 +208,13 @@ LwHexStrToByteArray(
     );
 
 DWORD
+LwByteArrayToHexStr(
+    IN UCHAR* pucByteArray,
+    IN DWORD dwByteArrayLength,
+    OUT PSTR* ppszHexString
+    );
+
+DWORD
 LwWc16sToMbs(
     PCWSTR pwszInput,
     PSTR*  ppszOutput

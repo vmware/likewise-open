@@ -32,14 +32,12 @@
 
 NTSTATUS
 SrvProcessTrans2QueryFilesystemInformation(
-    PLWIO_SRV_CONNECTION         pConnection,
-    PSMB_PACKET                 pSmbRequest,
+    PSRV_EXEC_CONTEXT           pExecContext,
     PTRANSACTION_REQUEST_HEADER pRequestHeader,
     PUSHORT                     pSetup,
     PUSHORT                     pByteCount,
     PBYTE                       pParameters,
-    PBYTE                       pData,
-    PSMB_PACKET*                ppSmbResponse
+    PBYTE                       pData
     );
 
 #endif /* __SRV_TRANS2QFSI_H__ */

@@ -42,29 +42,24 @@ SrvUnmarshallQueryPathInfoParams(
 static
 NTSTATUS
 SrvBuildQueryPathInfoResponse(
-    PLWIO_SRV_CONNECTION pConnection,
-    PSMB_PACKET         pSmbRequest,
-    SMB_INFO_LEVEL      smbInfoLevel,
-    PWSTR               pwszFilename,
-    PSMB_PACKET*        ppSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext,
+    SMB_INFO_LEVEL    smbInfoLevel,
+    PWSTR             pwszFilename
     );
 
 NTSTATUS
 SrvProcessTrans2QueryPathInformation(
-    PLWIO_SRV_CONNECTION         pConnection,
-    PSMB_PACKET                 pSmbRequest,
+    PSRV_EXEC_CONTEXT           pExecContext,
     PTRANSACTION_REQUEST_HEADER pRequestHeader,
     PUSHORT                     pSetup,
     PUSHORT                     pByteCount,
     PBYTE                       pParameters,
-    PBYTE                       pData,
-    PSMB_PACKET*                ppSmbResponse
+    PBYTE                       pData
     )
 {
     NTSTATUS ntStatus = 0;
     PSMB_INFO_LEVEL pSmbInfoLevel = NULL; // Do not free
-    PWSTR    pwszFilename = NULL; // Do not free
-    PSMB_PACKET pSmbResponse = NULL;
+    PWSTR           pwszFilename  = NULL; // Do not free
 
     ntStatus = SrvUnmarshallQueryPathInfoParams(
                     pParameters,
@@ -74,29 +69,16 @@ SrvProcessTrans2QueryPathInformation(
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvBuildQueryPathInfoResponse(
-                    pConnection,
-                    pSmbRequest,
+                    pExecContext,
                     *pSmbInfoLevel,
-                    pwszFilename,
-                    &pSmbResponse);
+                    pwszFilename);
     BAIL_ON_NT_STATUS(ntStatus);
-
-    *ppSmbResponse = pSmbResponse;
 
 cleanup:
 
     return ntStatus;
 
 error:
-
-    *ppSmbResponse = NULL;
-
-    if (pSmbResponse)
-    {
-        SMBPacketRelease(
-            pConnection->hPacketAllocator,
-            pSmbResponse);
-    }
 
     goto cleanup;
 }
@@ -163,34 +145,38 @@ error:
 static
 NTSTATUS
 SrvBuildQueryPathInfoResponse(
-    PLWIO_SRV_CONNECTION pConnection,
-    PSMB_PACKET         pSmbRequest,
-    SMB_INFO_LEVEL      smbInfoLevel,
-    PWSTR               pwszFilename,
-    PSMB_PACKET*        ppSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext,
+    SMB_INFO_LEVEL    smbInfoLevel,
+    PWSTR             pwszFilename
     )
 {
     NTSTATUS ntStatus = 0;
+    PLWIO_SRV_CONNECTION       pConnection  = pExecContext->pConnection;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
+    ULONG                      iMsg         = pCtxSmb1->iMsg;
+    PSRV_MESSAGE_SMB_V1        pSmbRequest  = &pCtxSmb1->pRequests[iMsg];
     PLWIO_SRV_SESSION pSession = NULL;
     PLWIO_SRV_TREE    pTree = NULL;
-    PSMB_PACKET      pSmbResponse = NULL;
-    PWSTR            pwszFilepath = NULL;
-    IO_FILE_HANDLE   hFile = NULL;
-    IO_STATUS_BLOCK ioStatusBlock = {0};
+    PWSTR             pwszFilepath = NULL;
+    IO_FILE_HANDLE    hFile = NULL;
+    IO_STATUS_BLOCK   ioStatusBlock = {0};
     PIO_ASYNC_CONTROL_BLOCK pAsyncControlBlock = NULL;
-    PVOID               pSecurityDescriptor = NULL;
-    PVOID               pSecurityQOS = NULL;
-    IO_FILE_NAME        filename = {0};
+    PVOID             pSecurityDescriptor = NULL;
+    PVOID             pSecurityQOS = NULL;
+    IO_FILE_NAME      filename = {0};
 
-    ntStatus = SrvConnectionFindSession(
+    ntStatus = SrvConnectionFindSession_SMB_V1(
+                    pCtxSmb1,
                     pConnection,
-                    pSmbRequest->pSMBHeader->uid,
+                    pSmbRequest->pHeader->uid,
                     &pSession);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvSessionFindTree(
+    ntStatus = SrvSessionFindTree_SMB_V1(
+                    pCtxSmb1,
                     pSession,
-                    pSmbRequest->pSMBHeader->tid,
+                    pSmbRequest->pHeader->tid,
                     &pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -224,118 +210,50 @@ SrvBuildQueryPathInfoResponse(
 
     switch (smbInfoLevel)
     {
-        case SMB_INFO_STANDARD :
-
-            ntStatus = STATUS_NOT_IMPLEMENTED;
-
-            break;
-
-        case SMB_INFO_QUERY_EA_SIZE :
-
-            ntStatus = STATUS_NOT_IMPLEMENTED;
-
-            break;
-
-        case SMB_INFO_QUERY_EAS_FROM_LIST :
-
-            ntStatus = STATUS_NOT_IMPLEMENTED;
-
-            break;
-
-        case SMB_INFO_QUERY_ALL_EAS :
-
-            ntStatus = STATUS_NOT_IMPLEMENTED;
-
-            break;
-
-        case SMB_INFO_IS_NAME_VALID :
-
-            ntStatus = STATUS_NOT_IMPLEMENTED;
-
-            break;
-
         case SMB_QUERY_FILE_BASIC_INFO :
 
-            ntStatus = SrvBuildQueryFileBasicInfoResponse(
-                            pConnection,
-                            pSmbRequest,
-                            hFile,
-                            &pSmbResponse);
+            ntStatus = SrvBuildQueryFileBasicInfoResponse(pExecContext, hFile);
 
             break;
 
         case SMB_QUERY_FILE_STANDARD_INFO :
 
             ntStatus = SrvBuildQueryFileStandardInfoResponse(
-                            pConnection,
-                            pSmbRequest,
-                            hFile,
-                            &pSmbResponse);
+                            pExecContext,
+                            hFile);
 
             break;
 
         case SMB_QUERY_FILE_EA_INFO :
 
-            ntStatus = SrvBuildQueryFileEAInfoResponse(
-                            pConnection,
-                            pSmbRequest,
-                            hFile,
-                            &pSmbResponse);
+            ntStatus = SrvBuildQueryFileEAInfoResponse(pExecContext, hFile);
 
             break;
 
+        case SMB_INFO_STANDARD :
+        case SMB_INFO_QUERY_EA_SIZE :
+        case SMB_INFO_QUERY_EAS_FROM_LIST :
+        case SMB_INFO_QUERY_ALL_EAS :
+        case SMB_INFO_IS_NAME_VALID :
         case SMB_QUERY_FILE_NAME_INFO :
-
-            ntStatus = STATUS_NOT_IMPLEMENTED;
-
-            break;
-
         case SMB_QUERY_FILE_ALL_INFO :
-
-            ntStatus = STATUS_NOT_IMPLEMENTED;
-
-            break;
-
         case SMB_QUERY_FILE_ALT_NAME_INFO :
-
-            ntStatus = STATUS_NOT_IMPLEMENTED;
-
-            break;
-
         case SMB_QUERY_FILE_STREAM_INFO :
-
-            ntStatus = STATUS_NOT_IMPLEMENTED;
-
-            break;
-
         case SMB_QUERY_FILE_COMPRESSION_INFO :
-
-            ntStatus = STATUS_NOT_IMPLEMENTED;
-
-            break;
-
         case SMB_QUERY_FILE_UNIX_BASIC :
-
-            ntStatus = STATUS_NOT_IMPLEMENTED;
-
-            break;
-
         case SMB_QUERY_FILE_UNIX_LINK :
 
-            ntStatus = STATUS_NOT_IMPLEMENTED;
+            ntStatus = STATUS_NOT_SUPPORTED;
 
             break;
-
 
         default:
 
-            ntStatus = STATUS_DATA_ERROR;
+            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
 
             break;
     }
     BAIL_ON_NT_STATUS(ntStatus);
-
-    *ppSmbResponse = pSmbResponse;
 
 cleanup:
 
@@ -362,15 +280,6 @@ cleanup:
     return ntStatus;
 
 error:
-
-    *ppSmbResponse = NULL;
-
-    if (pSmbResponse)
-    {
-        SMBPacketRelease(
-            pConnection->hPacketAllocator,
-            pSmbResponse);
-    }
 
     goto cleanup;
 }

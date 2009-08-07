@@ -54,26 +54,23 @@
 static
 NTSTATUS
 SrvBuildCreateResponse_SMB_V2(
-    PLWIO_SRV_CONNECTION pConnection,
-    PSMB2_MESSAGE        pSmbRequest,
-    PIO_STATUS_BLOCK     pIoStatusBlock,
-    PLWIO_SRV_TREE_2     pTree,
-    PLWIO_SRV_FILE_2     pFile,
-    PSMB_PACKET          pSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext,
+    PIO_STATUS_BLOCK  pIoStatusBlock
     );
 
 NTSTATUS
 SrvProcessCreate_SMB_V2(
-    IN OUT PSMB2_CONTEXT pContext,
-    IN     PSMB2_MESSAGE pSmbRequest,
-    IN OUT PSMB_PACKET   pSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext
     )
 {
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
+    NTSTATUS                   ntStatus      = STATUS_SUCCESS;
+    PLWIO_SRV_CONNECTION       pConnection   = pExecContext->pConnection;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    ULONG                      iMsg          = pCtxSmb2->iMsg;
+    PSRV_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
     PLWIO_SRV_SESSION_2 pSession = NULL;
     PLWIO_SRV_TREE_2    pTree = NULL;
-    PLWIO_SRV_FILE_2    pFile = NULL;
     IO_FILE_HANDLE      hFile = NULL;
     IO_STATUS_BLOCK     ioStatusBlock = {0};
     PVOID               pSecurityDescriptor = NULL;
@@ -90,7 +87,7 @@ SrvProcessCreate_SMB_V2(
     ULONG                       ulNumContexts = 0;
     BOOLEAN bTreeInLock = FALSE;
 
-    if (pContext->pFile)
+    if (pCtxSmb2->pFile)
     {
         ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
         BAIL_ON_NT_STATUS(ntStatus);
@@ -105,14 +102,14 @@ SrvProcessCreate_SMB_V2(
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvConnection2FindSession_SMB_V2(
-                    pContext,
+                    pCtxSmb2,
                     pConnection,
                     pSmbRequest->pHeader->ullSessionId,
                     &pSession);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvSession2FindTree_SMB_V2(
-                    pContext,
+                    pCtxSmb2,
                     pSession,
                     pSmbRequest->pHeader->ulTid,
                     &pTree);
@@ -137,9 +134,7 @@ SrvProcessCreate_SMB_V2(
                wszFileName.Length);
     }
 
-    ntStatus = SrvAllocateMemory(
-                    sizeof(IO_FILE_NAME),
-                    (PVOID*)&pFilename);
+    ntStatus = SrvAllocateMemory(sizeof(IO_FILE_NAME), (PVOID*)&pFilename);
     BAIL_ON_NT_STATUS(ntStatus);
 
     LWIO_LOCK_RWMUTEX_SHARED(bTreeInLock, &pTree->mutex);
@@ -208,31 +203,17 @@ SrvProcessCreate_SMB_V2(
                     pCreateRequestHeader->ulShareAccess,
                     pCreateRequestHeader->ulCreateDisposition,
                     pCreateRequestHeader->ulCreateOptions,
-                    &pFile);
+                    &pCtxSmb2->pFile);
     BAIL_ON_NT_STATUS(ntStatus);
 
     bRemoveFileFromTree = TRUE;
 
     // TODO: Execute create contexts and add results
 
-    ntStatus = SrvBuildCreateResponse_SMB_V2(
-                    pConnection,
-                    pSmbRequest,
-                    &ioStatusBlock,
-                    pTree,
-                    pFile,
-                    pSmbResponse);
+    ntStatus = SrvBuildCreateResponse_SMB_V2(pExecContext, &ioStatusBlock);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pContext->pFile = pFile;
-    InterlockedIncrement(&pContext->pFile->refcount);
-
 cleanup:
-
-    if (pFile)
-    {
-        SrvFile2Release(pFile);
-    }
 
     if (pTree)
     {
@@ -275,14 +256,17 @@ error:
 
         ntStatus2 = SrvTree2RemoveFile(
                         pTree,
-                        pFile->ullFid);
+                        pCtxSmb2->pFile->ullFid);
         if (ntStatus2)
         {
             LWIO_LOG_ERROR("Failed to remove file from tree [Tid:%u][Fid:%ul][code:%d]",
-                           pTree->ulTid,
-                           pFile->ullFid,
+                           pCtxSmb2->pTree->ulTid,
+                           pCtxSmb2->pFile->ullFid,
                            ntStatus2);
         }
+
+        SrvFile2Release(pCtxSmb2->pFile);
+        pCtxSmb2->pFile = NULL;
     }
 
     goto cleanup;
@@ -291,28 +275,28 @@ error:
 static
 NTSTATUS
 SrvBuildCreateResponse_SMB_V2(
-    PLWIO_SRV_CONNECTION pConnection,
-    PSMB2_MESSAGE        pSmbRequest,
-    PIO_STATUS_BLOCK     pIoStatusBlock,
-    PLWIO_SRV_TREE_2     pTree,
-    PLWIO_SRV_FILE_2     pFile,
-    PSMB_PACKET          pSmbResponse
+    PSRV_EXEC_CONTEXT pExecContext,
+    PIO_STATUS_BLOCK  pIoStatusBlock
     )
 {
     NTSTATUS                     ntStatus = 0;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    ULONG                      iMsg          = pCtxSmb2->iMsg;
+    PSRV_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
+    PSRV_MESSAGE_SMB_V2        pSmbResponse  = &pCtxSmb2->pResponses[iMsg];
     FILE_BASIC_INFORMATION       fileBasicInfo = {0};
     FILE_STANDARD_INFORMATION    fileStdInfo = {0};
     IO_STATUS_BLOCK              ioStatusBlock = {0};
     PSMB2_CREATE_RESPONSE_HEADER pResponseHeader = NULL; // Do not free
-    PBYTE pOutBufferRef = pSmbResponse->pRawBuffer + pSmbResponse->bufferUsed;
-    PBYTE pOutBuffer = pOutBufferRef;
-    ULONG ulBytesAvailable = pSmbResponse->bufferLen - pSmbResponse->bufferUsed;
-    ULONG ulOffset    = pSmbResponse->bufferUsed - sizeof(NETBIOS_HEADER);
+    PBYTE pOutBuffer = pSmbResponse->pBuffer;
+    ULONG ulBytesAvailable = pSmbResponse->ulBytesAvailable;
+    ULONG ulOffset    = 0;
     ULONG ulBytesUsed = 0;
     ULONG ulTotalBytesUsed = 0;
 
     ntStatus = IoQueryInformationFile(
-                    pFile->hFile,
+                    pCtxSmb2->pFile->hFile,
                     NULL,
                     &ioStatusBlock,
                     &fileBasicInfo,
@@ -321,7 +305,7 @@ SrvBuildCreateResponse_SMB_V2(
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = IoQueryInformationFile(
-                    pFile->hFile,
+                    pCtxSmb2->pFile->hFile,
                     NULL,
                     &ioStatusBlock,
                     &fileStdInfo,
@@ -338,19 +322,19 @@ SrvBuildCreateResponse_SMB_V2(
                     1,
                     pSmbRequest->pHeader->ulPid,
                     pSmbRequest->pHeader->ullCommandSequence,
-                    pTree->ulTid,
-                    pSmbRequest->pHeader->ullSessionId,
+                    pCtxSmb2->pTree->ulTid,
+                    pCtxSmb2->pSession->ullUid,
                     STATUS_SUCCESS,
                     TRUE,
                     pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
-                    NULL,
-                    &ulBytesUsed);
+                    &pSmbResponse->pHeader,
+                    &pSmbResponse->ulHeaderSize);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ulTotalBytesUsed += ulBytesUsed;
-    pOutBuffer += ulBytesUsed;
-    ulOffset += ulBytesUsed;
-    ulBytesAvailable -= ulBytesUsed;
+    pOutBuffer       += pSmbResponse->ulHeaderSize;
+    ulOffset         += pSmbResponse->ulHeaderSize;
+    ulBytesAvailable -= pSmbResponse->ulHeaderSize;
+    ulTotalBytesUsed += pSmbResponse->ulHeaderSize;
 
     if (ulBytesAvailable < sizeof(SMB2_CREATE_RESPONSE_HEADER))
     {
@@ -359,23 +343,25 @@ SrvBuildCreateResponse_SMB_V2(
     }
 
     pResponseHeader = (PSMB2_CREATE_RESPONSE_HEADER)pOutBuffer;
-    ulTotalBytesUsed += sizeof(SMB2_CREATE_RESPONSE_HEADER);
-    ulBytesUsed = sizeof(SMB2_CREATE_RESPONSE_HEADER);
+
+    pOutBuffer       += sizeof(SMB2_CREATE_RESPONSE_HEADER);
+    ulBytesUsed       = sizeof(SMB2_CREATE_RESPONSE_HEADER);
+    ulOffset         += sizeof(SMB2_CREATE_RESPONSE_HEADER);
     ulBytesAvailable -= sizeof(SMB2_CREATE_RESPONSE_HEADER);
-    ulOffset += sizeof(SMB2_CREATE_RESPONSE_HEADER);
+    ulTotalBytesUsed += sizeof(SMB2_CREATE_RESPONSE_HEADER);
 
-    pResponseHeader->fid.ullVolatileId = pFile->ullFid;
-    pResponseHeader->ulCreateAction = pIoStatusBlock->CreateResult;
-    pResponseHeader->ullCreationTime = fileBasicInfo.CreationTime;
+    pResponseHeader->fid.ullVolatileId = pCtxSmb2->pFile->ullFid;
+    pResponseHeader->ulCreateAction    = pIoStatusBlock->CreateResult;
+    pResponseHeader->ullCreationTime   = fileBasicInfo.CreationTime;
     pResponseHeader->ullLastAccessTime = fileBasicInfo.LastAccessTime;
-    pResponseHeader->ullLastWriteTime = fileBasicInfo.LastWriteTime;
+    pResponseHeader->ullLastWriteTime  = fileBasicInfo.LastWriteTime;
     pResponseHeader->ullLastChangeTime = fileBasicInfo.ChangeTime;
-    pResponseHeader->ulFileAttributes = fileBasicInfo.FileAttributes;
+    pResponseHeader->ulFileAttributes  = fileBasicInfo.FileAttributes;
     pResponseHeader->ullAllocationSize = fileStdInfo.AllocationSize;
-    pResponseHeader->ullEndOfFile = fileStdInfo.EndOfFile;
-    pResponseHeader->usLength = ulBytesUsed + 1;
+    pResponseHeader->ullEndOfFile      = fileStdInfo.EndOfFile;
+    pResponseHeader->usLength          = ulBytesUsed + 1;
 
-    pSmbResponse->bufferUsed += ulTotalBytesUsed;
+    pSmbResponse->ulMessageSize = ulTotalBytesUsed;
 
 cleanup:
 
@@ -385,8 +371,12 @@ error:
 
     if (ulTotalBytesUsed)
     {
-        memset(pOutBufferRef, 0, ulTotalBytesUsed);
+        pSmbResponse->pHeader      = NULL;
+        pSmbResponse->ulHeaderSize = 0;
+        memset(pSmbResponse->pBuffer, 0, ulTotalBytesUsed);
     }
+
+    pSmbResponse->ulMessageSize = 0;
 
     goto cleanup;
 }
