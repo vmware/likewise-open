@@ -62,8 +62,8 @@ function component_install
 
     ${MAKE} DESTDIR=${INSTALL_ROOT} install
 
-    if [ ! -d ${INSTALL_ROOT}/etc/init.d ]; then
-	mkdir -p ${INSTALL_ROOT}/etc/init.d
+    if [ ! -d ${INSTALL_ROOT}${BUILD_INITDIR} ]; then
+	mkdir -p ${INSTALL_ROOT}${BUILD_INITDIR}
 	exit_on_error $?
     fi
 
@@ -71,9 +71,9 @@ function component_install
         -e s:PREFIX_DIR:${PREFIXDIR}: \
         -e s:EXECDIR:${PREFIXDIR}/bin: \
         -e s:#LWI_STARTUP_TYPE_REDHAT:: \
-    > ${INSTALL_ROOT}/etc/init.d/${COMP_NAME}d
+    > ${INSTALL_ROOT}${BUILD_INITDIR}/${COMP_NAME}d
 
-    chmod 755 ${INSTALL_ROOT}/etc/init.d/${COMP_NAME}d
+    chmod 755 ${INSTALL_ROOT}${BUILD_INITDIR}/${COMP_NAME}d
 
     rsync -a ${INSTALL_ROOT}/ ${STAGE_INSTALL_DIR}/
 
