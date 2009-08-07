@@ -135,16 +135,6 @@ LsaSrvGetPrefixPath(
     PSTR* ppszPath
     );
 
-VOID
-LsaSrvCreatePIDFile(
-    VOID
-    );
-
-pid_t
-LsaSrvGetPidFromPidFile(
-    VOID
-    );
-
 DWORD
 LsaSrvInitLogging(
     PCSTR pszProgramName,

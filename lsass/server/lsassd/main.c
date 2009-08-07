@@ -74,6 +74,20 @@ static LSA_STATIC_PROVIDER gStaticProviders[] =
 
 #endif
 
+#ifdef ENABLE_PIDFILE
+static
+VOID
+LsaSrvCreatePIDFile(
+    VOID
+    );
+
+static
+pid_t
+LsaSrvGetPidFromPidFile(
+    VOID
+    );
+#endif
+
 int
 main(
     int argc,
@@ -122,7 +136,9 @@ main(
     dwError = LsaSrvStartupPreCheck();
     BAIL_ON_LSA_ERROR(dwError);
 
+#ifdef ENABLE_PIDFILE
     LsaSrvCreatePIDFile();
+#endif
 
     dwError = NTLMGssInitializeServer();
     BAIL_ON_LSA_ERROR(dwError);
@@ -864,6 +880,7 @@ LsaSrvGetPrefixPath(
     goto cleanup;
 }
 
+#ifdef ENABLE_PIDFILE
 VOID
 LsaSrvCreatePIDFile(
     VOID
@@ -913,6 +930,7 @@ LsaSrvCreatePIDFile(
     }
 }
 
+static
 pid_t
 LsaSrvGetPidFromPidFile(
     VOID
@@ -954,6 +972,7 @@ LsaSrvGetPidFromPidFile(
 
     return pid;
 }
+#endif
 
 DWORD
 LsaBlockSelectedSignals(
