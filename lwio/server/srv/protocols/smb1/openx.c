@@ -50,7 +50,6 @@ SrvProcessOpenAndX(
     PSRV_MESSAGE_SMB_V1        pSmbRequest  = &pCtxSmb1->pRequests[iMsg];
     PLWIO_SRV_SESSION          pSession = NULL;
     PLWIO_SRV_TREE             pTree    = NULL;
-    PLWIO_SRV_FILE             pFile    = NULL;
     BOOLEAN                    bRemoveFileFromTree = FALSE;
     IO_FILE_HANDLE             hFile = NULL;
     IO_STATUS_BLOCK            ioStatusBlock = {0};
@@ -68,6 +67,12 @@ SrvProcessOpenAndX(
     PBYTE pBuffer          = pSmbRequest->pBuffer + pSmbRequest->usHeaderSize;
     ULONG ulOffset         = pSmbRequest->usHeaderSize;
     ULONG ulBytesAvailable = pSmbRequest->ulMessageSize - pSmbRequest->usHeaderSize;
+
+    if (pCtxSmb1->pFile)
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
     ntStatus = SrvConnectionFindSession_SMB_V1(
                         pCtxSmb1,
@@ -232,7 +237,7 @@ SrvProcessOpenAndX(
                     usShareAccess,
                     usCreateDisposition,
                     usCreateOptions,
-                    &pFile);
+                    &pCtxSmb1->pFile);
     BAIL_ON_NT_STATUS(ntStatus);
 
     bRemoveFileFromTree = TRUE;
@@ -241,11 +246,6 @@ SrvProcessOpenAndX(
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
-
-    if (pFile)
-    {
-        SrvFileRelease(pFile);
-    }
 
     if (pTree)
     {
@@ -287,12 +287,12 @@ error:
 
         ntStatus2 = SrvTreeRemoveFile(
                         pTree,
-                        pFile->fid);
+                        pCtxSmb1->pFile->fid);
         if (ntStatus2)
         {
             LWIO_LOG_ERROR("Failed to remove file from tree [Tid:%d][Fid:%d][code:%d]",
                           pTree->tid,
-                          pFile->fid,
+                          pCtxSmb1->pFile->fid,
                           ntStatus2);
         }
 
