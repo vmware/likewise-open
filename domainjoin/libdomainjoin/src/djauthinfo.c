@@ -1093,6 +1093,8 @@ void DJCreateComputerAccount(
     PSTR osName = NULL;
     PSTR tempDir = NULL;
     PSTR origEnv = NULL;
+    // Do not free origEnvVarStr
+    PSTR origEnvVarStr = NULL;
     PSTR shortHostname = NULL;
     PSTR hostFqdn = NULL;
     // Do not free dnsDomain
@@ -1141,6 +1143,14 @@ void DJCreateComputerAccount(
                                  options->domainName, NULL, NULL));
 
     origEnv = getenv("KRB5_CONFIG");
+    if (origEnv && *origEnv)
+    {
+        LW_CLEANUP_CTERR(exc,
+                         CTAllocateStringPrintf(
+                         &origEnvVarStr,
+                         "KRB5_CONFIG=%s",
+                         origEnv));
+    }
 
     sprintf(krb5ConfEnv, "KRB5_CONFIG=%s/etc/krb5.conf", tempDir);
 
@@ -1210,8 +1220,8 @@ cleanup:
         CT_SAFE_FREE_STRING(tempDir);
     }
 
-    if (origEnv && *origEnv) {
-       putenv(origEnv);
+    if (origEnvVarStr) {
+       putenv(origEnvVarStr);
     } else {
        putenv("KRB5_CONFIG=/etc/krb5.conf");
     }
