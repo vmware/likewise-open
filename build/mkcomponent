@@ -4,45 +4,6 @@ BUILD_ROOT=`(cd $(dirname $0)/.. && pwd)`
 export BUILD_ROOT
 
 umask 022
-##
-## Autoconf paths picked up by the components
-##
-PRODUCTNAME="likewise"
-SYSCONFDIR="/etc/${PRODUCTNAME}"
-INITDIR="/etc/init.d"
-PREFIXDIR="/opt/${PRODUCTNAME}"
-LOCALSTATEDIR="/var/lib/${PRODUCTNAME}"
-SCRIPTDIR=""
-LIBEXECDIR="${PREFIXDIR}/bin"
-
-STAGE_DIR="${BUILD_ROOT}/staging"
-STAGE_INSTALL_DIR="${STAGE_DIR}/install-root"
-STAGE_COMP_DIR="${STAGE_DIR}/components"
-
-## Check if we have any overrides
-if [ -n "${BUILD_PREFIXDIR}" ]; then
-    PREFIXDIR=${BUILD_PREFIXDIR}
-fi
-if [ -n "${BUILD_SYSCONFDIR}" ]; then
-    SYSCONFDIR=${BUILD_SYSCONFDIR}
-fi
-if [ -n "${BUILD_INITDIR}" ]; then
-    INITDIR=${BUILD_INITDIR}
-fi
-if [ -n "${BUILD_LOCALSTATEDIR}" ]; then
-    LOCALSTATEDIR=${BUILD_LOCALSTATEDIR}
-fi
-if [ -n "${BUILD_LIBEXECDIR}" ]; then
-    LIBEXECDIR=${BUILD_LIBEXECDIR}
-fi
-if [ -n "${BUILD_SCRIPTDIR}" ]; then
-    SCRIPTDIR=${BUILD_SCRIPTDIR}
-fi
-if [ -n "${BUILD_STAGE_INSTALL_DIR}" ]; then
-    STAGE_INSTALL_DIR=${BUILD_STAGE_INSTALL_DIR}
-fi
-
-export SYSCONFIDIR INITDIR PREFIX LOCALSTATEDIR STAGE_INSTALL_DIR
 
 ##
 ## Support libraries
@@ -50,6 +11,36 @@ export SYSCONFIDIR INITDIR PREFIX LOCALSTATEDIR STAGE_INSTALL_DIR
 . ${BUILD_ROOT}/build/lib/common.sh
 . ${BUILD_ROOT}/build/lib/mkcomp-helper.sh
 . ${BUILD_ROOT}/build/lib/VARS
+
+## Check if we have any overrides
+function setup_build_vars
+{
+    local _upcomp=$(echo $1 | tr "[a-z]" "[A-Z]")
+
+    ##
+    ## Autoconf paths picked up by the components
+    ##
+    export PRODUCTNAME="likewise"
+
+    # Overridable variables
+    INITDIR="/etc/init.d"
+    PREFIXDIR="/opt/${PRODUCTNAME}"
+    LIBEXECDIR="${PREFIXDIR}/bin"
+    LOCALSTATEDIR="/var/lib/${PRODUCTNAME}"
+    SCRIPTDIR=""
+    STAGE_DIR="${BUILD_ROOT}/staging"
+    STAGE_COMP_DIR="${STAGE_DIR}/components"
+    STAGE_INSTALL_DIR="${STAGE_DIR}/install-root"
+    SYSCONFDIR="/etc/${PRODUCTNAME}"
+
+    for _variable in PREFIXDIR SYSCONFDIR INITDIR LOCALSTATEDIR LIBEXECDIR SCRIPTDIR STAGE_INSTALL_DIR; do
+        eval "if [ -n \"\${BUILD_${_variable}}\" ]; then export ${_variable}=\${BUILD_${_variable}}; fi"
+        eval "if [ -n \"\${BUILD_${_upcomp}_${_variable}}\" ]; then export ${_variable}=\${BUILD_${_upcomp}_${_variable}}; fi"
+    if [ -n "${BUILD_VERBOSE}" ]; then
+        eval "echo ${_variable}=\${${_variable}}"
+    fi
+    done
+}
 
 function build_component
 {
@@ -82,6 +73,8 @@ function main
     if [ ! -f ${_COMP_FILE} ]; then
 	exit_on_error 1 "Invalid component name (${_COMP_NAME})!  Exiting...."
     fi
+
+    setup_build_vars ${_COMP_NAME}
 
     ##
     ## This imports the following variables:
