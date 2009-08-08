@@ -32,7 +32,7 @@ ServerAcquireCreds(
     IN PCHAR pServicePassword,
     IN PCHAR pServiceRealm,
     IN PCHAR pSecPkgName,
-    OUT LSA_CRED_HANDLE *pServerCreds
+    OUT NTLM_CRED_HANDLE *pServerCreds
     );
 
 DWORD
@@ -44,7 +44,7 @@ CreateSocket(
 DWORD
 SignServer(
     IN INT nSocket,
-    IN LSA_CRED_HANDLE *pServerCreds,
+    IN NTLM_CRED_HANDLE *pServerCreds,
     IN DWORD AscFlags
     );
 
@@ -56,7 +56,7 @@ FreeContextBuffer(
 DWORD
 ServerEstablishContext(
     IN INT nSocket,
-    IN LSA_CRED_HANDLE *pServerCreds,
+    IN NTLM_CRED_HANDLE *pServerCreds,
     OUT LSA_CONTEXT_HANDLE *pContext,
     IN DWORD AscFlags
     );

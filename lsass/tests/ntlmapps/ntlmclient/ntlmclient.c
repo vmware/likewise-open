@@ -25,8 +25,8 @@
 
 INT
 main(
-    IN INT      argc,
-    IN PCHAR*   argv
+    IN INT argc,
+    IN PCHAR* argv
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -131,13 +131,13 @@ Usage(VOID)
 
 DWORD
 CallServer(
-    IN PCHAR    pHost,
-    IN USHORT   usPort,
-    IN PCHAR    pServiceName,
-    IN DWORD    DelegFlag,
-    IN PCHAR    pMsg,
-    IN PCHAR    pSecPkgName,
-    IN INT      nSignOnly
+    IN PCHAR pHost,
+    IN USHORT usPort,
+    IN PCHAR pServiceName,
+    IN DWORD DelegFlag,
+    IN PCHAR pMsg,
+    IN PCHAR pSecPkgName,
+    IN INT nSignOnly
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -351,9 +351,9 @@ error:
 
 DWORD
 ConnectToServer(
-    IN PCHAR    pHost,
-    IN USHORT   usPort,
-    OUT PINT    pSocket
+    IN PCHAR pHost,
+    IN USHORT usPort,
+    OUT PINT pSocket
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -403,12 +403,12 @@ error:
 
 DWORD
 ClientEstablishContext(
-    IN INT                  nSocket,
-    IN PCHAR                pServiceName,
-    IN DWORD                DelegFlag,
+    IN INT nSocket,
+    IN PCHAR pServiceName,
+    IN DWORD DelegFlag,
     OUT PLSA_CONTEXT_HANDLE pSspiContext,
-    IN PCHAR                pSecPkgName,
-    OUT PDWORD              pRetFlags
+    IN PCHAR pSecPkgName,
+    OUT PDWORD pRetFlags
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -421,15 +421,13 @@ ClientEstablishContext(
     SecBuffer RecvTokenBuffer;
     SecBufferDesc InputDesc;
     SecBufferDesc OutputDesc;
-    LSA_CRED_HANDLE CredHandle;
-    TimeStamp Expiry;
+    NTLM_CRED_HANDLE CredHandle = INVALID_NTLM_CRED_HANDLE;
+    TimeStamp Expiry = 0;
 
     memset(&SendTokenBuffer, 0, sizeof(SecBuffer));
     memset(&RecvTokenBuffer, 0, sizeof(SecBuffer));
     memset(&InputDesc, 0, sizeof(SecBufferDesc));
     memset(&OutputDesc, 0, sizeof(SecBufferDesc));
-    CredHandle = 0;
-    Expiry = 0;
 
     *pSspiContext = NULL;
     *pRetFlags = 0;
@@ -454,7 +452,7 @@ ClientEstablishContext(
         ghServer,
         NULL,                       // no principal name
         pSecPkgName,                // package name
-        0, //SECPKG_CRED_OUTBOUND,
+        NTLM_CRED_OUTBOUND,
         NULL,                       // no logon id
         NULL,                       // no auth data
         &CredHandle,
@@ -465,10 +463,7 @@ ClientEstablishContext(
 
     nCredentialsAcquired = 1;
 
-   /*
-    * Perform the context-establishement loop.
-    */
-
+    // Perform the context-establishement loop.
     do
     {
         // we need to use dwLoopErr in this case because we may get
@@ -615,10 +610,10 @@ error:
 
 DWORD
 WriteAll(
-    IN INT      nSocket,
-    IN PCHAR    pBuffer,
-    IN UINT     nBytes,
-    OUT PINT    nBytesWritten
+    IN INT nSocket,
+    IN PCHAR pBuffer,
+    IN UINT nBytes,
+    OUT PINT nBytesWritten
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -651,8 +646,8 @@ error:
 
 DWORD
 RecvToken(
-    IN INT          nSocket,
-    OUT PSecBuffer  pToken
+    IN INT nSocket,
+    OUT PSecBuffer pToken
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -712,10 +707,10 @@ error:
 
 DWORD
 ReadAll(
-    IN INT      nSocket,
-    OUT PCHAR   pBuffer,
-    IN UINT     nBytes,
-    OUT PINT    nBytesRead
+    IN INT nSocket,
+    OUT PCHAR pBuffer,
+    IN UINT nBytes,
+    OUT PINT nBytesRead
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
