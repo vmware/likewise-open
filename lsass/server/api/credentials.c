@@ -99,9 +99,9 @@ LsaAddCredential(
     BOOL bInLock = FALSE;
     PLSA_CREDENTIALS pCredOld = NULL;
     PLSA_CREDENTIALS pCredNew = NULL;
-    LSA_CRED_HANDLE CredHandle = NULL;
+    LSA_CRED_HANDLE CredHandle = INVALID_LSA_CRED_HANDLE;
 
-    *phCredential = NULL;
+    *phCredential = INVALID_LSA_CRED_HANDLE;
 
     if (!pszUserName  ||
         !pszPassword  ||
@@ -154,7 +154,7 @@ error:
         LsaReleaseCredential(pCredOld);
     }
 
-    CredHandle = NULL;
+    CredHandle = INVALID_LSA_CRED_HANDLE;
 
     goto cleanup;
 }
@@ -238,7 +238,7 @@ LsaReferenceCredential(
     BOOL bInLock = FALSE;
     PLSA_CREDENTIALS pCred = NULL;
 
-    if(hCredential)
+    if(hCredential != INVALID_LSA_CRED_HANDLE)
     {
         pCred = hCredential;
 
@@ -257,7 +257,7 @@ LsaReleaseCredential(
 {
     BOOL bInLock = FALSE;
 
-    if(hCredential)
+    if(hCredential && hCredential != INVALID_LSA_CRED_HANDLE)
     {
         ENTER_CREDS_LIST(bInLock);
 
@@ -274,7 +274,7 @@ LsaReleaseCredentialUnsafe(
 {
     PLSA_CREDENTIALS pCred = NULL;
 
-    if(hCredential)
+    if(hCredential && hCredential != INVALID_LSA_CRED_HANDLE)
     {
         pCred = hCredential;
 
@@ -307,6 +307,11 @@ LsaGetCredential(
     pCred = LsaFindCredByUid(dwUid);
 
     LEAVE_CREDS_LIST(bInLock);
+
+    if(!pCred)
+    {
+        pCred = INVALID_LSA_CRED_HANDLE;
+    }
 
     return pCred;
 }
@@ -361,9 +366,9 @@ LsaGetCredentialInfo(
         *pUid = 0;
     }
 
-    if(CredHandle)
+    if(CredHandle != INVALID_LSA_CRED_HANDLE)
     {
-        PLSA_CREDENTIALS pCred = (PLSA_CREDENTIALS)CredHandle;
+        PLSA_CREDENTIALS pCred = CredHandle;
         BOOL bInLock = FALSE;
 
         ENTER_CREDS_LIST(bInLock);
