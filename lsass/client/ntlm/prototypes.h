@@ -51,7 +51,7 @@
 DWORD
 NtlmTransactAcceptSecurityContext(
     IN HANDLE hServer,
-    IN PLSA_CRED_HANDLE phCredential,
+    IN PNTLM_CRED_HANDLE phCredential,
     IN OUT PLSA_CONTEXT_HANDLE phContext,
     IN PSecBufferDesc pInput,
     IN DWORD fContextReq,
@@ -70,7 +70,7 @@ NtlmTransactAcquireCredentialsHandle(
     IN DWORD fCredentialUse,
     IN PLUID pvLogonID,
     IN PVOID pAuthData,
-    OUT PLSA_CRED_HANDLE phCredential,
+    OUT PNTLM_CRED_HANDLE phCredential,
     OUT PTimeStamp ptsExpiry
     );
 
@@ -110,7 +110,7 @@ NtlmTransactExportSecurityContext(
 DWORD
 NtlmTransactFreeCredentialsHandle(
     IN HANDLE hServer,
-    IN PLSA_CRED_HANDLE phCredential
+    IN PNTLM_CRED_HANDLE phCredential
     );
 
 DWORD
@@ -125,7 +125,7 @@ NtlmTransactImportSecurityContext(
 DWORD
 NtlmTransactInitializeSecurityContext(
     IN HANDLE hServer,
-    IN OPTIONAL PLSA_CRED_HANDLE phCredential,
+    IN OPTIONAL PNTLM_CRED_HANDLE phCredential,
     IN OPTIONAL PLSA_CONTEXT_HANDLE phContext,
     IN OPTIONAL SEC_CHAR * pszTargetName,
     IN DWORD fContextReq,

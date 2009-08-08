@@ -55,7 +55,7 @@ NtlmClientAcquireCredentialsHandle(
     IN DWORD fCredentialUse,
     IN PLUID pvLogonID,
     IN PVOID pAuthData,
-    OUT PLSA_CRED_HANDLE phCredential,
+    OUT PNTLM_CRED_HANDLE phCredential,
     OUT PTimeStamp ptsExpiry
     )
 {

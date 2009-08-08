@@ -50,7 +50,7 @@
 DWORD
 NtlmClientInitializeSecurityContext(
     IN HANDLE hServer,
-    IN OPTIONAL PLSA_CRED_HANDLE phCredential,
+    IN OPTIONAL PNTLM_CRED_HANDLE phCredential,
     IN OPTIONAL PLSA_CONTEXT_HANDLE phContext,
     IN OPTIONAL SEC_CHAR * pszTargetName,
     IN DWORD fContextReq,

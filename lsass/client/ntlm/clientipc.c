@@ -55,7 +55,7 @@ NtlmOpenServer(
     PNTLM_CLIENT_CONNECTION_CONTEXT pContext = NULL;
     static LWMsgTime connectTimeout = {2, 0};
 
-    BAIL_ON_NTLM_INVALID_POINTER(phConnection);
+    BAIL_ON_INVALID_POINTER(phConnection);
 
     dwError = LsaAllocateMemory(
         sizeof(NTLM_CLIENT_CONNECTION_CONTEXT),
@@ -156,7 +156,7 @@ NtlmCloseServer(
 DWORD
 NtlmTransactAcceptSecurityContext(
     IN HANDLE hServer,
-    IN PLSA_CRED_HANDLE phCredential,
+    IN PNTLM_CRED_HANDLE phCredential,
     IN OUT PLSA_CONTEXT_HANDLE phContext,
     IN PSecBufferDesc pInput,
     IN DWORD fContextReq,
@@ -168,6 +168,9 @@ NtlmTransactAcceptSecurityContext(
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
+
+    *pfContextAttr = 0;
+    *ptsTimeStamp = 0;
 
     PNTLM_CLIENT_CONNECTION_CONTEXT pContext =
         (PNTLM_CLIENT_CONNECTION_CONTEXT)hServer;
@@ -185,7 +188,10 @@ NtlmTransactAcceptSecurityContext(
     LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     AcceptSecCtxtReq.hCredential = *phCredential;
-    AcceptSecCtxtReq.hContext = *phContext;
+    if(phContext)
+    {
+        AcceptSecCtxtReq.hContext = *phContext;
+    }
     AcceptSecCtxtReq.pInput = pInput;
     AcceptSecCtxtReq.fContextReq = fContextReq;
     AcceptSecCtxtReq.TargetDataRep = TargetDataRep;
@@ -209,10 +215,14 @@ NtlmTransactAcceptSecurityContext(
             dwError = NtlmTransferSecBufferDesc(pOutput, &pResultList->Output);
             BAIL_ON_LW_ERROR(dwError);
 
-            *phContext = pResultList->hContext;
+            if(phContext)
+            {
+                *phContext = pResultList->hContext;
+            }
             *phNewContext = pResultList->hNewContext;
             *pfContextAttr = pResultList->fContextAttr;
             *ptsTimeStamp = pResultList->tsTimeStamp;
+            dwError = pResultList->dwStatus;
 
             break;
         case NTLM_R_ACCEPT_SEC_CTXT_FAILURE:
@@ -228,6 +238,9 @@ NtlmTransactAcceptSecurityContext(
 cleanup:
     return dwError;
 error:
+    *pfContextAttr = 0;
+    *ptsTimeStamp = 0;
+
     if(response.object)
     {
         lwmsg_assoc_free_message(pContext->pAssoc, &response);
@@ -243,7 +256,7 @@ NtlmTransactAcquireCredentialsHandle(
     IN DWORD fCredentialUse,
     IN PLUID pvLogonID,
     IN PVOID pAuthData,
-    OUT PLSA_CRED_HANDLE phCredential,
+    OUT PNTLM_CRED_HANDLE phCredential,
     OUT PTimeStamp ptsExpiry
     )
 {
@@ -587,7 +600,7 @@ error:
 DWORD
 NtlmTransactFreeCredentialsHandle(
     IN HANDLE hServer,
-    IN PLSA_CRED_HANDLE phCredential
+    IN PNTLM_CRED_HANDLE phCredential
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -711,7 +724,7 @@ error:
 DWORD
 NtlmTransactInitializeSecurityContext(
     IN HANDLE hServer,
-    IN OPTIONAL PLSA_CRED_HANDLE phCredential,
+    IN OPTIONAL PNTLM_CRED_HANDLE phCredential,
     IN OPTIONAL PLSA_CONTEXT_HANDLE phContext,
     IN OPTIONAL SEC_CHAR * pszTargetName,
     IN DWORD fContextReq,
