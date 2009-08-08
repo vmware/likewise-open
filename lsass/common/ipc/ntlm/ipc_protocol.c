@@ -175,8 +175,8 @@ static LWMsgTypeSpec gNtlmIpcErrorSpec[] =
 
 static LWMsgTypeSpec gNtlmAcceptSecCtxtSpec[] =
 {
-    // PLSA_CRED_HANDLE phCredential;
-    // PLSA_CONTEXT_HANDLE phContext;
+    // NTLM_CRED_HANDLE hCredential;
+    // LSA_CONTEXT_HANDLE hContext;
     // PSecBufferDesc pInput;
     // DWORD fContextReq;
     // DWORD TargetDataRep;
@@ -185,7 +185,7 @@ static LWMsgTypeSpec gNtlmAcceptSecCtxtSpec[] =
 
     LWMSG_STRUCT_BEGIN(NTLM_IPC_ACCEPT_SEC_CTXT_REQ),
 
-    LWMSG_MEMBER_HANDLE(NTLM_IPC_ACCEPT_SEC_CTXT_REQ, hCredential, LSA_CRED_HANDLE),
+    LWMSG_MEMBER_HANDLE(NTLM_IPC_ACCEPT_SEC_CTXT_REQ, hCredential, NTLM_CRED_HANDLE),
     LWMSG_ATTR_HANDLE_LOCAL_FOR_RECEIVER,
 
     LWMSG_MEMBER_HANDLE(NTLM_IPC_ACCEPT_SEC_CTXT_REQ, hContext, LSA_CONTEXT_HANDLE),
@@ -283,7 +283,7 @@ static LWMsgTypeSpec gNtlmAcquireCredsSpec[] =
 
 static LWMsgTypeSpec gNtlmAcquireCredsRespSpec[] =
 {
-    //LSA_CRED_HANDLE hCredential;
+    //NTLM_CRED_HANDLE hCredential;
     //TimeStamp tsExpiry;
 
     LWMSG_STRUCT_BEGIN(NTLM_IPC_ACQUIRE_CREDS_RESPONSE),
@@ -291,7 +291,7 @@ static LWMsgTypeSpec gNtlmAcquireCredsRespSpec[] =
     LWMSG_MEMBER_HANDLE(
         NTLM_IPC_ACQUIRE_CREDS_RESPONSE,
         hCredential,
-        LSA_CRED_HANDLE
+        NTLM_CRED_HANDLE
         ),
     LWMSG_ATTR_HANDLE_LOCAL_FOR_SENDER,
 
@@ -442,11 +442,11 @@ static LWMsgTypeSpec gNtlmExportSecCtxtRespSpec[] =
 
 static LWMsgTypeSpec gNtlmFreeCredsSpec[] =
 {
-    // PLSA_CRED_HANDLE phCredential;
+    // NTLM_CRED_HANDLE hCredential;
 
     LWMSG_STRUCT_BEGIN(NTLM_IPC_FREE_CREDS_REQ),
 
-    LWMSG_MEMBER_HANDLE(NTLM_IPC_FREE_CREDS_REQ, hCredential, LSA_CRED_HANDLE),
+    LWMSG_MEMBER_HANDLE(NTLM_IPC_FREE_CREDS_REQ, hCredential, NTLM_CRED_HANDLE),
     LWMSG_ATTR_HANDLE_LOCAL_FOR_RECEIVER,
 
     LWMSG_STRUCT_END,
@@ -502,7 +502,7 @@ static LWMsgTypeSpec gNtlmImportSecCtxtRespSpec[] =
 
 static LWMsgTypeSpec gNtlmInitSecCtxtSpec[] =
 {
-    //PLSA_CRED_HANDLE phCredential;
+    //PNTLM_CRED_HANDLE phCredential;
     //PLSA_CONTEXT_HANDLE phContext;
     //SEC_CHAR * pszTargetName;
     //ULONG fContextReq;
@@ -515,7 +515,7 @@ static LWMsgTypeSpec gNtlmInitSecCtxtSpec[] =
 
     LWMSG_STRUCT_BEGIN(NTLM_IPC_INIT_SEC_CTXT_REQ),
 
-    LWMSG_MEMBER_HANDLE(NTLM_IPC_INIT_SEC_CTXT_REQ, hCredential, LSA_CRED_HANDLE),
+    LWMSG_MEMBER_HANDLE(NTLM_IPC_INIT_SEC_CTXT_REQ, hCredential, NTLM_CRED_HANDLE),
     LWMSG_ATTR_HANDLE_LOCAL_FOR_RECEIVER,
 
     LWMSG_MEMBER_HANDLE(NTLM_IPC_INIT_SEC_CTXT_REQ, hContext, LSA_CONTEXT_HANDLE),
@@ -625,12 +625,12 @@ static LWMsgTypeSpec gNtlmMakeSignRespSpec[] =
 
 static LWMsgTypeSpec gNtlmQueryCredsSpec[] =
 {
-    // PLSA_CRED_HANDLE phCredential;
+    // PNTLM_CRED_HANDLE phCredential;
     // ULONG ulAttribute;
 
     LWMSG_STRUCT_BEGIN(NTLM_IPC_QUERY_CREDS_REQ),
 
-    LWMSG_MEMBER_HANDLE(NTLM_IPC_QUERY_CREDS_REQ, hCredential, LSA_CRED_HANDLE),
+    LWMSG_MEMBER_HANDLE(NTLM_IPC_QUERY_CREDS_REQ, hCredential, NTLM_CRED_HANDLE),
     LWMSG_ATTR_HANDLE_LOCAL_FOR_RECEIVER,
 
     LWMSG_MEMBER_UINT32(NTLM_IPC_QUERY_CREDS_REQ, ulAttribute),
