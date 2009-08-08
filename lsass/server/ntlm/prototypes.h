@@ -47,7 +47,8 @@
 
 DWORD
 NtlmServerAcceptSecurityContext(
-    IN PLSA_CRED_HANDLE phCredential,
+    IN LWMsgAssoc* pAssoc,
+    IN PNTLM_CRED_HANDLE phCredential,
     IN OUT PLSA_CONTEXT_HANDLE phContext,
     IN PSecBufferDesc pInput,
     IN DWORD fContextReq,
@@ -66,8 +67,16 @@ NtlmServerAcquireCredentialsHandle(
     IN DWORD fCredentialUse,
     IN PLUID pvLogonID,
     IN PVOID pAuthData,
-    OUT PLSA_CRED_HANDLE phCredential,
+    OUT PNTLM_CRED_HANDLE phCredential,
     OUT PTimeStamp ptsExpiry
+    );
+
+DWORD
+NtlmGetNameInformation(
+    PSTR* ppszServerName,
+    PSTR* ppszDomainName,
+    PSTR* ppszDnsServerName,
+    PSTR* ppszDnsDomainName
     );
 
 DWORD
@@ -116,7 +125,7 @@ NtlmServerExportSecurityContext(
 
 DWORD
 NtlmServerFreeCredentialsHandle(
-    IN PLSA_CRED_HANDLE phCredential
+    IN PNTLM_CRED_HANDLE phCredential
     );
 
 DWORD
@@ -129,7 +138,7 @@ NtlmServerImportSecurityContext(
 
 DWORD
 NtlmServerInitializeSecurityContext(
-    IN OPTIONAL PLSA_CRED_HANDLE phCredential,
+    IN OPTIONAL PNTLM_CRED_HANDLE phCredential,
     IN OPTIONAL PLSA_CONTEXT_HANDLE phContext,
     IN OPTIONAL SEC_CHAR * pszTargetName,
     IN DWORD fContextReq,
@@ -201,12 +210,12 @@ NtlmGetContextInfo(
     OUT OPTIONAL PNTLM_STATE pNtlmState,
     OUT OPTIONAL PVOID* ppMessage,
     OUT OPTIONAL PDWORD pdwMessageSize,
-    OUT OPTIONAL PLSA_CRED_HANDLE pCredHandle
+    OUT OPTIONAL PNTLM_CRED_HANDLE pCredHandle
     );
 
 DWORD
 NtlmCreateContext(
-    IN PLSA_CRED_HANDLE pCredHandle,
+    IN PNTLM_CRED_HANDLE pCredHandle,
     OUT PLSA_CONTEXT *ppNtlmContext
     );
 
@@ -236,14 +245,59 @@ NtlmFreeContext(
     PLSA_CONTEXT pNtlmContext
     );
 
-#if 0
-DWORD
-NtlmCreateContextFromSecBufferDesc(
-    PSecBufferDesc pSecBufferDesc,
-    NTLM_STATE nsContextType,
-    PLSA_CONTEXT *ppNtlmContext
+VOID
+NtlmInitializeCredentialsDatabase(
+    VOID
     );
-#endif
+
+VOID
+NtlmShutdownCredentialsDatabase(
+    VOID
+    );
+
+VOID
+NtlmAddCredential(
+    IN PNTLM_CREDENTIALS pCred,
+    OUT PNTLM_CRED_HANDLE pCredHandle
+    );
+
+VOID
+NtlmReleaseCredential(
+    IN NTLM_CRED_HANDLE hCred
+    );
+
+DWORD
+NtlmCreateCredentials(
+    IN PLSA_CRED_HANDLE pLsaCredHandle,
+    IN DWORD dwDirection,
+    IN PSTR pServerName,
+    IN PSTR pDomainName,
+    IN PSTR pDnsServerName,
+    IN PSTR pDnsDomainName,
+    OUT PNTLM_CREDENTIALS* ppNtlmCreds
+    );
+
+VOID
+NtlmGetCredentialInfo(
+    IN NTLM_CRED_HANDLE CredHandle,
+    OUT OPTIONAL PCSTR* pszUserName,
+    OUT OPTIONAL PCSTR* pszPassword,
+    OUT OPTIONAL PDWORD pUid,
+    OUT OPTIONAL PCSTR* pszServerName,
+    OUT OPTIONAL PCSTR* pszDomainName,
+    OUT OPTIONAL PCSTR* pszDnsServerName,
+    OUT OPTIONAL PCSTR* pszDnsDomainName
+    );
+
+VOID
+NtlmReferenceCredential(
+    IN NTLM_CRED_HANDLE hCredential
+    );
+
+VOID
+NtlmFreeCredentials(
+    IN PNTLM_CREDENTIALS pCreds
+    );
 
 DWORD
 NtlmGetMessageFromSecBufferDesc(
@@ -267,8 +321,8 @@ NtlmGetRandomBuffer(
 DWORD
 NtlmCreateNegotiateMessage(
     IN DWORD dwOptions,
-    IN PCHAR pDomain,
-    IN PCHAR pWorkstation,
+    IN PCSTR pDomain,
+    IN PCSTR pWorkstation,
     IN PBYTE pOsVersion,
     OUT PDWORD pdwSize,
     OUT PNTLM_NEGOTIATE_MESSAGE *ppNegMsg
@@ -277,10 +331,10 @@ NtlmCreateNegotiateMessage(
 DWORD
 NtlmCreateChallengeMessage(
     IN PNTLM_NEGOTIATE_MESSAGE pNegMsg,
-    IN PSTR pServerName,
-    IN PSTR pDomainName,
-    IN PSTR pDnsHostName,
-    IN PSTR pDnsDomainName,
+    IN PCSTR pServerName,
+    IN PCSTR pDomainName,
+    IN PCSTR pDnsHostName,
+    IN PCSTR pDnsDomainName,
     IN PBYTE  pOsVersion,
     OUT PDWORD pdwSize,
     OUT PNTLM_CHALLENGE_MESSAGE *ppChlngMsg
@@ -315,11 +369,6 @@ NtlmWeakenSessionKey(
     );
 
 DWORD
-NtlmValidateResponseMessage(
-    IN PNTLM_RESPONSE_MESSAGE pRespMsg
-    );
-
-DWORD
 NtlmGetAuthTargetNameFromChallenge(
     IN PNTLM_CHALLENGE_MESSAGE pChlngMsg,
     OUT PCHAR* ppAuthTargetName
@@ -328,6 +377,7 @@ NtlmGetAuthTargetNameFromChallenge(
 DWORD
 NtlmBuildResponse(
     IN PNTLM_CHALLENGE_MESSAGE pChlngMsg,
+    IN PCSTR pUserName,
     IN PCSTR pPassword,
     IN DWORD dwResponseType,
     IN DWORD dwBufferSize,
@@ -355,7 +405,20 @@ NtlmBuildNtlmResponse(
 
 DWORD
 NtlmBuildNtlmV2Response(
-    VOID
+    IN PNTLM_CHALLENGE_MESSAGE pChlngMsg,
+    IN PCSTR pUserName,
+    IN PCSTR pPassword,
+    IN DWORD dwResponseSize,
+    OUT PBYTE pUserSessionKey,
+    OUT PBYTE pResponse
+    );
+
+DWORD
+NtlmCreateNtlmV2Blob(
+    IN PNTLM_CHALLENGE_MESSAGE pChlngMsg,
+    IN BYTE NtlmHashV2[MD4_DIGEST_LENGTH],
+    OUT PDWORD pdwSize,
+    OUT PBYTE* ppBlob
     );
 
 DWORD
@@ -375,10 +438,10 @@ NtlmBuildAnonymousResponse(
 
 DWORD
 NtlmCreateNegotiateContext(
-    IN PLSA_CRED_HANDLE pCredHandle,
+    IN PNTLM_CRED_HANDLE pCredHandle,
     IN DWORD dwOptions,
-    IN PCHAR pDomain,
-    IN PCHAR pWorkstation,
+    IN PCSTR pDomain,
+    IN PCSTR pWorkstation,
     IN PBYTE pOsVersion,
     OUT PLSA_CONTEXT *ppNtlmContext
     );
@@ -386,22 +449,30 @@ NtlmCreateNegotiateContext(
 DWORD
 NtlmCreateChallengeContext(
     IN PNTLM_NEGOTIATE_MESSAGE pNtlmNegMsg,
-    IN PLSA_CRED_HANDLE pCredHandle,
+    IN PNTLM_CRED_HANDLE pCredHandle,
     OUT PLSA_CONTEXT *ppNtlmContext
     );
 
 DWORD
 NtlmCreateResponseContext(
     IN PNTLM_CHALLENGE_MESSAGE pChlngMsg,
-    IN PLSA_CRED_HANDLE pCredHandle,
+    IN PNTLM_CRED_HANDLE pCredHandle,
     IN OUT PLSA_CONTEXT *ppNtlmContext
     );
 
+#if 0
 DWORD
 NtlmGetDomainFromCredential(
     PLSA_CRED_HANDLE pCredential,
     PSTR* ppDomain
     );
+
+DWORD
+NtlmGetNetBiosName(
+    PCSTR pDnsDomainName,
+    PSTR *ppDomainName
+    );
+#endif
 
 DWORD
 NtlmFixUserName(
@@ -410,12 +481,32 @@ NtlmFixUserName(
     );
 
 DWORD
-NtlmValidateResponse();
+NtlmValidateResponse(
+    IN LWMsgAssoc* pAssoc,
+    IN PNTLM_RESPONSE_MESSAGE pRespMsg,
+    IN DWORD dwRespMsgSize,
+    IN PLSA_CONTEXT pChlngCtxt
+    );
 
 DWORD
-NtlmGetNetBiosName(
-    PCSTR pDnsDomainName,
-    PSTR *ppDomainName
+NtlmGetUserNameFromResponse(
+    IN PNTLM_RESPONSE_MESSAGE pRespMsg,
+    IN BOOL bUnicode,
+    OUT PSTR* ppUserName
+    );
+
+DWORD
+NtlmGetDomainNameFromResponse(
+    IN PNTLM_RESPONSE_MESSAGE pRespMsg,
+    IN BOOL bUnicode,
+    OUT PSTR* ppDomainName
+    );
+
+DWORD
+NtlmGetWorkstationFromResponse(
+    IN PNTLM_RESPONSE_MESSAGE pRespMsg,
+    IN BOOL bUnicode,
+    OUT PSTR* ppWorkstation
     );
 
 DWORD
@@ -425,10 +516,24 @@ NtlmCalculateResponseSize(
     OUT PDWORD pdwSize
     );
 
-DWORD
+VOID
 NtlmCalculateNtlmV2ResponseSize(
     IN PNTLM_CHALLENGE_MESSAGE pChlngMsg,
     OUT PDWORD pdwSize
+    );
+
+DWORD
+NtlmCreateNtlmV1Hash(
+    PCSTR pPassword,
+    BYTE Hash[MD4_DIGEST_LENGTH]
+    );
+
+DWORD
+NtlmCreateNtlmV2Hash(
+    PCSTR pUserName,
+    PCSTR pDomain,
+    BYTE NtlmV1Hash[MD4_DIGEST_LENGTH],
+    BYTE NtlmV2Hash[MD4_DIGEST_LENGTH]
     );
 
 VOID

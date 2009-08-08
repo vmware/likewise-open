@@ -49,9 +49,9 @@
 
 DWORD
 NtlmServerFreeCredentialsHandle(
-    IN PLSA_CRED_HANDLE phCredential
+    IN PNTLM_CRED_HANDLE phCredential
     )
 {
-    LsaReleaseCredential(*phCredential);
+    NtlmReleaseCredential(*phCredential);
     return LW_ERROR_SUCCESS;
 }
