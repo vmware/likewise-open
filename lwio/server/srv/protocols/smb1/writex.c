@@ -106,7 +106,7 @@ SrvProcessWriteAndX(
     llDataLength = (((LONG64)pRequestHeader->dataLengthHigh) << 32) |
                     ((LONG64)pRequestHeader->dataLength);
 
-    ulKey = SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader);
+    ulKey = pSmbRequest->pHeader->pid;
 
     ntStatus = SrvExecuteWriteAndX(
                     pFile,
