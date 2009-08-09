@@ -55,6 +55,9 @@
 #include <openssl/md5.h>
 #include <openssl/md4.h>
 #include <openssl/rc4.h>
+#include <openssl/hmac.h>
+
+#include <time.h>
 
 #include <lsasrvcred.h>
 #include <lsalist.h>

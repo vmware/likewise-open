@@ -86,6 +86,17 @@ typedef struct _NTLM_RESPONSE_MESSAGE
     // Optional Data
 } NTLM_RESPONSE_MESSAGE, *PNTLM_RESPONSE_MESSAGE;
 
+typedef struct _NTLM_BLOB
+{
+    BYTE NtlmBlobSignature[4];
+    DWORD Reserved1;
+    ULONG64 TimeStamp;
+    ULONG64 ClientNonce;
+    DWORD Reserved2;
+    // Target information block
+    // DWORD Reserved3
+} NTLM_BLOB, *PNTLM_BLOB;
+
 typedef struct _NTLM_TARGET_INFO_BLOCK
 {
     SHORT sType;
@@ -106,7 +117,7 @@ typedef struct _LSA_CONTEXT
     NTLM_STATE NtlmState;
     DWORD dwMessageSize;
     PVOID pMessage;
-    LSA_CRED_HANDLE CredHandle;
+    NTLM_CRED_HANDLE CredHandle;
     LONG nRefCount;
     BYTE SessionKey[NTLM_SESSION_KEY_SIZE];
     DWORD cbSessionKeyLen;
@@ -118,5 +129,23 @@ typedef struct _LSA_CONTEXT_STATE
     LSA_LIST_LINKS LsaContextList;
     pthread_rwlock_t LsaContextListLock;
 } LSA_CONTEXT_STATE, *PLSA_CONTEXT_STATE;
+
+typedef struct _NTLM_CREDENTIALS
+{
+    LSA_CRED_HANDLE CredHandle;
+    DWORD dwCredDirection;
+    PSTR pszDomainName;
+    PSTR pszServerName;
+    PSTR pszDnsDomainName;
+    PSTR pszDnsServerName;
+    LONG nRefCount;
+    LSA_LIST_LINKS ListEntry;
+} NTLM_CREDENTIALS, *PNTLM_CREDENTIALS;
+
+typedef struct _NTLM_CRED_STATE
+{
+    LSA_LIST_LINKS NtlmCredList;
+    pthread_mutex_t NtlmCredListLock;
+} NTLM_CRED_STATE, *PNTLM_CRED_STATE;
 
 #endif /* __STRUCTS_H__ */

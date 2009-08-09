@@ -50,7 +50,7 @@
 DWORD
 NtlmClientFreeCredentialsHandle(
     IN HANDLE hServer,
-    IN PLSA_CRED_HANDLE phCredential
+    IN PNTLM_CRED_HANDLE phCredential
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;

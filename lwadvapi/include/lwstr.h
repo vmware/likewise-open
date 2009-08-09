@@ -73,6 +73,13 @@
         } \
     } while (0)
 
+#define LW_SAFE_FREE_STRING_ARRAY(ppszArray)               \
+        do {                                                \
+           if (ppszArray) {                                 \
+               LwFreeNullTerminatedStringArray(ppszArray); \
+               (ppszArray) = NULL;                          \
+           }                                                \
+        } while (0);
 
 LW_DWORD
 LwAllocateString(

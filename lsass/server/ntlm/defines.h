@@ -87,6 +87,25 @@
         }                                                               \
     } while(0)
 
+#define ENTER_NTLM_CREDS_LIST(bInLock)                                   \
+    do                                                                  \
+    {                                                                   \
+        if (!bInLock)                                                   \
+        {                                                               \
+            pthread_mutex_lock(&gCredState.NtlmCredListLock);           \
+            bInLock = TRUE;                                             \
+        }                                                               \
+    } while(0)
+
+#define LEAVE_NTLM_CREDS_LIST(bReleaseLock)                              \
+    do                                                                  \
+    {                                                                   \
+        if (bReleaseLock)                                               \
+        {                                                               \
+            pthread_mutex_unlock(&gCredState.NtlmCredListLock);         \
+            bReleaseLock = FALSE;                                       \
+        }                                                               \
+    } while(0)
 
 //#define MAP_LWMSG_ERROR(_e_) ((_e_) ? NtlmMapLwmsgStatus(_e_) : 0)
 #define MAP_LWNET_ERROR(_e_) ((_e_) ? LWMSG_STATUS_ERROR : LWMSG_STATUS_SUCCESS)
@@ -99,6 +118,9 @@
 #define NTLM_CHALLENGE_SIZE         8
 #define NTLM_OS_VER_INFO_SIZE       8
 #define NTLM_LOCAL_CONTEXT_SIZE     8
+#define NTLM_BLOB_SIGNATURE         {1,1,0,0}
+#define NTLM_BLOB_SIGNATURE_SIZE    4
+#define NTLM_BLOB_TRAILER_SIZE      4
 
 // Message type
 
@@ -124,10 +146,12 @@
 #define NTLM_RESPONSE_SIZE_ANONYMOUS    1
 
 #define NTLM_LM_MAX_PASSWORD_SIZE       14
-#define NTLM_LM_HASH_SIZE               16
+#define NTLM_HASH_SIZE                  16
 #define NTLM_SESSION_KEY_SIZE           16
 #define NTLM_SIGNATURE_SIZE             16
 #define NTLM_LM_DES_STRING              "KGS!@#$%"
+
+#define NTLM_INITIAL BLOB_SIZE          32
 
 // Name types
 
@@ -140,10 +164,10 @@
 // Target information block
 
 #define NTLM_TIB_TERMINATOR         0x0000
-#define NTLM_TIB_SERVER_NAME        0x0100
-#define NTLM_TIB_DOMAIN_NAME        0x0200
-#define NTLM_TIB_DNS_SERVER_NAME    0x0300
-#define NTLM_TIB_DNS_DOMAIN_NAME    0x0400
+#define NTLM_TIB_SERVER_NAME        0x0001
+#define NTLM_TIB_DOMAIN_NAME        0x0002
+#define NTLM_TIB_DNS_SERVER_NAME    0x0003
+#define NTLM_TIB_DNS_DOMAIN_NAME    0x0004
 
 // RNG for crypto
 

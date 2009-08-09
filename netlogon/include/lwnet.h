@@ -278,4 +278,47 @@ LWNetGetErrorString(
     LW_IN size_t stBufSize
     );
 
+//
+// Log levels
+//
+
+typedef LW_DWORD LWNET_LOG_LEVEL, *PLWNET_LOG_LEVEL;
+
+#define LWNET_LOG_LEVEL_ALWAYS  0
+#define LWNET_LOG_LEVEL_ERROR   1
+#define LWNET_LOG_LEVEL_WARNING 2
+#define LWNET_LOG_LEVEL_INFO    3
+#define LWNET_LOG_LEVEL_VERBOSE 4
+#define LWNET_LOG_LEVEL_DEBUG   5
+#define LWNET_LOG_LEVEL_TRACE   6
+
+//
+// Logging targets
+//
+
+typedef LW_DWORD LWNET_LOG_TARGET, *PLWNET_LOG_TARGET;
+
+#define LWNET_LOG_TARGET_DISABLED   0
+#define LWNET_LOG_TARGET_CONSOLE    1
+#define LWNET_LOG_TARGET_FILE       2
+#define LWNET_LOG_TARGET_SYSLOG     3
+
+//
+// Logging
+//
+
+LWNET_API
+LW_DWORD
+LWNetSetLogLevel(
+    LW_IN LWNET_LOG_LEVEL LogLevel
+    );
+
+LWNET_API
+LW_DWORD
+LWNetGetLogInfo(
+    LW_OUT PLWNET_LOG_LEVEL pLogLevel,
+    LW_OUT PLWNET_LOG_TARGET pLogTarget,
+    LW_OUT LW_PSTR* ppszLogPath
+    );
+
 #endif /* __LWNET_H__ */

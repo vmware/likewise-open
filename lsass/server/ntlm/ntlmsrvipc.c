@@ -57,6 +57,7 @@ NtlmSrvApiInit(
     dwError = NtlmInitializeContextDatabase();
     BAIL_ON_LW_ERROR(dwError);
 
+    NtlmInitializeCredentialsDatabase();
     LsaInitializeCredentialsDatabase();
 
 error:
@@ -71,6 +72,9 @@ NtlmSrvApiShutdown(
     DWORD dwError = LW_ERROR_SUCCESS;
 
     NtlmShutdownContextDatabase();
+
+    NtlmShutdownCredentialsDatabase();
+    LsaShutdownCredentialsDatabase();
 
     return dwError;
 }
@@ -123,6 +127,7 @@ NtlmSrvIpcAcceptSecurityContext(
     BAIL_ON_LW_ERROR(dwError);
 
     dwError = NtlmServerAcceptSecurityContext(
+        pAssoc,
         &pReq->hCredential,
         &pReq->hContext,
         pReq->pInput,
@@ -145,6 +150,16 @@ NtlmSrvIpcAcceptSecurityContext(
         pNtlmResp->hNewContext = pReq->hNewContext;
         pReq->hNewContext = NULL;
 
+        dwError = MAP_LWMSG_ERROR(lwmsg_assoc_register_handle(
+                                      pAssoc,
+                                      "LSA_CONTEXT_HANDLE",
+                                      pNtlmResp->hNewContext,
+                                      NtlmSrvFreeContextHandle));
+        BAIL_ON_LW_ERROR(dwError);
+
+        dwError = MAP_LWMSG_ERROR(lwmsg_assoc_retain_handle(pAssoc, pNtlmResp->hNewContext));
+        BAIL_ON_LW_ERROR(dwError);
+
         memcpy(&(pNtlmResp->Output), pReq->pOutput, sizeof(SecBufferDesc));
         pReq->pOutput = NULL;
 
@@ -153,6 +168,8 @@ NtlmSrvIpcAcceptSecurityContext(
     }
     else
     {
+        LSA_SAFE_FREE_MEMORY(pNtlmResp);
+
         dwError = NtlmSrvIpcCreateError(dwError, &pError);
         BAIL_ON_LW_ERROR(dwError);
 
@@ -160,7 +177,7 @@ NtlmSrvIpcAcceptSecurityContext(
         pResponse->object = pError;
     }
 
-    if(pReq->hContext)
+    if(!dwError && pReq->hContext)
     {
         dwError = MAP_LWMSG_ERROR(lwmsg_assoc_unregister_handle(
             pAssoc,
@@ -176,10 +193,6 @@ NtlmSrvIpcAcceptSecurityContext(
 cleanup:
     return MAP_NTLM_ERROR_IPC(dwError);
 error:
-    if(pNtlmResp)
-    {
-        LsaFreeMemory(pNtlmResp);
-    }
     goto cleanup;
 }
 
@@ -217,7 +230,7 @@ NtlmSrvIpcAcquireCredentialsHandle(
     {
         dwError = MAP_LWMSG_ERROR(lwmsg_assoc_register_handle(
                                       pAssoc,
-                                      "LSA_CRED_HANDLE",
+                                      "NTLM_CRED_HANDLE",
                                       pNtlmResp->hCredential,
                                       NtlmSrvFreeCredHandle));
         BAIL_ON_LW_ERROR(dwError);
@@ -231,6 +244,8 @@ NtlmSrvIpcAcquireCredentialsHandle(
     }
     else
     {
+        LSA_SAFE_FREE_MEMORY(pNtlmResp);
+
         dwError = NtlmSrvIpcCreateError(dwError, &pError);
         BAIL_ON_LW_ERROR(dwError);
 
@@ -241,10 +256,6 @@ NtlmSrvIpcAcquireCredentialsHandle(
 cleanup:
     return MAP_NTLM_ERROR_IPC(dwError);
 error:
-    if(pNtlmResp)
-    {
-        LsaFreeMemory(pNtlmResp);
-    }
     goto cleanup;
 }
 
@@ -284,6 +295,8 @@ NtlmSrvIpcDecryptMessage(
     }
     else
     {
+        LSA_SAFE_FREE_MEMORY(pNtlmResp);
+
         dwError = NtlmSrvIpcCreateError(dwError, &pError);
         BAIL_ON_LW_ERROR(dwError);
 
@@ -294,10 +307,6 @@ NtlmSrvIpcDecryptMessage(
 cleanup:
     return MAP_NTLM_ERROR_IPC(dwError);
 error:
-    if(pNtlmResp)
-    {
-        LsaFreeMemory(pNtlmResp);
-    }
     goto cleanup;
 }
 
@@ -317,8 +326,14 @@ NtlmSrvIpcDeleteSecurityContext(
     //    &pReq->hContext
     //    );
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_unregister_handle(pAssoc, pReq->hContext));
+    dwError = MAP_LWMSG_ERROR(
+        lwmsg_assoc_unregister_handle(pAssoc, pReq->hContext));
     BAIL_ON_LW_ERROR(dwError);
+
+    dwError = MAP_LWMSG_ERROR(
+        lwmsg_assoc_release_handle(pAssoc,pReq->hContext));
+    BAIL_ON_LW_ERROR(dwError);
+
 
     if(!dwError)
     {
@@ -376,6 +391,8 @@ NtlmSrvIpcEncryptMessage(
     }
     else
     {
+        LSA_SAFE_FREE_MEMORY(pNtlmResp);
+
         dwError = NtlmSrvIpcCreateError(dwError, &pError);
         BAIL_ON_LW_ERROR(dwError);
 
@@ -386,10 +403,6 @@ NtlmSrvIpcEncryptMessage(
 cleanup:
     return MAP_NTLM_ERROR_IPC(dwError);
 error:
-    if(pNtlmResp)
-    {
-        LsaFreeMemory(pNtlmResp);
-    }
     goto cleanup;
 }
 
@@ -426,6 +439,8 @@ NtlmSrvIpcExportSecurityContext(
     }
     else
     {
+        LSA_SAFE_FREE_MEMORY(pNtlmResp);
+
         dwError = NtlmSrvIpcCreateError(dwError, &pError);
         BAIL_ON_LW_ERROR(dwError);
 
@@ -436,10 +451,6 @@ NtlmSrvIpcExportSecurityContext(
 cleanup:
     return MAP_NTLM_ERROR_IPC(dwError);
 error:
-    if(pNtlmResp)
-    {
-        LsaFreeMemory(pNtlmResp);
-    }
     goto cleanup;
 }
 
@@ -463,7 +474,12 @@ NtlmSrvIpcFreeCredentialsHandle(
     //    &pReq->hCredential
     //    );
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_unregister_handle(pAssoc, pReq->hCredential));
+    dwError = MAP_LWMSG_ERROR(
+        lwmsg_assoc_unregister_handle(pAssoc, pReq->hCredential));
+    BAIL_ON_LW_ERROR(dwError);
+
+    dwError = MAP_LWMSG_ERROR(
+        lwmsg_assoc_release_handle(pAssoc, pReq->hCredential));
     BAIL_ON_LW_ERROR(dwError);
 
     if(!dwError)
@@ -519,6 +535,8 @@ NtlmSrvIpcImportSecurityContext(
     }
     else
     {
+        LSA_SAFE_FREE_MEMORY(pNtlmResp);
+
         dwError = NtlmSrvIpcCreateError(dwError, &pError);
         BAIL_ON_LW_ERROR(dwError);
 
@@ -529,10 +547,6 @@ NtlmSrvIpcImportSecurityContext(
 cleanup:
     return MAP_NTLM_ERROR_IPC(dwError);
 error:
-    if(pNtlmResp)
-    {
-        LsaFreeMemory(pNtlmResp);
-    }
     goto cleanup;
 }
 
@@ -595,6 +609,8 @@ NtlmSrvIpcInitializeSecurityContext(
     }
     else
     {
+        LSA_SAFE_FREE_MEMORY(pNtlmResp);
+
         dwError = NtlmSrvIpcCreateError(dwError, &pError);
         BAIL_ON_LW_ERROR(dwError);
 
@@ -602,7 +618,7 @@ NtlmSrvIpcInitializeSecurityContext(
         pResponse->object = pError;
     }
 
-    if(pReq->hContext)
+    if(!dwError && pReq->hContext)
     {
         dwError = MAP_LWMSG_ERROR(lwmsg_assoc_unregister_handle(
             pAssoc,
@@ -618,10 +634,6 @@ NtlmSrvIpcInitializeSecurityContext(
 cleanup:
     return MAP_NTLM_ERROR_IPC(dwError);
 error:
-    if(pNtlmResp)
-    {
-        LsaFreeMemory(pNtlmResp);
-    }
     goto cleanup;
 }
 
@@ -661,6 +673,8 @@ NtlmSrvIpcMakeSignature(
     }
     else
     {
+        LSA_SAFE_FREE_MEMORY(pNtlmResp);
+
         dwError = NtlmSrvIpcCreateError(dwError, &pError);
         BAIL_ON_LW_ERROR(dwError);
 
@@ -671,10 +685,6 @@ NtlmSrvIpcMakeSignature(
 cleanup:
     return MAP_NTLM_ERROR_IPC(dwError);
 error:
-    if(pNtlmResp)
-    {
-        LsaFreeMemory(pNtlmResp);
-    }
     goto cleanup;
 }
 
@@ -714,6 +724,8 @@ NtlmSrvIpcQueryCredentialsAttributes(
     }
     else
     {
+        LSA_SAFE_FREE_MEMORY(pNtlmResp);
+
         dwError = NtlmSrvIpcCreateError(dwError, &pError);
         BAIL_ON_LW_ERROR(dwError);
 
@@ -724,10 +736,6 @@ NtlmSrvIpcQueryCredentialsAttributes(
 cleanup:
     return MAP_NTLM_ERROR_IPC(dwError);
 error:
-    if(pNtlmResp)
-    {
-        LsaFreeMemory(pNtlmResp);
-    }
     goto cleanup;
 }
 
@@ -766,6 +774,8 @@ NtlmSrvIpcQueryContextAttributes(
     }
     else
     {
+        LSA_SAFE_FREE_MEMORY(pNtlmResp);
+
         dwError = NtlmSrvIpcCreateError(dwError, &pError);
         BAIL_ON_LW_ERROR(dwError);
 
@@ -776,10 +786,6 @@ NtlmSrvIpcQueryContextAttributes(
 cleanup:
     return MAP_NTLM_ERROR_IPC(dwError);
 error:
-    if(pNtlmResp)
-    {
-        LsaFreeMemory(pNtlmResp);
-    }
     goto cleanup;
 }
 
@@ -817,6 +823,8 @@ NtlmSrvIpcVerifySignature(
     }
     else
     {
+        LSA_SAFE_FREE_MEMORY(pNtlmResp);
+
         dwError = NtlmSrvIpcCreateError(dwError, &pError);
         BAIL_ON_LW_ERROR(dwError);
 
@@ -827,10 +835,6 @@ NtlmSrvIpcVerifySignature(
 cleanup:
     return MAP_NTLM_ERROR_IPC(dwError);
 error:
-    if(pNtlmResp)
-    {
-        LsaFreeMemory(pNtlmResp);
-    }
     goto cleanup;
 }
 
@@ -839,7 +843,7 @@ NtlmSrvFreeCredHandle(
     PVOID pData
     )
 {
-    LsaReleaseCredential((LSA_CRED_HANDLE)pData);
+    NtlmReleaseCredential((NTLM_CRED_HANDLE)pData);
 }
 
 VOID
@@ -870,6 +874,7 @@ NtlmMakeSignature(
     dwCrc32 = NtlmCrc32(pData, dwDataSize);
 }
 
+#if 0
 DWORD
 NtlmGetDomainFromCredential(
     PLSA_CRED_HANDLE pCredHandle,
@@ -899,6 +904,44 @@ error:
     *ppDomain = NULL;
 
     goto cleanup;
+}
+#endif
+
+DWORD
+NtlmGetProcessSecurity(
+    IN LWMsgAssoc* pAssoc,
+    OUT uid_t* pUid,
+    OUT gid_t* pGid
+    )
+{
+    DWORD dwError = LW_ERROR_SUCCESS;
+    LWMsgSecurityToken* token = NULL;
+    uid_t uid = (uid_t) 0;
+    gid_t gid = (gid_t) 0;
+
+    dwError = MAP_LWMSG_ERROR(
+        lwmsg_assoc_get_peer_security_token(pAssoc, &token));
+    BAIL_ON_LW_ERROR(dwError);
+
+    if (token == NULL || strcmp(lwmsg_security_token_get_type(token), "local"))
+    {
+        dwError = LW_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LW_ERROR(dwError);
+    }
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_local_token_get_eid(token, &uid, &gid));
+    BAIL_ON_LW_ERROR(dwError);
+
+cleanup:
+    *pUid = uid;
+    *pGid = gid;
+
+    return dwError;
+error:
+    uid = (uid_t) 0;
+    gid = (gid_t) 0;
+    goto cleanup;
+
 }
 
 DWORD

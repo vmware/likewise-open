@@ -311,7 +311,7 @@ main(
     ParseArgs(argc, argv, &pszTargetFQDN, &mode);
     BAIL_ON_LWNET_ERROR(dwError);
 
-    lwnet_init_logging_to_file(LOG_LEVEL_VERBOSE, TRUE, "");
+    lwnet_init_logging_to_file(LWNET_LOG_LEVEL_VERBOSE, TRUE, "");
     
     dwError = LWNetCacheDbOpen(NETLOGON_DB, FALSE, &dbHandle);
     BAIL_ON_LWNET_ERROR(dwError);

@@ -50,7 +50,7 @@
 DWORD
 NtlmClientAcceptSecurityContext(
     IN HANDLE hServer,
-    IN PLSA_CRED_HANDLE phCredential,
+    IN PNTLM_CRED_HANDLE phCredential,
     IN OUT PLSA_CONTEXT_HANDLE phContext,
     IN PSecBufferDesc pInput,
     IN DWORD fContextReq,

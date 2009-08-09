@@ -102,7 +102,7 @@ SrvProcessWrite(
 
     ulDataOffset = pRequestHeader->offset;
 
-    ulKey = SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader);
+    ulKey = pSmbRequest->pHeader->pid;
 
     ntStatus = SrvExecuteWrite(
                     pFile,

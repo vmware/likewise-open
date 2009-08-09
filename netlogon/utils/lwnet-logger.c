@@ -55,8 +55,20 @@ static const PSTR DEBUG_TAG   = "DEBUG";
 
 static const PSTR LOG_TIME_FORMAT = "%Y%m%d%H%M%S";
 
-#define LWNET_LOCK_LOGGER   pthread_mutex_lock(&gLwnetLogInfo.lock)
-#define LWNET_UNLOCK_LOGGER pthread_mutex_unlock(&gLwnetLogInfo.lock)
+#define LWNET_LOCK_LOGGER(bInLock) \
+    do { \
+        pthread_mutex_lock(&gLwnetLogInfo.lock); \
+        bInLock = TRUE; \
+    } while (0)
+
+#define LWNET_UNLOCK_LOGGER(bInLock) \
+    do { \
+        if (bInLock) \
+        { \
+            pthread_mutex_unlock(&gLwnetLogInfo.lock); \
+            bInLock = FALSE; \
+        } \
+    } while (0)
 
 DWORD
 lwnet_validate_log_level(
@@ -65,11 +77,22 @@ lwnet_validate_log_level(
 {
     DWORD dwError = 0;
 
-    if (dwLogLevel < 1) {
-        dwError = EINVAL;
+    switch (dwLogLevel)
+    {
+        case LWNET_LOG_LEVEL_ERROR:
+        case LWNET_LOG_LEVEL_WARNING:
+        case LWNET_LOG_LEVEL_INFO:
+        case LWNET_LOG_LEVEL_VERBOSE:
+        case LWNET_LOG_LEVEL_DEBUG:
+        case LWNET_LOG_LEVEL_TRACE:
+            dwError = 0;
+            break;
+        default:
+            dwError = ERROR_INVALID_PARAMETER;
+            break;
     }
 
-    return (dwError);
+    return dwError;
 }
 
 void
@@ -81,25 +104,25 @@ lwnet_set_syslogmask(
 
     switch (dwLogLevel)
     {
-        case LOG_LEVEL_ALWAYS:
+        case LWNET_LOG_LEVEL_ALWAYS:
         {
             dwSysLogLevel = LOG_UPTO(LOG_INFO);
             break;
         }
-        case LOG_LEVEL_ERROR:
+        case LWNET_LOG_LEVEL_ERROR:
         {
             dwSysLogLevel = LOG_UPTO(LOG_ERR);
             break;
         }
 
-        case LOG_LEVEL_WARNING:
+        case LWNET_LOG_LEVEL_WARNING:
         {
             dwSysLogLevel = LOG_UPTO(LOG_WARNING);
             break;
         }
 
-        case LOG_LEVEL_INFO:
-        case LOG_LEVEL_VERBOSE:
+        case LWNET_LOG_LEVEL_INFO:
+        case LWNET_LOG_LEVEL_VERBOSE:
         {
             dwSysLogLevel = LOG_UPTO(LOG_INFO);
             break;
@@ -125,13 +148,19 @@ lwnet_init_logging_to_syslog(
     )
 {
     DWORD dwError = 0;
-    
-    LWNET_LOCK_LOGGER;
+    BOOLEAN bInLock = FALSE;
 
     dwError = lwnet_validate_log_level(dwLogLevel);
+    if (dwError)
+    {
+        // Since logging is not yet initialized.
+        fprintf(stderr, "An invalid log level [%d] was specified.", dwLogLevel);
+    }
     BAIL_ON_LWNET_ERROR(dwError);
 
-    gLwnetLogInfo.logTarget = LOG_TO_SYSLOG;
+    LWNET_LOCK_LOGGER(bInLock);
+
+    gLwnetLogInfo.logTarget = LWNET_LOG_TARGET_SYSLOG;
     
     gLwnetLogInfo.bDebug = bEnableDebug;
 
@@ -148,15 +177,10 @@ lwnet_init_logging_to_syslog(
 
     gLwnetLogInfo.bLoggingInitiated = 1;
 
-    LWNET_UNLOCK_LOGGER;
+error:
+    LWNET_UNLOCK_LOGGER(bInLock);
 
-    return (dwError);
-
-  error:
-
-    LWNET_UNLOCK_LOGGER;
-    
-    return (dwError);
+    return dwError;
 }
 
 DWORD
@@ -167,58 +191,63 @@ lwnet_init_logging_to_file(
     )
 {
     DWORD dwError = 0;
+    BOOLEAN bInLock = FALSE;
 
-    LWNET_LOCK_LOGGER;
-
-    gLwnetLogInfo.logTarget = LOG_TO_FILE;
-    gLwnetLogInfo.bDebug = bEnableDebug;
-    
-    if (IsNullOrEmptyString(pszLogFilePath)) {
-
-       gLwnetLogInfo.bLogToConsole = TRUE;
-       gLwnetLogInfo.logfile.logHandle = stdout;
-
-    } else {
-
-       strncpy(gLwnetLogInfo.logfile.szLogPath, pszLogFilePath, PATH_MAX);
-       *(gLwnetLogInfo.logfile.szLogPath+PATH_MAX) = '\0';
-    
-       gLwnetLogInfo.logfile.logHandle = NULL;
-       if (gLwnetLogInfo.logfile.szLogPath[0] != '\0') {
-          gLwnetLogInfo.logfile.logHandle = fopen(gLwnetLogInfo.logfile.szLogPath, "w");
-          if (gLwnetLogInfo.logfile.logHandle == NULL) {
-             dwError = LwMapErrnoToLwError(errno);
-             fprintf(stderr, "Failed to redirect logging. %s", strerror(errno));
-             goto error;
-          }
-       }
-    }
-  
     dwError = lwnet_validate_log_level(dwLogLevel);
-    if (dwError) {
-       fprintf(stderr, "An invalid log level [%d] was specified.", dwLogLevel);
-       goto error;
+    if (dwError)
+    {
+        // Since logging is not yet initialized.
+        fprintf(stderr, "An invalid log level [%d] was specified.", dwLogLevel);
+        goto error;
     }
+
+    LWNET_LOCK_LOGGER(bInLock);
+
+    gLwnetLogInfo.logTarget = LWNET_LOG_TARGET_FILE;
+    gLwnetLogInfo.bDebug = bEnableDebug;
+
+    if (IsNullOrEmptyString(pszLogFilePath))
+    {
+        gLwnetLogInfo.bLogToConsole = TRUE;
+        gLwnetLogInfo.logfile.logHandle = stdout;
+    }
+    else
+    {
+        strncpy(gLwnetLogInfo.logfile.szLogPath, pszLogFilePath, PATH_MAX);
+        *(gLwnetLogInfo.logfile.szLogPath+PATH_MAX) = '\0';
+
+        gLwnetLogInfo.logfile.logHandle = NULL;
+        if (gLwnetLogInfo.logfile.szLogPath[0] != '\0')
+        {
+            gLwnetLogInfo.logfile.logHandle = fopen(gLwnetLogInfo.logfile.szLogPath, "w");
+            if (gLwnetLogInfo.logfile.logHandle == NULL)
+            {
+                dwError = LwMapErrnoToLwError(errno);
+                fprintf(stderr, "Failed to redirect logging. %s", strerror(errno));
+                goto error;
+            }
+        }
+    }
+
 
     gLwnetLogInfo.dwLogLevel = dwLogLevel;
 
     gLwnetLogInfo.bLoggingInitiated = 1;
 
-    LWNET_UNLOCK_LOGGER;
+cleanup:
+    LWNET_UNLOCK_LOGGER(bInLock);
 
-    return (dwError);
+    return dwError;
 
-  error:
-
+error:
     if (!gLwnetLogInfo.bLogToConsole &&
-        (gLwnetLogInfo.logfile.logHandle != NULL)) {
+        (gLwnetLogInfo.logfile.logHandle != NULL))
+    {
         fclose(gLwnetLogInfo.logfile.logHandle);
         gLwnetLogInfo.logfile.logHandle = NULL;
     }
 
-    LWNET_UNLOCK_LOGGER;
-
-    return (dwError);
+    goto cleanup;
 }
 
 void
@@ -226,25 +255,28 @@ lwnet_close_log(
     void
     )
 {
-    LWNET_LOCK_LOGGER;
+    BOOLEAN bInLock = FALSE;
 
-    if (!gLwnetLogInfo.bLoggingInitiated) {
-        LWNET_UNLOCK_LOGGER;
-        return;
+    LWNET_LOCK_LOGGER(bInLock);
+
+    if (!gLwnetLogInfo.bLoggingInitiated)
+    {
+        goto cleanup;
     }
 
     switch (gLwnetLogInfo.logTarget)
     {
-        case LOG_TO_SYSLOG:
+        case LWNET_LOG_TARGET_SYSLOG:
             {
                 /* close connection to syslog */
                 closelog();
             }
             break;
-        case LOG_TO_FILE:
+        case LWNET_LOG_TARGET_FILE:
             {
                 if (!gLwnetLogInfo.bLogToConsole &&
-                    (gLwnetLogInfo.logfile.logHandle != NULL)) {
+                    (gLwnetLogInfo.logfile.logHandle != NULL))
+                {
                     fclose(gLwnetLogInfo.logfile.logHandle);
                     gLwnetLogInfo.logfile.logHandle = NULL;
                 }
@@ -252,7 +284,8 @@ lwnet_close_log(
             break;
     }
 
-    LWNET_UNLOCK_LOGGER;
+cleanup:
+    LWNET_UNLOCK_LOGGER(bInLock);
 }
 
 static PSTR logLevel2EntryType(
@@ -261,15 +294,15 @@ static PSTR logLevel2EntryType(
 {
     switch (dwLogLevel)
     {
-        case LOG_LEVEL_ALWAYS:
+        case LWNET_LOG_LEVEL_ALWAYS:
             return INFO_TAG;
-        case LOG_LEVEL_ERROR:
+        case LWNET_LOG_LEVEL_ERROR:
             return(ERROR_TAG);
-        case LOG_LEVEL_WARNING:
+        case LWNET_LOG_LEVEL_WARNING:
             return(WARN_TAG);
-        case LOG_LEVEL_INFO:
+        case LWNET_LOG_LEVEL_INFO:
             return(INFO_TAG);
-        case LOG_LEVEL_VERBOSE:
+        case LWNET_LOG_LEVEL_VERBOSE:
             return(VERBOSE_TAG);
         default:
             return(DEBUG_TAG);
@@ -292,8 +325,8 @@ lwnet_log_to_file_mt_unsafe(
 
     switch (dwLogLevel)
     {
-        case LOG_LEVEL_ERROR:
-        case LOG_LEVEL_WARNING:
+        case LWNET_LOG_LEVEL_ERROR:
+        case LWNET_LOG_LEVEL_WARNING:
             pTarget = pTarget ? pTarget : stderr;
             break;
         default:
@@ -322,25 +355,25 @@ lwnet_log_to_syslog_mt_unsafe(
 {
     switch (dwLogLevel)
     {
-        case LOG_LEVEL_ALWAYS:
+        case LWNET_LOG_LEVEL_ALWAYS:
         {
             lwnet_vsyslog(LOG_INFO, pszFormat, msgList);
             break;
         }
-        case LOG_LEVEL_ERROR:
+        case LWNET_LOG_LEVEL_ERROR:
         {
             lwnet_vsyslog(LOG_ERR, pszFormat, msgList);
             break;
         }
 
-        case LOG_LEVEL_WARNING:
+        case LWNET_LOG_LEVEL_WARNING:
         {
             lwnet_vsyslog(LOG_WARNING, pszFormat, msgList);
             break;
         }
 
-        case LOG_LEVEL_INFO:
-        case LOG_LEVEL_VERBOSE:
+        case LWNET_LOG_LEVEL_INFO:
+        case LWNET_LOG_LEVEL_VERBOSE:
         {
             lwnet_vsyslog(LOG_INFO, pszFormat, msgList);
             break;
@@ -360,31 +393,32 @@ lwnet_log_message(
     PSTR pszFormat,...
     )
 {
+    BOOLEAN bInLock = FALSE;
     va_list argp;
   
-    LWNET_LOCK_LOGGER;
+    LWNET_LOCK_LOGGER(bInLock);
 
     if ( !gLwnetLogInfo.bLoggingInitiated ||
-         gLwnetLogInfo.logTarget == LOG_DISABLED ) {
-        LWNET_UNLOCK_LOGGER;
-        return;
+         gLwnetLogInfo.logTarget == LWNET_LOG_TARGET_DISABLED )
+    {
+        goto cleanup;
     }
 
-    if (gLwnetLogInfo.dwLogLevel < dwLogLevel) {
-        LWNET_UNLOCK_LOGGER;
-        return;
+    if (gLwnetLogInfo.dwLogLevel < dwLogLevel)
+    {
+        goto cleanup;
     }
 
     va_start(argp, pszFormat);
 
     switch (gLwnetLogInfo.logTarget)
     {
-        case LOG_TO_SYSLOG:
+        case LWNET_LOG_TARGET_SYSLOG:
         {
             lwnet_log_to_syslog_mt_unsafe(dwLogLevel, pszFormat, argp);
             break;
         }
-        case LOG_TO_FILE:
+        case LWNET_LOG_TARGET_FILE:
         {
             lwnet_log_to_file_mt_unsafe(&gLwnetLogInfo, dwLogLevel, pszFormat, argp);
             break;
@@ -393,7 +427,8 @@ lwnet_log_message(
 
     va_end(argp);
 
-    LWNET_UNLOCK_LOGGER;
+cleanup:
+    LWNET_UNLOCK_LOGGER(bInLock);
 }
 
 DWORD
@@ -402,22 +437,71 @@ lwnet_set_log_level(
     )
 {
     DWORD dwError = 0;
-
-    LWNET_LOCK_LOGGER;
+    BOOLEAN bInLock = FALSE;
 
     dwError = lwnet_validate_log_level(dwLogLevel);
     BAIL_ON_LWNET_ERROR(dwError);
 
+    LWNET_LOCK_LOGGER(bInLock);
     gLwnetLogInfo.dwLogLevel = dwLogLevel;
 
-    LWNET_UNLOCK_LOGGER;
-
-    return (dwError);
-    
 error:
+    LWNET_UNLOCK_LOGGER(bInLock);
 
-    LWNET_UNLOCK_LOGGER;
+    return dwError;
+}
 
-    return (dwError);
+DWORD
+lwnet_get_log_info(
+    OUT PDWORD pdwLogLevel,
+    OUT PDWORD pdwLogTarget,
+    OUT PSTR* ppszLogPath
+    )
+{
+    DWORD dwError = 0;
+    BOOLEAN bInLock = FALSE;
+    DWORD dwLogLevel = 0;
+    DWORD dwLogTarget = 0;
+    PSTR pszLogPath = NULL;
+
+    LWNET_LOCK_LOGGER(bInLock);
+
+    dwLogLevel = gLwnetLogInfo.dwLogLevel;
+    dwLogTarget = gLwnetLogInfo.logTarget;
+
+    if (LWNET_LOG_TARGET_FILE == dwLogTarget)
+    {
+        if (gLwnetLogInfo.bLogToConsole)
+        {
+            dwLogTarget = LWNET_LOG_TARGET_CONSOLE;
+        }
+        else
+        {
+            dwError = LWNetAllocateString(
+                            gLwnetLogInfo.logfile.szLogPath,
+                            &pszLogPath);
+            // cannot use bail macro because it logs and we are in the lock.
+            if (dwError)
+            {
+                goto error;
+            }
+        }
+    }
+
+error:
+    LWNET_UNLOCK_LOGGER(bInLock);
+
+    if (dwError)
+    {
+        dwLogLevel = 0;
+        dwLogTarget = 0;
+        LWNET_SAFE_FREE_STRING(pszLogPath);
+    }
+
+    *pdwLogLevel = dwLogLevel;
+    *pdwLogTarget = dwLogTarget;
+    *ppszLogPath = pszLogPath;
+
+    return dwError;
 }
 

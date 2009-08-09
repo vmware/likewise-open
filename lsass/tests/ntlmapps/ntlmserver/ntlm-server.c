@@ -24,8 +24,8 @@
 
 INT
 main(
-    IN INT      argc,
-    IN PCHAR*   argv
+    IN INT argc,
+    IN PCHAR* argv
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -36,13 +36,11 @@ main(
     PCHAR pServiceName = NULL;
     PCHAR pServicePassword = NULL;
     PCHAR pServiceRealm = NULL;
-    LSA_CRED_HANDLE ServerCreds;
+    NTLM_CRED_HANDLE ServerCreds = INVALID_NTLM_CRED_HANDLE;
     INT nServerCredsAcquired = 0;
     DWORD AscFlags = 0; //ASC_REQ_ALLOCATE_MEMORY | ASC_REQ_MUTUAL_AUTH;
     PCHAR pSecPkgName = "NTLM";
     BOOL bFound = FALSE;
-
-    ServerCreds = NULL;
 
     argc--; argv++;
 
@@ -61,6 +59,10 @@ main(
         else if(strcmp(*argv, "-once") == 0)
         {
             nOnce = 1;
+        }
+        else if(strcmp(*argv, "-w") == 0)
+        {
+            gbFlipEndian = TRUE;
         }
         else
         {
@@ -183,11 +185,11 @@ Usage(
 
 DWORD
 ServerAcquireCreds(
-    IN PCHAR                pServiceName,
-    IN PCHAR                pServicePassword,
-    IN PCHAR                pServiceRealm,
-    IN PCHAR                pSecPkgName,
-    OUT PLSA_CRED_HANDLE    pServerCreds
+    IN PCHAR pServiceName,
+    IN PCHAR pServicePassword,
+    IN PCHAR pServiceRealm,
+    IN PCHAR pSecPkgName,
+    OUT PNTLM_CRED_HANDLE pServerCreds
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -198,7 +200,8 @@ ServerAcquireCreds(
     memset(&Expiry, 0, sizeof(TimeStamp));
     memset(&AuthIdentity, 0, sizeof(SEC_WINNT_AUTH_IDENTITY));
 
-    pServerCreds = NULL;
+    AuthIdentity.User = pServiceName;
+    AuthIdentity.UserLength = (DWORD)strlen(pServiceName);
 
     AuthIdentity.Password = pServicePassword;
     AuthIdentity.PasswordLength = (DWORD)strlen(pServicePassword);
@@ -212,7 +215,7 @@ ServerAcquireCreds(
         ghServer,
         pServiceName,
         pSecPkgName,
-        0,//SECPKG_CRED_INBOUND,
+        NTLM_CRED_INBOUND,
         NULL,                       // no logon id
         &AuthIdentity,              // auth data
         pServerCreds,
@@ -227,8 +230,8 @@ error:
 
 DWORD
 CreateSocket(
-    IN USHORT   uPort,
-    OUT PINT    pSocket
+    IN USHORT uPort,
+    OUT PINT pSocket
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -300,9 +303,9 @@ error:
 
 DWORD
 SignServer(
-    IN INT              nSocket,
-    IN PLSA_CRED_HANDLE pServerCreds,
-    IN DWORD            AscFlags
+    IN INT nSocket,
+    IN PNTLM_CRED_HANDLE pServerCreds,
+    IN DWORD AscFlags
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -452,10 +455,10 @@ FreeContextBuffer(
 
 DWORD
 ServerEstablishContext(
-    IN INT                  nSocket,
-    IN PLSA_CRED_HANDLE     pServerCreds,
+    IN INT nSocket,
+    IN PNTLM_CRED_HANDLE pServerCreds,
     OUT PLSA_CONTEXT_HANDLE pContext,
-    IN DWORD                AscFlags
+    IN DWORD AscFlags
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -503,7 +506,7 @@ ServerEstablishContext(
             pContextHandle,
             &InputDesc,
             AscFlags,
-            0, //SECURITY_NATIVE_DREP,
+            gbFlipEndian ? NTLM_OTHER_DATA_REP : NTLM_NATIVE_DATA_REP,
             pContext,
             &OutputDesc,
             &nRetFlags,
@@ -556,8 +559,8 @@ error:
 
 DWORD
 SendToken(
-    IN INT          nSocket,
-    IN PSecBuffer   pToken
+    IN INT nSocket,
+    IN PSecBuffer pToken
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -602,10 +605,10 @@ error:
 
 DWORD
 WriteAll(
-    IN INT      nSocket,
-    IN PCHAR    pBuffer,
-    IN UINT     nBytes,
-    OUT PINT    nBytesWritten
+    IN INT nSocket,
+    IN PCHAR pBuffer,
+    IN UINT nBytes,
+    OUT PINT nBytesWritten
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -638,8 +641,8 @@ error:
 
 DWORD
 RecvToken(
-    IN INT          nSocket,
-    OUT PSecBuffer  pToken
+    IN INT nSocket,
+    OUT PSecBuffer pToken
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -698,10 +701,10 @@ error:
 
 DWORD
 ReadAll(
-    IN INT      nSocket,
-    OUT PCHAR   pBuffer,
-    IN UINT     nBytes,
-    OUT PINT    nBytesRead
+    IN INT nSocket,
+    OUT PCHAR pBuffer,
+    IN UINT nBytes,
+    OUT PINT nBytesRead
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;

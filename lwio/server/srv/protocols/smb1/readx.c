@@ -223,7 +223,7 @@ SrvBuildReadAndXResponse(
     ulBytesToRead =
         SMB_MIN(ullBytesToRead,
                 pConnection->serverProperties.MaxBufferSize - ulDataOffset);
-    ulKey = SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader);
+    ulKey = pSmbRequest->pHeader->pid;
 
     ntStatus = SrvExecuteReadFileAndX(
                     pCtxSmb1->pFile,

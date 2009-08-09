@@ -746,7 +746,7 @@ LwKrb5GetMachineCreds(
     HANDLE hPasswordStore = (HANDLE)NULL;
 
     dwError = LwpsOpenPasswordStore(
-                    LWPS_PASSWORD_STORE_SQLDB,
+                    LWPS_PASSWORD_STORE_DEFAULT,
                     &hPasswordStore);
     BAIL_ON_LW_ERROR(dwError);
     
@@ -986,7 +986,7 @@ LwKrb5VerifyPac(
 
     dwError = LwAllocateMemory(
                 pPacBerVal->bv_len,
-                (PVOID*)&pPacData);
+                OUT_PPVOID(&pPacData));
     BAIL_ON_LW_ERROR(dwError);
 
     memcpy(pPacData, pPacBerVal->bv_val, pPacBerVal->bv_len);
@@ -1037,7 +1037,7 @@ LwKrb5VerifyPac(
 
     dwError = LwAllocateMemory(
                 pPacBerVal->bv_len,
-                (PVOID*)&pchPacCopy);
+                OUT_PPVOID(&pchPacCopy));
     BAIL_ON_LW_ERROR(dwError);
 
     memcpy(pchPacCopy, pPacBerVal->bv_val, pPacBerVal->bv_len);
@@ -1188,7 +1188,7 @@ LwKrb5VerifyPac(
 
     dwError = LwAllocateMemory(
                 sLogonInfoLen,
-                (PVOID*)&pchLogonInfo);
+                OUT_PPVOID(&pchLogonInfo));
     BAIL_ON_LW_ERROR(dwError);
 
     memcpy(pchLogonInfo, pchLogonInfoStart, sLogonInfoLen);

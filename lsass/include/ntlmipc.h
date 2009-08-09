@@ -107,7 +107,7 @@ typedef struct __NTLM_IPC_ERROR
 
 typedef struct __NTLM_IPC_ACCEPT_SEC_CTXT_REQ
 {
-    LSA_CRED_HANDLE hCredential;
+    NTLM_CRED_HANDLE hCredential;
     LSA_CONTEXT_HANDLE hContext;
     PSecBufferDesc pInput;
     DWORD fContextReq;
@@ -123,6 +123,7 @@ typedef struct __NTLM_IPC_ACCEPT_SEC_CTXT_RESPONSE
     SecBufferDesc Output;
     DWORD  fContextAttr;
     TimeStamp tsTimeStamp;
+    DWORD dwStatus;
 } NTLM_IPC_ACCEPT_SEC_CTXT_RESPONSE, *PNTLM_IPC_ACCEPT_SEC_CTXT_RESPONSE;
 
 /******************************************************************************/
@@ -138,7 +139,7 @@ typedef struct __NTLM_IPC_ACQUIRE_CREDS_REQ
 
 typedef struct __NTLM_IPC_ACQUIRE_CREDS_RESPONSE
 {
-    LSA_CRED_HANDLE hCredential;
+    NTLM_CRED_HANDLE hCredential;
     TimeStamp tsExpiry;
 } NTLM_IPC_ACQUIRE_CREDS_RESPONSE, *PNTLM_IPC_ACQUIRE_CREDS_RESPONSE;
 
@@ -199,7 +200,7 @@ typedef struct __NTLM_IPC_EXPORT_SEC_CTXT_RESPONSE
 
 typedef struct __NTLM_IPC_FREE_CREDS_REQ
 {
-    LSA_CRED_HANDLE hCredential;
+    NTLM_CRED_HANDLE hCredential;
 } NTLM_IPC_FREE_CREDS_REQ, *PNTLM_IPC_FREE_CREDS_REQ;
 
 // No Response
@@ -222,7 +223,7 @@ typedef struct __NTLM_IPC_IMPORT_SEC_CTXT_RESPONSE
 
 typedef struct __NTLM_IPC_INIT_SEC_CTXT_REQ
 {
-    LSA_CRED_HANDLE hCredential;
+    NTLM_CRED_HANDLE hCredential;
     LSA_CONTEXT_HANDLE hContext;
     SEC_CHAR * pszTargetName;
     DWORD fContextReq;

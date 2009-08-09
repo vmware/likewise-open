@@ -116,5 +116,18 @@ LWNetTransactGetCurrentDomain(
     PSTR* ppszDomainFQDN
     );
 
-#endif /* __IPC_CLIENT_P_H__ */
+DWORD
+LWNetTransactSetLogLevel(
+    IN HANDLE hConnection,
+    IN LWNET_LOG_LEVEL LogLevel
+    );
 
+DWORD
+LWNetTransactGetLogInfo(
+    IN HANDLE hConnection,
+    OUT PLWNET_LOG_LEVEL pLogLevel,
+    OUT PLWNET_LOG_TARGET pLogTarget,
+    OUT PSTR* ppszLogPath
+    );
+
+#endif /* __IPC_CLIENT_P_H__ */

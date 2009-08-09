@@ -117,6 +117,7 @@ SMBSrvSetProcessExitCode(
     DWORD dwExitCode
     );
 
+#ifdef ENABLE_PIDFILE
 static
 VOID
 SMBSrvCreatePIDFile(
@@ -128,6 +129,7 @@ pid_t
 SMBSrvGetPidFromPidFile(
     VOID
     );
+#endif
 
 static
 DWORD
@@ -235,7 +237,9 @@ main(
     dwError = LWNetExtendEnvironmentForKrb5Affinity(FALSE);
     BAIL_ON_LWIO_ERROR(dwError);
 
+#ifdef ENABLE_PIDFILE
     SMBSrvCreatePIDFile();
+#endif
 
     dwError = SMBSrvInitialize();
     BAIL_ON_LWIO_ERROR(dwError);
@@ -694,6 +698,7 @@ SMBSrvSetProcessExitCode(
     LWIO_UNLOCK_SERVERINFO(bInLock);
 }
 
+#ifdef ENABLE_PIDFILE
 static
 VOID
 SMBSrvCreatePIDFile(
@@ -833,6 +838,7 @@ SMBSrvGetPidFromPidFile(
 
     return pid;
 }
+#endif
 
 LWMsgBool
 LwIoDaemonLogIpc (

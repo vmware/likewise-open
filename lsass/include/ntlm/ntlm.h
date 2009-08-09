@@ -56,12 +56,12 @@
 
 #include <lsasystem.h>
 #include <lsa/lsa.h>
-#include <lsasystem.h>
 #include <lsadef.h>
 #include <lwsecurityidentifier.h>
 #include <lsautils.h>
 #include <lwdef.h>
 #include <lwerror.h>
+#include <lwstr.h>
 #include <lwmem.h>
 #include <lsasrvcred.h>
 
@@ -137,8 +137,8 @@ typedef struct _SECURITY_STRING
 
 typedef struct _NTLM_SEC_BUFFER
 {
-    USHORT usLength;
-    USHORT usMaxLength;
+    USHORT usLength;    // number of bytes used
+    USHORT usMaxLength; // true size of buffer in bytes
     DWORD  dwOffset;
 } NTLM_SEC_BUFFER, *PNTLM_SEC_BUFFER;
 
@@ -153,25 +153,19 @@ typedef struct _WIN_VERSION_INFO
 struct _LSA_CONTEXT;
 typedef struct _LSA_CONTEXT *LSA_CONTEXT_HANDLE, **PLSA_CONTEXT_HANDLE;
 
+#define NTLM_CRED_INBOUND    0x01
+#define NTLM_CRED_OUTBOUND   0x02
+
+struct _NTLM_CREDENTIALS;
+typedef struct _NTLM_CREDENTIALS *NTLM_CRED_HANDLE, **PNTLM_CRED_HANDLE;
+
 //******************************************************************************
 //
 // D E F I N E S
 //
 
-#define BAIL_ON_NTLM_ERROR(dwError) \
-    if (dwError)                    \
-    {                               \
-        goto error;                 \
-    }
-
-#define BAIL_ON_NTLM_INVALID_POINTER(p) \
-    if (NULL == p)                      \
-    {                                   \
-       dwError = LW_ERROR_INTERNAL;   \
-       BAIL_ON_NTLM_ERROR(dwError);     \
-    }
-
-#define INVALID_HANDLE  ((HANDLE)~0)
+#define INVALID_HANDLE              ((HANDLE)~0)
+#define INVALID_NTLM_CRED_HANDLE    ((NTLM_CRED_HANDLE)~0)
 
 #define SECPKG_ATTR_SIZES           0
 
@@ -183,6 +177,8 @@ typedef struct _LSA_CONTEXT *LSA_CONTEXT_HANDLE, **PLSA_CONTEXT_HANDLE;
 #define LW_STRING_TYPE_UNICODE  0
 #define LW_STRING_TYPE_ANSI     1
 
+#define NTLM_NATIVE_DATA_REP    0
+#define NTLM_OTHER_DATA_REP   1
 //  NTLM FLAGS
 //
 #define NTLM_FLAG_UNICODE               0x00000001  /* unicode charset */
@@ -212,16 +208,16 @@ typedef struct _LSA_CONTEXT *LSA_CONTEXT_HANDLE, **PLSA_CONTEXT_HANDLE;
 #define NTLM_FLAG_56                    0x80000000  /* 56-bit encryption */
 
 #define NTLM_FLAG_NEGOTIATE_DEFAULT ( \
-    NTLM_FLAG_UNICODE               | \
     NTLM_FLAG_OEM                   | \
     NTLM_FLAG_REQUEST_TARGET        | \
     NTLM_FLAG_NTLM                  | \
     NTLM_FLAG_DOMAIN                | \
     NTLM_FLAG_56                    )
     //NTLM_FLAG_128                   |
+    //NTLM_FLAG_NTLM2                 |
+    //NTLM_FLAG_UNICODE               |
 
 #define NTLM_FLAG_SRV_SUPPORTS ( \
-    NTLM_FLAG_UNICODE          | \
     NTLM_FLAG_OEM              | \
     NTLM_FLAG_REQUEST_TARGET   | \
     NTLM_FLAG_NTLM             | \
@@ -232,6 +228,7 @@ typedef struct _LSA_CONTEXT *LSA_CONTEXT_HANDLE, **PLSA_CONTEXT_HANDLE;
     NTLM_FLAG_56               )
     //NTLM_FLAG_128              |
     //NTLM_FLAG_NTLM2            |
+    //NTLM_FLAG_UNICODE          |
 
 #ifndef HOST_NAME_MAX
 #define HOST_NAME_MAX 255
@@ -250,7 +247,7 @@ typedef struct _LSA_CONTEXT *LSA_CONTEXT_HANDLE, **PLSA_CONTEXT_HANDLE;
 DWORD
 NtlmClientAcceptSecurityContext(
     IN HANDLE hServer,
-    IN PLSA_CRED_HANDLE phCredential,
+    IN PNTLM_CRED_HANDLE pCredential,
     IN OUT PLSA_CONTEXT_HANDLE phContext,
     IN PSecBufferDesc pInput,
     IN DWORD fContextReq,
@@ -269,7 +266,7 @@ NtlmClientAcquireCredentialsHandle(
     IN DWORD fCredentialUse,
     IN PLUID pvLogonID,
     IN PVOID pAuthData,
-    OUT PLSA_CRED_HANDLE phCredential,
+    OUT PNTLM_CRED_HANDLE pCredential,
     OUT PTimeStamp ptsExpiry
     );
 
@@ -309,7 +306,7 @@ NtlmClientExportSecurityContext(
 DWORD
 NtlmClientFreeCredentialsHandle(
     IN HANDLE hServer,
-    IN PLSA_CRED_HANDLE phCredential
+    IN PNTLM_CRED_HANDLE pCredential
     );
 
 DWORD
@@ -324,7 +321,7 @@ NtlmClientImportSecurityContext(
 DWORD
 NtlmClientInitializeSecurityContext(
     IN HANDLE hServer,
-    IN OPTIONAL PLSA_CRED_HANDLE phCredential,
+    IN OPTIONAL PNTLM_CRED_HANDLE phCredential,
     IN OPTIONAL PLSA_CONTEXT_HANDLE phContext,
     IN OPTIONAL SEC_CHAR * pszTargetName,
     IN DWORD fContextReq,

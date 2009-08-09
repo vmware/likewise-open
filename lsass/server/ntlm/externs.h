@@ -49,6 +49,8 @@
 extern pthread_rwlock_t gpNtlmContextList_rwlock;
 extern PLSA_CONTEXT gpNtlmContextList;
 
+extern BOOL gbUseNtlmV2;
+
 extern WIN_VERSION_INFO gW2KSpoof;
 extern WIN_VERSION_INFO gXpSpoof;
 

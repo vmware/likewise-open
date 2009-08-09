@@ -49,9 +49,9 @@
 
 DWORD
 NtlmServerInitializeSecurityContext(
-    IN OPTIONAL PLSA_CRED_HANDLE phCredential,
+    IN OPTIONAL PNTLM_CRED_HANDLE phCredential,
     IN OPTIONAL PLSA_CONTEXT_HANDLE phContext,
-    IN OPTIONAL SEC_CHAR * pszTargetName,
+    IN OPTIONAL SEC_CHAR* pszTargetName,
     IN DWORD fContextReq,
     IN DWORD Reserved1,
     IN DWORD TargetDataRep,
@@ -66,10 +66,9 @@ NtlmServerInitializeSecurityContext(
     DWORD dwError = LW_ERROR_SUCCESS;
     PLSA_CONTEXT pNtlmContext = NULL;
     PLSA_CONTEXT pNtlmContextIn = NULL;
-    PLSA_CONTEXT pOriginalNegotiateCtxt = NULL;
     LSA_CONTEXT_HANDLE NtlmContextHandle = NULL;
-    PSTR Workstation = NULL;
-    PSTR pDomain = NULL;
+    PCSTR Workstation = NULL;
+    PCSTR pDomain = NULL;
     PNTLM_CHALLENGE_MESSAGE pMessage = NULL;
     DWORD dwMessageSize = 0;
 
@@ -80,10 +79,15 @@ NtlmServerInitializeSecurityContext(
 
     if(!pNtlmContext)
     {
-        dwError = NtlmGetDomainFromCredential(
-            phCredential,
-            &pDomain);
-        BAIL_ON_LW_ERROR(dwError);
+        NtlmGetCredentialInfo(
+            *phCredential,
+            NULL,
+            NULL,
+            NULL,
+            &Workstation,
+            &pDomain,
+            NULL,
+            NULL);
 
         // If we start with a NULL context, create a negotiate message
         dwError = NtlmCreateNegotiateContext(
@@ -105,9 +109,6 @@ NtlmServerInitializeSecurityContext(
     }
     else
     {
-        pOriginalNegotiateCtxt = pNtlmContext;
-        pNtlmContext = NULL;
-
         //... create a new response message
         dwError = NtlmGetMessageFromSecBufferDesc(
             pInput,
@@ -145,7 +146,6 @@ NtlmServerInitializeSecurityContext(
 
 
 cleanup:
-    LSA_SAFE_FREE_STRING(pDomain);
     return dwError;
 error:
     // If this function has already succeed once, we MUST make sure phNewContext
@@ -173,16 +173,17 @@ error:
 
 DWORD
 NtlmCreateNegotiateContext(
-    IN PLSA_CRED_HANDLE pCredHandle,
+    IN PNTLM_CRED_HANDLE pCredHandle,
     IN DWORD dwOptions,
-    IN PCHAR pDomain,
-    IN PCHAR pWorkstation,
+    IN PCSTR pDomain,
+    IN PCSTR pWorkstation,
     IN PBYTE pOsVersion,
     OUT PLSA_CONTEXT *ppNtlmContext
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
     PLSA_CONTEXT pNtlmContext = NULL;
+    DWORD dwMessageSize = 0;
     PNTLM_NEGOTIATE_MESSAGE pMessage = NULL;
 
     *ppNtlmContext = NULL;
@@ -195,10 +196,11 @@ NtlmCreateNegotiateContext(
         pDomain,
         pWorkstation,
         pOsVersion,
-        &pNtlmContext->dwMessageSize,
+        &dwMessageSize,
         &pMessage);
     BAIL_ON_LW_ERROR(dwError);
 
+    pNtlmContext->dwMessageSize = dwMessageSize;
     pNtlmContext->pMessage = pMessage;
     pNtlmContext->NtlmState = NtlmStateNegotiate;
 
@@ -213,7 +215,7 @@ error:
 
     if(pNtlmContext)
     {
-        LsaReleaseCredential(*pCredHandle);
+        NtlmReleaseCredential(*pCredHandle);
         LSA_SAFE_FREE_MEMORY(pNtlmContext);
     }
     goto cleanup;
@@ -222,7 +224,7 @@ error:
 DWORD
 NtlmCreateResponseContext(
     IN PNTLM_CHALLENGE_MESSAGE pChlngMsg,
-    IN PLSA_CRED_HANDLE pCredHandle,
+    IN PNTLM_CRED_HANDLE pCredHandle,
     IN OUT PLSA_CONTEXT* ppNtlmContext
     )
 {
@@ -240,7 +242,15 @@ NtlmCreateResponseContext(
 
     *ppNtlmContext = NULL;
 
-    LsaGetCredentialInfo(*pCredHandle, &pUserNameTemp, &pPassword, NULL);
+    NtlmGetCredentialInfo(
+        *pCredHandle,
+        &pUserNameTemp,
+        &pPassword,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL);
 
     dwError = NtlmFixUserName(pUserNameTemp, &pUserName);
     BAIL_ON_LW_ERROR(dwError);
@@ -316,7 +326,7 @@ error:
 
     if(pNtlmContext)
     {
-        LsaReleaseCredential(*pCredHandle);
+        NtlmReleaseCredential(*pCredHandle);
         LSA_SAFE_FREE_MEMORY(pNtlmContext);
     }
 

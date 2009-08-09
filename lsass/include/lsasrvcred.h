@@ -50,6 +50,8 @@
 struct _LSA_CREDENTIALS;
 typedef struct _LSA_CREDENTIALS *LSA_CRED_HANDLE, **PLSA_CRED_HANDLE;
 
+#define INVALID_LSA_CRED_HANDLE ((LSA_CRED_HANDLE)~0)
+
 VOID
 LsaInitializeCredentialsDatabase(
     VOID
@@ -66,6 +68,11 @@ LsaAddCredential(
     IN PCSTR pszPassword,
     IN OPTIONAL const PDWORD pUid,
     OUT PLSA_CRED_HANDLE phCredential
+    );
+
+VOID
+LsaReferenceCredential(
+    IN LSA_CRED_HANDLE hCredential
     );
 
 VOID
