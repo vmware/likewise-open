@@ -311,21 +311,36 @@ SrvBuildQueryFileBasicInfoResponse(
                     FileBasicInformation);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvMarshalHeader_SMB_V1(
-                    pOutBuffer,
-                    ulOffset,
-                    ulBytesAvailable,
-                    COM_TRANSACTION2,
-                    STATUS_SUCCESS,
-                    TRUE,
-                    pCtxSmb1->pTree->tid,
-                    SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
-                    pCtxSmb1->pSession->uid,
-                    pSmbRequest->pHeader->mid,
-                    pConnection->serverProperties.bRequireSecuritySignatures,
-                    &pSmbResponse->pHeader,
-                    &pSmbResponse->pAndXHeader,
-                    &pSmbResponse->usHeaderSize);
+    if (!pSmbResponse->ulSerialNum)
+    {
+        ntStatus = SrvMarshalHeader_SMB_V1(
+                        pOutBuffer,
+                        ulOffset,
+                        ulBytesAvailable,
+                        COM_TRANSACTION2,
+                        STATUS_SUCCESS,
+                        TRUE,
+                        pCtxSmb1->pTree->tid,
+                        SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
+                        pCtxSmb1->pSession->uid,
+                        pSmbRequest->pHeader->mid,
+                        pConnection->serverProperties.bRequireSecuritySignatures,
+                        &pSmbResponse->pHeader,
+                        &pSmbResponse->pWordCount,
+                        &pSmbResponse->pAndXHeader,
+                        &pSmbResponse->usHeaderSize);
+    }
+    else
+    {
+        ntStatus = SrvMarshalHeaderAndX_SMB_V1(
+                        pOutBuffer,
+                        ulOffset,
+                        ulBytesAvailable,
+                        COM_TRANSACTION2,
+                        &pSmbResponse->pWordCount,
+                        &pSmbResponse->pAndXHeader,
+                        &pSmbResponse->usHeaderSize);
+    }
     BAIL_ON_NT_STATUS(ntStatus);
 
     pOutBuffer       += pSmbResponse->usHeaderSize;
@@ -333,7 +348,7 @@ SrvBuildQueryFileBasicInfoResponse(
     ulBytesAvailable -= pSmbResponse->usHeaderSize;
     ulTotalBytesUsed += pSmbResponse->usHeaderSize;
 
-    pSmbResponse->pHeader->wordCount = 10 + setupCount;
+    *pSmbResponse->pWordCount = 10 + setupCount;
 
     fileBasicInfoPacked.ChangeTime = fileBasicInfo.ChangeTime;
     fileBasicInfoPacked.CreationTime = fileBasicInfo.CreationTime;
@@ -417,21 +432,36 @@ SrvBuildQueryFileStandardInfoResponse(
                     FileStandardInformation);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvMarshalHeader_SMB_V1(
-                    pOutBuffer,
-                    ulOffset,
-                    ulBytesAvailable,
-                    COM_TRANSACTION2,
-                    STATUS_SUCCESS,
-                    TRUE,
-                    pCtxSmb1->pTree->tid,
-                    SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
-                    pCtxSmb1->pSession->uid,
-                    pSmbRequest->pHeader->mid,
-                    pConnection->serverProperties.bRequireSecuritySignatures,
-                    &pSmbResponse->pHeader,
-                    &pSmbResponse->pAndXHeader,
-                    &pSmbResponse->usHeaderSize);
+    if (!pSmbResponse->ulSerialNum)
+    {
+        ntStatus = SrvMarshalHeader_SMB_V1(
+                        pOutBuffer,
+                        ulOffset,
+                        ulBytesAvailable,
+                        COM_TRANSACTION2,
+                        STATUS_SUCCESS,
+                        TRUE,
+                        pCtxSmb1->pTree->tid,
+                        SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
+                        pCtxSmb1->pSession->uid,
+                        pSmbRequest->pHeader->mid,
+                        pConnection->serverProperties.bRequireSecuritySignatures,
+                        &pSmbResponse->pHeader,
+                        &pSmbResponse->pWordCount,
+                        &pSmbResponse->pAndXHeader,
+                        &pSmbResponse->usHeaderSize);
+    }
+    else
+    {
+        ntStatus = SrvMarshalHeaderAndX_SMB_V1(
+                        pOutBuffer,
+                        ulOffset,
+                        ulBytesAvailable,
+                        COM_TRANSACTION2,
+                        &pSmbResponse->pWordCount,
+                        &pSmbResponse->pAndXHeader,
+                        &pSmbResponse->usHeaderSize);
+    }
     BAIL_ON_NT_STATUS(ntStatus);
 
     pOutBuffer       += pSmbResponse->usHeaderSize;
@@ -439,7 +469,7 @@ SrvBuildQueryFileStandardInfoResponse(
     ulBytesAvailable -= pSmbResponse->usHeaderSize;
     ulTotalBytesUsed += pSmbResponse->usHeaderSize;
 
-    pSmbResponse->pHeader->wordCount = 10 + setupCount;
+    *pSmbResponse->pWordCount = 10 + setupCount;
 
     fileStandardInfoPacked.AllocationSize = fileStandardInfo.AllocationSize;
     fileStandardInfoPacked.EndOfFile = fileStandardInfo.EndOfFile;
@@ -522,21 +552,36 @@ SrvBuildQueryFileEAInfoResponse(
                     FileEaInformation);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvMarshalHeader_SMB_V1(
-                    pOutBuffer,
-                    ulOffset,
-                    ulBytesAvailable,
-                    COM_TRANSACTION2,
-                    STATUS_SUCCESS,
-                    TRUE,
-                    pCtxSmb1->pTree->tid,
-                    SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
-                    pCtxSmb1->pSession->uid,
-                    pSmbRequest->pHeader->mid,
-                    pConnection->serverProperties.bRequireSecuritySignatures,
-                    &pSmbResponse->pHeader,
-                    &pSmbResponse->pAndXHeader,
-                    &pSmbResponse->usHeaderSize);
+    if (!pSmbResponse->ulSerialNum)
+    {
+        ntStatus = SrvMarshalHeader_SMB_V1(
+                        pOutBuffer,
+                        ulOffset,
+                        ulBytesAvailable,
+                        COM_TRANSACTION2,
+                        STATUS_SUCCESS,
+                        TRUE,
+                        pCtxSmb1->pTree->tid,
+                        SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
+                        pCtxSmb1->pSession->uid,
+                        pSmbRequest->pHeader->mid,
+                        pConnection->serverProperties.bRequireSecuritySignatures,
+                        &pSmbResponse->pHeader,
+                        &pSmbResponse->pWordCount,
+                        &pSmbResponse->pAndXHeader,
+                        &pSmbResponse->usHeaderSize);
+    }
+    else
+    {
+        ntStatus = SrvMarshalHeaderAndX_SMB_V1(
+                        pOutBuffer,
+                        ulOffset,
+                        ulBytesAvailable,
+                        COM_TRANSACTION2,
+                        &pSmbResponse->pWordCount,
+                        &pSmbResponse->pAndXHeader,
+                        &pSmbResponse->usHeaderSize);
+    }
     BAIL_ON_NT_STATUS(ntStatus);
 
     pOutBuffer       += pSmbResponse->usHeaderSize;
@@ -544,7 +589,7 @@ SrvBuildQueryFileEAInfoResponse(
     ulBytesAvailable -= pSmbResponse->usHeaderSize;
     ulTotalBytesUsed += pSmbResponse->usHeaderSize;
 
-    pSmbResponse->pHeader->wordCount = 10 + setupCount;
+    *pSmbResponse->pWordCount = 10 + setupCount;
 
     ntStatus = WireMarshallTransaction2Response(
                     pOutBuffer,
@@ -655,21 +700,36 @@ SrvBuildQueryFileStreamInfoResponse(
 
     } while (TRUE);
 
-    ntStatus = SrvMarshalHeader_SMB_V1(
-                    pOutBuffer,
-                    ulOffset,
-                    ulBytesAvailable,
-                    COM_TRANSACTION2,
-                    STATUS_SUCCESS,
-                    TRUE,
-                    pCtxSmb1->pTree->tid,
-                    SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
-                    pCtxSmb1->pSession->uid,
-                    pSmbRequest->pHeader->mid,
-                    pConnection->serverProperties.bRequireSecuritySignatures,
-                    &pSmbResponse->pHeader,
-                    &pSmbResponse->pAndXHeader,
-                    &pSmbResponse->usHeaderSize);
+    if (!pSmbResponse->ulSerialNum)
+    {
+        ntStatus = SrvMarshalHeader_SMB_V1(
+                        pOutBuffer,
+                        ulOffset,
+                        ulBytesAvailable,
+                        COM_TRANSACTION2,
+                        STATUS_SUCCESS,
+                        TRUE,
+                        pCtxSmb1->pTree->tid,
+                        SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
+                        pCtxSmb1->pSession->uid,
+                        pSmbRequest->pHeader->mid,
+                        pConnection->serverProperties.bRequireSecuritySignatures,
+                        &pSmbResponse->pHeader,
+                        &pSmbResponse->pWordCount,
+                        &pSmbResponse->pAndXHeader,
+                        &pSmbResponse->usHeaderSize);
+    }
+    else
+    {
+        ntStatus = SrvMarshalHeaderAndX_SMB_V1(
+                        pOutBuffer,
+                        ulOffset,
+                        ulBytesAvailable,
+                        COM_TRANSACTION2,
+                        &pSmbResponse->pWordCount,
+                        &pSmbResponse->pAndXHeader,
+                        &pSmbResponse->usHeaderSize);
+    }
     BAIL_ON_NT_STATUS(ntStatus);
 
     pOutBuffer       += pSmbResponse->usHeaderSize;
@@ -677,7 +737,7 @@ SrvBuildQueryFileStreamInfoResponse(
     ulBytesAvailable -= pSmbResponse->usHeaderSize;
     ulTotalBytesUsed += pSmbResponse->usHeaderSize;
 
-    pSmbResponse->pHeader->wordCount = 10 + setupCount;
+    *pSmbResponse->pWordCount = 10 + setupCount;
 
     ntStatus = SrvMarshallFileStreamInfo(
                     pFileStreamInfo,

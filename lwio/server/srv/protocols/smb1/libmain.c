@@ -138,10 +138,10 @@ SrvProtocolExecute_SMB_V1(
                                         pRequest->pHeader->command;
             }
 
-            if (pPrevResponse->ulMessageSize % 8)
+            if (pPrevResponse->ulMessageSize % 4)
             {
                 ULONG ulBytesAvailable = 0;
-                USHORT usAlign = 8 - (pPrevResponse->ulMessageSize % 8);
+                USHORT usAlign = 4 - (pPrevResponse->ulMessageSize % 4);
 
                 ulBytesAvailable = pExecContext->pSmbResponse->bufferLen -
                                    pExecContext->pSmbResponse->bufferUsed;
@@ -163,6 +163,9 @@ SrvProtocolExecute_SMB_V1(
                     }
                 }
             }
+
+            // TODO: Should AndX responses use this?
+            pResponse->pHeader = pSmb1Context->pResponses[0].pHeader;
         }
 
         pResponse->pBuffer =  pExecContext->pSmbResponse->pRawBuffer +
@@ -177,7 +180,7 @@ SrvProtocolExecute_SMB_V1(
                          SrvGetCommandDescription_SMB_V1(pRequest->pHeader->command),
                          pRequest->pHeader->command);
 
-        switch (pRequest->pHeader->command)
+        switch (pRequest->ucCommand)
         {
             case COM_NEGOTIATE:
 
@@ -222,7 +225,7 @@ SrvProtocolExecute_SMB_V1(
         }
         BAIL_ON_NT_STATUS(ntStatus);
 
-        switch (pRequest->pHeader->command)
+        switch (pRequest->ucCommand)
         {
             case COM_SESSION_SETUP_ANDX:
 
@@ -442,33 +445,70 @@ SrvBuildExecContext_SMB_V1(
     while (pBuffer)
     {
         PSMB_HEADER  pHeader     = NULL; // Do not free
+        PBYTE        pWordCount  = NULL; // Do not free
         PANDX_HEADER pAndXHeader = NULL; // Do not free
         ULONG        ulOffset    = 0;
         USHORT       usBytesUsed = 0;
+        UCHAR        ucAndXCommand = 0xFF;
 
         ulNumRequests++;
 
-        ntStatus = SrvUnmarshalHeader_SMB_V1(
-                        pBuffer,
-                        ulOffset,
-                        ulBytesAvailable,
-                        &pHeader,
-                        &pAndXHeader,
-                        &usBytesUsed);
+        switch (ulNumRequests)
+        {
+            case 1:
+
+                ntStatus = SrvUnmarshalHeader_SMB_V1(
+                                pBuffer,
+                                ulOffset,
+                                ulBytesAvailable,
+                                &pHeader,
+                                &pAndXHeader,
+                                &usBytesUsed);
+
+                break;
+
+            default:
+
+                ntStatus = SrvUnmarshalHeaderAndX_SMB_V1(
+                                pBuffer,
+                                ulOffset,
+                                ulBytesAvailable,
+                                ucAndXCommand,
+                                &pWordCount,
+                                &pAndXHeader,
+                                &usBytesUsed);
+
+                break;
+
+        }
         BAIL_ON_NT_STATUS(ntStatus);
 
-        if (pAndXHeader &&
-            (pAndXHeader->andXCommand != 0xFF) &&
-            pAndXHeader->andXOffset)
+        if (pAndXHeader)
         {
-            if (ulBytesAvailable < pAndXHeader->andXOffset)
-            {
-                ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
-                BAIL_ON_NT_STATUS(ntStatus);
-            }
+            ucAndXCommand = pAndXHeader->andXCommand;
 
-            pBuffer += pAndXHeader->andXOffset;
-            ulBytesAvailable -= pAndXHeader->andXOffset;
+            switch (ucAndXCommand)
+            {
+                case 0xFF:
+
+                    pBuffer = NULL;
+
+                    break;
+
+                default:
+
+                    if (!pAndXHeader->andXOffset ||
+                        (ulBytesAvailable < pAndXHeader->andXOffset))
+                    {
+                        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+                        BAIL_ON_NT_STATUS(ntStatus);
+                    }
+
+                    pBuffer          += pAndXHeader->andXOffset;
+                    ulBytesAvailable -= pAndXHeader->andXOffset;
+
+                    break;
+            }
         }
         else
         {
@@ -495,30 +535,67 @@ SrvBuildExecContext_SMB_V1(
 
     for (; iRequest < ulNumRequests; iRequest++)
     {
-        PSRV_MESSAGE_SMB_V1 pMessage = &pSmb1Context->pRequests[iRequest];
-        ULONG  ulOffset = 0;
+        PSRV_MESSAGE_SMB_V1 pMessage      = &pSmb1Context->pRequests[iRequest];
+        UCHAR               ucAndXCommand = 0xFF;
+        ULONG               ulOffset      = 0;
 
-        pMessage->pBuffer = pBuffer;
+        pMessage->ulSerialNum = iRequest;
+        pMessage->pBuffer     = pBuffer;
 
-        ntStatus = SrvUnmarshalHeader_SMB_V1(
-                        pMessage->pBuffer,
-                        ulOffset,
-                        ulBytesAvailable,
-                        &pMessage->pHeader,
-                        &pMessage->pAndXHeader,
-                        &pMessage->usHeaderSize);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        if (pMessage->pAndXHeader && pMessage->pAndXHeader->andXOffset)
+        switch (iRequest)
         {
-            pMessage->ulMessageSize = pMessage->pAndXHeader->andXOffset;
+            case 0 :
+
+                ntStatus = SrvUnmarshalHeader_SMB_V1(
+                                pMessage->pBuffer,
+                                ulOffset,
+                                ulBytesAvailable,
+                                &pMessage->pHeader,
+                                &pMessage->pAndXHeader,
+                                &pMessage->usHeaderSize);
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                pMessage->pWordCount = &pMessage->pHeader->wordCount;
+                pMessage->ucCommand  = pMessage->pHeader->command;
+
+                break;
+
+            default:
+
+                ntStatus = SrvVerifyAndXCommandSequence(
+                                pSmb1Context->pRequests[iRequest-1].ucCommand,
+                                ucAndXCommand);
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                ntStatus = SrvUnmarshalHeaderAndX_SMB_V1(
+                                pMessage->pBuffer,
+                                ulOffset,
+                                ulBytesAvailable,
+                                ucAndXCommand,
+                                &pMessage->pWordCount,
+                                &pMessage->pAndXHeader,
+                                &pMessage->usHeaderSize);
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                pMessage->pHeader   = pSmb1Context->pRequests[0].pHeader;
+                pMessage->ucCommand = ucAndXCommand;
+
+                break;
+        }
+
+        if (pMessage->pAndXHeader)
+        {
+            ucAndXCommand = pMessage->pAndXHeader->andXCommand;
+
+            pMessage->ulMessageSize    = pMessage->pAndXHeader->andXOffset;
             pMessage->ulBytesAvailable = pMessage->pAndXHeader->andXOffset;
-            pBuffer += pMessage->pAndXHeader->andXOffset;
+
+            pBuffer          += pMessage->pAndXHeader->andXOffset;
             ulBytesAvailable -= pMessage->pAndXHeader->andXOffset;
         }
         else
         {
-            pMessage->ulMessageSize = ulBytesAvailable;
+            pMessage->ulMessageSize    = ulBytesAvailable;
             pMessage->ulBytesAvailable = ulBytesAvailable;
         }
     }
@@ -668,6 +745,7 @@ SrvBuildErrorResponse_SMB_V1(
                     pRequestHeader->mid,
                     pConnection->serverProperties.bRequireSecuritySignatures,
                     &pSmbResponse->pHeader,
+                    &pSmbResponse->pWordCount,
                     &pSmbResponse->pAndXHeader,
                     &pSmbResponse->usHeaderSize);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -677,7 +755,7 @@ SrvBuildErrorResponse_SMB_V1(
     ulBytesAvailable -= pSmbResponse->usHeaderSize;
     ulTotalBytesUsed += pSmbResponse->usHeaderSize;
 
-    pSmbResponse->pHeader->wordCount = 0;
+    *pSmbResponse->pWordCount = 0;
 
     ntStatus = WireMarshallErrorResponse(
                     pBuffer,

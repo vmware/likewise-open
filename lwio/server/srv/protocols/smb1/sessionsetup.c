@@ -258,21 +258,36 @@ SrvMarshallSessionSetupResponse(
                     &ulReplySecurityBlobLength);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvMarshalHeader_SMB_V1(
-                    pOutBuffer,
-                    ulOffset,
-                    ulBytesAvailable,
-                    COM_SESSION_SETUP_ANDX,
-                    STATUS_SUCCESS,
-                    TRUE,  /* is response */
-                    pSmbRequest->pHeader->tid,
-                    SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
-                    pSmbRequest->pHeader->uid,
-                    pSmbRequest->pHeader->mid,
-                    pConnection->serverProperties.bRequireSecuritySignatures,
-                    &pSmbResponse->pHeader,
-                    &pSmbResponse->pAndXHeader,
-                    &pSmbResponse->usHeaderSize);
+    if (!pSmbResponse->ulSerialNum)
+    {
+        ntStatus = SrvMarshalHeader_SMB_V1(
+                        pOutBuffer,
+                        ulOffset,
+                        ulBytesAvailable,
+                        COM_SESSION_SETUP_ANDX,
+                        STATUS_SUCCESS,
+                        TRUE,  /* is response */
+                        pSmbRequest->pHeader->tid,
+                        SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
+                        pSmbRequest->pHeader->uid,
+                        pSmbRequest->pHeader->mid,
+                        pConnection->serverProperties.bRequireSecuritySignatures,
+                        &pSmbResponse->pHeader,
+                        &pSmbResponse->pWordCount,
+                        &pSmbResponse->pAndXHeader,
+                        &pSmbResponse->usHeaderSize);
+    }
+    else
+    {
+        ntStatus = SrvMarshalHeaderAndX_SMB_V1(
+                        pOutBuffer,
+                        ulOffset,
+                        ulBytesAvailable,
+                        COM_SESSION_SETUP_ANDX,
+                        &pSmbResponse->pWordCount,
+                        &pSmbResponse->pAndXHeader,
+                        &pSmbResponse->usHeaderSize);
+    }
     BAIL_ON_NT_STATUS(ntStatus);
 
     ulTotalBytesUsed += pSmbResponse->usHeaderSize;
@@ -280,7 +295,7 @@ SrvMarshallSessionSetupResponse(
     ulBytesAvailable -= pSmbResponse->usHeaderSize;
     pOutBuffer       += pSmbResponse->usHeaderSize;
 
-    pSmbResponse->pHeader->wordCount = 4;
+    *pSmbResponse->pWordCount = 4;
 
     if (ulBytesAvailable < sizeof(SESSION_SETUP_RESPONSE_HEADER))
     {

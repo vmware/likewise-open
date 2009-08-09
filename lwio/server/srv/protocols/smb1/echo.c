@@ -106,21 +106,36 @@ SrvMarshallEchoResponse(
     ULONG ulTotalBytesUsed     = 0;
     PCSTR    pMinEchoBlob = "lwio";
 
-    ntStatus = SrvMarshalHeader_SMB_V1(
-                    pOutBuffer,
-                    ulOffset,
-                    ulBytesAvailable,
-                    COM_ECHO,
-                    STATUS_SUCCESS,
-                    TRUE,
-                    pSmbRequest->pHeader->tid,
-                    SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
-                    pSmbRequest->pHeader->uid,
-                    pSmbRequest->pHeader->mid,
-                    FALSE,
-                    &pSmbResponse->pHeader,
-                    &pSmbResponse->pAndXHeader,
-                    &pSmbResponse->usHeaderSize);
+    if (!pSmbResponse->ulSerialNum)
+    {
+        ntStatus = SrvMarshalHeader_SMB_V1(
+                        pOutBuffer,
+                        ulOffset,
+                        ulBytesAvailable,
+                        COM_ECHO,
+                        STATUS_SUCCESS,
+                        TRUE,
+                        pSmbRequest->pHeader->tid,
+                        SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
+                        pSmbRequest->pHeader->uid,
+                        pSmbRequest->pHeader->mid,
+                        FALSE,
+                        &pSmbResponse->pHeader,
+                        &pSmbResponse->pWordCount,
+                        &pSmbResponse->pAndXHeader,
+                        &pSmbResponse->usHeaderSize);
+    }
+    else
+    {
+        ntStatus = SrvMarshalHeaderAndX_SMB_V1(
+                        pOutBuffer,
+                        ulOffset,
+                        ulBytesAvailable,
+                        COM_ECHO,
+                        &pSmbResponse->pWordCount,
+                        &pSmbResponse->pAndXHeader,
+                        &pSmbResponse->usHeaderSize);
+    }
     BAIL_ON_NT_STATUS(ntStatus);
 
     pOutBuffer       += pSmbResponse->usHeaderSize;
@@ -128,7 +143,7 @@ SrvMarshallEchoResponse(
     ulBytesAvailable -= pSmbResponse->usHeaderSize;
     ulTotalBytesUsed += pSmbResponse->usHeaderSize;
 
-    pSmbResponse->pHeader->wordCount = 1;
+    *pSmbResponse->pWordCount = 1;
 
     if (ulBytesAvailable < sizeof(ECHO_RESPONSE_HEADER))
     {
