@@ -133,6 +133,8 @@ lwmsg_connection_recvmsg(
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     ssize_t received;
 
+    LWMSG_ASSERT(fd >= 0);
+
     received = recvmsg(fd, msghdr, flags);
 
     if (received == 0)
@@ -155,7 +157,7 @@ lwmsg_connection_recvmsg(
             status = LWMSG_STATUS_EOF;
             break;
         default:
-            LWMSG_LOG_ERROR(context, "Unexpected system error from recvmsg(): %i\n", errno);
+            LWMSG_LOG_ERROR(context, "Unexpected system error from recvmsg(): %i", errno);
             status = LWMSG_STATUS_SYSTEM;
             break;
         }
@@ -257,6 +259,8 @@ lwmsg_connection_sendmsg(
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     ssize_t sent;
 
+    LWMSG_ASSERT(fd >= 0);
+
     sent = sendmsg(fd, msghdr, flags);
 
     if (sent == 0)
@@ -279,7 +283,7 @@ lwmsg_connection_sendmsg(
             status = LWMSG_STATUS_EOF;
             break;
         default:
-            LWMSG_LOG_ERROR(context, "Unexpected system error from sendmsg(): %i\n", errno);
+            LWMSG_LOG_ERROR(context, "Unexpected system error from sendmsg(): %i", errno);
             status = LWMSG_STATUS_SYSTEM;
             break;
         }
