@@ -686,6 +686,18 @@ static struct
     {
         LW_ERROR_DUPLICATE_KEYVALUENAME,
         "Duplicate key/value pair were found in registry"
+    },
+    {
+        LW_ERROR_FAILED_DELETE_HAS_SUBKEY,
+        "The Key has failed in deletion due to non zero subkeys"
+    },
+    {
+        LW_ERROR_NO_SUBKEYS,
+        "The Key has no subkeys"
+    },
+    {
+        LW_ERROR_NO_SUCH_VALUENAME,
+        "The Key has no such value name"
     }
 };
 
