@@ -170,8 +170,18 @@ typedef VOID (*PFN_SRV_MESSAGE_STATE_RELEASE_SMB_V1)(HANDLE hState);
 
 typedef struct __SRV_MESSAGE_SMB_V1
 {
-    PBYTE        pBuffer;
-    PSMB_HEADER  pHeader;
+    ULONG        ulSerialNum;       // Sequence # in packet; starts from 0
+
+    PBYTE        pBuffer;           // Raw packet buffer
+
+    UCHAR        ucCommand;         // andx or SMB command
+    PSMB_HEADER  pHeader;           // header corresponding to serial 0 message
+    PBYTE        pWordCount;        // points to word count field in message
+                                    // (a) for the serial 0 message, this points
+                                    //     to the word count field in the header
+                                    // (b) andx messages share the serial 0
+                                    //     smb header; but, they have their own
+                                    //     word count referenced by this field.
     PANDX_HEADER pAndXHeader;
     USHORT       usHeaderSize;
     ULONG        ulMessageSize;

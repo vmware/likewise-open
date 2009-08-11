@@ -423,6 +423,9 @@
 #define LW_ERROR_NO_SUCH_KEY                               40703
 #define LW_ERROR_KEY_REFCOUNT_NONZERO                      40704
 #define LW_ERROR_DUPLICATE_KEYVALUENAME                    40705
+#define LW_ERROR_FAILED_DELETE_HAS_SUBKEY                  40706
+#define LW_ERROR_NO_SUBKEYS                                40707
+#define LW_ERROR_NO_SUCH_VALUENAME                         40708
 
 
 size_t

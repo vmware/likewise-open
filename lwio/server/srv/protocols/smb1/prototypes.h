@@ -288,6 +288,7 @@ SrvMarshalHeader_SMB_V1(
     USHORT        usMid,
     BOOLEAN       bCommandAllowsSignature,
     PSMB_HEADER*  ppHeader,
+    PBYTE*        ppWordCount,
     PANDX_HEADER* ppAndXHeader,
     PUSHORT       pusBytesUsed
     );
@@ -300,6 +301,34 @@ SrvUnmarshalHeader_SMB_V1(
     PSMB_HEADER*  ppHeader,
     PANDX_HEADER* ppAndXHeader,
     PUSHORT       pusBytesUsed
+    );
+
+NTSTATUS
+SrvMarshalHeaderAndX_SMB_V1(
+    PBYTE         pBuffer,
+    ULONG         ulOffset,
+    ULONG         ulBytesAvailable,
+    UCHAR         ucCommand,
+    PBYTE*        ppWordCount,
+    PANDX_HEADER* ppAndXHeader,
+    PUSHORT       pusBytesUsed
+    );
+
+NTSTATUS
+SrvUnmarshalHeaderAndX_SMB_V1(
+    PBYTE         pBuffer,
+    ULONG         ulOffset,
+    ULONG         ulBytesAvailable,
+    UCHAR         ucCommand,
+    PBYTE*        ppWordCount,
+    PANDX_HEADER* ppAndXHeader,
+    PUSHORT       pusBytesUsed
+    );
+
+NTSTATUS
+SrvVerifyAndXCommandSequence(
+    UCHAR ucLeaderCommand,
+    UCHAR ucFollowerCommand
     );
 
 // write.c
