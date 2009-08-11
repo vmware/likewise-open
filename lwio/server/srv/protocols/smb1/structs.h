@@ -110,7 +110,7 @@ typedef struct _SRV_SMB_LOCK_REQUEST
 
 } SRV_SMB_LOCK_REQUEST;
 
-typedef struct _SRV_SMB_CREATE_REQUEST
+typedef struct _SRV_CREATE_STATE_SMB_V1
 {
     LONG                    refCount;
 
@@ -129,14 +129,9 @@ typedef struct _SRV_SMB_CREATE_REQUEST
 
     IO_STATUS_BLOCK         ioStatusBlock;
 
-    ULONG                   ulDesiredAccess;
-    LONG64                  llAllocationSize;
-    ULONG                   ulExtFileAttributes;
-    ULONG                   ulShareAccess;
-    ULONG                   ulCreateDisposition;
-    ULONG                   ulCreateOptions;
+    PCREATE_REQUEST_HEADER  pRequestHeader; // Do not free
 
-} SRV_SMB_CREATE_REQUEST, *PSRV_SMB_CREATE_REQUEST;
+} SRV_CREATE_STATE_SMB_V1, *PSRV_CREATE_STATE_SMB_V1;
 
 typedef struct _SRV_SMB_READ_REQUEST
 {
