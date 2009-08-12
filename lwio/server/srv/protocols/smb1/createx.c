@@ -110,8 +110,6 @@ SrvProcessNTCreateAndX(
     ULONG ulBytesAvailable = pSmbRequest->ulMessageSize - pSmbRequest->usHeaderSize;
     PLWIO_SRV_SESSION          pSession = NULL;
     PLWIO_SRV_TREE             pTree = NULL;
-    PCREATE_REQUEST_HEADER     pRequestHeader = NULL; // Do not free
-    PWSTR                      pwszFilename = NULL;   // Do not free
     PSRV_CREATE_STATE_SMB_V1   pCreateState = NULL;
     BOOLEAN                    bInLock = FALSE;
 
@@ -123,6 +121,9 @@ SrvProcessNTCreateAndX(
     }
     else
     {
+        PCREATE_REQUEST_HEADER     pRequestHeader = NULL; // Do not free
+        PWSTR                      pwszFilename = NULL;   // Do not free
+
         if (pCtxSmb1->pFile)
         {
             ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
@@ -181,12 +182,12 @@ SrvProcessNTCreateAndX(
                             pCreateState->pFilename,
                             pCreateState->pSecurityDescriptor,
                             pCreateState->pSecurityQOS,
-                            pRequestHeader->desiredAccess,
-                            pRequestHeader->allocationSize,
-                            pRequestHeader->extFileAttributes,
-                            pRequestHeader->shareAccess,
-                            pRequestHeader->createDisposition,
-                            pRequestHeader->createOptions,
+                            pCreateState->pRequestHeader->desiredAccess,
+                            pCreateState->pRequestHeader->allocationSize,
+                            pCreateState->pRequestHeader->extFileAttributes,
+                            pCreateState->pRequestHeader->shareAccess,
+                            pCreateState->pRequestHeader->createDisposition,
+                            pCreateState->pRequestHeader->createOptions,
                             NULL, /* EA Buffer */
                             0,    /* EA Length */
                             pCreateState->pEcpList);
@@ -214,9 +215,6 @@ SrvProcessNTCreateAndX(
                             pCreateState->pRequestHeader->createOptions,
                             &pCreateState->pFile);
             BAIL_ON_NT_STATUS(ntStatus);
-
-            pCtxSmb1->pFile = pCreateState->pFile;
-            InterlockedIncrement(&pCreateState->pFile->refcount);
 
             pCreateState->bRemoveFileFromTree = TRUE;
 
@@ -251,6 +249,9 @@ SrvProcessNTCreateAndX(
             BAIL_ON_NT_STATUS(ntStatus);
 
             pCreateState->bRemoveFileFromTree = FALSE;
+
+            pCtxSmb1->pFile = pCreateState->pFile;
+            InterlockedIncrement(&pCreateState->pFile->refcount);
 
             break;
     }
@@ -472,7 +473,7 @@ SrvBuildNTCreateResponse_inlock(
     // ulBytesAvailable -= sizeof(CREATE_RESPONSE_HEADER);
     ulTotalBytesUsed += sizeof(CREATE_RESPONSE_HEADER);
 
-    pResponseHeader->fid             = pCtxSmb1->pFile->fid;
+    pResponseHeader->fid             = pCreateState->pFile->fid;
     pResponseHeader->createAction    = pCreateState->ioStatusBlock.CreateResult;
     pResponseHeader->creationTime    = pCreateState->fileBasicInfo.CreationTime;
     pResponseHeader->lastAccessTime  = pCreateState->fileBasicInfo.LastAccessTime;
