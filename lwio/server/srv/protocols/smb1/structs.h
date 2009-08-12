@@ -110,47 +110,69 @@ typedef struct _SRV_SMB_LOCK_REQUEST
 
 } SRV_SMB_LOCK_REQUEST;
 
-typedef struct _SRV_SMB_CREATE_REQUEST
+typedef enum
+{
+    SRV_CREATE_STAGE_SMB_V1_INITIAL = 0,
+    SRV_CREATE_STAGE_SMB_V1_CREATE_FILE_COMPLETED,
+    SRV_CREATE_STAGE_ATTEMPT_QUERY_INFORMATION,
+    SRV_CREATE_STAGE_QUERY_INFORMATION_COMPLETED,
+    SRV_CREATE_STAGE_DONE
+} SRV_CREATE_STAGE_SMB_V1;
+
+typedef struct _SRV_CREATE_STATE_SMB_V1
 {
     LONG                    refCount;
 
     pthread_mutex_t         mutex;
     pthread_mutex_t*        pMutex;
 
+    SRV_CREATE_STAGE_SMB_V1 stage;
+
+    PCREATE_REQUEST_HEADER  pRequestHeader; // Do not free
+    PWSTR                   pwszFilename;   // Do not free
+
+    IO_STATUS_BLOCK         ioStatusBlock;
+
+    IO_ASYNC_CONTROL_BLOCK  acb;
+    PIO_ASYNC_CONTROL_BLOCK pAcb;
+
     PVOID                   pSecurityDescriptor;
     PVOID                   pSecurityQOS;
-    PWSTR                   pwszFilename; // Do not free
     PIO_FILE_NAME           pFilename;
     PIO_ECP_LIST            pEcpList;
     IO_FILE_HANDLE          hFile;
 
-    IO_ASYNC_CONTROL_BLOCK  acb;
-    PIO_ASYNC_CONTROL_BLOCK pAcb;
+    FILE_BASIC_INFORMATION       fileBasicInfo;
+    PFILE_BASIC_INFORMATION      pFileBasicInfo;
 
-    IO_STATUS_BLOCK         ioStatusBlock;
+    FILE_STANDARD_INFORMATION    fileStdInfo;
+    PFILE_STANDARD_INFORMATION   pFileStdInfo;
 
-    ULONG                   ulDesiredAccess;
-    LONG64                  llAllocationSize;
-    ULONG                   ulExtFileAttributes;
-    ULONG                   ulShareAccess;
-    ULONG                   ulCreateDisposition;
-    ULONG                   ulCreateOptions;
+    FILE_PIPE_INFORMATION        filePipeInfo;
+    PFILE_PIPE_INFORMATION       pFilePipeInfo;
 
-} SRV_SMB_CREATE_REQUEST, *PSRV_SMB_CREATE_REQUEST;
+    FILE_PIPE_LOCAL_INFORMATION  filePipeLocalInfo;
+    PFILE_PIPE_LOCAL_INFORMATION pFilePipeLocalInfo;
 
-typedef struct _SRV_SMB_READ_REQUEST
+    PLWIO_SRV_TREE          pTree;
+    PLWIO_SRV_FILE          pFile;
+    BOOLEAN                 bRemoveFileFromTree;
+
+} SRV_CREATE_STATE_SMB_V1, *PSRV_CREATE_STATE_SMB_V1;
+
+typedef struct _SRV_READ_STATE_SMB_V1
 {
     LONG                    refCount;
 
     pthread_mutex_t         mutex;
     pthread_mutex_t*        pMutex;
 
+    IO_STATUS_BLOCK         ioStatusBlock;
+
     IO_ASYNC_CONTROL_BLOCK  acb;
     PIO_ASYNC_CONTROL_BLOCK pAcb;
 
-    IO_STATUS_BLOCK         ioStatusBlock;
-
-} SRV_SMB_READ_REQUEST, *PSRV_SMB_READ_REQUEST;
+} SRV_READ_STATE_SMB_V1, *PSRV_READ_STATE_SMB_V1;
 
 typedef struct _SRV_SMB_WRITE_REQUEST
 {
@@ -159,10 +181,10 @@ typedef struct _SRV_SMB_WRITE_REQUEST
     pthread_mutex_t         mutex;
     pthread_mutex_t*        pMutex;
 
+    IO_STATUS_BLOCK         ioStatusBlock;
+
     IO_ASYNC_CONTROL_BLOCK  acb;
     PIO_ASYNC_CONTROL_BLOCK pAcb;
-
-    IO_STATUS_BLOCK         ioStatusBlock;
 
 } SRV_SMB_WRITE_REQUEST, *PSRV_SMB_WRITE_REQUEST;
 
