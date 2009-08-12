@@ -65,18 +65,24 @@ SrvDeviceControlIo(
     NTSTATUS ntStatus = 0;
     PSRV_IRP_CONTEXT pIrpContext = NULL;
 
-    ntStatus = SrvAllocateIrpContext(
-                        pIrp,
-                        &pIrpContext
-                        );
+    ntStatus = SrvAllocateIrpContext(pIrp, &pIrpContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvDeviceIoCommon(pIrpContext, pIrp);
     BAIL_ON_NT_STATUS(ntStatus);
 
-error:
+cleanup:
+
+    if (pIrpContext)
+    {
+        SrvFreeIrpContext(pIrpContext);
+    }
 
     return ntStatus;
+
+error:
+
+    goto cleanup;
 }
 
 static

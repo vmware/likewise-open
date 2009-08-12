@@ -61,5 +61,10 @@ SrvAllocateIrpContext(
     PSRV_IRP_CONTEXT * ppIrpContext
     );
 
+VOID
+SrvFreeIrpContext(
+    PSRV_IRP_CONTEXT pIrpContext
+    );
+
 #endif /* __SRV_DEVICE_CREATE_H__ */
 
