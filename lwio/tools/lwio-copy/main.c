@@ -763,6 +763,9 @@ MapErrorCodes(
         case LWIO_ERROR_CLOCK_SKEW:
             fprintf(stderr,"Error: clock skew detected\n");
             break;
+        case LWIO_ERROR_LOGON_FAILURE:
+            fprintf(stderr,"Error: Logon failed, please check the username/password\n");
+            break;
         case LWIO_ERROR_INVALID_HANDLE:
             fprintf(stderr,"Error: Invalid handle\n");
             break;
