@@ -133,7 +133,7 @@ Negotiate(
 
     ntStatus = UnmarshallNegotiateResponse(
                     pResponsePacket->pParams,
-                    pResponsePacket->bufferLen - pResponsePacket->bufferUsed,
+                    pResponsePacket->bufferUsed - (pResponsePacket->pParams - pResponsePacket->pRawBuffer),
                     &pHeader,
                     &pGUID,
                     &pSecurityBlob,
