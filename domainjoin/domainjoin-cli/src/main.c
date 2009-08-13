@@ -624,6 +624,7 @@ cleanup:
     CT_SAFE_FREE_STRING(wrapped);
 }
 
+#ifndef ENABLE_MINIMAL
 void DoConfigure(int argc, char **argv, LWException **exc)
 {
     EnableType dwEnable = ENABLE_TYPE_AUTO;
@@ -697,6 +698,7 @@ void DoConfigure(int argc, char **argv, LWException **exc)
 cleanup:
     ;
 }
+#endif
 
 void DoGetDistroInfo(int argc, char **argv, LWException **exc)
 {
@@ -865,6 +867,7 @@ int main(
         LW_TRY(&exc, DJNetInitialize(bEnableDcerpcd, &LW_EXC));
         LW_TRY(&exc, DJSetComputerName(argPos[0], NULL, &LW_EXC));
     }
+#ifndef ENABLE_MINIMAL
     else if(!strcmp(argPos[0], "sync_time"))
     {
         unsigned int allowedDrift;
@@ -877,6 +880,7 @@ int main(
         LW_CLEANUP_CTERR(&exc, ParseUInt(argPos[1], &allowedDrift));
         LW_CLEANUP_CTERR(&exc, DJSyncTimeToDC(argPos[0], allowedDrift));
     }
+#endif
     else if(!strcmp(argPos[0], "join"))
     {
         argPos++;
@@ -898,12 +902,14 @@ int main(
     }
     else if(!strcmp(argPos[0], "fixfqdn"))
         LW_TRY(&exc, DoFixFqdn(&LW_EXC));
+#ifndef ENABLE_MINIMAL
     else if(!strcmp(argPos[0], "configure"))
     {
         argPos++;
         remainingArgs--;
         LW_TRY(&exc, DoConfigure(remainingArgs, argPos, &LW_EXC));
     }
+#endif
     else if(!strcmp(argPos[0], "get_os_type") ||
         !strcmp(argPos[0], "get_arch") ||
         !strcmp(argPos[0], "get_distro") ||
