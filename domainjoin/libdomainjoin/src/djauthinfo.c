@@ -239,6 +239,13 @@ DJRemoveCacheFiles()
     (void) CTRemoveFiles(pszCachePath, FALSE, TRUE);
 
     /* Revert any system configuration files that may have been changed by previous domain GPOs */
+    ceError = CTCheckDirectoryExists( "/var/lib/likewise/grouppolicy",
+                                      &bDirExists);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+    if (bDirExists) {
+        ceError = CTRemoveDirectory("/var/lib/likewise/grouppolicy");
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
 
     /* /etc/likewise/lsassd.conf */
     ceError = CTCheckFileExists("/etc/likewise/lsassd.conf.lwidentity.orig", &bFileExists);

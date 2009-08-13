@@ -181,7 +181,7 @@ pam_sm_authenticate(
             BAIL_ON_LSA_ERROR(dwError);
         }
 
-#if defined(__LWI_SOLARIS__)
+#if defined(__LWI_SOLARIS__) || defined(__LWI_HP_UX__)
         /*
          * DTLOGIN tests for home directory existence before
          * pam_sm_open_session() is called, and puts up a failure dialog
