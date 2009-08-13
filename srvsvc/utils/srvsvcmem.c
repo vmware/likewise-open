@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -43,7 +43,7 @@
 #include "includes.h"
 
 DWORD
-SRVSVCAllocateMemory(
+SrvSvcAllocateMemory(
     DWORD dwSize,
     PVOID * ppMemory
     )
@@ -62,8 +62,9 @@ SRVSVCAllocateMemory(
     return (dwError);
 }
 
+
 DWORD
-SRVSVCReallocMemory(
+SrvSvcReallocMemory(
     PVOID  pMemory,
     PVOID * ppNewMemory,
     DWORD dwSize
@@ -90,7 +91,7 @@ SRVSVCReallocMemory(
 
 
 void
-SRVSVCFreeMemory(
+SrvSvcSrvFreeMemory(
     PVOID pMemory
     )
 {
@@ -99,7 +100,7 @@ SRVSVCFreeMemory(
 
 
 DWORD
-SRVSVCAllocateString(
+SrvSvcAllocateString(
     PCSTR  pszInputString,
     PSTR* ppszOutputString
     )
@@ -113,7 +114,7 @@ SRVSVCAllocateString(
         BAIL_ON_SRVSVC_ERROR(dwError);
     }
     dwLen = (DWORD)strlen(pszInputString);
-    dwError = SRVSVCAllocateMemory(dwLen+1, (PVOID *)&pszOutputString);
+    dwError = SrvSvcAllocateMemory(dwLen+1, (PVOID *)&pszOutputString);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     strcpy(pszOutputString, pszInputString);
@@ -126,17 +127,17 @@ error:
 }
 
 void
-SRVSVCFreeString(
+SrvSvcFreeString(
     PSTR pszString
     )
 {
     if (pszString) {
-        SRVSVCFreeMemory(pszString);
+        SrvSvcFreeMemory(pszString);
     }
 }
 
 void
-SRVSVCFreeStringArray(
+SrvSvcFreeStringArray(
     PSTR * ppStringArray,
     DWORD dwCount
     )
@@ -147,11 +148,11 @@ SRVSVCFreeStringArray(
         for (i = 0; i < dwCount; i++)
         {
             if (ppStringArray[i]) {
-                SRVSVCFreeString(ppStringArray[i]);
+                SrvSvcFreeString(ppStringArray[i]);
             }
         }
 
-        SRVSVCFreeMemory(ppStringArray);
+        SrvSvcFreeMemory(ppStringArray);
     }
 
     return;
@@ -168,3 +169,13 @@ SRVSVCFreeStringArray(
     free(p);
 }
 #endif
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

@@ -119,43 +119,43 @@ typedef struct _LOGINFO {
 } LOGINFO, *PLOGINFO;
 
 DWORD
-SRVSVCAllocateMemory(
+SrvSvcAllocateMemory(
     DWORD  dwSize,
     PVOID* ppMemory
     );
 
 DWORD
-SRVSVCReallocMemory(
+SrvSvcReallocMemory(
     PVOID  pMemory,
     PVOID* ppNewMemory,
     DWORD  dwSize
     );
 
-VOID
-SRVSVCFreeMemory(
+void
+SrvSvcSrvFreeMemory(
     PVOID pMemory
     );
 
 DWORD
-SRVSVCAllocateString(
+SrvSvcAllocateString(
     PCSTR pszInputString,
     PSTR *ppszOutputString
     );
 
 
 VOID
-SRVSVCFreeString(
+SrvSvcFreeString(
     PSTR pszString
     );
 
 VOID
-SRVSVCFreeStringArray(
+SrvSvcFreeStringArray(
     PSTR* ppStringArray,
     DWORD dwCount
     );
 
 DWORD
-SRVSVCStrndup(
+SrvSvcStrndup(
     PCSTR  pszInputString,
     size_t size,
     PSTR * ppszOutputString
@@ -167,7 +167,7 @@ TableCategoryToStr(
     );
 
 BOOLEAN
-SRVSVCIsWhiteSpace(
+SrvSvcIsWhiteSpace(
     char c
     );
 
@@ -177,7 +177,7 @@ SRVSVCIsWhiteSpace(
  * single spaces (0x20)
  */
 DWORD
-SRVSVCCompressWhitespace(
+SrvSvcCompressWhitespace(
     PSTR pszString
     );
 
@@ -186,83 +186,83 @@ SRVSVCCompressWhitespace(
  * Allocate new memory in the process
  */
 DWORD
-SRVSVCLpwStrToLpStr(
+SrvSvcLpwStrToLpStr(
     PCWSTR pszwString,
     PSTR*  ppszString
     );
 
 VOID
-SRVSVCStripWhitespace(
+SrvSvcStripWhitespace(
     PSTR pszString,
     BOOLEAN bLeading,
     BOOLEAN bTrailing
     );
 
 VOID
-SRVSVCStrToUpper(
+SrvSvcStrToUpper(
     PSTR pszString
     );
 
 VOID
-SRVSVCStrToLower(
+SrvSvcStrToLower(
     PSTR pszString
     );
 
 DWORD
-SRVSVCEscapeString(
+SrvSvcEscapeString(
     PSTR pszOrig,
     PSTR * ppszEscapedString
     );
 
 DWORD
-SRVSVCAllocateStringPrintf(
+SrvSvcAllocateStringPrintf(
     PSTR* ppszOutputString,
     PCSTR pszFormat,
     ...
     );
 
 DWORD
-SRVSVCAllocateStringPrintfV(
+SrvSvcAllocateStringPrintfV(
     PSTR*   ppszOutputString,
     PCSTR   pszFormat,
     va_list args
     );
 
 DWORD
-SRVSVCStackPush(
+SrvSvcStackPush(
     PVOID pItem,
     PSRVSVC_STACK* ppStack
     );
 
 PVOID
-SRVSVCStackPop(
+SrvSvcStackPop(
     PSRVSVC_STACK* ppStack
     );
 
 PVOID
-SRVSVCStackPeek(
+SrvSvcStackPeek(
     PSRVSVC_STACK pStack
     );
 
 DWORD
-SRVSVCStackForeach(
+SrvSvcStackForeach(
     PSRVSVC_STACK pStack,
     PFN_SRVSVC_FOREACH_STACK_ITEM pfnAction,
     PVOID pUserData
     );
 
 PSRVSVC_STACK
-SRVSVCStackReverse(
+SrvSvcStackReverse(
     PSRVSVC_STACK pStack
     );
 
 VOID
-SRVSVCStackFree(
+SrvSvcStackFree(
     PSRVSVC_STACK pStack
     );
 
 DWORD
-SRVSVCParseConfigFile(
+SrvSvcParseConfigFile(
     PCSTR                     pszFilePath,
     PFNCONFIG_START_SECTION   pfnStartSectionHandler,
     PFNCONFIG_COMMENT         pfnCommentHandler,
@@ -271,55 +271,55 @@ SRVSVCParseConfigFile(
     );
 
 DWORD
-SRVSVCParseDays(
+SrvSvcParseDays(
     PCSTR  pszTimeInterval,
     PDWORD pdwTimeInterval
     );
 
 DWORD
-SRVSVCParseDiskUsage(
+SrvSvcParseDiskUsage(
     PCSTR  pszDiskUsage,
     PDWORD pdwDiskUsage
     );
 
 DWORD
-SRVSVCParseMaxEntries(
+SrvSvcParseMaxEntries(
     PCSTR  pszMaxEntries,
     PDWORD pdwMaxEntries
     );
 
 DWORD
-SRVSVCRemoveFile(
+SrvSvcRemoveFile(
     PCSTR pszPath
     );
 
 DWORD
-SRVSVCCheckFileExists(
+SrvSvcCheckFileExists(
     PCSTR    pszPath,
     PBOOLEAN pbFileExists
     );
 
 DWORD
-SRVSVCMoveFile(
+SrvSvcMoveFile(
     PCSTR pszSrcPath,
     PCSTR pszDstPath
     );
 
 DWORD
-SRVSVCChangePermissions(
+SrvSvcChangePermissions(
     PCSTR pszPath,
     mode_t dwFileMode
     );
 
 DWORD
-SRVSVCChangeOwner(
+SrvSvcChangeOwner(
     PCSTR pszPath,
     uid_t uid,
     gid_t gid
     );
 
 DWORD
-SRVSVCChangeOwnerAndPermissions(
+SrvSvcChangeOwnerAndPermissions(
     PCSTR pszPath,
     uid_t uid,
     gid_t gid,
@@ -327,40 +327,40 @@ SRVSVCChangeOwnerAndPermissions(
     );
 
 DWORD
-SRVSVCGetCurrentDirectoryPath(
+SrvSvcGetCurrentDirectoryPath(
     PSTR* ppszPath
     );
 
 DWORD
-SRVSVCChangeDirectory(
+SrvSvcChangeDirectory(
     PCSTR pszPath
     );
 
 DWORD
-SRVSVCRemoveDirectory(
+SrvSvcRemoveDirectory(
     PCSTR pszPath
     );
 
 DWORD
-SRVSVCGetFileSize(
+SrvSvcGetFileSize(
 	PCSTR pszPath,
 	PDWORD pdwFileSize
 	);
 
 DWORD
-SRVSVCCheckDirectoryExists(
+SrvSvcCheckDirectoryExists(
     PCSTR pszPath,
     PBOOLEAN pbDirExists
     );
 
 DWORD
-SRVSVCCreateDirectory(
+SrvSvcCreateDirectory(
     PCSTR pszPath,
     mode_t dwFileMode
     );
 
 DWORD
-SRVSVCGetHostname(
+SrvSvcGetHostname(
     PSTR* ppszHostname
     );
 
@@ -369,14 +369,14 @@ extern DWORD   gLogLevel;
 extern LOGINFO gSrvSvcLogInfo;
 
 VOID
-SRVSVCLogMessage(
+SrvSvcLogMessage(
     DWORD dwLogLevel,
     PCSTR pszFormat,
     ...
     );
 
 DWORD
-SRVSVCInitLoggingToSyslog(
+SrvSvcInitLoggingToSyslog(
     DWORD dwLogLevel,
     PCSTR pszIdentifier,
     DWORD dwOption,
@@ -384,18 +384,18 @@ SRVSVCInitLoggingToSyslog(
     );
 
 DWORD
-SRVSVCSetLogLevel(
+SrvSvcSetLogLevel(
     DWORD dwLogLevel
     );
 
 DWORD
-SRVSVCInitLoggingToFile(
+SrvSvcInitLoggingToFile(
     DWORD dwLogLevel,
     PCSTR pszLogFilePath
     );
 
 VOID
-SRVSVCCloseLog(
+SrvSvcCloseLog(
     VOID
     );
 

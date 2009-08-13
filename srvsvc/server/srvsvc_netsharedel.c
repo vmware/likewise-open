@@ -97,7 +97,7 @@ SrvSvcNetShareDel(
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = SRVSVCAllocateMemory(
+    dwError = SrvSvcAllocateMemory(
                         dwOutLength,
                         &pOutBuffer
                         );
@@ -153,7 +153,7 @@ cleanup:
     }
 
     if(pInBuffer) {
-        SrvSvcFreeMemory(pInBuffer);
+        SrvSvcSrvFreeMemory(pInBuffer);
     }
 
     RTL_FREE(&smbpath);
@@ -163,7 +163,7 @@ cleanup:
 
 error:
     if (pOutBuffer) {
-        SrvSvcFreeMemory(pOutBuffer);
+        SrvSvcSrvFreeMemory(pOutBuffer);
     }
 
     goto cleanup;

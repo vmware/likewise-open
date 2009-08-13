@@ -161,7 +161,7 @@ SrvSvcNetShareGetInfo(
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = SRVSVCAllocateMemory(
+    dwError = SrvSvcAllocateMemory(
                     dwOutLength,
                     (void**)&pOutBuffer
                     );
@@ -182,10 +182,10 @@ SrvSvcNetShareGetInfo(
     while (ntStatus == STATUS_MORE_ENTRIES) {
         /* We need more space in output buffer to make this call */
 
-        SrvSvcFreeMemory((void*)pOutBuffer);
+        SrvSvcSrvFreeMemory((void*)pOutBuffer);
         dwOutLength *= 2;
 
-        dwError = SRVSVCAllocateMemory(
+        dwError = SrvSvcAllocateMemory(
                         dwOutLength,
                         (void**)&pOutBuffer
                         );
@@ -246,16 +246,16 @@ cleanup:
         NtCloseFile(FileHandle);
     }
 
-    if(pInBuffer) {
-        SrvSvcFreeMemory(pInBuffer);
+    if (pInBuffer) {
+        SrvSvcSrvFreeMemory(pInBuffer);
     }
 
     if (pOutBuffer) {
-        SrvSvcFreeMemory(pOutBuffer);
+        SrvSvcSrvFreeMemory(pOutBuffer);
     }
 
     if (pGetParamsOut) {
-        SrvSvcFreeMemory(pGetParamsOut);
+        SrvSvcSrvFreeMemory(pGetParamsOut);
     }
 
     RTL_FREE(&smbpath);

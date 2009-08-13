@@ -43,7 +43,7 @@
 
 
 DWORD
-SRVSVCRemoveFile(
+SrvSvcRemoveFile(
     PCSTR pszPath
     )
 {
@@ -67,7 +67,7 @@ error:
 }
 
 DWORD
-SRVSVCCheckFileExists(
+SrvSvcCheckFileExists(
     PCSTR pszPath,
     PBOOLEAN pbFileExists
     )
@@ -100,7 +100,7 @@ error:
 }
 
 DWORD
-SRVSVCGetFileSize(
+SrvSvcGetFileSize(
     PCSTR pszPath,
     PDWORD pdwFileSize
     )
@@ -133,7 +133,7 @@ error:
 }
 
 DWORD
-SRVSVCMoveFile(
+SrvSvcMoveFile(
     PCSTR pszSrcPath,
     PCSTR pszDstPath
     )
@@ -148,7 +148,7 @@ SRVSVCMoveFile(
 }
 
 DWORD
-SRVSVCChangePermissions(
+SrvSvcChangePermissions(
     PCSTR pszPath,
     mode_t dwFileMode
     )
@@ -173,7 +173,7 @@ error:
 }
 
 DWORD
-SRVSVCChangeOwner(
+SrvSvcChangeOwner(
     PCSTR pszPath,
     uid_t uid,
     gid_t gid
@@ -199,7 +199,7 @@ error:
 }
 
 DWORD
-SRVSVCChangeOwnerAndPermissions(
+SrvSvcChangeOwnerAndPermissions(
     PCSTR pszPath,
     uid_t uid,
     gid_t gid,
@@ -208,10 +208,10 @@ SRVSVCChangeOwnerAndPermissions(
 {
     DWORD dwError = 0;
 
-    dwError = SRVSVCChangeOwner(pszPath, uid, gid);
+    dwError = SrvSvcChangeOwner(pszPath, uid, gid);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
-    dwError = SRVSVCChangePermissions(pszPath, dwFileMode);
+    dwError = SrvSvcChangePermissions(pszPath, dwFileMode);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
 error:
@@ -220,7 +220,7 @@ error:
 }
 
 DWORD
-SRVSVCChangeDirectory(
+SrvSvcChangeDirectory(
     PCSTR pszPath
     )
 {
@@ -237,7 +237,7 @@ SRVSVCChangeDirectory(
 // TODO: Check access and removability before actual deletion
 */
 DWORD
-SRVSVCRemoveDirectory(
+SrvSvcRemoveDirectory(
     PCSTR pszPath
     )
 {
@@ -268,7 +268,7 @@ SRVSVCRemoveDirectory(
         }
 
         if ((statbuf.st_mode & S_IFMT) == S_IFDIR) {
-            dwError = SRVSVCRemoveDirectory(szBuf);
+            dwError = SrvSvcRemoveDirectory(szBuf);
             BAIL_ON_SRVSVC_ERROR(dwError);
 
             if (rmdir(szBuf) < 0) {
@@ -278,7 +278,7 @@ SRVSVCRemoveDirectory(
 
         } else {
 
-            dwError = SRVSVCRemoveFile(szBuf);
+            dwError = SrvSvcRemoveFile(szBuf);
             BAIL_ON_SRVSVC_ERROR(dwError);
 
         }
@@ -293,7 +293,7 @@ error:
 }
 
 DWORD
-SRVSVCCheckDirectoryExists(
+SrvSvcCheckDirectoryExists(
     PCSTR pszPath,
     PBOOLEAN pbDirExists
     )
@@ -334,7 +334,7 @@ error:
 }
 
 DWORD
-SRVSVCGetCurrentDirectoryPath(
+SrvSvcGetCurrentDirectoryPath(
     PSTR* ppszPath
     )
 {
@@ -347,7 +347,7 @@ SRVSVCGetCurrentDirectoryPath(
         BAIL_ON_SRVSVC_ERROR(dwError);
     }
 
-    dwError = SRVSVCAllocateString(szBuf, &pszPath);
+    dwError = SrvSvcAllocateString(szBuf, &pszPath);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     *ppszPath = pszPath;
@@ -357,7 +357,7 @@ SRVSVCGetCurrentDirectoryPath(
 error:
 
     if (pszPath) {
-        SRVSVCFreeString(pszPath);
+        SrvSvcFreeString(pszPath);
     }
 
     return dwError;
@@ -365,7 +365,7 @@ error:
 
 static
 DWORD
-SRVSVCCreateDirectoryRecursive(
+SrvSvcCreateDirectoryRecursive(
     PCSTR pszCurDirPath,
     PSTR pszTmpPath,
     PSTR *ppszTmp,
@@ -384,7 +384,7 @@ SRVSVCCreateDirectoryRecursive(
 
     if (pszToken != NULL) {
 
-        dwError = SRVSVCAllocateMemory(strlen(pszCurDirPath)+strlen(pszToken)+2,
+        dwError = SrvSvcAllocateMemory(strlen(pszCurDirPath)+strlen(pszToken)+2,
                                     (PVOID*)&pszDirPath);
         BAIL_ON_SRVSVC_ERROR(dwError);
 
@@ -393,7 +393,7 @@ SRVSVCCreateDirectoryRecursive(
                 (!strcmp(pszCurDirPath, "/") ? "" : pszCurDirPath),
                 pszToken);
 
-        dwError = SRVSVCCheckDirectoryExists(pszDirPath, &bDirExists);
+        dwError = SrvSvcCheckDirectoryExists(pszDirPath, &bDirExists);
         BAIL_ON_SRVSVC_ERROR(dwError);
 
         if (!bDirExists) {
@@ -404,10 +404,10 @@ SRVSVCCreateDirectoryRecursive(
             bDirCreated = TRUE;
         }
 
-        dwError = SRVSVCChangeDirectory(pszDirPath);
+        dwError = SrvSvcChangeDirectory(pszDirPath);
         BAIL_ON_SRVSVC_ERROR(dwError);
 
-        dwError = SRVSVCCreateDirectoryRecursive(
+        dwError = SrvSvcCreateDirectoryRecursive(
             pszDirPath,
             pszTmpPath,
             ppszTmp,
@@ -419,11 +419,11 @@ SRVSVCCreateDirectoryRecursive(
     }
 
     if (bDirCreated && (dwFileMode != dwWorkingFileMode)) {
-        dwError = SRVSVCChangePermissions(pszDirPath, dwFileMode);
+        dwError = SrvSvcChangePermissions(pszDirPath, dwFileMode);
         BAIL_ON_SRVSVC_ERROR(dwError);
     }
     if (pszDirPath) {
-        SRVSVCFreeMemory(pszDirPath);
+        SrvSvcFreeMemory(pszDirPath);
     }
 
     return dwError;
@@ -431,18 +431,18 @@ SRVSVCCreateDirectoryRecursive(
 error:
 
     if (bDirCreated) {
-        SRVSVCRemoveDirectory(pszDirPath);
+        SrvSvcRemoveDirectory(pszDirPath);
     }
 
     if (pszDirPath) {
-        SRVSVCFreeMemory(pszDirPath);
+        SrvSvcFreeMemory(pszDirPath);
     }
 
     return dwError;
 }
 
 DWORD
-SRVSVCCreateDirectory(
+SrvSvcCreateDirectory(
     PCSTR pszPath,
     mode_t dwFileMode
     )
@@ -467,22 +467,26 @@ SRVSVCCreateDirectory(
         dwWorkingFileMode |= S_IXUSR;
     }
 
-    dwError = SRVSVCGetCurrentDirectoryPath(&pszCurDirPath);
+    dwError = SrvSvcGetCurrentDirectoryPath(&pszCurDirPath);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
-    dwError = SRVSVCAllocateString(pszPath, &pszTmpPath);
+    dwError = SrvSvcAllocateString(pszPath, &pszTmpPath);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     if (*pszPath == '/') {
-        dwError = SRVSVCChangeDirectory("/");
+        dwError = SrvSvcChangeDirectory("/");
         BAIL_ON_SRVSVC_ERROR(dwError);
 
-        dwError = SRVSVCCreateDirectoryRecursive("/", pszTmpPath, &pszTmp, dwFileMode, dwWorkingFileMode, 0);
+        dwError = SrvSvcCreateDirectoryRecursive("/", pszTmpPath, &pszTmp,
+						 dwFileMode, dwWorkingFileMode,
+						 0);
         BAIL_ON_SRVSVC_ERROR(dwError);
 
     } else {
 
-        dwError = SRVSVCCreateDirectoryRecursive(pszCurDirPath, pszTmpPath, &pszTmp, dwFileMode, dwWorkingFileMode, 0);
+        dwError = SrvSvcCreateDirectoryRecursive(pszCurDirPath, pszTmpPath,
+						 &pszTmp, dwFileMode,
+						 dwWorkingFileMode, 0);
         BAIL_ON_SRVSVC_ERROR(dwError);
 
     }
@@ -491,14 +495,14 @@ error:
 
     if (pszCurDirPath) {
 
-        SRVSVCChangeDirectory(pszCurDirPath);
+        SrvSvcChangeDirectory(pszCurDirPath);
 
-        SRVSVCFreeMemory(pszCurDirPath);
+        SrvSvcFreeMemory(pszCurDirPath);
 
     }
 
     if (pszTmpPath) {
-        SRVSVCFreeMemory(pszTmpPath);
+        SrvSvcFreeMemory(pszTmpPath);
     }
 
     return dwError;

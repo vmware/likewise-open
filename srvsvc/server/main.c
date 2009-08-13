@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -64,13 +64,13 @@ SRVSVCSERVERINFO gServerInfo =
 
 static
 DWORD
-SRVSVCGetProcessExitCode(
+SrvSvcGetProcessExitCode(
     PDWORD pdwExitCode
     );
 
 static
 void
-SRVSVCExitHandler(
+SrvSvcExitHandler(
     void
     )
 {
@@ -81,20 +81,20 @@ SRVSVCExitHandler(
     BOOLEAN  bFileExists = 0;
     FILE* fp = NULL;
 
-    dwError = SRVSVCGetCachePath(&pszCachePath);
+    dwError = SrvSvcGetCachePath(&pszCachePath);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     sprintf(szErrCodeFilePath, "%s/srvsvcd.err", pszCachePath);
 
-    dwError = SRVSVCCheckFileExists(szErrCodeFilePath, &bFileExists);
+    dwError = SrvSvcCheckFileExists(szErrCodeFilePath, &bFileExists);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     if (bFileExists) {
-        dwError = SRVSVCRemoveFile(szErrCodeFilePath);
+        dwError = SrvSvcRemoveFile(szErrCodeFilePath);
         BAIL_ON_SRVSVC_ERROR(dwError);
     }
 
-    dwError = SRVSVCGetProcessExitCode(&dwExitCode);
+    dwError = SrvSvcGetProcessExitCode(&dwExitCode);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     if (dwExitCode) {
@@ -109,7 +109,7 @@ SRVSVCExitHandler(
 error:
 
     if (pszCachePath) {
-        SRVSVCFreeString(pszCachePath);
+        SrvSvcFreeString(pszCachePath);
     }
 
     if (fp != NULL) {
@@ -142,7 +142,7 @@ get_program_name(
 }
 
 BOOLEAN
-SRVSVCProcessShouldExit()
+SrvSvcProcessShouldExit()
 {
     BOOLEAN bResult = 0;
 
@@ -156,7 +156,7 @@ SRVSVCProcessShouldExit()
 }
 
 void
-SRVSVCSetProcessShouldExit(
+SrvSvcSetProcessShouldExit(
     BOOLEAN val
     )
 {
@@ -168,7 +168,7 @@ SRVSVCSetProcessShouldExit(
 }
 
 DWORD
-SRVSVCGetProcessExitCode(
+SrvSvcGetProcessExitCode(
     PDWORD pdwExitCode
     )
 {
@@ -184,7 +184,7 @@ SRVSVCGetProcessExitCode(
 }
 
 void
-SRVSVCSetProcessExitCode(
+SrvSvcSetProcessExitCode(
     DWORD dwExitCode
     )
 {
@@ -196,7 +196,7 @@ SRVSVCSetProcessExitCode(
 }
 
 DWORD
-SRVSVCGetCachePath(
+SrvSvcGetCachePath(
     PSTR* ppszPath
     )
 {
@@ -204,7 +204,7 @@ SRVSVCGetCachePath(
 
     SRVSVC_LOCK_SERVERINFO;
 
-    dwError = SRVSVCAllocateString(gServerInfo.szCachePath, ppszPath);
+    dwError = SrvSvcAllocateString(gServerInfo.szCachePath, ppszPath);
 
     SRVSVC_UNLOCK_SERVERINFO;
 
@@ -212,7 +212,7 @@ SRVSVCGetCachePath(
 }
 
 DWORD
-SRVSVCGetConfigPath(
+SrvSvcGetConfigPath(
     PSTR* ppszPath
     )
 {
@@ -220,7 +220,7 @@ SRVSVCGetConfigPath(
 
     SRVSVC_LOCK_SERVERINFO;
 
-    dwError = SRVSVCAllocateString(gServerInfo.szConfigFilePath, ppszPath);
+    dwError = SrvSvcAllocateString(gServerInfo.szConfigFilePath, ppszPath);
 
     SRVSVC_UNLOCK_SERVERINFO;
 
@@ -228,7 +228,7 @@ SRVSVCGetConfigPath(
 }
 
 DWORD
-SRVSVCGetPrefixPath(
+SrvSvcGetPrefixPath(
     PSTR* ppszPath
     )
 {
@@ -236,7 +236,7 @@ SRVSVCGetPrefixPath(
 
     SRVSVC_LOCK_SERVERINFO;
 
-    dwError = SRVSVCAllocateString(gServerInfo.szPrefixPath, ppszPath);
+    dwError = SrvSvcAllocateString(gServerInfo.szPrefixPath, ppszPath);
 
     SRVSVC_UNLOCK_SERVERINFO;
 
@@ -244,7 +244,7 @@ SRVSVCGetPrefixPath(
 }
 
 void
-SRVSVCUnlockServerInfo()
+SrvSvcUnlockServerInfo()
 {
     SRVSVC_UNLOCK_SERVERINFO;
 }
@@ -281,7 +281,7 @@ get_server_info_r(
 
 static
 DWORD
-SRVSVCParseArgs(
+SrvSvcParseArgs(
     int argc,
     PSTR argv[],
     PSRVSVCSERVERINFO pSRVSVCServerInfo
@@ -374,7 +374,7 @@ SRVSVCParseArgs(
 
 static
 DWORD
-SRVSVCStartAsDaemon()
+SrvSvcStartAsDaemon()
 {
     DWORD dwError = 0;
     pid_t pid;
@@ -488,7 +488,7 @@ pid_from_pid_file()
 
 static
 void
-SRVSVCCreatePIDFile()
+SrvSvcCreatePIDFile()
 {
     int result = -1;
     pid_t pid;
@@ -537,7 +537,7 @@ SRVSVCCreatePIDFile()
 
 static
 DWORD
-SRVSVCSetConfigDefaults()
+SrvSvcSetConfigDefaults()
 {
     DWORD dwError = 0;
 
@@ -550,7 +550,7 @@ SRVSVCSetConfigDefaults()
 
 static
 DWORD
-SRVSVCSetServerDefaults()
+SrvSvcSetServerDefaults()
 {
     DWORD dwError = 0;
 
@@ -567,14 +567,14 @@ SRVSVCSetServerDefaults()
 
     SRVSVC_UNLOCK_SERVERINFO;
 
-    dwError = SRVSVCSetConfigDefaults();
+    dwError = SrvSvcSetConfigDefaults();
 
     return dwError;
 }
 
 static
 void
-SRVSVCBlockSelectedSignals()
+SrvSvcBlockSelectedSignals()
 {
     sigset_t default_signal_mask;
     sigset_t old_signal_mask;
@@ -591,27 +591,27 @@ SRVSVCBlockSelectedSignals()
 
 static
 DWORD
-SRVSVCInitLogging(
+SrvSvcInitLogging(
     PSTR pszProgramName
     )
 {
     if (gServerInfo.dwStartAsDaemon) {
 
-        return SRVSVCInitLoggingToSyslog(gServerInfo.dwLogLevel,
+        return SrvSvcInitLoggingToSyslog(gServerInfo.dwLogLevel,
                                       pszProgramName,
                                       LOG_PID,
                                       LOG_DAEMON);
     }
     else
     {
-        return SRVSVCInitLoggingToFile(gServerInfo.dwLogLevel,
-                                    gServerInfo.szLogFilePath);
+        return SrvSvcInitLoggingToFile(gServerInfo.dwLogLevel,
+				       gServerInfo.szLogFilePath);
     }
 }
 
 static
 DWORD
-SRVSVCStopSignalHandler()
+SrvSvcStopSignalHandler()
 {
     DWORD dwError = 0;
     uint32_t status = 0;
@@ -628,7 +628,7 @@ SRVSVCStopSignalHandler()
 
 /* call back functions to get the values from config file */
 DWORD
-SRVSVCConfigStartSection(
+SrvSvcConfigStartSection(
     PCSTR    pszSectionName,
     PBOOLEAN pbSkipSection,
     PBOOLEAN pbContinue
@@ -636,7 +636,7 @@ SRVSVCConfigStartSection(
 {
 
     //This callback may not be required,retaining it for future
-    SRVSVC_LOG_VERBOSE("SRVSVCConfigStartSection: SECTION Name=%s", pszSectionName);
+    SRVSVC_LOG_VERBOSE("SrvSvcConfigStartSection: SECTION Name=%s", pszSectionName);
 
     *pbSkipSection = FALSE;
     *pbContinue = TRUE;
@@ -645,13 +645,13 @@ SRVSVCConfigStartSection(
 }
 
 DWORD
-SRVSVCConfigComment(
+SrvSvcConfigComment(
     PCSTR    pszComment,
     PBOOLEAN pbContinue
     )
 {
     //This callback may not be required,retaining it for future
-    SRVSVC_LOG_VERBOSE("SRVSVCConfigComment: %s",
+    SRVSVC_LOG_VERBOSE("SrvSvcConfigComment: %s",
         (IsNullOrEmptyString(pszComment) ? "" : pszComment));
 
     *pbContinue = TRUE;
@@ -660,7 +660,7 @@ SRVSVCConfigComment(
 }
 
 DWORD
-SRVSVCConfigNameValuePair(
+SrvSvcConfigNameValuePair(
     PCSTR    pszName,
     PCSTR    pszValue,
     PBOOLEAN pbContinue
@@ -668,10 +668,10 @@ SRVSVCConfigNameValuePair(
 {
 
     //strip the white spaces
-    SRVSVCStripWhitespace((PSTR)pszName,1,1);
-    SRVSVCStripWhitespace((PSTR)pszValue,1,1);
+    SrvSvcStripWhitespace((PSTR)pszName,1,1);
+    SrvSvcStripWhitespace((PSTR)pszValue,1,1);
 
-    SRVSVC_LOG_INFO("SRVSVCConfigNameValuePair: NAME=%s, VALUE=%s",
+    SRVSVC_LOG_INFO("SrvSvcConfigNameValuePair: NAME=%s, VALUE=%s",
         (IsNullOrEmptyString(pszName) ? "" : pszName),
         (IsNullOrEmptyString(pszValue) ? "" : pszValue));
 
@@ -681,13 +681,13 @@ SRVSVCConfigNameValuePair(
 }
 
 DWORD
-SRVSVCConfigEndSection(
+SrvSvcConfigEndSection(
     PCSTR pszSectionName,
     PBOOLEAN pbContinue
     )
 {
     //This callback may not be required,retaining it for future
-    SRVSVC_LOG_VERBOSE("SRVSVCConfigEndSection: SECTION Name=%s", pszSectionName);
+    SRVSVC_LOG_VERBOSE("SrvSvcConfigEndSection: SECTION Name=%s", pszSectionName);
 
     *pbContinue = TRUE;
 
@@ -697,29 +697,29 @@ SRVSVCConfigEndSection(
 
 static
 DWORD
-SRVSVCReadConfigSettings()
+SrvSvcReadConfigSettings()
 {
     DWORD dwError = 0;
     PSTR pszConfigFilePath = NULL;
 
     SRVSVC_LOG_INFO("Read Likewise Server Service configuration settings");
 
-    dwError = SRVSVCSetConfigDefaults();
+    dwError = SrvSvcSetConfigDefaults();
     BAIL_ON_SRVSVC_ERROR(dwError);
 
-    dwError = SRVSVCGetConfigPath(&pszConfigFilePath);
+    dwError = SrvSvcGetConfigPath(&pszConfigFilePath);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
-    dwError = SRVSVCParseConfigFile(
+    dwError = SrvSvcParseConfigFile(
                 pszConfigFilePath,
-                &SRVSVCConfigStartSection,
-                &SRVSVCConfigComment,
-                &SRVSVCConfigNameValuePair,
-                &SRVSVCConfigEndSection);
+                &SrvSvcConfigStartSection,
+                &SrvSvcConfigComment,
+                &SrvSvcConfigNameValuePair,
+                &SrvSvcConfigEndSection);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     if (pszConfigFilePath) {
-        SRVSVCFreeString(pszConfigFilePath);
+        SrvSvcFreeString(pszConfigFilePath);
         pszConfigFilePath = NULL;
     }
 
@@ -730,7 +730,7 @@ cleanup:
 error:
 
     if (pszConfigFilePath) {
-        SRVSVCFreeString(pszConfigFilePath);
+        SrvSvcFreeString(pszConfigFilePath);
     }
 
     goto cleanup;
@@ -739,7 +739,7 @@ error:
 
 static
 VOID
-SRVSVCInterruptHandler(
+SrvSvcInterruptHandler(
     int Signal
     )
 {
@@ -751,13 +751,14 @@ SRVSVCInterruptHandler(
 
 static
 PVOID
-SRVSVCHandleSignals(
+SrvSvcHandleSignals(
     PVOID pArg
     )
 {
     DWORD dwError = 0;
     struct sigaction action;
     sigset_t catch_signal_mask;
+    sigset_t old_signal_mask;
     int which_signal = 0;
     int sysRet = 0;
     unsigned32 status = 0;
@@ -769,7 +770,7 @@ SRVSVCHandleSignals(
     // http://bugzilla.kernel.org/show_bug.cgi?id=9039.
 
     memset(&action, 0, sizeof(action));
-    action.sa_handler = SRVSVCInterruptHandler;
+    action.sa_handler = SrvSvcInterruptHandler;
 
     sysRet = sigaction(SIGINT, &action, NULL);
     dwError = (sysRet != 0) ? errno : 0;
@@ -789,6 +790,9 @@ SRVSVCHandleSignals(
     sigaddset(&catch_signal_mask, SIGHUP);
     sigaddset(&catch_signal_mask, SIGPIPE);
 
+    dwError = pthread_sigmask(SIG_BLOCK, &catch_signal_mask, &old_signal_mask);
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
     while (1)
     {
         /* Wait for a signal to arrive */
@@ -801,7 +805,7 @@ SRVSVCHandleSignals(
             case SIGTERM:
             {
                 rpc_mgmt_stop_server_listening(NULL, &status);
-                SRVSVCSetProcessShouldExit(TRUE);
+                SrvSvcSetProcessShouldExit(TRUE);
 
                 break;
             }
@@ -814,7 +818,7 @@ SRVSVCHandleSignals(
             }
             case SIGHUP:
             {
-                dwError = SRVSVCReadConfigSettings();
+                dwError = SrvSvcReadConfigSettings();
                 BAIL_ON_SRVSVC_ERROR(dwError);
 
                 break;
@@ -838,13 +842,13 @@ error:
  */
 static
 DWORD
-SRVSVCStartSignalHandler()
+SrvSvcStartSignalHandler()
 {
     DWORD dwError = 0;
 
     dwError = pthread_create(&gSignalHandlerThread,
                              NULL,
-                             SRVSVCHandleSignals,
+                             SrvSvcHandleSignals,
                              NULL);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
@@ -874,10 +878,10 @@ main(
     static const DWORD dwMaxBindAttempts = 5;
     static const DWORD dwBindSleepSeconds = 5;
 
-    dwError = SRVSVCSetServerDefaults();
+    dwError = SrvSvcSetServerDefaults();
     BAIL_ON_SRVSVC_ERROR(dwError);
 
-    dwError = SRVSVCParseArgs(
+    dwError = SrvSvcParseArgs(
                     argc,
                     argv,
                     &gServerInfo
@@ -886,32 +890,33 @@ main(
 
     if (gServerInfo.dwStartAsDaemon) {
 
-        dwError = SRVSVCStartAsDaemon();
+        dwError = SrvSvcStartAsDaemon();
         BAIL_ON_SRVSVC_ERROR(dwError);
     }
 
-    if (atexit(SRVSVCExitHandler) < 0) {
+    if (atexit(SrvSvcExitHandler) < 0) {
         dwError = errno;
         BAIL_ON_SRVSVC_ERROR(dwError);
     }
 
-    SRVSVCCreatePIDFile();
+    SrvSvcCreatePIDFile();
 
-    dwError = SRVSVCInitLogging(get_program_name(argv[0]));
+    dwError = SrvSvcInitLogging(get_program_name(argv[0]));
     BAIL_ON_SRVSVC_ERROR(dwError);
 
-    SRVSVCBlockSelectedSignals();
+    SrvSvcBlockSelectedSignals();
 
     /* Binding to our RPC endpoint might fail if dcerpcd is not
        yet ready when we start, so attempt it in a loop with
        a small delay between attempts */
     for (dwBindAttempts = 0; dwBindAttempts < dwMaxBindAttempts; dwBindAttempts++)
     {
-        dwError = SRVSVCRegisterForRPC("Likewise Server Service",
-                                    &pServerBinding);
+        dwError = SrvSvcRegisterForRPC("Likewise Server Service",
+				       &pServerBinding);
         if (dwError)
         {
-            SRVSVC_LOG_INFO("Failed to bind srvsvc endpoint; retrying in %i seconds...", (int) dwBindSleepSeconds);
+            SRVSVC_LOG_INFO("Failed to bind srvsvc endpoint; retrying in "
+			    "%i seconds...", (int) dwBindSleepSeconds);
             sleep(dwBindSleepSeconds);
         }
         else
@@ -927,10 +932,11 @@ main(
     for (dwBindAttempts = 0; dwBindAttempts < dwMaxBindAttempts; dwBindAttempts++)
     {
         dwError = WKSSVCRegisterForRPC("Likewise Workstation Service",
-                                    &pWkstaBinding);
+				       &pWkstaBinding);
         if (dwError)
         {
-            SRVSVC_LOG_INFO("Failed to bind wkssvc endpoint; retrying in %i seconds...", (int) dwBindSleepSeconds);
+            SRVSVC_LOG_INFO("Failed to bind wkssvc endpoint; retrying in "
+			    "%i seconds...", (int) dwBindSleepSeconds);
             sleep(dwBindSleepSeconds);
         }
         else
@@ -941,17 +947,17 @@ main(
     /* Bail if we still haven't succeeded after several attempts */
     BAIL_ON_SRVSVC_ERROR(dwError);
 
-    dwError = SRVSVCReadConfigSettings();
+    dwError = SrvSvcReadConfigSettings();
     if (dwError != 0)
     {
         SRVSVC_LOG_ERROR("Failed to read srvsvcd config file.  Error code: [%u]\n", dwError);
         dwError = 0;
     }
 
-    dwError = SRVSVCStartSignalHandler();
+    dwError = SrvSvcStartSignalHandler();
     BAIL_ON_SRVSVC_ERROR(dwError);
 
-    dwError = SRVSVCListenForRPC();
+    dwError = SrvSvcListenForRPC();
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     SRVSVC_LOG_INFO("Likewise Server Service exiting...");
@@ -961,22 +967,22 @@ main(
     /*
      * Indicate that the process is exiting
      */
-    SRVSVCSetProcessShouldExit(TRUE);
+    SrvSvcSetProcessShouldExit(TRUE);
 
-    SRVSVCStopSignalHandler();
+    SrvSvcStopSignalHandler();
 
     if (pServerBinding) {
-        SRVSVCUnregisterForRPC(pServerBinding);
+        SrvSvcUnregisterForRPC(pServerBinding);
     }
     if (pWkstaBinding) {
         WKSSVCUnregisterForRPC(pWkstaBinding);
     }
 
-    SRVSVCCloseLog();
+    SrvSvcCloseLog();
 
-    SRVSVCSetConfigDefaults();
+    SrvSvcSetConfigDefaults();
 
-    SRVSVCSetProcessExitCode(dwError);
+    SrvSvcSetProcessExitCode(dwError);
 
     exit (dwError);
 
@@ -986,3 +992,13 @@ error:
 
     goto cleanup;
 }
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

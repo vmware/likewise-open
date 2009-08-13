@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -43,11 +43,11 @@
 #include "includes.h"
 
 DWORD
-SRVSVCStrndup(
+SrvSvcStrndup(
     PCSTR pszInputString,
     size_t size,
     PSTR * ppszOutputString
-)
+    )
 {
     DWORD dwError = 0;
     size_t copylen = 0;
@@ -62,7 +62,7 @@ SRVSVCStrndup(
     if (copylen > size)
         copylen = size;
 
-    dwError = SRVSVCAllocateMemory(copylen+1, (PVOID *)&pszOutputString);
+    dwError = SrvSvcAllocateMemory(copylen+1, (PVOID *)&pszOutputString);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     memcpy(pszOutputString, pszInputString, copylen);
@@ -100,9 +100,8 @@ TableCategoryToStr(
 }
 
 
-
 BOOLEAN
-SRVSVCIsWhiteSpace(
+SrvSvcIsWhiteSpace(
     char c
     )
 {
@@ -120,7 +119,7 @@ SRVSVCIsWhiteSpace(
 
 /* modify PSTR in-place to conver sequences of whitespace characters into single spaces (0x20) */
 DWORD
-SRVSVCCompressWhitespace(
+SrvSvcCompressWhitespace(
     PSTR pszString
     )
 {
@@ -137,7 +136,7 @@ SRVSVCCompressWhitespace(
 
     for (i = 0; i < pszStringLen; i++) {
 
-    if (SRVSVCIsWhiteSpace(pszString[i])) {
+    if (SrvSvcIsWhiteSpace(pszString[i])) {
         if (!whitespace) {
         whitespace = true;
         pszString[j++] = ' ';
@@ -155,7 +154,7 @@ SRVSVCCompressWhitespace(
 
 /* convert a 16-bit string to an 8-bit string, allocating new memory in the process */
 DWORD
-SRVSVCLpwStrToLpStr(
+SrvSvcLpwStrToLpStr(
     PCWSTR pszwString,
     PSTR* ppszString
     )
@@ -174,7 +173,7 @@ SRVSVCLpwStrToLpStr(
 
     pszwStringLen = wc16slen(pszwString);
 
-    dwError = SRVSVCAllocateMemory(pszwStringLen+1, (PVOID*)ppszString);
+    dwError = SrvSvcAllocateMemory(pszwStringLen+1, (PVOID*)ppszString);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     pszString = *ppszString;
@@ -194,7 +193,7 @@ SRVSVCLpwStrToLpStr(
 }
 
 void
-SRVSVCStripLeadingWhitespace(
+SrvSvcStripLeadingWhitespace(
     PSTR pszString
     )
 {
@@ -216,7 +215,7 @@ SRVSVCStripLeadingWhitespace(
 }
 
 void
-SRVSVCStripTrailingWhitespace(
+SrvSvcStripTrailingWhitespace(
     PSTR pszString
     )
 {
@@ -238,7 +237,7 @@ SRVSVCStripTrailingWhitespace(
 }
 
 void
-SRVSVCStripWhitespace(
+SrvSvcStripWhitespace(
     PSTR pszString,
     BOOLEAN bLeading,
     BOOLEAN bTrailing
@@ -249,16 +248,16 @@ SRVSVCStripWhitespace(
     }
 
     if (bLeading) {
-        SRVSVCStripLeadingWhitespace(pszString);
+        SrvSvcStripLeadingWhitespace(pszString);
     }
 
     if (bTrailing) {
-        SRVSVCStripTrailingWhitespace(pszString);
+        SrvSvcStripTrailingWhitespace(pszString);
     }
 }
 
 void
-SRVSVCStrToUpper(
+SrvSvcStrToUpper(
     PSTR pszString
     )
 {
@@ -272,7 +271,7 @@ SRVSVCStrToUpper(
 }
 
 void
-SRVSVCStrToLower(
+SrvSvcStrToLower(
     PSTR pszString
     )
 {
@@ -286,7 +285,7 @@ SRVSVCStrToLower(
 }
 
 DWORD
-SRVSVCEscapeString(
+SrvSvcEscapeString(
     PSTR pszOrig,
     PSTR * ppszEscapedString
     )
@@ -311,14 +310,15 @@ SRVSVCEscapeString(
     }
 
     if (!nQuotes) {
-         dwError = SRVSVCAllocateString(pszOrig, &pszNew);
+         dwError = SrvSvcAllocateString(pszOrig, &pszNew);
          BAIL_ON_SRVSVC_ERROR(dwError);
     } else {
          /*
             * We are going to escape each single quote and enclose it in two other
             * single-quotes
             */
-         dwError = SRVSVCAllocateMemory( strlen(pszOrig)+3*nQuotes+1, (PVOID*)&pszNew );
+         dwError = SrvSvcAllocateMemory(strlen(pszOrig) + 3 * nQuotes + 1,
+					(PVOID*)&pszNew);
          BAIL_ON_SRVSVC_ERROR(dwError);
 
          pszTmp = pszOrig;
@@ -346,14 +346,14 @@ SRVSVCEscapeString(
 error:
 
     if (pszNew) {
-        SRVSVCFreeMemory(pszNew);
+        SrvSvcFreeMemory(pszNew);
     }
 
     return dwError;
 }
 
 DWORD
-SRVSVCAllocateStringPrintf(
+SrvSvcAllocateStringPrintf(
     PSTR* ppszOutputString,
     PCSTR pszFormat,
     ...
@@ -364,7 +364,7 @@ SRVSVCAllocateStringPrintf(
 
     va_start(args, pszFormat);
 
-    dwError = SRVSVCAllocateStringPrintfV(
+    dwError = SrvSvcAllocateStringPrintfV(
                       ppszOutputString,
                       pszFormat,
                       args);
@@ -375,7 +375,7 @@ SRVSVCAllocateStringPrintf(
 }
 
 DWORD
-SRVSVCAllocateStringPrintfV(
+SrvSvcAllocateStringPrintfV(
     PSTR*   ppszOutputString,
     PCSTR   pszFormat,
     va_list args
@@ -395,7 +395,7 @@ SRVSVCAllocateStringPrintfV(
     /* Use a small buffer in case libc does not like NULL */
     do
     {
-        dwError = SRVSVCAllocateMemory(
+        dwError = SrvSvcAllocateMemory(
                         dwBufsize,
                         (PVOID*) &pszSmallBuffer);
         BAIL_ON_SRVSVC_ERROR(dwError);
@@ -409,7 +409,7 @@ SRVSVCAllocateStringPrintfV(
         {
             dwBufsize *= 2;
         }
-        SRVSVCFreeMemory(pszSmallBuffer);
+        SrvSvcFreeMemory(pszSmallBuffer);
         pszSmallBuffer = NULL;
 
     } while (requiredLength < 0);
@@ -420,7 +420,7 @@ SRVSVCAllocateStringPrintfV(
         BAIL_ON_SRVSVC_ERROR(dwError);
     }
 
-    dwError = SRVSVCAllocateMemory(
+    dwError = SrvSvcAllocateMemory(
                     requiredLength + 2,
                     (PVOID*)&pszOutputString);
     BAIL_ON_SRVSVC_ERROR(dwError);
@@ -463,3 +463,12 @@ error:
     goto cleanup;
 }
 
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
