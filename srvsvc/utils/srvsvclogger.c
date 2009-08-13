@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -49,7 +49,7 @@ static PCSTR VERBOSE_TAG = "VERBOSE";
 static PCSTR LOG_TIME_FORMAT = "%Y%m%d%H%M%S";
 
 DWORD
-SRVSVCInitLoggingToSyslog(
+SrvSvcInitLoggingToSyslog(
     DWORD dwLogLevel,
     PCSTR pszIdentifier,
     DWORD dwOption,
@@ -60,7 +60,7 @@ SRVSVCInitLoggingToSyslog(
 
     SRVSVC_LOCK_LOGGER;
 
-    dwError = SRVSVCValidateLogLevel(dwLogLevel);
+    dwError = SrvSvcValidateLogLevel(dwLogLevel);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     gSrvSvcLogInfo.logTarget = LOG_TO_SYSLOG;
@@ -73,7 +73,7 @@ SRVSVCInitLoggingToSyslog(
 
     openlog(pszIdentifier, dwOption, dwFacility);
 
-    SRVSVCSetSyslogMask(dwLogLevel);
+    SrvSvcSetSyslogMask(dwLogLevel);
 
     gSrvSvcLogInfo.bLoggingInitiated = 1;
 
@@ -85,7 +85,7 @@ error:
 }
 
 VOID
-SRVSVCSetSyslogMask(
+SrvSvcSetSyslogMask(
     DWORD dwLogLevel
     )
 {
@@ -127,7 +127,7 @@ SRVSVCSetSyslogMask(
 }
 
 DWORD
-SRVSVCInitLoggingToFile(
+SrvSvcInitLoggingToFile(
      DWORD dwLogLevel,
      PCSTR  pszLogFilePath
      )
@@ -137,7 +137,7 @@ SRVSVCInitLoggingToFile(
 
     SRVSVC_LOCK_LOGGER;
 
-    dwError = SRVSVCValidateLogLevel(dwLogLevel);
+    dwError = SrvSvcValidateLogLevel(dwLogLevel);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     if (IsNullOrEmptyString(pszLogFilePath))
@@ -189,7 +189,7 @@ cleanup:
 
 
 DWORD
-SRVSVCSetLogLevel(
+SrvSvcSetLogLevel(
     DWORD dwLogLevel
     )
 {
@@ -197,7 +197,7 @@ SRVSVCSetLogLevel(
 
     SRVSVC_LOCK_LOGGER;
 
-    dwError = SRVSVCValidateLogLevel(dwLogLevel);
+    dwError = SrvSvcValidateLogLevel(dwLogLevel);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     gSrvSvcLogInfo.dwLogLevel = dwLogLevel;
@@ -210,7 +210,7 @@ error:
 }
 
 DWORD
-SRVSVCValidateLogLevel(
+SrvSvcValidateLogLevel(
     DWORD dwLogLevel
     )
 {
@@ -225,7 +225,7 @@ SRVSVCValidateLogLevel(
 }
 
 VOID
-SRVSVCLogMessage(
+SrvSvcLogMessage(
     DWORD dwLogLevel,
     PCSTR pszFormat,
     ...
@@ -250,7 +250,7 @@ SRVSVCLogMessage(
     {
         case LOG_TO_SYSLOG:
         {
-            SRVSVCLogToSyslog_InLock(
+            SrvSvcLogToSyslog_InLock(
                             dwLogLevel,
                             pszFormat,
                             argp);
@@ -259,7 +259,7 @@ SRVSVCLogMessage(
         case LOG_TO_FILE:
         case LOG_TO_CONSOLE:
         {
-            SRVSVCLogToFile_InLock(
+            SrvSvcLogToFile_InLock(
                             &gSrvSvcLogInfo.data.logfile,
                             dwLogLevel,
                             pszFormat,
@@ -278,7 +278,7 @@ cleanup:
 }
 
 VOID
-SRVSVCLogToFile_InLock(
+SrvSvcLogToFile_InLock(
     PLOGFILEINFO pLogInfo,
     DWORD        dwLogLevel,
     PCSTR        pszFormat,
@@ -344,7 +344,7 @@ SRVSVCLogToFile_InLock(
 }
 
 VOID
-SRVSVCLogToSyslog_InLock(
+SrvSvcLogToSyslog_InLock(
     DWORD   dwLogLevel,
     PCSTR   pszFormat,
     va_list msgList
@@ -384,7 +384,7 @@ SRVSVCLogToSyslog_InLock(
 }
 
 VOID
-SRVSVCCloseLog()
+SrvSvcCloseLog()
 {
     SRVSVC_LOCK_LOGGER;
 
@@ -416,3 +416,13 @@ cleanup:
 
     return;
 }
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

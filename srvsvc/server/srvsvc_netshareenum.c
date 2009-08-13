@@ -136,7 +136,7 @@ SrvSvcNetShareEnum(
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = SRVSVCAllocateMemory(
+    dwError = SrvSvcAllocateMemory(
                     dwOutLength,
                     (void**)&pOutBuffer
                     );
@@ -156,10 +156,10 @@ SrvSvcNetShareEnum(
     while (ntStatus == STATUS_MORE_ENTRIES) {
         /* We need more space in output buffer to make this call */
 
-        SrvSvcFreeMemory((void*)pOutBuffer);
+        SrvSvcSrvFreeMemory((void*)pOutBuffer);
         dwOutLength *= 2;
 
-        dwError = SRVSVCAllocateMemory(
+        dwError = SrvSvcAllocateMemory(
                         dwOutLength,
                         (void**)&pOutBuffer
                         );
@@ -191,7 +191,7 @@ SrvSvcNetShareEnum(
         ctr0 = ctr->ctr0;
         ctr0->count = pEnumParamsOut->dwNumEntries;
 
-        ntStatus = SRVSVCAllocateMemory(
+        ntStatus = SrvSvcAllocateMemory(
                             sizeof(*ctr0->array) * ctr0->count,
                             (void**)&ctr0->array
                             );
@@ -204,7 +204,7 @@ SrvSvcNetShareEnum(
         ctr1 = ctr->ctr1;
         ctr1->count = pEnumParamsOut->dwNumEntries;
 
-        ntStatus = SRVSVCAllocateMemory(
+        ntStatus = SrvSvcAllocateMemory(
                             sizeof(*ctr1->array) * ctr1->count,
                             (void**)&ctr1->array
                             );
@@ -217,7 +217,7 @@ SrvSvcNetShareEnum(
         ctr2 = ctr->ctr2;
         ctr2->count = pEnumParamsOut->dwNumEntries;
 
-        ntStatus = SRVSVCAllocateMemory(
+        ntStatus = SrvSvcAllocateMemory(
                             sizeof(*ctr2->array) * ctr2->count,
                             (void**)&ctr2->array
                             );
@@ -230,7 +230,7 @@ SrvSvcNetShareEnum(
         ctr501 = ctr->ctr501;
         ctr501->count = pEnumParamsOut->dwNumEntries;
 
-        ntStatus = SRVSVCAllocateMemory(
+        ntStatus = SrvSvcAllocateMemory(
                             sizeof(*ctr501->array) * ctr501->count,
                             (void**)&ctr501->array
                             );
@@ -243,7 +243,7 @@ SrvSvcNetShareEnum(
         ctr502 = ctr->ctr502;
         ctr502->count = pEnumParamsOut->dwNumEntries;
 
-        ntStatus = SRVSVCAllocateMemory(
+        ntStatus = SrvSvcAllocateMemory(
                             sizeof(*ctr502->array) * ctr502->count,
                             (void**)&ctr502->array
                             );
@@ -261,16 +261,16 @@ cleanup:
         NtCloseFile(FileHandle);
     }
 
-    if(pInBuffer) {
-        SrvSvcFreeMemory(pInBuffer);
+    if (pInBuffer) {
+        SrvSvcSrvFreeMemory(pInBuffer);
     }
 
     if (pOutBuffer) {
-        SrvSvcFreeMemory(pOutBuffer);
+        SrvSvcSrvFreeMemory(pOutBuffer);
     }
 
     if (pEnumParamsOut) {
-        SrvSvcFreeMemory(pEnumParamsOut);
+        SrvSvcSrvFreeMemory(pEnumParamsOut);
     }
 
     RTL_FREE(&smbpath);

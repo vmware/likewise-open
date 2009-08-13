@@ -167,38 +167,38 @@
  * Logging macros
  */
 #define SRVSVC_LOG_ALWAYS(szFmt...)                     \
-    SRVSVCLogMessage(LOG_LEVEL_ALWAYS, ## szFmt);
+    SrvSvcLogMessage(LOG_LEVEL_ALWAYS, ## szFmt);
 
 #define SRVSVC_LOG_ERROR(szFmt...)                         \
     if (gSrvSvcLogInfo.dwLogLevel >= LOG_LEVEL_ERROR) {    \
-        SRVSVCLogMessage(LOG_LEVEL_ERROR, ## szFmt);       \
+        SrvSvcLogMessage(LOG_LEVEL_ERROR, ## szFmt);       \
     }
 
 #define SRVSVC_LOG_WARNING(szFmt...)                       \
     if (gSrvSvcLogInfo.dwLogLevel >= LOG_LEVEL_WARNING) {  \
-        SRVSVCLogMessage(LOG_LEVEL_WARNING, ## szFmt);     \
+        SrvSvcLogMessage(LOG_LEVEL_WARNING, ## szFmt);     \
     }
 
 #define SRVSVC_LOG_INFO(szFmt...)                          \
     if (gSrvSvcLogInfo.dwLogLevel >= LOG_LEVEL_INFO)    {  \
-        SRVSVCLogMessage(LOG_LEVEL_INFO, ## szFmt);        \
+        SrvSvcLogMessage(LOG_LEVEL_INFO, ## szFmt);        \
     }
 
 #define SRVSVC_LOG_VERBOSE(szFmt...)                       \
     if (gSrvSvcLogInfo.dwLogLevel >= LOG_LEVEL_VERBOSE) {  \
-        SRVSVCLogMessage(LOG_LEVEL_VERBOSE, ## szFmt);     \
+        SrvSvcLogMessage(LOG_LEVEL_VERBOSE, ## szFmt);     \
     }
 
 #define SRVSVC_LOG_DEBUG(szFmt...)                         \
     if (gSrvSvcLogInfo.dwLogLevel >= LOG_LEVEL_VERBOSE) {  \
-        SRVSVCLogMessage(LOG_LEVEL_VERBOSE, ## szFmt);     \
+        SrvSvcLogMessage(LOG_LEVEL_VERBOSE, ## szFmt);     \
     }
 
 
 #define SRVSVC_SAFE_FREE_MEMORY(mem)  \
     do {                              \
         if (mem) {                    \
-            SRVSVCFreeMemory(mem);    \
+            SrvSvcFreeMemory(mem);    \
             (mem) = NULL;             \
         }                             \
     } while(0);
@@ -206,7 +206,7 @@
 #define SRVSVC_SAFE_FREE_STRING(str)  \
     do {                              \
         if (str) {                    \
-            SRVSVCFreeString(str);    \
+            SrvSvcFreeString(str);    \
             (str) = NULL;             \
         }                             \
     } while(0);

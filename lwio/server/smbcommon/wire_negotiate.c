@@ -259,7 +259,7 @@ UnmarshallNegotiateResponse(
     /* NOTE: The buffer format cannot be trusted! */
     uint32_t bufferUsed = sizeof(NEGOTIATE_RESPONSE_HEADER);
     if (bufferLen < bufferUsed)
-        return EBADMSG;
+        return STATUS_INVALID_NETWORK_RESPONSE;
 
     /* @todo: endian swap as appropriate */
     *ppHeader = (NEGOTIATE_RESPONSE_HEADER*) pBuffer;
@@ -267,7 +267,7 @@ UnmarshallNegotiateResponse(
     bufferUsed += sizeof(pData->guid);
 
     if (bufferLen < bufferUsed)
-        return EBADMSG;
+        return STATUS_INVALID_NETWORK_RESPONSE;
 
     *pBlobLen = bufferLen - bufferUsed;
 

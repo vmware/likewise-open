@@ -84,7 +84,10 @@ SrvDeviceCreate(
 
 cleanup:
 
-    // TODO: Should we cleanup pIrpContext?
+    if (pIrpContext)
+    {
+        SrvFreeIrpContext(pIrpContext);
+    }
 
     return ntStatus;
 
@@ -118,6 +121,14 @@ error:
     *ppIrpContext = NULL;
 
     goto cleanup;
+}
+
+VOID
+SrvFreeIrpContext(
+    PSRV_IRP_CONTEXT pIrpContext
+    )
+{
+    IO_FREE(&pIrpContext);
 }
 
 static

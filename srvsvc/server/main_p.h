@@ -70,22 +70,22 @@ typedef struct {
 extern SRVSVCSERVERINFO gServerInfo;
 
 DWORD
-SRVSVCGetConfigPath(
+SrvSvcGetConfigPath(
     PSTR* ppszPath
     );
 
 DWORD
-SRVSVCGetCachePath(
+SrvSvcGetCachePath(
     PSTR* ppszPath
     );
 
 DWORD
-SRVSVCGetPrefixPath(
+SrvSvcGetPrefixPath(
     PSTR* ppszPath
     );
 
 BOOLEAN
-SRVSVCProcessShouldExit();
+SrvSvcProcessShouldExit();
 
 void
 SRVSVCSetProcessShouldExit(
@@ -93,13 +93,13 @@ SRVSVCSetProcessShouldExit(
 	);
 
 DWORD
-SRVSVCServerMain(
+SrvSvcServerMain(
     int argc,
     char* argv[]
     );
 
 void
-SRVSVCServerExit(
+SrvSvcServerExit(
     int retCode
     );
 

@@ -50,6 +50,105 @@
 
 typedef enum
 {
+    SRV_TREE_CONNECT_STAGE_SMB_V1_INITIAL = 0,
+    SRV_TREE_CONNECT_STAGE_SMB_V1_ATTEMPT_QUERY_INFO,
+    SRV_TREE_CONNECT_STAGE_SMB_V1_QUERY_INFO_COMPLETED,
+    SRV_TREE_CONNECT_STAGE_SMB_V1_DONE
+} SRV_TREE_CONNECT_STAGE_SMB_V1;
+
+typedef struct _SRV_TREE_CONNECT_STATE_SMB_V1
+{
+    LONG                           refCount;
+
+    pthread_mutex_t                mutex;
+    pthread_mutex_t*               pMutex;
+
+    SRV_TREE_CONNECT_STAGE_SMB_V1  stage;
+
+    PTREE_CONNECT_REQUEST_HEADER   pRequestHeader; // Do not free
+    PBYTE                          pszPassword;    // Do not free
+    PBYTE                          pszService;     // Do not free
+    PWSTR                          pwszPath;       // Do not free
+
+    IO_STATUS_BLOCK                ioStatusBlock;
+
+    IO_ASYNC_CONTROL_BLOCK         acb;
+    PIO_ASYNC_CONTROL_BLOCK        pAcb;
+
+    PVOID                          pSecurityDescriptor;
+    PVOID                          pSecurityQOS;
+    PIO_ECP_LIST                   pEcpList;
+    IO_FILE_HANDLE                 hFile;
+
+    PSRV_SHARE_INFO                pShareInfo;
+    PLWIO_SRV_SESSION              pSession;
+    PLWIO_SRV_TREE                 pTree;
+
+    IO_FILE_NAME                   fileName;
+    PSTR                           pszService2;
+    PBYTE                          pVolumeInfo;
+    USHORT                         usBytesAllocated;
+    PIO_CREATE_SECURITY_CONTEXT    pIoSecContext;
+    PWSTR                          pwszNativeFileSystem;
+    ULONG                          ulMaximalShareAccessMask;
+    ULONG                          ulGuestMaximalShareAccessMask;
+
+    BOOLEAN                        bRemoveTreeFromSession;
+
+} SRV_TREE_CONNECT_STATE_SMB_V1, *PSRV_TREE_CONNECT_STATE_SMB_V1;
+
+typedef enum
+{
+    SRV_CREATE_STAGE_SMB_V1_INITIAL = 0,
+    SRV_CREATE_STAGE_SMB_V1_CREATE_FILE_COMPLETED,
+    SRV_CREATE_STAGE_SMB_V1_ATTEMPT_QUERY_INFO,
+    SRV_CREATE_STAGE_SMB_V1_QUERY_INFO_COMPLETED,
+    SRV_CREATE_STAGE_SMB_V1_DONE
+} SRV_CREATE_STAGE_SMB_V1;
+
+typedef struct _SRV_CREATE_STATE_SMB_V1
+{
+    LONG                    refCount;
+
+    pthread_mutex_t         mutex;
+    pthread_mutex_t*        pMutex;
+
+    SRV_CREATE_STAGE_SMB_V1 stage;
+
+    PCREATE_REQUEST_HEADER  pRequestHeader; // Do not free
+    PWSTR                   pwszFilename;   // Do not free
+
+    IO_STATUS_BLOCK         ioStatusBlock;
+
+    IO_ASYNC_CONTROL_BLOCK  acb;
+    PIO_ASYNC_CONTROL_BLOCK pAcb;
+
+    PVOID                   pSecurityDescriptor;
+    PVOID                   pSecurityQOS;
+    PIO_FILE_NAME           pFilename;
+    PIO_ECP_LIST            pEcpList;
+    IO_FILE_HANDLE          hFile;
+
+    FILE_BASIC_INFORMATION       fileBasicInfo;
+    PFILE_BASIC_INFORMATION      pFileBasicInfo;
+
+    FILE_STANDARD_INFORMATION    fileStdInfo;
+    PFILE_STANDARD_INFORMATION   pFileStdInfo;
+
+    FILE_PIPE_INFORMATION        filePipeInfo;
+    PFILE_PIPE_INFORMATION       pFilePipeInfo;
+
+    FILE_PIPE_LOCAL_INFORMATION  filePipeLocalInfo;
+    PFILE_PIPE_LOCAL_INFORMATION pFilePipeLocalInfo;
+
+    PLWIO_SRV_TREE          pTree;
+    PLWIO_SRV_FILE          pFile;
+    BOOLEAN                 bRemoveFileFromTree;
+
+} SRV_CREATE_STATE_SMB_V1, *PSRV_CREATE_STATE_SMB_V1;
+
+typedef enum
+{
     SRV_SMB_UNLOCK = 0,
     SRV_SMB_LOCK
 } SRV_SMB_LOCK_OPERATION_TYPE;
@@ -112,65 +211,43 @@ typedef struct _SRV_SMB_LOCK_REQUEST
 
 typedef enum
 {
-    SRV_CREATE_STAGE_SMB_V1_INITIAL = 0,
-    SRV_CREATE_STAGE_SMB_V1_CREATE_FILE_COMPLETED,
-    SRV_CREATE_STAGE_ATTEMPT_QUERY_INFORMATION,
-    SRV_CREATE_STAGE_QUERY_INFORMATION_COMPLETED,
-    SRV_CREATE_STAGE_DONE
-} SRV_CREATE_STAGE_SMB_V1;
-
-typedef struct _SRV_CREATE_STATE_SMB_V1
-{
-    LONG                    refCount;
-
-    pthread_mutex_t         mutex;
-    pthread_mutex_t*        pMutex;
-
-    SRV_CREATE_STAGE_SMB_V1 stage;
-
-    PCREATE_REQUEST_HEADER  pRequestHeader; // Do not free
-    PWSTR                   pwszFilename;   // Do not free
-
-    IO_STATUS_BLOCK         ioStatusBlock;
-
-    IO_ASYNC_CONTROL_BLOCK  acb;
-    PIO_ASYNC_CONTROL_BLOCK pAcb;
-
-    PVOID                   pSecurityDescriptor;
-    PVOID                   pSecurityQOS;
-    PIO_FILE_NAME           pFilename;
-    PIO_ECP_LIST            pEcpList;
-    IO_FILE_HANDLE          hFile;
-
-    FILE_BASIC_INFORMATION       fileBasicInfo;
-    PFILE_BASIC_INFORMATION      pFileBasicInfo;
-
-    FILE_STANDARD_INFORMATION    fileStdInfo;
-    PFILE_STANDARD_INFORMATION   pFileStdInfo;
-
-    FILE_PIPE_INFORMATION        filePipeInfo;
-    PFILE_PIPE_INFORMATION       pFilePipeInfo;
-
-    FILE_PIPE_LOCAL_INFORMATION  filePipeLocalInfo;
-    PFILE_PIPE_LOCAL_INFORMATION pFilePipeLocalInfo;
-
-    PLWIO_SRV_TREE          pTree;
-    PLWIO_SRV_FILE          pFile;
-    BOOLEAN                 bRemoveFileFromTree;
-
-} SRV_CREATE_STATE_SMB_V1, *PSRV_CREATE_STATE_SMB_V1;
+    SRV_READ_STAGE_SMB_V1_INITIAL = 0,
+    SRV_READ_STAGE_SMB_V1_ATTEMPT_READ,
+    SRV_READ_STAGE_SMB_V1_DONE
+} SRV_READ_STAGE_SMB_V1;
 
 typedef struct _SRV_READ_STATE_SMB_V1
 {
-    LONG                    refCount;
+    LONG                      refCount;
 
-    pthread_mutex_t         mutex;
-    pthread_mutex_t*        pMutex;
+    pthread_mutex_t           mutex;
+    pthread_mutex_t*          pMutex;
 
-    IO_STATUS_BLOCK         ioStatusBlock;
+    SRV_READ_STAGE_SMB_V1     stage;
 
-    IO_ASYNC_CONTROL_BLOCK  acb;
-    PIO_ASYNC_CONTROL_BLOCK pAcb;
+    IO_STATUS_BLOCK           ioStatusBlock;
+
+    IO_ASYNC_CONTROL_BLOCK    acb;
+    PIO_ASYNC_CONTROL_BLOCK   pAcb;
+
+    PREAD_ANDX_REQUEST_HEADER pRequestHeader; // Do not free
+
+    PLWIO_SRV_FILE            pFile;
+
+    ULONG64                   ullBytesToRead;
+    LONG64                    llByteOffset;
+
+    PREAD_ANDX_RESPONSE_HEADER pResponseHeader; // Do not free
+    PBYTE pOutBuffer;
+    ULONG ulBytesAvailable;
+    ULONG ulOffset;
+    ULONG ulPackageByteCount;
+    ULONG ulTotalBytesUsed;
+    ULONG ulDataOffset;
+    ULONG ulBytesRead;
+    ULONG ulBytesToRead;
+    PBYTE pData;
+    ULONG ulKey;
 
 } SRV_READ_STATE_SMB_V1, *PSRV_READ_STATE_SMB_V1;
 

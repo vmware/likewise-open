@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -160,7 +160,7 @@ static SRVSVC_CFG_LEXER_STATE gSRVSVCLexStateTable[][9] =
 };
 
 DWORD
-SRVSVCParseConfigFile(
+SrvSvcParseConfigFile(
     PCSTR                     pszFilePath,
     PFNCONFIG_START_SECTION   pfnStartSectionHandler,
     PFNCONFIG_COMMENT         pfnCommentHandler,
@@ -171,7 +171,7 @@ SRVSVCParseConfigFile(
     DWORD dwError = 0;
     PSRVSVC_CONFIG_PARSE_STATE pParseState = NULL;
 
-    dwError = SRVSVCCfgInitParseState(
+    dwError = SrvSvcCfgInitParseState(
                     pszFilePath,
                     pfnStartSectionHandler,
                     pfnCommentHandler,
@@ -180,13 +180,13 @@ SRVSVCParseConfigFile(
                     &pParseState);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
-    dwError = SRVSVCCfgParse(pParseState);
+    dwError = SrvSvcCfgParse(pParseState);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
 cleanup:
 
     if (pParseState) {
-        SRVSVCCfgFreeParseState(pParseState);
+        SrvSvcCfgFreeParseState(pParseState);
     }
 
     return dwError;
@@ -197,7 +197,7 @@ error:
 }
 
 DWORD
-SRVSVCCfgInitParseState(
+SrvSvcCfgInitParseState(
     PCSTR                     pszFilePath,
     PFNCONFIG_START_SECTION   pfnStartSectionHandler,
     PFNCONFIG_COMMENT         pfnCommentHandler,
@@ -217,19 +217,19 @@ SRVSVCCfgInitParseState(
     }
 
 
-    dwError = SRVSVCAllocateMemory(
+    dwError = SrvSvcAllocateMemory(
                     sizeof(SRVSVC_CONFIG_PARSE_STATE),
                     (PVOID*)&pParseState);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
-    dwError = SRVSVCAllocateMemory(
+    dwError = SrvSvcAllocateMemory(
                     sizeof(SRVSVC_STACK),
                     (PVOID*)&pTokenStack);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     pParseState->pLexerTokenStack = pTokenStack;
 
-    dwError = SRVSVCAllocateString(
+    dwError = SrvSvcAllocateString(
                     pszFilePath,
                     &(pParseState->pszFilePath));
     BAIL_ON_SRVSVC_ERROR(dwError);
@@ -259,7 +259,7 @@ error:
     *ppParseState = NULL;
 
     if (pParseState) {
-        SRVSVCCfgFreeParseState(pParseState);
+        SrvSvcCfgFreeParseState(pParseState);
     }
 
     if (fp) {
@@ -270,7 +270,7 @@ error:
 }
 
 VOID
-SRVSVCCfgFreeParseState(
+SrvSvcCfgFreeParseState(
     PSRVSVC_CONFIG_PARSE_STATE pParseState
     )
 {
@@ -278,12 +278,12 @@ SRVSVCCfgFreeParseState(
     if (pParseState->fp) {
         fclose(pParseState->fp);
     }
-    SRVSVCFreeMemory(pParseState);
+    SrvSvcFreeMemory(pParseState);
 }
 
 
 DWORD
-SRVSVCCfgParse(
+SrvSvcCfgParse(
     PSRVSVC_CONFIG_PARSE_STATE pParseState
     )
 {
@@ -296,7 +296,7 @@ SRVSVCCfgParse(
     do
     {
 
-        dwError = SRVSVCCfgGetNextToken(
+        dwError = SrvSvcCfgGetNextToken(
                         pParseState,
                         &pToken);
         BAIL_ON_SRVSVC_ERROR(dwError);
@@ -305,7 +305,7 @@ SRVSVCCfgParse(
         {
             case SRVSVCCfgHash:
             {
-                dwError = SRVSVCCfgParseComment(
+                dwError = SrvSvcCfgParseComment(
                                 pParseState,
                                 &bContinue);
                 BAIL_ON_SRVSVC_ERROR(dwError);
@@ -316,7 +316,7 @@ SRVSVCCfgParse(
             {
                 //in case of a blank line (newline),
                 //interpret this as an empty comment.
-                dwError = SRVSVCCfgProcessComment(
+                dwError = SrvSvcCfgProcessComment(
                                 pParseState,
                                 &pTokenStack,
                                 &bContinue);
@@ -327,7 +327,7 @@ SRVSVCCfgParse(
             case SRVSVCCfgLeftSquareBrace:
             {
 
-                dwError = SRVSVCCfgParseSections(
+                dwError = SrvSvcCfgParseSections(
                                 pParseState);
                 BAIL_ON_SRVSVC_ERROR(dwError);
 
@@ -350,7 +350,7 @@ SRVSVCCfgParse(
 cleanup:
 
     if (pToken) {
-        SRVSVCCfgFreeToken(pToken);
+        SrvSvcCfgFreeToken(pToken);
     }
 
     return dwError;
@@ -361,7 +361,7 @@ error:
 }
 
 DWORD
-SRVSVCCfgParseSections(
+SrvSvcCfgParseSections(
     PSRVSVC_CONFIG_PARSE_STATE pParseState
     )
 {
@@ -370,14 +370,14 @@ SRVSVCCfgParseSections(
     BOOLEAN bContinue = TRUE;
     PSRVSVC_STACK pTokenStack = NULL;
 
-    dwError = SRVSVCCfgParseSectionHeader(
+    dwError = SrvSvcCfgParseSectionHeader(
                     pParseState,
                     &bContinue);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     while (bContinue)
     {
-        dwError = SRVSVCCfgGetNextToken(
+        dwError = SrvSvcCfgGetNextToken(
                         pParseState,
                         &pToken);
         BAIL_ON_SRVSVC_ERROR(dwError);
@@ -387,17 +387,17 @@ SRVSVCCfgParseSections(
             case SRVSVCCfgString:
             {
 
-	      SRVSVCStripWhitespace(pToken->pszToken, TRUE, TRUE);
+	      SrvSvcStripWhitespace(pToken->pszToken, TRUE, TRUE);
 
                 if(!IsNullOrEmptyString(pToken->pszToken))
 		{
 
-                    dwError = SRVSVCStackPush(pToken, &(pParseState->pLexerTokenStack));
+                    dwError = SrvSvcStackPush(pToken, &(pParseState->pLexerTokenStack));
                     BAIL_ON_SRVSVC_ERROR(dwError);
 
                     pToken = NULL;
 
-                    dwError = SRVSVCCfgParseNameValuePair(
+                    dwError = SrvSvcCfgParseNameValuePair(
                                     pParseState,
                                     &bContinue);
                     BAIL_ON_SRVSVC_ERROR(dwError);
@@ -407,7 +407,7 @@ SRVSVCCfgParseSections(
 
             case SRVSVCCfgHash:
             {
-                dwError = SRVSVCCfgParseComment(
+                dwError = SrvSvcCfgParseComment(
                                 pParseState,
                                 &bContinue);
                 BAIL_ON_SRVSVC_ERROR(dwError);
@@ -417,7 +417,7 @@ SRVSVCCfgParseSections(
             {
                 //in case of a blank line (newline),
                 //interpret this as an empty comment.
-                dwError = SRVSVCCfgProcessComment(
+                dwError = SrvSvcCfgProcessComment(
                                 pParseState,
                                 &pTokenStack,
                                 &bContinue);
@@ -426,7 +426,7 @@ SRVSVCCfgParseSections(
             }
             case SRVSVCCfgLeftSquareBrace:
             {
-                dwError = SRVSVCCfgParseSectionHeader(
+                dwError = SrvSvcCfgParseSectionHeader(
                                 pParseState,
                                 &bContinue);
                 BAIL_ON_SRVSVC_ERROR(dwError);
@@ -448,7 +448,7 @@ SRVSVCCfgParseSections(
 
     if (bContinue && !IsNullOrEmptyString(pParseState->pszSectionName))
     {
-        dwError = SRVSVCCfgProcessEndSection(
+        dwError = SrvSvcCfgProcessEndSection(
                         pParseState,
                         &bContinue);
         BAIL_ON_SRVSVC_ERROR(dwError);
@@ -457,7 +457,7 @@ SRVSVCCfgParseSections(
 cleanup:
 
     if (pToken) {
-        SRVSVCCfgFreeToken(pToken);
+        SrvSvcCfgFreeToken(pToken);
     }
 
     return dwError;
@@ -470,7 +470,7 @@ error:
 
 
 DWORD
-SRVSVCCfgParseComment(
+SrvSvcCfgParseComment(
     PSRVSVC_CONFIG_PARSE_STATE pParseState,
     PBOOLEAN    pbContinue
     )
@@ -483,7 +483,7 @@ SRVSVCCfgParseComment(
 
     do
     {
-        dwError = SRVSVCCfgGetNextToken(
+        dwError = SrvSvcCfgGetNextToken(
                     pParseState,
                     &pToken);
         BAIL_ON_SRVSVC_ERROR(dwError);
@@ -492,7 +492,7 @@ SRVSVCCfgParseComment(
         {
             case SRVSVCCfgEOF:
             {
-                dwError = SRVSVCCfgProcessComment(
+                dwError = SrvSvcCfgProcessComment(
                                 pParseState,
                                 &pTokenStack,
                                 &bContinue);
@@ -504,7 +504,7 @@ SRVSVCCfgParseComment(
             }
             case SRVSVCCfgNewline:
             {
-                dwError = SRVSVCCfgProcessComment(
+                dwError = SrvSvcCfgProcessComment(
                                 pParseState,
                                 &pTokenStack,
                                 &bContinue);
@@ -516,7 +516,7 @@ SRVSVCCfgParseComment(
             }
             default:
             {
-                dwError = SRVSVCStackPush(pToken, &pTokenStack);
+                dwError = SrvSvcStackPush(pToken, &pTokenStack);
                 BAIL_ON_SRVSVC_ERROR(dwError);
 
                 pToken = NULL;
@@ -531,7 +531,7 @@ SRVSVCCfgParseComment(
 cleanup:
 
     if (pToken) {
-        SRVSVCCfgFreeToken(pToken);
+        SrvSvcCfgFreeToken(pToken);
     }
 
     return dwError;
@@ -544,7 +544,7 @@ error:
 }
 
 DWORD
-SRVSVCCfgParseSectionHeader(
+SrvSvcCfgParseSectionHeader(
     PSRVSVC_CONFIG_PARSE_STATE pParseState,
     PBOOLEAN pbContinue
     )
@@ -557,7 +557,7 @@ SRVSVCCfgParseSectionHeader(
 
     if (!IsNullOrEmptyString(pParseState->pszSectionName))
     {
-        dwError = SRVSVCCfgProcessEndSection(
+        dwError = SrvSvcCfgProcessEndSection(
                         pParseState,
                         &bContinue);
         BAIL_ON_SRVSVC_ERROR(dwError);
@@ -573,7 +573,7 @@ SRVSVCCfgParseSectionHeader(
 
     do
     {
-        dwError = SRVSVCCfgGetNextToken(
+        dwError = SrvSvcCfgGetNextToken(
                         pParseState,
                         &pToken);
         BAIL_ON_SRVSVC_ERROR(dwError);
@@ -584,7 +584,7 @@ SRVSVCCfgParseSectionHeader(
             case SRVSVCCfgEquals:
             case SRVSVCCfgOther:
             {
-                dwError = SRVSVCStackPush(pToken, &pTokenStack);
+                dwError = SrvSvcStackPush(pToken, &pTokenStack);
                 BAIL_ON_SRVSVC_ERROR(dwError);
 
                 pToken = NULL;
@@ -592,7 +592,7 @@ SRVSVCCfgParseSectionHeader(
             }
             case SRVSVCCfgRightSquareBrace:
             {
-                dwError = SRVSVCAssertWhitespaceOnly(pParseState);
+                dwError = SrvSvcAssertWhitespaceOnly(pParseState);
                 BAIL_ON_SRVSVC_ERROR(dwError);
 
                 bKeepParsing = FALSE;
@@ -608,7 +608,7 @@ SRVSVCCfgParseSectionHeader(
 
     } while (bKeepParsing);
 
-    dwError = SRVSVCCfgGetNextToken(
+    dwError = SrvSvcCfgGetNextToken(
                     pParseState,
                     &pToken);
     BAIL_ON_SRVSVC_ERROR(dwError);
@@ -618,7 +618,7 @@ SRVSVCCfgParseSectionHeader(
 
         case SRVSVCCfgNewline:
         {
-            dwError = SRVSVCCfgProcessBeginSection(
+            dwError = SrvSvcCfgProcessBeginSection(
                             pParseState,
                             &pTokenStack,
                             &bContinue);
@@ -628,7 +628,7 @@ SRVSVCCfgParseSectionHeader(
         }
         case SRVSVCCfgEOF:
         {
-            dwError = SRVSVCCfgProcessBeginSection(
+            dwError = SrvSvcCfgProcessBeginSection(
                             pParseState,
                             &pTokenStack,
                             &bContinue);
@@ -636,7 +636,7 @@ SRVSVCCfgParseSectionHeader(
 
             if (bContinue) {
 
-                dwError = SRVSVCCfgProcessEndSection(
+                dwError = SrvSvcCfgProcessEndSection(
                                 pParseState,
                                 &bContinue);
                 BAIL_ON_SRVSVC_ERROR(dwError);
@@ -660,7 +660,7 @@ done:
 cleanup:
 
     if (pToken) {
-        SRVSVCCfgFreeToken(pToken);
+        SrvSvcCfgFreeToken(pToken);
     }
 
     return dwError;
@@ -673,7 +673,7 @@ error:
 }
 
 DWORD
-SRVSVCAssertWhitespaceOnly(
+SrvSvcAssertWhitespaceOnly(
     PSRVSVC_CONFIG_PARSE_STATE pParseState
     )
 {
@@ -683,7 +683,7 @@ SRVSVCAssertWhitespaceOnly(
 
     do
     {
-        dwError = SRVSVCCfgGetNextToken(
+        dwError = SrvSvcCfgGetNextToken(
                         pParseState,
                         &pToken);
         BAIL_ON_SRVSVC_ERROR(dwError);
@@ -705,7 +705,7 @@ SRVSVCAssertWhitespaceOnly(
             case SRVSVCCfgEOF:
             case SRVSVCCfgNewline:
             {
-                dwError = SRVSVCStackPush(pToken, &pParseState->pLexerTokenStack);
+                dwError = SrvSvcStackPush(pToken, &pParseState->pLexerTokenStack);
                 BAIL_ON_SRVSVC_ERROR(dwError);
 
                 pToken = NULL;
@@ -725,7 +725,7 @@ SRVSVCAssertWhitespaceOnly(
 cleanup:
 
     if (pToken) {
-        SRVSVCCfgFreeToken(pToken);
+        SrvSvcCfgFreeToken(pToken);
     }
 
     return dwError;
@@ -736,7 +736,7 @@ error:
 }
 
 DWORD
-SRVSVCCfgParseNameValuePair(
+SrvSvcCfgParseNameValuePair(
     PSRVSVC_CONFIG_PARSE_STATE pParseState,
     PBOOLEAN pbContinue
     )
@@ -750,14 +750,14 @@ SRVSVCCfgParseNameValuePair(
     //format is <str><equals><token1><token2>...<newline>
 
     //get initial <str>
-    dwError = SRVSVCCfgGetNextToken(
+    dwError = SrvSvcCfgGetNextToken(
                     pParseState,
                     &pToken);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     if (pToken->tokenType == SRVSVCCfgString)
     {
-        dwError = SRVSVCStackPush(pToken, &pTokenStack);
+        dwError = SrvSvcStackPush(pToken, &pTokenStack);
         BAIL_ON_SRVSVC_ERROR(dwError);
         pToken = NULL;
     }
@@ -768,14 +768,14 @@ SRVSVCCfgParseNameValuePair(
     }
 
     //get <equals>
-    dwError = SRVSVCCfgGetNextToken(
+    dwError = SrvSvcCfgGetNextToken(
                     pParseState,
                     &pToken);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     if (pToken->tokenType == SRVSVCCfgEquals)
     {
-        dwError = SRVSVCStackPush(pToken, &pTokenStack);
+        dwError = SrvSvcStackPush(pToken, &pTokenStack);
         BAIL_ON_SRVSVC_ERROR(dwError);
         pToken = NULL;
     }
@@ -788,7 +788,7 @@ SRVSVCCfgParseNameValuePair(
 
     do
     {
-        dwError = SRVSVCCfgGetNextToken(
+        dwError = SrvSvcCfgGetNextToken(
                         pParseState,
                         &pToken);
         BAIL_ON_SRVSVC_ERROR(dwError);
@@ -800,7 +800,7 @@ SRVSVCCfgParseNameValuePair(
             case SRVSVCCfgOther:
             {
 
-                dwError = SRVSVCStackPush(pToken, &pTokenStack);
+                dwError = SrvSvcStackPush(pToken, &pTokenStack);
                 BAIL_ON_SRVSVC_ERROR(dwError);
                 pToken = NULL;
 
@@ -809,7 +809,7 @@ SRVSVCCfgParseNameValuePair(
             }
             case SRVSVCCfgNewline:
             {
-                dwError = SRVSVCCfgProcessNameValuePair(
+                dwError = SrvSvcCfgProcessNameValuePair(
                     pParseState,
                     &pTokenStack,
                     &bContinue);
@@ -819,7 +819,7 @@ SRVSVCCfgParseNameValuePair(
             }
             case SRVSVCCfgEOF:
             {
-                dwError = SRVSVCCfgProcessNameValuePair(
+                dwError = SrvSvcCfgProcessNameValuePair(
                     pParseState,
                     &pTokenStack,
                     &bContinue);
@@ -841,7 +841,7 @@ SRVSVCCfgParseNameValuePair(
 cleanup:
 
     if (pToken) {
-        SRVSVCCfgFreeToken(pToken);
+        SrvSvcCfgFreeToken(pToken);
     }
 
     return dwError;
@@ -854,7 +854,7 @@ error:
 }
 
 DWORD
-SRVSVCCfgProcessComment(
+SrvSvcCfgProcessComment(
     PSRVSVC_CONFIG_PARSE_STATE pParseState,
     PSRVSVC_STACK* ppTokenStack,
     PBOOLEAN    pbContinue
@@ -864,7 +864,7 @@ SRVSVCCfgProcessComment(
     BOOLEAN bContinue = TRUE;
     PSTR    pszComment = NULL;
 
-    dwError = SRVSVCCfgProcessTokenStackIntoString(
+    dwError = SrvSvcCfgProcessTokenStackIntoString(
         ppTokenStack,
         &pszComment);
     BAIL_ON_SRVSVC_ERROR(dwError);
@@ -894,7 +894,7 @@ error:
 }
 
 DWORD
-SRVSVCCfgProcessBeginSection(
+SrvSvcCfgProcessBeginSection(
     PSRVSVC_CONFIG_PARSE_STATE pParseState,
     PSRVSVC_STACK* ppTokenStack,
     PBOOLEAN    pbContinue)
@@ -904,7 +904,7 @@ SRVSVCCfgProcessBeginSection(
     BOOLEAN bSkipSection = FALSE;
     BOOLEAN bContinue = TRUE;
 
-    dwError = SRVSVCCfgProcessTokenStackIntoString(
+    dwError = SrvSvcCfgProcessTokenStackIntoString(
         ppTokenStack,
         &pszSectionName);
     BAIL_ON_SRVSVC_ERROR(dwError);
@@ -941,7 +941,7 @@ error:
 }
 
 DWORD
-SRVSVCCfgProcessNameValuePair(
+SrvSvcCfgProcessNameValuePair(
     PSRVSVC_CONFIG_PARSE_STATE pParseState,
     PSRVSVC_STACK*             ppTokenStack,
     PBOOLEAN                pbContinue
@@ -953,10 +953,10 @@ SRVSVCCfgProcessNameValuePair(
     PSTR       pszValue = NULL;
     PSRVSVC_CFG_TOKEN pToken = NULL;
 
-    *ppTokenStack = SRVSVCStackReverse(*ppTokenStack);
-    pToken = (PSRVSVC_CFG_TOKEN)SRVSVCStackPop(ppTokenStack);
+    *ppTokenStack = SrvSvcStackReverse(*ppTokenStack);
+    pToken = (PSRVSVC_CFG_TOKEN)SrvSvcStackPop(ppTokenStack);
     if (pToken && pToken->dwLen) {
-        dwError = SRVSVCStrndup(
+        dwError = SrvSvcStrndup(
                     pToken->pszToken,
                     pToken->dwLen,
                     &pszName);
@@ -968,21 +968,21 @@ SRVSVCCfgProcessNameValuePair(
         BAIL_ON_SRVSVC_ERROR(dwError);
     }
 
-    SRVSVCCfgFreeToken(pToken);
+    SrvSvcCfgFreeToken(pToken);
     pToken = NULL;
 
-    pToken = (PSRVSVC_CFG_TOKEN)SRVSVCStackPop(ppTokenStack);
+    pToken = (PSRVSVC_CFG_TOKEN)SrvSvcStackPop(ppTokenStack);
     if (!pToken || pToken->tokenType != SRVSVCCfgEquals)
     {
         dwError = SRVSVC_ERROR_INVALID_CONFIG;
         BAIL_ON_SRVSVC_ERROR(dwError);
     }
 
-    SRVSVCCfgFreeToken(pToken);
+    SrvSvcCfgFreeToken(pToken);
     pToken = NULL;
 
     //this will consume the token stack
-    dwError = SRVSVCCfgProcessTokenStackIntoString(
+    dwError = SrvSvcCfgProcessTokenStackIntoString(
         ppTokenStack,
         &pszValue);
     BAIL_ON_SRVSVC_ERROR(dwError);
@@ -1003,13 +1003,13 @@ SRVSVCCfgProcessNameValuePair(
 cleanup:
 
     if (pToken) {
-        SRVSVCCfgFreeToken(pToken);
+        SrvSvcCfgFreeToken(pToken);
         pToken = NULL;
     }
 
     if (ppTokenStack && *ppTokenStack)
     {
-        dwError = SRVSVCCfgFreeTokenStack(ppTokenStack);
+        dwError = SrvSvcCfgFreeTokenStack(ppTokenStack);
     }
 
     SRVSVC_SAFE_FREE_STRING(pszName);
@@ -1023,7 +1023,7 @@ error:
 }
 
 DWORD
-SRVSVCCfgProcessEndSection(
+SrvSvcCfgProcessEndSection(
     PSRVSVC_CONFIG_PARSE_STATE pParseState,
     PBOOLEAN                pbContinue
     )
@@ -1055,7 +1055,7 @@ error:
 }
 
 DWORD
-SRVSVCCfgDetermineTokenLength(
+SrvSvcCfgDetermineTokenLength(
     PSRVSVC_STACK pStack
     )
 {
@@ -1075,7 +1075,7 @@ SRVSVCCfgDetermineTokenLength(
 
 //this will consume the token stack
 DWORD
-SRVSVCCfgProcessTokenStackIntoString(
+SrvSvcCfgProcessTokenStackIntoString(
     PSRVSVC_STACK* ppTokenStack,
     PSTR* ppszConcatenated
     )
@@ -1084,17 +1084,17 @@ SRVSVCCfgProcessTokenStackIntoString(
     DWORD   dwRequiredTokenLen = 0;
     PSTR    pszConcatenated = NULL;
 
-    dwRequiredTokenLen = SRVSVCCfgDetermineTokenLength(*ppTokenStack);
+    dwRequiredTokenLen = SrvSvcCfgDetermineTokenLength(*ppTokenStack);
 
     if (dwRequiredTokenLen) {
 
         PSTR pszPos = NULL;
         PSRVSVC_CFG_TOKEN pToken = NULL;
 
-        *ppTokenStack = SRVSVCStackReverse(*ppTokenStack);
+        *ppTokenStack = SrvSvcStackReverse(*ppTokenStack);
 
 
-        dwError = SRVSVCAllocateMemory(
+        dwError = SrvSvcAllocateMemory(
                         (dwRequiredTokenLen + 1) * sizeof(CHAR),
                         (PVOID*)&pszConcatenated);
         BAIL_ON_SRVSVC_ERROR(dwError);
@@ -1103,13 +1103,13 @@ SRVSVCCfgProcessTokenStackIntoString(
         pszPos = pszConcatenated;
         while (*ppTokenStack)
         {
-            pToken = SRVSVCStackPop(ppTokenStack);
+            pToken = SrvSvcStackPop(ppTokenStack);
             if (pToken && pToken->dwLen) {
 
                 strncpy(pszPos, pToken->pszToken, pToken->dwLen);
                 pszPos += pToken->dwLen;
 
-                SRVSVCCfgFreeToken(pToken);
+                SrvSvcCfgFreeToken(pToken);
                 pToken = NULL;
             }
         }
@@ -1132,7 +1132,7 @@ error:
 
 
 DWORD
-SRVSVCCfgAllocateToken(
+SrvSvcCfgAllocateToken(
     DWORD           dwSize,
     PSRVSVC_CFG_TOKEN* ppToken
     )
@@ -1142,12 +1142,12 @@ SRVSVCCfgAllocateToken(
     DWORD dwMaxLen = (dwSize > 0 ? dwSize : SRVSVC_CFG_TOKEN_DEFAULT_LENGTH);
 
 
-    dwError = SRVSVCAllocateMemory(
+    dwError = SrvSvcAllocateMemory(
                     sizeof(SRVSVC_CFG_TOKEN),
                     (PVOID*)&pToken);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
-    dwError = SRVSVCAllocateMemory(
+    dwError = SrvSvcAllocateMemory(
                     dwMaxLen * sizeof(CHAR),
                     (PVOID*)&pToken->pszToken);
     BAIL_ON_SRVSVC_ERROR(dwError);
@@ -1167,21 +1167,21 @@ error:
     *ppToken = NULL;
 
     if (pToken) {
-        SRVSVCCfgFreeToken(pToken);
+        SrvSvcCfgFreeToken(pToken);
     }
 
     goto cleanup;
 }
 
 DWORD
-SRVSVCCfgReallocToken(
+SrvSvcCfgReallocToken(
     PSRVSVC_CFG_TOKEN pToken,
     DWORD          dwNewSize
     )
 {
     DWORD dwError = 0;
 
-    dwError = SRVSVCReallocMemory(
+    dwError = SrvSvcReallocMemory(
                     pToken->pszToken,
                     (PVOID*)&pToken->pszToken,
                     dwNewSize);
@@ -1199,7 +1199,7 @@ error:
 }
 
 VOID
-SRVSVCCfgResetToken(
+SrvSvcCfgResetToken(
     PSRVSVC_CFG_TOKEN pToken
     )
 {
@@ -1211,7 +1211,7 @@ SRVSVCCfgResetToken(
 }
 
 DWORD
-SRVSVCCfgCopyToken(
+SrvSvcCfgCopyToken(
     PSRVSVC_CFG_TOKEN pTokenSrc,
     PSRVSVC_CFG_TOKEN pTokenDst
     )
@@ -1221,7 +1221,7 @@ SRVSVCCfgCopyToken(
     pTokenDst->tokenType = pTokenSrc->tokenType;
 
     if (pTokenSrc->dwLen > pTokenDst->dwLen) {
-        dwError = SRVSVCReallocMemory(
+        dwError = SrvSvcReallocMemory(
                         (PVOID)  pTokenDst->pszToken,
                         (PVOID*) &pTokenDst->pszToken,
                         (DWORD)  pTokenSrc->dwLen);
@@ -1244,7 +1244,7 @@ error:
 }
 
 DWORD
-SRVSVCCfgFreeTokenStack(
+SrvSvcCfgFreeTokenStack(
     PSRVSVC_STACK* ppTokenStack
     )
 {
@@ -1253,13 +1253,13 @@ SRVSVCCfgFreeTokenStack(
 
     PSRVSVC_STACK pTokenStack = *ppTokenStack;
 
-    dwError = SRVSVCStackForeach(
+    dwError = SrvSvcStackForeach(
             pTokenStack,
-            &SRVSVCCfgFreeTokenInStack,
+            &SrvSvcCfgFreeTokenInStack,
             NULL);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
-    SRVSVCStackFree(pTokenStack);
+    SrvSvcStackFree(pTokenStack);
 
     *ppTokenStack = NULL;
 
@@ -1269,30 +1269,30 @@ error:
 }
 
 DWORD
-SRVSVCCfgFreeTokenInStack(
+SrvSvcCfgFreeTokenInStack(
     PVOID pToken,
     PVOID pUserData
     )
 {
     if (pToken)
     {
-        SRVSVCCfgFreeToken((PSRVSVC_CFG_TOKEN)pToken);
+        SrvSvcCfgFreeToken((PSRVSVC_CFG_TOKEN)pToken);
     }
 
     return 0;
 }
 
 VOID
-SRVSVCCfgFreeToken(
+SrvSvcCfgFreeToken(
     PSRVSVC_CFG_TOKEN pToken
     )
 {
     SRVSVC_SAFE_FREE_MEMORY(pToken->pszToken);
-    SRVSVCFreeMemory(pToken);
+    SrvSvcFreeMemory(pToken);
 }
 
 DWORD
-SRVSVCCfgGetNextToken(
+SrvSvcCfgGetNextToken(
     PSRVSVC_CONFIG_PARSE_STATE pParseState,
     PSRVSVC_CFG_TOKEN*         ppToken
     )
@@ -1303,19 +1303,19 @@ SRVSVCCfgGetNextToken(
     PSRVSVC_CFG_TOKEN  pToken = NULL;
     BOOLEAN         bOwnToken = FALSE;
 
-    if (SRVSVCStackPeek(pParseState->pLexerTokenStack) != NULL)
+    if (SrvSvcStackPeek(pParseState->pLexerTokenStack) != NULL)
     {
         PSRVSVC_CFG_TOKEN pToken_input = *ppToken;
 
-        pToken = (PSRVSVC_CFG_TOKEN)SRVSVCStackPop(&pParseState->pLexerTokenStack);
+        pToken = (PSRVSVC_CFG_TOKEN)SrvSvcStackPop(&pParseState->pLexerTokenStack);
         bOwnToken = TRUE;
 
         if (pToken_input) {
 
-            dwError = SRVSVCCfgCopyToken(pToken, pToken_input);
+            dwError = SrvSvcCfgCopyToken(pToken, pToken_input);
             BAIL_ON_SRVSVC_ERROR(dwError);
 
-            SRVSVCCfgFreeToken(pToken);
+            SrvSvcCfgFreeToken(pToken);
             pToken = NULL;
             bOwnToken = FALSE;
 
@@ -1327,7 +1327,7 @@ SRVSVCCfgGetNextToken(
     pToken = *ppToken;
 
     if (!pToken) {
-        dwError = SRVSVCCfgAllocateToken(
+        dwError = SrvSvcCfgAllocateToken(
                         0,
                         &pToken);
         BAIL_ON_SRVSVC_ERROR(dwError);
@@ -1336,13 +1336,13 @@ SRVSVCCfgGetNextToken(
     }
     else
     {
-        SRVSVCCfgResetToken(pToken);
+        SrvSvcCfgResetToken(pToken);
     }
 
     while (curLexState != SRVSVCLexEnd)
     {
-        DWORD ch = SRVSVCCfgGetCharacter(pParseState);
-        SRVSVCCfgLexState lexClass = SRVSVCCfgGetLexClass(ch);
+        DWORD ch = SrvSvcCfgGetCharacter(pParseState);
+        SRVSVCCfgLexState lexClass = SrvSvcCfgGetLexClass(ch);
 
         if (lexClass != SRVSVCLexEOF) {
             pParseState->dwCol++;
@@ -1353,9 +1353,9 @@ SRVSVCCfgGetNextToken(
             pParseState->dwCol = 0;
         }
 
-        tokenType = SRVSVCCfgGetTokenType(curLexState, lexClass);
+        tokenType = SrvSvcCfgGetTokenType(curLexState, lexClass);
 
-        switch(SRVSVCCfgGetLexAction(curLexState, lexClass))
+        switch(SrvSvcCfgGetLexAction(curLexState, lexClass))
         {
             case Skip:
 
@@ -1364,7 +1364,7 @@ SRVSVCCfgGetNextToken(
             case Consume:
 
                 if (pToken->dwLen >= pToken->dwMaxLen) {
-                    dwError = SRVSVCCfgReallocToken(
+                    dwError = SrvSvcCfgReallocToken(
                                     pToken,
                                     pToken->dwMaxLen + SRVSVC_CFG_TOKEN_DEFAULT_LENGTH);
                     BAIL_ON_SRVSVC_ERROR(dwError);
@@ -1377,7 +1377,7 @@ SRVSVCCfgGetNextToken(
             case Pushback:
 
                 pParseState->dwCol--;
-                dwError = SRVSVCCfgPushBackCharacter(
+                dwError = SrvSvcCfgPushBackCharacter(
                                 pParseState,
                                 (BYTE)ch);
                 BAIL_ON_SRVSVC_ERROR(dwError);
@@ -1385,7 +1385,7 @@ SRVSVCCfgGetNextToken(
                 break;
         }
 
-        curLexState = SRVSVCCfgGetNextLexState(curLexState, lexClass);
+        curLexState = SrvSvcCfgGetNextLexState(curLexState, lexClass);
     }
 
     pToken->tokenType = tokenType;
@@ -1403,7 +1403,7 @@ cleanup:
 error:
 
     if (bOwnToken && pToken) {
-        SRVSVCCfgFreeToken(pToken);
+        SrvSvcCfgFreeToken(pToken);
         *ppToken = NULL;
     }
 
@@ -1411,7 +1411,7 @@ error:
 }
 
 DWORD
-SRVSVCCfgGetCharacter(
+SrvSvcCfgGetCharacter(
     PSRVSVC_CONFIG_PARSE_STATE pParseState
     )
 {
@@ -1419,7 +1419,7 @@ SRVSVCCfgGetCharacter(
 }
 
 SRVSVCCfgLexState
-SRVSVCCfgGetLexClass(
+SrvSvcCfgGetLexClass(
     DWORD ch
     )
 {
@@ -1458,7 +1458,7 @@ SRVSVCCfgGetLexClass(
 }
 
 DWORD
-SRVSVCCfgPushBackCharacter(
+SrvSvcCfgPushBackCharacter(
     PSRVSVC_CONFIG_PARSE_STATE pParseState,
     BYTE ch
     )
@@ -1467,7 +1467,7 @@ SRVSVCCfgPushBackCharacter(
 }
 
 SRVSVCCfgLexState
-SRVSVCCfgGetNextLexState(
+SrvSvcCfgGetNextLexState(
     SRVSVCCfgLexState currentState,
     DWORD chId
     )
@@ -1476,7 +1476,7 @@ SRVSVCCfgGetNextLexState(
 }
 
 SRVSVCLexAction
-SRVSVCCfgGetLexAction(
+SrvSvcCfgGetLexAction(
     SRVSVCCfgLexState currentState,
     DWORD chId
     )
@@ -1485,10 +1485,20 @@ SRVSVCCfgGetLexAction(
 }
 
 SRVSVCCfgTokenType
-SRVSVCCfgGetTokenType(
+SrvSvcCfgGetTokenType(
     SRVSVCCfgLexState currentState,
     DWORD chId
     )
 {
     return (gSRVSVCLexStateTable[currentState][chId].tokenId);
 }
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

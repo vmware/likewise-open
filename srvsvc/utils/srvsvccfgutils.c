@@ -12,9 +12,9 @@ SRVSVCParseDays(
     BOOLEAN  bConvert = FALSE;
     PSTR   pszUnitCode = NULL;
 
-    SRVSVCStripWhitespace(pszTimeIntervalLocal, TRUE, TRUE);
+    SrvSvcStripWhitespace(pszTimeIntervalLocal, TRUE, TRUE);
 
-    dwError = SRVSVCAllocateString(
+    dwError = SrvSvcAllocateString(
                     pszTimeInterval,
                     &pszTimeIntervalLocal
                     );
@@ -34,7 +34,7 @@ SRVSVCParseDays(
     }
 
     if(bConvert) {
-        SRVSVCStripWhitespace(pszTimeIntervalLocal, TRUE, TRUE);
+        SrvSvcStripWhitespace(pszTimeIntervalLocal, TRUE, TRUE);
 	*pdwTimeInterval = (DWORD) atoi(pszTimeIntervalLocal);
     }
     else
@@ -55,7 +55,7 @@ error:
 }
 
 DWORD
-SRVSVCParseDiskUsage(
+SrvSvcParseDiskUsage(
     PCSTR  pszDiskUsage,
     PDWORD pdwDiskUsage
     )
@@ -66,9 +66,9 @@ SRVSVCParseDiskUsage(
     DWORD  dwUnitMultiplier = 0;
     PSTR   pszUnitCode = NULL;
 
-    SRVSVCStripWhitespace(pszDiskUsageLocal, TRUE, TRUE);
+    SrvSvcStripWhitespace(pszDiskUsageLocal, TRUE, TRUE);
 
-    dwError = SRVSVCAllocateString(
+    dwError = SrvSvcAllocateString(
                     pszDiskUsage,
                     &pszDiskUsageLocal
                     );
@@ -102,7 +102,7 @@ SRVSVCParseDiskUsage(
 
     *pszUnitCode = ' ';
 
-    SRVSVCStripWhitespace(pszDiskUsageLocal, TRUE, TRUE);
+    SrvSvcStripWhitespace(pszDiskUsageLocal, TRUE, TRUE);
 
     *pdwDiskUsage = (DWORD) atoi(pszDiskUsageLocal) * dwUnitMultiplier;
 
@@ -118,7 +118,7 @@ error:
 }
 
 DWORD
-SRVSVCParseMaxEntries(
+SrvSvcParseMaxEntries(
     PCSTR  pszMaxEntries,
     PDWORD pdwMaxEntries
     )
@@ -129,9 +129,9 @@ SRVSVCParseMaxEntries(
     DWORD  dwUnitMultiplier = 0;
     PSTR   pszUnitCode = NULL;
 
-    SRVSVCStripWhitespace(pszMaxEntriesLocal, TRUE, TRUE);
+    SrvSvcStripWhitespace(pszMaxEntriesLocal, TRUE, TRUE);
 
-    dwError = SRVSVCAllocateString(
+    dwError = SrvSvcAllocateString(
                     pszMaxEntries,
                     &pszMaxEntriesLocal
                     );
@@ -161,7 +161,7 @@ SRVSVCParseMaxEntries(
 
     *pszUnitCode = ' ';
 
-    SRVSVCStripWhitespace(pszMaxEntriesLocal, TRUE, TRUE);
+    SrvSvcStripWhitespace(pszMaxEntriesLocal, TRUE, TRUE);
 
     *pdwMaxEntries = (DWORD) atoi(pszMaxEntriesLocal) * dwUnitMultiplier;
 

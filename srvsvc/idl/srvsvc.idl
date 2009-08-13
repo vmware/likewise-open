@@ -191,12 +191,12 @@ interface srvsvc {
         [string] wchar16_t *shi502_password;
         uint32 shi502_reserved;
         [size_is(shi502_reserved)] uint8 *shi502_security_descriptor;
-    } SHARE_INFO_502_I, *PSHARE_INFO_502_I, *LPSHARE_INFO_502_I;
+    } SHARE_INFO_502_I, *PSHARE_INFO_502_I;
 
     typedef struct _SHARE_INFO_1501_I {
         uint32 shi1501_reserved;
         [size_is(shi1501_reserved)] uint8 *shi1501_security_descriptor;
-    } SHARE_INFO_1501_I, *PSHARE_INFO_1501_I, *LPSHARE_INFO_1501_I;
+    } SHARE_INFO_1501_I, *PSHARE_INFO_1501_I;
 
     typedef [switch_type(uint32)] union {
         [case(0)] SHARE_INFO_0 *info0;

@@ -93,7 +93,7 @@ typedef struct {
     EVTALLOWEDDATA  pAllowDeleteTo;
 } EVTSERVERINFO, *PEVTSERVERINFO;
 
-EVTSERVERINFO gServerInfo;
+extern EVTSERVERINFO gServerInfo;
 
 
 DWORD

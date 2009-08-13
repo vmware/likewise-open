@@ -33,20 +33,52 @@
 static
 NTSTATUS
 SrvBuildReadAndXResponse(
-    PSRV_EXEC_CONTEXT pExecContext,
-    LONG64               llByteOffset,
-    ULONG64              ullBytesToRead
+    PSRV_EXEC_CONTEXT pExecContext
     );
 
 static
 NTSTATUS
-SrvExecuteReadFileAndX(
-    PLWIO_SRV_FILE pFile,
-    ULONG          ulBytesToRead,
-    PLONG64        plByteOffset,
-    PBYTE*         ppBuffer,
-    PULONG         pulBytesRead,
-    PULONG         pulKey
+SrvBuildReadState(
+    PREAD_ANDX_REQUEST_HEADER pRequestHeader,
+    PLWIO_SRV_FILE            pFile,
+    PSRV_READ_STATE_SMB_V1*   ppReadState
+    );
+
+static
+VOID
+SrvPrepareReadStateAsync(
+    PSRV_READ_STATE_SMB_V1 pReadState,
+    PSRV_EXEC_CONTEXT      pExecContext
+    );
+
+static
+VOID
+SrvExecuteReadAsyncCB(
+    PVOID pContext
+    );
+
+static
+VOID
+SrvReleaseReadStateAsync(
+    PSRV_READ_STATE_SMB_V1 pReadState
+    );
+
+static
+VOID
+SrvReleaseReadStateHandle(
+    HANDLE hReadState
+    );
+
+static
+VOID
+SrvReleaseReadState(
+    PSRV_READ_STATE_SMB_V1 pReadState
+    );
+
+static
+VOID
+SrvFreeReadState(
+    PSRV_READ_STATE_SMB_V1 pReadState
     );
 
 NTSTATUS
@@ -58,57 +90,96 @@ SrvProcessReadAndX(
     PLWIO_SRV_CONNECTION       pConnection  = pExecContext->pConnection;
     PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
     PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
-    ULONG                      iMsg         = pCtxSmb1->iMsg;
-    PSRV_MESSAGE_SMB_V1        pSmbRequest  = &pCtxSmb1->pRequests[iMsg];
-    PBYTE pBuffer          = pSmbRequest->pBuffer + pSmbRequest->usHeaderSize;
-    ULONG ulOffset         = pSmbRequest->usHeaderSize;
-    ULONG ulBytesAvailable = pSmbRequest->ulMessageSize - pSmbRequest->usHeaderSize;
-    PREAD_ANDX_REQUEST_HEADER  pRequestHeader = NULL; // Do not free
-    ULONG64           ullBytesToRead = 0;
-    LONG64            llByteOffset = 0;
-    PLWIO_SRV_SESSION pSession = NULL;
-    PLWIO_SRV_TREE    pTree = NULL;
-    PLWIO_SRV_FILE    pFile = NULL;
+    PLWIO_SRV_SESSION      pSession   = NULL;
+    PLWIO_SRV_TREE         pTree      = NULL;
+    PLWIO_SRV_FILE         pFile      = NULL;
+    PSRV_READ_STATE_SMB_V1 pReadState = NULL;
+    BOOLEAN                bInLock = FALSE;
 
-    ntStatus = SrvConnectionFindSession_SMB_V1(
-                    pCtxSmb1,
-                    pConnection,
-                    pSmbRequest->pHeader->uid,
-                    &pSession);
-    BAIL_ON_NT_STATUS(ntStatus);
+    pReadState = (PSRV_READ_STATE_SMB_V1)pCtxSmb1->hState;
+    if (pReadState)
+    {
+        InterlockedIncrement(&pReadState->refCount);
+    }
+    else
+    {
+        ULONG               iMsg         = pCtxSmb1->iMsg;
+        PSRV_MESSAGE_SMB_V1 pSmbRequest  = &pCtxSmb1->pRequests[iMsg];
+        PBYTE pBuffer  = pSmbRequest->pBuffer + pSmbRequest->usHeaderSize;
+        ULONG ulOffset = pSmbRequest->usHeaderSize;
+        ULONG ulBytesAvailable = pSmbRequest->ulMessageSize - pSmbRequest->usHeaderSize;
+        PREAD_ANDX_REQUEST_HEADER pRequestHeader; // Do not free
 
-    ntStatus = SrvSessionFindTree_SMB_V1(
-                    pCtxSmb1,
-                    pSession,
-                    pSmbRequest->pHeader->tid,
-                    &pTree);
-    BAIL_ON_NT_STATUS(ntStatus);
+        ntStatus = SrvConnectionFindSession_SMB_V1(
+                        pCtxSmb1,
+                        pConnection,
+                        pSmbRequest->pHeader->uid,
+                        &pSession);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = WireUnmarshallReadAndXRequest(
-                    pBuffer,
-                    ulBytesAvailable,
-                    ulOffset,
-                    &pRequestHeader);
-    BAIL_ON_NT_STATUS(ntStatus);
+        ntStatus = SrvSessionFindTree_SMB_V1(
+                        pCtxSmb1,
+                        pSession,
+                        pSmbRequest->pHeader->tid,
+                        &pTree);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvTreeFindFile_SMB_V1(
-                    pCtxSmb1,
-                    pTree,
-                    pRequestHeader->fid,
-                    &pFile);
-    BAIL_ON_NT_STATUS(ntStatus);
+        ntStatus = WireUnmarshallReadAndXRequest(
+                        pBuffer,
+                        ulBytesAvailable,
+                        ulOffset,
+                        &pRequestHeader);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-    llByteOffset = (((LONG64)pRequestHeader->offsetHigh) << 32) |
-                    ((LONG64)pRequestHeader->offset);
+        ntStatus = SrvTreeFindFile_SMB_V1(
+                        pCtxSmb1,
+                        pTree,
+                        pRequestHeader->fid,
+                        &pFile);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-    ullBytesToRead = (((ULONG64)pRequestHeader->maxCountHigh) << 32) |
-                      ((ULONG64)pRequestHeader->maxCount);
+        ntStatus = SrvBuildReadState(
+                        pRequestHeader,
+                        pFile,
+                        &pReadState);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvBuildReadAndXResponse(
-                        pExecContext,
-                        llByteOffset,
-                        ullBytesToRead);
-    BAIL_ON_NT_STATUS(ntStatus);
+        pCtxSmb1->hState = pReadState;
+        InterlockedIncrement(&pReadState->refCount);
+        pCtxSmb1->pfnStateRelease = &SrvReleaseReadStateHandle;
+    }
+
+    LWIO_LOCK_MUTEX(bInLock, &pReadState->mutex);
+
+    switch (pReadState->stage)
+    {
+        case SRV_READ_STAGE_SMB_V1_INITIAL:
+
+            pReadState->llByteOffset =
+                    (((LONG64)pReadState->pRequestHeader->offsetHigh) << 32) |
+                    ((LONG64)pReadState->pRequestHeader->offset);
+
+            pReadState->ullBytesToRead =
+                    (((ULONG64)pReadState->pRequestHeader->maxCountHigh) << 32)|
+                    ((ULONG64)pReadState->pRequestHeader->maxCount);
+
+            pReadState->stage = SRV_READ_STAGE_SMB_V1_ATTEMPT_READ;
+
+            // Intentional fall through
+
+        case SRV_READ_STAGE_SMB_V1_ATTEMPT_READ:
+
+            ntStatus = SrvBuildReadAndXResponse(pExecContext);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            pReadState->stage = SRV_READ_STAGE_SMB_V1_DONE;
+
+            // intentional fall through
+
+        case SRV_READ_STAGE_SMB_V1_DONE:
+
+            break;
+    }
 
 cleanup:
 
@@ -127,9 +198,36 @@ cleanup:
         SrvSessionRelease(pSession);
     }
 
+    if (pReadState)
+    {
+        LWIO_UNLOCK_MUTEX(bInLock, &pReadState->mutex);
+
+        SrvReleaseReadState(pReadState);
+    }
+
     return ntStatus;
 
 error:
+
+    switch (ntStatus)
+    {
+        case STATUS_PENDING:
+
+            // TODO: Add an indicator to the file object to trigger a
+            //       cleanup if the connection gets closed and all the
+            //       files involved have to be closed
+
+            break;
+
+        default:
+
+            if (pReadState)
+            {
+                SrvReleaseReadStateAsync(pReadState);
+            }
+
+            break;
+    }
 
     goto cleanup;
 }
@@ -137,9 +235,7 @@ error:
 static
 NTSTATUS
 SrvBuildReadAndXResponse(
-    PSRV_EXEC_CONTEXT pExecContext,
-    LONG64            llByteOffset,
-    ULONG64           ullBytesToRead
+    PSRV_EXEC_CONTEXT pExecContext
     )
 {
     NTSTATUS ntStatus = 0;
@@ -149,190 +245,244 @@ SrvBuildReadAndXResponse(
     ULONG                      iMsg         = pCtxSmb1->iMsg;
     PSRV_MESSAGE_SMB_V1        pSmbRequest  = &pCtxSmb1->pRequests[iMsg];
     PSRV_MESSAGE_SMB_V1        pSmbResponse = &pCtxSmb1->pResponses[iMsg];
-    PBYTE pOutBuffer           = pSmbResponse->pBuffer;
-    ULONG ulBytesAvailable     = pSmbResponse->ulBytesAvailable;
-    ULONG ulOffset             = 0;
-    ULONG  ulPackageByteCount  = 0;
-    ULONG ulTotalBytesUsed     = 0;
-    PREAD_ANDX_RESPONSE_HEADER pResponseHeader = NULL; // Do not free
-    ULONG ulDataOffset = 0;
-    ULONG ulBytesRead = 0;
-    ULONG ulBytesToRead = 0;
-    PBYTE pData = NULL;
-    ULONG ulKey = 0;
+    PSRV_READ_STATE_SMB_V1     pReadState   = NULL;
 
-    if (!pSmbResponse->ulSerialNum)
+    pReadState = (PSRV_READ_STATE_SMB_V1)pCtxSmb1->hState;
+
+    if (!pReadState->pResponseHeader)
     {
-        ntStatus = SrvMarshalHeader_SMB_V1(
-                        pOutBuffer,
-                        ulOffset,
-                        ulBytesAvailable,
-                        COM_READ_ANDX,
-                        STATUS_SUCCESS,
-                        TRUE,
-                        pCtxSmb1->pTree->tid,
-                        SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
-                        pCtxSmb1->pSession->uid,
-                        pSmbRequest->pHeader->mid,
-                        pConnection->serverProperties.bRequireSecuritySignatures,
-                        &pSmbResponse->pHeader,
-                        &pSmbResponse->pWordCount,
-                        &pSmbResponse->pAndXHeader,
-                        &pSmbResponse->usHeaderSize);
+        pReadState->pOutBuffer       = pSmbResponse->pBuffer;
+        pReadState->ulBytesAvailable = pSmbResponse->ulBytesAvailable;
+
+        if (!pSmbResponse->ulSerialNum)
+        {
+            ntStatus = SrvMarshalHeader_SMB_V1(
+                            pReadState->pOutBuffer,
+                            pReadState->ulOffset,
+                            pReadState->ulBytesAvailable,
+                            COM_READ_ANDX,
+                            STATUS_SUCCESS,
+                            TRUE,
+                            pCtxSmb1->pTree->tid,
+                            SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
+                            pCtxSmb1->pSession->uid,
+                            pSmbRequest->pHeader->mid,
+                            pConnection->serverProperties.bRequireSecuritySignatures,
+                            &pSmbResponse->pHeader,
+                            &pSmbResponse->pWordCount,
+                            &pSmbResponse->pAndXHeader,
+                            &pSmbResponse->usHeaderSize);
+        }
+        else
+        {
+            ntStatus = SrvMarshalHeaderAndX_SMB_V1(
+                            pReadState->pOutBuffer,
+                            pReadState->ulOffset,
+                            pReadState->ulBytesAvailable,
+                            COM_READ_ANDX,
+                            &pSmbResponse->pWordCount,
+                            &pSmbResponse->pAndXHeader,
+                            &pSmbResponse->usHeaderSize);
+        }
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pReadState->pOutBuffer       += pSmbResponse->usHeaderSize;
+        pReadState->ulOffset         += pSmbResponse->usHeaderSize;
+        pReadState->ulBytesAvailable -= pSmbResponse->usHeaderSize;
+        pReadState->ulTotalBytesUsed += pSmbResponse->usHeaderSize;
+
+        *pSmbResponse->pWordCount = 12;
+
+        if (pReadState->ulBytesAvailable < sizeof(READ_ANDX_RESPONSE_HEADER))
+        {
+            ntStatus = STATUS_INVALID_BUFFER_SIZE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        pReadState->pResponseHeader =
+                    (PREAD_ANDX_RESPONSE_HEADER)pReadState->pOutBuffer;
+
+        pReadState->pOutBuffer       += sizeof(READ_ANDX_RESPONSE_HEADER);
+        pReadState->ulOffset         += sizeof(READ_ANDX_RESPONSE_HEADER);
+        pReadState->ulBytesAvailable -= sizeof(READ_ANDX_RESPONSE_HEADER);
+        pReadState->ulTotalBytesUsed += sizeof(READ_ANDX_RESPONSE_HEADER);
+
+        pReadState->pResponseHeader->remaining = -1;
+        pReadState->pResponseHeader->reserved = 0;
+        memset( (PBYTE)&pReadState->pResponseHeader->reserved2,
+                0,
+                sizeof(pReadState->pResponseHeader->reserved2));
+        pReadState->pResponseHeader->dataCompactionMode = 0;
+        pReadState->pResponseHeader->dataLength = pReadState->ulBytesRead;
+        // TODO: For large cap files
+        pReadState->pResponseHeader->dataLengthHigh = 0;
+
+        // Estimate how much data can fit in message
+        ntStatus = WireMarshallReadResponseDataEx(
+                        pReadState->pOutBuffer,
+                        pReadState->ulBytesAvailable,
+                        pReadState->ulOffset,
+                        pReadState->pData,
+                        pReadState->ulBytesRead,
+                        &pReadState->ulDataOffset,
+                        &pReadState->ulPackageByteCount);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        // Allow for alignment bytes
+        pReadState->ulDataOffset += pReadState->ulDataOffset % 2;
+
+        pReadState->ulBytesToRead =
+            SMB_MIN(pReadState->ullBytesToRead,
+                    pConnection->serverProperties.MaxBufferSize - pReadState->ulDataOffset);
+        pReadState->ulKey = pSmbRequest->pHeader->pid;
+
+        ntStatus = SrvAllocateMemory(
+                        pReadState->ulBytesToRead,
+                        (PVOID*)&pReadState->pData);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        SrvPrepareReadStateAsync(pReadState, pExecContext);
+
+        ntStatus = IoReadFile(
+                        pReadState->pFile->hFile,
+                        pReadState->pAcb,
+                        &pReadState->ioStatusBlock,
+                        pReadState->pData,
+                        pReadState->ulBytesToRead,
+                        &pReadState->llByteOffset,
+                        &pReadState->ulKey);
+        switch (ntStatus)
+        {
+            case STATUS_SUCCESS:
+
+                pReadState->ulBytesRead =
+                                pReadState->ioStatusBlock.BytesTransferred;
+
+                break;
+
+            case STATUS_END_OF_FILE:
+
+                pReadState->ulBytesRead = 0;
+
+                break;
+
+            default:
+
+                BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        SrvReleaseReadStateAsync(pReadState); // completed synchronously
     }
     else
     {
-        ntStatus = SrvMarshalHeaderAndX_SMB_V1(
-                        pOutBuffer,
-                        ulOffset,
-                        ulBytesAvailable,
-                        COM_READ_ANDX,
-                        &pSmbResponse->pWordCount,
-                        &pSmbResponse->pAndXHeader,
-                        &pSmbResponse->usHeaderSize);
-    }
-    BAIL_ON_NT_STATUS(ntStatus);
+        ntStatus = pReadState->ioStatusBlock.Status;
 
-    pOutBuffer       += pSmbResponse->usHeaderSize;
-    ulOffset         += pSmbResponse->usHeaderSize;
-    ulBytesAvailable -= pSmbResponse->usHeaderSize;
-    ulTotalBytesUsed += pSmbResponse->usHeaderSize;
+        switch (ntStatus)
+        {
+            case STATUS_SUCCESS:
 
-    *pSmbResponse->pWordCount = 12;
+                pReadState->ulBytesRead =
+                                pReadState->ioStatusBlock.BytesTransferred;
 
-    if (ulBytesAvailable < sizeof(READ_ANDX_RESPONSE_HEADER))
-    {
-        ntStatus = STATUS_INVALID_BUFFER_SIZE;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
+                break;
 
-    pResponseHeader = (PREAD_ANDX_RESPONSE_HEADER)pOutBuffer;
+            case STATUS_END_OF_FILE:
 
-    pOutBuffer       += sizeof(READ_ANDX_RESPONSE_HEADER);
-    ulOffset         += sizeof(READ_ANDX_RESPONSE_HEADER);
-    ulBytesAvailable -= sizeof(READ_ANDX_RESPONSE_HEADER);
-    ulTotalBytesUsed += sizeof(READ_ANDX_RESPONSE_HEADER);
+                pReadState->ulBytesRead = 0;
 
-    pResponseHeader->remaining = -1;
-    pResponseHeader->reserved = 0;
-    memset(&pResponseHeader->reserved2, 0, sizeof(pResponseHeader->reserved2));
-    pResponseHeader->dataCompactionMode = 0;
-    pResponseHeader->dataLength = ulBytesRead;
-    // TODO: For large cap files
-    pResponseHeader->dataLengthHigh = 0;
+                break;
 
-    // Estimate how much data can fit in message
-    ntStatus = WireMarshallReadResponseDataEx(
-                    pOutBuffer,
-                    ulBytesAvailable,
-                    ulOffset,
-                    pData,
-                    ulBytesRead,
-                    &ulDataOffset,
-                    &ulPackageByteCount);
-    BAIL_ON_NT_STATUS(ntStatus);
+            default:
 
-    // Allow for alignment bytes
-    ulDataOffset += ulDataOffset % 2;
-
-    ulBytesToRead =
-        SMB_MIN(ullBytesToRead,
-                pConnection->serverProperties.MaxBufferSize - ulDataOffset);
-    ulKey = pSmbRequest->pHeader->pid;
-
-    ntStatus = SrvExecuteReadFileAndX(
-                    pCtxSmb1->pFile,
-                    ulBytesToRead,
-                    &llByteOffset,
-                    &pData,
-                    &ulBytesRead,
-                    &ulKey);
-    if (ntStatus != STATUS_END_OF_FILE)
-    {
-        BAIL_ON_NT_STATUS(ntStatus);
+                BAIL_ON_NT_STATUS(ntStatus);
+        }
     }
 
     ntStatus = WireMarshallReadResponseDataEx(
-                    pOutBuffer,
-                    ulBytesAvailable,
-                    ulOffset,
-                    pData,
-                    ulBytesRead,
-                    &ulDataOffset,
-                    &ulPackageByteCount);
+                    pReadState->pOutBuffer,
+                    pReadState->ulBytesAvailable,
+                    pReadState->ulOffset,
+                    pReadState->pData,
+                    pReadState->ulBytesRead,
+                    &pReadState->ulDataOffset,
+                    &pReadState->ulPackageByteCount);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pResponseHeader->dataLength = ulBytesRead;
+    pReadState->pResponseHeader->dataLength = pReadState->ulBytesRead;
     // TODO: For large cap files
-    pResponseHeader->dataLengthHigh = 0;
+    pReadState->pResponseHeader->dataLengthHigh = 0;
 
     // The data offset will fit in 16 bits
-    assert(ulDataOffset <= UINT16_MAX);
-    pResponseHeader->dataOffset = (USHORT)ulDataOffset;
+    assert(pReadState->ulDataOffset <= UINT16_MAX);
+    pReadState->pResponseHeader->dataOffset = (USHORT)pReadState->ulDataOffset;
 
-    assert(ulPackageByteCount <= UINT16_MAX);
-    pResponseHeader->byteCount = (USHORT)ulPackageByteCount;
+    assert(pReadState->ulPackageByteCount <= UINT16_MAX);
+    pReadState->pResponseHeader->byteCount = (USHORT)pReadState->ulPackageByteCount;
 
-    // pOutBuffer       += ulPackageByteCount;
-    // ulOffset         += ulPackageByteCount;
-    // ulBytesAvailable -= ulPackageByteCount;
-    ulTotalBytesUsed += ulPackageByteCount;
+    // pOutBuffer       += pReadState->ulPackageByteCount;
+    // ulOffset         += pReadState->ulPackageByteCount;
+    // ulBytesAvailable -= pReadState->ulPackageByteCount;
+    pReadState->ulTotalBytesUsed += pReadState->ulPackageByteCount;
 
-    pSmbResponse->ulMessageSize = ulTotalBytesUsed;
+    pSmbResponse->ulMessageSize = pReadState->ulTotalBytesUsed;
 
 cleanup:
-
-    if (pData)
-    {
-        SrvFreeMemory(pData);
-    }
 
     return ntStatus;
 
 error:
 
-    if (ulTotalBytesUsed)
+    switch (ntStatus)
     {
-        pSmbResponse->pHeader = NULL;
-        pSmbResponse->pAndXHeader = NULL;
-        memset(pSmbResponse->pBuffer, 0, ulTotalBytesUsed);
-    }
+        case STATUS_PENDING:
 
-    pSmbResponse->ulMessageSize = 0;
+            break;
+
+        default:
+
+            if (pReadState->ulTotalBytesUsed)
+            {
+                pSmbResponse->pHeader = NULL;
+                pSmbResponse->pAndXHeader = NULL;
+                memset(pSmbResponse->pBuffer, 0, pReadState->ulTotalBytesUsed);
+            }
+
+            pSmbResponse->ulMessageSize = 0;
+
+            break;
+    }
 
     goto cleanup;
 }
 
 static
 NTSTATUS
-SrvExecuteReadFileAndX(
-    PLWIO_SRV_FILE pFile,
-    ULONG          ulBytesToRead,
-    PLONG64        pllByteOffset,
-    PBYTE*         ppBuffer,
-    PULONG         pulBytesRead,
-    PULONG         pulKey
+SrvBuildReadState(
+    PREAD_ANDX_REQUEST_HEADER pRequestHeader,
+    PLWIO_SRV_FILE            pFile,
+    PSRV_READ_STATE_SMB_V1*   ppReadState
     )
 {
-    NTSTATUS ntStatus = 0;
-    IO_STATUS_BLOCK ioStatusBlock = {0};
-    PBYTE pBuffer = NULL;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_READ_STATE_SMB_V1 pReadState = NULL;
 
-    ntStatus = SrvAllocateMemory(ulBytesToRead, (PVOID*)&pBuffer);
+    ntStatus = SrvAllocateMemory(
+                    sizeof(SRV_READ_STATE_SMB_V1),
+                    (PVOID*)&pReadState);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = IoReadFile(
-                    pFile->hFile,
-                    NULL,
-                    &ioStatusBlock,
-                    pBuffer,
-                    ulBytesToRead,
-                    pllByteOffset,
-                    pulKey);
-    BAIL_ON_NT_STATUS(ntStatus);
+    pReadState->refCount = 1;
 
-    *pulBytesRead = ioStatusBlock.BytesTransferred;
-    *ppBuffer = pBuffer;
+    pthread_mutex_init(&pReadState->mutex, NULL);
+    pReadState->pMutex = &pReadState->mutex;
+
+    pReadState->stage = SRV_READ_STAGE_SMB_V1_INITIAL;
+
+    pReadState->pRequestHeader = pRequestHeader;
+    pReadState->pFile = pFile;
+    InterlockedIncrement(&pFile->refcount);
+
+    *ppReadState = pReadState;
 
 cleanup:
 
@@ -340,14 +490,148 @@ cleanup:
 
 error:
 
-    *ppBuffer = NULL;
-    *pulBytesRead = 0;
+    *ppReadState = NULL;
 
-    if (pBuffer)
+    if (pReadState)
     {
-        SrvFreeMemory(pBuffer);
+        SrvFreeReadState(pReadState);
     }
 
     goto cleanup;
+}
+
+static
+VOID
+SrvPrepareReadStateAsync(
+    PSRV_READ_STATE_SMB_V1 pReadState,
+    PSRV_EXEC_CONTEXT      pExecContext
+    )
+{
+    pReadState->acb.Callback        = &SrvExecuteReadAsyncCB;
+
+    pReadState->acb.CallbackContext = pExecContext;
+    InterlockedIncrement(&pExecContext->refCount);
+
+    pReadState->acb.AsyncCancelContext = NULL;
+
+    pReadState->pAcb = &pReadState->acb;
+}
+
+static
+VOID
+SrvExecuteReadAsyncCB(
+    PVOID pContext
+    )
+{
+    NTSTATUS                   ntStatus         = STATUS_SUCCESS;
+    PSRV_EXEC_CONTEXT          pExecContext     = (PSRV_EXEC_CONTEXT)pContext;
+    PSRV_PROTOCOL_EXEC_CONTEXT pProtocolContext = pExecContext->pProtocolContext;
+    PSRV_READ_STATE_SMB_V1     pReadState       = NULL;
+    BOOLEAN                    bInLock          = FALSE;
+
+    pReadState =
+        (PSRV_READ_STATE_SMB_V1)pProtocolContext->pSmb1Context->hState;
+
+    LWIO_LOCK_MUTEX(bInLock, &pReadState->mutex);
+
+    if (pReadState->pAcb->AsyncCancelContext)
+    {
+        IoDereferenceAsyncCancelContext(&pReadState->pAcb->AsyncCancelContext);
+    }
+
+    pReadState->pAcb = NULL;
+
+    LWIO_UNLOCK_MUTEX(bInLock, &pReadState->mutex);
+
+    ntStatus = SrvProdConsEnqueue(gProtocolGlobals_SMB_V1.pWorkQueue, pContext);
+    if (ntStatus != STATUS_SUCCESS)
+    {
+        LWIO_LOG_ERROR("Failed to enqueue execution context [status:0x%x]",
+                       ntStatus);
+
+        SrvReleaseExecContext(pExecContext);
+    }
+}
+
+static
+VOID
+SrvReleaseReadStateAsync(
+    PSRV_READ_STATE_SMB_V1 pReadState
+    )
+{
+    if (pReadState->pAcb)
+    {
+        pReadState->acb.Callback = NULL;
+
+        if (pReadState->pAcb->CallbackContext)
+        {
+            PSRV_EXEC_CONTEXT pExecContext = NULL;
+
+            pExecContext = (PSRV_EXEC_CONTEXT)pReadState->pAcb->CallbackContext;
+
+            SrvReleaseExecContext(pExecContext);
+
+            pReadState->pAcb->CallbackContext = NULL;
+        }
+
+        if (pReadState->pAcb->AsyncCancelContext)
+        {
+            IoDereferenceAsyncCancelContext(
+                    &pReadState->pAcb->AsyncCancelContext);
+        }
+
+        pReadState->pAcb = NULL;
+    }
+}
+
+
+static
+VOID
+SrvReleaseReadStateHandle(
+    HANDLE hReadState
+    )
+{
+    SrvReleaseReadState((PSRV_READ_STATE_SMB_V1)hReadState);
+}
+
+static
+VOID
+SrvReleaseReadState(
+    PSRV_READ_STATE_SMB_V1 pReadState
+    )
+{
+    if (InterlockedDecrement(&pReadState->refCount) == 0)
+    {
+        SrvFreeReadState(pReadState);
+    }
+}
+
+static
+VOID
+SrvFreeReadState(
+    PSRV_READ_STATE_SMB_V1 pReadState
+    )
+{
+    if (pReadState->pAcb && pReadState->pAcb->AsyncCancelContext)
+    {
+        IoDereferenceAsyncCancelContext(&pReadState->pAcb->AsyncCancelContext);
+    }
+
+    if (pReadState->pFile)
+    {
+        SrvFileRelease(pReadState->pFile);
+    }
+
+    if (pReadState->pMutex)
+    {
+        pthread_mutex_destroy(&pReadState->mutex);
+    }
+
+    if (pReadState->pData)
+    {
+        SrvFreeMemory(pReadState->pData);
+    }
+
+    SrvFreeMemory(pReadState);
 }
 

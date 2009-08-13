@@ -48,7 +48,7 @@
 #include "includes.h"
 
 DWORD
-SRVSVCStackPush(
+SrvSvcStackPush(
     PVOID pItem,
     PSRVSVC_STACK* ppStack
     )
@@ -61,7 +61,7 @@ SRVSVCStackPush(
         BAIL_ON_SRVSVC_ERROR(dwError);
     }
 
-    dwError = SRVSVCAllocateMemory(
+    dwError = SrvSvcAllocateMemory(
                     sizeof(SRVSVC_STACK),
                     (PVOID*)&pStack);
     BAIL_ON_SRVSVC_ERROR(dwError);
@@ -78,14 +78,14 @@ cleanup:
 error:
 
     if (pStack) {
-        SRVSVCFreeMemory(pStack);
+        SrvSvcFreeMemory(pStack);
     }
 
     goto cleanup;
 }
 
 PVOID
-SRVSVCStackPop(
+SrvSvcStackPop(
     PSRVSVC_STACK* ppStack
     )
 {
@@ -98,14 +98,14 @@ SRVSVCStackPop(
 
         pItem = pTop->pItem;
 
-        SRVSVCFreeMemory(pTop);
+        SrvSvcFreeMemory(pTop);
     }
 
     return pItem;
 }
 
 PVOID
-SRVSVCStackPeek(
+SrvSvcStackPeek(
     PSRVSVC_STACK pStack
     )
 {
@@ -113,7 +113,7 @@ SRVSVCStackPeek(
 }
 
 DWORD
-SRVSVCStackForeach(
+SrvSvcStackForeach(
     PSRVSVC_STACK pStack,
     PFN_SRVSVC_FOREACH_STACK_ITEM pfnAction,
     PVOID pUserData
@@ -142,7 +142,7 @@ error:
 }
 
 PSRVSVC_STACK
-SRVSVCStackReverse(
+SrvSvcStackReverse(
     PSRVSVC_STACK pStack
     )
 {
@@ -161,7 +161,7 @@ SRVSVCStackReverse(
 }
 
 VOID
-SRVSVCStackFree(
+SrvSvcStackFree(
     PSRVSVC_STACK pStack
     )
 {
@@ -171,6 +171,6 @@ SRVSVCStackFree(
 
         pStack = pStack->pNext;
 
-        SRVSVCFreeMemory(pTmp);
+        SrvSvcFreeMemory(pTmp);
     }
 }

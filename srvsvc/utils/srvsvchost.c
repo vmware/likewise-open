@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -31,7 +31,7 @@
 #include "includes.h"
 
 DWORD
-SRVSVCGetHostname(
+SrvSvcGetHostname(
     PSTR* ppszHostname
     )
 {
@@ -40,7 +40,7 @@ SRVSVCGetHostname(
     BOOLEAN bDone = FALSE;
     DWORD dwLength = HOST_NAME_MAX + 1;
 
-    dwError = SRVSVCAllocateMemory(
+    dwError = SrvSvcAllocateMemory(
                     dwLength,
                     (PVOID*)&pszHostname);
     BAIL_ON_SRVSVC_ERROR(dwError);
@@ -57,7 +57,7 @@ SRVSVCGetHostname(
             {
                 DWORD dwLength2 = dwLength + 256;
 
-                dwError = SRVSVCReallocMemory(
+                dwError = SrvSvcReallocMemory(
                             pszHostname,
                             (PVOID*)&pszHostname,
                             dwLength2);
@@ -88,3 +88,13 @@ error:
     goto cleanup;
 
 }
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

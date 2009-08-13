@@ -400,8 +400,8 @@ LsaSrvModifyGroup(
         {
             break;
         }
-        else if ((dwError = LW_ERROR_NOT_HANDLED) ||
-                 (dwError = LW_ERROR_NO_SUCH_GROUP))
+        else if ((dwError == LW_ERROR_NOT_HANDLED) ||
+                 (dwError == LW_ERROR_NO_SUCH_GROUP))
         {
             LsaSrvCloseProvider(pProvider, hProvider);
             hProvider = (HANDLE)NULL;

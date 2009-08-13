@@ -213,7 +213,7 @@ error:
 }
 
 DWORD
-SRVSVCRegisterForRPC(
+SrvSvcRegisterForRPC(
     PSTR pszServiceName,
     rpc_binding_vector_p_t* ppServerBinding
     )
@@ -361,7 +361,7 @@ error:
 }
 
 DWORD
-SRVSVCListenForRPC()
+SrvSvcListenForRPC()
 {
     volatile DWORD dwError = 0;
 
@@ -393,7 +393,7 @@ error:
 }
 
 DWORD
-SRVSVCUnregisterForRPC(
+SrvSvcUnregisterForRPC(
     rpc_binding_vector_p_t pServerBinding
     )
 {

@@ -36,7 +36,7 @@
         } else if (ret == ENOENT) {                                   \
             ntStatus = LWIO_ERROR_KRB5_NO_KEYS_FOUND;                 \
         } else {                                                      \
-            ntStatus = LWIO_ERROR_KRB5_CALL_FAILED;                   \
+            ntStatus = LWIO_ERROR_LOGON_FAILURE;                      \
         }                                                             \
         goto error;                                                   \
     }

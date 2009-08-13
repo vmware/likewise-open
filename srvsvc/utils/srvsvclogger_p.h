@@ -50,17 +50,17 @@
 #define __SRVSVCLOGGER_P_H__
 
 DWORD
-SRVSVCValidateLogLevel(
+SrvSvcValidateLogLevel(
     DWORD dwLogLevel
     );
 
 VOID
-SRVSVCSetSyslogMask(
+SrvSvcSetSyslogMask(
     DWORD dwLogLevel
     );
 
 VOID
-SRVSVCLogToFile_InLock(
+SrvSvcLogToFile_InLock(
     PLOGFILEINFO logInfo,
     DWORD dwLogLevel,
     PCSTR pszFormat,
@@ -68,7 +68,7 @@ SRVSVCLogToFile_InLock(
     );
 
 VOID
-SRVSVCLogToSyslog_InLock(
+SrvSvcLogToSyslog_InLock(
     DWORD   dwLogLevel,
     PCSTR   pszFormat,
     va_list msgList

@@ -122,7 +122,7 @@ SrvSvcNetShareAdd(
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = SRVSVCAllocateMemory(
+    dwError = SrvSvcAllocateMemory(
                         dwOutLength,
                         (void**)&pOutBuffer
                         );
@@ -177,11 +177,11 @@ error:
     }
 
     if (pInBuffer) {
-        SrvSvcFreeMemory(pInBuffer);
+        SrvSvcSrvFreeMemory(pInBuffer);
     }
 
     if (pOutBuffer) {
-        SrvSvcFreeMemory(pOutBuffer);
+        SrvSvcSrvFreeMemory(pOutBuffer);
     }
 
     RTL_FREE(&smbpath);

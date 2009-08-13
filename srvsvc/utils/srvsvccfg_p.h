@@ -139,7 +139,7 @@ typedef struct __SRVSVC_CFG_LEXER_STATE
 } SRVSVC_CFG_LEXER_STATE, *PSRVSVC_CFG_LEXER_STATE;
 
 DWORD
-SRVSVCCfgInitParseState(
+SrvSvcCfgInitParseState(
     PCSTR                     pszFilePath,
     PFNCONFIG_START_SECTION   pfnStartSectionHandler,
     PFNCONFIG_COMMENT         pfnCommentHandler,
@@ -149,157 +149,157 @@ SRVSVCCfgInitParseState(
     );
 
 VOID
-SRVSVCCfgFreeParseState(
+SrvSvcCfgFreeParseState(
     PSRVSVC_CONFIG_PARSE_STATE pParseState
     );
 
 DWORD
-SRVSVCCfgParse(
+SrvSvcCfgParse(
     PSRVSVC_CONFIG_PARSE_STATE pParseState
     );
 
 DWORD
-SRVSVCCfgParseSections(
+SrvSvcCfgParseSections(
     PSRVSVC_CONFIG_PARSE_STATE pParseState
     );
 
 DWORD
-SRVSVCCfgParseComment(
+SrvSvcCfgParseComment(
     PSRVSVC_CONFIG_PARSE_STATE pParseState,
     PBOOLEAN    pbContinue
     );
 
 DWORD
-SRVSVCCfgParseSectionHeader(
+SrvSvcCfgParseSectionHeader(
     PSRVSVC_CONFIG_PARSE_STATE pParseState,
     PBOOLEAN pbContinue
     );
 
 DWORD
-SRVSVCAssertWhitespaceOnly(
+SrvSvcAssertWhitespaceOnly(
     PSRVSVC_CONFIG_PARSE_STATE pParseState
     );
 
 DWORD
-SRVSVCCfgParseNameValuePair(
+SrvSvcCfgParseNameValuePair(
     PSRVSVC_CONFIG_PARSE_STATE pParseState,
     PBOOLEAN pbContinue
     );
 
 DWORD
-SRVSVCCfgProcessComment(
+SrvSvcCfgProcessComment(
     PSRVSVC_CONFIG_PARSE_STATE pParseState,
     PSRVSVC_STACK*             ppTokenStack,
     PBOOLEAN                pbContinue
     );
 
 DWORD
-SRVSVCCfgProcessBeginSection(
+SrvSvcCfgProcessBeginSection(
     PSRVSVC_CONFIG_PARSE_STATE pParseState,
     PSRVSVC_STACK*             ppTokenStack,
     PBOOLEAN                pbContinue
     );
 
 DWORD
-SRVSVCCfgProcessNameValuePair(
+SrvSvcCfgProcessNameValuePair(
     PSRVSVC_CONFIG_PARSE_STATE pParseState,
     PSRVSVC_STACK*             ppTokenStack,
     PBOOLEAN                pbContinue
     );
 
 DWORD
-SRVSVCCfgProcessEndSection(
+SrvSvcCfgProcessEndSection(
     PSRVSVC_CONFIG_PARSE_STATE pParseState,
     PBOOLEAN                pbContinue
     );
 
 DWORD
-SRVSVCCfgDetermineTokenLength(
+SrvSvcCfgDetermineTokenLength(
     PSRVSVC_STACK pStack
     );
 
 //this will consume the token stack
 DWORD
-SRVSVCCfgProcessTokenStackIntoString(
+SrvSvcCfgProcessTokenStackIntoString(
     PSRVSVC_STACK* ppTokenStack,
     PSTR* ppszConcatenated
     );
 
 DWORD
-SRVSVCCfgAllocateToken(
+SrvSvcCfgAllocateToken(
     DWORD           dwSize,
     PSRVSVC_CFG_TOKEN* ppToken
     );
 
 DWORD
-SRVSVCCfgReallocToken(
+SrvSvcCfgReallocToken(
     PSRVSVC_CFG_TOKEN pToken,
     DWORD          dwNewSize
     );
 
 VOID
-SRVSVCCfgResetToken(
+SrvSvcCfgResetToken(
     PSRVSVC_CFG_TOKEN pToken
     );
 
 DWORD
-SRVSVCCfgCopyToken(
+SrvSvcCfgCopyToken(
     PSRVSVC_CFG_TOKEN pTokenSrc,
     PSRVSVC_CFG_TOKEN pTokenDst
     );
 
 DWORD
-SRVSVCCfgFreeTokenStack(
+SrvSvcCfgFreeTokenStack(
     PSRVSVC_STACK* ppTokenStack
     );
 
 DWORD
-SRVSVCCfgFreeTokenInStack(
+SrvSvcCfgFreeTokenInStack(
     PVOID pToken,
     PVOID pUserData
     );
 
 VOID
-SRVSVCCfgFreeToken(
+SrvSvcCfgFreeToken(
     PSRVSVC_CFG_TOKEN pToken
     );
 
 DWORD
-SRVSVCCfgGetNextToken(
+SrvSvcCfgGetNextToken(
     PSRVSVC_CONFIG_PARSE_STATE pParseState,
     PSRVSVC_CFG_TOKEN*         ppToken
     );
 
 DWORD
-SRVSVCCfgGetCharacter(
+SrvSvcCfgGetCharacter(
     PSRVSVC_CONFIG_PARSE_STATE pParseState
     );
 
 SRVSVCCfgLexState
-SRVSVCCfgGetLexClass(
+SrvSvcCfgGetLexClass(
     DWORD ch
     );
 
 DWORD
-SRVSVCCfgPushBackCharacter(
+SrvSvcCfgPushBackCharacter(
     PSRVSVC_CONFIG_PARSE_STATE pParseState,
     BYTE ch
     );
 
 SRVSVCCfgLexState
-SRVSVCCfgGetNextLexState(
+SrvSvcCfgGetNextLexState(
     SRVSVCCfgLexState currentState,
     DWORD chId
     );
 
 SRVSVCLexAction
-SRVSVCCfgGetLexAction(
+SrvSvcCfgGetLexAction(
     SRVSVCCfgLexState currentState,
     DWORD chId
     );
 
 SRVSVCCfgTokenType
-SRVSVCCfgGetTokenType(
+SrvSvcCfgGetTokenType(
     SRVSVCCfgLexState currentState,
     DWORD chId
     );

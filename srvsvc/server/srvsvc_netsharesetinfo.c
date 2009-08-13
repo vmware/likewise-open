@@ -126,7 +126,7 @@ SrvSvcNetShareSetInfo(
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = SRVSVCAllocateMemory(
+    dwError = SrvSvcAllocateMemory(
                         dwOutLength,
                         (void**)&pOutBuffer
                         );
@@ -180,12 +180,12 @@ error:
         NtCloseFile(FileHandle);
     }
 
-    if(pInBuffer) {
-        SrvSvcFreeMemory(pInBuffer);
+    if (pInBuffer) {
+        SrvSvcSrvFreeMemory(pInBuffer);
     }
 
     if (pOutBuffer) {
-        SrvSvcFreeMemory(pOutBuffer);
+        SrvSvcSrvFreeMemory(pOutBuffer);
     }
 
     RTL_FREE(&smbpath);
