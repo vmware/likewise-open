@@ -142,16 +142,9 @@ SrvSvcAllocateString(
     PSTR *ppszOutputString
     );
 
-
 VOID
 SrvSvcFreeString(
     PSTR pszString
-    );
-
-VOID
-SrvSvcFreeStringArray(
-    PSTR* ppStringArray,
-    DWORD dwCount
     );
 
 DWORD

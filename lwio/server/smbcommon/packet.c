@@ -88,11 +88,6 @@ SMBPacketCreateAllocator(
     NTSTATUS ntStatus = 0;
     PLWIO_PACKET_ALLOCATOR pPacketAllocator = NULL;
 
-    if (!ulNumMaxPackets || ulNumMaxPackets < 10)
-    {
-        ulNumMaxPackets = 10;
-    }
-
     ntStatus = SMBAllocateMemory(
                     sizeof(LWIO_PACKET_ALLOCATOR),
                     (PVOID*)&pPacketAllocator);

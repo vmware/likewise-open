@@ -55,11 +55,12 @@ SrvSvcAllocateMemory(
     if (!pMemory){
         dwError = ENOMEM;
         *ppMemory = NULL;
-    }else {
+    } else {
         memset(pMemory,0, dwSize);
         *ppMemory = pMemory;
     }
-    return (dwError);
+
+    return dwError;
 }
 
 
@@ -76,13 +77,14 @@ SrvSvcReallocMemory(
     if (pMemory == NULL) {
         pNewMemory = malloc(dwSize);
         memset(pNewMemory, 0, dwSize);
-    }else {
+    } else {
         pNewMemory = realloc(pMemory, dwSize);
     }
-    if (!pNewMemory){
+
+    if (!pNewMemory) {
         dwError = ENOMEM;
         *ppNewMemory = NULL;
-    }else {
+    } else {
         *ppNewMemory = pNewMemory;
     }
 
@@ -123,7 +125,7 @@ error:
 
     *ppszOutputString = pszOutputString;
 
-    return(dwError);
+    return dwError;
 }
 
 void
@@ -136,27 +138,6 @@ SrvSvcFreeString(
     }
 }
 
-void
-SrvSvcFreeStringArray(
-    PSTR * ppStringArray,
-    DWORD dwCount
-    )
-{
-    DWORD i;
-
-    if ( ppStringArray ) {
-        for (i = 0; i < dwCount; i++)
-        {
-            if (ppStringArray[i]) {
-                SrvSvcFreeString(ppStringArray[i]);
-            }
-        }
-
-        SrvSvcFreeMemory(ppStringArray);
-    }
-
-    return;
-}
 
 #ifdef _WIN32
  void __RPC_FAR * __RPC_USER midl_user_allocate(size_t cBytes)

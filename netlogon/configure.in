@@ -342,6 +342,7 @@ CFLAGS="$saved_CFLAGS"
 AC_CONFIG_FILES([Makefile
                  utils/Makefile
                  ipc/Makefile
+		 common/Makefile
                  client/Makefile
                  server/Makefile
                  server/api/Makefile

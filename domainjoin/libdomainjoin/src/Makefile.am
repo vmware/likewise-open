@@ -42,31 +42,35 @@ libdomainjoin_la_LIBADD = \
         @LIB_XNET@
 
 libdomainjoin_la_SOURCES = \
-       djauthinfo.c   \
-       djauthconf.c   \
-       djddns.c       \
+       djparsehosts.c \
        djhostinfo.c   \
+       djauthinfo.c   \
        djkrb5conf.c   \
        djlogger.c     \
-       djlogincfg.c   \
-       djmethodcfg.c  \
-       djpamconf.c    \
        djdistroinfo.c \
-       djsshconf.c    \
        djstr.c    \
-       djnsswitch.c    \
-       djparsehosts.c \
-       djprocutils.c  \
        djroutines.c   \
+       djprocutils.c  \
+       djmodule.c \
+       djapi.c
+
+if ENABLE_MINIMAL
+else
+libdomainjoin_la_SOURCES += \
+       djsystemscripts.c \
        djsecuser.c    \
        djfirewall.c    \
-       djtimemgmt.c \
-       djmodule.c \
+       djnsswitch.c    \
+       djpamconf.c    \
+       djlogincfg.c   \
+       djmethodcfg.c  \
        djdaemonmgr.c \
-       djsystemscripts.c \
        djaixparser.c \
        djconfig_mac.c \
-       djapi.c
+       djtimemgmt.c \
+       djsshconf.c    \
+       djauthconf.c   \
+       djddns.c
 
 if BUILD_MACCODE
 EXTRA_libdomainjoin_la_SOURCES = djdaemonmgr_nonmac.c
@@ -74,4 +78,6 @@ libdomainjoin_la_SOURCES += djdaemonmgr_mac.c
 else
 EXTRA_libdomainjoin_la_SOURCES = djdaemonmgr_mac.c
 libdomainjoin_la_SOURCES += djdaemonmgr_nonmac.c
+endif
+
 endif

@@ -9,8 +9,7 @@ liblwnetclientapi_la_CPPFLAGS = \
 liblwnetclientapi_la_LIBADD =   \
     $(LWMSG_LIBS)               \
     $(LWADVAPI_NOTHR_LIBS)      \
-    @top_builddir@/utils/liblwnetutils.la \
-    @top_builddir@/ipc/liblwnetipc.la
+    @top_builddir@/common/liblwnetcommon.la
 
 liblwnetclientapi_la_LDFLAGS = \
     $(LWMSG_LDFLAGS)           \

@@ -1079,6 +1079,7 @@ static void DoSetHostname(JoinProcessOptions *options, LWException **exc)
         DJSetComputerName(options->computerName,
             options->domainName, &LW_EXC));
 
+#ifndef ENABLE_MINIMAL
     ceError = DJConfigureHostsEntry(NULL);
     if(ceError == CENTERROR_INVALID_FILENAME)
     {
@@ -1088,11 +1089,14 @@ static void DoSetHostname(JoinProcessOptions *options, LWException **exc)
 #endif
     }
     LW_CLEANUP_CTERR(exc, ceError);
+#endif
 
+#ifndef ENABLE_MINIMAL
     DJRestartIfRunning("nscd", &inner);
     if(!LW_IS_OK(inner) && inner->code == CENTERROR_FILE_NOT_FOUND)
         LW_HANDLE(&inner);
     LW_CLEANUP(exc, inner);
+#endif
 
 cleanup:
     LW_HANDLE(&inner);

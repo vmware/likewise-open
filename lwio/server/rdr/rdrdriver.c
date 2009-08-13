@@ -211,9 +211,7 @@ RdrInitialize(
 
     gRdrRuntime.SysPid = getpid();
 
-    ntStatus = SMBPacketCreateAllocator(
-                    10,
-                    &gRdrRuntime.hPacketAllocator);
+    ntStatus = SMBPacketCreateAllocator(1, &gRdrRuntime.hPacketAllocator);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = RdrSocketInit();
