@@ -213,7 +213,7 @@ error:
 }
 
 DWORD
-WKSSVCRegisterForRPC(
+WksSvcRegisterForRPC(
     PSTR pszServiceName,
     rpc_binding_vector_p_t* ppServerBinding
     )
@@ -233,17 +233,17 @@ WKSSVCRegisterForRPC(
 
     DCETHREAD_TRY
     {
-        rpc_server_register_if (wkssvc_v1_0_s_ifspec,
-                                NULL,
-                                NULL,
-                                (unsigned32*)&dwRpcStatus);
+        rpc_server_register_if(wkssvc_v1_0_s_ifspec,
+                               NULL,
+                               NULL,
+                               (unsigned32*)&dwRpcStatus);
     }
     DCETHREAD_CATCH_ALL(THIS_CATCH)
     {
-        if ( dwRpcStatus == RPC_S_OK )
+        if (dwRpcStatus == RPC_S_OK)
         {
-            dwError = dcethread_exc_getstatus (THIS_CATCH);
-            if(!dwError)
+            dwError = dcethread_exc_getstatus(THIS_CATCH);
+            if (!dwError)
             {
                 dwError = SRVSVC_ERROR_RPC_EXCEPTION_UPON_REGISTER;
             }
@@ -265,11 +265,11 @@ WKSSVCRegisterForRPC(
     }
     DCETHREAD_CATCH_ALL(THIS_CATCH)
     {
-        if(!dwError)
+        if (!dwError)
         {
-            dwError = dcethread_exc_getstatus (THIS_CATCH);
+            dwError = dcethread_exc_getstatus(THIS_CATCH);
         }
-        if(!dwError)
+        if (!dwError)
         {
             dwError = SRVSVC_ERROR_RPC_EXCEPTION_UPON_REGISTER;
         }
@@ -290,10 +290,10 @@ WKSSVCRegisterForRPC(
     }
     DCETHREAD_CATCH_ALL(THIS_CATCH)
     {
-        if ( dwRpcStatus == RPC_S_OK )
+        if (dwRpcStatus == RPC_S_OK)
         {
-            dwError = dcethread_exc_getstatus (THIS_CATCH);
-            if(!dwError)
+            dwError = dcethread_exc_getstatus(THIS_CATCH);
+            if (!dwError)
             {
                 dwError = SRVSVC_ERROR_RPC_EXCEPTION_UPON_REGISTER;
             }
@@ -331,7 +331,8 @@ error:
         DCETHREAD_ENDTRY;
     }
 
-    if (bBound) {
+    if (bBound)
+    {
         DCETHREAD_TRY
         {
             DWORD tmpStatus = 0;
@@ -347,9 +348,9 @@ error:
         DCETHREAD_TRY
         {
             DWORD tmpStatus = 0;
-            rpc_server_unregister_if (wkssvc_v1_0_s_ifspec,
-                                      NULL,
-                                      (unsigned32*)&tmpStatus);
+            rpc_server_unregister_if(wkssvc_v1_0_s_ifspec,
+                                     NULL,
+                                     (unsigned32*)&tmpStatus);
         }
         DCETHREAD_CATCH_ALL(THIS_CATCH)
         DCETHREAD_ENDTRY;
@@ -361,7 +362,7 @@ error:
 }
 
 DWORD
-WKSSVCListenForRPC()
+WksSvcListenForRPC()
 {
     volatile DWORD dwError = 0;
 
@@ -373,9 +374,9 @@ WKSSVCListenForRPC()
     {
         if (!dwError)
         {
-            dwError = dcethread_exc_getstatus (THIS_CATCH);
+            dwError = dcethread_exc_getstatus(THIS_CATCH);
         }
-        if(!dwError)
+        if (!dwError)
         {
             dwError = SRVSVC_ERROR_RPC_EXCEPTION_UPON_LISTEN;
         }
@@ -393,7 +394,7 @@ error:
 }
 
 DWORD
-WKSSVCUnregisterForRPC(
+WksSvcUnregisterForRPC(
     rpc_binding_vector_p_t pServerBinding
     )
 {
@@ -404,16 +405,16 @@ WKSSVCUnregisterForRPC(
     {
         SRVSVC_LOG_INFO("Unregistering server from the endpoint mapper...");
         rpc_ep_unregister(wkssvc_v1_0_s_ifspec,
-                            pServerBinding,
-                            NULL,
-                            (unsigned32*)&dwRpcStatus);
+                          pServerBinding,
+                          NULL,
+                          (unsigned32*)&dwRpcStatus);
     }
     DCETHREAD_CATCH_ALL(THIS_CATCH)
     {
-        if ( dwRpcStatus == RPC_S_OK )
+        if (dwRpcStatus == RPC_S_OK)
         {
-            dwError = dcethread_exc_getstatus (THIS_CATCH);
-            if(!dwError)
+            dwError = dcethread_exc_getstatus(THIS_CATCH);
+            if (!dwError)
             {
                 dwError = SRVSVC_ERROR_RPC_EXCEPTION_UPON_UNREGISTER;
             }
@@ -430,10 +431,10 @@ WKSSVCUnregisterForRPC(
     }
     DCETHREAD_CATCH_ALL(THIS_CATCH)
     {
-        if ( dwRpcStatus == RPC_S_OK )
+        if (dwRpcStatus == RPC_S_OK)
         {
-            dwError = dcethread_exc_getstatus (THIS_CATCH);
-            if(!dwError)
+            dwError = dcethread_exc_getstatus(THIS_CATCH);
+            if (!dwError)
             {
                 dwError = SRVSVC_ERROR_RPC_EXCEPTION_UPON_UNREGISTER;
             }
@@ -447,16 +448,16 @@ WKSSVCUnregisterForRPC(
     DCETHREAD_TRY
     {
         SRVSVC_LOG_INFO("Cleaning up the communications endpoints...");
-        rpc_server_unregister_if (wkssvc_v1_0_s_ifspec,
+        rpc_server_unregister_if(wkssvc_v1_0_s_ifspec,
                                  NULL,
                                  (unsigned32*)&dwRpcStatus);
     }
     DCETHREAD_CATCH_ALL(THIS_CATCH)
     {
-        if ( dwRpcStatus == RPC_S_OK )
+        if (dwRpcStatus == RPC_S_OK)
         {
-            dwError = dcethread_exc_getstatus (THIS_CATCH);
-            if(!dwError)
+            dwError = dcethread_exc_getstatus(THIS_CATCH);
+            if (!dwError)
             {
                 dwError = SRVSVC_ERROR_RPC_EXCEPTION_UPON_UNREGISTER;
             }

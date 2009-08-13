@@ -931,7 +931,7 @@ main(
 
     for (dwBindAttempts = 0; dwBindAttempts < dwMaxBindAttempts; dwBindAttempts++)
     {
-        dwError = WKSSVCRegisterForRPC("Likewise Workstation Service",
+        dwError = WksSvcRegisterForRPC("Likewise Workstation Service",
 				       &pWkstaBinding);
         if (dwError)
         {
@@ -975,7 +975,7 @@ main(
         SrvSvcUnregisterForRPC(pServerBinding);
     }
     if (pWkstaBinding) {
-        WKSSVCUnregisterForRPC(pWkstaBinding);
+        WksSvcUnregisterForRPC(pWkstaBinding);
     }
 
     SrvSvcCloseLog();
