@@ -218,20 +218,20 @@ SrvProcessNTCreateAndX(
 
             pCreateState->bRemoveFileFromTree = TRUE;
 
-            pCreateState->stage = SRV_CREATE_STAGE_ATTEMPT_QUERY_INFORMATION;
+            pCreateState->stage = SRV_CREATE_STAGE_SMB_V1_ATTEMPT_QUERY_INFO;
 
             // intentional fall through
 
-        case SRV_CREATE_STAGE_ATTEMPT_QUERY_INFORMATION:
+        case SRV_CREATE_STAGE_SMB_V1_ATTEMPT_QUERY_INFO:
 
             ntStatus = SrvQueryFileInformation_inlock(pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            pCreateState->stage = SRV_CREATE_STAGE_QUERY_INFORMATION_COMPLETED;
+            pCreateState->stage = SRV_CREATE_STAGE_SMB_V1_QUERY_INFO_COMPLETED;
 
             // intentional fall through
 
-        case SRV_CREATE_STAGE_QUERY_INFORMATION_COMPLETED:
+        case SRV_CREATE_STAGE_SMB_V1_QUERY_INFO_COMPLETED:
 
             ntStatus = pCreateState->ioStatusBlock.Status;
             BAIL_ON_NT_STATUS(ntStatus);
@@ -239,11 +239,11 @@ SrvProcessNTCreateAndX(
             ntStatus = SrvBuildNTCreateResponse_inlock(pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            pCreateState->stage = SRV_CREATE_STAGE_DONE;
+            pCreateState->stage = SRV_CREATE_STAGE_SMB_V1_DONE;
 
             // intentional fall through
 
-        case SRV_CREATE_STAGE_DONE:
+        case SRV_CREATE_STAGE_SMB_V1_DONE:
 
             ntStatus = pCreateState->ioStatusBlock.Status;
             BAIL_ON_NT_STATUS(ntStatus);
@@ -738,13 +738,10 @@ SrvFreeCreateState(
         IoRtlEcpListFree(&pCreateState->pEcpList);
     }
 
-    if (pCreateState->pAcb)
+    if (pCreateState->pAcb && pCreateState->pAcb->AsyncCancelContext)
     {
-        if (pCreateState->pAcb->AsyncCancelContext)
-        {
-            IoDereferenceAsyncCancelContext(
+        IoDereferenceAsyncCancelContext(
                     &pCreateState->pAcb->AsyncCancelContext);
-        }
     }
 
     // TODO: Free the following if set

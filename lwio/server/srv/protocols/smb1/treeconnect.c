@@ -228,20 +228,20 @@ SrvProcessTreeConnectAndX(
 
             pTConState->bRemoveTreeFromSession = TRUE;
 
-            pTConState->stage = SRV_TREE_CONNECT_STAGE_ATTEMPT_QUERY_INFO;
+            pTConState->stage = SRV_TREE_CONNECT_STAGE_SMB_V1_ATTEMPT_QUERY_INFO;
 
             // Intentional fall through
 
-        case SRV_TREE_CONNECT_STAGE_ATTEMPT_QUERY_INFO:
+        case SRV_TREE_CONNECT_STAGE_SMB_V1_ATTEMPT_QUERY_INFO:
 
             ntStatus = SrvQueryTreeConnectInfo(pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            pTConState->stage = SRV_TREE_CONNECT_STAGE_QUERY_INFO_COMPLETED;
+            pTConState->stage = SRV_TREE_CONNECT_STAGE_SMB_V1_QUERY_INFO_COMPLETED;
 
             // Intentional fall through
 
-        case SRV_TREE_CONNECT_STAGE_QUERY_INFO_COMPLETED:
+        case SRV_TREE_CONNECT_STAGE_SMB_V1_QUERY_INFO_COMPLETED:
 
             ntStatus = pTConState->ioStatusBlock.Status;
             BAIL_ON_NT_STATUS(ntStatus);
@@ -249,11 +249,11 @@ SrvProcessTreeConnectAndX(
             ntStatus = SrvBuildTreeConnectResponse(pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            pTConState->stage = SRV_TREE_CONNECT_STAGE_DONE;
+            pTConState->stage = SRV_TREE_CONNECT_STAGE_SMB_V1_DONE;
 
             // Intentional fall through
 
-        case SRV_TREE_CONNECT_STAGE_DONE:
+        case SRV_TREE_CONNECT_STAGE_SMB_V1_DONE:
 
             pTConState->bRemoveTreeFromSession = FALSE;
 
@@ -372,10 +372,13 @@ SrvQueryTreeConnectInfo(
 
     pTConState = (PSRV_TREE_CONNECT_STATE_SMB_V1)pCtxSmb1->hState;
 
-    ntStatus = SrvGetServiceName(
-                    pTConState->pTree->pShareInfo,
-                    &pTConState->pszService2);
-    BAIL_ON_NT_STATUS(ntStatus);
+    if (!pTConState->pszService2)
+    {
+        ntStatus = SrvGetServiceName(
+                        pTConState->pTree->pShareInfo,
+                        &pTConState->pszService2);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
     if ((pTConState->pTree->pShareInfo->service == SHARE_SERVICE_DISK_SHARE) &&
         (!pTConState->pwszNativeFileSystem))
@@ -829,13 +832,9 @@ SrvFreeTreeConnectState(
         IoRtlEcpListFree(&pTConState->pEcpList);
     }
 
-    if (pTConState->pAcb)
+    if (pTConState->pAcb && pTConState->pAcb->AsyncCancelContext)
     {
-        if (pTConState->pAcb->AsyncCancelContext)
-        {
-            IoDereferenceAsyncCancelContext(
-                    &pTConState->pAcb->AsyncCancelContext);
-        }
+        IoDereferenceAsyncCancelContext(&pTConState->pAcb->AsyncCancelContext);
     }
 
     // TODO: Free the following if set
