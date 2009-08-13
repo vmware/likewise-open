@@ -99,19 +99,14 @@ SrvProcessNTCreateAndX(
     PSRV_EXEC_CONTEXT pExecContext
     )
 {
-    NTSTATUS                   ntStatus = 0;
+    NTSTATUS                   ntStatus     = 0;
     PLWIO_SRV_CONNECTION       pConnection  = pExecContext->pConnection;
     PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
     PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
-    ULONG                      iMsg         = pCtxSmb1->iMsg;
-    PSRV_MESSAGE_SMB_V1        pSmbRequest  = &pCtxSmb1->pRequests[iMsg];
-    PBYTE pBuffer          = pSmbRequest->pBuffer + pSmbRequest->usHeaderSize;
-    ULONG ulOffset         = pSmbRequest->usHeaderSize;
-    ULONG ulBytesAvailable = pSmbRequest->ulMessageSize - pSmbRequest->usHeaderSize;
-    PLWIO_SRV_SESSION          pSession = NULL;
-    PLWIO_SRV_TREE             pTree = NULL;
+    PLWIO_SRV_SESSION          pSession     = NULL;
+    PLWIO_SRV_TREE             pTree        = NULL;
     PSRV_CREATE_STATE_SMB_V1   pCreateState = NULL;
-    BOOLEAN                    bInLock = FALSE;
+    BOOLEAN                    bInLock      = FALSE;
 
     pCreateState = (PSRV_CREATE_STATE_SMB_V1)pCtxSmb1->hState;
 
@@ -121,8 +116,13 @@ SrvProcessNTCreateAndX(
     }
     else
     {
-        PCREATE_REQUEST_HEADER     pRequestHeader = NULL; // Do not free
-        PWSTR                      pwszFilename = NULL;   // Do not free
+        ULONG               iMsg         = pCtxSmb1->iMsg;
+        PSRV_MESSAGE_SMB_V1 pSmbRequest  = &pCtxSmb1->pRequests[iMsg];
+        PBYTE pBuffer          = pSmbRequest->pBuffer + pSmbRequest->usHeaderSize;
+        ULONG ulOffset         = pSmbRequest->usHeaderSize;
+        ULONG ulBytesAvailable = pSmbRequest->ulMessageSize - pSmbRequest->usHeaderSize;
+        PCREATE_REQUEST_HEADER pRequestHeader = NULL; // Do not free
+        PWSTR                  pwszFilename = NULL;   // Do not free
 
         if (pCtxSmb1->pFile)
         {
