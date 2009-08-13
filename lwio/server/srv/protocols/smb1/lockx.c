@@ -212,7 +212,7 @@ SrvProcessLockAndX(
     {
         pLockRequest->bResponseSent = TRUE;
 
-        ntStatus = STATUS_FILE_LOCK_CONFLICT;
+        ntStatus = STATUS_LOCK_NOT_GRANTED;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
