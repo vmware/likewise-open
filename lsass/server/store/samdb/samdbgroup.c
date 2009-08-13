@@ -69,6 +69,14 @@ SamDbGroupSearchExecute(
     PDWORD                 pdwNumEntries
     );
 
+static
+DWORD
+SamDbCheckExistingMembership_inlock(
+    HANDLE hBinding,
+    LONG64 llGroupRecordId,
+    LONG64 llMemberRecordId
+    );
+
 DWORD
 SamDbGetGroupCount(
     HANDLE hBindHandle,
@@ -779,6 +787,16 @@ SamDbAddToGroup(
             BAIL_ON_SAMDB_ERROR(dwError);
         }
 
+        dwError = SamDbCheckExistingMembership_inlock(
+                        hBindHandle,
+                        llGroupRecordId,
+                        llMemberRecordId);
+        if (dwError == LW_ERROR_MEMBER_NOT_IN_LOCAL_GROUP)
+        {
+            dwError = LW_ERROR_SUCCESS;
+        }
+        BAIL_ON_SAMDB_ERROR(dwError);
+
         dwError = sqlite3_prepare_v2(
                         pDirectoryContext->pDbContext->pDbHandle,
                         pszQueryTemplate,
@@ -929,6 +947,16 @@ SamDbRemoveFromGroup(
             BAIL_ON_SAMDB_ERROR(dwError);
         }
 
+        dwError = SamDbCheckExistingMembership_inlock(
+                        hBindHandle,
+                        llGroupRecordId,
+                        llMemberRecordId);
+        if (dwError == LW_ERROR_MEMBER_IN_LOCAL_GROUP)
+        {
+            dwError = LW_ERROR_SUCCESS;
+        }
+        BAIL_ON_SAMDB_ERROR(dwError);
+
         dwError = sqlite3_prepare_v2(
                         pDirectoryContext->pDbContext->pDbHandle,
                         pszQueryTemplate,
@@ -972,6 +1000,86 @@ cleanup:
 
 error:
 
+    goto cleanup;
+}
+
+static
+DWORD
+SamDbCheckExistingMembership_inlock(
+    HANDLE hBinding,
+    LONG64 llGroupRecordId,
+    LONG64 llMemberRecordId
+    )
+{
+    DWORD dwError = 0;
+    sqlite3_stmt* pSqlStatement = NULL;
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext = NULL;
+    PCSTR pszQueryTemplate = "SELECT * FROM " SAM_DB_MEMBERS_TABLE         \
+                             " WHERE " SAM_DB_COL_GROUP_RECORD_ID  " = ?1" \
+                             "   AND " SAM_DB_COL_MEMBER_RECORD_ID " = ?2";
+    DWORD dwRowCount = 0;
+
+    pDirectoryContext = (PSAM_DIRECTORY_CONTEXT)hBinding;
+
+    dwError = sqlite3_prepare_v2(
+                    pDirectoryContext->pDbContext->pDbHandle,
+                    pszQueryTemplate,
+                    -1,
+                    &pSqlStatement,
+                    NULL);
+    BAIL_ON_SAMDB_SQLITE_ERROR_DB(dwError, pDirectoryContext->pDbContext->pDbHandle);
+
+    dwError = sqlite3_bind_int64(
+                    pSqlStatement,
+                    1,
+                    llGroupRecordId);
+    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
+
+    dwError = sqlite3_bind_int64(
+                    pSqlStatement,
+                    2,
+                    llMemberRecordId);
+    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
+
+    while ((dwError = sqlite3_step(pSqlStatement)) == SQLITE_ROW)
+    {
+        dwRowCount++;
+    }
+
+    if (dwError == SQLITE_DONE)
+    {
+        dwError = LW_ERROR_SUCCESS;
+    }
+    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
+
+    switch (dwRowCount)
+    {
+    case 0:
+        /* No membership records found - member is not in local group */
+        dwError = LW_ERROR_MEMBER_NOT_IN_LOCAL_GROUP;
+        break;
+
+    case 1:
+        /* One membership record found - member is in local group */
+        dwError = LW_ERROR_MEMBER_IN_LOCAL_GROUP;
+        break;
+
+    default:
+        /* More than one membership record found - this cannot happen
+           as it would be a primary key violation. */
+        dwError = LW_ERROR_SAM_DATABASE_ERROR;
+        break;
+    }
+
+cleanup:
+    if (pSqlStatement)
+    {
+        sqlite3_finalize(pSqlStatement);
+    }
+
+    return dwError;
+
+error:
     goto cleanup;
 }
 
