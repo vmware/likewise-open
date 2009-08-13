@@ -24,9 +24,8 @@ libiomgr2_la_CPPFLAGS = \
     -I@top_srcdir@/server/include
 
 libiomgr2_la_LIBADD = \
-    @top_builddir@/ipc/liblwioipc.la \
+    @top_builddir@/common/liblwiocommon.la \
     @top_builddir@/logging_r/liblwiolog_r.la  \
-    @top_builddir@/utils/liblwioutils.la \
     @LWMAPSECURITY_LIBS@ \
     @LWBASE_LIBS@ \
     @LWMSG_LIBS@ \

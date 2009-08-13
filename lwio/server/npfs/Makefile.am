@@ -39,7 +39,7 @@ libnpfs_sys_la_CPPFLAGS = \
 libnpfs_sys_la_CFLAGS = $(AM_CFLAGS) $(DRIVER_CFLAGS)
 
 libnpfs_sys_la_LIBADD = \
-    @top_builddir@/utils/liblwioutils.la \
+    @top_builddir@/common/liblwiocommon.la \
     @UUID_LIBS@ \
     @PTHREAD_LIBS@
 

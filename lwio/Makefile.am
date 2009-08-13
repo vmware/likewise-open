@@ -6,6 +6,7 @@ SUBDIRS = \
     utils        \
     logging_r    \
     ipc          \
+    common       \
     client       \
     libshareinfo \
     server       \

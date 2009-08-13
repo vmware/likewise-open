@@ -624,6 +624,7 @@ AC_CONFIG_FILES([Makefile
         etc/Makefile
         etc/lwiod.conf
         utils/Makefile
+	common/Makefile
         logging_r/Makefile
         ipc/Makefile
         client/Makefile

@@ -25,7 +25,6 @@ liblwioclient_la_CFLAGS = \
     -Wmissing-prototypes
 
 liblwioclient_la_LIBADD = \
-    @top_builddir@/ipc/liblwioipc.la \
-    @top_builddir@/utils/liblwioutils.la \
+    @top_builddir@/common/liblwiocommon.la \
     @LWMSG_LIBS@ \
     -lkrb5
