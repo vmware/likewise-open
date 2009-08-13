@@ -1764,6 +1764,8 @@ AD_WinErrorIsConnectionError(
     {
     case ERROR_UNEXP_NET_ERR:
         return TRUE;
+    case LW_STATUS_INVALID_CONNECTION:
+        return TRUE;
     default:
         return FALSE;
     }
