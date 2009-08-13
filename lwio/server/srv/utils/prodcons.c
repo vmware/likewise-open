@@ -231,11 +231,7 @@ SrvProdConsTimedDequeue(
             }
 
             ntStatus = LwUnixErrnoToNtStatus(unixErrorCode);
-            if (ntStatus)
-            {
-                goto error;
-            }
-
+	    BAIL_ON_NT_STATUS(ntStatus);
         } while (bRetryWait);
     }
 
@@ -248,22 +244,21 @@ SrvProdConsTimedDequeue(
 
     pQueue->ulNumItems--;
 
-    LWIO_UNLOCK_MUTEX(bInLock, &pQueue->mutex);
-
     if (bSignalEvent)
     {
         pthread_cond_broadcast(&pQueue->event);
     }
+    LWIO_UNLOCK_MUTEX(bInLock, &pQueue->mutex);
 
     *ppItem = pItem;
 
 cleanup:
 
-    LWIO_UNLOCK_MUTEX(bInLock, &pQueue->mutex);
-
     return ntStatus;
 
 error:
+
+    LWIO_UNLOCK_MUTEX(bInLock, &pQueue->mutex);
 
     *ppItem = NULL;
 
