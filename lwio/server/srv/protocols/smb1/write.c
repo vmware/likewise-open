@@ -32,20 +32,60 @@
 
 static
 NTSTATUS
+SrvBuildWriteState(
+    PWRITE_REQUEST_HEADER    pRequestHeader,
+    PBYTE                    pData,
+    PLWIO_SRV_FILE           pFile,
+    PSRV_WRITE_STATE_SMB_V1* ppWriteState
+    );
+
+static
+NTSTATUS
 SrvExecuteWrite(
-    PLWIO_SRV_FILE pFile,
-    PBYTE          pData,
-    PULONG         pulDataOffset,
-    USHORT         usDataLength,
-    PUSHORT        pusBytesWritten,
-    PULONG         pulKey
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+VOID
+SrvPrepareWriteStateAsync(
+    PSRV_WRITE_STATE_SMB_V1 pWriteState,
+    PSRV_EXEC_CONTEXT       pExecContext
+    );
+
+static
+VOID
+SrvExecuteWriteAsyncCB(
+    PVOID pContext
+    );
+
+static
+VOID
+SrvReleaseWriteStateAsync(
+    PSRV_WRITE_STATE_SMB_V1 pWriteState
     );
 
 static
 NTSTATUS
 SrvBuildWriteResponse(
-    PSRV_EXEC_CONTEXT pExecContext,
-    USHORT            usBytesWritten
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+VOID
+SrvReleaseWriteStateHandle(
+    HANDLE hWriteState
+    );
+
+static
+VOID
+SrvReleaseWriteState(
+    PSRV_WRITE_STATE_SMB_V1 pWriteState
+    );
+
+static
+VOID
+SrvFreeWriteState(
+    PSRV_WRITE_STATE_SMB_V1 pWriteState
     );
 
 NTSTATUS
@@ -59,62 +99,105 @@ SrvProcessWrite(
     PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
     ULONG                      iMsg         = pCtxSmb1->iMsg;
     PSRV_MESSAGE_SMB_V1        pSmbRequest  = &pCtxSmb1->pRequests[iMsg];
-    PBYTE pBuffer          = pSmbRequest->pBuffer + pSmbRequest->usHeaderSize;
-    ULONG ulOffset         = pSmbRequest->usHeaderSize;
-    ULONG ulBytesAvailable = pSmbRequest->ulMessageSize - pSmbRequest->usHeaderSize;
-    PWRITE_REQUEST_HEADER pRequestHeader = NULL; // Do not free
-    PBYTE pData = NULL; // Do not free
-    PLWIO_SRV_SESSION pSession = NULL;
-    PLWIO_SRV_TREE    pTree = NULL;
-    PLWIO_SRV_FILE    pFile = NULL;
-    ULONG  ulDataOffset = 0;
-    USHORT usBytesWritten = 0;
-    ULONG  ulKey = 0;
+    PSRV_WRITE_STATE_SMB_V1    pWriteState  = NULL;
+    PLWIO_SRV_SESSION          pSession     = NULL;
+    PLWIO_SRV_TREE             pTree        = NULL;
+    PLWIO_SRV_FILE             pFile        = NULL;
+    BOOLEAN                    bInLock      = FALSE;
 
-    ntStatus = SrvConnectionFindSession_SMB_V1(
-                    pCtxSmb1,
-                    pConnection,
-                    pSmbRequest->pHeader->uid,
-                    &pSession);
-    BAIL_ON_NT_STATUS(ntStatus);
+    pWriteState = (PSRV_WRITE_STATE_SMB_V1)pCtxSmb1->hState;
 
-    ntStatus = SrvSessionFindTree_SMB_V1(
-                    pCtxSmb1,
-                    pSession,
-                    pSmbRequest->pHeader->tid,
-                    &pTree);
-    BAIL_ON_NT_STATUS(ntStatus);
+    if (pWriteState)
+    {
+        InterlockedIncrement(&pWriteState->refCount);
+    }
+    else
+    {
+        PBYTE pBuffer          = pSmbRequest->pBuffer + pSmbRequest->usHeaderSize;
+        ULONG ulOffset         = pSmbRequest->usHeaderSize;
+        ULONG ulBytesAvailable = pSmbRequest->ulMessageSize - pSmbRequest->usHeaderSize;
+        PWRITE_REQUEST_HEADER pRequestHeader = NULL; // Do not free
+        PBYTE pData = NULL; // Do not free
 
-    ntStatus = WireUnmarshallWriteRequest(
-                    pBuffer,
-                    ulBytesAvailable,
-                    ulOffset,
-                    &pRequestHeader,
-                    &pData);
-    BAIL_ON_NT_STATUS(ntStatus);
+        ntStatus = SrvConnectionFindSession_SMB_V1(
+                        pCtxSmb1,
+                        pConnection,
+                        pSmbRequest->pHeader->uid,
+                        &pSession);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvTreeFindFile_SMB_V1(
+        ntStatus = SrvSessionFindTree_SMB_V1(
+                        pCtxSmb1,
+                        pSession,
+                        pSmbRequest->pHeader->tid,
+                        &pTree);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = WireUnmarshallWriteRequest(
+                        pBuffer,
+                        ulBytesAvailable,
+                        ulOffset,
+                        &pRequestHeader,
+                        &pData);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = SrvTreeFindFile_SMB_V1(
                         pCtxSmb1,
                         pTree,
                         pRequestHeader->fid,
                         &pFile);
-    BAIL_ON_NT_STATUS(ntStatus);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-    ulDataOffset = pRequestHeader->offset;
+        ntStatus = SrvBuildWriteState(
+                        pRequestHeader,
+                        pData,
+                        pFile,
+                        &pWriteState);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-    ulKey = pSmbRequest->pHeader->pid;
+        pCtxSmb1->hState = pWriteState;
+        InterlockedIncrement(&pWriteState->refCount);
+        pCtxSmb1->pfnStateRelease = &SrvReleaseWriteStateHandle;
+    }
 
-    ntStatus = SrvExecuteWrite(
-                    pFile,
-                    pData,
-                    &ulDataOffset,
-                    pRequestHeader->dataLength,
-                    &usBytesWritten,
-                    &ulKey);
-    BAIL_ON_NT_STATUS(ntStatus);
+    LWIO_LOCK_MUTEX(bInLock, &pWriteState->mutex);
 
-    ntStatus = SrvBuildWriteResponse(pExecContext, usBytesWritten);
-    BAIL_ON_NT_STATUS(ntStatus);
+    switch (pWriteState->stage)
+    {
+        case SRV_WRITE_STAGE_SMB_V1_INITIAL:
+
+            pWriteState->ulDataOffset = pWriteState->pRequestHeader->offset;
+            pWriteState->llDataOffset = pWriteState->ulDataOffset;
+            pWriteState->usDataLength = pWriteState->pRequestHeader->dataLength;
+
+            pWriteState->ulKey = pSmbRequest->pHeader->pid;
+
+            pWriteState->stage = SRV_WRITE_STAGE_SMB_V1_ATTEMPT_WRITE;
+
+            // intentional fall through
+
+        case SRV_WRITE_STAGE_SMB_V1_ATTEMPT_WRITE:
+
+            ntStatus = SrvExecuteWrite(pExecContext);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            pWriteState->stage = SRV_WRITE_STAGE_SMB_V1_BUILD_RESPONSE;
+
+            // intentional fall through
+
+        case SRV_WRITE_STAGE_SMB_V1_BUILD_RESPONSE:
+
+            ntStatus = SrvBuildWriteResponse(pExecContext);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            pWriteState->stage = SRV_WRITE_STAGE_SMB_V1_DONE;
+
+            // intentional fall through
+
+        case SRV_WRITE_STAGE_SMB_V1_DONE:
+
+            break;
+    }
 
 cleanup:
 
@@ -122,71 +205,81 @@ cleanup:
     {
         SrvFileRelease(pFile);
     }
+
     if (pTree)
     {
         SrvTreeRelease(pTree);
     }
+
     if (pSession)
     {
         SrvSessionRelease(pSession);
+    }
+
+    if (pWriteState)
+    {
+        LWIO_UNLOCK_MUTEX(bInLock, &pWriteState->mutex);
+
+        SrvReleaseWriteState(pWriteState);
     }
 
     return ntStatus;
 
 error:
 
+    switch (ntStatus)
+    {
+        case STATUS_PENDING:
+
+            // TODO: Add an indicator to the file object to trigger a
+            //       cleanup if the connection gets closed and all the
+            //       files involved have to be closed
+
+            break;
+
+        default:
+
+            if (pWriteState)
+            {
+                SrvReleaseWriteStateAsync(pWriteState);
+            }
+
+            break;
+    }
+
     goto cleanup;
 }
 
 static
 NTSTATUS
-SrvExecuteWrite(
-    PLWIO_SRV_FILE pFile,
-    PBYTE          pData,
-    PULONG         pulDataOffset,
-    USHORT         usDataLength,
-    PUSHORT        pusBytesWritten,
-    PULONG         pulKey
+SrvBuildWriteState(
+    PWRITE_REQUEST_HEADER    pRequestHeader,
+    PBYTE                    pData,
+    PLWIO_SRV_FILE           pFile,
+    PSRV_WRITE_STATE_SMB_V1* ppWriteState
     )
 {
-    NTSTATUS ntStatus = 0;
-    IO_STATUS_BLOCK ioStatusBlock = {0};
-    ULONG   ulDataLength = usDataLength;
-    LONG64  llDataOffset = *pulDataOffset;
-    ULONG   ulBytesWritten = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_WRITE_STATE_SMB_V1 pWriteState = NULL;
 
-    if (pData)
-    {
-        ntStatus = IoWriteFile(
-                        pFile->hFile,
-                        NULL,
-                        &ioStatusBlock,
-                        pData,
-                        ulDataLength,
-                        &llDataOffset,
-                        pulKey);
-        BAIL_ON_NT_STATUS(ntStatus);
+    ntStatus = SrvAllocateMemory(
+                    sizeof(SRV_WRITE_STATE_SMB_V1),
+                    (PVOID*)&pWriteState);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-        ulBytesWritten = ioStatusBlock.BytesTransferred;
-    }
-    else
-    {
-        FILE_END_OF_FILE_INFORMATION fileEofInfo = {0};
+    pWriteState->refCount = 1;
 
-        fileEofInfo.EndOfFile = llDataOffset;
+    pthread_mutex_init(&pWriteState->mutex, NULL);
+    pWriteState->pMutex = &pWriteState->mutex;
 
-        ntStatus = IoSetInformationFile(
-                        pFile->hFile,
-                        NULL,
-                        &ioStatusBlock,
-                        &fileEofInfo,
-                        sizeof(fileEofInfo),
-                        FileEndOfFileInformation);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
+    pWriteState->stage = SRV_WRITE_STAGE_SMB_V1_INITIAL;
 
-    *pusBytesWritten = ulBytesWritten;
-    *pulDataOffset = SMB_MIN(UINT32_MAX, llDataOffset);
+    pWriteState->pRequestHeader = pRequestHeader;
+    pWriteState->pData          = pData;
+    pWriteState->pFile          = pFile;
+    InterlockedIncrement(&pFile->refcount);
+
+    *ppWriteState = pWriteState;
 
 cleanup:
 
@@ -194,16 +287,179 @@ cleanup:
 
 error:
 
-    *pusBytesWritten = 0;
+    *ppWriteState = NULL;
+
+    if (pWriteState)
+    {
+        SrvFreeWriteState(pWriteState);
+    }
+
+    goto cleanup;
+}
+
+
+static
+NTSTATUS
+SrvExecuteWrite(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS                   ntStatus     = 0;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
+    PSRV_WRITE_STATE_SMB_V1    pWriteState  = NULL;
+
+    pWriteState = (PSRV_WRITE_STATE_SMB_V1)pCtxSmb1->hState;
+
+    ntStatus = pWriteState->ioStatusBlock.Status; // async response status
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (pWriteState->pData)
+    {
+        pWriteState->usBytesWritten +=
+                        pWriteState->ioStatusBlock.BytesTransferred;
+        pWriteState->usDataLength -=
+                        pWriteState->ioStatusBlock.BytesTransferred;
+
+        if (pWriteState->usDataLength > 0)
+        {
+            SrvPrepareWriteStateAsync(pWriteState, pExecContext);
+
+            ntStatus = IoWriteFile(
+                            pWriteState->pFile->hFile,
+                            pWriteState->pAcb,
+                            &pWriteState->ioStatusBlock,
+                            pWriteState->pData + pWriteState->usBytesWritten,
+                            pWriteState->usDataLength,
+                            &pWriteState->llDataOffset,
+                            &pWriteState->ulKey);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            SrvReleaseWriteStateAsync(pWriteState); // completed synchronously
+
+            pWriteState->usBytesWritten =
+                    pWriteState->ioStatusBlock.BytesTransferred;
+        }
+    }
+    else
+    {
+        if (!pWriteState->pFileEofInfo)
+        {
+            pWriteState->fileEofInfo.EndOfFile = pWriteState->llDataOffset;
+            pWriteState->pFileEofInfo = &pWriteState->fileEofInfo;
+
+            SrvPrepareWriteStateAsync(pWriteState, pExecContext);
+
+            ntStatus = IoSetInformationFile(
+                            pWriteState->pFile->hFile,
+                            pWriteState->pAcb,
+                            &pWriteState->ioStatusBlock,
+                            pWriteState->pFileEofInfo,
+                            sizeof(pWriteState->fileEofInfo),
+                            FileEndOfFileInformation);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            SrvReleaseWriteStateAsync(pWriteState); // completed synchronously
+        }
+    }
+
+cleanup:
+
+    return ntStatus;
+
+error:
 
     goto cleanup;
 }
 
 static
+VOID
+SrvPrepareWriteStateAsync(
+    PSRV_WRITE_STATE_SMB_V1 pWriteState,
+    PSRV_EXEC_CONTEXT       pExecContext
+    )
+{
+    pWriteState->acb.Callback        = &SrvExecuteWriteAsyncCB;
+
+    pWriteState->acb.CallbackContext = pExecContext;
+    InterlockedIncrement(&pExecContext->refCount);
+
+    pWriteState->acb.AsyncCancelContext = NULL;
+
+    pWriteState->pAcb = &pWriteState->acb;
+}
+
+static
+VOID
+SrvExecuteWriteAsyncCB(
+    PVOID pContext
+    )
+{
+    NTSTATUS                   ntStatus         = STATUS_SUCCESS;
+    PSRV_EXEC_CONTEXT          pExecContext     = (PSRV_EXEC_CONTEXT)pContext;
+    PSRV_PROTOCOL_EXEC_CONTEXT pProtocolContext = pExecContext->pProtocolContext;
+    PSRV_WRITE_STATE_SMB_V1    pWriteState      = NULL;
+    BOOLEAN                    bInLock          = FALSE;
+
+    pWriteState =
+        (PSRV_WRITE_STATE_SMB_V1)pProtocolContext->pSmb1Context->hState;
+
+    LWIO_LOCK_MUTEX(bInLock, &pWriteState->mutex);
+
+    if (pWriteState->pAcb->AsyncCancelContext)
+    {
+        IoDereferenceAsyncCancelContext(&pWriteState->pAcb->AsyncCancelContext);
+    }
+
+    pWriteState->pAcb = NULL;
+
+    LWIO_UNLOCK_MUTEX(bInLock, &pWriteState->mutex);
+
+    ntStatus = SrvProdConsEnqueue(gProtocolGlobals_SMB_V1.pWorkQueue, pContext);
+    if (ntStatus != STATUS_SUCCESS)
+    {
+        LWIO_LOG_ERROR("Failed to enqueue execution context [status:0x%x]",
+                       ntStatus);
+
+        SrvReleaseExecContext(pExecContext);
+    }
+}
+
+static
+VOID
+SrvReleaseWriteStateAsync(
+    PSRV_WRITE_STATE_SMB_V1 pWriteState
+    )
+{
+    if (pWriteState->pAcb)
+    {
+        pWriteState->acb.Callback = NULL;
+
+        if (pWriteState->pAcb->CallbackContext)
+        {
+            PSRV_EXEC_CONTEXT pExecContext = NULL;
+
+            pExecContext = (PSRV_EXEC_CONTEXT)pWriteState->pAcb->CallbackContext;
+
+            SrvReleaseExecContext(pExecContext);
+
+            pWriteState->pAcb->CallbackContext = NULL;
+        }
+
+        if (pWriteState->pAcb->AsyncCancelContext)
+        {
+            IoDereferenceAsyncCancelContext(
+                    &pWriteState->pAcb->AsyncCancelContext);
+        }
+
+        pWriteState->pAcb = NULL;
+    }
+}
+
+static
 NTSTATUS
 SrvBuildWriteResponse(
-    PSRV_EXEC_CONTEXT pExecContext,
-    USHORT            usBytesWritten
+    PSRV_EXEC_CONTEXT pExecContext
     )
 {
     NTSTATUS ntStatus = 0;
@@ -218,6 +474,9 @@ SrvBuildWriteResponse(
     ULONG ulBytesAvailable     = pSmbResponse->ulBytesAvailable;
     ULONG ulOffset             = 0;
     ULONG ulTotalBytesUsed     = 0;
+    PSRV_WRITE_STATE_SMB_V1    pWriteState = NULL;
+
+    pWriteState = (PSRV_WRITE_STATE_SMB_V1)pCtxSmb1->hState;
 
     if (!pSmbResponse->ulSerialNum)
     {
@@ -271,7 +530,7 @@ SrvBuildWriteResponse(
     // ulBytesAvailable -= sizeof(WRITE_RESPONSE_HEADER);
     ulTotalBytesUsed += sizeof(WRITE_RESPONSE_HEADER);
 
-    pResponseHeader->count = usBytesWritten;
+    pResponseHeader->count = pWriteState->usBytesWritten;
     pResponseHeader->byteCount = 0;
 
     pSmbResponse->ulMessageSize = ulTotalBytesUsed;
@@ -292,4 +551,49 @@ error:
     pSmbResponse->ulMessageSize = 0;
 
     goto cleanup;
+}
+
+static
+VOID
+SrvReleaseWriteStateHandle(
+    HANDLE hWriteState
+    )
+{
+    SrvReleaseWriteState((PSRV_WRITE_STATE_SMB_V1)hWriteState);
+}
+
+static
+VOID
+SrvReleaseWriteState(
+    PSRV_WRITE_STATE_SMB_V1 pWriteState
+    )
+{
+    if (InterlockedDecrement(&pWriteState->refCount) == 0)
+    {
+        SrvFreeWriteState(pWriteState);
+    }
+}
+
+static
+VOID
+SrvFreeWriteState(
+    PSRV_WRITE_STATE_SMB_V1 pWriteState
+    )
+{
+    if (pWriteState->pAcb && pWriteState->pAcb->AsyncCancelContext)
+    {
+        IoDereferenceAsyncCancelContext(&pWriteState->pAcb->AsyncCancelContext);
+    }
+
+    if (pWriteState->pFile)
+    {
+        SrvFileRelease(pWriteState->pFile);
+    }
+
+    if (pWriteState->pMutex)
+    {
+        pthread_mutex_destroy(&pWriteState->mutex);
+    }
+
+    SrvFreeMemory(pWriteState);
 }

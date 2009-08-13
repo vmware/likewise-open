@@ -255,7 +255,7 @@ typedef enum
 {
     SRV_WRITEX_STAGE_SMB_V1_INITIAL = 0,
     SRV_WRITEX_STAGE_SMB_V1_ATTEMPT_WRITE,
-    SRV_WRITEX_STAGE_BUILD_RESPONSE,
+    SRV_WRITEX_STAGE_SMB_V1_BUILD_RESPONSE,
     SRV_WRITEX_STAGE_SMB_V1_DONE
 } SRV_WRITEX_STAGE_SMB_V1;
 
@@ -283,6 +283,43 @@ typedef struct _SRV_WRITEX_STATE_SMB_V1
     ULONG                      ulKey;
 
 } SRV_WRITEX_STATE_SMB_V1, *PSRV_WRITEX_STATE_SMB_V1;
+
+typedef enum
+{
+    SRV_WRITE_STAGE_SMB_V1_INITIAL = 0,
+    SRV_WRITE_STAGE_SMB_V1_ATTEMPT_WRITE,
+    SRV_WRITE_STAGE_SMB_V1_BUILD_RESPONSE,
+    SRV_WRITE_STAGE_SMB_V1_DONE
+} SRV_WRITE_STAGE_SMB_V1;
+
+typedef struct _SRV_WRITE_STATE_SMB_V1
+{
+    LONG                    refCount;
+
+    pthread_mutex_t         mutex;
+    pthread_mutex_t*        pMutex;
+
+    SRV_WRITE_STAGE_SMB_V1  stage;
+
+    IO_STATUS_BLOCK         ioStatusBlock;
+
+    IO_ASYNC_CONTROL_BLOCK  acb;
+    PIO_ASYNC_CONTROL_BLOCK pAcb;
+
+    PLWIO_SRV_FILE          pFile;
+
+    PWRITE_REQUEST_HEADER   pRequestHeader; // Do not free
+    PBYTE                   pData;          // Do not free
+    ULONG                   ulDataOffset;
+    LONG64                  llDataOffset;
+    USHORT                  usDataLength;
+    USHORT                  usBytesWritten;
+    ULONG                   ulKey;
+
+    FILE_END_OF_FILE_INFORMATION  fileEofInfo;
+    PFILE_END_OF_FILE_INFORMATION pFileEofInfo;
+
+} SRV_WRITE_STATE_SMB_V1, *PSRV_WRITE_STATE_SMB_V1;
 
 typedef VOID (*PFN_SRV_MESSAGE_STATE_RELEASE_SMB_V1)(HANDLE hState);
 

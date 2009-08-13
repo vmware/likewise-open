@@ -185,11 +185,11 @@ SrvProcessWriteAndX(
             ntStatus = SrvExecuteWriteAndX(pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            pWriteState->stage = SRV_WRITEX_STAGE_BUILD_RESPONSE;
+            pWriteState->stage = SRV_WRITEX_STAGE_SMB_V1_BUILD_RESPONSE;
 
             // intentional fall through
 
-        case SRV_WRITEX_STAGE_BUILD_RESPONSE:
+        case SRV_WRITEX_STAGE_SMB_V1_BUILD_RESPONSE:
 
             ntStatus = SrvBuildWriteAndXResponse(pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
