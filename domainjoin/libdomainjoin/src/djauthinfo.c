@@ -258,6 +258,17 @@ DJRemoveCacheFiles()
         BAIL_ON_CENTERIS_ERROR(ceError);
     }
 
+    /* /etc/krb5.conf */
+    ceError = CTCheckFileExists("/etc/krb5.conf.lwidentity-gp.orig", &bFileExists);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    if (bFileExists)
+    {
+        DJ_LOG_VERBOSE("Restoring /etc/krb5.conf.lwidentity-gp.orig file to /etc/krb5.conf");
+        ceError = CTMoveFile("/etc/krb5.conf.lwidentity-gp.orig", "/etc/krb5.conf");
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
+
     /* /etc/likewise/lwedsplugin.conf */
     ceError = CTCheckFileExists("/etc/likewise/lwedsplugin.conf.lwidentity.orig", &bFileExists);
     BAIL_ON_CENTERIS_ERROR(ceError);
