@@ -365,6 +365,39 @@ typedef struct _SRV_WRITE_STATE_SMB_V1
 
 typedef enum
 {
+    SRV_CREATEDIR_STAGE_SMB_V1_INITIAL = 0,
+    SRV_CREATEDIR_STAGE_SMB_V1_COMPLETED,
+    SRV_CREATEDIR_STAGE_SMB_V1_BUILD_RESPONSE,
+    SRV_CREATEDIR_STAGE_SMB_V1_DONE
+} SRV_CREATEDIR_STAGE_SMB_V1;
+
+typedef struct _SRV_CREATEDIR_STATE_SMB_V1
+{
+    LONG                       refCount;
+
+    pthread_mutex_t            mutex;
+    pthread_mutex_t*           pMutex;
+
+    SRV_CREATEDIR_STAGE_SMB_V1 stage;
+
+    IO_STATUS_BLOCK            ioStatusBlock;
+
+    IO_ASYNC_CONTROL_BLOCK     acb;
+    PIO_ASYNC_CONTROL_BLOCK    pAcb;
+
+    PSMB_CREATE_DIRECTORY_REQUEST_HEADER pRequestHeader;   // Do not free
+    PWSTR                                pwszPathFragment; // Do not free
+
+    PVOID                      pSecurityDescriptor;
+    PVOID                      pSecurityQOS;
+
+    IO_FILE_HANDLE             hFile;
+    IO_FILE_NAME               fileName;
+
+} SRV_CREATEDIR_STATE_SMB_V1, *PSRV_CREATEDIR_STATE_SMB_V1;
+
+typedef enum
+{
     SRV_RENAME_STAGE_SMB_V1_INITIAL = 0,
     SRV_RENAME_STAGE_SMB_V1_ATTEMPT_RENAME,
     SRV_RENAME_STAGE_SMB_V1_BUILD_RESPONSE,
