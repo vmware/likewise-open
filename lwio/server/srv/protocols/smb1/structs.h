@@ -365,6 +365,34 @@ typedef struct _SRV_WRITE_STATE_SMB_V1
 
 typedef enum
 {
+    SRV_FLUSH_STAGE_SMB_V1_INITIAL = 0,
+    SRV_FLUSH_STAGE_SMB_V1_FLUSH_COMPLETED,
+    SRV_FLUSH_STAGE_SMB_V1_BUILD_RESPONSE,
+    SRV_FLUSH_STAGE_SMB_V1_DONE
+} SRV_FLUSH_STAGE_SMB_V1;
+
+typedef struct _SRV_FLUSH_STATE_SMB_V1
+{
+    LONG                      refCount;
+
+    pthread_mutex_t           mutex;
+    pthread_mutex_t*          pMutex;
+
+    SRV_FLUSH_STAGE_SMB_V1    stage;
+
+    IO_STATUS_BLOCK           ioStatusBlock;
+
+    IO_ASYNC_CONTROL_BLOCK    acb;
+    PIO_ASYNC_CONTROL_BLOCK   pAcb;
+
+    PFLUSH_REQUEST_HEADER     pRequestHeader; // Do not free
+
+    PLWIO_SRV_FILE            pFile;
+
+} SRV_FLUSH_STATE_SMB_V1, *PSRV_FLUSH_STATE_SMB_V1;
+
+typedef enum
+{
     SRV_CHECKDIR_STAGE_SMB_V1_INITIAL = 0,
     SRV_CHECKDIR_STAGE_SMB_V1_ATTEMPT_CHECK,
     SRV_CHECKDIR_STAGE_SMB_V1_BUILD_RESPONSE,
