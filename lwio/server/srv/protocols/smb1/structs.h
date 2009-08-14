@@ -204,65 +204,52 @@ typedef struct _SRV_OPEN_STATE_SMB_V1
 
 typedef enum
 {
-    SRV_SMB_UNLOCK = 0,
-    SRV_SMB_LOCK
-} SRV_SMB_LOCK_OPERATION_TYPE;
+    SRV_LOCK_STAGE_SMB_V1_INITIAL = 0,
+    SRV_LOCK_STAGE_SMB_V1_ATTEMPT_LOCK,
+    SRV_LOCK_STAGE_SMB_V1_DONE
+} SRV_LOCK_STAGE_SMB_V1;
 
-typedef struct _SRV_SMB_LOCK_REQUEST* PSRV_SMB_LOCK_REQUEST;
-
-typedef struct _SRV_SMB_LOCK_CONTEXT
+typedef struct _SRV_LOCK_STATE_SMB_V1
 {
-    SRV_SMB_LOCK_OPERATION_TYPE operation;
+    LONG                             refCount;
 
-    ULONG   ulKey;
-    BOOLEAN bExclusiveLock;
+    pthread_mutex_t                  mutex;
+    pthread_mutex_t*                 pMutex;
 
-    IO_ASYNC_CONTROL_BLOCK  acb;
-    PIO_ASYNC_CONTROL_BLOCK pAcb;
+    SRV_LOCK_STAGE_SMB_V1            stage;
 
-    IO_STATUS_BLOCK ioStatusBlock;
+    IO_ASYNC_CONTROL_BLOCK           acb;
+    PIO_ASYNC_CONTROL_BLOCK          pAcb;
 
-    SRV_SMB_LOCK_TYPE lockType;
+    IO_STATUS_BLOCK                  ioStatusBlock;
 
-    union
-    {
-        LOCKING_ANDX_RANGE_LARGE_FILE largeFileRange;
-        LOCKING_ANDX_RANGE            regularRange;
+    PSMB_LOCKING_ANDX_REQUEST_HEADER pRequestHeader;     // Do not free
 
-    } lockInfo;
+    PLOCKING_ANDX_RANGE_LARGE_FILE   pUnlockRangeLarge;  // Do not free
+    PLOCKING_ANDX_RANGE_LARGE_FILE   pLockRangeLarge;    // Do not free
 
-    PSRV_SMB_LOCK_REQUEST pLockRequest;
+    PLOCKING_ANDX_RANGE              pUnlockRange;       // Do not free
+    PLOCKING_ANDX_RANGE              pLockRange;         // Do not free
 
-} SRV_SMB_LOCK_CONTEXT, *PSRV_SMB_LOCK_CONTEXT;
+    USHORT                           iUnlock;
+    BOOLEAN                          bUnlockPending;
 
-typedef struct _SRV_SMB_LOCK_REQUEST
-{
-    LONG                  refCount;
+    USHORT                           iLock;
+    BOOLEAN                          bLockPending;
 
-    pthread_mutex_t       mutex;
-    pthread_mutex_t*      pMutex;
+    PLWIO_SRV_FILE                   pFile;
 
-    IO_STATUS_BLOCK       ioStatusBlock;
+    BOOLEAN                          bRequestExclusiveLock;
+    LONG64                           llOffset;
+    LONG64                           llLength;
+    ULONG                            ulKey;
 
-    ULONG                 ulTimeout;
+    BOOLEAN                          bExpired;
+    BOOLEAN                          bCompleted;
 
-    USHORT                usNumUnlocks;
-    USHORT                usNumLocks;
+    PSRV_TIMER_REQUEST               pTimerRequest;
 
-    PSRV_SMB_LOCK_CONTEXT pLockContexts; /* unlocks and locks */
-
-    LONG                  lPendingContexts;
-
-    BOOLEAN               bExpired;
-    BOOLEAN               bCompleted;
-    BOOLEAN               bResponseSent;
-
-    PSRV_TIMER_REQUEST    pTimerRequest;
-
-    PSRV_EXEC_CONTEXT     pExecContext_timer;
-    PSRV_EXEC_CONTEXT     pExecContext_async;
-
-} SRV_SMB_LOCK_REQUEST;
+} SRV_LOCK_STATE_SMB_V1, *PSRV_LOCK_STATE_SMB_V1;
 
 typedef enum
 {

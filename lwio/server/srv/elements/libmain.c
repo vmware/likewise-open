@@ -82,12 +82,14 @@ SrvTimerPostRequest(
 
 NTSTATUS
 SrvTimerCancelRequest(
-    IN  PSRV_TIMER_REQUEST pTimerRequest
+    IN  PSRV_TIMER_REQUEST pTimerRequest,
+    PVOID*                 ppUserData
     )
 {
     return SrvTimerCancelRequestSpecific(
                 &gSrvElements.timer,
-                pTimerRequest);
+                pTimerRequest,
+                ppUserData);
 }
 
 NTSTATUS

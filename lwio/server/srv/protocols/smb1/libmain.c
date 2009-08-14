@@ -583,7 +583,7 @@ SrvBuildExecContext_SMB_V1(
                 break;
         }
 
-        if (pMessage->pAndXHeader)
+        if (pMessage->pAndXHeader && pMessage->pAndXHeader->andXOffset)
         {
             ucAndXCommand = pMessage->pAndXHeader->andXCommand;
 

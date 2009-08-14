@@ -421,7 +421,8 @@ SrvTimerPostRequest(
 
 NTSTATUS
 SrvTimerCancelRequest(
-    IN  PSRV_TIMER_REQUEST pTimerRequest
+    IN  PSRV_TIMER_REQUEST pTimerRequest,
+    OUT PVOID*             ppUserData
     );
 
 NTSTATUS
