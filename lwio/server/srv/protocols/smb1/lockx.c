@@ -713,6 +713,11 @@ SrvClearLocks(
 {
     USHORT iLock = 0;
 
+    if (pLockState->iLock == 0)
+    {
+        return;
+    }
+
     // Unlock in reverse order
     for (iLock = pLockState->iLock - 1; iLock > 0; iLock--)
     {
