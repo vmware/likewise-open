@@ -711,12 +711,7 @@ SrvClearLocks(
     PSRV_LOCK_STATE_SMB_V1 pLockState
     )
 {
-    USHORT iLock = 0;
-
-    if (pLockState->iLock == 0)
-    {
-        return;
-    }
+    SHORT iLock = 0;
 
     // Unlock in reverse order
     for (iLock = pLockState->iLock - 1; iLock > 0; iLock--)
