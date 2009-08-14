@@ -363,6 +363,38 @@ typedef struct _SRV_WRITE_STATE_SMB_V1
 
 } SRV_WRITE_STATE_SMB_V1, *PSRV_WRITE_STATE_SMB_V1;
 
+typedef enum
+{
+    SRV_CHECKDIR_STAGE_SMB_V1_INITIAL = 0,
+    SRV_CHECKDIR_STAGE_SMB_V1_ATTEMPT_CHECK,
+    SRV_CHECKDIR_STAGE_SMB_V1_BUILD_RESPONSE,
+    SRV_CHECKDIR_STAGE_SMB_V1_DONE
+} SRV_CHECKDIR_STAGE_SMB_V1;
+
+typedef struct _SRV_CHECKDIR_STATE_SMB_V1
+{
+    LONG                      refCount;
+
+    pthread_mutex_t           mutex;
+    pthread_mutex_t*          pMutex;
+
+    SRV_CHECKDIR_STAGE_SMB_V1 stage;
+
+    IO_STATUS_BLOCK           ioStatusBlock;
+
+    IO_ASYNC_CONTROL_BLOCK    acb;
+    PIO_ASYNC_CONTROL_BLOCK   pAcb;
+
+    PWSTR                               pwszPathFragment; // Do not free
+    PSMB_CHECK_DIRECTORY_REQUEST_HEADER pRequestHeader;   // Do not free
+
+    IO_FILE_NAME              fileName;
+    IO_FILE_HANDLE            hFile;
+    PVOID                     pSecurityDescriptor;
+    PVOID                     pSecurityQOS;
+
+} SRV_CHECKDIR_STATE_SMB_V1, *PSRV_CHECKDIR_STATE_SMB_V1;
+
 typedef VOID (*PFN_SRV_MESSAGE_STATE_RELEASE_SMB_V1)(HANDLE hState);
 
 typedef struct __SRV_MESSAGE_SMB_V1
