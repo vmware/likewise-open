@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright (C) Likewise Software. All rights reserved.
@@ -81,7 +81,7 @@ evt_sys_vsyslog(
     DWORD dwError;
     PSTR buffer = NULL;
 
-    dwError = SRVSVCAllocateStringPrintfV(&buffer, format, ap);
+    dwError = SrvSvcAllocateStringPrintfV(&buffer, format, ap);
     if (!dwError)
     {
         syslog(priority, "%s", buffer);
@@ -120,3 +120,12 @@ rpl_realloc(void* buf, size_t n)
 
 #endif /* ! HAVE_RPL_REALLOC */
 
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
