@@ -149,65 +149,107 @@ typedef struct _SRV_CREATE_STATE_SMB_V1
 
 typedef enum
 {
-    SRV_SMB_UNLOCK = 0,
-    SRV_SMB_LOCK
-} SRV_SMB_LOCK_OPERATION_TYPE;
+    SRV_OPEN_STAGE_SMB_V1_INITIAL = 0,
+    SRV_OPEN_STAGE_SMB_V1_OPEN_FILE_COMPLETED,
+    SRV_OPEN_STAGE_SMB_V1_ATTEMPT_QUERY_INFO,
+    SRV_OPEN_STAGE_SMB_V1_QUERY_INFO_COMPLETED,
+    SRV_OPEN_STAGE_SMB_V1_DONE
+} SRV_OPEN_STAGE_SMB_V1;
 
-typedef struct _SRV_SMB_LOCK_REQUEST* PSRV_SMB_LOCK_REQUEST;
-
-typedef struct _SRV_SMB_LOCK_CONTEXT
+typedef struct _SRV_OPEN_STATE_SMB_V1
 {
-    SRV_SMB_LOCK_OPERATION_TYPE operation;
+    LONG                         refCount;
 
-    ULONG   ulKey;
-    BOOLEAN bExclusiveLock;
+    pthread_mutex_t              mutex;
+    pthread_mutex_t*             pMutex;
 
-    IO_ASYNC_CONTROL_BLOCK  acb;
-    PIO_ASYNC_CONTROL_BLOCK pAcb;
+    SRV_OPEN_STAGE_SMB_V1        stage;
 
-    IO_STATUS_BLOCK ioStatusBlock;
+    POPEN_REQUEST_HEADER         pRequestHeader; // Do not free
+    PWSTR                        pwszFilename;   // Do not free
 
-    SRV_SMB_LOCK_TYPE lockType;
+    IO_STATUS_BLOCK              ioStatusBlock;
 
-    union
-    {
-        LOCKING_ANDX_RANGE_LARGE_FILE largeFileRange;
-        LOCKING_ANDX_RANGE            regularRange;
+    IO_ASYNC_CONTROL_BLOCK       acb;
+    PIO_ASYNC_CONTROL_BLOCK      pAcb;
 
-    } lockInfo;
+    PVOID                        pSecurityDescriptor;
+    PVOID                        pSecurityQOS;
+    PIO_FILE_NAME                pFilename;
+    PIO_ECP_LIST                 pEcpList;
+    IO_FILE_HANDLE               hFile;
 
-    PSRV_SMB_LOCK_REQUEST pLockRequest;
+    USHORT                       usShareAccess;
+    ULONG                        ulCreateDisposition;
+    ACCESS_MASK                  ulDesiredAccessMask;
+    USHORT                       usCreateOptions;
 
-} SRV_SMB_LOCK_CONTEXT, *PSRV_SMB_LOCK_CONTEXT;
+    FILE_BASIC_INFORMATION       fileBasicInfo;
+    PFILE_BASIC_INFORMATION      pFileBasicInfo;
 
-typedef struct _SRV_SMB_LOCK_REQUEST
+    FILE_STANDARD_INFORMATION    fileStdInfo;
+    PFILE_STANDARD_INFORMATION   pFileStdInfo;
+
+    FILE_PIPE_INFORMATION        filePipeInfo;
+    PFILE_PIPE_INFORMATION       pFilePipeInfo;
+
+    FILE_PIPE_LOCAL_INFORMATION  filePipeLocalInfo;
+    PFILE_PIPE_LOCAL_INFORMATION pFilePipeLocalInfo;
+
+    PLWIO_SRV_TREE               pTree;
+    PLWIO_SRV_FILE               pFile;
+    BOOLEAN                      bRemoveFileFromTree;
+
+} SRV_OPEN_STATE_SMB_V1, *PSRV_OPEN_STATE_SMB_V1;
+
+typedef enum
 {
-    LONG                  refCount;
+    SRV_LOCK_STAGE_SMB_V1_INITIAL = 0,
+    SRV_LOCK_STAGE_SMB_V1_ATTEMPT_LOCK,
+    SRV_LOCK_STAGE_SMB_V1_DONE
+} SRV_LOCK_STAGE_SMB_V1;
 
-    pthread_mutex_t       mutex;
-    pthread_mutex_t*      pMutex;
+typedef struct _SRV_LOCK_STATE_SMB_V1
+{
+    LONG                             refCount;
 
-    IO_STATUS_BLOCK       ioStatusBlock;
+    pthread_mutex_t                  mutex;
+    pthread_mutex_t*                 pMutex;
 
-    ULONG                 ulTimeout;
+    SRV_LOCK_STAGE_SMB_V1            stage;
 
-    USHORT                usNumUnlocks;
-    USHORT                usNumLocks;
+    IO_ASYNC_CONTROL_BLOCK           acb;
+    PIO_ASYNC_CONTROL_BLOCK          pAcb;
 
-    PSRV_SMB_LOCK_CONTEXT pLockContexts; /* unlocks and locks */
+    IO_STATUS_BLOCK                  ioStatusBlock;
 
-    LONG                  lPendingContexts;
+    PSMB_LOCKING_ANDX_REQUEST_HEADER pRequestHeader;     // Do not free
 
-    BOOLEAN               bExpired;
-    BOOLEAN               bCompleted;
-    BOOLEAN               bResponseSent;
+    PLOCKING_ANDX_RANGE_LARGE_FILE   pUnlockRangeLarge;  // Do not free
+    PLOCKING_ANDX_RANGE_LARGE_FILE   pLockRangeLarge;    // Do not free
 
-    PSRV_TIMER_REQUEST    pTimerRequest;
+    PLOCKING_ANDX_RANGE              pUnlockRange;       // Do not free
+    PLOCKING_ANDX_RANGE              pLockRange;         // Do not free
 
-    PSRV_EXEC_CONTEXT     pExecContext_timer;
-    PSRV_EXEC_CONTEXT     pExecContext_async;
+    USHORT                           iUnlock;
+    BOOLEAN                          bUnlockPending;
 
-} SRV_SMB_LOCK_REQUEST;
+    USHORT                           iLock;
+    BOOLEAN                          bLockPending;
+
+    PLWIO_SRV_FILE                   pFile;
+
+    BOOLEAN                          bRequestExclusiveLock;
+    LONG64                           llOffset;
+    LONG64                           llLength;
+    ULONG                            ulKey;
+
+    BOOLEAN                          bExpired;
+    BOOLEAN                          bCompleted;
+
+    PSRV_TIMER_REQUEST               pTimerRequest;
+
+} SRV_LOCK_STATE_SMB_V1, *PSRV_LOCK_STATE_SMB_V1;
 
 typedef enum
 {
@@ -251,19 +293,75 @@ typedef struct _SRV_READ_STATE_SMB_V1
 
 } SRV_READ_STATE_SMB_V1, *PSRV_READ_STATE_SMB_V1;
 
-typedef struct _SRV_SMB_WRITE_REQUEST
+typedef enum
+{
+    SRV_WRITEX_STAGE_SMB_V1_INITIAL = 0,
+    SRV_WRITEX_STAGE_SMB_V1_ATTEMPT_WRITE,
+    SRV_WRITEX_STAGE_SMB_V1_BUILD_RESPONSE,
+    SRV_WRITEX_STAGE_SMB_V1_DONE
+} SRV_WRITEX_STAGE_SMB_V1;
+
+typedef struct _SRV_WRITEX_STATE_SMB_V1
+{
+    LONG                       refCount;
+
+    pthread_mutex_t            mutex;
+    pthread_mutex_t*           pMutex;
+
+    SRV_WRITEX_STAGE_SMB_V1    stage;
+
+    IO_STATUS_BLOCK            ioStatusBlock;
+
+    IO_ASYNC_CONTROL_BLOCK     acb;
+    PIO_ASYNC_CONTROL_BLOCK    pAcb;
+
+    PLWIO_SRV_FILE             pFile;
+
+    PWRITE_ANDX_REQUEST_HEADER pRequestHeader; // Do not free
+    PBYTE                      pData;          // Do not free
+    LONG64                     llDataOffset;
+    LONG64                     llDataLength;
+    ULONG64                    ullBytesWritten;
+    ULONG                      ulKey;
+
+} SRV_WRITEX_STATE_SMB_V1, *PSRV_WRITEX_STATE_SMB_V1;
+
+typedef enum
+{
+    SRV_WRITE_STAGE_SMB_V1_INITIAL = 0,
+    SRV_WRITE_STAGE_SMB_V1_ATTEMPT_WRITE,
+    SRV_WRITE_STAGE_SMB_V1_BUILD_RESPONSE,
+    SRV_WRITE_STAGE_SMB_V1_DONE
+} SRV_WRITE_STAGE_SMB_V1;
+
+typedef struct _SRV_WRITE_STATE_SMB_V1
 {
     LONG                    refCount;
 
     pthread_mutex_t         mutex;
     pthread_mutex_t*        pMutex;
 
+    SRV_WRITE_STAGE_SMB_V1  stage;
+
     IO_STATUS_BLOCK         ioStatusBlock;
 
     IO_ASYNC_CONTROL_BLOCK  acb;
     PIO_ASYNC_CONTROL_BLOCK pAcb;
 
-} SRV_SMB_WRITE_REQUEST, *PSRV_SMB_WRITE_REQUEST;
+    PLWIO_SRV_FILE          pFile;
+
+    PWRITE_REQUEST_HEADER   pRequestHeader; // Do not free
+    PBYTE                   pData;          // Do not free
+    ULONG                   ulDataOffset;
+    LONG64                  llDataOffset;
+    USHORT                  usDataLength;
+    USHORT                  usBytesWritten;
+    ULONG                   ulKey;
+
+    FILE_END_OF_FILE_INFORMATION  fileEofInfo;
+    PFILE_END_OF_FILE_INFORMATION pFileEofInfo;
+
+} SRV_WRITE_STATE_SMB_V1, *PSRV_WRITE_STATE_SMB_V1;
 
 typedef VOID (*PFN_SRV_MESSAGE_STATE_RELEASE_SMB_V1)(HANDLE hState);
 

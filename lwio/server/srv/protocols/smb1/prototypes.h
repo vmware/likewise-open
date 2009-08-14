@@ -164,11 +164,6 @@ SrvProcessLockAndX(
     PSRV_EXEC_CONTEXT pExecContext
     );
 
-VOID
-SrvReleaseLockRequest(
-    PSRV_SMB_LOCK_REQUEST pLockRequest
-    );
-
 // logoff.c
 
 NTSTATUS

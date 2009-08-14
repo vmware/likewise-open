@@ -67,7 +67,8 @@ SrvTimerPostRequestSpecific(
 NTSTATUS
 SrvTimerCancelRequestSpecific(
     IN  PSRV_TIMER         pTimer,
-    IN  PSRV_TIMER_REQUEST pTimerRequest
+    IN  PSRV_TIMER_REQUEST pTimerRequest,
+    OUT PVOID*             ppUserData
     );
 
 VOID

@@ -416,12 +416,14 @@ error:
 NTSTATUS
 SrvTimerCancelRequestSpecific(
     IN  PSRV_TIMER         pTimer,
-    IN  PSRV_TIMER_REQUEST pTimerRequest
+    IN  PSRV_TIMER_REQUEST pTimerRequest,
+    OUT PVOID*             ppUserData
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
     BOOLEAN bInLock = FALSE;
     PSRV_TIMER_REQUEST pIter = NULL;
+    PVOID              pUserData = NULL;
 
     LWIO_LOCK_MUTEX(bInLock, &pTimer->context.mutex);
 
@@ -454,6 +456,7 @@ SrvTimerCancelRequestSpecific(
         LWIO_LOCK_MUTEX(bInLock2, &pIter->mutex);
 
         pIter->pfnTimerExpiredCB = NULL;
+        pUserData = pIter->pUserData;
 
         LWIO_UNLOCK_MUTEX(bInLock2, &pIter->mutex);
     }
@@ -466,6 +469,8 @@ SrvTimerCancelRequestSpecific(
     LWIO_UNLOCK_MUTEX(bInLock, &pTimer->context.mutex);
 
     pthread_cond_signal(&pTimer->context.event);
+
+    *ppUserData = pUserData;
 
 cleanup:
 

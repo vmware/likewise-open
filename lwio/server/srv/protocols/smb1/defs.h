@@ -123,14 +123,4 @@
 #define COM_WRITE_BULK_DESC             "SMB1_WRITE_BULK"
 #define COM_WRITE_BULK_DATA_DESC        "SMB1_WRITE_BULK_DATA"
 
-typedef enum
-{
-    SRV_SMB_LOCK_TYPE_UNKNOWN = 0,
-    SRV_SMB_LOCK_TYPE_REGULAR,
-    SRV_SMB_LOCK_TYPE_LARGE
-
-} SRV_SMB_LOCK_TYPE;
-
-
-
 #endif /* __DEFS_H__ */
