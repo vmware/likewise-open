@@ -32,9 +32,10 @@
 
 static
 NTSTATUS
-SrvSetLastWriteTime(
-    PLWIO_SRV_FILE pFile,
-    ULONG         ulLastWriteTime
+SrvBuildCloseState(
+    PCLOSE_REQUEST_HEADER    pRequestHeader,
+    PLWIO_SRV_FILE           pFile,
+    PSRV_CLOSE_STATE_SMB_V1* ppCloseState
     );
 
 static
@@ -43,71 +44,196 @@ SrvBuildCloseResponse(
     PSRV_EXEC_CONTEXT pExecContext
     );
 
+static
+VOID
+SrvPrepareCloseStateAsync(
+    PSRV_CLOSE_STATE_SMB_V1 pCloseState,
+    PSRV_EXEC_CONTEXT       pExecContext
+    );
+
+static
+VOID
+SrvExecuteCloseAsyncCB(
+    PVOID pContext
+    );
+
+static
+VOID
+SrvReleaseCloseStateAsync(
+    PSRV_CLOSE_STATE_SMB_V1 pCloseState
+    );
+
+static
+VOID
+SrvReleaseCloseStateHandle(
+    HANDLE hState
+    );
+
+static
+VOID
+SrvReleaseCloseState(
+    PSRV_CLOSE_STATE_SMB_V1 pCloseState
+    );
+
+static
+VOID
+SrvFreeCloseState(
+    PSRV_CLOSE_STATE_SMB_V1 pCloseState
+    );
+
 NTSTATUS
 SrvProcessCloseAndX(
     PSRV_EXEC_CONTEXT pExecContext
     )
 {
-    NTSTATUS          ntStatus = 0;
+    NTSTATUS                   ntStatus     = 0;
     PLWIO_SRV_CONNECTION       pConnection  = pExecContext->pConnection;
     PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
     PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
-    ULONG                      iMsg         = pCtxSmb1->iMsg;
-    PSRV_MESSAGE_SMB_V1        pSmbRequest  = &pCtxSmb1->pRequests[iMsg];
-    PBYTE pBuffer          = pSmbRequest->pBuffer + pSmbRequest->usHeaderSize;
-    ULONG ulOffset         = pSmbRequest->usHeaderSize;
-    ULONG ulBytesAvailable = pSmbRequest->ulMessageSize - pSmbRequest->usHeaderSize;
-    PCLOSE_REQUEST_HEADER pRequestHeader = NULL; // Do not free
-    PLWIO_SRV_SESSION pSession = NULL;
-    PLWIO_SRV_TREE    pTree = NULL;
-    PLWIO_SRV_FILE    pFile = NULL;
+    PLWIO_SRV_SESSION          pSession     = NULL;
+    PLWIO_SRV_TREE             pTree        = NULL;
+    PLWIO_SRV_FILE             pFile        = NULL;
+    PSRV_CLOSE_STATE_SMB_V1    pCloseState  = NULL;
+    BOOLEAN                    bInLock      = FALSE;
 
-    ntStatus = SrvConnectionFindSession_SMB_V1(
-                    pCtxSmb1,
-                    pConnection,
-                    pSmbRequest->pHeader->uid,
-                    &pSession);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SrvSessionFindTree_SMB_V1(
-                    pCtxSmb1,
-                    pSession,
-                    pSmbRequest->pHeader->tid,
-                    &pTree);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = WireUnmarshallCloseRequest(
-                    pBuffer,
-                    ulBytesAvailable,
-                    ulOffset,
-                    &pRequestHeader);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SrvTreeFindFile_SMB_V1(
-                    pCtxSmb1,
-                    pTree,
-                    pRequestHeader->fid,
-                    &pFile);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    if (pRequestHeader->lastWriteTime != 0)
+    pCloseState = (PSRV_CLOSE_STATE_SMB_V1)pCtxSmb1->hState;
+    if (pCloseState)
     {
-        NTSTATUS ntStatus2 = 0;
+        InterlockedIncrement(&pCloseState->refCount);
+    }
+    else
+    {
+        ULONG               iMsg         = pCtxSmb1->iMsg;
+        PSRV_MESSAGE_SMB_V1 pSmbRequest  = &pCtxSmb1->pRequests[iMsg];
+        PBYTE pBuffer          = pSmbRequest->pBuffer + pSmbRequest->usHeaderSize;
+        ULONG ulOffset         = pSmbRequest->usHeaderSize;
+        ULONG ulBytesAvailable = pSmbRequest->ulMessageSize - pSmbRequest->usHeaderSize;
+        PCLOSE_REQUEST_HEADER pRequestHeader = NULL; // Do not free
 
-        ntStatus2 = SrvSetLastWriteTime(pFile, pRequestHeader->lastWriteTime);
-        if (ntStatus2)
-        {
-            LWIO_LOG_ERROR("Failed to set the last write time for file [fid:%u][code:%d]",
-                            pFile->fid,
-                            ntStatus2);
-        }
+        ntStatus = SrvConnectionFindSession_SMB_V1(
+                        pCtxSmb1,
+                        pConnection,
+                        pSmbRequest->pHeader->uid,
+                        &pSession);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = SrvSessionFindTree_SMB_V1(
+                        pCtxSmb1,
+                        pSession,
+                        pSmbRequest->pHeader->tid,
+                        &pTree);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = WireUnmarshallCloseRequest(
+                        pBuffer,
+                        ulBytesAvailable,
+                        ulOffset,
+                        &pRequestHeader);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = SrvTreeFindFile_SMB_V1(
+                        pCtxSmb1,
+                        pTree,
+                        pRequestHeader->fid,
+                        &pFile);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = SrvBuildCloseState(
+                        pRequestHeader,
+                        pFile,
+                        &pCloseState);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pCtxSmb1->hState = pCloseState;
+        InterlockedIncrement(&pCloseState->refCount);
+        pCtxSmb1->pfnStateRelease = &SrvReleaseCloseStateHandle;
     }
 
-    ntStatus = SrvTreeRemoveFile(pTree, pFile->fid);
-    BAIL_ON_NT_STATUS(ntStatus);
+    LWIO_LOCK_MUTEX(bInLock, &pCloseState->mutex);
 
-    ntStatus = SrvBuildCloseResponse(pExecContext);
-    BAIL_ON_NT_STATUS(ntStatus);
+    switch (pCloseState->stage)
+    {
+        case SRV_CLOSE_STAGE_SMB_V1_INITIAL:
+
+            pCloseState->stage = SRV_CLOSE_STAGE_SMB_V1_SET_INFO_COMPLETED;
+
+            if (pCloseState->pRequestHeader->lastWriteTime != 0)
+            {
+                pCloseState->fileBasicInfo.LastWriteTime =
+                    (pCloseState->pRequestHeader->lastWriteTime + 11644473600LL) * 10000000LL;
+
+                SrvPrepareCloseStateAsync(pCloseState, pExecContext);
+
+                ntStatus = IoSetInformationFile(
+                                pCloseState->pFile->hFile,
+                                pCloseState->pAcb,
+                                &pCloseState->ioStatusBlock,
+                                &pCloseState->fileBasicInfo,
+                                sizeof(pCloseState->fileBasicInfo),
+                                FileBasicInformation);
+                if (ntStatus == STATUS_PENDING)
+                {
+                    BAIL_ON_NT_STATUS(ntStatus);
+                }
+
+                SrvReleaseCloseStateAsync(pCloseState);
+            }
+
+            // intentional fall through
+
+        case SRV_CLOSE_STAGE_SMB_V1_SET_INFO_COMPLETED:
+
+            switch (pCloseState->ioStatusBlock.Status)
+            {
+                case STATUS_SUCCESS:
+
+                    break;
+
+                default:
+
+                    LWIO_LOG_ERROR(
+                        "Failed to set the last write time for file "
+                        " [fid:%u][code:%d]",
+                        pCloseState->pFile->fid,
+                        pCloseState->ioStatusBlock.Status);
+
+                    break;
+            }
+
+            pCloseState->stage = SRV_CLOSE_STAGE_SMB_V1_ATTEMPT_CLOSE;
+
+            // intentional fall through
+
+        case SRV_CLOSE_STAGE_SMB_V1_ATTEMPT_CLOSE:
+
+            ntStatus = SrvTreeRemoveFile(
+                            pCtxSmb1->pTree,
+                            pCloseState->pFile->fid);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            pCloseState->stage = SRV_CLOSE_STAGE_SMB_V1_BUILD_RESPONSE;
+
+            // intentional fall through
+
+        case SRV_CLOSE_STAGE_SMB_V1_BUILD_RESPONSE:
+
+            ntStatus = SrvBuildCloseResponse(pExecContext);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            pCloseState->stage = SRV_CLOSE_STAGE_SMB_V1_DONE;
+
+            // intentional fall through
+
+        case SRV_CLOSE_STAGE_SMB_V1_DONE:
+
+            if (pCtxSmb1->pFile)
+            {
+                SrvFileRelease(pCtxSmb1->pFile);
+                pCtxSmb1->pFile = NULL;
+            }
+
+            break;
+    }
 
 cleanup:
 
@@ -126,25 +252,84 @@ cleanup:
         SrvSessionRelease(pSession);
     }
 
+    if (pCloseState)
+    {
+        LWIO_UNLOCK_MUTEX(bInLock, &pCloseState->mutex);
+
+        SrvReleaseCloseState(pCloseState);
+    }
+
     return ntStatus;
 
 error:
+
+    switch (ntStatus)
+    {
+        case STATUS_PENDING:
+
+            // TODO: Add an indicator to the file object to trigger a
+            //       cleanup if the connection gets closed and all the
+            //       files involved have to be closed
+
+            break;
+
+        default:
+
+            if (pCloseState)
+            {
+                SrvReleaseCloseStateAsync(pCloseState);
+            }
+
+            break;
+    }
 
     goto cleanup;
 }
 
 static
 NTSTATUS
-SrvSetLastWriteTime(
-    PLWIO_SRV_FILE pFile,
-    ULONG         ulLastWriteTime
+SrvBuildCloseState(
+    PCLOSE_REQUEST_HEADER    pRequestHeader,
+    PLWIO_SRV_FILE           pFile,
+    PSRV_CLOSE_STATE_SMB_V1* ppCloseState
     )
 {
-    NTSTATUS ntStatus = 0;
+    NTSTATUS                ntStatus    = STATUS_SUCCESS;
+    PSRV_CLOSE_STATE_SMB_V1 pCloseState = NULL;
 
-    // TODO
+    ntStatus = SrvAllocateMemory(
+                    sizeof(SRV_CLOSE_STATE_SMB_V1),
+                    (PVOID*)&pCloseState);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pCloseState->refCount = 1;
+
+    pthread_mutex_init(&pCloseState->mutex, NULL);
+    pCloseState->pMutex = &pCloseState->mutex;
+
+    pCloseState->stage = SRV_CLOSE_STAGE_SMB_V1_INITIAL;
+
+    pCloseState->pRequestHeader = pRequestHeader;
+
+    pCloseState->pFile          = pFile;
+    InterlockedIncrement(&pFile->refcount);
+
+    *ppCloseState = pCloseState;
+
+cleanup:
 
     return ntStatus;
+
+error:
+
+    *ppCloseState = NULL;
+
+    if (pCloseState)
+    {
+        SrvFreeCloseState(pCloseState);
+    }
+
+    goto cleanup;
 }
 
 static
@@ -240,4 +425,134 @@ error:
     goto cleanup;
 }
 
+static
+VOID
+SrvPrepareCloseStateAsync(
+    PSRV_CLOSE_STATE_SMB_V1 pCloseState,
+    PSRV_EXEC_CONTEXT       pExecContext
+    )
+{
+    pCloseState->acb.Callback        = &SrvExecuteCloseAsyncCB;
+
+    pCloseState->acb.CallbackContext = pExecContext;
+    InterlockedIncrement(&pExecContext->refCount);
+
+    pCloseState->acb.AsyncCancelContext = NULL;
+
+    pCloseState->pAcb = &pCloseState->acb;
+}
+
+static
+VOID
+SrvExecuteCloseAsyncCB(
+    PVOID pContext
+    )
+{
+    NTSTATUS                   ntStatus         = STATUS_SUCCESS;
+    PSRV_EXEC_CONTEXT          pExecContext     = (PSRV_EXEC_CONTEXT)pContext;
+    PSRV_PROTOCOL_EXEC_CONTEXT pProtocolContext = pExecContext->pProtocolContext;
+    PSRV_CLOSE_STATE_SMB_V1    pCloseState      = NULL;
+    BOOLEAN                    bInLock          = FALSE;
+
+    pCloseState =
+            (PSRV_CLOSE_STATE_SMB_V1)pProtocolContext->pSmb1Context->hState;
+
+    LWIO_LOCK_MUTEX(bInLock, &pCloseState->mutex);
+
+    if (pCloseState->pAcb->AsyncCancelContext)
+    {
+        IoDereferenceAsyncCancelContext(
+                &pCloseState->pAcb->AsyncCancelContext);
+    }
+
+    pCloseState->pAcb = NULL;
+
+    LWIO_UNLOCK_MUTEX(bInLock, &pCloseState->mutex);
+
+    ntStatus = SrvProdConsEnqueue(gProtocolGlobals_SMB_V1.pWorkQueue, pContext);
+    if (ntStatus != STATUS_SUCCESS)
+    {
+        LWIO_LOG_ERROR("Failed to enqueue execution context [status:0x%x]",
+                       ntStatus);
+
+        SrvReleaseExecContext(pExecContext);
+    }
+}
+
+static
+VOID
+SrvReleaseCloseStateAsync(
+    PSRV_CLOSE_STATE_SMB_V1 pCloseState
+    )
+{
+    if (pCloseState->pAcb)
+    {
+        pCloseState->acb.Callback       = NULL;
+
+        if (pCloseState->pAcb->CallbackContext)
+        {
+            PSRV_EXEC_CONTEXT pExecContext = NULL;
+
+            pExecContext =
+                    (PSRV_EXEC_CONTEXT)pCloseState->pAcb->CallbackContext;
+
+            SrvReleaseExecContext(pExecContext);
+
+            pCloseState->pAcb->CallbackContext = NULL;
+        }
+
+        if (pCloseState->pAcb->AsyncCancelContext)
+        {
+            IoDereferenceAsyncCancelContext(
+                    &pCloseState->pAcb->AsyncCancelContext);
+        }
+
+        pCloseState->pAcb = NULL;
+    }
+}
+
+static
+VOID
+SrvReleaseCloseStateHandle(
+    HANDLE hState
+    )
+{
+    SrvReleaseCloseState((PSRV_CLOSE_STATE_SMB_V1)hState);
+}
+
+static
+VOID
+SrvReleaseCloseState(
+    PSRV_CLOSE_STATE_SMB_V1 pCloseState
+    )
+{
+    if (InterlockedDecrement(&pCloseState->refCount) == 0)
+    {
+        SrvFreeCloseState(pCloseState);
+    }
+}
+
+static
+VOID
+SrvFreeCloseState(
+    PSRV_CLOSE_STATE_SMB_V1 pCloseState
+    )
+{
+    if (pCloseState->pAcb && pCloseState->pAcb->AsyncCancelContext)
+    {
+        IoDereferenceAsyncCancelContext(&pCloseState->pAcb->AsyncCancelContext);
+    }
+
+    if (pCloseState->pFile)
+    {
+        SrvFileRelease(pCloseState->pFile);
+    }
+
+    if (pCloseState->pMutex)
+    {
+        pthread_mutex_destroy(&pCloseState->mutex);
+    }
+
+    SrvFreeMemory(pCloseState);
+}
 

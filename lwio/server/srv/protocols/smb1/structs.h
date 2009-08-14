@@ -365,6 +365,39 @@ typedef struct _SRV_WRITE_STATE_SMB_V1
 
 typedef enum
 {
+    SRV_CLOSE_STAGE_SMB_V1_INITIAL = 0,
+    SRV_CLOSE_STAGE_SMB_V1_SET_INFO_COMPLETED,
+    SRV_CLOSE_STAGE_SMB_V1_ATTEMPT_CLOSE,
+    SRV_CLOSE_STAGE_SMB_V1_BUILD_RESPONSE,
+    SRV_CLOSE_STAGE_SMB_V1_DONE
+} SRV_CLOSE_STAGE_SMB_V1;
+
+typedef struct _SRV_CLOSE_STATE_SMB_V1
+{
+    LONG                       refCount;
+
+    pthread_mutex_t            mutex;
+    pthread_mutex_t*           pMutex;
+
+    SRV_CLOSE_STAGE_SMB_V1     stage;
+
+    IO_STATUS_BLOCK            ioStatusBlock;
+
+    IO_ASYNC_CONTROL_BLOCK     acb;
+    PIO_ASYNC_CONTROL_BLOCK    pAcb;
+
+    PVOID                      pSecurityDescriptor;
+    PVOID                      pSecurityQOS;
+
+    PCLOSE_REQUEST_HEADER      pRequestHeader; // Do not free
+
+    PLWIO_SRV_FILE             pFile;
+    FILE_BASIC_INFORMATION     fileBasicInfo;
+
+} SRV_CLOSE_STATE_SMB_V1, *PSRV_CLOSE_STATE_SMB_V1;
+
+typedef enum
+{
     SRV_CREATEDIR_STAGE_SMB_V1_INITIAL = 0,
     SRV_CREATEDIR_STAGE_SMB_V1_COMPLETED,
     SRV_CREATEDIR_STAGE_SMB_V1_BUILD_RESPONSE,
