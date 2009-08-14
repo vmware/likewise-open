@@ -426,6 +426,8 @@
 #define LW_ERROR_FAILED_DELETE_HAS_SUBKEY                  40706
 #define LW_ERROR_NO_SUBKEYS                                40707
 #define LW_ERROR_NO_SUCH_VALUENAME                         40708
+#define LW_ERROR_UNKNOWN_DATA_TYPE                         40709
+#define LW_ERROR_BEYOUND_MAX_VALUE_LEN                     40710
 
 
 size_t

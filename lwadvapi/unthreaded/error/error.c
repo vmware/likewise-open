@@ -698,6 +698,14 @@ static struct
     {
         LW_ERROR_NO_SUCH_VALUENAME,
         "The Key has no such value name"
+    },
+    {
+        LW_ERROR_UNKNOWN_DATA_TYPE,
+        "Unsupported registry data type"
+    },
+    {
+        LW_ERROR_BEYOUND_MAX_VALUE_LEN,
+        "Value length is beyond maximum allowed value length"
     }
 };
 
