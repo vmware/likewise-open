@@ -70,6 +70,12 @@ CopyFileFromPvfs(
     );
 
 NTSTATUS
+CatFileFromPvfs(
+    char *pszFilename
+    );
+
+
+NTSTATUS
 StatRemoteFile(
     char *pszFilename
     );
