@@ -487,6 +487,92 @@ error:
 /*******************************************************
  ******************************************************/
 
+static NTSTATUS
+PvfsCreateDirectoryFCB(
+    OUT PPVFS_FCB *ppFcb,
+    IN  PSTR pszFilename
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PPVFS_FCB pFcb = NULL;
+    BOOLEAN bFcbTableLocked = FALSE;
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bFcbTableLocked, &gFcbTable.rwLock);
+
+    /* Protect against adding a duplicate */
+
+    ntError = _PvfsFindFCB(&pFcb, pszFilename);
+    if (ntError == STATUS_SUCCESS)
+    {
+        *ppFcb = pFcb;
+        goto cleanup;
+    }
+
+    ntError = PvfsAllocateFCB(&pFcb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = RtlCStringDuplicate(&pFcb->pszFilename, pszFilename);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* Add to the file handle table */
+
+    ntError = PvfsAddFCB(pFcb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* Return a reference to the FCB */
+
+    *ppFcb = pFcb;
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+    LWIO_UNLOCK_RWMUTEX(bFcbTableLocked, &gFcbTable.rwLock);
+
+    return ntError;
+
+error:
+    if (pFcb) {
+        PvfsReleaseFCB(pFcb);
+    }
+    goto cleanup;
+}
+
+
+/***********************************************************
+ **********************************************************/
+
+NTSTATUS
+PvfsGetDirectoryFCB(
+    IN  PSTR pszFilename,
+    OUT PPVFS_FCB *ppFcb
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PPVFS_FCB pFcb = NULL;
+
+    ntError = PvfsFindFCB(&pFcb, pszFilename);
+    if (ntError == STATUS_OBJECT_NAME_NOT_FOUND)
+    {
+        ntError = PvfsCreateDirectoryFCB(&pFcb, pszFilename);
+    }
+    BAIL_ON_NT_STATUS(ntError);
+
+    *ppFcb = pFcb;
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+    return ntError;
+
+error:
+    if (pFcb) {
+        PvfsReleaseFCB(pFcb);
+    }
+
+    goto cleanup;
+}
+
+/*******************************************************
+ ******************************************************/
+
 NTSTATUS
 PvfsAddCCBToFCB(
     PPVFS_FCB pFcb,

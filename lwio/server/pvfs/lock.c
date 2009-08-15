@@ -60,6 +60,10 @@ PvfsDispatchLockControl(
     PPVFS_IRP_CONTEXT pIrpContext
     )
 {
+    /* Work around broken async support in the srv driver for now */
+
+    pIrpContext->pIrp->Args.LockControl.FailImmediately = TRUE;
+
     /* If the request is marked as FailImmediately, then
        it must be synchronous */
 

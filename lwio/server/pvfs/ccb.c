@@ -112,10 +112,14 @@ PvfsFreeCCB(
 
     if (pCCB->pFcb)
     {
-        /* Release all byte range locks to ensure proper
-           processing of pending locks */
 
-        PvfsUnlockFile(pCCB, TRUE, 0, 0, 0);
+        if (pCCB->CreateOptions & FILE_DIRECTORY_FILE)
+        {
+            /* Release all byte range locks to ensure proper
+               processing of pending locks */
+
+            PvfsUnlockFile(pCCB, TRUE, 0, 0, 0);
+        }
 
         PvfsRemoveCCBFromFCB(pCCB->pFcb, pCCB);
         PvfsReleaseFCB(pCCB->pFcb);
