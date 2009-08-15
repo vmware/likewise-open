@@ -284,10 +284,11 @@ int TestNetConnectionEnum(struct test *t, const wchar16_t *hostname,
     RELEASE_SESSION_CREDS;
 
     SrvSvcDestroyMemory();
-    return true;
+    return TRUE;
+
 done:
     SrvSvcDestroyMemory();
-    return false;
+    return TRUE;
 }
 
 int TestNetFileEnum(struct test *t, const wchar16_t *hostname,
@@ -466,10 +467,11 @@ int TestNetFileEnum(struct test *t, const wchar16_t *hostname,
     RELEASE_SESSION_CREDS;
 
     SrvSvcDestroyMemory();
-    return true;
+    return TRUE;
+
 done:
     SrvSvcDestroyMemory();
-    return false;
+    return FALSE;
 }
 
 int TestNetFileGetInfo(struct test *t, const wchar16_t *hostname,
@@ -599,10 +601,11 @@ int TestNetFileGetInfo(struct test *t, const wchar16_t *hostname,
     RELEASE_SESSION_CREDS;
 
     SrvSvcDestroyMemory();
-    return true;
+    return TRUE;
+
 done:
     SrvSvcDestroyMemory();
-    return false;
+    return FALSE;
 }
 
 int TestNetFileClose(struct test *t, const wchar16_t *hostname,
@@ -635,10 +638,11 @@ int TestNetFileClose(struct test *t, const wchar16_t *hostname,
     RELEASE_SESSION_CREDS;
 
     SrvSvcDestroyMemory();
-    return true;
+    return TRUE;
+
 done:
     SrvSvcDestroyMemory();
-    return false;
+    return FALSE;
 }
 
 int TestNetSessionEnum(struct test *t, const wchar16_t *hostname,
@@ -751,10 +755,11 @@ int TestNetSessionEnum(struct test *t, const wchar16_t *hostname,
     RELEASE_SESSION_CREDS;
 
     SrvSvcDestroyMemory();
-    return true;
+    return TRUE;
+
 done:
     SrvSvcDestroyMemory();
-    return false;
+    return FALSE;
 }
 
 
@@ -885,10 +890,11 @@ int TestNetShareAdd(struct test *t, const wchar16_t *hostname,
 
     SrvSvcDestroyMemory();
 
-    return true;
+    return TRUE;
+
 done:
     SrvSvcDestroyMemory();
-    return false;
+    return FALSE;
 }
 
 int TestNetShareEnum(struct test *t, const wchar16_t *hostname,
@@ -979,10 +985,11 @@ int TestNetShareEnum(struct test *t, const wchar16_t *hostname,
     RELEASE_SESSION_CREDS;
 
     SrvSvcDestroyMemory();
-    return true;
+    return TRUE;
+
 done:
     SrvSvcDestroyMemory();
-    return false;
+    return FALSE;
 }
 
 
@@ -1071,10 +1078,11 @@ int TestNetShareGetInfo(struct test *t, const wchar16_t *hostname,
     RELEASE_SESSION_CREDS;
 
     SrvSvcDestroyMemory();
-    return true;
+    return TRUE;
+
 done:
     SrvSvcDestroyMemory();
-    return false;
+    return FALSE;
 }
 
 int TestNetShareSetInfo(struct test *t, const wchar16_t *hostname,
@@ -1209,10 +1217,10 @@ int TestNetShareSetInfo(struct test *t, const wchar16_t *hostname,
     RELEASE_SESSION_CREDS;
 
     SrvSvcDestroyMemory();
-    return true;
+    return TRUE;
 done:
     SrvSvcDestroyMemory();
-    return false;
+    return FALSE;
 }
 
 
@@ -1252,11 +1260,11 @@ int TestNetShareDel(struct test *t, const wchar16_t *hostname,
     RELEASE_SESSION_CREDS;
 
     SrvSvcDestroyMemory();
-    return true;
+    return TRUE;
 
 done:
     SrvSvcDestroyMemory();
-    return false;
+    return FALSE;
 }
 
 
@@ -1316,10 +1324,10 @@ int TestNetServerGetInfo(struct test *t, const wchar16_t *hostname,
     RELEASE_SESSION_CREDS;
 
     SrvSvcDestroyMemory();
-    return true;
+    return TRUE;
 done:
     SrvSvcDestroyMemory();
-    return false;
+    return FALSE;
 }
 
 int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
@@ -2220,10 +2228,10 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
     RELEASE_SESSION_CREDS;
 
     SrvSvcDestroyMemory();
-    return true;
+    return TRUE;
 done:
     SrvSvcDestroyMemory();
-    return false;
+    return FALSE;
 }
 
 int TestNetRemoteTOD(struct test *t, const wchar16_t *hostname,
@@ -2259,10 +2267,10 @@ int TestNetRemoteTOD(struct test *t, const wchar16_t *hostname,
     RELEASE_SESSION_CREDS;
 
     SrvSvcDestroyMemory();
-    return true;
+    return TRUE;
 done:
     SrvSvcDestroyMemory();
-    return false;
+    return FALSE;
 }
 
 void SetupSrvSvcTests(struct test *t)

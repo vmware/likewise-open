@@ -61,8 +61,6 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include <pwd.h>
-#include <compat/dcerpc.h>
-#include <dce/dcethread.h>
 #include <winerror.h>
 #include <dlfcn.h>
 #include <dce/rpcexc.h>

@@ -119,16 +119,9 @@ typedef struct _LOGINFO {
 } LOGINFO, *PLOGINFO;
 
 DWORD
-SrvSvcAllocateMemory(
+SrvSvcSrvAllocateMemory(
     DWORD  dwSize,
     PVOID* ppMemory
-    );
-
-DWORD
-SrvSvcReallocMemory(
-    PVOID  pMemory,
-    PVOID* ppNewMemory,
-    DWORD  dwSize
     );
 
 void
@@ -137,14 +130,9 @@ SrvSvcSrvFreeMemory(
     );
 
 DWORD
-SrvSvcAllocateString(
-    PCSTR pszInputString,
-    PSTR *ppszOutputString
-    );
-
-VOID
-SrvSvcFreeString(
-    PSTR pszString
+SrvSvcSrvGetFromUnicodeStringEx(
+    PWSTR *ppwszOut,
+    UnicodeStringEx *pIn
     );
 
 DWORD
@@ -199,12 +187,6 @@ SrvSvcStrToUpper(
 VOID
 SrvSvcStrToLower(
     PSTR pszString
-    );
-
-DWORD
-SrvSvcEscapeString(
-    PSTR pszOrig,
-    PSTR * ppszEscapedString
     );
 
 DWORD
@@ -395,6 +377,12 @@ SrvSvcCloseLog(
 
 #define IsNullOrEmptyString(pszStr)     \
     (pszStr == NULL || *pszStr == '\0')
+
+
+DWORD
+SrvSvcConfigGetLsaLpcSocketPath(
+    PSTR* ppszPath
+    );
 
 
 

@@ -62,19 +62,9 @@ SrvSvcNetShareDel(
     DWORD dwError = 0;
     PBYTE pInBuffer = NULL;
     DWORD dwInLength = 0;
-    PWSTR lpFileName = NULL;
-    DWORD dwDesiredAccess = 0;
-    DWORD dwShareMode = 0;
-    DWORD dwCreationDisposition = 0;
-    DWORD dwFlagsAndAttributes = 0;
     PBYTE pOutBuffer = NULL;
     DWORD dwOutLength = 4096;
-    DWORD dwBytesReturned = 0;
-    HANDLE hDevice = NULL;
-    BOOLEAN bRet = FALSE;
-    DWORD dwParmError = 0;
-    DWORD dwReturnCode = 0;
-    IO_FILE_HANDLE FileHandle = NULL;
+    IO_FILE_HANDLE hFile = NULL;
     IO_STATUS_BLOCK IoStatusBlock = { 0 };
     ACCESS_MASK DesiredAccess = 0;
     LONG64 AllocationSize = 0;
@@ -83,7 +73,7 @@ SrvSvcNetShareDel(
     FILE_CREATE_DISPOSITION CreateDisposition = 0;
     FILE_CREATE_OPTIONS CreateOptions = 0;
     ULONG IoControlCode = SRV_DEVCTL_DELETE_SHARE;
-    PSTR smbpath = NULL;
+    PSTR pszSmbPath = NULL;
     IO_FILE_NAME filename = { 0 };
     SHARE_INFO_DELETE_PARAMS DeleteParams = { 0 };
 
@@ -97,27 +87,26 @@ SrvSvcNetShareDel(
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = SrvSvcAllocateMemory(
+    dwError = LwAllocateMemory(
                         dwOutLength,
-                        &pOutBuffer
+                        (PVOID*)&pOutBuffer
                         );
     BAIL_ON_ERROR(dwError);
 
-    ntStatus = LwRtlCStringAllocatePrintf(
-                    &smbpath,
-                    "\\srv"
-                    );
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = LwRtlWC16StringAllocateFromCString(
-                        &filename.FileName,
-                        smbpath
+    dwError = LwAllocateStringPrintf(
+                        &pszSmbPath,
+                        "\\srv"
                         );
-    BAIL_ON_NT_STATUS(ntStatus);
+    BAIL_ON_ERROR(dwError);
 
+    dwError = LwMbsToWc16s(
+                        pszSmbPath,
+                        &filename.FileName
+                        );
+    BAIL_ON_ERROR(dwError);
 
     ntStatus = NtCreateFile(
-                        &FileHandle,
+                        &hFile,
                         NULL,
                         &IoStatusBlock,
                         &filename,
@@ -136,36 +125,31 @@ SrvSvcNetShareDel(
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = NtDeviceIoControlFile(
-                    FileHandle,
-                    NULL,
-                    &IoStatusBlock,
-                    IoControlCode,
-                    pInBuffer,
-                    dwInLength,
-                    pOutBuffer,
-                    dwOutLength
-                    );
+                        hFile,
+                        NULL,
+                        &IoStatusBlock,
+                        IoControlCode,
+                        pInBuffer,
+                        dwInLength,
+                        pOutBuffer,
+                        dwOutLength
+                        );
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
-    if (FileHandle) {
-        NtCloseFile(FileHandle);
+    if (hFile)
+    {
+        NtCloseFile(hFile);
     }
 
-    if(pInBuffer) {
-        SrvSvcSrvFreeMemory(pInBuffer);
-    }
-
-    RTL_FREE(&smbpath);
-    RTL_FREE(&filename.FileName);
+    LW_SAFE_FREE_MEMORY(pInBuffer);
+    LW_SAFE_FREE_MEMORY(pOutBuffer);
+    LW_SAFE_FREE_MEMORY(pszSmbPath);
+    LW_SAFE_FREE_MEMORY(filename.FileName);
 
     return dwError;
 
 error:
-    if (pOutBuffer) {
-        SrvSvcSrvFreeMemory(pOutBuffer);
-    }
-
     goto cleanup;
 }
 

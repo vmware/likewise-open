@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -347,20 +347,19 @@ SrvSvcGetCurrentDirectoryPath(
         BAIL_ON_SRVSVC_ERROR(dwError);
     }
 
-    dwError = SrvSvcAllocateString(szBuf, &pszPath);
+    dwError = LwAllocateString(szBuf, &pszPath);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     *ppszPath = pszPath;
 
+cleanup:
     return dwError;
 
 error:
+    LW_SAFE_FREE_MEMORY(pszPath);
+    *ppszPath = NULL;
 
-    if (pszPath) {
-        SrvSvcFreeString(pszPath);
-    }
-
-    return dwError;
+    goto cleanup;
 }
 
 static
@@ -384,8 +383,8 @@ SrvSvcCreateDirectoryRecursive(
 
     if (pszToken != NULL) {
 
-        dwError = SrvSvcAllocateMemory(strlen(pszCurDirPath)+strlen(pszToken)+2,
-                                    (PVOID*)&pszDirPath);
+        dwError = LwAllocateMemory(strlen(pszCurDirPath) + strlen(pszToken) + 2,
+				   (PVOID*)&pszDirPath);
         BAIL_ON_SRVSVC_ERROR(dwError);
 
         sprintf(pszDirPath,
@@ -422,23 +421,18 @@ SrvSvcCreateDirectoryRecursive(
         dwError = SrvSvcChangePermissions(pszDirPath, dwFileMode);
         BAIL_ON_SRVSVC_ERROR(dwError);
     }
-    if (pszDirPath) {
-        SrvSvcFreeMemory(pszDirPath);
-    }
+
+cleanup:
+    LW_SAFE_FREE_MEMORY(pszDirPath);
 
     return dwError;
 
 error:
-
     if (bDirCreated) {
         SrvSvcRemoveDirectory(pszDirPath);
     }
 
-    if (pszDirPath) {
-        SrvSvcFreeMemory(pszDirPath);
-    }
-
-    return dwError;
+    goto cleanup;
 }
 
 DWORD
@@ -470,7 +464,7 @@ SrvSvcCreateDirectory(
     dwError = SrvSvcGetCurrentDirectoryPath(&pszCurDirPath);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
-    dwError = SrvSvcAllocateString(pszPath, &pszTmpPath);
+    dwError = LwAllocateString(pszPath, &pszTmpPath);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     if (*pszPath == '/') {
@@ -497,14 +491,21 @@ error:
 
         SrvSvcChangeDirectory(pszCurDirPath);
 
-        SrvSvcFreeMemory(pszCurDirPath);
+        LW_SAFE_FREE_MEMORY(pszCurDirPath);
 
     }
 
-    if (pszTmpPath) {
-        SrvSvcFreeMemory(pszTmpPath);
-    }
+    LW_SAFE_FREE_MEMORY(pszTmpPath);
 
     return dwError;
 }
 
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

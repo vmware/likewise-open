@@ -47,7 +47,7 @@
 #ifndef _SRVSVC_H_
 #define _SRVSVC_H_
 
-#include <srvsvc/types.h>
+#include <lwrpc/types.h>
 #include <srvsvc/srvsvcbinding.h>
 #include <srvsvc/srvsvcdefs.h>
 
@@ -194,22 +194,11 @@
         SrvSvcLogMessage(LOG_LEVEL_VERBOSE, ## szFmt);     \
     }
 
+#ifndef NET_API_STATUS_DEFINED
+typedef WINERR NET_API_STATUS;
 
-#define SRVSVC_SAFE_FREE_MEMORY(mem)  \
-    do {                              \
-        if (mem) {                    \
-            SrvSvcFreeMemory(mem);    \
-            (mem) = NULL;             \
-        }                             \
-    } while(0);
-
-#define SRVSVC_SAFE_FREE_STRING(str)  \
-    do {                              \
-        if (str) {                    \
-            SrvSvcFreeString(str);    \
-            (str) = NULL;             \
-        }                             \
-    } while(0);
+#define NET_API_STATUS_DEFINED
+#endif
 
 
 NET_API_STATUS

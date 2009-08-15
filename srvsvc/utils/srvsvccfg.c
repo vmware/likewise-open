@@ -217,19 +217,19 @@ SrvSvcCfgInitParseState(
     }
 
 
-    dwError = SrvSvcAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(SRVSVC_CONFIG_PARSE_STATE),
                     (PVOID*)&pParseState);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
-    dwError = SrvSvcAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(SRVSVC_STACK),
                     (PVOID*)&pTokenStack);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     pParseState->pLexerTokenStack = pTokenStack;
 
-    dwError = SrvSvcAllocateString(
+    dwError = LwAllocateString(
                     pszFilePath,
                     &(pParseState->pszFilePath));
     BAIL_ON_SRVSVC_ERROR(dwError);
@@ -274,11 +274,12 @@ SrvSvcCfgFreeParseState(
     PSRVSVC_CONFIG_PARSE_STATE pParseState
     )
 {
-    SRVSVC_SAFE_FREE_STRING(pParseState->pszFilePath);
+    LW_SAFE_FREE_MEMORY(pParseState->pszFilePath);
     if (pParseState->fp) {
         fclose(pParseState->fp);
     }
-    SrvSvcFreeMemory(pParseState);
+
+    LW_SAFE_FREE_MEMORY(pParseState);
 }
 
 
@@ -881,13 +882,11 @@ SrvSvcCfgProcessComment(
     *pbContinue = bContinue;
 
 cleanup:
-
-    SRVSVC_SAFE_FREE_STRING(pszComment);
+    LW_SAFE_FREE_MEMORY(pszComment);
 
     return dwError;
 
 error:
-
     *pbContinue = TRUE;
 
     goto cleanup;
@@ -927,12 +926,10 @@ SrvSvcCfgProcessBeginSection(
     *pbContinue = bContinue;
 
 cleanup:
-
     return dwError;
 
 error:
-
-    SRVSVC_SAFE_FREE_STRING(pszSectionName);
+    LW_SAFE_FREE_MEMORY(pszSectionName);
     pParseState->pszSectionName = NULL;
     pParseState->bSkipSection = FALSE;
     *pbContinue = FALSE;
@@ -1012,13 +1009,12 @@ cleanup:
         dwError = SrvSvcCfgFreeTokenStack(ppTokenStack);
     }
 
-    SRVSVC_SAFE_FREE_STRING(pszName);
-    SRVSVC_SAFE_FREE_STRING(pszValue);
+    LW_SAFE_FREE_MEMORY(pszName);
+    LW_SAFE_FREE_MEMORY(pszValue);
 
     return dwError;
 
 error:
-
     goto cleanup;
 }
 
@@ -1042,13 +1038,11 @@ SrvSvcCfgProcessEndSection(
     *pbContinue = bContinue;
 
 cleanup:
-
-    SRVSVC_SAFE_FREE_STRING(pParseState->pszSectionName);
+    LW_SAFE_FREE_MEMORY(pParseState->pszSectionName);
 
     return dwError;
 
 error:
-
     *pbContinue = TRUE;
 
     goto cleanup;
@@ -1094,7 +1088,7 @@ SrvSvcCfgProcessTokenStackIntoString(
         *ppTokenStack = SrvSvcStackReverse(*ppTokenStack);
 
 
-        dwError = SrvSvcAllocateMemory(
+        dwError = LwAllocateMemory(
                         (dwRequiredTokenLen + 1) * sizeof(CHAR),
                         (PVOID*)&pszConcatenated);
         BAIL_ON_SRVSVC_ERROR(dwError);
@@ -1118,13 +1112,10 @@ SrvSvcCfgProcessTokenStackIntoString(
     *ppszConcatenated = pszConcatenated;
 
 cleanup:
-
     return dwError;
 
 error:
-
-    SRVSVC_SAFE_FREE_STRING(pszConcatenated);
-
+    LW_SAFE_FREE_STRING(pszConcatenated);
     *ppszConcatenated = NULL;
 
     goto cleanup;
@@ -1142,12 +1133,12 @@ SrvSvcCfgAllocateToken(
     DWORD dwMaxLen = (dwSize > 0 ? dwSize : SRVSVC_CFG_TOKEN_DEFAULT_LENGTH);
 
 
-    dwError = SrvSvcAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(SRVSVC_CFG_TOKEN),
                     (PVOID*)&pToken);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
-    dwError = SrvSvcAllocateMemory(
+    dwError = LwAllocateMemory(
                     dwMaxLen * sizeof(CHAR),
                     (PVOID*)&pToken->pszToken);
     BAIL_ON_SRVSVC_ERROR(dwError);
@@ -1181,7 +1172,7 @@ SrvSvcCfgReallocToken(
 {
     DWORD dwError = 0;
 
-    dwError = SrvSvcReallocMemory(
+    dwError = LwReallocMemory(
                     pToken->pszToken,
                     (PVOID*)&pToken->pszToken,
                     dwNewSize);
@@ -1221,7 +1212,7 @@ SrvSvcCfgCopyToken(
     pTokenDst->tokenType = pTokenSrc->tokenType;
 
     if (pTokenSrc->dwLen > pTokenDst->dwLen) {
-        dwError = SrvSvcReallocMemory(
+        dwError = LwReallocMemory(
                         (PVOID)  pTokenDst->pszToken,
                         (PVOID*) &pTokenDst->pszToken,
                         (DWORD)  pTokenSrc->dwLen);
@@ -1287,8 +1278,8 @@ SrvSvcCfgFreeToken(
     PSRVSVC_CFG_TOKEN pToken
     )
 {
-    SRVSVC_SAFE_FREE_MEMORY(pToken->pszToken);
-    SrvSvcFreeMemory(pToken);
+    LW_SAFE_FREE_MEMORY(pToken->pszToken);
+    LW_SAFE_FREE_MEMORY(pToken);
 }
 
 DWORD

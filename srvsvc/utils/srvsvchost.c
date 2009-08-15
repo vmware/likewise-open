@@ -40,7 +40,7 @@ SrvSvcGetHostname(
     BOOLEAN bDone = FALSE;
     DWORD dwLength = HOST_NAME_MAX + 1;
 
-    dwError = SrvSvcAllocateMemory(
+    dwError = LwAllocateMemory(
                     dwLength,
                     (PVOID*)&pszHostname);
     BAIL_ON_SRVSVC_ERROR(dwError);
@@ -57,7 +57,7 @@ SrvSvcGetHostname(
             {
                 DWORD dwLength2 = dwLength + 256;
 
-                dwError = SrvSvcReallocMemory(
+                dwError = LwReallocMemory(
                             pszHostname,
                             (PVOID*)&pszHostname,
                             dwLength2);
@@ -77,12 +77,10 @@ SrvSvcGetHostname(
     *ppszHostname = pszHostname;
 
 cleanup:
-
     return dwError;
 
 error:
-
-    SRVSVC_SAFE_FREE_STRING(pszHostname);
+    LW_SAFE_FREE_MEMORY(pszHostname);
     *ppszHostname = NULL;
 
     goto cleanup;

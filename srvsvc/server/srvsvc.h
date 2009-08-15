@@ -34,34 +34,93 @@
  *
  * Module Name:
  *
- *        srvsvc_netnamevalidate.c
+ *        srvsvc.h
  *
  * Abstract:
  *
  *        Likewise Server Service (srvsvc) RPC client and server
  *
- *        NetNameValidate server API
+ *        SrvSvc rpc server functions
  *
  * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
 
-#include "includes.h"
+#ifndef _SRVSVCSRV_H_
+#define _SRVSVCSRV_H_
+
+
+NET_API_STATUS
+SrvSvcNetShareAdd(
+    handle_t IDL_handle,
+    wchar16_t *server_name,
+    uint32 level,
+    srvsvc_NetShareInfo info,
+    uint32 *parm_error
+    );
+
+
+NET_API_STATUS
+SrvSvcNetShareEnum(
+    handle_t IDL_handle,
+    wchar16_t *server_name,
+    uint32 *level,
+    srvsvc_NetShareCtr *ctr,
+    uint32 preferred_maximum_length,
+    uint32 *total_entries,
+    uint32 *resume_handle
+    );
+
+
+NET_API_STATUS
+SrvSvcNetShareGetInfo(
+    handle_t IDL_handle,
+    wchar16_t *server_name,
+    wchar16_t *netname,
+    uint32 level,
+    srvsvc_NetShareInfo *info
+    );
+
+
+NET_API_STATUS
+SrvSvcNetShareSetInfo(
+    handle_t IDL_handle,
+    wchar16_t *server_name,
+    wchar16_t *netname,
+    uint32 level,
+    srvsvc_NetShareInfo info,
+    uint32 *parm_error
+    );
+
+
+NET_API_STATUS
+SrvSvcNetShareDel(
+    handle_t IDL_handle,
+    wchar16_t *server_name,
+    wchar16_t *netname,
+    uint32 reserved
+    );
+
+
+NET_API_STATUS
+SrvSvcNetrServerGetInfo(
+    handle_t b,
+    wchar16_t *server_name,
+    uint32 level,
+    srvsvc_NetSrvInfo *info
+    );
 
 
 NET_API_STATUS
 SrvSvcNetNameValidate(
-    /* [in] */ handle_t IDL_handle,
-    /* [in] */ wchar16_t *server_name,
-    /* [in] */ wchar16_t *name,
-    /* [in] */ uint32 type,
-    /* [in] */ uint32 flags
-    )
-{
-    WINERR winError = ERROR_SUCCESS;
+    handle_t IDL_handle,
+    wchar16_t *server_name,
+    wchar16_t *name,
+    uint32 type,
+    uint32 flags
+    );
 
-    return winError;
-}
 
+#endif /* _SRVSVCSRV_H_ */
 
 
 /*

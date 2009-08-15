@@ -1,9 +1,9 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -28,69 +28,37 @@
  * license@likewisesoftware.com
  */
 
-#ifndef _PARAMS_H_
-#define _PARAMS_H_
 
-struct parameter {
-    const char *key;
-    const char *val;
-};
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        wkssvc.h
+ *
+ * Abstract:
+ *
+ *        Likewise Workstation Service (wkssvc) RPC client and server
+ *
+ *        WksSvc rpc server functions
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
+ */
 
-
-enum param_type {
-    pt_string = 1,
-    pt_w16string,
-    pt_char,
-    pt_int32,
-    pt_uint32,
-    pt_sid
-};
-
-
-enum param_err {
-    perr_not_found = 1,
-    perr_invalid_out_param = 2,
-    perr_unknown_type = 3,
-    perr_nullptr_passed = 4,
-
-    perr_success = 0,
-    perr_unknown = -1
-};
+#ifndef _WKSSVCSRV_H_
+#define _WKSSVCSRV_H_
 
 
-struct param_errstr_map {
-    enum param_err perr;
-    const char* desc;
-};
-
-static const
-struct param_errstr_map param_errstr_maps[] = {
-    { perr_not_found, "parameter not found" },
-    { perr_invalid_out_param, "invalid output parameter" },
-    { perr_unknown_type, "unknown parameter type" },
-    { perr_nullptr_passed, "null pointer passed" },
-    { perr_success, "success" },
-    { perr_unknown, "unknown error" }
-};
-
-const char *param_errstr(enum param_err perr);
+NET_API_STATUS
+WksSvcNetWkstaGetInfo(
+    handle_t IDL_handle,
+    wchar16_t *server_name,
+    uint32 level,
+    wkssvc_NetWkstaInfo *info
+    );
 
 
-#define perr_is_ok(perr_code)  ((perr_code) == perr_success)
-#define perr_fail(perr_code) { \
-	printf("Parameter error: %s\n", param_errstr(perr_code)); \
-	return FALSE; \
-    }
-
-
-struct parameter* get_optional_params(char *opt, int *count);
-const char* find_value(struct parameter *params, int count, const char *key);
-enum param_err fetch_value(struct parameter *params, int count,
-			   const char *key, enum param_type type, void *val,
-			   const void *def);
-
-
-#endif /* _PARAMS_H_ */
+#endif /* _WKSSVCSRV_H_ */
 
 
 /*

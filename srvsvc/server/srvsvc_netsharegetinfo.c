@@ -40,7 +40,7 @@
  *
  *        Likewise Server Service (srvsvc) RPC client and server
  *
- *        SrvSvcNetShareGetInfo server API
+ *        NetShareGetInfo server API
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
@@ -74,21 +74,10 @@ SrvSvcNetShareGetInfo(
     DWORD dwError = 0;
     PBYTE pInBuffer = NULL;
     DWORD dwInLength = 0;
-    PWSTR lpFileName = NULL;
-    DWORD dwDesiredAccess = 0;
-    DWORD dwShareMode = 0;
-    DWORD dwCreationDisposition = 0;
-    DWORD dwFlagsAndAttributes = 0;
     PBYTE pOutBuffer = NULL;
     DWORD dwOutLength = 4096;
-    DWORD dwBytesReturned = 0;
-    HANDLE hDevice = (HANDLE)NULL;
-    BOOLEAN bRet = FALSE;
-    DWORD  dwReturnCode = 0;
-    DWORD  dwParmError = 0;
-    IO_FILE_HANDLE FileHandle = NULL;
+    IO_FILE_HANDLE hFile = NULL;
     IO_STATUS_BLOCK IoStatusBlock = {0};
-    PIO_FILE_NAME FileName = NULL;
     ACCESS_MASK DesiredAccess = 0;
     LONG64 AllocationSize = 0;
     FILE_ATTRIBUTES FileAttributes = 0;
@@ -96,7 +85,7 @@ SrvSvcNetShareGetInfo(
     FILE_CREATE_DISPOSITION CreateDisposition = 0;
     FILE_CREATE_OPTIONS CreateOptions = 0;
     ULONG IoControlCode = SRV_DEVCTL_GET_SHARE_INFO;
-    PSTR smbpath = NULL;
+    PSTR pszSmbPath = NULL;
     IO_FILE_NAME filename = {0};
     SHARE_INFO_GETINFO_PARAMS GetParamsIn = {0};
     PSHARE_INFO_GETINFO_PARAMS pGetParamsOut = NULL;
@@ -130,20 +119,20 @@ SrvSvcNetShareGetInfo(
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = LwRtlCStringAllocatePrintf(
-                    &smbpath,
-                    "\\srv"
-                    );
-    BAIL_ON_NT_STATUS(ntStatus);
+    dwError = LwAllocateStringPrintf(
+                        &pszSmbPath,
+                        "\\srv"
+                        );
+    BAIL_ON_ERROR(dwError);
 
-    ntStatus = LwRtlWC16StringAllocateFromCString(
-                        &filename.FileName,
-                        smbpath
+    dwError = LwMbsToWc16s(
+                        pszSmbPath,
+                        &filename.FileName
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = NtCreateFile(
-                        &FileHandle,
+                        &hFile,
                         NULL,
                         &IoStatusBlock,
                         &filename,
@@ -161,14 +150,14 @@ SrvSvcNetShareGetInfo(
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = SrvSvcAllocateMemory(
+    dwError = LwAllocateMemory(
                     dwOutLength,
                     (void**)&pOutBuffer
                     );
     BAIL_ON_ERROR(dwError);
 
     ntStatus = NtDeviceIoControlFile(
-                    FileHandle,
+                    hFile,
                     NULL,
                     &IoStatusBlock,
                     IoControlCode,
@@ -182,17 +171,17 @@ SrvSvcNetShareGetInfo(
     while (ntStatus == STATUS_MORE_ENTRIES) {
         /* We need more space in output buffer to make this call */
 
-        SrvSvcSrvFreeMemory((void*)pOutBuffer);
+        LW_SAFE_FREE_MEMORY(pOutBuffer);
         dwOutLength *= 2;
 
-        dwError = SrvSvcAllocateMemory(
+        dwError = LwAllocateMemory(
                         dwOutLength,
                         (void**)&pOutBuffer
                         );
         BAIL_ON_ERROR(dwError);
 
         ntStatus = NtDeviceIoControlFile(
-                        FileHandle,
+                        hFile,
                         NULL,
                         &IoStatusBlock,
                         IoControlCode,
@@ -211,8 +200,9 @@ SrvSvcNetShareGetInfo(
                         &pGetParamsOut
                         );
 
-    ntStatus = RTL_ALLOCATE(&pShareInfo, SHARE_INFO, sizeof(*pShareInfo));
-    BAIL_ON_NT_STATUS(ntStatus);
+    dwError = SrvSvcSrvAllocateMemory(sizeof(*pShareInfo),
+                                    (PVOID*)&pShareInfo);
+    BAIL_ON_ERROR(dwError);
 
     switch (pGetParamsOut->dwInfoLevel) {
     case 0:
@@ -236,30 +226,24 @@ SrvSvcNetShareGetInfo(
         break;
 
     case 502:
+#if 0
         info->info502 = &pShareInfo->info502;
         memcpy(info->info502, pGetParamsOut->Info.p502, sizeof(*info->info502));
+#endif
         break;
     }
 
 cleanup:
-    if (FileHandle) {
-        NtCloseFile(FileHandle);
+    if (hFile)
+    {
+        NtCloseFile(hFile);
     }
 
-    if (pInBuffer) {
-        SrvSvcSrvFreeMemory(pInBuffer);
-    }
-
-    if (pOutBuffer) {
-        SrvSvcSrvFreeMemory(pOutBuffer);
-    }
-
-    if (pGetParamsOut) {
-        SrvSvcSrvFreeMemory(pGetParamsOut);
-    }
-
-    RTL_FREE(&smbpath);
-    RTL_FREE(&filename.FileName);
+    LW_SAFE_FREE_MEMORY(pInBuffer);
+    LW_SAFE_FREE_MEMORY(pOutBuffer);
+    LW_SAFE_FREE_MEMORY(pGetParamsOut);
+    LW_SAFE_FREE_MEMORY(pszSmbPath);
+    LW_SAFE_FREE_MEMORY(filename.FileName);
 
     switch (ntStatus) {
     case STATUS_SUCCESS:
@@ -279,6 +263,32 @@ cleanup:
     return dwError;
 
 error:
+    switch (pGetParamsOut->dwInfoLevel) {
+    case 0:
+        info->info0 = NULL;
+        break;
+
+    case 1:
+        info->info1 = NULL;
+        break;
+
+    case 2:
+        info->info2 = NULL;
+        break;
+
+    case 501:
+        info->info501 = NULL;
+        break;
+
+    case 502:
+        info->info502 = NULL;
+        break;
+    }
+
+    if (pShareInfo) {
+        SrvSvcSrvFreeMemory(pShareInfo);
+    }
+
     goto cleanup;
 }
 

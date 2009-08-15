@@ -361,7 +361,9 @@ error:
 }
 
 DWORD
-SrvSvcListenForRPC()
+SrvSvcListenForRPC(
+    VOID
+    )
 {
     volatile DWORD dwError = 0;
 

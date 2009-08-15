@@ -62,6 +62,17 @@ SRVSVCSERVERINFO gServerInfo =
 #define SRVSVC_LOCK_SERVERINFO   pthread_mutex_lock(&gServerInfo.lock)
 #define SRVSVC_UNLOCK_SERVERINFO pthread_mutex_unlock(&gServerInfo.lock)
 
+
+SRVSVC_CONFIG gServerConfig =
+{
+    .pLock               = PTHREAD_MUTEX_INITIALIZER,
+    .pszLsaLpcSocketPath = ""
+};
+
+#define SRVSVC_LOCK_SERVER_CONFIG    pthread_mutex_lock(&gServerConfig.pLock)
+#define SRVSVC_UNLOCK_SERVER_CONFIG  pthread_mutex_unlock(&gServerConfig.pLock)
+
+
 static
 DWORD
 SrvSvcGetProcessExitCode(
@@ -107,10 +118,7 @@ SrvSvcExitHandler(
     }
 
 error:
-
-    if (pszCachePath) {
-        SrvSvcFreeString(pszCachePath);
-    }
+    LW_SAFE_FREE_MEMORY(pszCachePath);
 
     if (fp != NULL) {
         fclose(fp);
@@ -204,7 +212,7 @@ SrvSvcGetCachePath(
 
     SRVSVC_LOCK_SERVERINFO;
 
-    dwError = SrvSvcAllocateString(gServerInfo.szCachePath, ppszPath);
+    dwError = LwAllocateString(gServerInfo.szCachePath, ppszPath);
 
     SRVSVC_UNLOCK_SERVERINFO;
 
@@ -220,7 +228,7 @@ SrvSvcGetConfigPath(
 
     SRVSVC_LOCK_SERVERINFO;
 
-    dwError = SrvSvcAllocateString(gServerInfo.szConfigFilePath, ppszPath);
+    dwError = LwAllocateString(gServerInfo.szConfigFilePath, ppszPath);
 
     SRVSVC_UNLOCK_SERVERINFO;
 
@@ -236,17 +244,28 @@ SrvSvcGetPrefixPath(
 
     SRVSVC_LOCK_SERVERINFO;
 
-    dwError = SrvSvcAllocateString(gServerInfo.szPrefixPath, ppszPath);
+    dwError = LwAllocateString(gServerInfo.szPrefixPath, ppszPath);
 
     SRVSVC_UNLOCK_SERVERINFO;
 
     return (dwError);
 }
 
-void
-SrvSvcUnlockServerInfo()
+DWORD
+SrvSvcConfigGetLsaLpcSocketPath(
+    PSTR* ppszPath
+    )
 {
-    SRVSVC_UNLOCK_SERVERINFO;
+    DWORD dwError = 0;
+
+    SRVSVC_LOCK_SERVER_CONFIG;
+
+    dwError = LwAllocateString(gServerConfig.pszLsaLpcSocketPath,
+                               ppszPath);
+
+    SRVSVC_UNLOCK_SERVER_CONFIG;
+
+    return dwError;
 }
 
 static
@@ -541,9 +560,13 @@ SrvSvcSetConfigDefaults()
 {
     DWORD dwError = 0;
 
-    SRVSVC_LOCK_SERVERINFO;
+    SRVSVC_LOCK_SERVER_CONFIG;
 
-    SRVSVC_UNLOCK_SERVERINFO;
+    strncpy(gServerConfig.pszLsaLpcSocketPath,
+            DEFAULT_LSALPC_SOCKET_PATH,
+            PATH_MAX);
+
+    SRVSVC_UNLOCK_SERVER_CONFIG;
 
     return dwError;
 }
@@ -718,21 +741,12 @@ SrvSvcReadConfigSettings()
                 &SrvSvcConfigEndSection);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
-    if (pszConfigFilePath) {
-        SrvSvcFreeString(pszConfigFilePath);
-        pszConfigFilePath = NULL;
-    }
-
 cleanup:
+    LW_SAFE_FREE_MEMORY(pszConfigFilePath);
 
     return dwError;
 
 error:
-
-    if (pszConfigFilePath) {
-        SrvSvcFreeString(pszConfigFilePath);
-    }
-
     goto cleanup;
 
 }
@@ -872,6 +886,7 @@ main(
     char* argv[])
 {
     DWORD dwError = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     rpc_binding_vector_p_t pServerBinding = NULL;
     rpc_binding_vector_p_t pWkstaBinding = NULL;
     DWORD dwBindAttempts = 0;
@@ -900,6 +915,9 @@ main(
     }
 
     SrvSvcCreatePIDFile();
+
+    ntStatus = LsaRpcInitMemory();
+    BAIL_ON_NT_STATUS(ntStatus);
 
     dwError = SrvSvcInitLogging(get_program_name(argv[0]));
     BAIL_ON_SRVSVC_ERROR(dwError);

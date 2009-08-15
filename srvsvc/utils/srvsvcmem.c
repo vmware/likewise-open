@@ -43,99 +43,68 @@
 #include "includes.h"
 
 DWORD
-SrvSvcAllocateMemory(
+SrvSvcSrvAllocateMemory(
     DWORD dwSize,
-    PVOID * ppMemory
+    PVOID *ppMemory
     )
 {
-    DWORD dwError = 0;
+    WINERR winError = 0;
     PVOID pMemory = NULL;
 
-    pMemory = malloc(dwSize);
-    if (!pMemory){
-        dwError = ENOMEM;
+    pMemory = rpc_ss_allocate(dwSize);
+    if (!pMemory)
+    {
+        winError = ERROR_OUTOFMEMORY;
         *ppMemory = NULL;
-    } else {
+    }
+    else
+    {
         memset(pMemory,0, dwSize);
         *ppMemory = pMemory;
     }
 
-    return dwError;
+    return winError;
 }
-
-
-DWORD
-SrvSvcReallocMemory(
-    PVOID  pMemory,
-    PVOID * ppNewMemory,
-    DWORD dwSize
-    )
-{
-    DWORD dwError = 0;
-    PVOID pNewMemory = NULL;
-
-    if (pMemory == NULL) {
-        pNewMemory = malloc(dwSize);
-        memset(pNewMemory, 0, dwSize);
-    } else {
-        pNewMemory = realloc(pMemory, dwSize);
-    }
-
-    if (!pNewMemory) {
-        dwError = ENOMEM;
-        *ppNewMemory = NULL;
-    } else {
-        *ppNewMemory = pNewMemory;
-    }
-
-    return(dwError);
-}
-
 
 void
 SrvSvcSrvFreeMemory(
     PVOID pMemory
     )
 {
-    free(pMemory);
+    rpc_ss_free(pMemory);
 }
 
 
 DWORD
-SrvSvcAllocateString(
-    PCSTR  pszInputString,
-    PSTR* ppszOutputString
+SrvSvcSrvGetFromUnicodeStringEx(
+    PWSTR *ppwszOut,
+    UnicodeStringEx *pIn
     )
 {
-    DWORD dwError = 0;
-    DWORD dwLen = 0;
-    char * pszOutputString = NULL;
+    WINERR winError = 0;
+    PWSTR pwszStr = NULL;
 
-    if (!pszInputString || !*pszInputString){
-        dwError = EINVAL;
-        BAIL_ON_SRVSVC_ERROR(dwError);
+    winError = SrvSvcSrvAllocateMemory(pIn->size * sizeof(WCHAR),
+                                       (PVOID*)&pwszStr);
+    if (winError)
+    {
+        goto error;
     }
-    dwLen = (DWORD)strlen(pszInputString);
-    dwError = SrvSvcAllocateMemory(dwLen+1, (PVOID *)&pszOutputString);
-    BAIL_ON_SRVSVC_ERROR(dwError);
 
-    strcpy(pszOutputString, pszInputString);
+    wc16sncpy(pwszStr, pIn->string, pIn->len / sizeof(WCHAR));
+    *ppwszOut = pwszStr;
+
+cleanup:
+    return winError;
 
 error:
-
-    *ppszOutputString = pszOutputString;
-
-    return dwError;
-}
-
-void
-SrvSvcFreeString(
-    PSTR pszString
-    )
-{
-    if (pszString) {
-        SrvSvcFreeMemory(pszString);
+    if (pwszStr)
+    {
+        SrvSvcSrvFreeMemory(pwszStr);
     }
+
+    *ppwszOut = NULL;
+    goto cleanup;
 }
 
 

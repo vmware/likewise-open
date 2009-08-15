@@ -39,21 +39,29 @@
 #include <config.h>
 #include <srvsvcsys.h>
 
-#include <dce/rpc.h>
-#include <compat/dcerpc.h>
 #include <winerror.h>
 #include <wc16str.h>
 #include <lw/ntstatus.h>
+#include <lwmem.h>
+#include <lwstr.h>
 #include <lwio/lwio.h>
 #include <lwio/ntfileapi.h>
 #include <lwio/lmshare.h>
 #include <lwio/lwshareinfo.h>
+#include <dce/rpc.h>
+#include <compat/dcerpc.h>
+#include <lwrpc/lsa.h>
+#include <lwnet.h>
 
 #include <srvsvc/srvsvc.h>
 #include <srvsvcutils.h>
 
 #include "srvsvc_stub.h"
 #include "wkssvc_stub.h"
+#include "srvsvc.h"
+#include "wkssvc.h"
+#include "srvsvc_srv.h"
+#include "wkssvc_srv.h"
 
 #include "defs.h"
 #include "structs.h"

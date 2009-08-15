@@ -362,7 +362,9 @@ error:
 }
 
 DWORD
-WksSvcListenForRPC()
+WksSvcListenForRPC(
+    VOID
+    )
 {
     volatile DWORD dwError = 0;
 

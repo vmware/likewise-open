@@ -61,7 +61,7 @@ SrvSvcNetrServerGetInfo(
     SERVER_INFO_102 *pInfo102 = NULL;
 
     if (level == 101) {
-        dwError = SrvSvcAllocateMemory(sizeof(*pInfo101),
+        dwError = SrvSvcSrvAllocateMemory(sizeof(*pInfo101),
                                        (void**)&pInfo101);
         BAIL_ON_ERROR(dwError);
 
@@ -74,8 +74,8 @@ SrvSvcNetrServerGetInfo(
 
         info->info101 = pInfo101;
 
-    } else if (level = 102) {
-        dwError = SrvSvcAllocateMemory(sizeof(*pInfo102),
+    } else if (level == 102) {
+        dwError = SrvSvcSrvAllocateMemory(sizeof(*pInfo102),
                                        (void**)&pInfo102);
         BAIL_ON_ERROR(dwError);
 
@@ -105,14 +105,29 @@ cleanup:
 error:
     if (pInfo101) {
         if (pInfo101->sv101_name) {
-            SrvSvcSrvFreeMemory((void*)pInfo101->sv101_name);
+            SrvSvcSrvFreeMemory(pInfo101->sv101_name);
         }
 
         if (pInfo101->sv101_comment) {
-            SrvSvcSrvFreeMemory((void*)pInfo101->sv101_comment);
+            SrvSvcSrvFreeMemory(pInfo101->sv101_comment);
         }
 
-        SrvSvcSrvFreeMemory((void*)pInfo101);
+        SrvSvcSrvFreeMemory(pInfo101);
+
+    } else if (pInfo102) {
+        if (pInfo102->sv102_name) {
+            SrvSvcSrvFreeMemory(pInfo102->sv102_name);
+        }
+
+        if (pInfo102->sv102_comment) {
+            SrvSvcSrvFreeMemory(pInfo102->sv102_comment);
+        }
+
+        if (pInfo102->sv102_userpath) {
+            SrvSvcSrvFreeMemory(pInfo102->sv102_userpath);
+        }
+
+        SrvSvcSrvFreeMemory(pInfo102);
     }
 
     goto cleanup;
