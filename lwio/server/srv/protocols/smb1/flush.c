@@ -32,8 +32,53 @@
 
 static
 NTSTATUS
+SrvBuildFlushState(
+    PFLUSH_REQUEST_HEADER    pRequestHeader,
+    PLWIO_SRV_FILE           pFile,
+    PSRV_FLUSH_STATE_SMB_V1* ppFlushState
+    );
+
+static
+NTSTATUS
 SrvBuildFlushResponse(
     PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+VOID
+SrvPrepareFlushStateAsync(
+    PSRV_FLUSH_STATE_SMB_V1 pFlushState,
+    PSRV_EXEC_CONTEXT       pExecContext
+    );
+
+static
+VOID
+SrvExecuteFlushAsyncCB(
+    PVOID pContext
+    );
+
+static
+VOID
+SrvReleaseFlushStateAsync(
+    PSRV_FLUSH_STATE_SMB_V1 pFlushState
+    );
+
+static
+VOID
+SrvReleaseFlushStateHandle(
+    HANDLE hState
+    );
+
+static
+VOID
+SrvReleaseFlushState(
+    PSRV_FLUSH_STATE_SMB_V1 pFlushState
+    );
+
+static
+VOID
+SrvFreeFlushState(
+    PSRV_FLUSH_STATE_SMB_V1 pFlushState
     );
 
 NTSTATUS
@@ -45,53 +90,107 @@ SrvProcessFlush(
     PLWIO_SRV_CONNECTION       pConnection    = pExecContext->pConnection;
     PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol   = pExecContext->pProtocolContext;
     PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1       = pCtxProtocol->pSmb1Context;
-    ULONG                      iMsg           = pCtxSmb1->iMsg;
-    PSRV_MESSAGE_SMB_V1        pSmbRequest    = &pCtxSmb1->pRequests[iMsg];
     PLWIO_SRV_SESSION          pSession       = NULL;
     PLWIO_SRV_TREE             pTree          = NULL;
     PLWIO_SRV_FILE             pFile          = NULL;
-    PBYTE pBuffer          = pSmbRequest->pBuffer + pSmbRequest->usHeaderSize;
-    ULONG ulOffset         = pSmbRequest->usHeaderSize;
-    ULONG ulBytesAvailable = pSmbRequest->ulMessageSize - pSmbRequest->usHeaderSize;
-    PFLUSH_REQUEST_HEADER pRequestHeader = NULL; // Do not free
-    IO_STATUS_BLOCK       ioStatusBlock  = {0};
+    PSRV_FLUSH_STATE_SMB_V1    pFlushState    = NULL;
+    BOOLEAN                    bInLock        = FALSE;
 
-    ntStatus = SrvConnectionFindSession_SMB_V1(
-                    pCtxSmb1,
-                    pConnection,
-                    pSmbRequest->pHeader->uid,
-                    &pSession);
-    BAIL_ON_NT_STATUS(ntStatus);
+    pFlushState = (PSRV_FLUSH_STATE_SMB_V1)pCtxSmb1->hState;
+    if (pFlushState)
+    {
+        InterlockedIncrement(&pFlushState->refCount);
+    }
+    else
+    {
+        ULONG                      iMsg           = pCtxSmb1->iMsg;
+        PSRV_MESSAGE_SMB_V1        pSmbRequest    = &pCtxSmb1->pRequests[iMsg];
+        PBYTE pBuffer          = pSmbRequest->pBuffer + pSmbRequest->usHeaderSize;
+        ULONG ulOffset         = pSmbRequest->usHeaderSize;
+        ULONG ulBytesAvailable = pSmbRequest->ulMessageSize - pSmbRequest->usHeaderSize;
+        PFLUSH_REQUEST_HEADER pRequestHeader = NULL; // Do not free
 
-    ntStatus = SrvSessionFindTree_SMB_V1(
-                    pCtxSmb1,
-                    pSession,
-                    pSmbRequest->pHeader->tid,
-                    &pTree);
-    BAIL_ON_NT_STATUS(ntStatus);
+        ntStatus = SrvConnectionFindSession_SMB_V1(
+                        pCtxSmb1,
+                        pConnection,
+                        pSmbRequest->pHeader->uid,
+                        &pSession);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = WireUnmarshallFlushRequest(
-                    pBuffer,
-                    ulBytesAvailable,
-                    ulOffset,
-                    &pRequestHeader);
-    BAIL_ON_NT_STATUS(ntStatus);
+        ntStatus = SrvSessionFindTree_SMB_V1(
+                        pCtxSmb1,
+                        pSession,
+                        pSmbRequest->pHeader->tid,
+                        &pTree);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvTreeFindFile_SMB_V1(
-                    pCtxSmb1,
-                    pTree,
-                    pRequestHeader->usFid,
-                    &pFile);
-    BAIL_ON_NT_STATUS(ntStatus);
+        ntStatus = WireUnmarshallFlushRequest(
+                        pBuffer,
+                        ulBytesAvailable,
+                        ulOffset,
+                        &pRequestHeader);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = IoFlushBuffersFile(
-                    pFile->hFile,
-                    NULL,
-                    &ioStatusBlock);
-    BAIL_ON_NT_STATUS(ntStatus);
+        ntStatus = SrvTreeFindFile_SMB_V1(
+                        pCtxSmb1,
+                        pTree,
+                        pRequestHeader->usFid,
+                        &pFile);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvBuildFlushResponse(pExecContext);
-    BAIL_ON_NT_STATUS(ntStatus);
+        ntStatus = SrvBuildFlushState(
+                        pRequestHeader,
+                        pFile,
+                        &pFlushState);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pCtxSmb1->hState = pFlushState;
+        InterlockedIncrement(&pFlushState->refCount);
+        pCtxSmb1->pfnStateRelease = &SrvReleaseFlushStateHandle;
+    }
+
+    LWIO_LOCK_MUTEX(bInLock, &pFlushState->mutex);
+
+    switch (pFlushState->stage)
+    {
+        case SRV_FLUSH_STAGE_SMB_V1_INITIAL:
+
+            pFlushState->stage = SRV_FLUSH_STAGE_SMB_V1_FLUSH_COMPLETED;
+
+            SrvPrepareFlushStateAsync(pFlushState, pExecContext);
+
+            ntStatus = IoFlushBuffersFile(
+                            pFlushState->pFile->hFile,
+                            pFlushState->pAcb,
+                            &pFlushState->ioStatusBlock);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            SrvReleaseFlushStateAsync(pFlushState); // completed synchronously
+
+            // intentional fall through
+
+        case SRV_FLUSH_STAGE_SMB_V1_FLUSH_COMPLETED:
+
+            ntStatus = pFlushState->ioStatusBlock.Status;
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            pFlushState->stage = SRV_FLUSH_STAGE_SMB_V1_BUILD_RESPONSE;
+
+            // intentional fall through
+
+        case SRV_FLUSH_STAGE_SMB_V1_BUILD_RESPONSE:
+
+            ntStatus = SrvBuildFlushResponse(pExecContext);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            pFlushState->stage = SRV_FLUSH_STAGE_SMB_V1_DONE;
+
+            // intentional fall through
+
+        case SRV_FLUSH_STAGE_SMB_V1_DONE:
+
+            break;
+    }
 
 cleanup:
 
@@ -108,9 +207,81 @@ cleanup:
         SrvSessionRelease(pSession);
     }
 
+    if (pFlushState)
+    {
+        LWIO_UNLOCK_MUTEX(bInLock, &pFlushState->mutex);
+
+        SrvReleaseFlushState(pFlushState);
+    }
+
     return ntStatus;
 
 error:
+
+    switch (ntStatus)
+    {
+        case STATUS_PENDING:
+
+            // TODO: Add an indicator to the file object to trigger a
+            //       cleanup if the connection gets closed and all the
+            //       files involved have to be closed
+
+            break;
+
+        default:
+
+            if (pFlushState)
+            {
+                SrvReleaseFlushStateAsync(pFlushState);
+            }
+
+            break;
+    }
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvBuildFlushState(
+    PFLUSH_REQUEST_HEADER    pRequestHeader,
+    PLWIO_SRV_FILE           pFile,
+    PSRV_FLUSH_STATE_SMB_V1* ppFlushState
+    )
+{
+    NTSTATUS                ntStatus    = STATUS_SUCCESS;
+    PSRV_FLUSH_STATE_SMB_V1 pFlushState = NULL;
+
+    ntStatus = SrvAllocateMemory(
+                    sizeof(SRV_FLUSH_STATE_SMB_V1),
+                    (PVOID*)&pFlushState);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pFlushState->refCount = 1;
+
+    pthread_mutex_init(&pFlushState->mutex, NULL);
+    pFlushState->pMutex = &pFlushState->mutex;
+
+    pFlushState->stage = SRV_FLUSH_STAGE_SMB_V1_INITIAL;
+
+    pFlushState->pRequestHeader = pRequestHeader;
+    pFlushState->pFile          = pFile;
+    InterlockedIncrement(&pFile->refcount);
+
+    *ppFlushState = pFlushState;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppFlushState = NULL;
+
+    if (pFlushState)
+    {
+        SrvFreeFlushState(pFlushState);
+    }
 
     goto cleanup;
 }
@@ -132,7 +303,7 @@ SrvBuildFlushResponse(
     PBYTE pOutBuffer       = pSmbResponse->pBuffer;
     ULONG ulBytesAvailable = pSmbResponse->ulBytesAvailable;
     ULONG ulOffset         = 0;
-    USHORT usBytesUsed      = 0;
+    USHORT usBytesUsed     = 0;
     ULONG ulTotalBytesUsed = 0;
 
     if (!pSmbResponse->ulSerialNum)
@@ -208,3 +379,135 @@ error:
 
     goto cleanup;
 }
+
+static
+VOID
+SrvPrepareFlushStateAsync(
+    PSRV_FLUSH_STATE_SMB_V1 pFlushState,
+    PSRV_EXEC_CONTEXT       pExecContext
+    )
+{
+    pFlushState->acb.Callback        = &SrvExecuteFlushAsyncCB;
+
+    pFlushState->acb.CallbackContext = pExecContext;
+    InterlockedIncrement(&pExecContext->refCount);
+
+    pFlushState->acb.AsyncCancelContext = NULL;
+
+    pFlushState->pAcb = &pFlushState->acb;
+}
+
+static
+VOID
+SrvExecuteFlushAsyncCB(
+    PVOID pContext
+    )
+{
+    NTSTATUS                   ntStatus         = STATUS_SUCCESS;
+    PSRV_EXEC_CONTEXT          pExecContext     = (PSRV_EXEC_CONTEXT)pContext;
+    PSRV_PROTOCOL_EXEC_CONTEXT pProtocolContext = pExecContext->pProtocolContext;
+    PSRV_FLUSH_STATE_SMB_V1    pFlushState      = NULL;
+    BOOLEAN                    bInLock          = FALSE;
+
+    pFlushState =
+            (PSRV_FLUSH_STATE_SMB_V1)pProtocolContext->pSmb1Context->hState;
+
+    LWIO_LOCK_MUTEX(bInLock, &pFlushState->mutex);
+
+    if (pFlushState->pAcb->AsyncCancelContext)
+    {
+        IoDereferenceAsyncCancelContext(&pFlushState->pAcb->AsyncCancelContext);
+    }
+
+    pFlushState->pAcb = NULL;
+
+    LWIO_UNLOCK_MUTEX(bInLock, &pFlushState->mutex);
+
+    ntStatus = SrvProdConsEnqueue(gProtocolGlobals_SMB_V1.pWorkQueue, pContext);
+    if (ntStatus != STATUS_SUCCESS)
+    {
+        LWIO_LOG_ERROR("Failed to enqueue execution context [status:0x%x]",
+                       ntStatus);
+
+        SrvReleaseExecContext(pExecContext);
+    }
+}
+
+static
+VOID
+SrvReleaseFlushStateAsync(
+    PSRV_FLUSH_STATE_SMB_V1 pFlushState
+    )
+{
+    if (pFlushState->pAcb)
+    {
+        pFlushState->acb.Callback       = NULL;
+
+        if (pFlushState->pAcb->CallbackContext)
+        {
+            PSRV_EXEC_CONTEXT pExecContext = NULL;
+
+            pExecContext =
+                    (PSRV_EXEC_CONTEXT)pFlushState->pAcb->CallbackContext;
+
+            SrvReleaseExecContext(pExecContext);
+
+            pFlushState->pAcb->CallbackContext = NULL;
+        }
+
+        if (pFlushState->pAcb->AsyncCancelContext)
+        {
+            IoDereferenceAsyncCancelContext(
+                    &pFlushState->pAcb->AsyncCancelContext);
+        }
+
+        pFlushState->pAcb = NULL;
+    }
+}
+
+static
+VOID
+SrvReleaseFlushStateHandle(
+    HANDLE hState
+    )
+{
+    SrvReleaseFlushState((PSRV_FLUSH_STATE_SMB_V1)hState);
+}
+
+static
+VOID
+SrvReleaseFlushState(
+    PSRV_FLUSH_STATE_SMB_V1 pFlushState
+    )
+{
+    if (InterlockedDecrement(&pFlushState->refCount) == 0)
+    {
+        SrvFreeFlushState(pFlushState);
+    }
+}
+
+static
+VOID
+SrvFreeFlushState(
+    PSRV_FLUSH_STATE_SMB_V1 pFlushState
+    )
+{
+    if (pFlushState->pAcb && pFlushState->pAcb->AsyncCancelContext)
+    {
+        IoDereferenceAsyncCancelContext(
+                    &pFlushState->pAcb->AsyncCancelContext);
+    }
+
+    if (pFlushState->pFile)
+    {
+        SrvFileRelease(pFlushState->pFile);
+    }
+
+    if (pFlushState->pMutex)
+    {
+        pthread_mutex_destroy(&pFlushState->mutex);
+    }
+
+    SrvFreeMemory(pFlushState);
+}
+

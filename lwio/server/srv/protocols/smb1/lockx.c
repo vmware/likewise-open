@@ -711,15 +711,8 @@ SrvClearLocks(
     PSRV_LOCK_STATE_SMB_V1 pLockState
     )
 {
-    USHORT iLock = 0;
-
-    if (pLockState->iLock == 0)
-    {
-        return;
-    }
-
     // Unlock in reverse order
-    for (iLock = pLockState->iLock - 1; iLock > 0; iLock--)
+    while (pLockState->iLock-- > 0)
     {
         NTSTATUS        ntStatus      = STATUS_SUCCESS;
         IO_STATUS_BLOCK ioStatusBlock = {0};
@@ -730,7 +723,7 @@ SrvClearLocks(
         if (pLockState->pRequestHeader->ucLockType & LWIO_LOCK_TYPE_LARGE_FILES)
         {
             PLOCKING_ANDX_RANGE_LARGE_FILE pLockInfo =
-                        &pLockState->pLockRangeLarge[iLock];
+                        &pLockState->pLockRangeLarge[pLockState->iLock];
 
             llOffset = (((LONG64)pLockInfo->ulOffsetHigh) << 32) |
                        ((LONG64)pLockInfo->ulOffsetLow);
@@ -742,7 +735,8 @@ SrvClearLocks(
         }
         else
         {
-            PLOCKING_ANDX_RANGE pLockInfo = &pLockState->pLockRange[iLock];
+            PLOCKING_ANDX_RANGE pLockInfo =
+                        &pLockState->pLockRange[pLockState->iLock];
 
             llOffset = pLockInfo->ulOffset;
             llLength = pLockInfo->ulLength;

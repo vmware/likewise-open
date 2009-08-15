@@ -32,12 +32,17 @@
 
 static
 NTSTATUS
+SrvBuildRenameState(
+    PSMB_RENAME_REQUEST_HEADER pRequestHeader,
+    PWSTR                      pwszOldName,
+    PWSTR                      pwszNewName,
+    PSRV_RENAME_STATE_SMB_V1*  ppRenameState
+    );
+
+static
+NTSTATUS
 SrvExecuteRename(
-    PLWIO_SRV_SESSION pSession,
-    PLWIO_SRV_TREE    pTree,
-    USHORT            usSearchAttributes,
-    PWSTR             pwszOldName,
-    PWSTR             pwszNewName
+    PSRV_EXEC_CONTEXT pExecContext
     );
 
 static
@@ -46,94 +51,220 @@ SrvBuildRenameResponse(
     PSRV_EXEC_CONTEXT pExecContext
     );
 
+static
+VOID
+SrvPrepareRenameStateAsync(
+    PSRV_RENAME_STATE_SMB_V1 pRenameState,
+    PSRV_EXEC_CONTEXT        pExecContext
+    );
+
+static
+VOID
+SrvExecuteRenameAsyncCB(
+    PVOID pContext
+    );
+
+static
+VOID
+SrvReleaseRenameStateAsync(
+    PSRV_RENAME_STATE_SMB_V1 pRenameState
+    );
+
+static
+VOID
+SrvReleaseRenameStateHandle(
+    HANDLE hState
+    );
+
+static
+VOID
+SrvReleaseRenameState(
+    PSRV_RENAME_STATE_SMB_V1 pRenameState
+    );
+
+static
+VOID
+SrvFreeRenameState(
+    PSRV_RENAME_STATE_SMB_V1 pRenameState
+    );
+
 NTSTATUS
 SrvProcessRename(
     PSRV_EXEC_CONTEXT pExecContext
     )
 {
-    NTSTATUS ntStatus = 0;
+    NTSTATUS                   ntStatus     = 0;
     PLWIO_SRV_CONNECTION       pConnection  = pExecContext->pConnection;
     PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
     PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
-    ULONG                      iMsg         = pCtxSmb1->iMsg;
-    PSRV_MESSAGE_SMB_V1        pSmbRequest  = &pCtxSmb1->pRequests[iMsg];
-    PLWIO_SRV_SESSION          pSession = NULL;
-    PLWIO_SRV_TREE             pTree    = NULL;
-    PBYTE pBuffer          = pSmbRequest->pBuffer + pSmbRequest->usHeaderSize;
-    ULONG ulOffset         = pSmbRequest->usHeaderSize;
-    ULONG ulBytesAvailable = pSmbRequest->ulMessageSize - pSmbRequest->usHeaderSize;
-    PSMB_RENAME_REQUEST_HEADER pRequestHeader = NULL; // Do not free
-    PWSTR                      pwszOldName = NULL; // Do not free
-    PWSTR                      pwszNewName = NULL; // Do not free
+    PLWIO_SRV_SESSION          pSession     = NULL;
+    PLWIO_SRV_TREE             pTree        = NULL;
+    PSRV_RENAME_STATE_SMB_V1   pRenameState = NULL;
+    BOOLEAN                    bTreeInLock  = FALSE;
+    BOOLEAN                    bInLock      = FALSE;
 
-    ntStatus = SrvConnectionFindSession_SMB_V1(
-                    pCtxSmb1,
-                    pConnection,
-                    pSmbRequest->pHeader->uid,
-                    &pSession);
-    BAIL_ON_NT_STATUS(ntStatus);
+    pRenameState = (PSRV_RENAME_STATE_SMB_V1)pCtxSmb1->hState;
+    if (pRenameState)
+    {
+        InterlockedIncrement(&pRenameState->refCount);
+    }
+    else
+    {
+        ULONG               iMsg         = pCtxSmb1->iMsg;
+        PSRV_MESSAGE_SMB_V1 pSmbRequest  = &pCtxSmb1->pRequests[iMsg];
+        PBYTE pBuffer          = pSmbRequest->pBuffer + pSmbRequest->usHeaderSize;
+        ULONG ulOffset         = pSmbRequest->usHeaderSize;
+        ULONG ulBytesAvailable = pSmbRequest->ulMessageSize - pSmbRequest->usHeaderSize;
+        PSMB_RENAME_REQUEST_HEADER pRequestHeader = NULL; // Do not free
+        PWSTR                      pwszOldName    = NULL; // Do not free
+        PWSTR                      pwszNewName    = NULL; // Do not free
 
-    ntStatus = SrvSessionFindTree_SMB_V1(
-                    pCtxSmb1,
-                    pSession,
-                    pSmbRequest->pHeader->tid,
-                    &pTree);
-    BAIL_ON_NT_STATUS(ntStatus);
+        ntStatus = SrvConnectionFindSession_SMB_V1(
+                        pCtxSmb1,
+                        pConnection,
+                        pSmbRequest->pHeader->uid,
+                        &pSession);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = WireUnmarshallRenameRequest(
-                    pBuffer,
-                    ulBytesAvailable,
-                    ulOffset,
-                    &pRequestHeader,
-                    &pwszOldName,
-                    &pwszNewName);
-    BAIL_ON_NT_STATUS(ntStatus);
+        ntStatus = SrvSessionFindTree_SMB_V1(
+                        pCtxSmb1,
+                        pSession,
+                        pSmbRequest->pHeader->tid,
+                        &pTree);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvExecuteRename(
-                    pSession,
-                    pTree,
-                    pRequestHeader->usSearchAttributes,
-                    pwszOldName,
-                    pwszNewName);
-    BAIL_ON_NT_STATUS(ntStatus);
+        ntStatus = WireUnmarshallRenameRequest(
+                        pBuffer,
+                        ulBytesAvailable,
+                        ulOffset,
+                        &pRequestHeader,
+                        &pwszOldName,
+                        &pwszNewName);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvBuildRenameResponse(pExecContext);
-    BAIL_ON_NT_STATUS(ntStatus);
+        ntStatus = SrvBuildRenameState(
+                        pRequestHeader,
+                        pwszOldName,
+                        pwszNewName,
+                        &pRenameState);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pCtxSmb1->hState = pRenameState;
+        InterlockedIncrement(&pRenameState->refCount);
+        pCtxSmb1->pfnStateRelease = &SrvReleaseRenameStateHandle;
+    }
+
+    LWIO_LOCK_MUTEX(bInLock, &pRenameState->mutex);
+
+    switch (pRenameState->stage)
+    {
+        case SRV_RENAME_STAGE_SMB_V1_INITIAL:
+
+            LWIO_LOCK_RWMUTEX_SHARED(   bTreeInLock,
+                                        &pCtxSmb1->pTree->pShareInfo->mutex);
+
+            ntStatus = SrvBuildFilePath(
+                            pCtxSmb1->pTree->pShareInfo->pwszPath,
+                            pRenameState->pwszOldName,
+                            &pRenameState->oldName.FileName);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            ntStatus = SrvAllocateStringW(
+                            pTree->pShareInfo->pwszPath,
+                            &pRenameState->dirPath.FileName);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            pRenameState->newName.FileName = pRenameState->pwszNewName;
+
+            LWIO_UNLOCK_RWMUTEX(bTreeInLock,
+                                &pCtxSmb1->pTree->pShareInfo->mutex);
+
+            pRenameState->stage = SRV_RENAME_STAGE_SMB_V1_ATTEMPT_RENAME;
+
+            // intentional fall through
+
+        case SRV_RENAME_STAGE_SMB_V1_ATTEMPT_RENAME:
+
+            ntStatus = SrvExecuteRename(pExecContext);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            pRenameState->stage = SRV_RENAME_STAGE_SMB_V1_BUILD_RESPONSE;
+
+            // intentional fall through
+
+        case SRV_RENAME_STAGE_SMB_V1_BUILD_RESPONSE:
+
+            ntStatus = SrvBuildRenameResponse(pExecContext);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            pRenameState->stage = SRV_RENAME_STAGE_SMB_V1_DONE;
+
+            // intentional fall through
+
+        case SRV_RENAME_STAGE_SMB_V1_DONE:
+
+            break;
+    }
 
 cleanup:
+
+    LWIO_UNLOCK_RWMUTEX(bTreeInLock, &pCtxSmb1->pTree->pShareInfo->mutex);
+
+    if (pSession)
+    {
+        SrvSessionRelease(pSession);
+    }
+
+    if (pTree)
+    {
+        SrvTreeRelease(pTree);
+    }
+
+    if (pRenameState)
+    {
+        LWIO_UNLOCK_MUTEX(bInLock, &pRenameState->mutex);
+
+        SrvReleaseRenameState(pRenameState);
+    }
 
     return ntStatus;
 
 error:
+
+    switch (ntStatus)
+    {
+        case STATUS_PENDING:
+
+            // TODO: Add an indicator to the file object to trigger a
+            //       cleanup if the connection gets closed and all the
+            //       files involved have to be closed
+
+            break;
+
+        default:
+
+            if (pRenameState)
+            {
+                SrvReleaseRenameStateAsync(pRenameState);
+            }
+
+            break;
+    }
 
     goto cleanup;
 }
 
 static
 NTSTATUS
-SrvExecuteRename(
-    PLWIO_SRV_SESSION pSession,
-    PLWIO_SRV_TREE    pTree,
-    USHORT            usSearchAttributes,
-    PWSTR             pwszOldName,
-    PWSTR             pwszNewName
+SrvBuildRenameState(
+    PSMB_RENAME_REQUEST_HEADER pRequestHeader,
+    PWSTR                      pwszOldName,
+    PWSTR                      pwszNewName,
+    PSRV_RENAME_STATE_SMB_V1*  ppRenameState
     )
 {
-    NTSTATUS ntStatus = 0;
-    PWSTR    pwszOldPath = NULL;
-    BOOLEAN  bInLock = FALSE;
-    IO_STATUS_BLOCK ioStatusBlock = {0};
-    IO_FILE_HANDLE  hFile = NULL;
-    IO_FILE_HANDLE  hDir  = NULL;
-    PIO_ASYNC_CONTROL_BLOCK     pAsyncControlBlock = NULL;
-    PVOID        pSecurityDescriptor = NULL;
-    PVOID        pSecurityQOS = NULL;
-    IO_FILE_NAME oldName = {0};
-    IO_FILE_NAME newName = {0};
-    IO_FILE_NAME dirPath = {0};
-    PFILE_RENAME_INFORMATION pFileRenameInfo = NULL;
-    PBYTE pData = NULL;
-    ULONG ulDataLen = 0;
+    NTSTATUS                 ntStatus     = STATUS_SUCCESS;
+    PSRV_RENAME_STATE_SMB_V1 pRenameState = NULL;
 
     if (!pwszOldName || !*pwszOldName || !pwszNewName || !*pwszNewName)
     {
@@ -141,104 +272,147 @@ SrvExecuteRename(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pTree->pShareInfo->mutex);
-
-    ntStatus = SrvBuildFilePath(
-                    pTree->pShareInfo->pwszPath,
-                    pwszOldName,
-                    &pwszOldPath);
+    ntStatus = SrvAllocateMemory(
+                    sizeof(SRV_RENAME_STATE_SMB_V1),
+                    (PVOID*)&pRenameState);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    dirPath.FileName = pTree->pShareInfo->pwszPath;
+    pRenameState->refCount = 1;
 
-    ntStatus = IoCreateFile(
-                    &hDir,
-                    pAsyncControlBlock,
-                    &ioStatusBlock,
-                    pSession->pIoSecurityContext,
-                    &dirPath,
-                    pSecurityDescriptor,
-                    pSecurityQOS,
-                    GENERIC_READ,
-                    0,
-                    FILE_ATTRIBUTE_NORMAL,
-                    0,
-                    FILE_OPEN,
-                    FILE_DIRECTORY_FILE,
-                    NULL, /* EA Buffer */
-                    0,    /* EA Length */
-                    NULL  /* ECP List  */
-                    );
-    BAIL_ON_NT_STATUS(ntStatus);
+    pthread_mutex_init(&pRenameState->mutex, NULL);
+    pRenameState->pMutex = &pRenameState->mutex;
 
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pTree->pShareInfo->mutex);
+    pRenameState->stage = SRV_RENAME_STAGE_SMB_V1_INITIAL;
 
-    oldName.FileName = pwszOldPath;
-    newName.FileName = pwszNewName;
+    pRenameState->pRequestHeader = pRequestHeader;
+    pRenameState->pwszOldName    = pwszOldName;
+    pRenameState->pwszNewName    = pwszNewName;
 
-    ntStatus = IoCreateFile(
-                    &hFile,
-                    pAsyncControlBlock,
-                    &ioStatusBlock,
-                    pSession->pIoSecurityContext,
-                    &oldName,
-                    pSecurityDescriptor,
-                    pSecurityQOS,
-                    DELETE,
-                    0,
-                    FILE_ATTRIBUTE_NORMAL,
-                    FILE_SHARE_DELETE|FILE_SHARE_READ|FILE_SHARE_WRITE,
-                    FILE_OPEN,
-                    0,
-                    NULL, /* EA Buffer */
-                    0,    /* EA Length */
-                    NULL  /* ECP List  */
-                    );
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ulDataLen = sizeof(FILE_RENAME_INFORMATION) + wc16slen(newName.FileName) * sizeof(wchar16_t);
-
-    ntStatus = SrvAllocateMemory(ulDataLen, (PVOID*)&pData);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pFileRenameInfo = (PFILE_RENAME_INFORMATION)pData;
-    pFileRenameInfo->ReplaceIfExists = TRUE;
-    pFileRenameInfo->RootDirectory = hDir;
-    pFileRenameInfo->FileNameLength = wc16slen(newName.FileName) * sizeof(wchar16_t);
-    memcpy((PBYTE)pFileRenameInfo->FileName, (PBYTE)newName.FileName, pFileRenameInfo->FileNameLength);
-
-    ntStatus = IoSetInformationFile(
-                    hFile,
-                    NULL,
-                    &ioStatusBlock,
-                    pFileRenameInfo,
-                    ulDataLen,
-                    FileRenameInformation);
-    BAIL_ON_NT_STATUS(ntStatus);
+    *ppRenameState = pRenameState;
 
 cleanup:
 
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pTree->pShareInfo->mutex);
+    return ntStatus;
 
-    if (hFile)
+error:
+
+    *ppRenameState = NULL;
+
+    if (pRenameState)
     {
-        IoCloseFile(hFile);
+        SrvFreeRenameState(pRenameState);
     }
 
-    if (hDir)
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvExecuteRename(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS                   ntStatus        = 0;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol    = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1        = pCtxProtocol->pSmb1Context;
+    PSRV_RENAME_STATE_SMB_V1   pRenameState    = NULL;
+
+    pRenameState = (PSRV_RENAME_STATE_SMB_V1)pCtxSmb1->hState;
+
+    ntStatus = pRenameState->ioStatusBlock.Status;
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (!pRenameState->hDir)
     {
-        IoCloseFile(hDir);
+        SrvPrepareRenameStateAsync(pRenameState, pExecContext);
+
+        ntStatus = IoCreateFile(
+                        &pRenameState->hDir,
+                        pRenameState->pAcb,
+                        &pRenameState->ioStatusBlock,
+                        pCtxSmb1->pSession->pIoSecurityContext,
+                        &pRenameState->dirPath,
+                        pRenameState->pSecurityDescriptor,
+                        pRenameState->pSecurityQOS,
+                        GENERIC_READ,
+                        0,
+                        FILE_ATTRIBUTE_NORMAL,
+                        0,
+                        FILE_OPEN,
+                        FILE_DIRECTORY_FILE,
+                        NULL, /* EA Buffer */
+                        0,    /* EA Length */
+                        NULL  /* ECP List  */
+                        );
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        SrvReleaseRenameStateAsync(pRenameState); // completed synchronously
     }
 
-    if (pwszOldPath)
+    if (!pRenameState->hFile)
     {
-        SrvFreeMemory(pwszOldPath);
+        SrvPrepareRenameStateAsync(pRenameState, pExecContext);
+
+        ntStatus = IoCreateFile(
+                        &pRenameState->hFile,
+                        pRenameState->pAcb,
+                        &pRenameState->ioStatusBlock,
+                        pCtxSmb1->pSession->pIoSecurityContext,
+                        &pRenameState->oldName,
+                        pRenameState->pSecurityDescriptor,
+                        pRenameState->pSecurityQOS,
+                        DELETE,
+                        0,
+                        FILE_ATTRIBUTE_NORMAL,
+                        FILE_SHARE_DELETE|FILE_SHARE_READ|FILE_SHARE_WRITE,
+                        FILE_OPEN,
+                        0,
+                        NULL, /* EA Buffer */
+                        0,    /* EA Length */
+                        NULL  /* ECP List  */
+                        );
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        SrvReleaseRenameStateAsync(pRenameState); // completed synchronously
     }
 
-    if (pData)
+    if (!pRenameState->pFileRenameInfo)
     {
-        SrvFreeMemory(pData);
+        pRenameState->ulDataLen =
+                sizeof(FILE_RENAME_INFORMATION) +
+                wc16slen(pRenameState->newName.FileName) * sizeof(wchar16_t);
+
+        ntStatus = SrvAllocateMemory(
+                        pRenameState->ulDataLen,
+                        (PVOID*)&pRenameState->pData);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pRenameState->pFileRenameInfo =
+                    (PFILE_RENAME_INFORMATION)pRenameState->pData;
+
+        pRenameState->pFileRenameInfo->ReplaceIfExists = TRUE;
+        pRenameState->pFileRenameInfo->RootDirectory   = pRenameState->hDir;
+        pRenameState->pFileRenameInfo->FileNameLength  =
+                wc16slen(pRenameState->newName.FileName) * sizeof(wchar16_t);
+        memcpy( (PBYTE)pRenameState->pFileRenameInfo->FileName,
+                (PBYTE)pRenameState->newName.FileName,
+                pRenameState->pFileRenameInfo->FileNameLength);
+
+        SrvPrepareRenameStateAsync(pRenameState, pExecContext);
+
+        ntStatus = IoSetInformationFile(
+                        pRenameState->hFile,
+                        pRenameState->pAcb,
+                        &pRenameState->ioStatusBlock,
+                        pRenameState->pFileRenameInfo,
+                        pRenameState->ulDataLen,
+                        FileRenameInformation);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        SrvReleaseRenameStateAsync(pRenameState); // completed synchronously
     }
+
+cleanup:
 
     return ntStatus;
 
@@ -339,6 +513,162 @@ error:
     pSmbResponse->ulMessageSize = 0;
 
     goto cleanup;
+}
+
+static
+VOID
+SrvPrepareRenameStateAsync(
+    PSRV_RENAME_STATE_SMB_V1 pRenameState,
+    PSRV_EXEC_CONTEXT        pExecContext
+    )
+{
+    pRenameState->acb.Callback        = &SrvExecuteRenameAsyncCB;
+
+    pRenameState->acb.CallbackContext = pExecContext;
+    InterlockedIncrement(&pExecContext->refCount);
+
+    pRenameState->acb.AsyncCancelContext = NULL;
+
+    pRenameState->pAcb = &pRenameState->acb;
+}
+
+static
+VOID
+SrvExecuteRenameAsyncCB(
+    PVOID pContext
+    )
+{
+    NTSTATUS                   ntStatus         = STATUS_SUCCESS;
+    PSRV_EXEC_CONTEXT          pExecContext     = (PSRV_EXEC_CONTEXT)pContext;
+    PSRV_PROTOCOL_EXEC_CONTEXT pProtocolContext = pExecContext->pProtocolContext;
+    PSRV_RENAME_STATE_SMB_V1   pRenameState     = NULL;
+    BOOLEAN                    bInLock          = FALSE;
+
+    pRenameState =
+            (PSRV_RENAME_STATE_SMB_V1)pProtocolContext->pSmb1Context->hState;
+
+    LWIO_LOCK_MUTEX(bInLock, &pRenameState->mutex);
+
+    if (pRenameState->pAcb->AsyncCancelContext)
+    {
+        IoDereferenceAsyncCancelContext(
+                &pRenameState->pAcb->AsyncCancelContext);
+    }
+
+    pRenameState->pAcb = NULL;
+
+    LWIO_UNLOCK_MUTEX(bInLock, &pRenameState->mutex);
+
+    ntStatus = SrvProdConsEnqueue(gProtocolGlobals_SMB_V1.pWorkQueue, pContext);
+    if (ntStatus != STATUS_SUCCESS)
+    {
+        LWIO_LOG_ERROR("Failed to enqueue execution context [status:0x%x]",
+                       ntStatus);
+
+        SrvReleaseExecContext(pExecContext);
+    }
+}
+
+static
+VOID
+SrvReleaseRenameStateAsync(
+    PSRV_RENAME_STATE_SMB_V1 pRenameState
+    )
+{
+    if (pRenameState->pAcb)
+    {
+        pRenameState->acb.Callback       = NULL;
+
+        if (pRenameState->pAcb->CallbackContext)
+        {
+            PSRV_EXEC_CONTEXT pExecContext = NULL;
+
+            pExecContext =
+                    (PSRV_EXEC_CONTEXT)pRenameState->pAcb->CallbackContext;
+
+            SrvReleaseExecContext(pExecContext);
+
+            pRenameState->pAcb->CallbackContext = NULL;
+        }
+
+        if (pRenameState->pAcb->AsyncCancelContext)
+        {
+            IoDereferenceAsyncCancelContext(
+                    &pRenameState->pAcb->AsyncCancelContext);
+        }
+
+        pRenameState->pAcb = NULL;
+    }
+}
+
+static
+VOID
+SrvReleaseRenameStateHandle(
+    HANDLE hState
+    )
+{
+    SrvReleaseRenameState((PSRV_RENAME_STATE_SMB_V1)hState);
+}
+
+static
+VOID
+SrvReleaseRenameState(
+    PSRV_RENAME_STATE_SMB_V1 pRenameState
+    )
+{
+    if (InterlockedDecrement(&pRenameState->refCount) == 0)
+    {
+        SrvFreeRenameState(pRenameState);
+    }
+}
+
+static
+VOID
+SrvFreeRenameState(
+    PSRV_RENAME_STATE_SMB_V1 pRenameState
+    )
+{
+    if (pRenameState->pAcb && pRenameState->pAcb->AsyncCancelContext)
+    {
+        IoDereferenceAsyncCancelContext(
+                    &pRenameState->pAcb->AsyncCancelContext);
+    }
+
+    // TODO: Free the following if set
+    // pSecurityDescriptor;
+    // pSecurityQOS;
+
+    if (pRenameState->oldName.FileName)
+    {
+        SrvFreeMemory(pRenameState->oldName.FileName);
+    }
+
+    if (pRenameState->dirPath.FileName)
+    {
+        SrvFreeMemory(pRenameState->dirPath.FileName);
+    }
+
+    if (pRenameState->hDir)
+    {
+        IoCloseFile(pRenameState->hDir);
+    }
+
+    if (pRenameState->hFile)
+    {
+        IoCloseFile(pRenameState->hFile);
+    }
+
+    if (pRenameState->pData)
+    {
+        SrvFreeMemory(pRenameState->pData);
+    }
+
+    if (pRenameState->pMutex)
+    {
+        pthread_mutex_destroy(&pRenameState->mutex);
+    }
+
+    SrvFreeMemory(pRenameState);
 }
 
 

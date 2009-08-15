@@ -136,6 +136,7 @@ PvfsCreateDirCreate(
     PSTR pszRelativeFilename = NULL;
     PSTR pszDiskFilename = NULL;
     PSTR pszDiskDirname = NULL;
+    PPVFS_FCB pFcb = NULL;
 
     ntError = PvfsCanonicalPathName(&pszFilename, Args.FileName);
     BAIL_ON_NT_STATUS(ntError);
@@ -179,7 +180,10 @@ PvfsCreateDirCreate(
                                  &GrantedAccess);
     BAIL_ON_NT_STATUS(ntError);
 
-    GrantedAccess = FILE_ALL_ACCESS;
+    GrantedAccess = Args.DesiredAccess;
+
+    ntError = PvfsGetDirectoryFCB(pszDiskFilename, &pFcb);
+    BAIL_ON_NT_STATUS(ntError);
 
     ntError = MapPosixOpenFlags(&unixFlags, GrantedAccess, Args);
     BAIL_ON_NT_STATUS(ntError);
@@ -202,6 +206,11 @@ PvfsCreateDirCreate(
     pCcb->CreateOptions = Args.CreateOptions;
     pCcb->pszFilename = pszDiskFilename;
     pszDiskFilename = NULL;
+
+    pCcb->pFcb = pFcb;
+    pFcb = NULL;
+    ntError = PvfsAddCCBToFCB(pCcb->pFcb, pCcb);
+    BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsSaveFileDeviceInfo(pCcb);
     BAIL_ON_NT_STATUS(ntError);
@@ -250,6 +259,10 @@ error:
         PvfsReleaseCCB(pCcb);
     }
 
+    if (pFcb) {
+        PvfsReleaseFCB(pFcb);
+    }
+
     goto cleanup;
 }
 
@@ -272,6 +285,7 @@ PvfsCreateDirOpen(
     FILE_CREATE_RESULT CreateResult = 0;
     ACCESS_MASK GrantedAccess = 0;
     PSTR pszDiskFilename = NULL;
+    PPVFS_FCB pFcb = NULL;
 
     ntError = PvfsCanonicalPathName(&pszFilename, Args.FileName);
     BAIL_ON_NT_STATUS(ntError);
@@ -289,11 +303,13 @@ PvfsCreateDirOpen(
                                  sizeof(PVFS_DIRECTORY_CONTEXT));
     BAIL_ON_NT_STATUS(ntError);
 
-
     ntError = PvfsAccessCheckDir(pCcb->pUserToken,
                                  pszDiskFilename,
                                  Args.DesiredAccess,
                                  &GrantedAccess);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsGetDirectoryFCB(pszDiskFilename, &pFcb);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = MapPosixOpenFlags(&unixFlags, GrantedAccess, Args);
@@ -314,6 +330,11 @@ PvfsCreateDirOpen(
     pCcb->CreateOptions = Args.CreateOptions;
     pCcb->pszFilename = pszDiskFilename;
     pszDiskFilename = NULL;
+
+    pCcb->pFcb = pFcb;
+    pFcb = NULL;
+    ntError = PvfsAddCCBToFCB(pCcb->pFcb, pCcb);
+    BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsSaveFileDeviceInfo(pCcb);
     BAIL_ON_NT_STATUS(ntError);
@@ -341,6 +362,10 @@ error:
 
     if (pCcb) {
         PvfsReleaseCCB(pCcb);
+    }
+
+    if (pFcb) {
+        PvfsReleaseFCB(pFcb);
     }
 
 
@@ -371,6 +396,7 @@ PvfsCreateDirOpenIf(
     PSTR pszRelativeFilename = NULL;
     PSTR pszDiskFilename = NULL;
     PSTR pszDiskDirname = NULL;
+    PPVFS_FCB pFcb = NULL;
 
     ntError = PvfsCanonicalPathName(&pszFilename, Args.FileName);
     BAIL_ON_NT_STATUS(ntError);
@@ -431,6 +457,9 @@ PvfsCreateDirOpenIf(
                                  sizeof(PVFS_DIRECTORY_CONTEXT));
     BAIL_ON_NT_STATUS(ntError);
 
+    ntError = PvfsGetDirectoryFCB(pszDiskFilename, &pFcb);
+    BAIL_ON_NT_STATUS(ntError);
+
     ntError = PvfsSysOpenDir(pszDiskFilename, &pCcb->pDirContext->pDir);
     BAIL_ON_NT_STATUS(ntError);
 
@@ -444,6 +473,11 @@ PvfsCreateDirOpenIf(
     pCcb->CreateOptions = Args.CreateOptions;
     pCcb->pszFilename = pszDiskFilename;
     pszDiskFilename = NULL;
+
+    pCcb->pFcb = pFcb;
+    pFcb = NULL;
+    ntError = PvfsAddCCBToFCB(pCcb->pFcb, pCcb);
+    BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsSaveFileDeviceInfo(pCcb);
     BAIL_ON_NT_STATUS(ntError);
@@ -493,6 +527,10 @@ error:
 
     if (pCcb) {
         PvfsReleaseCCB(pCcb);
+    }
+
+    if (pFcb) {
+        PvfsReleaseFCB(pFcb);
     }
 
     goto cleanup;

@@ -363,6 +363,206 @@ typedef struct _SRV_WRITE_STATE_SMB_V1
 
 } SRV_WRITE_STATE_SMB_V1, *PSRV_WRITE_STATE_SMB_V1;
 
+typedef enum
+{
+    SRV_CLOSE_STAGE_SMB_V1_INITIAL = 0,
+    SRV_CLOSE_STAGE_SMB_V1_SET_INFO_COMPLETED,
+    SRV_CLOSE_STAGE_SMB_V1_ATTEMPT_CLOSE,
+    SRV_CLOSE_STAGE_SMB_V1_BUILD_RESPONSE,
+    SRV_CLOSE_STAGE_SMB_V1_DONE
+} SRV_CLOSE_STAGE_SMB_V1;
+
+typedef struct _SRV_CLOSE_STATE_SMB_V1
+{
+    LONG                       refCount;
+
+    pthread_mutex_t            mutex;
+    pthread_mutex_t*           pMutex;
+
+    SRV_CLOSE_STAGE_SMB_V1     stage;
+
+    IO_STATUS_BLOCK            ioStatusBlock;
+
+    IO_ASYNC_CONTROL_BLOCK     acb;
+    PIO_ASYNC_CONTROL_BLOCK    pAcb;
+
+    PVOID                      pSecurityDescriptor;
+    PVOID                      pSecurityQOS;
+
+    PCLOSE_REQUEST_HEADER      pRequestHeader; // Do not free
+
+    PLWIO_SRV_FILE             pFile;
+    FILE_BASIC_INFORMATION     fileBasicInfo;
+
+} SRV_CLOSE_STATE_SMB_V1, *PSRV_CLOSE_STATE_SMB_V1;
+
+typedef enum
+{
+    SRV_CREATEDIR_STAGE_SMB_V1_INITIAL = 0,
+    SRV_CREATEDIR_STAGE_SMB_V1_COMPLETED,
+    SRV_CREATEDIR_STAGE_SMB_V1_BUILD_RESPONSE,
+    SRV_CREATEDIR_STAGE_SMB_V1_DONE
+} SRV_CREATEDIR_STAGE_SMB_V1;
+
+typedef struct _SRV_CREATEDIR_STATE_SMB_V1
+{
+    LONG                       refCount;
+
+    pthread_mutex_t            mutex;
+    pthread_mutex_t*           pMutex;
+
+    SRV_CREATEDIR_STAGE_SMB_V1 stage;
+
+    IO_STATUS_BLOCK            ioStatusBlock;
+
+    IO_ASYNC_CONTROL_BLOCK     acb;
+    PIO_ASYNC_CONTROL_BLOCK    pAcb;
+
+    PSMB_CREATE_DIRECTORY_REQUEST_HEADER pRequestHeader;   // Do not free
+    PWSTR                                pwszPathFragment; // Do not free
+
+    PVOID                      pSecurityDescriptor;
+    PVOID                      pSecurityQOS;
+
+    IO_FILE_HANDLE             hFile;
+    IO_FILE_NAME               fileName;
+
+} SRV_CREATEDIR_STATE_SMB_V1, *PSRV_CREATEDIR_STATE_SMB_V1;
+
+typedef enum
+{
+    SRV_DELETEDIR_STAGE_SMB_V1_INITIAL = 0,
+    SRV_DELETEDIR_STAGE_SMB_V1_COMPLETED,
+    SRV_DELETEDIR_STAGE_SMB_V1_BUILD_RESPONSE,
+    SRV_DELETEDIR_STAGE_SMB_V1_DONE
+} SRV_DELETEDIR_STAGE_SMB_V1;
+
+typedef struct _SRV_DELETEDIR_STATE_SMB_V1
+{
+    LONG                       refCount;
+
+    pthread_mutex_t            mutex;
+    pthread_mutex_t*           pMutex;
+
+    SRV_DELETEDIR_STAGE_SMB_V1 stage;
+
+    IO_STATUS_BLOCK            ioStatusBlock;
+
+    IO_ASYNC_CONTROL_BLOCK     acb;
+    PIO_ASYNC_CONTROL_BLOCK    pAcb;
+
+    PDELETE_DIRECTORY_REQUEST_HEADER pRequestHeader;   // Do not free
+    PWSTR                            pwszPathFragment; // Do not free
+
+    PVOID                      pSecurityDescriptor;
+    PVOID                      pSecurityQOS;
+
+    IO_FILE_HANDLE             hFile;
+    IO_FILE_NAME               fileName;
+
+} SRV_DELETEDIR_STATE_SMB_V1, *PSRV_DELETEDIR_STATE_SMB_V1;
+
+typedef enum
+{
+    SRV_RENAME_STAGE_SMB_V1_INITIAL = 0,
+    SRV_RENAME_STAGE_SMB_V1_ATTEMPT_RENAME,
+    SRV_RENAME_STAGE_SMB_V1_BUILD_RESPONSE,
+    SRV_RENAME_STAGE_SMB_V1_DONE
+} SRV_RENAME_STAGE_SMB_V1;
+
+typedef struct _SRV_RENAME_STATE_SMB_V1
+{
+    LONG                       refCount;
+
+    pthread_mutex_t            mutex;
+    pthread_mutex_t*           pMutex;
+
+    SRV_RENAME_STAGE_SMB_V1    stage;
+
+    IO_STATUS_BLOCK            ioStatusBlock;
+
+    IO_ASYNC_CONTROL_BLOCK     acb;
+    PIO_ASYNC_CONTROL_BLOCK    pAcb;
+
+    PSMB_RENAME_REQUEST_HEADER pRequestHeader;  // Do not free
+    PWSTR                      pwszOldName;     // Do not free
+    PWSTR                      pwszNewName;     // Do not free
+
+    PVOID                      pSecurityDescriptor;
+    PVOID                      pSecurityQOS;
+
+    IO_FILE_NAME               oldName;
+    IO_FILE_NAME               newName;         // Do not free these contents
+    IO_FILE_NAME               dirPath;
+    IO_FILE_HANDLE             hFile;
+    IO_FILE_HANDLE             hDir;
+
+    PFILE_RENAME_INFORMATION   pFileRenameInfo; // Do not free
+    PBYTE                      pData;
+    ULONG                      ulDataLen;
+
+} SRV_RENAME_STATE_SMB_V1, *PSRV_RENAME_STATE_SMB_V1;
+
+typedef enum
+{
+    SRV_FLUSH_STAGE_SMB_V1_INITIAL = 0,
+    SRV_FLUSH_STAGE_SMB_V1_FLUSH_COMPLETED,
+    SRV_FLUSH_STAGE_SMB_V1_BUILD_RESPONSE,
+    SRV_FLUSH_STAGE_SMB_V1_DONE
+} SRV_FLUSH_STAGE_SMB_V1;
+
+typedef struct _SRV_FLUSH_STATE_SMB_V1
+{
+    LONG                      refCount;
+
+    pthread_mutex_t           mutex;
+    pthread_mutex_t*          pMutex;
+
+    SRV_FLUSH_STAGE_SMB_V1    stage;
+
+    IO_STATUS_BLOCK           ioStatusBlock;
+
+    IO_ASYNC_CONTROL_BLOCK    acb;
+    PIO_ASYNC_CONTROL_BLOCK   pAcb;
+
+    PFLUSH_REQUEST_HEADER     pRequestHeader; // Do not free
+
+    PLWIO_SRV_FILE            pFile;
+
+} SRV_FLUSH_STATE_SMB_V1, *PSRV_FLUSH_STATE_SMB_V1;
+
+typedef enum
+{
+    SRV_CHECKDIR_STAGE_SMB_V1_INITIAL = 0,
+    SRV_CHECKDIR_STAGE_SMB_V1_ATTEMPT_CHECK,
+    SRV_CHECKDIR_STAGE_SMB_V1_BUILD_RESPONSE,
+    SRV_CHECKDIR_STAGE_SMB_V1_DONE
+} SRV_CHECKDIR_STAGE_SMB_V1;
+
+typedef struct _SRV_CHECKDIR_STATE_SMB_V1
+{
+    LONG                      refCount;
+
+    pthread_mutex_t           mutex;
+    pthread_mutex_t*          pMutex;
+
+    SRV_CHECKDIR_STAGE_SMB_V1 stage;
+
+    IO_STATUS_BLOCK           ioStatusBlock;
+
+    IO_ASYNC_CONTROL_BLOCK    acb;
+    PIO_ASYNC_CONTROL_BLOCK   pAcb;
+
+    PWSTR                               pwszPathFragment; // Do not free
+    PSMB_CHECK_DIRECTORY_REQUEST_HEADER pRequestHeader;   // Do not free
+
+    IO_FILE_NAME              fileName;
+    IO_FILE_HANDLE            hFile;
+    PVOID                     pSecurityDescriptor;
+    PVOID                     pSecurityQOS;
+
+} SRV_CHECKDIR_STATE_SMB_V1, *PSRV_CHECKDIR_STATE_SMB_V1;
+
 typedef VOID (*PFN_SRV_MESSAGE_STATE_RELEASE_SMB_V1)(HANDLE hState);
 
 typedef struct __SRV_MESSAGE_SMB_V1

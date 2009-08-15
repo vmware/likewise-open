@@ -94,6 +94,12 @@ PvfsCreateFCB(
     );
 
 NTSTATUS
+PvfsGetDirectoryFCB(
+    IN  PSTR pszFilename,
+    OUT PPVFS_FCB *ppFcb
+    );
+
+NTSTATUS
 PvfsAddCCBToFCB(
     PPVFS_FCB pFcb,
     PPVFS_CCB pCcb
