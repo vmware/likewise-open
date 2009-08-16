@@ -71,6 +71,8 @@ WksSvcNetWkstaGetInfo(
     handle_t hLsaBinding = NULL;
     PolicyHandle hLocalPolicy = {0};
     LsaPolicyInformation *pPolInfo = NULL;
+    PWSTR pwszHostname = NULL;
+    ULONG HostnameLen = 0;
 
     dwError = SrvSvcSrvAllocateMemory(sizeof(*pInfo100),
                                       (PVOID*)&pInfo100);
@@ -120,13 +122,21 @@ WksSvcNetWkstaGetInfo(
                                   &pPolInfo);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = SrvSvcSrvGetFromUnicodeStringEx(&pInfo100->wksta100_name,
-                                              &pPolInfo->dns.name);
+    dwError = SrvSvcSrvGetFromUnicodeStringEx(
+                  &pInfo100->wksta100_domain,
+                  &pPolInfo->dns.name);
     BAIL_ON_ERROR(dwError);
 
-    dwError = SrvSvcSrvGetFromUnicodeStringEx(&pInfo100->wksta100_domain,
-                                              &pPolInfo->dns.dns_domain);
+    dwError = LwMbsToWc16s(szHostname, &pwszHostname);
     BAIL_ON_ERROR(dwError);
+
+    HostnameLen = LwRtlWC16StringNumChars(pwszHostname);
+    dwError = SrvSvcSrvAllocateMemory(
+                  sizeof(WCHAR)*(HostnameLen+1),
+                  (PVOID*)&pInfo100->wksta100_name);
+    BAIL_ON_ERROR(dwError);
+
+    memcpy(pInfo100->wksta100_name, pwszHostname, sizeof(WCHAR)*(HostnameLen));
 
     pInfo100->wksta100_version_major = 5;
     pInfo100->wksta100_version_minor = 1;
@@ -154,6 +164,7 @@ cleanup:
     }
 
     LW_SAFE_FREE_MEMORY(pwszDcName);
+    LW_SAFE_FREE_MEMORY(pwszHostname);
 
     FreeLsaBinding(&hLsaBinding);
 
