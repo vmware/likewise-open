@@ -4,8 +4,8 @@ sbin_PROGRAMS = srvsvcd
 
 lib_LTLIBRARIES = libsrvsvc_ss.la libwkssvc_ss.la
 
-idl_srcdir=$(top_srcdir)/idl
-include_srcdir=$(top_srcdir)/include
+idl_srcdir = $(top_srcdir)/idl
+include_srcdir = $(top_srcdir)/include
 
 srvsvcd_SOURCES =              \
     srvsvc.c                   \
@@ -34,35 +34,54 @@ FEATURETEST_FLAGS="-D_XOPEN_SOURCE=500"
 libsrvsvc_ss_la_CPPFLAGS = \
     $(AM_CPPFLAGS) \
     $(FEATURETEST_FLAGS) \
-    @DCERPC_INCLUDES@
+    $(DCERPC_INCLUDES)
 
 libwkssvc_ss_la_CFLAGS = \
     $(AM_CFLAGS) \
     $(FEATURETEST_FLAGS) \
-    @DCERPC_INCLUDES@
+    $(DCERPC_INCLUDES)
 
 libwkssvc_ss_la_CPPFLAGS = \
     $(AM_CPPFLAGS) \
     $(FEATURETEST_FLAGS) \
-    @DCERPC_INCLUDES@
+    $(DCERPC_INCLUDES)
 
 libsrvsvc_ss_la_CFLAGS = \
     $(FEATURETEST_FLAGS) \
-    @DCERPC_INCLUDES@
+    $(DCERPC_INCLUDES)
 
-srvsvcd_CFLAGS = -g $(INCLUDES) -DSRVSVC_BUILD
+srvsvcd_CFLAGS = \
+    -g               \
+    -DSRVSVC_BUILD   \
+    -DLIBRPC_BUILD
+
 srvsvcd_CPPFLAGS = \
-    $(AM_CPPFLAGS) \
-    @DCERPC_INCLUDES@   \
-    @LIBUNISTR_INCLUDES@ \
-    @LWIO_INCLUDES@
+    $(AM_CPPFLAGS)        \
+    $(DCERPC_INCLUDES)    \
+    $(LIBRPC_INCLUDES)    \
+    $(LIBUNISTR_INCLUDES) \
+    $(LWADVAPI_INCLUDES)  \
+    $(LWIO_INCLUDES)      \
+    $(NETLOGON_INCLUDES)
 
-srvsvcd_LDFLAGS = $(DCERPC_LDFLAGS) $(UNISTR_LDFLAGS) @LWIO_LDFLAGS@
+srvsvcd_LDFLAGS = \
+    $(DCERPC_LDFLAGS)    \
+    $(LIBRPC_LDFLAGS)    \
+    $(LIBUNISTR_LDFLAGS) \
+    $(LWADVAPI_LDFLAGS)  \
+    $(LWIO_LDFLAGS)      \
+    $(NETLOGON_LDFLAGS)
+
 srvsvcd_LDADD = \
-    @top_builddir@/utils/libsrvsvcutils.la \
-    libsrvsvc_ss.la \
-    libwkssvc_ss.la \
-    -ldcerpc -lunistr @LWIO_LIBS@
+    $(top_builddir)/utils/libsrvsvcutils.la \
+    libsrvsvc_ss.la                         \
+    libwkssvc_ss.la                         \
+    $(DCERPC_LIBS)                          \
+    $(LIBRPC_LIBS)                          \
+    $(LIBUNISTR_LIBS)                       \
+    $(LWADVAPI_LIBS)                        \
+    $(LWIO_LIBS)                            \
+    $(NETLOGON_LIBS)
 
 CLEANFILES = srvsvc_h.h srvsvc_cstub.c srvsvc_sstub.c \
              wkssvc_h.h wkssvc_cstub.c wkssvc_sstub.c

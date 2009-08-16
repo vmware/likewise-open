@@ -76,6 +76,10 @@ main(
     {
         ntError = CopyFileFromPvfs(argc-2, argv+2);
     }
+    else if (strcmp(argv[1], "--cat") == 0)
+    {
+        ntError = CatFileFromPvfs(argv[2]);
+    }
     else if (strcmp(argv[1], "-O") == 0)
     {
         ntError = RequestOplock(argc-2, argv+2);
@@ -115,9 +119,12 @@ main(
 
 
 cleanup:
-    printf("Final NTSTATUS was %s (%s)\n",
-           NtStatusToDescription(ntError),
-           NtStatusToSymbolicName(ntError));
+    if (ntError != STATUS_SUCCESS)
+    {
+        printf("Final NTSTATUS was %s (%s)\n",
+               NtStatusToDescription(ntError),
+               NtStatusToSymbolicName(ntError));
+    }
 
     return ntError == STATUS_SUCCESS;
 
@@ -341,6 +348,91 @@ CopyFileFromPvfs(
     } while (bytes != 0);
 
     close(fd);
+
+    ntError = NtCloseFile(hFile);
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    return ntError;
+
+error:
+    if (hFile) {
+        NtCloseFile(hFile);
+    }
+
+    if (fd != -1) {
+        close(fd);
+    }
+    goto cleanup;
+}
+
+
+/******************************************************
+ *****************************************************/
+
+NTSTATUS
+CatFileFromPvfs(
+    char *pszFilename
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    IO_FILE_HANDLE hFile = NULL;
+    IO_STATUS_BLOCK StatusBlock = {0};
+    IO_FILE_NAME SrcFilename = {0};
+    size_t bytes = 0;
+    int fd = -1;
+    BYTE pBuffer[1024];
+
+    ntError = RtlWC16StringAllocateFromCString(&SrcFilename.FileName, pszFilename);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* Open the remote source file */
+
+    ntError = NtCreateFile(&hFile,
+                           NULL,
+                           &StatusBlock,
+                           &SrcFilename,
+                           NULL,
+                           NULL,
+                           FILE_GENERIC_READ,
+                           0,
+                           FILE_ATTRIBUTE_NORMAL,
+                           FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                           FILE_OPEN,
+                           FILE_NON_DIRECTORY_FILE,
+                           NULL,
+                           0,
+                           NULL);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* Read the file */
+
+    do {
+        ntError = NtReadFile(hFile,
+                             NULL,
+                             &StatusBlock,
+                             pBuffer,
+                             sizeof(pBuffer),
+                             NULL, NULL);
+        if (ntError == STATUS_END_OF_FILE) {
+            ntError = STATUS_SUCCESS;
+            break;
+        }
+        BAIL_ON_NT_STATUS(ntError);
+
+        if (StatusBlock.BytesTransferred == 0) {
+            break;
+        }
+
+        if ((bytes = write(1, pBuffer, StatusBlock.BytesTransferred)) == -1)
+        {
+            fprintf(stderr, "Write failed! (%s)\n", strerror(errno));
+            ntError = STATUS_UNSUCCESSFUL;
+            BAIL_ON_NT_STATUS(ntError);
+        }
+
+
+    } while (bytes != 0);
 
     ntError = NtCloseFile(hFile);
     BAIL_ON_NT_STATUS(ntError);

@@ -40,7 +40,7 @@
  *
  *        Likewise Server Service (srvsvc) RPC client and server
  *
- *        SrvSvcNetNameValidate server API
+ *        NetNameValidate server API
  *
  * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
@@ -55,11 +55,11 @@ SrvSvcNetNameValidate(
     /* [in] */ wchar16_t *name,
     /* [in] */ uint32 type,
     /* [in] */ uint32 flags
-)
+    )
 {
-    DWORD dwError = 0;
+    WINERR winError = ERROR_SUCCESS;
 
-    return dwError;
+    return winError;
 }
 
 

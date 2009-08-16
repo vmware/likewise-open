@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2009
@@ -54,7 +54,7 @@ _NetWkstaGetInfo(
 {
     DWORD dwError = 0;
 
-    dwError = WksSrvNetWkstaGetInfo(IDL_handle,
+    dwError = WksSvcNetWkstaGetInfo(IDL_handle,
                                     server_name,
                                     level,
                                     info);

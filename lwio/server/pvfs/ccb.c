@@ -113,7 +113,7 @@ PvfsFreeCCB(
     if (pCCB->pFcb)
     {
 
-        if (pCCB->CreateOptions & FILE_DIRECTORY_FILE)
+        if (pCCB->CreateOptions & FILE_NON_DIRECTORY_FILE)
         {
             /* Release all byte range locks to ensure proper
                processing of pending locks */

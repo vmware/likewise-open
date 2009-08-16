@@ -2,8 +2,8 @@ AM_CPPFLAGS = -I$(top_srcdir)/include
 
 lib_LTLIBRARIES = libsrvsvc_cs.la libsrvsvc.la
 
-idl_srcdir=$(top_srcdir)/idl
-include_srcdir=$(top_srcdir)/include
+idl_srcdir = $(top_srcdir)/idl
+include_srcdir = $(top_srcdir)/include
 
 libsrvsvc_la_SOURCES = \
     SrvSvcBinding.c  \
@@ -30,22 +30,33 @@ libsrvsvc_cs_la_SOURCES = srvsvc_cstub.c
 FEATURETEST_FLAGS="-D_XOPEN_SOURCE=500"
 
 libsrvsvc_cs_la_CPPFLAGS = \
-    $(AM_CPPFLAGS) \
+    $(AM_CPPFLAGS)       \
     $(FEATURETEST_FLAGS) \
-    @DCERPC_INCLUDES@
+    $(DCERPC_INCLUDES)
 
 libsrvsvc_cs_la_CPFLAGS = \
     $(FEATURETEST_FLAGS) \
-    @DCERPC_INCLUDES@
+    $(DCERPC_INCLUDES)
 
-libsrvsvc_la_CFLAGS = -g $(INCLUDES) -DSRVSVC_BUILD $(AM_CFLAGS)
+libsrvsvc_la_CFLAGS = \
+    $(AM_CFLAGS)    \
+    -DSRVSVC_BUILD  \
+    -DLIBRPC_BUILD  \
+    $(INCLUDES)
+
 libsrvsvc_la_CPPFLAGS = \
-    $(AM_CPPFLAGS) \
-    @DCERPC_INCLUDES@   \
-    @LIBUNISTR_INCLUDES@
+    -g                    \
+    $(DCERPC_INCLUDES)    \
+    $(LIBUNISTR_INCLUDES)
 
-libsrvsvc_la_LDFLAGS=$(DCERPC_LDFLAGS) $(UNISTR_LDFLAGS)
-libsrvsvc_la_LIBADD=-ldcerpc -lunistr libsrvsvc_cs.la
+libsrvsvc_la_LDFLAGS = \
+    $(DCERPC_LDFLAGS)   \
+    $(LIBUNISTR_LDFLAGS)
+
+libsrvsvc_la_LIBADD = \
+    $(DCERPC_LIBS)    \
+    $(LIBUNISTR_LIBS) \
+    libsrvsvc_cs.la
 
 CLEANFILES = srvsvc_h.h srvsvc_cstub.c srvsvc_sstub.c
 

@@ -65,19 +65,9 @@ SrvSvcNetShareEnum(
     DWORD dwError = 0;
     PBYTE pInBuffer = NULL;
     DWORD dwInLength = 0;
-    PWSTR lpFileName = NULL;
-    DWORD dwDesiredAccess = 0;
-    DWORD dwShareMode = 0;
-    DWORD dwCreationDisposition = 0;
-    DWORD dwFlagsAndAttributes = 0;
     PBYTE pOutBuffer = NULL;
     DWORD dwOutLength = 4096;
-    DWORD dwBytesReturned = 0;
-    HANDLE hDevice = NULL;
-    BOOLEAN bRet = FALSE;
-    DWORD dwReturnCode = 0;
-    DWORD dwParmError = 0;
-    IO_FILE_HANDLE FileHandle = NULL;
+    IO_FILE_HANDLE hFile = NULL;
     IO_STATUS_BLOCK IoStatusBlock = { 0 };
     ACCESS_MASK DesiredAccess = 0;
     LONG64 AllocationSize = 0;
@@ -86,7 +76,7 @@ SrvSvcNetShareEnum(
     FILE_CREATE_DISPOSITION CreateDisposition = 0;
     FILE_CREATE_OPTIONS CreateOptions = 0;
     ULONG IoControlCode = SRV_DEVCTL_ENUM_SHARE;
-    PSTR smbpath = NULL;
+    PSTR pszSmbPath = NULL;
     IO_FILE_NAME filename = { 0 };
     SHARE_INFO_ENUM_PARAMS EnumParamsIn = { 0 };
     PSHARE_INFO_ENUM_PARAMS pEnumParamsOut = NULL;
@@ -105,20 +95,20 @@ SrvSvcNetShareEnum(
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = LwRtlCStringAllocatePrintf(
-                    &smbpath,
-                    "\\srv"
-                    );
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = LwRtlWC16StringAllocateFromCString(
-                        &filename.FileName,
-                        smbpath
+    dwError = LwAllocateStringPrintf(
+                        &pszSmbPath,
+                        "\\srv"
                         );
-    BAIL_ON_NT_STATUS(ntStatus);
+    BAIL_ON_ERROR(dwError);
+
+    dwError = LwMbsToWc16s(
+                        pszSmbPath,
+                        &filename.FileName
+                        );
+    BAIL_ON_ERROR(dwError);
 
     ntStatus = NtCreateFile(
-                        &FileHandle,
+                        &hFile,
                         NULL,
                         &IoStatusBlock,
                         &filename,
@@ -136,14 +126,14 @@ SrvSvcNetShareEnum(
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = SrvSvcAllocateMemory(
+    dwError = LwAllocateMemory(
                     dwOutLength,
                     (void**)&pOutBuffer
                     );
     BAIL_ON_ERROR(dwError);
 
     ntStatus = NtDeviceIoControlFile(
-                    FileHandle,
+                    hFile,
                     NULL,
                     &IoStatusBlock,
                     IoControlCode,
@@ -156,17 +146,17 @@ SrvSvcNetShareEnum(
     while (ntStatus == STATUS_MORE_ENTRIES) {
         /* We need more space in output buffer to make this call */
 
-        SrvSvcSrvFreeMemory((void*)pOutBuffer);
+        LW_SAFE_FREE_MEMORY(pOutBuffer);
         dwOutLength *= 2;
 
-        dwError = SrvSvcAllocateMemory(
+        dwError = LwAllocateMemory(
                         dwOutLength,
                         (void**)&pOutBuffer
                         );
         BAIL_ON_ERROR(dwError);
 
         ntStatus = NtDeviceIoControlFile(
-                        FileHandle,
+                        hFile,
                         NULL,
                         &IoStatusBlock,
                         IoControlCode,
@@ -191,11 +181,11 @@ SrvSvcNetShareEnum(
         ctr0 = ctr->ctr0;
         ctr0->count = pEnumParamsOut->dwNumEntries;
 
-        ntStatus = SrvSvcAllocateMemory(
+        dwError = SrvSvcSrvAllocateMemory(
                             sizeof(*ctr0->array) * ctr0->count,
                             (void**)&ctr0->array
                             );
-        BAIL_ON_NT_STATUS(ntStatus);
+        BAIL_ON_ERROR(dwError);
         memcpy((void*)ctr0->array, (void*)pEnumParamsOut->info.p0,
                sizeof(*ctr0->array) * ctr0->count);
         break;
@@ -204,11 +194,11 @@ SrvSvcNetShareEnum(
         ctr1 = ctr->ctr1;
         ctr1->count = pEnumParamsOut->dwNumEntries;
 
-        ntStatus = SrvSvcAllocateMemory(
+        dwError = SrvSvcSrvAllocateMemory(
                             sizeof(*ctr1->array) * ctr1->count,
                             (void**)&ctr1->array
                             );
-        BAIL_ON_NT_STATUS(ntStatus);
+        BAIL_ON_ERROR(dwError);
         memcpy((void*)ctr1->array, (void*)pEnumParamsOut->info.p1,
                sizeof(*ctr1->array) * ctr1->count);
         break;
@@ -217,11 +207,11 @@ SrvSvcNetShareEnum(
         ctr2 = ctr->ctr2;
         ctr2->count = pEnumParamsOut->dwNumEntries;
 
-        ntStatus = SrvSvcAllocateMemory(
+        dwError = SrvSvcSrvAllocateMemory(
                             sizeof(*ctr2->array) * ctr2->count,
                             (void**)&ctr2->array
                             );
-        BAIL_ON_NT_STATUS(ntStatus);
+        BAIL_ON_ERROR(dwError);
         memcpy((void*)ctr2->array, (void*)pEnumParamsOut->info.p2,
                sizeof(*ctr2->array) * ctr2->count);
         break;
@@ -230,11 +220,11 @@ SrvSvcNetShareEnum(
         ctr501 = ctr->ctr501;
         ctr501->count = pEnumParamsOut->dwNumEntries;
 
-        ntStatus = SrvSvcAllocateMemory(
+        dwError = SrvSvcSrvAllocateMemory(
                             sizeof(*ctr501->array) * ctr501->count,
                             (void**)&ctr501->array
                             );
-        BAIL_ON_NT_STATUS(ntStatus);
+        BAIL_ON_ERROR(dwError);
         memcpy((void*)ctr501->array, (void*)pEnumParamsOut->info.p501,
                sizeof(*ctr501->array) * ctr501->count);
         break;
@@ -243,11 +233,11 @@ SrvSvcNetShareEnum(
         ctr502 = ctr->ctr502;
         ctr502->count = pEnumParamsOut->dwNumEntries;
 
-        ntStatus = SrvSvcAllocateMemory(
+        dwError = SrvSvcSrvAllocateMemory(
                             sizeof(*ctr502->array) * ctr502->count,
                             (void**)&ctr502->array
                             );
-        BAIL_ON_NT_STATUS(ntStatus);
+        BAIL_ON_ERROR(dwError);
         memcpy((void*)ctr502->array, (void*)pEnumParamsOut->info.p502,
                sizeof(*ctr502->array) * ctr502->count);
         break;
@@ -257,28 +247,44 @@ SrvSvcNetShareEnum(
     *total_entries = pEnumParamsOut->dwNumEntries;
 
 cleanup:
-    if (FileHandle) {
-        NtCloseFile(FileHandle);
+    if (hFile) {
+        NtCloseFile(hFile);
     }
 
-    if (pInBuffer) {
-        SrvSvcSrvFreeMemory(pInBuffer);
-    }
-
-    if (pOutBuffer) {
-        SrvSvcSrvFreeMemory(pOutBuffer);
-    }
-
-    if (pEnumParamsOut) {
-        SrvSvcSrvFreeMemory(pEnumParamsOut);
-    }
-
-    RTL_FREE(&smbpath);
-    RTL_FREE(&filename.FileName);
+    LW_SAFE_FREE_MEMORY(pInBuffer);
+    LW_SAFE_FREE_MEMORY(pOutBuffer);
+    LW_SAFE_FREE_MEMORY(pEnumParamsOut);
+    LW_SAFE_FREE_MEMORY(pszSmbPath);
+    LW_SAFE_FREE_MEMORY(filename.FileName);
 
     return dwError;
 
 error:
+    switch (pEnumParamsOut->dwInfoLevel) {
+    case 0:
+        SrvSvcSrvFreeMemory(ctr0->array);
+        break;
+
+    case 1:
+        SrvSvcSrvFreeMemory(ctr1->array);
+        break;
+
+    case 2:
+        SrvSvcSrvFreeMemory(ctr2->array);
+        break;
+
+    case 501:
+        SrvSvcSrvFreeMemory(ctr501->array);
+        break;
+
+    case 502:
+        SrvSvcSrvFreeMemory(ctr502->array);
+        break;
+    }
+
+    *level         = 0;
+    *total_entries = 0;
+
     goto cleanup;
 }
 

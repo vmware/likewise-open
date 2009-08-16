@@ -60,19 +60,20 @@ SrvSvcStrndup(
 
     copylen = strlen(pszInputString);
     if (copylen > size)
+    {
         copylen = size;
+    }
 
-    dwError = SrvSvcAllocateMemory(copylen+1, (PVOID *)&pszOutputString);
+    dwError = LwAllocateMemory(copylen + 1, (PVOID *)&pszOutputString);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     memcpy(pszOutputString, pszInputString, copylen);
     pszOutputString[copylen] = 0;
 
 error:
-
     *ppszOutputString = pszOutputString;
 
-    return(dwError);
+    return dwError;
 }
 
 /* return a string description of the TableCategory type */
@@ -173,7 +174,7 @@ SrvSvcLpwStrToLpStr(
 
     pszwStringLen = wc16slen(pszwString);
 
-    dwError = SrvSvcAllocateMemory(pszwStringLen+1, (PVOID*)ppszString);
+    dwError = LwAllocateMemory(pszwStringLen + 1, (PVOID*)ppszString);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     pszString = *ppszString;
@@ -285,74 +286,6 @@ SrvSvcStrToLower(
 }
 
 DWORD
-SrvSvcEscapeString(
-    PSTR pszOrig,
-    PSTR * ppszEscapedString
-    )
-{
-    DWORD dwError = 0;
-    int nQuotes = 0;
-    PSTR pszTmp = pszOrig;
-    PSTR pszNew = NULL;
-    PSTR pszNewTmp = NULL;
-
-    if ( !ppszEscapedString || !pszOrig ) {
-         dwError = EINVAL;
-         BAIL_ON_SRVSVC_ERROR(dwError);
-    }
-
-    while (pszTmp && *pszTmp)
-    {
-         if (*pszTmp=='\'') {
-             nQuotes++;
-         }
-         pszTmp++;
-    }
-
-    if (!nQuotes) {
-         dwError = SrvSvcAllocateString(pszOrig, &pszNew);
-         BAIL_ON_SRVSVC_ERROR(dwError);
-    } else {
-         /*
-            * We are going to escape each single quote and enclose it in two other
-            * single-quotes
-            */
-         dwError = SrvSvcAllocateMemory(strlen(pszOrig) + 3 * nQuotes + 1,
-					(PVOID*)&pszNew);
-         BAIL_ON_SRVSVC_ERROR(dwError);
-
-         pszTmp = pszOrig;
-         pszNewTmp = pszNew;
-
-         while (pszTmp && *pszTmp)
-         {
-             if (*pszTmp=='\'') {
-                 *pszNewTmp++='\'';
-                 *pszNewTmp++='\\';
-                 *pszNewTmp++='\'';
-                 *pszNewTmp++='\'';
-                 pszTmp++;
-             }
-             else {
-                 *pszNewTmp++ = *pszTmp++;
-             }
-         }
-         *pszNewTmp = '\0';
-    }
-
-    *ppszEscapedString = pszNew;
-    return dwError;
-
-error:
-
-    if (pszNew) {
-        SrvSvcFreeMemory(pszNew);
-    }
-
-    return dwError;
-}
-
-DWORD
 SrvSvcAllocateStringPrintf(
     PSTR* ppszOutputString,
     PCSTR pszFormat,
@@ -395,7 +328,7 @@ SrvSvcAllocateStringPrintfV(
     /* Use a small buffer in case libc does not like NULL */
     do
     {
-        dwError = SrvSvcAllocateMemory(
+        dwError = LwAllocateMemory(
                         dwBufsize,
                         (PVOID*) &pszSmallBuffer);
         BAIL_ON_SRVSVC_ERROR(dwError);
@@ -409,7 +342,7 @@ SrvSvcAllocateStringPrintfV(
         {
             dwBufsize *= 2;
         }
-        SrvSvcFreeMemory(pszSmallBuffer);
+        LW_SAFE_FREE_MEMORY(pszSmallBuffer);
         pszSmallBuffer = NULL;
 
     } while (requiredLength < 0);
@@ -420,7 +353,7 @@ SrvSvcAllocateStringPrintfV(
         BAIL_ON_SRVSVC_ERROR(dwError);
     }
 
-    dwError = SrvSvcAllocateMemory(
+    dwError = LwAllocateMemory(
                     requiredLength + 2,
                     (PVOID*)&pszOutputString);
     BAIL_ON_SRVSVC_ERROR(dwError);
@@ -455,9 +388,7 @@ cleanup:
     return dwError;
 
 error:
-
-    SRVSVC_SAFE_FREE_MEMORY(pszOutputString);
-
+    LW_SAFE_FREE_MEMORY(pszOutputString);
     *ppszOutputString = NULL;
 
     goto cleanup;

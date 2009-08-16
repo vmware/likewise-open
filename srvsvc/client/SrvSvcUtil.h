@@ -34,7 +34,7 @@
 #include <winerror.h>
 #include <lw/ntstatus.h>
 
-#include <srvsvc/types.h>
+#include <lwrpc/types.h>
 
 #define SAFE_FREE(ptr)  do { if (ptr) free(ptr); (ptr) = NULL; } while (0)
 

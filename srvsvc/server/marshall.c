@@ -71,13 +71,6 @@ ConvertOffsetstoPointers_L2(
 
 static
 DWORD
-ConvertOffsetstoPointers_L501(
-    PBYTE pBuffer,
-    PVOID pShareInfo
-    );
-
-static
-DWORD
 ConvertOffsetstoPointers_L502(
     PBYTE pBuffer,
     PVOID pShareInfo
@@ -317,19 +310,6 @@ ConvertOffsetstoPointers_L1(
 static
 DWORD
 ConvertOffsetstoPointers_L2(
-    PBYTE pBuffer,
-    PVOID pShareInfo
-    )
-{
-    DWORD dwError = 0;
-
-    return(dwError);
-
-}
-
-static
-DWORD
-ConvertOffsetstoPointers_L501(
     PBYTE pBuffer,
     PVOID pShareInfo
     )

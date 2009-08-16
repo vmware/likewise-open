@@ -18,12 +18,20 @@ libsrvsvcutils_la_LIBADD = \
     @DCERPC_LIBS@    \
     @LIBUNISTR_LIBS@
 
-libsrvsvcutils_la_CFLAGS = $(INCLUDES) -DSRVSVC_BUILD $(AM_CFLAGS)
+libsrvsvcutils_la_CFLAGS = \
+    -g                     \
+    -DSRVSVC_BUILD         \
+    -DLIBRPC_BUILD
+
 libsrvsvcutils_la_CPPFLAGS = \
-    $(AM_CPPFLAGS) \
-    @DCERPC_INCLUDES@   \
-    @LIBUNISTR_INCLUDES@
+    $(AM_CPPFLAGS)           \
+    -DSRVSVC_BUILD           \
+    -DLIBRPC_BUILD           \
+    $(DCERPC_INCLUDES)       \
+    $(LIBUNISTR_INCLUDES)    \
+    $(LWADVAPI_INCLUDES)
 
 libsrvsvcutils_la_LDFLAGS = \
-    @DCERPC_LDFLAGS@   \
-    @LIBUNISTR_LDFLAGS@
+    $(DCERPC_LDFLAGS)       \
+    $(LIBUNISTR_LDFLAGS)    \
+    $(LWADVAPI_LDFLAGS)

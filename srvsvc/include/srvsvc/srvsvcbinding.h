@@ -48,7 +48,7 @@
 #ifndef _SRVSVC_BINDING_H_
 #define _SRVSVC_BINDING_H_
 
-#include <srvsvc/types.h>
+#include <lwrpc/types.h>
 #include <lwio/lwio.h>
 
 #define SRVSVC_DEFAULT_PROT_SEQ   "ncacn_np"

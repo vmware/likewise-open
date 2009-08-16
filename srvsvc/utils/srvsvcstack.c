@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -61,7 +61,7 @@ SrvSvcStackPush(
         BAIL_ON_SRVSVC_ERROR(dwError);
     }
 
-    dwError = SrvSvcAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(SRVSVC_STACK),
                     (PVOID*)&pStack);
     BAIL_ON_SRVSVC_ERROR(dwError);
@@ -72,14 +72,10 @@ SrvSvcStackPush(
     *ppStack = pStack;
 
 cleanup:
-
     return dwError;
 
 error:
-
-    if (pStack) {
-        SrvSvcFreeMemory(pStack);
-    }
+    LW_SAFE_FREE_MEMORY(pStack);
 
     goto cleanup;
 }
@@ -95,10 +91,9 @@ SrvSvcStackPop(
     if (pTop)
     {
         *ppStack = pTop->pNext;
+        pItem    = pTop->pItem;
 
-        pItem = pTop->pItem;
-
-        SrvSvcFreeMemory(pTop);
+        LW_SAFE_FREE_MEMORY(pTop);
     }
 
     return pItem;
@@ -133,11 +128,9 @@ SrvSvcStackForeach(
     }
 
 cleanup:
-
     return dwError;
 
 error:
-
     goto cleanup;
 }
 
@@ -171,6 +164,16 @@ SrvSvcStackFree(
 
         pStack = pStack->pNext;
 
-        SrvSvcFreeMemory(pTmp);
+        LW_SAFE_FREE_MEMORY(pTmp);
     }
 }
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

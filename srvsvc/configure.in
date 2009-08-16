@@ -134,6 +134,34 @@ AC_SUBST(DCERPC_INCLUDES)
 AC_SUBST(DCERPC_LDFLAGS)
 AC_SUBST(DCERPC_LIBS)
 
+# librpc
+
+AC_ARG_WITH([librpc],
+        [AC_HELP_STRING([--with-librpc=<dir>], [use librpc located in prefix <dir>])],
+        [
+		LIBRPC_INCLUDES="-I$withval/include"
+                LIBRPC_LDFLAGS="-L$withval/lib"
+		LIBRPC_PATH="$withval/bin"
+        ])
+
+AC_ARG_WITH([librpc-includes],
+        [AC_HELP_STRING([--with-librpc-includes=<dir>], [use librpc includes located in <dir>])],
+        [
+		LIBRPC_INCLUDES="-I$withval"
+        ])
+
+AC_ARG_WITH([librpc-libs],
+        [AC_HELP_STRING([--with-librpc-libs=<dir>], [use librpc libs located in <dir>])],
+        [
+		LIBRPC_LDFLAGS="-L$withval"
+        ])
+
+LIBRPC_LIBS="-lnetapi"
+
+AC_SUBST(LIBRPC_INCLUDES)
+AC_SUBST(LIBRPC_LDFLAGS)
+AC_SUBST(LIBRPC_LIBS)
+
 # gssapi
 
 AC_ARG_WITH([gssapi],
@@ -167,7 +195,7 @@ AC_ARG_WITH([lwio],
         [AC_HELP_STRING([--with-lwio=<dir>], [use lwio located in prefix <dir>])],
         [
 		LWIO_INCLUDES="-I$withval/include"
-        LWIO_LDFLAGS="-L$withval/lib"
+		LWIO_LDFLAGS="-L$withval/lib"
         ])
 
 AC_ARG_WITH([lwio-includes],
@@ -187,6 +215,60 @@ LWIO_LIBS="-llwioclient -llwioshareinfo"
 AC_SUBST(LWIO_INCLUDES)
 AC_SUBST(LWIO_LDFLAGS)
 AC_SUBST(LWIO_LIBS)
+
+# netlogon
+
+AC_ARG_WITH([netlogon],
+        [AC_HELP_STRING([--with-netlogon=<dir>], [use netlogon located in prefix <dir>])],
+        [
+		NETLOGON_INCLUDES="-I$withval/include"
+		NETLOGON_LDFLAGS="-L$withval/lib"
+        ])
+
+AC_ARG_WITH([netlogon-includes],
+        [AC_HELP_STRING([--with-netlogon-includes=<dir>], [use netlogon includes located in <dir>])],
+        [
+		NETLOGON_INCLUDES="-I$withval"
+        ])
+
+AC_ARG_WITH([netlogon-libs],
+        [AC_HELP_STRING([--with-netlogon-libs=<dir>], [use netlogon libs located in <dir>])],
+        [
+		NETLOGON_LDFLAGS="-L$withval"
+        ])
+
+NETLOGON_LIBS="-llwnetclientapi"
+
+AC_SUBST(NETLOGON_INCLUDES)
+AC_SUBST(NETLOGON_LDFLAGS)
+AC_SUBST(NETLOGON_LIBS)
+
+# lwadvapi
+
+AC_ARG_WITH([lwadvapi],
+        [AC_HELP_STRING([--with-lwadvapi=<dir>], [use lwadvapi located in prefix <dir>])],
+        [
+		LWADVAVPI_INCLUDES="-I$withval/include"
+		LWADVAPI_LDFLAGS="-L$withval/lib"
+        ])
+
+AC_ARG_WITH([lwadvapi-includes],
+        [AC_HELP_STRING([--with-lwadvapi-includes=<dir>], [use lwadvapi includes located in <dir>])],
+        [
+		LWADVAPI_INCLUDES="-I$withval"
+        ])
+
+AC_ARG_WITH([lwadvapi-libs],
+        [AC_HELP_STRING([--with-lwadvapi-libs=<dir>], [use lwadvapi libs located in <dir>])],
+        [
+		LWADVAPI_LDFLAGS="-L$withval"
+        ])
+
+LWADVAPI_LIBS="-llwadvapi"
+
+AC_SUBST(LWADVAPI_INCLUDES)
+AC_SUBST(LWADVAPI_LDFLAGS)
+AC_SUBST(LWADVAPI_LIBS)
 
 # compat
 

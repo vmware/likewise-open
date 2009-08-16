@@ -87,7 +87,7 @@ evt_sys_vsyslog(
         syslog(priority, "%s", buffer);
     }
 
-    SRVSVC_SAFE_FREE_STRING(buffer);
+    LW_SAFE_FREE_MEMORY(buffer);
 #endif /* ! HAVE_VSYSLOG */
 }
 

@@ -1,9 +1,9 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -13,7 +13,6 @@
  *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
-
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
  * Public License along with this program.  If not, see
@@ -29,93 +28,99 @@
  * license@likewisesoftware.com
  */
 
+
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        main.c
+ *        srvsvc.h
  *
  * Abstract:
  *
- *        Likewise IO (LWIO)
+ *        Likewise Server Service (srvsvc) RPC client and server
  *
- *        Test Program for exercising the PVFS driver
+ *        SrvSvc rpc server functions
  *
- * Authors: Gerald Carter <gcarter@likewise.com>
- *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
 
+#ifndef _SRVSVCSRV_H_
+#define _SRVSVCSRV_H_
 
-#ifndef _TEST_PVFS_PROTOTYPES_H_
-#define _TEST_PVFS_PROTOTYPES_H_
 
-#include "includes.h"
-
-void
-PrintUsage(
-    char *pszProgName
-    );
-
-NTSTATUS
-CopyFileToPvfs(
-    int argc,
-    char *argv[]
-    );
-
-NTSTATUS
-CopyFileFromPvfs(
-    int argc,
-    char *argv[]
-    );
-
-NTSTATUS
-CatFileFromPvfs(
-    char *pszFilename
+NET_API_STATUS
+SrvSvcNetShareAdd(
+    handle_t IDL_handle,
+    wchar16_t *server_name,
+    uint32 level,
+    srvsvc_NetShareInfo info,
+    uint32 *parm_error
     );
 
 
-NTSTATUS
-StatRemoteFile(
-    char *pszFilename
-    );
-
-VOID
-PrintFileBothDirInformation(
-    PFILE_BOTH_DIR_INFORMATION pFileInfo
-    );
-
-NTSTATUS
-ListDirectory(
-    char *pszDirectory,
-    char *pszPattern
-    );
-
-NTSTATUS
-DeletePath(
-    char *pszPath
-    );
-
-NTSTATUS
-SetEndOfFile(
-    int argc,
-    char *argv[]
-    );
-
-NTSTATUS
-LockTest(
-    char *pszPath
-    );
-
-NTSTATUS
-RequestOplock(
-    int argc,
-    char *argv[]
+NET_API_STATUS
+SrvSvcNetShareEnum(
+    handle_t IDL_handle,
+    wchar16_t *server_name,
+    uint32 *level,
+    srvsvc_NetShareCtr *ctr,
+    uint32 preferred_maximum_length,
+    uint32 *total_entries,
+    uint32 *resume_handle
     );
 
 
-#endif /* _TEST_PVFS_PROTOTYPES_H_ */
+NET_API_STATUS
+SrvSvcNetShareGetInfo(
+    handle_t IDL_handle,
+    wchar16_t *server_name,
+    wchar16_t *netname,
+    uint32 level,
+    srvsvc_NetShareInfo *info
+    );
 
+
+NET_API_STATUS
+SrvSvcNetShareSetInfo(
+    handle_t IDL_handle,
+    wchar16_t *server_name,
+    wchar16_t *netname,
+    uint32 level,
+    srvsvc_NetShareInfo info,
+    uint32 *parm_error
+    );
+
+
+NET_API_STATUS
+SrvSvcNetShareDel(
+    handle_t IDL_handle,
+    wchar16_t *server_name,
+    wchar16_t *netname,
+    uint32 reserved
+    );
+
+
+NET_API_STATUS
+SrvSvcNetrServerGetInfo(
+    handle_t b,
+    wchar16_t *server_name,
+    uint32 level,
+    srvsvc_NetSrvInfo *info
+    );
+
+
+NET_API_STATUS
+SrvSvcNetNameValidate(
+    handle_t IDL_handle,
+    wchar16_t *server_name,
+    wchar16_t *name,
+    uint32 type,
+    uint32 flags
+    );
+
+
+#endif /* _SRVSVCSRV_H_ */
 
 
 /*

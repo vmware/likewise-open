@@ -31,7 +31,7 @@
 #ifndef _SRVSVCDEFS_H_
 #define _SRVSVCDEFS_H_
 
-#include <srvsvc/types.h>
+#include <lwrpc/types.h>
 
 
 #ifndef CONNECTION_INFO_0_DEFINED

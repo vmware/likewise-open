@@ -14,7 +14,7 @@ SRVSVCParseDays(
 
     SrvSvcStripWhitespace(pszTimeIntervalLocal, TRUE, TRUE);
 
-    dwError = SrvSvcAllocateString(
+    dwError = LwAllocateString(
                     pszTimeInterval,
                     &pszTimeIntervalLocal
                     );
@@ -44,13 +44,11 @@ SRVSVCParseDays(
     }
 
 cleanup:
-
-    SRVSVC_SAFE_FREE_STRING(pszTimeIntervalLocal);
+    LW_SAFE_FREE_STRING(pszTimeIntervalLocal);
 
     return dwError;
 
 error:
-
     goto cleanup;
 }
 
@@ -68,7 +66,7 @@ SrvSvcParseDiskUsage(
 
     SrvSvcStripWhitespace(pszDiskUsageLocal, TRUE, TRUE);
 
-    dwError = SrvSvcAllocateString(
+    dwError = LwAllocateString(
                     pszDiskUsage,
                     &pszDiskUsageLocal
                     );
@@ -107,13 +105,11 @@ SrvSvcParseDiskUsage(
     *pdwDiskUsage = (DWORD) atoi(pszDiskUsageLocal) * dwUnitMultiplier;
 
 cleanup:
-
-    SRVSVC_SAFE_FREE_STRING(pszDiskUsageLocal);
+    LW_SAFE_FREE_STRING(pszDiskUsageLocal);
 
     return dwError;
 
 error:
-
     goto cleanup;
 }
 
@@ -131,7 +127,7 @@ SrvSvcParseMaxEntries(
 
     SrvSvcStripWhitespace(pszMaxEntriesLocal, TRUE, TRUE);
 
-    dwError = SrvSvcAllocateString(
+    dwError = LwAllocateString(
                     pszMaxEntries,
                     &pszMaxEntriesLocal
                     );
@@ -166,12 +162,10 @@ SrvSvcParseMaxEntries(
     *pdwMaxEntries = (DWORD) atoi(pszMaxEntriesLocal) * dwUnitMultiplier;
 
 cleanup:
-
-    SRVSVC_SAFE_FREE_STRING(pszMaxEntriesLocal);
+    LW_SAFE_FREE_STRING(pszMaxEntriesLocal);
 
     return dwError;
 
 error:
-
     goto cleanup;
 }

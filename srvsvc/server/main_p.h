@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -69,6 +69,18 @@ typedef struct {
 
 extern SRVSVCSERVERINFO gServerInfo;
 
+
+typedef struct {
+    /* MT safety */
+    pthread_mutex_t pLock;
+    /* path to lsarpc server socket for local procedure calls */
+    CHAR pszLsaLpcSocketPath[PATH_MAX + 1];
+
+} SRVSVC_CONFIG, *PSRVSVC_CONFIG;
+
+extern SRVSVC_CONFIG gServerConfig;
+
+
 DWORD
 SrvSvcGetConfigPath(
     PSTR* ppszPath
@@ -85,7 +97,9 @@ SrvSvcGetPrefixPath(
     );
 
 BOOLEAN
-SrvSvcProcessShouldExit();
+SrvSvcProcessShouldExit(
+    VOID
+    );
 
 void
 SRVSVCSetProcessShouldExit(
@@ -104,3 +118,13 @@ SrvSvcServerExit(
     );
 
 #endif /* __MAIN_P_H__ */
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
