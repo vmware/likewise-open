@@ -24,48 +24,29 @@
     pointer_default(unique),
     version(3.0)
 ]
-
-
-interface srvsvc {
+interface srvsvc
+{
+cpp_quote("#ifdef DCERPC_STUB_BUILD")
 
 #include <lwrpc/types.h>
 #include <security.idl>
 #include <srvsvc/srvsvcdefs.h>
 
-    cpp_quote("#ifndef __SRVSVC_IDL__")
-    cpp_quote("#define __SRVSVC_IDL__")
+cpp_quote("#ifndef __SRVSVC_IDL__")
+cpp_quote("#define __SRVSVC_IDL__")
 
-    cpp_quote("#ifdef _WIN32")
+cpp_quote("#ifdef _WIN32")
 
-    cpp_quote("#ifndef TARGET_IS_NT50_OR_LATER")
-    cpp_quote("#define TARGET_IS_NT50_OR_LATER TRUE")
-    cpp_quote("#else")
-    cpp_quote("#if !(TARGET_IS_NT50_OR_LATER)")
-    cpp_quote("#undef TARGET_IS_NT50_OR_LATER")
-    cpp_quote("#define TARGET_IS_NT50_OR_LATER TRUE")
-    cpp_quote("#endif") // false TARGET_IS_NT50_OR_LATER
-    cpp_quote("#endif") // undefined TARGET_IS_NT50_OR_LATER
+cpp_quote("#ifndef TARGET_IS_NT50_OR_LATER")
+cpp_quote("#define TARGET_IS_NT50_OR_LATER TRUE")
+cpp_quote("#else")
+cpp_quote("#if !(TARGET_IS_NT50_OR_LATER)")
+cpp_quote("#undef TARGET_IS_NT50_OR_LATER")
+cpp_quote("#define TARGET_IS_NT50_OR_LATER TRUE")
+cpp_quote("#endif") // false TARGET_IS_NT50_OR_LATER
+cpp_quote("#endif") // undefined TARGET_IS_NT50_OR_LATER
 
-    cpp_quote("#endif") //_WIN32, !_WIN32
-
-    void _srvsvc_Function0();
-    void _srvsvc_Function1();
-    void _srvsvc_Function2();
-    void _srvsvc_Function3();
-    void _srvsvc_Function4();
-    void _srvsvc_Function5();
-    void _srvsvc_Function6();
-    void _srvsvc_Function7();
-
-    typedef struct {
-        uint32 count;
-        [size_is(count)] CONNECTION_INFO_0 *array;
-    } srvsvc_NetConnCtr0;
-
-    typedef struct {
-        uint32 count;
-        [size_is(count)] CONNECTION_INFO_1 *array;
-    } srvsvc_NetConnCtr1;
+cpp_quote("#endif") //_WIN32, !_WIN32
 
     typedef [switch_type(uint32) ] union {
         [case(0)] srvsvc_NetConnCtr0 *ctr0;
@@ -73,89 +54,17 @@ interface srvsvc {
         [default] ;
     } srvsvc_NetConnCtr;
 
-    /* Function: 0x08 */
-    WINERR _NetrConnectionEnum(
-        [in,string,unique] wchar16_t *server_name,
-        [in,string,unique] wchar16_t *qualifier,
-        [in,out,ref] uint32 *level,
-        [in,out,ref,switch_is(level)] srvsvc_NetConnCtr *ctr,
-        [in] uint32 prefered_maximum_length,
-        [out,ref] uint32 *total_entries,
-        [in,out,unique] uint32 *resume_handle
-    );
-
-    typedef struct {
-        uint32 count;
-        [size_is(count)] FILE_INFO_2 *array;
-    } srvsvc_NetFileCtr2;
-
-    typedef struct {
-        uint32 count;
-        [size_is(count)] FILE_INFO_3 *array;
-    } srvsvc_NetFileCtr3;
-
     typedef [switch_type(uint32)] union {
         [case(2)] srvsvc_NetFileCtr2 *ctr2;
         [case(3)] srvsvc_NetFileCtr3 *ctr3;
         [default] ;
     } srvsvc_NetFileCtr;
 
-    /* Function: 0x09 */
-    WINERR _NetrFileEnum(
-        [in,string,unique] wchar16_t *server_name,
-        [in,string,unique] wchar16_t *basepath,
-        [in,string,unique] wchar16_t *username,
-        [in,out,ref] uint32 *level,
-        [in,out,ref,switch_is(level)] srvsvc_NetFileCtr *ctr,
-        [in] uint32 prefered_maximum_length,
-        [out,ref] uint32 *total_entries,
-        [in,out,unique] uint32 *resume_handle
-        );
-
     typedef [switch_type(uint32)] union {
         [case(2)] FILE_INFO_2 *info2;
         [case(3)] FILE_INFO_3 *info3;
         [default] ;
     } srvsvc_NetFileInfo;
-
-    /* Function: 0x0a */
-    WINERR _NetrFileGetInfo(
-        [in,string,unique] wchar16_t *server_name,
-        [in] uint32 fileid,
-        [in] uint32 level,
-        [out,ref,switch_is(level)] srvsvc_NetFileInfo *info
-        );
-
-    /* Function: 0x0b */
-    WINERR _NetrFileClose(
-        [in,string,unique] wchar16_t *server_name,
-        [in] uint32 fileid
-        );
-
-    typedef struct {
-        uint32 count;
-        [size_is(count)] SESSION_INFO_0 *array;
-    } srvsvc_NetSessCtr0;
-
-    typedef struct {
-        uint32 count;
-        [size_is(count)] SESSION_INFO_1 *array;
-    } srvsvc_NetSessCtr1;
-
-    typedef struct {
-        uint32 count;
-        [size_is(count)] SESSION_INFO_2 *array;
-    } srvsvc_NetSessCtr2;
-
-    typedef struct {
-        uint32 count;
-        [size_is(count)] SESSION_INFO_10 *array;
-    } srvsvc_NetSessCtr10;
-
-    typedef struct {
-        uint32 count;
-        [size_is(count)] SESSION_INFO_502 *array;
-    } srvsvc_NetSessCtr502;
 
     typedef [switch_type(uint32)] union {
         [case(0)] srvsvc_NetSessCtr0 *ctr0;
@@ -165,38 +74,6 @@ interface srvsvc {
         [case(502)] srvsvc_NetSessCtr502 *ctr502;
         [default] ;
     } srvsvc_NetSessCtr;
-
-    /* Function: 0x0c */
-    WINERR _NetrSessionEnum(
-        [in,string,unique] wchar16_t *server_name,
-        [in,string,unique] wchar16_t *unc_client_name,
-        [in,string,unique] wchar16_t *username,
-        [in,out,ref] uint32 *level,
-        [in,out,ref,switch_is(level)] srvsvc_NetSessCtr *ctr,
-        [in] uint32 prefered_maximum_length,
-        [out,ref] uint32 *total_entries,
-        [in,out,unique] uint32 *resume_handle
-    );
-
-    void _srvsvc_FunctionD();
-
-    typedef struct _SHARE_INFO_502_I {
-        [string] wchar16_t *shi502_netname;
-        uint32 shi502_type;
-        [string] wchar16_t *shi502_remark;
-        uint32 shi502_permissions;
-        uint32 shi502_max_uses;
-        uint32 shi502_current_uses;
-        [string] wchar16_t *shi502_path;
-        [string] wchar16_t *shi502_password;
-        uint32 shi502_reserved;
-        [size_is(shi502_reserved)] uint8 *shi502_security_descriptor;
-    } SHARE_INFO_502_I, *PSHARE_INFO_502_I;
-
-    typedef struct _SHARE_INFO_1501_I {
-        uint32 shi1501_reserved;
-        [size_is(shi1501_reserved)] uint8 *shi1501_security_descriptor;
-    } SHARE_INFO_1501_I, *PSHARE_INFO_1501_I;
 
     typedef [switch_type(uint32)] union {
         [case(0)] SHARE_INFO_0 *info0;
@@ -211,39 +88,6 @@ interface srvsvc {
         [default] ;
     } srvsvc_NetShareInfo;
 
-    /* Function: 0x0e */
-    WINERR _NetrShareAdd(
-        [in,string,unique] wchar16_t *server_name,
-        [in] uint32 level,
-        [in,switch_is(level)] srvsvc_NetShareInfo info,
-        [in,out,unique] uint32 *parm_error
-    );
-
-    typedef struct {
-        uint32 count;
-        [size_is(count)] SHARE_INFO_0 *array;
-    } srvsvc_NetShareCtr0;
-
-    typedef struct {
-        uint32 count;
-        [size_is(count)] SHARE_INFO_1 *array;
-    } srvsvc_NetShareCtr1;
-
-    typedef struct {
-        uint32 count;
-        [size_is(count)] SHARE_INFO_2 *array;
-    } srvsvc_NetShareCtr2;
-
-    typedef struct {
-        uint32 count;
-        [size_is(count)] SHARE_INFO_501 *array;
-    } srvsvc_NetShareCtr501;
-
-    typedef struct {
-        uint32 count;
-        [size_is(count)] SHARE_INFO_502_I *array;
-    } srvsvc_NetShareCtr502;
-
     typedef [switch_type(uint32)] union {
         [case(0)] srvsvc_NetShareCtr0 *ctr0;
         [case(1)] srvsvc_NetShareCtr1 *ctr1;
@@ -252,43 +96,6 @@ interface srvsvc {
         [case(502)] srvsvc_NetShareCtr502 *ctr502;
         [default] ;
     } srvsvc_NetShareCtr;
-
-    /* Function: 0x0f */
-    WINERR _NetrShareEnum(
-        [in,string,unique] wchar16_t *server_name,
-        [in,out] uint32 *level,
-        [in,out,switch_is(*level)] srvsvc_NetShareCtr *ctr,
-        [in] uint32 prefered_maximum_length,
-        [out] uint32 *total_entries,
-        [in,out,unique] uint32 *resume_handle
-    );
-
-    /* Function: 0x10 */
-    WINERR _NetrShareGetInfo(
-        [in,string,unique] wchar16_t *server_name,
-        [in,string,ref] wchar16_t *netname,
-        [in] uint32 level,
-        [out,ref,switch_is(level)] srvsvc_NetShareInfo *info
-    );
-
-    /* Function: 0x11 */
-    WINERR _NetrShareSetInfo(
-        [in,string,unique] wchar16_t *server_name,
-        [in,string,ref] wchar16_t *netname,
-        [in] uint32 level,
-        [in,switch_is(level)] srvsvc_NetShareInfo info,
-        [in,out,unique] uint32 *parm_error
-    );
-
-    /* Function: 0x12 */
-    WINERR _NetrShareDel(
-        [in,string,unique] wchar16_t *server_name,
-        [in,string,ref] wchar16_t *netname,
-        [in] uint32 reserved
-    );
-
-    void _srvsvc_Function13();
-    void _srvsvc_Function14();
 
     typedef [switch_type(uint32)] union {
         [case(100)]     SERVER_INFO_100 *info100;
@@ -352,6 +159,113 @@ interface srvsvc {
         [case(1556)]    SERVER_INFO_1556 *info1556;
         [default];
     } srvsvc_NetSrvInfo;
+
+cpp_quote("#endif /* DCERPC_STUB_BUILD */")
+
+    void _srvsvc_Function0();
+    void _srvsvc_Function1();
+    void _srvsvc_Function2();
+    void _srvsvc_Function3();
+    void _srvsvc_Function4();
+    void _srvsvc_Function5();
+    void _srvsvc_Function6();
+    void _srvsvc_Function7();
+
+    /* Function: 0x08 */
+    WINERR _NetrConnectionEnum(
+        [in,string,unique] wchar16_t *server_name,
+        [in,string,unique] wchar16_t *qualifier,
+        [in,out,ref] uint32 *level,
+        [in,out,ref,switch_is(level)] srvsvc_NetConnCtr *ctr,
+        [in] uint32 prefered_maximum_length,
+        [out,ref] uint32 *total_entries,
+        [in,out,unique] uint32 *resume_handle
+    );
+
+    /* Function: 0x09 */
+    WINERR _NetrFileEnum(
+        [in,string,unique] wchar16_t *server_name,
+        [in,string,unique] wchar16_t *basepath,
+        [in,string,unique] wchar16_t *username,
+        [in,out,ref] uint32 *level,
+        [in,out,ref,switch_is(level)] srvsvc_NetFileCtr *ctr,
+        [in] uint32 prefered_maximum_length,
+        [out,ref] uint32 *total_entries,
+        [in,out,unique] uint32 *resume_handle
+        );
+
+    /* Function: 0x0a */
+    WINERR _NetrFileGetInfo(
+        [in,string,unique] wchar16_t *server_name,
+        [in] uint32 fileid,
+        [in] uint32 level,
+        [out,ref,switch_is(level)] srvsvc_NetFileInfo *info
+        );
+
+    /* Function: 0x0b */
+    WINERR _NetrFileClose(
+        [in,string,unique] wchar16_t *server_name,
+        [in] uint32 fileid
+        );
+
+    /* Function: 0x0c */
+    WINERR _NetrSessionEnum(
+        [in,string,unique] wchar16_t *server_name,
+        [in,string,unique] wchar16_t *unc_client_name,
+        [in,string,unique] wchar16_t *username,
+        [in,out,ref] uint32 *level,
+        [in,out,ref,switch_is(level)] srvsvc_NetSessCtr *ctr,
+        [in] uint32 prefered_maximum_length,
+        [out,ref] uint32 *total_entries,
+        [in,out,unique] uint32 *resume_handle
+    );
+
+    void _srvsvc_FunctionD();
+
+    /* Function: 0x0e */
+    WINERR _NetrShareAdd(
+        [in,string,unique] wchar16_t *server_name,
+        [in] uint32 level,
+        [in,switch_is(level)] srvsvc_NetShareInfo info,
+        [in,out,unique] uint32 *parm_error
+    );
+
+    /* Function: 0x0f */
+    WINERR _NetrShareEnum(
+        [in,string,unique] wchar16_t *server_name,
+        [in,out] uint32 *level,
+        [in,out,switch_is(*level)] srvsvc_NetShareCtr *ctr,
+        [in] uint32 prefered_maximum_length,
+        [out] uint32 *total_entries,
+        [in,out,unique] uint32 *resume_handle
+    );
+
+    /* Function: 0x10 */
+    WINERR _NetrShareGetInfo(
+        [in,string,unique] wchar16_t *server_name,
+        [in,string,ref] wchar16_t *netname,
+        [in] uint32 level,
+        [out,ref,switch_is(level)] srvsvc_NetShareInfo *info
+    );
+
+    /* Function: 0x11 */
+    WINERR _NetrShareSetInfo(
+        [in,string,unique] wchar16_t *server_name,
+        [in,string,ref] wchar16_t *netname,
+        [in] uint32 level,
+        [in,switch_is(level)] srvsvc_NetShareInfo info,
+        [in,out,unique] uint32 *parm_error
+    );
+
+    /* Function: 0x12 */
+    WINERR _NetrShareDel(
+        [in,string,unique] wchar16_t *server_name,
+        [in,string,ref] wchar16_t *netname,
+        [in] uint32 reserved
+    );
+
+    void _srvsvc_Function13();
+    void _srvsvc_Function14();
 
     /* Function: 0x15 */
     WINERR _NetrServerGetInfo(

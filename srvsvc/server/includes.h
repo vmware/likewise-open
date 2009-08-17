@@ -56,12 +56,12 @@
 #include <srvsvc/srvsvc.h>
 #include <srvsvcutils.h>
 
-#include "srvsvc_stub.h"
-#include "wkssvc_stub.h"
 #include "srvsvc.h"
 #include "wkssvc.h"
 #include "srvsvc_srv.h"
 #include "wkssvc_srv.h"
+#include "srvsvc_h.h"
+#include "wkssvc_h.h"
 
 #include "defs.h"
 #include "structs.h"

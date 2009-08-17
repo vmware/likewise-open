@@ -66,10 +66,10 @@ SrvSvcNetrServerGetInfo(
         BAIL_ON_ERROR(dwError);
 
         pInfo101->sv101_platform_id    = 500;
-        pInfo101->sv101_name           = ambstowc16s("DUMMY-TEST");
-        pInfo101->sv101_version_major  = 4;
-        pInfo101->sv101_version_minor  = 9;
-        pInfo101->sv101_type           = 0x00809b03;
+        pInfo101->sv101_name           = ambstowc16s("UBUNTU8-DESKTOP");
+        pInfo101->sv101_version_major  = 5;
+        pInfo101->sv101_version_minor  = 1;
+        pInfo101->sv101_type           = 0x0001003;
         pInfo101->sv101_comment        = ambstowc16s("Likewise RPC");
 
         info->info101 = pInfo101;
@@ -80,10 +80,10 @@ SrvSvcNetrServerGetInfo(
         BAIL_ON_ERROR(dwError);
 
         pInfo102->sv102_platform_id    = 500;
-        pInfo102->sv102_name           = ambstowc16s("DUMMY-TEST");
-        pInfo102->sv102_version_major  = 4;
-        pInfo102->sv102_version_minor  = 9;
-        pInfo102->sv102_type           = 0x00809b03;
+        pInfo102->sv102_name           = ambstowc16s("UBUNTU8-DESKTOP");
+        pInfo102->sv102_version_major  = 5;
+        pInfo102->sv102_version_minor  = 1;
+        pInfo102->sv102_type           = 0x0001003;
         pInfo102->sv102_comment        = ambstowc16s("Likewise RPC");
         pInfo102->sv102_users          = 0;
         pInfo102->sv102_disc           = 0;

@@ -31,7 +31,7 @@
 #ifndef _WKSSVCDEFS_H_
 #define _WKSSVCDEFS_H_
 
-#include <srvsvc/types.h>
+#include <lwrpc/types.h>
 
 
 #ifndef WKSTA_INFO_100_DEFINED
@@ -54,6 +54,14 @@ typedef struct _WKSTA_INFO_100
     uint32 wksta100_version_minor;
 
 } WKSTA_INFO_100, *PWKSTA_INFO_100;
+
+#endif
+
+#ifndef _DCE_IDL_
+
+typedef union {
+    WKSTA_INFO_100 *info100;
+} wkssvc_NetWkstaInfo;
 
 #endif
 
