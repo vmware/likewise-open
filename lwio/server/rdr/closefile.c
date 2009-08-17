@@ -95,7 +95,7 @@ RdrTransactCloseFile(
     pHeader = (PCLOSE_REQUEST_HEADER) packet.pParams;
 
     pHeader->fid = SMB_HTOL16(usFid);
-    pHeader->ulLastWriteTime = SMB_HTOL64(0);
+    pHeader->ulLastWriteTime = SMB_HTOL32(0);
     pHeader->byteCount = SMB_HTOL16(0);
 
     ntStatus = SMBPacketMarshallFooter(&packet);
