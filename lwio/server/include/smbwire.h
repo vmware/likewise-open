@@ -1308,7 +1308,7 @@ typedef struct
 typedef struct
 {
     uint16_t fid;
-    uint32_t lastWriteTime;
+    uint32_t ulLastWriteTime;
     uint16_t byteCount;
 
 } __attribute__((__packed__)) CLOSE_REQUEST_HEADER, *PCLOSE_REQUEST_HEADER;
