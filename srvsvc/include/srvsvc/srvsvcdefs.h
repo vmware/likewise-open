@@ -43,6 +43,63 @@ typedef struct _CONNECTION_INFO_0 {
 
 #endif
 
+typedef struct {
+    uint32 count;
+#ifdef _DCE_IDL_
+    [size_is(count)]
+#endif
+    CONNECTION_INFO_0 *array;
+} srvsvc_NetConnCtr0;
+
+
+#ifndef CONNECTION_INFO_1_DEFINED
+#define CONNECTION_INFO_1_DEFINED 1
+
+#ifdef _DCE_IDL_
+cpp_quote("#ifndef CONNECTION_INFO_1_DEFINED")
+cpp_quote("#define CONNECTION_INFO_1_DEFINED 1")
+#endif
+
+typedef struct _CONNECTION_INFO_1 {
+    UINT32 coni1_id;
+    UINT32 coni1_type;
+    UINT32 coni1_num_open;
+    UINT32 coni1_num_users;
+    UINT32 coni1_time;
+#ifdef _DCE_IDL_
+    [string]
+#endif
+    PWSTR coni1_username;
+#ifdef _DCE_IDL_
+    [string]
+#endif
+    PWSTR coni1_netname;
+} CONNECTION_INFO_1, *PCONNECTION_INFO_1;
+
+#ifdef _DCE_IDL_
+cpp_quote("#endif")
+#endif
+
+#endif
+
+typedef struct {
+    uint32 count;
+#ifdef _DCE_IDL_
+    [size_is(count)]
+#endif
+    CONNECTION_INFO_1 *array;
+} srvsvc_NetConnCtr1;
+
+
+#ifndef _DCE_IDL_
+
+typedef union {
+    srvsvc_NetConnCtr0 *ctr0;
+    srvsvc_NetConnCtr1 *ctr1;
+} srvsvc_NetConnCtr;
+
+#endif
+
 
 #ifndef FILE_INFO_2_DEFINED
 #define FILE_INFO_2_DEFINED 1
@@ -52,6 +109,14 @@ typedef struct _FILE_INFO_2 {
 } FILE_INFO_2, *PFILE_INFO_2;
 
 #endif
+
+typedef struct {
+    uint32 count;
+#ifdef _DCE_IDL_
+    [size_is(count)]
+#endif
+    FILE_INFO_2 *array;
+} srvsvc_NetFileCtr2;
 
 
 #ifndef FILE_INFO_3_DEFINED
@@ -73,6 +138,30 @@ typedef struct _FILE_INFO_3 {
 
 #endif
 
+typedef struct {
+    uint32 count;
+#ifdef _DCE_IDL_
+    [size_is(count)]
+#endif
+    FILE_INFO_3 *array;
+} srvsvc_NetFileCtr3;
+
+
+#ifndef _DCE_IDL_
+
+typedef union {
+    srvsvc_NetFileCtr2 *ctr2;
+    srvsvc_NetFileCtr3 *ctr3;
+} srvsvc_NetFileCtr;
+
+
+typedef union {
+    FILE_INFO_2 *info2;
+    FILE_INFO_3 *info3;
+} srvsvc_NetFileInfo;
+
+#endif
+
 
 #ifndef SESSION_INFO_0_DEFINED
 #define SESSION_INFO_0_DEFINED 1
@@ -85,6 +174,14 @@ typedef struct _SESSION_INFO_0 {
 } SESSION_INFO_0, *PSESSION_INFO_0;
 
 #endif
+
+typedef struct {
+    uint32 count;
+#ifdef _DCE_IDL_
+    [size_is(count)]
+#endif
+    SESSION_INFO_0 *array;
+} srvsvc_NetSessCtr0;
 
 
 #ifndef SESSION_INFO_1_DEFINED
@@ -106,6 +203,14 @@ typedef struct _SESSION_INFO_1 {
 } SESSION_INFO_1, *PSESSION_INFO_1;
 
 #endif
+
+typedef struct {
+    uint32 count;
+#ifdef _DCE_IDL_
+    [size_is(count)]
+#endif
+    SESSION_INFO_1 *array;
+} srvsvc_NetSessCtr1;
 
 
 #ifndef SESSION_INFO_2_DEFINED
@@ -133,6 +238,14 @@ typedef struct _SESSION_INFO_2 {
 
 #endif
 
+typedef struct {
+    uint32 count;
+#ifdef _DCE_IDL_
+    [size_is(count)]
+#endif
+    SESSION_INFO_2 *array;
+} srvsvc_NetSessCtr2;
+
 
 #ifndef SESSION_INFO_10_DEFINED
 #define SESSION_INFO_10_DEFINED 1
@@ -151,6 +264,14 @@ typedef struct _SESSION_INFO_10 {
 } SESSION_INFO_10, *PSESSION_INFO_10;
 
 #endif
+
+typedef struct {
+    uint32 count;
+#ifdef _DCE_IDL_
+    [size_is(count)]
+#endif
+    SESSION_INFO_10 *array;
+} srvsvc_NetSessCtr10;
 
 
 #ifndef SESSION_INFO_502_DEFINED
@@ -178,6 +299,27 @@ typedef struct _SESSION_INFO_502 {
 #endif
     wchar16_t *sesi502_transport;
 } SESSION_INFO_502, *PSESSION_INFO_502;
+
+#endif
+
+typedef struct {
+    uint32 count;
+#ifdef _DCE_IDL_
+    [size_is(count)]
+#endif
+    SESSION_INFO_502 *array;
+} srvsvc_NetSessCtr502;
+
+
+#ifndef _DCE_IDL_
+
+typedef union {
+    srvsvc_NetSessCtr0 *ctr0;
+    srvsvc_NetSessCtr1 *ctr1;
+    srvsvc_NetSessCtr2 *ctr2;
+    srvsvc_NetSessCtr10 *ctr10;
+    srvsvc_NetSessCtr502 *ctr502;
+} srvsvc_NetSessCtr;
 
 #endif
 
@@ -1014,6 +1156,72 @@ typedef struct _SERVER_INFO_1556 {
 
 #endif
 
+
+#ifndef _DCE_IDL_
+
+typedef union {
+    SERVER_INFO_100 *info100;
+    SERVER_INFO_101 *info101;
+    SERVER_INFO_102 *info102;
+    SERVER_INFO_402 *info402;
+    SERVER_INFO_403 *info403;
+    SERVER_INFO_502 *info502;
+    SERVER_INFO_503 *info503;
+    SERVER_INFO_599 *info599;
+    SERVER_INFO_1005 *info1005;
+    SERVER_INFO_1010 *info1010;
+    SERVER_INFO_1016 *info1016;
+    SERVER_INFO_1017 *info1017;
+    SERVER_INFO_1018 *info1018;
+    SERVER_INFO_1107 *info1107;
+    SERVER_INFO_1501 *info1501;
+    SERVER_INFO_1502 *info1502;
+    SERVER_INFO_1503 *info1503;
+    SERVER_INFO_1506 *info1506;
+    SERVER_INFO_1509 *info1509;
+    SERVER_INFO_1510 *info1510;
+    SERVER_INFO_1511 *info1511;
+    SERVER_INFO_1512 *info1512;
+    SERVER_INFO_1513 *info1513;
+    SERVER_INFO_1514 *info1514;
+    SERVER_INFO_1515 *info1515;
+    SERVER_INFO_1516 *info1516;
+    SERVER_INFO_1518 *info1518;
+    SERVER_INFO_1520 *info1520;
+    SERVER_INFO_1521 *info1521;
+    SERVER_INFO_1522 *info1522;
+    SERVER_INFO_1523 *info1523;
+    SERVER_INFO_1524 *info1524;
+    SERVER_INFO_1525 *info1525;
+    SERVER_INFO_1528 *info1528;
+    SERVER_INFO_1529 *info1529;
+    SERVER_INFO_1530 *info1530;
+    SERVER_INFO_1533 *info1533;
+    SERVER_INFO_1534 *info1534;
+    SERVER_INFO_1535 *info1535;
+    SERVER_INFO_1536 *info1536;
+    SERVER_INFO_1537 *info1537;
+    SERVER_INFO_1538 *info1538;
+    SERVER_INFO_1539 *info1539;
+    SERVER_INFO_1540 *info1540;
+    SERVER_INFO_1541 *info1541;
+    SERVER_INFO_1542 *info1542;
+    SERVER_INFO_1543 *info1543;
+    SERVER_INFO_1544 *info1544;
+    SERVER_INFO_1545 *info1545;
+    SERVER_INFO_1546 *info1546;
+    SERVER_INFO_1547 *info1547;
+    SERVER_INFO_1548 *info1548;
+    SERVER_INFO_1549 *info1549;
+    SERVER_INFO_1550 *info1550;
+    SERVER_INFO_1552 *info1552;
+    SERVER_INFO_1553 *info1553;
+    SERVER_INFO_1554 *info1554;
+    SERVER_INFO_1555 *info1555;
+    SERVER_INFO_1556 *info1556;
+} srvsvc_NetSrvInfo;
+
+#endif
 
 #ifndef TIME_OF_DAY_INFO_DEFINED
 #define TIME_OF_DAY_INFO_DEFINED 1

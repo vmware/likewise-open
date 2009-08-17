@@ -30,21 +30,24 @@ libsrvsvc_cs_la_SOURCES = srvsvc_cstub.c
 FEATURETEST_FLAGS="-D_XOPEN_SOURCE=500"
 
 libsrvsvc_cs_la_CPPFLAGS = \
-    $(AM_CPPFLAGS)       \
-    $(FEATURETEST_FLAGS) \
+    -g                     \
+    -DDCERPC_STUB_BUILD    \
+    $(FEATURETEST_FLAGS)   \
     $(DCERPC_INCLUDES)
 
 libsrvsvc_cs_la_CPFLAGS = \
-    $(FEATURETEST_FLAGS) \
+    -g                    \
+    -DDCERPC_STUB_BUILD   \
+    $(FEATURETEST_FLAGS)  \
     $(DCERPC_INCLUDES)
 
-libsrvsvc_la_CFLAGS = \
-    $(AM_CFLAGS)    \
-    -DSRVSVC_BUILD  \
-    -DLIBRPC_BUILD  \
+libsrvsvc_la_CFLAGS =   \
+    -g                  \
+    -DSRVSVC_BUILD      \
+    -DLIBRPC_BUILD      \
     $(INCLUDES)
 
-libsrvsvc_la_CPPFLAGS = \
+libsrvsvc_la_CPPFLAGS =   \
     -g                    \
     $(DCERPC_INCLUDES)    \
     $(LIBUNISTR_INCLUDES)

@@ -32,21 +32,26 @@ libwkssvc_ss_la_SOURCES = wkssvc_sstub.c
 FEATURETEST_FLAGS="-D_XOPEN_SOURCE=500"
 
 libsrvsvc_ss_la_CPPFLAGS = \
-    $(AM_CPPFLAGS) \
-    $(FEATURETEST_FLAGS) \
+    -g                     \
+    -DDCERPC_STUB_BUILD    \
+    $(FEATURETEST_FLAGS)   \
     $(DCERPC_INCLUDES)
 
 libwkssvc_ss_la_CFLAGS = \
-    $(AM_CFLAGS) \
+    -g                   \
+    -DDCERPC_STUB_BUILD  \
     $(FEATURETEST_FLAGS) \
     $(DCERPC_INCLUDES)
 
 libwkssvc_ss_la_CPPFLAGS = \
-    $(AM_CPPFLAGS) \
-    $(FEATURETEST_FLAGS) \
+    -g                     \
+    -DDCERPC_STUB_BUILD    \
+    $(FEATURETEST_FLAGS)   \
     $(DCERPC_INCLUDES)
 
 libsrvsvc_ss_la_CFLAGS = \
+    -g                   \
+    -DDCERPC_STUB_BUILD  \
     $(FEATURETEST_FLAGS) \
     $(DCERPC_INCLUDES)
 
@@ -86,13 +91,13 @@ srvsvcd_LDADD = \
 CLEANFILES = srvsvc_h.h srvsvc_cstub.c srvsvc_sstub.c \
              wkssvc_h.h wkssvc_cstub.c wkssvc_sstub.c
 
-BUILT_SOURCES = srvsvc_h.h wkssvc_h.h
+BUILT_SOURCES = srvsvc_h.h srvsvc_cstub.c srvsvc_sstub.c \
+                wkssvc_h.h wkssvc_cstub.c wkssvc_sstub.c
 
-srvsvc_h.h srvsvc_cstub.c srvsvc_sstub.c: $(idl_srcdir)/srvsvc.idl
+srvsvc_h.h srvsvc_cstub.c srvsvc_sstub.c: $(idl_srcdir)/srvsvc.idl $(idl_srcdir)/srvsvc.acf
 	$(IDL) $(IDLFLAGS) -keep c_source -header srvsvc_h.h \
 		-I$(srcdir) -I$(idl_srcdir) -I$(include_srcdir) $<
 
-wkssvc_h.h wkssvc_cstub.c wkssvc_sstub.c: $(idl_srcdir)/wkssvc.idl
+wkssvc_h.h wkssvc_cstub.c wkssvc_sstub.c: $(idl_srcdir)/wkssvc.idl $(idl_srcdir)/wkssvc.acf
 	$(IDL) $(IDLFLAGS) -keep c_source -header wkssvc_h.h \
 		-I$(srcdir) -I$(idl_srcdir) -I$(include_srcdir) $<
-

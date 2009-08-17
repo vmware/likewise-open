@@ -54,7 +54,7 @@
 #include <srvsvc/srvsvc.h>
 #include <memptr.h>
 
-#include "srvsvc_stub.h"
+#include "srvsvc_h.h"
 
 #include "SrvSvcUtil.h"
 #include "externs.h"

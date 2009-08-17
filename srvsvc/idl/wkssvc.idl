@@ -27,9 +27,11 @@
 ]
 
 
-interface wkssvc {
+interface wkssvc
+{
+cpp_quote("#ifdef DCERPC_STUB_BUILD")
 
-#include <srvsvc/types.h>
+#include <lwrpc/types.h>
 #include <security.idl>
 #include <srvsvc/wkssvcdefs.h>
 
@@ -49,14 +51,15 @@ interface wkssvc {
 
     cpp_quote("#endif") //_WIN32, !_WIN32
 
-    /* Function 0x0 */
-
     typedef [switch_type(uint32)] union {
-      [case(100)]           WKSTA_INFO_100 *info100;
-      [default];
+        [case(100)]           WKSTA_INFO_100 *info100;
+        [default];
     } wkssvc_NetWkstaInfo;
 
-    NET_API_STATUS _NetWkstaGetInfo(
+cpp_quote("#endif /* DCERPC_STUB_BUILD */")
+
+    /* Function 0x0 */
+    WINERR _NetWkstaGetInfo(
         [in,string,unique] wchar16_t *server_name,
         [in] uint32 level,
         [out,ref,switch_is(level)] wkssvc_NetWkstaInfo *info
