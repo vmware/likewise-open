@@ -157,26 +157,36 @@ SrvProcessCloseAndX(
 
             pCloseState->stage = SRV_CLOSE_STAGE_SMB_V1_SET_INFO_COMPLETED;
 
-            if (pCloseState->pRequestHeader->lastWriteTime != 0)
+            switch (pCloseState->pRequestHeader->ulLastWriteTime)
             {
-                pCloseState->fileBasicInfo.LastWriteTime =
-                    (pCloseState->pRequestHeader->lastWriteTime + 11644473600LL) * 10000000LL;
+                case 0:
+                case (ULONG)-1:
 
-                SrvPrepareCloseStateAsync(pCloseState, pExecContext);
+                    break;
 
-                ntStatus = IoSetInformationFile(
-                                pCloseState->pFile->hFile,
-                                pCloseState->pAcb,
-                                &pCloseState->ioStatusBlock,
-                                &pCloseState->fileBasicInfo,
-                                sizeof(pCloseState->fileBasicInfo),
-                                FileBasicInformation);
-                if (ntStatus == STATUS_PENDING)
-                {
-                    BAIL_ON_NT_STATUS(ntStatus);
-                }
+                default:
 
-                SrvReleaseCloseStateAsync(pCloseState);
+                    pCloseState->fileBasicInfo.LastWriteTime =
+                        (pCloseState->pRequestHeader->ulLastWriteTime +
+                         11644473600LL) * 10000000LL;
+
+                    SrvPrepareCloseStateAsync(pCloseState, pExecContext);
+
+                    ntStatus = IoSetInformationFile(
+                                    pCloseState->pFile->hFile,
+                                    pCloseState->pAcb,
+                                    &pCloseState->ioStatusBlock,
+                                    &pCloseState->fileBasicInfo,
+                                    sizeof(pCloseState->fileBasicInfo),
+                                    FileBasicInformation);
+                    if (ntStatus == STATUS_PENDING)
+                    {
+                        BAIL_ON_NT_STATUS(ntStatus);
+                    }
+
+                    SrvReleaseCloseStateAsync(pCloseState);
+
+                    break;
             }
 
             // intentional fall through
