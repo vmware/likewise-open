@@ -168,7 +168,7 @@ LsaModGroupMain(
          LsaDLinkedListFree(pTaskList);
      }
 
-     LSA_SAFE_FREE_STRING(pszLoginId);
+     LW_SAFE_FREE_STRING(pszLoginId);
 
      return dwError;
 
@@ -183,7 +183,7 @@ LsaModGroupMain(
          DWORD dwError2 = 0;
          PSTR   pszErrorBuffer = NULL;
 
-         dwError2 = LsaAllocateMemory(
+         dwError2 = LwAllocateMemory(
                      dwErrorBufferSize,
                      (PVOID*)&pszErrorBuffer);
 
@@ -191,14 +191,14 @@ LsaModGroupMain(
          {
              DWORD dwLen = LwGetErrorString(dwError, pszErrorBuffer, dwErrorBufferSize);
 
-             if ((dwLen == dwErrorBufferSize) && !IsNullOrEmptyString(pszErrorBuffer))
+             if ((dwLen == dwErrorBufferSize) && !LW_IS_NULL_OR_EMPTY_STR(pszErrorBuffer))
              {
                  fprintf(stderr, "Failed to modify group.  %s\n", pszErrorBuffer);
                  bPrintOrigError = FALSE;
              }
          }
 
-         LSA_SAFE_FREE_STRING(pszErrorBuffer);
+         LW_SAFE_FREE_STRING(pszErrorBuffer);
      }
 
      if (bPrintOrigError)
@@ -259,7 +259,7 @@ ParseArgs(
                 }
                 else
                 {
-                    dwError = LsaAllocateString(pArg, &pszLoginId);
+                    dwError = LwAllocateString(pArg, &pszLoginId);
                     BAIL_ON_LSA_ERROR(dwError);
                     parseMode = PARSE_MODE_DONE;
                 }
@@ -268,12 +268,12 @@ ParseArgs(
 
             case PARSE_MODE_REMOVE_FROM_GROUPS:
             {
-                 dwError = LsaAllocateMemory(sizeof(GROUP_MOD_TASK), (PVOID*)&pTask);
+                 dwError = LwAllocateMemory(sizeof(GROUP_MOD_TASK), (PVOID*)&pTask);
                  BAIL_ON_LSA_ERROR(dwError);
 
                  pTask->taskType = GroupModTask_RemoveMembers;
 
-                 dwError = LsaAllocateString(pArg, &pszRemoveMembers);
+                 dwError = LwAllocateString(pArg, &pszRemoveMembers);
                  BAIL_ON_LSA_ERROR(dwError);
 
                  pTask->pData = pszRemoveMembers;
@@ -288,12 +288,12 @@ ParseArgs(
 
             case PARSE_MODE_ADD_TO_GROUPS:
             {
-                  dwError = LsaAllocateMemory(sizeof(GROUP_MOD_TASK), (PVOID*)&pTask);
+                  dwError = LwAllocateMemory(sizeof(GROUP_MOD_TASK), (PVOID*)&pTask);
                   BAIL_ON_LSA_ERROR(dwError);
 
                   pTask->taskType = GroupModTask_AddMembers;
 
-                  dwError = LsaAllocateString(pArg, &pszAddMembers);
+                  dwError = LwAllocateString(pArg, &pszAddMembers);
                   BAIL_ON_LSA_ERROR(dwError);
 
                   pTask->pData = pszAddMembers;
@@ -347,7 +347,7 @@ error:
         FreeTask(pTask);
     }
 
-    LSA_SAFE_FREE_STRING(pszLoginId);
+    LW_SAFE_FREE_STRING(pszLoginId);
 
     ShowUsage(GetProgramName(argv[0]));
 
@@ -376,7 +376,7 @@ ValidateArgs(
         }
     }
 
-    if (IsNullOrEmptyString(pszLoginId)) {
+    if (LW_IS_NULL_OR_EMPTY_STR(pszLoginId)) {
         fprintf(stderr, "Error: A valid group id or group name must be specified.\n");
         goto cleanup;
     }
@@ -407,12 +407,12 @@ FreeTask(
     PSTR *ppMember = pTask->pData;
 
     if (ppMember) {
-        LSA_SAFE_FREE_STRING(ppMember[0]);
-        LSA_SAFE_FREE_STRING(ppMember[1]);
-        LSA_SAFE_FREE_MEMORY(ppMember);
+        LW_SAFE_FREE_STRING(ppMember[0]);
+        LW_SAFE_FREE_STRING(ppMember[1]);
+        LW_SAFE_FREE_MEMORY(ppMember);
     }
 
-    LsaFreeMemory(pTask);
+    LwFreeMemory(pTask);
 }
 
 PSTR
@@ -559,7 +559,7 @@ ResolveNames(
             if (ntStatus == STATUS_SUCCESS) {
                 pszDN  = NULL;
 
-                dwError = LsaAllocateString(pszName, &pszSID);
+                dwError = LwAllocateString(pszName, &pszSID);
                 BAIL_ON_LSA_ERROR(dwError);
 
             } else {
@@ -569,10 +569,10 @@ ResolveNames(
                                              dwGroupInfoLevel,
                                              (PVOID*)&pGroupInfo);
                 if (dwError == 0) {
-                    dwError = LsaAllocateString(pGroupInfo->pszSid, &pszSID);
+                    dwError = LwAllocateString(pGroupInfo->pszSid, &pszSID);
                     BAIL_ON_LSA_ERROR(dwError);
 
-                    dwError = LsaAllocateString(pGroupInfo->pszDN, &pszDN);
+                    dwError = LwAllocateString(pGroupInfo->pszDN, &pszDN);
                     BAIL_ON_LSA_ERROR(dwError);
 
                 } else if (dwError == LW_ERROR_NO_SUCH_GROUP) {
@@ -582,10 +582,10 @@ ResolveNames(
                                                 (PVOID*)&pUserInfo);
                     BAIL_ON_LSA_ERROR(dwError);
 
-                    dwError = LsaAllocateString(pUserInfo->pszSid, &pszSID);
+                    dwError = LwAllocateString(pUserInfo->pszSid, &pszSID);
                     BAIL_ON_LSA_ERROR(dwError);
 
-                    dwError = LsaAllocateString(pUserInfo->pszDN, &pszDN);
+                    dwError = LwAllocateString(pUserInfo->pszDN, &pszDN);
                     BAIL_ON_LSA_ERROR(dwError);
 
                 } else {
@@ -593,10 +593,10 @@ ResolveNames(
                 }
             }
 
-            LSA_SAFE_FREE_STRING(pTask->pData);
+            LW_SAFE_FREE_STRING(pTask->pData);
             pTask->pData = NULL;
 
-            dwError = LsaAllocateMemory(sizeof(PSTR[2]), (PVOID*)&ppszMember);
+            dwError = LwAllocateMemory(sizeof(PSTR[2]), (PVOID*)&ppszMember);
             BAIL_ON_LSA_ERROR(dwError);
 
             ppszMember[0] = pszDN;
@@ -628,7 +628,7 @@ cleanup:
     return dwError;
 
 error:
-    LSA_SAFE_FREE_STRING(pTask->pData);
+    LW_SAFE_FREE_STRING(pTask->pData);
 
     goto cleanup;
 }

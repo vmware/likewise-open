@@ -59,11 +59,11 @@ LsaFreeAuthUserInfo(
 
     p = *ppAuthUserInfo;
 
-    LSA_SAFE_FREE_MEMORY(p->pszAccount);
-    LSA_SAFE_FREE_MEMORY(p->pszUserPrincipalName);
-    LSA_SAFE_FREE_MEMORY(p->pszFullName);
-    LSA_SAFE_FREE_MEMORY(p->pszDomain);
-    LSA_SAFE_FREE_MEMORY(p->pszDnsDomain);
+    LW_SAFE_FREE_MEMORY(p->pszAccount);
+    LW_SAFE_FREE_MEMORY(p->pszUserPrincipalName);
+    LW_SAFE_FREE_MEMORY(p->pszFullName);
+    LW_SAFE_FREE_MEMORY(p->pszDomain);
+    LW_SAFE_FREE_MEMORY(p->pszDnsDomain);
 
     if (p->pSessionKey) {
         LsaDataBlobFree(&p->pSessionKey);
@@ -73,17 +73,17 @@ LsaFreeAuthUserInfo(
         LsaDataBlobFree(&p->pLmSessionKey);
     }
 
-    LSA_SAFE_FREE_MEMORY(p->pszLogonServer);
-    LSA_SAFE_FREE_MEMORY(p->pszLogonScript);
-    LSA_SAFE_FREE_MEMORY(p->pszProfilePath);
-    LSA_SAFE_FREE_MEMORY(p->pszHomeDirectory);
-    LSA_SAFE_FREE_MEMORY(p->pszHomeDrive);
+    LW_SAFE_FREE_MEMORY(p->pszLogonServer);
+    LW_SAFE_FREE_MEMORY(p->pszLogonScript);
+    LW_SAFE_FREE_MEMORY(p->pszProfilePath);
+    LW_SAFE_FREE_MEMORY(p->pszHomeDirectory);
+    LW_SAFE_FREE_MEMORY(p->pszHomeDrive);
 
-    LSA_SAFE_FREE_MEMORY(p->pRidAttribList);
-    LSA_SAFE_FREE_MEMORY(p->pSidAttribList);
+    LW_SAFE_FREE_MEMORY(p->pRidAttribList);
+    LW_SAFE_FREE_MEMORY(p->pSidAttribList);
 
 
-    LSA_SAFE_FREE_MEMORY(p);
+    LW_SAFE_FREE_MEMORY(p);
 
     *ppAuthUserInfo = NULL;
 
@@ -105,14 +105,14 @@ LsaFreeAuthUserParams(
 
     p = *ppAuthUserParams;
 
-    LSA_SAFE_FREE_MEMORY(p->pszAccountName);
-    LSA_SAFE_FREE_MEMORY(p->pszDomain);
-    LSA_SAFE_FREE_MEMORY(p->pszWorkstation);
+    LW_SAFE_FREE_MEMORY(p->pszAccountName);
+    LW_SAFE_FREE_MEMORY(p->pszDomain);
+    LW_SAFE_FREE_MEMORY(p->pszWorkstation);
 
     switch (p->AuthType)
     {
     case LSA_AUTH_PLAINTEXT:
-        LSA_SAFE_FREE_MEMORY(p->pass.clear.pszPassword);
+        LW_SAFE_FREE_MEMORY(p->pass.clear.pszPassword);
         break;
     case LSA_AUTH_CHAP:
         LsaDataBlobFree(&p->pass.chap.pChallenge);
@@ -121,7 +121,7 @@ LsaFreeAuthUserParams(
         break;
     }
 
-    LSA_SAFE_FREE_MEMORY(p);
+    LW_SAFE_FREE_MEMORY(p);
 
     *ppAuthUserParams = NULL;
 

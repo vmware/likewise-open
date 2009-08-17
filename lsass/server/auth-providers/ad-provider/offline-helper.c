@@ -76,7 +76,7 @@ AD_OfflineGetGroupMembers(
         &ppGroupMemberships);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
         sizeof(*ppszMemberSids) * sGroupMembershipsCount,
         (PVOID*)&ppszMemberSids);
     BAIL_ON_LSA_ERROR(dwError);
@@ -107,7 +107,7 @@ AD_OfflineGetGroupMembers(
 
 cleanup:
     ADCacheSafeFreeObjectList(sObjectsCount, &ppObjects);
-    LSA_SAFE_FREE_MEMORY(ppszMemberSids);
+    LW_SAFE_FREE_MEMORY(ppszMemberSids);
     ADCacheSafeFreeGroupMembershipList(sGroupMembershipsCount,
                                           &ppGroupMemberships);
 
@@ -165,7 +165,7 @@ AD_GatherSidsFromGroupMemberships(
 {
     // NOTE: The result points to the sids inside the memberships.
     // Do not deallocate the memberhips while using the result.
-    // Call LSA_SAFE_FREE_MEMORY() on result when done so as to
+    // Call LW_SAFE_FREE_MEMORY() on result when done so as to
     // not free up the sids (which reside in the memberships).
     DWORD dwError = LW_ERROR_SUCCESS;
     // Do not free actual strings, just the array.
@@ -228,7 +228,7 @@ AD_GatherSidsFromGroupMemberships(
         }
 
         // Allocate memory so we can gather up stuff.
-        dwError = LsaAllocateMemory(sizeof(*ppszSids) * sMemberhipsCount,
+        dwError = LwAllocateMemory(sizeof(*ppszSids) * sMemberhipsCount,
                                     (PVOID*)&ppszSids);
         BAIL_ON_LSA_ERROR(dwError);
 
@@ -243,7 +243,7 @@ cleanup:
     return dwError;
 
 error:
-    LSA_SAFE_FREE_MEMORY(ppszSids);
+    LW_SAFE_FREE_MEMORY(ppszSids);
     sSidsCount = 0;
     goto cleanup;
 }
@@ -269,7 +269,7 @@ AD_GroupExpansionDataCreate(
     PLSA_AD_GROUP_EXPANSION_DATA pExpansionData = NULL;
     const size_t sNumberOfBuckets = 20;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                 sizeof(*pExpansionData),
                 (PVOID*) &pExpansionData);
     BAIL_ON_LSA_ERROR(dwError);
@@ -535,7 +535,7 @@ AD_GroupExpansionDataGetResults(
 
     // Fill in the final list of users and return it.
     sHashCount = pExpansionData->pUsers->sCount;
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                 sizeof(*ppUserMembers) * sHashCount,
                 (PVOID*)&ppUserMembers);
     BAIL_ON_LSA_ERROR(dwError);
@@ -611,7 +611,7 @@ AD_GroupExpansionDataDestroy(
         LsaHashSafeFree(&pExpansionData->pGroupsToExpand);
         LsaHashSafeFree(&pExpansionData->pExpandedGroups);
         LsaHashSafeFree(&pExpansionData->pUsers);
-        LsaFreeMemory(pExpansionData);
+        LwFreeMemory(pExpansionData);
     }
 }
 

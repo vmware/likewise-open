@@ -57,7 +57,7 @@ LsaOpenServer(
 
     BAIL_ON_INVALID_POINTER(phConnection);
 
-    dwError = LsaAllocateMemory(sizeof(LSA_CLIENT_CONNECTION_CONTEXT), (PVOID*)&pContext);
+    dwError = LwAllocateMemory(sizeof(LSA_CLIENT_CONNECTION_CONTEXT), (PVOID*)&pContext);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = MAP_LWMSG_ERROR(lwmsg_protocol_new(NULL, &pContext->pProtocol));
@@ -107,7 +107,7 @@ error:
             lwmsg_protocol_delete(pContext->pProtocol);
         }
 
-        LsaFreeMemory(pContext);
+        LwFreeMemory(pContext);
     }
 
     if (phConnection)
@@ -138,7 +138,7 @@ LsaCloseServer(
         lwmsg_protocol_delete(pContext->pProtocol);
     }
 
-    LsaFreeMemory(pContext);
+    LwFreeMemory(pContext);
 
     return dwError;
 }

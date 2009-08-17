@@ -61,7 +61,7 @@ LsaDataBlobAllocate(
 
     BAIL_ON_INVALID_POINTER(ppBlob);
 
-    dwError = LsaAllocateMemory(sizeof(LSA_DATA_BLOB),
+    dwError = LwAllocateMemory(sizeof(LSA_DATA_BLOB),
                                 (PVOID*)&pBlob);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -69,7 +69,7 @@ LsaDataBlobAllocate(
     pBlob->pData = NULL;
 
     if (pBlob->dwLen > 0) {
-        dwError = LsaAllocateMemory(pBlob->dwLen,
+        dwError = LwAllocateMemory(pBlob->dwLen,
                         (PVOID*)&pBlob->pData);
         BAIL_ON_LSA_ERROR(dwError);
 
@@ -83,7 +83,7 @@ cleanup:
 
 error:
     if (pBlob) {
-        LsaFreeMemory(pBlob);
+        LwFreeMemory(pBlob);
     }
 
     goto cleanup;
@@ -105,8 +105,8 @@ LsaDataBlobFree(
         return LW_ERROR_SUCCESS;
     }
 
-    LsaFreeMemory((*ppBlob)->pData);
-    LsaFreeMemory(*ppBlob);
+    LwFreeMemory((*ppBlob)->pData);
+    LwFreeMemory(*ppBlob);
 
     *ppBlob = NULL;
 

@@ -347,7 +347,7 @@ SamDbAddDefaultEntries(
     dwError = LsaDnsGetHostInfo(&pszHostname);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    LsaStrToUpper(pszHostname);
+    LwStrToUpper(pszHostname);
 
     memset(szNetBIOSName, 0, sizeof(szNetBIOSName));
     strncpy(szNetBIOSName, pszHostname, 15);
@@ -355,7 +355,7 @@ SamDbAddDefaultEntries(
     dwError = SamDbInitConfig(hDirectory);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                     &pszDomainDN,
                     "DC=%s",
                     pszHostname);
@@ -448,7 +448,7 @@ SamDbAddMachineDomain(
 
     ulSidLength = RtlLengthRequiredSid(ulSubAuthCount);
 
-    dwError = LsaAllocateMemory(ulSidLength,
+    dwError = LwAllocateMemory(ulSidLength,
                                 (void**)&pMachineSid);
     BAIL_ON_SAMDB_ERROR(dwError);
 
@@ -465,7 +465,7 @@ SamDbAddMachineDomain(
     pMachineSid->SubAuthority[2] = ulSubAuth[1];
     pMachineSid->SubAuthority[3] = ulSubAuth[2];
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                     &pszMachineSID,
                     "S-1-5-21-%lu-%lu-%lu",
                     ulSubAuth[0],
@@ -489,7 +489,7 @@ cleanup:
 
     if (pszMachineSID)
     {
-        LsaFreeMemory(pszMachineSID);
+        LwFreeMemory(pszMachineSID);
     }
 
     return dwError;
@@ -664,7 +664,7 @@ SamDbAddContainer(
 
     memset(mods, 0, sizeof(mods));
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                     &pszObjectDN,
                     "CN=%s,%s",
                     pszName,
@@ -870,7 +870,7 @@ SamDbAddBuiltinAccounts(
         iMod = 0;
         memset(mods, 0, sizeof(mods));
 
-        dwError = LsaAllocateStringPrintf(
+        dwError = LwAllocateStringPrintf(
                         &pszObjectDN,
                         "CN=%s,CN=Builtin,%s",
                         pszName,
@@ -1133,7 +1133,7 @@ SamDbAddLocalAccounts(
 
         ulAccountSidLength = RtlLengthRequiredSid(
                                   pMachineSid->SubAuthorityCount + 1);
-        dwError = LsaAllocateMemory(ulAccountSidLength, (void**)&pAccountSid);
+        dwError = LwAllocateMemory(ulAccountSidLength, (void**)&pAccountSid);
         BAIL_ON_SAMDB_ERROR(dwError);
 
         status = RtlCopySid(ulAccountSidLength, pAccountSid, pMachineSid);
@@ -1148,7 +1148,7 @@ SamDbAddLocalAccounts(
             BAIL_ON_SAMDB_ERROR(dwError);
         }
 
-        dwError = LsaAllocateStringPrintf(
+        dwError = LwAllocateStringPrintf(
                         &pszObjectDN,
                         "CN=%s,CN=Users,%s",
                         pszName,
@@ -1347,7 +1347,7 @@ cleanup:
         RTL_FREE(&pwszSID);
     }
 
-    LSA_SAFE_FREE_MEMORY(pAccountSid);
+    LW_SAFE_FREE_MEMORY(pAccountSid);
 
     return dwError;
 

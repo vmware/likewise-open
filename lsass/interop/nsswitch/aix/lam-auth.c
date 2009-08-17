@@ -253,7 +253,7 @@ LsaNssIsPasswordExpired(
 
     if (pInfo->bPasswordExpired)
     {
-        dwError = LsaAllocateStringPrintf(
+        dwError = LwAllocateStringPrintf(
                 ppszMessage,
                 "%s's password is expired",
                 pszUser);
@@ -266,7 +266,7 @@ LsaNssIsPasswordExpired(
     if (pInfo->bPromptPasswordChange &&
         pInfo->dwDaysToPasswordExpiry)
     {
-        dwError = LsaAllocateStringPrintf(
+        dwError = LwAllocateStringPrintf(
                 ppszMessage,
                 "Your password will expire in %d days\n",
                 pInfo->dwDaysToPasswordExpiry);

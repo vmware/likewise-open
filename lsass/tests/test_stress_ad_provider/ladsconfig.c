@@ -96,7 +96,7 @@ LADSConfigStartSection(
     
     pConfigData->dwNumThreads = 1;
     
-    if (IsNullOrEmptyString(pszSectionName))
+    if (LW_IS_NULL_OR_EMPTY_STR(pszSectionName))
     {
         bSkipSection = TRUE;
         goto cleanup;
@@ -165,7 +165,7 @@ LADSConfigNameValuePair(
     pConfigData = (PLADS_CONFIG_DATA)pData;
     BAIL_ON_INVALID_POINTER(pConfigData);
     
-    if (IsNullOrEmptyString(pszName) || IsNullOrEmptyString(pszValue))
+    if (LW_IS_NULL_OR_EMPTY_STR(pszName) || LW_IS_NULL_OR_EMPTY_STR(pszValue))
     {
         goto cleanup;
     }
@@ -190,18 +190,18 @@ LADSConfigNameValuePair(
             
             if (!strcasecmp(pszName, LADS_ATTR_NAME_CONFIG_FILE))
             {
-                LSA_SAFE_FREE_STRING(gpszProviderConfigFilePath);
+                LW_SAFE_FREE_STRING(gpszProviderConfigFilePath);
                 
-                dwError = LsaAllocateString(
+                dwError = LwAllocateString(
                                 pszValue,
                                 &gpszProviderConfigFilePath);
                 BAIL_ON_LSA_ERROR(dwError);
             }
             else if (!strcasecmp(pszName, LADS_ATTR_NAME_LIBPATH))
             {
-                LSA_SAFE_FREE_STRING(gpszProviderLibPath);
+                LW_SAFE_FREE_STRING(gpszProviderLibPath);
                 
-                dwError = LsaAllocateString(
+                dwError = LwAllocateString(
                                 pszValue,
                                 &gpszProviderLibPath);
                 BAIL_ON_LSA_ERROR(dwError);
@@ -214,7 +214,7 @@ LADSConfigNameValuePair(
             
             if (!strcasecmp(pszName, LADS_ATTR_NAME_NAME))
             {
-                dwError = LsaAllocateString(
+                dwError = LwAllocateString(
                                 pszValue,
                                 &pszValueCopy);
                 BAIL_ON_LSA_ERROR(dwError);
@@ -236,7 +236,7 @@ LADSConfigNameValuePair(
             
             if (!strcasecmp(pszName, LADS_ATTR_NAME_ID))
             {
-                dwError = LsaAllocateString(
+                dwError = LwAllocateString(
                                 pszValue,
                                 &pszValueCopy);
                 BAIL_ON_LSA_ERROR(dwError);
@@ -260,7 +260,7 @@ LADSConfigNameValuePair(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszValueCopy);
+    LW_SAFE_FREE_STRING(pszValueCopy);
 
     *pbContinue = TRUE;
    
@@ -303,7 +303,7 @@ LADSConfigEndSection(
             {
                 DWORD iData = 0;
                 
-                dwError = LsaAllocateMemory(
+                dwError = LwAllocateMemory(
                                 pConfigData->dwNumItems * sizeof(PSTR),
                                 (PVOID*)&gLADSStressData[pConfigData->itemType].data.ppszNames);
                 BAIL_ON_LSA_ERROR(dwError);
@@ -329,7 +329,7 @@ LADSConfigEndSection(
             {
                 DWORD iData = 0;
                 
-                dwError = LsaAllocateMemory(
+                dwError = LwAllocateMemory(
                                 pConfigData->dwNumItems * sizeof(uid_t),
                                 (PVOID*)&gLADSStressData[pConfigData->itemType].data.pUidArray);
                 BAIL_ON_LSA_ERROR(dwError);
@@ -354,7 +354,7 @@ LADSConfigEndSection(
             {
                 DWORD iData = 0;
                 
-                dwError = LsaAllocateMemory(
+                dwError = LwAllocateMemory(
                                 pConfigData->dwNumItems * sizeof(gid_t),
                                 (PVOID*)&gLADSStressData[pConfigData->itemType].data.pGidArray);
                 BAIL_ON_LSA_ERROR(dwError);
@@ -409,5 +409,5 @@ LADSFreeConfigListItem(
     PVOID pUserData
     )
 {
-    LSA_SAFE_FREE_MEMORY(pItem);
+    LW_SAFE_FREE_MEMORY(pItem);
 }

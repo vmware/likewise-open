@@ -73,13 +73,13 @@ LsaNssPushNetgroup(
     PLSA_NSS_NETGROUP_LIST pLink = NULL;
 
     status = MAP_LSA_ERROR(NULL,
-                        LsaAllocateMemory(
+                        LwAllocateMemory(
                             sizeof(*pLink),
                             (void**) &pLink));
     BAIL_ON_NSS_ERROR(status);
 
     status = MAP_LSA_ERROR(NULL,
-                        LsaAllocateString(
+                        LwAllocateString(
                             pszGroup,
                             &pLink->pszGroup));
     BAIL_ON_NSS_ERROR(status);
@@ -110,7 +110,7 @@ LsaNssPopNetgroup(
 
     *ppList = pLink->pNext;
     *ppszGroup = pLink->pszGroup;
-    LsaFreeMemory(pLink);
+    LwFreeMemory(pLink);
 
 error:
 
@@ -150,8 +150,8 @@ LsaNssFreeNetgroupList(
     {
         pNext = pLink->pNext;
 
-        LsaFreeMemory(pLink->pszGroup);
-        LsaFreeMemory(pLink);
+        LwFreeMemory(pLink->pszGroup);
+        LwFreeMemory(pLink);
     }
 
     *ppList = NULL;
@@ -170,9 +170,9 @@ LsaNssIrsNetgroupDestructor(
     LsaNssFreeNetgroupList(&pPrivate->pSeen);
     LsaNssFreeNetgroupList(&pPrivate->pExpand);
 
-    LSA_SAFE_FREE_MEMORY(pPrivate->pBuffer);
+    LW_SAFE_FREE_MEMORY(pPrivate->pBuffer);
 
-    LsaFreeMemory(pPrivate);
+    LwFreeMemory(pPrivate);
 
     return status;
 }
@@ -204,7 +204,7 @@ LsaNssIrsNetgroupExpand(
 
         if (pPrivate->pBuffer)
         {
-            LsaFreeMemory(pPrivate->pBuffer);
+            LwFreeMemory(pPrivate->pBuffer);
         }
         pPrivate->pBuffer = pPrivate->pCursor = pszContents;
         goto cleanup;
@@ -275,7 +275,7 @@ LsaNssIrsNetgroupParse(
             *ppszOutDomain = pszDomain;
             goto cleanup;
         case LSA_NSS_NETGROUP_ENTRY_END:
-            LsaFreeMemory(pPrivate->pBuffer);
+            LwFreeMemory(pPrivate->pBuffer);
             pPrivate->pBuffer = NULL;
             break;
         }
@@ -289,7 +289,7 @@ error:
 
     if (status == NSS_STATUS_NOTFOUND)
     {
-        LsaFreeMemory(pPrivate->pBuffer);
+        LwFreeMemory(pPrivate->pBuffer);
         pPrivate->pBuffer = NULL;
     }
 
@@ -321,7 +321,7 @@ LsaNssIrsNetgroupSetnetgrent(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pGroupContents);
+    LW_SAFE_FREE_STRING(pGroupContents);
 
     return status;
 
@@ -347,7 +347,7 @@ LsaNssIrsNetgroupInnetgr(
     PSTR pszDomain = NULL;
 
     status = MAP_LSA_ERROR(NULL,
-                           LsaAllocateMemory(
+                           LwAllocateMemory(
                                sizeof(*pInner),
                                (void**) &pInner));
 
@@ -441,7 +441,7 @@ ng_pvtinit(
     NSS_STATUS status = NSS_STATUS_SUCCESS;
     PLSA_NSS_NETGROUP_PRIVATE pPrivate = NULL;
 
-    status = MAP_LSA_ERROR(NULL, LsaAllocateMemory(sizeof(*pPrivate), (void**) &pPrivate));
+    status = MAP_LSA_ERROR(NULL, LwAllocateMemory(sizeof(*pPrivate), (void**) &pPrivate));
     BAIL_ON_NSS_ERROR(status);
 
 cleanup:
@@ -450,7 +450,7 @@ cleanup:
 
 error:
 
-    LSA_SAFE_FREE_MEMORY(pPrivate);
+    LW_SAFE_FREE_MEMORY(pPrivate);
 
     goto cleanup;
 }

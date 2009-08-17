@@ -84,7 +84,7 @@ LsaNssGetNumberGroupMembers(
     DWORD dwNumMembers = 0;
 
     if (ppszMembers){
-       for (; ppszMembers && !IsNullOrEmptyString(*ppszMembers); ppszMembers++)
+       for (; ppszMembers && !LW_IS_NULL_OR_EMPTY_STR(*ppszMembers); ppszMembers++)
        {
            dwNumMembers++;
        }
@@ -103,11 +103,11 @@ LsaNssComputeGroupStringLength(
     PSTR* ppszMember = NULL;
     DWORD dwNumMembers = 0;
 
-    if (!IsNullOrEmptyString(pGroupInfo->pszName)) {
+    if (!LW_IS_NULL_OR_EMPTY_STR(pGroupInfo->pszName)) {
        dwLength += strlen(pGroupInfo->pszName) + 1;
     }
 
-    if (!IsNullOrEmptyString(pGroupInfo->pszPasswd)) {
+    if (!LW_IS_NULL_OR_EMPTY_STR(pGroupInfo->pszPasswd)) {
        dwLength += strlen(pGroupInfo->pszPasswd) + 1;
     }
 
@@ -115,7 +115,7 @@ LsaNssComputeGroupStringLength(
     dwLength += dwAlignBytes;
 
     for(ppszMember = pGroupInfo->ppszMembers;
-        ppszMember && !IsNullOrEmptyString(*ppszMember);
+        ppszMember && !LW_IS_NULL_OR_EMPTY_STR(*ppszMember);
         ppszMember++)
     {
         dwLength += sizeof(PSTR);
@@ -197,14 +197,14 @@ LsaNssWriteGroupInfo(
         pszMarker = ++pszMemberMarker; // skip NULL
     }
 
-    if (!IsNullOrEmptyString(pGroupInfo_1->pszName)) {
+    if (!LW_IS_NULL_OR_EMPTY_STR(pGroupInfo_1->pszName)) {
        dwLen = strlen(pGroupInfo_1->pszName);
        memcpy(pszMarker, pGroupInfo_1->pszName, dwLen);
        pResultGroup->gr_name = pszMarker;
        pszMarker += dwLen + 1;
     }
 
-    if (!IsNullOrEmptyString(pGroupInfo_1->pszPasswd)) {
+    if (!LW_IS_NULL_OR_EMPTY_STR(pGroupInfo_1->pszPasswd)) {
        dwLen = strlen(pGroupInfo_1->pszPasswd);
        memcpy(pszMarker, pGroupInfo_1->pszPasswd, dwLen);
        pResultGroup->gr_passwd = pszMarker;
@@ -575,13 +575,13 @@ skip:   continue;
 
 cleanup:
 
-    LSA_SAFE_FREE_MEMORY(pGidNewResult);
+    LW_SAFE_FREE_MEMORY(pGidNewResult);
 
     return ret;
 
 error:
 
-    LSA_SAFE_FREE_MEMORY(pGidNewResult);
+    LW_SAFE_FREE_MEMORY(pGidNewResult);
 
     if (ret != NSS_STATUS_TRYAGAIN && hLsaConnection != (HANDLE)NULL)
     {

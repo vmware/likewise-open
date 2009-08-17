@@ -108,8 +108,8 @@ LsaSrvFindUserByName(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszDomain);
-    LSA_SAFE_FREE_STRING(pszUserName);
+    LW_SAFE_FREE_STRING(pszDomain);
+    LW_SAFE_FREE_STRING(pszUserName);
 
     if (hProvider != (HANDLE)NULL) {
         LsaSrvCloseProvider(pProvider, hProvider);
@@ -134,10 +134,10 @@ error:
 
     if (dwError == LW_ERROR_NOT_HANDLED ||
                    dwError == LW_ERROR_NO_SUCH_USER) {
-        LSA_LOG_VERBOSE("Find user by name: [%s] is unknown", IsNullOrEmptyString(pszLoginId) ? "" : pszLoginId);
+        LSA_LOG_VERBOSE("Find user by name: [%s] is unknown", LW_IS_NULL_OR_EMPTY_STR(pszLoginId) ? "" : pszLoginId);
     }
     else {
-        LSA_LOG_ERROR("Failed to find user by name [%s] [code %d]", IsNullOrEmptyString(pszLoginId) ? "" : pszLoginId, dwError);
+        LSA_LOG_ERROR("Failed to find user by name [%s] [code %d]", LW_IS_NULL_OR_EMPTY_STR(pszLoginId) ? "" : pszLoginId, dwError);
     }
 
     *ppUserInfo = NULL;
@@ -642,17 +642,17 @@ LsaSrvGetNamesBySidList(
 
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
         sizeof(*ppszTotalDomainNames) * sCount,
         (PVOID*)&ppszTotalDomainNames);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
         sizeof(*ppszTotalSamAccounts) * sCount,
         (PVOID*)&ppszTotalSamAccounts);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
         sizeof(*pTotalTypes) * sCount,
         (PVOID*)&pTotalTypes);
     BAIL_ON_LSA_ERROR(dwError);
@@ -697,11 +697,11 @@ LsaSrvGetNamesBySidList(
         LsaSrvCloseProvider(pProvider, hProvider);
         hProvider = (HANDLE)NULL;
 
-        LsaFreeStringArray(ppszTempSamAccounts, sCount);
-        LsaFreeStringArray(ppszTempDomainNames, sCount);
+        LwFreeStringArray(ppszTempSamAccounts, sCount);
+        LwFreeStringArray(ppszTempDomainNames, sCount);
         ppszTempDomainNames = NULL;
         ppszTempSamAccounts = NULL;
-        LSA_SAFE_FREE_MEMORY(pTempTypes);
+        LW_SAFE_FREE_MEMORY(pTempTypes);
     }
 
     *pppszDomainNames = ppszTotalDomainNames;
@@ -715,9 +715,9 @@ cleanup:
         LsaSrvCloseProvider(pProvider, hProvider);
     }
 
-    LsaFreeStringArray(ppszTempDomainNames, sCount);
-    LsaFreeStringArray(ppszTempSamAccounts, sCount);
-    LSA_SAFE_FREE_MEMORY(pTempTypes);
+    LwFreeStringArray(ppszTempDomainNames, sCount);
+    LwFreeStringArray(ppszTempSamAccounts, sCount);
+    LW_SAFE_FREE_MEMORY(pTempTypes);
 
     LEAVE_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
 
@@ -731,9 +731,9 @@ error:
     *ppTypes = NULL;
     *pchDomainSeparator = 0;
 
-    LsaFreeStringArray(ppszTotalDomainNames, sCount);
-    LsaFreeStringArray(ppszTotalSamAccounts, sCount);
-    LSA_SAFE_FREE_MEMORY(pTotalTypes);
+    LwFreeStringArray(ppszTotalDomainNames, sCount);
+    LwFreeStringArray(ppszTotalSamAccounts, sCount);
+    LW_SAFE_FREE_MEMORY(pTotalTypes);
 
     goto cleanup;
 }

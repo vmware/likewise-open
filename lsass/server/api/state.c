@@ -58,7 +58,7 @@ LsaSrvCloseServer(
        LsaSrvCloseEventLog(pServerState->hEventLog);
     }
 
-    LsaFreeMemory(pServerState);
+    LwFreeMemory(pServerState);
 }
 
 VOID
@@ -112,7 +112,7 @@ LsaSrvOpenServer(
     DWORD dwError = 0;
     PLSA_SRV_API_STATE pServerState = NULL;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(*pServerState),
                     (PVOID*)&pServerState);
     BAIL_ON_LSA_ERROR(dwError);
@@ -163,7 +163,7 @@ LsaSrvCreateUserEnumState(
     PLSA_SRV_PROVIDER_STATE pProviderState = NULL;
     PLSA_AUTH_PROVIDER pProvider = NULL;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                        sizeof(LSA_SRV_ENUM_STATE),
                        (PVOID*)&pEnumState);
     BAIL_ON_LSA_ERROR(dwError);
@@ -176,7 +176,7 @@ LsaSrvCreateUserEnumState(
 
     for (pProvider = gpAuthProviderList; pProvider; pProvider = pProvider->pNext)
     {
-        dwError = LsaAllocateMemory(
+        dwError = LwAllocateMemory(
                             sizeof(LSA_SRV_PROVIDER_STATE),
                             (PVOID*)&pProviderState);
         BAIL_ON_LSA_ERROR(dwError);
@@ -271,7 +271,7 @@ LsaSrvCreateGroupEnumState(
     PLSA_SRV_PROVIDER_STATE pProviderState = NULL;
     PLSA_AUTH_PROVIDER pProvider = NULL;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                        sizeof(LSA_SRV_ENUM_STATE),
                        (PVOID*)&pEnumState);
     BAIL_ON_LSA_ERROR(dwError);
@@ -285,7 +285,7 @@ LsaSrvCreateGroupEnumState(
 
     for (pProvider = gpAuthProviderList; pProvider; pProvider = pProvider->pNext)
     {
-        dwError = LsaAllocateMemory(
+        dwError = LwAllocateMemory(
                             sizeof(LSA_SRV_PROVIDER_STATE),
                             (PVOID*)&pProviderState);
         BAIL_ON_LSA_ERROR(dwError);
@@ -380,7 +380,7 @@ LsaSrvCreateNSSArtefactEnumState(
     PLSA_SRV_PROVIDER_STATE pProviderState = NULL;
     PLSA_AUTH_PROVIDER pProvider = NULL;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                        sizeof(LSA_SRV_ENUM_STATE),
                        (PVOID*)&pEnumState);
     BAIL_ON_LSA_ERROR(dwError);
@@ -389,7 +389,7 @@ LsaSrvCreateNSSArtefactEnumState(
     pEnumState->dwNumMaxRecords = dwMaxNumArtefacts;
     pEnumState->dwMapFlags = dwFlags;
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                     pszMapName,
                     &pEnumState->pszMapName);
     BAIL_ON_LSA_ERROR(dwError);
@@ -398,7 +398,7 @@ LsaSrvCreateNSSArtefactEnumState(
 
     for (pProvider = gpAuthProviderList; pProvider; pProvider = pProvider->pNext)
     {
-        dwError = LsaAllocateMemory(
+        dwError = LwAllocateMemory(
                             sizeof(LSA_SRV_PROVIDER_STATE),
                             (PVOID*)&pProviderState);
         BAIL_ON_LSA_ERROR(dwError);
@@ -489,7 +489,7 @@ LsaSrvFreeProviderStateList(
         if (pState->pProvider && (pState->hProvider != (HANDLE)NULL)) {
             pState->pProvider->pFnTable->pfnCloseHandle(pState->hProvider);
         }
-        LsaFreeMemory(pState);
+        LwFreeMemory(pState);
     }
 }
 
@@ -519,7 +519,7 @@ LsaSrvFreeEnumState(
 {
     if (pState)
     {
-        LSA_SAFE_FREE_MEMORY(pState->pszMapName);
+        LW_SAFE_FREE_MEMORY(pState->pszMapName);
         if (pState->pProviderStateList)
         {
             LsaSrvFreeProviderStateList(pState->pProviderStateList);
@@ -527,6 +527,6 @@ LsaSrvFreeEnumState(
 
         LEAVE_AUTH_PROVIDER_LIST_READER_LOCK(pState->bInLock);
 
-        LsaFreeMemory(pState);
+        LwFreeMemory(pState);
     }
 }

@@ -155,7 +155,7 @@ ParseArgs(
                   parseMode = PARSE_MODE_GROUP;
               }
               else {
-                  dwError = LsaAllocateString(pArg, &pszLoginId);
+                  dwError = LwAllocateString(pArg, &pszLoginId);
                   BAIL_ON_LSA_ERROR(dwError);
                   parseMode = PARSE_MODE_DONE;
               }
@@ -165,7 +165,7 @@ ParseArgs(
 
           case PARSE_MODE_HOME:
           {
-              dwError = LsaAllocateString(pArg, &pszHomedir);
+              dwError = LwAllocateString(pArg, &pszHomedir);
               BAIL_ON_LSA_ERROR(dwError);
 
               parseMode = PARSE_MODE_OPEN;
@@ -175,7 +175,7 @@ ParseArgs(
 
           case PARSE_MODE_SHELL:
           {
-               dwError = LsaAllocateString(pArg, &pszShell);
+               dwError = LwAllocateString(pArg, &pszShell);
                BAIL_ON_LSA_ERROR(dwError);
 
                parseMode = PARSE_MODE_OPEN;
@@ -192,7 +192,7 @@ ParseArgs(
                   exit(1);
               }
 
-              dwError = LsaAllocateString(pArg, &pszUid);
+              dwError = LwAllocateString(pArg, &pszUid);
               BAIL_ON_LSA_ERROR(dwError);
 
               parseMode = PARSE_MODE_OPEN;
@@ -202,7 +202,7 @@ ParseArgs(
 
           case PARSE_MODE_GROUP:
           {
-               dwError = LsaAllocateString(pArg, &pszGroup);
+               dwError = LwAllocateString(pArg, &pszGroup);
                BAIL_ON_LSA_ERROR(dwError);
 
                parseMode = PARSE_MODE_OPEN;
@@ -236,11 +236,11 @@ cleanup:
 
 error:
 
-    LSA_SAFE_FREE_STRING(pszUid);
-    LSA_SAFE_FREE_STRING(pszGroup);
-    LSA_SAFE_FREE_STRING(pszLoginId);
-    LSA_SAFE_FREE_STRING(pszShell);
-    LSA_SAFE_FREE_STRING(pszHomedir);
+    LW_SAFE_FREE_STRING(pszUid);
+    LW_SAFE_FREE_STRING(pszGroup);
+    LW_SAFE_FREE_STRING(pszLoginId);
+    LW_SAFE_FREE_STRING(pszShell);
+    LW_SAFE_FREE_STRING(pszHomedir);
 
     *ppszUid = NULL;
     *ppszGroup = NULL;
@@ -319,7 +319,7 @@ BuildUserInfo(
     PLSA_USER_INFO_0 pUserInfo = NULL;
     DWORD dwUserInfoLevel = 0;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                    sizeof(LSA_USER_INFO_0),
                    (PVOID*)&pUserInfo
                    );
@@ -328,13 +328,13 @@ BuildUserInfo(
     pUserInfo->uid = uid;
     pUserInfo->gid = gid;
 
-    dwError = LsaAllocateString(pszLoginId, &pUserInfo->pszName);
+    dwError = LwAllocateString(pszLoginId, &pUserInfo->pszName);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateString(pszShell, &pUserInfo->pszShell);
+    dwError = LwAllocateString(pszShell, &pUserInfo->pszShell);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateString(pszHomedir, &pUserInfo->pszHomedir);
+    dwError = LwAllocateString(pszHomedir, &pUserInfo->pszHomedir);
     BAIL_ON_LSA_ERROR(dwError);
 
     // TODO: Gecos
@@ -371,7 +371,7 @@ AddUser(
     DWORD dwUserInfoLevel = 0;
     gid_t gid = 0;
 
-    if (IsNullOrEmptyString(pszLoginId)) {
+    if (LW_IS_NULL_OR_EMPTY_STR(pszLoginId)) {
         fprintf(stderr, "Please specify a valid user name.\n");
         dwError = EINVAL;
         BAIL_ON_LSA_ERROR(dwError);
@@ -389,7 +389,7 @@ AddUser(
     }
 
     dwError = BuildUserInfo(
-                   IsNullOrEmptyString(pszUid) ? 0 : (uid_t)atoi(pszUid),
+                   LW_IS_NULL_OR_EMPTY_STR(pszUid) ? 0 : (uid_t)atoi(pszUid),
                    gid,
                    pszLoginId,
                    pszShell,
@@ -404,7 +404,7 @@ AddUser(
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
-    LSA_SAFE_FREE_STRING(pszError);
+    LW_SAFE_FREE_STRING(pszError);
 
     if (hLsaConnection != (HANDLE)NULL) {
         LsaCloseServer(hLsaConnection);
@@ -422,7 +422,7 @@ error:
         }
         default:
         {
-            if (!IsNullOrEmptyString(pszError)) {
+            if (!LW_IS_NULL_OR_EMPTY_STR(pszError)) {
                fprintf(stderr, "Error: %s\n", pszError);
             } else {
                fprintf(stderr,
@@ -468,11 +468,11 @@ LsaAddUserMain(
     BAIL_ON_LSA_ERROR(dwError);
 
     if (!pszShell) {
-       dwError = LsaAllocateString("/bin/sh", &pszShell);
+       dwError = LwAllocateString("/bin/sh", &pszShell);
        BAIL_ON_LSA_ERROR(dwError);
     }
 
-    if (IsNullOrEmptyString(pszLoginId)) {
+    if (LW_IS_NULL_OR_EMPTY_STR(pszLoginId)) {
         fprintf(stderr, "Please specify a valid login id.\n");
         dwError = EINVAL;
         BAIL_ON_LSA_ERROR(dwError);
@@ -483,7 +483,7 @@ LsaAddUserMain(
 
         sprintf(szBuf, "/home/%s", pszLoginId);
 
-        dwError = LsaAllocateString(szBuf, &pszHomedir);
+        dwError = LwAllocateString(szBuf, &pszHomedir);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -500,11 +500,11 @@ LsaAddUserMain(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszHomedir);
-    LSA_SAFE_FREE_STRING(pszShell);
-    LSA_SAFE_FREE_STRING(pszUid);
-    LSA_SAFE_FREE_STRING(pszGroup);
-    LSA_SAFE_FREE_STRING(pszLoginId);
+    LW_SAFE_FREE_STRING(pszHomedir);
+    LW_SAFE_FREE_STRING(pszShell);
+    LW_SAFE_FREE_STRING(pszUid);
+    LW_SAFE_FREE_STRING(pszGroup);
+    LW_SAFE_FREE_STRING(pszLoginId);
 
     return dwError;
 
@@ -519,7 +519,7 @@ error:
         DWORD dwError2 = 0;
         PSTR   pszErrorBuffer = NULL;
 
-        dwError2 = LsaAllocateMemory(
+        dwError2 = LwAllocateMemory(
                     dwErrorBufferSize,
                     (PVOID*)&pszErrorBuffer);
 
@@ -527,14 +527,14 @@ error:
         {
             DWORD dwLen = LwGetErrorString(dwError, pszErrorBuffer, dwErrorBufferSize);
 
-            if ((dwLen == dwErrorBufferSize) && !IsNullOrEmptyString(pszErrorBuffer))
+            if ((dwLen == dwErrorBufferSize) && !LW_IS_NULL_OR_EMPTY_STR(pszErrorBuffer))
             {
                 fprintf(stderr, "Failed to add user.  %s\n", pszErrorBuffer);
                 bPrintOrigError = FALSE;
             }
         }
 
-        LSA_SAFE_FREE_STRING(pszErrorBuffer);
+        LW_SAFE_FREE_STRING(pszErrorBuffer);
     }
 
     if (bPrintOrigError)
@@ -589,7 +589,7 @@ IsUnsignedInteger(
     INT iCharIdx = 0;
     CHAR cNext = '\0';
 
-    if (IsNullOrEmptyString(pszIntegerCandidate))
+    if (LW_IS_NULL_OR_EMPTY_STR(pszIntegerCandidate))
     {
         bIsUnsignedInteger = FALSE;
         goto error;

@@ -92,7 +92,7 @@ LsaSrvWriteLoginSuccessEvent(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                  &pszDescription,
                  "Successful Logon:\r\n\r\n" \
                  "     Authentication provider: %s\r\n\r\n" \
@@ -119,8 +119,8 @@ LsaSrvWriteLoginSuccessEvent(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszData);
-    LSA_SAFE_FREE_STRING(pszDescription);
+    LW_SAFE_FREE_STRING(pszData);
+    LW_SAFE_FREE_STRING(pszDescription);
 
     return;
 
@@ -239,7 +239,7 @@ LsaSrvWriteLoginFailedEvent(
             dwEventID = LSASS_EVENT_FAILED_LOGON_CHECK_USER;
     }
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                  &pszDescription,
                  "Logon Failure:\r\n\r\n" \
                  "     Authentication provider: %s\r\n\r\n" \
@@ -268,8 +268,8 @@ LsaSrvWriteLoginFailedEvent(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszData);
-    LSA_SAFE_FREE_STRING(pszDescription);
+    LW_SAFE_FREE_STRING(pszData);
+    LW_SAFE_FREE_STRING(pszDescription);
 
     return;
 
@@ -322,7 +322,7 @@ LsaSrvWriteLogoutSuccessEvent(
             sprintf(szLoginPhase, "Unknown login phase");
     }
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                  &pszDescription,
                  "User Logoff:\r\n\r\n" \
                  "     Authentication provider: %s\r\n\r\n" \
@@ -344,7 +344,7 @@ LsaSrvWriteLogoutSuccessEvent(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszDescription);
+    LW_SAFE_FREE_STRING(pszDescription);
 
     return;
 
@@ -375,7 +375,7 @@ LsaSrvWriteUserPWChangeSuccessEvent(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                  &pszDescription,
                  "Change Password Attempt:\r\n\r\n" \
                  "     Authentication provider: %s\r\n\r\n" \
@@ -395,7 +395,7 @@ LsaSrvWriteUserPWChangeSuccessEvent(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszDescription);
+    LW_SAFE_FREE_STRING(pszDescription);
 
     return;
 
@@ -428,7 +428,7 @@ LsaSrvWriteUserPWChangeFailureEvent(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                  &pszDescription,
                  "Change Password Attempt:\r\n\r\n" \
                  "     Authentication provider: %s\r\n\r\n" \
@@ -453,8 +453,8 @@ LsaSrvWriteUserPWChangeFailureEvent(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszDescription);
-    LSA_SAFE_FREE_STRING(pszData);
+    LW_SAFE_FREE_STRING(pszDescription);
+    LW_SAFE_FREE_STRING(pszData);
 
     return;
 

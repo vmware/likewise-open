@@ -116,8 +116,8 @@ cleanup:
 
     ADCacheSafeFreeObject(&pUserInfo);
     LSA_DB_SAFE_FREE_PASSWORD_VERIFIER(pVerifier);
-    LSA_SAFE_FREE_STRING(pszEnteredPasswordVerifier);
-    LSA_SAFE_FREE_MEMORY(pbHash);
+    LW_SAFE_FREE_STRING(pszEnteredPasswordVerifier);
+    LW_SAFE_FREE_MEMORY(pbHash);
 
     return dwError;
 
@@ -196,12 +196,12 @@ AD_OfflineFindGroupObjectByName(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                     pszGroupName,
                     &pszGroupNameCopy);
     BAIL_ON_LSA_ERROR(dwError);
 
-    LsaStrCharReplace(pszGroupNameCopy, AD_GetSpaceReplacement(), ' ');
+    LwStrCharReplace(pszGroupNameCopy, AD_GetSpaceReplacement(), ' ');
 
     dwError = LsaCrackDomainQualifiedName(
                         pszGroupNameCopy,
@@ -223,7 +223,7 @@ cleanup:
     {
         LsaFreeNameInfo(pGroupNameInfo);
     }
-    LSA_SAFE_FREE_STRING(pszGroupNameCopy);
+    LW_SAFE_FREE_STRING(pszGroupNameCopy);
 
     return dwError;
 
@@ -342,7 +342,7 @@ AD_OfflineGetUserGroupObjectMembership(
 
 cleanup:
     ADCacheSafeFreeGroupMembershipList(sUserGroupMembershipsCount, &ppUserGroupMemberships);
-    LSA_SAFE_FREE_MEMORY(ppszParentSids);
+    LW_SAFE_FREE_MEMORY(ppszParentSids);
 
     return dwError;
 
@@ -438,12 +438,12 @@ AD_OfflineFindUserObjectByName(
 
     BAIL_ON_INVALID_STRING(pszLoginId);
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                     pszLoginId,
                     &pszLoginId_copy);
     BAIL_ON_LSA_ERROR(dwError);
 
-    LsaStrCharReplace(pszLoginId_copy, AD_GetSpaceReplacement(),' ');
+    LwStrCharReplace(pszLoginId_copy, AD_GetSpaceReplacement(),' ');
 
     dwError = LsaCrackDomainQualifiedName(
                         pszLoginId_copy,
@@ -465,7 +465,7 @@ cleanup:
     {
         LsaFreeNameInfo(pUserNameInfo);
     }
-    LSA_SAFE_FREE_STRING(pszLoginId_copy);
+    LW_SAFE_FREE_STRING(pszLoginId_copy);
 
     return dwError;
 

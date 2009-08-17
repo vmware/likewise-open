@@ -145,7 +145,7 @@ LsaModUserMain(
          LsaDLinkedListFree(pTaskList);
      }
 
-     LSA_SAFE_FREE_STRING(pszLoginId);
+     LW_SAFE_FREE_STRING(pszLoginId);
 
      return dwError;
 
@@ -160,7 +160,7 @@ LsaModUserMain(
          DWORD dwError2 = 0;
          PSTR   pszErrorBuffer = NULL;
 
-         dwError2 = LsaAllocateMemory(
+         dwError2 = LwAllocateMemory(
                      dwErrorBufferSize,
                      (PVOID*)&pszErrorBuffer);
 
@@ -168,14 +168,14 @@ LsaModUserMain(
          {
              DWORD dwLen = LwGetErrorString(dwError, pszErrorBuffer, dwErrorBufferSize);
 
-             if ((dwLen == dwErrorBufferSize) && !IsNullOrEmptyString(pszErrorBuffer))
+             if ((dwLen == dwErrorBufferSize) && !LW_IS_NULL_OR_EMPTY_STR(pszErrorBuffer))
              {
                  fprintf(stderr, "Failed to modify user.  %s\n", pszErrorBuffer);
                  bPrintOrigError = FALSE;
              }
          }
 
-         LSA_SAFE_FREE_STRING(pszErrorBuffer);
+         LW_SAFE_FREE_STRING(pszErrorBuffer);
      }
 
      if (bPrintOrigError)
@@ -224,7 +224,7 @@ ParseArgs(
             {
                 if (!strcmp(pArg, "--enable-user"))
                 {
-                   dwError = LsaAllocateMemory(sizeof(USER_MOD_TASK), (PVOID*)&pTask);
+                   dwError = LwAllocateMemory(sizeof(USER_MOD_TASK), (PVOID*)&pTask);
                    BAIL_ON_LSA_ERROR(dwError);
                    pTask->taskType = UserModTask_EnableUser;
 
@@ -236,7 +236,7 @@ ParseArgs(
                 else if (!strcmp(pArg, "--disable-user"))
                 {
 
-                    dwError = LsaAllocateMemory(sizeof(USER_MOD_TASK), (PVOID*)&pTask);
+                    dwError = LwAllocateMemory(sizeof(USER_MOD_TASK), (PVOID*)&pTask);
                     BAIL_ON_LSA_ERROR(dwError);
                     pTask->taskType = UserModTask_DisableUser;
 
@@ -254,7 +254,7 @@ ParseArgs(
                 else if (!strcmp(pArg, "--change-password-at-next-logon"))
                 {
 
-                    dwError = LsaAllocateMemory(sizeof(USER_MOD_TASK), (PVOID*)&pTask);
+                    dwError = LwAllocateMemory(sizeof(USER_MOD_TASK), (PVOID*)&pTask);
                     BAIL_ON_LSA_ERROR(dwError);
                     pTask->taskType = UserModTask_ChangePasswordAtNextLogon;
 
@@ -265,7 +265,7 @@ ParseArgs(
                 }
                 else if (!strcmp(pArg, "--unlock")) {
 
-                    dwError = LsaAllocateMemory(sizeof(USER_MOD_TASK), (PVOID*)&pTask);
+                    dwError = LwAllocateMemory(sizeof(USER_MOD_TASK), (PVOID*)&pTask);
                     BAIL_ON_LSA_ERROR(dwError);
                     pTask->taskType = UserModTask_UnlockUser;
 
@@ -277,7 +277,7 @@ ParseArgs(
                 else if (!strcmp(pArg, "--password-never-expires"))
                 {
 
-                    dwError = LsaAllocateMemory(sizeof(USER_MOD_TASK), (PVOID*)&pTask);
+                    dwError = LwAllocateMemory(sizeof(USER_MOD_TASK), (PVOID*)&pTask);
                     BAIL_ON_LSA_ERROR(dwError);
                     pTask->taskType = UserModTask_SetPasswordNeverExpires;
 
@@ -289,7 +289,7 @@ ParseArgs(
                 else if (!strcmp(pArg, "--password-must-expire"))
                 {
 
-                    dwError = LsaAllocateMemory(sizeof(USER_MOD_TASK), (PVOID*)&pTask);
+                    dwError = LwAllocateMemory(sizeof(USER_MOD_TASK), (PVOID*)&pTask);
                     BAIL_ON_LSA_ERROR(dwError);
                     pTask->taskType = UserModTask_SetPasswordMustExpire;
 
@@ -320,7 +320,7 @@ ParseArgs(
                 }
                 else
                 {
-                    dwError = LsaAllocateString(pArg, &pszLoginId);
+                    dwError = LwAllocateString(pArg, &pszLoginId);
                     BAIL_ON_LSA_ERROR(dwError);
                     parseMode = PARSE_MODE_DONE;
                 }
@@ -329,12 +329,12 @@ ParseArgs(
 
             case PARSE_MODE_SET_ACCOUNT_EXPIRY:
             {
-                  dwError = LsaAllocateMemory(sizeof(USER_MOD_TASK), (PVOID*)&pTask);
+                  dwError = LwAllocateMemory(sizeof(USER_MOD_TASK), (PVOID*)&pTask);
                   BAIL_ON_LSA_ERROR(dwError);
 
                   pTask->taskType = UserModTask_SetAccountExpiryDate;
 
-                  dwError = LsaAllocateString(pArg, &pTask->pszData);
+                  dwError = LwAllocateString(pArg, &pTask->pszData);
                   BAIL_ON_LSA_ERROR(dwError);
 
                   dwError = LsaDLinkedListAppend(&pTaskList, pTask);
@@ -349,12 +349,12 @@ ParseArgs(
 
             case PARSE_MODE_REMOVE_FROM_GROUPS:
             {
-                 dwError = LsaAllocateMemory(sizeof(USER_MOD_TASK), (PVOID*)&pTask);
+                 dwError = LwAllocateMemory(sizeof(USER_MOD_TASK), (PVOID*)&pTask);
                  BAIL_ON_LSA_ERROR(dwError);
 
                  pTask->taskType = UserModTask_RemoveFromGroups;
 
-                 dwError = LsaAllocateString(pArg, &pTask->pszData);
+                 dwError = LwAllocateString(pArg, &pTask->pszData);
                  BAIL_ON_LSA_ERROR(dwError);
 
                  dwError = LsaDLinkedListAppend(&pTaskList, pTask);
@@ -367,12 +367,12 @@ ParseArgs(
 
             case PARSE_MODE_ADD_TO_GROUPS:
             {
-                dwError = LsaAllocateMemory(sizeof(USER_MOD_TASK), (PVOID*)&pTask);
+                dwError = LwAllocateMemory(sizeof(USER_MOD_TASK), (PVOID*)&pTask);
                 BAIL_ON_LSA_ERROR(dwError);
 
                 pTask->taskType = UserModTask_AddToGroups;
 
-                dwError = LsaAllocateString(pArg, &pTask->pszData);
+                dwError = LwAllocateString(pArg, &pTask->pszData);
                 BAIL_ON_LSA_ERROR(dwError);
 
                 dwError = LsaDLinkedListAppend(&pTaskList, pTask);
@@ -385,12 +385,12 @@ ParseArgs(
 
             case PARSE_MODE_SET_NT_PASSWORD_HASH:
             {
-                dwError = LsaAllocateMemory(sizeof(USER_MOD_TASK), (PVOID*)&pTask);
+                dwError = LwAllocateMemory(sizeof(USER_MOD_TASK), (PVOID*)&pTask);
                 BAIL_ON_LSA_ERROR(dwError);
 
                 pTask->taskType = UserModTask_SetNtPasswordHash;
 
-                dwError = LsaAllocateString(pArg, &pTask->pszData);
+                dwError = LwAllocateString(pArg, &pTask->pszData);
                 BAIL_ON_LSA_ERROR(dwError);
 
                 dwError = LsaDLinkedListAppend(&pTaskList, pTask);
@@ -403,12 +403,12 @@ ParseArgs(
 
             case PARSE_MODE_SET_LM_PASSWORD_HASH:
             {
-                dwError = LsaAllocateMemory(sizeof(USER_MOD_TASK), (PVOID*)&pTask);
+                dwError = LwAllocateMemory(sizeof(USER_MOD_TASK), (PVOID*)&pTask);
                 BAIL_ON_LSA_ERROR(dwError);
 
                 pTask->taskType = UserModTask_SetLmPasswordHash;
 
-                dwError = LsaAllocateString(pArg, &pTask->pszData);
+                dwError = LwAllocateString(pArg, &pTask->pszData);
                 BAIL_ON_LSA_ERROR(dwError);
 
                 dwError = LsaDLinkedListAppend(&pTaskList, pTask);
@@ -460,7 +460,7 @@ error:
         FreeTask(pTask);
     }
 
-    LSA_SAFE_FREE_STRING(pszLoginId);
+    LW_SAFE_FREE_STRING(pszLoginId);
 
     ShowUsage(GetProgramName(argv[0]));
 
@@ -539,7 +539,7 @@ ValidateArgs(
         goto cleanup;
     }
 
-    if (IsNullOrEmptyString(pszLoginId)) {
+    if (LW_IS_NULL_OR_EMPTY_STR(pszLoginId)) {
         fprintf(stderr, "Error: A valid user id or user login id must be specified.\n");
         goto cleanup;
     }
@@ -585,8 +585,8 @@ FreeTask(
     PUSER_MOD_TASK pTask
     )
 {
-    LSA_SAFE_FREE_STRING(pTask->pszData);
-    LsaFreeMemory(pTask);
+    LW_SAFE_FREE_STRING(pTask->pszData);
+    LwFreeMemory(pTask);
 }
 
 static

@@ -286,8 +286,8 @@ LsaDmWrapGetDomainNameAndSidByObjectSid(
     }
 
 cleanup:
-    LSA_SAFE_FREE_MEMORY(pObjectSid);
-    LSA_SAFE_FREE_MEMORY(pDomainSid);
+    LW_SAFE_FREE_MEMORY(pObjectSid);
+    LW_SAFE_FREE_MEMORY(pDomainSid);
 
     if (ppszDnsDomainName)
     {
@@ -306,9 +306,9 @@ cleanup:
 
 error:
     // set output in cleanup.
-    LSA_SAFE_FREE_STRING(pszDnsDomainName);
-    LSA_SAFE_FREE_STRING(pszNetbiosDomainName);
-    LSA_SAFE_FREE_STRING(pszDomainSid);
+    LW_SAFE_FREE_STRING(pszDnsDomainName);
+    LW_SAFE_FREE_STRING(pszNetbiosDomainName);
+    LW_SAFE_FREE_STRING(pszDomainSid);
     goto cleanup;
 }
 
@@ -695,7 +695,7 @@ LsaDmWrapDsGetDcName(
     }
     else
     {
-        LSA_SAFE_FREE_STRING(context.pszDomainForestDnsName);
+        LW_SAFE_FREE_STRING(context.pszDomainForestDnsName);
     }
 
     return dwError;

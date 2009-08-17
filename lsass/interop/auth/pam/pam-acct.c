@@ -121,7 +121,7 @@ pam_sm_acct_mgmt(
                     NULL);
     if (dwError)
     {
-        if (!IsNullOrEmptyString(pConfig->pszAccessDeniedMessage))
+        if (!LW_IS_NULL_OR_EMPTY_STR(pConfig->pszAccessDeniedMessage))
         {
             LsaPamConverse(pamh,
                            pConfig->pszAccessDeniedMessage,
@@ -164,7 +164,7 @@ cleanup:
         LsaPamFreeConfig(pConfig);
     }
 
-    LSA_SAFE_FREE_STRING(pszLoginId);
+    LW_SAFE_FREE_STRING(pszLoginId);
 
     LSA_LOG_PAM_DEBUG("pam_sm_acct_mgmt::end");
 

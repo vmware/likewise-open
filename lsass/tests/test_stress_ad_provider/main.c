@@ -94,14 +94,14 @@ main(
                     pszConfigFilePath);
     BAIL_ON_LSA_ERROR(dwError);
     
-    if (IsNullOrEmptyString(gpszProviderLibPath))
+    if (LW_IS_NULL_OR_EMPTY_STR(gpszProviderLibPath))
     {
         fprintf(stderr, "Error: The stress config file does not have a valid provider library path\n");
         dwError = EINVAL;
         BAIL_ON_LSA_ERROR(dwError);
     }
     
-    if (IsNullOrEmptyString(gpszProviderConfigFilePath))
+    if (LW_IS_NULL_OR_EMPTY_STR(gpszProviderConfigFilePath))
     {
         fprintf(stderr, "Error: The stress config file does not have a valid provider config file path\n");
         dwError = EINVAL;
@@ -138,7 +138,7 @@ cleanup:
 
     LADSShutdownGlobals();
 
-    LSA_SAFE_FREE_STRING(pszConfigFilePath);
+    LW_SAFE_FREE_STRING(pszConfigFilePath);
 
     return (dwError);
 
@@ -205,27 +205,27 @@ LADSShutdownGlobals(
                     DWORD i = 0;
                     for (i = 0; i < gLADSStressData[iType].dwNumItems; i++)
                     {
-                        LSA_SAFE_FREE_STRING(gLADSStressData[iType].data.ppszNames[i]);
+                        LW_SAFE_FREE_STRING(gLADSStressData[iType].data.ppszNames[i]);
                     }
-                    LsaFreeMemory(gLADSStressData[iType].data.ppszNames);
+                    LwFreeMemory(gLADSStressData[iType].data.ppszNames);
                 }
                 break;
                 
             case LADS_FIND_USER_BY_ID:
                 
-                LSA_SAFE_FREE_MEMORY(gLADSStressData[iType].data.pUidArray);
+                LW_SAFE_FREE_MEMORY(gLADSStressData[iType].data.pUidArray);
 
             case LADS_FIND_GROUP_BY_ID:
                 
-                LSA_SAFE_FREE_MEMORY(gLADSStressData[iType].data.pGidArray);
+                LW_SAFE_FREE_MEMORY(gLADSStressData[iType].data.pGidArray);
 
             default:
                 break;
         }
     }
     
-    LSA_SAFE_FREE_STRING(gpszProviderLibPath);
-    LSA_SAFE_FREE_STRING(gpszProviderConfigFilePath);
+    LW_SAFE_FREE_STRING(gpszProviderLibPath);
+    LW_SAFE_FREE_STRING(gpszProviderConfigFilePath);
     
     return dwError;
 }
@@ -286,7 +286,7 @@ LADSParseArgs(
            }
            case ConfigFile:
                
-               dwError = LsaAllocateString(
+               dwError = LwAllocateString(
                                pszArg,
                                &pszConfigFilePath);
                BAIL_ON_LSA_ERROR(dwError);
@@ -331,7 +331,7 @@ LADSParseArgs(
         }
     } while ((parse_mode != Done) && (iArg < argc));
     
-    if (IsNullOrEmptyString(pszConfigFilePath))
+    if (LW_IS_NULL_OR_EMPTY_STR(pszConfigFilePath))
     {
         ShowUsage();
         exit(1);
@@ -348,7 +348,7 @@ error:
 
     *ppszConfigFilePath = NULL;
 
-    LSA_SAFE_FREE_STRING(pszConfigFilePath);
+    LW_SAFE_FREE_STRING(pszConfigFilePath);
     
     goto cleanup;
 }
@@ -478,7 +478,7 @@ LADSInitAuthProvider(
     PCSTR  pszError = NULL;
     PSTR pszProviderLibpath = NULL;
     
-    if (IsNullOrEmptyString(pProvider->pszProviderLibpath)) {
+    if (LW_IS_NULL_OR_EMPTY_STR(pProvider->pszProviderLibpath)) {
         dwError = ENOENT;
         BAIL_ON_LSA_ERROR(dwError);
     }
@@ -492,7 +492,7 @@ LADSInitAuthProvider(
        LSA_LOG_ERROR("Failed to open auth provider at path [%s]", pszProviderLibpath);
 
        pszError = dlerror();
-       if (!IsNullOrEmptyString(pszError)) {
+       if (!LW_IS_NULL_OR_EMPTY_STR(pszError)) {
           LSA_LOG_ERROR("%s", pszError);
        }
             
@@ -508,7 +508,7 @@ LADSInitAuthProvider(
        LSA_LOG_ERROR("Ignoring invalid auth provider at path [%s]", pszProviderLibpath);
             
        pszError = dlerror();
-       if (!IsNullOrEmptyString(pszError)) {
+       if (!LW_IS_NULL_OR_EMPTY_STR(pszError)) {
           LSA_LOG_ERROR("%s", pszError);
        }
             
@@ -524,7 +524,7 @@ LADSInitAuthProvider(
        LSA_LOG_ERROR("Ignoring invalid auth provider at path [%s]", pszProviderLibpath);
             
        pszError = dlerror();
-       if (!IsNullOrEmptyString(pszError)) {
+       if (!LW_IS_NULL_OR_EMPTY_STR(pszError)) {
           LSA_LOG_ERROR("%s", pszError);
        }
             
@@ -615,7 +615,7 @@ LADSStartWorkers(
            continue;
         }
 
-        dwError = LsaAllocateMemory(
+        dwError = LwAllocateMemory(
                       sizeof(pthread_t) * gLADSStressData[iType].dwNumThreads,
                       (PVOID*)&gLADSStressData[iType].pThreadArray);
         BAIL_ON_LSA_ERROR(dwError);
@@ -708,7 +708,7 @@ LADSStopWorkers(
             }
         }
 
-        LsaFreeMemory(gLADSStressData[iType].pThreadArray);
+        LwFreeMemory(gLADSStressData[iType].pThreadArray);
     }
 
     return dwError;

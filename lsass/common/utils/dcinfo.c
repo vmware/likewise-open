@@ -52,8 +52,8 @@ LsaFreeDCInfo(
     PLSA_DC_INFO pDCInfo
     )
 {
-    LSA_SAFE_FREE_STRING(pDCInfo->pszAddress);
-    LSA_SAFE_FREE_STRING(pDCInfo->pszName);
-    LSA_SAFE_FREE_STRING(pDCInfo->pszSiteName);
-    LsaFreeMemory(pDCInfo);
+    LW_SAFE_FREE_STRING(pDCInfo->pszAddress);
+    LW_SAFE_FREE_STRING(pDCInfo->pszName);
+    LW_SAFE_FREE_STRING(pDCInfo->pszSiteName);
+    LwFreeMemory(pDCInfo);
 }

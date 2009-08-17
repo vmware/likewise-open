@@ -232,7 +232,7 @@ SamDbBuildSqlQuery(
                         &pszFilter);
         BAIL_ON_SAMDB_ERROR(dwError);
 
-        LsaStripWhitespace(pszFilter, TRUE, TRUE);
+        LwStripWhitespace(pszFilter, TRUE, TRUE);
     }
 
     while (wszAttributes[dwNumAttrs])

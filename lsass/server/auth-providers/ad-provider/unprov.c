@@ -109,14 +109,14 @@ ADUnprovPlugin_QueryByIdWithDomainName(
     *ppszAlias = pszAlias;
 
 cleanup:
-    LSA_SAFE_FREE_MEMORY(pDomainSid);
-    LSA_SAFE_FREE_STRING(pszDomainSid);
+    LW_SAFE_FREE_MEMORY(pDomainSid);
+    LW_SAFE_FREE_STRING(pszDomainSid);
 
     return dwError;
 
 error:
-    LSA_SAFE_FREE_STRING(pszSid);
-    LSA_SAFE_FREE_STRING(pszAlias);
+    LW_SAFE_FREE_STRING(pszSid);
+    LW_SAFE_FREE_STRING(pszAlias);
     *ppszSid = NULL;
     *ppszAlias = NULL;
 
@@ -146,7 +146,7 @@ ADUnprovPlugin_QueryByAliasWithDomainName(
                  &pszNetBiosName);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                  &pszNT4Name,
                  "%s\\%s",
                  pszNetBiosName,
@@ -171,12 +171,12 @@ ADUnprovPlugin_QueryByAliasWithDomainName(
     *pdwId = dwId;
 
 cleanup:
-    LSA_SAFE_FREE_STRING(pszNT4Name);
-    LSA_SAFE_FREE_STRING(pszNetBiosName);
+    LW_SAFE_FREE_STRING(pszNT4Name);
+    LW_SAFE_FREE_STRING(pszNetBiosName);
     return dwError;
 
 error:
-    LSA_SAFE_FREE_STRING(pszSid);
+    LW_SAFE_FREE_STRING(pszSid);
     *ppszSid = NULL;
     *pdwId = 0;
 
@@ -239,7 +239,7 @@ ADUnprovPlugin_QueryByReal(
 
     // can add alias here
 #ifdef ENABLE_ALIAS_TO_BE_SAMACCOUNT_NAME
-    if (IsNullOrEmptyString(pszNT4Name))
+    if (LW_IS_NULL_OR_EMPTY_STR(pszNT4Name))
     {
         dwError = LsaDmWrapNetLookupNameByObjectSid(
                     gpADProviderData->szDomain,
@@ -257,14 +257,14 @@ ADUnprovPlugin_QueryByReal(
     }
 
     dwError = LsaCrackDomainQualifiedName(
-                 !IsNullOrEmptyString(pszNT4Name) ? pszNT4Name : pszName,
+                 !LW_IS_NULL_OR_EMPTY_STR(pszNT4Name) ? pszNT4Name : pszName,
                  gpADProviderData->szDomain,
                  &pNameInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (pNameInfo && !IsNullOrEmptyString(pNameInfo->pszName))
+    if (pNameInfo && !LW_IS_NULL_OR_EMPTY_STR(pNameInfo->pszName))
     {
-        dwError = LsaAllocateString(pNameInfo->pszName,
+        dwError = LwAllocateString(pNameInfo->pszName,
                                     &pszAlias);
         BAIL_ON_LSA_ERROR(dwError);
     }
@@ -279,13 +279,13 @@ ADUnprovPlugin_QueryByReal(
 cleanup:
 #ifdef ENABLE_ALIAS_TO_BE_SAMACCOUNT_NAME
     LSA_SAFE_FREE_LOGIN_NAME_INFO(pNameInfo);
-    LSA_SAFE_FREE_STRING(pszName);
+    LW_SAFE_FREE_STRING(pszName);
 #endif
 
     return dwError;
 
 error:
-    LSA_SAFE_FREE_STRING(pszAlias);
+    LW_SAFE_FREE_STRING(pszAlias);
     if (ppszAlias)
     {
         *ppszAlias = NULL;
@@ -324,7 +324,7 @@ ADUnprovPlugin_QueryByAlias(
     BAIL_ON_LSA_ERROR(dwError);
 
 
-    if (!IsNullOrEmptyString(*ppszSid))
+    if (!LW_IS_NULL_OR_EMPTY_STR(*ppszSid))
         goto cleanup;
 
     dwError = LsaDmEnumDomainNames(NULL, NULL, &ppszDomainNames, &dwDomainCount);
@@ -346,7 +346,7 @@ ADUnprovPlugin_QueryByAlias(
         }
         BAIL_ON_LSA_ERROR(dwError);
 
-        if (!IsNullOrEmptyString(*ppszSid))
+        if (!LW_IS_NULL_OR_EMPTY_STR(*ppszSid))
             goto cleanup;
     }
 
@@ -356,7 +356,7 @@ cleanup:
         *ppszSid = NULL;
     }
 
-    LsaFreeStringArray(ppszDomainNames, dwDomainCount);
+    LwFreeStringArray(ppszDomainNames, dwDomainCount);
 
     return dwError;
 
@@ -395,7 +395,7 @@ ADUnprovPlugin_QueryById(
     BAIL_ON_LSA_ERROR(dwError);
 
 
-    if (!IsNullOrEmptyString(*ppszSid))
+    if (!LW_IS_NULL_OR_EMPTY_STR(*ppszSid))
         goto cleanup;
 
     dwError = LsaDmEnumDomainNames(NULL, NULL, &ppszDomainNames, &dwDomainCount);
@@ -417,7 +417,7 @@ ADUnprovPlugin_QueryById(
         }
         BAIL_ON_LSA_ERROR(dwError);
 
-        if (!IsNullOrEmptyString(*ppszSid))
+        if (!LW_IS_NULL_OR_EMPTY_STR(*ppszSid))
             goto cleanup;
     }
 
@@ -428,7 +428,7 @@ cleanup:
         *ppszAlias = NULL;
     }
 
-    LsaFreeStringArray(ppszDomainNames, dwDomainCount);
+    LwFreeStringArray(ppszDomainNames, dwDomainCount);
 
     return dwError;
 

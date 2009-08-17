@@ -84,7 +84,7 @@ LocalEventLogServiceStart(
                     &dwGroupCount);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                  &pszDescription,
                  "Likewise authentication service provider initialization %s.\r\n\r\n" \
                  "     Authentication provider:        %s\r\n\r\n" \
@@ -125,8 +125,8 @@ cleanup:
         DirectoryClose(hDirectory);
     }
 
-    LSA_SAFE_FREE_STRING(pszDescription);
-    LSA_SAFE_FREE_STRING(pszData);
+    LW_SAFE_FREE_STRING(pszDescription);
+    LW_SAFE_FREE_STRING(pszData);
 
     return;
 
@@ -165,7 +165,7 @@ LocalEventLogConfigReload(
 
     pszEventLogEnabled = bEventlogEnabled ? "true" : "false";
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                  &pszDescription,
                  pszFormat,
                  gpszLocalProviderName,
@@ -182,7 +182,7 @@ LocalEventLogConfigReload(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszDescription);
+    LW_SAFE_FREE_STRING(pszDescription);
 
     return;
 
@@ -200,7 +200,7 @@ LocalEventLogUserAdd(
     DWORD dwError = 0;
     PSTR pszDescription = NULL;
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                  &pszDescription,
                  "User account created.\r\n\r\n" \
                  "     Authentication provider: %s\r\n\r\n" \
@@ -218,7 +218,7 @@ LocalEventLogUserAdd(
             NULL);
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszDescription);
+    LW_SAFE_FREE_STRING(pszDescription);
 
     return;
 
@@ -235,7 +235,7 @@ LocalEventLogUserDelete(
     DWORD dwError = 0;
     PSTR pszDescription = NULL;
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                  &pszDescription,
                  "User account deleted.\r\n\r\n" \
                  "     Authentication provider: %s\r\n\r\n" \
@@ -251,7 +251,7 @@ LocalEventLogUserDelete(
             NULL);
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszDescription);
+    LW_SAFE_FREE_STRING(pszDescription);
 
     return;
 
@@ -269,7 +269,7 @@ LocalEventLogGroupAdd(
     DWORD dwError = 0;
     PSTR pszDescription = NULL;
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                  &pszDescription,
                  "Group created.\r\n\r\n" \
                  "     Authentication provider: %s\r\n\r\n" \
@@ -287,7 +287,7 @@ LocalEventLogGroupAdd(
             NULL);
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszDescription);
+    LW_SAFE_FREE_STRING(pszDescription);
 
     return;
 
@@ -304,7 +304,7 @@ LocalEventLogGroupDelete(
     DWORD dwError = 0;
     PSTR pszDescription = NULL;
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                  &pszDescription,
                  "Group deleted.\r\n\r\n" \
                  "     Authentication provider: %s\r\n\r\n" \
@@ -320,7 +320,7 @@ LocalEventLogGroupDelete(
             NULL);
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszDescription);
+    LW_SAFE_FREE_STRING(pszDescription);
 
     return;
 

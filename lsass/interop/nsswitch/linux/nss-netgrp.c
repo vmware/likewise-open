@@ -99,7 +99,7 @@ error:
 NSS_STATUS
 _nss_lsass_endnetgrent (struct __netgrent * result)
 {
-    LSA_SAFE_FREE_MEMORY(result->data);
+    LW_SAFE_FREE_MEMORY(result->data);
 
     return NSS_STATUS_SUCCESS;
 }

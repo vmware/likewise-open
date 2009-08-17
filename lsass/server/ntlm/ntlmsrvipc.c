@@ -96,7 +96,7 @@ NtlmSrvIpcCreateError(
     DWORD dwError = 0;
     PNTLM_IPC_ERROR pError = NULL;
 
-    dwError = LsaAllocateMemory(sizeof(*pError), (PVOID*)(PVOID)&pError);
+    dwError = LwAllocateMemory(sizeof(*pError), (PVOID*)(PVOID)&pError);
     BAIL_ON_LW_ERROR(dwError);
 
     pError->dwError = dwErrorCode;
@@ -120,7 +120,7 @@ NtlmSrvIpcAcceptSecurityContext(
     PNTLM_IPC_ACCEPT_SEC_CTXT_RESPONSE pNtlmResp = NULL;
     PNTLM_IPC_ERROR pError = NULL;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
         sizeof(NTLM_IPC_ACCEPT_SEC_CTXT_RESPONSE),
         (PVOID*)(PVOID)&pNtlmResp
         );
@@ -209,7 +209,7 @@ NtlmSrvIpcAcquireCredentialsHandle(
     PNTLM_IPC_ACQUIRE_CREDS_RESPONSE pNtlmResp = NULL;
     PNTLM_IPC_ERROR pError = NULL;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
         sizeof(NTLM_IPC_ACQUIRE_CREDS_RESPONSE),
         (PVOID*)(PVOID)&pNtlmResp
         );
@@ -272,7 +272,7 @@ NtlmSrvIpcDecryptMessage(
     PNTLM_IPC_DECRYPT_MSG_RESPONSE pNtlmResp = NULL;
     PNTLM_IPC_ERROR pError = NULL;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
         sizeof(NTLM_IPC_DECRYPT_MSG_RESPONSE),
         (PVOID*)(PVOID)&pNtlmResp
         );
@@ -368,7 +368,7 @@ NtlmSrvIpcEncryptMessage(
     PNTLM_IPC_ENCRYPT_MSG_RESPONSE pNtlmResp = NULL;
     PNTLM_IPC_ERROR pError = NULL;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
         sizeof(NTLM_IPC_ENCRYPT_MSG_RESPONSE),
         (PVOID*)(PVOID)&pNtlmResp
         );
@@ -419,7 +419,7 @@ NtlmSrvIpcExportSecurityContext(
     PNTLM_IPC_EXPORT_SEC_CTXT_RESPONSE pNtlmResp = NULL;
     PNTLM_IPC_ERROR pError = NULL;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
         sizeof(NTLM_IPC_EXPORT_SEC_CTXT_RESPONSE),
         (PVOID*)(PVOID)&pNtlmResp
         );
@@ -515,7 +515,7 @@ NtlmSrvIpcImportSecurityContext(
     PNTLM_IPC_IMPORT_SEC_CTXT_RESPONSE pNtlmResp = NULL;
     PNTLM_IPC_ERROR pError = NULL;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
         sizeof(NTLM_IPC_IMPORT_SEC_CTXT_RESPONSE),
         (PVOID*)(PVOID)&pNtlmResp
         );
@@ -563,7 +563,7 @@ NtlmSrvIpcInitializeSecurityContext(
     PNTLM_IPC_INIT_SEC_CTXT_RESPONSE pNtlmResp = NULL;
     PNTLM_IPC_ERROR pError = NULL;
 
-    dwError = LsaAllocateMemory(sizeof(*pNtlmResp), OUT_PPVOID(&pNtlmResp));
+    dwError = LwAllocateMemory(sizeof(*pNtlmResp), OUT_PPVOID(&pNtlmResp));
     BAIL_ON_LW_ERROR(dwError);
 
     dwError = NtlmServerInitializeSecurityContext(
@@ -650,7 +650,7 @@ NtlmSrvIpcMakeSignature(
     PNTLM_IPC_MAKE_SIGN_RESPONSE pNtlmResp = NULL;
     PNTLM_IPC_ERROR pError = NULL;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
         sizeof(NTLM_IPC_MAKE_SIGN_RESPONSE),
         (PVOID*)(PVOID)&pNtlmResp
         );
@@ -701,7 +701,7 @@ NtlmSrvIpcQueryCredentialsAttributes(
     PNTLM_IPC_QUERY_CREDS_RESPONSE pNtlmResp = NULL;
     PNTLM_IPC_ERROR pError = NULL;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
         sizeof(NTLM_IPC_QUERY_CREDS_RESPONSE),
         (PVOID*)(PVOID)&pNtlmResp
         );
@@ -752,7 +752,7 @@ NtlmSrvIpcQueryContextAttributes(
     PNTLM_IPC_QUERY_CTXT_RESPONSE pNtlmResp = NULL;
     PNTLM_IPC_ERROR pError = NULL;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
         sizeof(NTLM_IPC_QUERY_CTXT_RESPONSE),
         (PVOID*)(PVOID)&pNtlmResp
         );
@@ -802,7 +802,7 @@ NtlmSrvIpcVerifySignature(
     PNTLM_IPC_VERIFY_SIGN_RESPONSE pNtlmResp = NULL;
     PNTLM_IPC_ERROR pError = NULL;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
         sizeof(NTLM_IPC_VERIFY_SIGN_RESPONSE),
         (PVOID*)(PVOID)&pNtlmResp
         );
@@ -896,7 +896,7 @@ NtlmGetDomainFromCredential(
 
     pDomain++;
 
-    dwError = LsaAllocateString(pDomain, ppDomain);
+    dwError = LwAllocateString(pDomain, ppDomain);
 
 cleanup:
     return dwError;

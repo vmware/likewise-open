@@ -200,7 +200,7 @@ NtlmCreateContext(
 
     *ppNtlmContext = NULL;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
         sizeof(LSA_CONTEXT),
         (PVOID*)(PVOID)&pContext
         );
@@ -319,7 +319,7 @@ NtlmCopyContextToSecBufferDesc(
     }
 
     pSecBuffer->cbBuffer = pNtlmContext->dwMessageSize;
-    dwError = LsaAllocateMemory(pSecBuffer->cbBuffer, OUT_PPVOID(&pBuffer));
+    dwError = LwAllocateMemory(pSecBuffer->cbBuffer, OUT_PPVOID(&pBuffer));
     BAIL_ON_LW_ERROR(dwError);
 
     memcpy(pBuffer, pNtlmContext->pMessage, pSecBuffer->cbBuffer);
@@ -450,7 +450,7 @@ NtlmCreateNegotiateMessage(
         dwSize += sizeof(NTLM_SEC_BUFFER);
     }
 
-    dwError = LsaAllocateMemory(dwSize, (PVOID*)(PVOID)&pMessage);
+    dwError = LwAllocateMemory(dwSize, (PVOID*)(PVOID)&pMessage);
     BAIL_ON_LW_ERROR(dwError);
 
     // Data is checked and memory is allocated; fill in the structure
@@ -688,7 +688,7 @@ NtlmCreateChallengeMessage(
 
     dwSize += dwTargetNameSize;
 
-    dwError = LsaAllocateMemory(dwSize, OUT_PPVOID(&pMessage));
+    dwError = LwAllocateMemory(dwSize, OUT_PPVOID(&pMessage));
     BAIL_ON_LW_ERROR(dwError);
 
     // If the client wants to support a dummy signature, we will too
@@ -1016,7 +1016,7 @@ NtlmCreateResponseMessage(
         dwSize += NTLM_WIN_SPOOF_SIZE;
     }
 
-    dwError = LsaAllocateMemory(dwSize, (PVOID*)(PVOID)&pMessage);
+    dwError = LwAllocateMemory(dwSize, (PVOID*)(PVOID)&pMessage);
     BAIL_ON_LW_ERROR(dwError);
 
     // Data is checked and memory is allocated; fill in the structure
@@ -1233,7 +1233,7 @@ NtlmGetAuthTargetNameFromChallenge(
 
     if(pChlngMsg->NtlmFlags & NTLM_FLAG_OEM)
     {
-        dwError = LsaAllocateMemory(dwNameLength + 1, OUT_PPVOID(&pName));
+        dwError = LwAllocateMemory(dwNameLength + 1, OUT_PPVOID(&pName));
         BAIL_ON_LW_ERROR(dwError);
 
         memcpy(pName, pBuffer, dwNameLength);
@@ -1242,7 +1242,7 @@ NtlmGetAuthTargetNameFromChallenge(
     {
         dwNameLength = dwNameLength / sizeof(WCHAR);
 
-        dwError = LsaAllocateMemory(dwNameLength + 1, OUT_PPVOID(&pName));
+        dwError = LwAllocateMemory(dwNameLength + 1, OUT_PPVOID(&pName));
         BAIL_ON_LW_ERROR(dwError);
 
         for(nIndex = 0; nIndex < dwNameLength; nIndex++)
@@ -1255,7 +1255,7 @@ cleanup:
     *ppAuthTargetName = pName;
     return dwError;
 error:
-    LSA_SAFE_FREE_STRING(pName);
+    LW_SAFE_FREE_STRING(pName);
     goto cleanup;
 }
 

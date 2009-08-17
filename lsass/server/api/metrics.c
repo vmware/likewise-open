@@ -90,7 +90,7 @@ error:
 
     *ppMetricPack = NULL;
 
-    LSA_SAFE_FREE_MEMORY(pMetricPack);
+    LW_SAFE_FREE_MEMORY(pMetricPack);
 
     goto cleanup;
 }
@@ -105,7 +105,7 @@ LsaSrvGetMetrics_0(
 
     pthread_rwlock_rdlock(&gPerfCounters_rwlock);
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                   sizeof(LSA_METRIC_PACK_0),
                   (PVOID*)&pMetricPack);
     BAIL_ON_LSA_ERROR(dwError);
@@ -141,7 +141,7 @@ error:
 
     *ppMetricPack = NULL;
 
-    LSA_SAFE_FREE_MEMORY(pMetricPack);
+    LW_SAFE_FREE_MEMORY(pMetricPack);
 
     goto cleanup;
 }
@@ -156,7 +156,7 @@ LsaSrvGetMetrics_1(
 
     pthread_rwlock_rdlock(&gPerfCounters_rwlock);
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                   sizeof(LSA_METRIC_PACK_1),
                   (PVOID*)&pMetricPack);
     BAIL_ON_LSA_ERROR(dwError);
@@ -210,7 +210,7 @@ error:
 
     *ppMetricPack = NULL;
 
-    LSA_SAFE_FREE_MEMORY(pMetricPack);
+    LW_SAFE_FREE_MEMORY(pMetricPack);
 
     goto cleanup;
 }
@@ -237,16 +237,16 @@ LsaSrvFreeIpcMetriPack(
         switch (pMetricPack->dwInfoLevel)
         {
             case 0:
-                LSA_SAFE_FREE_MEMORY(pMetricPack->pMetricPack.pMetricPack0);
+                LW_SAFE_FREE_MEMORY(pMetricPack->pMetricPack.pMetricPack0);
                 break;
             case 1:
-                LSA_SAFE_FREE_MEMORY(pMetricPack->pMetricPack.pMetricPack1);
+                LW_SAFE_FREE_MEMORY(pMetricPack->pMetricPack.pMetricPack1);
                 break;
             default:
                 {
                     LSA_LOG_ERROR("Unsupported Metric Pack Info Level [%d]", pMetricPack->dwInfoLevel);
                 }
         }
-        LsaFreeMemory(pMetricPack);
+        LwFreeMemory(pMetricPack);
     }
 }

@@ -72,7 +72,7 @@ LsaNssSolarisGroupDestructor(
     LsaNssClearEnumGroupsState(
         &pLsaBackend->hLsaConnectionGroup,
         pEnumGroupsState);
-    LsaFreeMemory(pBackend);
+    LwFreeMemory(pBackend);
 
     return ret;
 }
@@ -319,7 +319,7 @@ LsaNssSolarisGroupCreateBackend(
 {
     PLSA_NSS_GROUP_BACKEND pLsaBackend = NULL;
 
-    if (LsaAllocateMemory(sizeof(*pLsaBackend), (void**) &pLsaBackend))
+    if (LwAllocateMemory(sizeof(*pLsaBackend), (void**) &pLsaBackend))
     {
         return NULL;
     }

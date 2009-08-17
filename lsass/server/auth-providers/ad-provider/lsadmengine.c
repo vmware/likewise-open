@@ -99,8 +99,8 @@ LsaDmEnginepAddTrust(
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
-    LSA_SAFE_FREE_MEMORY(pszDnsDomainName);
-    LSA_SAFE_FREE_MEMORY(pszNetbiosDomainName);
+    LW_SAFE_FREE_MEMORY(pszDnsDomainName);
+    LW_SAFE_FREE_MEMORY(pszNetbiosDomainName);
     return dwError;
 
 error:
@@ -203,7 +203,7 @@ LsaDmEnginepDiscoverTrustsForDomain(
     // allocate trusted forest root results, if the caller wants it.
     if (ppTrustedForestRootList)
     {
-        dwError = LsaAllocateMemory(sizeof(pTrustedForestRootList[0]) * dwTrustCount,
+        dwError = LwAllocateMemory(sizeof(pTrustedForestRootList[0]) * dwTrustCount,
                                     (PVOID*)&pTrustedForestRootList);
         BAIL_ON_LSA_ERROR(dwError);
     }
@@ -219,7 +219,7 @@ LsaDmEnginepDiscoverTrustsForDomain(
         // These are trusts with domains that are earlier than WIN2K
         if (pCurrentTrust->trust_type == NETR_TRUST_TYPE_DOWNLEVEL)
         {
-            LSA_SAFE_FREE_STRING(pszNetbiosName);
+            LW_SAFE_FREE_STRING(pszNetbiosName);
 
             if (pCurrentTrust->netbios_name)
             {
@@ -263,7 +263,7 @@ LsaDmEnginepDiscoverTrustsForDomain(
             continue;
         }
 
-        LSA_SAFE_FREE_MEMORY(pszDnsDomainName);
+        LW_SAFE_FREE_MEMORY(pszDnsDomainName);
 
         if (pCurrentTrust->dns_name)
         {
@@ -271,9 +271,9 @@ LsaDmEnginepDiscoverTrustsForDomain(
             BAIL_ON_LSA_ERROR(dwError);
         }
 
-        if (IsNullOrEmptyString(pszDnsDomainName))
+        if (LW_IS_NULL_OR_EMPTY_STR(pszDnsDomainName))
         {
-            LSA_SAFE_FREE_STRING(pszNetbiosName);
+            LW_SAFE_FREE_STRING(pszNetbiosName);
 
             if (pCurrentTrust->netbios_name)
             {
@@ -378,7 +378,7 @@ LsaDmEnginepDiscoverTrustsForDomain(
                 continue;
             }
 
-            dwError = LsaAllocateString(pszDnsDomainName,
+            dwError = LwAllocateString(pszDnsDomainName,
                                         &pTrustedForestRootList[dwTrustedForestRootListCount]);
             BAIL_ON_LSA_ERROR(dwError);
 
@@ -389,14 +389,14 @@ LsaDmEnginepDiscoverTrustsForDomain(
     if (!dwTrustedForestRootListCount)
     {
         // Return NULL rather than an empty list
-        LSA_SAFE_FREE_STRING_ARRAY(pTrustedForestRootList);
+        LW_SAFE_FREE_STRING_ARRAY(pTrustedForestRootList);
     }
 
 cleanup:
 
     LWNET_SAFE_FREE_DC_INFO(pDcInfo);
-    LSA_SAFE_FREE_STRING(pszNetbiosName);
-    LSA_SAFE_FREE_MEMORY(pszDnsDomainName);
+    LW_SAFE_FREE_STRING(pszNetbiosName);
+    LW_SAFE_FREE_MEMORY(pszDnsDomainName);
 
     if (pTrusts)
     {
@@ -411,7 +411,7 @@ cleanup:
     return dwError;
 
 error:
-    LSA_SAFE_FREE_STRING_ARRAY(pTrustedForestRootList);
+    LW_SAFE_FREE_STRING_ARRAY(pTrustedForestRootList);
     goto cleanup;
 }
 
@@ -484,7 +484,7 @@ LsaDmEnginepDiscoverTrustsInternal(
     }
 
 cleanup:
-    LSA_SAFE_FREE_STRING_ARRAY(pTrustedForestRootList);
+    LW_SAFE_FREE_STRING_ARRAY(pTrustedForestRootList);
 
     return dwError;
 
@@ -553,7 +553,7 @@ cleanup:
     return dwError;
 
 error:
-    LSA_SAFE_FREE_MEMORY(pSid);
+    LW_SAFE_FREE_MEMORY(pSid);
     goto cleanup;
 }
 
@@ -601,7 +601,7 @@ LsaDmEnginepAddOneWayOtherForestDomain(
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
-    LSA_SAFE_FREE_MEMORY(pSid);
+    LW_SAFE_FREE_MEMORY(pSid);
     LsaDmFreeEnumDomainInfo(pDomainInfo);
 
     return dwError;
@@ -624,7 +624,7 @@ LsaDmEngineGetDomainNameWithDiscovery(
     PSTR pszDnsForestName = NULL;
     ADAccountType accountType = AccountType_NotFound;
 
-    if (IsNullOrEmptyString(pszDomainName) ||
+    if (LW_IS_NULL_OR_EMPTY_STR(pszDomainName) ||
         AdIsSpecialDomainName(pszDomainName))
     {
         dwError = LW_ERROR_NO_SUCH_DOMAIN;
@@ -651,7 +651,7 @@ LsaDmEngineGetDomainNameWithDiscovery(
         dwError = LW_ERROR_NO_SUCH_DOMAIN;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    else if (IsNullOrEmptyString(pszDomainSid))
+    else if (LW_IS_NULL_OR_EMPTY_STR(pszDomainSid))
     {
         LSA_LOG_ERROR("Missing SID for name '%s'", pszDomainName);
         dwError = LW_ERROR_NO_SUCH_DOMAIN;
@@ -693,14 +693,14 @@ LsaDmEngineGetDomainNameWithDiscovery(
 cleanup:
     if (!ppszDnsDomainName)
     {
-        LSA_SAFE_FREE_STRING(pszDnsDomainName);
+        LW_SAFE_FREE_STRING(pszDnsDomainName);
     }
     if (!ppszNetbiosDomainName)
     {
-        LSA_SAFE_FREE_STRING(pszNetbiosDomainName);
+        LW_SAFE_FREE_STRING(pszNetbiosDomainName);
     }
-    LSA_SAFE_FREE_STRING(pszDomainSid);
-    LSA_SAFE_FREE_STRING(pszDnsForestName);
+    LW_SAFE_FREE_STRING(pszDomainSid);
+    LW_SAFE_FREE_STRING(pszDnsForestName);
 
     if (ppszDnsDomainName)
     {
@@ -715,8 +715,8 @@ cleanup:
     return dwError;
 
 error:
-    LSA_SAFE_FREE_STRING(pszDnsDomainName);
-    LSA_SAFE_FREE_STRING(pszNetbiosDomainName);
+    LW_SAFE_FREE_STRING(pszDnsDomainName);
+    LW_SAFE_FREE_STRING(pszNetbiosDomainName);
 
     goto cleanup;
 }
@@ -737,7 +737,7 @@ LsaDmEngineGetDomainNameAndSidByObjectSidWithDiscovery(
     ADAccountType accountType = AccountType_NotFound;
     PSID pDomainSid = NULL;
 
-    if (IsNullOrEmptyString(pszObjectSid) ||
+    if (LW_IS_NULL_OR_EMPTY_STR(pszObjectSid) ||
         AdIsSpecialDomainSidPrefix(pszObjectSid))
     {
         dwError = LW_ERROR_NO_SUCH_DOMAIN;
@@ -795,7 +795,7 @@ LsaDmEngineGetDomainNameAndSidByObjectSidWithDiscovery(
         dwError = LW_ERROR_NO_SUCH_DOMAIN;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    else if (IsNullOrEmptyString(pszNetbiosDomainName))
+    else if (LW_IS_NULL_OR_EMPTY_STR(pszNetbiosDomainName))
     {
         LSA_LOG_ERROR("Missing name for SID '%s'", pszDomainSid);
         dwError = LW_ERROR_NO_SUCH_DOMAIN;
@@ -827,18 +827,18 @@ LsaDmEngineGetDomainNameAndSidByObjectSidWithDiscovery(
 cleanup:
     if (!ppszDnsDomainName)
     {
-        LSA_SAFE_FREE_STRING(pszDnsDomainName);
+        LW_SAFE_FREE_STRING(pszDnsDomainName);
     }
     if (!ppszNetbiosDomainName)
     {
-        LSA_SAFE_FREE_STRING(pszNetbiosDomainName);
+        LW_SAFE_FREE_STRING(pszNetbiosDomainName);
     }
     if (!ppszDomainSid)
     {
-        LSA_SAFE_FREE_STRING(pszDomainSid);
+        LW_SAFE_FREE_STRING(pszDomainSid);
     }
-    LSA_SAFE_FREE_STRING(pszDnsForestName);
-    LSA_SAFE_FREE_MEMORY(pDomainSid);
+    LW_SAFE_FREE_STRING(pszDnsForestName);
+    LW_SAFE_FREE_MEMORY(pDomainSid);
 
     if (ppszDnsDomainName)
     {
@@ -858,9 +858,9 @@ cleanup:
     return dwError;
 
 error:
-    LSA_SAFE_FREE_STRING(pszDnsDomainName);
-    LSA_SAFE_FREE_STRING(pszNetbiosDomainName);
-    LSA_SAFE_FREE_STRING(pszDomainSid);
+    LW_SAFE_FREE_STRING(pszDnsDomainName);
+    LW_SAFE_FREE_STRING(pszNetbiosDomainName);
+    LW_SAFE_FREE_STRING(pszDomainSid);
 
     goto cleanup;
 }

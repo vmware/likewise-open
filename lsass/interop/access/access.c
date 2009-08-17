@@ -75,17 +75,17 @@ LsaAccessGetData(
         goto cleanup;
     }
 
-    dwError = LsaAllocateMemory(sizeof(LSA_ACCESS_DATA),
+    dwError = LwAllocateMemory(sizeof(LSA_ACCESS_DATA),
                   (PVOID*)&pAccessData);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwAllocUid = 8;
-    dwError = LsaAllocateMemory(sizeof(uid_t) * dwAllocUid,
+    dwError = LwAllocateMemory(sizeof(uid_t) * dwAllocUid,
                   (PVOID*)&pAccessData->pUids);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwAllocGid = 16;
-    dwError = LsaAllocateMemory(sizeof(uid_t) * dwAllocGid,
+    dwError = LwAllocateMemory(sizeof(uid_t) * dwAllocGid,
                   (PVOID*)&pAccessData->pGids);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -105,7 +105,7 @@ LsaAccessGetData(
             if ( pAccessData->dwGidCount == dwAllocGid )
             {
                 dwAllocGid *= 2;
-                dwError = LsaReallocMemory(
+                dwError = LwReallocMemory(
                               (PVOID)pAccessData->pGids,
                               (PVOID *)&pAccessData->pGids,
                               dwAllocGid * sizeof(gid_t) );
@@ -134,7 +134,7 @@ LsaAccessGetData(
             if ( pAccessData->dwUidCount == dwAllocUid )
             {
                 dwAllocUid *= 2;
-                dwError = LsaReallocMemory(
+                dwError = LwReallocMemory(
                               (PVOID)pAccessData->pUids,
                               (PVOID *)&pAccessData->pUids,
                               dwAllocUid * sizeof(uid_t) );
@@ -252,7 +252,7 @@ LsaAccessCheckData(
     }
 
 cleanup:
-    LSA_SAFE_FREE_MEMORY(pGid);
+    LW_SAFE_FREE_MEMORY(pGid);
 
     if ( pUserInfo )
     {
@@ -281,9 +281,9 @@ LsaAccessFreeData(
 
     if ( pAccessData )
     {
-        LSA_SAFE_FREE_MEMORY(((PLSA_ACCESS_DATA)pAccessData)->pUids);
-        LSA_SAFE_FREE_MEMORY(((PLSA_ACCESS_DATA)pAccessData)->pGids);
-        LSA_SAFE_FREE_MEMORY(pAccessData);
+        LW_SAFE_FREE_MEMORY(((PLSA_ACCESS_DATA)pAccessData)->pUids);
+        LW_SAFE_FREE_MEMORY(((PLSA_ACCESS_DATA)pAccessData)->pGids);
+        LW_SAFE_FREE_MEMORY(pAccessData);
     }
 
     return dwError;

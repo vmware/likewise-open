@@ -280,7 +280,7 @@ ADState_OpenDb(
     PBYTE FormatType = (PBYTE)FILEDB_FORMAT_TYPE;
     DWORD dwVersion = FILEDB_FORMAT_VERSION;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(ADSTATE_CONNECTION),
                     (PVOID*)&pConn);
     BAIL_ON_LSA_ERROR(dwError);
@@ -356,7 +356,7 @@ error:
             pthread_rwlock_destroy(&pConn->lock);
         }
 
-        LSA_SAFE_FREE_MEMORY(pConn);
+        LW_SAFE_FREE_MEMORY(pConn);
     }
     *phDb = NULL;
 
@@ -385,7 +385,7 @@ ADState_SafeCloseDb(
         dwError = LW_ERROR_SUCCESS;
     }
 
-    LSA_SAFE_FREE_MEMORY(hDb);
+    LW_SAFE_FREE_MEMORY(hDb);
 
 cleanup:
     return;
@@ -547,7 +547,7 @@ ADState_ReadFromFile(
         {
             DataMaxSize = DataSize * 2;
 
-            dwError = LsaReallocMemory(
+            dwError = LwReallocMemory(
                           pData,
                           (PVOID*)&pData,
                           DataMaxSize);
@@ -642,7 +642,7 @@ cleanup:
         lwmsg_context_delete(pContext);
     }
 
-    LSA_SAFE_FREE_MEMORY(pData);
+    LW_SAFE_FREE_MEMORY(pData);
 
     if (pProviderData)
     {
@@ -694,7 +694,7 @@ ADState_UnmarshalProviderData(
                   (PVOID*)&pFileDbData));
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                   sizeof(*pProviderData),
                   (PVOID*)&pProviderData);
     BAIL_ON_LSA_ERROR(dwError);
@@ -753,7 +753,7 @@ error:
 
     *ppProviderData = NULL;
 
-    LSA_SAFE_FREE_MEMORY(pProviderData);
+    LW_SAFE_FREE_MEMORY(pProviderData);
 
     goto cleanup;
 }
@@ -779,17 +779,17 @@ ADState_UnmarshalLinkedCellData(
                   (PVOID*)&pCellEntry));
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                   sizeof(*pListEntry),
                   (PVOID*)&pListEntry);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaStrDupOrNull(
+    dwError = LwStrDupOrNull(
                   pCellEntry->pszCellDN,
                   &pListEntry->pszCellDN);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaStrDupOrNull(
+    dwError = LwStrDupOrNull(
                   pCellEntry->pszDomain,
                   &pListEntry->pszDomain);
     BAIL_ON_LSA_ERROR(dwError);
@@ -845,17 +845,17 @@ ADState_UnmarshalDomainTrustData(
                   (PVOID*)&pDomainInfo));
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                   sizeof(*pListEntry),
                   (PVOID*)&pListEntry);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaStrDupOrNull(
+    dwError = LwStrDupOrNull(
                   pDomainInfo->pszDnsDomainName,
                   &pListEntry->pszDnsDomainName);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaStrDupOrNull(
+    dwError = LwStrDupOrNull(
                   pDomainInfo->pszNetbiosDomainName,
                   &pListEntry->pszNetbiosDomainName);
     BAIL_ON_LSA_ERROR(dwError);
@@ -870,7 +870,7 @@ ADState_UnmarshalDomainTrustData(
 
     if (pDomainInfo->pszGuid)
     {
-        dwError = LsaAllocateMemory(
+        dwError = LwAllocateMemory(
                       UUID_STR_SIZE,
                       (PVOID*)&pListEntry->pGuid);
         BAIL_ON_LSA_ERROR(dwError);
@@ -885,7 +885,7 @@ ADState_UnmarshalDomainTrustData(
         }
     }
 
-    dwError = LsaStrDupOrNull(
+    dwError = LwStrDupOrNull(
                   pDomainInfo->pszTrusteeDnsDomainName,
                   &pListEntry->pszTrusteeDnsDomainName);
     BAIL_ON_LSA_ERROR(dwError);
@@ -895,12 +895,12 @@ ADState_UnmarshalDomainTrustData(
     pListEntry->dwTrustAttributes = pDomainInfo->dwTrustAttributes;
     pListEntry->dwTrustDirection = pDomainInfo->dwTrustDirection;
 
-    dwError = LsaStrDupOrNull(
+    dwError = LwStrDupOrNull(
                   pDomainInfo->pszForestName,
                   &pListEntry->pszForestName);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaStrDupOrNull(
+    dwError = LwStrDupOrNull(
                   pDomainInfo->pszClientSiteName,
                   &pListEntry->pszClientSiteName);
     BAIL_ON_LSA_ERROR(dwError);
@@ -971,13 +971,13 @@ ADState_FreeEnumDomainInfo(
 {
     if (pDomainInfo)
     {
-        LSA_SAFE_FREE_STRING(pDomainInfo->pszDnsDomainName);
-        LSA_SAFE_FREE_STRING(pDomainInfo->pszNetbiosDomainName);
-        LSA_SAFE_FREE_MEMORY(pDomainInfo->pSid);
-        LSA_SAFE_FREE_MEMORY(pDomainInfo->pGuid);
-        LSA_SAFE_FREE_STRING(pDomainInfo->pszTrusteeDnsDomainName);
-        LSA_SAFE_FREE_STRING(pDomainInfo->pszForestName);
-        LSA_SAFE_FREE_STRING(pDomainInfo->pszClientSiteName);
+        LW_SAFE_FREE_STRING(pDomainInfo->pszDnsDomainName);
+        LW_SAFE_FREE_STRING(pDomainInfo->pszNetbiosDomainName);
+        LW_SAFE_FREE_MEMORY(pDomainInfo->pSid);
+        LW_SAFE_FREE_MEMORY(pDomainInfo->pGuid);
+        LW_SAFE_FREE_STRING(pDomainInfo->pszTrusteeDnsDomainName);
+        LW_SAFE_FREE_STRING(pDomainInfo->pszForestName);
+        LW_SAFE_FREE_STRING(pDomainInfo->pszClientSiteName);
         if (pDomainInfo->DcInfo)
         {
             // ISSUE-2008/09/10-dalmeida -- need ASSERT macro
@@ -988,7 +988,7 @@ ADState_FreeEnumDomainInfo(
             // ISSUE-2008/09/10-dalmeida -- need ASSERT macro
             LSA_LOG_ALWAYS("ASSERT!!! - GcInfo should never be set by DB code!");
         }
-        LsaFreeMemory(pDomainInfo);
+        LwFreeMemory(pDomainInfo);
     }
 }
 
@@ -1195,22 +1195,22 @@ ADState_WriteProviderData(
     FileDbData.adConfigurationMode = pProviderData->adConfigurationMode;
     FileDbData.adMaxPwdAge = pProviderData->adMaxPwdAge;
 
-    dwError = LsaStrDupOrNull(
+    dwError = LwStrDupOrNull(
                   pProviderData->szDomain,
                   &FileDbData.pszDomain);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaStrDupOrNull(
+    dwError = LwStrDupOrNull(
                   pProviderData->szShortDomain,
                   &FileDbData.pszShortDomain);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaStrDupOrNull(
+    dwError = LwStrDupOrNull(
                   pProviderData->szComputerDN,
                   &FileDbData.pszComputerDN);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaStrDupOrNull(
+    dwError = LwStrDupOrNull(
                   pProviderData->cell.szCellDN,
                   &FileDbData.pszCellDN);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1232,11 +1232,11 @@ ADState_WriteProviderData(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(FileDbData.pszDomain);
-    LSA_SAFE_FREE_STRING(FileDbData.pszShortDomain);
-    LSA_SAFE_FREE_STRING(FileDbData.pszComputerDN);
-    LSA_SAFE_FREE_STRING(FileDbData.pszCellDN);
-    LSA_SAFE_FREE_MEMORY(pData);
+    LW_SAFE_FREE_STRING(FileDbData.pszDomain);
+    LW_SAFE_FREE_STRING(FileDbData.pszShortDomain);
+    LW_SAFE_FREE_STRING(FileDbData.pszComputerDN);
+    LW_SAFE_FREE_STRING(FileDbData.pszCellDN);
+    LW_SAFE_FREE_MEMORY(pData);
 
     return dwError;
 
@@ -1275,7 +1275,7 @@ ADState_WriteCellEntry(
 
 cleanup:
 
-    LSA_SAFE_FREE_MEMORY(pData);
+    LW_SAFE_FREE_MEMORY(pData);
 
     return dwError;
 
@@ -1346,8 +1346,8 @@ ADState_WriteDomainEntry(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(FileDbData.pszSid);
-    LSA_SAFE_FREE_MEMORY(pData);
+    LW_SAFE_FREE_STRING(FileDbData.pszSid);
+    LW_SAFE_FREE_MEMORY(pData);
 
     return dwError;
 
@@ -1429,7 +1429,7 @@ ADState_CopyFromFile(
         {
             DataMaxSize = DataSize * 2;
 
-            dwError = LsaReallocMemory(
+            dwError = LwReallocMemory(
                           pData,
                           (PVOID*)&pData,
                           DataMaxSize);
@@ -1477,7 +1477,7 @@ ADState_CopyFromFile(
 
 cleanup:
 
-    LSA_SAFE_FREE_MEMORY(pData);
+    LW_SAFE_FREE_MEMORY(pData);
 
     if (pOldFileDb != NULL)
     {

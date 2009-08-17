@@ -44,9 +44,9 @@ LsaNssClearState(
 
     if (pNssState != NULL)
     {
-        LSA_SAFE_FREE_MEMORY(pNssState->pLastGroup);
-        LSA_SAFE_FREE_MEMORY(pNssState->pLastUser);
-        LSA_SAFE_FREE_STRING(pNssState->pszRegistryName);
+        LW_SAFE_FREE_MEMORY(pNssState->pLastGroup);
+        LW_SAFE_FREE_MEMORY(pNssState->pLastUser);
+        LW_SAFE_FREE_STRING(pNssState->pszRegistryName);
     }
 }
 
@@ -73,7 +73,7 @@ LsaNssOpen(
 
     LsaNssClearState(&gNssState);
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
         pszName,
         &gNssState.pszRegistryName);
     BAIL_ON_LSA_ERROR(dwError);

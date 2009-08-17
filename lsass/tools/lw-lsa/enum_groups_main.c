@@ -203,7 +203,7 @@ error:
         DWORD dwError2 = 0;
         PSTR   pszErrorBuffer = NULL;
 
-        dwError2 = LsaAllocateMemory(
+        dwError2 = LwAllocateMemory(
                     dwErrorBufferSize,
                     (PVOID*)&pszErrorBuffer);
 
@@ -211,14 +211,14 @@ error:
         {
             DWORD dwLen = LwGetErrorString(dwError, pszErrorBuffer, dwErrorBufferSize);
 
-            if ((dwLen == dwErrorBufferSize) && !IsNullOrEmptyString(pszErrorBuffer))
+            if ((dwLen == dwErrorBufferSize) && !LW_IS_NULL_OR_EMPTY_STR(pszErrorBuffer))
             {
                 fprintf(stderr, "Failed to enumerate groups.  %s\n", pszErrorBuffer);
                 bPrintOrigError = FALSE;
             }
         }
 
-        LSA_SAFE_FREE_STRING(pszErrorBuffer);
+        LW_SAFE_FREE_STRING(pszErrorBuffer);
     }
 
     if (bPrintOrigError)
@@ -354,10 +354,10 @@ PrintGroupInfo_0(
     fprintf(stdout, "Group info (Level-0):\n");
     fprintf(stdout, "====================\n");
     fprintf(stdout, "Name:     %s\n",
-                IsNullOrEmptyString(pGroupInfo->pszName) ? "<null>" : pGroupInfo->pszName);
+                LW_IS_NULL_OR_EMPTY_STR(pGroupInfo->pszName) ? "<null>" : pGroupInfo->pszName);
     fprintf(stdout, "Gid:      %u\n", (unsigned int)pGroupInfo->gid);
     fprintf(stdout, "SID:     %s\n",
-                    IsNullOrEmptyString(pGroupInfo->pszSid) ? "<null>" : pGroupInfo->pszSid);
+                    LW_IS_NULL_OR_EMPTY_STR(pGroupInfo->pszSid) ? "<null>" : pGroupInfo->pszSid);
 }
 
 static
@@ -372,16 +372,16 @@ PrintGroupInfo_1(
     fprintf(stdout, "Group info (Level-1):\n");
     fprintf(stdout, "====================\n");
     fprintf(stdout, "Name:     %s\n",
-            IsNullOrEmptyString(pGroupInfo->pszName) ? "<null>" : pGroupInfo->pszName);
+            LW_IS_NULL_OR_EMPTY_STR(pGroupInfo->pszName) ? "<null>" : pGroupInfo->pszName);
     fprintf(stdout, "Gid:      %u\n", (unsigned int)pGroupInfo->gid);
     fprintf(stdout, "SID:     %s\n",
-                        IsNullOrEmptyString(pGroupInfo->pszSid) ? "<null>" : pGroupInfo->pszSid);
+                        LW_IS_NULL_OR_EMPTY_STR(pGroupInfo->pszSid) ? "<null>" : pGroupInfo->pszSid);
     fprintf(stdout, "Members:\n");
 
     ppszMembers = pGroupInfo->ppszMembers;
 
     if (ppszMembers){
-    while (!IsNullOrEmptyString(*ppszMembers)) {
+    while (!LW_IS_NULL_OR_EMPTY_STR(*ppszMembers)) {
           if (iMember) {
              fprintf(stdout, "\n%s", *ppszMembers);
           } else {
@@ -439,7 +439,7 @@ IsUnsignedInteger(
     INT iCharIdx = 0;
     CHAR cNext = '\0';
 
-    if (IsNullOrEmptyString(pszIntegerCandidate))
+    if (LW_IS_NULL_OR_EMPTY_STR(pszIntegerCandidate))
     {
         bIsUnsignedInteger = FALSE;
         goto error;

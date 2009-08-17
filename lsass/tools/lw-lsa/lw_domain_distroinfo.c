@@ -168,23 +168,23 @@ LwGetLikewiseVersion(
         }
         else if (len > 0)
         {
-            LsaStripWhitespace(pszLine, TRUE, TRUE);
+            LwStripWhitespace(pszLine, TRUE, TRUE);
 
             if (!strncmp(pszLine, "VERSION=", sizeof("VERSION=") - 1))
             {
-                dwError = LsaStrDupOrNull(
+                dwError = LwStrDupOrNull(
                             pszLine + sizeof("VERSION=") - 1,
                             &pszVersion);
             }
             else if (!strncmp(pszLine, "BUILD=", sizeof("BUILD=") - 1))
             {
-                dwError = LsaStrDupOrNull(
+                dwError = LwStrDupOrNull(
                             pszLine + sizeof("BUILD=") - 1,
                             &pszBuild);
             }
             else if (!strncmp(pszLine, "REVISION=", sizeof("REVISION=") - 1))
             {
-                dwError = LsaStrDupOrNull(
+                dwError = LwStrDupOrNull(
                             pszLine + sizeof("REVISION=") - 1,
                             &pszRevision);
             }
@@ -194,7 +194,7 @@ LwGetLikewiseVersion(
 
     if (!pszVersion)
     {
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
                         "unknown",
                         &pszVersion);
         BAIL_ON_LSA_ERROR(dwError);
@@ -202,7 +202,7 @@ LwGetLikewiseVersion(
 
     if (!pszBuild)
     {
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
                         "unknown",
                         &pszBuild);
         BAIL_ON_LSA_ERROR(dwError);
@@ -210,7 +210,7 @@ LwGetLikewiseVersion(
 
     if (!pszRevision)
     {
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
                         "unknown",
                         &pszRevision);
         BAIL_ON_LSA_ERROR(dwError);
@@ -240,9 +240,9 @@ error:
     *ppszBuild = NULL;
     *ppszRevision = NULL;
 
-    LSA_SAFE_FREE_STRING(pszVersion);
-    LSA_SAFE_FREE_STRING(pszBuild);
-    LSA_SAFE_FREE_STRING(pszRevision);
+    LW_SAFE_FREE_STRING(pszVersion);
+    LW_SAFE_FREE_STRING(pszBuild);
+    LW_SAFE_FREE_STRING(pszRevision);
 
     goto cleanup;
 }
@@ -256,7 +256,7 @@ LwDomainGetDistroInfo(
     DWORD dwError = 0;
     PLW_DOMAIN_DISTRO_INFO pDistroInfo = NULL;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                 sizeof(LW_DOMAIN_DISTRO_INFO),
                 (PVOID*)&pDistroInfo);
     BAIL_ON_LSA_ERROR(dwError);
@@ -318,7 +318,7 @@ LwDomainGetOSType(
     BOOLEAN bExists = FALSE;
 
     //Check for os override file
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                 &pszPath,
                 "%s/ostype",
                 (pszPathPrefix ? pszPathPrefix : ""));
@@ -339,7 +339,7 @@ LwDomainGetOSType(
 
     if (pszFileContents)
     {
-        LsaStripWhitespace(pszFileContents, TRUE, TRUE);
+        LwStripWhitespace(pszFileContents, TRUE, TRUE);
 
         osType = LwDomainGetOSFromString(pszFileContents);
     }
@@ -363,8 +363,8 @@ LwDomainGetOSType(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszPath);
-    LSA_SAFE_FREE_STRING(pszFileContents);
+    LW_SAFE_FREE_STRING(pszPath);
+    LW_SAFE_FREE_STRING(pszFileContents);
 
     return dwError;
 
@@ -418,7 +418,7 @@ LwDomainGetOSString(
         }
     }
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                 (pszChosenOSString ? pszChosenOSString : "unknown"),
                 &pszOSString);
     BAIL_ON_LSA_ERROR(dwError);
@@ -433,7 +433,7 @@ error:
 
     *ppszOSString = NULL;
 
-    LSA_SAFE_FREE_STRING(pszOSString);
+    LW_SAFE_FREE_STRING(pszOSString);
 
     goto cleanup;
 }
@@ -454,7 +454,7 @@ LwDomainGetDistroType(
     BOOLEAN bExists = FALSE;
 
     //Check for distro override file
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                 &pszPath,
                 "%s/osdistro",
                 (pszPathPrefix ? pszPathPrefix : ""));
@@ -473,7 +473,7 @@ LwDomainGetDistroType(
 
     if (pszDistroString)
     {
-        LsaStripWhitespace(pszDistroString, TRUE, TRUE);
+        LwStripWhitespace(pszDistroString, TRUE, TRUE);
 
         distroType = LwDomainGetDistroFromString(pszDistroString);
     }
@@ -525,9 +525,9 @@ LwDomainGetDistroType(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszPath);
-    LSA_SAFE_FREE_STRING(pszFileContents);
-    LSA_SAFE_FREE_STRING(pszDistroString);
+    LW_SAFE_FREE_STRING(pszPath);
+    LW_SAFE_FREE_STRING(pszFileContents);
+    LW_SAFE_FREE_STRING(pszDistroString);
 
     return dwError;
 
@@ -687,9 +687,9 @@ LwDomainGetLinuxDistroType(
             break;
         }
 
-        LSA_SAFE_FREE_STRING(pszPath);
+        LW_SAFE_FREE_STRING(pszPath);
 
-        dwError = LsaAllocateStringPrintf(
+        dwError = LwAllocateStringPrintf(
                     &pszPath,
                     "%s%s",
                     (pszPathPrefix ? pszPathPrefix : ""),
@@ -708,7 +708,7 @@ LwDomainGetLinuxDistroType(
                 flags |= REG_ICASE;
             }
 
-            LSA_SAFE_FREE_STRING(pszFileContents);
+            LW_SAFE_FREE_STRING(pszFileContents);
 
             dwError = LwDomainReadFile(pszPath, &pszFileContents);
             BAIL_ON_LSA_ERROR(dwError);
@@ -743,7 +743,7 @@ LwDomainGetLinuxDistroType(
 
     if (distroType == DISTRO_DEBIAN)
     {
-        LSA_SAFE_FREE_STRING(pszPath);
+        LW_SAFE_FREE_STRING(pszPath);
 
         /*
         #
@@ -751,7 +751,7 @@ LwDomainGetLinuxDistroType(
         # but only Ubuntu has an /etc/lsb-release
         #
         */
-        dwError = LsaAllocateStringPrintf(
+        dwError = LwAllocateStringPrintf(
                     &pszPath,
                     "%s/etc/lsb-release",
                     (pszPathPrefix ? pszPathPrefix : ""));
@@ -777,8 +777,8 @@ cleanup:
         rxAlloced = FALSE;
     }
 
-    LSA_SAFE_FREE_STRING(pszPath);
-    LSA_SAFE_FREE_STRING(pszFileContents);
+    LW_SAFE_FREE_STRING(pszPath);
+    LW_SAFE_FREE_STRING(pszFileContents);
 
     return distroType;
 
@@ -835,7 +835,7 @@ LwDomainGetDistroString(
         }
     }
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                 (pszChosenDistroString ? pszChosenDistroString : "unknown"),
                 &pszDistroString);
     BAIL_ON_LSA_ERROR(dwError);
@@ -850,7 +850,7 @@ error:
 
     *ppszDistroString = NULL;
 
-    LSA_SAFE_FREE_STRING(pszDistroString);
+    LW_SAFE_FREE_STRING(pszDistroString);
 
     goto cleanup;
 }
@@ -873,14 +873,14 @@ LwDomainGetDistroVersion(
 
     if (distroType == DISTRO_UNKNOWN)
     {
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
                         "unknown",
                         &pszVersion);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     //Check for version override file
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                     &pszPath,
                     "%s/osver",
                     pszPathPrefix ? pszPathPrefix : "");
@@ -901,7 +901,7 @@ LwDomainGetDistroVersion(
 
     if (pszFileContents)
     {
-        LsaStripWhitespace(pszFileContents, TRUE, TRUE);
+        LwStripWhitespace(pszFileContents, TRUE, TRUE);
 
         pszVersion = pszFileContents;
 
@@ -937,7 +937,7 @@ LwDomainGetDistroVersion(
             $ uname -r
             3
             */
-            dwError = LsaAllocateStringPrintf(
+            dwError = LwAllocateStringPrintf(
                         &pszVersion,
                         "%s.%s",
                         unameStruct.version,
@@ -952,7 +952,7 @@ LwDomainGetDistroVersion(
                 $ uname -r
                 5.8
                 */
-                dwError = LsaAllocateStringPrintf(
+                dwError = LwAllocateStringPrintf(
                             &pszVersion,
                             "%s",
                             unameStruct.release);
@@ -967,7 +967,7 @@ LwDomainGetDistroVersion(
                             &pszVersion);
                 BAIL_ON_LSA_ERROR(dwError);
 
-                LsaStripWhitespace(pszVersion, TRUE, TRUE);
+                LwStripWhitespace(pszVersion, TRUE, TRUE);
 
                 break;
 
@@ -981,7 +981,7 @@ LwDomainGetDistroVersion(
                         pszTemp++;
                     }
 
-                    dwError = LsaAllocateString(
+                    dwError = LwAllocateString(
                                 pszTemp,
                                 &pszVersion);
                     BAIL_ON_LSA_ERROR(dwError);
@@ -991,7 +991,7 @@ LwDomainGetDistroVersion(
 
             case OS_FREEBSD:
 
-                dwError = LsaAllocateStringPrintf(
+                dwError = LwAllocateStringPrintf(
                             &pszVersion,
                             "%s",
                             unameStruct.release);
@@ -1007,7 +1007,7 @@ LwDomainGetDistroVersion(
 
     if (!pszVersion)
     {
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
                         "unknown",
                         &pszVersion);
         BAIL_ON_LSA_ERROR(dwError);
@@ -1017,8 +1017,8 @@ LwDomainGetDistroVersion(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszPath);
-    LSA_SAFE_FREE_STRING(pszFileContents);
+    LW_SAFE_FREE_STRING(pszPath);
+    LW_SAFE_FREE_STRING(pszFileContents);
 
     return dwError;
 
@@ -1026,7 +1026,7 @@ error:
 
     *ppszVersion = NULL;
 
-    LSA_SAFE_FREE_STRING(pszVersion);
+    LW_SAFE_FREE_STRING(pszVersion);
 
     goto cleanup;
 }
@@ -1181,9 +1181,9 @@ LwDomainGetLinuxVersion(
             break;
         }
 
-        LSA_SAFE_FREE_STRING(pszPath);
+        LW_SAFE_FREE_STRING(pszPath);
 
-        dwError = LsaAllocateStringPrintf(
+        dwError = LwAllocateStringPrintf(
                     &pszPath,
                     "%s%s",
                     (pszPathPrefix ? pszPathPrefix : ""),
@@ -1202,7 +1202,7 @@ LwDomainGetLinuxVersion(
                 flags |= REG_ICASE;
             }
 
-            LSA_SAFE_FREE_STRING(pszFileContents);
+            LW_SAFE_FREE_STRING(pszFileContents);
 
             dwError = LwDomainReadFile(pszPath, &pszFileContents);
             BAIL_ON_LSA_ERROR(dwError);
@@ -1230,7 +1230,7 @@ LwDomainGetLinuxVersion(
                 //This is the correct distro
                 regmatch_t * pVer = &matches[distroSearch[i].versionMatchNum];
 
-                dwError = LsaStrndup(
+                dwError = LwStrndup(
                             pszFileContents + pVer->rm_so,
                             pVer->rm_eo - pVer->rm_so,
                             &pszVersion);
@@ -1243,7 +1243,7 @@ LwDomainGetLinuxVersion(
 
     if (!pszVersion)
     {
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
                         "unknown",
                         &pszVersion);
         BAIL_ON_LSA_ERROR(dwError);
@@ -1259,8 +1259,8 @@ cleanup:
         rxAlloced = FALSE;
     }
 
-    LSA_SAFE_FREE_STRING(pszPath);
-    LSA_SAFE_FREE_STRING(pszFileContents);
+    LW_SAFE_FREE_STRING(pszPath);
+    LW_SAFE_FREE_STRING(pszFileContents);
 
     return distroType;
 
@@ -1268,7 +1268,7 @@ error:
 
     *ppszVersion = NULL;
 
-    LSA_SAFE_FREE_STRING(pszVersion);
+    LW_SAFE_FREE_STRING(pszVersion);
 
     goto cleanup;
 }
@@ -1293,7 +1293,7 @@ LwDomainGetDistroArch(
     PSTR pszDistroString = NULL;
 
     //Check for arch override file
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                 &pszPath,
                 "%s/osarch",
                 pszPathPrefix ? pszPathPrefix : "");
@@ -1422,7 +1422,7 @@ LwDomainGetDistroArch(
                         &pszDistroString);
             BAIL_ON_LSA_ERROR(dwError);
 
-            LsaStripWhitespace(pszDistroString, TRUE, TRUE);
+            LwStripWhitespace(pszDistroString, TRUE, TRUE);
 
             archType = LwDomainGetArchFromString(pszDistroString);
         }
@@ -1432,8 +1432,8 @@ LwDomainGetDistroArch(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszPath);
-    LSA_SAFE_FREE_STRING(pszFileContents);
+    LW_SAFE_FREE_STRING(pszPath);
+    LW_SAFE_FREE_STRING(pszFileContents);
 
     return dwError;
 
@@ -1490,7 +1490,7 @@ LwDomainGetArchString(
         }
     }
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                  (pszChosenArchString ? pszChosenArchString : "unknown"),
                  &pszArchString);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1505,7 +1505,7 @@ error:
 
     *ppszArchString = NULL;
 
-    LSA_SAFE_FREE_STRING(pszArchString);
+    LW_SAFE_FREE_STRING(pszArchString);
 
     goto cleanup;
 }
@@ -1518,7 +1518,7 @@ LwFreeDistroInfo(
 {
     LwFreeDistroInfoContents(pDistroInfo);
 
-    LsaFreeMemory(pDistroInfo);
+    LwFreeMemory(pDistroInfo);
 }
 
 VOID
@@ -1526,7 +1526,7 @@ LwFreeDistroInfoContents(
     PLW_DOMAIN_DISTRO_INFO pDistroInfo
     )
 {
-    LSA_SAFE_FREE_MEMORY(pDistroInfo->pszVersion);
+    LW_SAFE_FREE_MEMORY(pDistroInfo->pszVersion);
 }
 
 static
@@ -1551,7 +1551,7 @@ LwDomainReadFile(
 
     if (statbuf.st_size > 0)
     {
-        dwError = LsaAllocateMemory(
+        dwError = LwAllocateMemory(
                     statbuf.st_size + 1,
                     (PVOID*)&pszFileContents);
         BAIL_ON_LSA_ERROR(dwError);
@@ -1585,7 +1585,7 @@ error:
 
     *ppszFileContents = pszFileContents;
 
-    LSA_SAFE_FREE_MEMORY(pszFileContents);
+    LW_SAFE_FREE_MEMORY(pszFileContents);
 
     goto cleanup;
 }

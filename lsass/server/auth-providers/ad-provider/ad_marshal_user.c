@@ -79,14 +79,14 @@ ADMarshalFromUserCache(
     switch(dwUserInfoLevel)
     {
         case 0:
-            dwError = LsaAllocateMemory(
+            dwError = LwAllocateMemory(
                             sizeof(LSA_USER_INFO_0),
                             (PVOID*)&pUserInfo);
             BAIL_ON_LSA_ERROR(dwError);
             pUserInfo0 = (PLSA_USER_INFO_0) pUserInfo;
             break;
         case 1:
-            dwError = LsaAllocateMemory(
+            dwError = LwAllocateMemory(
                             sizeof(LSA_USER_INFO_1),
                             (PVOID*)&pUserInfo);
             BAIL_ON_LSA_ERROR(dwError);
@@ -94,7 +94,7 @@ ADMarshalFromUserCache(
             pUserInfo1 = (PLSA_USER_INFO_1) pUserInfo;
             break;
         case 2:
-            dwError = LsaAllocateMemory(
+            dwError = LwAllocateMemory(
                             sizeof(LSA_USER_INFO_2),
                             (PVOID*)&pUserInfo);
             BAIL_ON_LSA_ERROR(dwError);
@@ -117,29 +117,29 @@ ADMarshalFromUserCache(
                 &pUserInfo0->pszName);
         BAIL_ON_LSA_ERROR(dwError);
 
-        // Optional values use LsaStrDupOrNull. Required values use
-        // LsaAllocateString.
-        dwError = LsaStrDupOrNull(
+        // Optional values use LwStrDupOrNull. Required values use
+        // LwAllocateString.
+        dwError = LwStrDupOrNull(
                     pUser->userInfo.pszPasswd,
                     &pUserInfo0->pszPasswd);
         BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = LsaStrDupOrNull(
+        dwError = LwStrDupOrNull(
                     pUser->userInfo.pszGecos,
                     &pUserInfo0->pszGecos);
         BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
                     pUser->userInfo.pszShell,
                     &pUserInfo0->pszShell);
         BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
                     pUser->userInfo.pszHomedir,
                     &pUserInfo0->pszHomedir);
         BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
                     pUser->pszObjectSid,
                     &pUserInfo0->pszSid);
         BAIL_ON_LSA_ERROR(dwError);
@@ -147,12 +147,12 @@ ADMarshalFromUserCache(
 
     if (pUserInfo1 != NULL)
     {
-        dwError = LsaStrDupOrNull(
+        dwError = LwStrDupOrNull(
                       pUser->pszDN,
                       &pUserInfo1->pszDN);
         BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = LsaStrDupOrNull(
+        dwError = LwStrDupOrNull(
                       pUser->userInfo.pszUPN,
                       &pUserInfo1->pszUPN);
         BAIL_ON_LSA_ERROR(dwError);
@@ -324,7 +324,7 @@ ADNonSchemaKeywordGetString(
         if (!strncasecmp(pszValue, pszAttributeName, sNameLen) &&
                 pszValue[sNameLen] == '=')
         {
-            dwError = LsaAllocateString(
+            dwError = LwAllocateString(
                         pszValue + sNameLen + 1,
                         &pszResult);
             BAIL_ON_LSA_ERROR(dwError);
@@ -339,7 +339,7 @@ cleanup:
 
 error:
     *ppszResult = NULL;
-    LSA_SAFE_FREE_STRING(pszResult);
+    LW_SAFE_FREE_STRING(pszResult);
 
     goto cleanup;
 }
@@ -435,7 +435,7 @@ AD_BuildHomeDirFromTemplate(
                         dwHostNameLength +
                         1);
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(CHAR) * dwBytesAllocated,
                     (PVOID*)&pszHomedir);
     BAIL_ON_LSA_ERROR(dwError);
@@ -500,7 +500,7 @@ AD_BuildHomeDirFromTemplate(
             // We will increment by at least a minimum amount.
             DWORD dwAllocate = LSA_MAX(dwInsertLength - dwBytesRemaining, 64);
             PSTR pszNewHomedir = NULL;
-            dwError = LsaReallocMemory(
+            dwError = LwReallocMemory(
                             pszHomedir,
                             (PVOID*)&pszNewHomedir,
                             dwBytesAllocated + dwAllocate);
@@ -513,11 +513,11 @@ AD_BuildHomeDirFromTemplate(
                dwInsertLength);
         if (bNeedUpper)
         {
-            LsaStrnToUpper(pszHomedir + dwOffset, dwInsertLength);
+            LwStrnToUpper(pszHomedir + dwOffset, dwInsertLength);
         }
         else if (bNeedLower)
         {
-            LsaStrnToLower(pszHomedir + dwOffset, dwInsertLength);
+            LwStrnToLower(pszHomedir + dwOffset, dwInsertLength);
         }
         dwOffset += dwInsertLength;
     }
@@ -531,14 +531,14 @@ AD_BuildHomeDirFromTemplate(
     *ppszHomedir = pszHomedir;
 
 cleanup:
-    LSA_SAFE_FREE_STRING(pszHomedirPrefix);
-    LSA_SAFE_FREE_STRING(pszHostName);
+    LW_SAFE_FREE_STRING(pszHomedirPrefix);
+    LW_SAFE_FREE_STRING(pszHostName);
 
     return dwError;
 
 error:
     *ppszHomedir = NULL;
-    LSA_SAFE_FREE_MEMORY(pszHomedir);
+    LW_SAFE_FREE_MEMORY(pszHomedir);
 
     goto cleanup;
 }

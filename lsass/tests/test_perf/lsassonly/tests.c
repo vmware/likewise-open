@@ -94,7 +94,7 @@ SetupFindUserById(
                 (PVOID*)&userInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateMemory(sizeof(*state), (PVOID*)&state);
+    dwError = LwAllocateMemory(sizeof(*state), (PVOID*)&state);
     BAIL_ON_LSA_ERROR(dwError);
 
     state->Uid = userInfo->uid;
@@ -114,7 +114,7 @@ error:
     {
         LsaFreeUserInfo(0, userInfo);
     }
-    LSA_SAFE_FREE_MEMORY(state);
+    LW_SAFE_FREE_MEMORY(state);
     *(FIND_STATE **)ppvFindState = NULL;
     goto cleanup;
 }
@@ -161,7 +161,7 @@ CleanupFindUserById(
     {
         LsaCloseServer(state->Connection);
     }
-    LSA_SAFE_FREE_MEMORY(state);
+    LW_SAFE_FREE_MEMORY(state);
 }
 
 BOOL

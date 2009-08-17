@@ -113,7 +113,7 @@ cleanup:
 error:
 
     LSA_LOG_ERROR("Failed to find user by name [%s] [error code: %d]",
-                  (IsNullOrEmptyString(pszName) ? "" : pszName), dwError);
+                  (LW_IS_NULL_OR_EMPTY_STR(pszName) ? "" : pszName), dwError);
 
     LADSStopProcess();
 
@@ -357,7 +357,7 @@ cleanup:
 error:
 
     LSA_LOG_ERROR("Failed to find group by name [%s] [error code: %d]",
-                  (IsNullOrEmptyString(pszName) ? "" : pszName), dwError);
+                  (LW_IS_NULL_OR_EMPTY_STR(pszName) ? "" : pszName), dwError);
 
     LADSStopProcess();
 
@@ -551,7 +551,7 @@ LADSGetGUID(
 
     uuid_unparse(uuid, szUUID);
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                        szUUID,
                        &pszGUID);
     BAIL_ON_LSA_ERROR(dwError);
@@ -566,7 +566,7 @@ error:
 
     *ppszGUID = NULL;
 
-    LSA_SAFE_FREE_STRING(pszGUID);
+    LW_SAFE_FREE_STRING(pszGUID);
 
     goto cleanup;
 }

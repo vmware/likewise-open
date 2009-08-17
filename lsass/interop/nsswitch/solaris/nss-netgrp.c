@@ -86,13 +86,13 @@ LsaNssPushNetgroup(
     PLSA_NSS_NETGROUP_LIST pLink = NULL;
 
     ret = MAP_LSA_ERROR(NULL,
-                        LsaAllocateMemory(
+                        LwAllocateMemory(
                             sizeof(*pLink),
                             (void**) &pLink));
     BAIL_ON_NSS_ERROR(ret);
 
     ret = MAP_LSA_ERROR(NULL,
-                        LsaAllocateString(
+                        LwAllocateString(
                             pszGroup,
                             &pLink->pszGroup));
     BAIL_ON_NSS_ERROR(ret);
@@ -123,7 +123,7 @@ LsaNssPopNetgroup(
 
     *ppList = pLink->pNext;
     *ppszGroup = pLink->pszGroup;
-    LsaFreeMemory(pLink);
+    LwFreeMemory(pLink);
 
 error:
 
@@ -163,8 +163,8 @@ LsaNssFreeNetgroupList(
     {
         pNext = pLink->pNext;
 
-        LsaFreeMemory(pLink->pszGroup);
-        LsaFreeMemory(pLink);
+        LwFreeMemory(pLink->pszGroup);
+        LwFreeMemory(pLink);
     }
 
     *ppList = NULL;
@@ -186,10 +186,10 @@ LsaNssSolarisNetgroupDestructor(
         LsaNssFreeNetgroupList(&pLsaBackend->pSeen);
         LsaNssFreeNetgroupList(&pLsaBackend->pExpand);
 
-        LSA_SAFE_FREE_MEMORY(pLsaBackend->pBuffer);
+        LW_SAFE_FREE_MEMORY(pLsaBackend->pBuffer);
     }
 
-    LsaFreeMemory(pBackend);
+    LwFreeMemory(pBackend);
 
     return ret;
 }
@@ -255,7 +255,7 @@ LsaNssSolarisNetgroupInnerNext(
 
         if (pBackend->pBuffer)
         {
-            LsaFreeMemory(pBackend->pBuffer);
+            LwFreeMemory(pBackend->pBuffer);
         }
         pBackend->pBuffer = pBackend->pCursor = pszContents;
         goto cleanup;
@@ -328,7 +328,7 @@ LsaNssSolarisNetgroupInnerParse(
             *pStatus = NSS_NETGR_FOUND;
             goto cleanup;
         case LSA_NSS_NETGROUP_ENTRY_END:
-            LsaFreeMemory(pBackend->pBuffer);
+            LwFreeMemory(pBackend->pBuffer);
             pBackend->pBuffer = NULL;
             break;
         }
@@ -342,7 +342,7 @@ error:
 
     if (ret == NSS_STATUS_NOTFOUND)
     {
-        LsaFreeMemory(pBackend->pBuffer);
+        LwFreeMemory(pBackend->pBuffer);
         pBackend->pBuffer = NULL;
         *pStatus = NSS_NETGR_NO;
     }
@@ -421,7 +421,7 @@ LsaNssSolarisNetgroupSetnetgrent(
     BAIL_ON_LSA_ERROR(ret);
 
     ret = MAP_LSA_ERROR(NULL,
-                        LsaAllocateMemory(
+                        LwAllocateMemory(
                             sizeof(*pInnerBackend),
                             (void**) &pInnerBackend));
     pInnerBackend->base.base = LsaNssSolarisNetgroupBackend;
@@ -438,7 +438,7 @@ LsaNssSolarisNetgroupSetnetgrent(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pGroupContents);
+    LW_SAFE_FREE_STRING(pGroupContents);
 
     return ret;
 
@@ -474,7 +474,7 @@ LsaNssSolarisNetgroupInnetgr(
     PSTR pszMatchDomain = NULL;
 
     ret = MAP_LSA_ERROR(NULL,
-                        LsaAllocateMemory(
+                        LwAllocateMemory(
                             sizeof(*pInnerBackend),
                             (void**) &pInnerBackend));
     pInnerBackend->base.base = LsaNssSolarisNetgroupBackend;
@@ -568,7 +568,7 @@ LsaNssSolarisNetgroupCreateBackend(
 {
     PLSA_NSS_NETGROUP_BACKEND pLsaBackend = NULL;
 
-    if (LsaAllocateMemory(sizeof(*pLsaBackend), (void**) &pLsaBackend))
+    if (LwAllocateMemory(sizeof(*pLsaBackend), (void**) &pLsaBackend))
     {
         return NULL;
     }

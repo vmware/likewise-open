@@ -105,11 +105,11 @@ main(
     printf("IDtoGroup:\n");
     printf("==========\n");
     printf("Gid:        %u\n", (unsigned int)gid);
-    printf("Group Name: %s\n" , IsNullOrEmptyString(pszGroupName) ? "<null>" : pszGroupName);
+    printf("Group Name: %s\n" , LW_IS_NULL_OR_EMPTY_STR(pszGroupName) ? "<null>" : pszGroupName);
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszGroupName);
+    LW_SAFE_FREE_STRING(pszGroupName);
 
     return ret;
 

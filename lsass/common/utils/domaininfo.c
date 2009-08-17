@@ -60,7 +60,7 @@ LsaFreeDomainInfoArray(
         LsaFreeDomainInfoContents(&pDomainInfoArray[iDomain]);
     }
 
-    LsaFreeMemory(pDomainInfoArray);
+    LwFreeMemory(pDomainInfoArray);
 }
 
 VOID
@@ -70,7 +70,7 @@ LsaFreeDomainInfo(
 {
     LsaFreeDomainInfoContents(pDomainInfo);
 
-    LsaFreeMemory(pDomainInfo);
+    LwFreeMemory(pDomainInfo);
 }
 
 VOID
@@ -78,13 +78,13 @@ LsaFreeDomainInfoContents(
     PLSA_TRUSTED_DOMAIN_INFO pDomainInfo
     )
 {
-    LSA_SAFE_FREE_STRING(pDomainInfo->pszDnsDomain);
-    LSA_SAFE_FREE_STRING(pDomainInfo->pszNetbiosDomain);
-    LSA_SAFE_FREE_STRING(pDomainInfo->pszTrusteeDnsDomain);
-    LSA_SAFE_FREE_STRING(pDomainInfo->pszDomainSID);
-    LSA_SAFE_FREE_STRING(pDomainInfo->pszDomainGUID);
-    LSA_SAFE_FREE_STRING(pDomainInfo->pszForestName);
-    LSA_SAFE_FREE_STRING(pDomainInfo->pszClientSiteName);
+    LW_SAFE_FREE_STRING(pDomainInfo->pszDnsDomain);
+    LW_SAFE_FREE_STRING(pDomainInfo->pszNetbiosDomain);
+    LW_SAFE_FREE_STRING(pDomainInfo->pszTrusteeDnsDomain);
+    LW_SAFE_FREE_STRING(pDomainInfo->pszDomainSID);
+    LW_SAFE_FREE_STRING(pDomainInfo->pszDomainGUID);
+    LW_SAFE_FREE_STRING(pDomainInfo->pszForestName);
+    LW_SAFE_FREE_STRING(pDomainInfo->pszClientSiteName);
 
     if (pDomainInfo->pDCInfo)
     {

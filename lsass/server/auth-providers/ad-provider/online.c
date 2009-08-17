@@ -84,13 +84,13 @@ AD_OnlineFindCellDN(
         }
         BAIL_ON_LSA_ERROR(dwError);
 
-        if (!IsNullOrEmptyString(pszCellDN))
+        if (!LW_IS_NULL_OR_EMPTY_STR(pszCellDN))
             break;
 
         if (!strcasecmp(pszRootDN, pszParentDN))
             break;
 
-        LSA_SAFE_FREE_STRING(pszTmpDN);
+        LW_SAFE_FREE_STRING(pszTmpDN);
 
         pszTmpDN = pszParentDN;
         pszParentDN = NULL;
@@ -103,13 +103,13 @@ AD_OnlineFindCellDN(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszParentDN);
-    LSA_SAFE_FREE_STRING(pszTmpDN);
+    LW_SAFE_FREE_STRING(pszParentDN);
+    LW_SAFE_FREE_STRING(pszTmpDN);
     return dwError;
 
 error:
 
-    LSA_SAFE_FREE_STRING(pszCellDN);
+    LW_SAFE_FREE_STRING(pszCellDN);
     *ppszCellDN = NULL;
     goto cleanup;
 }
@@ -192,8 +192,8 @@ AD_OnlineInitializeDomainTrustsInfo(
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
-    LSA_SAFE_FREE_STRING(pszDomainSid);
-    LSA_SAFE_FREE_STRING(pszSid);
+    LW_SAFE_FREE_STRING(pszDomainSid);
+    LW_SAFE_FREE_STRING(pszSid);
     ADState_FreeEnumDomainInfoList(pDomains);
     LsaDmFreeEnumDomainInfoArray(ppDomainInfo);
 
@@ -220,7 +220,7 @@ AD_OnlineInitializeOperatingMode(
     PLSA_DM_LDAP_CONNECTION pConn = NULL;
     AD_CELL_SUPPORT adCellSupport = AD_CELL_SUPPORT_FULL;
 
-    dwError = LsaAllocateMemory(sizeof(*pProviderData), (PVOID*)&pProviderData);
+    dwError = LwAllocateMemory(sizeof(*pProviderData), (PVOID*)&pProviderData);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaDmEngineDiscoverTrusts(pszDomain);
@@ -248,7 +248,7 @@ AD_OnlineInitializeOperatingMode(
         case AD_CELL_SUPPORT_DEFAULT_SCHEMA:
             LSA_LOG_INFO("Using default schema mode due to cell-support configuration setting");
 
-            dwError = LsaAllocateStringPrintf(&pszCellDN, "CN=$LikewiseIdentityCell,%s", pszRootDN);
+            dwError = LwAllocateStringPrintf(&pszCellDN, "CN=$LikewiseIdentityCell,%s", pszRootDN);
             BAIL_ON_LSA_ERROR(dwError);
 
             adConfMode = SchemaMode;
@@ -264,7 +264,7 @@ AD_OnlineInitializeOperatingMode(
             BAIL_ON_LSA_ERROR(dwError);
     }
 
-    if (IsNullOrEmptyString(pszCellDN))
+    if (LW_IS_NULL_OR_EMPTY_STR(pszCellDN))
     {
         pProviderData->dwDirectoryMode = UNPROVISIONED_MODE;
     }
@@ -330,10 +330,10 @@ AD_OnlineInitializeOperatingMode(
     *ppProviderData = pProviderData;
 
 cleanup:
-    LSA_SAFE_FREE_STRING(pszNetbiosDomainName);
-    LSA_SAFE_FREE_STRING(pszRootDN);
-    LSA_SAFE_FREE_STRING(pszComputerDN);
-    LSA_SAFE_FREE_STRING(pszCellDN);
+    LW_SAFE_FREE_STRING(pszNetbiosDomainName);
+    LW_SAFE_FREE_STRING(pszRootDN);
+    LW_SAFE_FREE_STRING(pszComputerDN);
+    LW_SAFE_FREE_STRING(pszCellDN);
     LsaDmLdapClose(pConn);
 
     return dwError;
@@ -440,7 +440,7 @@ AD_GetLinkedCellInfo(
         }
     }
 
-    if (!IsNullOrEmptyString(pszLinkedCell)){
+    if (!LW_IS_NULL_OR_EMPTY_STR(pszLinkedCell)){
         dwError = LwLdapConvertDomainToDN(
                         pszDomain,
                         &pszDirectoryRoot);
@@ -458,7 +458,7 @@ AD_GetLinkedCellInfo(
             PSTR  pszLinkedCellDN = NULL;
             PSTR  pszCellDN = NULL;
 
-            dwError = LsaAllocateMemory(
+            dwError = LwAllocateMemory(
                     sizeof(AD_LINKED_CELL_INFO),
                     (PVOID*)&pLinkedCellInfo);
             BAIL_ON_LSA_ERROR(dwError);
@@ -469,7 +469,7 @@ AD_GetLinkedCellInfo(
             BAIL_ON_LSA_ERROR(dwError);
 
             sprintf(szQuery, "(objectGuid=%s)", pszHexStr);
-            LSA_SAFE_FREE_STRING(pszHexStr);
+            LW_SAFE_FREE_STRING(pszHexStr);
 
             //Search in root node's GC for cell DN given cell's GUID
             dwError = LsaDmLdapDirectorySearch(
@@ -502,7 +502,7 @@ AD_GetLinkedCellInfo(
                             &pszLinkedCellDN);
             BAIL_ON_LSA_ERROR(dwError);
 
-            dwError = LsaAllocateStringPrintf(
+            dwError = LwAllocateStringPrintf(
                              &pLinkedCellInfo->pszCellDN,
                              "CN=$LikewiseIdentityCell,%s",
                              pszLinkedCellDN);
@@ -533,8 +533,8 @@ AD_GetLinkedCellInfo(
 
             pszLinkedCellGuid = strtok_r (NULL, pszDelim, &pszStrTokSav);
 
-            LSA_SAFE_FREE_STRING (pszCellDirectoryRoot);
-            LSA_SAFE_FREE_STRING (pszLinkedCellDN);
+            LW_SAFE_FREE_STRING (pszCellDirectoryRoot);
+            LW_SAFE_FREE_STRING (pszLinkedCellDN);
 
             if (pCellMessage2){
                 ldap_msgfree(pCellMessage2);
@@ -556,12 +556,12 @@ cleanup:
     }
 
     if (ppszValues) {
-        LsaFreeStringArray(ppszValues, dwNumValues);
+        LwFreeStringArray(ppszValues, dwNumValues);
     }
 
     LsaDmLdapClose(pGcConn);
 
-    LSA_SAFE_FREE_STRING (pszDirectoryRoot);
+    LW_SAFE_FREE_STRING (pszDirectoryRoot);
 
     return dwError;
 
@@ -594,9 +594,9 @@ AD_DetermineTrustModeandDomainName(
     LSA_TRUST_DIRECTION dwTrustDirection = LSA_TRUST_DIRECTION_UNKNOWN;
     LSA_TRUST_MODE dwTrustMode = LSA_TRUST_MODE_UNKNOWN;
 
-    if (IsNullOrEmptyString(pszDomain) ||
-        IsNullOrEmptyString(gpADProviderData->szDomain) ||
-        IsNullOrEmptyString(gpADProviderData->szShortDomain))
+    if (LW_IS_NULL_OR_EMPTY_STR(pszDomain) ||
+        LW_IS_NULL_OR_EMPTY_STR(gpADProviderData->szDomain) ||
+        LW_IS_NULL_OR_EMPTY_STR(gpADProviderData->szShortDomain))
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
@@ -609,13 +609,13 @@ AD_DetermineTrustModeandDomainName(
         dwTrustDirection = LSA_TRUST_DIRECTION_SELF;
         if (ppszDnsDomainName)
         {
-            dwError = LsaAllocateString(gpADProviderData->szDomain,
+            dwError = LwAllocateString(gpADProviderData->szDomain,
                                         &pszDnsDomainName);
             BAIL_ON_LSA_ERROR(dwError);
         }
         if (ppszNetbiosDomainName)
         {
-            dwError = LsaAllocateString(gpADProviderData->szShortDomain,
+            dwError = LwAllocateString(gpADProviderData->szShortDomain,
                                         &pszNetbiosDomainName);
             BAIL_ON_LSA_ERROR(dwError);
         }
@@ -668,8 +668,8 @@ cleanup:
     return dwError;
 
 error:
-    LSA_SAFE_FREE_STRING(pszDnsDomainName);
-    LSA_SAFE_FREE_STRING(pszNetbiosDomainName);
+    LW_SAFE_FREE_STRING(pszDnsDomainName);
+    LW_SAFE_FREE_STRING(pszNetbiosDomainName);
     goto cleanup;
 }
 
@@ -702,7 +702,7 @@ AD_PacRidsToSidStringList(
 
     dwSidCount = pRids->count;
 
-    dwError = LsaAllocateMemory(sizeof(ppszSidList[0]) * dwSidCount,
+    dwError = LwAllocateMemory(sizeof(ppszSidList[0]) * dwSidCount,
                                 (PVOID*)&ppszSidList);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -727,14 +727,14 @@ AD_PacRidsToSidStringList(
     *pppszSidList = ppszSidList;
 
 cleanup:
-    LSA_SAFE_FREE_MEMORY(pDomainBasedSid);
+    LW_SAFE_FREE_MEMORY(pDomainBasedSid);
     return dwError;
 
 error:
     *pdwSidCount = 0;
     *pppszSidList = NULL;
 
-    LsaFreeStringArray(ppszSidList, dwSidCount);
+    LwFreeStringArray(ppszSidList, dwSidCount);
     goto cleanup;
 }
 
@@ -753,11 +753,11 @@ AD_PacAttributedSidsToSidStringList(
     PSTR* ppszSidList = NULL;
     PDWORD pdwSidAttributeList = NULL;
 
-    dwError = LsaAllocateMemory(sizeof(ppszSidList[0]) * dwSidCount,
+    dwError = LwAllocateMemory(sizeof(ppszSidList[0]) * dwSidCount,
                                 (PVOID*)&ppszSidList);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateMemory(sizeof(pdwSidAttributeList[0]) * dwSidCount,
+    dwError = LwAllocateMemory(sizeof(pdwSidAttributeList[0]) * dwSidCount,
                                 (PVOID*)&pdwSidAttributeList);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -783,8 +783,8 @@ error:
     *pppszSidList = NULL;
     *ppdwSidAttributeList = NULL;
 
-    LsaFreeStringArray(ppszSidList, dwSidCount);
-    LSA_SAFE_FREE_MEMORY(pdwSidAttributeList);
+    LwFreeStringArray(ppszSidList, dwSidCount);
+    LW_SAFE_FREE_MEMORY(pdwSidAttributeList);
     goto cleanup;
 }
 
@@ -841,16 +841,16 @@ AD_SidStringListsFromPac(
 cleanup:
     if (dwError)
     {
-        LsaFreeStringArray(ppszGroupSidList, dwGroupSidCount);
+        LwFreeStringArray(ppszGroupSidList, dwGroupSidCount);
         dwGroupSidCount = 0;
         ppszGroupSidList = NULL;
-        LsaFreeStringArray(ppszResourceGroupSidList, dwResourceGroupSidCount);
+        LwFreeStringArray(ppszResourceGroupSidList, dwResourceGroupSidCount);
         dwResourceGroupSidCount = 0;
         ppszResourceGroupSidList = NULL;
-        LsaFreeStringArray(ppszExtraSidList, dwExtraSidCount);
+        LwFreeStringArray(ppszExtraSidList, dwExtraSidCount);
         dwExtraSidCount = 0;
         ppszExtraSidList = NULL;
-        LSA_SAFE_FREE_MEMORY(pdwExtraSidAttributeList);
+        LW_SAFE_FREE_MEMORY(pdwExtraSidAttributeList);
     }
 
     *pdwGroupSidCount = dwGroupSidCount;
@@ -1053,7 +1053,7 @@ AD_CacheGroupMembershipFromPac(
             LSA_LOG_VERBOSE("Ignoring non-group SID %s (attribute is 0x%x)",
                             ppszExtraSidList[i],
                             pdwExtraSidAttributeList[i]);
-            LSA_SAFE_FREE_STRING(ppszExtraSidList[i]);
+            LW_SAFE_FREE_STRING(ppszExtraSidList[i]);
             dwIgnoreExtraSidCount++;
         }
     }
@@ -1062,12 +1062,12 @@ AD_CacheGroupMembershipFromPac(
     dwMembershipCount = (dwGroupSidCount + dwResourceGroupSidCount +
                          dwExtraSidCount - dwIgnoreExtraSidCount + 1);
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(ppMemberships[0]) * dwMembershipCount,
                     (PVOID*)&ppMemberships);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(pMembershipBuffers[0]) * dwMembershipCount,
                     (PVOID*)&pMembershipBuffers);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1122,12 +1122,12 @@ AD_CacheGroupMembershipFromPac(
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
-    LSA_SAFE_FREE_MEMORY(ppMemberships);
-    LSA_SAFE_FREE_MEMORY(pMembershipBuffers);
-    LsaFreeStringArray(ppszGroupSidList, dwGroupSidCount);
-    LsaFreeStringArray(ppszResourceGroupSidList, dwResourceGroupSidCount);
-    LsaFreeStringArray(ppszExtraSidList, dwExtraSidCount);
-    LSA_SAFE_FREE_MEMORY(pdwExtraSidAttributeList);
+    LW_SAFE_FREE_MEMORY(ppMemberships);
+    LW_SAFE_FREE_MEMORY(pMembershipBuffers);
+    LwFreeStringArray(ppszGroupSidList, dwGroupSidCount);
+    LwFreeStringArray(ppszResourceGroupSidList, dwResourceGroupSidCount);
+    LwFreeStringArray(ppszExtraSidList, dwExtraSidCount);
+    LW_SAFE_FREE_MEMORY(pdwExtraSidAttributeList);
 
     return dwError;
 
@@ -1215,7 +1215,7 @@ AD_GetCachedPasswordHash(
 
     // Allocate space to store the NT hash with the username appended
     sPrehashedVerifierLen = 16 + sSamAccountCch * sizeof(wchar16_t);
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sPrehashedVerifierLen + sizeof(wchar16_t),
                     (PVOID*)&pbPrehashedVerifier);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1245,7 +1245,7 @@ AD_GetCachedPasswordHash(
     }
 
     // Calculate the password verifier in binary format
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     16,
                     (PVOID*)&pbHash);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1259,15 +1259,15 @@ AD_GetCachedPasswordHash(
 
 cleanup:
 
-    LSA_SAFE_FREE_MEMORY(pwszPassword);
-    LSA_SAFE_FREE_MEMORY(pbPrehashedVerifier);
+    LW_SAFE_FREE_MEMORY(pwszPassword);
+    LW_SAFE_FREE_MEMORY(pbPrehashedVerifier);
 
     return dwError;
 
 error:
 
     *ppbHash = NULL;
-    LSA_SAFE_FREE_MEMORY(pbHash);
+    LW_SAFE_FREE_MEMORY(pbHash);
 
     goto cleanup;
 }
@@ -1289,7 +1289,7 @@ AD_OnlineCachePasswordVerifier(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(*pVerifier),
                     (PVOID*)&pVerifier);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1297,7 +1297,7 @@ AD_OnlineCachePasswordVerifier(
     pVerifier->version.tLastUpdated = current_tv.tv_sec;
     pVerifier->version.qwDbId = -1;
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                     pUserInfo->pszObjectSid,
                     &pVerifier->pszObjectSid);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1322,7 +1322,7 @@ AD_OnlineCachePasswordVerifier(
 cleanup:
 
     LSA_DB_SAFE_FREE_PASSWORD_VERIFIER(pVerifier);
-    LSA_SAFE_FREE_MEMORY(pbHash);
+    LW_SAFE_FREE_MEMORY(pbHash);
 
     return dwError;
 
@@ -1410,7 +1410,7 @@ AD_OnlineCheckUserPassword(
     dwError = LsaDnsGetHostInfo(&pszHostname);
     BAIL_ON_LSA_ERROR(dwError);
 
-    LsaStrToLower(pszHostname);
+    LwStrToLower(pszHostname);
 
     dwError = LwKrb5GetMachineCreds(
                     &pszMachineAccountName,
@@ -1420,7 +1420,7 @@ AD_OnlineCheckUserPassword(
     BAIL_ON_LSA_ERROR(dwError);
 
     // Leave the realm empty so that kerberos referrals are turned on.
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                         &pszServicePrincipal,
                         "host/%s.%s@",
                         pszHostname,
@@ -1469,11 +1469,11 @@ AD_OnlineCheckUserPassword(
                     pdwGoodUntilTime);
     if (dwError == LW_ERROR_KRB5_S_PRINCIPAL_UNKNOWN)
     {
-        LSA_SAFE_FREE_STRING(pszServicePrincipal);
+        LW_SAFE_FREE_STRING(pszServicePrincipal);
 
         // Perhaps the host has no SPN or UPN.  Try again
         // Using the sAMAccountName@REALM
-        dwError = LsaAllocateStringPrintf(
+        dwError = LwAllocateStringPrintf(
                       &pszServicePrincipal,
                       "%s@%s",
                       pszMachineAccountName,
@@ -1522,15 +1522,15 @@ cleanup:
     {
         FreePacLogonInfo(pPac);
     }
-    LSA_SAFE_FREE_STRING(pszHostname);
-    LSA_SAFE_FREE_STRING(pszMachineAccountName);
-    LSA_SAFE_FREE_STRING(pszServicePassword);
-    LSA_SAFE_FREE_STRING(pszDomainDnsName);
-    LSA_SAFE_FREE_STRING(pszHostDnsDomain);
-    LSA_SAFE_FREE_STRING(pszServicePrincipal);
-    LSA_SAFE_FREE_STRING(pszUserDnsDomainName);
-    LSA_SAFE_FREE_STRING(pszFreeUpn);
-    LSA_SAFE_FREE_MEMORY(pchNdrEncodedPac);
+    LW_SAFE_FREE_STRING(pszHostname);
+    LW_SAFE_FREE_STRING(pszMachineAccountName);
+    LW_SAFE_FREE_STRING(pszServicePassword);
+    LW_SAFE_FREE_STRING(pszDomainDnsName);
+    LW_SAFE_FREE_STRING(pszHostDnsDomain);
+    LW_SAFE_FREE_STRING(pszServicePrincipal);
+    LW_SAFE_FREE_STRING(pszUserDnsDomainName);
+    LW_SAFE_FREE_STRING(pszFreeUpn);
+    LW_SAFE_FREE_MEMORY(pchNdrEncodedPac);
 
     return dwError;
 
@@ -1842,12 +1842,12 @@ AD_CacheMembershipFromRelatedObjects(
     // signals a complete list.
     sMaxMemberships = sCount + 1;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(*ppMemberships) * sMaxMemberships,
                     (PVOID*)&ppMemberships);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(pMembershipBuffers[0]) * sMaxMemberships,
                     (PVOID*)&pMembershipBuffers);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1913,8 +1913,8 @@ AD_CacheMembershipFromRelatedObjects(
     }
 
 cleanup:
-    LSA_SAFE_FREE_MEMORY(ppMemberships);
-    LSA_SAFE_FREE_MEMORY(pMembershipBuffers);
+    LW_SAFE_FREE_MEMORY(ppMemberships);
+    LW_SAFE_FREE_MEMORY(pMembershipBuffers);
     return dwError;
 
 error:
@@ -1957,7 +1957,7 @@ AD_CombineCacheObjects(
     size_t sCombinedObjectsCount = 0;
 
     sCombinedObjectsCount = *psFromObjectsCount1 + *psFromObjectsCount2;
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(*ppCombinedObjects) * sCombinedObjectsCount,
                     (PVOID*)&ppCombinedObjects);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1987,7 +1987,7 @@ error:
     *pppCombinedObjects = NULL;
     *psCombinedObjectsCount = 0;
 
-    LSA_SAFE_FREE_MEMORY(ppCombinedObjects);
+    LW_SAFE_FREE_MEMORY(ppCombinedObjects);
     sCombinedObjectsCount = 0;
     goto cleanup;
 }
@@ -2047,7 +2047,7 @@ AD_CombineCacheObjectsRemoveDuplicates(
     }
 
     sCombinedObjectsCount = pHashTable->sCount;
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(*ppCombinedObjects) * sCombinedObjectsCount,
                     (PVOID*)&ppCombinedObjects);
     BAIL_ON_LSA_ERROR(dwError);
@@ -2290,7 +2290,7 @@ AD_OnlineGetUserGroupObjectMembership(
                         &ppUnexpirableResults);
         BAIL_ON_LSA_ERROR(dwError);
 
-        LSA_SAFE_FREE_MEMORY(ppszSids);
+        LW_SAFE_FREE_MEMORY(ppszSids);
         ADCacheSafeFreeGroupMembershipList(sMembershipCount, &ppMemberships);
 
         dwError = ADLdap_GetUserGroupMembership(
@@ -2353,7 +2353,7 @@ AD_OnlineGetUserGroupObjectMembership(
     *pppResults = ppFilteredResults;
 
 cleanup:
-    LSA_SAFE_FREE_MEMORY(ppszSids);
+    LW_SAFE_FREE_MEMORY(ppszSids);
     ADCacheSafeFreeGroupMembershipList(sMembershipCount, &ppMemberships);
     ADCacheSafeFreeObjectList(sResultsCount, &ppResults);
     ADCacheSafeFreeObjectList(sUnexpirableResultsCount, &ppUnexpirableResults);
@@ -2415,7 +2415,7 @@ AD_OnlineEnumUsers(
                     &ppObjects);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateMemory(sizeof(*ppInfoList) * dwObjectsCount,
+    dwError = LwAllocateMemory(sizeof(*ppInfoList) * dwObjectsCount,
                                 (PVOID*)&ppInfoList);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -2463,12 +2463,12 @@ AD_OnlineFindGroupObjectByName(
     PLSA_SECURITY_OBJECT pCachedGroup = NULL;
 
     BAIL_ON_INVALID_STRING(pszGroupName);
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                     pszGroupName,
                     &pszGroupName_copy);
     BAIL_ON_LSA_ERROR(dwError);
 
-    LsaStrCharReplace(pszGroupName_copy, AD_GetSpaceReplacement(),' ');
+    LwStrCharReplace(pszGroupName_copy, AD_GetSpaceReplacement(),' ');
 
     dwError = LsaCrackDomainQualifiedName(
                         pszGroupName_copy,
@@ -2527,7 +2527,7 @@ cleanup:
     {
         LsaFreeNameInfo(pGroupNameInfo);
     }
-    LSA_SAFE_FREE_STRING(pszGroupName_copy);
+    LW_SAFE_FREE_STRING(pszGroupName_copy);
 
     return dwError;
 
@@ -2643,7 +2643,7 @@ AD_OnlineEnumGroups(
                     &ppObjects);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateMemory(sizeof(*ppInfoList) * dwObjectsCount,
+    dwError = LwAllocateMemory(sizeof(*ppInfoList) * dwObjectsCount,
                                 (PVOID*)&ppInfoList);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -2819,7 +2819,7 @@ cleanup:
 
     ADCacheSafeFreeObject(&pCachedUser);
 
-    LSA_SAFE_FREE_STRING(pszFullDomainName);
+    LW_SAFE_FREE_STRING(pszFullDomainName);
 
 
     return dwError;
@@ -2837,7 +2837,7 @@ AD_CreateHomeDirectory(
     DWORD dwError = 0;
     BOOLEAN bExists = FALSE;
 
-    if (IsNullOrEmptyString(pUserInfo->pszHomedir)) {
+    if (LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszHomedir)) {
         dwError = LW_ERROR_FAILED_CREATE_HOMEDIR;
         BAIL_ON_LSA_ERROR(dwError);
     }
@@ -2858,7 +2858,7 @@ cleanup:
 
 error:
 
-    LSA_LOG_ERROR("Failed to create home directory for user (%s), actual error %d", IsNullOrEmptyString(pUserInfo->pszName) ? "" : pUserInfo->pszName, dwError);
+    LSA_LOG_ERROR("Failed to create home directory for user (%s), actual error %d", LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszName) ? "" : pUserInfo->pszName, dwError);
     dwError = LW_ERROR_FAILED_CREATE_HOMEDIR;
 
     goto cleanup;
@@ -2935,7 +2935,7 @@ AD_ProvisionHomeDir(
     dwError = AD_GetSkelDirs(&pszSkelPaths);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (IsNullOrEmptyString(pszSkelPaths))
+    if (LW_IS_NULL_OR_EMPTY_STR(pszSkelPaths))
     {
         goto cleanup;
     }
@@ -2943,17 +2943,17 @@ AD_ProvisionHomeDir(
     pszIter = pszSkelPaths;
     while ((stLen = strcspn(pszIter, ",")) != 0)
     {
-        dwError = LsaStrndup(
+        dwError = LwStrndup(
                       pszIter,
                       stLen,
                       &pszSkelPath);
         BAIL_ON_LSA_ERROR(dwError);
 
-        LsaStripWhitespace(pszSkelPath, TRUE, TRUE);
+        LwStripWhitespace(pszSkelPath, TRUE, TRUE);
 
-        if (IsNullOrEmptyString(pszSkelPath))
+        if (LW_IS_NULL_OR_EMPTY_STR(pszSkelPath))
         {
-            LSA_SAFE_FREE_STRING(pszSkelPath);
+            LW_SAFE_FREE_STRING(pszSkelPath);
             continue;
         }
 
@@ -2972,7 +2972,7 @@ AD_ProvisionHomeDir(
             BAIL_ON_LSA_ERROR(dwError);
         }
 
-        LSA_SAFE_FREE_STRING(pszSkelPath);
+        LW_SAFE_FREE_STRING(pszSkelPath);
 
         pszIter += stLen;
         stLen = strspn(pszIter, ",");
@@ -2981,8 +2981,8 @@ AD_ProvisionHomeDir(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszSkelPath);
-    LSA_SAFE_FREE_STRING(pszSkelPaths);
+    LW_SAFE_FREE_STRING(pszSkelPath);
+    LW_SAFE_FREE_STRING(pszSkelPaths);
 
     return dwError;
 
@@ -3043,7 +3043,7 @@ AD_CreateK5Login(
     BAIL_ON_INVALID_STRING(pUserInfo->pszHomedir);
     BAIL_ON_INVALID_STRING(pUserInfo->pszUPN);
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                     &pszK5LoginPath,
                     "%s/.k5login",
                     pUserInfo->pszHomedir);
@@ -3060,7 +3060,7 @@ AD_CreateK5Login(
 
     // Create a copy of the UPN to make sure that the realm is uppercase,
     // but preserving the case of the non-realm part.
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                     pUserInfo->pszUPN,
                     &pszUpnCopy);
     BAIL_ON_LSA_ERROR(dwError);
@@ -3068,7 +3068,7 @@ AD_CreateK5Login(
     LsaPrincipalRealmToUpper(pszUpnCopy);
 
     // Create another copy of the UPN that has lowercase non-realm part.
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                     pszUpnCopy,
                     &pszUpnCopyLower);
     BAIL_ON_LSA_ERROR(dwError);
@@ -3078,7 +3078,7 @@ AD_CreateK5Login(
     if (!strcmp(pszUpnCopy, pszUpnCopyLower))
     {
         // If the UPNs are the same, just need to write one.
-        dwError = LsaAllocateStringPrintf(
+        dwError = LwAllocateStringPrintf(
                         &pszData,
                         "%s\n",
                         pszUpnCopy);
@@ -3087,7 +3087,7 @@ AD_CreateK5Login(
     else
     {
         // Otherwise, they are different and we want both.
-        dwError = LsaAllocateStringPrintf(
+        dwError = LwAllocateStringPrintf(
                         &pszData,
                         "%s\n%s\n",
                         pszUpnCopy,
@@ -3095,7 +3095,7 @@ AD_CreateK5Login(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                     &pszK5LoginPath_tmp,
                     "%s_lsass",
                     pszK5LoginPath);
@@ -3157,11 +3157,11 @@ cleanup:
 
     }
 
-    LSA_SAFE_FREE_STRING(pszData);
-    LSA_SAFE_FREE_STRING(pszUpnCopy);
-    LSA_SAFE_FREE_STRING(pszUpnCopyLower);
-    LSA_SAFE_FREE_STRING(pszK5LoginPath_tmp);
-    LSA_SAFE_FREE_STRING(pszK5LoginPath);
+    LW_SAFE_FREE_STRING(pszData);
+    LW_SAFE_FREE_STRING(pszUpnCopy);
+    LW_SAFE_FREE_STRING(pszUpnCopyLower);
+    LW_SAFE_FREE_STRING(pszK5LoginPath_tmp);
+    LW_SAFE_FREE_STRING(pszK5LoginPath);
 
     return dwError;
 
@@ -3301,7 +3301,7 @@ AD_OnlineGetGroupMembers(
                         &ppUnexpirableResults);
         BAIL_ON_LSA_ERROR(dwError);
 
-        LSA_SAFE_FREE_MEMORY(ppszSids);
+        LW_SAFE_FREE_MEMORY(ppszSids);
         ADCacheSafeFreeGroupMembershipList(sMembershipCount, &ppMemberships);
 
         dwError = ADLdap_GetGroupMembers(
@@ -3362,7 +3362,7 @@ AD_OnlineGetGroupMembers(
     *pppResults = ppFilteredResults;
 
 cleanup:
-    LSA_SAFE_FREE_MEMORY(ppszSids);
+    LW_SAFE_FREE_MEMORY(ppszSids);
     ADCacheSafeFreeGroupMembershipList(sMembershipCount, &ppMemberships);
     ADCacheSafeFreeObjectList(sResultsCount, &ppResults);
     ADCacheSafeFreeObjectList(sUnexpirableResultsCount, &ppUnexpirableResults);
@@ -3435,7 +3435,7 @@ AD_FindObjectByUpnNoCache(
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
-    LSA_SAFE_FREE_STRING(pszSid);
+    LW_SAFE_FREE_STRING(pszSid);
 
     *ppObject = pObject;
 
@@ -3646,7 +3646,7 @@ AD_FindObjectBySid(
     *ppResult = ppResultArray[0];
 
 cleanup:
-    LSA_SAFE_FREE_MEMORY(ppResultArray);
+    LW_SAFE_FREE_MEMORY(ppResultArray);
     return dwError;
 
 error:
@@ -3692,7 +3692,7 @@ AD_FindObjectsByList(
     BAIL_ON_LSA_ERROR(dwError);
     sResultsCount = sCount;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sCount*sizeof(*ppszRemainingList),
                     (PVOID*)&ppszRemainingList);
     BAIL_ON_LSA_ERROR(dwError);
@@ -3791,7 +3791,7 @@ cleanup:
     }
 
     ADCacheSafeFreeObjectList(sFoundInAD, &ppRemainingObjectsResults);
-    LSA_SAFE_FREE_MEMORY(ppszRemainingList);
+    LW_SAFE_FREE_MEMORY(ppszRemainingList);
 
     return dwError;
 
@@ -3856,17 +3856,17 @@ AD_OnlineGetNamesBySidList(
     size_t sIndex = 0;
     size_t sReturnCount = 0;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(*ppszDomainNames) * sCount,
                     (PVOID*)&ppszDomainNames);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(*ppszSamAccounts) * sCount,
                     (PVOID*)&ppszSamAccounts);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(*pTypes) * sCount,
                     (PVOID*)&pTypes);
     BAIL_ON_LSA_ERROR(dwError);
@@ -3887,17 +3887,17 @@ AD_OnlineGetNamesBySidList(
             continue;
         }
 
-        if (!IsNullOrEmptyString(ppObjects[sIndex]->pszNetbiosDomainName))
+        if (!LW_IS_NULL_OR_EMPTY_STR(ppObjects[sIndex]->pszNetbiosDomainName))
         {
-            dwError = LsaAllocateString(
+            dwError = LwAllocateString(
                         ppObjects[sIndex]->pszNetbiosDomainName,
                         &ppszDomainNames[sIndex]);
             BAIL_ON_LSA_ERROR(dwError);
         }
 
-        if (!IsNullOrEmptyString(ppObjects[sIndex]->pszSamAccountName))
+        if (!LW_IS_NULL_OR_EMPTY_STR(ppObjects[sIndex]->pszSamAccountName))
         {
-            dwError = LsaAllocateString(
+            dwError = LwAllocateString(
                         ppObjects[sIndex]->pszSamAccountName,
                         &ppszSamAccounts[sIndex]);
             BAIL_ON_LSA_ERROR(dwError);
@@ -3922,9 +3922,9 @@ error:
     *pppszSamAccounts = NULL;
     *ppTypes = NULL;
 
-    LsaFreeStringArray(ppszDomainNames, sCount);
-    LsaFreeStringArray(ppszSamAccounts, sCount);
-    LSA_SAFE_FREE_MEMORY(pTypes);
+    LwFreeStringArray(ppszDomainNames, sCount);
+    LwFreeStringArray(ppszSamAccounts, sCount);
+    LW_SAFE_FREE_MEMORY(pTypes);
 
     goto cleanup;
 }
@@ -3942,12 +3942,12 @@ AD_OnlineFindUserObjectByName(
     PLSA_SECURITY_OBJECT pCachedUser = NULL;
 
     BAIL_ON_INVALID_STRING(pszLoginId);
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                     pszLoginId,
                     &pszLoginId_copy);
     BAIL_ON_LSA_ERROR(dwError);
 
-    LsaStrCharReplace(
+    LwStrCharReplace(
             pszLoginId_copy,
             AD_GetSpaceReplacement(),
             ' ');
@@ -4000,7 +4000,7 @@ cleanup:
     {
         LsaFreeNameInfo(pUserNameInfo);
     }
-    LSA_SAFE_FREE_STRING(pszLoginId_copy);
+    LW_SAFE_FREE_STRING(pszLoginId_copy);
 
     return dwError;
 

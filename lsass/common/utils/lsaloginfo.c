@@ -60,14 +60,14 @@ LsaBuildLogInfo(
 
     BAIL_ON_INVALID_POINTER(ppLogInfo);
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(LSA_LOG_INFO),
                     (PVOID*)&pLogInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (!IsNullOrEmptyString(pszPath))
+    if (!LW_IS_NULL_OR_EMPTY_STR(pszPath))
     {
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
                         pszPath,
                         &pLogInfo->pszPath);
         BAIL_ON_LSA_ERROR(dwError);
@@ -102,6 +102,6 @@ LsaFreeLogInfo(
     PLSA_LOG_INFO pLogInfo
     )
 {
-    LSA_SAFE_FREE_STRING(pLogInfo->pszPath);
-    LsaFreeMemory(pLogInfo);
+    LW_SAFE_FREE_STRING(pLogInfo->pszPath);
+    LwFreeMemory(pLogInfo);
 }

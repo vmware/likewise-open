@@ -147,7 +147,7 @@ _nss_lsass_get_principal(
                                 &pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateString(((PLSA_USER_INFO_1)pUserInfo)->pszUPN,
+    dwError = LwAllocateString(((PLSA_USER_INFO_1)pUserInfo)->pszUPN,
                                 &pszPrincipalName);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -176,7 +176,7 @@ error:
 
     if (pszPrincipalName)
     {
-       LsaFreeString(pszPrincipalName);
+       LwFreeString(pszPrincipalName);
     }
 
     goto cleanup;
@@ -188,7 +188,7 @@ _nss_lsass_free_principal(
     )
 {
     if (pszPrincipalName) {
-        LsaFreeString(pszPrincipalName);
+        LwFreeString(pszPrincipalName);
     }
 }
 
@@ -246,7 +246,7 @@ error:
     }
 
     if (pGidResults) {
-        LsaFreeMemory(pGidResults);
+        LwFreeMemory(pGidResults);
     }
 
     goto cleanup;
@@ -258,5 +258,5 @@ _nss_lsass_free_user_groups(
     )
 {
     if (pGroups)
-        LsaFreeMemory(pGroups);
+        LwFreeMemory(pGroups);
 }

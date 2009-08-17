@@ -97,7 +97,7 @@ LsaSrvApiInit(
     dwError = LsaInitRpcServers(pszConfigFilePath);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                     pszConfigFilePath,
                     &gpszConfigFilePath);
     BAIL_ON_LSA_ERROR(dwError);
@@ -122,7 +122,7 @@ LsaSrvApiShutdown(
 
     pthread_mutex_lock(&gAPIConfigLock);
 
-    LSA_SAFE_FREE_STRING(gpszConfigFilePath);
+    LW_SAFE_FREE_STRING(gpszConfigFilePath);
 
     LsaSrvApiFreeConfigContents(&gAPIConfig);
 

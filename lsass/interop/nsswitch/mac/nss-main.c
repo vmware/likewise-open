@@ -454,7 +454,7 @@ LsaNSSGetGroupMembership(
     long int myResultsCapacity = maxResultGids;
 
     ret = MAP_LSA_ERROR(&err,
-                        LsaAllocateMemory(
+                        LwAllocateMemory(
                             sizeof(gid_t) * maxResultGids,
                             (PVOID*)&pMyResultGids));
 
@@ -475,7 +475,7 @@ LsaNSSGetGroupMembership(
     *pNumResultGids = (int) myResultsSize;
 
 cleanup:
-    LSA_SAFE_FREE_MEMORY(pMyResultGids);
+    LW_SAFE_FREE_MEMORY(pMyResultGids);
 
     return ret;
 

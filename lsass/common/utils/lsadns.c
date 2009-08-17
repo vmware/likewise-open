@@ -83,7 +83,7 @@ LsaDnsGetHostInfo(
         pszDot[0] = '\0';
     }
 
-    dwError = LsaAllocateString(szBuffer, &pszHostname);
+    dwError = LwAllocateString(szBuffer, &pszHostname);
     BAIL_ON_LSA_ERROR(dwError);
 
     if ( ppszHostname ) {
@@ -93,7 +93,7 @@ LsaDnsGetHostInfo(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszHostname);
+    LW_SAFE_FREE_STRING(pszHostname);
 
     return dwError;
 

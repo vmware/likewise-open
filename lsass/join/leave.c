@@ -91,7 +91,7 @@ LsaNetLeaveDomain(
                     &pAcct);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (!IsNullOrEmptyString(pAcct->pszDnsDomainName))
+    if (!LW_IS_NULL_OR_EMPTY_STR(pAcct->pszDnsDomainName))
     {
         dwError = LsaMbsToWc16s(
                     pAcct->pszDnsDomainName,
@@ -104,8 +104,8 @@ LsaNetLeaveDomain(
                     &pwszHostname);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (!IsNullOrEmptyString(pszUsername) &&
-        !IsNullOrEmptyString(pszPassword))
+    if (!LW_IS_NULL_OR_EMPTY_STR(pszUsername) &&
+        !LW_IS_NULL_OR_EMPTY_STR(pszPassword))
     {
         dwError = LsaSetSMBAccessToken(
                     pAcct->pszDnsDomainName,
@@ -145,10 +145,10 @@ cleanup:
         LsaFreeMachineAccountInfo(pAcct);
     }
 
-    LSA_SAFE_FREE_STRING(pszHostname);
+    LW_SAFE_FREE_STRING(pszHostname);
 
-    LSA_SAFE_FREE_MEMORY(pwszHostname);
-    LSA_SAFE_FREE_MEMORY(pwszDnsDomainName);
+    LW_SAFE_FREE_MEMORY(pwszHostname);
+    LW_SAFE_FREE_MEMORY(pwszDnsDomainName);
     LsaFreeSMBAccessToken(&pAccessInfo);
 
     return dwError;

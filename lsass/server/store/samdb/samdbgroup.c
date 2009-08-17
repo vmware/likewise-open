@@ -166,8 +166,8 @@ cleanup:
 
     SAMDB_UNLOCK_RWMUTEX(bInLock, &gSamGlobals.rwLock);
 
-    LSA_SAFE_FREE_STRING(pszGroupDN);
-    LSA_SAFE_FREE_STRING(pszSqlQuery);
+    LW_SAFE_FREE_STRING(pszGroupDN);
+    LW_SAFE_FREE_STRING(pszSqlQuery);
 
     return dwError;
 
@@ -262,8 +262,8 @@ cleanup:
 
     SAMDB_UNLOCK_RWMUTEX(bInLock, &gSamGlobals.rwLock);
 
-    LSA_SAFE_FREE_STRING(pszUserDN);
-    LSA_SAFE_FREE_STRING(pszSqlQuery);
+    LW_SAFE_FREE_STRING(pszUserDN);
+    LW_SAFE_FREE_STRING(pszSqlQuery);
 
     return dwError;
 
@@ -401,7 +401,7 @@ error:
     *ppszQuery = NULL;
     *ppColumnValueList = NULL;
 
-    LSA_SAFE_FREE_STRING(pszQuery);
+    LW_SAFE_FREE_STRING(pszQuery);
 
     if (pColumnValueList)
     {

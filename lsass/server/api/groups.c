@@ -118,7 +118,7 @@ cleanup:
 
 error:
 
-    LSA_LOG_ERROR("Failed to find group by name [%s]", IsNullOrEmptyString(pszGroup) ? "" : pszGroup);
+    LSA_LOG_ERROR("Failed to find group by name [%s]", LW_IS_NULL_OR_EMPTY_STR(pszGroup) ? "" : pszGroup);
 
     *ppGroupInfo = NULL;
 

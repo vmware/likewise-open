@@ -205,7 +205,7 @@ ParseArgs(
     if ((argc - iArg) >= 1)
     {
         pszUserName = argv[iArg++];
-        if (IsNullOrEmptyString(pszUserName))
+        if (LW_IS_NULL_OR_EMPTY_STR(pszUserName))
         {
            fprintf(stderr, "Please specify a non-empty user name to query for.\n");
            ShowUsage();

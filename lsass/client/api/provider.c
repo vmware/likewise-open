@@ -83,7 +83,7 @@ LsaProviderIoControl(
     }
     else
     {
-        LsaFreeMemory(pOutputBuffer);
+        LwFreeMemory(pOutputBuffer);
     }
 
 cleanup:

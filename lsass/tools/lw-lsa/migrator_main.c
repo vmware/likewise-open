@@ -67,7 +67,7 @@ IsComment(
     PSTR pszLine
     )
 {
-    if (IsNullOrEmptyString(pszLine))
+    if (LW_IS_NULL_OR_EMPTY_STR(pszLine))
         return TRUE;
 
     while (*pszLine != '\0' && isspace((int)*pszLine))
@@ -115,12 +115,12 @@ LsaSrvPopulateGroups(
             }
         }
 
-        LsaStripWhitespace(szLine, TRUE, TRUE);
+        LwStripWhitespace(szLine, TRUE, TRUE);
 
         if (IsComment(szLine))
             continue;
 
-        dwError = LsaAllocateString(szLine, &pszBuf);
+        dwError = LwAllocateString(szLine, &pszBuf);
         BAIL_ON_LSA_ERROR(dwError);
 
         iToken = 0;
@@ -130,14 +130,14 @@ LsaSrvPopulateGroups(
             switch (iToken++) {
                 case 0:
                 {
-                    dwError = LsaAllocateString(pszToken, &pszGroupname);
+                    dwError = LwAllocateString(pszToken, &pszGroupname);
                     BAIL_ON_LSA_ERROR(dwError);
                     break;
                 }
                 case 1:
                 {
-                    if (!IsNullOrEmptyString(pszToken)) {
-                       dwError = LsaAllocateString(pszToken, &pszPassword);
+                    if (!LW_IS_NULL_OR_EMPTY_STR(pszToken)) {
+                       dwError = LwAllocateString(pszToken, &pszPassword);
                        BAIL_ON_LSA_ERROR(dwError);
                     }
                     break;
@@ -159,9 +159,9 @@ LsaSrvPopulateGroups(
                            gid);
         BAIL_ON_LSA_ERROR(dwError);
 
-        LSA_SAFE_FREE_STRING(pszBuf);
-        LSA_SAFE_FREE_STRING(pszGroupname);
-        LSA_SAFE_FREE_STRING(pszPassword);
+        LW_SAFE_FREE_STRING(pszBuf);
+        LW_SAFE_FREE_STRING(pszGroupname);
+        LW_SAFE_FREE_STRING(pszPassword);
     }
 
 cleanup:
@@ -174,9 +174,9 @@ cleanup:
        LEAVE_RW_WRITER_LOCK;
     }
 
-    LSA_SAFE_FREE_STRING(pszBuf);
-    LSA_SAFE_FREE_STRING(pszGroupname);
-    LSA_SAFE_FREE_STRING(pszPassword);
+    LW_SAFE_FREE_STRING(pszBuf);
+    LW_SAFE_FREE_STRING(pszGroupname);
+    LW_SAFE_FREE_STRING(pszPassword);
 
     return dwError;
 
@@ -229,12 +229,12 @@ LsaSrvPopulateUsers(
             }
         }
 
-        LsaStripWhitespace(szLine, TRUE, TRUE);
+        LwStripWhitespace(szLine, TRUE, TRUE);
 
         if (IsComment(szLine))
             continue;
 
-        dwError = LsaAllocateString(szLine, &pszBuf);
+        dwError = LwAllocateString(szLine, &pszBuf);
         BAIL_ON_LSA_ERROR(dwError);
 
         iToken = 0;
@@ -245,14 +245,14 @@ LsaSrvPopulateUsers(
             switch (iToken++) {
                 case 0:
                 {
-                    dwError = LsaAllocateString(pszToken, &pszUsername);
+                    dwError = LwAllocateString(pszToken, &pszUsername);
                     BAIL_ON_LSA_ERROR(dwError);
                     break;
                 }
                 case 1:
                 {
-                    if (!IsNullOrEmptyString(pszToken)) {
-                       dwError = LsaAllocateString(pszToken, &pszPassword);
+                    if (!LW_IS_NULL_OR_EMPTY_STR(pszToken)) {
+                       dwError = LwAllocateString(pszToken, &pszPassword);
                        BAIL_ON_LSA_ERROR(dwError);
                     }
                     break;
@@ -269,24 +269,24 @@ LsaSrvPopulateUsers(
                 }
                 case 4:
                 {
-                    if (!IsNullOrEmptyString(pszToken)) {
-                        dwError = LsaAllocateString(pszToken, &pszGecos);
+                    if (!LW_IS_NULL_OR_EMPTY_STR(pszToken)) {
+                        dwError = LwAllocateString(pszToken, &pszGecos);
                         BAIL_ON_LSA_ERROR(dwError);
                     }
                     break;
                 }
                 case 5:
                 {
-                    if (!IsNullOrEmptyString(pszToken)) {
-                        dwError = LsaAllocateString(pszToken, &pszHomedir);
+                    if (!LW_IS_NULL_OR_EMPTY_STR(pszToken)) {
+                        dwError = LwAllocateString(pszToken, &pszHomedir);
                         BAIL_ON_LSA_ERROR(dwError);
                     }
                     break;
                 }
                 case 6:
                 {
-                    if (!IsNullOrEmptyString(pszToken)) {
-                        dwError = LsaAllocateString(pszToken, &pszShell);
+                    if (!LW_IS_NULL_OR_EMPTY_STR(pszToken)) {
+                        dwError = LwAllocateString(pszToken, &pszShell);
                         BAIL_ON_LSA_ERROR(dwError);
                     }
                     bKeepParsing = FALSE;
@@ -308,12 +308,12 @@ LsaSrvPopulateUsers(
                         );
         BAIL_ON_LSA_ERROR(dwError);
 
-        LSA_SAFE_FREE_STRING(pszBuf);
-        LSA_SAFE_FREE_STRING(pszUsername);
-        LSA_SAFE_FREE_STRING(pszPassword);
-        LSA_SAFE_FREE_STRING(pszGecos);
-        LSA_SAFE_FREE_STRING(pszHomedir);
-        LSA_SAFE_FREE_STRING(pszShell);
+        LW_SAFE_FREE_STRING(pszBuf);
+        LW_SAFE_FREE_STRING(pszUsername);
+        LW_SAFE_FREE_STRING(pszPassword);
+        LW_SAFE_FREE_STRING(pszGecos);
+        LW_SAFE_FREE_STRING(pszHomedir);
+        LW_SAFE_FREE_STRING(pszShell);
     }
 
 cleanup:
@@ -326,12 +326,12 @@ cleanup:
        LEAVE_RW_WRITER_LOCK;
     }
 
-    LSA_SAFE_FREE_STRING(pszBuf);
-    LSA_SAFE_FREE_STRING(pszUsername);
-    LSA_SAFE_FREE_STRING(pszPassword);
-    LSA_SAFE_FREE_STRING(pszGecos);
-    LSA_SAFE_FREE_STRING(pszHomedir);
-    LSA_SAFE_FREE_STRING(pszShell);
+    LW_SAFE_FREE_STRING(pszBuf);
+    LW_SAFE_FREE_STRING(pszUsername);
+    LW_SAFE_FREE_STRING(pszPassword);
+    LW_SAFE_FREE_STRING(pszGecos);
+    LW_SAFE_FREE_STRING(pszHomedir);
+    LW_SAFE_FREE_STRING(pszShell);
 
     return dwError;
 
@@ -382,12 +382,12 @@ LsaSrvPopulateGroupMembers(
             }
         }
 
-        LsaStripWhitespace(szLine, TRUE, TRUE);
+        LwStripWhitespace(szLine, TRUE, TRUE);
 
         if (IsComment(szLine))
             continue;
 
-        dwError = LsaAllocateString(szLine, &pszBuf);
+        dwError = LwAllocateString(szLine, &pszBuf);
         BAIL_ON_LSA_ERROR(dwError);
 
         iToken = 0;
@@ -397,14 +397,14 @@ LsaSrvPopulateGroupMembers(
             switch (iToken++) {
                 case 0:
                 {
-                    dwError = LsaAllocateString(pszToken, &pszGroupname);
+                    dwError = LwAllocateString(pszToken, &pszGroupname);
                     BAIL_ON_LSA_ERROR(dwError);
                     break;
                 }
                 case 1:
                 {
-                    if (!IsNullOrEmptyString(pszToken)) {
-                       dwError = LsaAllocateString(pszToken, &pszPassword);
+                    if (!LW_IS_NULL_OR_EMPTY_STR(pszToken)) {
+                       dwError = LwAllocateString(pszToken, &pszPassword);
                        BAIL_ON_LSA_ERROR(dwError);
                     }
                     break;
@@ -416,8 +416,8 @@ LsaSrvPopulateGroupMembers(
                 }
                 case 3:
                 {
-                    if (!IsNullOrEmptyString(pszToken)) {
-                        dwError = LsaAllocateString(pszToken, &pszGroupMembers);
+                    if (!LW_IS_NULL_OR_EMPTY_STR(pszToken)) {
+                        dwError = LwAllocateString(pszToken, &pszGroupMembers);
                         BAIL_ON_LSA_ERROR(dwError);
                     }
                     bKeepParsing = FALSE;
@@ -427,9 +427,9 @@ LsaSrvPopulateGroupMembers(
             pszToken = strtok_r(NULL, ":", &pszSavePtr);
         }
 
-        LsaStripWhitespace(pszGroupMembers, TRUE, TRUE);
+        LwStripWhitespace(pszGroupMembers, TRUE, TRUE);
 
-        if (!IsNullOrEmptyString(pszGroupMembers)) {
+        if (!LW_IS_NULL_OR_EMPTY_STR(pszGroupMembers)) {
             uid_t candidateUid = 0;
             BOOLEAN bExists = FALSE;
 
@@ -479,10 +479,10 @@ LsaSrvPopulateGroupMembers(
             }
         }
 
-        LSA_SAFE_FREE_STRING(pszBuf);
-        LSA_SAFE_FREE_STRING(pszGroupname);
-        LSA_SAFE_FREE_STRING(pszPassword);
-        LSA_SAFE_FREE_STRING(pszGroupMembers);
+        LW_SAFE_FREE_STRING(pszBuf);
+        LW_SAFE_FREE_STRING(pszGroupname);
+        LW_SAFE_FREE_STRING(pszPassword);
+        LW_SAFE_FREE_STRING(pszGroupMembers);
     }
 
 cleanup:
@@ -499,10 +499,10 @@ cleanup:
        sqlite3_free(pszQuery);
     }
 
-    LSA_SAFE_FREE_STRING(pszBuf);
-    LSA_SAFE_FREE_STRING(pszGroupname);
-    LSA_SAFE_FREE_STRING(pszPassword);
-    LSA_SAFE_FREE_STRING(pszGroupMembers);
+    LW_SAFE_FREE_STRING(pszBuf);
+    LW_SAFE_FREE_STRING(pszGroupname);
+    LW_SAFE_FREE_STRING(pszPassword);
+    LW_SAFE_FREE_STRING(pszGroupMembers);
 
     return dwError;
 

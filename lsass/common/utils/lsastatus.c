@@ -59,11 +59,11 @@ LsaFreeStatus(
        PLSA_AUTH_PROVIDER_STATUS pStatus =
                  &pLsaStatus->pAuthProviderStatusList[iCount];
 
-       LSA_SAFE_FREE_STRING(pStatus->pszId);
-       LSA_SAFE_FREE_STRING(pStatus->pszDomain);
-       LSA_SAFE_FREE_STRING(pStatus->pszForest);
-       LSA_SAFE_FREE_STRING(pStatus->pszSite);
-       LSA_SAFE_FREE_STRING(pStatus->pszCell);
+       LW_SAFE_FREE_STRING(pStatus->pszId);
+       LW_SAFE_FREE_STRING(pStatus->pszDomain);
+       LW_SAFE_FREE_STRING(pStatus->pszForest);
+       LW_SAFE_FREE_STRING(pStatus->pszSite);
+       LW_SAFE_FREE_STRING(pStatus->pszCell);
 
        if (pStatus->pTrustedDomainInfoArray)
        {
@@ -73,7 +73,7 @@ LsaFreeStatus(
        }
     }
 
-    LSA_SAFE_FREE_MEMORY(pLsaStatus->pAuthProviderStatusList);
+    LW_SAFE_FREE_MEMORY(pLsaStatus->pAuthProviderStatusList);
 
-    LsaFreeMemory(pLsaStatus);
+    LwFreeMemory(pLsaStatus);
 }

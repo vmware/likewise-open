@@ -45,53 +45,6 @@
 #include "includes.h"
 
 DWORD
-LsaAllocateMemory(
-    DWORD dwSize,
-    PVOID * ppMemory
-    )
-{
-    DWORD dwError = 0;
-    PVOID pMemory = NULL;
-
-    pMemory = malloc(dwSize);
-    if (!pMemory){
-        dwError = ENOMEM;
-        *ppMemory = NULL;
-    }else {
-        memset(pMemory,0, dwSize);
-        *ppMemory = pMemory;
-    }
-
-    return dwError;
-}
-
-DWORD
-LsaReallocMemory(
-    PVOID  pMemory,
-    PVOID * ppNewMemory,
-    DWORD dwSize
-    )
-{
-    DWORD dwError = 0;
-    PVOID pNewMemory = NULL;
-
-    if (pMemory == NULL) {
-       pNewMemory = malloc(dwSize);
-       memset(pNewMemory, 0, dwSize);
-    }else {
-       pNewMemory = realloc(pMemory, dwSize);
-    }
-    if (!pNewMemory){
-       dwError = ENOMEM;
-       *ppNewMemory = NULL;
-    }else {
-       *ppNewMemory = pNewMemory;
-    }
-
-    return dwError;
-}
-
-DWORD
 LsaAppendAndFreePtrs(
     IN OUT PDWORD pdwDestCount,
     IN OUT PVOID** pppDestPtrArray,
@@ -124,7 +77,7 @@ LsaAppendAndFreePtrs(
     {
         if (dwNewSize > 0)
         {
-            dwError = LsaReallocMemory(
+            dwError = LwReallocMemory(
                 ppDestPtrArray,
                 (PVOID*)&ppDestPtrArray,
                 dwNewSize);
@@ -140,7 +93,7 @@ LsaAppendAndFreePtrs(
                 *pppAppendPtrArray,
                 dwAppendSize);
         *pdwDestCount = dwNewCount;
-        LSA_SAFE_FREE_MEMORY(*pppAppendPtrArray);
+        LW_SAFE_FREE_MEMORY(*pppAppendPtrArray);
         *pdwAppendCount = 0;
     }
 
@@ -153,101 +106,6 @@ error:
     // pppAppendPtrArray as is, so that the passed in data is not lost.
 
     goto cleanup;
-}
-
-void
-LsaFreeMemory(
-    PVOID pMemory
-    )
-{
-    free(pMemory);
-}
-
-
-DWORD
-LsaAllocateString(
-    PCSTR  pszInputString,
-    PSTR* ppszOutputString
-    )
-{
-    DWORD dwError = 0;
-    DWORD dwLen = 0;
-    PSTR  pszOutputString = NULL;
-
-    if (!pszInputString) {
-        dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwLen = strlen(pszInputString);
-
-    dwError = LsaAllocateMemory(dwLen+1, (PVOID *)&pszOutputString);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (dwLen) {
-       memcpy(pszOutputString, pszInputString, dwLen);
-    }
-
-    *ppszOutputString = pszOutputString;
-
-cleanup:
-
-    return dwError;
-
-error:
-
-    LSA_SAFE_FREE_STRING(pszOutputString);
-
-    *ppszOutputString = NULL;
-
-    goto cleanup;
-}
-
-void
-LsaFreeString(
-    PSTR pszString
-    )
-{
-    LsaFreeMemory(pszString);
-}
-
-void
-LsaFreeStringArray(
-    PSTR * ppStringArray,
-    DWORD dwCount
-    )
-{
-    DWORD i;
-
-    if ( ppStringArray ) {
-        for(i = 0; i < dwCount; i++)
-        {
-            if (ppStringArray[i]) {
-                LsaFreeString(ppStringArray[i]);
-            }
-        }
-
-        LsaFreeMemory(ppStringArray);
-    }
-
-    return;
-}
-
-void
-LsaFreeNullTerminatedStringArray(
-    PSTR * ppStringArray
-    )
-{
-    PSTR* ppTmp = ppStringArray;
-
-    while (ppTmp && *ppTmp) {
-
-          LsaFreeString(*ppTmp);
-
-          ppTmp++;
-    }
-
-    LsaFreeMemory(ppStringArray);
 }
 
 DWORD
@@ -267,7 +125,7 @@ LsaInitializeStringBuffer(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
         sCapacity + 1,
         (PVOID *)&pszBuffer);
     BAIL_ON_LSA_ERROR(dwError);
@@ -313,7 +171,7 @@ LsaAppendStringBuffer(
             BAIL_ON_LSA_ERROR(dwError);
         }
 
-        dwError = LsaReallocMemory(
+        dwError = LwReallocMemory(
             pBuffer->pszBuffer,
             (PVOID *)&pBuffer->pszBuffer,
             sNewCapacity + 1);
@@ -340,7 +198,7 @@ void
 LsaFreeStringBufferContents(
         LSA_STRING_BUFFER *pBuffer)
 {
-    LSA_SAFE_FREE_MEMORY(pBuffer->pszBuffer);
+    LW_SAFE_FREE_MEMORY(pBuffer->pszBuffer);
 
     pBuffer->sLen = 0;
     pBuffer->sCapacity = 0;

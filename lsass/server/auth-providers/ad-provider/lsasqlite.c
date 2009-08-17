@@ -212,7 +212,7 @@ LsaSqliteReadString(
     }
 #endif
 
-    dwError = LsaStrDupOrNull(
+    dwError = LwStrDupOrNull(
             pszColumnValue,
             ppszResult);
     BAIL_ON_LSA_ERROR(dwError);
@@ -299,14 +299,14 @@ LsaSqliteReadSid(
     *piColumnPos = iColumnPos;
 
 cleanup:
-    LSA_SAFE_FREE_STRING(pszSid);
+    LW_SAFE_FREE_STRING(pszSid);
 
     return dwError;
 
 error:
 
     *ppSid = NULL;
-    LSA_SAFE_FREE_MEMORY(pSid);
+    LW_SAFE_FREE_MEMORY(pSid);
     goto cleanup;
 }
 
@@ -329,7 +329,7 @@ LsaSqliteReadGuid(
         &pszGuid);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(*pGuid),
                     (PVOID*)&pGuid);
     BAIL_ON_LSA_ERROR(dwError);
@@ -347,14 +347,14 @@ LsaSqliteReadGuid(
     *piColumnPos = iColumnPos;
 
 cleanup:
-    LSA_SAFE_FREE_STRING(pszGuid);
+    LW_SAFE_FREE_STRING(pszGuid);
 
     return dwError;
 
 error:
 
     *ppGuid = NULL;
-    LSA_SAFE_FREE_MEMORY(pGuid);
+    LW_SAFE_FREE_MEMORY(pGuid);
     goto cleanup;
 }
 

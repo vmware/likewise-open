@@ -59,24 +59,24 @@ ADMarshalGetCanonicalName(
     PSTR    pszResult = NULL;
 
     if(pObject->type == AccountType_Group &&
-            !IsNullOrEmptyString(pObject->groupInfo.pszAliasName))
+            !LW_IS_NULL_OR_EMPTY_STR(pObject->groupInfo.pszAliasName))
     {
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
             pObject->groupInfo.pszAliasName,
             &pszResult);
         BAIL_ON_LSA_ERROR(dwError);
     }
     else if(pObject->type == AccountType_User &&
-            !IsNullOrEmptyString(pObject->userInfo.pszAliasName))
+            !LW_IS_NULL_OR_EMPTY_STR(pObject->userInfo.pszAliasName))
     {
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
             pObject->userInfo.pszAliasName,
             &pszResult);
         BAIL_ON_LSA_ERROR(dwError);
     }
     else
     {
-        dwError = LsaAllocateStringPrintf(
+        dwError = LwAllocateStringPrintf(
             &pszResult,
             "%s%c%s",
             pObject->pszNetbiosDomainName,
@@ -84,16 +84,16 @@ ADMarshalGetCanonicalName(
             pObject->pszSamAccountName);
         BAIL_ON_LSA_ERROR(dwError);
 
-        LsaStrCharReplace(
+        LwStrCharReplace(
             pszResult,
             ' ',
             AD_GetSpaceReplacement());
 
-        LsaStrnToUpper(
+        LwStrnToUpper(
             pszResult,
             strlen(pObject->pszNetbiosDomainName));
 
-        LsaStrToLower(
+        LwStrToLower(
             pszResult + strlen(pObject->pszNetbiosDomainName) + 1);
     }
 
@@ -104,7 +104,7 @@ cleanup:
 
 error:
     *ppszResult = NULL;
-    LSA_SAFE_FREE_STRING(pszResult);
+    LW_SAFE_FREE_STRING(pszResult);
     goto cleanup;
 }
 
@@ -150,7 +150,7 @@ ADMarshalFromGroupCache(
         {
             PLSA_GROUP_INFO_0 pGroupInfo0 = NULL;
 
-            dwError = LsaAllocateMemory(
+            dwError = LwAllocateMemory(
                             sizeof(LSA_GROUP_INFO_0),
                             (PVOID*)&pGroupInfo);
             BAIL_ON_LSA_ERROR(dwError);
@@ -164,7 +164,7 @@ ADMarshalFromGroupCache(
                             &pGroupInfo0->pszName);
             BAIL_ON_LSA_ERROR(dwError);
             
-            dwError = LsaAllocateString(
+            dwError = LwAllocateString(
                                 pGroup->pszObjectSid,
                                 &pGroupInfo0->pszSid);
             BAIL_ON_LSA_ERROR(dwError);
@@ -175,7 +175,7 @@ ADMarshalFromGroupCache(
         {
             PLSA_GROUP_INFO_1 pGroupInfo1 = NULL; 
 
-            dwError = LsaAllocateMemory(
+            dwError = LwAllocateMemory(
                             sizeof(LSA_GROUP_INFO_1),
                             (PVOID*)&pGroupInfo);
             BAIL_ON_LSA_ERROR(dwError);
@@ -188,19 +188,19 @@ ADMarshalFromGroupCache(
                             &pGroupInfo1->pszName);
             BAIL_ON_LSA_ERROR(dwError);
 
-            // Optional values use LsaStrDupOrNull. Required values use
-            // LsaAllocateString.
-            dwError = LsaStrDupOrNull(
+            // Optional values use LwStrDupOrNull. Required values use
+            // LwAllocateString.
+            dwError = LwStrDupOrNull(
                         pGroup->groupInfo.pszPasswd,
                         &pGroupInfo1->pszPasswd);
             BAIL_ON_LSA_ERROR(dwError);        
 
-            dwError = LsaAllocateString(
+            dwError = LwAllocateString(
                                 pGroup->pszObjectSid,
                                 &pGroupInfo1->pszSid);
             BAIL_ON_LSA_ERROR(dwError);
 
-            dwError = LsaAllocateString(
+            dwError = LwAllocateString(
                                 pGroup->pszDN,
                                 &pGroupInfo1->pszDN);
             BAIL_ON_LSA_ERROR(dwError);
@@ -219,7 +219,7 @@ ADMarshalFromGroupCache(
                 }
             }
 
-            dwError = LsaAllocateMemory(
+            dwError = LwAllocateMemory(
                             //Leave room for terminating null pointer
                             sizeof(PSTR) * (sEnabled+1),
                             (PVOID*)&pGroupInfo1->ppszMembers);

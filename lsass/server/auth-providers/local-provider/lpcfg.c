@@ -169,17 +169,17 @@ LocalCfgInitialize(
     pConfig->bEnableEventLog = FALSE;
     pConfig->dwMaxGroupNestingLevel = LOCAL_CFG_MAX_GROUP_NESTING_LEVEL_DEFAULT;
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                     pszDefaultLoginShell,
                     &pConfig->pszLoginShell);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                     pszDefaultHomedirPrefix,
                     &pConfig->pszHomedirPrefix);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                     pszDefaultHomedirTemplate,
                     &pConfig->pszHomedirTemplate);
     BAIL_ON_LSA_ERROR(dwError);
@@ -187,7 +187,7 @@ LocalCfgInitialize(
     pConfig->bCreateHomedir = LOCAL_CFG_DEFAULT_CREATE_HOMEDIR;
     pConfig->dwHomedirUMask = LOCAL_CFG_DEFAULT_HOMEDIR_UMASK;
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                     pszDefaultSkelDirs,
                     &pConfig->pszSkelDirs);
     BAIL_ON_LSA_ERROR(dwError);
@@ -240,9 +240,9 @@ LocalCfgGetFilePath(
 
     LOCAL_LOCK_MUTEX(bInLock, &gLPGlobals.mutex);
 
-    if (!IsNullOrEmptyString(gLPGlobals.pszConfigFilePath))
+    if (!LW_IS_NULL_OR_EMPTY_STR(gLPGlobals.pszConfigFilePath))
     {
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
                         gLPGlobals.pszConfigFilePath,
                         &pszConfigFilePath);
         BAIL_ON_LSA_ERROR(dwError);
@@ -354,7 +354,7 @@ LocalCfgGetDefaultShell(
 
     LOCAL_LOCK_MUTEX(bInLock, &gLPGlobals.mutex);
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                     gLPGlobals.cfg.pszLoginShell,
                     &pszLoginShell);
     BAIL_ON_LSA_ERROR(dwError);
@@ -371,7 +371,7 @@ error:
 
     *ppszLoginShell = NULL;
 
-    LSA_SAFE_FREE_STRING(pszLoginShell);
+    LW_SAFE_FREE_STRING(pszLoginShell);
 
     goto cleanup;
 }
@@ -387,7 +387,7 @@ LocalCfgGetHomedirPrefix(
 
     LOCAL_LOCK_MUTEX(bInLock, &gLPGlobals.mutex);
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                     gLPGlobals.cfg.pszHomedirPrefix,
                     &pszHomedirPrefix);
     BAIL_ON_LSA_ERROR(dwError);
@@ -404,7 +404,7 @@ error:
 
     *ppszHomedirPrefix = NULL;
 
-    LSA_SAFE_FREE_STRING(pszHomedirPrefix);
+    LW_SAFE_FREE_STRING(pszHomedirPrefix);
 
     goto cleanup;
 }
@@ -420,7 +420,7 @@ LocalCfgGetHomedirTemplate(
 
     LOCAL_LOCK_MUTEX(bInLock, &gLPGlobals.mutex);
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                     gLPGlobals.cfg.pszHomedirTemplate,
                     &pszHomedirTemplate);
     BAIL_ON_LSA_ERROR(dwError);
@@ -437,7 +437,7 @@ error:
 
     *ppszHomedirTemplate = NULL;
 
-    LSA_SAFE_FREE_STRING(pszHomedirTemplate);
+    LW_SAFE_FREE_STRING(pszHomedirTemplate);
 
     goto cleanup;
 }
@@ -486,7 +486,7 @@ LocalCfgGetSkeletonDirs(
 
     LOCAL_LOCK_MUTEX(bInLock, &gLPGlobals.mutex);
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                     gLPGlobals.cfg.pszSkelDirs,
                     &pszSkelDirs);
     BAIL_ON_LSA_ERROR(dwError);
@@ -503,7 +503,7 @@ error:
 
     *ppszSkelDirs = NULL;
 
-    LSA_SAFE_FREE_STRING(pszSkelDirs);
+    LW_SAFE_FREE_STRING(pszSkelDirs);
 
     goto cleanup;
 }
@@ -514,7 +514,7 @@ LocalCfgFree(
     )
 {
     LocalCfgFreeContents(pConfig);
-    LsaFreeMemory(pConfig);
+    LwFreeMemory(pConfig);
 }
 
 VOID
@@ -522,10 +522,10 @@ LocalCfgFreeContents(
     PLOCAL_CONFIG pConfig
     )
 {
-    LSA_SAFE_FREE_STRING(pConfig->pszLoginShell);
-    LSA_SAFE_FREE_STRING(pConfig->pszHomedirPrefix);
-    LSA_SAFE_FREE_STRING(pConfig->pszHomedirTemplate);
-    LSA_SAFE_FREE_STRING(pConfig->pszSkelDirs);
+    LW_SAFE_FREE_STRING(pConfig->pszLoginShell);
+    LW_SAFE_FREE_STRING(pConfig->pszHomedirPrefix);
+    LW_SAFE_FREE_STRING(pConfig->pszHomedirTemplate);
+    LW_SAFE_FREE_STRING(pConfig->pszSkelDirs);
 }
 
 static
@@ -542,7 +542,7 @@ LocalCfgStartSection(
     BOOLEAN bContinue = TRUE;
     BOOLEAN bSkipSection = FALSE;
 
-    if (IsNullOrEmptyString(pszSectionName) ||
+    if (LW_IS_NULL_OR_EMPTY_STR(pszSectionName) ||
         (strncasecmp(pszSectionName,
                      LOCAL_CFG_TAG_AUTH_PROVIDER,
                      sizeof(LOCAL_CFG_TAG_AUTH_PROVIDER)-1) &&
@@ -557,7 +557,7 @@ LocalCfgStartSection(
                      sizeof(LOCAL_CFG_TAG_AUTH_PROVIDER)-1))
     {
         pszLibName = pszSectionName + sizeof(LOCAL_CFG_TAG_AUTH_PROVIDER) - 1;
-        if (IsNullOrEmptyString(pszLibName) ||
+        if (LW_IS_NULL_OR_EMPTY_STR(pszLibName) ||
             strcasecmp(pszLibName, LOCAL_CFG_TAG_LOCAL_PROVIDER)) {
             bSkipSection = TRUE;
             goto done;
@@ -585,7 +585,7 @@ LocalCfgNameValuePair(
     DWORD iHandler = 0;
     DWORD nHandlers = sizeof(gLocalCfgHandlers)/sizeof(gLocalCfgHandlers[0]);
 
-    if (!IsNullOrEmptyString(pszName))
+    if (!LW_IS_NULL_OR_EMPTY_STR(pszName))
     {
         for (; iHandler < nHandlers; iHandler++)
         {
@@ -637,12 +637,12 @@ LocalCfgSetDefaultLoginShell(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                     pszValue,
                     &pszLoginShell);
     BAIL_ON_LSA_ERROR(dwError);
 
-    LSA_SAFE_FREE_STRING(pConfig->pszLoginShell);
+    LW_SAFE_FREE_STRING(pConfig->pszLoginShell);
 
     pConfig->pszLoginShell = pszLoginShell;
 
@@ -652,7 +652,7 @@ cleanup:
 
 error:
 
-    LSA_SAFE_FREE_STRING(pszLoginShell);
+    LW_SAFE_FREE_STRING(pszLoginShell);
 
     goto cleanup;
 }
@@ -670,12 +670,12 @@ LocalCfgSetHomedirPrefix(
 
     BAIL_ON_INVALID_STRING(pszValue);
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                 pszValue,
                 &pszHomedirPrefix);
     BAIL_ON_LSA_ERROR(dwError);
 
-    LsaStripWhitespace(pszHomedirPrefix, TRUE, TRUE);
+    LwStripWhitespace(pszHomedirPrefix, TRUE, TRUE);
 
     BAIL_ON_INVALID_STRING(pszHomedirPrefix);
 
@@ -685,7 +685,7 @@ LocalCfgSetHomedirPrefix(
         goto error;
     }
 
-    LSA_SAFE_FREE_STRING(pConfig->pszHomedirPrefix);
+    LW_SAFE_FREE_STRING(pConfig->pszHomedirPrefix);
     pConfig->pszHomedirPrefix = pszHomedirPrefix;
 
 cleanup:
@@ -694,7 +694,7 @@ cleanup:
 
 error:
 
-    LSA_SAFE_FREE_STRING(pszHomedirPrefix);
+    LW_SAFE_FREE_STRING(pszHomedirPrefix);
 
     goto cleanup;
 }
@@ -710,15 +710,15 @@ LocalCfgSetHomedirTemplate(
     DWORD dwError = 0;
     PSTR  pszHomedirTemplate = NULL;
 
-    if ( !IsNullOrEmptyString(pszValue) )
+    if ( !LW_IS_NULL_OR_EMPTY_STR(pszValue) )
     {
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
                       pszValue,
                       &pszHomedirTemplate);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    LSA_SAFE_FREE_STRING(pConfig->pszHomedirTemplate);
+    LW_SAFE_FREE_STRING(pConfig->pszHomedirTemplate);
 
     pConfig->pszHomedirTemplate = pszHomedirTemplate;
 
@@ -728,7 +728,7 @@ cleanup:
 
 error:
 
-    LSA_SAFE_FREE_STRING(pszHomedirTemplate);
+    LW_SAFE_FREE_STRING(pszHomedirTemplate);
 
     goto cleanup;
 }
@@ -819,15 +819,15 @@ LocalCfgSetSkeletonDirs(
     DWORD dwError = 0;
     PSTR  pszSkelDirs = NULL;
 
-    if ( !IsNullOrEmptyString(pszValue) )
+    if ( !LW_IS_NULL_OR_EMPTY_STR(pszValue) )
     {
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
                       pszValue,
                       &pszSkelDirs);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    LSA_SAFE_FREE_STRING(pConfig->pszSkelDirs);
+    LW_SAFE_FREE_STRING(pConfig->pszSkelDirs);
 
     pConfig->pszSkelDirs = pszSkelDirs;
 
@@ -837,7 +837,7 @@ cleanup:
 
 error:
 
-    LSA_SAFE_FREE_STRING(pszSkelDirs);
+    LW_SAFE_FREE_STRING(pszSkelDirs);
 
     goto cleanup;
 }
@@ -850,7 +850,7 @@ LocalCfgGetBooleanValue(
 {
     BOOLEAN bResult = FALSE;
 
-    if (!IsNullOrEmptyString(pszValue) &&
+    if (!LW_IS_NULL_OR_EMPTY_STR(pszValue) &&
         (!strcasecmp(pszValue, "true") ||
          !strcasecmp(pszValue, "1") ||
          (*pszValue == 'y') ||

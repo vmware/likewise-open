@@ -57,7 +57,7 @@ NtlmOpenServer(
 
     BAIL_ON_INVALID_POINTER(phConnection);
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
         sizeof(NTLM_CLIENT_CONNECTION_CONTEXT),
         (PVOID*)(PVOID)&pContext
         );
@@ -119,7 +119,7 @@ error:
         {
             lwmsg_protocol_delete(pContext->pProtocol);
         }
-        LsaFreeMemory(pContext);
+        LwFreeMemory(pContext);
     }
     if(phConnection)
     {
@@ -148,7 +148,7 @@ NtlmCloseServer(
         lwmsg_protocol_delete(pContext->pProtocol);
     }
 
-    LsaFreeMemory(pContext);
+    LwFreeMemory(pContext);
 
     return dwError;
 }

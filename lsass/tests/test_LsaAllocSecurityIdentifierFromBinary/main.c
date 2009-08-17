@@ -110,9 +110,9 @@ main(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszSIDHexStr);
-    LSA_SAFE_FREE_STRING(pszSIDStr);
-    LSA_SAFE_FREE_MEMORY(pucSIDByteArr);
+    LW_SAFE_FREE_STRING(pszSIDHexStr);
+    LW_SAFE_FREE_STRING(pszSIDStr);
+    LW_SAFE_FREE_MEMORY(pucSIDByteArr);
 
     if (pSID)
     {
@@ -166,7 +166,7 @@ ParseArgs(
                 else
                 {
 
-                    dwError = LsaAllocateString(pszArg, &pszSIDHexStr);
+                    dwError = LwAllocateString(pszArg, &pszSIDHexStr);
                     BAIL_ON_LSA_ERROR(dwError);
                 }
                 break;
@@ -175,7 +175,7 @@ ParseArgs(
 
     } while (iArg < argc);
 
-    if (IsNullOrEmptyString(pszSIDHexStr)) {
+    if (LW_IS_NULL_OR_EMPTY_STR(pszSIDHexStr)) {
        fprintf(stderr, "Please specify a hex string, i.e. 01FA020101.\n");
        ShowUsage();
        exit(1);
@@ -189,7 +189,7 @@ cleanup:
 
 error:
 
-    LSA_SAFE_FREE_STRING(pszSIDHexStr);
+    LW_SAFE_FREE_STRING(pszSIDHexStr);
 
     *ppszSIDHexStr = NULL;
 

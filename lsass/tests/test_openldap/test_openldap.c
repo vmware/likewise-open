@@ -286,7 +286,7 @@ SearchTestThreaded(
     DWORD dwSearchIndex = 0;
     BOOLEAN bIsAcquired = FALSE;
 
-    dwError = LsaAllocateMemory(sizeof(pThreadContext[0]) * dwThreadCount,
+    dwError = LwAllocateMemory(sizeof(pThreadContext[0]) * dwThreadCount,
                                 (PVOID*) &pThreadContext);
     GOTO_CLEANUP_ON_ERROR_EE(dwError, EE);
 
@@ -338,7 +338,7 @@ cleanup:
                 pthread_join(pThreadContext[dwIndex].Thread, &result);
             }
         }
-        LsaFreeMemory(pThreadContext);
+        LwFreeMemory(pThreadContext);
     }
     return dwError;
 }
@@ -413,7 +413,7 @@ main(
     dwSearchArgsCount = (argc - argIndex) / 2;
     if (dwSearchArgsCount > 0)
     {
-        dwError = LsaAllocateMemory(sizeof(*pSearchArgs) * dwSearchArgsCount,
+        dwError = LwAllocateMemory(sizeof(*pSearchArgs) * dwSearchArgsCount,
                                     (PVOID*) &pSearchArgs);
         GOTO_CLEANUP_ON_ERROR_EE(dwError, EE);
 

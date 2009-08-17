@@ -369,22 +369,22 @@ AD_InitializeConfig(
     pConfig->DomainManager.dwCheckDomainOnlineSeconds = 5 * LSA_SECONDS_IN_MINUTE;
     pConfig->DomainManager.dwUnknownDomainCacheTimeoutSeconds = 1 * LSA_SECONDS_IN_HOUR;
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                     AD_DEFAULT_SHELL,
                     &pConfig->pszShell);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                     AD_DEFAULT_HOMEDIR_PREFIX,
                     &pConfig->pszHomedirPrefix);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                     AD_DEFAULT_HOMEDIR_TEMPLATE,
                     &pConfig->pszHomedirTemplate);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                     AD_DEFAULT_SKELDIRS,
                     &pConfig->pszSkelDirs);
     BAIL_ON_LSA_ERROR(dwError);
@@ -406,7 +406,7 @@ AD_FreeConfig(
     )
 {
     AD_FreeConfigContents(pConfig);
-    LsaFreeMemory(pConfig);
+    LwFreeMemory(pConfig);
 }
 
 VOID
@@ -414,10 +414,10 @@ AD_FreeConfigContents(
     PLSA_AD_CONFIG pConfig
     )
 {
-    LSA_SAFE_FREE_STRING(pConfig->pszHomedirPrefix);
-    LSA_SAFE_FREE_STRING(pConfig->pszHomedirTemplate);
-    LSA_SAFE_FREE_STRING(pConfig->pszShell);
-    LSA_SAFE_FREE_STRING(pConfig->pszSkelDirs);
+    LW_SAFE_FREE_STRING(pConfig->pszHomedirPrefix);
+    LW_SAFE_FREE_STRING(pConfig->pszHomedirTemplate);
+    LW_SAFE_FREE_STRING(pConfig->pszShell);
+    LW_SAFE_FREE_STRING(pConfig->pszSkelDirs);
 
     if (pConfig->pUnresolvedMemberList)
     {
@@ -436,7 +436,7 @@ AD_FreeConfigMemberInList(
     PVOID pUserData
     )
 {
-    LSA_SAFE_FREE_MEMORY(pItem);
+    LW_SAFE_FREE_MEMORY(pItem);
 }
 
 DWORD
@@ -496,7 +496,7 @@ AD_ConfigStartSection(
     BOOLEAN bContinue = TRUE;
     BOOLEAN bSkipSection = FALSE;
 
-    if (IsNullOrEmptyString(pszSectionName) ||
+    if (LW_IS_NULL_OR_EMPTY_STR(pszSectionName) ||
         (strncasecmp(pszSectionName, AD_CFG_TAG_AUTH_PROVIDER, sizeof(AD_CFG_TAG_AUTH_PROVIDER)-1) &&
          strncasecmp(pszSectionName, "global", sizeof("global")-1)))
     {
@@ -507,7 +507,7 @@ AD_ConfigStartSection(
     if (!strncasecmp(pszSectionName, AD_CFG_TAG_AUTH_PROVIDER, sizeof(AD_CFG_TAG_AUTH_PROVIDER)-1))
     {
         pszLibName = pszSectionName + sizeof(AD_CFG_TAG_AUTH_PROVIDER) - 1;
-        if (IsNullOrEmptyString(pszLibName) ||
+        if (LW_IS_NULL_OR_EMPTY_STR(pszLibName) ||
             strcasecmp(pszLibName, AD_CFG_TAG_AD_PROVIDER)) {
             bSkipSection = TRUE;
             goto done;
@@ -532,7 +532,7 @@ AD_ConfigNameValuePair(
 {
     DWORD dwError = 0;
 
-    if (!IsNullOrEmptyString(pszName))
+    if (!LW_IS_NULL_OR_EMPTY_STR(pszName))
     {
         DWORD iHandler = 0;
         DWORD nHandlers = sizeof(gADConfigHandlers)/sizeof(gADConfigHandlers[0]);
@@ -587,12 +587,12 @@ AD_SetConfig_LoginShellTemplate(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                     pszValue,
                     &pszShell);
     BAIL_ON_LSA_ERROR(dwError);
 
-    LSA_SAFE_FREE_STRING(pConfig->pszShell);
+    LW_SAFE_FREE_STRING(pConfig->pszShell);
 
     pConfig->pszShell = pszShell;
 
@@ -602,7 +602,7 @@ cleanup:
 
 error:
 
-    LSA_SAFE_FREE_STRING(pszShell);
+    LW_SAFE_FREE_STRING(pszShell);
 
     goto cleanup;
 }
@@ -620,12 +620,12 @@ AD_SetConfig_HomeDirTemplate(
 
     BAIL_ON_INVALID_STRING(pszValue);
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                     pszValue,
                     &pszTemplate);
     BAIL_ON_LSA_ERROR(dwError);
 
-    LSA_SAFE_FREE_STRING(pConfig->pszHomedirTemplate);
+    LW_SAFE_FREE_STRING(pConfig->pszHomedirTemplate);
 
     pConfig->pszHomedirTemplate = pszTemplate;
 
@@ -635,7 +635,7 @@ cleanup:
 
 error:
 
-    LSA_SAFE_FREE_STRING(pszTemplate);
+    LW_SAFE_FREE_STRING(pszTemplate);
 
     goto cleanup;
 }
@@ -754,7 +754,7 @@ AD_SetConfig_CachePurgeTimeout(
     DWORD dwError = 0;
     DWORD dwCacheReaperTimeoutSecs = 0;
 
-    if (!IsNullOrEmptyString(pszValue))
+    if (!LW_IS_NULL_OR_EMPTY_STR(pszValue))
     {
         dwError = LsaParseDateString(
                         pszValue,
@@ -802,7 +802,7 @@ AD_SetConfig_MachinePasswordLifespan(
     DWORD dwError = 0;
     DWORD dwMachinePasswordSyncPwdLifetime = 0;
 
-    if (!IsNullOrEmptyString(pszValue))
+    if (!LW_IS_NULL_OR_EMPTY_STR(pszValue))
     {
         dwError = LsaParseDateString(
                         pszValue,
@@ -851,7 +851,7 @@ AD_SetConfig_CacheEntryExpiry(
     DWORD dwError = 0;
     DWORD dwExpirySecs = 0;
 
-    if (!IsNullOrEmptyString(pszValue))
+    if (!LW_IS_NULL_OR_EMPTY_STR(pszValue))
     {
         dwError = LsaParseDateString(
                     pszValue,
@@ -899,7 +899,7 @@ AD_SetConfig_CacheSizeCap(
     DWORD dwError = 0;
     DWORD dwValue = 0;
 
-    if (!IsNullOrEmptyString(pszValue))
+    if (!LW_IS_NULL_OR_EMPTY_STR(pszValue))
     {
         dwValue = (DWORD) atoi(pszValue);
     }
@@ -935,20 +935,20 @@ AD_SetConfig_RequireMembershipOf(
     size_t stLen = 0;
     PSTR  pszMember = NULL;
 
-    if (IsNullOrEmptyString(pszValue))
+    if (LW_IS_NULL_OR_EMPTY_STR(pszValue))
     {
         goto cleanup;
     }
 
     while ((stLen = strcspn(pszIter, ",")) != 0)
     {
-        dwError = LsaStrndup(
+        dwError = LwStrndup(
                         pszIter,
                         stLen,
                         &pszMember);
         BAIL_ON_LSA_ERROR(dwError);
 
-        LsaStripWhitespace(pszMember, TRUE, TRUE);
+        LwStripWhitespace(pszMember, TRUE, TRUE);
 
         if (*pszMember)
         {
@@ -961,7 +961,7 @@ AD_SetConfig_RequireMembershipOf(
         }
         else
         {
-            LSA_SAFE_FREE_STRING(pszMember);
+            LW_SAFE_FREE_STRING(pszMember);
         }
 
         pszIter += stLen;
@@ -973,7 +973,7 @@ AD_SetConfig_RequireMembershipOf(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszMember);
+    LW_SAFE_FREE_STRING(pszMember);
 
     return dwError;
 
@@ -1071,15 +1071,15 @@ AD_SetConfig_SkelDirs(
     DWORD dwError = 0;
     PSTR  pszSkelDirs = NULL;
 
-    if ( !IsNullOrEmptyString(pszValue) )
+    if ( !LW_IS_NULL_OR_EMPTY_STR(pszValue) )
     {
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
                       pszValue,
                       &pszSkelDirs);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    LSA_SAFE_FREE_STRING(pConfig->pszSkelDirs);
+    LW_SAFE_FREE_STRING(pConfig->pszSkelDirs);
 
     pConfig->pszSkelDirs = pszSkelDirs;
 
@@ -1089,7 +1089,7 @@ cleanup:
 
 error:
 
-    LSA_SAFE_FREE_STRING(pszSkelDirs);
+    LW_SAFE_FREE_STRING(pszSkelDirs);
 
     goto cleanup;
 }
@@ -1169,12 +1169,12 @@ AD_SetConfig_HomedirPrefix(
 
     BAIL_ON_INVALID_STRING(pszValue);
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                 pszValue,
                 &pszHomedirPrefix);
     BAIL_ON_LSA_ERROR(dwError);
 
-    LsaStripWhitespace(pszHomedirPrefix, TRUE, TRUE);
+    LwStripWhitespace(pszHomedirPrefix, TRUE, TRUE);
 
     BAIL_ON_INVALID_STRING(pszHomedirPrefix);
 
@@ -1184,7 +1184,7 @@ AD_SetConfig_HomedirPrefix(
         goto error;
     }
 
-    LSA_SAFE_FREE_STRING(pConfig->pszHomedirPrefix);
+    LW_SAFE_FREE_STRING(pConfig->pszHomedirPrefix);
     pConfig->pszHomedirPrefix = pszHomedirPrefix;
 
 cleanup:
@@ -1193,7 +1193,7 @@ cleanup:
 
 error:
 
-    LSA_SAFE_FREE_STRING(pszHomedirPrefix);
+    LW_SAFE_FREE_STRING(pszHomedirPrefix);
 
     goto cleanup;
 }
@@ -1338,7 +1338,7 @@ AD_SetConfig_DomainManagerCheckDomainOnlineSeconds(
     DWORD dwError = 0;
     DWORD result = 0;
 
-    if (!IsNullOrEmptyString(pszValue))
+    if (!LW_IS_NULL_OR_EMPTY_STR(pszValue))
     {
         dwError = LsaParseDateString(pszValue, &result);
         BAIL_ON_LSA_ERROR(dwError);
@@ -1364,7 +1364,7 @@ AD_SetConfig_DomainManagerUnknownDomainCacheTimeoutSeconds(
     DWORD dwError = 0;
     DWORD result = 0;
 
-    if (!IsNullOrEmptyString(pszValue))
+    if (!LW_IS_NULL_OR_EMPTY_STR(pszValue))
     {
         dwError = LsaParseDateString(pszValue, &result);
         BAIL_ON_LSA_ERROR(dwError);
@@ -1386,7 +1386,7 @@ AD_GetBooleanConfigValue(
 {
     BOOLEAN bResult = FALSE;
 
-    if (!IsNullOrEmptyString(pszValue) &&
+    if (!LW_IS_NULL_OR_EMPTY_STR(pszValue) &&
         (!strcasecmp(pszValue, "true") ||
          !strcasecmp(pszValue, "1") ||
          (*pszValue == 'y') ||
@@ -1409,9 +1409,9 @@ AD_GetUnprovisionedModeShell(
 
     ENTER_AD_GLOBAL_DATA_RW_READER_LOCK(bInLock);
 
-    if (!IsNullOrEmptyString(gpLsaAdProviderState->config.pszShell))
+    if (!LW_IS_NULL_OR_EMPTY_STR(gpLsaAdProviderState->config.pszShell))
     {
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
                         gpLsaAdProviderState->config.pszShell,
                         &pszUnprovisionedModeShell);
         BAIL_ON_LSA_ERROR(dwError);
@@ -1443,9 +1443,9 @@ AD_GetHomedirPrefixPath(
 
     ENTER_AD_GLOBAL_DATA_RW_READER_LOCK(bInLock);
 
-    if (!IsNullOrEmptyString(gpLsaAdProviderState->config.pszHomedirPrefix))
+    if (!LW_IS_NULL_OR_EMPTY_STR(gpLsaAdProviderState->config.pszHomedirPrefix))
     {
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
                         gpLsaAdProviderState->config.pszHomedirPrefix,
                         &pszHomedirPrefixPath
                         );
@@ -1478,9 +1478,9 @@ AD_GetUnprovisionedModeHomedirTemplate(
 
     ENTER_AD_GLOBAL_DATA_RW_READER_LOCK(bInLock);
 
-    if (!IsNullOrEmptyString(gpLsaAdProviderState->config.pszHomedirTemplate))
+    if (!LW_IS_NULL_OR_EMPTY_STR(gpLsaAdProviderState->config.pszHomedirTemplate))
     {
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
                         gpLsaAdProviderState->config.pszHomedirTemplate,
                         &pszUnprovisionedModeHomedirTemplate
                         );
@@ -1513,14 +1513,14 @@ AD_SetConfigFilePath(
 
     BAIL_ON_INVALID_STRING(pszConfigFilePath);
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                     pszConfigFilePath,
                     &pszConfigFilePathLocal);
     BAIL_ON_LSA_ERROR(dwError);
 
     ENTER_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
 
-    LSA_SAFE_FREE_STRING(gpszADConfigFilePath);
+    LW_SAFE_FREE_STRING(gpszADConfigFilePath);
 
     gpszADConfigFilePath = pszConfigFilePathLocal;
 
@@ -1532,7 +1532,7 @@ cleanup:
 
 error:
 
-    LSA_SAFE_FREE_STRING(pszConfigFilePathLocal);
+    LW_SAFE_FREE_STRING(pszConfigFilePathLocal);
 
     goto cleanup;
 }
@@ -1548,9 +1548,9 @@ AD_GetConfigFilePath(
 
     ENTER_AD_GLOBAL_DATA_RW_READER_LOCK(bInLock);
 
-    if (!IsNullOrEmptyString(gpszADConfigFilePath))
+    if (!LW_IS_NULL_OR_EMPTY_STR(gpszADConfigFilePath))
     {
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
                         gpszADConfigFilePath,
                         &pszConfigFilePath
                         );
@@ -1677,9 +1677,9 @@ AD_GetSkelDirs(
 
     ENTER_AD_GLOBAL_DATA_RW_READER_LOCK(bInLock);
 
-    if (!IsNullOrEmptyString(gpLsaAdProviderState->config.pszSkelDirs))
+    if (!LW_IS_NULL_OR_EMPTY_STR(gpLsaAdProviderState->config.pszSkelDirs))
     {
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
                         gpLsaAdProviderState->config.pszSkelDirs,
                         &pszSkelDirs);
         BAIL_ON_LSA_ERROR(dwError);
@@ -1765,7 +1765,7 @@ AD_DeleteFromMembersList_InLock(
         LsaDLinkedListDelete(&gpLsaAdProviderState->config.pUnresolvedMemberList,
                              pItem);
 
-        LsaFreeMemory(pItem);
+        LwFreeMemory(pItem);
     }
 }
 
@@ -1789,7 +1789,7 @@ AD_FreeHashStringKey(
     const LSA_HASH_ENTRY *pEntry)
 {
     PSTR pszKeyCopy = (PSTR)pEntry->pKey;
-    LSA_SAFE_FREE_STRING(pszKeyCopy);
+    LW_SAFE_FREE_STRING(pszKeyCopy);
 }
 
 static
@@ -1802,7 +1802,7 @@ AD_CopyHashStringKey(
     DWORD dwError = 0;
     PSTR  pszKeyCopy = NULL;
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                     (PSTR)pEntry->pKey,
                     &pszKeyCopy);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1816,7 +1816,7 @@ cleanup:
 
 error:
 
-    LSA_SAFE_FREE_STRING(pszKeyCopy);
+    LW_SAFE_FREE_STRING(pszKeyCopy);
 
     goto cleanup;
 }
@@ -1861,12 +1861,12 @@ AD_AddAllowedMember(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                     pszSID,
                     &pszSIDCopy);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                     pszMember,
                     &pszMemberCopy);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1888,12 +1888,12 @@ AD_AddAllowedMember(
                       (PVOID*)&pszValue);
         if (dwError == ENOENT)
         {
-            dwError = LsaAllocateString(
+            dwError = LwAllocateString(
                           pszSID,
                           &pszSIDCopy);
             BAIL_ON_LSA_ERROR(dwError);
 
-            dwError = LsaAllocateString(
+            dwError = LwAllocateString(
                           pszMember,
                           &pszMemberCopy);
             BAIL_ON_LSA_ERROR(dwError);
@@ -1915,8 +1915,8 @@ AD_AddAllowedMember(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszSIDCopy);
-    LSA_SAFE_FREE_STRING(pszMemberCopy);
+    LW_SAFE_FREE_STRING(pszSIDCopy);
+    LW_SAFE_FREE_STRING(pszMemberCopy);
 
     LEAVE_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
 
@@ -1957,7 +1957,7 @@ AD_GetMemberLists(
     {
         DWORD iMember = 0;
 
-        dwError = LsaAllocateMemory(
+        dwError = LwAllocateMemory(
                         dwNumMembers * sizeof(PSTR),
                         (PVOID*)&ppszMembers);
         BAIL_ON_LSA_ERROR(dwError);
@@ -1966,7 +1966,7 @@ AD_GetMemberLists(
              pIter;
              pIter = pIter->pNext, iMember++)
         {
-            dwError = LsaAllocateString(
+            dwError = LwAllocateString(
                             (PSTR)pIter->pItem,
                             &ppszMembers[iMember]);
             BAIL_ON_LSA_ERROR(dwError);
@@ -1995,7 +1995,7 @@ error:
 
     if (ppszMembers)
     {
-        LsaFreeStringArray(ppszMembers, dwNumMembers);
+        LwFreeStringArray(ppszMembers, dwNumMembers);
     }
 
     *pppszMembers = NULL;

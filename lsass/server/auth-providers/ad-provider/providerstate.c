@@ -53,9 +53,9 @@ ADProviderFreeCellInfo(
     IN OUT PAD_LINKED_CELL_INFO pCell
     )
 {
-    LSA_SAFE_FREE_STRING(pCell->pszCellDN);
-    LSA_SAFE_FREE_STRING(pCell->pszDomain);
-    LsaFreeMemory(pCell);
+    LW_SAFE_FREE_STRING(pCell->pszCellDN);
+    LW_SAFE_FREE_STRING(pCell->pszDomain);
+    LwFreeMemory(pCell);
 }
 
 VOID
@@ -91,5 +91,5 @@ ADProviderFreeProviderData(
 {
     ADProviderFreeCellList(pData->pCellList);
 
-    LSA_SAFE_FREE_MEMORY(pData);
+    LW_SAFE_FREE_MEMORY(pData);
 }

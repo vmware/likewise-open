@@ -200,7 +200,7 @@ LSA_INITIALIZE_PROVIDER(ad)(
     dwError = AD_NetInitMemory();
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (!IsNullOrEmptyString(pszConfigFilePath)) {
+    if (!LW_IS_NULL_OR_EMPTY_STR(pszConfigFilePath)) {
 
         dwError = AD_InitializeConfig(&config);
         BAIL_ON_LSA_ERROR(dwError);
@@ -233,7 +233,7 @@ LSA_INITIALIZE_PROVIDER(ad)(
     dwError = LsaDnsGetHostInfo(&pszHostname);
     BAIL_ON_LSA_ERROR(dwError);
 
-    LsaStrToUpper(pszHostname);
+    LwStrToUpper(pszHostname);
 
     dwError = LwKrb5GetMachineCreds(
                     &pszUsername,
@@ -340,11 +340,11 @@ cleanup:
 
     AD_FreeConfigContents(&config);
 
-    LSA_SAFE_FREE_STRING(pszHostname);
-    LSA_SAFE_FREE_STRING(pszUsername);
-    LSA_SAFE_CLEAR_FREE_STRING(pszPassword);
-    LSA_SAFE_FREE_STRING(pszDomainDnsName);
-    LSA_SAFE_FREE_STRING(pszHostDnsDomain);
+    LW_SAFE_FREE_STRING(pszHostname);
+    LW_SAFE_FREE_STRING(pszUsername);
+    LW_SAFE_CLEAR_FREE_STRING(pszPassword);
+    LW_SAFE_FREE_STRING(pszDomainDnsName);
+    LW_SAFE_FREE_STRING(pszHostDnsDomain);
 
     return dwError;
 
@@ -429,7 +429,7 @@ LSA_SHUTDOWN_PROVIDER(ad)(
 
     AD_FreeAllowedSIDs_InLock();
 
-    LSA_SAFE_FREE_STRING(gpszADConfigFilePath);
+    LW_SAFE_FREE_STRING(gpszADConfigFilePath);
 
     // This will clean up media sense too.
     LsaAdProviderStateDestroy(gpLsaAdProviderState);
@@ -456,7 +456,7 @@ AD_OpenHandle(
     DWORD dwError = 0;
     PAD_PROVIDER_CONTEXT pContext = NULL;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(AD_PROVIDER_CONTEXT),
                     (PVOID*)&pContext);
     BAIL_ON_LSA_ERROR(dwError);
@@ -489,7 +489,7 @@ AD_CloseHandle(
     PAD_PROVIDER_CONTEXT pContext = (PAD_PROVIDER_CONTEXT)hProvider;
     if (pContext)
     {
-        LsaFreeMemory(pContext);
+        LwFreeMemory(pContext);
     }
 }
 
@@ -503,9 +503,9 @@ AD_ServicesDomain(
     //
     // Added Trusted domains support
     //
-    if (IsNullOrEmptyString(pszDomain) ||
-        IsNullOrEmptyString(gpADProviderData->szDomain) ||
-        IsNullOrEmptyString(gpADProviderData->szShortDomain)) {
+    if (LW_IS_NULL_OR_EMPTY_STR(pszDomain) ||
+        LW_IS_NULL_OR_EMPTY_STR(gpADProviderData->szDomain) ||
+        LW_IS_NULL_OR_EMPTY_STR(gpADProviderData->szShortDomain)) {
        goto cleanup;
     }
 
@@ -1029,7 +1029,7 @@ AD_EnumUsersFromCache(
 
     if ( dwObjectCount == request->dwMaxNumUsers )
     {
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
                       ppUserObjectList[dwObjectCount - 1]->pszObjectSid,
                       &response.pszResume);
         BAIL_ON_LSA_ERROR(dwError);
@@ -1037,7 +1037,7 @@ AD_EnumUsersFromCache(
 
     if ( dwObjectCount )
     {
-        dwError = LsaAllocateMemory(sizeof(*ppUserInfoList) * dwObjectCount,
+        dwError = LwAllocateMemory(sizeof(*ppUserInfoList) * dwObjectCount,
                                     (PVOID*)&ppUserInfoList);
         BAIL_ON_LSA_ERROR(dwError);
 
@@ -1135,7 +1135,7 @@ cleanup:
         lwmsg_context_delete(context);
     }
 
-    LSA_SAFE_FREE_STRING(response.pszResume);
+    LW_SAFE_FREE_STRING(response.pszResume);
 
     return dwError;
 
@@ -1146,7 +1146,7 @@ error:
 
     if ( pBlob )
     {
-        LsaFreeMemory(pBlob);
+        LwFreeMemory(pBlob);
     }
 
     goto cleanup;
@@ -1215,7 +1215,7 @@ AD_RemoveUserByNameFromCache(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszLocalLoginId);
+    LW_SAFE_FREE_STRING(pszLocalLoginId);
     if (pUserNameInfo)
     {
         LsaFreeNameInfo(pUserNameInfo);
@@ -1649,7 +1649,7 @@ AD_EnumGroupsFromCache(
 
     if ( dwObjectCount == request->dwMaxNumGroups )
     {
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
                       ppGroupObjectList[dwObjectCount - 1]->pszObjectSid,
                       &response.pszResume);
         BAIL_ON_LSA_ERROR(dwError);
@@ -1657,7 +1657,7 @@ AD_EnumGroupsFromCache(
 
     if ( dwObjectCount )
     {
-        dwError = LsaAllocateMemory(sizeof(*ppGroupInfoList) * dwObjectCount,
+        dwError = LwAllocateMemory(sizeof(*ppGroupInfoList) * dwObjectCount,
                                     (PVOID*)&ppGroupInfoList);
         BAIL_ON_LSA_ERROR(dwError);
 
@@ -1767,7 +1767,7 @@ cleanup:
         lwmsg_context_delete(context);
     }
 
-    LSA_SAFE_FREE_STRING(response.pszResume);
+    LW_SAFE_FREE_STRING(response.pszResume);
 
     return dwError;
 
@@ -1778,7 +1778,7 @@ error:
 
     if ( pBlob )
     {
-        LsaFreeMemory(pBlob);
+        LwFreeMemory(pBlob);
     }
 
     goto cleanup;
@@ -1823,7 +1823,7 @@ AD_RemoveGroupByNameFromCache(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszFreeGroupName);
+    LW_SAFE_FREE_STRING(pszFreeGroupName);
     ADCacheSafeFreeObject(&pGroupInfo);
 
     return dwError;
@@ -1979,7 +1979,7 @@ AD_GroupObjectToGroupInfo(
 
 cleanup:
     ADCacheSafeFreeObjectList(sMembers, &ppMembers);
-    LSA_SAFE_FREE_STRING(pszFullDomainName);
+    LW_SAFE_FREE_STRING(pszFullDomainName);
 
     return dwError;
 
@@ -2111,7 +2111,7 @@ AD_GetGroupsForUser(
      * convert the group objects into group info.
      */
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                 sizeof(*ppGroupInfoList) * sGroupObjectsCount,
                 (PVOID*)&ppGroupInfoList);
     BAIL_ON_LSA_ERROR(dwError);
@@ -2227,7 +2227,7 @@ AD_GetGroupsForUser(
         dwUserMembershipCount++;
     }
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                  sizeof(ppUserMembership[0]) * dwUserMembershipCount,
                  (PVOID*)&ppUserMembership);
     BAIL_ON_LSA_ERROR(dwError);
@@ -2817,12 +2817,12 @@ AD_GetStatus(
     PLWNET_DC_INFO pDCInfo = NULL;
     PLSA_AUTH_PROVIDER_STATUS pProviderStatus = NULL;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                    sizeof(LSA_AUTH_PROVIDER_STATUS),
                    (PVOID*)&pProviderStatus);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                     gpszADProviderName,
                     &pProviderStatus->pszId);
     BAIL_ON_LSA_ERROR(dwError);
@@ -2838,9 +2838,9 @@ AD_GetStatus(
 
             pProviderStatus->mode = LSA_PROVIDER_MODE_NON_DEFAULT_CELL;
 
-            if (!IsNullOrEmptyString(gpADProviderData->cell.szCellDN))
+            if (!LW_IS_NULL_OR_EMPTY_STR(gpADProviderData->cell.szCellDN))
             {
-                dwError = LsaAllocateString(
+                dwError = LwAllocateString(
                                 gpADProviderData->cell.szCellDN,
                                 &pProviderStatus->pszCell);
                 BAIL_ON_LSA_ERROR(dwError);
@@ -2876,9 +2876,9 @@ AD_GetStatus(
             break;
     }
 
-    if (!IsNullOrEmptyString(gpADProviderData->szDomain))
+    if (!LW_IS_NULL_OR_EMPTY_STR(gpADProviderData->szDomain))
     {
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
                         gpADProviderData->szDomain,
                         &pProviderStatus->pszDomain);
         BAIL_ON_LSA_ERROR(dwError);
@@ -2897,17 +2897,17 @@ AD_GetStatus(
 
         if (pDCInfo)
         {
-            if (!IsNullOrEmptyString(pDCInfo->pszDnsForestName))
+            if (!LW_IS_NULL_OR_EMPTY_STR(pDCInfo->pszDnsForestName))
             {
-                dwError = LsaAllocateString(
+                dwError = LwAllocateString(
                                 pDCInfo->pszDnsForestName,
                                 &pProviderStatus->pszForest);
                 BAIL_ON_LSA_ERROR(dwError);
             }
 
-            if (!IsNullOrEmptyString(pDCInfo->pszDCSiteName))
+            if (!LW_IS_NULL_OR_EMPTY_STR(pDCInfo->pszDCSiteName))
             {
-                dwError = LsaAllocateString(
+                dwError = LwAllocateString(
                                 pDCInfo->pszDCSiteName,
                                 &pProviderStatus->pszSite);
                 BAIL_ON_LSA_ERROR(dwError);
@@ -2970,7 +2970,7 @@ AD_GetTrustedDomainInfo(
     {
         DWORD iDomain = 0;
 
-        dwError = LsaAllocateMemory(
+        dwError = LwAllocateMemory(
                         sizeof(pDomainInfoArray[0]) * dwCount,
                         (PVOID*)&pDomainInfoArray);
         BAIL_ON_LSA_ERROR(dwError);
@@ -3028,12 +3028,12 @@ AD_FillTrustedDomainInfo(
     // Do not free dcInfo as it just points to other data.
     LSA_DM_DC_INFO dcInfo = { 0 };
 
-    dwError = LsaStrDupOrNull(
+    dwError = LwStrDupOrNull(
                     pDomainInfo->pszDnsDomainName,
                     &pTrustedDomainInfo->pszDnsDomain);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaStrDupOrNull(
+    dwError = LwStrDupOrNull(
                     pDomainInfo->pszNetbiosDomainName,
                     &pTrustedDomainInfo->pszNetbiosDomain);
     BAIL_ON_LSA_ERROR(dwError);
@@ -3052,13 +3052,13 @@ AD_FillTrustedDomainInfo(
 
         uuid_unparse(*pDomainInfo->pGuid, szGUID);
 
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
                         szGUID,
                         &pTrustedDomainInfo->pszDomainGUID);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaStrDupOrNull(
+    dwError = LwStrDupOrNull(
                     pDomainInfo->pszTrusteeDnsDomainName,
                     &pTrustedDomainInfo->pszTrusteeDnsDomain);
     BAIL_ON_LSA_ERROR(dwError);
@@ -3069,12 +3069,12 @@ AD_FillTrustedDomainInfo(
     pTrustedDomainInfo->dwTrustDirection = pDomainInfo->dwTrustDirection;
     pTrustedDomainInfo->dwTrustMode = pDomainInfo->dwTrustMode;
 
-    dwError = LsaStrDupOrNull(
+    dwError = LwStrDupOrNull(
                     pDomainInfo->pszForestName,
                     &pTrustedDomainInfo->pszForestName);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaStrDupOrNull(
+    dwError = LwStrDupOrNull(
                     pDomainInfo->pszClientSiteName,
                     &pTrustedDomainInfo->pszClientSiteName);
     BAIL_ON_LSA_ERROR(dwError);
@@ -3116,7 +3116,7 @@ AD_FillTrustedDomainInfo(
 
             if (!pTrustedDomainInfo->pszClientSiteName)
             {
-                dwError = LsaStrDupOrNull(
+                dwError = LwStrDupOrNull(
                             pDcInfo->pszClientSiteName,
                             &pTrustedDomainInfo->pszClientSiteName);
                 BAIL_ON_LSA_ERROR(dwError);
@@ -3179,22 +3179,22 @@ AD_BuildDCInfo(
     DWORD dwError = 0;
     PLSA_DC_INFO pDestDCInfo = NULL;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(LSA_DC_INFO),
                     (PVOID*)&pDestDCInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaStrDupOrNull(
+    dwError = LwStrDupOrNull(
                     pDCInfo->pszName,
                     &pDestDCInfo->pszName);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaStrDupOrNull(
+    dwError = LwStrDupOrNull(
                     pDCInfo->pszAddress,
                     &pDestDCInfo->pszAddress);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaStrDupOrNull(
+    dwError = LwStrDupOrNull(
                     pDCInfo->pszSiteName,
                     &pDestDCInfo->pszSiteName);
     BAIL_ON_LSA_ERROR(dwError);
@@ -3224,11 +3224,11 @@ AD_FreeStatus(
     PLSA_AUTH_PROVIDER_STATUS pProviderStatus
     )
 {
-    LSA_SAFE_FREE_STRING(pProviderStatus->pszId);
-    LSA_SAFE_FREE_STRING(pProviderStatus->pszDomain);
-    LSA_SAFE_FREE_STRING(pProviderStatus->pszForest);
-    LSA_SAFE_FREE_STRING(pProviderStatus->pszSite);
-    LSA_SAFE_FREE_STRING(pProviderStatus->pszCell);
+    LW_SAFE_FREE_STRING(pProviderStatus->pszId);
+    LW_SAFE_FREE_STRING(pProviderStatus->pszDomain);
+    LW_SAFE_FREE_STRING(pProviderStatus->pszForest);
+    LW_SAFE_FREE_STRING(pProviderStatus->pszSite);
+    LW_SAFE_FREE_STRING(pProviderStatus->pszCell);
 
     if (pProviderStatus->pTrustedDomainInfoArray)
     {
@@ -3237,7 +3237,7 @@ AD_FreeStatus(
                         pProviderStatus->pTrustedDomainInfoArray);
     }
 
-    LsaFreeMemory(pProviderStatus);
+    LwFreeMemory(pProviderStatus);
 }
 
 DWORD
@@ -3254,7 +3254,7 @@ AD_RefreshConfiguration(
     dwError = AD_GetConfigFilePath(&pszConfigFilePath);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (!IsNullOrEmptyString(pszConfigFilePath)) {
+    if (!LW_IS_NULL_OR_EMPTY_STR(pszConfigFilePath)) {
         dwError = AD_InitializeConfig(&config);
         BAIL_ON_LSA_ERROR(dwError);
 
@@ -3305,7 +3305,7 @@ cleanup:
 
     LEAVE_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
 
-    LSA_SAFE_FREE_STRING(pszConfigFilePath);
+    LW_SAFE_FREE_STRING(pszConfigFilePath);
 
     return dwError;
 
@@ -3432,12 +3432,12 @@ AD_GetNameWithReplacedSeparators(
 
     if (strchr(pszName, chSeparator))
     {
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
                         pszName,
                         &pszLocalName);
         BAIL_ON_LSA_ERROR(dwError);
 
-        LsaStrCharReplace(pszLocalName, chSeparator, ' ');
+        LwStrCharReplace(pszLocalName, chSeparator, ' ');
 
         pszUseName = pszLocalName;
     }
@@ -3453,7 +3453,7 @@ cleanup:
     return dwError;
 
 error:
-    LSA_SAFE_FREE_STRING(pszLocalName);
+    LW_SAFE_FREE_STRING(pszLocalName);
 
     *ppszFreeName = NULL;
     *ppszUseName = NULL;
@@ -3504,7 +3504,7 @@ AD_FindUserObjectByNameInternal(
     *ppResult = pResult;
 
 cleanup:
-    LSA_SAFE_FREE_STRING(pszFreeLoginId);
+    LW_SAFE_FREE_STRING(pszFreeLoginId);
     return dwError;
 
 error:
@@ -3574,7 +3574,7 @@ AD_FindUserObjectByName(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszLocalLoginId);
+    LW_SAFE_FREE_STRING(pszLocalLoginId);
     if (pUserNameInfo)
     {
         LsaFreeNameInfo(pUserNameInfo);
@@ -3622,7 +3622,7 @@ AD_RemoveUserByNameFromCacheInternal(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszFreeLoginId);
+    LW_SAFE_FREE_STRING(pszFreeLoginId);
     ADCacheSafeFreeObject(&pUserInfo);
 
     return dwError;
@@ -3675,7 +3675,7 @@ AD_FindGroupObjectByNameInternal(
     *ppResult = pResult;
 
 cleanup:
-    LSA_SAFE_FREE_STRING(pszFreeGroupName);
+    LW_SAFE_FREE_STRING(pszFreeGroupName);
     return dwError;
 
 error:
@@ -3745,7 +3745,7 @@ AD_FindGroupObjectByName(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszLocalGroupName);
+    LW_SAFE_FREE_STRING(pszLocalGroupName);
     if (pGroupNameInfo)
     {
         LsaFreeNameInfo(pGroupNameInfo);
@@ -3834,7 +3834,7 @@ LsaAdProviderStateCreate(
     DWORD dwError = 0;
     PLSA_AD_PROVIDER_STATE pState = NULL;
 
-    dwError = LsaAllocateMemory(sizeof(*pState), (PVOID)&pState);
+    dwError = LwAllocateMemory(sizeof(*pState), (PVOID)&pState);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = pthread_mutex_init(&pState->MachineCreds.Mutex, NULL);
@@ -3876,7 +3876,7 @@ LsaAdProviderStateDestroy(
             pState->MachineCreds.pMutex = NULL;
         }
         AD_FreeConfigContents(&pState->config);
-        LsaFreeMemory(pState);
+        LwFreeMemory(pState);
     }
 }
 
@@ -3925,7 +3925,7 @@ AD_MachineCredentialsCacheInitialize(
     dwError = LsaDnsGetHostInfo(&pszHostname);
     BAIL_ON_LSA_ERROR(dwError);
 
-    LsaStrToUpper(pszHostname);
+    LwStrToUpper(pszHostname);
 
     // Read password info before acquiring the lock.
     dwError = LwKrb5GetMachineCreds(
@@ -3973,11 +3973,11 @@ cleanup:
         pthread_mutex_unlock(gpLsaAdProviderState->MachineCreds.pMutex);
     }
 
-    LSA_SAFE_FREE_STRING(pszHostname);
-    LSA_SAFE_FREE_STRING(pszUsername);
-    LSA_SAFE_CLEAR_FREE_STRING(pszPassword);
-    LSA_SAFE_FREE_STRING(pszDomainDnsName);
-    LSA_SAFE_FREE_STRING(pszHostDnsDomain);
+    LW_SAFE_FREE_STRING(pszHostname);
+    LW_SAFE_FREE_STRING(pszUsername);
+    LW_SAFE_CLEAR_FREE_STRING(pszPassword);
+    LW_SAFE_FREE_STRING(pszDomainDnsName);
+    LW_SAFE_FREE_STRING(pszHostDnsDomain);
 
     return dwError;
 
@@ -4052,7 +4052,7 @@ LsaAdProviderLogServiceStartEvent(
                       &pGCDCInfo);
     }
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                  &pszDescription,
                  "Likewise authentication service provider initialization %s.\r\n\r\n" \
                  "     Authentication provider:   %s\r\n\r\n" \
@@ -4094,8 +4094,8 @@ LsaAdProviderLogServiceStartEvent(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszDescription);
-    LSA_SAFE_FREE_STRING(pszData);
+    LW_SAFE_FREE_STRING(pszDescription);
+    LW_SAFE_FREE_STRING(pszData);
 
     LWNET_SAFE_FREE_DC_INFO(pDCInfo);
     LWNET_SAFE_FREE_DC_INFO(pGCDCInfo);
@@ -4124,19 +4124,19 @@ LsaAdProviderLogConfigReloadEvent(
     {
         PSTR pszNewMemberList = NULL;
 
-        dwError = LsaAllocateStringPrintf(
+        dwError = LwAllocateStringPrintf(
                      &pszNewMemberList,
                      "%s        %s\r\n",
                      pszMemberList ? pszMemberList : "",
                      LSA_SAFE_LOG_STRING((PSTR)pIter->pItem));
         BAIL_ON_LSA_ERROR(dwError);
 
-        LSA_SAFE_FREE_STRING(pszMemberList);
+        LW_SAFE_FREE_STRING(pszMemberList);
         pszMemberList = pszNewMemberList;
         pszNewMemberList = NULL;
     }
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                  &pszDescription,
                  "Likewise authentication service provider configuration settings have been reloaded.\r\n\r\n" \
                  "     Authentication provider:           %s\r\n" \
@@ -4207,8 +4207,8 @@ LsaAdProviderLogConfigReloadEvent(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszDescription);
-    LSA_SAFE_FREE_STRING(pszMemberList);
+    LW_SAFE_FREE_STRING(pszDescription);
+    LW_SAFE_FREE_STRING(pszMemberList);
 
     return;
 
@@ -4245,27 +4245,27 @@ LsaAdProviderLogRequireMembershipOfChangeEvent(
         {
             PSTR pszNewMemberList = NULL;
 
-            dwError = LsaAllocateStringPrintf(
+            dwError = LwAllocateStringPrintf(
                          &pszNewMemberList,
                          "%s        %s\r\n",
                          pszMemberList ? pszMemberList : "",
                          LSA_SAFE_LOG_STRING(pHashEntry->pValue));
             BAIL_ON_LSA_ERROR(dwError);
 
-            LSA_SAFE_FREE_STRING(pszMemberList);
+            LW_SAFE_FREE_STRING(pszMemberList);
             pszMemberList = pszNewMemberList;
             pszNewMemberList = NULL;
         }
     }
     else
     {
-            dwError = LsaAllocateStringPrintf(
+            dwError = LwAllocateStringPrintf(
                          &pszMemberList,
                          "        <No login restrictions specified>\r\n");
             BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                  &pszDescription,
                  "Likewise authentication service provider login restriction settings have been reloaded.\r\n\r\n" \
                  "     Authentication provider:           %s\r\n" \
@@ -4283,8 +4283,8 @@ LsaAdProviderLogRequireMembershipOfChangeEvent(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszDescription);
-    LSA_SAFE_FREE_STRING(pszMemberList);
+    LW_SAFE_FREE_STRING(pszDescription);
+    LW_SAFE_FREE_STRING(pszMemberList);
     LsaHashSafeFree(&pAllowedMemberList);
 
     return;
@@ -4303,7 +4303,7 @@ LsaAdProviderLogEventLogEnableChangeEvent(
     DWORD dwError = 0;
     PSTR pszDescription = NULL;
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                  &pszDescription,
                  "Likewise authentication service provider auditing settings have been updated.\r\n\r\n" \
                  "     Authentication provider:           %s\r\n" \
@@ -4323,7 +4323,7 @@ LsaAdProviderLogEventLogEnableChangeEvent(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszDescription);
+    LW_SAFE_FREE_STRING(pszDescription);
 
     return;
 
@@ -4442,7 +4442,7 @@ cleanup:
 
     if (ppszMembers)
     {
-        LsaFreeStringArray(ppszMembers, dwNumMembers);
+        LwFreeStringArray(ppszMembers, dwNumMembers);
     }
 
     if (pSID)
@@ -4583,7 +4583,7 @@ AD_SetGroupCanonicalNamesToAliases(
 
     if (ppszMembers)
     {
-       for (; ppszMembers && !IsNullOrEmptyString(*ppszMembers); ppszMembers++)
+       for (; ppszMembers && !LW_IS_NULL_OR_EMPTY_STR(*ppszMembers); ppszMembers++)
        {
            dwError = AD_SetCanonicalNameToAlias(
                        pszCurrentNetBIOSDomainName,
@@ -4614,11 +4614,11 @@ AD_SetCanonicalNameToAlias(
     if (pszCanonicalName &&
         !strncasecmp(pszCanonicalName, pszCurrentNetBIOSDomainName, dwDomainNameLen) &&
         (*(pszCanonicalName + dwDomainNameLen) == LsaGetDomainSeparator()) &&
-        (!IsNullOrEmptyString(pszCanonicalName + dwDomainNameLen + 1)))
+        (!LW_IS_NULL_OR_EMPTY_STR(pszCanonicalName + dwDomainNameLen + 1)))
     {
         PCSTR pszIndex = pszCanonicalName + dwDomainNameLen + 1;
 
-        while (!IsNullOrEmptyString(pszIndex))
+        while (!LW_IS_NULL_OR_EMPTY_STR(pszIndex))
         {
             *pszCanonicalName++ = *pszIndex++;
         }

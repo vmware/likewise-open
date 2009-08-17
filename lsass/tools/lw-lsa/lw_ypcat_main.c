@@ -204,9 +204,9 @@ lw_ypcat_main(
 
             if (pszLookupName)
             {
-                LSA_SAFE_FREE_STRING(pszMapName);
+                LW_SAFE_FREE_STRING(pszMapName);
 
-                dwError = LsaAllocateString(
+                dwError = LwAllocateString(
                                 pszLookupName,
                                 &pszMapName);
                 BAIL_ON_LSA_ERROR(dwError);
@@ -247,8 +247,8 @@ cleanup:
         LsaNISFreeNicknameList(pNISNicknameList);
     }
 
-    LSA_SAFE_FREE_STRING(pszMapName);
-    LSA_SAFE_FREE_STRING(pszDomain);
+    LW_SAFE_FREE_STRING(pszMapName);
+    LW_SAFE_FREE_STRING(pszDomain);
 
     return (dwError);
 
@@ -263,7 +263,7 @@ error:
         DWORD dwError2 = 0;
         PSTR   pszErrorBuffer = NULL;
 
-        dwError2 = LsaAllocateMemory(
+        dwError2 = LwAllocateMemory(
                     dwErrorBufferSize,
                     (PVOID*)&pszErrorBuffer);
 
@@ -271,14 +271,14 @@ error:
         {
             DWORD dwLen = LwGetErrorString(dwError, pszErrorBuffer, dwErrorBufferSize);
 
-            if ((dwLen == dwErrorBufferSize) && !IsNullOrEmptyString(pszErrorBuffer))
+            if ((dwLen == dwErrorBufferSize) && !LW_IS_NULL_OR_EMPTY_STR(pszErrorBuffer))
             {
                 fprintf(stderr, "Failed to enumerate maps.  %s\n", pszErrorBuffer);
                 bPrintOrigError = FALSE;
             }
         }
 
-        LSA_SAFE_FREE_STRING(pszErrorBuffer);
+        LW_SAFE_FREE_STRING(pszErrorBuffer);
     }
 
     if (bPrintOrigError)
@@ -360,9 +360,9 @@ ParseArgs(
                 }
                 else
                 {
-                    LSA_SAFE_FREE_STRING(pszMapName);
+                    LW_SAFE_FREE_STRING(pszMapName);
 
-                    dwError = LsaAllocateString(
+                    dwError = LwAllocateString(
                                     pszArg,
                                     &pszMapName);
                     BAIL_ON_LSA_ERROR(dwError);
@@ -371,9 +371,9 @@ ParseArgs(
 
             case PARSE_MODE_DOMAIN:
 
-                LSA_SAFE_FREE_STRING(pszDomain);
+                LW_SAFE_FREE_STRING(pszDomain);
 
-                dwError = LsaAllocateString(
+                dwError = LwAllocateString(
                               pszArg,
                               &pszDomain);
                 BAIL_ON_LSA_ERROR(dwError);
@@ -395,7 +395,7 @@ ParseArgs(
         exit(1);
     }
 
-    if (!bPrintNicknameTable && IsNullOrEmptyString(pszMapName))
+    if (!bPrintNicknameTable && LW_IS_NULL_OR_EMPTY_STR(pszMapName))
     {
         ShowUsage();
         exit(1);
@@ -414,8 +414,8 @@ cleanup:
 
 error:
 
-    LSA_SAFE_FREE_STRING(pszMapName);
-    LSA_SAFE_FREE_STRING(pszDomain);
+    LW_SAFE_FREE_STRING(pszMapName);
+    LW_SAFE_FREE_STRING(pszDomain);
 
     goto cleanup;
 }
@@ -700,7 +700,7 @@ PrintGroupInfo_1(
     {
         DWORD iMember = 0;
 
-        while (!IsNullOrEmptyString(*ppszMembers))
+        while (!LW_IS_NULL_OR_EMPTY_STR(*ppszMembers))
         {
           if (iMember)
           {

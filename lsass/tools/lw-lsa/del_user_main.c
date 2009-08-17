@@ -165,7 +165,7 @@ error:
         DWORD dwError2 = 0;
         PSTR   pszErrorBuffer = NULL;
 
-        dwError2 = LsaAllocateMemory(
+        dwError2 = LwAllocateMemory(
                     dwErrorBufferSize,
                     (PVOID*)&pszErrorBuffer);
 
@@ -173,14 +173,14 @@ error:
         {
             DWORD dwLen = LwGetErrorString(dwError, pszErrorBuffer, dwErrorBufferSize);
 
-            if ((dwLen == dwErrorBufferSize) && !IsNullOrEmptyString(pszErrorBuffer))
+            if ((dwLen == dwErrorBufferSize) && !LW_IS_NULL_OR_EMPTY_STR(pszErrorBuffer))
             {
                 fprintf(stderr, "Failed to delete user.  %s\n", pszErrorBuffer);
                 bPrintOrigError = FALSE;
             }
         }
 
-        LSA_SAFE_FREE_STRING(pszErrorBuffer);
+        LW_SAFE_FREE_STRING(pszErrorBuffer);
     }
 
     if (bPrintOrigError)
@@ -268,7 +268,7 @@ IsUnsignedInteger(
     INT iCharIdx = 0;
     CHAR cNext = '\0';
 
-    if (IsNullOrEmptyString(pszIntegerCandidate))
+    if (LW_IS_NULL_OR_EMPTY_STR(pszIntegerCandidate))
     {
         bIsUnsignedInteger = FALSE;
         goto error;

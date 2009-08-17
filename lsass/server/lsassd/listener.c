@@ -155,7 +155,7 @@ LsaSrvStartListenThread(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaAllocateStringPrintf(&pszCommPath, "%s/%s",
+    dwError = LwAllocateStringPrintf(&pszCommPath, "%s/%s",
                                       pszCachePath, LSA_SERVER_FILENAME);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -227,8 +227,8 @@ LsaSrvStartListenThread(
 
 error:
 
-    LSA_SAFE_FREE_STRING(pszCachePath);
-    LSA_SAFE_FREE_STRING(pszCommPath);
+    LW_SAFE_FREE_STRING(pszCachePath);
+    LW_SAFE_FREE_STRING(pszCommPath);
 
     if (dwError)
     {

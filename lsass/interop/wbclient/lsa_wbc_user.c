@@ -154,7 +154,7 @@ done:
     }
 
     if (gids) {
-        LsaFreeMemory(gids);
+        LwFreeMemory(gids);
     }
 
     if (pGroupInfo) {

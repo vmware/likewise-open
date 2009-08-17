@@ -136,9 +136,9 @@ main(
     
     if(pGroup)
     {
-        printf("Name:     %s\n", IsNullOrEmptyString(pGroup->gr_name) ? "<null>" : pGroup->gr_name);
+        printf("Name:     %s\n", LW_IS_NULL_OR_EMPTY_STR(pGroup->gr_name) ? "<null>" : pGroup->gr_name);
         printf("Gid:      %u\n", (unsigned int)pGroup->gr_gid);
-        printf("Passwd:   %s\n", IsNullOrEmptyString(pGroup->gr_passwd) ? "<null>" : pGroup->gr_passwd);
+        printf("Passwd:   %s\n", LW_IS_NULL_OR_EMPTY_STR(pGroup->gr_passwd) ? "<null>" : pGroup->gr_passwd);
         printf("Members: ");
         ppszMembers = pGroup->gr_mem;
         while (ppszMembers && *ppszMembers)

@@ -82,23 +82,23 @@ LsaNssComputeUserStringLength(
 {
     DWORD dwLength = 0;
 
-    if (!IsNullOrEmptyString(pUserInfo->pszName)) {
+    if (!LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszName)) {
        dwLength += strlen(pUserInfo->pszName) + 1;
     }
 
-    if (!IsNullOrEmptyString(pUserInfo->pszPasswd)) {
+    if (!LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszPasswd)) {
        dwLength += strlen(pUserInfo->pszPasswd) + 1;
     }
 
-    if (!IsNullOrEmptyString(pUserInfo->pszShell)) {
+    if (!LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszShell)) {
        dwLength += strlen(pUserInfo->pszShell) + 1;
     }
 
-    if (!IsNullOrEmptyString(pUserInfo->pszGecos)) {
+    if (!LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszGecos)) {
        dwLength += strlen(pUserInfo->pszGecos) + 1;
     }
 
-    if (!IsNullOrEmptyString(pUserInfo->pszHomedir)) {
+    if (!LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszHomedir)) {
        dwLength += strlen(pUserInfo->pszHomedir) + 1;
     }
 
@@ -143,14 +143,14 @@ LsaNssWriteUserInfo(
 
     memset(pszMarker, 0, bufLen);
 
-    if (!IsNullOrEmptyString(pUserInfo_0->pszName)) {
+    if (!LW_IS_NULL_OR_EMPTY_STR(pUserInfo_0->pszName)) {
        dwLen = strlen(pUserInfo_0->pszName);
        memcpy(pszMarker, pUserInfo_0->pszName, dwLen);
        pResultUser->pw_name = pszMarker;
        pszMarker += dwLen + 1;
     }
 
-    if (!IsNullOrEmptyString(pUserInfo_0->pszPasswd)) {
+    if (!LW_IS_NULL_OR_EMPTY_STR(pUserInfo_0->pszPasswd)) {
        dwLen = strlen(pUserInfo_0->pszPasswd);
        memcpy(pszMarker, pUserInfo_0->pszPasswd, dwLen);
        pResultUser->pw_passwd = pszMarker;
@@ -163,7 +163,7 @@ LsaNssWriteUserInfo(
         pszMarker += dwLen + 1;
     }
 
-    if (!IsNullOrEmptyString(pUserInfo_0->pszGecos)) {
+    if (!LW_IS_NULL_OR_EMPTY_STR(pUserInfo_0->pszGecos)) {
        dwLen = strlen(pUserInfo_0->pszGecos);
        memcpy(pszMarker, pUserInfo_0->pszGecos, dwLen);
        pResultUser->pw_gecos = pszMarker;
@@ -175,14 +175,14 @@ LsaNssWriteUserInfo(
         pszMarker++;
     }
 
-    if (!IsNullOrEmptyString(pUserInfo_0->pszShell)) {
+    if (!LW_IS_NULL_OR_EMPTY_STR(pUserInfo_0->pszShell)) {
        dwLen = strlen(pUserInfo_0->pszShell);
        memcpy(pszMarker, pUserInfo_0->pszShell, dwLen);
        pResultUser->pw_shell = pszMarker;
        pszMarker += dwLen + 1;
     }
 
-    if (!IsNullOrEmptyString(pUserInfo_0->pszHomedir)) {
+    if (!LW_IS_NULL_OR_EMPTY_STR(pUserInfo_0->pszHomedir)) {
        dwLen = strlen(pUserInfo_0->pszHomedir);
        memcpy(pszMarker, pUserInfo_0->pszHomedir, dwLen);
        pResultUser->pw_dir = pszMarker;

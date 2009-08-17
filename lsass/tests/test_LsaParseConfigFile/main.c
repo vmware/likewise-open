@@ -100,7 +100,7 @@ ConfigComment(
     
     printf("CALLBACK #%u: <!-- %s -->\n", 
         *pdwCallbackCount,
-        (IsNullOrEmptyString(pszComment) ? "" : pszComment));
+        (LW_IS_NULL_OR_EMPTY_STR(pszComment) ? "" : pszComment));
     
     (*pdwCallbackCount)++;
     
@@ -122,8 +122,8 @@ ConfigNameValuePair(
     
     printf("CALLBACK #%u: \t<NAME Id=\"%s\" Value=\"%s\"/>\n", 
         *pdwCallbackCount,
-        (IsNullOrEmptyString(pszName) ? "" : pszName), 
-        (IsNullOrEmptyString(pszValue) ? "" : pszValue));
+        (LW_IS_NULL_OR_EMPTY_STR(pszName) ? "" : pszName),
+        (LW_IS_NULL_OR_EMPTY_STR(pszValue) ? "" : pszValue));
     
     (*pdwCallbackCount)++;
     
@@ -186,7 +186,7 @@ main(
     
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszConfigFilePath);
+    LW_SAFE_FREE_STRING(pszConfigFilePath);
     
     return (dwError);
 
@@ -234,7 +234,7 @@ ParseArgs(
                 }
                 else
                 {
-                    dwError = LsaAllocateString(pszArg, &pszConfigFilePath);
+                    dwError = LwAllocateString(pszArg, &pszConfigFilePath);
                     BAIL_ON_LSA_ERROR(dwError);
                     parseMode = PARSE_MODE_DONE;
                 }
@@ -248,7 +248,7 @@ ParseArgs(
 
     } while ((parseMode != PARSE_MODE_DONE) && (iArg < argc));
 
-    if (IsNullOrEmptyString(pszConfigFilePath))
+    if (LW_IS_NULL_OR_EMPTY_STR(pszConfigFilePath))
     {
        ShowUsage();
        exit(1);
@@ -262,7 +262,7 @@ cleanup:
 
 error:
 
-    LSA_SAFE_FREE_STRING(pszConfigFilePath);
+    LW_SAFE_FREE_STRING(pszConfigFilePath);
 
     *ppszConfigFilePath = NULL;
 

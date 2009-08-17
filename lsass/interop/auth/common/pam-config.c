@@ -128,7 +128,7 @@ LsaPamReadConfigFile(
     PLSA_PAM_CONFIG pConfig = NULL;
     LSA_CONFIG_READER_CONTEXT context = {0};
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(LSA_PAM_CONFIG),
                     (PVOID*)&pConfig);
     BAIL_ON_LSA_ERROR(dwError);
@@ -188,12 +188,12 @@ LsaPamInitializeConfig(
     pConfig->bLsaPamDisplayMOTD = FALSE;
     pConfig->dwLogLevel = PAM_LOG_LEVEL_ERROR;
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                     LSA_PAM_LOGON_RIGHTS_DENIED_MESSAGE,
                     &pszMessage);
     BAIL_ON_LSA_ERROR(dwError);
 
-    LSA_SAFE_FREE_STRING(pConfig->pszAccessDeniedMessage);
+    LW_SAFE_FREE_STRING(pConfig->pszAccessDeniedMessage);
     pConfig->pszAccessDeniedMessage = pszMessage;
 
 error:
@@ -207,7 +207,7 @@ LsaPamFreeConfig(
     )
 {
     LsaPamFreeConfigContents(pConfig);
-    LsaFreeMemory(pConfig);
+    LwFreeMemory(pConfig);
 }
 
 VOID
@@ -215,7 +215,7 @@ LsaPamFreeConfigContents(
     PLSA_PAM_CONFIG pConfig
     )
 {
-    LSA_SAFE_FREE_STRING(pConfig->pszAccessDeniedMessage);
+    LW_SAFE_FREE_STRING(pConfig->pszAccessDeniedMessage);
 }
 
 static
@@ -238,7 +238,7 @@ LsaPamConfigStartSection(
         goto done;
     }
 
-    if (!IsNullOrEmptyString(pszSectionName) &&
+    if (!LW_IS_NULL_OR_EMPTY_STR(pszSectionName) &&
         !strcasecmp(pszSectionName, "pam")) {
         pContext->dwSeenPamSection = TRUE;
     } else {
@@ -264,7 +264,7 @@ LsaPamConfigNameValuePair(
 {
     DWORD dwError = 0;
 
-    if (!IsNullOrEmptyString(pszName))
+    if (!LW_IS_NULL_OR_EMPTY_STR(pszName))
     {
         DWORD iHandler = 0;
         DWORD nHandlers = sizeof(gConfigHandlers)/sizeof(gConfigHandlers[0]);
@@ -298,7 +298,7 @@ LsaPam_SetConfig_LogLevel(
     PCSTR           pszValue
     )
 {
-    if (IsNullOrEmptyString(pszValue))
+    if (LW_IS_NULL_OR_EMPTY_STR(pszValue))
     {
         pConfig->dwLogLevel = PAM_LOG_LEVEL_DISABLED;
     }
@@ -329,7 +329,7 @@ LsaPam_SetConfig_DisplayMOTD(
     PCSTR           pszValue
     )
 {
-    if (!IsNullOrEmptyString(pszValue) &&
+    if (!LW_IS_NULL_OR_EMPTY_STR(pszValue) &&
         (!strcasecmp(pszValue, "true") ||
          (*pszValue == 'Y') ||
          (*pszValue == 'y')))
@@ -355,14 +355,14 @@ LsaPam_SetConfig_UserNotAllowedError(
     DWORD dwError = 0;
     PSTR  pszMessage = NULL;
 
-    if (!IsNullOrEmptyString(pszValue))
+    if (!LW_IS_NULL_OR_EMPTY_STR(pszValue))
     {
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
                         pszValue,
                         &pszMessage);
         BAIL_ON_LSA_ERROR(dwError);
 
-        LSA_SAFE_FREE_STRING(pConfig->pszAccessDeniedMessage);
+        LW_SAFE_FREE_STRING(pConfig->pszAccessDeniedMessage);
         pConfig->pszAccessDeniedMessage = pszMessage;
     }
 
@@ -372,7 +372,7 @@ cleanup:
 
 error:
 
-    LSA_SAFE_FREE_STRING(pszMessage);
+    LW_SAFE_FREE_STRING(pszMessage);
 
     goto cleanup;
 }

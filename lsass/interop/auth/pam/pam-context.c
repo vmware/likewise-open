@@ -70,7 +70,7 @@ LsaPamGetContext(
         {
             case PAM_NO_MODULE_DATA:
 
-                dwError = LsaAllocateMemory(
+                dwError = LwAllocateMemory(
                                 sizeof(PAMCONTEXT),
                                 (PVOID*)&pPamContext);
                 BAIL_ON_LSA_ERROR(dwError);
@@ -202,7 +202,7 @@ LsaPamGetLoginId(
     }
 #endif
     BAIL_ON_LSA_ERROR(dwError);
-    if (IsNullOrEmptyString(pszPamId) && bAllowPrompt)
+    if (LW_IS_NULL_OR_EMPTY_STR(pszPamId) && bAllowPrompt)
     {
         dwError = pam_get_user(
                         pamh,
@@ -214,20 +214,20 @@ LsaPamGetLoginId(
                PAM_INCOMPLETE : PAM_SERVICE_ERR;
            BAIL_ON_LSA_ERROR(dwError);
         }
-	    if (IsNullOrEmptyString(pszPamId))
+	    if (LW_IS_NULL_OR_EMPTY_STR(pszPamId))
 	    {
 	       dwError = PAM_SERVICE_ERR;
 	       BAIL_ON_LSA_ERROR(dwError);
 	    }
     }
 
-    dwError = LsaStrDupOrNull(
+    dwError = LwStrDupOrNull(
                 pszPamId,
                 &pszLoginId);
     BAIL_ON_LSA_ERROR(dwError);
 
-    LSA_SAFE_FREE_STRING(pPamContext->pszLoginName);
-    dwError = LsaStrDupOrNull(pszPamId, &pPamContext->pszLoginName);
+    LW_SAFE_FREE_STRING(pPamContext->pszLoginName);
+    dwError = LwStrDupOrNull(pszPamId, &pPamContext->pszLoginName);
     BAIL_ON_LSA_ERROR(dwError);
 
     if (ppszLoginId)
@@ -236,7 +236,7 @@ LsaPamGetLoginId(
     }
     else
     {
-        LSA_SAFE_FREE_STRING(pszLoginId);
+        LW_SAFE_FREE_STRING(pszLoginId);
     }
 
 cleanup:
@@ -247,7 +247,7 @@ cleanup:
 
 error:
 
-    LSA_SAFE_FREE_STRING(pszLoginId);
+    LW_SAFE_FREE_STRING(pszLoginId);
 
     if (ppszLoginId)
     {
@@ -285,9 +285,9 @@ LsaPamFreeContext(
 {
     LSA_LOG_PAM_DEBUG("LsaPamFreeContext::begin");
 
-    LSA_SAFE_FREE_STRING(pPamContext->pszLoginName);
+    LW_SAFE_FREE_STRING(pPamContext->pszLoginName);
 
-    LsaFreeMemory(pPamContext);
+    LwFreeMemory(pPamContext);
 
     LSA_LOG_PAM_DEBUG("LsaPamFreeContext::end");
 }
@@ -301,7 +301,7 @@ LsaPamCleanupDataString(
 {
     if (data)
     {
-        LsaFreeString((PSTR) data);
+        LwFreeString((PSTR) data);
     }
 }
 
@@ -315,7 +315,7 @@ LsaPamSetDataString(
     DWORD dwError = 0;
     PSTR pszStrCopy = NULL;
 
-    dwError = LsaAllocateString(pszStr, &pszStrCopy);
+    dwError = LwAllocateString(pszStr, &pszStrCopy);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = pam_set_data(pamh, pszKey, pszStrCopy, LsaPamCleanupDataString);

@@ -88,7 +88,7 @@ LocalCreateEnumState(
     DWORD dwError = 0;
     PLOCAL_PROVIDER_ENUM_STATE pEnumState = NULL;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(LOCAL_PROVIDER_ENUM_STATE),
                     (PVOID*)&pEnumState);
     BAIL_ON_LSA_ERROR(dwError);
@@ -142,5 +142,5 @@ LocalFreeEnumState(
         DirectoryFreeEntries(pEnumState->pEntries, pEnumState->dwNumEntries);
     }
 
-    LsaFreeMemory(pEnumState);
+    LwFreeMemory(pEnumState);
 }

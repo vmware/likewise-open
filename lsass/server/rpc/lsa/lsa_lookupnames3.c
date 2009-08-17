@@ -265,11 +265,11 @@ LsaSrvLookupNames3(
         pSidArray->count += dwRemoteSidsCount;
 
         if (pRemoteDomains) {
-            LsaFreeMemory(pRemoteDomains);
+            LwFreeMemory(pRemoteDomains);
         }
 
         if (pRemoteSids) {
-            LsaFreeMemory(pRemoteSids);
+            LwFreeMemory(pRemoteSids);
         }
 
         status = LsaClose(hLsaBinding, &hDcPolicy);
@@ -403,7 +403,7 @@ cleanup:
     }
 
     if (pwszSystemName) {
-        LSA_SAFE_FREE_MEMORY(pwszSystemName);
+        LW_SAFE_FREE_MEMORY(pwszSystemName);
     }
 
     if (pszDomainFqdn) {
@@ -427,7 +427,7 @@ cleanup:
     }
 
     if (pszSamrLpcSocketPath) {
-        LSA_SAFE_FREE_STRING(pszSamrLpcSocketPath);
+        LW_SAFE_FREE_STRING(pszSamrLpcSocketPath);
     }
 
     if (status == STATUS_SUCCESS) {
@@ -641,7 +641,7 @@ LsaSrvGetLocalSamrDomain(
 
 cleanup:
     if (pwszBuiltinName) {
-        LSA_SAFE_FREE_MEMORY(pwszBuiltinName);
+        LW_SAFE_FREE_MEMORY(pwszBuiltinName);
     }
 
     return status;

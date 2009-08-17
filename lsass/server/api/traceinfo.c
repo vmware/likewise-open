@@ -92,7 +92,7 @@ LsaSrvGetTraceInfo(
     DWORD dwError = 0;
     PLSA_TRACE_INFO pTraceInfo = NULL;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(LSA_TRACE_INFO),
                     (PVOID*)&pTraceInfo);
     BAIL_ON_LSA_ERROR(dwError);
@@ -114,7 +114,7 @@ error:
 
     *ppTraceInfo = NULL;
 
-    LSA_SAFE_FREE_MEMORY(pTraceInfo);
+    LW_SAFE_FREE_MEMORY(pTraceInfo);
 
     goto cleanup;
 }
@@ -131,7 +131,7 @@ LsaSrvEnumTraceFlags(
     PLSA_TRACE_INFO pTraceFlagArray = NULL;
     DWORD dwNumFlags = LSA_TRACE_FLAG_SENTINEL - 1;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(LSA_TRACE_INFO) * dwNumFlags,
                     (PVOID*)&pTraceFlagArray);
     BAIL_ON_LSA_ERROR(dwError);
@@ -161,7 +161,7 @@ error:
     *ppTraceFlagArray = NULL;
     *pdwNumFlags = 0;
 
-    LSA_SAFE_FREE_MEMORY(pTraceFlagArray);
+    LW_SAFE_FREE_MEMORY(pTraceFlagArray);
 
     goto cleanup;
 }

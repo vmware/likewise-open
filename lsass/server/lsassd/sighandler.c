@@ -295,7 +295,7 @@ error:
         LsaRemoveFile(szClientPath);
     }
 
-    LSA_SAFE_FREE_STRING(pszCachePath);
+    LW_SAFE_FREE_STRING(pszCachePath);
 }
 
 

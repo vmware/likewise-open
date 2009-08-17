@@ -156,7 +156,7 @@ DefaultModeSchemaFindNSSArtefactByKey(
     BAIL_ON_INVALID_STRING(pszMapName);
     BAIL_ON_INVALID_STRING(pszKeyName);
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                     &pszDN,
                     "CN=%s,CN=Maps,%s",
                     pszMapName,
@@ -180,7 +180,7 @@ DefaultModeSchemaFindNSSArtefactByKey(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                     &pszQuery,
                     "(&(objectClass=serviceConnectionPoint)(keywords=objectClass=centerisLikewiseMapEntry)(name=%s))",
                     pszKeyName);
@@ -232,9 +232,9 @@ cleanup:
         LsaFreeNSSArtefactInfoList(dwInfoLevel, ppArtefactInfos, dwNumInfos);
     }
 
-    LSA_SAFE_FREE_STRING(pszDN);
-    LSA_SAFE_FREE_STRING(pszEscapedDN);
-    LSA_SAFE_FREE_STRING(pszQuery);
+    LW_SAFE_FREE_STRING(pszDN);
+    LW_SAFE_FREE_STRING(pszEscapedDN);
+    LW_SAFE_FREE_STRING(pszQuery);
 
     return dwError;
 
@@ -284,7 +284,7 @@ DefaultModeNonSchemaFindNSSArtefactByKey(
     BAIL_ON_INVALID_STRING(pszMapName);
     BAIL_ON_INVALID_STRING(pszKeyName);
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                     &pszDN,
                     "CN=%s,CN=Maps,%s",
                     pszMapName,
@@ -308,7 +308,7 @@ DefaultModeNonSchemaFindNSSArtefactByKey(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                     &pszQuery,
                     "(&(objectClass=serviceConnectionPoint)(keywords=objectClass=centerisLikewiseMapEntry)(name=%s))",
                     pszKeyName);
@@ -360,9 +360,9 @@ cleanup:
         LsaFreeNSSArtefactInfoList(dwInfoLevel, ppArtefactInfos, dwNumInfos);
     }
 
-    LSA_SAFE_FREE_STRING(pszDN);
-    LSA_SAFE_FREE_STRING(pszEscapedDN);
-    LSA_SAFE_FREE_STRING(pszQuery);
+    LW_SAFE_FREE_STRING(pszDN);
+    LW_SAFE_FREE_STRING(pszEscapedDN);
+    LW_SAFE_FREE_STRING(pszQuery);
 
     return dwError;
 
@@ -481,7 +481,7 @@ DefaultModeSchemaEnumNSSArtefacts(
 
     BAIL_ON_INVALID_STRING(pEnumState->pszMapName);
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                     &pszDN,
                     "CN=%s,CN=Maps,%s",
                     pEnumState->pszMapName,
@@ -544,8 +544,8 @@ cleanup:
         ldap_msgfree(pMessagePseudo);
     }
 
-    LSA_SAFE_FREE_STRING(pszDN);
-    LSA_SAFE_FREE_STRING(pszEscapedDN);
+    LW_SAFE_FREE_STRING(pszDN);
+    LW_SAFE_FREE_STRING(pszEscapedDN);
 
     return dwError;
 
@@ -603,7 +603,7 @@ DefaultModeNonSchemaEnumNSSArtefacts(
 
     BAIL_ON_INVALID_STRING(pEnumState->pszMapName);
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                     &pszDN,
                     "CN=%s,CN=Maps,%s",
                     pEnumState->pszMapName,
@@ -677,8 +677,8 @@ DefaultModeNonSchemaEnumNSSArtefacts(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszDN);
-    LSA_SAFE_FREE_STRING(pszEscapedDN);
+    LW_SAFE_FREE_STRING(pszDN);
+    LW_SAFE_FREE_STRING(pszEscapedDN);
 
     return dwError;
 

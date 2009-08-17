@@ -188,8 +188,8 @@ cleanup:
         LsaCloseServer(hLsaConnection);
     }
 
-    LSA_SAFE_FREE_MEMORY(pTraceFlag);
-    LSA_SAFE_FREE_MEMORY(pTraceFlagArray);
+    LW_SAFE_FREE_MEMORY(pTraceFlag);
+    LW_SAFE_FREE_MEMORY(pTraceFlagArray);
 
     return (dwError);
 
@@ -204,7 +204,7 @@ error:
         DWORD dwError2 = 0;
         PSTR   pszErrorBuffer = NULL;
 
-        dwError2 = LsaAllocateMemory(
+        dwError2 = LwAllocateMemory(
                     dwErrorBufferSize,
                     (PVOID*)&pszErrorBuffer);
 
@@ -212,14 +212,14 @@ error:
         {
             DWORD dwLen = LwGetErrorString(dwError, pszErrorBuffer, dwErrorBufferSize);
 
-            if ((dwLen == dwErrorBufferSize) && !IsNullOrEmptyString(pszErrorBuffer))
+            if ((dwLen == dwErrorBufferSize) && !LW_IS_NULL_OR_EMPTY_STR(pszErrorBuffer))
             {
                 fprintf(stderr, "Failed to manage trace flags.  %s\n", pszErrorBuffer);
                 bPrintOrigError = FALSE;
             }
         }
 
-        LSA_SAFE_FREE_STRING(pszErrorBuffer);
+        LW_SAFE_FREE_STRING(pszErrorBuffer);
     }
 
     if (bPrintOrigError)
@@ -290,7 +290,7 @@ ParseArgs(
 
            case PARSE_MODE_SET:
 
-                LSA_SAFE_FREE_MEMORY(pTraceFlagArray);
+                LW_SAFE_FREE_MEMORY(pTraceFlagArray);
                 dwNumFlags = 0;
 
                 dwError = ParseTraceFlagArray(
@@ -333,7 +333,7 @@ error:
     *pdwNumFlagsToSet = 0;
     *pdwTraceFlag = 0;
 
-    LSA_SAFE_FREE_MEMORY(pTraceFlagArray);
+    LW_SAFE_FREE_MEMORY(pTraceFlagArray);
 
     goto cleanup;
 }
@@ -376,7 +376,7 @@ ParseTraceFlagArray(
           dwNumFlags++;
     }
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     dwNumFlags * sizeof(LSA_TRACE_INFO),
                     (PVOID*)&pTraceFlagArray);
     BAIL_ON_LSA_ERROR(dwError);
@@ -387,16 +387,16 @@ ParseTraceFlagArray(
           size_t sDelimiterLen = 0;
           PCSTR pszIndex = NULL;
 
-          LSA_SAFE_FREE_STRING(pszFlagAndValue);
+          LW_SAFE_FREE_STRING(pszFlagAndValue);
 
-          dwError = LsaStrndup(
+          dwError = LwStrndup(
                         pszInput,
                         sFlagLen,
                         &pszFlagAndValue);
           BAIL_ON_LSA_ERROR(dwError);
 
           if (!(pszIndex = strchr(pszFlagAndValue, ':')) ||
-              IsNullOrEmptyString(pszIndex+1) ||
+              LW_IS_NULL_OR_EMPTY_STR(pszIndex+1) ||
               (strcmp(pszIndex+1, "0") && strcmp(pszIndex + 1, "1")))
           {
               fprintf(stderr,
@@ -419,9 +419,9 @@ ParseTraceFlagArray(
           {
               PLSA_TRACE_INFO pTraceFlag = NULL;
 
-              LSA_SAFE_FREE_STRING(pszFlag);
+              LW_SAFE_FREE_STRING(pszFlag);
 
-              dwError = LsaStrndup(
+              dwError = LwStrndup(
                             pszFlagAndValue,
                             (pszIndex - pszFlagAndValue),
                             &pszFlag);
@@ -451,8 +451,8 @@ ParseTraceFlagArray(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszFlag);
-    LSA_SAFE_FREE_STRING(pszFlagAndValue);
+    LW_SAFE_FREE_STRING(pszFlag);
+    LW_SAFE_FREE_STRING(pszFlagAndValue);
 
     return dwError;
 
@@ -461,7 +461,7 @@ error:
     *ppTraceFlagArray = NULL;
     *pdwNumFlags = 0;
 
-    LSA_SAFE_FREE_MEMORY(pTraceFlagArray);
+    LW_SAFE_FREE_MEMORY(pTraceFlagArray);
 
     goto cleanup;
 }

@@ -136,7 +136,7 @@ SamrSrvConfigStartSection(
     DWORD dwError = 0;
     PCSTR pszLibName = NULL;
 
-    if (IsNullOrEmptyString(pszSectionName) ||
+    if (LW_IS_NULL_OR_EMPTY_STR(pszSectionName) ||
         strncasecmp(pszSectionName, LSA_CFG_TAG_RPC_SERVER,
                     sizeof(LSA_CFG_TAG_RPC_SERVER) - 1)) {
         *pbSkipSection = TRUE;
@@ -147,7 +147,7 @@ SamrSrvConfigStartSection(
                      sizeof(LSA_CFG_TAG_RPC_SERVER) - 1)) {
 
         pszLibName = pszSectionName + sizeof(LSA_CFG_TAG_RPC_SERVER) - 1;
-        if (IsNullOrEmptyString(pszLibName) ||
+        if (LW_IS_NULL_OR_EMPTY_STR(pszLibName) ||
             strcasecmp(pszLibName, LSA_CFG_TAG_SAMR_RPC_SERVER)) {
             *pbSkipSection = TRUE;
             goto cleanup;
@@ -173,7 +173,7 @@ SamrSrvConfigNameValuePair(
     DWORD i = 0;
     DWORD dwNumHandlers = 0;
 
-    if (IsNullOrEmptyString(pszName)) {
+    if (LW_IS_NULL_OR_EMPTY_STR(pszName)) {
         *pbContinue = TRUE;
         goto cleanup;
     }
@@ -206,7 +206,7 @@ SamrSrvConfigSetLpcSocketPath(
     DWORD dwError = 0;
     NTSTATUS status = STATUS_SUCCESS;
 
-    dwError = LsaAllocateString(pszValue,
+    dwError = LwAllocateString(pszValue,
                                 &pConfig->pszLpcSocketPath);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -231,11 +231,11 @@ SamrSrvConfigGetLpcSocketPath(
 
     GLOBAL_DATA_LOCK(bLocked);
 
-    if (IsNullOrEmptyString(gSamrSrvConfig.pszLpcSocketPath)) {
+    if (LW_IS_NULL_OR_EMPTY_STR(gSamrSrvConfig.pszLpcSocketPath)) {
         goto cleanup;
     }
 
-    dwError = LsaAllocateString(gSamrSrvConfig.pszLpcSocketPath,
+    dwError = LwAllocateString(gSamrSrvConfig.pszLpcSocketPath,
                                 &pszLpcSocketPath);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -260,11 +260,11 @@ SamrSrvSetConfigFilePath(
     int locked = 0;
     PSTR pszPath = NULL;
 
-    if (IsNullOrEmptyString(pszConfigFilePath)) {
+    if (LW_IS_NULL_OR_EMPTY_STR(pszConfigFilePath)) {
         goto cleanup;
     }
 
-    dwError = LsaAllocateString(pszConfigFilePath,
+    dwError = LwAllocateString(pszConfigFilePath,
                                 &pszPath);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -279,7 +279,7 @@ cleanup:
 
 error:
     if (pszPath) {
-        LSA_SAFE_FREE_STRING(pszPath);
+        LW_SAFE_FREE_STRING(pszPath);
     }
 
     goto cleanup;

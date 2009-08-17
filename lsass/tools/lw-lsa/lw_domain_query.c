@@ -86,9 +86,9 @@ cleanup:
 
 error:
 
-    LSA_SAFE_FREE_STRING(pszComputerName);
-    LSA_SAFE_FREE_STRING(pszDnsDomainName);
-    LSA_SAFE_FREE_STRING(pszComputerDN);
+    LW_SAFE_FREE_STRING(pszComputerName);
+    LW_SAFE_FREE_STRING(pszDnsDomainName);
+    LW_SAFE_FREE_STRING(pszComputerDN);
 
     goto cleanup;
 }

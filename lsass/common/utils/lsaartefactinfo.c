@@ -62,7 +62,7 @@ LsaFreeNSSArtefactInfoList(
            LsaFreeNSSArtefactInfo(dwLevel, pNSSArtefactInfo);
         }
     }
-    LsaFreeMemory(pNSSArtefactInfoList);
+    LwFreeMemory(pNSSArtefactInfoList);
 }
 
 VOID
@@ -90,9 +90,9 @@ LsaFreeNSSArtefactInfo_0(
     PLSA_NSS_ARTEFACT_INFO_0 pNSSArtefactInfo
     )
 {
-    LSA_SAFE_FREE_STRING(pNSSArtefactInfo->pszName);
-    LSA_SAFE_FREE_STRING(pNSSArtefactInfo->pszValue);
-    LsaFreeMemory(pNSSArtefactInfo);
+    LW_SAFE_FREE_STRING(pNSSArtefactInfo->pszName);
+    LW_SAFE_FREE_STRING(pNSSArtefactInfo->pszValue);
+    LwFreeMemory(pNSSArtefactInfo);
 }
 
 void
@@ -113,6 +113,6 @@ LsaFreeIpcNssArtefactInfoList(
                 LSA_LOG_ERROR("Unsupported Nss Artefact Info Level [%d]", pNssArtefactIpcInfoList->dwNssArtefactInfoLevel);
             }
         }
-        LsaFreeMemory(pNssArtefactIpcInfoList);
+        LwFreeMemory(pNssArtefactIpcInfoList);
     }
 }

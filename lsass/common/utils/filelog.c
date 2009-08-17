@@ -59,13 +59,13 @@ LsaOpenFileLog(
     DWORD dwError = 0;
     PLSA_FILE_LOG pFileLog = NULL;
 
-    if (IsNullOrEmptyString(pszFilePath))
+    if (LW_IS_NULL_OR_EMPTY_STR(pszFilePath))
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
         goto error;
     }
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(LSA_FILE_LOG),
                     (PVOID*)&pFileLog);
     if (dwError)
@@ -73,7 +73,7 @@ LsaOpenFileLog(
         goto error;
     }
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                     pszFilePath,
                     &pFileLog->pszFilePath);
     if (dwError)
@@ -128,13 +128,13 @@ LsaGetFileLogInfo(
     BAIL_ON_INVALID_HANDLE(hLog);
 
     if ((gLogTarget != LSA_LOG_TARGET_FILE) ||
-        IsNullOrEmptyString(pFileLog->pszFilePath))
+        LW_IS_NULL_OR_EMPTY_STR(pFileLog->pszFilePath))
     {
         dwError = LW_ERROR_INTERNAL;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(LSA_LOG_INFO),
                     (PVOID*)&pLogInfo);
     BAIL_ON_LSA_ERROR(dwError);
@@ -142,7 +142,7 @@ LsaGetFileLogInfo(
     pLogInfo->logTarget = LSA_LOG_TARGET_FILE;
     pLogInfo->maxAllowedLogLevel = gLsaMaxLogLevel;
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                     pFileLog->pszFilePath,
                     &pLogInfo->pszPath);
     BAIL_ON_LSA_ERROR(dwError);
@@ -266,7 +266,7 @@ LsaFreeFileLogInfo(
         fclose(pFileLog->fp);
     }
 
-    LSA_SAFE_FREE_STRING(pFileLog->pszFilePath);
+    LW_SAFE_FREE_STRING(pFileLog->pszFilePath);
 
-    LsaFreeMemory(pFileLog);
+    LwFreeMemory(pFileLog);
 }

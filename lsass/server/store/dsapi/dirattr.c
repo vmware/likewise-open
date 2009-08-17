@@ -207,7 +207,7 @@ DirectoryGetEntryAttributeByName(
     *ppAttribute = pAttrFound;
 
 cleanup:
-    LSA_SAFE_FREE_MEMORY(pwszAttrName);
+    LW_SAFE_FREE_MEMORY(pwszAttrName);
 
     return dwError;
 
@@ -238,7 +238,7 @@ DirectoryGetEntryAttributeByNameA(
 
 cleanup:
     if (pwszAttributeName) {
-        LSA_SAFE_FREE_MEMORY(pwszAttributeName);
+        LW_SAFE_FREE_MEMORY(pwszAttributeName);
     }
 
     return dwError;
@@ -366,7 +366,7 @@ DirectoryGetEntryAttrValueByNameA(
 
 cleanup:
     if (pwszAttrName) {
-        LSA_SAFE_FREE_MEMORY(pwszAttrName);
+        LW_SAFE_FREE_MEMORY(pwszAttrName);
     }
 
     return dwError;

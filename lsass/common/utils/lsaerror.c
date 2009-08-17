@@ -65,16 +65,16 @@ LsaGetErrorMessageForLoggingEvent(
     if (!dwErrorBufferSize)
         goto cleanup;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                 dwErrorBufferSize,
                 (PVOID*)&pszErrorBuffer);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwLen = LwGetErrorString(dwErrCode, pszErrorBuffer, dwErrorBufferSize);
 
-    if ((dwLen == dwErrorBufferSize) && !IsNullOrEmptyString(pszErrorBuffer))
+    if ((dwLen == dwErrorBufferSize) && !LW_IS_NULL_OR_EMPTY_STR(pszErrorBuffer))
     {
-        dwError = LsaAllocateStringPrintf(
+        dwError = LwAllocateStringPrintf(
                      &pszErrorMsg,
                      "Error: %s [error code: %d]",
                      pszErrorBuffer,
@@ -86,13 +86,13 @@ LsaGetErrorMessageForLoggingEvent(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszErrorBuffer);
+    LW_SAFE_FREE_STRING(pszErrorBuffer);
 
     return dwError;
 
 error:
 
-    LSA_SAFE_FREE_STRING(pszErrorMsg);
+    LW_SAFE_FREE_STRING(pszErrorMsg);
 
     *ppszErrorMsg = NULL;
 

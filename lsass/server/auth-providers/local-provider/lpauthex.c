@@ -118,7 +118,7 @@ LocalAuthenticateUserExInternal(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaAllocateStringPrintf(&pszAccountName,
+    dwError = LwAllocateStringPrintf(&pszAccountName,
                                       "%s\\%s",
                                       pszDomain,
                                       pUserParams->pszAccountName);
@@ -157,7 +157,7 @@ LocalAuthenticateUserExInternal(
 
     /* Fill in the LSA_AUTH_USER_INF0 data now */
 
-    dwError = LsaAllocateMemory(sizeof(LSA_AUTH_USER_INFO),
+    dwError = LwAllocateMemory(sizeof(LSA_AUTH_USER_INFO),
                                 (PVOID*)&pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -182,7 +182,7 @@ cleanup:
         LsaFreeUserInfo(dwUserInfoLevel, pUserInfo2);
     }
 
-    LSA_SAFE_FREE_MEMORY(pszAccountName);
+    LW_SAFE_FREE_MEMORY(pszAccountName);
 
     return dwError;
 
@@ -330,7 +330,7 @@ AuthenticateNTLMv2(
     dwDestNameSize = RtlWC16StringNumChars(pwszDestination) * sizeof(WCHAR);
 
     dwBufferLen = dwAcctNameSize + dwDestNameSize;
-    dwError = LsaAllocateMemory(dwBufferLen, (PVOID*)&pBuffer);
+    dwError = LwAllocateMemory(dwBufferLen, (PVOID*)&pBuffer);
     BAIL_ON_LSA_ERROR(dwError);
 
     memcpy(pBuffer, pwszAccountName, dwAcctNameSize);
@@ -349,7 +349,7 @@ AuthenticateNTLMv2(
 
     /* generate the Response for comparing the MAC */
 
-    dwError = LsaAllocateMemory(dwClientNonceLen + 8,
+    dwError = LwAllocateMemory(dwClientNonceLen + 8,
                                 (PVOID*)&pData);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -388,10 +388,10 @@ AuthenticateNTLMv2(
 
 cleanup:
 
-    LSA_SAFE_FREE_MEMORY(pBuffer);
-    LSA_SAFE_FREE_MEMORY(pData);
-    LSA_SAFE_FREE_MEMORY(pwszAccountName);
-    LSA_SAFE_FREE_MEMORY(pwszDestination);
+    LW_SAFE_FREE_MEMORY(pBuffer);
+    LW_SAFE_FREE_MEMORY(pData);
+    LW_SAFE_FREE_MEMORY(pwszAccountName);
+    LW_SAFE_FREE_MEMORY(pwszDestination);
 
     if (pSessKeyBlob) {
         LsaDataBlobFree(&pSessKeyBlob);
@@ -512,19 +512,19 @@ FillAuthUserInfo(
 
     /* Copy strings */
 
-    dwError = LsaStrDupOrNull(pLsaUserInfo2->info1.pszName,
+    dwError = LwStrDupOrNull(pLsaUserInfo2->info1.pszName,
                               &pAuthInfo->pszAccount);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaStrDupOrNull(pLsaUserInfo2->info1.pszGecos,
+    dwError = LwStrDupOrNull(pLsaUserInfo2->info1.pszGecos,
                               &pAuthInfo->pszFullName);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaStrDupOrNull(pszMachineName,
+    dwError = LwStrDupOrNull(pszMachineName,
                               &pAuthInfo->pszDomain);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaStrDupOrNull(pLsaUserInfo2->info1.pszSid,
+    dwError = LwStrDupOrNull(pLsaUserInfo2->info1.pszSid,
                               &pAuthInfo->pszDomainSid);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -547,13 +547,13 @@ FillAuthUserInfo(
     pAuthInfo->dwNumRids = 0;
     pAuthInfo->dwNumSids = dwNumGroups;
 
-    dwError = LsaAllocateMemory(sizeof(LSA_SID_ATTRIB)*dwNumGroups,
+    dwError = LwAllocateMemory(sizeof(LSA_SID_ATTRIB)*dwNumGroups,
                                 (PVOID*)&pAuthInfo->pSidAttribList);
     BAIL_ON_LSA_ERROR(dwError);
 
     for (i=0; i<pAuthInfo->dwNumSids; i++)
     {
-        dwError = LsaStrDupOrNull(ppGroupList0[i]->pszSid,
+        dwError = LwStrDupOrNull(ppGroupList0[i]->pszSid,
                                   &pAuthInfo->pSidAttribList[i].pszSid);
         BAIL_ON_LSA_ERROR(dwError);
 

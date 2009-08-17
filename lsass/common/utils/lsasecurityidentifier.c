@@ -58,12 +58,12 @@ LsaAllocSecurityIdentifierFromBinary(
 
     PLSA_SECURITY_IDENTIFIER pSID = NULL;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                    sizeof(LSA_SECURITY_IDENTIFIER),
                   (PVOID*)&pSID);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                   dwSidBytesLength * sizeof(UCHAR),
                   (PVOID*)&(pSID->pucSidBytes));
     BAIL_ON_LSA_ERROR(dwError);
@@ -98,7 +98,7 @@ LsaAllocSecurityIdentifierFromString(
     DWORD dwError = 0;
     PLSA_SECURITY_IDENTIFIER pSID = NULL;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                    sizeof(LSA_SECURITY_IDENTIFIER),
                    (PVOID*)&pSID);
     BAIL_ON_LSA_ERROR(dwError);
@@ -132,9 +132,9 @@ LsaFreeSecurityIdentifier(
     )
 {
 
-    LSA_SAFE_FREE_MEMORY(pSecurityIdentifier->pucSidBytes);
+    LW_SAFE_FREE_MEMORY(pSecurityIdentifier->pucSidBytes);
 
-    LsaFreeMemory(pSecurityIdentifier);
+    LwFreeMemory(pSecurityIdentifier);
 }
 
 DWORD
@@ -249,7 +249,7 @@ LsaReplaceSidRid(
     DWORD dwError = 0;
     PLSA_SECURITY_IDENTIFIER pSid = NULL;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(*pSid),
                     (PVOID*)&pSid);
     BAIL_ON_LSA_ERROR(dwError);
@@ -337,7 +337,7 @@ LsaHashSecurityIdentifierToId(
         ((dwByteLength - SECURITY_IDENTIFIER_HEADER_SIZE) /
         sizeof(DWORD));
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
               dwAuthorityCount * sizeof(DWORD),
               (PVOID*)&pdwAuthorities);
     BAIL_ON_LSA_ERROR(dwError);
@@ -358,7 +358,7 @@ LsaHashSecurityIdentifierToId(
     *pdwId = dwHash;
 
 cleanup:
-    LSA_SAFE_FREE_MEMORY(pdwAuthorities);
+    LW_SAFE_FREE_MEMORY(pdwAuthorities);
 
     return dwError;
 
@@ -390,7 +390,7 @@ LsaHashSidStringToId(
     *pdwId = dwId;
 
 cleanup:
-    LSA_SAFE_FREE_MEMORY(sid.pucSidBytes);
+    LW_SAFE_FREE_MEMORY(sid.pucSidBytes);
     return dwError;
 
 error:
@@ -415,7 +415,7 @@ LsaGetSecurityIdentifierBinary(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     pSecurityIdentifier->dwByteLength * sizeof(UCHAR),
                     (PVOID*)&pucSidBytes);
     BAIL_ON_LSA_ERROR(dwError);
@@ -433,7 +433,7 @@ cleanup:
 
 error:
 
-    LSA_SAFE_FREE_MEMORY(pucSidBytes);
+    LW_SAFE_FREE_MEMORY(pucSidBytes);
 
     *ppucSidBytes = NULL;
     *pdwSidBytesLength = 0;
@@ -470,7 +470,7 @@ cleanup:
 
 error:
 
-    LSA_SAFE_FREE_STRING(pszSidStr);
+    LW_SAFE_FREE_STRING(pszSidStr);
 
     ppszSidStr = NULL;
 
@@ -497,7 +497,7 @@ LsaGetDomainSecurityIdentifier(
     }
 
     dwDomainSIDByteLength = pSecurityIdentifier->dwByteLength - sizeof(DWORD);
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                 dwDomainSIDByteLength,
                 (PVOID*)&pucDomainSID);
     BAIL_ON_LSA_ERROR(dwError);
@@ -518,7 +518,7 @@ LsaGetDomainSecurityIdentifier(
 
 cleanup:
 
-    LSA_SAFE_FREE_MEMORY(pucDomainSID);
+    LW_SAFE_FREE_MEMORY(pucDomainSID);
 
     return dwError;
 
@@ -566,7 +566,7 @@ LsaHexStrToByteArray(
        BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                   sizeof(UCHAR)*(dwByteArrayLength),
                   (PVOID*)&pucByteArray
                   );
@@ -598,7 +598,7 @@ cleanup:
 
 error:
 
-    LSA_SAFE_FREE_MEMORY(pucByteArray);
+    LW_SAFE_FREE_MEMORY(pucByteArray);
     *ppucByteArray = NULL;
     *pdwByteArrayLength = 0;
 
@@ -616,7 +616,7 @@ LsaByteArrayToHexStr(
     DWORD i = 0;
     PSTR pszHexString = NULL;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                 (dwByteArrayLength*2 + 1) * sizeof(CHAR),
                 (PVOID*)&pszHexString);
     BAIL_ON_LSA_ERROR(dwError);
@@ -633,7 +633,7 @@ cleanup:
     return dwError;
 
 error:
-    LSA_SAFE_FREE_STRING(pszHexString);
+    LW_SAFE_FREE_STRING(pszHexString);
 
     *ppszHexString = NULL;
     goto cleanup;
@@ -650,7 +650,7 @@ LsaByteArrayToLdapFormatHexStr(
     DWORD i = 0;
     PSTR pszHexString = NULL;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                 (dwByteArrayLength*3 + 1) * sizeof(CHAR),
                 (PVOID*)&pszHexString);
     BAIL_ON_LSA_ERROR(dwError);
@@ -667,7 +667,7 @@ cleanup:
     return dwError;
 
 error:
-    LSA_SAFE_FREE_STRING(pszHexString);
+    LW_SAFE_FREE_STRING(pszHexString);
 
     *ppszHexString = NULL;
     goto cleanup;
@@ -699,12 +699,12 @@ LsaSidStrToLdapFormatHexStr(
     *ppszHexSid = pszHexSid;
 
 cleanup:
-    LSA_SAFE_FREE_MEMORY(pucSIDBytes);
+    LW_SAFE_FREE_MEMORY(pucSIDBytes);
 
     return dwError;
 
 error:
-    LSA_SAFE_FREE_STRING(pszHexSid);
+    LW_SAFE_FREE_STRING(pszHexSid);
     *ppszHexSid = NULL;
 
     goto cleanup;
@@ -810,13 +810,13 @@ LsaSidStringToBytes(
     UCHAR* pucSidBytes = NULL;
     DWORD i = 0;
 
-    if (IsNullOrEmptyString(pszSidString))
+    if (LW_IS_NULL_OR_EMPTY_STR(pszSidString))
     {
        dwError = LW_ERROR_INVALID_SID;
        BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                  pszSidString,
                  &pszSidCopy);
     BAIL_ON_LSA_ERROR(dwError);
@@ -839,7 +839,7 @@ LsaSidStringToBytes(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                    iTailCount * sizeof(DWORD),
                    (PVOID*)&pdwTail);
     BAIL_ON_LSA_ERROR(dwError);
@@ -913,7 +913,7 @@ LsaSidStringToBytes(
     //see comments in lsasecurityidentifier_p.h
     dwSidBytesLength = 1 + 1 + 6 + 4*(iTailCount);
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     dwSidBytesLength * sizeof(UCHAR),
                     (PVOID*)&pucSidBytes);
     BAIL_ON_LSA_ERROR(dwError);
@@ -944,14 +944,14 @@ LsaSidStringToBytes(
 
 cleanup:
 
-    LSA_SAFE_FREE_MEMORY(pszSidCopy);
-    LSA_SAFE_FREE_MEMORY(pdwTail);
+    LW_SAFE_FREE_MEMORY(pszSidCopy);
+    LW_SAFE_FREE_MEMORY(pdwTail);
 
     return dwError;
 
 error:
 
-    LSA_SAFE_FREE_MEMORY(pucSidBytes);
+    LW_SAFE_FREE_MEMORY(pucSidBytes);
 
     *ppucSidBytes = NULL;
     *pdwSidBytesLength = 0;
@@ -1038,7 +1038,7 @@ cleanup:
 
 error:
 
-    LSA_SAFE_FREE_STRING(pszSidString);
+    LW_SAFE_FREE_STRING(pszSidString);
     *ppszSidString = NULL;
 
     goto cleanup;
@@ -1072,13 +1072,13 @@ LsaBuildSIDString(
                         dwWordCount + 2 + //for the dashes
                         (dwWordCount * dwDecimalCharsForDWORD);
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                 dwSidStringMemory,
                 (PVOID*)&pszSidString);
     BAIL_ON_LSA_ERROR(dwError);
 
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                    &pszSidPart,
                    "S-%s-%s",
                    pszRevision,
@@ -1092,7 +1092,7 @@ LsaBuildSIDString(
     dwCurOffset += dwCurLen;
     dwMemoryUsed += dwCurLen;
 
-    LSA_SAFE_FREE_STRING(pszSidPart);
+    LW_SAFE_FREE_STRING(pszSidPart);
 
     for (i = 0; i < dwWordCount; i++)
     {
@@ -1103,7 +1103,7 @@ LsaBuildSIDString(
         dwTempWrongEndian = LW_ENDIAN_SWAP32(dwTempWrongEndian);
 #endif
 
-        dwError = LsaAllocateStringPrintf(
+        dwError = LwAllocateStringPrintf(
                          &pszSidPart, "-%u",
                          dwTempWrongEndian);
         BAIL_ON_LSA_ERROR(dwError);
@@ -1114,7 +1114,7 @@ LsaBuildSIDString(
         {
             dwSidStringMemory = 2*(dwMemoryUsed + dwCurLen);
 
-            dwError = LsaReallocMemory(
+            dwError = LwReallocMemory(
                 (PVOID)pszSidString,
                 (PVOID*)&pszSidString,
                 dwSidStringMemory);
@@ -1125,7 +1125,7 @@ LsaBuildSIDString(
         dwCurOffset += dwCurLen;
         dwMemoryUsed += dwCurLen;
 
-        LSA_SAFE_FREE_STRING(pszSidPart);
+        LW_SAFE_FREE_STRING(pszSidPart);
 
     }
 
@@ -1137,7 +1137,7 @@ cleanup:
 
 error:
 
-    LSA_SAFE_FREE_STRING(pszSidString);
+    LW_SAFE_FREE_STRING(pszSidString);
     *ppszSidString = NULL;
 
     goto cleanup;

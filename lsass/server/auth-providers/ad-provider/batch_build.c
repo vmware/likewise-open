@@ -209,7 +209,7 @@ LsaAdBatchBuilderCreateQuery(
         goto cleanup;
     }
 
-    dwError = LsaAllocateMemory(dwQuerySize, (PVOID*)&pszQuery);
+    dwError = LwAllocateMemory(dwQuerySize, (PVOID*)&pszQuery);
     BAIL_ON_LSA_ERROR(dwError);
 
     // Set up the query
@@ -287,7 +287,7 @@ cleanup:
     // because there is a goto cleanup above.
     if (dwError)
     {
-        LSA_SAFE_FREE_STRING(pszQuery);
+        LW_SAFE_FREE_STRING(pszQuery);
         dwQueryCount = 0;
         pLastItem = pFirstItem;
     }
@@ -340,7 +340,7 @@ LsaAdBatchBuilderBatchItemGetAttributeValue(
 
     if (IsSetFlag(pBatchItem->Flags, LSA_AD_BATCH_ITEM_FLAG_ALLOCATED_MATCH_TERM))
     {
-        LSA_SAFE_FREE_STRING(pBatchItem->pszQueryMatchTerm);
+        LW_SAFE_FREE_STRING(pBatchItem->pszQueryMatchTerm);
         ClearFlag(pBatchItem->Flags, LSA_AD_BATCH_ITEM_FLAG_ALLOCATED_MATCH_TERM);
     }
 
@@ -431,7 +431,7 @@ LsaAdBatchBuilderBatchItemGetAttributeValue(
             LSA_ASSERT(!bIsForRealObject);
             LSA_ASSERT(QueryType == pBatchItem->QueryTerm.Type);
 
-            dwError = LsaAllocateStringPrintf(
+            dwError = LwAllocateStringPrintf(
                             &pszAllocatedMatchTermValue,
                             "%u",
                             (unsigned int)pBatchItem->QueryTerm.dwId);
@@ -499,8 +499,8 @@ error:
     // assing output in cleanup in case of goto cleanup in function.
     pszValueToEscape = NULL;
     pszValue = NULL;
-    LSA_SAFE_FREE_STRING(pFreeValueContext);
-    LSA_SAFE_FREE_STRING(pszAllocatedMatchTermValue);
+    LW_SAFE_FREE_STRING(pFreeValueContext);
+    LW_SAFE_FREE_STRING(pszAllocatedMatchTermValue);
     goto cleanup;
 }
 
@@ -511,7 +511,7 @@ LsaAdBatchBuilderGenericFreeValueContext(
     IN OUT PVOID* ppFreeValueContext
     )
 {
-    LSA_SAFE_FREE_MEMORY(*ppFreeValueContext);
+    LW_SAFE_FREE_MEMORY(*ppFreeValueContext);
 }
 
 static
@@ -793,7 +793,7 @@ LsaAdBatchBuildQueryForRpc(
                 BAIL_ON_LSA_ERROR(dwError);
         }
 
-        if (!IsNullOrEmptyString(pszQueryTerm))
+        if (!LW_IS_NULL_OR_EMPTY_STR(pszQueryTerm))
         {
             DWORD dwNewQueryCount = dwQueryCount + 1;
 
@@ -812,7 +812,7 @@ LsaAdBatchBuildQueryForRpc(
         goto cleanup;
     }
 
-    dwError = LsaAllocateMemory(dwQueryCount*sizeof(*ppszQueryList), (PVOID*)&ppszQueryList);
+    dwError = LwAllocateMemory(dwQueryCount*sizeof(*ppszQueryList), (PVOID*)&ppszQueryList);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwQueryCount = 0;
@@ -823,7 +823,7 @@ LsaAdBatchBuildQueryForRpc(
 
         if (IsSetFlag(pBatchItem->Flags, LSA_AD_BATCH_ITEM_FLAG_ALLOCATED_MATCH_TERM))
         {
-            LSA_SAFE_FREE_STRING(pBatchItem->pszQueryMatchTerm);
+            LW_SAFE_FREE_STRING(pBatchItem->pszQueryMatchTerm);
             ClearFlag(pBatchItem->Flags, LSA_AD_BATCH_ITEM_FLAG_ALLOCATED_MATCH_TERM);
         }
 
@@ -843,7 +843,7 @@ LsaAdBatchBuildQueryForRpc(
                 // We might not have a SID if we failed to find a pseudo.
                 if (pszUseSid)
                 {
-                    dwError = LsaAllocateString(pszUseSid,
+                    dwError = LwAllocateString(pszUseSid,
                                                 &ppszQueryList[dwQueryCount++]);
                     BAIL_ON_LSA_ERROR(dwError);
                     pBatchItem->pszQueryMatchTerm = (PSTR)pszUseSid;
@@ -864,7 +864,7 @@ LsaAdBatchBuildQueryForRpc(
                 }
                 if (pszUseSamAccountName)
                 {
-                    dwError = LsaAllocateStringPrintf(
+                    dwError = LwAllocateStringPrintf(
                                     &ppszQueryList[dwQueryCount++],
                                     "%s\\%s",
                                     pszNetbiosDomainName,
@@ -888,7 +888,7 @@ cleanup:
     // because there is a goto cleanup above.
     if (dwError)
     {
-        LsaFreeStringArray(ppszQueryList, dwSavedQueryCount);
+        LwFreeStringArray(ppszQueryList, dwSavedQueryCount);
         dwQueryCount = 0;
         dwSavedQueryCount = 0;
         pLastLinks = pFirstLinks;
@@ -993,7 +993,7 @@ error:
     // set output on cleanup
     pNextLinks = pFirstLinks;
     dwQueryCount = 0;
-    LSA_SAFE_FREE_STRING(pszQuery);
+    LW_SAFE_FREE_STRING(pszQuery);
     goto cleanup;
 }
 
@@ -1077,7 +1077,7 @@ error:
     // set output on cleanup
     pNextLinks = pFirstLinks;
     dwQueryCount = 0;
-    LSA_SAFE_FREE_STRING(pszQuery);
+    LW_SAFE_FREE_STRING(pszQuery);
     goto cleanup;
 }
 

@@ -63,11 +63,11 @@ LsaParseDateString(
     DWORD  dwUnitMultiplier = 0;
     PSTR   pszUnitCode = NULL;
 
-    LsaStripWhitespace(pszTimeIntervalLocal, TRUE, TRUE);
+    LwStripWhitespace(pszTimeIntervalLocal, TRUE, TRUE);
 
     BAIL_ON_INVALID_STRING(pszTimeInterval);
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                     pszTimeInterval,
                     &pszTimeIntervalLocal
                     );
@@ -116,7 +116,7 @@ LsaParseDateString(
         *pszUnitCode = ' ';
     }
 
-    LsaStripWhitespace(pszTimeIntervalLocal, TRUE, TRUE);
+    LwStripWhitespace(pszTimeIntervalLocal, TRUE, TRUE);
 
     dwTimeInterval = (DWORD) atoi(pszTimeIntervalLocal) * dwUnitMultiplier;
 
@@ -124,7 +124,7 @@ LsaParseDateString(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszTimeIntervalLocal);
+    LW_SAFE_FREE_STRING(pszTimeIntervalLocal);
 
     return dwError;
 

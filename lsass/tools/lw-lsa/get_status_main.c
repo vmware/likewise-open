@@ -170,7 +170,7 @@ error:
         DWORD dwError2 = 0;
         PSTR   pszErrorBuffer = NULL;
 
-        dwError2 = LsaAllocateMemory(
+        dwError2 = LwAllocateMemory(
                     dwErrorBufferSize,
                     (PVOID*)&pszErrorBuffer);
 
@@ -178,14 +178,14 @@ error:
         {
             DWORD dwLen = LwGetErrorString(dwError, pszErrorBuffer, dwErrorBufferSize);
 
-            if ((dwLen == dwErrorBufferSize) && !IsNullOrEmptyString(pszErrorBuffer))
+            if ((dwLen == dwErrorBufferSize) && !LW_IS_NULL_OR_EMPTY_STR(pszErrorBuffer))
             {
                 fprintf(stderr, "Failed to query status from LSA service.  %s\n", pszErrorBuffer);
                 bPrintOrigError = FALSE;
             }
         }
 
-        LSA_SAFE_FREE_STRING(pszErrorBuffer);
+        LW_SAFE_FREE_STRING(pszErrorBuffer);
     }
 
     if (bPrintOrigError)
@@ -274,7 +274,7 @@ PrintStatus(
             &pStatus->pAuthProviderStatusList[iCount];
 
         printf("\n[Authentication provider: %s]\n\n",
-                        IsNullOrEmptyString(pProviderStatus->pszId) ? "" : pProviderStatus->pszId);
+                        LW_IS_NULL_OR_EMPTY_STR(pProviderStatus->pszId) ? "" : pProviderStatus->pszId);
 
         printf("\tStatus:        %s\n", GetStatusString(pProviderStatus->status));
         printf("\tMode:          %s\n", GetModeString(pProviderStatus->mode));
@@ -288,9 +288,9 @@ PrintStatus(
             case LSA_PROVIDER_MODE_DEFAULT_CELL:
             case LSA_PROVIDER_MODE_NON_DEFAULT_CELL:
 
-                printf("\tDomain:        %s\n", IsNullOrEmptyString(pProviderStatus->pszDomain) ? "" : pProviderStatus->pszDomain);
-                printf("\tForest:        %s\n", IsNullOrEmptyString(pProviderStatus->pszForest) ? "" : pProviderStatus->pszForest);
-                printf("\tSite:          %s\n", IsNullOrEmptyString(pProviderStatus->pszSite) ? "" : pProviderStatus->pszSite);
+                printf("\tDomain:        %s\n", LW_IS_NULL_OR_EMPTY_STR(pProviderStatus->pszDomain) ? "" : pProviderStatus->pszDomain);
+                printf("\tForest:        %s\n", LW_IS_NULL_OR_EMPTY_STR(pProviderStatus->pszForest) ? "" : pProviderStatus->pszForest);
+                printf("\tSite:          %s\n", LW_IS_NULL_OR_EMPTY_STR(pProviderStatus->pszSite) ? "" : pProviderStatus->pszSite);
                 printf("\tOnline check interval:  %d seconds\n", pProviderStatus->dwNetworkCheckInterval);
 
                 break;
@@ -312,7 +312,7 @@ PrintStatus(
 
                 printf("\tSub mode:      %s\n", GetSubmodeString(pProviderStatus->subMode));
 
-                printf("\tCell:          %s\n", IsNullOrEmptyString(pProviderStatus->pszCell) ? "" : pProviderStatus->pszCell);
+                printf("\tCell:          %s\n", LW_IS_NULL_OR_EMPTY_STR(pProviderStatus->pszCell) ? "" : pProviderStatus->pszCell);
 
                 break;
 
@@ -332,15 +332,15 @@ PrintStatus(
                 PLSA_TRUSTED_DOMAIN_INFO pDomainInfo =
                     &pProviderStatus->pTrustedDomainInfoArray[iDomain];
 
-                printf("\n\t[Domain: %s]\n\n", IsNullOrEmptyString(pDomainInfo->pszNetbiosDomain) ? "" : pDomainInfo->pszNetbiosDomain);
+                printf("\n\t[Domain: %s]\n\n", LW_IS_NULL_OR_EMPTY_STR(pDomainInfo->pszNetbiosDomain) ? "" : pDomainInfo->pszNetbiosDomain);
 
-                printf("\t\tDNS Domain:       %s\n", IsNullOrEmptyString(pDomainInfo->pszDnsDomain) ? "" : pDomainInfo->pszDnsDomain);
-                printf("\t\tNetbios name:     %s\n", IsNullOrEmptyString(pDomainInfo->pszNetbiosDomain) ? "" : pDomainInfo->pszNetbiosDomain);
-                printf("\t\tForest name:      %s\n", IsNullOrEmptyString(pDomainInfo->pszForestName) ? "" : pDomainInfo->pszForestName);
-                printf("\t\tTrustee DNS name: %s\n", IsNullOrEmptyString(pDomainInfo->pszTrusteeDnsDomain) ? "" : pDomainInfo->pszTrusteeDnsDomain);
-                printf("\t\tClient site name: %s\n", IsNullOrEmptyString(pDomainInfo->pszClientSiteName) ? "" : pDomainInfo->pszClientSiteName);
-                printf("\t\tDomain SID:       %s\n", IsNullOrEmptyString(pDomainInfo->pszDomainSID) ? "" : pDomainInfo->pszDomainSID);
-                printf("\t\tDomain GUID:      %s\n", IsNullOrEmptyString(pDomainInfo->pszDomainGUID) ? "" : pDomainInfo->pszDomainGUID);
+                printf("\t\tDNS Domain:       %s\n", LW_IS_NULL_OR_EMPTY_STR(pDomainInfo->pszDnsDomain) ? "" : pDomainInfo->pszDnsDomain);
+                printf("\t\tNetbios name:     %s\n", LW_IS_NULL_OR_EMPTY_STR(pDomainInfo->pszNetbiosDomain) ? "" : pDomainInfo->pszNetbiosDomain);
+                printf("\t\tForest name:      %s\n", LW_IS_NULL_OR_EMPTY_STR(pDomainInfo->pszForestName) ? "" : pDomainInfo->pszForestName);
+                printf("\t\tTrustee DNS name: %s\n", LW_IS_NULL_OR_EMPTY_STR(pDomainInfo->pszTrusteeDnsDomain) ? "" : pDomainInfo->pszTrusteeDnsDomain);
+                printf("\t\tClient site name: %s\n", LW_IS_NULL_OR_EMPTY_STR(pDomainInfo->pszClientSiteName) ? "" : pDomainInfo->pszClientSiteName);
+                printf("\t\tDomain SID:       %s\n", LW_IS_NULL_OR_EMPTY_STR(pDomainInfo->pszDomainSID) ? "" : pDomainInfo->pszDomainSID);
+                printf("\t\tDomain GUID:      %s\n", LW_IS_NULL_OR_EMPTY_STR(pDomainInfo->pszDomainGUID) ? "" : pDomainInfo->pszDomainGUID);
                 printf("\t\tTrust Flags:      [0x%.04x]\n", pDomainInfo->dwTrustFlags);
                 if (pDomainInfo->dwTrustFlags & LSA_TRUST_FLAG_IN_FOREST)
                     printf("\t\t                  [0x%.04x - In forest]\n", LSA_TRUST_FLAG_IN_FOREST);
@@ -422,9 +422,9 @@ PrintStatus(
                 if (pDomainInfo->pDCInfo)
                 {
                     printf("\n\t\t[Domain Controller (DC) Information]\n\n");
-                    printf("\t\t\tDC Name:              %s\n", IsNullOrEmptyString(pDomainInfo->pDCInfo->pszName) ? "" : pDomainInfo->pDCInfo->pszName);
-                    printf("\t\t\tDC Address:           %s\n", IsNullOrEmptyString(pDomainInfo->pDCInfo->pszAddress) ? "" : pDomainInfo->pDCInfo->pszAddress);
-                    printf("\t\t\tDC Site:              %s\n", IsNullOrEmptyString(pDomainInfo->pDCInfo->pszSiteName) ? "" : pDomainInfo->pDCInfo->pszSiteName);
+                    printf("\t\t\tDC Name:              %s\n", LW_IS_NULL_OR_EMPTY_STR(pDomainInfo->pDCInfo->pszName) ? "" : pDomainInfo->pDCInfo->pszName);
+                    printf("\t\t\tDC Address:           %s\n", LW_IS_NULL_OR_EMPTY_STR(pDomainInfo->pDCInfo->pszAddress) ? "" : pDomainInfo->pDCInfo->pszAddress);
+                    printf("\t\t\tDC Site:              %s\n", LW_IS_NULL_OR_EMPTY_STR(pDomainInfo->pDCInfo->pszSiteName) ? "" : pDomainInfo->pDCInfo->pszSiteName);
                     printf("\t\t\tDC Flags:             [0x%.08x]\n", pDomainInfo->pDCInfo->dwFlags);
                     printf("\t\t\tDC Is PDC:            %s\n",
                                     (pDomainInfo->pDCInfo->dwFlags & LSA_DS_PDC_FLAG) ? "yes" : "no");
@@ -441,9 +441,9 @@ PrintStatus(
                 if (pDomainInfo->pGCInfo)
                 {
                     printf("\n\t\t[Global Catalog (GC) Information]\n\n");
-                    printf("\t\t\tGC Name:              %s\n", IsNullOrEmptyString(pDomainInfo->pGCInfo->pszName) ? "" : pDomainInfo->pGCInfo->pszName);
-                    printf("\t\t\tGC Address:           %s\n", IsNullOrEmptyString(pDomainInfo->pGCInfo->pszAddress) ? "" : pDomainInfo->pGCInfo->pszAddress);
-                    printf("\t\t\tGC Site:              %s\n", IsNullOrEmptyString(pDomainInfo->pGCInfo->pszSiteName) ? "" : pDomainInfo->pGCInfo->pszSiteName);
+                    printf("\t\t\tGC Name:              %s\n", LW_IS_NULL_OR_EMPTY_STR(pDomainInfo->pGCInfo->pszName) ? "" : pDomainInfo->pGCInfo->pszName);
+                    printf("\t\t\tGC Address:           %s\n", LW_IS_NULL_OR_EMPTY_STR(pDomainInfo->pGCInfo->pszAddress) ? "" : pDomainInfo->pGCInfo->pszAddress);
+                    printf("\t\t\tGC Site:              %s\n", LW_IS_NULL_OR_EMPTY_STR(pDomainInfo->pGCInfo->pszSiteName) ? "" : pDomainInfo->pGCInfo->pszSiteName);
                     printf("\t\t\tGC Flags:             [0x%.08x]\n", pDomainInfo->pGCInfo->dwFlags);
                     printf("\t\t\tGC Is PDC:            %s\n",
                                     (pDomainInfo->pGCInfo->dwFlags & LSA_DS_PDC_FLAG) ? "yes" : "no");

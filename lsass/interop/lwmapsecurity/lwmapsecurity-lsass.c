@@ -341,7 +341,7 @@ LsaMapSecurityResolveObjectInfoBySid(
             GOTO_CLEANUP();
     }
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                     &pszName,
                     "%s%c%s",
                     sidInfoList[0].pszDomainName,

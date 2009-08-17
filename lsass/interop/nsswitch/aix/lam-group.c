@@ -36,7 +36,7 @@ LsaNssFreeLastGroup(
         VOID
         )
 {
-    LSA_SAFE_FREE_MEMORY(gNssState.pLastGroup);
+    LW_SAFE_FREE_MEMORY(gNssState.pLastGroup);
 }
 
 DWORD
@@ -65,7 +65,7 @@ LsaNssAllocateGroupFromInfo1(
     }
     sRequiredSize += sizeof(char *) * (sMemberCount + 1);
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
             sRequiredSize,
             &pStartMem);
     BAIL_ON_LSA_ERROR(dwError);
@@ -111,7 +111,7 @@ cleanup:
 error:
 
     *ppResult = NULL;
-    LSA_SAFE_FREE_MEMORY(pStartMem);
+    LW_SAFE_FREE_MEMORY(pStartMem);
 
     goto cleanup;
 }
@@ -135,7 +135,7 @@ LsaNssAllocateGroupFromInfo0(
     sRequiredSize += strlen(pInfo->pszName) + 1;
     sRequiredSize += 2;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
             sRequiredSize,
             &pStartMem);
     BAIL_ON_LSA_ERROR(dwError);
@@ -169,7 +169,7 @@ cleanup:
 error:
 
     *ppResult = NULL;
-    LSA_SAFE_FREE_MEMORY(pStartMem);
+    LW_SAFE_FREE_MEMORY(pStartMem);
 
     goto cleanup;
 }
@@ -395,7 +395,7 @@ LsaNssGetGrSet(
     // Add space for a comma between each gid and a terminating NULL
     sRequiredLen += dwGroupCount;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
             sRequiredLen,
             (PVOID*)&pszResult);
     BAIL_ON_LSA_ERROR(dwError);
@@ -413,7 +413,7 @@ LsaNssGetGrSet(
 
 cleanup:
 
-    LSA_SAFE_FREE_MEMORY(pGids);
+    LW_SAFE_FREE_MEMORY(pGids);
     if (dwError != LW_ERROR_SUCCESS)
     {
         LsaNssMapErrorCode(dwError, &errno);
@@ -422,7 +422,7 @@ cleanup:
 
 error:
 
-    LSA_SAFE_FREE_MEMORY(pszResult);
+    LW_SAFE_FREE_MEMORY(pszResult);
     if (hLsaConnection != (HANDLE)NULL)
     {
         LsaCloseServer(hLsaConnection);
@@ -481,7 +481,7 @@ LsaNssListGroups(
         sRequiredMem++;
     }
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                 sRequiredMem,
                 (PVOID*)&pszListStart);
     BAIL_ON_LSA_ERROR(dwError);
@@ -524,7 +524,7 @@ cleanup:
 error:
 
     pResult->attr_un.au_char = NULL;
-    LSA_SAFE_FREE_MEMORY(pszListStart);
+    LW_SAFE_FREE_MEMORY(pszListStart);
     goto cleanup;
 }
 
@@ -568,7 +568,7 @@ LsaNssGetGidList(
     }
     sRequiredLen++;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
             sRequiredLen,
             (PVOID*)&pszResult);
     BAIL_ON_LSA_ERROR(dwError);
@@ -603,7 +603,7 @@ cleanup:
 error:
 
     *ppszList = NULL;
-    LSA_SAFE_FREE_MEMORY(pszResult);
+    LW_SAFE_FREE_MEMORY(pszResult);
     goto cleanup;
 }
 
@@ -645,7 +645,7 @@ LsaNssGetGroupList(
     }
     sRequiredLen++;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
             sRequiredLen,
             (PVOID*)&pszResult);
     BAIL_ON_LSA_ERROR(dwError);
@@ -680,7 +680,7 @@ cleanup:
 error:
 
     *ppszList = NULL;
-    LSA_SAFE_FREE_MEMORY(pszResult);
+    LW_SAFE_FREE_MEMORY(pszResult);
     goto cleanup;
 }
 
@@ -707,7 +707,7 @@ LsaNssFillMemberList(
         sRequiredMem++;
     }
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                 sRequiredMem,
                 (PVOID*)&pszListStart);
     BAIL_ON_LSA_ERROR(dwError);
@@ -735,7 +735,7 @@ cleanup:
 error:
 
     *ppResult = NULL;
-    LSA_SAFE_FREE_MEMORY(pszListStart);
+    LW_SAFE_FREE_MEMORY(pszListStart);
     goto cleanup;
 }
 
@@ -755,7 +755,7 @@ LsaNssGetGroupAttr(
     }
     else if (!strcmp(pszAttribute, S_PWD))
     {
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
                     pInfo->pszPasswd,
                     &pResult->attr_un.au_char);
         BAIL_ON_LSA_ERROR(dwError);
@@ -767,7 +767,7 @@ LsaNssGetGroupAttr(
     else if (!strcmp(pszAttribute, S_ADMS))
     {
         // Allocate an empty list, which is just two '\0's in a row
-        dwError = LsaAllocateMemory(
+        dwError = LwAllocateMemory(
                     2,
                     (PVOID*)&pResult->attr_un.au_char);
         BAIL_ON_LSA_ERROR(dwError);
@@ -781,7 +781,7 @@ LsaNssGetGroupAttr(
     }
     else if (!strcmp(pszAttribute, "SID"))
     {
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
                     pInfo->pszSid,
                     &pResult->attr_un.au_char);
         BAIL_ON_LSA_ERROR(dwError);

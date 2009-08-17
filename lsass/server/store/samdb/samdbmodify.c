@@ -597,7 +597,7 @@ SamDbUpdateBindValues(
                    allocated from pwszValue */
                 if (pwszValue && pszValue)
                 {
-                    LSA_SAFE_FREE_STRING(pszValue);
+                    LW_SAFE_FREE_STRING(pszValue);
                 }
 
                 pszValue = NULL;
@@ -701,7 +701,7 @@ cleanup:
        allocated from pwszValue */
     if (pwszValue && pszValue)
     {
-        LSA_SAFE_FREE_STRING(pszValue);
+        LW_SAFE_FREE_STRING(pszValue);
     }
 
     return dwError;

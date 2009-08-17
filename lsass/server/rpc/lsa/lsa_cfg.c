@@ -180,7 +180,7 @@ LsaSrvConfigStartSection(
     DWORD dwError = 0;
     PCSTR pszLibName = NULL;
 
-    if (IsNullOrEmptyString(pszSectionName) ||
+    if (LW_IS_NULL_OR_EMPTY_STR(pszSectionName) ||
         strncasecmp(pszSectionName, LSA_CFG_TAG_RPC_SERVER,
                     sizeof(LSA_CFG_TAG_RPC_SERVER) - 1)) {
         *pbSkipSection = TRUE;
@@ -191,7 +191,7 @@ LsaSrvConfigStartSection(
                      sizeof(LSA_CFG_TAG_RPC_SERVER) - 1)) {
 
         pszLibName = pszSectionName + sizeof(LSA_CFG_TAG_RPC_SERVER) - 1;
-        if (IsNullOrEmptyString(pszLibName) ||
+        if (LW_IS_NULL_OR_EMPTY_STR(pszLibName) ||
             strcasecmp(pszLibName, LSA_CFG_TAG_LSA_RPC_SERVER)) {
             *pbSkipSection = TRUE;
             goto cleanup;
@@ -217,7 +217,7 @@ LsaSrvConfigNameValuePair(
     DWORD i = 0;
     DWORD dwNumHandlers = 0;
 
-    if (IsNullOrEmptyString(pszName)) {
+    if (LW_IS_NULL_OR_EMPTY_STR(pszName)) {
         *pbContinue = TRUE;
         goto cleanup;
     }
@@ -251,7 +251,7 @@ SamrSrvConfigStartSection(
     DWORD dwError = 0;
     PCSTR pszLibName = NULL;
 
-    if (IsNullOrEmptyString(pszSectionName) ||
+    if (LW_IS_NULL_OR_EMPTY_STR(pszSectionName) ||
         strncasecmp(pszSectionName, LSA_CFG_TAG_RPC_SERVER,
                     sizeof(LSA_CFG_TAG_RPC_SERVER) - 1)) {
         *pbSkipSection = TRUE;
@@ -262,7 +262,7 @@ SamrSrvConfigStartSection(
                      sizeof(LSA_CFG_TAG_RPC_SERVER) - 1)) {
 
         pszLibName = pszSectionName + sizeof(LSA_CFG_TAG_RPC_SERVER) - 1;
-        if (IsNullOrEmptyString(pszLibName) ||
+        if (LW_IS_NULL_OR_EMPTY_STR(pszLibName) ||
             strcasecmp(pszLibName, LSA_CFG_TAG_SAMR_RPC_SERVER)) {
             *pbSkipSection = TRUE;
             goto cleanup;
@@ -288,7 +288,7 @@ SamrSrvConfigNameValuePair(
     DWORD i = 0;
     DWORD dwNumHandlers = 0;
 
-    if (IsNullOrEmptyString(pszName)) {
+    if (LW_IS_NULL_OR_EMPTY_STR(pszName)) {
         *pbContinue = TRUE;
         goto cleanup;
     }
@@ -320,7 +320,7 @@ LsaSrvConfigSetLpcSocketPath(
 {
     DWORD dwError = 0;
 
-    dwError = LsaAllocateString(pszValue,
+    dwError = LwAllocateString(pszValue,
                                 &pConfig->pszLpcSocketPath);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -343,7 +343,7 @@ LsaSrvConfigSetSamrLpcSocketPath(
 {
     DWORD dwError = 0;
 
-    dwError = LsaAllocateString(pszValue,
+    dwError = LwAllocateString(pszValue,
                                 &pConfig->pszSamrLpcSocketPath);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -368,11 +368,11 @@ LsaSrvConfigGetLpcSocketPath(
 
     GLOBAL_DATA_LOCK(bLocked);
 
-    if (IsNullOrEmptyString(gLsaSrvConfig.pszLpcSocketPath)) {
+    if (LW_IS_NULL_OR_EMPTY_STR(gLsaSrvConfig.pszLpcSocketPath)) {
         goto cleanup;
     }
 
-    dwError = LsaAllocateString(gLsaSrvConfig.pszLpcSocketPath,
+    dwError = LwAllocateString(gLsaSrvConfig.pszLpcSocketPath,
                                 &pszLpcSocketPath);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -399,11 +399,11 @@ LsaSrvConfigGetSamrLpcSocketPath(
 
     GLOBAL_DATA_LOCK(bLocked);
 
-    if (IsNullOrEmptyString(gLsaSrvConfig.pszSamrLpcSocketPath)) {
+    if (LW_IS_NULL_OR_EMPTY_STR(gLsaSrvConfig.pszSamrLpcSocketPath)) {
         goto cleanup;
     }
 
-    dwError = LsaAllocateString(gLsaSrvConfig.pszSamrLpcSocketPath,
+    dwError = LwAllocateString(gLsaSrvConfig.pszSamrLpcSocketPath,
                                 &pszLpcSocketPath);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -428,11 +428,11 @@ LsaSrvSetConfigFilePath(
     int locked = 0;
     PSTR pszPath = NULL;
 
-    if (IsNullOrEmptyString(pszConfigFilePath)) {
+    if (LW_IS_NULL_OR_EMPTY_STR(pszConfigFilePath)) {
         goto cleanup;
     }
 
-    dwError = LsaAllocateString(pszConfigFilePath,
+    dwError = LwAllocateString(pszConfigFilePath,
                                 &pszPath);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -447,7 +447,7 @@ cleanup:
 
 error:
     if (pszPath) {
-        LSA_SAFE_FREE_STRING(pszPath);
+        LW_SAFE_FREE_STRING(pszPath);
     }
 
     goto cleanup;

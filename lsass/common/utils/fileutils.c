@@ -467,7 +467,7 @@ LsaGetCurrentDirectoryPath(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaAllocateString(szBuf, &pszPath);
+    dwError = LwAllocateString(szBuf, &pszPath);
     BAIL_ON_LSA_ERROR(dwError);
 
     *ppszPath = pszPath;
@@ -477,7 +477,7 @@ LsaGetCurrentDirectoryPath(
 error:
 
     if (pszPath) {
-        LsaFreeString(pszPath);
+        LwFreeString(pszPath);
     }
 
     return dwError;
@@ -504,7 +504,7 @@ LsaCreateDirectoryRecursive(
 
     if (pszToken != NULL) {
 
-        dwError = LsaAllocateMemory(strlen(pszCurDirPath)+strlen(pszToken)+2,
+        dwError = LwAllocateMemory(strlen(pszCurDirPath)+strlen(pszToken)+2,
                                    (PVOID*)&pszDirPath);
         BAIL_ON_LSA_ERROR(dwError);
 
@@ -544,7 +544,7 @@ LsaCreateDirectoryRecursive(
         BAIL_ON_LSA_ERROR(dwError);
     }
     if (pszDirPath) {
-        LsaFreeMemory(pszDirPath);
+        LwFreeMemory(pszDirPath);
     }
 
     return dwError;
@@ -556,7 +556,7 @@ error:
     }
 
     if (pszDirPath) {
-        LsaFreeMemory(pszDirPath);
+        LwFreeMemory(pszDirPath);
     }
 
     return dwError;
@@ -591,7 +591,7 @@ LsaCreateDirectory(
     dwError = LsaGetCurrentDirectoryPath(&pszCurDirPath);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateString(pszPath, &pszTmpPath);
+    dwError = LwAllocateString(pszPath, &pszTmpPath);
     BAIL_ON_LSA_ERROR(dwError);
 
     if (*pszPath == '/') {
@@ -614,12 +614,12 @@ error:
 
         LsaChangeDirectory(pszCurDirPath);
 
-        LsaFreeMemory(pszCurDirPath);
+        LwFreeMemory(pszCurDirPath);
 
     }
 
     if (pszTmpPath) {
-        LsaFreeMemory(pszTmpPath);
+        LwFreeMemory(pszTmpPath);
     }
 
     return dwError;
@@ -646,14 +646,14 @@ LsaGetDirectoryFromPath(
 
     if (pszLastSlash == NULL)
     {
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
                         ".",
                         &pszDir);
         BAIL_ON_LSA_ERROR(dwError);
     }
     else
     {
-        dwError = LsaStrndup(
+        dwError = LwStrndup(
                         pszPath,
                         pszLastSlash - pszPath,
                         &pszDir);
@@ -668,7 +668,7 @@ cleanup:
 
 error:
 
-    LSA_SAFE_FREE_STRING(pszDir);
+    LW_SAFE_FREE_STRING(pszDir);
     *ppszDir = NULL;
     goto cleanup;
 }
@@ -716,13 +716,13 @@ LsaCopyFileWithPerms(
     int  oFd = -1;
     DWORD dwBytesRead = 0;
 
-    if (IsNullOrEmptyString(pszSrcPath) ||
-        IsNullOrEmptyString(pszDstPath)) {
+    if (LW_IS_NULL_OR_EMPTY_STR(pszSrcPath) ||
+        LW_IS_NULL_OR_EMPTY_STR(pszDstPath)) {
         dwError = EINVAL;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaAllocateMemory(strlen(pszDstPath)+strlen(pszTmpSuffix)+2,
+    dwError = LwAllocateMemory(strlen(pszDstPath)+strlen(pszTmpSuffix)+2,
                                (PVOID*)&pszTmpPath);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -790,7 +790,7 @@ error:
         LsaRemoveFile(pszTmpPath);
     }
 
-    LSA_SAFE_FREE_STRING (pszTmpPath);
+    LW_SAFE_FREE_STRING (pszTmpPath);
 
     return dwError;
 }
@@ -883,7 +883,7 @@ LsaGetSymlinkTarget(
        break;
     }
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                     szBuf,
                     &pszTargetPath);
     BAIL_ON_LSA_ERROR(dwError);
@@ -898,7 +898,7 @@ error:
 
     *ppszTargetPath = NULL;
 
-    LSA_SAFE_FREE_STRING(pszTargetPath);
+    LW_SAFE_FREE_STRING(pszTargetPath);
 
     goto cleanup;
 }
@@ -1010,7 +1010,7 @@ cleanup:
         closedir(pDir);
     }
 
-    LSA_SAFE_FREE_STRING(pszTargetPath);
+    LW_SAFE_FREE_STRING(pszTargetPath);
 
     return dwError;
 
@@ -1063,7 +1063,7 @@ LsaGetMatchingFilePathsInFolder(
     }
     rxAllocated = TRUE;
 
-    dwError = LsaAllocateMemory(sizeof(regmatch_t), (PVOID*)&pResult);
+    dwError = LwAllocateMemory(sizeof(regmatch_t), (PVOID*)&pResult);
     BAIL_ON_LSA_ERROR(dwError);
 
     pDir = opendir(pszDirPath);
@@ -1108,10 +1108,10 @@ LsaGetMatchingFilePathsInFolder(
             (regexec(&rx, pDirEntry->d_name, nMatch, pResult, 0) == 0)) {
             dwNPaths++;
 
-            dwError = LsaAllocateMemory(sizeof(PATHNODE), (PVOID*)&pPathNode);
+            dwError = LwAllocateMemory(sizeof(PATHNODE), (PVOID*)&pPathNode);
             BAIL_ON_LSA_ERROR(dwError);
 
-            dwError = LsaAllocateString(szBuf, &pPathNode->pszPath);
+            dwError = LwAllocateString(szBuf, &pPathNode->pszPath);
             BAIL_ON_LSA_ERROR(dwError);
 
             pPathNode->pNext = pPathList;
@@ -1121,7 +1121,7 @@ LsaGetMatchingFilePathsInFolder(
     }
 
     if (pPathList) {
-        dwError = LsaAllocateMemory(sizeof(PSTR)*dwNPaths,
+        dwError = LwAllocateMemory(sizeof(PSTR)*dwNPaths,
                                     (PVOID*)&ppszHostFilePaths);
         BAIL_ON_LSA_ERROR(dwError);
         /*
@@ -1144,22 +1144,22 @@ LsaGetMatchingFilePathsInFolder(
 cleanup:
 
     if (pPathNode) {
-        LSA_SAFE_FREE_STRING(pPathNode->pszPath);
-        LsaFreeMemory(pPathNode);
+        LW_SAFE_FREE_STRING(pPathNode->pszPath);
+        LwFreeMemory(pPathNode);
     }
 
     while(pPathList) {
         pPathNode = pPathList;
         pPathList = pPathList->pNext;
-        LSA_SAFE_FREE_STRING(pPathNode->pszPath);
-        LsaFreeMemory(pPathNode);
+        LW_SAFE_FREE_STRING(pPathNode->pszPath);
+        LwFreeMemory(pPathNode);
     }
 
     if (rxAllocated) {
         regfree(&rx);
     }
 
-    LSA_SAFE_FREE_MEMORY(pResult);
+    LW_SAFE_FREE_MEMORY(pResult);
 
     if (pDir) {
         closedir(pDir);
@@ -1170,7 +1170,7 @@ cleanup:
 error:
 
     if (ppszHostFilePaths) {
-       LsaFreeStringArray(ppszHostFilePaths, dwNPaths);
+       LwFreeStringArray(ppszHostFilePaths, dwNPaths);
     }
 
     goto cleanup;

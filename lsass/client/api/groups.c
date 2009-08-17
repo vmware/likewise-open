@@ -337,7 +337,7 @@ LsaGetGidsForUserByName(
                 &ppGroupInfoList);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(gid_t) * dwGroupFound,
                     (PVOID*)&pGidResult);
     BAIL_ON_LSA_ERROR(dwError);
@@ -452,8 +452,8 @@ LsaFreeEnumObjectsInfo(
     PLSA_ENUM_OBJECTS_INFO pInfo
     )
 {
-    LSA_SAFE_FREE_STRING(pInfo->pszGUID);
-    LsaFreeMemory(pInfo);
+    LW_SAFE_FREE_STRING(pInfo->pszGUID);
+    LwFreeMemory(pInfo);
 }
 
 

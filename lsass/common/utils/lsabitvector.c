@@ -62,12 +62,12 @@ LsaBitVectorCreate(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(LSA_BIT_VECTOR),
                     (PVOID*)&pBitVector);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     (((dwNumBits-1)/(sizeof(DWORD)*8)) + 1) * sizeof(DWORD),
                     (PVOID*)&pBitVector->pVector);
     BAIL_ON_LSA_ERROR(dwError);
@@ -97,8 +97,8 @@ LsaBitVectorFree(
     PLSA_BIT_VECTOR pBitVector
     )
 {
-    LSA_SAFE_FREE_MEMORY(pBitVector->pVector);
-    LsaFreeMemory(pBitVector);
+    LW_SAFE_FREE_MEMORY(pBitVector->pVector);
+    LwFreeMemory(pBitVector);
 }
 
 BOOLEAN

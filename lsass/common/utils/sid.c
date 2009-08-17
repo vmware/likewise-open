@@ -63,7 +63,7 @@ LsaAllocateCStringFromSid(
     dwError = LsaNtStatusToLsaError(status);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateString(pszStringSid, &pszResultStringSid);
+    dwError = LwAllocateString(pszStringSid, &pszResultStringSid);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LW_ERROR_SUCCESS;
@@ -76,7 +76,7 @@ cleanup:
     return dwError;
 
 error:
-    LSA_SAFE_FREE_STRING(pszResultStringSid);
+    LW_SAFE_FREE_STRING(pszResultStringSid);
     goto cleanup;
 }
 
@@ -98,7 +98,7 @@ LsaAllocateSidFromCString(
 
     size = RtlLengthSid(pSid);
 
-    dwError = LsaAllocateMemory(size, OUT_PPVOID(&pResultSid));
+    dwError = LwAllocateMemory(size, OUT_PPVOID(&pResultSid));
     BAIL_ON_LSA_ERROR(dwError);
 
     RtlCopyMemory(pResultSid, pSid, size);
@@ -113,7 +113,7 @@ cleanup:
     return dwError;
 
 error:
-    LSA_SAFE_FREE_MEMORY(pResultSid);
+    LW_SAFE_FREE_MEMORY(pResultSid);
     goto cleanup;
 }
 
@@ -129,7 +129,7 @@ LsaAllocateSidAppendRid(
     PSID pResultSid = NULL;
     ULONG size = RtlLengthRequiredSid(pDomainSid->SubAuthorityCount + 1);
 
-    dwError = LsaAllocateMemory(size, OUT_PPVOID(&pResultSid));
+    dwError = LwAllocateMemory(size, OUT_PPVOID(&pResultSid));
     BAIL_ON_LSA_ERROR(dwError);
 
     status = RtlCopySid(size, pResultSid, pDomainSid);
@@ -146,6 +146,6 @@ cleanup:
     return dwError;
 
 error:
-    LSA_SAFE_FREE_MEMORY(pResultSid);
+    LW_SAFE_FREE_MEMORY(pResultSid);
     goto cleanup;
 }

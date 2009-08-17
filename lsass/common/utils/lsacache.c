@@ -94,7 +94,7 @@ LsaCacheNew(
     DWORD dwError = 0;
     PLSA_CACHE pCache = NULL;
 
-    dwError = LsaAllocateMemory(sizeof(*pCache), (void**) (void*) &pCache);
+    dwError = LwAllocateMemory(sizeof(*pCache), (void**) (void*) &pCache);
     BAIL_ON_LSA_ERROR(dwError);
 
     pCache->dwNumKeys = dwNumKeys;
@@ -106,7 +106,7 @@ LsaCacheNew(
     pCache->pfKick = pfKick;
     pCache->pData = pData;
 
-    dwError = LsaAllocateMemory(sizeof(PVOID) * dwNumKeys * dwNumBuckets, (void**) (void*) &pCache->ppEntries);
+    dwError = LwAllocateMemory(sizeof(PVOID) * dwNumKeys * dwNumBuckets, (void**) (void*) &pCache->ppEntries);
     BAIL_ON_LSA_ERROR(dwError);
 
     *ppCache = pCache;
@@ -119,8 +119,8 @@ error:
 
     if (pCache)
     {
-        LSA_SAFE_FREE_MEMORY(pCache->ppEntries);
-        LSA_SAFE_FREE_MEMORY(pCache);
+        LW_SAFE_FREE_MEMORY(pCache->ppEntries);
+        LW_SAFE_FREE_MEMORY(pCache);
     }
 
     goto cleanup;
@@ -327,6 +327,6 @@ LsaCacheDelete(
     /* Flush the cache, ignoring any failures */
     LsaCacheFlush(pCache);
 
-    LSA_SAFE_FREE_MEMORY(pCache->ppEntries);
-    LSA_SAFE_FREE_MEMORY(pCache);
+    LW_SAFE_FREE_MEMORY(pCache->ppEntries);
+    LW_SAFE_FREE_MEMORY(pCache);
 }

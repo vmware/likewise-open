@@ -137,11 +137,11 @@ error:
     if (dwError == LW_ERROR_NOT_HANDLED ||
         dwError == LW_ERROR_NO_SUCH_USER)
     {
-        LSA_LOG_VERBOSE("Failed authenticate unknown user [%s]", IsNullOrEmptyString(pszLoginId) ? "" : pszLoginId);
+        LSA_LOG_VERBOSE("Failed authenticate unknown user [%s]", LW_IS_NULL_OR_EMPTY_STR(pszLoginId) ? "" : pszLoginId);
     }
     else
     {
-        LSA_LOG_ERROR("Failed authenticate user [%s] [code %d]", IsNullOrEmptyString(pszLoginId) ? "" : pszLoginId, dwError);
+        LSA_LOG_ERROR("Failed authenticate user [%s] [code %d]", LW_IS_NULL_OR_EMPTY_STR(pszLoginId) ? "" : pszLoginId, dwError);
     }
 
     goto cleanup;
@@ -177,7 +177,7 @@ LsaSrvAuthenticateUserEx(
 	    /* calculate length includeing '\' and terminating NULL */
 
 	    dwLen = strlen(pUserParams->pszDomain) + strlen(pUserParams->pszAccountName) + 2;
-	    dwError = LsaAllocateMemory(dwLen, (PVOID*)&pszAccountName);
+	    dwError = LwAllocateMemory(dwLen, (PVOID*)&pszAccountName);
 	    BAIL_ON_LSA_ERROR(dwError);
 
 	    snprintf(pszAccountName, dwLen,
@@ -190,7 +190,7 @@ LsaSrvAuthenticateUserEx(
 	    dwError = LsaSrvAuthenticateUser(hServer,
 					     "",
 					     pUserParams->pass.clear.pszPassword);
-	    LSA_SAFE_FREE_MEMORY(pszAccountName);
+	    LW_SAFE_FREE_MEMORY(pszAccountName);
 	    goto cleanup;
 	    break;
     }
@@ -522,7 +522,7 @@ cleanup:
 
 error:
 
-    LSA_LOG_VERBOSE("Failed to change password of user [%s] [code %d]", IsNullOrEmptyString(pszLoginId) ? "" : pszLoginId, dwError);
+    LSA_LOG_VERBOSE("Failed to change password of user [%s] [code %d]", LW_IS_NULL_OR_EMPTY_STR(pszLoginId) ? "" : pszLoginId, dwError);
     goto cleanup;
 }
 
@@ -577,7 +577,7 @@ cleanup:
 
 error:
     LSA_LOG_VERBOSE("Failed to set password of user [%s] [code %d]",
-                    IsNullOrEmptyString(pszLoginId) ? "" : pszLoginId,
+                    LW_IS_NULL_OR_EMPTY_STR(pszLoginId) ? "" : pszLoginId,
                     dwError);
     goto cleanup;
 }

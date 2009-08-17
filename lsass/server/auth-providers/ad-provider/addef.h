@@ -116,7 +116,7 @@
 #define AD_MAX_ALLOWED_CLOCK_DRIFT_SECONDS 60
 
 #define AD_STR_IS_SID(str) \
-    (!IsNullOrEmptyString(str) && !strncasecmp(str, "s-", sizeof("s-")-1))
+    (!LW_IS_NULL_OR_EMPTY_STR(str) && !strncasecmp(str, "s-", sizeof("s-")-1))
 
 typedef enum
 {
