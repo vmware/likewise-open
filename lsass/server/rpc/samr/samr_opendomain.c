@@ -230,6 +230,11 @@ SamrSrvOpenDomain(
 
     InterlockedIncrement(&pConnCtx->refcount);
 
+    /* Increase ref count because DCE/RPC runtime is about to use this
+       pointer as well */
+    InterlockedIncrement(&pDomCtx->refcount);
+
+
     *hDomain = (DOMAIN_HANDLE)pDomCtx;
 
 cleanup:
