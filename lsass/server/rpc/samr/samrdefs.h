@@ -57,6 +57,22 @@ typedef void* ACCOUNT_HANDLE;
     {'C','o','m','m','e','n','t',0}
 #define DS_ATTR_HOME_DIR \
     {'H','o','m','e','d','i','r',0}
+#define DS_ATTR_HOME_DRIVE \
+    {'H','o','m','e','d','r','i','v','e',0}
+#define DS_ATTR_LOGON_SCRIPT \
+    {'L','o','g','o','n','S','c','r','i','p','t',0}
+#define DS_ATTR_PROFILE_PATH \
+    {'P','r','o','f','i','l','e','P','a','t','h',0}
+#define DS_ATTR_WORKSTATIONS \
+    {'W','o','r','k','s','t','a','t','i','o','n','s',0}
+#define DS_ATTR_PARAMETERS \
+    {'P','a','r','a','m','e','t','e','r','s',0}
+#define DS_ATTR_PASSWORD_LAST_SET \
+    {'P','a','s','s','w','o','r','d','L','a','s','t','S','e','t',0}
+#define DS_ATTR_ALLOW_PASSWORD_CHANGE \
+    {'A','l','l','o','w','P','a','s','s','w','o','r','d','C','h','a','n','g','e',0}
+#define DS_ATTR_FORCE_PASSWORD_CHANGE \
+    {'F','o','r','c','e','P','a','s','s','w','o','r','d','C','h','a','n','g','e',0}
 #define DS_ATTR_ACCOUNT_FLAGS \
     {'A','c','c','o','u','n','t','F','l','a','g','s',0}
 #define DS_ATTR_CREATED_TIME \
@@ -71,6 +87,10 @@ typedef void* ACCOUNT_HANDLE;
     {'M','a','x','P','w','d','A','g','e',0}
 #define DS_ATTR_MIN_PWD_AGE \
     {'M','i','n','P','w','d','A','g','e',0}
+#define DS_ATTR_LAST_LOGON \
+    {'L','a','s','t','L','o','g','o','n',0}
+#define DS_ATTR_LAST_LOGOFF \
+    {'L','a','s','t','L','o','g','o','f','f',0}
 #define DS_ATTR_FORCE_LOGOFF_TIME \
     {'F','o','r','c','e','L','o','g','o','f','f','T','i','m','e',0}
 #define DS_ATTR_LOCKOUT_DURATION \
@@ -79,9 +99,24 @@ typedef void* ACCOUNT_HANDLE;
     {'L','o','c','k','o','u','t','W','i','n','d','o','w',0}
 #define DS_ATTR_LOCKOUT_THRESHOLD \
     {'L','o','c','k','o','u','t','T','h','r','e','s','h','o','l','d',0}
+#define DS_ATTR_LOGON_COUNT \
+    {'L','o','g','o','n','C','o','u','n','t',0}
+#define DS_ATTR_BAD_PASSWORD_COUNT \
+    {'B','a','d','P','w','d','C','o','u','n','t',0}
+#define DS_ATTR_LOGON_HOURS \
+    {'L','o','g','o','n','H','o','u','r','s',0}
+#define DS_ATTR_ACCOUNT_EXPIRY \
+    {'A','c','c','o','u','n','t','E','x','p','i','r','y',0}
 #define DS_ATTR_ROLE \
     {'R','o','l','e',0}
-
+#define DS_ATTR_COUNTRY_CODE \
+    {'C','o','u','n','t','r','y','C','o','d','e',0}
+#define DS_ATTR_CODE_PAGE \
+    {'C','o','d','e','P','a','g','e',0}
+#define DS_ATTR_LM_HASH \
+    {'L','M','H','a','s','h',0}
+#define DS_ATTR_NT_HASH \
+    {'N','T','H','a','s','h',0}
 
 
 #define DS_OBJECT_CLASS_DOMAIN           (1)
