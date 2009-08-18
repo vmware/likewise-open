@@ -21,8 +21,9 @@ typedef void* POLICY_HANDLE;
 
 
 typedef struct account_names {
-    PWSTR *ppwszNames;
-    DWORD dwCount;
+    PWSTR  *ppwszNames;
+    PDWORD pdwIndices;
+    DWORD  dwCount;
 } ACCOUNT_NAMES, *PACCOUNT_NAMES;
 
 
