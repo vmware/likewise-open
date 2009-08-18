@@ -51,6 +51,7 @@
 #include <srvsvc/srvsvcbinding.h>
 #include <srvsvc/srvsvcdefs.h>
 #include <srvsvc/wkssvcdefs.h>
+#include <srvsvc/winregdefs.h>
 
 
 /*

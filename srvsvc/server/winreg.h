@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -28,51 +28,28 @@
  * license@likewisesoftware.com
  */
 
+
 /*
- * Copyright (C) Centeris Corporation 2004-2007
- * Copyright (C) Likewise Software 2007
- * All rights reserved.
+ * Copyright (C) Likewise Software. All rights reserved.
  *
- * SrvSvc Server
+ * Module Name:
  *
+ *        winreg.h
+ *
+ * Abstract:
+ *
+ *        Likewise Workstation Service (winreg) RPC client and server
+ *
+ *        WinReg rpc server functions
+ *
+ * Authors: Gerald Carter <gcarter@likewiseopen.org>
  */
-#include <config.h>
-#include <srvsvcsys.h>
 
-#include <winerror.h>
-#include <wc16str.h>
-#include <lw/ntstatus.h>
-#include <lwmem.h>
-#include <lwstr.h>
-#include <lwio/lwio.h>
-#include <lwio/ntfileapi.h>
-#include <lwio/lmshare.h>
-#include <lwio/lwshareinfo.h>
-#include <dce/rpc.h>
-#include <compat/dcerpc.h>
-#include <lwrpc/lsa.h>
-#include <lwnet.h>
+#ifndef _WINREG_SRV_H_
+#define _WINREG_SRV_H_
 
-#include <srvsvc/srvsvc.h>
-#include <srvsvcutils.h>
 
-#include "srvsvc.h"
-#include "srvsvc_srv.h"
-#include "srvsvc_h.h"
-
-#include "wkssvc.h"
-#include "wkssvc_srv.h"
-#include "wkssvc_h.h"
-
-#include "winreg.h"
-#include "winreg_srv.h"
-#include "winreg_h.h"
-
-#include "defs.h"
-#include "structs.h"
-#include "marshall.h"
-
-#include "externs.h"
+#endif /* _WINREG_SRV_H_ */
 
 
 /*
