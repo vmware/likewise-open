@@ -169,7 +169,14 @@ LsaSrvLookupDomainsByAccountName(
     PolicyHandle *phConn,
     PACCOUNT_NAMES *ppDomainAccounts,
     PACCOUNT_NAMES *ppLocalAccounts,
-    PACCOUNT_NAMES *ppBuiltinAccounts
+    PACCOUNT_NAMES *ppBuiltinAccounts,
+    PACCOUNT_NAMES *ppOtherAccounts
+    );
+
+
+VOID
+LsaSrvFreeAccountNames(
+    PACCOUNT_NAMES pAccountNames
     );
 
 
