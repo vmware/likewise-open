@@ -419,15 +419,15 @@
 /*Range 40700 - 41200 is reserved for registry specific error*/
 #define LW_ERROR_DUPLICATE_KEYNAME                         40700
 #define LW_ERROR_NO_ACTIVE_KEY_FOUND                       40701
-#define LW_ERROR_KEY_EXIST                                 40702
-#define LW_ERROR_NO_SUCH_KEY                               40703
-#define LW_ERROR_KEY_REFCOUNT_NONZERO                      40704
-#define LW_ERROR_DUPLICATE_KEYVALUENAME                    40705
-#define LW_ERROR_FAILED_DELETE_HAS_SUBKEY                  40706
-#define LW_ERROR_NO_SUBKEYS                                40707
-#define LW_ERROR_NO_SUCH_VALUENAME                         40708
-#define LW_ERROR_UNKNOWN_DATA_TYPE                         40709
-#define LW_ERROR_BEYOUND_MAX_VALUE_LEN                     40710
+#define LW_ERROR_NO_SUCH_KEY                               40702
+#define LW_ERROR_KEY_IS_AVTIVE                             40703
+#define LW_ERROR_DUPLICATE_KEYVALUENAME                    40704
+#define LW_ERROR_FAILED_DELETE_HAS_SUBKEY                  40705
+#define LW_ERROR_NO_SUBKEYS                                40706
+#define LW_ERROR_NO_SUCH_VALUENAME                         40707
+#define LW_ERROR_UNKNOWN_DATA_TYPE                         40708
+#define LW_ERROR_BEYOUND_MAX_VALUE_LEN                     40709
+#define LW_ERROR_NO_MORE_ITEMS                             40710
 
 
 size_t

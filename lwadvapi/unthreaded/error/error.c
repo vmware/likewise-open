@@ -676,12 +676,12 @@ static struct
         "No specified active opened registry was found"
     },
     {
-        LW_ERROR_KEY_EXIST,
-        "A key with specified key name already exists in registry"
-    },
-    {
         LW_ERROR_NO_SUCH_KEY,
         "The specified key cannot be found in registry"
+    },
+    {
+        LW_ERROR_KEY_IS_AVTIVE,
+        "The key is still actively in use"
     },
     {
         LW_ERROR_DUPLICATE_KEYVALUENAME,
@@ -706,6 +706,10 @@ static struct
     {
         LW_ERROR_BEYOUND_MAX_VALUE_LEN,
         "Value length is beyond maximum allowed value length"
+    },
+    {
+        LW_ERROR_NO_MORE_ITEMS,
+        "No more entries available"
     }
 };
 
