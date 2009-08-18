@@ -167,10 +167,10 @@ LsaSrvLookupDomainsByAccountName(
     DWORD dwNumNames,
     handle_t hSamrBinding,
     PolicyHandle *phConn,
-    PACCOUNT_NAMES *ppDomainAccounts,
-    PACCOUNT_NAMES *ppLocalAccounts,
-    PACCOUNT_NAMES *ppBuiltinAccounts,
-    PACCOUNT_NAMES *ppOtherAccounts
+    PACCOUNT_NAMES pDomainAccounts,
+    PACCOUNT_NAMES pLocalAccounts,
+    PACCOUNT_NAMES pBuiltinAccounts,
+    PACCOUNT_NAMES pOtherAccounts
     );
 
 
