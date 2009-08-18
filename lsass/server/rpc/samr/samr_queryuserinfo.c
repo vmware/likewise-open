@@ -199,6 +199,32 @@ SamrSrvQueryUserInfo(
     PCONNECT_CONTEXT pConnCtx = NULL;
     PWSTR pwszBase = NULL;
     WCHAR wszAttrDn[] = DS_ATTR_DISTINGUISHED_NAME;
+    WCHAR wszAttrObjectSid[] = DS_ATTR_OBJECT_SID;
+    WCHAR wszAttrSamAccountName[] = DS_ATTR_SAM_ACCOUNT_NAME;
+    WCHAR wszAttrFullName[] = DS_ATTR_FULL_NAME;
+    WCHAR wszAttrGid[] = DS_ATTR_GID;
+    WCHAR wszAttrDescription[] = DS_ATTR_DESCRIPTION;
+    WCHAR wszAttrComment[] = DS_ATTR_COMMENT;
+    WCHAR wszAttrCountryCode[] = DS_ATTR_COUNTRY_CODE;
+    WCHAR wszAttrCodePage[] = DS_ATTR_CODE_PAGE;
+    WCHAR wszAttrHomeDirectory[] = DS_ATTR_HOME_DIR;
+    WCHAR wszAttrHomeDrive[] = DS_ATTR_HOME_DRIVE;
+    WCHAR wszAttrLogonScript[] = DS_ATTR_LOGON_SCRIPT;
+    WCHAR wszAttrProfilePath[] = DS_ATTR_PROFILE_PATH;
+    WCHAR wszAttrWorkstations[]= DS_ATTR_WORKSTATIONS;
+    WCHAR wszAttrParameters[] = DS_ATTR_PARAMETERS;
+    WCHAR wszAttrLastLogon[] = DS_ATTR_LAST_LOGON;
+    WCHAR wszAttrLastLogoff[] = DS_ATTR_LAST_LOGOFF;
+    WCHAR wszAttrPasswordLastSet[] = DS_ATTR_PASSWORD_LAST_SET;
+    WCHAR wszAttrAllowPasswordChange[] = DS_ATTR_ALLOW_PASSWORD_CHANGE;
+    WCHAR wszAttrForcePasswordChange[] = DS_ATTR_FORCE_PASSWORD_CHANGE;
+    WCHAR wszAttrLogonHours[] = DS_ATTR_LOGON_HOURS;
+    WCHAR wszAttrBadPasswordCount[] = DS_ATTR_BAD_PASSWORD_COUNT;
+    WCHAR wszAttrLogonCount[] = DS_ATTR_LOGON_COUNT;
+    WCHAR wszAttrAccountFlags[] = DS_ATTR_ACCOUNT_FLAGS;
+    WCHAR wszAttrAccountExpiry[] = DS_ATTR_ACCOUNT_EXPIRY;
+    WCHAR wszAttrLmHash[] = DS_ATTR_LM_HASH;
+    WCHAR wszAttrNtHash[] = DS_ATTR_NT_HASH;
     DWORD dwScope = 0;
     PWSTR pwszFilter = NULL;
     DWORD dwFilterLen = 0;
@@ -207,12 +233,204 @@ SamrSrvQueryUserInfo(
     DWORD dwEntriesNum = 0;
     UserInfo *pUserInfo = NULL;
 
+    PWSTR wszAttributesLevel1[] = {
+        wszAttrSamAccountName,
+        wszAttrFullName,
+        wszAttrGid,
+        wszAttrDescription,
+        wszAttrComment,
+        NULL
+    };
+
+    PWSTR wszAttributesLevel2[] = {
+        wszAttrComment,
+        wszAttrCountryCode,
+        wszAttrCodePage,
+        NULL
+    };
+
+    PWSTR wszAttributesLevel3[] = {
+        wszAttrSamAccountName,
+        wszAttrFullName,
+        wszAttrObjectSid,
+        wszAttrGid,
+        wszAttrHomeDirectory,
+        wszAttrHomeDrive,
+        wszAttrLogonScript,
+        wszAttrProfilePath,
+        wszAttrWorkstations,
+        wszAttrLastLogon,
+        wszAttrLastLogoff,
+        wszAttrPasswordLastSet,
+        wszAttrAllowPasswordChange,
+        wszAttrForcePasswordChange,
+        wszAttrLogonHours,
+        wszAttrBadPasswordCount,
+        wszAttrLogonCount,
+        wszAttrAccountFlags,
+        NULL
+    };
+
+    PWSTR wszAttributesLevel4[] = {
+        wszAttrLogonHours,
+        NULL
+    };
+
+    PWSTR wszAttributesLevel5[] = {
+        wszAttrSamAccountName,
+        wszAttrFullName,
+        wszAttrObjectSid,
+        wszAttrGid,
+        wszAttrHomeDirectory,
+        wszAttrHomeDrive,
+        wszAttrLogonScript,
+        wszAttrProfilePath,
+        wszAttrDescription,
+        wszAttrWorkstations,
+        wszAttrLastLogon,
+        wszAttrLastLogoff,
+        wszAttrLogonHours,
+        wszAttrBadPasswordCount,
+        wszAttrLogonCount,
+        wszAttrPasswordLastSet,
+        wszAttrAccountExpiry,
+        wszAttrAccountFlags,
+        NULL
+    };
+
+    PWSTR wszAttributesLevel6[] = {
+        wszAttrSamAccountName,
+        wszAttrFullName,
+        NULL
+    };
+
+    PWSTR wszAttributesLevel7[] = {
+        wszAttrSamAccountName,
+        NULL
+    };
+
+    PWSTR wszAttributesLevel8[] = {
+        wszAttrFullName,
+        NULL
+    };
+
+    PWSTR wszAttributesLevel9[] = {
+        wszAttrGid,
+        NULL
+    };
+
+    PWSTR wszAttributesLevel10[] = {
+        wszAttrHomeDirectory,
+        wszAttrHomeDrive,
+        NULL
+    };
+
+    PWSTR wszAttributesLevel11[] = {
+        wszAttrLogonScript,
+        NULL
+    };
+
+    PWSTR wszAttributesLevel12[] = {
+        wszAttrProfilePath,
+        NULL
+    };
+
+    PWSTR wszAttributesLevel13[] = {
+        wszAttrDescription,
+        NULL
+    };
+
+    PWSTR wszAttributesLevel14[] = {
+        wszAttrWorkstations,
+        NULL
+    };
+
+    PWSTR wszAttributesLevel16[] = {
+        wszAttrAccountFlags,
+        NULL
+    };
+
+    PWSTR wszAttributesLevel17[] = {
+        wszAttrAccountExpiry,
+        NULL
+    };
+
+    PWSTR wszAttributesLevel20[] = {
+        wszAttrParameters,
+        NULL
+    };
+
+    PWSTR wszAttributesLevel21[] = {
+        wszAttrLastLogon,
+        wszAttrLastLogoff,
+        wszAttrPasswordLastSet,
+        wszAttrAccountExpiry,
+        wszAttrAllowPasswordChange,
+        wszAttrForcePasswordChange,
+        wszAttrSamAccountName,
+        wszAttrFullName,
+        wszAttrHomeDirectory,
+        wszAttrHomeDrive,
+        wszAttrLogonScript,
+        wszAttrProfilePath,
+        wszAttrDescription,
+        wszAttrWorkstations,
+        wszAttrComment,
+        wszAttrParameters,
+        wszAttrObjectSid,
+        wszAttrGid,
+        wszAttrAccountFlags,
+        wszAttrLogonHours,
+        wszAttrBadPasswordCount,
+        wszAttrLogonCount,
+        wszAttrCountryCode,
+        wszAttrCodePage,
+        wszAttrLmHash,
+        wszAttrNtHash,
+        NULL
+    };
+
+    PWSTR *pwszAttributes[] = {
+        wszAttributesLevel1,
+        wszAttributesLevel2,
+        wszAttributesLevel3,
+        wszAttributesLevel4,
+        wszAttributesLevel5,
+        wszAttributesLevel6,
+        wszAttributesLevel7,
+        wszAttributesLevel8,
+        wszAttributesLevel9,
+        wszAttributesLevel10,
+        wszAttributesLevel11,
+        wszAttributesLevel12,
+        wszAttributesLevel13,
+        wszAttributesLevel14,
+        NULL,
+        wszAttributesLevel16,
+        wszAttributesLevel17,
+        NULL,
+        NULL,
+        wszAttributesLevel20,
+        wszAttributesLevel21
+    };
+
     pAcctCtx = (PACCOUNT_CONTEXT)hUser;
 
     if (pAcctCtx == NULL || pAcctCtx->Type != SamrContextAccount) {
         status = STATUS_INVALID_HANDLE;
         BAIL_ON_NTSTATUS_ERROR(status);
     }
+
+    switch (level) {
+    case 15:
+    case 18:
+    case 19:
+        status = STATUS_INVALID_INFO_CLASS;
+
+    default:
+        status = STATUS_SUCCESS;
+    }
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     pDomCtx  = pAcctCtx->pDomCtx;
     pConnCtx = pDomCtx->pConnCtx;
@@ -234,7 +452,7 @@ SamrSrvQueryUserInfo(
                               pwszBase,
                               dwScope,
                               pwszFilter,
-                              wszAttributes,
+                              pwszAttributes[level - 1],
                               FALSE,
                               &pEntry,
                               &dwEntriesNum);
