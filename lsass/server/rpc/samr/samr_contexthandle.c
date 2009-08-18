@@ -64,8 +64,6 @@ CONNECT_HANDLE_rundown(
     /*
       free access token
     */
-
-    RTL_FREE(&pConnCtx);
 }
 
 
@@ -84,7 +82,6 @@ DOMAIN_HANDLE_rundown(
     RTL_FREE(&pDomCtx->pwszDn);
 
     CONNECT_HANDLE_rundown((CONNECT_HANDLE)pDomCtx->pConnCtx);
-    RTL_FREE(&pDomCtx);
 }
 
 
@@ -103,7 +100,6 @@ ACCOUNT_HANDLE_rundown(
     RTL_FREE(&pAcctCtx->pSid);
 
     DOMAIN_HANDLE_rundown((DOMAIN_HANDLE)pAcctCtx->pDomCtx);
-    RTL_FREE(&pAcctCtx);
 }
 
 
