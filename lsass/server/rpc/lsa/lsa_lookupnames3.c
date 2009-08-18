@@ -98,10 +98,10 @@ LsaSrvLookupNames3(
     SAMR_DOMAIN SamrBuiltinDomain;
     PSAMR_DOMAIN pSamrDomain = NULL;
     PWSTR pwszSystemName = NULL;
-    PACCOUNT_NAMES pDomainAccounts = NULL;
-    PACCOUNT_NAMES pLocalAccounts = NULL;
-    PACCOUNT_NAMES pBuiltinAccounts = NULL;
-    PACCOUNT_NAMES pOtherAccounts = NULL;
+    ACCOUNT_NAMES DomainAccounts = {0};
+    ACCOUNT_NAMES LocalAccounts = {0};
+    ACCOUNT_NAMES BuiltinAccounts = {0};
+    ACCOUNT_NAMES OtherAccounts = {0};
     PSTR pszDomainFqdn = NULL;
     PSTR pszDcName = NULL;
     PWSTR pwszDcName = NULL;
@@ -189,13 +189,13 @@ LsaSrvLookupNames3(
                                               num_names,
                                               hSamrBinding,
                                               &hConn,
-                                              &pDomainAccounts,
-                                              &pLocalAccounts,
-                                              &pBuiltinAccounts,
-                                              &pOtherAccounts);
+                                              &DomainAccounts,
+                                              &LocalAccounts,
+                                              &BuiltinAccounts,
+                                              &OtherAccounts);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    if (pDomainAccounts->dwCount) {
+    if (DomainAccounts.dwCount) {
         dwError = LWNetGetCurrentDomain(&pszDomainFqdn);
         BAIL_ON_LSA_ERROR(dwError);
 
@@ -226,8 +226,8 @@ LsaSrvLookupNames3(
 
         status = LsaLookupNames3(hLsaBinding,
                                  &hDcPolicy,
-                                 pDomainAccounts->dwCount,
-                                 pDomainAccounts->ppwszNames,
+                                 DomainAccounts.dwCount,
+                                 DomainAccounts.ppwszNames,
                                  &pRemoteDomains,
                                  &pRemoteSids,
                                  level,
@@ -261,7 +261,8 @@ LsaSrvLookupNames3(
 
         for (i = 0; i < dwRemoteSidsCount ; i++) {
             TranslatedSid3 *pRemoteSid = &(pRemoteSids[i]);
-            TranslatedSid3 *pSid = &(SidArray.sids[i]);
+            DWORD iTransSid = DomainAccounts.pdwIndices[i];
+            TranslatedSid3 *pSid = &(SidArray.sids[iTransSid]);
             PSID pAcctSid = NULL;
 
             status = LsaSrvDuplicateSid(&pAcctSid, pRemoteSid->sid);
@@ -289,7 +290,7 @@ LsaSrvLookupNames3(
         FreeLsaBinding(&hLsaBinding);
     }
 
-    if (pLocalAccounts->dwCount) {
+    if (LocalAccounts.dwCount) {
         dwLocalDomIndex  = pDomains->count;
         pLocalDomainInfo = &(pDomains->domains[dwLocalDomIndex]);
 
@@ -312,8 +313,8 @@ LsaSrvLookupNames3(
 
         status = SamrLookupNames(hSamrBinding,
                                  &SamrDomain.hDomain,
-                                 pLocalAccounts->dwCount,
-                                 pLocalAccounts->ppwszNames,
+                                 LocalAccounts.dwCount,
+                                 LocalAccounts.ppwszNames,
                                  &dwRids,
                                  &dwTypes,
                                  &dwCount);
@@ -326,7 +327,8 @@ LsaSrvLookupNames3(
         SET_LOOKUP_STATUS(lookup_status, status);
 
         for (i = 0; i < dwCount; i++) {
-            TranslatedSid3 *pSid = &(SidArray.sids[i + SidArray.count]);
+            DWORD iTransSid = LocalAccounts.pdwIndices[i];
+            TranslatedSid3 *pSid = &(SidArray.sids[iTransSid]);
             PSID pDomainSid = SamrDomain.pSid;
             PSID pAcctSid = NULL;
 
@@ -343,7 +345,7 @@ LsaSrvLookupNames3(
         SidArray.count   += dwCount;
     }
 
-    if (pBuiltinAccounts->dwCount) {
+    if (BuiltinAccounts.dwCount) {
         dwBuiltinDomIndex  = pDomains->count;
         pBuiltinDomainInfo = &(pDomains->domains[dwBuiltinDomIndex]);
 
@@ -366,8 +368,8 @@ LsaSrvLookupNames3(
 
         status = SamrLookupNames(hSamrBinding,
                                  &SamrDomain.hDomain,
-                                 pBuiltinAccounts->dwCount,
-                                 pBuiltinAccounts->ppwszNames,
+                                 BuiltinAccounts.dwCount,
+                                 BuiltinAccounts.ppwszNames,
                                  &dwRids,
                                  &dwTypes,
                                  &dwCount);
@@ -380,7 +382,8 @@ LsaSrvLookupNames3(
         SET_LOOKUP_STATUS(lookup_status, status);
 
         for (i = 0; i < dwCount; i++) {
-            TranslatedSid3 *pSid = &(SidArray.sids[i + SidArray.count]);
+            DWORD iTransSid = BuiltinAccounts.pdwIndices[i];
+            TranslatedSid3 *pSid = &(SidArray.sids[iTransSid]);
             PSID pDomainSid = SamrDomain.pSid;
             PSID pAcctSid = NULL;
 
@@ -397,7 +400,7 @@ LsaSrvLookupNames3(
         SidArray.count  += dwCount;
     }
 
-    if (pOtherAccounts->dwCount)
+    if (OtherAccounts.dwCount)
     {
         if (pLocalDomainInfo == NULL)
         {
@@ -443,8 +446,8 @@ LsaSrvLookupNames3(
 
         status = SamrLookupNames(hSamrBinding,
                                  &SamrLocalDomain.hDomain,
-                                 pOtherAccounts->dwCount,
-                                 pOtherAccounts->ppwszNames,
+                                 OtherAccounts.dwCount,
+                                 OtherAccounts.ppwszNames,
                                  &dwLocalRids,
                                  &dwLocalTypes,
                                  &dwCount);
@@ -453,8 +456,8 @@ LsaSrvLookupNames3(
         {
             status = SamrLookupNames(hSamrBinding,
                                      &SamrBuiltinDomain.hDomain,
-                                     pOtherAccounts->dwCount,
-                                     pOtherAccounts->ppwszNames,
+                                     OtherAccounts.dwCount,
+                                     OtherAccounts.ppwszNames,
                                      &dwBuiltinRids,
                                      &dwBuiltinTypes,
                                      &dwCount);
@@ -473,7 +476,8 @@ LsaSrvLookupNames3(
 
         for (i = 0; i < dwCount; i++)
         {
-            TranslatedSid3 *pSid = &(SidArray.sids[i + SidArray.count]);
+            DWORD iTransSid = OtherAccounts.pdwIndices[i];
+            TranslatedSid3 *pSid = &(SidArray.sids[iTransSid]);
             PSID pLocalDomainSid = SamrLocalDomain.pSid;
             PSID pBuiltinDomainSid = SamrBuiltinDomain.pSid;
             PSID pAcctSid = NULL;
@@ -537,21 +541,10 @@ cleanup:
         LWNetFreeString(pszDcName);
     }
 
-    if (pDomainAccounts) {
-        LsaSrvFreeAccountNames(pDomainAccounts);
-    }
-
-    if (pLocalAccounts) {
-        LsaSrvFreeAccountNames(pLocalAccounts);
-    }
-
-    if (pBuiltinAccounts) {
-        LsaSrvFreeAccountNames(pBuiltinAccounts);
-    }
-
-    if (pOtherAccounts) {
-        LsaSrvFreeAccountNames(pOtherAccounts);
-    }
+    LsaSrvFreeAccountNames(&DomainAccounts);
+    LsaSrvFreeAccountNames(&LocalAccounts);
+    LsaSrvFreeAccountNames(&BuiltinAccounts);
+    LsaSrvFreeAccountNames(&OtherAccounts);
 
     if (dwRids) {
         SamrFreeMemory(dwRids);
@@ -809,20 +802,20 @@ LsaSrvLookupDomainsByAccountName(
     DWORD dwNumNames,
     handle_t hSamrBinding,
     PolicyHandle *phConn,
-    PACCOUNT_NAMES *ppDomainAccounts,
-    PACCOUNT_NAMES *ppLocalAccounts,
-    PACCOUNT_NAMES *ppBuiltinAccounts,
-    PACCOUNT_NAMES *ppOtherAccounts
+    PACCOUNT_NAMES pDomainAccounts,
+    PACCOUNT_NAMES pLocalAccounts,
+    PACCOUNT_NAMES pBuiltinAccounts,
+    PACCOUNT_NAMES pOtherAccounts
     )
 {
     const DWORD dwSamrDomainAccess = DOMAIN_ACCESS_LOOKUP_INFO_1 |
                                      DOMAIN_ACCESS_LOOKUP_ALIAS;
 
     NTSTATUS status = STATUS_SUCCESS;
-    PACCOUNT_NAMES pDomainAccounts = NULL;
-    PACCOUNT_NAMES pLocalAccounts = NULL;
-    PACCOUNT_NAMES pBuiltinAccounts = NULL;
-    PACCOUNT_NAMES pOtherAccounts = NULL;
+    ACCOUNT_NAMES DomainAccounts = {0};
+    ACCOUNT_NAMES LocalAccounts = {0};
+    ACCOUNT_NAMES BuiltinAccounts = {0};
+    ACCOUNT_NAMES OtherAccounts = {0};
     DWORD dwDomainNamesNum = 0;
     DWORD dwLocalNamesNum = 0;
     DWORD dwBuiltinNamesNum = 0;
@@ -841,72 +834,52 @@ LsaSrvLookupDomainsByAccountName(
     PSID pDomainSid = NULL;
 
     status = LsaSrvAllocateMemory(
-                            (void**)&pDomainAccounts,
-                            sizeof(*pDomainAccounts));
+                            (void**)&DomainAccounts.ppwszNames,
+                            sizeof(*DomainAccounts.ppwszNames) * dwNumNames);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     status = LsaSrvAllocateMemory(
-                            (void**)&pDomainAccounts->ppwszNames,
-                            sizeof(*pDomainAccounts->ppwszNames) * dwNumNames);
+                            (void**)&DomainAccounts.pdwIndices,
+                            sizeof(*DomainAccounts.pdwIndices) * dwNumNames);
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    memset(DomainAccounts.pdwIndices, -1, sizeof(DWORD) * dwNumNames);
+
+    status = LsaSrvAllocateMemory(
+                            (void**)&LocalAccounts.ppwszNames,
+                            sizeof(*LocalAccounts.ppwszNames) * dwNumNames);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     status = LsaSrvAllocateMemory(
-                            (void**)&pDomainAccounts->pdwIndices,
-                            sizeof(*pDomainAccounts->pdwIndices) * dwNumNames);
+                            (void**)&LocalAccounts.pdwIndices,
+                            sizeof(*LocalAccounts.pdwIndices) * dwNumNames);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    memset(pDomainAccounts->pdwIndices, -1, sizeof(DWORD) * dwNumNames);
+    memset(LocalAccounts.pdwIndices, -1, sizeof(DWORD) * dwNumNames);
 
     status = LsaSrvAllocateMemory(
-                            (void**)&pLocalAccounts,
-                            sizeof(*pLocalAccounts));
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    status = LsaSrvAllocateMemory(
-                            (void**)&pLocalAccounts->ppwszNames,
-                            sizeof(*pLocalAccounts->ppwszNames) * dwNumNames);
+                            (void**)&BuiltinAccounts.ppwszNames,
+                            sizeof(*BuiltinAccounts.ppwszNames) * dwNumNames);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     status = LsaSrvAllocateMemory(
-                            (void**)&pLocalAccounts->pdwIndices,
-                            sizeof(*pLocalAccounts->pdwIndices) * dwNumNames);
+                            (void**)&BuiltinAccounts.pdwIndices,
+                            sizeof(*BuiltinAccounts.pdwIndices) * dwNumNames);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    memset(pLocalAccounts->pdwIndices, -1, sizeof(DWORD) * dwNumNames);
+    memset(BuiltinAccounts.pdwIndices, -1, sizeof(DWORD) * dwNumNames);
 
     status = LsaSrvAllocateMemory(
-                            (void**)&pBuiltinAccounts,
-                            sizeof(*pBuiltinAccounts));
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    status = LsaSrvAllocateMemory(
-                            (void**)&pBuiltinAccounts->ppwszNames,
-                            sizeof(*pBuiltinAccounts->ppwszNames) * dwNumNames);
+                            (void**)&OtherAccounts.ppwszNames,
+                            sizeof(*OtherAccounts.ppwszNames) * dwNumNames);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     status = LsaSrvAllocateMemory(
-                            (void**)&pBuiltinAccounts->pdwIndices,
-                            sizeof(*pBuiltinAccounts->pdwIndices) * dwNumNames);
+                            (void**)&OtherAccounts.pdwIndices,
+                            sizeof(*OtherAccounts.pdwIndices) * dwNumNames);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    memset(pBuiltinAccounts->pdwIndices, -1, sizeof(DWORD) * dwNumNames);
-
-    status = LsaSrvAllocateMemory(
-                            (void**)&pOtherAccounts,
-                            sizeof(*pOtherAccounts));
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    status = LsaSrvAllocateMemory(
-                            (void**)&pOtherAccounts->ppwszNames,
-                            sizeof(*pOtherAccounts->ppwszNames) * dwNumNames);
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    status = LsaSrvAllocateMemory(
-                            (void**)&pOtherAccounts->pdwIndices,
-                            sizeof(*pOtherAccounts->pdwIndices) * dwNumNames);
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    memset(pOtherAccounts->pdwIndices, -1, sizeof(DWORD) * dwNumNames);
+    memset(OtherAccounts.pdwIndices, -1, sizeof(DWORD) * dwNumNames);
 
 
     /* Get local and builtin domains info */
@@ -960,69 +933,68 @@ LsaSrvLookupDomainsByAccountName(
                                         &pwszAcctName);
         BAIL_ON_NTSTATUS_ERROR(status);
 
-        /* If account name wasn't prepended with domain name
-           we assume it's an account in local domain */
-        if (!pwszDomainName) {
-            status = LsaSrvDuplicateWC16String(
-                         &(pOtherAccounts->ppwszNames[dwOtherNamesNum]),
-                         pwszAcctName);
-            BAIL_ON_NTSTATUS_ERROR(status);
+        if (pwszDomainName)
+        {
+            memset(&SamrDomain, 0, sizeof(SamrDomain));
 
-            pOtherAccounts->pdwIndices[dwOtherNamesNum] = i;
-            dwOtherNamesNum++;
-
-            continue;
-        }
-
-        memset(&SamrDomain, 0, sizeof(SamrDomain));
-
-        status = LsaSrvGetSamrDomain(pPolCtx,
-                                     pwszDomainName,
-                                     &SamrDomain);
-        if (status == STATUS_NO_SUCH_DOMAIN) {
-
-            SamrDomain.pwszName = pwszDomainName;
-            SamrDomain.pSid     = NULL;
-            SamrDomain.bLocal   = FALSE;
-
-            status = LsaSrvSetSamrDomain(pPolCtx,
+            status = LsaSrvGetSamrDomain(pPolCtx,
+                                         pwszDomainName,
                                          &SamrDomain);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            if (status == STATUS_NO_SUCH_DOMAIN)
+            {
+                SamrDomain.pwszName = pwszDomainName;
+                SamrDomain.pSid     = NULL;
+                SamrDomain.bLocal   = FALSE;
 
-        } else if (status != STATUS_SUCCESS) {
-            BAIL_ON_NTSTATUS_ERROR(status);
-        }
-
-        if (SamrDomain.bLocal) {
-            if (!wc16scasecmp(SamrDomain.pwszName, wszBuiltin)) {
-                status = LsaSrvDuplicateWC16String(
-                             &(pBuiltinAccounts->ppwszNames[dwBuiltinNamesNum]),
-                             pwszAcctName);
+                status = LsaSrvSetSamrDomain(pPolCtx,
+                                             &SamrDomain);
                 BAIL_ON_NTSTATUS_ERROR(status);
 
-                pBuiltinAccounts->pdwIndices[dwBuiltinNamesNum] = i;
-                dwBuiltinNamesNum++;
+            }
+            else if (status != STATUS_SUCCESS)
+            {
+                BAIL_ON_NTSTATUS_ERROR(status);
+            }
+
+            if (SamrDomain.bLocal) {
+                if (!wc16scasecmp(SamrDomain.pwszName, wszBuiltin)) {
+                    status = LsaSrvDuplicateWC16String(
+                             &(BuiltinAccounts.ppwszNames[dwBuiltinNamesNum]),
+                            pwszAcctName);
+                    BAIL_ON_NTSTATUS_ERROR(status);
+
+                    BuiltinAccounts.pdwIndices[dwBuiltinNamesNum++] = i;
+
+                } else {
+                    status = LsaSrvDuplicateWC16String(
+                                 &(LocalAccounts.ppwszNames[dwLocalNamesNum]),
+                                 pwszAcctName);
+                    BAIL_ON_NTSTATUS_ERROR(status);
+
+                    LocalAccounts.pdwIndices[dwLocalNamesNum++] = i;
+                }
 
             } else {
                 status = LsaSrvDuplicateWC16String(
-                             &(pLocalAccounts->ppwszNames[dwLocalNamesNum]),
-                             pwszAcctName);
+                               &(DomainAccounts.ppwszNames[dwDomainNamesNum]),
+                               pwszName);
                 BAIL_ON_NTSTATUS_ERROR(status);
 
-                pLocalAccounts->pdwIndices[dwLocalNamesNum] = i;
-                dwLocalNamesNum++;
+                DomainAccounts.pdwIndices[dwDomainNamesNum++] = i;
             }
-
-        } else {
+        }
+        else
+        {
+            /* If the account name isn't prepended with domain name
+               we're going to give local and buitin domain a try and
+               then decide */
             status = LsaSrvDuplicateWC16String(
-                             &(pDomainAccounts->ppwszNames[dwDomainNamesNum]),
-                             pwszName);
+                         &(OtherAccounts.ppwszNames[dwOtherNamesNum]),
+                         pwszAcctName);
             BAIL_ON_NTSTATUS_ERROR(status);
 
-            pDomainAccounts->pdwIndices[dwDomainNamesNum] = i;
-            dwDomainNamesNum++;
+            OtherAccounts.pdwIndices[dwOtherNamesNum++] = i;
         }
-
 
         if (pwszName) {
             LsaSrvFreeMemory(pwszName);
@@ -1040,15 +1012,18 @@ LsaSrvLookupDomainsByAccountName(
         }
     }
 
-    pDomainAccounts->dwCount  = dwDomainNamesNum;
-    pLocalAccounts->dwCount   = dwLocalNamesNum;
-    pBuiltinAccounts->dwCount = dwBuiltinNamesNum;
-    pOtherAccounts->dwCount   = dwOtherNamesNum;
-
-    *ppDomainAccounts   = pDomainAccounts;
-    *ppLocalAccounts    = pLocalAccounts;
-    *ppBuiltinAccounts  = pBuiltinAccounts;
-    *ppOtherAccounts    = pOtherAccounts;
+    pDomainAccounts->dwCount     = dwDomainNamesNum;
+    pDomainAccounts->ppwszNames  = DomainAccounts.ppwszNames;
+    pDomainAccounts->pdwIndices  = DomainAccounts.pdwIndices;
+    pLocalAccounts->dwCount      = dwLocalNamesNum;
+    pLocalAccounts->ppwszNames   = LocalAccounts.ppwszNames;
+    pLocalAccounts->pdwIndices   = LocalAccounts.pdwIndices;
+    pBuiltinAccounts->dwCount    = dwBuiltinNamesNum;
+    pBuiltinAccounts->ppwszNames = BuiltinAccounts.ppwszNames;
+    pBuiltinAccounts->pdwIndices = BuiltinAccounts.pdwIndices;
+    pOtherAccounts->dwCount      = dwOtherNamesNum;
+    pOtherAccounts->ppwszNames   = OtherAccounts.ppwszNames;
+    pOtherAccounts->pdwIndices   = OtherAccounts.pdwIndices;
 
 cleanup:
     if (pwszLocalDomainNames) {
@@ -1058,11 +1033,54 @@ cleanup:
     return status;
 
 error:
+    pDomainAccounts->dwCount     = 0;
 
-    *ppDomainAccounts   = NULL;
-    *ppLocalAccounts    = NULL;
-    *ppBuiltinAccounts  = NULL;
-    *ppOtherAccounts    = NULL;
+    if (pDomainAccounts->ppwszNames) {
+        LsaSrvFreeMemory(pDomainAccounts->ppwszNames);
+        pDomainAccounts->ppwszNames  = NULL;
+    }
+
+    if (pDomainAccounts->pdwIndices) {
+        LsaSrvFreeMemory(pDomainAccounts->pdwIndices);
+        pDomainAccounts->pdwIndices  = NULL;
+    }
+
+    pLocalAccounts->dwCount      = 0;
+
+    if (pLocalAccounts->ppwszNames) {
+        LsaSrvFreeMemory(pLocalAccounts->ppwszNames);
+        pLocalAccounts->ppwszNames  = NULL;
+    }
+
+    if (pLocalAccounts->pdwIndices) {
+        LsaSrvFreeMemory(pLocalAccounts->pdwIndices);
+        pLocalAccounts->pdwIndices  = NULL;
+    }
+
+    pBuiltinAccounts->dwCount    = 0;
+
+    if (pBuiltinAccounts->ppwszNames) {
+        LsaSrvFreeMemory(pBuiltinAccounts->ppwszNames);
+        pBuiltinAccounts->ppwszNames  = NULL;
+    }
+
+    if (pBuiltinAccounts->pdwIndices) {
+        LsaSrvFreeMemory(pBuiltinAccounts->pdwIndices);
+        pBuiltinAccounts->pdwIndices  = NULL;
+    }
+
+    pOtherAccounts->dwCount      = 0;
+
+    if (pOtherAccounts->ppwszNames) {
+        LsaSrvFreeMemory(pOtherAccounts->ppwszNames);
+        pOtherAccounts->ppwszNames  = NULL;
+    }
+
+    if (pOtherAccounts->pdwIndices) {
+        LsaSrvFreeMemory(pOtherAccounts->pdwIndices);
+        pOtherAccounts->pdwIndices  = NULL;
+    }
+
     goto cleanup;
 }
 
@@ -1080,7 +1098,6 @@ LsaSrvFreeAccountNames(
     }
 
     LsaSrvFreeMemory(pAccountNames->ppwszNames);
-    LsaSrvFreeMemory(pAccountNames);
 }
 
 
