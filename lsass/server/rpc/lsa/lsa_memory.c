@@ -298,9 +298,9 @@ LsaSrvInitUnicodeStringEx(
                                   dwSize);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    memcpy(pOut->string, pwszIn, dwSize - 1);
+    memcpy(pOut->string, pwszIn, dwSize - sizeof(WCHAR));
     pOut->size = dwSize;
-    pOut->len  = dwSize - 1;
+    pOut->len  = dwSize - sizeof(WCHAR);
 
 cleanup:
     return status;
