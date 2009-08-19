@@ -2433,6 +2433,8 @@ cleanup:
         LW_SAFE_FREE_MEMORY(pwszSID);
     }
 
+    LW_SAFE_FREE_MEMORY(pwszGroupDN);
+
     if (pMember)
     {
         DirectoryFreeEntries(pMember, dwNumEntries);
