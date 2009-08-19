@@ -249,7 +249,7 @@ cpp_quote("#endif")
 
     /* function 0x21 */
     NTSTATUS __SamrGetMembersInAlias(
-        [in,ref] PolicyHandle *alias_handle,
+        [in] ACCOUNT_HANDLE hAlias,
         [out,ref] SidArray *sids
         );
 
