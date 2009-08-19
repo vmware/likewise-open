@@ -140,6 +140,15 @@ SamrSrvEnumDomainAliases(
 
 
 NTSTATUS
+SamrSrvGetAliasMembership(
+    handle_t hBinding,
+    DOMAIN_HANDLE hDomain,
+    SidArray *pSids,
+    Ids *pRids
+    );
+
+
+NTSTATUS
 SamrSrvLookupNames(
     handle_t hBinding,
     DOMAIN_HANDLE hDomain,
