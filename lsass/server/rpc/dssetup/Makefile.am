@@ -18,41 +18,41 @@ libdssetup_la_SOURCES =             \
     dsr_rolegetprimarydomaininfo.c
 
 DCEIDL_PASS_INCLUDES = \
-    $(CPPFLAGS) \
-    @NETAPI_INCLUDES@ \
-    @LWBASE_INCLUDES@
+    $(CPPFLAGS)        \
+    $(NETAPI_INCLUDES) \
+    $(LWBASE_INCLUDES)
 
 FEATURETEST_FLAGS="-D_XOPEN_SOURCE=500"
 
 libdssetup_la_CFLAGS = \
-    -DLIBRPC_BUILD \
-    $(AM_CFLAGS) \
+    -DLIBRPC_BUILD          \
+    $(AM_CFLAGS)            \
     -I$(srv_srcdir)/include \
     -I$(top_srcdir)/include \
-    -I$(srv_srcdir)/api \
-    @DCERPC_INCLUDES@ \
-    @LIBUNISTR_INCLUDES@ \
-    @LWBASE_INCLUDES@ \
-    @NETLOGON_INCLUDES@
+    -I$(srv_srcdir)/api     \
+    $(DCERPC_INCLUDES)      \
+    $(LIBUNISTR_INCLUDES)   \
+    $(LWBASE_INCLUDES)      \
+    $(NETLOGON_INCLUDES)
 
 libdssetup_la_LIBADD = \
-    @DCERPC_LIBS@ \
-    @NETAPI_LIBS@ \
-    @LIBUNISTR_LIBS@ \
-    @LWBASE_LIBS@ \
-    @NETLOGON_LIBS@ \
-    $(srv_srcdir)/api/liblsaserverapi.la \
+    $(DCERPC_LIBS)                        \
+    $(NETAPI_LIBS)                        \
+    $(LIBUNISTR_LIBS)                     \
+    $(LWBASE_LIBS)                        \
+    $(NETLOGON_LIBS)                      \
+    $(srv_srcdir)/api/liblsaserverapi.la  \
     $(srv_srcdir)/store/dsapi/libdsapi.la
 
 libdssetup_ss_la_SOURCES = \
     dssetup_sstub.c
 
 libdssetup_ss_la_CFLAGS = \
-    -DDCERPC_STUB_BUILD \
-    $(FEATURETEST_FLAGS) \
-    @DCERPC_INCLUDES@ \
-    @LIBUNISTR_INCLUDES@ \
-    @LWBASE_INCLUDES@
+    -DDCERPC_STUB_BUILD   \
+    $(FEATURETEST_FLAGS)  \
+    $(DCERPC_INCLUDES)    \
+    $(LIBUNISTR_INCLUDES) \
+    $(LWBASE_INCLUDES)
 
 libdssetup_ss_la_LIBADD = \
     libdssetup.la

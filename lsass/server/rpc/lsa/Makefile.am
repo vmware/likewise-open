@@ -26,31 +26,31 @@ liblsa_la_SOURCES = \
     lsa_contexthandle.c
 
 DCEIDL_PASS_INCLUDES = \
-    $(CPPFLAGS) \
-    @NETAPI_INCLUDES@ \
-    @LWBASE_INCLUDES@
+    $(CPPFLAGS)        \
+    $(NETAPI_INCLUDES) \
+    $(LWBASE_INCLUDES)
 
 FEATURETEST_FLAGS="-D_XOPEN_SOURCE=500 -D__EXTENSIONS__ -D_REENTRANT"
 
 liblsa_la_CFLAGS = \
-    -DLIBRPC_BUILD \
-    $(FEATURETEST_FLAGS) \
-    -I$(srv_srcdir)/include \
-    -I$(top_srcdir)/include \
-    -I$(rpc_srcdir)/samr \
-    -I$(srv_srcdir)/api \
-    @DCERPC_INCLUDES@ \
-    @LIBUNISTR_INCLUDES@ \
-    @LWBASE_INCLUDES@ \
-    @NETLOGON_INCLUDES@
+    -DLIBRPC_BUILD           \
+    $(FEATURETEST_FLAGS)     \
+    -I$(srv_srcdir)/include  \
+    -I$(top_srcdir)/include  \
+    -I$(rpc_srcdir)/samr     \
+    -I$(srv_srcdir)/api      \
+    $(DCERPC_INCLUDES)       \
+    $(LIBUNISTR_INCLUDES)    \
+    $(LWBASE_INCLUDES)       \
+    $(NETLOGON_INCLUDES)
 
 liblsa_la_LIBADD = \
-    @DCERPC_LIBS@ \
-    @NETAPI_LIBS@ \
-    @LIBUNISTR_LIBS@ \
-    @LWBASE_LIBS@ \
-    @NETLOGON_LIBS@ \
-    $(srv_srcdir)/api/liblsaserverapi.la \
+    $(DCERPC_LIBS)                        \
+    $(NETAPI_LIBS)                        \
+    $(LIBUNISTR_LIBS)                     \
+    $(LWBASE_LIBS)                        \
+    $(NETLOGON_LIBS)                      \
+    $(srv_srcdir)/api/liblsaserverapi.la  \
     $(srv_srcdir)/store/dsapi/libdsapi.la
 
 
