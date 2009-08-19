@@ -81,7 +81,6 @@ LsaSrvLookupNames3(
     const DWORD dwPolicyAccessMask = LSA_ACCESS_LOOKUP_NAMES_SIDS;
 
     NTSTATUS status = STATUS_SUCCESS;
-    NTSTATUS lookup_status = STATUS_SUCCESS;
     DWORD dwError = 0;
     RPCSTATUS rpcstatus = 0;
     PPOLICY_CONTEXT pPolCtx = NULL;
@@ -117,6 +116,7 @@ LsaSrvLookupNames3(
     DWORD *dwBuiltinRids = NULL;
     DWORD *dwBuiltinTypes = NULL;
     DWORD dwBuiltinCount = 0;
+    DWORD dwUnknownNamesNum = 0;
     DWORD i = 0;
     DWORD dwDomIndex = 0;
     DWORD dwLocalDomIndex = 0;
@@ -195,6 +195,10 @@ LsaSrvLookupNames3(
                                               &OtherAccounts);
     BAIL_ON_NTSTATUS_ERROR(status);
 
+    /*
+     * Check remote (DOMAIN\name) names first.
+     * This means asking the DC.
+     */
     if (DomainAccounts.dwCount) {
         dwError = LWNetGetCurrentDomain(&pszDomainFqdn);
         BAIL_ON_LSA_ERROR(dwError);
@@ -238,8 +242,6 @@ LsaSrvLookupNames3(
             status != STATUS_NONE_MAPPED) {
             BAIL_ON_NTSTATUS_ERROR(status);
         }
-
-        lookup_status = status;
 
         for (i = 0; i < pRemoteDomains->count; i++) {
             LsaDomainInfo *pDomInfo = NULL;
@@ -290,6 +292,10 @@ LsaSrvLookupNames3(
         FreeLsaBinding(&hLsaBinding);
     }
 
+    /*
+     * Check local (MACHINE\name) names.
+     * Call our local \samr server to lookup in MACHINE domain.
+     */
     if (LocalAccounts.dwCount) {
         dwLocalDomIndex  = pDomains->count;
         pLocalDomainInfo = &(pDomains->domains[dwLocalDomIndex]);
@@ -324,8 +330,6 @@ LsaSrvLookupNames3(
             BAIL_ON_NTSTATUS_ERROR(status);
         }
 
-        SET_LOOKUP_STATUS(lookup_status, status);
-
         for (i = 0; i < dwCount; i++) {
             DWORD iTransSid = LocalAccounts.pdwIndices[i];
             TranslatedSid3 *pSid = &(SidArray.sids[iTransSid]);
@@ -345,6 +349,10 @@ LsaSrvLookupNames3(
         SidArray.count   += dwCount;
     }
 
+    /*
+     * Check builtin (BUILTIN\name) names.
+     * Call our local \samr server to lookup in BUILTIN domain.
+     */
     if (BuiltinAccounts.dwCount) {
         dwBuiltinDomIndex  = pDomains->count;
         pBuiltinDomainInfo = &(pDomains->domains[dwBuiltinDomIndex]);
@@ -379,8 +387,6 @@ LsaSrvLookupNames3(
             BAIL_ON_NTSTATUS_ERROR(status);
         }
 
-        SET_LOOKUP_STATUS(lookup_status, status);
-
         for (i = 0; i < dwCount; i++) {
             DWORD iTransSid = BuiltinAccounts.pdwIndices[i];
             TranslatedSid3 *pSid = &(SidArray.sids[iTransSid]);
@@ -400,6 +406,12 @@ LsaSrvLookupNames3(
         SidArray.count  += dwCount;
     }
 
+    /*
+     * Check names we're not sure about.
+     * Call our local \samr server to lookup in MACHINE domain first.
+     * If a name can't be found there, try BUILTIN domain before
+     * considering it unknown.
+     */
     if (OtherAccounts.dwCount)
     {
         if (pLocalDomainInfo == NULL)
@@ -516,6 +528,28 @@ LsaSrvLookupNames3(
     status = SamrClose(hSamrBinding, &hConn);
     BAIL_ON_NTSTATUS_ERROR(status);
 
+    /* Check if all names have been mapped to decide about
+       returned status */
+    for (i = 0; i < SidArray.count; i++)
+    {
+        if (SidArray.sids[i].type == SID_TYPE_UNKNOWN)
+        {
+             dwUnknownNamesNum++;
+        }
+    }
+
+    if (dwUnknownNamesNum > 0)
+    {
+        if (dwUnknownNamesNum < SidArray.count)
+        {
+            status = LW_STATUS_SOME_NOT_MAPPED;
+        }
+        else
+        {
+            status = STATUS_NONE_MAPPED;
+        }
+    }
+
     /* windows seems to set max_size to multiple of 32 */
     pDomains->max_size = ((pDomains->count / 32) + 1) * 32;
 
@@ -571,10 +605,6 @@ cleanup:
     }
 
     LW_SAFE_FREE_STRING(pszSamrLpcSocketPath);
-
-    if (status == STATUS_SUCCESS) {
-        status = lookup_status;
-    }
 
     return status;
 
@@ -990,7 +1020,7 @@ LsaSrvLookupDomainsByAccountName(
                then decide */
             status = LsaSrvDuplicateWC16String(
                          &(OtherAccounts.ppwszNames[dwOtherNamesNum]),
-                         pwszAcctName);
+                         pwszName);
             BAIL_ON_NTSTATUS_ERROR(status);
 
             OtherAccounts.pdwIndices[dwOtherNamesNum++] = i;
