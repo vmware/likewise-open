@@ -39,6 +39,8 @@ libsamr_la_SOURCES = \
     samr_createdomalias.c        \
     samr_querydisplayinfo.c      \
     samr_querydomaininfo.c       \
+    samr_getmembersinalias.c     \
+    samr_getaliasmembership.c    \
     samr_contexthandle.c
 
 DCEIDL_PASS_INCLUDES = \
@@ -50,6 +52,7 @@ FEATURETEST_FLAGS="-D_XOPEN_SOURCE=500 -D__EXTENSIONS__ -D_REENTRANT"
 
 libsamr_la_CFLAGS = \
     -DLIBRPC_BUILD          \
+    $(AM_CFLAGS)            \
     $(FEATURETEST_FLAGS)    \
     -I$(srv_srcdir)/include \
     -I$(top_srcdir)/include \

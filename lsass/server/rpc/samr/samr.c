@@ -285,12 +285,17 @@ NTSTATUS __SamrEnumDomainAliases(
 
 NTSTATUS __SamrGetAliasMembership(
     /* [in] */ handle_t IDL_handle,
-    /* [in] */ PolicyHandle *domain_handle,
+    /* [in] */ DOMAIN_HANDLE hDomain,
     /* [in] */ SidArray *sids,
     /* [out] */ Ids *rids
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = SamrSrvGetAliasMembership(IDL_handle,
+                                       hDomain,
+                                       sids,
+                                       rids);
     return status;
 }
 
@@ -488,7 +493,11 @@ NTSTATUS __SamrGetMembersInAlias(
     /* [out] */ SidArray *sids
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = SamrSrvGetMembersInAlias(IDL_handle,
+                                      hAlias,
+                                      sids);
     return status;
 }
 
