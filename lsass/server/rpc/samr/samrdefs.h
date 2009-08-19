@@ -49,6 +49,8 @@ typedef void* ACCOUNT_HANDLE;
     {'U','I','D',0}
 #define DS_ATTR_GID \
     {'G','I','D',0}
+#define DS_ATTR_PRIMARY_GROUP \
+    {'P','r','i','m','a','r','y','G','r','o','u','p',0}
 #define DS_ATTR_FULL_NAME \
     {'F','u','l','l','N','a','m','e',0}
 #define DS_ATTR_DESCRIPTION \

@@ -170,6 +170,14 @@ SamrSrvQueryAliasInfo(
 
 
 NTSTATUS
+SamrSrvGetMembersInAlias(
+    handle_t hBinding,
+    ACCOUNT_HANDLE hAlias,
+    SidArray *sids
+    );
+
+
+NTSTATUS
 SamrSrvOpenUser(
     handle_t hBinding,
     DOMAIN_HANDLE *hDomain,
