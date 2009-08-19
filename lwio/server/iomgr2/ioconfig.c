@@ -273,6 +273,8 @@ IopConfigParse(
     DWORD dwError = 0;
     PIOP_CONFIG pConfig = NULL;
     IOP_CONFIG_PARSE_STATE parseState = { 0 };
+    BOOLEAN bExists = FALSE;
+    PIOP_DRIVER_CONFIG pDriverConfig = NULL;
 
     status = IO_ALLOCATE(&pConfig, IOP_CONFIG, sizeof(*pConfig));
     GOTO_CLEANUP_ON_STATUS(status);
@@ -281,19 +283,53 @@ IopConfigParse(
 
     parseState.pConfig = pConfig;
 
-    dwError = SMBParseConfigFile(
-                    pszConfigFilePath,
-                    SMB_CFG_OPTION_STRIP_ALL,
-                    IopConfigParseStartSection,
-                    NULL,
-                    IopConfigParseNameValuePair,
-                    IopConfigParseEndSection,
-                    &parseState);
+    dwError = SMBCheckFileExists(
+                  pszConfigFilePath,
+                  &bExists);
     if (dwError)
     {
         // TODO-Error code issues?
         status = STATUS_UNSUCCESSFUL;
         GOTO_CLEANUP_ON_STATUS(status);
+    }
+
+    if (bExists)
+    {
+        dwError = SMBParseConfigFile(
+                      pszConfigFilePath,
+                      SMB_CFG_OPTION_STRIP_ALL,
+                      IopConfigParseStartSection,
+                      NULL,
+                      IopConfigParseNameValuePair,
+                      IopConfigParseEndSection,
+                      &parseState);
+        if (dwError)
+        {
+            // TODO-Error code issues?
+            status = STATUS_UNSUCCESSFUL;
+            GOTO_CLEANUP_ON_STATUS(status);
+        }
+    }
+    else
+    {
+        status = IO_ALLOCATE(&pDriverConfig, IOP_DRIVER_CONFIG, sizeof(*pDriverConfig));
+        GOTO_CLEANUP_ON_STATUS(status);
+
+        status = RtlCStringDuplicate(&pDriverConfig->pszName, "rdr");
+        GOTO_CLEANUP_ON_STATUS(status);
+
+        LwListInsertTail(&parseState.pConfig->DriverConfigList, &pDriverConfig->Links);
+        parseState.pConfig->DriverCount++;
+
+        parseState.pDriverConfig = pDriverConfig;
+        pDriverConfig = NULL;
+
+        status = RtlCStringDuplicate(
+                     &parseState.pDriverConfig->pszPath,
+                     LIBDIR "/librdr.sys.so");
+        GOTO_CLEANUP_ON_STATUS(status);
+
+        parseState.pDriverConfig = NULL;
     }
 
     status = parseState.Status;
@@ -307,6 +343,7 @@ cleanup:
     if (status)
     {
         IopConfigFreeConfig(&pConfig);
+        IopConfigFreeDriverConfig(&pDriverConfig);
     }
 
     *ppConfig = pConfig;
