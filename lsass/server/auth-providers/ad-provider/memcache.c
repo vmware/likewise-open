@@ -163,11 +163,11 @@ MemCacheFreeGuardian(
 {
     if (pEntry->pKey)
     {
-        LsaFreeString(pEntry->pKey);
+        LwFreeString(pEntry->pKey);
     }
     if (pEntry->pValue)
     {
-        LsaFreeMemory(pEntry->pValue);
+        LwFreeMemory(pEntry->pValue);
     }
 }
 
@@ -249,7 +249,7 @@ MemCacheOpen(
     DWORD dwError = 0;
     PMEM_DB_CONNECTION pConn = NULL;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(*pConn),
                     (PVOID*)&pConn);
     BAIL_ON_LSA_ERROR(dwError);
@@ -258,7 +258,7 @@ MemCacheOpen(
     BAIL_ON_LSA_ERROR(dwError);
     pConn->bLockCreated = TRUE;
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                     pszDbPath,
                     &pConn->pszFilename);
     BAIL_ON_LSA_ERROR(dwError);
@@ -584,7 +584,7 @@ MemCacheStoreFile(
                     gMemCachePersistence));
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                     &pszTempFile,
                     "%s.new",
                     pConn->pszFilename);
@@ -670,7 +670,7 @@ cleanup:
         lwmsg_protocol_delete(pArchiveProtocol);
     }
 
-    LSA_SAFE_FREE_STRING(pszTempFile);
+    LW_SAFE_FREE_STRING(pszTempFile);
 
     return dwError;
 
@@ -776,7 +776,7 @@ MemCacheSafeClose(
 
         LsaHashSafeFree(&pConn->pGIDToSecurityObject);
         LsaHashSafeFree(&pConn->pGroupAliasToSecurityObject);
-        LSA_SAFE_FREE_STRING(pConn->pszFilename);
+        LW_SAFE_FREE_STRING(pConn->pszFilename);
 
         LsaHashSafeFree(&pConn->pParentSIDToMembershipList);
         LsaHashSafeFree(&pConn->pChildSIDToMembershipList);
@@ -801,7 +801,7 @@ MemCacheSafeClose(
             LSA_ASSERT(dwError == 0);
         }
 
-        LSA_SAFE_FREE_MEMORY(*phDb);
+        LW_SAFE_FREE_MEMORY(*phDb);
     }
 }
 
@@ -830,7 +830,7 @@ MemCacheFindUserByName(
         case NameType_UPN:
             pIndex = pConn->pUPNToSecurityObject;
 
-            dwError = LsaAllocateStringPrintf(
+            dwError = LwAllocateStringPrintf(
                             &pszKey,
                             "%s@%s",
                             pUserNameInfo->pszName,
@@ -840,7 +840,7 @@ MemCacheFindUserByName(
        case NameType_NT4:
             pIndex = pConn->pNT4ToSecurityObject;
 
-            dwError = LsaAllocateStringPrintf(
+            dwError = LwAllocateStringPrintf(
                             &pszKey,
                             "%s\\%s",
                             pUserNameInfo->pszDomainNetBiosName,
@@ -850,7 +850,7 @@ MemCacheFindUserByName(
        case NameType_Alias:
             pIndex = pConn->pUserAliasToSecurityObject;
 
-            dwError = LsaAllocateStringPrintf(
+            dwError = LwAllocateStringPrintf(
                             &pszKey,
                             "%s",
                             pUserNameInfo->pszName);
@@ -886,7 +886,7 @@ MemCacheFindUserByName(
 
 cleanup:
     LEAVE_RW_LOCK(&pConn->lock, bInLock);
-    LSA_SAFE_FREE_STRING(pszKey);
+    LW_SAFE_FREE_STRING(pszKey);
 
     return dwError;
 
@@ -977,7 +977,7 @@ MemCacheFindGroupByName(
        case NameType_NT4:
             pIndex = pConn->pNT4ToSecurityObject;
 
-            dwError = LsaAllocateStringPrintf(
+            dwError = LwAllocateStringPrintf(
                             &pszKey,
                             "%s\\%s",
                             pGroupNameInfo->pszDomainNetBiosName,
@@ -987,7 +987,7 @@ MemCacheFindGroupByName(
        case NameType_Alias:
             pIndex = pConn->pGroupAliasToSecurityObject;
 
-            dwError = LsaAllocateStringPrintf(
+            dwError = LwAllocateStringPrintf(
                             &pszKey,
                             "%s",
                             pGroupNameInfo->pszName);
@@ -1023,7 +1023,7 @@ MemCacheFindGroupByName(
 
 cleanup:
     LEAVE_RW_LOCK(&pConn->lock, bInLock);
-    LSA_SAFE_FREE_STRING(pszKey);
+    LW_SAFE_FREE_STRING(pszKey);
 
     return dwError;
 
@@ -1311,7 +1311,7 @@ MemCacheRemoveObjectByHashKey(
                     pObject->pszDN);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                     &pszKey,
                     "%s\\%s",
                     pObject->pszNetbiosDomainName,
@@ -1381,13 +1381,13 @@ MemCacheRemoveObjectByHashKey(
     {
         pListEntry->pNext->pPrev = pListEntry->pPrev;
     }
-    LSA_SAFE_FREE_MEMORY(pListEntry);
+    LW_SAFE_FREE_MEMORY(pListEntry);
     pConn->sCacheSize -= pObject->version.dwObjectSize;
 
     ADCacheSafeFreeObject(&pObject);
 
 cleanup:
-    LSA_SAFE_FREE_STRING(pszKey);
+    LW_SAFE_FREE_STRING(pszKey);
     return dwError;
 
 error:
@@ -1409,7 +1409,7 @@ MemCacheClearExistingObjectKeys(
                     pObject->pszDN);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                     &pszKey,
                     "%s\\%s",
                     pObject->pszNetbiosDomainName,
@@ -1464,7 +1464,7 @@ MemCacheClearExistingObjectKeys(
     }
 
 cleanup:
-    LSA_SAFE_FREE_STRING(pszKey);
+    LW_SAFE_FREE_STRING(pszKey);
     return dwError;
 
 error:
@@ -1591,7 +1591,7 @@ MemCacheStoreObjectEntries(
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
-    LSA_SAFE_FREE_STRING(pszKey);
+    LW_SAFE_FREE_STRING(pszKey);
     LEAVE_RW_LOCK(&pConn->lock, bInLock);
     LEAVE_MUTEX(&pConn->backupMutex, bMutexLocked);
 
@@ -1648,10 +1648,10 @@ MemCacheFindMembership(
     {
         pMembership = PARENT_NODE_TO_MEMBERSHIP(pPos);
         // The == comparison takes care of the case where both strings are null
-        if (!strcmp(LsaEmptyStrForNull(pMembership->membership.pszParentSid),
-                    LsaEmptyStrForNull(pszParentSid)) &&
-            !strcmp(LsaEmptyStrForNull(pMembership->membership.pszChildSid),
-                    LsaEmptyStrForNull(pszChildSid)))
+        if (!strcmp(LwEmptyStrForNull(pMembership->membership.pszParentSid),
+                    LwEmptyStrForNull(pszParentSid)) &&
+            !strcmp(LwEmptyStrForNull(pMembership->membership.pszChildSid),
+                    LwEmptyStrForNull(pszChildSid)))
         {
             return pMembership;
         }
@@ -2359,7 +2359,7 @@ MemCacheStoreObjectEntryInLock(
     sObjectSize += MemCacheGetStringSpace(pObject->pszNetbiosDomainName);
     sObjectSize += MemCacheGetStringSpace(pObject->pszSamAccountName);
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                     &pszKey,
                     "%s\\%s",
                     pObject->pszNetbiosDomainName,
@@ -2444,7 +2444,7 @@ MemCacheStoreObjectEntryInLock(
     pConn->sCacheSize += sObjectSize;
 
 cleanup:
-    LSA_SAFE_FREE_STRING(pszKey);
+    LW_SAFE_FREE_STRING(pszKey);
 
     return dwError;
 
@@ -2460,7 +2460,7 @@ MemCacheSafeFreeGroupMembership(
     if (*ppMembership != NULL)
     {
         ADCacheFreeGroupMembershipContents(&(*ppMembership)->membership);
-        LSA_SAFE_FREE_MEMORY(*ppMembership);
+        LW_SAFE_FREE_MEMORY(*ppMembership);
     }
 }
 
@@ -2483,7 +2483,7 @@ MemCacheDuplicateMembership(
     DWORD dwError = 0;
     PMEM_GROUP_MEMBERSHIP pDest = NULL;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(*pDest),
                     (PVOID*)&pDest);
     BAIL_ON_LSA_ERROR(dwError);
@@ -2538,14 +2538,14 @@ MemCacheAddMembership(
         // Gotta add the guardian node
         dwError = 0;
 
-        dwError = LsaAllocateMemory(
+        dwError = LwAllocateMemory(
                         sizeof(*pGuardianTemp),
                         (PVOID*)&pGuardianTemp);
         BAIL_ON_LSA_ERROR(dwError);
 
         LsaListInit(pGuardianTemp);
 
-        dwError = LsaStrDupOrNull(
+        dwError = LwStrDupOrNull(
                         pMembership->membership.pszParentSid,
                         &pszSidCopy);
         BAIL_ON_LSA_ERROR(dwError);
@@ -2580,14 +2580,14 @@ MemCacheAddMembership(
         // Gotta add the guardian node
         dwError = 0;
 
-        dwError = LsaAllocateMemory(
+        dwError = LwAllocateMemory(
                         sizeof(*pGuardianTemp),
                         (PVOID*)&pGuardianTemp);
         BAIL_ON_LSA_ERROR(dwError);
 
         LsaListInit(pGuardianTemp);
 
-        dwError = LsaStrDupOrNull(
+        dwError = LwStrDupOrNull(
                         pMembership->membership.pszChildSid,
                         &pszSidCopy);
         BAIL_ON_LSA_ERROR(dwError);
@@ -2616,8 +2616,8 @@ MemCacheAddMembership(
     pConn->sCacheSize += sObjectSize;
 
 cleanup:
-    LSA_SAFE_FREE_MEMORY(pGuardianTemp);
-    LSA_SAFE_FREE_STRING(pszSidCopy);
+    LW_SAFE_FREE_MEMORY(pGuardianTemp);
+    LW_SAFE_FREE_STRING(pszSidCopy);
     return dwError;
 
 error:
@@ -3137,7 +3137,7 @@ MemCacheGetMemberships(
         pPos = pPos->Next;
     }
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(*ppResults) * sCount,
                     (PVOID*)&ppResults);
     BAIL_ON_LSA_ERROR(dwError);
@@ -3225,7 +3225,7 @@ MemCacheEnumUsersCache(
 
     dwMaxNumUsers = LW_MIN(dwMaxNumUsers, pIndex->sCount);
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(*ppObjects) * dwMaxNumUsers,
                     (PVOID*)&ppObjects);
     BAIL_ON_LSA_ERROR(dwError);
@@ -3315,7 +3315,7 @@ MemCacheEnumGroupsCache(
 
     dwMaxNumGroups = LW_MIN(dwMaxNumGroups, pIndex->sCount);
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(*ppObjects) * dwMaxNumGroups,
                     (PVOID*)&ppObjects);
     BAIL_ON_LSA_ERROR(dwError);
@@ -3439,7 +3439,7 @@ MemCacheFindObjectsByDNList(
     size_t sIndex = 0;
     PLSA_SECURITY_OBJECT* ppResults = NULL;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(*ppResults) * sCount,
                     (PVOID*)&ppResults);
     BAIL_ON_LSA_ERROR(dwError);
@@ -3464,7 +3464,7 @@ cleanup:
     return dwError;
 
 error:
-    LSA_SAFE_FREE_MEMORY(ppResults);
+    LW_SAFE_FREE_MEMORY(ppResults);
     *pppResults = NULL;
     goto cleanup;
 }
@@ -3532,7 +3532,7 @@ MemCacheFindObjectsBySidList(
     size_t sIndex = 0;
     PLSA_SECURITY_OBJECT* ppResults = NULL;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(*ppResults) * sCount,
                     (PVOID*)&ppResults);
     BAIL_ON_LSA_ERROR(dwError);
@@ -3557,7 +3557,7 @@ cleanup:
     return dwError;
 
 error:
-    LSA_SAFE_FREE_MEMORY(ppResults);
+    LW_SAFE_FREE_MEMORY(ppResults);
     *pppResults = NULL;
     goto cleanup;
 }

@@ -87,7 +87,7 @@ LsaSrvLookupNames(
         BAIL_ON_NTSTATUS_ERROR(status);
 
         if (pwszName) {
-            LSA_SAFE_FREE_MEMORY(pwszName);
+            LW_SAFE_FREE_MEMORY(pwszName);
         }
     }
 
@@ -126,7 +126,7 @@ LsaSrvLookupNames(
 
 cleanup:
     if (pwszName) {
-        LSA_SAFE_FREE_MEMORY(pwszName);
+        LW_SAFE_FREE_MEMORY(pwszName);
     }
 
     if (pNames) {

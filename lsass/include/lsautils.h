@@ -122,43 +122,6 @@
 
 #endif
 
-#define LSA_SAFE_FREE_STRING(str) \
-        do {                      \
-           if (str) {             \
-              LsaFreeString(str); \
-              (str) = NULL;       \
-           }                      \
-        } while(0);
-
-#define LSA_SAFE_CLEAR_FREE_STRING(str)       \
-        do {                                  \
-           if (str) {                         \
-              if (*str) {                     \
-                 memset(str, 0, strlen(str)); \
-              }                               \
-              LsaFreeString(str);             \
-              (str) = NULL;                   \
-           }                                  \
-        } while(0);
-
-#define LSA_SAFE_FREE_MEMORY(mem) \
-        do {                      \
-           if (mem) {             \
-              LsaFreeMemory(mem); \
-              (mem) = NULL;       \
-           }                      \
-        } while(0);
-
-#define LSA_SAFE_FREE_STRING_ARRAY(ppszArray)               \
-        do {                                                \
-           if (ppszArray) {                                 \
-               LsaFreeNullTerminatedStringArray(ppszArray); \
-               (ppszArray) = NULL;                          \
-           }                                                \
-        } while (0);
-
-#define IsNullOrEmptyString(str) (!(str) || !(*(str)))
-
 /*
  * Logging
  */
@@ -336,7 +299,7 @@ typedef struct _DNS_FQDN
 #define SEC_BUFFER_S_CONVERT(_sb_,_sbs_) do{(_sb_)->length = (_sbs_)->length;(_sb_)->maxLength=(_sbs_)->maxLength;(_sb_)->buffer = (_sbs_)->buffer;} while (0)
 
 #define BAIL_ON_INVALID_STRING(pszParam)          \
-        if (IsNullOrEmptyString(pszParam)) {      \
+        if (LW_IS_NULL_OR_EMPTY_STR(pszParam)) {      \
            dwError = LW_ERROR_INVALID_PARAMETER; \
            BAIL_ON_LSA_ERROR(dwError);            \
         }
@@ -595,142 +558,11 @@ LsaFreeStringBufferContents(
         LSA_STRING_BUFFER *pBuffer);
 
 DWORD
-LsaAllocateMemory(
-    DWORD dwSize,
-    PVOID * ppMemory
-    );
-
-DWORD
-LsaReallocMemory(
-    PVOID  pMemory,
-    PVOID * ppNewMemory,
-    DWORD dwSize
-    );
-
-DWORD
 LsaAppendAndFreePtrs(
     IN OUT PDWORD pdwDestCount,
     IN OUT PVOID** pppDestPtrArray,
     IN OUT PDWORD pdwAppendCount,
     IN OUT PVOID** pppAppendPtrArray
-    );
-
-void
-LsaFreeMemory(
-    PVOID pMemory
-    );
-
-DWORD
-LsaAllocateString(
-    PCSTR pszInputString,
-    PSTR *ppszOutputString
-    );
-
-void
-LsaFreeString(
-    PSTR pszString
-    );
-
-void
-LsaStripWhitespace(
-    PSTR pszString,
-    BOOLEAN bLeading,
-    BOOLEAN bTrailing
-    );
-
-DWORD
-LsaStrIsAllSpace(
-    PCSTR pszString,
-    PBOOLEAN pbIsAllSpace
-    );
-
-void
-LsaStrToUpper(
-    PSTR pszString
-    );
-
-void
-LsaStrnToUpper(
-    PSTR  pszString,
-    DWORD dwLen
-    );
-
-void
-LsaStrToLower(
-    PSTR pszString
-    );
-
-void
-LsaStrnToLower(
-    PSTR  pszString,
-    DWORD dwLen
-    );
-
-DWORD
-LsaEscapeString(
-    PSTR pszOrig,
-    PSTR * ppszEscapedString
-    );
-
-DWORD
-LsaStrndup(
-    PCSTR pszInputString,
-    size_t size,
-    PSTR * ppszOutputString
-    );
-
-DWORD
-LsaAllocateStringPrintf(
-    PSTR* ppszOutputString,
-    PCSTR pszFormat,
-    ...
-    );
-
-DWORD
-LsaAllocateStringPrintfV(
-    PSTR*   ppszOutputString,
-    PCSTR   pszFormat,
-    va_list args
-    );
-
-VOID
-LsaStrCharReplace(
-    PSTR pszStr,
-    CHAR oldCh,
-    CHAR newCh);
-
-// If pszInputString == NULL, then *ppszOutputString = NULL
-DWORD
-LsaStrDupOrNull(
-    PCSTR pszInputString,
-    PSTR *ppszOutputString
-    );
-
-
-// If pszInputString == NULL, return "", else return pszInputString
-// The return value does not need to be freed.
-PCSTR
-LsaEmptyStrForNull(
-    PCSTR pszInputString
-    );
-
-
-void
-LsaStrChr(
-    PCSTR pszInputString,
-    CHAR c,
-    PSTR *pszOutputString
-    );
-
-void
-LsaFreeStringArray(
-    PSTR * ppStringArray,
-    DWORD dwCount
-    );
-
-void
-LsaFreeNullTerminatedStringArray(
-    PSTR * ppStringArray
     );
 
 VOID

@@ -938,7 +938,7 @@ SamDbAddGenerateObjectSID(
                     &dwRID);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                     &pAttrValue->data.pszStringValue,
                     "%s-%u",
                     pszDomainSID,
@@ -1523,7 +1523,7 @@ SamDbFindDomainSID(
                     &pszDomainName);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                     &pszFilter,
                     pszQueryClause,
                     pszDomainName,

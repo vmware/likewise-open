@@ -60,7 +60,7 @@ LsaNetGetShortDomainName(
     PSTR  pszSiteName = NULL;
     DWORD dwFlags = 0;
 
-    if (IsNullOrEmptyString(pszDomainFQDN))
+    if (LW_IS_NULL_OR_EMPTY_STR(pszDomainFQDN))
     {
         dwError = LWNetGetCurrentDomain(&pszDefaultDomainFQDN);
         if (dwError != 0) {
@@ -83,13 +83,13 @@ LsaNetGetShortDomainName(
                 &pDCInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (IsNullOrEmptyString(pDCInfo->pszNetBIOSDomainName))
+    if (LW_IS_NULL_OR_EMPTY_STR(pDCInfo->pszNetBIOSDomainName))
     {
         dwError = LW_ERROR_NO_NETBIOS_NAME;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                 pDCInfo->pszNetBIOSDomainName,
                 &pszShortDomainName);
     BAIL_ON_LSA_ERROR(dwError);
@@ -111,7 +111,7 @@ error:
 
     *ppszShortDomainName = NULL;
 
-    LSA_SAFE_FREE_STRING(pszShortDomainName);
+    LW_SAFE_FREE_STRING(pszShortDomainName);
 
     goto cleanup;
 }
@@ -128,7 +128,7 @@ LsaNetGetDCName(
     PSTR  pszDCName = NULL;
     PLWNET_DC_INFO pDcInfo = NULL;
 
-    if (IsNullOrEmptyString(pszDomainFQDN))
+    if (LW_IS_NULL_OR_EMPTY_STR(pszDomainFQDN))
     {
         dwError = LWNetGetCurrentDomain(&pszDefaultDomainFQDN);
         if (dwError)
@@ -154,7 +154,7 @@ LsaNetGetDCName(
     }
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateString(pDcInfo->pszDomainControllerName, &pszDCName);
+    dwError = LwAllocateString(pDcInfo->pszDomainControllerName, &pszDCName);
     BAIL_ON_LSA_ERROR(dwError);
 
 error:
@@ -166,7 +166,7 @@ error:
 
     if (dwError)
     {
-        LSA_SAFE_FREE_STRING(pszDCName)
+        LW_SAFE_FREE_STRING(pszDCName);
     }
 
     *ppszDCName = pszDCName;
@@ -217,8 +217,8 @@ LsaGetDnsDomainName(
                 &pAcct);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (!IsNullOrEmptyString(pAcct->pszDnsDomainName)) {
-        dwError = LsaAllocateString(
+    if (!LW_IS_NULL_OR_EMPTY_STR(pAcct->pszDnsDomainName)) {
+        dwError = LwAllocateString(
                         pAcct->pszDnsDomainName,
                         &pszDnsDomainName);
         BAIL_ON_LSA_ERROR(dwError);
@@ -236,7 +236,7 @@ cleanup:
         LsaFreeMachineAccountInfo(pAcct);
     }
 
-    LSA_SAFE_FREE_STRING(pszHostname);
+    LW_SAFE_FREE_STRING(pszHostname);
 
     if (pszDomain)
     {
@@ -253,7 +253,7 @@ error:
 
     *ppszDnsDomainName = NULL;
 
-    LSA_SAFE_FREE_STRING(pszDnsDomainName);
+    LW_SAFE_FREE_STRING(pszDnsDomainName);
 
     goto cleanup;
 }
@@ -313,7 +313,7 @@ LsaGetComputerDN(
                     &pAcct);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                 &pszUsername,
                 "%s@%s",
                 pAcct->pszMachineAccount,
@@ -355,10 +355,10 @@ LsaGetComputerDN(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszHostname);
-    LSA_SAFE_FREE_STRING(pszRootDN);
-    LSA_SAFE_FREE_STRING(pszUsername);
-    LSA_SAFE_FREE_STRING(pszKrb5CachePath);
+    LW_SAFE_FREE_STRING(pszHostname);
+    LW_SAFE_FREE_STRING(pszRootDN);
+    LW_SAFE_FREE_STRING(pszUsername);
+    LW_SAFE_FREE_STRING(pszKrb5CachePath);
 
     if (pszDomain)
     {
@@ -387,7 +387,7 @@ error:
 
     *ppszComputerDN = NULL;
 
-    LSA_SAFE_FREE_STRING(pszComputerDN);
+    LW_SAFE_FREE_STRING(pszComputerDN);
 
     goto cleanup;
 }
@@ -422,7 +422,7 @@ LsaSrvJoinFindComputerDN(
                     pszHostName);
     BAIL_ON_LSA_ERROR(dwError);
 
-    LsaStrToUpper(pszEscapedUpperHostName);
+    LwStrToUpper(pszEscapedUpperHostName);
 
     sprintf(szQuery, "(sAMAccountName=%s)", pszEscapedUpperHostName);
 
@@ -453,7 +453,7 @@ LsaSrvJoinFindComputerDN(
                     &pszComputerDN);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (IsNullOrEmptyString(pszComputerDN))
+    if (LW_IS_NULL_OR_EMPTY_STR(pszComputerDN))
     {
         dwError = LW_ERROR_LDAP_FAILED_GETDN;
         BAIL_ON_LSA_ERROR(dwError);
@@ -463,20 +463,20 @@ LsaSrvJoinFindComputerDN(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszDirectoryRoot);
+    LW_SAFE_FREE_STRING(pszDirectoryRoot);
 
     if (pMessage) {
         ldap_msgfree(pMessage);
     }
 
-    LSA_SAFE_FREE_STRING(pszEscapedUpperHostName);
+    LW_SAFE_FREE_STRING(pszEscapedUpperHostName);
 
     return dwError;
 
 error:
 
     *ppszComputerDN = NULL;
-    LSA_SAFE_FREE_STRING(pszComputerDN);
+    LW_SAFE_FREE_STRING(pszComputerDN);
 
     goto cleanup;
 }
@@ -486,5 +486,5 @@ LsaNetFreeString(
     PSTR pszString
     )
 {
-    LSA_SAFE_FREE_MEMORY(pszString);
+    LW_SAFE_FREE_MEMORY(pszString);
 }

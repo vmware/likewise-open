@@ -183,7 +183,7 @@ LsaLdapOpenDirectoryWithReaffinity(
 cleanup:
     for (dwIndex = 0; dwIndex < dwBlackListCount; dwIndex++)
     {
-        LSA_SAFE_FREE_STRING(ppszBlackList[dwIndex]);
+        LW_SAFE_FREE_STRING(ppszBlackList[dwIndex]);
     }
     LWNET_SAFE_FREE_DC_INFO(pDCInfo);
     return dwError;

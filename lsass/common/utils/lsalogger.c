@@ -85,7 +85,7 @@ LsaInitLogging(
 
         case LSA_LOG_TARGET_FILE:
 
-            if (IsNullOrEmptyString(pszPath))
+            if (LW_IS_NULL_OR_EMPTY_STR(pszPath))
             {
                 dwError = LW_ERROR_INVALID_PARAMETER;
                 BAIL_ON_LSA_ERROR(dwError);
@@ -135,7 +135,7 @@ LsaLogGetInfo(
         case LSA_LOG_TARGET_CONSOLE:
         case LSA_LOG_TARGET_SYSLOG:
 
-            dwError = LsaAllocateMemory(
+            dwError = LwAllocateMemory(
                             sizeof(LSA_LOG_INFO),
                             (PVOID*)&pLogInfo);
             BAIL_ON_LSA_ERROR(dwError);

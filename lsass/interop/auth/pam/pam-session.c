@@ -123,7 +123,7 @@ cleanup:
         LsaPamFreeConfig(pConfig);
     }
 
-    LSA_SAFE_FREE_STRING(pszLoginId);
+    LW_SAFE_FREE_STRING(pszLoginId);
 
     LSA_LOG_PAM_DEBUG("pam_sm_open_session::end");
 
@@ -281,7 +281,7 @@ cleanup:
         LsaPamFreeConfig(pConfig);
     }
 
-    LSA_SAFE_FREE_STRING(pszLoginId);
+    LW_SAFE_FREE_STRING(pszLoginId);
 
     LSA_LOG_PAM_DEBUG("pam_sm_close_session::end");
 

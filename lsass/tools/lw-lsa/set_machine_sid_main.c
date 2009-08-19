@@ -104,7 +104,7 @@ set_machine_sid_main(
 
 cleanup:
     if (pszMachineSid) {
-        LSA_SAFE_FREE_STRING(pszMachineSid);
+        LW_SAFE_FREE_STRING(pszMachineSid);
     }
 
     return dwError;
@@ -116,7 +116,7 @@ error:
     {
         PSTR  pszErrorBuffer = NULL;
 
-        dwError = LsaAllocateMemory(
+        dwError = LwAllocateMemory(
                      dwErrorBufferSize,
                      (PVOID*)&pszErrorBuffer);
 
@@ -128,14 +128,14 @@ error:
                                       pszErrorBuffer,
                                       dwErrorBufferSize);
             if ((dwLen == dwErrorBufferSize) &&
-                !IsNullOrEmptyString(pszErrorBuffer))
+                !LW_IS_NULL_OR_EMPTY_STR(pszErrorBuffer))
             {
                 fprintf(stderr, "Failed to modify SID.  %s\n", pszErrorBuffer);
                 bPrintOrigError = FALSE;
             }
         }
 
-        LSA_SAFE_FREE_STRING(pszErrorBuffer);
+        LW_SAFE_FREE_STRING(pszErrorBuffer);
     }
 
     if (bPrintOrigError)
@@ -188,7 +188,7 @@ ParseArgs(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaAllocateString(argv[1], &pszSid);
+    dwError = LwAllocateString(argv[1], &pszSid);
     BAIL_ON_LSA_ERROR(dwError);
 
     *ppszSid = pszSid;
@@ -198,7 +198,7 @@ cleanup:
 
 error:
     if (pszSid) {
-        LSA_SAFE_FREE_STRING(pszSid);
+        LW_SAFE_FREE_STRING(pszSid);
     }
 
     *ppszSid = NULL;

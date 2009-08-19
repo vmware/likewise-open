@@ -73,7 +73,7 @@ LsaPrincipalRealmToUpper(
     pszAt = strchr(pszPrincipal, '@');
     if (pszAt)
     {
-        LsaStrToUpper(pszAt + 1);
+        LwStrToUpper(pszAt + 1);
     }
 }
 

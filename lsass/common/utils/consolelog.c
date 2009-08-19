@@ -58,7 +58,7 @@ LsaOpenConsoleLog(
     DWORD dwError = 0;
     PLSA_CONSOLE_LOG pConsoleLog = NULL;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(LSA_CONSOLE_LOG),
                     (PVOID*)&pConsoleLog);
     if (dwError)
@@ -202,5 +202,5 @@ LsaFreeConsoleLogInfo(
     PLSA_CONSOLE_LOG pConsoleLog
     )
 {
-    LsaFreeMemory(pConsoleLog);
+    LwFreeMemory(pConsoleLog);
 }

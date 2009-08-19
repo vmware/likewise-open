@@ -56,10 +56,10 @@ LsaFreeSIDInfoList(
     size_t iSID = 0;
     for (; iSID < stNumSID; iSID++)
     {
-        LSA_SAFE_FREE_STRING(pSIDInfoList[iSID].pszDomainName);
-        LSA_SAFE_FREE_STRING(pSIDInfoList[iSID].pszSamAccountName);
+        LW_SAFE_FREE_STRING(pSIDInfoList[iSID].pszDomainName);
+        LW_SAFE_FREE_STRING(pSIDInfoList[iSID].pszSamAccountName);
     }
-    LsaFreeMemory(pSIDInfoList);
+    LwFreeMemory(pSIDInfoList);
 }
 
 VOID
@@ -67,9 +67,9 @@ LsaFreeSIDInfo(
     PLSA_SID_INFO pSIDInfo
     )
 {
-    LSA_SAFE_FREE_STRING(pSIDInfo->pszSamAccountName);
-    LSA_SAFE_FREE_STRING(pSIDInfo->pszDomainName);
-    LsaFreeMemory(pSIDInfo);
+    LW_SAFE_FREE_STRING(pSIDInfo->pszSamAccountName);
+    LW_SAFE_FREE_STRING(pSIDInfo->pszDomainName);
+    LwFreeMemory(pSIDInfo);
 }
 
 void
@@ -80,6 +80,6 @@ LsaFreeIpcNameSidsList(
     if (pNameSidsList)
     {
         LsaFreeSIDInfoList(pNameSidsList->pSIDInfoList, pNameSidsList->sCount);
-        LsaFreeMemory(pNameSidsList);
+        LwFreeMemory(pNameSidsList);
     }
 }

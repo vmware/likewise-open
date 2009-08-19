@@ -159,7 +159,7 @@ AD_CreateEnumState(
     DWORD dwError = 0;
     PAD_ENUM_STATE pEnumState = NULL;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
         sizeof(AD_ENUM_STATE),
         (PVOID*)&pEnumState);
     BAIL_ON_LSA_ERROR(dwError);
@@ -171,7 +171,7 @@ AD_CreateEnumState(
 
     if (pszMapName)
     {
-        dwError = LsaAllocateString(pszMapName, &pEnumState->pszMapName);
+        dwError = LwAllocateString(pszMapName, &pEnumState->pszMapName);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -209,8 +209,8 @@ AD_FreeEnumState(
     {
         LwFreeCookieContents(&pState->Cookie);
 
-        LSA_SAFE_FREE_STRING(pState->pszMapName);
+        LW_SAFE_FREE_STRING(pState->pszMapName);
 
-        LsaFreeMemory(pState);
+        LwFreeMemory(pState);
     }
 }

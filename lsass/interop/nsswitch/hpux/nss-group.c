@@ -72,7 +72,7 @@ LsaNssHpuxGroupDestructor(
     LsaNssClearEnumGroupsState(
         &pLsaBackend->hLsaConnectionGroup,
         pEnumGroupsState);
-    LsaFreeMemory(pBackend);
+    LwFreeMemory(pBackend);
 
     return ret;
 }
@@ -292,7 +292,7 @@ LsaNssHpuxGroupCreateBackend(
 {
     PLSA_NSS_GROUP_BACKEND pLsaBackend = NULL;
 
-    if (LsaAllocateMemory(sizeof(*pLsaBackend), (void**) &pLsaBackend))
+    if (LwAllocateMemory(sizeof(*pLsaBackend), (void**) &pLsaBackend))
     {
         return NULL;
     }

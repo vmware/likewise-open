@@ -238,7 +238,7 @@ LsaUmpDestroyMutex(
     if (*ppMutex)
     {
         pthread_mutex_destroy(*ppMutex);
-        LsaFreeMemory(*ppMutex);
+        LwFreeMemory(*ppMutex);
         *ppMutex = NULL;
     }
 }
@@ -268,7 +268,7 @@ LsaUmpCreateMutex(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                   sizeof(*pMutex),
                   (PVOID*)&pMutex);
     BAIL_ON_LSA_ERROR(dwError);
@@ -289,7 +289,7 @@ cleanup:
 
 error:
     // Note that we do not need to destroy as we failed to init.
-    LSA_SAFE_FREE_MEMORY(pMutex);
+    LW_SAFE_FREE_MEMORY(pMutex);
     goto cleanup;
 }
 
@@ -329,7 +329,7 @@ LsaUmpDestroyCond(
     if (*ppCond)
     {
         pthread_cond_destroy(*ppCond);
-        LsaFreeMemory(*ppCond);
+        LwFreeMemory(*ppCond);
         *ppCond = NULL;
     }
 }
@@ -343,7 +343,7 @@ LsaUmpCreateCond(
     DWORD            dwError = 0;
     pthread_cond_t * pCond = NULL;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                   sizeof(*pCond),
                   (PVOID*)&pCond);
     BAIL_ON_LSA_ERROR(dwError);
@@ -356,7 +356,7 @@ cleanup:
     return dwError;
 
 error:
-    LSA_SAFE_FREE_MEMORY(pCond);
+    LW_SAFE_FREE_MEMORY(pCond);
     goto cleanup;
 }
 
@@ -394,9 +394,9 @@ LsaUmpStateDestroy(
 
         LsaUmpFreeRequestList( Handle->RequestList );
 
-        LSA_SAFE_FREE_MEMORY(Handle->kSchedules);
+        LW_SAFE_FREE_MEMORY(Handle->kSchedules);
 
-        LSA_SAFE_FREE_MEMORY(Handle);
+        LW_SAFE_FREE_MEMORY(Handle);
     }
 }
 
@@ -420,7 +420,7 @@ LsaUmpStateCreate(
     PLSA_UM_STATE pState = NULL;
     BOOLEAN       bIsAcquired = FALSE;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                   sizeof(*pState),
                   (PVOID*)&pState);
     BAIL_ON_LSA_ERROR(dwError);
@@ -444,12 +444,12 @@ LsaUmpStateCreate(
     dwError = LsaUmpCreateCond(&pState->CheckUsersThread.pCondition);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                   sizeof(*pState->UserList),
                   (PVOID*)&pState->UserList);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                   sizeof(*pState->kSchedules),
                   (PVOID*)&pState->kSchedules);
     BAIL_ON_LSA_ERROR(dwError);
@@ -767,7 +767,7 @@ LsaUmpCreateKeys(
             pszHostname,
             strlen(pszHostname));
 
-        LsaStrToLower(pszHostname);
+        LwStrToLower(pszHostname);
 
         dwError = LwKrb5GetMachineCreds(
                       &pszUsername,
@@ -829,11 +829,11 @@ cleanup:
 
     memset(&Key, 0, sizeof(Key));
 
-    LSA_SAFE_FREE_STRING(pszHostname);
-    LSA_SAFE_FREE_STRING(pszUsername);
-    LSA_SAFE_CLEAR_FREE_STRING(pszServicePassword);
-    LSA_SAFE_FREE_STRING(pszDomainDnsName);
-    LSA_SAFE_FREE_STRING(pszHostDnsDomain);
+    LW_SAFE_FREE_STRING(pszHostname);
+    LW_SAFE_FREE_STRING(pszUsername);
+    LW_SAFE_CLEAR_FREE_STRING(pszServicePassword);
+    LW_SAFE_FREE_STRING(pszDomainDnsName);
+    LW_SAFE_FREE_STRING(pszHostDnsDomain);
 
 
     return dwError;
@@ -872,7 +872,7 @@ LsaUmpEncryptString(
         dwEncryptLen = ((dwEncryptLen / 8) + 1) * 8;
     }
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                   dwEncryptLen,
                   (PVOID *)&pszDataString);
     BAIL_ON_LSA_ERROR(dwError);
@@ -882,7 +882,7 @@ LsaUmpEncryptString(
            pszString,
            dwStringLen);
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                   dwEncryptLen,
                   &pEncString);
     BAIL_ON_LSA_ERROR(dwError);
@@ -906,7 +906,7 @@ LsaUmpEncryptString(
 
 cleanup:
 
-    LSA_SAFE_FREE_MEMORY(pszDataString);
+    LW_SAFE_FREE_MEMORY(pszDataString);
 
     return dwError;
 
@@ -918,7 +918,7 @@ error:
     if ( pEncString )
     {
         memset(pEncString, 0, dwEncryptLen);
-        LSA_SAFE_FREE_MEMORY(pEncString);
+        LW_SAFE_FREE_MEMORY(pEncString);
     }
 
     goto cleanup;
@@ -942,7 +942,7 @@ LsaUmpDecryptString(
 
     memset(&iv ,0 ,sizeof(iv));
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                   dwDecryptLen,
                   &pDecString);
     BAIL_ON_LSA_ERROR(dwError);
@@ -962,7 +962,7 @@ LsaUmpDecryptString(
         DES_DECRYPT);
 
     // remove the random prefix
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                   &((CHAR *)pDecString)[8],
                   &pszString);
     BAIL_ON_LSA_ERROR(dwError);
@@ -974,7 +974,7 @@ cleanup:
     if ( pDecString )
     {
         memset(pDecString, 0, dwDecryptLen);
-        LSA_SAFE_FREE_MEMORY(pDecString);
+        LW_SAFE_FREE_MEMORY(pDecString);
     }
 
     return dwError;
@@ -983,7 +983,7 @@ error:
 
     *ppszString = NULL;
 
-    LSA_SAFE_CLEAR_FREE_STRING(pszString);
+    LW_SAFE_CLEAR_FREE_STRING(pszString);
 
     goto cleanup;
 }
@@ -998,7 +998,7 @@ LsaUmpFreePassword(
     if ( pPassword )
     {
         memset(pPassword, 0, dwPasswordLen);
-        LSA_SAFE_FREE_MEMORY(pPassword);
+        LW_SAFE_FREE_MEMORY(pPassword);
     }
 }
 
@@ -1022,10 +1022,10 @@ LsaUmpFreeUserList(
             pItem->pPassword,
             pItem->dwPasswordLen);
 
-        LSA_SAFE_FREE_MEMORY(pItem);
+        LW_SAFE_FREE_MEMORY(pItem);
     }
 
-    LSA_SAFE_FREE_MEMORY(pUserList);
+    LW_SAFE_FREE_MEMORY(pUserList);
 
     return;
 }
@@ -1042,7 +1042,7 @@ LsaUmpFreeRequest(
             pRequest->pPassword,
             pRequest->dwPasswordLen);
 
-        LSA_SAFE_FREE_MEMORY(pRequest);
+        LW_SAFE_FREE_MEMORY(pRequest);
     }
 
     return;
@@ -1112,7 +1112,7 @@ LsaUmpAddUser(
 
     LSA_LOG_DEBUG("LSA User Manager - requesting user addition %u", uUid);
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                   sizeof(*pRequest),
                   (PVOID*)&pRequest);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1163,7 +1163,7 @@ LsaUmpModifyUser(
 
     LSA_LOG_DEBUG("LSA User Manager - requesting user modify %u", uUid);
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                   sizeof(*pRequest),
                   (PVOID*)&pRequest);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1212,7 +1212,7 @@ LsaUmpRemoveUser(
 
     LSA_LOG_DEBUG("LSA User Manager - requesting user removal %u", uUid);
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                   sizeof(*pRequest),
                   (PVOID*)&pRequest);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1316,7 +1316,7 @@ LsaUmpAddUserInternal(
     }
     else
     {
-        dwError = LsaAllocateMemory(
+        dwError = LwAllocateMemory(
                       sizeof(LSA_UM_USER_REFRESH_ITEM),
                       (PVOID*)&pNewUserItem);
         BAIL_ON_LSA_ERROR(dwError);
@@ -1346,7 +1346,7 @@ error:
             pNewUserItem->pPassword,
             pNewUserItem->dwPasswordLen);
 
-        LSA_SAFE_FREE_MEMORY(pNewUserItem);
+        LW_SAFE_FREE_MEMORY(pNewUserItem);
     }
 
     goto cleanup;
@@ -1462,7 +1462,7 @@ LsaUmpRemoveUserFromList(
             pUserItem->pPassword,
             pUserItem->dwPasswordLen);
 
-        LSA_SAFE_FREE_MEMORY(pUserItem);
+        LW_SAFE_FREE_MEMORY(pUserItem);
     }
 
     return dwError;
@@ -1531,7 +1531,7 @@ LsaUmpRefreshUserCreds(
 cleanup:
 
     ADCacheSafeFreeObject(&pUserInfo);
-    LSA_SAFE_CLEAR_FREE_STRING(pszPassword);
+    LW_SAFE_CLEAR_FREE_STRING(pszPassword);
 
     return dwError;
 
@@ -1566,7 +1566,7 @@ LsaUmpLogUserTGTRefreshSuccessEvent(
     DWORD dwError = 0;
     PSTR pszDescription = NULL;
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                  &pszDescription,
                  "Refreshed Active Directory user account Kerberos credentials.\r\n\r\n" \
                  "     Authentication provider:   %s\r\n\r\n" \
@@ -1588,7 +1588,7 @@ LsaUmpLogUserTGTRefreshSuccessEvent(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszDescription);
+    LW_SAFE_FREE_STRING(pszDescription);
 
     return;
 
@@ -1610,7 +1610,7 @@ LsaUmpLogUserTGTRefreshFailureEvent(
     PSTR pszDescription = NULL;
     PSTR pszData = NULL;
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                  &pszDescription,
                  "The Active Directory user account Kerberos credentials failed to refresh.\r\n\r\n" \
                  "     Authentication provider:   %s\r\n\r\n" \
@@ -1637,8 +1637,8 @@ LsaUmpLogUserTGTRefreshFailureEvent(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszDescription);
-    LSA_SAFE_FREE_STRING(pszData);
+    LW_SAFE_FREE_STRING(pszDescription);
+    LW_SAFE_FREE_STRING(pszData);
 
     return;
 

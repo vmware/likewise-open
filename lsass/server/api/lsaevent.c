@@ -371,7 +371,7 @@ LsaSrvLogUserIDConflictEvent(
     PSTR pszUserIDConflictDescription = NULL;
     PSTR pszData = NULL;
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                  &pszUserIDConflictDescription,
                  "Likewise account provisioning conflict.\r\n\r\n" \
                  "     Authentication provider: %s\r\n\r\n" \
@@ -393,8 +393,8 @@ LsaSrvLogUserIDConflictEvent(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszUserIDConflictDescription);
-    LSA_SAFE_FREE_STRING(pszData);
+    LW_SAFE_FREE_STRING(pszUserIDConflictDescription);
+    LW_SAFE_FREE_STRING(pszData);
 
     return;
 
@@ -415,7 +415,7 @@ LsaSrvLogUserAliasConflictEvent(
     PSTR pszUserAliasConflictDescription = NULL;
     PSTR pszData = NULL;
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                  &pszUserAliasConflictDescription,
                  "Likewise account provisioning conflict.\r\n\r\n" \
                  "     Authentication provider: %s\r\n\r\n" \
@@ -437,8 +437,8 @@ LsaSrvLogUserAliasConflictEvent(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszUserAliasConflictDescription);
-    LSA_SAFE_FREE_STRING(pszData);
+    LW_SAFE_FREE_STRING(pszUserAliasConflictDescription);
+    LW_SAFE_FREE_STRING(pszData);
 
     return;
 
@@ -460,7 +460,7 @@ LsaSrvLogDuplicateObjectFoundEvent(
     PSTR pszObjectDuplicateDescription = NULL;
     PSTR pszData = NULL;
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                  &pszObjectDuplicateDescription,
                  "Likewise account provisioning conflict\r\n\r\n" \
                  "     Authentication provider: %s\r\n\r\n" \
@@ -484,8 +484,8 @@ LsaSrvLogDuplicateObjectFoundEvent(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszObjectDuplicateDescription);
-    LSA_SAFE_FREE_STRING(pszData);
+    LW_SAFE_FREE_STRING(pszObjectDuplicateDescription);
+    LW_SAFE_FREE_STRING(pszData);
 
     return;
 

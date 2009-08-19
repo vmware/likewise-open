@@ -132,12 +132,12 @@ main(
     {
         printf("User info:\n");
         printf("==========\n");
-        printf("Name:     %s\n", IsNullOrEmptyString(pUser->pw_name) ? "<null>" : pUser->pw_name);
+        printf("Name:     %s\n", LW_IS_NULL_OR_EMPTY_STR(pUser->pw_name) ? "<null>" : pUser->pw_name);
         printf("Uid:      %u\n", (unsigned int)pUser->pw_uid);
         printf("Gid:      %u\n", (unsigned int)pUser->pw_gid);
-        printf("Gecos:    %s\n", IsNullOrEmptyString(pUser->pw_gecos) ? "<null>" : pUser->pw_gecos);
-        printf("Shell:    %s\n", IsNullOrEmptyString(pUser->pw_shell) ? "<null>" : pUser->pw_shell);
-        printf("Home dir: %s\n", IsNullOrEmptyString(pUser->pw_dir) ? "<null>" : pUser->pw_dir);
+        printf("Gecos:    %s\n", LW_IS_NULL_OR_EMPTY_STR(pUser->pw_gecos) ? "<null>" : pUser->pw_gecos);
+        printf("Shell:    %s\n", LW_IS_NULL_OR_EMPTY_STR(pUser->pw_shell) ? "<null>" : pUser->pw_shell);
+        printf("Home dir: %s\n", LW_IS_NULL_OR_EMPTY_STR(pUser->pw_dir) ? "<null>" : pUser->pw_dir);
     }
     else
     {

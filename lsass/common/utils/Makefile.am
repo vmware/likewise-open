@@ -21,7 +21,6 @@ liblsautils_la_SOURCES =       \
        lsamem.c                \
        lsapaths.c              \
        lsastack.c              \
-       lsastr.c                \
        lsaprincipal.c          \
        lsahash.c               \
        lsastatus.c             \

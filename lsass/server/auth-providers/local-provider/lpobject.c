@@ -90,7 +90,7 @@ LocalFindObjectByName(
     PWSTR pwszObjectDN = NULL;
     DWORD dwObjectClass = LOCAL_OBJECT_CLASS_UNKNOWN;
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                     &pszFilter,
                     pszFilterTemplate,
                     pszName,
@@ -147,8 +147,8 @@ LocalFindObjectByName(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszFilter);
-    LSA_SAFE_FREE_MEMORY(pwszFilter);
+    LW_SAFE_FREE_STRING(pszFilter);
+    LW_SAFE_FREE_MEMORY(pwszFilter);
 
     if (pEntries)
     {
@@ -162,7 +162,7 @@ error:
     *pdwObjectClass = LOCAL_OBJECT_CLASS_UNKNOWN;
     *ppwszObjectDN = NULL;
 
-    LSA_SAFE_FREE_MEMORY(pwszObjectDN);
+    LW_SAFE_FREE_MEMORY(pwszObjectDN);
 
     goto cleanup;
 }
@@ -183,17 +183,17 @@ LocalDirGetNamesBySidList(
     ADAccountType* pTypes = NULL;
     size_t iSid = 0;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                         sizeof(PSTR) * sCount,
                         (PVOID*)&ppszDomainNames);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(PSTR) * sCount,
                     (PVOID*)&ppszSamAccounts);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(ADAccountType*) * sCount,
                     (PVOID*)&pTypes);
     BAIL_ON_LSA_ERROR(dwError);
@@ -259,9 +259,9 @@ error:
     *pppszSamAccounts = NULL;
     *ppTypes = NULL;
 
-    LsaFreeStringArray(ppszDomainNames, sCount);
-    LsaFreeStringArray(ppszSamAccounts, sCount);
-    LSA_SAFE_FREE_MEMORY(pTypes);
+    LwFreeStringArray(ppszDomainNames, sCount);
+    LwFreeStringArray(ppszSamAccounts, sCount);
+    LW_SAFE_FREE_MEMORY(pTypes);
 
     goto cleanup;
 }
@@ -299,7 +299,7 @@ LocalDirFindObjectBySID(
     PSTR  pszSamAccountName = NULL;
     PSTR  pszNetBIOSDomain = NULL;
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                     &pszFilter,
                     pszFilterTemplate,
                     pszSID);
@@ -362,8 +362,8 @@ LocalDirFindObjectBySID(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszFilter);
-    LSA_SAFE_FREE_MEMORY(pwszFilter);
+    LW_SAFE_FREE_STRING(pszFilter);
+    LW_SAFE_FREE_MEMORY(pwszFilter);
 
     if (pEntries)
     {
@@ -378,8 +378,8 @@ error:
     *ppszName = NULL;
     *ppszNetBIOSDomain = NULL;
 
-    LSA_SAFE_FREE_MEMORY(pszNetBIOSDomain);
-    LSA_SAFE_FREE_MEMORY(pszSamAccountName);
+    LW_SAFE_FREE_MEMORY(pszNetBIOSDomain);
+    LW_SAFE_FREE_MEMORY(pszSamAccountName);
 
     goto cleanup;
 }

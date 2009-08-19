@@ -90,7 +90,7 @@ LsaNssGetNumberFooMembers(
     DWORD dwNumMembers = 0;
 
     if (ppszMembers){
-       for (; ppszMembers && !IsNullOrEmptyString(*ppszMembers); ppszMembers++)
+       for (; ppszMembers && !LW_IS_NULL_OR_EMPTY_STR(*ppszMembers); ppszMembers++)
        {
            dwNumMembers++;
        }
@@ -109,11 +109,11 @@ LsaNssComputeFooStringLength(
     PSTR* ppszMember = NULL;
     DWORD dwNumMembers = 0;
 
-    if (!IsNullOrEmptyString(pNSSArtefactInfo->pszName)) {
+    if (!LW_IS_NULL_OR_EMPTY_STR(pNSSArtefactInfo->pszName)) {
        dwLength += strlen(pNSSArtefactInfo->pszName) + 1;
     }
 
-    if (!IsNullOrEmptyString(pNSSArtefactInfo->pszPasswd)) {
+    if (!LW_IS_NULL_OR_EMPTY_STR(pNSSArtefactInfo->pszPasswd)) {
        dwLength += strlen(pNSSArtefactInfo->pszPasswd) + 1;
     }
 
@@ -121,7 +121,7 @@ LsaNssComputeFooStringLength(
     dwLength += dwAlignBytes;
 
     for(ppszMember = pNSSArtefactInfo->ppszMembers;
-        ppszMember && !IsNullOrEmptyString(*ppszMember);
+        ppszMember && !LW_IS_NULL_OR_EMPTY_STR(*ppszMember);
         ppszMember++)
     {
         dwLength += sizeof(PSTR);
@@ -203,14 +203,14 @@ LsaNssWriteFooInfo(
         pszMarker = ++pszMemberMarker; // skip NULL
     }
 
-    if (!IsNullOrEmptyString(pGroupInfo_1->pszName)) {
+    if (!LW_IS_NULL_OR_EMPTY_STR(pGroupInfo_1->pszName)) {
        dwLen = strlen(pGroupInfo_1->pszName);
        memcpy(pszMarker, pGroupInfo_1->pszName, dwLen);
        pResultFoo->gr_name = pszMarker;
        pszMarker += dwLen + 1;
     }
 
-    if (!IsNullOrEmptyString(pGroupInfo_1->pszPasswd)) {
+    if (!LW_IS_NULL_OR_EMPTY_STR(pGroupInfo_1->pszPasswd)) {
        dwLen = strlen(pGroupInfo_1->pszPasswd);
        memcpy(pszMarker, pGroupInfo_1->pszPasswd, dwLen);
        pResultFoo->gr_passwd = pszMarker;

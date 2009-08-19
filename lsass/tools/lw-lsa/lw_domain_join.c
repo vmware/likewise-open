@@ -105,10 +105,10 @@ LwDomainJoin(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszHostname);
-    LSA_SAFE_FREE_STRING(pszOSName);
-    LSA_SAFE_FREE_STRING(pszOSVersion);
-    LSA_SAFE_FREE_STRING(pszOSServicePack);
+    LW_SAFE_FREE_STRING(pszHostname);
+    LW_SAFE_FREE_STRING(pszOSName);
+    LW_SAFE_FREE_STRING(pszOSVersion);
+    LW_SAFE_FREE_STRING(pszOSServicePack);
 
     return dwError;
 
@@ -142,7 +142,7 @@ LwGetDistroInfo(
                     &pszOSName);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                     pDistroInfo->pszVersion,
                     &pszOSVersion);
     BAIL_ON_LSA_ERROR(dwError);
@@ -153,7 +153,7 @@ LwGetDistroInfo(
                     &pszLikewiseRevision);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                     &pszOSServicePack,
                     "Likewise Identity %s.%s.%s",
                     LSA_SAFE_LOG_STRING(pszLikewiseVersion),
@@ -172,17 +172,17 @@ cleanup:
         LwFreeDistroInfo(pDistroInfo);
     }
 
-    LSA_SAFE_FREE_STRING(pszLikewiseVersion);
-    LSA_SAFE_FREE_STRING(pszLikewiseBuild);
-    LSA_SAFE_FREE_STRING(pszLikewiseRevision);
+    LW_SAFE_FREE_STRING(pszLikewiseVersion);
+    LW_SAFE_FREE_STRING(pszLikewiseBuild);
+    LW_SAFE_FREE_STRING(pszLikewiseRevision);
 
     return dwError;
 
 error:
 
-    LSA_SAFE_FREE_STRING(pszOSName);
-    LSA_SAFE_FREE_STRING(pszOSVersion);
-    LSA_SAFE_FREE_STRING(pszOSServicePack);
+    LW_SAFE_FREE_STRING(pszOSName);
+    LW_SAFE_FREE_STRING(pszOSVersion);
+    LW_SAFE_FREE_STRING(pszOSServicePack);
 
     goto cleanup;
 

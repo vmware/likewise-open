@@ -69,9 +69,9 @@ LocalCrackDomainQualifiedName(
     if (!strcasecmp(pNameInfo->pszDomainNetBiosName,
                     gLPGlobals.pszBuiltinDomain))
     {
-        LSA_SAFE_FREE_STRING(pNameInfo->pszFullDomainName);
+        LW_SAFE_FREE_STRING(pNameInfo->pszFullDomainName);
 
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
                         gLPGlobals.pszBuiltinDomain,
                         &pNameInfo->pszFullDomainName);
         BAIL_ON_LSA_ERROR(dwError);
@@ -79,9 +79,9 @@ LocalCrackDomainQualifiedName(
     else if (!strcasecmp(pNameInfo->pszDomainNetBiosName,
                          gLPGlobals.pszNetBIOSName))
     {
-        LSA_SAFE_FREE_STRING(pNameInfo->pszFullDomainName);
+        LW_SAFE_FREE_STRING(pNameInfo->pszFullDomainName);
 
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
                         gLPGlobals.pszLocalDomain,
                         &pNameInfo->pszFullDomainName);
         BAIL_ON_LSA_ERROR(dwError);
@@ -134,7 +134,7 @@ LocalBuildDN(
     dwLenName = strlen (pLoginInfo->pszName);
     sLenRequired += dwLenName;
 
-    if (!IsNullOrEmptyString(pLoginInfo->pszFullDomainName))
+    if (!LW_IS_NULL_OR_EMPTY_STR(pLoginInfo->pszFullDomainName))
     {
         PCSTR pszCursor = pLoginInfo->pszFullDomainName;
         size_t sLenAvailable = strlen(pLoginInfo->pszFullDomainName);
@@ -161,7 +161,7 @@ LocalBuildDN(
 
     sLenRequired++;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sLenRequired,
                     (PVOID*)&pszDN);
     BAIL_ON_LSA_ERROR(dwError);
@@ -173,7 +173,7 @@ LocalBuildDN(
     memcpy(pszDNCursor, pLoginInfo->pszName, dwLenName);
     pszDNCursor += dwLenName;
 
-    if (!IsNullOrEmptyString(pLoginInfo->pszFullDomainName))
+    if (!LW_IS_NULL_OR_EMPTY_STR(pLoginInfo->pszFullDomainName))
     {
         PCSTR pszCursor = pLoginInfo->pszFullDomainName;
         size_t sLenAvailable = strlen(pLoginInfo->pszFullDomainName);
@@ -209,7 +209,7 @@ LocalBuildDN(
 
 cleanup:
 
-    LSA_SAFE_FREE_MEMORY(pszDN);
+    LW_SAFE_FREE_MEMORY(pszDN);
 
     return dwError;
 
@@ -217,7 +217,7 @@ error:
 
     *ppwszDN = NULL;
 
-    LSA_SAFE_FREE_MEMORY(pwszDN);
+    LW_SAFE_FREE_MEMORY(pwszDN);
 
     goto cleanup;
 }
@@ -289,7 +289,7 @@ LocalBuildHomeDirPathFromTemplate(
                         dwHostNameLength +
                         1);
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(CHAR) * dwBytesAllocated,
                     (PVOID*)&pszHomedir);
     BAIL_ON_LSA_ERROR(dwError);
@@ -354,7 +354,7 @@ LocalBuildHomeDirPathFromTemplate(
             // We will increment by at least a minimum amount.
             DWORD dwAllocate = LSA_MAX(dwInsertLength - dwBytesRemaining, 64);
             PSTR pszNewHomedir = NULL;
-            dwError = LsaReallocMemory(
+            dwError = LwReallocMemory(
                             pszHomedir,
                             (PVOID*)&pszNewHomedir,
                             dwBytesAllocated + dwAllocate);
@@ -367,11 +367,11 @@ LocalBuildHomeDirPathFromTemplate(
                dwInsertLength);
         if (bNeedUpper)
         {
-            LsaStrnToUpper(pszHomedir + dwOffset, dwInsertLength);
+            LwStrnToUpper(pszHomedir + dwOffset, dwInsertLength);
         }
         else if (bNeedLower)
         {
-            LsaStrnToLower(pszHomedir + dwOffset, dwInsertLength);
+            LwStrnToLower(pszHomedir + dwOffset, dwInsertLength);
         }
         dwOffset += dwInsertLength;
     }
@@ -386,9 +386,9 @@ LocalBuildHomeDirPathFromTemplate(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszHomedirTemplate);
-    LSA_SAFE_FREE_STRING(pszHomedirPrefix);
-    LSA_SAFE_FREE_STRING(pszHostName);
+    LW_SAFE_FREE_STRING(pszHomedirTemplate);
+    LW_SAFE_FREE_STRING(pszHomedirPrefix);
+    LW_SAFE_FREE_STRING(pszHostName);
 
     return dwError;
 
@@ -396,7 +396,7 @@ error:
 
     *ppszHomedir = NULL;
 
-    LSA_SAFE_FREE_MEMORY(pszHomedir);
+    LW_SAFE_FREE_MEMORY(pszHomedir);
 
     goto cleanup;
 }

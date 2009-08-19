@@ -246,7 +246,7 @@ LsaDmpDestroyMutex(
     if (*ppMutex)
     {
         pthread_mutex_destroy(*ppMutex);
-        LsaFreeMemory(*ppMutex);
+        LwFreeMemory(*ppMutex);
         *ppMutex = NULL;
     }
 }
@@ -274,7 +274,7 @@ LsaDmpCreateMutex(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaAllocateMemory(sizeof(*pMutex), (PVOID*)&pMutex);
+    dwError = LwAllocateMemory(sizeof(*pMutex), (PVOID*)&pMutex);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = pthread_mutex_init(pMutex, pMutexAttr);
@@ -291,7 +291,7 @@ cleanup:
 
 error:
     // Note that we do not need to destroy as we failed to init.
-    LSA_SAFE_FREE_MEMORY(pMutex);
+    LW_SAFE_FREE_MEMORY(pMutex);
     goto cleanup;
 }
 
@@ -331,7 +331,7 @@ LsaDmpDestroyCond(
     if (*ppCond)
     {
         pthread_cond_destroy(*ppCond);
-        LsaFreeMemory(*ppCond);
+        LwFreeMemory(*ppCond);
         *ppCond = NULL;
     }
 }
@@ -345,7 +345,7 @@ LsaDmpCreateCond(
     DWORD dwError = 0;
     pthread_cond_t* pCond = NULL;
 
-    dwError = LsaAllocateMemory(sizeof(*pCond), (PVOID*)&pCond);
+    dwError = LwAllocateMemory(sizeof(*pCond), (PVOID*)&pCond);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = pthread_cond_init(pCond, NULL);
@@ -356,7 +356,7 @@ cleanup:
     return dwError;
 
 error:
-    LSA_SAFE_FREE_MEMORY(pCond);
+    LW_SAFE_FREE_MEMORY(pCond);
     goto cleanup;
 }
 
@@ -539,10 +539,10 @@ LsaDmpStateDestroy(
         {
             PLSA_LIST_LINKS pLinks = LsaListRemoveHead(&Handle->UnknownDomainSidList);
             PLSA_DM_UNKNOWN_DOMAIN_SID_ENTRY pEntry = LW_STRUCT_FROM_FIELD(pLinks, LSA_DM_UNKNOWN_DOMAIN_SID_ENTRY, Links);
-            LsaFreeMemory(pEntry->pSid);
-            LsaFreeMemory(pEntry);
+            LwFreeMemory(pEntry->pSid);
+            LwFreeMemory(pEntry);
         }
-        LSA_SAFE_FREE_MEMORY(Handle);
+        LW_SAFE_FREE_MEMORY(Handle);
     }
 }
 
@@ -577,7 +577,7 @@ LsaDmpStateCreate(
     PLSA_DM_STATE pState = NULL;
     BOOLEAN bIsAcquired = FALSE;
 
-    dwError = LsaAllocateMemory(sizeof(*pState), (PVOID*)&pState);
+    dwError = LwAllocateMemory(sizeof(*pState), (PVOID*)&pState);
     BAIL_ON_LSA_ERROR(dwError);
 
     LsaListInit(&pState->UnknownDomainSidList);
@@ -818,7 +818,7 @@ LsaDmpDuplicateSid(
     if (pSid)
     {
         size_t size = RtlLengthSid(pSid);
-        dwError = LsaAllocateMemory(size, (PVOID*)ppSid);
+        dwError = LwAllocateMemory(size, (PVOID*)ppSid);
         BAIL_ON_LSA_ERROR(dwError);
         memcpy(*ppSid, pSid, size);
     }
@@ -842,16 +842,16 @@ LsaDmpDuplicateDcInfo(
     DWORD dwError = 0;
     PLSA_DM_DC_INFO pResultDcInfo = NULL;
 
-    dwError = LsaAllocateMemory(sizeof(*pResultDcInfo), (PVOID*)&pResultDcInfo);
+    dwError = LwAllocateMemory(sizeof(*pResultDcInfo), (PVOID*)&pResultDcInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateString(pDcInfo->pszName, &pResultDcInfo->pszName);
+    dwError = LwAllocateString(pDcInfo->pszName, &pResultDcInfo->pszName);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateString(pDcInfo->pszAddress, &pResultDcInfo->pszAddress);
+    dwError = LwAllocateString(pDcInfo->pszAddress, &pResultDcInfo->pszAddress);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateString(pDcInfo->pszSiteName, &pResultDcInfo->pszSiteName);
+    dwError = LwAllocateString(pDcInfo->pszSiteName, &pResultDcInfo->pszSiteName);
     BAIL_ON_LSA_ERROR(dwError);
 
     pResultDcInfo->dwDsFlags = pDcInfo->dwDsFlags;
@@ -885,7 +885,7 @@ LsaDmpDomainSetDcInfoInternal(
 
     if (!pDomain->pszForestName)
     {
-        dwError = LsaAllocateString(pDcInfo->pszDnsForestName, &pszForestName);
+        dwError = LwAllocateString(pDcInfo->pszDnsForestName, &pszForestName);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -902,34 +902,34 @@ LsaDmpDomainSetDcInfoInternal(
                          pDcInfo->pszClientSiteName);
         }
 
-        dwError = LsaAllocateString(pDcInfo->pszClientSiteName, &pszClientSiteName);
+        dwError = LwAllocateString(pDcInfo->pszClientSiteName, &pszClientSiteName);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     if (!pCurrentDomainDcInfo)
     {
-        dwError = LsaAllocateMemory(sizeof(*pDomainDcInfo), (PVOID*)&pDomainDcInfo);
+        dwError = LwAllocateMemory(sizeof(*pDomainDcInfo), (PVOID*)&pDomainDcInfo);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     if (!pCurrentDomainDcInfo ||
         strcasecmp(pCurrentDomainDcInfo->pszName, pDcInfo->pszDomainControllerName))
     {
-        dwError = LsaAllocateString(pDcInfo->pszDomainControllerName, &pszDcInfoName);
+        dwError = LwAllocateString(pDcInfo->pszDomainControllerName, &pszDcInfoName);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     if (!pCurrentDomainDcInfo ||
         strcasecmp(pCurrentDomainDcInfo->pszAddress, pDcInfo->pszDomainControllerAddress))
     {
-        dwError = LsaAllocateString(pDcInfo->pszDomainControllerAddress, &pszDcInfoAddress);
+        dwError = LwAllocateString(pDcInfo->pszDomainControllerAddress, &pszDcInfoAddress);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     if (!pCurrentDomainDcInfo ||
         strcasecmp(pCurrentDomainDcInfo->pszSiteName, pDcInfo->pszDCSiteName))
     {
-        dwError = LsaAllocateString(pDcInfo->pszDCSiteName, &pszDcInfoSiteName);
+        dwError = LwAllocateString(pDcInfo->pszDCSiteName, &pszDcInfoSiteName);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -937,7 +937,7 @@ LsaDmpDomainSetDcInfoInternal(
 
     if (pszForestName)
     {
-        LSA_SAFE_FREE_STRING(pDomain->pszForestName);
+        LW_SAFE_FREE_STRING(pDomain->pszForestName);
         pDomain->pszForestName = pszForestName;
         pszForestName = NULL;
 
@@ -949,7 +949,7 @@ LsaDmpDomainSetDcInfoInternal(
 
     if (pszClientSiteName)
     {
-        LSA_SAFE_FREE_STRING(pDomain->pszClientSiteName);
+        LW_SAFE_FREE_STRING(pDomain->pszClientSiteName);
         pDomain->pszClientSiteName = pszClientSiteName;
         pszClientSiteName = NULL;
     }
@@ -963,21 +963,21 @@ LsaDmpDomainSetDcInfoInternal(
 
     if (pszDcInfoName)
     {
-        LSA_SAFE_FREE_STRING(pCurrentDomainDcInfo->pszName);
+        LW_SAFE_FREE_STRING(pCurrentDomainDcInfo->pszName);
         pCurrentDomainDcInfo->pszName = pszDcInfoName;
         pszDcInfoName = NULL;
     }
 
     if (pszDcInfoAddress)
     {
-        LSA_SAFE_FREE_STRING(pCurrentDomainDcInfo->pszAddress);
+        LW_SAFE_FREE_STRING(pCurrentDomainDcInfo->pszAddress);
         pCurrentDomainDcInfo->pszAddress = pszDcInfoAddress;
         pszDcInfoAddress = NULL;
     }
 
     if (pszDcInfoSiteName)
     {
-        LSA_SAFE_FREE_STRING(pCurrentDomainDcInfo->pszSiteName);
+        LW_SAFE_FREE_STRING(pCurrentDomainDcInfo->pszSiteName);
         pCurrentDomainDcInfo->pszSiteName = pszDcInfoSiteName;
         pszDcInfoSiteName = NULL;
     }
@@ -988,12 +988,12 @@ LsaDmpDomainSetDcInfoInternal(
     }
 
 cleanup:
-    LSA_SAFE_FREE_STRING(pszForestName);
-    LSA_SAFE_FREE_STRING(pszClientSiteName);
-    LSA_SAFE_FREE_STRING(pszDcInfoName);
-    LSA_SAFE_FREE_STRING(pszDcInfoAddress);
-    LSA_SAFE_FREE_STRING(pszDcInfoSiteName);
-    LSA_SAFE_FREE_MEMORY(pDomainDcInfo);
+    LW_SAFE_FREE_STRING(pszForestName);
+    LW_SAFE_FREE_STRING(pszClientSiteName);
+    LW_SAFE_FREE_STRING(pszDcInfoName);
+    LW_SAFE_FREE_STRING(pszDcInfoAddress);
+    LW_SAFE_FREE_STRING(pszDcInfoSiteName);
+    LW_SAFE_FREE_MEMORY(pDomainDcInfo);
     return dwError;
 error:
     goto cleanup;
@@ -1047,17 +1047,17 @@ LsaDmpDomainDestroy(
 {
     if (pDomain)
     {
-        LSA_SAFE_FREE_STRING(pDomain->pszDnsName);
-        LSA_SAFE_FREE_STRING(pDomain->pszNetbiosName);
-        LSA_SAFE_FREE_STRING(pDomain->pszTrusteeDnsName);
-        LSA_SAFE_FREE_MEMORY(pDomain->pSid);
-        LSA_SAFE_FREE_STRING(pDomain->pszForestName);
-        LSA_SAFE_FREE_STRING(pDomain->pszClientSiteName);
+        LW_SAFE_FREE_STRING(pDomain->pszDnsName);
+        LW_SAFE_FREE_STRING(pDomain->pszNetbiosName);
+        LW_SAFE_FREE_STRING(pDomain->pszTrusteeDnsName);
+        LW_SAFE_FREE_MEMORY(pDomain->pSid);
+        LW_SAFE_FREE_STRING(pDomain->pszForestName);
+        LW_SAFE_FREE_STRING(pDomain->pszClientSiteName);
         LsaDmFreeDcInfo(pDomain->pDcInfo);
         LsaDmFreeDcInfo(pDomain->pGcInfo);
         LsaDmpLdapConnectionListDestroy(&pDomain->pFreeDcConn);
         LsaDmpLdapConnectionListDestroy(&pDomain->pFreeGcConn);
-        LSA_SAFE_FREE_MEMORY(pDomain);
+        LW_SAFE_FREE_MEMORY(pDomain);
     }
 }
 
@@ -1092,7 +1092,7 @@ LsaDmpDomainCreate(
     DWORD dwError = 0;
     PLSA_DM_DOMAIN_STATE pDomain = NULL;
 
-    dwError = LsaAllocateMemory(sizeof(*pDomain), (PVOID*)&pDomain);
+    dwError = LwAllocateMemory(sizeof(*pDomain), (PVOID*)&pDomain);
     BAIL_ON_LSA_ERROR(dwError);
 
     if (pszDnsDomainName)
@@ -1103,7 +1103,7 @@ LsaDmpDomainCreate(
             dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LSA_ERROR(dwError);
         }
-        dwError = LsaAllocateString(pszDnsDomainName, &pDomain->pszDnsName);
+        dwError = LwAllocateString(pszDnsDomainName, &pDomain->pszDnsName);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1114,7 +1114,7 @@ LsaDmpDomainCreate(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaAllocateString(pszNetbiosDomainName, &pDomain->pszNetbiosName);
+    dwError = LwAllocateString(pszNetbiosDomainName, &pDomain->pszNetbiosName);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaDmpDuplicateSid(&pDomain->pSid, pDomainSid);
@@ -1127,7 +1127,7 @@ LsaDmpDomainCreate(
 
     if (pszDnsForestName)
     {
-        dwError = LsaAllocateString(pszDnsForestName, &pDomain->pszForestName);
+        dwError = LwAllocateString(pszDnsForestName, &pDomain->pszForestName);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1353,7 +1353,7 @@ LsaDmpMustFindDomainByObjectSid(
         // ignore error
         LSA_LOG_DEBUG("Do not know about domain for object SID '%s'",
                       LSA_SAFE_LOG_STRING(pszSid));
-        LSA_SAFE_FREE_STRING(pszSid);
+        LW_SAFE_FREE_STRING(pszSid);
         dwError = LW_ERROR_NO_SUCH_DOMAIN;
     }
     *ppFoundDomain = pFoundDomain;
@@ -1461,7 +1461,7 @@ LsaDmpAddTrustedDomain(
 
     if (pszTrusteeDnsDomainName)
     {
-        dwError = LsaAllocateString(pszTrusteeDnsDomainName, &pDomain->pszTrusteeDnsName);
+        dwError = LwAllocateString(pszTrusteeDnsDomainName, &pDomain->pszTrusteeDnsName);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1648,7 +1648,7 @@ LsaDmpFreeEnumDomainFilteredItems(
             case LSA_DM_ENUM_DOMAIN_FILTERED_ITEM_TYPE_NAME:
                 for (dwIndex = 0; pItems[dwIndex].pszNameInfo; dwIndex++)
                 {
-                    LsaFreeString(pItems[dwIndex].pszNameInfo);
+                    LwFreeString(pItems[dwIndex].pszNameInfo);
                 }
                 break;
             case LSA_DM_ENUM_DOMAIN_FILTERED_ITEM_TYPE_FULL:
@@ -1660,7 +1660,7 @@ LsaDmpFreeEnumDomainFilteredItems(
             default:
                 break;
         }
-        LsaFreeMemory(pItems);
+        LwFreeMemory(pItems);
     }
 }
 
@@ -1698,14 +1698,14 @@ LsaDmpEnumDomainsFilteredCallback(
         dwNewCapacity = LSA_MAX(2, pEnumContext->dwCapacity + 10);
         dwNewSize = sizeof(pItems[0]) * dwNewCapacity;
 
-        dwError = LsaAllocateMemory(dwNewSize, (PVOID*)&pItems);
+        dwError = LwAllocateMemory(dwNewSize, (PVOID*)&pItems);
         BAIL_ON_LSA_ERROR(dwError);
 
         dwSize = sizeof(pItems[0]) * pEnumContext->dwCapacity;
         memcpy(pItems, pEnumContext->pItems, dwSize);
 
         pEnumContext->dwCapacity = dwNewCapacity;
-        LsaFreeMemory(pEnumContext->pItems);
+        LwFreeMemory(pEnumContext->pItems);
         pEnumContext->pItems = pItems;
         pItems = NULL;
     }
@@ -1713,7 +1713,7 @@ LsaDmpEnumDomainsFilteredCallback(
     switch (pEnumContext->ItemType)
     {
         case LSA_DM_ENUM_DOMAIN_FILTERED_ITEM_TYPE_NAME:
-            dwError = LsaAllocateString(
+            dwError = LwAllocateString(
                         pDomainInfo->pszDnsDomainName,
                         &pEnumContext->pItems[pEnumContext->dwCount].pszNameInfo);
             BAIL_ON_LSA_ERROR(dwError);
@@ -1733,7 +1733,7 @@ LsaDmpEnumDomainsFilteredCallback(
     pEnumContext->dwCount++;
 
 cleanup:
-    LSA_SAFE_FREE_MEMORY(pItems);
+    LW_SAFE_FREE_MEMORY(pItems);
 
     pEnumContext->dwError = dwError;
     return dwError ? FALSE : TRUE;
@@ -1886,12 +1886,12 @@ LsaDmpQueryDomainInfoInternal(
     {
         // Can be NULL for a down-level domain, if we were to
         // put it in the trust list.
-        dwError = LsaStrDupOrNull(pDomain->pszDnsName, &pszDnsDomainName);
+        dwError = LwStrDupOrNull(pDomain->pszDnsName, &pszDnsDomainName);
         BAIL_ON_LSA_ERROR(dwError);
     }
     if (ppszNetbiosDomainName)
     {
-        dwError = LsaAllocateString(pDomain->pszNetbiosName, &pszNetbiosDomainName);
+        dwError = LwAllocateString(pDomain->pszNetbiosName, &pszNetbiosDomainName);
         BAIL_ON_LSA_ERROR(dwError);
     }
     if (ppSid)
@@ -1902,18 +1902,18 @@ LsaDmpQueryDomainInfoInternal(
     if (ppszTrusteeDnsDomainName)
     {
         // Can be NULL for the primary domain.
-        dwError = LsaStrDupOrNull(pDomain->pszTrusteeDnsName, &pszTrusteeDnsDomainName);
+        dwError = LwStrDupOrNull(pDomain->pszTrusteeDnsName, &pszTrusteeDnsDomainName);
         BAIL_ON_LSA_ERROR(dwError);
     }
     if (ppszForestName)
     {
         // Can be NULL for an external trust.
-        dwError = LsaStrDupOrNull(pDomain->pszForestName, &pszForestName);
+        dwError = LwStrDupOrNull(pDomain->pszForestName, &pszForestName);
         BAIL_ON_LSA_ERROR(dwError);
     }
     if (ppszClientSiteName)
     {
-        dwError = LsaAllocateString(pDomain->pszClientSiteName, &pszClientSiteName);
+        dwError = LwAllocateString(pDomain->pszClientSiteName, &pszClientSiteName);
         BAIL_ON_LSA_ERROR(dwError);
     }
     // Can be NULL
@@ -2005,12 +2005,12 @@ cleanup:
     return dwError;
 
 error:
-    LSA_SAFE_FREE_STRING(pszDnsDomainName);
-    LSA_SAFE_FREE_STRING(pszNetbiosDomainName);
-    LSA_SAFE_FREE_MEMORY(pSid);
-    LSA_SAFE_FREE_STRING(pszTrusteeDnsDomainName);
-    LSA_SAFE_FREE_STRING(pszForestName);
-    LSA_SAFE_FREE_STRING(pszClientSiteName);
+    LW_SAFE_FREE_STRING(pszDnsDomainName);
+    LW_SAFE_FREE_STRING(pszNetbiosDomainName);
+    LW_SAFE_FREE_MEMORY(pSid);
+    LW_SAFE_FREE_STRING(pszTrusteeDnsDomainName);
+    LW_SAFE_FREE_STRING(pszForestName);
+    LW_SAFE_FREE_STRING(pszClientSiteName);
     LsaDmFreeDcInfo(pDcInfo);
     pDcInfo = NULL;
     LsaDmFreeDcInfo(pGcInfo);
@@ -2494,7 +2494,7 @@ LsaDmpDetectTransitionOnlineDomain(
 
 cleanup:
     LWNET_SAFE_FREE_DC_INFO(pDcInfo);
-    LSA_SAFE_FREE_STRING(pszDnsDomainName);
+    LW_SAFE_FREE_STRING(pszDnsDomainName);
 
     return dwError;
 
@@ -2569,7 +2569,7 @@ LsaDmpDetectTransitionOnlineAllDomains(
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
-    LSA_SAFE_FREE_STRING_ARRAY(ppszDomainNames);
+    LW_SAFE_FREE_STRING_ARRAY(ppszDomainNames);
     return dwError;
 
 error:
@@ -2625,11 +2625,11 @@ LsaDmpLdapConnectionCreate(
     DWORD dwError = 0;
     PLSA_DM_LDAP_CONNECTION pConn = NULL;
 
-    dwError = LsaAllocateMemory(sizeof(*pConn), (PVOID*)&pConn);
+    dwError = LwAllocateMemory(sizeof(*pConn), (PVOID*)&pConn);
     BAIL_ON_LSA_ERROR(dwError);
 
     pConn->bIsGc = bIsGc;
-    dwError = LsaAllocateString(pszDnsDomainName, &pConn->pszDnsDomainName);
+    dwError = LwAllocateString(pszDnsDomainName, &pConn->pszDnsDomainName);
     BAIL_ON_LSA_ERROR(dwError);
 
     pConn->hLdapConnection = NULL;
@@ -2659,8 +2659,8 @@ LsaDmpLdapConnectionDestroy(
     if (pLdap != NULL)
     {
         LwLdapCloseDirectory(pLdap->hLdapConnection);
-        LSA_SAFE_FREE_STRING(pLdap->pszDnsDomainName);
-        LsaFreeMemory(pLdap);
+        LW_SAFE_FREE_STRING(pLdap->pszDnsDomainName);
+        LwFreeMemory(pLdap);
     }
 }
 
@@ -3010,7 +3010,7 @@ LsaDmpQueryForestNameFromNetlogon(
     }
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateString(pDcInfo->pszDnsForestName, &pszDnsForestName);
+    dwError = LwAllocateString(pDcInfo->pszDnsForestName, &pszDnsForestName);
     BAIL_ON_LSA_ERROR(dwError);
 
     *ppszDnsForestName = pszDnsForestName;
@@ -3021,7 +3021,7 @@ cleanup:
 
 error:
     *ppszDnsForestName = NULL;
-    LSA_SAFE_FREE_STRING(pszDnsForestName);
+    LW_SAFE_FREE_STRING(pszDnsForestName);
     goto cleanup;
 }
 
@@ -3084,8 +3084,8 @@ LsaDmpFindUnknownDomainSidEntry(
         if (now >= (pEntry->Time + Handle->dwUnknownDomainCacheTimeoutSeconds))
         {
             LsaListRemove(&pEntry->Links);
-            LsaFreeMemory(pEntry->pSid);
-            LsaFreeMemory(pEntry);
+            LwFreeMemory(pEntry->pSid);
+            LwFreeMemory(pEntry);
 
             if (pFoundEntry)
             {
@@ -3134,7 +3134,7 @@ LsaDmpCacheUnknownDomainSid(
         goto cleanup;
     }
 
-    dwError = LsaAllocateMemory(sizeof(*pNewEntry), OUT_PPVOID(&pNewEntry));
+    dwError = LwAllocateMemory(sizeof(*pNewEntry), OUT_PPVOID(&pNewEntry));
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaDmpDuplicateSid(&pNewEntry->pSid, pDomainSid);
@@ -3155,8 +3155,8 @@ cleanup:
 error:
     if (pNewEntry)
     {
-        LSA_SAFE_FREE_MEMORY(pNewEntry->pSid);
-        LsaFreeMemory(pNewEntry);
+        LW_SAFE_FREE_MEMORY(pNewEntry->pSid);
+        LwFreeMemory(pNewEntry);
     }
     goto cleanup;
 }
@@ -3169,7 +3169,7 @@ ADLogMediaSenseOnlineEvent(
     DWORD dwError = 0;
     PSTR  pszDescription = NULL;
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                  &pszDescription,
                  "Media sense detected network available. Switching to online mode:\r\n\r\n" \
                  "     Authentication provider:   %s",
@@ -3184,7 +3184,7 @@ ADLogMediaSenseOnlineEvent(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszDescription);
+    LW_SAFE_FREE_STRING(pszDescription);
 
     return;
 
@@ -3201,7 +3201,7 @@ ADLogMediaSenseOfflineEvent(
     DWORD dwError = 0;
     PSTR  pszDescription = NULL;
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                  &pszDescription,
                  "Media sense detected network is not available. Switching to offline mode:\r\n\r\n" \
                  "     Authentication provider:   %s",
@@ -3216,7 +3216,7 @@ ADLogMediaSenseOfflineEvent(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszDescription);
+    LW_SAFE_FREE_STRING(pszDescription);
 
     return;
 
@@ -3233,7 +3233,7 @@ ADLogDomainOnlineEvent(
     DWORD dwError = 0;
     PSTR  pszDescription = NULL;
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                  &pszDescription,
                  "Detected domain controller for Active Directory domain. Switching to online mode:\r\n\r\n" \
                  "     Authentication provider:   %s\r\n\r\n" \
@@ -3250,7 +3250,7 @@ ADLogDomainOnlineEvent(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszDescription);
+    LW_SAFE_FREE_STRING(pszDescription);
 
     return;
 
@@ -3270,7 +3270,7 @@ ADLogDomainOfflineEvent(
 
     if (bIsGc)
     {
-        dwError = LsaAllocateStringPrintf(
+        dwError = LwAllocateStringPrintf(
                      &pszDescription,
                      "Detected unreachable global catalog server for Active Directory forest. Switching to offline mode:\r\n\r\n" \
                      "     Authentication provider:   %s\r\n\r\n" \
@@ -3281,7 +3281,7 @@ ADLogDomainOfflineEvent(
     }
     else
     {
-        dwError = LsaAllocateStringPrintf(
+        dwError = LwAllocateStringPrintf(
                      &pszDescription,
                      "Detected unreachable domain controller for Active Directory domain. Switching to offline mode:\r\n\r\n" \
                      "     Authentication provider:   %s\r\n\r\n" \
@@ -3299,7 +3299,7 @@ ADLogDomainOfflineEvent(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszDescription);
+    LW_SAFE_FREE_STRING(pszDescription);
 
     return;
 

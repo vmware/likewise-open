@@ -220,6 +220,8 @@ SamrSrvOpenAccount(
     pAcctCtx->dwRid         = dwRid;
     pAcctCtx->pDomCtx       = pDomCtx;
 
+    InterlockedIncrement(&pDomCtx->refcount);
+
     /* Increase ref count because DCE/RPC runtime is about to use this
        pointer as well */
     InterlockedIncrement(&pAcctCtx->refcount);

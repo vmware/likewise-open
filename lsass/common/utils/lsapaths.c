@@ -55,7 +55,7 @@ LsaGetPrefixDirPath(
     DWORD dwError = 0;
     PSTR  pszPath = NULL;
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                     PREFIXDIR,
                     &pszPath);
     BAIL_ON_LSA_ERROR(dwError);
@@ -88,13 +88,13 @@ LsaGetLibDirPath(
     BAIL_ON_LSA_ERROR(dwError);
 
     if (bExists) {
-       dwError = LsaStrndup(
+       dwError = LwStrndup(
                      PREFIXDIR "/lib64",
                      strlen(PREFIXDIR "/lib64"),
                      &pszLibPath);
        BAIL_ON_LSA_ERROR(dwError);
     } else {
-       dwError = LsaStrndup(
+       dwError = LwStrndup(
                       PREFIXDIR "/lib",
                       strlen(PREFIXDIR "/lib"),
                       &pszLibPath);
@@ -111,7 +111,7 @@ error:
 
     *ppszLibPath = NULL;
 
-    LSA_SAFE_FREE_STRING(pszLibPath);
+    LW_SAFE_FREE_STRING(pszLibPath);
 
     goto cleanup;
 }

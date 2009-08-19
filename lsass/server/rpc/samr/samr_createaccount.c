@@ -166,11 +166,11 @@ SamrSrvCreateAccount(
 
 cleanup:
     if (pwszAttrNameObjectClass) {
-        LSA_SAFE_FREE_MEMORY(pwszAttrNameObjectClass);
+        LW_SAFE_FREE_MEMORY(pwszAttrNameObjectClass);
     }
 
     if (pwszAttrNameAccountName) {
-        LSA_SAFE_FREE_MEMORY(pwszAttrNameAccountName);
+        LW_SAFE_FREE_MEMORY(pwszAttrNameAccountName);
     }
 
     SamrSrvFreeUnicodeString(&AccountName);

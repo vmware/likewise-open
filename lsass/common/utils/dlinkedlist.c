@@ -56,7 +56,7 @@ LsaDLinkedListPrepend(
     DWORD dwError = 0;
     PDLINKEDLIST pList = NULL;
 
-    dwError = LsaAllocateMemory(sizeof(DLINKEDLIST), (PVOID*)&pList);
+    dwError = LwAllocateMemory(sizeof(DLINKEDLIST), (PVOID*)&pList);
     BAIL_ON_LSA_ERROR(dwError);
 
     pList->pItem = pItem;
@@ -76,7 +76,7 @@ cleanup:
 error:
 
     if (pList) {
-        LsaFreeMemory(pList);
+        LwFreeMemory(pList);
     }
 
     goto cleanup;
@@ -91,7 +91,7 @@ LsaDLinkedListAppend(
     DWORD dwError = 0;
     PDLINKEDLIST pList = NULL;
 
-    dwError = LsaAllocateMemory(sizeof(DLINKEDLIST), (PVOID*)&pList);
+    dwError = LwAllocateMemory(sizeof(DLINKEDLIST), (PVOID*)&pList);
     BAIL_ON_LSA_ERROR(dwError);
 
     pList->pItem = pItem;
@@ -116,7 +116,7 @@ cleanup:
 error:
 
     if (pList) {
-        LsaFreeMemory(pList);
+        LwFreeMemory(pList);
     }
 
     goto cleanup;
@@ -156,7 +156,7 @@ LsaDLinkedListDelete(
           *ppList = pCandidate->pNext;
        }
        pCandidate->pItem = NULL;
-       LsaFreeMemory(pCandidate);
+       LwFreeMemory(pCandidate);
     }
 
     return bFound;
@@ -184,6 +184,6 @@ LsaDLinkedListFree(
     {
         PDLINKEDLIST pTmp = pList;
         pList = pList->pNext;
-        LsaFreeMemory(pTmp);
+        LwFreeMemory(pTmp);
     }
 }

@@ -223,19 +223,19 @@ LsaCfgInitParseState(
     }
 
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(LSA_CONFIG_PARSE_STATE),
                     (PVOID*)&pParseState);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(LSA_STACK),
                     (PVOID*)&pTokenStack);
     BAIL_ON_LSA_ERROR(dwError);
 
     pParseState->pLexerTokenStack = pTokenStack;
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                     pszFilePath,
                     &(pParseState->pszFilePath));
     BAIL_ON_LSA_ERROR(dwError);
@@ -283,8 +283,8 @@ LsaCfgFreeParseState(
     PLSA_CONFIG_PARSE_STATE pParseState
     )
 {
-    LSA_SAFE_FREE_STRING(pParseState->pszFilePath);
-    LSA_SAFE_FREE_STRING(pParseState->pszSectionName);
+    LW_SAFE_FREE_STRING(pParseState->pszFilePath);
+    LW_SAFE_FREE_STRING(pParseState->pszSectionName);
     if (pParseState->pLexerTokenStack) {
         LsaCfgFreeTokenStack(&pParseState->pLexerTokenStack);
     }
@@ -292,7 +292,7 @@ LsaCfgFreeParseState(
     if (pParseState->fp) {
         fclose(pParseState->fp);
     }
-    LsaFreeMemory(pParseState);
+    LwFreeMemory(pParseState);
 }
 
 
@@ -378,7 +378,7 @@ error:
             LSA_LOG_ERROR ("Parse error at line=%d, column=%d of file [%s]",
                           pParseState->dwLine,
                           pParseState->dwCol,
-                          IsNullOrEmptyString(pParseState->pszFilePath) ?
+                          LW_IS_NULL_OR_EMPTY_STR(pParseState->pszFilePath) ?
                               "" : pParseState->pszFilePath);
         }
     }
@@ -416,7 +416,7 @@ LsaCfgParseSections(
             {
                 BOOLEAN bIsAllSpace = FALSE;
 
-                dwError = LsaStrIsAllSpace(
+                dwError = LwStrIsAllSpace(
                                 pToken->pszToken,
                                 &bIsAllSpace
                                 );
@@ -482,7 +482,7 @@ LsaCfgParseSections(
         }
     }
 
-    if (bContinue && !IsNullOrEmptyString(pParseState->pszSectionName))
+    if (bContinue && !LW_IS_NULL_OR_EMPTY_STR(pParseState->pszSectionName))
     {
         dwError = LsaCfgProcessEndSection(
                         pParseState,
@@ -595,7 +595,7 @@ LsaCfgParseSectionHeader(
     PLSA_CFG_TOKEN pToken = NULL;
     PLSA_STACK pTokenStack = NULL;
 
-    if(!IsNullOrEmptyString(pParseState->pszSectionName))
+    if(!LW_IS_NULL_OR_EMPTY_STR(pParseState->pszSectionName))
     {
         dwError = LsaCfgProcessEndSection(
                         pParseState,
@@ -923,7 +923,7 @@ LsaCfgProcessComment(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszComment);
+    LW_SAFE_FREE_STRING(pszComment);
 
     return dwError;
 
@@ -950,7 +950,7 @@ LsaCfgProcessBeginSection(
         &pszSectionName);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (IsNullOrEmptyString(pszSectionName)) {
+    if (LW_IS_NULL_OR_EMPTY_STR(pszSectionName)) {
         dwError = LW_ERROR_INVALID_CONFIG;
         BAIL_ON_LSA_ERROR(dwError);
     }
@@ -959,7 +959,7 @@ LsaCfgProcessBeginSection(
 
         if(pParseState->dwOptions & LSA_CFG_OPTION_STRIP_SECTION)
         {
-            LsaStripWhitespace(pszSectionName, TRUE, TRUE);
+            LwStripWhitespace(pszSectionName, TRUE, TRUE);
         }
 
         dwError = pParseState->pfnStartSectionHandler(
@@ -980,7 +980,7 @@ cleanup:
 
 error:
 
-    LSA_SAFE_FREE_STRING(pszSectionName);
+    LW_SAFE_FREE_STRING(pszSectionName);
     pParseState->pszSectionName = NULL;
     pParseState->bSkipSection = FALSE;
     *pbContinue = FALSE;
@@ -1004,14 +1004,14 @@ LsaCfgProcessNameValuePair(
     *ppTokenStack = LsaStackReverse(*ppTokenStack);
     pToken = (PLSA_CFG_TOKEN)LsaStackPop(ppTokenStack);
     if (pToken && pToken->dwLen) {
-        dwError = LsaStrndup(
+        dwError = LwStrndup(
                     pToken->pszToken,
                     pToken->dwLen,
                     &pszName);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    if (IsNullOrEmptyString(pszName)) {
+    if (LW_IS_NULL_OR_EMPTY_STR(pszName)) {
         dwError = LW_ERROR_INVALID_CONFIG;
         BAIL_ON_LSA_ERROR(dwError);
     }
@@ -1040,8 +1040,8 @@ LsaCfgProcessNameValuePair(
 
         if(pParseState->dwOptions & LSA_CFG_OPTION_STRIP_NAME_VALUE_PAIR)
         {
-            LsaStripWhitespace(pszName, TRUE, TRUE);
-            LsaStripWhitespace(pszValue, TRUE, TRUE);
+            LwStripWhitespace(pszName, TRUE, TRUE);
+            LwStripWhitespace(pszValue, TRUE, TRUE);
         }
 
         dwError = pParseState->pfnNameValuePairHandler(
@@ -1067,8 +1067,8 @@ cleanup:
         dwError = LsaCfgFreeTokenStack(ppTokenStack);
     }
 
-    LSA_SAFE_FREE_STRING(pszName);
-    LSA_SAFE_FREE_STRING(pszValue);
+    LW_SAFE_FREE_STRING(pszName);
+    LW_SAFE_FREE_STRING(pszValue);
 
     return dwError;
 
@@ -1091,7 +1091,7 @@ LsaCfgProcessEndSection(
 
         if(pParseState->dwOptions & LSA_CFG_OPTION_STRIP_SECTION)
         {
-            LsaStripWhitespace(pParseState->pszSectionName, TRUE, TRUE);
+            LwStripWhitespace(pParseState->pszSectionName, TRUE, TRUE);
         }
 
 
@@ -1106,7 +1106,7 @@ LsaCfgProcessEndSection(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pParseState->pszSectionName);
+    LW_SAFE_FREE_STRING(pParseState->pszSectionName);
 
     return dwError;
 
@@ -1157,7 +1157,7 @@ LsaCfgProcessTokenStackIntoString(
         *ppTokenStack = LsaStackReverse(*ppTokenStack);
 
 
-        dwError = LsaAllocateMemory(
+        dwError = LwAllocateMemory(
                         (dwRequiredTokenLen + 1) * sizeof(CHAR),
                         (PVOID*)&pszConcatenated);
         BAIL_ON_LSA_ERROR(dwError);
@@ -1186,7 +1186,7 @@ cleanup:
 
 error:
 
-    LSA_SAFE_FREE_STRING(pszConcatenated);
+    LW_SAFE_FREE_STRING(pszConcatenated);
 
     *ppszConcatenated = NULL;
 
@@ -1205,12 +1205,12 @@ LsaCfgAllocateToken(
     DWORD dwMaxLen = (dwSize > 0 ? dwSize : LSA_CFG_TOKEN_DEFAULT_LENGTH);
 
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(LSA_CFG_TOKEN),
                     (PVOID*)&pToken);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     dwMaxLen * sizeof(CHAR),
                     (PVOID*)&pToken->pszToken);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1244,7 +1244,7 @@ LsaCfgReallocToken(
 {
     DWORD dwError = 0;
 
-    dwError = LsaReallocMemory(
+    dwError = LwReallocMemory(
                     pToken->pszToken,
                     (PVOID*)&pToken->pszToken,
                     dwNewSize);
@@ -1284,7 +1284,7 @@ LsaCfgCopyToken(
     pTokenDst->tokenType = pTokenSrc->tokenType;
 
     if (pTokenSrc->dwLen > pTokenDst->dwLen) {
-        dwError = LsaReallocMemory(
+        dwError = LwReallocMemory(
                         (PVOID)  pTokenDst->pszToken,
                         (PVOID*) &pTokenDst->pszToken,
                         (DWORD)  pTokenSrc->dwLen);
@@ -1350,8 +1350,8 @@ LsaCfgFreeToken(
     PLSA_CFG_TOKEN pToken
     )
 {
-    LSA_SAFE_FREE_MEMORY(pToken->pszToken);
-    LsaFreeMemory(pToken);
+    LW_SAFE_FREE_MEMORY(pToken->pszToken);
+    LwFreeMemory(pToken);
 }
 
 DWORD

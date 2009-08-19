@@ -116,9 +116,9 @@ LocalGetDomainInfo(
     dwError = LsaDnsGetHostInfo(&pszHostname);
     BAIL_ON_LSA_ERROR(dwError);
 
-    LsaStrToUpper(pszHostname);
+    LwStrToUpper(pszHostname);
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                     &pszFilter,
                     pszFilterTemplate,
                     objectClass,
@@ -243,11 +243,11 @@ cleanup:
         DirectoryClose(hDirectory);
     }
 
-    LSA_SAFE_FREE_STRING(pszFilter);
-    LSA_SAFE_FREE_STRING(pszHostname);
-    LSA_SAFE_FREE_STRING(pszDomainSID);
-    LSA_SAFE_FREE_STRING(pszFilter);
-    LSA_SAFE_FREE_MEMORY(pwszFilter);
+    LW_SAFE_FREE_STRING(pszFilter);
+    LW_SAFE_FREE_STRING(pszHostname);
+    LW_SAFE_FREE_STRING(pszDomainSID);
+    LW_SAFE_FREE_STRING(pszFilter);
+    LW_SAFE_FREE_MEMORY(pwszFilter);
 
     return dwError;
 
@@ -259,8 +259,8 @@ error:
     *pllMaxPwdAge = 0;
     *pllPwdChangeTime = 0;
 
-    LSA_SAFE_FREE_STRING(pszDomainName);
-    LSA_SAFE_FREE_STRING(pszNetBIOSName);
+    LW_SAFE_FREE_STRING(pszDomainName);
+    LW_SAFE_FREE_STRING(pszNetBIOSName);
     RTL_FREE(&pDomainSID);
 
     goto cleanup;
@@ -300,7 +300,7 @@ cleanup:
 
 error:
 
-    LSA_SAFE_FREE_STRING(pszValue);
+    LW_SAFE_FREE_STRING(pszValue);
 
     *ppszValue = NULL;
 

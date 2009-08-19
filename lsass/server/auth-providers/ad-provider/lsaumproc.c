@@ -96,8 +96,8 @@ LsaUmpIsUserActive(
         if(!isdigit((int)dirEntry->d_name[0]))
             continue;
 
-        LSA_SAFE_FREE_STRING(filePath);
-        dwError = LsaAllocateStringPrintf(
+        LW_SAFE_FREE_STRING(filePath);
+        dwError = LwAllocateStringPrintf(
                       &filePath,
                       "/proc/%s/psinfo",
                       dirEntry->d_name);
@@ -142,7 +142,7 @@ cleanup:
     if ( infoFile )
         fclose(infoFile);
 
-    LSA_SAFE_FREE_STRING(filePath);
+    LW_SAFE_FREE_STRING(filePath);
 
     if ( dir )
         closedir(dir);
@@ -256,7 +256,7 @@ LsaUmpIsUserActive(
     }
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                   len,
                   (PVOID*)&procs);
     BAIL_ON_LSA_ERROR(dwError);
@@ -278,7 +278,7 @@ LsaUmpIsUserActive(
 
 cleanup:
 
-    LSA_SAFE_FREE_MEMORY(procs);
+    LW_SAFE_FREE_MEMORY(procs);
 
     return dwError;
 
@@ -400,8 +400,8 @@ LsaUmpIsUserActive(
         if(!isdigit((int)dirEntry->d_name[0]))
             continue;
 
-        LSA_SAFE_FREE_STRING(filePath);
-        dwError = LsaAllocateStringPrintf(
+        LW_SAFE_FREE_STRING(filePath);
+        dwError = LwAllocateStringPrintf(
                       &filePath,
                       "/proc/%s",
                       dirEntry->d_name);
@@ -428,7 +428,7 @@ LsaUmpIsUserActive(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(filePath);
+    LW_SAFE_FREE_STRING(filePath);
 
     if ( dir )
         closedir(dir);

@@ -131,11 +131,11 @@ LsaNssCommonNetgroupFindByName(
             pInfo->pszValue = NULL;
             bFound = TRUE;
         }
-        LSA_SAFE_FREE_MEMORY(pInfo->pszValue);
-        LSA_SAFE_FREE_MEMORY(ppInfoList[iGroup]);
+        LW_SAFE_FREE_MEMORY(pInfo->pszValue);
+        LW_SAFE_FREE_MEMORY(ppInfoList[iGroup]);
     }
 
-    LSA_SAFE_FREE_MEMORY(ppInfoList);
+    LW_SAFE_FREE_MEMORY(ppInfoList);
 
     /* Nothing found, so raise an error */
     if (!bFound)

@@ -134,7 +134,7 @@ ParseArgs(
                 parseMode = PARSE_MODE_GID;
               }
               else {
-                  dwError = LsaAllocateString(pArg, &pszGroup);
+                  dwError = LwAllocateString(pArg, &pszGroup);
                   BAIL_ON_LSA_ERROR(dwError);
                   parseMode = PARSE_MODE_DONE;
               }
@@ -151,7 +151,7 @@ ParseArgs(
                 exit(1);
               }
 
-              dwError = LsaAllocateString(pArg, &pszGid);
+              dwError = LwAllocateString(pArg, &pszGid);
               BAIL_ON_LSA_ERROR(dwError);
 
               parseMode = PARSE_MODE_OPEN;
@@ -183,8 +183,8 @@ cleanup:
 
 error:
 
-    LSA_SAFE_FREE_STRING(pszGid);
-    LSA_SAFE_FREE_STRING(pszGroup);
+    LW_SAFE_FREE_STRING(pszGid);
+    LW_SAFE_FREE_STRING(pszGroup);
 
     *ppszGid = NULL;
     *ppszGroup = NULL;
@@ -216,7 +216,7 @@ LsaDelGroupMain(
     BAIL_ON_LSA_ERROR(dwError);
 
 
-    if (!IsNullOrEmptyString(pszGid))
+    if (!LW_IS_NULL_OR_EMPTY_STR(pszGid))
     {
         gid_t gid = 0;
         sscanf(pszGid, "%u", (unsigned int*)&gid);
@@ -226,7 +226,7 @@ LsaDelGroupMain(
                         gid);
         BAIL_ON_LSA_ERROR(dwError);
     }
-    else if (!IsNullOrEmptyString(pszGroup))
+    else if (!LW_IS_NULL_OR_EMPTY_STR(pszGroup))
     {
         dwError = LsaDeleteGroupByName(
                         hLsaConnection,
@@ -260,7 +260,7 @@ error:
         DWORD dwError2 = 0;
         PSTR   pszErrorBuffer = NULL;
 
-        dwError2 = LsaAllocateMemory(
+        dwError2 = LwAllocateMemory(
                     dwErrorBufferSize,
                     (PVOID*)&pszErrorBuffer);
 
@@ -268,14 +268,14 @@ error:
         {
             DWORD dwLen = LwGetErrorString(dwError, pszErrorBuffer, dwErrorBufferSize);
 
-            if ((dwLen == dwErrorBufferSize) && !IsNullOrEmptyString(pszErrorBuffer))
+            if ((dwLen == dwErrorBufferSize) && !LW_IS_NULL_OR_EMPTY_STR(pszErrorBuffer))
             {
                 fprintf(stderr, "Failed to delete group.  %s\n", pszErrorBuffer);
                 bPrintOrigError = FALSE;
             }
         }
 
-        LSA_SAFE_FREE_STRING(pszErrorBuffer);
+        LW_SAFE_FREE_STRING(pszErrorBuffer);
     }
 
     if (bPrintOrigError)
@@ -330,7 +330,7 @@ IsUnsignedInteger(
     INT iCharIdx = 0;
     CHAR cNext = '\0';
 
-    if (IsNullOrEmptyString(pszIntegerCandidate))
+    if (LW_IS_NULL_OR_EMPTY_STR(pszIntegerCandidate))
     {
         bIsUnsignedInteger = FALSE;
         goto error;

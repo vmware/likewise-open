@@ -92,13 +92,13 @@ ParseArgs(
         }
         else
         {
-            dwError = LsaAllocateString(pszArg, &pszGroupId);
+            dwError = LwAllocateString(pszArg, &pszGroupId);
             BAIL_ON_LSA_ERROR(dwError);
             break;
         }
     } while (iArg < argc);
 
-    if (IsNullOrEmptyString(pszGroupId)) {
+    if (LW_IS_NULL_OR_EMPTY_STR(pszGroupId)) {
        fprintf(stderr, "Please specify a group id to query for.\n");
        ShowUsage();
        exit(1);
@@ -114,7 +114,7 @@ error:
 
     *ppszGroupId = NULL;
 
-    LSA_SAFE_FREE_STRING(pszGroupId);
+    LW_SAFE_FREE_STRING(pszGroupId);
 
     goto cleanup;
 }
@@ -148,9 +148,9 @@ main(
     if(pGrp) 
     {
     
-        printf("Name:     %s\n", IsNullOrEmptyString(pGrp->gr_name) ? "<null>" : pGrp->gr_name);    
+        printf("Name:     %s\n", LW_IS_NULL_OR_EMPTY_STR(pGrp->gr_name) ? "<null>" : pGrp->gr_name);
         printf("Gid:      %u\n", (unsigned int)pGrp->gr_gid);    
-        printf("Password: %s\n", IsNullOrEmptyString(pGrp->gr_passwd) ? "<null>" : pGrp->gr_passwd);
+        printf("Password: %s\n", LW_IS_NULL_OR_EMPTY_STR(pGrp->gr_passwd) ? "<null>" : pGrp->gr_passwd);
         printf("Members: ");
         ppszMembers = pGrp->gr_mem;
         while (ppszMembers && *ppszMembers)
@@ -168,7 +168,7 @@ main(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszGroupId);
+    LW_SAFE_FREE_STRING(pszGroupId);
 
     return (dwError);
 

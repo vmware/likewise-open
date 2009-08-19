@@ -32,8 +32,8 @@ userinfo_create(DWORD uid)
     pUser->uid = uid;
     pUser->gid = ~uid;
 
-    LsaAllocateStringPrintf(&pUser->pszUpn, "user%.4lu@domain.com", (unsigned long) uid);
-    LsaAllocateStringPrintf(&pUser->pszSid, "S-NOT-A-REAL-SID-%.4lu", (unsigned long) uid);
+    LwAllocateStringPrintf(&pUser->pszUpn, "user%.4lu@domain.com", (unsigned long) uid);
+    LwAllocateStringPrintf(&pUser->pszSid, "S-NOT-A-REAL-SID-%.4lu", (unsigned long) uid);
 
     return pUser;
 }

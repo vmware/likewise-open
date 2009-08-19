@@ -90,13 +90,13 @@ ParseArgs(
         }
         else
         {
-            dwError = LsaAllocateString(pszArg, &pszLoginId);
+            dwError = LwAllocateString(pszArg, &pszLoginId);
             BAIL_ON_LSA_ERROR(dwError);
             break;
         }
     } while (iArg < argc);
 
-    if (IsNullOrEmptyString(pszLoginId)) {
+    if (LW_IS_NULL_OR_EMPTY_STR(pszLoginId)) {
        fprintf(stderr, "Please specify a user login id to query for.\n");
        ShowUsage();
        exit(1);
@@ -112,7 +112,7 @@ error:
 
     *ppszLoginId = NULL;
 
-    LSA_SAFE_FREE_STRING(pszLoginId);
+    LW_SAFE_FREE_STRING(pszLoginId);
 
     goto cleanup;
 }
@@ -143,12 +143,12 @@ main(
     
     if(pUser)
     {
-        printf("Name:     %s\n", IsNullOrEmptyString(pUser->pw_name) ? "<null>" : pUser->pw_name);
+        printf("Name:     %s\n", LW_IS_NULL_OR_EMPTY_STR(pUser->pw_name) ? "<null>" : pUser->pw_name);
         printf("Uid:      %u\n", (unsigned int)pUser->pw_uid);
         printf("Gid:      %u\n", (unsigned int)pUser->pw_gid);
-        printf("Gecos:    %s\n", IsNullOrEmptyString(pUser->pw_gecos) ? "<null>" : pUser->pw_gecos);
-        printf("Shell:    %s\n", IsNullOrEmptyString(pUser->pw_shell) ? "<null>" : pUser->pw_shell);
-        printf("Home dir: %s\n", IsNullOrEmptyString(pUser->pw_dir) ? "<null>" : pUser->pw_dir);
+        printf("Gecos:    %s\n", LW_IS_NULL_OR_EMPTY_STR(pUser->pw_gecos) ? "<null>" : pUser->pw_gecos);
+        printf("Shell:    %s\n", LW_IS_NULL_OR_EMPTY_STR(pUser->pw_shell) ? "<null>" : pUser->pw_shell);
+        printf("Home dir: %s\n", LW_IS_NULL_OR_EMPTY_STR(pUser->pw_dir) ? "<null>" : pUser->pw_dir);
     }
     else
     {
@@ -157,7 +157,7 @@ main(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszLoginId);
+    LW_SAFE_FREE_STRING(pszLoginId);
 
     return (dwError);
 

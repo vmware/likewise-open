@@ -94,7 +94,7 @@ LsaSetSMBAccessToken(
 
     pszCacheType = krb5_cc_get_type(ctx, cc);
     pszCacheName = krb5_cc_get_name(ctx, cc);
-    dwError = LsaAllocateStringPrintf(&pszNewCachePath, "%s:%s", pszCacheType, pszCacheName);
+    dwError = LwAllocateStringPrintf(&pszNewCachePath, "%s:%s", pszCacheType, pszCacheName);
     BAIL_ON_LSA_ERROR(dwError);
 
     if (bSetDefaultCachePath)
@@ -118,7 +118,7 @@ LsaSetSMBAccessToken(
         &pNewAccessToken);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateMemory(sizeof(*pFreeInfo), (PVOID*)&pFreeInfo);
+    dwError = LwAllocateMemory(sizeof(*pFreeInfo), (PVOID*)&pFreeInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LwIoGetThreadAccessToken(&pOldAccessToken);
@@ -150,7 +150,7 @@ cleanup:
     {
         LwIoDeleteAccessToken(pNewAccessToken);
     }
-    LSA_SAFE_FREE_STRING(pszNewCachePath);
+    LW_SAFE_FREE_STRING(pszNewCachePath);
 
     return dwError;
 
@@ -166,7 +166,7 @@ error:
 
     if (pFreeInfo)
     {
-        LsaFreeMemory(pFreeInfo);
+        LwFreeMemory(pFreeInfo);
         pFreeInfo = NULL;
     }
 
@@ -206,7 +206,7 @@ LsaFreeSMBAccessToken(
         krb5_free_context(pFreeInfo->ctx);
     }
 
-    LsaFreeMemory(pFreeInfo);
+    LwFreeMemory(pFreeInfo);
 
     *ppFreeInfo = NULL;
 

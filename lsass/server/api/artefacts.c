@@ -64,13 +64,13 @@ LsaSrvFindNSSArtefactByKey(
 
     LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
 
-    if (IsNullOrEmptyString(pszKeyName))
+    if (LW_IS_NULL_OR_EMPTY_STR(pszKeyName))
     {
         dwError = LW_ERROR_INVALID_NSS_KEY_NAME;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    if (IsNullOrEmptyString(pszMapName))
+    if (LW_IS_NULL_OR_EMPTY_STR(pszMapName))
     {
         dwError = LW_ERROR_INVALID_NSS_MAP_NAME;
         BAIL_ON_LSA_ERROR(dwError);

@@ -56,7 +56,7 @@ LsaHashCreate(
     LSA_HASH_TABLE *pResult = NULL;
     DWORD dwError = LW_ERROR_SUCCESS;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(*pResult),
                     (PVOID*)&pResult);
     BAIL_ON_LSA_ERROR(dwError);
@@ -68,7 +68,7 @@ LsaHashCreate(
     pResult->fnFree = fnFree;
     pResult->fnCopy = fnCopy;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(*pResult->ppEntries) * sTableSize,
                     (PVOID*)&pResult->ppEntries);
     BAIL_ON_LSA_ERROR(dwError);
@@ -109,7 +109,7 @@ LsaHashRemoveAll(
             }
             pResult->ppEntries[sBucket] = pEntry->pNext;
             pResult->sCount--;
-            LSA_SAFE_FREE_MEMORY(pEntry);
+            LW_SAFE_FREE_MEMORY(pEntry);
         }
     }
 }
@@ -121,8 +121,8 @@ LsaHashSafeFree(
     if (*ppResult != NULL)
     {
         LsaHashRemoveAll(*ppResult);
-        LSA_SAFE_FREE_MEMORY((*ppResult)->ppEntries);
-        LSA_SAFE_FREE_MEMORY(*ppResult);
+        LW_SAFE_FREE_MEMORY((*ppResult)->ppEntries);
+        LW_SAFE_FREE_MEMORY(*ppResult);
     }
 }
 
@@ -157,7 +157,7 @@ LsaHashSetValue(
     }
 
     //The key isn't in the table yet.
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(*pNewEntry),
                     (PVOID*)&pNewEntry);
     BAIL_ON_LSA_ERROR(dwError);
@@ -171,7 +171,7 @@ cleanup:
     return dwError;
 
 error:
-    LSA_SAFE_FREE_MEMORY(pNewEntry);
+    LW_SAFE_FREE_MEMORY(pNewEntry);
     goto cleanup;
 }
 
@@ -302,7 +302,7 @@ LsaHashResize(
     LSA_HASH_ENTRY *pEntry = NULL;
     size_t sBucket;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(*ppEntries) * sTableSize,
                     (PVOID*)&ppEntries);
     BAIL_ON_LSA_ERROR(dwError);
@@ -317,7 +317,7 @@ LsaHashResize(
         ppEntries[sBucket] = pEntry;
     }
 
-    LSA_SAFE_FREE_MEMORY(pTable->ppEntries);
+    LW_SAFE_FREE_MEMORY(pTable->ppEntries);
     pTable->ppEntries = ppEntries;
     pTable->sTableSize = sTableSize;
 
@@ -325,7 +325,7 @@ cleanup:
     return dwError;
 
 error:
-    LSA_SAFE_FREE_MEMORY(ppEntries);
+    LW_SAFE_FREE_MEMORY(ppEntries);
 
     goto cleanup;
 }
@@ -403,7 +403,7 @@ LsaHashRemoveKey(
             //Remove it from the list
             pTable->sCount--;
             *ppExamine = pDelete->pNext;
-            LSA_SAFE_FREE_MEMORY(pDelete);
+            LW_SAFE_FREE_MEMORY(pDelete);
             goto cleanup;
         }
 
@@ -473,7 +473,7 @@ LsaHashFreeStringKey(
 {
     if (pEntry->pKey)
     {
-        LsaFreeString(pEntry->pKey);
+        LwFreeString(pEntry->pKey);
     }
 }
 

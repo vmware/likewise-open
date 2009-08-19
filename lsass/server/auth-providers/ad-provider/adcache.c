@@ -477,9 +477,9 @@ ADCacheFreePasswordVerifier(
     IN OUT PLSA_PASSWORD_VERIFIER pVerifier
     )
 {
-    LSA_SAFE_FREE_STRING(pVerifier->pszObjectSid);
-    LSA_SAFE_FREE_STRING(pVerifier->pszPasswordVerifier);
-    LSA_SAFE_FREE_MEMORY(pVerifier);
+    LW_SAFE_FREE_STRING(pVerifier->pszObjectSid);
+    LW_SAFE_FREE_STRING(pVerifier->pszPasswordVerifier);
+    LW_SAFE_FREE_MEMORY(pVerifier);
 }
 
 DWORD
@@ -509,28 +509,28 @@ ADCacheSafeFreeObject(
     {
         pObject = *ppObject;
 
-        LSA_SAFE_FREE_STRING(pObject->pszObjectSid);
+        LW_SAFE_FREE_STRING(pObject->pszObjectSid);
 
-        LSA_SAFE_FREE_STRING(pObject->pszNetbiosDomainName);
-        LSA_SAFE_FREE_STRING(pObject->pszSamAccountName);
-        LSA_SAFE_FREE_STRING(pObject->pszDN);
+        LW_SAFE_FREE_STRING(pObject->pszNetbiosDomainName);
+        LW_SAFE_FREE_STRING(pObject->pszSamAccountName);
+        LW_SAFE_FREE_STRING(pObject->pszDN);
 
         if (pObject->type == AccountType_User)
         {
-            LSA_SAFE_FREE_STRING(pObject->userInfo.pszUPN);
-            LSA_SAFE_FREE_STRING(pObject->userInfo.pszAliasName);
-            LSA_SAFE_FREE_STRING(pObject->userInfo.pszPasswd);
-            LSA_SAFE_FREE_STRING(pObject->userInfo.pszGecos);
-            LSA_SAFE_FREE_STRING(pObject->userInfo.pszShell);
-            LSA_SAFE_FREE_STRING(pObject->userInfo.pszHomedir);
+            LW_SAFE_FREE_STRING(pObject->userInfo.pszUPN);
+            LW_SAFE_FREE_STRING(pObject->userInfo.pszAliasName);
+            LW_SAFE_FREE_STRING(pObject->userInfo.pszPasswd);
+            LW_SAFE_FREE_STRING(pObject->userInfo.pszGecos);
+            LW_SAFE_FREE_STRING(pObject->userInfo.pszShell);
+            LW_SAFE_FREE_STRING(pObject->userInfo.pszHomedir);
         }
         else if (pObject->type == AccountType_Group)
         {
-            LSA_SAFE_FREE_STRING(pObject->groupInfo.pszAliasName);
-            LSA_SAFE_FREE_STRING(pObject->groupInfo.pszPasswd);
+            LW_SAFE_FREE_STRING(pObject->groupInfo.pszAliasName);
+            LW_SAFE_FREE_STRING(pObject->groupInfo.pszPasswd);
         }
 
-        LSA_SAFE_FREE_MEMORY(pObject);
+        LW_SAFE_FREE_MEMORY(pObject);
         *ppObject = NULL;
     }
 }
@@ -544,31 +544,31 @@ ADCacheDuplicateObject(
     DWORD dwError = 0;
     PLSA_SECURITY_OBJECT pDest = NULL;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(*pDest),
                     (PVOID*)&pDest);
     BAIL_ON_LSA_ERROR(dwError);
 
     pDest->version = pSrc->version;
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                     pSrc->pszObjectSid,
                     &pDest->pszObjectSid);
     BAIL_ON_LSA_ERROR(dwError);
 
     pDest->enabled = pSrc->enabled;
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                     pSrc->pszNetbiosDomainName,
                     &pDest->pszNetbiosDomainName);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                     pSrc->pszSamAccountName,
                     &pDest->pszSamAccountName);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                     pSrc->pszDN,
                     &pDest->pszDN);
     BAIL_ON_LSA_ERROR(dwError);
@@ -580,27 +580,27 @@ ADCacheDuplicateObject(
         pDest->userInfo.uid = pSrc->userInfo.uid;
         pDest->userInfo.gid = pSrc->userInfo.gid;
 
-        dwError = LsaStrDupOrNull(
+        dwError = LwStrDupOrNull(
                         pSrc->userInfo.pszUPN,
                         &pDest->userInfo.pszUPN);
         BAIL_ON_LSA_ERROR(dwError);
-        dwError = LsaStrDupOrNull(
+        dwError = LwStrDupOrNull(
                         pSrc->userInfo.pszAliasName,
                         &pDest->userInfo.pszAliasName);
         BAIL_ON_LSA_ERROR(dwError);
-        dwError = LsaStrDupOrNull(
+        dwError = LwStrDupOrNull(
                         pSrc->userInfo.pszPasswd,
                         &pDest->userInfo.pszPasswd);
         BAIL_ON_LSA_ERROR(dwError);
-        dwError = LsaStrDupOrNull(
+        dwError = LwStrDupOrNull(
                         pSrc->userInfo.pszGecos,
                         &pDest->userInfo.pszGecos);
         BAIL_ON_LSA_ERROR(dwError);
-        dwError = LsaStrDupOrNull(
+        dwError = LwStrDupOrNull(
                         pSrc->userInfo.pszShell,
                         &pDest->userInfo.pszShell);
         BAIL_ON_LSA_ERROR(dwError);
-        dwError = LsaStrDupOrNull(
+        dwError = LwStrDupOrNull(
                         pSrc->userInfo.pszHomedir,
                         &pDest->userInfo.pszHomedir);
         BAIL_ON_LSA_ERROR(dwError);
@@ -622,11 +622,11 @@ ADCacheDuplicateObject(
     {
         pDest->groupInfo.gid = pSrc->groupInfo.gid;
 
-        dwError = LsaStrDupOrNull(
+        dwError = LwStrDupOrNull(
                         pSrc->groupInfo.pszAliasName,
                         &pDest->groupInfo.pszAliasName);
         BAIL_ON_LSA_ERROR(dwError);
-        dwError = LsaStrDupOrNull(
+        dwError = LwStrDupOrNull(
                         pSrc->groupInfo.pszPasswd,
                         &pDest->groupInfo.pszPasswd);
         BAIL_ON_LSA_ERROR(dwError);
@@ -652,7 +652,7 @@ ADCacheDuplicateMembership(
     DWORD dwError = 0;
     PLSA_GROUP_MEMBERSHIP pDest = NULL;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(*pDest),
                     (PVOID*)&pDest);
     BAIL_ON_LSA_ERROR(dwError);
@@ -681,12 +681,12 @@ ADCacheDuplicateMembershipContents(
 {
     DWORD dwError = 0;
 
-    dwError = LsaStrDupOrNull(
+    dwError = LwStrDupOrNull(
                     pSrc->pszParentSid,
                     &pDest->pszParentSid);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaStrDupOrNull(
+    dwError = LwStrDupOrNull(
                     pSrc->pszChildSid,
                     &pDest->pszChildSid);
     BAIL_ON_LSA_ERROR(dwError);
@@ -713,19 +713,19 @@ ADCacheDuplicatePasswordVerifier(
     DWORD dwError = 0;
     PLSA_PASSWORD_VERIFIER pDest = NULL;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(*pDest),
                     (PVOID*)&pDest);
     BAIL_ON_LSA_ERROR(dwError);
 
     pDest->version = pSrc->version;
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                     pSrc->pszObjectSid,
                     &pDest->pszObjectSid);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                     pSrc->pszPasswordVerifier,
                     &pDest->pszPasswordVerifier);
     BAIL_ON_LSA_ERROR(dwError);
@@ -746,7 +746,7 @@ ADCacheSafeFreeGroupMembership(
         PLSA_GROUP_MEMBERSHIP* ppMembership)
 {
     ADCacheFreeGroupMembershipContents(*ppMembership);
-    LSA_SAFE_FREE_MEMORY(*ppMembership);
+    LW_SAFE_FREE_MEMORY(*ppMembership);
 }
 
 void
@@ -755,8 +755,8 @@ ADCacheFreeGroupMembershipContents(
 {
     if (pMembership != NULL)
     {
-        LSA_SAFE_FREE_STRING(pMembership->pszParentSid);
-        LSA_SAFE_FREE_STRING(pMembership->pszChildSid);
+        LW_SAFE_FREE_STRING(pMembership->pszParentSid);
+        LW_SAFE_FREE_STRING(pMembership->pszChildSid);
     }
 }
 
@@ -772,7 +772,7 @@ ADCacheSafeFreeGroupMembershipList(
         {
             ADCacheSafeFreeGroupMembership(&(*pppMembershipList)[iMember]);
         }
-        LSA_SAFE_FREE_MEMORY(*pppMembershipList);
+        LW_SAFE_FREE_MEMORY(*pppMembershipList);
     }
 }
 
@@ -788,6 +788,6 @@ ADCacheSafeFreeObjectList(
         {
             ADCacheSafeFreeObject(&(*pppObjectList)[sIndex]);
         }
-        LSA_SAFE_FREE_MEMORY(*pppObjectList);
+        LW_SAFE_FREE_MEMORY(*pppObjectList);
     }
 }

@@ -263,7 +263,7 @@ done:
     }
 
     if (gids) {
-        LsaFreeMemory(gids);
+        LwFreeMemory(gids);
     }
 
     wbc_status = map_error_to_wbc_status(dwErr);

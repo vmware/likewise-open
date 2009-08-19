@@ -66,7 +66,7 @@ LsaInitializeRpcSrv(
     *ppszRpcSrvName = (PSTR)gpszSamrRpcSrvName;
     *ppFnTable      = &gSamrRpcFuncTable;
 
-    if (!IsNullOrEmptyString(pszConfigFilePath)) {
+    if (!LW_IS_NULL_OR_EMPTY_STR(pszConfigFilePath)) {
 
         dwError = SamrSrvInitialiseConfig(&gSamrSrvConfig);
         BAIL_ON_LSA_ERROR(dwError);

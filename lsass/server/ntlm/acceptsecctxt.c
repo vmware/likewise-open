@@ -604,7 +604,7 @@ NtlmGetNetBiosName(
 
     *ppDomainName = NULL;
 
-    dwError = LsaAllocateString(pDnsDomainName, &pDomainName);
+    dwError = LwAllocateString(pDnsDomainName, &pDomainName);
     BAIL_ON_LW_ERROR(dwError);
 
     pSymbol = strchr(pDomainName, '.');
@@ -621,7 +621,7 @@ cleanup:
     *ppDomainName = pDomainName;
     return dwError;
 error:
-    LSA_SAFE_FREE_STRING(pDomainName);
+    LW_SAFE_FREE_STRING(pDomainName);
     goto cleanup;
 }
 #endif

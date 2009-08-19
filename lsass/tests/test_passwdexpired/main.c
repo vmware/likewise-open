@@ -74,13 +74,13 @@ ParseArgs(
         }
         else
         {
-            dwError = LsaAllocateString(pszArg, &pszLoginId);
+            dwError = LwAllocateString(pszArg, &pszLoginId);
             BAIL_ON_LSA_ERROR(dwError);
             break;
         }
     } while (iArg < argc);
 
-    if (IsNullOrEmptyString(pszLoginId)) {
+    if (LW_IS_NULL_OR_EMPTY_STR(pszLoginId)) {
        fprintf(stderr, "Please specify a user login id to query for.\n");
        ShowUsage();
        exit(1);
@@ -96,7 +96,7 @@ error:
 
     *ppszLoginId = NULL;
 
-    LSA_SAFE_FREE_STRING(pszLoginId);
+    LW_SAFE_FREE_STRING(pszLoginId);
 
     goto cleanup;
 }
@@ -138,15 +138,15 @@ main(
 
     printf("Passwd expiry status:\n");
     printf("=====================\n");
-    printf("Name:     %s\n", IsNullOrEmptyString(pszLoginId) ? "<null>" : pszLoginId);
+    printf("Name:     %s\n", LW_IS_NULL_OR_EMPTY_STR(pszLoginId) ? "<null>" : pszLoginId);
     printf("Status:   %s\n", pszStatus);
     printf("Message:  %s\n", pszMessage);
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszLoginId);
+    LW_SAFE_FREE_STRING(pszLoginId);
 
-    LSA_SAFE_FREE_STRING(pszMessage);
+    LW_SAFE_FREE_STRING(pszMessage);
 
     lsa_close_log();
  

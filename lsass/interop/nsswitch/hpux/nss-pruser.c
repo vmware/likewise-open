@@ -104,7 +104,7 @@ LsaNssHpuxPrpasswdDestructor(
     LsaNssClearEnumUsersState(
         &pLsaBackend->hLsaConnectionPrUsers,
         pEnumUsersState);
-    LsaFreeMemory(pBackend);
+    LwFreeMemory(pBackend);
 
     return ret;
 }
@@ -264,7 +264,7 @@ LsaNssHpuxPrpasswdCreateBackend(
 {
     PLSA_NSS_PRPASSWD_BACKEND pLsaBackend = NULL;
 
-    if (LsaAllocateMemory(sizeof(*pLsaBackend), (void**) &pLsaBackend))
+    if (LwAllocateMemory(sizeof(*pLsaBackend), (void**) &pLsaBackend))
     {
         return NULL;
     }

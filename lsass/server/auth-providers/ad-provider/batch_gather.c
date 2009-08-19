@@ -695,7 +695,7 @@ LsaAdBatchGatherRealObjectInternal(
         }
     }
 
-    if (IsNullOrEmptyString(pItem->pszSid))
+    if (LW_IS_NULL_OR_EMPTY_STR(pItem->pszSid))
     {
         dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
@@ -709,7 +709,7 @@ LsaAdBatchGatherRealObjectInternal(
                     AD_LDAP_SAM_NAME_TAG,
                     &pItem->pszSamAccountName);
     BAIL_ON_LSA_ERROR(dwError);
-    if (IsNullOrEmptyString(pItem->pszSamAccountName))
+    if (LW_IS_NULL_OR_EMPTY_STR(pItem->pszSamAccountName))
     {
         dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
@@ -723,7 +723,7 @@ LsaAdBatchGatherRealObjectInternal(
                     AD_LDAP_DN_TAG,
                     &pItem->pszDn);
     BAIL_ON_LSA_ERROR(dwError);
-    if (IsNullOrEmptyString(pItem->pszDn))
+    if (LW_IS_NULL_OR_EMPTY_STR(pItem->pszDn))
     {
         dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
@@ -798,7 +798,7 @@ LsaAdBatchGatherPseudoObjectDefaultSchema(
         }
     }
 
-    if (IsNullOrEmptyString(pItem->pszSid))
+    if (LW_IS_NULL_OR_EMPTY_STR(pItem->pszSid))
     {
         dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
@@ -850,13 +850,13 @@ LsaAdBatchGatherPseudoSid(
                                     dwKeywordValuesCount,
                                     ppszKeywordValues,
                                     AD_LDAP_BACKLINK_PSEUDO_TAG);
-        if (IsNullOrEmptyString(pszSidFromKeywords))
+        if (LW_IS_NULL_OR_EMPTY_STR(pszSidFromKeywords))
         {
             dwError = LW_ERROR_INVALID_SID;
             BAIL_ON_LSA_ERROR(dwError);
         }
 
-        dwError = LsaAllocateString(pszSidFromKeywords, &pszSid);
+        dwError = LwAllocateString(pszSidFromKeywords, &pszSid);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -865,7 +865,7 @@ cleanup:
     return dwError;
 
 error:
-    LSA_SAFE_FREE_STRING(pszSid);
+    LW_SAFE_FREE_STRING(pszSid);
     goto cleanup;
 }
 

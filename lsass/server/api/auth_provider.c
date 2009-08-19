@@ -53,7 +53,7 @@ LsaSrvFreeAuthProvider(
 {
     if (pProvider) {
 
-        LSA_SAFE_FREE_STRING(pProvider->pszProviderLibpath);
+        LW_SAFE_FREE_STRING(pProvider->pszProviderLibpath);
 
         if (pProvider->pFnShutdown) {
 
@@ -68,10 +68,10 @@ LsaSrvFreeAuthProvider(
            dlclose(pProvider->pLibHandle);
         }
 
-        LSA_SAFE_FREE_STRING(pProvider->pszId);
-        LSA_SAFE_FREE_STRING(pProvider->pszProviderLibpath);
+        LW_SAFE_FREE_STRING(pProvider->pszId);
+        LW_SAFE_FREE_STRING(pProvider->pszProviderLibpath);
 
-        LsaFreeMemory(pProvider);
+        LwFreeMemory(pProvider);
     }
 }
 
@@ -184,7 +184,7 @@ LsaSrvInitAuthProvider(
     if (!pfnInitProvider)
     {
         /* Try to load the provider dynamically */
-        if (IsNullOrEmptyString(pProvider->pszProviderLibpath)) {
+        if (LW_IS_NULL_OR_EMPTY_STR(pProvider->pszProviderLibpath)) {
             dwError = ENOENT;
             BAIL_ON_LSA_ERROR(dwError);
         }
@@ -198,7 +198,7 @@ LsaSrvInitAuthProvider(
             LSA_LOG_ERROR("Failed to open auth provider at path [%s]", pszProviderLibpath);
 
             pszError = dlerror();
-            if (!IsNullOrEmptyString(pszError)) {
+            if (!LW_IS_NULL_OR_EMPTY_STR(pszError)) {
                 LSA_LOG_ERROR("%s", pszError);
             }
 
@@ -214,7 +214,7 @@ LsaSrvInitAuthProvider(
             LSA_LOG_ERROR("Ignoring invalid auth provider at path [%s]", pszProviderLibpath);
 
             pszError = dlerror();
-            if (!IsNullOrEmptyString(pszError)) {
+            if (!LW_IS_NULL_OR_EMPTY_STR(pszError)) {
                 LSA_LOG_ERROR("%s", pszError);
             }
 
@@ -230,7 +230,7 @@ LsaSrvInitAuthProvider(
             LSA_LOG_ERROR("Ignoring invalid auth provider at path [%s]", pszProviderLibpath);
 
             pszError = dlerror();
-            if (!IsNullOrEmptyString(pszError)) {
+            if (!LW_IS_NULL_OR_EMPTY_STR(pszError)) {
                 LSA_LOG_ERROR("%s", pszError);
             }
 
@@ -370,7 +370,7 @@ LsaSrvAuthProviderConfigStartSection(
 
     BAIL_ON_INVALID_POINTER(ppProviderStack);
 
-    if (IsNullOrEmptyString(pszSectionName) ||
+    if (LW_IS_NULL_OR_EMPTY_STR(pszSectionName) ||
         strncasecmp(pszSectionName, LSA_CFG_TAG_AUTH_PROVIDER, sizeof(LSA_CFG_TAG_AUTH_PROVIDER)-1))
     {
         bSkipSection = TRUE;
@@ -378,18 +378,18 @@ LsaSrvAuthProviderConfigStartSection(
     }
 
     pszLibName = pszSectionName + sizeof(LSA_CFG_TAG_AUTH_PROVIDER) - 1;
-    if (IsNullOrEmptyString(pszLibName)) {
+    if (LW_IS_NULL_OR_EMPTY_STR(pszLibName)) {
         LSA_LOG_WARNING("No Auth Provider Plugin name was specified");
         bSkipSection = TRUE;
         goto done;
     }
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                 sizeof(LSA_AUTH_PROVIDER),
                 (PVOID*)&pProvider);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                 pszLibName,
                 &pProvider->pszId);
     BAIL_ON_LSA_ERROR(dwError);
@@ -447,8 +447,8 @@ LsaSrvAuthProviderConfigNameValuePair(
 
     if (strcasecmp(pszName, "path") == 0)
     {
-        if (!IsNullOrEmptyString(pszValue)) {
-            dwError = LsaAllocateString(
+        if (!LW_IS_NULL_OR_EMPTY_STR(pszValue)) {
+            dwError = LwAllocateString(
                         pszValue,
                         &pszProviderLibpath);
             BAIL_ON_LSA_ERROR(dwError);
@@ -458,7 +458,7 @@ LsaSrvAuthProviderConfigNameValuePair(
         if (pProvider->pszProviderLibpath != NULL)
         {
             LSA_LOG_WARNING("path redefined in configuration file");
-            LSA_SAFE_FREE_STRING(pProvider->pszProviderLibpath);
+            LW_SAFE_FREE_STRING(pProvider->pszProviderLibpath);
         }
 
         pProvider->pszProviderLibpath = pszProviderLibpath;
@@ -473,7 +473,7 @@ cleanup:
 
 error:
 
-    LSA_SAFE_FREE_STRING(pszProviderLibpath);
+    LW_SAFE_FREE_STRING(pszProviderLibpath);
 
     *pbContinue = FALSE;
 

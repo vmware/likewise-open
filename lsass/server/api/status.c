@@ -64,7 +64,7 @@ LsaSrvGetStatus(
 
     BAIL_ON_INVALID_POINTER(ppLsaStatus);
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                   sizeof(LSASTATUS),
                   (PVOID*)&pLsaStatus);
     BAIL_ON_LSA_ERROR(dwError);
@@ -84,7 +84,7 @@ LsaSrvGetStatus(
         goto done;
     }
     
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     dwProviderCount * sizeof(LSA_AUTH_PROVIDER_STATUS),
                     (PVOID*)&pLsaStatus->pAuthProviderStatusList);
     BAIL_ON_LSA_ERROR(dwError);
@@ -104,7 +104,7 @@ LsaSrvGetStatus(
         
         pAuthProviderStatus = &pLsaStatus->pAuthProviderStatusList[iCount];
         
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
                         pProvider->pszName,
                         &pAuthProviderStatus->pszId);
         BAIL_ON_LSA_ERROR(dwError);
@@ -181,51 +181,51 @@ LsaSrvCopyProviderStatus(
     
     pTargetStatus->mode = pProviderOwnedStatus->mode;
     
-    LSA_SAFE_FREE_STRING(pTargetStatus->pszCell);
+    LW_SAFE_FREE_STRING(pTargetStatus->pszCell);
     
-    if (!IsNullOrEmptyString(pProviderOwnedStatus->pszCell))
+    if (!LW_IS_NULL_OR_EMPTY_STR(pProviderOwnedStatus->pszCell))
     {
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
                         pProviderOwnedStatus->pszCell,
                         &pTargetStatus->pszCell);
         BAIL_ON_LSA_ERROR(dwError);
     }
     
-    LSA_SAFE_FREE_STRING(pTargetStatus->pszDomain);
+    LW_SAFE_FREE_STRING(pTargetStatus->pszDomain);
     
-    if (!IsNullOrEmptyString(pProviderOwnedStatus->pszDomain))
+    if (!LW_IS_NULL_OR_EMPTY_STR(pProviderOwnedStatus->pszDomain))
     {
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
                         pProviderOwnedStatus->pszDomain,
                         &pTargetStatus->pszDomain);
         BAIL_ON_LSA_ERROR(dwError);
     }
     
-    LSA_SAFE_FREE_STRING(pTargetStatus->pszForest);
+    LW_SAFE_FREE_STRING(pTargetStatus->pszForest);
     
-    if (!IsNullOrEmptyString(pProviderOwnedStatus->pszForest))
+    if (!LW_IS_NULL_OR_EMPTY_STR(pProviderOwnedStatus->pszForest))
     {
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
                         pProviderOwnedStatus->pszForest,
                         &pTargetStatus->pszForest);
         BAIL_ON_LSA_ERROR(dwError);
     }
     
-    LSA_SAFE_FREE_STRING(pTargetStatus->pszId);
+    LW_SAFE_FREE_STRING(pTargetStatus->pszId);
     
-    if (!IsNullOrEmptyString(pProviderOwnedStatus->pszId))
+    if (!LW_IS_NULL_OR_EMPTY_STR(pProviderOwnedStatus->pszId))
     {
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
                     pProviderOwnedStatus->pszId,
                     &pTargetStatus->pszId);
         BAIL_ON_LSA_ERROR(dwError);
     }
     
-    LSA_SAFE_FREE_STRING(pTargetStatus->pszSite);
+    LW_SAFE_FREE_STRING(pTargetStatus->pszSite);
     
-    if (!IsNullOrEmptyString(pProviderOwnedStatus->pszSite))
+    if (!LW_IS_NULL_OR_EMPTY_STR(pProviderOwnedStatus->pszSite))
     {
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
                     pProviderOwnedStatus->pszSite,
                     &pTargetStatus->pszSite);
         BAIL_ON_LSA_ERROR(dwError);
@@ -266,7 +266,7 @@ LsaSrvCopyTrustedDomainInfoArray(
     PLSA_TRUSTED_DOMAIN_INFO pDomainInfoArray = NULL;
     DWORD iDomain = 0;
     
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     dwNumDomains * sizeof(LSA_TRUSTED_DOMAIN_INFO),
                     (PVOID*)&pDomainInfoArray);
     BAIL_ON_LSA_ERROR(dwError);
@@ -278,27 +278,27 @@ LsaSrvCopyTrustedDomainInfoArray(
         PLSA_TRUSTED_DOMAIN_INFO pDestDomainInfo =
             &pDomainInfoArray[iDomain];
         
-        dwError = LsaStrDupOrNull(
+        dwError = LwStrDupOrNull(
                         pSrcDomainInfo->pszDnsDomain,
                         &pDestDomainInfo->pszDnsDomain);
         BAIL_ON_LSA_ERROR(dwError);
         
-        dwError = LsaStrDupOrNull(
+        dwError = LwStrDupOrNull(
                         pSrcDomainInfo->pszNetbiosDomain,
                         &pDestDomainInfo->pszNetbiosDomain);
         BAIL_ON_LSA_ERROR(dwError);
         
-        dwError = LsaStrDupOrNull(
+        dwError = LwStrDupOrNull(
                         pSrcDomainInfo->pszDomainSID,
                         &pDestDomainInfo->pszDomainSID);
         BAIL_ON_LSA_ERROR(dwError);
         
-        dwError = LsaStrDupOrNull(
+        dwError = LwStrDupOrNull(
                         pSrcDomainInfo->pszDomainGUID,
                         &pDestDomainInfo->pszDomainGUID);
         BAIL_ON_LSA_ERROR(dwError);
         
-        dwError = LsaStrDupOrNull(
+        dwError = LwStrDupOrNull(
                         pSrcDomainInfo->pszTrusteeDnsDomain,
                         &pDestDomainInfo->pszTrusteeDnsDomain);
         BAIL_ON_LSA_ERROR(dwError);
@@ -309,12 +309,12 @@ LsaSrvCopyTrustedDomainInfoArray(
         pDestDomainInfo->dwTrustDirection = pSrcDomainInfo->dwTrustDirection;
         pDestDomainInfo->dwTrustMode = pSrcDomainInfo->dwTrustMode;
         
-        dwError = LsaStrDupOrNull(
+        dwError = LwStrDupOrNull(
                         pSrcDomainInfo->pszForestName,
                         &pDestDomainInfo->pszForestName);
         BAIL_ON_LSA_ERROR(dwError);
         
-        dwError = LsaStrDupOrNull(
+        dwError = LwStrDupOrNull(
                         pSrcDomainInfo->pszClientSiteName,
                         &pDestDomainInfo->pszClientSiteName);
         BAIL_ON_LSA_ERROR(dwError);
@@ -365,22 +365,22 @@ LsaSrvCopyDCInfo(
     DWORD dwError = 0;
     PLSA_DC_INFO pDCInfo = NULL;
     
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(LSA_DC_INFO),
                     (PVOID*)&pDCInfo);
     BAIL_ON_LSA_ERROR(dwError);
     
-    dwError = LsaStrDupOrNull(
+    dwError = LwStrDupOrNull(
                     pSrcInfo->pszName,
                     &pDCInfo->pszName);
     BAIL_ON_LSA_ERROR(dwError);
     
-    dwError = LsaStrDupOrNull(
+    dwError = LwStrDupOrNull(
                     pSrcInfo->pszAddress,
                     &pDCInfo->pszAddress);
     BAIL_ON_LSA_ERROR(dwError);
     
-    dwError = LsaStrDupOrNull(
+    dwError = LwStrDupOrNull(
                     pSrcInfo->pszSiteName,
                     &pDCInfo->pszSiteName);
     BAIL_ON_LSA_ERROR(dwError);
@@ -418,20 +418,20 @@ LsaSrvGetVersion(
     DWORD dwMinor = 0;
     DWORD dwBuild = 0;
     
-    if (IsNullOrEmptyString(PKG_VERSION))
+    if (LW_IS_NULL_OR_EMPTY_STR(PKG_VERSION))
     {
         dwError = LW_ERROR_INVALID_AGENT_VERSION;
         BAIL_ON_LSA_ERROR(dwError);
     }
     
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                     PKG_VERSION,
                     &pszVersion);
     BAIL_ON_LSA_ERROR(dwError);
     
     pszToken = strtok_r(pszVersion, ".",  &pszTokenState);
     
-    while (!IsNullOrEmptyString(pszVersion) && (iVerComp < 3))
+    while (!LW_IS_NULL_OR_EMPTY_STR(pszVersion) && (iVerComp < 3))
     {
         int i = 0;
         
@@ -482,7 +482,7 @@ LsaSrvGetVersion(
     
 cleanup:
 
-    LSA_SAFE_FREE_MEMORY(pszVersion);
+    LW_SAFE_FREE_MEMORY(pszVersion);
 
     return dwError;
     

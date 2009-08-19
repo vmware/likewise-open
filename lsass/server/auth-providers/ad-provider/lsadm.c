@@ -309,10 +309,10 @@ LsaDmFreeDcInfo(
 {
     if (pDcInfo)
     {
-        LSA_SAFE_FREE_STRING(pDcInfo->pszName);
-        LSA_SAFE_FREE_STRING(pDcInfo->pszAddress);
-        LSA_SAFE_FREE_STRING(pDcInfo->pszSiteName);
-        LsaFreeMemory(pDcInfo);
+        LW_SAFE_FREE_STRING(pDcInfo->pszName);
+        LW_SAFE_FREE_STRING(pDcInfo->pszAddress);
+        LW_SAFE_FREE_STRING(pDcInfo->pszSiteName);
+        LwFreeMemory(pDcInfo);
     }
 }
 
@@ -450,15 +450,15 @@ LsaDmDuplicateConstEnumDomainInfo(
     DWORD dwError = LW_ERROR_SUCCESS;
     PLSA_DM_ENUM_DOMAIN_INFO pDest = NULL;
 
-    dwError = LsaAllocateMemory(sizeof(*pDest), (PVOID*)&pDest);
+    dwError = LwAllocateMemory(sizeof(*pDest), (PVOID*)&pDest);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaStrDupOrNull(
+    dwError = LwStrDupOrNull(
                 pSrc->pszDnsDomainName,
                 &pDest->pszDnsDomainName);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                 pSrc->pszNetbiosDomainName,
                 &pDest->pszNetbiosDomainName);
     BAIL_ON_LSA_ERROR(dwError);
@@ -468,13 +468,13 @@ LsaDmDuplicateConstEnumDomainInfo(
                 pSrc->pSid);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                 sizeof(*pDest->pGuid),
                 (PVOID *)&pDest->pGuid);
     BAIL_ON_LSA_ERROR(dwError);
     memcpy(pDest->pGuid, pSrc->pGuid, sizeof(*pSrc->pGuid));
 
-    dwError = LsaStrDupOrNull(
+    dwError = LwStrDupOrNull(
                 pSrc->pszTrusteeDnsDomainName,
                 &pDest->pszTrusteeDnsDomainName);
     BAIL_ON_LSA_ERROR(dwError);
@@ -485,12 +485,12 @@ LsaDmDuplicateConstEnumDomainInfo(
     pDest->dwTrustDirection = pSrc->dwTrustDirection;
     pDest->dwTrustMode = pSrc->dwTrustMode;
 
-    dwError = LsaStrDupOrNull(
+    dwError = LwStrDupOrNull(
                 pSrc->pszForestName,
                 &pDest->pszForestName);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaStrDupOrNull(
+    dwError = LwStrDupOrNull(
                 pSrc->pszClientSiteName,
                 &pDest->pszClientSiteName);
     BAIL_ON_LSA_ERROR(dwError);
@@ -524,13 +524,13 @@ LsaDmFreeEnumDomainInfo(
 {
     if (pDomainInfo)
     {
-        LSA_SAFE_FREE_STRING(pDomainInfo->pszDnsDomainName);
-        LSA_SAFE_FREE_STRING(pDomainInfo->pszNetbiosDomainName);
-        LSA_SAFE_FREE_MEMORY(pDomainInfo->pSid);
-        LSA_SAFE_FREE_MEMORY(pDomainInfo->pGuid);
-        LSA_SAFE_FREE_STRING(pDomainInfo->pszTrusteeDnsDomainName);
-        LSA_SAFE_FREE_STRING(pDomainInfo->pszForestName);
-        LSA_SAFE_FREE_STRING(pDomainInfo->pszClientSiteName);
+        LW_SAFE_FREE_STRING(pDomainInfo->pszDnsDomainName);
+        LW_SAFE_FREE_STRING(pDomainInfo->pszNetbiosDomainName);
+        LW_SAFE_FREE_MEMORY(pDomainInfo->pSid);
+        LW_SAFE_FREE_MEMORY(pDomainInfo->pGuid);
+        LW_SAFE_FREE_STRING(pDomainInfo->pszTrusteeDnsDomainName);
+        LW_SAFE_FREE_STRING(pDomainInfo->pszForestName);
+        LW_SAFE_FREE_STRING(pDomainInfo->pszClientSiteName);
         if (pDomainInfo->DcInfo)
         {
             LsaDmFreeDcInfo(pDomainInfo->DcInfo);
@@ -539,7 +539,7 @@ LsaDmFreeEnumDomainInfo(
         {
             LsaDmFreeDcInfo(pDomainInfo->GcInfo);
         }
-        LsaFreeMemory(pDomainInfo);
+        LwFreeMemory(pDomainInfo);
     }
 }
 
@@ -555,7 +555,7 @@ LsaDmFreeEnumDomainInfoArray(
         {
             LsaDmFreeEnumDomainInfo(ppDomainInfo[dwIndex]);
         }
-        LsaFreeMemory(ppDomainInfo);
+        LwFreeMemory(ppDomainInfo);
     }
 }
 
@@ -889,7 +889,7 @@ LsaDmConnectDomain(
 
 cleanup:
     LWNET_SAFE_FREE_DC_INFO(pLocalDcInfo);
-    LSA_SAFE_FREE_STRING(pszDnsForestName);
+    LW_SAFE_FREE_STRING(pszDnsForestName);
     return dwError;
 
 error:

@@ -77,14 +77,14 @@ LSA_INITIALIZE_PROVIDER(local)(
                     &gLPGlobals.llPwdChangeTime);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (!IsNullOrEmptyString(pszConfigFilePath))
+    if (!LW_IS_NULL_OR_EMPTY_STR(pszConfigFilePath))
     {
         dwError = LocalCfgParseFile(
                         pszConfigFilePath,
                         &config);
         BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
                         pszConfigFilePath,
                         &gLPGlobals.pszConfigFilePath);
         BAIL_ON_LSA_ERROR(dwError);
@@ -135,7 +135,7 @@ LocalOpenHandle(
     DWORD dwError = 0;
     PLOCAL_PROVIDER_CONTEXT pContext = NULL;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(LOCAL_PROVIDER_CONTEXT),
                     (PVOID*)&pContext);
     BAIL_ON_LSA_ERROR(dwError);
@@ -187,7 +187,7 @@ LocalCloseHandle(
 
     if (pContext)
     {
-        LsaFreeMemory(pContext);
+        LwFreeMemory(pContext);
     }
 }
 
@@ -198,7 +198,7 @@ LocalServicesDomain(
 {
     BOOLEAN bResult = FALSE;
 
-    if (!IsNullOrEmptyString(pszDomain) &&
+    if (!LW_IS_NULL_OR_EMPTY_STR(pszDomain) &&
         (!strcasecmp(pszDomain, gLPGlobals.pszNetBIOSName) ||
          !strcasecmp(pszDomain, gLPGlobals.pszLocalDomain) ||
          !strcasecmp(pszDomain, gLPGlobals.pszBuiltinDomain)))
@@ -260,8 +260,8 @@ cleanup:
         LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
     }
 
-    LSA_SAFE_FREE_MEMORY(pwszUserDN);
-    LSA_SAFE_FREE_MEMORY(pwszPassword);
+    LW_SAFE_FREE_MEMORY(pwszUserDN);
+    LW_SAFE_FREE_MEMORY(pwszPassword);
 
     return dwError;
 
@@ -471,7 +471,7 @@ error:
     }
     *ppUserInfo = NULL;
 
-    LSA_SAFE_FREE_MEMORY(pwszUserDN);
+    LW_SAFE_FREE_MEMORY(pwszUserDN);
 
     if (pUserInfo) {
         LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
@@ -599,7 +599,7 @@ cleanup:
         LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
     }
 
-    LSA_SAFE_FREE_MEMORY(pwszUserDN);
+    LW_SAFE_FREE_MEMORY(pwszUserDN);
 
     return dwError;
 
@@ -793,7 +793,7 @@ error:
     }
     *ppGroupInfo = NULL;
 
-    LSA_SAFE_FREE_MEMORY(pwszGroupDN);
+    LW_SAFE_FREE_MEMORY(pwszGroupDN);
 
     if (pGroupInfo)
     {
@@ -975,9 +975,9 @@ cleanup:
         LsaFreeUserInfo(dwInfoLevel, pUserInfo);
     }
 
-    LSA_SAFE_FREE_MEMORY(pwszNewPassword);
-    LSA_SAFE_FREE_MEMORY(pwszOldPassword);
-    LSA_SAFE_FREE_MEMORY(pwszUserDN);
+    LW_SAFE_FREE_MEMORY(pwszNewPassword);
+    LW_SAFE_FREE_MEMORY(pwszOldPassword);
+    LW_SAFE_FREE_MEMORY(pwszUserDN);
 
     return dwError;
 
@@ -1026,8 +1026,8 @@ cleanup:
         LsaFreeUserInfo(dwInfoLevel, pUserInfo);
     }
 
-    LSA_SAFE_FREE_MEMORY(pwszNewPassword);
-    LSA_SAFE_FREE_MEMORY(pwszUserDN);
+    LW_SAFE_FREE_MEMORY(pwszNewPassword);
+    LW_SAFE_FREE_MEMORY(pwszUserDN);
 
     return dwError;
 
@@ -1122,7 +1122,7 @@ cleanup:
         LsaFreeUserInfo(dwInfoLevel, pUserInfo);
     }
 
-    LSA_SAFE_FREE_MEMORY(pwszUserDN);
+    LW_SAFE_FREE_MEMORY(pwszUserDN);
 
     return dwError;
 
@@ -1218,7 +1218,7 @@ cleanup:
         LsaFreeGroupInfo(dwInfoLevel, pGroupInfo);
     }
 
-    LSA_SAFE_FREE_MEMORY(pwszGroupDN);
+    LW_SAFE_FREE_MEMORY(pwszGroupDN);
 
     return dwError;
 
@@ -1290,7 +1290,7 @@ cleanup:
         LsaFreeNameInfo(pLoginInfo);
     }
 
-    LSA_SAFE_FREE_MEMORY(pwszUserDN);
+    LW_SAFE_FREE_MEMORY(pwszUserDN);
 
     return dwError;
 
@@ -1332,7 +1332,7 @@ cleanup:
         LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
     }
 
-    LSA_SAFE_FREE_MEMORY(pwszUserDN);
+    LW_SAFE_FREE_MEMORY(pwszUserDN);
 
     return dwError;
 
@@ -1384,9 +1384,9 @@ error:
     *pppszSamAccounts = NULL;
     *ppTypes = NULL;
 
-    LsaFreeStringArray(ppszDomainNames, sCount);
-    LsaFreeStringArray(ppszSamAccounts, sCount);
-    LSA_SAFE_FREE_MEMORY(pTypes);
+    LwFreeStringArray(ppszDomainNames, sCount);
+    LwFreeStringArray(ppszSamAccounts, sCount);
+    LW_SAFE_FREE_MEMORY(pTypes);
 
     goto cleanup;
 }
@@ -1462,12 +1462,12 @@ LocalGetStatus(
     DWORD dwError = 0;
     PLSA_AUTH_PROVIDER_STATUS pProviderStatus = NULL;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                    sizeof(LSA_AUTH_PROVIDER_STATUS),
                    (PVOID*)&pProviderStatus);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                     gpszLocalProviderName,
                     &pProviderStatus->pszId);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1506,7 +1506,7 @@ LocalRefreshConfiguration(
     dwError = LocalCfgGetFilePath(&pszConfigFilePath);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (!IsNullOrEmptyString(pszConfigFilePath))
+    if (!LW_IS_NULL_OR_EMPTY_STR(pszConfigFilePath))
     {
         dwError = LocalCfgParseFile(
                         pszConfigFilePath,
@@ -1527,7 +1527,7 @@ LocalRefreshConfiguration(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszConfigFilePath);
+    LW_SAFE_FREE_STRING(pszConfigFilePath);
 
     LOCAL_UNLOCK_MUTEX(bInLock, &gLPGlobals.mutex);
 
@@ -1545,13 +1545,13 @@ LocalFreeStatus(
     PLSA_AUTH_PROVIDER_STATUS pProviderStatus
     )
 {
-    LSA_SAFE_FREE_STRING(pProviderStatus->pszId);
-    LSA_SAFE_FREE_STRING(pProviderStatus->pszDomain);
-    LSA_SAFE_FREE_STRING(pProviderStatus->pszForest);
-    LSA_SAFE_FREE_STRING(pProviderStatus->pszSite);
-    LSA_SAFE_FREE_STRING(pProviderStatus->pszCell);
+    LW_SAFE_FREE_STRING(pProviderStatus->pszId);
+    LW_SAFE_FREE_STRING(pProviderStatus->pszDomain);
+    LW_SAFE_FREE_STRING(pProviderStatus->pszForest);
+    LW_SAFE_FREE_STRING(pProviderStatus->pszSite);
+    LW_SAFE_FREE_STRING(pProviderStatus->pszCell);
 
-    LsaFreeMemory(pProviderStatus);
+    LwFreeMemory(pProviderStatus);
 }
 
 DWORD
@@ -1672,7 +1672,7 @@ LocalGetGroupMembership(
     *ppOutputBuffer      = pRepBuffer;
 
 cleanup:
-    LSA_SAFE_FREE_MEMORY(pwszDN);
+    LW_SAFE_FREE_MEMORY(pwszDN);
 
     if (ppGroupInfoList) {
         LsaFreeGroupInfoList(
@@ -1712,9 +1712,9 @@ LSA_SHUTDOWN_PROVIDER(local)(
     PLSA_PROVIDER_FUNCTION_TABLE pFnTable
     )
 {
-    LSA_SAFE_FREE_STRING(gLPGlobals.pszConfigFilePath);
-    LSA_SAFE_FREE_STRING(gLPGlobals.pszLocalDomain);
-    LSA_SAFE_FREE_STRING(gLPGlobals.pszNetBIOSName);
+    LW_SAFE_FREE_STRING(gLPGlobals.pszConfigFilePath);
+    LW_SAFE_FREE_STRING(gLPGlobals.pszLocalDomain);
+    LW_SAFE_FREE_STRING(gLPGlobals.pszNetBIOSName);
 
     return 0;
 }

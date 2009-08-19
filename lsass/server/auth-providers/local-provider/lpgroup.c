@@ -191,7 +191,7 @@ LocalDirFindGroupByName_0(
     PWSTR pwszDN = NULL;
     PLSA_GROUP_INFO_0 pGroupInfo = NULL;
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                     &pszFilter,
                     pszFilterTemplate,
                     pszGroupName,
@@ -246,8 +246,8 @@ LocalDirFindGroupByName_0(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszFilter);
-    LSA_SAFE_FREE_MEMORY(pwszFilter);
+    LW_SAFE_FREE_STRING(pszFilter);
+    LW_SAFE_FREE_MEMORY(pwszFilter);
 
     if (pEntries)
     {
@@ -264,7 +264,7 @@ error:
     }
     *ppGroupInfo = pGroupInfo;
 
-    LSA_SAFE_FREE_MEMORY(pwszDN);
+    LW_SAFE_FREE_MEMORY(pwszDN);
 
     if (pGroupInfo)
     {
@@ -314,7 +314,7 @@ LocalDirFindGroupByName_1(
     DWORD dwInfoLevel = 1;
     PLSA_GROUP_INFO_1 pGroupInfo = NULL;
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                     &pszFilter,
                     pszFilterTemplate,
                     pszGroupName,
@@ -376,10 +376,10 @@ LocalDirFindGroupByName_1(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszFilter);
-    LSA_SAFE_FREE_MEMORY(pwszFilter);
+    LW_SAFE_FREE_STRING(pszFilter);
+    LW_SAFE_FREE_MEMORY(pwszFilter);
 
-    LSA_SAFE_FREE_MEMORY(pwszDN);
+    LW_SAFE_FREE_MEMORY(pwszDN);
 
     if (pEntries)
     {
@@ -481,7 +481,7 @@ LocalDirFindGroupById_0(
     PLSA_GROUP_INFO_0 pGroupInfo = NULL;
     PWSTR pwszGroupDN = NULL;
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                     &pszFilter,
                     pszFilterTemplate,
                     gid,
@@ -535,8 +535,8 @@ LocalDirFindGroupById_0(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszFilter);
-    LSA_SAFE_FREE_MEMORY(pwszFilter);
+    LW_SAFE_FREE_STRING(pszFilter);
+    LW_SAFE_FREE_MEMORY(pwszFilter);
 
     if (pEntries)
     {
@@ -553,7 +553,7 @@ error:
     }
     *ppGroupInfo = NULL;
 
-    LSA_SAFE_FREE_MEMORY(pwszGroupDN);
+    LW_SAFE_FREE_MEMORY(pwszGroupDN);
 
     if (pGroupInfo)
     {
@@ -600,7 +600,7 @@ LocalDirFindGroupById_1(
     PLSA_GROUP_INFO_1 pGroupInfo = NULL;
     PWSTR pwszGroupDN = NULL;
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                     &pszFilter,
                     pszFilterTemplate,
                     gid,
@@ -662,10 +662,10 @@ LocalDirFindGroupById_1(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszFilter);
-    LSA_SAFE_FREE_MEMORY(pwszFilter);
+    LW_SAFE_FREE_STRING(pszFilter);
+    LW_SAFE_FREE_MEMORY(pwszFilter);
 
-    LSA_SAFE_FREE_MEMORY(pwszGroupDN);
+    LW_SAFE_FREE_MEMORY(pwszGroupDN);
 
     if (pEntries)
     {
@@ -773,7 +773,7 @@ LocalDirGetGroupsForUser_0(
 
     if (dwNumGroupsFound)
     {
-        dwError = LsaAllocateMemory(
+        dwError = LwAllocateMemory(
                         sizeof(PLSA_GROUP_INFO_0) * dwNumGroupsFound,
                         (PVOID*)&ppGroupInfoList);
         BAIL_ON_LSA_ERROR(dwError);
@@ -859,7 +859,7 @@ LocalDirGetGroupsForUser_1(
 
     if (dwNumGroupsFound)
     {
-        dwError = LsaAllocateMemory(
+        dwError = LwAllocateMemory(
                         sizeof(PLSA_GROUP_INFO_1) * dwNumGroupsFound,
                         (PVOID*)&ppGroupInfoList);
         BAIL_ON_LSA_ERROR(dwError);
@@ -869,7 +869,7 @@ LocalDirGetGroupsForUser_1(
     {
         PDIRECTORY_ENTRY pEntry = &pDirectoryEntries[iEntry];
 
-        LSA_SAFE_FREE_MEMORY(pwszGroupDN);
+        LW_SAFE_FREE_MEMORY(pwszGroupDN);
 
         dwError = LocalMarshalEntryToGroupInfo_1(
                         pEntry,
@@ -894,7 +894,7 @@ cleanup:
         DirectoryFreeEntries(pDirectoryEntries, dwNumGroupsFound);
     }
 
-    LSA_SAFE_FREE_MEMORY(pwszGroupDN);
+    LW_SAFE_FREE_MEMORY(pwszGroupDN);
 
     return dwError;
 
@@ -986,7 +986,7 @@ LocalDirBeginEnumGroups_0(
                         &pEnumState);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                     &pszFilter,
                     pszFilterTemplate,
                     gLPGlobals.pszLocalDomain,
@@ -1014,8 +1014,8 @@ LocalDirBeginEnumGroups_0(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszFilter);
-    LSA_SAFE_FREE_MEMORY(pwszFilter);
+    LW_SAFE_FREE_STRING(pszFilter);
+    LW_SAFE_FREE_MEMORY(pwszFilter);
 
     return dwError;
 
@@ -1068,7 +1068,7 @@ LocalDirBeginEnumGroups_1(
                         &pEnumState);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                     &pszFilter,
                     pszFilterTemplate,
                     gLPGlobals.pszLocalDomain,
@@ -1096,8 +1096,8 @@ LocalDirBeginEnumGroups_1(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszFilter);
-    LSA_SAFE_FREE_MEMORY(pwszFilter);
+    LW_SAFE_FREE_STRING(pszFilter);
+    LW_SAFE_FREE_MEMORY(pwszFilter);
 
     return dwError;
 
@@ -1198,7 +1198,7 @@ LocalDirEnumGroups_0(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     dwNumGroupsFound * sizeof(PLSA_GROUP_INFO_0),
                     (PVOID*)&ppGroupInfoList);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1280,7 +1280,7 @@ LocalDirEnumGroups_1(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     dwNumGroupsFound * sizeof(PLSA_GROUP_INFO_1),
                     (PVOID*)&ppGroupInfoList);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1291,7 +1291,7 @@ LocalDirEnumGroups_1(
 
         pEntry = &pEnumState->pEntries[pEnumState->dwNextStartingId + iGroup];
 
-        LSA_SAFE_FREE_MEMORY(pwszGroupDN);
+        LW_SAFE_FREE_MEMORY(pwszGroupDN);
 
         dwError = LocalMarshalEntryToGroupInfo_1(
                         pEntry,
@@ -1313,7 +1313,7 @@ LocalDirEnumGroups_1(
 
 cleanup:
 
-    LSA_SAFE_FREE_MEMORY(pwszGroupDN);
+    LW_SAFE_FREE_MEMORY(pwszGroupDN);
 
     LOCAL_UNLOCK_MUTEX(bInLock, &pEnumState->mutex);
 
@@ -1383,10 +1383,10 @@ error:
         DWORD iMember = 0;
         while (ppszMembers[iMember])
         {
-            LsaFreeString(ppszMembers[iMember++]);
+            LwFreeString(ppszMembers[iMember++]);
         }
 
-        LsaFreeMemory(ppszMembers);
+        LwFreeMemory(ppszMembers);
     }
 
     goto cleanup;
@@ -1438,7 +1438,7 @@ LocalDirGetGroupMembers(
         dwNumMembers++;
     }
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(PLOCAL_PROVIDER_GROUP_MEMBER) * dwNumMembers,
                     (PVOID*)&ppGroupMembers);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1468,7 +1468,7 @@ error:
     *pppGroupMembers = NULL;
     *pdwNumMembers = 0;
 
-    LSA_SAFE_FREE_MEMORY(ppGroupMembers);
+    LW_SAFE_FREE_MEMORY(ppGroupMembers);
 
     if (pMemberships)
     {
@@ -1553,7 +1553,7 @@ LocalDirGetGroupMembersInternal(
 
                 if (dwGroupNestingLevel < dwMaxGroupNestingLevel)
                 {
-                    LSA_SAFE_FREE_MEMORY(pwszChildGroupDN);
+                    LW_SAFE_FREE_MEMORY(pwszChildGroupDN);
 
                     dwError = LocalDirGetGroupMembersInternal(
                                     pContext,
@@ -1575,7 +1575,7 @@ LocalDirGetGroupMembersInternal(
             case LOCAL_OBJECT_CLASS_USER:
             case LOCAL_OBJECT_CLASS_GROUP_MEMBER:
 
-                LSA_SAFE_FREE_STRING(pszSID);
+                LW_SAFE_FREE_STRING(pszSID);
 
                 dwError = LocalMarshalAttrToANSIFromUnicodeString(
                                 pEntry,
@@ -1589,7 +1589,7 @@ LocalDirGetGroupMembersInternal(
                             (PVOID*)&pGroupMember);
                 if (dwError == ENOENT)
                 {
-                    dwError = LsaAllocateMemory(
+                    dwError = LwAllocateMemory(
                                     sizeof(LOCAL_PROVIDER_GROUP_MEMBER),
                                     (PVOID*)&pGroupMember);
                     BAIL_ON_LSA_ERROR(dwError);
@@ -1641,8 +1641,8 @@ LocalDirGetGroupMembersInternal(
 
 cleanup:
 
-    LSA_SAFE_FREE_MEMORY(pwszChildGroupDN);
-    LSA_SAFE_FREE_MEMORY(pszSID);
+    LW_SAFE_FREE_MEMORY(pwszChildGroupDN);
+    LW_SAFE_FREE_MEMORY(pszSID);
 
     if (pGroupMember)
     {
@@ -1881,10 +1881,10 @@ cleanup:
         LsaFreeNameInfo(pLoginInfo);
     }
 
-    LSA_SAFE_FREE_MEMORY(pwszGroupDN);
-    LSA_SAFE_FREE_MEMORY(pwszSamAccountName);
-    LSA_SAFE_FREE_MEMORY(pwszDomain);
-    LSA_SAFE_FREE_MEMORY(pwszNetBIOSDomain);
+    LW_SAFE_FREE_MEMORY(pwszGroupDN);
+    LW_SAFE_FREE_MEMORY(pwszSamAccountName);
+    LW_SAFE_FREE_MEMORY(pwszDomain);
+    LW_SAFE_FREE_MEMORY(pwszNetBIOSDomain);
 
     return dwError;
 
@@ -2058,7 +2058,7 @@ LocalDirAddGroup_1(
                     mods);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (!IsNullOrEmptyString(pGroupInfo->ppszMembers))
+    if (!LW_IS_NULL_OR_EMPTY_STR(pGroupInfo->ppszMembers))
     {
         dwError = LocalAddMembersToGroup(
                         pContext,
@@ -2083,10 +2083,10 @@ cleanup:
         LsaFreeNameInfo(pLoginInfo);
     }
 
-    LSA_SAFE_FREE_MEMORY(pwszGroupDN);
-    LSA_SAFE_FREE_MEMORY(pwszSamAccountName);
-    LSA_SAFE_FREE_MEMORY(pwszDomain);
-    LSA_SAFE_FREE_MEMORY(pwszNetBIOSDomain);
+    LW_SAFE_FREE_MEMORY(pwszGroupDN);
+    LW_SAFE_FREE_MEMORY(pwszSamAccountName);
+    LW_SAFE_FREE_MEMORY(pwszDomain);
+    LW_SAFE_FREE_MEMORY(pwszNetBIOSDomain);
 
     return dwError;
 
@@ -2236,7 +2236,7 @@ LocalDirModifyGroup(
                           (strlen(pszDN) * sizeof(WCHAR)) +
                           sizeof(wszFilterFmt);
 
-            dwError = LsaAllocateMemory(
+            dwError = LwAllocateMemory(
                         dwFilterLen,
                         (PVOID*)&pwszFilter);
             BAIL_ON_LSA_ERROR(dwError);
@@ -2288,19 +2288,19 @@ LocalDirModifyGroup(
 
             if (pwszDN)
             {
-                LSA_SAFE_FREE_MEMORY(pwszDN);
+                LW_SAFE_FREE_MEMORY(pwszDN);
                 pwszDN = NULL;
             }
 
             if (pwszSID)
             {
-                LSA_SAFE_FREE_MEMORY(pwszSID);
+                LW_SAFE_FREE_MEMORY(pwszSID);
                 pwszDN = NULL;
             }
 
             if (pwszFilter)
             {
-                LSA_SAFE_FREE_MEMORY(pwszFilter);
+                LW_SAFE_FREE_MEMORY(pwszFilter);
                 pwszFilter = NULL;
             }
 
@@ -2340,7 +2340,7 @@ LocalDirModifyGroup(
                 dwFilterLen += sizeof(wszFilterFmtSidOnly);
             }
 
-            dwError = LsaAllocateMemory(
+            dwError = LwAllocateMemory(
                         dwFilterLen,
                         (PVOID*)&pwszFilter);
             BAIL_ON_LSA_ERROR(dwError);
@@ -2388,19 +2388,19 @@ LocalDirModifyGroup(
 
             if (pwszDN)
             {
-                LSA_SAFE_FREE_MEMORY(pwszDN);
+                LW_SAFE_FREE_MEMORY(pwszDN);
                 pwszDN = NULL;
             }
 
             if (pwszSID)
             {
-                LSA_SAFE_FREE_MEMORY(pwszSID);
+                LW_SAFE_FREE_MEMORY(pwszSID);
                 pwszDN = NULL;
             }
 
             if (pwszFilter)
             {
-                LSA_SAFE_FREE_MEMORY(pwszFilter);
+                LW_SAFE_FREE_MEMORY(pwszFilter);
                 pwszFilter = NULL;
             }
 
@@ -2420,17 +2420,17 @@ cleanup:
 
     if (pwszFilter)
     {
-        LSA_SAFE_FREE_MEMORY(pwszFilter);
+        LW_SAFE_FREE_MEMORY(pwszFilter);
     }
 
     if (pwszDN)
     {
-        LSA_SAFE_FREE_MEMORY(pwszDN);
+        LW_SAFE_FREE_MEMORY(pwszDN);
     }
 
     if (pwszSID)
     {
-        LSA_SAFE_FREE_MEMORY(pwszSID);
+        LW_SAFE_FREE_MEMORY(pwszSID);
     }
 
     if (pMember)
@@ -2462,7 +2462,7 @@ LocalAddMembersToGroup(
     DWORD dwObjectClass = LOCAL_OBJECT_CLASS_UNKNOWN;
     DWORD dwMember = 0;
 
-    while (!IsNullOrEmptyString(ppszMembers[dwMember]))
+    while (!LW_IS_NULL_OR_EMPTY_STR(ppszMembers[dwMember]))
     {
         PCSTR pszMemberId = ppszMembers[dwMember];
 
@@ -2578,7 +2578,7 @@ LocalDirFreeGroupMemberList(
         }
     }
 
-    LsaFreeMemory(ppMemberList);
+    LwFreeMemory(ppMemberList);
 }
 
 VOID
@@ -2586,11 +2586,11 @@ LocalDirFreeGroupMember(
     PLOCAL_PROVIDER_GROUP_MEMBER pMember
     )
 {
-    LSA_SAFE_FREE_STRING(pMember->pszNetbiosDomain);
-    LSA_SAFE_FREE_STRING(pMember->pszSamAccountName);
-    LSA_SAFE_FREE_STRING(pMember->pszSID);
+    LW_SAFE_FREE_STRING(pMember->pszNetbiosDomain);
+    LW_SAFE_FREE_STRING(pMember->pszSamAccountName);
+    LW_SAFE_FREE_STRING(pMember->pszSID);
 
-    LsaFreeMemory(pMember);
+    LwFreeMemory(pMember);
 }
 
 

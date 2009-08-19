@@ -174,7 +174,7 @@ _nss_lsass_initgroups_dyn(
             dwNumTotalGroup = maxGroups;
 
         ret = MAP_LSA_ERROR(pErrorNumber,
-                            LsaAllocateMemory(
+                            LwAllocateMemory(
                                 sizeof(gid_t) * dwNumTotalGroup * 2,
                                 (PVOID*)&pGidTotalResult));
         BAIL_ON_NSS_ERROR(ret);
@@ -199,7 +199,7 @@ _nss_lsass_initgroups_dyn(
         *ppGidResults = pGidTotalResult;
         pGidTotalResult = NULL;
 
-        LSA_SAFE_FREE_MEMORY(pExistingResult);
+        LW_SAFE_FREE_MEMORY(pExistingResult);
     }
 
     else
@@ -220,7 +220,7 @@ _nss_lsass_initgroups_dyn(
 
 cleanup:
 
-    LSA_SAFE_FREE_MEMORY(pGidNewResult);
+    LW_SAFE_FREE_MEMORY(pGidNewResult);
 
     return ret;
 
@@ -232,8 +232,8 @@ error:
        hLsaConnection = (HANDLE)NULL;
     }
 
-    LSA_SAFE_FREE_MEMORY(pGidTotalResult);
-    LSA_SAFE_FREE_MEMORY(pGidNewResult);
+    LW_SAFE_FREE_MEMORY(pGidTotalResult);
+    LW_SAFE_FREE_MEMORY(pGidNewResult);
 
     goto cleanup;
 }

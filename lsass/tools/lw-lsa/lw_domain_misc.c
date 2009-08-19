@@ -52,7 +52,7 @@ LwFreeDomainInfoRequest(
 {
     LwFreeDomainInfoRequestContents(pRequestInfo);
 
-    LsaFreeMemory(pRequestInfo);
+    LwFreeMemory(pRequestInfo);
 }
 
 VOID
@@ -66,19 +66,19 @@ LwFreeDomainInfoRequestContents(
 
             if (pRequestInfo->args.joinArgs.pszDomainName)
             {
-                LsaFreeString(pRequestInfo->args.joinArgs.pszDomainName);
+                LwFreeString(pRequestInfo->args.joinArgs.pszDomainName);
             }
             if (pRequestInfo->args.joinArgs.pszOU)
             {
-                LsaFreeString(pRequestInfo->args.joinArgs.pszOU);
+                LwFreeString(pRequestInfo->args.joinArgs.pszOU);
             }
             if (pRequestInfo->args.joinArgs.pszPassword)
             {
-                LsaFreeString(pRequestInfo->args.joinArgs.pszPassword);
+                LwFreeString(pRequestInfo->args.joinArgs.pszPassword);
             }
             if (pRequestInfo->args.joinArgs.pszUsername)
             {
-                LsaFreeString(pRequestInfo->args.joinArgs.pszUsername);
+                LwFreeString(pRequestInfo->args.joinArgs.pszUsername);
             }
 
             break;
@@ -87,11 +87,11 @@ LwFreeDomainInfoRequestContents(
 
             if (pRequestInfo->args.leaveArgs.pszPassword)
             {
-                LsaFreeString(pRequestInfo->args.leaveArgs.pszPassword);
+                LwFreeString(pRequestInfo->args.leaveArgs.pszPassword);
             }
             if (pRequestInfo->args.leaveArgs.pszUsername)
             {
-                LsaFreeString(pRequestInfo->args.leaveArgs.pszUsername);
+                LwFreeString(pRequestInfo->args.leaveArgs.pszUsername);
             }
 
             break;

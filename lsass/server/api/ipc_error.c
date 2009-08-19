@@ -56,12 +56,12 @@ LsaSrvIpcCreateError(
     DWORD dwError = 0;
     PLSA_IPC_ERROR pError = NULL;
 
-    dwError = LsaAllocateMemory(sizeof(*pError), (void**) (void*) &pError);
+    dwError = LwAllocateMemory(sizeof(*pError), (void**) (void*) &pError);
     BAIL_ON_LSA_ERROR(dwError);
 
     if (pszErrorMessage)
     {
-        dwError = LsaAllocateString(pszErrorMessage, (PSTR*) &pError->pszErrorMessage);
+        dwError = LwAllocateString(pszErrorMessage, (PSTR*) &pError->pszErrorMessage);
         BAIL_ON_LSA_ERROR(dwError);
     }
 

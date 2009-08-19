@@ -116,7 +116,7 @@ LsaNISGetNicknames(
             }
         }
 
-        LsaStripWhitespace(szBuf, TRUE, TRUE);
+        LwStripWhitespace(szBuf, TRUE, TRUE);
 
         if (!szBuf[0] || (szBuf[0] == '#'))
         {
@@ -143,12 +143,12 @@ LsaNISGetNicknames(
                 BAIL_ON_LSA_ERROR(dwError);
             }
 
-            dwError = LsaAllocateMemory(
+            dwError = LwAllocateMemory(
                             sizeof(LSA_NIS_NICKNAME),
                             (PVOID*)&pNickname);
             BAIL_ON_LSA_ERROR(dwError);
 
-            dwError = LsaStrndup(
+            dwError = LwStrndup(
                             pszToken,
                             stLen,
                             &pNickname->pszMapAlias);
@@ -171,14 +171,14 @@ LsaNISGetNicknames(
         // Or it might appear on the next line
         if (nextTokenType == NIS_NICKNAME_NAME)
         {
-            if (IsNullOrEmptyString(pszToken))
+            if (LW_IS_NULL_OR_EMPTY_STR(pszToken))
             {
                 continue;
             }
 
             // The rest of the line is the name
             // we already removed trailing comments
-            dwError = LsaAllocateString(
+            dwError = LwAllocateString(
                             pszToken,
                             &pNickname->pszMapName);
             BAIL_ON_LSA_ERROR(dwError);
@@ -275,8 +275,8 @@ LsaNISFreeNickname(
     PLSA_NIS_NICKNAME pNickname
     )
 {
-    LSA_SAFE_FREE_STRING(pNickname->pszMapAlias);
-    LSA_SAFE_FREE_STRING(pNickname->pszMapName);
-    LsaFreeMemory(pNickname);
+    LW_SAFE_FREE_STRING(pNickname->pszMapAlias);
+    LW_SAFE_FREE_STRING(pNickname->pszMapName);
+    LwFreeMemory(pNickname);
 }
 

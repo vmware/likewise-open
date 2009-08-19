@@ -81,12 +81,12 @@ LsaFreeUserInfoContents_0(
     PLSA_USER_INFO_0 pUserInfo
     )
 {
-    LSA_SAFE_FREE_STRING(pUserInfo->pszName);
-    LSA_SAFE_FREE_STRING(pUserInfo->pszPasswd);
-    LSA_SAFE_FREE_STRING(pUserInfo->pszGecos);
-    LSA_SAFE_FREE_STRING(pUserInfo->pszShell);
-    LSA_SAFE_FREE_STRING(pUserInfo->pszHomedir);
-    LSA_SAFE_FREE_STRING(pUserInfo->pszSid);
+    LW_SAFE_FREE_STRING(pUserInfo->pszName);
+    LW_SAFE_FREE_STRING(pUserInfo->pszPasswd);
+    LW_SAFE_FREE_STRING(pUserInfo->pszGecos);
+    LW_SAFE_FREE_STRING(pUserInfo->pszShell);
+    LW_SAFE_FREE_STRING(pUserInfo->pszHomedir);
+    LW_SAFE_FREE_STRING(pUserInfo->pszSid);
 }
 
 static
@@ -96,10 +96,10 @@ LsaFreeUserInfoContents_1(
     )
 {
     LsaFreeUserInfoContents_0(&pUserInfo->info0);
-    LSA_SAFE_FREE_STRING(pUserInfo->pszDN);
-    LSA_SAFE_FREE_STRING(pUserInfo->pszUPN);
-    LSA_SAFE_FREE_MEMORY(pUserInfo->pLMHash);
-    LSA_SAFE_FREE_MEMORY(pUserInfo->pNTHash);
+    LW_SAFE_FREE_STRING(pUserInfo->pszDN);
+    LW_SAFE_FREE_STRING(pUserInfo->pszUPN);
+    LW_SAFE_FREE_MEMORY(pUserInfo->pLMHash);
+    LW_SAFE_FREE_MEMORY(pUserInfo->pNTHash);
 }
 
 static
@@ -158,42 +158,42 @@ LsaCrackDomainQualifiedName(
     PCSTR pszIndex = NULL;
     int idx = 0;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(LSA_LOGIN_NAME_INFO),
                     (PVOID*)&pNameInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
     if ((pszIndex = strchr(pszId, LsaGetDomainSeparator())) != NULL) {
         idx = pszIndex-pszId;
-        dwError = LsaStrndup(pszId, idx, &pNameInfo->pszDomainNetBiosName);
+        dwError = LwStrndup(pszId, idx, &pNameInfo->pszDomainNetBiosName);
         BAIL_ON_LSA_ERROR(dwError);
 
-        if (!IsNullOrEmptyString(pszId+idx+1)) {
-            dwError = LsaAllocateString(pszId+idx+1, &pNameInfo->pszName);
+        if (!LW_IS_NULL_OR_EMPTY_STR(pszId+idx+1)) {
+            dwError = LwAllocateString(pszId+idx+1, &pNameInfo->pszName);
             BAIL_ON_LSA_ERROR(dwError);
         }
         pNameInfo->nameType = NameType_NT4;
     }
     else if ((pszIndex = strchr(pszId, '@')) != NULL) {
         idx = pszIndex-pszId;
-        dwError = LsaStrndup(pszId, idx, &pNameInfo->pszName);
+        dwError = LwStrndup(pszId, idx, &pNameInfo->pszName);
         BAIL_ON_LSA_ERROR(dwError);
 
-        if (!IsNullOrEmptyString(pszId+idx+1)) {
-            dwError = LsaAllocateString(pszId+idx+1, &pNameInfo->pszDomainNetBiosName);
+        if (!LW_IS_NULL_OR_EMPTY_STR(pszId+idx+1)) {
+            dwError = LwAllocateString(pszId+idx+1, &pNameInfo->pszDomainNetBiosName);
             BAIL_ON_LSA_ERROR(dwError);
         }
         pNameInfo->nameType = NameType_UPN;
     }
     else {
-        dwError = LsaAllocateString(pszId, &pNameInfo->pszName);
+        dwError = LwAllocateString(pszId, &pNameInfo->pszName);
         BAIL_ON_LSA_ERROR(dwError);
         pNameInfo->nameType = NameType_Alias;
     }
 
-    if (IsNullOrEmptyString(pNameInfo->pszDomainNetBiosName) &&
-        !IsNullOrEmptyString(pszDefaultDomain)) {
-       dwError = LsaAllocateString(pszDefaultDomain, &pNameInfo->pszDomainNetBiosName);
+    if (LW_IS_NULL_OR_EMPTY_STR(pNameInfo->pszDomainNetBiosName) &&
+        !LW_IS_NULL_OR_EMPTY_STR(pszDefaultDomain)) {
+       dwError = LwAllocateString(pszDefaultDomain, &pNameInfo->pszDomainNetBiosName);
        BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -220,11 +220,11 @@ LsaFreeNameInfo(
     PLSA_LOGIN_NAME_INFO pNameInfo
     )
 {
-    LSA_SAFE_FREE_STRING(pNameInfo->pszDomainNetBiosName);
-    LSA_SAFE_FREE_STRING(pNameInfo->pszName);
-    LSA_SAFE_FREE_STRING(pNameInfo->pszFullDomainName);
-    LSA_SAFE_FREE_STRING(pNameInfo->pszObjectSid);
-    LsaFreeMemory(pNameInfo);
+    LW_SAFE_FREE_STRING(pNameInfo->pszDomainNetBiosName);
+    LW_SAFE_FREE_STRING(pNameInfo->pszName);
+    LW_SAFE_FREE_STRING(pNameInfo->pszFullDomainName);
+    LW_SAFE_FREE_STRING(pNameInfo->pszObjectSid);
+    LwFreeMemory(pNameInfo);
 }
 
 void
@@ -257,7 +257,7 @@ LsaFreeUserInfo(
     }
     if (dwLevel < 3)
     {
-        LSA_SAFE_FREE_MEMORY(pUserInfo);
+        LW_SAFE_FREE_MEMORY(pUserInfo);
     }
 }
 
@@ -270,7 +270,7 @@ LsaBuildUserModInfo(
     DWORD dwError = 0;
     PLSA_USER_MOD_INFO pUserModInfo = NULL;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(LSA_USER_MOD_INFO),
                     (PVOID*)&pUserModInfo);
     BAIL_ON_LSA_ERROR(dwError);
@@ -367,11 +367,11 @@ LsaModifyUser_AddToGroups(
 
     BAIL_ON_INVALID_POINTER(pUserModInfo);
 
-    LSA_SAFE_FREE_STRING(pUserModInfo->pszAddToGroups);
+    LW_SAFE_FREE_STRING(pUserModInfo->pszAddToGroups);
 
-    if (!IsNullOrEmptyString(pszGroupList))
+    if (!LW_IS_NULL_OR_EMPTY_STR(pszGroupList))
     {
-       dwError = LsaAllocateString(
+       dwError = LwAllocateString(
                    pszGroupList,
                    &pUserModInfo->pszAddToGroups);
        BAIL_ON_LSA_ERROR(dwError);
@@ -398,11 +398,11 @@ LsaModifyUser_RemoveFromGroups(
 
     BAIL_ON_INVALID_POINTER(pUserModInfo);
 
-    LSA_SAFE_FREE_STRING(pUserModInfo->pszRemoveFromGroups);
+    LW_SAFE_FREE_STRING(pUserModInfo->pszRemoveFromGroups);
 
-    if (!IsNullOrEmptyString(pszGroupList))
+    if (!LW_IS_NULL_OR_EMPTY_STR(pszGroupList))
     {
-       dwError = LsaAllocateString(
+       dwError = LwAllocateString(
                    pszGroupList,
                    &pUserModInfo->pszRemoveFromGroups);
        BAIL_ON_LSA_ERROR(dwError);
@@ -492,9 +492,9 @@ LsaModifyUser_SetAccountExpiryDate(
 
     BAIL_ON_INVALID_POINTER(pUserModInfo);
 
-    LSA_SAFE_FREE_STRING(pUserModInfo->pszExpiryDate);
+    LW_SAFE_FREE_STRING(pUserModInfo->pszExpiryDate);
 
-    if (!IsNullOrEmptyString(pszDate)) {
+    if (!LW_IS_NULL_OR_EMPTY_STR(pszDate)) {
        struct tm timebuf;
 
        if (NULL == strptime(pszDate, "%Y-%m-%d", &timebuf)) {
@@ -502,7 +502,7 @@ LsaModifyUser_SetAccountExpiryDate(
           BAIL_ON_LSA_ERROR(dwError);
        }
 
-       dwError = LsaAllocateString(pszDate, &pUserModInfo->pszExpiryDate);
+       dwError = LwAllocateString(pszDate, &pUserModInfo->pszExpiryDate);
        BAIL_ON_LSA_ERROR(dwError);
 
        pUserModInfo->actions.bSetAccountExpiryDate = TRUE;
@@ -578,7 +578,7 @@ LsaModifyUser_SetPasswordHash(
     BAIL_ON_INVALID_POINTER(ppHashBlob);
     BAIL_ON_INVALID_POINTER(pszHash);
 
-    if (!IsNullOrEmptyString(pszHash)) {
+    if (!LW_IS_NULL_OR_EMPTY_STR(pszHash)) {
         for (i = 0, pszHashCursor = pszHash;
              pszHashCursor[0] && pszHashCursor[1] && i < sizeof(Hash);
              i++, pszHashCursor += 2)
@@ -591,13 +591,13 @@ LsaModifyUser_SetPasswordHash(
         }
     }
 
-    dwError = LsaAllocateMemory(sizeof(*pHashBlob),
+    dwError = LwAllocateMemory(sizeof(*pHashBlob),
                                 (PVOID*)&pHashBlob);
     BAIL_ON_LSA_ERROR(dwError);
 
     pHashBlob->dwLen = sizeof(Hash);
 
-    dwError = LsaAllocateMemory(pHashBlob->dwLen,
+    dwError = LwAllocateMemory(pHashBlob->dwLen,
                                 (PVOID*)&pHashBlob->pData);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -611,11 +611,11 @@ cleanup:
 error:
     if (pHashBlob &&
         pHashBlob->pData) {
-        LSA_SAFE_FREE_MEMORY(pHashBlob->pData);
+        LW_SAFE_FREE_MEMORY(pHashBlob->pData);
     }
 
     if (pHashBlob) {
-        LSA_SAFE_FREE_MEMORY(pHashBlob);
+        LW_SAFE_FREE_MEMORY(pHashBlob);
     }
 
     *ppHashBlob = NULL;
@@ -628,21 +628,21 @@ LsaFreeUserModInfo(
     PLSA_USER_MOD_INFO pUserModInfo
     )
 {
-    LSA_SAFE_FREE_STRING(pUserModInfo->pszAddToGroups);
-    LSA_SAFE_FREE_STRING(pUserModInfo->pszRemoveFromGroups);
-    LSA_SAFE_FREE_STRING(pUserModInfo->pszExpiryDate);
+    LW_SAFE_FREE_STRING(pUserModInfo->pszAddToGroups);
+    LW_SAFE_FREE_STRING(pUserModInfo->pszRemoveFromGroups);
+    LW_SAFE_FREE_STRING(pUserModInfo->pszExpiryDate);
 
     if (pUserModInfo->pNtPasswordHash) {
-        LSA_SAFE_FREE_MEMORY(pUserModInfo->pNtPasswordHash->pData);
+        LW_SAFE_FREE_MEMORY(pUserModInfo->pNtPasswordHash->pData);
     }
-    LSA_SAFE_FREE_MEMORY(pUserModInfo->pNtPasswordHash);
+    LW_SAFE_FREE_MEMORY(pUserModInfo->pNtPasswordHash);
 
     if (pUserModInfo->pLmPasswordHash) {
-        LSA_SAFE_FREE_MEMORY(pUserModInfo->pLmPasswordHash->pData);
+        LW_SAFE_FREE_MEMORY(pUserModInfo->pLmPasswordHash->pData);
     }
-    LSA_SAFE_FREE_MEMORY(pUserModInfo->pLmPasswordHash);
+    LW_SAFE_FREE_MEMORY(pUserModInfo->pLmPasswordHash);
 
-    LsaFreeMemory(pUserModInfo);
+    LwFreeMemory(pUserModInfo);
 }
 
 void
@@ -659,7 +659,7 @@ LsaFreeUserInfoList(
            LsaFreeUserInfo(dwLevel, pUserInfo);
         }
     }
-    LsaFreeMemory(ppUserInfoList);
+    LwFreeMemory(ppUserInfoList);
 }
 
 void
@@ -697,7 +697,7 @@ LsaFreeIpcUserInfoList(
                         pUserIpcInfoList->dwUserInfoLevel);
             }
         }
-        LsaFreeMemory(pUserIpcInfoList);
+        LwFreeMemory(pUserIpcInfoList);
     }
 }
 

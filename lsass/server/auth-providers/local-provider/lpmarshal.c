@@ -83,7 +83,7 @@ LocalMarshalEntryToUserInfo_0(
     DWORD dwUid = 0;
     DWORD dwGid = 0;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                         sizeof(LSA_USER_INFO_0),
                         (PVOID*)&pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
@@ -154,7 +154,7 @@ LocalMarshalEntryToUserInfo_0(
                     &pszNetBIOSDomain);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                     &pUserInfo->pszName,
                     "%s\\%s",
                     pszNetBIOSDomain,
@@ -178,8 +178,8 @@ LocalMarshalEntryToUserInfo_0(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszNetBIOSDomain);
-    LSA_SAFE_FREE_STRING(pszName);
+    LW_SAFE_FREE_STRING(pszNetBIOSDomain);
+    LW_SAFE_FREE_STRING(pszName);
 
     return dwError;
 
@@ -191,7 +191,7 @@ error:
     }
     *ppUserInfo = NULL;
 
-    LSA_SAFE_FREE_MEMORY(pwszUserDN);
+    LW_SAFE_FREE_MEMORY(pwszUserDN);
 
     if (pUserInfo)
     {
@@ -229,7 +229,7 @@ LocalMarshalEntryToUserInfo_1(
     DWORD dwUid = 0;
     DWORD dwGid = 0;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(LSA_USER_INFO_1),
                     (PVOID*)&pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
@@ -310,7 +310,7 @@ LocalMarshalEntryToUserInfo_1(
                     &pszNetBIOSDomain);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                     &pUserInfo->pszName,
                     "%s\\%s",
                     pszNetBIOSDomain,
@@ -330,16 +330,16 @@ LocalMarshalEntryToUserInfo_1(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    if (IsNullOrEmptyString(pUserInfo->pszUPN))
+    if (LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszUPN))
     {
-        dwError = LsaAllocateStringPrintf(
+        dwError = LwAllocateStringPrintf(
                         &pUserInfo->pszUPN,
                         "%s@%s",
                         pszName,
                         pszDomainName);
         BAIL_ON_LSA_ERROR(dwError);
 
-        LsaStrToUpper(pUserInfo->pszUPN + strlen(pszName) + 1);
+        LwStrToUpper(pUserInfo->pszUPN + strlen(pszName) + 1);
 
         pUserInfo->bIsGeneratedUPN = TRUE;
     }
@@ -354,8 +354,8 @@ LocalMarshalEntryToUserInfo_1(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszNetBIOSDomain);
-    LSA_SAFE_FREE_STRING(pszName);
+    LW_SAFE_FREE_STRING(pszNetBIOSDomain);
+    LW_SAFE_FREE_STRING(pszName);
 
     return dwError;
 
@@ -367,7 +367,7 @@ error:
     }
     *ppUserInfo = NULL;
 
-    LSA_SAFE_FREE_MEMORY(pwszUserDN);
+    LW_SAFE_FREE_MEMORY(pwszUserDN);
 
     if (pUserInfo)
     {
@@ -413,7 +413,7 @@ LocalMarshalEntryToUserInfo_2(
     DWORD  dwUid = 0;
     DWORD  dwGid = 0;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(LSA_USER_INFO_2),
                     (PVOID*)&pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
@@ -494,7 +494,7 @@ LocalMarshalEntryToUserInfo_2(
                     &pszNetBIOSDomain);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                     &pUserInfo->pszName,
                     "%s\\%s",
                     pszNetBIOSDomain,
@@ -550,16 +550,16 @@ LocalMarshalEntryToUserInfo_2(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    if (IsNullOrEmptyString(pUserInfo->pszUPN))
+    if (LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszUPN))
     {
-        dwError = LsaAllocateStringPrintf(
+        dwError = LwAllocateStringPrintf(
                         &pUserInfo->pszUPN,
                         "%s@%s",
                         pszName,
                         pszDomainName);
         BAIL_ON_LSA_ERROR(dwError);
 
-        LsaStrToUpper(pUserInfo->pszUPN + strlen(pszName) + 1);
+        LwStrToUpper(pUserInfo->pszUPN + strlen(pszName) + 1);
 
         pUserInfo->bIsGeneratedUPN = TRUE;
     }
@@ -581,8 +581,8 @@ LocalMarshalEntryToUserInfo_2(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszNetBIOSDomain);
-    LSA_SAFE_FREE_STRING(pszName);
+    LW_SAFE_FREE_STRING(pszNetBIOSDomain);
+    LW_SAFE_FREE_STRING(pszName);
 
     return dwError;
 
@@ -594,7 +594,7 @@ error:
     }
     *ppUserInfo = NULL;
 
-    LSA_SAFE_FREE_MEMORY(pwszUserDN);
+    LW_SAFE_FREE_MEMORY(pwszUserDN);
 
     if (pUserInfo)
     {
@@ -733,7 +733,7 @@ LocalMarshalEntryToGroupInfo_0(
     PWSTR pwszGroupDN = NULL;
     DWORD dwGid = 0;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                         sizeof(LSA_GROUP_INFO_0),
                         (PVOID*)&pGroupInfo);
     BAIL_ON_LSA_ERROR(dwError);
@@ -764,7 +764,7 @@ LocalMarshalEntryToGroupInfo_0(
                     &pszNetBIOSDomain);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                     &pGroupInfo->pszName,
                     "%s\\%s",
                     pszNetBIOSDomain,
@@ -788,8 +788,8 @@ LocalMarshalEntryToGroupInfo_0(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszNetBIOSDomain);
-    LSA_SAFE_FREE_STRING(pszName);
+    LW_SAFE_FREE_STRING(pszNetBIOSDomain);
+    LW_SAFE_FREE_STRING(pszName);
 
     return dwError;
 
@@ -801,7 +801,7 @@ error:
     }
     *ppGroupInfo = NULL;
 
-    LSA_SAFE_FREE_MEMORY(pwszGroupDN);
+    LW_SAFE_FREE_MEMORY(pwszGroupDN);
 
     if (pGroupInfo)
     {
@@ -831,7 +831,7 @@ LocalMarshalEntryToGroupInfo_1(
     PWSTR pwszGroupDN = NULL;
     DWORD dwGid = 0;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                         sizeof(LSA_GROUP_INFO_1),
                         (PVOID*)&pGroupInfo);
     BAIL_ON_LSA_ERROR(dwError);
@@ -868,7 +868,7 @@ LocalMarshalEntryToGroupInfo_1(
                     &pszNetBIOSDomain);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                     &pGroupInfo->pszName,
                     "%s\\%s",
                     pszNetBIOSDomain,
@@ -892,8 +892,8 @@ LocalMarshalEntryToGroupInfo_1(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszNetBIOSDomain);
-    LSA_SAFE_FREE_STRING(pszName);
+    LW_SAFE_FREE_STRING(pszNetBIOSDomain);
+    LW_SAFE_FREE_STRING(pszName);
 
     return dwError;
 
@@ -905,7 +905,7 @@ error:
     }
     *ppGroupInfo = NULL;
 
-    LSA_SAFE_FREE_MEMORY(pwszGroupDN);
+    LW_SAFE_FREE_MEMORY(pwszGroupDN);
 
     if (pGroupInfo)
     {
@@ -926,14 +926,14 @@ LocalMarshalEntryToGroupInfoMembers_1(
     PSTR* ppszMembers = NULL;
     DWORD iMember = 0;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     (dwNumMemberEntries + 1) * sizeof(PSTR),
                     (PVOID*)&ppszMembers);
     BAIL_ON_LSA_ERROR(dwError);
 
     for (; iMember < dwNumMemberEntries; iMember++)
     {
-        dwError = LsaAllocateStringPrintf(
+        dwError = LwAllocateStringPrintf(
                         &ppszMembers[iMember],
                         "%s\\%s",
                         ppMemberEntries[iMember]->pszNetbiosDomain,
@@ -953,7 +953,7 @@ error:
 
     if (ppszMembers)
     {
-        LsaFreeStringArray(ppszMembers, dwNumMemberEntries);
+        LwFreeStringArray(ppszMembers, dwNumMemberEntries);
     }
 
     goto cleanup;
@@ -1104,7 +1104,7 @@ LocalMarshalAttrToANSIString(
     }
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                     pAttrValue->data.pszStringValue,
                     &pszValue);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1119,7 +1119,7 @@ error:
 
     *ppszValue = NULL;
 
-    LSA_SAFE_FREE_STRING(pszValue);
+    LW_SAFE_FREE_STRING(pszValue);
 
     goto cleanup;
 }
@@ -1170,7 +1170,7 @@ LocalMarshalAttrToUnicodeString(
 
     dwLen = wc16slen(pAttrValue->data.pwszStringValue);
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     (dwLen + 1) * sizeof(wchar16_t),
                     (PVOID*)&pwszValue);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1189,7 +1189,7 @@ error:
 
     *ppwszValue = NULL;
 
-    LSA_SAFE_FREE_MEMORY(pwszValue);
+    LW_SAFE_FREE_MEMORY(pwszValue);
 
     goto cleanup;
 }
@@ -1252,7 +1252,7 @@ error:
 
     *ppszValue = NULL;
 
-    LSA_SAFE_FREE_STRING(pszValue);
+    LW_SAFE_FREE_STRING(pszValue);
 
     goto cleanup;
 }
@@ -1304,7 +1304,7 @@ LocalMarshalAttrToOctetStream(
     }
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     pAttrValue->data.pOctetString->ulNumBytes,
                     (PVOID*)&pData);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1325,7 +1325,7 @@ error:
     *ppData = NULL;
     *pdwDataLen = 0;
 
-    LSA_SAFE_FREE_MEMORY(pData);
+    LW_SAFE_FREE_MEMORY(pData);
 
     goto cleanup;
 }

@@ -123,9 +123,9 @@ main(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszSIDHexStr);
-    LSA_SAFE_FREE_STRING(pszSIDStr);
-    LSA_SAFE_FREE_MEMORY(pucSIDByteArr);
+    LW_SAFE_FREE_STRING(pszSIDHexStr);
+    LW_SAFE_FREE_STRING(pszSIDStr);
+    LW_SAFE_FREE_MEMORY(pucSIDByteArr);
 
     if (pSID)
     {
@@ -178,7 +178,7 @@ ParseArgs(
                 else
                 {
 
-                    dwError = LsaAllocateString(pszArg, &pszSIDStr);
+                    dwError = LwAllocateString(pszArg, &pszSIDStr);
                     BAIL_ON_LSA_ERROR(dwError);
                 }
                 break;
@@ -187,7 +187,7 @@ ParseArgs(
 
     } while (iArg < argc);
 
-    if (IsNullOrEmptyString(pszSIDStr)) {
+    if (LW_IS_NULL_OR_EMPTY_STR(pszSIDStr)) {
        fprintf(stderr, "Please specify a SID string, i.e. S-1-5-532.\n");
        ShowUsage();
        exit(1);
@@ -201,7 +201,7 @@ cleanup:
 
 error:
 
-    LSA_SAFE_FREE_STRING(pszSIDStr);
+    LW_SAFE_FREE_STRING(pszSIDStr);
 
     *ppszSIDStr = NULL;
 

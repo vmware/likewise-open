@@ -64,8 +64,6 @@ POLICY_HANDLE_rundown(
     /*
       free access token
     */
-
-    RTL_FREE(&pPolCtx);
 }
 
 

@@ -309,7 +309,7 @@ lsa_wait_resync:
             pAcctInfo = NULL;
         }
 
-        LSA_SAFE_FREE_STRING(pszHostname);
+        LW_SAFE_FREE_STRING(pszHostname);
 
         timeout.tv_sec = time(NULL) + gAdMachinePasswordSyncState.dwThreadWaitSecs;
         timeout.tv_nsec = 0;
@@ -344,7 +344,7 @@ cleanup:
         LwpsFreePasswordInfo(gAdMachinePasswordSyncState.hPasswordStore, pAcctInfo);
     }
 
-    LSA_SAFE_FREE_STRING(pszHostname);
+    LW_SAFE_FREE_STRING(pszHostname);
 
     pthread_mutex_unlock(&gAdMachinePasswordSyncState.ThreadLock);
 
@@ -471,7 +471,7 @@ ADLogMachinePWUpdateSuccessEvent(
     DWORD dwError = 0;
     PSTR pszDescription = NULL;
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                  &pszDescription,
                  "Updated Active Directory machine password.\r\n\r\n" \
                  "     Authentication provider:   %s",
@@ -486,7 +486,7 @@ ADLogMachinePWUpdateSuccessEvent(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszDescription);
+    LW_SAFE_FREE_STRING(pszDescription);
 
     return;
 
@@ -505,7 +505,7 @@ ADLogMachinePWUpdateFailureEvent(
     PSTR pszDescription = NULL;
     PSTR pszData = NULL;
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                  &pszDescription,
                  "The Active Directory machine password failed to update.\r\n\r\n" \
                  "     Authentication provider:   %s",
@@ -524,8 +524,8 @@ ADLogMachinePWUpdateFailureEvent(
     
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszDescription);
-    LSA_SAFE_FREE_STRING(pszData);
+    LW_SAFE_FREE_STRING(pszDescription);
+    LW_SAFE_FREE_STRING(pszData);
 
     return;
     
@@ -543,7 +543,7 @@ ADLogMachineTGTRefreshSuccessEvent(
     DWORD dwError = 0;
     PSTR pszDescription = NULL;
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                  &pszDescription,
                  "Refreshed Active Directory machine account TGT (Ticket Granting Ticket).\r\n\r\n" \
                  "     Authentication provider:   %s",
@@ -558,7 +558,7 @@ ADLogMachineTGTRefreshSuccessEvent(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszDescription);
+    LW_SAFE_FREE_STRING(pszDescription);
 
     return;
 
@@ -577,7 +577,7 @@ ADLogMachineTGTRefreshFailureEvent(
     PSTR pszDescription = NULL;
     PSTR pszData = NULL;
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                  &pszDescription,
                  "The Active Directory machine account TGT (Ticket Granting Ticket) failed to refresh.\r\n\r\n" \
                  "     Authentication provider:   %s",
@@ -596,8 +596,8 @@ ADLogMachineTGTRefreshFailureEvent(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszDescription);
-    LSA_SAFE_FREE_STRING(pszData);
+    LW_SAFE_FREE_STRING(pszDescription);
+    LW_SAFE_FREE_STRING(pszData);
 
     return;
 

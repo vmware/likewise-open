@@ -110,7 +110,7 @@ LsaSrvRefreshConfiguration(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszConfigFilePath);
+    LW_SAFE_FREE_STRING(pszConfigFilePath);
 
     if (hProvider != (HANDLE)NULL) {
         LsaSrvCloseProvider(pProvider, hProvider);
@@ -145,7 +145,7 @@ LsaSrvApiGetConfigFilePath(
 
     BAIL_ON_INVALID_STRING(gpszConfigFilePath);
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                     gpszConfigFilePath,
                     &pszConfigFilePath);
     BAIL_ON_LSA_ERROR(dwError);
@@ -230,7 +230,7 @@ LsaSrvApiConfigStartSection(
     BOOLEAN bContinue = TRUE;
     BOOLEAN bSkipSection = FALSE;
 
-    if (IsNullOrEmptyString(pszSectionName) ||
+    if (LW_IS_NULL_OR_EMPTY_STR(pszSectionName) ||
         (strncasecmp(pszSectionName, "global", sizeof("global")-1)))
     {
         bSkipSection = TRUE;
@@ -259,7 +259,7 @@ LsaSrvApiConfigNameValuePair(
 
     if (!strcasecmp(pszName, "enable-eventlog"))
     {
-        if (!IsNullOrEmptyString(pszValue) &&
+        if (!LW_IS_NULL_OR_EMPTY_STR(pszValue) &&
             (!strcasecmp(pszValue, "true") ||
              !strcasecmp(pszValue, "1") ||
              (*pszValue == 'y') ||
@@ -274,7 +274,7 @@ LsaSrvApiConfigNameValuePair(
     }
     else if (!strcasecmp(pszName, "log-network-connection-events"))
     {
-        if (!IsNullOrEmptyString(pszValue) &&
+        if (!LW_IS_NULL_OR_EMPTY_STR(pszValue) &&
             (!strcasecmp(pszValue, "false") ||
              !strcasecmp(pszValue, "0") ||
              (*pszValue == 'n') ||
@@ -509,7 +509,7 @@ LsaSrvSetMachineSid(
                          dwInt32StrSize +
                          (sizeof(wszDomainFilterFmt)/
                           sizeof(wszDomainFilterFmt[0])));
-    dwError = LsaAllocateMemory(dwDomainFilterLen * sizeof(WCHAR),
+    dwError = LwAllocateMemory(dwDomainFilterLen * sizeof(WCHAR),
                                 (PVOID*)&pwszDomainFilter);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -599,7 +599,7 @@ LsaSrvSetMachineSid(
                           dwInt32StrSize +
                           (sizeof(wszAccountFilterFmt)/
                            sizeof(wszAccountFilterFmt[0])));
-    dwError = LsaAllocateMemory(dwAccountFilterLen * sizeof(WCHAR),
+    dwError = LwAllocateMemory(dwAccountFilterLen * sizeof(WCHAR),
                                 (PVOID*)&pwszAccountFilter);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -656,7 +656,7 @@ LsaSrvSetMachineSid(
         }
 
         ulSidLength = RtlLengthSid(pAccountSid);
-        dwError = LsaAllocateMemory(ulSidLength,
+        dwError = LwAllocateMemory(ulSidLength,
                                     (PVOID*)&pNewAccountSid);
         BAIL_ON_LSA_ERROR(dwError);
 
@@ -716,7 +716,7 @@ LsaSrvSetMachineSid(
 
         if (pwszNewAccountSid)
         {
-            LSA_SAFE_FREE_MEMORY(pwszNewAccountSid);
+            LW_SAFE_FREE_MEMORY(pwszNewAccountSid);
             pwszNewAccountSid = NULL;
         }
     }
@@ -739,10 +739,10 @@ cleanup:
         DirectoryClose(hDirectory);
     }
 
-    LSA_SAFE_FREE_MEMORY(pwszDomainFilter);
-    LSA_SAFE_FREE_MEMORY(pwszAccountFilter);
-    LSA_SAFE_FREE_MEMORY(pwszNewDomainSid);
-    LSA_SAFE_FREE_MEMORY(pwszNewAccountSid);
+    LW_SAFE_FREE_MEMORY(pwszDomainFilter);
+    LW_SAFE_FREE_MEMORY(pwszAccountFilter);
+    LW_SAFE_FREE_MEMORY(pwszNewDomainSid);
+    LW_SAFE_FREE_MEMORY(pwszNewAccountSid);
 
     if (pDomainSid)
     {

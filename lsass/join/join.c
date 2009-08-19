@@ -110,7 +110,7 @@ LsaNetJoinDomain(
                     &pwszHostname);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (!IsNullOrEmptyString(pszHostDnsDomain))
+    if (!LW_IS_NULL_OR_EMPTY_STR(pszHostDnsDomain))
     {
         dwError = LsaMbsToWc16s(
                         pszHostDnsDomain,
@@ -123,7 +123,7 @@ LsaNetJoinDomain(
                     &pwszDomain);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (!IsNullOrEmptyString(pszOU)) {
+    if (!LW_IS_NULL_OR_EMPTY_STR(pszOU)) {
 
         dwError = LsaBuildOrgUnitDN(
                     pszDomain,
@@ -137,21 +137,21 @@ LsaNetJoinDomain(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    if (!IsNullOrEmptyString(pszOSName)) {
+    if (!LW_IS_NULL_OR_EMPTY_STR(pszOSName)) {
         dwError = LsaMbsToWc16s(
                     pszOSName,
                     &pwszOSName);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    if (!IsNullOrEmptyString(pszOSVersion)) {
+    if (!LW_IS_NULL_OR_EMPTY_STR(pszOSVersion)) {
         dwError = LsaMbsToWc16s(
                     pszOSVersion,
                     &pwszOSVersion);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    if (!IsNullOrEmptyString(pszOSServicePack)) {
+    if (!LW_IS_NULL_OR_EMPTY_STR(pszOSServicePack)) {
         dwError = LsaMbsToWc16s(
                     pszOSServicePack,
                     &pwszOSServicePack);
@@ -175,14 +175,14 @@ cleanup:
 
     LsaFreeSMBAccessToken(&pAccessInfo);
 
-    LSA_SAFE_FREE_STRING(pszOU_DN);
-    LSA_SAFE_FREE_MEMORY(pwszHostname);
-    LSA_SAFE_FREE_MEMORY(pwszHostDnsDomain);
-    LSA_SAFE_FREE_MEMORY(pwszDomain);
-    LSA_SAFE_FREE_MEMORY(pwszOU);
-    LSA_SAFE_FREE_MEMORY(pwszOSName);
-    LSA_SAFE_FREE_MEMORY(pwszOSVersion);
-    LSA_SAFE_FREE_MEMORY(pwszOSServicePack);
+    LW_SAFE_FREE_STRING(pszOU_DN);
+    LW_SAFE_FREE_MEMORY(pwszHostname);
+    LW_SAFE_FREE_MEMORY(pwszHostDnsDomain);
+    LW_SAFE_FREE_MEMORY(pwszDomain);
+    LW_SAFE_FREE_MEMORY(pwszOU);
+    LW_SAFE_FREE_MEMORY(pwszOSName);
+    LW_SAFE_FREE_MEMORY(pwszOSVersion);
+    LW_SAFE_FREE_MEMORY(pwszOSServicePack);
 
     return dwError;
 
@@ -249,7 +249,7 @@ LsaBuildOrgUnitDN(
         sOutputDnLen += nDomainParts - 1;
     }
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(CHAR) * (sOutputDnLen + 1),
                     (PVOID*)&pszOuDN);
     BAIL_ON_LSA_ERROR(dwError);
@@ -357,7 +357,7 @@ error:
 
     *ppszOU_DN = NULL;
 
-    LSA_SAFE_FREE_STRING(pszOuDN);
+    LW_SAFE_FREE_STRING(pszOuDN);
 
     goto cleanup;
 }
@@ -411,7 +411,7 @@ cleanup:
         LwpsClosePasswordStore(hStore);
     }
 
-    LSA_SAFE_FREE_STRING(pszHostname);
+    LW_SAFE_FREE_STRING(pszHostname);
 
     return dwError;
 
@@ -477,7 +477,7 @@ LsaBuildMachineAccountInfo(
     DWORD dwError = 0;
     PLSA_MACHINE_ACCT_INFO pAcctInfo = NULL;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(LSA_MACHINE_ACCT_INFO),
                     (PVOID*)&pAcctInfo);
     BAIL_ON_LSA_ERROR(dwError);
@@ -537,11 +537,11 @@ LsaFreeMachineAccountInfo(
     PLSA_MACHINE_ACCT_INFO pAcctInfo
     )
 {
-    LSA_SAFE_FREE_STRING(pAcctInfo->pszDnsDomainName);
-    LSA_SAFE_FREE_STRING(pAcctInfo->pszDomainName);
-    LSA_SAFE_FREE_STRING(pAcctInfo->pszHostname);
-    LSA_SAFE_FREE_STRING(pAcctInfo->pszMachineAccount);
-    LSA_SAFE_FREE_STRING(pAcctInfo->pszMachinePassword);
-    LSA_SAFE_FREE_STRING(pAcctInfo->pszSID);
-    LsaFreeMemory(pAcctInfo);
+    LW_SAFE_FREE_STRING(pAcctInfo->pszDnsDomainName);
+    LW_SAFE_FREE_STRING(pAcctInfo->pszDomainName);
+    LW_SAFE_FREE_STRING(pAcctInfo->pszHostname);
+    LW_SAFE_FREE_STRING(pAcctInfo->pszMachineAccount);
+    LW_SAFE_FREE_STRING(pAcctInfo->pszMachinePassword);
+    LW_SAFE_FREE_STRING(pAcctInfo->pszSID);
+    LwFreeMemory(pAcctInfo);
 }

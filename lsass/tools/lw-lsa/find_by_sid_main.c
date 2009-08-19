@@ -203,7 +203,7 @@ cleanup:
         LsaCloseServer(hLsaConnection);
     }
 
-    LSA_SAFE_FREE_STRING(pszSID);
+    LW_SAFE_FREE_STRING(pszSID);
 
     return (dwError);
 
@@ -218,7 +218,7 @@ error:
         DWORD dwError2 = 0;
         PSTR   pszErrorBuffer = NULL;
 
-        dwError2 = LsaAllocateMemory(
+        dwError2 = LwAllocateMemory(
                     dwErrorBufferSize,
                     (PVOID*)&pszErrorBuffer);
 
@@ -226,14 +226,14 @@ error:
         {
             DWORD dwLen = LwGetErrorString(dwError, pszErrorBuffer, dwErrorBufferSize);
 
-            if ((dwLen == dwErrorBufferSize) && !IsNullOrEmptyString(pszErrorBuffer))
+            if ((dwLen == dwErrorBufferSize) && !LW_IS_NULL_OR_EMPTY_STR(pszErrorBuffer))
             {
                 fprintf(stderr, "Failed to locate SID.  %s\n", pszErrorBuffer);
                 bPrintOrigError = FALSE;
             }
         }
 
-        LSA_SAFE_FREE_STRING(pszErrorBuffer);
+        LW_SAFE_FREE_STRING(pszErrorBuffer);
     }
 
     if (bPrintOrigError)
@@ -286,7 +286,7 @@ ParseArgs(
                 }
                 else
                 {
-                    dwError = LsaAllocateString(pszArg, &pszSID);
+                    dwError = LwAllocateString(pszArg, &pszSID);
                     BAIL_ON_LSA_ERROR(dwError);
                 }
                 break;
@@ -301,7 +301,7 @@ ParseArgs(
 
     } while (iArg < argc);
 
-    if (IsNullOrEmptyString(pszSID)) {
+    if (LW_IS_NULL_OR_EMPTY_STR(pszSID)) {
        fprintf(stderr, "Please specify a SID to query for.\n");
        ShowUsage();
        exit(1);
@@ -319,7 +319,7 @@ error:
     *ppszSID = NULL;
     *pdwInfoLevel = 0;
 
-    LSA_SAFE_FREE_STRING(pszSID);
+    LW_SAFE_FREE_STRING(pszSID);
 
     goto cleanup;
 }
@@ -344,7 +344,7 @@ LookupUserByName(
     PSTR  pszUsername = NULL;
     PVOID pUserInfo = NULL;
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                     &pszUsername,
                     "%s%c%s",
                     pszDomain,
@@ -386,7 +386,7 @@ LookupUserByName(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszUsername);
+    LW_SAFE_FREE_STRING(pszUsername);
 
     if (pUserInfo)
     {
@@ -408,17 +408,17 @@ PrintUserInfo_0(
     fprintf(stdout, "User info (Level-0):\n");
     fprintf(stdout, "====================\n");
     fprintf(stdout, "Name:     %s\n",
-            IsNullOrEmptyString(pUserInfo->pszName) ? "<null>" : pUserInfo->pszName);
+            LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszName) ? "<null>" : pUserInfo->pszName);
     fprintf(stdout, "SID:      %s\n",
-            IsNullOrEmptyString(pUserInfo->pszSid) ? "<null>" : pUserInfo->pszSid);
+            LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszSid) ? "<null>" : pUserInfo->pszSid);
     fprintf(stdout, "Uid:      %u\n", (unsigned int)pUserInfo->uid);
     fprintf(stdout, "Gid:      %u\n", (unsigned int)pUserInfo->gid);
     fprintf(stdout, "Gecos:    %s\n",
-            IsNullOrEmptyString(pUserInfo->pszGecos) ? "<null>" : pUserInfo->pszGecos);
+            LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszGecos) ? "<null>" : pUserInfo->pszGecos);
     fprintf(stdout, "Shell:    %s\n",
-            IsNullOrEmptyString(pUserInfo->pszShell) ? "<null>" : pUserInfo->pszShell);
+            LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszShell) ? "<null>" : pUserInfo->pszShell);
     fprintf(stdout, "Home dir: %s\n",
-            IsNullOrEmptyString(pUserInfo->pszHomedir) ? "<null>" : pUserInfo->pszHomedir);
+            LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszHomedir) ? "<null>" : pUserInfo->pszHomedir);
 }
 
 VOID
@@ -429,20 +429,20 @@ PrintUserInfo_1(
     fprintf(stdout, "User info (Level-1):\n");
     fprintf(stdout, "====================\n");
     fprintf(stdout, "Name:          %s\n",
-                IsNullOrEmptyString(pUserInfo->pszName) ? "<null>" : pUserInfo->pszName);
+                LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszName) ? "<null>" : pUserInfo->pszName);
     fprintf(stdout, "SID:           %s\n",
-            IsNullOrEmptyString(pUserInfo->pszSid) ? "<null>" : pUserInfo->pszSid);
+            LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszSid) ? "<null>" : pUserInfo->pszSid);
     fprintf(stdout, "UPN:           %s\n",
-                    IsNullOrEmptyString(pUserInfo->pszUPN) ? "<null>" : pUserInfo->pszUPN);
+                    LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszUPN) ? "<null>" : pUserInfo->pszUPN);
     fprintf(stdout, "Generated UPN: %s\n", pUserInfo->bIsGeneratedUPN ? "YES" : "NO");
     fprintf(stdout, "Uid:           %u\n", (unsigned int)pUserInfo->uid);
     fprintf(stdout, "Gid:           %u\n", (unsigned int)pUserInfo->gid);
     fprintf(stdout, "Gecos:         %s\n",
-                IsNullOrEmptyString(pUserInfo->pszGecos) ? "<null>" : pUserInfo->pszGecos);
+                LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszGecos) ? "<null>" : pUserInfo->pszGecos);
     fprintf(stdout, "Shell:         %s\n",
-                IsNullOrEmptyString(pUserInfo->pszShell) ? "<null>" : pUserInfo->pszShell);
+                LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszShell) ? "<null>" : pUserInfo->pszShell);
     fprintf(stdout, "Home dir:      %s\n",
-                IsNullOrEmptyString(pUserInfo->pszHomedir) ? "<null>" : pUserInfo->pszHomedir);
+                LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszHomedir) ? "<null>" : pUserInfo->pszHomedir);
     fprintf(stdout, "LMHash length: %d\n", pUserInfo->dwLMHashLen);
     fprintf(stdout, "NTHash length: %d\n", pUserInfo->dwNTHashLen);
     fprintf(stdout, "Local User:    %s\n", pUserInfo->bIsLocalUser ? "YES" : "NO");
@@ -456,20 +456,20 @@ PrintUserInfo_2(
     fprintf(stdout, "User info (Level-2):\n");
     fprintf(stdout, "====================\n");
     fprintf(stdout, "Name:                       %s\n",
-                IsNullOrEmptyString(pUserInfo->pszName) ? "<null>" : pUserInfo->pszName);
+                LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszName) ? "<null>" : pUserInfo->pszName);
     fprintf(stdout, "SID:                        %s\n",
-            IsNullOrEmptyString(pUserInfo->pszSid) ? "<null>" : pUserInfo->pszSid);
+            LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszSid) ? "<null>" : pUserInfo->pszSid);
     fprintf(stdout, "UPN:                        %s\n",
-                    IsNullOrEmptyString(pUserInfo->pszUPN) ? "<null>" : pUserInfo->pszUPN);
+                    LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszUPN) ? "<null>" : pUserInfo->pszUPN);
     fprintf(stdout, "Generated UPN:              %s\n", pUserInfo->bIsGeneratedUPN ? "YES" : "NO");
     fprintf(stdout, "Uid:                        %u\n", (unsigned int)pUserInfo->uid);
     fprintf(stdout, "Gid:                        %u\n", (unsigned int)pUserInfo->gid);
     fprintf(stdout, "Gecos:                      %s\n",
-                IsNullOrEmptyString(pUserInfo->pszGecos) ? "<null>" : pUserInfo->pszGecos);
+                LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszGecos) ? "<null>" : pUserInfo->pszGecos);
     fprintf(stdout, "Shell:                      %s\n",
-                IsNullOrEmptyString(pUserInfo->pszShell) ? "<null>" : pUserInfo->pszShell);
+                LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszShell) ? "<null>" : pUserInfo->pszShell);
     fprintf(stdout, "Home dir:                   %s\n",
-                IsNullOrEmptyString(pUserInfo->pszHomedir) ? "<null>" : pUserInfo->pszHomedir);
+                LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszHomedir) ? "<null>" : pUserInfo->pszHomedir);
     fprintf(stdout, "LMHash length:              %d\n", pUserInfo->dwLMHashLen);
     fprintf(stdout, "NTHash length:              %d\n", pUserInfo->dwNTHashLen);
     fprintf(stdout, "Local User:                 %s\n", pUserInfo->bIsLocalUser ? "YES" : "NO");
@@ -503,7 +503,7 @@ LookupGroupByName(
     PSTR  pszGroupname = NULL;
     PVOID pGroupInfo = NULL;
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                     &pszGroupname,
                     "%s%c%s",
                     pszDomain,
@@ -541,7 +541,7 @@ LookupGroupByName(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszGroupname);
+    LW_SAFE_FREE_STRING(pszGroupname);
 
     if (pGroupInfo)
     {
@@ -563,10 +563,10 @@ PrintGroupInfo_0(
     fprintf(stdout, "Group info (Level-0):\n");
     fprintf(stdout, "====================\n");
     fprintf(stdout, "Name:     %s\n",
-                IsNullOrEmptyString(pGroupInfo->pszName) ? "<null>" : pGroupInfo->pszName);
+                LW_IS_NULL_OR_EMPTY_STR(pGroupInfo->pszName) ? "<null>" : pGroupInfo->pszName);
     fprintf(stdout, "Gid:      %u\n", (unsigned int)pGroupInfo->gid);
     fprintf(stdout, "SID:     %s\n",
-                    IsNullOrEmptyString(pGroupInfo->pszSid) ? "<null>" : pGroupInfo->pszSid);
+                    LW_IS_NULL_OR_EMPTY_STR(pGroupInfo->pszSid) ? "<null>" : pGroupInfo->pszSid);
 }
 
 VOID
@@ -580,17 +580,17 @@ PrintGroupInfo_1(
     fprintf(stdout, "Group info (Level-1):\n");
     fprintf(stdout, "====================\n");
     fprintf(stdout, "Name:     %s\n",
-            IsNullOrEmptyString(pGroupInfo->pszName) ? "<null>" : pGroupInfo->pszName);
+            LW_IS_NULL_OR_EMPTY_STR(pGroupInfo->pszName) ? "<null>" : pGroupInfo->pszName);
     fprintf(stdout, "Gid:      %u\n", (unsigned int)pGroupInfo->gid);
     fprintf(stdout, "SID:     %s\n",
-                        IsNullOrEmptyString(pGroupInfo->pszSid) ? "<null>" : pGroupInfo->pszSid);
+                        LW_IS_NULL_OR_EMPTY_STR(pGroupInfo->pszSid) ? "<null>" : pGroupInfo->pszSid);
 
     fprintf(stdout, "Members:\n");
 
     ppszMembers = pGroupInfo->ppszMembers;
 
     if (ppszMembers){
-    while (!IsNullOrEmptyString(*ppszMembers)) {
+    while (!LW_IS_NULL_OR_EMPTY_STR(*ppszMembers)) {
           if (iMember) {
              fprintf(stdout, "\n%s", *ppszMembers);
           } else {

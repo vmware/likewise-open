@@ -61,7 +61,7 @@ LsaOpenSyslog(
     DWORD dwError = 0;
     PLSA_SYS_LOG pSyslog = NULL;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                 sizeof(LSA_SYS_LOG),
                 (PVOID*)&pSyslog);
     if (dwError)
@@ -69,8 +69,8 @@ LsaOpenSyslog(
         goto error;
     }
 
-    dwError = LsaAllocateString(
-                  (IsNullOrEmptyString(pszIdentifier) ? "lsass" : pszIdentifier),
+    dwError = LwAllocateString(
+                  (LW_IS_NULL_OR_EMPTY_STR(pszIdentifier) ? "lsass" : pszIdentifier),
                   &pSyslog->pszIdentifier);
     if (dwError)
     {
@@ -226,8 +226,8 @@ LsaFreeSysLogInfo(
         closelog();
     }
 
-    LSA_SAFE_FREE_STRING(pSysLog->pszIdentifier);
+    LW_SAFE_FREE_STRING(pSysLog->pszIdentifier);
 
-    LsaFreeMemory(pSysLog);
+    LwFreeMemory(pSysLog);
 }
 

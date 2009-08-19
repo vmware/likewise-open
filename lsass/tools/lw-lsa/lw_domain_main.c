@@ -140,9 +140,9 @@ cleanup:
 
     LwFreeDomainInfoRequest(&domainInfoRequest);
 
-    LSA_SAFE_FREE_STRING(pszComputerName);
-    LSA_SAFE_FREE_STRING(pszDnsDomainName);
-    LSA_SAFE_FREE_STRING(pszComputerDN);
+    LW_SAFE_FREE_STRING(pszComputerName);
+    LW_SAFE_FREE_STRING(pszDnsDomainName);
+    LW_SAFE_FREE_STRING(pszComputerDN);
 
     return (dwError);
 
@@ -157,7 +157,7 @@ error:
         DWORD dwError2 = 0;
         PSTR   pszErrorBuffer = NULL;
 
-        dwError2 = LsaAllocateMemory(
+        dwError2 = LwAllocateMemory(
                     dwErrorBufferSize,
                     (PVOID*)&pszErrorBuffer);
 
@@ -165,14 +165,14 @@ error:
         {
             DWORD dwLen = LwGetErrorString(dwError, pszErrorBuffer, dwErrorBufferSize);
 
-            if ((dwLen == dwErrorBufferSize) && !IsNullOrEmptyString(pszErrorBuffer))
+            if ((dwLen == dwErrorBufferSize) && !LW_IS_NULL_OR_EMPTY_STR(pszErrorBuffer))
             {
                 fprintf(stderr, "Failed to enumerate maps.  %s\n", pszErrorBuffer);
                 bPrintOrigError = FALSE;
             }
         }
 
-        LSA_SAFE_FREE_STRING(pszErrorBuffer);
+        LW_SAFE_FREE_STRING(pszErrorBuffer);
     }
 
     if (bPrintOrigError)
@@ -272,23 +272,23 @@ ParseArgs(
                 {
                     if (domainInfoRequest.taskType == LW_DOMAIN_TASK_TYPE_JOIN)
                     {
-                        if (IsNullOrEmptyString(domainInfoRequest.args.joinArgs.pszDomainName))
+                        if (LW_IS_NULL_OR_EMPTY_STR(domainInfoRequest.args.joinArgs.pszDomainName))
                         {
-                            dwError = LsaAllocateString(
+                            dwError = LwAllocateString(
                                             pszArg,
                                             &domainInfoRequest.args.joinArgs.pszDomainName);
                             BAIL_ON_LSA_ERROR(dwError);
                         }
-                        else if (IsNullOrEmptyString(domainInfoRequest.args.joinArgs.pszUsername))
+                        else if (LW_IS_NULL_OR_EMPTY_STR(domainInfoRequest.args.joinArgs.pszUsername))
                         {
-                            dwError = LsaAllocateString(
+                            dwError = LwAllocateString(
                                             pszArg,
                                             &domainInfoRequest.args.joinArgs.pszUsername);
                             BAIL_ON_LSA_ERROR(dwError);
                         }
-                        else if (IsNullOrEmptyString(domainInfoRequest.args.joinArgs.pszPassword))
+                        else if (LW_IS_NULL_OR_EMPTY_STR(domainInfoRequest.args.joinArgs.pszPassword))
                         {
-                            dwError = LsaAllocateString(
+                            dwError = LwAllocateString(
                                             pszArg,
                                             &domainInfoRequest.args.joinArgs.pszPassword);
                             BAIL_ON_LSA_ERROR(dwError);
@@ -301,16 +301,16 @@ ParseArgs(
                     }
                     else if (domainInfoRequest.taskType == LW_DOMAIN_TASK_TYPE_LEAVE)
                     {
-                        if (IsNullOrEmptyString(domainInfoRequest.args.leaveArgs.pszUsername))
+                        if (LW_IS_NULL_OR_EMPTY_STR(domainInfoRequest.args.leaveArgs.pszUsername))
                         {
-                            dwError = LsaAllocateString(
+                            dwError = LwAllocateString(
                                             pszArg,
                                             &domainInfoRequest.args.leaveArgs.pszUsername);
                             BAIL_ON_LSA_ERROR(dwError);
                         }
-                        else if (IsNullOrEmptyString(domainInfoRequest.args.leaveArgs.pszPassword))
+                        else if (LW_IS_NULL_OR_EMPTY_STR(domainInfoRequest.args.leaveArgs.pszPassword))
                         {
-                            dwError = LsaAllocateString(
+                            dwError = LwAllocateString(
                                             pszArg,
                                             &domainInfoRequest.args.leaveArgs.pszPassword);
                             BAIL_ON_LSA_ERROR(dwError);
@@ -338,9 +338,9 @@ ParseArgs(
                     exit(1);
                 }
 
-                LSA_SAFE_FREE_STRING(domainInfoRequest.args.joinArgs.pszOU);
+                LW_SAFE_FREE_STRING(domainInfoRequest.args.joinArgs.pszOU);
 
-                dwError = LsaAllocateString(
+                dwError = LwAllocateString(
                               pszArg,
                               &domainInfoRequest.args.joinArgs.pszOU);
                 BAIL_ON_LSA_ERROR(dwError);

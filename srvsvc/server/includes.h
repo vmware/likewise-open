@@ -57,11 +57,16 @@
 #include <srvsvcutils.h>
 
 #include "srvsvc.h"
-#include "wkssvc.h"
 #include "srvsvc_srv.h"
-#include "wkssvc_srv.h"
 #include "srvsvc_h.h"
+
+#include "wkssvc.h"
+#include "wkssvc_srv.h"
 #include "wkssvc_h.h"
+
+#include "winreg.h"
+#include "winreg_srv.h"
+#include "winreg_h.h"
 
 #include "defs.h"
 #include "structs.h"

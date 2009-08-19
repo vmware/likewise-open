@@ -51,6 +51,7 @@ static
 NTSTATUS
 SamrFillAliasInfo1(
     PDIRECTORY_ENTRY pEntry,
+    DWORD dwNumMembers,
     AliasInfo *pInfo
     );
 
@@ -87,13 +88,43 @@ SamrSrvQueryAliasInfo(
     PCONNECT_CONTEXT pConnCtx = NULL;
     PWSTR pwszBase = NULL;
     WCHAR wszAttrDn[] = DS_ATTR_DISTINGUISHED_NAME;
+    WCHAR wszAttrSamAccountName[] = DS_ATTR_SAM_ACCOUNT_NAME;
+    WCHAR wszAttrDescription[] = DS_ATTR_DESCRIPTION;
     DWORD dwScope = 0;
     PWSTR pwszFilter = NULL;
     DWORD dwFilterLen = 0;
-    PWSTR wszAttributes[] = { NULL };
     PDIRECTORY_ENTRY pEntry = NULL;
     DWORD dwEntriesNum = 0;
+    PDIRECTORY_ENTRY pMemberEntry = NULL;
+    DWORD dwNumMembers = 0;
     AliasInfo *pAliasInfo = NULL;
+
+    PWSTR wszAttributesLevel1[] = {
+        wszAttrSamAccountName,
+        wszAttrDescription,
+        NULL
+    };
+
+    PWSTR wszAttributesLevel2[] = {
+        wszAttrSamAccountName,
+        NULL
+    };
+
+    PWSTR wszAttributesLevel3[] = {
+        wszAttrDescription,
+        NULL
+    };
+
+    PWSTR *pwszAttributes[] = {
+        wszAttributesLevel1,
+        wszAttributesLevel2,
+        wszAttributesLevel3
+    };
+
+    PWSTR wszMemberAttributes[] = {
+        wszAttrDn,
+        NULL
+    };
 
     pAcctCtx = (PACCOUNT_CONTEXT)hAlias;
 
@@ -122,7 +153,7 @@ SamrSrvQueryAliasInfo(
                               pwszBase,
                               dwScope,
                               pwszFilter,
-                              wszAttributes,
+                              pwszAttributes[level - 1],
                               FALSE,
                               &pEntry,
                               &dwEntriesNum);
@@ -137,13 +168,22 @@ SamrSrvQueryAliasInfo(
 
     BAIL_ON_NTSTATUS_ERROR(status);
 
+    if (level == ALIAS_INFO_ALL) {
+        dwError = DirectoryGetGroupMembers(pConnCtx->hDirectory,
+                                           pAcctCtx->pwszDn,
+                                           wszMemberAttributes,
+                                           &pMemberEntry,
+                                           &dwNumMembers);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
     status = SamrSrvAllocateMemory((void**)&pAliasInfo,
                                    sizeof(*pAliasInfo));
     BAIL_ON_NTSTATUS_ERROR(status);
 
     switch (level) {
     case ALIAS_INFO_ALL:
-        status = SamrFillAliasInfo1(pEntry, pAliasInfo);
+        status = SamrFillAliasInfo1(pEntry, dwNumMembers, pAliasInfo);
         break;
 
     case ALIAS_INFO_NAME:
@@ -187,6 +227,7 @@ static
 NTSTATUS
 SamrFillAliasInfo1(
     PDIRECTORY_ENTRY pEntry,
+    DWORD dwNumMembers,
     AliasInfo *pInfo
     )
 {
@@ -211,7 +252,7 @@ SamrFillAliasInfo1(
     BAIL_ON_NTSTATUS_ERROR(status);
 
     /* num_members */
-    pInfoAll->num_members = 0;
+    pInfoAll->num_members = dwNumMembers;
 
     /* description */
     dwError = DirectoryGetEntryAttrValueByName(pEntry,

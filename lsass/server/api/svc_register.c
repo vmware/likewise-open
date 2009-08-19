@@ -38,7 +38,7 @@ RpcSvcCreateDomainSocketPath(
     PSTR pszSocketName = NULL;
     PSTR pszDirName = NULL;
 
-    dwError = LsaAllocateString(pszPath, &pszSocketPath);
+    dwError = LwAllocateString(pszPath, &pszSocketPath);
     BAIL_ON_LSA_ERROR(dwError);
 
     pszSocketName = strrchr(pszSocketPath, '/');
@@ -62,7 +62,7 @@ RpcSvcCreateDomainSocketPath(
 
 cleanup:
     if (pszSocketPath) {
-        LSA_SAFE_FREE_STRING(pszSocketPath);
+        LW_SAFE_FREE_STRING(pszSocketPath);
     }
 
     return dwError;

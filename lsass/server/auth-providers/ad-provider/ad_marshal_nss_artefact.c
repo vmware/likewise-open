@@ -243,7 +243,7 @@ ADMarshalNSSArtefactInfoList_0(
     }
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(PLSA_NSS_ARTEFACT_INFO_0) * nArtefact,
                     (PVOID*)&ppArtefactInfoList);
     BAIL_ON_LSA_ERROR(dwError);
@@ -255,7 +255,7 @@ ADMarshalNSSArtefactInfoList_0(
 
     while (pArtefactMessage)
     {
-        dwError = LsaAllocateMemory(
+        dwError = LwAllocateMemory(
                         sizeof(LSA_NSS_ARTEFACT_INFO_0),
                         (PVOID*)&pArtefactInfo);
         BAIL_ON_LSA_ERROR(dwError);
@@ -270,7 +270,7 @@ ADMarshalNSSArtefactInfoList_0(
         if (dwMapFlags & LSA_NIS_MAP_QUERY_VALUES)
         {
             if (ppszValues) {
-                LsaFreeStringArray(ppszValues, dwNumValues);
+                LwFreeStringArray(ppszValues, dwNumValues);
                 ppszValues = NULL;
             }
 
@@ -306,7 +306,7 @@ done:
 cleanup:
 
     if (ppszValues) {
-        LsaFreeStringArray(ppszValues, dwNumValues);
+        LwFreeStringArray(ppszValues, dwNumValues);
     }
 
     return dwError;

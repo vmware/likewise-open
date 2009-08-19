@@ -211,12 +211,12 @@ cleanup:
     return dwError;
 
 error:
-    LSA_SAFE_FREE_MEMORY(pNtlmContext->pMessage);
+    LW_SAFE_FREE_MEMORY(pNtlmContext->pMessage);
 
     if(pNtlmContext)
     {
         NtlmReleaseCredential(*pCredHandle);
-        LSA_SAFE_FREE_MEMORY(pNtlmContext);
+        LW_SAFE_FREE_MEMORY(pNtlmContext);
     }
     goto cleanup;
 }
@@ -316,18 +316,18 @@ NtlmCreateResponseContext(
     pNtlmContext->NtlmState = NtlmStateResponse;
 
 cleanup:
-    LSA_SAFE_FREE_STRING(pUserName);
+    LW_SAFE_FREE_STRING(pUserName);
 
     *ppNtlmContext = pNtlmContext;
 
     return dwError;
 error:
-    LSA_SAFE_FREE_MEMORY(pMessage);
+    LW_SAFE_FREE_MEMORY(pMessage);
 
     if(pNtlmContext)
     {
         NtlmReleaseCredential(*pCredHandle);
-        LSA_SAFE_FREE_MEMORY(pNtlmContext);
+        LW_SAFE_FREE_MEMORY(pNtlmContext);
     }
 
     goto cleanup;
@@ -355,7 +355,7 @@ NtlmFixUserName(
 
     pSymbol++;
 
-    dwError = LsaAllocateString(pSymbol, &pUserName);
+    dwError = LwAllocateString(pSymbol, &pUserName);
     BAIL_ON_LW_ERROR(dwError);
 
     pSymbol = strchr(pUserName, '@');
@@ -372,6 +372,6 @@ cleanup:
     *ppUserName = pUserName;
     return dwError;
 error:
-    LSA_SAFE_FREE_STRING(pUserName);
+    LW_SAFE_FREE_STRING(pUserName);
     goto cleanup;
 }

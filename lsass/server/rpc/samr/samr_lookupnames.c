@@ -57,8 +57,8 @@ SamrSrvLookupNames(
     /* [out] */ Ids *types
     )
 {
-    const wchar_t wszFilterFmt[] = L"(%ws=%d AND %ws='%ws') OR "
-                                   L"(%ws=%d AND %ws='%ws')";
+    const wchar_t wszFilterFmt[] = L"(%ws=%d AND %ws='%ws' AND %ws='%ws') OR "
+                                   L"(%ws=%d AND %ws='%ws' AND %ws='%ws')";
     NTSTATUS status = STATUS_SUCCESS;
     DWORD dwError = 0;
     PDOMAIN_CONTEXT pDomCtx = NULL;
@@ -66,9 +66,11 @@ SamrSrvLookupNames(
     Ids *pIds = NULL;
     Ids *pTypes = NULL;
     PWSTR pwszDn = NULL;
+    PWSTR pwszDomainName = NULL;
     WCHAR wszAttrObjectClass[] = DS_ATTR_OBJECT_CLASS;
     WCHAR wszAttrSamAccountName[] = DS_ATTR_SAM_ACCOUNT_NAME;
     WCHAR wszAttrObjectSid[] = DS_ATTR_OBJECT_SID;
+    WCHAR wszAttrDomainName[] = DS_ATTR_DOMAIN;
     DWORD dwObjectClassUser = DS_OBJECT_CLASS_USER;
     DWORD dwObjectClassGroup = DS_OBJECT_CLASS_GROUP;
     DWORD dwScope = 0;
@@ -97,8 +99,9 @@ SamrSrvLookupNames(
         BAIL_ON_NTSTATUS_ERROR(status);
     }
 
-    hDirectory = pDomCtx->pConnCtx->hDirectory;
-    pwszDn     = pDomCtx->pwszDn;
+    hDirectory     = pDomCtx->pConnCtx->hDirectory;
+    pwszDn         = pDomCtx->pwszDn;
+    pwszDomainName = pDomCtx->pwszDomainName;
 
     status = SamrSrvAllocateMemory((void**)&pIds,
                                    sizeof(*pIds));
@@ -129,10 +132,14 @@ SamrSrvLookupNames(
                       10 +
                       ((sizeof(wszAttrSamAccountName) / sizeof(WCHAR)) - 1) +
                       wc16slen(pwszName) +
+                      ((sizeof(wszAttrDomainName) / sizeof(WCHAR)) - 1) +
+                      wc16slen(pwszDomainName) +
                       ((sizeof(wszAttrObjectClass) / sizeof(WCHAR)) - 1) +
                       10 +
                       ((sizeof(wszAttrSamAccountName) / sizeof(WCHAR)) - 1) +
                       wc16slen(pwszName) +
+                      ((sizeof(wszAttrDomainName) / sizeof(WCHAR)) - 1) +
+                      wc16slen(pwszDomainName) +
                       (sizeof(wszFilterFmt) / sizeof(wszFilterFmt[0]));
 
         status = SamrSrvAllocateMemory((void**)&pwszFilter,
@@ -142,8 +149,10 @@ SamrSrvLookupNames(
         sw16printfw(pwszFilter, dwFilterLen, wszFilterFmt,
                     wszAttrObjectClass, dwObjectClassUser,
                     wszAttrSamAccountName, pwszName,
+                    wszAttrDomainName, pwszDomainName,
                     wszAttrObjectClass, dwObjectClassGroup,
-                    wszAttrSamAccountName, pwszName);
+                    wszAttrSamAccountName, pwszName,
+                    wszAttrDomainName, pwszDomainName);
 
         wszAttributes[0] = wszAttrObjectSid;
         wszAttributes[1] = wszAttrObjectClass;

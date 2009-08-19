@@ -109,7 +109,7 @@ LsaLocalGetGroupMembership(
     dwNumGroups = pReply->dwNumGroups;
 
     if (dwNumGroups) {
-        dwError = LsaAllocateMemory(sizeof(ppGroupInfo[0]) * dwNumGroups,
+        dwError = LwAllocateMemory(sizeof(ppGroupInfo[0]) * dwNumGroups,
                                     (PVOID*)&ppGroupInfo);
         BAIL_ON_LSA_ERROR(dwError);
 
@@ -144,11 +144,11 @@ cleanup:
     }
 
     if (pReqBuffer) {
-        LsaFreeMemory(pReqBuffer);
+        LwFreeMemory(pReqBuffer);
     }
 
     if (pRepBuffer) {
-        LsaFreeMemory(pRepBuffer);
+        LwFreeMemory(pRepBuffer);
     }
 
     return dwError;

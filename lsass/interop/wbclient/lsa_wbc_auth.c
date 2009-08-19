@@ -94,7 +94,7 @@ CopyPlaintextParams(
     DWORD dwErr = LW_ERROR_INTERNAL;
     PSTR pszPass = NULL;
 
-    dwErr = LsaAllocateString(params->password.plaintext, &pszPass);
+    dwErr = LwAllocateString(params->password.plaintext, &pszPass);
     BAIL_ON_LSA_ERR(dwErr);
 
     pLsaParams->pass.clear.pszPassword = pszPass;
@@ -188,16 +188,16 @@ static DWORD InitLsaAuthParams(
 
     /* Get the string data first */
 
-    dwErr = LsaAllocateString(params->account_name, &pLsaParams->pszAccountName);
+    dwErr = LwAllocateString(params->account_name, &pLsaParams->pszAccountName);
     BAIL_ON_LSA_ERR(dwErr);
 
     if (params->domain_name) {
-        dwErr = LsaAllocateString(params->domain_name, &pLsaParams->pszDomain);
+        dwErr = LwAllocateString(params->domain_name, &pLsaParams->pszDomain);
         BAIL_ON_LSA_ERR(dwErr);
     }
 
     if (params->workstation_name) {
-        dwErr = LsaAllocateString(params->workstation_name,
+        dwErr = LwAllocateString(params->workstation_name,
                                   &pLsaParams->pszWorkstation);
         BAIL_ON_LSA_ERR(dwErr);
     }
@@ -540,7 +540,7 @@ wbcAuthenticateUserEx(
     BAIL_ON_NULL_PTR_PARAM(params, dwErr);
     BAIL_ON_NULL_PTR_PARAM(params->account_name, dwErr);
 
-    dwErr = LsaAllocateMemory(sizeof(LSA_AUTH_USER_PARAMS), (PVOID*)&pLsaParams);
+    dwErr = LwAllocateMemory(sizeof(LSA_AUTH_USER_PARAMS), (PVOID*)&pLsaParams);
     BAIL_ON_LSA_ERR(dwErr);
 
     /* Open connection to the server and get moving */

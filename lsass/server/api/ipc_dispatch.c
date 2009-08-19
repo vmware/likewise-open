@@ -150,14 +150,14 @@ LsaSrvIpcFindNSSArtefactByKey(
 
     if (!dwError)
     {
-        dwError = LsaAllocateMemory(sizeof(*pResult),
+        dwError = LwAllocateMemory(sizeof(*pResult),
                                     (PVOID)&pResult);
         BAIL_ON_LSA_ERROR(dwError);
 
         pResult->dwNssArtefactInfoLevel = pReq->dwInfoLevel;
         pResult->dwNumNssArtefacts = 1;
 
-        dwError = LsaAllocateMemory(
+        dwError = LwAllocateMemory(
                         sizeof(*ppNSSArtefactInfo) * 1,
                         (PVOID*)&ppNSSArtefactInfo);
         BAIL_ON_LSA_ERROR(dwError);
@@ -258,7 +258,7 @@ LsaSrvIpcBeginEnumNSSArtefacts(
     }
 
 cleanup:
-    LSA_SAFE_FREE_STRING(pszGUID);
+    LW_SAFE_FREE_STRING(pszGUID);
 
     return MAP_LW_ERROR_IPC(dwError);
 
@@ -296,7 +296,7 @@ LsaSrvIpcEnumNSSArtefacts(
 
     if (!dwError)
     {
-        dwError = LsaAllocateMemory(sizeof(*pResult),
+        dwError = LwAllocateMemory(sizeof(*pResult),
                                    (PVOID)&pResult);
         BAIL_ON_LSA_ERROR(dwError);
 
@@ -573,23 +573,23 @@ FreeAuthUserInfo(PLSA_AUTH_USER_INFO *pUserInfo)
     if (!pUserInfo)
         return;
 
-    LSA_SAFE_FREE_MEMORY((*pUserInfo)->pszAccount);
-    LSA_SAFE_FREE_MEMORY((*pUserInfo)->pszUserPrincipalName);
-    LSA_SAFE_FREE_MEMORY((*pUserInfo)->pszFullName);
-    LSA_SAFE_FREE_MEMORY((*pUserInfo)->pszDomain);
-    LSA_SAFE_FREE_MEMORY((*pUserInfo)->pszDnsDomain);
-    LSA_SAFE_FREE_MEMORY((*pUserInfo)->pszLogonServer);
-    LSA_SAFE_FREE_MEMORY((*pUserInfo)->pszLogonScript);
-    LSA_SAFE_FREE_MEMORY((*pUserInfo)->pszProfilePath);
-    LSA_SAFE_FREE_MEMORY((*pUserInfo)->pszHomeDirectory);
-    LSA_SAFE_FREE_MEMORY((*pUserInfo)->pszHomeDrive);
+    LW_SAFE_FREE_MEMORY((*pUserInfo)->pszAccount);
+    LW_SAFE_FREE_MEMORY((*pUserInfo)->pszUserPrincipalName);
+    LW_SAFE_FREE_MEMORY((*pUserInfo)->pszFullName);
+    LW_SAFE_FREE_MEMORY((*pUserInfo)->pszDomain);
+    LW_SAFE_FREE_MEMORY((*pUserInfo)->pszDnsDomain);
+    LW_SAFE_FREE_MEMORY((*pUserInfo)->pszLogonServer);
+    LW_SAFE_FREE_MEMORY((*pUserInfo)->pszLogonScript);
+    LW_SAFE_FREE_MEMORY((*pUserInfo)->pszProfilePath);
+    LW_SAFE_FREE_MEMORY((*pUserInfo)->pszHomeDirectory);
+    LW_SAFE_FREE_MEMORY((*pUserInfo)->pszHomeDrive);
 
     LsaDataBlobFree(&(*pUserInfo)->pSessionKey);
     LsaDataBlobFree(&(*pUserInfo)->pLmSessionKey);
 
-    LSA_SAFE_FREE_MEMORY((*pUserInfo)->pSidAttribList);
+    LW_SAFE_FREE_MEMORY((*pUserInfo)->pSidAttribList);
 
-    LSA_SAFE_FREE_MEMORY(*pUserInfo);
+    LW_SAFE_FREE_MEMORY(*pUserInfo);
 
     return;
 }
@@ -830,13 +830,13 @@ LsaSrvIpcFindGroupByName(
 
     if (!dwError)
     {
-        dwError = LsaAllocateMemory(sizeof(*pResult),
+        dwError = LwAllocateMemory(sizeof(*pResult),
                                         (PVOID)&pResult);
         BAIL_ON_LSA_ERROR(dwError);
 
         pResult->dwGroupInfoLevel = pReq->dwInfoLevel;
         pResult->dwNumGroups = 1;
-        dwError = LsaAllocateMemory(
+        dwError = LwAllocateMemory(
                         sizeof(*ppGroupInfoList) * 1,
                         (PVOID*)&ppGroupInfoList);
         BAIL_ON_LSA_ERROR(dwError);
@@ -916,13 +916,13 @@ LsaSrvIpcFindGroupById(
 
     if (!dwError)
     {
-        dwError = LsaAllocateMemory(sizeof(*pResult),
+        dwError = LwAllocateMemory(sizeof(*pResult),
                                     (PVOID)&pResult);
         BAIL_ON_LSA_ERROR(dwError);
 
         pResult->dwGroupInfoLevel = pReq->dwInfoLevel;
         pResult->dwNumGroups = 1;
-        dwError = LsaAllocateMemory(
+        dwError = LwAllocateMemory(
                         sizeof(*ppGroupInfoList) * 1,
                         (PVOID*)&ppGroupInfoList);
         BAIL_ON_LSA_ERROR(dwError);
@@ -1022,7 +1022,7 @@ LsaSrvIpcGetGroupsForUser(
 
     if (!dwError)
     {
-        dwError = LsaAllocateMemory(sizeof(*pResult),
+        dwError = LwAllocateMemory(sizeof(*pResult),
                                         (PVOID)&pResult);
         BAIL_ON_LSA_ERROR(dwError);
 
@@ -1157,7 +1157,7 @@ LsaSrvIpcEnumGroups(
 
     if (!dwError)
     {
-        dwError = LsaAllocateMemory(sizeof(*pResult),
+        dwError = LwAllocateMemory(sizeof(*pResult),
                                     (PVOID)&pResult);
         BAIL_ON_LSA_ERROR(dwError);
 
@@ -1288,7 +1288,7 @@ LsaNTLMGssFreeAuthMsg(
     if (pAuthMsgReply)
     {
         NTLMGssFreeSecBuffer(&pAuthMsgReply->authenticateMessage);
-        LSA_SAFE_FREE_MEMORY(pAuthMsgReply);
+        LW_SAFE_FREE_MEMORY(pAuthMsgReply);
     }
 }
 
@@ -1306,7 +1306,7 @@ LsaSrvIpcBuildAuthMessage(
     PLSA_GSS_R_MAKE_AUTH_MSG pAuthMsgReply = NULL;
     uid_t peerUID = 0;
 
-    dwError = LsaAllocateMemory(sizeof(*pAuthMsgReply),
+    dwError = LwAllocateMemory(sizeof(*pAuthMsgReply),
                                 (PVOID*)&pAuthMsgReply);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -1357,7 +1357,7 @@ LsaSrvIpcCheckAuthMessage(
     PLSA_IPC_ERROR pError = NULL;
     PLSA_GSS_R_CHECK_AUTH_MSG pCheckAuthMsgReply = NULL;
 
-    dwError = LsaAllocateMemory(sizeof(*pCheckAuthMsgReply),
+    dwError = LwAllocateMemory(sizeof(*pCheckAuthMsgReply),
                                 (PVOID*)&pCheckAuthMsgReply);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -1384,7 +1384,7 @@ error:
 
     if(pCheckAuthMsgReply)
     {
-        LSA_SAFE_FREE_MEMORY(pCheckAuthMsgReply);
+        LW_SAFE_FREE_MEMORY(pCheckAuthMsgReply);
     }
 
     goto cleanup;
@@ -1487,7 +1487,7 @@ LsaSrvIpcGetMetrics(
 
     if (!dwError)
     {
-        dwError = LsaAllocateMemory(sizeof(*pResult),
+        dwError = LwAllocateMemory(sizeof(*pResult),
                                     (PVOID)&pResult);
         BAIL_ON_LSA_ERROR(dwError);
 
@@ -1525,7 +1525,7 @@ LsaSrvIpcGetMetrics(
 cleanup:
     if(pMetricPack)
     {
-        LSA_SAFE_FREE_MEMORY(pMetricPack);
+        LW_SAFE_FREE_MEMORY(pMetricPack);
     }
 
     return MAP_LW_ERROR_IPC(dwError);
@@ -1595,7 +1595,7 @@ LsaSrvIpcProviderIoControl(
 cleanup:
     if ( pOutputBuffer )
     {
-        LsaFreeMemory(pOutputBuffer);
+        LwFreeMemory(pOutputBuffer);
     }
 
     return MAP_LW_ERROR_IPC(dwError);
@@ -1779,7 +1779,7 @@ LsaSrvIpcGetTraceInfo(
 
     if (!dwError)
     {
-        dwError = LsaAllocateMemory(sizeof(*pResult),
+        dwError = LwAllocateMemory(sizeof(*pResult),
                                     (PVOID)&pResult);
         BAIL_ON_LSA_ERROR(dwError);
 
@@ -1800,15 +1800,15 @@ LsaSrvIpcGetTraceInfo(
     }
 
 cleanup:
-    LSA_SAFE_FREE_MEMORY(pTraceInfo);
+    LW_SAFE_FREE_MEMORY(pTraceInfo);
 
     return MAP_LW_ERROR_IPC(dwError);
 
 error:
     if (pResult)
     {
-        LSA_SAFE_FREE_MEMORY(pResult->pTraceInfoArray);
-        LsaFreeMemory(pResult);
+        LW_SAFE_FREE_MEMORY(pResult->pTraceInfoArray);
+        LwFreeMemory(pResult);
     }
 
     goto cleanup;
@@ -1826,7 +1826,7 @@ LsaSrvIpcEnumTraceInfo(
     PLSA_TRACE_INFO_LIST pResult = NULL;
     PLSA_IPC_ERROR pError = NULL;
 
-    dwError = LsaAllocateMemory(sizeof(*pResult),
+    dwError = LwAllocateMemory(sizeof(*pResult),
                                (PVOID)&pResult);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -1855,8 +1855,8 @@ cleanup:
 error:
     if (pResult)
     {
-        LSA_SAFE_FREE_MEMORY(pResult->pTraceInfoArray);
-        LsaFreeMemory(pResult);
+        LW_SAFE_FREE_MEMORY(pResult->pTraceInfoArray);
+        LwFreeMemory(pResult);
     }
 
     goto cleanup;
@@ -1990,13 +1990,13 @@ LsaSrvIpcFindUserByName(
 
     if (!dwError)
     {
-        dwError = LsaAllocateMemory(sizeof(*pResult),
+        dwError = LwAllocateMemory(sizeof(*pResult),
                                         (PVOID)&pResult);
         BAIL_ON_LSA_ERROR(dwError);
 
         pResult->dwUserInfoLevel = pReq->dwInfoLevel;
         pResult->dwNumUsers = 1;
-        dwError = LsaAllocateMemory(
+        dwError = LwAllocateMemory(
                         sizeof(*ppUserInfoList) * 1,
                         (PVOID*)&ppUserInfoList);
         BAIL_ON_LSA_ERROR(dwError);
@@ -2080,13 +2080,13 @@ LsaSrvIpcFindUserById(
 
     if (!dwError)
     {
-        dwError = LsaAllocateMemory(sizeof(*pResult),
+        dwError = LwAllocateMemory(sizeof(*pResult),
                                         (PVOID)&pResult);
         BAIL_ON_LSA_ERROR(dwError);
 
         pResult->dwUserInfoLevel = pReq->dwInfoLevel;
         pResult->dwNumUsers = 1;
-        dwError = LsaAllocateMemory(
+        dwError = LwAllocateMemory(
                         sizeof(*ppUserInfoList) * 1,
                         (PVOID*)&ppUserInfoList);
         BAIL_ON_LSA_ERROR(dwError);
@@ -2229,7 +2229,7 @@ LsaSrvIpcEnumUsers(
 
     if (!dwError)
     {
-        dwError = LsaAllocateMemory(sizeof(*pResult),
+        dwError = LwAllocateMemory(sizeof(*pResult),
                                    (PVOID)&pResult);
         BAIL_ON_LSA_ERROR(dwError);
 
@@ -2383,14 +2383,14 @@ LsaSrvIpcGetNamesBySidList(
 
     if (!dwError)
     {
-        dwError = LsaAllocateMemory(sizeof(*pResult),
+        dwError = LwAllocateMemory(sizeof(*pResult),
                                     (PVOID)&pResult);
         BAIL_ON_LSA_ERROR(dwError);
 
         pResult->sCount = pReq->sCount;
         pResult->chDomainSeparator = chDomainSeparator;
 
-        dwError = LsaAllocateMemory(sizeof(*(pResult->pSIDInfoList)) * pResult->sCount,
+        dwError = LwAllocateMemory(sizeof(*(pResult->pSIDInfoList)) * pResult->sCount,
                                     (PVOID*)&pResult->pSIDInfoList);
         BAIL_ON_LSA_ERROR(dwError);
 
@@ -2419,14 +2419,14 @@ cleanup:
 
     if (ppszDomainNames)
     {
-        LsaFreeStringArray(ppszDomainNames, pReq->sCount);
+        LwFreeStringArray(ppszDomainNames, pReq->sCount);
     }
 
     if (ppszSamAccounts)
     {
-        LsaFreeStringArray(ppszSamAccounts, pReq->sCount);
+        LwFreeStringArray(ppszSamAccounts, pReq->sCount);
     }
-    LSA_SAFE_FREE_MEMORY(pTypes);
+    LW_SAFE_FREE_MEMORY(pTypes);
 
     return MAP_LW_ERROR_IPC(dwError);
 

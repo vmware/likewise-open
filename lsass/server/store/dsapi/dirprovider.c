@@ -165,7 +165,7 @@ DirectoryLoadProvider(
 			    pProviderInfo->pszProviderPath);
 
         pszError = dlerror();
-        if (!IsNullOrEmptyString(pszError))
+        if (!LW_IS_NULL_OR_EMPTY_STR(pszError))
         {
           DIRECTORY_LOG_ERROR("%s", pszError);
         }
@@ -186,7 +186,7 @@ DirectoryLoadProvider(
 			    pProviderInfo->pszProviderPath);
 
         pszError = dlerror();
-        if (!IsNullOrEmptyString(pszError))
+        if (!LW_IS_NULL_OR_EMPTY_STR(pszError))
         {
           DIRECTORY_LOG_ERROR("%s", pszError);
         }
@@ -207,7 +207,7 @@ DirectoryLoadProvider(
 			    pProviderInfo->pszProviderPath);
 
         pszError = dlerror();
-        if (!IsNullOrEmptyString(pszError))
+        if (!LW_IS_NULL_OR_EMPTY_STR(pszError))
         {
             DIRECTORY_LOG_ERROR("%s", pszError);
         }

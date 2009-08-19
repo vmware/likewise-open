@@ -75,7 +75,7 @@ LsaCheckInvalidRpcServer(
                       (pszLibPath ? pszLibPath : "(unknown)"));
 
         pszError = dlerror();
-        if (!IsNullOrEmptyString(pszError)) {
+        if (!LW_IS_NULL_OR_EMPTY_STR(pszError)) {
             LSA_LOG_ERROR("%s", pszError);
         }
 
@@ -103,7 +103,7 @@ LsaInitRpcServer(
     PCSTR pszError = NULL;
     PCSTR pszSrvLibPath = NULL;
 
-    if (IsNullOrEmptyString(pRpc->pszSrvLibPath)) {
+    if (LW_IS_NULL_OR_EMPTY_STR(pRpc->pszSrvLibPath)) {
         dwError = ENOENT;
         BAIL_ON_LSA_ERROR(dwError);
     }
@@ -116,7 +116,7 @@ LsaInitRpcServer(
         LSA_LOG_ERROR("Failed to open rpc server at path [%s]", pszSrvLibPath);
 
         pszError = dlerror();
-        if (!IsNullOrEmptyString(pszError)) {
+        if (!LW_IS_NULL_OR_EMPTY_STR(pszError)) {
             LSA_LOG_ERROR("%s", pszError);
         }
 
@@ -358,7 +358,7 @@ LsaRpcServerConfigStartSection(
 
     BAIL_ON_INVALID_POINTER(ppRpcSrvStack);
 
-    if (IsNullOrEmptyString(pszSectionName) ||
+    if (LW_IS_NULL_OR_EMPTY_STR(pszSectionName) ||
         strncasecmp(pszSectionName, LSA_CFG_TAG_RPC_SERVER,
                     sizeof(LSA_CFG_TAG_RPC_SERVER) - 1)) {
         bSkipSection = TRUE;
@@ -366,18 +366,18 @@ LsaRpcServerConfigStartSection(
     }
 
     pszLibName = pszSectionName + (sizeof(LSA_CFG_TAG_RPC_SERVER) - 1);
-    if (IsNullOrEmptyString(pszLibName)) {
+    if (LW_IS_NULL_OR_EMPTY_STR(pszLibName)) {
         LSA_LOG_WARNING("No RPC server name was specified");
         bSkipSection = TRUE;
         goto cleanup;
     }
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(LSA_RPC_SERVER),
                     (PVOID*)&pRpcSrv);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                     pszLibName,
                     &pRpcSrv->pszName);
     BAIL_ON_LSA_ERROR(dwError);
@@ -428,8 +428,8 @@ LsaRpcServerConfigNameValuePair(
     }
 
     if (strcasecmp(pszName, "path") == 0) {
-        if (!IsNullOrEmptyString(pszValue)) {
-            dwError = LsaAllocateString(
+        if (!LW_IS_NULL_OR_EMPTY_STR(pszValue)) {
+            dwError = LwAllocateString(
                           pszValue,
                           &pszLibPath);
             BAIL_ON_LSA_ERROR(dwError);
@@ -437,7 +437,7 @@ LsaRpcServerConfigNameValuePair(
 
         if (pRpc->pszSrvLibPath != NULL) {
             LSA_LOG_WARNING("path redefined in configuration file");
-            LSA_SAFE_FREE_STRING(pRpc->pszSrvLibPath);
+            LW_SAFE_FREE_STRING(pRpc->pszSrvLibPath);
         }
 
         pRpc->pszSrvLibPath = pszLibPath;
@@ -450,7 +450,7 @@ cleanup:
     return dwError;
 
 error:
-    LSA_SAFE_FREE_STRING(pszLibPath);
+    LW_SAFE_FREE_STRING(pszLibPath);
 
     *pbContinue = FALSE;
     goto cleanup;
@@ -464,7 +464,7 @@ LsaFreeRpcServer(
 {
     if (pSrv == NULL) return;
 
-    LSA_SAFE_FREE_STRING(pSrv->pszName);
+    LW_SAFE_FREE_STRING(pSrv->pszName);
 
     if (pSrv->pfnShutdownSrv) {
         pSrv->pfnShutdownSrv(
@@ -476,9 +476,9 @@ LsaFreeRpcServer(
         dlclose(pSrv->phLib);
     }
 
-    LSA_SAFE_FREE_STRING(pSrv->pszSrvLibPath);
+    LW_SAFE_FREE_STRING(pSrv->pszSrvLibPath);
 
-    LsaFreeMemory(pSrv);
+    LwFreeMemory(pSrv);
 }
 
 

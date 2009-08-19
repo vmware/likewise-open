@@ -208,7 +208,7 @@ LsaSrvStartupPreCheck(
     // Make sure that the local hostname has been setup by the system
     for (iter = 0; iter < STARTUP_PRE_CHECK_WAIT; iter++)
     {
-        LSA_SAFE_FREE_STRING(pszHostname);
+        LW_SAFE_FREE_STRING(pszHostname);
         dwError = LsaDnsGetHostInfo(&pszHostname);
         BAIL_ON_LSA_ERROR(dwError);
 
@@ -292,7 +292,7 @@ LsaSrvStartupPreCheck(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszHostname);
+    LW_SAFE_FREE_STRING(pszHostname);
 
     return dwError;
 
@@ -465,7 +465,7 @@ LsaSrvParseArgs(
         {
           strcpy(pLsaServerInfo->szLogFilePath, pArg);
 
-          LsaStripWhitespace(pLsaServerInfo->szLogFilePath, TRUE, TRUE);
+          LwStripWhitespace(pLsaServerInfo->szLogFilePath, TRUE, TRUE);
 
           if (!strcmp(pLsaServerInfo->szLogFilePath, "."))
           {
@@ -625,7 +625,7 @@ LsaSrvExitHandler(
 
 error:
 
-    LSA_SAFE_FREE_STRING(pszCachePath);
+    LW_SAFE_FREE_STRING(pszCachePath);
 
     if (fp != NULL) {
        fclose(fp);
@@ -685,7 +685,7 @@ LsaInitCacheFolders(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszCachePath);
+    LW_SAFE_FREE_STRING(pszCachePath);
 
     return dwError;
 
@@ -819,12 +819,12 @@ LsaSrvGetCachePath(
 
     LSA_LOCK_SERVERINFO(bInLock);
 
-    if (IsNullOrEmptyString(gpServerInfo->szCachePath)) {
+    if (LW_IS_NULL_OR_EMPTY_STR(gpServerInfo->szCachePath)) {
       dwError = LW_ERROR_INVALID_CACHE_PATH;
       BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaAllocateString(gpServerInfo->szCachePath, &pszPath);
+    dwError = LwAllocateString(gpServerInfo->szCachePath, &pszPath);
     BAIL_ON_LSA_ERROR(dwError);
 
     *ppszPath = pszPath;
@@ -837,7 +837,7 @@ LsaSrvGetCachePath(
 
  error:
 
-    LSA_SAFE_FREE_STRING(pszPath);
+    LW_SAFE_FREE_STRING(pszPath);
 
     *ppszPath = NULL;
 
@@ -855,12 +855,12 @@ LsaSrvGetPrefixPath(
 
     LSA_LOCK_SERVERINFO(bInLock);
 
-    if (IsNullOrEmptyString(gpServerInfo->szPrefixPath)) {
+    if (LW_IS_NULL_OR_EMPTY_STR(gpServerInfo->szPrefixPath)) {
       dwError = LW_ERROR_INVALID_PREFIX_PATH;
       BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaAllocateString(gpServerInfo->szPrefixPath, &pszPath);
+    dwError = LwAllocateString(gpServerInfo->szPrefixPath, &pszPath);
     BAIL_ON_LSA_ERROR(dwError);
 
     *ppszPath = pszPath;
@@ -873,7 +873,7 @@ LsaSrvGetPrefixPath(
 
  error:
 
-    LSA_SAFE_FREE_STRING(pszPath);
+    LW_SAFE_FREE_STRING(pszPath);
 
     *ppszPath = NULL;
 
@@ -1038,7 +1038,7 @@ LsaSrvLogProcessStartedEvent(
     DWORD dwError = 0;
     PSTR pszDescription = NULL;
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                  &pszDescription,
                  "The Likewise authentication service was started.");
     BAIL_ON_LSA_ERROR(dwError);
@@ -1051,7 +1051,7 @@ LsaSrvLogProcessStartedEvent(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszDescription);
+    LW_SAFE_FREE_STRING(pszDescription);
 
     return;
 
@@ -1069,7 +1069,7 @@ LsaSrvLogProcessStoppedEvent(
     PSTR pszDescription = NULL;
     PSTR pszData = NULL;
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                  &pszDescription,
                  "The Likewise authentication service was stopped");
     BAIL_ON_LSA_ERROR(dwError);
@@ -1098,8 +1098,8 @@ LsaSrvLogProcessStoppedEvent(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszDescription);
-    LSA_SAFE_FREE_STRING(pszData);
+    LW_SAFE_FREE_STRING(pszDescription);
+    LW_SAFE_FREE_STRING(pszData);
 
     return;
 
@@ -1117,7 +1117,7 @@ LsaSrvLogProcessFailureEvent(
     PSTR pszDescription = NULL;
     PSTR pszData = NULL;
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                  &pszDescription,
                  "The Likewise authentication service stopped running due to an error");
     BAIL_ON_LSA_ERROR(dwError);
@@ -1135,8 +1135,8 @@ LsaSrvLogProcessFailureEvent(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszDescription);
-    LSA_SAFE_FREE_STRING(pszData);
+    LW_SAFE_FREE_STRING(pszDescription);
+    LW_SAFE_FREE_STRING(pszData);
 
     return;
 

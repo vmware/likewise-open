@@ -135,7 +135,7 @@ LsaAdBatchCheckDomainModeCompatibility(
     dwError = LsaDmLdapOpenDc(pszDnsDomainName, &pConn);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateStringPrintf(&pszCellDN,
+    dwError = LwAllocateStringPrintf(&pszCellDN,
                     "CN=$LikewiseIdentityCell,%s",
                     pszDomainDnToUse);
     BAIL_ON_LSA_ERROR(dwError);
@@ -154,8 +154,8 @@ LsaAdBatchCheckDomainModeCompatibility(
 
 cleanup:
     LsaDmLdapClose(pConn);
-    LSA_SAFE_FREE_STRING(pszCellDN);
-    LSA_SAFE_FREE_STRING(pszLocalDomainDn);
+    LW_SAFE_FREE_STRING(pszCellDN);
+    LW_SAFE_FREE_STRING(pszLocalDomainDn);
 
     return dwError;
 
@@ -289,7 +289,7 @@ LsaAdBatchGetDomainFromNT4Name(
 
     sLength = pszSeparator - pszNT4Name;
 
-    dwError = LsaStrndup(pszNT4Name, sLength, &pszDomainName);
+    dwError = LwStrndup(pszNT4Name, sLength, &pszDomainName);
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
@@ -298,7 +298,7 @@ cleanup:
     return dwError;
 
 error:
-    LSA_SAFE_FREE_STRING(pszDomainName);
+    LW_SAFE_FREE_STRING(pszDomainName);
     goto cleanup;
 }
 
@@ -407,7 +407,7 @@ LsaAdBatchCreateDomainEntry(
     BAIL_ON_LSA_ERROR(dwError);
 
 
-    dwError = LsaAllocateMemory(sizeof(*pEntry), (PVOID*)&pEntry);
+    dwError = LwAllocateMemory(sizeof(*pEntry), (PVOID*)&pEntry);
     BAIL_ON_LSA_ERROR(dwError);
 
     LsaListInit(&pEntry->BatchItemList);
@@ -457,10 +457,10 @@ LsaAdBatchCreateDomainEntry(
     *ppEntry = pEntry;
 
 cleanup:
-    LSA_SAFE_FREE_STRING(pszDnsDomainName);
-    LSA_SAFE_FREE_STRING(pszNetbiosDomainName);
-    LSA_SAFE_FREE_STRING(pszDomainSid);
-    LSA_SAFE_FREE_STRING(pszDomainName);
+    LW_SAFE_FREE_STRING(pszDnsDomainName);
+    LW_SAFE_FREE_STRING(pszNetbiosDomainName);
+    LW_SAFE_FREE_STRING(pszDomainSid);
+    LW_SAFE_FREE_STRING(pszDomainName);
     return dwError;
 
 error:
@@ -478,13 +478,13 @@ LsaAdBatchDestroyDomainEntry(
     PLSA_AD_BATCH_DOMAIN_ENTRY pEntry = *ppEntry;
     if (pEntry)
     {
-        LSA_SAFE_FREE_STRING(pEntry->pszDnsDomainName);
-        LSA_SAFE_FREE_STRING(pEntry->pszNetbiosDomainName);
+        LW_SAFE_FREE_STRING(pEntry->pszDnsDomainName);
+        LW_SAFE_FREE_STRING(pEntry->pszNetbiosDomainName);
 
         switch (pEntry->QueryType)
         {
             case LSA_AD_BATCH_QUERY_TYPE_BY_SID:
-                LSA_SAFE_FREE_STRING(pEntry->QueryMatch.BySid.pszDomainSid);
+                LW_SAFE_FREE_STRING(pEntry->QueryMatch.BySid.pszDomainSid);
                 break;
         }
 
@@ -495,7 +495,7 @@ LsaAdBatchDestroyDomainEntry(
 
             LsaAdBatchDestroyBatchItem(&pItem);
         }
-        LsaFreeMemory(pEntry);
+        LwFreeMemory(pEntry);
         *ppEntry = NULL;
     }
 }
@@ -515,13 +515,13 @@ LsaAdBatchCreateBatchItem(
     PCSTR pszQueryString = pszString;
 
 
-    if (!LSA_IS_XOR(!IsNullOrEmptyString(pszString), pdwId))
+    if (!LSA_IS_XOR(!LW_IS_NULL_OR_EMPTY_STR(pszString), pdwId))
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaAllocateMemory(sizeof(*pItem), (PVOID*)&pItem);
+    dwError = LwAllocateMemory(sizeof(*pItem), (PVOID*)&pItem);
     BAIL_ON_LSA_ERROR(dwError);
 
     if (LSA_AD_BATCH_QUERY_TYPE_BY_NT4 == QueryTermType)
@@ -537,7 +537,7 @@ LsaAdBatchCreateBatchItem(
             BAIL_ON_LSA_ERROR(dwError);
         }
         pszQueryString++;
-        if (IsNullOrEmptyString(pszQueryString))
+        if (LW_IS_NULL_OR_EMPTY_STR(pszQueryString))
         {
             dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
@@ -578,7 +578,7 @@ LsaAdBatchDestroyBatchItem(
     if (pItem)
     {
         LsaAdBatchDestroyBatchItemContents(pItem);
-        LsaFreeMemory(pItem);
+        LwFreeMemory(pItem);
         *ppItem = NULL;
     }
 }
@@ -590,24 +590,24 @@ LsaAdBatchDestroyBatchItemContents(
 {
     if (IsSetFlag(pItem->Flags, LSA_AD_BATCH_ITEM_FLAG_ALLOCATED_MATCH_TERM))
     {
-        LSA_SAFE_FREE_STRING(pItem->pszQueryMatchTerm);
+        LW_SAFE_FREE_STRING(pItem->pszQueryMatchTerm);
     }
-    LSA_SAFE_FREE_STRING(pItem->pszSid);
-    LSA_SAFE_FREE_STRING(pItem->pszSamAccountName);
-    LSA_SAFE_FREE_STRING(pItem->pszDn);
+    LW_SAFE_FREE_STRING(pItem->pszSid);
+    LW_SAFE_FREE_STRING(pItem->pszSamAccountName);
+    LW_SAFE_FREE_STRING(pItem->pszDn);
     switch (pItem->ObjectType)
     {
         case LSA_AD_BATCH_OBJECT_TYPE_USER:
-            LSA_SAFE_FREE_STRING(pItem->UserInfo.pszAlias);
-            LSA_SAFE_FREE_STRING(pItem->UserInfo.pszPasswd);
-            LSA_SAFE_FREE_STRING(pItem->UserInfo.pszGecos);
-            LSA_SAFE_FREE_STRING(pItem->UserInfo.pszHomeDirectory);
-            LSA_SAFE_FREE_STRING(pItem->UserInfo.pszShell);
-            LSA_SAFE_FREE_STRING(pItem->UserInfo.pszUserPrincipalName);
+            LW_SAFE_FREE_STRING(pItem->UserInfo.pszAlias);
+            LW_SAFE_FREE_STRING(pItem->UserInfo.pszPasswd);
+            LW_SAFE_FREE_STRING(pItem->UserInfo.pszGecos);
+            LW_SAFE_FREE_STRING(pItem->UserInfo.pszHomeDirectory);
+            LW_SAFE_FREE_STRING(pItem->UserInfo.pszShell);
+            LW_SAFE_FREE_STRING(pItem->UserInfo.pszUserPrincipalName);
             break;
         case LSA_AD_BATCH_OBJECT_TYPE_GROUP:
-            LSA_SAFE_FREE_STRING(pItem->GroupInfo.pszAlias);
-            LSA_SAFE_FREE_STRING(pItem->GroupInfo.pszPasswd);
+            LW_SAFE_FREE_STRING(pItem->GroupInfo.pszAlias);
+            LW_SAFE_FREE_STRING(pItem->GroupInfo.pszPasswd);
             break;
     }
 }
@@ -893,7 +893,7 @@ LsaAdBatchSplitBIListToBIListPerDomain(
         pBILinks = LsaListRemoveHead(pBatchItemList);
         pBatchItem = LW_STRUCT_FROM_FIELD(pBILinks, LSA_AD_BATCH_ITEM, BatchItemListLinks);
 
-        if (IsNullOrEmptyString(pBatchItem->pszSid))
+        if (LW_IS_NULL_OR_EMPTY_STR(pBatchItem->pszSid))
         {
             LsaAdBatchDestroyBatchItem(&pBatchItem);
             continue;
@@ -1096,7 +1096,7 @@ LsaAdBatchResolveObjectsForDomainList(
         dwObjectsCount += pEntry->dwBatchItemCount;
     }
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                 dwObjectsCount * sizeof(*ppObjects),
                 (PVOID*)&ppObjects);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1134,13 +1134,13 @@ LsaAdBatchResolveObjectsForDomainList(
     {
         PLSA_SECURITY_OBJECT* ppTempObjects = NULL;
 
-        dwError = LsaAllocateMemory(
+        dwError = LwAllocateMemory(
                     dwCurrentIndex * sizeof(*ppTempObjects),
                     (PVOID*)&ppTempObjects);
         BAIL_ON_LSA_ERROR(dwError);
 
         memcpy(ppTempObjects, ppObjects, sizeof(*ppObjects) * dwCurrentIndex);
-        LsaFreeMemory(ppObjects);
+        LwFreeMemory(ppObjects);
         ppObjects = ppTempObjects;
         dwObjectsCount = dwCurrentIndex;
     }
@@ -1292,14 +1292,14 @@ LsaAdBatchFindSingleObject(
     PLSA_SECURITY_OBJECT* ppObjects = NULL;
     PLSA_SECURITY_OBJECT pObject = NULL;
 
-    if (!LSA_IS_XOR(!IsNullOrEmptyString(pszQueryTerm), pdwId))
+    if (!LSA_IS_XOR(!LW_IS_NULL_OR_EMPTY_STR(pszQueryTerm), pdwId))
     {
         LSA_ASSERT(FALSE);
         dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    if (!IsNullOrEmptyString(pszQueryTerm))
+    if (!LW_IS_NULL_OR_EMPTY_STR(pszQueryTerm))
     {
         dwError = LsaAdBatchFindObjects(
                         QueryType,
@@ -1462,7 +1462,7 @@ LsaAdBatchFilterMisTypeObjects(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                 dwObjectsCount * sizeof(*ppRemainingObjects),
                 (PVOID*)&ppRemainingObjects);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1683,7 +1683,7 @@ LsaAdBatchResolveRpcObjects(
     {
         pNextLinks = NULL;
 
-        LsaFreeStringArray(ppszQueryList, dwQueryCount);
+        LwFreeStringArray(ppszQueryList, dwQueryCount);
         ppszQueryList = NULL;
 
         if (ppTranslatedNames)
@@ -1760,7 +1760,7 @@ LsaAdBatchResolveRpcObjects(
     }
 
 cleanup:
-    LsaFreeStringArray(ppszQueryList, dwQueryCount);
+    LwFreeStringArray(ppszQueryList, dwQueryCount);
     if (ppTranslatedNames)
     {
         LsaFreeTranslatedNameList(ppTranslatedNames, dwCount);
@@ -1838,7 +1838,7 @@ LsaAdBatchResolveRealObjects(
 
         pNextLinks = NULL;
 
-        LSA_SAFE_FREE_STRING(pszQuery);
+        LW_SAFE_FREE_STRING(pszQuery);
         if (pMessage)
         {
             ldap_msgfree(pMessage);
@@ -1898,8 +1898,8 @@ LsaAdBatchResolveRealObjects(
 
 cleanup:
     LsaDmLdapClose(pConn);
-    LSA_SAFE_FREE_STRING(pszScopeDn);
-    LSA_SAFE_FREE_STRING(pszQuery);
+    LW_SAFE_FREE_STRING(pszScopeDn);
+    LW_SAFE_FREE_STRING(pszQuery);
     if (pMessage)
     {
         ldap_msgfree(pMessage);
@@ -1938,12 +1938,12 @@ LsaAdBatchBuildQueryScopeForPseudo(
             dwError = LwLdapConvertDomainToDN(pszDnsDomainName, &pszDcPart);
             BAIL_ON_LSA_ERROR(dwError);
 
-            dwError = LsaAllocateStringPrintf(&pszScopeDn, "CN=$LikewiseIdentityCell,%s", pszDcPart);
+            dwError = LwAllocateStringPrintf(&pszScopeDn, "CN=$LikewiseIdentityCell,%s", pszDcPart);
             BAIL_ON_LSA_ERROR(dwError);
             break;
 
         case LSA_PROVISIONING_MODE_NON_DEFAULT_CELL:
-            dwError = LsaAllocateString(pszCellDn, &pszScopeDn);
+            dwError = LwAllocateString(pszCellDn, &pszScopeDn);
             BAIL_ON_LSA_ERROR(dwError);
             break;
 
@@ -1957,12 +1957,12 @@ LsaAdBatchBuildQueryScopeForPseudo(
     *ppszScopeDn = pszScopeDn;
 
 cleanup:
-    LSA_SAFE_FREE_STRING(pszDcPart);
+    LW_SAFE_FREE_STRING(pszDcPart);
     return dwError;
 
 error:
     *ppszScopeDn = NULL;
-    LSA_SAFE_FREE_STRING(pszScopeDn);
+    LW_SAFE_FREE_STRING(pszScopeDn);
     goto cleanup;
 }
 
@@ -2067,7 +2067,7 @@ LsaAdBatchResolvePseudoObjectSidsViaGcDefaultMode(
 
 
 cleanup:
-    LsaFreeStringArray(ppszDomainNames, dwDomainCount);
+    LwFreeStringArray(ppszDomainNames, dwDomainCount);
 
     return dwError;
 
@@ -2194,7 +2194,7 @@ LsaAdBatchResolvePseudoObjectsDefaultMode(
     DWORD dwError = 0;
     BOOLEAN bResolvedPseudo = TRUE;
 
-    if (!IsNullOrEmptyString(pszDnsDomainName))
+    if (!LW_IS_NULL_OR_EMPTY_STR(pszDnsDomainName))
     {
         // Know the domain to search.
         dwError = LsaAdBatchResolvePseudoObjectsInternalDefaultOrCell(
@@ -2309,7 +2309,7 @@ LsaAdBatchIsDefaultCell(
     dwError = LwLdapConvertDomainToDN(gpADProviderData->szDomain, &pszRootDN);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                  &pszDefaultCellDN,
                  "CN=$LikewiseIdentityCell,%s",
                  pszRootDN);
@@ -2321,8 +2321,8 @@ LsaAdBatchIsDefaultCell(
     }
 
 cleanup:
-    LSA_SAFE_FREE_STRING(pszRootDN);
-    LSA_SAFE_FREE_STRING(pszDefaultCellDN);
+    LW_SAFE_FREE_STRING(pszRootDN);
+    LW_SAFE_FREE_STRING(pszDefaultCellDN);
 
     *pbIsDefaultCell = bIsDefaultCell;
 
@@ -2464,7 +2464,7 @@ LsaAdBatchResolvePseudoObjectsInternalDefaultSchema(
     PLSA_DM_LDAP_CONNECTION pConn = NULL;
     PSTR pszDomainDN = NULL;
 
-    if (IsNullOrEmptyString(pszDnsDomainName))
+    if (LW_IS_NULL_OR_EMPTY_STR(pszDnsDomainName))
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
@@ -2487,7 +2487,7 @@ LsaAdBatchResolvePseudoObjectsInternalDefaultSchema(
 
         pNextLinks = NULL;
 
-        LSA_SAFE_FREE_STRING(pszQuery);
+        LW_SAFE_FREE_STRING(pszQuery);
         if (pMessage)
         {
             ldap_msgfree(pMessage);
@@ -2505,7 +2505,7 @@ LsaAdBatchResolvePseudoObjectsInternalDefaultSchema(
                         &pszQuery);
         BAIL_ON_LSA_ERROR(dwError);
 
-        if (IsNullOrEmptyString(pszQuery))
+        if (LW_IS_NULL_OR_EMPTY_STR(pszQuery))
         {
             break;
         }
@@ -2563,8 +2563,8 @@ LsaAdBatchResolvePseudoObjectsInternalDefaultSchema(
 
 cleanup:
     LsaDmLdapClose(pConn);
-    LSA_SAFE_FREE_STRING(pszQuery);
-    LSA_SAFE_FREE_STRING(pszDomainDN);
+    LW_SAFE_FREE_STRING(pszQuery);
+    LW_SAFE_FREE_STRING(pszDomainDN);
     if (pMessage)
     {
         ldap_msgfree(pMessage);
@@ -2645,7 +2645,7 @@ LsaAdBatchResolvePseudoObjectsInternalDefaultOrCell(
     PSTR pUserPseudoDN = NULL;
     PLSA_DM_LDAP_CONNECTION pConn = NULL;
 
-    if (bDoGCSearch && IsNullOrEmptyString(pszDnsDomainName))
+    if (bDoGCSearch && LW_IS_NULL_OR_EMPTY_STR(pszDnsDomainName))
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
@@ -2653,7 +2653,7 @@ LsaAdBatchResolvePseudoObjectsInternalDefaultOrCell(
 
     if (bDoGCSearch)
     {
-        dwError = LsaAllocateString("", &pszScopeDn);
+        dwError = LwAllocateString("", &pszScopeDn);
         BAIL_ON_LSA_ERROR(dwError);
 
         dwError = LsaDmLdapOpenGc(pszDnsDomainName, &pConn);
@@ -2691,7 +2691,7 @@ LsaAdBatchResolvePseudoObjectsInternalDefaultOrCell(
 
         pNextLinks = NULL;
 
-        LSA_SAFE_FREE_STRING(pszQuery);
+        LW_SAFE_FREE_STRING(pszQuery);
         if (pMessage)
         {
             ldap_msgfree(pMessage);
@@ -2710,7 +2710,7 @@ LsaAdBatchResolvePseudoObjectsInternalDefaultOrCell(
                         &pszQuery);
         BAIL_ON_LSA_ERROR(dwError);
 
-        if (IsNullOrEmptyString(pszQuery))
+        if (LW_IS_NULL_OR_EMPTY_STR(pszQuery))
         {
             break;
         }
@@ -2751,7 +2751,7 @@ LsaAdBatchResolvePseudoObjectsInternalDefaultOrCell(
             // Default Non-schema mode doing a GC search
             if (NonSchemaMode == adMode && bDoGCSearch)
             {
-                LSA_SAFE_FREE_STRING(pUserPseudoDN);
+                LW_SAFE_FREE_STRING(pUserPseudoDN);
 
                 dwError = LwLdapGetDN(
                              hDirectory,
@@ -2759,7 +2759,7 @@ LsaAdBatchResolvePseudoObjectsInternalDefaultOrCell(
                              &pUserPseudoDN);
                 BAIL_ON_LSA_ERROR(dwError);
 
-                LsaStrToUpper(pUserPseudoDN);
+                LwStrToUpper(pUserPseudoDN);
 
                 // Make sure the found pseudo object is enabled in default cell;
                 // Otherwise, skip this pCurrentMessage
@@ -2794,10 +2794,10 @@ LsaAdBatchResolvePseudoObjectsInternalDefaultOrCell(
 
 cleanup:
     LsaDmLdapClose(pConn);
-    LSA_SAFE_FREE_STRING(pszDomainName);
-    LSA_SAFE_FREE_STRING(pszScopeDn);
-    LSA_SAFE_FREE_STRING(pszQuery);
-    LSA_SAFE_FREE_STRING(pUserPseudoDN);
+    LW_SAFE_FREE_STRING(pszDomainName);
+    LW_SAFE_FREE_STRING(pszScopeDn);
+    LW_SAFE_FREE_STRING(pszQuery);
+    LW_SAFE_FREE_STRING(pUserPseudoDN);
     if (pMessage)
     {
         ldap_msgfree(pMessage);
@@ -2877,7 +2877,7 @@ LsaAdBatchGetObjectTypeFromRealMessage(
     }
 
 cleanup:
-    LsaFreeStringArray(ppszValues, dwValuesCount);
+    LwFreeStringArray(ppszValues, dwValuesCount);
 
     *pObjectType = objectType;
 
@@ -3008,7 +3008,7 @@ LsaAdBatchGetObjectTypeFromPseudoMessage(
     }
 
 cleanup:
-    LsaFreeStringArray(ppszValues, dwValuesCount);
+    LwFreeStringArray(ppszValues, dwValuesCount);
 
     *pObjectType = objectType;
 
@@ -3115,7 +3115,7 @@ LsaAdBatchGetCompareStringFromRealObject(
             BAIL_ON_LSA_ERROR(dwError);
     }
 
-    if (IsNullOrEmptyString(pszCompare))
+    if (LW_IS_NULL_OR_EMPTY_STR(pszCompare))
     {
         dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
@@ -3126,7 +3126,7 @@ cleanup:
     return dwError;
 
 error:
-    LSA_SAFE_FREE_STRING(pszCompare);
+    LW_SAFE_FREE_STRING(pszCompare);
     goto cleanup;
 }
 
@@ -3199,7 +3199,7 @@ LsaAdBatchGetCompareStringFromPseudoObjectDefaultSchema(
             BAIL_ON_LSA_ERROR(dwError);
     }
 
-    if (IsNullOrEmptyString(pszCompare))
+    if (LW_IS_NULL_OR_EMPTY_STR(pszCompare))
     {
         dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
@@ -3210,7 +3210,7 @@ cleanup:
     return dwError;
 
 error:
-    LSA_SAFE_FREE_STRING(pszCompare);
+    LW_SAFE_FREE_STRING(pszCompare);
     goto cleanup;
 }
 
@@ -3245,7 +3245,7 @@ LsaAdBatchGetCompareStringFromPseudoObject(
                                 dwKeywordValuesCount,
                                 ppszKeywordValues,
                                 AD_LDAP_BACKLINK_PSEUDO_TAG);
-            if (IsNullOrEmptyString(pszCompare))
+            if (LW_IS_NULL_OR_EMPTY_STR(pszCompare))
             {
                 dwError = LW_ERROR_INVALID_SID;
                 BAIL_ON_LSA_ERROR(dwError);
@@ -3303,7 +3303,7 @@ cleanup:
     return dwError;
 
 error:
-    LSA_SAFE_FREE_STRING(pszFreeCompare);
+    LW_SAFE_FREE_STRING(pszFreeCompare);
     pszCompare = NULL;
     goto cleanup;
 }
@@ -3339,7 +3339,7 @@ LsaAdBatchProcessRpcObject(
                                  &pLoginNameInfo);
             BAIL_ON_LSA_ERROR(dwError);
 
-            dwError = LsaAllocateString(pszObjectNT4NameOrSid, &pszSid);
+            dwError = LwAllocateString(pszObjectNT4NameOrSid, &pszSid);
             BAIL_ON_LSA_ERROR(dwError);
 
             LSA_XFER_STRING(pLoginNameInfo->pszName, pszSamAccountName);
@@ -3364,10 +3364,10 @@ LsaAdBatchProcessRpcObject(
                 BAIL_ON_LSA_ERROR(dwError);
             }
 
-            dwError = LsaAllocateString(pszFoundSamAccountName, &pszSamAccountName);
+            dwError = LwAllocateString(pszFoundSamAccountName, &pszSamAccountName);
             BAIL_ON_LSA_ERROR(dwError);
 
-            dwError = LsaAllocateString(pTranslatedName->pszNT4NameOrSid, &pszSid);
+            dwError = LwAllocateString(pTranslatedName->pszNT4NameOrSid, &pszSid);
             BAIL_ON_LSA_ERROR(dwError);
 
             pszCompare = pszSamAccountName;
@@ -3436,8 +3436,8 @@ LsaAdBatchProcessRpcObject(
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
-    LSA_SAFE_FREE_STRING(pszSid);
-    LSA_SAFE_FREE_STRING(pszSamAccountName);
+    LW_SAFE_FREE_STRING(pszSid);
+    LW_SAFE_FREE_STRING(pszSamAccountName);
     LSA_SAFE_FREE_LOGIN_NAME_INFO(pLoginNameInfo);
 
     return dwError;
@@ -3532,7 +3532,7 @@ LsaAdBatchProcessRealObject(
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
-    LSA_SAFE_FREE_STRING(pszCompare);
+    LW_SAFE_FREE_STRING(pszCompare);
 
     return dwError;
 
@@ -3598,7 +3598,7 @@ LsaAdBatchProcessPseudoObject(
                     ppszKeywordValues,
                     hDirectory,
                     pMessage);
-    if (IsNullOrEmptyString(pszCompare))
+    if (LW_IS_NULL_OR_EMPTY_STR(pszCompare))
     {
         LSA_ASSERT(FALSE);
         dwError = LW_ERROR_INTERNAL;
@@ -3695,8 +3695,8 @@ LsaAdBatchProcessPseudoObject(
     }
 
 cleanup:
-    LsaFreeStringArray(ppszKeywordValues, dwKeywordValuesCount);
-    LSA_SAFE_FREE_STRING(pszFreeCompare);
+    LwFreeStringArray(ppszKeywordValues, dwKeywordValuesCount);
+    LW_SAFE_FREE_STRING(pszFreeCompare);
 
     return dwError;
 
@@ -3801,7 +3801,7 @@ LsaAdBatchProcessPseudoObjectDefaultSchema(
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
-    LSA_SAFE_FREE_STRING(pszCompare);
+    LW_SAFE_FREE_STRING(pszCompare);
 
     return dwError;
 

@@ -170,12 +170,12 @@ NtlmServerAcquireCredentialsHandle(
     NtlmAddCredential(pNtlmCreds, &NtlmCredHandle);
 
 cleanup:
-    LSA_SAFE_FREE_STRING(pPassword);
-    LSA_SAFE_FREE_STRING(pUserName);
-    LSA_SAFE_FREE_STRING(pServerName);
-    LSA_SAFE_FREE_STRING(pDomainName);
-    LSA_SAFE_FREE_STRING(pDnsServerName);
-    LSA_SAFE_FREE_STRING(pDnsDomainName);
+    LW_SAFE_FREE_STRING(pPassword);
+    LW_SAFE_FREE_STRING(pUserName);
+    LW_SAFE_FREE_STRING(pServerName);
+    LW_SAFE_FREE_STRING(pDomainName);
+    LW_SAFE_FREE_STRING(pDnsServerName);
+    LW_SAFE_FREE_STRING(pDnsDomainName);
 
     *phCredential = NtlmCredHandle;
 

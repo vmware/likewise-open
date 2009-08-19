@@ -92,7 +92,7 @@ GetUserAttribAsString (
         *errNo = getuserattr (pszUname, pszAttr, &ret, type);
 
         sprintf(arr, "%i", ret);
-        LsaAllocateString(arr, &value);
+        LwAllocateString(arr, &value);
 
         return value;
     }
@@ -162,7 +162,7 @@ PrintUserAttrib(PSTR pszUname, PSTR pszAttr, PSTR pszValue) {
     printf("GetUserAttr:\n");
     printf("============\n");
     printf("User Name: %s\n", pszUname);
-    printf("%s: %s\n" , pszAttr, IsNullOrEmptyString(pszValue) ? "<null>" : pszValue);
+    printf("%s: %s\n" , pszAttr, LW_IS_NULL_OR_EMPTY_STR(pszValue) ? "<null>" : pszValue);
 }
 
 void

@@ -61,7 +61,7 @@ LsaStackPush(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(LSA_STACK),
                     (PVOID*)&pStack);
     BAIL_ON_LSA_ERROR(dwError);
@@ -78,7 +78,7 @@ cleanup:
 error:
 
     if (pStack) {
-        LsaFreeMemory(pStack);
+        LwFreeMemory(pStack);
     }
 
     goto cleanup;
@@ -98,7 +98,7 @@ LsaStackPop(
 
         pItem = pTop->pItem;
 
-        LsaFreeMemory(pTop);
+        LwFreeMemory(pTop);
     }
 
     return pItem;
@@ -171,6 +171,6 @@ LsaStackFree(
 
         pStack = pStack->pNext;
 
-        LsaFreeMemory(pTmp);
+        LwFreeMemory(pTmp);
     }
 }

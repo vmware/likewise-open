@@ -86,7 +86,7 @@ AD_GetSystemAccessToken(
                     &pszHostDnsDomain);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                     &pszMachPrincipal,
                     "%s@%s",
                     pszUsername,
@@ -102,11 +102,11 @@ AD_GetSystemAccessToken(
     *ppAccessToken = pAccessToken;
 
 cleanup:
-    LSA_SAFE_FREE_STRING(pszUsername);
-    LSA_SAFE_FREE_STRING(pszPassword);
-    LSA_SAFE_FREE_STRING(pszDomainDnsName);
-    LSA_SAFE_FREE_STRING(pszHostDnsDomain);
-    LSA_SAFE_FREE_STRING(pszMachPrincipal);
+    LW_SAFE_FREE_STRING(pszUsername);
+    LW_SAFE_FREE_STRING(pszPassword);
+    LW_SAFE_FREE_STRING(pszDomainDnsName);
+    LW_SAFE_FREE_STRING(pszHostDnsDomain);
+    LW_SAFE_FREE_STRING(pszMachPrincipal);
 
     return dwError;
 
@@ -270,7 +270,7 @@ AD_NetUserChangePassword(
                     &pwszLoginId);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (!IsNullOrEmptyString(pszOldPassword)) {
+    if (!LW_IS_NULL_OR_EMPTY_STR(pszOldPassword)) {
 
         dwError = LsaMbsToWc16s(
                     pszOldPassword,
@@ -279,7 +279,7 @@ AD_NetUserChangePassword(
 
     }
 
-    if (!IsNullOrEmptyString(pszNewPassword)) {
+    if (!LW_IS_NULL_OR_EMPTY_STR(pszNewPassword)) {
 
         dwError = LsaMbsToWc16s(
                     pszNewPassword,
@@ -297,10 +297,10 @@ AD_NetUserChangePassword(
 
 cleanup:
 
-    LSA_SAFE_FREE_MEMORY(pwszDomainName);
-    LSA_SAFE_FREE_MEMORY(pwszLoginId);
-    LSA_SAFE_FREE_MEMORY(pwszOldPassword);
-    LSA_SAFE_FREE_MEMORY(pwszNewPassword);
+    LW_SAFE_FREE_MEMORY(pwszDomainName);
+    LW_SAFE_FREE_MEMORY(pwszLoginId);
+    LW_SAFE_FREE_MEMORY(pwszOldPassword);
+    LW_SAFE_FREE_MEMORY(pwszNewPassword);
     LsaFreeSMBAccessToken(&pFreeInfo);
     if (bChangedToken)
     {
@@ -385,7 +385,7 @@ AD_NetLookupObjectSidByName(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaAllocateString(ppTranslatedSids[0]->pszNT4NameOrSid,
+    dwError = LwAllocateString(ppTranslatedSids[0]->pszNT4NameOrSid,
                                 &pszObjectSid);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -402,7 +402,7 @@ cleanup:
 
 error:
     *ppszObjectSid = NULL;
-    LSA_SAFE_FREE_STRING(pszObjectSid);
+    LW_SAFE_FREE_STRING(pszObjectSid);
     *pObjectType = AccountType_NotFound;
     LSA_LOG_ERROR("Failed to find user or group. [Error code: %d]", dwError);
     dwError = LW_ERROR_NO_SUCH_OBJECT;
@@ -469,7 +469,7 @@ AD_NetLookupObjectSidsByNames(
     }
 
     // Convert ppszNames to ppwcNames
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(*ppwcNames)*dwNamesCount,
                     (PVOID*)&ppwcNames);
     BAIL_ON_LSA_ERROR(dwError);
@@ -546,7 +546,7 @@ AD_NetLookupObjectSidsByNames(
 
     // For incomplete results (LW_STATUS_SOME_NOT_MAPPED == status), leave ppTranslatedSids[i] as NULL for those NOT found
     // to maintain ppszNames[i] -> ppTranslatedSids[i]
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(*ppTranslatedSids)*dwNamesCount,
                     (PVOID*)&ppTranslatedSids);
     BAIL_ON_LSA_ERROR(dwError);
@@ -562,7 +562,7 @@ AD_NetLookupObjectSidsByNames(
             continue;
         }
 
-        dwError = LsaAllocateMemory(
+        dwError = LwAllocateMemory(
                             sizeof(*ppTranslatedSids[i]),
                             (PVOID*)&ppTranslatedSids[i]);
         BAIL_ON_LSA_ERROR(dwError);
@@ -577,7 +577,7 @@ AD_NetLookupObjectSidsByNames(
             BAIL_ON_LSA_ERROR(dwError);
         }
 
-        LSA_SAFE_FREE_MEMORY(pObject_sid);
+        LW_SAFE_FREE_MEMORY(pObject_sid);
 
         if (AccountType_Domain == ObjectType)
         {
@@ -613,14 +613,14 @@ cleanup:
         *pbIsNetworkError = bIsNetworkError;
     }
 
-    LSA_SAFE_FREE_MEMORY(pwcHost);
+    LW_SAFE_FREE_MEMORY(pwcHost);
     if (ppwcNames)
     {
         for (i = 0; i < dwNamesCount; i++)
         {
-            LSA_SAFE_FREE_MEMORY(ppwcNames[i]);
+            LW_SAFE_FREE_MEMORY(ppwcNames[i]);
         }
-        LsaFreeMemory(ppwcNames);
+        LwFreeMemory(ppwcNames);
     }
     if (pDomains)
     {
@@ -630,7 +630,7 @@ cleanup:
     {
         LsaRpcFreeMemory(pSids);
     }
-    LSA_SAFE_FREE_MEMORY(pObject_sid);
+    LW_SAFE_FREE_MEMORY(pObject_sid);
     status = LsaClose(lsa_binding, &lsa_policy);
     if (status != 0 && dwError == 0)
     {
@@ -701,7 +701,7 @@ AD_NetLookupObjectNameBySid(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaAllocateString(ppTranslatedNames[0]->pszNT4NameOrSid,
+    dwError = LwAllocateString(ppTranslatedNames[0]->pszNT4NameOrSid,
                                 &pszNT4Name);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -719,7 +719,7 @@ cleanup:
 
 error:
     *ppszNT4Name = NULL;
-    LSA_SAFE_FREE_STRING(pszNT4Name);
+    LW_SAFE_FREE_STRING(pszNT4Name);
     *pObjectType = AccountType_NotFound;
 
     LSA_LOG_ERROR("Failed to find user or group. [Error code: %d]", dwError);
@@ -793,7 +793,7 @@ AD_NetLookupObjectNamesBySids(
 
     // Convert ppszObjectSids to sid_array
     sid_array.num_sids = dwSidsCount;
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(*sid_array.sids)*sid_array.num_sids,
                     (PVOID*)&sid_array.sids);
     BAIL_ON_LSA_ERROR(dwError);
@@ -870,7 +870,7 @@ AD_NetLookupObjectNamesBySids(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                      sizeof(*ppszDomainNames)*pDomains->count,
                      (PVOID*)&ppszDomainNames);
     BAIL_ON_LSA_ERROR(dwError);
@@ -889,7 +889,7 @@ AD_NetLookupObjectNamesBySids(
 
     // For incomplete results (LW_STATUS_SOME_NOT_MAPPED == status), leave ppTranslatedNames[i] as NULL for those NOT found
     // to maintain ppszObjectSids[i] -> ppTranslatedNames[i]
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(*ppTranslatedNames)*dwSidsCount,
                     (PVOID*)&ppTranslatedNames);
     BAIL_ON_LSA_ERROR(dwError);
@@ -923,15 +923,15 @@ AD_NetLookupObjectNamesBySids(
             BAIL_ON_LSA_ERROR(dwError);
         }
 
-        if (IsNullOrEmptyString(pszDomainName) ||
-            ((ObjectType != AccountType_Domain) && IsNullOrEmptyString(pszUsername)) ||
-            ((ObjectType == AccountType_Domain) && !IsNullOrEmptyString(pszUsername)))
+        if (LW_IS_NULL_OR_EMPTY_STR(pszDomainName) ||
+            ((ObjectType != AccountType_Domain) && LW_IS_NULL_OR_EMPTY_STR(pszUsername)) ||
+            ((ObjectType == AccountType_Domain) && !LW_IS_NULL_OR_EMPTY_STR(pszUsername)))
         {
             dwError = LW_ERROR_RPC_LSA_LOOKUPSIDS_NOT_FOUND;
             BAIL_ON_LSA_ERROR(dwError);
         }
 
-        dwError = LsaAllocateMemory(
+        dwError = LwAllocateMemory(
                         sizeof(*ppTranslatedNames[i]),
                         (PVOID*)&ppTranslatedNames[i]);
         BAIL_ON_LSA_ERROR(dwError);
@@ -948,15 +948,15 @@ AD_NetLookupObjectNamesBySids(
         }
         else
         {
-            dwError = LsaAllocateString(
+            dwError = LwAllocateString(
                             pszDomainName,
                             &ppTranslatedNames[i]->pszNT4NameOrSid);
             BAIL_ON_LSA_ERROR(dwError);
 
-            LsaStrToUpper(ppTranslatedNames[i]->pszNT4NameOrSid);
+            LwStrToUpper(ppTranslatedNames[i]->pszNT4NameOrSid);
         }
 
-        LSA_SAFE_FREE_STRING(pszUsername);
+        LW_SAFE_FREE_STRING(pszUsername);
     }
 
     *pppTranslatedNames = ppTranslatedNames;
@@ -975,12 +975,12 @@ cleanup:
 
     if (pDomains)
     {
-        LsaFreeStringArray(ppszDomainNames,pDomains->count);
+        LwFreeStringArray(ppszDomainNames,pDomains->count);
         LsaRpcFreeMemory(pDomains);
     }
 
-    LSA_SAFE_FREE_STRING(pszUsername);
-    LSA_SAFE_FREE_MEMORY(pwcHost);
+    LW_SAFE_FREE_STRING(pszUsername);
+    LW_SAFE_FREE_MEMORY(pwcHost);
 
 
     if (name_array)
@@ -992,12 +992,12 @@ cleanup:
     {
         for (i = 0; i < sid_array.num_sids; i++)
         {
-            LSA_SAFE_FREE_MEMORY(sid_array.sids[i].sid);
+            LW_SAFE_FREE_MEMORY(sid_array.sids[i].sid);
         }
-        LSA_SAFE_FREE_MEMORY(sid_array.sids);
+        LW_SAFE_FREE_MEMORY(sid_array.sids);
     }
 
-    LSA_SAFE_FREE_MEMORY(pObjectSID);
+    LW_SAFE_FREE_MEMORY(pObjectSID);
 
     status = LsaClose(lsa_binding, &lsa_policy);
     if (status != 0 && dwError == 0){
@@ -1105,7 +1105,7 @@ cleanup:
         FreeNetlogonBinding(&netr_b);
         netr_b = NULL;
     }
-    LSA_SAFE_FREE_MEMORY(pwcDomainControllerName);
+    LW_SAFE_FREE_MEMORY(pwcDomainControllerName);
     if (bChangedToken)
     {
         LwIoSetThreadAccessToken(pOldToken);
@@ -1233,8 +1233,8 @@ cleanup:
         FreeNetlogonBinding(&netr_b);
         netr_b = NULL;
     }
-    LSA_SAFE_FREE_MEMORY(pwcServerName);
-    LSA_SAFE_FREE_MEMORY(pwcDomainName);
+    LW_SAFE_FREE_MEMORY(pwcServerName);
+    LW_SAFE_FREE_MEMORY(pwcDomainName);
     if (bChangedToken)
     {
         LwIoSetThreadAccessToken(pOldToken);
@@ -1260,8 +1260,8 @@ cleanup:
     return dwError;
 
 error:
-    LSA_SAFE_FREE_STRING(pszDomainDnsOrFlatName);
-    LSA_SAFE_FREE_STRING(pszDomainForestDnsName);
+    LW_SAFE_FREE_STRING(pszDomainDnsOrFlatName);
+    LW_SAFE_FREE_STRING(pszDomainForestDnsName);
 
     goto cleanup;
 }
@@ -1293,8 +1293,8 @@ LsaFreeTranslatedNameInfo(
     IN OUT PLSA_TRANSLATED_NAME_OR_SID pNameInfo
     )
 {
-    LSA_SAFE_FREE_STRING(pNameInfo->pszNT4NameOrSid);
-    LsaFreeMemory(pNameInfo);
+    LW_SAFE_FREE_STRING(pNameInfo->pszNT4NameOrSid);
+    LwFreeMemory(pNameInfo);
 }
 
 void
@@ -1313,7 +1313,7 @@ LsaFreeTranslatedNameList(
             LsaFreeTranslatedNameInfo(pNameInfo);
         }
     }
-    LsaFreeMemory(pNameList);
+    LwFreeMemory(pNameList);
 }
 
 INT64
@@ -1431,7 +1431,7 @@ LsaCopyNetrUserInfo3(
     {
         int i = 0;
 
-        dwError = LsaAllocateMemory(sizeof(LSA_RID_ATTRIB)*(pUserInfo->dwNumRids),
+        dwError = LwAllocateMemory(sizeof(LSA_RID_ATTRIB)*(pUserInfo->dwNumRids),
                                     (PVOID*)&pUserInfo->pRidAttribList);
         BAIL_ON_LSA_ERROR(dwError);
 
@@ -1448,7 +1448,7 @@ LsaCopyNetrUserInfo3(
     {
         int i = 0;
 
-        dwError = LsaAllocateMemory(sizeof(LSA_SID_ATTRIB)*(pUserInfo->dwNumSids),
+        dwError = LwAllocateMemory(sizeof(LSA_SID_ATTRIB)*(pUserInfo->dwNumSids),
                                     (PVOID*)&pUserInfo->pSidAttribList);
         BAIL_ON_LSA_ERROR(dwError);
 
@@ -1531,7 +1531,7 @@ AD_NetlogonAuthenticationUserEx(
        NULL and \\ */
 
     dwDCNameLen = strlen(pszDomainController) + 3;
-    dwError = LsaAllocateMemory(dwDCNameLen, (PVOID*)&pszServerName);
+    dwError = LwAllocateMemory(dwDCNameLen, (PVOID*)&pszServerName);
     BAIL_ON_LSA_ERROR(dwError);
 
     snprintf(pszServerName, dwDCNameLen, "\\\\%s", pszDomainController);
@@ -1634,7 +1634,7 @@ AD_NetlogonAuthenticationUserEx(
     /* Translate the returned NetrValidationInfo to the
        LSA_AUTH_USER_INFO out param */
 
-    dwError = LsaAllocateMemory(sizeof(LSA_AUTH_USER_INFO), (PVOID*)ppUserInfo);
+    dwError = LwAllocateMemory(sizeof(LSA_AUTH_USER_INFO), (PVOID*)ppUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaCopyNetrUserInfo3(*ppUserInfo, pValidationInfo);
@@ -1674,14 +1674,14 @@ cleanup:
         NetrFreeMemory((void*)pValidationInfo);
     }
 
-    LSA_SAFE_FREE_MEMORY(pszHostname);
-    LSA_SAFE_FREE_MEMORY(pszServerName);
+    LW_SAFE_FREE_MEMORY(pszHostname);
+    LW_SAFE_FREE_MEMORY(pszServerName);
 
-    LSA_SAFE_FREE_MEMORY(pwszUsername);
-    LSA_SAFE_FREE_MEMORY(pwszDomainController);
-    LSA_SAFE_FREE_MEMORY(pwszServerName);
-    LSA_SAFE_FREE_MEMORY(pwszShortDomain);
-    LSA_SAFE_FREE_MEMORY(pwszPrimaryShortDomain);
+    LW_SAFE_FREE_MEMORY(pwszUsername);
+    LW_SAFE_FREE_MEMORY(pwszDomainController);
+    LW_SAFE_FREE_MEMORY(pwszServerName);
+    LW_SAFE_FREE_MEMORY(pwszShortDomain);
+    LW_SAFE_FREE_MEMORY(pwszPrimaryShortDomain);
 
     pthread_mutex_unlock(&gSchannelLock);
 

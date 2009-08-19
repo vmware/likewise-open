@@ -125,7 +125,7 @@ LsaDbOpen(
                     &pszDbDir);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(LSA_DB_CONNECTION),
                     (PVOID*)&pConn);
     BAIL_ON_LSA_ERROR(dwError);
@@ -158,8 +158,8 @@ LsaDbOpen(
     dwError = LsaDbSetup(pConn->pDb);
     BAIL_ON_LSA_ERROR(dwError);
 
-    LSA_SAFE_FREE_STRING(pszQuery);
-    dwError = LsaAllocateStringPrintf(
+    LW_SAFE_FREE_STRING(pszQuery);
+    dwError = LwAllocateStringPrintf(
         &pszQuery,
         pszUserQueryFormat,
         LsaDbGetObjectFieldList(),
@@ -174,8 +174,8 @@ LsaDbOpen(
             NULL);
     BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
 
-    LSA_SAFE_FREE_STRING(pszQuery);
-    dwError = LsaAllocateStringPrintf(
+    LW_SAFE_FREE_STRING(pszQuery);
+    dwError = LwAllocateStringPrintf(
         &pszQuery,
         pszEitherQueryFormat,
         LsaDbGetObjectFieldList(),
@@ -191,8 +191,8 @@ LsaDbOpen(
             NULL);
     BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
 
-    LSA_SAFE_FREE_STRING(pszQuery);
-    dwError = LsaAllocateStringPrintf(
+    LW_SAFE_FREE_STRING(pszQuery);
+    dwError = LwAllocateStringPrintf(
         &pszQuery,
         pszUserQueryFormat,
         LsaDbGetObjectFieldList(),
@@ -207,8 +207,8 @@ LsaDbOpen(
             NULL);
     BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
 
-    LSA_SAFE_FREE_STRING(pszQuery);
-    dwError = LsaAllocateStringPrintf(
+    LW_SAFE_FREE_STRING(pszQuery);
+    dwError = LwAllocateStringPrintf(
         &pszQuery,
         pszGroupQueryFormat,
         LsaDbGetObjectFieldList(),
@@ -222,8 +222,8 @@ LsaDbOpen(
             NULL);
     BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
 
-    LSA_SAFE_FREE_STRING(pszQuery);
-    dwError = LsaAllocateStringPrintf(
+    LW_SAFE_FREE_STRING(pszQuery);
+    dwError = LwAllocateStringPrintf(
         &pszQuery,
         pszUserQueryFormat,
         LsaDbGetObjectFieldList(),
@@ -238,8 +238,8 @@ LsaDbOpen(
             NULL);
     BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
 
-    LSA_SAFE_FREE_STRING(pszQuery);
-    dwError = LsaAllocateStringPrintf(
+    LW_SAFE_FREE_STRING(pszQuery);
+    dwError = LwAllocateStringPrintf(
         &pszQuery,
         pszGroupQueryFormat,
         LsaDbGetObjectFieldList(),
@@ -254,8 +254,8 @@ LsaDbOpen(
             NULL);
     BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
 
-    LSA_SAFE_FREE_STRING(pszQuery);
-    dwError = LsaAllocateStringPrintf(
+    LW_SAFE_FREE_STRING(pszQuery);
+    dwError = LwAllocateStringPrintf(
         &pszQuery,
         pszEitherQueryFormat,
         LsaDbGetObjectFieldList(),
@@ -270,8 +270,8 @@ LsaDbOpen(
             NULL);
     BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
 
-    LSA_SAFE_FREE_STRING(pszQuery);
-    dwError = LsaAllocateStringPrintf(
+    LW_SAFE_FREE_STRING(pszQuery);
+    dwError = LwAllocateStringPrintf(
         &pszQuery,
         pszEitherQueryFormat,
         LsaDbGetObjectFieldList(),
@@ -286,8 +286,8 @@ LsaDbOpen(
             NULL);
     BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
 
-    LSA_SAFE_FREE_STRING(pszQuery);
-    dwError = LsaAllocateStringPrintf(
+    LW_SAFE_FREE_STRING(pszQuery);
+    dwError = LwAllocateStringPrintf(
         &pszQuery,
         pszUserQueryFormat,
         LsaDbGetObjectFieldList(),
@@ -305,8 +305,8 @@ LsaDbOpen(
             NULL);
     BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
 
-    LSA_SAFE_FREE_STRING(pszQuery);
-    dwError = LsaAllocateStringPrintf(
+    LW_SAFE_FREE_STRING(pszQuery);
+    dwError = LwAllocateStringPrintf(
         &pszQuery,
         pszGroupQueryFormat,
         LsaDbGetObjectFieldList(),
@@ -323,8 +323,8 @@ LsaDbOpen(
             NULL);
     BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
 
-    LSA_SAFE_FREE_STRING(pszQuery);
-    dwError = LsaAllocateStringPrintf(
+    LW_SAFE_FREE_STRING(pszQuery);
+    dwError = LwAllocateStringPrintf(
         &pszQuery,
         pszRemoveBySidFormat,
         LSA_DB_TABLE_NAME_OBJECTS);
@@ -338,8 +338,8 @@ LsaDbOpen(
             NULL);
     BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
 
-    LSA_SAFE_FREE_STRING(pszQuery);
-    dwError = LsaAllocateStringPrintf(
+    LW_SAFE_FREE_STRING(pszQuery);
+    dwError = LwAllocateStringPrintf(
         &pszQuery,
         pszRemoveBySidFormat,
         LSA_DB_TABLE_NAME_USERS);
@@ -353,8 +353,8 @@ LsaDbOpen(
             NULL);
     BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
 
-    LSA_SAFE_FREE_STRING(pszQuery);
-    dwError = LsaAllocateStringPrintf(
+    LW_SAFE_FREE_STRING(pszQuery);
+    dwError = LwAllocateStringPrintf(
         &pszQuery,
         pszRemoveBySidFormat,
         LSA_DB_TABLE_NAME_GROUPS);
@@ -494,8 +494,8 @@ cleanup:
     {
         sqlite3_free(pszError);
     }
-    LSA_SAFE_FREE_STRING(pszQuery);
-    LSA_SAFE_FREE_STRING(pszDbDir);
+    LW_SAFE_FREE_STRING(pszQuery);
+    LW_SAFE_FREE_STRING(pszDbDir);
 
     return dwError;
 
@@ -512,7 +512,7 @@ error:
         {
             sqlite3_close(pConn->pDb);
         }
-        LSA_SAFE_FREE_MEMORY(pConn);
+        LW_SAFE_FREE_MEMORY(pConn);
     }
     *phDb = (HANDLE)NULL;
 
@@ -616,7 +616,7 @@ LsaDbSafeClose(
         LSA_LOG_ERROR("Error destroying lock [%d]", dwError);
         dwError = LW_ERROR_SUCCESS;
     }
-    LSA_SAFE_FREE_MEMORY(pConn);
+    LW_SAFE_FREE_MEMORY(pConn);
 
     *phDb = (HANDLE)0;
 
@@ -1171,7 +1171,7 @@ LsaDbUnpackUserInfo(
     BAIL_ON_LSA_ERROR(dwError);
     if ( !pResult->userInfo.pszAliasName)
     {
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
                       "",
                       &pResult->userInfo.pszAliasName);
         BAIL_ON_LSA_ERROR(dwError);
@@ -1310,7 +1310,7 @@ LsaDbUnpackGroupInfo(
     BAIL_ON_LSA_ERROR(dwError);
     if ( !pResult->groupInfo.pszAliasName)
     {
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
                       "",
                       &pResult->groupInfo.pszAliasName);
         BAIL_ON_LSA_ERROR(dwError);
@@ -1623,7 +1623,7 @@ LsaDbStoreObjectEntries(
                         ppObjects[sIndex]->userInfo.uid,
                         ppObjects[sIndex]->userInfo.gid,
                         ppObjects[sIndex]->userInfo.pszUPN,
-                        IsNullOrEmptyString(ppObjects[sIndex]->userInfo.pszAliasName) ?
+                        LW_IS_NULL_OR_EMPTY_STR(ppObjects[sIndex]->userInfo.pszAliasName) ?
                             NULL :
                             ppObjects[sIndex]->userInfo.pszAliasName,
                         ppObjects[sIndex]->userInfo.pszPasswd,
@@ -1659,7 +1659,7 @@ LsaDbStoreObjectEntries(
                         ")",
                         ppObjects[sIndex]->pszObjectSid,
                         ppObjects[sIndex]->groupInfo.gid,
-                        IsNullOrEmptyString(ppObjects[sIndex]->groupInfo.pszAliasName) ?
+                        LW_IS_NULL_OR_EMPTY_STR(ppObjects[sIndex]->groupInfo.pszAliasName) ?
                             NULL :
                             ppObjects[sIndex]->groupInfo.pszAliasName,
                         ppObjects[sIndex]->groupInfo.pszPasswd
@@ -2341,14 +2341,14 @@ LsaDbGetMemberships(
         {
             sResultCapacity *= 2;
             sResultCapacity += 10;
-            dwError = LsaReallocMemory(
+            dwError = LwReallocMemory(
                             ppResults,
                             (PVOID*)&ppResults,
                             sizeof(PLSA_GROUP_MEMBERSHIP) * sResultCapacity);
             BAIL_ON_LSA_ERROR(dwError);
         }
 
-        dwError = LsaAllocateMemory(
+        dwError = LwAllocateMemory(
                         sizeof(*pMembership),
                         (PVOID*)&pMembership);
         BAIL_ON_LSA_ERROR(dwError);
@@ -2455,7 +2455,7 @@ LsaDbQueryObjectMulti(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(LSA_SECURITY_OBJECT),
                     (PVOID*)&pObject);
     BAIL_ON_LSA_ERROR(dwError);
@@ -2522,7 +2522,7 @@ LsaDbEnumUsersCache(
     DWORD                 dwUserCount = 0;
     PLSA_SECURITY_OBJECT* ppObjectsLocal = NULL;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                   sizeof(PLSA_SECURITY_OBJECT) * dwMaxNumUsers,
                   (PVOID*)&ppObjectsLocal);
     BAIL_ON_LSA_ERROR(dwError);
@@ -2604,7 +2604,7 @@ LsaDbEnumGroupsCache(
     DWORD                 dwGroupCount = 0;
     PLSA_SECURITY_OBJECT* ppObjectsLocal = NULL;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                   sizeof(PLSA_SECURITY_OBJECT) * dwMaxNumGroups,
                   (PVOID*)&ppObjectsLocal);
     BAIL_ON_LSA_ERROR(dwError);
@@ -2706,7 +2706,7 @@ LsaDbQueryObject(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(LSA_SECURITY_OBJECT),
                     (PVOID*)&pObject);
     BAIL_ON_LSA_ERROR(dwError);
@@ -2879,7 +2879,7 @@ LsaDbFindObjectsByDNList(
     size_t sIndex;
     PLSA_SECURITY_OBJECT* ppResults = NULL;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(PLSA_SECURITY_OBJECT) * sCount,
                     (PVOID*)&ppResults);
     BAIL_ON_LSA_ERROR(dwError);
@@ -2956,7 +2956,7 @@ LsaDbFindObjectsBySidList(
     size_t sIndex;
     PLSA_SECURITY_OBJECT* ppResults = NULL;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(PLSA_SECURITY_OBJECT) * sCount,
                     (PVOID*)&ppResults);
     BAIL_ON_LSA_ERROR(dwError);
@@ -3036,7 +3036,7 @@ LsaDbGetPasswordVerifier(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(LSA_PASSWORD_VERIFIER),
                     (PVOID*)&pResult);
     BAIL_ON_LSA_ERROR(dwError);
@@ -3100,9 +3100,9 @@ LsaDbFreePasswordVerifier(
     IN OUT PLSA_PASSWORD_VERIFIER pVerifier
     )
 {
-    LSA_SAFE_FREE_STRING(pVerifier->pszObjectSid);
-    LSA_SAFE_FREE_STRING(pVerifier->pszPasswordVerifier);
-    LSA_SAFE_FREE_MEMORY(pVerifier);
+    LW_SAFE_FREE_STRING(pVerifier->pszObjectSid);
+    LW_SAFE_FREE_STRING(pVerifier->pszPasswordVerifier);
+    LW_SAFE_FREE_MEMORY(pVerifier);
 }
 
 DWORD

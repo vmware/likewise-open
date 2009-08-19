@@ -201,7 +201,7 @@ LsaAdEnumGroupsFromCache(
 
     if ( *ppszResume )
     {
-        LsaFreeMemory(*ppszResume);
+        LwFreeMemory(*ppszResume);
         *ppszResume = NULL;
     }
     *ppszResume = response->pszResume;
@@ -229,12 +229,12 @@ cleanup:
 
     if ( pBlob )
     {
-        LsaFreeMemory(pBlob);
+        LwFreeMemory(pBlob);
     }
 
     if ( pOutputBuffer )
     {
-        LsaFreeMemory(pOutputBuffer);
+        LwFreeMemory(pOutputBuffer);
     }
 
     return dwError;
@@ -243,7 +243,7 @@ error:
 
     if ( *ppszResume )
     {
-        LsaFreeMemory(*ppszResume);
+        LwFreeMemory(*ppszResume);
         *ppszResume = NULL;
     }
 

@@ -70,9 +70,9 @@ LsaFreeGroupInfo_0(
     PLSA_GROUP_INFO_0 pGroupInfo
     )
 {
-    LSA_SAFE_FREE_STRING(pGroupInfo->pszName);
-    LSA_SAFE_FREE_STRING(pGroupInfo->pszSid);
-    LsaFreeMemory(pGroupInfo);
+    LW_SAFE_FREE_STRING(pGroupInfo->pszName);
+    LW_SAFE_FREE_STRING(pGroupInfo->pszSid);
+    LwFreeMemory(pGroupInfo);
 }
 
 static
@@ -81,12 +81,12 @@ LsaFreeGroupInfo_1(
     PLSA_GROUP_INFO_1 pGroupInfo
     )
 {
-    LSA_SAFE_FREE_STRING(pGroupInfo->pszName);
-    LSA_SAFE_FREE_STRING(pGroupInfo->pszPasswd);
-    LSA_SAFE_FREE_STRING(pGroupInfo->pszSid);
-    LSA_SAFE_FREE_STRING(pGroupInfo->pszDN);
-    LSA_SAFE_FREE_STRING_ARRAY(pGroupInfo->ppszMembers);
-    LsaFreeMemory(pGroupInfo);
+    LW_SAFE_FREE_STRING(pGroupInfo->pszName);
+    LW_SAFE_FREE_STRING(pGroupInfo->pszPasswd);
+    LW_SAFE_FREE_STRING(pGroupInfo->pszSid);
+    LW_SAFE_FREE_STRING(pGroupInfo->pszDN);
+    LW_SAFE_FREE_STRING_ARRAY(pGroupInfo->ppszMembers);
+    LwFreeMemory(pGroupInfo);
 }
 
 void
@@ -168,7 +168,7 @@ LsaAllocateGroupInfo_0(
     DWORD dwError = 0;
     PLSA_GROUP_INFO_0 pGroupInfo = NULL;
 
-    dwError = LsaAllocateMemory(sizeof(*pGroupInfo),
+    dwError = LwAllocateMemory(sizeof(*pGroupInfo),
                                 (PVOID*)&pGroupInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -176,13 +176,13 @@ LsaAllocateGroupInfo_0(
         pGroupInfo->gid = pSrcGroupInfo->gid;
 
         if (pSrcGroupInfo->pszName) {
-            dwError = LsaAllocateString(pSrcGroupInfo->pszName,
+            dwError = LwAllocateString(pSrcGroupInfo->pszName,
                                         &pGroupInfo->pszName);
             BAIL_ON_LSA_ERROR(dwError);
         }
 
         if (pSrcGroupInfo->pszSid) {
-            dwError = LsaAllocateString(pSrcGroupInfo->pszSid,
+            dwError = LwAllocateString(pSrcGroupInfo->pszSid,
                                         &pGroupInfo->pszSid);
             BAIL_ON_LSA_ERROR(dwError);
         }
@@ -213,7 +213,7 @@ LsaAllocateGroupInfo_1(
     DWORD dwError = 0;
     PLSA_GROUP_INFO_1 pGroupInfo = NULL;
 
-    dwError = LsaAllocateMemory(sizeof(*pGroupInfo),
+    dwError = LwAllocateMemory(sizeof(*pGroupInfo),
                                 (PVOID*)&pGroupInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -221,25 +221,25 @@ LsaAllocateGroupInfo_1(
         pGroupInfo->gid = pSrcGroupInfo->gid;
 
         if (pSrcGroupInfo->pszName) {
-            dwError = LsaAllocateString(pSrcGroupInfo->pszName,
+            dwError = LwAllocateString(pSrcGroupInfo->pszName,
                                         &pGroupInfo->pszName);
             BAIL_ON_LSA_ERROR(dwError);
         }
 
         if (pSrcGroupInfo->pszSid) {
-            dwError = LsaAllocateString(pSrcGroupInfo->pszSid,
+            dwError = LwAllocateString(pSrcGroupInfo->pszSid,
                                         &pGroupInfo->pszSid);
             BAIL_ON_LSA_ERROR(dwError);
         }
 
         if (pSrcGroupInfo->pszDN) {
-            dwError = LsaAllocateString(pSrcGroupInfo->pszDN,
+            dwError = LwAllocateString(pSrcGroupInfo->pszDN,
                                         &pGroupInfo->pszDN);
             BAIL_ON_LSA_ERROR(dwError);
         }
 
         if (pSrcGroupInfo->pszPasswd) {
-            dwError = LsaAllocateString(pSrcGroupInfo->pszPasswd,
+            dwError = LwAllocateString(pSrcGroupInfo->pszPasswd,
                                         &pGroupInfo->pszPasswd);
             BAIL_ON_LSA_ERROR(dwError);
         }
@@ -268,7 +268,7 @@ LsaBuildGroupModInfo(
     DWORD dwError = 0;
     PLSA_GROUP_MOD_INFO pGroupModInfo = NULL;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(LSA_GROUP_MOD_INFO),
                     (PVOID*)&pGroupModInfo);
     BAIL_ON_LSA_ERROR(dwError);
@@ -306,7 +306,7 @@ LsaModifyGroup_AddMembers(
     ppszMember = (PCSTR*)pData;
     pGroupModInfo->dwAddMembersNum++;
 
-    dwError = LsaReallocMemory(pGroupModInfo->pAddMembers,
+    dwError = LwReallocMemory(pGroupModInfo->pAddMembers,
                                (PVOID*)&pGroupModInfo->pAddMembers,
                                sizeof(pGroupModInfo->pAddMembers[0]) *
                                pGroupModInfo->dwAddMembersNum);
@@ -318,12 +318,12 @@ LsaModifyGroup_AddMembers(
         pszSID  = ppszMember[1];
         iMember = pGroupModInfo->dwAddMembersNum - 1;
 
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
                     pszDN,
                     &pGroupModInfo->pAddMembers[iMember].pszDN);
         BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
                     pszSID,
                     &pGroupModInfo->pAddMembers[iMember].pszSid);
         BAIL_ON_LSA_ERROR(dwError);
@@ -355,7 +355,7 @@ LsaModifyGroup_RemoveMembers(
     ppszMember = (PCSTR*)pData;
     pGroupModInfo->dwRemoveMembersNum++;
 
-    dwError = LsaReallocMemory(pGroupModInfo->pRemoveMembers,
+    dwError = LwReallocMemory(pGroupModInfo->pRemoveMembers,
                                (PVOID*)&pGroupModInfo->pRemoveMembers,
                                sizeof(pGroupModInfo->pRemoveMembers[0]) *
                                pGroupModInfo->dwRemoveMembersNum);
@@ -371,13 +371,13 @@ LsaModifyGroup_RemoveMembers(
         /* DN is optional - we could be removing a member that doesn't
            exist anymore. In that case we'd know only its SID */
         if (pszDN) {
-            dwError = LsaAllocateString(
+            dwError = LwAllocateString(
                         pszDN,
                         &pGroupModInfo->pRemoveMembers[iMember].pszDN);
             BAIL_ON_LSA_ERROR(dwError);
         }
 
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
                     pszSID,
                     &pGroupModInfo->pRemoveMembers[iMember].pszSid);
         BAIL_ON_LSA_ERROR(dwError);
@@ -400,18 +400,18 @@ LsaFreeGroupModInfo(
     DWORD i = 0;
 
     for (i = 0; i < pGroupModInfo->dwAddMembersNum; i++) {
-        LSA_SAFE_FREE_STRING(pGroupModInfo->pAddMembers[i].pszDN);
-        LSA_SAFE_FREE_STRING(pGroupModInfo->pAddMembers[i].pszSid);
+        LW_SAFE_FREE_STRING(pGroupModInfo->pAddMembers[i].pszDN);
+        LW_SAFE_FREE_STRING(pGroupModInfo->pAddMembers[i].pszSid);
     }
-    LSA_SAFE_FREE_MEMORY(pGroupModInfo->pAddMembers);
+    LW_SAFE_FREE_MEMORY(pGroupModInfo->pAddMembers);
 
     for (i = 0; i < pGroupModInfo->dwRemoveMembersNum; i++) {
-        LSA_SAFE_FREE_STRING(pGroupModInfo->pRemoveMembers[i].pszDN);
-        LSA_SAFE_FREE_STRING(pGroupModInfo->pRemoveMembers[i].pszSid);
+        LW_SAFE_FREE_STRING(pGroupModInfo->pRemoveMembers[i].pszDN);
+        LW_SAFE_FREE_STRING(pGroupModInfo->pRemoveMembers[i].pszSid);
     }
-    LSA_SAFE_FREE_MEMORY(pGroupModInfo->pRemoveMembers);
+    LW_SAFE_FREE_MEMORY(pGroupModInfo->pRemoveMembers);
 
-    LsaFreeMemory(pGroupModInfo);
+    LwFreeMemory(pGroupModInfo);
 }
 
 void
@@ -435,7 +435,7 @@ LsaFreeIpcGroupInfoList(
                 LSA_LOG_ERROR("Unsupported Group Info Level [%d]", pGroupIpcInfoList->dwGroupInfoLevel);
             }
         }
-        LsaFreeMemory(pGroupIpcInfoList);
+        LwFreeMemory(pGroupIpcInfoList);
     }
 }
 
@@ -453,7 +453,7 @@ LsaFreeGroupInfoList(
            LsaFreeGroupInfo(dwLevel, pGroupInfo);
         }
     }
-    LsaFreeMemory(pGroupInfoList);
+    LwFreeMemory(pGroupInfoList);
 }
 
 DWORD

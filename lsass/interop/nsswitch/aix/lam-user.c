@@ -124,7 +124,7 @@ LsaNssFreeLastUser(
         VOID
         )
 {
-    LSA_SAFE_FREE_MEMORY(gNssState.pLastUser);
+    LW_SAFE_FREE_MEMORY(gNssState.pLastUser);
 }
 
 DWORD LsaNssAllocateUserFromInfo0(
@@ -143,7 +143,7 @@ DWORD LsaNssAllocateUserFromInfo0(
 
     sRequiredSize += sizeof(struct passwd);
     sRequiredSize += strlen(pInfo->pszName) + 1;
-    if ( IsNullOrEmptyString(pInfo->pszPasswd) )
+    if ( LW_IS_NULL_OR_EMPTY_STR(pInfo->pszPasswd) )
     {
         sRequiredSize += strlen(LSA_NSS_NOPASSWORD) + 1;
     }
@@ -155,7 +155,7 @@ DWORD LsaNssAllocateUserFromInfo0(
     sRequiredSize += strlen(pInfo->pszHomedir) + 1;
     sRequiredSize += strlen(pInfo->pszShell) + 1;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
             sRequiredSize,
             &pStartMem);
     BAIL_ON_LSA_ERROR(dwError);
@@ -170,7 +170,7 @@ DWORD LsaNssAllocateUserFromInfo0(
     pMem += sLen + 1;
 
     pResult->pw_passwd = (char *)pMem;
-    if ( IsNullOrEmptyString(pInfo->pszPasswd) )
+    if ( LW_IS_NULL_OR_EMPTY_STR(pInfo->pszPasswd) )
     {
         sLen = strlen(LSA_NSS_NOPASSWORD);
         memcpy(pResult->pw_passwd, LSA_NSS_NOPASSWORD, sLen + 1);
@@ -210,7 +210,7 @@ cleanup:
 error:
 
     *ppResult = NULL;
-    LSA_SAFE_FREE_MEMORY(pStartMem);
+    LW_SAFE_FREE_MEMORY(pStartMem);
 
     goto cleanup;
 }
@@ -372,7 +372,7 @@ LsaNssListUsers(
         sRequiredMem += strlen(ppUserList[dwIndex]->pszName) + 1;
     }
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                 sRequiredMem,
                 (PVOID*)&pszListStart);
     BAIL_ON_LSA_ERROR(dwError);
@@ -411,7 +411,7 @@ cleanup:
 error:
 
     pResult->attr_un.au_char = NULL;
-    LSA_SAFE_FREE_MEMORY(pszListStart);
+    LW_SAFE_FREE_MEMORY(pszListStart);
     goto cleanup;
 }
 
@@ -437,35 +437,35 @@ LsaNssGetUserAttr(
     }
     else if (!strcmp(pszAttribute, S_PWD))
     {
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
                     pInfo->pszPasswd,
                     &pResult->attr_un.au_char);
         BAIL_ON_LSA_ERROR(dwError);
     }
     else if (!strcmp(pszAttribute, S_HOME))
     {
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
                     pInfo->pszHomedir,
                     &pResult->attr_un.au_char);
         BAIL_ON_LSA_ERROR(dwError);
     }
     else if (!strcmp(pszAttribute, S_SHELL))
     {
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
                     pInfo->pszShell,
                     &pResult->attr_un.au_char);
         BAIL_ON_LSA_ERROR(dwError);
     }
     else if (!strcmp(pszAttribute, S_REGISTRY))
     {
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
                     gNssState.pszRegistryName,
                     &pResult->attr_un.au_char);
         BAIL_ON_LSA_ERROR(dwError);
     }
     else if (!strcmp(pszAttribute, S_GECOS))
     {
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
                     pInfo->pszGecos,
                     &pResult->attr_un.au_char);
         BAIL_ON_LSA_ERROR(dwError);
@@ -480,7 +480,7 @@ LsaNssGetUserAttr(
                     (PVOID*)&pGroupInfo);
         BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
                     pGroupInfo->pszName,
                     &pResult->attr_un.au_char);
         BAIL_ON_LSA_ERROR(dwError);
@@ -507,14 +507,14 @@ LsaNssGetUserAttr(
     }
     else if (!strcmp(pszAttribute, "UPN"))
     {
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
                     pInfo->pszUPN,
                     &pResult->attr_un.au_char);
         BAIL_ON_LSA_ERROR(dwError);
     }
     else if (!strcmp(pszAttribute, "SID"))
     {
-        dwError = LsaAllocateString(
+        dwError = LwAllocateString(
                     pInfo->pszSid,
                     &pResult->attr_un.au_char);
         BAIL_ON_LSA_ERROR(dwError);

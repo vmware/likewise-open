@@ -76,11 +76,11 @@ LsaAdBatchMarshalUserInfoFixHomeDirectory(
                     &pszNewHomeDirectory);
         BAIL_ON_LSA_ERROR(dwError);
 
-        LSA_SAFE_FREE_STRING(pszHomeDirectory);
+        LW_SAFE_FREE_STRING(pszHomeDirectory);
         LSA_XFER_STRING(pszNewHomeDirectory, pszHomeDirectory);
     }
 
-    LsaStrCharReplace(pszHomeDirectory, ' ', '_');
+    LwStrCharReplace(pszHomeDirectory, ' ', '_');
 
 cleanup:
     *ppszHomeDirectory = pszHomeDirectory;
@@ -229,7 +229,7 @@ LsaAdBatchMarshalUnprovisionedUser(
     PSTR pszNT4Name = NULL;
     PSTR pszPrimaryGroupSid = NULL;
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                    &pszNT4Name,
                    "%s\\%s",
                    pszNetbiosDomainName,
@@ -265,8 +265,8 @@ LsaAdBatchMarshalUnprovisionedUser(
 
 
 cleanup:
-    LSA_SAFE_FREE_STRING(pszNT4Name);
-    LSA_SAFE_FREE_STRING(pszPrimaryGroupSid);
+    LW_SAFE_FREE_STRING(pszNT4Name);
+    LW_SAFE_FREE_STRING(pszPrimaryGroupSid);
 
     return dwError;
 
@@ -288,7 +288,7 @@ LsaAdBatchMarshalUnprovisionedGroup(
     DWORD dwId = 0;
     PSTR pszNT4Name = NULL;
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                    &pszNT4Name,
                    "%s\\%s",
                    pszNetbiosDomainName,
@@ -307,7 +307,7 @@ LsaAdBatchMarshalUnprovisionedGroup(
     pGroupInfo->gid = (gid_t)dwId;
 
 cleanup:
-    LSA_SAFE_FREE_STRING(pszNT4Name);
+    LW_SAFE_FREE_STRING(pszNT4Name);
     return dwError;
 
 error:
@@ -492,7 +492,7 @@ LsaAdBatchMarshal(
         goto cleanup;
     }
 
-    dwError = LsaAllocateMemory(sizeof(*pObject), (PVOID*)&pObject);
+    dwError = LwAllocateMemory(sizeof(*pObject), (PVOID*)&pObject);
     BAIL_ON_LSA_ERROR(dwError);
 
     pObject->version.qwDbId = -1;
@@ -504,7 +504,7 @@ LsaAdBatchMarshal(
     LSA_XFER_STRING(pItem->pszSamAccountName, pObject->pszSamAccountName);
     LSA_XFER_STRING(pItem->pszDn, pObject->pszDN);
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                     pszNetbiosDomainName,
                     &pObject->pszNetbiosDomainName);
     BAIL_ON_LSA_ERROR(dwError);

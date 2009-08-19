@@ -89,7 +89,7 @@ LsaPamConverse(
 
             } else {
 
-               dwError = LsaAllocateString(pResponse->resp, &pszResponse);
+               dwError = LwAllocateString(pResponse->resp, &pszResponse);
                BAIL_ON_LSA_ERROR(dwError);
 
             }
@@ -121,7 +121,7 @@ error:
         *ppszResponse = NULL;
     }
 
-    LSA_SAFE_CLEAR_FREE_STRING(pszResponse);
+    LW_SAFE_CLEAR_FREE_STRING(pszResponse);
 
     goto cleanup;
 }

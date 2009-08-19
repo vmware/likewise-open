@@ -217,7 +217,7 @@ LocalDirFindUserByName_0(
     PWSTR pwszUserDN = NULL;
     PLSA_USER_INFO_0 pUserInfo = NULL;
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                     &pszFilter,
                     pszFilterTemplate,
                     pszUserName,
@@ -272,8 +272,8 @@ LocalDirFindUserByName_0(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszFilter);
-    LSA_SAFE_FREE_MEMORY(pwszFilter);
+    LW_SAFE_FREE_STRING(pszFilter);
+    LW_SAFE_FREE_MEMORY(pwszFilter);
 
     if (pEntries)
     {
@@ -290,7 +290,7 @@ error:
     }
     *ppUserInfo = pUserInfo;
 
-    LSA_SAFE_FREE_MEMORY(pwszUserDN);
+    LW_SAFE_FREE_MEMORY(pwszUserDN);
 
     if (pUserInfo)
     {
@@ -351,7 +351,7 @@ LocalDirFindUserByName_1(
     DWORD dwInfoLevel = 1;
     PLSA_USER_INFO_1 pUserInfo = NULL;
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                     &pszFilter,
                     pszFilterTemplate,
                     pszUserName,
@@ -407,8 +407,8 @@ LocalDirFindUserByName_1(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszFilter);
-    LSA_SAFE_FREE_MEMORY(pwszFilter);
+    LW_SAFE_FREE_STRING(pszFilter);
+    LW_SAFE_FREE_MEMORY(pwszFilter);
 
     if (pEntries)
     {
@@ -425,7 +425,7 @@ error:
     }
     *ppUserInfo = pUserInfo;
 
-    LSA_SAFE_FREE_MEMORY(pwszUserDN);
+    LW_SAFE_FREE_MEMORY(pwszUserDN);
 
     if (pUserInfo)
     {
@@ -496,7 +496,7 @@ LocalDirFindUserByName_2(
     DWORD  dwInfoLevel = 2;
     PLSA_USER_INFO_2 pUserInfo = NULL;
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                     &pszFilter,
                     pszFilterTemplate,
                     pszUserName,
@@ -552,8 +552,8 @@ LocalDirFindUserByName_2(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszFilter);
-    LSA_SAFE_FREE_MEMORY(pwszFilter);
+    LW_SAFE_FREE_STRING(pszFilter);
+    LW_SAFE_FREE_MEMORY(pwszFilter);
 
     if (pEntries)
     {
@@ -570,7 +570,7 @@ error:
     }
     *ppUserInfo = pUserInfo;
 
-    LSA_SAFE_FREE_MEMORY(pwszUserDN);
+    LW_SAFE_FREE_MEMORY(pwszUserDN);
 
     if (pUserInfo)
     {
@@ -687,7 +687,7 @@ LocalDirFindUserById_0(
     PWSTR pwszUserDN = NULL;
 
     // Should we include the domain also?
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                     &pszFilter,
                     pszFilterTemplate,
                     uid,
@@ -741,8 +741,8 @@ LocalDirFindUserById_0(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszFilter);
-    LSA_SAFE_FREE_MEMORY(pwszFilter);
+    LW_SAFE_FREE_STRING(pszFilter);
+    LW_SAFE_FREE_MEMORY(pwszFilter);
 
     if (pEntries)
     {
@@ -759,7 +759,7 @@ error:
     }
     *ppUserInfo = NULL;
 
-    LSA_SAFE_FREE_MEMORY(pwszUserDN);
+    LW_SAFE_FREE_MEMORY(pwszUserDN);
 
     if (pUserInfo)
     {
@@ -821,7 +821,7 @@ LocalDirFindUserById_1(
     PLSA_USER_INFO_1 pUserInfo = NULL;
     PWSTR pwszUserDN = NULL;
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                     &pszFilter,
                     pszFilterTemplate,
                     uid,
@@ -882,9 +882,9 @@ LocalDirFindUserById_1(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszFilter);
-    LSA_SAFE_FREE_MEMORY(pwszFilter);
-    LSA_SAFE_FREE_STRING(pszDomain);
+    LW_SAFE_FREE_STRING(pszFilter);
+    LW_SAFE_FREE_MEMORY(pwszFilter);
+    LW_SAFE_FREE_STRING(pszDomain);
 
     if (pEntries)
     {
@@ -901,7 +901,7 @@ error:
     }
     *ppUserInfo = NULL;
 
-    LSA_SAFE_FREE_MEMORY(pwszUserDN);
+    LW_SAFE_FREE_MEMORY(pwszUserDN);
 
     if (pUserInfo)
     {
@@ -973,7 +973,7 @@ LocalDirFindUserById_2(
     PLSA_USER_INFO_2 pUserInfo = NULL;
     PWSTR pwszUserDN = NULL;
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                     &pszFilter,
                     pszFilterTemplate,
                     uid,
@@ -1034,9 +1034,9 @@ LocalDirFindUserById_2(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszFilter);
-    LSA_SAFE_FREE_MEMORY(pwszFilter);
-    LSA_SAFE_FREE_STRING(pszDomain);
+    LW_SAFE_FREE_STRING(pszFilter);
+    LW_SAFE_FREE_MEMORY(pwszFilter);
+    LW_SAFE_FREE_STRING(pszDomain);
 
     if (pEntries)
     {
@@ -1053,7 +1053,7 @@ error:
     }
     *ppUserInfo = NULL;
 
-    LSA_SAFE_FREE_MEMORY(pwszUserDN);
+    LW_SAFE_FREE_MEMORY(pwszUserDN);
 
     if (pUserInfo)
     {
@@ -1089,7 +1089,7 @@ LocalDirGetUserInfoFlags(
     DWORD dwNumEntries = 0;
     DWORD dwUserInfoFlags = 0;
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                     &pszFilter,
                     pszFilterTemplate,
                     uid,
@@ -1144,8 +1144,8 @@ cleanup:
         DirectoryFreeEntries(pEntries, dwNumEntries);
     }
 
-    LSA_SAFE_FREE_MEMORY(pwszFilter);
-    LSA_SAFE_FREE_STRING(pszFilter);
+    LW_SAFE_FREE_MEMORY(pwszFilter);
+    LW_SAFE_FREE_STRING(pszFilter);
 
     return dwError;
 
@@ -1246,7 +1246,7 @@ LocalDirBeginEnumUsers_0(
                         &pEnumState);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                     &pszFilter,
                     pszFilterTemplate,
                     gLPGlobals.pszLocalDomain,
@@ -1274,8 +1274,8 @@ LocalDirBeginEnumUsers_0(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszFilter);
-    LSA_SAFE_FREE_MEMORY(pwszFilter);
+    LW_SAFE_FREE_STRING(pszFilter);
+    LW_SAFE_FREE_MEMORY(pwszFilter);
 
     return dwError;
 
@@ -1338,7 +1338,7 @@ LocalDirBeginEnumUsers_1(
                         &pEnumState);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                     &pszFilter,
                     pszFilterTemplate,
                     gLPGlobals.pszLocalDomain,
@@ -1366,8 +1366,8 @@ LocalDirBeginEnumUsers_1(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszFilter);
-    LSA_SAFE_FREE_MEMORY(pwszFilter);
+    LW_SAFE_FREE_STRING(pszFilter);
+    LW_SAFE_FREE_MEMORY(pwszFilter);
 
     return dwError;
 
@@ -1440,7 +1440,7 @@ LocalDirBeginEnumUsers_2(
                         &pEnumState);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                     &pszFilter,
                     pszFilterTemplate,
                     gLPGlobals.pszLocalDomain,
@@ -1468,8 +1468,8 @@ LocalDirBeginEnumUsers_2(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszFilter);
-    LSA_SAFE_FREE_MEMORY(pwszFilter);
+    LW_SAFE_FREE_STRING(pszFilter);
+    LW_SAFE_FREE_MEMORY(pwszFilter);
 
     return dwError;
 
@@ -1581,7 +1581,7 @@ LocalDirEnumUsers_0(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     dwNumUsersFound * sizeof(PLSA_USER_INFO_0),
                     (PVOID*)&ppUserInfoList);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1661,7 +1661,7 @@ LocalDirEnumUsers_1(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     dwNumUsersFound * sizeof(PLSA_USER_INFO_1),
                     (PVOID*)&ppUserInfoList);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1742,7 +1742,7 @@ LocalDirEnumUsers_2(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     dwNumUsersFound * sizeof(PLSA_USER_INFO_2),
                     (PVOID*)&ppUserInfoList);
     BAIL_ON_LSA_ERROR(dwError);
@@ -2112,7 +2112,7 @@ LocalDirAddUser_0(
                     &pwszUserDN);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (!IsNullOrEmptyString(pUserInfo->pszGecos))
+    if (!LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszGecos))
     {
         dwError = LsaMbsToWc16s(
                     pUserInfo->pszGecos,
@@ -2122,7 +2122,7 @@ LocalDirAddUser_0(
         attrValues[LOCAL_DAU0_IDX_GECOS].data.pwszStringValue = pwszGecos;
     }
 
-    if (!IsNullOrEmptyString(pUserInfo->pszHomedir))
+    if (!LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszHomedir))
     {
         dwError = LsaMbsToWc16s(
                     pUserInfo->pszHomedir,
@@ -2145,7 +2145,7 @@ LocalDirAddUser_0(
 
     attrValues[LOCAL_DAU0_IDX_HOMEDIR].data.pwszStringValue = pwszHomedir;
 
-    if (!IsNullOrEmptyString(pUserInfo->pszShell))
+    if (!LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszShell))
     {
         dwError = LsaMbsToWc16s(
                     pUserInfo->pszShell,
@@ -2167,7 +2167,7 @@ LocalDirAddUser_0(
 
     attrValues[LOCAL_DAU0_IDX_ACCOUNT_FLAGS].data.ulValue = 0;
 
-    if (IsNullOrEmptyString(pUserInfo->pszPasswd))
+    if (LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszPasswd))
     {
         attrValues[LOCAL_DAU0_IDX_ACCOUNT_FLAGS].data.ulValue |= LOCAL_ACB_DISABLED;
     }
@@ -2202,7 +2202,7 @@ LocalDirAddUser_0(
                   (wc16slen(pwszUserDN) * sizeof(WCHAR)) +
                    sizeof(wszFilterFmt);
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     dwFilterLen,
                     (PVOID*)&pwszFilter);
     BAIL_ON_LSA_ERROR(dwError);
@@ -2294,20 +2294,20 @@ cleanup:
         LsaFreeGroupInfo(dwGroupInfoLevel, pGroupInfo);
     }
 
-    LSA_SAFE_FREE_MEMORY(pwszUserDN);
-    LSA_SAFE_FREE_MEMORY(pwszGroupDN);
-    LSA_SAFE_FREE_MEMORY(pwszSamAccountName);
-    LSA_SAFE_FREE_MEMORY(pwszGecos);
-    LSA_SAFE_FREE_MEMORY(pwszShell);
-    LSA_SAFE_FREE_STRING(pszShell);
-    LSA_SAFE_FREE_MEMORY(pwszHomedir);
-    LSA_SAFE_FREE_STRING(pszHomedir);
-    LSA_SAFE_FREE_MEMORY(pwszPassword);
-    LSA_SAFE_FREE_MEMORY(pwszDomain);
-    LSA_SAFE_FREE_MEMORY(pwszNetBIOSDomain);
+    LW_SAFE_FREE_MEMORY(pwszUserDN);
+    LW_SAFE_FREE_MEMORY(pwszGroupDN);
+    LW_SAFE_FREE_MEMORY(pwszSamAccountName);
+    LW_SAFE_FREE_MEMORY(pwszGecos);
+    LW_SAFE_FREE_MEMORY(pwszShell);
+    LW_SAFE_FREE_STRING(pszShell);
+    LW_SAFE_FREE_MEMORY(pwszHomedir);
+    LW_SAFE_FREE_STRING(pszHomedir);
+    LW_SAFE_FREE_MEMORY(pwszPassword);
+    LW_SAFE_FREE_MEMORY(pwszDomain);
+    LW_SAFE_FREE_MEMORY(pwszNetBIOSDomain);
     RTL_FREE(&pGroupSID);
 
-    LSA_SAFE_FREE_MEMORY(pwszFilter);
+    LW_SAFE_FREE_MEMORY(pwszFilter);
 
     if (pMember)
     {
@@ -2613,13 +2613,13 @@ cleanup:
         LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
     }
 
-    LSA_SAFE_FREE_MEMORY(pwszGroupDN_remove);
+    LW_SAFE_FREE_MEMORY(pwszGroupDN_remove);
     if (pGroupInfo_remove)
     {
         LsaFreeGroupInfo(dwGroupInfoLevel, pGroupInfo_remove);
     }
 
-    LSA_SAFE_FREE_MEMORY(pwszGroupDN_add);
+    LW_SAFE_FREE_MEMORY(pwszGroupDN_add);
     if (pGroupInfo_add)
     {
         LsaFreeGroupInfo(dwGroupInfoLevel, pGroupInfo_add);
@@ -2722,7 +2722,7 @@ LocalCreateHomeDirectory(
     mode_t  perms = (S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH);
     BOOLEAN bRemoveDir = FALSE;
 
-    if (IsNullOrEmptyString(pUserInfo->pszHomedir))
+    if (LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszHomedir))
     {
        LSA_LOG_ERROR("The user's [Uid:%ld] home directory is not defined",
                      (long)pUserInfo->uid);
@@ -2792,7 +2792,7 @@ LocalProvisionHomeDir(
     dwError = LocalCfgGetSkeletonDirs(&pszSkelPaths);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (IsNullOrEmptyString(pszSkelPaths))
+    if (LW_IS_NULL_OR_EMPTY_STR(pszSkelPaths))
     {
         goto cleanup;
     }
@@ -2800,17 +2800,17 @@ LocalProvisionHomeDir(
     pszIter = pszSkelPaths;
     while ((stLen = strcspn(pszIter, ",")) != 0)
     {
-        dwError = LsaStrndup(
+        dwError = LwStrndup(
                       pszIter,
                       stLen,
                       &pszSkelPath);
         BAIL_ON_LSA_ERROR(dwError);
 
-        LsaStripWhitespace(pszSkelPath, TRUE, TRUE);
+        LwStripWhitespace(pszSkelPath, TRUE, TRUE);
 
-        if (IsNullOrEmptyString(pszSkelPath))
+        if (LW_IS_NULL_OR_EMPTY_STR(pszSkelPath))
         {
-            LSA_SAFE_FREE_STRING(pszSkelPath);
+            LW_SAFE_FREE_STRING(pszSkelPath);
             continue;
         }
 
@@ -2829,7 +2829,7 @@ LocalProvisionHomeDir(
             BAIL_ON_LSA_ERROR(dwError);
         }
 
-        LSA_SAFE_FREE_STRING(pszSkelPath);
+        LW_SAFE_FREE_STRING(pszSkelPath);
 
         pszIter += stLen;
         stLen = strspn(pszIter, ",");
@@ -2838,8 +2838,8 @@ LocalProvisionHomeDir(
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszSkelPath);
-    LSA_SAFE_FREE_STRING(pszSkelPaths);
+    LW_SAFE_FREE_STRING(pszSkelPath);
+    LW_SAFE_FREE_STRING(pszSkelPaths);
 
     return dwError;
 

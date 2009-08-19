@@ -96,7 +96,7 @@ LsaWc16snToMbs(
     *ppszOutput = pszOutput;
     
 cleanup:
-    LSA_SAFE_FREE_MEMORY(pwszTruncated);
+    LW_SAFE_FREE_MEMORY(pwszTruncated);
 
     return dwError;
     
@@ -201,7 +201,7 @@ cleanup:
     return dwError;
 
 error:
-    LSA_SAFE_FREE_MEMORY(pwszStrOutput);
+    LW_SAFE_FREE_MEMORY(pwszStrOutput);
     
     goto cleanup;
     
@@ -216,7 +216,7 @@ LsaFreeLsaString(
     PLSA_STRING lsaString
 )
 {
-    LSA_SAFE_FREE_MEMORY(lsaString->buffer);
+    LW_SAFE_FREE_MEMORY(lsaString->buffer);
     lsaString->buffer = NULL;
 }
 
@@ -231,7 +231,7 @@ LsaCopyLsaStringBase(
     DWORD dwError;
     DWORD newLength = src->max + (nullTerm ? sizeof(wchar16_t) : 0);
 
-    dwError = LsaAllocateMemory(newLength, 
+    dwError = LwAllocateMemory(newLength,
         (PVOID*)&dest->buffer);
 
     BAIL_ON_LSA_ERROR(dwError);
@@ -370,7 +370,7 @@ LsaInitializeLsaStringW(
     lsaStringOut->max = lsaStringOut->length + sizeof(wchar16_t);
 
     if (copy) {
-        dwError = LsaAllocateMemory(lsaStringOut->max,
+        dwError = LwAllocateMemory(lsaStringOut->max,
             (PVOID*) &lsaStringOut->buffer);
 
         BAIL_ON_LSA_ERROR(dwError);
@@ -420,7 +420,7 @@ LsaInitializeLsaStringA(
 
     do {
 
-        dwError = LsaReallocMemory((PVOID)pwszConverted, 
+        dwError = LwReallocMemory((PVOID)pwszConverted,
             (PVOID*)&pwszConverted,
             LSASTR_CCH_BYTECOUNT(cGuess));
 
@@ -456,7 +456,7 @@ LsaInitializeLsaStringA(
 
 error:
 
-    LSA_SAFE_FREE_MEMORY(pwszConverted);
+    LW_SAFE_FREE_MEMORY(pwszConverted);
     return dwError;
 }
 

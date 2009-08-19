@@ -143,7 +143,7 @@ pam_sm_authenticate(
                         NULL);
         if (dwError)
         {
-            if (!IsNullOrEmptyString(pConfig->pszAccessDeniedMessage))
+            if (!LW_IS_NULL_OR_EMPTY_STR(pConfig->pszAccessDeniedMessage))
             {
                 LsaPamConverse(pamh,
                                pConfig->pszAccessDeniedMessage,
@@ -225,8 +225,8 @@ cleanup:
         LsaFreeUserInfo(dwUserInfoLevel, (PVOID)pUserInfo);
     }
 
-    LSA_SAFE_CLEAR_FREE_STRING(pszPassword);
-    LSA_SAFE_FREE_STRING(pszLoginId);
+    LW_SAFE_CLEAR_FREE_STRING(pszPassword);
+    LW_SAFE_FREE_STRING(pszLoginId);
 
     LSA_LOG_PAM_DEBUG("pam_sm_authenticate::end");
 
@@ -308,7 +308,7 @@ cleanup:
         LsaCloseServer(hLsaConnection);
     }
 
-    LSA_SAFE_FREE_STRING(pszLoginId);
+    LW_SAFE_FREE_STRING(pszLoginId);
 
     if (pUserInfo) {
         LsaFreeUserInfo(dwUserInfoLevel, (PVOID)pUserInfo);

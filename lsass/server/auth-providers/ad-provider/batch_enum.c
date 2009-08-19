@@ -78,7 +78,7 @@ LsaAdBatchFreeCellCookie(
         LsaDmLdapClose(pData->pLdapConn);
         LsaHashSafeFree(&pData->pEnumeratedSids);
 
-        LSA_SAFE_FREE_MEMORY(pData);
+        LW_SAFE_FREE_MEMORY(pData);
     }
 }
 
@@ -141,7 +141,7 @@ LsaAdBatchEnumGetScopeRoot(
                 BAIL_ON_LSA_ERROR(dwError);
         }
 
-        dwError = LsaAllocateStringPrintf(
+        dwError = LwAllocateStringPrintf(
                         &pszScopeRoot,
                         "CN=%s,%s",
                         pszContainer,
@@ -154,7 +154,7 @@ cleanup:
     return dwError;
 
 error:
-    LSA_SAFE_FREE_STRING(pszScopeRoot);
+    LW_SAFE_FREE_STRING(pszScopeRoot);
     goto cleanup;
 }
 
@@ -277,7 +277,7 @@ LsaAdBatchEnumProcessRealMessages(
     DWORD dwObjectsCount = 0;
     LSA_AD_BATCH_ITEM batchItem = { { 0 }, 0 };
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     dwCount * sizeof(*ppObjects),
                     (PVOID*)&ppObjects);
     BAIL_ON_LSA_ERROR(dwError);
@@ -355,7 +355,7 @@ LsaAdBatchEnumProcessPseudoMessages(
     PSTR* ppszKeywordValues = NULL;
     DWORD dwKeywordValuesCount = 0;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     dwCount * sizeof(*ppszSids),
                     (PVOID*)&ppszSids);
     BAIL_ON_LSA_ERROR(dwError);
@@ -377,7 +377,7 @@ LsaAdBatchEnumProcessPseudoMessages(
                                     dwKeywordValuesCount,
                                     ppszKeywordValues,
                                     AD_LDAP_BACKLINK_PSEUDO_TAG);
-        if (IsNullOrEmptyString(pszSidFromKeywords))
+        if (LW_IS_NULL_OR_EMPTY_STR(pszSidFromKeywords))
         {
             dwError = LW_ERROR_INVALID_SID;
             BAIL_ON_LSA_ERROR(dwError);
@@ -389,7 +389,7 @@ LsaAdBatchEnumProcessPseudoMessages(
         //
         if (!AdIsSpecialDomainSidPrefix(pszSidFromKeywords))
         {
-            dwError = LsaAllocateString(pszSidFromKeywords,
+            dwError = LwAllocateString(pszSidFromKeywords,
                                         &ppszSids[dwSidsCount]);
             BAIL_ON_LSA_ERROR(dwError);
 
@@ -400,7 +400,7 @@ LsaAdBatchEnumProcessPseudoMessages(
             LSA_LOG_WARNING("Got unexpected special domain SID in enumeration of pseudo-objects: '%s'", pszSidFromKeywords);
         }
 
-        LsaFreeStringArray(ppszKeywordValues, dwKeywordValuesCount);
+        LwFreeStringArray(ppszKeywordValues, dwKeywordValuesCount);
         ppszKeywordValues = NULL;
         dwKeywordValuesCount = 0;
 
@@ -422,8 +422,8 @@ LsaAdBatchEnumProcessPseudoMessages(
     XXX;
 
 cleanup:
-    LsaFreeStringArray(ppszKeywordValues, dwKeywordValuesCount);
-    LsaFreeStringArray(ppszSids, dwSidsCount);
+    LwFreeStringArray(ppszKeywordValues, dwKeywordValuesCount);
+    LwFreeStringArray(ppszSids, dwSidsCount);
 
     *pdwObjectsCount = dwObjectsCount;
     *pppObjects = ppObjects;
@@ -656,8 +656,8 @@ LsaAdBatchEnumObjectsInCell(
     }
 
 cleanup:
-    LSA_SAFE_FREE_STRING(pszScopeRoot);
-    LSA_SAFE_FREE_STRING(pszNetbiosDomainName);
+    LW_SAFE_FREE_STRING(pszScopeRoot);
+    LW_SAFE_FREE_STRING(pszNetbiosDomainName);
     if (pMessage)
     {
         ldap_msgfree(pMessage);
@@ -812,7 +812,7 @@ LsaAdBatchEnumObjects(
 
     if (pCookie->pfnFree == NULL)
     {
-        dwError = LsaAllocateMemory(
+        dwError = LwAllocateMemory(
                         sizeof(AD_CELL_COOKIE_DATA),
                         &pCookie->pvData);
         BAIL_ON_LSA_ERROR(dwError);
@@ -932,7 +932,7 @@ LsaAdBatchEnumObjects(
                         BAIL_ON_LSA_ERROR(dwError);
                     }
 
-                    dwError = LsaAllocateString(
+                    dwError = LwAllocateString(
                                     ppTotalObjects[dwInput]->pszObjectSid,
                                     &pszCopiedSid);
                     BAIL_ON_LSA_ERROR(dwError);
@@ -962,7 +962,7 @@ LsaAdBatchEnumObjects(
 cleanup:
     *pdwObjectsCount = dwTotalObjectsCount;
     *pppObjects = ppTotalObjects;
-    LSA_SAFE_FREE_STRING(pszCopiedSid);
+    LW_SAFE_FREE_STRING(pszCopiedSid);
 
     return dwError;
 

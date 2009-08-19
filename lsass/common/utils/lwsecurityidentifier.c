@@ -704,7 +704,7 @@ LwSidStringToBytes(
     UCHAR* pucSidBytes = NULL;
     DWORD i = 0;
 
-    if (IsNullOrEmptyString(pszSidString))
+    if (LW_IS_NULL_OR_EMPTY_STR(pszSidString))
     {
        dwError = LW_ERROR_INVALID_SID;
        BAIL_ON_LSA_ERROR(dwError);
