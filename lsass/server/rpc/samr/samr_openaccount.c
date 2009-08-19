@@ -103,12 +103,12 @@ SamrSrvOpenAccount(
     pwszBaseDn = pDomCtx->pwszDn;
     pDomainSid = pDomCtx->pDomainSid;
 
-    RTL_ALLOCATE(&pAcctCtx, ACCOUNT_CONTEXT, sizeof(*pAcctCtx));
-    BAIL_ON_NO_MEMORY(pAcctCtx);
+    status = RTL_ALLOCATE(&pAcctCtx, ACCOUNT_CONTEXT, sizeof(*pAcctCtx));
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     ulSidLength = RtlLengthRequiredSid(ulSubAuthCount);
-    RTL_ALLOCATE(&pAccountSid, SID, ulSidLength);
-    BAIL_ON_NO_MEMORY(pAccountSid);
+    status = RTL_ALLOCATE(&pAccountSid, SID, ulSidLength);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     status = RtlCopySid(ulSidLength, pAccountSid, pDomainSid);
     BAIL_ON_NTSTATUS_ERROR(status);
@@ -169,8 +169,8 @@ SamrSrvOpenAccount(
 
                 dwNameLen = wc16slen(pAttrVal->data.pwszStringValue);
 
-                RTL_ALLOCATE(&pwszName, WCHAR, (dwNameLen + 1) * sizeof(WCHAR));
-                BAIL_ON_NO_MEMORY(pwszName);
+                status = RTL_ALLOCATE(&pwszName, WCHAR, (dwNameLen + 1) * sizeof(WCHAR));
+                BAIL_ON_NTSTATUS_ERROR(status);
 
                 wc16sncpy(pwszName, pAttrVal->data.pwszStringValue, dwNameLen);
 
@@ -194,10 +194,10 @@ SamrSrvOpenAccount(
 
                 dwDnLen = wc16slen(pAttrVal->data.pwszStringValue);
 
-                RTL_ALLOCATE(&pwszAccountDn,
-                             WCHAR,
-                             (dwDnLen + 1) * sizeof(WCHAR));
-                BAIL_ON_NO_MEMORY(pwszAccountDn);
+                status = RTL_ALLOCATE(&pwszAccountDn,
+                                      WCHAR,
+                                      (dwDnLen + 1) * sizeof(WCHAR));
+                BAIL_ON_NTSTATUS_ERROR(status);
 
                 wc16sncpy(pwszAccountDn, pAttrVal->data.pwszStringValue, dwDnLen);
             }
