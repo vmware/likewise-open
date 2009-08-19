@@ -46,6 +46,83 @@
 
 #include "includes.h"
 
+#define SET_UNICODE_STRING_VALUE(attr, field)                           \
+    {                                                                   \
+        WCHAR wszEmpty[] = { '\0' };                                    \
+        PWSTR pwszValue = NULL;                                         \
+        dwError = DirectoryGetEntryAttrValueByName(                     \
+                          pEntry,                                       \
+                          (attr),                                       \
+                          DIRECTORY_ATTR_TYPE_UNICODE_STRING,           \
+                          &pwszValue);                                  \
+        BAIL_ON_LSA_ERROR(dwError);                                     \
+                                                                        \
+        status = SamrSrvInitUnicodeString(                              \
+                          &(field),                                     \
+                          (pwszValue) ? pwszValue : wszEmpty);          \
+        BAIL_ON_NTSTATUS_ERROR(status);                                 \
+    }
+
+#define SET_NTTIME_VALUE(attr, field)                                   \
+    {                                                                   \
+        LONG64 llValue = 0;                                             \
+        dwError = DirectoryGetEntryAttrValueByName(                     \
+                          pEntry,                                       \
+                          (attr),                                       \
+                          DIRECTORY_ATTR_TYPE_LARGE_INTEGER,            \
+                          &llValue);                                    \
+        BAIL_ON_LSA_ERROR(dwError);                                     \
+                                                                        \
+        field = (NtTime)llValue;                                        \
+    }
+
+#define SET_RID_VALUE(attr, field)                                      \
+    {                                                                   \
+        PWSTR pwszSid = NULL;                                           \
+        PSID pSid = NULL;                                               \
+        dwError = DirectoryGetEntryAttrValueByName(                     \
+                          pEntry,                                       \
+                          (attr),                                       \
+                          DIRECTORY_ATTR_TYPE_UNICODE_STRING,           \
+                          &pwszSid);                                    \
+        BAIL_ON_LSA_ERROR(dwError);                                     \
+                                                                        \
+        status = RtlAllocateSidFromWC16String(                          \
+                          &pSid,                                        \
+                          pwszSid);                                     \
+        BAIL_ON_NTSTATUS_ERROR(status);                                 \
+                                                                        \
+        field = pSid->SubAuthority[pSid->SubAuthorityCount - 1];        \
+                                                                        \
+        RTL_FREE(&pSid);                                                \
+    }
+
+#define SET_UINT32_VALUE(attr, field)                                   \
+    {                                                                   \
+        ULONG ulValue = 0;                                              \
+        dwError = DirectoryGetEntryAttrValueByName(                     \
+                          pEntry,                                       \
+                          (attr),                                       \
+                          DIRECTORY_ATTR_TYPE_INTEGER,                  \
+                          &ulValue);                                    \
+        BAIL_ON_LSA_ERROR(dwError);                                     \
+                                                                        \
+        field = (uint32)ulValue;                                        \
+    }
+
+#define SET_UINT16_VALUE(attr, field)                                   \
+    {                                                                   \
+        ULONG ulValue = 0;                                              \
+        dwError = DirectoryGetEntryAttrValueByName(                     \
+                          pEntry,                                       \
+                          (attr),                                       \
+                          DIRECTORY_ATTR_TYPE_INTEGER,                  \
+                          &ulValue);                                    \
+        BAIL_ON_LSA_ERROR(dwError);                                     \
+                                                                        \
+        field = (uint16)ulValue;                                        \
+    }
+
 
 static
 NTSTATUS
@@ -183,6 +260,14 @@ SamrFillUserInfo20(
     );
 
 
+static
+NTSTATUS
+SamrFillUserInfo21(
+    PDIRECTORY_ENTRY pEntry,
+    UserInfo *pInfo
+    );
+
+
 NTSTATUS
 SamrSrvQueryUserInfo(
     /* [in] */ handle_t hBinding,
@@ -202,7 +287,7 @@ SamrSrvQueryUserInfo(
     WCHAR wszAttrObjectSid[] = DS_ATTR_OBJECT_SID;
     WCHAR wszAttrSamAccountName[] = DS_ATTR_SAM_ACCOUNT_NAME;
     WCHAR wszAttrFullName[] = DS_ATTR_FULL_NAME;
-    WCHAR wszAttrGid[] = DS_ATTR_GID;
+    WCHAR wszAttrPrimaryGroup[] = DS_ATTR_PRIMARY_GROUP;
     WCHAR wszAttrDescription[] = DS_ATTR_DESCRIPTION;
     WCHAR wszAttrComment[] = DS_ATTR_COMMENT;
     WCHAR wszAttrCountryCode[] = DS_ATTR_COUNTRY_CODE;
@@ -228,7 +313,6 @@ SamrSrvQueryUserInfo(
     DWORD dwScope = 0;
     PWSTR pwszFilter = NULL;
     DWORD dwFilterLen = 0;
-    PWSTR wszAttributes[] = { NULL } ;
     PDIRECTORY_ENTRY pEntry = NULL;
     DWORD dwEntriesNum = 0;
     UserInfo *pUserInfo = NULL;
@@ -236,7 +320,7 @@ SamrSrvQueryUserInfo(
     PWSTR wszAttributesLevel1[] = {
         wszAttrSamAccountName,
         wszAttrFullName,
-        wszAttrGid,
+        wszAttrPrimaryGroup,
         wszAttrDescription,
         wszAttrComment,
         NULL
@@ -253,7 +337,7 @@ SamrSrvQueryUserInfo(
         wszAttrSamAccountName,
         wszAttrFullName,
         wszAttrObjectSid,
-        wszAttrGid,
+        wszAttrPrimaryGroup,
         wszAttrHomeDirectory,
         wszAttrHomeDrive,
         wszAttrLogonScript,
@@ -280,7 +364,7 @@ SamrSrvQueryUserInfo(
         wszAttrSamAccountName,
         wszAttrFullName,
         wszAttrObjectSid,
-        wszAttrGid,
+        wszAttrPrimaryGroup,
         wszAttrHomeDirectory,
         wszAttrHomeDrive,
         wszAttrLogonScript,
@@ -315,7 +399,7 @@ SamrSrvQueryUserInfo(
     };
 
     PWSTR wszAttributesLevel9[] = {
-        wszAttrGid,
+        wszAttrPrimaryGroup,
         NULL
     };
 
@@ -378,7 +462,7 @@ SamrSrvQueryUserInfo(
         wszAttrComment,
         wszAttrParameters,
         wszAttrObjectSid,
-        wszAttrGid,
+        wszAttrPrimaryGroup,
         wszAttrAccountFlags,
         wszAttrLogonHours,
         wszAttrBadPasswordCount,
@@ -538,6 +622,10 @@ SamrSrvQueryUserInfo(
 
     case 20:
         status = SamrFillUserInfo20(pEntry, pUserInfo);
+        break;
+
+    case 21:
+        status = SamrFillUserInfo21(pEntry, pUserInfo);
         break;
 
     default:
@@ -1277,6 +1365,122 @@ error:
 }
 
 
+static
+NTSTATUS
+SamrFillUserInfo21(
+    PDIRECTORY_ENTRY pEntry,
+    UserInfo *pInfo
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    DWORD dwError = 0;
+    UserInfo21 *pInfo21 = NULL;
+    WCHAR wszAttrLastLogon[] = DS_ATTR_LAST_LOGON;
+    WCHAR wszAttrLastLogoff[] = DS_ATTR_LAST_LOGOFF;
+    WCHAR wszAttrLastPasswordChange[] = DS_ATTR_PASSWORD_LAST_SET;
+    WCHAR wszAttrAccountExpiry[] = DS_ATTR_ACCOUNT_EXPIRY;
+    WCHAR wszAttrAllowPasswordChange[] = DS_ATTR_ALLOW_PASSWORD_CHANGE;
+    WCHAR wszAttrForcePasswordChange[] = DS_ATTR_FORCE_PASSWORD_CHANGE;
+    WCHAR wszAttrSamAccountName[] = DS_ATTR_SAM_ACCOUNT_NAME;
+    WCHAR wszAttrFullName[] = DS_ATTR_FULL_NAME;
+    WCHAR wszAttrHomeDirectory[] = DS_ATTR_HOME_DIR;
+    WCHAR wszAttrHomeDrive[] = DS_ATTR_HOME_DRIVE;
+    WCHAR wszAttrLogonScript[] = DS_ATTR_LOGON_SCRIPT;
+    WCHAR wszAttrProfilePath[] = DS_ATTR_PROFILE_PATH;
+    WCHAR wszAttrDescription[] = DS_ATTR_DESCRIPTION;
+    WCHAR wszAttrWorkstations[] = DS_ATTR_WORKSTATIONS;
+    WCHAR wszAttrComment[] = DS_ATTR_COMMENT;
+    WCHAR wszAttrParameters[] = DS_ATTR_PARAMETERS;
+    WCHAR wszAttrObjectSid[] = DS_ATTR_OBJECT_SID;
+    WCHAR wszAttrPrimaryGid[] = DS_ATTR_PRIMARY_GROUP;
+    WCHAR wszAttrAccountFlags[] = DS_ATTR_ACCOUNT_FLAGS;
+    WCHAR wszAttrBadPasswordCount[] = DS_ATTR_BAD_PASSWORD_COUNT;
+    WCHAR wszAttrLogonCount[] = DS_ATTR_LOGON_COUNT;
+    WCHAR wszAttrCountryCode[] = DS_ATTR_COUNTRY_CODE;
+    WCHAR wszAttrCodePage[] = DS_ATTR_CODE_PAGE;
+
+    pInfo21 = &(pInfo->info21);
+
+    SET_NTTIME_VALUE(wszAttrLastLogon, pInfo21->last_logon);
+    pInfo21->fields_present |= SAMR_FIELD_LAST_LOGON;
+
+    SET_NTTIME_VALUE(wszAttrLastLogoff, pInfo21->last_logoff);
+    pInfo21->fields_present |= SAMR_FIELD_LAST_LOGOFF;
+
+    SET_NTTIME_VALUE(wszAttrLastPasswordChange, pInfo21->last_password_change);
+    pInfo21->fields_present |= SAMR_FIELD_LAST_PWD_CHANGE;
+
+    SET_NTTIME_VALUE(wszAttrAccountExpiry, pInfo21->account_expiry);
+    pInfo21->fields_present |= SAMR_FIELD_ACCT_EXPIRY;
+
+    SET_NTTIME_VALUE(wszAttrAllowPasswordChange, pInfo21->allow_password_change);
+    pInfo21->fields_present |= SAMR_FIELD_ALLOW_PWD_CHANGE;
+
+    SET_NTTIME_VALUE(wszAttrForcePasswordChange, pInfo21->force_password_change);
+    pInfo21->fields_present |= SAMR_FIELD_FORCE_PWD_CHANGE;
+
+    SET_UNICODE_STRING_VALUE(wszAttrSamAccountName, pInfo21->account_name);
+    pInfo21->fields_present |= SAMR_FIELD_ACCOUNT_NAME;
+
+    SET_UNICODE_STRING_VALUE(wszAttrFullName, pInfo21->full_name);
+    pInfo21->fields_present |= SAMR_FIELD_FULL_NAME;
+
+    SET_UNICODE_STRING_VALUE(wszAttrHomeDirectory, pInfo21->home_directory);
+    pInfo21->fields_present |= SAMR_FIELD_HOME_DIRECTORY;
+
+    SET_UNICODE_STRING_VALUE(wszAttrHomeDrive, pInfo21->home_drive);
+    pInfo21->fields_present |= SAMR_FIELD_HOME_DRIVE;
+
+    SET_UNICODE_STRING_VALUE(wszAttrLogonScript, pInfo21->logon_script);
+    pInfo21->fields_present |= SAMR_FIELD_LOGON_SCRIPT;
+
+    SET_UNICODE_STRING_VALUE(wszAttrProfilePath, pInfo21->profile_path);
+    pInfo21->fields_present |= SAMR_FIELD_PROFILE_PATH;
+
+    SET_UNICODE_STRING_VALUE(wszAttrDescription, pInfo21->description);
+    pInfo21->fields_present |= SAMR_FIELD_DESCRIPTION;
+
+    SET_UNICODE_STRING_VALUE(wszAttrWorkstations, pInfo21->workstations);
+    pInfo21->fields_present |= SAMR_FIELD_WORKSTATIONS;
+
+    SET_UNICODE_STRING_VALUE(wszAttrComment, pInfo21->comment);
+    pInfo21->fields_present |= SAMR_FIELD_COMMENT;
+
+    SET_UNICODE_STRING_VALUE(wszAttrParameters, pInfo21->parameters);
+    pInfo21->fields_present |= SAMR_FIELD_PARAMETERS;
+
+    /* unknown1 */
+    /* unknown2 */
+    /* unknown3 */
+
+    SET_RID_VALUE(wszAttrObjectSid, pInfo21->rid);
+    pInfo21->fields_present |= SAMR_FIELD_RID;
+
+    SET_UINT32_VALUE(wszAttrPrimaryGid, pInfo21->primary_gid);
+    pInfo21->fields_present |= SAMR_FIELD_PRIMARY_GID;
+
+    SET_UINT32_VALUE(wszAttrAccountFlags, pInfo21->account_flags);
+    pInfo21->fields_present |= SAMR_FIELD_ACCT_FLAGS;
+
+    SET_UINT16_VALUE(wszAttrBadPasswordCount, pInfo21->bad_password_count);
+    pInfo21->fields_present |= SAMR_FIELD_BAD_PWD_COUNT;
+
+    SET_UINT16_VALUE(wszAttrLogonCount, pInfo21->logon_count);
+    pInfo21->fields_present |= SAMR_FIELD_NUM_LOGONS;
+
+    SET_UINT16_VALUE(wszAttrCountryCode, pInfo21->country_code);
+    pInfo21->fields_present |= SAMR_FIELD_COUNTRY_CODE;
+
+    SET_UINT16_VALUE(wszAttrCodePage, pInfo21->code_page);
+    pInfo21->fields_present |= SAMR_FIELD_CODE_PAGE;
+
+cleanup:
+    return status;
+
+error:
+    memset(pInfo21, 0, sizeof(*pInfo21));
+    goto cleanup;
+}
 
 
 /*
