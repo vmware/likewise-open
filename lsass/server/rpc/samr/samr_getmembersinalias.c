@@ -51,23 +51,88 @@ NTSTATUS
 SamrSrvGetMembersInAlias(
     /* [in] */ handle_t IDL_handle,
     /* [in] */ ACCOUNT_HANDLE hAlias,
-    /* [out] */ SidArray *sids
+    /* [out] */ SidArray *pSids
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
+    DWORD dwError = 0;
     PACCOUNT_CONTEXT pAcctCtx = NULL;
+    PCONNECT_CONTEXT pConnCtx = NULL;
+    HANDLE hDirectory = NULL;
+    PWSTR pwszAliasDn = NULL;
+    WCHAR wszAttrObjectSid[] = DS_ATTR_OBJECT_SID;
+    PDIRECTORY_ENTRY pMemberEntries;
+    DWORD dwMembersNum = 0;
+    DWORD i = 0;
+    PWSTR pwszMemberSid = NULL;
+    PSID pMemberSid = NULL;
+    SidArray Sids = {0};
 
-    pAcctCtx = (PACCOUNT_CONTEXT)hAlias;
+    PWSTR wszAttributes[] = {
+        wszAttrObjectSid,
+        NULL
+    };
+
+    pAcctCtx    = (PACCOUNT_CONTEXT)hAlias;
+    pConnCtx    = (PCONNECT_CONTEXT)pAcctCtx->pDomCtx->pConnCtx;
+    hDirectory  = pConnCtx->hDirectory;
+    pwszAliasDn = pAcctCtx->pwszDn;
 
     if (pAcctCtx == NULL || pAcctCtx->Type != SamrContextAccount) {
         status = STATUS_INVALID_HANDLE;
         BAIL_ON_NTSTATUS_ERROR(status);
     }
 
+    dwError = DirectoryGetGroupMembers(hDirectory,
+                                       pwszAliasDn,
+                                       wszAttributes,
+                                       &pMemberEntries,
+                                       &dwMembersNum);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    Sids.num_sids = dwMembersNum;
+    status = SamrSrvAllocateMemory((PVOID*)&Sids.sids,
+                                   sizeof(*Sids.sids) * Sids.num_sids);
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    for (i = 0; i < dwMembersNum; i++)
+    {
+        PDIRECTORY_ENTRY pEntry = &(pMemberEntries[i]);
+
+        dwError = DirectoryGetEntryAttrValueByName(
+                                    pEntry,
+                                    wszAttrObjectSid,
+                                    DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                                    &pwszMemberSid);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        status = SamrSrvAllocateSidFromWC16String(
+                                    &pMemberSid,
+                                    pwszMemberSid);
+        BAIL_ON_NTSTATUS_ERROR(status);
+
+        Sids.sids[i].sid = pMemberSid;
+    }
+
+    pSids->num_sids = Sids.num_sids;
+    pSids->sids     = Sids.sids;
+
 cleanup:
+    if (pMemberEntries)
+    {
+        DirectoryFreeEntries(pMemberEntries, dwMembersNum);
+    }
+
     return status;
 
 error:
+    for (i = 0; i < dwMembersNum; i++)
+    {
+        SamrSrvFreeMemory(Sids.sids[i].sid);
+    }
+    SamrSrvFreeMemory(Sids.sids);
+
+    memset(pSids, 0, sizeof(*pSids));
     goto cleanup;
 }
 
