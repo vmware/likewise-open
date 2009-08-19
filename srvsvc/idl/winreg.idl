@@ -58,9 +58,9 @@ cpp_quote("#endif /* DCERPC_STUB_BUILD */")
 
     /* Function 0x02 */
     WINERR _RegOpenHKLM(
-	[in] wchar16_t *system_name,
-	[in] uint32 access_mask,
-	[out,ref] POLICY_HANDLE *handle
+	[in] WCHAR *system_name,
+	[in] UINT32 access_mask,
+	[out,ref] REGISTRY_HANDLE *handle
     );
 
     void _winreg_Function0x3();
@@ -68,7 +68,7 @@ cpp_quote("#endif /* DCERPC_STUB_BUILD */")
 
     /* Function 0x05 */
     WINERR _RegCloseKey(
-        [in,out,ref] POLICY_HANDLE *handle
+        [in,out,ref] REGISTRY_HANDLE *handle
     );
 
     void _winreg_Function0x6();
@@ -83,23 +83,27 @@ cpp_quote("#endif /* DCERPC_STUB_BUILD */")
 
     /* Function 0x0f */
     WINERR _RegOpenKey(
-        [in,ref] POLICY_HANDLE *parent_handle,
-	[in,string] wchar16_t *key_name,
-        [in] uint32 unknown,
-	[in] uint32 access_mask,
-	[out,ref] POLICY_HANDLE *handle
+        [in] REGISTRY_HANDLE parent_handle,
+	[in] RegString key_name,
+        [in] UINT32 unknown,
+	[in] UINT32 access_mask,
+	[out,ref] REGISTRY_HANDLE *handle
     );
 
     void _winreg_Function0x10();
 
     /* Function 0x11 */
     WINERR _RegQueryValue(
-        [in,ref] POLICY_HANDLE *handle,
-	[in,string] wchar16_t *value_name,
-        [in,out] uint32 *type,
-	[in,out,size_is(*buffer_size),length_is(*buffer_len)] uint8 *buffer,
-	[in,out] uint32 *buffer_size,
-	[in,out] uint32 *buffer_len
+        [in] REGISTRY_HANDLE handle,
+	[in] RegString value_name,
+        [in,out,unique] UINT32 *type,
+	[in,out,unique,size_is(*buffer_size),length_is(*buffer_len)] UINT8 *buffer,
+	/* Work around the MIDL extension that allows [unique] pointers
+	   for size_is() attribute values in conformant arrays */
+	[in,out,ref] UINT32 *buffer_size_ptr,
+	[in,out,ref] UINT32 *buffer_size,
+	[in,out,ref] UINT32 *buffer_len_ptr,
+	[in,out,ref] UINT32 *buffer_len
     );
 
     void _winreg_Function0x12();
@@ -113,8 +117,8 @@ cpp_quote("#endif /* DCERPC_STUB_BUILD */")
 
     /* Function 0x1a */
     WINERR _RegGetVersion(
-        [in,ref] POLICY_HANDLE *handle,
-	[out,ref] uint32 *version
+        [in] REGISTRY_HANDLE handle,
+	[out,ref] UINT32 *version
     );
 
     void _winreg_Function0x1b();

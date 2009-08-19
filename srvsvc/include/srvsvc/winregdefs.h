@@ -32,11 +32,22 @@
 #ifndef _WINREG_DEFS_H_
 #define _WINREG_DEFS_H_
 
+typedef
 #ifdef _DCE_IDL_
-typedef [context_handle] void* POLICY_HANDLE;
-#else
-typedef void* POLICY_HANDLE;
+[context_handle]
 #endif
+void* REGISTRY_HANDLE;
+
+
+typedef struct
+{
+    UINT16 string_len;
+    UINT16 string_size;
+#ifdef _DCE_IDL_
+    [string,ref]
+#endif
+    WCHAR *string;
+} RegString;
 
 #endif   /* _WINREG_DEFS_H_ */
 

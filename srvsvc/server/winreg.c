@@ -41,12 +41,25 @@
 
 #include "includes.h"
 
+#define LW_REG_NONE     0
+#define LW_REG_SZ       1
+
+/********************************************************************
+ *******************************************************************/
 
 void
-POLICY_HANDLE_rundown(
-    rpc_ss_context_t context_handle
+REGISTRY_HANDLE_rundown(
+    void *hContext
     )
 {
+    UINT32 *h = (UINT32*)hContext;
+
+    if (h)
+    {
+        LW_SAFE_FREE_MEMORY(h);
+
+    }
+
     return;
 }
 
@@ -75,12 +88,18 @@ void _winreg_Function0x1(
 WINERR
 _RegOpenHKLM(
     /* [in] */ handle_t IDL_handle,
-    /* [in] */ wchar16_t *system_name,
-    /* [in] */ uint32 access_mask,
-    /* [out] */ POLICY_HANDLE *handle
+    /* [in] */ WCHAR *system_name,
+    /* [in] */ UINT32 access_mask,
+    /* [out] */ REGISTRY_HANDLE *handle
     )
 {
-    return ERROR_SUCCESS;
+    WINERR dwError = ERROR_SUCCESS;
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
 }
 
 
@@ -109,10 +128,22 @@ void _winreg_Function0x4(
 WINERR
 _RegCloseKey(
     /* [in] */ handle_t IDL_handle,
-    /* [in, out] */ POLICY_HANDLE *handle
+    /* [in, out] */ REGISTRY_HANDLE *handle
     )
 {
-    return ERROR_SUCCESS;
+    WINERR dwError = ERROR_SUCCESS;
+    UINT32 *h = NULL;
+
+    dwError = LwAllocateMemory(sizeof(UINT32), &h);
+    BAIL_ON_ERROR(dwError);
+
+    *handle = (REGISTRY_HANDLE)h;
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
 }
 
 /********************************************************************
@@ -202,14 +233,50 @@ void _winreg_Function0xe(
 WINERR
 _RegOpenKey(
     /* [in] */ handle_t IDL_handle,
-    /* [in] */ POLICY_HANDLE *parent_handle,
-    /* [in] */ wchar16_t *key_name,
-    /* [in] */ uint32 unknown,
-    /* [in] */ uint32 access_mask,
-    /* [out] */ POLICY_HANDLE *handle
+    /* [in] */ REGISTRY_HANDLE parent_handle,
+    /* [in] */ RegString key_name,
+    /* [in] */ UINT32 unknown,
+    /* [in] */ UINT32 access_mask,
+    /* [out] */ REGISTRY_HANDLE *handle
     )
 {
-    return ERROR_FILE_NOT_FOUND;
+    WINERR dwError = ERROR_FILE_NOT_FOUND;
+    PSTR pszKeyName = NULL;
+    UINT32 *h = NULL;
+
+    dwError = LwWc16sToMbs(key_name.string, &pszKeyName);
+    BAIL_ON_ERROR(dwError);
+
+    if (LwRtlCStringIsEqual(
+            pszKeyName,
+            "system\\currentcontrolset\\control\\productoptions",
+            FALSE))
+    {
+        dwError = ERROR_SUCCESS;
+    }
+    else if (LwRtlCStringIsEqual(
+            pszKeyName,
+            "software\\microsoft\\windows nt\\currentversion",
+            FALSE))
+    {
+        dwError = ERROR_SUCCESS;
+    }
+
+    if (dwError == ERROR_SUCCESS)
+    {
+        dwError = LwAllocateMemory(sizeof(UINT32), &h);
+        BAIL_ON_ERROR(dwError);
+
+        *handle = (REGISTRY_HANDLE)h;
+    }
+
+cleanup:
+    LW_SAFE_FREE_STRING(pszKeyName);
+
+    return dwError;
+
+error:
+    goto error;
 }
 
 /********************************************************************
@@ -227,15 +294,62 @@ void _winreg_Function0x10(
 WINERR
 _RegQueryValue(
     /* [in] */ handle_t IDL_handle,
-    /* [in] */ POLICY_HANDLE *handle,
-    /* [in] */ wchar16_t *value_name,
-    /* [in, out] */ uint32 *type,
-    /* [in, out] */ uint8 *buffer,
-    /* [in, out] */ uint32 *buffer_size,
-    /* [in, out] */ uint32 *buffer_len
+    /* [in] */ REGISTRY_HANDLE handle,
+    /* [in] */ RegString value_name,
+    /* [in, out] */ UINT32 *type,
+    /* [in, out] */ UINT8 *buffer,
+    /* [in, out] */ UINT32 *buffer_size_ptr,
+    /* [in, out] */ UINT32 *buffer_size,
+    /* [in, out] */ UINT32 *buffer_len_ptr,
+    /* [in, out] */ UINT32 *buffer_len
     )
 {
-    return ERROR_FILE_NOT_FOUND;
+    WINERR dwError = ERROR_FILE_NOT_FOUND;
+    PSTR pszValueName = NULL;
+
+    *buffer_size_ptr = 1;
+    *buffer_len_ptr = 1;
+
+    dwError = LwWc16sToMbs(value_name.string, &pszValueName);
+    BAIL_ON_ERROR(dwError);
+
+    if (LwRtlCStringIsEqual(pszValueName, "ProductType", FALSE))
+    {
+        PCSTR pszProductTypeValue = "WinNT";
+        DWORD dwPTValueLen = strlen(pszProductTypeValue)+1;
+        PWSTR pwszProductTypeValue = NULL;
+
+        *type = LW_REG_SZ;
+
+        if ((*buffer_size > 0) && (dwPTValueLen <= *buffer_size))
+        {
+            //dwError = SrvSvcSrvAllocateMemory(*buffer_size, (PVOID*)buffer);
+            //BAIL_ON_ERROR(dwError);
+
+            dwError = LwMbsToWc16s(pszProductTypeValue, &pwszProductTypeValue);
+            BAIL_ON_ERROR(dwError);
+
+            memcpy(buffer, pwszProductTypeValue, sizeof(WCHAR)*dwPTValueLen);
+            *buffer_len = dwPTValueLen * sizeof(WCHAR);
+
+            LW_SAFE_FREE_STRING(pwszProductTypeValue);
+        }
+        else
+        {
+            *buffer_size = dwPTValueLen * sizeof(WCHAR);
+            *buffer_len = 0;
+        }
+
+        dwError = ERROR_SUCCESS;
+    }
+
+cleanup:
+    LW_SAFE_FREE_STRING(pszValueName);
+
+    return dwError;
+
+error:
+    goto cleanup;
 }
 
 /********************************************************************
@@ -316,8 +430,8 @@ void _winreg_Function0x19(
 WINERR
 _RegGetVersion(
     /* [in] */ handle_t IDL_handle,
-    /* [in] */ POLICY_HANDLE *handle,
-    /* [out] */ uint32 *version
+    /* [in] */ REGISTRY_HANDLE handle,
+    /* [out] */ UINT32 *version
     )
 {
     *version = 0x05;

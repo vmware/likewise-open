@@ -5,7 +5,8 @@
 #ifndef _WINREG_STUB_H
 #define _WINREG_STUB_H
 
-typedef idl_void_p_t POLICY_HANDLE;
+
+typedef idl_void_p_t REGISTRY_HANDLE;
 
 #ifndef __WINREG_IDL__
 
@@ -45,9 +46,9 @@ extern void _winreg_Function0x1(
 extern WINERR _RegOpenHKLM(
 #ifdef IDL_PROTOTYPES
     /* [in] */ handle_t IDL_handle,
-    /* [in] */ wchar16_t *system_name,
-    /* [in] */ uint32 access_mask,
-    /* [out] */ POLICY_HANDLE *handle
+    /* [in] */ WCHAR *system_name,
+    /* [in] */ UINT32 access_mask,
+    /* [out] */ REGISTRY_HANDLE *handle
 #endif
 );
 extern void _winreg_Function0x3(
@@ -63,7 +64,7 @@ extern void _winreg_Function0x4(
 extern WINERR _RegCloseKey(
 #ifdef IDL_PROTOTYPES
     /* [in] */ handle_t IDL_handle,
-    /* [in, out] */ POLICY_HANDLE *handle
+    /* [in, out] */ REGISTRY_HANDLE *handle
 #endif
 );
 extern void _winreg_Function0x6(
@@ -114,11 +115,11 @@ extern void _winreg_Function0xe(
 extern WINERR _RegOpenKey(
 #ifdef IDL_PROTOTYPES
     /* [in] */ handle_t IDL_handle,
-    /* [in] */ POLICY_HANDLE *parent_handle,
-    /* [in] */ wchar16_t *key_name,
-    /* [in] */ uint32 unknown,
-    /* [in] */ uint32 access_mask,
-    /* [out] */ POLICY_HANDLE *handle
+    /* [in] */ REGISTRY_HANDLE parent_handle,
+    /* [in] */ RegString key_name,
+    /* [in] */ UINT32 unknown,
+    /* [in] */ UINT32 access_mask,
+    /* [out] */ REGISTRY_HANDLE *handle
 #endif
 );
 extern void _winreg_Function0x10(
@@ -129,12 +130,12 @@ extern void _winreg_Function0x10(
 extern WINERR _RegQueryValue(
 #ifdef IDL_PROTOTYPES
     /* [in] */ handle_t IDL_handle,
-    /* [in] */ POLICY_HANDLE *handle,
-    /* [in] */ wchar16_t *value_name,
-    /* [in, out] */ uint32 *type,
-    /* [in, out] */ uint8 *buffer,
-    /* [in, out] */ uint32 *buffer_size,
-    /* [in, out] */ uint32 *buffer_len
+    /* [in] */ REGISTRY_HANDLE handle,
+    /* [in] */ RegString value_name,
+    /* [in, out] */ UINT32 *type,
+    /* [in, out] */ UINT8 **buffer,
+    /* [in, out] */ UINT32 *buffer_size,
+    /* [in, out] */ UINT32 *buffer_len
 #endif
 );
 extern void _winreg_Function0x12(
@@ -180,8 +181,8 @@ extern void _winreg_Function0x19(
 extern WINERR _RegGetVersion(
 #ifdef IDL_PROTOTYPES
     /* [in] */ handle_t IDL_handle,
-    /* [in] */ POLICY_HANDLE *handle,
-    /* [out] */ uint32 *version
+    /* [in] */ REGISTRY_HANDLE handle,
+    /* [out] */ UINT32 *version
 #endif
 );
 extern void _winreg_Function0x1b(
@@ -226,7 +227,7 @@ extern void _winreg_Function0x22(
 );
 
 #endif /* __WINREG_IDL__ */
-void POLICY_HANDLE_rundown(
+void REGISTRY_HANDLE_rundown(
 #ifdef IDL_PROTOTYPES
     rpc_ss_context_t context_handle
 #endif
@@ -245,9 +246,9 @@ typedef struct winreg_v1_0_epv_t {
 	WINERR (*_RegOpenHKLM)(
 #ifdef IDL_PROTOTYPES
     /* [in] */ handle_t IDL_handle,
-    /* [in] */ wchar16_t *system_name,
-    /* [in] */ uint32 access_mask,
-    /* [out] */ POLICY_HANDLE *handle
+    /* [in] */ WCHAR *system_name,
+    /* [in] */ UINT32 access_mask,
+    /* [out] */ REGISTRY_HANDLE *handle
 #endif
 );
 	void (*_winreg_Function0x3)(
@@ -263,7 +264,7 @@ typedef struct winreg_v1_0_epv_t {
 	WINERR (*_RegCloseKey)(
 #ifdef IDL_PROTOTYPES
     /* [in] */ handle_t IDL_handle,
-    /* [in, out] */ POLICY_HANDLE *handle
+    /* [in, out] */ REGISTRY_HANDLE *handle
 #endif
 );
 	void (*_winreg_Function0x6)(
@@ -314,11 +315,11 @@ typedef struct winreg_v1_0_epv_t {
 	WINERR (*_RegOpenKey)(
 #ifdef IDL_PROTOTYPES
     /* [in] */ handle_t IDL_handle,
-    /* [in] */ POLICY_HANDLE *parent_handle,
-    /* [in] */ wchar16_t *key_name,
-    /* [in] */ uint32 unknown,
-    /* [in] */ uint32 access_mask,
-    /* [out] */ POLICY_HANDLE *handle
+    /* [in] */ REGISTRY_HANDLE parent_handle,
+    /* [in] */ RegString key_name,
+    /* [in] */ UINT32 unknown,
+    /* [in] */ UINT32 access_mask,
+    /* [out] */ REGISTRY_HANDLE *handle
 #endif
 );
 	void (*_winreg_Function0x10)(
@@ -329,12 +330,14 @@ typedef struct winreg_v1_0_epv_t {
 	WINERR (*_RegQueryValue)(
 #ifdef IDL_PROTOTYPES
     /* [in] */ handle_t IDL_handle,
-    /* [in] */ POLICY_HANDLE *handle,
-    /* [in] */ wchar16_t *value_name,
-    /* [in, out] */ uint32 *type,
-    /* [in, out] */ uint8 *buffer,
-    /* [in, out] */ uint32 *buffer_size,
-    /* [in, out] */ uint32 *buffer_len
+    /* [in] */ REGISTRY_HANDLE handle,
+    /* [in] */ RegString value_name,
+    /* [in, out] */ UINT32 *type,
+    /* [in, out] */ UINT8 *buffer,
+    /* [in, out] */ UINT32 *buffer_size_ptr,
+    /* [in, out] */ UINT32 *buffer_size,
+    /* [in, out] */ UINT32 *buffer_len_ptr,
+    /* [in, out] */ UINT32 *buffer_len
 #endif
 );
 	void (*_winreg_Function0x12)(
@@ -380,8 +383,8 @@ typedef struct winreg_v1_0_epv_t {
 	WINERR (*_RegGetVersion)(
 #ifdef IDL_PROTOTYPES
     /* [in] */ handle_t IDL_handle,
-    /* [in] */ POLICY_HANDLE *handle,
-    /* [out] */ uint32 *version
+    /* [in] */ REGISTRY_HANDLE handle,
+    /* [out] */ UINT32 *version
 #endif
 );
 	void (*_winreg_Function0x1b)(
