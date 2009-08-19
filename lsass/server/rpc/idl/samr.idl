@@ -176,7 +176,7 @@ cpp_quote("#endif")
 
     /* function 0x10 */
     NTSTATUS __SamrGetAliasMembership(
-        [in,ref] PolicyHandle *domain_handle,
+        [in] DOMAIN_HANDLE hDomains,
         [in,ref] SidArray *sids,
         [out,ref] Ids *rids
         );
