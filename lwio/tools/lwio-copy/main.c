@@ -177,8 +177,7 @@ main(
         if (IsNullOrEmptyString(pszPrincipal))
         {
             fprintf(stderr,"Error: Invalid cache path passed\n");
-            ntStatus = LWIO_ERROR_INVALID_PARAMETER;
-            BAIL_ON_NT_STATUS(ntStatus);
+            goto error;
         }
         ntStatus = LwIoCreateKrb5AccessTokenA(
                         pszPrincipal,
@@ -217,6 +216,9 @@ cleanup:
     LWIO_SAFE_FREE_STRING(pszCachePath);
     LWIO_SAFE_FREE_STRING(pszPrincipal);
     LWIO_SAFE_FREE_STRING(pszPassword);
+
+    if(ntStatus == STATUS_SUCCESS)
+        fprintf(stdout,"copy succeed\n");
 
     return (ntStatus);
 
@@ -385,14 +387,14 @@ ParseArgs(
     {
         fprintf(stderr, "Error: Source path is NULL \n");
 
-        ntStatus = LWIO_ERROR_INVALID_PARAMETER;
+        ntStatus = STATUS_INVALID_PARAMETER;
         BAIL_ON_NT_STATUS(ntStatus);
     }
     if(!pszTargetPath)
     {
         fprintf(stderr, "Error: Target path is NULL \n");
 
-        ntStatus = LWIO_ERROR_INVALID_PARAMETER;
+        ntStatus = STATUS_INVALID_PARAMETER;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -742,35 +744,47 @@ MapErrorCodes(
 {
     switch (ntStatus)
     {
-        case LWIO_ERROR_INVALID_PARAMETER:
+        case STATUS_INVALID_PARAMETER:
             fprintf(stderr,"Error: Invalid parameter passed\n");
             break;
-        case LWIO_ERROR_MALFORMED_REQUEST:
-            fprintf(stderr,"Error: malformed request\n");
+        case STATUS_NO_SUCH_FILE:
+            fprintf(stderr,"Error: Invalid local file/dir path passed\n");
             break;
-        case LWIO_ERROR_SYSTEM:
-            fprintf(stderr,"Error: system error\n");
+        case STATUS_FILE_IS_A_DIRECTORY:
+            fprintf(stderr,"Error: Invalid directory path passed\n");
+            fprintf(stdout,"Please proivde a valid file name to copy a file\n");
             break;
-        case LWIO_ERROR_SERVER_UNREACHABLE:
-            fprintf(stderr,"Error: server is not reachable\n");
+        case STATUS_BAD_NETWORK_NAME:
+            fprintf(stderr,"Error: Invalid remote path passed\n");
+            fprintf(stdout,"Please check if a valid remote host name/valid directory is provided\n");
             break;
-        case LWIO_ERROR_PASSWORD_EXPIRED:
+        case STATUS_OBJECT_PATH_INVALID:
+        case STATUS_OBJECT_PATH_NOT_FOUND:
+        case STATUS_OBJECT_PATH_SYNTAX_BAD:
+        case STATUS_OBJECT_NAME_INVALID:
+        case STATUS_OBJECT_NAME_NOT_FOUND:
+            fprintf(stderr,"Error: Invalid remote file path passed\n");
+            break;
+        case STATUS_UNSUCCESSFUL:
+            fprintf(stderr,"Error: lwio-copy unsuccessfull\n");
+            fprintf(stdout,"Please check if lwiod and lsaad running\n");
+            break;
+        case STATUS_LOGON_FAILURE:
+        case STATUS_NO_SUCH_USER:
+            fprintf(stderr,"Error: Logon failed, please check the username/password\n");
+            break;
+        case STATUS_PASSWORD_EXPIRED:
             fprintf(stderr,"Error: password expired\n");
             break;
-        case LWIO_ERROR_PASSWORD_MISMATCH:
+        case STATUS_WRONG_PASSWORD:
             fprintf(stderr,"Error: password mismatch\n");
             break;
-        case LWIO_ERROR_CLOCK_SKEW:
+        case STATUS_TIME_DIFFERENCE_AT_DC:
             fprintf(stderr,"Error: clock skew detected\n");
             break;
-        case LWIO_ERROR_INVALID_HANDLE:
-            fprintf(stderr,"Error: Invalid handle\n");
-            break;
-        case LWIO_ERROR_HOST_NOT_FOUND:
-            fprintf(stderr,"Error: host is not available\n");
-            break;
-        case LWIO_ERROR_DATA_ERROR:
-            fprintf(stderr,"Error: data error\n");
+        case STATUS_ACCESS_DENIED:
+            fprintf(stderr,"Error: Access denied to copy to remote\n");
+            fprintf(stdout,"Try logging in as a domain user having an admin privilege\n");
             break;
     }
 }
