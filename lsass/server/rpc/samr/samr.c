@@ -484,7 +484,7 @@ NTSTATUS __SamrDeleteAliasMember(
 
 NTSTATUS __SamrGetMembersInAlias(
     /* [in] */ handle_t IDL_handle,
-    /* [in] */ PolicyHandle *alias_handle,
+    /* [in] */ ACCOUNT_HANDLE hAlias,
     /* [out] */ SidArray *sids
     )
 {
