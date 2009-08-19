@@ -420,7 +420,7 @@
 #define LW_ERROR_DUPLICATE_KEYNAME                         40700
 #define LW_ERROR_NO_ACTIVE_KEY_FOUND                       40701
 #define LW_ERROR_NO_SUCH_KEY                               40702
-#define LW_ERROR_KEY_IS_AVTIVE                             40703
+#define LW_ERROR_KEY_IS_ACTIVE                             40703
 #define LW_ERROR_DUPLICATE_KEYVALUENAME                    40704
 #define LW_ERROR_FAILED_DELETE_HAS_SUBKEY                  40705
 #define LW_ERROR_NO_SUBKEYS                                40706

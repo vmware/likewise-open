@@ -680,7 +680,7 @@ static struct
         "The specified key cannot be found in registry"
     },
     {
-        LW_ERROR_KEY_IS_AVTIVE,
+        LW_ERROR_KEY_IS_ACTIVE,
         "The key is still actively in use"
     },
     {
