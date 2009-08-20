@@ -2001,6 +2001,7 @@ AD_GetGroupsForUser(
     IN PVOID** pppGroupInfoList
     )
 {
+    PCSTR pszLocalProvider = "lsa-local-provider";
     DWORD dwError = 0;
     PLSA_SECURITY_OBJECT* ppGroupObjects = NULL;
     size_t sGroupObjectsCount = 0;
@@ -2008,12 +2009,9 @@ AD_GetGroupsForUser(
     size_t sIndex = 0;
     size_t sEnabledCount = 0;
     BOOLEAN bIsCacheOnlyMode = FALSE;
-    HANDLE hLsaConnection = NULL;
     PLSA_SECURITY_OBJECT pUserInfo = NULL;
     PSTR pszUserSID = NULL;
-    PSTR pszUserDN = NULL;
     PSTR pszGroupSID = NULL;
-    PSTR pszGroupDN = NULL;
     DWORD dwGroupsCount = 0;
     DWORD i = 0;
     PVOID *ppUserMembershipInfo = NULL;
@@ -2064,17 +2062,13 @@ AD_GetGroupsForUser(
                 &ppGroupObjects);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaOpenServer(&hLsaConnection);
-    BAIL_ON_LSA_ERROR(dwError);
-
     pszUserSID = pUserInfo->pszObjectSid;
-    pszUserDN  = pUserInfo->pszDN;
 
     /* Get all local groups the user is member of */
-    dwError = LsaLocalGetGroupMembership(
-                hLsaConnection,
+    dwError = LsaSrvGetGroupMembershipByProvider(
+                hProvider,
+                pszLocalProvider,
                 pszUserSID,
-                pszUserDN,
                 dwGroupInfoLevel,
                 &dwGroupsCount,
                 (PVOID**)&ppUserMembershipInfo);
@@ -2162,15 +2156,14 @@ AD_GetGroupsForUser(
             pMemberInfo = NULL;
         }
 
-        pszGroupDN  = ppGroupObjects[sIndex]->pszDN;
         pszGroupSID = ppGroupObjects[sIndex]->pszObjectSid;
 
         /* Get all local groups that current group is member of. This resolves
            nested memberships of domain groups */
-        dwError = LsaLocalGetGroupMembership(
-                    hLsaConnection,
+        dwError = LsaSrvGetGroupMembershipByProvider(
+                    hProvider,
+                    pszLocalProvider,
                     pszGroupSID,
-                    pszGroupDN,
                     dwGroupInfoLevel,
                     &dwGroupsCount,
                     (PVOID**)&ppGroupMembershipInfo);
@@ -2264,12 +2257,6 @@ AD_GetGroupsForUser(
     *pppGroupInfoList  = ppUserMembership;
 
 cleanup:
-
-    if (hLsaConnection)
-    {
-        LsaCloseServer(hLsaConnection);
-    }
-
     ADCacheSafeFreeObject(&pUserInfo);
 
     if (ppUserMembershipInfo)
