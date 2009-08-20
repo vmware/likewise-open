@@ -71,8 +71,8 @@
 #include "lsaunistr.h"
 #include "lsaipc.h"
 #include "lsaprovider.h"
+#include "lsasrvapi.h"
 #include "lsaadprovider.h"
-#include "lsalocalclient.h"
 
 #include "lsasrvutils.h"
 #include "lwldap.h"
