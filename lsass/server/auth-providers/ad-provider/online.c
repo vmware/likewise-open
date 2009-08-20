@@ -2702,10 +2702,10 @@ AD_OnlineChangePassword(
     DWORD dwUserInfoLevel = 2;
     PLSA_SECURITY_OBJECT pCachedUser = NULL;
     PLSA_USER_INFO_2 pUserInfo = NULL;
-    PSTR pszDomainController = NULL;
     PSTR pszFullDomainName = NULL;
     BOOLEAN bFoundDomain = FALSE;
     LSA_TRUST_DIRECTION dwTrustDirection = LSA_TRUST_DIRECTION_UNKNOWN;
+    PLWNET_DC_INFO pDcInfo = NULL;
 
     dwError = LsaCrackDomainQualifiedName(
                     pszLoginId,
@@ -2773,8 +2773,12 @@ AD_OnlineChangePassword(
                        NULL);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LWNetGetDomainController(pszFullDomainName,
-                                       &pszDomainController);
+    dwError = LWNetGetDCName(
+                    NULL,
+                    pszFullDomainName,
+                    NULL,
+                    DS_WRITABLE_REQUIRED,
+                    &pDcInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = AD_DetermineTrustModeandDomainName(
@@ -2785,7 +2789,7 @@ AD_OnlineChangePassword(
                                        NULL);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = AD_NetUserChangePassword(pszDomainController,
+    dwError = AD_NetUserChangePassword(pDcInfo->pszDomainControllerName,
                                        LSA_TRUST_DIRECTION_ONE_WAY == dwTrustDirection,
                                        pCachedUser->pszSamAccountName,
                                        pCachedUser->userInfo.pszUPN,
@@ -2803,11 +2807,7 @@ AD_OnlineChangePassword(
         pszPassword);
 
 cleanup:
-    if (pszDomainController)
-    {
-        LWNetFreeString(pszDomainController);
-    }
-
+    LWNET_SAFE_FREE_DC_INFO(pDcInfo);
     if (pLoginInfo)
     {
         LsaFreeNameInfo(pLoginInfo);

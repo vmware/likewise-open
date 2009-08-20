@@ -90,7 +90,7 @@ LsaNetGetShortDomainName(
     );
 
 DWORD
-LsaNetGetDCName(
+LsaNetGetRwDCName(
     PCSTR pszDomainName,
     PSTR* ppszDCName
     );
