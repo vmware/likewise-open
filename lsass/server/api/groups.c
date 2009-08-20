@@ -658,6 +658,71 @@ LsaSrvEndEnumGroups(
 }
 
 
+DWORD
+LsaSrvGetGroupMembershipByProvider(
+    IN  HANDLE hServer,
+    IN  PCSTR  pszProvider,
+    IN  PCSTR  pszSid,
+    IN  DWORD  dwGroupInfoLevel,
+    OUT PDWORD pdwGroupsCount,
+    OUT PVOID  **pppMembershipInfo
+    )
+{
+    DWORD dwError = 0;
+    PLSA_AUTH_PROVIDER pProvider = NULL;
+    BOOLEAN bInLock = FALSE;
+    HANDLE hProvider = (HANDLE)NULL;
+    DWORD dwGroupsCount = 0;
+    PVOID *ppMembershipInfo = NULL;
+
+    ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
+
+    for (pProvider = gpAuthProviderList;
+         pProvider;
+         pProvider = pProvider->pNext)
+    {
+        if (!strcmp(pProvider->pszId, pszProvider))
+        {
+            dwError = LsaSrvOpenProvider(hServer, pProvider, &hProvider);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            dwError = pProvider->pFnTable->pfnGetGroupMembershipByProvider(
+                                              hProvider,
+                                              pszSid,
+                                              dwGroupInfoLevel,
+                                              &dwGroupsCount,
+                                              &ppMembershipInfo);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+    }
+
+    if (pProvider == NULL)
+    {
+       dwError = LSA_ERROR_NOT_HANDLED;
+    }
+    BAIL_ON_LSA_ERROR(dwError);
+
+    *pdwGroupsCount    = dwGroupsCount;
+    *pppMembershipInfo = ppMembershipInfo;
+
+cleanup:
+
+    if (hProvider != (HANDLE)NULL) {
+        LsaSrvCloseProvider(pProvider, hProvider);
+    }
+
+    LEAVE_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
+
+    return dwError;
+
+error:
+    *pdwGroupsCount    = 0;
+    *pppMembershipInfo = NULL;
+
+    goto cleanup;
+}
+
+
 /*
 local variables:
 mode: c
