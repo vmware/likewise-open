@@ -365,6 +365,63 @@ typedef struct _SRV_WRITE_STATE_SMB_V1
 
 typedef enum
 {
+    SRV_TRANS_STAGE_SMB_V1_INITIAL = 0,
+    SRV_TRANS_STAGE_SMB_V1_CREATE_FILE_COMPLETED,
+    SRV_TRANS_STAGE_SMB_V1_ATTEMPT_IO,
+    SRV_TRANS_STAGE_SMB_V1_IO_COMPLETE,
+    SRV_TRANS_STAGE_SMB_V1_ATTEMPT_WRITE,
+    SRV_TRANS_STAGE_SMB_V1_WRITE_COMPLETE,
+    SRV_TRANS_STAGE_SMB_V1_ATTEMPT_READ,
+    SRV_TRANS_STAGE_SMB_V1_READ_COMPLETE,
+    SRV_TRANS_STAGE_SMB_V1_BUILD_RESPONSE,
+    SRV_TRANS_STAGE_SMB_V1_DONE
+} SRV_TRANS_STAGE_SMB_V1;
+
+typedef struct _SRV_TRANS_STATE_SMB_V1
+{
+    LONG                         refCount;
+
+    pthread_mutex_t              mutex;
+    pthread_mutex_t*             pMutex;
+
+    SRV_TRANS_STAGE_SMB_V1       stage;
+
+    IO_STATUS_BLOCK              ioStatusBlock;
+
+    IO_ASYNC_CONTROL_BLOCK       acb;
+    PIO_ASYNC_CONTROL_BLOCK      pAcb;
+
+    PVOID                        pSecurityDescriptor;
+    PVOID                        pSecurityQOS;
+
+    PTRANSACTION_REQUEST_HEADER  pRequestHeader; // Do not free
+    PUSHORT                      pBytecount;     // Do not free
+    PWSTR                        pwszName;       // Do not free
+    PUSHORT                      pSetup;         // Do not free
+    PBYTE                        pParameters;    // Do not free
+    PBYTE                        pData;          // Do not free
+
+    PLWIO_SRV_SESSION            pSession;
+    PLWIO_SRV_TREE               pTree;
+    PLWIO_SRV_FILE               pFile;
+
+    IO_FILE_HANDLE               hFile;
+    IO_FILE_NAME                 fileName;
+    LONG64                       llOffset;
+
+    FILE_PIPE_INFORMATION        pipeInfo;
+    PFILE_PIPE_INFORMATION       pPipeInfo;
+
+    FILE_PIPE_LOCAL_INFORMATION  pipeLocalInfo;
+    PFILE_PIPE_LOCAL_INFORMATION pPipeLocalInfo;
+
+    PBYTE                        pData2;
+    USHORT                       usBytesRead;
+
+} SRV_TRANS_STATE_SMB_V1, *PSRV_TRANS_STATE_SMB_V1;
+
+typedef enum
+{
     SRV_TRANS2_STAGE_SMB_V1_INITIAL = 0,
     SRV_TRANS2_STAGE_SMB_V1_CREATE_FILE_COMPLETED,
     SRV_TRANS2_STAGE_SMB_V1_ATTEMPT_IO,
