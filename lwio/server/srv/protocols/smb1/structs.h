@@ -48,6 +48,22 @@
 #ifndef __STRUCTS_H__
 #define __STRUCTS_H__
 
+typedef struct
+{
+    USHORT               usFid;
+    USHORT               usReserved;
+    SECURITY_INFORMATION ulSecurityInfo;
+} __attribute__((__packed__)) SMB_SECURITY_INFORMATION_HEADER,
+                             *PSMB_SECURITY_INFORMATION_HEADER;
+
+typedef struct
+{
+    ULONG   ulFunctionCode;
+    USHORT  usFid;
+    BOOLEAN bIsFsctl;
+    UCHAR   ucFlags;
+} __attribute__((__packed__)) SMB_IOCTL_HEADER, *PSMB_IOCTL_HEADER;
+
 typedef enum
 {
     SRV_TREE_CONNECT_STAGE_SMB_V1_INITIAL = 0,
@@ -607,6 +623,54 @@ typedef struct _SRV_RENAME_STATE_SMB_V1
     ULONG                      ulDataLen;
 
 } SRV_RENAME_STATE_SMB_V1, *PSRV_RENAME_STATE_SMB_V1;
+
+typedef enum
+{
+    SRV_NTTRANSACT_STAGE_SMB_V1_INITIAL = 0,
+    SRV_NTTRANSACT_STAGE_SMB_V1_ATTEMPT_IO,
+    SRV_NTTRANSACT_STAGE_SMB_V1_BUILD_RESPONSE,
+    SRV_NTTRANSACT_STAGE_SMB_V1_DONE
+} SRV_NTTRANSACT_STAGE_SMB_V1;
+
+typedef struct _SRV_NTTRANSACT_STATE_SMB_V1
+{
+    LONG                           refCount;
+
+    pthread_mutex_t                mutex;
+    pthread_mutex_t*               pMutex;
+
+    SRV_NTTRANSACT_STAGE_SMB_V1    stage;
+
+    IO_STATUS_BLOCK                ioStatusBlock;
+
+    IO_ASYNC_CONTROL_BLOCK         acb;
+    PIO_ASYNC_CONTROL_BLOCK        pAcb;
+
+    PVOID                          pSecurityDescriptor;
+    PVOID                          pSecurityQOS;
+
+    PNT_TRANSACTION_REQUEST_HEADER pRequestHeader; // Do not free
+    PUSHORT                        pusBytecount;   // Do not free
+    PUSHORT                        pSetup;         // Do not free
+    PBYTE                          pParameters;    // Do not free
+    PBYTE                          pData;          // Do not free
+
+    PLWIO_SRV_SESSION              pSession;
+    PLWIO_SRV_TREE                 pTree;
+    PLWIO_SRV_FILE                 pFile;
+
+    PBYTE                          pSecurityDescriptor2;
+    ULONG                          ulSecurityDescAllocLen;
+    ULONG                          ulSecurityDescActualLen;
+
+    PSMB_IOCTL_HEADER              pIoctlRequest;
+    PBYTE                          pResponseBuffer;
+    USHORT                         usResponseBufferLen;
+    USHORT                         usActualResponseLen;
+
+    PSMB_SECURITY_INFORMATION_HEADER pSecurityRequestHeader;
+
+} SRV_NTTRANSACT_STATE_SMB_V1, *PSRV_NTTRANSACT_STATE_SMB_V1;
 
 typedef enum
 {
