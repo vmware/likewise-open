@@ -65,7 +65,7 @@ NET_API_STATUS NetUnjoinDomainLocal(const wchar16_t *machine,
     err = NetGetHostInfo(&localname);
     BAIL_ON_WINERR_ERROR(err);
 
-    status = NetpGetDcName(domain, FALSE, &domain_controller_name);
+    status = NetpGetRwDcName(domain, FALSE, &domain_controller_name);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     status = LwpsOpenPasswordStore(LWPS_PASSWORD_STORE_DEFAULT, &hStore);
