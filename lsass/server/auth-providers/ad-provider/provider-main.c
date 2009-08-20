@@ -3415,6 +3415,18 @@ error:
     goto cleanup;
 }
 
+DWORD
+AD_GetGroupMembershipByProvider(
+    IN HANDLE     hProvider,
+    IN PCSTR      pszSid,
+    IN DWORD      dwGroupInfoLevel,
+    OUT PDWORD    pdwGroupsCount,
+    OUT PVOID   **pppMembershipInfo
+    )
+{
+    return LSA_ERROR_NOT_HANDLED;
+}
+
 static
 DWORD
 AD_GetNameWithReplacedSeparators(
