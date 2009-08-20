@@ -692,7 +692,17 @@ LsaSrvGetGroupMembershipByProvider(
                                               dwGroupInfoLevel,
                                               &dwGroupsCount,
                                               &ppMembershipInfo);
-            BAIL_ON_LSA_ERROR(dwError);
+            if (dwError == LSA_ERROR_NO_SUCH_USER)
+            {
+                /* "user not found" is not an error here so ignore it */
+                dwError = 0;
+            }
+            else
+            {
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+
+            break;
         }
     }
 
