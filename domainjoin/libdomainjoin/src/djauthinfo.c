@@ -1006,9 +1006,9 @@ cleanup:
 }
 
 void
-DJGetDomainDC(PCSTR domain, PSTR *dc, LWException **exc)
+DJGetDomainRwDC(PCSTR domain, PSTR *dc, LWException **exc)
 {
-    LW_CLEANUP_LSERR(exc, LsaNetGetDCName(domain, dc));
+    LW_CLEANUP_LSERR(exc, LsaNetGetRwDCName(domain, dc));
 cleanup:
     ;
 }

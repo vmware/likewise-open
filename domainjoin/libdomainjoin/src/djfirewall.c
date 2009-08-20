@@ -647,7 +647,7 @@ static void CachePortCheck(PCSTR domainName, ModuleState *state, DCPortCheckOpti
     }
 
     DJ_LOG_INFO("Getting DC");
-    DJGetDomainDC(
+    DJGetDomainRwDC(
         domainName,
         &check->dc,
         &getDomainDCException );
