@@ -710,6 +710,10 @@ static struct
     {
         LW_ERROR_NO_MORE_ITEMS,
         "No more entries available"
+    },
+    {
+        LW_ERROR_INVALID_KEYNAME,
+        "The keyname cannot have '\\'"
     }
 };
 

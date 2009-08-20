@@ -428,6 +428,7 @@
 #define LW_ERROR_UNKNOWN_DATA_TYPE                         40708
 #define LW_ERROR_BEYOUND_MAX_VALUE_LEN                     40709
 #define LW_ERROR_NO_MORE_ITEMS                             40710
+#define LW_ERROR_INVALID_KEYNAME                           40711
 
 
 size_t
