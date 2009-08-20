@@ -32,12 +32,7 @@
 
 NTSTATUS
 SrvProcessTrans2QueryPathInformation(
-    PSRV_EXEC_CONTEXT           pExecContext,
-    PTRANSACTION_REQUEST_HEADER pRequestHeader,
-    PUSHORT                     pSetup,
-    PUSHORT                     pByteCount,
-    PBYTE                       pParameters,
-    PBYTE                       pData
+    PSRV_EXEC_CONTEXT pExecContext
     );
 
 #endif /* __SRV_TRANS2QPI_H__ */

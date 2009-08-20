@@ -113,24 +113,14 @@ SrvProcessEchoAndX(
 
 NTSTATUS
 SrvProcessTrans2FindFirst2(
-    IN  PSRV_EXEC_CONTEXT           pExecContext,
-    IN  PTRANSACTION_REQUEST_HEADER pRequestHeader,
-    IN  PUSHORT                     pSetup,
-    IN  PUSHORT                     pByteCount,
-    IN  PBYTE                       pParameters,
-    IN  PBYTE                       pData
+    PSRV_EXEC_CONTEXT pExecContext
     );
 
 // findnext2.c
 
 NTSTATUS
 SrvProcessTrans2FindNext2(
-    IN  PSRV_EXEC_CONTEXT           pExecContext,
-    IN  PTRANSACTION_REQUEST_HEADER pRequestHeader,
-    IN  PUSHORT                     pSetup,
-    IN  PUSHORT                     pByteCount,
-    IN  PBYTE                       pParameters,
-    IN  PBYTE                       pData
+    PSRV_EXEC_CONTEXT pExecContext
     );
 
 // findclose2.c
@@ -235,6 +225,17 @@ SrvProcessTransaction(
 NTSTATUS
 SrvProcessTransaction2(
     PSRV_EXEC_CONTEXT pExecContext
+    );
+
+VOID
+SrvPrepareTrans2StateAsync(
+    PSRV_TRANS2_STATE_SMB_V1 pTrans2State,
+    PSRV_EXEC_CONTEXT        pExecContext
+    );
+
+VOID
+SrvReleaseTrans2StateAsync(
+    PSRV_TRANS2_STATE_SMB_V1 pTrans2State
     );
 
 // tree.c

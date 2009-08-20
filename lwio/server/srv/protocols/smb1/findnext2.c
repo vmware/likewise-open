@@ -59,12 +59,7 @@ SrvBuildFindNext2Response(
 
 NTSTATUS
 SrvProcessTrans2FindNext2(
-    IN  PSRV_EXEC_CONTEXT           pExecContext,
-    IN  PTRANSACTION_REQUEST_HEADER pRequestHeader,
-    IN  PUSHORT                     pSetup,
-    IN  PUSHORT                     pByteCount,
-    IN  PBYTE                       pParameters,
-    IN  PBYTE                       pData
+    PSRV_EXEC_CONTEXT pExecContext
     )
 {
     NTSTATUS ntStatus = 0;
@@ -74,11 +69,16 @@ SrvProcessTrans2FindNext2(
     USHORT         usFlags = 0;
     SMB_INFO_LEVEL infoLevel = 0;
     PWSTR          pwszResumeFilename = NULL; // Do not free
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
+    PSRV_TRANS2_STATE_SMB_V1   pTrans2State = NULL;
+
+    pTrans2State = (PSRV_TRANS2_STATE_SMB_V1)pCtxSmb1->hState;
 
     ntStatus = SrvUnmarshallFindNext2Params(
-                    pParameters,
-                    pRequestHeader->parameterCount,
-                    pRequestHeader->parameterOffset,
+                    pTrans2State->pParameters,
+                    pTrans2State->pRequestHeader->parameterCount,
+                    pTrans2State->pRequestHeader->parameterOffset,
                     &usSearchId,
                     &usSearchCount,
                     &usFlags,
@@ -95,7 +95,7 @@ SrvProcessTrans2FindNext2(
                     infoLevel,
                     ulResumeHandle,
                     pwszResumeFilename,
-                    pRequestHeader->maxDataCount);
+                    pTrans2State->pRequestHeader->maxDataCount);
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:

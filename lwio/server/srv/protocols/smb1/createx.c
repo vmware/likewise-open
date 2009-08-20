@@ -245,9 +245,6 @@ SrvProcessNTCreateAndX(
 
         case SRV_CREATE_STAGE_SMB_V1_DONE:
 
-            ntStatus = pCreateState->ioStatusBlock.Status;
-            BAIL_ON_NT_STATUS(ntStatus);
-
             pCreateState->bRemoveFileFromTree = FALSE;
 
             pCtxSmb1->pFile = pCreateState->pFile;
