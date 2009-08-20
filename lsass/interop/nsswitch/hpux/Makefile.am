@@ -7,11 +7,12 @@ libnss_lsass_la_SOURCES = \
 	nss-pruser.c
 
 libnss_lsass_la_CPPFLAGS = \
-	-I@srcdir@/../include
+	-I$(srcdir)/../include
 
 libnss_lsass_la_LIBADD = \
-	@builddir@/../common/libnsscommon.la \
-	@top_builddir@/client/liblsaclient.la
+	$(builddir)/../common/libnsscommon.la \
+	$(top_builddir)/client/liblsaclient.la \
+	-lsec
 
 libnss_lsass_la_LDFLAGS = -module -version-number 1 -export-dynamic -shrext "$(NSS_SHR_EXT)"
 
