@@ -10,7 +10,7 @@ libnss_lsass_la_CPPFLAGS = \
 	-I$(srcdir)/../include
 
 libnss_lsass_la_LIBADD = \
-	$(builddir)/../common/libnsscommon.la \
+	./../common/libnsscommon.la \
 	$(top_builddir)/client/liblsaclient.la \
 	-lsec
 
