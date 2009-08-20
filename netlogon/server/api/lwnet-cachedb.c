@@ -45,8 +45,10 @@
  */
 #include "includes.h"
 
+#define ENABLE_CACHEDB_DEBUG 0
+
 #define FILEDB_FORMAT_TYPE "LFLT"
-#define FILEDB_FORMAT_VERSION 1
+#define FILEDB_FORMAT_VERSION 2
 
 struct _LWNET_CACHE_DB_HANDLE_DATA {
     PDLINKEDLIST pCacheList;
@@ -57,7 +59,6 @@ struct _LWNET_CACHE_DB_HANDLE_DATA {
     // (which might happen with database debugging or maintenance tools).
     pthread_rwlock_t Lock;
     pthread_rwlock_t* pLock;
-    BOOLEAN CanWrite;
 };
 
 static LWNET_CACHE_DB_HANDLE gDbHandle;
@@ -68,8 +69,10 @@ LWMsgTypeSpec gLWNetCacheEntrySpec[] =
     LWMSG_MEMBER_PSTR(LWNET_CACHE_DB_ENTRY, pszDnsDomainName),
     LWMSG_MEMBER_PSTR(LWNET_CACHE_DB_ENTRY, pszSiteName),
     LWMSG_MEMBER_UINT32(LWNET_CACHE_DB_ENTRY, QueryType),
-    LWMSG_MEMBER_UINT64(LWNET_CACHE_DB_ENTRY, LastDiscovered),
-    LWMSG_MEMBER_UINT64(LWNET_CACHE_DB_ENTRY, LastPinged),
+    LWMSG_MEMBER_INT64(LWNET_CACHE_DB_ENTRY, LastDiscovered),
+    LWMSG_MEMBER_INT64(LWNET_CACHE_DB_ENTRY, LastPinged),
+    LWMSG_MEMBER_UINT8(LWNET_CACHE_DB_ENTRY, IsBackoffToWritableDc),
+    LWMSG_MEMBER_INT64(LWNET_CACHE_DB_ENTRY, LastBackoffToWritableDc),
     LWMSG_MEMBER_STRUCT_BEGIN(LWNET_CACHE_DB_ENTRY, DcInfo),
     LWMSG_MEMBER_UINT32(LWNET_DC_INFO, dwPingTime),
     LWMSG_MEMBER_UINT32(LWNET_DC_INFO, dwDomainControllerAddressType),
@@ -108,6 +111,18 @@ LWMsgTypeSpec gLWNetCacheEntrySpec[] =
 #define RW_LOCK_RELEASE_WRITE(Lock) \
     pthread_rwlock_unlock(Lock)
 
+#if ENABLE_CACHEDB_DEBUG
+static
+VOID
+DebugEntry(
+    IN PLWNET_CACHE_DB_ENTRY pEntry
+    );
+
+#define DEBUG_ENTRY(pEntry) DebugEntry(pEntry)
+#else
+#define DEBUG_ENTRY(pEntry)
+#endif
+
 static
 DWORD
 LWNetCacheDbReadFromFile(
@@ -139,11 +154,96 @@ LWNetCacheDbUpdate(
     IN LWNET_CACHE_DB_HANDLE DbHandle,
     IN PCSTR pszDnsDomainName,
     IN OPTIONAL PCSTR pszSiteName,
-    IN LWNET_CACHE_DB_QUERY_TYPE QueryType,
-    IN OPTIONAL PLWNET_UNIX_TIME_T LastDiscovered,
-    IN OPTIONAL PLWNET_UNIX_TIME_T LastPinged,
+    IN DWORD dwDsFlags,
+    IN LWNET_UNIX_TIME_T LastDiscovered,
+    IN LWNET_UNIX_TIME_T LastPinged,
+    IN BOOLEAN IsBackoffToWritableDc,
+    IN OPTIONAL LWNET_UNIX_TIME_T LastBackoffToWritableDc,
     IN PLWNET_DC_INFO pDcInfo
     );
+
+#if ENABLE_CACHEDB_DEBUG
+static
+VOID
+DebugEntry(
+    IN PLWNET_CACHE_DB_ENTRY pEntry
+    )
+{
+    struct tm ldTimeFields = { 0 };
+    struct tm lpTimeFields = { 0 };
+    struct tm lwTimeFields = { 0 };
+    time_t ld = (time_t) pEntry->LastDiscovered;
+    time_t lp = (time_t) pEntry->LastPinged;
+    time_t lw = (time_t) pEntry->LastBackoffToWritableDc;
+
+    localtime_r(&ld, &ldTimeFields);
+    localtime_r(&lp, &lpTimeFields);
+    localtime_r(&lw, &lwTimeFields);
+
+    LWNET_LOG_DEBUG("dns=%s, site=%s, type=%u, "
+            "ld=%04d%02d%02d-%02d:%02d:%02d, "
+            "lp=%04d%02d%02d-%02d:%02d:%02d, "
+            "iw=%c, "
+            "lw=%04d%02d%02d-%02d:%02d:%02d",
+            LWNET_SAFE_LOG_STRING(pEntry->pszDnsDomainName),
+            LWNET_SAFE_LOG_STRING(pEntry->pszSiteName),
+            pEntry->QueryType,
+            ldTimeFields.tm_year,
+            ldTimeFields.tm_mon + 1,
+            ldTimeFields.tm_mday,
+            ldTimeFields.tm_hour,
+            ldTimeFields.tm_min,
+            ldTimeFields.tm_sec,
+            lpTimeFields.tm_year,
+            lpTimeFields.tm_mon + 1,
+            lpTimeFields.tm_mday,
+            lpTimeFields.tm_hour,
+            lpTimeFields.tm_min,
+            lpTimeFields.tm_sec,
+            pEntry->IsBackoffToWritableDc ? 'Y' : 'N',
+            lwTimeFields.tm_year,
+            lwTimeFields.tm_mon + 1,
+            lwTimeFields.tm_mday,
+            lwTimeFields.tm_hour,
+            lwTimeFields.tm_min,
+            lwTimeFields.tm_sec);
+    LWNET_LOG_DEBUG("hnb=%s, hdns=%s, haddr=%s (%u), flags=0x%08x, "
+            "dcsite=%s, clisite=%s, ddns=%s, dnb=%s, forest=%s, user=%s, "
+            "ver=%u, lm=%u, nt=%u, ping=%u, "
+            "guid=%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
+            LWNET_SAFE_LOG_STRING(pEntry->DcInfo.pszNetBIOSHostName),
+            LWNET_SAFE_LOG_STRING(pEntry->DcInfo.pszDomainControllerName),
+            LWNET_SAFE_LOG_STRING(pEntry->DcInfo.pszDomainControllerAddress),
+            pEntry->DcInfo.dwDomainControllerAddressType,
+            pEntry->DcInfo.dwFlags,
+            LWNET_SAFE_LOG_STRING(pEntry->DcInfo.pszDCSiteName),
+            LWNET_SAFE_LOG_STRING(pEntry->DcInfo.pszClientSiteName),
+            LWNET_SAFE_LOG_STRING(pEntry->DcInfo.pszFullyQualifiedDomainName),
+            LWNET_SAFE_LOG_STRING(pEntry->DcInfo.pszNetBIOSDomainName),
+            LWNET_SAFE_LOG_STRING(pEntry->DcInfo.pszDnsForestName),
+            LWNET_SAFE_LOG_STRING(pEntry->DcInfo.pszUserName),
+            pEntry->DcInfo.dwVersion,
+            pEntry->DcInfo.wLMToken,
+            pEntry->DcInfo.wNTToken,
+            pEntry->DcInfo.dwPingTime,
+            pEntry->DcInfo.pucDomainGUID[0],
+            pEntry->DcInfo.pucDomainGUID[1],
+            pEntry->DcInfo.pucDomainGUID[2],
+            pEntry->DcInfo.pucDomainGUID[3],
+            pEntry->DcInfo.pucDomainGUID[4],
+            pEntry->DcInfo.pucDomainGUID[5],
+            pEntry->DcInfo.pucDomainGUID[6],
+            pEntry->DcInfo.pucDomainGUID[7],
+            pEntry->DcInfo.pucDomainGUID[8],
+            pEntry->DcInfo.pucDomainGUID[9],
+            pEntry->DcInfo.pucDomainGUID[10],
+            pEntry->DcInfo.pucDomainGUID[11],
+            pEntry->DcInfo.pucDomainGUID[12],
+            pEntry->DcInfo.pucDomainGUID[13],
+            pEntry->DcInfo.pucDomainGUID[14],
+            pEntry->DcInfo.pucDomainGUID[15]);
+}
+#endif
 
 DWORD
 LWNetCacheDbOpen(
@@ -307,6 +407,12 @@ LWNetCacheDbReadFromFile(
     }
     BAIL_ON_LWNET_ERROR(dwError);
 
+    if (dwVersion != FILEDB_FORMAT_VERSION)
+    {
+        dwError = ERROR_BAD_FORMAT;
+        BAIL_ON_LWNET_ERROR(dwError);
+    }
+
     dwError = MAP_LWMSG_ERROR(lwmsg_context_new(NULL, &pContext));
     BAIL_ON_LWNET_ERROR(dwError);
 
@@ -357,8 +463,10 @@ LWNetCacheDbReadFromFile(
                       pCacheEntry->pszDnsDomainName,
                       pCacheEntry->pszSiteName,
                       pCacheEntry->QueryType,
-                      &pCacheEntry->LastDiscovered,
-                      &pCacheEntry->LastPinged,
+                      pCacheEntry->LastDiscovered,
+                      pCacheEntry->LastPinged,
+                      pCacheEntry->IsBackoffToWritableDc,
+                      pCacheEntry->LastBackoffToWritableDc,
                       &pCacheEntry->DcInfo);
         BAIL_ON_LWNET_ERROR(dwError);
 
@@ -577,7 +685,9 @@ LWNetCacheDbQuery(
     IN DWORD dwDsFlags,
     OUT PLWNET_DC_INFO* ppDcInfo,
     OUT PLWNET_UNIX_TIME_T LastDiscovered,
-    OUT PLWNET_UNIX_TIME_T LastPinged
+    OUT PLWNET_UNIX_TIME_T LastPinged,
+    OUT PBOOLEAN IsBackoffToWritableDc,
+    OUT PLWNET_UNIX_TIME_T LastBackoffToWritableDc
     )
 {
     DWORD dwError = 0;
@@ -586,6 +696,8 @@ LWNetCacheDbQuery(
     PLWNET_DC_INFO pDcInfo = NULL;
     LWNET_UNIX_TIME_T lastDiscovered = 0;
     LWNET_UNIX_TIME_T lastPinged = 0;
+    BOOLEAN isBackoffToWritableDc = FALSE;
+    LWNET_UNIX_TIME_T lastBackoffToWritableDc = 0;
     PSTR pszDnsDomainNameLower = NULL;
     PSTR pszSiteNameLower = NULL;
     PLWNET_CACHE_DB_ENTRY pEntry = NULL;
@@ -659,6 +771,8 @@ LWNetCacheDbQuery(
 
     lastDiscovered = pEntry->LastDiscovered;
     lastPinged = pEntry->LastPinged;
+    isBackoffToWritableDc = pEntry->IsBackoffToWritableDc;
+    lastBackoffToWritableDc = pEntry->LastBackoffToWritableDc;
 
     pDcInfo->dwPingTime = pEntry->DcInfo.dwPingTime;
     pDcInfo->dwDomainControllerAddressType = pEntry->DcInfo.dwDomainControllerAddressType;
@@ -734,6 +848,8 @@ error:
     *ppDcInfo = pDcInfo;
     *LastDiscovered = lastDiscovered;
     *LastPinged = lastPinged;
+    *IsBackoffToWritableDc = isBackoffToWritableDc;
+    *LastBackoffToWritableDc = lastBackoffToWritableDc;
 
     return dwError;
 }
@@ -744,18 +860,20 @@ LWNetCacheDbUpdate(
     IN LWNET_CACHE_DB_HANDLE DbHandle,
     IN PCSTR pszDnsDomainName,
     IN OPTIONAL PCSTR pszSiteName,
-    IN LWNET_CACHE_DB_QUERY_TYPE QueryType,
-    IN OPTIONAL PLWNET_UNIX_TIME_T LastDiscovered,
-    IN OPTIONAL PLWNET_UNIX_TIME_T LastPinged,
+    IN DWORD dwDsFlags,
+    IN LWNET_UNIX_TIME_T LastDiscovered,
+    IN LWNET_UNIX_TIME_T LastPinged,
+    IN BOOLEAN IsBackoffToWritableDc,
+    IN OPTIONAL LWNET_UNIX_TIME_T LastBackoffToWritableDc,
     IN PLWNET_DC_INFO pDcInfo
     )
 {
     DWORD dwError = 0;
-    LWNET_UNIX_TIME_T now = 0;
     PLWNET_CACHE_DB_ENTRY pNewEntry = NULL;
     PLWNET_CACHE_DB_ENTRY pOldEntry = NULL;
     PDLINKEDLIST pOldListEntry = NULL;
     BOOLEAN isAcquired = FALSE;
+    LWNET_CACHE_DB_QUERY_TYPE QueryType = LWNetCacheDbQueryToQueryType(dwDsFlags);
 
     dwError = LWNetAllocateMemory(sizeof(*pNewEntry), (PVOID *)&pNewEntry);
     BAIL_ON_LWNET_ERROR(dwError);
@@ -779,11 +897,10 @@ LWNetCacheDbUpdate(
 
     pNewEntry->QueryType = QueryType;
 
-    dwError = LWNetGetSystemTime(&now);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    pNewEntry->LastDiscovered = LastDiscovered ? *LastDiscovered : now;
-    pNewEntry->LastPinged = LastPinged ? *LastPinged : now;
+    pNewEntry->LastDiscovered = LastDiscovered;
+    pNewEntry->LastPinged = LastPinged;
+    pNewEntry->IsBackoffToWritableDc = IsBackoffToWritableDc;
+    pNewEntry->LastBackoffToWritableDc = IsBackoffToWritableDc ? LastBackoffToWritableDc : 0;
     pNewEntry->DcInfo.dwPingTime = pDcInfo->dwPingTime;
     pNewEntry->DcInfo.dwDomainControllerAddressType = pDcInfo->dwDomainControllerAddressType;
     pNewEntry->DcInfo.dwFlags = pDcInfo->dwFlags;
@@ -878,6 +995,8 @@ LWNetCacheDbUpdate(
                   pNewEntry);
     BAIL_ON_LWNET_ERROR(dwError);
 
+    DEBUG_ENTRY(pNewEntry);
+
     pNewEntry = NULL;
 
 error:
@@ -945,7 +1064,127 @@ LWNetCacheDbExport(
     OUT PDWORD pdwCount
     )
 {
+#if 1
     return ERROR_CALL_NOT_IMPLEMENTED;
+#else
+    DWORD dwError = 0;
+    PLWNET_CACHE_DB_ENTRY pEntries = NULL;
+    DWORD dwCount = 0;
+    PDLINKEDLIST pListEntry = NULL;
+    DWORD i = 0;
+
+    RW_LOCK_ACQUIRE_READ(DbHandle->pLock);
+
+    for (pListEntry = DbHandle->pCacheList;
+         pListEntry;
+         pListEntry = pListEntry->pNext)
+    {
+        dwCount++;
+    }
+
+    dwError = LWNetAllocateMemory(sizeof(*pEntries) * dwCount, OUT_PPVOID(&pEntries));
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    i = 0;
+    for (pListEntry = DbHandle->pCacheList;
+         pListEntry;
+         pListEntry = pListEntry->pNext)
+    {
+        PLWNET_CACHE_DB_ENTRY pEntry = (PLWNET_CACHE_DB_ENTRY) pListEntry->pItem;
+        PLWNET_CACHE_DB_ENTRY pNewEntry = &pEntries[i];
+
+        dwError = LWNetAllocateString(
+                        pEntry->pszDnsDomainName,
+                        &pNewEntry->pszDnsDomainName);
+        BAIL_ON_LWNET_ERROR(dwError);
+
+        if (pEntry->pszSiteName)
+        {
+            dwError = LWNetAllocateString(
+                            pEntry->pszSiteName,
+                            &pNewEntry->pszSiteName);
+            BAIL_ON_LWNET_ERROR(dwError);
+        }
+
+        pNewEntry->QueryType = pEntry->QueryType;
+
+        pNewEntry->LastDiscovered = pEntry->LastDiscovered;
+        pNewEntry->LastPinged = pEntry->LastPinged;
+        pNewEntry->IsBackoffToWritableDc = pEntry->IsBackoffToWritableDc;
+        pNewEntry->LastBackoffToWritableDc = pEntry->LastBackoffToWritableDc;
+        pNewEntry->DcInfo.dwPingTime = pEntry->DcInfo.dwPingTime;
+        pNewEntry->DcInfo.dwDomainControllerAddressType = pEntry->DcInfo.dwDomainControllerAddressType;
+        pNewEntry->DcInfo.dwFlags = pEntry->DcInfo.dwFlags;
+        pNewEntry->DcInfo.dwVersion = pEntry->DcInfo.dwVersion;
+        pNewEntry->DcInfo.wLMToken = pEntry->DcInfo.wLMToken;
+        pNewEntry->DcInfo.wNTToken = pEntry->DcInfo.wNTToken;
+
+        dwError = LWNetAllocateString(
+                        pEntry->DcInfo.pszDomainControllerName,
+                        &pNewEntry->DcInfo.pszDomainControllerName);
+        BAIL_ON_LWNET_ERROR(dwError);
+
+        dwError = LWNetAllocateString(
+                        pEntry->DcInfo.pszDomainControllerAddress,
+                        &pNewEntry->DcInfo.pszDomainControllerAddress);
+        BAIL_ON_LWNET_ERROR(dwError);
+
+        memcpy(pNewEntry->DcInfo.pucDomainGUID,
+               pEntry->DcInfo.pucDomainGUID,
+               LWNET_GUID_SIZE);
+
+        dwError = LWNetAllocateString(
+                        pEntry->DcInfo.pszNetBIOSDomainName,
+                        &pNewEntry->DcInfo.pszNetBIOSDomainName);
+        BAIL_ON_LWNET_ERROR(dwError);
+
+        dwError = LWNetAllocateString(
+                        pEntry->DcInfo.pszFullyQualifiedDomainName,
+                        &pNewEntry->DcInfo.pszFullyQualifiedDomainName);
+        BAIL_ON_LWNET_ERROR(dwError);
+
+        dwError = LWNetAllocateString(
+                        pEntry->DcInfo.pszDnsForestName,
+                        &pNewEntry->DcInfo.pszDnsForestName);
+        BAIL_ON_LWNET_ERROR(dwError);
+
+        dwError = LWNetAllocateString(
+                        pEntry->DcInfo.pszDCSiteName,
+                        &pNewEntry->DcInfo.pszDCSiteName);
+        BAIL_ON_LWNET_ERROR(dwError);
+
+        dwError = LWNetAllocateString(
+                        pEntry->DcInfo.pszClientSiteName,
+                        &pNewEntry->DcInfo.pszClientSiteName);
+        BAIL_ON_LWNET_ERROR(dwError);
+
+        dwError = LWNetAllocateString(
+                        pEntry->DcInfo.pszNetBIOSHostName,
+                        &pNewEntry->DcInfo.pszNetBIOSHostName);
+        BAIL_ON_LWNET_ERROR(dwError);
+
+        dwError = LWNetAllocateString(
+                        pEntry->DcInfo.pszUserName,
+                        &pNewEntry->DcInfo.pszUserName);
+        BAIL_ON_LWNET_ERROR(dwError);
+
+        i++;
+    }
+
+cleanup:
+    RW_LOCK_RELEASE_READ(DbHandle->pLock);
+
+    *ppEntries = pEntries;
+    *pdwCount = dwCount;
+
+    return dwError;
+
+error:
+    // TODO: Add free function.
+    pEntries = NULL;
+    dwCount = 0;
+    goto cleanup;
+#endif
 }
 
 DWORD
@@ -979,50 +1218,61 @@ LWNetCacheQuery(
     IN DWORD dwDsFlags,
     OUT PLWNET_DC_INFO* ppDcInfo,
     OUT PLWNET_UNIX_TIME_T LastDiscovered,
-    OUT PLWNET_UNIX_TIME_T LastPinged
+    OUT PLWNET_UNIX_TIME_T LastPinged,
+    OUT PBOOLEAN IsBackoffToWritableDc,
+    OUT PLWNET_UNIX_TIME_T LastBackoffToWritableDc
     )
 {
     return LWNetCacheDbQuery(gDbHandle,
                              pszDnsDomainName, pszSiteName, dwDsFlags,
-                             ppDcInfo, LastDiscovered, LastPinged);
+                             ppDcInfo, LastDiscovered, LastPinged,
+                             IsBackoffToWritableDc, LastBackoffToWritableDc);
 }
 
-
 DWORD
-LWNetCacheUpdatePing(
+LWNetCacheUpdate(
     IN PCSTR pszDnsDomainName,
     IN OPTIONAL PCSTR pszSiteName,
     IN DWORD dwDsFlags,
     IN LWNET_UNIX_TIME_T LastDiscovered,
+    IN LWNET_UNIX_TIME_T LastPinged,
+    IN BOOLEAN IsBackoffToWritableDc,
+    IN OPTIONAL LWNET_UNIX_TIME_T LastBackoffToWritableDc,
     IN PLWNET_DC_INFO pDcInfo
     )
 {
-    return LWNetCacheDbUpdate(
-               gDbHandle,
-               pszDnsDomainName,
-               pszSiteName,
-               LWNetCacheDbQueryToQueryType(dwDsFlags),
-               &LastDiscovered,
-               NULL,
-               pDcInfo);
-}
+    DWORD dwError = 0;
 
-DWORD
-LWNetCacheUpdateDiscover(
-    IN PCSTR pszDnsDomainName,
-    IN OPTIONAL PCSTR pszSiteName,
-    IN DWORD dwDsFlags,
-    IN PLWNET_DC_INFO pDcInfo
-    )
-{
-    return LWNetCacheDbUpdate(
-               gDbHandle,
-               pszDnsDomainName,
-               pszSiteName,
-               LWNetCacheDbQueryToQueryType(dwDsFlags),
-               NULL,
-               NULL,
-               pDcInfo);
+    dwError = LWNetCacheDbUpdate(
+                    gDbHandle,
+                    pszDnsDomainName,
+                    pszSiteName,
+                    dwDsFlags,
+                    LastDiscovered,
+                    LastPinged,
+                    IsBackoffToWritableDc,
+                    LastBackoffToWritableDc,
+                    pDcInfo);
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    if (pDcInfo->pszDCSiteName &&
+        (!pszSiteName || strcasecmp(pszSiteName, pDcInfo->pszDCSiteName)))
+    {
+        dwError = LWNetCacheDbUpdate(
+                        gDbHandle,
+                        pszDnsDomainName,
+                        pDcInfo->pszDCSiteName,
+                        dwDsFlags,
+                        LastDiscovered,
+                        LastPinged,
+                        IsBackoffToWritableDc,
+                        LastBackoffToWritableDc,
+                        pDcInfo);
+        BAIL_ON_LWNET_ERROR(dwError);
+    }
+
+error:
+    return dwError;
 }
 
 DWORD

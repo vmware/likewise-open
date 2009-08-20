@@ -179,7 +179,6 @@ LWNetSrvPingCLdapDerefenceThreadContext(
     }
 }
 
-static
 BOOLEAN
 LWNetSrvIsMatchingDcInfo(
     IN PLWNET_DC_INFO pDcInfo,
@@ -208,13 +207,7 @@ LWNetSrvIsMatchingDcInfo(
          !(pDcInfo->dwFlags & DS_TIMESERV_FLAG))
         ||
         ((dwDsFlags & DS_WRITABLE_REQUIRED) &&
-         !(pDcInfo->dwFlags & DS_WRITEABLE_FLAG))
-        ||
-        ((dwDsFlags & DS_TIMESERV_REQUIRED) &&
-         !(pDcInfo->dwFlags & DS_TIMESERV_FLAG))
-        ||
-        ((dwDsFlags & DS_WRITABLE_REQUIRED) &&
-         !(pDcInfo->dwFlags & DS_WRITEABLE_FLAG))
+         !(pDcInfo->dwFlags & DS_WRITABLE_FLAG))
         ||
         ((dwDsFlags & DS_GOOD_TIMESERV_REQUIRED) &&
          !(pDcInfo->dwFlags & DS_GOOD_TIMESERV_FLAG))
@@ -225,6 +218,40 @@ LWNetSrvIsMatchingDcInfo(
     }
 
     return isMatching;
+}
+
+BOOLEAN
+LWNetSrvIsAffinitizableRequestFlags(
+    IN DWORD dwDsFlags
+    )
+{
+    BOOLEAN isCacheable = TRUE;
+
+    // If any of these conditions are satisfied,
+    // then caching should not be done.
+    if (dwDsFlags & (DS_TIMESERV_REQUIRED | DS_GOOD_TIMESERV_REQUIRED))
+    {
+        isCacheable = FALSE;
+    }
+
+    return isCacheable;
+}
+
+static
+BOOLEAN
+LWNetSrvIsInSameSite(
+    IN PLWNET_DC_INFO pDcInfo
+    )
+{
+    BOOLEAN isInSameSite = FALSE;
+
+    if (pDcInfo->pszDCSiteName && pDcInfo->pszClientSiteName &&
+        !strcasecmp(pDcInfo->pszClientSiteName, pDcInfo->pszDCSiteName))
+    {
+        isInSameSite = TRUE;
+    }
+
+    return isInSameSite;
 }
 
 static
@@ -292,6 +319,20 @@ LWNetSrvPingCLdapThread(
         }
         if (!LWNetSrvIsMatchingDcInfo(pDcInfo, pContext->dwDsFlags))
         {
+            if (LWNetSrvIsMatchingDcInfo(pDcInfo, pContext->dwDsFlags & ~DS_WRITABLE_REQUIRED))
+            {
+                // We found something, but it failed only because it did
+                // not satisfy writability.  We mark this in the context.
+                if (!isAcquired)
+                {
+                    LWNET_CLDAP_THREAD_CONTEXT_ACQUIRE(pContext);
+                    isAcquired = TRUE;
+                }
+                pContext->bFailedFindWritable = TRUE;
+                LWNET_CLDAP_THREAD_CONTEXT_RELEASE(pContext);
+                isAcquired = FALSE;
+            }
+            LWNET_SAFE_FREE_DC_INFO(pDcInfo);
             continue;
         }
         break;
@@ -302,8 +343,11 @@ LWNetSrvPingCLdapThread(
         //
         // Save the result, if appropriate.
         //
-        LWNET_CLDAP_THREAD_CONTEXT_ACQUIRE(pContext);
-        isAcquired = TRUE;
+        if (!isAcquired)
+        {
+            LWNET_CLDAP_THREAD_CONTEXT_ACQUIRE(pContext);
+            isAcquired = TRUE;
+        }
 
         if (!pContext->bIsDone && !pContext->pDcInfo)
         {
@@ -360,7 +404,8 @@ LWNetSrvPingCLdapArray(
     IN DWORD dwServerCount,
     IN OPTIONAL DWORD dwThreadCount,
     IN OPTIONAL DWORD dwTimeoutSeconds,
-    OUT PLWNET_DC_INFO* ppDcInfo
+    OUT PLWNET_DC_INFO* ppDcInfo,
+    OUT PBOOLEAN pbFailedFindWritable
     )
 // TODO: Potentially have a minimum amount of time so we can evaluate multiple
 // ping results (i.e., in a case where the ping starts later due to thread
@@ -379,6 +424,7 @@ LWNetSrvPingCLdapArray(
     LWNET_UNIX_MS_TIME_T now = 0;
     PLWNET_DC_INFO pDcInfo = NULL;
     DWORD i;
+    BOOLEAN bFailedFindWritable = FALSE;
 
     if (dwThreadCount > 0)
     {
@@ -484,6 +530,7 @@ error:
             // Stop processing any more
             pContext->bIsDone = TRUE;
             pContext->dwServerIndex = pContext->dwServerCount;
+            bFailedFindWritable = pContext->bFailedFindWritable;
         }
         if (isAcquired)
         {
@@ -501,6 +548,7 @@ error:
         LWNET_SAFE_FREE_DC_INFO(pDcInfo);
     }
     *ppDcInfo = pDcInfo;
+    *pbFailedFindWritable = pDcInfo ? FALSE : bFailedFindWritable;
     return dwError;
 }
 
@@ -571,7 +619,8 @@ LWNetSrvGetDCNameDiscoverInternal(
     IN PLWNET_DC_LIST_QUERY_METHOD pfnDCListQuery,
     OUT PLWNET_DC_INFO* ppDcInfo,
     OUT OPTIONAL PDNS_SERVER_INFO* ppServerArray,
-    OUT OPTIONAL PDWORD pdwServerCount
+    OUT OPTIONAL PDWORD pdwServerCount,
+    OUT PBOOLEAN bFailedFindWritable
     );
 
 DWORD
@@ -583,7 +632,8 @@ LWNetSrvGetDCNameDiscover(
     IN OPTIONAL PSTR* ppszAddressBlackList,
     OUT PLWNET_DC_INFO* ppDcInfo,
     OUT OPTIONAL PDNS_SERVER_INFO* ppServerArray,
-    OUT OPTIONAL PDWORD pdwServerCount
+    OUT OPTIONAL PDWORD pdwServerCount,
+    OUT PBOOLEAN pbFailedFindWritable
     )
 {
     DWORD dwError = 0;
@@ -599,7 +649,8 @@ LWNetSrvGetDCNameDiscover(
                   LWNetGetPreferredDcList,
                   ppDcInfo,
                   ppServerArray,
-                  pdwServerCount);
+                  pdwServerCount,
+                  pbFailedFindWritable);
     if (dwError == ERROR_SUCCESS)
     {
         goto cleanup;
@@ -616,7 +667,8 @@ LWNetSrvGetDCNameDiscover(
                   LWNetDnsSrvQuery,
                   ppDcInfo,
                   ppServerArray,
-                  pdwServerCount);
+                  pdwServerCount,
+                  pbFailedFindWritable);
     BAIL_ON_LWNET_ERROR(dwError);
 
 cleanup:
@@ -639,7 +691,8 @@ LWNetSrvGetDCNameDiscoverInternal(
     IN PLWNET_DC_LIST_QUERY_METHOD pfnDCListQuery,
     OUT PLWNET_DC_INFO* ppDcInfo,
     OUT OPTIONAL PDNS_SERVER_INFO* ppServerArray,
-    OUT OPTIONAL PDWORD pdwServerCount
+    OUT OPTIONAL PDWORD pdwServerCount,
+    OUT PBOOLEAN pbFailedFindWritable
     )
 //
 // Algorithm:
@@ -654,11 +707,15 @@ LWNetSrvGetDCNameDiscoverInternal(
 //
 {
     DWORD dwError = 0;
+    PLWNET_DC_INFO pDcInfo = NULL;
     PDNS_SERVER_INFO pServerArray = NULL;
     DWORD dwServerCount = 0;
-    PLWNET_DC_INFO pDcInfo = NULL;
-    PSTR pszClientSiteName = NULL;
+    PLWNET_DC_INFO pSiteDcInfo = NULL;
+    PDNS_SERVER_INFO pSiteServerArray = NULL;
+    DWORD dwSiteServerCount = 0;
+    BOOLEAN bFailedFindWritable = FALSE;
 
+    // Get server list
     dwError = pfnDCListQuery(pszDnsDomainName,
                              pszSiteName,
                              dwDsFlags,
@@ -677,78 +734,89 @@ LWNetSrvGetDCNameDiscoverInternal(
         BAIL_ON_LWNET_ERROR(dwError);
     }
 
-    // If we do not have a site, use CLDAP to one DC to get the desired site.
-    if (IsNullOrEmptyString(pszSiteName))
+    // Do CLDAP
+    dwError = LWNetSrvPingCLdapArray(pszDnsDomainName,
+                                     dwDsFlags,
+                                     pServerArray, dwServerCount,
+                                     0, 0, &pDcInfo, &bFailedFindWritable);
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    // If there is no client site, then we are done (though we do not
+    // expect this to ever happen).
+    if (IsNullOrEmptyString(pDcInfo->pszClientSiteName))
     {
-        dwError = LWNetSrvPingCLdapArray(pszDnsDomainName,
-                                         dwDsFlags,
-                                         pServerArray, dwServerCount,
-                                         0, 0, &pDcInfo);
-        BAIL_ON_LWNET_ERROR(dwError);
-
-        // If there is no site, then we are done (though we do not
-        // expect this to ever happen).
-        if (IsNullOrEmptyString(pDcInfo->pszClientSiteName))
-        {
-            LWNET_LOG_ALWAYS("Missing client site name");
-            dwError = 0;
-            goto cleanup;
-        }
-
-        // ISSUE-2008/07/03-dalmeida -- re-enable this after testing
-#if 0
-        // If we got the correct site already, we are done
-        if (!strcasecmp(pDcInfo->pszClientSiteName, pDcInfo->pszDCSiteName))
-        {
-            dwError = 0;
-            goto cleanup;
-        }
-#endif
-
-        dwError = LWNetAllocateString(pDcInfo->pszClientSiteName,
-                                      &pszClientSiteName);
-        BAIL_ON_LWNET_ERROR(dwError);
-
-        LWNET_SAFE_FREE_DC_INFO(pDcInfo);
-        LWNET_SAFE_FREE_MEMORY(pServerArray);
-        dwServerCount = 0;
-
-        dwError = LWNetSrvGetDCNameDiscover(pszDnsDomainName,
-                                            pszClientSiteName,
-                                            dwDsFlags,
-                                            dwBlackListCount,
-                                            ppszAddressBlackList,
-                                            &pDcInfo,
-                                            &pServerArray, &dwServerCount);
-        BAIL_ON_LWNET_ERROR(dwError);
+        LWNET_LOG_ALWAYS("Missing client site name from "
+                "DC response from %s (%s)",
+                LWNET_SAFE_LOG_STRING(pDcInfo->pszDomainControllerName),
+                LWNET_SAFE_LOG_STRING(pDcInfo->pszDomainControllerAddress));
+        goto cleanup;
     }
-    else
+
+    // If a site was passed in, there is nothing more to do.
+    if (!IsNullOrEmptyString(pszSiteName))
     {
-        dwError = LWNetSrvPingCLdapArray(pszDnsDomainName,
-                                         dwDsFlags,
-                                         pServerArray, dwServerCount,
-                                         0, 0, &pDcInfo);
-        BAIL_ON_LWNET_ERROR(dwError);
-
-        // ISSUE-2008/07/02-dalmeida -- clean this up.
-        if (IsNullOrEmptyString(pDcInfo->pszClientSiteName))
-        {
-            LWNET_LOG_ALWAYS("Missing client site name");
-            dwError = 0;
-            goto cleanup;
-        }
-
+        goto cleanup;
     }
+
+    // There was no site passed in, so we need to look at the
+    // CLDAP response to get the client site.
+
+    // If we got the correct site already, we are done.
+    if (LWNetSrvIsInSameSite(pDcInfo))
+    {
+        dwError = 0;
+        goto cleanup;
+    }
+
+    // Now we need to use the client site to find a site-specific DC.
+    dwError = LWNetSrvGetDCNameDiscover(pszDnsDomainName,
+                                        pDcInfo->pszClientSiteName,
+                                        dwDsFlags,
+                                        dwBlackListCount,
+                                        ppszAddressBlackList,
+                                        &pSiteDcInfo,
+                                        &pSiteServerArray, &dwSiteServerCount,
+                                        &bFailedFindWritable);
+    if (NERR_DCNotFound == dwError)
+    {
+        if (bFailedFindWritable)
+        {
+            LWNET_LOG_WARNING("No writable DC in client site '%s' for domain '%s'",
+                              pDcInfo->pszClientSiteName,
+                              pszDnsDomainName);
+        }
+        // Count not find site-specific DC, so use the original DC.
+        dwError = 0;
+        goto cleanup;
+    }
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    // Use the site-specific DC.
+    LWNET_SAFE_FREE_DC_INFO(pDcInfo);
+    LWNET_SAFE_FREE_MEMORY(pServerArray);
+    dwServerCount = 0;
+
+    pDcInfo = pSiteDcInfo;
+    pServerArray = pSiteServerArray;
+    dwServerCount = dwSiteServerCount;
+
+    pSiteDcInfo = NULL;
+    pSiteServerArray = NULL;
+    dwSiteServerCount = 0;
 
 error:
 cleanup:
-    LWNET_SAFE_FREE_STRING(pszClientSiteName);
+    LWNET_SAFE_FREE_DC_INFO(pSiteDcInfo);
+    LWNET_SAFE_FREE_MEMORY(pSiteServerArray);
+    dwSiteServerCount = 0;
+
     if (dwError)
     {
         LWNET_SAFE_FREE_DC_INFO(pDcInfo);
         LWNET_SAFE_FREE_MEMORY(pServerArray);
         dwServerCount = 0;
     }
+
     *ppDcInfo = pDcInfo;
     if (ppServerArray)
     {
@@ -759,6 +827,8 @@ cleanup:
     {
         LWNET_SAFE_FREE_MEMORY(pServerArray);
     }
+    *pbFailedFindWritable = bFailedFindWritable;
+
     return dwError;
 }
 

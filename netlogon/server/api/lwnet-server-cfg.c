@@ -54,9 +54,24 @@
 
 typedef struct _LWNET_SERVER_CONFIG {
     PSTR pszPluginPath;
+    DWORD dwPingAgainTimeoutSeconds;
+    DWORD dwNegativeCacheTimeoutSeconds;
+    DWORD dwWritableRediscoveryTimeoutSeconds;
+    DWORD dwWritableTimestampMinimumChangeSeconds;
 } LWNET_SERVER_CONFIG, *PLWNET_SERVER_CONFIG;
 
-LWNET_SERVER_CONFIG gLWNetServerConfig;
+#define LWNET_PING_AGAIN_TIMEOUT_SECONDS (15 * 60)
+#define LWNET_NEGATIVE_CACHE_TIMEOUT_SECONDS (1 * 60)
+
+#define LWNET_WRITABLE_REDISCOVERY_TIMEOUT_SECONDS (30 * 60)
+#define LWNET_WRITABLE_TIMESTAMP_MINIMUM_CHANGE_SECONDS (0 * 60)
+
+LWNET_SERVER_CONFIG gLWNetServerConfig = {
+    .dwPingAgainTimeoutSeconds = LWNET_PING_AGAIN_TIMEOUT_SECONDS,
+    .dwNegativeCacheTimeoutSeconds = LWNET_NEGATIVE_CACHE_TIMEOUT_SECONDS,
+    .dwWritableRediscoveryTimeoutSeconds = LWNET_WRITABLE_REDISCOVERY_TIMEOUT_SECONDS,
+    .dwWritableTimestampMinimumChangeSeconds = LWNET_WRITABLE_TIMESTAMP_MINIMUM_CHANGE_SECONDS,
+};
 
 //
 // Local Prototypes
@@ -161,6 +176,38 @@ LWNetSrvCfgNameValuePair(
             BAIL_ON_LWNET_ERROR(dwError);
         }
     }
+    else if (!strcmp(pszName, "ping-again-timeout"))
+    {
+        if (!IsNullOrEmptyString(pszValue))
+        {
+            dwError = LWNetParseDateString(pszValue, &gLWNetServerConfig.dwPingAgainTimeoutSeconds);
+            BAIL_ON_LWNET_ERROR(dwError);
+        }
+    }
+    else if (!strcmp(pszName, "negative-cache-timeout"))
+    {
+        if (!IsNullOrEmptyString(pszValue))
+        {
+            dwError = LWNetParseDateString(pszValue, &gLWNetServerConfig.dwNegativeCacheTimeoutSeconds);
+            BAIL_ON_LWNET_ERROR(dwError);
+        }
+    }
+    else if (!strcmp(pszName, "writable-rediscovery-timeout"))
+    {
+        if (!IsNullOrEmptyString(pszValue))
+        {
+            dwError = LWNetParseDateString(pszValue, &gLWNetServerConfig.dwWritableRediscoveryTimeoutSeconds);
+            BAIL_ON_LWNET_ERROR(dwError);
+        }
+    }
+    else if (!strcmp(pszName, "writable-timestamp-minimum-change"))
+    {
+        if (!IsNullOrEmptyString(pszValue))
+        {
+            dwError = LWNetParseDateString(pszValue, &gLWNetServerConfig.dwWritableTimestampMinimumChangeSeconds);
+            BAIL_ON_LWNET_ERROR(dwError);
+        }
+    }
 
 cleanup:
     *pbContinue = bContinue;
@@ -172,9 +219,40 @@ error:
 }
 
 PCSTR
-LWGetPluginPath(
+LWNetConfigGetPluginPath(
     VOID
     )
 {
     return gLWNetServerConfig.pszPluginPath;
+}
+
+DWORD
+LWNetConfigGetPingAgainTimeoutSeconds(
+    VOID
+    )
+{
+    return gLWNetServerConfig.dwPingAgainTimeoutSeconds;
+}
+
+DWORD
+LWNetConfigGetNegativeCacheTimeoutSeconds(
+    VOID
+    )
+{
+    return gLWNetServerConfig.dwNegativeCacheTimeoutSeconds;
+}
+
+DWORD
+LWNetConfigGetWritableRediscoveryTimeoutSeconds(
+    VOID
+    )
+{
+    return gLWNetServerConfig.dwWritableRediscoveryTimeoutSeconds;
+}
+DWORD
+LWNetConfigGetWritableTimestampMinimumChangeSeconds(
+    VOID
+    )
+{
+    return gLWNetServerConfig.dwWritableTimestampMinimumChangeSeconds;
 }

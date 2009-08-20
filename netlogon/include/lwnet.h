@@ -89,13 +89,13 @@ typedef LW_INT64 LWNET_UNIX_TIME_T, *PLWNET_UNIX_TIME_T;
 #define DS_KDC_FLAG            0x00000020    //DC is running a KDC
 #define DS_TIMESERV_FLAG       0x00000040    //DC is running the time service
 #define DS_CLOSEST_FLAG        0x00000080    //DC is the closest one to the client.
-#define DS_WRITEABLE_FLAG      0x00000100    //DC has a writable DS
+#define DS_WRITABLE_FLAG       0x00000100    //DC has a writable DS
 #define DS_GOOD_TIMESERV_FLAG  0x00000200    //DC is running time service and has clock hardware 
 #define DS_NDNC_FLAG           0x00000400    //Non-Domain NC
 #define DS_PING_FLAGS          0x0000FFFF    //bitmask of flags returned on ping
 
 #define DS_DNS_CONTROLLER_FLAG 0x20000000    //DomainControllerName is a DNS name
-#define DS_DOMAIN_FLAG         0x40000000    //DomainName is a DNS name
+#define DS_DNS_DOMAIN_FLAG     0x40000000    //DomainName is a DNS name
 #define DS_DNS_FOREST_FLAG     0x80000000    //DnsForestName is a DNS name
 
 #define LWNET_SUPPORTED_DS_OUTPUT_FLAGS   (DS_PDC_FLAG       | \
@@ -104,12 +104,12 @@ typedef LW_INT64 LWNET_UNIX_TIME_T, *PLWNET_UNIX_TIME_T;
                                           DS_KDC_FLAG       | \
                                           DS_TIMESERV_FLAG  | \
                                           DS_CLOSEST_FLAG   | \
-                                          DS_WRITEABLE_FLAG | \
+                                          DS_WRITABLE_FLAG | \
                                           DS_GOOD_TIMESERV_FLAG)
 
 #define LWNET_UNSUPPORTED_DS_OUTPUT_FLAGS   (DS_NDNC_FLAG    | \
                                             DS_DNS_CONTROLLER_FLAG | \
-                                            DS_DOMAIN_FLAG  | \
+                                            DS_DNS_DOMAIN_FLAG  | \
                                             DS_DNS_FOREST_FLAG)
 
 

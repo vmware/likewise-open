@@ -74,6 +74,12 @@ typedef struct _LWNET_CACHE_DB_ENTRY {
     LWNET_CACHE_DB_QUERY_TYPE QueryType;
     LWNET_UNIX_TIME_T LastDiscovered;
     LWNET_UNIX_TIME_T LastPinged;
+
+    // If set, this entry was a result of having to back
+    // off from the standard result set to get a writable DC.
+    BOOLEAN IsBackoffToWritableDc;
+    LWNET_UNIX_TIME_T LastBackoffToWritableDc;
+
     LWNET_DC_INFO DcInfo;
 } LWNET_CACHE_DB_ENTRY, *PLWNET_CACHE_DB_ENTRY;
 
@@ -110,7 +116,9 @@ LWNetCacheDbQuery(
     IN DWORD dwDsFlags,
     OUT PLWNET_DC_INFO* ppDcInfo,
     OUT PLWNET_UNIX_TIME_T LastDiscovered,
-    OUT PLWNET_UNIX_TIME_T LastPinged
+    OUT PLWNET_UNIX_TIME_T LastPinged,
+    OUT PBOOLEAN IsBackoffToWritableDc,
+    OUT PLWNET_UNIX_TIME_T LastBackoffToWritableDc
     );
 
 DWORD
@@ -145,23 +153,20 @@ LWNetCacheQuery(
     IN DWORD dwDsFlags,
     OUT PLWNET_DC_INFO* ppDcInfo,
     OUT PLWNET_UNIX_TIME_T LastDiscovered,
-    OUT PLWNET_UNIX_TIME_T LastPinged
+    OUT PLWNET_UNIX_TIME_T LastPinged,
+    OUT PBOOLEAN IsBackoffToWritableDc,
+    OUT PLWNET_UNIX_TIME_T LastBackoffToWritableDc
     );
 
 DWORD
-LWNetCacheUpdatePing(
+LWNetCacheUpdate(
     IN PCSTR pszDnsDomainName,
     IN OPTIONAL PCSTR pszSiteName,
     IN DWORD dwDsFlags,
     IN LWNET_UNIX_TIME_T LastDiscovered,
-    IN PLWNET_DC_INFO pDcInfo
-    );
-
-DWORD
-LWNetCacheUpdateDiscover(
-    IN PCSTR pszDnsDomainName,
-    IN OPTIONAL PCSTR pszSiteName,
-    IN DWORD dwDsFlags,
+    IN LWNET_UNIX_TIME_T LastPinged,
+    IN BOOLEAN IsBackoffToWritableDc,
+    IN OPTIONAL LWNET_UNIX_TIME_T LastBackoffToWritableDc,
     IN PLWNET_DC_INFO pDcInfo
     );
 

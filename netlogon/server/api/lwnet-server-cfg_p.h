@@ -55,7 +55,27 @@ LWNetSrvParseConfigFile(
     );
 
 PCSTR
-LWGetPluginPath(
+LWNetConfigGetPluginPath(
+    VOID
+    );
+
+DWORD
+LWNetConfigGetPingAgainTimeoutSeconds(
+    VOID
+    );
+
+DWORD
+LWNetConfigGetNegativeCacheTimeoutSeconds(
+    VOID
+    );
+
+DWORD
+LWNetConfigGetWritableRediscoveryTimeoutSeconds(
+    VOID
+    );
+
+DWORD
+LWNetConfigGetWritableTimestampMinimumChangeSeconds(
     VOID
     );
 
