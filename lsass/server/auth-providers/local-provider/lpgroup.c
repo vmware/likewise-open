@@ -2650,11 +2650,11 @@ LocalDirGetGroupMembershipByProvider(
 
     if (dwNumEntries == 0)
     {
-        dwError = LSA_ERROR_NO_SUCH_USER;
+        dwError = LW_ERROR_NO_SUCH_USER;
     }
     else if (dwNumEntries == 0)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
     }
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -2669,7 +2669,7 @@ LocalDirGetGroupMembershipByProvider(
 
     if (!pwszDN)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -2685,8 +2685,8 @@ LocalDirGetGroupMembershipByProvider(
     *pppMembershipInfo = ppMembershipInfo;
 
 cleanup:
-    LSA_SAFE_FREE_STRING(pszFilter);
-    LSA_SAFE_FREE_MEMORY(pwszFilter);
+    LW_SAFE_FREE_STRING(pszFilter);
+    LW_SAFE_FREE_MEMORY(pwszFilter);
 
     if (pEntries)
     {

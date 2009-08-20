@@ -3411,7 +3411,7 @@ AD_GetGroupMembershipByProvider(
     OUT PVOID   **pppMembershipInfo
     )
 {
-    return LSA_ERROR_NOT_HANDLED;
+    return LW_ERROR_NOT_HANDLED;
 }
 
 static
