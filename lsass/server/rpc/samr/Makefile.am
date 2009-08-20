@@ -51,8 +51,8 @@ DCEIDL_PASS_INCLUDES = \
 FEATURETEST_FLAGS="-D_XOPEN_SOURCE=500 -D__EXTENSIONS__ -D_REENTRANT"
 
 libsamr_la_CFLAGS = \
+    -g                      \
     -DLIBRPC_BUILD          \
-    $(AM_CFLAGS)            \
     $(FEATURETEST_FLAGS)    \
     -I$(srv_srcdir)/include \
     -I$(top_srcdir)/include \
