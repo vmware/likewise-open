@@ -1707,6 +1707,46 @@ error:
 
 
 DWORD
+LocalGetGroupMembershipByProvider(
+    IN HANDLE    hProvider,
+    IN PCSTR     pszSid,
+    IN DWORD     dwGroupInfoLevel,
+    OUT PDWORD   pdwGroupsCount,
+    OUT PVOID  **pppMembershipInfo
+    )
+{
+    DWORD dwError = 0;
+    DWORD dwGroupsCount = 0;
+    PVOID *ppMembershipInfo = NULL;
+
+    BAIL_ON_INVALID_HANDLE(hProvider);
+
+    dwError = LocalCheckForQueryAccess(hProvider);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LocalDirGetGroupMembershipByProvider(
+                         hProvider,
+                         pszSid,
+                         dwGroupInfoLevel,
+                         &dwGroupsCount,
+                         &ppMembershipInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    *pdwGroupsCount    = dwGroupsCount;
+    *pppMembershipInfo = ppMembershipInfo;
+
+cleanup:
+    return dwError;
+
+error:
+    *pdwGroupsCount    = 0;
+    *pppMembershipInfo = NULL;
+
+    goto cleanup;
+}
+
+
+DWORD
 LSA_SHUTDOWN_PROVIDER(local)(
     PSTR pszProviderName,
     PLSA_PROVIDER_FUNCTION_TABLE pFnTable

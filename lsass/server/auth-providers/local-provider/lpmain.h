@@ -365,6 +365,16 @@ LocalGetGroupMembership(
     PVOID *ppOutputBuffer
     );
 
+DWORD
+LocalGetGroupMembershipByProvider(
+    IN HANDLE     hProvider,
+    IN PCSTR      pszSid,
+    IN DWORD      dwGroupInfoLevel,
+    OUT PDWORD    pdwGroupsCount,
+    OUT PVOID   **ppMembershipInfo
+    );
+
+
 #endif /* __PROVIDER_MAIN_H__ */
 
 

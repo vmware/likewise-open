@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -198,6 +198,15 @@ LocalDirFreeGroupMemberList(
 VOID
 LocalDirFreeGroupMember(
     PLOCAL_PROVIDER_GROUP_MEMBER pMember
+    );
+
+DWORD
+LocalDirGetGroupMembershipByProvider(
+    IN HANDLE    hProvider,
+    IN PCSTR     pszSid,
+    IN DWORD     dwGroupInfoLevel,
+    OUT PDWORD   pdwGroupsCount,
+    OUT PVOID  **pppMembershipInfo
     );
 
 #endif /* __LP_GROUP_H__ */
