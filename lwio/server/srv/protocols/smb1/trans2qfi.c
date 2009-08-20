@@ -116,12 +116,16 @@ SrvProcessTrans2QueryFileInformation(
                             &pTrans2State->pFile);
             BAIL_ON_NT_STATUS(ntStatus);
 
+            pTrans2State->stage = SRV_TRANS2_STAGE_SMB_V1_ATTEMPT_IO;
+
             // intentional fall through
 
         case SRV_TRANS2_STAGE_SMB_V1_ATTEMPT_IO:
 
             ntStatus = SrvQueryFileInfo(pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
+
+            pTrans2State->stage = SRV_TRANS2_STAGE_SMB_V1_BUILD_RESPONSE;
 
             // intentional fall through
 
