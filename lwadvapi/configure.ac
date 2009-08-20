@@ -202,8 +202,11 @@ AC_SUBST(LIBUNISTR_LIBS)
 AC_SUBST(LIBUUID_LIBS)
 AC_SUBST(RT_LIBS)
 
+AC_FUNC_MALLOC
+AC_FUNC_REALLOC
 AC_CHECK_FUNCS([strndup strncasecmp])
 AC_CHECK_FUNCS([strtoll __strtoll strtoull __strtoull strtol strtoul])
+AC_CHECK_DECLS([isblank], [], [], [#include <ctype.h>])
 
 old_LDFLAGS="$LDFLAGS"
 LDFLAGS="$LDFLAGS $RT_LIBS"

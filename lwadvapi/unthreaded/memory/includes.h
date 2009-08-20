@@ -42,5 +42,6 @@
 #include "lwmem.h"
 #include "lwstr.h"
 #include "lwdef.h"
+#include "sysfuncs_p.h"
 
 #endif /* __INCLUDES_H__ */

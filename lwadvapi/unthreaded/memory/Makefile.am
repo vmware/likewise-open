@@ -3,6 +3,7 @@ AM_CPPFLAGS = -I$(top_srcdir)/include
 noinst_LTLIBRARIES = liblwadvapi_memory.la
 
 liblwadvapi_memory_la_SOURCES = \
+       sysfuncs.c    \
        lwmem.c    \
        lwstr.c
 
