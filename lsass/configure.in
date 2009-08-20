@@ -920,12 +920,10 @@ AC_CONFIG_FILES([Makefile
                  common/ipc/Makefile
                  common/ipc/api/Makefile
                  common/ipc/ad/Makefile
-                 common/ipc/local/Makefile
                  common/ipc/ntlm/Makefile
                  client/Makefile
                  client/api/Makefile
                  client/ad/Makefile
-                 client/local/Makefile
                  client/ntlm/Makefile
                  logging_r/Makefile
                  lsaunistr/Makefile

@@ -355,17 +355,6 @@ LocalIoControl(
     );
 
 DWORD
-LocalGetGroupMembership(
-    HANDLE hProvider,
-    uid_t  peerUID,
-    gid_t  peerGID,
-    DWORD  dwInputBufferSize,
-    PVOID  pInputBuffer,
-    PDWORD pdwOutputBufferSize,
-    PVOID *ppOutputBuffer
-    );
-
-DWORD
 LocalGetGroupMembershipByProvider(
     IN HANDLE     hProvider,
     IN PCSTR      pszSid,

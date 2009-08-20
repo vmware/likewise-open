@@ -62,7 +62,6 @@
 #include "lsaunistr.h"
 
 #include "lsaprovider.h"
-#include "lsalocalprovider.h"
 #include "directory.h"
 
 #include "lpdefs.h"
