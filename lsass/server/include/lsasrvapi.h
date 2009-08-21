@@ -398,6 +398,16 @@ LsaSrvProviderIoControl(
     OUT PVOID* ppOutputBuffer
     );
 
+DWORD
+LsaSrvGetGroupMembershipByProvider(
+    IN  HANDLE hServer,
+    IN  PCSTR  pszProvider,
+    IN  PCSTR  pszSid,
+    IN  DWORD  dwGroupInfoLevel,
+    OUT PDWORD pdwGroupsCount,
+    OUT PVOID  **pppMembershipInfo
+    );
+
 
 #endif /* __LSASRVAPI_H__ */
 

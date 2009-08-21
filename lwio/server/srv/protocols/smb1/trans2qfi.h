@@ -32,36 +32,47 @@
 
 NTSTATUS
 SrvProcessTrans2QueryFileInformation(
-    PSRV_EXEC_CONTEXT           pExecContext,
-    PTRANSACTION_REQUEST_HEADER pRequestHeader,
-    PUSHORT                     pSetup,
-    PUSHORT                     pByteCount,
-    PBYTE                       pParameters,
-    PBYTE                       pData
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+NTSTATUS
+SrvQueryFileBasicInfo(
+    PSRV_EXEC_CONTEXT pExecContext
     );
 
 NTSTATUS
 SrvBuildQueryFileBasicInfoResponse(
-    PSRV_EXEC_CONTEXT pExecContext,
-    IO_FILE_HANDLE    hFile
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+NTSTATUS
+SrvQueryFileStandardInfo(
+    PSRV_EXEC_CONTEXT pExecContext
     );
 
 NTSTATUS
 SrvBuildQueryFileStandardInfoResponse(
-    PSRV_EXEC_CONTEXT pExecContext,
-    IO_FILE_HANDLE    hFile
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+NTSTATUS
+SrvQueryFileEAInfo(
+    PSRV_EXEC_CONTEXT pExecContext
     );
 
 NTSTATUS
 SrvBuildQueryFileEAInfoResponse(
-    PSRV_EXEC_CONTEXT pExecContext,
-    IO_FILE_HANDLE    hFile
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+NTSTATUS
+SrvQueryFileStreamInfo(
+    PSRV_EXEC_CONTEXT pExecContext
     );
 
 NTSTATUS
 SrvBuildQueryFileStreamInfoResponse(
-    PSRV_EXEC_CONTEXT pExecContext,
-    IO_FILE_HANDLE    hFile
+    PSRV_EXEC_CONTEXT pExecContext
     );
 
 #endif /* __SRV_TRANS2QFI_H__ */

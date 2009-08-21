@@ -33,7 +33,7 @@
 #include <lwnet.h>
 
 NTSTATUS
-NetpGetDcName(
+NetpGetRwDcName(
     const wchar16_t *DnsDomainName,
     BOOLEAN Force,
     wchar16_t** DomainControllerName
@@ -42,8 +42,13 @@ NetpGetDcName(
     DWORD dwError = 0;
     wchar16_t *domain_controller_name = NULL;
     char *dns_domain_name_mbs = NULL;
-    DWORD get_dc_name_flags = Force ? DS_FORCE_REDISCOVERY : 0;
+    DWORD get_dc_name_flags = DS_WRITABLE_REQUIRED;
     PLWNET_DC_INFO pDC = NULL;
+
+    if (Force)
+    {
+        get_dc_name_flags |= DS_FORCE_REDISCOVERY;
+    }
 
     dns_domain_name_mbs = awc16stombs(DnsDomainName);
     if (!dns_domain_name_mbs)

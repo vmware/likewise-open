@@ -4,3 +4,7 @@
 
 [netlogond]
 # plugin-path=
+# ping-again-timeout = 15m
+# negative-cache-timeout = 1m
+# writable-rediscovery-timeout = 30m
+# writable-timestamp-minimum-change = 0m

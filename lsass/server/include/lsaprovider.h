@@ -279,6 +279,14 @@ typedef DWORD (*PFNPROVIDER_IO_CONTROL) (
                 PVOID* ppOutputBuffer
                 );
 
+typedef DWORD (*PFNGETGROUPMEMBERSHIPBYPROV)(
+                IN HANDLE     hProvider,
+                IN PCSTR      pszSid,
+                IN DWORD      dwGroupInfoLevel,
+                OUT PDWORD    pdwGroupsCount,
+                OUT PVOID   **pppMembershipInfo
+                );
+
 typedef struct __LSA_PROVIDER_FUNCTION_TABLE
 {
     PFNOPENHANDLE                  pfnOpenHandle;
@@ -318,6 +326,7 @@ typedef struct __LSA_PROVIDER_FUNCTION_TABLE
     PFNFREE_STATUS                 pfnFreeStatus;
     PFNREFRESH_CONFIGURATION       pfnRefreshConfiguration;
     PFNPROVIDER_IO_CONTROL         pfnProviderIoControl;
+    PFNGETGROUPMEMBERSHIPBYPROV    pfnGetGroupMembershipByProvider;
 } LSA_PROVIDER_FUNCTION_TABLE, *PLSA_PROVIDER_FUNCTION_TABLE;
 
 #define LSA_SYMBOL_NAME_INITIALIZE_PROVIDER "LsaInitializeProvider"

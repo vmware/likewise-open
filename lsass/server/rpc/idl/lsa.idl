@@ -136,7 +136,18 @@ cpp_quote("#endif")
     NTSTATUS _lsa_Function36();
     NTSTATUS _lsa_Function37();
     NTSTATUS _lsa_Function38();
-    NTSTATUS _lsa_Function39();
+
+    /* function 0x39 */
+    NTSTATUS __LsaLookupSids2(
+        [in] POLICY_HANDLE hPolicy,
+        [in] SidArray *sids,
+        [out] RefDomainList **domains,
+        [in,out] TranslatedNameArray *names,
+        [in] uint16 level,
+        [in,out] uint32 *count,
+        [in] uint32 unknown1,
+        [in] uint32 unknown2
+        );
 
 	/* function 0x3a */
     NTSTATUS __LsaLookupNames2(
@@ -161,6 +172,7 @@ cpp_quote("#endif")
     NTSTATUS _lsa_Function42();
     NTSTATUS _lsa_Function43();
 
+    /* function 0x44 */
     NTSTATUS __LsaLookupNames3(
         [in] POLICY_HANDLE hPolicy,
         [in,range(0,1000)] uint32 num_names,

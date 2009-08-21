@@ -25,6 +25,7 @@ libsamr_la_SOURCES = \
     samr_opendomain.c            \
     samr_close.c                 \
     samr_lookupnames.c           \
+    samr_lookuprids.c            \
     samr_openaccount.c           \
     samr_openuser.c              \
     samr_openalias.c             \
@@ -39,6 +40,8 @@ libsamr_la_SOURCES = \
     samr_createdomalias.c        \
     samr_querydisplayinfo.c      \
     samr_querydomaininfo.c       \
+    samr_getmembersinalias.c     \
+    samr_getaliasmembership.c    \
     samr_contexthandle.c
 
 DCEIDL_PASS_INCLUDES = \
@@ -49,6 +52,7 @@ DCEIDL_PASS_INCLUDES = \
 FEATURETEST_FLAGS="-D_XOPEN_SOURCE=500 -D__EXTENSIONS__ -D_REENTRANT"
 
 libsamr_la_CFLAGS = \
+    -g                      \
     -DLIBRPC_BUILD          \
     $(FEATURETEST_FLAGS)    \
     -I$(srv_srcdir)/include \
@@ -64,7 +68,8 @@ libsamr_la_LIBADD = \
     $(LIBUNISTR_LIBS)                     \
     $(LWBASE_LIBS)                        \
     $(srv_srcdir)/api/liblsaserverapi.la  \
-    $(srv_srcdir)/store/dsapi/libdsapi.la
+    $(srv_srcdir)/store/dsapi/libdsapi.la \
+    $(top_srcdir)/common/liblsacommon.la
 
 
 libsamr_ss_la_SOURCES = \

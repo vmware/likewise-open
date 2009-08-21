@@ -201,7 +201,7 @@ SamrSrvQueryDisplayInfo(
         break;
 
     case 3:
-        dwObjectClass = DS_OBJECT_CLASS_GROUP;
+        dwObjectClass = DS_OBJECT_CLASS_LOCAL_GROUP;
         break;
 
     default:

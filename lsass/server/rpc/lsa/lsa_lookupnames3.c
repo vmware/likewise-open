@@ -46,22 +46,6 @@
 
 #include "includes.h"
 
-#define SET_LOOKUP_STATUS(lookup, status)                \
-    switch ((lookup)) {                                  \
-    case STATUS_SUCCESS:                                 \
-        (lookup) = (status);                             \
-        break;                                           \
-    case STATUS_NONE_MAPPED:                             \
-        if ((status) == STATUS_SUCCESS ||                \
-            (status) == LW_STATUS_SOME_NOT_MAPPED)            \
-        {                                                \
-            (lookup) = LW_STATUS_SOME_NOT_MAPPED;             \
-        }                                                \
-    case LW_STATUS_SOME_NOT_MAPPED:                           \
-        (lookup) = LW_STATUS_SOME_NOT_MAPPED;                 \
-    }
-
-
 
 NTSTATUS
 LsaSrvLookupNames3(

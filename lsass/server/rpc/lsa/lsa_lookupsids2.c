@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software
+ * Copyright Likewise Software    2004-2008
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -33,30 +33,36 @@
  *
  * Module Name:
  *
- *        localclient.h
+ *        lsa_lookupsids2.c
  *
  * Abstract:
  *
- *        Likewise Security and Authentication Subsystem (LSASS)
+ *        Remote Procedure Call (RPC) Server Interface
  *
- *        API (Client)
+ *        LsaLookupSids2 function
  *
  * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
-#include "config.h"
 
-#include "lsasystem.h"
+#include "includes.h"
 
-#include "lsa/lsa.h"
 
-#include "lsadef.h"
-
-#include <lwmsg/lwmsg.h>
-
-#include "lsaclient.h"
-#include "lsalocalclient.h"
-#include "lsalocalprovider.h"
-#include "lsaipc.h"
+NTSTATUS
+LsaSrvLookupSids2(
+    handle_t hBinding,
+    POLICY_HANDLE hPolicy,
+    SidArray *sids,
+    RefDomainList **domains,
+    TranslatedNameArray *names,
+    uint16 level,
+    uint32 *count,
+    uint32 unknown1,
+    uint32 unknown2
+    )
+{
+    NTSTATUS status = STATUS_NONE_MAPPED;
+    return status;
+}
 
 
 /*

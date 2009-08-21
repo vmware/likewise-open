@@ -29,7 +29,7 @@
  */
 
 NTSTATUS
-NetpGetDcName(
+NetpGetRwDcName(
     const wchar16_t *DnsDomainName,
     BOOLEAN Force,
     wchar16_t** DomainControllerName

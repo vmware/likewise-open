@@ -1421,6 +1421,9 @@ static BOOLEAN PamModulePrompts( const char * phase, const char * module)
         return TRUE;
     if(!strcmp(buffer, "pam_gnome_keyring"))
         return TRUE;
+    // This module is used on Max OS X 10.6 - Snow Leopard
+    if(!strcmp(buffer, "pam_opendirectory"))
+        return TRUE;
 
     /* pam_lwidentity will only prompt for domain users during the password phase. All in all, it doesn't store passwords for subsequent modules in the password phase. */
     if(PamModuleIsLwidentity(phase, module) && !strcmp(phase, "auth"))
@@ -3110,7 +3113,20 @@ void DJNewConfigurePamForADLogin(
     CENTERROR ceError = CENTERROR_SUCCESS;
     struct PamConf conf;
     char *pam_lwidentityconf = NULL;
+    DistroInfo distro;
     memset(&conf, 0, sizeof(conf));
+    memset(&distro, 0, sizeof(distro));
+
+    /* Special case Mac OS X - 10.6 (Snow Leopard)
+       This operating system provides a wrapper PAM module that redirects PAM calls to
+       all of the registered DirectoryService plugins. pam_opendirectory.so is already
+       configured in 10.6, and we can therefore skip registration of pam_lsass.so. We
+       only need to install our daemons and either LWEDSPlugIn.dsplug or LWIDSPlugIn.dsplug. */
+    if (distro.os == OS_DARWIN && !strcmp(distro.version, "10.6"))
+    {
+        DJ_LOG_INFO("Ignoring pam configuration phase of domainjoin utility for this OS. Mac OS X 10.6 uses a common PAM module for all authentication plugins registered with DirectoryService (pam_opendirectory.so). Therefore no action is needed for this join module.");
+        goto cleanup;
+    }
 
     if(testPrefix == NULL)
         testPrefix = "";
@@ -3156,6 +3172,7 @@ void DJNewConfigurePamForADLogin(
 
 cleanup:
     FreePamConfContents(&conf);
+    DJFreeDistroInfo(&distro);
     CT_SAFE_FREE_STRING(pam_lwidentityconf);
 }
 
@@ -3492,8 +3509,25 @@ static QueryResult QueryPam(const JoinProcessOptions *options, LWException **exc
     BOOLEAN configured;
     PCSTR services[] = {"ssh", "sshd", "login", "su", "other"};
     int i;
+    DistroInfo distro;
 
+    memset(&distro, 0, sizeof(distro));
     memset(&conf, 0, sizeof(conf));
+
+    ceError = DJGetDistroInfo("", &distro);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    /* Special case Mac OS X - 10.6 (Snow Leopard)
+       This operating system provides a wrapper PAM module that redirects PAM calls to
+       all of the registered DirectoryService plugins. pam_opendirectory.so is already
+       configured in 10.6, and we can therefore skip registration of pam_lsass.so. We
+       only need to install our daemons and either LWEDSPlugIn.dsplug or LWIDSPlugIn.dsplug. */
+    if (distro.os == OS_DARWIN && !strcmp(distro.version, "10.6"))
+    {
+        DJ_LOG_INFO("No action is needed for PAM join module on Mac OS X 10.6. Returning module result of FullyConfigured.");
+        result = FullyConfigured;
+        goto cleanup;
+    }
 
     if ( options->ignorePam )
     {
@@ -3582,8 +3616,12 @@ cleanup:
         CT_SAFE_FREE_STRING(tempDir);
     }
     FreePamConfContents(&conf);
+    DJFreeDistroInfo(&distro);
     LWHandle(&nestedException);
     return result;
+
+error:
+    goto cleanup;
 }
 
 static void DoPam(JoinProcessOptions *options, LWException **exc)

@@ -613,11 +613,29 @@ NTSTATUS _lsa_Function38(
 }
 
 
-NTSTATUS _lsa_Function39(
-    /* [in] */ handle_t IDL_handle
-)
+NTSTATUS __LsaLookupSids2(
+    /* [in] */ handle_t IDL_handle,
+    /* [in] */ POLICY_HANDLE hPolicy,
+    /* [in] */ SidArray *sids,
+    /* [out] */ RefDomainList **domains,
+    /* [in, out] */ TranslatedNameArray *names,
+    /* [in] */ uint16 level,
+    /* [in, out] */ uint32 *count,
+    /* [in] */ uint32 unknown1,
+    /* [in] */ uint32 unknown2
+    )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = LsaSrvLookupSids2(IDL_handle,
+                               hPolicy,
+                               sids,
+                               domains,
+                               names,
+                               level,
+                               count,
+                               unknown1,
+                               unknown2);
     return status;
 }
 

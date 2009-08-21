@@ -117,7 +117,7 @@ error:
 }
 
 DWORD
-LsaNetGetDCName(
+LsaNetGetRwDCName(
 	PCSTR pszDomainFQDN,
 	PSTR* ppszDCName
 	)
@@ -147,7 +147,7 @@ LsaNetGetDCName(
     dwError = LWNetGetDCName(NULL,
                              pszDomainFQDN,
                              NULL,
-                             DS_DIRECTORY_SERVICE_REQUIRED,
+                             DS_DIRECTORY_SERVICE_REQUIRED | DS_WRITABLE_REQUIRED,
                              &pDcInfo);
     if (dwError != 0) {
         dwError = LW_ERROR_FAILED_TO_LOOKUP_DC;

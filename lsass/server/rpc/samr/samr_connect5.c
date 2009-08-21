@@ -67,8 +67,8 @@ SamrSrvConnect5(
     SAMR_CONNECT_INFO Info;
     DWORD dwLevel = 0;
 
-    RTL_ALLOCATE(&pConn, CONNECT_CONTEXT, sizeof(*pConn));
-    BAIL_ON_NO_MEMORY(pConn);
+    status = RTL_ALLOCATE(&pConn, CONNECT_CONTEXT, sizeof(*pConn));
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     dwError = DirectoryOpen(&pConn->hDirectory);
     BAIL_ON_LSA_ERROR(dwError);

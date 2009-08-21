@@ -237,4 +237,7 @@
 #
 #[rpc server:samr]
 #    path = @rpcserverdir@/libsamr_srv@MOD_EXT@
+#
+#[rpc server:dssetup]
+#    path = @rpcserverdir@/libdssetup_srv@MOD_EXT@
 

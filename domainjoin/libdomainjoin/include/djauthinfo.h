@@ -33,7 +33,7 @@
 
 //The answer is non-authoritative
 void
-DJGetDomainDC(PCSTR domain, PSTR *dc, LWException **exc);
+DJGetDomainRwDC(PCSTR domain, PSTR *dc, LWException **exc);
 
 void
 DJGetComputerDN(PSTR *dn, LWException **exc);

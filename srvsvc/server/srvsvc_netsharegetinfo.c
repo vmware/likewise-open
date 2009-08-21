@@ -263,27 +263,7 @@ cleanup:
     return dwError;
 
 error:
-    switch (pGetParamsOut->dwInfoLevel) {
-    case 0:
-        info->info0 = NULL;
-        break;
-
-    case 1:
-        info->info1 = NULL;
-        break;
-
-    case 2:
-        info->info2 = NULL;
-        break;
-
-    case 501:
-        info->info501 = NULL;
-        break;
-
-    case 502:
-        info->info502 = NULL;
-        break;
-    }
+    memset(info, 0x0, sizeof(*info));
 
     if (pShareInfo) {
         SrvSvcSrvFreeMemory(pShareInfo);

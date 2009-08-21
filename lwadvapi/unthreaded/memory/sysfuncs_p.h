@@ -1,9 +1,9 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software
+ * Copyright Likewise Software    2004-2008
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -33,39 +33,43 @@
  *
  * Module Name:
  *
- *        ipc.h
+ *        sysfuncs.h
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        Interprocess Communication (Private Include)
+ *        System Functions
  *
- * Authors: Rafal Szczesniak (rafal@likewise.com)
- *
+ * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
+ *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
-#include "config.h"
 
-#include "lsasystem.h"
+#ifndef __SYSFUNCS_H__
+#define __SYSFUNCS_H__
 
-#include "lsadef.h"
-#include "lsa/lsa.h"
+#if !HAVE_DECL_ISBLANK
+int isblank(int c);
+#endif
 
-#include <lwmsg/lwmsg.h>
-#include "lwmem.h"
-#include "lwstr.h"
-#include "lwsecurityidentifier.h"
-#include "lsautils.h"
-#include "lsaipc.h"
-#include "lsalocalprovider.h"
+#if !defined(HAVE_RPL_MALLOC)
 
+void*
+rpl_malloc(
+    size_t n
+    );
 
+#endif /* ! HAVE_RPL_MALLOC */
 
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/
+#if !defined(HAVE_RPL_REALLOC)
+
+void*
+rpl_realloc(
+    void* buf,
+    size_t n
+    );
+
+#endif /* ! HAVE_RPL_REALLOC */
+
+#endif /* __SYSFUNCS_H__ */
+

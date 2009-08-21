@@ -168,7 +168,7 @@ LocalDirFindGroupByName_0(
     wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
     wchar16_t wszAttrNameDN[]             = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
     wchar16_t wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
-    wchar16_t wszAttrNameNetBIOSDomain[]      = LOCAL_DIR_ATTR_NETBIOS_NAME;
+    wchar16_t wszAttrNameNetBIOSDomain[]  = LOCAL_DIR_ATTR_NETBIOS_NAME;
     PWSTR wszAttrs[] =
     {
         &wszAttrNameGID[0],
@@ -2433,6 +2433,8 @@ cleanup:
         LW_SAFE_FREE_MEMORY(pwszSID);
     }
 
+    LW_SAFE_FREE_MEMORY(pwszGroupDN);
+
     if (pMember)
     {
         DirectoryFreeEntries(pMember, dwNumEntries);
@@ -2591,6 +2593,113 @@ LocalDirFreeGroupMember(
     LW_SAFE_FREE_STRING(pMember->pszSID);
 
     LwFreeMemory(pMember);
+}
+
+
+DWORD
+LocalDirGetGroupMembershipByProvider(
+    IN HANDLE    hProvider,
+    IN PCSTR     pszSid,
+    IN DWORD     dwGroupInfoLevel,
+    OUT PDWORD   pdwGroupsCount,
+    OUT PVOID  **pppMembershipInfo
+    )
+{
+    DWORD dwError = 0;
+    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
+    WCHAR wszAttrNameDN[] = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
+    PWSTR wszAttrs[] = {
+        &wszAttrNameDN[0],
+        NULL
+    };
+    PDIRECTORY_ENTRY pEntries = NULL;
+    PDIRECTORY_ENTRY pEntry = NULL;
+    DWORD dwNumEntries = 0;
+    PCSTR pszFilterFmt = LOCAL_DB_DIR_ATTR_OBJECT_SID " = \"%s\"" \
+                         " AND (" LOCAL_DB_DIR_ATTR_OBJECT_CLASS " = %d " \
+                         " OR " LOCAL_DB_DIR_ATTR_OBJECT_CLASS " = %d)";
+    PSTR pszFilter = NULL;
+    PWSTR pwszFilter = NULL;
+    PWSTR pwszDN = NULL;
+    DWORD dwGroupsCount = 0;
+    PVOID *ppMembershipInfo = NULL;
+
+    dwError = LsaAllocateStringPrintf(
+                    &pszFilter,
+                    pszFilterFmt,
+                    pszSid,
+                    LOCAL_OBJECT_CLASS_USER,
+                    LOCAL_OBJECT_CLASS_GROUP_MEMBER);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaMbsToWc16s(
+                    pszFilter,
+                    &pwszFilter);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = DirectorySearch(
+                    pContext->hDirectory,
+                    NULL,
+                    0,
+                    pwszFilter,
+                    wszAttrs,
+                    FALSE,
+                    &pEntries,
+                    &dwNumEntries);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (dwNumEntries == 0)
+    {
+        dwError = LW_ERROR_NO_SUCH_USER;
+    }
+    else if (dwNumEntries == 0)
+    {
+        dwError = LW_ERROR_DATA_ERROR;
+    }
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pEntry = &(pEntries[0]);
+
+    dwError = DirectoryGetEntryAttrValueByName(
+                    pEntry,
+                    wszAttrNameDN,
+                    DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                    (PVOID)&pwszDN);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (!pwszDN)
+    {
+        dwError = LW_ERROR_DATA_ERROR;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LocalDirGetGroupsForUser(
+                    hProvider,
+                    pwszDN,
+                    dwGroupInfoLevel,
+                    &dwGroupsCount,
+                    &ppMembershipInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    *pdwGroupsCount    = dwGroupsCount;
+    *pppMembershipInfo = ppMembershipInfo;
+
+cleanup:
+    LW_SAFE_FREE_STRING(pszFilter);
+    LW_SAFE_FREE_MEMORY(pwszFilter);
+
+    if (pEntries)
+    {
+        DirectoryFreeEntries(pEntries, dwNumEntries);
+    }
+
+    return dwError;
+
+error:
+    *pdwGroupsCount    = 0;
+    *pppMembershipInfo = NULL;
+
+    goto cleanup;
 }
 
 

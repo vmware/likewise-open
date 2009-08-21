@@ -289,7 +289,10 @@ SamrSrvFreeUnicodeString(
     UnicodeString *pStr
     )
 {
-    SamrSrvFreeMemory(pStr->string);
+    if (pStr->string)
+    {
+        SamrSrvFreeMemory(pStr->string);
+    }
     pStr->len  = 0;
     pStr->size = 0;
 }
@@ -300,7 +303,10 @@ SamrSrvFreeUnicodeStringEx(
     UnicodeStringEx *pStr
     )
 {
-    SamrSrvFreeMemory(pStr->string);
+    if (pStr->string)
+    {
+        SamrSrvFreeMemory(pStr->string);
+    }
     pStr->len  = 0;
     pStr->size = 0;
 }

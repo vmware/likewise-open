@@ -20,6 +20,7 @@ liblsa_la_SOURCES = \
     lsa_lookupnames.c           \
     lsa_lookupsids.c            \
     lsa_lookupnames2.c          \
+    lsa_lookupsids2.c           \
     lsa_lookupnames3.c          \
     lsa_queryinfopolicy.c       \
     lsa_queryinfopolicy2.c      \
@@ -33,6 +34,7 @@ DCEIDL_PASS_INCLUDES = \
 FEATURETEST_FLAGS="-D_XOPEN_SOURCE=500 -D__EXTENSIONS__ -D_REENTRANT"
 
 liblsa_la_CFLAGS = \
+    -g                       \
     -DLIBRPC_BUILD           \
     $(FEATURETEST_FLAGS)     \
     -I$(srv_srcdir)/include  \

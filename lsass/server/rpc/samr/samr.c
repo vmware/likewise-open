@@ -285,12 +285,17 @@ NTSTATUS __SamrEnumDomainAliases(
 
 NTSTATUS __SamrGetAliasMembership(
     /* [in] */ handle_t IDL_handle,
-    /* [in] */ PolicyHandle *domain_handle,
+    /* [in] */ DOMAIN_HANDLE hDomain,
     /* [in] */ SidArray *sids,
     /* [out] */ Ids *rids
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = SamrSrvGetAliasMembership(IDL_handle,
+                                       hDomain,
+                                       sids,
+                                       rids);
     return status;
 }
 
@@ -318,14 +323,21 @@ NTSTATUS __SamrLookupNames(
 
 NTSTATUS __SamrLookupRids(
     /* [in] */ handle_t IDL_handle,
-    /* [in] */ PolicyHandle *domain_handle,
+    /* [in] */ DOMAIN_HANDLE hDomain,
     /* [in] */ uint32 num_rids,
-    /* [in] */ uint32 rids[],
+    /* [in] */ uint32 *rids,
     /* [out] */ UnicodeStringArray *names,
     /* [out] */ Ids *types
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = SamrSrvLookupRids(IDL_handle,
+                               hDomain,
+                               num_rids,
+                               rids,
+                               names,
+                               types);
     return status;
 }
 
@@ -488,7 +500,11 @@ NTSTATUS __SamrGetMembersInAlias(
     /* [out] */ SidArray *sids
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = SamrSrvGetMembersInAlias(IDL_handle,
+                                      hAlias,
+                                      sids);
     return status;
 }
 

@@ -60,9 +60,6 @@ typedef struct _PACKED_ARRAY
 
 #define NETLOGON_LDAP_ATTRIBUTE_NAME "Netlogon"
 
-#define LWNET_PING_EXPIRATION_SECONDS (15 * 60)
-#define LWNET_NEGATIVE_CACHE_EXPIRATION_SECONDS (1 * 60)
-
 #define LWNET_CLDAP_DEFAULT_THREAD_COUNT    20
 #define LWNET_CLDAP_DEFAULT_TIMEOUT_SECONDS 15
 
@@ -78,6 +75,7 @@ typedef struct _LWNET_CLDAP_THREAD_CONTEXT {
     DWORD dwServerIndex; // mutable
     DWORD dwDsFlags;
     BOOLEAN bIsDone; // mutable
+    BOOLEAN bFailedFindWritable; // mutable
     // Synchronization
     pthread_mutex_t Mutex;
     pthread_cond_t Condition;
@@ -108,6 +106,17 @@ typedef struct _LWNET_CLDAP_THREAD_CONTEXT {
         } \
     } while (0)
 
+BOOLEAN
+LWNetSrvIsMatchingDcInfo(
+    IN PLWNET_DC_INFO pDcInfo,
+    IN DWORD dwDsFlags
+    );
+
+BOOLEAN
+LWNetSrvIsAffinitizableRequestFlags(
+    IN DWORD dwDsFlags
+    );
+
 DWORD
 LWNetSrvPingCLdapArray(
     IN PCSTR pszDnsDomainName,
@@ -116,7 +125,8 @@ LWNetSrvPingCLdapArray(
     IN DWORD dwServerCount,
     IN OPTIONAL DWORD dwThreadCount,
     IN OPTIONAL DWORD dwTimeoutSeconds,
-    OUT PLWNET_DC_INFO* ppDcInfo
+    OUT PLWNET_DC_INFO* ppDcInfo,
+    OUT PBOOLEAN pbFailedFindWritable
     );
 
 VOID
@@ -136,7 +146,8 @@ LWNetSrvGetDCNameDiscover(
     IN PSTR* ppszAddressBlackList,
     OUT PLWNET_DC_INFO* ppDcInfo,
     OUT OPTIONAL PDNS_SERVER_INFO* ppServerArray,
-    OUT OPTIONAL PDWORD pdwServerCount
+    OUT OPTIONAL PDWORD pdwServerCount,
+    OUT PBOOLEAN pbFailedFindWritable
     );
 
 DWORD

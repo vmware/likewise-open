@@ -211,7 +211,7 @@ DsrSrvRoleGetPDCInfoBasic(
     BAIL_ON_NTSTATUS_ERROR(status);
 
     pInfo->uiRole        = DS_ROLE_MEMBER_SERVER;
-    pInfo->uiFlags       = 0;
+    pInfo->uiFlags       = DS_ROLE_PRIMARY_DOMAIN_GUID_PRESENT;
     pInfo->pwszDomain    = pwszDomain;
     pInfo->pwszDnsDomain = pwszDnsDomain;
     pInfo->pwszForest    = pwszForest;

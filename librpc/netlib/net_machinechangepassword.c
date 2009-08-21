@@ -68,7 +68,7 @@ NetMachineChangePassword(
 
     get_random_string(machine_pass, sizeof(machine_pass));
 
-    status = NetpGetDcName(pass_info->pwszDnsDomainName, FALSE,
+    status = NetpGetRwDcName(pass_info->pwszDnsDomainName, FALSE,
                            &domain_controller_name);
     BAIL_ON_NTSTATUS_ERROR(status);
 

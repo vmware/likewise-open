@@ -449,6 +449,15 @@ AD_ProviderIoControl(
     );
 
 DWORD
+AD_GetGroupMembershipByProvider(
+    IN HANDLE     hProvider,
+    IN PCSTR      pszSid,
+    IN DWORD      dwGroupInfoLevel,
+    OUT PDWORD    pdwGroupsCount,
+    OUT PVOID   **pppMembershipInfo
+    );
+
+DWORD
 AD_FindUserObjectByName(
     IN HANDLE  hProvider,
     IN PCSTR   pszLoginId,

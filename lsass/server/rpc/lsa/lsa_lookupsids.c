@@ -29,9 +29,19 @@
  */
 
 /*
- * Abstract: LsaLookupSids function (rpc server library)
+ * Copyright (C) Likewise Software. All rights reserved.
  *
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ * Module Name:
+ *
+ *        lsa_lookupsids.c
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Server Interface
+ *
+ *        LsaLookupSids function
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
 
 #include "includes.h"
@@ -39,16 +49,32 @@
 
 NTSTATUS
 LsaSrvLookupSids(
-    handle_t b,
+    handle_t hBinding,
     POLICY_HANDLE hPolicy,
     SidArray *sids,
-    RefDomainList **domains,
-    TranslatedNameArray *names,
+    RefDomainList **ppDomains,
+    TranslatedNameArray *pNames,
     uint16 level,
     uint32 *count
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
+    RefDomainList *pDomains = NULL;
+    TranslatedNameArray Names = {0};
+
+    status = LsaSrvLookupSids2(hBinding,
+                               hPolicy,
+                               sids,
+                               &pDomains,
+                               &Names,
+                               level,
+                               count,
+                               0, 0);
+
+    *ppDomains    = pDomains;
+    pNames->count = Names.count;
+    pNames->names = Names.names;
+
     return status;
 }
 

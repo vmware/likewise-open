@@ -94,7 +94,8 @@ LSA_PROVIDER_FUNCTION_TABLE gADProviderAPITable =
             &AD_GetStatus,
             &AD_FreeStatus,
             &AD_RefreshConfiguration,
-            &AD_ProviderIoControl
+            &AD_ProviderIoControl,
+            &AD_GetGroupMembershipByProvider
     };
 
 PLSA_HASH_TABLE gpAllowedSIDs   = NULL;

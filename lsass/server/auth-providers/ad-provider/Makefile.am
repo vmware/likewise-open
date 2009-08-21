@@ -74,7 +74,6 @@ liblsass_auth_provider_ad_la_CFLAGS = $(AM_CFLAGS) $(PROVIDER_CFLAGS)
 # NOTE: Need to remove LSA client dependency.
 liblsass_auth_provider_ad_la_LIBADD = \
 	@top_builddir@/common/liblsacommon.la \
-	@top_builddir@/client/liblsaclient.la \
 	@top_builddir@/server/api/liblsaserverapi.la \
 	@top_builddir@/join/liblsajoin.la \
 	@PSTORE_LIBS@ \

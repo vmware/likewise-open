@@ -71,11 +71,16 @@ LWNetSrvGetDCName(
     LWNET_UNIX_TIME_T now = 0;
     LWNET_UNIX_TIME_T lastPinged = 0;
     LWNET_UNIX_TIME_T lastDiscovered = 0;
+    BOOLEAN isBackoffToWritableDc = FALSE;
+    LWNET_UNIX_TIME_T lastBackoffToWritableDc = 0;
     PLWNET_DC_INFO pDcInfo = NULL;
     PLWNET_DC_INFO pNewDcInfo = NULL;
     PDNS_SERVER_INFO pServerArray = NULL;
     DWORD dwServerCount = 0;
     DWORD dwIndex = 0;
+    BOOLEAN bFailedFindWritable = FALSE;
+    BOOLEAN bUpdateCache = FALSE;
+    BOOLEAN bUpdateKrb5Affinity = FALSE;
 
     LWNET_LOG_INFO("Looking for a DC in domain '%s', site '%s' with flags %X",
             LWNET_SAFE_LOG_STRING(pszDnsDomainName),
@@ -102,7 +107,9 @@ LWNetSrvGetDCName(
     if (!(dwDsFlags & DS_FORCE_REDISCOVERY))
     {
         dwError = LWNetCacheQuery(pszDnsDomainName, pszSiteName, dwDsFlags,
-                                  &pDcInfo, &lastDiscovered, &lastPinged);
+                                  &pDcInfo, &lastDiscovered, &lastPinged,
+                                  &isBackoffToWritableDc,
+                                  &lastBackoffToWritableDc);
         BAIL_ON_LWNET_ERROR(dwError);
 
         // If in background mode, we do not care about any expiration
@@ -119,7 +126,7 @@ LWNetSrvGetDCName(
         // Check whether a negative cache applies
         if (!pDcInfo && (lastDiscovered > 0))
         {
-            if ((now - lastDiscovered) <= LWNET_NEGATIVE_CACHE_EXPIRATION_SECONDS)
+            if ((now - lastDiscovered) <= LWNetConfigGetNegativeCacheTimeoutSeconds())
             {
                 dwError = ERROR_NO_SUCH_DOMAIN;
                 BAIL_ON_LWNET_ERROR(dwError);
@@ -133,7 +140,19 @@ LWNetSrvGetDCName(
         // If we found something in the cache, we may need to ping it.
         if (pDcInfo)
         {
-            if ((now - lastPinged) > LWNET_PING_EXPIRATION_SECONDS)
+            if (isBackoffToWritableDc &&
+                (now - lastBackoffToWritableDc) > LWNetConfigGetWritableRediscoveryTimeoutSeconds())
+            {
+                // Need to re-affinitize
+                LWNET_SAFE_FREE_DC_INFO(pDcInfo);
+            }
+            // Note that we only explicitly verify writability wrt re-affinitization.
+            else if (!LWNetSrvIsMatchingDcInfo(pDcInfo, dwDsFlags))
+            {
+                // Cannot use these results.
+                LWNET_SAFE_FREE_DC_INFO(pDcInfo);
+            }
+            else if ((now - lastPinged) > LWNetConfigGetPingAgainTimeoutSeconds())
             {
                 DNS_SERVER_INFO serverInfo;
 
@@ -148,22 +167,32 @@ LWNetSrvGetDCName(
                 dwError = LWNetSrvPingCLdapArray(pszDnsDomainName,
                                                  dwDsFlags,
                                                  &serverInfo, 1,
-                                                 1, 0, &pNewDcInfo);
+                                                 1, 0, &pNewDcInfo,
+                                                 &bFailedFindWritable);
                 if (!dwError)
                 {
-                    dwError = LWNetCacheUpdatePing(pszDnsDomainName,
-                                                   pszSiteName,
-                                                   dwDsFlags,
-                                                   lastDiscovered,
-                                                   pNewDcInfo);
+                    // We need to update the cache to reflect the ping time
+                    // and perhaps extend the life of the backoff to writable
+                    // DC flag.
+
+                    bUpdateCache = TRUE;
+
+                    dwError = LWNetGetSystemTime(&now);
                     BAIL_ON_LWNET_ERROR(dwError);
 
-                    dwError = LWNetCacheUpdatePing(pszDnsDomainName,
-                                                   pNewDcInfo->pszDCSiteName,
-                                                   dwDsFlags,
-                                                   lastDiscovered,
-                                                   pNewDcInfo);
-                    BAIL_ON_LWNET_ERROR(dwError);
+                    lastPinged = now;
+
+                    if ((dwDsFlags & DS_WRITABLE_REQUIRED) && isBackoffToWritableDc)
+                    {
+                        // update the time
+                        lastBackoffToWritableDc = now;
+                    }
+
+                    LWNET_SAFE_FREE_DC_INFO(pDcInfo);
+
+                    pDcInfo = pNewDcInfo;
+                    pNewDcInfo = 0;
+
                 }
                 else
                 {
@@ -175,6 +204,22 @@ LWNetSrvGetDCName(
             {
                 // cached data is fine
                 dwError = 0;
+
+                // check whether we need to update the backoff time
+                if ((dwDsFlags & DS_WRITABLE_REQUIRED) &&
+                    isBackoffToWritableDc &&
+                    (now - lastBackoffToWritableDc) > LWNetConfigGetWritableTimestampMinimumChangeSeconds())
+                {
+                    // We need to update cache to extend the life of the
+                    // backoff to writable DC flag.
+
+                    bUpdateCache = TRUE;
+
+                    dwError = LWNetGetSystemTime(&now);
+                    BAIL_ON_LWNET_ERROR(dwError);
+
+                    lastBackoffToWritableDc = now;
+                }
             }
         }
     }
@@ -197,41 +242,63 @@ LWNetSrvGetDCName(
                                             ppszAddressBlackList,
                                             &pDcInfo,
                                             &pServerArray,
-                                            &dwServerCount);
+                                            &dwServerCount,
+                                            &bFailedFindWritable);
         BAIL_ON_LWNET_ERROR(dwError);
 
         // Do not update the cache if a black list is passed in. Otherwise,
         // callers would have too much control over which DC is affinitized.
-        if (dwBlackListCount == 0)
+        // Also do not update if looking for a writeable DC since Windows
+        // (Vista) does not appear to update its cache in that case either.
+        if ((dwBlackListCount == 0) && LWNetSrvIsAffinitizableRequestFlags(dwDsFlags))
         {
-            dwError = LWNetCacheUpdateDiscover(
-                            pszDnsDomainName,
-                            pszSiteName,
-                            dwDsFlags,
-                            pDcInfo);
+            // We need to update the cache with this entry.
+
+            bUpdateCache = TRUE;
+
+            dwError = LWNetGetSystemTime(&now);
             BAIL_ON_LWNET_ERROR(dwError);
 
-            dwError = LWNetCacheUpdateDiscover(
-                            pszDnsDomainName,
-                            pDcInfo->pszDCSiteName,
-                            dwDsFlags,
-                            pDcInfo);
-            BAIL_ON_LWNET_ERROR(dwError);
+            lastDiscovered = now;
+            lastPinged = now;
+            isBackoffToWritableDc = bFailedFindWritable;
+            lastBackoffToWritableDc = isBackoffToWritableDc ? now : 0;
 
             // Will only affinitize for KDC/LDAP (i.e., not PDC/GC) and if the site is the same.
             if (!(dwDsFlags & (DS_PDC_REQUIRED | DS_GC_SERVER_REQUIRED)) &&
                 (IsNullOrEmptyString(pszSiteName) ||
                  !strcasecmp(pDcInfo->pszDCSiteName, pszSiteName)))
             {
-                dwError = LWNetKrb5UpdateAffinity(
-                                pszDnsDomainName,
-                                pDcInfo,
-                                pServerArray,
-                                dwServerCount);
-                BAIL_ON_LWNET_ERROR(dwError);
+                bUpdateKrb5Affinity = TRUE;
             }
         }
     }
+
+    // Handle updates
+
+    if (bUpdateCache)
+    {
+        dwError = LWNetCacheUpdate(pszDnsDomainName,
+                                   pszSiteName,
+                                   dwDsFlags,
+                                   lastDiscovered,
+                                   lastPinged,
+                                   isBackoffToWritableDc,
+                                   lastBackoffToWritableDc,
+                                   pDcInfo);
+        BAIL_ON_LWNET_ERROR(dwError);
+    }
+
+    if (bUpdateKrb5Affinity)
+    {
+        dwError = LWNetKrb5UpdateAffinity(
+                        pszDnsDomainName,
+                        pDcInfo,
+                        pServerArray,
+                        dwServerCount);
+        BAIL_ON_LWNET_ERROR(dwError);
+    }
+
 
 error:
     LWNET_SAFE_FREE_MEMORY(pServerArray);

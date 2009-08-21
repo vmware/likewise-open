@@ -128,6 +128,7 @@ SMBSrvParseConfig(
 {
     DWORD dwError = 0;
     SMB_CONFIG smb_config;
+    BOOLEAN bExists = FALSE;
 
     memset(&smb_config, 0, sizeof(SMB_CONFIG));
 
@@ -136,15 +137,23 @@ SMBSrvParseConfig(
     dwError = SMBSrvInitializeConfig(&smb_config);
     BAIL_ON_LWIO_ERROR(dwError);
 
-    dwError = SMBParseConfigFile(
-                    pszConfigFilePath,
-                    SMB_CFG_OPTION_STRIP_ALL,
-                    &SMBSrvConfigStartSection,
-                    NULL,
-                    &SMBSrvConfigNameValuePair,
-                    NULL,
-                    &smb_config);
+    dwError = SMBCheckFileExists(
+                  pszConfigFilePath,
+                  &bExists);
     BAIL_ON_LWIO_ERROR(dwError);
+
+    if (bExists)
+    {
+        dwError = SMBParseConfigFile(
+                      pszConfigFilePath,
+                      SMB_CFG_OPTION_STRIP_ALL,
+                      &SMBSrvConfigStartSection,
+                      NULL,
+                      &SMBSrvConfigNameValuePair,
+                      NULL,
+                      &smb_config);
+        BAIL_ON_LWIO_ERROR(dwError);
+    }
 
     dwError = SMBSrvTransferConfigContents(
                     &smb_config,

@@ -135,8 +135,8 @@ SamrSrvOpenDomain(
                               &dwEntriesNum);
     BAIL_ON_LSA_ERROR(dwError);
 
-    RTL_ALLOCATE(&pDomCtx, DOMAIN_CONTEXT, sizeof(*pDomCtx));
-    BAIL_ON_NO_MEMORY(pDomCtx);
+    status = RTL_ALLOCATE(&pDomCtx, DOMAIN_CONTEXT, sizeof(*pDomCtx));
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     for (i = 0; i < dwEntriesNum; i++) {
         pEntry = &(pEntries[i]);
@@ -178,10 +178,10 @@ SamrSrvOpenDomain(
                 pAttrVal->Type == DIRECTORY_ATTR_TYPE_UNICODE_STRING) {
 
                 dwNameLen = wc16slen(pAttrVal->data.pwszStringValue);
-                RTL_ALLOCATE(&pwszDomainName,
-                             WCHAR,
-                             (dwNameLen + 1) * sizeof(WCHAR));
-                BAIL_ON_NO_MEMORY(pwszDomainName);
+                status = RTL_ALLOCATE(&pwszDomainName,
+                                      WCHAR,
+                                      (dwNameLen + 1) * sizeof(WCHAR));
+                BAIL_ON_NTSTATUS_ERROR(status);
 
                 wc16sncpy(pwszDomainName, pAttrVal->data.pwszStringValue, dwNameLen);
 
@@ -203,10 +203,10 @@ SamrSrvOpenDomain(
                 pAttrVal->Type == DIRECTORY_ATTR_TYPE_UNICODE_STRING) {
 
                 dwDnLen = wc16slen(pAttrVal->data.pwszStringValue);
-                RTL_ALLOCATE(&pwszDn,
-                             WCHAR,
-                             (dwDnLen + 1) * sizeof(WCHAR));
-                BAIL_ON_NO_MEMORY(pwszDomainName);
+                status = RTL_ALLOCATE(&pwszDn,
+                                      WCHAR,
+                                      (dwDnLen + 1) * sizeof(WCHAR));
+                BAIL_ON_NTSTATUS_ERROR(status);
 
                 wc16sncpy(pwszDn, pAttrVal->data.pwszStringValue, dwDnLen);
 

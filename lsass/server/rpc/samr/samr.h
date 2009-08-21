@@ -140,6 +140,15 @@ SamrSrvEnumDomainAliases(
 
 
 NTSTATUS
+SamrSrvGetAliasMembership(
+    handle_t hBinding,
+    DOMAIN_HANDLE hDomain,
+    SidArray *pSids,
+    Ids *pRids
+    );
+
+
+NTSTATUS
 SamrSrvLookupNames(
     handle_t hBinding,
     DOMAIN_HANDLE hDomain,
@@ -147,6 +156,17 @@ SamrSrvLookupNames(
     UnicodeString *names,
     Ids *ids,
     Ids *types
+    );
+
+
+NTSTATUS
+SamrSrvLookupRids(
+    handle_t IDL_handle,
+    DOMAIN_HANDLE hDomain,
+    uint32 dwNumRids,
+    uint32 *pdwRids,
+    UnicodeStringArray *pNames,
+    Ids *pTypes
     );
 
 

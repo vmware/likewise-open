@@ -252,6 +252,39 @@ void safePrintString(
     }
 }
 
+static
+PCSTR
+GetStaticTimeString(
+    IN LWNET_UNIX_TIME_T Time
+    )
+{
+    PCSTR staticTimeString = NULL;
+    time_t timeValue = (time_t) Time;
+
+    staticTimeString = ctime(&timeValue);
+    return staticTimeString ? staticTimeString : "????\n";
+}
+
+static
+VOID
+PrintEntryInfo(
+    IN PLWNET_CACHE_DB_ENTRY pEntry
+    )
+{
+    printf("DNS Domain = '%s'\n"
+           "Site Name = '%s'\n"
+           "Query Type = %u\n",
+           pEntry->pszDnsDomainName,
+           pEntry->pszSiteName,
+           pEntry->QueryType);
+    // Separate lines due to static buffers
+    printf("LastDiscovered = %s", GetStaticTimeString(pEntry->LastDiscovered));
+    printf("LastPinged = %s", GetStaticTimeString(pEntry->LastPinged));
+    printf("IsBackoffToWritableDc = %s\n", pEntry->IsBackoffToWritableDc ? "true" : "false");
+    printf("LastBackoffToWritableDc = %s", GetStaticTimeString(pEntry->LastBackoffToWritableDc));
+    printf("--- DC INFO ---\n");
+}
+
 VOID
 PrintDCInfo(
     PLWNET_DC_INFO pDCInfo
@@ -335,6 +368,7 @@ main(
         {
             printf("Cache entry #%d:\n", i);
             printf("===================\n");
+            PrintEntryInfo(&pEntries[i]);
             PrintDCInfo(&pEntries[i].DcInfo);
         }     
     }

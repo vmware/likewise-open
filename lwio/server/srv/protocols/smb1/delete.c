@@ -33,17 +33,57 @@
 static
 NTSTATUS
 SrvDeleteFiles(
-    PLWIO_SRV_SESSION pSession,
-    USHORT            usSearchAttributes,
-    PWSTR             pwszFilesystemPath,
-    PWSTR             pwszFilePattern,
-    BOOLEAN           bUseLongFilenames
+    PSRV_EXEC_CONTEXT pExecContext
     );
 
 static
 NTSTATUS
 SrvBuildDeleteResponse(
     PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
+SrvBuildDeleteState(
+    PSMB_DELETE_REQUEST_HEADER  pRequestHeader,
+    PWSTR                       pwszSearchPattern,
+    BOOLEAN                     bUseLongFilenames,
+    PSRV_DELETE_STATE_SMB_V1*   ppDeleteState
+    );
+
+VOID
+SrvPrepareDeleteStateAsync(
+    PSRV_DELETE_STATE_SMB_V1 pDeleteState,
+    PSRV_EXEC_CONTEXT        pExecContext
+    );
+
+static
+VOID
+SrvExecuteDeleteAsyncCB(
+    PVOID pContext
+    );
+
+VOID
+SrvReleaseDeleteStateAsync(
+    PSRV_DELETE_STATE_SMB_V1 pDeleteState
+    );
+
+static
+VOID
+SrvReleaseDeleteStateHandle(
+    HANDLE hDeleteState
+    );
+
+static
+VOID
+SrvReleaseDeleteState(
+    PSRV_DELETE_STATE_SMB_V1 pDeleteState
+    );
+
+static
+VOID
+SrvFreeDeleteState(
+    PSRV_DELETE_STATE_SMB_V1 pDeleteState
     );
 
 NTSTATUS
@@ -57,82 +97,144 @@ SrvProcessDelete(
     PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
     ULONG                      iMsg         = pCtxSmb1->iMsg;
     PSRV_MESSAGE_SMB_V1        pSmbRequest  = &pCtxSmb1->pRequests[iMsg];
-    PBYTE pBuffer          = pSmbRequest->pBuffer + pSmbRequest->usHeaderSize;
-    ULONG ulOffset         = pSmbRequest->usHeaderSize;
-    ULONG ulBytesAvailable = pSmbRequest->ulMessageSize - pSmbRequest->usHeaderSize;
-    PSMB_DELETE_REQUEST_HEADER  pRequestHeader    = NULL; // Do not free
-    PWSTR                       pwszSearchPattern = NULL; // Do not free
-    PLWIO_SRV_SESSION           pSession = NULL;
-    PLWIO_SRV_TREE              pTree    = NULL;
-    PWSTR       pwszFilesystemPath = NULL;
-    BOOLEAN     bInLock = FALSE;
-    BOOLEAN     bUseLongFilenames = FALSE;
+    PSRV_DELETE_STATE_SMB_V1   pDeleteState = NULL;
+    BOOLEAN                    bInLock      = FALSE;
+    BOOLEAN                    bTreeInLock  = FALSE;
+    PWSTR                      pwszFilesystemPath = NULL;
 
-    ntStatus = SrvConnectionFindSession_SMB_V1(
-                    pCtxSmb1,
-                    pConnection,
-                    pSmbRequest->pHeader->uid,
-                    &pSession);
-    BAIL_ON_NT_STATUS(ntStatus);
+    pDeleteState = (PSRV_DELETE_STATE_SMB_V1)pCtxSmb1->hState;
 
-    ntStatus = SrvSessionFindTree_SMB_V1(
-                    pCtxSmb1,
-                    pSession,
-                    pSmbRequest->pHeader->tid,
-                    &pTree);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = WireUnmarshallDeleteRequest(
-                    pBuffer,
-                    ulBytesAvailable,
-                    ulOffset,
-                    &pRequestHeader,
-                    &pwszSearchPattern);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    if (!pwszSearchPattern || !*pwszSearchPattern)
+    if (pDeleteState)
     {
-        ntStatus = STATUS_CANNOT_DELETE;
+        InterlockedIncrement(&pDeleteState->refCount);
+    }
+    else
+    {
+        PBYTE pBuffer          = pSmbRequest->pBuffer + pSmbRequest->usHeaderSize;
+        ULONG ulOffset         = pSmbRequest->usHeaderSize;
+        ULONG ulBytesAvailable = pSmbRequest->ulMessageSize - pSmbRequest->usHeaderSize;
+        PSMB_DELETE_REQUEST_HEADER  pRequestHeader    = NULL; // Do not free
+        PWSTR                       pwszSearchPattern = NULL; // Do not free
+        BOOLEAN                     bUseLongFilenames = FALSE;
+
+        ntStatus = WireUnmarshallDeleteRequest(
+                        pBuffer,
+                        ulBytesAvailable,
+                        ulOffset,
+                        &pRequestHeader,
+                        &pwszSearchPattern);
         BAIL_ON_NT_STATUS(ntStatus);
+
+        if (!pwszSearchPattern || !*pwszSearchPattern)
+        {
+            ntStatus = STATUS_CANNOT_DELETE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        if (pSmbRequest->pHeader->flags2 & FLAG2_KNOWS_LONG_NAMES)
+        {
+            bUseLongFilenames = TRUE;
+        }
+
+        ntStatus = SrvBuildDeleteState(
+                        pRequestHeader,
+                        pwszSearchPattern,
+                        bUseLongFilenames,
+                        &pDeleteState);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pCtxSmb1->hState = pDeleteState;
+        InterlockedIncrement(&pDeleteState->refCount);
+        pCtxSmb1->pfnStateRelease = &SrvReleaseDeleteStateHandle;
     }
 
-    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pTree->pShareInfo->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pDeleteState->mutex);
 
-    ntStatus = SrvAllocateStringW(
-                    pTree->pShareInfo->pwszPath,
-                    &pwszFilesystemPath);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pTree->pShareInfo->mutex);
-
-    if (pSmbRequest->pHeader->flags2 & FLAG2_KNOWS_LONG_NAMES)
+    switch (pDeleteState->stage)
     {
-        bUseLongFilenames = TRUE;
+        case SRV_DELETE_STAGE_SMB_V1_INITIAL:
+
+            ntStatus = SrvConnectionFindSession_SMB_V1(
+                            pCtxSmb1,
+                            pConnection,
+                            pSmbRequest->pHeader->uid,
+                            &pDeleteState->pSession);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            ntStatus = SrvSessionFindTree_SMB_V1(
+                            pCtxSmb1,
+                            pDeleteState->pSession,
+                            pSmbRequest->pHeader->tid,
+                            &pDeleteState->pTree);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            LWIO_LOCK_RWMUTEX_SHARED(   bTreeInLock,
+                                        &pDeleteState->pTree->pShareInfo->mutex);
+
+            ntStatus = SrvAllocateStringW(
+                            pDeleteState->pTree->pShareInfo->pwszPath,
+                            &pwszFilesystemPath);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            LWIO_UNLOCK_RWMUTEX(bTreeInLock,
+                                &pDeleteState->pTree->pShareInfo->mutex);
+
+            ntStatus = SrvFinderBuildSearchPath(
+                            pwszFilesystemPath,
+                            pDeleteState->pwszSearchPattern,
+                            &pDeleteState->pwszFilesystemPath,
+                            &pDeleteState->pwszSearchPattern2);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            ntStatus = SrvFinderCreateSearchSpace(
+                            pDeleteState->pSession->pIoSecurityContext,
+                            pDeleteState->pSession->hFinderRepository,
+                            pDeleteState->pwszFilesystemPath,
+                            pDeleteState->pwszSearchPattern2,
+                            pDeleteState->pRequestHeader->usSearchAttributes,
+                            pDeleteState->ulSearchStorageType,
+                            SMB_FIND_FILE_BOTH_DIRECTORY_INFO,
+                            pDeleteState->bUseLongFilenames,
+                            &pDeleteState->hSearchSpace,
+                            &pDeleteState->usSearchId);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            pDeleteState->stage = SRV_DELETE_STAGE_SMB_V1_DELETE_FILES;
+
+            // intentional fall through
+
+        case SRV_DELETE_STAGE_SMB_V1_DELETE_FILES:
+
+            ntStatus = SrvDeleteFiles(pExecContext);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            pDeleteState->stage = SRV_DELETE_STAGE_SMB_V1_BUILD_RESPONSE;
+
+            // intentional fall through
+
+        case SRV_DELETE_STAGE_SMB_V1_BUILD_RESPONSE:
+
+            ntStatus = SrvBuildDeleteResponse(pExecContext);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            pDeleteState->stage = SRV_DELETE_STAGE_SMB_V1_DONE;
+
+            // intentional fall through
+
+        case SRV_DELETE_STAGE_SMB_V1_DONE:
+
+            break;
     }
-
-    ntStatus = SrvDeleteFiles(
-                    pSession,
-                    pRequestHeader->usSearchAttributes,
-                    pwszFilesystemPath,
-                    pwszSearchPattern,
-                    bUseLongFilenames);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SrvBuildDeleteResponse(pExecContext);
-    BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
 
-    if (pTree)
-    {
-        LWIO_UNLOCK_RWMUTEX(bInLock, &pTree->pShareInfo->mutex);
+    LWIO_UNLOCK_RWMUTEX(bTreeInLock, &pDeleteState->pTree->pShareInfo->mutex);
 
-        SrvTreeRelease(pTree);
-    }
-
-    if (pSession)
+    if (pDeleteState)
     {
-        SrvSessionRelease(pSession);
+        LWIO_UNLOCK_MUTEX(bInLock, &pDeleteState->mutex);
+
+        SrvReleaseDeleteState(pDeleteState);
     }
 
     if (pwszFilesystemPath)
@@ -144,202 +246,203 @@ cleanup:
 
 error:
 
+    switch (ntStatus)
+    {
+        case STATUS_PENDING:
+
+            // TODO: Add an indicator to the file object to trigger a
+            //       cleanup if the connection gets closed and all the
+            //       files involved have to be closed
+
+            break;
+
+        default:
+
+            if (pDeleteState)
+            {
+                SrvReleaseDeleteStateAsync(pDeleteState);
+            }
+
+            break;
+    }
+
     goto cleanup;
 }
 
 static
 NTSTATUS
 SrvDeleteFiles(
-    PLWIO_SRV_SESSION pSession,
-    USHORT            usSearchAttributes,
-    PWSTR             pwszFilesystemPath,
-    PWSTR             pwszSearchPattern,
-    BOOLEAN           bUseLongFilenames
+    PSRV_EXEC_CONTEXT pExecContext
     )
 {
-    NTSTATUS ntStatus = 0;
-    ULONG    ulSearchStorageType = 0;
-    HANDLE   hSearchSpace = NULL;
-    USHORT   usSearchId = 0;
-    SMB_INFO_LEVEL infoLevel = SMB_FIND_FILE_BOTH_DIRECTORY_INFO;
-    BOOLEAN  bEndOfSearch = FALSE;
-    USHORT   usDesiredSearchCount = 10;
-    USHORT   usMaxDataCount = UINT16_MAX;
-    USHORT   usDataOffset = 0;
-    PBYTE    pData = NULL;
-    USHORT   usDataLen = 0;
-    USHORT   usSearchResultCount = 0;
-    PWSTR    pwszFilePath = NULL;
-    PWSTR    pwszFilename = NULL;
-    IO_FILE_HANDLE hFile = NULL;
-    FILE_CREATE_OPTIONS CreateOptions = 0;
-    PWSTR     pwszFilesystemPath2 = NULL;
-    PWSTR     pwszSearchPattern2 = NULL;
+    NTSTATUS                   ntStatus     = STATUS_SUCCESS;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
+    PSRV_DELETE_STATE_SMB_V1   pDeleteState = NULL;
+    PWSTR                      pwszFilename = NULL;
+    BOOLEAN                    bDone        = FALSE;
 
-    ntStatus = SrvFinderBuildSearchPath(
-                    pwszFilesystemPath,
-                    pwszSearchPattern,
-                    &pwszFilesystemPath2,
-                    &pwszSearchPattern2);
-    BAIL_ON_NT_STATUS(ntStatus);
+    pDeleteState = (PSRV_DELETE_STATE_SMB_V1)pCtxSmb1->hState;
 
-    ntStatus = SrvFinderCreateSearchSpace(
-                    pSession->pIoSecurityContext,
-                    pSession->hFinderRepository,
-                    pwszFilesystemPath2,
-                    pwszSearchPattern2,
-                    usSearchAttributes,
-                    ulSearchStorageType,
-                    infoLevel,
-                    bUseLongFilenames,
-                    &hSearchSpace,
-                    &usSearchId);
-    BAIL_ON_NT_STATUS(ntStatus);
+    if (pDeleteState->bPendingCreate)
+    {
+        pDeleteState->bPendingCreate = FALSE;
+
+        ntStatus = pDeleteState->ioStatusBlock.Status;
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        if (pDeleteState->hFile)
+        {
+            IoCloseFile(pDeleteState->hFile);
+            pDeleteState->hFile = NULL;
+        }
+
+        pDeleteState->iResult++;
+    }
 
     do
     {
-        USHORT   iResult = 0;
-        BOOLEAN  bReturnSingleEntry = FALSE;
-        BOOLEAN  bRestartScan = FALSE;
-        IO_STATUS_BLOCK ioStatusBlock = {0};
-        PSMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER pResult = NULL;
-        IO_FILE_NAME fileName = {0};
-        PVOID  pSecurityDescriptor = NULL;
-        PVOID  pSecurityQOS = NULL;
-
-        if (pData)
+        for (   ;
+                pDeleteState->iResult < pDeleteState->usSearchResultCount;
+                pDeleteState->iResult++)
         {
-            SrvFreeMemory(pData);
-            pData = NULL;
-        }
-
-        ntStatus = SrvFinderGetSearchResults(
-                        hSearchSpace,
-                        bReturnSingleEntry,
-                        bRestartScan,
-                        usDesiredSearchCount,
-                        usMaxDataCount,
-                        usDataOffset,
-                        &pData,
-                        &usDataLen,
-                        &usSearchResultCount,
-                        &bEndOfSearch);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        pResult = (PSMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER)pData;
-
-        for (; iResult < usSearchResultCount; iResult++)
-        {
-            if (pwszFilePath)
+            if (!pDeleteState->pResult)
             {
-                SrvFreeMemory(pwszFilePath);
-                pwszFilePath = NULL;
+                pDeleteState->pResult =
+                    (PSMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER)pDeleteState->pData;
             }
+            else if (pDeleteState->pResult->NextEntryOffset)
+            {
+                PBYTE pTmp = (PBYTE)pDeleteState->pResult +
+                                pDeleteState->pResult->NextEntryOffset;
+
+                pDeleteState->pResult =
+                            (PSMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER)pTmp;
+            }
+            else
+            {
+                ntStatus = STATUS_INTERNAL_ERROR;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+
+            if (pDeleteState->hFile)
+            {
+                IoCloseFile(pDeleteState->hFile);
+                pDeleteState->hFile = NULL;
+            }
+
             if (pwszFilename)
             {
                 SrvFreeMemory(pwszFilename);
                 pwszFilename = NULL;
             }
 
-            if (bUseLongFilenames)
+            if (pDeleteState->bUseLongFilenames)
             {
                 ntStatus = SrvAllocateMemory(
-                                pResult->FileNameLength + sizeof(wchar16_t),
+                                pDeleteState->pResult->FileNameLength + sizeof(wchar16_t),
                                 (PVOID*)&pwszFilename);
                 BAIL_ON_NT_STATUS(ntStatus);
 
                 memcpy((PBYTE)pwszFilename,
-                       (PBYTE)pResult->FileName,
-                       pResult->FileNameLength);
+                       (PBYTE)pDeleteState->pResult->FileName,
+                       pDeleteState->pResult->FileNameLength);
             }
             else
             {
                 ntStatus = SrvAllocateMemory(
-                                pResult->ShortNameLength + sizeof(wchar16_t),
+                                pDeleteState->pResult->ShortNameLength + sizeof(wchar16_t),
                                 (PVOID*)&pwszFilename);
                 BAIL_ON_NT_STATUS(ntStatus);
 
                 memcpy((PBYTE)pwszFilename,
-                       (PBYTE)pResult->ShortName,
-                       pResult->ShortNameLength);
+                       (PBYTE)pDeleteState->pResult->ShortName,
+                       pDeleteState->pResult->ShortNameLength);
+            }
+
+            if (pDeleteState->fileName.FileName)
+            {
+                SrvFreeMemory(pDeleteState->fileName.FileName);
+                pDeleteState->fileName.FileName = NULL;
             }
 
             ntStatus = SrvBuildFilePath(
-                            pwszFilesystemPath2,
+                            pDeleteState->pwszFilesystemPath,
                             pwszFilename,
-                            &pwszFilePath);
+                            &pDeleteState->fileName.FileName);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            fileName.FileName = pwszFilePath;
-
-            if (pResult->FileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+            if (pDeleteState->pResult->FileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+            {
                 ntStatus = STATUS_FILE_IS_A_DIRECTORY;
                 BAIL_ON_NT_STATUS(ntStatus);
             }
 
-            CreateOptions |=  FILE_DELETE_ON_CLOSE|FILE_NON_DIRECTORY_FILE;
+            SrvPrepareDeleteStateAsync(pDeleteState, pExecContext);
+
+            pDeleteState->bPendingCreate = TRUE;
 
             ntStatus = IoCreateFile(
-                            &hFile,
-                            NULL,
-                            &ioStatusBlock,
-                            pSession->pIoSecurityContext,
-                            &fileName,
-                            pSecurityDescriptor,
-                            pSecurityQOS,
+                            &pDeleteState->hFile,
+                            pDeleteState->pAcb,
+                            &pDeleteState->ioStatusBlock,
+                            pDeleteState->pSession->pIoSecurityContext,
+                            &pDeleteState->fileName,
+                            pDeleteState->pSecurityDescriptor,
+                            pDeleteState->pSecurityQOS,
                             DELETE,
                             0,
                             FILE_ATTRIBUTE_NORMAL,
                             FILE_SHARE_DELETE|FILE_SHARE_READ|FILE_SHARE_WRITE,
                             FILE_OPEN,
-                            CreateOptions,
+                            pDeleteState->ulCreateOptions,
                             NULL,
                             0,
                             NULL);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            IoCloseFile(hFile);
-            hFile = NULL;
+            SrvReleaseDeleteStateAsync(pDeleteState); // completed sync
 
-            if (pResult->NextEntryOffset)
-            {
-                PBYTE pTmp = (PBYTE)pResult + pResult->NextEntryOffset;
-
-                pResult = (PSMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER)pTmp;
-            }
+            pDeleteState->bPendingCreate = FALSE;
         }
 
-    } while (!bEndOfSearch);
+        if (!pDeleteState->bEndOfSearch)
+        {
+            if (pDeleteState->pData)
+            {
+                SrvFreeMemory(pDeleteState->pData);
+                pDeleteState->pData = NULL;
+            }
+
+            pDeleteState->iResult = 0;
+            pDeleteState->pResult = NULL;
+
+            ntStatus = SrvFinderGetSearchResults(
+                            pDeleteState->hSearchSpace,
+                            FALSE,                 /* bReturnSingleEntry    */
+                            FALSE,                 /* bRestartScan          */
+                            10,                    /* Desired serarch count */
+                            UINT16_MAX,            /* Max data count        */
+                            pDeleteState->usDataOffset,
+                            &pDeleteState->pData,
+                            &pDeleteState->usDataLen,
+                            &pDeleteState->usSearchResultCount,
+                            &pDeleteState->bEndOfSearch);
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+        else
+        {
+            bDone = TRUE;
+        }
+
+    } while (!bDone);
 
 cleanup:
 
-    if (hSearchSpace)
+    if (pwszFilename)
     {
-        NTSTATUS ntStatus2 = 0;
-
-        ntStatus2 = SrvFinderCloseSearchSpace(
-                        pSession->hFinderRepository,
-                        usSearchId);
-        if (ntStatus2)
-        {
-            LWIO_LOG_ERROR("Failed to close search space [Id:%d][code:%d]",
-                          usSearchId,
-                          ntStatus2);
-        }
-
-        SrvFinderReleaseSearchSpace(hSearchSpace);
+        SrvFreeMemory(pwszFilename);
     }
-
-    if (hFile)
-    {
-        IoCloseFile(hFile);
-    }
-
-    RTL_FREE(&pData);
-    RTL_FREE(&pwszFilename);
-    RTL_FREE(&pwszFilePath);
-    RTL_FREE(&pwszFilesystemPath2);
-    RTL_FREE(&pwszSearchPattern2);
 
     return ntStatus;
 
@@ -347,18 +450,25 @@ error:
 
     /* Have to do some error mapping here to match WinXP */
 
-    switch (ntStatus) {
-    case STATUS_FILE_IS_A_DIRECTORY:
-        break;
+    switch (ntStatus)
+    {
+        case STATUS_PENDING:
+        case STATUS_FILE_IS_A_DIRECTORY:
 
-    case STATUS_OBJECT_NAME_NOT_FOUND:
-    case STATUS_NO_SUCH_FILE:
-        ntStatus = STATUS_OBJECT_NAME_NOT_FOUND;
-        break;
+            break;
 
-    default:
-        ntStatus = STATUS_CANNOT_DELETE;
-        break;
+        case STATUS_OBJECT_NAME_NOT_FOUND:
+        case STATUS_NO_SUCH_FILE:
+
+            ntStatus = STATUS_OBJECT_NAME_NOT_FOUND;
+
+            break;
+
+        default:
+
+            ntStatus = STATUS_CANNOT_DELETE;
+
+            break;
     }
 
     goto cleanup;
@@ -377,12 +487,15 @@ SrvBuildDeleteResponse(
     ULONG                      iMsg         = pCtxSmb1->iMsg;
     PSRV_MESSAGE_SMB_V1        pSmbRequest  = &pCtxSmb1->pRequests[iMsg];
     PSRV_MESSAGE_SMB_V1        pSmbResponse = &pCtxSmb1->pResponses[iMsg];
+    PSRV_DELETE_STATE_SMB_V1   pDeleteState = NULL;
     PSMB_DELETE_RESPONSE_HEADER pResponseHeader = NULL; // Do not free
-    PBYTE pOutBuffer           = pSmbResponse->pBuffer;
-    ULONG ulBytesAvailable     = pSmbResponse->ulBytesAvailable;
-    ULONG ulOffset             = 0;
+    PBYTE  pOutBuffer           = pSmbResponse->pBuffer;
+    ULONG  ulBytesAvailable     = pSmbResponse->ulBytesAvailable;
+    ULONG  ulOffset             = 0;
     USHORT usBytesUsed          = 0;
-    ULONG ulTotalBytesUsed     = 0;
+    ULONG  ulTotalBytesUsed     = 0;
+
+    pDeleteState = (PSRV_DELETE_STATE_SMB_V1)pCtxSmb1->hState;
 
     if (!pSmbResponse->ulSerialNum)
     {
@@ -393,9 +506,9 @@ SrvBuildDeleteResponse(
                         COM_DELETE,
                         STATUS_SUCCESS,
                         TRUE,
-                        pCtxSmb1->pTree->tid,
+                        pDeleteState->pTree->tid,
                         SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
-                        pCtxSmb1->pSession->uid,
+                        pDeleteState->pSession->uid,
                         pSmbRequest->pHeader->mid,
                         pConnection->serverProperties.bRequireSecuritySignatures,
                         &pSmbResponse->pHeader,
@@ -456,3 +569,226 @@ error:
     goto cleanup;
 }
 
+static
+NTSTATUS
+SrvBuildDeleteState(
+    PSMB_DELETE_REQUEST_HEADER  pRequestHeader,
+    PWSTR                       pwszSearchPattern,
+    BOOLEAN                     bUseLongFilenames,
+    PSRV_DELETE_STATE_SMB_V1*   ppDeleteState
+    )
+{
+    NTSTATUS                 ntStatus    = STATUS_SUCCESS;
+    PSRV_DELETE_STATE_SMB_V1 pDeleteState = NULL;
+
+    ntStatus = SrvAllocateMemory(
+                    sizeof(SRV_DELETE_STATE_SMB_V1),
+                    (PVOID*)&pDeleteState);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pDeleteState->refCount = 1;
+
+    pthread_mutex_init(&pDeleteState->mutex, NULL);
+    pDeleteState->pMutex = &pDeleteState->mutex;
+
+    pDeleteState->stage = SRV_DELETE_STAGE_SMB_V1_INITIAL;
+
+    pDeleteState->pRequestHeader    = pRequestHeader;
+    pDeleteState->pwszSearchPattern = pwszSearchPattern;
+    pDeleteState->bUseLongFilenames = bUseLongFilenames;
+
+    pDeleteState->ulCreateOptions =
+                            FILE_DELETE_ON_CLOSE|FILE_NON_DIRECTORY_FILE;
+
+    *ppDeleteState = pDeleteState;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppDeleteState = NULL;
+
+    if (pDeleteState)
+    {
+        SrvFreeDeleteState(pDeleteState);
+    }
+
+    goto cleanup;
+}
+
+VOID
+SrvPrepareDeleteStateAsync(
+    PSRV_DELETE_STATE_SMB_V1 pDeleteState,
+    PSRV_EXEC_CONTEXT        pExecContext
+    )
+{
+    pDeleteState->acb.Callback        = &SrvExecuteDeleteAsyncCB;
+
+    pDeleteState->acb.CallbackContext = pExecContext;
+    InterlockedIncrement(&pExecContext->refCount);
+
+    pDeleteState->acb.AsyncCancelContext = NULL;
+
+    pDeleteState->pAcb = &pDeleteState->acb;
+}
+
+static
+VOID
+SrvExecuteDeleteAsyncCB(
+    PVOID pContext
+    )
+{
+    NTSTATUS                   ntStatus         = STATUS_SUCCESS;
+    PSRV_EXEC_CONTEXT          pExecContext     = (PSRV_EXEC_CONTEXT)pContext;
+    PSRV_PROTOCOL_EXEC_CONTEXT pProtocolContext = pExecContext->pProtocolContext;
+    PSRV_DELETE_STATE_SMB_V1   pDeleteState     = NULL;
+    BOOLEAN                    bInLock          = FALSE;
+
+    pDeleteState =
+        (PSRV_DELETE_STATE_SMB_V1)pProtocolContext->pSmb1Context->hState;
+
+    LWIO_LOCK_MUTEX(bInLock, &pDeleteState->mutex);
+
+    if (pDeleteState->pAcb->AsyncCancelContext)
+    {
+        IoDereferenceAsyncCancelContext(&pDeleteState->pAcb->AsyncCancelContext);
+    }
+
+    pDeleteState->pAcb = NULL;
+
+    LWIO_UNLOCK_MUTEX(bInLock, &pDeleteState->mutex);
+
+    ntStatus = SrvProdConsEnqueue(gProtocolGlobals_SMB_V1.pWorkQueue, pContext);
+    if (ntStatus != STATUS_SUCCESS)
+    {
+        LWIO_LOG_ERROR("Failed to enqueue execution context [status:0x%x]",
+                       ntStatus);
+
+        SrvReleaseExecContext(pExecContext);
+    }
+}
+
+VOID
+SrvReleaseDeleteStateAsync(
+    PSRV_DELETE_STATE_SMB_V1 pDeleteState
+    )
+{
+    if (pDeleteState->pAcb)
+    {
+        pDeleteState->acb.Callback = NULL;
+
+        if (pDeleteState->pAcb->CallbackContext)
+        {
+            PSRV_EXEC_CONTEXT pExecContext = NULL;
+
+            pExecContext = (PSRV_EXEC_CONTEXT)pDeleteState->pAcb->CallbackContext;
+
+            SrvReleaseExecContext(pExecContext);
+
+            pDeleteState->pAcb->CallbackContext = NULL;
+        }
+
+        if (pDeleteState->pAcb->AsyncCancelContext)
+        {
+            IoDereferenceAsyncCancelContext(
+                    &pDeleteState->pAcb->AsyncCancelContext);
+        }
+
+        pDeleteState->pAcb = NULL;
+    }
+}
+
+static
+VOID
+SrvReleaseDeleteStateHandle(
+    HANDLE hDeleteState
+    )
+{
+    SrvReleaseDeleteState((PSRV_DELETE_STATE_SMB_V1)hDeleteState);
+}
+
+static
+VOID
+SrvReleaseDeleteState(
+    PSRV_DELETE_STATE_SMB_V1 pDeleteState
+    )
+{
+    if (InterlockedDecrement(&pDeleteState->refCount) == 0)
+    {
+        SrvFreeDeleteState(pDeleteState);
+    }
+}
+
+static
+VOID
+SrvFreeDeleteState(
+    PSRV_DELETE_STATE_SMB_V1 pDeleteState
+    )
+{
+    if (pDeleteState->pAcb && pDeleteState->pAcb->AsyncCancelContext)
+    {
+        IoDereferenceAsyncCancelContext(
+                &pDeleteState->pAcb->AsyncCancelContext);
+    }
+
+    if (pDeleteState->hSearchSpace)
+    {
+        NTSTATUS ntStatus2 = 0;
+
+        ntStatus2 = SrvFinderCloseSearchSpace(
+                        pDeleteState->pSession->hFinderRepository,
+                        pDeleteState->usSearchId);
+        if (ntStatus2)
+        {
+            LWIO_LOG_ERROR("Failed to close search space [Id:%d][code:%d]",
+                          pDeleteState->usSearchId,
+                          ntStatus2);
+        }
+
+        SrvFinderReleaseSearchSpace(pDeleteState->hSearchSpace);
+    }
+
+    if (pDeleteState->pTree)
+    {
+        SrvTreeRelease(pDeleteState->pTree);
+    }
+
+    if (pDeleteState->pSession)
+    {
+        SrvSessionRelease(pDeleteState->pSession);
+    }
+
+    if (pDeleteState->pwszFilesystemPath)
+    {
+        SrvFreeMemory(pDeleteState->pwszFilesystemPath);
+    }
+
+    if (pDeleteState->pwszSearchPattern2)
+    {
+        SrvFreeMemory(pDeleteState->pwszSearchPattern2);
+    }
+
+    if (pDeleteState->hFile)
+    {
+        IoCloseFile(pDeleteState->hFile);
+    }
+
+    if (pDeleteState->pData)
+    {
+        SrvFreeMemory(pDeleteState->pData);
+    }
+
+    if (pDeleteState->fileName.FileName)
+    {
+        SrvFreeMemory(pDeleteState->fileName.FileName);
+    }
+
+    if (pDeleteState->pMutex)
+    {
+        pthread_mutex_destroy(&pDeleteState->mutex);
+    }
+
+    SrvFreeMemory(pDeleteState);
+}

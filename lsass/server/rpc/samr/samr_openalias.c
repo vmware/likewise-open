@@ -64,7 +64,7 @@ SamrSrvOpenAlias(
                                 hDomain,
                                 access_mask,
                                 rid,
-                                DS_OBJECT_CLASS_GROUP,
+                                DS_OBJECT_CLASS_LOCAL_GROUP,
                                 &hAlias);
     BAIL_ON_NTSTATUS_ERROR(status);
 
