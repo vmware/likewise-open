@@ -840,6 +840,8 @@ error:
         LWNET_SAFE_FREE_DC_INFO(pDcInfo);
         lastPinged = 0;
         lastDiscovered = 0;
+        isBackoffToWritableDc = FALSE;
+        lastBackoffToWritableDc = 0;
     }
 
     LWNET_SAFE_FREE_STRING(pszDnsDomainNameLower);
