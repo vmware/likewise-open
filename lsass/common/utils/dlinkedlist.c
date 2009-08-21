@@ -47,6 +47,15 @@
 
 #include "includes.h"
 
+
+static
+VOID
+LsaDLinkedListNodeCounter(
+    PVOID pData,
+    PVOID pUserData
+    );
+
+
 DWORD
 LsaDLinkedListPrepend(
     PDLINKEDLIST* ppList,
@@ -175,6 +184,20 @@ LsaDLinkedListForEach(
     }
 }
 
+DWORD
+LsaDLinkedListLength(
+    PDLINKEDLIST pList
+    )
+{
+    DWORD dwCount = 0;
+    LsaDLinkedListForEach(pList,
+                          LsaDLinkedListNodeCounter,
+                          &dwCount);
+
+    return dwCount;
+}
+
+
 VOID
 LsaDLinkedListFree(
     PDLINKEDLIST pList
@@ -187,3 +210,26 @@ LsaDLinkedListFree(
         LwFreeMemory(pTmp);
     }
 }
+
+
+static
+VOID
+LsaDLinkedListNodeCounter(
+    PVOID pData,
+    PVOID pUserData
+    )
+{
+    PDWORD pdwCount = (PDWORD)pUserData;
+    (*pdwCount)++;
+}
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
+

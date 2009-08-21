@@ -634,6 +634,11 @@ LsaDLinkedListForEach(
     PVOID                pUserData
     );
 
+DWORD
+LsaDLinkedListLength(
+    PDLINKEDLIST pList
+    );
+
 VOID
 LsaDLinkedListFree(
     PDLINKEDLIST pList
