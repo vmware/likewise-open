@@ -131,9 +131,6 @@ SMBSocketCreate(
 
     bDestroyCondition = TRUE;
 
-    ntStatus = pthread_cond_init(&pSocket->event, NULL);
-    BAIL_ON_NT_STATUS(ntStatus);
-
     pSocket->refCount = 1;
 
     /* @todo: find a portable time call which is immune to host date and time
