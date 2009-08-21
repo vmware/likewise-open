@@ -97,6 +97,20 @@ LsaSrvLookupNames2(
 
 
 NTSTATUS
+LsaSrvLookupSids2(
+    handle_t hBinding,
+    POLICY_HANDLE hPolicy,
+    SidArray *sids,
+    RefDomainList **domains,
+    TranslatedNameArray *names,
+    uint16 level,
+    uint32 *count,
+    uint32 unknown1,
+    uint32 unknown2
+    );
+
+
+NTSTATUS
 LsaSrvQueryInfoPolicy(
     handle_t b,
     POLICY_HANDLE hPolicy,

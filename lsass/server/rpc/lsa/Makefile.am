@@ -20,6 +20,7 @@ liblsa_la_SOURCES = \
     lsa_lookupnames.c           \
     lsa_lookupsids.c            \
     lsa_lookupnames2.c          \
+    lsa_lookupsids2.c           \
     lsa_lookupnames3.c          \
     lsa_queryinfopolicy.c       \
     lsa_queryinfopolicy2.c      \
