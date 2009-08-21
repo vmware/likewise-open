@@ -25,7 +25,6 @@ DCEIDL_PASS_INCLUDES = \
 FEATURETEST_FLAGS="-D_XOPEN_SOURCE=500"
 
 libdssetup_la_CFLAGS = \
-    -g                      \
     -DLIBRPC_BUILD          \
     -I$(srv_srcdir)/include \
     -I$(top_srcdir)/include \
