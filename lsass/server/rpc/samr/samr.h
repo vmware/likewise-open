@@ -160,6 +160,17 @@ SamrSrvLookupNames(
 
 
 NTSTATUS
+SamrSrvLookupRids(
+    handle_t IDL_handle,
+    DOMAIN_HANDLE hDomain,
+    uint32 dwNumRids,
+    uint32 *pdwRids,
+    UnicodeStringArray *pNames,
+    Ids *pTypes
+    );
+
+
+NTSTATUS
 SamrSrvOpenAlias(
     handle_t hBinding,
     DOMAIN_HANDLE *hDomain,
