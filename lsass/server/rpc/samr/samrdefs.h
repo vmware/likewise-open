@@ -121,10 +121,14 @@ typedef void* ACCOUNT_HANDLE;
     {'N','T','H','a','s','h',0}
 
 
+#define DS_OBJECT_CLASS_UNKNOWN          (0)
 #define DS_OBJECT_CLASS_DOMAIN           (1)
 #define DS_OBJECT_CLASS_BUILTIN_DOMAIN   (2)
-#define DS_OBJECT_CLASS_GROUP            (4)
+#define DS_OBJECT_CLASS_CONTAINER        (3)
+#define DS_OBJECT_CLASS_LOCAL_GROUP      (4)
 #define DS_OBJECT_CLASS_USER             (5)
+#define DS_OBJECT_CLASS_LOCALGRP_MEMBER  (6)
+#define DS_OBJECT_CLASS_SENTINEL         (7)
 
 
 #define SAMR_BUILTIN_DOMAIN_NAME \
