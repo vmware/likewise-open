@@ -216,6 +216,45 @@ LwWc16ToUpper(
     return dwError;
 }
 
+DWORD
+LwAllocateWc16String(
+    PWSTR *ppwszOutputString,
+    PCWSTR pwszInputString
+    )
+{
+    DWORD dwError = ERROR_SUCCESS;
+    DWORD dwLen = 0;
+    PWSTR pwszOutputString = NULL;
+
+    if (!pwszInputString)
+    {
+        dwError = ERROR_INVALID_PARAMETER;
+        BAIL_ON_LW_ERROR(dwError);
+    }
+
+    dwLen = wc16slen(pwszInputString);
+
+    dwError = LwAllocateMemory(dwLen + 1,
+                               OUT_PPVOID(&pwszOutputString));
+    BAIL_ON_LW_ERROR(dwError);
+
+    if (dwLen)
+    {
+        wc16sncpy(pwszOutputString, pwszInputString, dwLen);
+    }
+
+    *ppwszOutputString = pwszOutputString;
+
+cleanup:
+    return dwError;
+
+error:
+    LW_SAFE_FREE_MEMORY(pwszOutputString);
+
+    *ppwszOutputString = NULL;
+    goto cleanup;
+}
+
 /*
 local variables:
 mode: c
