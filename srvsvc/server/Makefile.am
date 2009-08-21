@@ -102,9 +102,10 @@ CLEANFILES = srvsvc_h.h srvsvc_cstub.c srvsvc_sstub.c \
              wkssvc_h.h wkssvc_cstub.c wkssvc_sstub.c \
              winreg_h.h winreg_cstub.c winreg_sstub.c
 
-BUILT_SOURCES = srvsvc_h.h srvsvc_cstub.c srvsvc_sstub.c \
-                wkssvc_h.h wkssvc_cstub.c wkssvc_sstub.c \
-                winreg_h.h winreg_cstub.c winreg_sstub.c
+BUILT_SOURCES = \
+    srvsvc_h.h  \
+    wkssvc_h.h  \
+    winreg_h.h
 
 srvsvc_h.h srvsvc_cstub.c srvsvc_sstub.c: $(idl_srcdir)/srvsvc.idl $(idl_srcdir)/srvsvc.acf
 	$(IDL) $(IDLFLAGS) -keep c_source -header srvsvc_h.h \
