@@ -1486,22 +1486,6 @@ LwGetErrorString(
     size_t stBufSize
     );
 
-/**
- * @ingroup utility
- * @brief Free a memory block
- *
- * Frees a single memory block allocated by an LSASS client API
- * function.  This may be used to peform fine-grained management
- * of heap-allocated structures in lieu of functions such as
- * #LsaFreeGroupInfo().
- *
- * @param[in,out] pMemory a pointer to the memory block
- */
-LW_VOID
-LsaFreeMemory(
-    LW_PVOID pMemory
-    );
-
 LW_DWORD
 LsaGetErrorMessageForLoggingEvent(
     LW_DWORD dwError,
