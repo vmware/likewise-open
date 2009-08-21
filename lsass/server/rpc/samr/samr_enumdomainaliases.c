@@ -65,7 +65,7 @@ SamrSrvEnumDomainAliases(
     status = SamrSrvEnumDomainAccounts(hBinding,
                                        hDomain,
                                        resume,
-                                       DS_OBJECT_CLASS_GROUP,
+                                       DS_OBJECT_CLASS_LOCAL_GROUP,
       /* account flags are ignored */  0,
                                        max_size,
                                        names,

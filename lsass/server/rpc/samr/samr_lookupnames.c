@@ -72,7 +72,7 @@ SamrSrvLookupNames(
     WCHAR wszAttrObjectSid[] = DS_ATTR_OBJECT_SID;
     WCHAR wszAttrDomainName[] = DS_ATTR_DOMAIN;
     DWORD dwObjectClassUser = DS_OBJECT_CLASS_USER;
-    DWORD dwObjectClassGroup = DS_OBJECT_CLASS_GROUP;
+    DWORD dwObjectClassGroup = DS_OBJECT_CLASS_LOCAL_GROUP;
     DWORD dwScope = 0;
     PWSTR pwszFilter = NULL;
     DWORD dwFilterLen = 0;
@@ -201,12 +201,12 @@ SamrSrvLookupNames(
                     dwType = SID_TYPE_USER;
                     break;
 
-                case DS_OBJECT_CLASS_GROUP:
+                case DS_OBJECT_CLASS_LOCAL_GROUP:
                     dwType = SID_TYPE_ALIAS;
                     break;
 
                 default:
-                    status = STATUS_INTERNAL_ERROR;
+                    dwType = SID_TYPE_INVALID;
                 }
 
                 BAIL_ON_NTSTATUS_ERROR(status);
