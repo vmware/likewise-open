@@ -585,6 +585,58 @@ typedef struct _SRV_DELETEDIR_STATE_SMB_V1
 
 typedef enum
 {
+    SRV_DELETE_STAGE_SMB_V1_INITIAL = 0,
+    SRV_DELETE_STAGE_SMB_V1_DELETE_FILES,
+    SRV_DELETE_STAGE_SMB_V1_BUILD_RESPONSE,
+    SRV_DELETE_STAGE_SMB_V1_DONE
+} SRV_DELETE_STAGE_SMB_V1;
+
+typedef struct _SRV_DELETE_STATE_SMB_V1
+{
+    LONG                        refCount;
+
+    pthread_mutex_t             mutex;
+    pthread_mutex_t*            pMutex;
+
+    SRV_DELETE_STAGE_SMB_V1     stage;
+
+    IO_ASYNC_CONTROL_BLOCK      acb;
+    PIO_ASYNC_CONTROL_BLOCK     pAcb;
+
+    IO_STATUS_BLOCK             ioStatusBlock;
+
+    PSMB_DELETE_REQUEST_HEADER  pRequestHeader;    // Do not free
+    PWSTR                       pwszSearchPattern; // Do not free
+    BOOLEAN                     bUseLongFilenames;
+
+    PLWIO_SRV_SESSION           pSession;
+    PLWIO_SRV_TREE              pTree;
+
+    PWSTR                       pwszFilesystemPath;
+    PWSTR                       pwszSearchPattern2;
+    HANDLE                      hSearchSpace;
+    USHORT                      usSearchId;
+    ULONG                       ulSearchStorageType;
+
+    BOOLEAN                     bEndOfSearch;
+    USHORT                      usSearchResultCount;
+    USHORT                      iResult;
+    PBYTE                       pData;
+    USHORT                      usDataLen;
+    USHORT                      usDataOffset;
+
+    IO_FILE_HANDLE                            hFile;
+    IO_FILE_NAME                              fileName;
+    PVOID                                     pSecurityDescriptor;
+    PVOID                                     pSecurityQOS;
+    FILE_CREATE_OPTIONS                       ulCreateOptions;
+    BOOLEAN                                   bPendingCreate;
+    PSMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER pResult; // Do not free
+
+} SRV_DELETE_STATE_SMB_V1, *PSRV_DELETE_STATE_SMB_V1;
+
+typedef enum
+{
     SRV_RENAME_STAGE_SMB_V1_INITIAL = 0,
     SRV_RENAME_STAGE_SMB_V1_ATTEMPT_RENAME,
     SRV_RENAME_STAGE_SMB_V1_BUILD_RESPONSE,
