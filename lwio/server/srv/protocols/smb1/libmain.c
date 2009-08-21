@@ -380,6 +380,13 @@ SrvProtocolExecute_SMB_V1(
 
             case STATUS_SUCCESS:
 
+                if (pExecContext->pProtocolContext->pSmb1Context->hState &&
+                    pExecContext->pProtocolContext->pSmb1Context->pfnStateRelease)
+                {
+                    pExecContext->pProtocolContext->pSmb1Context->pfnStateRelease(pExecContext->pProtocolContext->pSmb1Context->hState);
+                    pExecContext->pProtocolContext->pSmb1Context->hState = NULL;
+                }
+
                 break;
 
             default:
