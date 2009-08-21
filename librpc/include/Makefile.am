@@ -3,7 +3,7 @@ include_HEADERS = \
 	lwrpc/security.h \
 	lwrpc/unistrdef.h \
 	lwrpc/winerror.h \
-	lwrpc/error.inc \
+	lwrpc/error-table.h \
 	lwrpc/errcheck.h \
 	lwrpc/errconv.h \
 	byteops.h \
