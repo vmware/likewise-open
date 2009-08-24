@@ -102,7 +102,7 @@ LsaSrvLookupSids2(
     POLICY_HANDLE hPolicy,
     SidArray *sids,
     RefDomainList **domains,
-    TranslatedNameArray *names,
+    TranslatedNameArray2 *names,
     uint16 level,
     uint32 *count,
     uint32 unknown1,
@@ -144,6 +144,49 @@ LsaSrvLookupNames3(
 
 
 NTSTATUS
+LsaSrvCreateSamDomainsTable(
+    PLSA_HASH_TABLE *ppDomains
+    );
+
+
+NTSTATUS
+LsaSrvGetSamDomainByName(
+    PPOLICY_CONTEXT pPolCtx,
+    PCWSTR pwszDomainName,
+    PSAM_DOMAIN_ENTRY *ppDomain
+    );
+
+
+NTSTATUS
+LsaSrvGetSamDomainBySid(
+    PPOLICY_CONTEXT pPolCtx,
+    const PSID pSid,
+    PSAM_DOMAIN_ENTRY *ppDomain
+    );
+
+
+NTSTATUS
+LsaSrvSetSamDomain(
+    PPOLICY_CONTEXT pPolCtx,
+    const PSAM_DOMAIN_ENTRY pDomain
+    );
+
+
+NTSTATUS
+LsaSrvGetLocalSamDomain(
+    PPOLICY_CONTEXT pPolCtx,
+    BOOLEAN bBuiltin,
+    PSAM_DOMAIN_ENTRY *ppDomain
+    );
+
+
+VOID
+LsaSrvSamDomainEntryFree(
+    PSAM_DOMAIN_ENTRY *ppEntry
+    );
+
+
+NTSTATUS
 LsaSrvParseAccountName(
     PWSTR pwszName,
     PWSTR *ppwszDomainName,
@@ -152,35 +195,10 @@ LsaSrvParseAccountName(
 
 
 NTSTATUS
-LsaSrvGetSamrDomain(
-    PPOLICY_CONTEXT pPolCtx,
-    PWSTR pwszDomainName,
-    PSAMR_DOMAIN pSamrDomain
-    );
-
-
-NTSTATUS
-LsaSrvSetSamrDomain(
-    PPOLICY_CONTEXT pPolCtx,
-    PSAMR_DOMAIN pSamrDomain
-    );
-
-
-NTSTATUS
-LsaSrvGetLocalSamrDomain(
-    PPOLICY_CONTEXT pPolCtx,
-    BOOLEAN bBuiltin,
-    PSAMR_DOMAIN pSamrDomain
-    );
-
-
-NTSTATUS
-LsaSrvLookupDomainsByAccountName(
+LsaSrvSelectAccountsByDomainName(
     PPOLICY_CONTEXT pPolCtx,
     UnicodeStringEx *pNames,
     DWORD dwNumNames,
-    handle_t hSamrBinding,
-    PolicyHandle *phConn,
     PACCOUNT_NAMES pDomainAccounts,
     PACCOUNT_NAMES pLocalAccounts,
     PACCOUNT_NAMES pBuiltinAccounts,
@@ -188,9 +206,26 @@ LsaSrvLookupDomainsByAccountName(
     );
 
 
+NTSTATUS
+LsaSrvSelectAccountsByDomainSid(
+    PPOLICY_CONTEXT pPolCtx,
+    SidArray *pSids,
+    DWORD dwNumSids,
+    PACCOUNT_SIDS pDomainAccounts,
+    PACCOUNT_SIDS pLocalAccounts,
+    PACCOUNT_SIDS pBuiltinAccounts
+    );
+
+
 VOID
 LsaSrvFreeAccountNames(
     PACCOUNT_NAMES pAccountNames
+    );
+
+
+VOID
+LsaSrvFreeAccountSids(
+    PACCOUNT_SIDS pAccountSids
     );
 
 
