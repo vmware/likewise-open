@@ -55,45 +55,33 @@
 
 typedef enum __NTLM_IPC_TAG
 {
-    NTLM_Q_ACCEPT_SEC_CTXT = LSA_IPC_TAG_FINAL,
+    NTLM_R_GENERIC_FAILURE = LSA_IPC_TAG_FINAL,
+    NTLM_Q_ACCEPT_SEC_CTXT,
     NTLM_R_ACCEPT_SEC_CTXT_SUCCESS,
-    NTLM_R_ACCEPT_SEC_CTXT_FAILURE,
     NTLM_Q_ACQUIRE_CREDS,
     NTLM_R_ACQUIRE_CREDS_SUCCESS,
-    NTLM_R_ACQUIRE_CREDS_FAILURE,
     NTLM_Q_DECRYPT_MSG,
     NTLM_R_DECRYPT_MSG_SUCCESS,
-    NTLM_R_DECRYPT_MSG_FAILURE,
     NTLM_Q_DELETE_SEC_CTXT,
     NTLM_R_DELETE_SEC_CTXT_SUCCESS,
-    NTLM_R_DELETE_SEC_CTXT_FAILURE,
     NTLM_Q_ENCRYPT_MSG,
     NTLM_R_ENCRYPT_MSG_SUCCESS,
-    NTLM_R_ENCRYPT_MSG_FAILURE,
     NTLM_Q_EXPORT_SEC_CTXT,
     NTLM_R_EXPORT_SEC_CTXT_SUCCESS,
-    NTLM_R_EXPORT_SEC_CTXT_FAILURE,
     NTLM_Q_FREE_CREDS,
     NTLM_R_FREE_CREDS_SUCCESS,
-    NTLM_R_FREE_CREDS_FAILURE,
     NTLM_Q_IMPORT_SEC_CTXT,
     NTLM_R_IMPORT_SEC_CTXT_SUCCESS,
-    NTLM_R_IMPORT_SEC_CTXT_FAILURE,
     NTLM_Q_INIT_SEC_CTXT,
     NTLM_R_INIT_SEC_CTXT_SUCCESS,
-    NTLM_R_INIT_SEC_CTXT_FAILURE,
     NTLM_Q_MAKE_SIGN,
     NTLM_R_MAKE_SIGN_SUCCESS,
-    NTLM_R_MAKE_SIGN_FAILURE,
     NTLM_Q_QUERY_CREDS,
     NTLM_R_QUERY_CREDS_SUCCESS,
-    NTLM_R_QUERY_CREDS_FAILURE,
     NTLM_Q_QUERY_CTXT,
     NTLM_R_QUERY_CTXT_SUCCESS,
-    NTLM_R_QUERY_CTXT_FAILURE,
     NTLM_Q_VERIFY_SIGN,
-    NTLM_R_VERIFY_SIGN_SUCCESS,
-    NTLM_R_VERIFY_SIGN_FAILURE
+    NTLM_R_VERIFY_SIGN_SUCCESS
 } NTLM_IPC_TAG;
 
 /******************************************************************************/
@@ -108,18 +96,17 @@ typedef struct __NTLM_IPC_ERROR
 typedef struct __NTLM_IPC_ACCEPT_SEC_CTXT_REQ
 {
     NTLM_CRED_HANDLE hCredential;
-    LSA_CONTEXT_HANDLE hContext;
+    NTLM_CONTEXT_HANDLE hContext;
     PSecBufferDesc pInput;
     DWORD fContextReq;
     DWORD TargetDataRep;
-    LSA_CONTEXT_HANDLE hNewContext;
+    NTLM_CONTEXT_HANDLE hNewContext;
     PSecBufferDesc pOutput;
 } NTLM_IPC_ACCEPT_SEC_CTXT_REQ, *PNTLM_IPC_ACCEPT_SEC_CTXT_REQ;
 
 typedef struct __NTLM_IPC_ACCEPT_SEC_CTXT_RESPONSE
 {
-    LSA_CONTEXT_HANDLE hContext;
-    LSA_CONTEXT_HANDLE hNewContext;
+    NTLM_CONTEXT_HANDLE hNewContext;
     SecBufferDesc Output;
     DWORD  fContextAttr;
     TimeStamp tsTimeStamp;
@@ -147,7 +134,7 @@ typedef struct __NTLM_IPC_ACQUIRE_CREDS_RESPONSE
 
 typedef struct __NTLM_IPC_DECRYPT_MSG_REQ
 {
-    LSA_CONTEXT_HANDLE hContext;
+    NTLM_CONTEXT_HANDLE hContext;
     PSecBufferDesc pMessage;
     DWORD MessageSeqNo;
 } NTLM_IPC_DECRYPT_MSG_REQ, *PNTLM_IPC_DECRYPT_MSG_REQ;
@@ -155,14 +142,14 @@ typedef struct __NTLM_IPC_DECRYPT_MSG_REQ
 typedef struct __NTLM_IPC_DECRYPT_MSG_RESPONSE
 {
     SecBufferDesc Message;
-    BOOL bEncrypted;
+    BOOLEAN bEncrypted;
 } NTLM_IPC_DECRYPT_MSG_RESPONSE, *PNTLM_IPC_DECRYPT_MSG_RESPONSE;
 
 /******************************************************************************/
 
 typedef struct __NTLM_IPC_DELETE_SEC_CTXT_REQ
 {
-    LSA_CONTEXT_HANDLE hContext;
+    NTLM_CONTEXT_HANDLE hContext;
 } NTLM_IPC_DELETE_SEC_CTXT_REQ, *PNTLM_IPC_DELETE_SEC_CTXT_REQ;
 
 // No Response
@@ -171,8 +158,8 @@ typedef struct __NTLM_IPC_DELETE_SEC_CTXT_REQ
 
 typedef struct __NTLM_IPC_ENCRYPT_MSG_REQ
 {
-    LSA_CONTEXT_HANDLE hContext;
-    BOOL bEncrypt;
+    NTLM_CONTEXT_HANDLE hContext;
+    BOOLEAN bEncrypt;
     PSecBufferDesc pMessage;
     DWORD MessageSeqNo;
 } NTLM_IPC_ENCRYPT_MSG_REQ, *PNTLM_IPC_ENCRYPT_MSG_REQ;
@@ -186,7 +173,7 @@ typedef struct __NTLM_IPC_ENCRYPT_MSG_RESPONSE
 
 typedef struct __NTLM_IPC_EXPORT_SEC_CTXT_REQ
 {
-    LSA_CONTEXT_HANDLE hContext;
+    NTLM_CONTEXT_HANDLE hContext;
     DWORD fFlags;
 } NTLM_IPC_EXPORT_SEC_CTXT_REQ, *PNTLM_IPC_EXPORT_SEC_CTXT_REQ;
 
@@ -216,7 +203,7 @@ typedef struct __NTLM_IPC_IMPORT_SEC_CTXT_REQ
 
 typedef struct __NTLM_IPC_IMPORT_SEC_CTXT_RESPONSE
 {
-    LSA_CONTEXT_HANDLE hContext;
+    NTLM_CONTEXT_HANDLE hContext;
 } NTLM_IPC_IMPORT_SEC_CTXT_RESPONSE, *PNTLM_IPC_IMPORT_SEC_CTXT_RESPONSE;
 
 /******************************************************************************/
@@ -224,20 +211,20 @@ typedef struct __NTLM_IPC_IMPORT_SEC_CTXT_RESPONSE
 typedef struct __NTLM_IPC_INIT_SEC_CTXT_REQ
 {
     NTLM_CRED_HANDLE hCredential;
-    LSA_CONTEXT_HANDLE hContext;
+    NTLM_CONTEXT_HANDLE hContext;
     SEC_CHAR * pszTargetName;
     DWORD fContextReq;
     DWORD Reserved1;
     DWORD TargetDataRep;
     PSecBufferDesc pInput;
     DWORD Reserved2;
-    LSA_CONTEXT_HANDLE hNewContext;
+    NTLM_CONTEXT_HANDLE hNewContext;
     PSecBufferDesc pOutput;
 } NTLM_IPC_INIT_SEC_CTXT_REQ, *PNTLM_IPC_INIT_SEC_CTXT_REQ;
 
 typedef struct __NTLM_IPC_INIT_SEC_CTXT_RESPONSE
 {
-    LSA_CONTEXT_HANDLE hNewContext;
+    NTLM_CONTEXT_HANDLE hNewContext;
     SecBufferDesc Output;
     DWORD fContextAttr;
     TimeStamp tsExpiry;
@@ -248,8 +235,8 @@ typedef struct __NTLM_IPC_INIT_SEC_CTXT_RESPONSE
 
 typedef struct __NTLM_IPC_MAKE_SIGN_REQ
 {
-    LSA_CONTEXT_HANDLE hContext;
-    BOOL bEncrypt;
+    NTLM_CONTEXT_HANDLE hContext;
+    BOOLEAN bEncrypt;
     PSecBufferDesc pMessage;
     DWORD MessageSeqNo;
 } NTLM_IPC_MAKE_SIGN_REQ, *PNTLM_IPC_MAKE_SIGN_REQ;
@@ -277,29 +264,29 @@ typedef struct __NTLM_IPC_QUERY_CREDS_RESPONSE
 
 typedef struct __NTLM_IPC_QUERY_CTXT_REQ
 {
-    LSA_CONTEXT_HANDLE hContext;
+    NTLM_CONTEXT_HANDLE hContext;
     DWORD ulAttribute;
 } NTLM_IPC_QUERY_CTXT_REQ, *PNTLM_IPC_QUERY_CTXT_REQ;
 
 typedef struct __NTLM_IPC_QUERY_CTXT_RESPONSE
 {
-    DWORD dwBufferSize;
-    PVOID pBuffer;
+    DWORD ulAttribute;
+    SecPkgContext Buffer;
 } NTLM_IPC_QUERY_CTXT_RESPONSE, *PNTLM_IPC_QUERY_CTXT_RESPONSE;
 
 /******************************************************************************/
 
 typedef struct __NTLM_IPC_VERIFY_SIGN_REQ
 {
-    LSA_CONTEXT_HANDLE hContext;
+    NTLM_CONTEXT_HANDLE hContext;
     PSecBufferDesc pMessage;
     DWORD MessageSeqNo;
 } NTLM_IPC_VERIFY_SIGN_REQ, *PNTLM_IPC_VERIFY_SIGN_REQ;
 
 typedef struct __NTLM_IPC_VERIFY_SIGN_RESPONSE
 {
-    BOOL bVerified;
-    BOOL bEncrypted;
+    BOOLEAN bVerified;
+    BOOLEAN bEncrypted;
 } NTLM_IPC_VERIFY_SIGN_RESPONSE, *PNTLM_IPC_VERIFY_SIGN_RESPONSE;
 
 /******************************************************************************/

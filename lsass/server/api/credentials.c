@@ -224,6 +224,8 @@ LsaInitializeCredentialsDatabase(
     VOID
     )
 {
+    BOOLEAN bInLock = FALSE;
+
     ENTER_CREDS_LIST(bInLock);
 
     LsaListInit(&gCredState.LsaCredsList);

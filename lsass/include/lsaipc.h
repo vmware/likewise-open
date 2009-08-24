@@ -127,12 +127,6 @@ typedef enum __LSA_IPC_TAG
     LSA_Q_NAMES_BY_SID_LIST,
     LSA_R_NAMES_BY_SID_LIST_SUCCESS,
     LSA_R_NAMES_BY_SID_LIST_FAILURE,
-    LSA_Q_GSS_MAKE_AUTH_MSG,
-    LSA_R_GSS_MAKE_AUTH_MSG_SUCCESS,
-    LSA_R_GSS_MAKE_AUTH_MSG_FAILURE,
-    LSA_Q_GSS_CHECK_AUTH_MSG,
-    LSA_R_GSS_CHECK_AUTH_MSG_SUCCESS,
-    LSA_R_GSS_CHECK_AUTH_MSG_FAILURE,
     LSA_Q_AUTH_USER_EX,
     LSA_R_AUTH_USER_EX_SUCCESS,
     LSA_R_AUTH_USER_EX_FAILURE,
@@ -258,35 +252,6 @@ typedef struct __LSA_IPC_NAMES_BY_SIDS_REQ
     size_t sCount;
     PSTR* ppszSidList;
 } LSA_IPC_NAMES_BY_SIDS_REQ, *PLSA_IPC_NAMES_BY_SIDS_REQ;
-
-typedef struct __LSA_IPC_MAKE_AUTH_MSG_REQ
-{
-    ULONG negotiateFlags;
-    SEC_BUFFER credentials;
-    SEC_BUFFER_S serverChallenge;
-    SEC_BUFFER targetInfo;
-} LSA_IPC_MAKE_AUTH_MSG_REQ, *PLSA_IPC_MAKE_AUTH_MSG_REQ;
-
-typedef struct __LSA_GSS_R_MAKE_AUTH_MSG
-{
-    DWORD msgError;
-    SEC_BUFFER authenticateMessage;
-    SEC_BUFFER_S baseSessionKey;
-} LSA_GSS_R_MAKE_AUTH_MSG, *PLSA_GSS_R_MAKE_AUTH_MSG;
-
-typedef struct __LSA_IPC_CHECK_AUTH_MSG_REQ
-{
-    ULONG negotiateFlags;
-    SEC_BUFFER_S serverChallenge;
-    SEC_BUFFER targetInfo;
-    SEC_BUFFER authenticateMessage;
-} LSA_IPC_CHECK_AUTH_MSG_REQ, *PLSA_IPC_CHECK_AUTH_MSG_REQ;
-
-typedef struct __LSA_GSS_R_CHECK_AUTH_MSG
-{
-    DWORD msgError;
-    SEC_BUFFER_S baseSessionKey;
-} LSA_GSS_R_CHECK_AUTH_MSG, *PLSA_GSS_R_CHECK_AUTH_MSG;
 
 typedef struct __LSA_IPC_CHECK_USER_IN_LIST_REQ
 {

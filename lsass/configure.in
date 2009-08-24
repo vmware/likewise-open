@@ -938,14 +938,6 @@ AC_CONFIG_FILES([Makefile
                  interop/nsswitch/solaris/Makefile
                  interop/nsswitch/mac/Makefile
                  interop/lwmapsecurity/Makefile
-                 gssntlm/Makefile
-                 gssntlm/client/Makefile
-                 gssntlm/common/Makefile
-                 gssntlm/server/Makefile
-                 gssntlm/test/Makefile
-                 gssntlm/test/serverapi/Makefile
-                 gssntlm/test/gss/Makefile
-                 gssntlm/include/Makefile
                  server/Makefile
                  server/api/Makefile
                  server/ntlm/Makefile

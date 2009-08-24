@@ -140,9 +140,6 @@ main(
     LsaSrvCreatePIDFile();
 #endif
 
-    dwError = NTLMGssInitializeServer();
-    BAIL_ON_LSA_ERROR(dwError);
-
     dwError = LsaBlockSelectedSignals();
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -173,8 +170,6 @@ cleanup:
     LsaSrvStopListenThread();
 
     LsaSrvApiShutdown();
-
-    NTLMGssTeardownServer();
 
     LSA_LOG_INFO("LSA Service exiting...");
 

@@ -308,17 +308,17 @@ NtlmValidateResponse(
 
     pChlngMsg = (PNTLM_CHALLENGE_MESSAGE)pChlngCtxt->pMessage;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
         NTLM_CHALLENGE_SIZE,
         OUT_PPVOID(&pChallengeBuffer));
     BAIL_ON_LW_ERROR(dwError);
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
         pRespMsg->LmResponse.usLength,
         OUT_PPVOID(&pLMRespBuffer));
     BAIL_ON_LW_ERROR(dwError);
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
         pRespMsg->NtResponse.usLength,
         OUT_PPVOID(&pNTRespBuffer));
     BAIL_ON_LW_ERROR(dwError);
@@ -399,12 +399,12 @@ NtlmValidateResponse(
 
 cleanup:
 
-    LSA_SAFE_FREE_MEMORY(pChallengeBuffer);
-    LSA_SAFE_FREE_MEMORY(pLMRespBuffer);
-    LSA_SAFE_FREE_MEMORY(pNTRespBuffer);
-    LSA_SAFE_FREE_STRING(pUserName);
-    LSA_SAFE_FREE_STRING(pDomainName);
-    LSA_SAFE_FREE_STRING(pWorkstation);
+    LW_SAFE_FREE_MEMORY(pChallengeBuffer);
+    LW_SAFE_FREE_MEMORY(pLMRespBuffer);
+    LW_SAFE_FREE_MEMORY(pNTRespBuffer);
+    LW_SAFE_FREE_STRING(pUserName);
+    LW_SAFE_FREE_STRING(pDomainName);
+    LW_SAFE_FREE_STRING(pWorkstation);
 
     return dwError;
 error:
@@ -433,7 +433,7 @@ NtlmGetDomainNameFromResponse(
 
     if (!bUnicode)
     {
-        dwError = LsaAllocateMemory(dwNameLength + 1, OUT_PPVOID(&pName));
+        dwError = LwAllocateMemory(dwNameLength + 1, OUT_PPVOID(&pName));
         BAIL_ON_LW_ERROR(dwError);
 
         memcpy(pName, pBuffer, dwNameLength);
@@ -442,7 +442,7 @@ NtlmGetDomainNameFromResponse(
     {
         dwNameLength = dwNameLength / sizeof(WCHAR);
 
-        dwError = LsaAllocateMemory(dwNameLength + 1, OUT_PPVOID(&pName));
+        dwError = LwAllocateMemory(dwNameLength + 1, OUT_PPVOID(&pName));
         BAIL_ON_LW_ERROR(dwError);
 
         for (nIndex = 0; nIndex < dwNameLength; nIndex++)
@@ -455,7 +455,7 @@ cleanup:
     *ppDomainName = pName;
     return dwError;
 error:
-    LSA_SAFE_FREE_STRING(pName);
+    LW_SAFE_FREE_STRING(pName);
     goto cleanup;
 }
 
@@ -481,7 +481,7 @@ NtlmGetWorkstationFromResponse(
 
     if (!bUnicode)
     {
-        dwError = LsaAllocateMemory(dwNameLength + 1, OUT_PPVOID(&pName));
+        dwError = LwAllocateMemory(dwNameLength + 1, OUT_PPVOID(&pName));
         BAIL_ON_LW_ERROR(dwError);
 
         memcpy(pName, pBuffer, dwNameLength);
@@ -490,7 +490,7 @@ NtlmGetWorkstationFromResponse(
     {
         dwNameLength = dwNameLength / sizeof(WCHAR);
 
-        dwError = LsaAllocateMemory(dwNameLength + 1, OUT_PPVOID(&pName));
+        dwError = LwAllocateMemory(dwNameLength + 1, OUT_PPVOID(&pName));
         BAIL_ON_LW_ERROR(dwError);
 
         for (nIndex = 0; nIndex < dwNameLength; nIndex++)
@@ -503,6 +503,6 @@ cleanup:
     *ppWorkstation = pName;
     return dwError;
 error:
-    LSA_SAFE_FREE_STRING(pName);
+    LW_SAFE_FREE_STRING(pName);
     goto cleanup;
 }

@@ -1279,117 +1279,6 @@ error:
 
 #define ZERO_STRUCT(_s_) memset((char*)&(_s_),0,sizeof(_s_))
 
-static
-VOID
-LsaNTLMGssFreeAuthMsg(
-    PLSA_GSS_R_MAKE_AUTH_MSG pAuthMsgReply
-    )
-{
-    if (pAuthMsgReply)
-    {
-        NTLMGssFreeSecBuffer(&pAuthMsgReply->authenticateMessage);
-        LW_SAFE_FREE_MEMORY(pAuthMsgReply);
-    }
-}
-
-static LWMsgStatus
-LsaSrvIpcBuildAuthMessage(
-    LWMsgCall* pCall,
-    const LWMsgParams* pIn,
-    LWMsgParams* pOut,
-    void* data
-    )
-{
-    DWORD dwError = 0;
-    PLSA_IPC_MAKE_AUTH_MSG_REQ pReq = pIn->data;
-    PLSA_IPC_ERROR pError = NULL;
-    PLSA_GSS_R_MAKE_AUTH_MSG pAuthMsgReply = NULL;
-    uid_t peerUID = 0;
-
-    dwError = LwAllocateMemory(sizeof(*pAuthMsgReply),
-                                (PVOID*)&pAuthMsgReply);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    ZERO_STRUCT(pAuthMsgReply->authenticateMessage);
-    ZERO_STRUCT(pAuthMsgReply->baseSessionKey);
-
-    LsaSrvGetUid(LsaSrvIpcGetSessionData(pCall), &peerUID);
-
-    pAuthMsgReply->msgError = NTLMGssBuildAuthenticateMessage(
-                        pReq->negotiateFlags,
-                        peerUID,
-                        &pReq->credentials,
-                        &pReq->serverChallenge,
-                        &pReq->targetInfo,
-                        &pAuthMsgReply->authenticateMessage,
-                        &pAuthMsgReply->baseSessionKey);
-
-    pOut->tag = LSA_R_GSS_MAKE_AUTH_MSG_SUCCESS;
-    pOut->data = pAuthMsgReply;
-
-cleanup:
-    return MAP_LW_ERROR_IPC(dwError);
-
-error:
-    dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
-
-    pOut->tag = LSA_R_GSS_MAKE_AUTH_MSG_FAILURE;
-    pOut->data = pError;
-
-    if(pAuthMsgReply)
-    {
-        LsaNTLMGssFreeAuthMsg(pAuthMsgReply);
-    }
-
-    goto cleanup;
-}
-
-static LWMsgStatus
-LsaSrvIpcCheckAuthMessage(
-    LWMsgCall* pCall,
-    const LWMsgParams* pIn,
-    LWMsgParams* pOut,
-    void* data
-    )
-{
-    DWORD dwError = 0;
-    PLSA_IPC_CHECK_AUTH_MSG_REQ pReq = pIn->data;
-    PLSA_IPC_ERROR pError = NULL;
-    PLSA_GSS_R_CHECK_AUTH_MSG pCheckAuthMsgReply = NULL;
-
-    dwError = LwAllocateMemory(sizeof(*pCheckAuthMsgReply),
-                                (PVOID*)&pCheckAuthMsgReply);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    ZERO_STRUCT(pCheckAuthMsgReply->baseSessionKey);
-
-    pCheckAuthMsgReply->msgError = NTLMGssCheckAuthenticateMessage(
-                                        pReq->negotiateFlags,
-                                        &pReq->serverChallenge,
-                                        &pReq->targetInfo,
-                                        &pReq->authenticateMessage,
-                                        &pCheckAuthMsgReply->baseSessionKey);
-
-    pOut->tag = LSA_R_GSS_CHECK_AUTH_MSG_SUCCESS;
-    pOut->data = pCheckAuthMsgReply;
-
-cleanup:
-    return MAP_LW_ERROR_IPC(dwError);
-
-error:
-    dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
-
-    pOut->tag = LSA_R_GSS_CHECK_AUTH_MSG_FAILURE;
-    pOut->data = pError;
-
-    if(pCheckAuthMsgReply)
-    {
-        LW_SAFE_FREE_MEMORY(pCheckAuthMsgReply);
-    }
-
-    goto cleanup;
-}
-
 static LWMsgStatus
 LsaSrvIpcSetLogInfo(
     LWMsgCall* pCall,
@@ -2460,8 +2349,6 @@ static LWMsgDispatchSpec gMessageHandlers[] =
     LWMSG_DISPATCH_BLOCK(LSA_Q_CLOSE_SESSION, LsaSrvIpcCloseSession),
     LWMSG_DISPATCH_BLOCK(LSA_Q_MODIFY_USER, LsaSrvIpcModifyUser),
     LWMSG_DISPATCH_BLOCK(LSA_Q_NAMES_BY_SID_LIST, LsaSrvIpcGetNamesBySidList),
-    LWMSG_DISPATCH_BLOCK(LSA_Q_GSS_MAKE_AUTH_MSG, LsaSrvIpcBuildAuthMessage),
-    LWMSG_DISPATCH_BLOCK(LSA_Q_GSS_CHECK_AUTH_MSG, LsaSrvIpcCheckAuthMessage),
     LWMSG_DISPATCH_BLOCK(LSA_Q_ADD_GROUP, LsaSrvIpcAddGroup),
     LWMSG_DISPATCH_BLOCK(LSA_Q_MODIFY_GROUP, LsaSrvIpcModifyGroup),
     LWMSG_DISPATCH_BLOCK(LSA_Q_DELETE_GROUP, LsaSrvIpcDeleteGroup),
