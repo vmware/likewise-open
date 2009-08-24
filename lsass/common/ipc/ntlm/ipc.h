@@ -52,9 +52,13 @@
 #include "lsasystem.h"
 
 #include "lsadef.h"
-#include "ntlm/ntlm.h"
+#include "ntlm/sspintlm.h"
 
 #include <lwmsg/lwmsg.h>
+
+#include "lwmem.h"
+#include "lwstr.h"
+#include "lwsecurityidentifier.h"
 
 #include "ntlmipc.h"
 
