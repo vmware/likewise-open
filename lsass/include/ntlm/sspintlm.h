@@ -35,7 +35,7 @@
  *
  * Module Name:
  *
- *        ntlm.h
+ *        sspintlm.h
  *
  * Abstract:
  *
@@ -52,17 +52,6 @@
 #include <config.h>
 #include <lw/types.h>
 #include <lw/attrs.h>
-#include <lwmsg/lwmsg.h>
-
-#include <lsasystem.h>
-#include <lsa/lsa.h>
-#include <lsadef.h>
-#include <lwsecurityidentifier.h>
-#include <lsautils.h>
-#include <lwdef.h>
-#include <lwerror.h>
-#include <lwstr.h>
-#include <lwmem.h>
 #include <lsasrvcred.h>
 
 //******************************************************************************
@@ -77,7 +66,7 @@ typedef struct _SecBuffer
     DWORD cbBuffer;
     DWORD BufferType;
     PVOID pvBuffer;
-}SecBuffer, *PSecBuffer;
+} SecBuffer, *PSecBuffer;
 
 typedef struct _SecBufferDesc
 {
@@ -85,38 +74,57 @@ typedef struct _SecBufferDesc
     // DWORD      ulVersion;
     DWORD      cBuffers;
     PSecBuffer pBuffers;
-}SecBufferDesc, *PSecBufferDesc;
+} SecBufferDesc, *PSecBufferDesc;
+
+typedef struct _SecPkgContext_Names
+{
+    SEC_CHAR *pUserName;
+} SecPkgContext_Names, *PSecPkgContext_Names;
+
+typedef struct _SecPkgContext_SessionKey
+{
+    ULONG SessionKeyLength;
+    PBYTE SessionKey;
+} SecPkgContext_SessionKey, *PSecPkgContext_SessionKey;
 
 typedef struct _SecPkgContext_Sizes
 {
-  DWORD cbMaxToken;
-  DWORD cbMaxSignature;
-  DWORD cbBlockSize;
-  DWORD cbSecurityTrailer;
-}SecPkgContext_Sizes, *PSecPkgContext_Sizes;
+    DWORD cbMaxToken;
+    DWORD cbMaxSignature;
+    DWORD cbBlockSize;
+    DWORD cbSecurityTrailer;
+} SecPkgContext_Sizes, *PSecPkgContext_Sizes;
+
+typedef union _SecPkgContext
+{
+    PSecPkgContext_Names pNames;
+    PSecPkgContext_SessionKey pSessionKey;
+    PSecPkgContext_Sizes pSizes;
+} SecPkgContext, *PSecPkgContext;
+
 
 typedef struct _LUID
 {
     DWORD LowPart;
     INT  HighPart;
-}LUID, *PLUID;
+} LUID, *PLUID;
 
 typedef struct _SEC_WINNT_AUTH_IDENTITY
 {
-  PCHAR User;
-  DWORD UserLength;
-  PCHAR Domain;
-  DWORD DomainLength;
-  PCHAR Password;
-  DWORD PasswordLength;
-  DWORD Flags;
-}SEC_WINNT_AUTH_IDENTITY, *PSEC_WINNT_AUTH_IDENTITY;
+    PCHAR User;
+    DWORD UserLength;
+    PCHAR Domain;
+    DWORD DomainLength;
+    PCHAR Password;
+    DWORD PasswordLength;
+    DWORD Flags;
+} SEC_WINNT_AUTH_IDENTITY, *PSEC_WINNT_AUTH_IDENTITY;
 
 typedef INT64 SECURITY_INTEGER, *PSECURITY_INTEGER;
 //typedef LARGE_INTEGER _SECURITY_INTEGER, SECURITY_INTEGER, *PSECURITY_INTEGER;
 
-typedef SECURITY_INTEGER TimeStamp;                 // ntifs
-typedef SECURITY_INTEGER * PTimeStamp;      // ntifs
+typedef SECURITY_INTEGER TimeStamp;
+typedef SECURITY_INTEGER * PTimeStamp;
 
 //
 // If we are in 32 bit mode, define the SECURITY_STRING structure,
@@ -142,6 +150,7 @@ typedef struct _NTLM_SEC_BUFFER
     DWORD  dwOffset;
 } NTLM_SEC_BUFFER, *PNTLM_SEC_BUFFER;
 
+
 typedef struct _WIN_VERSION_INFO
 {
     BYTE    bMajor;
@@ -150,11 +159,11 @@ typedef struct _WIN_VERSION_INFO
     DWORD   dwReserved;
 } WIN_VERSION_INFO, *PWIN_VERSION_INFO;
 
-struct _LSA_CONTEXT;
-typedef struct _LSA_CONTEXT *LSA_CONTEXT_HANDLE, **PLSA_CONTEXT_HANDLE;
+struct _NTLM_CONTEXT;
+typedef struct _NTLM_CONTEXT *NTLM_CONTEXT_HANDLE, **PNTLM_CONTEXT_HANDLE;
 
-#define NTLM_CRED_INBOUND    0x01
-#define NTLM_CRED_OUTBOUND   0x02
+#define NTLM_CRED_INBOUND    1
+#define NTLM_CRED_OUTBOUND   2
 
 struct _NTLM_CREDENTIALS;
 typedef struct _NTLM_CREDENTIALS *NTLM_CRED_HANDLE, **PNTLM_CRED_HANDLE;
@@ -165,9 +174,9 @@ typedef struct _NTLM_CREDENTIALS *NTLM_CRED_HANDLE, **PNTLM_CRED_HANDLE;
 //
 
 #define INVALID_HANDLE              ((HANDLE)~0)
-#define INVALID_NTLM_CRED_HANDLE    ((NTLM_CRED_HANDLE)~0)
 
-#define SECPKG_ATTR_SIZES           0
+#define NTLM_CTXT_ATTR_SESSION_KEY  1
+#define NTLM_CTXT_ATTR_SIZES        2
 
 #define SECBUFFER_TOKEN   0
 #define SECBUFFER_DATA    1
@@ -234,6 +243,26 @@ typedef struct _NTLM_CREDENTIALS *NTLM_CRED_HANDLE, **PNTLM_CRED_HANDLE;
 #define HOST_NAME_MAX 255
 #endif
 
+// Possible information to query our context for
+#define SECPKG_ATTR_ACCESS_TOKEN                1
+#define SECPKG_ATTR_AUTHORITY                   2
+#define SECPKG_ATTR_CLIENT_SPECIFIED_TARGET     3
+#define SECPKG_ATTR_DCE_INFO                    4
+#define SECPKG_ATTR_FLAGS                       5
+#define SECPKG_ATTR_KEY_INFO                    6
+#define SECPKG_ATTR_LAST_CLIENT_TOKEN_STATUS    7
+#define SECPKG_ATTR_LIFESPAN                    8
+#define SECPKG_ATTR_LOCAL_CRED                  9
+#define SECPKG_ATTR_NAMES                       10
+#define SECPKG_ATTR_NATIVE_NAMES                11
+#define SECPKG_ATTR_NEGOTIATION_INFO            12
+#define SECPKG_ATTR_PACKAGE_INFO                13
+#define SECPKG_ATTR_PASSWORD_EXPIRY             14
+#define SECPKG_ATTR_ROOT_STORE                  15
+#define SECPKG_ATTR_SESSION_KEY                 16
+#define SECPKG_ATTR_SIZES                       17
+#define SECPKG_ATTR_TARGET_INFORMATION          18
+
 //******************************************************************************
 //
 // E X T E R N S
@@ -248,11 +277,11 @@ DWORD
 NtlmClientAcceptSecurityContext(
     IN HANDLE hServer,
     IN PNTLM_CRED_HANDLE pCredential,
-    IN OUT PLSA_CONTEXT_HANDLE phContext,
+    IN OUT PNTLM_CONTEXT_HANDLE phContext,
     IN PSecBufferDesc pInput,
     IN DWORD fContextReq,
     IN DWORD TargetDataRep,
-    IN OUT PLSA_CONTEXT_HANDLE phNewContext,
+    IN OUT PNTLM_CONTEXT_HANDLE phNewContext,
     IN OUT PSecBufferDesc pOutput,
     OUT PDWORD  pfContextAttr,
     OUT PTimeStamp ptsTimeStamp
@@ -273,23 +302,23 @@ NtlmClientAcquireCredentialsHandle(
 DWORD
 NtlmClientDecryptMessage(
     IN HANDLE hServer,
-    IN PLSA_CONTEXT_HANDLE phContext,
+    IN PNTLM_CONTEXT_HANDLE phContext,
     IN OUT PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo,
-    OUT PBOOL pbEncrypted
+    OUT PBOOLEAN pbEncrypted
     );
 
 DWORD
 NtlmClientDeleteSecurityContext(
     IN HANDLE hServer,
-    IN PLSA_CONTEXT_HANDLE phContext
+    IN PNTLM_CONTEXT_HANDLE phContext
     );
 
 DWORD
 NtlmClientEncryptMessage(
     IN HANDLE hServer,
-    IN PLSA_CONTEXT_HANDLE phContext,
-    IN BOOL bEncrypt,
+    IN PNTLM_CONTEXT_HANDLE phContext,
+    IN BOOLEAN bEncrypt,
     IN OUT PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo
     );
@@ -297,7 +326,7 @@ NtlmClientEncryptMessage(
 DWORD
 NtlmClientExportSecurityContext(
     IN HANDLE hServer,
-    IN PLSA_CONTEXT_HANDLE phContext,
+    IN PNTLM_CONTEXT_HANDLE phContext,
     IN DWORD fFlags,
     OUT PSecBuffer pPackedContext,
     OUT OPTIONAL HANDLE *pToken
@@ -315,21 +344,21 @@ NtlmClientImportSecurityContext(
     IN PSECURITY_STRING *pszPackage,
     IN PSecBuffer pPackedContext,
     IN OPTIONAL HANDLE pToken,
-    OUT PLSA_CONTEXT_HANDLE phContext
+    OUT PNTLM_CONTEXT_HANDLE phContext
     );
 
 DWORD
 NtlmClientInitializeSecurityContext(
     IN HANDLE hServer,
     IN OPTIONAL PNTLM_CRED_HANDLE phCredential,
-    IN OPTIONAL PLSA_CONTEXT_HANDLE phContext,
+    IN OPTIONAL PNTLM_CONTEXT_HANDLE phContext,
     IN OPTIONAL SEC_CHAR * pszTargetName,
     IN DWORD fContextReq,
     IN DWORD Reserved1,
     IN DWORD TargetDataRep,
     IN OPTIONAL PSecBufferDesc pInput,
     IN DWORD Reserved2,
-    IN OUT OPTIONAL PLSA_CONTEXT_HANDLE phNewContext,
+    IN OUT OPTIONAL PNTLM_CONTEXT_HANDLE phNewContext,
     IN OUT OPTIONAL PSecBufferDesc pOutput,
     OUT PDWORD pfContextAttr,
     OUT OPTIONAL PTimeStamp ptsExpiry
@@ -338,8 +367,8 @@ NtlmClientInitializeSecurityContext(
 DWORD
 NtlmClientMakeSignature(
     IN HANDLE hServer,
-    IN PLSA_CONTEXT_HANDLE phContext,
-    IN BOOL bEncrypt,
+    IN PNTLM_CONTEXT_HANDLE phContext,
+    IN BOOLEAN bEncrypt,
     IN OUT PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo
     );
@@ -355,7 +384,7 @@ NtlmClientQueryCredentialsAttributes(
 DWORD
 NtlmClientQueryContextAttributes(
     IN HANDLE hServer,
-    IN PLSA_CONTEXT_HANDLE phContext,
+    IN PNTLM_CONTEXT_HANDLE phContext,
     IN DWORD ulAttribute,
     OUT PVOID pBuffer
     );
@@ -363,11 +392,11 @@ NtlmClientQueryContextAttributes(
 DWORD
 NtlmClientVerifySignature(
     IN HANDLE hServer,
-    IN PLSA_CONTEXT_HANDLE phContext,
+    IN PNTLM_CONTEXT_HANDLE phContext,
     IN PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo,
-    OUT PBOOL pbVerified,
-    OUT PBOOL pbEncryted
+    OUT PBOOLEAN pbVerified,
+    OUT PBOOLEAN pbEncryted
     );
 
 DWORD
