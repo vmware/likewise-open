@@ -317,6 +317,41 @@ error:
 
 
 NTSTATUS
+LsaSrvDuplicateUnicodeString(
+    UnicodeString *pOut,
+    UnicodeString *pIn
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    DWORD dwLen = 0;
+    DWORD dwSize = 0;
+
+    dwLen  = pIn->len;
+    dwSize = pIn->size;
+
+    status = LsaSrvAllocateMemory((void**)&(pOut->string),
+                                  dwSize);
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    memcpy(pOut->string, pIn->string, dwLen);
+    pOut->size = dwSize;
+    pOut->len  = dwLen;
+
+cleanup:
+    return status;
+
+error:
+    if (pOut->string) {
+        LsaSrvFreeMemory(pOut->string);
+    }
+
+    pOut->size = 0;
+    pOut->len  = 0;
+    goto cleanup;
+}
+
+
+NTSTATUS
 LsaSrvDuplicateUnicodeStringEx(
     UnicodeStringEx *pOut,
     UnicodeStringEx *pIn

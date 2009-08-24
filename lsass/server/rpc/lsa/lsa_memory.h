@@ -118,6 +118,13 @@ LsaSrvInitUnicodeStringEx(
 
 
 NTSTATUS
+LsaSrvDuplicateUnicodeString(
+    UnicodeString *pOut,
+    UnicodeString *pIn
+    );
+
+
+NTSTATUS
 LsaSrvDuplicateUnicodeStringEx(
     UnicodeStringEx *pOut,
     UnicodeStringEx *pIn
