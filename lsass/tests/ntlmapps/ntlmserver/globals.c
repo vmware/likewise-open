@@ -23,4 +23,4 @@
 #include <lw/types.h>
 
 HANDLE ghServer = NULL;
-BOOL gbFlipEndian = FALSE;
+BOOLEAN gbFlipEndian = FALSE;

@@ -31,6 +31,8 @@ CallServer(
     IN PCHAR pHost,
     IN USHORT usPort,
     IN PCHAR pServiceName,
+    IN PCHAR pServicePassword,
+    IN PCHAR pServiceRealm,
     IN DWORD DelegFlag,
     IN PCHAR pMsg,
     IN PCHAR pSecPkgName,
@@ -48,8 +50,10 @@ DWORD
 ClientEstablishContext(
     IN INT nSocket,
     IN PCHAR pServiceName,
+    IN PCHAR pServicePassword,
+    IN PCHAR pServiceRealm,
     IN DWORD DelegFlag,
-    OUT LSA_CONTEXT_HANDLE *pSspiContext,
+    OUT NTLM_CONTEXT_HANDLE *pSspiContext,
     IN PCHAR pSecPkgName,
     OUT DWORD *pRetFlags
     );
@@ -85,6 +89,12 @@ ReadAll(
     OUT PCHAR pBuffer,
     IN UINT nBytes,
     OUT PINT nBytesRead
+    );
+
+VOID
+PrintHexDump(
+    DWORD length,
+    PBYTE pBuffer
     );
 
 #endif  //_NTLM_CLIENT_PROTOTYPES_H_

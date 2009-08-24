@@ -31,45 +31,65 @@ main(
     DWORD dwError = LW_ERROR_SUCCESS;
     INT nListenSocket = INVALID_SOCKET;
     INT nAcceptSocket = INVALID_SOCKET;
-    USHORT usPort = 5555;
+    USHORT usPort = 4444;
     INT nOnce = 0;
     PCHAR pServiceName = NULL;
     PCHAR pServicePassword = NULL;
     PCHAR pServiceRealm = NULL;
-    NTLM_CRED_HANDLE ServerCreds = INVALID_NTLM_CRED_HANDLE;
+    NTLM_CRED_HANDLE ServerCreds = NULL;
     INT nServerCredsAcquired = 0;
     DWORD AscFlags = 0; //ASC_REQ_ALLOCATE_MEMORY | ASC_REQ_MUTUAL_AUTH;
     PCHAR pSecPkgName = "NTLM";
-    BOOL bFound = FALSE;
+    BOOLEAN bFound = FALSE;
+    CHAR Error[256] = {0};
 
     argc--; argv++;
 
-    while(argc)
+    while (argc)
     {
-        if(strcmp(*argv, "-port") == 0)
+        if (strcmp(*argv, "-port") == 0)
         {
             argc--; argv++;
-            if(!argc)
+            if (!argc)
             {
                 dwError = Usage();
                 BAIL_ON_LW_ERROR(dwError);
             }
             usPort = (u_short)atoi(*argv);
         }
-        else if(strcmp(*argv, "-once") == 0)
+        else if (strcmp(*argv, "-once") == 0)
         {
             nOnce = 1;
         }
-        else if(strcmp(*argv, "-w") == 0)
+        else if (strcmp(*argv, "-w") == 0)
         {
             gbFlipEndian = TRUE;
+        }
+        else if (strcmp(*argv, "-c") == 0)
+        {
+            argv++;
+            argc--;
+
+            if (argc < 3)
+            {
+                dwError = Usage();
+                BAIL_ON_LW_ERROR(dwError);
+            }
+
+            pServiceName = *argv;
+            argv++;
+            argc--;
+            pServicePassword = *argv;
+            argv++;
+            argc--;
+            pServiceRealm = *argv;
         }
         else
         {
             /*
-            for(i = 0; i < (sizeof(FlagMappings)/sizeof(FLAGMAPPING)); i++)
+            for (i = 0; i < (sizeof(FlagMappings)/sizeof(FLAGMAPPING)); i++)
             {
-                if(_strcmpi( *argv, FlagMappings[ i ].name ) == 0)
+                if (_strcmpi( *argv, FlagMappings[ i ].name ) == 0)
                 {
                     bFound = TRUE;
                     AscFlags |= FlagMappings[ i ].value ;
@@ -78,7 +98,7 @@ main(
             }
             */
 
-            if(!bFound)
+            if (!bFound)
             {
                 break;
             }
@@ -86,23 +106,6 @@ main(
 
         argc--; argv++;
     }
-    if(argc != 3)
-    {
-        dwError = Usage();
-        BAIL_ON_LW_ERROR(dwError);
-    }
-
-    if((*argv)[0] == '-')
-    {
-        dwError = Usage();
-        BAIL_ON_LW_ERROR(dwError);
-    }
-
-    pServiceName = *argv;
-    argv++;
-    pServicePassword = *argv;
-    argv++;
-    pServiceRealm = *argv;
 
     NtlmOpenServer(&ghServer);
 
@@ -125,11 +128,12 @@ main(
     do
     {
         /* Accept a TCP connection */
+        printf("Listening\n");
         nAcceptSocket = accept(nListenSocket, NULL, 0);
 
-        if(INVALID_SOCKET == nAcceptSocket)
+        if (INVALID_SOCKET == nAcceptSocket)
         {
-            dwError = LW_ERROR_INTERNAL; //LwMapErrnoToLwError(errno);
+            dwError = LwMapErrnoToLwError(errno);
             BAIL_ON_LW_ERROR(dwError);
         }
 
@@ -150,22 +154,29 @@ main(
     NtlmClientFreeCredentialsHandle(ghServer, &ServerCreds);
 
 finish:
-    if(ghServer)
+    if (ghServer)
     {
         NtlmCloseServer(ghServer);
     }
 
+    if (dwError)
+    {
+        printf("Finished with error code: %d\n", dwError);
+        LwGetErrorString(dwError, Error, 256);
+        printf("%s\n", Error);
+    }
+
     return dwError;
 error:
-    if(nServerCredsAcquired)
+    if (nServerCredsAcquired)
     {
         NtlmClientFreeCredentialsHandle(ghServer, &ServerCreds);
     }
-    if(INVALID_SOCKET != nListenSocket)
+    if (INVALID_SOCKET != nListenSocket)
     {
         close(nListenSocket);
     }
-    if(INVALID_SOCKET != nAcceptSocket)
+    if (INVALID_SOCKET != nAcceptSocket)
     {
         close(nAcceptSocket);
     }
@@ -178,7 +189,7 @@ Usage(
     )
 {
     fprintf(stderr, "Usage: sspi-server [-port port] [-k]\n");
-    fprintf(stderr, "       [service_name] [service_password] [service_realm]\n");
+    fprintf(stderr, "       [-c service_name service_password service_realm]\n");
 
     return LW_ERROR_INVALID_PARAMETER;
 }
@@ -196,28 +207,38 @@ ServerAcquireCreds(
     TimeStamp Expiry;
 
     SEC_WINNT_AUTH_IDENTITY AuthIdentity;
+    PSEC_WINNT_AUTH_IDENTITY pAuthId = NULL;
 
     memset(&Expiry, 0, sizeof(TimeStamp));
     memset(&AuthIdentity, 0, sizeof(SEC_WINNT_AUTH_IDENTITY));
 
-    AuthIdentity.User = pServiceName;
-    AuthIdentity.UserLength = (DWORD)strlen(pServiceName);
-
-    AuthIdentity.Password = pServicePassword;
-    AuthIdentity.PasswordLength = (DWORD)strlen(pServicePassword);
-
-    AuthIdentity.Domain = pServiceRealm;
-    AuthIdentity.DomainLength = (DWORD)strlen(pServiceRealm);
+    if (pServiceName)
+    {
+        AuthIdentity.User = pServiceName;
+        AuthIdentity.UserLength = (DWORD)strlen(pServiceName);
+        pAuthId = &AuthIdentity;
+    }
+    if (pServicePassword)
+    {
+        AuthIdentity.Password = pServicePassword;
+        AuthIdentity.PasswordLength = (DWORD)strlen(pServicePassword);
+        pAuthId = &AuthIdentity;
+    }
+    if (pServiceRealm)
+    {
+        AuthIdentity.Domain = pServiceRealm;
+        AuthIdentity.DomainLength = (DWORD)strlen(pServiceRealm);
+        pAuthId = &AuthIdentity;
+    }
     //AuthIdentity.Flags = SEC_WINNT_AUTH_IDENTITY_UNICODE;
-
 
     dwError = NtlmClientAcquireCredentialsHandle(
         ghServer,
-        pServiceName,
+        NULL,
         pSecPkgName,
         NTLM_CRED_INBOUND,
         NULL,                       // no logon id
-        &AuthIdentity,              // auth data
+        pAuthId,                    // auth data
         pServerCreds,
         &Expiry
         );
@@ -247,9 +268,9 @@ CreateSocket(
 
     *pSocket = (int)socket(PF_INET, SOCK_STREAM, 0);
 
-    if(INVALID_SOCKET == *pSocket)
+    if (INVALID_SOCKET == *pSocket)
     {
-        dwError = LW_ERROR_INTERNAL; //LwMapErrnoToLwError(errno);
+        dwError = LwMapErrnoToLwError(errno);
         BAIL_ON_LW_ERROR(dwError);
     }
 
@@ -263,9 +284,9 @@ CreateSocket(
         sizeof(nOn)
         );
 
-    if(dwError != 0)
+    if (dwError != 0)
     {
-        dwError = LW_ERROR_INTERNAL; //LwMapErrnoToLwError(errno);
+        dwError = LwMapErrnoToLwError(errno);
         BAIL_ON_LW_ERROR(dwError);
     }
 
@@ -275,24 +296,24 @@ CreateSocket(
         sizeof(sAddr)
         );
 
-    if(SOCKET_ERROR == dwError)
+    if (SOCKET_ERROR == dwError)
     {
-        dwError = LW_ERROR_INTERNAL; //LwMapErrnoToLwError(errno);
+        dwError = LwMapErrnoToLwError(errno);
         BAIL_ON_LW_ERROR(dwError);
     }
 
     dwError = listen(*pSocket, 5);
 
-    if(SOCKET_ERROR == dwError)
+    if (SOCKET_ERROR == dwError)
     {
-        dwError = LW_ERROR_INTERNAL; //LwMapErrnoToLwError(errno);
+        dwError = LwMapErrnoToLwError(errno);
         BAIL_ON_LW_ERROR(dwError);
     }
 
 finish:
     return dwError;
 error:
-    if(*pSocket != INVALID_SOCKET)
+    if (*pSocket != INVALID_SOCKET)
     {
         close(*pSocket);
         *pSocket = INVALID_SOCKET;
@@ -309,20 +330,24 @@ SignServer(
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
-    BOOL bEncrypted = 0;
+    //BOOLEAN bEncrypted = 0;
     INT nContextAcquired = 0;
+    INT nIndex = 0;
     SecBuffer TransmitBuffer;
     SecBuffer MsgBuffer;
     SecBuffer WrapBuffers[2];
     SecBufferDesc WrapBufferDesc;
-    LSA_CONTEXT_HANDLE Context = NULL;
+    NTLM_CONTEXT_HANDLE Context = NULL;
     SecPkgContext_Sizes Sizes;
+    SecPkgContext_Names Names;
+    SecPkgContext_SessionKey SessionKey;
 
     memset(&TransmitBuffer, 0, sizeof(SecBuffer));
     memset(&MsgBuffer, 0, sizeof(SecBuffer));
     memset(WrapBuffers, 0, sizeof(SecBuffer) * 2);
     memset(&WrapBufferDesc, 0, sizeof(SecBufferDesc));
     memset(&Sizes, 0, sizeof(SecPkgContext_Sizes));
+    memset(&Names, 0, sizeof(SecPkgContext_Names));
 
     /* Establish a context with the client */
     dwError = ServerEstablishContext(
@@ -331,13 +356,40 @@ SignServer(
         &Context,
         AscFlags
         );
-
     BAIL_ON_LW_ERROR(dwError);
+
+    dwError = NtlmClientQueryContextAttributes(
+        ghServer,
+        &Context,
+        SECPKG_ATTR_NAMES,
+        &Names
+        );
+    BAIL_ON_LW_ERROR(dwError);
+
+    printf("Context is for user: %s\n", Names.pUserName);
+
+    dwError = NtlmClientQueryContextAttributes(
+        ghServer,
+        &Context,
+        SECPKG_ATTR_SESSION_KEY,
+        &SessionKey
+        );
+    BAIL_ON_LW_ERROR(dwError);
+
+    printf("Session Key: ");
+    for(nIndex = 0; nIndex < SessionKey.SessionKeyLength; nIndex++)
+    {
+        printf("%02X ", SessionKey.SessionKey[nIndex]);
+    }
+    printf("\n\n");
+
+    printf("Server accepted context successfully!\n");
 
     // for clean up... once we've established a context, we must clean it up on
     // future failures.
     nContextAcquired = 1;
 
+#if 0
     dwError = NtlmClientQueryContextAttributes(
         ghServer,
         &Context,
@@ -381,7 +433,7 @@ SignServer(
     WrapBuffers[1].cbBuffer = Sizes.cbMaxSignature;
     WrapBuffers[1].pvBuffer = malloc(Sizes.cbMaxSignature);
 
-    if(WrapBuffers[1].pvBuffer == NULL)
+    if (WrapBuffers[1].pvBuffer == NULL)
     {
         dwError = LW_ERROR_OUT_OF_MEMORY;
         BAIL_ON_LW_ERROR(dwError);
@@ -411,6 +463,7 @@ SignServer(
     free(TransmitBuffer.pvBuffer);
     TransmitBuffer.pvBuffer = NULL;
     TransmitBuffer.cbBuffer = 0;
+#endif
 
     /* Delete context */
 
@@ -420,19 +473,19 @@ SignServer(
 finish:
     return dwError;
 error:
-    if(TransmitBuffer.pvBuffer)
+    if (TransmitBuffer.pvBuffer)
     {
         free(TransmitBuffer.pvBuffer);
         TransmitBuffer.pvBuffer = NULL;
         TransmitBuffer.cbBuffer = 0;
     }
-    if(WrapBuffers[1].pvBuffer)
+    if (WrapBuffers[1].pvBuffer)
     {
         free(WrapBuffers[1].pvBuffer);
         WrapBuffers[1].pvBuffer = NULL;
         WrapBuffers[1].cbBuffer = 0;
     }
-    if(nContextAcquired)
+    if (nContextAcquired)
     {
         NtlmClientDeleteSecurityContext(ghServer, &Context);
     }
@@ -445,7 +498,7 @@ FreeContextBuffer(
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
-    if(pBuffer)
+    if (pBuffer)
     {
         free(pBuffer);
     }
@@ -457,7 +510,7 @@ DWORD
 ServerEstablishContext(
     IN INT nSocket,
     IN PNTLM_CRED_HANDLE pServerCreds,
-    OUT PLSA_CONTEXT_HANDLE pContext,
+    OUT PNTLM_CONTEXT_HANDLE pContext,
     IN DWORD AscFlags
     )
 {
@@ -469,7 +522,7 @@ ServerEstablishContext(
     SecBuffer SendTokenBuffer;
     SecBuffer RecvTokenBuffer;
     TimeStamp Expiry;
-    PLSA_CONTEXT_HANDLE pContextHandle = NULL;
+    PNTLM_CONTEXT_HANDLE pContextHandle = NULL;
     INT nContextAcquired = 0;
 
     memset(&InputDesc, 0, sizeof(SecBufferDesc));
@@ -490,6 +543,10 @@ ServerEstablishContext(
     {
         dwError = RecvToken(nSocket, &RecvTokenBuffer);
         BAIL_ON_LW_ERROR(dwError);
+
+        printf("RECEIVED:\n");
+        PrintHexDump(RecvTokenBuffer.cbBuffer, RecvTokenBuffer.pvBuffer);
+        printf("\n");
 
         RecvTokenBuffer.BufferType = SECBUFFER_TOKEN;
         SendTokenBuffer.cbBuffer = 0;
@@ -513,10 +570,21 @@ ServerEstablishContext(
             &Expiry
             );
 
-        if(LW_ERROR_SUCCESS != dwLoopError && LW_WARNING_CONTINUE_NEEDED != dwLoopError)
+        if (LW_ERROR_SUCCESS != dwLoopError && LW_WARNING_CONTINUE_NEEDED != dwLoopError)
         {
             dwError = dwLoopError;
             BAIL_ON_LW_ERROR(dwError);
+        }
+
+        if (LW_WARNING_CONTINUE_NEEDED == dwLoopError)
+        {
+            printf("Context partially accepted...\n");
+            PrintHexDump(SendTokenBuffer.cbBuffer, SendTokenBuffer.pvBuffer);
+            printf("\n");
+        }
+        else
+        {
+            printf("Context FULLY accepted!\n");
         }
 
         nContextAcquired = 1;
@@ -525,32 +593,33 @@ ServerEstablishContext(
         free(RecvTokenBuffer.pvBuffer);
         RecvTokenBuffer.pvBuffer = NULL;
 
-        if(SendTokenBuffer.cbBuffer != 0)
+        if (SendTokenBuffer.cbBuffer != 0)
         {
             dwError = SendToken(nSocket, &SendTokenBuffer);
             BAIL_ON_LW_ERROR(dwError);
 
             FreeContextBuffer(SendTokenBuffer.pvBuffer);
             SendTokenBuffer.pvBuffer = NULL;
+            SendTokenBuffer.cbBuffer = 0;
         }
 
-    } while(dwLoopError == LW_WARNING_CONTINUE_NEEDED);
+    } while (dwLoopError == LW_WARNING_CONTINUE_NEEDED);
 
 finish:
     return dwError;
 error:
-    if(RecvTokenBuffer.pvBuffer)
+    if (RecvTokenBuffer.pvBuffer)
     {
         free(RecvTokenBuffer.pvBuffer);
         RecvTokenBuffer.pvBuffer = NULL;
     }
-    if(SendTokenBuffer.cbBuffer)
+    if (SendTokenBuffer.cbBuffer)
     {
         FreeContextBuffer(SendTokenBuffer.pvBuffer);
         SendTokenBuffer.pvBuffer = NULL;
         SendTokenBuffer.cbBuffer = 0;
     }
-    if(nContextAcquired)
+    if (nContextAcquired)
     {
         NtlmClientDeleteSecurityContext(ghServer, pContext);
     }
@@ -578,7 +647,7 @@ SendToken(
 
     BAIL_ON_LW_ERROR(dwError);
 
-    if(4 != nBytesWritten)
+    if (4 != nBytesWritten)
     {
         dwError = LW_ERROR_INTERNAL;
         BAIL_ON_LW_ERROR(dwError);
@@ -593,7 +662,7 @@ SendToken(
 
     BAIL_ON_LW_ERROR(dwError);
 
-    if(nBytesWritten != pToken->cbBuffer)
+    if (nBytesWritten != pToken->cbBuffer)
     {
         dwError = LW_ERROR_INTERNAL;
         BAIL_ON_LW_ERROR(dwError);
@@ -617,17 +686,17 @@ WriteAll(
 
     *nBytesWritten = 0;
 
-    for(pTrav = pBuffer; nBytes; pTrav += nReturn, nBytes -= nReturn)
+    for (pTrav = pBuffer; nBytes; pTrav += nReturn, nBytes -= nReturn)
     {
         nReturn = send(nSocket, pTrav, nBytes, 0);
 
-        if(nReturn < 0)
+        if (nReturn < 0)
         {
-            dwError = LW_ERROR_INTERNAL; //LwMapErrnoToLwError(errno);
+            dwError = LwMapErrnoToLwError(errno);
             BAIL_ON_LW_ERROR(dwError);
         }
 
-        if(nReturn == 0)
+        if (nReturn == 0)
         {
             break;
         }
@@ -659,7 +728,7 @@ RecvToken(
 
     BAIL_ON_LW_ERROR(dwError);
 
-    if(4 != nBytesRead)
+    if (4 != nBytesRead)
     {
         dwError = LW_ERROR_INTERNAL;
         BAIL_ON_LW_ERROR(dwError);
@@ -668,7 +737,7 @@ RecvToken(
     pToken->cbBuffer = ntohl(pToken->cbBuffer);
     pToken->pvBuffer = (char *) malloc(pToken->cbBuffer);
 
-    if(pToken->pvBuffer == NULL)
+    if (pToken->pvBuffer == NULL)
     {
         dwError = LW_ERROR_OUT_OF_MEMORY;
         BAIL_ON_LW_ERROR(dwError);
@@ -683,7 +752,7 @@ RecvToken(
 
     BAIL_ON_LW_ERROR(dwError);
 
-    if(nBytesRead != pToken->cbBuffer)
+    if (nBytesRead != pToken->cbBuffer)
     {
         dwError = LW_ERROR_INTERNAL;
         BAIL_ON_LW_ERROR(dwError);
@@ -692,7 +761,7 @@ RecvToken(
 finish:
     return dwError;
 error:
-    if(pToken->pvBuffer)
+    if (pToken->pvBuffer)
     {
         free(pToken->pvBuffer);
     }
@@ -714,17 +783,17 @@ ReadAll(
     memset(pBuffer, 0, nBytes);
     *nBytesRead = 0;
 
-    for(pTrav = pBuffer; nBytes; pTrav += nReturn, nBytes -= nReturn)
+    for (pTrav = pBuffer; nBytes; pTrav += nReturn, nBytes -= nReturn)
     {
         nReturn = recv(nSocket, pTrav, nBytes, 0);
 
-        if(nReturn < 0)
+        if (nReturn < 0)
         {
-            dwError = LW_ERROR_INTERNAL; //LwMapErrnoToLwError(errno);
+            dwError = LwMapErrnoToLwError(errno);
             BAIL_ON_LW_ERROR(dwError);
         }
 
-        if(nReturn == 0)
+        if (nReturn == 0)
         {
             break;
         }
@@ -734,4 +803,256 @@ ReadAll(
 
 error:
     return dwError;
+}
+
+VOID
+DumpNtlmFlags(
+    DWORD dwFlags
+    )
+{
+    printf("NTLM flag information (0x%X):\n", dwFlags);
+    if (dwFlags & 0x00000001)
+    {
+        printf("NTLM_FLAG_UNICODE\n");
+        dwFlags &= ~0x00000001;
+    }
+    if (dwFlags & 0x00000002)
+    {
+        printf("NTLM_FLAG_OEM\n");
+        dwFlags &= ~0x00000002;
+    }
+    if (dwFlags & 0x00000004)
+    {
+        printf("NTLM_FLAG_REQUEST_TARGET\n");
+        dwFlags &= ~0x00000004;
+    }
+    if (dwFlags & 0x00000010)
+    {
+        printf("NTLM_FLAG_SIGN\n");
+        dwFlags &= ~0x00000010;
+    }
+    if (dwFlags & 0x00000020)
+    {
+        printf("NTLM_FLAG_SEAL\n");
+        dwFlags &= ~0x00000020;
+    }
+    if (dwFlags & 0x00000040)
+    {
+        printf("NTLM_FLAG_DATAGRAM\n");
+        dwFlags &= ~0x00000040;
+    }
+    if (dwFlags & 0x00000080)
+    {
+        printf("NTLM_FLAG_LM_KEY\n");
+        dwFlags &= ~0x00000080;
+    }
+    if (dwFlags & 0x00000100)
+    {
+        printf("NTLM_FLAG_NETWARE\n");
+        dwFlags &= ~0x00000100;
+    }
+    if (dwFlags & 0x00000200)
+    {
+        printf("NTLM_FLAG_NTLM\n");
+        dwFlags &= ~0x00000200;
+    }
+    if (dwFlags & 0x00001000)
+    {
+        printf("NTLM_FLAG_DOMAIN\n");
+        dwFlags &= ~0x00001000;
+    }
+    if (dwFlags & 0x00002000)
+    {
+        printf("NTLM_FLAG_WORKSTATION\n");
+        dwFlags &= ~0x00002000;
+    }
+    if (dwFlags & 0x00004000)
+    {
+        printf("NTLM_FLAG_LOCAL_CALL\n");
+        dwFlags &= ~0x00004000;
+    }
+    if (dwFlags & 0x00008000)
+    {
+        printf("NTLM_FLAG_ALWAYS_SIGN\n");
+        dwFlags &= ~0x00008000;
+    }
+    if (dwFlags & 0x00010000)
+    {
+        printf("NTLM_FLAG_TYPE_DOMAIN\n");
+        dwFlags &= ~0x00010000;
+    }
+    if (dwFlags & 0x00020000)
+    {
+        printf("NTLM_FLAG_TYPE_SERVER\n");
+        dwFlags &= ~0x00020000;
+    }
+    if (dwFlags & 0x00040000)
+    {
+        printf("NTLM_FLAG_TYPE_SHARE\n");
+        dwFlags &= ~0x00040000;
+    }
+    if (dwFlags & 0x00080000)
+    {
+        printf("NTLM_FLAG_NTLM2\n");
+        dwFlags &= ~0x00080000;
+    }
+    if (dwFlags & 0x00100000)
+    {
+        printf("NTLM_FLAG_INIT_RESPONSE\n");
+        dwFlags &= ~0x00100000;
+    }
+    if (dwFlags & 0x00200000)
+    {
+        printf("NTLM_FLAG_ACCEPT_RESPONSE\n");
+        dwFlags &= ~0x00200000;
+    }
+    if (dwFlags & 0x00400000)
+    {
+        printf("NTLM_FLAG_NON_NT_SESSION_KEY\n");
+        dwFlags &= ~0x00400000;
+    }
+    if (dwFlags & 0x00800000)
+    {
+        printf("NTLM_FLAG_TARGET_INFO\n");
+        dwFlags &= ~0x00800000;
+    }
+    if (dwFlags & 0x02000000)
+    {
+        printf("NTLM_FLAG_UNKNOWN_02000000\n");
+        dwFlags &= ~0x02000000;
+    }
+    if (dwFlags & 0x20000000)
+    {
+        printf("NTLM_FLAG_128\n");
+        dwFlags &= ~0x20000000;
+    }
+    if (dwFlags & 0x40000000)
+    {
+        printf("NTLM_FLAG_KEY_EXCH\n");
+        dwFlags &= ~0x40000000;
+    }
+    if (dwFlags & 0x80000000)
+    {
+        printf("NTLM_FLAG_56\n");
+        dwFlags &= ~0x80000000;
+    }
+    if (dwFlags)
+    {
+        printf("Unknown flags: 0x%X\n", dwFlags);
+    }
+}
+
+VOID
+DumpNegMessage(
+    PNTLM_NEGOTIATE_MESSAGE pMsg,
+    DWORD dwSize
+    )
+{
+    printf("Message type: Negotiate\n");
+    DumpNtlmFlags(pMsg->NtlmFlags);
+}
+
+VOID
+DumpChlngMessage(
+    PNTLM_CHALLENGE_MESSAGE pMsg,
+    DWORD dwSize
+    )
+{
+    printf("Message type: Challenge\n");
+    DumpNtlmFlags(pMsg->NtlmFlags);
+}
+
+VOID
+DumpRespMessage(
+    PNTLM_RESPONSE_MESSAGE pMsg,
+    DWORD dwSize
+    )
+{
+    printf("Message type: Response\n");
+}
+
+VOID
+DumpNtlmMessage(
+    PBYTE pBuffer,
+    DWORD dwSize
+    )
+{
+
+    PNTLM_MESSAGE pMsg = (PNTLM_MESSAGE)pBuffer;
+
+    printf("NTLM message information:\n");
+
+    switch (pMsg->MessageType)
+    {
+    case 1:
+        DumpNegMessage((PNTLM_NEGOTIATE_MESSAGE)pMsg, dwSize);
+        break;
+    case 2:
+        DumpChlngMessage((PNTLM_CHALLENGE_MESSAGE)pMsg, dwSize);
+        break;
+    case 3:
+        DumpRespMessage((PNTLM_RESPONSE_MESSAGE)pMsg, dwSize);
+        break;
+    }
+}
+
+VOID
+PrintHexDump(
+    DWORD dwLength,
+    PBYTE pBuffer
+    )
+{
+    DWORD i,count,index;
+    CHAR rgbDigits[]="0123456789abcdef";
+    CHAR rgbLine[100];
+    CHAR cbLine;
+    PBYTE pToken = pBuffer;
+
+    for (index = 0; dwLength;
+        dwLength -= count, pBuffer += count, index += count)
+    {
+        count = (dwLength > 16) ? 16:dwLength;
+
+        sprintf(rgbLine, "%4.4x  ",index);
+        cbLine = 6;
+
+        for (i=0;i<count;i++)
+        {
+            rgbLine[((int)cbLine)++] = rgbDigits[pBuffer[i] >> 4];
+            rgbLine[((int)cbLine)++] = rgbDigits[pBuffer[i] & 0x0f];
+            if (i == 7)
+            {
+                rgbLine[((int)cbLine)++] = ':';
+            }
+            else
+            {
+                rgbLine[((int)cbLine)++] = ' ';
+            }
+        }
+        for (; i < 16; i++)
+        {
+            rgbLine[((int)cbLine)++] = ' ';
+            rgbLine[((int)cbLine)++] = ' ';
+            rgbLine[((int)cbLine)++] = ' ';
+        }
+
+        rgbLine[((int)cbLine)++] = ' ';
+
+        for (i = 0; i < count; i++)
+        {
+            if (pBuffer[i] < 32 || pBuffer[i] > 126)
+            {
+                rgbLine[((int)cbLine)++] = '.';
+            }
+            else
+            {
+                rgbLine[((int)cbLine)++] = pBuffer[i];
+            }
+        }
+
+        rgbLine[((int)cbLine)++] = 0;
+        printf("%s\n", rgbLine);
+    }
+
+    DumpNtlmMessage(pToken, dwLength);
 }

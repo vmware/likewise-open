@@ -57,7 +57,7 @@ DWORD
 ServerEstablishContext(
     IN INT nSocket,
     IN NTLM_CRED_HANDLE *pServerCreds,
-    OUT LSA_CONTEXT_HANDLE *pContext,
+    OUT NTLM_CONTEXT_HANDLE *pContext,
     IN DWORD AscFlags
     );
 
@@ -87,6 +87,12 @@ ReadAll(
     OUT PCHAR pBuffer,
     IN UINT nBytes,
     OUT PINT nBytesRead
+    );
+
+VOID
+PrintHexDump(
+    DWORD length,
+    PBYTE pBuffer
     );
 
 #endif  //_NTLM_SERVER_PROTOTYPES_H_
