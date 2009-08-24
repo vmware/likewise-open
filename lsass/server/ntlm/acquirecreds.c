@@ -61,10 +61,10 @@ NtlmServerAcquireCredentialsHandle(
 {
     DWORD dwError = 0;
     PSEC_WINNT_AUTH_IDENTITY pSecWinAuthData = pAuthData;
-    LSA_CRED_HANDLE LsaCredHandle = INVALID_LSA_CRED_HANDLE;
-    NTLM_CRED_HANDLE NtlmCredHandle = INVALID_NTLM_CRED_HANDLE;
+    LSA_CRED_HANDLE LsaCredHandle = NULL;
     PNTLM_CREDENTIALS pNtlmCreds = NULL;
     PSTR pUserName = NULL;
+    PSTR pNT4UserName = NULL;
     PSTR pPassword = NULL;
     DWORD dwInvalidUid = -1;
     PSTR pServerName = NULL;
@@ -85,69 +85,10 @@ NtlmServerAcquireCredentialsHandle(
     // will not effect anything at this point (though we do want to track the
     // information it provides).
 
-    if(strcmp("NTLM", pszPackage))
+    if (strcmp("NTLM", pszPackage))
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LW_ERROR(dwError);
-    }
-
-    if(fCredentialUse == NTLM_CRED_OUTBOUND)
-    {
-        dwError = NtlmGetProcessSecurity(pAssoc, &Uid, &Gid);
-        BAIL_ON_LW_ERROR(dwError);
-
-        if(!pSecWinAuthData)
-        {
-            LsaCredHandle = LsaGetCredential(Uid);
-
-            if(LsaCredHandle == INVALID_LSA_CRED_HANDLE)
-            {
-                dwError = LW_ERROR_NO_CRED;
-                BAIL_ON_LW_ERROR(dwError);
-            }
-        }
-        else
-        {
-            dwError = LsaAllocateMemory(
-                pSecWinAuthData->PasswordLength + 1,
-                OUT_PPVOID(&pPassword));
-            BAIL_ON_LW_ERROR(dwError);
-
-            memcpy(
-                pPassword,
-                pSecWinAuthData->Password,
-                pSecWinAuthData->PasswordLength);
-
-            if(pSecWinAuthData->UserLength)
-            {
-                dwError = LsaAllocateMemory(
-                    pSecWinAuthData->UserLength + 1,
-                    OUT_PPVOID(&pUserName));
-                BAIL_ON_LW_ERROR(dwError);
-
-                memcpy(
-                    pUserName,
-                    pSecWinAuthData->User,
-                    pSecWinAuthData->UserLength);
-            }
-            else if(pszPrincipal)
-            {
-                dwError = LsaAllocateString(pszPrincipal, &pUserName);
-                BAIL_ON_LW_ERROR(dwError);
-            }
-            else
-            {
-                dwError = LW_ERROR_INVALID_PARAMETER;
-                BAIL_ON_LW_ERROR(dwError);
-            }
-
-            dwError = LsaAddCredential(
-                pUserName,
-                pPassword,
-                &dwInvalidUid,
-                &LsaCredHandle);
-            BAIL_ON_LW_ERROR(dwError);
-        }
     }
 
     dwError = NtlmGetNameInformation(
@@ -157,7 +98,83 @@ NtlmServerAcquireCredentialsHandle(
         &pDnsDomainName);
     BAIL_ON_LW_ERROR(dwError);
 
-    dwError = NtlmCreateCredentials(
+    if (fCredentialUse == NTLM_CRED_OUTBOUND)
+    {
+        dwError = NtlmGetProcessSecurity(pAssoc, &Uid, &Gid);
+        BAIL_ON_LW_ERROR(dwError);
+
+        if (!pSecWinAuthData)
+        {
+            LsaCredHandle = LsaGetCredential(Uid);
+
+            if (!LsaCredHandle)
+            {
+                dwError = LW_ERROR_NO_CRED;
+                BAIL_ON_LW_ERROR(dwError);
+            }
+        }
+        else
+        {
+            if (pSecWinAuthData->PasswordLength)
+            {
+                dwError = LwAllocateMemory(
+                    pSecWinAuthData->PasswordLength + 1,
+                    OUT_PPVOID(&pPassword));
+                BAIL_ON_LW_ERROR(dwError);
+
+                memcpy(
+                    pPassword,
+                    pSecWinAuthData->Password,
+                    pSecWinAuthData->PasswordLength);
+            }
+
+            if (pSecWinAuthData->UserLength)
+            {
+                dwError = LwAllocateMemory(
+                    pSecWinAuthData->UserLength + 1,
+                    OUT_PPVOID(&pUserName));
+                BAIL_ON_LW_ERROR(dwError);
+
+                memcpy(
+                    pUserName,
+                    pSecWinAuthData->User,
+                    pSecWinAuthData->UserLength);
+            }
+            else if (pszPrincipal)
+            {
+                dwError = LwAllocateString(pszPrincipal, &pUserName);
+                BAIL_ON_LW_ERROR(dwError);
+            }
+            else
+            {
+                dwError = LW_ERROR_INVALID_PARAMETER;
+                BAIL_ON_LW_ERROR(dwError);
+            }
+
+            if (pPassword && pUserName)
+            {
+                dwError = LwAllocateStringPrintf(
+                    &pNT4UserName,
+                    "%s\\%s@%s",
+                    pDomainName,
+                    pUserName,
+                    pDnsDomainName);
+                BAIL_ON_LW_ERROR(dwError);
+
+                // In theory, we probably *shouldn't* add this to the list...
+                // but noone should ever be searching the list for -1...
+                // so we should be ok.
+                dwError = LsaAddCredential(
+                    pNT4UserName,
+                    pPassword,
+                    &dwInvalidUid,
+                    &LsaCredHandle);
+                BAIL_ON_LW_ERROR(dwError);
+            }
+        }
+    }
+
+    dwError = NtlmCreateCredential(
         &LsaCredHandle,
         fCredentialUse,
         pServerName,
@@ -167,32 +184,29 @@ NtlmServerAcquireCredentialsHandle(
         &pNtlmCreds);
     BAIL_ON_LW_ERROR(dwError);
 
-    NtlmAddCredential(pNtlmCreds, &NtlmCredHandle);
-
 cleanup:
     LW_SAFE_FREE_STRING(pPassword);
     LW_SAFE_FREE_STRING(pUserName);
+    LW_SAFE_FREE_STRING(pNT4UserName);
     LW_SAFE_FREE_STRING(pServerName);
     LW_SAFE_FREE_STRING(pDomainName);
     LW_SAFE_FREE_STRING(pDnsServerName);
     LW_SAFE_FREE_STRING(pDnsDomainName);
 
-    *phCredential = NtlmCredHandle;
+    *phCredential = pNtlmCreds;
 
     return(dwError);
 error:
-    LsaReleaseCredential(LsaCredHandle);
-    LsaCredHandle = NULL;
 
-    // The cred may or may not have made it in to the list... be sure to not
-    // double free it
-    if (NtlmCredHandle)
+    // If there's an Ntlm cred, the Lsa cred is a part of it, otherwise, just
+    // try to free the Lsa cred.
+    if (pNtlmCreds)
     {
-        NtlmReleaseCredential(NtlmCredHandle);
+        NtlmReleaseCredential(&pNtlmCreds);
     }
-    else if(pNtlmCreds)
+    else
     {
-        NtlmFreeCredentials(pNtlmCreds);
+        LsaReleaseCredential(&LsaCredHandle);
     }
 
     *ptsExpiry = 0;
@@ -224,7 +238,7 @@ NtlmGetNameInformation(
     *ppszDnsDomainName = NULL;
 
     dwError = gethostname(FullDomainName, HOST_NAME_MAX);
-    if(dwError)
+    if (dwError)
     {
         dwError = LW_ERROR_INTERNAL;
         BAIL_ON_LW_ERROR(dwError);
@@ -232,7 +246,7 @@ NtlmGetNameInformation(
 
     // There must be a better way to get this information.
     pHost = gethostbyname(FullDomainName);
-    if(pHost)
+    if (pHost)
     {
         dwHostSize = strlen((PSTR)pHost->h_name);
 
@@ -245,38 +259,38 @@ NtlmGetNameInformation(
     // This is a horrible fall back, but it's all we've got
     pName = (PSTR)FullDomainName;
 
-    dwError = LsaAllocateString(pName, &pDnsServerName);
+    dwError = LwAllocateString(pName, &pDnsServerName);
     BAIL_ON_LW_ERROR(dwError);
 
     pSymbol = strchr(pName, '.');
 
-    if(pSymbol)
+    if (pSymbol)
     {
         *pSymbol = '\0';
     }
 
-    dwError = LsaAllocateString(pName, &pServerName);
+    dwError = LwAllocateString(pName, &pServerName);
     BAIL_ON_LW_ERROR(dwError);
 
     LwStrToUpper(pServerName);
 
-    if(pSymbol)
+    if (pSymbol)
     {
         pSymbol++;
         pName = (PSTR)pSymbol;
     }
 
-    dwError = LsaAllocateString(pName, &pDnsDomainName);
+    dwError = LwAllocateString(pName, &pDnsDomainName);
     BAIL_ON_LW_ERROR(dwError);
 
     pSymbol = strchr(pName, '.');
 
-    if(pSymbol)
+    if (pSymbol)
     {
         *pSymbol = '\0';
     }
 
-    dwError = LsaAllocateString(pName, &pDomainName);
+    dwError = LwAllocateString(pName, &pDomainName);
     BAIL_ON_LW_ERROR(dwError);
 
     LwStrToUpper(pDomainName);

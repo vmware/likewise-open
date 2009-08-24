@@ -49,13 +49,13 @@
 
 DWORD
 NtlmServerVerifySignature(
-    IN PLSA_CONTEXT_HANDLE phContext,
+    IN PNTLM_CONTEXT_HANDLE phContext,
     IN PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo,
-    OUT PBOOL pbVerified,
-    OUT PBOOL pbEncrypted
+    OUT PBOOLEAN pbVerified,
+    OUT PBOOLEAN pbEncrypted
     )
 {
-    DWORD dwError = 0;
-    return(dwError);
+    DWORD dwError = LW_ERROR_SUCCESS;
+    return dwError;
 }

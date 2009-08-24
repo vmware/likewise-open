@@ -48,7 +48,9 @@
 #ifndef __NTLMSRVAPI_H__
 #define __NTLMSRVAPI_H__
 
-#include <ntlm/ntlm.h>
+#include <config.h>
+
+#include <ntlm/sspintlm.h>
 #include <ntlmipc.h>
 
 #include <openssl/des.h>
@@ -58,9 +60,18 @@
 #include <openssl/hmac.h>
 
 #include <time.h>
+#include <netdb.h>
+#include <assert.h>
+#include <ctype.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #include <lsasrvcred.h>
 #include <lsalist.h>
+#include <lwdef.h>
+#include <lwmem.h>
+#include <lwstr.h>
 
 #include "defines.h"
 #include "structs.h"

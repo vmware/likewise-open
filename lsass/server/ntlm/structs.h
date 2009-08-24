@@ -112,23 +112,17 @@ typedef enum
     NtlmStateResponse
 } NTLM_STATE, *PNTLM_STATE;
 
-typedef struct _LSA_CONTEXT
+typedef struct _NTLM_CONTEXT
 {
     NTLM_STATE NtlmState;
     DWORD dwMessageSize;
     PVOID pMessage;
     NTLM_CRED_HANDLE CredHandle;
+    DWORD NegotiatedFlags;
     LONG nRefCount;
     BYTE SessionKey[NTLM_SESSION_KEY_SIZE];
     DWORD cbSessionKeyLen;
-    LSA_LIST_LINKS ListEntry;
-} LSA_CONTEXT, *PLSA_CONTEXT;
-
-typedef struct _LSA_CONTEXT_STATE
-{
-    LSA_LIST_LINKS LsaContextList;
-    pthread_rwlock_t LsaContextListLock;
-} LSA_CONTEXT_STATE, *PLSA_CONTEXT_STATE;
+} NTLM_CONTEXT, *PNTLM_CONTEXT;
 
 typedef struct _NTLM_CREDENTIALS
 {
@@ -139,13 +133,6 @@ typedef struct _NTLM_CREDENTIALS
     PSTR pszDnsDomainName;
     PSTR pszDnsServerName;
     LONG nRefCount;
-    LSA_LIST_LINKS ListEntry;
 } NTLM_CREDENTIALS, *PNTLM_CREDENTIALS;
-
-typedef struct _NTLM_CRED_STATE
-{
-    LSA_LIST_LINKS NtlmCredList;
-    pthread_mutex_t NtlmCredListLock;
-} NTLM_CRED_STATE, *PNTLM_CRED_STATE;
 
 #endif /* __STRUCTS_H__ */

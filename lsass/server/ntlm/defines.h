@@ -45,68 +45,6 @@
 #ifndef __DEFINES_H__
 #define __DEFINES_H__
 
-// Locking macros
-
-#define ENTER_CONTEXT_LIST_READER(bInLock)                              \
-    do                                                                  \
-    {                                                                   \
-        if (!bInLock)                                                   \
-        {                                                               \
-            pthread_rwlock_rdlock(&gContextState.LsaContextListLock);   \
-            bInLock = TRUE;                                             \
-        }                                                               \
-    } while(0)
-
-#define LEAVE_CONTEXT_LIST_READER(bReleaseLock)                         \
-    do                                                                  \
-    {                                                                   \
-        if (bReleaseLock)                                               \
-        {                                                               \
-            pthread_rwlock_unlock(&gContextState.LsaContextListLock);   \
-            bReleaseLock = FALSE;                                       \
-        }                                                               \
-    } while(0)
-
-#define ENTER_CONTEXT_LIST_WRITER(bInLock)                              \
-    do                                                                  \
-    {                                                                   \
-        if (!bInLock)                                                   \
-        {                                                               \
-            pthread_rwlock_wrlock(&gContextState.LsaContextListLock);   \
-            bInLock = TRUE;                                             \
-        }                                                               \
-    } while(0)
-
-#define LEAVE_CONTEXT_LIST_WRITER(bReleaseLock)                         \
-    do                                                                  \
-    {                                                                   \
-        if (bReleaseLock)                                               \
-        {                                                               \
-            pthread_rwlock_unlock(&gContextState.LsaContextListLock);   \
-            bReleaseLock = FALSE;                                       \
-        }                                                               \
-    } while(0)
-
-#define ENTER_NTLM_CREDS_LIST(bInLock)                                   \
-    do                                                                  \
-    {                                                                   \
-        if (!bInLock)                                                   \
-        {                                                               \
-            pthread_mutex_lock(&gCredState.NtlmCredListLock);           \
-            bInLock = TRUE;                                             \
-        }                                                               \
-    } while(0)
-
-#define LEAVE_NTLM_CREDS_LIST(bReleaseLock)                              \
-    do                                                                  \
-    {                                                                   \
-        if (bReleaseLock)                                               \
-        {                                                               \
-            pthread_mutex_unlock(&gCredState.NtlmCredListLock);         \
-            bReleaseLock = FALSE;                                       \
-        }                                                               \
-    } while(0)
-
 //#define MAP_LWMSG_ERROR(_e_) ((_e_) ? NtlmMapLwmsgStatus(_e_) : 0)
 #define MAP_LWNET_ERROR(_e_) ((_e_) ? LWMSG_STATUS_ERROR : LWMSG_STATUS_SUCCESS)
 

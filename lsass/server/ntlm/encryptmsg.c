@@ -49,14 +49,14 @@
 
 DWORD
 NtlmServerEncryptMessage(
-    IN PLSA_CONTEXT_HANDLE phContext,
-    IN BOOL bEncrypt,
+    IN PNTLM_CONTEXT_HANDLE phContext,
+    IN BOOLEAN bEncrypt,
     IN OUT PSecBufferDesc pMessage,
     IN DWORD dwMsgSeqNum
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
-    PLSA_CONTEXT pContext = *phContext;
+    PNTLM_CONTEXT pContext = *phContext;
     DWORD dwIndex = 0;
     PBYTE pToken = NULL;
     PBYTE pData = NULL;
@@ -75,27 +75,27 @@ NtlmServerEncryptMessage(
     //
     // Find these buffers... the first one found of each type will be the one
     // that is used.
-    for(dwIndex = 0; dwIndex < pMessage->cBuffers; dwIndex++)
+    for (dwIndex = 0; dwIndex < pMessage->cBuffers; dwIndex++)
     {
-        if(pMessage->pBuffers[dwIndex].BufferType == SECBUFFER_TOKEN)
+        if (pMessage->pBuffers[dwIndex].BufferType == SECBUFFER_TOKEN)
         {
-            if(!pToken)
+            if (!pToken)
             {
                 pToken = pMessage->pBuffers[dwIndex].pvBuffer;
                 dwTokenSize = pMessage->pBuffers[dwIndex].cbBuffer;
             }
         }
-        else if(pMessage->pBuffers[dwIndex].BufferType == SECBUFFER_DATA)
+        else if (pMessage->pBuffers[dwIndex].BufferType == SECBUFFER_DATA)
         {
-            if(!pData)
+            if (!pData)
             {
                 pData = pMessage->pBuffers[dwIndex].pvBuffer;
                 dwDataSize = pMessage->pBuffers[dwIndex].cbBuffer;
             }
         }
-        else if(pMessage->pBuffers[dwIndex].BufferType == SECBUFFER_PADDING)
+        else if (pMessage->pBuffers[dwIndex].BufferType == SECBUFFER_PADDING)
         {
-            if(!pPadding)
+            if (!pPadding)
             {
                 pPadding = pMessage->pBuffers[dwIndex].pvBuffer;
                 dwPaddingSize = pMessage->pBuffers[dwIndex].cbBuffer;
@@ -110,7 +110,7 @@ NtlmServerEncryptMessage(
         BAIL_ON_LW_ERROR(dwError);
     }
 
-    if(bEncrypt)
+    if (bEncrypt)
     {
         RC4_set_key(&Rc4Key, pContext->cbSessionKeyLen, pContext->SessionKey);
         RC4(&Rc4Key, dwDataSize, pData, pData);

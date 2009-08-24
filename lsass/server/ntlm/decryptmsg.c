@@ -49,13 +49,13 @@
 
 DWORD
 NtlmServerDecryptMessage(
-    IN PLSA_CONTEXT_HANDLE phContext,
+    IN PNTLM_CONTEXT_HANDLE phContext,
     IN OUT PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo,
-    OUT PBOOL pbEncrypted
+    OUT PBOOLEAN pbEncrypted
     )
 {
-    DWORD dwError = 0;
+    DWORD dwError = LW_ERROR_SUCCESS;
 
-    return(dwError);
+    return dwError;
 }

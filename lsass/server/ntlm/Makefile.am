@@ -1,8 +1,8 @@
 AM_CPPFLAGS = @AM_CPPFLAGS@ -I$(top_srcdir)/include
 
-lib_LTLIBRARIES = libntlmserver_new.la
+lib_LTLIBRARIES = libntlmserver.la
 
-libntlmserver_new_la_SOURCES =  \
+libntlmserver_la_SOURCES =      \
     acceptsecctxt.c             \
     acquirecreds.c              \
     context.c                   \
@@ -21,18 +21,18 @@ libntlmserver_new_la_SOURCES =  \
     ntlmsrvipc.c                \
     verifysign.c
 
-libntlmserver_new_la_CPPFLAGS =     \
+libntlmserver_la_CPPFLAGS =         \
     $(AM_CPPFLAGS)                  \
     $(LWADVAPI_INCLUDES)            \
     -I$(top_srcdir)/server/include  \
     @LWMSG_INCLUDES@                \
     @CRYPTO_INCLUDES@
 
-libntlmserver_new_la_LDFLAGS =  \
+libntlmserver_la_LDFLAGS =      \
     $(AM_LDFLAGS)               \
     @CRYPTO_LDFLAGS@
 
-libntlmserver_new_la_LIBADD =               \
+libntlmserver_la_LIBADD =                   \
     @top_builddir@/common/liblsacommon.la   \
     @LWMSG_NOTHR_LIBS@                      \
     @CRYPTO_LIBS@                           \
