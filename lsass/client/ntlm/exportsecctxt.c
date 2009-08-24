@@ -50,7 +50,7 @@
 DWORD
 NtlmClientExportSecurityContext(
     IN HANDLE hServer,
-    IN PLSA_CONTEXT_HANDLE phContext,
+    IN PNTLM_CONTEXT_HANDLE phContext,
     IN DWORD fFlags,
     OUT PSecBuffer pPackedContext,
     OUT OPTIONAL HANDLE *pToken
@@ -61,7 +61,7 @@ NtlmClientExportSecurityContext(
     // We don't want to zero out the SecBuffers, but we may want to initialize
     // some of their members to zero.
     // In the long run, I don't think we need this token...
-    if(pToken)
+    if (pToken)
     {
         *pToken = INVALID_HANDLE;
     }
@@ -83,7 +83,7 @@ error:
     // also, I don't think we're going to be using this token, but put this
     // clean up code in for now... note the missing "CloseHandle" call we
     // would normally want here.
-    if(pToken)
+    if (pToken)
     {
         *pToken = INVALID_HANDLE;
     }

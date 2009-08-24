@@ -9,9 +9,11 @@ liblsaclient_ntlm_la_SOURCES =  \
        encryptmsg.c         \
        exportsecctxt.c      \
        freecreds.c          \
+       globals.c            \
        importsecctxt.c      \
        initsecctxt.c        \
        makesign.c           \
+       ntlmgsswrapper.c     \
        querycreds.c         \
        queryctxt.c          \
        verifysign.c

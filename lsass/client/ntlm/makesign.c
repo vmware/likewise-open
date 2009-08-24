@@ -50,8 +50,8 @@
 DWORD
 NtlmClientMakeSignature(
     IN HANDLE hServer,
-    IN PLSA_CONTEXT_HANDLE phContext,
-    IN BOOL bEncrypt,
+    IN PNTLM_CONTEXT_HANDLE phContext,
+    IN BOOLEAN bEncrypt,
     IN OUT PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo
     )

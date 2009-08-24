@@ -52,11 +52,11 @@ DWORD
 NtlmTransactAcceptSecurityContext(
     IN HANDLE hServer,
     IN PNTLM_CRED_HANDLE phCredential,
-    IN OUT PLSA_CONTEXT_HANDLE phContext,
+    IN OUT PNTLM_CONTEXT_HANDLE phContext,
     IN PSecBufferDesc pInput,
     IN DWORD fContextReq,
     IN DWORD TargetDataRep,
-    IN OUT PLSA_CONTEXT_HANDLE phNewContext,
+    IN OUT PNTLM_CONTEXT_HANDLE phNewContext,
     IN OUT PSecBufferDesc pOutput,
     OUT PDWORD  pfContextAttr,
     OUT PTimeStamp ptsTimeStamp
@@ -77,23 +77,23 @@ NtlmTransactAcquireCredentialsHandle(
 DWORD
 NtlmTransactDecryptMessage(
     IN HANDLE hServer,
-    IN PLSA_CONTEXT_HANDLE phContext,
+    IN PNTLM_CONTEXT_HANDLE phContext,
     IN OUT PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo,
-    OUT PBOOL pbEncrypt
+    OUT PBOOLEAN pbEncrypt
     );
 
 DWORD
 NtlmTransactDeleteSecurityContext(
     IN HANDLE hServer,
-    IN OUT PLSA_CONTEXT_HANDLE phContext
+    IN OUT PNTLM_CONTEXT_HANDLE phContext
     );
 
 DWORD
 NtlmTransactEncryptMessage(
     IN HANDLE hServer,
-    IN PLSA_CONTEXT_HANDLE phContext,
-    IN BOOL bEncrypt,
+    IN PNTLM_CONTEXT_HANDLE phContext,
+    IN BOOLEAN bEncrypt,
     IN OUT PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo
     );
@@ -101,7 +101,7 @@ NtlmTransactEncryptMessage(
 DWORD
 NtlmTransactExportSecurityContext(
     IN HANDLE hServer,
-    IN PLSA_CONTEXT_HANDLE phContext,
+    IN PNTLM_CONTEXT_HANDLE phContext,
     IN DWORD fFlags,
     OUT PSecBuffer pPackedContext,
     OUT OPTIONAL HANDLE *pToken
@@ -119,21 +119,21 @@ NtlmTransactImportSecurityContext(
     IN PSECURITY_STRING *pszPackage,
     IN PSecBuffer pPackedContext,
     IN OPTIONAL HANDLE pToken,
-    OUT PLSA_CONTEXT_HANDLE phContext
+    OUT PNTLM_CONTEXT_HANDLE phContext
     );
 
 DWORD
 NtlmTransactInitializeSecurityContext(
     IN HANDLE hServer,
     IN OPTIONAL PNTLM_CRED_HANDLE phCredential,
-    IN OPTIONAL PLSA_CONTEXT_HANDLE phContext,
+    IN OPTIONAL PNTLM_CONTEXT_HANDLE phContext,
     IN OPTIONAL SEC_CHAR * pszTargetName,
     IN DWORD fContextReq,
     IN DWORD Reserverd1,
     IN DWORD TargetDataRep,
     IN OPTIONAL PSecBufferDesc pInput,
     IN DWORD Reserved2,
-    IN OUT OPTIONAL PLSA_CONTEXT_HANDLE phNewContext,
+    IN OUT OPTIONAL PNTLM_CONTEXT_HANDLE phNewContext,
     IN OUT OPTIONAL PSecBufferDesc pOutput,
     OUT PDWORD pfContextAttr,
     OUT OPTIONAL PTimeStamp ptsExpiry
@@ -142,8 +142,8 @@ NtlmTransactInitializeSecurityContext(
 DWORD
 NtlmTransactMakeSignature(
     IN HANDLE hServer,
-    IN PLSA_CONTEXT_HANDLE phContext,
-    IN BOOL bEncrypt,
+    IN PNTLM_CONTEXT_HANDLE phContext,
+    IN BOOLEAN bEncrypt,
     IN OUT PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo
     );
@@ -159,7 +159,7 @@ NtlmTransactQueryCredentialsAttributes(
 DWORD
 NtlmTransactQueryContextAttributes(
     IN HANDLE hServer,
-    IN PLSA_CONTEXT_HANDLE phContext,
+    IN PNTLM_CONTEXT_HANDLE phContext,
     IN DWORD ulAttribute,
     OUT PVOID pBuffer
     );
@@ -167,11 +167,11 @@ NtlmTransactQueryContextAttributes(
 DWORD
 NtlmTransactVerifySignature(
     IN HANDLE hServer,
-    IN PLSA_CONTEXT_HANDLE phContext,
+    IN PNTLM_CONTEXT_HANDLE phContext,
     IN PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo,
-    OUT PBOOL pbVerified,
-    OUT PBOOL pbEncrypted
+    OUT PBOOLEAN pbVerified,
+    OUT PBOOLEAN pbEncrypted
     );
 
 DWORD
