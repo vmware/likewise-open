@@ -55,7 +55,6 @@ LsaInitializeRpcSrv(
     )
 {
     DWORD dwError = 0;
-    NTSTATUS status = STATUS_SUCCESS;
 
     pthread_mutex_init(&gLsaSrvDataMutex, NULL);
 
@@ -92,7 +91,6 @@ LsaShutdownRpcSrv(
     )
 {
     DWORD dwError = 0;
-    NTSTATUS status = STATUS_SUCCESS;
 
     dwError = RpcSvcUnregisterRpcInterface(lsa_v0_0_s_ifspec);
     BAIL_ON_LSA_ERROR(dwError);
