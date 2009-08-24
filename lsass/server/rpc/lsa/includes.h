@@ -54,6 +54,7 @@
 #include <lwio/lwio.h>
 #include <lwnet.h>
 #include <lwps/lwps.h>
+#include <lwkrb5.h>
 
 #include <lsa/lsa.h>
 #include <lsaunistr.h>
@@ -62,6 +63,7 @@
 #include <directory.h>
 #include <samr_srv.h>
 
+#include "structs.h"
 #include "lsa_cfg.h"
 #include "lsa_srv.h"
 #include "lsadefs.h"
