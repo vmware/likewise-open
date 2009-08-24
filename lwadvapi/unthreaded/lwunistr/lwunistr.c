@@ -234,7 +234,7 @@ LwAllocateWc16String(
 
     dwLen = wc16slen(pwszInputString);
 
-    dwError = LwAllocateMemory(dwLen + 1,
+    dwError = LwAllocateMemory(sizeof(pwszOutputString[0]) * (dwLen + 1),
                                OUT_PPVOID(&pwszOutputString));
     BAIL_ON_LW_ERROR(dwError);
 
