@@ -19,4 +19,5 @@ lwio_copy_LDADD = \
 
 lwio_copy_LDFLAGS =  \
     @KRB5_LDFLAGS@  \
-    @NETLOGON_LDFLAGS@
+    @NETLOGON_LDFLAGS@ \
+    -L$(top_builddir)/common/.libs
