@@ -229,4 +229,10 @@ LsaSrvFreeAccountSids(
     );
 
 
+NTSTATUS
+LsaSrvGetSystemAccessToken(
+    LW_PIO_ACCESS_TOKEN *ppAccessToken
+    );
+
+
 #endif /* _LSASRV_H_ */

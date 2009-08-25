@@ -26,6 +26,7 @@ liblsa_la_SOURCES = \
     lsa_queryinfopolicy2.c      \
     lsa_domaincache.c           \
     lsa_accounts.c              \
+    lsa_accesstoken.c           \
     lsa_contexthandle.c
 
 DCEIDL_PASS_INCLUDES = \

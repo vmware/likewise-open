@@ -139,7 +139,7 @@ LsaSrvLookupSids2(
                                            &pszDcName);
         BAIL_ON_LSA_ERROR(dwError);
 
-        ntStatus = LwIoGetThreadAccessToken(&pAccessToken);
+        ntStatus = LsaSrvGetSystemAccessToken(&pAccessToken);
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
         rpcstatus = InitLsaBindingDefault(&hLsaBinding,
@@ -380,6 +380,11 @@ cleanup:
     if (hLsaBinding)
     {
         FreeLsaBinding(&hLsaBinding);
+    }
+
+    if (pAccessToken)
+    {
+        LwIoDeleteAccessToken(pAccessToken);
     }
 
     if (pszDomainFqdn)

@@ -141,7 +141,7 @@ LsaSrvLookupNames3(
                                            &pszDcName);
         BAIL_ON_LSA_ERROR(dwError);
 
-        ntStatus = LwIoGetThreadAccessToken(&pAccessToken);
+        ntStatus = LsaSrvGetSystemAccessToken(&pAccessToken);
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
         rpcstatus = InitLsaBindingDefault(&hLsaBinding,
@@ -490,6 +490,11 @@ LsaSrvLookupNames3(
     *count      = SidArray.count;
 
 cleanup:
+    if (pAccessToken)
+    {
+        LwIoDeleteAccessToken(pAccessToken);
+    }
+
     if (pwszSystemName)
     {
         LW_SAFE_FREE_MEMORY(pwszSystemName);
