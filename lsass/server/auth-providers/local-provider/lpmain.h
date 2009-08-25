@@ -60,6 +60,7 @@ DWORD
 LocalOpenHandle(
     uid_t uid,
     gid_t gid,
+    pid_t pid,
     PHANDLE phProvider
     );
 

@@ -52,6 +52,7 @@
 typedef DWORD (*PFNOPENHANDLE)(
                     uid_t peerUID,
                     gid_t peerGID,
+                    pid_t peerPID,
                     PHANDLE phProvider
                     );
 

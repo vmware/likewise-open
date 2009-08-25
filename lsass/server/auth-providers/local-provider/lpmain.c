@@ -129,6 +129,7 @@ DWORD
 LocalOpenHandle(
     uid_t uid,
     gid_t gid,
+    pid_t pid,
     PHANDLE phProvider
     )
 {
@@ -145,6 +146,7 @@ LocalOpenHandle(
 
     pContext->uid = uid;
     pContext->gid = gid;
+    pContext->pid = pid;
     pContext->localAdminState = LOCAL_ADMIN_STATE_NOT_DETERMINED;
 
     dwError = DirectoryOpen(&pContext->hDirectory);

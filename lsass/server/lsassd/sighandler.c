@@ -106,6 +106,7 @@ LsaSrvHandleSIGHUP(
     dwError = LsaSrvOpenServer(
                 getuid(),
                 getgid(),
+                getpid(),
                 &hServer);
     BAIL_ON_LSA_ERROR(dwError);
 

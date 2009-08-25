@@ -86,6 +86,7 @@ LsaSrvOpenProvider(
     dwError = pProvider->pFnTable->pfnOpenHandle(
                                         pServerState->peerUID,
                                         pServerState->peerGID,
+                                        pServerState->peerPID,
                                         &hProvider);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -106,6 +107,7 @@ DWORD
 LsaSrvOpenServer(
     uid_t peerUID,
     gid_t peerGID,
+    pid_t peerPID,
     PHANDLE phServer
     )
 {
@@ -119,6 +121,7 @@ LsaSrvOpenServer(
 
     pServerState->peerUID = peerUID;
     pServerState->peerGID = peerGID;
+    pServerState->peerPID = peerPID;
 
     *phServer = (HANDLE)pServerState;
 
