@@ -568,6 +568,7 @@ DJConfigureForDaemonRestart(
     DistroInfo distro;
     PSTR symlinkTarget = NULL;
     PSTR symlinkName = NULL;
+    long status = 0;
     PSTR statusBuffer = NULL;
 
     memset(&distro, 0, sizeof(distro));
