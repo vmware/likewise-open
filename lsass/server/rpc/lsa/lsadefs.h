@@ -16,6 +16,9 @@ typedef void* POLICY_HANDLE;
 #define LSA_RPC_DIR                            CACHEDIR "/rpc"
 #define LSA_DEFAULT_LPC_SOCKET_PATH            LSA_RPC_DIR "/lsass"
 
+#define LSASS_KRB5_CACHE_PATH                  "FILE:" CACHEDIR "/krb5cc_lsass"
+
+
 #define LSA_BUILTIN_DOMAIN_NAME \
     {'B','U','I','L','T','I','N',0}
 
