@@ -46,39 +46,41 @@
  */
 
 #include "ntlmsrvapi.h"
+#include "lwsecurityidentifier.h"
 #include "lsasrvapi.h"
 
 DWORD
 NtlmServerAcceptSecurityContext(
     IN LWMsgAssoc* pAssoc,
     IN PNTLM_CRED_HANDLE phCredential,
-    IN OUT PLSA_CONTEXT_HANDLE phContext,
+    IN OUT PNTLM_CONTEXT_HANDLE phContext,
     IN PSecBufferDesc pInput,
     IN DWORD fContextReq,
     IN DWORD TargetDataRep,
-    IN OUT PLSA_CONTEXT_HANDLE phNewContext,
+    IN OUT PNTLM_CONTEXT_HANDLE phNewContext,
     IN OUT PSecBufferDesc pOutput,
     OUT PDWORD  pfContextAttr,
     OUT PTimeStamp ptsTimeStamp
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
-    PLSA_CONTEXT pNtlmContext = NULL;
-    PLSA_CONTEXT pNtlmCtxtOut = NULL;
-    PLSA_CONTEXT pNtlmCtxtChlng = NULL;
-    LSA_CONTEXT_HANDLE ContextHandle = NULL;
+    PNTLM_CONTEXT pNtlmContext = NULL;
+    PNTLM_CONTEXT pNtlmCtxtOut = NULL;
+    PNTLM_CONTEXT pNtlmCtxtChlng = NULL;
+    NTLM_CONTEXT_HANDLE ContextHandle = NULL;
     PNTLM_NEGOTIATE_MESSAGE pNegMsg = NULL;
     PNTLM_RESPONSE_MESSAGE pRespMsg = NULL;
     DWORD dwMessageSize = 0;
+    BYTE SessionKey[NTLM_SESSION_KEY_SIZE] = {0};
 
     ptsTimeStamp = 0;
 
-    if(phContext)
+    if (phContext)
     {
         pNtlmContext = *phContext;
     }
 
-    if(!pNtlmContext)
+    if (!pNtlmContext)
     {
         dwError = NtlmGetMessageFromSecBufferDesc(
             pInput,
@@ -93,6 +95,11 @@ NtlmServerAcceptSecurityContext(
             &pNtlmCtxtOut);
 
         BAIL_ON_LW_ERROR(dwError);
+
+        dwError = NtlmCopyContextToSecBufferDesc(pNtlmCtxtOut, pOutput);
+        BAIL_ON_LW_ERROR(dwError);
+
+        dwError = LW_WARNING_CONTINUE_NEEDED;
     }
     else
     {
@@ -113,34 +120,40 @@ NtlmServerAcceptSecurityContext(
             pAssoc,
             pRespMsg,
             dwMessageSize,
-            pNtlmCtxtChlng);
+            pNtlmCtxtChlng,
+            SessionKey);
+        BAIL_ON_LW_ERROR(dwError);
+
+        // The response has been validated and contains all the information we
+        // are looking for; retain it... the original (challenge) context will
+        // be freed when we return.
+        dwError = NtlmCreateValidatedContext(
+            pRespMsg,
+            dwMessageSize,
+            pNtlmCtxtChlng->NegotiatedFlags,
+            SessionKey,
+            NTLM_SESSION_KEY_SIZE,
+            phCredential,
+            &pNtlmCtxtOut
+            );
         BAIL_ON_LW_ERROR(dwError);
     }
 
-    if(pNtlmCtxtOut)
-    {
-        dwError = NtlmCopyContextToSecBufferDesc(pNtlmCtxtOut, pOutput);
-        BAIL_ON_LW_ERROR(dwError);
-
-        NtlmAddContext(pNtlmCtxtOut, &ContextHandle);
-
-        dwError = LW_WARNING_CONTINUE_NEEDED;
-    }
+    //NtlmAddContext(pNtlmCtxtOut, &ContextHandle);
+    ContextHandle = pNtlmCtxtOut;
 
 cleanup:
     *phNewContext = ContextHandle;
 
     return(dwError);
 error:
-    if(ContextHandle)
+    if (ContextHandle)
     {
-        NtlmReleaseContext(ContextHandle);
-        ContextHandle = NULL;
+        NtlmReleaseContext(&ContextHandle);
     }
-    else if(pNtlmCtxtOut)
+    else if (pNtlmCtxtOut)
     {
-        // pNtlmCtxtOut never made it into the list.. free directly
-        NtlmFreeContext(pNtlmCtxtOut);
+        NtlmReleaseContext(&pNtlmCtxtOut);
     }
     goto cleanup;
 }
@@ -149,11 +162,11 @@ DWORD
 NtlmCreateChallengeContext(
     IN PNTLM_NEGOTIATE_MESSAGE pNtlmNegMsg,
     IN PNTLM_CRED_HANDLE pCredHandle,
-    OUT PLSA_CONTEXT *ppNtlmContext
+    OUT PNTLM_CONTEXT *ppNtlmContext
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
-    PLSA_CONTEXT pNtlmContext = NULL;
+    PNTLM_CONTEXT pNtlmContext = NULL;
     DWORD dwMessageSize = 0;
     PNTLM_CHALLENGE_MESSAGE pMessage = NULL;
     PCSTR pServerName = NULL;
@@ -190,6 +203,7 @@ NtlmCreateChallengeContext(
 
     BAIL_ON_LW_ERROR(dwError);
 
+    pNtlmContext->NegotiatedFlags = pMessage->NtlmFlags;
     pNtlmContext->dwMessageSize = dwMessageSize;
     pNtlmContext->pMessage = pMessage;
     pNtlmContext->NtlmState = NtlmStateChallenge;
@@ -201,9 +215,52 @@ cleanup:
 error:
     LW_SAFE_FREE_MEMORY(pMessage);
 
-    if(pNtlmContext)
+    if (pNtlmContext)
     {
-        NtlmReleaseCredential(*pCredHandle);
+        NtlmReleaseCredential(pCredHandle);
+        LW_SAFE_FREE_MEMORY(pNtlmContext);
+    }
+    goto cleanup;
+}
+
+DWORD
+NtlmCreateValidatedContext(
+    IN PNTLM_RESPONSE_MESSAGE pNtlmRespMsg,
+    IN DWORD dwMsgSize,
+    IN DWORD NegotiatedFlags,
+    IN PBYTE pSessionKey,
+    IN DWORD dwSessionKeyLen,
+    IN PNTLM_CRED_HANDLE pCredHandle,
+    OUT PNTLM_CONTEXT *ppNtlmContext
+    )
+{
+    DWORD dwError = LW_ERROR_SUCCESS;
+    PNTLM_CONTEXT pNtlmContext = NULL;
+
+    *ppNtlmContext = NULL;
+
+    dwError = NtlmCreateContext(pCredHandle, &pNtlmContext);
+    BAIL_ON_LW_ERROR(dwError);
+
+    dwError = LwAllocateMemory(dwMsgSize, OUT_PPVOID(&pNtlmContext->pMessage));
+
+    pNtlmContext->dwMessageSize = dwMsgSize;
+    memcpy(pNtlmContext->pMessage, pNtlmRespMsg, dwMsgSize);
+    pNtlmContext->NtlmState = NtlmStateResponse;
+
+    pNtlmContext->NegotiatedFlags = NegotiatedFlags;
+
+    memcpy(pNtlmContext->SessionKey, pSessionKey, NTLM_SESSION_KEY_SIZE);
+    pNtlmContext->cbSessionKeyLen = dwSessionKeyLen;
+
+cleanup:
+    *ppNtlmContext = pNtlmContext;
+    return dwError;
+
+error:
+    if (pNtlmContext)
+    {
+        NtlmReleaseCredential(pCredHandle);
         LW_SAFE_FREE_MEMORY(pNtlmContext);
     }
     goto cleanup;
@@ -214,7 +271,8 @@ NtlmValidateResponse(
     IN LWMsgAssoc* pAssoc,
     IN PNTLM_RESPONSE_MESSAGE pRespMsg,
     IN DWORD dwRespMsgSize,
-    IN PLSA_CONTEXT pChlngCtxt
+    IN PNTLM_CONTEXT pChlngCtxt,
+    OUT BYTE pSessionKey[NTLM_SESSION_KEY_SIZE]
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -238,7 +296,7 @@ NtlmValidateResponse(
     memset(&NTResp, 0, sizeof(NTResp));
 
     // sanity check
-    if(!pRespMsg || ! pChlngCtxt)
+    if (!pRespMsg || ! pChlngCtxt)
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LW_ERROR(dwError);
@@ -248,20 +306,19 @@ NtlmValidateResponse(
         lwmsg_assoc_get_session_data(pAssoc, OUT_PPVOID(&Handle)));
     BAIL_ON_LW_ERROR(dwError);
 
-
     pChlngMsg = (PNTLM_CHALLENGE_MESSAGE)pChlngCtxt->pMessage;
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
         NTLM_CHALLENGE_SIZE,
         OUT_PPVOID(&pChallengeBuffer));
     BAIL_ON_LW_ERROR(dwError);
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
         pRespMsg->LmResponse.usLength,
         OUT_PPVOID(&pLMRespBuffer));
     BAIL_ON_LW_ERROR(dwError);
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
         pRespMsg->NtResponse.usLength,
         OUT_PPVOID(&pNTRespBuffer));
     BAIL_ON_LW_ERROR(dwError);
@@ -332,6 +389,9 @@ NtlmValidateResponse(
         );
     BAIL_ON_LW_ERROR(dwError);
 
+    LW_ASSERT(pUserInfo->pSessionKey->dwLen == NTLM_SESSION_KEY_SIZE);
+    memcpy(pSessionKey, pUserInfo->pSessionKey->pData, NTLM_SESSION_KEY_SIZE);
+
     // Free the pUserInfo for now... we may want to save this off later
     //
     dwError = LsaFreeAuthUserInfo(&pUserInfo);
@@ -339,63 +399,15 @@ NtlmValidateResponse(
 
 cleanup:
 
-    LSA_SAFE_FREE_MEMORY(pChallengeBuffer);
-    LSA_SAFE_FREE_MEMORY(pLMRespBuffer);
-    LSA_SAFE_FREE_MEMORY(pNTRespBuffer);
-    LSA_SAFE_FREE_STRING(pUserName);
-    LSA_SAFE_FREE_STRING(pDomainName);
-    LSA_SAFE_FREE_STRING(pWorkstation);
+    LW_SAFE_FREE_MEMORY(pChallengeBuffer);
+    LW_SAFE_FREE_MEMORY(pLMRespBuffer);
+    LW_SAFE_FREE_MEMORY(pNTRespBuffer);
+    LW_SAFE_FREE_STRING(pUserName);
+    LW_SAFE_FREE_STRING(pDomainName);
+    LW_SAFE_FREE_STRING(pWorkstation);
 
     return dwError;
 error:
-    goto cleanup;
-}
-
-/******************************************************************************/
-DWORD
-NtlmGetUserNameFromResponse(
-    IN PNTLM_RESPONSE_MESSAGE pRespMsg,
-    IN BOOL bUnicode,
-    OUT PSTR* ppUserName
-    )
-{
-    DWORD dwError = LW_ERROR_SUCCESS;
-    PCHAR pName = NULL;
-    DWORD dwNameLength = 0;
-    PBYTE pBuffer = NULL;
-    PNTLM_SEC_BUFFER pSecBuffer = &pRespMsg->UserName;
-    DWORD nIndex = 0;
-
-    *ppUserName = NULL;
-
-    dwNameLength = pSecBuffer->usLength;
-    pBuffer = pSecBuffer->dwOffset + (PBYTE)pRespMsg;
-
-    if(!bUnicode)
-    {
-        dwError = LsaAllocateMemory(dwNameLength + 1, OUT_PPVOID(&pName));
-        BAIL_ON_LW_ERROR(dwError);
-
-        memcpy(pName, pBuffer, dwNameLength);
-    }
-    else
-    {
-        dwNameLength = dwNameLength / sizeof(WCHAR);
-
-        dwError = LsaAllocateMemory(dwNameLength + 1, OUT_PPVOID(&pName));
-        BAIL_ON_LW_ERROR(dwError);
-
-        for(nIndex = 0; nIndex < dwNameLength; nIndex++)
-        {
-            pName[nIndex] = pBuffer[nIndex * sizeof(WCHAR)];
-        }
-    }
-
-cleanup:
-    *ppUserName = pName;
-    return dwError;
-error:
-    LSA_SAFE_FREE_STRING(pName);
     goto cleanup;
 }
 
@@ -403,7 +415,7 @@ error:
 DWORD
 NtlmGetDomainNameFromResponse(
     IN PNTLM_RESPONSE_MESSAGE pRespMsg,
-    IN BOOL bUnicode,
+    IN BOOLEAN bUnicode,
     OUT PSTR* ppDomainName
     )
 {
@@ -419,9 +431,9 @@ NtlmGetDomainNameFromResponse(
     dwNameLength = pSecBuffer->usLength;
     pBuffer = pSecBuffer->dwOffset + (PBYTE)pRespMsg;
 
-    if(!bUnicode)
+    if (!bUnicode)
     {
-        dwError = LsaAllocateMemory(dwNameLength + 1, OUT_PPVOID(&pName));
+        dwError = LwAllocateMemory(dwNameLength + 1, OUT_PPVOID(&pName));
         BAIL_ON_LW_ERROR(dwError);
 
         memcpy(pName, pBuffer, dwNameLength);
@@ -430,10 +442,10 @@ NtlmGetDomainNameFromResponse(
     {
         dwNameLength = dwNameLength / sizeof(WCHAR);
 
-        dwError = LsaAllocateMemory(dwNameLength + 1, OUT_PPVOID(&pName));
+        dwError = LwAllocateMemory(dwNameLength + 1, OUT_PPVOID(&pName));
         BAIL_ON_LW_ERROR(dwError);
 
-        for(nIndex = 0; nIndex < dwNameLength; nIndex++)
+        for (nIndex = 0; nIndex < dwNameLength; nIndex++)
         {
             pName[nIndex] = pBuffer[nIndex * sizeof(WCHAR)];
         }
@@ -443,7 +455,7 @@ cleanup:
     *ppDomainName = pName;
     return dwError;
 error:
-    LSA_SAFE_FREE_STRING(pName);
+    LW_SAFE_FREE_STRING(pName);
     goto cleanup;
 }
 
@@ -451,7 +463,7 @@ error:
 DWORD
 NtlmGetWorkstationFromResponse(
     IN PNTLM_RESPONSE_MESSAGE pRespMsg,
-    IN BOOL bUnicode,
+    IN BOOLEAN bUnicode,
     OUT PSTR* ppWorkstation
     )
 {
@@ -467,9 +479,9 @@ NtlmGetWorkstationFromResponse(
     dwNameLength = pSecBuffer->usLength;
     pBuffer = pSecBuffer->dwOffset + (PBYTE)pRespMsg;
 
-    if(!bUnicode)
+    if (!bUnicode)
     {
-        dwError = LsaAllocateMemory(dwNameLength + 1, OUT_PPVOID(&pName));
+        dwError = LwAllocateMemory(dwNameLength + 1, OUT_PPVOID(&pName));
         BAIL_ON_LW_ERROR(dwError);
 
         memcpy(pName, pBuffer, dwNameLength);
@@ -478,10 +490,10 @@ NtlmGetWorkstationFromResponse(
     {
         dwNameLength = dwNameLength / sizeof(WCHAR);
 
-        dwError = LsaAllocateMemory(dwNameLength + 1, OUT_PPVOID(&pName));
+        dwError = LwAllocateMemory(dwNameLength + 1, OUT_PPVOID(&pName));
         BAIL_ON_LW_ERROR(dwError);
 
-        for(nIndex = 0; nIndex < dwNameLength; nIndex++)
+        for (nIndex = 0; nIndex < dwNameLength; nIndex++)
         {
             pName[nIndex] = pBuffer[nIndex * sizeof(WCHAR)];
         }
@@ -491,137 +503,6 @@ cleanup:
     *ppWorkstation = pName;
     return dwError;
 error:
-    LSA_SAFE_FREE_STRING(pName);
+    LW_SAFE_FREE_STRING(pName);
     goto cleanup;
 }
-
-#if 0
-DWORD
-NtlmValidateResponse(
-    PNTLM_RESPONSE_MESSAGE pRespMsg,
-    DWORD dwRespMsgSize,
-    PLSA_CONTEXT pChlngCtxt
-    )
-{
-    DWORD dwError = LW_ERROR_SUCCESS;
-    PNTLM_CHALLENGE_MESSAGE pChlngMsg = NULL;
-    LSA_CRED_HANDLE pCredHandle = INVALID_LSA_CRED_HANDLE;
-    PCSTR pPassword = NULL;
-    DWORD dwResponseType = NTLM_RESPONSE_TYPE_NTLM;
-    DWORD dwRespSize = 0;
-    PBYTE pOurResp = NULL;
-    PBYTE pTheirResp = NULL;
-    BYTE UserSessionKey[NTLM_SESSION_KEY_SIZE] = {0};
-
-    // sanity check
-    if(!pRespMsg || ! pChlngCtxt)
-    {
-        dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LW_ERROR(dwError);
-    }
-
-    pChlngMsg = pChlngCtxt->pMessage;
-    pCredHandle = pChlngCtxt->CredHandle;
-
-    LsaGetCredentialInfo(pCredHandle, NULL, &pPassword, NULL);
-
-    // We only validate the highest level response we receive.
-    if(pRespMsg->NtResponse.usLength > NTLM_RESPONSE_SIZE_NTLM)
-    {
-        dwResponseType = NTLM_RESPONSE_TYPE_NTLMv2;
-        dwError = LW_ERROR_NOT_IMPLEMENTED;
-        BAIL_ON_LW_ERROR(dwError);
-    }
-    else if(pRespMsg->NtResponse.usLength == NTLM_RESPONSE_SIZE_NTLM)
-    {
-        dwResponseType = NTLM_RESPONSE_TYPE_NTLM;
-        pTheirResp = pRespMsg->NtResponse.dwOffset + (PBYTE)pRespMsg;
-    }
-    else if(pRespMsg->LmResponse.usLength)
-    {
-        dwResponseType = NTLM_RESPONSE_TYPE_LM;
-        pTheirResp = pRespMsg->LmResponse.dwOffset + (PBYTE)pRespMsg;
-    }
-    else
-    {
-        // we couldn't identify the response type... bail
-        dwError = LW_ERROR_UNEXPECTED_MESSAGE;
-        BAIL_ON_LW_ERROR(dwError);
-    }
-
-    // calculate the response size...
-    dwError = NtlmCalculateResponseSize(
-        pChlngMsg,
-        dwResponseType,
-        &dwRespSize
-        );
-    BAIL_ON_LW_ERROR(dwError);
-
-    dwError = LwAllocateMemory(dwRespSize, OUT_PPVOID(&pOurResp));
-    BAIL_ON_LW_ERROR(dwError);
-
-    // Recreate the response
-    dwError = NtlmBuildResponse(
-        pChlngMsg,
-        pPassword,
-        dwResponseType,
-        dwRespSize,
-        UserSessionKey,
-        pOurResp
-        );
-    BAIL_ON_LW_ERROR(dwError);
-
-    // Verify the response
-    dwError = LW_ERROR_INVALID_ACCOUNT;
-    if(dwRespSize == dwRespMsgSize)
-    {
-        if(!memcmp(pOurResp, pTheirResp, dwRespSize))
-        {
-            dwError = LW_ERROR_SUCCESS;
-        }
-    }
-
-cleanup:
-    LW_SAFE_FREE_MEMORY(pOurResp);
-    return dwError;
-error:
-    goto cleanup;
-}
-#endif
-
-#if 0
-DWORD
-NtlmGetNetBiosName(
-    PCSTR pDnsDomainName,
-    PSTR *ppDomainName
-    )
-{
-    DWORD dwError = LW_ERROR_SUCCESS;
-    PSTR pDomainName = NULL;
-    DWORD dwDomainNameLength = 0;
-    PCHAR pSymbol = NULL;
-    DWORD dwIndex = 0;
-
-    *ppDomainName = NULL;
-
-    dwError = LwAllocateString(pDnsDomainName, &pDomainName);
-    BAIL_ON_LW_ERROR(dwError);
-
-    pSymbol = strchr(pDomainName, '.');
-
-    *pSymbol = '\0';
-
-    dwDomainNameLength = strlen(pDomainName);
-    for(dwIndex = 0; dwDomainNameLength; dwIndex++)
-    {
-        pDomainName[dwIndex] = toupper(pDomainName[dwIndex]);
-    }
-
-cleanup:
-    *ppDomainName = pDomainName;
-    return dwError;
-error:
-    LW_SAFE_FREE_STRING(pDomainName);
-    goto cleanup;
-}
-#endif

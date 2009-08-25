@@ -3,23 +3,22 @@ AM_CPPFLAGS = @AM_CPPFLAGS@ -I$(top_srcdir)/include
 sbin_PROGRAMS = lsassd
 
 lsassd_SOURCES = \
-	globals.c    \
-        listener.c   \
-        main.c       \
-        sighandler.c
+	globals.c \
+    listener.c \
+    main.c \
+    sighandler.c
 
-lsassd_CPPFLAGS =                     \
-	$(AM_CPPFLAGS)                \
-        -DLW_ENABLE_THREADS=1         \
-	-I@top_srcdir@/server/include
+lsassd_CPPFLAGS = \
+    $(AM_CPPFLAGS) \
+    -DLW_ENABLE_THREADS=1 \
+    -I@top_srcdir@/server/include
 
 lsassd_LDADD = \
-	@top_builddir@/server/api/liblsaserverapi.la \
-	@top_builddir@/gssntlm/server/libntlmserver.la \
+    @top_builddir@/server/api/liblsaserverapi.la \
 	@top_builddir@/client/liblsaclient.la \
-	@SOCKET_LIBS@ \
-	@NETLOGON_LIBS@ \
-	@LWIO_LIBS@
+    @SOCKET_LIBS@ \
+    @NETLOGON_LIBS@ \
+    @LWIO_LIBS@
 
 if ENABLE_STATIC_PROVIDERS
 if ENABLE_AD
@@ -39,8 +38,8 @@ endif
 endif
 
 lsassd_LDFLAGS = \
-	@NETLOGON_LDFLAGS@ \
-	@LWIO_LDFLAGS@
+    @NETLOGON_LDFLAGS@ \
+    @LWIO_LDFLAGS@
 
 install-data-local:
 	$(mkinstalldirs) $(DESTDIR)$(lsasscachedir)

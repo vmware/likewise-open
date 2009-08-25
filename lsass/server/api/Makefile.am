@@ -37,17 +37,16 @@ liblsaserverapi_la_SOURCES = \
        svc_unregister.c \
        svc_listen.c
 
-liblsaserverapi_la_CPPFLAGS =         \
+liblsaserverapi_la_CPPFLAGS =     \
 	$(AM_CPPFLAGS)                \
 	-DLW_ENABLE_THREADS=1         \
 	-I@top_srcdir@/server/include \
 	$(ADDITIONAL_CPPFLAGS)
 
 liblsaserverapi_la_LIBADD = \
-	@top_builddir@/logging_r/liblsalog_r.la \
-        @top_builddir@/gssntlm/server/libntlmserver.la \
-        @top_builddir@/server/store/dsapi/libdsapi.la \
-	@UUID_LIBS@ \
-	@PTHREAD_LIBS@\
-	$(ADDITIONAL_LIBS) \
-	@RT_LIBS@
+    @top_builddir@/logging_r/liblsalog_r.la \
+    @top_builddir@/server/store/dsapi/libdsapi.la \
+    @UUID_LIBS@ \
+    @PTHREAD_LIBS@ \
+    $(ADDITIONAL_LIBS) \
+    @RT_LIBS@

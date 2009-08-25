@@ -52,6 +52,6 @@ NtlmServerFreeCredentialsHandle(
     IN PNTLM_CRED_HANDLE phCredential
     )
 {
-    NtlmReleaseCredential(*phCredential);
+    NtlmReleaseCredential(phCredential);
     return LW_ERROR_SUCCESS;
 }

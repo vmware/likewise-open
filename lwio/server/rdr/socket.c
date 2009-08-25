@@ -99,6 +99,12 @@ SMBSocketFindSessionByUID(
     );
 
 static
+int
+SMBSocketGetFd(
+    PSMB_SOCKET pSocket
+    );
+
+static
 NTSTATUS
 RdrEaiToNtStatus(
     int eai
@@ -130,9 +136,6 @@ SMBSocketCreate(
     BAIL_ON_NT_STATUS(ntStatus);
 
     bDestroyCondition = TRUE;
-
-    ntStatus = pthread_cond_init(&pSocket->event, NULL);
-    BAIL_ON_NT_STATUS(ntStatus);
 
     pSocket->refCount = 1;
 
@@ -565,15 +568,16 @@ SMBSocketReaderMain(
     LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 
     /* When the ref. count drops to zero, shutdown() breaks out of this loop */
-    while (pSocket->state < RDR_SOCKET_STATE_TEARDOWN)
+    while (SMBSocketGetState(pSocket) < RDR_SOCKET_STATE_TEARDOWN)
     {
         int ret = 0;
         fd_set fdset;
+        int fd = SMBSocketGetFd(pSocket);
 
         FD_ZERO(&fdset);
-        FD_SET(pSocket->fd, &fdset);
+        FD_SET(fd, &fdset);
 
-        ret = select(pSocket->fd + 1, &fdset, NULL, &fdset, NULL);
+        ret = select(fd + 1, &fdset, NULL, &fdset, NULL);
         if (ret == -1)
         {
             ntStatus = UnixErrnoToNtStatus(errno);
@@ -1006,6 +1010,41 @@ SMBSocketSetState(
     pthread_cond_broadcast(&pSocket->event);
 
     LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
+}
+
+RDR_SOCKET_STATE
+SMBSocketGetState(
+    PSMB_SOCKET        pSocket
+    )
+{
+    BOOLEAN bInLock = FALSE;
+    RDR_SOCKET_STATE socketState = RDR_SOCKET_STATE_ERROR;
+
+    LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
+
+    socketState = pSocket->state;
+
+    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
+
+    return socketState;
+}
+
+static
+int
+SMBSocketGetFd(
+    PSMB_SOCKET pSocket
+    )
+{
+    BOOLEAN bInLock = FALSE;
+    int fd = -1;
+
+    LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
+
+    fd = pSocket->fd;
+
+    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
+
+    return fd;
 }
 
 NTSTATUS

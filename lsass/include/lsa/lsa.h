@@ -1486,22 +1486,6 @@ LwGetErrorString(
     size_t stBufSize
     );
 
-/**
- * @ingroup utility
- * @brief Free a memory block
- *
- * Frees a single memory block allocated by an LSASS client API
- * function.  This may be used to peform fine-grained management
- * of heap-allocated structures in lieu of functions such as
- * #LsaFreeGroupInfo().
- *
- * @param[in,out] pMemory a pointer to the memory block
- */
-LW_VOID
-LsaFreeMemory(
-    LW_PVOID pMemory
-    );
-
 LW_DWORD
 LsaGetErrorMessageForLoggingEvent(
     LW_DWORD dwError,
@@ -1599,56 +1583,6 @@ LsaProviderIoControl(
     LW_IN LW_PVOID pInputBuffer,
     LW_OUT LW_OPTIONAL LW_DWORD* pdwOutputBufferSize,
     LW_OUT LW_OPTIONAL LW_PVOID* ppOutputBuffer
-    );
-
-//
-// GSS Support
-//
-
-typedef struct _LSA_SEC_BUFFER {
-    LW_USHORT length;
-    LW_USHORT maxLength;
-    LW_PBYTE buffer;
-} LSA_SEC_BUFFER, *PLSA_SEC_BUFFER;
-
-/* static buffer secbufer */
-#define LSA_SEC_BUFFER_S_BUFFER_SIZE 24
-
-typedef struct _LSA_SEC_BUFFER_S {
-    LW_USHORT length;
-    LW_USHORT maxLength;
-    LW_BYTE buffer[LSA_SEC_BUFFER_S_BUFFER_SIZE];
-} LSA_SEC_BUFFER_S, *PLSA_SEC_BUFFER_S;
-
-#ifndef LW_STRICT_NAMESPACE
-typedef LSA_SEC_BUFFER SEC_BUFFER;
-typedef PLSA_SEC_BUFFER PSEC_BUFFER;
-
-#define S_BUFLEN LSA_SEC_BUFFER_S_BUFFER_SIZE
-
-typedef LSA_SEC_BUFFER_S SEC_BUFFER_S;
-typedef PLSA_SEC_BUFFER_S PSEC_BUFFER_S;
-#endif
-
-LW_DWORD
-LsaGSSBuildAuthMessage(
-    LW_HANDLE hLsaConnection,
-    PLSA_SEC_BUFFER credentials,
-    PLSA_SEC_BUFFER_S serverChallenge,
-    PLSA_SEC_BUFFER targetInfo,
-    LW_ULONG negotiateFlags,
-    PLSA_SEC_BUFFER authenticateMessage,
-    PLSA_SEC_BUFFER_S baseSessionKey
-    );
-
-LW_DWORD
-LsaGSSValidateAuthMessage(
-    LW_HANDLE hLsaConnection,
-    LW_ULONG negFlags,
-    PLSA_SEC_BUFFER_S serverChallenge,
-    PLSA_SEC_BUFFER targetInfo,
-    PLSA_SEC_BUFFER authenticateMessage,
-    PLSA_SEC_BUFFER_S baseSessionKey
     );
 
 #endif /* __LSA_H__ */

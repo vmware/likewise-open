@@ -86,11 +86,7 @@
 #include "config_p.h"
 #include "event_p.h"
 
-#include "ntlmgsssrv.h"
 #include "lsasrvapi.h"
-
-
-
 
 #include "lsaipc.h"
 

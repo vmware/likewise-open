@@ -58,24 +58,54 @@ LsaSrvLookupSids(
     uint32 *count
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     RefDomainList *pDomains = NULL;
-    TranslatedNameArray Names = {0};
+    TranslatedNameArray2 Names = {0};
+    DWORD i = 0;
 
-    status = LsaSrvLookupSids2(hBinding,
-                               hPolicy,
-                               sids,
-                               &pDomains,
-                               &Names,
-                               level,
-                               count,
-                               0, 0);
+    ntStatus = LsaSrvLookupSids2(hBinding,
+                                 hPolicy,
+                                 sids,
+                                 &pDomains,
+                                 &Names,
+                                 level,
+                                 count,
+                                 0, 0);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    pNames->count = Names.count;
+    ntStatus = LsaSrvAllocateMemory(OUT_PPVOID(&pNames->names),
+                                    sizeof(pNames->names[0]) * (*count));
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    for (i = 0; i < pNames->count; i++)
+    {
+        UnicodeString *pIn = &(pNames->names[i].name);
+        UnicodeString *pOut = &(Names.names[i].name);
+
+        pNames->names[i].type      = Names.names[i].type;
+        pNames->names[i].sid_index = Names.names[i].sid_index;
+        pIn->string                = pOut->string;
+        pIn->len                   = pOut->len;
+        pIn->size                  = pOut->size;
+    }
 
     *ppDomains    = pDomains;
-    pNames->count = Names.count;
-    pNames->names = Names.names;
 
-    return status;
+cleanup:
+    if (Names.names)
+    {
+        LsaSrvFreeMemory(Names.names);
+    }
+
+    return ntStatus;
+
+error:
+    pNames->names = NULL;
+    pNames->count = 0;
+    *ppDomains    = NULL;
+
+    goto cleanup;
 }
 
 

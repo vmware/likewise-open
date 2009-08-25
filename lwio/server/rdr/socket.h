@@ -66,6 +66,11 @@ SMBSocketSetState(
     RDR_SOCKET_STATE   state
     );
 
+RDR_SOCKET_STATE
+SMBSocketGetState(
+    PSMB_SOCKET        pSocket
+    );
+
 BOOLEAN
 SMBSocketTimedOut(
     PSMB_SOCKET pSocket

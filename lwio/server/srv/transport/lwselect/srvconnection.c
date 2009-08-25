@@ -93,6 +93,9 @@ SrvConnectionReadPacket(
     )
 {
     NTSTATUS ntStatus = 0;
+    BOOLEAN  bInLock  = FALSE;
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
 
     if (!pConnection->readerState.pRequestPacket)
     {
@@ -129,7 +132,6 @@ SrvConnectionReadPacket(
         if (!sNumBytesRead)
         {
             // peer reset connection
-            SrvConnectionSetInvalid(pConnection);
             ntStatus = STATUS_CONNECTION_RESET;
             BAIL_ON_NT_STATUS(ntStatus);
         }
@@ -176,7 +178,6 @@ SrvConnectionReadPacket(
         if (!sNumBytesRead)
         {
             // peer reset connection
-            SrvConnectionSetInvalid(pConnection);
             ntStatus = STATUS_CONNECTION_RESET;
             BAIL_ON_NT_STATUS(ntStatus);
         }
@@ -262,11 +263,15 @@ SrvConnectionReadPacket(
 
 cleanup:
 
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
+
     return ntStatus;
 
 error:
 
     *ppPacket = NULL;
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
 
     SrvConnectionSetInvalid(pConnection);
 

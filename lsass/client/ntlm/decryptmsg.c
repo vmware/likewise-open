@@ -50,10 +50,10 @@
 DWORD
 NtlmClientDecryptMessage(
     IN HANDLE hServer,
-    IN PLSA_CONTEXT_HANDLE phContext,
+    IN PNTLM_CONTEXT_HANDLE phContext,
     IN OUT PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo,
-    OUT PBOOL pbEncrypted
+    OUT PBOOLEAN pbEncrypted
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;

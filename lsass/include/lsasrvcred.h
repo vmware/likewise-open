@@ -46,11 +46,10 @@
 #define __LSASRVCRED_H__
 
 #include <lw/base.h>
+#include <lwdef.h>
 
 struct _LSA_CREDENTIALS;
 typedef struct _LSA_CREDENTIALS *LSA_CRED_HANDLE, **PLSA_CRED_HANDLE;
-
-#define INVALID_LSA_CRED_HANDLE ((LSA_CRED_HANDLE)~0)
 
 VOID
 LsaInitializeCredentialsDatabase(
@@ -77,7 +76,7 @@ LsaReferenceCredential(
 
 VOID
 LsaReleaseCredential(
-    IN LSA_CRED_HANDLE hCredential
+    IN PLSA_CRED_HANDLE hCredential
     );
 
 LSA_CRED_HANDLE

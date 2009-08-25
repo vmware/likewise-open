@@ -24,6 +24,6 @@
 #define _NTLM_SERVER_EXTERNS_H_
 
 extern HANDLE ghServer;
-extern BOOL gbFlipEndian;
+extern BOOLEAN gbFlipEndian;
 
 #endif  //_NTLM_SERVER_EXTERNS_H_

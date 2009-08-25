@@ -618,7 +618,7 @@ NTSTATUS __LsaLookupSids2(
     /* [in] */ POLICY_HANDLE hPolicy,
     /* [in] */ SidArray *sids,
     /* [out] */ RefDomainList **domains,
-    /* [in, out] */ TranslatedNameArray *names,
+    /* [in, out] */ TranslatedNameArray2 *names,
     /* [in] */ uint16 level,
     /* [in, out] */ uint32 *count,
     /* [in] */ uint32 unknown1,

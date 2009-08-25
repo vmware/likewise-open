@@ -56,13 +56,32 @@ LsaSrvOpenPolicy2(
     /* [out] */ POLICY_HANDLE *hPolicy
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    const DWORD dwSamrConnAccess     = SAMR_ACCESS_CONNECT_TO_SERVER;
+    const DWORD dwSamrDomainAccess   = DOMAIN_ACCESS_LOOKUP_INFO_1 |
+                                       DOMAIN_ACCESS_LOOKUP_ALIAS;
+
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = 0;
+    RPCSTATUS rpcStatus = 0;
     PPOLICY_CONTEXT pPolCtx = NULL;
     HANDLE hDirectory = NULL;
+    PSTR pszSamrLpcSocketPath = NULL;
+    handle_t hSamrBinding = NULL;
+    CHAR szHostname[64] = {0};
+    PWSTR pwszSystemName = NULL;
+    PolicyHandle hConn;
+    DWORD dwResume = 0;
+    DWORD dwMaxSize = -1;
+    DWORD dwCount = 0;
+    PWSTR *ppwszLocalDomainNames = NULL;
+    DWORD i = 0;
+    PWSTR pwszDomainName = NULL;
+    PSID pDomainSid = NULL;
+    PolicyHandle hDomain;
+    SAM_DOMAIN_ENTRY Domain = {0};
 
-    RTL_ALLOCATE(&pPolCtx, POLICY_CONTEXT, sizeof(*pPolCtx));
-    BAIL_ON_NO_MEMORY(pPolCtx);
+    ntStatus = RTL_ALLOCATE(&pPolCtx, POLICY_CONTEXT, sizeof(*pPolCtx));
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     dwError = DirectoryOpen(&hDirectory);
     BAIL_ON_LSA_ERROR(dwError);
@@ -71,6 +90,84 @@ LsaSrvOpenPolicy2(
     pPolCtx->refcount    = 1;
     pPolCtx->hDirectory  = hDirectory;
 
+    ntStatus = LsaSrvCreateSamDomainsTable(&pPolCtx->pDomains);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    /*
+     * Connect samr rpc server and get basic domain info
+     */
+
+    dwError = LsaSrvConfigGetSamrLpcSocketPath(&pszSamrLpcSocketPath);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    rpcStatus = InitSamrBindingFull(&hSamrBinding,
+                                    "ncalrpc",
+                                    szHostname,
+                                    pszSamrLpcSocketPath,
+                                    NULL,
+                                    NULL,
+                                    NULL);
+    if (rpcStatus) {
+        dwError = LW_ERROR_RPC_ERROR;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    pPolCtx->hSamrBinding = hSamrBinding;
+
+    dwError = gethostname(szHostname, sizeof(szHostname));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LwMbsToWc16s((PSTR)szHostname, &pwszSystemName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    ntStatus = SamrConnect2(hSamrBinding,
+                            pwszSystemName,
+                            dwSamrConnAccess,
+                            &hConn);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    pPolCtx->hConn = hConn;
+
+    /* Get local and builtin domains info */
+    ntStatus = SamrEnumDomains(hSamrBinding,
+                               &hConn,
+                               &dwResume,
+                               dwMaxSize,
+                               &ppwszLocalDomainNames,
+                               &dwCount);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    for (i = 0; i < dwCount; i++)
+    {
+        pwszDomainName = ppwszLocalDomainNames[i];
+        memset(&Domain, 0, sizeof(Domain));
+
+        ntStatus = SamrLookupDomain(hSamrBinding,
+                                    &hConn,
+                                    pwszDomainName,
+                                    &pDomainSid);
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+        ntStatus = SamrOpenDomain(hSamrBinding,
+                                  &hConn,
+                                  dwSamrDomainAccess,
+                                  pDomainSid,
+                                  &hDomain);
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+        Domain.pwszName = pwszDomainName;
+        Domain.pSid     = pDomainSid;
+        Domain.bLocal   = TRUE;
+        Domain.hDomain  = hDomain;
+
+        ntStatus = LsaSrvSetSamDomain(pPolCtx,
+                                      &Domain);
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+        SamrFreeMemory(pDomainSid);
+        pDomainSid = NULL;
+    }
+
     /* Increase ref count because DCE/RPC runtime is about to use this
        pointer as well */
     InterlockedIncrement(&pPolCtx->refcount);
@@ -78,7 +175,20 @@ LsaSrvOpenPolicy2(
     *hPolicy = (POLICY_HANDLE)pPolCtx;
 
 cleanup:
-    return status;
+    if (pDomainSid)
+    {
+        SamrFreeMemory(pDomainSid);
+    }
+
+    if (ppwszLocalDomainNames)
+    {
+        SamrFreeMemory(ppwszLocalDomainNames);
+    }
+
+    LW_SAFE_FREE_MEMORY(pwszSystemName);
+    LW_SAFE_FREE_MEMORY(pszSamrLpcSocketPath);
+
+    return ntStatus;
 
 error:
     if (pPolCtx) {

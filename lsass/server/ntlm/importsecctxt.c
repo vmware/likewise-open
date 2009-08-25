@@ -52,9 +52,9 @@ NtlmServerImportSecurityContext(
     IN PSECURITY_STRING *pszPackage,
     IN PSecBuffer pPackedContext,
     IN OPTIONAL HANDLE pToken,
-    OUT PLSA_CONTEXT_HANDLE phContext
+    OUT PNTLM_CONTEXT_HANDLE phContext
     )
 {
-    DWORD dwError = 0;
-    return(dwError);
+    DWORD dwError = LW_ERROR_SUCCESS;
+    return dwError;
 }

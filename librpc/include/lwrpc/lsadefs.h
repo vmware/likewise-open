@@ -227,6 +227,24 @@ typedef struct translated_name_array {
     TranslatedName *names;
 } TranslatedNameArray;
 
+typedef struct translated_name2 {
+    uint16 type;             /* SID_TYPE_ */
+    UnicodeString name;
+    uint32 sid_index;
+    uint32 unknown1;
+} TranslatedName2;
+
+typedef struct translated_name_array2 {
+#ifdef _DCE_IDL_
+    [range(0,1000)]
+#endif
+    uint32 count;
+#ifdef _DCE_IDL_
+    [size_is(count)]
+#endif
+    TranslatedName2 *names;
+} TranslatedNameArray2;
+
 
 typedef uint16 LsaSidType;
 

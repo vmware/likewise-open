@@ -176,8 +176,9 @@ main(
         ntStatus = GetKrb5PrincipalName(pszCachePath, &pszPrincipal);
         if (IsNullOrEmptyString(pszPrincipal))
         {
-            fprintf(stderr,"Error: Invalid cache path passed\n");
-            goto error;
+            fprintf(stderr,"Invalid cache path \n");
+            ntStatus = STATUS_INVALID_PARAMETER;
+            BAIL_ON_NT_STATUS(ntStatus);
         }
         ntStatus = LwIoCreateKrb5AccessTokenA(
                         pszPrincipal,
@@ -274,24 +275,24 @@ ParseArgs(
         {
             case PARSE_MODE_OPEN:
 
-                if (!strcmp(pszArg, "-h") || !strcmp(pszArg, "--help"))
+                if (!strcasecmp(pszArg, "-h") || !strcasecmp(pszArg, "--help"))
                 {
                     ShowUsage();
                     exit(0);
                 }
-                else if (!strcmp(pszArg, "-r"))
+                else if (!strcasecmp(pszArg, "-r"))
                 {
                     bCopyRecursive = TRUE;
                 }
-                else if (!strcmp(pszArg, "-k"))
+                else if (!strcasecmp(pszArg, "-k"))
                 {
                     parseMode = PARSE_MODE_KRB5_CACHE_PATH;
                 }
-                else if (!strcmp(pszArg, "-u"))
+                else if (!strcasecmp(pszArg, "-u"))
                 {
                     parseMode = PARSE_MODE_UPN;
                 }
-                else if (!strcmp(pszArg, "-p"))
+                else if (!strcasecmp(pszArg, "-p"))
                 {
                     parseMode = PARSE_MODE_PASSWORD;
                 }
@@ -312,16 +313,16 @@ ParseArgs(
                 else
                 {
                     ShowUsage();
-                    exit(0);
+                    fprintf(stderr, "Error: Invalid option \n");
+                    exit(1);
                 }
-
                 break;
 
             case PARSE_MODE_KRB5_CACHE_PATH:
 
                 if (krb5Spec == LWIO_COPY_KRB5_UPN_SPECIFIED)
                 {
-                    fprintf(stderr, "Error: Attempt to specify both the kerberos cache path and user principal name\n");
+                    fprintf(stderr, "Attempt to specify both the kerberos cache path and user principal name\n");
                     ntStatus = STATUS_INVALID_PARAMETER;
                     BAIL_ON_NT_STATUS(ntStatus);
                 }
@@ -343,7 +344,7 @@ ParseArgs(
 
                 if (krb5Spec == LWIO_COPY_KRB5_CACHE_SPECIFIED)
                 {
-                    fprintf(stderr, "Error: Attempt to specify both the kerberos cache path and user principal name\n");
+                    fprintf(stderr, "Attempt to specify both the kerberos cache path and user principal name\n");
                     ntStatus = STATUS_INVALID_PARAMETER;
                     BAIL_ON_NT_STATUS(ntStatus);
                 }
@@ -383,17 +384,62 @@ ParseArgs(
         }
     }
 
+    if ( argc == 1 ||
+         (!pszSourcePath && !pszTargetPath) )
+	{
+       ShowUsage();
+       fprintf(stderr, "Error: Missing the options to be passed\n");
+       exit(1);
+	}
+
+
+    if(pszSourcePath)
+    {
+        PSTR pszStr = NULL;
+
+        pszStr = strchr (pszSourcePath,'-');
+
+        if ( pszStr && !strcmp( pszSourcePath, pszStr) )
+        {
+           fprintf(stderr, "Invalid option '%s' passed\n",pszSourcePath);
+           fprintf(stdout, "Try 'lwio-copy --help' for more information\n");
+
+           pszStr = NULL;
+
+           ntStatus = STATUS_INVALID_PARAMETER;
+           BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+    }
+
+    if(pszTargetPath)
+    {
+        PSTR pszStr = NULL;
+
+        pszStr = strchr (pszTargetPath,'-');
+
+        if ( pszStr && !strcmp( pszTargetPath, pszStr) )
+        {
+           fprintf(stderr, "Invalid option '%s' passed\n",pszTargetPath);
+           fprintf(stdout, "Try 'lwio-copy --help' for more information\n");
+
+           pszStr = NULL;
+
+           ntStatus = STATUS_INVALID_PARAMETER;
+           BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+    }
+
     if(!pszSourcePath)
     {
-        fprintf(stderr, "Error: Source path is NULL \n");
-
+        fprintf(stderr, "Missing the path to be passed\n");
         ntStatus = STATUS_INVALID_PARAMETER;
         BAIL_ON_NT_STATUS(ntStatus);
     }
     if(!pszTargetPath)
     {
-        fprintf(stderr, "Error: Target path is NULL \n");
-
+        fprintf(stderr, "Missing the path to be passed\n");
         ntStatus = STATUS_INVALID_PARAMETER;
         BAIL_ON_NT_STATUS(ntStatus);
     }
@@ -545,9 +591,8 @@ LwIoCreateKrb5Cache(
     pszIter = index(pszPrincipal, '@');
     if (!pszIter)
     {
-        fprintf(stderr, "Error: Invalid user principal [%s]\n", pszPrincipal);
-        ntStatus = STATUS_INVALID_PARAMETER;
-        BAIL_ON_NT_STATUS(ntStatus);
+        fprintf(stderr, "Invalid user principal [%s]\n", pszPrincipal);
+        goto error;
     }
 
     // upper case the realm
@@ -767,14 +812,21 @@ MapErrorCodes(
             break;
         case STATUS_UNSUCCESSFUL:
             fprintf(stderr,"Error: lwio-copy unsuccessfull\n");
-            fprintf(stdout,"Please check if lwiod and lsaad running\n");
+            fprintf(stdout,"Please check if lwiod and lsassd running\n");
             break;
         case STATUS_LOGON_FAILURE:
         case STATUS_NO_SUCH_USER:
             fprintf(stderr,"Error: Logon failed, please check the username/password\n");
             break;
+        case STATUS_NO_SUCH_DOMAIN:
+            fprintf(stderr,"Error: Invalid domain\n");
+            fprintf(stdout,"Please check if machine is joined to a domain\n");
+            break;
         case STATUS_PASSWORD_EXPIRED:
             fprintf(stderr,"Error: password expired\n");
+            break;
+        case STATUS_INVALID_ACCOUNT_NAME:
+            fprintf(stderr,"Error: Invalid account name\n");
             break;
         case STATUS_WRONG_PASSWORD:
             fprintf(stderr,"Error: password mismatch\n");
@@ -783,7 +835,7 @@ MapErrorCodes(
             fprintf(stderr,"Error: clock skew detected\n");
             break;
         case STATUS_ACCESS_DENIED:
-            fprintf(stderr,"Error: Access denied to copy to remote\n");
+            fprintf(stderr,"Error: Access denied\n");
             fprintf(stdout,"Try logging in as a domain user having an admin privilege\n");
             break;
     }

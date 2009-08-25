@@ -32,7 +32,7 @@
 #define __WINERROR_H__
 
 #define __ERROR_WIN32__
-#include <lwrpc/error.inc>
+#include <lwrpc/error-table.h>
 #undef __ERROR_WIN32__
 
 #endif /* __WINERROR_H__ */

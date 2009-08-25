@@ -52,7 +52,7 @@ struct table_entry
     const char* desc;
 } status_table[] =
 {
-#include <lwrpc/error.inc>
+#include <lwrpc/error-table.h>
     {-1, 0, 0}
 };
 

@@ -26,7 +26,10 @@
 #include "config.h"
 
 #include <lw/base.h>
-#include <ntlm/ntlm.h>
+#include <ntlm/sspintlm.h>
+
+#include <lwdef.h>
+#include <lwerror.h>
 
 #include <stdio.h>
 #include <stdlib.h>

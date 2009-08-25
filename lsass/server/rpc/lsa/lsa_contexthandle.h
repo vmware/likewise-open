@@ -58,20 +58,14 @@ typedef struct lsa_generic_context {
 } LSA_GENERIC_CONTEXT, *PLSA_GENERIC_CONTEXT;
 
 
-typedef struct samr_domain {
-    PWSTR        pwszName;
-    PSID         pSid;
-    BOOLEAN      bLocal;
-    PolicyHandle hDomain;
-} SAMR_DOMAIN, *PSAMR_DOMAIN;
-
-
 typedef struct lsa_policy_context {
     enum LsaContextType  Type;
     LONG                 refcount;
     PACCESS_TOKEN        pUserToken;
     HANDLE               hDirectory;
-    PSAMR_DOMAIN         pSamrDomain;
+    handle_t             hSamrBinding;
+    PolicyHandle         hConn;
+    PLSA_HASH_TABLE      pDomains;
     DWORD                dwSamrDomainsNum;
 } POLICY_CONTEXT, *PPOLICY_CONTEXT;
 

@@ -54,6 +54,6 @@ NtlmServerQueryCredentialsAttributes(
     OUT PVOID pBuffer
     )
 {
-    DWORD dwError = 0;
-    return(dwError);
+    DWORD dwError = LW_ERROR_SUCCESS;
+    return dwError;
 }

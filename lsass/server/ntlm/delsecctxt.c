@@ -49,11 +49,10 @@
 
 DWORD
 NtlmServerDeleteSecurityContext(
-    IN PLSA_CONTEXT_HANDLE phContext
+    IN PNTLM_CONTEXT_HANDLE phContext
     )
 {
-    DWORD dwError = 0;
+    DWORD dwError = LW_ERROR_SUCCESS;
 
-
-    return(dwError);
+    return dwError;
 }

@@ -44,97 +44,34 @@
 
 #include "ntlmsrvapi.h"
 
-static NTLM_CRED_STATE gCredState;
-
-/******************************************************************************/
-VOID
-NtlmInitializeCredentialsDatabase(
-    VOID
-    )
-{
-    gCredState.NtlmCredListLock = (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER;
-
-    LsaListInit(&gCredState.NtlmCredList);
-}
-
-/******************************************************************************/
-VOID
-NtlmShutdownCredentialsDatabase(
-    VOID
-    )
-{
-    BOOL bInLock = FALSE;
-    PNTLM_CREDENTIALS pCreds = NULL;
-    PLSA_LIST_LINKS pCredListEntry = NULL;
-
-    ENTER_NTLM_CREDS_LIST(bInLock);
-
-    // sweep the context list
-    while(!LsaListIsEmpty(&gCredState.NtlmCredList))
-    {
-        pCredListEntry = LsaListRemoveHead(&gCredState.NtlmCredList);
-        pCreds = LW_STRUCT_FROM_FIELD(
-            pCredListEntry,
-            NTLM_CREDENTIALS,
-            ListEntry);
-
-        NtlmFreeCredentials(pCreds);
-    }
-
-    LEAVE_NTLM_CREDS_LIST(bInLock);
-}
-
-/******************************************************************************/
-VOID
-NtlmAddCredential(
-    IN PNTLM_CREDENTIALS pCred,
-    OUT PNTLM_CRED_HANDLE pCredHandle
-    )
-{
-    BOOL bInLock = FALSE;
-
-    ENTER_NTLM_CREDS_LIST(bInLock);
-
-        LsaListInsertBefore(&gCredState.NtlmCredList, &pCred->ListEntry);
-
-    LEAVE_NTLM_CREDS_LIST(bInLock);
-
-    *pCredHandle = pCred;
-
-    return;
-}
-
 /******************************************************************************/
 VOID
 NtlmReleaseCredential(
-    IN NTLM_CRED_HANDLE hCred
+    IN PNTLM_CRED_HANDLE phCred
     )
 {
-    BOOL bInLock = FALSE;
-    PNTLM_CREDENTIALS pCreds = hCred;
+    PNTLM_CREDENTIALS pCreds = NULL;
 
-    if(hCred && hCred != INVALID_NTLM_CRED_HANDLE)
+    if (phCred && *phCred)
     {
-        ENTER_NTLM_CREDS_LIST(bInLock);
+        pCreds = *phCred;
 
-            pCreds->nRefCount--;
+        pCreds->nRefCount--;
 
-            LW_ASSERT(pCreds->nRefCount >= 0);
+        LW_ASSERT(pCreds->nRefCount >= 0);
 
-            if (!(pCreds->nRefCount))
-            {
-                LsaListRemove(&pCreds->ListEntry);
-                NtlmFreeCredentials(pCreds);
-            }
+        if (!(pCreds->nRefCount))
+        {
+            NtlmFreeCredential(pCreds);
+        }
 
-        LEAVE_NTLM_CREDS_LIST(bInLock);
+        *phCred = NULL;
     }
-    return;
 }
 
 /******************************************************************************/
 DWORD
-NtlmCreateCredentials(
+NtlmCreateCredential(
     IN PLSA_CRED_HANDLE pLsaCredHandle,
     IN DWORD dwDirection,
     IN PSTR pServerName,
@@ -159,49 +96,47 @@ NtlmCreateCredentials(
 
     *ppNtlmCreds = NULL;
 
-    dwError = LsaAllocateMemory(sizeof(*pCreds), OUT_PPVOID(&pCreds));
+    dwError = LwAllocateMemory(sizeof(*pCreds), OUT_PPVOID(&pCreds));
     BAIL_ON_LW_ERROR(dwError);
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
         pServerName,
         &pCreds->pszServerName);
     BAIL_ON_LW_ERROR(dwError);
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
         pDomainName,
         &pCreds->pszDomainName);
     BAIL_ON_LW_ERROR(dwError);
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
         pDnsServerName,
         &pCreds->pszDnsServerName);
     BAIL_ON_LW_ERROR(dwError);
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
         pDnsDomainName,
         &pCreds->pszDnsDomainName);
     BAIL_ON_LW_ERROR(dwError);
 
+    // A reference is not needed since the way we get the credential that's
+    // passed in is already sufficient referenced (we either got it through uid
+    // lookup OR we created our own that didn't go into the tree anyway.
     pCreds->CredHandle = *pLsaCredHandle;
     pCreds->nRefCount = 1;
-
-    LsaReferenceCredential(pCreds->CredHandle);
 
 cleanup:
     *ppNtlmCreds = pCreds;
     return dwError;
 error:
-    if(pCreds)
+    if (pCreds)
     {
         LW_SAFE_FREE_STRING(pCreds->pszServerName);
         LW_SAFE_FREE_STRING(pCreds->pszDomainName);
         LW_SAFE_FREE_STRING(pCreds->pszDnsServerName);
         LW_SAFE_FREE_STRING(pCreds->pszDnsDomainName);
 
-        if(pCreds->CredHandle)
-        {
-            LsaReleaseCredential(pCreds->CredHandle);
-        }
+        LsaReleaseCredential(&pCreds->CredHandle);
     }
 
     LW_SAFE_FREE_MEMORY(pCreds);
@@ -221,46 +156,43 @@ NtlmGetCredentialInfo(
     OUT OPTIONAL PCSTR* pszDnsDomainName
     )
 {
-    if(pszServerName)
+    if (pszServerName)
     {
         *pszServerName = NULL;
     }
-    if(pszDomainName)
+    if (pszDomainName)
     {
         *pszDomainName = NULL;
     }
-    if(pszDnsServerName)
+    if (pszDnsServerName)
     {
         *pszDnsServerName = NULL;
     }
-    if(pszDnsDomainName)
+    if (pszDnsDomainName)
     {
         *pszDnsDomainName = NULL;
     }
 
-    if(CredHandle != INVALID_NTLM_CRED_HANDLE)
+    if (CredHandle)
     {
         PNTLM_CREDENTIALS pCred = CredHandle;
-        BOOL bInLock = FALSE;
 
-        ENTER_NTLM_CREDS_LIST(bInLock);
-
-        if(pszServerName)
+        if (pszServerName)
         {
             *pszServerName = pCred->pszServerName;
         }
 
-        if(pszDomainName)
+        if (pszDomainName)
         {
             *pszDomainName = pCred->pszDomainName;
         }
 
-        if(pszDnsServerName)
+        if (pszDnsServerName)
         {
             *pszDnsServerName = pCred->pszDnsServerName;
         }
 
-        if(pszDnsDomainName)
+        if (pszDnsDomainName)
         {
             *pszDnsDomainName = pCred->pszDnsDomainName;
         }
@@ -270,11 +202,7 @@ NtlmGetCredentialInfo(
             pszUserName,
             pszPassword,
             pUid);
-
-        LEAVE_NTLM_CREDS_LIST(bInLock);
     }
-
-    return;
 }
 
 /******************************************************************************/
@@ -283,34 +211,26 @@ NtlmReferenceCredential(
     IN NTLM_CRED_HANDLE hCredential
     )
 {
-    BOOL bInLock = FALSE;
     PNTLM_CREDENTIALS pCred = NULL;
 
-    if(hCredential != INVALID_NTLM_CRED_HANDLE)
+    if (hCredential)
     {
         pCred = hCredential;
 
-        ENTER_NTLM_CREDS_LIST(bInLock);
-
         pCred->nRefCount++;
-
-        LEAVE_NTLM_CREDS_LIST(bInLock);
     }
 }
-
 /******************************************************************************/
 VOID
-NtlmFreeCredentials(
+NtlmFreeCredential(
     IN PNTLM_CREDENTIALS pCreds
     )
 {
-    LsaReleaseCredential(pCreds->CredHandle);
+    LsaReleaseCredential(&pCreds->CredHandle);
 
     LW_SAFE_FREE_STRING(pCreds->pszDomainName);
     LW_SAFE_FREE_STRING(pCreds->pszServerName);
     LW_SAFE_FREE_STRING(pCreds->pszDnsDomainName);
     LW_SAFE_FREE_STRING(pCreds->pszDnsServerName);
-
-    return;
 }
 

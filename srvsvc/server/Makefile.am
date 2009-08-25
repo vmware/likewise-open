@@ -35,44 +35,37 @@ libwinreg_ss_la_SOURCES = winreg_sstub.c
 FEATURETEST_FLAGS="-D_XOPEN_SOURCE=500"
 
 libsrvsvc_ss_la_CPPFLAGS = \
-    -g                     \
     -DDCERPC_STUB_BUILD    \
     $(FEATURETEST_FLAGS)   \
     $(DCERPC_INCLUDES)
 
 libsrvsvc_ss_la_CFLAGS = \
-    -g                   \
     -DDCERPC_STUB_BUILD  \
     $(FEATURETEST_FLAGS) \
     $(DCERPC_INCLUDES)
 
 libwkssvc_ss_la_CPPFLAGS = \
-    -g                     \
     -DDCERPC_STUB_BUILD    \
     $(FEATURETEST_FLAGS)   \
     $(DCERPC_INCLUDES)
 
 libwkssvc_ss_la_CFLAGS = \
-    -g                   \
     -DDCERPC_STUB_BUILD  \
     $(FEATURETEST_FLAGS) \
     $(DCERPC_INCLUDES)
 
 libwinreg_ss_la_CPPFLAGS = \
-    -g                     \
     -DDCERPC_STUB_BUILD    \
     $(FEATURETEST_FLAGS)   \
     $(DCERPC_INCLUDES)
 
 libwinreg_ss_la_CFLAGS = \
-    -g                   \
     -DDCERPC_STUB_BUILD  \
     $(FEATURETEST_FLAGS) \
     $(DCERPC_INCLUDES)
 
 
 srvsvcd_CFLAGS = \
-    -g               \
     -DSRVSVC_BUILD   \
     -DLIBRPC_BUILD
 
@@ -109,9 +102,10 @@ CLEANFILES = srvsvc_h.h srvsvc_cstub.c srvsvc_sstub.c \
              wkssvc_h.h wkssvc_cstub.c wkssvc_sstub.c \
              winreg_h.h winreg_cstub.c winreg_sstub.c
 
-BUILT_SOURCES = srvsvc_h.h srvsvc_cstub.c srvsvc_sstub.c \
-                wkssvc_h.h wkssvc_cstub.c wkssvc_sstub.c \
-                winreg_h.h winreg_cstub.c winreg_sstub.c
+BUILT_SOURCES = \
+    srvsvc_h.h  \
+    wkssvc_h.h  \
+    winreg_h.h
 
 srvsvc_h.h srvsvc_cstub.c srvsvc_sstub.c: $(idl_srcdir)/srvsvc.idl $(idl_srcdir)/srvsvc.acf
 	$(IDL) $(IDLFLAGS) -keep c_source -header srvsvc_h.h \

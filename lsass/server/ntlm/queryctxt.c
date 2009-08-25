@@ -49,11 +49,197 @@
 
 DWORD
 NtlmServerQueryContextAttributes(
-    IN PLSA_CONTEXT_HANDLE phContext,
+    IN PNTLM_CONTEXT_HANDLE phContext,
     IN DWORD ulAttribute,
     OUT PVOID pBuffer
     )
 {
-    DWORD dwError = 0;
-    return(dwError);
+    DWORD dwError = LW_ERROR_SUCCESS;
+    PSecPkgContext pContext = (PSecPkgContext)pBuffer;
+
+    switch(ulAttribute)
+    {
+    case SECPKG_ATTR_NAMES:
+        dwError = NtlmServerQueryNameAttribute(
+            phContext,
+            &pContext->pNames);
+        BAIL_ON_LW_ERROR(dwError);
+        break;
+    case SECPKG_ATTR_SESSION_KEY:
+        dwError = NtlmServerQuerySessionKeyAttribute(
+            phContext,
+            &pContext->pSessionKey);
+        BAIL_ON_LW_ERROR(dwError);
+        break;
+    case SECPKG_ATTR_SIZES:
+        dwError = NtlmServerQuerySizeAttribute(
+            phContext,
+            &pContext->pSizes);
+        BAIL_ON_LW_ERROR(dwError);
+        break;
+    case SECPKG_ATTR_ACCESS_TOKEN:
+    case SECPKG_ATTR_AUTHORITY:
+    case SECPKG_ATTR_CLIENT_SPECIFIED_TARGET:
+    case SECPKG_ATTR_DCE_INFO:
+    case SECPKG_ATTR_FLAGS:
+    case SECPKG_ATTR_KEY_INFO:
+    case SECPKG_ATTR_LAST_CLIENT_TOKEN_STATUS:
+    case SECPKG_ATTR_LIFESPAN:
+    case SECPKG_ATTR_LOCAL_CRED:
+    case SECPKG_ATTR_NATIVE_NAMES:
+    case SECPKG_ATTR_NEGOTIATION_INFO:
+    case SECPKG_ATTR_PACKAGE_INFO:
+    case SECPKG_ATTR_PASSWORD_EXPIRY:
+    case SECPKG_ATTR_ROOT_STORE:
+    case SECPKG_ATTR_TARGET_INFORMATION:
+        dwError = LW_ERROR_NOT_IMPLEMENTED;
+        BAIL_ON_LW_ERROR(dwError);
+        break;
+    default:
+        dwError = LW_ERROR_INVALID_ATTRIBUTE_VALUE;
+        BAIL_ON_LW_ERROR(dwError);
+        break;
+    }
+
+cleanup:
+    return dwError;
+error:
+    goto cleanup;
 }
+
+DWORD
+NtlmServerQueryNameAttribute(
+    IN PNTLM_CONTEXT_HANDLE phContext,
+    OUT PSecPkgContext_Names *ppNames
+    )
+{
+    DWORD dwError = LW_ERROR_SUCCESS;
+    PVOID pMessage = NULL;
+    NTLM_STATE State = NtlmStateBlank;
+    DWORD dwNegFlags = 0;
+    SEC_CHAR* pUserName = NULL;
+    PSecPkgContext_Names pName = NULL;
+
+    *ppNames = NULL;
+
+    dwError = LwAllocateMemory(sizeof(*pName), OUT_PPVOID(&pName));
+    BAIL_ON_LW_ERROR(dwError);
+
+    NtlmGetContextInfo(
+        *phContext,
+        &State,
+        &dwNegFlags,
+        &pMessage,
+        NULL,
+        NULL,
+        NULL);
+
+    if(State != NtlmStateResponse)
+    {
+        dwError = LW_ERROR_INVALID_CONTEXT;
+        BAIL_ON_LW_ERROR(dwError);
+    }
+
+    dwError = NtlmGetUserNameFromResponse(
+        pMessage,
+        dwNegFlags & NTLM_FLAG_UNICODE,
+        &pUserName);
+    BAIL_ON_LW_ERROR(dwError);
+
+    pName->pUserName = pUserName;
+
+cleanup:
+    *ppNames = pName;
+    return dwError;
+error:
+    LW_SAFE_FREE_MEMORY(pUserName);
+    LW_SAFE_FREE_MEMORY(pName);
+    goto cleanup;
+}
+
+DWORD
+NtlmServerQuerySessionKeyAttribute(
+    IN PNTLM_CONTEXT_HANDLE phContext,
+    OUT PSecPkgContext_SessionKey *ppSessionKey
+    )
+{
+    DWORD dwError = LW_ERROR_SUCCESS;
+    NTLM_STATE State = NtlmStateBlank;
+    PBYTE pKey = NULL;
+    PSecPkgContext_SessionKey pSessionKey = NULL;
+
+    *ppSessionKey = NULL;
+
+    dwError = LwAllocateMemory(sizeof(*pSessionKey), OUT_PPVOID(&pSessionKey));
+    BAIL_ON_LW_ERROR(dwError);
+
+    NtlmGetContextInfo(
+        *phContext,
+        &State,
+        NULL,
+        NULL,
+        NULL,
+        &pKey,
+        NULL);
+
+    if(State != NtlmStateResponse)
+    {
+        dwError = LW_ERROR_INVALID_CONTEXT;
+        BAIL_ON_LW_ERROR(dwError);
+    }
+
+    dwError = LwAllocateMemory(
+        NTLM_SESSION_KEY_SIZE,
+        OUT_PPVOID(&pSessionKey->SessionKey));
+    BAIL_ON_LW_ERROR(dwError);
+
+    memcpy(pSessionKey->SessionKey, pKey, NTLM_SESSION_KEY_SIZE);
+    pSessionKey->SessionKeyLength = NTLM_SESSION_KEY_SIZE;
+
+cleanup:
+    *ppSessionKey = pSessionKey;
+    return dwError;
+error:
+    if(pSessionKey)
+    {
+        LW_SAFE_FREE_MEMORY(pSessionKey->SessionKey);
+    }
+    LW_SAFE_FREE_MEMORY(pSessionKey);
+    goto cleanup;
+}
+
+DWORD
+NtlmServerQuerySizeAttribute(
+    IN PNTLM_CONTEXT_HANDLE phContext,
+    OUT PSecPkgContext_Sizes *ppSizes
+    )
+{
+    DWORD dwError = LW_ERROR_SUCCESS;
+    PSecPkgContext_Sizes pSizes = NULL;
+
+    *ppSizes = NULL;
+
+    dwError = LwAllocateMemory(sizeof(*pSizes), OUT_PPVOID(&pSizes));
+    BAIL_ON_LW_ERROR(dwError);
+
+    // The Challenge message is easily the largest token we send
+    pSizes->cbMaxToken =
+        sizeof(NTLM_CHALLENGE_MESSAGE) +
+        NTLM_LOCAL_CONTEXT_SIZE +
+        sizeof(NTLM_SEC_BUFFER) +
+        NTLM_WIN_SPOOF_SIZE +
+        (HOST_NAME_MAX * 5) +
+        (sizeof(NTLM_TARGET_INFO_BLOCK) * 5);
+
+    pSizes->cbMaxSignature = NTLM_SIGNATURE_SIZE;
+    pSizes->cbBlockSize = 1;
+    pSizes->cbSecurityTrailer = 4;
+
+cleanup:
+    *ppSizes = pSizes;
+    return dwError;
+error:
+    LW_SAFE_FREE_MEMORY(pSizes);
+    goto cleanup;
+}
+

@@ -45,4 +45,6 @@
 #ifndef __EXTERNS_H__
 #define __EXTERNS_H__
 
+extern HANDLE ghServer;
+
 #endif /* __EXTERNS_H__ */

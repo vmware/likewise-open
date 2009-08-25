@@ -50,7 +50,7 @@
 DWORD
 NtlmClientQueryContextAttributes(
     IN HANDLE hServer,
-    IN PLSA_CONTEXT_HANDLE phContext,
+    IN PNTLM_CONTEXT_HANDLE phContext,
     IN DWORD ulAttribute,
     OUT PVOID pBuffer
     )

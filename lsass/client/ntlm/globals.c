@@ -41,3 +41,7 @@
  * Authors:
  *
  */
+
+#include <lw/types.h>
+
+HANDLE ghServer = NULL;

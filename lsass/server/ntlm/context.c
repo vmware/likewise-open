@@ -45,154 +45,83 @@
 
 #include "ntlmsrvapi.h"
 
-static LSA_CONTEXT_STATE gContextState;
-
-/******************************************************************************/
-DWORD
-NtlmInitializeContextDatabase(
-    VOID
-    )
-{
-    DWORD dwError = LW_ERROR_SUCCESS;
-
-    dwError = pthread_rwlock_init(&gContextState.LsaContextListLock, NULL);
-    if(LW_ERROR_SUCCESS != dwError)
-    {
-        dwError = LW_ERROR_INTERNAL; //LwMapErrnoToLwError(errno);
-        BAIL_ON_LW_ERROR(dwError);
-    }
-
-    LsaListInit(&gContextState.LsaContextList);
-
-error:
-    return dwError;
-}
-
-/******************************************************************************/
-VOID
-NtlmShutdownContextDatabase(
-    VOID
-    )
-{
-    BOOL bInLock = FALSE;
-    PLSA_CONTEXT pContext = NULL;
-    PLSA_LIST_LINKS pContextListEntry = NULL;
-
-    ENTER_CONTEXT_LIST_WRITER(bInLock);
-
-        // sweep the context list
-        while(!LsaListIsEmpty(&gContextState.LsaContextList))
-        {
-            pContextListEntry = LsaListRemoveHead(
-                &gContextState.LsaContextList);
-
-            pContext = LW_STRUCT_FROM_FIELD(
-                pContextListEntry,
-                LSA_CONTEXT,
-                ListEntry);
-
-            NtlmFreeContext(pContext);
-        }
-
-    LEAVE_CONTEXT_LIST_WRITER(bInLock);
-
-    pthread_rwlock_destroy(&gContextState.LsaContextListLock);
-
-    return;
-}
-
-/******************************************************************************/
-VOID
-NtlmAddContext(
-    IN PLSA_CONTEXT pContext,
-    OUT PLSA_CONTEXT_HANDLE pContextHandle
-    )
-{
-    BOOL bInLock = FALSE;
-
-    ENTER_CONTEXT_LIST_WRITER(bInLock);
-
-        LsaListInsertBefore(&gContextState.LsaContextList, &pContext->ListEntry);
-
-    LEAVE_CONTEXT_LIST_WRITER(bInLock);
-
-    *pContextHandle = pContext;
-
-    return;
-}
-
 /******************************************************************************/
 VOID
 NtlmReleaseContext(
-    IN LSA_CONTEXT_HANDLE hContext
+    IN PNTLM_CONTEXT_HANDLE phContext
     )
 {
-    BOOL bInLock = FALSE;
-    PLSA_CONTEXT pContext = hContext;
+    PNTLM_CONTEXT pContext = *phContext;
 
-    ENTER_CONTEXT_LIST_WRITER(bInLock);
+    pContext->nRefCount--;
 
-        pContext->nRefCount--;
+    LW_ASSERT(pContext->nRefCount >= 0);
 
-        LW_ASSERT(pContext->nRefCount >= 0);
+    if (!(pContext->nRefCount))
+    {
+        //LsaListRemove(&pContext->ListEntry);
+        NtlmFreeContext(&pContext);
+    }
 
-        if (!(pContext->nRefCount))
-        {
-            LsaListRemove(&pContext->ListEntry);
-            NtlmFreeContext(pContext);
-        }
-
-    LEAVE_CONTEXT_LIST_WRITER(bInLock);
-    return;
+    *phContext = NULL;
 }
 
 /******************************************************************************/
 VOID
 NtlmGetContextInfo(
-    IN LSA_CONTEXT_HANDLE ContextHandle,
+    IN NTLM_CONTEXT_HANDLE ContextHandle,
     OUT OPTIONAL PNTLM_STATE pNtlmState,
+    OUT OPTIONAL PDWORD pNegotiatedFlags,
     OUT OPTIONAL PVOID* ppMessage,
     OUT OPTIONAL PDWORD pdwMessageSize,
+    OUT OPTIONAL PBYTE* ppSessionKey,
     OUT OPTIONAL PNTLM_CRED_HANDLE pCredHandle
     )
 {
-    PLSA_CONTEXT pContext = ContextHandle;
-    BOOL bInLock = FALSE;
+    PNTLM_CONTEXT pContext = ContextHandle;
 
-    ENTER_CONTEXT_LIST_WRITER(bInLock);
+    if (pNtlmState)
+    {
+        *pNtlmState = pContext->NtlmState;
+    }
 
-        if(pNtlmState)
-        {
-            *pNtlmState = pContext->NtlmState;
-        }
+    if (pNegotiatedFlags)
+    {
+        *pNegotiatedFlags = pContext->NegotiatedFlags;
+    }
 
-        if(ppMessage && pdwMessageSize)
-        {
-            *ppMessage = pContext->pMessage;
-            *pdwMessageSize = pContext->dwMessageSize;
-        }
+    if (ppMessage)
+    {
+        *ppMessage = pContext->pMessage;
+    }
 
-        if(pCredHandle)
-        {
-            *pCredHandle = pContext->CredHandle;
-        }
+    if (pdwMessageSize)
+    {
+        *pdwMessageSize = pContext->dwMessageSize;
+    }
 
-    LEAVE_CONTEXT_LIST_WRITER(bInLock);
+    if (ppSessionKey)
+    {
+        *ppSessionKey = pContext->SessionKey;
+    }
 
-    return;
+    if (pCredHandle)
+    {
+        *pCredHandle = pContext->CredHandle;
+    }
 }
 
 /******************************************************************************/
 DWORD
 NtlmCreateContext(
     IN PNTLM_CRED_HANDLE pCredHandle,
-    OUT PLSA_CONTEXT* ppNtlmContext
+    OUT PNTLM_CONTEXT* ppNtlmContext
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
-    PLSA_CONTEXT pContext = NULL;
+    PNTLM_CONTEXT pContext = NULL;
 
-    if(!ppNtlmContext)
+    if (!ppNtlmContext)
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LW_ERROR(dwError);
@@ -201,8 +130,8 @@ NtlmCreateContext(
     *ppNtlmContext = NULL;
 
     dwError = LwAllocateMemory(
-        sizeof(LSA_CONTEXT),
-        (PVOID*)(PVOID)&pContext
+        sizeof(NTLM_CONTEXT),
+        OUT_PPVOID(&pContext)
         );
 
     BAIL_ON_LW_ERROR(dwError);
@@ -224,17 +153,19 @@ error:
 /******************************************************************************/
 VOID
 NtlmFreeContext(
-    IN PLSA_CONTEXT pContext
+    IN PNTLM_CONTEXT* ppContext
     )
 {
-    NtlmReleaseCredential(pContext->CredHandle);
+    PNTLM_CONTEXT pContext = *ppContext;
+
+    NtlmReleaseCredential(&pContext->CredHandle);
 
     memset(pContext->pMessage, 0, pContext->dwMessageSize);
     LW_SAFE_FREE_MEMORY(pContext->pMessage);
 
     LW_SAFE_FREE_MEMORY(pContext);
+    *ppContext = NULL;
 
-    return;
 }
 
 /******************************************************************************/
@@ -253,7 +184,7 @@ NtlmGetMessageFromSecBufferDesc(
     *pdwMessageSize = 0;
     *ppMessage = NULL;
 
-    if(!pSecBufferDesc)
+    if (!pSecBufferDesc)
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LW_ERROR(dwError);
@@ -261,7 +192,7 @@ NtlmGetMessageFromSecBufferDesc(
 
     // Transfered context tokens only contain one SecBuffer and are tagged as
     // tokens... verify
-    if(pSecBufferDesc->cBuffers != 1 || !(pSecBufferDesc->pBuffers))
+    if (pSecBufferDesc->cBuffers != 1 || !(pSecBufferDesc->pBuffers))
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LW_ERROR(dwError);
@@ -269,7 +200,7 @@ NtlmGetMessageFromSecBufferDesc(
 
     pSecBuffer = pSecBufferDesc->pBuffers;
 
-    if(pSecBuffer->BufferType != SECBUFFER_TOKEN ||
+    if (pSecBuffer->BufferType != SECBUFFER_TOKEN ||
        pSecBuffer->cbBuffer == 0)
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
@@ -294,7 +225,7 @@ error:
 /******************************************************************************/
 DWORD
 NtlmCopyContextToSecBufferDesc(
-    IN PLSA_CONTEXT pNtlmContext,
+    IN PNTLM_CONTEXT pNtlmContext,
     IN OUT PSecBufferDesc pSecBufferDesc
     )
 {
@@ -304,7 +235,7 @@ NtlmCopyContextToSecBufferDesc(
 
     // We want to make sure that sec buffer desc we write to only contain 1
     // buffer and that buffer is of type SECBUFFER_TOKEN
-    if(!pSecBufferDesc || 1 != pSecBufferDesc->cBuffers)
+    if (!pSecBufferDesc || 1 != pSecBufferDesc->cBuffers)
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LW_ERROR(dwError);
@@ -312,7 +243,7 @@ NtlmCopyContextToSecBufferDesc(
 
     pSecBuffer = pSecBufferDesc->pBuffers;
 
-    if(pSecBuffer->BufferType != SECBUFFER_TOKEN)
+    if (pSecBuffer->BufferType != SECBUFFER_TOKEN)
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LW_ERROR(dwError);
@@ -343,17 +274,17 @@ NtlmGetRandomBuffer(
     INT nFileDesc;
     DWORD dwBytesRead = 0;
 
-    if(!pBuffer || dwLen <= 0)
+    if (!pBuffer || dwLen <= 0)
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LW_ERROR(dwError);
     }
 
     nFileDesc = open(NTLM_URANDOM_DEV, O_RDONLY);
-    if(-1 == nFileDesc)
+    if (-1 == nFileDesc)
     {
         nFileDesc = open(NTLM_RANDOM_DEV, O_RDONLY);
-        if(-1 == nFileDesc)
+        if (-1 == nFileDesc)
         {
             dwError = LW_ERROR_INTERNAL; //LwMapErrnoToLwError(errno);
             BAIL_ON_LW_ERROR(dwError);
@@ -363,7 +294,7 @@ NtlmGetRandomBuffer(
     dwBytesRead = read(nFileDesc, pBuffer, dwLen);
     close(nFileDesc);
 
-    if(dwBytesRead < dwLen)
+    if (dwBytesRead < dwLen)
     {
         dwError = LW_ERROR_INTERNAL;
     }
@@ -385,14 +316,15 @@ NtlmCreateNegotiateMessage(
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
+    PNTLM_NEGOTIATE_MESSAGE pMessage = NULL;
+    DWORD dwSize = 0;
+    // The following pointers point into pMessage and will not be freed on error
     PNTLM_SEC_BUFFER pDomainSecBuffer = NULL;
     PNTLM_SEC_BUFFER pWorkstationSecBuffer = NULL;
     PBYTE pBuffer = NULL;
-    PNTLM_NEGOTIATE_MESSAGE pMessage = NULL;
-    DWORD dwSize = 0;
 
     // sanity checks
-    if(!ppNegMsg)
+    if (!ppNegMsg)
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LW_ERROR(dwError);
@@ -401,9 +333,9 @@ NtlmCreateNegotiateMessage(
     *ppNegMsg = NULL;
     *pdwSize = 0;
 
-    if(dwOptions & NTLM_FLAG_DOMAIN)
+    if (dwOptions & NTLM_FLAG_DOMAIN)
     {
-        if(!pDomain)
+        if (!pDomain)
         {
             dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_LW_ERROR(dwError);
@@ -414,9 +346,9 @@ NtlmCreateNegotiateMessage(
         }
     }
 
-    if(dwOptions & NTLM_FLAG_WORKSTATION)
+    if (dwOptions & NTLM_FLAG_WORKSTATION)
     {
-        if(!pWorkstation)
+        if (!pWorkstation)
         {
             dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_LW_ERROR(dwError);
@@ -432,25 +364,25 @@ NtlmCreateNegotiateMessage(
     // There is no flag to indicate if there is OS version information added
     // to the packet... if we have OS information, we will need to allocate
     // Domain and Workstation information as well.
-    if(pOsVersion)
+    if (pOsVersion)
     {
         dwSize +=
             sizeof(NTLM_SEC_BUFFER) +
             sizeof(NTLM_SEC_BUFFER) +
             NTLM_WIN_SPOOF_SIZE;
     }
-    else if(dwOptions & NTLM_FLAG_WORKSTATION)
+    else if (dwOptions & NTLM_FLAG_WORKSTATION)
     {
         dwSize +=
             sizeof(NTLM_SEC_BUFFER) +
             sizeof(NTLM_SEC_BUFFER);
     }
-    else if(dwOptions & NTLM_FLAG_DOMAIN)
+    else if (dwOptions & NTLM_FLAG_DOMAIN)
     {
         dwSize += sizeof(NTLM_SEC_BUFFER);
     }
 
-    dwError = LwAllocateMemory(dwSize, (PVOID*)(PVOID)&pMessage);
+    dwError = LwAllocateMemory(dwSize, OUT_PPVOID(&pMessage));
     BAIL_ON_LW_ERROR(dwError);
 
     // Data is checked and memory is allocated; fill in the structure
@@ -467,10 +399,10 @@ NtlmCreateNegotiateMessage(
 
     // If you have OS info, you HAVE to at least adjust the pointers past the
     // domain secbuffer (even if you don't fill it in with data).
-    if(dwOptions & NTLM_FLAG_DOMAIN ||
+    if (dwOptions & NTLM_FLAG_DOMAIN ||
         pOsVersion)
     {
-        if(pDomain && (dwOptions & NTLM_FLAG_DOMAIN))
+        if (pDomain && (dwOptions & NTLM_FLAG_DOMAIN))
         {
             pDomainSecBuffer = (PNTLM_SEC_BUFFER)pBuffer;
 
@@ -484,11 +416,11 @@ NtlmCreateNegotiateMessage(
 
     // If you have a domain or OS info, you HAVE to at least adjust the pointers
     // past the workstation secbuffer (even if you don't fill it in with data)
-    if(dwOptions & NTLM_FLAG_WORKSTATION ||
+    if (dwOptions & NTLM_FLAG_WORKSTATION ||
         dwOptions & NTLM_FLAG_DOMAIN ||
         pOsVersion)
     {
-        if(pWorkstation && (dwOptions & NTLM_FLAG_WORKSTATION))
+        if (pWorkstation && (dwOptions & NTLM_FLAG_WORKSTATION))
         {
             pWorkstationSecBuffer = (PNTLM_SEC_BUFFER)pBuffer;
 
@@ -500,7 +432,7 @@ NtlmCreateNegotiateMessage(
         pBuffer += sizeof(NTLM_SEC_BUFFER);
     }
 
-    if(pOsVersion)
+    if (pOsVersion)
     {
         memcpy(pBuffer, pOsVersion, NTLM_WIN_SPOOF_SIZE);
 
@@ -508,14 +440,14 @@ NtlmCreateNegotiateMessage(
     }
 
     // So now we're at the very end of the buffer; copy the optional data
-    if(pWorkstationSecBuffer && pWorkstationSecBuffer->usLength)
+    if (pWorkstationSecBuffer && pWorkstationSecBuffer->usLength)
     {
         memcpy(pBuffer, pWorkstation, pWorkstationSecBuffer->usLength);
         pWorkstationSecBuffer->dwOffset = pBuffer - (PBYTE)pMessage;
         pBuffer += pWorkstationSecBuffer->usLength;
     }
 
-    if(pDomainSecBuffer && pDomainSecBuffer->usLength)
+    if (pDomainSecBuffer && pDomainSecBuffer->usLength)
     {
         memcpy(pBuffer, pDomain, pDomainSecBuffer->usLength);
         pDomainSecBuffer->dwOffset = pBuffer - (PBYTE)pMessage;
@@ -550,16 +482,17 @@ NtlmCreateChallengeMessage(
     DWORD dwError = LW_ERROR_SUCCESS;
     DWORD dwSize = 0;
     PNTLM_CHALLENGE_MESSAGE pMessage = NULL;
-    PNTLM_SEC_BUFFER pTargetInfoSecBuffer= NULL;
-    PNTLM_TARGET_INFO_BLOCK pTargetInfoBlock = NULL;
     DWORD dwTargetInfoSize = 0;
     DWORD dwTargetNameSize = 0;
-    PBYTE pBuffer = NULL;
     DWORD dwOptions = 0;
+    // The following pointers point into pMessage and will not be freed on error
     PBYTE pTrav = NULL;
+    PBYTE pBuffer = NULL;
+    PNTLM_SEC_BUFFER pTargetInfoSecBuffer= NULL;
+    PNTLM_TARGET_INFO_BLOCK pTargetInfoBlock = NULL;
 
     // sanity checks
-    if(!pNegMsg || !ppChlngMsg)
+    if (!pNegMsg || !ppChlngMsg)
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LW_ERROR(dwError);
@@ -571,7 +504,7 @@ NtlmCreateChallengeMessage(
     dwSize = sizeof(NTLM_CHALLENGE_MESSAGE);
 
     // sanity check... we need to have at least NTLM or NTLM2 requested
-    if(!(pNegMsg->NtlmFlags & NTLM_FLAG_NTLM) &&
+    if (!(pNegMsg->NtlmFlags & NTLM_FLAG_NTLM) &&
        !(pNegMsg->NtlmFlags & NTLM_FLAG_NTLM2))
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
@@ -581,11 +514,11 @@ NtlmCreateChallengeMessage(
     // We need to build up the challenge options based on the negotiate options.
     // We *must* have either unicode or ansii string set
     //
-    if(pNegMsg->NtlmFlags & NTLM_FLAG_UNICODE)
+    if (pNegMsg->NtlmFlags & NTLM_FLAG_UNICODE)
     {
         dwOptions |= NTLM_FLAG_UNICODE;
     }
-    else if(pNegMsg->NtlmFlags & NTLM_FLAG_OEM)
+    else if (pNegMsg->NtlmFlags & NTLM_FLAG_OEM)
     {
         dwOptions |= NTLM_FLAG_OEM;
     }
@@ -598,14 +531,14 @@ NtlmCreateChallengeMessage(
     }
 
     // calculate optional data size
-    if(pOsVersion)
+    if (pOsVersion)
     {
         dwSize +=
             NTLM_LOCAL_CONTEXT_SIZE +   // NTLM context (for local auth)
             sizeof(NTLM_SEC_BUFFER) +   // For target information block
             NTLM_WIN_SPOOF_SIZE;        // Win version info
 
-        if(gbUseNtlmV2)
+        if (gbUseNtlmV2)
         {
             // This is for the terminating target info block
             dwTargetInfoSize += sizeof(NTLM_TARGET_INFO_BLOCK);
@@ -613,7 +546,7 @@ NtlmCreateChallengeMessage(
             dwOptions |= NTLM_FLAG_TARGET_INFO;
         }
     }
-    else if(gbUseNtlmV2)
+    else if (gbUseNtlmV2)
     {
         // This is the same as the 'if' statement above, minus accounting for
         // space for the OS version spoof.
@@ -627,25 +560,25 @@ NtlmCreateChallengeMessage(
 
     // Allocate space in the target information block for each piece of target
     // information we have.
-    if(gbUseNtlmV2)
+    if (gbUseNtlmV2)
     {
         // Target information block info is always in unicode format.
-        if(!LW_IS_NULL_OR_EMPTY_STR(pServerName))
+        if (!LW_IS_NULL_OR_EMPTY_STR(pServerName))
         {
             dwTargetInfoSize += sizeof(NTLM_TARGET_INFO_BLOCK);
             dwTargetInfoSize += strlen(pServerName) * sizeof(WCHAR);
         }
-        if(!LW_IS_NULL_OR_EMPTY_STR(pDomainName))
+        if (!LW_IS_NULL_OR_EMPTY_STR(pDomainName))
         {
             dwTargetInfoSize += sizeof(NTLM_TARGET_INFO_BLOCK);
             dwTargetInfoSize += strlen(pDomainName) * sizeof(WCHAR);
         }
-        if(!LW_IS_NULL_OR_EMPTY_STR(pDnsServerName))
+        if (!LW_IS_NULL_OR_EMPTY_STR(pDnsServerName))
         {
             dwTargetInfoSize += sizeof(NTLM_TARGET_INFO_BLOCK);
             dwTargetInfoSize += strlen(pDnsServerName) * sizeof(WCHAR);
         }
-        if(!LW_IS_NULL_OR_EMPTY_STR(pDnsDomainName))
+        if (!LW_IS_NULL_OR_EMPTY_STR(pDnsDomainName))
         {
             dwTargetInfoSize += sizeof(NTLM_TARGET_INFO_BLOCK);
             dwTargetInfoSize += strlen(pDnsDomainName) * sizeof(WCHAR);
@@ -654,7 +587,7 @@ NtlmCreateChallengeMessage(
         dwSize += dwTargetInfoSize;
     }
 
-    if(pNegMsg->NtlmFlags & NTLM_FLAG_REQUEST_TARGET)
+    if (pNegMsg->NtlmFlags & NTLM_FLAG_REQUEST_TARGET)
     {
         // To determine what name will be returned we check in this order:
         // 1). Domain name
@@ -662,18 +595,18 @@ NtlmCreateChallengeMessage(
         //
         // For now, we never set the type to share (since we don't really know
         // what that means).
-        if(!LW_IS_NULL_OR_EMPTY_STR(pDomainName))
+        if (!LW_IS_NULL_OR_EMPTY_STR(pDomainName))
         {
             dwTargetNameSize = strlen(pDomainName);
             dwOptions |= NTLM_FLAG_TYPE_DOMAIN;
         }
-        else if(!LW_IS_NULL_OR_EMPTY_STR(pServerName))
+        else if (!LW_IS_NULL_OR_EMPTY_STR(pServerName))
         {
             dwTargetNameSize = strlen(pServerName);
             dwOptions |= NTLM_FLAG_TYPE_SERVER;
         }
 
-        if(pNegMsg->NtlmFlags & NTLM_FLAG_UNICODE)
+        if (pNegMsg->NtlmFlags & NTLM_FLAG_UNICODE)
         {
             dwTargetNameSize *= sizeof(WCHAR);
         }
@@ -692,7 +625,7 @@ NtlmCreateChallengeMessage(
     BAIL_ON_LW_ERROR(dwError);
 
     // If the client wants to support a dummy signature, we will too
-    if(pNegMsg->NtlmFlags & NTLM_FLAG_ALWAYS_SIGN)
+    if (pNegMsg->NtlmFlags & NTLM_FLAG_ALWAYS_SIGN)
     {
         dwOptions |= NTLM_FLAG_ALWAYS_SIGN;
     }
@@ -702,16 +635,16 @@ NtlmCreateChallengeMessage(
     //                        provide yet.  We will not use the local context
     // NTLM_FLAG_TYPE_SHARE - The authentication target is a network share (?).
     //                        Odd.
-    dwOptions |= (NTLM_FLAG_NTLM  |  // we support NTLM
-                  //NTLM_FLAG_NTLM2 |  // we support NTLM2 - TODO
-                  //NTLM_FLAG_128   |  // we support 128 bit encryption
-                  NTLM_FLAG_56    ); // we support 56 bit encryption
+    // NTLM_FLAG_NTLM2      - At this point we only support NTLMv1 and NTLMv2
+    // NTLM_FLAG_128        - This is only used for NTLM2 (not supported)
+    dwOptions |= NTLM_FLAG_NTLM |  // we support NTLM
+                 NTLM_FLAG_56; // we support 56 bit encryption
 
     // These options are being set now simply because they appear to be
     // required for authentication to work
-    dwOptions |= (NTLM_FLAG_SIGN |
-                  NTLM_FLAG_SEAL |
-                  NTLM_FLAG_UNKNOWN_02000000);
+    dwOptions |= NTLM_FLAG_SIGN |
+                 NTLM_FLAG_SEAL |
+                 NTLM_FLAG_UNKNOWN_02000000;
 
     // Data is checked and memory is allocated; fill in the structure
     //
@@ -725,7 +658,7 @@ NtlmCreateChallengeMessage(
 
     pMessage->NtlmFlags = dwOptions;
 
-    if(pMessage->NtlmFlags & NTLM_FLAG_REQUEST_TARGET)
+    if (pMessage->NtlmFlags & NTLM_FLAG_REQUEST_TARGET)
     {
         pMessage->Target.usLength = dwTargetNameSize;
         pMessage->Target.usMaxLength = pMessage->Target.usLength;
@@ -747,14 +680,14 @@ NtlmCreateChallengeMessage(
     // Main structure has been filled, now fill in optional data
     pBuffer = (PBYTE)pMessage + sizeof(NTLM_CHALLENGE_MESSAGE);
 
-    if(pOsVersion || pMessage->NtlmFlags & NTLM_FLAG_TARGET_INFO)
+    if (pOsVersion || pMessage->NtlmFlags & NTLM_FLAG_TARGET_INFO)
     {
         // We have to fill in a local context which we will never use
         // ... so make it all zeros
         memset(pBuffer, 0, NTLM_LOCAL_CONTEXT_SIZE);
         pBuffer += NTLM_LOCAL_CONTEXT_SIZE;
 
-        if(pMessage->NtlmFlags & NTLM_FLAG_TARGET_INFO)
+        if (pMessage->NtlmFlags & NTLM_FLAG_TARGET_INFO)
         {
             pTargetInfoSecBuffer = (PNTLM_SEC_BUFFER)pBuffer;
 
@@ -768,7 +701,7 @@ NtlmCreateChallengeMessage(
         // place.
         pBuffer += sizeof(NTLM_SEC_BUFFER);
 
-        if(pOsVersion)
+        if (pOsVersion)
         {
             memcpy(pBuffer, pOsVersion, NTLM_WIN_SPOOF_SIZE);
 
@@ -776,11 +709,11 @@ NtlmCreateChallengeMessage(
         }
     }
 
-    if(pMessage->Target.usLength)
+    if (pMessage->Target.usLength)
     {
         pMessage->Target.dwOffset = pBuffer - (PBYTE)pMessage;
 
-        if(pMessage->NtlmFlags & NTLM_FLAG_TYPE_DOMAIN)
+        if (pMessage->NtlmFlags & NTLM_FLAG_TYPE_DOMAIN)
         {
             pTrav = (PBYTE)pDomainName;
         }
@@ -789,11 +722,11 @@ NtlmCreateChallengeMessage(
             pTrav = (PBYTE)pServerName;
         }
 
-        while(*pTrav)
+        while (*pTrav)
         {
             *pBuffer = *pTrav;
 
-            if(pMessage->NtlmFlags & NTLM_FLAG_UNICODE)
+            if (pMessage->NtlmFlags & NTLM_FLAG_UNICODE)
             {
                 pBuffer++;
             }
@@ -803,12 +736,12 @@ NtlmCreateChallengeMessage(
         }
     }
 
-    if(pTargetInfoSecBuffer)
+    if (pTargetInfoSecBuffer)
     {
         // Remember, target block information is ALWAYS in UNICODE
         pTargetInfoSecBuffer->dwOffset = pBuffer - (PBYTE)pMessage;
 
-        if(!LW_IS_NULL_OR_EMPTY_STR(pDomainName))
+        if (!LW_IS_NULL_OR_EMPTY_STR(pDomainName))
         {
             pTargetInfoBlock = (PNTLM_TARGET_INFO_BLOCK)pBuffer;
 
@@ -820,7 +753,7 @@ NtlmCreateChallengeMessage(
 
             pBuffer += sizeof(NTLM_TARGET_INFO_BLOCK);
 
-            while(*pTrav)
+            while (*pTrav)
             {
                 *pBuffer = *pTrav;
 
@@ -831,7 +764,7 @@ NtlmCreateChallengeMessage(
             }
         }
 
-        if(!LW_IS_NULL_OR_EMPTY_STR(pServerName))
+        if (!LW_IS_NULL_OR_EMPTY_STR(pServerName))
         {
             pTargetInfoBlock = (PNTLM_TARGET_INFO_BLOCK)pBuffer;
 
@@ -843,7 +776,7 @@ NtlmCreateChallengeMessage(
 
             pBuffer += sizeof(NTLM_TARGET_INFO_BLOCK);
 
-            while(*pTrav)
+            while (*pTrav)
             {
                 *pBuffer = *pTrav;
 
@@ -854,7 +787,7 @@ NtlmCreateChallengeMessage(
             }
         }
 
-        if(!LW_IS_NULL_OR_EMPTY_STR(pDnsDomainName))
+        if (!LW_IS_NULL_OR_EMPTY_STR(pDnsDomainName))
         {
             pTargetInfoBlock = (PNTLM_TARGET_INFO_BLOCK)pBuffer;
 
@@ -866,7 +799,7 @@ NtlmCreateChallengeMessage(
 
             pBuffer += sizeof(NTLM_TARGET_INFO_BLOCK);
 
-            while(*pTrav)
+            while (*pTrav)
             {
                 *pBuffer = *pTrav;
 
@@ -877,7 +810,7 @@ NtlmCreateChallengeMessage(
             }
         }
 
-        if(!LW_IS_NULL_OR_EMPTY_STR(pDnsServerName))
+        if (!LW_IS_NULL_OR_EMPTY_STR(pDnsServerName))
         {
             pTargetInfoBlock = (PNTLM_TARGET_INFO_BLOCK)pBuffer;
 
@@ -889,7 +822,7 @@ NtlmCreateChallengeMessage(
 
             pBuffer += sizeof(NTLM_TARGET_INFO_BLOCK);
 
-            while(*pTrav)
+            while (*pTrav)
             {
                 *pBuffer = *pTrav;
 
@@ -937,19 +870,20 @@ NtlmCreateResponseMessage(
     DWORD dwError = LW_ERROR_SUCCESS;
     DWORD dwSize = 0;
     PNTLM_RESPONSE_MESSAGE pMessage = NULL;
-    PBYTE pBuffer = NULL;
-    PNTLM_SEC_BUFFER pSessionKey = NULL;
     DWORD dwNtMsgSize = 0;
     DWORD dwLmMsgSize = 0;
     DWORD dwAuthTrgtNameSize = 0;
     DWORD dwUserNameSize = 0;
     DWORD dwWorkstationSize = 0;
+    CHAR pWorkstation[HOST_NAME_MAX];
+    // The following pointers point into pMessage and will not be freed on error
     PBYTE pTrav = NULL;
     PCHAR pAuthTargetName;
-    CHAR pWorkstation[HOST_NAME_MAX];
+    PNTLM_SEC_BUFFER pSessionKey = NULL;
+    PBYTE pBuffer = NULL;
 
     // sanity checks
-    if(!pChlngMsg || !ppRespMsg)
+    if (!pChlngMsg || !ppRespMsg)
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LW_ERROR(dwError);
@@ -959,7 +893,7 @@ NtlmCreateResponseMessage(
     BAIL_ON_LW_ERROR(dwError);
 
     dwError = gethostname(pWorkstation, HOST_NAME_MAX);
-    if(dwError)
+    if (dwError)
     {
         dwError = LwMapErrnoToLwError(errno);
         BAIL_ON_LW_ERROR(dwError);
@@ -974,7 +908,7 @@ NtlmCreateResponseMessage(
     dwUserNameSize = strlen(pUserName);
     dwWorkstationSize = strlen(pWorkstation);
 
-    if(pChlngMsg->NtlmFlags & NTLM_FLAG_UNICODE)
+    if (pChlngMsg->NtlmFlags & NTLM_FLAG_UNICODE)
     {
         dwAuthTrgtNameSize *= sizeof(WCHAR);
         dwUserNameSize *= sizeof(WCHAR);
@@ -1011,12 +945,12 @@ NtlmCreateResponseMessage(
     // we're going to send our flags as well
     dwSize += sizeof(pChlngMsg->NtlmFlags);
 
-    if(pOsVersion)
+    if (pOsVersion)
     {
         dwSize += NTLM_WIN_SPOOF_SIZE;
     }
 
-    dwError = LwAllocateMemory(dwSize, (PVOID*)(PVOID)&pMessage);
+    dwError = LwAllocateMemory(dwSize, OUT_PPVOID(&pMessage));
     BAIL_ON_LW_ERROR(dwError);
 
     // Data is checked and memory is allocated; fill in the structure
@@ -1049,7 +983,7 @@ NtlmCreateResponseMessage(
     pSessionKey = (PNTLM_SEC_BUFFER)pBuffer;
 
     pSessionKey->usLength = 0;
-    if(pChlngMsg->NtlmFlags & NTLM_FLAG_KEY_EXCH)
+    if (pChlngMsg->NtlmFlags & NTLM_FLAG_KEY_EXCH)
     {
         // we won't fill this in until after we return from this function, but
         // we'll save space to fill in later
@@ -1063,7 +997,7 @@ NtlmCreateResponseMessage(
 
     pBuffer += sizeof(pChlngMsg->NtlmFlags);
 
-    if(pOsVersion)
+    if (pOsVersion)
     {
         memcpy(pBuffer, pOsVersion, NTLM_WIN_SPOOF_SIZE);
         pBuffer += NTLM_WIN_SPOOF_SIZE;
@@ -1103,11 +1037,11 @@ NtlmCreateResponseMessage(
 
     pMessage->AuthTargetName.dwOffset = pBuffer - (PBYTE)pMessage;
     pTrav = (PBYTE)pAuthTargetName;
-    while(*pTrav)
+    while (*pTrav)
     {
         *pBuffer = *pTrav;
         pBuffer++;
-        if(pChlngMsg->NtlmFlags & NTLM_FLAG_UNICODE)
+        if (pChlngMsg->NtlmFlags & NTLM_FLAG_UNICODE)
         {
             pBuffer++;
         }
@@ -1116,11 +1050,11 @@ NtlmCreateResponseMessage(
 
     pMessage->UserName.dwOffset = pBuffer - (PBYTE)pMessage;
     pTrav = (PBYTE)pUserName;
-    while(*pTrav)
+    while (*pTrav)
     {
         *pBuffer = *pTrav;
         pBuffer++;
-        if(pChlngMsg->NtlmFlags & NTLM_FLAG_UNICODE)
+        if (pChlngMsg->NtlmFlags & NTLM_FLAG_UNICODE)
         {
             pBuffer++;
         }
@@ -1129,11 +1063,11 @@ NtlmCreateResponseMessage(
 
     pMessage->Workstation.dwOffset = pBuffer - (PBYTE)pMessage;
     pTrav = (PBYTE)pWorkstation;
-    while(*pTrav)
+    while (*pTrav)
     {
         *pBuffer = *pTrav;
         pBuffer++;
-        if(pChlngMsg->NtlmFlags & NTLM_FLAG_UNICODE)
+        if (pChlngMsg->NtlmFlags & NTLM_FLAG_UNICODE)
         {
             pBuffer++;
         }
@@ -1193,22 +1127,37 @@ NtlmWeakenSessionKey(
     )
 {
     // Only weaken the key if LanManagerSessionKey was used
-    if(pChlngMsg->NtlmFlags & NTLM_FLAG_LM_KEY)
+    if (pChlngMsg->NtlmFlags & NTLM_FLAG_LM_KEY)
     {
-        if(pChlngMsg->NtlmFlags & NTLM_FLAG_56)
+        if (pChlngMsg->NtlmFlags & NTLM_FLAG_56)
         {
             pMasterKey[7] = 0xa0;
             memset(&pMasterKey[8], 0, 8);
+
+            // key strength is 56 bits
+            *pcbKeyLength = 7;
         }
-        else if(!(pChlngMsg->NtlmFlags & NTLM_FLAG_128))
+        else if (!(pChlngMsg->NtlmFlags & NTLM_FLAG_128))
         {
-            // TODO verify the endianness of this operation.  These values
-            // might be in reverse order.
             pMasterKey[5] = 0xe5;
             pMasterKey[6] = 0x38;
             pMasterKey[7] = 0xb0;
             memset(&pMasterKey[8], 0, 8);
+
+            // key strength is 40 bits
+            *pcbKeyLength = 5;
         }
+        else
+        {
+            // key strength is 128 bits
+            *pcbKeyLength = 16;
+        }
+    }
+    else
+    {
+        // key weakening is only used if the LanManagerSessionKey is used.
+        // this key is full strength... 128 bits
+        *pcbKeyLength = 16;
     }
 }
 
@@ -1222,16 +1171,17 @@ NtlmGetAuthTargetNameFromChallenge(
     DWORD dwError = LW_ERROR_SUCCESS;
     PCHAR pName = NULL;
     DWORD dwNameLength = 0;
+    DWORD nIndex = 0;
+    // The following pointers point into pChlngMsg and will not be freed
     PBYTE pBuffer = NULL;
     PNTLM_SEC_BUFFER pTargetSecBuffer = &pChlngMsg->Target;
-    DWORD nIndex = 0;
 
     *ppAuthTargetName = NULL;
 
     dwNameLength = pTargetSecBuffer->usLength;
     pBuffer = pTargetSecBuffer->dwOffset + (PBYTE)pChlngMsg;
 
-    if(pChlngMsg->NtlmFlags & NTLM_FLAG_OEM)
+    if (pChlngMsg->NtlmFlags & NTLM_FLAG_OEM)
     {
         dwError = LwAllocateMemory(dwNameLength + 1, OUT_PPVOID(&pName));
         BAIL_ON_LW_ERROR(dwError);
@@ -1245,7 +1195,7 @@ NtlmGetAuthTargetNameFromChallenge(
         dwError = LwAllocateMemory(dwNameLength + 1, OUT_PPVOID(&pName));
         BAIL_ON_LW_ERROR(dwError);
 
-        for(nIndex = 0; nIndex < dwNameLength; nIndex++)
+        for (nIndex = 0; nIndex < dwNameLength; nIndex++)
         {
             pName[nIndex] = pBuffer[nIndex * sizeof(WCHAR)];
         }
@@ -1273,13 +1223,13 @@ NtlmBuildResponse(
 {
     DWORD dwError = LW_ERROR_SUCCESS;
 
-    if(!pChlngMsg)
+    if (!pChlngMsg)
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LW_ERROR(dwError);
     }
 
-    switch(dwResponseType)
+    switch (dwResponseType)
     {
     case NTLM_RESPONSE_TYPE_LM:
         {
@@ -1375,14 +1325,14 @@ NtlmBuildLmResponse(
 
     // if password is less than 15 characters, create LM hash, otherwise, the
     // hash is set to zero.
-    if(dwPasswordLen <= NTLM_LM_MAX_PASSWORD_SIZE)
+    if (dwPasswordLen <= NTLM_LM_MAX_PASSWORD_SIZE)
     {
         // convert the password to upper case
-        for(dwIndex = 0; dwIndex < NTLM_LM_MAX_PASSWORD_SIZE; dwIndex++)
+        for (dwIndex = 0; dwIndex < NTLM_LM_MAX_PASSWORD_SIZE; dwIndex++)
         {
             LmHash[dwIndex] = toupper(pPassword[dwIndex]);
 
-            if(!pPassword[dwIndex])
+            if (!pPassword[dwIndex])
             {
                 break;
             }
@@ -1559,8 +1509,8 @@ NtlmBuildNtlmV2Response(
         &dwKeyLen);
 
 cleanup:
-    LSA_SAFE_FREE_MEMORY(pTarget);
-    LSA_SAFE_FREE_MEMORY(pBlob);
+    LW_SAFE_FREE_MEMORY(pTarget);
+    LW_SAFE_FREE_MEMORY(pBlob);
 
     return dwError;
 error:
@@ -1579,16 +1529,18 @@ NtlmCreateNtlmV2Blob(
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
-    PNTLM_BLOB pNtlmBlob = NULL;
     BYTE BlobSignature[] = NTLM_BLOB_SIGNATURE;
-    PBYTE pBuffer = NULL;
     PBYTE pOriginal = NULL;
     DWORD dwBlobSize = 0;
-    PNTLM_SEC_BUFFER pTargetInfo = NULL;
-    PBYTE pTargetBuffer = NULL;
-    PBYTE pChallenge = NULL;
     BYTE TempBlobHash[NTLM_HASH_SIZE] = {0};
     DWORD dwKeyLen = NTLM_HASH_SIZE;
+    // The following pointers point into pOriginal and will not be freed
+    PNTLM_BLOB pNtlmBlob = NULL;
+    PBYTE pBuffer = NULL;
+    // The following Pointers point into pChlngMsg and will not be freed
+    PBYTE pChallenge = NULL;
+    PNTLM_SEC_BUFFER pTargetInfo = NULL;
+    PBYTE pTargetBuffer = NULL;
 
     *ppBlob = NULL;
     *pdwSize = 0;
@@ -1611,7 +1563,7 @@ NtlmCreateNtlmV2Blob(
         pTargetInfo->usLength +
         NTLM_BLOB_TRAILER_SIZE;
 
-    dwError = LsaAllocateMemory(dwBlobSize, OUT_PPVOID(&pOriginal));
+    dwError = LwAllocateMemory(dwBlobSize, OUT_PPVOID(&pOriginal));
     BAIL_ON_LW_ERROR(dwError);
 
     // the beginning of the blob will contain the final hash value, so push
@@ -1660,7 +1612,7 @@ cleanup:
     *ppBlob = pOriginal;
     return dwError;
 error:
-    LSA_SAFE_FREE_MEMORY(pOriginal);
+    LW_SAFE_FREE_MEMORY(pOriginal);
     goto cleanup;
 }
 
@@ -1696,6 +1648,54 @@ NtlmBuildAnonymousResponse(
 
 /******************************************************************************/
 DWORD
+NtlmGetUserNameFromResponse(
+    IN PNTLM_RESPONSE_MESSAGE pRespMsg,
+    IN BOOLEAN bUnicode,
+    OUT PSTR* ppUserName
+    )
+{
+    DWORD dwError = LW_ERROR_SUCCESS;
+    PCHAR pName = NULL;
+    DWORD dwNameLength = 0;
+    PBYTE pBuffer = NULL;
+    PNTLM_SEC_BUFFER pSecBuffer = &pRespMsg->UserName;
+    DWORD nIndex = 0;
+
+    *ppUserName = NULL;
+
+    dwNameLength = pSecBuffer->usLength;
+    pBuffer = pSecBuffer->dwOffset + (PBYTE)pRespMsg;
+
+    if (!bUnicode)
+    {
+        dwError = LwAllocateMemory(dwNameLength + 1, OUT_PPVOID(&pName));
+        BAIL_ON_LW_ERROR(dwError);
+
+        memcpy(pName, pBuffer, dwNameLength);
+    }
+    else
+    {
+        dwNameLength = dwNameLength / sizeof(WCHAR);
+
+        dwError = LwAllocateMemory(dwNameLength + 1, OUT_PPVOID(&pName));
+        BAIL_ON_LW_ERROR(dwError);
+
+        for (nIndex = 0; nIndex < dwNameLength; nIndex++)
+        {
+            pName[nIndex] = pBuffer[nIndex * sizeof(WCHAR)];
+        }
+    }
+
+cleanup:
+    *ppUserName = pName;
+    return dwError;
+error:
+    LW_SAFE_FREE_STRING(pName);
+    goto cleanup;
+}
+
+/******************************************************************************/
+DWORD
 NtlmCalculateResponseSize(
     IN PNTLM_CHALLENGE_MESSAGE  pChlngMsg,
     IN DWORD                    dwResponseType,
@@ -1705,7 +1705,7 @@ NtlmCalculateResponseSize(
     DWORD dwError = LW_ERROR_SUCCESS;
     DWORD dwSize = 0;
 
-    if(!pChlngMsg)
+    if (!pChlngMsg)
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LW_ERROR(dwError);
@@ -1713,7 +1713,7 @@ NtlmCalculateResponseSize(
 
     *pdwSize = 0;
 
-    switch(dwResponseType)
+    switch (dwResponseType)
     {
     case NTLM_RESPONSE_TYPE_LM:
     case NTLM_RESPONSE_TYPE_LMv2:
@@ -1757,6 +1757,7 @@ NtlmCalculateNtlmV2ResponseSize(
     OUT PDWORD pdwSize
     )
 {
+    // The following pointers point into pChlngMsg and will not be freed
     PNTLM_SEC_BUFFER pTargetInfo = NULL;
 
     pTargetInfo =
@@ -1785,10 +1786,10 @@ NtlmCreateNtlmV1Hash(
 
     memset(Hash, 0, MD4_DIGEST_LENGTH);
 
-    dwError = LsaAllocateMemory(dwTempPassSize, OUT_PPVOID(&pwcTempPass));
+    dwError = LwAllocateMemory(dwTempPassSize, OUT_PPVOID(&pwcTempPass));
     BAIL_ON_LW_ERROR(dwError);
 
-    while(*pPassword)
+    while (*pPassword)
     {
         *pwcTempPass = *pPassword;
         pwcTempPass++;
@@ -1805,7 +1806,7 @@ NtlmCreateNtlmV1Hash(
     BAIL_ON_LW_ERROR(dwError);
 
 cleanup:
-    LSA_SAFE_FREE_MEMORY(pwcTempPass);
+    LW_SAFE_FREE_MEMORY(pwcTempPass);
     return dwError;
 error:
     memset(Hash, 0, MD4_DIGEST_LENGTH);
@@ -1824,27 +1825,28 @@ NtlmCreateNtlmV2Hash(
     DWORD dwError = LW_ERROR_SUCCESS;
     DWORD dwTempBufferSize = 0;
     PWSTR pTempBuffer = NULL;
-    PWCHAR pTrav = NULL;
     DWORD dwKeySize = NTLM_HASH_SIZE;
+    // The following pointers point into pTempBuffer and will not be freed
+    PWCHAR pTrav = NULL;
 
     memset(NtlmV2Hash, 0, MD4_DIGEST_LENGTH);
 
     dwTempBufferSize = (strlen(pDomain) + strlen(pUserName)) * sizeof(WCHAR);
 
-    dwError = LsaAllocateMemory(dwTempBufferSize, OUT_PPVOID(&pTempBuffer));
+    dwError = LwAllocateMemory(dwTempBufferSize, OUT_PPVOID(&pTempBuffer));
     BAIL_ON_LW_ERROR(dwError);
 
     pTrav = pTempBuffer;
 
     // remember that the user name is converted to upper case
-    while(*pUserName)
+    while (*pUserName)
     {
         *pTrav = toupper(*pUserName);
         pTrav++;
         pUserName++;
     }
 
-    while(*pDomain)
+    while (*pDomain)
     {
         *pTrav = *pDomain;
         pTrav++;
@@ -1861,7 +1863,7 @@ NtlmCreateNtlmV2Hash(
         &dwKeySize);
 
 cleanup:
-    LSA_SAFE_FREE_MEMORY(pTempBuffer);
+    LW_SAFE_FREE_MEMORY(pTempBuffer);
     return dwError;
 error:
     memset(NtlmV2Hash, 0, MD4_DIGEST_LENGTH);
@@ -1880,6 +1882,7 @@ NtlmGenerateLanManagerSessionKey(
     ULONG64 ulKey2 = 0;
     BYTE KeyBuffer[NTLM_SESSION_KEY_SIZE] = {0};
     DES_key_schedule DesKeySchedule;
+    // The following pointers point into pMessage and will not be freed
     PNTLM_SEC_BUFFER pLmSecBuffer = NULL;
     PBYTE pLmResponse = NULL;
 
@@ -1924,7 +1927,7 @@ NtlmCreateMD4Digest(
 
     dwError = MD4_Init(&Md4Ctx);
 
-    if(dwError != 1)
+    if (dwError != 1)
     {
         dwError = LW_ERROR_INTERNAL;
         BAIL_ON_LW_ERROR(dwError);
@@ -1932,7 +1935,7 @@ NtlmCreateMD4Digest(
 
     dwError = MD4_Update(&Md4Ctx, pBuffer, dwBufferLen);
 
-    if(dwError != 1)
+    if (dwError != 1)
     {
         dwError = LW_ERROR_INTERNAL;
         BAIL_ON_LW_ERROR(dwError);
@@ -1940,7 +1943,7 @@ NtlmCreateMD4Digest(
 
     dwError = MD4_Final(MD4Digest, &Md4Ctx);
 
-    if(dwError != 1)
+    if (dwError != 1)
     {
         dwError = LW_ERROR_INTERNAL;
         BAIL_ON_LW_ERROR(dwError);
@@ -1966,7 +1969,7 @@ NtlmCreateKeyFromHash(
 
     LW_ASSERT(dwLength <= 7);
 
-    for(nIndex = 0; nIndex < dwLength; nIndex++)
+    for (nIndex = 0; nIndex < dwLength; nIndex++)
     {
         ((PBYTE)(&Key))[6 - nIndex] = pBuffer[nIndex];
     }

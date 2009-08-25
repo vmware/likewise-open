@@ -49,13 +49,13 @@
 
 DWORD
 NtlmServerExportSecurityContext(
-    IN PLSA_CONTEXT_HANDLE phContext,
+    IN PNTLM_CONTEXT_HANDLE phContext,
     IN DWORD fFlags,
     OUT PSecBuffer pPackedContext,
     OUT OPTIONAL HANDLE *pToken
     )
 {
-    DWORD dwError = 0;
+    DWORD dwError = LW_ERROR_SUCCESS;
 
-    return(dwError);
+    return dwError;
 }

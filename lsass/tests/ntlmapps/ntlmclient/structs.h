@@ -30,4 +30,49 @@ typedef struct _FLAGMAPPING
     PCHAR realname;
 } FLAGMAPPING, *PFLAGMAPPING;
 
+typedef struct _NTLM_MESSAGE
+{
+    UCHAR NtlmSignature[8];
+    DWORD MessageType;
+} NTLM_MESSAGE, *PNTLM_MESSAGE;
+
+typedef struct _NTLM_NEGOTIATE_MESSAGE
+{
+    UCHAR NtlmSignature[8];
+    DWORD MessageType;
+    DWORD NtlmFlags;
+    // Optional Supplied Domain NTLM_SEC_BUFFER
+    // Optional Supplied Workstation NTLM_SEC_BUFFER
+    // Optional OS Version 8 bytes
+    // Optional Data
+} NTLM_NEGOTIATE_MESSAGE, *PNTLM_NEGOTIATE_MESSAGE;
+
+typedef struct _NTLM_CHALLENGE_MESSAGE
+{
+    UCHAR NtlmSignature[8];
+    DWORD MessageType;
+    NTLM_SEC_BUFFER Target;
+    DWORD NtlmFlags;
+    UCHAR Challenge[8];
+    // Optional Context 8 bytes
+    // Optional Target Information NTLM_SEC_BUFFER
+    // Optional OS Version 8 bytes
+    // Optional Data
+} NTLM_CHALLENGE_MESSAGE, *PNTLM_CHALLENGE_MESSAGE;
+
+typedef struct _NTLM_RESPONSE_MESSAGE
+{
+    UCHAR NtlmSignature[8];
+    DWORD MessageType;
+    NTLM_SEC_BUFFER LmResponse;
+    NTLM_SEC_BUFFER NtResponse;
+    NTLM_SEC_BUFFER AuthTargetName;
+    NTLM_SEC_BUFFER UserName;
+    NTLM_SEC_BUFFER Workstation;
+    // Optional Session Key NTLM_SEC_BUFFER
+    // Optional Flags 4 bytes
+    // Optional OS Version 8 bytes
+    // Optional Data
+} NTLM_RESPONSE_MESSAGE, *PNTLM_RESPONSE_MESSAGE;
+
 #endif  //_NTLM_CLIENT_STRUCTS_H_

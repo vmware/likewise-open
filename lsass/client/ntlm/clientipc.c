@@ -55,11 +55,15 @@ NtlmOpenServer(
     PNTLM_CLIENT_CONNECTION_CONTEXT pContext = NULL;
     static LWMsgTime connectTimeout = {2, 0};
 
-    BAIL_ON_INVALID_POINTER(phConnection);
+    if (!phConnection)
+    {
+        dwError = LW_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LW_ERROR(dwError);
+    }
 
     dwError = LwAllocateMemory(
         sizeof(NTLM_CLIENT_CONNECTION_CONTEXT),
-        (PVOID*)(PVOID)&pContext
+        OUT_PPVOID(&pContext)
         );
 
     BAIL_ON_LW_ERROR(dwError);
@@ -90,7 +94,7 @@ NtlmOpenServer(
                                   CACHEDIR "/" NTLM_SERVER_FILENAME));
     BAIL_ON_LW_ERROR(dwError);
 
-    if(getenv("LW_DISABLE_CONNECT_TIMEOUT") == NULL)
+    if (getenv("LW_DISABLE_CONNECT_TIMEOUT") == NULL)
     {
         /* Give up connecting within 2 seconds in case lsassd
            is unresponsive (e.g. it's being traced in a debugger) */
@@ -109,19 +113,19 @@ NtlmOpenServer(
 cleanup:
     return dwError;
 error:
-    if(pContext)
+    if (pContext)
     {
-        if(pContext->pAssoc)
+        if (pContext->pAssoc)
         {
             lwmsg_assoc_delete(pContext->pAssoc);
         }
-        if(pContext->pProtocol)
+        if (pContext->pProtocol)
         {
             lwmsg_protocol_delete(pContext->pProtocol);
         }
         LwFreeMemory(pContext);
     }
-    if(phConnection)
+    if (phConnection)
     {
         *phConnection = (HANDLE)INVALID_HANDLE;
     }
@@ -137,13 +141,13 @@ NtlmCloseServer(
     PNTLM_CLIENT_CONNECTION_CONTEXT pContext =
         (PNTLM_CLIENT_CONNECTION_CONTEXT)hConnection;
 
-    if(pContext->pAssoc)
+    if (pContext->pAssoc)
     {
         lwmsg_assoc_close(pContext->pAssoc);
         lwmsg_assoc_delete(pContext->pAssoc);
     }
 
-    if(pContext->pProtocol)
+    if (pContext->pProtocol)
     {
         lwmsg_protocol_delete(pContext->pProtocol);
     }
@@ -157,11 +161,11 @@ DWORD
 NtlmTransactAcceptSecurityContext(
     IN HANDLE hServer,
     IN PNTLM_CRED_HANDLE phCredential,
-    IN OUT PLSA_CONTEXT_HANDLE phContext,
+    IN OUT PNTLM_CONTEXT_HANDLE phContext,
     IN PSecBufferDesc pInput,
     IN DWORD fContextReq,
     IN DWORD TargetDataRep,
-    IN OUT PLSA_CONTEXT_HANDLE phNewContext,
+    IN OUT PNTLM_CONTEXT_HANDLE phNewContext,
     IN OUT PSecBufferDesc pOutput,
     OUT PDWORD  pfContextAttr,
     OUT PTimeStamp ptsTimeStamp
@@ -188,7 +192,7 @@ NtlmTransactAcceptSecurityContext(
     LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     AcceptSecCtxtReq.hCredential = *phCredential;
-    if(phContext)
+    if (phContext)
     {
         AcceptSecCtxtReq.hContext = *phContext;
     }
@@ -207,7 +211,7 @@ NtlmTransactAcceptSecurityContext(
                               &response));
     BAIL_ON_LW_ERROR(dwError);
 
-    switch(response.tag)
+    switch (response.tag)
     {
         case NTLM_R_ACCEPT_SEC_CTXT_SUCCESS:
             pResultList = (PNTLM_IPC_ACCEPT_SEC_CTXT_RESPONSE)response.object;
@@ -215,17 +219,13 @@ NtlmTransactAcceptSecurityContext(
             dwError = NtlmTransferSecBufferDesc(pOutput, &pResultList->Output);
             BAIL_ON_LW_ERROR(dwError);
 
-            if(phContext)
-            {
-                *phContext = pResultList->hContext;
-            }
             *phNewContext = pResultList->hNewContext;
             *pfContextAttr = pResultList->fContextAttr;
             *ptsTimeStamp = pResultList->tsTimeStamp;
             dwError = pResultList->dwStatus;
 
             break;
-        case NTLM_R_ACCEPT_SEC_CTXT_FAILURE:
+        case NTLM_R_GENERIC_FAILURE:
             pError = (PNTLM_IPC_ERROR) response.object;
             dwError = pError->dwError;
             BAIL_ON_LW_ERROR(dwError);
@@ -241,7 +241,7 @@ error:
     *pfContextAttr = 0;
     *ptsTimeStamp = 0;
 
-    if(response.object)
+    if (response.object)
     {
         lwmsg_assoc_free_message(pContext->pAssoc, &response);
     }
@@ -292,7 +292,7 @@ NtlmTransactAcquireCredentialsHandle(
                               &response));
     BAIL_ON_LW_ERROR(dwError);
 
-    switch(response.tag)
+    switch (response.tag)
     {
         case NTLM_R_ACQUIRE_CREDS_SUCCESS:
             pResultList = (PNTLM_IPC_ACQUIRE_CREDS_RESPONSE)response.object;
@@ -301,7 +301,7 @@ NtlmTransactAcquireCredentialsHandle(
             *ptsExpiry = pResultList->tsExpiry;
 
             break;
-        case NTLM_R_ACQUIRE_CREDS_FAILURE:
+        case NTLM_R_GENERIC_FAILURE:
             pError = (PNTLM_IPC_ERROR) response.object;
             dwError = pError->dwError;
             BAIL_ON_LW_ERROR(dwError);
@@ -325,10 +325,10 @@ error:
 DWORD
 NtlmTransactDecryptMessage(
     IN HANDLE hServer,
-    IN PLSA_CONTEXT_HANDLE phContext,
+    IN PNTLM_CONTEXT_HANDLE phContext,
     IN OUT PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo,
-    OUT PBOOL pbEncrypted
+    OUT PBOOLEAN pbEncrypted
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -361,7 +361,7 @@ NtlmTransactDecryptMessage(
                               &response));
     BAIL_ON_LW_ERROR(dwError);
 
-    switch(response.tag)
+    switch (response.tag)
     {
         case NTLM_R_DECRYPT_MSG_SUCCESS:
             pResultList = (PNTLM_IPC_DECRYPT_MSG_RESPONSE)response.object;
@@ -375,7 +375,7 @@ NtlmTransactDecryptMessage(
             memcpy(pbEncrypted, &pResultList->bEncrypted, sizeof(BOOL));
 
             break;
-        case NTLM_R_DECRYPT_MSG_FAILURE:
+        case NTLM_R_GENERIC_FAILURE:
             pError = (PNTLM_IPC_ERROR) response.object;
             dwError = pError->dwError;
             BAIL_ON_LW_ERROR(dwError);
@@ -388,7 +388,7 @@ NtlmTransactDecryptMessage(
 cleanup:
     return dwError;
 error:
-    if(response.object)
+    if (response.object)
     {
         lwmsg_assoc_free_message(pContext->pAssoc, &response);
     }
@@ -398,7 +398,7 @@ error:
 DWORD
 NtlmTransactDeleteSecurityContext(
     IN HANDLE hServer,
-    IN PLSA_CONTEXT_HANDLE phContext
+    IN PNTLM_CONTEXT_HANDLE phContext
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -428,11 +428,11 @@ NtlmTransactDeleteSecurityContext(
                               &response));
     BAIL_ON_LW_ERROR(dwError);
 
-    switch(response.tag)
+    switch (response.tag)
     {
         case NTLM_R_DELETE_SEC_CTXT_SUCCESS:
             break;
-        case NTLM_R_DELETE_SEC_CTXT_FAILURE:
+        case NTLM_R_GENERIC_FAILURE:
             pError = (PNTLM_IPC_ERROR) response.object;
             dwError = pError->dwError;
             BAIL_ON_LW_ERROR(dwError);
@@ -445,7 +445,7 @@ NtlmTransactDeleteSecurityContext(
 cleanup:
     return dwError;
 error:
-    if(response.object)
+    if (response.object)
     {
         lwmsg_assoc_free_message(pContext->pAssoc, &response);
     }
@@ -455,8 +455,8 @@ error:
 DWORD
 NtlmTransactEncryptMessage(
     IN HANDLE hServer,
-    IN PLSA_CONTEXT_HANDLE phContext,
-    IN BOOL bEncrypt,
+    IN PNTLM_CONTEXT_HANDLE phContext,
+    IN BOOLEAN bEncrypt,
     IN OUT PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo
     )
@@ -492,7 +492,7 @@ NtlmTransactEncryptMessage(
                               &response));
     BAIL_ON_LW_ERROR(dwError);
 
-    switch(response.tag)
+    switch (response.tag)
     {
         case NTLM_R_ENCRYPT_MSG_SUCCESS:
             pResultList = (PNTLM_IPC_ENCRYPT_MSG_RESPONSE)response.object;
@@ -504,7 +504,7 @@ NtlmTransactEncryptMessage(
             BAIL_ON_LW_ERROR(dwError);
 
             break;
-        case NTLM_R_ENCRYPT_MSG_FAILURE:
+        case NTLM_R_GENERIC_FAILURE:
             pError = (PNTLM_IPC_ERROR) response.object;
             dwError = pError->dwError;
             BAIL_ON_LW_ERROR(dwError);
@@ -517,7 +517,7 @@ NtlmTransactEncryptMessage(
 cleanup:
     return dwError;
 error:
-    if(response.object)
+    if (response.object)
     {
         lwmsg_assoc_free_message(pContext->pAssoc, &response);
     }
@@ -527,7 +527,7 @@ error:
 DWORD
 NtlmTransactExportSecurityContext(
     IN HANDLE hServer,
-    IN PLSA_CONTEXT_HANDLE phContext,
+    IN PNTLM_CONTEXT_HANDLE phContext,
     IN DWORD fFlags,
     OUT PSecBuffer pPackedContext,
     OUT OPTIONAL HANDLE *pToken
@@ -562,7 +562,7 @@ NtlmTransactExportSecurityContext(
                               &response));
     BAIL_ON_LW_ERROR(dwError);
 
-    switch(response.tag)
+    switch (response.tag)
     {
         case NTLM_R_EXPORT_SEC_CTXT_SUCCESS:
             pResultList = (PNTLM_IPC_EXPORT_SEC_CTXT_RESPONSE)response.object;
@@ -571,13 +571,13 @@ NtlmTransactExportSecurityContext(
             pPackedContext->BufferType = pResultList->PackedContext.BufferType;
             pPackedContext->pvBuffer = pResultList->PackedContext.pvBuffer;
 
-            if(pToken)
+            if (pToken)
             {
                 memcpy(pToken, &pResultList->hToken, sizeof(HANDLE));
             }
 
             break;
-        case NTLM_R_EXPORT_SEC_CTXT_FAILURE:
+        case NTLM_R_GENERIC_FAILURE:
             pError = (PNTLM_IPC_ERROR) response.object;
             dwError = pError->dwError;
             BAIL_ON_LW_ERROR(dwError);
@@ -590,7 +590,7 @@ NtlmTransactExportSecurityContext(
 cleanup:
     return dwError;
 error:
-    if(response.object)
+    if (response.object)
     {
         lwmsg_assoc_free_message(pContext->pAssoc, &response);
     }
@@ -630,11 +630,11 @@ NtlmTransactFreeCredentialsHandle(
                               &response));
     BAIL_ON_LW_ERROR(dwError);
 
-    switch(response.tag)
+    switch (response.tag)
     {
         case NTLM_R_FREE_CREDS_SUCCESS:
             break;
-        case NTLM_R_FREE_CREDS_FAILURE:
+        case NTLM_R_GENERIC_FAILURE:
             pError = (PNTLM_IPC_ERROR) response.object;
             dwError = pError->dwError;
             BAIL_ON_LW_ERROR(dwError);
@@ -647,7 +647,7 @@ NtlmTransactFreeCredentialsHandle(
 cleanup:
     return dwError;
 error:
-    if(response.object)
+    if (response.object)
     {
         lwmsg_assoc_free_message(pContext->pAssoc, &response);
     }
@@ -660,7 +660,7 @@ NtlmTransactImportSecurityContext(
     IN PSECURITY_STRING *pszPackage,
     IN PSecBuffer pPackedContext,
     IN OPTIONAL HANDLE pToken,
-    OUT PLSA_CONTEXT_HANDLE phContext
+    OUT PNTLM_CONTEXT_HANDLE phContext
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -693,7 +693,7 @@ NtlmTransactImportSecurityContext(
                               &response));
     BAIL_ON_LW_ERROR(dwError);
 
-    switch(response.tag)
+    switch (response.tag)
     {
         case NTLM_R_IMPORT_SEC_CTXT_SUCCESS:
             pResultList = (PNTLM_IPC_IMPORT_SEC_CTXT_RESPONSE)response.object;
@@ -701,7 +701,7 @@ NtlmTransactImportSecurityContext(
             *phContext = pResultList->hContext;
 
             break;
-        case NTLM_R_IMPORT_SEC_CTXT_FAILURE:
+        case NTLM_R_GENERIC_FAILURE:
             pError = (PNTLM_IPC_ERROR) response.object;
             dwError = pError->dwError;
             BAIL_ON_LW_ERROR(dwError);
@@ -714,7 +714,7 @@ NtlmTransactImportSecurityContext(
 cleanup:
     return dwError;
 error:
-    if(response.object)
+    if (response.object)
     {
         lwmsg_assoc_free_message(pContext->pAssoc, &response);
     }
@@ -725,14 +725,14 @@ DWORD
 NtlmTransactInitializeSecurityContext(
     IN HANDLE hServer,
     IN OPTIONAL PNTLM_CRED_HANDLE phCredential,
-    IN OPTIONAL PLSA_CONTEXT_HANDLE phContext,
+    IN OPTIONAL PNTLM_CONTEXT_HANDLE phContext,
     IN OPTIONAL SEC_CHAR * pszTargetName,
     IN DWORD fContextReq,
     IN DWORD Reserved1,
     IN DWORD TargetDataRep,
     IN OPTIONAL PSecBufferDesc pInput,
     IN DWORD Reserved2,
-    IN OUT OPTIONAL PLSA_CONTEXT_HANDLE phNewContext,
+    IN OUT OPTIONAL PNTLM_CONTEXT_HANDLE phNewContext,
     IN OUT OPTIONAL PSecBufferDesc pOutput,
     OUT PDWORD pfContextAttr,
     OUT OPTIONAL PTimeStamp ptsExpiry
@@ -755,11 +755,11 @@ NtlmTransactInitializeSecurityContext(
     LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
     LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
-    if(phCredential)
+    if (phCredential)
     {
         InitSecCtxtReq.hCredential = *phCredential;
     }
-    if(phContext)
+    if (phContext)
     {
         InitSecCtxtReq.hContext = *phContext;
     }
@@ -769,7 +769,7 @@ NtlmTransactInitializeSecurityContext(
     InitSecCtxtReq.TargetDataRep = TargetDataRep;
     InitSecCtxtReq.pInput = pInput;
     InitSecCtxtReq.Reserved2 = Reserved2;
-    if(phNewContext)
+    if (phNewContext)
     {
         InitSecCtxtReq.hNewContext = *phNewContext;
     }
@@ -784,12 +784,12 @@ NtlmTransactInitializeSecurityContext(
                               &response));
     BAIL_ON_LW_ERROR(dwError);
 
-    switch(response.tag)
+    switch (response.tag)
     {
         case NTLM_R_INIT_SEC_CTXT_SUCCESS:
             pResultList = (PNTLM_IPC_INIT_SEC_CTXT_RESPONSE)response.object;
 
-            if(pOutput)
+            if (pOutput)
             {
 
                 dwError = NtlmTransferSecBufferDesc(
@@ -800,14 +800,14 @@ NtlmTransactInitializeSecurityContext(
 
             }
 
-            if(phNewContext)
+            if (phNewContext)
             {
                 *phNewContext = pResultList->hNewContext;
             }
 
             *pfContextAttr = pResultList->fContextAttr;
 
-            if(ptsExpiry)
+            if (ptsExpiry)
             {
                *ptsExpiry = pResultList->tsExpiry;
             }
@@ -815,7 +815,7 @@ NtlmTransactInitializeSecurityContext(
             dwError = pResultList->dwStatus;
 
             break;
-        case NTLM_R_INIT_SEC_CTXT_FAILURE:
+        case NTLM_R_GENERIC_FAILURE:
             pError = (PNTLM_IPC_ERROR) response.object;
             dwError = pError->dwError;
             BAIL_ON_LW_ERROR(dwError);
@@ -829,7 +829,7 @@ cleanup:
     return dwError;
 
 error:
-    if(response.object)
+    if (response.object)
     {
         lwmsg_assoc_free_message(pContext->pAssoc, &response);
     }
@@ -844,8 +844,8 @@ error:
 DWORD
 NtlmTransactMakeSignature(
     IN HANDLE hServer,
-    IN PLSA_CONTEXT_HANDLE phContext,
-    IN BOOL bEncrypt,
+    IN PNTLM_CONTEXT_HANDLE phContext,
+    IN BOOLEAN bEncrypt,
     IN OUT PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo
     )
@@ -881,7 +881,7 @@ NtlmTransactMakeSignature(
                               &response));
     BAIL_ON_LW_ERROR(dwError);
 
-    switch(response.tag)
+    switch (response.tag)
     {
         case NTLM_R_MAKE_SIGN_SUCCESS:
             pResultList = (PNTLM_IPC_MAKE_SIGN_RESPONSE)response.object;
@@ -893,7 +893,7 @@ NtlmTransactMakeSignature(
             BAIL_ON_LW_ERROR(dwError);
 
             break;
-        case NTLM_R_MAKE_SIGN_FAILURE:
+        case NTLM_R_GENERIC_FAILURE:
             pError = (PNTLM_IPC_ERROR) response.object;
             dwError = pError->dwError;
             BAIL_ON_LW_ERROR(dwError);
@@ -906,7 +906,7 @@ NtlmTransactMakeSignature(
 cleanup:
     return dwError;
 error:
-    if(response.object)
+    if (response.object)
     {
         lwmsg_assoc_free_message(pContext->pAssoc, &response);
     }
@@ -916,7 +916,7 @@ error:
 DWORD
 NtlmTransactQueryContextAttributes(
     IN HANDLE hServer,
-    IN PLSA_CONTEXT_HANDLE phContext,
+    IN PNTLM_CONTEXT_HANDLE phContext,
     IN DWORD ulAttribute,
     OUT PVOID pBuffer
     )
@@ -950,17 +950,42 @@ NtlmTransactQueryContextAttributes(
                               &response));
     BAIL_ON_LW_ERROR(dwError);
 
-    switch(response.tag)
+    switch (response.tag)
     {
         case NTLM_R_QUERY_CTXT_SUCCESS:
             pResultList = (PNTLM_IPC_QUERY_CTXT_RESPONSE)response.object;
 
-            // for now, the only result we query for is a size structure
-            // which doesn't need a deep copy
-            memcpy(pBuffer, pResultList->pBuffer, pResultList->dwBufferSize);
+            switch(pResultList->ulAttribute)
+            {
+            case SECPKG_ATTR_NAMES:
+                memcpy(
+                    pBuffer,
+                    pResultList->Buffer.pNames,
+                    sizeof(SecPkgContext_Names));
+                pResultList->Buffer.pNames = NULL;
+                break;
+            case SECPKG_ATTR_SESSION_KEY:
+                memcpy(
+                    pBuffer,
+                    pResultList->Buffer.pSessionKey,
+                    sizeof(SecPkgContext_SessionKey));
+                pResultList->Buffer.pSessionKey = NULL;
+                break;
+            case SECPKG_ATTR_SIZES:
+                memcpy(
+                    pBuffer,
+                    pResultList->Buffer.pSizes,
+                    sizeof(SecPkgContext_Sizes));
+                pResultList->Buffer.pSizes = NULL;
+                break;
+            default:
+                dwError = LW_ERROR_INVALID_PARAMETER;
+                BAIL_ON_LW_ERROR(dwError);
+                break;
+            }
 
             break;
-        case NTLM_R_QUERY_CTXT_FAILURE:
+        case NTLM_R_GENERIC_FAILURE:
             pError = (PNTLM_IPC_ERROR) response.object;
             dwError = pError->dwError;
             BAIL_ON_LW_ERROR(dwError);
@@ -973,7 +998,7 @@ NtlmTransactQueryContextAttributes(
 cleanup:
     return dwError;
 error:
-    if(response.object)
+    if (response.object)
     {
         lwmsg_assoc_free_message(pContext->pAssoc, &response);
     }
@@ -1017,7 +1042,7 @@ NtlmTransactQueryCredentialsAttributes(
                               &response));
     BAIL_ON_LW_ERROR(dwError);
 
-    switch(response.tag)
+    switch (response.tag)
     {
         case NTLM_R_QUERY_CREDS_SUCCESS:
             pResultList = (PNTLM_IPC_QUERY_CREDS_RESPONSE)response.object;
@@ -1027,7 +1052,7 @@ NtlmTransactQueryCredentialsAttributes(
             memcpy(pBuffer, pResultList->pBuffer, pResultList->dwBufferSize);
 
             break;
-        case NTLM_R_QUERY_CREDS_FAILURE:
+        case NTLM_R_GENERIC_FAILURE:
             pError = (PNTLM_IPC_ERROR) response.object;
             dwError = pError->dwError;
             BAIL_ON_LW_ERROR(dwError);
@@ -1040,7 +1065,7 @@ NtlmTransactQueryCredentialsAttributes(
 cleanup:
     return dwError;
 error:
-    if(response.object)
+    if (response.object)
     {
         lwmsg_assoc_free_message(pContext->pAssoc, &response);
     }
@@ -1050,11 +1075,11 @@ error:
 DWORD
 NtlmTransactVerifySignature(
     IN HANDLE hServer,
-    IN PLSA_CONTEXT_HANDLE phContext,
+    IN PNTLM_CONTEXT_HANDLE phContext,
     IN PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo,
-    OUT PBOOL pbVerified,
-    OUT PBOOL pbEncrypted
+    OUT PBOOLEAN pbVerified,
+    OUT PBOOLEAN pbEncrypted
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -1087,7 +1112,7 @@ NtlmTransactVerifySignature(
                               &response));
     BAIL_ON_LW_ERROR(dwError);
 
-    switch(response.tag)
+    switch (response.tag)
     {
         case NTLM_R_VERIFY_SIGN_SUCCESS:
             pResultList = (PNTLM_IPC_VERIFY_SIGN_RESPONSE)response.object;
@@ -1096,7 +1121,7 @@ NtlmTransactVerifySignature(
             memcpy(pbEncrypted, &pResultList->bEncrypted, sizeof(BOOL));
 
             break;
-        case NTLM_R_VERIFY_SIGN_FAILURE:
+        case NTLM_R_GENERIC_FAILURE:
             pError = (PNTLM_IPC_ERROR) response.object;
             dwError = pError->dwError;
             BAIL_ON_LW_ERROR(dwError);
@@ -1109,7 +1134,7 @@ NtlmTransactVerifySignature(
 cleanup:
     return dwError;
 error:
-    if(response.object)
+    if (response.object)
     {
         lwmsg_assoc_free_message(pContext->pAssoc, &response);
     }
@@ -1125,13 +1150,13 @@ NtlmTransferSecBufferDesc(
     DWORD dwError = LW_ERROR_SUCCESS;
     DWORD nIndex = 0;
 
-    if(pOut->cBuffers != pIn->cBuffers)
+    if (pOut->cBuffers != pIn->cBuffers)
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LW_ERROR(dwError);
     }
 
-    for(nIndex= 0; nIndex < pIn->cBuffers; nIndex++)
+    for (nIndex= 0; nIndex < pIn->cBuffers; nIndex++)
     {
         pOut->pBuffers[nIndex].pvBuffer = pIn->pBuffers[nIndex].pvBuffer;
         pOut->pBuffers[nIndex].BufferType = pIn->pBuffers[nIndex].BufferType;

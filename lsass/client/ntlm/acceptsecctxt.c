@@ -51,11 +51,11 @@ DWORD
 NtlmClientAcceptSecurityContext(
     IN HANDLE hServer,
     IN PNTLM_CRED_HANDLE phCredential,
-    IN OUT PLSA_CONTEXT_HANDLE phContext,
+    IN OUT PNTLM_CONTEXT_HANDLE phContext,
     IN PSecBufferDesc pInput,
     IN DWORD fContextReq,
     IN DWORD TargetDataRep,
-    IN OUT PLSA_CONTEXT_HANDLE phNewContext,
+    IN OUT PNTLM_CONTEXT_HANDLE phNewContext,
     IN OUT PSecBufferDesc pOutput,
     OUT PDWORD  pfContextAttr,
     OUT PTimeStamp ptsTimeStamp
@@ -79,7 +79,7 @@ NtlmClientAcceptSecurityContext(
         ptsTimeStamp
         );
 
-    if(dwError != LW_WARNING_CONTINUE_NEEDED)
+    if (dwError != LW_WARNING_CONTINUE_NEEDED)
     {
         BAIL_ON_LW_ERROR(dwError);
     }

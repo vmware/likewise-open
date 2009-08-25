@@ -48,7 +48,13 @@
 #ifndef __CLIENT_H__
 #define __CLIENT_H__
 
-#include <ntlm/ntlm.h>
+#include <config.h>
+
+#include <lwdef.h>
+#include <lwmem.h>
+
+#include <ntlm/sspintlm.h>
+#include <ntlm/gssntlm.h>
 #include <ntlmipc.h>
 
 #include "defines.h"

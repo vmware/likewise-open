@@ -19,7 +19,6 @@ libsrvsvcutils_la_LIBADD = \
     @LIBUNISTR_LIBS@
 
 libsrvsvcutils_la_CFLAGS = \
-    -g                     \
     -DSRVSVC_BUILD         \
     -DLIBRPC_BUILD
 

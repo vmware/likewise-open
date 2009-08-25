@@ -24,6 +24,9 @@ liblsa_la_SOURCES = \
     lsa_lookupnames3.c          \
     lsa_queryinfopolicy.c       \
     lsa_queryinfopolicy2.c      \
+    lsa_domaincache.c           \
+    lsa_accounts.c              \
+    lsa_accesstoken.c           \
     lsa_contexthandle.c
 
 DCEIDL_PASS_INCLUDES = \
@@ -34,7 +37,6 @@ DCEIDL_PASS_INCLUDES = \
 FEATURETEST_FLAGS="-D_XOPEN_SOURCE=500 -D__EXTENSIONS__ -D_REENTRANT"
 
 liblsa_la_CFLAGS = \
-    -g                       \
     -DLIBRPC_BUILD           \
     $(FEATURETEST_FLAGS)     \
     -I$(srv_srcdir)/include  \

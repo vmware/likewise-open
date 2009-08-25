@@ -27,6 +27,13 @@ typedef struct account_names {
 } ACCOUNT_NAMES, *PACCOUNT_NAMES;
 
 
+typedef struct account_sids {
+    PSID   *ppSids;
+    PDWORD  pdwIndices;
+    DWORD   dwCount;
+} ACCOUNT_SIDS, *PACCOUNT_SIDS;
+
+
 #define BAIL_ON_NTSTATUS_ERROR(status)                   \
     do {                                                 \
         if ((status) != STATUS_SUCCESS) {                \
@@ -40,6 +47,26 @@ typedef struct account_names {
     do {                                                 \
         if ((ptr) == NULL) {                             \
             status = STATUS_NO_MEMORY;                   \
+            goto error;                                  \
+        }                                                \
+    } while (0)
+
+
+#define BAIL_ON_INVALID_PTR(ptr)                         \
+    do {                                                 \
+        if (ptr == NULL) {                               \
+            ntStatus = STATUS_INVALID_PARAMETER;         \
+            LSA_LOG_ERROR("Error: invalid pointer");     \
+            goto error;                                  \
+        }                                                \
+    } while (0)
+
+
+#define BAIL_ON_INVALID_PARAMETER(cond)                  \
+    do {                                                 \
+        if (!(cond)) {                                   \
+            ntStatus = STATUS_INVALID_PARAMETER;         \
+            LSA_LOG_ERROR("Error: invalid parameter");   \
             goto error;                                  \
         }                                                \
     } while (0)

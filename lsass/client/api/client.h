@@ -64,6 +64,3 @@
 #include "session_p.h"
 #include "users_p.h"
 #include "config_p.h"
-
-#include "ntlmgsssrv.h"
-
