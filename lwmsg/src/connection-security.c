@@ -122,7 +122,7 @@ lwmsg_local_token_copy(
 {
     LocalTokenPrivate* priv = lwmsg_security_token_get_private(token);
 
-    return lwmsg_local_token_new(priv->euid, priv->egid, out_token);
+    return lwmsg_local_token_new(priv->euid, priv->egid, priv->pid, out_token);
 }
 
 LWMsgStatus
@@ -155,6 +155,30 @@ error:
     return status;
 }
 
+LWMsgStatus
+lwmsg_local_token_get_pid(
+    LWMsgSecurityToken* token,
+    pid_t *out_pid
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    LocalTokenPrivate* priv = lwmsg_security_token_get_private(token);
+
+    if (strcmp(lwmsg_security_token_get_type(token), "local"))
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_PARAMETER);
+    }
+
+    if (out_pid)
+    {
+        *out_pid = priv->pid;
+    }
+
+error:
+
+    return status;
+}
+
 static LWMsgSecurityTokenClass local_class =
 {
     .private_size = sizeof(LocalTokenPrivate),
@@ -171,6 +195,7 @@ LWMsgStatus
 lwmsg_local_token_new(
     uid_t euid,
     gid_t egid,
+    pid_t pid,
     LWMsgSecurityToken** out_token
     )
 {
@@ -184,6 +209,7 @@ lwmsg_local_token_new(
 
     priv->euid = euid;
     priv->egid = egid;
+    priv->pid = pid;
 
     *out_token = token;
 
@@ -201,6 +227,7 @@ lwmsg_local_token_from_socket_peer(
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     uid_t uid;
     gid_t gid;
+    pid_t pid = (pid_t)-1;
 
 #if !defined(HAVE_PEERID_METHOD)
     BAIL_ON_ERROR(status = LWMSG_STATUS_UNIMPLEMENTED);
@@ -220,10 +247,11 @@ lwmsg_local_token_from_socket_peer(
 
     uid = creds.uid;
     gid = creds.gid;
+    pid = creds.pid;
 
 #endif
 
-    BAIL_ON_ERROR(status = lwmsg_local_token_new(uid, gid, out_token));
+    BAIL_ON_ERROR(status = lwmsg_local_token_new(uid, gid, pid, out_token));
 
 error:
 

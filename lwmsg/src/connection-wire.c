@@ -1329,7 +1329,7 @@ lwmsg_connection_finish_recv_handshake(
                 ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_SECURITY, "Received invalid security token");
             }
             
-            BAIL_ON_ERROR(status = lwmsg_local_token_new(statbuf.st_uid, statbuf.st_gid, &priv->sec_token));
+            BAIL_ON_ERROR(status = lwmsg_local_token_new(statbuf.st_uid, statbuf.st_gid, (pid_t)-1, &priv->sec_token));
         }
         else if (priv->endpoint)
         {
@@ -1343,13 +1343,13 @@ lwmsg_connection_finish_recv_handshake(
                               &uid,
                               &gid));
 
-            BAIL_ON_ERROR(status = lwmsg_local_token_new(uid, gid, &priv->sec_token));
+            BAIL_ON_ERROR(status = lwmsg_local_token_new(uid, gid, (pid_t)-1, &priv->sec_token));
         }
 #endif
     }
     else if (priv->mode == LWMSG_CONNECTION_MODE_PAIR)
     {
-        BAIL_ON_ERROR(status = lwmsg_local_token_new(getuid(), getgid(), &priv->sec_token));
+        BAIL_ON_ERROR(status = lwmsg_local_token_new(getuid(), getgid(), getpid(), &priv->sec_token));
     }
 
     /* Register session with local session manager */
