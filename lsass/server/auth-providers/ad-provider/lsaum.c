@@ -101,11 +101,12 @@ LsaUmCleanup(
 DWORD
 LsaUmAddUser(
     IN uid_t Uid,
+    IN PCSTR pszUserName,
     IN PCSTR pszPassword,
     IN DWORD dwEndTime
     )
 {
-    return LsaUmpAddUser(gLsaUmState, Uid, pszPassword, dwEndTime);
+    return LsaUmpAddUser(gLsaUmState, Uid, pszUserName, pszPassword, dwEndTime);
 }
 
 DWORD

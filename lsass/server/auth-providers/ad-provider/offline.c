@@ -70,6 +70,7 @@ AD_OfflineAuthenticateUser(
     PLSA_PASSWORD_VERIFIER pVerifier = NULL;
     PSTR pszEnteredPasswordVerifier = NULL;
     PBYTE pbHash = NULL;
+    PSTR pszNT4UserName = NULL;
 
     dwError = AD_FindUserObjectByName(
                 hProvider,
@@ -106,8 +107,16 @@ AD_OfflineAuthenticateUser(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
+    dwError = LwAllocateStringPrintf(
+        &pszNT4UserName,
+        "%s\\%s",
+        pUserInfo->pszNetbiosDomainName,
+        pUserInfo->userInfo.pszUPN);
+    BAIL_ON_LSA_ERROR(dwError);
+
     dwError = LsaUmAddUser(
                   pUserInfo->userInfo.uid,
+                  pszNT4UserName,
                   pszPassword,
                   0);
     BAIL_ON_LSA_ERROR(dwError);
@@ -118,6 +127,7 @@ cleanup:
     LSA_DB_SAFE_FREE_PASSWORD_VERIFIER(pVerifier);
     LW_SAFE_FREE_STRING(pszEnteredPasswordVerifier);
     LW_SAFE_FREE_MEMORY(pbHash);
+    LW_SAFE_FREE_STRING(pszNT4UserName);
 
     return dwError;
 

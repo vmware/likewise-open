@@ -64,6 +64,7 @@ LsaUmCleanup(
 DWORD
 LsaUmAddUser(
     IN uid_t Uid,
+    IN PCSTR pszUserName,
     IN PCSTR pszPassword,
     IN DWORD dwEndTime
     );

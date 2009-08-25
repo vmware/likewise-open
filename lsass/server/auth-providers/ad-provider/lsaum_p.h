@@ -71,10 +71,11 @@ LsaUmpTriggerCheckUsersThread(
 
 DWORD
 LsaUmpAddUser(
-    IN LSA_UM_STATE_HANDLE Handle,
-    IN uid_t               uUid,
-    IN PCSTR               pszPassword,
-    IN DWORD               dwEndTime
+    IN LSA_UM_STATE_HANDLE  Handle,
+    IN uid_t                uUid,
+    IN PCSTR                pszUserName,
+    IN PCSTR                pszPassword,
+    IN DWORD                dwEndTime
     );
 
 DWORD

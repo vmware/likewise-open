@@ -1552,6 +1552,7 @@ AD_OnlineAuthenticateUser(
     PLSA_SECURITY_OBJECT pUserInfo = NULL;
     DWORD dwGoodUntilTime = 0;
     BOOLEAN bFoundDomain = FALSE;
+    PSTR pszNT4UserName = NULL;
 
     dwError = LsaCrackDomainQualifiedName(
                     pszLoginId,
@@ -1591,13 +1592,23 @@ AD_OnlineAuthenticateUser(
                     pszPassword);
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = LwAllocateStringPrintf(
+        &pszNT4UserName,
+        "%s\\%s",
+        pUserInfo->pszNetbiosDomainName,
+        pUserInfo->pszSamAccountName);
+    BAIL_ON_LSA_ERROR(dwError);
+
     dwError = LsaUmAddUser(
                   pUserInfo->userInfo.uid,
+                  pszNT4UserName,
                   pszPassword,
                   dwGoodUntilTime);
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
+
+    LW_SAFE_FREE_STRING(pszNT4UserName);
 
     if (pLoginInfo)
     {
