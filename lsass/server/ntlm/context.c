@@ -1529,7 +1529,7 @@ NtlmCreateNtlmV2Blob(
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
-    BYTE BlobSignature[] = NTLM_BLOB_SIGNATURE;
+    BYTE BlobSignature[NTLM_BLOB_SIGNATURE_SIZE] = NTLM_BLOB_SIGNATURE;
     PBYTE pOriginal = NULL;
     DWORD dwBlobSize = 0;
     BYTE TempBlobHash[NTLM_HASH_SIZE] = {0};
@@ -1572,7 +1572,7 @@ NtlmCreateNtlmV2Blob(
 
     memcpy(
         pNtlmBlob->NtlmBlobSignature,
-        BlobSignature,
+        &BlobSignature[0],
         NTLM_BLOB_SIGNATURE_SIZE);
 
     pNtlmBlob->Reserved1 = 0;
