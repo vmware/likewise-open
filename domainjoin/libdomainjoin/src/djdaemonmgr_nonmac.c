@@ -704,7 +704,7 @@ DJConfigureForDaemonRestart(
     {
         BOOLEAN bUsesSVCS = FALSE;
 
-        LW_CLEANUP_CTERR(exc, CTCheckFileExists("usr/sbin/svcadm", &bUsesSVCS));
+        LW_CLEANUP_CTERR(exc, CTCheckFileExists("/usr/sbin/svcadm", &bUsesSVCS));
         if (bUsesSVCS)
         {
             /* On newer Solaris system, in order for a daemon to start in multi-user mode,
@@ -803,25 +803,25 @@ DJConfigureForDaemonRestart(
                 LW_TRY(exc, FindDaemonScript(pszDaemonName,
                             &symlinkTarget, &LW_EXC));
                 LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&symlinkName,
-                        "/exe/rc0.d/K%02d%s", stopPriority, relativeName));
+                        "/etc/rc0.d/K%02d%s", stopPriority, relativeName));
                 LW_TRY(exc,
                         DJOverwriteSymlink(symlinkTarget, symlinkName, &LW_EXC));
                 CT_SAFE_FREE_STRING(symlinkName);
 
                 LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&symlinkName,
-                        "/exe/rc1.d/K%02d%s", stopPriority, relativeName));
+                        "/etc/rc1.d/K%02d%s", stopPriority, relativeName));
                 LW_TRY(exc,
                         DJOverwriteSymlink(symlinkTarget, symlinkName, &LW_EXC));
                 CT_SAFE_FREE_STRING(symlinkName);
 
                 LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&symlinkName,
-                        "/exe/rcS.d/K%02d%s", stopPriority, relativeName));
+                        "/etc/rcS.d/K%02d%s", stopPriority, relativeName));
                 LW_TRY(exc,
                         DJOverwriteSymlink(symlinkTarget, symlinkName, &LW_EXC));
                 CT_SAFE_FREE_STRING(symlinkName);
 
                 LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&symlinkName,
-                        "/exe/rc2.d/S%02d%s", startPriority, relativeName));
+                        "/etc/rc2.d/S%02d%s", startPriority, relativeName));
                 LW_TRY(exc,
                         DJOverwriteSymlink(symlinkTarget, symlinkName, &LW_EXC));
             }
