@@ -3105,11 +3105,21 @@ AD_CreateK5Login(
             pszK5LoginPath_tmp,
             O_CREAT|O_WRONLY|O_EXCL,
             S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
-    if (fd < 0) {
-        if (errno == EEXIST) {
+    if (fd < 0)
+    {
+        if (errno == EEXIST)
+        {
             goto cleanup;
-        } else {
-            dwError = errno;
+        }
+        else if (errno == EACCES)
+        {
+            LSA_LOG_WARNING("Failed to create temporary k5login file at '%s' due to insufficient permissions. Most likely the user's home directory is NFS mounted from a server with root squash enabled.",
+                          pszK5LoginPath_tmp);
+            goto cleanup;
+        }
+        else
+        {
+            dwError = LwMapErrnoToLwError(errno);
             BAIL_ON_LSA_ERROR(dwError);
         }
     }

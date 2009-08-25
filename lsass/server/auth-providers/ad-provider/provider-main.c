@@ -450,6 +450,7 @@ DWORD
 AD_OpenHandle(
     uid_t   uid,
     gid_t   gid,
+    pid_t   pid,
     PHANDLE phProvider
     )
 {
@@ -463,6 +464,7 @@ AD_OpenHandle(
 
     pContext->uid = uid;
     pContext->gid = gid;
+    pContext->pid = pid;
 
     *phProvider = (HANDLE)pContext;
 

@@ -62,6 +62,7 @@ typedef struct __AD_PROVIDER_CONTEXT
 {
     uid_t uid;
     gid_t gid;
+    pid_t pid;
 } AD_PROVIDER_CONTEXT, *PAD_PROVIDER_CONTEXT;
 
 typedef struct _AD_LINKED_CELL_INFO

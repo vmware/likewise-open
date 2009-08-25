@@ -68,6 +68,7 @@ DWORD
 AD_OpenHandle(
     uid_t   uid,
     gid_t   gid,
+    pid_t   pid,
     PHANDLE phProvider
     );
 

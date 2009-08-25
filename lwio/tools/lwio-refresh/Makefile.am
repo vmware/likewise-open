@@ -10,3 +10,4 @@ lwio_refresh_CPPFLAGS =  \
 lwio_refresh_LDADD = \
     @top_builddir@/client/liblwioclient.la
 
+lwio_refresh_LDFLAGS = -L$(top_builddir)/common/.libs

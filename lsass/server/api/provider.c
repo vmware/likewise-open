@@ -107,6 +107,10 @@ cleanup:
 
 error:
 
+    LSA_LOG_ERROR_API_FAILED(hServer, dwError,
+        "run provider specific request (request code = %u, provider = '%s')",
+        dwIoControlCode, LSA_SAFE_LOG_STRING(pszProvider));
+
     *pdwOutputBufferSize = 0;
     *ppOutputBuffer = NULL;
 

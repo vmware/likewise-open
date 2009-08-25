@@ -233,6 +233,27 @@ lwmsg_local_token_get_eid(
     gid_t *out_egid
     );
 
+/**
+ * @brief Retrieve client pid from a "local" security token
+ *
+ * Retrives the pid of the program connecting to the server based off a local
+ * access token (that is, a token for which #lwmsg_security_token_get_type()
+ * returns "local")
+ *
+ * @param token the local security token
+ * @param out_pid the client pid. If the platform does not support querying the
+ *       pid of processes connecting over a unix domain socket, this will be -1.
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_code{INVALID_PARAMETER, the provided token was not of the correct type}
+ */
+LWMsgStatus
+lwmsg_local_token_get_pid(
+    LWMsgSecurityToken* token,
+    pid_t *out_pid
+    );
+
+
 #ifndef DOXYGEN
 extern LWMsgCustomTypeClass lwmsg_fd_type_class;
 #endif

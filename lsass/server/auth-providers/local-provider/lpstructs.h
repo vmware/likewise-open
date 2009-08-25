@@ -79,6 +79,7 @@ typedef struct __LOCAL_PROVIDER_CONTEXT
 
     uid_t uid;
     gid_t gid;
+    pid_t pid;
 
     LOCAL_ADMIN_STATE localAdminState;
 

@@ -157,6 +157,7 @@ cleanup:
     return dwError;
 
 error:
+    LSA_LOG_ERROR_API_FAILED(hServer, dwError, "get lsass status");
 
     if (ppLsaStatus)
     {

@@ -73,6 +73,7 @@ LADSFindUserByName(
             dwError = gpAuthProvider->pFnTable->pfnOpenHandle(
                                           geteuid(),
                                           getegid(),
+                                          getpid(),
                                           &hProvider);
             BAIL_ON_LSA_ERROR(dwError);
 
@@ -146,6 +147,7 @@ LADSFindUserById(
             dwError = gpAuthProvider->pFnTable->pfnOpenHandle(
                                           geteuid(),
                                           getegid(),
+                                          getpid(),
                                           &hProvider);
             BAIL_ON_LSA_ERROR(dwError);
 
@@ -211,6 +213,7 @@ LADSEnumUsers(
         dwError = gpAuthProvider->pFnTable->pfnOpenHandle(
                                       geteuid(),
                                       getegid(),
+                                      getpid(),
                                       &hProvider);
         BAIL_ON_LSA_ERROR(dwError);
 
@@ -316,6 +319,7 @@ LADSFindGroupByName(
             dwError = gpAuthProvider->pFnTable->pfnOpenHandle(
                                           geteuid(),
                                           getegid(),
+                                          getpid(),
                                           &hProvider);
             BAIL_ON_LSA_ERROR(dwError);
 
@@ -390,6 +394,7 @@ LADSFindGroupById(
             dwError = gpAuthProvider->pFnTable->pfnOpenHandle(
                                           geteuid(),
                                           getegid(),
+                                          getpid(),
                                           &hProvider);
             BAIL_ON_LSA_ERROR(dwError);
 
@@ -456,6 +461,7 @@ LADSEnumGroups(
         dwError = gpAuthProvider->pFnTable->pfnOpenHandle(
                                       geteuid(),
                                       getegid(),
+                                      getpid(),
                                       &hProvider);
         BAIL_ON_LSA_ERROR(dwError);
 

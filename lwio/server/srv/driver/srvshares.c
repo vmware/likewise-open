@@ -303,7 +303,7 @@ SrvShareDevCtlEnum(
                 p2[i].shi2_type                = pShareInfo->service;
                 p2[i].shi2_remark              = pShareInfo->pwszComment;
                 p2[i].shi2_permissions         = 0;
-                p2[i].shi2_max_uses            = 0;
+                p2[i].shi2_max_uses            = (UINT32)-1;
                 p2[i].shi2_current_uses        = 0;
 
                 ntStatus = SrvShareMapToWindowsPath(
@@ -354,7 +354,7 @@ SrvShareDevCtlEnum(
                 p502[i].shi502_type                = pShareInfo->service;
                 p502[i].shi502_remark              = pShareInfo->pwszComment;
                 p502[i].shi502_permissions         = 0;
-                p502[i].shi502_max_uses            = 0;
+                p502[i].shi502_max_uses            = (UINT32)-1;
                 p502[i].shi502_current_uses        = 0;
 
                 ntStatus = SrvShareMapToWindowsPath(
@@ -556,7 +556,7 @@ SrvShareDevCtlGetInfo(
             p2->shi2_type                = pShareInfo->service;
             p2->shi2_remark              = pShareInfo->pwszComment;
             p2->shi2_permissions         = 0;
-            p2->shi2_max_uses            = 0;
+            p2->shi2_max_uses            = (UINT32)-1;
             p2->shi2_current_uses        = 0;
 
             ntStatus = SrvShareMapToWindowsPath(
@@ -597,7 +597,7 @@ SrvShareDevCtlGetInfo(
             p502->shi502_type                = pShareInfo->service;
             p502->shi502_remark              = pShareInfo->pwszComment;
             p502->shi502_permissions         = 0;
-            p502->shi502_max_uses            = 0;
+            p502->shi502_max_uses            = (UINT32)-1;
             p502->shi502_current_uses        = 0;
 
             ntStatus = SrvShareMapToWindowsPath(
@@ -696,6 +696,51 @@ error:
 }
 
 
+/***********************************************************************
+ **********************************************************************/
+
+static
+NTSTATUS
+SrvValidateShareNameChange(
+    PSRV_SHARE_INFO pShareInfo,
+    PWSTR pwszNewName
+    );
+
+static
+NTSTATUS
+SrvShareUpdateInfo0(
+    PSRV_SHARE_INFO pShareInfo,
+    PSHARE_INFO_0 pInfo0
+    );
+
+static
+NTSTATUS
+SrvShareUpdateInfo1(
+    PSRV_SHARE_INFO pShareInfo,
+    PSHARE_INFO_1 pInfo1
+    );
+
+static
+NTSTATUS
+SrvShareUpdateInfo2(
+    PSRV_SHARE_INFO pShareInfo,
+    PSHARE_INFO_2 pInfo2
+    );
+
+static
+NTSTATUS
+SrvShareUpdateInfo501(
+    PSRV_SHARE_INFO pShareInfo,
+    PSHARE_INFO_501 pInfo501
+    );
+
+static
+NTSTATUS
+SrvShareUpdateInfo502(
+    PSRV_SHARE_INFO pShareInfo,
+    PSHARE_INFO_502 pInfo502
+    );
+
 NTSTATUS
 SrvShareDevCtlSetInfo(
     IN     PBYTE lpInBuffer,
@@ -705,90 +750,75 @@ SrvShareDevCtlSetInfo(
     )
 {
     NTSTATUS ntStatus = 0;
-    ULONG ulLevel = 0;
-    PLWIO_SRV_SHARE_ENTRY_LIST pShareList = NULL;
+    PLWIO_SRV_SHARE_ENTRY_LIST pShareList = &gSMBSrvGlobals.shareList;
     PSHARE_INFO_SETINFO_PARAMS pSetShareInfoParamsIn = NULL;
-    PWSTR pwszShareName = NULL;
     PSRV_SHARE_INFO pShareInfo = NULL;
-    PSHARE_INFO_0 p0 = NULL;
-    PSHARE_INFO_1 p1 = NULL;
-    PSHARE_INFO_2 p2 = NULL;
-    PSHARE_INFO_501 p501 = NULL;
-    PSHARE_INFO_502 p502 = NULL;
+    BOOLEAN bShareLocked = FALSE;
 
     ntStatus = LwShareInfoUnmarshalSetParameters(
-                        lpInBuffer,
-                        ulInBufferSize,
-                        &pSetShareInfoParamsIn
-                        );
+                   lpInBuffer,
+                   ulInBufferSize,
+                   &pSetShareInfoParamsIn);
     BAIL_ON_NT_STATUS(ntStatus);
-
-    pShareList    = &gSMBSrvGlobals.shareList;
-    pwszShareName = pSetShareInfoParamsIn->pwszNetname;
-    ulLevel       = pSetShareInfoParamsIn->dwInfoLevel;
 
     ntStatus = SrvShareFindByName(
-                        pShareList,
-                        pwszShareName,
-                        &pShareInfo
-                        );
+                   pShareList,
+                   pSetShareInfoParamsIn->pwszNetname,
+                   &pShareInfo);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    switch (ulLevel) {
-    case 0:
-        p0 = pSetShareInfoParamsIn->Info.p0;
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bShareLocked, &pShareInfo->mutex);
 
-        pShareInfo->pwszName = p0->shi0_netname;
+    switch (pSetShareInfoParamsIn->dwInfoLevel)
+    {
+    case 0:
+        ntStatus = SrvShareUpdateInfo0(
+                       pShareInfo,
+                       pSetShareInfoParamsIn->Info.p0);
         break;
 
     case 1:
-        p1 = pSetShareInfoParamsIn->Info.p1;
-
-        pShareInfo->pwszName    = p1->shi1_netname;
-        pShareInfo->service     = p1->shi1_type;
-        pShareInfo->pwszComment = p1->shi1_remark;
+        ntStatus = SrvShareUpdateInfo1(
+                       pShareInfo,
+                       pSetShareInfoParamsIn->Info.p1);
         break;
 
     case 2:
-        p2 = pSetShareInfoParamsIn->Info.p2;
-
-        pShareInfo->pwszName    = p2->shi2_netname;
-        pShareInfo->service     = p2->shi2_type;
-        pShareInfo->pwszComment = p2->shi2_remark;
-        pShareInfo->pwszPath    = p2->shi2_path;
+        ntStatus = SrvShareUpdateInfo2(
+                       pShareInfo,
+                       pSetShareInfoParamsIn->Info.p2);
         break;
 
     case 501:
-        p501 = pSetShareInfoParamsIn->Info.p501;
-
-        pShareInfo->pwszName    = p501->shi501_netname;
-        pShareInfo->service     = p501->shi501_type;
-        pShareInfo->pwszComment = p501->shi501_remark;
+        ntStatus = SrvShareUpdateInfo501(
+                       pShareInfo,
+                       pSetShareInfoParamsIn->Info.p501);
         break;
 
     case 502:
-        p502 = pSetShareInfoParamsIn->Info.p502;
-
-        pShareInfo->pwszName    = p502->shi502_netname;
-        pShareInfo->service     = p502->shi502_type;
-        pShareInfo->pwszComment = p502->shi502_remark;
-        pShareInfo->pwszPath    = p502->shi502_path;
+        ntStatus = SrvShareUpdateInfo502(
+                       pShareInfo,
+                       pSetShareInfoParamsIn->Info.p502);
         break;
 
     default:
         ntStatus = STATUS_INVALID_LEVEL;
-        BAIL_ON_NT_STATUS(ntStatus);
         break;
     }
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    LWIO_UNLOCK_RWMUTEX(bShareLocked, &pShareInfo->mutex);
 
     ntStatus = SrvShareUpdate(
-                        pShareList,
-                        pwszShareName,
-                        pShareInfo
-                        );
+                   pShareList,
+                   pSetShareInfoParamsIn->pwszNetname,
+                   pShareInfo);
     BAIL_ON_NT_STATUS(ntStatus);
 
 error:
+
+    LWIO_UNLOCK_RWMUTEX(bShareLocked, &pShareInfo->mutex);
+
     if (pSetShareInfoParamsIn) {
         SrvFreeMemory(pSetShareInfoParamsIn);
     }
@@ -798,6 +828,412 @@ error:
     }
 
     return ntStatus;
+}
+
+
+/***********************************************************************
+ **********************************************************************/
+
+static
+NTSTATUS
+SrvValidateShareNameChange(
+    PSRV_SHARE_INFO pShareInfo,
+    PWSTR pwszNewName
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_SHARE_INFO pNewShareInfo = NULL;
+
+    if (pwszNewName == NULL)
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    /* This needs better locking to ensure that there is no race
+       window between the new name check and the update */
+
+    ntStatus = SrvShareFindByName(
+                   &gSMBSrvGlobals.shareList,
+                   pwszNewName,
+                   &pNewShareInfo);
+    if ((ntStatus == STATUS_SUCCESS) && (pShareInfo != pNewShareInfo))
+    {
+        ntStatus = STATUS_DUPLICATE_NAME;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+    ntStatus = STATUS_SUCCESS;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
+}
+
+
+/***********************************************************************
+ **********************************************************************/
+
+static
+NTSTATUS
+SrvShareUpdateInfo0(
+    PSRV_SHARE_INFO pShareInfo,
+    PSHARE_INFO_0 pInfo0
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    SRV_SHARE_INFO NewShareInfo = *pShareInfo;
+
+    /* Sanity Check */
+
+    ntStatus = SrvValidateShareNameChange(pShareInfo, pInfo0->shi0_netname);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    /* Setup new share info */
+
+    ntStatus = SrvAllocateStringW(pInfo0->shi0_netname, &NewShareInfo.pwszName);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    /* Struct copy to original share */
+
+    SrvFreeMemory(pShareInfo->pwszName);
+    pShareInfo->pwszName = NULL;
+
+    *pShareInfo = NewShareInfo;
+
+    ntStatus = STATUS_SUCCESS;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    if (NewShareInfo.pwszName)
+    {
+        SrvFreeMemory(NewShareInfo.pwszName);
+    }
+
+    goto cleanup;
+}
+
+
+/***********************************************************************
+ **********************************************************************/
+
+static
+NTSTATUS
+SrvShareUpdateInfo1(
+    PSRV_SHARE_INFO pShareInfo,
+    PSHARE_INFO_1 pInfo1
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    SRV_SHARE_INFO NewShareInfo = *pShareInfo;
+
+    /* Sanity Check */
+
+    if (pShareInfo->service != pInfo1->shi1_type)
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    ntStatus = SrvValidateShareNameChange(pShareInfo, pInfo1->shi1_netname);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    /* Setup New Share */
+
+    ntStatus = SrvAllocateStringW(pInfo1->shi1_netname, &NewShareInfo.pwszName);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (pInfo1->shi1_remark)
+    {
+        ntStatus = SrvAllocateStringW(pInfo1->shi1_remark, &NewShareInfo.pwszComment);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    /* Copy to the original share using struct copy */
+
+    SrvFreeMemory(pShareInfo->pwszName);
+    pShareInfo->pwszName = NULL;
+
+    if (pShareInfo->pwszComment)
+    {
+        SrvFreeMemory(pShareInfo->pwszComment);
+        pShareInfo->pwszComment = NULL;
+    }
+
+    *pShareInfo = NewShareInfo;
+
+    ntStatus = STATUS_SUCCESS;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    if (NewShareInfo.pwszName)
+    {
+        SrvFreeMemory(NewShareInfo.pwszName);
+    }
+
+    if (NewShareInfo.pwszComment)
+    {
+        SrvFreeMemory(NewShareInfo.pwszComment);
+    }
+
+    goto cleanup;
+}
+
+
+/***********************************************************************
+ **********************************************************************/
+
+static
+NTSTATUS
+SrvShareUpdateInfo2(
+    PSRV_SHARE_INFO pShareInfo,
+    PSHARE_INFO_2 pInfo2
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    SRV_SHARE_INFO NewShareInfo = *pShareInfo;
+
+    /* Sanity Check */
+
+    if (pShareInfo->service != pInfo2->shi2_type)
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if ((pInfo2->shi2_path == NULL) ||
+        (LwRtlWC16StringNumChars(pInfo2->shi2_path) == 0))
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    ntStatus = SrvValidateShareNameChange(pShareInfo, pInfo2->shi2_netname);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    /* Setup New Share */
+
+    ntStatus = SrvAllocateStringW(pInfo2->shi2_netname, &NewShareInfo.pwszName);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvShareMapFromWindowsPath(pInfo2->shi2_path, &NewShareInfo.pwszPath);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (pInfo2->shi2_remark)
+    {
+        ntStatus = SrvAllocateStringW(pInfo2->shi2_remark, &NewShareInfo.pwszComment);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    /* Copy to the original share using struct copy */
+
+    SrvFreeMemory(pShareInfo->pwszName);
+    pShareInfo->pwszName = NULL;
+
+    SrvFreeMemory(pShareInfo->pwszPath);
+    pShareInfo->pwszPath = NULL;
+
+    if (pShareInfo->pwszComment)
+    {
+        SrvFreeMemory(pShareInfo->pwszComment);
+        pShareInfo->pwszComment = NULL;
+    }
+
+    *pShareInfo = NewShareInfo;
+
+    ntStatus = STATUS_SUCCESS;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    if (NewShareInfo.pwszName)
+    {
+        SrvFreeMemory(NewShareInfo.pwszName);
+    }
+
+    if (NewShareInfo.pwszPath)
+    {
+        SrvFreeMemory(NewShareInfo.pwszPath);
+    }
+
+    if (NewShareInfo.pwszComment)
+    {
+        SrvFreeMemory(NewShareInfo.pwszComment);
+    }
+
+    goto cleanup;
+}
+
+
+/***********************************************************************
+ **********************************************************************/
+
+static
+NTSTATUS
+SrvShareUpdateInfo501(
+    PSRV_SHARE_INFO pShareInfo,
+    PSHARE_INFO_501 pInfo501
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    SRV_SHARE_INFO NewShareInfo = *pShareInfo;
+
+    /* Sanity Check */
+
+    if (pShareInfo->service != pInfo501->shi501_type)
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    ntStatus = SrvValidateShareNameChange(pShareInfo, pInfo501->shi501_netname);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    /* Setup New Share */
+
+    ntStatus = SrvAllocateStringW(pInfo501->shi501_netname, &NewShareInfo.pwszName);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (pInfo501->shi501_remark)
+    {
+        ntStatus = SrvAllocateStringW(pInfo501->shi501_remark, &NewShareInfo.pwszComment);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    /* Copy to the original share using struct copy */
+
+    SrvFreeMemory(pShareInfo->pwszName);
+    pShareInfo->pwszName = NULL;
+
+    if (pShareInfo->pwszComment)
+    {
+        SrvFreeMemory(pShareInfo->pwszComment);
+        pShareInfo->pwszComment = NULL;
+    }
+
+    *pShareInfo = NewShareInfo;
+
+    ntStatus = STATUS_SUCCESS;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    if (NewShareInfo.pwszName)
+    {
+        SrvFreeMemory(NewShareInfo.pwszName);
+    }
+
+    if (NewShareInfo.pwszComment)
+    {
+        SrvFreeMemory(NewShareInfo.pwszComment);
+    }
+
+    goto cleanup;
+}
+
+
+/***********************************************************************
+ **********************************************************************/
+
+static
+NTSTATUS
+SrvShareUpdateInfo502(
+    PSRV_SHARE_INFO pShareInfo,
+    PSHARE_INFO_502 pInfo502
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    SRV_SHARE_INFO NewShareInfo = *pShareInfo;
+
+    /* Sanity Check */
+
+    if (pShareInfo->service != pInfo502->shi502_type)
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if ((pInfo502->shi502_path == NULL) ||
+        (LwRtlWC16StringNumChars(pInfo502->shi502_path) == 0))
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    ntStatus = SrvValidateShareNameChange(pShareInfo, pInfo502->shi502_netname);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    /* Setup New Share */
+
+    ntStatus = SrvAllocateStringW(pInfo502->shi502_netname, &NewShareInfo.pwszName);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvShareMapFromWindowsPath(pInfo502->shi502_path, &NewShareInfo.pwszPath);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (pInfo502->shi502_remark)
+    {
+        ntStatus = SrvAllocateStringW(pInfo502->shi502_remark, &NewShareInfo.pwszComment);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    /* Copy to the original share using struct copy */
+
+    SrvFreeMemory(pShareInfo->pwszName);
+    pShareInfo->pwszName = NULL;
+
+    SrvFreeMemory(pShareInfo->pwszPath);
+    pShareInfo->pwszPath = NULL;
+
+    if (pShareInfo->pwszComment)
+    {
+        SrvFreeMemory(pShareInfo->pwszComment);
+        pShareInfo->pwszComment = NULL;
+    }
+
+    *pShareInfo = NewShareInfo;
+
+    ntStatus = STATUS_SUCCESS;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    if (NewShareInfo.pwszName)
+    {
+        SrvFreeMemory(NewShareInfo.pwszName);
+    }
+
+    if (NewShareInfo.pwszPath)
+    {
+        SrvFreeMemory(NewShareInfo.pwszPath);
+    }
+
+    if (NewShareInfo.pwszComment)
+    {
+        SrvFreeMemory(NewShareInfo.pwszComment);
+    }
+
+    goto cleanup;
 }
 
 

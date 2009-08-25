@@ -51,12 +51,14 @@ DWORD
 LsaSrvIpcCheckPermissions(
     LWMsgSecurityToken* token,
     uid_t* puid,
-    gid_t* pgid
+    gid_t* pgid,
+    pid_t* ppid
     )
 {
     DWORD dwError = 0;
-    uid_t euid;
-    gid_t egid;
+    uid_t euid = (uid_t)-1;
+    gid_t egid = (gid_t)-1;
+    pid_t cpid = (pid_t)-1;
 
     if (strcmp(lwmsg_security_token_get_type(token), "local"))
     {
@@ -68,14 +70,19 @@ LsaSrvIpcCheckPermissions(
     dwError = MAP_LWMSG_ERROR(lwmsg_local_token_get_eid(token, &euid, &egid));
     BAIL_ON_LSA_ERROR(dwError);
 
-    LSA_LOG_VERBOSE("Permission granted for (uid = %i, gid = %i) to open LsaIpcServer",
-                    (int) euid,
-                    (int) egid);
+    dwError = MAP_LWMSG_ERROR(lwmsg_local_token_get_pid(token, &cpid));
+    BAIL_ON_LSA_ERROR(dwError);
 
-    *puid = euid;
-    *pgid = egid;
+    LSA_LOG_VERBOSE("Permission granted for (uid = %i, gid = %i, pid = %i) to open LsaIpcServer",
+                    (int) euid,
+                    (int) egid,
+                    (int) cpid);
 
 error:
+    *puid = euid;
+    *pgid = egid;
+    *ppid = cpid;
+
     return dwError;
 }
 
@@ -99,11 +106,12 @@ LsaSrvIpcConstructSession(
     HANDLE Handle = (HANDLE)NULL;
     uid_t UID;
     gid_t GID;
+    pid_t PID;
 
-    dwError = LsaSrvIpcCheckPermissions(pToken, &UID, &GID);
+    dwError = LsaSrvIpcCheckPermissions(pToken, &UID, &GID, &PID);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaSrvOpenServer(UID, GID, &Handle);
+    dwError = LsaSrvOpenServer(UID, GID, PID, &Handle);
     BAIL_ON_LSA_ERROR(dwError);
 
     *ppSessionData = Handle;

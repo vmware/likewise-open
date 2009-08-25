@@ -239,6 +239,7 @@ typedef struct LocalTokenPrivate
 {
     uid_t euid;
     gid_t egid;
+    pid_t pid;
 } LocalTokenPrivate;
 
 
@@ -333,6 +334,7 @@ LWMsgStatus
 lwmsg_local_token_new(
     uid_t euid,
     gid_t egid,
+    pid_t pid,
     LWMsgSecurityToken** out_token
     );
 

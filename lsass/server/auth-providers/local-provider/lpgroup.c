@@ -2624,7 +2624,7 @@ LocalDirGetGroupMembershipByProvider(
     DWORD dwGroupsCount = 0;
     PVOID *ppMembershipInfo = NULL;
 
-    dwError = LsaAllocateStringPrintf(
+    dwError = LwAllocateStringPrintf(
                     &pszFilter,
                     pszFilterFmt,
                     pszSid,

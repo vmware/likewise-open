@@ -18,6 +18,8 @@ lwiod_LDADD = \
     @NETLOGON_LIBS@ \
     @LWMSG_LIBS@
 
+lwiod_LDFLAGS = -L$(top_builddir)/common/.libs
+
 if ENABLE_STATIC_DRIVERS
 
 if ENABLE_RDR

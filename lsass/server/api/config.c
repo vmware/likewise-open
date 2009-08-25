@@ -128,6 +128,7 @@ cleanup:
     return(dwError);
 
 error:
+    LSA_LOG_ERROR_API_FAILED(hServer, dwError, "refresh configuration");
 
     goto cleanup;
 
@@ -767,6 +768,8 @@ cleanup:
     return dwError;
 
 error:
+    LSA_LOG_ERROR_API_FAILED(hServer, dwError, "set machine sid (new sid = '%s')", LSA_SAFE_LOG_STRING(pszSID));
+
     goto cleanup;
 }
 

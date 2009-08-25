@@ -61,6 +61,8 @@ LsaSrvOpenSession(
 
     LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
 
+    BAIL_ON_INVALID_STRING(pszLoginId);
+
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
 
     dwError = LW_ERROR_NOT_HANDLED;
@@ -131,6 +133,7 @@ cleanup:
     return dwError;
 
 error:
+    LSA_LOG_ERROR_API_FAILED(hServer, dwError, "open session for user (name = '%s')", LSA_SAFE_LOG_STRING(pszLoginId));
 
     goto cleanup;
 }
@@ -212,6 +215,7 @@ cleanup:
     return dwError;
 
 error:
+    LSA_LOG_ERROR_API_FAILED(hServer, dwError, "close session for user (name = '%s')", LSA_SAFE_LOG_STRING(pszLoginId));
 
     goto cleanup;
 }

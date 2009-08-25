@@ -203,6 +203,17 @@ extern PFN_LSA_LOG_MESSAGE gpfnLogger;
 #define LSA_LOG_DEBUG(szFmt, ...) \
     _LSA_LOG_IF(LSA_LOG_LEVEL_DEBUG, szFmt, ## __VA_ARGS__)
 
+#define LSA_LOG_ERROR_API_FAILED(hServer, dwError, szFmt, ...) \
+    LSA_LOG_ERROR("Failed to " szFmt " -> error = %d, client pid = %ld", \
+         ## __VA_ARGS__, \
+         dwError, \
+         (long)(hServer? ((PLSA_SRV_API_STATE)hServer)->peerPID : getpid()))
+
+#define LSA_LOG_VERBOSE_ENTRY_NOT_FOUND(hServer, dwError, szFmt, ...) \
+    LSA_LOG_VERBOSE("Failed to " szFmt " -> error = no such entry, client pid = %ld", \
+         ## __VA_ARGS__, \
+         (long)(hServer? ((PLSA_SRV_API_STATE)hServer)->peerPID : getpid()))
+
 // Like assert() but also calls LSA_LOG.
 #define _LSA_ASSERT(Expression, Action) \
     do { \
