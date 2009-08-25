@@ -740,7 +740,7 @@ error:
     LSA_LOG_ERROR_API_FAILED(hServer, dwError, "lookup sids (count = %ld)", (long)sCount);
     for (sIndex = 0; sIndex < sCount; sIndex++)
     {
-        LSA_LOG_ERROR("Requested sid[%d] - %s", sIndex, LSA_SAFE_LOG_STRING(ppszSidList[sIndex]));
+        LSA_LOG_ERROR(" Requested sid[%d] - %s", sIndex, LSA_SAFE_LOG_STRING(ppszSidList[sIndex]));
     }
 
     *pppszDomainNames = NULL;
