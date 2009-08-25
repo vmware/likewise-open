@@ -135,11 +135,13 @@ cleanup:
 error:
 
     if (dwError == LW_ERROR_NOT_HANDLED ||
-                   dwError == LW_ERROR_NO_SUCH_USER) {
-        LSA_LOG_VERBOSE("Find user by name: [%s] is unknown", LW_IS_NULL_OR_EMPTY_STR(pszLoginId) ? "" : pszLoginId);
+        dwError == LW_ERROR_NO_SUCH_USER)
+    {
+        LSA_LOG_VERBOSE_ENTRY_NOT_FOUND(hServer, dwError, "find user by name (name = '%s')", LSA_SAFE_LOG_STRING(pszLoginId));
     }
-    else {
-        LSA_LOG_ERROR("Failed to find user by name [%s] [code %d]", LW_IS_NULL_OR_EMPTY_STR(pszLoginId) ? "" : pszLoginId, dwError);
+    else
+    {
+        LSA_LOG_ERROR_API_FAILED(hServer, dwError, "find user by name (name = '%s')", LSA_SAFE_LOG_STRING(pszLoginId));
     }
 
     *ppUserInfo = NULL;
@@ -226,11 +228,13 @@ cleanup:
 error:
 
     if (dwError == LW_ERROR_NOT_HANDLED ||
-                   dwError == LW_ERROR_NO_SUCH_USER) {
-        LSA_LOG_VERBOSE("Find user by id: [%ld] is unknown", (long)uid);
+        dwError == LW_ERROR_NO_SUCH_USER)
+    {
+        LSA_LOG_VERBOSE_ENTRY_NOT_FOUND(hServer, dwError, "find user by id (uid = %ld)", (long)uid);
     }
-    else {
-        LSA_LOG_ERROR("Failed to find user by id [%ld] [code %d]", (long)uid, dwError);
+    else
+    {
+        LSA_LOG_ERROR_API_FAILED(hServer, dwError, "find user by id (uid = %ld)", (long)uid);
     }
 
     *ppUserInfo = NULL;
@@ -317,6 +321,7 @@ cleanup:
     return(dwError);
 
 error:
+    LSA_LOG_ERROR_API_FAILED(hServer, dwError, "add user");
 
     goto cleanup;
 }
@@ -387,6 +392,7 @@ cleanup:
     return(dwError);
 
 error:
+    LSA_LOG_ERROR_API_FAILED(hServer, dwError, "modify user (uid %ld)", (long)pUserModInfo->uid);
 
     goto cleanup;
 }
@@ -452,6 +458,7 @@ cleanup:
     return(dwError);
 
 error:
+    LSA_LOG_ERROR_API_FAILED(hServer, dwError, "delete user (uid %ld)", (long)uid);
 
     goto cleanup;
 }
@@ -488,6 +495,7 @@ cleanup:
     return dwError;
 
 error:
+    LSA_LOG_ERROR_API_FAILED(hServer, dwError, "start enumerating users (info level %d)", dwUserInfoLevel);
 
     goto cleanup;
 }
@@ -567,6 +575,7 @@ cleanup:
     return(dwError);
 
 error:
+    LSA_LOG_ERROR_API_FAILED(hServer, dwError, "continue enumerating users");
 
     *pdwUserInfoLevel = 0;
     *pppUserInfoList = NULL;
@@ -728,6 +737,12 @@ cleanup:
     return(dwError);
 
 error:
+    LSA_LOG_ERROR_API_FAILED(hServer, dwError, "lookup sids (count = %ld)", (long)sCount);
+    for (sIndex = 0; sIndex < sCount; sIndex++)
+    {
+        LSA_LOG_ERROR("Requested sid[%d] - %s", sIndex, LSA_SAFE_LOG_STRING(ppszSidList[sIndex]));
+    }
+
     *pppszDomainNames = NULL;
     *pppszSamAccounts = NULL;
     *ppTypes = NULL;

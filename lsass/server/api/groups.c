@@ -119,9 +119,15 @@ cleanup:
     return(dwError);
 
 error:
-
-    LSA_LOG_ERROR("Failed to find group by name [%s]", LW_IS_NULL_OR_EMPTY_STR(pszGroup) ? "" : pszGroup);
-
+    if (dwError == LW_ERROR_NOT_HANDLED ||
+        dwError == LW_ERROR_NO_SUCH_GROUP)
+    {
+        LSA_LOG_VERBOSE_ENTRY_NOT_FOUND(hServer, dwError, "find group by name (name = '%s')", LSA_SAFE_LOG_STRING(pszGroup));
+    }
+    else
+    {
+        LSA_LOG_ERROR_API_FAILED(hServer, dwError, "find group by name (name = '%s')", LSA_SAFE_LOG_STRING(pszGroup));
+    }
     *ppGroupInfo = NULL;
 
     goto cleanup;
@@ -196,7 +202,15 @@ cleanup:
 
 error:
 
-    LSA_LOG_ERROR("Failed to find group by id [%ld]", (long)gid);
+    if (dwError == LW_ERROR_NOT_HANDLED ||
+        dwError == LW_ERROR_NO_SUCH_GROUP)
+    {
+        LSA_LOG_VERBOSE_ENTRY_NOT_FOUND(hServer, dwError, "find group by id (gid = %ld)", (long)gid);
+    }
+    else
+    {
+        LSA_LOG_ERROR_API_FAILED(hServer, dwError, "find group by id (gid = %ld)", (long)gid);
+    }
 
     *ppGroupInfo = NULL;
 
@@ -279,7 +293,24 @@ cleanup:
 
 error:
 
-    LSA_LOG_ERROR("Failed to get user groups for user [%ld]", (long)uid);
+    if (dwError == LW_ERROR_NOT_HANDLED ||
+        dwError == LW_ERROR_NO_SUCH_GROUP ||
+        dwError == LW_ERROR_NO_SUCH_OBJECT ||
+        dwError == LW_ERROR_NO_SUCH_USER)
+    {
+        if (pszUserName)
+        {
+            LSA_LOG_VERBOSE_ENTRY_NOT_FOUND(hServer, dwError, "get user groups for user (user name = '%s')", LSA_SAFE_LOG_STRING(pszUserName));
+        }
+        else
+        {
+            LSA_LOG_VERBOSE_ENTRY_NOT_FOUND(hServer, dwError, "get user groups for user (user id = %ld)", (long)uid);
+        }
+    }
+    else
+    {
+        LSA_LOG_ERROR_API_FAILED(hServer, dwError, "get user groups for user (user name = '%s', user id = %ld)", LSA_SAFE_LOG_STRING(pszUserName), (long)uid);
+    }
 
     *pdwGroupsFound = 0;
     *pppGroupInfoList = NULL;
@@ -361,6 +392,7 @@ cleanup:
     return(dwError);
 
 error:
+    LSA_LOG_ERROR_API_FAILED(hServer, dwError, "add group");
 
     goto cleanup;
 }
@@ -429,6 +461,8 @@ cleanup:
     return dwError;
 
 error:
+    LSA_LOG_ERROR_API_FAILED(hServer, dwError, "modify group (gid %ld)", (long)pGroupModInfo->gid);
+
     goto cleanup;
 }
 
@@ -490,6 +524,7 @@ cleanup:
     return(dwError);
 
 error:
+    LSA_LOG_ERROR_API_FAILED(hServer, dwError, "delete group (gid %ld)", (long)gid);
 
     goto cleanup;
 }
@@ -528,6 +563,7 @@ cleanup:
     return dwError;
 
 error:
+    LSA_LOG_ERROR_API_FAILED(hServer, dwError, "start enumerating groups (info level %d)", dwGroupInfoLevel);
 
     goto cleanup;
 }
@@ -609,6 +645,7 @@ cleanup:
     return(dwError);
 
 error:
+    LSA_LOG_ERROR_API_FAILED(hServer, dwError, "continue enumerating groups");
 
     *pdwGroupInfoLevel = 0;
     *pppGroupInfoList = NULL;

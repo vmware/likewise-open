@@ -139,11 +139,11 @@ error:
     if (dwError == LW_ERROR_NOT_HANDLED ||
         dwError == LW_ERROR_NO_SUCH_USER)
     {
-        LSA_LOG_VERBOSE("Failed authenticate unknown user [%s]", LW_IS_NULL_OR_EMPTY_STR(pszLoginId) ? "" : pszLoginId);
+        LSA_LOG_VERBOSE_ENTRY_NOT_FOUND(hServer, dwError, "authenticate user (name = '%s')", LW_IS_NULL_OR_EMPTY_STR(pszLoginId));
     }
     else
     {
-        LSA_LOG_ERROR("Failed authenticate user [%s] [code %d]", LW_IS_NULL_OR_EMPTY_STR(pszLoginId) ? "" : pszLoginId, dwError);
+        LSA_LOG_ERROR_API_FAILED(hServer, dwError, "authenticate user (name = '%s')", LW_IS_NULL_OR_EMPTY_STR(pszLoginId));
     }
 
     goto cleanup;
@@ -285,17 +285,15 @@ cleanup:
 error:
 
     if (dwError == LW_ERROR_NOT_HANDLED ||
-                   dwError == LW_ERROR_NO_SUCH_USER)
+        dwError == LW_ERROR_NO_SUCH_USER)
     {
-        LSA_LOG_VERBOSE("Failed authenticate unknown user [%s]",
-			pUserParams && pUserParams->pszAccountName ?
-			    pUserParams->pszAccountName : "");
+        LSA_LOG_VERBOSE_ENTRY_NOT_FOUND(hServer, dwError, "authenticate user (name = '%s')",
+                  pUserParams && pUserParams->pszAccountName ? pUserParams->pszAccountName : "");
     }
     else
     {
-        LSA_LOG_ERROR("Failed authenticate user [%s] [code %d]",
-		      pUserParams && pUserParams->pszAccountName ?
-		          pUserParams->pszAccountName : "");
+        LSA_LOG_ERROR_API_FAILED(hServer, dwError, "authenticate user (name = '%s')",
+                  pUserParams && pUserParams->pszAccountName ? pUserParams->pszAccountName : "");
     }
 
     goto cleanup;
@@ -357,6 +355,15 @@ cleanup:
     return dwError;
 
 error:
+    if (dwError == LW_ERROR_NOT_HANDLED ||
+        dwError == LW_ERROR_NO_SUCH_USER)
+    {
+        LSA_LOG_VERBOSE_ENTRY_NOT_FOUND(hServer, dwError, "validate user for login (name = '%s')", LSA_SAFE_LOG_STRING(pszLoginId));
+    }
+    else
+    {
+        LSA_LOG_ERROR_API_FAILED(hServer, dwError, "validate user for login (name = '%s')", LSA_SAFE_LOG_STRING(pszLoginId));
+    }
 
     goto cleanup;
 }
@@ -437,6 +444,7 @@ cleanup:
     return(dwError);
 
 error:
+    LSA_LOG_ERROR_API_FAILED(hServer, dwError, "find user in list (user = '%s', list = '%s')", LSA_SAFE_LOG_STRING(pszLoginId), LSA_SAFE_LOG_STRING(pszListName));
 
     goto cleanup;
 }
@@ -525,8 +533,8 @@ cleanup:
     return(dwError);
 
 error:
+    LSA_LOG_ERROR_API_FAILED(hServer, dwError, "change password of user (name = '%s')", LSA_SAFE_LOG_STRING(pszLoginId));
 
-    LSA_LOG_VERBOSE("Failed to change password of user [%s] [code %d]", LW_IS_NULL_OR_EMPTY_STR(pszLoginId) ? "" : pszLoginId, dwError);
     goto cleanup;
 }
 
@@ -580,9 +588,8 @@ cleanup:
     return dwError;
 
 error:
-    LSA_LOG_VERBOSE("Failed to set password of user [%s] [code %d]",
-                    LW_IS_NULL_OR_EMPTY_STR(pszLoginId) ? "" : pszLoginId,
-                    dwError);
+    LSA_LOG_ERROR_API_FAILED(hServer, dwError, "set password of user (name = '%s')", LSA_SAFE_LOG_STRING(pszLoginId));
+
     goto cleanup;
 }
 

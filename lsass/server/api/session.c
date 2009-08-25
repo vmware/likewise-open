@@ -133,6 +133,7 @@ cleanup:
     return dwError;
 
 error:
+    LSA_LOG_ERROR_API_FAILED(hServer, dwError, "open session for user (name = '%s')", LSA_SAFE_LOG_STRING(pszLoginId));
 
     goto cleanup;
 }
@@ -214,6 +215,7 @@ cleanup:
     return dwError;
 
 error:
+    LSA_LOG_ERROR_API_FAILED(hServer, dwError, "close session for user (name = '%s')", LSA_SAFE_LOG_STRING(pszLoginId));
 
     goto cleanup;
 }

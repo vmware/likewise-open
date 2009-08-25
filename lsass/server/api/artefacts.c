@@ -128,9 +128,12 @@ cleanup:
 
 error:
 
-    LSA_LOG_ERROR("Failed to find NIS Artefact [Map:%s][Key:%s]",
-                    LSA_SAFE_LOG_STRING(pszMapName),
-                    LSA_SAFE_LOG_STRING(pszKeyName));
+    LSA_LOG_ERROR_API_FAILED(
+            hServer,
+            dwError,
+            "find NIS Artefact by key (map = '%s', key = '%s')",
+            LSA_SAFE_LOG_STRING(pszMapName),
+            LSA_SAFE_LOG_STRING(pszKeyName));
 
     *ppNSSArtefactInfo = NULL;
 
@@ -171,6 +174,11 @@ cleanup:
     return dwError;
 
 error:
+    LSA_LOG_ERROR_API_FAILED(
+            hServer,
+            dwError,
+            "start enumerating NIS Artefacts (map = '%s')",
+            LSA_SAFE_LOG_STRING(pszMapName));
 
     goto cleanup;
 }
@@ -253,6 +261,10 @@ cleanup:
     return(dwError);
 
 error:
+    LSA_LOG_ERROR_API_FAILED(
+            hServer,
+            dwError,
+            "continue enumerating NIS Artefacts");
 
     *pdwNSSArtefactInfoLevel = 0;
     *pppNSSArtefactInfoList = NULL;

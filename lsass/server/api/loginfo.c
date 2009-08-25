@@ -67,6 +67,7 @@ cleanup:
     return dwError;
 
 error:
+    LSA_LOG_ERROR_API_FAILED(hServer, dwError, "get log info");
 
     *ppLogInfo = NULL;
 
@@ -103,6 +104,7 @@ cleanup:
     return dwError;
 
 error:
+    LSA_LOG_ERROR_API_FAILED(hServer, dwError, "set log info (level = %d)", pLogInfo ? pLogInfo->maxAllowedLogLevel : -1);
 
     goto cleanup;
 }

@@ -87,6 +87,7 @@ cleanup:
     return dwError;
 
 error:
+    LSA_LOG_ERROR_API_FAILED(hServer, dwError, "get metrics (level=%d)", dwInfoLevel);
 
     *ppMetricPack = NULL;
 
