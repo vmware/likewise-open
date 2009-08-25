@@ -260,26 +260,29 @@ cleanup:
     return dwError;
 
 error:
-    switch (pEnumParamsOut->dwInfoLevel) {
-    case 0:
-        SrvSvcSrvFreeMemory(ctr0->array);
-        break;
+    if (pEnumParamsOut)
+    {
+        switch (pEnumParamsOut->dwInfoLevel) {
+        case 0:
+            SrvSvcSrvFreeMemory(ctr0->array);
+            break;
 
-    case 1:
-        SrvSvcSrvFreeMemory(ctr1->array);
-        break;
+        case 1:
+            SrvSvcSrvFreeMemory(ctr1->array);
+            break;
 
-    case 2:
-        SrvSvcSrvFreeMemory(ctr2->array);
-        break;
+        case 2:
+            SrvSvcSrvFreeMemory(ctr2->array);
+            break;
 
-    case 501:
-        SrvSvcSrvFreeMemory(ctr501->array);
-        break;
+        case 501:
+            SrvSvcSrvFreeMemory(ctr501->array);
+            break;
 
-    case 502:
-        SrvSvcSrvFreeMemory(ctr502->array);
-        break;
+        case 502:
+            SrvSvcSrvFreeMemory(ctr502->array);
+            break;
+        }
     }
 
     *level         = 0;
