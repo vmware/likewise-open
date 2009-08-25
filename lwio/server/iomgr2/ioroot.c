@@ -49,6 +49,8 @@ IopRootFree(
         }
 
         IopConfigFreeConfig(&pRoot->Config);
+        LwMapSecurityFreeContext(&pRoot->MapSecurityContext);
+        LwRtlCleanupMutex(&pRoot->InitMutex);
         IoMemoryFree(pRoot);
         *ppRoot = NULL;
     }
@@ -72,6 +74,18 @@ IopRootCreate(
 
     status = IopConfigParse(&pRoot->Config, pszConfigFilePath);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    status = LwRtlInitializeMutex(&pRoot->InitMutex, FALSE);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    // Try to initialize the map security context, but do not
+    // error if it fails.
+    status = LwMapSecurityCreateContext(&pRoot->MapSecurityContext);
+    if (status)
+    {
+        LWIO_LOG_ERROR("cannot load map security context (status = 0x%08x)", status);
+        status = 0;
+    }
 
 cleanup:
     if (status)
@@ -236,5 +250,32 @@ cleanup:
     *ppDevice = pDevice;
 
     IO_LOG_LEAVE_ON_STATUS_EE(status, EE);
+    return status;
+}
+
+NTSTATUS
+IopRootGetMapSecurityContext(
+    IN PIOP_ROOT_STATE pRoot,
+    OUT PLW_MAP_SECURITY_CONTEXT* ppContext
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PLW_MAP_SECURITY_CONTEXT pContext = NULL;
+
+    LwRtlLockMutex(&pRoot->InitMutex);
+
+    if (!pRoot->MapSecurityContext)
+    {
+        status = LwMapSecurityCreateContext(&pRoot->MapSecurityContext);
+        GOTO_CLEANUP_ON_STATUS(status);
+    }
+
+    pContext = pRoot->MapSecurityContext;
+
+cleanup:
+    LwRtlUnlockMutex(&pRoot->InitMutex);
+
+    *ppContext = pContext;
+
     return status;
 }

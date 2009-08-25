@@ -41,6 +41,7 @@
 #include "ntlogmacros.h"
 
 #include "lwthreads.h"
+#include <lwmapsecurity/lwmapsecurity.h>
 
 #define NT_PENDING_OR_SUCCESS_OR_NOT(status) \
     (LW_NT_SUCCESS_OR_NOT(status) || (STATUS_PENDING == (status)))
@@ -71,6 +72,8 @@ typedef struct _IOP_ROOT_STATE {
     ULONG DeviceCount;
     // Should really be a hash table...
     LW_LIST_LINKS DeviceObjectList;
+    LW_RTL_MUTEX InitMutex;
+    PLW_MAP_SECURITY_CONTEXT MapSecurityContext;
 } IOP_ROOT_STATE, *PIOP_ROOT_STATE;
 
 typedef ULONG IO_DRIVER_OBJECT_FLAGS;
@@ -141,6 +144,11 @@ IopParse(
     OUT PIO_DEVICE_OBJECT* ppDevice
     );
 
+NTSTATUS
+IopGetMapSecurityContext(
+    OUT PLW_MAP_SECURITY_CONTEXT* ppContext
+    );
+
 // ioconfig.c
 
 VOID
@@ -208,6 +216,12 @@ IopRootParse(
     IN PIOP_ROOT_STATE pRoot,
     IN OUT PIO_FILE_NAME pFileName,
     OUT PIO_DEVICE_OBJECT* ppDevice
+    );
+
+NTSTATUS
+IopRootGetMapSecurityContext(
+    IN PIOP_ROOT_STATE pRoot,
+    OUT PLW_MAP_SECURITY_CONTEXT* ppContext
     );
 
 // iodriver.c

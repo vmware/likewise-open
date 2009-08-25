@@ -79,3 +79,13 @@ IopParse(
     
     return IopRootParse(pRoot, pFileName, ppDevice);
 }
+
+NTSTATUS
+IopGetMapSecurityContext(
+    OUT PLW_MAP_SECURITY_CONTEXT* ppContext
+    )
+{
+    PIOP_ROOT_STATE pRoot = gpIoRoot;
+
+    return IopRootGetMapSecurityContext(pRoot, ppContext);
+}

@@ -156,8 +156,8 @@ IoSecurityCreateSecurityContextFromUidGid(
     PACCESS_TOKEN accessToken = NULL;
     PIO_CREATE_SECURITY_CONTEXT securityContext = NULL;
 
-    // TODO-Use single map security context.
-    status = LwMapSecurityCreateContext(&context);
+    // do not free this context
+    status = IopGetMapSecurityContext(&context);
     GOTO_CLEANUP_ON_STATUS(status);
 
     status = LwMapSecurityCreateAccessTokenFromUidGid(
@@ -182,7 +182,6 @@ cleanup:
     }
 
     RtlReleaseAccessToken(&accessToken);
-    LwMapSecurityFreeContext(&context);
 
     *SecurityContext = securityContext;
 
@@ -201,8 +200,8 @@ IoSecurityCreateSecurityContextFromUsername(
     PIO_CREATE_SECURITY_CONTEXT securityContext = NULL;
     TOKEN_UNIX tokenUnix = { 0 };
 
-    // TODO-Use single map security context.
-    status = LwMapSecurityCreateContext(&context);
+    // do not free this context
+    status = IopGetMapSecurityContext(&context);
     GOTO_CLEANUP_ON_STATUS(status);
 
     status = LwMapSecurityCreateAccessTokenFromUnicodeStringUsername(
@@ -234,7 +233,6 @@ cleanup:
     }
 
     RtlReleaseAccessToken(&accessToken);
-    LwMapSecurityFreeContext(&context);
 
     *SecurityContext = securityContext;
 
