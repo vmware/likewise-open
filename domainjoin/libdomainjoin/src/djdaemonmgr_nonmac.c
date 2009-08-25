@@ -762,11 +762,6 @@ DJConfigureForDaemonRestart(
 
                 DJ_LOG_INFO("Daemon [%s]: svcadm disable %s status [%d]", pszDaemonName, pszDaemonName, status);
 
-                if (status) {
-                    LW_RAISE_EX(exc, CENTERROR_DOMAINJOIN_INCORRECT_STATUS, "svcadm disable failed", "An error occurred while using svcadm to process the '%s' daemon. This daemon was being removed from the list of processes to start on reboot.", pszDaemonName);
-                    goto cleanup;
-                }
-
                 LW_CLEANUP_CTERR(exc, CTShell("/usr/sbin/svccfg delete %daemonName >/dev/null 2>&1; echo $? >%statusBuffer",
                             CTSHELL_STRING(daemonName, pszDaemonName),
                             CTSHELL_BUFFER(statusBuffer, &statusBuffer)));
@@ -774,11 +769,6 @@ DJConfigureForDaemonRestart(
                 status = atol(statusBuffer);
 
                 DJ_LOG_INFO("Daemon [%s]: svccfg delete %s status [%d]", pszDaemonName, pszDaemonName, status);
-
-                if (status) {
-                    LW_RAISE_EX(exc, CENTERROR_DOMAINJOIN_INCORRECT_STATUS, "svccfg delete failed", "An error occurred while using svccfg to process the '%s' daemon. This daemon was being removed from the list of processes to start on reboot.", pszDaemonName);
-                    goto cleanup;
-                }
             }
         }
         else
