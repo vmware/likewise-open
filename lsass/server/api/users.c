@@ -64,6 +64,8 @@ LsaSrvFindUserByName(
 
     LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
 
+    BAIL_ON_INVALID_STRING(pszLoginId);
+
     dwError = LsaValidateUserName(pszLoginId);
     BAIL_ON_LSA_ERROR(dwError);
 

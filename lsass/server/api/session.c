@@ -61,6 +61,8 @@ LsaSrvOpenSession(
 
     LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
 
+    BAIL_ON_INVALID_STRING(pszLoginId);
+
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
 
     dwError = LW_ERROR_NOT_HANDLED;

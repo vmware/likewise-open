@@ -61,6 +61,8 @@ LsaSrvAuthenticateUser(
 
     LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
 
+    BAIL_ON_INVALID_STRING(pszLoginId);
+
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
 
     for (pProvider = gpAuthProviderList; pProvider; pProvider = pProvider->pNext)
@@ -313,6 +315,8 @@ LsaSrvValidateUser(
     HANDLE hProvider = (HANDLE)NULL;
 
     LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
+    BAIL_ON_INVALID_STRING(pszLoginId);
 
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
 

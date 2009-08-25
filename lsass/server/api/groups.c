@@ -63,6 +63,8 @@ LsaSrvFindGroupByName(
 
     LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
 
+    BAIL_ON_INVALID_STRING(pszGroup);
+
     dwError = LsaValidateGroupName(pszGroup);
     BAIL_ON_LSA_ERROR(dwError);
 
