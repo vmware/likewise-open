@@ -147,6 +147,12 @@ wbcDomainInfo(
     pWbcDomInfo = NULL;
 
 done:
+
+    if (pLsaStatus)
+    {
+        LsaFreeStatus(pLsaStatus);
+    }
+
     if (hLsa != (HANDLE)NULL) {
         LsaCloseServer(hLsa);
     }

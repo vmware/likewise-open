@@ -31,3 +31,17 @@
 #include "lsanss.h"
 
 HANDLE hLsaConnection = (HANDLE)NULL;
+
+static
+void
+__attribute__((destructor))
+LsaNssLinuxDestruct(
+    void
+    )
+{
+    if (hLsaConnection)
+    {
+        LsaCloseServer(hLsaConnection);
+        hLsaConnection = NULL;
+    }
+}
