@@ -253,6 +253,8 @@ PvfsCreateDirOpen(
                   &pCreateCtx->pFcb);
     BAIL_ON_NT_STATUS(ntError);
 
+    pCreateCtx->bFileExisted = TRUE;
+
     ntError = PvfsCreateDirDoSysOpen(pCreateCtx);
     BAIL_ON_NT_STATUS(ntError);
 
