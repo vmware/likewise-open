@@ -195,15 +195,12 @@ PvfsRemoveFCB(
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    BOOLEAN bLocked = FALSE;
 
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bLocked, &gFcbTable.rwLock);
+    /* We must have the mutex locked exclusively coming
+       into this */
 
     ntError = LwRtlRBTreeRemove(gFcbTable.pFcbTree,
                                (PVOID)pFcb->pszFilename);
-
-    LWIO_UNLOCK_RWMUTEX(bLocked, &gFcbTable.rwLock);
-
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
@@ -264,10 +261,19 @@ PvfsReleaseFCB(
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
+    BOOLEAN bLocked = FALSE;
+
+    /* It is important to lock the FcbTable here so that
+       there is no window between the decrement and the remove.
+       Otherwise another open request could search and locate the
+       FCB in the tree and return free()'d memory */
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bLocked, &gFcbTable.rwLock);
 
     if (InterlockedDecrement(&pFcb->RefCount) == 0)
     {
         PvfsRemoveFCB(pFcb);
+        LWIO_UNLOCK_RWMUTEX(bLocked, &gFcbTable.rwLock);
 
         /* sticky write times */
 
@@ -278,6 +284,8 @@ PvfsReleaseFCB(
 
         PvfsFreeFCB(pFcb);
     }
+
+    LWIO_UNLOCK_RWMUTEX(bLocked, &gFcbTable.rwLock);
 
     return;
 }
