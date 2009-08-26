@@ -43,10 +43,10 @@ SamrGetUserPwInfo(
     /* [out] */ PwInfo *info
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS ntStatus = STATUS_NOT_IMPLEMENTED;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;

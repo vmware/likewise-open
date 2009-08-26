@@ -51,16 +51,6 @@
 struct _LSA_CREDENTIALS;
 typedef struct _LSA_CREDENTIALS *LSA_CRED_HANDLE, **PLSA_CRED_HANDLE;
 
-VOID
-LsaInitializeCredentialsDatabase(
-    VOID
-    );
-
-VOID
-LsaShutdownCredentialsDatabase(
-    VOID
-    );
-
 DWORD
 LsaAddCredential(
     IN PCSTR pszUserName,

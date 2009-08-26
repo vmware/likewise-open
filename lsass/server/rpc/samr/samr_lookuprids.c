@@ -58,7 +58,7 @@ SamrSrvLookupRids(
     )
 {
     const wchar_t wszFilterFmt[] = L"%ws='%ws'";
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = 0;
     PDOMAIN_CONTEXT pDomCtx = NULL;
     HANDLE hDirectory = NULL;
@@ -98,28 +98,28 @@ SamrSrvLookupRids(
                                OUT_PPVOID(&pSid));
     BAIL_ON_LSA_ERROR(dwError);
 
-    status = RtlCopySid(dwSidLen,
+    ntStatus = RtlCopySid(dwSidLen,
                         pSid,
                         pDomSid);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     pSid->SubAuthorityCount++;
 
-    status = SamrSrvAllocateMemory(OUT_PPVOID(&Types.ids),
+    ntStatus = SamrSrvAllocateMemory(OUT_PPVOID(&Types.ids),
                                    sizeof(Types.ids[0]) * dwNumRids);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
-    status = SamrSrvAllocateMemory(OUT_PPVOID(&Names.names),
+    ntStatus = SamrSrvAllocateMemory(OUT_PPVOID(&Names.names),
                                    sizeof(Names.names[0]) * dwNumRids);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     for (i = 0; i < dwNumRids; i++)
     {
         pSid->SubAuthority[pSid->SubAuthorityCount - 1] = pdwRids[i];
 
-        status = RtlAllocateWC16StringFromSid(&pwszSid,
+        ntStatus = RtlAllocateWC16StringFromSid(&pwszSid,
                                               pSid);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
         dwError = LwWc16sLen(pwszSid, &dwSidStrLen);
         BAIL_ON_LSA_ERROR(dwError);
@@ -150,17 +150,17 @@ SamrSrvLookupRids(
 
         if (dwEntriesNum == 0)
         {
-            status = SamrSrvInitUnicodeString(
+            ntStatus = SamrSrvInitUnicodeString(
                                       &Names.names[i],
                                       pwszAccountName);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
             Types.ids[i] = SID_TYPE_UNKNOWN;
         }
         else if (dwEntriesNum > 1)
         {
-            status = STATUS_INTERNAL_ERROR;
-            BAIL_ON_NTSTATUS_ERROR(status);
+            ntStatus = STATUS_INTERNAL_ERROR;
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
         }
         else
         {
@@ -171,10 +171,10 @@ SamrSrvLookupRids(
                                       &pwszAccountName);
             BAIL_ON_LSA_ERROR(dwError);
 
-            status = SamrSrvInitUnicodeString(
+            ntStatus = SamrSrvInitUnicodeString(
                                       &Names.names[i],
                                       pwszAccountName);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
             Names.count++;
 
@@ -233,7 +233,7 @@ cleanup:
     RTL_FREE(&pwszSid);
     RTL_FREE(&pSid);
 
-    return status;
+    return ntStatus;
 
 error:
     for (i = 0; i < Names.count; i++)

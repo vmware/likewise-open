@@ -324,7 +324,7 @@ NtlmFixUserName(
     PSTR pUserName = NULL;
     PCHAR pSymbol = NULL;
 
-    // The original name is in the NetBiosName\username@location format...
+    // The original name is in the NetBiosName\username format...
     // We're just interested in the username portion... isolate it.
     pSymbol = strchr(pOriginalUserName, '\\');
 
@@ -338,16 +338,6 @@ NtlmFixUserName(
 
     dwError = LwAllocateString(pSymbol, &pUserName);
     BAIL_ON_LW_ERROR(dwError);
-
-    pSymbol = strchr(pUserName, '@');
-
-    if (!pSymbol)
-    {
-        dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LW_ERROR(dwError);
-    }
-
-    *pSymbol = '\0';
 
 cleanup:
     *ppUserName = pUserName;

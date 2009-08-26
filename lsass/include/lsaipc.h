@@ -49,6 +49,7 @@
 #define __LSAIPC_H__
 
 #include <lwmsg/lwmsg.h>
+#include <lsa/lsa.h>
 
 #define LSA_CLIENT_PATH_FORMAT "/var/tmp/.lsaclient_%05ld"
 #define LSA_SERVER_FILENAME    ".lsasd"

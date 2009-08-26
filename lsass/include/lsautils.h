@@ -125,6 +125,14 @@
 /*
  * Logging
  */
+
+typedef LW_VOID (*PFN_LSA_LOG_MESSAGE)(
+    LW_HANDLE hLog,
+    LsaLogLevel logLevel,
+    LW_PCSTR pszFormat,
+    va_list msgList
+    );
+
 #if defined(LW_ENABLE_THREADS)
 
 extern pthread_mutex_t gLogLock;

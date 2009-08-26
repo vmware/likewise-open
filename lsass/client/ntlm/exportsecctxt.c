@@ -63,7 +63,7 @@ NtlmClientExportSecurityContext(
     // In the long run, I don't think we need this token...
     if (pToken)
     {
-        *pToken = INVALID_HANDLE;
+        *pToken = NULL;
     }
 
     dwError = NtlmTransactExportSecurityContext(
@@ -85,7 +85,7 @@ error:
     // would normally want here.
     if (pToken)
     {
-        *pToken = INVALID_HANDLE;
+        *pToken = NULL;
     }
     goto cleanup;
 }

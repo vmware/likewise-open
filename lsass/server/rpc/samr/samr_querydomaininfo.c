@@ -288,7 +288,7 @@ SamrSrvQueryDomainInfo(
         wszAttributeLevel13
     };
 
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = 0;
     PDOMAIN_CONTEXT pDomCtx = NULL;
     PCONNECT_CONTEXT pConnCtx = NULL;
@@ -307,8 +307,8 @@ SamrSrvQueryDomainInfo(
     pConnCtx = pDomCtx->pConnCtx;
 
     if (pDomCtx == NULL || pDomCtx->Type != SamrContextDomain) {
-        status = STATUS_INVALID_HANDLE;
-        BAIL_ON_NTSTATUS_ERROR(status);
+        ntStatus = STATUS_INVALID_HANDLE;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
 
     pwszDn   = pDomCtx->pwszDn;
@@ -322,9 +322,9 @@ SamrSrvQueryDomainInfo(
                   wc16slen(pwszDn) +
                   (sizeof(wszFilterFmt)/sizeof(wszFilterFmt[0]));
 
-    status = SamrSrvAllocateMemory((void**)&pwszFilter,
+    ntStatus = SamrSrvAllocateMemory((void**)&pwszFilter,
                                    dwFilterLen * sizeof(WCHAR));
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     sw16printfw(pwszFilter, dwFilterLen, wszFilterFmt,
                 wszAttrObjectClass,
@@ -344,89 +344,89 @@ SamrSrvQueryDomainInfo(
                               &dwEntriesNum);
     BAIL_ON_LSA_ERROR(dwError);
 
-    status = SamrSrvAllocateMemory((void**)&pInfo,
+    ntStatus = SamrSrvAllocateMemory((void**)&pInfo,
                                    sizeof(*pInfo));
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     switch (level) {
     case 1:
-        status = SamrSrvFillDomainInfo1(pDomCtx,
+        ntStatus = SamrSrvFillDomainInfo1(pDomCtx,
                                         pEntry,
                                         pInfo);
         break;
 
     case 2:
-        status = SamrSrvFillDomainInfo2(pDomCtx,
+        ntStatus = SamrSrvFillDomainInfo2(pDomCtx,
                                         pEntry,
                                         pInfo);
         break;
 
     case 3:
-        status = SamrSrvFillDomainInfo3(pDomCtx,
+        ntStatus = SamrSrvFillDomainInfo3(pDomCtx,
                                         pEntry,
                                         pInfo);
         break;
 
     case 4:
-        status = SamrSrvFillDomainInfo4(pDomCtx,
+        ntStatus = SamrSrvFillDomainInfo4(pDomCtx,
                                         pEntry,
                                         pInfo);
         break;
 
     case 5:
-        status = SamrSrvFillDomainInfo5(pDomCtx,
+        ntStatus = SamrSrvFillDomainInfo5(pDomCtx,
                                         pEntry,
                                         pInfo);
         break;
 
     case 6:
-        status = SamrSrvFillDomainInfo6(pDomCtx,
+        ntStatus = SamrSrvFillDomainInfo6(pDomCtx,
                                         pEntry,
                                         pInfo);
         break;
 
     case 7:
-        status = SamrSrvFillDomainInfo7(pDomCtx,
+        ntStatus = SamrSrvFillDomainInfo7(pDomCtx,
                                         pEntry,
                                         pInfo);
         break;
 
     case 8:
-        status = SamrSrvFillDomainInfo8(pDomCtx,
+        ntStatus = SamrSrvFillDomainInfo8(pDomCtx,
                                         pEntry,
                                         pInfo);
         break;
 
     case 9:
-        status = SamrSrvFillDomainInfo9(pDomCtx,
+        ntStatus = SamrSrvFillDomainInfo9(pDomCtx,
                                         pEntry,
                                         pInfo);
         break;
 
     case 11:
-        status = SamrSrvFillDomainInfo11(pDomCtx,
+        ntStatus = SamrSrvFillDomainInfo11(pDomCtx,
                                          pEntry,
                                          pInfo);
         break;
 
     case 12:
-        status = SamrSrvFillDomainInfo12(pDomCtx,
+        ntStatus = SamrSrvFillDomainInfo12(pDomCtx,
                                          pEntry,
                                          pInfo);
         break;
 
     case 13:
-        status = SamrSrvFillDomainInfo13(pDomCtx,
+        ntStatus = SamrSrvFillDomainInfo13(pDomCtx,
                                          pEntry,
                                          pInfo);
         break;
 
     default:
-        status = STATUS_INVALID_INFO_CLASS;
+        ntStatus = STATUS_INVALID_INFO_CLASS;
         break;
     }
 
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     *ppInfo = pInfo;
 
@@ -439,7 +439,7 @@ cleanup:
         DirectoryFreeEntries(pEntry, dwEntriesNum);
     }
 
-    return status;
+    return ntStatus;
 
 error:
     if (pInfo) {
@@ -459,7 +459,7 @@ SamrSrvFillDomainInfo1(
     DomainInfo *pInfo
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = 0;
     WCHAR wszAttrMinPasswordLen[] = DS_ATTR_MIN_PWD_LENGTH;
     WCHAR wszAttrPasswordHistoryLen[] = DS_ATTR_PWD_HISTORY_LENGTH;
@@ -512,7 +512,7 @@ SamrSrvFillDomainInfo1(
     pInfo1->min_pass_age        = llMinPassAge;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -527,7 +527,7 @@ SamrSrvFillDomainInfo2(
     DomainInfo *pInfo
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = 0;
     WCHAR wszAttrComment[] = DS_ATTR_COMMENT;
     WCHAR wszAttrDomainName[] = DS_ATTR_DOMAIN;
@@ -569,18 +569,18 @@ SamrSrvFillDomainInfo2(
     pInfo2->force_logoff_time = llForceLogoffTime;
 
     /* comment */
-    status = SamrSrvInitUnicodeString(&pInfo2->comment,
+    ntStatus = SamrSrvInitUnicodeString(&pInfo2->comment,
                                       pwszComment);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     /* domain_name */
-    status = SamrSrvInitUnicodeString(&pInfo2->domain_name,
+    ntStatus = SamrSrvInitUnicodeString(&pInfo2->domain_name,
                                       pwszDomainName);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     /* primary */
-    status = SamrSrvInitUnicodeString(&pInfo2->primary, NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrSrvInitUnicodeString(&pInfo2->primary, NULL);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     /* sequence_num */
     /* unknown1 */
@@ -594,7 +594,7 @@ SamrSrvFillDomainInfo2(
     /* num_aliases */
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -609,7 +609,7 @@ SamrSrvFillDomainInfo3(
     DomainInfo *pInfo
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = 0;
     WCHAR wszAttrForceLogoffTime[] = DS_ATTR_FORCE_LOGOFF_TIME;
     DomainInfo3 *pInfo3 = NULL;
@@ -625,7 +625,7 @@ SamrSrvFillDomainInfo3(
     pInfo3->force_logoff_time = llForceLogoffTime;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -640,7 +640,7 @@ SamrSrvFillDomainInfo4(
     DomainInfo *pInfo
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = 0;
     WCHAR wszAttrComment[] = DS_ATTR_COMMENT;
     PWSTR pwszComment = NULL;
@@ -654,12 +654,12 @@ SamrSrvFillDomainInfo4(
 
     pInfo4 = &pInfo->info4;
 
-    status = SamrSrvInitUnicodeString(&pInfo4->comment,
+    ntStatus = SamrSrvInitUnicodeString(&pInfo4->comment,
                                       pwszComment);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -674,7 +674,7 @@ SamrSrvFillDomainInfo5(
     DomainInfo *pInfo
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = 0;
     WCHAR wszAttrDomainName[] = DS_ATTR_DOMAIN;
     PWSTR pwszDomainName = NULL;
@@ -688,12 +688,12 @@ SamrSrvFillDomainInfo5(
 
     pInfo5 = &pInfo->info5;
 
-    status = SamrSrvInitUnicodeString(&pInfo5->domain_name,
+    ntStatus = SamrSrvInitUnicodeString(&pInfo5->domain_name,
                                       pwszDomainName);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -708,17 +708,17 @@ SamrSrvFillDomainInfo6(
     DomainInfo *pInfo
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     DomainInfo6 *pInfo6 = NULL;
 
     pInfo6 = &pInfo->info6;
 
-    status = SamrSrvInitUnicodeString(&pInfo6->primary,
+    ntStatus = SamrSrvInitUnicodeString(&pInfo6->primary,
                                       NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -733,7 +733,7 @@ SamrSrvFillDomainInfo7(
     DomainInfo *pInfo
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = 0;
     WCHAR wszAttrRole[] = DS_ATTR_ROLE;
     DomainInfo7 *pInfo7 = NULL;
@@ -749,7 +749,7 @@ SamrSrvFillDomainInfo7(
     pInfo7->role = ulRole;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -764,7 +764,7 @@ SamrSrvFillDomainInfo8(
     DomainInfo *pInfo
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = 0;
     WCHAR wszAttrCreatedTime[] = DS_ATTR_CREATED_TIME;
     LONG64 llCreatedTime = 0;
@@ -780,7 +780,7 @@ SamrSrvFillDomainInfo8(
     pInfo8->domain_create_time = (NtTime)llCreatedTime;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -795,13 +795,13 @@ SamrSrvFillDomainInfo9(
     DomainInfo *pInfo
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     DomainInfo9 *pInfo9 = NULL;
 
     pInfo9 = &pInfo->info9;
     pInfo9->unknown = 0;
 
-    return status;
+    return ntStatus;
 }
 
 
@@ -813,7 +813,7 @@ SamrSrvFillDomainInfo11(
     DomainInfo *pInfo
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = 0;
     WCHAR wszAttrLockoutDuration[] = DS_ATTR_LOCKOUT_DURATION;
     WCHAR wszAttrLockoutWindow[] = DS_ATTR_LOCKOUT_WINDOW;
@@ -825,10 +825,10 @@ SamrSrvFillDomainInfo11(
 
     pInfo11 = &pInfo->info11;
 
-    status = SamrSrvFillDomainInfo2(pDomCtx,
+    ntStatus = SamrSrvFillDomainInfo2(pDomCtx,
                                    pEntry,
                                    (DomainInfo*)pInfo11);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     dwError = DirectoryGetEntryAttrValueByName(pEntry,
                                                wszAttrLockoutDuration,
@@ -853,7 +853,7 @@ SamrSrvFillDomainInfo11(
     pInfo11->lockout_threshold = llLockoutThreshold;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -868,7 +868,7 @@ SamrSrvFillDomainInfo12(
     DomainInfo *pInfo
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = 0;
     WCHAR wszAttrLockoutDuration[] = DS_ATTR_LOCKOUT_DURATION;
     WCHAR wszAttrLockoutWindow[] = DS_ATTR_LOCKOUT_WINDOW;
@@ -903,7 +903,7 @@ SamrSrvFillDomainInfo12(
     pInfo12->lockout_threshold = llLockoutThreshold;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -919,7 +919,7 @@ SamrSrvFillDomainInfo13(
     DomainInfo *pInfo
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = 0;
     WCHAR wszAttrCreatedTime[] = DS_ATTR_CREATED_TIME;
     LONG64 llCreatedTime = 0;
@@ -936,7 +936,7 @@ SamrSrvFillDomainInfo13(
     pInfo13->domain_create_time = (NtTime)llCreatedTime;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;

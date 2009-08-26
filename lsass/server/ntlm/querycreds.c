@@ -49,7 +49,7 @@
 
 DWORD
 NtlmServerQueryCredentialsAttributes(
-    IN PLSA_CRED_HANDLE phCredential,
+    IN PNTLM_CRED_HANDLE phCredential,
     IN DWORD ulAttribute,
     OUT PVOID pBuffer
     )

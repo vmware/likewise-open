@@ -15,6 +15,7 @@ liblsaserverapi_la_SOURCES = \
        auth.c          \
        auth_provider.c \
        config.c        \
+       credentials.c   \
        event.c         \
        globals.c       \
        groups.c        \

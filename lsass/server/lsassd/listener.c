@@ -173,6 +173,11 @@ LsaSrvStartListenThread(
                               LsaIPCGetProtocolSpec()));
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = MAP_LWMSG_ERROR(lwmsg_protocol_add_protocol_spec(
+                              gpProtocol,
+                              NtlmIpcGetProtocolSpec()));
+    BAIL_ON_LSA_ERROR(dwError);
+
     /* Set up IPC server object */
     dwError = MAP_LWMSG_ERROR(lwmsg_server_new(gpContext, gpProtocol, &gpServer));
     BAIL_ON_LSA_ERROR(dwError);
@@ -181,6 +186,12 @@ LsaSrvStartListenThread(
                               gpServer,
                               LsaSrvGetDispatchSpec()));
     BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_server_add_dispatch_spec(
+                              gpServer,
+                              NtlmSrvGetDispatchSpec()));
+    BAIL_ON_LSA_ERROR(dwError);
+
 
     dwError = MAP_LWMSG_ERROR(lwmsg_server_set_endpoint(
                               gpServer,

@@ -59,21 +59,21 @@ SamrSrvCreateUser2(
     /* [out] */ uint32 *rid
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    status = SamrSrvCreateAccount(hBinding,
+    ntStatus = SamrSrvCreateAccount(hBinding,
                                   hDomain,
                                   account_name,
-                                  "user",
+                                  DS_OBJECT_CLASS_USER,
                                   account_flags,
                                   access_mask,
                                   hUser,
                                   access_granted,
                                   rid);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     *hUser          = NULL;

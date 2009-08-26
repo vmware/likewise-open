@@ -29,7 +29,17 @@
  */
 
 /*
- * Abstract: SamrDeleteUser function (rpc server library)
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        samr_deleteuser.c
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Server Interface
+ *
+ *        SamrDeleteUser function
  *
  * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
@@ -39,13 +49,19 @@
 
 NTSTATUS
 SamrDeleteUser(
-    /* [in, out] */ PolicyHandle *user_handle
+    /* [in, out] */ ACCOUNT_HANDLE hUser
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PACCOUNT_CONTEXT pAccCtx = NULL;
+
+    if (pDomCtx == NULL || pDomCtx->Type != SamrContextAccount) {
+        ntStatus = STATUS_INVALID_HANDLE;
+        BAIL_ON_NTSTATUS_ERROR(status);
+    }
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;

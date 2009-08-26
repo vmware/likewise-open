@@ -54,7 +54,7 @@ SamrSrvClose(
     /* [out, context_handle] */ void **hOut
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     PSAMR_GENERIC_CONTEXT pContext = NULL;
 
     pContext = (PSAMR_GENERIC_CONTEXT)hIn;
@@ -75,14 +75,14 @@ SamrSrvClose(
     default:
         /* Something is seriously wrong if we get a context
            we haven't created */
-        status = STATUS_INTERNAL_ERROR;
+        ntStatus = STATUS_INTERNAL_ERROR;
         BAIL_ON_NTSTATUS_ERROR(status);
     }
 
     *hOut = NULL;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     *hOut = hIn;

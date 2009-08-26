@@ -205,13 +205,25 @@ error:
 }
 
 DWORD
-LwWc16ToUpper(
+LwWc16sToUpper(
     IN OUT PWSTR pwszString
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
 
     wc16supper(pwszString);
+
+    return dwError;
+}
+
+DWORD
+LwWc16sToLower(
+    IN OUT PWSTR pwszString
+    )
+{
+    DWORD dwError = LW_ERROR_SUCCESS;
+
+    wc16slower(pwszString);
 
     return dwError;
 }

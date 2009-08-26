@@ -253,10 +253,14 @@ LwSW16printf(
     ...);
 
 DWORD
-LwWc16ToUpper(
+LwWc16sToUpper(
     IN OUT PWSTR pwszString
     );
 
+DWORD
+LwWc16sToLower(
+    IN OUT PWSTR pwszString
+    );
 
 DWORD
 LwAllocateWc16String(

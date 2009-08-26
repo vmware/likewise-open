@@ -249,13 +249,6 @@ typedef enum
     LSA_LOG_TARGET_SYSLOG
 } LsaLogTarget;
 
-typedef LW_VOID (*PFN_LSA_LOG_MESSAGE)(
-    LW_HANDLE hLog,
-    LsaLogLevel logLevel,
-    LW_PCSTR pszFormat,
-    va_list msgList
-    );
-
 typedef struct __LSA_LOG_INFO {
     LsaLogLevel maxAllowedLogLevel;
     LsaLogTarget logTarget;

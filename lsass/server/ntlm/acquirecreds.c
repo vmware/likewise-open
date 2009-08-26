@@ -155,10 +155,9 @@ NtlmServerAcquireCredentialsHandle(
             {
                 dwError = LwAllocateStringPrintf(
                     &pNT4UserName,
-                    "%s\\%s@%s",
+                    "%s\\%s",
                     pDomainName,
-                    pUserName,
-                    pDnsDomainName);
+                    pUserName);
                 BAIL_ON_LW_ERROR(dwError);
 
                 // In theory, we probably *shouldn't* add this to the list...

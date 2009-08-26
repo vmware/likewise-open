@@ -530,7 +530,8 @@ NTSTATUS __SamrOpenUser(
 
 NTSTATUS __SamrDeleteUser(
     /* [in] */ handle_t IDL_handle,
-    /* [in, out] */ PolicyHandle *user_handle
+    /* [in] */ ACCOUNT_HANDLE hUserIn,
+    /* [in] */ ACCOUNT_HANDLE *phUserOut
     )
 {
     NTSTATUS status = STATUS_NOT_IMPLEMENTED;

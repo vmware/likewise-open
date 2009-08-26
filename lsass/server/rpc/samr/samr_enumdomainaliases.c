@@ -60,9 +60,9 @@ SamrSrvEnumDomainAliases(
     /* this should be reasonable value to send over 50 aliases */
     const DWORD max_size = 2048;
 
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    status = SamrSrvEnumDomainAccounts(hBinding,
+    ntStatus = SamrSrvEnumDomainAccounts(hBinding,
                                        hDomain,
                                        resume,
                                        DS_OBJECT_CLASS_LOCAL_GROUP,
@@ -70,7 +70,7 @@ SamrSrvEnumDomainAliases(
                                        max_size,
                                        names,
                                        num_entries);
-    return status;
+    return ntStatus;
 }
 
 

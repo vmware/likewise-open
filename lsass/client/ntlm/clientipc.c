@@ -127,7 +127,7 @@ error:
     }
     if (phConnection)
     {
-        *phConnection = (HANDLE)INVALID_HANDLE;
+        *phConnection = NULL;
     }
     goto cleanup;
 }
@@ -231,7 +231,7 @@ NtlmTransactAcceptSecurityContext(
             BAIL_ON_LW_ERROR(dwError);
             break;
         default:
-            dwError = EINVAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LW_ERROR(dwError);
     }
 
@@ -307,7 +307,7 @@ NtlmTransactAcquireCredentialsHandle(
             BAIL_ON_LW_ERROR(dwError);
             break;
         default:
-            dwError = EINVAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LW_ERROR(dwError);
     }
 
@@ -381,7 +381,7 @@ NtlmTransactDecryptMessage(
             BAIL_ON_LW_ERROR(dwError);
             break;
         default:
-            dwError = EINVAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LW_ERROR(dwError);
     }
 
@@ -438,7 +438,7 @@ NtlmTransactDeleteSecurityContext(
             BAIL_ON_LW_ERROR(dwError);
             break;
         default:
-            dwError = EINVAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LW_ERROR(dwError);
     }
 
@@ -510,7 +510,7 @@ NtlmTransactEncryptMessage(
             BAIL_ON_LW_ERROR(dwError);
             break;
         default:
-            dwError = EINVAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LW_ERROR(dwError);
     }
 
@@ -583,7 +583,7 @@ NtlmTransactExportSecurityContext(
             BAIL_ON_LW_ERROR(dwError);
             break;
         default:
-            dwError = EINVAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LW_ERROR(dwError);
     }
 
@@ -640,7 +640,7 @@ NtlmTransactFreeCredentialsHandle(
             BAIL_ON_LW_ERROR(dwError);
             break;
         default:
-            dwError = EINVAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LW_ERROR(dwError);
     }
 
@@ -707,7 +707,7 @@ NtlmTransactImportSecurityContext(
             BAIL_ON_LW_ERROR(dwError);
             break;
         default:
-            dwError = EINVAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LW_ERROR(dwError);
     }
 
@@ -821,7 +821,7 @@ NtlmTransactInitializeSecurityContext(
             BAIL_ON_LW_ERROR(dwError);
             break;
         default:
-            dwError = EINVAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LW_ERROR(dwError);
     }
 
@@ -899,7 +899,7 @@ NtlmTransactMakeSignature(
             BAIL_ON_LW_ERROR(dwError);
             break;
         default:
-            dwError = EINVAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LW_ERROR(dwError);
     }
 
@@ -991,7 +991,7 @@ NtlmTransactQueryContextAttributes(
             BAIL_ON_LW_ERROR(dwError);
             break;
         default:
-            dwError = EINVAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LW_ERROR(dwError);
     }
 
@@ -1008,7 +1008,7 @@ error:
 DWORD
 NtlmTransactQueryCredentialsAttributes(
     IN HANDLE hServer,
-    IN PLSA_CRED_HANDLE phCredential,
+    IN PNTLM_CRED_HANDLE phCredential,
     IN DWORD ulAttribute,
     OUT PVOID pBuffer
     )
@@ -1058,7 +1058,7 @@ NtlmTransactQueryCredentialsAttributes(
             BAIL_ON_LW_ERROR(dwError);
             break;
         default:
-            dwError = EINVAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LW_ERROR(dwError);
     }
 
@@ -1127,7 +1127,7 @@ NtlmTransactVerifySignature(
             BAIL_ON_LW_ERROR(dwError);
             break;
         default:
-            dwError = EINVAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LW_ERROR(dwError);
     }
 

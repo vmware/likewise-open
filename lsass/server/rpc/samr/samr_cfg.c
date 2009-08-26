@@ -77,9 +77,39 @@ SamrSrvConfigSetLpcSocketPath(
     );
 
 
+static
+DWORD
+SamrSrvConfigSetDefaultLoginShell(
+    PSAMR_SRV_CONFIG pConfig,
+    PCSTR pszName,
+    PCSTR pszValue
+    );
+
+
+static
+DWORD
+SamrSrvConfigSetHomedirPrefix(
+    PSAMR_SRV_CONFIG pConfig,
+    PCSTR pszName,
+    PCSTR pszValue
+    );
+
+
+static
+DWORD
+SamrSrvConfigSetHomedirTemplate(
+    PSAMR_SRV_CONFIG pConfig,
+    PCSTR pszName,
+    PCSTR pszValue
+    );
+
+
 static SAMR_SRV_CONFIG_HANDLER gSamrSrvConfigHandlers[] =
 {
-    { "lpc-socket-path",                &SamrSrvConfigSetLpcSocketPath }
+    { "lpc-socket-path",                &SamrSrvConfigSetLpcSocketPath },
+    { "login-shell-template",           &SamrSrvConfigSetDefaultLoginShell},
+    { "homedir-prefix",                 &SamrSrvConfigSetHomedirPrefix},
+    { "homedir-template",               &SamrSrvConfigSetHomedirTemplate}
 };
 
 
@@ -92,7 +122,10 @@ SamrSrvInitialiseConfig(
 
     memset(pConfig, 0, sizeof(*pConfig));
 
-    pConfig->pszLpcSocketPath = LSA_DEFAULT_LPC_SOCKET_PATH;
+    pConfig->pszLpcSocketPath = SAMR_RPC_CFG_DEFAULT_LPC_SOCKET_PATH;
+    pConfig->pszDefaultLoginShell = SAMR_RPC_CFG_DEFAULT_LOGIN_SHELL;
+    pConfig->pszHomedirPrefix = SAMR_RPC_CFG_DEFAULT_HOMEDIR_PREFIX;
+    pConfig->pszHomedirTemplate = SAMR_RPC_CFG_DEFAULT_HOMEDIR_TEMPLATE;
 
     return dwError;
 }
@@ -105,7 +138,7 @@ SamrSrvParseConfigFile(
     )
 {
     DWORD dwError = 0;
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
     dwError = LsaParseConfigFile(pszConfigFilePath,
                                  LSA_CFG_OPTION_STRIP_ALL,
@@ -137,18 +170,34 @@ SamrSrvConfigStartSection(
     PCSTR pszLibName = NULL;
 
     if (LW_IS_NULL_OR_EMPTY_STR(pszSectionName) ||
-        strncasecmp(pszSectionName, LSA_CFG_TAG_RPC_SERVER,
-                    sizeof(LSA_CFG_TAG_RPC_SERVER) - 1)) {
+        (strncasecmp(pszSectionName, LSA_CFG_TAG_RPC_SERVER,
+                     sizeof(LSA_CFG_TAG_RPC_SERVER) - 1) &&
+         strncasecmp(pszSectionName, LSA_CFG_TAG_AUTH_PROVIDER,
+                     sizeof(LSA_CFG_TAG_AUTH_PROVIDER) - 1)))
+    {
         *pbSkipSection = TRUE;
         goto cleanup;
     }
 
     if (!strncasecmp(pszSectionName, LSA_CFG_TAG_RPC_SERVER,
-                     sizeof(LSA_CFG_TAG_RPC_SERVER) - 1)) {
-
-        pszLibName = pszSectionName + sizeof(LSA_CFG_TAG_RPC_SERVER) - 1;
+                     sizeof(LSA_CFG_TAG_RPC_SERVER) - 1))
+    {
+        pszLibName = pszSectionName + sizeof(LSA_CFG_TAG_RPC_SERVER);
         if (LW_IS_NULL_OR_EMPTY_STR(pszLibName) ||
-            strcasecmp(pszLibName, LSA_CFG_TAG_SAMR_RPC_SERVER)) {
+            strcasecmp(pszLibName, LSA_CFG_TAG_SAMR_RPC_SERVER))
+        {
+            *pbSkipSection = TRUE;
+            goto cleanup;
+        }
+    }
+
+    if (!strncasecmp(pszSectionName, LSA_CFG_TAG_AUTH_PROVIDER,
+                     sizeof(LSA_CFG_TAG_AUTH_PROVIDER) - 1))
+    {
+        pszLibName = pszSectionName + sizeof(LSA_CFG_TAG_AUTH_PROVIDER);
+        if (LW_IS_NULL_OR_EMPTY_STR(pszLibName) ||
+            strcasecmp(pszLibName, LSA_CFG_TAG_LOCAL_PROVIDER))
+        {
             *pbSkipSection = TRUE;
             goto cleanup;
         }
@@ -204,7 +253,7 @@ SamrSrvConfigSetLpcSocketPath(
     )
 {
     DWORD dwError = 0;
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
     dwError = LwAllocateString(pszValue,
                                 &pConfig->pszLpcSocketPath);
@@ -225,7 +274,7 @@ SamrSrvConfigGetLpcSocketPath(
     )
 {
     DWORD dwError = 0;
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     BOOL bLocked = 0;
     PSTR pszLpcSocketPath = NULL;
 
@@ -250,13 +299,178 @@ error:
 }
 
 
+static
+DWORD
+SamrSrvConfigSetDefaultLoginShell(
+    PSAMR_SRV_CONFIG pConfig,
+    PCSTR pszName,
+    PCSTR pszValue
+    )
+{
+    DWORD dwError = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
+    dwError = LwAllocateString(pszValue,
+                               &pConfig->pszDefaultLoginShell);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+    return dwError;
+
+error:
+    pConfig->pszDefaultLoginShell = NULL;
+    goto cleanup;
+}
+
+
+DWORD
+SamrSrvConfigGetDefaultLoginShell(
+    PSTR *ppszDefaultLoginShell
+    )
+{
+    DWORD dwError = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    BOOL bLocked = 0;
+    PSTR pszDefaultLoginShell = NULL;
+
+    GLOBAL_DATA_LOCK(bLocked);
+
+    if (LW_IS_NULL_OR_EMPTY_STR(gSamrSrvConfig.pszDefaultLoginShell)) {
+        goto cleanup;
+    }
+
+    dwError = LwAllocateString(gSamrSrvConfig.pszDefaultLoginShell,
+                               &pszDefaultLoginShell);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    *ppszDefaultLoginShell = pszDefaultLoginShell;
+
+cleanup:
+    GLOBAL_DATA_UNLOCK(bLocked);
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+
+static
+DWORD
+SamrSrvConfigSetHomedirPrefix(
+    PSAMR_SRV_CONFIG pConfig,
+    PCSTR pszName,
+    PCSTR pszValue
+    )
+{
+    DWORD dwError = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
+    dwError = LwAllocateString(pszValue,
+                               &pConfig->pszHomedirPrefix);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+    return dwError;
+
+error:
+    pConfig->pszHomedirPrefix = NULL;
+    goto cleanup;
+}
+
+
+DWORD
+SamrSrvConfigGetHomedirPrefix(
+    PSTR *ppszHomedirPrefix
+    )
+{
+    DWORD dwError = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    BOOL bLocked = 0;
+    PSTR pszHomedirPrefix = NULL;
+
+    GLOBAL_DATA_LOCK(bLocked);
+
+    if (LW_IS_NULL_OR_EMPTY_STR(gSamrSrvConfig.pszHomedirPrefix)) {
+        goto cleanup;
+    }
+
+    dwError = LwAllocateString(gSamrSrvConfig.pszHomedirPrefix,
+                               &pszHomedirPrefix);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    *ppszHomedirPrefix = pszHomedirPrefix;
+
+cleanup:
+    GLOBAL_DATA_UNLOCK(bLocked);
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+
+static
+DWORD
+SamrSrvConfigSetHomedirTemplate(
+    PSAMR_SRV_CONFIG pConfig,
+    PCSTR pszName,
+    PCSTR pszValue
+    )
+{
+    DWORD dwError = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
+    dwError = LwAllocateString(pszValue,
+                               &pConfig->pszHomedirTemplate);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+    return dwError;
+
+error:
+    pConfig->pszHomedirTemplate = NULL;
+    goto cleanup;
+}
+
+
+DWORD
+SamrSrvConfigGetHomedirTemplate(
+    PSTR *ppszHomedirTemplate
+    )
+{
+    DWORD dwError = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    BOOL bLocked = 0;
+    PSTR pszHomedirTemplate = NULL;
+
+    GLOBAL_DATA_LOCK(bLocked);
+
+    if (LW_IS_NULL_OR_EMPTY_STR(gSamrSrvConfig.pszHomedirTemplate)) {
+        goto cleanup;
+    }
+
+    dwError = LwAllocateString(gSamrSrvConfig.pszHomedirTemplate,
+                                &pszHomedirTemplate);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    *ppszHomedirTemplate = pszHomedirTemplate;
+
+cleanup:
+    GLOBAL_DATA_UNLOCK(bLocked);
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+
 DWORD
 SamrSrvSetConfigFilePath(
     PCSTR pszConfigFilePath
     )
 {
     DWORD dwError = 0;
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     int locked = 0;
     PSTR pszPath = NULL;
 

@@ -57,35 +57,37 @@ SamrSrvCreateUser(
     /* [out] */ uint32 *rid
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     PDOMAIN_CONTEXT pDomCtx = NULL;
     PWSTR pwszUserName = NULL;
     UnicodeStringEx UserName;
     uint32 ulAccessGranted = 0;
 
+    pDomCtx = (PDOMAIN_CONTEXT)hDomain;
+
     if (pDomCtx == NULL || pDomCtx->Type != SamrContextDomain) {
-        status = STATUS_INVALID_HANDLE;
+        ntStatus = STATUS_INVALID_HANDLE;
         BAIL_ON_NTSTATUS_ERROR(status);
     }
 
-    status = SamrSrvGetFromUnicodeString(&pwszUserName,
+    ntStatus = SamrSrvGetFromUnicodeString(&pwszUserName,
                                          account_name);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = SamrSrvInitUnicodeStringEx(&UserName,
+    ntStatus = SamrSrvInitUnicodeStringEx(&UserName,
                                         pwszUserName);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = SamrSrvCreateAccount(hBinding,
+    ntStatus = SamrSrvCreateAccount(hBinding,
                                   hDomain,
                                   &UserName,
-                                  "user",
+                                  DS_OBJECT_CLASS_USER,
                                   ACB_NORMAL,
                                   access_mask,
                                   hUser,
                                   &ulAccessGranted,
                                   rid);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
 cleanup:
     if (pwszUserName) {
@@ -94,7 +96,7 @@ cleanup:
 
     SamrSrvFreeUnicodeStringEx(&UserName);
 
-    return status;
+    return ntStatus;
 
 error:
     *hUser          = NULL;

@@ -263,7 +263,8 @@ cpp_quote("#endif")
 
     /* function 0x23 */
     NTSTATUS __SamrDeleteUser(
-        [in,out,ref] PolicyHandle *user_handle
+        [in] ACCOUNT_HANDLE hUserIn,
+        [out] ACCOUNT_HANDLE *hUserOut
         );
 
     /* function 0x24 */

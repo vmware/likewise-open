@@ -75,6 +75,7 @@
 #include "lsaadprovider.h"
 
 #include "lsasrvutils.h"
+#include "lsasrvcred.h"
 #include "lwldap.h"
 #include "lsaldap.h"
 //#include "lsadb.h"

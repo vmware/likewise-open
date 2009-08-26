@@ -57,7 +57,7 @@ SamrSrvCreateDomAlias(
     /* [out] */ uint32 *rid
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     PDOMAIN_CONTEXT pDomCtx = NULL;
     PWSTR pwszAliasName = NULL;
     UnicodeStringEx Name;
@@ -66,27 +66,27 @@ SamrSrvCreateDomAlias(
     pDomCtx = (PDOMAIN_CONTEXT)hDomain;
 
     if (pDomCtx == NULL || pDomCtx->Type != SamrContextDomain) {
-        status = STATUS_INVALID_HANDLE;
-        BAIL_ON_NTSTATUS_ERROR(status);
+        ntStatus = STATUS_INVALID_HANDLE;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
 
-    status = SamrSrvGetFromUnicodeString(&pwszAliasName,
+    ntStatus = SamrSrvGetFromUnicodeString(&pwszAliasName,
                                          alias_name);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
-    status = SamrSrvInitUnicodeStringEx(&Name,
+    ntStatus = SamrSrvInitUnicodeStringEx(&Name,
                                         pwszAliasName);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
-    status = SamrSrvCreateAccount(hBinding,
-                                  hDomain,
-                                  &Name,
-                                  "group",
-                                  0,
-                                  access_mask,
-                                  hAlias,
-                                  &ulAccessGranted,
-                                  rid);
+    ntStatus = SamrSrvCreateAccount(hBinding,
+                                    hDomain,
+                                    &Name,
+                                    DS_OBJECT_CLASS_LOCAL_GROUP,
+                                    0,
+                                    access_mask,
+                                    hAlias,
+                                    &ulAccessGranted,
+                                    rid);
 
 cleanup:
     if (pwszAliasName) {
@@ -95,7 +95,7 @@ cleanup:
 
     SamrSrvFreeUnicodeStringEx(&Name);
 
-    return status;
+    return ntStatus;
 
 error:
     *hAlias = NULL;

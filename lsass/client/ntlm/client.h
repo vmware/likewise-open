@@ -50,6 +50,9 @@
 
 #include <config.h>
 
+#include <pthread.h>
+#include <string.h>
+
 #include <lwdef.h>
 #include <lwmem.h>
 

@@ -56,7 +56,7 @@ LsaInitializeRpcSrv(
     )
 {
     DWORD dwError = 0;
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
     pthread_mutex_init(&gSamrSrvDataMutex, NULL);
 
@@ -96,7 +96,7 @@ LsaShutdownRpcSrv(
     )
 {
     DWORD dwError = 0;
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
     dwError = RpcSvcUnregisterRpcInterface(samr_v1_0_s_ifspec);
     BAIL_ON_LSA_ERROR(dwError);
@@ -124,7 +124,7 @@ SamrRpcStartServer(
     };
 
     DWORD dwError = 0;
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD i = 0;
     PSTR pszLpcSocketPath = NULL;
 
@@ -157,7 +157,7 @@ SamrRpcStopServer(
     )
 {
     DWORD dwError = 0;
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
     dwError = RpcSvcUnbindRpcInterface(gpSamrSrvBinding,
                                        samr_v1_0_s_ifspec);

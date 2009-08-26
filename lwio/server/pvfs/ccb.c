@@ -73,13 +73,11 @@ PvfsAllocateCCB(
     pthread_mutex_init(&pCCB->FileMutex, NULL);
     pthread_mutex_init(&pCCB->ControlBlock, NULL);
 
-    pCCB->RefCount = 0;
-
     pCCB->bOplockBreakInProgress = FALSE;
 
     /* Add initial ref count */
 
-    InterlockedIncrement(&pCCB->RefCount);
+    pCCB->RefCount = 1;
 
     *ppCCB = pCCB;
 
@@ -100,19 +98,8 @@ PvfsFreeCCB(
     PPVFS_CCB pCCB
     )
 {
-    if (pCCB->pDirContext) {
-        PvfsFreeDirectoryContext(pCCB->pDirContext);
-    }
-
-    if (pCCB->pszFilename) {
-        RtlCStringFree(&pCCB->pszFilename);
-    }
-
-    /* When can we have a NULL FCB? */
-
     if (pCCB->pFcb)
     {
-
         if (pCCB->CreateOptions & FILE_NON_DIRECTORY_FILE)
         {
             /* Release all byte range locks to ensure proper
@@ -127,10 +114,17 @@ PvfsFreeCCB(
         pCCB->pFcb = NULL;
     }
 
-    if (pCCB->pUserToken) {
+    if (pCCB->pDirContext) {
+        PvfsFreeDirectoryContext(pCCB->pDirContext);
+    }
+
+    if (pCCB->pUserToken)
+    {
         RtlReleaseAccessToken(&pCCB->pUserToken);
         pCCB->pUserToken = NULL;
     }
+
+    LwRtlCStringFree(&pCCB->pszFilename);
 
     PVFS_FREE(&pCCB->LockTable.ExclusiveLocks.pLocks);
     PVFS_FREE(&pCCB->LockTable.SharedLocks.pLocks);

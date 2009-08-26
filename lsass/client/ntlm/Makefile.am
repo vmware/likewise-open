@@ -1,4 +1,4 @@
-noinst_LTLIBRARIES = liblsaclient_ntlm.la
+lib_LTLIBRARIES = liblsaclient_ntlm.la
 
 liblsaclient_ntlm_la_SOURCES =  \
        acceptsecctxt.c      \
@@ -30,4 +30,5 @@ liblsaclient_ntlm_la_LDFLAGS = \
 liblsaclient_ntlm_la_LIBADD =  \
     @top_builddir@/common/liblsacommon.la   \
     @LWMSG_NOTHR_LIBS@                      \
+    @PTHREAD_LIBS@                          \
     @SOCKET_LIBS@

@@ -60,7 +60,7 @@ SamrSrvEnumDomainAccounts(
     )
 {
     wchar_t wszFilterFmt[] = L"%ws=%d AND %ws='%ws'";
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = 0;
     PDOMAIN_CONTEXT pDomCtx = NULL;
     PCONNECT_CONTEXT pConnCtx = NULL;
@@ -94,8 +94,8 @@ SamrSrvEnumDomainAccounts(
     pDomCtx = (PDOMAIN_CONTEXT)hDomain;
 
     if (pDomCtx == NULL || pDomCtx->Type != SamrContextDomain) {
-        status = STATUS_INVALID_HANDLE;
-        BAIL_ON_NTSTATUS_ERROR(status);
+        ntStatus = STATUS_INVALID_HANDLE;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
 
     pConnCtx       = pDomCtx->pConnCtx;
@@ -108,9 +108,9 @@ SamrSrvEnumDomainAccounts(
                   (wc16slen(pwszDomainName) + 1) +
                   (sizeof(wszFilterFmt)/sizeof(wszFilterFmt[0]));
 
-    status = SamrSrvAllocateMemory((void**)&pwszFilter,
+    ntStatus = SamrSrvAllocateMemory((void**)&pwszFilter,
                                    dwFilterLen * sizeof(*pwszFilter));
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     sw16printfw(pwszFilter, dwFilterLen, wszFilterFmt,
                 wszAttrObjectClass,
@@ -133,16 +133,16 @@ SamrSrvEnumDomainAccounts(
                               &dwEntriesNum);
     BAIL_ON_LSA_ERROR(dwError);
 
-    status = SamrSrvAllocateMemory((void**)&pNames,
+    ntStatus = SamrSrvAllocateMemory((void**)&pNames,
                                    sizeof(RidNameArray));
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     i = (*resume);
 
     if (i >= dwEntriesNum) {
         i = 0;
-        status = STATUS_NO_MORE_ENTRIES;
-        BAIL_ON_NTSTATUS_ERROR(status);
+        ntStatus = STATUS_NO_MORE_ENTRIES;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
 
     dwSize += sizeof(pNames->count);
@@ -176,9 +176,9 @@ SamrSrvEnumDomainAccounts(
     dwCount  = (!dwCount) ? 1 : dwCount;
     dwResume = (*resume) + dwCount;
 
-    status = SamrSrvAllocateMemory((void**)&pNames->entries,
+    ntStatus = SamrSrvAllocateMemory((void**)&pNames->entries,
                                    sizeof(pNames->entries[0]) * dwCount);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     dwCount = 0;
     i       = (*resume);
@@ -210,16 +210,16 @@ SamrSrvEnumDomainAccounts(
 
         pName = &(pNames->entries[i - (*resume)]);
 
-        status = SamrSrvAllocateSidFromWC16String(&pSid, pwszSid);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        ntStatus = SamrSrvAllocateSidFromWC16String(&pSid, pwszSid);
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
         dwRid = pSid->SubAuthority[pSid->SubAuthorityCount - 1];
 
         pName->rid = (uint32)dwRid;
 
-        status = SamrSrvInitUnicodeString(&pName->name,
+        ntStatus = SamrSrvInitUnicodeString(&pName->name,
                                           pwszName);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
         if (pSid) {
             SamrSrvFreeMemory(pSid);
@@ -249,7 +249,7 @@ cleanup:
         DirectoryFreeEntries(pEntries, dwEntriesNum);
     }
 
-    return status;
+    return ntStatus;
 
 error:
     if (pNames) {

@@ -77,10 +77,9 @@
 
 typedef struct _LSA_UM_USER_REFRESH_ITEM {
     uid_t uUid;
-    PVOID pPassword;
-    DWORD dwPasswordLen;
     DWORD dwTgtEndTime;
     DWORD dwLastActivity;
+    LSA_CRED_HANDLE CredHandle;
 
     // Number of consecutive times TGT refresh failed.
     // If the number grows too high the user will be
@@ -104,10 +103,9 @@ typedef DWORD LSA_UM_REQUEST_TYPE;
 typedef struct _LSA_UM_REQUEST_ITEM {
     LSA_UM_REQUEST_TYPE dwType;
     uid_t uUid;
-    PVOID pPassword;
-    DWORD dwPasswordLen;
     DWORD dwTgtEndTime;
     DWORD dwLastActivity;
+    LSA_CRED_HANDLE CredHandle;
 } LSA_UM_REQUEST_ITEM, *PLSA_UM_REQUEST_ITEM;
 
 typedef struct _LSA_UM_THREAD_INFO {
@@ -210,6 +208,11 @@ DWORD
 LsaUmpRefreshUserCreds(
     LSA_UM_STATE_HANDLE       Handle,
     PLSA_UM_USER_REFRESH_ITEM pItem
+    );
+
+VOID
+LsaUmpFreeUserItem(
+    PLSA_UM_USER_REFRESH_ITEM pUserItem
     );
 
 VOID
@@ -843,6 +846,7 @@ error:
     goto cleanup;
 }
 
+#if 0
 static
 DWORD
 LsaUmpEncryptString(
@@ -1001,6 +1005,7 @@ LsaUmpFreePassword(
         LW_SAFE_FREE_MEMORY(pPassword);
     }
 }
+#endif
 
 static
 VOID
@@ -1018,11 +1023,7 @@ LsaUmpFreeUserList(
         pItem = pNextItem;
         pNextItem = pItem->pNext;
 
-        LsaUmpFreePassword(
-            pItem->pPassword,
-            pItem->dwPasswordLen);
-
-        LW_SAFE_FREE_MEMORY(pItem);
+        LsaUmpFreeUserItem(pItem);
     }
 
     LW_SAFE_FREE_MEMORY(pUserList);
@@ -1038,10 +1039,7 @@ LsaUmpFreeRequest(
 {
     if ( pRequest )
     {
-        LsaUmpFreePassword(
-            pRequest->pPassword,
-            pRequest->dwPasswordLen);
-
+        LsaReleaseCredential(&pRequest->CredHandle);
         LW_SAFE_FREE_MEMORY(pRequest);
     }
 
@@ -1103,6 +1101,7 @@ DWORD
 LsaUmpAddUser(
     LSA_UM_STATE_HANDLE Handle,
     uid_t               uUid,
+    PCSTR               pszUserName,
     PCSTR               pszPassword,
     DWORD               dwTgtEndTime
     )
@@ -1122,15 +1121,24 @@ LsaUmpAddUser(
 
     pRequest->uUid = uUid;
 
+#if 0
     dwError = LsaUmpEncryptString(
                   Handle,
                   pszPassword,
                   &pRequest->pPassword,
                   &pRequest->dwPasswordLen);
     BAIL_ON_LSA_ERROR(dwError);
+#endif
 
     pRequest->dwTgtEndTime = dwTgtEndTime;
     pRequest->dwLastActivity = time(NULL);
+
+    dwError = LsaAddCredential(
+        pszUserName,
+        pszPassword,
+        &uUid,
+        &pRequest->CredHandle);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaUmpAddRequest(
                   Handle,
@@ -1160,6 +1168,9 @@ LsaUmpModifyUser(
 {
     DWORD                dwError = 0;
     PLSA_UM_REQUEST_ITEM pRequest = NULL;
+    PCSTR pUserName = NULL;
+    LSA_CRED_HANDLE OldCredHandle = NULL;
+    LSA_CRED_HANDLE NewCredHandle = NULL;
 
     LSA_LOG_DEBUG("LSA User Manager - requesting user modify %u", uUid);
 
@@ -1168,27 +1179,47 @@ LsaUmpModifyUser(
                   (PVOID*)&pRequest);
     BAIL_ON_LSA_ERROR(dwError);
 
-    pRequest->dwType = LSA_UM_REQUEST_TYPE_MODIFY;
-    pRequest->uUid = uUid;
+    // We're going to update our credential now instead of waiting on the
+    // thread.  We have the new uid and/or password... get the username by
+    // finding the current (now old) credential.
+    OldCredHandle = LsaGetCredential(uUid);
 
-    pRequest->uUid = uUid;
+    if(OldCredHandle)
+    {
+        // This is to get the username to pass into the new cred
+        LsaGetCredentialInfo(OldCredHandle, &pUserName, NULL, NULL);
 
-    dwError = LsaUmpEncryptString(
-                  Handle,
-                  pszPassword,
-                  &pRequest->pPassword,
-                  &pRequest->dwPasswordLen);
-    BAIL_ON_LSA_ERROR(dwError);
+        // This creates a new updated credential
+        dwError = LsaAddCredential(
+            pUserName,
+            pszPassword,
+            &uUid,
+            &NewCredHandle);
+        BAIL_ON_LSA_ERROR(dwError);
 
-    pRequest->dwLastActivity = time(NULL);
+        pRequest->CredHandle = NewCredHandle;
+        NewCredHandle = NULL;
 
-    dwError = LsaUmpAddRequest(
-                  Handle,
-                  pRequest);
-    BAIL_ON_LSA_ERROR(dwError);
+        pRequest->dwType = LSA_UM_REQUEST_TYPE_MODIFY;
+        pRequest->uUid = uUid;
+
+        pRequest->dwLastActivity = time(NULL);
+
+        dwError = LsaUmpAddRequest(
+            Handle,
+            pRequest);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    else
+    {
+        LSA_LOG_DEBUG("LSA User Manager - cred not found while modifying user (id: %u)", uUid);
+    }
 
 cleanup:
+    // This release is to cleanup the reference from the LsaGetCredential above.
+    LsaReleaseCredential(&OldCredHandle);
 
+    LsaReleaseCredential(&NewCredHandle);
     return dwError;
 
 error:
@@ -1302,17 +1333,14 @@ LsaUmpAddUserInternal(
     pUserItem = *pUserItemPtr;
     if ( pUserItem && pUserItem->uUid == pRequest->uUid )
     {
-        LsaUmpFreePassword(
-            pUserItem->pPassword,
-            pUserItem->dwPasswordLen);
-
-        pUserItem->pPassword = pRequest->pPassword;
-        pUserItem->dwPasswordLen = pRequest->dwPasswordLen;
-        pRequest->pPassword = NULL;
-
         pUserItem->dwTgtEndTime = pRequest->dwTgtEndTime;
         pUserItem->dwLastActivity = time(NULL);
         pUserItem->dwFailedCount = 0;
+
+        LsaReleaseCredential(&pUserItem->CredHandle);
+
+        pUserItem->CredHandle= pRequest->CredHandle;
+        pRequest->CredHandle = NULL;
     }
     else
     {
@@ -1323,13 +1351,14 @@ LsaUmpAddUserInternal(
 
         pNewUserItem->uUid = pRequest->uUid;
 
-        pNewUserItem->pPassword = pRequest->pPassword;
-        pNewUserItem->dwPasswordLen = pRequest->dwPasswordLen;
-        pRequest->pPassword = NULL;
-
         pNewUserItem->dwTgtEndTime = pRequest->dwTgtEndTime;
         pNewUserItem->dwLastActivity = pRequest->dwLastActivity;
+
+        pNewUserItem->CredHandle = pRequest->CredHandle;
+        pRequest->CredHandle = NULL;
+
         pNewUserItem->pNext = *pUserItemPtr;
+
         *pUserItemPtr = pNewUserItem;
         pNewUserItem = NULL;
     }
@@ -1339,14 +1368,9 @@ cleanup:
     return dwError;
 
 error:
-
-    if ( pNewUserItem )
+    if (pNewUserItem)
     {
-        LsaUmpFreePassword(
-            pNewUserItem->pPassword,
-            pNewUserItem->dwPasswordLen);
-
-        LW_SAFE_FREE_MEMORY(pNewUserItem);
+        LsaUmpFreeUserItem(pNewUserItem);
     }
 
     goto cleanup;
@@ -1379,24 +1403,20 @@ LsaUmpModifyUserInternal(
     pUserItem = *pUserItemPtr;
     if ( pUserItem && pUserItem->uUid == pRequest->uUid )
     {
-        LsaUmpFreePassword(
-            pUserItem->pPassword,
-            pUserItem->dwPasswordLen);
-
-        pUserItem->pPassword = pRequest->pPassword;
-        pUserItem->dwPasswordLen = pRequest->dwPasswordLen;
-        pRequest->pPassword = NULL;
-
         if ( pRequest->dwLastActivity > pUserItem->dwLastActivity )
         {
             pUserItem->dwLastActivity = pRequest->dwLastActivity;
         }
 
+        LsaReleaseCredential(&pUserItem->CredHandle);
+        pUserItem->CredHandle = pRequest->CredHandle;
+        pRequest->CredHandle = NULL;
+
         pUserItem->dwFailedCount = 0;
     }
     else
     {
-        LSA_LOG_DEBUG("LSA User Manager - user not found while modifying user");
+        LSA_LOG_DEBUG("LSA User Manager - user not found while modifying user (id: %u)", pRequest->uUid);
     }
 
     return dwError;
@@ -1458,11 +1478,7 @@ LsaUmpRemoveUserFromList(
     {
         *pUserItemPtr = pUserItem->pNext;
 
-        LsaUmpFreePassword(
-            pUserItem->pPassword,
-            pUserItem->dwPasswordLen);
-
-        LW_SAFE_FREE_MEMORY(pUserItem);
+        LsaUmpFreeUserItem(pUserItem);
     }
 
     return dwError;
@@ -1475,9 +1491,9 @@ LsaUmpRefreshUserCreds(
     PLSA_UM_USER_REFRESH_ITEM pUserItem
     )
 {
-    DWORD                dwError = 0;
+    DWORD dwError = 0;
     PLSA_SECURITY_OBJECT pUserInfo = NULL;
-    PSTR                 pszPassword = NULL;
+    PCSTR pszPassword = NULL;
 
     if ( pUserItem->dwFailedCount > 5 )
     {
@@ -1500,12 +1516,11 @@ LsaUmpRefreshUserCreds(
                   &pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaUmpDecryptString(
-                  Handle,
-                  pUserItem->pPassword,
-                  pUserItem->dwPasswordLen,
-                  &pszPassword);
-    BAIL_ON_LSA_ERROR(dwError);
+    LsaGetCredentialInfo(
+        pUserItem->CredHandle,
+        NULL,
+        &pszPassword,
+        NULL);
 
     dwError = AD_OnlineCheckUserPassword(
                     (HANDLE)NULL,
@@ -1531,7 +1546,6 @@ LsaUmpRefreshUserCreds(
 cleanup:
 
     ADCacheSafeFreeObject(&pUserInfo);
-    LW_SAFE_CLEAR_FREE_STRING(pszPassword);
 
     return dwError;
 
@@ -1553,6 +1567,15 @@ error:
     }
 
     goto cleanup;
+}
+
+VOID
+LsaUmpFreeUserItem(
+    PLSA_UM_USER_REFRESH_ITEM pUserItem
+    )
+{
+    LsaReleaseCredential(&pUserItem->CredHandle);
+    LwFreeMemory(pUserItem);
 }
 
 VOID

@@ -130,6 +130,24 @@ PvfsCreateFileDoSysOpen(
     );
 
 NTSTATUS
+PvfsCreateDirDoSysOpen(
+    IN PVOID pContext
+    );
+
+FILE_CREATE_RESULT
+PvfsSetCreateResult(
+    IN FILE_CREATE_DISPOSITION Disposition,
+    IN BOOLEAN bFileExisted,
+    IN NTSTATUS ntStatus
+    );
+
+NTSTATUS
+PvfsCheckReadOnlyDeleteOnClose(
+    IN IRP_ARGS_CREATE CreateArgs,
+    IN PSTR pszFilename
+    );
+
+NTSTATUS
 PvfsDeviceIoControl(
     PPVFS_IRP_CONTEXT  pIrpContext
     );

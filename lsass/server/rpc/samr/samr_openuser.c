@@ -56,17 +56,17 @@ SamrSrvOpenUser(
     /* [out] */ ACCOUNT_HANDLE *phUser
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     ACCOUNT_HANDLE hUser = NULL;
     PACCOUNT_CONTEXT pAcctCtx = NULL;
 
-    status = SamrSrvOpenAccount(hBinding,
-                                hDomain,
-                                access_mask,
-                                rid,
-                                DS_OBJECT_CLASS_USER,
-                                &hUser);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrSrvOpenAccount(hBinding,
+                                  hDomain,
+                                  access_mask,
+                                  rid,
+                                  DS_OBJECT_CLASS_USER,
+                                  &hUser);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     pAcctCtx = (PACCOUNT_CONTEXT)hUser;
     pAcctCtx->dwAccountType = SID_TYPE_USER;
@@ -74,7 +74,7 @@ SamrSrvOpenUser(
     *phUser = hUser;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;

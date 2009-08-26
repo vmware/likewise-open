@@ -348,6 +348,12 @@ LocalDirFindObjectBySID(
                     pEntry,
                     &wszAttrSamAccountName[0],
                     &pszSamAccountName);
+    if (dwError == LW_ERROR_NO_ATTRIBUTE_VALUE)
+    {
+        // This is just a stub object used for group membership. A complete
+        // record of the object does not exist in this database.
+        dwError = LW_ERROR_NO_SUCH_OBJECT;
+    }
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LocalMarshalAttrToANSIFromUnicodeString(

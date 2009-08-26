@@ -58,7 +58,7 @@ SamrSrvLookupDomain(
 {
     CHAR szDnToken[] = "DC";
     wchar_t wszFilter[] = L"%ws=%d AND %ws=\'%ws\'";
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = 0;
     PCONNECT_CONTEXT pConnCtx = NULL;
     PWSTR pwszBase = NULL;
@@ -91,11 +91,11 @@ SamrSrvLookupDomain(
     pConnCtx = (PCONNECT_CONTEXT)hConn;
 
     if (pConnCtx == NULL || pConnCtx->Type != SamrContextConnect) {
-        status = STATUS_INVALID_HANDLE;
-        BAIL_ON_NTSTATUS_ERROR(status);
+        ntStatus = STATUS_INVALID_HANDLE;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
 
-    status = SamrSrvGetFromUnicodeString(&pwszDomainName,
+    ntStatus = SamrSrvGetFromUnicodeString(&pwszDomainName,
                                          domain_name);
     BAIL_ON_NO_MEMORY(pwszDomainName);
 
@@ -112,9 +112,9 @@ SamrSrvLookupDomain(
                   domain_name->len +
                   sizeof(wszFilter);
 
-    status = SamrSrvAllocateMemory((void**)&pwszFilter,
+    ntStatus = SamrSrvAllocateMemory((void**)&pwszFilter,
                                    dwFilterLen);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     sw16printfw(pwszFilter, dwFilterLen/sizeof(WCHAR), wszFilter,
                 wszAttrObjectClass, dwObjectClass,
@@ -142,23 +142,23 @@ SamrSrvLookupDomain(
         BAIL_ON_LSA_ERROR(dwError);
 
         if (pAttrVal->Type == DIRECTORY_ATTR_TYPE_UNICODE_STRING) {
-            status = SamrSrvAllocateSidFromWC16String(
+            ntStatus = SamrSrvAllocateSidFromWC16String(
                             &pDomainSid,
                             pAttrVal->data.pwszStringValue);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
         } else {
-            status = STATUS_INTERNAL_ERROR;
-            BAIL_ON_NTSTATUS_ERROR(status);
+            ntStatus = STATUS_INTERNAL_ERROR;
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
         }
 
     } else if (dwCount == 0) {
-        status = STATUS_NO_SUCH_DOMAIN;
-        BAIL_ON_NTSTATUS_ERROR(status);
+        ntStatus = STATUS_NO_SUCH_DOMAIN;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     } else {
-        status = STATUS_INTERNAL_ERROR;
-        BAIL_ON_NTSTATUS_ERROR(status);
+        ntStatus = STATUS_INTERNAL_ERROR;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
 
     *ppSid = pDomainSid;
@@ -180,7 +180,7 @@ cleanup:
         DirectoryFreeEntries(pEntries, dwCount);
     }
 
-    return status;
+    return ntStatus;
 
 error:
     if (pDomainSid) {
