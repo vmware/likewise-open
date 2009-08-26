@@ -340,7 +340,7 @@ lwnet_log_to_file_mt_unsafe(
 
     strftime(timeBuf, sizeof(timeBuf), LOG_TIME_FORMAT, &tmp);
 
-    fprintf(pTarget, "%s:0x%x:%s:", timeBuf, (unsigned int)pthread_self(), pszEntryType);
+    fprintf(pTarget, "%s:%zd:%s:", timeBuf, (size_t) pthread_self(), pszEntryType);
     vfprintf(pTarget, pszFormat, msgList);
     fprintf(pTarget, "\n");
     fflush(pTarget);
