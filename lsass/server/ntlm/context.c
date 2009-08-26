@@ -1532,7 +1532,7 @@ NtlmCreateNtlmV2Blob(
     BYTE BlobSignature[NTLM_BLOB_SIGNATURE_SIZE] = NTLM_BLOB_SIGNATURE;
     PBYTE pOriginal = NULL;
     DWORD dwBlobSize = 0;
-    BYTE TempBlobHash[NTLM_HASH_SIZE] = {0};
+    BYTE TempBlobHash[EVP_MAX_MD_SIZE] = {0};
     DWORD dwKeyLen = NTLM_HASH_SIZE;
     // The following pointers point into pOriginal and will not be freed
     PNTLM_BLOB pNtlmBlob = NULL;
@@ -1578,8 +1578,8 @@ NtlmCreateNtlmV2Blob(
     pNtlmBlob->Reserved1 = 0;
 
     pNtlmBlob->TimeStamp = (ULONG64)time(NULL);
-    pNtlmBlob->TimeStamp += 11644473600;
-    pNtlmBlob->TimeStamp *= 10000000;
+    pNtlmBlob->TimeStamp += 11644473600ULL;
+    pNtlmBlob->TimeStamp *= 10000000ULL;
 
     dwError = NtlmGetRandomBuffer(
         (PBYTE)&pNtlmBlob->ClientNonce,
@@ -1594,7 +1594,7 @@ NtlmCreateNtlmV2Blob(
     // The last 4 bytes should never have changed so they should still be 0
 
     // Now prepend the challenge and encrypt
-    pBuffer = (PBYTE)pNtlmBlob - NTLM_CHALLENGE_SIZE;
+    pBuffer = *(PBYTE*)&pNtlmBlob - NTLM_CHALLENGE_SIZE;
     memcpy(pBuffer, pChallenge, NTLM_CHALLENGE_SIZE);
 
     HMAC(
@@ -1990,13 +1990,27 @@ NtlmSetParityBit(
     ULONG64 NewKey = *pKey;
 
     NewKey = NewKey << 1;
-    NewKey = (NewKey & 0x00000000000000FF)|((NewKey & 0xFFFFFFFFFFFFFF00) << 1);
-    NewKey = (NewKey & 0x000000000000FFFF)|((NewKey & 0xFFFFFFFFFFFF0000) << 1);
-    NewKey = (NewKey & 0x0000000000FFFFFF)|((NewKey & 0xFFFFFFFFFF000000) << 1);
-    NewKey = (NewKey & 0x00000000FFFFFFFF)|((NewKey & 0xFFFFFFFF00000000) << 1);
-    NewKey = (NewKey & 0x000000FFFFFFFFFF)|((NewKey & 0xFFFFFF0000000000) << 1);
-    NewKey = (NewKey & 0x0000FFFFFFFFFFFF)|((NewKey & 0xFFFF000000000000) << 1);
-    NewKey = (NewKey & 0x00FFFFFFFFFFFFFF)|((NewKey & 0xFF00000000000000) << 1);
+
+    NewKey = (NewKey & 0x00000000000000FFULL)|
+            ((NewKey & 0xFFFFFFFFFFFFFF00ULL) << 1);
+
+    NewKey = (NewKey & 0x000000000000FFFFULL)|
+            ((NewKey & 0xFFFFFFFFFFFF0000ULL) << 1);
+
+    NewKey = (NewKey & 0x0000000000FFFFFFULL)|
+            ((NewKey & 0xFFFFFFFFFF000000ULL) << 1);
+
+    NewKey = (NewKey & 0x00000000FFFFFFFFULL)|
+            ((NewKey & 0xFFFFFFFF00000000ULL) << 1);
+
+    NewKey = (NewKey & 0x000000FFFFFFFFFFULL)|
+            ((NewKey & 0xFFFFFF0000000000ULL) << 1);
+
+    NewKey = (NewKey & 0x0000FFFFFFFFFFFFULL)|
+            ((NewKey & 0xFFFF000000000000ULL) << 1);
+
+    NewKey = (NewKey & 0x00FFFFFFFFFFFFFFULL)|
+            ((NewKey & 0xFF00000000000000ULL) << 1);
 
     DES_set_odd_parity((DES_cblock*)&NewKey);
 
