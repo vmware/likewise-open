@@ -53,7 +53,7 @@ SamrSrvAllocateMemory(
     DWORD dwSize
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     void *pOut = NULL;
 
     pOut = rpc_ss_allocate(dwSize);
@@ -64,7 +64,7 @@ SamrSrvAllocateMemory(
     *ppOut = pOut;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     *ppOut = NULL;
@@ -87,22 +87,22 @@ SamrSrvAllocateSidFromWC16String(
     PCWSTR pwszSidStr
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     PSID pSid = NULL;
     ULONG ulSidSize = 0;
     PSID pSidCopy = NULL;
 
-    status = RtlAllocateSidFromWC16String(&pSid,
+    ntStatus = RtlAllocateSidFromWC16String(&pSid,
                                           pwszSidStr);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     ulSidSize = RtlLengthSid(pSid);
-    status = SamrSrvAllocateMemory((void**)&pSidCopy,
+    ntStatus = SamrSrvAllocateMemory((void**)&pSidCopy,
                                    ulSidSize);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
-    status = RtlCopySid(ulSidSize, pSidCopy, pSid);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = RtlCopySid(ulSidSize, pSidCopy, pSid);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     *ppSid = pSidCopy;
 
@@ -111,7 +111,7 @@ cleanup:
         RTL_FREE(&pSid);
     }
 
-    return status;
+    return ntStatus;
 
 error:
     if (pSidCopy) {
@@ -129,22 +129,22 @@ SamrSrvDuplicateSid(
     PSID pSidIn
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     PSID pSid = NULL;
     ULONG ulSidSize = 0;
 
     ulSidSize = RtlLengthSid(pSidIn);
-    status = SamrSrvAllocateMemory((void**)&pSid,
+    ntStatus = SamrSrvAllocateMemory((void**)&pSid,
                                    ulSidSize);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
-    status = RtlCopySid(ulSidSize, pSid, pSidIn);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = RtlCopySid(ulSidSize, pSid, pSidIn);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     *ppSidOut = pSid;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     if (pSid) {
@@ -162,18 +162,18 @@ SamrSrvGetFromUnicodeString(
     UnicodeString *pIn
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     PWSTR pwszStr = NULL;
 
-    status = SamrSrvAllocateMemory((void**)&pwszStr,
+    ntStatus = SamrSrvAllocateMemory((void**)&pwszStr,
                                    (pIn->size + 1) * sizeof(WCHAR));
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     wc16sncpy(pwszStr, pIn->string, (pIn->len / sizeof(WCHAR)));
     *ppwszOut = pwszStr;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     if (pwszStr) {
@@ -191,18 +191,18 @@ SamrSrvGetFromUnicodeStringEx(
     UnicodeStringEx *pIn
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     PWSTR pwszStr = NULL;
 
-    status = SamrSrvAllocateMemory((void**)&pwszStr,
+    ntStatus = SamrSrvAllocateMemory((void**)&pwszStr,
                                    (pIn->size) * sizeof(WCHAR));
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     wc16sncpy(pwszStr, pIn->string, (pIn->len / sizeof(WCHAR)));
     *ppwszOut = pwszStr;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     if (pwszStr) {
@@ -220,23 +220,23 @@ SamrSrvInitUnicodeString(
     PCWSTR pwszIn
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwLen = 0;
     DWORD dwSize = 0;
 
     dwLen  = (pwszIn) ? wc16slen(pwszIn) : 0;
     dwSize = dwLen * sizeof(WCHAR);
 
-    status = SamrSrvAllocateMemory((void**)&(pOut->string),
+    ntStatus = SamrSrvAllocateMemory((void**)&(pOut->string),
                                    dwSize);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     memcpy(pOut->string, pwszIn, dwSize);
     pOut->size = dwSize;
     pOut->len  = dwSize;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     if (pOut->string) {
@@ -255,23 +255,23 @@ SamrSrvInitUnicodeStringEx(
     PCWSTR pwszIn
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwLen = 0;
     DWORD dwSize = 0;
 
     dwLen  = (pwszIn) ? wc16slen(pwszIn) : 0;
     dwSize = (dwLen + 1) * sizeof(WCHAR);
 
-    status = SamrSrvAllocateMemory((void**)&(pOut->string),
+    ntStatus = SamrSrvAllocateMemory((void**)&(pOut->string),
                                    dwSize);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     memcpy(pOut->string, pwszIn, dwSize - 1);
     pOut->size = dwSize;
     pOut->len  = dwSize - 1;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     if (pOut->string) {

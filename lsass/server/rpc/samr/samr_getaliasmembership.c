@@ -71,7 +71,7 @@ NTSTATUS SamrSrvGetAliasMembership(
     )
 {
     wchar_t wszFilterFmt[] = L"%ws='%ws'";
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     PDOMAIN_CONTEXT pDomCtx = NULL;
     DWORD dwError = 0;
     DWORD dwDnNum = 0;
@@ -117,9 +117,9 @@ NTSTATUS SamrSrvGetAliasMembership(
 
     for (i = 0; i < pSids->num_sids; i++)
     {
-        status = RtlAllocateWC16StringFromSid(&pwszSid,
+        ntStatus = RtlAllocateWC16StringFromSid(&pwszSid,
                                               pSids->sids[i].sid);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
         dwError = LwWc16sLen(pwszSid, &dwSidStrLen);
         BAIL_ON_LSA_ERROR(dwError);
@@ -148,8 +148,8 @@ NTSTATUS SamrSrvGetAliasMembership(
 
         if (dwEntriesNum > 1)
         {
-            status = STATUS_INTERNAL_ERROR;
-            BAIL_ON_NTSTATUS_ERROR(status);
+            ntStatus = STATUS_INTERNAL_ERROR;
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
         }
         else if (dwEntriesNum == 1)
         {
@@ -162,13 +162,13 @@ NTSTATUS SamrSrvGetAliasMembership(
 
             if (pwszDn == NULL)
             {
-                status = STATUS_INTERNAL_ERROR;
-                BAIL_ON_NTSTATUS_ERROR(status);
+                ntStatus = STATUS_INTERNAL_ERROR;
+                BAIL_ON_NTSTATUS_ERROR(ntStatus);
             }
 
             dwError = LwAllocateWc16String(&ppwszDn[i],
                                            pwszDn);
-            BAIL_ON_LSA_ERROR(status);
+            BAIL_ON_LSA_ERROR(ntStatus);
         }
 
         if (pEntry)
@@ -207,12 +207,12 @@ NTSTATUS SamrSrvGetAliasMembership(
 
             if (pwszSid == NULL)
             {
-                status = STATUS_INTERNAL_ERROR;
-                BAIL_ON_NTSTATUS_ERROR(status);
+                ntStatus = STATUS_INTERNAL_ERROR;
+                BAIL_ON_NTSTATUS_ERROR(ntStatus);
             }
 
-            status = RtlAllocateSidFromWC16String(&pSid, pwszSid);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            ntStatus = RtlAllocateSidFromWC16String(&pSid, pwszSid);
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
             if (RtlIsPrefixSid(pDomCtx->pDomainSid, pSid))
             {
@@ -230,9 +230,9 @@ NTSTATUS SamrSrvGetAliasMembership(
 
     dwSidCount = LsaDLinkedListLength(pSidList);
 
-    status = SamrSrvAllocateMemory(OUT_PPVOID(&Rids.ids),
+    ntStatus = SamrSrvAllocateMemory(OUT_PPVOID(&Rids.ids),
                                    sizeof(Rids.ids[0]) * dwSidCount);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     LsaDLinkedListForEach(pSidList, SetRidsArray, (PVOID)&Rids);
 
@@ -254,7 +254,7 @@ cleanup:
     LsaDLinkedListForEach(pSidList, FreeSid, NULL);
     LsaDLinkedListFree(pSidList);
 
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;

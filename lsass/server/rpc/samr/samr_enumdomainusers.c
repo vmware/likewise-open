@@ -58,9 +58,9 @@ SamrSrvEnumDomainUsers(
     /* [out] */ uint32 *num_entries
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    status = SamrSrvEnumDomainAccounts(hBinding,
+    ntStatus = SamrSrvEnumDomainAccounts(hBinding,
                                        hDomain,
                                        resume,
                                        DS_OBJECT_CLASS_USER,
@@ -68,7 +68,7 @@ SamrSrvEnumDomainUsers(
                                        max_size,
                                        names,
                                        num_entries);
-    return status;
+    return ntStatus;
 }
 
 

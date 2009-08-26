@@ -59,7 +59,7 @@ SamrSrvLookupNames(
 {
     const wchar_t wszFilterFmt[] = L"(%ws=%d AND %ws='%ws' AND %ws='%ws') OR "
                                    L"(%ws=%d AND %ws='%ws' AND %ws='%ws')";
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = 0;
     PDOMAIN_CONTEXT pDomCtx = NULL;
     HANDLE hDirectory = NULL;
@@ -95,38 +95,38 @@ SamrSrvLookupNames(
     pDomCtx = (PDOMAIN_CONTEXT)hDomain;
 
     if (pDomCtx == NULL || pDomCtx->Type != SamrContextDomain) {
-        status = STATUS_INVALID_HANDLE;
-        BAIL_ON_NTSTATUS_ERROR(status);
+        ntStatus = STATUS_INVALID_HANDLE;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
 
     hDirectory     = pDomCtx->pConnCtx->hDirectory;
     pwszDn         = pDomCtx->pwszDn;
     pwszDomainName = pDomCtx->pwszDomainName;
 
-    status = SamrSrvAllocateMemory((void**)&pIds,
+    ntStatus = SamrSrvAllocateMemory((void**)&pIds,
                                    sizeof(*pIds));
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     pIds->count = num_names;
-    status = SamrSrvAllocateMemory((void**)&(pIds->ids),
+    ntStatus = SamrSrvAllocateMemory((void**)&(pIds->ids),
                                    pIds->count * sizeof(uint32));
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
-    status = SamrSrvAllocateMemory((void**)&pTypes,
+    ntStatus = SamrSrvAllocateMemory((void**)&pTypes,
                                    sizeof(*pTypes));
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     pTypes->count = num_names;
-    status = SamrSrvAllocateMemory((void**)&(pTypes->ids),
+    ntStatus = SamrSrvAllocateMemory((void**)&(pTypes->ids),
                                    pTypes->count * sizeof(uint32));
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     for (i = 0; i < num_names; i++) {
         UnicodeString *name = &(names[i]);
 
-        status = SamrSrvGetFromUnicodeString(&pwszName,
+        ntStatus = SamrSrvGetFromUnicodeString(&pwszName,
                                              name);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
         dwFilterLen = ((sizeof(wszAttrObjectClass) / sizeof(WCHAR)) - 1) +
                       10 +
@@ -142,9 +142,9 @@ SamrSrvLookupNames(
                       wc16slen(pwszDomainName) +
                       (sizeof(wszFilterFmt) / sizeof(wszFilterFmt[0]));
 
-        status = SamrSrvAllocateMemory((void**)&pwszFilter,
+        ntStatus = SamrSrvAllocateMemory((void**)&pwszFilter,
                                        dwFilterLen * sizeof(WCHAR));
-        BAIL_ON_NTSTATUS_ERROR(status);
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
         sw16printfw(pwszFilter, dwFilterLen, wszFilterFmt,
                     wszAttrObjectClass, dwObjectClassUser,
@@ -185,8 +185,8 @@ SamrSrvLookupNames(
                                                        DIRECTORY_ATTR_TYPE_UNICODE_STRING,
                                                        &pwszSid);
             if (pwszSid && dwError == 0) {
-                status = RtlAllocateSidFromWC16String(&pSid, pwszSid);
-                BAIL_ON_NTSTATUS_ERROR(status);
+                ntStatus = RtlAllocateSidFromWC16String(&pSid, pwszSid);
+                BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
                 dwRid = pSid->SubAuthority[pSid->SubAuthorityCount - 1];
             }
@@ -209,7 +209,7 @@ SamrSrvLookupNames(
                     dwType = SID_TYPE_INVALID;
                 }
 
-                BAIL_ON_NTSTATUS_ERROR(status);
+                BAIL_ON_NTSTATUS_ERROR(ntStatus);
             }
 
 
@@ -223,8 +223,8 @@ SamrSrvLookupNames(
             bNamesNotFound = TRUE;
 
         } else {
-            status = STATUS_INTERNAL_ERROR;
-            BAIL_ON_NTSTATUS_ERROR(status);
+            ntStatus = STATUS_INTERNAL_ERROR;
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
         }
 
         if (pEntries) {
@@ -252,12 +252,12 @@ SamrSrvLookupNames(
     types->count = pTypes->count;
     types->ids   = pTypes->ids;
 
-    if (status == STATUS_SUCCESS) {
+    if (ntStatus == STATUS_SUCCESS) {
         if (bNamesFound && bNamesNotFound) {
-            status = LW_STATUS_SOME_NOT_MAPPED;
+            ntStatus = LW_STATUS_SOME_NOT_MAPPED;
 
         } else if (!bNamesFound && bNamesNotFound) {
-            status = STATUS_NONE_MAPPED;
+            ntStatus = STATUS_NONE_MAPPED;
         }
     }
 
@@ -286,7 +286,7 @@ cleanup:
         SamrSrvFreeMemory(pTypes);
     }
 
-    return status;
+    return ntStatus;
 
 error:
     if (pIds->ids) {

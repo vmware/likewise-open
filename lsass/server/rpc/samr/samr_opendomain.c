@@ -57,7 +57,7 @@ SamrSrvOpenDomain(
     )
 {
     wchar_t wszFilter[] = L"(%ws=%d OR %ws=%d) AND %ws='%ws'";
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = 0;
     PCONNECT_CONTEXT pConnCtx = NULL;
     PDOMAIN_CONTEXT pDomCtx = NULL;
@@ -93,12 +93,12 @@ SamrSrvOpenDomain(
     pConnCtx = (PCONNECT_CONTEXT)hConn;
 
     if (pConnCtx == NULL || pConnCtx->Type != SamrContextConnect) {
-        status = STATUS_INVALID_HANDLE;
-        BAIL_ON_NTSTATUS_ERROR(status);
+        ntStatus = STATUS_INVALID_HANDLE;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
 
-    status = RtlAllocateWC16StringFromSid(&pwszDomainSid, sid);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = RtlAllocateWC16StringFromSid(&pwszDomainSid, sid);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     dwFilterLen = ((sizeof(wszAttrObjectClass) / sizeof(WCHAR)) - 1) +
                   10 +
@@ -108,9 +108,9 @@ SamrSrvOpenDomain(
                   ((sizeof(wszAttrObjectSid) / sizeof(WCHAR)) - 1) +
                   wc16slen(pwszDomainSid);
 
-    status = SamrSrvAllocateMemory((void**)&pwszFilter,
+    ntStatus = SamrSrvAllocateMemory((void**)&pwszFilter,
                                    dwFilterLen * sizeof(*pwszFilter));
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     sw16printfw(pwszFilter, dwFilterLen, wszFilter,
                 &wszAttrObjectClass[0],
@@ -135,8 +135,8 @@ SamrSrvOpenDomain(
                               &dwEntriesNum);
     BAIL_ON_LSA_ERROR(dwError);
 
-    status = RTL_ALLOCATE(&pDomCtx, DOMAIN_CONTEXT, sizeof(*pDomCtx));
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = RTL_ALLOCATE(&pDomCtx, DOMAIN_CONTEXT, sizeof(*pDomCtx));
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     for (i = 0; i < dwEntriesNum; i++) {
         pEntry = &(pEntries[i]);
@@ -152,10 +152,10 @@ SamrSrvOpenDomain(
         if (pAttrVal &&
             pAttrVal->Type == DIRECTORY_ATTR_TYPE_UNICODE_STRING) {
 
-            status = RtlAllocateSidFromWC16String(
+            ntStatus = RtlAllocateSidFromWC16String(
                                      &pDomainSid,
                                      pAttrVal->data.pwszStringValue);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
             pAttrVal = NULL;
 
@@ -170,24 +170,24 @@ SamrSrvOpenDomain(
                 BAIL_ON_LSA_ERROR(dwError);
 
             } else {
-                status = STATUS_INVALID_SID;
-                BAIL_ON_NTSTATUS_ERROR(status);
+                ntStatus = STATUS_INVALID_SID;
+                BAIL_ON_NTSTATUS_ERROR(ntStatus);
             }
 
             if (pAttrVal &&
                 pAttrVal->Type == DIRECTORY_ATTR_TYPE_UNICODE_STRING) {
 
                 dwNameLen = wc16slen(pAttrVal->data.pwszStringValue);
-                status = RTL_ALLOCATE(&pwszDomainName,
-                                      WCHAR,
-                                      (dwNameLen + 1) * sizeof(WCHAR));
-                BAIL_ON_NTSTATUS_ERROR(status);
+                ntStatus = RTL_ALLOCATE(&pwszDomainName,
+                                        WCHAR,
+                                        (dwNameLen + 1) * sizeof(WCHAR));
+                BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
                 wc16sncpy(pwszDomainName, pAttrVal->data.pwszStringValue, dwNameLen);
 
             } else  {
-                status = STATUS_INTERNAL_ERROR;
-                BAIL_ON_NTSTATUS_ERROR(status);
+                ntStatus = STATUS_INTERNAL_ERROR;
+                BAIL_ON_NTSTATUS_ERROR(ntStatus);
             }
 
 
@@ -203,21 +203,21 @@ SamrSrvOpenDomain(
                 pAttrVal->Type == DIRECTORY_ATTR_TYPE_UNICODE_STRING) {
 
                 dwDnLen = wc16slen(pAttrVal->data.pwszStringValue);
-                status = RTL_ALLOCATE(&pwszDn,
+                ntStatus = RTL_ALLOCATE(&pwszDn,
                                       WCHAR,
                                       (dwDnLen + 1) * sizeof(WCHAR));
-                BAIL_ON_NTSTATUS_ERROR(status);
+                BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
                 wc16sncpy(pwszDn, pAttrVal->data.pwszStringValue, dwDnLen);
 
             } else {
-                status = STATUS_INTERNAL_ERROR;
-                BAIL_ON_NTSTATUS_ERROR(status);
+                ntStatus = STATUS_INTERNAL_ERROR;
+                BAIL_ON_NTSTATUS_ERROR(ntStatus);
             }
 
         } else {
-            status = STATUS_INTERNAL_ERROR;
-            BAIL_ON_NTSTATUS_ERROR(status);
+            ntStatus = STATUS_INTERNAL_ERROR;
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
         }
     }
 
@@ -250,7 +250,7 @@ cleanup:
         DirectoryFreeEntries(pEntries, dwEntriesNum);
     }
 
-    return status;
+    return ntStatus;
 
 error:
     if (pDomCtx) {

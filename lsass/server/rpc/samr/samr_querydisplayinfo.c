@@ -162,7 +162,7 @@ SamrSrvQueryDisplayInfo(
         wszAttributesLevel5
     };
 
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = 0;
     PDOMAIN_CONTEXT pDomCtx = NULL;
     PCONNECT_CONTEXT pConnCtx = NULL;
@@ -185,8 +185,8 @@ SamrSrvQueryDisplayInfo(
     pDomCtx = (PDOMAIN_CONTEXT)hDomain;
 
     if (pDomCtx == NULL || pDomCtx->Type != SamrContextDomain) {
-        status = STATUS_INVALID_HANDLE;
-        BAIL_ON_NTSTATUS_ERROR(status);
+        ntStatus = STATUS_INVALID_HANDLE;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
 
     pConnCtx = pDomCtx->pConnCtx;
@@ -205,8 +205,8 @@ SamrSrvQueryDisplayInfo(
         break;
 
     default:
-        status = STATUS_INVALID_LEVEL;
-        BAIL_ON_NTSTATUS_ERROR(status);
+        ntStatus = STATUS_INVALID_LEVEL;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
         break;
     }
 
@@ -216,10 +216,10 @@ SamrSrvQueryDisplayInfo(
                   10 +
                   (sizeof(wszFilterFmt)/sizeof(wszFilterFmt[0]));
 
-    status = SamrSrvAllocateMemory(
+    ntStatus = SamrSrvAllocateMemory(
                                 (void**)&pwszFilter,
                                 dwFilterLen * sizeof(*pwszFilter));
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     sw16printfw(pwszFilter, dwFilterLen, wszFilterFmt,
                 wszAttrObjectClass,
@@ -244,7 +244,7 @@ SamrSrvQueryDisplayInfo(
 
         switch (level) {
         case 1:
-            status = SamrSrvFillDisplayInfoFull(pDomCtx,
+            ntStatus = SamrSrvFillDisplayInfoFull(pDomCtx,
                                                 pEntry,
                                                 NULL,
                                                 i,
@@ -253,7 +253,7 @@ SamrSrvQueryDisplayInfo(
             break;
 
         case 2:
-            status = SamrSrvFillDisplayInfoGeneral(pDomCtx,
+            ntStatus = SamrSrvFillDisplayInfoGeneral(pDomCtx,
                                                    pEntry,
                                                    NULL,
                                                    i,
@@ -262,7 +262,7 @@ SamrSrvQueryDisplayInfo(
             break;
 
         case 3:
-            status = SamrSrvFillDisplayInfoGeneralGroups(pDomCtx,
+            ntStatus = SamrSrvFillDisplayInfoGeneralGroups(pDomCtx,
                                                          pEntry,
                                                          NULL,
                                                          i,
@@ -272,7 +272,7 @@ SamrSrvQueryDisplayInfo(
 
         case 4:
         case 5:
-            status = SamrSrvFillDisplayInfoAscii(pDomCtx,
+            ntStatus = SamrSrvFillDisplayInfoAscii(pDomCtx,
                                                  pEntry,
                                                  NULL,
                                                  i,
@@ -281,7 +281,7 @@ SamrSrvQueryDisplayInfo(
             break;
         }
 
-        BAIL_ON_NTSTATUS_ERROR(status);
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
         if (dwTotalSize < buf_size && i < max_entries) {
             dwCount = i + 1;
@@ -297,8 +297,8 @@ SamrSrvQueryDisplayInfo(
 
     if (dwEntriesNum == 0) {
         i = 0;
-        status = STATUS_NO_MORE_ENTRIES;
-        BAIL_ON_NTSTATUS_ERROR(status);
+        ntStatus = STATUS_NO_MORE_ENTRIES;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
 
     for (i = 0; i < dwCount && i < dwEntriesNum; i++) {
@@ -306,7 +306,7 @@ SamrSrvQueryDisplayInfo(
 
         switch (level) {
         case 1:
-            status = SamrSrvFillDisplayInfoFull(pDomCtx,
+            ntStatus = SamrSrvFillDisplayInfoFull(pDomCtx,
                                                 pEntry,
                                                 &Info,
                                                 i,
@@ -315,7 +315,7 @@ SamrSrvQueryDisplayInfo(
             break;
 
         case 2:
-            status = SamrSrvFillDisplayInfoGeneral(pDomCtx,
+            ntStatus = SamrSrvFillDisplayInfoGeneral(pDomCtx,
                                                    pEntry,
                                                    &Info,
                                                    i,
@@ -324,7 +324,7 @@ SamrSrvQueryDisplayInfo(
             break;
 
         case 3:
-            status = SamrSrvFillDisplayInfoGeneralGroups(pDomCtx,
+            ntStatus = SamrSrvFillDisplayInfoGeneralGroups(pDomCtx,
                                                          pEntry,
                                                          &Info,
                                                          i,
@@ -333,7 +333,7 @@ SamrSrvQueryDisplayInfo(
             break;
 
         case 4:
-            status = SamrSrvFillDisplayInfoAscii(pDomCtx,
+            ntStatus = SamrSrvFillDisplayInfoAscii(pDomCtx,
                                                  pEntry,
                                                  &Info.info4,
                                                  i,
@@ -342,7 +342,7 @@ SamrSrvQueryDisplayInfo(
             break;
 
         case 5:
-            status = SamrSrvFillDisplayInfoAscii(pDomCtx,
+            ntStatus = SamrSrvFillDisplayInfoAscii(pDomCtx,
                                                  pEntry,
                                                  &Info.info5,
                                                  i,
@@ -351,11 +351,11 @@ SamrSrvQueryDisplayInfo(
             break;
         }
 
-        BAIL_ON_NTSTATUS_ERROR(status);
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
 
     if (dwCount < dwEntriesNum) {
-        status = STATUS_MORE_ENTRIES;
+        ntStatus = STATUS_MORE_ENTRIES;
     }
 
     *total_size    = dwTotalSize;
@@ -371,7 +371,7 @@ cleanup:
         DirectoryFreeEntries(pEntries, dwEntriesNum);
     }
 
-    return status;
+    return ntStatus;
 
 error:
     /* Regardless of info level the pointer is at the same position */
@@ -392,7 +392,7 @@ SamrSrvFillDisplayInfoFull(
     PDWORD pdwSize
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = 0;
     WCHAR wszAttrRecordId[] = DS_ATTR_RECORD_ID;
     WCHAR wszAttrObjectSid[] = DS_ATTR_OBJECT_SID;
@@ -451,7 +451,7 @@ SamrSrvFillDisplayInfoFull(
     pInfo1 = &pInfo->info1;
 
     if (!pInfo1->entries) {
-        status = SamrSrvAllocateMemory(
+        ntStatus = SamrSrvAllocateMemory(
                             (void**)&pInfo1->entries,
                             sizeof(pInfo1->entries[0]) * dwCount);
         pInfo1->count = dwCount;
@@ -461,25 +461,25 @@ SamrSrvFillDisplayInfoFull(
 
     pDisplayEntry->idx           = (uint32)llRecId;
 
-    status = SamrSrvAllocateSidFromWC16String(&pSid, pwszSid);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrSrvAllocateSidFromWC16String(&pSid, pwszSid);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     dwRid = pSid->SubAuthority[pSid->SubAuthorityCount - 1];
 
     pDisplayEntry->rid           = (uint32)dwRid;
     pDisplayEntry->account_flags = (uint32)ulAccountFlags;
 
-    status = SamrSrvInitUnicodeString(&pDisplayEntry->account_name,
+    ntStatus = SamrSrvInitUnicodeString(&pDisplayEntry->account_name,
                                       pwszUsername);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
-    status = SamrSrvInitUnicodeString(&pDisplayEntry->full_name,
+    ntStatus = SamrSrvInitUnicodeString(&pDisplayEntry->full_name,
                                       pwszFullName);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
-    status = SamrSrvInitUnicodeString(&pDisplayEntry->description,
+    ntStatus = SamrSrvInitUnicodeString(&pDisplayEntry->description,
                                       pwszDescription);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
 done:
     *pdwSize  = dwSize;
@@ -489,7 +489,7 @@ cleanup:
         SamrSrvFreeMemory(pSid);
     }
 
-    return status;
+    return ntStatus;
 
 error:
     if (pInfo1 && pInfo1->entries) {
@@ -512,7 +512,7 @@ SamrSrvFillDisplayInfoGeneral(
     PDWORD pdwSize
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = 0;
     WCHAR wszAttrRecordId[] = DS_ATTR_RECORD_ID;
     WCHAR wszAttrObjectSid[] = DS_ATTR_OBJECT_SID;
@@ -562,7 +562,7 @@ SamrSrvFillDisplayInfoGeneral(
     pInfo2 = &pInfo->info2;
 
     if (!pInfo2->entries) {
-        status = SamrSrvAllocateMemory(
+        ntStatus = SamrSrvAllocateMemory(
                             (void**)&pInfo2->entries,
                             sizeof(pInfo2->entries[0]) * dwCount);
         pInfo2->count = dwCount;
@@ -572,21 +572,21 @@ SamrSrvFillDisplayInfoGeneral(
 
     pDisplayEntry->idx           = (uint32)llRecId;
 
-    status = SamrSrvAllocateSidFromWC16String(&pSid, pwszSid);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrSrvAllocateSidFromWC16String(&pSid, pwszSid);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     dwRid = pSid->SubAuthority[pSid->SubAuthorityCount - 1];
 
     pDisplayEntry->rid           = (uint32)dwRid;
     pDisplayEntry->account_flags = (uint32)ulAccountFlags;
 
-    status = SamrSrvInitUnicodeString(&pDisplayEntry->account_name,
+    ntStatus = SamrSrvInitUnicodeString(&pDisplayEntry->account_name,
                                       pwszUsername);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
-    status = SamrSrvInitUnicodeString(&pDisplayEntry->description,
+    ntStatus = SamrSrvInitUnicodeString(&pDisplayEntry->description,
                                       NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
 done:
     *pdwSize  = dwSize;
@@ -596,7 +596,7 @@ cleanup:
         SamrSrvFreeMemory(pSid);
     }
 
-    return status;
+    return ntStatus;
 
 error:
     if (pInfo2 && pInfo2->entries) {
@@ -619,7 +619,7 @@ SamrSrvFillDisplayInfoGeneralGroups(
     PDWORD pdwSize
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = 0;
     WCHAR wszAttrRecordId[] = DS_ATTR_RECORD_ID;
     WCHAR wszAttrObjectSid[] = DS_ATTR_OBJECT_SID;
@@ -669,7 +669,7 @@ SamrSrvFillDisplayInfoGeneralGroups(
     pInfo3 = &pInfo->info3;
 
     if (!pInfo3->entries) {
-        status = SamrSrvAllocateMemory(
+        ntStatus = SamrSrvAllocateMemory(
                            (void**)&pInfo3->entries,
                            sizeof(pInfo3->entries[0]) * dwCount);
         pInfo3->count = dwCount;
@@ -679,21 +679,21 @@ SamrSrvFillDisplayInfoGeneralGroups(
 
     pDisplayEntry->idx           = (uint32)llRecId;
 
-    status = SamrSrvAllocateSidFromWC16String(&pSid, pwszSid);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrSrvAllocateSidFromWC16String(&pSid, pwszSid);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     dwRid = pSid->SubAuthority[pSid->SubAuthorityCount - 1];
 
     pDisplayEntry->rid           = (uint32)dwRid;
     pDisplayEntry->account_flags = (uint32)ulAccountFlags;
 
-    status = SamrSrvInitUnicodeString(&pDisplayEntry->account_name,
+    ntStatus = SamrSrvInitUnicodeString(&pDisplayEntry->account_name,
                                       pwszUsername);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
-    status = SamrSrvInitUnicodeString(&pDisplayEntry->description,
+    ntStatus = SamrSrvInitUnicodeString(&pDisplayEntry->description,
                                       NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
 done:
     *pdwSize  = dwSize;
@@ -703,7 +703,7 @@ cleanup:
         SamrSrvFreeMemory(pSid);
     }
 
-    return status;
+    return ntStatus;
 
 error:
     if (pInfo3 && pInfo3->entries) {
@@ -726,7 +726,7 @@ SamrSrvFillDisplayInfoAscii(
     PDWORD pdwSize
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = 0;
     WCHAR wszAttrRecordId[] = DS_ATTR_RECORD_ID;
     WCHAR wszAttrSamAccountName[] = DS_ATTR_SAM_ACCOUNT_NAME;
@@ -758,7 +758,7 @@ SamrSrvFillDisplayInfoAscii(
     if (pInfo == NULL) goto done;
 
     if (!pInfo->entries) {
-        status = SamrSrvAllocateMemory(
+        ntStatus = SamrSrvAllocateMemory(
                              (void**)&pInfo->entries,
                              sizeof(pInfo->entries[0]) * dwCount);
         pInfo->count = dwCount;
@@ -771,10 +771,10 @@ SamrSrvFillDisplayInfoAscii(
     pDisplayEntry->account_name.Length        = dwUsernameLen;
     pDisplayEntry->account_name.MaximumLength = dwUsernameLen;
 
-    status = SamrSrvAllocateMemory(
+    ntStatus = SamrSrvAllocateMemory(
                        (void**)&pDisplayEntry->account_name.Buffer,
                        (dwUsernameLen + 1) * sizeof(CHAR));
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     wc16stombs(pDisplayEntry->account_name.Buffer,
                pwszUsername,
@@ -784,7 +784,7 @@ done:
     *pdwSize  = dwSize;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     if (pInfo && pInfo->entries) {

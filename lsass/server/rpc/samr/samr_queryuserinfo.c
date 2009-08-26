@@ -57,10 +57,10 @@
                           &pwszValue);                                  \
         BAIL_ON_LSA_ERROR(dwError);                                     \
                                                                         \
-        status = SamrSrvInitUnicodeString(                              \
+        ntStatus = SamrSrvInitUnicodeString(                              \
                           &(field),                                     \
                           (pwszValue) ? pwszValue : wszEmpty);          \
-        BAIL_ON_NTSTATUS_ERROR(status);                                 \
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);                                 \
     }
 
 #define SET_NTTIME_VALUE(attr, field)                                   \
@@ -87,10 +87,10 @@
                           &pwszSid);                                    \
         BAIL_ON_LSA_ERROR(dwError);                                     \
                                                                         \
-        status = RtlAllocateSidFromWC16String(                          \
+        ntStatus = RtlAllocateSidFromWC16String(                          \
                           &pSid,                                        \
                           pwszSid);                                     \
-        BAIL_ON_NTSTATUS_ERROR(status);                                 \
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);                                 \
                                                                         \
         field = pSid->SubAuthority[pSid->SubAuthorityCount - 1];        \
                                                                         \
@@ -277,7 +277,7 @@ SamrSrvQueryUserInfo(
     )
 {
     wchar_t wszFilterFmt[] = L"%ws='%ws'";
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = 0;
     PACCOUNT_CONTEXT pAcctCtx = NULL;
     PDOMAIN_CONTEXT pDomCtx = NULL;
@@ -501,20 +501,20 @@ SamrSrvQueryUserInfo(
     pAcctCtx = (PACCOUNT_CONTEXT)hUser;
 
     if (pAcctCtx == NULL || pAcctCtx->Type != SamrContextAccount) {
-        status = STATUS_INVALID_HANDLE;
-        BAIL_ON_NTSTATUS_ERROR(status);
+        ntStatus = STATUS_INVALID_HANDLE;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
 
     switch (level) {
     case 15:
     case 18:
     case 19:
-        status = STATUS_INVALID_INFO_CLASS;
+        ntStatus = STATUS_INVALID_INFO_CLASS;
 
     default:
-        status = STATUS_SUCCESS;
+        ntStatus = STATUS_SUCCESS;
     }
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     pDomCtx  = pAcctCtx->pDomCtx;
     pConnCtx = pDomCtx->pConnCtx;
@@ -525,9 +525,9 @@ SamrSrvQueryUserInfo(
                   wc16slen(pAcctCtx->pwszDn) +
                   (sizeof(wszFilterFmt)/sizeof(wszFilterFmt[0]));
 
-    status = SamrSrvAllocateMemory((void**)&pwszFilter,
+    ntStatus = SamrSrvAllocateMemory((void**)&pwszFilter,
                                    dwFilterLen * sizeof(WCHAR));
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     sw16printfw(pwszFilter, dwFilterLen, wszFilterFmt,
                 wszAttrDn, pAcctCtx->pwszDn);
@@ -543,96 +543,96 @@ SamrSrvQueryUserInfo(
     BAIL_ON_LSA_ERROR(dwError);
 
     if (dwEntriesNum == 0) {
-        status = STATUS_INVALID_HANDLE;
+        ntStatus = STATUS_INVALID_HANDLE;
 
     } else if (dwEntriesNum > 1) {
-        status = STATUS_INTERNAL_ERROR;
+        ntStatus = STATUS_INTERNAL_ERROR;
     }
 
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
-    status = SamrSrvAllocateMemory((void**)&pUserInfo,
+    ntStatus = SamrSrvAllocateMemory((void**)&pUserInfo,
                                    sizeof(*pUserInfo));
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     switch (level) {
     case 1:
-        status = SamrFillUserInfo1(pEntry, pUserInfo);
+        ntStatus = SamrFillUserInfo1(pEntry, pUserInfo);
         break;
 
     case 2:
-        status = SamrFillUserInfo2(pEntry, pUserInfo);
+        ntStatus = SamrFillUserInfo2(pEntry, pUserInfo);
         break;
 
     case 3:
-        status = SamrFillUserInfo3(pEntry, pUserInfo);
+        ntStatus = SamrFillUserInfo3(pEntry, pUserInfo);
         break;
 
     case 4:
-        status = SamrFillUserInfo4(pEntry, pUserInfo);
+        ntStatus = SamrFillUserInfo4(pEntry, pUserInfo);
         break;
 
     case 5:
-        status = SamrFillUserInfo5(pEntry, pUserInfo);
+        ntStatus = SamrFillUserInfo5(pEntry, pUserInfo);
         break;
 
     case 6:
-        status = SamrFillUserInfo6(pEntry, pUserInfo);
+        ntStatus = SamrFillUserInfo6(pEntry, pUserInfo);
         break;
 
     case 7:
-        status = SamrFillUserInfo7(pEntry, pUserInfo);
+        ntStatus = SamrFillUserInfo7(pEntry, pUserInfo);
         break;
 
     case 8:
-        status = SamrFillUserInfo8(pEntry, pUserInfo);
+        ntStatus = SamrFillUserInfo8(pEntry, pUserInfo);
         break;
 
     case 9:
-        status = SamrFillUserInfo9(pEntry, pUserInfo);
+        ntStatus = SamrFillUserInfo9(pEntry, pUserInfo);
         break;
 
     case 10:
-        status = SamrFillUserInfo10(pEntry, pUserInfo);
+        ntStatus = SamrFillUserInfo10(pEntry, pUserInfo);
         break;
 
     case 11:
-        status = SamrFillUserInfo11(pEntry, pUserInfo);
+        ntStatus = SamrFillUserInfo11(pEntry, pUserInfo);
         break;
 
     case 12:
-        status = SamrFillUserInfo12(pEntry, pUserInfo);
+        ntStatus = SamrFillUserInfo12(pEntry, pUserInfo);
         break;
 
     case 13:
-        status = SamrFillUserInfo13(pEntry, pUserInfo);
+        ntStatus = SamrFillUserInfo13(pEntry, pUserInfo);
         break;
 
     case 14:
-        status = SamrFillUserInfo14(pEntry, pUserInfo);
+        ntStatus = SamrFillUserInfo14(pEntry, pUserInfo);
         break;
 
     case 16:
-        status = SamrFillUserInfo16(pEntry, pUserInfo);
+        ntStatus = SamrFillUserInfo16(pEntry, pUserInfo);
         break;
 
     case 17:
-        status = SamrFillUserInfo17(pEntry, pUserInfo);
+        ntStatus = SamrFillUserInfo17(pEntry, pUserInfo);
         break;
 
     case 20:
-        status = SamrFillUserInfo20(pEntry, pUserInfo);
+        ntStatus = SamrFillUserInfo20(pEntry, pUserInfo);
         break;
 
     case 21:
-        status = SamrFillUserInfo21(pEntry, pUserInfo);
+        ntStatus = SamrFillUserInfo21(pEntry, pUserInfo);
         break;
 
     default:
-        status = STATUS_INVALID_INFO_CLASS;
+        ntStatus = STATUS_INVALID_INFO_CLASS;
     }
 
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     *info = pUserInfo;
 
@@ -645,7 +645,7 @@ cleanup:
         DirectoryFreeEntries(pEntry, dwEntriesNum);
     }
 
-    return status;
+    return ntStatus;
 
 error:
     if (pUserInfo) {
@@ -664,7 +664,7 @@ SamrFillUserInfo1(
     UserInfo *pInfo
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = 0;
     UserInfo1 *pInfo1 = NULL;
     WCHAR wszAttrSamAccountName[] = DS_ATTR_SAM_ACCOUNT_NAME;
@@ -682,7 +682,7 @@ SamrFillUserInfo1(
     SET_UNICODE_STRING_VALUE(wszAttrComment, pInfo1->comment);
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     memset(pInfo1, 0, sizeof(*pInfo1));
@@ -697,7 +697,7 @@ SamrFillUserInfo2(
     UserInfo *pInfo
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = 0;
     UserInfo2 *pInfo2 = NULL;
     WCHAR wszAttrComment[] = DS_ATTR_COMMENT;
@@ -714,7 +714,7 @@ SamrFillUserInfo2(
     SET_UINT16_VALUE(wszAttrCodePage, pInfo2->code_page);
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     memset(pInfo2, 0, sizeof(*pInfo2));
@@ -729,7 +729,7 @@ SamrFillUserInfo3(
     UserInfo *pInfo
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = 0;
     UserInfo3 *pInfo3 = NULL;
     WCHAR wszAttrObjectSid[] = DS_ATTR_OBJECT_SID;
@@ -774,7 +774,7 @@ SamrFillUserInfo3(
     SET_UINT32_VALUE(wszAttrAccountFlags, pInfo3->account_flags);
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     memset(pInfo3, 0, sizeof(*pInfo3));
@@ -789,7 +789,7 @@ SamrFillUserInfo4(
     UserInfo *pInfo
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     UserInfo4 *pInfo4 = NULL;
 
     pInfo4 = &(pInfo->info4);
@@ -797,7 +797,7 @@ SamrFillUserInfo4(
     pInfo4->logon_hours.units_per_week = 0;
     pInfo4->logon_hours.units          = NULL;
 
-    return status;
+    return ntStatus;
 }
 
 
@@ -808,7 +808,7 @@ SamrFillUserInfo5(
     UserInfo *pInfo
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = 0;
     UserInfo5 *pInfo5 = NULL;
     WCHAR wszAttrObjectSid[] = DS_ATTR_OBJECT_SID;
@@ -855,7 +855,7 @@ SamrFillUserInfo5(
     SET_UINT32_VALUE(wszAttrAccountFlags, pInfo5->account_flags);
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     memset(pInfo5, 0, sizeof(*pInfo5));
@@ -870,7 +870,7 @@ SamrFillUserInfo6(
     UserInfo *pInfo
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = 0;
     UserInfo6 *pInfo6 = NULL;
     WCHAR wszAttrSamAccountName[] = DS_ATTR_SAM_ACCOUNT_NAME;
@@ -882,7 +882,7 @@ SamrFillUserInfo6(
     SET_UNICODE_STRING_VALUE(wszAttrFullName, pInfo6->full_name);
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     memset(pInfo6, 0, sizeof(*pInfo6));
@@ -897,7 +897,7 @@ SamrFillUserInfo7(
     UserInfo *pInfo
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = 0;
     UserInfo7 *pInfo7 = NULL;
     WCHAR wszAttrSamAccountName[] = DS_ATTR_SAM_ACCOUNT_NAME;
@@ -907,7 +907,7 @@ SamrFillUserInfo7(
     SET_UNICODE_STRING_VALUE(wszAttrSamAccountName, pInfo7->account_name);
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     memset(pInfo7, 0, sizeof(*pInfo7));
@@ -922,7 +922,7 @@ SamrFillUserInfo8(
     UserInfo *pInfo
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = 0;
     UserInfo8 *pInfo8 = NULL;
     WCHAR wszAttrFullName[] = DS_ATTR_FULL_NAME;
@@ -932,7 +932,7 @@ SamrFillUserInfo8(
     SET_UNICODE_STRING_VALUE(wszAttrFullName, pInfo8->full_name);
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     memset(pInfo8, 0, sizeof(*pInfo8));
@@ -947,7 +947,7 @@ SamrFillUserInfo9(
     UserInfo *pInfo
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = 0;
     UserInfo9 *pInfo9 = NULL;
     WCHAR wszAttrPrimaryGid[] = DS_ATTR_PRIMARY_GROUP;
@@ -957,7 +957,7 @@ SamrFillUserInfo9(
     SET_UINT32_VALUE(wszAttrPrimaryGid, pInfo9->primary_gid);
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     memset(pInfo9, 0, sizeof(*pInfo9));
@@ -972,7 +972,7 @@ SamrFillUserInfo10(
     UserInfo *pInfo
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = 0;
     UserInfo10 *pInfo10 = NULL;
     WCHAR wszAttrHomeDirectory[] = DS_ATTR_HOME_DIR;
@@ -984,7 +984,7 @@ SamrFillUserInfo10(
     SET_UNICODE_STRING_VALUE(wszAttrHomeDrive, pInfo10->home_drive);
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     memset(pInfo10, 0, sizeof(*pInfo10));
@@ -999,7 +999,7 @@ SamrFillUserInfo11(
     UserInfo *pInfo
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = 0;
     UserInfo11 *pInfo11 = NULL;
     WCHAR wszAttrLogonScript[] = DS_ATTR_LOGON_SCRIPT;
@@ -1009,7 +1009,7 @@ SamrFillUserInfo11(
     SET_UNICODE_STRING_VALUE(wszAttrLogonScript, pInfo11->logon_script);
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     memset(pInfo11, 0, sizeof(*pInfo11));
@@ -1024,7 +1024,7 @@ SamrFillUserInfo12(
     UserInfo *pInfo
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = 0;
     UserInfo12 *pInfo12 = NULL;
     WCHAR wszAttrProfilePath[] = DS_ATTR_PROFILE_PATH;
@@ -1034,7 +1034,7 @@ SamrFillUserInfo12(
     SET_UNICODE_STRING_VALUE(wszAttrProfilePath, pInfo12->profile_path);
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     memset(pInfo12, 0, sizeof(*pInfo12));
@@ -1049,7 +1049,7 @@ SamrFillUserInfo13(
     UserInfo *pInfo
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = 0;
     UserInfo13 *pInfo13 = NULL;
     WCHAR wszAttrDescription[] = DS_ATTR_DESCRIPTION;
@@ -1059,7 +1059,7 @@ SamrFillUserInfo13(
     SET_UNICODE_STRING_VALUE(wszAttrDescription, pInfo13->description);
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     memset(pInfo13, 0, sizeof(*pInfo13));
@@ -1074,7 +1074,7 @@ SamrFillUserInfo14(
     UserInfo *pInfo
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = 0;
     UserInfo14 *pInfo14 = NULL;
     WCHAR wszAttrWorkstations[] = DS_ATTR_WORKSTATIONS;
@@ -1084,7 +1084,7 @@ SamrFillUserInfo14(
     SET_UNICODE_STRING_VALUE(wszAttrWorkstations, pInfo14->workstations);
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     memset(pInfo14, 0, sizeof(*pInfo14));
@@ -1099,7 +1099,7 @@ SamrFillUserInfo16(
     UserInfo *pInfo
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = 0;
     UserInfo16 *pInfo16 = NULL;
     WCHAR wszAttrAccountFlags[] = DS_ATTR_ACCOUNT_FLAGS;
@@ -1109,7 +1109,7 @@ SamrFillUserInfo16(
     SET_UINT32_VALUE(wszAttrAccountFlags, pInfo16->account_flags);
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     memset(pInfo16, 0, sizeof(*pInfo16));
@@ -1124,7 +1124,7 @@ SamrFillUserInfo17(
     UserInfo *pInfo
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = 0;
     UserInfo17 *pInfo17 = NULL;
     WCHAR wszAttrAccountExpiry[] = DS_ATTR_ACCOUNT_EXPIRY;
@@ -1134,7 +1134,7 @@ SamrFillUserInfo17(
     SET_NTTIME_VALUE(wszAttrAccountExpiry, pInfo17->account_expiry);
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     memset(pInfo17, 0, sizeof(*pInfo17));
@@ -1149,7 +1149,7 @@ SamrFillUserInfo20(
     UserInfo *pInfo
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = 0;
     UserInfo20 *pInfo20 = NULL;
     WCHAR wszAttrParameters[] = DS_ATTR_PARAMETERS;
@@ -1159,7 +1159,7 @@ SamrFillUserInfo20(
     SET_UNICODE_STRING_VALUE(wszAttrParameters, pInfo20->parameters);
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     memset(pInfo20, 0, sizeof(*pInfo20));
@@ -1174,7 +1174,7 @@ SamrFillUserInfo21(
     UserInfo *pInfo
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = 0;
     UserInfo21 *pInfo21 = NULL;
     WCHAR wszAttrLastLogon[] = DS_ATTR_LAST_LOGON;
@@ -1277,7 +1277,7 @@ SamrFillUserInfo21(
     pInfo21->fields_present |= SAMR_FIELD_CODE_PAGE;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     memset(pInfo21, 0, sizeof(*pInfo21));

@@ -58,7 +58,7 @@ SamrSrvEnumDomains(
     )
 {
     wchar_t wszFilter[] = L"%ws=%d OR %ws=%d";
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = 0;
     PCONNECT_CONTEXT pConnCtx = NULL;
     PWSTR pwszBase = NULL;
@@ -89,8 +89,8 @@ SamrSrvEnumDomains(
     pConnCtx = (PCONNECT_CONTEXT)hConn;
 
     if (pConnCtx == NULL || pConnCtx->Type != SamrContextConnect) {
-        status = STATUS_INVALID_HANDLE;
-        BAIL_ON_NTSTATUS_ERROR(status);
+        ntStatus = STATUS_INVALID_HANDLE;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
 
     dwFilterLen = ((sizeof(wszAttrObjectClass) / sizeof(WCHAR)) - 1) +
@@ -99,9 +99,9 @@ SamrSrvEnumDomains(
                   ((sizeof(wszAttrObjectClass) / sizeof(WCHAR)) - 1) +
                   10;
 
-    status = SamrSrvAllocateMemory((void**)&pwszFilter,
+    ntStatus = SamrSrvAllocateMemory((void**)&pwszFilter,
                                    dwFilterLen * sizeof(*pwszFilter));
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     sw16printfw(pwszFilter, dwFilterLen, wszFilter,
                 &wszAttrObjectClass[0],
@@ -122,15 +122,15 @@ SamrSrvEnumDomains(
                               &dwEntriesNum);
     BAIL_ON_LSA_ERROR(dwError);
 
-    status = SamrSrvAllocateMemory((void**)&pDomains,
+    ntStatus = SamrSrvAllocateMemory((void**)&pDomains,
                                    sizeof(EntryArray));
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     i = (*resume);
 
     if (i >= dwEntriesNum) {
-        status = STATUS_NO_MORE_ENTRIES;
-        BAIL_ON_NTSTATUS_ERROR(status);
+        ntStatus = STATUS_NO_MORE_ENTRIES;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
 
     dwSize += sizeof(pDomains->count);
@@ -154,8 +154,8 @@ SamrSrvEnumDomains(
             dwCount++;
 
         } else {
-            status = STATUS_INTERNAL_ERROR;
-            BAIL_ON_NTSTATUS_ERROR(status);
+            ntStatus = STATUS_INTERNAL_ERROR;
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
         }
     }
 
@@ -164,9 +164,9 @@ SamrSrvEnumDomains(
     dwCount  = (!dwCount) ? 1 : dwCount;
     dwResume = (*resume) + dwCount;
 
-    status = SamrSrvAllocateMemory((void**)&pDomains->entries,
+    ntStatus = SamrSrvAllocateMemory((void**)&pDomains->entries,
                                    sizeof(pDomains->entries[0]) * dwCount);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     pDomains->count = dwCount;
 
@@ -184,18 +184,18 @@ SamrSrvEnumDomains(
             pDomain = &(pDomains->entries[i - (*resume)]);
 
             pDomain->idx = i;
-            status = SamrSrvInitUnicodeString(&pDomain->name,
+            ntStatus = SamrSrvInitUnicodeString(&pDomain->name,
                                               pAttrVal->data.pwszStringValue);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
         } else {
-            status = STATUS_INTERNAL_ERROR;
-            BAIL_ON_NTSTATUS_ERROR(status);
+            ntStatus = STATUS_INTERNAL_ERROR;
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
         }
     }
 
     if (dwResume < dwEntriesNum) {
-        status = STATUS_MORE_ENTRIES;
+        ntStatus = STATUS_MORE_ENTRIES;
     }
 
     *resume      = dwResume;
@@ -211,7 +211,7 @@ cleanup:
         DirectoryFreeEntries(pEntries, dwEntriesNum);
     }
 
-    return status;
+    return ntStatus;
 
 error:
     if (pDomains) {

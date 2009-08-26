@@ -57,12 +57,12 @@ SamrSrvConnect3(
     /* [out] */ CONNECT_HANDLE *hConn
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = 0;
     PCONNECT_CONTEXT pConn = NULL;
 
-    status = RTL_ALLOCATE(&pConn, CONNECT_CONTEXT, sizeof(*pConn));
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = RTL_ALLOCATE(&pConn, CONNECT_CONTEXT, sizeof(*pConn));
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     dwError = DirectoryOpen(&pConn->hDirectory);
     BAIL_ON_LSA_ERROR(dwError);
@@ -75,7 +75,7 @@ SamrSrvConnect3(
     *hConn = (CONNECT_HANDLE)pConn;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     if (pConn) {
