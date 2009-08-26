@@ -20,11 +20,18 @@ typedef void* ACCOUNT_HANDLE;
 #endif
 
 
-#define LSA_CFG_TAG_RPC_SERVER                 "rpc server:"
+#define LSA_CFG_TAG_RPC_SERVER                 "rpc server"
 #define LSA_CFG_TAG_SAMR_RPC_SERVER            "samr"
+#define LSA_CFG_TAG_AUTH_PROVIDER              "auth provider"
+#define LSA_CFG_TAG_LOCAL_PROVIDER             "lsa-local-provider"
 
-#define LSA_RPC_DIR                            CACHEDIR "/rpc"
-#define LSA_DEFAULT_LPC_SOCKET_PATH            LSA_RPC_DIR "/lsass"
+#define LSA_RPC_DIR                              CACHEDIR "/rpc"
+
+#define SAMR_RPC_CFG_DEFAULT_LPC_SOCKET_PATH     LSA_RPC_DIR "/lsass"
+#define SAMR_RPC_CFG_DEFAULT_LOGIN_SHELL         "/bin/sh"
+#define SAMR_RPC_CFG_DEFAULT_HOMEDIR_PREFIX      "/home"
+#define SAMR_RPC_CFG_DEFAULT_HOMEDIR_TEMPLATE    "%H/%U"
+
 
 
 #define DS_ATTR_RECORD_ID \
@@ -61,6 +68,8 @@ typedef void* ACCOUNT_HANDLE;
     {'H','o','m','e','d','i','r',0}
 #define DS_ATTR_HOME_DRIVE \
     {'H','o','m','e','d','r','i','v','e',0}
+#define DS_ATTR_SHELL \
+    {'L','o','g','i','n','S','h','e','l','l',0}
 #define DS_ATTR_LOGON_SCRIPT \
     {'L','o','g','o','n','S','c','r','i','p','t',0}
 #define DS_ATTR_PROFILE_PATH \
@@ -137,9 +146,9 @@ typedef void* ACCOUNT_HANDLE;
 
 #define BAIL_ON_NTSTATUS_ERROR(status)                   \
     do {                                                 \
-        if ((status) != STATUS_SUCCESS) {                \
+        if ((ntStatus) != STATUS_SUCCESS) {              \
             LSA_LOG_ERROR("Error: NTSTATUS = 0x%08x",    \
-                          (status));                     \
+                          (ntStatus));                   \
             goto error;                                  \
         }                                                \
     } while (0)
@@ -149,8 +158,18 @@ typedef void* ACCOUNT_HANDLE;
 #define BAIL_ON_NO_MEMORY(ptr)                           \
     do {                                                 \
         if ((ptr) == NULL) {                             \
-            status = STATUS_NO_MEMORY;                   \
+            ntStatus = STATUS_NO_MEMORY;                 \
             LSA_LOG_ERROR("Error: out of memory");       \
+            goto error;                                  \
+        }                                                \
+    } while (0)
+
+
+#define BAIL_ON_INVALID_PTR(ptr)                         \
+    do {                                                 \
+        if (ptr == NULL) {                               \
+            ntStatus = STATUS_INVALID_PARAMETER;         \
+            LSA_LOG_ERROR("Error: invalid pointer");     \
             goto error;                                  \
         }                                                \
     } while (0)
@@ -159,11 +178,12 @@ typedef void* ACCOUNT_HANDLE;
 #define BAIL_ON_INVALID_PARAMETER(cond)                  \
     do {                                                 \
         if (!(cond)) {                                   \
-            status = STATUS_INVALID_PARAMETER;           \
+            ntStatus = STATUS_INVALID_PARAMETER;         \
             LSA_LOG_ERROR("Error: invalid parameter");   \
             goto error;                                  \
         }                                                \
     } while (0)
+
 
 
 #ifdef BAIL_ON_LSA_ERROR
@@ -175,12 +195,12 @@ typedef void* ACCOUNT_HANDLE;
     do {                                                 \
         if ((err) != 0) {                                \
             switch ((err)) {                             \
-            case LW_ERROR_SAM_DATABASE_ERROR:           \
-                status = STATUS_SAM_INIT_FAILURE;        \
+            case LW_ERROR_SAM_DATABASE_ERROR:            \
+                ntStatus = STATUS_SAM_INIT_FAILURE;      \
                 break;                                   \
                                                          \
             default:                                     \
-                status = STATUS_UNSUCCESSFUL;            \
+                ntStatus = STATUS_UNSUCCESSFUL;          \
             }                                            \
                                                          \
             LSA_LOG_ERROR("Error at %s:%d [code: %d]",   \
@@ -195,7 +215,7 @@ typedef void* ACCOUNT_HANDLE;
         int ret = 0;                                     \
         ret = pthread_mutex_lock(&gSamrSrvDataMutex);    \
         if (ret) {                                       \
-            status = STATUS_UNSUCCESSFUL;		         \
+            ntStatus = STATUS_UNSUCCESSFUL;		         \
             goto error;                                  \
                                                          \
         } else {                                         \
@@ -209,8 +229,8 @@ typedef void* ACCOUNT_HANDLE;
         int ret = 0;                                     \
         if (!locked) break;                              \
         ret = pthread_mutex_unlock(&gSamrSrvDataMutex);  \
-        if (ret && status == STATUS_SUCCESS) {           \
-            status = STATUS_UNSUCCESSFUL;                \
+        if (ret && ntStatus == STATUS_SUCCESS) {         \
+            ntStatus = STATUS_UNSUCCESSFUL;              \
                                                          \
         } else {                                         \
             (locked) = 0;                                \
