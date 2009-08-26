@@ -282,7 +282,7 @@ SamrSrvCreateAccount(
     handle_t hBinding,
     DOMAIN_HANDLE hDomain,
     UnicodeStringEx *account_name,
-    PSTR pszObjectClass,
+    DWORD dwObjectClass,
     uint32 account_flags,
     uint32 access_mask,
     ACCOUNT_HANDLE *hAccount,
