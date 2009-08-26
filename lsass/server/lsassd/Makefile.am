@@ -15,6 +15,7 @@ lsassd_CPPFLAGS = \
 
 lsassd_LDADD = \
     @top_builddir@/server/api/liblsaserverapi.la \
+    @top_builddir@/server/ntlm/libntlmserver.la \
 	@top_builddir@/client/liblsaclient.la \
     @SOCKET_LIBS@ \
     @NETLOGON_LIBS@ \

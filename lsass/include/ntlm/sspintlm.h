@@ -46,13 +46,11 @@
  *          Marc Guy (mguy@likewisesoftware.com)
  *
  */
-#ifndef __NTLM_H__
-#define __NTLM_H__
+#ifndef __SSPINTLM_H__
+#define __SSPINTLM_H__
 
-#include <config.h>
 #include <lw/types.h>
 #include <lw/attrs.h>
-#include <lsasrvcred.h>
 
 //******************************************************************************
 //
@@ -173,8 +171,6 @@ typedef struct _NTLM_CREDENTIALS *NTLM_CRED_HANDLE, **PNTLM_CRED_HANDLE;
 // D E F I N E S
 //
 
-#define INVALID_HANDLE              ((HANDLE)~0)
-
 #define NTLM_CTXT_ATTR_SESSION_KEY  1
 #define NTLM_CTXT_ATTR_SIZES        2
 
@@ -183,8 +179,8 @@ typedef struct _NTLM_CREDENTIALS *NTLM_CRED_HANDLE, **PNTLM_CRED_HANDLE;
 #define SECBUFFER_PADDING 2
 #define SECBUFFER_STREAM  10
 
-#define LW_STRING_TYPE_UNICODE  0
-#define LW_STRING_TYPE_ANSI     1
+#define SEC_WINNT_AUTH_IDENTITY_UNICODE  0
+#define SEC_WINNT_AUTH_IDENTITY_ANSI     1
 
 #define NTLM_NATIVE_DATA_REP    0
 #define NTLM_OTHER_DATA_REP   1
@@ -238,10 +234,6 @@ typedef struct _NTLM_CREDENTIALS *NTLM_CRED_HANDLE, **PNTLM_CRED_HANDLE;
     //NTLM_FLAG_128              |
     //NTLM_FLAG_NTLM2            |
     //NTLM_FLAG_UNICODE          |
-
-#ifndef HOST_NAME_MAX
-#define HOST_NAME_MAX 255
-#endif
 
 // Possible information to query our context for
 #define SECPKG_ATTR_ACCESS_TOKEN                1
@@ -376,7 +368,7 @@ NtlmClientMakeSignature(
 DWORD
 NtlmClientQueryCredentialsAttributes(
     IN HANDLE hServer,
-    IN PLSA_CRED_HANDLE phCredential,
+    IN PNTLM_CRED_HANDLE phCredential,
     IN DWORD ulAttribute,
     OUT PVOID pBuffer
     );
@@ -409,6 +401,8 @@ NtlmCloseServer(
     HANDLE hConnection
     );
 
+#endif // __SSPINTLM_H__
+
 /*
 local variables:
 mode: c
@@ -417,5 +411,3 @@ indent-tabs-mode: nil
 tab-width: 4
 end:
 */
-
-#endif // __NTLM_H__

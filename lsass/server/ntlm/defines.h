@@ -112,4 +112,8 @@
 #define NTLM_RANDOM_DEV     "/dev/random"
 #define NTLM_URANDOM_DEV    "/dev/urandom"
 
+#ifndef HOST_NAME_MAX
+#define HOST_NAME_MAX 255
+#endif
+
 #endif /* __DEFINES_H__ */

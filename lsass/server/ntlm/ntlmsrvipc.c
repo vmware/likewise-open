@@ -47,30 +47,6 @@
 
 #include "ntlmsrvapi.h"
 
-DWORD
-NtlmSrvApiInit(
-    PCSTR pszConfigFilePath
-    )
-{
-    DWORD dwError = LW_ERROR_SUCCESS;
-
-    LsaInitializeCredentialsDatabase();
-
-    return dwError;
-}
-
-DWORD
-NtlmSrvApiShutdown(
-    VOID
-    )
-{
-    DWORD dwError = LW_ERROR_SUCCESS;
-
-    LsaShutdownCredentialsDatabase();
-
-    return dwError;
-}
-
 LWMsgDispatchSpec*
 NtlmSrvGetDispatchSpec(
     VOID

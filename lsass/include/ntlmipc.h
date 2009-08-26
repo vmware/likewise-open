@@ -50,6 +50,7 @@
 
 #include <lwmsg/lwmsg.h>
 #include <lsaipc.h>
+#include <ntlm/sspintlm.h>
 
 #define NTLM_SERVER_FILENAME LSA_SERVER_FILENAME
 
@@ -250,7 +251,7 @@ typedef struct __NTLM_IPC_MAKE_SIGN_RESPONSE
 
 typedef struct __NTLM_IPC_QUERY_CREDS_REQ
 {
-    LSA_CRED_HANDLE hCredential;
+    NTLM_CRED_HANDLE hCredential;
     DWORD ulAttribute;
 } NTLM_IPC_QUERY_CREDS_REQ, *PNTLM_IPC_QUERY_CREDS_REQ;
 
@@ -293,16 +294,6 @@ typedef struct __NTLM_IPC_VERIFY_SIGN_RESPONSE
 
 #define NTLM_MAP_LWMSG_ERROR(_e_) (NtlmMapLwmsgStatus(_e_))
 #define MAP_NTLM_ERROR_IPC(_e_) ((_e_) ? LWMSG_STATUS_ERROR : LWMSG_STATUS_SUCCESS)
-
-DWORD
-NtlmSrvApiInit(
-    PCSTR pszConfigFilePath
-    );
-
-DWORD
-NtlmSrvApiShutdown(
-    VOID
-    );
 
 LWMsgProtocolSpec*
 NtlmIpcGetProtocolSpec(
