@@ -185,11 +185,17 @@ __LwIoThreadInit(
     void
     )
 {
+    const DWORD dwMaxConnections = 10;
     NTSTATUS Status = 0;
 
     LwIoInitialize();
 
     Status = NtIpcLWMsgStatusToNtStatus(lwmsg_client_new(NULL, gpLwIoProtocol, &gpClient));
+    BAIL_ON_NT_STATUS(Status);
+
+    Status = NtIpcLWMsgStatusToNtStatus(lwmsg_client_set_max_concurrent(
+                                            gpClient,
+                                            dwMaxConnections));
     BAIL_ON_NT_STATUS(Status);
 
     Status = NtIpcLWMsgStatusToNtStatus(lwmsg_client_set_endpoint(
