@@ -2,8 +2,13 @@
 #define _SAMR_CFG_H_
 
 
-typedef struct samr_srv_config {
+typedef struct samr_srv_config
+{
     PSTR pszLpcSocketPath;
+    PSTR pszDefaultLoginShell;
+    PSTR pszHomedirPrefix;
+    PSTR pszHomedirTemplate;
+
 } SAMR_SRV_CONFIG, *PSAMR_SRV_CONFIG;
 
 
@@ -12,9 +17,11 @@ typedef DWORD (*pFnSamrSrvConfigHandler)(PSAMR_SRV_CONFIG pConfig,
 					 PCSTR pszValue);
 
 
-typedef struct samr_config_handler {
+typedef struct samr_config_handler
+{
     PCSTR pszId;
     pFnSamrSrvConfigHandler pFnHandler;
+
 } SAMR_SRV_CONFIG_HANDLER, *PSAMR_SRV_CONFIG_HANDLER;
 
 
@@ -34,6 +41,24 @@ SamrSrvParseConfigFile(
 DWORD
 SamrSrvConfigGetLpcSocketPath(
     PSTR *ppszLpcSocketPath
+    );
+
+
+DWORD
+SamrSrvConfigGetDefaultLoginShell(
+    PSTR *ppszDefaultLoginShell
+    );
+
+
+DWORD
+SamrSrvConfigGetHomedirPrefix(
+    PSTR *ppszLpcSocketPath
+    );
+
+
+DWORD
+SamrSrvConfigGetHomedirTemplate(
+    PSTR *ppszHomedirTemplate
     );
 
 
