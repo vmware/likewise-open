@@ -83,21 +83,31 @@ LsaFindUserByName(
     )
 {
     DWORD dwError = 0;
+    PVOID pUserInfo = NULL;
+
+    BAIL_ON_INVALID_HANDLE(hLsaConnection);
+    BAIL_ON_INVALID_STRING(pszName);
+
+    dwError = LsaValidateUserInfoLevel(dwUserInfoLevel);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    BAIL_ON_INVALID_POINTER(ppUserInfo);
 
     dwError = LsaTransactFindUserByName(
                 hLsaConnection,
                 pszName,
                 dwUserInfoLevel,
-                ppUserInfo);
+                &pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-cleanup:
-    return dwError;
-
 error:
-    *ppUserInfo = NULL;
 
-    goto cleanup;
+    if (ppUserInfo)
+    {
+        *ppUserInfo = pUserInfo;
+    }
+
+    return dwError;
 }
 
 LSASS_API
@@ -110,21 +120,30 @@ LsaFindUserById(
     )
 {
     DWORD dwError = 0;
+    PVOID pUserInfo = NULL;
+
+    BAIL_ON_INVALID_HANDLE(hLsaConnection);
+
+    dwError = LsaValidateUserInfoLevel(dwUserInfoLevel);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    BAIL_ON_INVALID_POINTER(ppUserInfo);
 
     dwError = LsaTransactFindUserById(
                 hLsaConnection,
                 uid,
                 dwUserInfoLevel,
-                ppUserInfo);
+                &pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-cleanup:
-    return dwError;
-
 error:
-    *ppUserInfo = NULL;
 
-    goto cleanup;
+    if (ppUserInfo)
+    {
+        *ppUserInfo = pUserInfo;
+    }
+
+    return dwError;
 }
 
 LSASS_API

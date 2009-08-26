@@ -61,6 +61,9 @@ LsaOpenSession(
     LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
     LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
+    BAIL_ON_INVALID_HANDLE(hLsaConnection);
+    BAIL_ON_INVALID_STRING(pszLoginId);
+
     request.tag = LSA_Q_OPEN_SESSION;
     request.object = (PVOID)pszLoginId;
 
