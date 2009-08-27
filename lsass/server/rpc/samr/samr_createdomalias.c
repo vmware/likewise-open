@@ -87,6 +87,11 @@ SamrSrvCreateDomAlias(
                                     hAlias,
                                     &ulAccessGranted,
                                     rid);
+    if (ntStatus == STATUS_USER_EXISTS)
+    {
+        ntStatus = STATUS_ALIAS_EXISTS;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
 
 cleanup:
     if (pwszAliasName) {
