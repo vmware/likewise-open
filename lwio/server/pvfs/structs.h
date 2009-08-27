@@ -235,6 +235,14 @@ typedef struct _PVFS_OPLOCK_PENDING_OPERATION
 #define PVFS_FCB_MAX_PENDING_LOCKS       50
 #define PVFS_FCB_MAX_PENDING_OPERATIONS  50
 
+typedef struct _PVFS_FILE_ID
+{
+    dev_t Device;
+    ino_t Inode;
+
+} PVFS_FILE_ID, *PPVFS_FILE_ID;
+
+
 struct _PVFS_FCB
 {
     LONG RefCount;
@@ -245,7 +253,9 @@ struct _PVFS_FCB
                                        the CCB list */
 
     PSTR pszFilename;
+    PVFS_FILE_ID FileId;
     LONG64 LastWriteTime;          /* Saved mode time from SET_FILE_INFO */
+    BOOLEAN bDeleteOnClose;
 
     LONG CcbCount;
     PPVFS_CCB_LIST_NODE pCcbList;
@@ -287,11 +297,11 @@ struct _PVFS_CCB
     pthread_mutex_t ControlBlock;   /* Use for CCB SetFileInfo operations */
 
     LONG RefCount;
+    BOOLEAN bCloseInProgress;
 
     /* Open fd to the File or Directory */
     int fd;
-    dev_t device;
-    ino_t inode;
+    PVFS_FILE_ID FileId;
 
     /* Pointer to the shared PVFS FileHandle */
     PPVFS_FCB pFcb;

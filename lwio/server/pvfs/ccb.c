@@ -73,6 +73,7 @@ PvfsAllocateCCB(
     pthread_mutex_init(&pCCB->FileMutex, NULL);
     pthread_mutex_init(&pCCB->ControlBlock, NULL);
 
+    pCCB->bCloseInProgress = FALSE;
     pCCB->bOplockBreakInProgress = FALSE;
 
     /* Add initial ref count */
@@ -242,12 +243,19 @@ PvfsSaveFileDeviceInfo(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PVFS_STAT Stat = {0};
+    PPVFS_FCB pFcb = pCcb->pFcb;
 
     ntError = PvfsSysFstat(pCcb->fd, &Stat);
     BAIL_ON_NT_STATUS(ntError);
 
-    pCcb->device = Stat.s_dev;
-    pCcb->inode  = Stat.s_ino;
+    pCcb->FileId.Device = Stat.s_dev;
+    pCcb->FileId.Inode  = Stat.s_ino;
+
+    if ((pFcb->FileId.Device == 0) || (pFcb->FileId.Inode == 0))
+    {
+        pFcb->FileId = pCcb->FileId;
+    }
+
 
 cleanup:
     return ntError;

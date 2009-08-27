@@ -61,10 +61,8 @@ typedef struct _PVFS_FCB_TABLE
 static PVFS_FCB_TABLE gFcbTable;
 
 
-/* Code */
-
-/*******************************************************
- ******************************************************/
+/*****************************************************************************
+ ****************************************************************************/
 
 static VOID
 PvfsFreeFCB(
@@ -137,6 +135,8 @@ PvfsAllocateFCB(
 
     ntError = PvfsAllocateMemory((PVOID*)&pFcb, sizeof(PVFS_FCB));
     BAIL_ON_NT_STATUS(ntError);
+
+    pFcb->bDeleteOnClose = FALSE;
 
     /* Setup pendlock byte-range lock queue */
 
@@ -226,7 +226,7 @@ PvfsReferenceFCB(
 
 
 static NTSTATUS
-SetLastWriteTime(
+PvfsSetLastWriteTime(
     PPVFS_FCB pFcb
     )
 {
@@ -255,6 +255,29 @@ error:
 
 }
 
+static NTSTATUS
+PvfsExecuteDeleteOnClose(
+    PPVFS_FCB pFcb
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+
+    /* Check for renames */
+
+    ntError = PvfsValidatePath(pFcb->pszFilename, &pFcb->FileId);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsSysRemove(pFcb->pszFilename);
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+
 VOID
 PvfsReleaseFCB(
     PPVFS_FCB pFcb
@@ -266,21 +289,30 @@ PvfsReleaseFCB(
     /* It is important to lock the FcbTable here so that
        there is no window between the decrement and the remove.
        Otherwise another open request could search and locate the
-       FCB in the tree and return free()'d memory */
+       FCB in the tree and return free()'d memory
+
+       Keep the FcbTable locked until any cleanup operations
+       (DeleteOnClose are SetLastWriteTime) are done.
+    */
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bLocked, &gFcbTable.rwLock);
 
     if (InterlockedDecrement(&pFcb->RefCount) == 0)
     {
         PvfsRemoveFCB(pFcb);
-        LWIO_UNLOCK_RWMUTEX(bLocked, &gFcbTable.rwLock);
-
-        /* sticky write times */
 
         if (pFcb->LastWriteTime != 0) {
-            ntError = SetLastWriteTime(pFcb);
+            ntError = PvfsSetLastWriteTime(pFcb);
             /* Don't fail */
         }
+
+        if (pFcb->bDeleteOnClose)
+        {
+            ntError = PvfsExecuteDeleteOnClose(pFcb);
+            /* Don't fail */
+        }
+
+        LWIO_UNLOCK_RWMUTEX(bLocked, &gFcbTable.rwLock);
 
         PvfsFreeFCB(pFcb);
     }
