@@ -225,14 +225,15 @@ cpp_quote("#endif")
 
     /* function 0x1d */
     NTSTATUS __SamrSetAliasInfo(
-        [in,ref] PolicyHandle *alias_handle,
+        [in] ACCOUNT_HANDLE hAlias,
         [in] uint16 level,
         [in,switch_is(level),ref] AliasInfo *info
         );
 
     /* function 0x1e */
     NTSTATUS __SamrDeleteDomAlias(
-        [in,out,ref] PolicyHandle *alias_handle
+        [in] ACCOUNT_HANDLE hAliasIn,
+        [out] ACCOUNT_HANDLE *hAliasOut
         );
 
     /* function 0x1f */
