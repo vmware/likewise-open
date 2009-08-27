@@ -45,7 +45,7 @@
 #include "client.h"
 
 static HANDLE ghNtlmGssServer = NULL;
-static pthread_once_t NtlmIsInitialized = PTHREAD_ONCE_INIT;
+static pthread_once_t NtlmIsInitialized = {PTHREAD_ONCE_INIT};
 
 static
 VOID

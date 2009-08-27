@@ -86,22 +86,32 @@ LsaFindGroupByName(
     )
 {
     DWORD dwError = 0;
+    PVOID pGroupInfo = NULL;
+
+    BAIL_ON_INVALID_HANDLE(hLsaConnection);
+    BAIL_ON_INVALID_STRING(pszGroupName);
+
+    dwError = LsaValidateGroupInfoLevel(dwGroupInfoLevel);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    BAIL_ON_INVALID_POINTER(ppGroupInfo);
 
     dwError = LsaTransactFindGroupByName(
                 hLsaConnection,
                 pszGroupName,
                 FindFlags,
                 dwGroupInfoLevel,
-                ppGroupInfo);
+                &pGroupInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-cleanup:
-    return dwError;
-
 error:
-    *ppGroupInfo = NULL;
 
-    goto cleanup;
+    if (ppGroupInfo)
+    {
+        *ppGroupInfo = pGroupInfo;
+    }
+
+    return dwError;
 }
 
 LSASS_API
@@ -115,22 +125,31 @@ LsaFindGroupById(
     )
 {
     DWORD dwError = 0;
+    PVOID pGroupInfo = NULL;
+
+    BAIL_ON_INVALID_HANDLE(hLsaConnection);
+
+    dwError = LsaValidateGroupInfoLevel(dwGroupInfoLevel);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    BAIL_ON_INVALID_POINTER(ppGroupInfo);
 
     dwError = LsaTransactFindGroupById(
                 hLsaConnection,
                 gid,
                 FindFlags,
                 dwGroupInfoLevel,
-                ppGroupInfo);
+                &pGroupInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-cleanup:
-    return dwError;
-
 error:
-    *ppGroupInfo = NULL;
 
-    goto cleanup;
+    if (ppGroupInfo)
+    {
+        *ppGroupInfo = pGroupInfo;
+    }
+
+    return dwError;
 }
 
 LSASS_API

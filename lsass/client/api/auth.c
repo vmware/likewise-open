@@ -54,10 +54,18 @@ LsaAuthenticateUser(
     PCSTR  pszPassword
     )
 {
-    return LsaTransactAuthenticateUser(
-            hLsaConnection,
-            pszLoginName,
-            pszPassword);
+    DWORD dwError = 0;
+
+    BAIL_ON_INVALID_HANDLE(hLsaConnection);
+    BAIL_ON_INVALID_STRING(pszLoginName);
+
+    dwError = LsaTransactAuthenticateUser(
+                hLsaConnection,
+                pszLoginName,
+                pszPassword);
+error:
+
+    return dwError;
 }
 
 LSASS_API
@@ -68,10 +76,18 @@ LsaValidateUser(
     PCSTR  pszPassword
     )
 {
-    return LsaTransactValidateUser(
-            hLsaConnection,
-            pszLoginName,
-            pszPassword);
+    DWORD dwError = 0;
+
+    BAIL_ON_INVALID_HANDLE(hLsaConnection);
+    BAIL_ON_INVALID_STRING(pszLoginName);
+
+    dwError = LsaTransactValidateUser(
+                hLsaConnection,
+                pszLoginName,
+                pszPassword);
+error:
+
+    return dwError;
 }
 
 LSASS_API

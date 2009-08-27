@@ -287,6 +287,7 @@ void DoJoin(int argc, char **argv, int columns, LWException **exc)
     DynamicArray enableModules, disableModules;
     DynamicArray detailModules;
     size_t i;
+    int passwordIndex = -1;
     PSTR moduleDetails = NULL;
     PSTR wrapped = NULL;
 
@@ -354,7 +355,10 @@ void DoJoin(int argc, char **argv, int columns, LWException **exc)
     }
 
     if(argc == 3)
+    {
         LW_CLEANUP_CTERR(exc, CTStrdup(argv[2], &options.password));
+        passwordIndex = 2;
+    }
     // The join username is not required in preview or details mode.
     else if(argc == 1 && (preview || detailModules.size != 0) )
         ;
@@ -364,6 +368,12 @@ void DoJoin(int argc, char **argv, int columns, LWException **exc)
         goto cleanup;
     }
     options.joiningDomain = TRUE;
+
+    DJ_LOG_INFO("Domainjoin invoked with %d arg(s) to the join command:", argc);
+    for(i = 0; i < argc; i++)
+    {
+        DJ_LOG_INFO("    [%s]", i == passwordIndex ? "<password>" : argv[i]);
+    }
 
     LW_CLEANUP_CTERR(exc, CTStrdup(
         argv[0], &options.domainName));
@@ -474,6 +484,7 @@ void DoLeaveNew(int argc, char **argv, int columns, LWException **exc)
     size_t i;
     PSTR moduleDetails = NULL;
     PSTR wrapped = NULL;
+    int passwordIndex = -1;
 
     DJZeroJoinProcessOptions(&options);
     memset(&enableModules, 0, sizeof(enableModules));
@@ -519,13 +530,22 @@ void DoLeaveNew(int argc, char **argv, int columns, LWException **exc)
     }
 
     if(argc == 2)
+    {
         LW_CLEANUP_CTERR(exc, CTStrdup(argv[1], &options.password));
+        passwordIndex = 1;
+    }
     else if(argc > 2)
     {
         LW_RAISE(exc, CENTERROR_DOMAINJOIN_SHOW_USAGE);
         goto cleanup;
     }
     options.joiningDomain = FALSE;
+
+    DJ_LOG_INFO("Domainjoin invoked with %d arg(s) to the leave command:", argc);
+    for(i = 0; i < argc; i++)
+    {
+        DJ_LOG_INFO("    [%s]", i == passwordIndex ? "<password>" : argv[i]);
+    }
 
     if(argc > 0)
     {
@@ -849,10 +869,22 @@ int main(
         LW_CLEANUP_CTERR(&exc, ceError);
     }
 
-    DJ_LOG_INFO("Domainjoin invoked with %d arg(s):", argc);
-    for(i = 0; i < argc; i++)
+    if (!strcmp(argPos[0], "join") || !strcmp(argPos[0], "leave"))
     {
-        DJ_LOG_INFO("    [%s]", argv[i]);
+        DJ_LOG_INFO("Domainjoin invoked with the %s command (remaining arguments will be printed later):", argPos[0]);
+        // Only print up to the 'join' part
+        for (i = 0; i <= argPos - argv; i++)
+        {
+            DJ_LOG_INFO("    [%s]", argv[i]);
+        }
+    }
+    else
+    {
+        DJ_LOG_INFO("Domainjoin invoked with %d arg(s):", argc);
+        for (i = 0; i < argc; i++)
+        {
+            DJ_LOG_INFO("    [%s]", argv[i]);
+        }
     }
 
     if(!strcmp(argPos[0], "setname"))
