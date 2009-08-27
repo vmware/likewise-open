@@ -51,7 +51,7 @@
 
 DWORD
 NtlmServerAcceptSecurityContext(
-    IN LWMsgAssoc* pAssoc,
+    IN HANDLE Handle,
     IN PNTLM_CRED_HANDLE phCredential,
     IN OUT PNTLM_CONTEXT_HANDLE phContext,
     IN PSecBufferDesc pInput,
@@ -117,7 +117,7 @@ NtlmServerAcceptSecurityContext(
         BAIL_ON_LW_ERROR(dwError);
 
         dwError = NtlmValidateResponse(
-            pAssoc,
+            Handle,
             pRespMsg,
             dwMessageSize,
             pNtlmCtxtChlng,
@@ -268,7 +268,7 @@ error:
 
 DWORD
 NtlmValidateResponse(
-    IN LWMsgAssoc* pAssoc,
+    IN HANDLE Handle,
     IN PNTLM_RESPONSE_MESSAGE pRespMsg,
     IN DWORD dwRespMsgSize,
     IN PNTLM_CONTEXT pChlngCtxt,
@@ -288,7 +288,6 @@ NtlmValidateResponse(
     PSTR pUserName = NULL;
     PSTR pDomainName = NULL;
     PSTR pWorkstation = NULL;
-    HANDLE Handle = NULL;
 
     memset(&Params, 0, sizeof(Params));
     memset(&Challenge, 0, sizeof(Challenge));
@@ -301,10 +300,6 @@ NtlmValidateResponse(
         dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LW_ERROR(dwError);
     }
-
-    dwError = MAP_LWMSG_ERROR(
-        lwmsg_assoc_get_session_data(pAssoc, OUT_PPVOID(&Handle)));
-    BAIL_ON_LW_ERROR(dwError);
 
     pChlngMsg = (PNTLM_CHALLENGE_MESSAGE)pChlngCtxt->pMessage;
 

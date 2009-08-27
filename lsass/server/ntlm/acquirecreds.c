@@ -49,9 +49,9 @@
 
 DWORD
 NtlmServerAcquireCredentialsHandle(
-    IN LWMsgAssoc* pAssoc,
-    IN SEC_CHAR *pszPrincipal,
-    IN SEC_CHAR *pszPackage,
+    IN LWMsgCall* pCall,
+    IN SEC_CHAR* pszPrincipal,
+    IN SEC_CHAR* pszPackage,
     IN DWORD fCredentialUse,
     IN PLUID pvLogonID,
     IN PVOID pAuthData,
@@ -100,7 +100,7 @@ NtlmServerAcquireCredentialsHandle(
 
     if (fCredentialUse == NTLM_CRED_OUTBOUND)
     {
-        dwError = NtlmGetProcessSecurity(pAssoc, &Uid, &Gid);
+        dwError = NtlmGetProcessSecurity(pCall, &Uid, &Gid);
         BAIL_ON_LW_ERROR(dwError);
 
         if (!pSecWinAuthData)
@@ -306,4 +306,39 @@ error:
     LW_SAFE_FREE_STRING(pDnsServerName);
     LW_SAFE_FREE_STRING(pDnsDomainName);
     goto cleanup;
+}
+
+DWORD
+NtlmGetProcessSecurity(
+    IN LWMsgCall* pCall,
+    OUT uid_t* pUid,
+    OUT gid_t* pGid
+    )
+{
+    DWORD dwError = LW_ERROR_SUCCESS;
+    uid_t uid = (uid_t) -1;
+    gid_t gid = (gid_t) -1;
+
+    LWMsgSession* pSession = lwmsg_call_get_session(pCall);
+    LWMsgSecurityToken* token = lwmsg_session_get_peer_security_token(pSession);
+
+    if (token == NULL || strcmp(lwmsg_security_token_get_type(token), "local"))
+    {
+        dwError = LW_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LW_ERROR(dwError);
+    }
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_local_token_get_eid(token, &uid, &gid));
+    BAIL_ON_LW_ERROR(dwError);
+
+cleanup:
+    *pUid = uid;
+    *pGid = gid;
+
+    return dwError;
+error:
+    uid = (uid_t) -1;
+    gid = (gid_t) -1;
+    goto cleanup;
+
 }

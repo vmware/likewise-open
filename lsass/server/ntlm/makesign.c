@@ -69,3 +69,35 @@ NtlmServerMakeSignature(
 
     return dwError;
 }
+
+VOID
+NtlmMakeSignature(
+    IN PNTLM_CONTEXT pContext,
+    IN PBYTE pData,
+    IN DWORD dwDataSize,
+    IN DWORD dwMsgSeqNum,
+    IN OUT PBYTE pToken
+    )
+{
+    RC4_KEY Rc4Key;
+    DWORD dwCrc32 = 0;
+
+    memset(&Rc4Key, 0, sizeof(Rc4Key));
+
+    memset(pToken, 0, NTLM_SIGNATURE_SIZE);
+    RC4_set_key(&Rc4Key, pContext->cbSessionKeyLen, pContext->SessionKey);
+
+    dwCrc32 = NtlmCrc32(pData, dwDataSize);
+}
+
+DWORD
+NtlmCrc32(
+    IN PBYTE pData,
+    IN DWORD dwDataSize
+    )
+{
+    DWORD dwCrc32 = 0;
+
+    return dwCrc32;
+}
+
