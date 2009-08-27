@@ -46,9 +46,6 @@
 #ifndef __NTLM_EXTERNS_H__
 #define __NTLM_EXTERNS_H__
 
-extern pthread_rwlock_t gpNtlmContextList_rwlock;
-extern PNTLM_CONTEXT gpNtlmContextList;
-
 extern BOOLEAN gbUseNtlmV2;
 
 extern WIN_VERSION_INFO gW2KSpoof;
