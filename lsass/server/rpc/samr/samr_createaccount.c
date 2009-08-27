@@ -131,6 +131,7 @@ SamrSrvCreateAccount(
     DIRECTORY_MOD Mods[ATTR_VAL_IDX_SENTINEL + 1];
 
     PWSTR pwszAccountName = NULL;
+    PWSTR pwszName = NULL;
     PWSTR pwszParentDn = NULL;
     PWSTR pwszAccountDn = NULL;
     PSTR pszShell = NULL;
@@ -161,6 +162,10 @@ SamrSrvCreateAccount(
                                              account_name);
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
+    dwError = LwAllocateWc16String(&pwszName,
+                                   pwszAccountName);
+    BAIL_ON_LSA_ERROR(dwError);
+
     /*
      * Check if such account name already exists.
      */
@@ -172,7 +177,7 @@ SamrSrvCreateAccount(
     ntStatus = SamrSrvLookupNames(hBinding,
                                   hDomain,
                                   1,
-                                  account_name,
+                                  &AccountName,
                                   &Rids,
                                   &Types);
     if (ntStatus == STATUS_SUCCESS)
@@ -280,7 +285,7 @@ SamrSrvCreateAccount(
     pAccCtx->Type          = SamrContextAccount;
     pAccCtx->refcount      = 1;
     pAccCtx->pwszDn        = pwszAccountDn;
-    pAccCtx->pwszName      = pwszAccountName;
+    pAccCtx->pwszName      = pwszName;
     pAccCtx->dwRid         = dwRid;
     pAccCtx->dwAccountType = dwAccountType;
     pAccCtx->pDomCtx       = pDomCtx;
@@ -298,6 +303,11 @@ SamrSrvCreateAccount(
 
 cleanup:
     SamrSrvFreeUnicodeString(&AccountName);
+
+    if (pwszAccountName)
+    {
+        SamrSrvFreeMemory(pwszAccountName);
+    }
 
     if (Rids.ids)
     {
