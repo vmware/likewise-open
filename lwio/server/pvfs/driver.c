@@ -143,18 +143,20 @@ PvfsDriverDispatch(
 
     switch (pIrpCtx->pIrp->Type)
     {
-    /* Converted to ssync model */
-    case IRP_TYPE_CREATE:
-        ntError = PvfsAsyncCreate(pIrpCtx);
-        break;
-    case IRP_TYPE_READ:
-        ntError = PvfsAsyncRead(pIrpCtx);
-        break;
-    case IRP_TYPE_WRITE:
-        ntError = PvfsAsyncWrite(pIrpCtx);
-        break;
+    /* Always async */
     case IRP_TYPE_FLUSH_BUFFERS:
         ntError = PvfsAsyncFlushBuffers(pIrpCtx);
+        break;
+
+    /* Synchronous by default, but can block and return PENDING */
+    case IRP_TYPE_CREATE:
+        ntError = PvfsCreate(pIrpCtx);
+        break;
+    case IRP_TYPE_READ:
+        ntError = PvfsRead(pIrpCtx);
+        break;
+    case IRP_TYPE_WRITE:
+        ntError = PvfsWrite(pIrpCtx);
         break;
     case IRP_TYPE_LOCK_CONTROL:
         ntError = PvfsDispatchLockControl(pIrpCtx);
@@ -162,26 +164,26 @@ PvfsDriverDispatch(
     case IRP_TYPE_FS_CONTROL:
         ntError = PvfsDispatchFsIoControl(pIrpCtx);
         break;
-    case IRP_TYPE_QUERY_INFORMATION:
-        ntError = PvfsAsyncQueryInformationFile(pIrpCtx);
-        break;
     case IRP_TYPE_SET_INFORMATION:
-        ntError = PvfsAsyncSetInformationFile(pIrpCtx);
-        break;
-    case IRP_TYPE_QUERY_DIRECTORY:
-        ntError = PvfsAsyncQueryDirInformation(pIrpCtx);
-        break;
-    case IRP_TYPE_QUERY_VOLUME_INFORMATION:
-        ntError = PvfsAsyncQueryVolumeInformation(pIrpCtx);
-        break;
-    case IRP_TYPE_QUERY_SECURITY:
-        ntError = PvfsAsyncQuerySecurityFile(pIrpCtx);
-        break;
-    case IRP_TYPE_SET_SECURITY:
-        ntError = PvfsAsyncSetSecurityFile(pIrpCtx);
+        ntError = PvfsSetInformationFile(pIrpCtx);
         break;
 
     /* Currently only support synchronous calls */
+    case IRP_TYPE_QUERY_INFORMATION:
+        ntError = PvfsQueryInformationFile(pIrpCtx);
+        break;
+    case IRP_TYPE_QUERY_DIRECTORY:
+        ntError = PvfsQueryDirInformation(pIrpCtx);
+        break;
+    case IRP_TYPE_QUERY_VOLUME_INFORMATION:
+        ntError = PvfsQueryVolumeInformation(pIrpCtx);
+        break;
+    case IRP_TYPE_QUERY_SECURITY:
+        ntError = PvfsQuerySecurityFile(pIrpCtx);
+        break;
+    case IRP_TYPE_SET_SECURITY:
+        ntError = PvfsSetSecurityFile(pIrpCtx);
+        break;
     case IRP_TYPE_CLOSE:
         ntError = PvfsClose(pIrpCtx);
         break;
