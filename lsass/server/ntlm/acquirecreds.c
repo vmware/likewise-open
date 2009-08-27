@@ -66,7 +66,7 @@ NtlmServerAcquireCredentialsHandle(
     PSTR pUserName = NULL;
     PSTR pNT4UserName = NULL;
     PSTR pPassword = NULL;
-    DWORD dwInvalidUid = -1;
+    uid_t InvalidUid = -1;
     PSTR pServerName = NULL;
     PSTR pDomainName = NULL;
     PSTR pDnsServerName = NULL;
@@ -166,7 +166,7 @@ NtlmServerAcquireCredentialsHandle(
                 dwError = LsaAddCredential(
                     pNT4UserName,
                     pPassword,
-                    &dwInvalidUid,
+                    &InvalidUid,
                     &LsaCredHandle);
                 BAIL_ON_LW_ERROR(dwError);
             }
@@ -306,4 +306,41 @@ error:
     LW_SAFE_FREE_STRING(pDnsServerName);
     LW_SAFE_FREE_STRING(pDnsDomainName);
     goto cleanup;
+}
+
+DWORD
+NtlmGetProcessSecurity(
+    IN LWMsgAssoc* pAssoc,
+    OUT uid_t* pUid,
+    OUT gid_t* pGid
+    )
+{
+    DWORD dwError = LW_ERROR_SUCCESS;
+    LWMsgSecurityToken* token = NULL;
+    uid_t uid = (uid_t) 0;
+    gid_t gid = (gid_t) 0;
+
+    dwError = MAP_LWMSG_ERROR(
+        lwmsg_assoc_get_peer_security_token(pAssoc, &token));
+    BAIL_ON_LW_ERROR(dwError);
+
+    if (token == NULL || strcmp(lwmsg_security_token_get_type(token), "local"))
+    {
+        dwError = LW_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LW_ERROR(dwError);
+    }
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_local_token_get_eid(token, &uid, &gid));
+    BAIL_ON_LW_ERROR(dwError);
+
+cleanup:
+    *pUid = uid;
+    *pGid = gid;
+
+    return dwError;
+error:
+    uid = (uid_t) 0;
+    gid = (gid_t) 0;
+    goto cleanup;
+
 }
