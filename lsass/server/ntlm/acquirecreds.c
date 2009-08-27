@@ -66,7 +66,7 @@ NtlmServerAcquireCredentialsHandle(
     PSTR pUserName = NULL;
     PSTR pNT4UserName = NULL;
     PSTR pPassword = NULL;
-    DWORD dwInvalidUid = -1;
+    uid_t InvalidUid = -1;
     PSTR pServerName = NULL;
     PSTR pDomainName = NULL;
     PSTR pDnsServerName = NULL;
@@ -166,7 +166,7 @@ NtlmServerAcquireCredentialsHandle(
                 dwError = LsaAddCredential(
                     pNT4UserName,
                     pPassword,
-                    &dwInvalidUid,
+                    &InvalidUid,
                     &LsaCredHandle);
                 BAIL_ON_LW_ERROR(dwError);
             }

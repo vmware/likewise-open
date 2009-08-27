@@ -33,13 +33,13 @@
  *
  * Module Name:
  *
- *        samr_createdomalias2.c
+ *        samr_deleteaccount.c
  *
  * Abstract:
  *
  *        Remote Procedure Call (RPC) Server Interface
  *
- *        SamrCreateDomAlias function
+ *        SamrSrvDeleteAccount function
  *
  * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
@@ -48,64 +48,39 @@
 
 
 NTSTATUS
-SamrSrvCreateDomAlias(
+SamrSrvDeleteAccount(
     /* [in] */ handle_t hBinding,
-    /* [in] */ DOMAIN_HANDLE hDomain,
-    /* [in] */ UnicodeString *alias_name,
-    /* [in] */ uint32 access_mask,
-    /* [out] */ ACCOUNT_HANDLE *hAlias,
-    /* [out] */ uint32 *rid
+    /* [in] */ ACCOUNT_HANDLE hAccountIn,
+    /* [out] */ ACCOUNT_HANDLE *hAccountOut
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
+    PACCOUNT_CONTEXT pAcctCtx = NULL;
     PDOMAIN_CONTEXT pDomCtx = NULL;
-    PWSTR pwszAliasName = NULL;
-    UnicodeStringEx Name;
-    uint32 ulAccessGranted = 0;
+    PCONNECT_CONTEXT pConnCtx = NULL;
+    HANDLE hDirectory = NULL;
+    PWSTR pwszAccountDn = NULL;
 
-    pDomCtx = (PDOMAIN_CONTEXT)hDomain;
+    pAcctCtx = (PACCOUNT_CONTEXT)hAccountIn;
+    pDomCtx  = pAcctCtx->pDomCtx;
+    pConnCtx = pDomCtx->pConnCtx;
 
-    if (pDomCtx == NULL || pDomCtx->Type != SamrContextDomain) {
-        ntStatus = STATUS_INVALID_HANDLE;
-        BAIL_ON_NTSTATUS_ERROR(ntStatus);
-    }
+    hDirectory = pConnCtx->hDirectory;
+    pwszAccountDn = pAcctCtx->pwszDn;
 
-    ntStatus = SamrSrvGetFromUnicodeString(&pwszAliasName,
-                                         alias_name);
-    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    dwError = DirectoryDeleteObject(hDirectory,
+                                    pwszAccountDn);
+    BAIL_ON_LSA_ERROR(dwError);
 
-    ntStatus = SamrSrvInitUnicodeStringEx(&Name,
-                                        pwszAliasName);
-    BAIL_ON_NTSTATUS_ERROR(ntStatus);
-
-    ntStatus = SamrSrvCreateAccount(hBinding,
-                                    hDomain,
-                                    &Name,
-                                    DS_OBJECT_CLASS_LOCAL_GROUP,
-                                    0,
-                                    access_mask,
-                                    hAlias,
-                                    &ulAccessGranted,
-                                    rid);
-    if (ntStatus == STATUS_USER_EXISTS)
-    {
-        ntStatus = STATUS_ALIAS_EXISTS;
-        BAIL_ON_NTSTATUS_ERROR(ntStatus);
-    }
+    *hAccountOut = NULL;
 
 cleanup:
-    if (pwszAliasName) {
-        SamrSrvFreeMemory(pwszAliasName);
-    }
-
-    SamrSrvFreeUnicodeStringEx(&Name);
-
     return ntStatus;
 
 error:
-    *hAlias = NULL;
-    *rid    = 0;
-    goto cleanup;
+    *hAccountOut = hAccountIn;
+    goto error;
 }
 
 

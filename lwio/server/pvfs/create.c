@@ -186,6 +186,13 @@ PvfsCreateFileDoSysOpen(
         BAIL_ON_NT_STATUS(ntError);
     }
 
+    /* Save the delete-on-close flag to the FCB */
+
+    if (Args.CreateOptions & FILE_DELETE_ON_CLOSE)
+    {
+        pCreateContext->pCcb->pFcb->bDeleteOnClose = TRUE;
+    }
+
     ntError = PvfsStoreCCB(pIrp->FileHandle, pCreateContext->pCcb);
     BAIL_ON_NT_STATUS(ntError);
     pCreateContext->pCcb = NULL;
@@ -299,6 +306,13 @@ PvfsCreateDirDoSysOpen(
                       pCreateContext->pCcb,
                       Args.FileAttributes);
         BAIL_ON_NT_STATUS(ntError);
+    }
+
+    /* Save the delete-on-close flag to the FCB */
+
+    if (Args.CreateOptions & FILE_DELETE_ON_CLOSE)
+    {
+        pCreateContext->pCcb->pFcb->bDeleteOnClose = TRUE;
     }
 
     ntError = PvfsStoreCCB(pIrp->FileHandle, pCreateContext->pCcb);

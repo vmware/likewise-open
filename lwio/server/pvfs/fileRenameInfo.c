@@ -196,7 +196,7 @@ PvfsSetFileRenameInfo(
         }
     }
 
-    ntError = PvfsValidatePath(pCcb);
+    ntError = PvfsValidatePath(pCcb->pFcb->pszFilename, &pCcb->pFcb->FileId);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsSysRename(pCcb->pszFilename, pszNewPathname);

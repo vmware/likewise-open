@@ -56,7 +56,7 @@ CopyUnixStatToPvfsStat(
     struct stat *pSbuf
     )
 {
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    NTSTATUS ntError = STATUS_SUCCESS;
 
     pPvfsStat->s_mode    = pSbuf->st_mode;
     pPvfsStat->s_ino     = pSbuf->st_ino;
@@ -74,8 +74,6 @@ CopyUnixStatToPvfsStat(
     pPvfsStat->s_blksize = pSbuf->st_blksize;
     pPvfsStat->s_blocks  = pSbuf->st_blocks;
 
-    ntError = STATUS_SUCCESS;
-
     return ntError;
 }
 
@@ -88,7 +86,7 @@ PvfsSysStat(
 	PPVFS_STAT pStat
 	)
 {
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    NTSTATUS ntError = STATUS_SUCCESS;
     struct stat sBuf = {0};
     int unixerr = 0;
 
@@ -100,8 +98,6 @@ PvfsSysStat(
         ntError = CopyUnixStatToPvfsStat(pStat, &sBuf);
         BAIL_ON_NT_STATUS(ntError);
     }
-
-    ntError = STATUS_SUCCESS;
 
 cleanup:
     return ntError;
@@ -119,7 +115,7 @@ PvfsSysFstat(
 	PPVFS_STAT pStat
 	)
 {
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    NTSTATUS ntError = STATUS_SUCCESS;
     struct stat sBuf = {0};
     int unixerr = 0;
 
@@ -131,8 +127,6 @@ PvfsSysFstat(
         ntError = CopyUnixStatToPvfsStat(pStat, &sBuf);
         BAIL_ON_NT_STATUS(ntError);
     }
-
-    ntError = STATUS_SUCCESS;
 
 cleanup:
     return ntError;
@@ -153,7 +147,7 @@ PvfsSysOpen(
     mode_t Mode
     )
 {
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    NTSTATUS ntError = STATUS_SUCCESS;
     int fd = -1;
     int unixerr = 0;
 
@@ -164,7 +158,6 @@ PvfsSysOpen(
     }
 
     *pFd = fd;
-    ntError = STATUS_SUCCESS;
 
 cleanup:
     return ntError;
@@ -182,14 +175,12 @@ PvfsSysMkDir(
     mode_t mode
     )
 {
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    NTSTATUS ntError = STATUS_SUCCESS;
     int unixerr = 0;
 
     if ((mkdir(pszDirname, mode)) == -1) {
         PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
     }
-
-    ntError = STATUS_SUCCESS;
 
 cleanup:
     return ntError;
@@ -208,7 +199,7 @@ PvfsSysOpenDir(
     DIR **ppDir
     )
 {
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    NTSTATUS ntError = STATUS_SUCCESS;
     int unixerr = 0;
     DIR *pDir = NULL;
 
@@ -217,7 +208,6 @@ PvfsSysOpenDir(
     }
 
     *ppDir = pDir;
-    ntError = STATUS_SUCCESS;
 
 cleanup:
     return ntError;
@@ -235,7 +225,7 @@ PvfsSysDirFd(
     int *pFd
     )
 {
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    NTSTATUS ntError = STATUS_SUCCESS;
     int unixerr = 0;
     int fd = -1;
 
@@ -250,7 +240,6 @@ PvfsSysDirFd(
 #endif
 
     *pFd = fd;
-    ntError = STATUS_SUCCESS;
 
 cleanup:
     return ntError;
@@ -270,7 +259,7 @@ PvfsSysReadDir(
     struct dirent **ppDirEntry
     )
 {
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    NTSTATUS ntError = STATUS_SUCCESS;
     int unixerr = 0;
     struct dirent *pDirEntry = NULL;
 
@@ -288,7 +277,6 @@ PvfsSysReadDir(
     }
 
     *ppDirEntry = pDirEntry;
-    ntError = STATUS_SUCCESS;
 
 cleanup:
     return ntError;
@@ -407,7 +395,7 @@ PvfsSysUtime(
     LONG64 LastAccessTime
     )
 {
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    NTSTATUS ntError = STATUS_SUCCESS;
     int unixerr;
     time_t tWrite = 0;
     time_t tAccess = 0;
@@ -448,7 +436,7 @@ PvfsSysFstatFs(
     PPVFS_STATFS pStatFs
     )
 {
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    NTSTATUS ntError = STATUS_SUCCESS;
 
 #if defined(HAVE_FSTATFS) && defined(__LWI_LINUX__)
     {
@@ -493,7 +481,7 @@ PvfsSysRemove(
     PSTR pszPath
     )
 {
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    NTSTATUS ntError = STATUS_SUCCESS;
     int unixerr = 0;
 
     if (remove(pszPath) == -1) {
@@ -519,7 +507,7 @@ PvfsSysRead(
     PULONG pBytesRead
     )
 {
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    NTSTATUS ntError = STATUS_SUCCESS;
     ssize_t bytesRead = 0;
     int unixerr = 0;
 
@@ -549,8 +537,6 @@ PvfsSysRead(
     }
 
     *pBytesRead = (ULONG)bytesRead;
-    ntError = STATUS_SUCCESS;
-
 
 cleanup:
     return ntError;
@@ -571,7 +557,7 @@ PvfsSysWrite(
     PULONG pBytesWritten
     )
 {
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    NTSTATUS ntError = STATUS_SUCCESS;
     ssize_t bytesWritten = 0;
     int unixerr = 0;
 
@@ -601,7 +587,6 @@ PvfsSysWrite(
     }
 
     *pBytesWritten = (ULONG)bytesWritten;
-    ntError = STATUS_SUCCESS;
 
 cleanup:
     return ntError;
@@ -620,14 +605,12 @@ PvfsSysChown(
     gid_t gid
     )
 {
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    NTSTATUS ntError = STATUS_SUCCESS;
     int unixerr = 0;
 
     if (chown(pCcb->pszFilename, uid, gid) == -1) {
         PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
     }
-
-    ntError = STATUS_SUCCESS;
 
 cleanup:
     return ntError;
@@ -646,14 +629,12 @@ PvfsSysRename(
     PCSTR pszNewname
     )
 {
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    NTSTATUS ntError = STATUS_SUCCESS;
     int unixerr = 0;
 
     if (rename(pszOldname, pszNewname) == -1 ) {
         PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
     }
-
-    ntError = STATUS_SUCCESS;
 
 cleanup:
     return ntError;

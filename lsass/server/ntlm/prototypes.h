@@ -270,7 +270,7 @@ NtlmGetCredentialInfo(
     IN NTLM_CRED_HANDLE CredHandle,
     OUT OPTIONAL PCSTR* pszUserName,
     OUT OPTIONAL PCSTR* pszPassword,
-    OUT OPTIONAL PDWORD pUid,
+    OUT OPTIONAL uid_t* pUid,
     OUT OPTIONAL PCSTR* pszServerName,
     OUT OPTIONAL PCSTR* pszDomainName,
     OUT OPTIONAL PCSTR* pszDnsServerName,

@@ -128,7 +128,8 @@ error:
 
 NTSTATUS
 PvfsValidatePath(
-    PPVFS_CCB pCcb
+    PCSTR pszFilename,
+    PPVFS_FILE_ID pFileId
     )
 {
     NTSTATUS ntError= STATUS_UNSUCCESSFUL;
@@ -137,10 +138,10 @@ PvfsValidatePath(
     /* Verify that the dev/inode pair is the same on the pathname
        and the fd */
 
-    ntError = PvfsSysStat(pCcb->pszFilename, &Stat);
+    ntError = PvfsSysStat(pszFilename, &Stat);
     BAIL_ON_NT_STATUS(ntError);
 
-    if ((pCcb->device != Stat.s_dev) || (pCcb->inode != Stat.s_ino))
+    if ((pFileId->Device != Stat.s_dev) || (pFileId->Inode != Stat.s_ino))
     {
         ntError = STATUS_FILE_RENAMED;
         BAIL_ON_NT_STATUS(ntError);

@@ -201,6 +201,13 @@ _PvfsEnforceShareMode(
         ACCESS_MASK CurAccess = pCursor->pCcb->AccessGranted;
         FILE_SHARE_FLAGS CurShareMode = pCursor->pCcb->ShareFlags;
 
+        /* Ignore handles that are in the midst of being closed */
+
+        if (pCursor->pCcb->bCloseInProgress)
+        {
+            continue;
+        }
+
         /* Fast Path - If we are not asking for read/write/execute/delete
            access, then we cannot conflict */
 
@@ -234,7 +241,8 @@ _PvfsEnforceShareMode(
         }
     }
 
-    /* Success! */
+    /* Cone - No conflicts*/
+
     ntError = STATUS_SUCCESS;
 
 cleanup:

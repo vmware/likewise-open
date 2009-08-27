@@ -452,22 +452,32 @@ NTSTATUS __SamrQueryAliasInfo(
 
 NTSTATUS __SamrSetAliasInfo(
     /* [in] */ handle_t IDL_handle,
-    /* [in] */ PolicyHandle *alias_handle,
+    /* [in] */ ACCOUNT_HANDLE hAlias,
     /* [in] */ uint16 level,
     /* [in] */ AliasInfo *info
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = SamrSrvSetAliasInfo(IDL_handle,
+                                 hAlias,
+                                 level,
+                                 info);
     return status;
 }
 
 
 NTSTATUS __SamrDeleteDomAlias(
     /* [in] */ handle_t IDL_handle,
-    /* [in, out] */ PolicyHandle *alias_handle
+    /* [in] */ ACCOUNT_HANDLE hAliasIn,
+    /* [out] */ ACCOUNT_HANDLE *hAliasOut
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = SamrSrvDeleteDomAlias(IDL_handle,
+                                   hAliasIn,
+                                   hAliasOut);
     return status;
 }
 

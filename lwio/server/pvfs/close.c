@@ -48,14 +48,6 @@
 
 /* Forward declarations */
 
-static NTSTATUS
-PerformDeleteOnClose(
-    PPVFS_CCB pCcb
-    );
-
-
-/* Code */
-
 
 /*****************************************************************************
  ****************************************************************************/
@@ -68,29 +60,16 @@ PvfsClose(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PIRP pIrp = pIrpContext->pIrp;
     PPVFS_CCB pCcb = NULL;
-    BOOLEAN bValidPath = FALSE;
 
     /* make sure we have a proper CCB */
 
     ntError =  PvfsAcquireCCBClose(pIrp->FileHandle, &pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
-    /* Go ahead and set the ccess granted to 0 in case
-       we have a new open coming in at the same time
-       in an effort to prevent a potential sharing violation */
+    /* Mark the handle as closed in an effort to prevent
+       a potential sharing violation */
 
-    pCcb->AccessGranted = 0;
-
-    ntError = PvfsValidatePath(pCcb);
-    bValidPath = (ntError == STATUS_SUCCESS);
-
-    /* Deal with delete-on-close */
-
-    if (bValidPath && pCcb->CreateOptions & FILE_DELETE_ON_CLOSE)
-    {
-        ntError = PerformDeleteOnClose(pCcb);
-        /* Don't fail */
-    }
+    pCcb->bCloseInProgress = TRUE;
 
     /* Call closedir() for directions and close() for files */
 
@@ -100,8 +79,6 @@ PvfsClose(
     } else {
         ntError = PvfsSysClose(pCcb->fd);
     }
-    /* Don't fail */
-
 
 cleanup:
     /* This is the final Release that will free the memory */
@@ -112,33 +89,6 @@ cleanup:
 
     /* We can't really do anything here in the case of failure */
 
-    return STATUS_SUCCESS;
-
-error:
-    goto cleanup;
-}
-
-
-/*****************************************************************************
- ****************************************************************************/
-
-static NTSTATUS
-PerformDeleteOnClose(
-    PPVFS_CCB pCcb
-    )
-{
-    NTSTATUS ntError = STATUS_SUCCESS;
-
-    /* Check for renames */
-
-    ntError = PvfsValidatePath(pCcb);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsSysRemove(pCcb->pszFilename);
-    BAIL_ON_NT_STATUS(ntError);
-
-cleanup:
-    /* Never fail this */
     return STATUS_SUCCESS;
 
 error:

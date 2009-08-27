@@ -45,7 +45,12 @@
 #include "client.h"
 
 static HANDLE ghNtlmGssServer = NULL;
+
+#if defined(__LWI_SOLARIS__) || defined(__LWI_AIX__)
 static pthread_once_t NtlmIsInitialized = {PTHREAD_ONCE_INIT};
+#else
+static pthread_once_t NtlmIsInitialized = PTHREAD_ONCE_INIT;
+#endif
 
 static
 VOID

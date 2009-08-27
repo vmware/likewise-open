@@ -33,13 +33,13 @@
  *
  * Module Name:
  *
- *        samr_createdomalias2.c
+ *        samr_deletedomalias.c
  *
  * Abstract:
  *
  *        Remote Procedure Call (RPC) Server Interface
  *
- *        SamrCreateDomAlias function
+ *        SamrSrvDeleteDomAlias function
  *
  * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
@@ -48,64 +48,18 @@
 
 
 NTSTATUS
-SamrSrvCreateDomAlias(
+SamrSrvDeleteDomAlias(
     /* [in] */ handle_t hBinding,
-    /* [in] */ DOMAIN_HANDLE hDomain,
-    /* [in] */ UnicodeString *alias_name,
-    /* [in] */ uint32 access_mask,
-    /* [out] */ ACCOUNT_HANDLE *hAlias,
-    /* [out] */ uint32 *rid
+    /* [in] */ ACCOUNT_HANDLE hAccountIn,
+    /* [out] */ ACCOUNT_HANDLE *hAccountOut
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PDOMAIN_CONTEXT pDomCtx = NULL;
-    PWSTR pwszAliasName = NULL;
-    UnicodeStringEx Name;
-    uint32 ulAccessGranted = 0;
 
-    pDomCtx = (PDOMAIN_CONTEXT)hDomain;
-
-    if (pDomCtx == NULL || pDomCtx->Type != SamrContextDomain) {
-        ntStatus = STATUS_INVALID_HANDLE;
-        BAIL_ON_NTSTATUS_ERROR(ntStatus);
-    }
-
-    ntStatus = SamrSrvGetFromUnicodeString(&pwszAliasName,
-                                         alias_name);
-    BAIL_ON_NTSTATUS_ERROR(ntStatus);
-
-    ntStatus = SamrSrvInitUnicodeStringEx(&Name,
-                                        pwszAliasName);
-    BAIL_ON_NTSTATUS_ERROR(ntStatus);
-
-    ntStatus = SamrSrvCreateAccount(hBinding,
-                                    hDomain,
-                                    &Name,
-                                    DS_OBJECT_CLASS_LOCAL_GROUP,
-                                    0,
-                                    access_mask,
-                                    hAlias,
-                                    &ulAccessGranted,
-                                    rid);
-    if (ntStatus == STATUS_USER_EXISTS)
-    {
-        ntStatus = STATUS_ALIAS_EXISTS;
-        BAIL_ON_NTSTATUS_ERROR(ntStatus);
-    }
-
-cleanup:
-    if (pwszAliasName) {
-        SamrSrvFreeMemory(pwszAliasName);
-    }
-
-    SamrSrvFreeUnicodeStringEx(&Name);
-
+    ntStatus = SamrSrvDeleteAccount(hBinding,
+				    hAccountIn,
+				    hAccountOut);
     return ntStatus;
-
-error:
-    *hAlias = NULL;
-    *rid    = 0;
-    goto cleanup;
 }
 
 
