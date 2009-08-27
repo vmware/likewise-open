@@ -71,7 +71,7 @@ typedef struct _LSA_CREDENTIALS
 {
     PSTR            pUserName;
     PSTR            pPassword;
-    DWORD           dwUserId;
+    uid_t           UserId;
     LONG            nRefCount;
     LSA_LIST_LINKS   ListEntry;
 } LSA_CREDENTIALS,  *PLSA_CREDENTIALS;
@@ -90,7 +90,7 @@ static LSA_CREDENTIALS_STATE gLsaCredState = {
 static
 PLSA_CREDENTIALS
 LsaFindCredByUidUnsafe(
-    IN DWORD dwUid
+    IN uid_t Uid
     )
 {
     // Note that gLsaCredState.LsaCredsListLock must already be acquired.
@@ -108,7 +108,7 @@ LsaFindCredByUidUnsafe(
             LSA_CREDENTIALS,
             ListEntry);
 
-        if (dwUid == pCredTrav->dwUserId)
+        if (Uid == pCredTrav->UserId)
         {
             InterlockedIncrement(&pCredTrav->nRefCount);
             pCred = pCredTrav;
@@ -138,7 +138,7 @@ DWORD
 LsaAllocateCred(
     IN PCSTR pszUserName,
     IN PCSTR pszPassword,
-    IN OPTIONAL const PDWORD pdwUid,
+    IN OPTIONAL const uid_t* pUid,
     OUT PLSA_CREDENTIALS* ppCredential
     )
 {
@@ -156,9 +156,9 @@ LsaAllocateCred(
 
     pCred->nRefCount = 1;
 
-    if (pdwUid)
+    if (pUid)
     {
-        pCred->dwUserId = *pdwUid;
+        pCred->UserId = *pUid;
     }
 
 cleanup:
@@ -222,7 +222,7 @@ DWORD
 LsaAddCredential(
     IN PCSTR pszUserName,
     IN PCSTR pszPassword,
-    IN OPTIONAL const PDWORD pdwUid,
+    IN OPTIONAL const uid_t* pUid,
     OUT PLSA_CRED_HANDLE phCredential
     )
 {
@@ -238,7 +238,7 @@ LsaAddCredential(
         !pszPassword  ||
         !*pszUserName ||
         !*pszPassword ||
-        (pdwUid && !*pdwUid))
+        (pUid && !*pUid))
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LW_ERROR(dwError);
@@ -246,14 +246,14 @@ LsaAddCredential(
 
     ENTER_CREDS_LIST(bInLock);
 
-    if (pdwUid)
+    if (pUid)
     {
-        pCredOld = LsaFindCredByUidUnsafe(*pdwUid);
+        pCredOld = LsaFindCredByUidUnsafe(*pUid);
     }
 
     if (!pCredOld || !LsaCredContains(pCredOld, pszUserName, pszPassword))
     {
-        dwError = LsaAllocateCred(pszUserName, pszPassword, pdwUid, &pCredNew);
+        dwError = LsaAllocateCred(pszUserName, pszPassword, pUid, &pCredNew);
         BAIL_ON_LW_ERROR(dwError);
 
         LsaListInsertHead(&gLsaCredState.LsaCredsList, &pCredNew->ListEntry);
@@ -341,7 +341,7 @@ LsaReleaseCredential(
 
 LSA_CRED_HANDLE
 LsaGetCredential(
-    IN DWORD dwUid
+    IN uid_t Uid
     )
 {
     BOOLEAN bInLock = FALSE;
@@ -351,7 +351,7 @@ LsaGetCredential(
 
     ENTER_CREDS_LIST(bInLock);
 
-    pCred = LsaFindCredByUidUnsafe(dwUid);
+    pCred = LsaFindCredByUidUnsafe(Uid);
 
     LEAVE_CREDS_LIST(bInLock);
 
@@ -363,7 +363,7 @@ LsaGetCredentialInfo(
     IN LSA_CRED_HANDLE CredHandle,
     OUT OPTIONAL PCSTR* pszUserName,
     OUT OPTIONAL PCSTR* pszPassword,
-    OUT OPTIONAL PDWORD pUid
+    OUT OPTIONAL uid_t* pUid
     )
 {
     if (pszUserName)
@@ -378,6 +378,6 @@ LsaGetCredentialInfo(
 
     if (pUid)
     {
-        *pUid = CredHandle->dwUserId;
+        *pUid = CredHandle->UserId;
     }
 }

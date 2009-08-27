@@ -55,7 +55,7 @@ DWORD
 LsaAddCredential(
     IN PCSTR pszUserName,
     IN PCSTR pszPassword,
-    IN OPTIONAL const PDWORD pUid,
+    IN OPTIONAL const uid_t* pUid,
     OUT PLSA_CRED_HANDLE phCredential
     );
 
@@ -71,7 +71,7 @@ LsaReleaseCredential(
 
 LSA_CRED_HANDLE
 LsaGetCredential(
-    IN DWORD dwUid
+    IN uid_t Uid
     );
 
 VOID
@@ -79,7 +79,7 @@ LsaGetCredentialInfo(
     IN LSA_CRED_HANDLE CredHandle,
     OUT OPTIONAL PCSTR* pszUserName,
     OUT OPTIONAL PCSTR* pszPassword,
-    OUT OPTIONAL PDWORD pUid
+    OUT OPTIONAL uid_t* pUid
     );
 
 #endif /* __LSASRVCRED_H__ */
