@@ -190,6 +190,31 @@ SamrSrvQueryAliasInfo(
 
 
 NTSTATUS
+SamrSrvSetAliasInfo(
+    handle_t hBinding,
+    ACCOUNT_HANDLE hAlias,
+    uint16 level,
+    AliasInfo *pInfo
+    );
+
+
+NTSTATUS
+SamrSrvDeleteAccount(
+    handle_t hBinding,
+    ACCOUNT_HANDLE hAccountIn,
+    ACCOUNT_HANDLE *hAccountOut
+    );
+
+
+NTSTATUS
+SamrSrvDeleteDomAlias(
+    handle_t hBinding,
+    ACCOUNT_HANDLE hAccountIn,
+    ACCOUNT_HANDLE *hAccountOut
+    );
+
+
+NTSTATUS
 SamrSrvGetMembersInAlias(
     handle_t hBinding,
     ACCOUNT_HANDLE hAlias,
