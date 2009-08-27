@@ -317,15 +317,11 @@ LocalMarshalEntryToUserInfo_1(
                     pszName);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LocalMarshalAttrToANSIFromUnicodeString(
-                    pEntry,
-                    &wszAttrNameDN[0],
-                    &pUserInfo->pszDN);
-    BAIL_ON_LSA_ERROR(dwError);
     if (ppwszUserDN)
     {
-        dwError = LsaMbsToWc16s(
-                        pUserInfo->pszDN,
+        dwError = LocalMarshalAttrToUnicodeString(
+                        pEntry,
+                        &wszAttrNameDN[0],
                         &pwszUserDN);
         BAIL_ON_LSA_ERROR(dwError);
     }

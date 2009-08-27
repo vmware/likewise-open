@@ -103,10 +103,10 @@
 /* Driver defines */
 
 #define PVFS_WORKERS_NUMBER_THREADS      4
-#define PVFS_WORKERS_MAX_WORK_ITEMS      10
+#define PVFS_WORKERS_MAX_WORK_ITEMS      1024
 
 
-/* Top level APi functions */
+/* Top level API functions */
 
 NTSTATUS
 PvfsCreate(
