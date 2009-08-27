@@ -199,7 +199,6 @@ SrvShareAdd(
 NTSTATUS
 SrvShareUpdate(
     IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
-    IN     PWSTR                      pwszShareName,
     IN     PSRV_SHARE_INFO            pShareInfo
     );
 
