@@ -93,6 +93,84 @@ SrvGssNegotiateIsComplete(
     return pGssNegotiate->state == SRV_GSS_CONTEXT_STATE_COMPLETE;
 }
 
+static
+NTSTATUS
+SrvGssGetSessionKey(
+    gss_ctx_id_t Context,
+    PBYTE* ppSessionKey,
+    PDWORD pdwSessionKeyLength
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PBYTE pSessionKey = NULL;
+    DWORD dwSessionKeyLength = 0;
+    OM_uint32 gssMajor = GSS_S_COMPLETE;
+    OM_uint32 gssMinor = 0;
+    gss_buffer_set_t sessionKey = NULL;
+    gss_buffer_desc sessionKeyBuffer = GSS_C_EMPTY_BUFFER;
+
+    gssMajor = gss_inquire_sec_context_by_oid(
+                    &gssMinor,
+                    Context,
+                    GSS_C_INQ_SSPI_SESSION_KEY,
+                    &sessionKey);
+    if (gssMajor != GSS_S_COMPLETE)
+    {
+        srv_display_status("gss_inquire_sec_context_by_oid", gssMajor, gssMinor);
+        // TODO - error code conversion
+        status = gssMajor;
+        BAIL_ON_LWIO_ERROR(status);
+    }
+
+    // The key is in element 0 and the key type OID is in element 1
+    if (!sessionKey ||
+        (sessionKey->count < 1) ||
+        !sessionKey->elements[0].value ||
+        (0 == sessionKey->elements[0].length))
+    {
+        LWIO_ASSERT_MSG(FALSE, "Invalid session key");
+        status = STATUS_ASSERTION_FAILURE;
+        BAIL_ON_LWIO_ERROR(status);
+    }
+
+    status = LW_RTL_ALLOCATE(&pSessionKey, BYTE, sessionKey->elements[0].length);
+    BAIL_ON_LWIO_ERROR(status);
+
+    memcpy(pSessionKey, sessionKey->elements[0].value, sessionKey->elements[0].length);
+    dwSessionKeyLength = sessionKey->elements[0].length;
+
+#if 1
+    gssMajor = gss_inquire_context2(
+                    &gssMinor,
+                    Context,
+                    NULL,
+                    NULL,
+                    NULL,
+                    NULL,
+                    NULL,
+                    NULL,
+                    NULL,
+                    &sessionKeyBuffer);
+    srv_display_status("gss_inquire_context2", gssMajor, gssMinor);
+    BAIL_ON_LWIO_ERROR(gssMajor);
+#endif
+
+cleanup:
+    gss_release_buffer_set(&gssMinor, &sessionKey);
+    gss_release_buffer(&gssMinor, &sessionKeyBuffer);
+
+    *ppSessionKey = pSessionKey;
+    *pdwSessionKeyLength = dwSessionKeyLength;
+
+    return status;
+
+error:
+    LWIO_SAFE_FREE_MEMORY(pSessionKey);
+    dwSessionKeyLength = 0;
+
+    goto cleanup;
+}
+
 NTSTATUS
 SrvGssGetSessionDetails(
     HANDLE hGss,
@@ -107,8 +185,8 @@ SrvGssGetSessionDetails(
     ULONG ulMinorStatus = 0;
     gss_name_t initiatorName = {0};
     gss_name_t acceptorName = {0};
-    gss_buffer_desc sessionKey = GSS_C_EMPTY_BUFFER;
     PBYTE pSessionKey = NULL;
+    DWORD dwSessionKeyLength = 0;
     PSTR pszClientPrincipalName = NULL;
     gss_buffer_desc nameBuffer = {0};
     gss_OID nameOid = {0};
@@ -119,7 +197,7 @@ SrvGssGetSessionDetails(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = gss_inquire_context2(
+    ntStatus = gss_inquire_context(
                     &ulMinorStatus,
                     *pGssNegotiate->pGssContext,
                     &initiatorName,
@@ -128,10 +206,9 @@ SrvGssGetSessionDetails(
                     NULL,
                     NULL,
                     NULL,
-                    NULL,
-                    &sessionKey);
+                    NULL);
 
-    srv_display_status("gss_inquire_context2", ntStatus, ulMinorStatus);
+    srv_display_status("gss_inquire_context", ntStatus, ulMinorStatus);
     BAIL_ON_SEC_ERROR(ntStatus);
 
     if (ppszClientPrincipalName)
@@ -154,14 +231,11 @@ SrvGssGetSessionDetails(
 
     if (ppSessionKey)
     {
-        assert(sessionKey.length > 0);
-
-        ntStatus = SrvAllocateMemory(
-                        sessionKey.length * sizeof(BYTE),
-                        (PVOID*)&pSessionKey);
+        ntStatus = SrvGssGetSessionKey(
+                        *pGssNegotiate->pGssContext,
+                        &pSessionKey,
+                        &dwSessionKeyLength);
         BAIL_ON_NT_STATUS(ntStatus);
-
-        memcpy(pSessionKey, sessionKey.value, sessionKey.length);
     }
 
     if (ppszClientPrincipalName)
@@ -172,14 +246,13 @@ SrvGssGetSessionDetails(
     if (ppSessionKey)
     {
         *ppSessionKey = pSessionKey;
-        *pulSessionKeyLength = sessionKey.length;
+        *pulSessionKeyLength = dwSessionKeyLength;
     }
 
 cleanup:
 
     gss_release_name(&ulMinorStatus, &initiatorName);
     gss_release_name(&ulMinorStatus, &acceptorName);
-    gss_release_buffer(&ulMinorStatus, &sessionKey);
     gss_release_buffer(&ulMinorStatus, &nameBuffer);
 
     return ntStatus;

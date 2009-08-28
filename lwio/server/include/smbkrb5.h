@@ -63,7 +63,7 @@ SMBGSSContextNegotiate(
     PDWORD pdwSecurityBlobLength
     );
 
-DWORD
+NTSTATUS
 SMBGSSContextGetSessionKey(
     HANDLE hSMBGSSContext,
     PBYTE* ppSessionKey,
