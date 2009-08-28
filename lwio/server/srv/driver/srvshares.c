@@ -809,10 +809,7 @@ SrvShareDevCtlSetInfo(
 
     LWIO_UNLOCK_RWMUTEX(bShareLocked, &pShareInfo->mutex);
 
-    ntStatus = SrvShareUpdate(
-                   pShareList,
-                   pSetShareInfoParamsIn->pwszNetname,
-                   pShareInfo);
+    ntStatus = SrvShareUpdate(pShareList, pShareInfo);
     BAIL_ON_NT_STATUS(ntStatus);
 
 error:

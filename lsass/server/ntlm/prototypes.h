@@ -47,7 +47,7 @@
 
 DWORD
 NtlmServerAcceptSecurityContext(
-    IN LWMsgAssoc* pAssoc,
+    IN HANDLE Handle,
     IN PNTLM_CRED_HANDLE phCredential,
     IN OUT PNTLM_CONTEXT_HANDLE phContext,
     IN PSecBufferDesc pInput,
@@ -61,9 +61,9 @@ NtlmServerAcceptSecurityContext(
 
 DWORD
 NtlmServerAcquireCredentialsHandle(
-    IN LWMsgAssoc* pAssoc,
-    IN SEC_CHAR *pszPrincipal,
-    IN SEC_CHAR *pszPackage,
+    IN LWMsgCall* pCall,
+    IN SEC_CHAR* pszPrincipal,
+    IN SEC_CHAR* pszPackage,
     IN DWORD fCredentialUse,
     IN PLUID pvLogonID,
     IN PVOID pAuthData,
@@ -467,7 +467,7 @@ NtlmCreateValidatedContext(
 
 DWORD
 NtlmValidateResponse(
-    IN LWMsgAssoc* pAssoc,
+    IN HANDLE Handle,
     IN PNTLM_RESPONSE_MESSAGE pRespMsg,
     IN DWORD dwRespMsgSize,
     IN PNTLM_CONTEXT pChlngCtxt,
@@ -549,7 +549,7 @@ NtlmSetParityBit(
 
 DWORD
 NtlmGetProcessSecurity(
-    IN LWMsgAssoc* pAssoc,
+    IN LWMsgCall* pCall,
     OUT uid_t* pUid,
     OUT gid_t* pGid
     );

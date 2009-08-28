@@ -380,67 +380,57 @@ error:
 NTSTATUS
 SrvShareUpdate(
     IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
-    IN     PWSTR                      pwszShareName,
-    IN     PSRV_SHARE_INFO            pShareInfo
+    IN     PSRV_SHARE_INFO pShareInfo
     )
 {
-    NTSTATUS ntStatus = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    WCHAR wszServiceType[] = LWIO_SRV_SHARE_STRING_ID_DISK_W;
+    BOOLEAN  bInLock = FALSE;
+    HANDLE   hRepository = NULL;
 
-#if 0
-
-    ntStatus = ValidateShareInfo(
-                    dwLevel,
-                    pShareInfo
-                    );
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ENTER_WRITER_LOCK();
-
-    ntStatus = SrvFindShareByName(
-                    pszShareName,
-                    &pShareEntry
-                    );
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    switch (dwLevel) {
-
-        case 0:
-            break;
-
-        case 1:
-            break;
-
-        case 2:
-            break;
-
-        case 501:
-            break;
-
-        case 502:
-            break;
-
-        case 503:
-            break;
-
+    if (!pShareInfo || IsNullOrEmptyString(pShareInfo->pwszName))
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus =  SrvShareDbInsert(
-                    pszShareName,
-                    pszPathName,
-                    pszComment,
-                    dwFlags,
-                    pSecurityDescriptor,
-                    dwSDSize
-                    );
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pShareList->mutex);
+
+    ntStatus = gSrvShareApi.pFnTable->pfnShareRepositoryOpen(&hRepository);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = gSrvShareApi.pFnTable->pfnShareRepositoryDelete(
+                                            hRepository,
+                                            pShareInfo->pwszName);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = gSrvShareApi.pFnTable->pfnShareRepositoryAdd(
+                                            hRepository,
+                                            pShareInfo->pwszName,
+                                            pShareInfo->pwszPath,
+                                            pShareInfo->pwszComment,
+                                            pShareInfo->pSecDesc,
+                                            pShareInfo->ulSecDescLen,
+                                            wszServiceType);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    gSrvShareApi.pFnTable->pfnShareRepositoryClose(hRepository);
+    hRepository = NULL;
+
+cleanup:
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareList->mutex);
+
+    return ntStatus;
 
 error:
 
-    LEAVE_WRITER_LOCK();
+    if (hRepository)
+    {
+        gSrvShareApi.pFnTable->pfnShareRepositoryClose(hRepository);
+    }
 
-#endif
-
-    return(ntStatus);
+    goto cleanup;
 }
 
 NTSTATUS

@@ -292,12 +292,12 @@ typedef struct __NTLM_IPC_VERIFY_SIGN_RESPONSE
 
 /******************************************************************************/
 
-#define NTLM_MAP_LWMSG_ERROR(_e_) (NtlmMapLwmsgStatus(_e_))
+#define NTLM_MAP_LWMSG_ERROR(_e_) (LwMapLwmsgStatusToLwError(_e_))
 #define MAP_NTLM_ERROR_IPC(_e_) ((_e_) ? LWMSG_STATUS_ERROR : LWMSG_STATUS_SUCCESS)
 
 LWMsgProtocolSpec*
 NtlmIpcGetProtocolSpec(
-    void
+    VOID
     );
 
 LWMsgDispatchSpec*
@@ -310,123 +310,107 @@ NtlmMapLwmsgStatus(
     LWMsgStatus status
     );
 
-DWORD
-NtlmSrvIpcCreateError(
-    DWORD dwErrorCode,
-    PNTLM_IPC_ERROR* ppError
-    );
-
 LWMsgStatus
 NtlmSrvIpcAcceptSecurityContext(
-    LWMsgAssoc* assoc,
-    const LWMsgMessage* pRequest,
-    LWMsgMessage* pResponse,
-    void* data
+    LWMsgCall* pCall,
+    const LWMsgParams* pIn,
+    LWMsgParams* pOut,
+    PVOID pData
     );
 
 LWMsgStatus
 NtlmSrvIpcAcquireCredentialsHandle(
-    LWMsgAssoc* assoc,
-    const LWMsgMessage* pRequest,
-    LWMsgMessage* pResponse,
-    void* data
+    LWMsgCall* pCall,
+    const LWMsgParams* pIn,
+    LWMsgParams* pOut,
+    PVOID pData
     );
 
 LWMsgStatus
 NtlmSrvIpcDecryptMessage(
-    LWMsgAssoc* assoc,
-    const LWMsgMessage* pRequest,
-    LWMsgMessage* pResponse,
-    void* data
+    LWMsgCall* pCall,
+    const LWMsgParams* pIn,
+    LWMsgParams* pOut,
+    PVOID pData
     );
 
 LWMsgStatus
 NtlmSrvIpcDeleteSecurityContext(
-    LWMsgAssoc* assoc,
-    const LWMsgMessage* pRequest,
-    LWMsgMessage* pResponse,
-    void* data
+    LWMsgCall* pCall,
+    const LWMsgParams* pIn,
+    LWMsgParams* pOut,
+    PVOID pData
     );
 
 LWMsgStatus
 NtlmSrvIpcEncryptMessage(
-    LWMsgAssoc* assoc,
-    const LWMsgMessage* pRequest,
-    LWMsgMessage* pResponse,
-    void* data
+    LWMsgCall* pCall,
+    const LWMsgParams* pIn,
+    LWMsgParams* pOut,
+    PVOID pData
     );
 
 LWMsgStatus
 NtlmSrvIpcExportSecurityContext(
-    LWMsgAssoc* assoc,
-    const LWMsgMessage* pRequest,
-    LWMsgMessage* pResponse,
-    void* data
+    LWMsgCall* pCall,
+    const LWMsgParams* pIn,
+    LWMsgParams* pOut,
+    PVOID pData
     );
 
 LWMsgStatus
 NtlmSrvIpcFreeCredentialsHandle(
-    LWMsgAssoc* assoc,
-    const LWMsgMessage* pRequest,
-    LWMsgMessage* pResponse,
-    void* data
+    LWMsgCall* pCall,
+    const LWMsgParams* pIn,
+    LWMsgParams* pOut,
+    PVOID pData
     );
 
 LWMsgStatus
 NtlmSrvIpcImportSecurityContext(
-    LWMsgAssoc* assoc,
-    const LWMsgMessage* pRequest,
-    LWMsgMessage* pResponse,
-    void* data
+    LWMsgCall* pCall,
+    const LWMsgParams* pIn,
+    LWMsgParams* pOut,
+    PVOID pData
     );
 
 LWMsgStatus
 NtlmSrvIpcInitializeSecurityContext(
-    LWMsgAssoc* assoc,
-    const LWMsgMessage* pRequest,
-    LWMsgMessage* pResponse,
-    void* data
+    LWMsgCall* pCall,
+    const LWMsgParams* pIn,
+    LWMsgParams* pOut,
+    PVOID pData
     );
 
 LWMsgStatus
 NtlmSrvIpcMakeSignature(
-    LWMsgAssoc* assoc,
-    const LWMsgMessage* pRequest,
-    LWMsgMessage* pResponse,
-    void* data
+    LWMsgCall* pCall,
+    const LWMsgParams* pIn,
+    LWMsgParams* pOut,
+    PVOID pData
     );
 
 LWMsgStatus
 NtlmSrvIpcQueryCredentialsAttributes(
-    LWMsgAssoc* assoc,
-    const LWMsgMessage* pRequest,
-    LWMsgMessage* pResponse,
-    void* data
+    LWMsgCall* pCall,
+    const LWMsgParams* pIn,
+    LWMsgParams* pOut,
+    PVOID pData
     );
 
 LWMsgStatus
 NtlmSrvIpcQueryContextAttributes(
-    LWMsgAssoc* assoc,
-    const LWMsgMessage* pRequest,
-    LWMsgMessage* pResponse,
-    void* data
+    LWMsgCall* pCall,
+    const LWMsgParams* pIn,
+    LWMsgParams* pOut,
+    PVOID pData
     );
 
 LWMsgStatus
 NtlmSrvIpcVerifySignature(
-    LWMsgAssoc* assoc,
-    const LWMsgMessage* pRequest,
-    LWMsgMessage* pResponse,
-    void* data
-    );
-
-VOID
-NtlmSrvFreeCredHandle(
-    PVOID pData
-    );
-
-VOID
-NtlmSrvFreeContextHandle(
+    LWMsgCall* pCall,
+    const LWMsgParams* pIn,
+    LWMsgParams* pOut,
     PVOID pData
     );
 

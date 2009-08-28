@@ -15,10 +15,10 @@ libntlmserver_la_SOURCES =      \
     globals.c                   \
     importsecctxt.c             \
     initsecctxt.c               \
+    ipc_dispatch.c              \
     makesign.c                  \
     querycreds.c                \
     queryctxt.c                 \
-    ntlmsrvipc.c                \
     verifysign.c
 
 libntlmserver_la_CPPFLAGS =         \

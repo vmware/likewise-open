@@ -1585,6 +1585,8 @@ LsaAdBatchFindObjectsForDomain(
     )
 {
     DWORD dwError = 0;
+    // Do not delete
+    PLSA_LIST_LINKS pLinks = NULL;
 
     if (bIsOneWayTrust && LSA_AD_BATCH_QUERY_TYPE_BY_DN == QueryType)
     {
@@ -1635,6 +1637,21 @@ cleanup:
     return dwError;
 
 error:
+    for (pLinks = pBatchItemList->Next;
+         pLinks != pBatchItemList;
+         pLinks = pLinks->Next)
+    {
+        PLSA_AD_BATCH_ITEM pBatchItem = LW_STRUCT_FROM_FIELD(pLinks, LSA_AD_BATCH_ITEM, BatchItemListLinks);
+
+        if (pBatchItem->Flags & LSA_AD_BATCH_ITEM_FLAG_ERROR)
+        {
+            LSA_LOG_ERROR(
+                    "An error occurred while looking up information for user/group (sid = '%s', name = '%s\\%s')",
+                    LSA_SAFE_LOG_STRING(pBatchItem->pszSid),
+                    LSA_SAFE_LOG_STRING(pszNetbiosDomainName),
+                    LSA_SAFE_LOG_STRING(pBatchItem->pszSamAccountName));
+        }
+    }
     goto cleanup;
 }
 
