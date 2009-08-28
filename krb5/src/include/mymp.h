@@ -1,5 +1,5 @@
-/* S7_CHANGES */
-/* GCC 4.x  complains about the spu_info as incomplete element type
+/*
+ * GCC 4.x  complains about the spu_info as incomplete element type
  * spu_info is declared in /usr/include/machine/sys/getppdp.h
  */
 #ifndef _MPINFO_T

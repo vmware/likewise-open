@@ -87,7 +87,7 @@ typedef int socklen_t;
 extern int h_errno;		/* In case it's missing, e.g., HP-UX 10.20. */
 #endif
 
-/* S7_CHANGE */
+/* LW */
 #if defined(__hpux) && defined(__ia64)
 #include "mymp.h"
 #endif
