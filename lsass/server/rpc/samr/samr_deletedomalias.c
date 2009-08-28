@@ -39,7 +39,7 @@
  *
  *        Remote Procedure Call (RPC) Server Interface
  *
- *        SamrSrvDeleteDomAlias function
+ *        SamrDeleteDomAlias function
  *
  * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
@@ -50,15 +50,15 @@
 NTSTATUS
 SamrSrvDeleteDomAlias(
     /* [in] */ handle_t hBinding,
-    /* [in] */ ACCOUNT_HANDLE hAccountIn,
-    /* [out] */ ACCOUNT_HANDLE *hAccountOut
+    /* [in] */ ACCOUNT_HANDLE hAliasIn,
+    /* [out] */ ACCOUNT_HANDLE *phAliasOut
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
     ntStatus = SamrSrvDeleteAccount(hBinding,
-				    hAccountIn,
-				    hAccountOut);
+                                    hAliasIn,
+                                    phAliasOut);
     return ntStatus;
 }
 
