@@ -1,7 +1,7 @@
 /*
  * lib/krb5/krb/gc_via_tgt.c
  *
- * Copyright 1990,1991 by the Massachusetts Institute of Technology.
+ * Copyright 1990,1991,2007,2008 by the Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
  * Export of this software from the United States of America may
@@ -31,26 +31,15 @@
 #include "k5-int.h"
 #include "int-proto.h"
 
-#define in_clock_skew(date, now) (labs((date)-(now)) < context->clockskew)
-
-#define IS_TGS_PRINC(c, p)				\
-    ((krb5_princ_size((c), (p)) == 2) &&		\
-     (krb5_princ_component((c), (p), 0)->length ==	\
-      KRB5_TGS_NAME_SIZE) &&				\
-     (!memcmp(krb5_princ_component((c), (p), 0)->data,	\
-	      KRB5_TGS_NAME, KRB5_TGS_NAME_SIZE)))
-
 static krb5_error_code
 krb5_kdcrep2creds(krb5_context context, krb5_kdc_rep *pkdcrep, krb5_address *const *address, krb5_data *psectkt, krb5_creds **ppcreds)
 {
     krb5_error_code retval;  
     krb5_data *pdata;
   
-    if ((*ppcreds = (krb5_creds *)malloc(sizeof(krb5_creds))) == NULL) {
+    if ((*ppcreds = (krb5_creds *)calloc(1,sizeof(krb5_creds))) == NULL) {
         return ENOMEM;
     }
-
-    memset(*ppcreds, 0, sizeof(krb5_creds));
 
     if ((retval = krb5_copy_principal(context, pkdcrep->client,
                                      &(*ppcreds)->client)))
@@ -66,9 +55,9 @@ krb5_kdcrep2creds(krb5_context context, krb5_kdc_rep *pkdcrep, krb5_address *con
         goto cleanup;
 
     if ((retval = krb5_copy_data(context, psectkt, &pdata)))
-	goto cleanup;
+	goto cleanup_keyblock;
     (*ppcreds)->second_ticket = *pdata;
-    krb5_xfree(pdata);
+    free(pdata);
 
     (*ppcreds)->ticket_flags = pkdcrep->enc_part2->flags;
     (*ppcreds)->times = pkdcrep->enc_part2->times;
@@ -96,10 +85,11 @@ krb5_kdcrep2creds(krb5_context context, krb5_kdc_rep *pkdcrep, krb5_address *con
     return 0;
 
 cleanup_keyblock:
-    krb5_free_keyblock(context, &(*ppcreds)->keyblock);
+    krb5_free_keyblock_contents(context, &(*ppcreds)->keyblock);
 
 cleanup:
     free (*ppcreds);
+    *ppcreds = NULL;
     return retval;
 }
  
@@ -146,14 +136,22 @@ check_reply_server(krb5_context context, krb5_flags kdcoptions,
      * effectively checks this.
      */
     if (krb5_realm_compare(context, in_cred->client, in_cred->server) &&
-	in_cred->server->data[1].length == in_cred->client->realm.length &&
-	!memcmp(in_cred->client->realm.data, in_cred->server->data[1].data,
-		in_cred->client->realm.length)) {
+	data_eq(*in_cred->server->data[1], *in_cred->client->realm) {
 	/* Attempted to rewrite local TGS. */
 	return KRB5_KDCREP_MODIFIED;
     }
 #endif
     return 0;
+}
+
+/* Return true if a TGS credential is for the client's local realm. */
+static inline int
+tgt_is_local_realm(krb5_creds *tgt)
+{
+    return (tgt->server->length == 2
+	    && data_eq_string(tgt->server->data[0], KRB5_TGS_NAME)
+	    && data_eq(tgt->server->data[1], tgt->client->realm)
+	    && data_eq(tgt->server->realm, tgt->client->realm));
 }
 
 krb5_error_code
@@ -166,6 +164,7 @@ krb5_get_cred_via_tkt (krb5_context context, krb5_creds *tkt,
     krb5_error *err_reply;
     krb5_response tgsrep;
     krb5_enctype *enctypes = 0;
+    krb5_keyblock *subkey = NULL;
 
 #ifdef DEBUG_REFERRALS
     printf("krb5_get_cred_via_tkt starting; referral flag is %s\n", kdcoptions&KDC_OPT_CANONICALIZE?"on":"off");
@@ -212,12 +211,12 @@ krb5_get_cred_via_tkt (krb5_context context, krb5_creds *tkt,
 	enctypes[1] = 0;
     }
     
-    retval = krb5_send_tgs(context, kdcoptions, &in_cred->times, enctypes, 
+    retval = krb5int_send_tgs(context, kdcoptions, &in_cred->times, enctypes,
 			   in_cred->server, address, in_cred->authdata,
 			   0,		/* no padata */
 			   (kdcoptions & KDC_OPT_ENC_TKT_IN_SKEY) ? 
 			   &in_cred->second_ticket : NULL,
-			   tkt, &tgsrep);
+			   tkt, &tgsrep, &subkey);
     if (enctypes)
 	free(enctypes);
     if (retval) {
@@ -249,8 +248,23 @@ krb5_get_cred_via_tkt (krb5_context context, krb5_creds *tkt,
 	    switch (err_reply->error) {
 	    case KRB_ERR_GENERIC:
 		krb5_set_error_message(context, retval,
-				       "KDC returned error string: %s",
+				       "KDC returned error string: %.*s",
+				       err_reply->text.length,
 				       err_reply->text.data);
+		break;
+	    case KDC_ERR_S_PRINCIPAL_UNKNOWN:
+	        {
+		    char *s_name;
+		    if (krb5_unparse_name(context, in_cred->server, &s_name) == 0) {
+			krb5_set_error_message(context, retval,
+					       "Server %s not found in Kerberos database",
+					       s_name);
+			krb5_free_unparsed_name(context, s_name);
+		    } else
+			/* In case there's a stale S_PRINCIPAL_UNKNOWN
+			   report already noted.  */
+			krb5_clear_error_message(context);
+		}
 		break;
 	    default:
 #if 0 /* We should stop the KDC from sending back this text, because
@@ -276,15 +290,31 @@ krb5_get_cred_via_tkt (krb5_context context, krb5_creds *tkt,
 	goto error_4;
     }
 
-    if ((retval = krb5_decode_kdc_rep(context, &tgsrep.response,
-				      &tkt->keyblock, &dec_rep)))
-	goto error_4;
+    /* Unfortunately, Heimdal at least up through 1.2  encrypts using
+       the session key not the subsession key.  So we try both. */
+    if ((retval = krb5int_decode_tgs_rep(context, &tgsrep.response,
+				      subkey,
+					 KRB5_KEYUSAGE_TGS_REP_ENCPART_SUBKEY, &dec_rep))) {
+	    if ((krb5int_decode_tgs_rep(context, &tgsrep.response,
+				      &tkt->keyblock,
+					KRB5_KEYUSAGE_TGS_REP_ENCPART_SESSKEY, &dec_rep)) == 0)
+		retval = 0;
+	    else goto error_4;
+    }
 
     if (dec_rep->msg_type != KRB5_TGS_REP) {
 	retval = KRB5KRB_AP_ERR_MSG_TYPE;
 	goto error_3;
     }
    
+    /*
+     * Don't trust the ok-as-delegate flag from foreign KDCs unless the
+     * cross-realm TGT also had the ok-as-delegate flag set.
+     */
+    if (!tgt_is_local_realm(tkt)
+	&& !(tkt->ticket_flags & TKT_FLG_OK_AS_DELEGATE))
+	dec_rep->enc_part2->flags &= ~TKT_FLG_OK_AS_DELEGATE;
+
     /* make sure the response hasn't been tampered with..... */
     retval = 0;
 
@@ -331,6 +361,9 @@ krb5_get_cred_via_tkt (krb5_context context, krb5_creds *tkt,
 			       &in_cred->second_ticket,  out_cred);
 
 error_3:;
+    if (subkey != NULL)
+      krb5_free_keyblock(context, subkey);
+
     memset(dec_rep->enc_part2->session->contents, 0,
 	   dec_rep->enc_part2->session->length);
     krb5_free_kdc_rep(context, dec_rep);

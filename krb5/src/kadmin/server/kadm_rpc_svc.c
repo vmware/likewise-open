@@ -7,6 +7,7 @@
 #include <gssrpc/rpc.h>
 #include <gssapi/gssapi_krb5.h> /* for gss_nt_krb5_name */
 #include <syslog.h>
+#include <string.h>
 #include "autoconf.h"
 #ifdef HAVE_MEMORY_H
 #include <memory.h>
@@ -24,10 +25,7 @@
 extern void *global_server_handle;
 
 static int check_rpcsec_auth(struct svc_req *);
-static int gss_to_krb5_name(struct svc_req *, krb5_context, gss_name_t, krb5_principal *, gss_buffer_t);
 
-void log_badauth(OM_uint32 major, OM_uint32 minor,
-		 struct sockaddr_in *addr, char *data);
 /*
  * Function: kadm_1
  * 
@@ -272,7 +270,7 @@ check_rpcsec_auth(struct svc_req *rqstp)
      }
 
      kctx = handle->context;
-     ret = gss_to_krb5_name(rqstp, kctx, name, &princ, &gss_str);
+     ret = gss_to_krb5_name_1(rqstp, kctx, name, &princ, &gss_str);
      if (ret == 0)
 	  goto fail_name;
 
@@ -301,7 +299,7 @@ check_rpcsec_auth(struct svc_req *rqstp)
 fail_princ:
      if (!success) {
 	 krb5_klog_syslog(LOG_ERR, "bad service principal %.*s%s",
-			  slen, gss_str.value, sdots);
+			  (int) slen, (char *) gss_str.value, sdots);
      }
      gss_release_buffer(&min_stat, &gss_str);
      krb5_free_principal(kctx, princ);
@@ -310,9 +308,9 @@ fail_name:
      return success;
 }
 
-static int
-gss_to_krb5_name(struct svc_req *rqstp, krb5_context ctx, gss_name_t gss_name,
-		 krb5_principal *princ, gss_buffer_t gss_str)
+int
+gss_to_krb5_name_1(struct svc_req *rqstp, krb5_context ctx, gss_name_t gss_name,
+		   krb5_principal *princ, gss_buffer_t gss_str)
 {
      OM_uint32 status, minor_stat;
      gss_OID gss_type;

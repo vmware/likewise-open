@@ -1,7 +1,7 @@
 /*
  * include/krb5/adm_proto.h
  *
- * Copyright 1995 by the Massachusetts Institute of Technology.
+ * Copyright 1995, 2007,2008,2009 by the Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
  * Export of this software from the United States of America may
@@ -62,7 +62,11 @@ krb5_error_code krb5_klog_init
 	 char *,
 	 krb5_boolean);
 void krb5_klog_close (krb5_context);
-int krb5_klog_syslog (int, const char *, ...);
+int krb5_klog_syslog (int, const char *, ...)
+#if !defined(__cplusplus) && (__GNUC__ > 2)
+    __attribute__((__format__(__printf__, 2, 3)))
+#endif
+    ;
 void krb5_klog_reopen (krb5_context);
 
 /* alt_prof.c */
@@ -79,6 +83,8 @@ krb5_error_code krb5_aprof_get_deltat
 	 krb5_deltat *);
 krb5_error_code krb5_aprof_get_string
 	(krb5_pointer, const char **, krb5_boolean, char **);
+krb5_error_code krb5_aprof_get_string_all
+        (krb5_pointer, const char **,  char **);
 krb5_error_code krb5_aprof_get_int32
 	(krb5_pointer,
 	 const char **,
@@ -91,6 +97,7 @@ krb5_error_code krb5_read_realm_params (krb5_context,
 					krb5_realm_params **);
 krb5_error_code krb5_free_realm_params (krb5_context,
 					krb5_realm_params *);
+krb5_boolean krb5_match_config_pattern(const char *, const char *);
 
 /* str_conv.c */
 krb5_error_code

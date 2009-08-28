@@ -30,14 +30,13 @@
 krb5_error_code KRB5_CALLCONV
 krb5_cksumtype_to_string(krb5_cksumtype cksumtype, char *buffer, size_t buflen)
 {
-    int i;
+    unsigned int i;
 
     for (i=0; i<krb5_cksumtypes_length; i++) {
 	if (krb5_cksumtypes_list[i].ctype == cksumtype) {
-	    if ((strlen(krb5_cksumtypes_list[i].out_string)+1) > buflen)
+	    if (strlcpy(buffer, krb5_cksumtypes_list[i].out_string,
+			buflen) >= buflen)
 		return(ENOMEM);
-
-	    strcpy(buffer, krb5_cksumtypes_list[i].out_string);
 	    return(0);
 	}
     }

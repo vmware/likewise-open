@@ -6,25 +6,31 @@ PROG_LIBPATH=-L$(TOPLIBD)
 PROG_RPATH=$(KRB5_LIBDIR)
 DEFS=
 
-all::	kprop kpropd
+all::	kprop kpropd kproplog
 
 CLIENTSRCS= $(srcdir)/kprop.c 
 CLIENTOBJS= kprop.o 
 
-SERVERSRCS= $(srcdir)/kpropd.c 
-SERVEROBJS= kpropd.o
+SERVERSRCS= $(srcdir)/kpropd.c $(srcdir)/kpropd_rpc.c
+SERVEROBJS= kpropd.o kpropd_rpc.o
 
-SRCS= $(CLIENTSRCS) $(SERVERSRCS)
+LOGSRCS= $(srcdir)/kproplog.c
+LOGOBJS= kproplog.o
+
+SRCS= $(CLIENTSRCS) $(SERVERSRCS) $(LOGSRCS)
 
 
 kprop: $(CLIENTOBJS) $(KRB5_BASE_DEPLIBS)
 	$(CC_LINK) -o kprop $(CLIENTOBJS) $(KRB5_BASE_LIBS) @LIBUTIL@
 
-kpropd: $(SERVEROBJS) $(KRB5_BASE_DEPLIBS) $(APPUTILS_DEPLIB)
-	$(CC_LINK) -o kpropd $(SERVEROBJS) $(KRB5_BASE_LIBS) $(APPUTILS_LIB) @LIBUTIL@
+kpropd: $(SERVEROBJS) $(KADMCLNT_DEPLIBS) $(KDB5_DEPLIB) $(KRB5_BASE_DEPLIBS) $(APPUTILS_DEPLIB)
+	$(CC_LINK) -o kpropd $(SERVEROBJS) $(KADMCLNT_LIBS) $(KDB5_LIB) $(KRB5_BASE_LIBS) $(APPUTILS_LIB) @LIBUTIL@
+
+kproplog: $(LOGOBJS)
+	$(CC_LINK) -o kproplog $(LOGOBJS) $(KADMSRV_LIBS) $(KRB5_BASE_LIBS)
 
 install::
-	for f in kprop kpropd; do \
+	for f in kprop kpropd kproplog; do \
 	  $(INSTALL_PROGRAM) $$f \
 		$(DESTDIR)$(SERVER_BINDIR)/`echo $$f|sed '$(transform)'`; \
 	  $(INSTALL_DATA) $(srcdir)/$$f.M \
@@ -32,31 +38,8 @@ install::
 	done
 
 clean::
-	$(RM) $(CLIENTOBJS) $(SERVEROBJS)
+	$(RM) $(CLIENTOBJS) $(SERVEROBJS) $(LOGOBJS)
 
 clean::
-	$(RM) kprop kpropd
+	$(RM) kprop kpropd kproplog
 
-# +++ Dependency line eater +++
-# 
-# Makefile dependencies follow.  This must be the last section in
-# the Makefile.in file
-#
-$(OUTPRE)kprop.$(OBJEXT): $(BUILDTOP)/include/autoconf.h \
-  $(BUILDTOP)/include/krb5/krb5.h $(BUILDTOP)/include/osconf.h \
-  $(BUILDTOP)/include/profile.h $(COM_ERR_DEPS) $(SRCTOP)/include/k5-err.h \
-  $(SRCTOP)/include/k5-int-pkinit.h $(SRCTOP)/include/k5-int.h \
-  $(SRCTOP)/include/k5-platform.h $(SRCTOP)/include/k5-plugin.h \
-  $(SRCTOP)/include/k5-thread.h $(SRCTOP)/include/krb5.h \
-  $(SRCTOP)/include/krb5/locate_plugin.h $(SRCTOP)/include/krb5/preauth_plugin.h \
-  $(SRCTOP)/include/port-sockets.h $(SRCTOP)/include/socket-utils.h \
-  kprop.c kprop.h
-$(OUTPRE)kpropd.$(OBJEXT): $(BUILDTOP)/include/autoconf.h \
-  $(BUILDTOP)/include/krb5/krb5.h $(BUILDTOP)/include/osconf.h \
-  $(BUILDTOP)/include/profile.h $(COM_ERR_DEPS) $(SRCTOP)/include/k5-err.h \
-  $(SRCTOP)/include/k5-int-pkinit.h $(SRCTOP)/include/k5-int.h \
-  $(SRCTOP)/include/k5-platform.h $(SRCTOP)/include/k5-plugin.h \
-  $(SRCTOP)/include/k5-thread.h $(SRCTOP)/include/krb5.h \
-  $(SRCTOP)/include/krb5/locate_plugin.h $(SRCTOP)/include/krb5/preauth_plugin.h \
-  $(SRCTOP)/include/port-sockets.h $(SRCTOP)/include/socket-utils.h \
-  $(SRCTOP)/include/syslog.h kprop.h kpropd.c

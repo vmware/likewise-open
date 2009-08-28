@@ -1,6 +1,6 @@
-thisconfigdir=.
+thisconfigdir=../../..
 myfulldir=plugins/preauth/cksum_body
-mydir=.
+mydir=plugins/preauth/cksum_body
 BUILDTOP=$(REL)..$(S)..$(S)..
 KRB5_RUN_ENV = @KRB5_RUN_ENV@
 KRB5_CONFIG_SETUP = KRB5_CONFIG=$(SRCTOP)/config-files/krb5.conf ; export KRB5_CONFIG ;
@@ -39,4 +39,3 @@ clean::
 @libnover_frag@
 @libobj_frag@
 
-# +++ Dependency line eater +++

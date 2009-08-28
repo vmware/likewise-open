@@ -58,12 +58,15 @@ static void try_one (struct tinfo *t)
     char buf[100], buf2[100];
     krb5_rcache my_rcache;
 
-    sprintf(buf, "host/all-in-one.mit.edu/%p@ATHENA.MIT.EDU", buf);
+    snprintf(buf, sizeof(buf), "host/all-in-one.mit.edu/%p@ATHENA.MIT.EDU",
+	     buf);
     r.server = buf;
     r.client = (t->my_cusec & 7) + "abcdefgh@ATHENA.MIT.EDU";
+    r.msghash = NULL;
     if (t->now != t->my_ctime) {
 	if (t->my_ctime != 0) {
-	    sprintf(buf2, "%3d: %ld %5d\n", t->idx, t->my_ctime, t->my_cusec);
+	    snprintf(buf2, sizeof(buf2), "%3d: %ld %5d\n", t->idx,
+		     t->my_ctime, t->my_cusec);
 	    printf("%s", buf2);
 	}
 	t->my_ctime = t->now;
@@ -168,7 +171,12 @@ int main (int argc, char *argv[])
 	    sleep(1);
 	for (i = 0; i < n; i++)
 	    printf("thread %d total %5d\n", i, ip[i]);
+	free(ip);
     }
 #endif
+#ifdef INIT_ONCE
+    krb5_rc_close(ctx, rcache);
+#endif
+    krb5_free_context(ctx);
     return 0;
 }

@@ -39,23 +39,16 @@ static char *prog;
 
 static void xusage()
 {
-#ifdef KRB5_KRB4_COMPAT
-    fprintf(stderr, 
-            "usage: %s [-4 | [-c ccache] [-e etype] [-k keytab] [-S sname]] service1 service2 ...\n", 
+    fprintf(stderr, "usage: %s [-C] [-u] [-c ccache] [-e etype] [-k keytab] [-S sname] service1 service2 ...\n",
             prog);
-#else
-    fprintf(stderr, "usage: %s [-c ccache] [-e etype] [-k keytab] [-S sname] service1 service2 ...\n",
-            prog);
-#endif
     exit(1);
 }
 
 int quiet = 0;
 
-static void do_v4_kvno (int argc, char *argv[]);
 static void do_v5_kvno (int argc, char *argv[], 
                         char *ccachestr, char *etypestr, char *keytab_name,
-			char *sname);
+			char *sname, int canon, int unknown);
 
 #include <com_err.h>
 static void extended_com_err_fn (const char *, errcode_t, const char *,
@@ -66,15 +59,19 @@ int main(int argc, char *argv[])
     int option;
     char *etypestr = NULL, *ccachestr = NULL, *keytab_name = NULL;
     char *sname = NULL;
-    int v4 = 0;
+    int canon = 0, unknown = 0;
+
 
     set_com_err_hook (extended_com_err_fn);
 
     prog = strrchr(argv[0], '/');
     prog = prog ? (prog + 1) : argv[0];
 
-    while ((option = getopt(argc, argv, "c:e:hk:q4S:")) != -1) {
+    while ((option = getopt(argc, argv, "uCc:e:hk:qS:")) != -1) {
 	switch (option) {
+	case 'C':
+	    canon = 1;
+	    break;
 	case 'c':
 	    ccachestr = optarg;
 	    break;
@@ -90,12 +87,20 @@ int main(int argc, char *argv[])
 	case 'q':
 	    quiet = 1;
 	    break;
-	case '4':
-	    v4 = 1;
-	    break;
 	case 'S':
 	    sname = optarg;
+            if (unknown == 1){
+                fprintf(stderr, "Options -u and -S are mutually exclusive\n");
+	        xusage();
+            }
 	    break;
+        case 'u':
+            unknown = 1;
+            if (sname){
+                fprintf(stderr, "Options -u and -S are mutually exclusive\n");
+	        xusage();
+            }
+            break;
 	default:
 	    xusage();
 	    break;
@@ -105,66 +110,9 @@ int main(int argc, char *argv[])
     if ((argc - optind) < 1)
 	xusage();
 
-    if ((ccachestr != NULL || etypestr != NULL || keytab_name != NULL) && v4)
-	xusage();
-
-    if (sname != NULL && v4)
-	xusage();
-
-    if (v4)
-	do_v4_kvno(argc - optind, argv + optind);
-    else
 	do_v5_kvno(argc - optind, argv + optind,
-		   ccachestr, etypestr, keytab_name, sname);
+		   ccachestr, etypestr, keytab_name, sname, canon, unknown);
     return 0;
-}
-
-#ifdef KRB5_KRB4_COMPAT
-#include <kerberosIV/krb.h>
-#endif
-static void do_v4_kvno (int count, char *names[])
-{
-#ifdef KRB5_KRB4_COMPAT
-    int i;
-
-    for (i = 0; i < count; i++) {
-	int err;
-	char name[ANAME_SZ], inst[INST_SZ], realm[REALM_SZ];
-	KTEXT_ST req;
-	CREDENTIALS creds;
-	*name = *inst = *realm = '\0';
-	err = kname_parse (name, inst, realm, names[i]);
-	if (err) {
-	    fprintf(stderr, "%s: error parsing name '%s': %s\n",
-		    prog, names[i], krb_get_err_text(err));
-	    exit(1);
-	}
-	if (realm[0] == 0) {
-	    err = krb_get_lrealm(realm, 1);
-	    if (err) {
-		fprintf(stderr, "%s: error looking up local realm: %s\n",
-			prog, krb_get_err_text(err));
-		exit(1);
-	    }
-	}
-	err = krb_mk_req(&req, name, inst, realm, 0);
-	if (err) {
-	    fprintf(stderr, "%s: krb_mk_req error: %s\n", prog,
-		    krb_get_err_text(err));
-	    exit(1);
-	}
-	err = krb_get_cred(name, inst, realm, &creds);
-	if (err) {
-	    fprintf(stderr, "%s: krb_get_cred error: %s\n", prog,
-		    krb_get_err_text(err));
-	    exit(1);
-	}
-	if (!quiet)
-	    printf("%s: kvno = %d\n", names[i], creds.kvno);
-    }
-#else
-    xusage();
-#endif
 }
 
 #include <krb5.h>
@@ -182,7 +130,7 @@ static void extended_com_err_fn (const char *myprog, errcode_t code,
 
 static void do_v5_kvno (int count, char *names[], 
                         char * ccachestr, char *etypestr, char *keytab_name,
-			char *sname)
+			char *sname, int canon, int unknown)
 {
     krb5_error_code ret;
     int i, errors;
@@ -253,6 +201,9 @@ static void do_v5_kvno (int count, char *names[],
 	    errors++;
 	    continue;
 	}
+        if (unknown == 1) {
+            krb5_princ_type(context, in_creds.server) = KRB5_NT_UNKNOWN;
+        }
 
 	ret = krb5_unparse_name(context, in_creds.server, &princ);
 	if (ret) {
@@ -265,7 +216,8 @@ static void do_v5_kvno (int count, char *names[],
 
 	in_creds.keyblock.enctype = etype;
 
-	ret = krb5_get_credentials(context, 0, ccache, &in_creds, &out_creds);
+	ret = krb5_get_credentials(context, canon ? KRB5_GC_CANONICALIZE : 0,
+				   ccache, &in_creds, &out_creds);
 
 	krb5_free_principal(context, in_creds.server);
 

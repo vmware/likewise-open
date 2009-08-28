@@ -14,6 +14,39 @@ dnl
 dnl
 AC_REQUIRE_CPP
 dnl
+AC_CACHE_CHECK(if va_copy is available, krb5_cv_va_copy,
+[AC_LINK_IFELSE([
+#include <stdarg.h>
+void f(va_list ap) {
+  va_list ap2;
+  va_copy(ap2, ap);
+  va_end(ap2);
+}
+va_list x;
+int main()
+{
+  f(x);
+  return 0;
+}], krb5_cv_va_copy=yes, krb5_cv_va_copy=no)])
+if test "$krb5_cv_va_copy" = yes; then
+  AC_DEFINE(HAS_VA_COPY,1,[Define if va_copy macro or function is available.])
+fi
+dnl
+dnl Note that this isn't checking if the copied value *works*, just
+dnl whether the C language constraints permit the copying.  If
+dnl va_list is defined as an array type, it can't be assigned.
+AC_CACHE_CHECK(if va_list objects can be copied by assignment,
+	       krb5_cv_va_simple_copy,
+[AC_COMPILE_IFELSE([
+#include <stdarg.h>
+void f(va_list va2) {
+  va_list va1;
+  va1 = va2;
+}], krb5_cv_va_simple_copy=yes, krb5_cv_va_simple_copy=no)])
+if test "$krb5_cv_va_simple_copy" = yes; then
+  AC_DEFINE(CAN_COPY_VA_LIST,1,[Define if va_list objects can be simply copied by assignment.])
+fi
+dnl
 dnl The following lines are so that configure --help gives some global 
 dnl configuration options.
 dnl
@@ -22,26 +55,12 @@ AC_KRB5_TCL
 AC_ARG_ENABLE([athena],
 [  --enable-athena         build with MIT Project Athena configuration],,)
 dnl
-if test -z "$KRB4_LIB"; then
-kadminv4=""
-krb524=""
-libkrb4=""
-KRB4=""
-else
-kadminv4=kadmin.v4
-krb524=krb524
-libkrb4=lib/krb4
-KRB4=krb4
-fi
-AC_SUBST(KRB4)
-AC_SUBST(krb524)
-dnl
 dnl Begin autoconf tests for the Makefiles generated out of the top-level
 dnl configure.in...
 dnl
 AC_CHECK_FUNCS(memmove)
 KRB5_BUILD_LIBOBJS
-KRB5_BUILD_LIBRARY_WITH_DEPS
+KRB5_BUILD_LIBRARY
 KRB5_BUILD_PROGRAM
 dnl for slave
 AC_TYPE_MODE_T
@@ -57,6 +76,22 @@ AC_SUBST(LIBUTIL)
 dnl for kdc
 AC_CHECK_HEADERS(syslog.h stdarg.h sys/select.h sys/sockio.h ifaddrs.h unistd.h)
 AC_CHECK_FUNCS(openlog syslog closelog strftime vsprintf vasprintf vsnprintf)
+AC_CHECK_FUNCS(strlcpy)
+EXTRA_SUPPORT_SYMS=
+AC_CHECK_FUNC(strlcpy, [STRLCPY_ST_OBJ= STRLCPY_OBJ=], [STRLCPY_ST_OBJ=strlcpy.o STRLCPY_OBJ='$(OUTPRE)strlcpy.$(OBJEXT)' EXTRA_SUPPORT_SYMS="$EXTRA_SUPPORT_SYMS krb5int_strlcpy krb5int_strlcat"])
+AC_SUBST(STRLCPY_OBJ)
+AC_SUBST(STRLCPY_ST_OBJ)
+AC_CHECK_FUNC(vasprintf,
+[PRINTF_ST_OBJ=
+PRINTF_OBJ=],
+[PRINTF_ST_OBJ=printf.o
+PRINTF_OBJ='$(OUTPRE)printf.$(OBJEXT)'
+EXTRA_SUPPORT_SYMS="$EXTRA_SUPPORT_SYMS krb5int_asprintf krb5int_vasprintf"])
+AC_SUBST(PRINTF_OBJ)
+AC_SUBST(PRINTF_ST_OBJ)
+KRB5_NEED_PROTO([#include <stdarg.h>
+#include <stdio.h>
+],vasprintf)
 KRB5_NEED_PROTO([#include <string.h>
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
@@ -64,6 +99,7 @@ KRB5_NEED_PROTO([#include <string.h>
 /* Solaris 8 declares swab in stdlib.h.  */
 #include <stdlib.h>
 ],swab,1)
+KRB5_NEED_PROTO([#include <ctype.h>],isblank,1)
 dnl
 AC_PROG_AWK
 KRB5_AC_INET6
@@ -89,26 +125,6 @@ if test "$withval" = yes; then
 	AC_DEFINE(KRBCONF_KDC_MODIFIES_KDB,1,[Define if KDC should update database with each request])
 fi
 dnl
-AC_CHECK_LIB(iconv, iconv, [LIB_iconv="-liconv"],
-    AC_CHECK_LIB(iconv, libiconv, [LIB_iconv="-liconv"], [LIB_iconv=""]))
-dnl
-AC_SUBST(LIB_iconv)
-dnl
-saved_CFLAGS="$CFLAGS"
-CFLAGS="$CFLAGS -Wall -Werror"
-dnl
-AC_MSG_CHECKING([whether iconv() takes const char** as its second parameter])
-dnl
-AC_TRY_COMPILE([#include <iconv.h>],
-                [iconv_t h = iconv_open(NULL, NULL);
-                 char* in;
-                 (void) iconv(h, (const char**) &in, NULL, NULL, NULL);
-                ],
-                [AC_MSG_RESULT([yes]); AC_DEFINE_UNQUOTED(ICONV_IN_TYPE, [const char**], [iconv in type])],
-                [AC_MSG_RESULT([no]); AC_DEFINE_UNQUOTED(ICONV_IN_TYPE, [char**], [iconv in type])])
-dnl
-CFLAGS="$saved_CFLAGS"
-dnl
 dnl Needed for hw-preauth replay detection on KDC.
 dnl
 dnl USE_RCACHE enables the replay cache
@@ -128,30 +144,32 @@ if test "$enableval" = yes ; then
 else
 	AC_DEFINE(NOCACHE,1,[Define if the KDC should use no replay cache])
 fi
-AC_ARG_ENABLE([fakeka],
-AC_HELP_STRING([--enable-fakeka],[build the Fake KA server (emulates an AFS kaserver) @<:@default: don't build@:>@]), , enableval=no)dnl
-if test "$enableval" = yes; then
-	FAKEKA=fakeka
-else
-	FAKEKA=
-fi
-AC_SUBST(FAKEKA)
 KRB5_RUN_FLAGS
 dnl
-dnl for krb524
 AC_TYPE_SIGNAL
 dnl
 dnl from old include/configure.in
 AH_TEMPLATE([HAVE_STRUCT_SOCKADDR_STORAGE], 
 [Define if "struct sockaddr_storage" is available.])
 dnl
-AC_CONFIG_HEADER(include/autoconf.h)
+AC_CONFIG_HEADERS(include/autoconf.h, [echo timestamp > include/autoconf.stamp])
 AC_PROG_INSTALL
 AC_PROG_AWK
 AC_PROG_LEX
 AC_C_CONST
 AC_HEADER_DIRENT
 AC_CHECK_FUNCS(strdup setvbuf inet_ntoa inet_aton seteuid setresuid setreuid setegid setresgid setregid setsid flock fchmod chmod strftime strptime geteuid setenv unsetenv getenv gethostbyname2 getifaddrs gmtime_r localtime_r pthread_mutex_lock sched_yield bswap16 bswap64 mkstemp getusershell lstat access ftime getcwd srand48 srand srandom stat strchr strerror strerror_r strstr timezone umask waitpid sem_init sem_trywait daemon)
+dnl
+AC_CHECK_FUNC(mkstemp,
+[MKSTEMP_ST_OBJ=
+MKSTEMP_OBJ=],
+[MKSTEMP_ST_OBJ='mkstemp.o'
+MKSTEMP_OBJ='$(OUTPRE)mkstemp.$(OBJEXT)'
+EXTRA_SUPPORT_SYMS="$EXTRA_SUPPORT_SYMS krb5int_mkstemp"])
+AC_SUBST(MKSTEMP_OBJ)
+AC_SUBST(MKSTEMP_ST_OBJ)
+AC_SUBST(EXTRA_SUPPORT_SYMS)
+dnl
 AC_HEADER_STDARG
 DECLARE_SYS_ERRLIST
 AC_CHECK_HEADERS(unistd.h paths.h regex.h regexpr.h fcntl.h memory.h ifaddrs.h sys/filio.h sched.h byteswap.h machine/endian.h machine/byte_order.h sys/bswap.h endian.h pwd.h arpa/inet.h alloca.h dlfcn.h limits.h pthread.h semaphore.h krb_db.h kdc.h)
@@ -419,7 +437,7 @@ AC_CHECK_HEADER(termios.h,dnl
   AC_DEFINE(POSIX_TERMIOS,1,[Define if termios.h exists and tcsetattr exists]))])
 dnl
 KRB5_SIGTYPE
-AC_CHECK_HEADERS(stdlib.h string.h stddef.h sys/types.h sys/file.h sys/param.h sys/stat.h sys/time.h netinet/in.h sys/uio.h sys/filio.h sys/select.h time.h paths.h)
+AC_CHECK_HEADERS(stdlib.h string.h stddef.h sys/types.h sys/file.h sys/param.h sys/stat.h sys/time.h netinet/in.h sys/uio.h sys/filio.h sys/select.h time.h paths.h errno.h)
 AC_HEADER_STDARG
 KRB5_AC_INET6
 dnl
@@ -545,15 +563,6 @@ AC_ARG_ENABLE([athena],
 [  --enable-athena         build with MIT Project Athena configuration],
 AC_DEFINE(KRB5_ATHENA_COMPAT,1,[Define if MIT Project Athena default configuration should be used]),)
 
-if test "$KRB4_LIB" = ''; then
-	AC_MSG_NOTICE(No Kerberos 4 compatibility)
-	maybe_kerberosIV=
-else
-	AC_MSG_NOTICE(Kerberos 4 compatibility enabled)
-	maybe_kerberosIV=kerberosIV
-	AC_DEFINE(KRB5_KRB4_COMPAT,1,[Define if Kerberos V4 backwards compatibility should be supported])
-fi
-AC_SUBST(maybe_kerberosIV)
 dnl
 AC_C_INLINE
 AH_TOP([
@@ -578,6 +587,16 @@ AC_CHECK_TYPES([uint32_t, int32_t, uint64_t, int64_t, uint_least32_t, uintptr_t,
 # include <inttypes.h>
 #endif
 ])
+AC_CHECK_TYPES([struct cmsghdr, struct in_pktinfo, struct in6_pktinfo, struct sockaddr_storage], , , [
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+])
+AC_CHECK_TYPES([struct rt_msghdr], , , [
+#include <sys/socket.h>
+#include <net/if.h>
+#include <net/route.h>
+])
 dnl
 dnl stuff for util/profile
 dnl
@@ -585,6 +604,27 @@ dnl AC_KRB5_TCL already done
 DO_TCL=
 test "$TCL_LIBS" != "" && DO_TCL=ok
 AC_SUBST(DO_TCL)
+dnl
+dnl types libdb2 wants
+dnl
+AC_CHECK_TYPES([ssize_t, u_char, u_int, u_long, u_int8_t, u_int16_t, u_int32_t, int8_t, int16_t, int32_t])
+dnl
+dnl Some libdb2 test programs want a shell that supports functions.
+FCTSH=false
+AC_PATH_PROG(SH,sh,false)
+AC_PATH_PROG(SH5,sh5,false)
+AC_PATH_PROG(BASH,bash,false)
+for prog in $SH $SH5 $BASH; do
+  AC_MSG_CHECKING(if $prog supports functions)
+  if $prog -c 'foo() { true; }; foo' >/dev/null 2>&1; then
+    AC_MSG_RESULT(yes)
+    FCTSH=$prog
+    break
+  else
+    AC_MSG_RESULT(no)
+  fi
+done
+AC_SUBST(FCTSH)
 dnl
 dnl Test for POSIX 2001 *printf support (X/Open System Interfaces extension
 dnl to ANSI/ISO C 1999 specification).  Specifically, positional
@@ -628,11 +668,6 @@ if test "$have_PERL" = perl -a "$have_RUNTEST" = runtest -a "$TCL_LIBS" != ""; t
 fi
 AC_SUBST(DO_TEST) 
 dnl
-DO_V4_TEST=
-if test "$have_PERL" = perl -a "$have_RUNTEST" = runtest -a "$TCL_LIBS" != "" -a "$ath_compat" != ""; then
- 	DO_V4_TEST=ok
-fi
-AC_SUBST(DO_V4_TEST)
 dnl The following are substituted into kadmin/testing/scripts/env-setup.sh
 RBUILD=`pwd`
 AC_SUBST(RBUILD)
@@ -653,25 +688,6 @@ K5_GEN_FILE(kadmin/testing/scripts/env-setup.sh:kadmin/testing/scripts/env-setup
 dnl for lib/kadm5
 AC_CHECK_PROG(RUNTEST,runtest,runtest)
 AC_CHECK_PROG(PERL,perl,perl)
-dnl
-dnl
-dnl for lib/krb4
-case $krb5_cv_host in
-     *-apple-darwin*)
-     KRB_ERR_TXT=
-     KRB_ERR=
-     KRB_ERR_C=krb_err.c
-     ;;
-     *)
-     KRB_ERR='$(OUTPRE)krb_err.$(OBJEXT)'
-     KRB_ERR_TXT=krb_err_txt.c
-     KRB_ERR_C=
-     ;;
-esac
-AC_SUBST([KRB_ERR_TXT])
-AC_SUBST([KRB_ERR])
-AC_SUBST([KRB_ERR_C])
-dnl
 dnl
 dnl lib/gssapi
 AC_CHECK_HEADER(stdint.h,[
@@ -866,19 +882,53 @@ changequote([, ])
 AC_SUBST(PASS)
 
 dnl for pkinit
-AC_CACHE_CHECK(for a recent enough OpenSSL, k5_cv_openssl_version_okay,
+AC_ARG_ENABLE([pkinit],
+[  --disable-pkinit        disable PKINIT plugin support],,
+enable_pkinit=yes)
+if test "$enable_pkinit" = yes; then
+  AC_CACHE_CHECK(for a recent enough OpenSSL, k5_cv_openssl_version_okay,
 [AC_COMPILE_IFELSE([#include <openssl/opensslv.h>
 #if OPENSSL_VERSION_NUMBER < 0x00908000L
 # error openssl is too old, need 0.9.8
 #endif
 int i = 1;
 ], k5_cv_openssl_version_okay=yes, k5_cv_openssl_version_okay=no)])
-old_LIBS="$LIBS"
-AC_CHECK_LIB(crypto, PKCS7_get_signer_info)
-LIBS="$old_LIBS"
-if test "$k5_cv_openssl_version_okay" = yes; then
-  AC_CONFIG_SUBDIRS(plugins/preauth/pkinit)
+  old_LIBS="$LIBS"
+  AC_CHECK_LIB(crypto, PKCS7_get_signer_info)
+  LIBS="$old_LIBS"
 fi
+if test "$k5_cv_openssl_version_okay" = yes && test "$enable_pkinit" = yes; then
+  K5_GEN_MAKEFILE(plugins/preauth/pkinit)
+else
+  AC_DEFINE([DISABLE_PKINIT], 1, [Define to disable PKINIT plugin support])
+  AC_MSG_NOTICE([Disabling PKINIT support.])
+fi
+
+dnl for lib/apputils
+AC_REPLACE_FUNCS(daemon)
+
+dnl for tests/
+if test x"$RUNTEST" != x; then
+	HAVE_RUNTEST=yes
+else
+	HAVE_RUNTEST=no
+fi
+AC_SUBST(HAVE_RUNTEST)
+
+dnl for plugins/kdb/db2
+dnl
+dnl AIX is unusual in that it wants all symbols resolved at link time
+dnl  Fortunately, it will allow us to link the kdb library now, even if
+dnl it is linked again later.
+case $krb5_cv_host in
+*-*-aix*)
+	DB_EXTRA_LIBS=-ldb
+	;;
+*)
+	DB_EXTRA_LIBS=
+	;;
+esac
+AC_SUBST(DB_EXTRA_LIBS)
 
 dnl
 dnl
@@ -911,9 +961,6 @@ if test "$enable_thread_support" = yes; then
   fi # tsmissing not empty
 fi # enable_thread_support
 dnl
-HOST_TYPE=$krb5_cv_host
-AC_SUBST(HOST_TYPE)
-dnl
 dnl Sadly, we seem to have accidentally committed ourselves in 1.4 to
 dnl an ABI that includes the existence of libkrb5support.0 even
 dnl though random apps should never use anything from it.  And on
@@ -925,50 +972,80 @@ case $krb5_cv_host in
 esac
 AC_SUBST(SUPPORTLIB_MAJOR)
 dnl
+dnl On the Mac we need CoreFoundation for UCS-2 conversion for RC4.
+case $krb5_cv_host in
+*-*-darwin* | *-*-rhapsody*) CRYPTO_LIBS="-framework CoreFoundation" ;;
+*)			     CRYPTO_LIBS="" ;;
+esac
+AC_SUBST(CRYPTO_LIBS)
+dnl
 dnl
 if test "$COM_ERR_VERSION" = k5 ; then
-dnl  AC_CONFIG_SUBDIRS(util/et)
   K5_GEN_MAKEFILE(util/et)
 fi
 if test "$SS_VERSION" = k5 ; then
-  AC_CONFIG_SUBDIRS(util/ss)
-fi
-if test -n "$KRB4_LIB"; then
-  K5_GEN_MAKEFILE(lib/krb4)
+  K5_GEN_MAKEFILE(util/ss)
 fi
 dnl
 dnl
 ldap_plugin_dir=""
 ldap_lib=""
 if test -n "$OPENLDAP_PLUGIN"; then
-  AC_CHECK_HEADERS(ldap.h lber.h)
-  if test $ac_cv_header_ldap_h = no || test $ac_cv_header_lber_h = no; then
-    AC_ERROR(OpenLDAP headers missing)
-  fi
+  AC_CHECK_HEADERS(ldap.h lber.h, :, [AC_MSG_ERROR($ac_header not found)])
+  AC_CHECK_LIB(ldap, ldap_init, :, [AC_MSG_ERROR(libldap not found or missing ldap_init)])
   old_LIBS="$LIBS"
   LIBS="$LIBS -lldap"
   AC_CHECK_FUNCS(ldap_initialize ldap_url_parse_nodn ldap_unbind_ext_s ldap_str2dn ldap_explode_dn)
   LIBS="$old_LIBS"
-  AC_CONFIG_SUBDIRS(plugins/kdb/ldap/libkdb_ldap)
+
+  BER_OKAY=0
+  AC_CHECK_LIB(ldap, ber_init, [BER_OKAY=1])
+  if test "$BER_OKAY" = "1"; then
+    LDAP_LIBS='-lldap'
+  else
+    AC_CHECK_LIB(lber, ber_init, [BER_OKAY=1], [AC_MSG_WARN([libber not found])])
+    if test "$BER_OKAY" = "1"; then
+      LDAP_LIBS='-lldap -llber'
+    else
+      AC_ERROR("BER library missing - cannot build LDAP database module")
+    fi
+  fi
+  AC_DEFINE([ENABLE_LDAP], 1, [Define if LDAP KDB support within the Kerberos library (mainly ASN.1 code) should be enabled.])
+  AC_SUBST(LDAP_LIBS)
+
   K5_GEN_MAKEFILE(plugins/kdb/ldap)
   K5_GEN_MAKEFILE(plugins/kdb/ldap/ldap_util)
+  K5_GEN_MAKEFILE(plugins/kdb/ldap/libkdb_ldap)
   ldap_plugin_dir=plugins/kdb/ldap
+  LDAP=yes
+else
+  LDAP=no
 fi
 AC_SUBST(ldap_plugin_dir)
+AC_SUBST(LDAP)
 
-AC_CONFIG_SUBDIRS(lib/apputils plugins/kdb/db2 plugins/preauth/wpse plugins/preauth/cksum_body appl tests)
+dnl We really should look for and use python-config.
+PYTHON_LIB=
+AC_CHECK_HEADERS(Python.h python2.3/Python.h python2.5/Python.h)
+AC_CHECK_LIB(python2.3,main,[PYTHON_LIB=-lpython2.3],
+  AC_CHECK_LIB(python2.5,main,[PYTHON_LIB=-lpython2.5]))
+AC_SUBST(PYTHON_LIB)
+
 dnl
-if false; then
-  AC_CHECK_HEADERS(Python.h python2.3/Python.h)
-  AC_CONFIG_SUBDIRS(plugins/locate/python)
+dnl Kludge for simple server --- FIXME is this the best way to do this?
+dnl
+if test "$ac_cv_lib_socket" = "yes" -a "$ac_cv_lib_nsl" = "yes"; then
+	AC_DEFINE(BROKEN_STREAMS_SOCKETS,1,[Define if socket can't be bound to 0.0.0.0])
 fi
+dnl
+AC_CONFIG_SUBDIRS(appl/libpty appl/bsd appl/gssftp appl/telnet)
 
 AC_CONFIG_FILES(krb5-config, [chmod +x krb5-config])
 V5_AC_OUTPUT_MAKEFILE(.
 
 	util util/support util/profile util/send-pr
 
-	lib lib/des425 lib/kdb
+	lib lib/kdb
 
 	lib/crypto lib/crypto/crc32 lib/crypto/des lib/crypto/dk
 	lib/crypto/enc_provider lib/crypto/hash_provider
@@ -978,16 +1055,31 @@ V5_AC_OUTPUT_MAKEFILE(.
 
 	lib/krb5 lib/krb5/error_tables lib/krb5/asn.1 lib/krb5/ccache
 	lib/krb5/keytab lib/krb5/krb lib/krb5/rcache lib/krb5/os
+	lib/krb5/unicode
 
-	lib/gssapi lib/gssapi/generic lib/gssapi/krb5
-	lib/gssapi/mechglue lib/gssapi/spnego
+	lib/gssapi lib/gssapi/generic lib/gssapi/krb5 lib/gssapi/spnego
+	lib/gssapi/mechglue
 
 	lib/rpc lib/rpc/unit-test
 
 	lib/kadm5 lib/kadm5/clnt lib/kadm5/srv lib/kadm5/unit-test
 
-	kdc slave krb524 config-files gen-manpages include
-	include/kerberosIV
+	lib/apputils
+
+	kdc slave config-files gen-manpages include
+
+	plugins/locate/python
+	plugins/kdb/db2
+	plugins/kdb/db2/libdb2
+	plugins/kdb/db2/libdb2/hash
+	plugins/kdb/db2/libdb2/btree
+	plugins/kdb/db2/libdb2/db
+	plugins/kdb/db2/libdb2/mpool
+	plugins/kdb/db2/libdb2/recno
+	plugins/kdb/db2/libdb2/test
+	plugins/preauth/cksum_body plugins/preauth/encrypted_challenge
+	plugins/preauth/wpse
+	plugins/authdata/greet
 
 	clients clients/klist clients/kinit clients/kvno
 	clients/kdestroy clients/kpasswd clients/ksu
@@ -996,4 +1088,13 @@ V5_AC_OUTPUT_MAKEFILE(.
 	kadmin/passwd/unit-test kadmin/ktutil kadmin/server
 	kadmin/testing kadmin/testing/scripts kadmin/testing/util
 
+	appl
+	appl/sample appl/sample/sclient appl/sample/sserver
+	appl/simple appl/simple/client appl/simple/server
+	appl/gss-sample appl/user_user
+
+	tests tests/resolve tests/asn.1 tests/create tests/hammer
+	tests/verify tests/gssapi tests/dejagnu tests/threads tests/shlib
+	tests/gss-threads tests/misc tests/mkeystash_compat
+	util/collected-client-lib
 )

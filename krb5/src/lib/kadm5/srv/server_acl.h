@@ -1,7 +1,7 @@
 /*
  * lib/kadm5/srv/server_acl.h
  *
- * Copyright 1995-2004 by the Massachusetts Institute of Technology.
+ * Copyright 1995-2004, 2007, 2008 by the Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
  * Export of this software from the United States of America may
@@ -45,8 +45,6 @@
 #else	/* DEBUG */
 #define	DPRINT(l1, cl, al)
 #endif	/* DEBUG */
-#define	DLOG(l1, cl, msg)	if ((cl & l1) != 0)	\
-					com_err(programname, 0, msg)
 
 /*
  * Access control bits.
@@ -60,6 +58,7 @@
 /* #define ACL_EXTRACT		64 */
 #define	ACL_LIST		128
 #define ACL_SETKEY		256
+#define ACL_IPROP		512
 #define	ACL_RENAME		(ACL_ADD+ACL_DELETE)
 
 #define	ACL_ALL_MASK		(ACL_ADD	| \
@@ -68,6 +67,7 @@
 				 ACL_CHANGEPW	| \
 				 ACL_INQUIRE	| \
 				 ACL_LIST	| \
+				 ACL_IPROP	| \
 				 ACL_SETKEY)
 
 typedef struct _restriction {
@@ -94,6 +94,12 @@ krb5_boolean kadm5int_acl_check
 		   gss_name_t,
 		   krb5_int32,
 		   krb5_principal,
+		   restriction_t **);
+krb5_boolean kadm5int_acl_check_krb
+	(krb5_context,
+		   krb5_const_principal,
+		   krb5_int32,
+		   krb5_const_principal,
 		   restriction_t **);
 krb5_error_code kadm5int_acl_impose_restrictions
 	(krb5_context,

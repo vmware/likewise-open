@@ -1,5 +1,5 @@
 /*
- * Copyright 1994 by the Massachusetts Institute of Technology.
+ * Copyright 1994, 2008 by the Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
  * Export of this software from the United States of America may
@@ -24,7 +24,13 @@
  * kadmin.c: base functions for a kadmin command line interface using
  * the OVSecure library
  */
+/*
+ * Copyright 2004 Sun Microsystems, Inc.  All rights reserved.
+ * Use is subject to license terms.
+ */
 
+/* for "_" macro */
+#include "k5-platform.h"
 #include <krb5.h>
 #include <kadm5/admin.h>
 #include <adm_proto.h>
@@ -39,8 +45,8 @@
 #include <time.h>
 #include "kadmin.h"
 
-#if defined(USE_LOGIN_LIBRARY)
-#include <Kerberos/KerberosLoginPrivate.h>
+#if defined(USE_KIM)
+#include <kim/kim.h>
 #endif
 
 /* special struct to convert flag names for principals
@@ -65,7 +71,8 @@ static struct pflag flags[] = {
 {"needchange", 10,	KRB5_KDB_REQUIRES_PWCHANGE,	0},
 {"allow_svr", 9,	KRB5_KDB_DISALLOW_SVR, 1},
 {"password_changing_service",	25,	KRB5_KDB_PWCHANGE_SERVICE,	0 },
-{"support_desmd5",	14,	KRB5_KDB_SUPPORT_DESMD5,	0 }
+{"support_desmd5",	14,	KRB5_KDB_SUPPORT_DESMD5,	0 },
+{"ok_as_delegate",	14,	KRB5_KDB_OK_AS_DELEGATE,	0 }
 };
 
 static char *prflags[] = {
@@ -85,6 +92,11 @@ static char *prflags[] = {
     "PWCHANGE_SERVICE",		/* 0x00002000 */
     "SUPPORT_DESMD5",		/* 0x00004000 */
     "NEW_PRINC",		/* 0x00008000 */
+    "UNKNOWN_0x00010000",	/* 0x00010000 */
+    "UNKNOWN_0x00020000",	/* 0x00020000 */
+    "UNKNOWN_0x00040000",	/* 0x00040000 */
+    "UNKNOWN_0x00080000",	/* 0x00080000 */
+    "OK_AS_DELEGATE",		/* 0x00100000 */
 };
 
 char *getenv();
@@ -128,9 +140,9 @@ static char *strdur(duration)
     minutes = duration / 60;
     duration %= 60;
     seconds = duration;
-    sprintf(out, "%s%d %s %02d:%02d:%02d", neg ? "-" : "",
-	    days, days == 1 ? "day" : "days",
-	    hours, minutes, seconds);
+    snprintf(out, sizeof(out), "%s%d %s %02d:%02d:%02d", neg ? "-" : "",
+	     days, days == 1 ? "day" : "days",
+	     hours, minutes, seconds);
     return out;
 }
 
@@ -155,23 +167,22 @@ kadmin_parse_name(name, principal)
 {
     char *cp, *fullname;
     krb5_error_code retval;
+    int result;
 
     /* assumes def_realm is initialized! */
-    fullname = (char *)malloc(strlen(name) + 1 + strlen(def_realm) + 1);
-    if (fullname == NULL)
-	return ENOMEM;
-    strcpy(fullname, name);
-    cp = strchr(fullname, '@');
+    cp = strchr(name, '@');
     while (cp) {
-	if (cp - fullname && *(cp - 1) != '\\')
+	if (cp - name && *(cp - 1) != '\\')
 	    break;
 	else
 	    cp = strchr(cp + 1, '@');
     }
-    if (cp == NULL) {
-	strcat(fullname, "@");
-	strcat(fullname, def_realm);
-    }
+    if (cp == NULL)
+	result = asprintf(&fullname, "%s@%s", name, def_realm);
+    else
+	result = asprintf(&fullname, "%s", name);
+    if (result < 0)
+	return ENOMEM;
     retval = krb5_parse_name(context, fullname, principal);
     free(fullname);
     return retval;
@@ -213,11 +224,12 @@ char *kadmin_startup(argc, argv)
 
     memset((char *) &params, 0, sizeof(params));
 
-#if defined(USE_LOGIN_LIBRARY)
+#if defined(USE_KIM)
     /* Turn off all password prompting from the KLL */
-    retval = __KLSetPromptMechanism (klPromptMechanism_None);
+    retval = kim_library_set_allow_automatic_prompting (0);
     if (retval) {
-	com_err(whoami, retval, "while calling __KLSetPromptMechanism()");
+	com_err(whoami, retval,
+                "while calling kim_library_set_allow_automatic_prompting()");
 	exit(1);
     }
 #endif
@@ -272,14 +284,9 @@ char *kadmin_startup(argc, argv)
 	    break;
 	case 'd':
 	    /* now db_name is not a seperate argument. It has to be passed as part of the db_args */
-	    if (!db_name) {
-		db_name = malloc(strlen(optarg) + sizeof("dbname="));
-	    } else {
-		db_name = realloc(db_name, strlen(optarg) + sizeof("dbname="));
-	    }
-
-	    strcpy(db_name, "dbname=");
-	    strcat(db_name, optarg);
+	    if (db_name)
+		free(db_name);
+	    asprintf(&db_name, "dbname=%s", optarg);
 
 	    db_args_size++;
 	    {
@@ -430,43 +437,27 @@ char *kadmin_startup(argc, argv)
 	    }
 	    if (cp != NULL)
 		*cp = '\0';
-	    princstr = (char*)malloc(strlen(canon) + 6 /* "/admin" */ +
-				     (realm ? 1 + strlen(realm) : 0) + 1);
-	    if (princstr == NULL) {
+	    if (asprintf(&princstr, "%s/admin%s%s", canon,
+			 (realm) ? "@" : "",
+			 (realm) ? realm : "") < 0) {
 		fprintf(stderr, "%s: out of memory\n", whoami);
 		exit(1);
-	    }
-	    strcpy(princstr, canon);
-	    strcat(princstr, "/admin");
-	    if (realm) {
-		strcat(princstr, "@");
-		strcat(princstr, realm);
 	    }
 	    free(canon);
 	    krb5_free_principal(context, princ);
 	    freeprinc++;
 	} else if ((luser = getenv("USER"))) {
-	    princstr = (char *) malloc(strlen(luser) + 7 /* "/admin@" */
-				       + strlen(def_realm) + 1);
-	    if (princstr == NULL) {
+	    if (asprintf(&princstr, "%s/admin@%s", luser, def_realm) < 0) {
 		fprintf(stderr, "%s: out of memory\n", whoami);
 		exit(1);
 	    }
-	    strcpy(princstr, luser);
-	    strcat(princstr, "/admin");
-	    strcat(princstr, "@");
-	    strcat(princstr, def_realm);
 	    freeprinc++;
 	} else if ((pw = getpwuid(getuid()))) {
-	    princstr = (char *) malloc(strlen(pw->pw_name) + 7 /* "/admin@" */
-				       + strlen(def_realm) + 1);
-	    if (princstr == NULL) {
+	    if (asprintf(&princstr, "%s/admin@%s", pw->pw_name,
+			 def_realm) < 0) {
 		fprintf(stderr, "%s: out of memory\n", whoami);
 		exit(1);
 	    }
-	    strcpy(princstr, pw->pw_name);
-	    strcat(princstr, "/admin@");
-	    strcat(princstr, def_realm);
 	    freeprinc++;
 	} else {
 	    fprintf(stderr, "%s: unable to figure out a principal name\n",
@@ -549,6 +540,11 @@ char *kadmin_startup(argc, argv)
 	   should go away */
 	extern char *krb5_defkeyname;
 	krb5_defkeyname = DEFAULT_KEYTAB;
+    }
+
+    if ((retval = kadm5_init_iprop(handle, 0)) != 0) {
+	com_err(whoami, retval, _("while mapping update log"));
+	exit(1);
     }
 
     return query;
@@ -651,7 +647,7 @@ void kadmin_delprinc(argc, argv)
     krb5_free_principal(context, princ);
     if (retval) {
 	com_err("delete_principal", retval,
-		"while deleteing principal \"%s\"", canon);
+		"while deleting principal \"%s\"", canon);
 	free(canon);
 	return;
     }
@@ -804,11 +800,12 @@ void kadmin_cpw(argc, argv)
     } else if (argc == 1) {
 	unsigned int i = sizeof (newpw) - 1;
 
-	sprintf(prompt1, "Enter password for principal \"%.900s\"",
-		*argv);
-	sprintf(prompt2,
-		"Re-enter password for principal \"%.900s\"",
-		*argv);
+	snprintf(prompt1, sizeof(prompt1),
+		 "Enter password for principal \"%.900s\"",
+		 *argv);
+	snprintf(prompt2, sizeof(prompt2),
+		 "Re-enter password for principal \"%.900s\"",
+		 *argv);
 	retval = krb5_read_password(context, prompt1, prompt2,
 				    newpw, &i);
 	if (retval) {
@@ -880,7 +877,11 @@ kadmin_free_tl_data(kadm5_principal_ent_t princ)
 #define KRB5_TL_DB_ARGS 0x7fff
 static int
 kadmin_parse_princ_args(argc, argv, oprinc, mask, pass, randkey,
-			ks_tuple, n_ks_tuple, caller)
+			ks_tuple, n_ks_tuple,
+#if APPLE_PKINIT
+                        cert_hash,
+#endif /* APPLE_PKINIT */
+                        caller)
     int argc;
     char *argv[];
     kadm5_principal_ent_t oprinc;
@@ -889,6 +890,9 @@ kadmin_parse_princ_args(argc, argv, oprinc, mask, pass, randkey,
     int *randkey;
     krb5_key_salt_tuple **ks_tuple;
     int *n_ks_tuple;
+#if APPLE_PKINIT
+    char **cert_hash;
+#endif /* APPLE_PKINIT */
     char *caller;
 {
     int i, j, attrib_set;
@@ -901,6 +905,9 @@ kadmin_parse_princ_args(argc, argv, oprinc, mask, pass, randkey,
     *pass = NULL;
     *n_ks_tuple = 0;
     *ks_tuple = NULL;
+#if APPLE_PKINIT
+    *cert_hash = NULL;
+#endif /* APPLE_PKINIT */
     time(&now);
     *randkey = 0;
     for (i = 1; i < argc - 1; i++) {
@@ -1040,6 +1047,17 @@ kadmin_parse_princ_args(argc, argv, oprinc, mask, pass, randkey,
 	    ++*randkey;
 	    continue;
 	}
+#if APPLE_PKINIT
+	if (strlen(argv[i]) == 9 &&
+	    !strcmp("-certhash", argv[i])) {
+	    if (++i > argc - 2)
+		return -1;
+	    else {
+		*cert_hash = argv[i];
+		continue;
+	    }
+	}
+#endif /* APPLE_PKINIT */
 	if (!strcmp("-e", argv[i])) {
 	    if (++i > argc - 2)
 		return -1;
@@ -1095,12 +1113,17 @@ kadmin_addprinc_usage(func)
 {
     fprintf(stderr, "usage: %s [options] principal\n", func);
     fprintf(stderr, "\toptions are:\n");
-    fprintf(stderr, "\t\t[-x db_princ_args]* [-expire expdate] [-pwexpire pwexpdate] [-maxlife maxtixlife]\n\t\t[-kvno kvno] [-policy policy] [-clearpolicy] [-randkey]\n\t\t[-pw password] [-maxrenewlife maxrenewlife]\n\t\t[-e keysaltlist]\n\t\t[{+|-}attribute]\n");
+    fprintf(stderr, "\t\t[-x db_princ_args]* [-expire expdate] [-pwexpire pwexpdate] [-maxlife maxtixlife]\n\t\t[-kvno kvno] [-policy policy] [-clearpolicy] [-randkey]\n\t\t[-pw password] [-maxrenewlife maxrenewlife]\n\t\t[-e keysaltlist]\n\t\t[{+|-}attribute]\n"
+#if APPLE_PKINIT
+            "\t\t[-certhash hash_string]\n"
+#endif /* APPLE_PKINIT */
+            );
     fprintf(stderr, "\tattributes are:\n");
     fprintf(stderr, "%s%s%s",
 	    "\t\tallow_postdated allow_forwardable allow_tgs_req allow_renewable\n",
 	    "\t\tallow_proxiable allow_dup_skey allow_tix requires_preauth\n",
 	    "\t\trequires_hwauth needchange allow_svr password_changing_service\n"
+	    "\t\tok_as_delegate\n"
 	    "\nwhere,\n\t[-x db_princ_args]* - any number of database specific arguments.\n"
 	    "\t\t\tLook at each database documentation for supported arguments\n");
 }
@@ -1117,6 +1140,7 @@ kadmin_modprinc_usage(func)
 	    "\t\tallow_postdated allow_forwardable allow_tgs_req allow_renewable\n",
 	    "\t\tallow_proxiable allow_dup_skey allow_tix requires_preauth\n",
 	    "\t\trequires_hwauth needchange allow_svr password_changing_service\n"
+	    "\t\tok_as_delegate\n"
 	    "\nwhere,\n\t[-x db_princ_args]* - any number of database specific arguments.\n"
 	    "\t\t\tLook at each database documentation for supported arguments\n"
 	);
@@ -1134,13 +1158,20 @@ void kadmin_addprinc(argc, argv)
     krb5_key_salt_tuple *ks_tuple;
     char *pass, *canon;
     krb5_error_code retval;
-    static char newpw[1024], dummybuf[256];
+    char newpw[1024], dummybuf[256];
     static char prompt1[1024], prompt2[1024];
+#if APPLE_PKINIT
+    char *cert_hash = NULL;
+#endif /* APPLE_PKINIT */
 
-    if (dummybuf[0] == 0) {
-	for (i = 0; i < 256; i++)
-	    dummybuf[i] = (i+1) % 256;
-    }
+    /*
+       dummybuf is used to give random key a password,
+       random key entires are created with DISALLOW_ALL_TIX
+       so lets give them a known password utf8 valid pasword
+    */
+    for (i = 0; i < sizeof(dummybuf) - 1; i++)
+	dummybuf[i] = 'a' + (random() % 25);
+    dummybuf[sizeof(dummybuf) - 1] = '\0';
 
     /* Zero all fields in request structure */
     memset(&princ, 0, sizeof(princ));
@@ -1149,11 +1180,22 @@ void kadmin_addprinc(argc, argv)
     if (kadmin_parse_princ_args(argc, argv,
 				&princ, &mask, &pass, &randkey,
 				&ks_tuple, &n_ks_tuple,
+#if APPLE_PKINIT
+                                &cert_hash,
+#endif /* APPLE_PKINIT */
 				"add_principal")) {
 	kadmin_addprinc_usage("add_principal");
 	kadmin_free_tl_data(&princ); /* need to free ks_tuple also??? */
 	return;
     }
+
+#if APPLE_PKINIT
+    if(cert_hash != NULL) {
+	fprintf(stderr,
+              "add_principal: -certhash not allowed; use modify_principal\n");
+	return;
+    }
+#endif /* APPLE_PKINIT */
 
     retval = krb5_unparse_name(context, princ.principal, &canon);
     if (retval) {
@@ -1195,11 +1237,12 @@ void kadmin_addprinc(argc, argv)
     } else if (pass == NULL) {
 	unsigned int sz = sizeof (newpw) - 1;
 
-	sprintf(prompt1, "Enter password for principal \"%.900s\"",
-		canon);
-	sprintf(prompt2,
-		"Re-enter password for principal \"%.900s\"",
-		canon);
+	snprintf(prompt1, sizeof(prompt1),
+		 "Enter password for principal \"%.900s\"",
+		 canon);
+	snprintf(prompt2, sizeof(prompt2),
+		 "Re-enter password for principal \"%.900s\"",
+		 canon);
 	retval = krb5_read_password(context, prompt1, prompt2,
 				    newpw, &sz);
 	if (retval) {
@@ -1284,6 +1327,9 @@ void kadmin_modprinc(argc, argv)
     int randkey = 0;
     int n_ks_tuple = 0;
     krb5_key_salt_tuple *ks_tuple;
+#if APPLE_PKINIT
+    char *cert_hash = NULL;
+#endif /* APPLE_PKINIT */
 
     if (argc < 2) {
 	kadmin_modprinc_usage("modify_principal");
@@ -1307,10 +1353,10 @@ void kadmin_modprinc(argc, argv)
     }
     retval = kadm5_get_principal(handle, kprinc, &oldprinc,
 				 KADM5_PRINCIPAL_NORMAL_MASK);
-    krb5_free_principal(context, kprinc);
     if (retval) {
 	com_err("modify_principal", retval, "while getting \"%s\".",
 		canon);
+	krb5_free_principal(context, kprinc);
 	free(canon);
 	return;
     }
@@ -1320,24 +1366,30 @@ void kadmin_modprinc(argc, argv)
 				     &princ, &mask,
 				     &pass, &randkey,
 				     &ks_tuple, &n_ks_tuple,
+#if APPLE_PKINIT
+                                     &cert_hash,
+#endif /* APPLE_PKINIT */
 				     "modify_principal");
     if (ks_tuple != NULL) {
 	free(ks_tuple);
 	kadmin_modprinc_usage("modify_principal");
 	free(canon);
-	kadmin_free_tl_data(&princ);
+	krb5_free_principal(context, kprinc);
+	kadmin_free_tl_data(&princ); /* Apple had this commented out.  Why? */
 	return;
     }
     if (retval) {
 	kadmin_modprinc_usage("modify_principal");
 	free(canon);
-	kadmin_free_tl_data(&princ);
+	krb5_free_principal(context, kprinc);
+	kadmin_free_tl_data(&princ); /* Apple had this commented out.  Why? */
 	return;
     }
     if (randkey) {
 	fprintf(stderr, "modify_principal: -randkey not allowed\n");
 	krb5_free_principal(context, princ.principal);
 	free(canon);
+	krb5_free_principal(context, kprinc);
 	kadmin_free_tl_data(&princ);
 	return;
     }
@@ -1346,10 +1398,45 @@ void kadmin_modprinc(argc, argv)
 		"modify_principal: -pw not allowed; use change_password\n");
 	krb5_free_principal(context, princ.principal);
 	free(canon);
+	krb5_free_principal(context, kprinc);
 	kadmin_free_tl_data(&princ);
 	return;
     }
-    retval = kadm5_modify_principal(handle, &princ, mask);
+#if APPLE_PKINIT
+    if (cert_hash) {
+        /*
+         * Use something other than the 1st preferred enctype here for fallback
+         * to pwd authentication
+         */
+        krb5_key_salt_tuple key_salt = {ENCTYPE_ARCFOUR_HMAC, KRB5_KDB_SALTTYPE_CERTHASH};
+        krb5_keyblock keyblock;
+        kadm5_ret_t kadmin_rtn;
+
+        keyblock.magic = KV5M_KEYBLOCK;
+        keyblock.enctype = ENCTYPE_ARCFOUR_HMAC;
+        keyblock.length = strlen(cert_hash);
+        keyblock.contents = (krb5_octet *)cert_hash;
+        kadmin_rtn = kadm5_setkey_principal_3(handle, kprinc,
+                                              TRUE,       /* keepold - we're appending */
+                                              1, &key_salt,
+                                              &keyblock, 1);
+        if (kadmin_rtn) {
+            com_err("modify_principal", kadmin_rtn,
+                    "while adding certhash for \"%s\".", canon);
+            printf("realm %s data %s\n", (char *)kprinc->realm.data, (char *)kprinc->data->data);
+            free(canon);
+            krb5_free_principal(context, princ.principal);
+            krb5_free_principal(context, kprinc);
+            return;
+        }
+        retval = 0;
+    }
+#endif /* APPLE_PKINIT */
+    if (mask) {
+	/* skip this if all we're doing is setting certhash */
+	retval = kadm5_modify_principal(handle, &princ, mask);
+    }
+    krb5_free_principal(context, kprinc);
     krb5_free_principal(context, princ.principal);
     if (retval) {
 	com_err("modify_principal", retval,
@@ -1402,6 +1489,14 @@ void kadmin_getprinc(argc, argv)
 	free(canon);
 	return;
     }
+    free(canon);
+    canon = NULL;
+    retval = krb5_unparse_name(context, dprinc.principal, &canon);
+    if (retval) {
+	com_err("get_principal", retval, "while canonicalizing principal");
+	kadm5_free_principal_ent(handle, &dprinc);
+	return;
+    }
     retval = krb5_unparse_name(context, dprinc.mod_name, &modcanon);
     if (retval) {
 	com_err("get_principal", retval, "while unparsing modname");
@@ -1436,18 +1531,20 @@ void kadmin_getprinc(argc, argv)
 
 	    if (krb5_enctype_to_string(key_data->key_data_type[0],
 				       enctype, sizeof(enctype)))
-		sprintf(enctype, "<Encryption type 0x%x>",
-			key_data->key_data_type[0]);
+		snprintf(enctype, sizeof(enctype), "<Encryption type 0x%x>",
+			 key_data->key_data_type[0]);
 	    printf("Key: vno %d, %s, ", key_data->key_data_kvno, enctype);
 	    if (key_data->key_data_ver > 1) {
 		if (krb5_salttype_to_string(key_data->key_data_type[1],
 					    salttype, sizeof(salttype)))
-		    sprintf(salttype, "<Salt type 0x%x>",
-			    key_data->key_data_type[1]);
+		    snprintf(salttype, sizeof(salttype), "<Salt type 0x%x>",
+			     key_data->key_data_type[1]);
 		printf("%s\n", salttype);
 	    } else
 		printf("no salt\n");
 	}
+	printf("MKey: vno %d\n",
+	       dprinc.mkvno);
 
 	printf("Attributes:");
 	for (i = 0; i < sizeof (prflags) / sizeof (char *); i++) {

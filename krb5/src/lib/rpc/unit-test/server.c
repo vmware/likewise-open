@@ -1,13 +1,15 @@
 /*
  * Copyright 1993 OpenVision Technologies, Inc., All Rights Reserved.
  *
- * $Id: server.c 17825 2006-04-01 03:08:17Z raeburn $
+ * $Id: server.c 21260 2008-12-02 16:57:18Z tlyu $
  * $Source$
  */
 
 #if !defined(lint) && !defined(__CODECENTER__)
 static char *rcsid = "$Header$";
 #endif
+
+#include "k5-platform.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -158,8 +160,7 @@ char **rpc_test_echo_1_svc(char **arg, struct svc_req *h)
 
      if (res)
 	  free(res);
-     res = (char *) malloc(strlen(*arg) + strlen("Echo: ") + 1);
-     sprintf(res, "Echo: %s", *arg);
+     asprintf(&res, "Echo: %s", *arg);
      return &res;
 }
 

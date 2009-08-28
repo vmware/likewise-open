@@ -1,7 +1,7 @@
 /*
  * util/support/plugins.c
  *
- * Copyright 2006 by the Massachusetts Institute of Technology.
+ * Copyright 2006, 2008 by the Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
  * Export of this software from the United States of America may
@@ -31,9 +31,6 @@
 #if USE_DLOPEN
 #include <dlfcn.h>
 #endif
-#if USE_CFBUNDLE
-#include <CoreFoundation/CoreFoundation.h>
-#endif
 #include <stdio.h>
 #include <sys/types.h>
 #ifdef HAVE_SYS_STAT_H
@@ -47,6 +44,18 @@
 #include <string.h>
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
+#endif
+
+#include "k5-platform.h"
+
+#if USE_DLOPEN && USE_CFBUNDLE
+#include <CoreFoundation/CoreFoundation.h>
+
+/* Currently CoreFoundation only exists on the Mac so we just use
+ * pthreads directly to avoid creating empty function calls on other
+ * platforms.  If a thread initializer ever gets created in the common
+ * plugin code, move this there */
+static pthread_mutex_t krb5int_bundle_mutex = PTHREAD_MUTEX_INITIALIZER;
 #endif
 
 #include <stdarg.h>
@@ -64,13 +73,97 @@ struct plugin_file_handle {
 #if USE_DLOPEN
     void *dlhandle;
 #endif
-#if USE_CFBUNDLE
-    CFBundleRef bundle;
+#ifdef _WIN32
+    HMODULE hinstPlugin;
 #endif
-#if !defined (USE_DLOPEN) && !defined (USE_CFBUNDLE)
+#if !defined (USE_DLOPEN) && !defined (_WIN32)
     char dummy;
 #endif
 };
+
+#ifdef _WIN32
+struct dirent {
+    long d_ino;                 /* inode (always 1 in WIN32) */
+    off_t d_off;                /* offset to this dirent */
+    unsigned short d_reclen;    /* length of d_name */
+    char d_name[_MAX_FNAME+1];  /* filename (null terminated) */
+};
+
+typedef struct {
+    long handle;                /* _findfirst/_findnext handle */
+    short offset;               /* offset into directory */
+    short finished;             /* 1 if there are not more files */
+    struct _finddata_t fileinfo;/* from _findfirst/_findnext */
+    char *dir;                  /* the dir we are reading */
+    struct dirent dent;         /* the dirent to return */
+} DIR;
+
+DIR * opendir(const char *dir)
+{
+    DIR *dp;
+    char *filespec;
+    long handle;
+    int index;
+
+    filespec = malloc(strlen(dir) + 2 + 1);
+    strcpy(filespec, dir);
+    index = strlen(filespec) - 1;
+    if (index >= 0 && (filespec[index] == '/' || filespec[index] == '\\'))
+        filespec[index] = '\0';
+    strcat(filespec, "/*");
+
+    dp = (DIR *)malloc(sizeof(DIR));
+    dp->offset = 0;
+    dp->finished = 0;
+    dp->dir = strdup(dir);
+
+    if ((handle = _findfirst(filespec, &(dp->fileinfo))) < 0) {
+        if (errno == ENOENT)
+            dp->finished = 1;
+        else {
+            free(filespec);
+            free(dp->dir);
+            free(dp);
+            return NULL;
+        }
+    }
+
+    dp->handle = handle;
+    free(filespec);
+
+    return dp;
+}
+
+struct dirent * readdir(DIR *dp)
+{
+    if (!dp || dp->finished) return NULL;
+
+    if (dp->offset != 0) {
+        if (_findnext(dp->handle, &(dp->fileinfo)) < 0) {
+            dp->finished = 1;
+            return NULL;
+        }
+    }
+    dp->offset++;
+
+    strncpy(dp->dent.d_name, dp->fileinfo.name, _MAX_FNAME);
+    dp->dent.d_ino = 1;
+    dp->dent.d_reclen = (unsigned short)strlen(dp->dent.d_name);
+    dp->dent.d_off = dp->offset;
+
+    return &(dp->dent);
+}
+
+int closedir(DIR *dp)
+{
+    if (!dp) return 0;
+    _findclose(dp->handle);
+    if (dp->dir) free(dp->dir);
+    if (dp) free(dp);
+
+    return 0;
+}
+#endif
 
 long KRB5_CALLCONV
 krb5int_open_plugin (const char *filepath, struct plugin_file_handle **h, struct errinfo *ep)
@@ -89,18 +182,87 @@ krb5int_open_plugin (const char *filepath, struct plugin_file_handle **h, struct
 
     if (!err) {
         htmp = calloc (1, sizeof (*htmp)); /* calloc initializes ptrs to NULL */
-        if (htmp == NULL) { err = errno; }
+        if (htmp == NULL) { err = ENOMEM; }
     }
 
 #if USE_DLOPEN
-    if (!err && (statbuf.st_mode & S_IFMT) == S_IFREG) {
+    if (!err && ((statbuf.st_mode & S_IFMT) == S_IFREG
+#if USE_CFBUNDLE
+                 || (statbuf.st_mode & S_IFMT) == S_IFDIR
+#endif /* USE_CFBUNDLE */
+        )) {
         void *handle = NULL;
+
+#if USE_CFBUNDLE
+        char executablepath[MAXPATHLEN];
+
+        if ((statbuf.st_mode & S_IFMT) == S_IFDIR) {
+            int lock_err = 0;
+            CFStringRef pluginString = NULL;
+            CFURLRef pluginURL = NULL;
+            CFBundleRef pluginBundle = NULL;
+            CFURLRef executableURL = NULL;
+
+            /* Lock around CoreFoundation calls since objects are refcounted
+             * and the refcounts are not thread-safe.  Using pthreads directly
+             * because this code is Mac-specific */
+            lock_err = pthread_mutex_lock(&krb5int_bundle_mutex);
+            if (lock_err) { err = lock_err; }
+
+            if (!err) {
+                pluginString = CFStringCreateWithCString (kCFAllocatorDefault,
+                                                          filepath,
+                                                          kCFStringEncodingASCII);
+                if (pluginString == NULL) { err = ENOMEM; }
+            }
+
+            if (!err) {
+                pluginURL = CFURLCreateWithFileSystemPath (kCFAllocatorDefault,
+                                                           pluginString,
+                                                           kCFURLPOSIXPathStyle,
+                                                           true);
+                if (pluginURL == NULL) { err = ENOMEM; }
+            }
+
+            if (!err) {
+                pluginBundle = CFBundleCreate (kCFAllocatorDefault, pluginURL);
+                if (pluginBundle == NULL) { err = ENOENT; } /* XXX need better error */
+            }
+
+            if (!err) {
+                executableURL = CFBundleCopyExecutableURL (pluginBundle);
+                if (executableURL == NULL) { err = ENOMEM; }
+            }
+
+            if (!err) {
+                if (!CFURLGetFileSystemRepresentation (executableURL,
+                                                       true, /* absolute */
+                                                       (UInt8 *)executablepath,
+                                                       sizeof (executablepath))) {
+                    err = ENOMEM;
+                }
+            }
+
+            if (!err) {
+                /* override the path the caller passed in */
+                filepath = executablepath;
+            }
+
+            if (executableURL    != NULL) { CFRelease (executableURL); }
+            if (pluginBundle     != NULL) { CFRelease (pluginBundle); }
+            if (pluginURL        != NULL) { CFRelease (pluginURL); }
+            if (pluginString     != NULL) { CFRelease (pluginString); }
+
+            /* unlock after CFRelease calls since they modify refcounts */
+            if (!lock_err) { pthread_mutex_unlock (&krb5int_bundle_mutex); }
+        }
+#endif /* USE_CFBUNDLE */
+
 #ifdef RTLD_GROUP
 #define PLUGIN_DLOPEN_FLAGS (RTLD_NOW | RTLD_LOCAL | RTLD_GROUP)
 #else
 #define PLUGIN_DLOPEN_FLAGS (RTLD_NOW | RTLD_LOCAL)
 #endif
-
         if (!err) {
             handle = dlopen(filepath, PLUGIN_DLOPEN_FLAGS);
             if (handle == NULL) {
@@ -119,50 +281,30 @@ krb5int_open_plugin (const char *filepath, struct plugin_file_handle **h, struct
 
         if (handle != NULL) { dlclose (handle); }
     }
-#endif
+#endif /* USE_DLOPEN */
+        
+#ifdef _WIN32
+    if (!err && (statbuf.st_mode & S_IFMT) == S_IFREG) {
+        HMODULE handle = NULL;
 
-#if USE_CFBUNDLE
-    if (!err && (statbuf.st_mode & S_IFMT) == S_IFDIR) {
-        CFStringRef pluginPath = NULL;
-        CFURLRef pluginURL = NULL;
-        CFBundleRef pluginBundle = NULL;
+        handle = LoadLibrary(filepath);
+        if (handle == NULL) {
+            Tprintf ("Unable to load dll: %s\n", filepath);
+            err = ENOENT; /* XXX */
+            krb5int_set_error (ep, err, "%s", "unable to load dll");
+        }
 
-        if (!err) {
-            pluginPath = CFStringCreateWithCString (kCFAllocatorDefault, filepath, 
-                                                    kCFStringEncodingASCII);
-            if (pluginPath == NULL) { err = ENOMEM; }
-        }
-        
-        if (!err) {
-            pluginURL = CFURLCreateWithFileSystemPath (kCFAllocatorDefault, pluginPath, 
-                                                       kCFURLPOSIXPathStyle, true);
-            if (pluginURL == NULL) { err = ENOMEM; }
-        }
-        
-        if (!err) {
-            pluginBundle = CFBundleCreate (kCFAllocatorDefault, pluginURL);
-            if (pluginBundle == NULL) { err = ENOENT; } /* XXX need better error */
-        }
-        
-        if (!err) {
-            if (!CFBundleIsExecutableLoaded (pluginBundle)) {
-                int loaded = CFBundleLoadExecutable (pluginBundle);
-                if (!loaded) { err = ENOENT; }  /* XXX need better error */
-            }
-        }
-        
         if (!err) {
             got_plugin = 1;
-            htmp->bundle = pluginBundle;
-            pluginBundle = NULL;  /* htmp->bundle takes ownership */
+            htmp->hinstPlugin = handle;
+            handle = NULL;
         }
 
-        if (pluginBundle != NULL) { CFRelease (pluginBundle); }
-        if (pluginURL    != NULL) { CFRelease (pluginURL); }
-        if (pluginPath   != NULL) { CFRelease (pluginPath); }
+        if (handle != NULL)
+            FreeLibrary(handle);
     }
 #endif
-        
+
     if (!err && !got_plugin) {
         err = ENOENT;  /* no plugin or no way to load plugins */
     }
@@ -199,29 +341,34 @@ krb5int_get_plugin_sym (struct plugin_file_handle *h,
     }
 #endif
     
-#if USE_CFBUNDLE
-    if (!err && !sym && (h->bundle != NULL)) {
-        CFStringRef cfsymname = NULL;
-        
-        if (!err) {
-            cfsymname = CFStringCreateWithCString (kCFAllocatorDefault, csymname, 
-                                                   kCFStringEncodingASCII);
-            if (cfsymname == NULL) { err = ENOMEM; }
+#ifdef _WIN32
+    LPVOID lpMsgBuf;
+    DWORD dw;
+
+    if (!err && !sym && (h->hinstPlugin != NULL)) {
+        sym = GetProcAddress(h->hinstPlugin, csymname);
+        if (sym == NULL) {
+            const char *e = "unable to get dll symbol"; /* XXX copy and save away */
+            Tprintf ("GetProcAddress(%s): %s\n", csymname, GetLastError());
+            err = ENOENT; /* XXX */
+            krb5int_set_error(ep, err, "%s", e);
+
+            dw = GetLastError();
+            if (FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
+                              FORMAT_MESSAGE_FROM_SYSTEM,
+                              NULL,
+                              dw,
+                              MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                              (LPTSTR) &lpMsgBuf,
+                              0, NULL )) {
+
+                 fprintf (stderr, "unable to get dll symbol, %s\n", (LPCTSTR)lpMsgBuf);
+                 LocalFree(lpMsgBuf);
+             }
         }
-        
-        if (!err) {
-            if (isfunc) {
-                sym = CFBundleGetFunctionPointerForName (h->bundle, cfsymname);
-            } else {
-                sym = CFBundleGetDataPointerForName (h->bundle, cfsymname);
-            }
-            if (sym == NULL) { err = ENOENT; }  /* XXX */       
-        }
-        
-        if (cfsymname != NULL) { CFRelease (cfsymname); }
     }
 #endif
-    
+
     if (!err && (sym == NULL)) {
         err = ENOENT;  /* unimplemented */
     }
@@ -259,10 +406,8 @@ krb5int_close_plugin (struct plugin_file_handle *h)
 #if USE_DLOPEN
     if (h->dlhandle != NULL) { dlclose(h->dlhandle); }
 #endif
-#if USE_CFBUNDLE
-    /* Do not call CFBundleUnloadExecutable because it's not ref counted. 
-     * CFRelease will unload the bundle if the internal refcount goes to zero. */
-    if (h->bundle != NULL) { CFRelease (h->bundle); }
+#ifdef _WIN32
+    if (h->hinstPlugin != NULL) { FreeLibrary(h->hinstPlugin); }
 #endif
     free (h);
 }
@@ -272,8 +417,12 @@ krb5int_close_plugin (struct plugin_file_handle *h)
 #include <dirent.h>
 #define NAMELEN(D) strlen((D)->d_name)
 #else
+#ifndef _WIN32
 #define dirent direct
 #define NAMELEN(D) ((D)->d->namlen)
+#else
+#define NAMELEN(D) strlen((D)->d_name)
+#endif
 #if HAVE_SYS_NDIR_H
 # include <sys/ndir.h>
 #elif HAVE_SYS_DIR_H
@@ -298,22 +447,22 @@ krb5int_plugin_file_handle_array_init (struct plugin_file_handle ***harray)
     long err = 0;
 
     *harray = calloc (1, sizeof (**harray)); /* calloc initializes to NULL */
-    if (*harray == NULL) { err = errno; }
+    if (*harray == NULL) { err = ENOMEM; }
 
     return err;
 }
 
 static long
-krb5int_plugin_file_handle_array_add (struct plugin_file_handle ***harray, int *count, 
+krb5int_plugin_file_handle_array_add (struct plugin_file_handle ***harray, size_t *count,
                                       struct plugin_file_handle *p)
 {
     long err = 0;
     struct plugin_file_handle **newharray = NULL;
-    int newcount = *count + 1;
+    size_t newcount = *count + 1;
     
     newharray = realloc (*harray, ((newcount + 1) * sizeof (**harray))); /* +1 for NULL */
     if (newharray == NULL) { 
-        err = errno; 
+        err = ENOMEM;
     } else {
         newharray[newcount - 1] = p;
         newharray[newcount] = NULL;
@@ -337,7 +486,7 @@ krb5int_plugin_file_handle_array_free (struct plugin_file_handle **harray)
 }
 
 #if TARGET_OS_MAC
-#define FILEEXTS { "", ".bundle", ".so", NULL }
+#define FILEEXTS { "", ".bundle", ".dylib", ".so", NULL }
 #elif defined(_WIN32)
 #define FILEEXTS  { "", ".dll", NULL }
 #else
@@ -364,30 +513,32 @@ krb5int_get_plugin_filenames (const char * const *filebases, char ***filenames)
     long err = 0;
     static const char *const fileexts[] = FILEEXTS;
     char **tempnames = NULL;
-    int i;
+    size_t bases_count = 0;
+    size_t exts_count = 0;
+    size_t i;
+
+    if (!filebases) { err = EINVAL; }
+    if (!filenames) { err = EINVAL; }
 
     if (!err) {
-        size_t count = 0;
-        for (i = 0; filebases[i] != NULL; i++, count++);
-        for (i = 0; fileexts[i] != NULL; i++, count++);
-        tempnames = calloc (count, sizeof (char *));
-        if (tempnames == NULL) { err = errno; }
+        for (i = 0; filebases[i]; i++) { bases_count++; }
+        for (i = 0; fileexts[i]; i++) { exts_count++; }
+        tempnames = calloc ((bases_count * exts_count)+1, sizeof (char *));
+        if (!tempnames) { err = ENOMEM; }
     }
 
     if (!err) {
-        int j;
-        for (i = 0; !err && (filebases[i] != NULL); i++) {
-            size_t baselen = strlen (filebases[i]);
-            for (j = 0; !err && (fileexts[j] != NULL); j++) {
-                size_t len = baselen + strlen (fileexts[j]) + 2; /* '.' + NULL */
-                tempnames[i+j] = malloc (len * sizeof (char));
-                if (tempnames[i+j] == NULL) { 
-                    err = errno; 
-                } else {
-                    sprintf (tempnames[i+j], "%s%s", filebases[i], fileexts[j]);
-                }
+        size_t j;
+        for (i = 0; !err && filebases[i]; i++) {
+            for (j = 0; !err && fileexts[j]; j++) {
+		if (asprintf(&tempnames[(i*exts_count)+j], "%s%s",
+                             filebases[i], fileexts[j]) < 0) {
+		    tempnames[(i*exts_count)+j] = NULL;
+		    err = ENOMEM;
+		}
             }
         }
+        tempnames[bases_count * exts_count] = NULL; /* NUL-terminate */
     }
     
     if (!err) {
@@ -395,7 +546,7 @@ krb5int_get_plugin_filenames (const char * const *filebases, char ***filenames)
         tempnames = NULL;
     }
     
-    if (tempnames != NULL) { krb5int_free_plugin_filenames (tempnames); }
+    if (tempnames) { krb5int_free_plugin_filenames (tempnames); }
     
     return err;
 }
@@ -413,7 +564,7 @@ krb5int_open_plugin_dirs (const char * const *dirnames,
 {
     long err = 0;
     struct plugin_file_handle **h = NULL;
-    int count = 0;
+    size_t count = 0;
     char **filenames = NULL;
     int i;
 
@@ -426,7 +577,6 @@ krb5int_open_plugin_dirs (const char * const *dirnames,
     }
     
     for (i = 0; !err && dirnames[i] != NULL; i++) {
-	size_t dirnamelen = strlen (dirnames[i]) + 1; /* '/' */
         if (filenames != NULL) {
             /* load plugins with names from filenames from each directory */
             int j;
@@ -436,11 +586,9 @@ krb5int_open_plugin_dirs (const char * const *dirnames,
 		char *filepath = NULL;
 		
 		if (!err) {
-		    filepath = malloc (dirnamelen + strlen (filenames[j]) + 1); /* NULL */
-		    if (filepath == NULL) { 
-			err = errno; 
-		    } else {
-			sprintf (filepath, "%s/%s", dirnames[i], filenames[j]);
+		    if (asprintf(&filepath, "%s/%s", dirnames[i], filenames[j]) < 0) {
+			filepath = NULL;
+			err = ENOMEM;
 		    }
 		}
 		
@@ -454,7 +602,6 @@ krb5int_open_plugin_dirs (const char * const *dirnames,
             }
         } else {
             /* load all plugins in each directory */
-#ifndef _WIN32
 	    DIR *dir = opendir (dirnames[i]);
             
             while (dir != NULL && !err) {
@@ -472,11 +619,9 @@ krb5int_open_plugin_dirs (const char * const *dirnames,
                 
 		if (!err) {
                     int len = NAMELEN (d);
-		    filepath = malloc (dirnamelen + len + 1); /* NULL */
-		    if (filepath == NULL) { 
-			err = errno; 
-		    } else {
-			sprintf (filepath, "%s/%*s", dirnames[i], len, d->d_name);
+		    if (asprintf(&filepath, "%s/%*s", dirnames[i], len, d->d_name) < 0) {
+			filepath = NULL;
+			err = ENOMEM;
 		    }
 		}
                 
@@ -492,10 +637,6 @@ krb5int_open_plugin_dirs (const char * const *dirnames,
             }
             
             if (dir != NULL) { closedir (dir); }
-#else
-	    /* Until a Windows implementation of this code is implemented */
-	    err = ENOENT;
-#endif /* _WIN32 */
         }
     }
         
@@ -542,7 +683,7 @@ krb5int_get_plugin_dir_data (struct plugin_dir_handle *dirhandle,
 {
     long err = 0;
     void **p = NULL;
-    int count = 0;
+    size_t count = 0;
 
     /* XXX Do we need to add a leading "_" to the symbol name on any
        modern platforms?  */
@@ -551,7 +692,7 @@ krb5int_get_plugin_dir_data (struct plugin_dir_handle *dirhandle,
 
     if (!err) {
         p = calloc (1, sizeof (*p)); /* calloc initializes to NULL */
-        if (p == NULL) { err = errno; }
+        if (p == NULL) { err = ENOMEM; }
     }
     
     if (!err && (dirhandle != NULL) && (dirhandle->files != NULL)) {
@@ -566,7 +707,7 @@ krb5int_get_plugin_dir_data (struct plugin_dir_handle *dirhandle,
                 count++;
                 newp = realloc (p, ((count + 1) * sizeof (*p))); /* +1 for NULL */
                 if (newp == NULL) { 
-                    err = errno; 
+                    err = ENOMEM;
                 } else {
                     p = newp;
                     p[count - 1] = sym;
@@ -601,7 +742,7 @@ krb5int_get_plugin_dir_func (struct plugin_dir_handle *dirhandle,
 {
     long err = 0;
     void (**p)() = NULL;
-    int count = 0;
+    size_t count = 0;
     
     /* XXX Do we need to add a leading "_" to the symbol name on any
         modern platforms?  */
@@ -610,7 +751,7 @@ krb5int_get_plugin_dir_func (struct plugin_dir_handle *dirhandle,
     
     if (!err) {
         p = calloc (1, sizeof (*p)); /* calloc initializes to NULL */
-        if (p == NULL) { err = errno; }
+        if (p == NULL) { err = ENOMEM; }
     }
     
     if (!err && (dirhandle != NULL) && (dirhandle->files != NULL)) {
@@ -625,7 +766,7 @@ krb5int_get_plugin_dir_func (struct plugin_dir_handle *dirhandle,
                 count++;
                 newp = realloc (p, ((count + 1) * sizeof (*p))); /* +1 for NULL */
                 if (newp == NULL) { 
-                    err = errno; 
+                    err = ENOMEM;
                 } else {
                     p = newp;
                     p[count - 1] = sym;

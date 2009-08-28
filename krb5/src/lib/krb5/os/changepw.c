@@ -1,7 +1,7 @@
 /*
  * lib/krb5/os/changepw.c
  *
- * Copyright 1990,1999,2001 by the Massachusetts Institute of Technology.
+ * Copyright 1990,1999,2001,2008 by the Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
  * Export of this software from the United States of America may
@@ -34,6 +34,7 @@
 #include "k5-int.h"
 #include "os-proto.h"
 #include "cm.h"
+#include "../krb/auth_con.h"
 
 #include <stdio.h>
 #include <errno.h>
@@ -48,8 +49,8 @@ struct sendto_callback_context {
     krb5_principal 	set_password_for;
     char 		*newpw;
     krb5_data 		ap_req;
+    krb5_ui_4           remote_seq_num, local_seq_num;
 };
-
 
 /*
  * Wrapper function for the two backends
@@ -63,11 +64,12 @@ krb5_locate_kpasswd(krb5_context context, const krb5_data *realm,
     int sockType = (useTcp ? SOCK_STREAM : SOCK_DGRAM);
 
     code = krb5int_locate_server (context, realm, addrlist,
-				  locate_service_kpasswd, sockType, 0);
+				  locate_service_kpasswd, sockType, AF_INET);
 
     if (code == KRB5_REALM_CANT_RESOLVE || code == KRB5_REALM_UNKNOWN) {
 	code = krb5int_locate_server (context, realm, addrlist,
-				      locate_service_kadmin, SOCK_STREAM, 0);
+				      locate_service_kadmin, SOCK_STREAM,
+				      AF_INET);
 	if (!code) {
 	    /* Success with admin_server but now we need to change the
 	       port number to use DEFAULT_KPASSWD_PORT and the socktype.  */
@@ -139,11 +141,12 @@ static int kpasswd_sendto_msg_callback(struct conn_state *conn, void *callback_c
 	local_kaddr.length = addrs[0]->length;
 	local_kaddr.contents = malloc(addrs[0]->length);
 	if (local_kaddr.contents == NULL && addrs[0]->length != 0) {
-	    code = errno;
+	    code = ENOMEM;
 	    krb5_free_addresses(ctx->context, addrs);
 	    goto cleanup;
 	}
-	memcpy(local_kaddr.contents, addrs[0]->contents, addrs[0]->length);
+	if (addrs[0]->length)
+	    memcpy(local_kaddr.contents, addrs[0]->contents, addrs[0]->length);
 
 	krb5_free_addresses(ctx->context, addrs);
     }
@@ -158,6 +161,9 @@ static int kpasswd_sendto_msg_callback(struct conn_state *conn, void *callback_c
     if ((code = krb5_auth_con_setaddrs(ctx->context, ctx->auth_context,
 				       &local_kaddr, NULL))) 
 	goto cleanup;
+
+    ctx->auth_context->remote_seq_number = ctx->remote_seq_num;
+    ctx->auth_context->local_seq_number = ctx->local_seq_num;
 
     if (ctx->set_password_for)
 	code = krb5int_mk_setpw_req(ctx->context, 
@@ -189,7 +195,7 @@ cleanup:
 **	if set_password_for is NULL, then a password change is performed,
 **  otherwise, the password is set for the principal indicated in set_password_for
 */
-krb5_error_code KRB5_CALLCONV
+static krb5_error_code KRB5_CALLCONV
 krb5_change_set_password(krb5_context context, krb5_creds *creds, char *newpw,
 			 krb5_principal set_password_for,
 			 int *result_code, krb5_data *result_code_string,
@@ -208,6 +214,7 @@ krb5_change_set_password(krb5_context context, krb5_creds *creds, char *newpw,
     struct sockaddr_storage	remote_addr;
     struct addrlist 		al = ADDRLIST_INIT;
 
+    memset(&chpw_rep, 0, sizeof(krb5_data));
     memset( &callback_ctx, 0, sizeof(struct sendto_callback_context));
     callback_ctx.context = context;
     callback_ctx.newpw = newpw;
@@ -224,6 +231,9 @@ krb5_change_set_password(krb5_context context, krb5_creds *creds, char *newpw,
 				     creds, 
 				     &callback_ctx.ap_req)))
 	goto cleanup;
+
+    callback_ctx.remote_seq_num = callback_ctx.auth_context->remote_seq_number;
+    callback_ctx.local_seq_num = callback_ctx.auth_context->local_seq_number;
 
     do {
 	if ((code = krb5_locate_kpasswd(callback_ctx.context,
@@ -330,6 +340,7 @@ cleanup:
 
     krb5int_free_addrlist (&al);
     krb5_free_data_contents(callback_ctx.context, &callback_ctx.ap_req);
+    krb5_free_data_contents(callback_ctx.context, &chpw_rep);
 
     return(code);
 }

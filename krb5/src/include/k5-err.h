@@ -1,7 +1,7 @@
 /*
  * include/k5-err.h
  *
- * Copyright 2006 Massachusetts Institute of Technology.
+ * Copyright 2006, 2007 Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
  * Export of this software from the United States of America may
@@ -53,10 +53,34 @@ struct errinfo {
 void
 krb5int_set_error (struct errinfo *ep,
 		   long code,
-		   const char *fmt, ...);
+		   const char *fmt, ...)
+#if !defined(__cplusplus) && (__GNUC__ > 2)
+    __attribute__((__format__(__printf__, 3, 4)))
+#endif
+    ;
 void
 krb5int_vset_error (struct errinfo *ep, long code,
-		    const char *fmt, va_list args);
+		    const char *fmt, va_list args)
+#if !defined(__cplusplus) && (__GNUC__ > 2)
+    __attribute__((__format__(__printf__, 3, 0)))
+#endif
+    ;
+void
+krb5int_set_error_fl (struct errinfo *ep, long code,
+		      const char *file, int line,
+		      const char *fmt, ...)
+#if !defined(__cplusplus) && (__GNUC__ > 2)
+    __attribute__((__format__(__printf__, 5, 6)))
+#endif
+    ;
+void
+krb5int_vset_error_fl (struct errinfo *ep, long code,
+		       const char *file, int line,
+		       const char *fmt, va_list args)
+#if !defined(__cplusplus) && (__GNUC__ > 2)
+    __attribute__((__format__(__printf__, 5, 0)))
+#endif
+    ;
 const char *
 krb5int_get_error (struct errinfo *ep, long code);
 void
@@ -65,5 +89,10 @@ void
 krb5int_clear_error (struct errinfo *ep);
 void
 krb5int_set_error_info_callout_fn (const char *(KRB5_CALLCONV *f)(long));
+
+#ifdef DEBUG_ERROR_LOCATIONS
+#define krb5int_set_error(ep, code, ...) \
+    krb5int_set_error_fl(ep, code, __FILE__, __LINE__, __VA_ARGS__)
+#endif
 
 #endif /* K5_ERR_H */

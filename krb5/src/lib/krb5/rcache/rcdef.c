@@ -1,3 +1,4 @@
+/* -*- mode: c; indent-tabs-mode: nil -*- */
 /*
  * lib/krb5/rcache/rcdef.c
  *
@@ -8,7 +9,7 @@
  *   require a specific license from the United States Government.
  *   It is the responsibility of any person or organization contemplating
  *   export to obtain such a license before exporting.
- * 
+ *
  * WITHIN THAT CONSTRAINT, permission to use, copy, modify, and
  * distribute this software and its documentation for any purpose and
  * without fee is hereby granted, provided that the above copyright
@@ -22,7 +23,7 @@
  * M.I.T. makes no representations about the suitability of
  * this software for any purpose.  It is provided "as is" without express
  * or implied warranty.
- * 
+ *
  *
  * replay cache default operations vector.
  */
@@ -32,18 +33,17 @@
 #include "rc_dfl.h"
 
 const krb5_rc_ops krb5_rc_dfl_ops =
- {
-  0,
-  "dfl",
-  krb5_rc_dfl_init,
-  krb5_rc_dfl_recover,
-  krb5_rc_dfl_recover_or_init,
-  krb5_rc_dfl_destroy,
-  krb5_rc_dfl_close,
-  krb5_rc_dfl_store,
-  krb5_rc_dfl_expunge,
-  krb5_rc_dfl_get_span,
-  krb5_rc_dfl_get_name,
-  krb5_rc_dfl_resolve
- }
-;
+{
+    0,
+    "dfl",
+    krb5_rc_dfl_init,
+    krb5_rc_dfl_recover,
+    krb5_rc_dfl_recover_or_init,
+    krb5_rc_dfl_destroy,
+    krb5_rc_dfl_close,
+    krb5_rc_dfl_store,
+    krb5_rc_dfl_expunge,
+    krb5_rc_dfl_get_span,
+    krb5_rc_dfl_get_name,
+    krb5_rc_dfl_resolve
+};

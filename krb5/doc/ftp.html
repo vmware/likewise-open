@@ -56,10 +56,6 @@
 
      -<B>g</B>   Disables file name globbing.
 
-     <B>-k</B> <I>realm</I>
-          When using Kerberos v4 authentication, gets tickets  in
-          <I>realm</I>.
-
      -<B>f</B>   Causes credentials to be forwarded to the remote host.
 
      -<B>x</B>   Causes the client to attempt  to  negotiate  encryption
@@ -363,11 +359,12 @@
           "mydata.data", $1 would have the value "mydata", and $2
           would have the value "data".  The <I>outpattern</I> determines
           the resulting mapped  filename.   The  sequences  `$1',
-          `$2', <I>inpattern</I> template.  The sequence `$0' is replace
-          by the original filename.  Additionally,  the  sequence
-          `[<I>seq1</I>,  <I>seq2</I>]'  is replaced by [<I>seq1</I>] if <I>seq1</I> is not a
-          null string; otherwise it is  replaced  by  <I>seq2</I>.   For
-          example, the command
+          `$2',  ...,  `$9'  are  replaced by any value resulting
+          from the <I>inpattern</I>  template.   The  sequence  `$0'  is
+          replace  by  the  original filename.  Additionally, the
+          sequence `[<I>seq1</I>, <I>seq2</I>]' is replaced by [<I>seq1</I>]  if  <I>seq1</I>
+          is not a null string; otherwise it is replaced by <I>seq2</I>.
+          For example, the command
 
                nmap $1.$2.$3 [$1,$2].[$2,file]
 
@@ -375,10 +372,10 @@
           filenames    "myfile.data"    and    "myfile.data.old",
           "myfile.file" for  the  input  filename  "myfile",  and
           "myfile.myfile"   for  the  input  filename  ".myfile".
-          Spaces  may  be  included  in  <I>outpattern</I>,  as  in  the
-          example:  `nmap  $1  sed  "s/ *$//" &gt; $1'.  Use the `\'
-          character  to  prevent   special   treatment   of   the
-          `$','[',']', and `,' characters.
+          Spaces may be included in <I>outpattern</I>, as in  the  exam-
+          ple: `nmap $1 sed "s/ *$//" &gt; $1'.  Use the `\' charac-
+          ter to prevent special treatment  of  the  `$','[',']',
+          and `,' characters.
 
      <B>ntrans</B> [<I>inchars</I> [<I>outchars</I>]]
           Set or unset the filename character translation mechan-
@@ -480,6 +477,7 @@
           remote machine.
 
      <B>quit</B> A synonym for <B>bye</B>.
+
      <B>quote</B> <I>arg1</I> [<I>arg2</I>] [...]
           The arguments specified  are  sent,  verbatim,  to  the
           remote FTP server.
@@ -788,6 +786,11 @@
      tion may result in incorrect transfers of  binary  files  to
      and  from  4.2BSD  servers using the ascii type.  Avoid this
      problem by using the binary image type.
+
+
+
+
+
 
 
 

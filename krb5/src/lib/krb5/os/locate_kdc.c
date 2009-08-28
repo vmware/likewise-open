@@ -1,7 +1,7 @@
 /*
  * lib/krb5/os/locate_kdc.c
  *
- * Copyright 1990,2000,2001,2002,2003,2004,2006 Massachusetts Institute of Technology.
+ * Copyright 1990,2000,2001,2002,2003,2004,2006,2008 Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
  * Export of this software from the United States of America may
@@ -70,11 +70,11 @@ maybe_use_dns (krb5_context context, const char *name, int defalt)
     char * value = NULL;
     int use_dns = 0;
 
-    code = profile_get_string(context->profile, "libdefaults",
+    code = profile_get_string(context->profile, KRB5_CONF_LIBDEFAULTS,
                               name, 0, 0, &value);
     if (value == 0 && code == 0)
-	code = profile_get_string(context->profile, "libdefaults",
-				  "dns_fallback", 0, 0, &value);
+	code = profile_get_string(context->profile, KRB5_CONF_LIBDEFAULTS,
+				  KRB5_CONF_DNS_FALLBACK, 0, 0, &value);
     if (code)
         return defalt;
 
@@ -89,13 +89,13 @@ maybe_use_dns (krb5_context context, const char *name, int defalt)
 int
 _krb5_use_dns_kdc(krb5_context context)
 {
-    return maybe_use_dns (context, "dns_lookup_kdc", DEFAULT_LOOKUP_KDC);
+    return maybe_use_dns (context, KRB5_CONF_DNS_LOOKUP_KDC, DEFAULT_LOOKUP_KDC);
 }
 
 int
 _krb5_use_dns_realm(krb5_context context)
 {
-    return maybe_use_dns (context, "dns_lookup_realm", DEFAULT_LOOKUP_REALM);
+    return maybe_use_dns (context, KRB5_CONF_DNS_LOOKUP_REALM, DEFAULT_LOOKUP_REALM);
 }
 
 #endif /* KRB5_DNS_LOOKUP */
@@ -110,7 +110,7 @@ krb5int_grow_addrlist (struct addrlist *lp, int nmore)
 
     newaddrs = realloc (lp->addrs, newsize);
     if (newaddrs == NULL)
-	return errno;
+	return ENOMEM;
     lp->addrs = newaddrs;
     for (i = lp->space; i < newspace; i++) {
 	lp->addrs[i].ai = NULL;
@@ -257,8 +257,11 @@ krb5int_add_host_to_list (struct addrlist *lp, const char *hostname,
 #ifdef AI_NUMERICSERV
     hint.ai_flags = AI_NUMERICSERV;
 #endif
-    sprintf(portbuf, "%d", ntohs(port));
-    sprintf(secportbuf, "%d", ntohs(secport));
+    if (snprintf(portbuf, sizeof(portbuf), "%d", ntohs(port)) >= sizeof(portbuf))
+	/* XXX */
+	return EINVAL;
+    if (snprintf(secportbuf, sizeof(secportbuf), "%d", ntohs(secport)) >= sizeof(secportbuf))
+	return EINVAL;
     err = getaddrinfo (hostname, portbuf, &hint, &addrs);
     if (err) {
 	Tprintf ("\tgetaddrinfo(\"%s\", \"%s\", ...)\n\treturns %d: %s\n",
@@ -322,7 +325,7 @@ krb5_locate_srv_conf_1(krb5_context context, const krb5_data *realm,
 
     masterlist = NULL;
 
-    realm_srv_names[0] = "realms";
+    realm_srv_names[0] = KRB5_CONF_REALMS;
     realm_srv_names[1] = host;
     realm_srv_names[2] = name;
     realm_srv_names[3] = 0;
@@ -334,7 +337,7 @@ krb5_locate_srv_conf_1(krb5_context context, const krb5_data *realm,
 		 error_message(code));
         if (code == PROF_NO_SECTION || code == PROF_NO_RELATION)
 	    code = KRB5_REALM_UNKNOWN;
- 	krb5_xfree(host);
+	free(host);
   	return code;
      }
 
@@ -345,21 +348,21 @@ krb5_locate_srv_conf_1(krb5_context context, const krb5_data *realm,
     
     if (count == 0) {
         profile_free_list(hostlist);
-	krb5_xfree(host);
+	free(host);
 	addrlist->naddrs = 0;
 	return 0;
     }
     
     if (get_masters) {
-	realm_srv_names[0] = "realms";
+	realm_srv_names[0] = KRB5_CONF_REALMS;
 	realm_srv_names[1] = host;
-	realm_srv_names[2] = "admin_server";
+	realm_srv_names[2] = KRB5_CONF_ADMIN_SERVER;
 	realm_srv_names[3] = 0;
 
 	code = profile_get_values(context->profile, realm_srv_names,
 				  &masterlist);
 
-	krb5_xfree(host);
+	free(host);
 
 	if (code == 0) {
 	    for (i=0; masterlist[i]; i++) {
@@ -380,7 +383,7 @@ krb5_locate_srv_conf_1(krb5_context context, const krb5_data *realm,
 	    }
 	}
     } else {
-	krb5_xfree(host);
+	free(host);
     }
 
     /* at this point, if master is non-NULL, then either the master kdc
@@ -577,14 +580,17 @@ module_callback (void *cbdata, int socktype, struct sockaddr *sa)
 
     if (socktype != SOCK_STREAM && socktype != SOCK_DGRAM)
 	return 0;
-    if (sa->sa_family != AF_INET && sa->sa_family != AF_INET6)
+    if (sa->sa_family != AF_INET
+#ifdef KRB5_USE_INET6
+	&& sa->sa_family != AF_INET6
+#endif
+	)
 	return 0;
-    x = malloc (sizeof (*x));
+    x = calloc (1, sizeof (*x));
     if (x == 0) {
 	d->out_of_mem = 1;
 	return 1;
     }
-    memset(x, 0, sizeof (*x));
     x->ai.ai_addr = (struct sockaddr *) &x->u;
     x->ai.ai_socktype = socktype;
     x->ai.ai_family = sa->sa_family;
@@ -592,12 +598,14 @@ module_callback (void *cbdata, int socktype, struct sockaddr *sa)
 	x->u.sin = *(struct sockaddr_in *)sa;
 	x->ai.ai_addrlen = sizeof(struct sockaddr_in);
     }
+#ifdef KRB5_USE_INET6
     if (sa->sa_family == AF_INET6) {
 #ifdef KRB5_USE_INET6
 	x->u.sin6 = *(struct sockaddr_in6 *)sa;
 	x->ai.ai_addrlen = sizeof(struct sockaddr_in6);
 #endif /* KRB5_USE_INET6 */
     }
+#endif
     if (add_addrinfo_to_list (d->lp, &x->ai, free, x) != 0) {
 	/* Assumes only error is ENOMEM.  */
 	d->out_of_mem = 1;
@@ -615,6 +623,7 @@ module_locate_server (krb5_context ctx, const krb5_data *realm,
     krb5_error_code code;
     struct krb5plugin_service_locate_ftable *vtbl = NULL;
     void **ptrs;
+    char *realmz;		/* NUL-terminated realm */
     int i;
     struct module_callback_data cbdata = { 0, };
 
@@ -636,6 +645,17 @@ module_locate_server (krb5_context ctx, const krb5_data *realm,
 	return KRB5_PLUGIN_NO_HANDLE;
     }
 
+    if (realm->length >= UINT_MAX) {
+	krb5int_free_plugin_dir_data(ptrs);
+	return ENOMEM;
+    }
+    realmz = malloc(realm->length + 1);
+    if (realmz == NULL) {
+	krb5int_free_plugin_dir_data(ptrs);
+	return ENOMEM;
+    }
+    memcpy(realmz, realm->data, realm->length);
+    realmz[realm->length] = '\0';
     for (i = 0; ptrs[i]; i++) {
 	void *blob;
 
@@ -648,7 +668,7 @@ module_locate_server (krb5_context ctx, const krb5_data *realm,
 	if (code)
 	    continue;
 
-	code = vtbl->lookup(blob, svc, realm->data, socktype, family,
+	code = vtbl->lookup(blob, svc, realmz, socktype, family,
 			    module_callback, &cbdata);
 	vtbl->fini(blob);
 	if (code == KRB5_PLUGIN_NO_HANDLE) {
@@ -661,6 +681,7 @@ module_locate_server (krb5_context ctx, const krb5_data *realm,
 	    /* Module encountered an actual error.  */
 	    Tprintf("plugin lookup routine returned error %d: %s\n",
 		    code, error_message(code));
+	    free(realmz);
 	    krb5int_free_plugin_dir_data (ptrs);
 	    return code;
 	}
@@ -668,6 +689,7 @@ module_locate_server (krb5_context ctx, const krb5_data *realm,
     }
     if (ptrs[i] == NULL) {
 	Tprintf("ran off end of plugin list\n");
+	free(realmz);
 	krb5int_free_plugin_dir_data (ptrs);
 	return KRB5_PLUGIN_NO_HANDLE;
     }
@@ -676,6 +698,7 @@ module_locate_server (krb5_context ctx, const krb5_data *realm,
     /* Got something back, yippee.  */
     Tprintf("now have %d addrs in list %p\n", addrlist->naddrs, addrlist);
     print_addrlist(addrlist);
+    free(realmz);
     krb5int_free_plugin_dir_data (ptrs);
     return 0;
 }
@@ -691,7 +714,7 @@ prof_locate_server (krb5_context context, const krb5_data *realm,
 
     switch (svc) {
     case locate_service_kdc:
-	profname = "kdc";
+	profname = KRB5_CONF_KDC;
 	/* We used to use /etc/services for these, but enough systems
 	   have old, crufty, wrong settings that this is probably
 	   better.  */
@@ -700,19 +723,19 @@ prof_locate_server (krb5_context context, const krb5_data *realm,
 	dflport2 = htons(KRB5_DEFAULT_SEC_PORT);
 	break;
     case locate_service_master_kdc:
-	profname = "master_kdc";
+	profname = KRB5_CONF_MASTER_KDC;
 	goto kdc_ports;
     case locate_service_kadmin:
-	profname = "admin_server";
+	profname = KRB5_CONF_ADMIN_SERVER;
 	dflport1 = htons(DEFAULT_KADM5_PORT);
 	break;
     case locate_service_krb524:
-	profname = "krb524_server";
+	profname = KRB5_CONF_KRB524_SERVER;
 	serv = getservbyname(KRB524_SERVICE, "udp");
 	dflport1 = serv ? serv->s_port : htons (KRB524_PORT);
 	break;
     case locate_service_kpasswd:
-	profname = "kpasswd_server";
+	profname = KRB5_CONF_KPASSWD_SERVER;
 	dflport1 = htons(DEFAULT_KPASSWD_PORT);
 	break;
     default:

@@ -112,7 +112,7 @@ void SHSTransform(SHS_LONG *digest, const SHS_LONG *data)
     E = digest[ 4 ];
     memcpy(eData, data, sizeof (eData));
 
-#ifdef CONFIG_SMALL
+#if defined(CONFIG_SMALL) && !defined(CONFIG_SMALL_NO_CRYPTO)
 
     {
 	int i;
@@ -243,7 +243,8 @@ void SHSTransform(SHS_LONG *digest, const SHS_LONG *data)
 void shsUpdate(SHS_INFO *shsInfo, const SHS_BYTE *buffer, unsigned int count)
 {
     SHS_LONG tmp;
-    int dataCount, canfill;
+    unsigned int dataCount;
+    int canfill;
     SHS_LONG *lp;
 
     /* Update bitcount */
@@ -254,7 +255,7 @@ void shsUpdate(SHS_INFO *shsInfo, const SHS_BYTE *buffer, unsigned int count)
     shsInfo->countHi += count >> 29;
 
     /* Get count of bytes already in data */
-    dataCount = (int) (tmp >> 3) & 0x3F;
+    dataCount = (tmp >> 3) & 0x3F;
 
     /* Handle any leading odd-sized chunks */
     if (dataCount) {
@@ -286,10 +287,8 @@ void shsUpdate(SHS_INFO *shsInfo, const SHS_BYTE *buffer, unsigned int count)
 		count = 0;
 		break;		/* out of while loop */
 	    }
-	    *lp = (SHS_LONG) *buffer++ << 24;
-	    *lp |= (SHS_LONG) *buffer++ << 16;
-	    *lp |= (SHS_LONG) *buffer++ << 8;
-	    *lp++ |= (SHS_LONG) *buffer++;
+	    *lp++ = load_32_be(buffer);
+	    buffer += 4;
 	    count -= 4;
 	}
 	if (canfill) {
@@ -301,10 +300,8 @@ void shsUpdate(SHS_INFO *shsInfo, const SHS_BYTE *buffer, unsigned int count)
     while (count >= SHS_DATASIZE) {
 	lp = shsInfo->data;
 	while (lp < shsInfo->data + 16) {
-	    *lp = ((SHS_LONG) *buffer++) << 24;
-	    *lp |= ((SHS_LONG) *buffer++) << 16;
-	    *lp |= ((SHS_LONG) *buffer++) << 8;
-	    *lp++ |= (SHS_LONG) *buffer++;
+	    *lp++ = load_32_be(buffer);
+	    buffer += 4;
 	}
 	SHSTransform(shsInfo->digest, shsInfo->data);
 	count -= SHS_DATASIZE;
@@ -313,10 +310,8 @@ void shsUpdate(SHS_INFO *shsInfo, const SHS_BYTE *buffer, unsigned int count)
     if (count > 0) {
 	lp = shsInfo->data;
 	while (count > 4) {
-	    *lp = ((SHS_LONG) *buffer++) << 24;
-	    *lp |= ((SHS_LONG) *buffer++) << 16;
-	    *lp |= ((SHS_LONG) *buffer++) << 8;
-	    *lp++ |= (SHS_LONG) *buffer++;
+	    *lp++ = load_32_be(buffer);
+	    buffer += 4;
 	    count -= 4;
 	}
 	*lp = 0;

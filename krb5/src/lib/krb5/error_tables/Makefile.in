@@ -25,14 +25,7 @@ SRCS= asn1_err.c kdb5_err.c krb5_err.c kv5m_err.c krb524_err.c
 all-unix:: all-libobjs
 all-libobjs: $(HDRS)
 
-includes:: $(HDRS)
-	for f in $(HDRS) ; do \
-		if cmp $$f $(THDRDIR)/$$f >/dev/null 2>&1; then :; \
-		else \
-			(set -x; $(RM) $(THDRDIR)/$$f; \
-			 $(CP) $$f $(THDRDIR)/$$f) ; \
-		fi ; \
-	done
+includes: $(HDRS)
 
 awk-windows:
 	$(AWK) -f $(SRCTOP)/util/et/et_h.awk outfile=asn1_err.h asn1_err.et
@@ -65,18 +58,3 @@ clean-unix:: clean-libobjs
 
 @libobj_frag@
 
-# +++ Dependency line eater +++
-# 
-# Makefile dependencies follow.  This must be the last section in
-# the Makefile.in file
-#
-asn1_err.so asn1_err.po $(OUTPRE)asn1_err.$(OBJEXT): \
-  $(COM_ERR_DEPS) asn1_err.c
-kdb5_err.so kdb5_err.po $(OUTPRE)kdb5_err.$(OBJEXT): \
-  $(COM_ERR_DEPS) kdb5_err.c
-krb5_err.so krb5_err.po $(OUTPRE)krb5_err.$(OBJEXT): \
-  $(COM_ERR_DEPS) krb5_err.c
-kv5m_err.so kv5m_err.po $(OUTPRE)kv5m_err.$(OBJEXT): \
-  $(COM_ERR_DEPS) kv5m_err.c
-krb524_err.so krb524_err.po $(OUTPRE)krb524_err.$(OBJEXT): \
-  $(COM_ERR_DEPS) krb524_err.c

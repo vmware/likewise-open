@@ -1,5 +1,5 @@
 /*
- * Copyright 1997,2000,2001,2004 by Massachusetts Institute of Technology
+ * Copyright 1997,2000,2001,2004,2008 by Massachusetts Institute of Technology
  * 
  * Copyright 1987, 1988 by MIT Student Information Processing Board
  *
@@ -75,7 +75,8 @@ void com_err_terminate(void)
 #endif
     k5_key_delete(K5_KEY_COM_ERR);
     k5_mutex_destroy(&com_err_hook_lock);
-    k5_mutex_lock(&et_list_lock);
+    if (k5_mutex_lock(&et_list_lock) != 0)
+	return;
     for (e = et_list_dynamic; e; e = enext) {
 	enext = e->next;
 	free(e);
@@ -256,19 +257,11 @@ error_message(long code)
 
 oops:
 
-#if TARGET_OS_MAC
-	{
-		/* ComErr doesn't know about this error, ask the system */
-		/* Of course there's no way to tell if it knew what error it got */
-		return (strerror (code));
-	}
-#endif
-
 	cp = get_thread_buffer();
 	if (cp == NULL)
 	    return "Unknown error code";
 	cp1 = cp;
-	strcpy(cp, "Unknown code ");
+	strlcpy(cp, "Unknown code ", ET_EBUFSIZ);
 	cp += sizeof("Unknown code ") - 1;
 	if (table_num != 0L) {
 		(void) error_table_name_r(table_num, cp);
@@ -303,7 +296,7 @@ add_error_table(/*@dependent@*/ const struct error_table * et)
 
     del = (struct dynamic_et_list *)malloc(sizeof(struct dynamic_et_list));
     if (del == NULL)
-	return errno;
+	return ENOMEM;
 
     del->table = et;
 
@@ -329,12 +322,6 @@ remove_error_table(const struct error_table * et)
 
     if (CALL_INIT_FUNCTION(com_err_initialize))
 	return 0;
-#if !defined(ENABLE_THREADS) && defined(DEBUG_THREADS)
-    if (et_list_lock.os.initialized == 0 && terminated != 0) {
-	fprintf(stderr, "\n\n *** Function remove_error_table called after com_err library termination. ***\n *** Shared library termination code executed in incorrect order?          ***\n\n");
-	abort();
-    }
-#endif
     merr = k5_mutex_lock(&et_list_lock);
     if (merr)
 	return merr;

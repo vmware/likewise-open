@@ -35,6 +35,9 @@
 
 #include "pkinit.h"
 
+/* Remove when FAST PKINIT is settled. */
+#include "../fast_factor.h"
+
 static krb5_error_code
 pkinit_server_get_edata(krb5_context context,
 			krb5_kdc_req * request,
@@ -146,8 +149,18 @@ pkinit_server_get_edata(krb5_context context,
 {
     krb5_error_code retval = 0;
     pkinit_kdc_context plgctx = NULL;
+    krb5_keyblock *armor_key = NULL;
 
     pkiDebug("pkinit_server_get_edata: entered!\n");
+
+    /* Remove (along with armor_key) when FAST PKINIT is settled. */
+    retval = fast_kdc_get_armor_key(context, server_get_entry_data, request,
+				    client, &armor_key);
+    if (retval == 0 && armor_key != NULL) {
+	/* Don't advertise PKINIT if the client used FAST. */
+	krb5_free_keyblock(context, armor_key);
+	return EINVAL;
+    }
 
     /*
      * If we don't have a realm context for the given realm,
@@ -344,10 +357,20 @@ pkinit_server_verify_padata(krb5_context context,
     krb5_authdata **my_authz_data = NULL, *pkinit_authz_data = NULL;
     krb5_kdc_req *tmp_as_req = NULL;
     krb5_data k5data;
+    krb5_keyblock *armor_key;
 
     pkiDebug("pkinit_verify_padata: entered!\n");
     if (data == NULL || data->length <= 0 || data->contents == NULL)
 	return 0;
+
+    /* Remove (along with armor_key) when FAST PKINIT is settled. */
+    retval = fast_kdc_get_armor_key(context, server_get_entry_data, request,
+				    client, &armor_key);
+    if (retval == 0 && armor_key != NULL) {
+	/* Don't allow PKINIT if the client used FAST. */
+	krb5_free_keyblock(context, armor_key);
+	return EINVAL;
+    }
 
     if (pa_plugin_context == NULL || e_data == NULL)
 	return EINVAL;
@@ -1092,7 +1115,7 @@ pkinit_init_kdc_profile(krb5_context context, pkinit_kdc_context plgctx)
 
     pkiDebug("%s: entered for realm %s\n", __FUNCTION__, plgctx->realmname);
     retval = pkinit_kdcdefault_string(context, plgctx->realmname,
-				      "pkinit_identity",
+				      KRB5_CONF_PKINIT_IDENTITY,
 				      &plgctx->idopts->identity);
     if (retval != 0 || NULL == plgctx->idopts->identity) {
 	retval = EINVAL;
@@ -1103,7 +1126,7 @@ pkinit_init_kdc_profile(krb5_context context, pkinit_kdc_context plgctx)
     }
 
     retval = pkinit_kdcdefault_strings(context, plgctx->realmname,
-				       "pkinit_anchors",
+				       KRB5_CONF_PKINIT_ANCHORS,
 				       &plgctx->idopts->anchors);
     if (retval != 0 || NULL == plgctx->idopts->anchors) {
 	retval = EINVAL;
@@ -1114,26 +1137,26 @@ pkinit_init_kdc_profile(krb5_context context, pkinit_kdc_context plgctx)
     }
 
     pkinit_kdcdefault_strings(context, plgctx->realmname,
-			      "pkinit_pool",
+			      KRB5_CONF_PKINIT_POOL,
 			      &plgctx->idopts->intermediates);
 
     pkinit_kdcdefault_strings(context, plgctx->realmname,
-			      "pkinit_revoke",
+			      KRB5_CONF_PKINIT_REVOKE,
 			      &plgctx->idopts->crls);
 
     pkinit_kdcdefault_string(context, plgctx->realmname,
-			     "pkinit_kdc_ocsp",
+			     KRB5_CONF_PKINIT_KDC_OCSP,
 			     &plgctx->idopts->ocsp);
 
     pkinit_kdcdefault_string(context, plgctx->realmname,
-			     "pkinit_mappings_file",
+			     KRB5_CONF_PKINIT_MAPPING_FILE,
 			     &plgctx->idopts->dn_mapping_file);
 
     pkinit_kdcdefault_integer(context, plgctx->realmname,
-			      "pkinit_dh_min_bits",
+			      KRB5_CONF_PKINIT_DH_MIN_BITS,
 			      PKINIT_DEFAULT_DH_MIN_BITS,
 			      &plgctx->opts->dh_min_bits);
-    if (plgctx->opts->dh_min_bits < 1024) {
+    if (plgctx->opts->dh_min_bits < PKINIT_DEFAULT_DH_MIN_BITS) {
 	pkiDebug("%s: invalid value (%d) for pkinit_dh_min_bits, "
 		 "using default value (%d) instead\n", __FUNCTION__,
 		 plgctx->opts->dh_min_bits, PKINIT_DEFAULT_DH_MIN_BITS);
@@ -1141,15 +1164,15 @@ pkinit_init_kdc_profile(krb5_context context, pkinit_kdc_context plgctx)
     }
 
     pkinit_kdcdefault_boolean(context, plgctx->realmname,
-			      "pkinit_allow_upn",
+			      KRB5_CONF_PKINIT_ALLOW_UPN,
 			      0, &plgctx->opts->allow_upn);
 
     pkinit_kdcdefault_boolean(context, plgctx->realmname,
-			      "pkinit_require_crl_checking",
+			      KRB5_CONF_PKINIT_REQUIRE_CRL_CHECKING,
 			      0, &plgctx->opts->require_crl_checking);
 
     pkinit_kdcdefault_string(context, plgctx->realmname,
-			     "pkinit_eku_checking",
+			     KRB5_CONF_PKINIT_EKU_CHECKING,
 			     &eku_string);
     if (eku_string != NULL) {
 	if (strcasecmp(eku_string, "kpClientAuth") == 0) {

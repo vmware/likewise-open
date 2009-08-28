@@ -63,7 +63,7 @@ Up:&nbsp;<a rel="up" accesskey="u" href="#Top">Top</a>
 
 <h2 class="unnumbered">Copyright</h2>
 
-<p>Copyright &copy; 1985-2007 by the Massachusetts Institute of Technology.
+<p>Copyright &copy; 1985-2009 by the Massachusetts Institute of Technology.
 
 <blockquote>
 Export of software employing encryption from the United States of
@@ -308,6 +308,23 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
      lib/gssapi/spnego/gssapiP_spnego.h
      lib/gssapi/spnego/spnego_mech.c
 </pre>
+<p>and the initial implementation of incremental propagation, including
+the following new or changed files:
+
+<pre class="smallexample">       include/iprop_hdr.h
+       kadmin/server/ipropd_svc.c
+       lib/kdb/iprop.x
+       lib/kdb/kdb_convert.c
+       lib/kdb/kdb_log.c
+       lib/kdb/kdb_log.h
+       lib/krb5/error_tables/kdb5_err.et
+       slave/kpropd_rpc.c
+       slave/kproplog.c
+</pre>
+<p>and marked portions of the following files:
+
+<pre class="smallexample">       lib/krb5/os/hst_realm.c
+</pre>
 <p>are subject to the following license:
 
 <blockquote>
@@ -372,7 +389,7 @@ SUCH DAMAGE.
 backend, are subject to the following license:
 
 <blockquote>
-Copyright (c) 2004-2005, Novell, Inc. 
+Copyright &copy; 2004-2005, Novell, Inc.
 All rights reserved.
 
      <p>Redistribution and use in source and binary forms, with or without
@@ -454,6 +471,149 @@ modifications, as long as this notice is preserved.
 WITHOUT ANY WARRANTY, to the extent permitted by law; without even
 the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 PURPOSE.
+
+</blockquote>
+
+<p>Portions contributed by Apple Inc. are subject to the following license:
+
+<blockquote>
+
+     <p>Copyright 2004-2008 Apple Inc.  All Rights Reserved.
+
+     <p>Export of this software from the United States of America may require
+a specific license from the United States Government.  It is the
+responsibility of any person or organization contemplating export to
+obtain such a license before exporting.
+
+     <p>WITHIN THAT CONSTRAINT, permission to use, copy, modify, and
+distribute this software and its documentation for any purpose and
+without fee is hereby granted, provided that the above copyright
+notice appear in all copies and that both that copyright notice and
+this permission notice appear in supporting documentation, and that
+the name of Apple Inc. not be used in advertising or publicity pertaining
+to distribution of the software without specific, written prior
+permission.  Apple Inc. makes no representations about the suitability of
+this software for any purpose.  It is provided "as is" without express
+or implied warranty.
+
+     <p>THIS SOFTWARE IS PROVIDED &ldquo;AS IS&rdquo; AND WITHOUT ANY EXPRESS OR
+IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
+WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+
+</blockquote>
+
+<p>The implementations of strlcpy and strlcat in
+src/util/support/strlcat.c have the following copyright and permission
+notice:
+
+<blockquote>
+
+     <p>Copyright &copy; 1998 Todd C. Miller &lt;Todd.Miller@courtesan.com&gt;
+
+     <p>Permission to use, copy, modify, and distribute this software for any
+purpose with or without fee is hereby granted, provided that the above
+copyright notice and this permission notice appear in all copies.
+
+     <p>THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+</blockquote>
+
+<p>The implementations of UTF-8 string handling in src/util/support and
+src/lib/krb5/unicode are subject to the following copyright and
+permission notice:
+
+<blockquote>
+
+     <p>The OpenLDAP Public License
+  Version 2.8, 17 August 2003
+
+     <p>Redistribution and use of this software and associated documentation
+("Software"), with or without modification, are permitted provided
+that the following conditions are met:
+
+     <p>1. Redistributions in source form must retain copyright statements
+   and notices,
+
+     <p>2. Redistributions in binary form must reproduce applicable copyright
+   statements and notices, this list of conditions, and the following
+   disclaimer in the documentation and/or other materials provided
+   with the distribution, and
+
+     <p>3. Redistributions must contain a verbatim copy of this document.
+
+     <p>The OpenLDAP Foundation may revise this license from time to time.
+Each revision is distinguished by a version number.  You may use
+this Software under terms of this license revision or under the
+terms of any subsequent revision of the license.
+
+     <p>THIS SOFTWARE IS PROVIDED BY THE OPENLDAP FOUNDATION AND ITS
+CONTRIBUTORS &ldquo;AS IS&rdquo; AND ANY EXPRESSED OR IMPLIED WARRANTIES,
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO EVENT
+SHALL THE OPENLDAP FOUNDATION, ITS CONTRIBUTORS, OR THE AUTHOR(S)
+OR OWNER(S) OF THE SOFTWARE BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGE.
+
+     <p>The names of the authors and copyright holders must not be used in
+advertising or otherwise to promote the sale, use or other dealing
+in this Software without specific, written prior permission.  Title
+to copyright in this Software shall at all times remain with copyright
+holders.
+
+     <p>OpenLDAP is a registered trademark of the OpenLDAP Foundation.
+
+     <p>Copyright 1999-2003 The OpenLDAP Foundation, Redwood City,
+California, USA.  All Rights Reserved.  Permission to copy and
+distribute verbatim copies of this document is granted.
+
+</blockquote>
+
+<p>Marked test programs in src/lib/krb5/krb have the following copyright:
+
+<blockquote>
+
+     <p>Copyright &copy; 2006 Kungliga Tekniska H&ouml;gskolan
+(Royal Institute of Technology, Stockholm, Sweden).
+All rights reserved.
+
+     <p>Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
+
+     <p>1. Redistributions of source code must retain the above copyright
+   notice, this list of conditions and the following disclaimer.
+
+     <p>2. Redistributions in binary form must reproduce the above copyright
+   notice, this list of conditions and the following disclaimer in the
+   documentation and/or other materials provided with the distribution.
+
+     <p>3. Neither the name of KTH nor the names of its contributors may be
+   used to endorse or promote products derived from this software without
+   specific prior written permission.
+
+     <p>THIS SOFTWARE IS PROVIDED BY KTH AND ITS CONTRIBUTORS &ldquo;AS IS&rdquo; AND ANY
+EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL KTH OR ITS CONTRIBUTORS BE
+LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 </blockquote>
 
@@ -910,17 +1070,21 @@ Up:&nbsp;<a rel="up" accesskey="u" href="#Configuration-Files">Configuration Fil
 
 <p>Any tag in the configuration files which requires a list of encryption
 types can be set to some combination of the following strings.
+Encryption types marked as &ldquo;weak&rdquo; are available for compatibility
+but not recommended for use.
 
      <dl>
-<dt><code>des-cbc-crc</code><dd>DES cbc mode with CRC-32
-<br><dt><code>des-cbc-md4</code><dd>DES cbc mode with RSA-MD4
-<br><dt><code>des-cbc-md5</code><dd>DES cbc mode with RSA-MD5
-<br><dt><code>des3-cbc-sha1</code><dt><code>des3-hmac-sha1</code><dt><code>des3-cbc-sha1-kd</code><dd>triple DES cbc mode with HMAC/sha1
-<br><dt><code>des-hmac-sha1</code><dd>DES with HMAC/sha1
+<dt><code>des-cbc-crc</code><dd>DES cbc mode with CRC-32 (weak)
+<br><dt><code>des-cbc-md4</code><dd>DES cbc mode with RSA-MD4 (weak)
+<br><dt><code>des-cbc-md5</code><dd>DES cbc mode with RSA-MD5 (weak)
+<br><dt><code>des-cbc-raw</code><dd>DES cbc mode raw (weak)
+<br><dt><code>des3-cbc-raw</code><dd>Triple DES cbc mode raw (weak)
+<br><dt><code>des3-cbc-sha1</code><dt><code>des3-hmac-sha1</code><dt><code>des3-cbc-sha1-kd</code><dd>Triple DES cbc mode with HMAC/sha1
+<br><dt><code>des-hmac-sha1</code><dd>DES with HMAC/sha1 (weak)
 <br><dt><code>aes256-cts-hmac-sha1-96</code><dt><code>aes256-cts</code><dd>AES-256 CTS mode with 96-bit SHA-1 HMAC
 <br><dt><code>aes128-cts-hmac-sha1-96</code><dt><code>aes128-cts</code><dd>AES-128 CTS mode with 96-bit SHA-1 HMAC
 <br><dt><code>arcfour-hmac</code><dt><code>rc4-hmac</code><dt><code>arcfour-hmac-md5</code><dd>RC4 with HMAC/MD5
-<br><dt><code>arcfour-hmac-exp</code><dt><code>rc4-hmac-exp</code><dt><code>arcfour-hmac-md5-exp</code><dd>exportable RC4 with HMAC/MD5
+<br><dt><code>arcfour-hmac-exp</code><dt><code>rc4-hmac-exp</code><dt><code>arcfour-hmac-md5-exp</code><dd>Exportable RC4 with HMAC/MD5 (weak)
 </dl>
 
 <p>While aes128-cts and aes256-cts are supported for all Kerberos
@@ -1078,16 +1242,20 @@ will be returned.
 should be returned by the KDC.  The list may be delimited with commas
 or whitespace.  Kerberos supports many different encryption types, and
 support for more is planned in the future. (see <a href="#Supported-Encryption-Types">Supported Encryption Types</a> for a list of the accepted values for this tag).  The default
-value is aes256-cts-hmac-sha1-96 des3-cbc-sha1 arcfour-hmac-md5 des-cbc-crc des-cbc-md5 des-cbc-md4.
+value is aes256-cts-hmac-sha1-96 aes128-cts-hmac-sha1-96 des3-cbc-sha1 arcfour-hmac-md5 des-cbc-crc des-cbc-md5 des-cbc-md4.
 
      <dt><b>default_tkt_enctypes</b><dd>Identifies the supported list of session key encryption types that
 should be requested by the client.  The format is the same as for
 <em>default_tgs_enctypes</em>.  The default value for this tag is
-aes256-cts-hmac-sha1-96 des3-cbc-sha1 arcfour-hmac-md5 des-cbc-crc des-cbc-md5 des-cbc-md4.
+aes256-cts-hmac-sha1-96 aes128-cts-hmac-sha1-96 des3-cbc-sha1 arcfour-hmac-md5 des-cbc-crc des-cbc-md5 des-cbc-md4.
 
      <dt><b>permitted_enctypes</b><dd>Identifies all encryption types that are permitted for use in session
 key encryption.  The default value for this tag is
-aes256-cts-hmac-sha1-96 des3-cbc-sha1 arcfour-hmac-md5 des-cbc-crc des-cbc-md5 des-cbc-md4.
+aes256-cts-hmac-sha1-96 aes128-cts-hmac-sha1-96 des3-cbc-sha1 arcfour-hmac-md5 des-cbc-crc des-cbc-md5 des-cbc-md4.
+
+     <dt><b>allow_weak_crypto</b><dd>If this is set to 0 (for false), then weak encryption types will be
+filtered out of the previous three lists (as noted in <a href="#Supported-Encryption-Types">Supported Encryption Types</a>).  The default value for this tag is true, but that
+default may change in the future.
 
      <dt><b>clockskew</b><dd>Sets the maximum allowable amount of clockskew in seconds that the
 library  will tolerate before assuming that a Kerberos message is
@@ -1104,7 +1272,8 @@ Kerberos library.  The default is 1.
 <dt><b>safe_checksum_type</b><dd>An integer which specifies the type of checksum to use.  Used for
 compatability with DCE security servers which do not support the
 default RSA MD5 used by this version of Kerberos. 
-The possible values and their meanings are as follows.
+The
+kdc_req_checksum_type is only used for DES keys.   The ap_req_checksum_type defaults to the preferred checksum for the encryption type being used if unset.  If set, then the selected checksum is used regardless of the type of key being used.  The possible values and their meanings are as follows.
 
      <!-- taken from krb5/src/include/krb5.h[in] -->
 <dl>
@@ -1126,15 +1295,6 @@ received.  DCE and Kerberos can share the cache, but some versions of
 DCE do not support the default cache as created by this version of
 Kerberos.  Use a value of 1 on DCE 1.0.3a systems, and a value of 2 on
 DCE 1.1 systems.  The default value is 4.
-
-     <dt><b>krb4_srvtab</b><dd>Specifies the location of the Kerberos V4 srvtab file.  Default is
-/etc/srvtab.
-
-     <dt><b>krb4_config</b><dd>Specifies the location of hte Kerberos V4 configuration file.  Default
-is /etc/krb.conf.
-
-     <dt><b>krb4_realms</b><dd>Specifies the location of the Kerberos V4 domain/realm translation
-file.  Default is /etc/krb.realms.
 
      <dt><b>dns_lookup_kdc</b><dd>Indicate whether DNS SRV records should be used to locate the KDCs and
 other servers for a realm, if they are not listed in the information for
@@ -1249,24 +1409,6 @@ have option2 set to true.
 that application's man pages.  The application defaults specified here
 are overridden by those specified in the [realms] section.
 
-<p>A special application name (afs_krb5) is used by the krb524 service to
-know whether new format AFS tokens based on Kerberos 5 can be used
-rather than the older format which used a converted Kerberos 4 ticket. 
-The new format allows for cross-realm authentication without
-introducing a security hole.  It is used by default.  Older AFS
-servers (before OpenAFS 1.2.8) will not support the new format.  If
-servers in your cell do not support the new format, you will need to
-add an <code>afs_krb5</code> relation to the <code>appdefaults</code> section. 
-The following config file shows how to disable new format AFS tickets
-for the <code>afs.example.com</code> cell in the <code>EXAMPLE.COM</code> realm.
-
-<pre class="smallexample">     [appdefaults]
-         afs_krb5 = {
-             EXAMPLE.COM = {
-                 afs/afs.example.com = false
-             }
-         }
-</pre>
 <div class="node">
 <p><hr>
 <a name="login"></a>Next:&nbsp;<a rel="next" accesskey="n" href="#realms-_0028krb5_002econf_0029">realms (krb5.conf)</a>,
@@ -1283,18 +1425,6 @@ login.krb5.  This section may contain any of the following relations:
      <dl>
 <dt><b>krb5_get_tickets</b><dd>Indicate whether or not to use a user's password to get V5 tickets. 
 The default value is true.
-
-     <dt><b>krb4_get_tickets</b><dd>Indicate whether or not to user a user's password to get V4 tickets. 
-The default value is false.
-
-     <dt><b>krb4_convert</b><dd>Indicate whether or not to use the Kerberos conversion daemon to get V4
-tickets.  The default value is false.  If this is
-set to false and krb4_get_tickets is true, then login will get the V5
-tickets directly using the Kerberos V4 protocol directly.  This does
-not currently work with non-MIT-V4 salt types (such as the AFS3 salt
-type).  Note that if this is set to true and krb524d is not running,
-login will hang for approximately a minute under Solaris, due to a
-Solaris socket emulation bug.
 
      <dt><b>krb_run_aklog</b><dd>Indicate whether or not to run aklog.  The default value is
 false.
@@ -1640,7 +1770,7 @@ Up:&nbsp;<a rel="up" accesskey="u" href="#krb5_002econf">krb5.conf</a>
      <dt><b>ldap_kadmind_dn</b><dd>This LDAP specific tag indicates the default bind DN for the Administration server. The administration server does a login to the directory as this object. This object should have the rights to read and write the Kerberos data in the LDAP database. This value is used if the bind DN for the Administration server is not mentioned in the configuration section under [dbmodules].
 
      <dt><b>ldap_service_password_file</b><dd>
-This LDAP specific tag indicates the file containing the stashed passwords for the objects used by the Kerberos servers to bind to the LDAP server. This file must be kept secure. This value is used if no service password file is mentioned in the configuration section under [dbmodules].
+This LDAP specific tag indicates the file containing the stashed passwords (created by <code>kdb5_ldap_util stashsrvpw</code>) for the objects used by the Kerberos servers to bind to the LDAP server. This file must be kept secure. This value is used if no service password file is mentioned in the configuration section under [dbmodules].
 
      <dt><b>ldap_server</b><dd>
 This LDAP specific tag indicates the list of LDAP servers that the Kerberos servers can connect to. The list of LDAP servers is whitespace-separated. The LDAP server is specified by a LDAP URI. This value is used if no LDAP servers are mentioned in the configuration section under [dbmodules]. It is recommended to use the ldapi:// or ldaps:// interface and not to use ldap:// interface.
@@ -1671,7 +1801,7 @@ Up:&nbsp;<a rel="up" accesskey="u" href="#krb5_002econf">krb5.conf</a>
 
      <dt><b>ldap_kadmind_dn</b><dd>This LDAP specific tag indicates the default bind DN for the Administration server. The administration server does a login to the directory as this object. This object should have the rights to read and write the Kerberos data in the LDAP database.
 
-     <dt><b>ldap_service_password_file</b><dd>This LDAP specific tag indicates the file containing the stashed passwords for the objects used by the Kerberos servers to bind to the LDAP server. This file must be kept secure.
+     <dt><b>ldap_service_password_file</b><dd>This LDAP specific tag indicates the file containing the stashed passwords (created by <code>kdb5_ldap_util stashsrvpw</code>) for the objects used by the Kerberos servers to bind to the LDAP server. This file must be kept secure.
 
      <dt><b>ldap_server</b><dd>This LDAP specific tag indicates the list of LDAP servers that the Kerberos servers can connect to. The list of LDAP servers is whitespace-separated. The LDAP server is specified by a LDAP URI. It is recommended to use ldapi:// or ldaps:// interface to connect to the LDAP server.
 
@@ -1970,20 +2100,20 @@ Up:&nbsp;<a rel="up" accesskey="u" href="#krb5_002econf">krb5.conf</a>
          kdc = SYSLOG:INFO
          admin_server = FILE=/var/kadm5.log
      [dbdefaults]
-         ldap_kerberos_container_dn = cn=krbcontainer,o=mit
+         ldap_kerberos_container_dn = cn=krbcontainer,dc=example,dc=com
      [dbmodules]
          openldap_ldapconf = {
-               db_library = kldap
-               ldap_kerberos_container_dn = cn=krbcontainer,o=mit
-               ldap_kdc_dn = "cn=krbadmin,o=mit"
-                  # this object needs to have read rights on
-                  # the realm container, principal container and realm sub-trees
-               ldap_kadmind_dn = "cn=krbadmin,o=mit"
-                  # this object needs to have read and write rights on
-                  # the realm container, principal container and realm sub-trees
-              ldap_service_password_file = /etc/kerberos/service.keyfile
-              ldap_servers = ldaps://kerberos.mit.edu
-              ldap_conns_per_server = 5
+             db_library = kldap
+             ldap_kerberos_container_dn = cn=krbcontainer,dc=example,dc=com
+             ldap_kdc_dn = "cn=krbadmin,dc=example,dc=com"
+                 # this object needs to have read rights on
+                 # the realm container and principal subtrees
+             ldap_kadmind_dn = "cn=krbadmin,dc=example,dc=com"
+                 # this object needs to have read and write rights on
+                 # the realm container and principal subtrees
+             ldap_service_password_file = /etc/kerberos/service.keyfile
+             ldap_servers = ldaps://kerberos.mit.edu
+             ldap_conns_per_server = 5
      }
 </pre>
 <div class="node">
@@ -2053,12 +2183,7 @@ listen for TCP connections at all.
 current implementation has little protection against denial-of-service
 attacks), the standard port number assigned for Kerberos TCP traffic
 is port 88.
-
-     <dt><b>v4_mode</b><dd>This string specifies how the KDC should respond to Kerberos 4
-packets.  The possible values are none, disable, full, and nopreauth. 
-The default value is none. 
-<!-- these values found in krb5/src/kdc/kerberos_v4.c in v4mode_table -->
-</dl>
+-</dl>
 
 <div class="node">
 <p><hr>
@@ -2177,7 +2302,7 @@ possible values, see <a href="#Supported-Encryption-Types">Supported Encryption 
 
      <dt><b>max_life</b><dd>(Delta time string.)  Specifes the maximum time period for which a
 ticket may be valid in this realm.  The default value is
-10 hours.
+24 hours.
 
      <dt><b>max_renewable_life</b><dd>(Delta time string.)  Specifies the maximum time period during which a
 valid ticket may be renewed in this realm.  The default value is
@@ -2186,7 +2311,7 @@ valid ticket may be renewed in this realm.  The default value is
      <dt><b>supported_enctypes</b><dd>List of key:salt strings.  Specifies the default key/salt combinations of
 principals for this realm.  Any principals created through <code>kadmin</code>
 will have keys of these types.  The default value for this tag is
-des3-hmac-sha1:normal des-cbc-crc:normal. For lists of possible values, see
+aes256-cts-hmac-sha1-96:normal aes128-cts-hmac-sha1-96:normal des3-cbc-sha1:normal arcfour-hmac-md5:normal. For lists of possible values, see
 <a href="#Supported-Encryption-Types">Supported Encryption Types</a> and <a href="#Salts">Salts</a>.
 
      <dt><b>reject_bad_transit</b><dd>A boolean value (<code>true</code>, <code>false</code>).  If set to <code>true</code>, the
@@ -2485,9 +2610,6 @@ will also need the <code>admin_server</code> entry in <code>krb5.conf</code>.
 
      <br><dt><code>_kpasswd._udp</code><dd>This should list port 464 on your master KDC. 
 It is used when a user changes her password.
-
-     <br><dt><code>_kerberos-iv._udp</code><dd>This should refer to your KDCs that serve Kerberos version 4 requests,
-if you have Kerberos v4 enabled.
 
 </dl>
 
@@ -3061,6 +3183,13 @@ will probably never need to use this option.)
 &ldquo;+password_changing_service&rdquo; option sets the KRB5_KDB_PWCHANGE_SERVICE
 flag on the principal in the database.
 
+     <br><dt><b>{-|+}ok_as_delegate</b><dd>The &ldquo;+ok_as_delegate&rdquo; option sets a flag in tickets issued for the
+service principal.  Some client programs may recognize this flag as
+indicating that it is okay to delegate credentials to the service.  If
+ok_as_delegate is set on a cross-realm TGT, it indicates that the
+foreign realm's ok_as_delegate flags should be honored by clients in
+the local realm.  The default is &ldquo;-ok_as_delegate&rdquo;.
+
      <br><dt><b>-randkey</b><dd>Sets the key for the principal to a random value (<code>add_principal</code>
 only).  MIT recommends using this option for host keys.
 
@@ -3087,7 +3216,7 @@ earlier than krb5-1.2.  See <a href="#Supported-Encryption-Types">Supported Encr
 </pre>
 <p>If you want to create a principal which is contained by a  LDAP object, all you need to do is:
 
-<pre class="smallexample">     <b>kadmin:</b> addprinc -x dn=cn=jennifer,o=mit jennifer
+<pre class="smallexample">     <b>kadmin:</b> addprinc -x dn=cn=jennifer,dc=example,dc=com jennifer
      <b>WARNING: no policy specified for "jennifer@ATHENA.MIT.EDU";
      defaulting to no policy.</b>
      <b>Enter password for principal jennifer@ATHENA.MIT.EDU:</b>  <i>&lt;= Type the password.</i>
@@ -3097,7 +3226,7 @@ earlier than krb5-1.2.  See <a href="#Supported-Encryption-Types">Supported Encr
 </pre>
 <p>If you want to create a principal under a specific LDAP container and link to an existing LDAP object, all you need to do is:
 
-<pre class="smallexample">     <b>kadmin:</b> addprinc -x containerdn=o=mit -x linkdn=cn=david,o=mit david
+<pre class="smallexample">     <b>kadmin:</b> addprinc -x containerdn=dc=example,dc=com -x linkdn=cn=david,dc=example,dc=com david
      <b>WARNING: no policy specified for "david@ATHENA.MIT.EDU";
      defaulting to no policy.</b>
      <b>Enter password for principal david@ATHENA.MIT.EDU:</b>  <i>&lt;= Type the password.</i>
@@ -3722,6 +3851,12 @@ hardware device before being allowed to kinit. (Sets the
 <span class="samp">KRB5_KDB_REQURES_HW_AUTH</span> flag.)  <code>-requires_hwauth</code> clears
 this flag.
 
+          <dt><b>{-|+}ok_as_delegate</b><dd><code>+ok_as_delegate</code> sets the OK-AS-DELEGATE flag on tickets issued for use
+with this principal as the service, which clients may use as a hint that
+credentials can and should be delegated when authenticating to the service.
+(Sets the <span class="samp">KRB5_KDB_OK_AS_DELEGATE</span> flag.) <code>-ok_as_delegate</code> clears
+this flag.
+
           <dt><b>{-|+}allow_svr</b><dd><code>-allow_svr</code> prohibits the issuance of service tickets for principals. (Sets the <span class="samp">KRB5_KDB_DISALLOW_SVR</span> flag.) <code>+allow_svr</code> clears this flag.
 
           <dt><b>{-|+}allow_tgs_req</b><dd><code>-allow_tgs_req</code> specifies that a <dfn>Ticket-Granting Service
@@ -3754,9 +3889,9 @@ flag intentionally has a long name. The default is
 
 </dl>
 
-<pre class="smallexample">     shell% kdb5_ldap_util -D cn=admin,o=org -H ldaps://ldap-server1.mit.edu create -sscope
-     -subtree ou=users,o=org -r ATHENA.MIT.EDU
-     <b>Password for "cn=admin,o=org":</b>
+<pre class="smallexample">     shell% kdb5_ldap_util -D cn=admin,dc=example,dc=com -H ldaps://ldap-server1.mit.edu create -sscope 2
+     -subtree ou=users,dc=example,dc=com -r ATHENA.MIT.EDU
+     <b>Password for "cn=admin,dc=example,dc=com":</b>
      <b>Initializing database for realm 'ATHENA.MIT.EDU'</b>
      <b>You will be prompted for the database Master Password.</b>
      <b>It is important that you NOT FORGET this password.</b>
@@ -3782,9 +3917,9 @@ Up:&nbsp;<a rel="up" accesskey="u" href="#Creating-a-Kerberos-Realm">Creating a 
      <dt><b>-admindn </b><i>admin_service_list</i><dd>Specifies the  list of Administration service objects serving the realm. The list contains the DNs of the Administration service objects separated by colon(:). 
 </dl>
 
-<pre class="smallexample">     shell% kdb5_ldap_util -D cn=admin,o=org -H ldaps://ldap-server1.mit.edu create -sscope
-     -subtree ou=users,o=org -kdcdn cn=krbkdc,o=org -admindn cn=krbadmin,o=org -r ATHENA.MIT.EDU
-     <b>Password for "cn=admin,o=org":</b>
+<pre class="smallexample">     shell% kdb5_ldap_util -D cn=admin,dc=example,dc=com -H ldaps://ldap-server1.mit.edu create -sscope 2
+     -subtree ou=users,dc=example,dc=com -kdcdn cn=krbkdc,dc=example,dc=com -admindn cn=krbadmin,dc=example,dc=com -r ATHENA.MIT.EDU
+     <b>Password for "cn=admin,dc=example,dc=com":</b>
      <b>Initializing database for realm 'ATHENA.MIT.EDU'</b>
      <b>You will be prompted for the database Master Password.</b>
      <b>It is important that you NOT FORGET this password.</b>
@@ -3856,9 +3991,9 @@ In effect, <code>+password_changing_service</code> sets the <span class="samp">K
      </dl>
 
      <p class="noindent">For example:
-     <pre class="smallexample">          shell% kdb5_ldap_util -D cn=admin,o=org -H ldaps://ldap-server1.mit.edu
+     <pre class="smallexample">          shell% kdb5_ldap_util -D cn=admin,dc=example,dc=com -H ldaps://ldap-server1.mit.edu
           modify -r ATHENA.MIT.EDU +requires_preauth
-          <b>Password for "cn=admin,o=org":</b>
+          <b>Password for "cn=admin,dc=example,dc=com":</b>
           shell%
      </pre>
      <ul class="menu">
@@ -3906,11 +4041,11 @@ Up:&nbsp;<a rel="up" accesskey="u" href="#Global-Operations-on-the-Kerberos-LDAP
 <dt><b>-r </b><i>realm</i><dd>specifies the Kerberos realm of the database; by default the realm returned by krb5_default_local_realm (3)is used. 
 </dl>
 For example:
-<pre class="smallexample">     shell% kdb5_ldap_util -D cn=admin,o=org -H ldaps://ldap-server1.mit.edu view -r ATHENA.MIT.EDU
-     <b>Password for "cn=admin,o=org":</b>
+<pre class="smallexample">     shell% kdb5_ldap_util -D cn=admin,dc=example,dc=com -H ldaps://ldap-server1.mit.edu view -r ATHENA.MIT.EDU
+     <b>Password for "cn=admin,dc=example,dc=com":</b>
      <b>Realm Name: ATHENA.MIT.EDU</b>
-     <b>Subtree: ou=users,o=org</b>
-     <b>Subtree: ou=servers,o=org</b>
+     <b>Subtree: ou=users,dc=example,dc=com</b>
+     <b>Subtree: ou=servers,dc=example,dc=com</b>
      <b>SearchScope: ONE</b>
      <b>Maximum ticket life: 0 days 01:00:00</b>
      <b>Maximum renewable life: 0 days 10:00:00</b>
@@ -3937,8 +4072,8 @@ Up:&nbsp;<a rel="up" accesskey="u" href="#Global-Operations-on-the-Kerberos-LDAP
      </dl>
      </dl>
 For example:
-<pre class="smallexample">     shell% kdb5_ldap_util -D cn=admin,o=org -H ldap-server1.mit.edu destroy -r ATHENA.MIT.EDU
-     <b>Password for "cn=admin,o=org":</b>
+<pre class="smallexample">     shell% kdb5_ldap_util -D cn=admin,dc=example,dc=com -H ldap-server1.mit.edu destroy -r ATHENA.MIT.EDU
+     <b>Password for "cn=admin,dc=example,dc=com":</b>
      <b>Deleting KDC database of 'ATHENA.MIT.EDU', are you sure?</b>
      <b>type 'yes' to confirm)? Yes</b>
      <b>OK, deleting database of 'ATHENA.MIT.EDU'...</b>
@@ -3958,8 +4093,8 @@ Up:&nbsp;<a rel="up" accesskey="u" href="#Global-Operations-on-the-Kerberos-LDAP
 <dt><i>list</i><dd>This option lists the name of the realms. 
 </dl>
 For example:
-<pre class="smallexample">     shell% kdb5_ldap_util -D cn=admin,o=org -H ldaps://ldap-server1.mit.edu list
-     <b>Password for "cn=admin,o=org":</b>
+<pre class="smallexample">     shell% kdb5_ldap_util -D cn=admin,dc=example,dc=com -H ldaps://ldap-server1.mit.edu list
+     <b>Password for "cn=admin,dc=example,dc=com":</b>
      <b>ATHENA.MIT.EDU</b>
      <b>OPENLDAP.MIT.EDU</b>
      <b>MEDIA-LAB.MIT.EDU</b>
@@ -3985,9 +4120,9 @@ Options are as follows:
 <dt><b>servicedn</b><dd>Specifies the Distinguished Name (DN) of the service object whose password is to be stored in file. 
 </dl>
 For example:
-<pre class="smallexample">     shell% kdb5_ldap_util stashsrvpw -f /home/andrew/conf_keyle cn=service-kdc,o=org
-     <b>Password for "cn=service-kdc,o=org"</b>:
-     <b>Re-enter password for "cn=service-kdc,o=org"</b>:
+<pre class="smallexample">     shell% kdb5_ldap_util stashsrvpw -f /home/andrew/conf_keyle cn=service-kdc,dc=example,dc=com
+     <b>Password for "cn=service-kdc,dc=example,dc=com"</b>:
+     <b>Re-enter password for "cn=service-kdc,dc=example,dc=com"</b>:
      shell%
 </pre>
 <div class="node">
@@ -4066,9 +4201,9 @@ This flag intentionally has a long name.  The default is
 
 </dl>
 For example:
-<pre class="smallexample">     shell% kdb5_ldap_util -D cn=admin,o=org -H ldaps://ldap-server1.mit.edu create_policy
+<pre class="smallexample">     shell% kdb5_ldap_util -D cn=admin,dc=example,dc=com -H ldaps://ldap-server1.mit.edu create_policy
      -r ATHENA.MIT.EDU -maxtktlife "1 day" -maxrenewlife "1 week" -allow_forwardable usertktpolicy
-     <b>Password for "cn=admin,o=org":</b>
+     <b>Password for "cn=admin,dc=example,dc=com":</b>
      shell%
 </pre>
 <div class="node">
@@ -4091,9 +4226,9 @@ Up:&nbsp;<a rel="up" accesskey="u" href="#Global-Operations-on-the-Kerberos-LDAP
 </dl>
 
 <p>For example:
-<pre class="smallexample">     shell% kdb5_ldap_util -D cn=admin,o=org -H ldaps://ldap-server1.mit.edu view_policy
+<pre class="smallexample">     shell% kdb5_ldap_util -D cn=admin,dc=example,dc=com -H ldaps://ldap-server1.mit.edu view_policy
      -r ATHENA.MIT.EDU usertktpolicy
-     <b>Password for "cn=admin,o=org":</b>
+     <b>Password for "cn=admin,dc=example,dc=com":</b>
      <b>Ticket policy: usertktpolicy</b>
      <b>Maxmum ticket life: 0 days 01:00:00</b>
      <b>Maxmum renewable life: 0 days 10:00:00</b>
@@ -4122,9 +4257,9 @@ Up:&nbsp;<a rel="up" accesskey="u" href="#Global-Operations-on-the-Kerberos-LDAP
 </dl>
      </dl>
 For example:
-<pre class="smallexample">     shell% kdb5_ldap_util -D cn=admin,o=org -H ldaps://ldap-server1.mit.edu
+<pre class="smallexample">     shell% kdb5_ldap_util -D cn=admin,dc=example,dc=com -H ldaps://ldap-server1.mit.edu
      destroy_policy -r ATHENA.MIT.EDU usertktpolicy
-     <b>Password for "cn=admin,o=org":</b>
+     <b>Password for "cn=admin,dc=example,dc=com":</b>
      <b>This will delete the policy object 'usertktpolicy', are you sure?</b>
      <b>(type 'yes' to confirm)? Yes</b>
      <b>** policy object 'usertktpolicy' deleted.</b>
@@ -4150,8 +4285,8 @@ Up:&nbsp;<a rel="up" accesskey="u" href="#Global-Operations-on-the-Kerberos-LDAP
 </dl>
 
 <p class="noindent">For example:
-<pre class="smallexample">     shell% kdb5_ldap_util -D cn=admin,o=org -H ldaps://ldap-server1.mit.edu list_policy -r ATHENA.MIT.EDU
-     <b>Password for "cn=admin,o=org":</b>
+<pre class="smallexample">     shell% kdb5_ldap_util -D cn=admin,dc=example,dc=com -H ldaps://ldap-server1.mit.edu list_policy -r ATHENA.MIT.EDU
+     <b>Password for "cn=admin,dc=example,dc=com":</b>
      <b>usertktpolicy</b>
      <b>tempusertktpolicy</b>
      <b>krbtktpolicy</b>
@@ -4191,9 +4326,9 @@ For example,
 <dt><b>service_dn</b><dd>Specifies the Distinguished Name (DN) of the Kerberos service to be created.
 
      <p class="noindent">For example:
-     <pre class="smallexample">          shell% kdb5_ldap_util -D cn=admin,o=org -H ldaps://ldap-server1.mit.edu
-          create_service -kdc -randpw -f /home/andrew/service_passwd cn=service-kdc,o=org
-          <b>Password for "cn=admin,o=org":</b>
+     <pre class="smallexample">          shell% kdb5_ldap_util -D cn=admin,dc=example,dc=com -H ldaps://ldap-server1.mit.edu
+          create_service -kdc -randpw -f /home/andrew/service_passwd cn=service-kdc,dc=example,dc=com
+          <b>Password for "cn=admin,dc=example,dc=com":</b>
           <b>File does not exist. Creating the file /home/andrew/service_passwd...</b>
           shell%
      </pre>
@@ -4231,9 +4366,9 @@ For example,
 
 <p class="noindent">For example:
 
-<pre class="smallexample">     shell% kdb5_ldap_util -D cn=admin,o=org -H ldaps://ldap-server1.mit.edu
-     modify_service -realm ATHENA.MIT.EDU cn=service-kdc,o=org
-     <b>Password for "cn=admin,o=org":</b>
+<pre class="smallexample">     shell% kdb5_ldap_util -D cn=admin,dc=example,dc=com -H ldaps://ldap-server1.mit.edu
+     modify_service -realm ATHENA.MIT.EDU cn=service-kdc,dc=example,dc=com
+     <b>Password for "cn=admin,dc=example,dc=com":</b>
      <b>Changing rights for the service object. Please wait ... done</b>
      shell%
 </pre>
@@ -4254,13 +4389,13 @@ Up:&nbsp;<a rel="up" accesskey="u" href="#Global-Operations-on-the-Kerberos-LDAP
 </dl>
 
 <p>For example:
-<pre class="smallexample">     shell% kdb5_ldap_util -D cn=admin,o=org -H ldaps://ldap-server1.mit.edu
-     view_service cn=service-kdc,o=org
-     <b>Password for "cn=admin,o=org":</b>
-     <b>Service dn: cn=service-kdc,o=org</b>
+<pre class="smallexample">     shell% kdb5_ldap_util -D cn=admin,dc=example,dc=com -H ldaps://ldap-server1.mit.edu
+     view_service cn=service-kdc,dc=example,dc=com
+     <b>Password for "cn=admin,dc=example,dc=com":</b>
+     <b>Service dn: cn=service-kdc,dc=example,dc=com</b>
      <b>Service type: kdc</b>
      <b>Service host list:</b>
-     <b>Realm DN list: cn=ATHENA.MIT.EDU,cn=Kerberos,o=org</b>
+     <b>Realm DN list: cn=ATHENA.MIT.EDU,cn=Kerberos,dc=example,dc=com</b>
      shell%
 </pre>
 <div class="node">
@@ -4283,12 +4418,12 @@ Up:&nbsp;<a rel="up" accesskey="u" href="#Global-Operations-on-the-Kerberos-LDAP
 <dt><b>service_dn</b><dd>Distinguished Name (DN) of the Kerberos service to be destroyed. 
 </dl>
 For example:
-<pre class="smallexample">     shell% kdb5_ldap_util -D cn=admin,o=org -H ldaps://ldap-server1.mit.edu
-     destroy_service cn=service-kdc,o=org
-     <b>Password for "cn=admin,o=org":</b>
-     <b>This will delete the service object 'cn=service-kdc,o=org', are you sure?</b>
+<pre class="smallexample">     shell% kdb5_ldap_util -D cn=admin,dc=example,dc=com -H ldaps://ldap-server1.mit.edu
+     destroy_service cn=service-kdc,dc=example,dc=com
+     <b>Password for "cn=admin,dc=example,dc=com":</b>
+     <b>This will delete the service object 'cn=service-kdc,dc=example,dc=com', are you sure?</b>
      <b>(type 'yes' to confirm)? Yes</b>
-     <b>** service object 'cn=service-kdc,o=org' deleted.</b>
+     <b>** service object 'cn=service-kdc,dc=example,dc=com' deleted.</b>
      shell%
 </pre>
 <div class="node">
@@ -4308,11 +4443,11 @@ Up:&nbsp;<a rel="up" accesskey="u" href="#Global-Operations-on-the-Kerberos-LDAP
 </dl>
 
 <p class="noindent">For example:
-<pre class="smallexample">     shell% kdb5_ldap_util -D cn=admin,o=org -H ldaps://ldap-server1.mit.edu list_service
-     <b>Password for "cn=admin,o=org":</b>
-     <b>cn=service-kdc,o=org</b>
-     <b>cn=service-adm,o=org</b>
-     <b>cn=service-pwd,o=org</b>
+<pre class="smallexample">     shell% kdb5_ldap_util -D cn=admin,dc=example,dc=com -H ldaps://ldap-server1.mit.edu list_service
+     <b>Password for "cn=admin,dc=example,dc=com":</b>
+     <b>cn=service-kdc,dc=example,dc=com</b>
+     <b>cn=service-adm,dc=example,dc=com</b>
+     <b>cn=service-pwd,dc=example,dc=com</b>
      shell%
 </pre>
 <div class="node">
@@ -4339,11 +4474,11 @@ Options are as follows:
 
 <p class="noindent">For example:
 
-<pre class="smallexample">     shell% kdb5_ldap_util setsrvpw -D cn=admin,o=org -H ldaps://ldap-server1.mit.edu
-     setsrvpw -f /home/andrew/conf_keyfile cn=service-kdc,o=org
-     <b>Password for "cn=admin,o=org":</b>
-     <b>Password for "cn=service-kdc,o=org":</b>
-     <b>Re-enter password for "cn=service-kdc,o=org":</b>
+<pre class="smallexample">     shell% kdb5_ldap_util setsrvpw -D cn=admin,dc=example,dc=com -H ldaps://ldap-server1.mit.edu
+     setsrvpw -f /home/andrew/conf_keyfile cn=service-kdc,dc=example,dc=com
+     <b>Password for "cn=admin,dc=example,dc=com":</b>
+     <b>Password for "cn=service-kdc,dc=example,dc=com":</b>
+     <b>Re-enter password for "cn=service-kdc,dc=example,dc=com":</b>
      shell%
 </pre>
 <div class="node">
@@ -4366,10 +4501,10 @@ across the realms, they would run the following commands on the KDCs in
 <i>both</i> realms:
 
 <pre class="smallexample">     <b>shell%:</b> kadmin.local -e "des3-hmac-sha1:normal des-cbc-crc:v4"
-     <b>kadmin:</b> add_princ -requires_preauth krbtgt/ATHENA.MIT.EDU@EXAMPLE.COM
+     <b>kadmin:</b> addprinc -requires_preauth krbtgt/ATHENA.MIT.EDU@EXAMPLE.COM
      <b>Enter password for principal krbtgt/ATHENA.MIT.EDU@EXAMPLE.COM:</b>
      <b>Re-enter password for principal krbtgt/ATHENA.MIT.EDU@EXAMPLE.COM:</b>
-     <b>kadmin:</b> add_princ -requires_preauth krbtgt/EXAMPLE.COM@ATHENA.MIT.EDU
+     <b>kadmin:</b> addprinc -requires_preauth krbtgt/EXAMPLE.COM@ATHENA.MIT.EDU
      <b>Enter password for principal krbtgt/EXAMPLE.COM@ATHENA.MIT.EDU:</b>
      <b>Enter password for principal krbtgt/EXAMPLE.COM@ATHENA.MIT.EDU:</b>
      <b>kadmin:</b>
@@ -4465,8 +4600,22 @@ location where it is stored.
 
      <pre class="smallexample">          include <code>/etc/openldap/schema/kerberos.schema</code>
      </pre>
-     <li>Configure the LDAP server ACLs to enable the KDC and Admin server to
-read and write the Kerberos data.
+     <li>Choose DNs for the KDC and kadmin servers to bind to the LDAP server,
+and create them if necessary.  These DNs will be specified with the
+<code>ldap_kdc_dn</code> and <code>ldap_kadmind_dn</code> directives in krb5.conf;
+their passwords can be stashed with <code>kdb5_ldap_util stashsrvpw</code>
+and the resulting file specified with the
+<code>ldap_service_password_file</code> directive.
+
+     <li>Choose a DN for the global Kerberos container entry (but do not create
+the entry at this time).  This DN will be specified with the
+<code>ldap_kerberos_container_dn</code> directive in krb5.conf.  Realm
+container entries will be created underneath this DN.  Principal
+entries may exist either underneath the realm container (the default)
+or in separate trees referenced from the realm container.
+
+     <li>Configure the LDAP server ACLs to enable the KDC and kadmin server DNs
+to read and write the Kerberos data.
 
 <h4 class="subheading"></h4>
 
@@ -4486,25 +4635,24 @@ read and write the Kerberos data.
                   by self write
                   by * read
           
-          # Providing access to realm subtree
-          access to <code>dn.subtree</code>= <i>"o=mit"</i>
-                  by <code>dn.exact</code>=<i>"cn=kdc-service,o=mit"</i> read
-                  by <code>dn.exact</code>=<i>"cn=adm-service,o=mit"</i> write
+          # Providing access to realm container
+          access to <code>dn.subtree</code>= <i>"cn=EXAMPLE.COM,cn=krbcontainer,dc=example,dc=com"</i>
+                  by <code>dn.exact</code>=<i>"cn=kdc-service,dc=example,dc=com"</i> read
+                  by <code>dn.exact</code>=<i>"cn=adm-service,dc=example,dc=com"</i> write
                   by * none
           
-          # Providing access to realm container
-          access to <code>dn.subtree</code>= <i>"cn=MIT.EDU,cn=Kerberos,o=mit"</i>
-                  by <code>dn.exact</code>=<i>"cn=kdc-service,o=mit"</i> read
-                  by <code>dn.exact</code>=<i>"cn=adm-service,o=mit"</i> write
+          # Providing access to principals, if not underneath realm container
+          access to <code>dn.subtree</code>= <i>"ou=users,dc=example,dc=com"</i>
+                  by <code>dn.exact</code>=<i>"cn=kdc-service,dc=example,dc=com"</i> read
+                  by <code>dn.exact</code>=<i>"cn=adm-service,dc=example,dc=com"</i> write
                   by * none
           
           access to *
                   by * read
      </pre>
-     <p class="noindent">The above list provides the access control information for the KDC and
-Admin service object for the realm container and the realm
-subtree. Thus if the realm subtree or the service objects for a realm
-are changed then this information should be updated.
+     <p class="noindent">If the locations of the container and principals or the DNs of the
+service objects for a realm are changed then this information should
+be updated.
 
      <li>Start the LDAP server as follows:
      <pre class="smallexample">          slapd -h "ldapi:/// ldaps:///"
@@ -4526,9 +4674,9 @@ For more details, refer to the section <span class="file">krb5.conf</span>
 
      <li>Create the realm using <span class="samp">kdb5_ldap_util</span>.
 
-     <pre class="smallexample">          <b>kdb5_ldap_util</b> <b>-D</b> <i> cn=admin,o=mit</i> create <b>-subtrees</b> <i> o=mit</i> <b>-r</b> <i>MIT.EDU</i> <b>-s</b>
+     <pre class="smallexample">          <b>kdb5_ldap_util</b> <b>-D</b> <i>cn=admin,dc=example,dc=com</i> create <b>-subtrees</b> <i>ou=users,dc=example,dc=com</i> <b>-r</b> <i>EXAMPLE.COM</i> <b>-s</b>
      </pre>
-     <p class="noindent">Before executing the command, make sure that the subtree mentioned above <span class="samp">(o=mit)</span> exists.
+     <p class="noindent">Use the <code>-subtrees</code> option if the principals are to exist in a separate subtree from the realm container.  Before executing the command, make sure that the subtree mentioned above <span class="samp">(ou=users,dc=example,dc=com)</span> exists.  If the principals will exist underneath the realm container, omit the <code>-subtrees</code> option and do not worry about creating the principal subtree.
 
      <p>For more information, refer to the section <dfn>Global Operations on the Kerberos LDAP Database</dfn>.
 
@@ -4540,10 +4688,30 @@ command of kdb5_ldap_util. The object DN should be the same as
 ldap_kdc_dn and ldap_kadmind_dn values specified in the krb5.conf
 file.
 
-     <pre class="smallexample">          <b>kdb5_ldap_util</b> <b>-D</b> <i> cn=admin,o=mit</i> <i>stashsrvpw</i> <b>-f</b> <code>/etc/kerberos/service.keyfile</code> <i>cn=krbadmin,o=mit</i>
+     <pre class="smallexample">          <b>kdb5_ldap_util</b> <b>-D</b> <i>cn=admin,dc=example,dc=com</i> <i>stashsrvpw</i> <b>-f</b> <code>/etc/kerberos/service.keyfile</code> <i>cn=krbadmin,dc=example,dc=com</i>
      </pre>
      <li>Add krb5principalname to the indexes in slapd.conf to speed up the access.
      </ol>
+
+<p>With the LDAP back end it is possible to provide aliases for principal
+entries.  Currently we provide no mechanism provided for creating
+aliases, so it must be done by direct manipulation of the LDAP
+entries.
+
+<p>An entry with aliases contains multiple values of the krbPrincipalName
+attribute.  Since LDAP attribute values are not ordered, it is
+necessary to specify which principal name is canonical, by using the
+krbCanonicalName attribute.  Therefore, to create aliases for an
+entry, first set the krbCanonicalName attribute of the entry to the
+canonical principal name (which should be identical to the
+pre-existing krbPrincipalName value), and then add additional
+krbPrincipalName attributes for the aliases.
+
+<p>Principal aliases are only returned by the KDC when the client
+requests canonicalization.  Canonicalization is normally requested for
+service principals; for client principals, an explicit flag is often
+required (e.g. <code>kinit -C</code>) and canonicalization is only performed
+for initial ticket requests.
 
 <div class="node">
 <p><hr>
@@ -4822,7 +4990,6 @@ for the Kerberos V5 programs:
      krb5_prop     754/tcp          # Kerberos slave propagation
      <!-- kpop          1109/tcp         # Pop with Kerberos -->
      eklogin       2105/tcp         # Kerberos auth. &amp; encrypted rlogin
-     krb524        4444/tcp         # Kerberos 5 to 4 ticket translator
 </pre>
 <p>By default, Kerberos V5 <code>telnet</code> and <code>ftp</code> use the same
 ports as the standard <code>telnet</code> and <code>ftp</code> programs, so if you

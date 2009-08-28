@@ -34,12 +34,15 @@ profile_init(const_profile_filespec_t *files, profile_t *ret_profile)
 	memset(profile, 0, sizeof(struct _profile_t));
 	profile->magic = PROF_MAGIC_PROFILE;
 
-        /* if the filenames list is not specified return an empty profile */
-        if ( files ) {
+	/*
+	 * If the filenames list is not specified or empty, return an empty
+	 * profile.
+	 */
+	if ( files && !PROFILE_LAST_FILESPEC(*files) ) {
 	    for (fs = files; !PROFILE_LAST_FILESPEC(*fs); fs++) {
 		retval = profile_open_file(*fs, &new_file);
 		/* if this file is missing, skip to the next */
-		if (retval == ENOENT || retval == EACCES) {
+		if (retval == ENOENT || retval == EACCES || retval == EPERM) {
 			continue;
 		}
 		if (retval) {
@@ -68,7 +71,7 @@ profile_init(const_profile_filespec_t *files, profile_t *ret_profile)
 
 #define COUNT_LINKED_LIST(COUNT, PTYPE, START, FIELD)	\
 	{						\
-	    int cll_counter = 0;			\
+	    size_t cll_counter = 0;			\
 	    PTYPE cll_ptr = (START);			\
 	    while (cll_ptr != NULL) {			\
 		cll_counter++;				\
@@ -90,7 +93,7 @@ profile_copy(profile_t old_profile, profile_t *new_profile)
     COUNT_LINKED_LIST (size, prf_file_t, old_profile->first_file, next);
     files = malloc ((size+1) * sizeof(*files));
     if (files == NULL)
-	return errno;
+	return ENOMEM;
     for (i = 0, file = old_profile->first_file; i < size; i++, file = file->next)
 	files[i] = file->data->filespec;
     files[size] = NULL;
@@ -103,7 +106,8 @@ errcode_t KRB5_CALLCONV
 profile_init_path(const_profile_filespec_list_t filepath,
 		  profile_t *ret_profile)
 {
-	int n_entries, i;
+        unsigned int n_entries;
+        int i;
 	unsigned int ent_len;
 	const char *s, *t;
 	profile_filespec_t *filenames;
@@ -122,7 +126,7 @@ profile_init_path(const_profile_filespec_list_t filepath,
 
 	/* measure, copy, and skip each one */
 	for(s = filepath, i=0; (t = strchr(s, ':')) || (t=s+strlen(s)); s=t+1, i++) {
-		ent_len = t-s;
+	        ent_len = (unsigned int) (t-s);
 		filenames[i] = (char*) malloc(ent_len + 1);
 		if (filenames[i] == 0) {
 			/* if malloc fails, free the ones that worked */
@@ -160,7 +164,7 @@ profile_is_writable(profile_t profile, int *writable)
         return EINVAL;
     
     if (profile->first_file)
-        *writable = (profile->first_file->data->flags & PROFILE_FILE_RW);
+        *writable = profile_file_is_writable(profile->first_file);
     
     return 0;
 }
@@ -269,10 +273,7 @@ errcode_t profile_ser_size(const char *unused, profile_t profile,
 
 static void pack_int32(prof_int32 oval, unsigned char **bufpp, size_t *remainp)
 {
-    (*bufpp)[0] = (unsigned char) ((oval >> 24) & 0xff);
-    (*bufpp)[1] = (unsigned char) ((oval >> 16) & 0xff);
-    (*bufpp)[2] = (unsigned char) ((oval >> 8) & 0xff);
-    (*bufpp)[3] = (unsigned char) (oval & 0xff);
+    store_32_be(oval, *bufpp);
     *bufpp += sizeof(prof_int32);
     *remainp -= sizeof(prof_int32);
 }
@@ -322,10 +323,7 @@ static int unpack_int32(prof_int32 *intp, unsigned char **bufpp,
 			size_t *remainp)
 {
     if (*remainp >= sizeof(prof_int32)) {
-	*intp = (((prof_int32) (*bufpp)[0] << 24) |
-		 ((prof_int32) (*bufpp)[1] << 16) |
-		 ((prof_int32) (*bufpp)[2] << 8) |
-		 ((prof_int32) (*bufpp)[3]));
+	*intp = load_32_be(*bufpp);
 	*bufpp += sizeof(prof_int32);
 	*remainp -= sizeof(prof_int32);
 	return 0;
@@ -346,6 +344,7 @@ errcode_t profile_ser_internalize(const char *unused, profile_t *profilep,
 
 	bp = *bufpp;
 	remain = *remainp;
+	fcount = 0;
 
 	if (remain >= 12)
 		(void) unpack_int32(&tmp, &bp, &remain);
@@ -360,11 +359,11 @@ errcode_t profile_ser_internalize(const char *unused, profile_t *profilep,
 	(void) unpack_int32(&fcount, &bp, &remain);
 	retval = ENOMEM;
 
-	flist = (profile_filespec_t *) malloc(sizeof(profile_filespec_t) * (fcount + 1));
+	flist = (profile_filespec_t *) malloc(sizeof(profile_filespec_t) * (size_t) (fcount + 1));
 	if (!flist)
 		goto cleanup;
 	
-	memset(flist, 0, sizeof(char *) * (fcount+1));
+	memset(flist, 0, sizeof(char *) * (size_t) (fcount+1));
 	for (i=0; i<fcount; i++) {
 		if (!unpack_int32(&tmp, &bp, &remain)) {
 			flist[i] = (char *) malloc((size_t) (tmp+1));
@@ -400,3 +399,4 @@ cleanup:
 	}
 	return(retval);
 }
+

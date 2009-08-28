@@ -12,7 +12,7 @@ actx_copy_addr(krb5_context context, const krb5_address *inad, krb5_address **ou
 	return ENOMEM;
     *tmpad = *inad;
     if (!(tmpad->contents = (krb5_octet *)malloc(inad->length))) {
-	krb5_xfree(tmpad);
+	free(tmpad);
 	return ENOMEM;
     }
     memcpy((char *)tmpad->contents, (char *)inad->contents, inad->length);
@@ -24,11 +24,9 @@ krb5_error_code KRB5_CALLCONV
 krb5_auth_con_init(krb5_context context, krb5_auth_context *auth_context)
 {
     *auth_context =
-            (krb5_auth_context)malloc(sizeof(struct _krb5_auth_context));
+	(krb5_auth_context)calloc(1, sizeof(struct _krb5_auth_context));
     if (!*auth_context)
-	    return ENOMEM;
-    
-    memset(*auth_context, 0, sizeof(struct _krb5_auth_context));
+	return ENOMEM;
 
     /* Default flags, do time not seq */
     (*auth_context)->auth_context_flags = 
@@ -36,8 +34,9 @@ krb5_auth_con_init(krb5_context context, krb5_auth_context *auth_context)
 
     (*auth_context)->req_cksumtype = context->default_ap_req_sumtype;
     (*auth_context)->safe_cksumtype = context->default_safe_sumtype;
-    (*auth_context) -> checksum_func = NULL;
+    (*auth_context)->checksum_func = NULL;
     (*auth_context)->checksum_func_data = NULL;
+    (*auth_context)->negotiated_etype = ENCTYPE_NULL;
     (*auth_context)->magic = KV5M_AUTH_CONTEXT;
     return 0;
 }
@@ -45,6 +44,8 @@ krb5_auth_con_init(krb5_context context, krb5_auth_context *auth_context)
 krb5_error_code KRB5_CALLCONV
 krb5_auth_con_free(krb5_context context, krb5_auth_context auth_context)
 {
+    if (auth_context == NULL)
+	return 0;
     if (auth_context->local_addr) 
 	krb5_free_address(context, auth_context->local_addr);
     if (auth_context->remote_addr) 
@@ -64,7 +65,7 @@ krb5_auth_con_free(krb5_context context, krb5_auth_context auth_context)
     if (auth_context->rcache)
 	krb5_rc_close(context, auth_context->rcache);
     if (auth_context->permitted_etypes)
-	krb5_xfree(auth_context->permitted_etypes);
+	free(auth_context->permitted_etypes);
     free(auth_context);
     return 0;
 }
@@ -245,32 +246,19 @@ krb5_auth_con_getlocalseqnumber(krb5_context context, krb5_auth_context auth_con
     *seqnumber = auth_context->local_seq_number;
     return 0;
 }
-
-krb5_error_code KRB5_CALLCONV
-krb5_auth_con_setlocalseqnumber(krb5_context context, krb5_auth_context auth_context, krb5_int32 seqnumber)
-{
-    auth_context->local_seq_number = seqnumber;
-    return 0;
-}
-
+#ifndef LEAN_CLIENT
 krb5_error_code KRB5_CALLCONV
 krb5_auth_con_getauthenticator(krb5_context context, krb5_auth_context auth_context, krb5_authenticator **authenticator)
 {
     return (krb5_copy_authenticator(context, auth_context->authentp,
 				    authenticator));
 }
+#endif
 
 krb5_error_code KRB5_CALLCONV
 krb5_auth_con_getremoteseqnumber(krb5_context context, krb5_auth_context auth_context, krb5_int32 *seqnumber)
 {
     *seqnumber = auth_context->remote_seq_number;
-    return 0;
-}
-
-krb5_error_code KRB5_CALLCONV
-krb5_auth_con_setremoteseqnumber(krb5_context context, krb5_auth_context auth_context, krb5_int32 seqnumber)
-{
-    auth_context->remote_seq_number = seqnumber;
     return 0;
 }
 
@@ -285,8 +273,7 @@ krb5_auth_con_initivector(krb5_context context, krb5_auth_context auth_context)
 	if ((ret = krb5_c_block_size(context, auth_context->keyblock->enctype,
 				    &blocksize)))
 	    return(ret);
-	if ((auth_context->i_vector = (krb5_pointer)malloc(blocksize))) {
-	    memset(auth_context->i_vector, 0, blocksize);
+	if ((auth_context->i_vector = (krb5_pointer)calloc(1,blocksize))) {
 	    return 0;
 	}
 	return ENOMEM;
@@ -351,7 +338,7 @@ krb5_auth_con_setpermetypes(krb5_context context, krb5_auth_context auth_context
 	return(ENOMEM);
 
     if (auth_context->permitted_etypes)
-	krb5_xfree(auth_context->permitted_etypes);
+	free(auth_context->permitted_etypes);
 
     auth_context->permitted_etypes = newpe;
 
@@ -571,3 +558,13 @@ chk_heimdal_seqnum(krb5_ui_4 exp_seq, krb5_ui_4 in_seq)
     else
 	return 0;
 }
+
+krb5_error_code
+krb5_auth_con_get_subkey_enctype(krb5_context context,
+				 krb5_auth_context auth_context,
+				 krb5_enctype *etype)
+{
+    *etype = auth_context->negotiated_etype;
+    return 0;
+}
+

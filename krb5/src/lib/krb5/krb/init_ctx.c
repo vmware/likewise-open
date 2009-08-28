@@ -1,7 +1,7 @@
 /*
  * lib/krb5/krb/init_ctx.c
  *
- * Copyright 1994,1999,2000, 2002, 2003  by the Massachusetts Institute of Technology.
+ * Copyright 1994,1999,2000, 2002, 2003, 2007, 2008, 2009  by the Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
  * Export of this software from the United States of America may
@@ -154,10 +154,9 @@ init_common (krb5_context *context, krb5_boolean secure, krb5_boolean kdc)
 
 	*context = 0;
 
-	ctx = malloc(sizeof(struct _krb5_context));
+	ctx = calloc(1, sizeof(struct _krb5_context));
 	if (!ctx)
 		return ENOMEM;
-	memset(ctx, 0, sizeof(struct _krb5_context));
 	ctx->magic = KV5M_CONTEXT;
 
 	ctx->profile_secure = secure;
@@ -172,6 +171,12 @@ init_common (krb5_context *context, krb5_boolean secure, krb5_boolean kdc)
 	if ((retval = krb5_os_init_context(ctx, kdc)))
 		goto cleanup;
 
+	retval = profile_get_boolean(ctx->profile, KRB5_CONF_LIBDEFAULTS,
+				     KRB5_CONF_ALLOW_WEAK_CRYPTO, NULL, 1, &tmp);
+	if (retval)
+		goto cleanup;
+	ctx->allow_weak_crypto = tmp;
+
 	/* initialize the prng (not well, but passable) */
 	if ((retval = krb5_c_random_os_entropy( ctx, 0, NULL)) !=0)
 	  goto cleanup;
@@ -184,41 +189,41 @@ init_common (krb5_context *context, krb5_boolean secure, krb5_boolean kdc)
 		goto cleanup;
 
 	ctx->default_realm = 0;
-	profile_get_integer(ctx->profile, "libdefaults", "clockskew",
+	profile_get_integer(ctx->profile, KRB5_CONF_LIBDEFAULTS, KRB5_CONF_CLOCKSKEW,
 			    0, 5 * 60, &tmp);
 	ctx->clockskew = tmp;
 
 #if 0
 	/* Default ticket lifetime is currently not supported */
-	profile_get_integer(ctx->profile, "libdefaults", "tkt_lifetime",
+	profile_get_integer(ctx->profile, KRB5_CONF_LIBDEFAULTS, "tkt_lifetime",
 			    0, 10 * 60 * 60, &tmp);
 	ctx->tkt_lifetime = tmp;
 #endif
 
 	/* DCE 1.1 and below only support CKSUMTYPE_RSA_MD4 (2)  */
 	/* DCE add kdc_req_checksum_type = 2 to krb5.conf */
-	profile_get_integer(ctx->profile, "libdefaults",
-			    "kdc_req_checksum_type", 0, CKSUMTYPE_RSA_MD5, 
+	profile_get_integer(ctx->profile, KRB5_CONF_LIBDEFAULTS,
+			    KRB5_CONF_KDC_REQ_CHECKSUM_TYPE, 0, CKSUMTYPE_RSA_MD5,
 			    &tmp);
 	ctx->kdc_req_sumtype = tmp;
 
-	profile_get_integer(ctx->profile, "libdefaults",
-			    "ap_req_checksum_type", 0, CKSUMTYPE_RSA_MD5,
+	profile_get_integer(ctx->profile, KRB5_CONF_LIBDEFAULTS,
+			    KRB5_CONF_AP_REQ_CHECKSUM_TYPE, 0, 0,
 			    &tmp);
 	ctx->default_ap_req_sumtype = tmp;
 
-	profile_get_integer(ctx->profile, "libdefaults",
-			    "safe_checksum_type", 0,
+	profile_get_integer(ctx->profile, KRB5_CONF_LIBDEFAULTS,
+			    KRB5_CONF_SAFE_CHECKSUM_TYPE, 0,
 			    CKSUMTYPE_RSA_MD5_DES, &tmp);
 	ctx->default_safe_sumtype = tmp;
 
-	profile_get_integer(ctx->profile, "libdefaults",
-			    "kdc_default_options", 0,
+	profile_get_integer(ctx->profile, KRB5_CONF_LIBDEFAULTS,
+			    KRB5_CONF_KDC_DEFAULT_OPTIONS, 0,
 			    KDC_OPT_RENEWABLE_OK, &tmp);
 	ctx->kdc_default_options = tmp;
 #define DEFAULT_KDC_TIMESYNC 1
-	profile_get_integer(ctx->profile, "libdefaults",
-			    "kdc_timesync", 0, DEFAULT_KDC_TIMESYNC,
+	profile_get_integer(ctx->profile, KRB5_CONF_LIBDEFAULTS,
+			    KRB5_CONF_KDC_TIMESYNC, 0, DEFAULT_KDC_TIMESYNC,
 			    &tmp);
 	ctx->library_options = tmp ? KRB5_LIBOPT_SYNC_KDCTIME : 0;
 
@@ -231,10 +236,9 @@ init_common (krb5_context *context, krb5_boolean secure, krb5_boolean kdc)
 	 * 	DCE 1.1 supports a cache type of 2.
 	 */
 #define DEFAULT_CCACHE_TYPE 4
-	profile_get_integer(ctx->profile, "libdefaults", "ccache_type",
+	profile_get_integer(ctx->profile, KRB5_CONF_LIBDEFAULTS, KRB5_CONF_CCACHE_TYPE,
 			    0, DEFAULT_CCACHE_TYPE, &tmp);
 	ctx->fcc_default_format = tmp + 0x0500;
-	ctx->scc_default_format = tmp + 0x0500;
 	ctx->prompt_types = 0;
 	ctx->use_conf_ktypes = 0;
 
@@ -250,23 +254,16 @@ cleanup:
 void KRB5_CALLCONV
 krb5_free_context(krb5_context ctx)
 {
+     if (ctx == NULL)
+	 return;
      krb5_os_free_context(ctx);
 
-     if (ctx->in_tkt_ktypes) {
-          free(ctx->in_tkt_ktypes);
-	  ctx->in_tkt_ktypes = 0;
-     }
-
-     if (ctx->tgs_ktypes) {
-          free(ctx->tgs_ktypes);
-	  ctx->tgs_ktypes = 0;
-     }
-
-     if (ctx->default_realm) {
-	  free(ctx->default_realm);
-	  ctx->default_realm = 0;
-     }
-
+     free(ctx->in_tkt_ktypes);
+     ctx->in_tkt_ktypes = 0;
+     free(ctx->tgs_ktypes);
+     ctx->tgs_ktypes = 0;
+     free(ctx->default_realm);
+     ctx->default_realm = 0;
      if (ctx->ser_ctx_count && ctx->ser_ctx) {
 	  free(ctx->ser_ctx);
 	  ctx->ser_ctx = 0;
@@ -290,6 +287,8 @@ krb5_set_default_in_tkt_ktypes(krb5_context context, const krb5_enctype *ktypes)
     if (ktypes) {
 	for (i = 0; ktypes[i]; i++) {
 	    if (!krb5_c_valid_enctype(ktypes[i])) 
+		return KRB5_PROG_ETYPE_NOSUPP;
+	    if (!context->allow_weak_crypto && krb5_c_weak_enctype(ktypes[i]))
 		return KRB5_PROG_ETYPE_NOSUPP;
 	}
 
@@ -316,6 +315,7 @@ get_profile_etype_list(krb5_context context, krb5_enctype **ktypes, char *profst
 		       unsigned int ctx_count, krb5_enctype *ctx_list)
 {
     krb5_enctype *old_ktypes;
+    krb5_enctype ktype;
 
     if (ctx_count) {
 	/* application-set defaults */
@@ -334,12 +334,12 @@ get_profile_etype_list(krb5_context context, krb5_enctype **ktypes, char *profst
 	   session key types.
 	 */
 
-	char *retval;
-	char *sp, *ep;
+	char *retval = NULL;
+	char *sp = NULL, *ep = NULL;
 	int i, j, count;
 	krb5_error_code code;
 
-	code = profile_get_string(context->profile, "libdefaults", profstr,
+	code = profile_get_string(context->profile, KRB5_CONF_LIBDEFAULTS, profstr,
 				  NULL, DEFAULT_ETYPE_LIST, &retval);
 	if (code)
 	    return code;
@@ -360,16 +360,20 @@ get_profile_etype_list(krb5_context context, krb5_enctype **ktypes, char *profst
 	
 	if ((old_ktypes =
 	     (krb5_enctype *)malloc(sizeof(krb5_enctype) * (count + 1))) ==
-	    (krb5_enctype *) NULL)
+	    (krb5_enctype *) NULL) {
+	    profile_release_string(retval);
 	    return ENOMEM;
+	}
 	
 	sp = retval;
 	j = 0;
 	i = 1;
 	while (1) {
-	    if (! krb5_string_to_enctype(sp, &old_ktypes[j]))
+	    if (!krb5_string_to_enctype(sp, &ktype) &&
+		(context->allow_weak_crypto || !krb5_c_weak_enctype(ktype))) {
+		old_ktypes[j] = ktype;
 		j++;
-
+	    }
 	    if (i++ >= count)
 		break;
 
@@ -395,7 +399,7 @@ get_profile_etype_list(krb5_context context, krb5_enctype **ktypes, char *profst
 krb5_error_code
 krb5_get_default_in_tkt_ktypes(krb5_context context, krb5_enctype **ktypes)
 {
-    return(get_profile_etype_list(context, ktypes, "default_tkt_enctypes",
+    return(get_profile_etype_list(context, ktypes, KRB5_CONF_DEFAULT_TKT_ENCTYPES,
 				  context->in_tkt_ktype_count,
 				  context->in_tkt_ktypes));
 }
@@ -409,6 +413,8 @@ krb5_set_default_tgs_enctypes (krb5_context context, const krb5_enctype *ktypes)
     if (ktypes) {
 	for (i = 0; ktypes[i]; i++) {
 	    if (!krb5_c_valid_enctype(ktypes[i])) 
+		return KRB5_PROG_ETYPE_NOSUPP;
+	    if (!context->allow_weak_crypto && krb5_c_weak_enctype(ktypes[i]))
 		return KRB5_PROG_ETYPE_NOSUPP;
 	}
 
@@ -451,10 +457,10 @@ krb5_get_tgs_ktypes(krb5_context context, krb5_const_principal princ, krb5_encty
     if (context->use_conf_ktypes)
 	/* This one is set *only* by reading the config file; it's not
 	   set by the application.  */
-	return(get_profile_etype_list(context, ktypes, "default_tgs_enctypes",
+	return(get_profile_etype_list(context, ktypes, KRB5_CONF_DEFAULT_TKT_ENCTYPES,
 				      0, NULL));
     else
-	return(get_profile_etype_list(context, ktypes, "default_tgs_enctypes",
+	return(get_profile_etype_list(context, ktypes, KRB5_CONF_DEFAULT_TGS_ENCTYPES,
 				      context->tgs_ktype_count,
 				      context->tgs_ktypes));
 }
@@ -462,7 +468,7 @@ krb5_get_tgs_ktypes(krb5_context context, krb5_const_principal princ, krb5_encty
 krb5_error_code KRB5_CALLCONV
 krb5_get_permitted_enctypes(krb5_context context, krb5_enctype **ktypes)
 {
-    return(get_profile_etype_list(context, ktypes, "permitted_enctypes",
+    return(get_profile_etype_list(context, ktypes, KRB5_CONF_PERMITTED_ENCTYPES,
 				  context->tgs_ktype_count,
 				  context->tgs_ktypes));
 }
@@ -483,6 +489,38 @@ krb5_is_permitted_enctype(krb5_context context, krb5_enctype etype)
 	if (*ptr == etype)
 	    ret = 1;
 
+    krb5_free_ktypes (context, list);
+
+    return(ret);
+}
+
+/* The same as krb5_is_permitted_enctype, but verifies multiple etype's
+ * Returns 0 is either the list of the permitted enc types is not available
+ * or all requested etypes are not permitted. Otherwise returns 1.
+ */
+
+krb5_boolean
+krb5_is_permitted_enctype_ext ( krb5_context context,
+                                krb5_etypes_permitted *etypes)
+{
+    krb5_enctype *list, *ptr;
+    krb5_boolean ret = 0;
+    int i = 0;
+
+    if (krb5_get_permitted_enctypes(context, &list))
+        return(0);
+
+    for ( i=0; i< etypes->etype_count; i++ )
+    {
+        for (ptr = list; *ptr; ptr++)
+        {
+            if (*ptr == etypes->etype[i])
+            {
+                etypes->etype_ok[i] =  TRUE;
+                ret = 1;
+            }
+        }
+    }
     krb5_free_ktypes (context, list);
 
     return(ret);
@@ -530,11 +568,11 @@ krb5_copy_context(krb5_context ctx, krb5_context *nctx_out)
     nctx->tgs_ktype_count = 0;
     nctx->default_realm = NULL;
     nctx->profile = NULL;
-    nctx->db_context = NULL;
+    nctx->dal_handle = NULL;
     nctx->ser_ctx_count = 0;
     nctx->ser_ctx = NULL;
     nctx->prompt_types = NULL;
-    nctx->os_context->default_ccname = NULL;
+    nctx->os_context.default_ccname = NULL;
 
     memset(&nctx->preauth_plugins, 0, sizeof(nctx->preauth_plugins));
     nctx->preauth_context = NULL;
@@ -557,10 +595,10 @@ krb5_copy_context(krb5_context ctx, krb5_context *nctx_out)
 	goto errout;
     nctx->tgs_ktype_count = ctx->tgs_ktype_count;
 
-    if (ctx->os_context->default_ccname != NULL) {
-	nctx->os_context->default_ccname =
-	    strdup(ctx->os_context->default_ccname);
-	if (nctx->os_context->default_ccname == NULL) {
+    if (ctx->os_context.default_ccname != NULL) {
+	nctx->os_context.default_ccname =
+	    strdup(ctx->os_context.default_ccname);
+	if (nctx->os_context.default_ccname == NULL) {
 	    ret = ENOMEM;
 	    goto errout;
 	}

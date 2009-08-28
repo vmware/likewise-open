@@ -47,6 +47,7 @@
 #include <gssapi/gssapi.h>
 #include <gssapi/gssapi_generic.h>
 #endif
+#include "k5-platform.h"	/* SIZE_MAX */
 
 #ifdef DEBUG_GSSAPI
 int svc_debug_gss = DEBUG_GSSAPI;
@@ -146,32 +147,6 @@ svcauth_gss_set_svc_name(gss_name_t name)
 		return (FALSE);
 	}
 
-	return (TRUE);
-}
-
-static bool_t
-svcauth_gss_import_name(char *service)
-{
-	gss_name_t	name;
-	gss_buffer_desc	namebuf;
-	OM_uint32	maj_stat, min_stat;
-
-	log_debug("in svcauth_gss_import_name()");
-
-	namebuf.value = service;
-	namebuf.length = strlen(service);
-
-	maj_stat = gss_import_name(&min_stat, &namebuf,
-				   (gss_OID)gss_nt_service_name, &name);
-
-	if (maj_stat != GSS_S_COMPLETE) {
-		log_status("gss_import_name", maj_stat, min_stat);
-		return (FALSE);
-	}
-	if (svcauth_gss_set_svc_name(name) != TRUE) {
-		gss_release_name(&min_stat, &name);
-		return (FALSE);
-	}
 	return (TRUE);
 }
 
@@ -671,7 +646,7 @@ svcauth_gss_get_principal(SVCAUTH *auth)
 
 	gd = SVCAUTH_PRIVATE(auth);
 
-	if (gd->cname.length == 0)
+	if (gd->cname.length == 0 || gd->cname.length >= SIZE_MAX)
 		return (NULL);
 
 	if ((pname = malloc(gd->cname.length + 1)) == NULL)

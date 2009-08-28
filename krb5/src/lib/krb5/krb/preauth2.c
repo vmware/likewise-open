@@ -1,5 +1,5 @@
 /*
- * Copyright 1995, 2003 by the Massachusetts Institute of Technology.  All
+ * Copyright 1995, 2003, 2008 by the Massachusetts Institute of Technology.  All
  * Rights Reserved.
  *
  * Export of this software from the United States of America may
@@ -30,9 +30,14 @@
  */
 
 #include "k5-int.h"
+#if APPLE_PKINIT
+#include "pkinit_client.h"
+#include "pkinit_cert_store.h"
+#endif /* APPLE_PKINIT */
 #include "osconf.h"
 #include <krb5/preauth_plugin.h>
 #include "int-proto.h"
+#include "fast.h"
 
 #if !defined(_WIN32)
 #include <unistd.h>
@@ -123,13 +128,12 @@ krb5_init_preauth_context(krb5_context kcontext)
 	krb5int_free_plugin_dir_data(tables);
         return;
     }
-    context->modules = malloc(sizeof(context->modules[0]) * n_modules);
+    context->modules = calloc(n_modules, sizeof(context->modules[0]));
     if (context->modules == NULL) {
 	krb5int_free_plugin_dir_data(tables);
         free(context);
         return;
     }
-    memset(context->modules, 0, sizeof(context->modules[0]) * n_modules);
     context->n_modules = n_modules;
 
     /* fill in the structure */
@@ -226,7 +230,7 @@ krb5_preauth_supply_preauth_data(krb5_context context,
 				 const char *attr,
 				 const char *value)
 {
-    krb5_error_code retval;
+    krb5_error_code retval = 0;
     int i;
     void *pctx;
     const char *emsg = NULL;
@@ -270,7 +274,7 @@ krb5_free_preauth_context(krb5_context context)
 {
     int i;
     void *pctx;
-    if (context->preauth_context != NULL) {
+    if (context && context->preauth_context != NULL) {
 	for (i = 0; i < context->preauth_context->n_modules; i++) {
 	    pctx = context->preauth_context->modules[i].plugin_context;
 	    if (context->preauth_context->modules[i].client_fini != NULL) {
@@ -416,6 +420,7 @@ client_data_proc(krb5_context kcontext,
 		 krb5_data **retdata)
 {
     krb5_data *ret;
+    krb5_error_code retval;
     char *data;
 
     if (rock->magic != CLIENT_ROCK_MAGIC)
@@ -427,8 +432,6 @@ client_data_proc(krb5_context kcontext,
     case krb5plugin_preauth_client_get_etype:
 	{
 	    krb5_enctype *eptr;
-	    if (rock->as_reply == NULL)
-		return ENOENT;
 	    ret = malloc(sizeof(krb5_data));
 	    if (ret == NULL)
 		return ENOMEM;
@@ -440,7 +443,7 @@ client_data_proc(krb5_context kcontext,
 	    ret->data = data;
 	    ret->length = sizeof(krb5_enctype);
 	    eptr = (krb5_enctype *)data;
-	    *eptr = rock->as_reply->enc_part.enctype;
+	    *eptr = *rock->etype;
 	    *retdata = ret;
 	    return 0;
 	}
@@ -454,7 +457,38 @@ client_data_proc(krb5_context kcontext,
 	free(ret);
 	return 0;
 	break;
-    default:
+    case krb5plugin_preauth_client_fast_armor: {
+	krb5_keyblock *key = NULL;
+	ret = calloc(1, sizeof(krb5_data));
+	if (ret == NULL)
+	    return ENOMEM;
+	retval = 0;
+	if (rock->fast_state->armor_key)
+	    retval = krb5_copy_keyblock(kcontext, rock->fast_state->armor_key,
+					&key);
+	if (retval == 0) {
+	    ret->data = (char *) key;
+	    ret->length = key?sizeof(krb5_keyblock):0;
+	    key = NULL;
+	}
+	if (retval == 0) {
+	    *retdata = ret;
+	    ret = NULL;
+	}
+	if (ret)
+	    free(ret);
+	return retval;
+    }
+    case krb5plugin_preauth_client_free_fast_armor:
+	ret = *retdata;
+	if (ret) {
+	    if (ret->data)
+		krb5_free_keyblock(kcontext, (krb5_keyblock *) ret->data);
+	    free(ret);
+	    *retdata = NULL;
+	}
+	return 0;
+		default:
 	return EINVAL;
     }
 }
@@ -578,6 +612,16 @@ krb5_run_preauth_plugins(krb5_context kcontext,
     return 0;
 }
 
+static inline krb5_data
+padata2data(krb5_pa_data p)
+{
+    krb5_data d;
+    d.magic = KV5M_DATA;
+    d.length = p.length;
+    d.data = (char *) p.contents;
+    return d;
+}
+
 static
 krb5_error_code pa_salt(krb5_context context,
 			krb5_kdc_req *request,
@@ -591,16 +635,44 @@ krb5_error_code pa_salt(krb5_context context,
 {
     krb5_data tmp;
 
-    tmp.data = in_padata->contents;
-    tmp.length = in_padata->length;
+    tmp = padata2data(*in_padata);
     krb5_free_data_contents(context, salt);
     krb5int_copy_data_contents(context, &tmp, salt);
-    
 
     if (in_padata->pa_type == KRB5_PADATA_AFS3_SALT)
 	salt->length = SALT_TYPE_AFS_LENGTH;
 
     return(0);
+}
+
+static
+krb5_error_code pa_fx_cookie(krb5_context context,
+				 krb5_kdc_req *request,
+				 krb5_pa_data *in_padata,
+				 krb5_pa_data **out_padata,
+				 krb5_data *salt,
+				 krb5_data *s2kparams,
+				 krb5_enctype *etype,
+				 krb5_keyblock *as_key,
+				 krb5_prompter_fct prompter,
+				 void *prompter_data,
+				 krb5_gic_get_as_key_fct gak_fct,
+				 void *gak_data)
+{
+    krb5_pa_data *pa = calloc(1, sizeof(krb5_pa_data));
+    krb5_octet *contents;
+    if (pa == NULL)
+	return ENOMEM;
+    contents = malloc(in_padata->length);
+    if (contents == NULL) {
+	free(pa);
+	return ENOMEM;
+    }
+    *pa = *in_padata;
+    pa->contents = contents;
+    memcpy(contents, in_padata->contents, pa->length);
+    *out_padata = pa;
+    return 0;
 }
 
 static
@@ -665,13 +737,13 @@ krb5_error_code pa_enc_timestamp(krb5_context context,
     krb5_free_data(context, tmp);
 
     if (ret) {
-	krb5_xfree(enc_data.ciphertext.data);
+	free(enc_data.ciphertext.data);
 	return(ret);
     }
 
     ret = encode_krb5_enc_data(&enc_data, &tmp);
 
-    krb5_xfree(enc_data.ciphertext.data);
+    free(enc_data.ciphertext.data);
 
     if (ret)
 	return(ret);
@@ -688,7 +760,7 @@ krb5_error_code pa_enc_timestamp(krb5_context context,
 
     *out_padata = pa;
 
-    krb5_xfree(tmp);
+    free(tmp);
 
     return(0);
 }
@@ -781,7 +853,7 @@ krb5_error_code pa_sam(krb5_context context,
 	return(ret);
 
     if (sam_challenge->sam_flags & KRB5_SAM_MUST_PK_ENCRYPT_SAD) {
-	krb5_xfree(sam_challenge);
+	krb5_free_sam_challenge(context, sam_challenge);
 	return(KRB5_SAM_UNSUPPORTED);
     }
 
@@ -803,21 +875,21 @@ krb5_error_code pa_sam(krb5_context context,
 			prompter_data, salt, s2kparams, as_key, gak_data)))
 	   return(ret);
     }
-    sprintf(name, "%.*s",
-	    SAMDATA(sam_challenge->sam_type_name, "SAM Authentication",
-		    sizeof(name) - 1));
+    snprintf(name, sizeof(name), "%.*s",
+	     SAMDATA(sam_challenge->sam_type_name, "SAM Authentication",
+		     sizeof(name) - 1));
 
-    sprintf(banner, "%.*s",
-	    SAMDATA(sam_challenge->sam_challenge_label,
-		    sam_challenge_banner(sam_challenge->sam_type),
-		    sizeof(banner)-1));
+    snprintf(banner, sizeof(banner), "%.*s",
+	     SAMDATA(sam_challenge->sam_challenge_label,
+		     sam_challenge_banner(sam_challenge->sam_type),
+		     sizeof(banner)-1));
 
     /* sprintf(prompt, "Challenge is [%s], %s: ", challenge, prompt); */
-    sprintf(prompt, "%s%.*s%s%.*s",
-	    sam_challenge->sam_challenge.length?"Challenge is [":"",
-	    SAMDATA(sam_challenge->sam_challenge, "", 20),
-	    sam_challenge->sam_challenge.length?"], ":"",
-	    SAMDATA(sam_challenge->sam_response_prompt, "passcode", 55));
+    snprintf(prompt, sizeof(prompt), "%s%.*s%s%.*s",
+	     sam_challenge->sam_challenge.length?"Challenge is [":"",
+	     SAMDATA(sam_challenge->sam_challenge, "", 20),
+	     sam_challenge->sam_challenge.length?"], ":"",
+	     SAMDATA(sam_challenge->sam_response_prompt, "passcode", 55));
 
     response_data.data = response;
     response_data.length = sizeof(response);
@@ -831,7 +903,7 @@ krb5_error_code pa_sam(krb5_context context,
     krb5int_set_prompt_types(context, &prompt_type);
     if ((ret = ((*prompter)(context, prompter_data, name,
 			   banner, 1, &kprompt)))) {
-	krb5_xfree(sam_challenge);
+	krb5_free_sam_challenge(context, sam_challenge);
 	krb5int_set_prompt_types(context, 0);
 	return(ret);
     }
@@ -842,8 +914,8 @@ krb5_error_code pa_sam(krb5_context context,
 	if ((ret = krb5_us_timeofday(context, 
 				&enc_sam_response_enc.sam_timestamp,
 				&enc_sam_response_enc.sam_usec))) {
-		krb5_xfree(sam_challenge);
-		return(ret);
+	    krb5_free_sam_challenge(context,sam_challenge);
+	    return(ret);
 	}
 
 	sam_response.sam_patimestamp = enc_sam_response_enc.sam_timestamp;
@@ -867,7 +939,7 @@ krb5_error_code pa_sam(krb5_context context,
 	if ((salt->length == -1 || salt->length == SALT_TYPE_AFS_LENGTH) && (salt->data == NULL)) {
 	    if ((ret = krb5_principal2salt(context, request->client,
 					  &defsalt))) {
-		krb5_xfree(sam_challenge);
+		krb5_free_sam_challenge(context, sam_challenge);
 		return(ret);
 	    }
 
@@ -882,10 +954,10 @@ krb5_error_code pa_sam(krb5_context context,
 				   (krb5_data *)gak_data, salt, as_key);
 
 	if (defsalt.length)
-	    krb5_xfree(defsalt.data);
+	    free(defsalt.data);
 
 	if (ret) {
-	    krb5_xfree(sam_challenge);
+	    krb5_free_sam_challenge(context, sam_challenge);
 	    return(ret);
 	}
 
@@ -905,7 +977,7 @@ krb5_error_code pa_sam(krb5_context context,
 	if ((salt->length == SALT_TYPE_AFS_LENGTH) && (salt->data == NULL)) {
 	    if (ret = krb5_principal2salt(context, request->client,
 					  &defsalt)) {
-		krb5_xfree(sam_challenge);
+		krb5_free_sam_challenge(context, sam_challenge);
 		return(ret);
 	    }
 
@@ -926,10 +998,10 @@ krb5_error_code pa_sam(krb5_context context,
 				   &response_data, salt, as_key);
 
 	if (defsalt.length)
-	    krb5_xfree(defsalt.data);
+	    free(defsalt.data);
 
 	if (ret) {
-	    krb5_xfree(sam_challenge);
+	    krb5_free_sam_challenge(context, sam_challenge);
 	    return(ret);
 	}
 
@@ -947,7 +1019,7 @@ krb5_error_code pa_sam(krb5_context context,
     sam_response.sam_type = sam_challenge->sam_type;
     sam_response.magic = KV5M_SAM_RESPONSE;
 
-    krb5_xfree(sam_challenge);
+    krb5_free_sam_challenge(context, sam_challenge);
 
     /* encode the encoded part of the response */
     if ((ret = encode_krb5_enc_sam_response_enc(&enc_sam_response_enc,
@@ -980,8 +1052,324 @@ krb5_error_code pa_sam(krb5_context context,
 
     *out_padata = pa;
 
+    free(scratch);
+
     return(0);
 }
+
+#if APPLE_PKINIT
+/*
+ * PKINIT. One function to generate AS-REQ, one to parse AS-REP
+ */
+#define  PKINIT_DEBUG    0
+#if     PKINIT_DEBUG
+#define kdcPkinitDebug(args...)       printf(args)
+#else
+#define kdcPkinitDebug(args...)
+#endif
+
+static krb5_error_code pa_pkinit_gen_req(
+    krb5_context context,
+    krb5_kdc_req *request,
+    krb5_pa_data *in_padata,
+    krb5_pa_data **out_padata,
+    krb5_data *salt,
+    krb5_data *s2kparams,
+    krb5_enctype *etype,
+    krb5_keyblock *as_key,
+    krb5_prompter_fct prompter,
+    void *prompter_data,
+    krb5_gic_get_as_key_fct gak_fct,
+    void *gak_data)
+{
+    krb5_error_code		krtn;
+    krb5_data			out_data = {0, 0, NULL};
+    krb5_timestamp		kctime = 0;
+    krb5_int32			cusec = 0;
+    krb5_ui_4			nonce = 0;
+    krb5_checksum		cksum;
+    krb5_pkinit_signing_cert_t	client_cert;
+    krb5_data			*der_req = NULL;
+    char			*client_principal = NULL;
+    char			*server_principal = NULL;
+    unsigned char		nonce_bytes[4];
+    krb5_data			nonce_data = {0, 4, (char *)nonce_bytes};
+    int				dex;
+
+    /*
+     * Trusted CA list and specific KC cert optionally obtained via
+     * krb5_pkinit_get_server_certs(). All are DER-encoded certs.
+     */
+    krb5_data *trusted_CAs = NULL;
+    krb5_ui_4 num_trusted_CAs;
+    krb5_data kdc_cert = {0};
+
+    kdcPkinitDebug("pa_pkinit_gen_req\n");
+
+    /* If we don't have a client cert, we're done */
+    if(request->client == NULL) {
+	kdcPkinitDebug("No request->client; aborting PKINIT\n");
+	return KRB5KDC_ERR_PREAUTH_FAILED;
+    }
+    krtn = krb5_unparse_name(context, request->client, &client_principal);
+    if(krtn) {
+	return krtn;
+    }
+    krtn = krb5_pkinit_get_client_cert(client_principal, &client_cert);
+    free(client_principal);
+    if(krtn) {
+	kdcPkinitDebug("No client cert; aborting PKINIT\n");
+	return krtn;
+    }
+
+    /* optional platform-dependent CA list and KDC cert */
+    krtn = krb5_unparse_name(context, request->server, &server_principal);
+    if(krtn) {
+	goto cleanup;
+    }
+    krtn = krb5_pkinit_get_server_certs(client_principal, server_principal,
+	&trusted_CAs, &num_trusted_CAs, &kdc_cert);
+    if(krtn) {
+	goto cleanup;
+    }
+
+    /* checksum of the encoded KDC-REQ-BODY */
+    krtn = encode_krb5_kdc_req_body(request, &der_req);
+    if(krtn) {
+	kdcPkinitDebug("encode_krb5_kdc_req_body returned %d\n", (int)krtn);
+	goto cleanup;
+    }
+    krtn = krb5_c_make_checksum(context, CKSUMTYPE_NIST_SHA, NULL, 0, der_req, &cksum);
+    if(krtn) {
+	goto cleanup;
+    }
+
+    krtn = krb5_us_timeofday(context, &kctime, &cusec);
+    if(krtn) {
+	goto cleanup;
+    }
+
+    /* cook up a random 4-byte nonce */
+    krtn = krb5_c_random_make_octets(context, &nonce_data);
+    if(krtn) {
+	goto cleanup;
+    }
+    for(dex=0; dex<4; dex++) {
+	nonce <<= 8;
+	nonce |= nonce_bytes[dex];
+    }
+
+    krtn = krb5int_pkinit_as_req_create(context,
+	kctime, cusec, nonce, &cksum,
+	client_cert,
+	trusted_CAs, num_trusted_CAs,
+	(kdc_cert.data ? &kdc_cert : NULL),
+	&out_data);
+    if(krtn) {
+	kdcPkinitDebug("error %d on pkinit_as_req_create; aborting PKINIT\n", (int)krtn);
+	goto cleanup;
+    }
+    *out_padata = (krb5_pa_data *)malloc(sizeof(krb5_pa_data));
+    if(*out_padata == NULL) {
+	krtn = ENOMEM;
+	free(out_data.data);
+	goto cleanup;
+    }
+    (*out_padata)->magic = KV5M_PA_DATA;
+    (*out_padata)->pa_type = KRB5_PADATA_PK_AS_REQ;
+    (*out_padata)->length = out_data.length;
+    (*out_padata)->contents = (krb5_octet *)out_data.data;
+    krtn = 0;
+cleanup:
+    if(client_cert) {
+	krb5_pkinit_release_cert(client_cert);
+    }
+    if(cksum.contents) {
+	free(cksum.contents);
+    }
+    if (der_req) {
+	krb5_free_data(context, der_req);
+    }
+    if(server_principal) {
+	free(server_principal);
+    }
+    /* free data mallocd by krb5_pkinit_get_server_certs() */
+    if(trusted_CAs) {
+	unsigned udex;
+	for(udex=0; udex<num_trusted_CAs; udex++) {
+	    free(trusted_CAs[udex].data);
+	}
+	free(trusted_CAs);
+    }
+    if(kdc_cert.data) {
+	free(kdc_cert.data);
+    }
+    return krtn;
+
+}
+
+/* If and only if the realm is that of a Local KDC, accept
+ * the KDC certificate as valid if its hash matches the
+ * realm.
+ */
+static krb5_boolean local_kdc_cert_match(
+    krb5_context context,
+    krb5_data *signer_cert,
+    krb5_principal client)
+{
+    static const char lkdcprefix[] = "LKDC:SHA1.";
+    krb5_boolean match = FALSE;
+    size_t cert_hash_len;
+    char *cert_hash;
+    const char *realm_hash;
+    size_t realm_hash_len;
+
+    if (client->realm.length <= sizeof(lkdcprefix) ||
+        0 != memcmp(lkdcprefix, client->realm.data, sizeof(lkdcprefix)-1))
+	return match;
+    realm_hash = &client->realm.data[sizeof(lkdcprefix)-1];
+    realm_hash_len = client->realm.length - sizeof(lkdcprefix) + 1;
+    kdcPkinitDebug("checking realm versus certificate hash\n");
+    if (NULL != (cert_hash = krb5_pkinit_cert_hash_str(signer_cert))) {
+	kdcPkinitDebug("hash = %s\n", cert_hash);
+	cert_hash_len = strlen(cert_hash);
+	if (cert_hash_len == realm_hash_len &&
+	    0 == memcmp(cert_hash, realm_hash, cert_hash_len))
+	    match = TRUE;
+	free(cert_hash);
+    }
+    kdcPkinitDebug("result: %s\n", match ? "matches" : "does not match");
+    return match;
+}
+
+static krb5_error_code pa_pkinit_parse_rep(
+    krb5_context context,
+    krb5_kdc_req *request,
+    krb5_pa_data *in_padata,
+    krb5_pa_data **out_padata,
+    krb5_data *salt,
+    krb5_data *s2kparams,
+    krb5_enctype *etype,
+    krb5_keyblock *as_key,
+    krb5_prompter_fct prompter,
+    void *prompter_data,
+    krb5_gic_get_as_key_fct gak_fct,
+    void *gak_data)
+{
+    krb5int_cert_sig_status	sig_status = (krb5int_cert_sig_status)-999;
+    krb5_error_code		krtn;
+    krb5_data			asRep;
+    krb5_keyblock		local_key = {0};
+    krb5_pkinit_signing_cert_t	client_cert;
+    char			*princ_name = NULL;
+    krb5_checksum		as_req_checksum_rcd = {0};  /* received checksum */
+    krb5_checksum		as_req_checksum_gen = {0};  /* calculated checksum */
+    krb5_data			*encoded_as_req = NULL;
+    krb5_data			signer_cert = {0};
+
+    *out_padata = NULL;
+    kdcPkinitDebug("pa_pkinit_parse_rep\n");
+    if((in_padata == NULL) || (in_padata->length== 0)) {
+	kdcPkinitDebug("pa_pkinit_parse_rep: no in_padata\n");
+	return KRB5KDC_ERR_PREAUTH_FAILED;
+    }
+
+    /* If we don't have a client cert, we're done */
+    if(request->client == NULL) {
+	kdcPkinitDebug("No request->client; aborting PKINIT\n");
+	return KRB5KDC_ERR_PREAUTH_FAILED;
+    }
+    krtn = krb5_unparse_name(context, request->client, &princ_name);
+    if(krtn) {
+	return krtn;
+    }
+    krtn = krb5_pkinit_get_client_cert(princ_name, &client_cert);
+    free(princ_name);
+    if(krtn) {
+	kdcPkinitDebug("No client cert; aborting PKINIT\n");
+	return krtn;
+    }
+
+    memset(&local_key, 0, sizeof(local_key));
+    asRep.data = (char *)in_padata->contents;
+    asRep.length = in_padata->length;
+    krtn = krb5int_pkinit_as_rep_parse(context, &asRep, client_cert,
+	&local_key, &as_req_checksum_rcd, &sig_status,
+	&signer_cert, NULL, NULL);
+    if(krtn) {
+	kdcPkinitDebug("pkinit_as_rep_parse returned %d\n", (int)krtn);
+	return krtn;
+    }
+    switch(sig_status) {
+	case pki_cs_good:
+	    break;
+	case pki_cs_unknown_root:
+	    if (local_kdc_cert_match(context, &signer_cert, request->client))
+		break;
+	    /* FALLTHROUGH */
+	default:
+	    kdcPkinitDebug("pa_pkinit_parse_rep: bad cert/sig status %d\n",
+		(int)sig_status);
+	    krtn = KRB5KDC_ERR_PREAUTH_FAILED;
+	    goto error_out;
+    }
+
+    /* calculate checksum of incoming AS-REQ using the decryption key
+     * we just got from the ReplyKeyPack */
+    krtn = encode_krb5_as_req(request, &encoded_as_req);
+    if(krtn) {
+	goto error_out;
+    }
+    krtn = krb5_c_make_checksum(context, context->kdc_req_sumtype,
+	&local_key, KRB5_KEYUSAGE_TGS_REQ_AUTH_CKSUM,
+	encoded_as_req, &as_req_checksum_gen);
+    if(krtn) {
+	goto error_out;
+    }
+    if((as_req_checksum_gen.length != as_req_checksum_rcd.length) ||
+       memcmp(as_req_checksum_gen.contents,
+	      as_req_checksum_rcd.contents,
+	      as_req_checksum_gen.length)) {
+	kdcPkinitDebug("pa_pkinit_parse_rep: checksum miscompare\n");
+	krtn = KRB5KDC_ERR_PREAUTH_FAILED;
+	goto error_out;
+    }
+
+    /* We have the key; transfer to caller */
+    if (as_key->length) {
+	krb5_free_keyblock_contents(context, as_key);
+    }
+    *as_key = local_key;
+
+    #if PKINIT_DEBUG
+    fprintf(stderr, "pa_pkinit_parse_rep: SUCCESS\n");
+    fprintf(stderr, "enctype %d keylen %d keydata %02x %02x %02x %02x...\n",
+	(int)as_key->enctype, (int)as_key->length,
+	as_key->contents[0], as_key->contents[1],
+	as_key->contents[2], as_key->contents[3]);
+    #endif
+
+    krtn = 0;
+
+error_out:
+    if (signer_cert.data) {
+	    free(signer_cert.data);
+    }
+    if(as_req_checksum_rcd.contents) {
+	free(as_req_checksum_rcd.contents);
+    }
+    if(as_req_checksum_gen.contents) {
+	free(as_req_checksum_gen.contents);
+    }
+    if(encoded_as_req) {
+	krb5_free_data(context, encoded_as_req);
+    }
+    if(krtn && (local_key.contents != NULL)) {
+	krb5_free_keyblock_contents(context, &local_key);
+    }
+    return krtn;
+}
+#endif /* APPLE_PKINIT */
 
 static
 krb5_error_code pa_sam_2(krb5_context context,
@@ -1040,7 +1428,7 @@ krb5_error_code pa_sam_2(krb5_context context,
 	return(KRB5_SAM_UNSUPPORTED);
    }
 
-   if (!valid_enctype(sc2b->sam_etype)) {
+   if (!krb5_c_valid_enctype(sc2b->sam_etype)) {
 	krb5_free_sam_challenge_2(context, sc2);
 	krb5_free_sam_challenge_2_body(context, sc2b);
 	return(KRB5_SAM_INVALID_ETYPE);
@@ -1068,20 +1456,20 @@ krb5_error_code pa_sam_2(krb5_context context,
 	}
    }
 
-   sprintf(name, "%.*s",
+   snprintf(name, sizeof(name), "%.*s",
 	SAMDATA(sc2b->sam_type_name, "SAM Authentication",
 	sizeof(name) - 1));
 
-   sprintf(banner, "%.*s",
-	SAMDATA(sc2b->sam_challenge_label,
-	sam_challenge_banner(sc2b->sam_type),
-	sizeof(banner)-1));
+   snprintf(banner, sizeof(banner), "%.*s",
+	    SAMDATA(sc2b->sam_challenge_label,
+		    sam_challenge_banner(sc2b->sam_type),
+		    sizeof(banner)-1));
 
-   sprintf(prompt, "%s%.*s%s%.*s",
-	sc2b->sam_challenge.length?"Challenge is [":"",
-	SAMDATA(sc2b->sam_challenge, "", 20),
-	sc2b->sam_challenge.length?"], ":"",
-	SAMDATA(sc2b->sam_response_prompt, "passcode", 55));
+   snprintf(prompt, sizeof(prompt), "%s%.*s%s%.*s",
+	    sc2b->sam_challenge.length?"Challenge is [":"",
+	    SAMDATA(sc2b->sam_challenge, "", 20),
+	    sc2b->sam_challenge.length?"], ":"",
+	    SAMDATA(sc2b->sam_response_prompt, "passcode", 55));
 
    response_data.data = response;
    response_data.length = sizeof(response);
@@ -1131,7 +1519,7 @@ krb5_error_code pa_sam_2(krb5_context context,
 	if (retval) {
 	   krb5_free_sam_challenge_2(context, sc2);
 	   krb5_free_sam_challenge_2_body(context, sc2b);
-	   if (defsalt.length) krb5_xfree(defsalt.data);
+	   if (defsalt.length) free(defsalt.data);
 	   return(retval);
 	}
 
@@ -1145,7 +1533,7 @@ krb5_error_code pa_sam_2(krb5_context context,
 	   if (retval) {
 		krb5_free_sam_challenge_2(context, sc2);
 	        krb5_free_sam_challenge_2_body(context, sc2b);
-		if (defsalt.length) krb5_xfree(defsalt.data);
+		if (defsalt.length) free(defsalt.data);
 		return(retval);
 	   }
 
@@ -1156,14 +1544,14 @@ krb5_error_code pa_sam_2(krb5_context context,
 	   if (retval) {
 		krb5_free_sam_challenge_2(context, sc2);
 	        krb5_free_sam_challenge_2_body(context, sc2b);
-		if (defsalt.length) krb5_xfree(defsalt.data);
+		if (defsalt.length) free(defsalt.data);
 		return(retval);
 	   }
 	   krb5_free_keyblock_contents(context, &tmp_kb);
 	}
 
 	if (defsalt.length)
-	   krb5_xfree(defsalt.data);
+	   free(defsalt.data);
 
    } else {
 	/* as_key = string_to_key(SAD) */
@@ -1178,7 +1566,7 @@ krb5_error_code pa_sam_2(krb5_context context,
 				&response_data, salt, as_key);
 
 	if (defsalt.length)
-	   krb5_xfree(defsalt.data);
+	   free(defsalt.data);
 
 	if (retval) {
 	   krb5_free_sam_challenge_2(context, sc2);
@@ -1312,6 +1700,7 @@ krb5_error_code pa_sam_2(krb5_context context,
    return(0);
 }
 
+/* FIXME - order significant? */
 static const pa_types_t pa_types[] = {
     {
 	KRB5_PADATA_PW_SALT,
@@ -1323,6 +1712,18 @@ static const pa_types_t pa_types[] = {
 	pa_salt,
 	PA_INFO,
     },
+#if APPLE_PKINIT
+    {
+	KRB5_PADATA_PK_AS_REQ,
+	pa_pkinit_gen_req,
+	PA_INFO,
+    },
+    {
+	KRB5_PADATA_PK_AS_REP,
+	pa_pkinit_parse_rep,
+	PA_REAL,
+    },
+#endif /* APPLE_PKINIT */
     {
 	KRB5_PADATA_ENC_TIMESTAMP,
 	pa_enc_timestamp,
@@ -1337,6 +1738,11 @@ static const pa_types_t pa_types[] = {
 	KRB5_PADATA_SAM_CHALLENGE,
 	pa_sam,
 	PA_REAL,
+    },
+    {
+	KRB5_PADATA_FX_COOKIE,
+	pa_fx_cookie,
+	PA_INFO,
     },
     {
 	-1,
@@ -1435,7 +1841,8 @@ krb5_do_preauth(krb5_context context,
 		krb5_preauth_client_rock *get_data_rock,
 		krb5_gic_opt_ext *opte)
 {
-    int h, i, j, out_pa_list_size;
+    unsigned int h;
+    int i, j, out_pa_list_size;
     int seen_etype_info2 = 0;
     krb5_pa_data *out_pa = NULL, **out_pa_list = NULL;
     krb5_data scratch;
@@ -1522,7 +1929,7 @@ krb5_do_preauth(krb5_context context,
 			/* check if program has support for this etype for more
 			 * precise error reporting.
 			 */
-			if (valid_enctype(etype_info[l]->etype))
+			if (krb5_c_valid_enctype(etype_info[l]->etype))
 			    valid_etype_found++;
 		    }
 		}
@@ -1588,6 +1995,17 @@ krb5_do_preauth(krb5_context context,
 						   salt, s2kparams, etype, as_key,
 						   prompter, prompter_data,
 						   gak_fct, gak_data)))) {
+                        if (paorder[h] == PA_INFO) {
+#ifdef DEBUG
+                            fprintf (stderr,
+                                     "internal function for type %d, flag %d "
+                                     "failed with err %d\n",
+                                     in_padata[i]->pa_type, paorder[h], ret);
+#endif
+                            ret = 0;
+                            continue; /* PA_INFO type failed, ignore */
+                        }
+
 		      goto cleanup;
 		    }
 
@@ -1605,7 +2023,7 @@ krb5_do_preauth(krb5_context context,
 	    if (!realdone) {
 		krb5_init_preauth_context(context);
 		if (context->preauth_context != NULL) {
-		    int module_ret, module_flags;
+		    int module_ret = 0, module_flags;
 #ifdef DEBUG
 		    fprintf (stderr, "trying modules for pa_type %d, flag %d\n",
 			     in_padata[i]->pa_type, paorder[h]);

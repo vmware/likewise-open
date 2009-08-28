@@ -1,5 +1,5 @@
 /*
- * Copyright 2006 by the Massachusetts Institute of Technology.
+ * Copyright 2006, 2009 by the Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
  * Export of this software from the United States of America may
@@ -23,6 +23,11 @@
  */
 
 /*
+ * Copyright 2009 Sun Microsystems, Inc.  All rights reserved.
+ * Use is subject to license terms.
+ */
+
+/*
  * This code was based on code donated to MIT by Novell for
  * distribution under the MIT license.
  */
@@ -37,6 +42,8 @@
 #include <osconf.h>
 #include "kdb5.h"
 #include <assert.h>
+#include "kdb_log.h"
+#include "kdb5int.h"
 
 /* Currently DB2 policy related errors are exported from DAL.  But
    other databases should set_err function to return string.  */
@@ -97,6 +104,75 @@ static int
 kdb_unlock_list()
 {
     return k5_mutex_unlock(&db_lock);
+}
+
+/*
+ * XXX eventually this should be consolidated with krb5_free_key_data_contents
+ * so there is only a single version.
+ */
+void
+krb5_dbe_free_key_data_contents(krb5_context context, krb5_key_data *key)
+{
+    int i, idx;
+
+    if (key) {
+        idx = (key->key_data_ver == 1 ? 1 : 2);
+        for (i = 0; i < idx; i++) {
+            if (key->key_data_contents[i]) {
+                zap(key->key_data_contents[i], key->key_data_length[i]);
+                free(key->key_data_contents[i]);
+            }
+        }
+    }
+    return;
+}
+
+void
+krb5_dbe_free_key_list(krb5_context context, krb5_keylist_node *val)
+{
+    krb5_keylist_node *temp = val, *prev;
+
+    while (temp != NULL) {
+        prev = temp;
+        temp = temp->next;
+        krb5_free_keyblock_contents(context, &(prev->keyblock));
+        krb5_xfree(prev);
+    }
+}
+
+void
+krb5_dbe_free_actkvno_list(krb5_context context, krb5_actkvno_node *val)
+{
+    krb5_actkvno_node *temp = val, *prev;
+
+    while (temp != NULL) {
+        prev = temp;
+        temp = temp->next;
+        krb5_xfree(prev);
+    }
+}
+
+void
+krb5_dbe_free_mkey_aux_list(krb5_context context, krb5_mkey_aux_node *val)
+{
+    krb5_mkey_aux_node *temp = val, *prev;
+
+    while (temp != NULL) {
+        prev = temp;
+        temp = temp->next;
+        krb5_dbe_free_key_data_contents(context, &prev->latest_mkey);
+        krb5_xfree(prev);
+    }
+}
+
+void
+krb5_dbe_free_tl_data(krb5_context context, krb5_tl_data *tl_data)
+{
+    if (tl_data) {
+        if (tl_data->tl_data_contents)
+            free(tl_data->tl_data_contents);
+        free(tl_data);
+    }
 }
 
 #define kdb_init_lib_lock(a) 0
@@ -194,8 +270,16 @@ kdb_setup_opt_functions(db_library lib)
 	lib->vftabl.set_master_key = kdb_def_set_mkey;
     }
 
+    if (lib->vftabl.set_master_key_list == NULL) {
+	lib->vftabl.set_master_key_list = kdb_def_set_mkey_list;
+    }
+
     if (lib->vftabl.get_master_key == NULL) {
 	lib->vftabl.get_master_key = kdb_def_get_mkey;
+    }
+
+    if (lib->vftabl.get_master_key_list == NULL) {
+	lib->vftabl.get_master_key_list = kdb_def_get_mkey_list;
     }
 
     if (lib->vftabl.fetch_master_key == NULL) {
@@ -204,6 +288,14 @@ kdb_setup_opt_functions(db_library lib)
 
     if (lib->vftabl.verify_master_key == NULL) {
 	lib->vftabl.verify_master_key = krb5_def_verify_master_key;
+    }
+
+    if (lib->vftabl.fetch_master_key_list == NULL) {
+	lib->vftabl.fetch_master_key_list = krb5_def_fetch_mkey_list;
+    }
+
+    if (lib->vftabl.store_master_key_list == NULL) {
+	lib->vftabl.store_master_key_list = krb5_def_store_mkey_list;
     }
 
     if (lib->vftabl.dbe_search_enctype == NULL) {
@@ -220,6 +312,14 @@ kdb_setup_opt_functions(db_library lib)
 
     if (lib->vftabl.promote_db == NULL) {
 	lib->vftabl.promote_db = krb5_def_promote_db;
+    }
+
+    if (lib->vftabl.dbekd_decrypt_key_data == NULL) {
+	lib->vftabl.dbekd_decrypt_key_data = krb5_dbekd_def_decrypt_key_data;
+    }
+
+    if (lib->vftabl.dbekd_encrypt_key_data == NULL) {
+	lib->vftabl.dbekd_encrypt_key_data = krb5_dbekd_def_encrypt_key_data;
     }
 }
 
@@ -250,7 +350,7 @@ kdb_load_library(krb5_context kcontext, char *lib_name, db_library * lib)
 	goto clean_n_exit;
     }
 
-    strcpy((*lib)->name, lib_name);
+    strlcpy((*lib)->name, lib_name, sizeof((*lib)->name));
 
 #if !defined(KDB5_USE_LIB_KDB_DB2) && !defined(KDB5_USE_LIB_TEST)
 #error No database module defined
@@ -269,8 +369,9 @@ kdb_load_library(krb5_context kcontext, char *lib_name, db_library * lib)
     } else
 #endif
     {
-	sprintf(buf, "Program not built to support %s database type\n",
-		lib_name);
+	snprintf(buf, sizeof(buf),
+		 "Program not built to support %s database type\n",
+		 lib_name);
 	status = KRB5_KDB_DBTYPE_NOSUP;
 	krb5_db_set_err(kcontext, krb5_err_have_str, status, buf);
 	goto clean_n_exit;
@@ -282,8 +383,9 @@ kdb_load_library(krb5_context kcontext, char *lib_name, db_library * lib)
 
     if ((status = (*lib)->vftabl.init_library())) {
 	/* ERROR. library not initialized cleanly */
-	sprintf(buf, "%s library initialization failed, error code %ld\n",
-		lib_name, status);
+	snprintf(buf, sizeof(buf),
+		 "%s library initialization failed, error code %ld\n",
+		 lib_name, status);
 	status = KRB5_KDB_DBTYPE_INIT;
 	krb5_db_set_err(kcontext, krb5_err_have_str, status, buf);
 	goto clean_n_exit;
@@ -313,7 +415,7 @@ kdb_load_library(krb5_context kcontext, char *lib_name, db_library * lib)
        When it's static, it goes into ".picdata", which is
        read-write.  */
     static const char *const dbpath_names[] = {
-	KDB_MODULE_SECTION, "db_module_dir", NULL,
+	KDB_MODULE_SECTION, KRB5_CONF_DB_MODULE_DIR, NULL,
     };
     const char *filebases[2];
     char **profpath = NULL;
@@ -338,7 +440,7 @@ kdb_load_library(krb5_context kcontext, char *lib_name, db_library * lib)
 	goto clean_n_exit;
     }
 
-    strcpy((*lib)->name, lib_name);
+    strlcpy((*lib)->name, lib_name, sizeof((*lib)->name));
 
     /* Fetch the list of directories specified in the config
        file(s) first.  */
@@ -352,7 +454,7 @@ kdb_load_library(krb5_context kcontext, char *lib_name, db_library * lib)
 
     path = calloc(ndx + db_dl_n_locations, sizeof (char *));
     if (path == NULL) {
-	status = errno;
+	status = ENOMEM;
 	goto clean_n_exit;
     }
     if (ndx)
@@ -363,7 +465,7 @@ kdb_load_library(krb5_context kcontext, char *lib_name, db_library * lib)
     if ((status = krb5int_open_plugin_dirs ((const char **) path, 
                                             filebases, 
                                             &(*lib)->dl_dir_handle, &kcontext->err))) {
-        char *err_str = krb5_get_error_message(kcontext, status);
+	const char *err_str = krb5_get_error_message(kcontext, status);
 	status = KRB5_KDB_DBTYPE_NOTFOUND;
 	krb5_set_error_message (kcontext, status,
 				"Unable to find requested database type: %s", err_str);
@@ -373,7 +475,7 @@ kdb_load_library(krb5_context kcontext, char *lib_name, db_library * lib)
 
     if ((status = krb5int_get_plugin_dir_data (&(*lib)->dl_dir_handle, "kdb_function_table",
                                                &vftabl_addrs, &kcontext->err))) {
-        char *err_str = krb5_get_error_message(kcontext, status);
+        const char *err_str = krb5_get_error_message(kcontext, status);
         status = KRB5_KDB_DBTYPE_INIT;
         krb5_set_error_message (kcontext, status,
                                 "plugin symbol 'kdb_function_table' lookup failed: %s", err_str);
@@ -514,8 +616,8 @@ kdb_free_library(db_library lib)
     return status;
 }
 
-static krb5_error_code
-kdb_setup_lib_handle(krb5_context kcontext)
+krb5_error_code
+krb5_db_setup_lib_handle(krb5_context kcontext)
 {
     char   *library = NULL;
     krb5_error_code status = 0;
@@ -540,7 +642,7 @@ kdb_setup_lib_handle(krb5_context kcontext)
     }
 
     dal_handle->lib_handle = lib;
-    kcontext->db_context = (void *) dal_handle;
+    kcontext->dal_handle = dal_handle;
 
   clean_n_exit:
     free(library);
@@ -560,15 +662,13 @@ kdb_free_lib_handle(krb5_context kcontext)
 {
     krb5_error_code status = 0;
 
-    status =
-	kdb_free_library(((kdb5_dal_handle *) kcontext->db_context)->
-			 lib_handle);
+    status = kdb_free_library(kcontext->dal_handle->lib_handle);
     if (status) {
 	goto clean_n_exit;
     }
 
-    free(kcontext->db_context);
-    kcontext->db_context = NULL;
+    free(kcontext->dal_handle);
+    kcontext->dal_handle = NULL;
 
   clean_n_exit:
     return status;
@@ -583,8 +683,8 @@ get_errmsg (krb5_context kcontext, krb5_error_code err_code)
 	return;
     assert(kcontext != NULL);
     /* Must be called with dal_handle->lib_handle locked!  */
-    assert(kcontext->db_context != NULL);
-    dal_handle = (kdb5_dal_handle *) kcontext->db_context;
+    assert(kcontext->dal_handle != NULL);
+    dal_handle = kcontext->dal_handle;
     if (dal_handle->lib_handle->vftabl.errcode_2_string == NULL)
 	return;
     e = dal_handle->lib_handle->vftabl.errcode_2_string(kcontext, err_code);
@@ -613,14 +713,14 @@ krb5_db_open(krb5_context kcontext, char **db_args, int mode)
 	goto clean_n_exit;
     }
 
-    if (kcontext->db_context == NULL) {
-	status = kdb_setup_lib_handle(kcontext);
+    if (kcontext->dal_handle == NULL) {
+	status = krb5_db_setup_lib_handle(kcontext);
 	if (status) {
 	    goto clean_n_exit;
 	}
     }
 
-    dal_handle = (kdb5_dal_handle *) kcontext->db_context;
+    dal_handle = kcontext->dal_handle;
     status = kdb_lock_lib_lock(dal_handle->lib_handle, FALSE);
     if (status) {
 	goto clean_n_exit;
@@ -642,8 +742,8 @@ krb5_db_open(krb5_context kcontext, char **db_args, int mode)
 krb5_error_code
 krb5_db_inited(krb5_context kcontext)
 {
-    return !(kcontext && kcontext->db_context &&
-	     ((kdb5_dal_handle *) kcontext->db_context)->db_context);
+    return !(kcontext && kcontext->dal_handle &&
+	     kcontext->dal_handle->db_context);
 }
 
 krb5_error_code
@@ -662,14 +762,14 @@ krb5_db_create(krb5_context kcontext, char **db_args)
 	goto clean_n_exit;
     }
 
-    if (kcontext->db_context == NULL) {
-	status = kdb_setup_lib_handle(kcontext);
+    if (kcontext->dal_handle == NULL) {
+	status = krb5_db_setup_lib_handle(kcontext);
 	if (status) {
 	    goto clean_n_exit;
 	}
     }
 
-    dal_handle = (kdb5_dal_handle *) kcontext->db_context;
+    dal_handle = kcontext->dal_handle;
     status = kdb_lock_lib_lock(dal_handle->lib_handle, FALSE);
     if (status) {
 	goto clean_n_exit;
@@ -693,12 +793,12 @@ krb5_db_fini(krb5_context kcontext)
     krb5_error_code status = 0;
     kdb5_dal_handle *dal_handle;
 
-    if (kcontext->db_context == NULL) {
+    if (kcontext->dal_handle == NULL) {
 	/* module not loaded. So nothing to be done */
 	goto clean_n_exit;
     }
 
-    dal_handle = (kdb5_dal_handle *) kcontext->db_context;
+    dal_handle = kcontext->dal_handle;
     status = kdb_lock_lib_lock(dal_handle->lib_handle, FALSE);
     if (status) {
 	goto clean_n_exit;
@@ -735,14 +835,14 @@ krb5_db_destroy(krb5_context kcontext, char **db_args)
 	goto clean_n_exit;
     }
 
-    if (kcontext->db_context == NULL) {
-	status = kdb_setup_lib_handle(kcontext);
+    if (kcontext->dal_handle == NULL) {
+	status = krb5_db_setup_lib_handle(kcontext);
 	if (status) {
 	    goto clean_n_exit;
 	}
     }
 
-    dal_handle = (kdb5_dal_handle *) kcontext->db_context;
+    dal_handle = kcontext->dal_handle;
     status = kdb_lock_lib_lock(dal_handle->lib_handle, FALSE);
     if (status) {
 	goto clean_n_exit;
@@ -765,14 +865,14 @@ krb5_db_get_age(krb5_context kcontext, char *db_name, time_t * t)
     krb5_error_code status = 0;
     kdb5_dal_handle *dal_handle;
 
-    if (kcontext->db_context == NULL) {
-	status = kdb_setup_lib_handle(kcontext);
+    if (kcontext->dal_handle == NULL) {
+	status = krb5_db_setup_lib_handle(kcontext);
 	if (status) {
 	    goto clean_n_exit;
 	}
     }
 
-    dal_handle = (kdb5_dal_handle *) kcontext->db_context;
+    dal_handle = kcontext->dal_handle;
     status = kdb_lock_lib_lock(dal_handle->lib_handle, FALSE);
     if (status) {
 	goto clean_n_exit;
@@ -792,14 +892,14 @@ krb5_db_set_option(krb5_context kcontext, int option, void *value)
     krb5_error_code status = 0;
     kdb5_dal_handle *dal_handle;
 
-    if (kcontext->db_context == NULL) {
-	status = kdb_setup_lib_handle(kcontext);
+    if (kcontext->dal_handle == NULL) {
+	status = krb5_db_setup_lib_handle(kcontext);
 	if (status) {
 	    goto clean_n_exit;
 	}
     }
 
-    dal_handle = (kdb5_dal_handle *) kcontext->db_context;
+    dal_handle = kcontext->dal_handle;
     status = kdb_lock_lib_lock(dal_handle->lib_handle, FALSE);
     if (status) {
 	goto clean_n_exit;
@@ -820,14 +920,14 @@ krb5_db_lock(krb5_context kcontext, int lock_mode)
     krb5_error_code status = 0;
     kdb5_dal_handle *dal_handle;
 
-    if (kcontext->db_context == NULL) {
-	status = kdb_setup_lib_handle(kcontext);
+    if (kcontext->dal_handle == NULL) {
+	status = krb5_db_setup_lib_handle(kcontext);
 	if (status) {
 	    goto clean_n_exit;
 	}
     }
 
-    dal_handle = (kdb5_dal_handle *) kcontext->db_context;
+    dal_handle = kcontext->dal_handle;
     /* acquire an exclusive lock, ensures no other thread uses this context */
     status = kdb_lock_lib_lock(dal_handle->lib_handle, TRUE);
     if (status) {
@@ -850,14 +950,14 @@ krb5_db_unlock(krb5_context kcontext)
     krb5_error_code status = 0;
     kdb5_dal_handle *dal_handle;
 
-    if (kcontext->db_context == NULL) {
-	status = kdb_setup_lib_handle(kcontext);
+    if (kcontext->dal_handle == NULL) {
+	status = krb5_db_setup_lib_handle(kcontext);
 	if (status) {
 	    goto clean_n_exit;
 	}
     }
 
-    dal_handle = (kdb5_dal_handle *) kcontext->db_context;
+    dal_handle = kcontext->dal_handle;
     /* normal lock acquired and exclusive lock released */
     status = kdb_lock_lib_lock(dal_handle->lib_handle, FALSE);
     if (status) {
@@ -882,14 +982,48 @@ krb5_db_get_principal(krb5_context kcontext,
     krb5_error_code status = 0;
     kdb5_dal_handle *dal_handle;
 
-    if (kcontext->db_context == NULL) {
-	status = kdb_setup_lib_handle(kcontext);
+    if (kcontext->dal_handle == NULL) {
+	status = krb5_db_setup_lib_handle(kcontext);
 	if (status) {
 	    goto clean_n_exit;
 	}
     }
 
-    dal_handle = (kdb5_dal_handle *) kcontext->db_context;
+    dal_handle = kcontext->dal_handle;
+    status = kdb_lock_lib_lock(dal_handle->lib_handle, FALSE);
+    if (status) {
+	goto clean_n_exit;
+    }
+
+    status =
+	dal_handle->lib_handle->vftabl.db_get_principal(kcontext, search_for, 0,
+							entries, nentries,
+							more);
+    get_errmsg(kcontext, status);
+    kdb_unlock_lib_lock(dal_handle->lib_handle, FALSE);
+
+  clean_n_exit:
+    return status;
+}
+
+krb5_error_code
+krb5_db_get_principal_ext(krb5_context kcontext,
+			  krb5_const_principal search_for,
+			  unsigned int flags,
+			  krb5_db_entry * entries,
+			  int *nentries, krb5_boolean * more)
+{
+    krb5_error_code status = 0;
+    kdb5_dal_handle *dal_handle;
+
+    if (kcontext->dal_handle == NULL) {
+	status = krb5_db_setup_lib_handle(kcontext);
+	if (status) {
+	    goto clean_n_exit;
+	}
+    }
+
+    dal_handle = kcontext->dal_handle;
     status = kdb_lock_lib_lock(dal_handle->lib_handle, FALSE);
     if (status) {
 	goto clean_n_exit;
@@ -897,9 +1031,9 @@ krb5_db_get_principal(krb5_context kcontext,
 
     status =
 	dal_handle->lib_handle->vftabl.db_get_principal(kcontext, search_for,
+							flags,
 							entries, nentries,
 							more);
-    get_errmsg(kcontext, status);
     kdb_unlock_lib_lock(dal_handle->lib_handle, FALSE);
 
   clean_n_exit:
@@ -912,14 +1046,14 @@ krb5_db_free_principal(krb5_context kcontext, krb5_db_entry * entry, int count)
     krb5_error_code status = 0;
     kdb5_dal_handle *dal_handle;
 
-    if (kcontext->db_context == NULL) {
-	status = kdb_setup_lib_handle(kcontext);
+    if (kcontext->dal_handle == NULL) {
+	status = krb5_db_setup_lib_handle(kcontext);
 	if (status) {
 	    goto clean_n_exit;
 	}
     }
 
-    dal_handle = (kdb5_dal_handle *) kcontext->db_context;
+    dal_handle = kcontext->dal_handle;
     status = kdb_lock_lib_lock(dal_handle->lib_handle, FALSE);
     if (status) {
 	goto clean_n_exit;
@@ -935,29 +1069,35 @@ krb5_db_free_principal(krb5_context kcontext, krb5_db_entry * entry, int count)
     return status;
 }
 
-krb5_error_code
-krb5_db_put_principal(krb5_context kcontext,
-		      krb5_db_entry * entries, int *nentries)
+static void
+free_db_args(krb5_context kcontext, char **db_args)
 {
-    krb5_error_code status = 0;
-    kdb5_dal_handle *dal_handle;
-    char  **db_args = NULL;
-    krb5_tl_data *prev, *curr, *next;
-    int     db_args_size = 0;
-
-    if (kcontext->db_context == NULL) {
-	status = kdb_setup_lib_handle(kcontext);
-	if (status) {
-	    goto clean_n_exit;
-	}
+    int i;
+    if (db_args) {
+	/* XXX Is this right?  Or are we borrowing storage from
+	   the caller?  */
+	for (i = 0; db_args[i]; i++)
+	    krb5_db_free(kcontext, db_args[i]);
+	free(db_args);
     }
+}
 
-    /* Giving db_args as part of tl data causes, db2 to store the
+static krb5_error_code
+extract_db_args_from_tl_data(krb5_context kcontext,
+			     krb5_tl_data **start, krb5_int16 *count,
+			     char ***db_argsp)
+{
+    char **db_args = NULL;
+    int db_args_size = 0;
+    krb5_tl_data *prev, *curr, *next;
+    krb5_error_code status;
+
+    /* Giving db_args as part of tl data causes db2 to store the
        tl_data as such.  To prevent this, tl_data is collated and
-       passed as a sepearte argument. Currently supports only one
-       principal.  but passing it as a seperate argument makes it
+       passed as a separate argument.  Currently supports only one
+       principal, but passing it as a separate argument makes it
        difficult for kadmin remote to pass arguments to server.  */
-    prev = NULL, curr = entries->tl_data;
+    prev = NULL, curr = *start;
     while (curr) {
 	if (curr->tl_data_type == KRB5_TL_DB_ARGS) {
 	    char  **t;
@@ -966,7 +1106,7 @@ krb5_db_put_principal(krb5_context kcontext,
 	       passing it to db.  */
 	    if (((char *) curr->tl_data_contents)[curr->tl_data_length - 1] !=
 		'\0') {
-		/* not null terminated. Dangerous input */
+		/* Not null terminated. Dangerous input.  */
 		status = EINVAL;
 		goto clean_n_exit;
 	    }
@@ -985,11 +1125,11 @@ krb5_db_put_principal(krb5_context kcontext,
 	    next = curr->tl_data_next;
 	    if (prev == NULL) {
 		/* current node is the first in the linked list. remove it */
-		entries->tl_data = curr->tl_data_next;
+		*start = curr->tl_data_next;
 	    } else {
 		prev->tl_data_next = curr->tl_data_next;
 	    }
-	    entries->n_tl_data--;
+	    (*count)--;
 	    krb5_db_free(kcontext, curr);
 
 	    /* previous does not change */
@@ -999,30 +1139,157 @@ krb5_db_put_principal(krb5_context kcontext,
 	    curr = curr->tl_data_next;
 	}
     }
+    status = 0;
+clean_n_exit:
+    if (status != 0) {
+	free_db_args(kcontext, db_args);
+	db_args = NULL;
+    }
+    *db_argsp = db_args;
+    return status;
+}
 
-    dal_handle = (kdb5_dal_handle *) kcontext->db_context;
+krb5_error_code
+krb5int_put_principal_no_log(krb5_context kcontext,
+			     krb5_db_entry *entries, int *nentries)
+{
+    kdb5_dal_handle *dal_handle;
+    krb5_error_code status;
+    char **db_args;
+
+    status = extract_db_args_from_tl_data(kcontext, &entries->tl_data,
+					  &entries->n_tl_data,
+					  &db_args);
+    if (status)
+	return status;
+    assert (kcontext->dal_handle != NULL); /* XXX */
+    dal_handle = kcontext->dal_handle;
+    /* XXX Locking?  */
+    status = dal_handle->lib_handle->vftabl.db_put_principal(kcontext, entries,
+							     nentries,
+							     db_args);
+    get_errmsg(kcontext, status);
+    free_db_args(kcontext, db_args);
+    return status;
+}
+
+krb5_error_code
+krb5_db_put_principal(krb5_context kcontext,
+		      krb5_db_entry * entries, int *nentries)
+{
+    krb5_error_code status = 0;
+    kdb5_dal_handle *dal_handle;
+    char  **db_args = NULL;
+    kdb_incr_update_t *upd, *fupd = 0;
+    char *princ_name = NULL;
+    kdb_log_context *log_ctx;
+    int i;
+    int ulog_locked = 0;
+
+    log_ctx = kcontext->kdblog_context;
+
+    if (kcontext->dal_handle == NULL) {
+	status = krb5_db_setup_lib_handle(kcontext);
+	if (status) {
+	    goto clean_n_exit;
+	}
+    }
+
+    status = extract_db_args_from_tl_data(kcontext, &entries->tl_data,
+					  &entries->n_tl_data,
+					  &db_args);
+    if (status)
+	goto clean_n_exit;
+
+    dal_handle = kcontext->dal_handle;
     status = kdb_lock_lib_lock(dal_handle->lib_handle, FALSE);
     if (status) {
 	goto clean_n_exit;
+    }
+
+    /*
+     * We need the lock since ulog_conv_2logentry() does a get
+     */
+    if (log_ctx && (log_ctx->iproprole == IPROP_MASTER)) {
+	if (!(upd = (kdb_incr_update_t *)
+	  malloc(sizeof (kdb_incr_update_t)* *nentries))) {
+	    status = errno;
+	    goto err_lock;
+	}
+	fupd = upd;
+
+	(void) memset(upd, 0, sizeof(kdb_incr_update_t)* *nentries);
+
+        if ((status = ulog_conv_2logentry(kcontext, entries, upd, *nentries))) {
+	    goto err_lock;
+	}
+    }
+
+    status = ulog_lock(kcontext, KRB5_LOCKMODE_EXCLUSIVE);
+    if (status != 0)
+	goto err_lock;
+    ulog_locked = 1;
+
+    for (i = 0; i < *nentries; i++) {
+	/*
+	 * We'll be sharing the same locks as db for logging
+	 */
+        if (fupd) {
+		if ((status = krb5_unparse_name(kcontext, entries->princ,
+		    &princ_name)))
+			goto err_lock;
+
+		upd->kdb_princ_name.utf8str_t_val = princ_name;
+		upd->kdb_princ_name.utf8str_t_len = strlen(princ_name);
+
+                if ((status = ulog_add_update(kcontext, upd)) != 0)
+			goto err_lock;
+		upd++;
+        }
     }
 
     status = dal_handle->lib_handle->vftabl.db_put_principal(kcontext, entries,
 							     nentries,
 							     db_args);
     get_errmsg(kcontext, status);
+    if (status == 0 && fupd) {
+	upd = fupd;
+	for (i = 0; i < *nentries; i++) {
+	    (void) ulog_finish_update(kcontext, upd);
+	    upd++;
+	}
+    }
+err_lock:
+    if (ulog_locked)
+	ulog_lock(kcontext, KRB5_LOCKMODE_UNLOCK);
+
     kdb_unlock_lib_lock(dal_handle->lib_handle, FALSE);
 
   clean_n_exit:
-    while (db_args_size) {
-	if (db_args[db_args_size - 1])
-	    krb5_db_free(kcontext, db_args[db_args_size - 1]);
+    free_db_args(kcontext, db_args);
 
-	db_args_size--;
-    }
+    if (log_ctx && (log_ctx->iproprole == IPROP_MASTER))
+	ulog_free_entries(fupd, *nentries);
 
-    if (db_args)
-	free(db_args);
+    return status;
+}
 
+krb5_error_code
+krb5int_delete_principal_no_log(krb5_context kcontext,
+				krb5_principal search_for,
+				int *nentries)
+{
+    kdb5_dal_handle *dal_handle;
+    krb5_error_code status;
+
+    assert (kcontext->dal_handle != NULL); /* XXX */
+
+    dal_handle = kcontext->dal_handle;
+    /* XXX Locking?  */
+    status = dal_handle->lib_handle->vftabl.db_delete_principal(kcontext,
+								 search_for,
+								 nentries);
+    get_errmsg(kcontext, status);
     return status;
 }
 
@@ -1032,25 +1299,69 @@ krb5_db_delete_principal(krb5_context kcontext,
 {
     krb5_error_code status = 0;
     kdb5_dal_handle *dal_handle;
+    kdb_incr_update_t upd;
+    char *princ_name = NULL;
+    kdb_log_context *log_ctx;
 
-    if (kcontext->db_context == NULL) {
-	status = kdb_setup_lib_handle(kcontext);
+    log_ctx = kcontext->kdblog_context;
+
+    if (kcontext->dal_handle == NULL) {
+	status = krb5_db_setup_lib_handle(kcontext);
 	if (status) {
 	    goto clean_n_exit;
 	}
     }
 
-    dal_handle = (kdb5_dal_handle *) kcontext->db_context;
+    dal_handle = kcontext->dal_handle;
     status = kdb_lock_lib_lock(dal_handle->lib_handle, FALSE);
     if (status) {
 	goto clean_n_exit;
     }
 
-    status =
-	dal_handle->lib_handle->vftabl.db_delete_principal(kcontext,
-							   search_for,
-							   nentries);
+    status = ulog_lock(kcontext, KRB5_LOCKMODE_EXCLUSIVE);
+    if (status) {
+	kdb_unlock_lib_lock(dal_handle->lib_handle, FALSE);
+	return status;
+    }
+
+    /*
+     * We'll be sharing the same locks as db for logging
+     */
+    if (log_ctx && (log_ctx->iproprole == IPROP_MASTER)) {
+	if ((status = krb5_unparse_name(kcontext, search_for, &princ_name))) {
+	    ulog_lock(kcontext, KRB5_LOCKMODE_UNLOCK);
+	    (void) kdb_unlock_lib_lock(dal_handle->lib_handle, FALSE);
+	    return status;
+	}
+
+	(void) memset(&upd, 0, sizeof (kdb_incr_update_t));
+
+	upd.kdb_princ_name.utf8str_t_val = princ_name;
+	upd.kdb_princ_name.utf8str_t_len = strlen(princ_name);
+
+	if ((status = ulog_delete_update(kcontext, &upd)) != 0) {
+		ulog_lock(kcontext, KRB5_LOCKMODE_UNLOCK);
+		free(princ_name);
+		(void) kdb_unlock_lib_lock(dal_handle->lib_handle, FALSE);
+		return status;
+	}
+
+	free(princ_name);
+    }
+
+    status = dal_handle->lib_handle->vftabl.db_delete_principal(kcontext,
+								 search_for,
+								 nentries);
     get_errmsg(kcontext, status);
+
+    /*
+     * We need to commit our update upon success
+     */
+    if (!status)
+	if (log_ctx && (log_ctx->iproprole == IPROP_MASTER))
+		(void) ulog_finish_update(kcontext, &upd);
+
+    ulog_lock(kcontext, KRB5_LOCKMODE_UNLOCK);
     kdb_unlock_lib_lock(dal_handle->lib_handle, FALSE);
 
   clean_n_exit:
@@ -1066,14 +1377,14 @@ krb5_db_iterate(krb5_context kcontext,
     krb5_error_code status = 0;
     kdb5_dal_handle *dal_handle;
 
-    if (kcontext->db_context == NULL) {
-	status = kdb_setup_lib_handle(kcontext);
+    if (kcontext->dal_handle == NULL) {
+	status = krb5_db_setup_lib_handle(kcontext);
 	if (status) {
 	    goto clean_n_exit;
 	}
     }
 
-    dal_handle = (kdb5_dal_handle *) kcontext->db_context;
+    dal_handle = kcontext->dal_handle;
     status = kdb_lock_lib_lock(dal_handle->lib_handle, FALSE);
     if (status) {
 	goto clean_n_exit;
@@ -1095,14 +1406,14 @@ krb5_supported_realms(krb5_context kcontext, char **realms)
     krb5_error_code status = 0;
     kdb5_dal_handle *dal_handle;
 
-    if (kcontext->db_context == NULL) {
-	status = kdb_setup_lib_handle(kcontext);
+    if (kcontext->dal_handle == NULL) {
+	status = krb5_db_setup_lib_handle(kcontext);
 	if (status) {
 	    goto clean_n_exit;
 	}
     }
 
-    dal_handle = (kdb5_dal_handle *) kcontext->db_context;
+    dal_handle = kcontext->dal_handle;
     status = kdb_lock_lib_lock(dal_handle->lib_handle, FALSE);
     if (status) {
 	goto clean_n_exit;
@@ -1123,14 +1434,14 @@ krb5_free_supported_realms(krb5_context kcontext, char **realms)
     krb5_error_code status = 0;
     kdb5_dal_handle *dal_handle;
 
-    if (kcontext->db_context == NULL) {
-	status = kdb_setup_lib_handle(kcontext);
+    if (kcontext->dal_handle == NULL) {
+	status = krb5_db_setup_lib_handle(kcontext);
 	if (status) {
 	    goto clean_n_exit;
 	}
     }
 
-    dal_handle = (kdb5_dal_handle *) kcontext->db_context;
+    dal_handle = kcontext->dal_handle;
     status = kdb_lock_lib_lock(dal_handle->lib_handle, FALSE);
     if (status) {
 	goto clean_n_exit;
@@ -1153,14 +1464,14 @@ krb5_db_set_master_key_ext(krb5_context kcontext,
     krb5_error_code status = 0;
     kdb5_dal_handle *dal_handle;
 
-    if (kcontext->db_context == NULL) {
-	status = kdb_setup_lib_handle(kcontext);
+    if (kcontext->dal_handle == NULL) {
+	status = krb5_db_setup_lib_handle(kcontext);
 	if (status) {
 	    goto clean_n_exit;
 	}
     }
 
-    dal_handle = (kdb5_dal_handle *) kcontext->db_context;
+    dal_handle = kcontext->dal_handle;
     status = kdb_lock_lib_lock(dal_handle->lib_handle, FALSE);
     if (status) {
 	goto clean_n_exit;
@@ -1182,25 +1493,54 @@ krb5_db_set_mkey(krb5_context context, krb5_keyblock * key)
 }
 
 krb5_error_code
+krb5_db_set_mkey_list(krb5_context kcontext,
+                      krb5_keylist_node * keylist)
+{
+    krb5_error_code status = 0;
+    kdb5_dal_handle *dal_handle;
+
+    if (kcontext->dal_handle == NULL) {
+        status = krb5_db_setup_lib_handle(kcontext);
+        if (status) {
+            goto clean_n_exit;
+        }
+    }
+
+    dal_handle = kcontext->dal_handle;
+    status = kdb_lock_lib_lock(dal_handle->lib_handle, FALSE);
+    if (status) {
+        goto clean_n_exit;
+    }
+
+    status = dal_handle->lib_handle->vftabl.set_master_key_list(kcontext, keylist);
+    get_errmsg(kcontext, status);
+
+    kdb_unlock_lib_lock(dal_handle->lib_handle, FALSE);
+
+clean_n_exit:
+    return status;
+}
+
+krb5_error_code
 krb5_db_get_mkey(krb5_context kcontext, krb5_keyblock ** key)
 {
     krb5_error_code status = 0;
     kdb5_dal_handle *dal_handle;
 
-    if (kcontext->db_context == NULL) {
-	status = kdb_setup_lib_handle(kcontext);
+    if (kcontext->dal_handle == NULL) {
+	status = krb5_db_setup_lib_handle(kcontext);
 	if (status) {
 	    goto clean_n_exit;
 	}
     }
 
-    dal_handle = (kdb5_dal_handle *) kcontext->db_context;
+    dal_handle = kcontext->dal_handle;
     status = kdb_lock_lib_lock(dal_handle->lib_handle, FALSE);
     if (status) {
 	goto clean_n_exit;
     }
 
-    /* Lets use temp key and copy it later to avoid memory problems
+    /* Let's use temp key and copy it later to avoid memory problems
        when freed by the caller.  */
     status = dal_handle->lib_handle->vftabl.get_master_key(kcontext, key);
     get_errmsg(kcontext, status);
@@ -1211,31 +1551,152 @@ krb5_db_get_mkey(krb5_context kcontext, krb5_keyblock ** key)
 }
 
 krb5_error_code
+krb5_db_get_mkey_list(krb5_context kcontext, krb5_keylist_node ** keylist)
+{
+    krb5_error_code status = 0;
+    kdb5_dal_handle *dal_handle;
+
+    if (kcontext->dal_handle == NULL) {
+        status = krb5_db_setup_lib_handle(kcontext);
+        if (status) {
+            goto clean_n_exit;
+        }
+    }
+
+    dal_handle = kcontext->dal_handle;
+    status = kdb_lock_lib_lock(dal_handle->lib_handle, FALSE);
+    if (status) {
+        goto clean_n_exit;
+    }
+
+    /* Let's use temp key and copy it later to avoid memory problems
+       when freed by the caller.  */
+    status = dal_handle->lib_handle->vftabl.get_master_key_list(kcontext, keylist);
+    get_errmsg(kcontext, status);
+    kdb_unlock_lib_lock(dal_handle->lib_handle, FALSE);
+
+clean_n_exit:
+    return status;
+}
+
+krb5_error_code
+krb5_db_fetch_mkey_list(krb5_context     context,
+                   krb5_principal        mname,
+                   const krb5_keyblock * mkey,
+                   krb5_kvno             mkvno,
+                   krb5_keylist_node  **mkey_list)
+{
+    kdb5_dal_handle *dal_handle;
+    krb5_error_code status = 0;
+
+    if (context->dal_handle == NULL) {
+        status = krb5_db_setup_lib_handle(context);
+        if (status) {
+            goto clean_n_exit;
+        }
+    }
+
+    dal_handle = context->dal_handle;
+    status = kdb_lock_lib_lock(dal_handle->lib_handle, FALSE);
+    if (status) {
+        goto clean_n_exit;
+    }
+
+    status = dal_handle->lib_handle->vftabl.fetch_master_key_list(context,
+        mname,
+        mkey,
+        mkvno,
+        mkey_list);
+    get_errmsg(context, status);
+    kdb_unlock_lib_lock(dal_handle->lib_handle, FALSE);
+
+    if (status) {
+        goto clean_n_exit;
+    }
+
+clean_n_exit:
+    return status;
+}
+
+krb5_error_code
+krb5_db_free_mkey_list(krb5_context    context,
+                       krb5_keylist_node  *mkey_list)
+{
+    krb5_keylist_node *cur, *prev;
+
+    for (cur = mkey_list; cur != NULL;) {
+        prev = cur;
+        cur = cur->next;
+        krb5_free_keyblock_contents(context, &prev->keyblock);
+        krb5_xfree(prev);
+    }
+
+    return 0;
+}
+
+krb5_error_code
 krb5_db_store_master_key(krb5_context kcontext,
-			 char *db_arg,
+			 char *keyfile,
 			 krb5_principal mname,
+			 krb5_kvno kvno,
 			 krb5_keyblock * key, char *master_pwd)
 {
     krb5_error_code status = 0;
     kdb5_dal_handle *dal_handle;
 
-    if (kcontext->db_context == NULL) {
-	status = kdb_setup_lib_handle(kcontext);
+    if (kcontext->dal_handle == NULL) {
+	status = krb5_db_setup_lib_handle(kcontext);
 	if (status) {
 	    goto clean_n_exit;
 	}
     }
 
-    dal_handle = (kdb5_dal_handle *) kcontext->db_context;
+    dal_handle = kcontext->dal_handle;
     status = kdb_lock_lib_lock(dal_handle->lib_handle, FALSE);
     if (status) {
 	goto clean_n_exit;
     }
 
     status = dal_handle->lib_handle->vftabl.store_master_key(kcontext,
-							     db_arg,
+							     keyfile,
 							     mname,
+							     kvno,
 							     key, master_pwd);
+    get_errmsg(kcontext, status);
+    kdb_unlock_lib_lock(dal_handle->lib_handle, FALSE);
+
+  clean_n_exit:
+    return status;
+}
+
+krb5_error_code
+krb5_db_store_master_key_list(krb5_context kcontext,
+			      char *keyfile,
+			      krb5_principal mname,
+			      krb5_keylist_node *keylist,
+			      char *master_pwd)
+{
+    krb5_error_code status = 0;
+    kdb5_dal_handle *dal_handle;
+
+    if (kcontext->dal_handle == NULL) {
+	status = krb5_db_setup_lib_handle(kcontext);
+	if (status) {
+	    goto clean_n_exit;
+	}
+    }
+
+    dal_handle = kcontext->dal_handle;
+    status = kdb_lock_lib_lock(dal_handle->lib_handle, FALSE);
+    if (status) {
+	goto clean_n_exit;
+    }
+
+    status = dal_handle->lib_handle->vftabl.store_master_key_list(kcontext,
+								  keyfile,
+								  mname,
+								  keylist,
+								  master_pwd);
     get_errmsg(kcontext, status);
     kdb_unlock_lib_lock(dal_handle->lib_handle, FALSE);
 
@@ -1247,18 +1708,20 @@ char   *krb5_mkey_pwd_prompt1 = KRB5_KDC_MKEY_1;
 char   *krb5_mkey_pwd_prompt2 = KRB5_KDC_MKEY_2;
 
 krb5_error_code
-krb5_db_fetch_mkey(krb5_context context,
-		   krb5_principal mname,
-		   krb5_enctype etype,
-		   krb5_boolean fromkeyboard,
-		   krb5_boolean twice,
-		   char *db_args, krb5_data * salt, krb5_keyblock * key)
+krb5_db_fetch_mkey(krb5_context    context,
+                   krb5_principal  mname,
+                   krb5_enctype    etype,
+                   krb5_boolean    fromkeyboard,
+                   krb5_boolean    twice,
+                   char          * db_args,
+                   krb5_kvno     * kvno,
+                   krb5_data     * salt,
+                   krb5_keyblock * key)
 {
     krb5_error_code retval;
     char    password[BUFSIZ];
     krb5_data pwd;
     unsigned int size = sizeof(password);
-    int     kvno;
     krb5_keyblock tmp_key;
 
     memset(&tmp_key, 0, sizeof(tmp_key));
@@ -1282,32 +1745,58 @@ krb5_db_fetch_mkey(krb5_context context,
 	retval =
 	    krb5_c_string_to_key(context, etype, &pwd, salt ? salt : &scratch,
 				 key);
+        /*
+         * If a kvno pointer was passed in and it dereferences the IGNORE_VNO
+         * value then it should be assigned the value of the kvno associated
+         * with the current mkey princ key if that princ entry is available
+         * otherwise assign 1 which is the default kvno value for the mkey
+         * princ.
+         */
+        if (kvno != NULL && *kvno == IGNORE_VNO) {
+            int nentries = 1;
+            krb5_boolean more;
+            krb5_error_code rc;
+            krb5_db_entry master_entry;
+
+            rc = krb5_db_get_principal(context, mname,
+                &master_entry, &nentries, &more);
+
+            if (rc == 0 && nentries == 1 && more == FALSE)
+                *kvno = (krb5_kvno) master_entry.key_data->key_data_kvno;
+            else
+                *kvno = 1;
+
+            if (rc == 0 && nentries)
+                krb5_db_free_principal(context, &master_entry, nentries);
+        }
 
 	if (!salt)
-	    krb5_xfree(scratch.data);
-	memset(password, 0, sizeof(password));	/* erase it */
+	    free(scratch.data);
+	zap(password, sizeof(password));	/* erase it */
 
     } else {
 	kdb5_dal_handle *dal_handle;
 
-	if (context->db_context == NULL) {
-	    retval = kdb_setup_lib_handle(context);
+	if (context->dal_handle == NULL) {
+	    retval = krb5_db_setup_lib_handle(context);
 	    if (retval) {
 		goto clean_n_exit;
 	    }
 	}
 
-	dal_handle = (kdb5_dal_handle *) context->db_context;
+	dal_handle = context->dal_handle;
 	retval = kdb_lock_lib_lock(dal_handle->lib_handle, FALSE);
 	if (retval) {
 	    goto clean_n_exit;
 	}
 
-	tmp_key.enctype = key->enctype;
+        /* get the enctype from the stash */
+	tmp_key.enctype = ENCTYPE_UNKNOWN;
+
 	retval = dal_handle->lib_handle->vftabl.fetch_master_key(context,
 								 mname,
 								 &tmp_key,
-								 &kvno,
+								 kvno,
 								 db_args);
 	get_errmsg(context, retval);
 	kdb_unlock_lib_lock(dal_handle->lib_handle, FALSE);
@@ -1330,39 +1819,207 @@ krb5_db_fetch_mkey(krb5_context context,
 
   clean_n_exit:
     if (tmp_key.contents) {
-	memset(tmp_key.contents, 0, tmp_key.length);
+	zap(tmp_key.contents, tmp_key.length);
 	krb5_db_free(context, tmp_key.contents);
     }
     return retval;
 }
 
 krb5_error_code
-krb5_db_verify_master_key(krb5_context kcontext,
-			  krb5_principal mprinc, krb5_keyblock * mkey)
+krb5_db_verify_master_key(krb5_context     kcontext,
+                          krb5_principal   mprinc,
+                          krb5_kvno        kvno,
+                          krb5_keyblock  * mkey)
 {
     krb5_error_code status = 0;
     kdb5_dal_handle *dal_handle;
 
-    if (kcontext->db_context == NULL) {
-	status = kdb_setup_lib_handle(kcontext);
+    if (kcontext->dal_handle == NULL) {
+	status = krb5_db_setup_lib_handle(kcontext);
 	if (status) {
 	    goto clean_n_exit;
 	}
     }
 
-    dal_handle = (kdb5_dal_handle *) kcontext->db_context;
+    dal_handle = kcontext->dal_handle;
     status = kdb_lock_lib_lock(dal_handle->lib_handle, FALSE);
     if (status) {
 	goto clean_n_exit;
     }
 
     status = dal_handle->lib_handle->vftabl.verify_master_key(kcontext,
-							      mprinc, mkey);
+                                                              mprinc,
+                                                              kvno,
+                                                              mkey);
     get_errmsg(kcontext, status);
     kdb_unlock_lib_lock(dal_handle->lib_handle, FALSE);
 
   clean_n_exit:
     return status;
+}
+
+krb5_error_code
+krb5_dbe_fetch_act_key_list(krb5_context         context,
+                            krb5_principal       princ,
+                            krb5_actkvno_node  **act_key_list)
+{
+    krb5_error_code retval = 0;
+    krb5_db_entry entry;
+    int nprinc;
+    krb5_boolean more;
+
+    if (act_key_list == NULL)
+        return (EINVAL);
+
+    nprinc = 1;
+    if ((retval = krb5_db_get_principal(context, princ, &entry,
+                                        &nprinc, &more))) {
+        return (retval);
+    }
+
+    if (nprinc != 1) {
+        if (nprinc) {
+            krb5_db_free_principal(context, &entry, nprinc);
+            return (KRB5KDC_ERR_PRINCIPAL_NOT_UNIQUE);
+        } else {
+            return(KRB5_KDB_NOMASTERKEY);
+        }
+    } else if (more) {
+        krb5_db_free_principal(context, &entry, nprinc);
+        return (KRB5KDC_ERR_PRINCIPAL_NOT_UNIQUE);
+    }
+
+    retval = krb5_dbe_lookup_actkvno(context, &entry, act_key_list);
+
+    if (*act_key_list == NULL) {
+        krb5_actkvno_node *tmp_actkvno;
+        /*
+         * for mkey princ entries without KRB5_TL_ACTKVNO data provide a default
+         */
+
+        tmp_actkvno = (krb5_actkvno_node *) malloc(sizeof(krb5_actkvno_node));
+        if (tmp_actkvno == NULL)
+            return (ENOMEM);
+
+        memset(tmp_actkvno, 0, sizeof(krb5_actkvno_node));
+        tmp_actkvno->act_time = 0; /* earliest time possible */
+        /* use most current key */
+        tmp_actkvno->act_kvno = entry.key_data[0].key_data_kvno;
+        *act_key_list = tmp_actkvno;
+    }
+
+    krb5_db_free_principal(context, &entry, nprinc);
+    return retval;
+}
+
+/*
+ * Locates the "active" mkey used when encrypting a princ's keys.  Note, the
+ * caller must NOT free the output act_mkey.
+ */
+
+krb5_error_code
+krb5_dbe_find_act_mkey(krb5_context         context,
+                       krb5_keylist_node  *mkey_list,
+                       krb5_actkvno_node   *act_mkey_list,
+                       krb5_kvno           *act_kvno,
+                       krb5_keyblock      **act_mkey)
+{
+    krb5_kvno tmp_act_kvno;
+    krb5_error_code retval;
+    krb5_keylist_node *cur_keyblock = mkey_list;
+    krb5_actkvno_node   *prev_actkvno, *cur_actkvno;
+    krb5_timestamp	now;
+    krb5_boolean	found = FALSE;
+
+    if ((retval = krb5_timeofday(context, &now)))
+        return (retval);
+
+    /*
+     * The list should be sorted in time, early to later so if the first entry
+     * is later than now, this is a problem.  The fallback in this case is to
+     * return the earlist activation entry.
+     */
+    if (act_mkey_list->act_time > now) {
+        while (cur_keyblock && cur_keyblock->kvno != act_mkey_list->act_kvno)
+            cur_keyblock = cur_keyblock->next;
+        if (cur_keyblock) {
+            *act_mkey = &cur_keyblock->keyblock;
+            if (act_kvno != NULL)
+                *act_kvno = cur_keyblock->kvno;
+            return (0);
+        } else {
+            return (KRB5_KDB_NOACTMASTERKEY);
+        }
+    }
+
+    /* find the most current entry <= now */
+    for (prev_actkvno = cur_actkvno = act_mkey_list; cur_actkvno != NULL;
+         prev_actkvno = cur_actkvno, cur_actkvno = cur_actkvno->next) {
+
+        if (cur_actkvno->act_time == now) {
+            tmp_act_kvno = cur_actkvno->act_kvno;
+            found = TRUE;
+            break;
+        } else if (cur_actkvno->act_time > now && prev_actkvno->act_time <= now) {
+            tmp_act_kvno = prev_actkvno->act_kvno;
+            found = TRUE;
+            break;
+        }
+    }
+
+    if (!found) {
+        /*
+         * The end of the list was encountered and all entries are < now so use
+         * the latest entry.
+         */
+        if (prev_actkvno->act_time <= now) {
+            tmp_act_kvno = prev_actkvno->act_kvno;
+        } else {
+            /* XXX this shouldn't happen */
+            return (KRB5_KDB_NOACTMASTERKEY);
+        }
+    }
+
+    while (cur_keyblock && cur_keyblock->kvno != tmp_act_kvno)
+        cur_keyblock = cur_keyblock->next;
+
+    if (cur_keyblock) {
+        *act_mkey = &cur_keyblock->keyblock;
+        if (act_kvno != NULL)
+            *act_kvno = tmp_act_kvno;
+        return (0);
+    } else {
+        return (KRB5_KDB_NO_MATCHING_KEY);
+    }
+}
+
+/*
+ * Locates the mkey used to protect a princ's keys.  Note, the caller must not
+ * free the output key.
+ */
+krb5_error_code
+krb5_dbe_find_mkey(krb5_context         context,
+                   krb5_keylist_node  * mkey_list,
+                   krb5_db_entry      * entry,
+                   krb5_keyblock     ** mkey)
+{
+    krb5_kvno mkvno;
+    krb5_error_code retval;
+    krb5_keylist_node *cur_keyblock = mkey_list;
+
+    retval = krb5_dbe_lookup_mkvno(context, entry, &mkvno);
+    if (retval)
+        return (retval);
+
+    while (cur_keyblock && cur_keyblock->kvno != mkvno)
+        cur_keyblock = cur_keyblock->next;
+
+    if (cur_keyblock) {
+        *mkey = &cur_keyblock->keyblock;
+        return (0);
+    } else {
+        return (KRB5_KDB_NO_MATCHING_KEY);
+    }
 }
 
 void   *
@@ -1372,14 +2029,14 @@ krb5_db_alloc(krb5_context kcontext, void *ptr, size_t size)
     kdb5_dal_handle *dal_handle;
     void   *new_ptr = NULL;
 
-    if (kcontext->db_context == NULL) {
-	status = kdb_setup_lib_handle(kcontext);
+    if (kcontext->dal_handle == NULL) {
+	status = krb5_db_setup_lib_handle(kcontext);
 	if (status) {
 	    goto clean_n_exit;
 	}
     }
 
-    dal_handle = (kdb5_dal_handle *) kcontext->db_context;
+    dal_handle = kcontext->dal_handle;
 
     new_ptr = dal_handle->lib_handle->vftabl.db_alloc(kcontext, ptr, size);
 
@@ -1393,14 +2050,14 @@ krb5_db_free(krb5_context kcontext, void *ptr)
     krb5_error_code status;
     kdb5_dal_handle *dal_handle;
 
-    if (kcontext->db_context == NULL) {
-	status = kdb_setup_lib_handle(kcontext);
+    if (kcontext->dal_handle == NULL) {
+	status = krb5_db_setup_lib_handle(kcontext);
 	if (status) {
 	    goto clean_n_exit;
 	}
     }
 
-    dal_handle = (kdb5_dal_handle *) kcontext->db_context;
+    dal_handle = kcontext->dal_handle;
 
     dal_handle->lib_handle->vftabl.db_free(kcontext, ptr);
 
@@ -1433,14 +2090,14 @@ krb5_dbe_search_enctype(krb5_context kcontext,
     krb5_error_code status = 0;
     kdb5_dal_handle *dal_handle;
 
-    if (kcontext->db_context == NULL) {
-	status = kdb_setup_lib_handle(kcontext);
+    if (kcontext->dal_handle == NULL) {
+	status = krb5_db_setup_lib_handle(kcontext);
 	if (status) {
 	    goto clean_n_exit;
 	}
     }
 
-    dal_handle = (kdb5_dal_handle *) kcontext->db_context;
+    dal_handle = kcontext->dal_handle;
     status = kdb_lock_lib_lock(dal_handle->lib_handle, FALSE);
     if (status) {
 	goto clean_n_exit;
@@ -1468,22 +2125,13 @@ krb5_db_setup_mkey_name(krb5_context context,
 			char **fullname, krb5_principal * principal)
 {
     krb5_error_code retval;
-    size_t  keylen;
-    size_t  rlen = strlen(realm);
     char   *fname;
 
     if (!keyname)
 	keyname = KRB5_KDB_M_NAME;	/* XXX external? */
 
-    keylen = strlen(keyname);
-
-    fname = malloc(keylen + rlen + strlen(REALM_SEP_STRING) + 1);
-    if (!fname)
+    if (asprintf(&fname, "%s%s%s", keyname, REALM_SEP_STRING, realm) < 0)
 	return ENOMEM;
-
-    strcpy(fname, keyname);
-    strcat(fname, REALM_SEP_STRING);
-    strcat(fname, realm);
 
     if ((retval = krb5_parse_name(context, fname, principal)))
 	return retval;
@@ -1536,9 +2184,11 @@ krb5_dbe_lookup_tl_data(context, entry, ret_tl_data)
 	}
     }
 
-    /* if the requested record isn't found, return zero bytes.
-     * if it ever means something to have a zero-length tl_data,
-     * this code and its callers will have to be changed */
+    /*
+     * If the requested record isn't found, return zero bytes.  If it
+     * ever means something to have a zero-length tl_data, this code
+     * and its callers will have to be changed.
+     */
 
     ret_tl_data->tl_data_length = 0;
     ret_tl_data->tl_data_contents = NULL;
@@ -1615,6 +2265,9 @@ krb5_dbe_lookup_mod_princ_data(context, entry, mod_time, mod_princ)
     krb5_tl_data tl_data;
     krb5_error_code code;
 
+    *mod_princ = NULL;
+    *mod_time = 0;
+
     tl_data.tl_data_type = KRB5_TL_MOD_PRINC;
 
     if ((code = krb5_dbe_lookup_tl_data(context, entry, &tl_data)))
@@ -1637,6 +2290,348 @@ krb5_dbe_lookup_mod_princ_data(context, entry, mod_time, mod_princ)
 }
 
 krb5_error_code
+krb5_dbe_lookup_mkvno(krb5_context	context,
+		      krb5_db_entry	*entry,
+		      krb5_kvno		*mkvno)
+{
+    krb5_tl_data tl_data;
+    krb5_error_code code;
+    krb5_int16 tmp;
+
+    tl_data.tl_data_type = KRB5_TL_MKVNO;
+
+    if ((code = krb5_dbe_lookup_tl_data(context, entry, &tl_data)))
+	return (code);
+
+    if (tl_data.tl_data_length == 0) {
+	*mkvno = 1; /* default for princs that lack the KRB5_TL_MKVNO data */
+	return (0);
+    } else if (tl_data.tl_data_length != 2) {
+	return (KRB5_KDB_TRUNCATED_RECORD);
+    }
+
+    krb5_kdb_decode_int16(tl_data.tl_data_contents, tmp);
+    *mkvno = (krb5_kvno) tmp;
+    return (0);
+}
+
+krb5_error_code
+krb5_dbe_update_mkvno(krb5_context    context,
+                      krb5_db_entry * entry,
+                      krb5_kvno       mkvno)
+{
+    krb5_tl_data tl_data;
+    krb5_octet buf[2]; /* this is the encoded size of an int16 */
+    krb5_int16 tmp_kvno = (krb5_int16) mkvno;
+
+    tl_data.tl_data_type = KRB5_TL_MKVNO;
+    tl_data.tl_data_length = sizeof(buf);
+    krb5_kdb_encode_int16(tmp_kvno, buf);
+    tl_data.tl_data_contents = buf;
+
+    return (krb5_dbe_update_tl_data(context, entry, &tl_data));
+}
+
+krb5_error_code
+krb5_dbe_lookup_mkey_aux(krb5_context          context,
+                         krb5_db_entry       * entry,
+                         krb5_mkey_aux_node ** mkey_aux_data_list)
+{
+    krb5_tl_data tl_data;
+    krb5_int16 version;
+    krb5_mkey_aux_node *head_data = NULL, *new_data = NULL,
+                       *prev_data = NULL;
+    krb5_octet *curloc; /* current location pointer */
+    krb5_error_code code;
+
+    tl_data.tl_data_type = KRB5_TL_MKEY_AUX;
+    if ((code = krb5_dbe_lookup_tl_data(context, entry, &tl_data)))
+        return (code);
+
+    if (tl_data.tl_data_contents == NULL) {
+        *mkey_aux_data_list = NULL;
+        return (0);
+    } else {
+        /* get version to determine how to parse the data */
+        krb5_kdb_decode_int16(tl_data.tl_data_contents, version);
+        if (version == 1) {
+            /* variable size, must be at least 10 bytes */
+            if (tl_data.tl_data_length < 10)
+                return (KRB5_KDB_TRUNCATED_RECORD);
+
+            /* curloc points to first tuple entry in the tl_data_contents */
+            curloc = tl_data.tl_data_contents + sizeof(version);
+
+            while (curloc < (tl_data.tl_data_contents + tl_data.tl_data_length)) {
+
+                new_data = (krb5_mkey_aux_node *) malloc(sizeof(krb5_mkey_aux_node));
+                if (new_data == NULL) {
+                    krb5_dbe_free_mkey_aux_list(context, head_data);
+                    return (ENOMEM);
+                }
+                memset(new_data, 0, sizeof(krb5_mkey_aux_node));
+
+                krb5_kdb_decode_int16(curloc, new_data->mkey_kvno);
+                curloc += sizeof(krb5_ui_2);
+                krb5_kdb_decode_int16(curloc, new_data->latest_mkey.key_data_kvno);
+                curloc += sizeof(krb5_ui_2);
+                krb5_kdb_decode_int16(curloc, new_data->latest_mkey.key_data_type[0]);
+                curloc += sizeof(krb5_ui_2);
+                krb5_kdb_decode_int16(curloc, new_data->latest_mkey.key_data_length[0]);
+                curloc += sizeof(krb5_ui_2);
+
+                new_data->latest_mkey.key_data_contents[0] = (krb5_octet *)
+                    malloc(new_data->latest_mkey.key_data_length[0]);
+
+                if (new_data->latest_mkey.key_data_contents[0] == NULL) {
+                    krb5_dbe_free_mkey_aux_list(context, head_data);
+                    free(new_data);
+                    return (ENOMEM);
+                }
+                memcpy(new_data->latest_mkey.key_data_contents[0], curloc,
+                       new_data->latest_mkey.key_data_length[0]);
+                curloc += new_data->latest_mkey.key_data_length[0];
+
+                /* always using key data ver 1 for mkeys */
+                new_data->latest_mkey.key_data_ver = 1;
+
+                new_data->next = NULL;
+                if (prev_data != NULL)
+                    prev_data->next = new_data;
+                else
+                    head_data = new_data;
+                prev_data = new_data;
+            }
+        } else {
+            krb5_set_error_message(context, KRB5_KDB_BAD_VERSION,
+                                   "Illegal version number for KRB5_TL_MKEY_AUX %d\n",
+                                   version);
+            return (KRB5_KDB_BAD_VERSION);
+        }
+    }
+    *mkey_aux_data_list = head_data;
+    return (0);
+}
+
+#if KRB5_TL_MKEY_AUX_VER == 1
+krb5_error_code
+krb5_dbe_update_mkey_aux(krb5_context         context,
+                         krb5_db_entry      * entry,
+                         krb5_mkey_aux_node * mkey_aux_data_list)
+{
+    krb5_tl_data tl_data;
+    krb5_int16 version, tmp_kvno;
+    unsigned char *nextloc;
+    krb5_mkey_aux_node *aux_data_entry;
+
+    if (!mkey_aux_data_list) {
+        /* delete the KRB5_TL_MKEY_AUX from the entry */
+        krb5_dbe_delete_tl_data(context, entry, KRB5_TL_MKEY_AUX);
+        return (0);
+    }
+
+    memset(&tl_data, 0, sizeof(tl_data));
+    tl_data.tl_data_type = KRB5_TL_MKEY_AUX;
+    /*
+     * determine out how much space to allocate.  Note key_data_ver not stored
+     * as this is hard coded to one and is accounted for in
+     * krb5_dbe_lookup_mkey_aux.
+     */
+    tl_data.tl_data_length = sizeof(version); /* version */
+    for (aux_data_entry = mkey_aux_data_list; aux_data_entry != NULL;
+         aux_data_entry = aux_data_entry->next) {
+
+        tl_data.tl_data_length += (sizeof(krb5_ui_2) + /* mkey_kvno */
+                                   sizeof(krb5_ui_2) + /* latest_mkey kvno */
+                                   sizeof(krb5_ui_2) + /* latest_mkey enctype */
+                                   sizeof(krb5_ui_2) + /* latest_mkey length */
+                                   aux_data_entry->latest_mkey.key_data_length[0]);
+    }
+
+    tl_data.tl_data_contents = (krb5_octet *) malloc(tl_data.tl_data_length);
+    if (tl_data.tl_data_contents == NULL) {
+        return (ENOMEM);
+    }
+
+    nextloc = tl_data.tl_data_contents;
+    version = KRB5_TL_MKEY_AUX_VER;
+    krb5_kdb_encode_int16(version, nextloc);
+    nextloc += sizeof(krb5_ui_2);
+
+    for (aux_data_entry = mkey_aux_data_list; aux_data_entry != NULL;
+         aux_data_entry = aux_data_entry->next) {
+
+        tmp_kvno = (krb5_int16) aux_data_entry->mkey_kvno;
+        krb5_kdb_encode_int16(tmp_kvno, nextloc);
+        nextloc += sizeof(krb5_ui_2);
+
+        krb5_kdb_encode_int16(aux_data_entry->latest_mkey.key_data_kvno,
+                              nextloc);
+        nextloc += sizeof(krb5_ui_2);
+
+        krb5_kdb_encode_int16(aux_data_entry->latest_mkey.key_data_type[0],
+                              nextloc);
+        nextloc += sizeof(krb5_ui_2);
+
+        krb5_kdb_encode_int16(aux_data_entry->latest_mkey.key_data_length[0],
+                              nextloc);
+        nextloc += sizeof(krb5_ui_2);
+
+        if (aux_data_entry->latest_mkey.key_data_length[0] > 0) {
+            memcpy(nextloc, aux_data_entry->latest_mkey.key_data_contents[0],
+                   aux_data_entry->latest_mkey.key_data_length[0]);
+            nextloc += aux_data_entry->latest_mkey.key_data_length[0];
+        }
+    }
+
+    return (krb5_dbe_update_tl_data(context, entry, &tl_data));
+}
+#endif /* KRB5_TL_MKEY_AUX_VER == 1 */
+
+#if KRB5_TL_ACTKVNO_VER == 1
+/*
+ * If version of the KRB5_TL_ACTKVNO data is KRB5_TL_ACTKVNO_VER == 1 then size of
+ * a actkvno tuple {act_kvno, act_time} entry is:
+ */
+#define ACTKVNO_TUPLE_SIZE (sizeof(krb5_int16) + sizeof(krb5_int32))
+#define act_kvno(cp) (cp) /* return pointer to start of act_kvno data */
+#define act_time(cp) ((cp) + sizeof(krb5_int16)) /* return pointer to start of act_time data */
+#endif
+
+krb5_error_code
+krb5_dbe_lookup_actkvno(krb5_context context,
+                        krb5_db_entry *entry,
+                        krb5_actkvno_node **actkvno_list)
+{
+    krb5_tl_data tl_data;
+    krb5_error_code code;
+    krb5_int16 version, tmp_kvno;
+    krb5_actkvno_node *head_data = NULL, *new_data = NULL, *prev_data = NULL;
+    unsigned int num_actkvno, i;
+    krb5_octet *next_tuple;
+
+    memset(&tl_data, 0, sizeof(tl_data));
+    tl_data.tl_data_type = KRB5_TL_ACTKVNO;
+
+    if ((code = krb5_dbe_lookup_tl_data(context, entry, &tl_data)))
+        return (code);
+
+    if (tl_data.tl_data_contents == NULL) {
+        *actkvno_list = NULL;
+        return (0);
+    } else {
+        /* get version to determine how to parse the data */
+        krb5_kdb_decode_int16(tl_data.tl_data_contents, version);
+        if (version == 1) {
+
+            /* variable size, must be at least 8 bytes */
+            if (tl_data.tl_data_length < 8)
+                return (KRB5_KDB_TRUNCATED_RECORD);
+
+            /*
+             * Find number of tuple entries, remembering to account for version
+             * field.
+             */
+            num_actkvno = (tl_data.tl_data_length - sizeof(version)) /
+                          ACTKVNO_TUPLE_SIZE;
+            prev_data = NULL;
+            /* next_tuple points to first tuple entry in the tl_data_contents */
+            next_tuple = tl_data.tl_data_contents + sizeof(version);
+            for (i = 0; i < num_actkvno; i++) {
+                new_data = (krb5_actkvno_node *) malloc(sizeof(krb5_actkvno_node));
+                if (new_data == NULL) {
+                    krb5_dbe_free_actkvno_list(context, head_data);
+                    return (ENOMEM);
+                }
+                memset(new_data, 0, sizeof(krb5_actkvno_node));
+
+                /* using tmp_kvno to avoid type mismatch */
+                krb5_kdb_decode_int16(act_kvno(next_tuple), tmp_kvno);
+                new_data->act_kvno = (krb5_kvno) tmp_kvno;
+                krb5_kdb_decode_int32(act_time(next_tuple), new_data->act_time);
+
+                if (prev_data != NULL)
+                    prev_data->next = new_data;
+                else
+                    head_data = new_data;
+                prev_data = new_data;
+                next_tuple += ACTKVNO_TUPLE_SIZE;
+            }
+        } else {
+            krb5_set_error_message (context, KRB5_KDB_BAD_VERSION,
+                "Illegal version number for KRB5_TL_ACTKVNO %d\n",
+                version);
+            return (KRB5_KDB_BAD_VERSION);
+        }
+    }
+    *actkvno_list = head_data;
+    return (0);
+}
+
+/*
+ * Add KRB5_TL_ACTKVNO TL data entries to krb5_db_entry *entry
+ */
+#if KRB5_TL_ACTKVNO_VER == 1
+krb5_error_code
+krb5_dbe_update_actkvno(krb5_context context,
+                        krb5_db_entry *entry,
+                        const krb5_actkvno_node *actkvno_list)
+{
+    krb5_error_code retval = 0;
+    krb5_int16 version, tmp_kvno;
+    krb5_tl_data new_tl_data;
+    unsigned char *nextloc;
+    const krb5_actkvno_node *cur_actkvno;
+    krb5_octet *tmpptr;
+
+    if (actkvno_list == NULL) {
+        return (EINVAL);
+    }
+
+    memset(&new_tl_data, 0, sizeof(new_tl_data));
+    /* allocate initial KRB5_TL_ACTKVNO tl_data entry */
+    new_tl_data.tl_data_length = sizeof(version);
+    new_tl_data.tl_data_contents = (krb5_octet *) malloc(new_tl_data.tl_data_length);
+    if (new_tl_data.tl_data_contents == NULL)
+        return (ENOMEM);
+
+    /* add the current version # for the data format used for KRB5_TL_ACTKVNO */
+    version = KRB5_TL_ACTKVNO_VER;
+    krb5_kdb_encode_int16(version, (unsigned char *) new_tl_data.tl_data_contents);
+
+    for (cur_actkvno = actkvno_list; cur_actkvno != NULL;
+         cur_actkvno = cur_actkvno->next) {
+
+        new_tl_data.tl_data_length += ACTKVNO_TUPLE_SIZE;
+        tmpptr = realloc(new_tl_data.tl_data_contents, new_tl_data.tl_data_length);
+        if (tmpptr == NULL) {
+            free(new_tl_data.tl_data_contents);
+            return (ENOMEM);
+        } else {
+            new_tl_data.tl_data_contents = tmpptr;
+        }
+
+        /*
+         * Using realloc so tl_data_contents is required to correctly calculate
+         * next location to store new tuple.
+         */
+        nextloc = new_tl_data.tl_data_contents + new_tl_data.tl_data_length - ACTKVNO_TUPLE_SIZE;
+        /* using tmp_kvno to avoid type mismatch issues */
+        tmp_kvno = (krb5_int16) cur_actkvno->act_kvno;
+        krb5_kdb_encode_int16(tmp_kvno, nextloc);
+        nextloc += sizeof(krb5_ui_2);
+        krb5_kdb_encode_int32((krb5_ui_4)cur_actkvno->act_time, nextloc);
+    }
+
+    new_tl_data.tl_data_type = KRB5_TL_ACTKVNO;
+    retval = krb5_dbe_update_tl_data(context, entry, &new_tl_data);
+    free(new_tl_data.tl_data_contents);
+
+    return (retval);
+}
+#endif /* KRB5_TL_ACTKVNO_VER == 1 */
+
+krb5_error_code
 krb5_dbe_update_last_pwd_change(context, entry, stamp)
     krb5_context context;
     krb5_db_entry *entry;
@@ -1654,6 +2649,44 @@ krb5_dbe_update_last_pwd_change(context, entry, stamp)
 }
 
 krb5_error_code
+krb5_dbe_delete_tl_data(krb5_context context,
+                        krb5_db_entry *entry,
+                        krb5_int16 tl_data_type)
+{
+    krb5_tl_data *tl_data, *prev_tl_data, *free_tl_data;
+
+    /*
+     * Find existing entries of the specified type and remove them from the
+     * entry's tl_data list.
+     */
+
+    for (prev_tl_data = tl_data = entry->tl_data; tl_data != NULL;) {
+        if (tl_data->tl_data_type == tl_data_type) {
+            if (tl_data == entry->tl_data) {
+                /* remove from head */
+                entry->tl_data = tl_data->tl_data_next;
+                prev_tl_data = entry->tl_data;
+            } else if (tl_data->tl_data_next == NULL) {
+                /* remove from tail */
+                prev_tl_data->tl_data_next = NULL;
+            } else {
+                /* remove in between */
+                prev_tl_data->tl_data_next = tl_data->tl_data_next;
+            }
+            free_tl_data = tl_data;
+            tl_data = tl_data->tl_data_next;
+            krb5_dbe_free_tl_data(context, free_tl_data);
+            entry->n_tl_data--;
+        } else {
+            prev_tl_data = tl_data;
+            tl_data = tl_data->tl_data_next;
+        }
+    }
+
+    return (0);
+}
+
+krb5_error_code
 krb5_dbe_update_tl_data(context, entry, new_tl_data)
     krb5_context context;
     krb5_db_entry *entry;
@@ -1662,15 +2695,19 @@ krb5_dbe_update_tl_data(context, entry, new_tl_data)
     krb5_tl_data *tl_data = NULL;
     krb5_octet *tmp;
 
-    /* copy the new data first, so we can fail cleanly if malloc()
-     * fails */
+    /*
+     * Copy the new data first, so we can fail cleanly if malloc()
+     * fails.
+     */
     if ((tmp =
 	 (krb5_octet *) krb5_db_alloc(context, NULL,
 				      new_tl_data->tl_data_length)) == NULL)
 	return (ENOMEM);
 
-    /* Find an existing entry of the specified type and point at
-     * it, or NULL if not found */
+    /*
+     * Find an existing entry of the specified type and point at
+     * it, or NULL if not found.
+     */
 
     if (new_tl_data->tl_data_type != KRB5_TL_DB_ARGS) {	/* db_args can be multiple */
 	for (tl_data = entry->tl_data; tl_data;
@@ -1679,7 +2716,7 @@ krb5_dbe_update_tl_data(context, entry, new_tl_data)
 		break;
     }
 
-    /* if necessary, chain a new record in the beginning and point at it */
+    /* If necessary, chain a new record in the beginning and point at it.  */
 
     if (!tl_data) {
 	if ((tl_data =
@@ -1720,14 +2757,14 @@ krb5_dbe_cpw(krb5_context kcontext,
     krb5_error_code status = 0;
     kdb5_dal_handle *dal_handle;
 
-    if (kcontext->db_context == NULL) {
-	status = kdb_setup_lib_handle(kcontext);
+    if (kcontext->dal_handle == NULL) {
+	status = krb5_db_setup_lib_handle(kcontext);
 	if (status) {
 	    goto clean_n_exit;
 	}
     }
 
-    dal_handle = (kdb5_dal_handle *) kcontext->db_context;
+    dal_handle = kcontext->dal_handle;
     status = kdb_lock_lib_lock(dal_handle->lib_handle, FALSE);
     if (status) {
 	goto clean_n_exit;
@@ -1754,14 +2791,14 @@ krb5_db_create_policy(krb5_context kcontext, osa_policy_ent_t policy)
     krb5_error_code status = 0;
     kdb5_dal_handle *dal_handle;
 
-    if (kcontext->db_context == NULL) {
-	status = kdb_setup_lib_handle(kcontext);
+    if (kcontext->dal_handle == NULL) {
+	status = krb5_db_setup_lib_handle(kcontext);
 	if (status) {
 	    goto clean_n_exit;
 	}
     }
 
-    dal_handle = (kdb5_dal_handle *) kcontext->db_context;
+    dal_handle = kcontext->dal_handle;
     status = kdb_lock_lib_lock(dal_handle->lib_handle, FALSE);
     if (status) {
 	goto clean_n_exit;
@@ -1782,14 +2819,14 @@ krb5_db_get_policy(krb5_context kcontext, char *name,
     krb5_error_code status = 0;
     kdb5_dal_handle *dal_handle;
 
-    if (kcontext->db_context == NULL) {
-	status = kdb_setup_lib_handle(kcontext);
+    if (kcontext->dal_handle == NULL) {
+	status = krb5_db_setup_lib_handle(kcontext);
 	if (status) {
 	    goto clean_n_exit;
 	}
     }
 
-    dal_handle = (kdb5_dal_handle *) kcontext->db_context;
+    dal_handle = kcontext->dal_handle;
     status = kdb_lock_lib_lock(dal_handle->lib_handle, FALSE);
     if (status) {
 	goto clean_n_exit;
@@ -1811,14 +2848,14 @@ krb5_db_put_policy(krb5_context kcontext, osa_policy_ent_t policy)
     krb5_error_code status = 0;
     kdb5_dal_handle *dal_handle;
 
-    if (kcontext->db_context == NULL) {
-	status = kdb_setup_lib_handle(kcontext);
+    if (kcontext->dal_handle == NULL) {
+	status = krb5_db_setup_lib_handle(kcontext);
 	if (status) {
 	    goto clean_n_exit;
 	}
     }
 
-    dal_handle = (kdb5_dal_handle *) kcontext->db_context;
+    dal_handle = kcontext->dal_handle;
     status = kdb_lock_lib_lock(dal_handle->lib_handle, FALSE);
     if (status) {
 	goto clean_n_exit;
@@ -1839,14 +2876,14 @@ krb5_db_iter_policy(krb5_context kcontext, char *match_entry,
     krb5_error_code status = 0;
     kdb5_dal_handle *dal_handle;
 
-    if (kcontext->db_context == NULL) {
-	status = kdb_setup_lib_handle(kcontext);
+    if (kcontext->dal_handle == NULL) {
+	status = krb5_db_setup_lib_handle(kcontext);
 	if (status) {
 	    goto clean_n_exit;
 	}
     }
 
-    dal_handle = (kdb5_dal_handle *) kcontext->db_context;
+    dal_handle = kcontext->dal_handle;
     status = kdb_lock_lib_lock(dal_handle->lib_handle, FALSE);
     if (status) {
 	goto clean_n_exit;
@@ -1868,14 +2905,14 @@ krb5_db_delete_policy(krb5_context kcontext, char *policy)
     krb5_error_code status = 0;
     kdb5_dal_handle *dal_handle;
 
-    if (kcontext->db_context == NULL) {
-	status = kdb_setup_lib_handle(kcontext);
+    if (kcontext->dal_handle == NULL) {
+	status = krb5_db_setup_lib_handle(kcontext);
 	if (status) {
 	    goto clean_n_exit;
 	}
     }
 
-    dal_handle = (kdb5_dal_handle *) kcontext->db_context;
+    dal_handle = kcontext->dal_handle;
     status = kdb_lock_lib_lock(dal_handle->lib_handle, FALSE);
     if (status) {
 	goto clean_n_exit;
@@ -1895,14 +2932,14 @@ krb5_db_free_policy(krb5_context kcontext, osa_policy_ent_t policy)
     krb5_error_code status = 0;
     kdb5_dal_handle *dal_handle;
 
-    if (kcontext->db_context == NULL) {
-	status = kdb_setup_lib_handle(kcontext);
+    if (kcontext->dal_handle == NULL) {
+	status = krb5_db_setup_lib_handle(kcontext);
 	if (status) {
 	    goto clean_n_exit;
 	}
     }
 
-    dal_handle = (kdb5_dal_handle *) kcontext->db_context;
+    dal_handle = kcontext->dal_handle;
     status = kdb_lock_lib_lock(dal_handle->lib_handle, FALSE);
     if (status) {
 	goto clean_n_exit;
@@ -1932,14 +2969,14 @@ krb5_db_promote(krb5_context kcontext, char **db_args)
 	goto clean_n_exit;
     }
 
-    if (kcontext->db_context == NULL) {
-	status = kdb_setup_lib_handle(kcontext);
+    if (kcontext->dal_handle == NULL) {
+	status = krb5_db_setup_lib_handle(kcontext);
 	if (status) {
 	    goto clean_n_exit;
 	}
     }
 
-    dal_handle = (kdb5_dal_handle *) kcontext->db_context;
+    dal_handle = kcontext->dal_handle;
     status = kdb_lock_lib_lock(dal_handle->lib_handle, FALSE);
     if (status) {
 	goto clean_n_exit;
@@ -1953,6 +2990,128 @@ krb5_db_promote(krb5_context kcontext, char **db_args)
   clean_n_exit:
     if (section)
 	free(section);
+    return status;
+}
+
+krb5_error_code
+krb5_dbekd_decrypt_key_data( krb5_context 	  kcontext,
+			     const krb5_keyblock	* mkey,
+			     const krb5_key_data	* key_data,
+			     krb5_keyblock 	* dbkey,
+			     krb5_keysalt 	* keysalt)
+{
+    krb5_error_code status = 0;
+    kdb5_dal_handle *dal_handle;
+
+    if (kcontext->dal_handle == NULL) {
+	status = krb5_db_setup_lib_handle(kcontext);
+	if (status) {
+	    goto clean_n_exit;
+	}
+    }
+
+    dal_handle = kcontext->dal_handle;
+    status = kdb_lock_lib_lock(dal_handle->lib_handle, FALSE);
+    if (status) {
+	goto clean_n_exit;
+    }
+
+    status =
+	dal_handle->lib_handle->vftabl.dbekd_decrypt_key_data(kcontext,
+	    mkey, key_data, dbkey, keysalt);
+    kdb_unlock_lib_lock(dal_handle->lib_handle, FALSE);
+
+  clean_n_exit:
+    return status;
+}
+
+krb5_error_code
+krb5_dbekd_encrypt_key_data( krb5_context 		  kcontext,
+			     const krb5_keyblock	* mkey,
+			     const krb5_keyblock 	* dbkey,
+			     const krb5_keysalt		* keysalt,
+			     int			  keyver,
+			     krb5_key_data	        * key_data)
+{
+    krb5_error_code status = 0;
+    kdb5_dal_handle *dal_handle;
+
+    if (kcontext->dal_handle == NULL) {
+	status = krb5_db_setup_lib_handle(kcontext);
+	if (status) {
+	    goto clean_n_exit;
+	}
+    }
+
+    dal_handle = kcontext->dal_handle;
+    status = kdb_lock_lib_lock(dal_handle->lib_handle, FALSE);
+    if (status) {
+	goto clean_n_exit;
+    }
+
+    status =
+	dal_handle->lib_handle->vftabl.dbekd_encrypt_key_data(kcontext,
+	    mkey, dbkey, keysalt, keyver, key_data);
+    kdb_unlock_lib_lock(dal_handle->lib_handle, FALSE);
+
+  clean_n_exit:
+    return status;
+}
+
+krb5_error_code
+krb5_db_get_context(krb5_context context, void **db_context)
+{
+    *db_context = KRB5_DB_GET_DB_CONTEXT(context);
+    if (*db_context == NULL) {
+	return KRB5_KDB_DBNOTINITED;
+    }
+
+    return 0;
+}
+
+krb5_error_code
+krb5_db_set_context(krb5_context context, void *db_context)
+{
+    KRB5_DB_GET_DB_CONTEXT(context) = db_context;
+
+    return 0;
+}
+
+krb5_error_code
+krb5_db_invoke(krb5_context kcontext,
+	       unsigned int method,
+	       const krb5_data *req,
+	       krb5_data *rep)
+{
+    krb5_error_code status = 0;
+    kdb5_dal_handle *dal_handle;
+
+    if (kcontext->dal_handle == NULL) {
+	status = krb5_db_setup_lib_handle(kcontext);
+	if (status) {
+	    goto clean_n_exit;
+	}
+    }
+
+    dal_handle = kcontext->dal_handle;
+    if (dal_handle->lib_handle->vftabl.db_invoke == NULL) {
+	status = KRB5_KDB_DBTYPE_NOSUP;
+	goto clean_n_exit;
+    }
+
+    status = kdb_lock_lib_lock(dal_handle->lib_handle, FALSE);
+    if (status) {
+	goto clean_n_exit;
+    }
+
+    status =
+	dal_handle->lib_handle->vftabl.db_invoke(kcontext,
+						 method,
+						 req,
+						 rep);
+    kdb_unlock_lib_lock(dal_handle->lib_handle, FALSE);
+
+  clean_n_exit:
     return status;
 }
 

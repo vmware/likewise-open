@@ -6,7 +6,7 @@
  *
  */
 
-static char rcsid_2[] = "$Id: xm_kpasswd.c 13024 2001-02-26 18:22:08Z epeisach $";
+static char rcsid_2[] = "$Id: xm_kpasswd.c 21258 2008-12-01 17:09:59Z ghudson $";
 
 #include <kadm5/admin.h>
 #include <krb5.h>
@@ -84,14 +84,7 @@ SetWatchCursor()
  *  Set up a com_err hook, for displaying to a motif scrolling widget.
  */
 
-#if __STDC__
-#	include <stdarg.h>
-#else /* varargs: not STDC or no <stdarg> */
-	/* Non-ANSI, always take <varargs.h> path. */
-#	undef VARARGS
-#	define VARARGS 1
-#	include <varargs.h>
-#endif /* varargs */
+#include <stdarg.h>
 
 static void
 #ifdef __STDC__
@@ -123,7 +116,7 @@ motif_com_err (whoami, code, fmt, args)
     }
   if (fmt)
     {
-      vsprintf(buf + strlen(buf), fmt, args);
+      vsnprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), fmt, args);
     }
 
   XtVaSetValues(scroll_text, XmNvalue, buf, NULL);
@@ -328,7 +321,7 @@ display_intro_message(fmt_string, arg_string)
   XmString xmstr;
   char buf[1024];
 
-  sprintf(buf, fmt_string, arg_string);
+  snprintf(buf, sizeof(buf), fmt_string, arg_string);
 
   xmstr = XmStringCreateLtoR(buf, XmSTRING_DEFAULT_CHARSET);
   XtVaSetValues(main_lbl, XmNlabelString, xmstr, NULL);

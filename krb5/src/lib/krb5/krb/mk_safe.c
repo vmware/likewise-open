@@ -98,11 +98,11 @@ krb5_mk_safe_basic(krb5_context context, const krb5_data *userdata,
 	goto cleanup_checksum;
     }
     *outbuf = *scratch2;
-    krb5_xfree(scratch2);
+    free(scratch2);
     retval = 0;
 
 cleanup_checksum:
-    krb5_xfree(safe_checksum.contents);
+    free(safe_checksum.contents);
 
     memset((char *)scratch1->data, 0, scratch1->length); 
     krb5_free_data(context, scratch1);
@@ -110,7 +110,9 @@ cleanup_checksum:
 }
 
 krb5_error_code KRB5_CALLCONV
-krb5_mk_safe(krb5_context context, krb5_auth_context auth_context, const krb5_data *userdata, krb5_data *outbuf, krb5_replay_data *outdata)
+krb5_mk_safe(krb5_context context, krb5_auth_context auth_context,
+	     const krb5_data *userdata, krb5_data *outbuf,
+	     krb5_replay_data *outdata)
 {
     krb5_error_code 	  retval;
     krb5_keyblock       * keyblock;
@@ -134,6 +136,9 @@ krb5_mk_safe(krb5_context context, krb5_auth_context auth_context, const krb5_da
 	/* Need a better error */
 	return KRB5_RC_REQUIRED;
 
+    if (!auth_context->local_addr)
+	return KRB5_LOCAL_ADDR_REQUIRED;
+
     if ((auth_context->auth_context_flags & KRB5_AUTH_CONTEXT_DO_TIME) ||
 	(auth_context->auth_context_flags & KRB5_AUTH_CONTEXT_RET_TIME)) {
 	if ((retval = krb5_us_timeofday(context, &replaydata.timestamp,
@@ -147,34 +152,30 @@ krb5_mk_safe(krb5_context context, krb5_auth_context auth_context, const krb5_da
     if ((auth_context->auth_context_flags & KRB5_AUTH_CONTEXT_DO_SEQUENCE) ||
 	(auth_context->auth_context_flags & KRB5_AUTH_CONTEXT_RET_SEQUENCE)) {
 	replaydata.seq = auth_context->local_seq_number++;
-	if (auth_context->auth_context_flags & KRB5_AUTH_CONTEXT_RET_SEQUENCE) {
+	if (auth_context->auth_context_flags & KRB5_AUTH_CONTEXT_RET_SEQUENCE)
     	    outdata->seq = replaydata.seq;
-	}
     } 
 
 {
     krb5_address * premote_fulladdr = NULL;
-    krb5_address * plocal_fulladdr = NULL;
+    krb5_address * plocal_fulladdr;
     krb5_address remote_fulladdr;
     krb5_address local_fulladdr;
     krb5_cksumtype sumtype;
 
     CLEANUP_INIT(2);
 
-    if (auth_context->local_addr) {
-    	if (auth_context->local_port) {
-            if (!(retval = krb5_make_fulladdr(context, auth_context->local_addr,
-                                 	      auth_context->local_port, 
-					      &local_fulladdr))){
-            	CLEANUP_PUSH(local_fulladdr.contents, free);
-	    	plocal_fulladdr = &local_fulladdr;
-            } else {
-                goto error;
-            }
+    if (auth_context->local_port) {
+	if (!(retval = krb5_make_fulladdr(context, auth_context->local_addr,
+					  auth_context->local_port,
+					  &local_fulladdr))){
+	    CLEANUP_PUSH(local_fulladdr.contents, free);
+	    plocal_fulladdr = &local_fulladdr;
 	} else {
-            plocal_fulladdr = auth_context->local_addr;
-        }
-
+	    goto error;
+	}
+    } else {
+	plocal_fulladdr = auth_context->local_addr;
     }
 
     if (auth_context->remote_addr) {
@@ -232,19 +233,20 @@ krb5_mk_safe(krb5_context context, krb5_auth_context auth_context, const krb5_da
 
 	if ((retval = krb5_gen_replay_name(context, auth_context->local_addr, 
 					   "_safe", &replay.client))) {
-    	    krb5_xfree(outbuf);
+	    free(outbuf);
 	    goto error;
 	}
 
 	replay.server = "";		/* XXX */
+	replay.msghash = NULL;
 	replay.cusec = replaydata.usec;
 	replay.ctime = replaydata.timestamp;
 	if ((retval = krb5_rc_store(context, auth_context->rcache, &replay))) {
 	    /* should we really error out here? XXX */
-    	    krb5_xfree(outbuf);
+	    free(outbuf);
 	    goto error;
 	}
-	krb5_xfree(replay.client);
+	free(replay.client);
     }
 
     return 0;

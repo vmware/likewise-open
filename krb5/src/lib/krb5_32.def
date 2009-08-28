@@ -250,8 +250,6 @@ EXPORTS
 	krb5_verify_init_creds			@263
 	krb5_verify_init_creds_opt_init		@264
 	krb5_verify_init_creds_opt_set_ap_req_nofail	@265
-	krb5_auth_con_setlocalseqnumber		@270
-	krb5_auth_con_setremoteseqnumber	@271
 
 	krb5_524_convert_creds			@12
 ; Don't add krb524_convert_creds_kdc or krb524_init_ets here;

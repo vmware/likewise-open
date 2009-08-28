@@ -16,13 +16,16 @@
 #include <gssrpc/rpc.h>
 #include <gssrpc/auth_gssapi.h>
 
+#include "gssrpcint.h"
+
 #ifdef __CODECENTER__
 #define DEBUG_GSSAPI 1
 #endif
 
 #ifdef DEBUG_GSSAPI
 int auth_debug_gssapi = DEBUG_GSSAPI;
-#define L_PRINTF(l,args) if (auth_debug_gssapi >= l) printf args
+extern void gssrpcint_printf(const char *format, ...);
+#define L_PRINTF(l,args) if (auth_debug_gssapi >= l) gssrpcint_printf args
 #define PRINTF(args) L_PRINTF(99, args)
 #define AUTH_GSSAPI_DISPLAY_STATUS(args) \
 	if (auth_debug_gssapi) auth_gssapi_display_status args
@@ -164,6 +167,11 @@ AUTH *auth_gssapi_create(
      auth = (AUTH *) malloc(sizeof(*auth));
      pdata = (struct auth_gssapi_data *) malloc(sizeof(*pdata));
      if (auth == NULL || pdata == NULL) {
+	  /* They needn't both have failed; clean up.  */
+	  free(auth);
+	  free(pdata);
+	  auth = NULL;
+	  pdata = NULL;
 	  rpc_createerr.cf_stat = RPC_SYSTEMERROR;
 	  rpc_createerr.cf_error.re_errno = ENOMEM;
 	  goto cleanup;
@@ -436,12 +444,14 @@ next_token:
      
 cleanup:
      PRINTF(("gssapi_create: bailing\n\n"));
-     
-     if (AUTH_PRIVATE(auth))
-	  auth_gssapi_destroy(auth);
-     else if (auth)
-	  free(auth);
-     auth = NULL;
+
+     if (auth) {
+	 if (AUTH_PRIVATE(auth))
+	     auth_gssapi_destroy(auth);
+	 else
+	     free(auth);
+	 auth = NULL;
+     }
      
      /* don't assume the caller will want to change clnt->cl_auth */
      clnt->cl_auth = save_auth;

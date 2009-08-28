@@ -15,7 +15,6 @@
 #include    "nstrtok.h"
 
 #define LINESIZE	32768 /* XXX */
-#define PLURAL(count)	(((count) == 1) ? error_message(IMPORT_SINGLE_RECORD) : error_message(IMPORT_PLURAL_RECORDS))
 
 static int parse_pw_hist_ent(current, hist)
    char *current;
@@ -109,7 +108,7 @@ int process_ov_principal(fname, kcontext, filep, verbose, linenop)
     krb5_tl_data	    tl_data;
     krb5_principal	    princ;
     krb5_db_entry	    kdb;
-    char		    *current;
+    char		    *current = 0;
     char		    *cp;
     int			    x, one;
     krb5_boolean	    more;
@@ -132,11 +131,10 @@ int process_ov_principal(fname, kcontext, filep, verbose, linenop)
 	goto done;
     } else {
 	if(strcmp(cp, "")) {
-	    if((rec->policy = (char *) malloc(strlen(cp)+1)) == NULL)  {
+	    if((rec->policy = strdup(cp)) == NULL)  {
 		ret = ENOMEM;
 		goto done;
 	    }
-	    strcpy(rec->policy, cp);
 	} else rec->policy = NULL;
     }
     if((cp = nstrtok((char *) NULL, "\t")) == NULL) {

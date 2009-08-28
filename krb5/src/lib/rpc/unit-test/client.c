@@ -1,7 +1,7 @@
 /*
  * Copyright 1993 OpenVision Technologies, Inc., All Rights Reserved.
  *
- * $Id: client.c 17885 2006-04-10 10:42:32Z raeburn $
+ * $Id: client.c 21258 2008-12-01 17:09:59Z ghudson $
  *
  */
 
@@ -139,7 +139,7 @@ main(argc, argv)
       */
      echo_arg = buf;
      for (i = 0; i < 3; i++) {
-	  sprintf(buf, "testing %d\n", i);
+	  snprintf(buf, sizeof(buf), "testing %d\n", i);
 
 	  echo_resp = rpc_test_echo_1(&echo_arg, clnt);
 	  if (echo_resp == NULL) {

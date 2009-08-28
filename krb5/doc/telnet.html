@@ -397,8 +397,8 @@
           <B>eor</B>  Sends the TELNET EOR (End of Record) sequence.
 
           <B>escape</B>
-               Sends  the  current  escape  character  (initially
-               ``^''.
+               Sends the current <B>telnet</B>  escape  character  (ini-
+               tially ``^''.
 
           <B>ga</B>   Sends the TELNET GA  (Go  Ahead)  sequence,  which
                likely has no significance to the remote system.
@@ -478,13 +478,13 @@
                terminal's <B>eof</B> character.
 
           <B>erase</B>
-               If  <B>telnet</B>  is  in  mode  (see  <B>toggle</B>  <B>localchars</B>
-               below),  <I>and</I> if <B>telnet</B> is operating in ``character
-               at a time'' mode,  then  when  this  character  is
-               typed, a TELNET EC sequence (see <B>send</B> <B>ec</B> above) is
-               sent to the remote system.  The initial value  for
-               the  erase character is taken to be the terminal's
-               <B>erase</B> character.
+               If <B>telnet</B> is in <B>localchars</B> mode (see <B>toggle</B> <B>local-</B>
+               <B>chars</B>  below),  <I>and</I>  if  <B>telnet</B>  is  operating  in
+               ``character at a time'' mode, then when this char-
+               acter  is typed, a TELNET EC sequence (see <B>send</B> <B>ec</B>
+               above) is sent to the remote system.  The  initial
+               value  for  the erase character is taken to be the
+               terminal's <B>erase</B> character.
 
           <B>escape</B>
                This is the  <B>telnet</B>  escape  character  (initially
@@ -786,9 +786,9 @@
           subshell is invoked.
 
      <B>?</B> <I>command</I>
-          Get help.  With no arguments, prints  a  help  summary.
-          If a command is specified, will print the help informa-
-          tion for just that command.
+          Get help.  With no arguments, <B>telnet</B> prints a help sum-
+          mary.  If a command is specified, <B>telnet</B> will print the
+          help information for just that command.
 
 
 </PRE>

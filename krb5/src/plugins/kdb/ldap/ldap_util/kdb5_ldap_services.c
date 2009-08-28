@@ -45,11 +45,17 @@
 
 #ifdef HAVE_EDIRECTORY
 
-krb5_error_code
+static krb5_error_code
+convert_realm_name2dn_list(char **list, const char *krbcontainer_loc);
+
+static krb5_error_code
 rem_service_entry_from_file(int argc,
 			    char *argv[],
 			    char *file_name,
 			    char *service_object);
+
+static void
+print_service_params(krb5_ldap_service_params *lserparams, int mask);
 
 extern char *yes;
 extern krb5_boolean db_inited;
@@ -79,9 +85,11 @@ static int process_host_list(char **host_list, int servicetype)
 	    /* Parse for the protocol string and translate to number */
 	    strncpy (proto_str, pchr + 1, PROTOCOL_STR_LEN);
 	    if (!strcmp(proto_str, "udp"))
-		sprintf (proto_str, "%d", PROTOCOL_NUM_UDP);
+		snprintf (proto_str, sizeof(proto_str), "%d",
+			  PROTOCOL_NUM_UDP);
 	    else if (!strcmp(proto_str, "tcp"))
-		sprintf (proto_str, "%d", PROTOCOL_NUM_TCP);
+		snprintf (proto_str, sizeof(proto_str), "%d",
+			  PROTOCOL_NUM_TCP);
 	    else
 		proto_str[0] = '\0'; /* Make the string null if invalid */
 
@@ -103,27 +111,32 @@ static int process_host_list(char **host_list, int servicetype)
 	   and port values if they are absent or not matching */
 	if (servicetype == LDAP_KDC_SERVICE) {
 	    if (proto_str[0] == '\0')
-		sprintf (proto_str, "%d", PROTOCOL_DEFAULT_KDC);
+		snprintf (proto_str, sizeof(proto_str), "%d",
+			  PROTOCOL_DEFAULT_KDC);
 
 	    if (port_str[0] == '\0')
-		sprintf (port_str, "%d", PORT_DEFAULT_KDC);
+		snprintf (port_str, sizeof(port_str), "%d", PORT_DEFAULT_KDC);
 	} else if (servicetype == LDAP_ADMIN_SERVICE) {
 	    if (proto_str[0] == '\0')
-		sprintf (proto_str, "%d", PROTOCOL_DEFAULT_ADM);
+		snprintf (proto_str, sizeof(proto_str), "%d",
+			  PROTOCOL_DEFAULT_ADM);
 	    else if (strcmp(proto_str, "1")) {
-		sprintf (proto_str, "%d", PROTOCOL_DEFAULT_ADM);
+		snprintf (proto_str, sizeof(proto_str), "%d",
+			  PROTOCOL_DEFAULT_ADM);
 
 		/* Print warning message */
 		printf ("Admin Server supports only TCP protocol, hence setting that\n");
 	    }
 
 	    if (port_str[0] == '\0')
-		sprintf (port_str, "%d", PORT_DEFAULT_ADM);
+		snprintf (port_str, sizeof(port_str), "%d", PORT_DEFAULT_ADM);
 	} else if (servicetype == LDAP_PASSWD_SERVICE) {
 	    if (proto_str[0] == '\0')
-		sprintf (proto_str, "%d", PROTOCOL_DEFAULT_PWD);
+		snprintf (proto_str, sizeof(proto_str), "%d",
+			  PROTOCOL_DEFAULT_PWD);
 	    else if (strcmp(proto_str, "0")) {
-		sprintf (proto_str, "%d", PROTOCOL_DEFAULT_PWD);
+		snprintf (proto_str, sizeof(proto_str), "%d",
+			  PROTOCOL_DEFAULT_PWD);
 
 		/* Print warning message */
 		printf ("Password Server supports only UDP protocol, hence setting that\n");
@@ -198,7 +211,7 @@ void kdb5_ldap_create_service(argc, argv)
     int argc;
     char *argv[];
 {
-    char *me = argv[0];
+    char *me = progname;
     krb5_error_code retval = 0;
     krb5_ldap_service_params *srvparams = NULL;
     krb5_boolean print_usage = FALSE;
@@ -229,7 +242,7 @@ void kdb5_ldap_create_service(argc, argv)
 	goto cleanup;
     }
 
-    dal_handle = (kdb5_dal_handle *) util_context->db_context;
+    dal_handle = util_context->dal_handle;
     ldap_context = (krb5_ldap_context *) dal_handle->db_context;
 
     /* Allocate memory for extra arguments to be used for setting
@@ -429,7 +442,7 @@ void kdb5_ldap_create_service(argc, argv)
 
 		if ((retval = krb5_ldap_add_service_rights(util_context,
 							   srvparams->servicetype, srvparams->servicedn,
-							   realmName, rparams->subtree, rightsmask))) {
+							   realmName, rparams->subtree, rparams->containerref, rightsmask))) {
 		    printf("failed\n");
 		    com_err(me, retval, "while assigning rights '%s'",
 			    srvparams->servicedn);
@@ -496,7 +509,7 @@ void kdb5_ldap_modify_service(argc, argv)
     int argc;
     char *argv[];
 {
-    char *me = argv[0];
+    char *me = progname;
     krb5_error_code retval = 0;
     krb5_ldap_service_params *srvparams = NULL;
     krb5_boolean print_usage = FALSE;
@@ -525,7 +538,7 @@ void kdb5_ldap_modify_service(argc, argv)
 	goto err_usage;
     }
 
-    dal_handle = (kdb5_dal_handle *) util_context->db_context;
+    dal_handle = util_context->dal_handle;
     ldap_context = (krb5_ldap_context *) dal_handle->db_context;
 
     /* Parse all arguments, only to pick up service DN (Pass 1) */
@@ -569,7 +582,7 @@ void kdb5_ldap_modify_service(argc, argv)
 
     retval = krb5_ldap_read_service(util_context, servicedn, &srvparams, &in_mask);
     if (retval) {
-	com_err(argv[0], retval, "while reading information of service '%s'",
+	com_err(me, retval, "while reading information of service '%s'",
 		servicedn);
 	goto err_nomsg;
     }
@@ -934,7 +947,7 @@ void kdb5_ldap_modify_service(argc, argv)
 
 		if ((retval = krb5_ldap_delete_service_rights(util_context,
 							      srvparams->servicetype, srvparams->servicedn,
-							      realmName, rparams->subtree, rightsmask))) {
+							      realmName, rparams->subtree, rparams->containerref, rightsmask))) {
 		    printf("failed\n");
 		    com_err(me, retval, "while assigning rights '%s'",
 			    srvparams->servicedn);
@@ -985,7 +998,7 @@ void kdb5_ldap_modify_service(argc, argv)
 
 		if ((retval = krb5_ldap_add_service_rights(util_context,
 							   srvparams->servicetype, srvparams->servicedn,
-							   realmName, rparams->subtree, rightsmask))) {
+							   realmName, rparams->subtree, rparams->containerref, rightsmask))) {
 		    printf("failed\n");
 		    com_err(me, retval, "while assigning rights '%s'",
 			    srvparams->servicedn);
@@ -1061,7 +1074,7 @@ rem_service_entry_from_file(argc, argv, file_name, service_object)
     char *service_object;
 {
     int     st        = EINVAL;
-    char    *me       = argv[0];
+    char    *me       = progname;
     char    *tmp_file = NULL;
     int     tmpfd     = -1;
     FILE    *pfile    = NULL;
@@ -1088,6 +1101,7 @@ rem_service_entry_from_file(argc, argv, file_name, service_object)
 	com_err(me, errno, "while deleting entry from file %s", file_name);
 	goto cleanup;
     }
+    set_cloexec_file(pfile);
 
     /* Create a new file with the extension .tmp */
     tmp_file = (char *)malloc(strlen(file_name) + 4 + 1);
@@ -1175,7 +1189,7 @@ kdb5_ldap_destroy_service(argc, argv)
 	    if (argv[i+1]) {
 		stashfilename=strdup(argv[i+1]);
 		if (stashfilename == NULL) {
-		    com_err(argv[0], ENOMEM, "while destroying service");
+		    com_err(progname, ENOMEM, "while destroying service");
 		    exit_status++;
 		    goto cleanup;
 		}
@@ -1188,7 +1202,7 @@ kdb5_ldap_destroy_service(argc, argv)
 	    if ((argv[i]) && (servicedn == NULL)) {
 		servicedn=strdup(argv[i]);
 		if (servicedn == NULL) {
-		    com_err(argv[0], ENOMEM, "while destroying service");
+		    com_err(progname, ENOMEM, "while destroying service");
 		    exit_status++;
 		    goto cleanup;
 		}
@@ -1219,7 +1233,7 @@ kdb5_ldap_destroy_service(argc, argv)
 
     if ((retval = krb5_ldap_read_service(util_context, servicedn,
 					 &lserparams, &mask))) {
-	com_err(argv[0], retval, "while destroying service '%s'",servicedn);
+	com_err(progname, retval, "while destroying service '%s'",servicedn);
 	exit_status++;
 	goto cleanup;
     }
@@ -1227,7 +1241,7 @@ kdb5_ldap_destroy_service(argc, argv)
     retval = krb5_ldap_delete_service(util_context, lserparams, servicedn);
 
     if (retval) {
-	com_err(argv[0], retval, "while destroying service '%s'", servicedn);
+	com_err(progname, retval, "while destroying service '%s'", servicedn);
 	exit_status++;
 	goto cleanup;
     }
@@ -1235,7 +1249,7 @@ kdb5_ldap_destroy_service(argc, argv)
     if (stashfilename == NULL) {
 	stashfilename = strdup(DEF_SERVICE_PASSWD_FILE);
 	if (stashfilename == NULL) {
-	    com_err(argv[0], ENOMEM, "while destroying service");
+	    com_err(progname, ENOMEM, "while destroying service");
 	    exit_status++;
 	    goto cleanup;
 	}
@@ -1295,13 +1309,13 @@ void kdb5_ldap_view_service(argc, argv)
 
     servicedn=strdup(argv[1]);
     if (servicedn == NULL) {
-	com_err(argv[0], ENOMEM, "while viewing service");
+	com_err(progname, ENOMEM, "while viewing service");
 	exit_status++;
 	goto cleanup;
     }
 
     if ((retval = krb5_ldap_read_service(util_context, servicedn, &lserparams, &mask))) {
-	com_err(argv[0], retval, "while viewing service '%s'",servicedn);
+	com_err(progname, retval, "while viewing service '%s'",servicedn);
 	exit_status++;
 	goto cleanup;
     }
@@ -1338,7 +1352,7 @@ void kdb5_ldap_list_services(argc, argv)
     int argc;
     char *argv[];
 {
-    char *me = argv[0];
+    char *me = progname;
     krb5_error_code retval = 0;
     char *basedn = NULL;
     char **list = NULL;
@@ -1519,7 +1533,7 @@ kdb5_ldap_set_service_password(argc, argv)
     krb5_ldap_context *lparams = NULL;
     char *file_name = NULL;
     char *tmp_file = NULL;
-    char *me = argv[0];
+    char *me = progname;
     int filelen = 0;
     int random_passwd = 0;
     int set_dir_pwd = 1;
@@ -1531,7 +1545,6 @@ kdb5_ldap_set_service_password(argc, argv)
     unsigned int passwd_len = 0;
     krb5_error_code errcode = -1;
     int retval = 0, i = 0;
-    unsigned int len = 0;
     krb5_boolean print_usage = FALSE;
     FILE *pfile = NULL;
     char *str = NULL;
@@ -1554,7 +1567,7 @@ kdb5_ldap_set_service_password(argc, argv)
 	goto cleanup;
     }
 
-    dal_handle = (kdb5_dal_handle *)util_context->db_context;
+    dal_handle = util_context->dal_handle;
     lparams = (krb5_ldap_context *) dal_handle->db_context;
 
     if (lparams == NULL) {
@@ -1660,23 +1673,17 @@ kdb5_ldap_set_service_password(argc, argv)
 	memset(passwd, 0, MAX_SERVICE_PASSWD_LEN + 1);
 	passwd_len = MAX_SERVICE_PASSWD_LEN;
 
-	len = strlen(service_object);
-	/* size of allocation=strlen of servicedn + strlen("Password for \" \"")=20 */
-	prompt1 = (char *)malloc(len + 20);
-	if (prompt1 == NULL) {
+	if (asprintf(&prompt1, "Password for \"%s\"", service_object) < 0) {
 	    com_err(me, ENOMEM, "while setting service object password");
 	    goto cleanup;
 	}
-	sprintf(prompt1, "Password for \"%s\"", service_object);
 
-	/* size of allocation=strlen of servicedn + strlen("Re-enter Password for \" \"")=30 */
-	prompt2 = (char *)malloc(len + 30);
-	if (prompt2 == NULL) {
+	if (asprintf(&prompt2, "Re-enter password for \"%s\"",
+		     service_object) < 0) {
 	    com_err(me, ENOMEM, "while setting service object password");
 	    free(prompt1);
 	    goto cleanup;
 	}
-	sprintf(prompt2, "Re-enter password for \"%s\"", service_object);
 
 	retval = krb5_read_password(util_context, prompt1, prompt2, passwd, &passwd_len);
 	free(prompt1);
@@ -1710,20 +1717,16 @@ kdb5_ldap_set_service_password(argc, argv)
 	    memset(passwd, 0, passwd_len);
 	    goto cleanup;
 	}
-	/* Password = {CRYPT}<encrypted password>:<encrypted key> */
-	encrypted_passwd.value = (unsigned char *)malloc(strlen(service_object) +
-							 1 + 5 + hex.length + 2);
-	if (encrypted_passwd.value == NULL) {
+	/* Password = {HEX}<encrypted password>:<encrypted key> */
+	if (asprintf(&str, "%s#{HEX}%s\n", service_object, hex.data) < 0) {
 	    com_err(me, ENOMEM, "while setting service object password");
 	    memset(passwd, 0, passwd_len);
 	    memset(hex.data, 0, hex.length);
 	    free(hex.data);
 	    goto cleanup;
 	}
-	encrypted_passwd.value[strlen(service_object) +
-			       1 + 5 + hex.length + 1] = '\0';
-	sprintf((char *)encrypted_passwd.value, "%s#{HEX}%s\n", service_object, hex.data);
-	encrypted_passwd.len = strlen((char *)encrypted_passwd.value);
+	encrypted_passwd.data = (unsigned char *)str;
+	encrypted_passwd.len = strlen(str);
 	memset(hex.data, 0, hex.length);
 	free(hex.data);
     }
@@ -1769,6 +1772,7 @@ kdb5_ldap_set_service_password(argc, argv)
 	com_err(me, errno, "Failed to open file %s", file_name);
 	goto cleanup;
     }
+    set_cloexec_file(pfile);
 
     while (fgets(line, MAX_LEN, pfile) != NULL) {
 	if ((str = strstr(line, service_object)) != NULL) {
@@ -1798,12 +1802,10 @@ kdb5_ldap_set_service_password(argc, argv)
 	mode_t omask;
 
 	/* Create a new file with the extension .tmp */
-	tmp_file = (char *) malloc(sizeof(char) * (strlen(file_name) + 4 + 1));
-	if (tmp_file == NULL) {
+	if (asprintf(&tmp_file,"%s.tmp",file_name) < 0) {
 	    com_err(me, ENOMEM, "while setting service object password");
 	    goto cleanup;
 	}
-	sprintf(tmp_file,"%s.%s",file_name,"tmp");
 
 	omask = umask(077);
 	newfile = fopen(tmp_file, "w+");
@@ -1812,7 +1814,7 @@ kdb5_ldap_set_service_password(argc, argv)
 	    com_err(me, errno, "Error creating file %s", tmp_file);
 	    goto cleanup;
 	}
-
+	set_cloexec_file(newfile);
 
 	fseek(pfile, 0, SEEK_SET);
 	while (fgets(line, MAX_LEN, pfile) != NULL) {
@@ -1824,7 +1826,6 @@ kdb5_ldap_set_service_password(argc, argv)
 		    goto cleanup;
 		}
 	    } else {
-		len = strlen(line);
 		if (fprintf(newfile, "%s", line) < 0) {
 		    com_err(me, errno, "Failed to write service object password to file");
 		    fclose(newfile);
@@ -1902,7 +1903,7 @@ kdb5_ldap_stash_service_password(argc, argv)
 {
     int ret = 0;
     unsigned int passwd_len = 0;
-    char *me = argv[0];
+    char *me = progname;
     char *service_object = NULL;
     char *file_name = NULL, *tmp_file = NULL;
     char passwd[MAX_SERVICE_PASSWD_LEN];
@@ -1990,12 +1991,12 @@ done:
 	/* size of prompt = strlen of servicedn + strlen("Password for \" \"") */
 	assert (sizeof (prompt1) > (strlen (service_object)
 				    + sizeof ("Password for \" \"")));
-	sprintf(prompt1, "Password for \"%s\"", service_object);
+	snprintf(prompt1, sizeof(prompt1), "Password for \"%s\"", service_object);
 
 	/* size of prompt = strlen of servicedn + strlen("Re-enter Password for \" \"") */
 	assert (sizeof (prompt2) > (strlen (service_object)
 				    + sizeof ("Re-enter Password for \" \"")));
-	sprintf(prompt2, "Re-enter password for \"%s\"", service_object);
+	snprintf(prompt2, sizeof(prompt2), "Re-enter password for \"%s\"", service_object);
 
 	ret = krb5_read_password(util_context, prompt1, prompt2, passwd, &passwd_len);
 	if (ret != 0) {
@@ -2027,7 +2028,7 @@ done:
     }
     memset(passwd, 0, passwd_len);
 
-    /* TODO: file lock for the service passowrd file */
+    /* TODO: file lock for the service password file */
 
     /* set password in the file */
     old_mode = umask(0177);
@@ -2037,6 +2038,7 @@ done:
 		strerror (errno));
 	goto cleanup;
     }
+    set_cloexec_file(pfile);
     rewind (pfile);
     umask(old_mode);
 
@@ -2073,13 +2075,11 @@ done:
 	mode_t omask;
 
 	/* Create a new file with the extension .tmp */
-	tmp_file = (char *) malloc(sizeof(char) * (strlen(file_name) + 4 + 1));
-	if (tmp_file == NULL) {
+	if (asprintf(&tmp_file,"%s.tmp",file_name) < 0) {
 	    com_err(me, ENOMEM, "while setting service object password");
 	    fclose(pfile);
 	    goto cleanup;
 	}
-	sprintf(tmp_file,"%s.%s",file_name,"tmp");
 
 	omask = umask(077);
 	newfile = fopen(tmp_file, "w");
@@ -2089,6 +2089,7 @@ done:
 	    fclose(pfile);
 	    goto cleanup;
 	}
+	set_cloexec_file(newfile);
 
 	fseek(pfile, 0, SEEK_SET);
 	while (fgets(line, MAX_LEN, pfile) != NULL) {

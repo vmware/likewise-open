@@ -50,7 +50,7 @@ krb5_error_code get_all_princ_from_file (fp, plist)
     int count = 0, chunk_count = 1;
 
     if (!(temp_list = (char **) malloc( CHUNK * sizeof(char *))))
-	return errno;
+	return ENOMEM;
 
     retval = get_line(fp, &line);
     if (retval)
@@ -68,7 +68,7 @@ krb5_error_code get_all_princ_from_file (fp, plist)
 	    chunk_count ++;
 	    if (!(temp_list = (char **) realloc(temp_list,
 						chunk_count * CHUNK * sizeof(char *)))){
-		return errno;
+		return ENOMEM;
 	    }
 	}
 
@@ -114,7 +114,7 @@ krb5_error_code list_union(list1, list2, combined_list)
     while (list2[c2]) c2++;
 	
     if (!(tlist = (char **) calloc( c1 + c2 + 1, sizeof ( char *))))
-	return errno;
+	return ENOMEM;
 
     i = 0;
     while(list1[i]) {
@@ -176,7 +176,7 @@ filter(fp, cmd, k5users_list, k5users_filt_list)
     }
 
     if (! (temp_filt_list = (char **) calloc(found_count +1, sizeof (char*))))
-	return errno;
+	return ENOMEM;
 
     for(j= 0, k=0; j < i; j++ ) {	
 	if (k5users_list[j]){
@@ -351,11 +351,8 @@ krb5_error_code get_closest_principal(context, plist, client, found)
 	    continue;
 	}
 	
-	if (krb5_princ_realm(context, *client)->length ==
-	    krb5_princ_realm(context, temp_client)->length
-	    && (!memcmp (krb5_princ_realm(context, *client)->data,
-			 krb5_princ_realm(context, temp_client)->data,
-			 krb5_princ_realm(context, temp_client)->length))){
+	if (data_eq(*krb5_princ_realm(context, *client),
+		    *krb5_princ_realm(context, temp_client))) {
 	    
 	    got_one = TRUE;
 	    for(j =0; j < cnelem; j ++){
@@ -364,8 +361,7 @@ krb5_error_code get_closest_principal(context, plist, client, found)
 		krb5_data *p2 =
 		    krb5_princ_component(context, temp_client, j);
 		
-		if (!p1 || !p2 || (p1->length != p2->length) ||
-		    memcmp(p1->data,p2->data,p1->length)){
+		if (!p1 || !p2 || !data_eq(*p1, *p2)) {
 		    got_one = FALSE;
 		    break;
 		}

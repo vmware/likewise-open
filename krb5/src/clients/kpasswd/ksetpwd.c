@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <time.h>
+#include <k5-platform.h>
 
 #define TKTTIMELEFT     60*10   /* ten minutes */
 
@@ -61,7 +62,7 @@ static kbrccache_t userinitcontext(
 	if( kres )
 		goto return_error;
 	if( domain )
-		kres = krb5_build_principal( kcontext, &kme, strlen(domain), domain, user, 0 );
+		kres = krb5_build_principal( kcontext, &kme, strlen(domain), domain, user, (char *) 0 );
 	else
 		kres = krb5_parse_name( kcontext, user, &kme );
 	if( kres )
@@ -69,14 +70,11 @@ static kbrccache_t userinitcontext(
 	krb5_unparse_name( kcontext, kme, &pName );
 	if( cachename )
 	{
-		pCacheName = malloc( strlen( pName ) + strlen( cachename ) + 1 );
-		if( pCacheName == NULL )
+		if (asprintf(&pCacheName, "%s%s", cachename, pName) < 0)
 		{
 			kres = KRB5_CC_NOMEM;
 			goto fail;
 		}
-		strcpy( pCacheName, cachename );
-		strcat( pCacheName, pName );
 		kres = krb5_cc_resolve( kcontext, pCacheName, &kcache );
 		if( kres )
 		{

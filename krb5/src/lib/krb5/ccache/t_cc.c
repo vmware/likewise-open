@@ -27,7 +27,7 @@
  */
 
 
-#include "krb5.h"
+#include "k5-int.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include "autoconf.h"
@@ -81,14 +81,87 @@ static void init_structs(void)
   test_creds.authdata = NULL;
 }
 
-static void init_test_cred(krb5_context context)
+static krb5_error_code init_test_cred(krb5_context context)
 {
+  krb5_error_code kret;
+  unsigned int i;
+  krb5_authdata *a;
 #define REALM "REALM"
-  krb5_build_principal(context, &test_creds.client, sizeof(REALM), REALM,
-		       "client-comp1", "client-comp2", NULL);
+  kret = krb5_build_principal(context, &test_creds.client, sizeof(REALM), REALM,
+			      "client-comp1", "client-comp2", NULL);
+  if(kret)
+	  return kret;
 
-  krb5_build_principal(context, &test_creds.server, sizeof(REALM), REALM,
-		       "server-comp1", "server-comp2", NULL);
+  kret = krb5_build_principal(context, &test_creds.server, sizeof(REALM), REALM,
+			      "server-comp1", "server-comp2", NULL);
+  if(kret) {
+	  krb5_free_principal(context, test_creds.client);
+	  test_creds.client = 0;
+	  goto cleanup;
+  }
+
+  test_creds.authdata = malloc (3 * sizeof(krb5_authdata *));
+  if (!test_creds.authdata) {
+	  kret = ENOMEM;
+	  goto cleanup;
+  }
+
+  for (i = 0 ; i <= 2 ; i++) {
+	  test_creds.authdata[i] = 0;
+  }
+  a = (krb5_authdata *) malloc(sizeof(krb5_authdata));
+  if(!a) {
+	  kret = ENOMEM;
+	  goto cleanup;
+  }
+  a->magic = KV5M_AUTHDATA;
+  a->ad_type = KRB5_AUTHDATA_IF_RELEVANT;
+  a->contents = (krb5_octet * ) malloc(1);
+  if(!a->contents) {
+	  free(a);
+	  kret = ENOMEM;
+	  goto cleanup;
+  }
+  a->contents[0]=5;
+  a->length = 1;
+  test_creds.authdata[0] = a;
+
+  a = (krb5_authdata *) malloc(sizeof(krb5_authdata));
+  if(!a) {
+	  kret = ENOMEM;
+	  goto cleanup;
+  }
+  a->magic = KV5M_AUTHDATA;
+  a->ad_type = KRB5_AUTHDATA_KDC_ISSUED;
+  a->contents = (krb5_octet * ) malloc(2);
+  if(!a->contents) {
+	  free(a);
+	  kret = ENOMEM;
+	  goto cleanup;
+  }
+  a->contents[0]=4;
+  a->contents[1]=6;
+  a->length = 2;
+  test_creds.authdata[1] = a;
+
+cleanup:
+  if(kret) {
+	  if (test_creds.client) {
+		  krb5_free_principal(context, test_creds.client);
+		  test_creds.client = 0;
+	  }
+	  if (test_creds.server) {
+		  krb5_free_principal(context, test_creds.server);
+		  test_creds.server = 0;
+
+	  }
+	  if (test_creds.authdata) {
+		  krb5_free_authdata(context, test_creds.authdata);
+		  test_creds.authdata = 0;
+	  }
+  }
+
+  return kret;
 }
 
 static void free_test_cred(krb5_context context)
@@ -97,6 +170,10 @@ static void free_test_cred(krb5_context context)
 
   krb5_free_principal(context, test_creds.server);
 
+  if(test_creds.authdata) {
+    krb5_free_authdata(context, test_creds.authdata);
+    test_creds.authdata = 0;
+  }
 }
 
 #define CHECK(kret,msg) \
@@ -125,7 +202,8 @@ static void cc_test(krb5_context context, const char *name, int flags)
      char newcache[300];
      char *save_type;
 
-     init_test_cred(context);
+     kret = init_test_cred(context);
+     CHECK(kret, "init_creds");
 
      kret = krb5_cc_resolve(context, name, &id);
      CHECK(kret, "resolve");
@@ -173,7 +251,7 @@ static void cc_test(krb5_context context, const char *name, int flags)
 
      {
        /* Copy the cache test*/
-       sprintf(newcache, "%s.new", name);
+       snprintf(newcache, sizeof(newcache), "%s.new", name);
        kret = krb5_cc_resolve(context, newcache, &id2);
        CHECK(kret, "resolve of new cache");
        
@@ -220,12 +298,11 @@ static void cc_test(krb5_context context, const char *name, int flags)
  */
 static int check_registered(krb5_context context, const char *prefix)
 {
-
   char name[300];
   krb5_error_code kret;
   krb5_ccache id;
 
-  sprintf(name, "%s/tmp/cctest.%ld", prefix, (long) getpid());
+  snprintf(name, sizeof(name), "%s/tmp/cctest.%ld", prefix, (long) getpid());
 
   kret = krb5_cc_resolve(context, name, &id);
   if(kret != KRB5_OK) {
@@ -250,7 +327,7 @@ static void do_test(krb5_context context, const char *prefix)
 {
   char name[300];
 
-  sprintf(name, "%s/tmp/cctest.%ld", prefix, (long) getpid());
+  snprintf(name, sizeof(name), "%s/tmp/cctest.%ld", prefix, (long) getpid());
   printf("Starting test on %s\n", name);
   cc_test (context, name, 0);
   cc_test (context, name, !0);
@@ -262,8 +339,7 @@ static void test_misc(krb5_context context)
   /* Tests for certain error returns */
   krb5_error_code	kret;
   krb5_ccache id;
-  extern krb5_cc_ops *krb5_cc_dfl_ops;
-  krb5_cc_ops *ops_save;
+  const krb5_cc_ops *ops_save;
 
   fprintf(stderr, "Testing miscellaneous error conditions\n");
 
@@ -291,8 +367,6 @@ int main (void)
 {
     krb5_context context;
     krb5_error_code	kret;
-
-    initialize_krb5_error_table ();
 
     if ((kret = krb5_init_context(&context))) {
 	    printf("Couldn't initialize krb5 library: %s\n",

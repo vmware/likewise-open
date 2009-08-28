@@ -1,7 +1,7 @@
 /*
  * kdc/extern.h
  *
- * Copyright 1990,2001 by the Massachusetts Institute of Technology.
+ * Copyright 1990,2001,2007,2009 by the Massachusetts Institute of Technology.
  *
  * Export of this software from the United States of America may
  *   require a specific license from the United States Government.
@@ -41,6 +41,11 @@ typedef struct __kdc_realm_data {
     krb5_context	realm_context;	/* Context to be used for realm	    */
     krb5_keytab		realm_keytab; 	/* keytab to be used for this realm */
     char *		realm_profile;	/* Profile file for this realm	    */
+    char *              realm_host_based_services; /* do referral processing for these services
+                                                    * If '*' - allow all referrals */
+    char *              realm_no_host_referral; /* no referral for these services.
+                                                 * If '*' - disallow all referrals and
+                                                 * ignore realm_host_based_services */
     /*
      * Database per-realm data.
      */
@@ -48,7 +53,12 @@ typedef struct __kdc_realm_data {
     char *		realm_stash;	/* Stash file name for realm	    */
     char *		realm_mpname;	/* Master principal name for realm  */
     krb5_principal	realm_mprinc;	/* Master principal for realm	    */
+    /*
+     * Note realm_mkey is mkey read from stash or keyboard and may not be the
+     * latest.  The mkey_list will have all the mkeys in use.
+     */
     krb5_keyblock	realm_mkey;	/* Master key for this realm	    */
+    krb5_keylist_node * mkey_list;	/* list of mkeys in use for this realm */
     /*
      * TGS per-realm data.
      */
@@ -81,11 +91,9 @@ kdc_realm_t *find_realm_data (char *, krb5_ui_4);
 #define	max_life_for_realm		kdc_active_realm->realm_maxlife
 #define	max_renewable_life_for_realm	kdc_active_realm->realm_maxrlife
 #define	master_keyblock			kdc_active_realm->realm_mkey
+#define	master_keylist			kdc_active_realm->mkey_list
 #define	master_princ			kdc_active_realm->realm_mprinc
-#define	tgs_server_struct		*(kdc_active_realm->realm_tgsprinc)
 #define	tgs_server			kdc_active_realm->realm_tgsprinc
-#define	dbm_db_name			kdc_active_realm->realm_dbname
-#define	primary_port			kdc_active_realm->realm_pport
 #define reject_bad_transit		kdc_active_realm->realm_reject_bad_transit
 
 /* various externs for KDC */
@@ -93,6 +101,7 @@ extern krb5_data 	empty_string;	/* an empty string */
 extern krb5_timestamp 	kdc_infinity;	/* greater than all other timestamps */
 extern krb5_rcache	kdc_rcache;	/* replay cache */
 extern krb5_keyblock	psr_key;	/* key for predicted sam response */
+extern krb5_int32	max_dgram_reply_size; /* maximum datagram size */
 
 extern volatile int signal_requests_exit;
 extern volatile int signal_requests_hup;

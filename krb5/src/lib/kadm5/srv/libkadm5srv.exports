@@ -1,6 +1,7 @@
 _kadm5_check_handle
 _kadm5_chpass_principal_util
 kadm5int_acl_check
+kadm5int_acl_check_krb
 kadm5int_acl_finish
 kadm5int_acl_impose_restrictions
 kadm5int_acl_init
@@ -35,6 +36,7 @@ kadm5_get_config_params
 kadm5_get_policies
 kadm5_get_policy
 kadm5_get_principal
+kadm5_get_principal_keys
 kadm5_get_principals
 kadm5_get_privs
 kadm5_init
@@ -65,6 +67,7 @@ krb5_aprof_get_boolean
 krb5_aprof_get_deltat
 krb5_aprof_get_int32
 krb5_aprof_get_string
+krb5_aprof_get_string_all
 krb5_aprof_getvals
 krb5_aprof_init
 krb5_copy_key_data_contents
@@ -81,8 +84,10 @@ krb5_klog_syslog
 krb5_read_realm_params
 krb5_string_to_flags
 krb5_string_to_keysalts
+krb5_match_config_pattern
 master_db
 master_keyblock
+master_keylist
 master_princ
 osa_free_princ_ent
 ovsec_kadm_chpass_principal
@@ -160,3 +165,4 @@ xdr_setkey3_arg
 xdr_setkey_arg
 xdr_setv4key_arg
 xdr_ui_4
+kadm5_init_iprop

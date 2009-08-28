@@ -1,7 +1,7 @@
 /*
  * lib/krb5/ccache/cccursor.c
  *
- * Copyright 2006 by the Massachusetts Institute of Technology.
+ * Copyright 2006, 2007 by the Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
  * Export of this software from the United States of America may
@@ -26,7 +26,7 @@
  * cursor for sequential traversal of ccaches
  */
 
-#include "k5-int.h"
+#include "cc-int.h"
 
 #include <assert.h>
 
@@ -120,7 +120,7 @@ krb5_cccol_cursor_next(
     krb5_os_context os_ctx = NULL;
 
     *ccache = NULL;
-    os_ctx = context->os_context;
+    os_ctx = &context->os_context;
 
     switch (cursor->pos) {
     case CCCURSOR_CONTEXT:
@@ -197,6 +197,42 @@ krb5_cccol_cursor_free(
     *cursor = NULL;
     return 0;
 }
+
+krb5_error_code KRB5_CALLCONV
+krb5_cccol_last_change_time(
+    krb5_context context,
+    krb5_timestamp *change_time)
+{
+    krb5_error_code ret = 0;
+    krb5_cccol_cursor c = NULL;
+    krb5_ccache ccache = NULL;
+    krb5_timestamp last_time = 0;
+    krb5_timestamp max_change_time = 0;
+
+    *change_time = 0;
+
+    ret = krb5_cccol_cursor_new(context, &c);
+
+    while (!ret) {
+        ret = krb5_cccol_cursor_next(context, c, &ccache);
+        if (ccache) {
+            ret = krb5_cc_last_change_time(context, ccache, &last_time);
+            if (!ret && last_time > max_change_time) {
+                max_change_time = last_time;
+            }
+            ret = 0;
+        }
+        else {
+            break;
+        }
+    }
+    *change_time = max_change_time;
+    return ret;
+}
+
+/*
+ * krb5_cccol_lock and krb5_cccol_unlock are defined in ccbase.c
+ */
 
 /*
  * Determine if a ccache from a per-type cursor was already one of the

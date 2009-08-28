@@ -3,10 +3,6 @@
 #include "autoconf.h"
 #include "com_err.h"
 #include "k5-int.h"
-#include "krb5_err.h"
-#include "kv5m_err.h"
-#include "asn1_err.h"
-#include "kdb5_err.h"
 
 #if defined(_WIN32) || defined(USE_CCAPI)
 #include "stdcc.h"
@@ -37,20 +33,20 @@ int krb5int_lib_init(void)
     printf("krb5int_lib_init\n");
 #endif
 
-#if !USE_BUNDLE_ERROR_STRINGS
     add_error_table(&et_krb5_error_table);
     add_error_table(&et_kv5m_error_table);
     add_error_table(&et_kdb5_error_table);
     add_error_table(&et_asn1_error_table);
     add_error_table(&et_k524_error_table);
-#endif
 
     err = krb5int_rc_finish_init();
     if (err)
 	return err;
+#ifndef LEAN_CLIENT
     err = krb5int_kt_initialize();
     if (err)
 	return err;
+#endif /* LEAN_CLIENT */
     err = krb5int_cc_initialize();
     if (err)
 	return err;
@@ -87,20 +83,21 @@ void krb5int_lib_fini(void)
     k5_mutex_destroy(&krb5int_us_time_mutex);
 
     krb5int_cc_finalize();
+#ifndef LEAN_CLIENT
     krb5int_kt_finalize();
+#endif /* LEAN_CLIENT */
     krb5int_rc_terminate();
 
 #if defined(_WIN32) || defined(USE_CCAPI)
     krb5_stdcc_shutdown();
 #endif
 
-#if !USE_BUNDLE_ERROR_STRINGS
     remove_error_table(&et_krb5_error_table);
     remove_error_table(&et_kv5m_error_table);
     remove_error_table(&et_kdb5_error_table);
     remove_error_table(&et_asn1_error_table);
     remove_error_table(&et_k524_error_table);
-#endif
+
     krb5int_set_error_info_callout_fn (0);
 }
 

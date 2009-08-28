@@ -48,6 +48,8 @@
 #include <kadm5/admin.h>
 #include <kadm5/kadm_rpc.h>
 #include "client_internal.h"
+#include <iprop_hdr.h>
+#include "iprop.h"
 
 #include <gssrpc/rpc.h>
 #include <gssapi/gssapi.h>
@@ -165,6 +167,8 @@ static kadm5_ret_t _kadm5_init_any(char *client_name,
      struct hostent *hp;
      int fd;
 
+     char *iprop_svc;
+     int iprop_enable = 0;
      char full_svcname[BUFSIZ];
      char *realm;
      
@@ -185,6 +189,7 @@ static kadm5_ret_t _kadm5_init_any(char *client_name,
      if (! (handle = malloc(sizeof(*handle)))) {
 	  return ENOMEM;
      }
+     memset(handle, 0, sizeof(*handle));
      if (! (handle->lhandle = malloc(sizeof(*handle)))) {
 	  free(handle);
 	  return ENOMEM;
@@ -196,6 +201,7 @@ static kadm5_ret_t _kadm5_init_any(char *client_name,
      handle->clnt = 0;
      handle->cache_name = 0;
      handle->destroy_cache = 0;
+     handle->context = 0;
      *handle->lhandle = *handle;
      handle->lhandle->api_version = KADM5_API_VERSION_2;
      handle->lhandle->struct_version = KADM5_STRUCT_VERSION;
@@ -240,6 +246,9 @@ static kadm5_ret_t _kadm5_init_any(char *client_name,
 	       realm = NULL;
      }
 
+#if 0 /* Since KDC config params can now be put in krb5.conf, these
+	 could show up even when you're just using the remote kadmin
+	 client.  */
 #define ILLEGAL_PARAMS (KADM5_CONFIG_DBNAME | KADM5_CONFIG_ADBNAME | \
 			KADM5_CONFIG_ADB_LOCKFILE | \
 			KADM5_CONFIG_ACL_FILE | KADM5_CONFIG_DICT_FILE \
@@ -255,7 +264,8 @@ static kadm5_ret_t _kadm5_init_any(char *client_name,
 	  free(handle);
 	  return KADM5_BAD_CLIENT_PARAMS;
      }
-			
+#endif
+
      if ((code = kadm5_get_config_params(handle->context, 0,
 					 params_in, &handle->params))) {
 	  krb5_free_context(handle->context);
@@ -292,15 +302,37 @@ static kadm5_ret_t _kadm5_init_any(char *client_name,
 	  goto cleanup;
      }
 
+     /*
+      * If the service_name and client_name are iprop-centric,
+      * we need to clnttcp_create to the appropriate RPC prog.
+      */
+     iprop_svc = strdup(KIPROP_SVC_NAME);
+     if (iprop_svc == NULL)
+	 return ENOMEM;
+
+     if (service_name != NULL &&
+	 (strstr(service_name, iprop_svc) != NULL) &&
+	 (strstr(client_name, iprop_svc) != NULL))
+	 iprop_enable = 1;
+     else
+	 iprop_enable = 0;
+
      memset(&addr, 0, sizeof(addr));
      addr.sin_family = hp->h_addrtype;
      (void) memcpy((char *) &addr.sin_addr, (char *) hp->h_addr,
 		   sizeof(addr.sin_addr));
-     addr.sin_port = htons((u_short) handle->params.kadmind_port);
+     if (iprop_enable)
+	 addr.sin_port = htons((u_short) handle->params.iprop_port);
+     else
+	 addr.sin_port = htons((u_short) handle->params.kadmind_port);
      
      fd = RPC_ANYSOCK;
-     
-     handle->clnt = clnttcp_create(&addr, KADM, KADMVERS, &fd, 0, 0);
+
+     if (iprop_enable) {
+	 handle->clnt = clnttcp_create(&addr, KRB5_IPROP_PROG, KRB5_IPROP_VERS,
+				       &fd, 0, 0);
+     } else
+	 handle->clnt = clnttcp_create(&addr, KADM, KADMVERS, &fd, 0, 0);
      if (handle->clnt == NULL) {
 	  code = KADM5_RPC_ERROR;
 #ifdef DEBUG
@@ -321,6 +353,16 @@ static kadm5_ret_t _kadm5_init_any(char *client_name,
      code = kadm5_setup_gss(handle, params_in, client_name, full_svcname);
      if (code)
 	  goto error;
+
+     /*
+      * Bypass the remainder of the code and return straightaway
+      * if the gss service requested is kiprop
+      */
+     if (iprop_enable == 1) {
+	 code = 0;
+	 *server_handle = (void *) handle;
+	 goto cleanup;
+     }
 
      r = init_2(&handle->api_version, handle->clnt);
      if (r == NULL) {
@@ -405,23 +447,21 @@ kadm5_get_init_creds(kadm5_server_handle_t handle,
 
      if (init_type == INIT_CREDS) {
 	  ccache = ccache_in;
-	  handle->cache_name = (char *)
-	       malloc(strlen(krb5_cc_get_type(handle->context, ccache)) +
-		      strlen(krb5_cc_get_name(handle->context, ccache)) + 2);
-	  if (handle->cache_name == NULL) {
-	       code = ENOMEM;
-	       goto error;
+	  if (asprintf(&handle->cache_name, "%s:%s",
+		       krb5_cc_get_type(handle->context, ccache),
+		       krb5_cc_get_name(handle->context, ccache)) < 0) {
+	      handle->cache_name = NULL;
+	      code = ENOMEM;
+	      goto error;
 	  }
-	  sprintf(handle->cache_name, "%s:%s",
-		  krb5_cc_get_type(handle->context, ccache),
-		  krb5_cc_get_name(handle->context, ccache));
      } else {
 	  static int counter = 0;
 
-	  handle->cache_name = malloc(sizeof("MEMORY:kadm5_")
-				      + 3*sizeof(counter));
-	  sprintf(handle->cache_name, "MEMORY:kadm5_%u", counter++);
-
+	  if (asprintf(&handle->cache_name, "MEMORY:kadm5_%u", counter++) < 0) {
+	      handle->cache_name = NULL;
+	      code = ENOMEM;
+	      goto error;
+	  }
 	  code = krb5_cc_resolve(handle->context, handle->cache_name,
 				 &ccache);
 	  if (code) 
@@ -477,6 +517,7 @@ kadm5_gic_iter(kadm5_server_handle_t handle,
      krb5_keytab kt;
      krb5_get_init_creds_opt opt;
      krb5_creds mcreds, outcreds;
+     int n;
 
      ctx = handle->context;
      kt = NULL;
@@ -487,24 +528,25 @@ kadm5_gic_iter(kadm5_server_handle_t handle,
 
      code = ENOMEM;
      if (realm) {
-          if ((strlen(svcname) + strlen(realm) + 1) >= full_svcname_len)
-	       goto error;
-	  sprintf(full_svcname, "%s@%s", svcname, realm);
+	 n = snprintf(full_svcname, full_svcname_len, "%s@%s",
+		      svcname, realm);
+	 if (n < 0 || n >= full_svcname_len)
+	     goto error;
      } else {
-	  /* krb5_princ_realm(client) is not null terminated */
-          if ((strlen(svcname) + krb5_princ_realm(ctx, client)->length + 1)
-	      >= full_svcname_len)
-	       goto error;
-
-	  strcpy(full_svcname, svcname);
-	  strcat(full_svcname, "@");
-	  strncat(full_svcname,
-		  krb5_princ_realm(ctx, client)->data,
-		  krb5_princ_realm(ctx, client)->length);
+	 /* krb5_princ_realm(client) is not null terminated */
+	 n = snprintf(full_svcname, full_svcname_len, "%s@%.*s",
+		      svcname, krb5_princ_realm(ctx, client)->length,
+		      krb5_princ_realm(ctx, client)->data);
+	 if (n < 0 || n >= full_svcname_len)
+	     goto error;
      }
 
-     if (init_type != INIT_CREDS)
+     /* Credentials for kadmin don't need to be forwardable or proxiable. */
+     if (init_type != INIT_CREDS) {
 	  krb5_get_init_creds_opt_init(&opt);
+	  krb5_get_init_creds_opt_set_forwardable(&opt, 0);
+	  krb5_get_init_creds_opt_set_proxiable(&opt, 0);
+     }
 
      if (init_type == INIT_PASS) {
 	  code = krb5_get_init_creds_password(ctx, &outcreds, client, pass,
@@ -569,6 +611,7 @@ kadm5_setup_gss(kadm5_server_handle_t handle,
      code = KADM5_GSS_ERROR;
      gss_client_creds = GSS_C_NO_CREDENTIAL;
      ccname_orig = NULL;
+     gss_client = gss_target = GSS_C_NO_NAME;
 
      /* Temporarily use the kadm5 cache. */
      gssstat = gss_krb5_ccache_name(&minor_stat, handle->cache_name,
@@ -605,6 +648,50 @@ kadm5_setup_gss(kadm5_server_handle_t handle,
 				&gss_client_creds, NULL, NULL);
      if (gssstat != GSS_S_COMPLETE) {
 	  code = KADM5_GSS_ERROR;
+#if 0 /* for debugging only */
+	  {
+	      OM_uint32 maj_status, min_status, message_context = 0;
+	      gss_buffer_desc status_string;
+	      do {
+		  maj_status = gss_display_status(&min_status,
+						  gssstat,
+						  GSS_C_GSS_CODE,
+						  GSS_C_NO_OID,
+						  &message_context,
+						  &status_string);
+		  if (maj_status == GSS_S_COMPLETE) {
+		      fprintf(stderr, "MAJ: %.*s\n",
+			      (int) status_string.length,
+			      (char *)status_string.value);
+		      gss_release_buffer(&min_status, &status_string);
+		  } else {
+		      fprintf(stderr,
+			      "MAJ? gss_display_status returns 0x%lx?!\n",
+			      (unsigned long) maj_status);
+		      message_context = 0;
+		  }
+	      } while (message_context != 0);
+	      do {
+		  maj_status = gss_display_status(&min_status,
+						  minor_stat,
+						  GSS_C_MECH_CODE,
+						  GSS_C_NO_OID,
+						  &message_context,
+						  &status_string);
+		  if (maj_status == GSS_S_COMPLETE) {
+		      fprintf(stderr, "MIN: %.*s\n",
+			      (int) status_string.length,
+			      (char *)status_string.value);
+		      gss_release_buffer(&min_status, &status_string);
+		  } else {
+		      fprintf(stderr,
+			      "MIN? gss_display_status returns 0x%lx?!\n",
+			      (unsigned long) maj_status);
+		      message_context = 0;
+		  }
+	      } while (message_context != 0);
+	  }
+#endif
 	  goto error;
      }
 
@@ -749,4 +836,14 @@ int _kadm5_check_handle(void *handle)
 krb5_error_code kadm5_init_krb5_context (krb5_context *ctx)
 {
     return krb5_init_context(ctx);
+}
+
+/*
+ * Stub function for kadmin.  It was created to eliminate the dependency on
+ * libkdb's ulog functions.  The srv equivalent makes the actual calls.
+ */
+krb5_error_code
+kadm5_init_iprop(void *handle, char **db_args)
+{
+	return (0);
 }

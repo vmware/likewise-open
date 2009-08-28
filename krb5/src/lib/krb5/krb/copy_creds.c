@@ -38,10 +38,30 @@ krb5_copy_creds(krb5_context context, const krb5_creds *incred, krb5_creds **out
 {
     krb5_creds *tempcred;
     krb5_error_code retval;
-    krb5_data *scratch;
 
     if (!(tempcred = (krb5_creds *)malloc(sizeof(*tempcred))))
 	return ENOMEM;
+
+    retval = krb5int_copy_creds_contents(context, incred, tempcred);
+    if (retval)
+	free(tempcred);
+    else
+	*outcred = tempcred;
+    return retval;
+}
+
+/*
+ * Copy contents of input credentials structure to supplied
+ * destination, allocating storage for indirect fields as needed.  On
+ * success, the output is a deep copy of the input.  On error, the
+ * output structure is garbage and its contents should be ignored.
+ */
+krb5_error_code
+krb5int_copy_creds_contents(krb5_context context, const krb5_creds *incred,
+			    krb5_creds *tempcred)
+{
+    krb5_error_code retval;
+    krb5_data *scratch;
 
     *tempcred = *incred;
     retval = krb5_copy_principal(context, incred->client, &tempcred->client);
@@ -61,34 +81,36 @@ krb5_copy_creds(krb5_context context, const krb5_creds *incred, krb5_creds **out
     if (retval)
 	goto cleanaddrs;
     tempcred->ticket = *scratch;
-    krb5_xfree(scratch);
+    free(scratch);
     retval = krb5_copy_data(context, &incred->second_ticket, &scratch);
     if (retval)
-	goto cleanticket;
+	goto clearticket;
 
     tempcred->second_ticket = *scratch;
-    krb5_xfree(scratch);
+    free(scratch);
 
     retval = krb5_copy_authdata(context, incred->authdata,&tempcred->authdata);
     if (retval)
-        goto clearticket;
+        goto clearsecondticket;
 
-    *outcred = tempcred;
     return 0;
 
+ clearsecondticket:
+    memset(tempcred->second_ticket.data,0,tempcred->second_ticket.length);
+    free(tempcred->second_ticket.data);
  clearticket:    
     memset(tempcred->ticket.data,0,tempcred->ticket.length);
- cleanticket:
     free(tempcred->ticket.data);
  cleanaddrs:
     krb5_free_addresses(context, tempcred->addresses);
  cleanblock:
-    krb5_xfree(tempcred->keyblock.contents);
+    free(tempcred->keyblock.contents);
  cleanserver:
     krb5_free_principal(context, tempcred->server);
  cleanclient:
     krb5_free_principal(context, tempcred->client);
  cleanlast:
-    krb5_xfree(tempcred);
+    /* Do not free tempcred - we did not allocate it - its contents are
+       garbage - but we should not free it */
     return retval;
 }

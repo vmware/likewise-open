@@ -76,7 +76,9 @@ krb5_verify_init_creds(krb5_context context,
    ap_req.data = NULL;
 
    if (server_arg) {
-      server = server_arg;
+       ret = krb5_copy_principal(context, server_arg, &server);
+       if (ret)
+	   goto cleanup;
    } else {
       if ((ret = krb5_sname_to_principal(context, NULL, NULL, 
 					 KRB5_NT_SRV_HST, &server)))
@@ -94,6 +96,12 @@ krb5_verify_init_creds(krb5_context context,
      if ((ret = krb5_kt_default(context, &keytab)))
 	 goto cleanup;
    }
+   if (krb5_is_referral_realm(&server->realm)) {
+       krb5_free_data_contents(context, &server->realm);
+       ret = krb5_get_default_realm(context, &server->realm.data);
+       if (ret) goto cleanup;
+       server->realm.length = strlen(server->realm.data);
+   }
 
    if ((ret = krb5_kt_get_entry(context, keytab, server, 0, 0, &kte))) {
        /* this means there is no keying material.  This is ok, as long as
@@ -107,7 +115,7 @@ krb5_verify_init_creds(krb5_context context,
 	       goto cleanup;
        } else if (krb5_libdefault_boolean(context,
 					  &creds->client->realm,
-					  "verify_ap_req_nofail",
+					  KRB5_CONF_VERIFY_AP_REQ_NOFAIL,
 					  &nofail)
 		  == 0) {
 	   if (nofail)
@@ -207,7 +215,7 @@ krb5_verify_init_creds(krb5_context context,
       accordingly.  either that, or it's zero, which is fine, too */
 
 cleanup:
-   if (!server_arg && server)
+   if ( server)
       krb5_free_principal(context, server);
    if (!keytab_arg && keytab)
       krb5_kt_close(context, keytab);
@@ -218,7 +226,7 @@ cleanup:
    if (authcon)
       krb5_auth_con_free(context, authcon);
    if (ap_req.data)
-      krb5_xfree(ap_req.data);
+      free(ap_req.data);
 
    return(ret);
 }

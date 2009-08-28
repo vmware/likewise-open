@@ -5,7 +5,7 @@
  * Written by Frank Dabek July 1998
  * Updated by Jeffrey Altman June 2006
  *
- * Copyright 1998, 1999, 2006 by the Massachusetts Institute of Technology.
+ * Copyright 1998, 1999, 2006, 2008 by the Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
  * Export of this software from the United States of America may
@@ -28,6 +28,8 @@
  * or implied warranty.
  * 
  */
+
+#if defined(_WIN32) || defined(USE_CCAPI)
 
 #include "k5-int.h"
 #include "stdcc.h"
@@ -88,9 +90,11 @@ krb5_cc_ops krb5_cc_stdcc_ops = {
       krb5_stdccv3_ptcursor_new,
       krb5_stdccv3_ptcursor_next,
       krb5_stdccv3_ptcursor_free,
-      NULL,
-      NULL,
-      NULL,
+      NULL, /* move */
+      krb5_stdccv3_last_change_time, /* lastchange */
+      NULL, /* wasdefault */
+      krb5_stdccv3_lock,
+      krb5_stdccv3_unlock,
 #else
       krb5_stdcc_get_name,
       krb5_stdcc_resolve,
@@ -230,7 +234,7 @@ static krb5_error_code stdccv3_get_timeoffset (krb5_context in_context,
     krb5_error_code err = 0;
     
     if (gCCVersion >= ccapi_version_5) {
-        krb5_os_context os_ctx = (krb5_os_context) in_context->os_context;
+        krb5_os_context os_ctx = (krb5_os_context) &in_context->os_context;
         cc_time_t time_offset = 0;
     
         err = cc_ccache_get_kdc_time_offset (in_ccache, cc_credentials_v5,
@@ -257,7 +261,7 @@ static krb5_error_code stdccv3_set_timeoffset (krb5_context in_context,
     krb5_error_code err = 0;
     
     if (gCCVersion >= ccapi_version_5) {
-        krb5_os_context os_ctx = (krb5_os_context) in_context->os_context;
+        krb5_os_context os_ctx = (krb5_os_context) &in_context->os_context;
         
         if (!err && os_ctx->os_flags & KRB5_OS_TOFFSET_VALID) {
             err = cc_ccache_set_kdc_time_offset (in_ccache, 
@@ -343,12 +347,11 @@ krb5_stdccv3_generate_new (krb5_context context, krb5_ccache *id )
     }
     
     if (!err) {
-        name = (char *) malloc (sizeof (*name) * (strlen (ccstring->data) + 1));
+        name = strdup (ccstring->data);
         if (!name) { err = KRB5_CC_NOMEM; }
     }
     
     if (!err) {
-        strcpy (name, ccstring->data);
         ccapi_data->cache_name = name;
         name = NULL; /* take ownership */
         
@@ -403,7 +406,7 @@ krb5_stdccv3_resolve (krb5_context context, krb5_ccache *id , const char *residu
     }
     
     if (!err) {
-        name = malloc (strlen(residual) + 1);
+        name = strdup (residual);
         if (!name) { err = KRB5_CC_NOMEM; }
     }
     
@@ -417,7 +420,6 @@ krb5_stdccv3_resolve (krb5_context context, krb5_ccache *id , const char *residu
     }
 
     if (!err) {
-	strcpy(name, residual);        
 	ccapi_data->cache_name = name;
         name = NULL; /* take ownership */
 
@@ -846,6 +848,10 @@ krb5_stdccv3_remove (krb5_context context,
     }
     if (err == ccIteratorEnd) { err = ccErrCredentialsNotFound; }    
 
+    if (iterator) {
+        err = cc_credentials_iterator_release(iterator);
+    }
+
     if (!err) {
         cache_changed ();
     }
@@ -906,7 +912,6 @@ krb5_stdccv3_ptcursor_next(
 	cc_string_t ccstring = NULL;
 	char *name = NULL;
 	
-	// TODO set proper errors, check context param
 	if (!cursor || !cursor->data) {
 		err = ccErrInvalidContext;
 	}
@@ -933,12 +938,11 @@ krb5_stdccv3_ptcursor_next(
 	}
 
 	if (!err) {
-	    name = (char *) malloc (sizeof (*name) * (strlen (ccstring->data) + 1));
+	    name = strdup (ccstring->data);
 	    if (!name) { err = KRB5_CC_NOMEM; }
 	}
 	
 	if (!err) {
-	    strcpy (name, ccstring->data);
 	    ccapi_data->cache_name = name;
 	    name = NULL; /* take ownership */
     
@@ -980,6 +984,87 @@ krb5_stdccv3_ptcursor_free(
 	    *cursor = NULL;
 	}
     return 0;
+}
+
+krb5_error_code KRB5_CALLCONV krb5_stdccv3_last_change_time
+		(krb5_context context, krb5_ccache id,
+           krb5_timestamp *change_time)
+{
+    krb5_error_code err = 0;
+    stdccCacheDataPtr ccapi_data = id->data;
+    cc_time_t ccapi_change_time = 0;
+
+    *change_time = 0;
+
+    if (!err) {
+        err = stdccv3_setup(context, ccapi_data);
+    }
+    if (!err) {
+        err = cc_ccache_get_change_time (ccapi_data->NamedCache, &ccapi_change_time);
+    }
+    if (!err) {
+        *change_time = ccapi_change_time;
+    }
+
+    return cc_err_xlate (err);
+}
+
+krb5_error_code KRB5_CALLCONV krb5_stdccv3_lock
+(krb5_context context, krb5_ccache id)
+{
+    krb5_error_code err = 0;
+    stdccCacheDataPtr ccapi_data = id->data;
+
+    if (!err) {
+        err = stdccv3_setup(context, ccapi_data);
+    }
+    if (!err) {
+        err = cc_ccache_lock(ccapi_data->NamedCache, cc_lock_write, cc_lock_block);
+    }
+    return cc_err_xlate(err);
+}
+
+krb5_error_code KRB5_CALLCONV krb5_stdccv3_unlock
+(krb5_context context, krb5_ccache id)
+{
+    krb5_error_code err = 0;
+    stdccCacheDataPtr ccapi_data = id->data;
+
+    if (!err) {
+        err = stdccv3_setup(context, ccapi_data);
+    }
+    if (!err) {
+        err = cc_ccache_unlock(ccapi_data->NamedCache);
+    }
+    return cc_err_xlate(err);
+}
+
+krb5_error_code KRB5_CALLCONV krb5_stdccv3_context_lock
+(krb5_context context)
+{
+    krb5_error_code err = 0;
+
+    if (!err && !gCntrlBlock) {
+        err = cc_initialize (&gCntrlBlock, ccapi_version_max, &gCCVersion, NULL);
+    }
+    if (!err) {
+        err = cc_context_lock(gCntrlBlock, cc_lock_write, cc_lock_block);
+    }
+    return cc_err_xlate(err);
+}
+
+krb5_error_code KRB5_CALLCONV krb5_stdccv3_context_unlock
+(krb5_context context)
+{
+    krb5_error_code err = 0;
+
+    if (!err && !gCntrlBlock) {
+        err = cc_initialize (&gCntrlBlock, ccapi_version_max, &gCCVersion, NULL);
+    }
+    if (!err) {
+        err = cc_context_unlock(gCntrlBlock);
+    }
+    return cc_err_xlate(err);
 }
 
 #else /* !USE_CCAPI_V3 */
@@ -1060,7 +1145,7 @@ krb5_error_code KRB5_CALLCONV  krb5_stdcc_generate_new
 	
   	/* create a unique name */
   	cc_get_change_time(gCntrlBlock, &change_time);
-  	sprintf(name, "gen_new_cache%d", change_time);
+	snprintf(name, 256, "gen_new_cache%d", change_time);
   	
   	/* create the new cache */
   	err = cc_create(gCntrlBlock, name, name, CC_CRED_V5, 0L,
@@ -1114,15 +1199,13 @@ krb5_error_code KRB5_CALLCONV  krb5_stdcc_resolve
   	if (!(ccapi_data = (stdccCacheDataPtr)malloc(sizeof(stdccCacheData))))
 		goto errout;
 
-	if (!(cName = malloc(strlen(residual)+1)))
+	if (!(cName = strdup(residual)))
 		goto errout;
 	
   	newCache->ops = &krb5_cc_stdcc_ops;
 	newCache->data = ccapi_data;
 	ccapi_data->cache_name = cName;
 
-	strcpy(cName, residual);
-	
  	err = cc_open(gCntrlBlock, cName, CC_CRED_V5, 0L,
 		      &ccapi_data->NamedCache);
         if (err != CC_NOERROR) {
@@ -1586,7 +1669,7 @@ krb5_error_code KRB5_CALLCONV krb5_stdcc_remove
     	int err;
 	stdccCacheDataPtr	ccapi_data = id->data;
 	krb5_error_code		retval;
-	
+
 	if ((retval = stdcc_setup(context, ccapi_data))) {
 		if (retval == KRB5_FCC_NOFILE)
 			return 0;
@@ -1611,3 +1694,6 @@ krb5_error_code KRB5_CALLCONV krb5_stdcc_remove
         return 0;
 }
 #endif /* !USE_CCAPI_V3 */
+
+#endif /* defined(_WIN32) || defined(USE_CCAPI) */
+

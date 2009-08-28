@@ -1,7 +1,7 @@
 /*
  * k5-platform.h
  *
- * Copyright 2003, 2004, 2005 Massachusetts Institute of Technology.
+ * Copyright 2003, 2004, 2005, 2007, 2008, 2009 Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
  * Export of this software from the United States of America may
@@ -29,16 +29,34 @@
  *
  * Currently:
  * + make "static inline" work
+ * + [u]int{8,16,32}_t types
  * + 64-bit types and load/store code
  * + SIZE_MAX
  * + shared library init/fini hooks
  * + consistent getpwnam/getpwuid interfaces
+ * + va_copy fudged if not provided
+ * + [v]asprintf
  */
 
 #ifndef K5_PLATFORM_H
 #define K5_PLATFORM_H
 
 #include "autoconf.h"
+#include <string.h>
+#include <stdarg.h>
+#include <limits.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <fcntl.h>
+#include <errno.h>
+
+#ifdef _WIN32
+#define CAN_COPY_VA_LIST
+#endif
+
+#if defined(macintosh) || (defined(__MACH__) && defined(__APPLE__))
+#include <TargetConditionals.h>
+#endif
 
 /* Initialization and finalization function support for libraries.
 
@@ -401,9 +419,12 @@ typedef struct { int error; unsigned char did_run; } k5_init_t;
 # define UINT64_TYPE unsigned long long
 #endif
 
-#include <limits.h>
 #ifndef SIZE_MAX
 # define SIZE_MAX ((size_t)((size_t)0 - 1))
+#endif
+
+#ifndef UINT64_MAX
+# define UINT64_MAX ((UINT64_TYPE)((UINT64_TYPE)0 - 1))
 #endif
 
 /* Read and write integer values as (unaligned) octet strings in
@@ -497,10 +518,25 @@ typedef struct { int error; unsigned char did_run; } k5_init_t;
 #  define SWAP64		bswap_64
 # endif
 #endif
+#if TARGET_OS_MAC
+# include <architecture/byte_order.h>
+# if 0 /* This causes compiler warnings.  */
+#  define SWAP16		OSSwapInt16
+# else
+#  define SWAP16		k5_swap16
+static inline unsigned int k5_swap16 (unsigned int x) {
+    x &= 0xffff;
+    return (x >> 8) | ((x & 0xff) << 8);
+}
+# endif
+# define SWAP32			OSSwapInt32
+# define SWAP64			OSSwapInt64
+#endif
 
 static inline void
-store_16_be (unsigned int val, unsigned char *p)
+store_16_be (unsigned int val, void *vp)
 {
+    unsigned char *p = vp;
 #if defined(__GNUC__) && defined(K5_BE)
     PUT(16,p,val);
 #elif defined(__GNUC__) && defined(K5_LE) && defined(SWAP16)
@@ -511,8 +547,9 @@ store_16_be (unsigned int val, unsigned char *p)
 #endif
 }
 static inline void
-store_32_be (unsigned int val, unsigned char *p)
+store_32_be (unsigned int val, void *vp)
 {
+    unsigned char *p = vp;
 #if defined(__GNUC__) && defined(K5_BE)
     PUT(32,p,val);
 #elif defined(__GNUC__) && defined(K5_LE) && defined(SWAP32)
@@ -525,8 +562,9 @@ store_32_be (unsigned int val, unsigned char *p)
 #endif
 }
 static inline void
-store_64_be (UINT64_TYPE val, unsigned char *p)
+store_64_be (UINT64_TYPE val, void *vp)
 {
+    unsigned char *p = vp;
 #if defined(__GNUC__) && defined(K5_BE)
     PUT(64,p,val);
 #elif defined(__GNUC__) && defined(K5_LE) && defined(SWAP64)
@@ -543,8 +581,9 @@ store_64_be (UINT64_TYPE val, unsigned char *p)
 #endif
 }
 static inline unsigned short
-load_16_be (const unsigned char *p)
+load_16_be (const void *cvp)
 {
+    const unsigned char *p = cvp;
 #if defined(__GNUC__) && defined(K5_BE)
     return GET(16,p);
 #elif defined(__GNUC__) && defined(K5_LE) && defined(SWAP16)
@@ -554,8 +593,9 @@ load_16_be (const unsigned char *p)
 #endif
 }
 static inline unsigned int
-load_32_be (const unsigned char *p)
+load_32_be (const void *cvp)
 {
+    const unsigned char *p = cvp;
 #if defined(__GNUC__) && defined(K5_BE)
     return GET(32,p);
 #elif defined(__GNUC__) && defined(K5_LE) && defined(SWAP32)
@@ -567,8 +607,9 @@ load_32_be (const unsigned char *p)
 #endif
 }
 static inline UINT64_TYPE
-load_64_be (const unsigned char *p)
+load_64_be (const void *cvp)
 {
+    const unsigned char *p = cvp;
 #if defined(__GNUC__) && defined(K5_BE)
     return GET(64,p);
 #elif defined(__GNUC__) && defined(K5_LE) && defined(SWAP64)
@@ -578,8 +619,9 @@ load_64_be (const unsigned char *p)
 #endif
 }
 static inline void
-store_16_le (unsigned int val, unsigned char *p)
+store_16_le (unsigned int val, void *vp)
 {
+    unsigned char *p = vp;
 #if defined(__GNUC__) && defined(K5_LE)
     PUT(16,p,val);
 #elif defined(__GNUC__) && defined(K5_BE) && defined(SWAP16)
@@ -590,8 +632,9 @@ store_16_le (unsigned int val, unsigned char *p)
 #endif
 }
 static inline void
-store_32_le (unsigned int val, unsigned char *p)
+store_32_le (unsigned int val, void *vp)
 {
+    unsigned char *p = vp;
 #if defined(__GNUC__) && defined(K5_LE)
     PUT(32,p,val);
 #elif defined(__GNUC__) && defined(K5_BE) && defined(SWAP32)
@@ -604,8 +647,9 @@ store_32_le (unsigned int val, unsigned char *p)
 #endif
 }
 static inline void
-store_64_le (UINT64_TYPE val, unsigned char *p)
+store_64_le (UINT64_TYPE val, void *vp)
 {
+    unsigned char *p = vp;
 #if defined(__GNUC__) && defined(K5_LE)
     PUT(64,p,val);
 #elif defined(__GNUC__) && defined(K5_BE) && defined(SWAP64)
@@ -622,8 +666,9 @@ store_64_le (UINT64_TYPE val, unsigned char *p)
 #endif
 }
 static inline unsigned short
-load_16_le (const unsigned char *p)
+load_16_le (const void *cvp)
 {
+    const unsigned char *p = cvp;
 #if defined(__GNUC__) && defined(K5_LE)
     return GET(16,p);
 #elif defined(__GNUC__) && defined(K5_BE) && defined(SWAP16)
@@ -633,8 +678,9 @@ load_16_le (const unsigned char *p)
 #endif
 }
 static inline unsigned int
-load_32_le (const unsigned char *p)
+load_32_le (const void *cvp)
 {
+    const unsigned char *p = cvp;
 #if defined(__GNUC__) && defined(K5_LE)
     return GET(32,p);
 #elif defined(__GNUC__) && defined(K5_BE) && defined(SWAP32)
@@ -644,8 +690,9 @@ load_32_le (const unsigned char *p)
 #endif
 }
 static inline UINT64_TYPE
-load_64_le (const unsigned char *p)
+load_64_le (const void *cvp)
 {
+    const unsigned char *p = cvp;
 #if defined(__GNUC__) && defined(K5_LE)
     return GET(64,p);
 #elif defined(__GNUC__) && defined(K5_BE) && defined(SWAP64)
@@ -653,6 +700,54 @@ load_64_le (const unsigned char *p)
 #else
     return ((UINT64_TYPE)load_32_le(p+4) << 32) | load_32_le(p);
 #endif
+}
+
+static inline unsigned short
+load_16_n (const void *p)
+{
+#ifdef _WIN32
+    unsigned __int16 n;
+#else
+    uint16_t n;
+#endif
+    memcpy(&n, p, 2);
+    return n;
+}
+static inline unsigned int
+load_32_n (const void *p)
+{
+#ifdef _WIN32
+    unsigned __int32 n;
+#else
+    uint32_t n;
+#endif
+    memcpy(&n, p, 4);
+    return n;
+}
+static inline UINT64_TYPE
+load_64_n (const void *p)
+{
+    UINT64_TYPE n;
+    memcpy(&n, p, 8);
+    return n;
+}
+
+/* Assume for simplicity that these swaps are identical.  */
+static inline UINT64_TYPE
+k5_htonll (UINT64_TYPE val)
+{
+#ifdef K5_BE
+    return val;
+#elif defined K5_LE && defined SWAP64
+    return SWAP64 (val);
+#else
+    return load_64_be ((unsigned char *)&val);
+#endif
+}
+static inline UINT64_TYPE
+k5_ntohll (UINT64_TYPE val)
+{
+    return k5_htonll (val);
 }
 
 /* Make the interfaces to getpwnam and getpwuid consistent.
@@ -711,5 +806,168 @@ load_64_le (const unsigned char *p)
 	(*(OUT) = getpwuid(UID), *(OUT) == NULL ? -1 : 0)
 #endif
 
+/* Ensure, if possible, that the indicated file descriptor won't be
+   kept open if we exec another process (e.g., launching a ccapi
+   server).  If we don't know how to do it... well, just go about our
+   business.  Probably most callers won't check the return status
+   anyways.  */
+
+#if 0
+static inline int
+set_cloexec_fd(int fd)
+{
+#if defined(F_SETFD)
+# ifdef FD_CLOEXEC
+    if (fcntl(fd, F_SETFD, FD_CLOEXEC) != 0)
+	return errno;
+# else
+    if (fcntl(fd, F_SETFD, 1) != 0)
+	return errno;
+# endif
+#endif
+    return 0;
+}
+
+static inline int
+set_cloexec_file(FILE *f)
+{
+    return set_cloexec_fd(fileno(f));
+}
+#else
+/* Macros make the Sun compiler happier, and all variants of this do a
+   single evaluation of the argument, and fcntl and fileno should
+   produce reasonable error messages on type mismatches, on any system
+   with F_SETFD.  */
+#ifdef F_SETFD
+# ifdef FD_CLOEXEC
+#  define set_cloexec_fd(FD)	(fcntl((FD), F_SETFD, FD_CLOEXEC) ? errno : 0)
+# else
+#  define set_cloexec_fd(FD)	(fcntl((FD), F_SETFD, 1) ? errno : 0)
+# endif
+#else
+# define set_cloexec_fd(FD)	((FD),0)
+#endif
+#define set_cloexec_file(F)	set_cloexec_fd(fileno(F))
+#endif
+
+
+
+/* Since the original ANSI C spec left it undefined whether or
+   how you could copy around a va_list, C 99 added va_copy.
+   For old implementations, let's do our best to fake it.
+
+   XXX Doesn't yet handle implementations with __va_copy (early draft)
+   or GCC's __builtin_va_copy.  */
+#if defined(HAS_VA_COPY) || defined(va_copy)
+/* Do nothing.  */
+#elif defined(CAN_COPY_VA_LIST)
+#define va_copy(dest, src)	((dest) = (src))
+#else
+/* Assume array type, but still simply copyable.
+
+   There is, theoretically, the possibility that va_start will
+   allocate some storage pointed to by the va_list, and in that case
+   we'll just lose.  If anyone cares, we could try to devise a test
+   for that case.  */
+#define va_copy(dest, src)	memcmp(dest, src, sizeof(va_list))
+#endif
+
+/* Provide strlcpy/strlcat interfaces. */
+#ifndef HAVE_STRLCPY
+#define strlcpy krb5int_strlcpy
+#define strlcat krb5int_strlcat
+extern size_t krb5int_strlcpy(char *dst, const char *src, size_t siz);
+extern size_t krb5int_strlcat(char *dst, const char *src, size_t siz);
+#endif
+
+/* Provide [v]asprintf interfaces.  */
+#ifndef HAVE_VSNPRINTF
+#ifdef _WIN32
+static inline int
+vsnprintf(char *str, size_t size, const char *format, va_list args)
+{
+    va_list args_copy;
+    int length;
+
+    va_copy(args_copy, args);
+    length = _vscprintf(format, args_copy);
+    va_end(args_copy);
+    if (size)
+	_vsnprintf(str, size, format, args);
+    return length;
+}
+static inline int
+snprintf(char *str, size_t size, const char *format, ...)
+{
+    va_list args;
+    int n;
+
+    va_start(args, format);
+    n = vsnprintf(str, size, format, args);
+    va_end(args);
+    return n;
+}
+#else /* not win32 */
+#error We need an implementation of vsnprintf.
+#endif /* win32? */
+#endif /* no vsnprintf */
+
+#ifndef HAVE_VASPRINTF
+
+extern int krb5int_vasprintf(char **, const char *, va_list)
+#if !defined(__cplusplus) && (__GNUC__ > 2)
+    __attribute__((__format__(__printf__, 2, 0)))
+#endif
+    ;
+extern int krb5int_asprintf(char **, const char *, ...)
+#if !defined(__cplusplus) && (__GNUC__ > 2)
+    __attribute__((__format__(__printf__, 2, 3)))
+#endif
+    ;
+
+#define vasprintf krb5int_vasprintf
+/* Assume HAVE_ASPRINTF iff HAVE_VASPRINTF.  */
+#define asprintf krb5int_asprintf
+
+#elif defined(NEED_VASPRINTF_PROTO)
+
+extern int vasprintf(char **, const char *, va_list)
+#if !defined(__cplusplus) && (__GNUC__ > 2)
+    __attribute__((__format__(__printf__, 2, 0)))
+#endif
+    ;
+extern int asprintf(char **, const char *, ...)
+#if !defined(__cplusplus) && (__GNUC__ > 2)
+    __attribute__((__format__(__printf__, 2, 3)))
+#endif
+    ;
+
+#endif /* have vasprintf and prototype? */
+
+/* Return true if the snprintf return value RESULT reflects a buffer
+   overflow for the buffer size SIZE.
+
+   We cast the result to unsigned int for two reasons.  First, old
+   implementations of snprintf (such as the one in Solaris 9 and
+   prior) return -1 on a buffer overflow.  Casting the result to -1
+   will convert that value to UINT_MAX, which should compare larger
+   than any reasonable buffer size.  Second, comparing signed and
+   unsigned integers will generate warnings with some compilers, and
+   can have unpredictable results, particularly when the relative
+   widths of the types is not known (size_t may be the same width as
+   int or larger).
+*/
+#define SNPRINTF_OVERFLOW(result, size) \
+    ((unsigned int)(result) >= (size_t)(size))
+
+#ifndef HAVE_MKSTEMP
+extern int krb5int_mkstemp(char *);
+#define mkstemp krb5int_mkstemp
+#endif
+
+/* Fudge for future adoption of gettext or the like.  */
+#ifndef _
+#define _(X) (X)
+#endif
 
 #endif /* K5_PLATFORM_H */

@@ -1,7 +1,7 @@
 /*
  * plugins/locate/python/py-locate.c
  *
- * Copyright 2006 Massachusetts Institute of Technology.
+ * Copyright 2006, 2007 Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
  * Export of this software from the United States of America may
@@ -44,6 +44,12 @@
    logical -- in fact, I'd be concerned if it were otherwise.  But not
    obvious if you're not thinking about it.
 
+   Actually, sometimes even with delayed initialization it could be a
+   problem.
+
+   You may be able to work around it with something like:
+   % env LD_PRELOAD=/usr/lib/libpython2.3.so.1.0 kinit ...blah...
+
    This module seems rather sensitive to bugs in the Python code.  If
    it's not correct, you may get core dumps, Python GC errors, etc.
    Probably more signs of bugs in this code.
@@ -55,14 +61,16 @@
 
 /* Include Python.h before autoconf.h, because our autoconf.h seems
    to confuse Python's headers.  */
+#include <autoconf.h>
 #if HAVE_PYTHON_H
 #include <Python.h>
 #elif HAVE_PYTHON2_3_PYTHON_H
 #include <python2.3/Python.h>
+#elif HAVE_PYTHON2_5_PYTHON_H
+#include <python2.5/Python.h>
 #else
 #error "Where's the Python header file?"
 #endif
-#include <autoconf.h>
 #include <errno.h>
 #include "k5-platform.h"	/* for init/fini macros */
 #include "fake-addrinfo.h"
@@ -98,6 +106,7 @@ my_init (void)
 				   SCRIPT_PATH, strerror(errno));
 	return -1;
     }
+    set_cloexec_file(f);
     PyRun_SimpleFile (f, SCRIPT_PATH);
     fclose(f);
     mainmodule = PyModule_GetDict(PyImport_AddModule("__main__"));
@@ -254,7 +263,7 @@ lookup (void *blob, enum locate_service_type svc, const char *realm,
 	if (PyString_Check (field)) {
 	    portstr = PyString_AsString (field);
 	} else if (PyInt_Check (field)) {
-	    sprintf(portbuf, "%ld", PyInt_AsLong (field));
+	    snprintf(portbuf, sizeof(portbuf), "%ld", PyInt_AsLong (field));
 	    portstr = portbuf;
 	} else {
 	    krb5_set_error_message(blob, -1,

@@ -163,7 +163,7 @@ main(argc, argv)
 		p = getenv("TMPDIR");
 		if (p == NULL)
 			p = "/var/tmp";
-		(void)sprintf(buf, "%s/__dbtest", p);
+		(void)snprintf(buf, sizeof(buf), "%s/__dbtest", p);
 		fname = buf;
 		(void)unlink(buf);
 	} else  if (!sflag)
@@ -738,27 +738,13 @@ usage()
 	exit(1);
 }
 
-#ifdef __STDC__
 #include <stdarg.h>
-#else
-#include <varargs.h>
-#endif
 
 void
-#ifdef __STDC__
 err(const char *fmt, ...)
-#else
-err(fmt, va_alist)
-	char *fmt;
-        va_dcl
-#endif
 {
 	va_list ap;
-#ifdef __STDC__
 	va_start(ap, fmt);
-#else
-	va_start(ap);
-#endif
 	(void)fprintf(stderr, "dbtest: ");
 	(void)vfprintf(stderr, fmt, ap);
 	va_end(ap);

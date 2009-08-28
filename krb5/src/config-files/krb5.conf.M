@@ -143,15 +143,11 @@ clock.  This corrective factor is only used by the Kerberos library.
 For compatability with DCE security servers which do not support the
 default CKSUMTYPE_RSA_MD5 used by this version of Kerberos. Use a value
 of 2 to use the CKSUMTYPE_RSA_MD4 instead. This applies to DCE 1.1 and
-earlier.
+earlier.  This value is only used for DES keys; other keys use the
+preferred checksum type for those keys.
 
 .IP ap_req_checksum_type 
-This allows you to set the checksum type used in the authenticator of
-KRB_AP_REQ messages.  The default value for this type is
-CKSUMTYPE_RSA_MD5.  For compatibility with applications linked against
-DCE version 1.1 or earlier Kerberos libraries, use a value of 2 to use
-the CKSUMTYPE_RSA_MD4
-instead.
+If set  this variable  controls what ap-req checksum will be used in  authenticators. This variable should be unset so the appropriate checksum for the encryption key in use will be used.   This can be set if backward compatibility requires a specific checksum type.
 
 .IP safe_checksum_type 
 This allows you to set the preferred keyed-checksum type for use in KRB_SAFE
@@ -176,18 +172,6 @@ do not support the default cache as created by this version of
 Kerberos. Use a value of 1 on DCE 1.0.3a systems, and a value of 2 on
 DCE 1.1 systems.
 
-.IP krb4_srvtab 
-Specifies the location of the Kerberos V4 srvtab file.  Default is
-"/etc/srvtab".
-
-.IP krb4_config
-Specifies the location of the Kerberos V4 configuration file.  Default
-is "/etc/krb.conf".
-
-.IP krb4_realms
-Specifies the location of the Kerberos V4 domain/realm translation
-file.  Default is "/etc/krb.realms".
-
 .IP dns_lookup_kdc
 Indicate whether DNS SRV records shoud be used to locate the KDCs and 
 other servers for a realm, if they are not listed in the information 
@@ -200,6 +184,16 @@ realm of a host.  The default is not to use these records.
 .IP dns_fallback
 General flag controlling the use of DNS for Kerberos information.  If both
 of the preceding options are specified, this option has no effect.
+
+.IP realm_try_domains
+Indicate whether a host's domain components should be used to
+determine the Kerberos realm of the host.  The value of this variable
+is an integer: -1 means not to search, 0 means to try the host's
+domain itself, 1 means to also try the domain's immediate parent, and
+so forth.  The library's usual mechanism for locating Kerberos realms
+is used to determine whether a domain is a valid realm--which may
+involve consulting DNS if dns_lookup_kdc is set.  The default is not
+to search domain components.
 
 .IP extra_addresses
 This allows a computer to use multiple local addresses, in order to
@@ -600,7 +594,7 @@ This LDAP specific tag indicates the file containing the stashed passwords for t
 objects used for starting the Kerberos servers. This value is used if no
 service password file is mentioned in the configuration section under dbmodules.
 
-.IP ldap_server
+.IP ldap_servers
 This LDAP specific tag indicates the list of LDAP servers. The list of LDAP servers
 is whitespace-separated. The LDAP server is specified by a LDAP URI.
 This value is used if no LDAP servers are mentioned in the configuration
@@ -641,7 +635,7 @@ as this object.
 This LDAP specific tag indicates the file containing the stashed passwords for the
 objects used for starting the Kerberos servers.
 
-.IP ldap_server
+.IP ldap_servers
 This LDAP specific tag indicates the list of LDAP servers. The list of LDAP servers
 is whitespace-separated. The LDAP server is specified by a LDAP URI.
 

@@ -1,7 +1,7 @@
 /*
  * slave/kprop.c
  *
- * Copyright 1990,1991 by the Massachusetts Institute of Technology.
+ * Copyright 1990,1991,2008 by the Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
  * Export of this software from the United States of America may
@@ -241,7 +241,7 @@ void get_tickets(context)
 	 * Initialize cache file which we're going to be using
 	 */
 	(void) mktemp(tkstring);
-	sprintf(buf, "FILE:%s", tkstring);
+	snprintf(buf, sizeof(buf), "FILE:%s", tkstring);
 
 	retval = krb5_cc_resolve(context, buf, &ccache);
 	if (retval) {
@@ -337,7 +337,7 @@ open_connection(host, fd, Errmsg, ErrmsgSz)
 
 	hp = gethostbyname(host);
 	if (hp == NULL) {
-		(void) sprintf(Errmsg, "%s: unknown host", host);
+		(void) snprintf(Errmsg, ErrmsgSz, "%s: unknown host", host);
 		*fd = -1;
 		return(0);
 	}
@@ -355,13 +355,13 @@ open_connection(host, fd, Errmsg, ErrmsgSz)
 	s = socket(AF_INET, SOCK_STREAM, 0);
 	
 	if (s < 0) {
-		(void) sprintf(Errmsg, "in call to socket");
+		(void) snprintf(Errmsg, ErrmsgSz, "in call to socket");
 		return(errno);
 	}
 	if (connect(s, (struct sockaddr *)&my_sin, sizeof my_sin) < 0) {
 		retval = errno;
 		close(s);
-		(void) sprintf(Errmsg, "in call to connect");
+		(void) snprintf(Errmsg, ErrmsgSz, "in call to connect");
 		return(retval);
 	}
 	*fd = s;
@@ -379,7 +379,7 @@ open_connection(host, fd, Errmsg, ErrmsgSz)
 	if (getsockname(s, (struct sockaddr *)&my_sin, &socket_length) < 0) {
 		retval = errno;
 		close(s);
-		(void) sprintf(Errmsg, "in call to getsockname");
+		(void) snprintf(Errmsg, ErrmsgSz, "in call to getsockname");
 		return(retval);
 	}
 	sender_addr.addrtype = ADDRTYPE_INET;
@@ -492,25 +492,22 @@ open_database(context, data_fn, size)
 			data_fn);
 		exit(1);
 	}
-	if ((data_ok_fn = (char *) malloc(strlen(data_fn)+strlen(ok)+1))
-	    == NULL) {
+	if (asprintf(&data_ok_fn, "%s%s", data_fn, ok) < 0) {
 		com_err(progname, ENOMEM, "while trying to malloc data_ok_fn");
 		exit(1);
 	}
-	strcpy(data_ok_fn, data_fn);
-	strcat(data_ok_fn, ok);
 	if (stat(data_ok_fn, &stbuf_ok)) {
 		com_err(progname, errno, "while trying to stat %s",
 			data_ok_fn);
 		free(data_ok_fn);
 		exit(1);
 	}
-	free(data_ok_fn);
 	if (stbuf.st_mtime > stbuf_ok.st_mtime) {
 		com_err(progname, 0, "'%s' more recent than '%s'.",
 			data_fn, data_ok_fn);
 		exit(1);
 	}
+	free(data_ok_fn);
 	*size = stbuf.st_size;
 	return(fd);
 }
@@ -600,7 +597,7 @@ xmit_database(context, auth_context, my_creds, fd, database_fd,
 		retval = krb5_mk_priv(context, auth_context, &inbuf,
 				      &outbuf, NULL);
 		if (retval) {
-			sprintf(buf,
+			snprintf(buf, sizeof(buf),
 				"while encoding database block starting at %d",
 				sent_size);
 			com_err(progname, retval, buf);
@@ -684,7 +681,7 @@ xmit_database(context, auth_context, my_creds, fd, database_fd,
 		exit(1);
 	}
 	free(outbuf.data);
-	free(inbuf.data);
+	/* inbuf.data points to local storage */
 }
 
 void
@@ -711,9 +708,8 @@ send_error(context, my_creds, fd, err_text, err_code)
 	else
 		text = error_message(err_code);
 	error.text.length = strlen(text) + 1;
-	error.text.data = malloc((unsigned int) error.text.length);
+	error.text.data = strdup(text);
 	if (error.text.data) {
-		strcpy(error.text.data, text);
 		if (!krb5_mk_error(context, &error, &outbuf)) {
 			(void) krb5_write_message(context, (void *)&fd,&outbuf);
 			krb5_free_data_contents(context, &outbuf);
@@ -731,17 +727,12 @@ void update_last_prop_file(hostname, file_name)
 	int fd;
 	static char last_prop[]=".last_prop";
 
-	if ((file_last_prop = (char *)malloc(strlen(file_name) +
-					     strlen(hostname) + 1 +
-					     strlen(last_prop) + 1)) == NULL) {
+	if (asprintf(&file_last_prop, "%s.%s%s", file_name, hostname,
+		     last_prop) < 0) {
 		com_err(progname, ENOMEM,
 			"while allocating filename for update_last_prop_file");
 		return;
 	}
-	strcpy(file_last_prop, file_name);
-	strcat(file_last_prop, ".");
-	strcat(file_last_prop, hostname);
-	strcat(file_last_prop, last_prop);
 	if ((fd = THREEPARAMOPEN(file_last_prop, O_WRONLY|O_CREAT|O_TRUNC, 0600)) < 0) {
 		com_err(progname, errno,
 			"while creating 'last_prop' file, '%s'",

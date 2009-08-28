@@ -1,6 +1,6 @@
 .\" kdc/krb5kdc.M
 .\"
-.\" Copyright 1990 by the Massachusetts Institute of Technology.
+.\" Copyright 1990, 2008 by the Massachusetts Institute of Technology.
 .\"
 .\" Export of this software from the United States of America may
 .\"   require a specific license from the United States Government.
@@ -46,9 +46,6 @@ krb5kdc \- Kerberos V5 KDC
 ] [
 .B \-r
 .I realm
-] [
-.B \-4
-.I v4mode
 ] [
 .B \-n
 ]
@@ -106,8 +103,8 @@ This option does not apply to the LDAP database.
 The
 .B \-k
 .I keytype
-option specifies the key type of the master key in the database; the default
-is KEYTYPE_DES.
+option specifies the key type of the master key to be entered manually
+as a password when -m is given; the default is "des-cbc-crc".
 .PP
 The
 .B \-M
@@ -129,23 +126,6 @@ The
 .B \-m
 option specifies that the master database password should be fetched
 from the keyboard rather than from a file on disk.
-.PP
-The
-.B \-4
-option specifies how the KDC responds to kerberos IV requests for
-tickets.  The command line option overrides the value in the KDC
-profile.  The possible values are 
-.I none,
-.I disable,
-.I full
-or
-.I nopreauth.
-These instruct the KDC to not respond to V4 packets, to
-respond with a version skew error, to issue tickets for all database
-entries, and to issue tickets for all but preauthentication required
-database entries respectively. The default behaviour is as if 
-.I none
-was specified.
 .PP
 The
 .B \-n

@@ -38,8 +38,9 @@ void ss_help (argc, argv, sci_idx, info_ptr)
     }
     else if (argc != 2) {
 	/* should do something better than this */
-	sprintf(buffer, "usage:\n\t%s [topic|command]\nor\t%s\n",
-		request_name, request_name);
+	snprintf(buffer, sizeof(buffer),
+		 "usage:\n\t%s [topic|command]\nor\t%s\n",
+		 request_name, request_name);
 	ss_perror(sci_idx, 0, buffer);
 	return;
     }
@@ -72,6 +73,7 @@ got_it:
     switch (child = fork()) {
     case -1:
 	ss_perror(sci_idx, errno, "Can't fork for pager");
+	close(fd);
 	return;
     case 0:
 	(void) dup2(fd, 0); /* put file on stdin */
@@ -105,7 +107,7 @@ void ss_add_info_dir(sci_idx, info_dir, code_ptr)
     register char **dirs;
 
     info = ss_info(sci_idx);
-    if (info_dir == NULL && *info_dir) {
+    if ((info_dir == NULL) || (*info_dir == '\0')) {
 	*code_ptr = SS_ET_NO_INFO_DIR;
 	return;
     }
@@ -126,8 +128,7 @@ void ss_add_info_dir(sci_idx, info_dir, code_ptr)
     }
     info->info_dirs = dirs;
     dirs[n_dirs + 1] = (char *)NULL;
-    dirs[n_dirs] = malloc((unsigned)strlen(info_dir)+1);
-    strcpy(dirs[n_dirs], info_dir);
+    dirs[n_dirs] = strdup(info_dir);
     *code_ptr = 0;
 }
 

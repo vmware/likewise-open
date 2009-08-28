@@ -1,7 +1,7 @@
 /*
  * lib/krb5/os/init_ctx.c
  *
- * Copyright 1994 by the Massachusetts Institute of Technology.
+ * Copyright 1994, 2007, 2008 by the Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
  * Export of this software from the United States of America may
@@ -32,8 +32,8 @@
 #include "os-proto.h"
 #include "prof_int.h"		/* XXX for profile_copy, not public yet */
 
-#ifdef USE_LOGIN_LIBRARY
-#include "KerberosLoginPrivate.h"
+#ifdef USE_KIM
+#include "kim_library_private.h"
 #endif
 
 #if defined(_WIN32)
@@ -198,9 +198,8 @@ os_get_default_config_files(profile_filespec_t **pfiles, krb5_boolean secure)
         char *env = getenv("KRB5_CONFIG");
         if (env)
         {
-            name = malloc(strlen(env) + 1);
+            name = strdup(env);
             if (!name) return ENOMEM;
-            strcpy(name, env);
         }
     }
     if (!name && !secure)
@@ -240,10 +239,10 @@ os_get_default_config_files(profile_filespec_t **pfiles, krb5_boolean secure)
     unsigned int ent_len;
     const char *s, *t;
 
-#ifdef USE_LOGIN_LIBRARY
-    /* If __KLAllowHomeDirectoryAccess() == FALSE, we are probably
+#ifdef USE_KIM
+    /* If kim_library_allow_home_directory_access() == FALSE, we are probably
         trying to authenticate to a fileserver for the user's homedir. */
-    if (!__KLAllowHomeDirectoryAccess ())
+    if (!kim_library_allow_home_directory_access ())
 	secure = 1;
 #endif
     if (secure) {
@@ -305,11 +304,11 @@ add_kdc_config_file(profile_filespec_t **pfiles)
     count += 2;
     newfiles = malloc(count * sizeof(*newfiles));
     if (newfiles == NULL)
-	return errno;
+	return ENOMEM;
     memcpy(newfiles + 1, *pfiles, (count-1) * sizeof(*newfiles));
     newfiles[0] = strdup(file);
     if (newfiles[0] == NULL) {
-	int e = errno;
+	int e = ENOMEM;
 	free(newfiles);
 	return e;
     }
@@ -382,7 +381,7 @@ krb5_os_init_context(krb5_context ctx, krb5_boolean kdc)
     WSADATA wsaData;
 #endif /* _WIN32 */
 
-	os_ctx = ctx->os_context;
+	os_ctx = &ctx->os_context;
 	os_ctx->magic = KV5M_OS_CONTEXT;
 	os_ctx->time_offset = 0;
 	os_ctx->usec_offset = 0;
@@ -419,7 +418,6 @@ krb5_get_profile (krb5_context ctx, profile_t *profile)
 {
     return profile_copy (ctx->profile, profile);
 }	
-
 
 krb5_error_code
 krb5_set_config_files(krb5_context ctx, const char **filenames)
@@ -480,7 +478,7 @@ krb5_os_free_context(krb5_context ctx)
 {
 	krb5_os_context os_ctx;
 
-	os_ctx = ctx->os_context;
+	os_ctx = &ctx->os_context;
 	
 	if (os_ctx->default_ccname) {
 		free(os_ctx->default_ccname);

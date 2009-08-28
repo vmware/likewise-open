@@ -1,7 +1,7 @@
 /*
  * lib/kadm5/admin.h
  *
- * Copyright 2001 by the Massachusetts Institute of Technology.
+ * Copyright 2001, 2008 by the Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
  * Export of this software from the United States of America may
@@ -30,6 +30,17 @@
  * $Header$
  */
 
+/*
+ * This API is not considered as stable as the main krb5 API.
+ *
+ * - We may make arbitrary incompatible changes between feature
+ *   releases (e.g. from 1.7 to 1.8).
+ * - We will make some effort to avoid making incompatible changes for
+ *   bugfix releases, but will make them if necessary.
+ * - We make no commitments at all regarding the v1 API (obtained by
+ *   defining USE_KADM5_API_VERSION to 1) and expect to remove it.
+ */
+
 #ifndef __KADM5_ADMIN_H__
 #define __KADM5_ADMIN_H__
 
@@ -45,9 +56,22 @@
 #include	<kadm5/kadm_err.h>
 #include	<kadm5/chpass_util_strings.h>
 
+#ifndef KADM5INT_BEGIN_DECLS
+#if defined(__cplusplus)
+#define KADM5INT_BEGIN_DECLS	extern "C" {
+#define KADM5INT_END_DECLS	}
+#else
+#define KADM5INT_BEGIN_DECLS
+#define KADM5INT_END_DECLS
+#endif
+#endif
+
+KADM5INT_BEGIN_DECLS
+
 #define KADM5_ADMIN_SERVICE	"kadmin/admin"
 #define KADM5_CHANGEPW_SERVICE	"kadmin/changepw"
 #define KADM5_HIST_PRINCIPAL	"kadmin/history"
+#define KADM5_KIPROP_HOST_SERVICE "kiprop"
 
 typedef krb5_principal	kadm5_princ_t;
 typedef	char		*kadm5_policy_t;
@@ -107,32 +131,38 @@ typedef long		kadm5_ret_t;
 #define KADM5_REF_COUNT		0x080000
 
 /* kadm5_config_params */
-#define KADM5_CONFIG_REALM		0x000001
-#define KADM5_CONFIG_DBNAME		0x000002
-#define KADM5_CONFIG_MKEY_NAME		0x000004
-#define KADM5_CONFIG_MAX_LIFE		0x000008
-#define KADM5_CONFIG_MAX_RLIFE		0x000010
-#define KADM5_CONFIG_EXPIRATION		0x000020
-#define KADM5_CONFIG_FLAGS		0x000040
-#define KADM5_CONFIG_ADMIN_KEYTAB	0x000080
-#define KADM5_CONFIG_STASH_FILE		0x000100
-#define KADM5_CONFIG_ENCTYPE		0x000200
-#define KADM5_CONFIG_ADBNAME		0x000400
-#define KADM5_CONFIG_ADB_LOCKFILE	0x000800
-/*#define KADM5_CONFIG_PROFILE		0x001000*/
-#define KADM5_CONFIG_ACL_FILE		0x002000
-#define KADM5_CONFIG_KADMIND_PORT	0x004000
-#define KADM5_CONFIG_ENCTYPES		0x008000
-#define KADM5_CONFIG_ADMIN_SERVER	0x010000
-#define KADM5_CONFIG_DICT_FILE		0x020000
-#define KADM5_CONFIG_MKEY_FROM_KBD	0x040000
-#define KADM5_CONFIG_KPASSWD_PORT	0x080000
-#define KADM5_CONFIG_OLD_AUTH_GSSAPI	0x100000
-#define KADM5_CONFIG_NO_AUTH		0x200000
-#define KADM5_CONFIG_AUTH_NOFALLBACK	0x400000
+#define KADM5_CONFIG_REALM		0x00000001
+#define KADM5_CONFIG_DBNAME		0x00000002
+#define KADM5_CONFIG_MKEY_NAME		0x00000004
+#define KADM5_CONFIG_MAX_LIFE		0x00000008
+#define KADM5_CONFIG_MAX_RLIFE		0x00000010
+#define KADM5_CONFIG_EXPIRATION		0x00000020
+#define KADM5_CONFIG_FLAGS		0x00000040
+#define KADM5_CONFIG_ADMIN_KEYTAB	0x00000080
+#define KADM5_CONFIG_STASH_FILE		0x00000100
+#define KADM5_CONFIG_ENCTYPE		0x00000200
+#define KADM5_CONFIG_ADBNAME		0x00000400
+#define KADM5_CONFIG_ADB_LOCKFILE	0x00000800
+/*#define KADM5_CONFIG_PROFILE		0x00001000*/
+#define KADM5_CONFIG_ACL_FILE		0x00002000
+#define KADM5_CONFIG_KADMIND_PORT	0x00004000
+#define KADM5_CONFIG_ENCTYPES		0x00008000
+#define KADM5_CONFIG_ADMIN_SERVER	0x00010000
+#define KADM5_CONFIG_DICT_FILE		0x00020000
+#define KADM5_CONFIG_MKEY_FROM_KBD	0x00040000
+#define KADM5_CONFIG_KPASSWD_PORT	0x00080000
+#define KADM5_CONFIG_OLD_AUTH_GSSAPI	0x00100000
+#define KADM5_CONFIG_NO_AUTH		0x00200000
+#define KADM5_CONFIG_AUTH_NOFALLBACK	0x00400000
 #ifdef notyet /* Novell */
-#define KADM5_CONFIG_KPASSWD_SERVER     0x800000
+#define KADM5_CONFIG_KPASSWD_SERVER     0x00800000
 #endif
+#define KADM5_CONFIG_IPROP_ENABLED	0x01000000
+#define KADM5_CONFIG_ULOG_SIZE		0x02000000
+#define KADM5_CONFIG_POLL_TIME		0x04000000
+#define KADM5_CONFIG_IPROP_LOGFILE	0x08000000
+#define KADM5_CONFIG_IPROP_PORT		0x10000000
+#define KADM5_CONFIG_KVNO		0x20000000
 /*
  * permission bits
  */
@@ -226,9 +256,16 @@ typedef struct _kadm5_config_params {
      char *		kpasswd_server;
 #endif
 
+     /* Deprecated except for db2 backwards compatibility.  Don't add
+	new uses except as fallbacks for parameters that should be
+	specified in the database module section of the config
+	file.  */
      char *		dbname;
-     char *		admin_dbname;
-     char *		admin_lockfile;
+
+     /* dummy fields to preserve abi for now */
+     char *		admin_dbname_was_here;
+     char *		admin_lockfile_was_here;
+
      char *		admin_keytab;
      char *		acl_file;
      char *		dict_file;
@@ -243,6 +280,13 @@ typedef struct _kadm5_config_params {
      krb5_flags		flags;
      krb5_key_salt_tuple *keysalts;
      krb5_int32		num_keysalts;
+     krb5_kvno          kvno;
+    bool_t		iprop_enabled;
+    uint32_t		iprop_ulogsize;
+    krb5_deltat		iprop_poll_time;
+    char *		iprop_logfile;
+/*    char *		iprop_server;*/
+    int			iprop_port;
 } kadm5_config_params;
 
 /***********************************************************************
@@ -262,6 +306,8 @@ typedef struct __krb5_realm_params {
     char *		realm_kdc_ports;
     char *		realm_kdc_tcp_ports;
     char *		realm_acl_file;
+    char *              realm_host_based_services;
+    char *              realm_no_host_referral;
     krb5_int32		realm_kadmind_port;
     krb5_enctype	realm_enctype;
     krb5_deltat		realm_max_life;
@@ -493,6 +539,18 @@ kadm5_ret_t    kadm5_free_name_list(void *server_handle, char **names,
 				    int count);
 
 krb5_error_code kadm5_init_krb5_context (krb5_context *);
+
+krb5_error_code kadm5_init_iprop(void *server_handle, char **db_args);
+
+/*
+ * kadm5_get_principal_keys is used only by kadmin.local to extract existing
+ * keys from the database without changing them.  It should never be exposed
+ * to the network protocol.
+ */
+kadm5_ret_t    kadm5_get_principal_keys(void *server_handle,
+					krb5_principal principal,
+					krb5_keyblock **keyblocks,
+					int *n_keys);
 
 #if USE_KADM5_API_VERSION == 1
 /*
@@ -743,5 +801,7 @@ ovsec_kadm_ret_t    ovsec_kadm_get_policies(void *server_handle,
 #define OVSEC_KADM_NO_RENAME_SALT KADM5_NO_RENAME_SALT
 
 #endif /* USE_KADM5_API_VERSION == 1 */
+
+KADM5INT_END_DECLS
 
 #endif /* __KADM5_ADMIN_H__ */
