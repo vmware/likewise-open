@@ -241,6 +241,8 @@ main(
     SMBSrvCreatePIDFile();
 #endif
 
+    SMBSrvBlockSignals();
+
     dwError = SMBSrvInitialize();
     BAIL_ON_LWIO_ERROR(dwError);
 
@@ -954,8 +956,6 @@ SMBSrvExecute(
                     LWMSG_TIMEOUT_IDLE,
                     &timeout));
     BAIL_ON_LWIO_ERROR(dwError);
-
-    SMBSrvBlockSignals();
 
     dwError = MAP_LWMSG_STATUS(lwmsg_server_start(pServer));
     BAIL_ON_LWIO_ERROR(dwError);
