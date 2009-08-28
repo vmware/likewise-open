@@ -107,7 +107,6 @@ SrvGssGetSessionKey(
     OM_uint32 gssMajor = GSS_S_COMPLETE;
     OM_uint32 gssMinor = 0;
     gss_buffer_set_t sessionKey = NULL;
-    gss_buffer_desc sessionKeyBuffer = GSS_C_EMPTY_BUFFER;
 
     gssMajor = gss_inquire_sec_context_by_oid(
                     &gssMinor,
@@ -139,25 +138,8 @@ SrvGssGetSessionKey(
     memcpy(pSessionKey, sessionKey->elements[0].value, sessionKey->elements[0].length);
     dwSessionKeyLength = sessionKey->elements[0].length;
 
-#if 1
-    gssMajor = gss_inquire_context2(
-                    &gssMinor,
-                    Context,
-                    NULL,
-                    NULL,
-                    NULL,
-                    NULL,
-                    NULL,
-                    NULL,
-                    NULL,
-                    &sessionKeyBuffer);
-    srv_display_status("gss_inquire_context2", gssMajor, gssMinor);
-    BAIL_ON_LWIO_ERROR(gssMajor);
-#endif
-
 cleanup:
     gss_release_buffer_set(&gssMinor, &sessionKey);
-    gss_release_buffer(&gssMinor, &sessionKeyBuffer);
 
     *ppSessionKey = pSessionKey;
     *pdwSessionKeyLength = dwSessionKeyLength;
