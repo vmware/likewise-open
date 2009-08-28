@@ -70,8 +70,8 @@ extern PFN_LWDNS_LOG_MESSAGE gpfnLWDNSLogger;
 
 #define _LWDNS_LOG_WITH_THREAD(Level, Format, ...) \
     _LWDNS_LOG_MESSAGE(Level,                      \
-                     "0x%x:" Format,               \
-                     (unsigned int)pthread_self(), \
+                     "%zd:" Format,                \
+                     (size_t)pthread_self(),   \
                      ## __VA_ARGS__)
 
 #define _LWDNS_LOG_WITH_DEBUG(Level, Format, ...) \
