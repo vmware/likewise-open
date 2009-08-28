@@ -247,6 +247,7 @@ PvfsQueryFileDirInfo(
     DWORD dwBufLen = 0;
     DWORD dwOffset = 0;
     DWORD dwConsumed = 0;
+    BOOLEAN bLocked = FALSE;
 
     /* Sanity checks */
 
@@ -278,11 +279,11 @@ PvfsQueryFileDirInfo(
     /* Critical region to prevent inteleaving directory
        enumeration */
 
-    ENTER_MUTEX(&pCcb->FileMutex);
+    LWIO_LOCK_MUTEX(bLocked, &pCcb->FileMutex);
     if (!pCcb->pDirContext->bScanned) {
         ntError = PvfsEnumerateDirectory(pCcb, &pIrp->Args.QueryDirectory);
     }
-    LEAVE_MUTEX(&pCcb->FileMutex);
+    LWIO_UNLOCK_MUTEX(bLocked, &pCcb->FileMutex);
 
     BAIL_ON_NT_STATUS(ntError);
 
