@@ -17,9 +17,8 @@ mydir=.
 #	plugins/preauth/encrypted_challenge \
 #	appl tests \
 #	config-files gen-manpages
-SUBDIRS=util include lib kadmin @ldap_plugin_dir@ clients \
+SUBDIRS=util include lib kadmin/ktutil @ldap_plugin_dir@ clients \
 	plugins/preauth/encrypted_challenge \
-	tests \
 	config-files gen-manpages
 BUILDTOP=$(REL)$(C)
 LOCALINCLUDES = -I$(srcdir) 

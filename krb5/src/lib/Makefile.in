@@ -1,7 +1,8 @@
 thisconfigdir=./..
 myfulldir=lib
 mydir=lib
-SUBDIRS=crypto krb5 gssapi rpc kdb kadm5 apputils
+#LW#SUBDIRS=crypto krb5 gssapi rpc kdb kadm5 apputils
+SUBDIRS=crypto krb5 gssapi
 BUILDTOP=$(REL)..
 
 all-unix::
