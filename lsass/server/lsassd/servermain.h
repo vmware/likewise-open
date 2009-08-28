@@ -53,6 +53,12 @@ main(
     char* argv[]
     );
 
+int
+lsassd_main(
+    int argc,
+    char* argv[]
+    );
+
 DWORD
 LsaSrvStartupPreCheck(
     VOID

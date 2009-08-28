@@ -1,13 +1,21 @@
 AM_CPPFLAGS = @AM_CPPFLAGS@ -I$(top_srcdir)/include
 
+ADDITIONAL_LIBS =
+NOINST_DEP_LIBS = \
+	@top_builddir@/logging_r/liblsalog_r.la \
+	@top_builddir@/server/store/dsapi/libdsapi.la
+
 if ENABLE_MINIMAL
 noinst_LTLIBRARIES = liblsaserverapi.la
 ADDITIONAL_CPPFLAGS = "-DMINIMAL_LSASS=1"
-ADDITIONAL_LIBS =
+if !ENABLE_SMALL_DAEMON
+ADDITIONAL_LIBS += $(NOINST_DEP_LIBS)
+endif
 else
 lib_LTLIBRARIES = liblsaserverapi.la
 ADDITIONAL_CPPFLAGS =
-ADDITIONAL_LIBS = @EVENTLOG_LIBS@
+ADDITIONAL_LIBS += @EVENTLOG_LIBS@
+ADDITIONAL_LIBS += $(NOINST_DEP_LIBS)
 endif
 
 liblsaserverapi_la_SOURCES = \
@@ -45,8 +53,6 @@ liblsaserverapi_la_CPPFLAGS =     \
 	$(ADDITIONAL_CPPFLAGS)
 
 liblsaserverapi_la_LIBADD = \
-    @top_builddir@/logging_r/liblsalog_r.la \
-    @top_builddir@/server/store/dsapi/libdsapi.la \
     @UUID_LIBS@ \
     @PTHREAD_LIBS@ \
     $(ADDITIONAL_LIBS) \

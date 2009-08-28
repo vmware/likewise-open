@@ -34,8 +34,8 @@ ksu: $(OBJS) $(KRB5_BASE_DEPLIBS)
 clean::
 	$(RM) ksu
 
-#If installing with setuid root fails, install it with setuid builder. Our
-#prototype file should change the file owner to root and keep the setuid bit.
+# LW: Enable installing as non-root user for package build scenarios
+#     by installing setuid as the current user.
 install::
 	-for f in ksu; do \
 	  ( $(INSTALL_SETUID) $$f \
