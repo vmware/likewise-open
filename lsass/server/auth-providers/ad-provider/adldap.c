@@ -117,14 +117,10 @@ ADGetLDAPUPNString(
             if (!index(pszUPN, '@'))
             {
                 // Some domain users might have invalid UPNs in AD.
-
-                LSA_LOG_ERROR("Active Directory user account (%s) has a malformed UPN set to (%s). Lsass is defaulting to a generated UPN.",
-                              LSA_SAFE_LOG_STRING(pszSamaccountName),
-                              LSA_SAFE_LOG_STRING(pszUPN));
-
-                // Fix it for them by having the generated UPN code below make one for them.
+                // Fix it for them.
                 LW_SAFE_FREE_STRING(pszUPN);
-                pszUPN = NULL;
+                dwError = LW_ERROR_DATA_ERROR;
+                BAIL_ON_LSA_ERROR(dwError);
             }
             else
             {

@@ -346,58 +346,23 @@ LsaAdBatchMarshalUserInfo(
     LSA_XFER_STRING(pUserInfo->pszAlias, pObjectUserInfo->pszAliasName);
     LSA_XFER_STRING(pUserInfo->pszPasswd, pObjectUserInfo->pszPasswd);
     LSA_XFER_STRING(pUserInfo->pszGecos, pObjectUserInfo->pszGecos);
+    LSA_XFER_STRING(pUserInfo->pszShell, pObjectUserInfo->pszShell);
+    LSA_XFER_STRING(pUserInfo->pszHomeDirectory, pObjectUserInfo->pszHomedir);
     LSA_XFER_STRING(pUserInfo->pszUserPrincipalName, pObjectUserInfo->pszUPN);
-
-    dwError = LwAllocateString(pUserInfo->pszShell, &pObjectUserInfo->pszShell);
-    BAIL_ON_LSA_ERROR(dwError);
-    dwError = LwAllocateString(pUserInfo->pszHomeDirectory, &pObjectUserInfo->pszHomedir);
-    BAIL_ON_LSA_ERROR(dwError);
 
     pObjectUserInfo->qwPwdLastSet = pUserInfo->PasswordLastSet;
     pObjectUserInfo->qwAccountExpires = pUserInfo->AccountExpires;
 
     // Handle shell.
     dwError = LsaAdBatchMarshalUserInfoFixShell(&pObjectUserInfo->pszShell);
-    if (dwError)
-    {
-        // If we encounter a problem with fixing up the shell, leave the user object with the actual value stored in AD and log the problem.
-        if (pObjectUserInfo->pszShell)
-        {
-            LwFreeString(pObjectUserInfo->pszShell);
-            pObjectUserInfo->pszShell = NULL;
-        }
-
-        dwError = LwAllocateString(pUserInfo->pszShell, &pObjectUserInfo->pszShell);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        LSA_LOG_ERROR("While processing information for user (%s), an invalid shell value was detected (shell: '%s')",
-                      LSA_SAFE_LOG_STRING(pszSamAccountName),
-                      LSA_SAFE_LOG_STRING(pObjectUserInfo->pszShell));
-        dwError = 0;
-    }
+    BAIL_ON_LSA_ERROR(dwError);
 
     // Handle home directory.
     dwError = LsaAdBatchMarshalUserInfoFixHomeDirectory(
                     &pObjectUserInfo->pszHomedir,
                     pszNetbiosDomainName,
                     pszSamAccountName);
-    if (dwError)
-    {
-        // If we encounter a problem with fixing up the shell, leave the user object with the actual value stored in AD and log the problem.
-        if (pObjectUserInfo->pszHomedir)
-        {
-            LwFreeString(pObjectUserInfo->pszHomedir);
-            pObjectUserInfo->pszHomedir = NULL;
-        }
-
-        dwError = LwAllocateString(pUserInfo->pszHomeDirectory, &pObjectUserInfo->pszHomedir);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        LSA_LOG_ERROR("While processing information for user (%s), an invalid homedir value was detected (homedir: '%s')",
-                      LSA_SAFE_LOG_STRING(pszSamAccountName),
-                      LSA_SAFE_LOG_STRING(pObjectUserInfo->pszHomedir));
-        dwError = 0;
-    }
+    BAIL_ON_LSA_ERROR(dwError);
 
     // Handle UPN.
     if (!pObjectUserInfo->pszUPN)
@@ -421,23 +386,13 @@ LsaAdBatchMarshalUserInfo(
     dwError = LsaAdBatchMarshalUserInfoAccountExpires(
                     pUserInfo->AccountExpires,
                     pObjectUserInfo);
-    if (dwError);
-    {
-        LSA_LOG_ERROR("While processing information for user (%s), lsass was unable to determine if the account is expired. Defaulting to not expired.", pszSamAccountName);
-        dwError = 0;
-        pObjectUserInfo->bAccountExpired = FALSE;
-    }
+    BAIL_ON_LSA_ERROR(dwError);
 
     // Figure out password prompting.
     dwError = LsaAdBatchMarshalUserInfoPasswordLastSet(
                     pUserInfo->PasswordLastSet,
                     pObjectUserInfo);
-    if (dwError);
-    {
-        LSA_LOG_ERROR("While processing information for user (%s), lsass was unable to determine if the need to promt to change user password is required. Defaulting to no.", pszSamAccountName);
-        dwError = 0;
-        pObjectUserInfo->bPromptPasswordChange = FALSE;
-    }
+    BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
     return dwError;
