@@ -276,7 +276,7 @@ cpp_quote("#endif")
         );
 
     NTSTATUS __SamrSetUserInfo(
-        [in,ref] PolicyHandle *user_handle,
+        [in] ACCOUNT_HANDLE hAccount,
         [in] uint16 level,
         [in,ref,switch_is(level)] UserInfo *info
         );
