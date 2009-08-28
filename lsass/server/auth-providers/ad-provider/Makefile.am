@@ -1,9 +1,17 @@
 AM_CPPFLAGS = @AM_CPPFLAGS@ -I$(top_srcdir)/include
 
+ADDITIONAL_LIBS =
+NOINST_DEP_LIBS = \
+	@top_builddir@/server/api/liblsaserverapi.la
+
 if ENABLE_STATIC_PROVIDERS
 noinst_LTLIBRARIES = liblsass_auth_provider_ad.la
+if !ENABLE_SMALL_DAEMON
+ADDITIONAL_LIBS += $(NOINST_DEP_LIBS)
+endif
 else
 provider_LTLIBRARIES = liblsass_auth_provider_ad.la
+ADDITIONAL_LIBS += $(NOINST_DEP_LIBS)
 endif
 
 PROVIDER_CPPFLAGS = $(AM_CPPFLAGS)
@@ -74,8 +82,8 @@ liblsass_auth_provider_ad_la_CFLAGS = $(AM_CFLAGS) $(PROVIDER_CFLAGS)
 # NOTE: Need to remove LSA client dependency.
 liblsass_auth_provider_ad_la_LIBADD = \
 	@top_builddir@/common/liblsacommon.la \
-	@top_builddir@/server/api/liblsaserverapi.la \
 	@top_builddir@/join/liblsajoin.la \
+	$(ADDITIONAL_LIBS) \
 	@PSTORE_LIBS@ \
 	@NETAPI_LIBS@ \
 	@NETLOGON_LIBS@ \

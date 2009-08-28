@@ -634,6 +634,13 @@ then
 	AC_DEFINE([ENABLE_PIDFILE], [], [Define if pid file should be created])
 fi
 
+AC_ARG_ENABLE([small-daemon], [AC_HELP_STRING([--enable-small-daemon], [build small lsassd])])
+AM_CONDITIONAL(ENABLE_SMALL_DAEMON, test x"$enable_small_daemon" = x"yes")
+if test x"$enable_small_daemon" = x"yes"
+then
+        AC_DEFINE([ENABLE_SMALL_DAEMON], [], [Define if lsassd should be small])
+fi
+
 # debugging
 
 AC_ARG_ENABLE([debug],
