@@ -1,7 +1,7 @@
 /*
  * lib/krb5/krb/ser_ctx.c
  *
- * Copyright 1995 by the Massachusetts Institute of Technology.
+ * Copyright 1995, 2007, 2008 by the Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
  * Export of this software from the United States of America may
@@ -62,12 +62,14 @@ static krb5_error_code krb5_oscontext_externalize
 	(krb5_context, krb5_pointer, krb5_octet **, size_t *);
 static krb5_error_code krb5_oscontext_internalize
 	(krb5_context,krb5_pointer *, krb5_octet **, size_t *);
+#ifndef LEAN_CLIENT
 krb5_error_code profile_ser_size
 	(krb5_context, krb5_pointer, size_t *);
 krb5_error_code profile_ser_externalize
 	(krb5_context, krb5_pointer, krb5_octet **, size_t *);
 krb5_error_code profile_ser_internalize
 	(krb5_context,krb5_pointer *, krb5_octet **, size_t *);
+#endif /* LEAN_CLIENT */
 
 /* Local data */
 static const krb5_ser_entry krb5_context_ser_entry = {
@@ -82,13 +84,14 @@ static const krb5_ser_entry krb5_oscontext_ser_entry = {
     krb5_oscontext_externalize,		/* Externalize routine	*/
     krb5_oscontext_internalize		/* Internalize routine	*/
 };
+#ifndef LEAN_CLIENT
 static const krb5_ser_entry krb5_profile_ser_entry = {
     PROF_MAGIC_PROFILE,			/* Type			*/
     profile_ser_size,			/* Sizer routine	*/
     profile_ser_externalize,		/* Externalize routine	*/
     profile_ser_internalize		/* Internalize routine	*/
 };
-
+#endif /* LEAN_CLIENT */
 /*
  * krb5_context_size()	- Determine the size required to externalize the
  *			  krb5_context.
@@ -117,7 +120,6 @@ krb5_context_size(krb5_context kcontext, krb5_pointer arg, size_t *sizep)
      *  krb5_int32			for library_options
      *  krb5_int32			for profile_secure
      * 	krb5_int32			for fcc_default_format
-     *  krb5_int32			for scc_default_format
      *    <>				for os_context
      *    <>				for db_context
      *    <>				for profile
@@ -133,17 +135,16 @@ krb5_context_size(krb5_context kcontext, krb5_pointer arg, size_t *sizep)
 	if (context->default_realm)
 	    required += strlen(context->default_realm);
 	/* Calculate size required by os_context, if appropriate */
-	if (context->os_context)
-	    kret = krb5_size_opaque(kcontext,
-				    KV5M_OS_CONTEXT,
-				    (krb5_pointer) context->os_context,
-				    &required);
+	kret = krb5_size_opaque(kcontext,
+				KV5M_OS_CONTEXT,
+				(krb5_pointer) &context->os_context,
+				&required);
 
 	/* Calculate size required by db_context, if appropriate */
-	if (!kret && context->db_context)
+	if (!kret && context->dal_handle)
 	    kret = krb5_size_opaque(kcontext,
 				    KV5M_DB_CONTEXT,
-				    (krb5_pointer) context->db_context,
+				    (krb5_pointer) context->dal_handle,
 				    &required);
 
 	/* Finally, calculate size required by profile, if appropriate */
@@ -169,7 +170,7 @@ krb5_context_externalize(krb5_context kcontext, krb5_pointer arg, krb5_octet **b
     size_t		required;
     krb5_octet		*bp;
     size_t		remain;
-    int			i;
+    unsigned int	i;
 
     required = 0;
     bp = *buffer;
@@ -282,25 +283,17 @@ krb5_context_externalize(krb5_context kcontext, krb5_pointer arg, krb5_octet **b
     if (kret)
 	return (kret);
 
-    /* Now scc_default_format */
-    kret = krb5_ser_pack_int32((krb5_int32) context->scc_default_format,
-			       &bp, &remain);
+    /* Now handle os_context, if appropriate */
+    kret = krb5_externalize_opaque(kcontext, KV5M_OS_CONTEXT,
+				   (krb5_pointer) &context->os_context,
+				   &bp, &remain);
     if (kret)
 	return (kret);
 
-    /* Now handle os_context, if appropriate */
-    if (context->os_context) {
-	kret = krb5_externalize_opaque(kcontext, KV5M_OS_CONTEXT,
-				       (krb5_pointer) context->os_context,
-				       &bp, &remain);
-	if (kret)
-	    return (kret);
-    }
-	
     /* Now handle database context, if appropriate */
-    if (context->db_context) {
+    if (context->dal_handle) {
 	kret = krb5_externalize_opaque(kcontext, KV5M_DB_CONTEXT,
-				       (krb5_pointer) context->db_context,
+				       (krb5_pointer) context->dal_handle,
 				       &bp, &remain);
 	if (kret)
 	    return (kret);
@@ -340,7 +333,7 @@ krb5_context_internalize(krb5_context kcontext, krb5_pointer *argp, krb5_octet *
     krb5_int32		ibuf;
     krb5_octet		*bp;
     size_t		remain;
-    int			i;
+    unsigned int	i;
 
     bp = *buffer;
     remain = *lenremain;
@@ -353,10 +346,9 @@ krb5_context_internalize(krb5_context kcontext, krb5_pointer *argp, krb5_octet *
 	return (EINVAL);
 
     /* Get memory for the context */
-    context = (krb5_context) malloc(sizeof(struct _krb5_context));
+    context = (krb5_context) calloc(1, sizeof(struct _krb5_context));
     if (!context)
 	return (ENOMEM);
-    memset(context, 0, sizeof(struct _krb5_context));
 
     /* Get the size of the default realm */
     if ((kret = krb5_ser_unpack_int32(&ibuf, &bp, &remain)))
@@ -382,15 +374,13 @@ krb5_context_internalize(krb5_context kcontext, krb5_pointer *argp, krb5_octet *
 	goto cleanup;
     
     context->in_tkt_ktype_count = (int) ibuf;
-    context->in_tkt_ktypes = (krb5_enctype *) malloc(sizeof(krb5_enctype) *
-				     (context->in_tkt_ktype_count+1));
+    context->in_tkt_ktypes = (krb5_enctype *) calloc(context->in_tkt_ktype_count+1,
+						     sizeof(krb5_enctype));
     if (!context->in_tkt_ktypes) {
 	kret = ENOMEM;
 	goto cleanup;
     }
-    memset(context->in_tkt_ktypes, 0, (sizeof(krb5_enctype) *
-				       (context->in_tkt_ktype_count + 1)));
-    
+
     for (i=0; i<context->in_tkt_ktype_count; i++) {
 	if ((kret = krb5_ser_unpack_int32(&ibuf, &bp, &remain)))
 	    goto cleanup;
@@ -402,14 +392,12 @@ krb5_context_internalize(krb5_context kcontext, krb5_pointer *argp, krb5_octet *
 	goto cleanup;
     
     context->tgs_ktype_count = (int) ibuf;
-    context->tgs_ktypes = (krb5_enctype *) malloc(sizeof(krb5_enctype) *
-				  (context->tgs_ktype_count+1));
+    context->tgs_ktypes = (krb5_enctype *) calloc(context->tgs_ktype_count+1,
+						  sizeof(krb5_enctype));
     if (!context->tgs_ktypes) {
 	kret = ENOMEM;
 	goto cleanup;
     }
-    memset(context->tgs_ktypes, 0, (sizeof(krb5_enctype) *
-				    (context->tgs_ktype_count + 1)));
     for (i=0; i<context->tgs_ktype_count; i++) {
 	if ((kret = krb5_ser_unpack_int32(&ibuf, &bp, &remain)))
 	    goto cleanup;
@@ -456,11 +444,6 @@ krb5_context_internalize(krb5_context kcontext, krb5_pointer *argp, krb5_octet *
 	goto cleanup;
     context->fcc_default_format = (int) ibuf;
 
-    /* scc_default_format */
-    if ((kret = krb5_ser_unpack_int32(&ibuf, &bp, &remain)))
-	goto cleanup;
-    context->scc_default_format = (int) ibuf;
-    
     /* Attempt to read in the os_context.  It's an array now, but
        we still treat it in most places as a separate object with
        a pointer.  */
@@ -474,13 +457,13 @@ krb5_context_internalize(krb5_context kcontext, krb5_pointer *argp, krb5_octet *
 	/* Put the newly allocated data into the krb5_context
 	   structure where we're really keeping it these days.  */
 	if (osp)
-	    *context->os_context = *osp;
+	    context->os_context = *osp;
 	free(osp);
     }
 
     /* Attempt to read in the db_context */
     kret = krb5_internalize_opaque(kcontext, KV5M_DB_CONTEXT,
-				   (krb5_pointer *) &context->db_context,
+				   (krb5_pointer *) &context->dal_handle,
 				   &bp, &remain);
     if (kret && (kret != EINVAL) && (kret != ENOENT))
 	goto cleanup;
@@ -591,9 +574,8 @@ krb5_oscontext_internalize(krb5_context kcontext, krb5_pointer *argp, krb5_octet
 
 	/* Get memory for the context */
 	if ((os_ctx = (krb5_os_context) 
-	     malloc(sizeof(struct _krb5_os_context))) &&
+	     calloc(1, sizeof(struct _krb5_os_context))) &&
 	    (remain >= 4*sizeof(krb5_int32))) {
-	    memset(os_ctx, 0, sizeof(struct _krb5_os_context));
 	    os_ctx->magic = KV5M_OS_CONTEXT;
 
 	    /* Read out our context */
@@ -631,7 +613,9 @@ krb5_ser_context_init(krb5_context kcontext)
     kret = krb5_register_serializer(kcontext, &krb5_context_ser_entry);
     if (!kret)
 	kret = krb5_register_serializer(kcontext, &krb5_oscontext_ser_entry);
+#ifndef LEAN_CLIENT
     if (!kret)
 	kret = krb5_register_serializer(kcontext, &krb5_profile_ser_entry);
+#endif /* LEAN_CLIENT */
     return(kret);
 }

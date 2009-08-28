@@ -19,8 +19,8 @@
 @set RANDOMUSER johndoe
 @set RANDOMUSER1 jennifer
 @set RANDOMUSER2 david
-@set RELEASE 1.6
-@set PREVRELEASE 1.5
+@set RELEASE 1.7
+@set PREVRELEASE 1.6
 @set INSTALLDIR /usr/@value{LCPRODUCT}
 @set PREVINSTALLDIR @value{INSTALLDIR}
 @set ROOTDIR /usr/local
@@ -43,7 +43,7 @@ default was set.
 the following should be consistent with the variables set in
 krb5/src/lib/krb5/krb/init_ctx.c
 @end ignore
-@set DefaultETypeList aes256-cts-hmac-sha1-96 des3-cbc-sha1 arcfour-hmac-md5 des-cbc-crc des-cbc-md5 des-cbc-md4 
+@set DefaultETypeList aes256-cts-hmac-sha1-96 aes128-cts-hmac-sha1-96 des3-cbc-sha1 arcfour-hmac-md5 des-cbc-crc des-cbc-md5 des-cbc-md4
 @comment DEFAULT_ETYPE_LIST
 @set DefaultDefaultTgsEnctypes @value{DefaultETypeList}
 @set DefaultDefaultTktEnctypes @value{DefaultETypeList}
@@ -66,7 +66,7 @@ krb5/src/lib/krb5/krb/init_ctx.c
 
 @ignore
 the following defaults should be consistent with default variables set
-in krb5/src/include/stock/osconf.h
+in krb5/src/include/osconf.hin
 @end ignore
 @set DefaultMasterKeyType des3-cbc-sha1
 @comment DEFAULT_KDC_ENCTYPE
@@ -102,14 +102,14 @@ in krb5/src/include/stock/osconf.h
 the following defaults should be consistent with the numbers set in
 krb5/src/lib/kadm5/alt_prof.c
 @end ignore
-@set DefaultMaxLife 10 hours 
-@comment line 608
+@set DefaultMaxLife 24 hours
+@comment max_life
 @set DefaultMaxRenewableLife 0 
-@comment line 622
+@comment max_rlife
 @set DefaultDefaultPrincipalExpiration 0 
-@comment line 639
-@set DefaultSupportedEnctypes des3-hmac-sha1:normal des-cbc-crc:normal
-@comment line 705
+@comment expiration
+@set DefaultSupportedEnctypes aes256-cts-hmac-sha1-96:normal aes128-cts-hmac-sha1-96:normal des3-cbc-sha1:normal arcfour-hmac-md5:normal
+@comment krb5/src/include/osconf.hin, KRB5_DEFAULT_SUPPORTED_ENCTYPES
 
 @ignore
 the following defaults should be consistent with the values set in
@@ -131,23 +131,12 @@ krb5/src/appl/bsd/login.c
 @end ignore
 @set DefaultKrb5GetTickets true
 @comment login_krb5_get_tickets
-@set DefaultKrb4GetTickets false
-@comment login_krb4_get_tickets
-@set DefaultKrb4Convert false
-@comment login_krb4_convert
 @set DefaultKrbRunAklog false
 @comment login_krb_run_aklog
 @set DefaultAklogPath $(prefix)/bin/aklog
 @comment lines 955-956
 @set DefaultAcceptPasswd false
 @comment login_accept_password
-
-@ignore
-the following defaults should be consistent with the values set in
-krb5/src/kdc/kerberos_v4
-@end ignore
-@set DefaultV4Mode  none
-@comment KDC_V4_DEFAULT_MODE
 
 @ignore
 these defaults are based on code in krb5/src/aclocal.m4
@@ -174,14 +163,6 @@ the following are based on variables in krb5/src/include/kerberosIV/krbports.h
 @set DefaultTelnetPort 23
 @set DefaultFTPPort 21
 @set DefaultKrb524Port 4444
-
-@comment src/include/kerberosIV/krb.h
-@set DefaultKrb4Srvtab /etc/srvtab
-@comment line 131
-@set DefaultKrb4Config /etc/krb.conf
-@comment KRB_CONF
-@set DefaultKrb4Realms /etc/krb.realms
-@comment KRB_RLM_TRANS
 
 @comment krb5/src/lib/krb5/krb/get_in_tkt.c
 @set DefaultRenewLifetime 0

@@ -27,7 +27,7 @@
 /*
  * slave/kpropd.c
  *
- * Copyright 1990,1991 by the Massachusetts Institute of Technology.
+ * Copyright 1990,1991,2007 by the Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
  * Export of this software from the United States of America may
@@ -81,6 +81,10 @@
 #include <errno.h>
 
 #include "kprop.h"
+#include <iprop_hdr.h>
+#include "iprop.h"
+#include <kadm5/admin.h>
+#include <kdb_log.h>
 
 #ifndef GETSOCKNAME_ARG3_TYPE
 #define GETSOCKNAME_ARG3_TYPE unsigned int
@@ -94,6 +98,34 @@ extern int daemon(int, int);
 #endif
 
 #define SYSLOG_CLASS LOG_DAEMON
+#define INITIAL_TIMER 10
+
+char *def_realm = NULL;
+int runonce = 0;
+
+/*
+ * Global fd to close upon alarm time-out.
+ */
+volatile int gfd = -1;
+
+/*
+ * This struct simulates the use of _kadm5_server_handle_t
+ *
+ * This is a COPY of kadm5_server_handle_t from
+ * lib/kadm5/clnt/client_internal.h!
+ */
+typedef struct _kadm5_iprop_handle_t {
+	krb5_ui_4	magic_number;
+	krb5_ui_4	struct_version;
+	krb5_ui_4	api_version;
+	char 		*cache_name;
+	int		destroy_cache;
+	CLIENT		*clnt;
+	krb5_context	context;
+	kadm5_config_params params;
+	struct _kadm5_iprop_handle_t *lhandle;
+} *kadm5_iprop_handle_t;
+
 
 static char *kprop_version = KPROP_PROT_VERSION;
 
@@ -117,12 +149,16 @@ krb5_address	sender_addr;
 krb5_address	receiver_addr;
 short 		port = 0;
 
+char **db_args = NULL;
+int db_args_size = 0;
+
 void	PRS
 	(char**);
-void	do_standalone
-	(void);
+int	do_standalone
+	(iprop_role iproprole);
 void	doit
 	(int);
+krb5_error_code do_iprop(kdb_log_context *log_ctx);
 void	kerberos_authenticate
 	(krb5_context,
 		   int,
@@ -150,6 +186,12 @@ void	send_error
 void	recv_error
 	(krb5_context,
     		   krb5_data *);
+unsigned int backoff_from_master(int *);
+
+static kadm5_ret_t
+kadm5_get_kiprop_host_srv_name(krb5_context context,
+			       const char *realm,
+			       char **host_service_name);
 
 static void usage()
 {
@@ -157,7 +199,7 @@ static void usage()
 		"\nUsage: %s [-r realm] [-s srvtab] [-dS] [-f slave_file]\n",
 		progname);
 	fprintf(stderr, "\t[-F kerberos_db_file ] [-p kdb5_util_pathname]\n");
-	fprintf(stderr, "\t[-P port] [-a acl_file]\n");
+	fprintf(stderr, "\t[-x db_args]* [-P port] [-a acl_file]\n");
 	exit(1);
 }
 
@@ -166,23 +208,69 @@ main(argc, argv)
 	int	argc;
 	char	**argv;
 {
-	PRS(argv);
+    krb5_error_code retval;
+    int ret = 0;
+    kdb_log_context *log_ctx;
 
+    PRS(argv);
+
+    log_ctx = kpropd_context->kdblog_context;
+
+    {
+#ifdef POSIX_SIGNALS
+	struct sigaction s_action;
+	memset(&s_action, 0, sizeof(s_action));
+	sigemptyset(&s_action.sa_mask);
+	s_action.sa_handler = SIG_IGN;
+	sigaction(SIGPIPE, &s_action, NULL);
+#else
+	signal(SIGPIPE, SIG_IGN);
+#endif
+    }
+
+    if (log_ctx && (log_ctx->iproprole == IPROP_SLAVE)) {
+	/*
+	 * We wanna do iprop !
+	 */
+	retval = do_iprop(log_ctx);
+	if (retval) {
+	    com_err(progname, retval,
+		    _("do_iprop failed.\n"));
+	    exit(1);
+	}
+
+    } else {
 	if (standalone)
-		do_standalone();
+	    ret = do_standalone(IPROP_NULL);
 	else
-		doit(0);
-	exit(0);
+	    doit(0);
+    }
+
+    exit(ret);
 }
 
-void do_standalone()
+static void resync_alarm(int sn)
+{
+    close (gfd);
+    if (debug)
+	fprintf(stderr, _("resync_alarm: closing fd: %d\n"), gfd);
+    gfd = -1;
+}
+
+int do_standalone(iprop_role iproprole)
 {
 	struct	sockaddr_in	my_sin, frominet;
 	struct servent *sp;
 	int	finet, s;
 	GETPEERNAME_ARG3_TYPE fromlen;
 	int	ret;
-	
+	/*
+	 * Timer for accept/read calls, in case of network type errors.
+	 */
+	int backoff_timer = INITIAL_TIMER;
+
+retry:
+
 	finet = socket(AF_INET, SOCK_STREAM, 0);
 	if (finet < 0) {
 		com_err(progname, errno, "while obtaining socket");
@@ -200,6 +288,44 @@ void do_standalone()
 		my_sin.sin_port = port;
 	}
 	my_sin.sin_family = AF_INET;
+
+	/*
+	 * We need to close the socket immediately if iprop is enabled,
+	 * since back-to-back full resyncs are possible, so we do not
+	 * linger around for too long
+	 */
+	if (iproprole == IPROP_SLAVE) {
+	    int on = 1;
+	    struct linger linger;
+
+	    if (setsockopt(finet, SOL_SOCKET, SO_REUSEADDR,
+			   (char *)&on, sizeof(on)) < 0)
+		com_err(progname, errno,
+			_("while setting socket option (SO_REUSEADDR)"));
+	    linger.l_onoff = 1;
+	    linger.l_linger = 2;
+	    if (setsockopt(finet, SOL_SOCKET, SO_LINGER,
+			   (void *)&linger, sizeof(linger)) < 0)
+		com_err(progname, errno,
+			_("while setting socket option (SO_LINGER)"));
+	    /*
+	     * We also want to set a timer so that the slave is not waiting
+	     * until infinity for an update from the master.
+	     */
+	    gfd = finet;
+	    signal(SIGALRM, resync_alarm);
+	    if (debug) {
+		fprintf(stderr, "do_standalone: setting resync alarm to %d\n",
+			backoff_timer);
+	    }
+	    if (alarm(backoff_timer) != 0) {
+		if (debug) {
+		    fprintf(stderr,
+			    _("%s: alarm already set\n"), progname);
+		}
+	    }
+	    backoff_timer *= 2;
+	}
 	if ((ret = bind(finet, (struct sockaddr *) &my_sin, sizeof(my_sin))) < 0) {
 	    if (debug) {
 		int on = 1;
@@ -217,7 +343,7 @@ void do_standalone()
 		exit(1);
 	    }
 	}
-	if (!debug)
+	if (!debug && iproprole != IPROP_SLAVE)
 		daemon(1, 0);	    
 #ifdef PID_FILE
 	if ((pidfile = fopen(PID_FILE, "w")) != NULL) {
@@ -233,18 +359,40 @@ void do_standalone()
 	}
 	while (1) {
 		int child_pid;
+		int status;
 	    
 		memset((char *)&frominet, 0, sizeof(frominet));
 		fromlen = sizeof(frominet);
+		if (debug)
+		    fprintf(stderr, "waiting for a kprop connection\n");
 		s = accept(finet, (struct sockaddr *) &frominet, &fromlen);
 
 		if (s < 0) {
-			if (errno != EINTR)
-				com_err(progname, errno,
-					"from accept system call");
-			continue;
+		    int e = errno;
+		    if (e != EINTR) {
+			com_err(progname, e,
+				_("while accepting connection"));
+			if (e != EBADF)
+			    backoff_timer = INITIAL_TIMER;
+		    }
+		    /*
+		     * If we got EBADF, an alarm signal handler closed
+		     * the file descriptor on us.
+		     */
+		    if (e != EBADF)
+			close(finet);
+		    /*
+		     * An alarm could have been set and the fd closed, we
+		     * should retry in case of transient network error for
+		     * up to a couple of minutes.
+		     */
+		    if (backoff_timer > 120)
+			return EINTR;
+		    goto retry;
 		}
-		if (debug)
+		alarm(0);
+		gfd = -1;
+		if (debug && iproprole != IPROP_SLAVE)
 			child_pid = 0;
 		else
 			child_pid = fork();
@@ -259,11 +407,31 @@ void do_standalone()
 			close(s);
 			_exit(0);
 		default:
-			wait(0);
-			close(s);
-			
+		    /*
+		     * Errors should not be considered fatal in the
+		     * iprop case as we could have transient type
+		     * errors, such as network outage, etc.  Sleeping
+		     * 3s for 2s linger interval.
+		     */
+		    if (wait(&status) < 0) {
+			com_err(progname, errno,
+				_("while waiting to receive database"));
+			if (iproprole != IPROP_SLAVE)
+			    exit(1);
+			sleep(3);
+		    }
+
+		    close(s);
+		    if (iproprole == IPROP_SLAVE)
+			close(finet);
+
+		    if ((ret = WEXITSTATUS(status)) != 0)
+			return (ret);
 		}
+		if (iproprole == IPROP_SLAVE)
+		    break;
 	}
+	return 0;
 }
 
 void doit(fd)
@@ -280,11 +448,37 @@ void doit(fd)
 	krb5_enctype etype;
 	int database_fd;
 
+	if (kpropd_context->kdblog_context &&
+	    kpropd_context->kdblog_context->iproprole == IPROP_SLAVE) {
+	    /*
+	     * We also want to set a timer so that the slave is not waiting
+	     * until infinity for an update from the master.
+	     */
+	    if (debug)
+		fprintf(stderr, "doit: setting resync alarm to 5s\n");
+	    signal(SIGALRM, resync_alarm);
+	    gfd = fd;
+	    if (alarm(INITIAL_TIMER) != 0) {
+		if (debug) {
+		    fprintf(stderr,
+			    _("%s: alarm already set\n"), progname);
+		}
+	    }
+	}
 	fromlen = sizeof (from);
 	if (getpeername(fd, (struct sockaddr *) &from, &fromlen) < 0) {
-		fprintf(stderr, "%s: ", progname);
-		perror("getpeername");
+#ifdef ENOTSOCK
+	    if (errno == ENOTSOCK && fd == 0 && !standalone) {
+		fprintf(stderr,
+			"%s: Standard input does not appear to be a network socket.\n"
+			"\t(Not run from inetd, and missing the -S option?)\n",
+			progname);
 		exit(1);
+	    }
+#endif
+	    fprintf(stderr, "%s: ", progname);
+	    perror("getpeername");
+	    exit(1);
 	}
 	if (setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, (caddr_t) &on,
 		       sizeof (on)) < 0) {
@@ -310,6 +504,12 @@ void doit(fd)
 	 */
 	kerberos_authenticate(kpropd_context, fd, &client, &etype, from);
 
+	/*
+	 * Turn off alarm upon successful authentication from master.
+	 */
+	alarm(0);
+	gfd = -1;
+
 	if (!authorized_principal(kpropd_context, client, etype)) {
 		char	*name;
 
@@ -319,6 +519,10 @@ void doit(fd)
 				"While unparsing client name");
 			exit(1);
 		}
+		if (debug)
+		    fprintf(stderr,
+			    "Rejected connection from unauthorized principal %s\n",
+			    name);
 		syslog(LOG_WARNING,
 		       "Rejected connection from unauthorized principal %s",
 		       name);
@@ -383,18 +587,426 @@ void doit(fd)
 	exit(0);
 }
 
+/*
+ * Routine to handle incremental update transfer(s) from master KDC
+ */
+kadm5_config_params params;
+krb5_error_code do_iprop(kdb_log_context *log_ctx)
+{
+	kadm5_ret_t retval;
+	krb5_ccache cc;
+	krb5_principal iprop_svc_principal;
+	void *server_handle = NULL;
+	char *iprop_svc_princstr = NULL;
+	char *master_svc_princstr = NULL;
+	unsigned int pollin, backoff_time;
+	int backoff_cnt = 0;
+	int reinit_cnt = 0;
+	int ret;
+	int frdone = 0;
+
+	kdb_incr_result_t *incr_ret;
+	static kdb_last_t mylast;
+
+	kdb_fullresync_result_t *full_ret;
+	char *full_resync_arg = NULL;
+
+	kadm5_iprop_handle_t handle;
+	kdb_hlog_t *ulog;
+
+	if (!debug)
+		daemon(0, 0);
+
+	ulog = log_ctx->ulog;
+
+	pollin = params.iprop_poll_time;
+	if (pollin < 10)
+	    pollin = 10;
+
+	/*
+	 * Grab the realm info and check if iprop is enabled.
+	 */
+	if (def_realm == NULL) {
+		retval = krb5_get_default_realm(kpropd_context, &def_realm);
+		if (retval) {
+			com_err(progname, retval,
+				_("Unable to get default realm"));
+			exit(1);
+		}
+	}
+
+	params.mask |= KADM5_CONFIG_REALM;
+	params.realm = def_realm;
+
+	if (master_svc_princstr == NULL) {
+		if ((retval = kadm5_get_kiprop_host_srv_name(kpropd_context,
+							     def_realm,
+							     &master_svc_princstr))) {
+			com_err(progname, retval,
+				_("%s: unable to get kiprop host based "
+					"service name for realm %s\n"),
+					progname, def_realm);
+			exit(1);
+		}
+	}
+
+	/*
+	 * Set cc to the default credentials cache
+	 */
+	if ((retval = krb5_cc_default(kpropd_context, &cc))) {
+		com_err(progname, retval,
+			_("while opening default "
+				"credentials cache"));
+		exit(1);
+	}
+
+	retval = krb5_sname_to_principal(kpropd_context, NULL, KIPROP_SVC_NAME,
+				KRB5_NT_SRV_HST, &iprop_svc_principal);
+	if (retval) {
+		com_err(progname, retval,
+			_("while trying to construct host service principal"));
+		exit(1);
+	}
+
+	/* XXX referrals? */
+	if (krb5_is_referral_realm(krb5_princ_realm(kpropd_context,
+						    iprop_svc_principal))) {
+	    krb5_data *r = krb5_princ_realm(kpropd_context,
+					    iprop_svc_principal);
+	    assert(def_realm != NULL);
+	    r->length = strlen(def_realm);
+	    r->data = strdup(def_realm);
+	    if (r->data == NULL) {
+		com_err(progname, retval,
+			_("while determining local service principal name"));
+		exit(1);
+	    }
+	    /* XXX Memory leak: Old r->data value.  */
+	}
+	if ((retval = krb5_unparse_name(kpropd_context, iprop_svc_principal,
+					&iprop_svc_princstr))) {
+		com_err(progname, retval,
+			_("while canonicalizing principal name"));
+		krb5_free_principal(kpropd_context, iprop_svc_principal);
+		exit(1);
+	}
+	krb5_free_principal(kpropd_context, iprop_svc_principal);
+
+reinit:
+	/*
+	 * Authentication, initialize rpcsec_gss handle etc.
+	 */
+	retval = kadm5_init_with_skey(iprop_svc_princstr, srvtab,
+				      master_svc_princstr,
+				      &params,
+				      KADM5_STRUCT_VERSION,
+				      KADM5_API_VERSION_2,
+				      db_args,
+				      &server_handle);
+
+	if (retval) {
+		if (retval == KADM5_RPC_ERROR) {
+			reinit_cnt++;
+			if (server_handle)
+				kadm5_destroy((void *) server_handle);
+			server_handle = (void *)NULL;
+			handle = (kadm5_iprop_handle_t)NULL;
+
+			com_err(progname, retval, _(
+					"while attempting to connect"
+					" to master KDC ... retrying"));
+			backoff_time = backoff_from_master(&reinit_cnt);
+			(void) sleep(backoff_time);
+			goto reinit;
+		} else {
+			if (retval == KADM5_BAD_CLIENT_PARAMS ||
+			    retval == KADM5_BAD_SERVER_PARAMS) {
+			    com_err(progname, retval,
+				    _("while initializing %s interface"),
+				    progname);
+
+			    usage();
+			}
+			reinit_cnt++;
+			com_err(progname, retval,
+                                _("while initializing %s interface, retrying"),
+				progname);
+			backoff_time = backoff_from_master(&reinit_cnt);
+			sleep(backoff_time);
+			goto reinit;
+                }
+	}
+
+	/*
+	 * Reset re-initialization count to zero now.
+	 */
+	reinit_cnt = backoff_time = 0;
+
+	/*
+	 * Reset the handle to the correct type for the RPC call
+	 */
+	handle = server_handle;
+
+	for (;;) {
+		incr_ret = NULL;
+		full_ret = NULL;
+
+		/*
+		 * Get the most recent ulog entry sno + ts, which
+		 * we package in the request to the master KDC
+		 */
+		mylast.last_sno = ulog->kdb_last_sno;
+		mylast.last_time = ulog->kdb_last_time;
+
+		/*
+		 * Loop continuously on an iprop_get_updates_1(),
+		 * so that we can keep probing the master for updates
+		 * or (if needed) do a full resync of the krb5 db.
+		 */
+
+		incr_ret = iprop_get_updates_1(&mylast, handle->clnt);
+		if (incr_ret == (kdb_incr_result_t *)NULL) {
+			clnt_perror(handle->clnt,
+				    "iprop_get_updates call failed");
+			if (server_handle)
+				kadm5_destroy((void *)server_handle);
+			server_handle = (void *)NULL;
+			handle = (kadm5_iprop_handle_t)NULL;
+			goto reinit;
+		}
+
+		switch (incr_ret->ret) {
+
+		case UPDATE_FULL_RESYNC_NEEDED:
+			/*
+			 * We dont do a full resync again, if the last
+			 * X'fer was a resync and if the master sno is
+			 * still "0", i.e. no updates so far.
+			 */
+			if ((frdone == 1) && (incr_ret->lastentry.last_sno
+						== 0)) {
+				break;
+			} else {
+
+				full_ret = iprop_full_resync_1((void *)
+						&full_resync_arg, handle->clnt);
+
+				if (full_ret == (kdb_fullresync_result_t *)
+							NULL) {
+					clnt_perror(handle->clnt,
+					    "iprop_full_resync call failed");
+					if (server_handle)
+						kadm5_destroy((void *)
+							server_handle);
+					server_handle = (void *)NULL;
+					handle = (kadm5_iprop_handle_t)NULL;
+					goto reinit;
+				}
+			}
+
+			switch (full_ret->ret) {
+			case UPDATE_OK:
+				backoff_cnt = 0;
+				/*
+				 * We now listen on the kprop port for
+				 * the full dump
+				 */
+				ret = do_standalone(log_ctx->iproprole);
+				if (debug) {
+					if (ret)
+						fprintf(stderr,
+						    _("Full resync "
+						    "was unsuccessful\n"));
+					else
+						fprintf(stderr,
+						    _("Full resync "
+						    "was successful\n"));
+				}
+				if (ret) {
+				    syslog(LOG_WARNING,
+					   _("kpropd: Full resync, invalid return."));
+				    frdone = 0;
+				    backoff_cnt++;
+				} else
+				    frdone = 1;
+				break;
+
+			case UPDATE_BUSY:
+				/*
+				 * Exponential backoff
+				 */
+				backoff_cnt++;
+				break;
+
+			case UPDATE_FULL_RESYNC_NEEDED:
+			case UPDATE_NIL:
+			default:
+				backoff_cnt = 0;
+				frdone = 0;
+				syslog(LOG_ERR, _("kpropd: Full resync,"
+					" invalid return from master KDC."));
+				break;
+
+			case UPDATE_PERM_DENIED:
+				syslog(LOG_ERR, _("kpropd: Full resync,"
+					" permission denied."));
+				goto error;
+
+			case UPDATE_ERROR:
+				syslog(LOG_ERR, _("kpropd: Full resync,"
+					" error returned from master KDC."));
+				goto error;
+			}
+			break;
+
+		case UPDATE_OK:
+			backoff_cnt = 0;
+			frdone = 0;
+
+			/*
+			 * ulog_replay() will convert the ulog updates to db
+			 * entries using the kdb conv api and will commit
+			 * the entries to the slave kdc database
+			 */
+			retval = ulog_replay(kpropd_context, incr_ret,
+					     db_args);
+
+			if (retval) {
+			    char *msg = krb5_get_error_message(kpropd_context,
+							       retval);
+			    syslog(LOG_ERR,
+				   _("kpropd: ulog_replay failed (%s), updates not registered."), msg);
+			    krb5_free_error_message(kpropd_context, msg);
+			    break;
+			}
+
+			if (debug)
+				fprintf(stderr, _("Update transfer "
+					"from master was OK\n"));
+			break;
+
+		case UPDATE_PERM_DENIED:
+			syslog(LOG_ERR, _("kpropd: get_updates,"
+						" permission denied."));
+			goto error;
+
+		case UPDATE_ERROR:
+			syslog(LOG_ERR, _("kpropd: get_updates, error "
+						"returned from master KDC."));
+			goto error;
+
+		case UPDATE_BUSY:
+			/*
+			 * Exponential backoff
+			 */
+			backoff_cnt++;
+			break;
+
+		case UPDATE_NIL:
+			/*
+			 * Master-slave are in sync
+			 */
+			if (debug)
+				fprintf(stderr, _("Master, slave KDC's "
+					"are in-sync, no updates\n"));
+			backoff_cnt = 0;
+			frdone = 0;
+			break;
+
+		default:
+			backoff_cnt = 0;
+			syslog(LOG_ERR, _("kpropd: get_updates,"
+					" invalid return from master KDC."));
+			break;
+		}
+
+		if (runonce == 1)
+			goto done;
+
+		/*
+		 * Sleep for the specified poll interval (Default is 2 mts),
+		 * or do a binary exponential backoff if we get an
+		 * UPDATE_BUSY signal
+		 */
+		if (backoff_cnt > 0) {
+			backoff_time = backoff_from_master(&backoff_cnt);
+			if (debug)
+				fprintf(stderr, _("Busy signal received "
+					"from master, backoff for %d secs\n"),
+					backoff_time);
+			(void) sleep(backoff_time);
+		}
+		else
+			(void) sleep(pollin);
+
+	}
+
+
+error:
+	if (debug)
+		fprintf(stderr, _("ERROR returned by master, bailing\n"));
+	syslog(LOG_ERR, _("kpropd: ERROR returned by master KDC,"
+			" bailing.\n"));
+done:
+	if(iprop_svc_princstr)
+		free(iprop_svc_princstr);
+	if (master_svc_princstr)
+		free(master_svc_princstr);
+	if ((retval = krb5_cc_close(kpropd_context, cc))) {
+		com_err(progname, retval,
+			_("while closing default ccache"));
+		exit(1);
+	}
+	if (def_realm)
+		free(def_realm);
+	if (server_handle)
+		kadm5_destroy((void *)server_handle);
+	if (kpropd_context)
+		krb5_free_context(kpropd_context);
+
+	if (runonce == 1)
+		return (0);
+	else
+		exit(1);
+}
+
+
+/*
+ * Do exponential backoff, since master KDC is BUSY or down
+ */
+unsigned int backoff_from_master(int *cnt) {
+	unsigned int btime;
+
+	btime = (unsigned int)(2<<(*cnt));
+	if (btime > MAX_BACKOFF) {
+		btime = MAX_BACKOFF;
+		*cnt--;
+	}
+
+	return (btime);
+}
+
 static void
-kpropd_com_err_proc(whoami, code, fmt, args)
-	const char	*whoami;
-	long		code;
-	const char	*fmt;
-	va_list		args;
+kpropd_com_err_proc(const char *whoami,
+		    long code,
+		    const char *fmt,
+		    va_list args)
+#if !defined(__cplusplus) && (__GNUC__ > 2)
+    __attribute__((__format__(__printf__, 3, 0)))
+#endif
+    ;
+
+static void
+kpropd_com_err_proc(const char *whoami,
+		    long code,
+		    const char *fmt,
+		    va_list args)
 {
 	char	error_buf[8096];
 
 	error_buf[0] = '\0';
 	if (fmt)
-		vsprintf(error_buf, fmt, args);
+	    vsnprintf(error_buf, sizeof(error_buf), fmt, args);
 	syslog(LOG_ERR, "%s%s%s%s%s", whoami ? whoami : "", whoami ? ": " : "",
 	       code ? error_message(code) : "", code ? " " : "", error_buf);
 }
@@ -405,7 +1017,10 @@ void PRS(argv)
 	register char	*word, ch;
 	krb5_error_code	retval;
 	static const char	tmp[] = ".temp";
-	
+	kdb_log_context *log_ctx;
+
+	(void) memset((char *)&params, 0, sizeof (params));
+
 	retval = krb5_init_context(&kpropd_context);
 	if (retval) {
 		com_err(argv[0], retval, "while initializing krb5");
@@ -487,6 +1102,38 @@ void PRS(argv)
 					     usage();
 					word = 0;
 					break;
+
+				case 't':
+				    /*
+				     * Undocumented option - for testing only.
+				     *
+				     * Option to run the kpropd server exactly
+				     * once (this is true only if iprop is enabled).
+				     */
+				    runonce = 1;
+				    break;
+
+				case 'x':
+				    {
+					char **new_db_args;
+					new_db_args = realloc(db_args,
+							      (db_args_size+2)*sizeof(*db_args));
+					if (new_db_args == NULL) {
+					    com_err(argv[0], errno, "copying db args");
+					    exit(1);
+					}
+					db_args = new_db_args;
+					if (*word)
+					    db_args[db_args_size] = word;
+					else
+					    db_args[db_args_size] = *argv++;
+					word = 0;
+					if (db_args[db_args_size] == NULL)
+					    usage();
+					db_args[db_args_size+1] = NULL;
+					db_args_size++;
+				    }
+
 				default:
 					usage();
 				}
@@ -525,14 +1172,30 @@ void PRS(argv)
 	/*
 	 * Construct the name of the temporary file.
 	 */
-	if ((temp_file_name = (char *) malloc(strlen(file) +
-					       strlen(tmp) + 1)) == NULL) {
+	if (asprintf(&temp_file_name, "%s%s", file, tmp) < 0) {
 		com_err(progname, ENOMEM,
 			"while allocating filename for temp file");
 		exit(1);
 	}
-	strcpy(temp_file_name, file);
-	strcat(temp_file_name, tmp);
+
+	retval = kadm5_get_config_params(kpropd_context, 1, &params, &params);
+	if (retval) {
+		com_err(progname, retval, _("while initializing"));
+		exit(1);
+	}
+	if (params.iprop_enabled == TRUE) {
+		ulog_set_role(kpropd_context, IPROP_SLAVE);
+
+		if (ulog_map(kpropd_context, params.iprop_logfile,
+			     params.iprop_ulogsize, FKPROPD, db_args)) {
+			com_err(progname, errno,
+			    _("Unable to map log!\n"));
+			exit(1);
+		}
+	}
+	log_ctx = kpropd_context->kdblog_context;
+	if (log_ctx && (log_ctx->iproprole == IPROP_SLAVE))
+		ulog_set_role(kpropd_context, IPROP_SLAVE);
 }
 
 /*
@@ -770,7 +1433,7 @@ recv_database(context, fd, database_fd, confmsg)
 	while (received_size < database_size) {
 	        retval = krb5_read_message(context, (void *) &fd, &inbuf);
 		if (retval) {
-			sprintf(buf,
+			snprintf(buf, sizeof(buf),
 				"while reading database block starting at offset %d",
 				received_size);
 			com_err(progname, retval, buf);
@@ -782,7 +1445,7 @@ recv_database(context, fd, database_fd, confmsg)
 		retval = krb5_rd_priv(context, auth_context, &inbuf, 
 				      &outbuf, NULL);
 		if (retval) {
-			sprintf(buf,
+			snprintf(buf, sizeof(buf),
 				"while decoding database block starting at offset %d",
 				received_size);
 			com_err(progname, retval, buf);
@@ -794,12 +1457,12 @@ recv_database(context, fd, database_fd, confmsg)
 		krb5_free_data_contents(context, &inbuf);
 		krb5_free_data_contents(context, &outbuf);
 		if (n < 0) {
-			sprintf(buf,
+			snprintf(buf, sizeof(buf),
 				"while writing database block starting at offset %d",
 				received_size);
 			send_error(context, fd, errno, buf);
 		} else if (n != outbuf.length) {
-			sprintf(buf,
+			snprintf(buf, sizeof(buf),
 				"incomplete write while writing database block starting at \noffset %d (%d written, %d expected)",
 				received_size, n, outbuf.length);
 			send_error(context, fd, KRB5KRB_ERR_GENERIC, buf);
@@ -810,7 +1473,7 @@ recv_database(context, fd, database_fd, confmsg)
 	 * OK, we've seen the entire file.  Did we get too many bytes?
 	 */
 	if (received_size > database_size) {
-		sprintf(buf,
+		snprintf(buf, sizeof(buf),
 			"Received %d bytes, expected %d bytes for database file",
 			received_size, database_size);
 		send_error(context, fd, KRB5KRB_ERR_GENERIC, buf);
@@ -859,15 +1522,14 @@ send_error(context, fd, err_code, err_text)
 	if (error.error > 127) {
 		error.error = KRB_ERR_GENERIC;
 		if (err_text) {
-			sprintf(buf, "%s %s", error_message(err_code),
-				err_text);
+			snprintf(buf, sizeof(buf), "%s %s",
+				 error_message(err_code), err_text);
 			text = buf;
 		}
 	} 
 	error.text.length = strlen(text) + 1;
-	error.text.data = malloc(error.text.length);
+	error.text.data = strdup(text);
 	if (error.text.data) {
-		strcpy(error.text.data, text);
 		if (!krb5_mk_error(context, &error, &outbuf)) {
 			(void) krb5_write_message(context, (void *)&fd,&outbuf);
 			krb5_free_data_contents(context, &outbuf);
@@ -898,7 +1560,7 @@ recv_error(context, inbuf)
 	} else if (error->error) {
 		com_err(progname, 
 			(krb5_error_code) error->error + ERROR_TABLE_BASE_krb5,
-			"signalled from server");
+			"signaled from server");
 		if (error->text.data)
 			fprintf(stderr,
 				"Error text from client: %s\n",
@@ -930,9 +1592,12 @@ load_database(context, kdb_util, database_file_name)
 	int	waitb;
 #endif
 	krb5_error_code	retval;
+	kdb_log_context *log_ctx;
 
 	if (debug)
 		printf("calling kdb5_util to load database\n");
+
+	log_ctx = context->kdblog_context;
 
 	edit_av[0] = kdb_util;
 	count = 1;
@@ -944,6 +1609,9 @@ load_database(context, kdb_util, database_file_name)
 	if (kerb_database) {
 		edit_av[count++] = "-d";
 		edit_av[count++] = kerb_database;
+	}
+	if (log_ctx && log_ctx->iproprole == IPROP_SLAVE) {
+	    edit_av[count++] = "-i";
 	}
 	edit_av[count++] = database_file_name;
 	edit_av[count++] = NULL;
@@ -989,4 +1657,28 @@ load_database(context, kdb_util, database_file_name)
 		exit(1);
 	}
 	return;
+}
+
+/*
+ * Get the host base service name for the kiprop principal. Returns
+ * KADM5_OK on success. Caller must free the storage allocated
+ * for host_service_name.
+ */
+static kadm5_ret_t
+kadm5_get_kiprop_host_srv_name(krb5_context context,
+			       const char *realm,
+			       char **host_service_name)
+{
+	char *name;
+	char *host;
+
+	host = params.admin_server; /* XXX */
+
+	if (asprintf(&name, "%s/%s", KADM5_KIPROP_HOST_SERVICE, host) < 0) {
+		free(host);
+		return (ENOMEM);
+	}
+	*host_service_name = name;
+
+	return (KADM5_OK);
 }

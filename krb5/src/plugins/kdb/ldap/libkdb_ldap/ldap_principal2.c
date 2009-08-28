@@ -74,9 +74,10 @@ berval2tl_data(struct berval *in, krb5_tl_data **out)
  */
 
 krb5_error_code
-krb5_ldap_get_principal(context, searchfor, entries, nentries, more)
+krb5_ldap_get_principal(context, searchfor, flags, entries, nentries, more)
     krb5_context context;
     krb5_const_principal searchfor;
+    unsigned int flags;
     krb5_db_entry *entries;	/* filled in */
     int *nentries;		/* how much room/how many found */
     krb5_boolean *more;		/* are there more? */
@@ -84,12 +85,13 @@ krb5_ldap_get_principal(context, searchfor, entries, nentries, more)
     char                        *user=NULL, *filter=NULL, **subtree=NULL;
     unsigned int                tree=0, ntrees=1, princlen=0;
     krb5_error_code	        tempst=0, st=0;
-    char                        **values=NULL;
+    char                        **values=NULL, *cname=NULL;
     LDAP	                *ld=NULL;
     LDAPMessage	                *result=NULL, *ent=NULL;
     krb5_ldap_context           *ldap_context=NULL;
     kdb5_dal_handle             *dal_handle=NULL;
     krb5_ldap_server_handle     *ldap_server_handle=NULL;
+    krb5_principal		cprinc=NULL;
 
     /* Clear the global error string */
     krb5_clear_error_message(context);
@@ -102,7 +104,7 @@ krb5_ldap_get_principal(context, searchfor, entries, nentries, more)
     if (searchfor == NULL)
 	return EINVAL;
 
-    dal_handle = (kdb5_dal_handle *) context->db_context;
+    dal_handle = context->dal_handle;
     ldap_context = (krb5_ldap_context *) dal_handle->db_context;
 
     CHECK_LDAP_HANDLE(ldap_context);
@@ -144,7 +146,7 @@ krb5_ldap_get_principal(context, searchfor, entries, nentries, more)
 		 * NOTE: a principalname k* in ldap server will return all the principals starting with a k
 		 */
 		for (i=0; values[i] != NULL; ++i) {
-		    if (strcasecmp(values[i], user) == 0) {
+		    if (strcmp(values[i], user) == 0) {
 			*nentries = 1;
 			break;
 		    }
@@ -155,8 +157,27 @@ krb5_ldap_get_principal(context, searchfor, entries, nentries, more)
 		    continue;
 	    }
 
-	    if ((st = populate_krb5_db_entry(context, ldap_context, ld, ent, searchfor,
-			entries)) != 0)
+	    if ((values=ldap_get_values(ld, ent, "krbcanonicalname")) != NULL) {
+		if (values[0] && strcmp(values[0], user) != 0) {
+		    /* We matched an alias, not the canonical name. */
+		    if (flags & KRB5_KDB_FLAG_CANONICALIZE) {
+			st = krb5_ldap_parse_principal_name(values[0], &cname);
+			if (st != 0)
+			    goto cleanup;
+			st = krb5_parse_name(context, cname, &cprinc);
+			if (st != 0)
+			    goto cleanup;
+		    } else /* No canonicalization, so don't return aliases. */
+			*nentries = 0;
+		}
+		ldap_value_free(values);
+		if (*nentries == 0)
+		    continue;
+	    }
+
+	    if ((st = populate_krb5_db_entry(context, ldap_context, ld, ent,
+					     cprinc ? cprinc : searchfor,
+					     entries)) != 0)
 		goto cleanup;
 	}
 	ldap_msgfree(result);
@@ -188,6 +209,12 @@ cleanup:
 
     if (user)
 	free(user);
+
+    if (cname)
+	free(cname);
+
+    if (cprinc)
+	krb5_free_principal(context, cprinc);
 
     return st;
 }
@@ -319,13 +346,13 @@ cleanup:
 }
 
 krb5int_access accessor;
-extern int kldap_ensure_initialized (void);
 
 static krb5_error_code
 asn1_encode_sequence_of_keys (krb5_key_data *key_data, krb5_int16 n_key_data,
 			      krb5_int32 mkvno, krb5_data **code)
 {
     krb5_error_code err;
+    ldap_seqof_key_data val;
 
     /*
      * This should be pushed back into other library initialization
@@ -335,15 +362,19 @@ asn1_encode_sequence_of_keys (krb5_key_data *key_data, krb5_int16 n_key_data,
     if (err)
 	return err;
 
-    return accessor.asn1_ldap_encode_sequence_of_keys(key_data, n_key_data,
-						      mkvno, code);
+    val.key_data = key_data;
+    val.n_key_data = n_key_data;
+    val.mkvno = mkvno;
+
+    return accessor.asn1_ldap_encode_sequence_of_keys(&val, code);
 }
 
 static krb5_error_code
 asn1_decode_sequence_of_keys (krb5_data *in, krb5_key_data **out,
-			      krb5_int16 *n_key_data, int *mkvno)
+			      krb5_int16 *n_key_data, krb5_kvno *mkvno)
 {
     krb5_error_code err;
+    ldap_seqof_key_data *p;
 
     /*
      * This should be pushed back into other library initialization
@@ -353,14 +384,20 @@ asn1_decode_sequence_of_keys (krb5_data *in, krb5_key_data **out,
     if (err)
 	return err;
 
-    return accessor.asn1_ldap_decode_sequence_of_keys(in, out, n_key_data,
-						      mkvno);
+    err = accessor.asn1_ldap_decode_sequence_of_keys(in, &p);
+    if (err)
+	return err;
+    *out = p->key_data;
+    *n_key_data = p->n_key_data;
+    *mkvno = p->mkvno;
+    free(p);
+    return 0;
 }
 
 
 /* Decoding ASN.1 encoded key */
 static struct berval **
-krb5_encode_krbsecretkey(krb5_key_data *key_data, int n_key_data) {
+krb5_encode_krbsecretkey(krb5_key_data *key_data, int n_key_data, krb5_kvno mkvno) {
     struct berval **ret = NULL;
     int currkvno;
     int num_versions = 1;
@@ -385,7 +422,7 @@ krb5_encode_krbsecretkey(krb5_key_data *key_data, int n_key_data) {
 	if (i == n_key_data - 1 || key_data[i + 1].key_data_kvno != currkvno) {
 	    asn1_encode_sequence_of_keys (key_data+last,
 					  (krb5_int16) i - last + 1,
-					  0, /* For now, mkvno == 0*/
+					  mkvno,
 					  &code);
 	    ret[j] = malloc (sizeof (struct berval));
 	    if (ret[j] == NULL) {
@@ -614,7 +651,8 @@ krb5_ldap_put_principal(context, entries, nentries, db_args)
 		    if (st == KRB5_KDB_NOENTRY || st == KRB5_KDB_CONSTRAINT_VIOLATION) {
 			int ost = st;
 			st = EINVAL;
-			sprintf(errbuf, "'%s' not found: ", xargs.containerdn);
+			snprintf(errbuf, sizeof(errbuf), "'%s' not found: ",
+				 xargs.containerdn);
 			prepend_err_str(context, errbuf, st, ost);
 		    }
 		    goto cleanup;
@@ -631,10 +669,10 @@ krb5_ldap_put_principal(context, entries, nentries, db_args)
 	    }
 	    CHECK_NULL(subtree);
 
-	    standalone_principal_dn = malloc(strlen("krbprincipalname=") + strlen(user) + strlen(",") +
-					     strlen(subtree) + 1);
+	    if (asprintf(&standalone_principal_dn, "krbprincipalname=%s,%s",
+			 user, subtree) < 0)
+		standalone_principal_dn = NULL;
 	    CHECK_NULL(standalone_principal_dn);
-	    sprintf(standalone_principal_dn, "krbprincipalname=%s,%s", user, subtree);
 	    /*
 	     * free subtree when you are done using the subtree
 	     * set the boolean create_standalone_prinicipal to TRUE
@@ -915,8 +953,12 @@ krb5_ldap_put_principal(context, entries, nentries, db_args)
 	}
 
 	if (entries->mask & KADM5_KEY_DATA || entries->mask & KADM5_KVNO) {
+            krb5_kvno mkvno;
+
+            if ((st=krb5_dbe_lookup_mkvno(context, entries, &mkvno)) != 0)
+                goto cleanup;
 	    bersecretkey = krb5_encode_krbsecretkey (entries->key_data,
-						     entries->n_key_data);
+						     entries->n_key_data, mkvno);
 
 	    if ((st=krb5_add_ber_mem_ldap_mod(&mods, "krbprincipalkey",
 					      LDAP_MOD_REPLACE | LDAP_MOD_BVALUES, bersecretkey)) != 0)
@@ -1062,7 +1104,7 @@ krb5_ldap_put_principal(context, entries, nentries, db_args)
 		/* a load operation must replace an existing entry */
 		st = ldap_delete_ext_s(ld, standalone_principal_dn, NULL, NULL);
 		if (st != LDAP_SUCCESS) {
-		    sprintf(errbuf, "Principal delete failed (trying to replace entry): %s",
+		    snprintf(errbuf, sizeof(errbuf), "Principal delete failed (trying to replace entry): %s",
 			ldap_err2string(st));
 		    st = translate_ldap_error (st, OP_ADD);
 		    krb5_set_error_message(context, st, "%s", errbuf);
@@ -1072,7 +1114,7 @@ krb5_ldap_put_principal(context, entries, nentries, db_args)
 		}
 	    }
 	    if (st != LDAP_SUCCESS) {
-		sprintf(errbuf, "Principal add failed: %s", ldap_err2string(st));
+		snprintf(errbuf, sizeof(errbuf), "Principal add failed: %s", ldap_err2string(st));
 		st = translate_ldap_error (st, OP_ADD);
 		krb5_set_error_message(context, st, "%s", errbuf);
 		goto cleanup;
@@ -1109,7 +1151,7 @@ krb5_ldap_put_principal(context, entries, nentries, db_args)
 		st = ldap_modify_ext_s(ld, principal_dn, mods, NULL, NULL);
 
 	    if (st != LDAP_SUCCESS) {
-		sprintf(errbuf, "User modification failed: %s", ldap_err2string(st));
+		snprintf(errbuf, sizeof(errbuf), "User modification failed: %s", ldap_err2string(st));
 		st = translate_ldap_error (st, OP_MOD);
 		krb5_set_error_message(context, st, "%s", errbuf);
 		goto cleanup;
@@ -1208,11 +1250,12 @@ cleanup:
 }
 
 krb5_error_code
-krb5_decode_krbsecretkey(context, entries, bvalues, userinfo_tl_data)
+krb5_decode_krbsecretkey(context, entries, bvalues, userinfo_tl_data, mkvno)
     krb5_context                context;
     krb5_db_entry               *entries;
     struct berval               **bvalues;
     krb5_tl_data                *userinfo_tl_data;
+    krb5_kvno                   *mkvno;
 {
     char                        *user=NULL;
     int                         i=0, j=0, noofkeys=0;
@@ -1223,7 +1266,6 @@ krb5_decode_krbsecretkey(context, entries, bvalues, userinfo_tl_data)
 	goto cleanup;
 
     for (i=0; bvalues[i] != NULL; ++i) {
-	int mkvno; /* Not used currently */
 	krb5_int16 n_kd;
 	krb5_key_data *kd;
 	krb5_data in;
@@ -1236,7 +1278,7 @@ krb5_decode_krbsecretkey(context, entries, bvalues, userinfo_tl_data)
 	st = asn1_decode_sequence_of_keys (&in,
 					   &kd,
 					   &n_kd,
-					   &mkvno);
+					   mkvno);
 
 	if (st != 0) {
 	    const char *msg = error_message(st);

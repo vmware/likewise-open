@@ -1,7 +1,7 @@
 /*
  * lib/kadm/str_conv.c
  *
- * Copyright 1995, 1999 by the Massachusetts Institute of Technology.
+ * Copyright 1995, 1999, 2007 by the Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
  * Export of this software from the United States of America may
@@ -73,7 +73,10 @@ static const struct salttype_lookup_entry salttype_table[] = {
 { KRB5_KDB_SALTTYPE_NOREALM,	"norealm",	"Version 5 - No Realm" },
 { KRB5_KDB_SALTTYPE_ONLYREALM,	"onlyrealm",	"Version 5 - Realm Only" },
 { KRB5_KDB_SALTTYPE_SPECIAL,	"special",	"Special" },
-{ KRB5_KDB_SALTTYPE_AFS3,	"afs3",		"AFS version 3"    }
+{ KRB5_KDB_SALTTYPE_AFS3,	"afs3",		"AFS version 3"    },
+#if PKINIT_APPLE
+{ KRB5_KDB_SALTTYPE_CERTHASH,	"certhash",	"PKINIT Cert Hash"  }
+#endif /* PKINIT_APPLE */
 };
 static const int salttype_table_nents = sizeof(salttype_table)/
 					sizeof(salttype_table[0]);
@@ -115,11 +118,9 @@ krb5_salttype_to_string(krb5_int32 salttype, char *buffer, size_t buflen)
 	}
     }
     if (out) {
-	if (buflen > strlen(out))
-	    strcpy(buffer, out);
-	else
-	    out = (char *) NULL;
-	return((out) ? 0 : ENOMEM);
+	if (strlcpy(buffer, out, buflen) >= buflen)
+	    return(ENOMEM);
+	return(0);
     }
     else
 	return(EINVAL);
@@ -148,11 +149,23 @@ extern char *strptime (const char *, const char *,
 static char *strptime (const char *, const char *, struct tm *);
 #endif
 
+#ifndef HAVE_LOCALTIME_R
+static inline struct tm *
+localtime_r(const time_t *t, struct tm *buf)
+{
+    struct tm *tm = localtime(t);
+    if (tm == NULL)
+	return NULL;
+    *buf = *tm;
+    return buf;
+}
+#endif
+
 krb5_error_code KRB5_CALLCONV
 krb5_string_to_timestamp(char *string, krb5_timestamp *timestampp)
 {
     int i;
-    struct tm timebuf;
+    struct tm timebuf, timebuf2;
     time_t now, ret_time;
     char *s;
     static const char * const atime_format_table[] = {
@@ -175,16 +188,14 @@ krb5_string_to_timestamp(char *string, krb5_timestamp *timestampp)
 
 
     now = time((time_t *) NULL);
+    if (localtime_r(&now, &timebuf2) == NULL)
+	return EINVAL;
     for (i=0; i<atime_format_table_nents; i++) {
         /* We reset every time throughout the loop as the manual page
 	 * indicated that no guarantees are made as to preserving timebuf
 	 * when parsing fails
 	 */
-#ifdef HAVE_LOCALTIME_R
-	(void) localtime_r(&now, &timebuf);
-#else
-	memcpy(&timebuf, localtime(&now), sizeof(timebuf));
-#endif
+	timebuf = timebuf2;
 	if ((s = strptime(string, atime_format_table[i], &timebuf))
 	    && (s != string)) {
  	    /* See if at end of buffer - otherwise partial processing */
@@ -238,7 +249,7 @@ krb5_timestamp_to_sfstring(krb5_timestamp timestamp, char *buffer, size_t buflen
 	"%x %X",		/* locale-dependent short format	*/
 	"%d/%m/%Y %R"		/* dd/mm/yyyy hh:mm			*/
     };
-    static const int sftime_format_table_nents =
+    static const unsigned int sftime_format_table_nents =
 	sizeof(sftime_format_table)/sizeof(sftime_format_table[0]);
 
 #ifdef HAVE_LOCALTIME_R
@@ -254,9 +265,9 @@ krb5_timestamp_to_sfstring(krb5_timestamp timestamp, char *buffer, size_t buflen
     if (!ndone) {
 #define sftime_default_len	2+1+2+1+4+1+2+1+2+1
 	if (buflen >= sftime_default_len) {
-	    sprintf(buffer, "%02d/%02d/%4d %02d:%02d",
-		    tmp->tm_mday, tmp->tm_mon+1, 1900+tmp->tm_year,
-		    tmp->tm_hour, tmp->tm_min);
+	    snprintf(buffer, buflen, "%02d/%02d/%4d %02d:%02d",
+		     tmp->tm_mday, tmp->tm_mon+1, 1900+tmp->tm_year,
+		     tmp->tm_hour, tmp->tm_min);
 	    ndone = strlen(buffer);
 	}
     }
@@ -299,14 +310,14 @@ krb5_deltat_to_string(krb5_deltat deltat, char *buffer, size_t buflen)
 
     memset (tmpbuf, 0, sizeof (tmpbuf));
     if (days == 0)
-	sprintf(buffer, "%d:%02d:%02d", hours, minutes, seconds);
+	snprintf(buffer, buflen, "%d:%02d:%02d", hours, minutes, seconds);
     else if (hours || minutes || seconds)
-	sprintf(buffer, "%d %s %02d:%02d:%02d", days,
-		(days > 1) ? "days" : "day",
-		hours, minutes, seconds);
+	snprintf(buffer, buflen, "%d %s %02d:%02d:%02d", days,
+		 (days > 1) ? "days" : "day",
+		 hours, minutes, seconds);
     else
-	sprintf(buffer, "%d %s", days,
-		(days > 1) ? "days" : "day");
+	snprintf(buffer, buflen, "%d %s", days,
+		 (days > 1) ? "days" : "day");
     if (tmpbuf[sizeof(tmpbuf)-1] != 0)
 	/* Something must be very wrong with my math above, or the
 	   assumptions going into it...  */

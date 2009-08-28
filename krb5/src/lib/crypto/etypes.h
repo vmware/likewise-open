@@ -26,5 +26,58 @@
 
 #include "k5-int.h"
 
+typedef void (*krb5_encrypt_length_func) (const struct krb5_enc_provider *enc,
+  const struct krb5_hash_provider *hash,
+  size_t inputlen, size_t *length);
+
+typedef krb5_error_code (*krb5_crypt_func) (const struct krb5_enc_provider *enc,
+  const struct krb5_hash_provider *hash,
+  const krb5_keyblock *key, krb5_keyusage keyusage,
+  const krb5_data *ivec,
+  const krb5_data *input, krb5_data *output);
+
+typedef krb5_error_code (*krb5_str2key_func) (const struct krb5_enc_provider *enc, const krb5_data *string,
+  const krb5_data *salt, const krb5_data *parm, krb5_keyblock *key);
+
+typedef krb5_error_code (*krb5_prf_func)(
+					 const struct krb5_enc_provider *enc,
+					 const struct krb5_hash_provider *hash,
+					 const krb5_keyblock *key,
+					 const krb5_data *in, krb5_data *out);
+
+struct krb5_keytypes {
+    krb5_enctype etype;
+    char *name;
+    char *aliases[2];
+    char *out_string;
+    const struct krb5_enc_provider *enc;
+    const struct krb5_hash_provider *hash;
+    size_t prf_length;
+    krb5_encrypt_length_func encrypt_len;
+    krb5_crypt_func encrypt;
+    krb5_crypt_func decrypt;
+    krb5_str2key_func str2key;
+    krb5_prf_func prf;
+    krb5_cksumtype required_ctype;
+    const struct krb5_aead_provider *aead;
+    krb5_flags flags;
+};
+
+#define ETYPE_WEAK 1
+
 extern const struct krb5_keytypes krb5_enctypes_list[];
 extern const int krb5_enctypes_length;
+
+static inline const struct krb5_keytypes*
+find_enctype (krb5_enctype enctype)
+{
+    int i;
+    for (i=0; i<krb5_enctypes_length; i++) {
+	if (krb5_enctypes_list[i].etype == enctype)
+	    break;
+    }
+
+    if (i == krb5_enctypes_length)
+	return NULL;
+    return &krb5_enctypes_list[i];
+}

@@ -319,6 +319,7 @@
 #include "com_err.h"
 #include "libpty.h"
 #include "pty-int.h"
+#include "k5-platform.h"
 
 #if !defined(UTMP_FILE) && defined(_PATH_UTMP)
 #define UTMP_FILE _PATH_UTMP
@@ -547,12 +548,12 @@ pty_update_utmp(int process_type, int pid, const char *username,
      * pain, and would eit cross-compiling.
      */
 #ifdef __hpux
-    strcpy(utmp_id, cp);
+    strlcpy(utmp_id, cp, sizeof(utmp_id));
 #else
     if (len > 2 && *(cp - 1) != '/')
-      sprintf(utmp_id, "k%s", cp - 1);
+	snprintf(utmp_id, sizeof(utmp_id), "k%s", cp - 1);
     else
-      sprintf(utmp_id, "k0%s", cp);
+	snprintf(utmp_id, sizeof(utmp_id), "k0%s", cp);
 #endif
     strncpy(utx.ut_id, utmp_id, sizeof(utx.ut_id));
     /*

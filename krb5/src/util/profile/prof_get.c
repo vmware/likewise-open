@@ -28,8 +28,8 @@
 
 struct profile_string_list {
 	char	**list;
-	int	num;
-	int	max;
+	unsigned int	num;
+	unsigned int	max;
 };
 
 /*
@@ -75,7 +75,7 @@ static void end_list(struct profile_string_list *list, char ***ret_list)
 static errcode_t add_to_list(struct profile_string_list *list, const char *str)
 {
 	char 	*newstr, **newlist;
-	int	newmax;
+	unsigned int	newmax;
 	
 	if (list->num+1 >= list->max) {
 		newmax = list->max + 10;
@@ -85,10 +85,9 @@ static errcode_t add_to_list(struct profile_string_list *list, const char *str)
 		list->max = newmax;
 		list->list = newlist;
 	}
-	newstr = malloc(strlen(str)+1);
+	newstr = strdup(str);
 	if (newstr == 0)
 		return ENOMEM;
-	strcpy(newstr, str);
 
 	list->list[list->num++] = newstr;
 	list->list[list->num] = 0;
@@ -217,10 +216,9 @@ profile_get_string(profile_t profile, const char *name, const char *subname,
 		value = def_val;
     
 	if (value) {
-		*ret_string = malloc(strlen(value)+1);
+		*ret_string = strdup(value);
 		if (*ret_string == 0)
 			return ENOMEM;
-		strcpy(*ret_string, value);
 	} else
 		*ret_string = 0;
 	return 0;
@@ -431,16 +429,15 @@ profile_iterator(void **iter_p, char **ret_name, char **ret_value)
 
 	if (ret_name) {
 		if (name) {
-			*ret_name = malloc(strlen(name)+1);
+			*ret_name = strdup(name);
 			if (!*ret_name)
 				return ENOMEM;
-			strcpy(*ret_name, name);
 		} else
 			*ret_name = 0;
 	}
 	if (ret_value) {
 		if (value) {
-			*ret_value = malloc(strlen(value)+1);
+			*ret_value = strdup(value);
 			if (!*ret_value) {
 				if (ret_name) {
 					free(*ret_name);
@@ -448,7 +445,6 @@ profile_iterator(void **iter_p, char **ret_name, char **ret_value)
 				}
 				return ENOMEM;
 			}
-			strcpy(*ret_value, value);
 		} else
 			*ret_value = 0;
 	}

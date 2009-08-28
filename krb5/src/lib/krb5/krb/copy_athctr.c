@@ -28,7 +28,7 @@
  */
 
 #include "k5-int.h"
-
+#ifndef LEAN_CLIENT
 krb5_error_code KRB5_CALLCONV
 krb5_copy_authenticator(krb5_context context, const krb5_authenticator *authfrom, krb5_authenticator **authto)
 {
@@ -41,24 +41,24 @@ krb5_copy_authenticator(krb5_context context, const krb5_authenticator *authfrom
 
     retval = krb5_copy_principal(context, authfrom->client, &tempto->client);
     if (retval) {
-	krb5_xfree(tempto);
+	free(tempto);
 	return retval;
     }
     
     if (authfrom->checksum &&
 	(retval = krb5_copy_checksum(context, authfrom->checksum, &tempto->checksum))) {
 	    krb5_free_principal(context, tempto->client);    
-	    krb5_xfree(tempto);
+	    free(tempto);
 	    return retval;
     }
     
     if (authfrom->subkey) {
 	    retval = krb5_copy_keyblock(context, authfrom->subkey, &tempto->subkey);
 	    if (retval) {
-		    krb5_xfree(tempto->subkey);
+		    free(tempto->subkey);
 		    krb5_free_checksum(context, tempto->checksum);
 		    krb5_free_principal(context, tempto->client);    
-		    krb5_xfree(tempto);
+		    free(tempto);
 		    return retval;
 	    }
     }
@@ -67,11 +67,11 @@ krb5_copy_authenticator(krb5_context context, const krb5_authenticator *authfrom
 		retval = krb5_copy_authdata(context, authfrom->authorization_data,
 				    &tempto->authorization_data);
 		if (retval) {
-		    krb5_xfree(tempto->subkey);
+		    free(tempto->subkey);
 		    krb5_free_checksum(context, tempto->checksum);
 		    krb5_free_principal(context, tempto->client);    
 		    krb5_free_authdata(context, tempto->authorization_data);
-		    krb5_xfree(tempto);
+		    free(tempto);
 		    return retval;
 		}
     }
@@ -79,3 +79,5 @@ krb5_copy_authenticator(krb5_context context, const krb5_authenticator *authfrom
     *authto = tempto;
     return 0;
 }
+#endif
+

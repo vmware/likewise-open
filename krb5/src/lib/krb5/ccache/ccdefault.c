@@ -1,7 +1,7 @@
 /*
  * lib/krb5/ccache/ccdefault.c
  *
- * Copyright 1990 by the Massachusetts Institute of Technology.
+ * Copyright 1990, 2007, 2008 by the Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
  * Export of this software from the United States of America may
@@ -29,8 +29,9 @@
 
 #include "k5-int.h"
 
-#if defined(USE_LOGIN_LIBRARY)
-#include "KerberosLoginPrivate.h"
+#if defined(USE_KIM)
+#include <kim/kim.h>
+#include "kim_library_private.h"
 #elif defined(USE_LEASH)
 static void (*pLeash_AcquireInitialTicketsIfNeeded)(krb5_context,krb5_principal,char*,int) = NULL;
 static HANDLE hLeashDLL = INVALID_HANDLE_VALUE;
@@ -45,22 +46,30 @@ static HANDLE hLeashDLL = INVALID_HANDLE_VALUE;
 krb5_error_code KRB5_CALLCONV
 krb5_cc_default(krb5_context context, krb5_ccache *ccache)
 {
-	krb5_os_context	os_ctx;
+	const char *default_name;
 
 	if (!context || context->magic != KV5M_CONTEXT)
 		return KV5M_CONTEXT;
+
+	default_name = krb5_cc_default_name(context);
+	if (default_name == NULL) {
+	    /* Could be a bogus context, or an allocation failure, or
+	       other things.  Unfortunately the API doesn't allow us
+	       to find out any specifics.  */
+	    return KRB5_FCC_INTERNAL;
+	}
 	
-	os_ctx = context->os_context;
-	
-	return krb5_cc_resolve(context, krb5_cc_default_name(context), ccache);
+	return krb5_cc_resolve(context, default_name, ccache);
 }
 
-/* This is the internal function which opens the default ccache.  On platforms supporting
-   the login library's automatic popup dialog to get tickets, this function also updated the
-   library's internal view of the current principal associated with this cache. 
-   
-   All krb5 and GSS functions which need to open a cache to get a tgt to obtain service tickets
-   should call this function, not krb5_cc_default() */
+/* This is the internal function which opens the default ccache.  On
+   platforms supporting the login library's automatic popup dialog to
+   get tickets, this function also updated the library's internal view
+   of the current principal associated with this cache.
+
+   All krb5 and GSS functions which need to open a cache to get a tgt
+   to obtain service tickets should call this function, not
+   krb5_cc_default().  */
 
 krb5_error_code KRB5_CALLCONV
 krb5int_cc_default(krb5_context context, krb5_ccache *ccache)
@@ -69,24 +78,44 @@ krb5int_cc_default(krb5_context context, krb5_ccache *ccache)
         return KV5M_CONTEXT;
     }
 
-#ifdef USE_LOGIN_LIBRARY
-    {
-        /* make sure the default cache has tix before you open it */
-        KLStatus err = klNoErr;
-        char *outCacheName = NULL;
+#ifdef USE_KIM
+    if (kim_library_allow_automatic_prompting ()) {
+        kim_error err = KIM_NO_ERROR;
+        kim_ccache kimccache = NULL;
+        kim_identity identity = KIM_IDENTITY_ANY;
+        kim_credential_state state;
+        kim_string name = NULL;
         
-        /* Try to make sure a krb5 tgt is in the cache */
-        err = __KLInternalAcquireInitialTicketsForCache (krb5_cc_default_name (context), kerberosVersion_V5, 
-                                                         NULL, NULL, &outCacheName);
-        if (err == klNoErr) {
-            /* This function tries to get tickets and put them in the specified 
-            cache, however, if the cache does not exist, it may choose to put 
-            them elsewhere (ie: the system default) so we set that here */
-            if (strcmp (krb5_cc_default_name (context), outCacheName) != 0) {
-                krb5_cc_set_default_name (context, outCacheName);
-            }
-            KLDisposeString (outCacheName);
+        err = kim_ccache_create_from_display_name (&kimccache,
+                                                   krb5_cc_default_name (context));
+
+        if (!err) {
+            err = kim_ccache_get_client_identity (kimccache, &identity);
         }
+
+        if (!err) {
+            err = kim_ccache_get_state (kimccache, &state);
+        }
+
+        if (err || state != kim_credentials_state_valid) {
+            /* Either the ccache is does not exist or is invalid.  Get new
+             * tickets.  Use the identity in the ccache if there was one. */
+            kim_ccache_free (&kimccache);
+            err = kim_ccache_create_new (&kimccache,
+                                         identity, KIM_OPTIONS_DEFAULT);
+        }
+
+        if (!err) {
+            err = kim_ccache_get_display_name (kimccache, &name);
+        }
+
+        if (!err) {
+             krb5_cc_set_default_name (context, name);
+        }
+
+        kim_identity_free (&identity);
+        kim_string_free (&name);
+        kim_ccache_free (&kimccache);
     }
 #else
 #ifdef USE_LEASH
@@ -102,7 +131,8 @@ krb5int_cc_default(krb5_context context, krb5_ccache *ccache)
 	char ccname[256]="";
         pLeash_AcquireInitialTicketsIfNeeded(context, NULL, ccname, sizeof(ccname));
 	if (ccname[0]) {
-            if (strcmp (krb5_cc_default_name (context),ccname) != 0) {
+            char * ccdefname = krb5_cc_default_name (context);
+            if (!ccdefname || strcmp (ccdefname, ccname) != 0) {
                 krb5_cc_set_default_name (context, ccname);
             }
 	}

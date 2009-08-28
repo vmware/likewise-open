@@ -58,6 +58,8 @@ static char sccsid[] = "@(#)bt_open.c	8.11 (Berkeley) 11/2/95";
 #include <string.h>
 #include <unistd.h>
 
+#include "k5-platform.h"	/* mkstemp? */
+
 #include "db-int.h"
 #include "btree.h"
 
@@ -412,7 +414,8 @@ tmp()
 	if (envtmp && ((strlen(envtmp)+sizeof(fn)+1) > sizeof(path)))
 	    return(-1);
 
-	(void)sprintf(path, "%s%s", (envtmp ? envtmp : "/tmp"), fn);
+	(void)snprintf(path, sizeof(path),
+		       "%s%s", (envtmp ? envtmp : "/tmp"), fn);
 
 #ifdef SIG_BLOCK
 	(void)sigfillset(&set);
@@ -422,6 +425,7 @@ tmp()
 #endif
 	if ((fd = mkstemp(path)) != -1)
 		(void)unlink(path);
+	set_cloexec_fd(fd);
 #ifdef SIG_BLOCK
 	(void)sigprocmask(SIG_SETMASK, &oset, NULL);
 #else

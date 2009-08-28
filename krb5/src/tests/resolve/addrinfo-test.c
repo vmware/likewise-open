@@ -50,6 +50,7 @@
 #ifdef USE_FAKE_ADDRINFO
 #include "fake-addrinfo.h"
 #endif
+#include <k5-platform.h>
 
 static const char *protoname (int p) {
     static char buf[30];
@@ -59,17 +60,21 @@ static const char *protoname (int p) {
     X(TCP);
     X(UDP);
     X(ICMP);
+#ifdef IPPROTO_IPV6
     X(IPV6);
+#endif
 #ifdef IPPROTO_GRE
     X(GRE);
 #endif
+#ifdef IPPROTO_NONE
     X(NONE);
+#endif
     X(RAW);
 #ifdef IPPROTO_COMP
     X(COMP);
 #endif
 
-    sprintf(buf, " %-2d", p);
+    snprintf(buf, sizeof(buf), " %-2d", p);
     return buf;
 }	
 
@@ -82,7 +87,7 @@ static const char *socktypename (int t) {
     case SOCK_RDM: return "RDM";
     case SOCK_SEQPACKET: return "SEQPACKET";
     }
-    sprintf(buf, " %-2d", t);
+    snprintf(buf, sizeof(buf), " %-2d", t);
     return buf;
 }
 
@@ -103,7 +108,9 @@ static void usage () {
 	    "\t-r\tspecify socket type SOCK_RAW\n"
 	    "\n"
 	    "\t-4\tspecify address family AF_INET\n"
+#ifdef AF_INET6
 	    "\t-6\tspecify address family AF_INET6\n"
+#endif
 	    "\n"
 	    "\t-p P\tspecify port P (service name or port number)\n"
 	    "\t-N\thostname is numeric, skip DNS query\n"
@@ -121,10 +128,12 @@ static const char *familyname (int f) {
     static char buf[30];
     switch (f) {
     default:
-	sprintf(buf, "AF %d", f);
+	snprintf(buf, sizeof(buf), "AF %d", f);
 	return buf;
     case AF_INET: return "AF_INET";
+#ifdef AF_INET6
     case AF_INET6: return "AF_INET6";
+#endif
     }
 }
 
@@ -193,9 +202,11 @@ int main (int argc, char *argv[])
 	    case '4':
 		hints.ai_family = AF_INET;
 		break;
+#ifdef AF_INET6
 	    case '6':
 		hints.ai_family = AF_INET6;
 		break;
+#endif
 	    case 'N':
 		numerichost = 1;
 		break;
@@ -277,8 +288,10 @@ int main (int argc, char *argv[])
 	    ap2->ai_addr->sa_family = ap2->ai_family;
 	}
 	if (getnameinfo(ap2->ai_addr, ap2->ai_addrlen, hbuf, sizeof(hbuf),
-			pbuf, sizeof(pbuf), NI_NUMERICHOST | NI_NUMERICSERV))
-	    strcpy(hbuf, "..."), strcpy(pbuf, "...");
+			pbuf, sizeof(pbuf), NI_NUMERICHOST | NI_NUMERICSERV)) {
+	    strlcpy(hbuf, "...", sizeof(hbuf));
+	    strlcpy(pbuf, "...", sizeof(pbuf));
+	}
 	printf("%p:\n"
 	       "\tfamily = %s\tproto = %-4s\tsocktype = %s\n",
 	       ap2, familyname(ap2->ai_family),

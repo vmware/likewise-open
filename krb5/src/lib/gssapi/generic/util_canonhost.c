@@ -1,6 +1,7 @@
+/* -*- mode: c; indent-tabs-mode: nil -*- */
 /*
  * Copyright 1993 by OpenVision Technologies, Inc.
- * 
+ *
  * Permission to use, copy, modify, distribute, and sell this software
  * and its documentation for any purpose is hereby granted without fee,
  * provided that the above copyright notice appears in all copies and
@@ -10,7 +11,7 @@
  * without specific, written prior permission. OpenVision makes no
  * representations about the suitability of this software for any
  * purpose.  It is provided "as is" without express or implied warranty.
- * 
+ *
  * OPENVISION DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
  * INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO
  * EVENT SHALL OPENVISION BE LIABLE FOR ANY SPECIAL, INDIRECT OR
@@ -21,7 +22,7 @@
  */
 
 /*
- * $Id: util_canonhost.c 8999 1996-08-28 21:50:38Z tytso $
+ * $Id: util_canonhost.c 21778 2009-01-22 23:21:11Z tlyu $
  */
 
 /* This file could be OS specific */
@@ -37,35 +38,32 @@
 #include <string.h>
 
 char *
-g_canonicalize_host(hostname)
-     char *hostname;
+g_canonicalize_host(char *hostname)
 {
-   struct hostent *hent;
-   char *haddr;
-   char *canon, *str;
+    struct hostent *hent;
+    char *haddr;
+    char *canon, *str;
 
-   if ((hent = gethostbyname(hostname)) == NULL)
-      return(NULL);
+    if ((hent = gethostbyname(hostname)) == NULL)
+        return(NULL);
 
-   if (! (haddr = (char *) xmalloc(hent->h_length))) {
-	return(NULL);
-   }
+    if (! (haddr = (char *) xmalloc(hent->h_length))) {
+        return(NULL);
+    }
 
-   memcpy(haddr, hent->h_addr_list[0], hent->h_length);
+    memcpy(haddr, hent->h_addr_list[0], hent->h_length);
 
-   if (! (hent = gethostbyaddr(haddr, hent->h_length, hent->h_addrtype))) {
-	return(NULL);
-   }
+    if (! (hent = gethostbyaddr(haddr, hent->h_length, hent->h_addrtype))) {
+        return(NULL);
+    }
 
-   xfree(haddr);
+    xfree(haddr);
 
-   if ((canon = (char *) xmalloc(strlen(hent->h_name)+1)) == NULL)
-      return(NULL);
+    if ((canon = (char *) strdup(hent->h_name)) == NULL)
+        return(NULL);
 
-   strcpy(canon, hent->h_name);
+    for (str = canon; *str; str++)
+        if (isupper(*str)) *str = tolower(*str);
 
-   for (str = canon; *str; str++)
-      if (isupper(*str)) *str = tolower(*str);
-
-   return(canon);
+    return(canon);
 }

@@ -73,6 +73,7 @@ static const char flags_dup_skey_in[]	= "dup-skey";
 static const char flags_tickets_in[]	= "allow-tickets";
 static const char flags_preauth_in[]	= "preauth";
 static const char flags_hwauth_in[]	= "hwauth";
+static const char flags_ok_as_delegate_in[]	= "ok-as-delegate";
 static const char flags_pwchange_in[]	= "pwchange";
 static const char flags_service_in[]	= "service";
 static const char flags_pwsvc_in[]	= "pwservice";
@@ -86,6 +87,7 @@ static const char flags_dup_skey_out[]	= "No DUP_SKEY requests";
 static const char flags_tickets_out[]	= "All Tickets Disallowed";
 static const char flags_preauth_out[]	= "Preauthorization required";
 static const char flags_hwauth_out[]	= "HW Authorization required";
+static const char flags_ok_as_delegate_out[]	= "OK as Delegate";
 static const char flags_pwchange_out[]	= "Password Change required";
 static const char flags_service_out[]	= "Service Disabled";
 static const char flags_pwsvc_out[]	= "Password Changing Service";
@@ -109,6 +111,7 @@ static const struct flags_lookup_entry flags_table[] = {
 { KRB5_KDB_DISALLOW_ALL_TIX,	0,	flags_tickets_in,  flags_tickets_out },
 { KRB5_KDB_REQUIRES_PRE_AUTH,	1,	flags_preauth_in,  flags_preauth_out },
 { KRB5_KDB_REQUIRES_HW_AUTH,	1,	flags_hwauth_in,   flags_hwauth_out  },
+{ KRB5_KDB_OK_AS_DELEGATE,	1,	flags_ok_as_delegate_in, flags_ok_as_delegate_out },
 { KRB5_KDB_REQUIRES_PWCHANGE,	1,	flags_pwchange_in, flags_pwchange_out},
 { KRB5_KDB_DISALLOW_SVR,	0,	flags_service_in,  flags_service_out },
 { KRB5_KDB_PWCHANGE_SERVICE,	1,	flags_pwsvc_in,	   flags_pwsvc_out   },
@@ -173,45 +176,29 @@ krb5_flags_to_string(flags, sep, buffer, buflen)
     int			i;
     krb5_flags		pflags;
     const char		*sepstring;
-    char		*op;
-    int			initial;
-    krb5_error_code	retval;
+    struct k5buf	buf;
 
-    retval = 0;
-    op = buffer;
     pflags = 0;
-    initial = 1;
     sepstring = (sep) ? sep : flags_default_sep;
+    krb5int_buf_init_fixed(&buf, buffer, buflen);
     /* Blast through the table matching all we can */
     for (i=0; i<flags_table_nents; i++) {
 	if (flags & flags_table[i].fl_flags) {
-	    /* Found a match, see if it'll fit into the output buffer */
-	    if ((op+strlen(flags_table[i].fl_output)+strlen(sepstring)) <
-		(buffer + buflen)) {
-		if (!initial) {
-		    strcpy(op, sep);
-		    op += strlen(sep);
-		}
-		initial = 0;
-		strcpy(op, flags_table[i].fl_output);
-		op += strlen(flags_table[i].fl_output);
-	    }
-	    else {
-		retval = ENOMEM;
-		break;
-	    }
+	    if (krb5int_buf_len(&buf) > 0)
+		krb5int_buf_add(&buf, sepstring);
+	    krb5int_buf_add(&buf, flags_table[i].fl_output);
 	    /* Keep track of what we matched */
 	    pflags |= flags_table[i].fl_flags;
 	}
     }
-    if (!retval) {
-	/* See if there's any leftovers */
-	if (flags & ~pflags)
-	    retval = EINVAL;
-	else if (initial)
-	    *buffer = '\0';
-    }
-    return(retval);
+    if (krb5int_buf_data(&buf) == NULL)
+	return(ENOMEM);
+
+    /* See if there's any leftovers */
+    if (flags & ~pflags)
+	return(EINVAL);
+
+    return(0);
 }
 
 krb5_error_code
@@ -221,8 +208,8 @@ krb5_input_flag_to_string(flag, buffer, buflen)
     size_t	buflen;
 {
     if(flag < 0 || flag >= flags_table_nents) return ENOENT; /* End of list */
-    if(strlen(flags_table[flag].fl_specifier) > buflen) return ENOMEM;
-    strcpy(buffer, flags_table[flag].fl_specifier);
+    if(strlcpy(buffer, flags_table[flag].fl_specifier, buflen) >= buflen)
+	return ENOMEM;
     return  0;
 }
 
@@ -310,7 +297,7 @@ krb5_string_to_keysalts(string, tupleseps, ksaltseps, dups, ksaltp, nksaltp)
 	septmp = ksseplist;
 	for (sp = strchr(kp, (int) *septmp);
 	     *(++septmp) && !sp;
-	     ep = strchr(kp, (int) *septmp));
+	     sp = strchr(kp, (int) *septmp));
 
 	if (sp) {
 	    /* Separate enctype from salttype */
@@ -343,7 +330,7 @@ krb5_string_to_keysalts(string, tupleseps, ksaltseps, dups, ksaltp, nksaltp)
 		if (savep) {
 		    memcpy(*ksaltp, savep,
 			   len * sizeof(krb5_key_salt_tuple));
-		    krb5_xfree(savep);
+		    free(savep);
 		}
 
 		/* Save our values */

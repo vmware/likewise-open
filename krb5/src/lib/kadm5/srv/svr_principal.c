@@ -20,41 +20,51 @@ static char *rcsid = "$Header$";
 #include	<stdlib.h>
 #ifdef USE_PASSWORD_SERVER
 #include	<sys/wait.h>
+#include	<signal.h>
+
+#endif
+
+#ifdef USE_VALGRIND
+#include <valgrind/memcheck.h>
+#else
+#define VALGRIND_CHECK_DEFINED(LVALUE) ((void)0)
 #endif
 
 extern	krb5_principal	    master_princ;
 extern	krb5_principal	    hist_princ;
-extern	krb5_keyblock	    master_keyblock;
+extern  krb5_keyblock	    master_keyblock;
+extern  krb5_keylist_node  *master_keylist;
+extern  krb5_actkvno_node  *active_mkey_list;
 extern	krb5_keyblock	    hist_key;
 extern	krb5_db_entry	    master_db;
 extern	krb5_db_entry	    hist_db;
 extern  krb5_kvno	    hist_kvno;
 
-static int decrypt_key_data(krb5_context context,
+static int decrypt_key_data(krb5_context context, krb5_keyblock *mkey,
 			    int n_key_data, krb5_key_data *key_data,
 			    krb5_keyblock **keyblocks, int *n_keys);
 
-static krb5_error_code 
+static krb5_error_code
 kadm5_copy_principal(krb5_context context, krb5_const_principal inprinc, krb5_principal *outprinc)
 {
     register krb5_principal tempprinc;
     register int i, nelems;
-                                                                                                                            
+
     tempprinc = (krb5_principal)krb5_db_alloc(context, NULL, sizeof(krb5_principal_data));
-                                                                                                                            
+
     if (tempprinc == 0)
         return ENOMEM;
-                                                                                                                            
+
+    VALGRIND_CHECK_DEFINED(*inprinc);
     memcpy(tempprinc, inprinc, sizeof(krb5_principal_data));
-                                                                                                                            
+
     nelems = (int) krb5_princ_size(context, inprinc);
     tempprinc->data = krb5_db_alloc(context, NULL, nelems * sizeof(krb5_data));
-                                                                                                                            
     if (tempprinc->data == 0) {
 	krb5_db_free(context, (char *)tempprinc);
         return ENOMEM;
     }
-                                                                                                                            
+
     for (i = 0; i < nelems; i++) {
         unsigned int len = krb5_princ_component(context, inprinc, i)->length;
         krb5_princ_component(context, tempprinc, i)->length = len;
@@ -69,8 +79,9 @@ kadm5_copy_principal(krb5_context context, krb5_const_principal inprinc, krb5_pr
         if (len)
             memcpy(krb5_princ_component(context, tempprinc, i)->data,
                    krb5_princ_component(context, inprinc, i)->data, len);
+	krb5_princ_component(context, tempprinc, i)->magic = KV5M_DATA;
     }
-                                                                                                                            
+
     tempprinc->realm.data =
 	krb5_db_alloc(context, NULL, tempprinc->realm.length = inprinc->realm.length);
     if (!tempprinc->realm.data && tempprinc->realm.length) {
@@ -83,19 +94,19 @@ kadm5_copy_principal(krb5_context context, krb5_const_principal inprinc, krb5_pr
     if (tempprinc->realm.length)
         memcpy(tempprinc->realm.data, inprinc->realm.data,
                inprinc->realm.length);
-                                                                                                                            
+
     *outprinc = tempprinc;
     return 0;
 }
-                                                                                                                            
+
 static void
 kadm5_free_principal(krb5_context context, krb5_principal val)
 {
     register krb5_int32 i;
-                                                                                                                            
+
     if (!val)
         return;
-                                                                                                                            
+
     if (val->data) {
         i = krb5_princ_size(context, val);
         while(--i >= 0)
@@ -115,7 +126,7 @@ kadm5_ret_t krb5_copy_key_data_contents(context, from, to)
    krb5_key_data *from, *to;
 {
      int i, idx;
-     
+
      *to = *from;
 
      idx = (from->key_data_ver == 1 ? 1 : 2);
@@ -166,7 +177,7 @@ static void cleanup_key_data(context, count, data)
    krb5_key_data	* data;
 {
      int i, j;
-     
+
      for (i = 0; i < count; i++)
 	  for (j = 0; j < data[i].key_data_ver; j++)
 	       if (data[i].key_data_length[j])
@@ -196,6 +207,8 @@ kadm5_create_principal_3(void *server_handle,
     krb5_tl_data		*tl_data_orig, *tl_data_tail;
     unsigned int		ret;
     kadm5_server_handle_t handle = server_handle;
+    krb5_keyblock               *act_mkey;
+    krb5_kvno                   act_kvno;
 
     CHECK_HANDLE(server_handle);
 
@@ -241,7 +254,7 @@ kadm5_create_principal_3(void *server_handle,
     if ((mask & KADM5_POLICY)) {
 	 if ((ret = kadm5_get_policy(handle->lhandle, entry->policy,
 				     &polent)) != KADM5_OK) {
-	    if(ret == EINVAL) 
+	    if(ret == EINVAL)
 		return KADM5_BAD_POLICY;
 	    else
 		return ret;
@@ -267,14 +280,14 @@ kadm5_create_principal_3(void *server_handle,
     kdb.magic = KRB5_KDB_MAGIC_NUMBER;
     kdb.len = KRB5_KDB_V1_BASE_LENGTH; /* gag me with a chainsaw */
 
-    if ((mask & KADM5_ATTRIBUTES)) 
+    if ((mask & KADM5_ATTRIBUTES))
 	kdb.attributes = entry->attributes;
     else
        kdb.attributes = handle->params.flags;
 
     if ((mask & KADM5_MAX_LIFE))
-	kdb.max_life = entry->max_life; 
-    else 
+	kdb.max_life = entry->max_life;
+    else
 	kdb.max_life = handle->params.max_life;
 
     if (mask & KADM5_MAX_RLIFE)
@@ -296,7 +309,7 @@ kadm5_create_principal_3(void *server_handle,
     }
     if ((mask & KADM5_PW_EXPIRATION))
 	 kdb.pw_expiration = entry->pw_expiration;
-    
+
     kdb.last_success = 0;
     kdb.last_failed = 0;
     kdb.fail_auth_count = 0;
@@ -338,7 +351,16 @@ kadm5_create_principal_3(void *server_handle,
 
     /* initialize the keys */
 
-    if ((ret = krb5_dbe_cpw(handle->context, &master_keyblock,
+    ret = krb5_dbe_find_act_mkey(handle->context, master_keylist,
+				 active_mkey_list, &act_kvno, &act_mkey);
+    if (ret) {
+        krb5_db_free_principal(handle->context, &kdb, 1);
+        if (mask & KADM5_POLICY)
+            (void) kadm5_free_policy_ent(handle->lhandle, &polent);
+        return (ret);
+    }
+
+    if ((ret = krb5_dbe_cpw(handle->context, act_mkey,
 			    n_ks_tuple?ks_tuple:handle->params.keysalts,
 			    n_ks_tuple?n_ks_tuple:handle->params.num_keysalts,
 			    password,
@@ -348,6 +370,16 @@ kadm5_create_principal_3(void *server_handle,
 	if (mask & KADM5_POLICY)
 	     (void) kadm5_free_policy_ent(handle->lhandle, &polent);
 	return(ret);
+    }
+
+    /* Record the master key VNO used to encrypt this entry's keys */
+    ret = krb5_dbe_update_mkvno(handle->context, &kdb, act_kvno);
+    if (ret)
+    {
+	krb5_db_free_principal(handle->context, &kdb, 1);
+	if (mask & KADM5_POLICY)
+	    (void) kadm5_free_policy_ent(handle->lhandle, &polent);
+	return ret;
     }
 
     /* populate the admin-server-specific fields.  In the OV server,
@@ -412,7 +444,7 @@ kadm5_create_principal_3(void *server_handle,
     return KADM5_OK;
 }
 
-	
+
 kadm5_ret_t
 kadm5_delete_principal(void *server_handle, krb5_principal principal)
 {
@@ -597,7 +629,7 @@ kadm5_modify_principal(void *server_handle,
 					     KADM5_REF_COUNT)))))
 	goto done;
 
-    if ((mask & KADM5_ATTRIBUTES)) 
+    if ((mask & KADM5_ATTRIBUTES))
 	kdb.attributes = entry->attributes;
     if ((mask & KADM5_MAX_LIFE))
 	kdb.max_life = entry->max_life;
@@ -609,7 +641,7 @@ kadm5_modify_principal(void *server_handle,
 	 kdb.max_renewable_life = entry->max_renewable_life;
     if (mask & KADM5_FAIL_AUTH_COUNT)
 	 kdb.fail_auth_count = entry->fail_auth_count;
-    
+
     if((mask & KADM5_KVNO)) {
 	 for (i = 0; i < kdb.n_key_data; i++)
 	      kdb.key_data[i].key_data_kvno = entry->kvno;
@@ -650,7 +682,7 @@ done:
     kdb_free_entry(handle, &kdb, &adb);
     return ret;
 }
-    
+
 kadm5_ret_t
 kadm5_rename_principal(void *server_handle,
 			    krb5_principal source, krb5_principal target)
@@ -742,19 +774,18 @@ kadm5_get_principal(void *server_handle, krb5_principal principal,
 
     if ((mask & KADM5_POLICY) &&
 	adb.policy && (adb.aux_attributes & KADM5_POLICY)) {
-	if ((entry->policy = (char *) malloc(strlen(adb.policy) + 1)) == NULL) {
+	if ((entry->policy = strdup(adb.policy)) == NULL) {
 	    ret = ENOMEM;
 	    goto done;
 	}
-	strcpy(entry->policy, adb.policy);
     }
 
     if (mask & KADM5_AUX_ATTRIBUTES)
 	 entry->aux_attributes = adb.aux_attributes;
 
     if ((mask & KADM5_PRINCIPAL) &&
-	(ret = krb5_copy_principal(handle->context, principal,
-				   &entry->principal))) { 
+	(ret = krb5_copy_principal(handle->context, kdb.princ,
+				   &entry->principal))) {
 	goto done;
     }
 
@@ -776,12 +807,12 @@ kadm5_get_principal(void *server_handle, krb5_principal principal,
     /* values that must be checked separately against the mask */
     if ((mask & KADM5_MOD_NAME) || (mask & KADM5_MOD_TIME)) {
 	ret = krb5_dbe_lookup_mod_princ_data(handle->context, &kdb,
-					     &(entry->mod_date), 
+					     &(entry->mod_date),
 					     &(entry->mod_name));
 	if (ret) {
 	    goto done;
 	}
-	
+
 	if (! (mask & KADM5_MOD_TIME))
 	    entry->mod_date = 0;
 	if (! (mask & KADM5_MOD_NAME)) {
@@ -797,13 +828,25 @@ kadm5_get_principal(void *server_handle, krb5_principal principal,
 	 for (entry->kvno = 0, i=0; i<kdb.n_key_data; i++)
 	      if (kdb.key_data[i].key_data_kvno > entry->kvno)
 		   entry->kvno = kdb.key_data[i].key_data_kvno;
-    
+
+    ret = krb5_dbe_lookup_mkvno(handle->context, &kdb, &entry->mkvno);
+    if (ret)
+	goto done;
+
+    /*
+     * It's my understanding that KADM5_API_VERSION_1 is for OpenVision admin
+     * system compatiblity and is not required to maintain at this point so I'm
+     * commenting out this code.
+     * -- Will Fiveash
+     */
+#if 0 /************** Begin IFDEF'ed OUT *******************************/
     if (handle->api_version == KADM5_API_VERSION_2)
 	 entry->mkvno = 0;
     else {
 	 /* XXX I'll be damned if I know how to deal with this one --marc */
 	 entry->mkvno = 1;
     }
+#endif /**************** END IFDEF'ed OUT *******************************/
 
     /*
      * The new fields that only exist in version 2 start here
@@ -821,7 +864,7 @@ kadm5_get_principal(void *server_handle, krb5_principal principal,
 	      krb5_tl_data *tl, *tl2;
 
 	      entry->tl_data = NULL;
-	      
+
 	      tl = kdb.tl_data;
 	      while (tl) {
 		   if (tl->tl_data_type > 255) {
@@ -833,7 +876,7 @@ kadm5_get_principal(void *server_handle, krb5_principal principal,
 			entry->tl_data = tl2;
 			entry->n_tl_data++;
 		   }
-			
+
 		   tl = tl->tl_data_next;
 	      }
 	 }
@@ -846,7 +889,7 @@ kadm5_get_principal(void *server_handle, krb5_principal principal,
 			      ret = ENOMEM;
 			      goto done;
 		      }
-	      } else 
+	      } else
 		      entry->key_data = NULL;
 
 	      for (i = 0; i < entry->n_key_data; i++)
@@ -871,7 +914,7 @@ kadm5_get_principal(void *server_handle, krb5_principal principal,
 	      ret = ENOMEM;
 	      goto done;
 	 }
-	 
+
 	 newv1->principal = entry->principal;
 	 newv1->princ_expire_time = entry->princ_expire_time;
 	 newv1->last_pwd_change = entry->last_pwd_change;
@@ -928,6 +971,7 @@ done:
  */
 static kadm5_ret_t
 check_pw_reuse(krb5_context context,
+	       krb5_keyblock *mkey,
 	       krb5_keyblock *hist_keyblock,
 	       int n_new_key_data, krb5_key_data *new_key_data,
 	       unsigned int n_pw_hist_data, osa_pw_hist_ent *pw_hist_data)
@@ -938,7 +982,7 @@ check_pw_reuse(krb5_context context,
 
     for (x = 0; x < n_new_key_data; x++) {
 	ret = krb5_dbekd_decrypt_key_data(context,
-					  &master_keyblock,
+					  mkey,
 					  &(new_key_data[x]),
 					  &newkey, NULL);
 	if (ret)
@@ -950,15 +994,15 @@ check_pw_reuse(krb5_context context,
 						   &pw_hist_data[y].key_data[z],
 						   &histkey, NULL);
 		 if (ret)
-		     return(ret);		
-		 
+		     return(ret);
+
 		 if ((newkey.length == histkey.length) &&
 		     (newkey.enctype == histkey.enctype) &&
 		     (memcmp(newkey.contents, histkey.contents,
 			     histkey.length) == 0)) {
 		     krb5_free_keyblock_contents(context, &histkey);
 		     krb5_free_keyblock_contents(context, &newkey);
-		     
+
 		     return(KADM5_PASS_REUSE);
 		 }
 		 krb5_free_keyblock_contents(context, &histkey);
@@ -991,13 +1035,13 @@ check_pw_reuse(krb5_context context,
  * set to n_key_data.
  */
 static
-int create_history_entry(krb5_context context, int n_key_data,
+int create_history_entry(krb5_context context, krb5_keyblock *mkey, int n_key_data,
 			 krb5_key_data *key_data, osa_pw_hist_ent *hist)
 {
      int i, ret;
      krb5_keyblock key;
      krb5_keysalt salt;
-     
+
      hist->key_data = (krb5_key_data*)malloc(n_key_data*sizeof(krb5_key_data));
      if (hist->key_data == NULL)
 	  return ENOMEM;
@@ -1005,7 +1049,7 @@ int create_history_entry(krb5_context context, int n_key_data,
 
      for (i = 0; i < n_key_data; i++) {
 	 ret = krb5_dbekd_decrypt_key_data(context,
-					   &master_keyblock,
+					   mkey,
 					   &key_data[i],
 					   &key, &salt);
 	 if (ret)
@@ -1017,7 +1061,7 @@ int create_history_entry(krb5_context context, int n_key_data,
 					   &hist->key_data[i]);
 	 if (ret)
 	     return ret;
-	 
+
 	 krb5_free_keyblock_contents(context, &key);
 	 /* krb5_free_keysalt(context, &salt); */
      }
@@ -1090,7 +1134,7 @@ static kadm5_ret_t add_to_history(krb5_context context,
 	  }
 	  if (adb->old_keys == NULL)
 	       return(ENOMEM);
-	  
+
 	  memset(&adb->old_keys[nkeys], 0, sizeof(osa_pw_hist_ent));
      	  nkeys = ++adb->old_key_len;
 	  /*
@@ -1173,11 +1217,13 @@ static kadm5_ret_t add_to_history(krb5_context context,
 /* FIXME: don't use global variable for this */
 krb5_boolean use_password_server = 0;
 
+#ifdef USE_PASSWORD_SERVER
 static krb5_boolean
 kadm5_use_password_server (void)
 {
     return use_password_server;
 }
+#endif
 
 void
 kadm5_set_use_password_server (void)
@@ -1188,7 +1234,7 @@ kadm5_set_use_password_server (void)
 #ifdef USE_PASSWORD_SERVER
 
 /*
- * kadm5_launch_task () runs a program (task_path) to synchronize the 
+ * kadm5_launch_task () runs a program (task_path) to synchronize the
  * Apple password server with the Kerberos database.  Password server
  * programs can receive arguments on the command line (task_argv)
  * and a block of data via stdin (data_buffer).
@@ -1201,52 +1247,52 @@ kadm5_set_use_password_server (void)
 static kadm5_ret_t
 kadm5_launch_task (krb5_context context,
                    const char *task_path, char * const task_argv[],
-                   const char *data_buffer) 
+                   const char *buffer)
 {
-    kadm5_ret_t ret = 0;
+    kadm5_ret_t ret;
     int data_pipe[2];
-    
-    if (data_buffer != NULL) {
-        ret = pipe (data_pipe);
-        if (ret) { ret = errno; }
-    }
+
+    ret = pipe (data_pipe);
+    if (ret)
+	ret = errno;
 
     if (!ret) {
         pid_t pid = fork ();
         if (pid == -1) {
             ret = errno;
+	    close (data_pipe[0]);
+	    close (data_pipe[1]);
         } else if (pid == 0) {
             /* The child: */
-            
-            if (data_buffer != NULL) {
-                if (dup2 (data_pipe[0], STDIN_FILENO) == -1) {
-                    _exit (1);
-                }
-            } else {
-                close (data_pipe[0]);
-            }
 
-            close (data_pipe[1]);
-            
+            if (dup2 (data_pipe[0], STDIN_FILENO) == -1)
+		_exit (1);
+
+	    close (data_pipe[0]);
+	    close (data_pipe[1]);
+
             execv (task_path, task_argv);
-            
+
             _exit (1); /* Fail if execv fails */
         } else {
             /* The parent: */
             int status;
-                       
-            if (data_buffer != NULL) {
-                /* Write out the buffer to the child */
-                if (krb5_net_write (context, data_pipe[1],
-                                    data_buffer, strlen (data_buffer)) < 0) {
-                    /* kill the child to make sure waitpid() won't hang later */
-                    ret = errno;
-                    kill (pid, SIGKILL);
-                }
-            }
 
-            close (data_buffer[0]);
-            close (data_buffer[1]);
+	    ret = 0;
+
+	    close (data_pipe[0]);
+
+	    /* Write out the buffer to the child, add \n */
+	    if (buffer) {
+		if (krb5_net_write (context, data_pipe[1], buffer, strlen (buffer)) < 0
+		    || krb5_net_write (context, data_pipe[1], "\n", 1) < 0)
+		{
+		    /* kill the child to make sure waitpid() won't hang later */
+		    ret = errno;
+		    kill (pid, SIGKILL);
+		}
+	    }
+	    close (data_pipe[1]);
 
             waitpid (pid, &status, 0);
 
@@ -1292,6 +1338,8 @@ kadm5_chpass_principal_3(void *server_handle,
     int				have_pol = 0;
     kadm5_server_handle_t	handle = server_handle;
     osa_pw_hist_ent		hist;
+    krb5_keyblock               *act_mkey;
+    krb5_kvno                   act_kvno;
 
     CHECK_HANDLE(server_handle);
 
@@ -1314,7 +1362,7 @@ kadm5_chpass_principal_3(void *server_handle,
 	 kdb_free_entry(handle, &kdb, &adb);
 	 return(ret);
     }
-    
+
     if ((adb.aux_attributes & KADM5_POLICY)) {
 	if ((ret = kadm5_get_policy(handle->lhandle, adb.policy, &pol)))
 	     goto done;
@@ -1325,7 +1373,12 @@ kadm5_chpass_principal_3(void *server_handle,
 			    KADM5_POLICY, &pol, principal)))
 	 goto done;
 
-    ret = krb5_dbe_cpw(handle->context, &master_keyblock,
+    ret = krb5_dbe_find_act_mkey(handle->context, master_keylist,
+				 active_mkey_list, &act_kvno, &act_mkey);
+    if (ret)
+	goto done;
+
+    ret = krb5_dbe_cpw(handle->context, act_mkey,
 		       n_ks_tuple?ks_tuple:handle->params.keysalts,
 		       n_ks_tuple?n_ks_tuple:handle->params.num_keysalts,
 		       password, 0 /* increment kvno */,
@@ -1333,12 +1386,16 @@ kadm5_chpass_principal_3(void *server_handle,
     if (ret)
 	goto done;
 
+    ret = krb5_dbe_update_mkvno(handle->context, &kdb, act_kvno);
+    if (ret)
+	 goto done;
+
     kdb.attributes &= ~KRB5_KDB_REQUIRES_PWCHANGE;
 
     ret = krb5_timeofday(handle->context, &now);
     if (ret)
 	 goto done;
-    
+
     if ((adb.aux_attributes & KADM5_POLICY)) {
        /* the policy was loaded before */
 
@@ -1362,24 +1419,25 @@ kadm5_chpass_principal_3(void *server_handle,
 #endif
 
 	ret = create_history_entry(handle->context,
+				   act_mkey,
 				   kdb_save.n_key_data,
 				   kdb_save.key_data, &hist);
 	if (ret)
 	    goto done;
 
-	ret = check_pw_reuse(handle->context, &hist_key,
+	ret = check_pw_reuse(handle->context, act_mkey, &hist_key,
 			     kdb.n_key_data, kdb.key_data,
 			     1, &hist);
 	if (ret)
 	    goto done;
-	 
+
 	if (pol.pw_history_num > 1) {
 	    if (adb.admin_history_kvno != hist_kvno) {
 		ret = KADM5_BAD_HIST_KEY;
 		goto done;
 	    }
 
-	    ret = check_pw_reuse(handle->context, &hist_key,
+	    ret = check_pw_reuse(handle->context, act_mkey, &hist_key,
 				 kdb.n_key_data, kdb.key_data,
 				 adb.old_key_len, adb.old_keys);
 	    if (ret)
@@ -1406,17 +1464,10 @@ kadm5_chpass_principal_3(void *server_handle,
         const char *path = "/usr/sbin/mkpassdb";
         char *argv[] = { "mkpassdb", "-setpassword", NULL, NULL };
         char *pstring = NULL;
-        char pwbuf[256];
-        int pwlen = strlen (password);
-
-        if (pwlen > 254) pwlen = 254;
-        strncpy (pwbuf, password, pwlen);
-        pwbuf[pwlen] = '\n';
-        pwbuf[pwlen + 1] = '\0';
 
         if (!ret) {
             pstring = malloc ((princ->length + 1) * sizeof (char));
-            if (pstring == NULL) { ret = errno; }
+            if (pstring == NULL) { ret = ENOMEM; }
         }
 
         if (!ret) {
@@ -1424,12 +1475,12 @@ kadm5_chpass_principal_3(void *server_handle,
             pstring [princ->length] = '\0';
             argv[2] = pstring;
 
-            ret = kadm5_launch_task (handle->context, path, argv, pwbuf);
+            ret = kadm5_launch_task (handle->context, path, argv, password);
         }
-        
+
         if (pstring != NULL)
             free (pstring);
-        
+
         if (ret)
             goto done;
     }
@@ -1454,7 +1505,7 @@ done:
     krb5_db_free_principal(handle->context, &kdb, 1);
 
     if (have_pol && (ret2 = kadm5_free_policy_ent(handle->lhandle, &pol))
-	&& !ret) 
+	&& !ret)
 	 ret = ret2;
 
     return ret;
@@ -1486,6 +1537,7 @@ kadm5_randkey_principal_3(void *server_handle,
     krb5_key_data		*key_data;
     int				ret, last_pwd, have_pol = 0;
     kadm5_server_handle_t	handle = server_handle;
+    krb5_keyblock               *act_mkey;
 
     if (keyblocks)
 	 *keyblocks = NULL;
@@ -1504,7 +1556,12 @@ kadm5_randkey_principal_3(void *server_handle,
     if ((ret = kdb_get_entry(handle, principal, &kdb, &adb)))
        return(ret);
 
-    ret = krb5_dbe_crk(handle->context, &master_keyblock,
+    ret = krb5_dbe_find_act_mkey(handle->context, master_keylist,
+				 active_mkey_list, NULL, &act_mkey);
+    if (ret)
+	goto done;
+
+    ret = krb5_dbe_crk(handle->context, act_mkey,
 		       n_ks_tuple?ks_tuple:handle->params.keysalts,
 		       n_ks_tuple?n_ks_tuple:handle->params.num_keysalts,
 		       keepold,
@@ -1520,7 +1577,7 @@ kadm5_randkey_principal_3(void *server_handle,
 
     if ((adb.aux_attributes & KADM5_POLICY)) {
 	if ((ret = kadm5_get_policy(handle->lhandle, adb.policy,
-				    &pol)) != KADM5_OK) 
+				    &pol)) != KADM5_OK)
 	   goto done;
 	have_pol = 1;
 
@@ -1549,7 +1606,7 @@ kadm5_randkey_principal_3(void *server_handle,
 		goto done;
 	    }
 
-	    ret = check_pw_reuse(handle->context, &hist_key,
+	    ret = check_pw_reuse(handle->context, act_mkey, &hist_key,
 				 kdb.n_key_data, kdb.key_data,
 				 adb.old_key_len, adb.old_keys);
 	    if (ret)
@@ -1575,20 +1632,20 @@ kadm5_randkey_principal_3(void *server_handle,
 					 -1, -1, &key_data);
 	     if (ret)
 		 goto done;
-	     
-	     ret = decrypt_key_data(handle->context, 1, key_data,
+
+	     ret = decrypt_key_data(handle->context, act_mkey, 1, key_data,
 				     keyblocks, NULL);
 	     if (ret)
 		 goto done;
 	 } else {
-	     ret = decrypt_key_data(handle->context,
+	     ret = decrypt_key_data(handle->context, act_mkey,
 				     kdb.n_key_data, kdb.key_data,
 				     keyblocks, n_keys);
 	     if (ret)
 		 goto done;
 	 }
-    }	 
-    
+    }
+
     /* key data changed, let the database provider know */
     kdb.mask = KADM5_KEY_DATA /* | KADM5_RANDKEY_USED */;
 
@@ -1627,6 +1684,7 @@ kadm5_setv4key_principal(void *server_handle,
 #endif
     kadm5_server_handle_t	handle = server_handle;
     krb5_key_data               tmp_key_data;
+    krb5_keyblock               *act_mkey;
 
     memset( &tmp_key_data, 0, sizeof(tmp_key_data));
 
@@ -1643,7 +1701,7 @@ kadm5_setv4key_principal(void *server_handle,
 
     if (keyblock->enctype != ENCTYPE_DES_CBC_CRC)
 	return KADM5_SETV4KEY_INVAL_ENCTYPE;
-    
+
     if ((ret = kdb_get_entry(handle, principal, &kdb, &adb)))
        return(ret);
 
@@ -1653,7 +1711,7 @@ kadm5_setv4key_principal(void *server_handle,
 
     if (kdb.key_data != NULL)
 	 cleanup_key_data(handle->context, kdb.n_key_data, kdb.key_data);
-    
+
     kdb.key_data = (krb5_key_data*)krb5_db_alloc(handle->context, NULL, sizeof(krb5_key_data));
     if (kdb.key_data == NULL)
 	 return ENOMEM;
@@ -1664,8 +1722,13 @@ kadm5_setv4key_principal(void *server_handle,
     keysalt.data.length = 0;
     keysalt.data.data = NULL;
 
+    ret = krb5_dbe_find_act_mkey(handle->context, master_keylist,
+				 active_mkey_list, NULL, &act_mkey);
+    if (ret)
+	goto done;
+
     /* use tmp_key_data as temporary location and reallocate later */
-    ret = krb5_dbekd_encrypt_key_data(handle->context, &master_keyblock,
+    ret = krb5_dbekd_encrypt_key_data(handle->context, act_mkey,
 				      keyblock, &keysalt, kvno + 1,
 				      &tmp_key_data);
     if (ret) {
@@ -1702,7 +1765,7 @@ kadm5_setv4key_principal(void *server_handle,
 
     if ((adb.aux_attributes & KADM5_POLICY)) {
 	if ((ret = kadm5_get_policy(handle->lhandle, adb.policy,
-				    &pol)) != KADM5_OK) 
+				    &pol)) != KADM5_OK)
 	   goto done;
 	have_pol = 1;
 
@@ -1739,7 +1802,7 @@ kadm5_setv4key_principal(void *server_handle,
 		goto done;
 	}
 #endif
-	
+
 	if (pol.pw_max_life)
 	   kdb.pw_expiration = now + pol.pw_max_life;
 	else
@@ -1806,6 +1869,7 @@ kadm5_setkey_principal_3(void *server_handle,
     krb5_keysalt		keysalt;
     krb5_key_data         tmp_key_data;
     krb5_key_data        *tptr;
+    krb5_keyblock               *act_mkey;
 
     CHECK_HANDLE(server_handle);
 
@@ -1840,7 +1904,7 @@ kadm5_setkey_principal_3(void *server_handle,
 
     if ((ret = kdb_get_entry(handle, principal, &kdb, &adb)))
        return(ret);
-    
+
     for (kvno = 0, i=0; i<kdb.n_key_data; i++)
 	 if (kdb.key_data[i].key_data_kvno > kvno)
 	      kvno = kdb.key_data[i].key_data_kvno;
@@ -1854,7 +1918,7 @@ kadm5_setkey_principal_3(void *server_handle,
 	n_old_keys = 0;
 	old_key_data = NULL;
     }
-    
+
     kdb.key_data = (krb5_key_data*)krb5_db_alloc(handle->context, NULL, (n_keys+n_old_keys)
 						 *sizeof(krb5_key_data));
     if (kdb.key_data == NULL) {
@@ -1877,16 +1941,23 @@ kadm5_setkey_principal_3(void *server_handle,
 	}
 	memset (&tmp_key_data, 0, sizeof(tmp_key_data));
 
+	ret = krb5_dbe_find_act_mkey(handle->context, master_keylist,
+	                             active_mkey_list, NULL, &act_mkey);
+	if (ret)
+	    goto done;
+
 	ret = krb5_dbekd_encrypt_key_data(handle->context,
-					  &master_keyblock,
+					  act_mkey,
 					  &keyblocks[i],
 					  n_ks_tuple ? &keysalt : NULL,
 					  kvno + 1,
 					  &tmp_key_data);
-	if (ret) {
+	if (ret)
 	    goto done;
-	}
+
 	tptr = &kdb.key_data[i];
+	tptr->key_data_ver = tmp_key_data.key_data_ver;
+	tptr->key_data_kvno = tmp_key_data.key_data_kvno;
 	for (k = 0; k < tmp_key_data.key_data_ver; k++) {
 	    tptr->key_data_type[k] = tmp_key_data.key_data_type[k];
 	    tptr->key_data_length[k] = tmp_key_data.key_data_length[k];
@@ -1932,7 +2003,7 @@ kadm5_setkey_principal_3(void *server_handle,
 
     if ((adb.aux_attributes & KADM5_POLICY)) {
 	if ((ret = kadm5_get_policy(handle->lhandle, adb.policy,
-				    &pol)) != KADM5_OK) 
+				    &pol)) != KADM5_OK)
 	   goto done;
 	have_pol = 1;
 
@@ -1969,7 +2040,7 @@ kadm5_setkey_principal_3(void *server_handle,
 		goto done;
 	}
 #endif
-	
+
 	if (pol.pw_max_life)
 	   kdb.pw_expiration = now + pol.pw_max_life;
 	else
@@ -1994,12 +2065,87 @@ done:
 }
 
 /*
+ * Return the list of keys like kadm5_randkey_principal,
+ * but don't modify the principal.
+ */
+kadm5_ret_t
+kadm5_get_principal_keys(void *server_handle /* IN */,
+                         krb5_principal principal /* IN */,
+                         krb5_keyblock **keyblocks /* OUT */,
+                         int *n_keys /* OUT */)
+{
+    krb5_db_entry               kdb;
+    osa_princ_ent_rec           adb;
+    krb5_key_data               *key_data;
+    kadm5_ret_t                 ret;
+    kadm5_server_handle_t       handle = server_handle;
+    krb5_keyblock               *mkey_ptr;
+
+    if (keyblocks)
+         *keyblocks = NULL;
+
+    CHECK_HANDLE(server_handle);
+
+    if (principal == NULL)
+        return EINVAL;
+
+    if ((ret = kdb_get_entry(handle, principal, &kdb, &adb)))
+       return(ret);
+
+    if (keyblocks) {
+	if ((ret = krb5_dbe_find_mkey(handle->context, master_keylist, &kdb,
+                                      &mkey_ptr))) {
+            krb5_keylist_node *tmp_mkey_list;
+            /* try refreshing master key list */
+            /* XXX it would nice if we had the mkvno here for optimization */
+            if (krb5_db_fetch_mkey_list(handle->context, master_princ,
+                                        &master_keyblock, 0,
+                                        &tmp_mkey_list) == 0) {
+                krb5_dbe_free_key_list(handle->context, master_keylist);
+                master_keylist = tmp_mkey_list;
+                if ((ret = krb5_dbe_find_mkey(handle->context, master_keylist,
+                                              &kdb, &mkey_ptr))) {
+                    goto done;
+                }
+            } else {
+                goto done;
+            }
+        }
+
+         if (handle->api_version == KADM5_API_VERSION_1) {
+              /* Version 1 clients will expect to see a DES_CRC enctype. */
+              if ((ret = krb5_dbe_find_enctype(handle->context, &kdb,
+                                              ENCTYPE_DES_CBC_CRC,
+                                              -1, -1, &key_data)))
+                   goto done;
+
+              if ((ret = decrypt_key_data(handle->context, mkey_ptr, 1, key_data,
+                                         keyblocks, NULL)))
+                   goto done;
+         } else {
+              ret = decrypt_key_data(handle->context, mkey_ptr,
+                                     kdb.n_key_data, kdb.key_data,
+                                     keyblocks, n_keys);
+              if (ret)
+                   goto done;
+         }
+    }
+
+    ret = KADM5_OK;
+done:
+    kdb_free_entry(handle, &kdb, &adb);
+
+    return ret;
+}
+
+
+/*
  * Allocate an array of n_key_data krb5_keyblocks, fill in each
  * element with the results of decrypting the nth key in key_data with
- * master_keyblock, and if n_keys is not NULL fill it in with the
+ * mkey, and if n_keys is not NULL fill it in with the
  * number of keys decrypted.
  */
-static int decrypt_key_data(krb5_context context,
+static int decrypt_key_data(krb5_context context, krb5_keyblock *mkey,
 			    int n_key_data, krb5_key_data *key_data,
 			    krb5_keyblock **keyblocks, int *n_keys)
 {
@@ -2012,8 +2158,8 @@ static int decrypt_key_data(krb5_context context,
      memset((char *) keys, 0, n_key_data*sizeof(krb5_keyblock));
 
      for (i = 0; i < n_key_data; i++) {
-          ret = krb5_dbekd_decrypt_key_data(context, &master_keyblock,
-					    &key_data[i], 
+          ret = krb5_dbekd_decrypt_key_data(context, mkey,
+					    &key_data[i],
 					    &keys[i], NULL);
 	  if (ret) {
 	       for (; i >= 0; i--) {
@@ -2075,6 +2221,7 @@ kadm5_ret_t kadm5_decrypt_key(void *server_handle,
     kadm5_server_handle_t handle = server_handle;
     krb5_db_entry dbent;
     krb5_key_data *key_data;
+    krb5_keyblock *mkey_ptr;
     int ret;
 
     CHECK_HANDLE(server_handle);
@@ -2089,8 +2236,28 @@ kadm5_ret_t kadm5_decrypt_key(void *server_handle,
 				    stype, kvno, &key_data)))
 	 return ret;
 
+    /* find_mkey only uses this field */
+    dbent.tl_data = entry->tl_data;
+    if ((ret = krb5_dbe_find_mkey(handle->context, master_keylist, &dbent,
+                                  &mkey_ptr))) {
+        krb5_keylist_node *tmp_mkey_list;
+        /* try refreshing master key list */
+        /* XXX it would nice if we had the mkvno here for optimization */
+        if (krb5_db_fetch_mkey_list(handle->context, master_princ,
+                                    &master_keyblock, 0, &tmp_mkey_list) == 0) {
+            krb5_dbe_free_key_list(handle->context, master_keylist);
+            master_keylist = tmp_mkey_list;
+            if ((ret = krb5_dbe_find_mkey(handle->context, master_keylist,
+                                          &dbent, &mkey_ptr))) {
+                return ret;
+            }
+        } else {
+            return ret;
+        }
+    }
+
     if ((ret = krb5_dbekd_decrypt_key_data(handle->context,
-					   &master_keyblock, key_data,
+					   mkey_ptr, key_data,
 					   keyblock, keysalt)))
 	 return ret;
 
@@ -2099,11 +2266,11 @@ kadm5_ret_t kadm5_decrypt_key(void *server_handle,
      * inexact match on the enctype; this behavior will go away when
      * the key storage architecture gets redesigned for 1.3.
      */
-    keyblock->enctype = ktype;
+    if (ktype != -1)
+        keyblock->enctype = ktype;
 
     if (kvnop)
 	 *kvnop = key_data->key_data_kvno;
 
     return KADM5_OK;
 }
-

@@ -24,6 +24,7 @@ static char *rcsid = "$Header$";
 #include    "adm_proto.h"
 #include    <syslog.h>
 #include    "server_internal.h"
+#include    "k5-platform.h"
 
 static char	    **word_list = NULL;	    /* list of word pointers */
 static char	    *word_block = NULL;	    /* actual word data */
@@ -102,10 +103,13 @@ int init_dict(kadm5_config_params *params)
 	 } else
 	      return errno;
     }
-    if (fstat(fd, &sb) == -1) 
+    set_cloexec_fd(fd);
+    if (fstat(fd, &sb) == -1) {
+	close(fd);
 	return errno;
+    }
     if ((word_block = (char *) malloc(sb.st_size + 1)) == NULL)
-	return errno;
+	return ENOMEM;
     if (read(fd, word_block, sb.st_size) != sb.st_size)
 	return errno;
     (void) close(fd);
@@ -120,7 +124,7 @@ int init_dict(kadm5_config_params *params)
 	word_count++;
     }
     if ((word_list = (char **) malloc(word_count * sizeof(char *))) == NULL)
-	return errno;
+	return ENOMEM;
     p = word_block;
     for (i = 0; i < word_count; i++) {
 	word_list[i] = p;

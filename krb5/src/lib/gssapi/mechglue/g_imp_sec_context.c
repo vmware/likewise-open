@@ -26,6 +26,8 @@
  *  glue routine gss_export_sec_context
  */
 
+#ifndef LEAN_CLIENT
+
 #include "mglueP.h"
 #include <stdio.h>
 #include <errno.h>
@@ -141,7 +143,7 @@ gss_ctx_id_t *		context_handle;
 	goto error_out;
     }
     
-    status = mech->gss_import_sec_context(mech->context, minor_status,
+    status = mech->gss_import_sec_context(minor_status,
 					  &token, &ctx->internal_ctx_id);
 
     if (status == GSS_S_COMPLETE) {
@@ -149,6 +151,7 @@ gss_ctx_id_t *		context_handle;
 	*context_handle = ctx;
 	return (GSS_S_COMPLETE);
     }
+    map_error(minor_status, mech);
     
 error_out:
     if (ctx) {
@@ -161,3 +164,4 @@ error_out:
     }
     return status;
 }
+#endif /* LEAN_CLIENT */

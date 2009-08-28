@@ -47,8 +47,8 @@ maybe_use_reverse_dns (krb5_context context, int defalt)
     char * value = NULL;
     int use_rdns = 0;
 
-    code = profile_get_string(context->profile, "libdefaults",
-                              "rdns", 0, 0, &value);
+    code = profile_get_string(context->profile, KRB5_CONF_LIBDEFAULTS,
+                              KRB5_CONF_RDNS, 0, 0, &value);
     if (code)
         return defalt;
 
@@ -107,6 +107,7 @@ krb5_sname_to_principal(krb5_context context, const char *hostname, const char *
 
 	    memset(&hints, 0, sizeof(hints));
 	    hints.ai_family = AF_INET;
+	    hints.ai_flags = AI_CANONNAME;
 	try_getaddrinfo_again:
 	    err = getaddrinfo(hostname, 0, &hints, &ai);
 	    if (err) {
@@ -147,7 +148,8 @@ krb5_sname_to_principal(krb5_context context, const char *hostname, const char *
                     if (!remote_host)
                         return ENOMEM;
                 }
-            }
+            } else
+		freeaddrinfo(ai);
 	} else /* type == KRB5_NT_UNKNOWN */ {
 	    remote_host = strdup(hostname);
 	}
@@ -185,7 +187,7 @@ krb5_sname_to_principal(krb5_context context, const char *hostname, const char *
 
 	if (!hrealms[0]) {
 	    free(remote_host);
-	    krb5_xfree(hrealms);
+	    free(hrealms);
 	    return KRB5_ERR_HOST_REALM_UNKNOWN;
 	}
 	realm = hrealms[0];

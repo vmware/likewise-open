@@ -1,7 +1,7 @@
 /*
  * lib/kdb/kdb_cpw.c
  *
- * Copyright 1995 by the Massachusetts Institute of Technology. 
+ * Copyright 1995, 2009 by the Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
  * Export of this software from the United States of America may
@@ -56,8 +56,8 @@
 #include <stdio.h>
 #include <errno.h>
 
-static int
-get_key_data_kvno(context, count, data)
+int
+krb5_db_get_key_data_kvno(context, count, data)
     krb5_context	  context;
     int			  count;
     krb5_key_data	* data;
@@ -260,7 +260,8 @@ krb5_dbe_crk(context, master_key, ks_tuple, ks_tuple_count, keepold, db_entry)
     int			  i;
 
     /* First save the old keydata */
-    kvno = get_key_data_kvno(context, db_entry->n_key_data, db_entry->key_data);
+    kvno = krb5_db_get_key_data_kvno(context, db_entry->n_key_data,
+				     db_entry->key_data);
     key_data_count = db_entry->n_key_data;
     key_data = db_entry->key_data;
     db_entry->key_data = NULL;
@@ -315,7 +316,8 @@ krb5_dbe_ark(context, master_key, ks_tuple, ks_tuple_count, db_entry)
     int			  i;
 
     /* First save the old keydata */
-    kvno = get_key_data_kvno(context, db_entry->n_key_data, db_entry->key_data);
+    kvno = krb5_db_get_key_data_kvno(context, db_entry->n_key_data,
+				     db_entry->key_data);
     key_data_count = db_entry->n_key_data;
     key_data = db_entry->key_data;
     db_entry->key_data = NULL;
@@ -412,7 +414,7 @@ add_key_pwd(context, master_key, ks_tuple, ks_tuple_count, passwd,
 	 	return(retval);
 
 	    key_salt.data = *saltdata;
-	    krb5_xfree(saltdata);
+	    free(saltdata);
 	}
 		break;
     	case KRB5_KDB_SALTTYPE_NOREALM:
@@ -429,32 +431,17 @@ add_key_pwd(context, master_key, ks_tuple, ks_tuple_count, passwd,
             key_salt.data.length = 0;
             key_salt.data.data = 0;
             break;
-    	case KRB5_KDB_SALTTYPE_AFS3: {
-#if 0
-            krb5_data * saltdata;
-            if (retval = krb5_copy_data(context, krb5_princ_realm(context,
-					db_entry->princ), &saltdata))
-	 	return(retval);
-
-	    key_salt.data = *saltdata;
+	case KRB5_KDB_SALTTYPE_AFS3:
+	    /* The afs_mit_string_to_key needs to use strlen, and the
+	       realm field is not (necessarily) NULL terminated.  */
+	    retval = krb5int_copy_data_contents_add0(context,
+						     krb5_princ_realm(context,
+								      db_entry->princ),
+						     &key_salt.data);
+	    if (retval)
+		return retval;
 	    key_salt.data.length = SALT_TYPE_AFS_LENGTH; /*length actually used below...*/
-	    krb5_xfree(saltdata);
-#else
-	    /* Why do we do this? Well, the afs_mit_string_to_key needs to
-	       use strlen, and the realm is not NULL terminated.... */
-	    unsigned int slen = 
-		(*krb5_princ_realm(context,db_entry->princ)).length;
-	    if(!(key_salt.data.data = (char *) malloc(slen+1)))
-	        return ENOMEM;
-	    key_salt.data.data[slen] = 0;
-	    memcpy((char *)key_salt.data.data,
-		   (char *)(*krb5_princ_realm(context,db_entry->princ)).data,
-		   slen);
-	    key_salt.data.length = SALT_TYPE_AFS_LENGTH; /*length actually used below...*/
-#endif
-
-	}
-		break;
+	    break;
 	default:
 	    return(KRB5_KDB_BAD_SALTTYPE);
 	}
@@ -481,7 +468,7 @@ add_key_pwd(context, master_key, ks_tuple, ks_tuple_count, passwd,
 					     kvno, &tmp_key_data);
 	if (key_salt.data.data)
 	    free(key_salt.data.data);
-	krb5_xfree(key.contents);
+	free(key.contents);
 
 	if( retval )
 	    return retval;
@@ -553,8 +540,8 @@ krb5_dbe_def_cpw(context, master_key, ks_tuple, ks_tuple_count, passwd,
     int			  i;
 
     /* First save the old keydata */
-    old_kvno = get_key_data_kvno(context, db_entry->n_key_data,
-				 db_entry->key_data);
+    old_kvno = krb5_db_get_key_data_kvno(context, db_entry->n_key_data,
+					 db_entry->key_data);
     key_data_count = db_entry->n_key_data;
     key_data = db_entry->key_data;
     db_entry->key_data = NULL;
@@ -612,8 +599,8 @@ krb5_dbe_apw(context, master_key, ks_tuple, ks_tuple_count, passwd, db_entry)
     int			  i;
 
     /* First save the old keydata */
-    old_kvno = get_key_data_kvno(context, db_entry->n_key_data,
-				 db_entry->key_data);
+    old_kvno = krb5_db_get_key_data_kvno(context, db_entry->n_key_data,
+					 db_entry->key_data);
     key_data_count = db_entry->n_key_data;
     key_data = db_entry->key_data;
     db_entry->key_data = NULL;

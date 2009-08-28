@@ -37,28 +37,26 @@ extern char *krb5_defkeyname;
 char *krb5_overridekeyname = NULL;
 
 krb5_error_code KRB5_CALLCONV
-krb5_kt_default_name(krb5_context context, char *name, int namesize)
+krb5_kt_default_name(krb5_context context, char *name, int name_size)
 {
     char *cp = 0;
     char *retval;
+    unsigned int namesize = (name_size < 0 ? 0 : name_size);
 
     if (krb5_overridekeyname) {
-	if ((size_t) namesize < (strlen(krb5_overridekeyname)+1))
+	if (strlcpy(name, krb5_overridekeyname, namesize) >= namesize)
 	    return KRB5_CONFIG_NOTENUFSPACE;
-	strcpy(name, krb5_overridekeyname);
     } else if ((context->profile_secure == FALSE) &&
 	(cp = getenv("KRB5_KTNAME"))) {
-	if ((size_t) namesize < (strlen(cp)+1))
+	if (strlcpy(name, cp, namesize) >= namesize)
 	    return KRB5_CONFIG_NOTENUFSPACE;
-	strcpy(name, cp);
     } else if ((profile_get_string(context->profile,
-				   "libdefaults",
-				   "default_keytab_name", NULL, 
+				   KRB5_CONF_LIBDEFAULTS,
+				   KRB5_CONF_DEFAULT_KEYTAB_NAME, NULL,
 				   NULL, &retval) == 0) &&
 	       retval) {
-	if ((size_t) namesize < (strlen(retval)+1))
+	if (strlcpy(name, retval, namesize) >= namesize)
 	    return KRB5_CONFIG_NOTENUFSPACE;
-	strcpy(name, retval);
 	profile_release_string(retval);
     } else {
 #if defined(_WIN32)
@@ -70,12 +68,11 @@ krb5_kt_default_name(krb5_context context, char *name, int namesize)
 	    defname[len]= '\0';
 	    if ( (len + strlen(krb5_defkeyname) + 1) > namesize )
 		return KRB5_CONFIG_NOTENUFSPACE;
-	    sprintf(name, krb5_defkeyname, defname);
+	    snprintf(name, namesize, krb5_defkeyname, defname);
 	}
 #else
-	if ((size_t) namesize < (strlen(krb5_defkeyname)+1))
+	if (strlcpy(name, krb5_defkeyname, namesize) >= namesize)
 	    return KRB5_CONFIG_NOTENUFSPACE;
-	strcpy(name, krb5_defkeyname);
 #endif
     }
     return 0;

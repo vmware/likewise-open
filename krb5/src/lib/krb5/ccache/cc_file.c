@@ -1,7 +1,7 @@
 /*
  * lib/krb5/ccache/cc_file.c
  *
- * Copyright 1990,1991,1992,1993,1994,2000,2004 Massachusetts Institute of Technology.
+ * Copyright 1990,1991,1992,1993,1994,2000,2004,2007 Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
  * Original stdio support copyright 1995 by Cygnus Support.
@@ -76,7 +76,7 @@ etc.
    fcc_nseq.c and fcc_read don't check return values a lot.
  */
 #include "k5-int.h"
-
+#include "cc-int.h"
 
 #include <stdio.h>
 #include <errno.h>
@@ -166,6 +166,25 @@ static krb5_error_code krb5_fcc_skip_principal
 static krb5_error_code KRB5_CALLCONV krb5_fcc_set_flags
         (krb5_context, krb5_ccache id, krb5_flags flags);
 
+static krb5_error_code KRB5_CALLCONV krb5_fcc_ptcursor_new
+        (krb5_context context, krb5_cc_ptcursor *cursor);
+
+static krb5_error_code KRB5_CALLCONV krb5_fcc_ptcursor_next
+        (krb5_context context, krb5_cc_ptcursor cursor, krb5_ccache *ccache);
+
+static krb5_error_code KRB5_CALLCONV krb5_fcc_ptcursor_free
+        (krb5_context context, krb5_cc_ptcursor *cursor);
+
+static krb5_error_code KRB5_CALLCONV krb5_fcc_last_change_time
+        (krb5_context context, krb5_ccache id, krb5_timestamp *change_time);
+
+static krb5_error_code KRB5_CALLCONV krb5_fcc_lock
+        (krb5_context context, krb5_ccache id);
+
+static krb5_error_code KRB5_CALLCONV krb5_fcc_unlock
+        (krb5_context context, krb5_ccache id);
+
+
 extern const krb5_cc_ops krb5_cc_file_ops;
 
 krb5_error_code krb5_change_cache (void);
@@ -205,6 +224,9 @@ static krb5_error_code krb5_fcc_close_file
         (krb5_context, struct _krb5_fcc_data *data);
 static krb5_error_code krb5_fcc_open_file
         (krb5_context, krb5_ccache, int);
+static krb5_error_code krb5_fcc_data_last_change_time
+        (krb5_context context, struct _krb5_fcc_data *data,
+        krb5_timestamp *change_time);
 
 
 #define KRB5_OK 0
@@ -261,7 +283,7 @@ typedef struct _krb5_fcc_data {
     /* Lock this one before reading or modifying the data stored here
        that can be changed.  (Filename is fixed after
        initialization.)  */
-    k5_mutex_t lock;
+    k5_cc_mutex lock;
     int file;
     krb5_flags flags;
     int mode;				/* needed for locking code */
@@ -301,8 +323,13 @@ struct fcc_set {
     unsigned int refcount;
 };
 
-k5_mutex_t krb5int_cc_file_mutex = K5_MUTEX_PARTIAL_INITIALIZER;
+k5_cc_mutex krb5int_cc_file_mutex = K5_CC_MUTEX_PARTIAL_INITIALIZER;
 static struct fcc_set *fccs = NULL;
+
+/* Iterator over file caches.  */
+struct krb5_fcc_ptcursor_data {
+    struct fcc_set *cur;
+};
 
 /* An off_t can be arbitrarily complex */
 typedef struct _krb5_fcc_cursor {
@@ -311,12 +338,12 @@ typedef struct _krb5_fcc_cursor {
 
 #define MAYBE_OPEN(CONTEXT, ID, MODE)					\
 {									\
-    k5_assert_locked(&((krb5_fcc_data *)(ID)->data)->lock);		\
+    k5_cc_mutex_assert_locked(CONTEXT, &((krb5_fcc_data *)(ID)->data)->lock);		\
     if (OPENCLOSE (ID)) {						\
 	krb5_error_code maybe_open_ret;					\
 	maybe_open_ret = krb5_fcc_open_file (CONTEXT,ID,MODE);		\
 	if (maybe_open_ret) {						\
-	    k5_mutex_unlock(&((krb5_fcc_data *)(ID)->data)->lock);	\
+	    k5_cc_mutex_unlock(CONTEXT, &((krb5_fcc_data *)(ID)->data)->lock);	\
 	    return maybe_open_ret;					\
 	}								\
     }									\
@@ -356,7 +383,7 @@ krb5_fcc_read(krb5_context context, krb5_ccache id, krb5_pointer buf, unsigned i
 #if 0
      int ret;
 
-     k5_assert_locked(&((krb5_fcc_data *) id->data)->lock);
+     k5_cc_mutex_assert_locked(context, &((krb5_fcc_data *) id->data)->lock);
 
      ret = read(((krb5_fcc_data *) id->data)->file, (char *) buf, len);
      if (ret == -1)
@@ -368,7 +395,7 @@ krb5_fcc_read(krb5_context context, krb5_ccache id, krb5_pointer buf, unsigned i
 #else
      krb5_fcc_data *data = (krb5_fcc_data *) id->data;
 
-     k5_assert_locked(&data->lock);
+     k5_cc_mutex_assert_locked(context, &data->lock);
 
      while (len > 0) {
 	 int nread, e;
@@ -441,7 +468,7 @@ krb5_fcc_read_principal(krb5_context context, krb5_ccache id, krb5_principal *pr
     krb5_int32 length, type;
     int i;
 
-    k5_assert_locked(&((krb5_fcc_data *) id->data)->lock);
+    k5_cc_mutex_assert_locked(context, &((krb5_fcc_data *) id->data)->lock);
 
     *princ = NULL;
 
@@ -503,6 +530,7 @@ krb5_fcc_read_principal(krb5_context context, krb5_ccache id, krb5_principal *pr
  errout:
     while(--i >= 0)
 	free(krb5_princ_component(context, tmpprinc, i)->data);
+    free(krb5_princ_realm(context, tmpprinc)->data);
     free((char *)tmpprinc->data);
     free((char *)tmpprinc);
     return kret;
@@ -516,7 +544,7 @@ krb5_fcc_read_addrs(krb5_context context, krb5_ccache id, krb5_address ***addrs)
      size_t msize;
      int i;
 
-     k5_assert_locked(&((krb5_fcc_data *) id->data)->lock);
+     k5_cc_mutex_assert_locked(context, &((krb5_fcc_data *) id->data)->lock);
 
      *addrs = 0;
 
@@ -539,6 +567,7 @@ krb5_fcc_read_addrs(krb5_context context, krb5_ccache id, krb5_address ***addrs)
 	  (*addrs)[i] = (krb5_address *) malloc(sizeof(krb5_address));
 	  if ((*addrs)[i] == NULL) {
 	      krb5_free_addresses(context, *addrs);
+	      *addrs = 0;
 	      return KRB5_CC_NOMEM;
 	  }
 	  (*addrs)[i]->contents = NULL;
@@ -563,7 +592,7 @@ krb5_fcc_read_keyblock(krb5_context context, krb5_ccache id, krb5_keyblock *keyb
      krb5_ui_2 ui2;
      krb5_int32 int32;
 
-     k5_assert_locked(&((krb5_fcc_data *) id->data)->lock);
+     k5_cc_mutex_assert_locked(context, &((krb5_fcc_data *) id->data)->lock);
 
      keyblock->magic = KV5M_KEYBLOCK;
      keyblock->contents = 0;
@@ -599,7 +628,7 @@ krb5_fcc_read_keyblock(krb5_context context, krb5_ccache id, krb5_keyblock *keyb
      return KRB5_OK;
  errout:
      if (keyblock->contents) {
-	 krb5_xfree(keyblock->contents);
+	 free(keyblock->contents);
 	 keyblock->contents = NULL;
      }
      return kret;
@@ -611,7 +640,7 @@ krb5_fcc_read_data(krb5_context context, krb5_ccache id, krb5_data *data)
      krb5_error_code kret;
      krb5_int32 len;
 
-     k5_assert_locked(&((krb5_fcc_data *) id->data)->lock);
+     k5_cc_mutex_assert_locked(context, &((krb5_fcc_data *) id->data)->lock);
 
      data->magic = KV5M_DATA;
      data->data = 0;
@@ -640,7 +669,7 @@ krb5_fcc_read_data(krb5_context context, krb5_ccache id, krb5_data *data)
      return KRB5_OK;
  errout:
      if (data->data) {
-	 krb5_xfree(data->data);
+	 free(data->data);
 	 data->data = NULL;
      }
      return kret;
@@ -653,7 +682,7 @@ krb5_fcc_read_addr(krb5_context context, krb5_ccache id, krb5_address *addr)
      krb5_ui_2 ui2;
      krb5_int32 int32;
 
-     k5_assert_locked(&((krb5_fcc_data *) id->data)->lock);
+     k5_cc_mutex_assert_locked(context, &((krb5_fcc_data *) id->data)->lock);
 
      addr->magic = KV5M_ADDRESS;
      addr->contents = 0;
@@ -685,7 +714,7 @@ krb5_fcc_read_addr(krb5_context context, krb5_ccache id, krb5_address *addr)
      return KRB5_OK;
  errout:
      if (addr->contents) {
-	 krb5_xfree(addr->contents);
+	 free(addr->contents);
 	 addr->contents = NULL;
      }
      return kret;
@@ -699,7 +728,7 @@ krb5_fcc_read_int32(krb5_context context, krb5_ccache id, krb5_int32 *i)
     unsigned char buf[4];
     krb5_int32 val;
 
-    k5_assert_locked(&((krb5_fcc_data *) id->data)->lock);
+    k5_cc_mutex_assert_locked(context, &((krb5_fcc_data *) id->data)->lock);
 
     if ((data->version == KRB5_FCC_FVNO_1) ||
 	(data->version == KRB5_FCC_FVNO_2)) 
@@ -724,7 +753,7 @@ krb5_fcc_read_ui_2(krb5_context context, krb5_ccache id, krb5_ui_2 *i)
     krb5_error_code retval;
     unsigned char buf[2];
     
-    k5_assert_locked(&((krb5_fcc_data *) id->data)->lock);
+    k5_cc_mutex_assert_locked(context, &((krb5_fcc_data *) id->data)->lock);
 
     if ((data->version == KRB5_FCC_FVNO_1) ||
 	(data->version == KRB5_FCC_FVNO_2))
@@ -741,7 +770,7 @@ krb5_fcc_read_ui_2(krb5_context context, krb5_ccache id, krb5_ui_2 *i)
 static krb5_error_code
 krb5_fcc_read_octet(krb5_context context, krb5_ccache id, krb5_octet *i)
 {
-    k5_assert_locked(&((krb5_fcc_data *) id->data)->lock);
+    k5_cc_mutex_assert_locked(context, &((krb5_fcc_data *) id->data)->lock);
     return krb5_fcc_read(context, id, (krb5_pointer) i, 1);
 }    
 
@@ -753,7 +782,7 @@ krb5_fcc_read_times(krb5_context context, krb5_ccache id, krb5_ticket_times *t)
     krb5_error_code retval;
     krb5_int32 i;
     
-    k5_assert_locked(&((krb5_fcc_data *) id->data)->lock);
+    k5_cc_mutex_assert_locked(context, &((krb5_fcc_data *) id->data)->lock);
 
     if ((data->version == KRB5_FCC_FVNO_1) ||
 	(data->version == KRB5_FCC_FVNO_2))
@@ -788,7 +817,7 @@ krb5_fcc_read_authdata(krb5_context context, krb5_ccache id, krb5_authdata ***a)
      size_t msize;
      int i;
 
-     k5_assert_locked(&((krb5_fcc_data *) id->data)->lock);
+     k5_cc_mutex_assert_locked(context, &((krb5_fcc_data *) id->data)->lock);
 
      *a = 0;
 
@@ -814,6 +843,7 @@ krb5_fcc_read_authdata(krb5_context context, krb5_ccache id, krb5_authdata ***a)
 	  (*a)[i] = (krb5_authdata *) malloc(sizeof(krb5_authdata));
 	  if ((*a)[i] == NULL) {
 	      krb5_free_authdata(context, *a);
+	      *a = NULL;
 	      return KRB5_CC_NOMEM;
 	  }
 	  (*a)[i]->contents = NULL;
@@ -837,7 +867,7 @@ krb5_fcc_read_authdatum(krb5_context context, krb5_ccache id, krb5_authdata *a)
     krb5_int32 int32;
     krb5_ui_2 ui2;
     
-    k5_assert_locked(&((krb5_fcc_data *) id->data)->lock);
+    k5_cc_mutex_assert_locked(context, &((krb5_fcc_data *) id->data)->lock);
 
     a->magic = KV5M_AUTHDATA;
     a->contents = NULL;
@@ -868,7 +898,7 @@ krb5_fcc_read_authdatum(krb5_context context, krb5_ccache id, krb5_authdata *a)
      return KRB5_OK;
  errout:
      if (a->contents) {
-	 krb5_xfree(a->contents);
+	 free(a->contents);
 	 a->contents = NULL;
      }
      return kret;
@@ -893,7 +923,7 @@ krb5_fcc_write(krb5_context context, krb5_ccache id, krb5_pointer buf, unsigned 
 {
      int ret;
 
-     k5_assert_locked(&((krb5_fcc_data *) id->data)->lock);
+     k5_cc_mutex_assert_locked(context, &((krb5_fcc_data *) id->data)->lock);
      invalidate_cache((krb5_fcc_data *) id->data);
 
      ret = write(((krb5_fcc_data *)id->data)->file, (char *) buf, len);
@@ -927,7 +957,7 @@ krb5_fcc_store_principal(krb5_context context, krb5_ccache id, krb5_principal pr
     krb5_error_code ret;
     krb5_int32 i, length, tmp, type;
 
-    k5_assert_locked(&((krb5_fcc_data *) id->data)->lock);
+    k5_cc_mutex_assert_locked(context, &((krb5_fcc_data *) id->data)->lock);
 
     type = krb5_princ_type(context, princ);
     tmp = length = krb5_princ_size(context, princ);
@@ -965,7 +995,7 @@ krb5_fcc_store_addrs(krb5_context context, krb5_ccache id, krb5_address **addrs)
      krb5_address **temp;
      krb5_int32 i, length = 0;
 
-     k5_assert_locked(&((krb5_fcc_data *) id->data)->lock);
+     k5_cc_mutex_assert_locked(context, &((krb5_fcc_data *) id->data)->lock);
 
      /* Count the number of components */
      if (addrs) {
@@ -990,7 +1020,7 @@ krb5_fcc_store_keyblock(krb5_context context, krb5_ccache id, krb5_keyblock *key
      krb5_fcc_data *data = (krb5_fcc_data *)id->data;
      krb5_error_code ret;
 
-     k5_assert_locked(&((krb5_fcc_data *) id->data)->lock);
+     k5_cc_mutex_assert_locked(context, &((krb5_fcc_data *) id->data)->lock);
 
      ret = krb5_fcc_store_ui_2(context, id, keyblock->enctype);
      CHECK(ret);
@@ -1008,7 +1038,7 @@ krb5_fcc_store_addr(krb5_context context, krb5_ccache id, krb5_address *addr)
 {
      krb5_error_code ret;
 
-     k5_assert_locked(&((krb5_fcc_data *) id->data)->lock);
+     k5_cc_mutex_assert_locked(context, &((krb5_fcc_data *) id->data)->lock);
 
      ret = krb5_fcc_store_ui_2(context, id, addr->addrtype);
      CHECK(ret);
@@ -1023,7 +1053,7 @@ krb5_fcc_store_data(krb5_context context, krb5_ccache id, krb5_data *data)
 {
      krb5_error_code ret;
 
-     k5_assert_locked(&((krb5_fcc_data *) id->data)->lock);
+     k5_cc_mutex_assert_locked(context, &((krb5_fcc_data *) id->data)->lock);
 
      ret = krb5_fcc_store_ui_4(context, id, data->length);
      CHECK(ret);
@@ -1033,24 +1063,7 @@ krb5_fcc_store_data(krb5_context context, krb5_ccache id, krb5_data *data)
 static krb5_error_code
 krb5_fcc_store_int32(krb5_context context, krb5_ccache id, krb5_int32 i)
 {
-    krb5_fcc_data *data = (krb5_fcc_data *)id->data;
-    unsigned char buf[4];
-
-    k5_assert_locked(&((krb5_fcc_data *) id->data)->lock);
-
-    if ((data->version == KRB5_FCC_FVNO_1) ||
-	(data->version == KRB5_FCC_FVNO_2)) 
-	return krb5_fcc_write(context, id, (char *) &i, sizeof(krb5_int32));
-    else {
-        buf[3] = (unsigned char) (i & 0xFF);
-	i >>= 8;
-        buf[2] = (unsigned char) (i & 0xFF);
-	i >>= 8;
-        buf[1] = (unsigned char) (i & 0xFF);
-	i >>= 8;
-        buf[0] = (unsigned char) (i & 0xFF);
-	return krb5_fcc_write(context, id, buf, 4);
-    }
+    return krb5_fcc_store_ui_4(context, id, (krb5_ui_4) i);
 }
 
 static krb5_error_code
@@ -1059,7 +1072,7 @@ krb5_fcc_store_ui_4(krb5_context context, krb5_ccache id, krb5_ui_4 i)
     krb5_fcc_data *data = (krb5_fcc_data *)id->data;
     unsigned char buf[4];
 
-    k5_assert_locked(&((krb5_fcc_data *) id->data)->lock);
+    k5_cc_mutex_assert_locked(context, &((krb5_fcc_data *) id->data)->lock);
 
     if ((data->version == KRB5_FCC_FVNO_1) ||
 	(data->version == KRB5_FCC_FVNO_2)) 
@@ -1083,7 +1096,7 @@ krb5_fcc_store_ui_2(krb5_context context, krb5_ccache id, krb5_int32 i)
     krb5_ui_2 ibuf;
     unsigned char buf[2];
     
-    k5_assert_locked(&((krb5_fcc_data *) id->data)->lock);
+    k5_cc_mutex_assert_locked(context, &((krb5_fcc_data *) id->data)->lock);
 
     if ((data->version == KRB5_FCC_FVNO_1) ||
 	(data->version == KRB5_FCC_FVNO_2)) {
@@ -1102,7 +1115,7 @@ krb5_fcc_store_octet(krb5_context context, krb5_ccache id, krb5_int32 i)
 {
     krb5_octet ibuf;
 
-    k5_assert_locked(&((krb5_fcc_data *) id->data)->lock);
+    k5_cc_mutex_assert_locked(context, &((krb5_fcc_data *) id->data)->lock);
 
     ibuf = (krb5_octet) i;
     return krb5_fcc_write(context, id, (char *) &ibuf, 1);
@@ -1114,7 +1127,7 @@ krb5_fcc_store_times(krb5_context context, krb5_ccache id, krb5_ticket_times *t)
     krb5_fcc_data *data = (krb5_fcc_data *)id->data;
     krb5_error_code retval;
 
-    k5_assert_locked(&((krb5_fcc_data *) id->data)->lock);
+    k5_cc_mutex_assert_locked(context, &((krb5_fcc_data *) id->data)->lock);
 
     if ((data->version == KRB5_FCC_FVNO_1) ||
 	(data->version == KRB5_FCC_FVNO_2))
@@ -1139,7 +1152,7 @@ krb5_fcc_store_authdata(krb5_context context, krb5_ccache id, krb5_authdata **a)
     krb5_authdata **temp;
     krb5_int32 i, length=0;
 
-    k5_assert_locked(&((krb5_fcc_data *) id->data)->lock);
+    k5_cc_mutex_assert_locked(context, &((krb5_fcc_data *) id->data)->lock);
 
     if (a != NULL) {
 	for (temp=a; *temp; temp++)
@@ -1160,7 +1173,7 @@ krb5_fcc_store_authdatum (krb5_context context, krb5_ccache id, krb5_authdata *a
 {
     krb5_error_code ret;
 
-    k5_assert_locked(&((krb5_fcc_data *) id->data)->lock);
+    k5_cc_mutex_assert_locked(context, &((krb5_fcc_data *) id->data)->lock);
 
     ret = krb5_fcc_store_ui_2(context, id, a->ad_type);
     CHECK(ret);
@@ -1176,7 +1189,7 @@ krb5_fcc_close_file (krb5_context context, krb5_fcc_data *data)
      int ret;
      krb5_error_code retval;
 
-     k5_assert_locked(&data->lock);
+     k5_cc_mutex_assert_locked(context, &data->lock);
 
      if (data->file == NO_FILE)
 	 return KRB5_FCC_INTERNAL;
@@ -1205,7 +1218,7 @@ krb5_fcc_close_file (krb5_context context, krb5_fcc_data *data)
 static krb5_error_code
 krb5_fcc_open_file (krb5_context context, krb5_ccache id, int mode)
 {
-    krb5_os_context os_ctx = (krb5_os_context)context->os_context;
+    krb5_os_context os_ctx = &context->os_context;
     krb5_fcc_data *data = (krb5_fcc_data *)id->data;
     krb5_ui_2 fcc_fvno;
     krb5_ui_2 fcc_flen;
@@ -1215,7 +1228,7 @@ krb5_fcc_open_file (krb5_context context, krb5_ccache id, int mode)
     int lock_flag;
     krb5_error_code retval = 0;
 
-    k5_assert_locked(&data->lock);
+    k5_cc_mutex_assert_locked(context, &data->lock);
     invalidate_cache(data);
 
     if (data->file != NO_FILE) {
@@ -1240,8 +1253,19 @@ krb5_fcc_open_file (krb5_context context, krb5_ccache id, int mode)
     }
 
     f = THREEPARAMOPEN (data->filename, open_flag | O_BINARY, 0600);
-    if (f == NO_FILE)
-	return krb5_fcc_interpret (context, errno);
+    if (f == NO_FILE) {
+	switch (errno) {
+	case ENOENT:
+	    retval = KRB5_FCC_NOFILE;
+	    krb5_set_error_message(context, retval,
+				   "Credentials cache file '%s' not found",
+				   data->filename);
+	    return retval;
+	default:
+	    return krb5_fcc_interpret (context, errno);
+	}
+    }
+    set_cloexec_fd(f);
 
     data->mode = mode;
 
@@ -1387,7 +1411,7 @@ krb5_fcc_skip_header(krb5_context context, krb5_ccache id)
      krb5_error_code kret;
      krb5_ui_2 fcc_flen;
 
-     k5_assert_locked(&((krb5_fcc_data *) id->data)->lock);
+     k5_cc_mutex_assert_locked(context, &((krb5_fcc_data *) id->data)->lock);
 
      fcc_lseek(data, (off_t) sizeof(krb5_ui_2), SEEK_SET);
      if (data->version == KRB5_FCC_FVNO_4) {
@@ -1405,7 +1429,7 @@ krb5_fcc_skip_principal(krb5_context context, krb5_ccache id)
      krb5_error_code kret;
      krb5_principal princ;
 
-     k5_assert_locked(&((krb5_fcc_data *) id->data)->lock);
+     k5_cc_mutex_assert_locked(context, &((krb5_fcc_data *) id->data)->lock);
 
      kret = krb5_fcc_read_principal(context, id, &princ);
      if (kret != KRB5_OK)
@@ -1434,7 +1458,7 @@ krb5_fcc_initialize(krb5_context context, krb5_ccache id, krb5_principal princ)
      krb5_error_code kret = 0;
      int reti = 0;
 
-     kret = k5_mutex_lock(&((krb5_fcc_data *) id->data)->lock);
+     kret = k5_cc_mutex_lock(context, &((krb5_fcc_data *) id->data)->lock);
      if (kret)
 	 return kret;
 
@@ -1450,7 +1474,7 @@ krb5_fcc_initialize(krb5_context context, krb5_ccache id, krb5_principal princ)
          if (reti == -1) {
              kret = krb5_fcc_interpret(context, errno);
              MAYBE_CLOSE(context, id, kret);
-	     k5_mutex_unlock(&((krb5_fcc_data *) id->data)->lock);
+	     k5_cc_mutex_unlock(context, &((krb5_fcc_data *) id->data)->lock);
              return kret;
          }
      }
@@ -1458,7 +1482,7 @@ krb5_fcc_initialize(krb5_context context, krb5_ccache id, krb5_principal princ)
      kret = krb5_fcc_store_principal(context, id, princ);
 
      MAYBE_CLOSE(context, id, kret);
-     k5_mutex_unlock(&((krb5_fcc_data *) id->data)->lock);
+     k5_cc_mutex_unlock(context, &((krb5_fcc_data *) id->data)->lock);
      krb5_change_cache ();
      return kret;
 }
@@ -1472,7 +1496,7 @@ static krb5_error_code dereference(krb5_context context, krb5_fcc_data *data)
     krb5_error_code kerr;
     struct fcc_set **fccsp;
 
-    kerr = k5_mutex_lock(&krb5int_cc_file_mutex);
+    kerr = k5_cc_mutex_lock(context, &krb5int_cc_file_mutex);
     if (kerr)
 	return kerr;
     for (fccsp = &fccs; *fccsp != NULL; fccsp = &(*fccsp)->next)
@@ -1487,19 +1511,21 @@ static krb5_error_code dereference(krb5_context context, krb5_fcc_data *data)
 	temp = *fccsp;
 	*fccsp = (*fccsp)->next;
 	free(temp);
-	k5_mutex_unlock(&krb5int_cc_file_mutex);
-	k5_mutex_assert_unlocked(&data->lock);
+	k5_cc_mutex_unlock(context, &krb5int_cc_file_mutex);
+	k5_cc_mutex_assert_unlocked(context, &data->lock);
 	free(data->filename);
 	zap(data->buf, sizeof(data->buf));
 	if (data->file >= 0) {
-	    k5_mutex_lock(&data->lock);
+	    kerr = k5_cc_mutex_lock(context, &data->lock);
+	    if (kerr)
+		return kerr;
 	    krb5_fcc_close_file(context, data);
-	    k5_mutex_unlock(&data->lock);
+	    k5_cc_mutex_unlock(context, &data->lock);
 	}
-	k5_mutex_destroy(&data->lock);
+	k5_cc_mutex_destroy(&data->lock);
 	free(data);
     } else
-	k5_mutex_unlock(&krb5int_cc_file_mutex);
+	k5_cc_mutex_unlock(context, &krb5int_cc_file_mutex);
     return 0;
 }
 
@@ -1515,7 +1541,7 @@ static krb5_error_code KRB5_CALLCONV
 krb5_fcc_close(krb5_context context, krb5_ccache id)
 {
      dereference(context, (krb5_fcc_data *) id->data);
-     krb5_xfree(id);
+     free(id);
      return KRB5_OK;
 }
 
@@ -1538,7 +1564,7 @@ krb5_fcc_destroy(krb5_context context, krb5_ccache id)
      unsigned int wlen;
      char zeros[BUFSIZ];
 
-     kret = k5_mutex_lock(&data->lock);
+     kret = k5_cc_mutex_lock(context, &data->lock);
      if (kret)
 	 return kret;
 
@@ -1550,6 +1576,7 @@ krb5_fcc_destroy(krb5_context context, krb5_ccache id)
 	      kret = krb5_fcc_interpret(context, errno);
 	      goto cleanup;
 	  }
+	  set_cloexec_fd(ret);
 	  data->file = ret;
      }
      else
@@ -1647,9 +1674,9 @@ krb5_fcc_destroy(krb5_context context, krb5_ccache id)
 #endif /* MSDOS_FILESYSTEM */
 
   cleanup:
-     k5_mutex_unlock(&data->lock);
+     k5_cc_mutex_unlock(context, &data->lock);
      dereference(context, data);
-     krb5_xfree(id);
+     free(id);
 
      krb5_change_cache ();
      return kret;
@@ -1684,7 +1711,7 @@ krb5_fcc_resolve (krb5_context context, krb5_ccache *id, const char *residual)
      krb5_fcc_data *data;
      struct fcc_set *setptr;
 
-     kret = k5_mutex_lock(&krb5int_cc_file_mutex);
+     kret = k5_cc_mutex_lock(context, &krb5int_cc_file_mutex);
      if (kret)
 	 return kret;
      for (setptr = fccs; setptr; setptr = setptr->next) {
@@ -1696,35 +1723,35 @@ krb5_fcc_resolve (krb5_context context, krb5_ccache *id, const char *residual)
 	 assert(setptr->refcount != 0);
 	 setptr->refcount++;
 	 assert(setptr->refcount != 0);
-	 kret = k5_mutex_lock(&data->lock);
+	 kret = k5_cc_mutex_lock(context, &data->lock);
 	 if (kret) {
-	     k5_mutex_unlock(&krb5int_cc_file_mutex);
+	     k5_cc_mutex_unlock(context, &krb5int_cc_file_mutex);
 	     return kret;
 	 }
-	 k5_mutex_unlock(&krb5int_cc_file_mutex);
+	 k5_cc_mutex_unlock(context, &krb5int_cc_file_mutex);
      } else {
 	 data = malloc(sizeof(krb5_fcc_data));
 	 if (data == NULL) {
-	     k5_mutex_unlock(&krb5int_cc_file_mutex);
+	     k5_cc_mutex_unlock(context, &krb5int_cc_file_mutex);
 	     return KRB5_CC_NOMEM;
 	 }
 	 data->filename = strdup(residual);
 	 if (data->filename == NULL) {
-	     k5_mutex_unlock(&krb5int_cc_file_mutex);
+	     k5_cc_mutex_unlock(context, &krb5int_cc_file_mutex);
 	     free(data);
 	     return KRB5_CC_NOMEM;
 	 }
-	 kret = k5_mutex_init(&data->lock);
+	 kret = k5_cc_mutex_init(&data->lock);
 	 if (kret) {
-	     k5_mutex_unlock(&krb5int_cc_file_mutex);
+	     k5_cc_mutex_unlock(context, &krb5int_cc_file_mutex);
 	     free(data->filename);
 	     free(data);
 	     return kret;
 	 }
-	 kret = k5_mutex_lock(&data->lock);
+	 kret = k5_cc_mutex_lock(context, &data->lock);
 	 if (kret) {
-	     k5_mutex_unlock(&krb5int_cc_file_mutex);
-	     k5_mutex_destroy(&data->lock);
+	     k5_cc_mutex_unlock(context, &krb5int_cc_file_mutex);
+	     k5_cc_mutex_destroy(&data->lock);
 	     free(data->filename);
 	     free(data);
 	     return kret;
@@ -1736,8 +1763,9 @@ krb5_fcc_resolve (krb5_context context, krb5_ccache *id, const char *residual)
 	 data->valid_bytes = 0;
 	 setptr = malloc(sizeof(struct fcc_set));
 	 if (setptr == NULL) {
-	     k5_mutex_unlock(&krb5int_cc_file_mutex);
-	     k5_mutex_destroy(&data->lock);
+	     k5_cc_mutex_unlock(context, &krb5int_cc_file_mutex);
+	     k5_cc_mutex_unlock(context, &data->lock);
+	     k5_cc_mutex_destroy(&data->lock);
 	     free(data->filename);
 	     free(data);
 	     return KRB5_CC_NOMEM;
@@ -1746,11 +1774,11 @@ krb5_fcc_resolve (krb5_context context, krb5_ccache *id, const char *residual)
 	 setptr->data = data;
 	 setptr->next = fccs;
 	 fccs = setptr;
-	 k5_mutex_unlock(&krb5int_cc_file_mutex);
+	 k5_cc_mutex_unlock(context, &krb5int_cc_file_mutex);
      }
 
-     k5_mutex_assert_locked(&data->lock);
-     k5_mutex_unlock(&data->lock);
+     k5_cc_mutex_assert_locked(context, &data->lock);
+     k5_cc_mutex_unlock(context, &data->lock);
      lid = (krb5_ccache) malloc(sizeof(struct _krb5_ccache));
      if (lid == NULL) {
 	 dereference(context, data);
@@ -1788,36 +1816,42 @@ krb5_fcc_start_seq_get(krb5_context context, krb5_ccache id,
      krb5_error_code kret = KRB5_OK;
      krb5_fcc_data *data = (krb5_fcc_data *)id->data;
 
-     kret = k5_mutex_lock(&data->lock);
+     kret = k5_cc_mutex_lock(context, &data->lock);
      if (kret)
 	 return kret;
 
      fcursor = (krb5_fcc_cursor *) malloc(sizeof(krb5_fcc_cursor));
      if (fcursor == NULL) {
-	 k5_mutex_unlock(&data->lock);
+	 k5_cc_mutex_unlock(context, &data->lock);
 	 return KRB5_CC_NOMEM;
      }
      if (OPENCLOSE(id)) {
           kret = krb5_fcc_open_file(context, id, FCC_OPEN_RDONLY);
           if (kret) {
-              krb5_xfree(fcursor);
-	      k5_mutex_unlock(&data->lock);
+              free(fcursor);
+	      k5_cc_mutex_unlock(context, &data->lock);
               return kret;
           }
      }
 
      /* Make sure we start reading right after the primary principal */
      kret = krb5_fcc_skip_header(context, id);
-     if (kret) goto done;
+     if (kret) {
+         free(fcursor);
+	 goto done;
+     }
      kret = krb5_fcc_skip_principal(context, id);
-     if (kret) goto done;
+     if (kret) {
+         free(fcursor);
+	 goto done;
+     }
 
      fcursor->pos = fcc_lseek(data, (off_t) 0, SEEK_CUR);
      *cursor = (krb5_cc_cursor) fcursor;
 
 done:
      MAYBE_CLOSE(context, id, kret);
-     k5_mutex_unlock(&data->lock);
+     k5_cc_mutex_unlock(context, &data->lock);
      return kret;
 }
 
@@ -1853,7 +1887,7 @@ krb5_fcc_next_cred(krb5_context context, krb5_ccache id, krb5_cc_cursor *cursor,
      krb5_octet octet;
      krb5_fcc_data *d = (krb5_fcc_data *) id->data;
 
-     kret = k5_mutex_lock(&d->lock);
+     kret = k5_cc_mutex_lock(context, &d->lock);
      if (kret)
 	 return kret;
 
@@ -1865,7 +1899,7 @@ krb5_fcc_next_cred(krb5_context context, krb5_ccache id, krb5_cc_cursor *cursor,
      if (kret) {
 	 kret = krb5_fcc_interpret(context, errno);
 	 MAYBE_CLOSE(context, id, kret);
-	 k5_mutex_unlock(&d->lock);
+	 k5_cc_mutex_unlock(context, &d->lock);
 	 return kret;
      }
 
@@ -1893,11 +1927,10 @@ krb5_fcc_next_cred(krb5_context context, krb5_ccache id, krb5_cc_cursor *cursor,
      TCHECK(kret);
      
      fcursor->pos = fcc_lseek(d, (off_t) 0, SEEK_CUR);
-     cursor = (krb5_cc_cursor *) fcursor;
 
 lose:
      MAYBE_CLOSE (context, id, kret);
-     k5_mutex_unlock(&d->lock);
+     k5_cc_mutex_unlock(context, &d->lock);
      if (kret != KRB5_OK)
 	 krb5_free_cred_contents(context, creds);
      return kret;
@@ -1926,7 +1959,7 @@ krb5_fcc_end_seq_get(krb5_context context, krb5_ccache id, krb5_cc_cursor *curso
         and if not, fcc_start_seq_get and/or fcc_next_cred will do the
         MAYBE_CLOSE.
      MAYBE_CLOSE(context, id, kret); */
-     krb5_xfree((krb5_fcc_cursor *) *cursor);
+     free((krb5_fcc_cursor *) *cursor);
      return 0;
 }
 
@@ -1960,59 +1993,49 @@ krb5_fcc_generate_new (krb5_context context, krb5_ccache *id)
      struct fcc_set *setptr;
      
      /* Set master lock */
-     kret = k5_mutex_lock(&krb5int_cc_file_mutex);
+     kret = k5_cc_mutex_lock(context, &krb5int_cc_file_mutex);
      if (kret)
 	 return kret;
 
-     (void) strcpy(scratch, TKT_ROOT);
-     (void) strcat(scratch, "XXXXXX");
-#ifdef HAVE_MKSTEMP
+     (void) snprintf(scratch, sizeof(scratch), "%sXXXXXX", TKT_ROOT);
      ret = mkstemp(scratch);
      if (ret == -1) {
-         k5_mutex_unlock(&krb5int_cc_file_mutex);
+         k5_cc_mutex_unlock(context, &krb5int_cc_file_mutex);
 	 return krb5_fcc_interpret(context, errno);
      }
-#else /*HAVE_MKSTEMP*/
-     mktemp(scratch);
-     /* Make sure the file name is reserved */
-     ret = THREEPARAMOPEN(scratch, O_CREAT | O_EXCL | O_WRONLY | O_BINARY, 0);
-     if (ret == -1) {
-	  return krb5_fcc_interpret(context, errno);
-     }
-#endif
+     set_cloexec_fd(ret);
 
      /* Allocate memory */
      data = (krb5_pointer) malloc(sizeof(krb5_fcc_data));
      if (data == NULL) {
+	  k5_cc_mutex_unlock(context, &krb5int_cc_file_mutex);
 	  close(ret);
 	  unlink(scratch);
-	  k5_mutex_unlock(&krb5int_cc_file_mutex);
 	  return KRB5_CC_NOMEM;
      }
 
      data->filename = strdup(scratch);
      if (data->filename == NULL) {
-          k5_mutex_unlock(&krb5int_cc_file_mutex);
+	  k5_cc_mutex_unlock(context, &krb5int_cc_file_mutex);
 	  free(data);
 	  close(ret);
 	  unlink(scratch);
-	  k5_mutex_unlock(&krb5int_cc_file_mutex);
 	  return KRB5_CC_NOMEM;
      }
 
-     kret = k5_mutex_init(&data->lock);
+     kret = k5_cc_mutex_init(&data->lock);
      if (kret) {
-       k5_mutex_unlock(&krb5int_cc_file_mutex);
+       k5_cc_mutex_unlock(context, &krb5int_cc_file_mutex);
        free(data->filename);
        free(data);
        close(ret);
        unlink(scratch);
        return kret;
      }
-     kret = k5_mutex_lock(&data->lock);
+     kret = k5_cc_mutex_lock(context, &data->lock);
      if (kret) {
-       k5_mutex_unlock(&krb5int_cc_file_mutex);
-       k5_mutex_destroy(&data->lock);
+       k5_cc_mutex_unlock(context, &krb5int_cc_file_mutex);
+       k5_cc_mutex_destroy(&data->lock);
        free(data->filename);
        free(data);
        close(ret);
@@ -2067,8 +2090,9 @@ krb5_fcc_generate_new (krb5_context context, krb5_ccache *id)
 
      setptr = malloc(sizeof(struct fcc_set));
      if (setptr == NULL) {
-       k5_mutex_unlock(&krb5int_cc_file_mutex);
-       k5_mutex_destroy(&data->lock);
+       k5_cc_mutex_unlock(context, &krb5int_cc_file_mutex);
+       k5_cc_mutex_unlock(context, &data->lock);
+       k5_cc_mutex_destroy(&data->lock);
        free(data->filename);
        free(data);
        (void) close(ret);
@@ -2079,10 +2103,10 @@ krb5_fcc_generate_new (krb5_context context, krb5_ccache *id)
      setptr->data = data;
      setptr->next = fccs;
      fccs = setptr;
-     k5_mutex_unlock(&krb5int_cc_file_mutex);
+     k5_cc_mutex_unlock(context, &krb5int_cc_file_mutex);
 
-     k5_mutex_assert_locked(&data->lock);
-     k5_mutex_unlock(&data->lock);
+     k5_cc_mutex_assert_locked(context, &data->lock);
+     k5_cc_mutex_unlock(context, &data->lock);
      lid = (krb5_ccache) malloc(sizeof(struct _krb5_ccache));
      if (lid == NULL) {
 	 dereference(context, data);
@@ -2104,8 +2128,9 @@ krb5_fcc_generate_new (krb5_context context, krb5_ccache *id)
      return KRB5_OK;
 
 err_out:
-     k5_mutex_unlock(&krb5int_cc_file_mutex);
-     k5_mutex_destroy(&data->lock);
+     k5_cc_mutex_unlock(context, &krb5int_cc_file_mutex);
+     k5_cc_mutex_unlock(context, &data->lock);
+     k5_cc_mutex_destroy(&data->lock);
      free(data->filename);
      free(data);
      return kret;
@@ -2142,7 +2167,7 @@ krb5_fcc_get_principal(krb5_context context, krb5_ccache id, krb5_principal *pri
 {
      krb5_error_code kret = KRB5_OK;
 
-     kret = k5_mutex_lock(&((krb5_fcc_data *) id->data)->lock);
+     kret = k5_cc_mutex_lock(context, &((krb5_fcc_data *) id->data)->lock);
      if (kret)
 	 return kret;
 
@@ -2155,7 +2180,7 @@ krb5_fcc_get_principal(krb5_context context, krb5_ccache id, krb5_principal *pri
 
 done:
      MAYBE_CLOSE(context, id, kret);
-     k5_mutex_unlock(&((krb5_fcc_data *) id->data)->lock);
+     k5_cc_mutex_unlock(context, &((krb5_fcc_data *) id->data)->lock);
      return kret;
 }
 
@@ -2185,7 +2210,7 @@ krb5_fcc_store(krb5_context context, krb5_ccache id, krb5_creds *creds)
 #define TCHECK(ret) if (ret != KRB5_OK) goto lose;
      krb5_error_code ret;
 
-     ret = k5_mutex_lock(&((krb5_fcc_data *) id->data)->lock);
+     ret = k5_cc_mutex_lock(context, &((krb5_fcc_data *) id->data)->lock);
      if (ret)
 	 return ret;
 
@@ -2196,7 +2221,7 @@ krb5_fcc_store(krb5_context context, krb5_ccache id, krb5_creds *creds)
      ret = fcc_lseek((krb5_fcc_data *) id->data, (off_t) 0, SEEK_END);
      if (ret < 0) {
           MAYBE_CLOSE_IGNORE(context, id);
-	  k5_mutex_unlock(&((krb5_fcc_data *) id->data)->lock);
+	  k5_cc_mutex_unlock(context, &((krb5_fcc_data *) id->data)->lock);
 	  return krb5_fcc_interpret(context, errno);
      }
 
@@ -2223,7 +2248,7 @@ krb5_fcc_store(krb5_context context, krb5_ccache id, krb5_creds *creds)
 
 lose:
      MAYBE_CLOSE(context, id, ret);
-     k5_mutex_unlock(&((krb5_fcc_data *) id->data)->lock);
+     k5_cc_mutex_unlock(context, &((krb5_fcc_data *) id->data)->lock);
      krb5_change_cache ();
      return ret;
 #undef TCHECK
@@ -2258,7 +2283,7 @@ krb5_fcc_set_flags(krb5_context context, krb5_ccache id, krb5_flags flags)
 {
     krb5_error_code ret = KRB5_OK;
 
-    ret = k5_mutex_lock(&((krb5_fcc_data *) id->data)->lock);
+    ret = k5_cc_mutex_lock(context, &((krb5_fcc_data *) id->data)->lock);
     if (ret)
 	return ret;
 
@@ -2276,7 +2301,7 @@ krb5_fcc_set_flags(krb5_context context, krb5_ccache id, krb5_flags flags)
     }
 
     ((krb5_fcc_data *) id->data)->flags = flags;
-    k5_mutex_unlock(&((krb5_fcc_data *) id->data)->lock);
+    k5_cc_mutex_unlock(context, &((krb5_fcc_data *) id->data)->lock);
     return ret;
 }
 
@@ -2296,14 +2321,172 @@ krb5_fcc_get_flags(krb5_context context, krb5_ccache id, krb5_flags *flags)
 {
     krb5_error_code ret = KRB5_OK;
 
-    ret = k5_mutex_lock(&((krb5_fcc_data *) id->data)->lock);
+    ret = k5_cc_mutex_lock(context, &((krb5_fcc_data *) id->data)->lock);
     if (ret)
 	return ret;
     *flags = ((krb5_fcc_data *) id->data)->flags;
-    k5_mutex_unlock(&((krb5_fcc_data *) id->data)->lock);
+    k5_cc_mutex_unlock(context, &((krb5_fcc_data *) id->data)->lock);
     return ret;
 }
 
+static krb5_error_code KRB5_CALLCONV
+krb5_fcc_ptcursor_new(krb5_context context, krb5_cc_ptcursor *cursor)
+{
+    krb5_error_code ret = 0;
+    krb5_cc_ptcursor n = NULL;
+    struct krb5_fcc_ptcursor_data *cdata = NULL;
+
+    *cursor = NULL;
+
+    n = malloc(sizeof(*n));
+    if (n == NULL)
+        return ENOMEM;
+    n->ops = &krb5_fcc_ops;
+    cdata = malloc(sizeof(struct krb5_fcc_ptcursor_data));
+    if (cdata == NULL) {
+        ret = ENOMEM;
+        goto errout;
+    }
+    n->data = cdata;
+    ret = k5_cc_mutex_lock(context, &krb5int_cc_file_mutex);
+    if (ret)
+        goto errout;
+    cdata->cur = fccs;
+    ret = k5_cc_mutex_unlock(context, &krb5int_cc_file_mutex);
+    if (ret)
+        goto errout;
+
+errout:
+        if (ret) {
+            krb5_fcc_ptcursor_free(context, &n);
+        }
+    *cursor = n;
+    return ret;
+}
+
+static krb5_error_code KRB5_CALLCONV
+krb5_fcc_ptcursor_next(krb5_context context,
+                       krb5_cc_ptcursor cursor,
+                       krb5_ccache *ccache)
+{
+    krb5_error_code ret = 0;
+    struct krb5_fcc_ptcursor_data *cdata = NULL;
+    krb5_ccache n;
+
+    *ccache = NULL;
+    n = malloc(sizeof(*n));
+    if (n == NULL)
+        return ENOMEM;
+
+    cdata = cursor->data;
+
+    ret = k5_cc_mutex_lock(context, &krb5int_cc_file_mutex);
+    if (ret)
+        goto errout;
+
+    if (cdata->cur == NULL) {
+        k5_cc_mutex_unlock(context, &krb5int_cc_file_mutex);
+        free(n);
+        n = NULL;
+        goto errout;
+    }
+
+    n->ops = &krb5_fcc_ops;
+    n->data = cdata->cur->data;
+    cdata->cur->refcount++;
+
+    cdata->cur = cdata->cur->next;
+
+    ret = k5_cc_mutex_unlock(context, &krb5int_cc_file_mutex);
+    if (ret)
+        goto errout;
+errout:
+        if (ret && n != NULL) {
+            free(n);
+            n = NULL;
+        }
+    *ccache = n;
+    return ret;
+}
+
+static krb5_error_code KRB5_CALLCONV
+krb5_fcc_ptcursor_free(krb5_context context,
+                       krb5_cc_ptcursor *cursor)
+{
+    if (*cursor == NULL)
+        return 0;
+    if ((*cursor)->data != NULL)
+        free((*cursor)->data);
+    free(*cursor);
+    *cursor = NULL;
+    return 0;
+}
+
+/*
+ * Modifies:
+ * change_time
+ *
+ * Effects:
+ * Returns the timestamp of id's file modification date.
+ * If an error occurs, change_time is set to 0.
+ */
+static krb5_error_code KRB5_CALLCONV
+krb5_fcc_last_change_time(krb5_context context, krb5_ccache id,
+            krb5_timestamp *change_time)
+{
+    krb5_error_code kret = KRB5_OK;
+    krb5_fcc_data *data = (krb5_fcc_data *) id->data;
+
+    kret = krb5_fcc_data_last_change_time(context, data, change_time);
+
+    return kret;
+}
+
+static krb5_error_code KRB5_CALLCONV krb5_fcc_lock(krb5_context context,
+            krb5_ccache id)
+{
+    krb5_error_code ret = 0;
+    krb5_fcc_data *data = (krb5_fcc_data *) id->data;
+    ret = k5_cc_mutex_lock(context, &data->lock);
+    return ret;
+}
+
+static krb5_error_code KRB5_CALLCONV krb5_fcc_unlock(krb5_context context,
+            krb5_ccache id)
+{
+    krb5_error_code ret = 0;
+    krb5_fcc_data *data = (krb5_fcc_data *) id->data;
+    ret = k5_cc_mutex_unlock(context, &data->lock);
+    return ret;
+}
+
+static krb5_error_code
+krb5_fcc_data_last_change_time(krb5_context context, krb5_fcc_data *data,
+            krb5_timestamp *change_time)
+{
+    krb5_error_code kret = KRB5_OK;
+    register int ret;
+
+    struct stat buf;
+
+    *change_time = 0;
+
+    kret = k5_cc_mutex_lock(context, &data->lock);
+    if (kret) {
+        return kret;
+    }
+
+    ret = stat(data->filename, &buf);
+    if (ret == -1) {
+        kret = krb5_fcc_interpret(context, errno);
+    } else {
+        *change_time = (krb5_timestamp) buf.st_mtime;
+    }
+
+    k5_cc_mutex_unlock(context, &data->lock);
+
+    return kret;
+}
 
 static krb5_error_code
 krb5_fcc_interpret(krb5_context context, int errnum)
@@ -2376,6 +2559,14 @@ const krb5_cc_ops krb5_fcc_ops = {
      krb5_fcc_remove_cred,
      krb5_fcc_set_flags,
      krb5_fcc_get_flags,
+     krb5_fcc_ptcursor_new,
+     krb5_fcc_ptcursor_next,
+     krb5_fcc_ptcursor_free,
+     NULL, /* move */
+     krb5_fcc_last_change_time,
+     NULL, /* wasdefault */
+     krb5_fcc_lock,
+     krb5_fcc_unlock,
 };
 
 #if defined(_WIN32)
@@ -2437,10 +2628,12 @@ const krb5_cc_ops krb5_cc_file_ops = {
      krb5_fcc_remove_cred,
      krb5_fcc_set_flags,
      krb5_fcc_get_flags,
-     NULL,
-     NULL,
-     NULL,
-     NULL,
-     NULL,
-     NULL,
+     krb5_fcc_ptcursor_new,
+     krb5_fcc_ptcursor_next,
+     krb5_fcc_ptcursor_free,
+     NULL, /* move */
+     krb5_fcc_last_change_time,
+     NULL, /* wasdefault */
+     krb5_fcc_lock,
+     krb5_fcc_unlock,
 };

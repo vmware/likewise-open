@@ -36,6 +36,8 @@
 #include <unistd.h>
 #include <dirent.h>
 
+#include "k5-platform.h"
+
 /*
  * Q: What is this SILLYDECRYPT stuff about?
  * A: When using the ActivCard Linux pkcs11 library (v2.0.1),
@@ -2257,6 +2259,9 @@ server_process_dh(krb5_context context,
     unsigned char *p = NULL;
     ASN1_INTEGER *pub_key = NULL;
 
+    *dh_pubkey = *server_key = NULL;
+    *dh_pubkey_len = *server_key_len = 0;
+
     /* get client's received DH parameters that we saved in server_check_dh */
     dh = cryptoctx->dh;
 
@@ -3198,6 +3203,7 @@ pkinit_login(krb5_context context,
 {
     krb5_data rdat;
     char *prompt;
+    const char *warning;
     krb5_prompt kprompt;
     krb5_prompt_type prompt_type;
     int r = 0;
@@ -3206,15 +3212,17 @@ pkinit_login(krb5_context context,
 	rdat.data = NULL;
 	rdat.length = 0;
     } else {
-	if ((prompt = (char *) malloc(sizeof (tip->label) + 32)) == NULL)
-	    return ENOMEM;
-	sprintf(prompt, "%.*s PIN", sizeof (tip->label), tip->label);
 	if (tip->flags & CKF_USER_PIN_LOCKED)
-	    strcat(prompt, " (Warning: PIN locked)");
+	    warning = " (Warning: PIN locked)";
 	else if (tip->flags & CKF_USER_PIN_FINAL_TRY)
-	    strcat(prompt, " (Warning: PIN final try)");
+	    warning = " (Warning: PIN final try)";
 	else if (tip->flags & CKF_USER_PIN_COUNT_LOW)
-	    strcat(prompt, " (Warning: PIN count low)");
+	    warning = " (Warning: PIN count low)";
+	else
+	    warning = "";
+	if (asprintf(&prompt, "%.*s PIN%s", (int) sizeof (tip->label),
+		     tip->label, warning) < 0)
+	    return ENOMEM;
 	rdat.data = (char *)malloc(tip->ulMaxPinLen + 2);
 	rdat.length = tip->ulMaxPinLen + 1;
 
@@ -3736,6 +3744,7 @@ pkinit_get_certs_pkcs12(krb5_context context,
 		 idopts->cert_filename, errno);
 	goto cleanup;
     }
+    set_cloexec_file(fp);
 
     p12 = d2i_PKCS12_fp(fp, NULL);
     fclose(fp);
@@ -5607,6 +5616,6 @@ pkinit_pkcs11_code_to_text(int err)
 	    break;
     if (pkcs11_errstrings[i].text != NULL)
 	return (pkcs11_errstrings[i].text);
-    sprintf(uc, "unknown code 0x%x", err);
+    snprintf(uc, sizeof(uc), "unknown code 0x%x", err);
     return (uc);
 }

@@ -32,8 +32,8 @@ struct profile_node {
 	char *name;
 	char *value;
 	int group_level;
-	int final:1;		/* Indicate don't search next file */
-	int deleted:1;
+	unsigned int final:1;		/* Indicate don't search next file */
+	unsigned int deleted:1;
 	struct profile_node *first_child;
 	struct profile_node *parent;
 	struct profile_node *next, *prev;
@@ -92,6 +92,8 @@ errcode_t profile_create_node(const char *name, const char *value,
 	if (!new)
 		return ENOMEM;
 	memset(new, 0, sizeof(struct profile_node));
+	/* Set magic here so profile_free_node will free memory */
+	new->magic = PROF_MAGIC_NODE;
 	new->name = strdup(name);
 	if (new->name == 0) {
 	    profile_free_node(new);
@@ -104,7 +106,6 @@ errcode_t profile_create_node(const char *name, const char *value,
 		    return ENOMEM;
 		}
 	}
-	new->magic = PROF_MAGIC_NODE;
 
 	*ret_node = new;
 	return 0;
@@ -637,11 +638,10 @@ errcode_t profile_set_relation_value(struct profile_node *node,
 	if (!node->value)
 		return PROF_SET_SECTION_VALUE;
 
-	cp = malloc(strlen(new_value)+1);
+	cp = strdup(new_value);
 	if (!cp)
 		return ENOMEM;
 
-	strcpy(cp, new_value);
 	free(node->value);
 	node->value = cp;
 
@@ -666,10 +666,9 @@ errcode_t profile_rename_node(struct profile_node *node, const char *new_name)
 	/*
 	 * Make sure we can allocate memory for the new name, first!
 	 */
-	new_string = malloc(strlen(new_name)+1);
+	new_string = strdup(new_name);
 	if (!new_string)
 		return ENOMEM;
-	strcpy(new_string, new_name);
 
 	/*
 	 * Find the place to where the new node should go.  We look

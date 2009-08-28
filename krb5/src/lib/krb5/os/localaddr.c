@@ -1,7 +1,7 @@
 /*
  * lib/krb5/os/localaddr.c
  *
- * Copyright 1990,1991,2000,2001,2002,2004 by the Massachusetts Institute of Technology.
+ * Copyright 1990,1991,2000,2001,2002,2004,2007,2008 by the Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
  * Export of this software from the United States of America may
@@ -27,8 +27,7 @@
  * Return the protocol addresses supported by this host.
  * Exports from this file:
  *   krb5int_foreach_localaddr (does callbacks)
- *   krb5int_local_addresses (includes krb5.conf extra_addresses)
- *   krb5_os_localaddr (doesn't)
+ *   krb5_os_localaddr (doesn't include krb5.conf extra_addresses)
  *
  * XNS support is untested, but "Should just work".  (Hah!)
  */
@@ -173,6 +172,25 @@ void printaddr (struct sockaddr *sa)
 	printf ("%s", buf);
 }
 #endif
+
+static int
+is_loopback_address(struct sockaddr *sa)
+{
+    switch (sa->sa_family) {
+    case AF_INET: {
+	struct sockaddr_in *s4 = (struct sockaddr_in *)sa;
+	return s4->sin_addr.s_addr == htonl(INADDR_LOOPBACK);
+    }
+#ifdef KRB5_USE_INET6
+    case AF_INET6: {
+	struct sockaddr_in6 *s6 = (struct sockaddr_in6 *)sa;
+	return IN6_IS_ADDR_LOOPBACK(&s6->sin6_addr);
+    }
+#endif /* KRB5_USER_INET6 */
+    default:
+	return 0;
+    }
+}
 
 #ifdef HAVE_IFADDRS_H
 #include <ifaddrs.h>
@@ -363,6 +381,7 @@ get_linux_ipv6_addrs ()
 	int i;
 	unsigned int addrbyte[16];
 
+	set_cloexec_file(f);
 	while (fscanf(f,
 		      "%2x%2x%2x%2x%2x%2x%2x%2x%2x%2x%2x%2x%2x%2x%2x%2x"
 		      " %2x %2x %2x %2x %20s\n",
@@ -390,10 +409,9 @@ get_linux_ipv6_addrs ()
 		continue;
 	    }
 #endif
-	    nw = malloc (sizeof (struct linux_ipv6_addr_list));
+	    nw = calloc (1, sizeof (struct linux_ipv6_addr_list));
 	    if (nw == 0)
 		continue;
-	    memset (nw, 0, sizeof (*nw));
 	    nw->addr.sin6_addr = a6;
 	    nw->addr.sin6_family = AF_INET6;
 	    /* Ignore other fields, we don't actually use them here.  */
@@ -436,12 +454,6 @@ foreach_localaddr (/*@null@*/ void *data,
 #endif
 	if ((ifp->ifa_flags & IFF_UP) == 0)
 	    continue;
-	if (ifp->ifa_flags & IFF_LOOPBACK) {
-	    /* Pretend it's not up, so the second pass will skip
-	       it.  */
-	    ifp->ifa_flags &= ~IFF_UP;
-	    continue;
-	}
 	if (ifp->ifa_addr == NULL) {
 	    /* Can't use an interface without an address.  Linux
 	       apparently does this sometimes.  [RT ticket 1770 from
@@ -454,12 +466,16 @@ foreach_localaddr (/*@null@*/ void *data,
 	    ifp->ifa_flags &= ~IFF_UP;
 	    continue;
 	}
+	if (is_loopback_address(ifp->ifa_addr)) {
+	    /* Pretend it's not up, so the second pass will skip
+	       it.  */
+	    ifp->ifa_flags &= ~IFF_UP;
+	    continue;
+	}
 	/* If this address is a duplicate, punt.  */
 	match = 0;
 	for (ifp2 = ifp_head; ifp2 && ifp2 != ifp; ifp2 = ifp2->ifa_next) {
 	    if ((ifp2->ifa_flags & IFF_UP) == 0)
-		continue;
-	    if (ifp2->ifa_flags & IFF_LOOPBACK)
 		continue;
 	    if (addr_eq (ifp->ifa_addr, ifp2->ifa_addr)) {
 		match = 1;
@@ -543,6 +559,7 @@ foreach_localaddr (/*@null@*/ void *data,
 	    Tperror ("socket");
 	    continue;
 	}
+	set_cloexec_fd(P.sock);
 
 	P.lifnum.lifn_family = P.af;
 	P.lifnum.lifn_flags = 0;
@@ -557,7 +574,7 @@ foreach_localaddr (/*@null@*/ void *data,
 	P.buf_size = P.lifnum.lifn_count * sizeof (struct lifreq) * 2;
 	P.buf = malloc (P.buf_size);
 	if (P.buf == NULL) {
-	    retval = errno;
+	    retval = ENOMEM;
 	    goto punt;
 	}
 
@@ -583,13 +600,11 @@ foreach_localaddr (/*@null@*/ void *data,
 	    }
 	    /*@=moduncon@*/
 
-#ifdef IFF_LOOPBACK
 	    /* None of the current callers want loopback addresses.  */
-	    if (lifreq.lifr_flags & IFF_LOOPBACK) {
+	    if (is_loopback_address((struct sockaddr *)&lifr->lifr_addr)) {
 		Tprintf (("  loopback\n"));
 		goto skip;
 	    }
-#endif
 	    /* Ignore interfaces that are down.  */
 	    if ((lifreq.lifr_flags & IFF_UP) == 0) {
 		Tprintf (("  down\n"));
@@ -718,6 +733,7 @@ foreach_localaddr (/*@null@*/ void *data,
 	    Tperror ("socket");
 	    continue;
 	}
+	set_cloexec_fd(P.sock);
 
 	code = ioctl (P.sock, SIOCGLIFNUM, &P.if_num);
 	if (code) {
@@ -729,7 +745,7 @@ foreach_localaddr (/*@null@*/ void *data,
 	P.buf_size = P.if_num * sizeof (struct if_laddrreq) * 2;
 	P.buf = malloc (P.buf_size);
 	if (P.buf == NULL) {
-	    retval = errno;
+	    retval = ENOMEM;
 	    goto punt;
 	}
 
@@ -755,13 +771,11 @@ foreach_localaddr (/*@null@*/ void *data,
 	    }
 	    /*@=moduncon@*/
 
-#ifdef IFF_LOOPBACK
 	    /* None of the current callers want loopback addresses.  */
-	    if (lifreq.iflr_flags & IFF_LOOPBACK) {
+	    if (is_loopback_address(&lifr->iflr_addr)) {
 		Tprintf (("  loopback\n"));
 		goto skip;
 	    }
-#endif
 	    /* Ignore interfaces that are down.  */
 	    if ((lifreq.iflr_flags & IFF_UP) == 0) {
 		Tprintf (("  down\n"));
@@ -870,7 +884,7 @@ get_ifreq_array(char **bufp, size_t *np, int s)
 	current_buf_size = est_ifreq_size * est_if_count + SLOP;
     buf = malloc (current_buf_size);
     if (buf == NULL)
-	return errno;
+	return ENOMEM;
 
 ask_again:
     size = current_buf_size;
@@ -902,7 +916,7 @@ ask_again:
 	new_size = est_ifreq_size * est_if_count + SLOP;
 	buf = grow_or_free (buf, new_size);
 	if (buf == 0)
-	    return errno;
+	    return ENOMEM;
 	current_buf_size = new_size;
 	goto ask_again;
     }
@@ -939,6 +953,7 @@ foreach_localaddr (/*@null@*/ void *data,
     s = socket (USE_AF, USE_TYPE, USE_PROTO);
     if (s < 0)
 	return SOCKET_ERRNO;
+    set_cloexec_fd(s);
 
     retval = get_ifreq_array(&buf, &n, s);
     if (retval) {
@@ -971,13 +986,11 @@ foreach_localaddr (/*@null@*/ void *data,
 	}
 	/*@=moduncon@*/
 
-#ifdef IFF_LOOPBACK
 	/* None of the current callers want loopback addresses.  */
-	if (ifreq.ifr_flags & IFF_LOOPBACK) {
+	if (is_loopback_address(&ifreq.ifr_addr)) {
 	    Tprintf (("  loopback\n"));
 	    goto skip;
 	}
-#endif
 	/* Ignore interfaces that are down.  */
 	if ((ifreq.ifr_flags & IFF_UP) == 0) {
 	    Tprintf (("  down\n"));
@@ -1236,7 +1249,7 @@ krb5_os_localaddr_profile (krb5_context context, struct localaddr_data *datap)
 {
     krb5_error_code err;
     static const char *const profile_name[] = {
-	"libdefaults", "extra_addresses", 0
+	KRB5_CONF_LIBDEFAULTS, KRB5_CONF_EXTRA_ADDRESSES, 0
     };
     char **values;
     char **iter;
@@ -1322,11 +1335,13 @@ krb5_os_localaddr(krb5_context context, krb5_address ***addr)
     return get_localaddrs(context, addr, 1);
 }
 
+#if 0 /* not actually used anywhere currently */
 krb5_error_code
 krb5int_local_addresses(krb5_context context, krb5_address ***addr)
 {
     return get_localaddrs(context, addr, 0);
 }
+#endif
 
 static krb5_error_code
 get_localaddrs (krb5_context context, krb5_address ***addr, int use_profile)
@@ -1345,7 +1360,7 @@ get_localaddrs (krb5_context context, krb5_address ***addr, int use_profile)
 	int i;
 	if (data.addr_temp) {
 	    for (i = 0; i < data.count; i++)
-		krb5_xfree (data.addr_temp[i]);
+		free (data.addr_temp[i]);
 	    free (data.addr_temp);
 	}
 	if (data.mem_err)
@@ -1450,6 +1465,7 @@ static struct hostent *local_addr_fallback_kludge()
 	sock = socket(AF_INET, SOCK_DGRAM, 0);
 	if (sock == INVALID_SOCKET)
 		return NULL;
+	set_cloexec_fd(sock);
 
 	/* connect to arbitrary port and address (NOT loopback) */
 	addr.sin_family = AF_INET;
@@ -1514,16 +1530,13 @@ krb5_os_localaddr (krb5_context context, krb5_address ***addr) {
     for (count = 0; hostrec->h_addr_list[count]; count++);
 
 
-    paddr = (krb5_address **)malloc(sizeof(krb5_address *) * (count+1));
+    paddr = (krb5_address **)calloc(count+1, sizeof(krb5_address *));
     if (!paddr) {
         err = ENOMEM;
         goto cleanup;
     }
 
-    memset(paddr, 0, sizeof(krb5_address *) * (count+1));
-
-    for (i = 0; i < count; i++)
-    {
+    for (i = 0; i < count; i++) {
         paddr[i] = (krb5_address *)malloc(sizeof(krb5_address));
         if (paddr[i] == NULL) {
             err = ENOMEM;

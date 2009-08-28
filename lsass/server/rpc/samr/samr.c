@@ -544,7 +544,11 @@ NTSTATUS __SamrDeleteUser(
     /* [in] */ ACCOUNT_HANDLE *phUserOut
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = SamrSrvDeleteUser(IDL_handle,
+                               hUserIn,
+                               phUserOut);
     return status;
 }
 
@@ -568,12 +572,17 @@ NTSTATUS __SamrQueryUserInfo(
 
 NTSTATUS __SamrSetUserInfo(
     /* [in] */ handle_t IDL_handle,
-    /* [in] */ PolicyHandle *user_handle,
+    /* [in] */ ACCOUNT_HANDLE hUser,
     /* [in] */ uint16 level,
     /* [in] */ UserInfo *info
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = SamrSrvSetUserInfo(IDL_handle,
+                                hUser,
+                                level,
+                                info);
     return status;
 }
 

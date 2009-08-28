@@ -198,32 +198,16 @@ krb5_ldap_create (krb5_context context, char *conf_section, char **db_args)
 		    goto cleanup;
 		}
 	    } else {
-		void *tmp=NULL;
-		char *oldstr = NULL;
-		unsigned int len=0;
+		char *newstr;
 
-		oldstr = strdup(ldap_context->root_certificate_file);
-		if (oldstr == NULL) {
+		if (asprintf(&newstr, "%s %s",
+			     ldap_context->root_certificate_file, val) < 0) {
 		    free (opt);
 		    free (val);
 		    status = ENOMEM;
 		    goto cleanup;
 		}
-
-		tmp = ldap_context->root_certificate_file;
-		len = strlen(ldap_context->root_certificate_file) + 2 + strlen(val);
-		ldap_context->root_certificate_file = realloc(ldap_context->root_certificate_file,
-							      len);
-		if (ldap_context->root_certificate_file == NULL) {
-		    free (tmp);
-		    free (opt);
-		    free (val);
-		    status = ENOMEM;
-		    goto cleanup;
-		}
-		memset(ldap_context->root_certificate_file, 0, len);
-		sprintf(ldap_context->root_certificate_file,"%s %s", oldstr, val);
-		free (oldstr);
+		ldap_context->root_certificate_file = newstr;
 	    }
 #endif
 	} else {
@@ -250,7 +234,7 @@ krb5_ldap_create (krb5_context context, char *conf_section, char **db_args)
 	t_ptr++;
     }
 
-    dal_handle = (kdb5_dal_handle *) context->db_context;
+    dal_handle = context->dal_handle;
     dal_handle->db_context = (kdb5_dal_handle *) ldap_context;
 
     status = krb5_ldap_read_server_params(context, conf_section, KRB5_KDB_SRV_TYPE_ADMIN);
@@ -346,7 +330,7 @@ krb5_ldap_create (krb5_context context, char *conf_section, char **db_args)
 	    for (i=0; (rparams->kdcservers[i] != NULL); i++) {
 		if ((status=krb5_ldap_add_service_rights(context,
 				     LDAP_KDC_SERVICE, rparams->kdcservers[i],
-				     rparams->realm_name, rparams->subtree, rightsmask)) != 0) {
+				     rparams->realm_name, rparams->subtree, rparams->containerref, rightsmask)) != 0) {
 		    goto cleanup;
 		}
 	    }
@@ -359,7 +343,7 @@ krb5_ldap_create (krb5_context context, char *conf_section, char **db_args)
 	    for (i=0; (rparams->adminservers[i] != NULL); i++) {
 		if ((status=krb5_ldap_add_service_rights(context,
 				     LDAP_ADMIN_SERVICE, rparams->adminservers[i],
-				     rparams->realm_name, rparams->subtree, rightsmask)) != 0) {
+				     rparams->realm_name, rparams->subtree, rparams->containerref, rightsmask)) != 0) {
 		    goto cleanup;
 		}
 	    }
@@ -372,7 +356,7 @@ krb5_ldap_create (krb5_context context, char *conf_section, char **db_args)
 	    for (i=0; (rparams->passwdservers[i] != NULL); i++) {
 		if ((status=krb5_ldap_add_service_rights(context,
 				     LDAP_PASSWD_SERVICE, rparams->passwdservers[i],
-				     rparams->realm_name, rparams->subtree, rightsmask)) != 0) {
+				     rparams->realm_name, rparams->subtree, rparams->containerref, rightsmask)) != 0) {
 		    goto cleanup;
 		}
 	    }

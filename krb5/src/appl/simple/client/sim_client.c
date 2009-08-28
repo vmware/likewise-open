@@ -37,7 +37,7 @@
 #include <ctype.h>
 #include <errno.h>
 
-#include <krb5.h>
+#include <k5-int.h>
 #include "com_err.h"
 
 #include "simple.h"
@@ -325,6 +325,12 @@ main(argc, argv)
     printf("Sent encrypted message: %d bytes\n", i);
     krb5_free_data_contents(context, &packet);
 
+    retval = krb5_rc_destroy(context, rcache);
+    if (retval) {
+	com_err(progname, retval, "while deleting replay cache");
+	exit(1);
+    }
+    krb5_auth_con_setrcache(context, auth_context, NULL);
     krb5_auth_con_free(context, auth_context);
     krb5_free_context(context);
     

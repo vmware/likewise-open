@@ -46,7 +46,7 @@
 
 #include "includes.h"
 
-#define SET_UNICODE_STRING_VALUE(attr, field)                           \
+#define GET_UNICODE_STRING_VALUE(attr, field)                           \
     {                                                                   \
         WCHAR wszEmpty[] = { '\0' };                                    \
         PWSTR pwszValue = NULL;                                         \
@@ -63,7 +63,7 @@
         BAIL_ON_NTSTATUS_ERROR(ntStatus);                                 \
     }
 
-#define SET_NTTIME_VALUE(attr, field)                                   \
+#define GET_NTTIME_VALUE(attr, field)                                   \
     {                                                                   \
         LONG64 llValue = 0;                                             \
         dwError = DirectoryGetEntryAttrValueByName(                     \
@@ -76,7 +76,7 @@
         field = (NtTime)llValue;                                        \
     }
 
-#define SET_RID_VALUE(attr, field)                                      \
+#define GET_RID_VALUE(attr, field)                                      \
     {                                                                   \
         PWSTR pwszSid = NULL;                                           \
         PSID pSid = NULL;                                               \
@@ -97,7 +97,7 @@
         RTL_FREE(&pSid);                                                \
     }
 
-#define SET_UINT32_VALUE(attr, field)                                   \
+#define GET_UINT32_VALUE(attr, field)                                   \
     {                                                                   \
         ULONG ulValue = 0;                                              \
         dwError = DirectoryGetEntryAttrValueByName(                     \
@@ -110,7 +110,7 @@
         field = (uint32)ulValue;                                        \
     }
 
-#define SET_UINT16_VALUE(attr, field)                                   \
+#define GET_UINT16_VALUE(attr, field)                                   \
     {                                                                   \
         ULONG ulValue = 0;                                              \
         dwError = DirectoryGetEntryAttrValueByName(                     \
@@ -675,11 +675,11 @@ SamrFillUserInfo1(
 
     pInfo1 = &(pInfo->info1);
 
-    SET_UNICODE_STRING_VALUE(wszAttrSamAccountName, pInfo1->account_name);
-    SET_UNICODE_STRING_VALUE(wszAttrFullName, pInfo1->full_name);
-    SET_UINT32_VALUE(wszAttrPrimaryGid, pInfo1->primary_gid);
-    SET_UNICODE_STRING_VALUE(wszAttrDescription, pInfo1->description);
-    SET_UNICODE_STRING_VALUE(wszAttrComment, pInfo1->comment);
+    GET_UNICODE_STRING_VALUE(wszAttrSamAccountName, pInfo1->account_name);
+    GET_UNICODE_STRING_VALUE(wszAttrFullName, pInfo1->full_name);
+    GET_UINT32_VALUE(wszAttrPrimaryGid, pInfo1->primary_gid);
+    GET_UNICODE_STRING_VALUE(wszAttrDescription, pInfo1->description);
+    GET_UNICODE_STRING_VALUE(wszAttrComment, pInfo1->comment);
 
 cleanup:
     return ntStatus;
@@ -706,12 +706,12 @@ SamrFillUserInfo2(
 
     pInfo2 = &(pInfo->info2);
 
-    SET_UNICODE_STRING_VALUE(wszAttrComment, pInfo2->comment);
+    GET_UNICODE_STRING_VALUE(wszAttrComment, pInfo2->comment);
 
     /* unknown1 */
 
-    SET_UINT16_VALUE(wszAttrCountryCode, pInfo2->country_code);
-    SET_UINT16_VALUE(wszAttrCodePage, pInfo2->code_page);
+    GET_UINT16_VALUE(wszAttrCountryCode, pInfo2->country_code);
+    GET_UINT16_VALUE(wszAttrCodePage, pInfo2->code_page);
 
 cleanup:
     return ntStatus;
@@ -752,26 +752,26 @@ SamrFillUserInfo3(
 
     pInfo3 = &(pInfo->info3);
 
-    SET_UNICODE_STRING_VALUE(wszAttrSamAccountName, pInfo3->account_name);
-    SET_UNICODE_STRING_VALUE(wszAttrFullName, pInfo3->full_name);
-    SET_RID_VALUE(wszAttrObjectSid, pInfo3->rid);
-    SET_UINT32_VALUE(wszAttrPrimaryGid, pInfo3->primary_gid);
-    SET_UNICODE_STRING_VALUE(wszAttrHomeDirectory, pInfo3->home_directory);
-    SET_UNICODE_STRING_VALUE(wszAttrHomeDrive, pInfo3->home_drive);
-    SET_UNICODE_STRING_VALUE(wszAttrLogonScript, pInfo3->logon_script);
-    SET_UNICODE_STRING_VALUE(wszAttrProfilePath, pInfo3->profile_path);
-    SET_UNICODE_STRING_VALUE(wszAttrWorkstations, pInfo3->workstations);
-    SET_NTTIME_VALUE(wszAttrLastLogon, pInfo3->last_logon);
-    SET_NTTIME_VALUE(wszAttrLastLogoff, pInfo3->last_logoff);
-    SET_NTTIME_VALUE(wszAttrLastPasswordChange, pInfo3->last_password_change);
-    SET_NTTIME_VALUE(wszAttrAllowPasswordChange, pInfo3->allow_password_change);
-    SET_NTTIME_VALUE(wszAttrForcePasswordChange, pInfo3->force_password_change);
+    GET_UNICODE_STRING_VALUE(wszAttrSamAccountName, pInfo3->account_name);
+    GET_UNICODE_STRING_VALUE(wszAttrFullName, pInfo3->full_name);
+    GET_RID_VALUE(wszAttrObjectSid, pInfo3->rid);
+    GET_UINT32_VALUE(wszAttrPrimaryGid, pInfo3->primary_gid);
+    GET_UNICODE_STRING_VALUE(wszAttrHomeDirectory, pInfo3->home_directory);
+    GET_UNICODE_STRING_VALUE(wszAttrHomeDrive, pInfo3->home_drive);
+    GET_UNICODE_STRING_VALUE(wszAttrLogonScript, pInfo3->logon_script);
+    GET_UNICODE_STRING_VALUE(wszAttrProfilePath, pInfo3->profile_path);
+    GET_UNICODE_STRING_VALUE(wszAttrWorkstations, pInfo3->workstations);
+    GET_NTTIME_VALUE(wszAttrLastLogon, pInfo3->last_logon);
+    GET_NTTIME_VALUE(wszAttrLastLogoff, pInfo3->last_logoff);
+    GET_NTTIME_VALUE(wszAttrLastPasswordChange, pInfo3->last_password_change);
+    GET_NTTIME_VALUE(wszAttrAllowPasswordChange, pInfo3->allow_password_change);
+    GET_NTTIME_VALUE(wszAttrForcePasswordChange, pInfo3->force_password_change);
 
     /* logon_hours */
 
-    SET_UINT16_VALUE(wszAttrBadPasswordCount, pInfo3->bad_password_count);
-    SET_UINT16_VALUE(wszAttrLogonCount, pInfo3->logon_count);
-    SET_UINT32_VALUE(wszAttrAccountFlags, pInfo3->account_flags);
+    GET_UINT16_VALUE(wszAttrBadPasswordCount, pInfo3->bad_password_count);
+    GET_UINT16_VALUE(wszAttrLogonCount, pInfo3->logon_count);
+    GET_UINT32_VALUE(wszAttrAccountFlags, pInfo3->account_flags);
 
 cleanup:
     return ntStatus;
@@ -831,28 +831,28 @@ SamrFillUserInfo5(
 
     pInfo5 = &(pInfo->info5);
 
-    SET_UNICODE_STRING_VALUE(wszAttrSamAccountName, pInfo5->account_name);
-    SET_UNICODE_STRING_VALUE(wszAttrFullName, pInfo5->full_name);
-    SET_RID_VALUE(wszAttrObjectSid, pInfo5->rid);
-    SET_UINT32_VALUE(wszAttrPrimaryGid, pInfo5->primary_gid);
-    SET_UNICODE_STRING_VALUE(wszAttrHomeDirectory, pInfo5->home_directory);
-    SET_UNICODE_STRING_VALUE(wszAttrHomeDrive, pInfo5->home_drive);
-    SET_UNICODE_STRING_VALUE(wszAttrLogonScript, pInfo5->logon_script);
-    SET_UNICODE_STRING_VALUE(wszAttrProfilePath, pInfo5->profile_path);
-    SET_UNICODE_STRING_VALUE(wszAttrDescription, pInfo5->description);
-    SET_UNICODE_STRING_VALUE(wszAttrWorkstations, pInfo5->workstations);
-    SET_NTTIME_VALUE(wszAttrLastLogon, pInfo5->last_logon);
-    SET_NTTIME_VALUE(wszAttrLastLogoff, pInfo5->last_logoff);
+    GET_UNICODE_STRING_VALUE(wszAttrSamAccountName, pInfo5->account_name);
+    GET_UNICODE_STRING_VALUE(wszAttrFullName, pInfo5->full_name);
+    GET_RID_VALUE(wszAttrObjectSid, pInfo5->rid);
+    GET_UINT32_VALUE(wszAttrPrimaryGid, pInfo5->primary_gid);
+    GET_UNICODE_STRING_VALUE(wszAttrHomeDirectory, pInfo5->home_directory);
+    GET_UNICODE_STRING_VALUE(wszAttrHomeDrive, pInfo5->home_drive);
+    GET_UNICODE_STRING_VALUE(wszAttrLogonScript, pInfo5->logon_script);
+    GET_UNICODE_STRING_VALUE(wszAttrProfilePath, pInfo5->profile_path);
+    GET_UNICODE_STRING_VALUE(wszAttrDescription, pInfo5->description);
+    GET_UNICODE_STRING_VALUE(wszAttrWorkstations, pInfo5->workstations);
+    GET_NTTIME_VALUE(wszAttrLastLogon, pInfo5->last_logon);
+    GET_NTTIME_VALUE(wszAttrLastLogoff, pInfo5->last_logoff);
 
     /* logon hours */
     pInfo5->logon_hours.units_per_week = 0;
     pInfo5->logon_hours.units          = NULL;
 
-    SET_UINT16_VALUE(wszAttrBadPasswordCount, pInfo5->bad_password_count);
-    SET_UINT16_VALUE(wszAttrLogonCount, pInfo5->logon_count);
-    SET_NTTIME_VALUE(wszAttrLastPasswordChange, pInfo5->last_password_change);
-    SET_NTTIME_VALUE(wszAttrAccountExpiry, pInfo5->account_expiry);
-    SET_UINT32_VALUE(wszAttrAccountFlags, pInfo5->account_flags);
+    GET_UINT16_VALUE(wszAttrBadPasswordCount, pInfo5->bad_password_count);
+    GET_UINT16_VALUE(wszAttrLogonCount, pInfo5->logon_count);
+    GET_NTTIME_VALUE(wszAttrLastPasswordChange, pInfo5->last_password_change);
+    GET_NTTIME_VALUE(wszAttrAccountExpiry, pInfo5->account_expiry);
+    GET_UINT32_VALUE(wszAttrAccountFlags, pInfo5->account_flags);
 
 cleanup:
     return ntStatus;
@@ -878,8 +878,8 @@ SamrFillUserInfo6(
 
     pInfo6 = &(pInfo->info6);
 
-    SET_UNICODE_STRING_VALUE(wszAttrSamAccountName, pInfo6->account_name);
-    SET_UNICODE_STRING_VALUE(wszAttrFullName, pInfo6->full_name);
+    GET_UNICODE_STRING_VALUE(wszAttrSamAccountName, pInfo6->account_name);
+    GET_UNICODE_STRING_VALUE(wszAttrFullName, pInfo6->full_name);
 
 cleanup:
     return ntStatus;
@@ -904,7 +904,7 @@ SamrFillUserInfo7(
 
     pInfo7 = &(pInfo->info7);
 
-    SET_UNICODE_STRING_VALUE(wszAttrSamAccountName, pInfo7->account_name);
+    GET_UNICODE_STRING_VALUE(wszAttrSamAccountName, pInfo7->account_name);
 
 cleanup:
     return ntStatus;
@@ -929,7 +929,7 @@ SamrFillUserInfo8(
 
     pInfo8 = &(pInfo->info8);
 
-    SET_UNICODE_STRING_VALUE(wszAttrFullName, pInfo8->full_name);
+    GET_UNICODE_STRING_VALUE(wszAttrFullName, pInfo8->full_name);
 
 cleanup:
     return ntStatus;
@@ -954,7 +954,7 @@ SamrFillUserInfo9(
 
     pInfo9 = &(pInfo->info9);
 
-    SET_UINT32_VALUE(wszAttrPrimaryGid, pInfo9->primary_gid);
+    GET_UINT32_VALUE(wszAttrPrimaryGid, pInfo9->primary_gid);
 
 cleanup:
     return ntStatus;
@@ -980,8 +980,8 @@ SamrFillUserInfo10(
 
     pInfo10 = &(pInfo->info10);
 
-    SET_UNICODE_STRING_VALUE(wszAttrHomeDirectory, pInfo10->home_directory);
-    SET_UNICODE_STRING_VALUE(wszAttrHomeDrive, pInfo10->home_drive);
+    GET_UNICODE_STRING_VALUE(wszAttrHomeDirectory, pInfo10->home_directory);
+    GET_UNICODE_STRING_VALUE(wszAttrHomeDrive, pInfo10->home_drive);
 
 cleanup:
     return ntStatus;
@@ -1006,7 +1006,7 @@ SamrFillUserInfo11(
 
     pInfo11 = &(pInfo->info11);
 
-    SET_UNICODE_STRING_VALUE(wszAttrLogonScript, pInfo11->logon_script);
+    GET_UNICODE_STRING_VALUE(wszAttrLogonScript, pInfo11->logon_script);
 
 cleanup:
     return ntStatus;
@@ -1031,7 +1031,7 @@ SamrFillUserInfo12(
 
     pInfo12 = &(pInfo->info12);
 
-    SET_UNICODE_STRING_VALUE(wszAttrProfilePath, pInfo12->profile_path);
+    GET_UNICODE_STRING_VALUE(wszAttrProfilePath, pInfo12->profile_path);
 
 cleanup:
     return ntStatus;
@@ -1056,7 +1056,7 @@ SamrFillUserInfo13(
 
     pInfo13 = &(pInfo->info13);
 
-    SET_UNICODE_STRING_VALUE(wszAttrDescription, pInfo13->description);
+    GET_UNICODE_STRING_VALUE(wszAttrDescription, pInfo13->description);
 
 cleanup:
     return ntStatus;
@@ -1081,7 +1081,7 @@ SamrFillUserInfo14(
 
     pInfo14 = &(pInfo->info14);
 
-    SET_UNICODE_STRING_VALUE(wszAttrWorkstations, pInfo14->workstations);
+    GET_UNICODE_STRING_VALUE(wszAttrWorkstations, pInfo14->workstations);
 
 cleanup:
     return ntStatus;
@@ -1106,7 +1106,7 @@ SamrFillUserInfo16(
 
     pInfo16 = &(pInfo->info16);
 
-    SET_UINT32_VALUE(wszAttrAccountFlags, pInfo16->account_flags);
+    GET_UINT32_VALUE(wszAttrAccountFlags, pInfo16->account_flags);
 
 cleanup:
     return ntStatus;
@@ -1131,7 +1131,7 @@ SamrFillUserInfo17(
 
     pInfo17 = &(pInfo->info17);
 
-    SET_NTTIME_VALUE(wszAttrAccountExpiry, pInfo17->account_expiry);
+    GET_NTTIME_VALUE(wszAttrAccountExpiry, pInfo17->account_expiry);
 
 cleanup:
     return ntStatus;
@@ -1156,7 +1156,7 @@ SamrFillUserInfo20(
 
     pInfo20 = &(pInfo->info20);
 
-    SET_UNICODE_STRING_VALUE(wszAttrParameters, pInfo20->parameters);
+    GET_UNICODE_STRING_VALUE(wszAttrParameters, pInfo20->parameters);
 
 cleanup:
     return ntStatus;
@@ -1203,77 +1203,77 @@ SamrFillUserInfo21(
 
     pInfo21 = &(pInfo->info21);
 
-    SET_NTTIME_VALUE(wszAttrLastLogon, pInfo21->last_logon);
+    GET_NTTIME_VALUE(wszAttrLastLogon, pInfo21->last_logon);
     pInfo21->fields_present |= SAMR_FIELD_LAST_LOGON;
 
-    SET_NTTIME_VALUE(wszAttrLastLogoff, pInfo21->last_logoff);
+    GET_NTTIME_VALUE(wszAttrLastLogoff, pInfo21->last_logoff);
     pInfo21->fields_present |= SAMR_FIELD_LAST_LOGOFF;
 
-    SET_NTTIME_VALUE(wszAttrLastPasswordChange, pInfo21->last_password_change);
+    GET_NTTIME_VALUE(wszAttrLastPasswordChange, pInfo21->last_password_change);
     pInfo21->fields_present |= SAMR_FIELD_LAST_PWD_CHANGE;
 
-    SET_NTTIME_VALUE(wszAttrAccountExpiry, pInfo21->account_expiry);
+    GET_NTTIME_VALUE(wszAttrAccountExpiry, pInfo21->account_expiry);
     pInfo21->fields_present |= SAMR_FIELD_ACCT_EXPIRY;
 
-    SET_NTTIME_VALUE(wszAttrAllowPasswordChange, pInfo21->allow_password_change);
+    GET_NTTIME_VALUE(wszAttrAllowPasswordChange, pInfo21->allow_password_change);
     pInfo21->fields_present |= SAMR_FIELD_ALLOW_PWD_CHANGE;
 
-    SET_NTTIME_VALUE(wszAttrForcePasswordChange, pInfo21->force_password_change);
+    GET_NTTIME_VALUE(wszAttrForcePasswordChange, pInfo21->force_password_change);
     pInfo21->fields_present |= SAMR_FIELD_FORCE_PWD_CHANGE;
 
-    SET_UNICODE_STRING_VALUE(wszAttrSamAccountName, pInfo21->account_name);
+    GET_UNICODE_STRING_VALUE(wszAttrSamAccountName, pInfo21->account_name);
     pInfo21->fields_present |= SAMR_FIELD_ACCOUNT_NAME;
 
-    SET_UNICODE_STRING_VALUE(wszAttrFullName, pInfo21->full_name);
+    GET_UNICODE_STRING_VALUE(wszAttrFullName, pInfo21->full_name);
     pInfo21->fields_present |= SAMR_FIELD_FULL_NAME;
 
-    SET_UNICODE_STRING_VALUE(wszAttrHomeDirectory, pInfo21->home_directory);
+    GET_UNICODE_STRING_VALUE(wszAttrHomeDirectory, pInfo21->home_directory);
     pInfo21->fields_present |= SAMR_FIELD_HOME_DIRECTORY;
 
-    SET_UNICODE_STRING_VALUE(wszAttrHomeDrive, pInfo21->home_drive);
+    GET_UNICODE_STRING_VALUE(wszAttrHomeDrive, pInfo21->home_drive);
     pInfo21->fields_present |= SAMR_FIELD_HOME_DRIVE;
 
-    SET_UNICODE_STRING_VALUE(wszAttrLogonScript, pInfo21->logon_script);
+    GET_UNICODE_STRING_VALUE(wszAttrLogonScript, pInfo21->logon_script);
     pInfo21->fields_present |= SAMR_FIELD_LOGON_SCRIPT;
 
-    SET_UNICODE_STRING_VALUE(wszAttrProfilePath, pInfo21->profile_path);
+    GET_UNICODE_STRING_VALUE(wszAttrProfilePath, pInfo21->profile_path);
     pInfo21->fields_present |= SAMR_FIELD_PROFILE_PATH;
 
-    SET_UNICODE_STRING_VALUE(wszAttrDescription, pInfo21->description);
+    GET_UNICODE_STRING_VALUE(wszAttrDescription, pInfo21->description);
     pInfo21->fields_present |= SAMR_FIELD_DESCRIPTION;
 
-    SET_UNICODE_STRING_VALUE(wszAttrWorkstations, pInfo21->workstations);
+    GET_UNICODE_STRING_VALUE(wszAttrWorkstations, pInfo21->workstations);
     pInfo21->fields_present |= SAMR_FIELD_WORKSTATIONS;
 
-    SET_UNICODE_STRING_VALUE(wszAttrComment, pInfo21->comment);
+    GET_UNICODE_STRING_VALUE(wszAttrComment, pInfo21->comment);
     pInfo21->fields_present |= SAMR_FIELD_COMMENT;
 
-    SET_UNICODE_STRING_VALUE(wszAttrParameters, pInfo21->parameters);
+    GET_UNICODE_STRING_VALUE(wszAttrParameters, pInfo21->parameters);
     pInfo21->fields_present |= SAMR_FIELD_PARAMETERS;
 
     /* unknown1 */
     /* unknown2 */
     /* unknown3 */
 
-    SET_RID_VALUE(wszAttrObjectSid, pInfo21->rid);
+    GET_RID_VALUE(wszAttrObjectSid, pInfo21->rid);
     pInfo21->fields_present |= SAMR_FIELD_RID;
 
-    SET_UINT32_VALUE(wszAttrPrimaryGid, pInfo21->primary_gid);
+    GET_UINT32_VALUE(wszAttrPrimaryGid, pInfo21->primary_gid);
     pInfo21->fields_present |= SAMR_FIELD_PRIMARY_GID;
 
-    SET_UINT32_VALUE(wszAttrAccountFlags, pInfo21->account_flags);
+    GET_UINT32_VALUE(wszAttrAccountFlags, pInfo21->account_flags);
     pInfo21->fields_present |= SAMR_FIELD_ACCT_FLAGS;
 
-    SET_UINT16_VALUE(wszAttrBadPasswordCount, pInfo21->bad_password_count);
+    GET_UINT16_VALUE(wszAttrBadPasswordCount, pInfo21->bad_password_count);
     pInfo21->fields_present |= SAMR_FIELD_BAD_PWD_COUNT;
 
-    SET_UINT16_VALUE(wszAttrLogonCount, pInfo21->logon_count);
+    GET_UINT16_VALUE(wszAttrLogonCount, pInfo21->logon_count);
     pInfo21->fields_present |= SAMR_FIELD_NUM_LOGONS;
 
-    SET_UINT16_VALUE(wszAttrCountryCode, pInfo21->country_code);
+    GET_UINT16_VALUE(wszAttrCountryCode, pInfo21->country_code);
     pInfo21->fields_present |= SAMR_FIELD_COUNTRY_CODE;
 
-    SET_UINT16_VALUE(wszAttrCodePage, pInfo21->code_page);
+    GET_UINT16_VALUE(wszAttrCodePage, pInfo21->code_page);
     pInfo21->fields_present |= SAMR_FIELD_CODE_PAGE;
 
 cleanup:

@@ -110,11 +110,9 @@ krb5_MD4Update (krb5_MD4_CTX *mdContext, const unsigned char *inBuf, unsigned in
 
     /* transform if necessary */
     if (mdi == 0x40) {
-      for (i = 0, ii = 0; i < 16; i++, ii += 4)
-        in[i] = (((krb5_ui_4)mdContext->in[ii+3]) << 24) |
-                (((krb5_ui_4)mdContext->in[ii+2]) << 16) |
-                (((krb5_ui_4)mdContext->in[ii+1]) << 8) |
-                ((krb5_ui_4)mdContext->in[ii]);
+      for (i = 0, ii = 0; i < 16; i++, ii += 4) {
+	  in[i] = load_32_le(mdContext->in+ii);
+      }
       Transform (mdContext->buf, in);
       mdi = 0;
     }
@@ -142,22 +140,13 @@ krb5_MD4Final (krb5_MD4_CTX *mdContext)
 
   /* append length in bits and transform */
   for (i = 0, ii = 0; i < 14; i++, ii += 4)
-    in[i] = (((krb5_ui_4)mdContext->in[ii+3]) << 24) |
-            (((krb5_ui_4)mdContext->in[ii+2]) << 16) |
-            (((krb5_ui_4)mdContext->in[ii+1]) << 8) |
-            ((krb5_ui_4)mdContext->in[ii]);
+      in[i] = load_32_le(mdContext->in+ii);
   Transform (mdContext->buf, in);
 
 
   /* store buffer in digest */
   for (i = 0, ii = 0; i < 4; i++, ii += 4) {
-    mdContext->digest[ii] = (unsigned char)(mdContext->buf[i] & 0xFF);
-    mdContext->digest[ii+1] =
-      (unsigned char)((mdContext->buf[i] >> 8) & 0xFF);
-    mdContext->digest[ii+2] =
-      (unsigned char)((mdContext->buf[i] >> 16) & 0xFF);
-    mdContext->digest[ii+3] =
-      (unsigned char)((mdContext->buf[i] >> 24) & 0xFF);
+      store_32_le(mdContext->buf[i], mdContext->digest+ii);
   }
 }
 
@@ -167,7 +156,7 @@ static void Transform (krb5_ui_4 *buf, krb5_ui_4 *in)
 {
   register krb5_ui_4 a = buf[0], b = buf[1], c = buf[2], d = buf[3];
 
-#ifdef CONFIG_SMALL
+#if defined(CONFIG_SMALL) && !defined(CONFIG_SMALL_NO_CRYPTO)
   int i;
 #define ROTATE { krb5_ui_4 temp; temp = d, d = c, c = b, b = a, a = temp; }
   for (i = 0; i < 16; i++) {

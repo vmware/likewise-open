@@ -11,8 +11,8 @@
 </PRE>
 <H2>SYNOPSIS</H2><PRE>
      <B>rlogin</B> <I>rhost</I> [<B>-e</B><I>c</I>] [<B>-8</B>] [<B>-c</B>] [ <B>-a</B>] [<B>-f</B>] [<B>-F</B>]  [<B>-t</B>  <I>termtype</I>]
-     [<B>-n</B>]  [<B>-7</B>]  [<B>-PN</B>  <B>|</B>  <B>-PO</B>] [<B>-4</B>] [<B>-d</B>] [<B>-k</B> <I>realm</I>] [<B>-x</B>] [<B>-L</B>] [<B>-l</B>
-     <I>username</I>]
+     [<B>-n</B>]  [<B>-7</B>]  [<B>-PN</B>  <B>|</B> <B>-PO</B>] [<B>-d</B>] [<B>-k</B> <I>realm</I>] [<B>-x</B>] [<B>-L</B>] [<B>-l</B> <I>user-</I>
+     <I>name</I>]
 
 
 </PRE>
@@ -123,9 +123,6 @@
           specified, some simple heuristics  are  used  to  guess
           which to try.
 
-     <B>-4</B>   Use Kerberos V4 authentication only; don't try Kerberos
-          V5.
-
 
 </PRE>
 <H2>SEE ALSO</H2><PRE>
@@ -142,6 +139,9 @@
 </PRE>
 <H2>BUGS</H2><PRE>
      More of the environment should be propagated.
+
+
+
 
 
 

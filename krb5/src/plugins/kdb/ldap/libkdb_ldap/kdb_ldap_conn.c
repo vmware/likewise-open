@@ -203,14 +203,16 @@ krb5_ldap_db_init(krb5_context context, krb5_ldap_context *ldap_context)
     ldap_set_option(NULL, LDAP_X_OPT_CONNECT_TIMEOUT, &local_timelimit);
 #endif
 
-    HNDL_LOCK(ldap_context);
+    st = HNDL_LOCK(ldap_context);
+    if (st)
+	return st;
     while (ldap_context->server_info_list[cnt] != NULL) {
 	krb5_ldap_server_info *server_info=NULL;
 
 	server_info = ldap_context->server_info_list[cnt];
 
 	if (server_info->server_status == NOTSET) {
-	    int conns=0;
+	    unsigned int conns=0;
 
 	    /*
 	     * Check if the server has to perform certificate-based authentication
@@ -338,11 +340,11 @@ krb5_ldap_close(krb5_context context)
     krb5_ldap_context *ldap_context=NULL;
 
     if (context == NULL ||
-	context->db_context == NULL ||
-	((kdb5_dal_handle *)context->db_context)->db_context == NULL)
+	context->dal_handle == NULL ||
+	context->dal_handle->db_context == NULL)
 	return 0;
 
-    dal_handle = (kdb5_dal_handle *) context->db_context;
+    dal_handle = context->dal_handle;
     ldap_context = (krb5_ldap_context *) dal_handle->db_context;
     dal_handle->db_context = NULL;
 

@@ -1,10 +1,29 @@
 /*
- * Copyright (c) 1990 Dennis Ferguson.  All rights reserved.
+ * lib/crypto/des/f_sched.c
  *
- * Commercial use is permitted only if products which are derived from
- * or include this software are made available for purchase and/or use
- * in Canada.  Otherwise, redistribution and use in source and binary
- * forms are permitted.
+ * Copyright (C) 1990 by the Massachusetts Institute of Technology.
+ * All rights reserved.
+ *
+ * Export of this software from the United States of America may
+ *   require a specific license from the United States Government.
+ *   It is the responsibility of any person or organization contemplating
+ *   export to obtain such a license before exporting.
+ *
+ * WITHIN THAT CONSTRAINT, permission to use, copy, modify, and
+ * distribute this software and its documentation for any purpose and
+ * without fee is hereby granted, provided that the above copyright
+ * notice appear in all copies and that both that copyright notice and
+ * this permission notice appear in supporting documentation, and that
+ * the name of M.I.T. not be used in advertising or publicity pertaining
+ * to distribution of the software without specific, written prior
+ * permission.  Furthermore if you modify this software you must label
+ * your software as modified software and not distribute it in such a
+ * fashion that it might be confused with the original M.I.T. software.
+ * M.I.T. makes no representations about the suitability of
+ * this software for any purpose.  It is provided "as is" without express
+ * or implied warranty.
+ *
+ * DES implementation donated by Dennis Ferguson
  */
 
 /*
@@ -242,10 +261,8 @@ mit_des_make_key_sched(mit_des_cblock key, mit_des_key_schedule schedule)
 		 * the right, while D0 gets 16 from the left and 12 from the
 		 * right.  The code knows which bits go where.
 		 */
-		tmp = ((unsigned DES_INT32)(*(k)++)) << 24;
-		tmp |= ((unsigned DES_INT32)(*(k)++)) << 16;
-		tmp |= ((unsigned DES_INT32)(*(k)++)) << 8;
-		tmp |= (unsigned DES_INT32)(*(k)++);		/* left part of key */
+		tmp = load_32_be(k), k += 4;
+
 		c =  PC1_CL[(tmp >> 29) & 0x7]
 		  | (PC1_CL[(tmp >> 21) & 0x7] << 1)
 		  | (PC1_CL[(tmp >> 13) & 0x7] << 2)
@@ -255,10 +272,8 @@ mit_des_make_key_sched(mit_des_cblock key, mit_des_key_schedule schedule)
 		  | (PC1_DL[(tmp >>  9) & 0xf] << 2)
 		  | (PC1_DL[(tmp >>  1) & 0xf] << 3);
 
-		tmp = ((unsigned DES_INT32)(*(k)++)) << 24;
-		tmp |= ((unsigned DES_INT32)(*(k)++)) << 16;
-		tmp |= ((unsigned DES_INT32)(*(k)++)) << 8;
-		tmp |= (unsigned DES_INT32)(*(k)++);		/* right part of key */
+		tmp = load_32_be(k), k += 4;
+
 		c |= PC1_CR[(tmp >> 28) & 0xf]
 		  | (PC1_CR[(tmp >> 20) & 0xf] << 1)
 		  | (PC1_CR[(tmp >> 12) & 0xf] << 2)

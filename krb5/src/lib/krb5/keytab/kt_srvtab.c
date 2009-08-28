@@ -1,7 +1,7 @@
 /*
  * lib/krb5/keytab/srvtab/kts_resolv.c
  *
- * Copyright 1990,1991,2002 by the Massachusetts Institute of Technology.
+ * Copyright 1990,1991,2002,2007,2008 by the Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
  * Export of this software from the United States of America may
@@ -27,11 +27,11 @@
 #include "k5-int.h"
 #include <stdio.h>
 
+#ifndef LEAN_CLIENT
+
 /*
  * Constants
  */
-#define IGNORE_VNO 0
-#define IGNORE_ENCTYPE 0
 
 #define KRB5_KT_VNO_1	0x0501	/* krb v5, keytab version 1 (DCE compat) */
 #define KRB5_KT_VNO	0x0502	/* krb v5, keytab version 2 (standard)  */
@@ -116,13 +116,6 @@ static krb5_error_code KRB5_CALLCONV
 krb5_ktsrvtab_resolve(krb5_context context, const char *name, krb5_keytab *id)
 {
     krb5_ktsrvtab_data *data;
-    FILE *fp;
-
-    /* Make sure we can open the srvtab file for reading. */
-    fp = fopen(name, "r");
-    if (!fp)
-	return(errno);
-    fclose(fp);
 
     if ((*id = (krb5_keytab) malloc(sizeof(**id))) == NULL)
 	return(ENOMEM);
@@ -130,18 +123,17 @@ krb5_ktsrvtab_resolve(krb5_context context, const char *name, krb5_keytab *id)
     (*id)->ops = &krb5_kts_ops;
     data = (krb5_ktsrvtab_data *)malloc(sizeof(krb5_ktsrvtab_data));
     if (data == NULL) {
-	krb5_xfree(*id);
+	free(*id);
 	return(ENOMEM);
     }
 
-    data->name = (char *)malloc(strlen(name) + 1);
+    data->name = strdup(name);
     if (data->name == NULL) {
-	krb5_xfree(data);
-	krb5_xfree(*id);
+	free(data);
+	free(*id);
 	return(ENOMEM);
     }
 
-    (void) strcpy(data->name, name);
     data->openf = 0;
 
     (*id)->data = (krb5_pointer)data;
@@ -164,10 +156,10 @@ krb5_ktsrvtab_close(krb5_context context, krb5_keytab id)
    * This routine should undo anything done by krb5_ktsrvtab_resolve().
    */
 {
-    krb5_xfree(KTFILENAME(id));
-    krb5_xfree(id->data);
+    free(KTFILENAME(id));
+    free(id->data);
     id->ops = 0;
-    krb5_xfree(id);
+    free(id);
     return (0);
 }
 
@@ -256,21 +248,12 @@ krb5_ktsrvtab_get_name(krb5_context context, krb5_keytab id, char *name, unsigne
    * trt will happen if the name is passed back to resolve.
    */
 {
+    int result;
+
     memset(name, 0, len);
-
-    if (len < strlen(id->ops->prefix)+2)
+    result = snprintf(name, len, "%s:%s", id->ops->prefix, KTFILENAME(id));
+    if (SNPRINTF_OVERFLOW(result, len))
 	return(KRB5_KT_NAME_TOOLONG);
-    strcpy(name, id->ops->prefix);
-    name += strlen(id->ops->prefix);
-    name[0] = ':';
-    name++;
-    len -= strlen(id->ops->prefix)+1;
-
-    if (len < strlen(KTFILENAME(id)+1))
-	return(KRB5_KT_NAME_TOOLONG);
-    strcpy(name, KTFILENAME(id));
-    /* strcpy will NUL-terminate the destination */
-
     return(0);
 }
 
@@ -324,7 +307,7 @@ krb5_ktsrvtab_get_next(krb5_context context, krb5_keytab id, krb5_keytab_entry *
 krb5_error_code KRB5_CALLCONV
 krb5_ktsrvtab_end_get(krb5_context context, krb5_keytab id, krb5_kt_cursor *cursor)
 {
-    krb5_xfree(*cursor);
+    free(*cursor);
     return krb5_ktsrvint_close(context, id);
 }
 
@@ -418,6 +401,7 @@ krb5_ktsrvint_open(krb5_context context, krb5_keytab id)
     KTFILEP(id) = fopen(KTFILENAME(id), READ_MODE);
     if (!KTFILEP(id))
 	return errno;
+    set_cloexec_file(KTFILEP(id));
     return 0;
 }
 
@@ -480,3 +464,5 @@ krb5_ktsrvint_read_entry(krb5_context context, krb5_keytab id, krb5_keytab_entry
 
     return 0;
 }
+#endif /* LEAN_CLIENT */
+

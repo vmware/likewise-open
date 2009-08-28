@@ -164,9 +164,6 @@ sub main {
 ##++ Assemble configuration from config file and command line:
 
     my $bOutputCleaned  = 0;
-
-#while ($v = each %$OPT) {print "$v: $OPT->{$v}\n";}
-
     # Scan the configuration for switch definitions:
     while (($sw, $val) = each %$odr) {
         next if (! exists $val->{def}); ## ?? Should always exist.
@@ -174,7 +171,10 @@ sub main {
         # Set/clear environment variables:
         if ($val->{env}) {
             if ($val->{def})    {$ENV{$sw}   = (exists $val->{value}) ? $val->{value} : 1; }
-            else                {delete $ENV{$sw};  }
+            else                {
+                delete $ENV{$sw};
+                undef  $sw;
+                }
             }
 
         # If the switch is in the command line, override the stored value:
@@ -184,14 +184,20 @@ sub main {
                 $val->{def}     = 1;
                 }
             else {
-                $val->{def}   = $OPT->{$sw};    ## If no<switch>, value will be zero.
+                $val->{def}   = $OPT->{$sw};  ## If -NO<switch>, value will be zero.
                 }
             }
         # If the switch can be negated, test that, too:
         if ( ! ($val->{def} =~ /A/)) {
             local $nosw = "no".$sw;
-            if (exists $OPT->{$nosw}) {
-                $val->{def} = 0;
+            if (exists $OPT->{$sw}) {         ## -NO<environment variable> ?
+                if ($val->{env}) {
+                    if (!$val->{def}) {
+                        print "Deleting environment variable $sw\n";
+                        delete $ENV{$sw};
+                        undef $sw;
+                        }
+                    }
                 }
             }
     
@@ -315,12 +321,15 @@ sub main {
         $l->no_die_handler;        ## Needed so XML::Simple won't throw exceptions.
         }
 
+    print "Command line options:\n";
+    while ($v = each %$OPT) {print "$v: $OPT->{$v}\n";}
+
     print "Executing $cmdline\n";
-    local $argvsize = @ARGV;
+    local $argvsize     = @ARGV;
+    local $nmakeargs    = "";
     if ($argvsize > 0) {
-        print "\nArguments for NMAKE: ";
-        map {print " $_ "} @ARGV;
-        print "\n";
+        map {$nmakeargs .= " $_ "} @ARGV;
+        print "Arguments for NMAKE: $nmakeargs\n";
         }
        
     print "Info -- Using unix find in $odr->{unixfind}->{value}\n"   if ($verbose);
@@ -519,7 +528,7 @@ sub main {
         chdir("$wd\\athena") or die "Fatal -- couldn't chdir to source directory $wd\\athena\n";
         print "Info -- chdir to ".`cd`."\n"         if ($verbose);
         local $dbgswitch = ($odr->{debug}->{def}) ? " " : "NODEBUG=1";
-        !system("perl ../scripts/build.pl --softdirs --nolog $buildtarget $dbgswitch BUILD_KFW=1 BUILD_OFFICIAL=1 DEBUG_SYMBOL=1")
+        !system("perl ../scripts/build.pl --softdirs --nolog $buildtarget $dbgswitch BUILD_KFW=1 BUILD_OFFICIAL=1 DEBUG_SYMBOL=1 $nmakeargs")
             or die "Fatal -- build $buildtarget failed.";
             
         chdir("$wd")                        or die "Fatal -- couldn't chdir to $wd.";
@@ -677,6 +686,11 @@ sub main {
     system("rm -rf $src/a.tmp");                ## Clean up junk.
     system("rm -rf $out/a.tmp");                ## Clean up junk.
     system("rm -rf $out/ziptemp");              ## Clean up junk.
+
+    print "Now check for ntsecapitest.i.\n";
+    $dir    = "$wd\\athena\\auth\\krb5\\src\\windows";
+    chdir($dir)                                 or die "Fatal -- Couldn't cd to $dir";
+    print "Info -- chdir to ".`cd`."\n"         if ($verbose);
 
 # End logging:
     if ($odr->{logfile}->{def})   {$l->stop;}

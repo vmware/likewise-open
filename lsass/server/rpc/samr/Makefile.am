@@ -33,6 +33,7 @@ libsamr_la_SOURCES = \
     samr_enumdomainusers.c       \
     samr_enumdomainaliases.c     \
     samr_queryuserinfo.c         \
+    samr_setuserinfo.c           \
     samr_queryaliasinfo.c        \
     samr_setaliasinfo.c          \
     samr_createaccount.c         \
@@ -41,6 +42,7 @@ libsamr_la_SOURCES = \
     samr_createdomalias.c        \
     samr_deleteaccount.c         \
     samr_deletedomalias.c        \
+    samr_deleteuser.c            \
     samr_querydisplayinfo.c      \
     samr_querydomaininfo.c       \
     samr_getmembersinalias.c     \

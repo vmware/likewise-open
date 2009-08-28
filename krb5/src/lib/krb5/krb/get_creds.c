@@ -1,7 +1,7 @@
 /*
  * lib/krb5/krb/get_creds.c
  *
- * Copyright 1990 by the Massachusetts Institute of Technology.
+ * Copyright 1990, 2008 by the Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
  * Export of this software from the United States of America may
@@ -44,6 +44,7 @@
  */
 
 #include "k5-int.h"
+#include "int-proto.h"
 
 static krb5_error_code
 krb5_get_credentials_core(krb5_context context, krb5_flags options,
@@ -110,6 +111,7 @@ krb5_get_credentials(krb5_context context, krb5_flags options,
     krb5_creds **tgts;
     krb5_flags fields;
     int not_ktype;
+    int kdcopt = 0;
 
     retval = krb5_get_credentials_core(context, options,
 				       in_creds,
@@ -126,7 +128,7 @@ krb5_get_credentials(krb5_context context, krb5_flags options,
     /* The caller is now responsible for cleaning up in_creds */
     if ((retval = krb5_cc_retrieve_cred(context, ccache, fields, &mcreds,
 					ncreds))) {
-	krb5_xfree(ncreds);
+	free(ncreds);
 	ncreds = in_creds;
     } else {
 	*out_creds = ncreds;
@@ -141,7 +143,11 @@ krb5_get_credentials(krb5_context context, krb5_flags options,
     else
 	not_ktype = 0;
 
-    retval = krb5_get_cred_from_kdc(context, ccache, ncreds, out_creds, &tgts);
+    if (options & KRB5_GC_CANONICALIZE)
+	kdcopt |= KDC_OPT_CANONICALIZE;
+
+    retval = krb5_get_cred_from_kdc_opt(context, ccache, ncreds,
+					out_creds, &tgts, kdcopt);
     if (tgts) {
 	register int i = 0;
 	krb5_error_code rv2;
@@ -207,8 +213,12 @@ krb5_get_credentials_val_renew_core(krb5_context context, krb5_flags options,
 	    retval = 255;
 	    break;
     }
-    if (retval) return retval;
+    /*
+     * Callers to krb5_get_cred_blah... must free up tgts even in
+     * error cases.
+     */
     if (tgts) krb5_free_tgt_creds(context, tgts);
+    if (retval) return retval;
 
     retval = krb5_cc_get_principal(context, ccache, &tmp);
     if (retval) return retval;
@@ -301,7 +311,7 @@ krb5_validate_or_renew_creds(krb5_context context, krb5_creds *creds,
     /* ick.  copy the struct contents, free the container */
     if (out_creds) {
 	*creds = *out_creds;
-	krb5_xfree(out_creds);
+	free(out_creds);
     }
 
 cleanup:

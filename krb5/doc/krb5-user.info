@@ -25,7 +25,7 @@ File: krb5-user.info,  Node: Copyright,  Next: Introduction,  Prev: Top,  Up: To
 Copyright
 *********
 
-Copyright (C) 1985-2007 by the Massachusetts Institute of Technology.
+Copyright (C) 1985-2009 by the Massachusetts Institute of Technology.
 
      Export of software employing encryption from the United States of
      America may require a specific license from the United States
@@ -262,6 +262,23 @@ The implementations of GSSAPI mechglue in GSSAPI-SPNEGO in
      lib/gssapi/spnego/gssapiP_spnego.h
      lib/gssapi/spnego/spnego_mech.c
 
+and the initial implementation of incremental propagation, including
+the following new or changed files:
+
+       include/iprop_hdr.h
+       kadmin/server/ipropd_svc.c
+       lib/kdb/iprop.x
+       lib/kdb/kdb_convert.c
+       lib/kdb/kdb_log.c
+       lib/kdb/kdb_log.h
+       lib/krb5/error_tables/kdb5_err.et
+       slave/kpropd_rpc.c
+       slave/kproplog.c
+
+and marked portions of the following files:
+
+       lib/krb5/os/hst_realm.c
+
 are subject to the following license:
 
      Copyright (C) 2004 Sun Microsystems, Inc.
@@ -325,7 +342,7 @@ notice:
 Portions contributed by Novell, Inc., including the LDAP database
 backend, are subject to the following license:
 
-     Copyright (c) 2004-2005, Novell, Inc.  All rights reserved.
+     Copyright (C) 2004-2005, Novell, Inc.  All rights reserved.
 
      Redistribution and use in source and binary forms, with or without
      modification, are permitted provided that the following conditions
@@ -400,6 +417,140 @@ The pkcs11.h file included in the PKINIT code has the following license:
      WITHOUT ANY WARRANTY, to the extent permitted by law; without even
      the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
      PURPOSE.
+
+
+Portions contributed by Apple Inc. are subject to the following license:
+
+     Copyright 2004-2008 Apple Inc.  All Rights Reserved.
+
+     Export of this software from the United States of America may
+     require a specific license from the United States Government.  It
+     is the responsibility of any person or organization contemplating
+     export to obtain such a license before exporting.
+
+     WITHIN THAT CONSTRAINT, permission to use, copy, modify, and
+     distribute this software and its documentation for any purpose and
+     without fee is hereby granted, provided that the above copyright
+     notice appear in all copies and that both that copyright notice and
+     this permission notice appear in supporting documentation, and that
+     the name of Apple Inc. not be used in advertising or publicity
+     pertaining to distribution of the software without specific,
+     written prior permission.  Apple Inc. makes no representations
+     about the suitability of this software for any purpose.  It is
+     provided "as is" without express or implied warranty.
+
+     THIS SOFTWARE IS PROVIDED "AS IS" AND WITHOUT ANY EXPRESS OR
+     IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
+     WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+
+
+The implementations of strlcpy and strlcat in
+src/util/support/strlcat.c have the following copyright and permission
+notice:
+
+     Copyright (C) 1998 Todd C. Miller <Todd.Miller@courtesan.com>
+
+     Permission to use, copy, modify, and distribute this software for
+     any purpose with or without fee is hereby granted, provided that
+     the above copyright notice and this permission notice appear in
+     all copies.
+
+     THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+     WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+     WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+     AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR
+     CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+     LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
+     NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
+     CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+
+The implementations of UTF-8 string handling in src/util/support and
+src/lib/krb5/unicode are subject to the following copyright and
+permission notice:
+
+     The OpenLDAP Public License   Version 2.8, 17 August 2003
+
+     Redistribution and use of this software and associated
+     documentation ("Software"), with or without modification, are
+     permitted provided that the following conditions are met:
+
+     1. Redistributions in source form must retain copyright statements
+       and notices,
+
+     2. Redistributions in binary form must reproduce applicable
+     copyright    statements and notices, this list of conditions, and
+     the following    disclaimer in the documentation and/or other
+     materials provided    with the distribution, and
+
+     3. Redistributions must contain a verbatim copy of this document.
+
+     The OpenLDAP Foundation may revise this license from time to time.
+     Each revision is distinguished by a version number.  You may use
+     this Software under terms of this license revision or under the
+     terms of any subsequent revision of the license.
+
+     THIS SOFTWARE IS PROVIDED BY THE OPENLDAP FOUNDATION AND ITS
+     CONTRIBUTORS "AS IS" AND ANY EXPRESSED OR IMPLIED WARRANTIES,
+     INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+     MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+     DISCLAIMED.  IN NO EVENT SHALL THE OPENLDAP FOUNDATION, ITS
+     CONTRIBUTORS, OR THE AUTHOR(S) OR OWNER(S) OF THE SOFTWARE BE
+     LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY,
+     OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+     PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+     PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+     THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR
+     TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+     THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+     SUCH DAMAGE.
+
+     The names of the authors and copyright holders must not be used in
+     advertising or otherwise to promote the sale, use or other dealing
+     in this Software without specific, written prior permission.  Title
+     to copyright in this Software shall at all times remain with
+     copyright holders.
+
+     OpenLDAP is a registered trademark of the OpenLDAP Foundation.
+
+     Copyright 1999-2003 The OpenLDAP Foundation, Redwood City,
+     California, USA.  All Rights Reserved.  Permission to copy and
+     distribute verbatim copies of this document is granted.
+
+
+Marked test programs in src/lib/krb5/krb have the following copyright:
+
+     Copyright (C) 2006 Kungliga Tekniska Ho"gskolan (Royal Institute
+     of Technology, Stockholm, Sweden).  All rights reserved.
+
+     Redistribution and use in source and binary forms, with or without
+     modification, are permitted provided that the following conditions
+     are met:
+
+     1. Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+
+     2. Redistributions in binary form must reproduce the above
+     copyright    notice, this list of conditions and the following
+     disclaimer in the    documentation and/or other materials provided
+     with the distribution.
+
+     3. Neither the name of KTH nor the names of its contributors may be
+       used to endorse or promote products derived from this software
+     without    specific prior written permission.
+
+     THIS SOFTWARE IS PROVIDED BY KTH AND ITS CONTRIBUTORS "AS IS" AND
+     ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+     THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+     PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL KTH OR ITS
+     CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+     SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+     LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
+     USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+     AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+     LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+     ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+     POSSIBILITY OF SUCH DAMAGE.
 
 
 Permission is granted to make and distribute verbatim copies of this
@@ -1746,41 +1897,41 @@ TGT
 Tag Table:
 Node: Top220
 Node: Copyright479
-Node: Introduction19395
-Node: What is a Ticket?21258
-Node: What is a Kerberos Principal?22517
-Node: Kerberos V5 Tutorial24372
-Node: Setting Up to Use Kerberos V525166
-Node: Ticket Management26066
-Node: Kerberos Ticket Properties27162
-Node: Obtaining Tickets with kinit31072
-Ref: Obtaining Tickets with kinit-Footnote-134182
-Node: Viewing Your Tickets with klist34297
-Node: Destroying Your Tickets with kdestroy38572
-Node: Password Management39447
-Node: Changing Your Password40483
-Node: Password Advice42247
-Node: Granting Access to Your Account44834
-Node: Kerberos V5 Applications46755
-Node: Overview of Additional Features47770
-Node: telnet49048
-Node: rlogin51946
-Node: FTP54330
-Node: rsh56361
-Node: rcp57550
-Node: ksu58363
-Node: Kerberos V5 Reference63911
-Ref: Kerberos V5 Reference-Footnote-165364
-Node: kinit Reference65590
-Node: klist Reference65818
-Node: ksu Reference66038
-Node: kdestroy Reference66255
-Node: kpasswd Reference66489
-Node: telnet Reference66723
-Node: FTP Reference66949
-Node: rlogin Reference67165
-Node: rsh Reference67387
-Node: rcp Reference67600
-Node: Kerberos Glossary67790
+Node: Introduction26353
+Node: What is a Ticket?28216
+Node: What is a Kerberos Principal?29475
+Node: Kerberos V5 Tutorial31330
+Node: Setting Up to Use Kerberos V532124
+Node: Ticket Management33024
+Node: Kerberos Ticket Properties34120
+Node: Obtaining Tickets with kinit38030
+Ref: Obtaining Tickets with kinit-Footnote-141140
+Node: Viewing Your Tickets with klist41255
+Node: Destroying Your Tickets with kdestroy45530
+Node: Password Management46405
+Node: Changing Your Password47441
+Node: Password Advice49205
+Node: Granting Access to Your Account51792
+Node: Kerberos V5 Applications53713
+Node: Overview of Additional Features54728
+Node: telnet56006
+Node: rlogin58904
+Node: FTP61288
+Node: rsh63319
+Node: rcp64508
+Node: ksu65321
+Node: Kerberos V5 Reference70869
+Ref: Kerberos V5 Reference-Footnote-172322
+Node: kinit Reference72548
+Node: klist Reference72776
+Node: ksu Reference72996
+Node: kdestroy Reference73213
+Node: kpasswd Reference73447
+Node: telnet Reference73681
+Node: FTP Reference73907
+Node: rlogin Reference74123
+Node: rsh Reference74345
+Node: rcp Reference74558
+Node: Kerberos Glossary74748
 
 End Tag Table

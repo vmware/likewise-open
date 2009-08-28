@@ -9,7 +9,7 @@ END-INFO-DIR-ENTRY
 
 File: krb5-install.info,  Node: Top,  Next: Copyright,  Prev: (dir),  Up: (dir)
 
-This file documents how to install the 1.6 release of Kerberos V5.
+This file documents how to install the 1.7 release of Kerberos V5.
 
 * Menu:
 
@@ -27,7 +27,7 @@ File: krb5-install.info,  Node: Copyright,  Next: Introduction,  Prev: Top,  Up:
 Copyright
 *********
 
-Copyright (C) 1985-2007 by the Massachusetts Institute of Technology.
+Copyright (C) 1985-2009 by the Massachusetts Institute of Technology.
 
      Export of software employing encryption from the United States of
      America may require a specific license from the United States
@@ -264,6 +264,23 @@ The implementations of GSSAPI mechglue in GSSAPI-SPNEGO in
      lib/gssapi/spnego/gssapiP_spnego.h
      lib/gssapi/spnego/spnego_mech.c
 
+and the initial implementation of incremental propagation, including
+the following new or changed files:
+
+       include/iprop_hdr.h
+       kadmin/server/ipropd_svc.c
+       lib/kdb/iprop.x
+       lib/kdb/kdb_convert.c
+       lib/kdb/kdb_log.c
+       lib/kdb/kdb_log.h
+       lib/krb5/error_tables/kdb5_err.et
+       slave/kpropd_rpc.c
+       slave/kproplog.c
+
+and marked portions of the following files:
+
+       lib/krb5/os/hst_realm.c
+
 are subject to the following license:
 
      Copyright (C) 2004 Sun Microsystems, Inc.
@@ -327,7 +344,7 @@ notice:
 Portions contributed by Novell, Inc., including the LDAP database
 backend, are subject to the following license:
 
-     Copyright (c) 2004-2005, Novell, Inc.  All rights reserved.
+     Copyright (C) 2004-2005, Novell, Inc.  All rights reserved.
 
      Redistribution and use in source and binary forms, with or without
      modification, are permitted provided that the following conditions
@@ -402,6 +419,140 @@ The pkcs11.h file included in the PKINIT code has the following license:
      WITHOUT ANY WARRANTY, to the extent permitted by law; without even
      the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
      PURPOSE.
+
+
+Portions contributed by Apple Inc. are subject to the following license:
+
+     Copyright 2004-2008 Apple Inc.  All Rights Reserved.
+
+     Export of this software from the United States of America may
+     require a specific license from the United States Government.  It
+     is the responsibility of any person or organization contemplating
+     export to obtain such a license before exporting.
+
+     WITHIN THAT CONSTRAINT, permission to use, copy, modify, and
+     distribute this software and its documentation for any purpose and
+     without fee is hereby granted, provided that the above copyright
+     notice appear in all copies and that both that copyright notice and
+     this permission notice appear in supporting documentation, and that
+     the name of Apple Inc. not be used in advertising or publicity
+     pertaining to distribution of the software without specific,
+     written prior permission.  Apple Inc. makes no representations
+     about the suitability of this software for any purpose.  It is
+     provided "as is" without express or implied warranty.
+
+     THIS SOFTWARE IS PROVIDED "AS IS" AND WITHOUT ANY EXPRESS OR
+     IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
+     WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+
+
+The implementations of strlcpy and strlcat in
+src/util/support/strlcat.c have the following copyright and permission
+notice:
+
+     Copyright (C) 1998 Todd C. Miller <Todd.Miller@courtesan.com>
+
+     Permission to use, copy, modify, and distribute this software for
+     any purpose with or without fee is hereby granted, provided that
+     the above copyright notice and this permission notice appear in
+     all copies.
+
+     THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+     WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+     WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+     AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR
+     CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+     LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
+     NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
+     CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+
+The implementations of UTF-8 string handling in src/util/support and
+src/lib/krb5/unicode are subject to the following copyright and
+permission notice:
+
+     The OpenLDAP Public License   Version 2.8, 17 August 2003
+
+     Redistribution and use of this software and associated
+     documentation ("Software"), with or without modification, are
+     permitted provided that the following conditions are met:
+
+     1. Redistributions in source form must retain copyright statements
+       and notices,
+
+     2. Redistributions in binary form must reproduce applicable
+     copyright    statements and notices, this list of conditions, and
+     the following    disclaimer in the documentation and/or other
+     materials provided    with the distribution, and
+
+     3. Redistributions must contain a verbatim copy of this document.
+
+     The OpenLDAP Foundation may revise this license from time to time.
+     Each revision is distinguished by a version number.  You may use
+     this Software under terms of this license revision or under the
+     terms of any subsequent revision of the license.
+
+     THIS SOFTWARE IS PROVIDED BY THE OPENLDAP FOUNDATION AND ITS
+     CONTRIBUTORS "AS IS" AND ANY EXPRESSED OR IMPLIED WARRANTIES,
+     INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+     MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+     DISCLAIMED.  IN NO EVENT SHALL THE OPENLDAP FOUNDATION, ITS
+     CONTRIBUTORS, OR THE AUTHOR(S) OR OWNER(S) OF THE SOFTWARE BE
+     LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY,
+     OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+     PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+     PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+     THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR
+     TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+     THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+     SUCH DAMAGE.
+
+     The names of the authors and copyright holders must not be used in
+     advertising or otherwise to promote the sale, use or other dealing
+     in this Software without specific, written prior permission.  Title
+     to copyright in this Software shall at all times remain with
+     copyright holders.
+
+     OpenLDAP is a registered trademark of the OpenLDAP Foundation.
+
+     Copyright 1999-2003 The OpenLDAP Foundation, Redwood City,
+     California, USA.  All Rights Reserved.  Permission to copy and
+     distribute verbatim copies of this document is granted.
+
+
+Marked test programs in src/lib/krb5/krb have the following copyright:
+
+     Copyright (C) 2006 Kungliga Tekniska Ho"gskolan (Royal Institute
+     of Technology, Stockholm, Sweden).  All rights reserved.
+
+     Redistribution and use in source and binary forms, with or without
+     modification, are permitted provided that the following conditions
+     are met:
+
+     1. Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+
+     2. Redistributions in binary form must reproduce the above
+     copyright    notice, this list of conditions and the following
+     disclaimer in the    documentation and/or other materials provided
+     with the distribution.
+
+     3. Neither the name of KTH nor the names of its contributors may be
+       used to endorse or promote products derived from this software
+     without    specific prior written permission.
+
+     THIS SOFTWARE IS PROVIDED BY KTH AND ITS CONTRIBUTORS "AS IS" AND
+     ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+     THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+     PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL KTH OR ITS
+     CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+     SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+     LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
+     USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+     AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+     LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+     ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+     POSSIBILITY OF SUCH DAMAGE.
 
 
 Permission is granted to make and distribute verbatim copies of this
@@ -551,8 +702,6 @@ following issues:
 
    * How frequently you will propagate the database from the master KDC
      to the slave KDCs.
-
-   * Whether you need backward compatibility with Kerberos V4.
 
 * Menu:
 
@@ -730,10 +879,6 @@ well.)  Several different Kerberos-related service names are used:
 `_kpasswd._udp'
      This should list port 464 on your master KDC.  It is used when a
      user changes her password.
-
-`_kerberos-iv._udp'
-     This should refer to your KDCs that serve Kerberos version 4
-     requests, if you have Kerberos v4 enabled.
 
 
 Be aware, however, that the DNS SRV specification requires that the
@@ -1083,18 +1228,18 @@ File: krb5-install.info,  Node: Unpacking the Sources,  Next: Doing the Build,  
 
 The first step in each of these build procedures is to unpack the
 source distribution.  The Kerberos V5 distribution comes in a tar file,
-generally named `krb5-1.6.tar', which contains a compressed tar file
+generally named `krb5-1.7.tar', which contains a compressed tar file
 consisting of the sources for all of Kerberos (generally
-`krb5-1.6.tar.gz') and a PGP signature for this source tree (generally
-`krb5-1.6.tar.gz.asc').  MIT highly recommends that you verify the
+`krb5-1.7.tar.gz') and a PGP signature for this source tree (generally
+`krb5-1.7.tar.gz.asc').  MIT highly recommends that you verify the
 integrity of the source code using this signature.
 
 Unpack the compressed tar file in some directory, such as
-`/u1/krb5-1.6'.  (In the rest of this document, we will assume that you
+`/u1/krb5-1.7'.  (In the rest of this document, we will assume that you
 have chosen to unpack the Kerberos V5 source distribution in this
 directory.  Note that the tarfiles will by default all unpack into the
-`./krb5-1.6' directory, so that if your current directory is `/u1' when
-you unpack the tarfiles, you will get `/u1/krb5-1.6/src', etc.)
+`./krb5-1.7' directory, so that if your current directory is `/u1' when
+you unpack the tarfiles, you will get `/u1/krb5-1.7/src', etc.)
 
 
 File: krb5-install.info,  Node: Doing the Build,  Next: Installing the Binaries,  Prev: Unpacking the Sources,  Up: Building Kerberos V5
@@ -1126,7 +1271,7 @@ File: krb5-install.info,  Node: Building Within a Single Tree,  Next: Building w
 If you don't want separate build trees for each architecture, then use
 the following abbreviated procedure.
 
-  1.  `cd /u1/krb5-1.6/src'
+  1.  `cd /u1/krb5-1.7/src'
 
   2.  `./configure'
 
@@ -1149,9 +1294,9 @@ this, see the next section.
 For example, if you wish to create a build directory for `pmax' binaries
 you might use the following procedure:
 
-  1. `mkdir /u1/krb5-1.6/pmax'
+  1. `mkdir /u1/krb5-1.7/pmax'
 
-  2.  `cd /u1/krb5-1.6/pmax'
+  2.  `cd /u1/krb5-1.7/pmax'
 
   3.  `../src/configure'
 
@@ -1171,11 +1316,11 @@ trees in your build directory.
 For example, if you wish to create a build directory for solaris
 binaries you might use the following procedure:
 
-  1.  `mkdir /u1/krb5-1.6/solaris'
+  1.  `mkdir /u1/krb5-1.7/solaris'
 
-  2.  `cd /u1/krb5-1.6/solaris'
+  2.  `cd /u1/krb5-1.7/solaris'
 
-  3.  `/u1/krb5-1.6/src/util/lndir `pwd`/../src'
+  3.  `/u1/krb5-1.7/src/util/lndir `pwd`/../src'
 
   4.  `./configure'
 
@@ -1573,7 +1718,7 @@ HP/UX 10.20.
 
 Platforms for which there is shared library support but not significant
 testing include FreeBSD, OpenBSD, AIX (4.3.3), Linux, NetBSD 1.4.x
-(i386), and SunOS 4.x.
+(i386).
 
 To enable shared libraries on the above platforms, run the configure
 script with the option `--enable-shared'.
@@ -1833,7 +1978,7 @@ rebuild any `configure' files which need rebuilding.  If you know that
 you have made a change that will require that all the `configure' files
 need to be rebuilt from scratch, specify the `--force' option:
 
-     % cd /u1/krb5-1.6/src
+     % cd /u1/krb5-1.7/src
      % ./util/reconf --force
 
 The developmental sources are a raw source tree (before it's been
@@ -1849,7 +1994,7 @@ In order to build from such a source tree, you must do:
 Then follow the instructions for building packaged source trees (above).
 To install the binaries into a binary tree, do:
 
-     % cd /u1/krb5-1.6/src
+     % cd /u1/krb5-1.7/src
      % make all
      % make install DESTDIR=somewhere-else
 
@@ -1905,6 +2050,7 @@ is based on that recommendation.
 * Add Kerberos Principals to the Database::
 * Limit Access to the KDCs::
 * Switching Master and Slave KDCs::
+* Incremental Database Propagation::
 
 
 File: krb5-install.info,  Node: Install the Master KDC,  Next: Install the Slave KDCs,  Prev: Installing KDCs,  Up: Installing KDCs
@@ -2635,7 +2781,7 @@ line.):
      => klogind -5 -c -e
 
 
-File: krb5-install.info,  Node: Switching Master and Slave KDCs,  Prev: Limit Access to the KDCs,  Up: Installing KDCs
+File: krb5-install.info,  Node: Switching Master and Slave KDCs,  Next: Incremental Database Propagation,  Prev: Limit Access to the KDCs,  Up: Installing KDCs
 
 4.1.7 Switching Master and Slave KDCs
 -------------------------------------
@@ -2678,6 +2824,131 @@ On the _new_ master KDC:
      this, you'll need to change the `krb5.conf' file on every client
      machine in your Kerberos realm.)
 
+
+
+File: krb5-install.info,  Node: Incremental Database Propagation,  Prev: Switching Master and Slave KDCs,  Up: Installing KDCs
+
+4.1.8 Incremental Database Propagation
+--------------------------------------
+
+At some very large sites, dumping and transmitting the database can
+take more time than is desirable for changes to propagate from the
+master KDC to the slave KDCs.  The incremental propagation support
+added in the 1.7 release is intended to address this.
+
+With incremental propagation enabled, all programs on the master KDC
+that change the database also write information about the changes to an
+"update log" file, maintained as a circular buffer of a certain size.
+A process on each slave KDC connects to a service on the master KDC
+(currently implmented in the `kadmind' server) and periodically
+requests the changes that have been made since the last check.  By
+default, this check is done every two minutes.  If the database has
+just been modified in the previous several seconds (currently the
+threshold is hard-coded at 10 seconds), the slave will not retrieve
+updates, but instead will pause and try again soon after.  This reduces
+the likelihood that incremental update queries will cause delays for an
+administrator trying to make a bunch of changes to the database at the
+same time.
+
+Incremental propagation uses the following entries in the per-realm
+data in the KDC config file:
+
+`iprop_enable' (boolean)
+     If this is set to `true', then incremental propagation is enabled,
+     and (as noted below) normal `kprop' propagation is disabled.  The
+     default is `false'.
+
+`iprop_master_ulogsize' (integer)
+     This indicates the number of entries that should be retained in the
+     update log.  The default is 1000; the maximum number is 2500.
+
+`iprop_slave_poll' (time interval)
+     This indicates how often the slave should poll the master KDC for
+     changes to the database.  The default is two minutes.
+
+`iprop_port' (integer)
+     This specifies the port number to be used for incremental
+     propagation.  This is required in both master and slave
+     configuration files.
+
+`iprop_logfile' (file name)
+     This specifies where the update log file for the realm database is
+     to be stored.  The default is to use the `database_name' entry from
+     the `realms' section of the config file, with `.ulog' appended.
+     (NOTE: If `database_name' isn't specified in the `realms' section,
+     perhaps because the LDAP database back end is being used, or the
+     file name is specified in the `dbmodules' section, then the
+     hard-coded default for `database_name' is used.  Determination of
+     the `iprop_logfile' default value will not use values from the
+     `dbmodules' section.)
+
+Both master and slave sides must have principals named
+`kiprop/HOSTNAME' (where HOSTNAME is, as usual, the lower-case,
+fully-qualified, canonical name for the host) registered and keys
+stored in the default keytab file (`/etc/krb5.keytab').
+
+On the master KDC side, the `kiprop/HOSTNAME' principal must be listed
+in the `kadmind' ACL file `kadm5.acl', and given the `p' privilege.
+
+On the slave KDC side, `kpropd' should be run.  When incremental
+propagation is enabled, it will connect to the `kadmind' on the master
+KDC and start requesting updates.
+
+The normal `kprop' mechanism is disabled by the incremental propagation
+support.  However, if the slave has been unable to fetch changes from
+the master KDC for too long (network problems, perhaps), the log on the
+master may wrap around and overwrite some of the updates that the slave
+has not yet retrieved.  In this case, the slave will instruct the
+master KDC to dump the current database out to a file and invoke a
+one-time `kprop' propagation, with special options to also convey the
+point in the update log at which the slave should resume fetching
+incremental updates.  Thus, all the keytab and ACL setup previously
+described for `kprop' propagation is still needed.
+
+There are several known bugs and restrictions in the current
+implementation:
+   * The "call out to `kprop'" mechanism is a bit fragile; if the
+     `kprop' propagation fails to connect for some reason, the process
+     on the slave may hang waiting for it, and will need to be
+     restarted.
+
+   * The master and slave must be able to initiate TCP connections in
+     both directions, without an intervening NAT.  They must also be
+     able to communicate over IPv4, since MIT's kprop and RPC code does
+     not currently support IPv6.
+
+* Menu:
+
+* Sun/MIT Incremental Propagation Differences::
+
+
+File: krb5-install.info,  Node: Sun/MIT Incremental Propagation Differences,  Prev: Incremental Database Propagation,  Up: Incremental Database Propagation
+
+4.1.8.1 Sun/MIT Incremental Propagation Differences
+...................................................
+
+Sun donated the original code for supporting incremental database
+propagation to MIT.  Some changes have been made in the MIT source tree
+that will be visible to administrators.  (These notes are based on
+Sun's patches.  Changes to Sun's implementation since then may not be
+reflected here.)
+
+The Sun config file support looks for `sunw_dbprop_enable',
+`sunw_dbprop_master_ulogsize', and `sunw_dbprop_slave_poll'.
+
+The incremental propagation service is implemented as an ONC RPC
+service.  In the Sun implementation, the service is registered with
+`rpcbind' (also known as `portmapper') and the client looks up the port
+number to contact.  In the MIT implementation, where interaction with
+some modern versions of `rpcbind' doesn't always work well, the port
+number must be specified in the config file on both the master and
+slave sides.
+
+The Sun implementation hard-codes pathnames in `/var/krb5' for the
+update log and the per-slave `kprop' dump files.  In the MIT
+implementation, the pathname for the update log is specified in the
+config file, and the per-slave dump files are stored in
+`/usr/local/var/krb5kdc/slave_datatrans_HOSTNAME'.
 
 
 File: krb5-install.info,  Node: Installing and Configuring UNIX Client Machines,  Next: UNIX Application Servers,  Prev: Installing KDCs,  Up: Installing Kerberos V5
@@ -2731,17 +3002,6 @@ services to each client machine's `/etc/services' file.  If you are
 using the default configuration for Kerberos V5, you should be able to
 just insert the following code:
 
-     #
-     # Note --- if you are using Kerberos V4 and you either:
-     #
-     #    (a) haven't converted all your master or slave KDCs to V5, or
-     #
-     #    (b) are worried about inter-realm interoperability with other KDC's
-     #        that are still using V4
-     #
-     # you will need to switch the "kerberos" service to port 750 and create a
-     # "kerberos-sec" service on port 88.
-     #
      kerberos      88/udp    kdc    # Kerberos V5 KDC
      kerberos      88/tcp    kdc    # Kerberos V5 KDC
      klogin        543/tcp          # Kerberos authenticated rlogin
@@ -2751,13 +3011,6 @@ just insert the following code:
      krb5_prop     754/tcp          # Kerberos slave propagation
      eklogin       2105/tcp         # Kerberos auth. & encrypted rlogin
      krb524        4444/tcp         # Kerberos 5 to 4 ticket translator
-
-As described in the comments in the above code, if your master KDC or
-any of your slave KDCs is running Kerberos V4, (or if you will be
-authenticating to any Kerberos V4 KDCs in another realm) you will need
-to switch the port number for `kerberos' to 750 and create a
-`kerberos-sec' service (tcp and udp) on port 88, so the Kerberos V4
-KDC(s) will continue to work properly.
 
 * Menu:
 
@@ -3212,93 +3465,95 @@ example.
 Tag Table:
 Node: Top221
 Node: Copyright580
-Node: Introduction19499
-Node: What is Kerberos and How Does it Work?19789
-Node: Why Should I use Kerberos?20854
-Node: Please Read the Documentation21503
-Node: Overview of This Guide23167
-Node: Realm Configuration Decisions23955
-Node: Kerberos Realms24949
-Node: Mapping Hostnames onto Kerberos Realms25555
-Node: Ports for the KDC and Admin Services27686
-Ref: Ports for the KDC and Admin Services-Footnote-128451
-Node: Slave KDCs28552
-Node: Hostnames for the Master and Slave KDCs29837
-Node: Database Propagation34541
-Node: Building Kerberos V535532
-Node: Organization of the Source Directory36806
-Node: The appl Directory38286
-Node: The clients Directory39015
-Node: The gen-manpages Directory40179
-Node: The include Directory40649
-Node: The kadmin Directory40950
-Node: The kdc Directory42092
-Node: The krb524 Directory42420
-Node: The lib Directory42835
-Node: The prototype Directory43801
-Node: The slave Directory44423
-Node: The util Directory45208
-Node: Build Requirements46018
-Node: Unpacking the Sources46948
-Node: Doing the Build47994
-Node: Building Within a Single Tree48776
-Node: Building with Separate Build Directories49194
-Node: Building using lndir49973
-Node: Installing the Binaries50933
-Node: Testing the Build52029
-Node: The DejaGnu Tests53461
-Ref: The DejaGnu Tests-Footnote-154891
-Node: The KADM5 Tests55102
-Node: Options to Configure56577
-Node: osconf.h64474
-Node: Shared Library Support65981
-Node: OS Incompatibilities67316
-Node: AIX68010
-Node: Alpha OSF/1 V1.368342
-Node: Alpha OSF/1 V2.068749
-Node: Alpha OSF/1 V4.069419
-Node: BSDI69966
-Node: HPUX70386
-Node: Solaris versions 2.0 through 2.371815
-Node: Solaris 2.X72996
-Node: Solaris 973696
-Node: SGI Irix 5.X74650
-Node: Ultrix 4.2/375394
-Node: Using Autoconf75690
-Node: Installing Kerberos V577699
-Node: Installing KDCs78165
-Node: Install the Master KDC79406
-Node: Edit the Configuration Files80040
-Node: krb5.conf80931
-Node: kdc.conf84433
-Node: Create the Database85431
-Node: Add Administrators to the Acl File88657
-Node: Add Administrators to the Kerberos Database93346
-Node: Create a kadmind Keytab (optional)94456
-Node: Start the Kerberos Daemons96388
-Node: Install the Slave KDCs97535
-Node: Create Host Keys for the Slave KDCs98167
-Node: Extract Host Keytabs for the KDCs99727
-Node: Set Up the Slave KDCs for Database Propagation100652
-Node: Back on the Master KDC102466
-Node: Propagate the Database to Each Slave KDC102853
-Node: Finish Installing the Slave KDCs104346
-Node: Create Stash Files on the Slave KDCs104817
-Node: Start the krb5kdc Daemon on Each KDC105707
-Node: Add Kerberos Principals to the Database106245
-Node: Limit Access to the KDCs106951
-Node: Switching Master and Slave KDCs108725
-Node: Installing and Configuring UNIX Client Machines110442
-Node: Client Programs110874
-Node: Client Machine Configuration Files112051
-Node: Mac OS X Configuration113995
-Node: UNIX Application Servers117283
-Node: Server Programs118313
-Node: Server Configuration Files118862
-Node: The Keytab File120445
-Node: Some Advice about Secure Hosts122831
-Node: Upgrading Existing Kerberos V5 Installations124280
-Node: Upgrading to Triple-DES and RC4 Encryption Keys126533
-Node: Bug Reports for Kerberos V5128772
+Node: Introduction26457
+Node: What is Kerberos and How Does it Work?26747
+Node: Why Should I use Kerberos?27812
+Node: Please Read the Documentation28461
+Node: Overview of This Guide30125
+Node: Realm Configuration Decisions30913
+Node: Kerberos Realms31843
+Node: Mapping Hostnames onto Kerberos Realms32449
+Node: Ports for the KDC and Admin Services34580
+Ref: Ports for the KDC and Admin Services-Footnote-135345
+Node: Slave KDCs35446
+Node: Hostnames for the Master and Slave KDCs36731
+Node: Database Propagation41300
+Node: Building Kerberos V542291
+Node: Organization of the Source Directory43565
+Node: The appl Directory45045
+Node: The clients Directory45774
+Node: The gen-manpages Directory46938
+Node: The include Directory47408
+Node: The kadmin Directory47709
+Node: The kdc Directory48851
+Node: The krb524 Directory49179
+Node: The lib Directory49594
+Node: The prototype Directory50560
+Node: The slave Directory51182
+Node: The util Directory51967
+Node: Build Requirements52777
+Node: Unpacking the Sources53707
+Node: Doing the Build54753
+Node: Building Within a Single Tree55535
+Node: Building with Separate Build Directories55953
+Node: Building using lndir56732
+Node: Installing the Binaries57692
+Node: Testing the Build58788
+Node: The DejaGnu Tests60220
+Ref: The DejaGnu Tests-Footnote-161650
+Node: The KADM5 Tests61861
+Node: Options to Configure63336
+Node: osconf.h71233
+Node: Shared Library Support72740
+Node: OS Incompatibilities74060
+Node: AIX74754
+Node: Alpha OSF/1 V1.375086
+Node: Alpha OSF/1 V2.075493
+Node: Alpha OSF/1 V4.076163
+Node: BSDI76710
+Node: HPUX77130
+Node: Solaris versions 2.0 through 2.378559
+Node: Solaris 2.X79740
+Node: Solaris 980440
+Node: SGI Irix 5.X81394
+Node: Ultrix 4.2/382138
+Node: Using Autoconf82434
+Node: Installing Kerberos V584443
+Node: Installing KDCs84909
+Node: Install the Master KDC86187
+Node: Edit the Configuration Files86821
+Node: krb5.conf87712
+Node: kdc.conf91214
+Node: Create the Database92212
+Node: Add Administrators to the Acl File95438
+Node: Add Administrators to the Kerberos Database100127
+Node: Create a kadmind Keytab (optional)101237
+Node: Start the Kerberos Daemons103169
+Node: Install the Slave KDCs104316
+Node: Create Host Keys for the Slave KDCs104948
+Node: Extract Host Keytabs for the KDCs106508
+Node: Set Up the Slave KDCs for Database Propagation107433
+Node: Back on the Master KDC109247
+Node: Propagate the Database to Each Slave KDC109634
+Node: Finish Installing the Slave KDCs111127
+Node: Create Stash Files on the Slave KDCs111598
+Node: Start the krb5kdc Daemon on Each KDC112488
+Node: Add Kerberos Principals to the Database113026
+Node: Limit Access to the KDCs113732
+Node: Switching Master and Slave KDCs115506
+Node: Incremental Database Propagation117264
+Node: Sun/MIT Incremental Propagation Differences121817
+Node: Installing and Configuring UNIX Client Machines123225
+Node: Client Programs123657
+Node: Client Machine Configuration Files124834
+Node: Mac OS X Configuration125997
+Node: UNIX Application Servers129285
+Node: Server Programs130315
+Node: Server Configuration Files130864
+Node: The Keytab File132447
+Node: Some Advice about Secure Hosts134833
+Node: Upgrading Existing Kerberos V5 Installations136282
+Node: Upgrading to Triple-DES and RC4 Encryption Keys138535
+Node: Bug Reports for Kerberos V5140774
 
 End Tag Table

@@ -1,7 +1,7 @@
 /*
  * lib/krb5/os/an_to_ln.c
  *
- * Copyright 1990,1991 by the Massachusetts Institute of Technology.
+ * Copyright 1990,1991,2007,2008 by the Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
  * Export of this software from the United States of America may
@@ -47,7 +47,7 @@
 #include <regexpr.h>
 #endif	/* !HAVE_REGCOMP && HAVE_REGEXP_H && HAVE_COMPILE */
 
-#define	MAX_FORMAT_BUFFER	1024
+#define	MAX_FORMAT_BUFFER	((size_t)1024)
 #ifndef	min
 #define	min(a,b)	((a>b) ? b : a)
 #endif	/* min */
@@ -115,13 +115,13 @@ db_an_to_ln(context, dbname, aname, lnsize, lname)
 
     db = KDBM_OPEN(dbname, O_RDONLY, 0600);
     if (!db) {
-	krb5_xfree(princ_name);
+	free(princ_name);
 	return KRB5_LNAME_CANTOPEN;
     }
 
     contents = KDBM_FETCH(db, key);
 
-    krb5_xfree(princ_name);
+    free(princ_name);
 
     if (contents.dptr == NULL) {
 	retval = KRB5_LNAME_NOTRANS;
@@ -438,7 +438,7 @@ aname_replacer(char *string, char **contextp, char **result)
 		    memset(out, '\0', MAX_FORMAT_BUFFER);
 		    if (!do_replacement(rule, repl, doglobal, in, out)) {
 			free(rule);
-		    free(repl);
+			free(repl);
 			kret = KRB5_LNAME_NOTRANS;
 			break;
 		    }
@@ -453,6 +453,7 @@ aname_replacer(char *string, char **contextp, char **result)
 		}
 		else {
 		    /* No memory for copies */
+		    free(rule);
 		    kret = ENOMEM;
 		    break;
 		}
@@ -582,7 +583,7 @@ rule_an_to_ln(krb5_context context, char *rule, krb5_const_principal aname, cons
 	    if (!(selstring = aname_full_to_mapping_name(fprincname)))
 		kret = ENOMEM;
 	}
-	krb5_xfree(fprincname);
+	free(fprincname);
     }
     if (!kret) {
 	/*
@@ -599,9 +600,7 @@ rule_an_to_ln(krb5_context context, char *rule, krb5_const_principal aname, cons
 	    kret = aname_replacer(selstring, &current, &outstring);
 	    if (outstring) {
 		/* Copy out the value if there's enough room */
-		if (strlen(outstring)+1 <= (size_t) lnsize)
-		    strcpy(lname, outstring);
-		else
+		if (strlcpy(lname, outstring, lnsize) >= lnsize)
 		    kret = KRB5_CONFIG_NOTENUFSPACE;
 		free(outstring);
 	    }
@@ -630,8 +629,7 @@ default_an_to_ln(krb5_context context, krb5_const_principal aname, const unsigne
     if ((retval = krb5_get_default_realm(context, &def_realm))) {
 	return(retval);
     }
-    if (((size_t) realm_length != strlen(def_realm)) ||
-        (memcmp(def_realm, krb5_princ_realm(context, aname)->data, realm_length))) {
+    if (!data_eq_string(*krb5_princ_realm(context, aname), def_realm)) {
         free(def_realm);
         return KRB5_LNAME_NOTRANS;
     }
@@ -675,7 +673,7 @@ default_an_to_ln(krb5_context context, krb5_const_principal aname, const unsigne
 */
 
 krb5_error_code KRB5_CALLCONV
-krb5_aname_to_localname(krb5_context context, krb5_const_principal aname, const int lnsize_in, char *lname)
+krb5_aname_to_localname(krb5_context context, krb5_const_principal aname, int lnsize_in, char *lname)
 {
     krb5_error_code	kret;
     char		*realm;
@@ -705,9 +703,9 @@ krb5_aname_to_localname(krb5_context context, krb5_const_principal aname, const 
 		 *
 		 * [realms]->realm->"auth_to_local_names"->mapping_name
 		 */
-		hierarchy[0] = "realms";
+		hierarchy[0] = KRB5_CONF_REALMS;
 		hierarchy[1] = realm;
-		hierarchy[2] = "auth_to_local_names";
+		hierarchy[2] = KRB5_CONF_AUTH_TO_LOCAL_NAMES;
 		hierarchy[3] = mname;
 		hierarchy[4] = (char *) NULL;
 		if (!(kret = profile_get_values(context->profile,
@@ -728,9 +726,8 @@ krb5_aname_to_localname(krb5_context context, krb5_const_principal aname, const 
 		    }
 
 		    /* Copy out the value if there's enough room */
-		    if (strlen(mapping_values[nvalid-1])+1 <= (size_t) lnsize)
-			strcpy(lname, mapping_values[nvalid-1]);
-		    else
+		    if (strlcpy(lname, mapping_values[nvalid-1],
+				lnsize) >= lnsize)
 			kret = KRB5_CONFIG_NOTENUFSPACE;
 
 		    /* Free residue */
@@ -750,9 +747,9 @@ krb5_aname_to_localname(krb5_context context, krb5_const_principal aname, const 
 		     *	DEFAULT		- Use default rule.
 		     * The first rule to find a match is used.
 		     */
-		    hierarchy[0] = "realms";
+		    hierarchy[0] = KRB5_CONF_REALMS;
 		    hierarchy[1] = realm;
-		    hierarchy[2] = "auth_to_local";
+		    hierarchy[2] = KRB5_CONF_AUTH_TO_LOCAL;
 		    hierarchy[3] = (char *) NULL;
 		    if (!(kret = profile_get_values(context->profile,
 						    hierarchy,
@@ -822,9 +819,9 @@ krb5_aname_to_localname(krb5_context context, krb5_const_principal aname, const 
 	    }
 	    else
 		kret = ENOMEM;
-	    krb5_xfree(pname);
+	    free(pname);
 	}
-	krb5_xfree(realm);
+	free(realm);
     }
     return(kret);
 }

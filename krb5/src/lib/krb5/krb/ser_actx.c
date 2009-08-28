@@ -1,7 +1,7 @@
 /*
  * lib/krb5/krb/ser_actx.c
  *
- * Copyright 1995 by the Massachusetts Institute of Technology.
+ * Copyright 1995, 2008 by the Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
  * Export of this software from the United States of America may
@@ -371,8 +371,7 @@ krb5_auth_context_internalize(krb5_context kcontext, krb5_pointer *argp, krb5_oc
 	/* Get memory for the auth_context */
 	if ((remain >= (5*sizeof(krb5_int32))) &&
 	    (auth_context = (krb5_auth_context)
-	     malloc(sizeof(struct _krb5_auth_context)))) {
-	    memset(auth_context, 0, sizeof(struct _krb5_auth_context));
+	     calloc(1, sizeof(struct _krb5_auth_context)))) {
 
 	    /* Get auth_context_flags */
 	    (void) krb5_ser_unpack_int32(&ibuf, &bp, &remain);
@@ -551,8 +550,10 @@ krb5_ser_auth_context_init(krb5_context kcontext)
 	kret = krb5_ser_authdata_init(kcontext);
     if (!kret)
 	kret = krb5_ser_address_init(kcontext);
+#ifndef LEAN_CLIENT
     if (!kret)
 	kret = krb5_ser_authenticator_init(kcontext);
+#endif
     if (!kret)
 	kret = krb5_ser_checksum_init(kcontext);
     if (!kret)

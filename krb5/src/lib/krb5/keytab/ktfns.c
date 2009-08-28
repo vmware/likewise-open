@@ -1,7 +1,7 @@
 /*
  * lib/krb5/keytab/ktfns.c
  *
- * Copyright 2001 by the Massachusetts Institute of Technology.
+ * Copyright 2001,2008 by the Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
  * Export of this software from the United States of America may
@@ -28,9 +28,11 @@
  * Dispatch methods for keytab code.
  */
 
+#ifndef LEAN_CLIENT
+
 #include "k5-int.h"
 
-char * KRB5_CALLCONV
+const char * KRB5_CALLCONV
 krb5_kt_get_type (krb5_context context, krb5_keytab keytab)
 {
     return keytab->ops->prefix;
@@ -94,3 +96,5 @@ krb5_kt_end_seq_get(krb5_context context, krb5_keytab keytab,
 {
     return krb5_x((keytab)->ops->end_get,(context, keytab, cursor));
 }
+#endif /* LEAN_CLIENT */
+

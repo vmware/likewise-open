@@ -1,7 +1,7 @@
 /*
  * lib/krb5/keytab/kt_file.c
  *
- * Copyright 1990,1991,1995 by the Massachusetts Institute of Technology.
+ * Copyright 1990,1991,1995,2007,2008 by the Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
  * Export of this software from the United States of America may
@@ -25,6 +25,8 @@
  * 
  */
 
+#ifndef LEAN_CLIENT
+
 #include "k5-int.h"
 #include <stdio.h>
 
@@ -37,8 +39,6 @@
 /*
  * Constants
  */
-#define IGNORE_VNO 0
-#define IGNORE_ENCTYPE 0
 
 #define KRB5_KT_VNO_1	0x0501	/* krb v5, keytab version 1 (DCE compat) */
 #define KRB5_KT_VNO	0x0502	/* krb v5, keytab version 2 (standard)  */
@@ -53,8 +53,28 @@ typedef struct _krb5_ktfile_data {
     FILE *openf;		/* open file, if any. */
     char iobuf[BUFSIZ];		/* so we can zap it later */
     int	version;		/* Version number of keytab */
+    unsigned int iter_count;	/* Number of active iterators */
+    long start_offset;		/* Starting offset after version */
     k5_mutex_t lock;		/* Protect openf, version */
 } krb5_ktfile_data;
+
+/*
+ * Some limitations:
+ *
+ * If the file OPENF is left open between calls, we have an iterator
+ * active, and OPENF is opened in read-only mode.  So, no changes
+ * can be made via that handle.
+ *
+ * An advisory file lock is used while the file is open.  Thus,
+ * multiple handles on the same underlying file cannot be used without
+ * disrupting the locking in effect.
+ *
+ * The start_offset field is only valid if the file is open.  It will
+ * almost certainly always be the same constant.  It's used so that
+ * if an iterator is active, and we start another one, we don't have
+ * to seek back to the start and re-read the version number to set
+ * the position for the iterator.
+ */
 
 /*
  * Macros
@@ -64,6 +84,8 @@ typedef struct _krb5_ktfile_data {
 #define KTFILEP(id) (((krb5_ktfile_data *)(id)->data)->openf)
 #define KTFILEBUFP(id) (((krb5_ktfile_data *)(id)->data)->iobuf)
 #define KTVERSION(id) (((krb5_ktfile_data *)(id)->data)->version)
+#define KTITERS(id) (((krb5_ktfile_data *)(id)->data)->iter_count)
+#define KTSTARTOFF(id) (((krb5_ktfile_data *)(id)->data)->start_offset)
 #define KTLOCK(id) k5_mutex_lock(&((krb5_ktfile_data *)(id)->data)->lock)
 #define KTUNLOCK(id) k5_mutex_unlock(&((krb5_ktfile_data *)(id)->data)->lock)
 #define KTCHECKLOCK(id) k5_mutex_assert_locked(&((krb5_ktfile_data *)(id)->data)->lock)
@@ -71,27 +93,27 @@ typedef struct _krb5_ktfile_data {
 extern const struct _krb5_kt_ops krb5_ktf_ops;
 extern const struct _krb5_kt_ops krb5_ktf_writable_ops;
 
-krb5_error_code KRB5_CALLCONV krb5_ktfile_resolve 
+static krb5_error_code KRB5_CALLCONV krb5_ktfile_resolve
 	(krb5_context,
 		   const char *,
 		   krb5_keytab *);
 
-krb5_error_code KRB5_CALLCONV krb5_ktfile_wresolve 
+static krb5_error_code KRB5_CALLCONV krb5_ktfile_wresolve
 	(krb5_context,
 		   const char *,
 		   krb5_keytab *);
 
-krb5_error_code KRB5_CALLCONV krb5_ktfile_get_name 
+static krb5_error_code KRB5_CALLCONV krb5_ktfile_get_name
 	(krb5_context,
 		   krb5_keytab,
 		   char *,
 		   unsigned int);
 
-krb5_error_code KRB5_CALLCONV krb5_ktfile_close 
+static krb5_error_code KRB5_CALLCONV krb5_ktfile_close
 	(krb5_context,
 		   krb5_keytab);
 
-krb5_error_code KRB5_CALLCONV krb5_ktfile_get_entry 
+static krb5_error_code KRB5_CALLCONV krb5_ktfile_get_entry
 	(krb5_context,
 		   krb5_keytab,
 		   krb5_const_principal,
@@ -99,72 +121,72 @@ krb5_error_code KRB5_CALLCONV krb5_ktfile_get_entry
 		   krb5_enctype,
 		   krb5_keytab_entry *);
 
-krb5_error_code KRB5_CALLCONV krb5_ktfile_start_seq_get 
+static krb5_error_code KRB5_CALLCONV krb5_ktfile_start_seq_get
 	(krb5_context,
 		   krb5_keytab,
 		   krb5_kt_cursor *);
 
-krb5_error_code KRB5_CALLCONV krb5_ktfile_get_next 
+static krb5_error_code KRB5_CALLCONV krb5_ktfile_get_next
 	(krb5_context,
 		   krb5_keytab,
 		   krb5_keytab_entry *,
 		   krb5_kt_cursor *);
 
-krb5_error_code KRB5_CALLCONV krb5_ktfile_end_get 
+static krb5_error_code KRB5_CALLCONV krb5_ktfile_end_get
 	(krb5_context,
 		   krb5_keytab,
 		   krb5_kt_cursor *);
 
 /* routines to be included on extended version (write routines) */
-krb5_error_code KRB5_CALLCONV krb5_ktfile_add 
+static krb5_error_code KRB5_CALLCONV krb5_ktfile_add
 	(krb5_context,
 		   krb5_keytab,
 		   krb5_keytab_entry *);
 
-krb5_error_code KRB5_CALLCONV krb5_ktfile_remove 
+static krb5_error_code KRB5_CALLCONV krb5_ktfile_remove
 	(krb5_context,
 		   krb5_keytab,
 		   krb5_keytab_entry *);
 
-krb5_error_code krb5_ktfileint_openr 
+static krb5_error_code krb5_ktfileint_openr
 	(krb5_context,
 		   krb5_keytab);
 
-krb5_error_code krb5_ktfileint_openw 
+static krb5_error_code krb5_ktfileint_openw
 	(krb5_context,
 		   krb5_keytab);
 
-krb5_error_code krb5_ktfileint_close 
+static krb5_error_code krb5_ktfileint_close
 	(krb5_context,
 		   krb5_keytab);
 
-krb5_error_code krb5_ktfileint_read_entry 
+static krb5_error_code krb5_ktfileint_read_entry
 	(krb5_context,
 		   krb5_keytab,
 		   krb5_keytab_entry *);
 
-krb5_error_code krb5_ktfileint_write_entry 
+static krb5_error_code krb5_ktfileint_write_entry
 	(krb5_context,
 		   krb5_keytab,
 		   krb5_keytab_entry *);
 
-krb5_error_code krb5_ktfileint_delete_entry 
+static krb5_error_code krb5_ktfileint_delete_entry
 	(krb5_context,
 		   krb5_keytab,
                    krb5_int32);
 
-krb5_error_code krb5_ktfileint_internal_read_entry 
+static krb5_error_code krb5_ktfileint_internal_read_entry
 	(krb5_context,
 		   krb5_keytab,
 		   krb5_keytab_entry *,
                    krb5_int32 *);
 
-krb5_error_code krb5_ktfileint_size_entry 
+static krb5_error_code krb5_ktfileint_size_entry
 	(krb5_context,
 		   krb5_keytab_entry *,
                    krb5_int32 *);
 
-krb5_error_code krb5_ktfileint_find_slot 
+static krb5_error_code krb5_ktfileint_find_slot
 	(krb5_context,
 		   krb5_keytab,
                    krb5_int32 *,
@@ -176,8 +198,9 @@ krb5_error_code krb5_ktfileint_find_slot
  * initialized with file keytab routines.
  */
 
-krb5_error_code KRB5_CALLCONV 
-krb5_ktfile_resolve(krb5_context context, const char *name, krb5_keytab *id)
+static krb5_error_code
+ktfile_common_resolve(krb5_context context, const char *name,
+		      krb5_keytab *id, const struct _krb5_kt_ops *ops)
 {
     krb5_ktfile_data *data;
     krb5_error_code err;
@@ -185,33 +208,39 @@ krb5_ktfile_resolve(krb5_context context, const char *name, krb5_keytab *id)
     if ((*id = (krb5_keytab) malloc(sizeof(**id))) == NULL)
 	return(ENOMEM);
     
-    (*id)->ops = &krb5_ktf_ops;
+    (*id)->ops = ops;
     if ((data = (krb5_ktfile_data *)malloc(sizeof(krb5_ktfile_data))) == NULL) {
-	krb5_xfree(*id);
+	free(*id);
 	return(ENOMEM);
     }
 
     err = k5_mutex_init(&data->lock);
     if (err) {
-	krb5_xfree(data);
-	krb5_xfree(*id);
+	free(data);
+	free(*id);
 	return err;
     }
 
-    if ((data->name = (char *)calloc(strlen(name) + 1, sizeof(char))) == NULL) {
+    if ((data->name = strdup(name)) == NULL) {
 	k5_mutex_destroy(&data->lock);
-	krb5_xfree(data);
-	krb5_xfree(*id);
+	free(data);
+	free(*id);
 	return(ENOMEM);
     }
 
-    (void) strcpy(data->name, name);
     data->openf = 0;
     data->version = 0;
+    data->iter_count = 0;
 
     (*id)->data = (krb5_pointer)data;
     (*id)->magic = KV5M_KEYTAB;
     return(0);
+}
+
+static krb5_error_code KRB5_CALLCONV
+krb5_ktfile_resolve(krb5_context context, const char *name, krb5_keytab *id)
+{
+    return ktfile_common_resolve(context, name, id, &krb5_ktf_writable_ops);
 }
 
 
@@ -220,7 +249,7 @@ krb5_ktfile_resolve(krb5_context context, const char *name, krb5_keytab *id)
  * free memory hidden in the structures.
  */
 
-krb5_error_code KRB5_CALLCONV 
+static krb5_error_code KRB5_CALLCONV
 krb5_ktfile_close(krb5_context context, krb5_keytab id)
   /*
    * This routine is responsible for freeing all memory allocated 
@@ -230,12 +259,12 @@ krb5_ktfile_close(krb5_context context, krb5_keytab id)
    * This routine should undo anything done by krb5_ktfile_resolve().
    */
 {
-    krb5_xfree(KTFILENAME(id));
+    free(KTFILENAME(id));
     zap(KTFILEBUFP(id), BUFSIZ);
     k5_mutex_destroy(&((krb5_ktfile_data *)id->data)->lock);
-    krb5_xfree(id->data);
+    free(id->data);
     id->ops = 0;
-    krb5_xfree(id);
+    free(id);
     return (0);
 }
 
@@ -245,7 +274,7 @@ krb5_ktfile_close(krb5_context context, krb5_keytab id)
  * an error.
  */
 
-krb5_error_code KRB5_CALLCONV
+static krb5_error_code KRB5_CALLCONV
 krb5_ktfile_get_entry(krb5_context context, krb5_keytab id,
 		      krb5_const_principal principal, krb5_kvno kvno,
 		      krb5_enctype enctype, krb5_keytab_entry *entry)
@@ -255,15 +284,27 @@ krb5_ktfile_get_entry(krb5_context context, krb5_keytab id,
     int found_wrong_kvno = 0;
     krb5_boolean similar;
     int kvno_offset = 0;
+    int was_open;
 
     kerror = KTLOCK(id);
     if (kerror)
 	return kerror;
 
-    /* Open the keyfile for reading */
-    if ((kerror = krb5_ktfileint_openr(context, id))) {
-	KTUNLOCK(id);
-	return(kerror);
+    if (KTFILEP(id) != NULL) {
+	was_open = 1;
+
+	if (fseek(KTFILEP(id), KTSTARTOFF(id), SEEK_SET) == -1) {
+	    KTUNLOCK(id);
+	    return errno;
+	}
+    } else {
+	was_open = 0;
+
+	/* Open the keyfile for reading */
+	if ((kerror = krb5_ktfileint_openr(context, id))) {
+	    KTUNLOCK(id);
+	    return(kerror);
+	}
     }
     
     /* 
@@ -370,12 +411,13 @@ krb5_ktfile_get_entry(krb5_context context, krb5_keytab id,
 	      kerror = KRB5_KT_NOTFOUND;
     }
     if (kerror) {
-	(void) krb5_ktfileint_close(context, id);
+	if (was_open == 0)
+	    (void) krb5_ktfileint_close(context, id);
 	KTUNLOCK(id);
 	krb5_kt_free_entry(context, &cur_entry);
 	return kerror;
     }
-    if ((kerror = krb5_ktfileint_close(context, id)) != 0) {
+    if (was_open == 0 && (kerror = krb5_ktfileint_close(context, id)) != 0) {
 	KTUNLOCK(id);
 	krb5_kt_free_entry(context, &cur_entry);
 	return kerror;
@@ -389,7 +431,7 @@ krb5_ktfile_get_entry(krb5_context context, krb5_keytab id,
  * Get the name of the file containing a file-based keytab.
  */
 
-krb5_error_code KRB5_CALLCONV
+static krb5_error_code KRB5_CALLCONV
 krb5_ktfile_get_name(krb5_context context, krb5_keytab id, char *name, unsigned int len)
   /* 
    * This routine returns the name of the name of the file associated with
@@ -398,21 +440,12 @@ krb5_ktfile_get_name(krb5_context context, krb5_keytab id, char *name, unsigned 
    * trt will happen if the name is passed back to resolve.
    */
 {
+    int result;
+
     memset(name, 0, len);
-
-    if (len < strlen(id->ops->prefix)+2)
+    result = snprintf(name, len, "%s:%s", id->ops->prefix, KTFILENAME(id));
+    if (SNPRINTF_OVERFLOW(result, len))
 	return(KRB5_KT_NAME_TOOLONG);
-    strcpy(name, id->ops->prefix);
-    name += strlen(id->ops->prefix);
-    name[0] = ':';
-    name++;
-    len -= strlen(id->ops->prefix)+1;
-
-    if (len < strlen(KTFILENAME(id)+1))
-	return(KRB5_KT_NAME_TOOLONG);
-    strcpy(name, KTFILENAME(id));
-    /* strcpy will NUL-terminate the destination */
-
     return(0);
 }
 
@@ -420,7 +453,7 @@ krb5_ktfile_get_name(krb5_context context, krb5_keytab id, char *name, unsigned 
  * krb5_ktfile_start_seq_get()
  */
 
-krb5_error_code KRB5_CALLCONV
+static krb5_error_code KRB5_CALLCONV
 krb5_ktfile_start_seq_get(krb5_context context, krb5_keytab id, krb5_kt_cursor *cursorp)
 {
     krb5_error_code retval;
@@ -430,18 +463,30 @@ krb5_ktfile_start_seq_get(krb5_context context, krb5_keytab id, krb5_kt_cursor *
     if (retval)
 	return retval;
 
-    if ((retval = krb5_ktfileint_openr(context, id))) {
-	KTUNLOCK(id);
-	return retval;
+    if (KTITERS(id) == 0) {
+	if ((retval = krb5_ktfileint_openr(context, id))) {
+	    KTUNLOCK(id);
+	    return retval;
+	}
     }
 
     if (!(fileoff = (long *)malloc(sizeof(*fileoff)))) {
-	krb5_ktfileint_close(context, id);
+	if (KTITERS(id) == 0)
+	    krb5_ktfileint_close(context, id);
 	KTUNLOCK(id);
 	return ENOMEM;
     }
-    *fileoff = ftell(KTFILEP(id));
+    *fileoff = KTSTARTOFF(id);
     *cursorp = (krb5_kt_cursor)fileoff;
+    KTITERS(id)++;
+    if (KTITERS(id) == 0) {
+	/* Wrapped?!  */
+	KTITERS(id)--;
+	KTUNLOCK(id);
+	krb5_set_error_message(context, KRB5_KT_IOERR,
+			       "Too many keytab iterators active");
+	return KRB5_KT_IOERR;	/* XXX */
+    }
     KTUNLOCK(id);
 
     return 0;
@@ -451,7 +496,7 @@ krb5_ktfile_start_seq_get(krb5_context context, krb5_keytab id, krb5_kt_cursor *
  * krb5_ktfile_get_next()
  */
 
-krb5_error_code KRB5_CALLCONV 
+static krb5_error_code KRB5_CALLCONV
 krb5_ktfile_get_next(krb5_context context, krb5_keytab id, krb5_keytab_entry *entry, krb5_kt_cursor *cursor)
 {
     long *fileoff = (long *)*cursor;
@@ -483,14 +528,20 @@ krb5_ktfile_get_next(krb5_context context, krb5_keytab id, krb5_keytab_entry *en
  * krb5_ktfile_end_get()
  */
 
-krb5_error_code KRB5_CALLCONV 
+static krb5_error_code KRB5_CALLCONV
 krb5_ktfile_end_get(krb5_context context, krb5_keytab id, krb5_kt_cursor *cursor)
 {
     krb5_error_code kerror;
 
-    krb5_xfree(*cursor);
-    KTLOCK(id);
-    kerror = krb5_ktfileint_close(context, id);
+    free(*cursor);
+    kerror = KTLOCK(id);
+    if (kerror)
+	return kerror;
+    KTITERS(id)--;
+    if (KTFILEP(id) != NULL && KTITERS(id) == 0)
+	kerror = krb5_ktfileint_close(context, id);
+    else
+	kerror = 0;
     KTUNLOCK(id);
     return kerror;
 }
@@ -611,14 +662,13 @@ krb5_ktf_keytab_externalize(krb5_context kcontext, krb5_pointer arg, krb5_octet 
 		fnamep = ktfile_def_name;
 	    namelen += (strlen(fnamep)+1);
 
-	    if ((ktname = (char *) malloc(namelen))) {
-		/* Format the keytab name. */
-		if (keytab->ops && keytab->ops->prefix)
-		    sprintf(ktname, "%s:%s", keytab->ops->prefix, fnamep);
+	    if (keytab->ops && keytab->ops->prefix) {
+		if (asprintf(&ktname, "%s:%s", keytab->ops->prefix, fnamep) < 0)
+		    ktname = NULL;
+	    } else
+		ktname = strdup(fnamep);
 
-		else
-		    strcpy(ktname, fnamep);
-
+	    if (ktname) {
 		/* Fill in the file-specific keytab information. */
 		if (ktdata) {
 		    if (ktdata->openf) {
@@ -757,10 +807,10 @@ krb5_ktf_keytab_internalize(krb5_context kcontext, krb5_pointer *argp, krb5_octe
 		if (kret) {
 		    if (keytab->data) {
 			if (KTFILENAME(keytab))
-			    krb5_xfree(KTFILENAME(keytab));
-			krb5_xfree(keytab->data);
+			    free(KTFILENAME(keytab));
+			free(keytab->data);
 		    }
-		    krb5_xfree(keytab);
+		    free(keytab);
 		}
 		else {
 		    *buffer = bp;
@@ -779,42 +829,10 @@ krb5_ktf_keytab_internalize(krb5_context kcontext, krb5_pointer *argp, krb5_octe
  * initialized with file keytab routines.
  */
 
-krb5_error_code KRB5_CALLCONV
+static krb5_error_code KRB5_CALLCONV
 krb5_ktfile_wresolve(krb5_context context, const char *name, krb5_keytab *id)
 {
-    krb5_ktfile_data *data;
-    krb5_error_code err;
-
-    if ((*id = (krb5_keytab) malloc(sizeof(**id))) == NULL)
-	return(ENOMEM);
-    
-    (*id)->ops = &krb5_ktf_writable_ops;
-    if ((data = (krb5_ktfile_data *)malloc(sizeof(krb5_ktfile_data))) == NULL) {
-	krb5_xfree(*id);
-	return(ENOMEM);
-    }
-
-    err = k5_mutex_init(&data->lock);
-    if (err) {
-	krb5_xfree(data);
-	krb5_xfree(*id);
-	return err;
-    }
-
-    if ((data->name = (char *)calloc(strlen(name) + 1, sizeof(char))) == NULL) {
-	k5_mutex_destroy(&data->lock);
-	krb5_xfree(data);
-	krb5_xfree(*id);
-	return(ENOMEM);
-    }
-
-    (void) strcpy(data->name, name);
-    data->openf = 0;
-    data->version = 0;
-
-    (*id)->data = (krb5_pointer)data;
-    (*id)->magic = KV5M_KEYTAB;
-    return(0);
+    return ktfile_common_resolve(context, name, id, &krb5_ktf_writable_ops);
 }
 
 
@@ -822,7 +840,7 @@ krb5_ktfile_wresolve(krb5_context context, const char *name, krb5_keytab *id)
  * krb5_ktfile_add()
  */
 
-krb5_error_code KRB5_CALLCONV 
+static krb5_error_code KRB5_CALLCONV
 krb5_ktfile_add(krb5_context context, krb5_keytab id, krb5_keytab_entry *entry)
 {
     krb5_error_code retval;
@@ -830,6 +848,13 @@ krb5_ktfile_add(krb5_context context, krb5_keytab id, krb5_keytab_entry *entry)
     retval = KTLOCK(id);
     if (retval)
 	return retval;
+    if (KTFILEP(id)) {
+	/* Iterator(s) active -- no changes.  */
+	KTUNLOCK(id);
+	krb5_set_error_message(context, KRB5_KT_IOERR,
+			       "Cannot change keytab with keytab iterators active");
+	return KRB5_KT_IOERR;	/* XXX */
+    }
     if ((retval = krb5_ktfileint_openw(context, id))) {
 	KTUNLOCK(id);
 	return retval;
@@ -848,7 +873,7 @@ krb5_ktfile_add(krb5_context context, krb5_keytab id, krb5_keytab_entry *entry)
  * krb5_ktfile_remove()
  */
 
-krb5_error_code KRB5_CALLCONV 
+static krb5_error_code KRB5_CALLCONV
 krb5_ktfile_remove(krb5_context context, krb5_keytab id, krb5_keytab_entry *entry)
 {
     krb5_keytab_entry   cur_entry;
@@ -858,6 +883,13 @@ krb5_ktfile_remove(krb5_context context, krb5_keytab id, krb5_keytab_entry *entr
     kerror = KTLOCK(id);
     if (kerror)
 	return kerror;
+    if (KTFILEP(id)) {
+	/* Iterator(s) active -- no changes.  */
+	KTUNLOCK(id);
+	krb5_set_error_message(context, KRB5_KT_IOERR,
+			       "Cannot change keytab with keytab iterators active");
+	return KRB5_KT_IOERR;	/* XXX */
+    }
 
     if ((kerror = krb5_ktfileint_openw(context, id))) {
 	KTUNLOCK(id);
@@ -1072,11 +1104,25 @@ krb5_ktfileint_open(krb5_context context, krb5_keytab id, int mode)
 	    errno = 0;
 	    KTFILEP(id) = fopen(KTFILENAME(id), fopen_mode_rbplus);
 	    if (!KTFILEP(id))
-		return errno ? errno : EMFILE;
+		goto report_errno;
 	    writevno = 1;
-	} else				/* some other error */
-	    return errno ? errno : EMFILE;
+	} else {
+	report_errno:
+	    switch (errno) {
+	    case 0:
+		/* XXX */
+		return EMFILE;
+	    case ENOENT:
+		krb5_set_error_message(context, ENOENT,
+				       "Key table file '%s' not found",
+				       KTFILENAME(id));
+		return ENOENT;
+	    default:
+		return errno;
+	    }
+	}
     }
+    set_cloexec_file(KTFILEP(id));
     if ((kerror = krb5_lock_file(context, fileno(KTFILEP(id)), mode))) {
 	(void) fclose(KTFILEP(id));
 	KTFILEP(id) = 0;
@@ -1093,6 +1139,7 @@ krb5_ktfileint_open(krb5_context context, krb5_keytab id, int mode)
 	    kerror = errno;
 	    (void) krb5_unlock_file(context, fileno(KTFILEP(id)));
 	    (void) fclose(KTFILEP(id));
+	    KTFILEP(id) = 0;
 	    return kerror;
 	}
     } else {
@@ -1104,6 +1151,7 @@ krb5_ktfileint_open(krb5_context context, krb5_keytab id, int mode)
 		kerror = errno;
 	    (void) krb5_unlock_file(context, fileno(KTFILEP(id)));
 	    (void) fclose(KTFILEP(id));
+	    KTFILEP(id) = 0;
 	    return kerror;
 	}
 	kt_vno = KTVERSION(id) = ntohs(kt_vno);
@@ -1111,25 +1159,27 @@ krb5_ktfileint_open(krb5_context context, krb5_keytab id, int mode)
 	    (kt_vno != KRB5_KT_VNO_1)) {
 	    (void) krb5_unlock_file(context, fileno(KTFILEP(id)));
 	    (void) fclose(KTFILEP(id));
+	    KTFILEP(id) = 0;
 	    return KRB5_KEYTAB_BADVNO;
 	}
     }
+    KTSTARTOFF(id) = ftell(KTFILEP(id));
     return 0;
 }
 
-krb5_error_code
+static krb5_error_code
 krb5_ktfileint_openr(krb5_context context, krb5_keytab id)
 {
     return krb5_ktfileint_open(context, id, KRB5_LOCKMODE_SHARED);
 }
 
-krb5_error_code
+static krb5_error_code
 krb5_ktfileint_openw(krb5_context context, krb5_keytab id)
 {
     return krb5_ktfileint_open(context, id, KRB5_LOCKMODE_EXCLUSIVE);
 }
 
-krb5_error_code
+static krb5_error_code
 krb5_ktfileint_close(krb5_context context, krb5_keytab id)
 {
     krb5_error_code kerror;
@@ -1143,7 +1193,7 @@ krb5_ktfileint_close(krb5_context context, krb5_keytab id)
     return kerror;
 }
 
-krb5_error_code
+static krb5_error_code
 krb5_ktfileint_delete_entry(krb5_context context, krb5_keytab id, krb5_int32 delete_point)
 {
     krb5_int32  size;
@@ -1194,7 +1244,7 @@ krb5_ktfileint_delete_entry(krb5_context context, krb5_keytab id, krb5_int32 del
     return 0;
 }
 
-krb5_error_code
+static krb5_error_code
 krb5_ktfileint_internal_read_entry(krb5_context context, krb5_keytab id, krb5_keytab_entry *ret_entry, krb5_int32 *delete_point)
 {
     krb5_octet vno;
@@ -1406,7 +1456,7 @@ fail:
     return error;
 }
 
-krb5_error_code
+static krb5_error_code
 krb5_ktfileint_read_entry(krb5_context context, krb5_keytab id, krb5_keytab_entry *entryp)
 {
     krb5_int32 delete_point;
@@ -1414,7 +1464,7 @@ krb5_ktfileint_read_entry(krb5_context context, krb5_keytab id, krb5_keytab_entr
     return krb5_ktfileint_internal_read_entry(context, id, entryp, &delete_point);
 }
 
-krb5_error_code
+static krb5_error_code
 krb5_ktfileint_write_entry(krb5_context context, krb5_keytab id, krb5_keytab_entry *entry)
 {
     krb5_octet vno;
@@ -1424,7 +1474,7 @@ krb5_ktfileint_write_entry(krb5_context context, krb5_keytab id, krb5_keytab_ent
     krb5_timestamp timestamp;
     krb5_int32	princ_type;
     krb5_int32  size_needed;
-    krb5_int32  commit_point;
+    krb5_int32  commit_point = -1;
     int		i;
 
     KTCHECKLOCK(id);
@@ -1555,7 +1605,7 @@ krb5_ktfileint_write_entry(krb5_context context, krb5_keytab id, krb5_keytab_ent
  * Determine the size needed for a file entry for the given
  * keytab entry.
  */
-krb5_error_code
+static krb5_error_code
 krb5_ktfileint_size_entry(krb5_context context, krb5_keytab_entry *entry, krb5_int32 *size_needed)
 {
     krb5_int16 count;
@@ -1594,7 +1644,7 @@ krb5_ktfileint_size_entry(krb5_context context, krb5_keytab_entry *entry, krb5_i
  * to commit the write, but that this field must indicate the size of the
  * block in the file rather than the size of the actual entry)  
  */
-krb5_error_code
+static krb5_error_code
 krb5_ktfileint_find_slot(krb5_context context, krb5_keytab id, krb5_int32 *size_needed, krb5_int32 *commit_point)
 {
     krb5_int32      size;
@@ -1704,9 +1754,12 @@ krb5_ktfileint_find_slot(krb5_context context, krb5_keytab id, krb5_int32 *size_
                 if (fseek(KTFILEP(id), zero_point, SEEK_SET)) {
                     return errno;
                 }
+		found = TRUE;
             }
         }
     }
 
     return 0;
 }
+#endif /* LEAN_CLIENT */
+

@@ -25,7 +25,7 @@ This option is not recommended.
 Specifies the URI of the LDAP server.
 .SH COMMANDS
 .TP
-\fBcreate\fP [\fB\-subtrees\fP\ \fIsubtree_dn_list\fP] [\fB\-sscope\fP\ \fIsearch_scope\fP] [\fB\-containerref\fP\ \fIcontainer_reference_dn\fP] [\fB\-k\fP\ \fImkeytype\fP] [\fB\-m\fP|\fB\-P\fP\ \fIpassword\fP|\fB\-sf\fP\ \fIstashfilename\fP] [\fB\-s\fP] [\fB\-r\fP\ \fIrealm\fP] [\fB\-kdcdn\fP\ \fIkdc_service_list\fP] [\fB\-admindn\fP\ \fIadmin_service_list\fP] [\fB\-maxtktlife\fP\ \fImax_ticket_life\fP] [\fB\-maxrenewlife\fP\ \fImax_renewable_ticket_life\fP] [\fIticket_flags\fP]
+\fBcreate\fP [\fB\-subtrees\fP\ \fIsubtree_dn_list\fP] [\fB\-sscope\fP\ \fIsearch_scope\fP] [\fB\-containerref\fP\ \fIcontainer_reference_dn\fP] [\fB\-k\fP\ \fImkeytype\fP] [\fB\-kv\fP\ \fImkeyVNO\fP] [\fB\-m\fP|\fB\-P\fP\ \fIpassword\fP|\fB\-sf\fP\ \fIstashfilename\fP] [\fB\-s\fP] [\fB\-r\fP\ \fIrealm\fP] [\fB\-kdcdn\fP\ \fIkdc_service_list\fP] [\fB\-admindn\fP\ \fIadmin_service_list\fP] [\fB\-maxtktlife\fP\ \fImax_ticket_life\fP] [\fB\-maxrenewlife\fP\ \fImax_renewable_ticket_life\fP] [\fIticket_flags\fP]
 Creates realm in directory. Options:
 .RS
 .TP
@@ -46,6 +46,10 @@ If the container reference is not configured for a realm, the principals will be
 Specifies the key type of the master key in the database; the default is
 that given in
 .IR kdc.conf .
+.TP
+\fB\-kv\fP\ \fImkeyVNO\fP
+Specifies the version number of the master key in the database; the default is
+1. Note that 0 is not allowed.
 .TP
 \fB\-m\fP
 Specifies that the master database password should be read from the TTY
@@ -73,7 +77,7 @@ set. This means all the ticket options will be allowed and no restriction will b
 The various flags are:
 .TP
 {\fB\-\fP|\fB+\fP}\fBallow_postdated\fP
-.B -allow_postdated
+.B \-allow_postdated
 prohibits principals from obtaining postdated tickets.  (Sets the
 .SM KRB5_KDB_DISALLOW_POSTDATED
 flag.)
@@ -81,7 +85,7 @@ flag.)
 clears this flag.
 .TP
 {\fB\-\fP|\fB+\fP}\fBallow_forwardable\fP
-.B -allow_forwardable
+.B \-allow_forwardable
 prohibits principals from obtaining forwardable tickets.  (Sets the
 .SM KRB5_KDB_DISALLOW_FORWARDABLE
 flag.)
@@ -89,7 +93,7 @@ flag.)
 clears this flag.
 .TP
 {\fB\-\fP|\fB+\fP}\fBallow_renewable\fP
-.B -allow_renewable
+.B \-allow_renewable
 prohibits principals from obtaining renewable tickets. (Sets the
 .SM KRB5_KDB_DISALLOW_RENEWABLE
 flag.)
@@ -97,7 +101,7 @@ flag.)
 clears this flag.
 .TP
 {\fB\-\fP|\fB+\fP}\fBallow_proxiable\fP
-.B -allow_proxiable
+.B \-allow_proxiable
 prohibits principals from obtaining proxiable tickets.  (Sets the
 .SM KRB5_KDB_DISALLOW_PROXIABLE
 flag.)
@@ -105,7 +109,7 @@ flag.)
 clears this flag.
 .TP
 {\fB\-\fP|\fB+\fP}\fBallow_dup_skey\fP
-.B -allow_dup_skey
+.B \-allow_dup_skey
 Disables user-to-user authentication for principals by prohibiting
 principals from obtaining a session key for another user. (Sets the
 .SM KRB5_KDB_DISALLOW_DUP_SKEY
@@ -119,7 +123,7 @@ requires principals to preauthenticate before being allowed to
 kinit.  (Sets the
 .SM KRB5_KDB_REQUIRES_PRE_AUTH
 flag.)
-.B -requires_preauth
+.B \-requires_preauth
 clears this flag.
 .TP
 {\fB\-\fP|\fB+\fP}\fBrequires_hwauth\fP
@@ -128,11 +132,11 @@ requires principals to preauthenticate using a hardware device
 before being allowed to kinit.  (Sets the
 .SM KRB5_KDB_REQUIRES_HW_AUTH
 flag.)
-.B -requires_hwauth
+.B \-requires_hwauth
 clears this flag.
 .TP
 {\fB\-\fP|\fB+\fP}\fBallow_svr\fP
-.B -allow_svr
+.B \-allow_svr
 prohibits the issuance of service tickets for principals.  (Sets the
 .SM KRB5_KDB_DISALLOW_SVR
 flag.)
@@ -208,9 +212,9 @@ Specifies the list of Administration service objects serving the realm. The list
 of the Administration service objects separated by colon(:).
 .TP
 EXAMPLE:
-\fBkdb5_ldap_util -D cn=admin,o=org -H ldaps://ldap-server1.mit.edu
-create -subtrees o=org -sscope SUB
--r ATHENA.MIT.EDU\fP
+\fBkdb5_ldap_util \-D cn=admin,o=org \-H ldaps://ldap-server1.mit.edu
+create \-subtrees o=org \-sscope SUB
+\-r ATHENA.MIT.EDU\fP
 .nf
 Password for "cn=admin,o=org":
 Initializing database for realm 'ATHENA.MIT.EDU'
@@ -255,7 +259,7 @@ and no restriction will be set.
 The various flags are:
 .TP
 {\fB\-\fP|\fB+\fP}\fBallow_postdated\fP
-.B -allow_postdated
+.B \-allow_postdated
 prohibits principals from obtaining postdated tickets.  (Sets the
 .SM KRB5_KDB_DISALLOW_POSTDATED
 flag.)
@@ -263,7 +267,7 @@ flag.)
 clears this flag.
 .TP
 {\fB\-\fP|\fB+\fP}\fBallow_forwardable\fP
-.B -allow_forwardable
+.B \-allow_forwardable
 prohibits principals from obtaining forwardable tickets.  (Sets the
 .SM KRB5_KDB_DISALLOW_FORWARDABLE
 flag.)
@@ -271,7 +275,7 @@ flag.)
 clears this flag.
 .TP
 {\fB\-\fP|\fB+\fP}\fBallow_renewable\fP
-.B -allow_renewable
+.B \-allow_renewable
 prohibits principals from obtaining renewable tickets. (Sets the
 .SM KRB5_KDB_DISALLOW_RENEWABLE
 flag.)
@@ -279,7 +283,7 @@ flag.)
 clears this flag.
 .TP
 {\fB\-\fP|\fB+\fP}\fBallow_proxiable\fP
-.B -allow_proxiable
+.B \-allow_proxiable
 prohibits principals from obtaining proxiable tickets.  (Sets the
 .SM KRB5_KDB_DISALLOW_PROXIABLE
 flag.)
@@ -287,7 +291,7 @@ flag.)
 clears this flag.
 .TP
 {\fB\-\fP|\fB+\fP}\fBallow_dup_skey\fP
-.B -allow_dup_skey
+.B \-allow_dup_skey
 Disables user-to-user authentication for principals by prohibiting
 principals from obtaining a session key for another user. (Sets the
 .SM KRB5_KDB_DISALLOW_DUP_SKEY
@@ -301,7 +305,7 @@ requires principals to preauthenticate before being allowed to
 kinit.  (Sets the
 .SM KRB5_KDB_REQUIRES_PRE_AUTH
 flag.)
-.B -requires_preauth
+.B \-requires_preauth
 clears this flag.
 .TP
 {\fB\-\fP|\fB+\fP}\fBrequires_hwauth\fP
@@ -310,11 +314,11 @@ requires principals to preauthenticate using a hardware device
 before being allowed to kinit.  (Sets the
 .SM KRB5_KDB_REQUIRES_HW_AUTH
 flag.)
-.B -requires_hwauth
+.B \-requires_hwauth
 clears this flag.
 .TP
 {\fB\-\fP|\fB+\fP}\fBallow_svr\fP
-.B -allow_svr
+.B \-allow_svr
 prohibits the issuance of service tickets for principals.  (Sets the
 .SM KRB5_KDB_DISALLOW_SVR
 flag.)
@@ -406,8 +410,8 @@ Specifies the list of Administration service objects that need to be added to th
 contains the DNs of the Administration service objects separated by a colon (:).
 .TP
 EXAMPLE:
-\fBkdb5_ldap_util -D cn=admin,o=org -H ldaps://ldap-server1.mit.edu modify 
-+requires_preauth -r ATHENA.MIT.EDU \fP
+\fBkdb5_ldap_util \-D cn=admin,o=org \-H ldaps://ldap-server1.mit.edu modify
++requires_preauth \-r ATHENA.MIT.EDU \fP
 .nf
 Password for "cn=admin,o=org":
 .fi
@@ -423,8 +427,8 @@ Specifies the Kerberos realm of the database; by default the realm returned by
 is used.
 .TP
 EXAMPLE:
-\fBkdb5_ldap_util -D cn=admin,o=org -H ldaps://ldap-server1.mit.edu view 
--r ATHENA.MIT.EDU\fP
+\fBkdb5_ldap_util \-D cn=admin,o=org \-H ldaps://ldap-server1.mit.edu view
+\-r ATHENA.MIT.EDU\fP
 .nf
 Password for "cn=admin,o=org":
                Realm Name: ATHENA.MIT.EDU
@@ -450,8 +454,8 @@ Specifies the Kerberos realm of the database; by default the realm returned by
 is used.
 .TP
 EXAMPLE:
-\fBkdb5_ldap_util -D cn=admin,o=org -H ldaps://ldap-server1.mit.edu destroy 
--r ATHENA.MIT.EDU\fP
+\fBkdb5_ldap_util \-D cn=admin,o=org \-H ldaps://ldap-server1.mit.edu destroy
+\-r ATHENA.MIT.EDU\fP
 .nf
 Password for "cn=admin,o=org":
 Deleting KDC database of 'ATHENA.MIT.EDU', are you sure?
@@ -467,7 +471,7 @@ Lists the name of realms.
 .nf
 .TP
 EXAMPLE:
-\fBkdb5_ldap_util -D cn=admin,o=org -H ldaps://ldap-server1.mit.edu list\fP
+\fBkdb5_ldap_util \-D cn=admin,o=org \-H ldaps://ldap-server1.mit.edu list\fP
 Password for "cn=admin,o=org":
 ATHENA.MIT.EDU
 OPENLDAP.MIT.EDU
@@ -487,7 +491,7 @@ Specifies the complete path of the service password file. By default, /usr/local
 Specifies Distinguished name (DN) of the service object whose password is to be stored in file.
 .TP
 EXAMPLE:
-\fBkdb5_ldap_util stashsrvpw -f /home/andrew/conf_keyfile cn=service-kdc,o=org\fP
+\fBkdb5_ldap_util stashsrvpw \-f /home/andrew/conf_keyfile cn=service-kdc,o=org\fP
 .nf
 Password for "cn=service-kdc,o=org":
 Re-enter password for "cn=service-kdc,o=org":
@@ -517,7 +521,7 @@ set. This means all the ticket options will be allowed and no restriction will b
 The various flags are:
 .TP
 {\fB\-\fP|\fB+\fP}\fBallow_postdated\fP
-.B -allow_postdated
+.B \-allow_postdated
 prohibits principals from obtaining postdated tickets.  (Sets the
 .SM KRB5_KDB_DISALLOW_POSTDATED
 flag.)
@@ -525,7 +529,7 @@ flag.)
 clears this flag.
 .TP
 {\fB\-\fP|\fB+\fP}\fBallow_forwardable\fP
-.B -allow_forwardable
+.B \-allow_forwardable
 prohibits principals from obtaining forwardable tickets.  (Sets the
 .SM KRB5_KDB_DISALLOW_FORWARDABLE
 flag.)
@@ -533,7 +537,7 @@ flag.)
 clears this flag.
 .TP
 {\fB\-\fP|\fB+\fP}\fBallow_renewable\fP
-.B -allow_renewable
+.B \-allow_renewable
 prohibits principals from obtaining renewable tickets. (Sets the
 .SM KRB5_KDB_DISALLOW_RENEWABLE
 flag.)
@@ -541,7 +545,7 @@ flag.)
 clears this flag.
 .TP
 {\fB\-\fP|\fB+\fP}\fBallow_proxiable\fP
-.B -allow_proxiable
+.B \-allow_proxiable
 prohibits principals from obtaining proxiable tickets.  (Sets the
 .SM KRB5_KDB_DISALLOW_PROXIABLE
 flag.)
@@ -549,7 +553,7 @@ flag.)
 clears this flag.
 .TP
 {\fB\-\fP|\fB+\fP}\fBallow_dup_skey\fP
-.B -allow_dup_skey
+.B \-allow_dup_skey
 Disables user-to-user authentication for principals by prohibiting
 principals from obtaining a session key for another user. (Sets the
 .SM KRB5_KDB_DISALLOW_DUP_SKEY
@@ -563,7 +567,7 @@ requires principals to preauthenticate before being allowed to
 kinit.  (Sets the
 .SM KRB5_KDB_REQUIRES_PRE_AUTH
 flag.)
-.B -requires_preauth
+.B \-requires_preauth
 clears this flag.
 .TP
 {\fB\-\fP|\fB+\fP}\fBrequires_hwauth\fP
@@ -572,11 +576,11 @@ requires principals to preauthenticate using a hardware device
 before being allowed to kinit.  (Sets the
 .SM KRB5_KDB_REQUIRES_HW_AUTH
 flag.)
-.B -requires_hwauth
+.B \-requires_hwauth
 clears this flag.
 .TP
 {\fB\-\fP|\fB+\fP}\fBallow_svr\fP
-.B -allow_svr
+.B \-allow_svr
 prohibits the issuance of service tickets for principals.  (Sets the
 .SM KRB5_KDB_DISALLOW_SVR
 flag.)
@@ -639,7 +643,7 @@ flag on principals in the database.
 Specifies the name of the ticket policy.
 .TP
 EXAMPLE:
-\fBkdb5_ldap_util -D cn=admin,o=org -H ldaps://ldap-server1.mit.edu create_policy -r ATHENA.MIT.EDU -maxtktlife "1 day" -maxrenewlife "1 week" -allow_postdated +needchange -allow_forwardable tktpolicy\fP
+\fBkdb5_ldap_util \-D cn=admin,o=org \-H ldaps://ldap-server1.mit.edu create_policy \-r ATHENA.MIT.EDU \-maxtktlife "1 day" \-maxrenewlife "1 week" \-allow_postdated +needchange \-allow_forwardable tktpolicy\fP
 .nf
 Password for "cn=admin,o=org":
 .fi
@@ -657,7 +661,7 @@ returned by
 is used.
 .TP
 EXAMPLE:
-\fBkdb5_ldap_util -D cn=admin,o=org -H ldaps://ldap-server1.mit.edu modify_policy -r ATHENA.MIT.EDU -maxtktlife "60 minutes" -maxrenewlife "10 hours" +allow_postdated -requires_preauth tktpolicy\fP
+\fBkdb5_ldap_util \-D cn=admin,o=org \-H ldaps://ldap-server1.mit.edu modify_policy \-r ATHENA.MIT.EDU \-maxtktlife "60 minutes" \-maxrenewlife "10 hours" +allow_postdated \-requires_preauth tktpolicy\fP
 .nf
 Password for "cn=admin,o=org":
 .fi
@@ -671,7 +675,7 @@ Displays the attributes of a ticket policy. Options:
 Specifies the name of the ticket policy.
 .TP
 EXAMPLE:
-\fBkdb5_ldap_util -D cn=admin,o=org -H ldaps://ldap-server1.mit.edu view_policy -r ATHENA.MIT.EDU tktpolicy\fP
+\fBkdb5_ldap_util \-D cn=admin,o=org \-H ldaps://ldap-server1.mit.edu view_policy \-r ATHENA.MIT.EDU tktpolicy\fP
 .nf
 Password for "cn=admin,o=org":
             Ticket policy: tktpolicy
@@ -700,7 +704,7 @@ to confirm the deletion.
 Specifies the name of the ticket policy.
 .TP
 EXAMPLE:
-\fBkdb5_ldap_util -D cn=admin,o=org -H ldaps://ldap-server1.mit.edu destroy_policy -r ATHENA.MIT.EDU tktpolicy\fP
+\fBkdb5_ldap_util \-D cn=admin,o=org \-H ldaps://ldap-server1.mit.edu destroy_policy \-r ATHENA.MIT.EDU tktpolicy\fP
 .nf
 Password for "cn=admin,o=org":
 This will delete the policy object 'tktpolicy', are you sure?
@@ -720,7 +724,7 @@ returned by
 is used.
 .TP
 EXAMPLE:
-\fBkdb5_ldap_util -D cn=admin,o=org -H ldaps://ldap-server1.mit.edu list_policy -r ATHENA.MIT.EDU\fP
+\fBkdb5_ldap_util \-D cn=admin,o=org \-H ldaps://ldap-server1.mit.edu list_policy \-r ATHENA.MIT.EDU\fP
 .nf
 Password for "cn=admin,o=org":
 tktpolicy
@@ -735,22 +739,22 @@ userpolicy
 \fBsetsrvpw\fP [\fB\-randpw\fP|\fB\-fileonly\fP] [\fB\-f\fP\ \fIfilename\fP] \fIservice_dn\fP
 Allows an administrator to set password for service objects such as KDC and Administration server in
 eDirectory and store them in a file. The 
-.I -fileonly 
+.I \-fileonly
 option stores the password in a file and not in the eDirectory object. Options:
 .RS
 .TP
 \fB\-randpw \fP
 Generates and sets a random password. This options can be specified to store the password both in eDirectory and a file. The 
-.I -fileonly 
+.I \-fileonly
 option can not be used if 
-.I -randpw
+.I \-randpw
 option is already specified.
 .TP
 \fB\-fileonly\fP
 Stores the password only in a file and not in eDirectory. The 
-.I -randpw
+.I \-randpw
 option can not be used when 
-.I -fileonly
+.I \-fileonly
 options is specified.
 .TP
 \fB\-f\fP\ \fIfilename\fP
@@ -760,7 +764,7 @@ Specifies complete path of the service password file. By default, /usr/local/var
 Specifies Distinguished name (DN) of the service object whose password is to be set.
 .TP
 EXAMPLE:
-\fBkdb5_ldap_util setsrvpw -D cn=admin,o=org setsrvpw -fileonly -f /home/andrew/conf_keyfile
+\fBkdb5_ldap_util setsrvpw \-D cn=admin,o=org setsrvpw \-fileonly \-f /home/andrew/conf_keyfile
 cn=service-kdc,o=org\fP
 .nf
 Password for "cn=admin,o=org":
@@ -792,16 +796,16 @@ separated by a colon (:).
 .TP
 \fB\-randpw \fP
 Generates and sets a random password. This option is used to set the random password for the service object in directory and also to store it in the file. The 
-.I -fileonly 
+.I \-fileonly
 option can not be used if 
-.I -randpw
+.I \-randpw
 option is specified.
 .TP
 \fB\-fileonly\fP
 Stores the password only in a file and not in eDirectory. The 
-.I -randpw
+.I \-randpw
 option can not be used when 
-.I -fileonly
+.I \-fileonly
 option is specified.
 .TP
 \fB\-f\fP\ \fIfilename\fP
@@ -811,7 +815,7 @@ Specifies the complete path of the file where the service object password is sta
 Specifies Distinguished name (DN) of the Kerberos service to be created.
 .TP
 EXAMPLE:
-\fBkdb5_ldap_util -D cn=admin,o=org create_service -kdc -randpw -f /home/andrew/conf_keyfile cn=service-kdc,o=org\fP
+\fBkdb5_ldap_util \-D cn=admin,o=org create_service \-kdc \-randpw \-f /home/andrew/conf_keyfile cn=service-kdc,o=org\fP
 .nf
 Password for "cn=admin,o=org":
 File does not exist. Creating the file /home/andrew/conf_keyfile...
@@ -855,7 +859,7 @@ realms separated by a colon (:).
 Specifies Distinguished name (DN) of the Kerberos service to be modified.
 .TP
 EXAMPLE:
-\fBkdb5_ldap_util -D cn=admin,o=org modify_service -realm ATHENA.MIT.EDU
+\fBkdb5_ldap_util \-D cn=admin,o=org modify_service \-realm ATHENA.MIT.EDU
 cn=service-kdc,o=org\fP
 .nf
 Password for "cn=admin,o=org":
@@ -871,7 +875,7 @@ Displays the attributes of a service.  Options:
 Specifies Distinguished name (DN) of the Kerberos service to be viewed.
 .TP
 EXAMPLE:
-\fBkdb5_ldap_util -D cn=admin,o=org view_service cn=service-kdc,o=org\fP
+\fBkdb5_ldap_util \-D cn=admin,o=org view_service cn=service-kdc,o=org\fP
 .nf
 Password for "cn=admin,o=org":
         Service dn: cn=service-kdc,o=org
@@ -897,7 +901,7 @@ needs to be removed.
 Specifies Distinguished name (DN) of the Kerberos service to be destroyed.
 .TP
 EXAMPLE:
-\fBkdb5_ldap_util -D cn=admin,o=org destroy_service cn=service-kdc,o=org\fP
+\fBkdb5_ldap_util \-D cn=admin,o=org destroy_service cn=service-kdc,o=org\fP
 .nf
 Password for "cn=admin,o=org":
 This will delete the service object 'cn=service-kdc,o=org', are you sure?
@@ -922,7 +926,7 @@ for the base DN is
 .B Root.
 .TP
 EXAMPLE:
-\fBkdb5_ldap_util -D cn=admin,o=org list_service\fP
+\fBkdb5_ldap_util \-D cn=admin,o=org list_service\fP
 .nf
 Password for "cn=admin,o=org":
 cn=service-kdc,o=org

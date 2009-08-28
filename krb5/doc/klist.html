@@ -10,31 +10,18 @@
 
 </PRE>
 <H2>SYNOPSIS</H2><PRE>
-     <B>klist</B> [<B>-5</B>] [<B>-4</B>] [<B>-e</B>] [[<B>-c</B>] [<B>-f</B>] [<B>-s</B>] [<B>-a</B>   [<B>-n</B>]]]  [<B>-k</B>  [<B>-t</B>]
-     [<B>-K</B>]] [<I>cache</I>_<I>name</I> | <I>keytab</I>_<I>name</I>]
+     <B>klist</B> [<B>-e</B>] [[<B>-c</B>]  [<B>-f</B>]  [<B>-s</B>]  [<B>-a</B>   [<B>-n</B>]]]  [<B>-k</B>  [<B>-t</B>]  [<B>-K</B>]]
+     [<I>cache</I>_<I>name</I> | <I>keytab</I>_<I>name</I>]
 
 
 </PRE>
 <H2>DESCRIPTION</H2><PRE>
      <I>Klist</I> lists the Kerberos principal and Kerberos tickets held
-     in  a  credentials cache, or the keys held in a <B>keytab</B> file.
-     If klist was built with  Kerberos  4  support,  the  default
-     behavior  is  to list both Kerberos 5 and Kerberos 4 creden-
-     tials.  Otherwise, klist will default to listing  only  Ker-
-     beros 5 credentials.
+     in a credentials cache, or the keys held in a <B>keytab</B> file.
 
 
 </PRE>
 <H2>OPTIONS</H2><PRE>
-     -<B>5</B>   list Kerberos 5 credentials.  This  overrides  whatever
-          the  default built-in behavior may be.  This option may
-          be used with -<B>4</B>
-
-     -<B>4</B>   list Kerberos 4 credentials.  This  overrides  whatever
-          the  default  built-in behavior may be.  This option is
-          only available if kinit was built with Kerberos 4  com-
-          patibility.  This option may be used with -<B>5</B>
-
      -<B>e</B>   displays the encryption types of the  session  key  and
           the ticket for each credential in the credential cache,
           or each key in the keytab file.
@@ -94,9 +81,6 @@
      KRB5CCNAME      Location  of  the  Kerberos  5   credentials
                      (ticket) cache.
 
-     KRBTKFILE      Filename  of  the  Kerberos   4   credentials
-                    (ticket) cache.
-
 
 </PRE>
 <H2>FILES</H2><PRE>
@@ -104,17 +88,33 @@
                         tials  cache ([uid] is the decimal UID of
                         the user).
 
-     /tmp/tkt[uid]  default location of  Kerberos  4  credentials
-                    cache ([uid] is the decimal UID of the user).
-
-     /etc/krb5.keytab
-                    default location for the local host's  <B>keytab</B>
-                    file.
+     /etc/krb5.keytab   default location  for  the  local  host's
+                        <B>keytab</B> file.
 
 
 </PRE>
 <H2>SEE ALSO</H2><PRE>
      <B>kinit(1)</B>, <B>kdestroy(1)</B>, <B>krb5(3)</B>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

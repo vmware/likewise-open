@@ -1,4 +1,4 @@
-.TH KADMIN 8
+.TH KADMIN 1
 .SH NAME
 kadmin \- Kerberos V5 database administration program
 .SH SYNOPSYS
@@ -71,6 +71,20 @@ except for database dump and load, which is now provided by the
 utility.
 .PP
 If the database is LDAP, kadmin.local need not be run on the KDC. 
+.PP
+kadmin.local can be configured to log updates for incremental database
+propagation.  Incremental propagation allows slave KDC servers to
+receive principal and policy updates incrementally instead of
+receiving full dumps of the database.  This facility can be enabled in
+the
+.I kdc.conf
+file with the
+.I iprop_enable
+option.  See the
+.I kdc.conf
+documentation for other options for tuning incremental propagation
+parameters.
+
 .SH OPTIONS
 .TP
 \fB\-r\fP \fIrealm\fP
@@ -206,12 +220,12 @@ Specifying "ago" in a duration may result in unexpected behavior.
 creates the principal
 .IR newprinc ,
 prompting twice for a password.  If no policy is specified with the
--policy option, and the policy named "default" exists, then that
+\-policy option, and the policy named "default" exists, then that
 policy is assigned to the principal; note that the assignment of the
 policy "default" only occurs automatically when a principal is first
 created, so the policy "default" must already exist for the assignment
 to occur.  This assignment of "default" can be suppressed with the
--clearpolicy option.  This command requires the 
+\-clearpolicy option.  This command requires the
 .I add
 privilege.  This command has the aliases
 .B addprinc
@@ -327,6 +341,16 @@ flag.)
 .B -requires_hwauth
 clears this flag.
 .TP
+{\fB\-\fP|\fB+\fP}\fBok_as_delegate\fP
+.B +ok_as_delegate
+sets the OK-AS-DELEGATE flag on tickets issued for use with this principal
+as the service, which clients may use as a hint that credentials can and
+should be delegated when authenticating to the service.  (Sets the
+.SM KRB5_KDB_OK_AS_DELEGATE
+flag.)
+.B -ok_as_delegate
+clears this flag.
+.TP
 {\fB\-\fP|\fB+\fP}\fBallow_svr\fP
 .B -allow_svr
 prohibits the issuance of service tickets for this principal.  (Sets the
@@ -411,7 +435,7 @@ Re-enter password for principal tlyu/admin@BLEEP.COM:
 Principal "tlyu/admin@BLEEP.COM" created.
 kadmin:
 
-kadmin: addprinc -x dn=cn=mwm_user,o=org mwm_user
+kadmin: addprinc \-x dn=cn=mwm_user,o=org mwm_user
 WARNING: no policy specified for "mwm_user@BLEEP.COM";
 defaulting to no policy.
 Enter password for principal mwm_user@BLEEP.COM: 
@@ -639,7 +663,7 @@ sets the number of past keys kept for a principal. This option is not supported 
 .nf
 .TP
 EXAMPLES:
-kadmin: add_policy -maxlife "2 days" -minlength 5 guests
+kadmin: add_policy \-maxlife "2 days" \-minlength 5 guests
 kadmin:
 .TP
 ERRORS:
@@ -749,11 +773,29 @@ kadmin:
 .TP
 \fBktadd\fP [\fB\-k\fP \fIkeytab\fP] [\fB\-q\fP] [\fB\-e\fP \fIkeysaltlist\fP]
 .br
-[\fIprincipal\fP | \fB\-glob\fP \fIprinc-exp\fP] [\fI...\fP]
+[\fB\-norandkey\fP] [[\fIprincipal\fP | \fB\-glob\fP \fIprinc-exp\fP] [\fI...\fP]
 .br
 Adds a principal or all principals matching
 .I princ-exp
-to a keytab, randomizing each principal's key in the process.  Requires the
+to a keytab.
+It randomizes each principal's key in the process, to prevent a
+compromised admin account from reading out all of the keys from the
+database.  However,
+.B kadmin.local
+has the
+.B \-norandkey
+option, which leaves the keys and their version numbers unchanged,
+similar to the Kerberos V4
+.B ext_srvtab
+command.
+That allows users to continue to use the passwords they know
+to login normally, while simultaneously allowing scripts
+to login to the same account using a keytab.
+There is no significant security risk added since
+.B kadmin.local
+must be run by root on the KDC anyway.
+.sp
+Requires the
 .I inquire
 and 
 .I changepw

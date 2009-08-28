@@ -33,6 +33,7 @@
 #include <string.h>
 #include <errno.h>
 
+#ifndef LEAN_CLIENT
 static OM_uint32
 val_acc_sec_ctx_args(
     OM_uint32 *minor_status,
@@ -83,7 +84,6 @@ val_acc_sec_ctx_args(
 
     return (GSS_S_COMPLETE);
 }
-
 
 OM_uint32 KRB5_CALLCONV
 gss_accept_sec_context (minor_status,
@@ -149,7 +149,7 @@ gss_cred_id_t *		d_cred;
 	if (GSS_EMPTY_BUFFER(input_token_buffer)) {
 	    /*
 	     * There is the a wierd mode of SPNEGO (in CIFS and
-	     * SASL GSS-SPENGO where the first token is zero
+	     * SASL GSS-SPNEGO where the first token is zero
 	     * length and the acceptor returns a mech_list, lets
 	     * hope that is what is happening now.
 	     */
@@ -203,9 +203,7 @@ gss_cred_id_t *		d_cred;
     mech = gssint_get_mechanism (token_mech_type);
     if (mech && mech->gss_accept_sec_context) {
 
-	    status = mech->gss_accept_sec_context(
-						  mech->context,
-						  minor_status,
+	    status = mech->gss_accept_sec_context(minor_status,
 						  &union_ctx_id->internal_ctx_id,
 						  input_cred_handle,
 						  input_token_buffer,
@@ -222,8 +220,10 @@ gss_cred_id_t *		d_cred;
 		return GSS_S_CONTINUE_NEEDED;
 	    
 	    /* if the call failed, return with failure */
-	    if (status != GSS_S_COMPLETE)
+	    if (status != GSS_S_COMPLETE) {
+		map_error(minor_status, mech);
 		goto error_out;
+	    }
 
 	    /*
 	     * if src_name is non-NULL,
@@ -238,12 +238,12 @@ gss_cred_id_t *		d_cred;
 		       internal_name, &tmp_src_name);
 		if (temp_status != GSS_S_COMPLETE) {
 		    *minor_status = temp_minor_status;
+		    map_error(minor_status, mech);
 		    if (output_token->length)
 			(void) gss_release_buffer(&temp_minor_status,
 						  output_token);
 		    if (internal_name != GSS_C_NO_NAME)
 			mech->gss_release_name(
-			    mech->context,
 			    &temp_minor_status,
 			    &internal_name);
 		    return (temp_status);
@@ -288,12 +288,6 @@ gss_cred_id_t *		d_cred;
 		    goto error_out;
 		}
 
-		if (status != GSS_S_COMPLETE) {
-		    free(d_u_cred->cred_array);
-		    free(d_u_cred);
-		    goto error_out;
-		}
-
 		internal_name = GSS_C_NO_NAME;
 
 		d_u_cred->auxinfo.creation_time = time(0);
@@ -301,13 +295,14 @@ gss_cred_id_t *		d_cred;
 		d_u_cred->loopback = d_u_cred;
 
 		if (mech->gss_inquire_cred) {
-		    status = mech->gss_inquire_cred(mech->context,
-						    minor_status,
+		    status = mech->gss_inquire_cred(minor_status,
 						    tmp_d_cred,
 						    &internal_name,
 						    &d_u_cred->auxinfo.time_rec,
 						    &d_u_cred->auxinfo.cred_usage,
 						    NULL);
+		    if (status != GSS_S_COMPLETE)
+			map_error(minor_status, mech);
 		}
 
 		if (internal_name != NULL) {
@@ -316,6 +311,7 @@ gss_cred_id_t *		d_cred;
 			internal_name, &tmp_src_name);
 		    if (temp_status != GSS_S_COMPLETE) {
 			*minor_status = temp_minor_status;
+			map_error(minor_status, mech);
 			if (output_token->length)
 			    (void) gss_release_buffer(
 				&temp_minor_status,
@@ -371,4 +367,5 @@ error_out:
 
     return (status);
 }
+#endif /* LEAN_CLIENT */
 

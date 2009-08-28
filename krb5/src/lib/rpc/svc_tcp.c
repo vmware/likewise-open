@@ -49,9 +49,19 @@ static char sccsid[] = "@(#)svc_tcp.c 1.21 87/08/11 Copyr 1984 Sun Micro";
 #include <errno.h>
 #include <stdlib.h>
 #include "autoconf.h"
+#include "k5-platform.h"	/* set_cloexec_fd */
+#include <port-sockets.h>
 /*extern bool_t abort();
 extern errno;
 */
+
+#ifndef FD_SETSIZE
+#ifdef NBBY
+#define NOFILE (sizeof(int) * NBBY)
+#else
+#define NOFILE (sizeof(int) * 8)
+#endif
+#endif
 
 /*
  * Ops vector for TCP/IP based rpc service handle
@@ -128,7 +138,7 @@ struct tcp_conn {  /* kept in xprt->xp_p1 */
  */
 SVCXPRT *
 svctcp_create(
-	register int sock,
+        SOCKET sock,
 	u_int sendsize,
 	u_int recvsize)
 {
@@ -143,6 +153,7 @@ svctcp_create(
 			perror("svctcp_.c - udp socket creation problem");
 			return ((SVCXPRT *)NULL);
 		}
+		set_cloexec_fd(sock);
 		madesock = TRUE;
 	}
 	memset((char *)&addr, 0, sizeof (addr));
@@ -156,14 +167,14 @@ svctcp_create(
 	}
 	if (getsockname(sock, (struct sockaddr *)&addr, &len) != 0) {
 		perror("svc_tcp.c - cannot getsockname");
-		if (madesock)
-			(void) close(sock);
+                if (madesock)
+                        (void)closesocket(sock);
 		return ((SVCXPRT *)NULL);
 	}
 	if (listen(sock, 2) != 0) {
 		perror("svctcp_.c - cannot listen");
-		if (madesock)
-			(void)close(sock);
+                if (madesock)
+                        (void)closesocket(sock);
 		return ((SVCXPRT *)NULL);
 	}
 	r = (struct tcp_rendezvous *)mem_alloc(sizeof(*r));
@@ -213,6 +224,19 @@ makefd_xprt(
 	register SVCXPRT *xprt;
 	register struct tcp_conn *cd;
  
+#ifdef FD_SETSIZE
+	if (fd >= FD_SETSIZE) {
+		(void) fprintf(stderr, "svc_tcp: makefd_xprt: fd too high\n");
+		xprt = NULL;
+		goto done;
+	}
+#else
+	if (fd >= NOFILE) {
+		(void) fprintf(stderr, "svc_tcp: makefd_xprt: fd too high\n");
+		xprt = NULL;
+		goto done;
+	}
+#endif
 	xprt = (SVCXPRT *)mem_alloc(sizeof(SVCXPRT));
 	if (xprt == (SVCXPRT *)NULL) {
 		(void) fprintf(stderr, "svc_tcp: makefd_xprt: out of memory\n");
@@ -247,7 +271,7 @@ rendezvous_request(
 	register SVCXPRT *xprt,
 	struct rpc_msg *msg)
 {
-	int sock;
+        SOCKET sock;
 	struct tcp_rendezvous *r;
 	struct sockaddr_in addr, laddr;
 	int len, llen;
@@ -261,13 +285,18 @@ rendezvous_request(
 			goto again;
 	       return (FALSE);
 	}
-	if (getsockname(sock, &laddr, &llen) < 0)
+	set_cloexec_fd(sock);
+	if (getsockname(sock, (struct sockaddr *) &laddr, &llen) < 0)
 	     return (FALSE);
 	
 	/*
 	 * make a new transporter (re-uses xprt)
 	 */
 	xprt = makefd_xprt(sock, r->sendsize, r->recvsize);
+	if (xprt == NULL) {
+                (void)closesocket(sock);
+		return (FALSE);
+	}
 	xprt->xp_raddr = addr;
 	xprt->xp_addrlen = len;
 	xprt->xp_laddr = laddr;
@@ -288,7 +317,7 @@ svctcp_destroy(register SVCXPRT *xprt)
 	register struct tcp_conn *cd = (struct tcp_conn *)xprt->xp_p1;
 
 	xprt_unregister(xprt);
-	(void)close(xprt->xp_sock);
+        (void)closesocket(xprt->xp_sock);
 	if (xprt->xp_port != 0) {
 		/* a rendezvouser socket */
 		xprt->xp_port = 0;

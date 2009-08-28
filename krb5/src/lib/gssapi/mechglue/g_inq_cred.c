@@ -86,13 +86,15 @@ gss_OID_set *		mechanisms;
 	if (!mech->gss_inquire_cred)
 	    return (GSS_S_UNAVAILABLE);
 	
-	status = mech->gss_inquire_cred(mech->context, minor_status,
+	status = mech->gss_inquire_cred(minor_status,
 					GSS_C_NO_CREDENTIAL,
 					name ? &internal_name : NULL,
 					lifetime, cred_usage, mechanisms);
 
-	if (status != GSS_S_COMPLETE)
+	if (status != GSS_S_COMPLETE) {
+	    map_error(minor_status, mech);
 	    return(status);
+	}
 
 	if (name) {
 	    /*
@@ -103,6 +105,7 @@ gss_OID_set *		mechanisms;
 						      name);
 	    if (status != GSS_S_COMPLETE) {
 		*minor_status = temp_minor_status;
+		map_error(minor_status, mech);
 		if (mechanisms && *mechanisms) {
 		    (void) gss_release_oid_set(
 			&temp_minor_status,
@@ -140,7 +143,9 @@ gss_OID_set *		mechanisms;
      */
     
     if(name != NULL) {
-	if ((gss_import_name(&temp_minor_status,
+	if (union_cred->auxinfo.name.length == 0) {
+	    *name = GSS_C_NO_NAME;
+	} else if ((gss_import_name(&temp_minor_status,
 			     &union_cred->auxinfo.name,
 			     union_cred->auxinfo.name_type,
 			     name) != GSS_S_COMPLETE) ||
@@ -243,14 +248,16 @@ gss_inquire_cred_by_mech(minor_status, cred_handle, mech_type, name,
 	return (GSS_S_DEFECTIVE_CREDENTIAL);
 #endif
 
-    status = mech->gss_inquire_cred_by_mech(mech->context, minor_status,
+    status = mech->gss_inquire_cred_by_mech(minor_status,
 					    mech_cred, mech_type,
 					    name ? &internal_name : NULL,
 					    initiator_lifetime,
 					    acceptor_lifetime, cred_usage);
 	
-    if (status != GSS_S_COMPLETE)
+    if (status != GSS_S_COMPLETE) {
+	map_error(minor_status, mech);
 	return (status);
+    }
 
     if (name) {
 	/*
@@ -261,6 +268,7 @@ gss_inquire_cred_by_mech(minor_status, cred_handle, mech_type, name,
 	    internal_name, name);
 	if (status != GSS_S_COMPLETE) {
 	    *minor_status = temp_minor_status;
+	    map_error(minor_status, mech);
 	    return (status);
 	}
     }

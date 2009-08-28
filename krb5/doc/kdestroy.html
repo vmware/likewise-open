@@ -10,7 +10,7 @@
 
 </PRE>
 <H2>SYNOPSIS</H2><PRE>
-     <B>kdestroy</B> [<B>-5</B>] [<B>-4</B>] [<B>-q</B>] [<B>-c</B> <I>cache</I>_<I>name</I>]
+     <B>kdestroy</B> [<B>-q</B>] [<B>-c</B> <I>cache</I>_<I>name</I>]
 
 
 </PRE>
@@ -19,23 +19,11 @@
      authorization  tickets  by  writing  zeros  to the specified
      credentials cache that contains them.   If  the  credentials
      cache  is  not  specified,  the default credentials cache is
-     destroyed.  If kdestroy was built with Kerberos  4  support,
-     the  default behavior is to destroy both Kerberos 5 and Ker-
-     beros 4 credentials.  Otherwise, kdestroy  will  default  to
-     destroying only Kerberos 5 credentials.
+     destroyed.
 
 
 </PRE>
 <H2>OPTIONS</H2><PRE>
-     -<B>5</B>   destroy Kerberos 5 credentials.  This  overrides  what-
-          ever the default built-in behavior may be.  This option
-          may be used with -<B>4</B>
-
-     -<B>4</B>   destroy Kerberos 4 credentials.  This  overrides  what-
-          ever the default built-in behavior may be.  This option
-          is only available if kinit was built  with  Kerberos  4
-          compatibility.  This option may be used with -<B>5</B>
-
      -<B>q</B>   Run quietly.  Normally <B>kdestroy</B> beeps if  it  fails  to
           destroy  the  user's  tickets.   The -<B>q</B> flag suppresses
           this behavior.
@@ -61,18 +49,12 @@
      KRB5CCNAME      Location  of  the  Kerberos  5   credentials
                      (ticket) cache.
 
-     KRBTKFILE      Filename  of  the  Kerberos   4   credentials
-                    (ticket) cache.
-
 
 </PRE>
 <H2>FILES</H2><PRE>
      /tmp/krb5cc_[uid]  default location of  Kerberos  5  creden-
                         tials  cache ([uid] is the decimal UID of
                         the user).
-
-     /tmp/tkt[uid]  default location of  Kerberos  4  credentials
-                    cache ([uid] is the decimal UID of the user).
 
 
 </PRE>
@@ -87,40 +69,6 @@
      instance and password changing tickets.  These should  prob-
      ably  be destroyed too, or all of a user's tickets kept in a
      single credentials cache.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 </PRE>
 <HR>

@@ -48,23 +48,18 @@
 
 
 NTSTATUS
-SamrDeleteUser(
-    /* [in, out] */ ACCOUNT_HANDLE hUser
+SamrSrvDeleteUser(
+    /* [in] */ handle_t hBinding,
+    /* [in] */ ACCOUNT_HANDLE hUserIn,
+    /* [in] */ ACCOUNT_HANDLE *phUserOut
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PACCOUNT_CONTEXT pAccCtx = NULL;
 
-    if (pDomCtx == NULL || pDomCtx->Type != SamrContextAccount) {
-        ntStatus = STATUS_INVALID_HANDLE;
-        BAIL_ON_NTSTATUS_ERROR(status);
-    }
-
-cleanup:
+    ntStatus = SamrSrvDeleteAccount(hBinding,
+                                    hUserIn,
+                                    phUserOut);
     return ntStatus;
-
-error:
-    goto cleanup;
 }
 
 

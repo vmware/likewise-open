@@ -3,22 +3,31 @@ datadir=@datadir@
 thisconfigdir=.
 myfulldir=.
 mydir=.
-# Don't build sample by default: plugins/locate/python plugins/preauth/wpse plugins/preauth/cksum_body
+# Don't build sample by default, and definitely don't install them
+# for production use:
+#	plugins/locate/python
+#	plugins/preauth/wpse
+#	plugins/preauth/cksum_body
+#	plugins/authdata/greet
 # We moved to building only client side code because of issues buildng under AIX. 
 # The proper fixed is to have a configure option to be build only client side bits.
-#SUBDIRS=util include lib @krb524@ kdc kadmin @ldap_plugin_dir@ slave clients \
+#SUBDIRS=util include lib kdc kadmin @ldap_plugin_dir@ slave clients \
 #	plugins/kdb/db2 \
 #	plugins/preauth/pkinit \
+#	plugins/preauth/encrypted_challenge \
 #	appl tests \
 #	config-files gen-manpages
-SUBDIRS=util include lib @krb524@ kadmin @ldap_plugin_dir@ clients \
-	tests \
+SUBDIRS=util include lib kadmin/ktutil @ldap_plugin_dir@ clients \
+	plugins/preauth/encrypted_challenge \
 	config-files gen-manpages
 BUILDTOP=$(REL)$(C)
 LOCALINCLUDES = -I$(srcdir) 
 
 SRCS =  
 HDRS = 
+
+# Why aren't these flags showing up in Windows builds?
+##DOS##CPPFLAGS=$(CPPFLAGS) -D_X86_=1  -DWIN32 -D_WIN32 -W3 -D_WINNT
 
 DISTFILES = $(SRCS) $(HDRS) COPYING COPYING.LIB ChangeLog Makefile.in
 
@@ -41,6 +50,12 @@ all-windows:: maybe-awk Makefile-windows
 	@echo Making autoconf.h in include
 	cd include
 	$(MAKE) -$(MFLAGS) autoconf.h
+
+	@echo Making in ccapi
+	cd ..\ccapi
+	cd
+	$(MAKE) -$(MFLAGS)
+
 	@echo Making in util
 	cd ..\util
 	$(MAKE) -$(MFLAGS)
@@ -74,6 +89,7 @@ INSTALLMKDIRS = $(KRB5ROOT) $(KRB5MANROOT) $(KRB5OTHERMKDIRS) \
 		$(ADMIN_MANDIR) $(SERVER_MANDIR) $(CLIENT_MANDIR) \
 		$(FILE_MANDIR) $(KRB5_LIBDIR) $(KRB5_INCDIR) \
 		$(KRB5_DB_MODULE_DIR) $(KRB5_PA_MODULE_DIR) \
+		$(KRB5_AD_MODULE_DIR) \
 		$(KRB5_LIBKRB5_MODULE_DIR) \
 		@localstatedir@ @localstatedir@/krb5kdc \
 		$(KRB5_INCSUBDIRS) $(datadir) $(EXAMPLEDIR)
@@ -92,7 +108,6 @@ install-headers-mkdirs:
 	$(srcdir)/config/mkinstalldirs $(DESTDIR)$(KRB5_INCDIR)
 	$(srcdir)/config/mkinstalldirs $(DESTDIR)$(KRB5_INCDIR)/gssapi
 	$(srcdir)/config/mkinstalldirs $(DESTDIR)$(KRB5_INCDIR)/gssrpc
-	$(srcdir)/config/mkinstalldirs $(DESTDIR)$(KRB5_INCDIR)/kerberosIV
 install-headers-prerecurse: install-headers-mkdirs
 
 # install::
@@ -176,12 +191,15 @@ config-windows:: Makefile-windows
 WINMAKEFILES=Makefile \
 	appl\gss-sample\Makefile \
 	appl\gssftp\ftp\Makefile \
+	ccapi\Makefile \
+	ccapi\lib\win\Makefile \
+	ccapi\server\win\Makefile \
+    ccapi\test\Makefile \
 	clients\Makefile clients\kdestroy\Makefile \
 	clients\kinit\Makefile clients\klist\Makefile \
 	clients\kpasswd\Makefile clients\kvno\Makefile \
 	clients\kcpytkt\Makefile clients\kdeltkt\Makefile \
 	include\Makefile \
-	krb524\Makefile \
 	lib\Makefile lib\crypto\Makefile \
 	lib\crypto\crc32\Makefile lib\crypto\des\Makefile \
 	lib\crypto\dk\Makefile lib\crypto\enc_provider\Makefile \
@@ -191,11 +209,10 @@ WINMAKEFILES=Makefile \
 	lib\crypto\sha1\Makefile lib\crypto\arcfour\Makefile \
 	lib\crypto\md4\Makefile lib\crypto\md5\Makefile \
 	lib\crypto\yarrow\Makefile lib\crypto\aes\Makefile \
-	lib\des425\Makefile \
 	lib\gssapi\Makefile lib\gssapi\generic\Makefile \
 	lib\gssapi\krb5\Makefile lib\gssapi\mechglue\Makefile \
 	lib\gssapi\spnego\Makefile \
-	lib\krb4\Makefile lib\krb5\Makefile \
+	lib\krb5\Makefile \
 	lib\krb5\asn.1\Makefile lib\krb5\ccache\Makefile \
 	lib\krb5\ccache\ccapi\Makefile \
 	lib\krb5\error_tables\Makefile \
@@ -220,6 +237,14 @@ WINMAKEFILES=Makefile \
 ##DOS##	$(WCONFIG) config < $@.in > $@
 ##DOS##appl\gssftp\ftp\Makefile: appl\gssftp\ftp\Makefile.in $(MKFDEP)
 ##DOS##	$(WCONFIG) config < $@.in > $@
+##DOS##ccapi\Makefile: ccapi\Makefile.in $(MKFDEP)
+##DOS##	$(WCONFIG) config < $@.in > $@
+##DOS##ccapi\lib\win\Makefile: ccapi\lib\win\Makefile.in $(MKFDEP)
+##DOS##	$(WCONFIG) config < $@.in > $@
+##DOS##ccapi\server\win\Makefile: ccapi\server\win\Makefile.in $(MKFDEP)
+##DOS##	$(WCONFIG) config < $@.in > $@
+##DOS##ccapi\test\Makefile: ccapi\test\Makefile.in $(MKFDEP)
+##DOS##	$(WCONFIG) config < $@.in > $@
 ##DOS##clients\Makefile: clients\Makefile.in $(MKFDEP)
 ##DOS##	$(WCONFIG) config < $@.in > $@
 ##DOS##clients\kdestroy\Makefile: clients\kdestroy\Makefile.in $(MKFDEP)
@@ -237,8 +262,6 @@ WINMAKEFILES=Makefile \
 ##DOS##clients\kdeltkt\Makefile: clients\kdeltkt\Makefile.in $(MKFDEP)
 ##DOS##	$(WCONFIG) config < $@.in > $@
 ##DOS##include\Makefile: include\Makefile.in $(MKFDEP)
-##DOS##	$(WCONFIG) config < $@.in > $@
-##DOS##krb524\Makefile: krb524\Makefile.in $(MKFDEP)
 ##DOS##	$(WCONFIG) config < $@.in > $@
 ##DOS##lib\Makefile: lib\Makefile.in $(MKFDEP)
 ##DOS##	$(WCONFIG) config < $@.in > $@
@@ -272,19 +295,13 @@ WINMAKEFILES=Makefile \
 ##DOS##	$(WCONFIG) config < $@.in > $@
 ##DOS##lib\crypto\raw\Makefile: lib\crypto\raw\Makefile.in $(MKFDEP)
 ##DOS##	$(WCONFIG) config < $@.in > $@
-##DOS##lib\des425\Makefile: lib\des425\Makefile.in $(MKFDEP)
-##DOS##	$(WCONFIG) config < $@.in > $@
 ##DOS##lib\gssapi\Makefile: lib\gssapi\Makefile.in $(MKFDEP)
 ##DOS##	$(WCONFIG) config < $@.in > $@
 ##DOS##lib\gssapi\generic\Makefile: lib\gssapi\generic\Makefile.in $(MKFDEP)
 ##DOS##	$(WCONFIG) config < $@.in > $@
 ##DOS##lib\gssapi\mechglue\Makefile: lib\gssapi\mechglue\Makefile.in $(MKFDEP)
 ##DOS##	$(WCONFIG) config < $@.in > $@
-##DOS##lib\gssapi\spnego\Makefile: lib\gssapi\spnego\Makefile.in $(MKFDEP)
-##DOS##	$(WCONFIG) config < $@.in > $@
 ##DOS##lib\gssapi\krb5\Makefile: lib\gssapi\krb5\Makefile.in $(MKFDEP)
-##DOS##	$(WCONFIG) config < $@.in > $@
-##DOS##lib\krb4\Makefile: lib\krb4\Makefile.in $(MKFDEP)
 ##DOS##	$(WCONFIG) config < $@.in > $@
 ##DOS##lib\krb5\Makefile: lib\krb5\Makefile.in $(MKFDEP)
 ##DOS##	$(WCONFIG) config < $@.in > $@
@@ -349,10 +366,10 @@ clean-windows:: Makefile-windows
 	@echo Making clean in clients
 	cd ..\clients
 	$(MAKE) -$(MFLAGS) clean
-	@echo Making in appl\gss-sample
+	@echo Making clean in appl\gss-sample
 	cd ..\appl\gss-sample
 	$(MAKE) -$(MFLAGS) clean
-	@echo Making in appl\gssftp\ftp
+	@echo Making clean in appl\gssftp\ftp
 	cd ..\..\appl\gssftp\ftp
 	$(MAKE) -$(MFLAGS) clean
 	cd ..\..\..
@@ -370,17 +387,17 @@ ren2long:
 #
 ZIP=zip
 FILES= ./* \
-	clients/* clients/kdestroy/* clients/kinit/* clients/klist/* \
+    clients/* clients/kdestroy/* clients/kinit/* clients/klist/* \
 	clients/kpasswd/* clients/kcpytkt/* clients/kdeltkt/* \
 	config/* include/* include/kerberosIV/* \
-	include/krb5/* include/krb5/stock/* include/sys/* krb524/* lib/* \
+	include/krb5/* include/krb5/stock/* include/sys/* lib/* \
 	lib/crypto/* lib/crypto/crc32/* lib/crypto/des/* lib/crypto/dk/* \
 	lib/crypto/enc_provider/* lib/crypto/hash_provider/* \
 	lib/crypto/keyhash_provider/* lib/crypto/old/* lib/crypto/raw/* \
 	lib/crypto/sha1/* lib/crypto/arcfour/* lib/crypto/md4/* \
 	lib/crypto/md5/* lib/crypto/yarrow/* \
-	lib/des425/* lib/gssapi/* lib/gssapi/generic/* lib/gssapi/krb5/* \
-	lib/gssapi/mechglue/* lib/gssapi/spnego/* lib/krb4/* \
+	lib/gssapi/* lib/gssapi/generic/* lib/gssapi/krb5/* \
+	lib/gssapi/mechglue/* lib/gssapi/spnego/* \
 	lib/krb5/* lib/krb5/asn.1/* lib/krb5/krb/* \
 	lib/krb5/ccache/* lib/krb5/ccache/ccapi/* \
 	lib/krb5/error_tables/* \
@@ -388,7 +405,12 @@ FILES= ./* \
 	lib/krb5/os/* lib/krb5/posix/* lib/krb5/rcache/* \
 	util/* util/et/* util/profile/*
 
-WINFILES= util/windows/* windows/* windows/lib/* windows/cns/* \
+WINFILES= \
+    ccapi/common/* ccapi/common/win/* ccapi/common/win/OldCC/* \
+    ccapi/lib/* ccapi/lib/win/* ccapi/lib/win/OldCC/* \
+    ccapi/server/* ccapi/server/win/* \
+    ccapi\test\* \
+    util/windows/* windows/* windows/lib/* windows/cns/* \
 	windows/wintel/* windows/gss/* windows/gina/* windows/ms2mit/* \
 	windows/kfwlogon/*
 
@@ -415,12 +437,9 @@ ETOUT =	\
 	$(INC)krb5_err.h $(ET)krb5_err.c \
 	$(INC)kv5m_err.h $(ET)kv5m_err.c \
 	$(INC)krb524_err.h $(ET)krb524_err.c \
-	$(INC)/kerberosIV/kadm_err.h lib/krb4/kadm_err.c \
-	$(INC)/kerberosIV/krb_err.h lib/krb4/krb_err.c \
 	$(PR)prof_err.h $(PR)prof_err.c \
 	$(GG)gssapi_err_generic.h $(GG)gssapi_err_generic.c \
-	$(GK)gssapi_err_krb5.h $(GK)gssapi_err_krb5.c \
-	lib/krb4/krb_err_txt.c
+	$(GK)gssapi_err_krb5.h $(GK)gssapi_err_krb5.c
 
 HOUT =	$(INC)krb5\krb5.h $(GG)gssapi.h $(PR)profile.h
 
@@ -475,10 +494,6 @@ $(INC)kv5m_err.h: $(AH) $(ET)kv5m_err.et
 	$(AWK) -f $(AH) outfile=$@ $(ET)kv5m_err.et
 $(INC)krb524_err.h: $(AH) $(ET)krb524_err.et
 	$(AWK) -f $(AH) outfile=$@ $(ET)krb524_err.et
-$(INC)/kerberosIV/kadm_err.h: $(AH) lib/krb4/kadm_err.et
-	$(AWK) -f $(AH) outfile=$@ lib/krb4/kadm_err.et
-$(INC)/kerberosIV/krb_err.h: $(AH) lib/krb4/krb_err.et
-	$(AWK) -f $(AH) outfile=$@ lib/krb4/krb_err.et
 $(PR)prof_err.h: $(AH) $(PR)prof_err.et
 	$(AWK) -f $(AH) outfile=$@ $(PR)prof_err.et
 $(GG)gssapi_err_generic.h: $(AH) $(GG)gssapi_err_generic.et
@@ -500,10 +515,6 @@ $(ET)kv5m_err.c: $(AC) $(ET)kv5m_err.et
 	$(AWK) -f $(AC) outfile=$@ $(ET)kv5m_err.et
 $(ET)krb524_err.c: $(AC) $(ET)krb524_err.et
 	$(AWK) -f $(AC) outfile=$@ $(ET)krb524_err.et
-lib/krb4/kadm_err.c: $(AC) lib/krb4/kadm_err.et
-	$(AWK) -f $(AC) outfile=$@ lib/krb4/kadm_err.et
-lib/krb4/krb_err.c: $(AC) lib/krb4/krb_err.et
-	$(AWK) -f $(AC) outfile=$@ lib/krb4/krb_err.et
 $(PR)prof_err.c: $(AC) $(PR)prof_err.et
 	$(AWK) -f $(AC) outfile=$@ $(PR)prof_err.et
 $(GG)gssapi_err_generic.c: $(AC) $(GG)gssapi_err_generic.et
@@ -514,10 +525,6 @@ $(CE)test1.c: $(AC) $(CE)test1.et
 	$(AWK) -f $(AC) outfile=$@ $(CE)test1.et
 $(CE)test2.c: $(AC) $(CE)test2.et
 	$(AWK) -f $(AC) outfile=$@ $(CE)test2.et
-
-lib/krb4/krb_err_txt.c: lib/krb4/krb_err.et
-	$(AWK) -f lib/krb4/et_errtxt.awk outfile=$@ \
-		lib/krb4/krb_err.et
 
 KRBHDEP = $(INC)krb5\krb5.hin $(INC)krb5_err.h $(INC)kdb5_err.h \
 	$(INC)kv5m_err.h $(INC)krb524_err.h $(INC)asn1_err.h
@@ -580,6 +587,8 @@ install-windows::
 	$(CP) appl\gss-sample\$(OUTPRE)gss-client.exe "$(KRB_INSTALL_DIR)\bin\."
 	$(CP) windows\ms2mit\$(OUTPRE)ms2mit.exe "$(KRB_INSTALL_DIR)\bin\."
 	$(CP) appl\gssftp\ftp\$(OUTPRE)ftp.exe "$(KRB_INSTALL_DIR)\bin\."
+	$(CP) ccapi\lib\win\$(OUTPRE)ccapi.dll "$(KRB_INSTALL_DIR)\bin\."
+	$(CP) ccapi\server\win\$(OUTPRE)ccapiserver.exe "$(KRB_INSTALL_DIR)\bin\."
 	$(CP) clients\kvno\$(OUTPRE)kvno.exe "$(KRB_INSTALL_DIR)\bin\."
 	$(CP) clients\klist\$(OUTPRE)klist.exe "$(KRB_INSTALL_DIR)\bin\."
 	$(CP) clients\kinit\$(OUTPRE)kinit.exe "$(KRB_INSTALL_DIR)\bin\."
@@ -587,8 +596,6 @@ install-windows::
 	$(CP) clients\kcpytkt\$(OUTPRE)kcpytkt.exe "$(KRB_INSTALL_DIR)\bin\."
 	$(CP) clients\kdeltkt\$(OUTPRE)kdeltkt.exe "$(KRB_INSTALL_DIR)\bin\."
 	$(CP) clients\kpasswd\$(OUTPRE)kpasswd.exe "$(KRB_INSTALL_DIR)\bin\."
-	@if exist "$(KRB_INSTALL_DIR)\bin\krb4_32.dll" del "$(KRB_INSTALL_DIR)\bin\krb4_32.dll"
-	@if exist "$(KRB_INSTALL_DIR)\lib\krb4_32.lib" del "$(KRB_INSTALL_DIR)\lib\krb4_32.lib"
 
 install-unix:: 
 	$(INSTALL_SCRIPT) krb5-config \
@@ -603,3 +610,33 @@ krb5-config: $(srcdir)/krb5-config.in $(thisconfigdir)/config.status
 check-unix:: krb5-config
 	$(SHELL) $(srcdir)/t_krbconf
 check-prerecurse: fake-install
+
+COV_BUILD=	cov-build
+COV_ANALYZE=	cov-analyze
+COV_COMMIT=	cov-commit-defects --product "$(COV_PRODUCT)" --user "$(COV_USER)" --target "$(COV_TARGET)" --description "$(COV_DESC)"
+COV_MAKE_LIB=	cov-make-library
+
+COV_PRODUCT=	krb5
+COV_USER=	admin
+COV_DATADIR=
+COV_TARGET=	$(host)
+COV_DESC=
+
+# Set to, e.g., "--all" or "--security".
+COV_ANALYSES=
+# Temporary directory, might as well put it in the build tree.
+COV_TEMPDIR=	cov-temp
+# Sources modeling some functions or macros confusing Prevent.
+COV_MODELS=\
+	$(SRCTOP)/util/coverity-models/threads.c
+
+# Depend on Makefiles to ensure that (in maintainer mode) the configure
+# scripts won't get rerun under cov-build.
+coverity prevent cov: Makefiles
+	$(COV_BUILD) --dir $(COV_TEMPDIR) $(MAKE) all
+	$(COV_ANALYZE) $(COV_ANALYSES) --dir $(COV_TEMPDIR)
+	if test "$(COV_DATADIR)" != ""; then \
+		$(COV_COMMIT) --dir $(COV_TEMPDIR) --datadir $(COV_DATADIR); \
+	else \
+		echo "** Coverity Prevent analysis results not commit to Defect Manager"; \
+	fi

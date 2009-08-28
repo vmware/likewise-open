@@ -38,8 +38,10 @@ krb5_free_krbhst(krb5_context context, char *const *hostlist)
 {
     register char * const *cp;
 
+    if (hostlist == NULL)
+	return 0;
     for (cp = hostlist; *cp; cp++)
 	free(*cp);
-    krb5_xfree(hostlist);
+    free((char *)hostlist);
     return 0;
 }

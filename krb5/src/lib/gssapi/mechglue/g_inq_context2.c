@@ -41,7 +41,7 @@ val_inq_ctx2_args(
     gss_OID *mech_type,
     OM_uint32 *ctx_flags,
     int *locally_initiated,
-    int *open)
+    int *opened)
 {
 
     /* Initialize outputs. */
@@ -81,7 +81,7 @@ gss_inquire_context2(
 	    mech_type,
 	    ctx_flags,
 	    locally_initiated,
-	    open,
+	    opened,
 	    session_key)
 
 OM_uint32 *	minor_status;
@@ -92,7 +92,7 @@ OM_uint32 *	lifetime_rec;
 gss_OID *	mech_type;
 OM_uint32 *	ctx_flags;
 int *           locally_initiated;
-int *		open;
+int *		opened;
 gss_buffer_t 	session_key;
 
 {
@@ -106,7 +106,7 @@ gss_buffer_t 	session_key;
 			      src_name, targ_name,
 			      lifetime_rec,
 			      mech_type, ctx_flags,
-			      locally_initiated, open);
+			      locally_initiated, opened);
     if (status != GSS_S_COMPLETE)
 	return (status);
 
@@ -124,7 +124,6 @@ gss_buffer_t 	session_key;
     }
 
     status = mech->gss_inquire_context2(
-			mech->context,
 			minor_status,
 			ctx->internal_ctx_id,
 			(src_name ? &localSourceName : NULL),
@@ -133,7 +132,7 @@ gss_buffer_t 	session_key;
 			NULL,
 			ctx_flags,
 			locally_initiated,
-			open,
+			opened,
 			session_key);
 
     if (status != GSS_S_COMPLETE) {
@@ -148,8 +147,7 @@ gss_buffer_t 	session_key;
 
 	    if (status != GSS_S_COMPLETE) {
 		if (localTargName)
-		    mech->gss_release_name(mech->context,
-					   &temp_minor, &localTargName);
+		    mech->gss_release_name( &temp_minor, &localTargName);
 		return (status);
 	    }
 

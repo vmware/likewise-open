@@ -43,6 +43,15 @@ krb5_get_init_creds_opt_set_proxiable(krb5_get_init_creds_opt *opt, int proxiabl
 }
 
 void KRB5_CALLCONV
+krb5_get_init_creds_opt_set_canonicalize(krb5_get_init_creds_opt *opt, int canonicalize)
+{
+    if (canonicalize)
+	opt->flags |= KRB5_GET_INIT_CREDS_OPT_CANONICALIZE;
+    else
+	opt->flags &= ~(KRB5_GET_INIT_CREDS_OPT_CANONICALIZE);
+}
+
+void KRB5_CALLCONV
 krb5_get_init_creds_opt_set_etype_list(krb5_get_init_creds_opt *opt, krb5_enctype *etype_list, int etype_list_length)
 {
    opt->flags |= KRB5_GET_INIT_CREDS_OPT_ETYPE_LIST;
@@ -137,6 +146,8 @@ krb5int_gic_opte_private_free(krb5_context context, krb5_gic_opt_ext *opte)
     /* Free up any private stuff */
     if (opte->opt_private->preauth_data != NULL)
 	free_gic_opt_ext_preauth_data(context, opte);
+    if (opte->opt_private->fast_ccache_name)
+	free(opte->opt_private->fast_ccache_name);
     free(opte->opt_private);
     opte->opt_private = NULL;
     return 0;
@@ -216,8 +227,19 @@ krb5int_gic_opte_copy(krb5_context context,
     if (NULL == oe)
 	return ENOMEM;
 
-    if (opt)
-        memcpy(oe, opt, sizeof(*opt));
+    if (opt) {
+	oe->flags               = opt->flags;
+	oe->tkt_life            = opt->tkt_life;
+	oe->renew_life          = opt->renew_life;
+	oe->forwardable         = opt->forwardable;
+	oe->proxiable           = opt->proxiable;
+	oe->etype_list          = opt->etype_list;
+	oe->etype_list_length   = opt->etype_list_length;
+	oe->address_list        = opt->address_list;
+	oe->preauth_list        = opt->preauth_list;
+	oe->preauth_list_length = opt->preauth_list_length;
+	oe->salt                = opt->salt;
+    }
 
     /*
      * Fix the flags -- the EXTENDED flag would have been
@@ -306,6 +328,7 @@ add_gic_opt_ext_preauth_data(krb5_context context,
 	newpad = realloc(opte->opt_private->preauth_data, newsize);
     if (newpad == NULL)
 	return ENOMEM;
+    opte->opt_private->preauth_data = newpad;
 
     i = opte->opt_private->num_preauth_data;
     newpad[i].attr = strdup(attr);
@@ -317,7 +340,6 @@ add_gic_opt_ext_preauth_data(krb5_context context,
 	return ENOMEM;
     }
     opte->opt_private->num_preauth_data += 1;
-    opte->opt_private->preauth_data = newpad;
     return 0;
 }
 
@@ -444,4 +466,22 @@ krb5_get_init_creds_opt_free_pa(krb5_context context,
 	    free(preauth_data[i].value);
     }
     free(preauth_data);
+}
+krb5_error_code KRB5_CALLCONV krb5_get_init_creds_opt_set_fast_ccache_name
+(krb5_context context, krb5_get_init_creds_opt *opt, const char *ccache_name)
+{
+    krb5_error_code retval = 0;
+    krb5_gic_opt_ext *opte;
+
+    retval = krb5int_gic_opt_to_opte(context, opt, &opte, 0,
+				     "krb5_get_init_creds_opt_set_fast_ccache_name");
+    if (retval)
+	return retval;
+    if (opte->opt_private->fast_ccache_name) {
+	free(opte->opt_private->fast_ccache_name);
+    }
+    opte->opt_private->fast_ccache_name = strdup(ccache_name);
+    if (opte->opt_private->fast_ccache_name == NULL)
+	retval = ENOMEM;
+    return retval;
 }

@@ -1,7 +1,7 @@
 /*
  * lib/krb5/os/ccdefname.c
  *
- * Copyright 1990 by the Massachusetts Institute of Technology.
+ * Copyright 1990, 2007 by the Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
  * Export of this software from the United States of America may
@@ -143,7 +143,7 @@ try_dir(
 #endif
 
 #if defined(_WIN32)
-static krb5_error_code get_from_os(char *name_buf, int name_size)
+static krb5_error_code get_from_os(char *name_buf, unsigned int name_size)
 {
 	char *prefix = krb5_cc_dfl_ops->prefix;
         int size;
@@ -197,7 +197,7 @@ static krb5_error_code get_from_os(char *name_buf, int name_size)
 
 #if defined(USE_CCAPI)
 
-static krb5_error_code get_from_os(char *name_buf, int name_size)
+static krb5_error_code get_from_os(char *name_buf, unsigned int name_size)
 {
 	krb5_error_code result = 0;
 	cc_context_t cc_context = NULL;
@@ -213,7 +213,8 @@ static krb5_error_code get_from_os(char *name_buf, int name_size)
 			result = ENOMEM;
 			goto cleanup;
 		} else {
-			sprintf (name_buf, "API:%s", default_name -> data);
+		    snprintf (name_buf, name_size, "API:%s",
+			      default_name -> data);
 		}
 	}
 	
@@ -231,10 +232,10 @@ cleanup:
 
 #else
 #if !(defined(_WIN32))
-static krb5_error_code get_from_os(char *name_buf, int name_size)
+static krb5_error_code get_from_os(char *name_buf, unsigned int name_size)
 {
-	sprintf(name_buf, "FILE:/tmp/krb5cc_%ld", (long) getuid());
-	return 0;
+    snprintf(name_buf, name_size, "FILE:/tmp/krb5cc_%ld", (long) getuid());
+    return 0;
 }
 #endif
 #endif
@@ -250,18 +251,14 @@ krb5_cc_set_default_name(krb5_context context, const char *name)
     if (name != NULL) {
         if (!err) {
             /* If the name isn't NULL, make a copy of it */
-            new_ccname = malloc (strlen (name) + 1);
+            new_ccname = strdup (name);
             if (new_ccname == NULL) { err = ENOMEM; }
-        }
-        
-        if (!err) {
-            strcpy (new_ccname, name);
         }
     }
     
     if (!err) {
         /* free the old ccname and store the new one */
-        krb5_os_context os_ctx = context->os_context;
+        krb5_os_context os_ctx = &context->os_context;
         if (os_ctx->default_ccname) { free (os_ctx->default_ccname); }
         os_ctx->default_ccname = new_ccname;
         new_ccname = NULL;  /* don't free */
@@ -282,7 +279,7 @@ krb5_cc_default_name(krb5_context context)
     if (!context || context->magic != KV5M_CONTEXT) { err = KV5M_CONTEXT; }
     
     if (!err) {
-        os_ctx = context->os_context;
+        os_ctx = &context->os_context;
         
         if (os_ctx->default_ccname == NULL) {
             /* Default ccache name has not been set yet */

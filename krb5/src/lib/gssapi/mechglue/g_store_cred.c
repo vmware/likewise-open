@@ -39,6 +39,16 @@ val_store_cred_args(
 	if (input_cred_handle == GSS_C_NO_CREDENTIAL)
 		return (GSS_S_CALL_INACCESSIBLE_READ | GSS_S_NO_CRED);
 
+	if (cred_usage != GSS_C_ACCEPT
+	    && cred_usage != GSS_C_INITIATE
+	    && cred_usage != GSS_C_BOTH) {
+	    if (minor_status) {
+		*minor_status = EINVAL;
+		map_errcode(minor_status);
+	    }
+	    return GSS_S_FAILURE;
+	}
+
 	return (GSS_S_COMPLETE);
 }
 
@@ -101,15 +111,18 @@ gss_cred_usage_t	*cred_usage_stored;
 		if (mech_cred == GSS_C_NO_CREDENTIAL)
 			return (GSS_S_NO_CRED);
 
-		return (mech->gss_store_cred(mech->context,
-						minor_status,
-						(gss_cred_id_t)mech_cred,
-						cred_usage,
-						desired_mech,
-						overwrite_cred,
-						default_cred,
-						elements_stored,
-						cred_usage_stored));
+		major_status = mech->gss_store_cred(
+						    minor_status,
+						    (gss_cred_id_t)mech_cred,
+						    cred_usage,
+						    desired_mech,
+						    overwrite_cred,
+						    default_cred,
+						    elements_stored,
+						    cred_usage_stored);
+		if (major_status != GSS_S_COMPLETE)
+		    map_error(minor_status, mech);
+		return major_status;
 	}
 
 	/* desired_mech == GSS_C_NULL_OID -> store all elements */
@@ -130,7 +143,7 @@ gss_cred_usage_t	*cred_usage_stored;
 		if (mech_cred == GSS_C_NO_CREDENTIAL)
 			continue; /* can't happen, but safe to ignore */
 
-		major_status = mech->gss_store_cred(mech->context,
+		major_status = mech->gss_store_cred(
 						minor_status,
 						(gss_cred_id_t)mech_cred,
 						cred_usage,
@@ -139,8 +152,10 @@ gss_cred_usage_t	*cred_usage_stored;
 						default_cred,
 						NULL,
 						cred_usage_stored);
-		if (major_status != GSS_S_COMPLETE)
-			continue;
+		if (major_status != GSS_S_COMPLETE) {
+		    map_error(minor_status, mech);
+		    continue;
+		}
 
 		/* Succeeded for at least one mech */
 

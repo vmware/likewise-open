@@ -75,7 +75,7 @@ SOFTWARE.
 *         are noted in the comments section of each of the
 *         functions.
 *
-* rcsid: $Id: custom.cpp 20122 2007-10-15 22:07:39Z tlyu $
+* rcsid: $Id: custom.cpp 20119 2007-10-12 23:08:30Z jaltman $
 **************************************************************/
 
 #pragma unmanaged

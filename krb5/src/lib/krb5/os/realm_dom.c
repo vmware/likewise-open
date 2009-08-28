@@ -51,15 +51,13 @@ krb5_get_realm_domain(krb5_context context, const char *realm, char **domain)
     krb5_error_code retval;
     char *temp_domain = 0;
 
-    retval = profile_get_string(context->profile, "realms", realm,
-			       "default_domain", realm, &temp_domain);
+    retval = profile_get_string(context->profile, KRB5_CONF_REALMS, realm,
+			       KRB5_CONF_DEFAULT_DOMAIN, realm, &temp_domain);
     if (!retval && temp_domain)
     {
-        *domain = malloc(strlen(temp_domain) + 1);
+        *domain = strdup(temp_domain);
         if (!*domain) {
             retval = ENOMEM;
-        } else {
-            strcpy(*domain, temp_domain);
         }
         profile_release_string(temp_domain);
     }

@@ -2,7 +2,7 @@
 
 top=`pwd`
 
-for configurein in `find . -name configure.in` ; do
+for configurein in `find . -path ./appl -prune -o -name configure.in -print` ; do
     pushd `dirname $configurein` > /dev/null
     echo "Running autoconf in `dirname ${configurein}`/"
     autoconf -I "$top"

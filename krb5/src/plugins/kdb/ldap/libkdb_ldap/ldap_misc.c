@@ -152,7 +152,7 @@ krb5_ldap_read_server_params(context, conf_section, srv_type)
     krb5_ldap_context           *ldap_context=NULL;
     krb5_ldap_server_info       ***server_info=NULL;
 
-    dal_handle = (kdb5_dal_handle *) context->db_context;
+    dal_handle = context->dal_handle;
     ldap_context = (krb5_ldap_context *) dal_handle->db_context;
 
     /* copy the conf_section into ldap_context for later use */
@@ -185,7 +185,7 @@ krb5_ldap_read_server_params(context, conf_section, srv_type)
      */
     if (ldap_context->max_server_conns == 0) {
 	st = prof_get_integer_def (context, conf_section,
-				   "ldap_conns_per_server",
+				   KRB5_CONF_LDAP_CONNS_PER_SERVER,
 				   DEFAULT_CONNS_PER_SERVER,
 				   &ldap_context->max_server_conns);
 	if (st)
@@ -208,9 +208,9 @@ krb5_ldap_read_server_params(context, conf_section, srv_type)
     if (ldap_context->bind_dn == NULL) {
 	char *name = 0;
 	if (srv_type == KRB5_KDB_SRV_TYPE_KDC)
-	    name = "ldap_kdc_dn";
+	    name = KRB5_CONF_LDAP_KDC_DN;
 	else if (srv_type == KRB5_KDB_SRV_TYPE_ADMIN)
-	    name = "ldap_kadmind_dn";
+	    name = KRB5_CONF_LDAP_KADMIN_DN;
 	else if (srv_type == KRB5_KDB_SRV_TYPE_PASSWD)
 	    name = "ldap_kpasswdd_dn";
 
@@ -229,7 +229,7 @@ krb5_ldap_read_server_params(context, conf_section, srv_type)
      */
     if (ldap_context->service_password_file == NULL) {
 	st = prof_get_string_def (context, conf_section,
-				  "ldap_service_password_file",
+				  KRB5_CONF_LDAP_SERVICE_PASSWORD_FILE,
 				  &ldap_context->service_password_file);
 	if (st)
 	    goto cleanup;
@@ -243,7 +243,7 @@ krb5_ldap_read_server_params(context, conf_section, srv_type)
      */
     if (ldap_context->root_certificate_file == NULL) {
 	st = prof_get_string_def (context, conf_section,
-				  "ldap_root_certificate_file",
+				  KRB5_CONF_LDAP_ROOT_CERTIFICATE_FILE,
 				  &ldap_context->root_certificate_file);
 	if (st)
 	    goto cleanup;
@@ -268,7 +268,7 @@ krb5_ldap_read_server_params(context, conf_section, srv_type)
 	}
 
 	if ((st=profile_get_string(context->profile, KDB_MODULE_SECTION, conf_section,
-				   "ldap_servers", NULL, &tempval)) != 0) {
+				   KRB5_CONF_LDAP_SERVERS, NULL, &tempval)) != 0) {
 	    krb5_set_error_message (context, st, "Error reading 'ldap_servers' attribute");
 	    goto cleanup;
 	}
@@ -318,7 +318,7 @@ cleanup:
  */
 
 krb5_error_code
-krb5_ldap_free_server_params(ldap_context)
+krb5_ldap_free_server_context_params(ldap_context)
     krb5_ldap_context           *ldap_context;
 {
     int                         i=0;
@@ -366,6 +366,7 @@ krb5_ldap_free_server_params(ldap_context)
     }
 
     if (ldap_context->bind_pwd != NULL) {
+	memset(ldap_context->bind_pwd, 0, strlen(ldap_context->bind_pwd));
 	krb5_xfree(ldap_context->bind_pwd);
 	ldap_context->bind_pwd = NULL;
     }
@@ -402,12 +403,22 @@ krb5_ldap_free_server_params(ldap_context)
 	krb5_xfree(ldap_context->certificates);
     }
 
-    k5_mutex_destroy(&ldap_context->hndl_lock);
-
-    krb5_xfree(ldap_context);
     return(0);
 }
 
+krb5_error_code
+krb5_ldap_free_server_params(ldap_context)
+    krb5_ldap_context           *ldap_context;
+{
+    if (ldap_context == NULL)
+        return 0;
+
+    krb5_ldap_free_server_context_params(ldap_context);
+
+    k5_mutex_destroy(&ldap_context->hndl_lock);
+    krb5_xfree(ldap_context);
+    return(0);
+}
 
 /*
  * check to see if the principal belongs to the default realm.
@@ -1488,7 +1499,7 @@ static inline char *
 format_d (int val)
 {
     char tmpbuf[2+3*sizeof(val)];
-    sprintf(tmpbuf, "%d", val);
+    snprintf(tmpbuf, sizeof(tmpbuf), "%d", val);
     return strdup(tmpbuf);
 }
 
@@ -1644,13 +1655,11 @@ krb5_ldap_get_reference_count (krb5_context context, char *dn, char *refattr,
 	goto cleanup;
     }
 
-    filter = (char *) malloc (strlen (refattr) + strlen (ptr) + 2);
-    if (filter == NULL) {
+    if (asprintf (&filter, "%s=%s", refattr, ptr) < 0) {
+	filter = NULL;
 	st = ENOMEM;
 	goto cleanup;
     }
-
-    sprintf (filter, "%s=%s", refattr, ptr);
 
     if ((st = krb5_get_subtree_info(ldap_context, &subtree, &ntrees)) != 0)
 	goto cleanup;
@@ -2050,9 +2059,16 @@ populate_krb5_db_entry (krb5_context context,
 
     /* KRBSECRETKEY */
     if ((bvalues=ldap_get_values_len(ld, ent, "krbprincipalkey")) != NULL) {
+        krb5_kvno mkvno = 0;
+
 	mask |= KDB_SECRET_KEY_ATTR;
-	if ((st=krb5_decode_krbsecretkey(context, entry, bvalues, &userinfo_tl_data)) != 0)
+	if ((st=krb5_decode_krbsecretkey(context, entry, bvalues, &userinfo_tl_data, &mkvno)) != 0)
 	    goto cleanup;
+        if (mkvno != 0) {
+            /* don't add the tl data if mkvno == 0 */
+            if ((st=krb5_dbe_update_mkvno(context, entry, mkvno)) != 0)
+                goto cleanup;
+        }
     }
 
     /* LAST PASSWORD CHANGE */

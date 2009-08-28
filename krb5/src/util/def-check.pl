@@ -89,6 +89,7 @@ while (! $h->eof()) {
     if (/^ *extern "C" {/) {
         next LINE;
     }
+    s/KRB5_ATTR_DEPRECATED//;
     # elide struct definitions
   Struct1:
     if (/{[^}]*}/) {
@@ -140,6 +141,11 @@ while (! $h->eof()) {
   Striparg:
     if (/ *\([^\(\)]*\)/) {
 	s/ *\([^\(\)]*\)//g;
+	goto Striparg;
+    }
+    # Also strip out attributes, or what's left over of them.
+    if (/__attribute__/) {
+	s/[ \t]*__attribute__[ \t]*//g;
 	goto Striparg;
     }
     # replace return type etc with one token indicating calling convention

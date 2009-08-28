@@ -1,7 +1,7 @@
 /*
  * lib/kadm5/srv/server_acl.c
  *
- * Copyright 1995-2004 by the Massachusetts Institute of Technology.
+ * Copyright 1995-2004, 2007, 2008 by the Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
  * Export of this software from the United States of America may
@@ -66,6 +66,7 @@ static const aop_t acl_op_table[] = {
     { 'c',	ACL_CHANGEPW },
     { 'i',	ACL_INQUIRE },
     { 'l',	ACL_LIST },
+    { 'p',	ACL_IPROP },
     { 's',	ACL_SETKEY },
     { 'x',	ACL_ALL_MASK },
     { '*',	ACL_ALL_MASK },
@@ -114,8 +115,10 @@ kadm5int_acl_get_line(fp, lnp)
     for (domore = 1; domore && !feof(fp); ) {
 	/* Copy in the line, with continuations */
 	for (i=0; ((i < sizeof acl_buf) && !feof(fp)); i++ ) {
-	    acl_buf[i] = fgetc(fp);
-	    if (acl_buf[i] == (char)EOF) {
+	    int byte;
+	    byte = fgetc(fp);
+	    acl_buf[i] = byte;
+	    if (byte == (char)EOF) {
 		if (i > 0 && acl_buf[i-1] == '\\')
 		    i--;
 		break;		/* it gets nulled-out below */
@@ -214,9 +217,8 @@ kadm5int_acl_parse_line(lp)
 		}
 	    }
 	    if (opok) {
-		acle->ae_name = (char *) malloc(strlen(acle_principal)+1);
+		acle->ae_name = strdup(acle_principal);
 		if (acle->ae_name) {
-		    strcpy(acle->ae_name, acle_principal);
 		    acle->ae_principal = (krb5_principal) NULL;
 		    acle->ae_name_bad = 0;
 		    DPRINT(DEBUG_ACL, acl_debug_level,
@@ -484,6 +486,7 @@ kadm5int_acl_load_acl_file()
     /* Open the ACL file for read */
     afp = fopen(acl_acl_file, "r");
     if (afp) {
+	set_cloexec_file(afp);
 	alineno = 1;
 	aentpp = &acl_list_head;
 
@@ -733,6 +736,42 @@ kadm5int_acl_finish(kcontext, debug_level)
 }
 
 /*
+ * kadm5int_acl_check_krb()	- Is this operation permitted for this principal?
+ */
+krb5_boolean
+kadm5int_acl_check_krb(kcontext, caller_princ, opmask, principal, restrictions)
+    krb5_context	 kcontext;
+    krb5_const_principal caller_princ;
+    krb5_int32		 opmask;
+    krb5_const_principal principal;
+    restriction_t	 **restrictions;
+{
+    krb5_boolean	retval;
+    aent_t		*aentry;
+
+    DPRINT(DEBUG_CALLS, acl_debug_level, ("* acl_op_permitted()\n"));
+
+    retval = FALSE;
+
+    aentry = kadm5int_acl_find_entry(kcontext, caller_princ, principal);
+    if (aentry) {
+	if ((aentry->ae_op_allowed & opmask) == opmask) {
+	    retval = TRUE;
+	    if (restrictions) {
+		*restrictions =
+		    (aentry->ae_restrictions && aentry->ae_restrictions->mask)
+		    ? aentry->ae_restrictions
+		    : (restriction_t *) NULL;
+	    }
+	}
+    }
+
+    DPRINT(DEBUG_CALLS, acl_debug_level, ("X acl_op_permitted()=%d\n",
+					  retval));
+    return retval;
+}
+
+/*
  * kadm5int_acl_check()	- Is this operation permitted for this principal?
  *			this code used not to be based on gssapi.  In order
  *			to minimize porting hassles, I've put all the
@@ -749,47 +788,30 @@ kadm5int_acl_check(kcontext, caller, opmask, principal, restrictions)
     restriction_t	**restrictions;
 {
     krb5_boolean	retval;
-    aent_t		*aentry;
     gss_buffer_desc	caller_buf;
     gss_OID		caller_oid;
     OM_uint32		emaj, emin;
     krb5_error_code	code;
     krb5_principal	caller_princ;
 
-    DPRINT(DEBUG_CALLS, acl_debug_level, ("* acl_op_permitted()\n"));
-
     if (GSS_ERROR(emaj = gss_display_name(&emin, caller, &caller_buf,
 					  &caller_oid)))
-       return(0);
+       return FALSE;
 
     code = krb5_parse_name(kcontext, (char *) caller_buf.value,
 			   &caller_princ);
 
     gss_release_buffer(&emin, &caller_buf);
 
-    if (code)
-       return(code);
+    if (code != 0)
+       return FALSE;
 
-    retval = 0;
-
-    aentry = kadm5int_acl_find_entry(kcontext, caller_princ, principal);
-    if (aentry) {
-	if ((aentry->ae_op_allowed & opmask) == opmask) {
-	    retval = 1;
-	    if (restrictions) {
-		*restrictions =
-		    (aentry->ae_restrictions && aentry->ae_restrictions->mask)
-		    ? aentry->ae_restrictions
-		    : (restriction_t *) NULL;
-	    }
-	}
-    }
+    retval = kadm5int_acl_check_krb(kcontext, caller_princ,
+				    opmask, principal, restrictions);
 
     krb5_free_principal(kcontext, caller_princ);
 
-    DPRINT(DEBUG_CALLS, acl_debug_level, ("X acl_op_permitted()=%d\n",
-					  retval));
-    return(retval);
+    return retval;
 }
 
 kadm5_ret_t

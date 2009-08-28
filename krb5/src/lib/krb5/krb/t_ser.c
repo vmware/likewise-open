@@ -128,7 +128,7 @@ ser_data(int verbose, char *msg, krb5_pointer ctx, krb5_magic dtype)
 		    if (verbose)
 			printf("%s: compare succeeded\n", msg);
 		}
-		krb5_xfree(outrep2);
+		free(outrep2);
 	    }
 	    else
 		printf("%s: second externalize returned %d\n", msg, kret);
@@ -136,7 +136,6 @@ ser_data(int verbose, char *msg, krb5_pointer ctx, krb5_magic dtype)
 	    /* Free the data */
 	    switch (dtype) {
 	    case KV5M_CONTEXT:
-		krb5_db_fini((krb5_context) nctx);
 		krb5_free_context((krb5_context) nctx);
 		break;
 	    case KV5M_AUTH_CONTEXT:
@@ -145,7 +144,7 @@ ser_data(int verbose, char *msg, krb5_pointer ctx, krb5_magic dtype)
 
 		    actx = (krb5_auth_context) nctx;
 		    if (actx->i_vector)
-			krb5_xfree(actx->i_vector);
+			free(actx->i_vector);
 		}
 		krb5_auth_con_free(ser_ctx, (krb5_auth_context) nctx);
 		break;
@@ -165,11 +164,11 @@ ser_data(int verbose, char *msg, krb5_pointer ctx, krb5_magic dtype)
 		    eblock = (krb5_encrypt_block *) nctx;
 #if 0
 		    if (eblock->priv && eblock->priv_size)
-			krb5_xfree(eblock->priv);
+			free(eblock->priv);
 #endif
 		    if (eblock->key)
 			krb5_free_keyblock(ser_ctx, eblock->key);
-		    krb5_xfree(eblock);
+		    free(eblock);
 		}
 		break;
 	    case KV5M_PRINCIPAL:
@@ -185,7 +184,7 @@ ser_data(int verbose, char *msg, krb5_pointer ctx, krb5_magic dtype)
 	}
 	else
 	    printf("%s: internalize returned %d\n", msg, kret);
-	krb5_xfree(outrep);
+	free(outrep);
     }
     else
 	printf("%s: externalize_data returned %d\n", msg, kret);
@@ -203,7 +202,7 @@ ser_kcontext_test(krb5_context kcontext, int verbose)
     profile_t		sprofile;
     char		dbname[128];
 
-    sprintf(dbname, "temp_%d", (int) getpid());
+    snprintf(dbname, sizeof(dbname), "temp_%d", (int) getpid());
     sprofile = kcontext->profile;
     kcontext->profile = (profile_t) NULL;
     if (!(kret = ser_data(verbose, "> Context with no profile",
@@ -308,7 +307,7 @@ ser_acontext_test(krb5_context kcontext, int verbose)
 		!(kret = ser_data(verbose, "> Auth context with new vector",
 				  (krb5_pointer) actx,
 				  KV5M_AUTH_CONTEXT)) &&
-		(krb5_xfree(actx->i_vector), actx->i_vector) &&
+		(free(actx->i_vector), actx->i_vector) &&
 		!(kret = krb5_auth_con_setivector(kcontext, actx,
 						  (krb5_pointer) print_erep)
 		  ) &&
@@ -320,7 +319,8 @@ ser_acontext_test(krb5_context kcontext, int verbose)
 		 */
 		memset(&aent, 0, sizeof(aent));
 		aent.magic = KV5M_AUTHENTICATOR;
-		sprintf(clname, "help/me/%d@this.is.a.test", (int) getpid());
+		snprintf(clname, sizeof(clname),
+			 "help/me/%d@this.is.a.test", (int) getpid());
 		actx->authentp = &aent;
 		if (!(kret = krb5_parse_name(kcontext, clname,
 					     &aent.client)) &&
@@ -368,9 +368,10 @@ ser_ccache_test(krb5_context kcontext, int verbose)
     krb5_ccache		ccache;
     krb5_principal	principal;
 
-    sprintf(ccname, "temp_cc_%d", (int) getpid());
-    sprintf(princname, "zowie%d/instance%d@this.is.a.test",
-	    (int) getpid(), (int) getpid());
+    snprintf(ccname, sizeof(ccname), "temp_cc_%d", (int) getpid());
+    snprintf(princname, sizeof(princname),
+	     "zowie%d/instance%d@this.is.a.test",
+	     (int) getpid(), (int) getpid());
     if (!(kret = krb5_cc_resolve(kcontext, ccname, &ccache)) &&
 	!(kret = ser_data(verbose, "> Resolved default ccache",
 			  (krb5_pointer) ccache, KV5M_CCACHE)) &&
@@ -380,9 +381,9 @@ ser_ccache_test(krb5_context kcontext, int verbose)
 			  (krb5_pointer) ccache, KV5M_CCACHE)) &&
 	!(kret = krb5_cc_destroy(kcontext, ccache))) {
 	krb5_free_principal(kcontext, principal);
-	sprintf(ccname, "FILE:temp_cc_%d", (int) getpid());
-	sprintf(princname, "xxx%d/i%d@this.is.a.test",
-		(int) getpid(), (int) getpid());
+	snprintf(ccname, sizeof(ccname), "FILE:temp_cc_%d", (int) getpid());
+	snprintf(princname, sizeof(princname), "xxx%d/i%d@this.is.a.test",
+		 (int) getpid(), (int) getpid());
 	if (!(kret = krb5_cc_resolve(kcontext, ccname, &ccache)) &&
 	    !(kret = ser_data(verbose, "> Resolved FILE ccache",
 			      (krb5_pointer) ccache, KV5M_CCACHE)) &&
@@ -411,25 +412,20 @@ ser_keytab_test(krb5_context kcontext, int verbose)
     krb5_error_code	kret;
     char		ccname[128];
     krb5_keytab		keytab;
-    extern krb5_kt_ops	krb5_ktf_writable_ops;
 
-    sprintf(ccname, "temp_kt_%d", (int) getpid());
+    snprintf(ccname, sizeof(ccname), "temp_kt_%d", (int) getpid());
     if (!(kret = krb5_kt_resolve(kcontext, ccname, &keytab)) &&
 	!(kret = ser_data(verbose, "> Resolved default keytab",
 			  (krb5_pointer) keytab, KV5M_KEYTAB)) &&
 	!(kret = krb5_kt_close(kcontext, keytab))) {
-	sprintf(ccname, "FILE:temp_kt_%d", (int) getpid());
+	snprintf(ccname, sizeof(ccname), "FILE:temp_kt_%d", (int) getpid());
 	if (!(kret = krb5_kt_resolve(kcontext, ccname, &keytab)) &&
 	    !(kret = ser_data(verbose, "> Resolved FILE keytab",
 			      (krb5_pointer) keytab, KV5M_KEYTAB)) &&
 	    !(kret = krb5_kt_close(kcontext, keytab))) {
-	    sprintf(ccname, "WRFILE:temp_kt_%d", (int) getpid());
-	    if ((kret = krb5_kt_resolve(kcontext, ccname, &keytab)))
-		kret = krb5_kt_register(kcontext, &krb5_ktf_writable_ops);
-	    else
-		kret = krb5_kt_close(kcontext, keytab);
-	    if (!kret &&
-		!(kret = krb5_kt_resolve(kcontext, ccname, &keytab)) &&
+	    snprintf(ccname, sizeof(ccname),
+		     "WRFILE:temp_kt_%d", (int) getpid());
+	    if (!(kret = krb5_kt_resolve(kcontext, ccname, &keytab)) &&
 		!(kret = ser_data(verbose, "> Resolved WRFILE keytab",
 				  (krb5_pointer) keytab, KV5M_KEYTAB)) &&
 		!(kret = krb5_kt_close(kcontext, keytab))) {
@@ -453,7 +449,7 @@ ser_rcache_test(krb5_context kcontext, int verbose)
     char		rcname[128];
     krb5_rcache		rcache;
 
-    sprintf(rcname, "dfl:temp_rc_%d", (int) getpid());
+    snprintf(rcname, sizeof(rcname), "dfl:temp_rc_%d", (int) getpid());
     if (!(kret = krb5_rc_resolve_full(kcontext, &rcache, rcname)) &&
 	!(kret = ser_data(verbose, "> Resolved FILE rcache",
 			  (krb5_pointer) rcache, KV5M_RCACHE)) &&
@@ -533,7 +529,9 @@ ser_princ_test(krb5_context kcontext, int verbose)
     krb5_principal	princ;
     char		pname[1024];
 
-    sprintf(pname, "the/quick/brown/fox/jumped/over/the/lazy/dog/%d@this.is.a.test", (int) getpid());
+    snprintf(pname, sizeof(pname),
+	     "the/quick/brown/fox/jumped/over/the/lazy/dog/%d@this.is.a.test",
+	     (int) getpid());
     if (!(kret = krb5_parse_name(kcontext, pname, &princ))) {
 	if (!(kret = ser_data(verbose, "> Principal",
 			      (krb5_pointer) princ, KV5M_PRINCIPAL))) {

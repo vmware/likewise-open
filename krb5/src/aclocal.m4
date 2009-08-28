@@ -1,5 +1,5 @@
 AC_PREREQ(2.52)
-AC_COPYRIGHT([Copyright 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005
+AC_COPYRIGHT([Copyright 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009
 Massachusetts Institute of Technology.
 ])
 dnl
@@ -74,12 +74,10 @@ AC_REQUIRE_CPP
 if test -z "$LD" ; then LD=$CC; fi
 AC_ARG_VAR(LD,[linker command [CC]])
 AC_SUBST(LDFLAGS) dnl
-WITH_KRB4 dnl
 KRB5_AC_CHOOSE_ET dnl
 KRB5_AC_CHOOSE_SS dnl
 KRB5_AC_CHOOSE_DB dnl
-dnl allow stuff in tree to access deprecated/private stuff for now
-dnl AC_DEFINE([KRB5_PRIVATE], 1, [Define only if building in-tree])
+dnl allow stuff in tree to access deprecated stuff for now
 dnl AC_DEFINE([KRB5_DEPRECATED], 1, [Define only if building in-tree])
 AC_C_CONST dnl
 WITH_NETLIB dnl
@@ -92,13 +90,16 @@ dnl in which the configure file lives.
 dnl
 CONFIG_RELTOPDIR=$ac_reltopdir
 AC_SUBST(CONFIG_RELTOPDIR)
-AC_SUBST(subdirs)
 lib_frag=$srcdir/$ac_config_fragdir/lib.in
 AC_SUBST_FILE(lib_frag)
 libobj_frag=$srcdir/$ac_config_fragdir/libobj.in
 AC_SUBST_FILE(libobj_frag)
 libnover_frag=$srcdir/$ac_config_fragdir/libnover.in
 AC_SUBST_FILE(libnover_frag)
+libpriv_frag=$srcdir/$ac_config_fragdir/libpriv.in
+AC_SUBST_FILE(libpriv_frag)
+libnodeps_frag=$srcdir/$ac_config_fragdir/libnodeps.in
+AC_SUBST_FILE(libnodeps_frag)
 dnl
 KRB5_AC_PRAGMA_WEAK_REF
 WITH_LDAP
@@ -204,12 +205,21 @@ if test "$enable_thread_support" = yes; then
       # don't exclude CFLAGS when linking.  *sigh*
       PTHREAD_CFLAGS="-D_REENTRANT -D_THREAD_SAFE -D_POSIX_C_SOURCE=199506L"
       ;;
+    solaris2.[1-9])
+      # On Solaris 10 with gcc 3.4.3, the autoconf archive macro doesn't
+      # get the right result.   XXX What about Solaris 9 and earlier?
+      if test "$GCC" = yes ; then
+        PTHREAD_CFLAGS="-D_REENTRANT -pthreads"
+      fi
+      ;;
     solaris*)
       # On Solaris 10 with gcc 3.4.3, the autoconf archive macro doesn't
       # get the right result.
       if test "$GCC" = yes ; then
         PTHREAD_CFLAGS="-D_REENTRANT -pthreads"
       fi
+      # On Solaris 10, the thread support is always available in libc.
+      AC_DEFINE(NO_WEAK_PTHREADS,1,[Define if references to pthread routines should be non-weak.])
       ;;
   esac
   THREAD_SUPPORT=1
@@ -399,35 +409,6 @@ fi
 dnl
 AC_REQUIRE([KRB5_SOCKADDR_SA_LEN])dnl
 AC_ARG_ENABLE([ipv6], , AC_MSG_WARN(enable/disable-ipv6 option is deprecated))dnl
-KRB5_AC_CHECK_INET6
-])dnl
-dnl
-AC_DEFUN(KRB5_AC_CHECK_TYPE_WITH_HEADERS,[
-AC_MSG_CHECKING(for type $1)
-changequote(<<,>>)dnl
-varname=`echo $1 | sed 's,[ -],_,g'`
-changequote([,])dnl
-AC_CACHE_VAL(krb5_cv_$varname,[
-AC_TRY_COMPILE([$2],[ $1 foo; ], eval krb5_cv_$varname=yes, eval krb5_cv_$varname=no)])
-eval x="\$krb5_cv_$varname"
-AC_MSG_RESULT($x)
-if eval test "$x" = yes ; then
-  AC_DEFINE_UNQUOTED(HAVE_`echo $varname | tr '[[[a-z]]]' '[[[A-Z]]]'`)
-fi])
-dnl
-dnl
-AC_DEFUN(KRB5_AC_CHECK_SOCKADDR_STORAGE,[
-KRB5_AC_CHECK_TYPE_WITH_HEADERS(struct sockaddr_storage, [
-#ifdef HAVE_SYS_TYPES_H
-#include <sys/types.h>
-#endif
-#include <sys/socket.h>
-#include <netinet/in.h>
-])])dnl
-dnl
-dnl
-AC_DEFUN(KRB5_AC_CHECK_INET6,[
-AC_REQUIRE([KRB5_AC_CHECK_SOCKADDR_STORAGE])dnl
 AC_MSG_CHECKING(for IPv6 compile-time support)
 AC_CACHE_VAL(krb5_cv_inet6,[
 if test "$ac_cv_func_inet_ntop" != "yes" ; then
@@ -519,70 +500,35 @@ changequote([, ])dnl
   AC_DEFINE_UNQUOTED($ac_tr_file) $2], $3)dnl
 done
 ])
-dnl
-dnl set $(KRB4) from --with-krb4=value -- WITH_KRB4
-dnl
-AC_DEFUN(WITH_KRB4,[
-AC_ARG_WITH([krb4],
-[  --without-krb4          don't include Kerberos V4 backwards compatibility
-  --with-krb4             use V4 libraries included with V5 (default)
-  --with-krb4=KRB4DIR     use preinstalled V4 libraries],
-,
-withval=yes
-)dnl
-if test $withval = no; then
-	AC_MSG_NOTICE(no krb4 support)
-	KRB4_LIB=
-	KRB4_DEPLIB=
-	KRB4_INCLUDES=
-	KRB4_LIBPATH=
-	KRB_ERR_H_DEP=
-	krb5_cv_build_krb4_libs=no
-	krb5_cv_krb4_libdir=
-else
- AC_DEFINE([KRB5_KRB4_COMPAT], 1, [Define this if building with krb4 compat])
- if test $withval = yes; then
-	AC_MSG_NOTICE(enabling built in krb4 support)
-	KRB4_DEPLIB='$(TOPLIBD)/libkrb4$(DEPLIBEXT)'
-	KRB4_LIB=-lkrb4
-	KRB4_INCLUDES='-I$(SRCTOP)/include/kerberosIV -I$(BUILDTOP)/include/kerberosIV'
-	KRB4_LIBPATH=
-	KRB_ERR_H_DEP='$(BUILDTOP)/include/kerberosIV/krb_err.h'
-	krb5_cv_build_krb4_libs=yes
-	krb5_cv_krb4_libdir=
- else
-	AC_MSG_NOTICE(using preinstalled krb4 in $withval)
-	KRB4_LIB="-lkrb"
-dnl	DEPKRB4_LIB="$withval/lib/libkrb.a"
-	KRB4_INCLUDES="-I$withval/include"
-	KRB4_LIBPATH="-L$withval/lib"
-	KRB_ERR_H_DEP=
-	krb5_cv_build_krb4_libs=no
-	krb5_cv_krb4_libdir="$withval/lib"
- fi
-fi
-AC_SUBST(KRB4_INCLUDES)
-AC_SUBST(KRB4_LIBPATH)
-AC_SUBST(KRB4_LIB)
-AC_SUBST(KRB4_DEPLIB)
-AC_SUBST(KRB_ERR_H_DEP)
-dnl We always compile the des425 library
-DES425_DEPLIB='$(TOPLIBD)/libdes425$(DEPLIBEXT)'
-DES425_LIB=-ldes425
-AC_SUBST(DES425_DEPLIB)
-AC_SUBST(DES425_LIB)
-])dnl
-dnl
-dnl
 AC_DEFUN(KRB5_AC_CHECK_FOR_CFLAGS,[
 AC_BEFORE([$0],[AC_PROG_CC])
+AC_BEFORE([$0],[AC_PROG_CXX])
 krb5_ac_cflags_set=${CFLAGS+set}
+krb5_ac_cxxflags_set=${CXXFLAGS+set}
+krb5_ac_warn_cflags_set=${WARN_CFLAGS+set}
+krb5_ac_warn_cxxflags_set=${WARN_CXXFLAGS+set}
 ])
+dnl
+AC_DEFUN(TRY_WARN_CC_FLAG,[dnl
+  cachevar=`echo "krb5_cv_cc_flag_$1" | sed s/[[^a-zA-Z0-9_]]/_/g`
+  AC_CACHE_CHECK([if C compiler supports $1], [$cachevar],
+  [# first try without, then with
+  AC_TRY_COMPILE([], 1;,
+    [old_cflags="$CFLAGS"
+     CFLAGS="$CFLAGS $1"
+     AC_TRY_COMPILE([], 1;, eval $cachevar=yes, eval $cachevar=no)
+     CFLAGS="$old_cflags"],
+    [AC_MSG_ERROR(compiling simple test program with $CFLAGS failed)])])
+  if eval test '"${'$cachevar'}"' = yes; then
+    WARN_CFLAGS="$WARN_CFLAGS $1"
+  fi
+  eval flag_supported='${'$cachevar'}'
+])dnl
 dnl
 AC_DEFUN(WITH_CC,[dnl
 AC_REQUIRE([KRB5_AC_CHECK_FOR_CFLAGS])dnl
 AC_REQUIRE([AC_PROG_CC])dnl
-krb5_cv_prog_gcc=$ac_cv_c_compiler_gnu
+AC_REQUIRE([AC_PROG_CXX])dnl
 if test $ac_cv_c_compiler_gnu = yes ; then
      HAVE_GCC=yes
      else HAVE_GCC=
@@ -596,24 +542,75 @@ if test "$GCC" = yes; then
     krb5_cv_prog_gnu_ld=yes
   fi
 fi])
-# maybe add -Waggregate-return, or can we assume that actually works by now?
-# -Wno-comment used to be used for SunOS system header <sys/stream.h>
+AC_ARG_WITH([size-optimizations],
+[  --with-size-optimizations enable a few optimizations to reduce code size
+                          possibly at some run-time cost],
+,
+withval=no)
+if test "$withval" = yes; then
+  AC_DEFINE(CONFIG_SMALL,1,[Define to reduce code size even if it means more cpu usage])
+fi
 # -Wno-long-long, if needed, for k5-platform.h without inttypes.h etc.
-extra_gcc_warn_opts="-Wall -Wmissing-prototypes -Wcast-qual \
- -Wcast-align -Wconversion -Wshadow"
+extra_gcc_warn_opts="-Wall -Wcast-qual -Wcast-align -Wshadow"
+# -Wmissing-prototypes
 if test "$GCC" = yes ; then
-  if test "x$krb5_ac_cflags_set" = xset ; then
-    AC_MSG_NOTICE(not adding extra gcc warning flags because CFLAGS was set)
+  # Putting this here means we get -Os after -O2, which works.
+  if test "$with_size_optimizations" = yes && test "x$krb5_ac_cflags_set" != xset; then
+    AC_MSG_NOTICE(adding -Os optimization option)
+    case "$CFLAGS" in
+      "-g -O2") CFLAGS="-g -Os" ;;
+      "-O2")    CFLAGS="-Os" ;;
+      *)        CFLAGS="$CFLAGS -Os" ;;
+    esac
+  fi
+  if test "x$krb5_ac_warn_cflags_set" = xset ; then
+    AC_MSG_NOTICE(not adding extra gcc warning flags because WARN_CFLAGS was set)
   else
     AC_MSG_NOTICE(adding extra warning flags for gcc)
-    CFLAGS="$CFLAGS $extra_gcc_warn_opts"
+    WARN_CFLAGS="$WARN_CFLAGS $extra_gcc_warn_opts -Wmissing-prototypes"
     if test "`uname -s`" = Darwin ; then
       AC_MSG_NOTICE(skipping pedantic warnings on Darwin)
     elif test "`uname -s`" = Linux ; then
       AC_MSG_NOTICE(skipping pedantic warnings on Linux)
     else
-      CFLAGS="$CFLAGS -pedantic"
+      WARN_CFLAGS="$WARN_CFLAGS -pedantic"
     fi
+    if test "$ac_cv_cxx_compiler_gnu" = yes; then
+      if test "x$krb5_ac_warn_cxxflags_set" = xset ; then
+        AC_MSG_NOTICE(not adding extra g++ warnings because WARN_CXXFLAGS was set)
+      else
+        AC_MSG_NOTICE(adding extra warning flags for g++)
+        WARN_CXXFLAGS="$WARN_CXXFLAGS $extra_gcc_warn_opts"
+      fi
+    fi
+    # Currently, G++ does not support -Wno-format-zero-length.
+    TRY_WARN_CC_FLAG(-Wno-format-zero-length)
+    # Other flags here may not be supported on some versions of
+    # gcc that people want to use.
+    for flag in overflow strict-overflow missing-format-attribute missing-prototypes return-type missing-braces parentheses switch unused-function unused-label unused-variable unused-value unknown-pragmas sign-compare newline-eof ; do
+      TRY_WARN_CC_FLAG(-W$flag)
+    done
+    #  old-style-definition? generates many, many warnings
+    #
+    # Warnings that we'd like to turn into errors on versions of gcc
+    # that support promoting only specific warnings to errors, but
+    # we'll take as warnings on older compilers.  (If such a warning
+    # is added after the -Werror=foo feature, you can just put
+    # error=foo in the above list, and skip the test for the
+    # warning-only form.)  At least in some versions, -Werror= doesn't
+    # seem to make the conditions actual errors, but still issues
+    # warnings; I guess we'll take what we can get.
+    #
+    # We're currently targeting C89+, not C99, so disallow some
+    # constructs.
+    for flag in declaration-after-statement variadic-macros ; do
+      TRY_WARN_CC_FLAG(-Werror=$flag)
+      if test "$flag_supported" = no; then
+        TRY_WARN_CC_FLAG(-W$flag)
+      fi
+    done
+    #  missing-prototypes? maybe someday
+    #
   fi
   if test "`uname -s`" = Darwin ; then
     # Someday this should be a feature test.
@@ -660,7 +657,19 @@ else
 	;;
     esac
   fi
+  if test "`uname -s`" = SunOS ; then
+    # Using Solaris but not GCC, assume Sunsoft compiler.
+    # We have some error-out-on-warning options available.
+    # Sunsoft 12 compiler defaults to -xc99=all, it appears, so "inline"
+    # works, but it also means that declaration-in-code warnings won't
+    # be issued.
+    # -v -fd -errwarn=E_DECLARATION_IN_CODE ...
+    WARN_CFLAGS="-errtags=yes -errwarn=E_BAD_PTR_INT_COMBINATION -errwarn=E_BAD_PTR_INT_COMB_ARG -errwarn=E_PTR_TO_VOID_IN_ARITHMETIC"
+    WARN_CXXFLAGS="-errtags=yes +w +w2 -xport64"
+  fi
 fi
+AC_SUBST(WARN_CFLAGS)
+AC_SUBST(WARN_CXXFLAGS)
 ])dnl
 dnl
 dnl
@@ -697,7 +706,7 @@ dnl  Note: Be careful in quoting.
 dnl        The ac_foreach generates the list of fragments to include
 dnl        or "" if $2 is empty
 AC_DEFUN(_K5_GEN_MAKEFILE,[dnl
-AC_CONFIG_FILES([$1/Makefile:$srcdir/]K5_TOPDIR[/config/pre.in:$1/Makefile.in:$srcdir/]K5_TOPDIR[/config/post.in])
+AC_CONFIG_FILES([$1/Makefile:$srcdir/]K5_TOPDIR[/config/pre.in:$1/Makefile.in:$1/deps:$srcdir/]K5_TOPDIR[/config/post.in])
 ])
 dnl
 dnl K5_GEN_FILE( <ac_output arguments> )
@@ -717,7 +726,7 @@ dnl
 define(_V5_AC_OUTPUT_MAKEFILE,
 [ifelse($2, , ,AC_CONFIG_FILES($2))
 AC_FOREACH([DIR], [$1],dnl
- [AC_CONFIG_FILES(DIR[/Makefile:$srcdir/]K5_TOPDIR[/config/pre.in:]DIR[/Makefile.in:$srcdir/]K5_TOPDIR[/config/post.in])])
+ [AC_CONFIG_FILES(DIR[/Makefile:$srcdir/]K5_TOPDIR[/config/pre.in:]DIR[/Makefile.in:]DIR[/deps:$srcdir/]K5_TOPDIR[/config/post.in])])
 K5_AC_OUTPUT])dnl
 dnl
 dnl
@@ -1119,33 +1128,6 @@ dnl
 dnl Pull in the necessary stuff to create the libraries.
 
 AC_DEFUN(KRB5_BUILD_LIBRARY,
-[KRB5_BUILD_LIBRARY_WITH_DEPS
-# null out SHLIB_EXPFLAGS because we lack any dependencies
-SHLIB_EXPFLAGS=])
-
-dnl
-dnl KRB5_BUILD_LIBRARY_STATIC
-dnl
-dnl Force static library build.
-
-AC_DEFUN(KRB5_AC_FORCE_STATIC,[dnl
-AC_BEFORE([$0],[KRB5_LIB_AUX])dnl
-krb5_force_static=yes])
-AC_DEFUN(KRB5_BUILD_LIBRARY_STATIC,
-dnl Use define rather than AC_DEFUN to avoid ordering problems.
-[AC_REQUIRE([KRB5_AC_FORCE_STATIC])dnl
-KRB5_BUILD_LIBRARY
-# If we're only building static libraries, they're for build-time use only,
-# so don't install.
-LIBINSTLIST=])
-
-dnl
-dnl KRB5_BUILD_LIBRARY_WITH_DEPS
-dnl
-dnl Like KRB5_BUILD_LIBRARY, but adds in explicit dependencies in the
-dnl generated shared library.
-
-AC_DEFUN(KRB5_BUILD_LIBRARY_WITH_DEPS,
 [AC_REQUIRE([KRB5_LIB_AUX])dnl
 AC_REQUIRE([AC_PROG_LN_S])dnl
 AC_REQUIRE([AC_PROG_RANLIB])dnl
@@ -1160,6 +1142,7 @@ fi
 AC_SUBST(LIBLIST)
 AC_SUBST(LIBLINKS)
 AC_SUBST(MAKE_SHLIB_COMMAND)
+AC_SUBST(SHLIB_RPATH_FLAGS)
 AC_SUBST(SHLIB_EXPFLAGS)
 AC_SUBST(SHLIB_EXPORT_FILE_DEP)
 AC_SUBST(DYNOBJ_EXPDEPS)
@@ -1199,8 +1182,10 @@ AC_DEFUN(KRB5_BUILD_PROGRAM,
 [AC_REQUIRE([KRB5_LIB_AUX])dnl
 AC_REQUIRE([KRB5_AC_NEED_LIBGEN])dnl
 AC_SUBST(CC_LINK)
+AC_SUBST(CXX_LINK)
 AC_SUBST(RPATH_FLAG)
 AC_SUBST(RPATH_TAIL)
+AC_SUBST(PROG_RPATH_FLAGS)
 AC_SUBST(DEPLIBEXT)])
 
 dnl
@@ -1221,96 +1206,73 @@ dnl Parse configure options related to library building.
 AC_DEFUN(KRB5_LIB_AUX,
 [AC_REQUIRE([KRB5_LIB_PARAMS])dnl
 
-# Check whether to build static libraries.
-dnl AC_HELP_STRING([--enable-static],[build static libraries @<:@disabled for most platforms@:>@])
-dnl AC_HELP_STRING([--disable-static],[don't build static libraries])
-AC_ARG_ENABLE([static],, ,
-[enable_static=$default_static])
-
-if test "$enable_static" = yes; then
+AC_ARG_ENABLE([static],,
+[if test "$enableval" != no; then
   AC_MSG_ERROR([Sorry, static libraries do not work in this release.])
+fi])
+AC_ARG_ENABLE([shared], ,
+[if test "$enableval" != yes; then
+  AC_MSG_ERROR([Sorry, this release builds only shared libraries, cannot disable them.])
+fi])
+AC_ARG_ENABLE([rpath],
+AC_HELP_STRING([--disable-rpath],[suppress run path flags in link lines]),
+[enable_rpath=$enableval],
+[enable_rpath=yes])
+
+if test "x$enable_rpath" != xyes ; then
+	# Unset the rpath flag values set by shlib.conf
+	SHLIB_RPATH_FLAGS=
+	RPATH_FLAG=
+	PROG_RPATH_FLAGS=
 fi
 
-if test "$enable_static" = no && test "$krb5_force_static" != yes; then
-	AC_MSG_NOTICE([disabling static libraries])
-	LIBLINKS=
-	LIBLIST=
-	OBJLISTS=
-else
+if test "$SHLIBEXT" = ".so-nobuild"; then
+   AC_MSG_ERROR([Shared libraries are not yet supported on this platform.])
+fi
+
+DEPLIBEXT=$SHLIBEXT
+
+if test "$krb5_force_static" = "yes"; then
 	LIBLIST='lib$(LIBBASE)$(STLIBEXT)'
 	LIBLINKS='$(TOPLIBD)/lib$(LIBBASE)$(STLIBEXT)'
 	OBJLISTS=OBJS.ST
-	LIBINSTLIST=install-static
-	DEPLIBEXT=$STLIBEXT
+	# This used to be install-static, but now we only follow this
+	# path for internal libraries we don't want installed, not for
+	# configure-time requests for installed static libraries.
+	LIBINSTLIST=
 #	CFLAGS="$CFLAGS -D_KDB5_STATIC_LINK"
-fi
 
-# Check whether to build shared libraries.
-AC_ARG_ENABLE([shared],
-dnl AC_HELP_STRING([--enable-shared],[build shared libraries @<:@enabled for most platforms@:>@])
-dnl AC_HELP_STRING([--disable-shared],[don't build shared libraries])
-, ,
-[enable_shared=$default_shared])
-
-if test "$enable_shared" != yes; then
-  AC_MSG_ERROR([Sorry, this release builds only shared libraries, cannot disable them.])
-fi
-
-if test "$enable_shared" = yes; then
-	case "$SHLIBEXT" in
-	.so-nobuild)
-		AC_MSG_WARN([shared libraries not supported on this architecture])
-		RUN_ENV=
-		CC_LINK="$CC_LINK_STATIC"
-		;;
-	*)
-		# set this now because some logic below may reset SHLIBEXT
-		DEPLIBEXT=$SHLIBEXT
-		if test "$krb5_force_static" = "yes"; then
-			AC_MSG_RESULT([Forcing static libraries.])
-			# avoid duplicate rules generation for AIX and such
-			SHLIBEXT=.so-nobuild
-			SHLIBVEXT=.so.v-nobuild
-			SHLIBSEXT=.so.s-nobuild
-		else
-			AC_MSG_NOTICE([enabling shared libraries])
-			# Clear some stuff in case of AIX, etc.
-			if test "$STLIBEXT" = "$SHLIBEXT" ; then
-				STLIBEXT=.a-nobuild
-				LIBLIST=
-				LIBLINKS=
-				OBJLISTS=
-				LIBINSTLIST=
-			fi
-			LIBLIST="$LIBLIST "'lib$(LIBBASE)$(SHLIBEXT)'
-			LIBLINKS="$LIBLINKS "'$(TOPLIBD)/lib$(LIBBASE)$(SHLIBEXT) $(TOPLIBD)/lib$(LIBBASE)$(SHLIBVEXT)'
-			case "$SHLIBSEXT" in
-			.so.s-nobuild)
-				LIBINSTLIST="$LIBINSTLIST install-shared"
-				;;
-			*)
-				LIBLIST="$LIBLIST "'lib$(LIBBASE)$(SHLIBSEXT)'
-				LIBLINKS="$LIBLINKS "'$(TOPLIBD)/lib$(LIBBASE)$(SHLIBSEXT)'
-				LIBINSTLIST="$LIBINSTLIST install-shlib-soname"
-				;;
-			esac
-			OBJLISTS="$OBJLISTS OBJS.SH"
-		fi
-		CC_LINK="$CC_LINK_SHARED"
-		;;
-	esac
-else
-	RUN_ENV=
-	CC_LINK="$CC_LINK_STATIC"
+	AC_MSG_RESULT([Forcing static libraries.])
+	# avoid duplicate rules generation for AIX and such
 	SHLIBEXT=.so-nobuild
 	SHLIBVEXT=.so.v-nobuild
 	SHLIBSEXT=.so.s-nobuild
-fi
+else
+	AC_MSG_NOTICE([using shared libraries])
 
-if test "$build_dynobj" = yes; then
-	OBJLISTS=`echo $OBJLISTS | sed -e s/OBJS.ST//g -e s/OBJS.SH//g`
-	OBJLISTS="$OBJLISTS OBJS.SH"
+	# Clear some stuff in case of AIX, etc.
+	if test "$STLIBEXT" = "$SHLIBEXT" ; then
+		STLIBEXT=.a-nobuild
+	fi
+	case "$SHLIBSEXT" in
+	.so.s-nobuild)
+		SHLIB_HAVE_MINOR_VERS=no
+		LIBLIST='lib$(LIBBASE)$(SHLIBEXT)'
+		LIBLINKS='$(TOPLIBD)/lib$(LIBBASE)$(SHLIBEXT) $(TOPLIBD)/lib$(LIBBASE)$(SHLIBVEXT)'
+		LIBINSTLIST="install-shared"
+		;;
+	*)
+		SHLIB_HAVE_MINOR_VERS=yes
+		LIBLIST='lib$(LIBBASE)$(SHLIBEXT) lib$(LIBBASE)$(SHLIBSEXT)'
+		LIBLINKS='$(TOPLIBD)/lib$(LIBBASE)$(SHLIBEXT) $(TOPLIBD)/lib$(LIBBASE)$(SHLIBVEXT) $(TOPLIBD)/lib$(LIBBASE)$(SHLIBSEXT)'
+		LIBINSTLIST="install-shlib-soname"
+		;;
+	esac
+	OBJLISTS="OBJS.SH"
 fi
+CC_LINK="$CC_LINK_SHARED"
+CXX_LINK="$CXX_LINK_SHARED"
+AC_SUBST(SHLIB_HAVE_MINOR_VERS)
 
 if test -z "$LIBLIST"; then
 	AC_MSG_ERROR([must enable one of shared or static libraries])
@@ -1322,20 +1284,6 @@ dnl [  --enable-profiled       build profiled libraries @<:@disabled@:>@]
 ,
 [if test "$enableval" = yes; then
   AC_MSG_ERROR([Sorry, profiled libraries do not work in this release.])
-fi
-if false; then
-	case $PFLIBEXT in
-	.po-nobuild)
-		AC_MSG_WARN([Profiled libraries not supported on this architecture.])
-		;;
-	*)
-		AC_MSG_NOTICE([enabling profiled libraries])
-		LIBLIST="$LIBLIST "'lib$(LIBBASE)$(PFLIBEXT)'
-		LIBLINKS="$LIBLINKS "'$(TOPLIBD)/lib$(LIBBASE)$(PFLIBEXT)'
-		OBJLISTS="$OBJLISTS OBJS.PF"
-		LIBINSTLIST="$LIBINSTLIST install-profiled"
-		;;
-	esac
 fi])])
 
 dnl
@@ -1485,7 +1433,8 @@ AC_DEFUN([KRB5_NEED_PROTO], [
 ifelse([$3], ,[if test "x$ac_cv_func_$2" = xyes; then])
 AC_CACHE_CHECK([if $2 needs a prototype provided], krb5_cv_func_$2_noproto,
 AC_TRY_COMPILE([$1],
-[struct k5foo {int foo; } xx;
+[#undef $2
+struct k5foo {int foo; } xx;
 extern int $2 (struct k5foo*);
 $2(&xx);
 ],
@@ -1813,7 +1762,6 @@ else
   : # neither enabled
 dnl  AC_MSG_NOTICE(disabling ldap backend module support)
 fi
-AC_SUBST(OPENLDAP_PLUGIN)
 ])dnl
 dnl
 dnl If libkeyutils exists (on Linux) include it and use keyring ccache

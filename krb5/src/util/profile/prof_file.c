@@ -52,9 +52,8 @@ int profile_library_initializer(void)
 #ifdef SHOW_INITFINI_FUNCS
     printf("profile_library_initializer\n");
 #endif
-#if !USE_BUNDLE_ERROR_STRINGS
     add_error_table(&et_prof_error_table);
-#endif
+
     return k5_mutex_finish_init(&g_shared_trees_mutex);
 }
 void profile_library_finalizer(void)
@@ -69,9 +68,8 @@ void profile_library_finalizer(void)
     printf("profile_library_finalizer\n");
 #endif
     k5_mutex_destroy(&g_shared_trees_mutex);
-#if !USE_BUNDLE_ERROR_STRINGS
+
     remove_error_table(&et_prof_error_table);
-#endif
 }
 
 static void profile_free_file_data(prf_data_t);
@@ -157,6 +155,15 @@ static int r_access(const_profile_filespec_t filespec)
 #endif
 }
 
+int profile_file_is_writable(prf_file_t profile)
+{
+    if (profile && profile->data) {
+        return rw_access(profile->data->filespec);
+    } else {
+        return 0;
+    }
+}
+
 prf_data_t
 profile_make_prf_data(const char *filename)
 {
@@ -175,7 +182,7 @@ profile_make_prf_data(const char *filename)
     memset(d, 0, len);
     fcopy = (char *) d + slen;
     assert(fcopy == d->filespec);
-    strcpy(fcopy, filename);
+    strlcpy(fcopy, filename, flen + 1);
     d->refcount = 1;
     d->comment = NULL;
     d->magic = PROF_MAGIC_FILE_DATA;
@@ -191,7 +198,6 @@ errcode_t profile_open_file(const_profile_filespec_t filespec,
 	prf_file_t	prf;
 	errcode_t	retval;
 	char		*home_env = 0;
-	unsigned int	len;
 	prf_data_t	data;
 	char		*expanded_filename;
 
@@ -207,7 +213,6 @@ errcode_t profile_open_file(const_profile_filespec_t filespec,
 	memset(prf, 0, sizeof(struct _prf_file_t));
 	prf->magic = PROF_MAGIC_FILE;
 
-	len = strlen(filespec)+1;
 	if (filespec[0] == '~' && filespec[1] == '/') {
 		home_env = getenv("HOME");
 #ifdef HAVE_PWD_H
@@ -222,17 +227,17 @@ errcode_t profile_open_file(const_profile_filespec_t filespec,
 			home_env = pw->pw_dir;
 		}
 #endif
-		if (home_env)
-			len += strlen(home_env);
 	}
-	expanded_filename = malloc(len);
-	if (expanded_filename == 0)
-	    return errno;
 	if (home_env) {
-	    strcpy(expanded_filename, home_env);
-	    strcat(expanded_filename, filespec+1);
+	    if (asprintf(&expanded_filename, "%s%s", home_env,
+			 filespec + 1) < 0)
+		expanded_filename = 0;
 	} else
-	    memcpy(expanded_filename, filespec, len);
+	    expanded_filename = strdup(filespec);
+	if (expanded_filename == 0) {
+	    free(prf);
+	    return ENOMEM;
+	}
 
 	retval = k5_mutex_lock(&g_shared_trees_mutex);
 	if (retval) {
@@ -367,10 +372,9 @@ errcode_t profile_update_file_data(prf_data_t data)
 			retval = ENOENT;
 		return retval;
 	}
+	set_cloexec_file(f);
 	data->upd_serial++;
-	data->flags &= PROFILE_FILE_SHARED;
-	if (rw_access(data->filespec))
-		data->flags |= PROFILE_FILE_RW;
+	data->flags &= PROFILE_FILE_SHARED;  /* FIXME same as '=' operator */
 	retval = profile_parse_file(f, &data->root);
 	fclose(f);
 	if (retval) {
@@ -407,15 +411,14 @@ static errcode_t write_data_to_file(prf_data_t data, const char *outfile,
 	retval = ENOMEM;
 	
 	new_file = old_file = 0;
-	new_file = malloc(strlen(outfile) + 5);
-	if (!new_file)
-		goto errout;
-	old_file = malloc(strlen(outfile) + 5);
-	if (!old_file)
-		goto errout;
-
-	sprintf(new_file, "%s.$$$", outfile);
-	sprintf(old_file, "%s.bak", outfile);
+	if (asprintf(&new_file, "%s.$$$", outfile) < 0) {
+	    new_file = NULL;
+	    goto errout;
+	}
+	if (asprintf(&old_file, "%s.bak", outfile) < 0) {
+	    old_file = NULL;
+	    goto errout;
+	}
 
 	errno = 0;
 
@@ -427,6 +430,7 @@ static errcode_t write_data_to_file(prf_data_t data, const char *outfile,
 		goto errout;
 	}
 
+	set_cloexec_file(f);
 	profile_write_tree_file(data->root, f);
 	if (fclose(f) != 0) {
 		retval = errno;
@@ -469,8 +473,6 @@ static errcode_t write_data_to_file(prf_data_t data, const char *outfile,
 	}
 
 	data->flags = 0;
-	if (rw_access(outfile))
-		data->flags |= PROFILE_FILE_RW;
 	retval = 0;
 
 errout:

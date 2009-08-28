@@ -9,6 +9,7 @@
 #include "k5-int.h"
 #include "arcfour-int.h"
 #include "enc_provider.h"
+#include "../aead.h"
 /* gets the next byte from the PRNG */
 #if ((__GNUC__ >= 2) )
 static __inline__ unsigned int k5_arcfour_byte(ArcfourContext *);
@@ -35,21 +36,15 @@ k5_arcfour_make_key(const krb5_data *, krb5_keyblock *);
 
 static const unsigned char arcfour_weakkey1[] = {0x00, 0x00, 0xfd};
 static const unsigned char arcfour_weakkey2[] = {0x03, 0xfd, 0xfc};
-static const krb5_data arcfour_weakkeys[] = {
-    {KV5M_DATA, sizeof (arcfour_weakkey1),
-     (char * ) arcfour_weakkey1},
-    {KV5M_DATA, sizeof (arcfour_weakkey2),
-     (char * ) arcfour_weakkey2},
-    {KV5M_DATA, 0, 0}
+static const struct {
+    size_t length;
+    const unsigned char *data;
+} arcfour_weakkeys[] = {
+    { sizeof (arcfour_weakkey1), arcfour_weakkey1},
+    { sizeof (arcfour_weakkey2), arcfour_weakkey2},
 };
 
-/*xxx we really should check for c9x here and use inline on 
- * more than just gcc. */
-#if ((__GNUC__ >= 2) )
-static __inline__ unsigned int k5_arcfour_byte(ArcfourContext * ctx)
-#else
-static unsigned int k5_arcfour_byte(ArcfourContext * ctx)
-#endif /* gcc inlines*/
+static inline unsigned int k5_arcfour_byte(ArcfourContext * ctx)
 {
   unsigned int x;
   unsigned int y;
@@ -90,10 +85,12 @@ k5_arcfour_init(ArcfourContext *ctx, const unsigned char *key,
   if (key_len != 16)
     return KRB5_BAD_MSIZE;     /*this is probably not the correct error code
 				 to return */
-  for(counter=0;arcfour_weakkeys[counter].length >0; counter++)
-    if (memcmp(key, arcfour_weakkeys[counter].data,
-	       arcfour_weakkeys[counter].length) == 0)
-      return KRB5DES_WEAK_KEY; /* most certainly not the correct error */
+  for (counter=0;
+       counter < sizeof(arcfour_weakkeys)/sizeof(arcfour_weakkeys[0]);
+       counter++)
+      if (!memcmp(key, arcfour_weakkeys[counter].data,
+		  arcfour_weakkeys[counter].length))
+	  return KRB5DES_WEAK_KEY; /* most certainly not the correct error */
 
   state = &ctx->state[0];
   ctx->x = 0;
@@ -160,6 +157,61 @@ k5_arcfour_docrypt(const krb5_keyblock *key, const krb5_data *state,
   return 0;
 }
 
+/* In-place encryption */
+static krb5_error_code
+k5_arcfour_docrypt_iov(const krb5_keyblock *key,
+		       const krb5_data *state,
+		       krb5_crypto_iov *data,
+		       size_t num_data)
+{
+    ArcfourContext *arcfour_ctx = NULL;
+    ArcFourCipherState *cipher_state = NULL;
+    krb5_error_code ret;
+    size_t i;
+
+    if (key->length != 16)
+	return KRB5_BAD_KEYSIZE;
+    if (state != NULL && (state->length != sizeof(ArcFourCipherState)))
+	return KRB5_BAD_MSIZE;
+
+    if (state != NULL) {
+	cipher_state = (ArcFourCipherState *)state->data;
+	arcfour_ctx = &cipher_state->ctx;
+	if (cipher_state->initialized == 0) {
+	    ret = k5_arcfour_init(arcfour_ctx, key->contents, key->length);
+	    if (ret != 0)
+		return ret;
+
+	    cipher_state->initialized = 1;
+	}
+    } else {
+	arcfour_ctx = (ArcfourContext *)malloc(sizeof(ArcfourContext));
+	if (arcfour_ctx == NULL)
+	    return ENOMEM;
+
+	ret = k5_arcfour_init(arcfour_ctx, key->contents, key->length);
+	if (ret != 0) {
+	    free(arcfour_ctx);
+	    return ret;
+	}
+    }
+
+    for (i = 0; i < num_data; i++) {
+	krb5_crypto_iov *iov = &data[i];
+
+	if (ENCRYPT_IOV(iov))
+	    k5_arcfour_crypt(arcfour_ctx, (unsigned char *)iov->data.data,
+			     (const unsigned char *)iov->data.data, iov->data.length);
+    }
+
+    if (state == NULL) {
+	memset(arcfour_ctx, 0, sizeof(ArcfourContext));
+	free(arcfour_ctx);
+    }
+
+    return 0;
+}
+
 static krb5_error_code
 k5_arcfour_make_key(const krb5_data *randombits, krb5_keyblock *key)
 {
@@ -212,5 +264,8 @@ const struct krb5_enc_provider krb5int_enc_arcfour = {
     k5_arcfour_docrypt,
     k5_arcfour_make_key,
     k5_arcfour_init_state, /*xxx not implemented yet*/
-    krb5int_default_free_state
+    krb5int_default_free_state,
+    k5_arcfour_docrypt_iov,
+    k5_arcfour_docrypt_iov
 };
+

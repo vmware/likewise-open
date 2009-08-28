@@ -5,6 +5,7 @@ kdb5_util \- Kerberos database maintainance utility
 .B kdb5_util
 [\fB\-r\fP\ \fIrealm\fP] [\fB\-d\fP\ \fIdbname\fP]
 [\fB\-k\fP\ \fImkeytype\fP] [\fB\-M\fP\ \fImkeyname\fP]
+[\fB\-kv\fP\ \fImkeyVNO\fP]
 [\fB\-sf\fP\ \fIstashfilename\fP]
 [\fB\-m\fP]
 .I command
@@ -57,6 +58,10 @@ value.
 specifies the key type of the master key in the database; the default is
 that given in
 .IR kdc.conf .
+.TP
+\fB\-kv\fP\ \fImkeyVNO\fP
+Specifies the version number of the master key in the database; the default is
+1.  Note that 0 is not allowed.
 .TP
 \fB\-M\fP\ \fImkeyname\fP
 principal name for the master key in the database; the default is
@@ -150,7 +155,7 @@ option will.
 .RE
 .TP
 \fBload\fP [\fB\-old\fP] [\fB\-b6\fP] [\fB\-b7\fP] [\fB\-ov\fP] [\fB\-hash\fP]
-[\fB\-verbose\fP] [\fB\-update\fP] \fIfilename dbname\fP [\fIadmin_dbname\fP]
+[\fB\-verbose\fP] [\fB\-update\fP] \fIfilename dbname\fP
 .br
 Loads a database dump from the named file into the named database.
 Unless the 
@@ -206,67 +211,63 @@ in the dump file and the old one destroyed upon successful completion.
 .B dbname
 is required and overrides the value specified on the command line or the
 default.
-.TP
-.B admin_dbname
-is optional and is derived from
-.B dbname
-if not specified.
-.RE
-.TP
-\fBdump_v4\fP [\fB\-S\fP] [\fIfilename\fP]
-Dumps the current database into the Kerberos 4 database dump format.
-The \-S option specifies the short lifetime algorithm.
-.TP
-\fBload_v4\fP [\fB\-T\fP] [\fB\-v\fP] [\fB\-h\fP] [\fB\-S\fP]
-[\fB\-t\fP] [\fB-n\fP] [\fB\-K\fP] [\fB\-s\fP\ \fIstashfile\fP]
-\fIinputfile\fP
-.br
-Loads a Kerberos 4 database dump file.  Options:
-.RS
-.TP
-.B \-K
-prompts for the V5 master key instead of using the stashed version.
-.TP
-.B \-n
-prompts for the V4 master key, instead of reading from the stash file.
-.TP
-.B \-s \fIstashfile
-gets the V4 master key out of \fIstashfile\fP instead of /.k
-.TP
-.B \-T
-creates a new \fIkrbtgt\fP instead of converting the V4 one.  The V5 server
-will thus not recognize outstanding tickets, so this should be used 
-with caution.
-.TP
-.B \-v
-lists each principal as it is converted or ignored.
-.TP
-.B \-t
-uses a temporary database, then moves that into place, instead of adding 
-the keys to the current database.
-.TP
-.B \-S
-Uses the short lifetime algorithm for conversion.
-.TP
-.B \-h
-Stores the database as a hash instead of a btree.  This option is
-not recommended, as databases stored in hash format are known to
-corrupt data and lose principals.
-.PP
-Note: if the Kerberos 4 database had a default expiration date of 12/31/1999
-or 12/31/2009 (the compiled in defaults for older or newer Kerberos
-releases) then any entries which have the same expiration date will be
-converted to "never" expire in the version 5 database.  If the default
-did not match either value, all expiration dates will be preserved. 
-.PP
-Also, Kerberos 4 stored a single modification time for any change to a
-record; Version 5 stores a seperate modification time and last
-password change time.  In practice, Version 4 "modifications" were
-always password changes.  \fIload_v4\fP copies the value into both
-fields.
 .RE
 .TP
 \fBark\fP
 Adds a random key.
+.TP
+\fBadd_mkey\fP [\fB\-e etype\fP] [\fB\-s\fP]
+Adds a new master key to the K/M (master key) principal.  Existing master keys will remain.
+The
+.B \-e etype
+option allows specification of the enctype of the new master key.  The
+.B \-s
+option stashes the new master key in a local stash file which will be created if it doesn't already exist.
+.TP
+\fBuse_mkey\fP \fImkeyVNO [\fBtime\fP]
+Sets the activation time of the master key specified by
+.B mkeyVNO.
+Once a master key is active (i.e. its activation time has been reached) it will then be used to encrypt principal keys either when the principal keys change, are newly created or when the update_princ_encryption command is run.  If the
+.B time
+argument is provided then that will be the activation time otherwise the current time is used by default.  The format of the optional
+.B time
+argument is that specified in the Time Formats section of the kadmin man page.
+.TP
+\fBlist_mkeys\fP
+List all master keys from most recent to earliest in K/M principal. The output will show the KVNO, enctype and salt for each mkey similar to kadmin getprinc output.  A * following an mkey denotes the currently active master key.
+.TP
+\fBpurge_mkeys\fP [\fB-f\fP] [\fB-n\fP] [\fB-v\fP]
+Delete master keys from the K/M principal that are not used to protect any principals.  This command can be used to remove old master keys from a K/M principal once all principal keys are protected by a newer master key.
+.TP
+.B \-f
+does not prompt user.
+.TP
+.B \-n
+do a dry run, shows master keys that would be purged, does not actually purge any keys.
+.TP
+.B \-v
+verbose output.
+.TP
+\fBupdate_princ_encryption\fP [\fB\-f\fP] [\fB\-n\fP] [\fB\-v\fP] [\fBprinc\-pattern\fP]
+Update all principal records (or only those matching the
+.B princ\-pattern
+glob pattern) to re-encrypt the key data using the active
+database master key, if they are encrypted using older versions,
+and give a count at the end of the number of principals updated.
+If the
+.B \-f
+option is not given, ask for confirmation before starting to make
+changes.  The
+.B \-v
+option causes each principal processed (each one matching the pattern)
+to be listed, and an indication given as to whether it needed updating
+or not.
+The
+.B \-n
+option causes the actions not to be taken, only the normal or verbose
+status messages displayed; this implies
+.B \-f
+since no database changes will be performed and thus there's little
+reason to seek confirmation.
 .SH SEE ALSO
 kadmin(8)

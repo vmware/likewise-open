@@ -1,7 +1,7 @@
 /*
  * lib/krb5/os/sendto_kdc.c
  *
- * Copyright 1990,1991,2001,2002,2004,2005,2007 by the Massachusetts Institute of Technology.
+ * Copyright 1990,1991,2001,2002,2004,2005,2007,2008 by the Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
  * Export of this software from the United States of America may
@@ -66,12 +66,14 @@ int krb5int_debug_sendto_kdc = 0;
 static void default_debug_handler (const void *data, size_t len)
 {
 #if 0
-    FILE *logfile;
-    logfile = fopen("/tmp/sendto_kdc.log", "a");
-    if (logfile == NULL)
-	return;
+    static FILE *logfile;
+    if (logfile == NULL) {
+	logfile = fopen("/tmp/sendto_kdc.log", "a");
+	if (logfile == NULL)
+	    return;
+	setbuf(logfile, NULL);
+    }
     fwrite(data, 1, len, logfile);
-    fclose(logfile);
 #else
     fwrite(data, 1, len, stderr);
     /* stderr is unbuffered */
@@ -114,19 +116,32 @@ krb5int_debug_fprint (const char *fmt, ...)
 #define max(a,b) ((a) > (b) ? (a) : (b))
 #endif
     char tmpbuf[max(NI_MAXHOST + NI_MAXSERV + 30, 200)];
+    struct k5buf buf;
 
     if (!krb5int_debug_sendto_kdc)
 	return;
 
     va_start(args, fmt);
 
-#define putf(FMT,X)	(sprintf(tmpbuf,FMT,X),putstr(tmpbuf))
+#define putf(FMT,X)	(snprintf(tmpbuf,sizeof(tmpbuf),FMT,X),putstr(tmpbuf))
 
     for (; *fmt; fmt++) {
 	if (*fmt != '%') {
-	    /* Possible optimization: Look for % and print all chars
-	       up to it in one call.  */
-	    put(fmt, 1);
+	    const char *fmt2;
+	    size_t len;
+	    for (fmt2 = fmt+1; *fmt2; fmt2++)
+		if (*fmt2 == '%')
+		    break;
+	    len = fmt2 - fmt;
+	    if (0) {
+		FILE *f = fopen("/dev/pts/0", "w+");
+		if (f) {
+		    fprintf(f, "krb5int_debug_fprint: format <%s> fmt2 <%s> put %lu next <%s>\n",
+			    fmt, fmt2, (unsigned long) len, fmt+len-1);
+		}
+	    }
+	    put(fmt, len);
+	    fmt += len - 1;	/* then fmt++ in loop header */
 	    continue;
 	}
 	/* After this, always processing a '%' sequence.  */
@@ -138,7 +153,7 @@ krb5int_debug_fprint (const char *fmt, ...)
 	case 'E':
 	    /* %E => krb5_error_code */
 	    kerr = va_arg(args, krb5_error_code);
-	    sprintf(tmpbuf, "%lu/", (unsigned long) kerr);
+	    snprintf(tmpbuf, sizeof(tmpbuf), "%lu/", (unsigned long) kerr);
 	    putstr(tmpbuf);
 	    p = error_message(kerr);
 	    putstr(p);
@@ -190,7 +205,7 @@ krb5int_debug_fprint (const char *fmt, ...)
 	    /* %t => struct timeval * */
 	    tv = va_arg(args, struct timeval *);
 	    if (tv) {
-		sprintf(tmpbuf, "%ld.%06ld",
+		snprintf(tmpbuf, sizeof(tmpbuf), "%ld.%06ld",
 			(long) tv->tv_sec, (long) tv->tv_usec);
 		putstr(tmpbuf);
 	    } else
@@ -207,23 +222,27 @@ krb5int_debug_fprint (const char *fmt, ...)
 	case 'A':
 	    /* %A => addrinfo */
 	    ai = va_arg(args, struct addrinfo *);
+	    krb5int_buf_init_dynamic(&buf);
 	    if (ai->ai_socktype == SOCK_DGRAM)
-		strcpy(tmpbuf, "dgram");
+		krb5int_buf_add(&buf, "dgram");
 	    else if (ai->ai_socktype == SOCK_STREAM)
-		strcpy(tmpbuf, "stream");
+		krb5int_buf_add(&buf, "stream");
 	    else
-		sprintf(tmpbuf, "socktype%d", ai->ai_socktype);
+		krb5int_buf_add_fmt(&buf, "socktype%d", ai->ai_socktype);
+
 	    if (0 != getnameinfo (ai->ai_addr, ai->ai_addrlen,
 				  addrbuf, sizeof (addrbuf),
 				  portbuf, sizeof (portbuf),
 				  NI_NUMERICHOST | NI_NUMERICSERV)) {
 		if (ai->ai_addr->sa_family == AF_UNSPEC)
-		    strcpy(tmpbuf + strlen(tmpbuf), " AF_UNSPEC");
+		    krb5int_buf_add(&buf, " AF_UNSPEC");
 		else
-		    sprintf(tmpbuf + strlen(tmpbuf), " af%d", ai->ai_addr->sa_family);
+		    krb5int_buf_add_fmt(&buf, " af%d", ai->ai_addr->sa_family);
 	    } else
-		sprintf(tmpbuf + strlen(tmpbuf), " %s.%s", addrbuf, portbuf);
-	    putstr(tmpbuf);
+		krb5int_buf_add_fmt(&buf, " %s.%s", addrbuf, portbuf);
+	    if (krb5int_buf_data(&buf))
+		putstr(krb5int_buf_data(&buf));
+	    krb5int_free_buf(&buf);
 	    break;
 	case 'D':
 	    /* %D => krb5_data * */
@@ -358,7 +377,7 @@ krb5_sendto_kdc (krb5_context context, const krb5_data *message,
     if (!tcp_only && context->udp_pref_limit < 0) {
 	int tmp;
 	retval = profile_get_integer(context->profile,
-				     "libdefaults", "udp_preference_limit", 0,
+				     KRB5_CONF_LIBDEFAULTS, KRB5_CONF_UDP_PREFERENCE_LIMIT, 0,
 				     DEFAULT_UDP_PREF_LIMIT, &tmp);
 	if (retval)
 	    return retval;
@@ -570,11 +589,7 @@ set_conn_state_msg_length (struct conn_state *state, const krb5_data *message)
 
     if (!state->is_udp) {
 
-	state->x.out.msg_len_buf[0] = (message->length >> 24) & 0xff;
-	state->x.out.msg_len_buf[1] = (message->length >> 16) & 0xff;
-	state->x.out.msg_len_buf[2] = (message->length >>  8) & 0xff;
-	state->x.out.msg_len_buf[3] =  message->length        & 0xff;
-
+	store_32_be(message->length, state->x.out.msg_len_buf);
 	SG_SET(&state->x.out.sgbuf[0], state->x.out.msg_len_buf, 4);
 	SG_SET(&state->x.out.sgbuf[1], message->data, message->length);
    	state->x.out.sg_count = 2;
@@ -654,6 +669,15 @@ start_connection (struct conn_state *state,
 	dprint("socket: %m creating with af %d\n", state->err, ai->ai_family);
 	return -1;		/* try other hosts */
     }
+#ifndef _WIN32 /* On Windows FD_SETSIZE is a count, not a max value.  */
+    if (fd >= FD_SETSIZE) {
+	closesocket(fd);
+	state->err = EMFILE;
+	dprint("socket: fd %d too high\n", fd);
+	return -1;
+    }
+#endif
+    set_cloexec_fd(fd);
     /* Make it non-blocking.  */
     if (ai->ai_socktype == SOCK_STREAM) {
 	static const int one = 1;
@@ -1020,7 +1044,7 @@ service_tcp_fd (struct conn_state *conn, struct select_state *selstate,
 		       conn->x.in.buf);
 		if (conn->x.in.buf == 0) {
 		    /* allocation failure */
-		    e = errno;
+		    e = ENOMEM;
 		    goto kill_conn;
 		}
 	    }
@@ -1064,9 +1088,14 @@ service_fds (krb5_context context,
     int e, selret;
 
     e = 0;
-    while (selstate->nfds > 0
-	   && (e = krb5int_cm_call_select(selstate, seltemp, &selret)) == 0) {
-	int i;
+    while (selstate->nfds > 0) {
+	unsigned int i;
+
+	e = krb5int_cm_call_select(selstate, seltemp, &selret);
+	if (e == EINTR)
+	    continue;
+	if (e != 0)
+	    break;
 
 	dprint("service_fds examining results, selret=%d\n", selret);
 
@@ -1075,7 +1104,7 @@ service_fds (krb5_context context,
 	    return 0;
 
 	/* Got something on a socket, process it.  */
-	for (i = 0; i <= selstate->max && selret > 0 && i < n_conns; i++) {
+	for (i = 0; i <= (unsigned int)selstate->max && selret > 0 && i < n_conns; i++) {
 	    int ssflags;
 
 	    if (conns[i].fd == INVALID_SOCKET)
@@ -1158,7 +1187,8 @@ krb5int_sendto (krb5_context context, const krb5_data *message,
 		int (*msg_handler)(krb5_context, const krb5_data *, void *),
 		void *msg_handler_data)
 {
-    int i, pass;
+    unsigned int i;
+    int pass;
     int delay_this_pass = 2;
     krb5_error_code retval;
     struct conn_state *conns;
@@ -1180,20 +1210,16 @@ krb5int_sendto (krb5_context context, const krb5_data *message,
     reply->length = 0;
 
     n_conns = addrs->naddrs;
-    conns = malloc(n_conns * sizeof(struct conn_state));
+    conns = calloc(n_conns, sizeof(struct conn_state));
     if (conns == NULL) {
 	return ENOMEM;
     }
 
-    memset(conns, 0, n_conns * sizeof(struct conn_state));
-
     if (callback_info) {
-	callback_data = malloc(n_conns * sizeof(krb5_data));
+	callback_data = calloc(n_conns, sizeof(krb5_data));
 	if (callback_data == NULL) {
 	    return ENOMEM;
 	}
-
-	memset(callback_data, 0, n_conns * sizeof(krb5_data));
     }
 
     for (i = 0; i < n_conns; i++) {

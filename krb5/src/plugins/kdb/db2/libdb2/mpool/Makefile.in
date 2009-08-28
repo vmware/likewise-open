@@ -1,6 +1,6 @@
-thisconfigdir=./..
+thisconfigdir=../../../../..
 myfulldir=plugins/kdb/db2/libdb2/mpool
-mydir=mpool
+mydir=plugins/kdb/db2/libdb2/mpool
 BUILDTOP=$(REL)..$(S)..$(S)..$(S)..$(S)..
 STLIBOBJS=mpool.o
 
@@ -9,3 +9,6 @@ LOCALINCLUDES=	-I. -I$(srcdir)/../include -I../include -I$(srcdir)/../db
 all-unix:: all-libobjs
 clean-unix:: clean-libobjs
 @libobj_frag@
+
+SRCS= $(STLIBOBJS:.o=.c)
+

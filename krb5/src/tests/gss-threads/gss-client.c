@@ -20,7 +20,7 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 /*
- * Copyright (C) 2003, 2004 by the Massachusetts Institute of Technology.
+ * Copyright (C) 2003, 2004, 2008 by the Massachusetts Institute of Technology.
  * All rights reserved.
  *
  * Export of this software from the United States of America may
@@ -66,6 +66,7 @@
 #include "gss-misc.h"
 #include "port-sockets.h"
 #include "fake-addrinfo.h"
+#include "k5-platform.h"
 
 static int verbose = 1;
 
@@ -606,12 +607,10 @@ static void parse_oid(char *mechanism, gss_OID *oid)
     OM_uint32 maj_stat, min_stat;
     
     if (isdigit((int) mechanism[0])) {
-	mechstr = malloc(strlen(mechanism)+5);
-	if (!mechstr) {
+	if (asprintf(&mechstr, "{ %s }", mechanism) < 0) {
 	    fprintf(stderr, "Couldn't allocate mechanism scratch!\n");
 	    return;
 	}
-	sprintf(mechstr, "{ %s }", mechanism);
 	for (cp = mechstr; *cp; cp++)
 	    if (*cp == '.')
 		*cp = ' ';
@@ -703,6 +702,7 @@ WaitAndIncrementThreadCounter(void)
     if (counter == max_threads) {
 	err = pthread_cond_wait(&counter_cond, &counter_mutex);
 	if (err) {
+	    pthread_mutex_unlock(&counter_mutex);
 	    perror("pthread_cond_wait");
 	    return 0;
 	}

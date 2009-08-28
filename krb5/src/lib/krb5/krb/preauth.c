@@ -227,7 +227,7 @@ cleanup:
     if (etype_info)
 	krb5_free_etype_info(context, etype_info);
     if (f_salt)
-	krb5_xfree(salt.data);
+	free(salt.data);
     if (send_pa_list)
 	krb5_free_pa_data(context, send_pa_list);
     if (def_enc_key)
@@ -314,7 +314,7 @@ obtain_enc_ts_padata(krb5_context context, krb5_pa_data *in_padata, krb5_etype_i
 
     *out_padata = pa;
 
-    krb5_xfree(scratch);
+    free(scratch);
     scratch = 0;
 
     retval = 0;
@@ -323,7 +323,7 @@ cleanup:
     if (scratch)
 	krb5_free_data(context, scratch);
     if (enc_data.ciphertext.data)
-	krb5_xfree(enc_data.ciphertext.data);
+	free(enc_data.ciphertext.data);
     return retval;
 }
 
@@ -383,7 +383,7 @@ sam_get_pass_from_user(krb5_context context, krb5_etype_info etype_info, git_key
       /* we don't keep the new password, just the key... */
       retval = (*key_proc)(context, enctype, 0, 
 			   (krb5_const_pointer)&newpw, new_enc_key);
-      krb5_xfree(newpw.data);
+      free(newpw.data);
     }
     krb5_default_pwd_prompt1 = oldprompt;
     return retval;
@@ -397,10 +397,7 @@ char *handle_sam_labels(krb5_sam_challenge *sc)
     unsigned int prompt_len = sc->sam_response_prompt.length;
     char *challenge = sc->sam_challenge.data;
     unsigned int challenge_len = sc->sam_challenge.length;
-    char *prompt1, *p;
-    char *sep1 = ": [";
-    char *sep2 = "]\n";
-    char *sep3 = ": ";
+    struct k5buf buf;
 
     if (sc->sam_cksum.length == 0) {
       /* or invalid -- but lets just handle presence now XXX */
@@ -438,20 +435,16 @@ char *handle_sam_labels(krb5_sam_challenge *sc)
        Challenge for Digital Pathways mechanism: [134591]
        Passcode: 
      */
-    p = prompt1 = malloc(label_len + strlen(sep1) +
-			 challenge_len + strlen(sep2) +
-			 prompt_len+ strlen(sep3) + 1);
-    if (p == NULL)
-	return NULL;
+    krb5int_buf_init_dynamic(&buf);
     if (challenge_len) {
-	strncpy(p, label, label_len); p += label_len;
-	strcpy(p, sep1); p += strlen(sep1);
-	strncpy(p, challenge, challenge_len); p += challenge_len;
-	strcpy(p, sep2); p += strlen(sep2);
+	krb5int_buf_add_len(&buf, label, label_len);
+	krb5int_buf_add(&buf, ": [");
+	krb5int_buf_add_len(&buf, challenge, challenge_len);
+	krb5int_buf_add(&buf, "]\n");
     }
-    strncpy(p, prompt, prompt_len); p += prompt_len;
-    strcpy(p, sep3); /* p += strlen(sep3); */
-    return prompt1;
+    krb5int_buf_add_len(&buf, prompt, prompt_len);
+    krb5int_buf_add(&buf, ": ");
+    return krb5int_buf_data(&buf);
 }
 
 /*
@@ -576,6 +569,6 @@ cleanup:
     if (scratch)
 	krb5_free_data(context, scratch);
     if (sam_challenge)
-        krb5_xfree(sam_challenge);
+        free(sam_challenge);
     return retval;
 }

@@ -56,7 +56,7 @@ static krb5_error_code init_ldap_realm (int argc, char *argv[]) {
     kdb5_dal_handle *dal_handle = NULL;
     krb5_ldap_context *ldap_context=NULL;
                                                                                                                              
-    dal_handle = (kdb5_dal_handle *) util_context->db_context;
+    dal_handle = util_context->dal_handle;
     ldap_context = (krb5_ldap_context *) dal_handle->db_context;
     if (!ldap_context) {
         retval = EINVAL;
@@ -67,7 +67,7 @@ static krb5_error_code init_ldap_realm (int argc, char *argv[]) {
         retval = krb5_ldap_read_krbcontainer_params (util_context,
                 &(ldap_context->krbcontainer));
         if (retval != 0) {
-            com_err(argv[0], retval, "while reading kerberos container information");
+            com_err(progname, retval, "while reading kerberos container information");
             goto cleanup;
         }
     }
@@ -95,7 +95,7 @@ kdb5_ldap_create_policy(argc, argv)
     int argc;
     char *argv[];
 {
-    char *me = argv[0];
+    char *me = progname;
     krb5_error_code retval = 0;
     krb5_ldap_policy_params *policyparams = NULL;
     krb5_boolean print_usage = FALSE;
@@ -322,7 +322,7 @@ kdb5_ldap_destroy_policy(argc, argv)
     int argc;
     char *argv[];
 {
-    char *me = argv[0];
+    char *me = progname;
     krb5_error_code retval = 0;
     krb5_ldap_policy_params *policyparams = NULL;
     krb5_boolean print_usage = FALSE;
@@ -426,7 +426,7 @@ kdb5_ldap_modify_policy(argc, argv)
     int argc;
     char *argv[];
 {
-    char *me = argv[0];
+    char *me = progname;
     krb5_error_code retval = 0;
     krb5_ldap_policy_params *policyparams = NULL;
     krb5_boolean print_usage = FALSE;
@@ -683,7 +683,7 @@ kdb5_ldap_view_policy(argc, argv)
     int argc;
     char *argv[];
 {
-    char *me = argv[0];
+    char *me = progname;
     krb5_ldap_policy_params *policyparams = NULL;
     krb5_error_code retval = 0;
     krb5_boolean print_usage = FALSE;
@@ -804,7 +804,7 @@ void kdb5_ldap_list_policies(argc, argv)
     int argc;
     char *argv[];
 {
-    char *me = argv[0];
+    char *me = progname;
     krb5_error_code retval = 0;
     krb5_boolean print_usage = FALSE;
     char *basedn = NULL;
@@ -874,8 +874,7 @@ static char *strdur(duration)
     minutes = duration / 60;
     duration %= 60;
     seconds = duration;
-    sprintf(out, "%s%d %s %02d:%02d:%02d", neg ? "-" : "",
-	    days, days == 1 ? "day" : "days",
-	    hours, minutes, seconds);
+    snprintf(out, sizeof(out), "%s%d %s %02d:%02d:%02d", neg ? "-" : "",
+	     days, days == 1 ? "day" : "days", hours, minutes, seconds);
     return out;
 }

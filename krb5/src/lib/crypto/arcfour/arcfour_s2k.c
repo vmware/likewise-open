@@ -1,38 +1,27 @@
 #include "k5-int.h"
+#include "k5-utf8.h"
 #include "rsa-md4.h"
 #include "arcfour-int.h"
-#include "wc16str.h"
 
-static void asctouni(unsigned char *unicode, unsigned char *ascii, size_t len)
-{
-	size_t counter;
-	for (counter=0;counter<len;counter++) {
-		unicode[2*counter]=ascii[counter];
-		unicode[2*counter + 1]=0x00;
-	}
-}
+#if TARGET_OS_MAC && !defined(DEPEND)
+#include <CoreFoundation/CFString.h>
+#endif
 
 krb5_error_code
 krb5int_arcfour_string_to_key(const struct krb5_enc_provider *enc,
 			      const krb5_data *string, const krb5_data *salt,
 			      const krb5_data *params, krb5_keyblock *key)
 {
-  size_t len,slen;
-  unsigned char *copystr;
+  krb5_error_code err = 0;
   krb5_MD4_CTX md4_context;
-  krb5_error_code ret = 0;
+  unsigned char *copystr;
+  size_t copystrlen;
 
   if (params != NULL)
-  {
-      ret = KRB5_ERR_BAD_S2K_PARAMS;
-      goto error;
-  }
+      return KRB5_ERR_BAD_S2K_PARAMS;
   
   if (key->length != 16)
-  {
-      ret = KRB5_BAD_MSIZE;
-      goto error;
-  }
+    return (KRB5_BAD_MSIZE);
 
   /* We ignore salt per the Microsoft spec*/
 
@@ -40,29 +29,14 @@ krb5int_arcfour_string_to_key(const struct krb5_enc_provider *enc,
      Since the password must be stored in unicode, we need to increase
      that number by 2x.
   */
-  slen = ((string->length)>128)?128:string->length;
-  len=(slen)*2;
 
-  copystr = malloc(len);
-  if (copystr == NULL)
-  {
-      ret = ENOMEM;
-      goto error;
-  }
-
-  /* make the string.  start by creating the little endian unicode version of the password*/
-  len = krb5_mbstowc16les((wchar16_t *)copystr, string->data, slen);
-  if (len == (size_t) -1)
-  {
-      ret = EINVAL;
-      goto error;
-  }
-
-  len *= 2;
+  err = krb5int_utf8cs_to_ucs2les(string->data, string->length, &copystr, &copystrlen);
+  if (err)
+    return err;
 
   /* the actual MD4 hash of the data */
   krb5_MD4Init(&md4_context);
-  krb5_MD4Update(&md4_context, (unsigned char *)copystr, len);
+  krb5_MD4Update(&md4_context, copystr, copystrlen);
   krb5_MD4Final(&md4_context);
   memcpy(key->contents, md4_context.digest, 16);
 
@@ -78,16 +52,8 @@ krb5int_arcfour_string_to_key(const struct krb5_enc_provider *enc,
 #endif /* 0 */
 
   /* Zero out the data behind us */
-  memset (copystr, 0, len);
-
-error:
-
-  if (copystr)
-  {
-      free(copystr);
-  }
-
+  memset(copystr, 0, copystrlen);
   memset(&md4_context, 0, sizeof(md4_context));
-
-  return ret;
+  free(copystr);
+  return err;
 }

@@ -1,7 +1,7 @@
 /*
  * lib/krb5/keytab/ktbase.c
  *
- * Copyright 1990 by the Massachusetts Institute of Technology.
+ * Copyright 1990,2008 by the Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
  * Export of this software from the United States of America may
@@ -24,6 +24,28 @@
  * or implied warranty.
  * 
  *
+ * Copyright 2007 by Secure Endpoints Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation files
+ * (the "Software"), to deal in the Software without restriction,
+ * including without limitation the rights to use, copy, modify, merge,
+ * publish, distribute, sublicense, and/or sell copies of the Software,
+ * and to permit persons to whom the Software is furnished to do so,
+ * subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+ * BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+ * ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
  * Registration functions for keytab.
  */
 
@@ -31,44 +53,65 @@
 #include "k5-thread.h"
 #include "kt-int.h"
 
+#ifndef LEAN_CLIENT
+
 extern const krb5_kt_ops krb5_ktf_ops;
 extern const krb5_kt_ops krb5_ktf_writable_ops;
 extern const krb5_kt_ops krb5_kts_ops;
+extern const krb5_kt_ops krb5_mkt_ops;
 
 struct krb5_kt_typelist {
     const krb5_kt_ops *ops;
     const struct krb5_kt_typelist *next;
 };
+const static struct krb5_kt_typelist krb5_kt_typelist_srvtab = {
+    &krb5_kts_ops,
+    NULL
+};
+const static struct krb5_kt_typelist krb5_kt_typelist_memory = {
+    &krb5_mkt_ops,
+    &krb5_kt_typelist_srvtab
+};
 const static struct krb5_kt_typelist krb5_kt_typelist_wrfile  = {
     &krb5_ktf_writable_ops,
-    0
+    &krb5_kt_typelist_memory
 };
 const static struct krb5_kt_typelist krb5_kt_typelist_file  = {
     &krb5_ktf_ops,
     &krb5_kt_typelist_wrfile
 };
-const static struct krb5_kt_typelist krb5_kt_typelist_srvtab = {
-    &krb5_kts_ops,
-    &krb5_kt_typelist_file
-};
-static const struct krb5_kt_typelist *kt_typehead = &krb5_kt_typelist_srvtab;
+
+static const struct krb5_kt_typelist *kt_typehead = &krb5_kt_typelist_file;
 /* Lock for protecting the type list.  */
 static k5_mutex_t kt_typehead_lock = K5_MUTEX_PARTIAL_INITIALIZER;
 
 int krb5int_kt_initialize(void)
 {
-    return k5_mutex_finish_init(&kt_typehead_lock);
+    int err;
+
+    err = k5_mutex_finish_init(&kt_typehead_lock);
+    if (err)
+	goto done;
+    err = krb5int_mkt_initialize();
+    if (err)
+	goto done;
+
+  done:
+    return(err);
 }
 
 void
 krb5int_kt_finalize(void)
 {
-    struct krb5_kt_typelist *t, *t_next;
+    const struct krb5_kt_typelist *t, *t_next;
+
     k5_mutex_destroy(&kt_typehead_lock);
-    for (t = kt_typehead; t != &krb5_kt_typelist_srvtab; t = t_next) {
+    for (t = kt_typehead; t != &krb5_kt_typelist_file; t = t_next) {
 	t_next = t->next;
-	free(t);
+	free((struct krb5_kt_typelist *)t);
     }
+
+    krb5int_mkt_finalize();
 }
 
 
@@ -119,10 +162,10 @@ krb5_error_code KRB5_CALLCONV
 krb5_kt_resolve (krb5_context context, const char *name, krb5_keytab *ktid)
 {
     const struct krb5_kt_typelist *tlist;
-    char *pfx;
+    char *pfx = NULL;
     unsigned int pfxlen;
     const char *cp, *resid;
-    krb5_error_code err;
+    krb5_error_code err = 0;
     
     cp = strchr (name, ':');
     if (!cp) {
@@ -138,6 +181,11 @@ krb5_kt_resolve (krb5_context context, const char *name, krb5_keytab *ktid)
             return ENOMEM;
 
         resid = name;
+    } else if (name[0] == '/') {
+	pfx = strdup("FILE");
+	if (!pfx)
+	    return ENOMEM;
+	resid = name;
     } else {
         resid = name + pfxlen + 1;
 	
@@ -153,7 +201,7 @@ krb5_kt_resolve (krb5_context context, const char *name, krb5_keytab *ktid)
 
     err = k5_mutex_lock(&kt_typehead_lock);
     if (err)
-	return err;
+	goto cleanup;
     tlist = kt_typehead;
     /* Don't need to hold the lock, since entries are never modified
        or removed once they're in the list.  Just need to protect
@@ -161,12 +209,15 @@ krb5_kt_resolve (krb5_context context, const char *name, krb5_keytab *ktid)
     k5_mutex_unlock(&kt_typehead_lock);
     for (; tlist; tlist = tlist->next) {
 	if (strcmp (tlist->ops->prefix, pfx) == 0) {
-	    free(pfx);
-	    return (*tlist->ops->resolve)(context, resid, ktid);
+	    err = (*tlist->ops->resolve)(context, resid, ktid);
+	    goto cleanup;
 	}
     }
+    err = KRB5_KT_UNKNOWN_TYPE;
+
+cleanup:
     free(pfx);
-    return KRB5_KT_UNKNOWN_TYPE;
+    return err;
 }
 
 /*
@@ -242,3 +293,5 @@ krb5_ser_keytab_init(krb5_context kcontext)
 {
     return(krb5_register_serializer(kcontext, &krb5_keytab_ser_entry));
 }
+#endif /* LEAN_CLIENT */
+

@@ -1,7 +1,7 @@
 /*
  * lib/krb5/os/full_ipadr.c
  *
- * Copyright 1995 by the Massachusetts Institute of Technology.
+ * Copyright 1995, 2009 by the Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
  * Export of this software from the United States of America may
@@ -57,14 +57,12 @@ krb5_make_fulladdr(krb5_context context, krb5_address *kaddr, krb5_address *kpor
     tmp16 = kaddr->addrtype;
     *marshal++ = 0x00;
     *marshal++ = 0x00;
-    *marshal++ = (krb5_octet) (tmp16 & 0xff);
-    *marshal++ = (krb5_octet) ((tmp16 >> 8) & 0xff);
+    store_16_le(tmp16, marshal);
+    marshal += 2;
 
     tmp32 = kaddr->length;
-    *marshal++ = (krb5_octet) (tmp32 & 0xff);
-    *marshal++ = (krb5_octet) ((tmp32 >> 8) & 0xff);
-    *marshal++ = (krb5_octet) ((tmp32 >> 16) & 0xff);
-    *marshal++ = (krb5_octet) ((tmp32 >> 24) & 0xff);
+    store_32_le(tmp32, marshal);
+    marshal += 4;
 
     (void) memcpy((char *)marshal, (char *)(kaddr->contents), kaddr->length);
     marshal += kaddr->length;
@@ -72,14 +70,12 @@ krb5_make_fulladdr(krb5_context context, krb5_address *kaddr, krb5_address *kpor
     tmp16 = kport->addrtype;
     *marshal++ = 0x00;
     *marshal++ = 0x00;
-    *marshal++ = (krb5_octet) (tmp16 & 0xff);
-    *marshal++ = (krb5_octet) ((tmp16 >> 8) & 0xff);
+    store_16_le(tmp16, marshal);
+    marshal += 2;
 
     tmp32 = kport->length;
-    *marshal++ = (krb5_octet) (tmp32 & 0xff);
-    *marshal++ = (krb5_octet) ((tmp32 >> 8) & 0xff);
-    *marshal++ = (krb5_octet) ((tmp32 >> 16) & 0xff);
-    *marshal++ = (krb5_octet) ((tmp32 >> 24) & 0xff);
+    store_32_le(tmp32, marshal);
+    marshal += 4;
 
     (void) memcpy((char *)marshal, (char *)(kport->contents), kport->length);
     marshal += kport->length;

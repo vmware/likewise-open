@@ -8,7 +8,9 @@ of RSA Data Security)
 */
 #include "k5-int.h"
 #include "arcfour-int.h"
-static const char *const l40 = "fortybits";
+#include "../hash_provider/hash_provider.h"
+
+const char *const krb5int_arcfour_l40 = "fortybits";
 
 void
 krb5_arcfour_encrypt_length(const struct krb5_enc_provider *enc,
@@ -45,7 +47,7 @@ case 7:				/* tgs-req authenticator */
     case 8:
     return 8;
   case 9:			/* tgs-rep encrypted with subkey */
-    return 8;
+    return 9;
   case 10:			/* ap-rep authentication cksum */
     return 10;			/* xxx  Microsoft never uses this*/
   case 11:			/* app-req authenticator */
@@ -139,17 +141,11 @@ krb5_arcfour_encrypt(const struct krb5_enc_provider *enc,
   /* begin the encryption, computer K1 */
   ms_usage=krb5int_arcfour_translate_usage(usage);
   if (key->enctype == ENCTYPE_ARCFOUR_HMAC_EXP) {
-    strncpy(salt.data, l40, salt.length);
-    salt.data[10]=ms_usage & 0xff;
-    salt.data[11]=(ms_usage >> 8) & 0xff;
-    salt.data[12]=(ms_usage >> 16) & 0xff;
-    salt.data[13]=(ms_usage >> 24) & 0xff;
+    strncpy(salt.data, krb5int_arcfour_l40, salt.length);
+    store_32_le(ms_usage, salt.data+10);
   } else {
     salt.length=4;
-    salt.data[0]=ms_usage & 0xff;
-    salt.data[1]=(ms_usage >> 8) & 0xff;
-    salt.data[2]=(ms_usage >> 16) & 0xff;
-    salt.data[3]=(ms_usage >> 24) & 0xff;
+    store_32_le(ms_usage, salt.data);
   }
   krb5_hmac(hash, key, 1, &salt, &d1);
 
@@ -256,46 +252,57 @@ krb5_arcfour_decrypt(const struct krb5_enc_provider *enc,
   checksum.length=hashsize;
   checksum.data=input->data;
 
-  /* compute the salt */
   ms_usage=krb5int_arcfour_translate_usage(usage);
-  if (key->enctype == ENCTYPE_ARCFOUR_HMAC_EXP) {
-    strncpy(salt.data, l40, salt.length);
-    salt.data[10]=ms_usage & 0xff;
-    salt.data[11]=(ms_usage>>8) & 0xff;
-    salt.data[12]=(ms_usage>>16) & 0xff;
-    salt.data[13]=(ms_usage>>24) & 0xff;
-  } else {
-    salt.length=4;
-    salt.data[0]=ms_usage & 0xff;
-    salt.data[1]=(ms_usage>>8) & 0xff;
-    salt.data[2]=(ms_usage>>16) & 0xff;
-    salt.data[3]=(ms_usage>>24) & 0xff;
-  }
-  ret=krb5_hmac(hash, key, 1, &salt, &d1);
-  if (ret)
-    goto cleanup;
 
-  memcpy(k2.contents, k1.contents, k2.length);
+  /* We may have to try two ms_usage values; see below. */
+  do {
+      /* compute the salt */
+      if (key->enctype == ENCTYPE_ARCFOUR_HMAC_EXP) {
+	  strncpy(salt.data, krb5int_arcfour_l40, salt.length);
+	  store_32_le(ms_usage, salt.data + 10);
+      } else {
+	  salt.length = 4;
+	  store_32_le(ms_usage, salt.data);
+      }
+      ret = krb5_hmac(hash, key, 1, &salt, &d1);
+      if (ret)
+	  goto cleanup;
 
-  if (key->enctype == ENCTYPE_ARCFOUR_HMAC_EXP)
-    memset(k1.contents+7, 0xab, 9);
+      memcpy(k2.contents, k1.contents, k2.length);
+
+      if (key->enctype == ENCTYPE_ARCFOUR_HMAC_EXP)
+	  memset(k1.contents + 7, 0xab, 9);
   
-  ret = krb5_hmac(hash, &k1, 1, &checksum, &d3);
-  if (ret)
-    goto cleanup;
+      ret = krb5_hmac(hash, &k1, 1, &checksum, &d3);
+      if (ret)
+	  goto cleanup;
 
-  ret=(*(enc->decrypt))(&k3, ivec, &ciphertext, &plaintext);
-  if (ret)
-    goto cleanup;
+      ret = (*(enc->decrypt))(&k3, ivec, &ciphertext, &plaintext);
+      if (ret)
+	  goto cleanup;
 
-  ret=krb5_hmac(hash, &k2, 1, &plaintext, &d1);
-  if (ret)
-    goto cleanup;
+      ret = krb5_hmac(hash, &k2, 1, &plaintext, &d1);
+      if (ret)
+	  goto cleanup;
 
-  if (memcmp(checksum.data, d1.data, hashsize) != 0) {
-    ret=KRB5KRB_AP_ERR_BAD_INTEGRITY;
-    goto cleanup;
-  }
+      if (memcmp(checksum.data, d1.data, hashsize) != 0) {
+	  if (ms_usage == 9) {
+	      /*
+	       * RFC 4757 specifies usage 8 for TGS-REP encrypted
+	       * parts encrypted in a subkey, but the value used by MS
+	       * is actually 9.  We now use 9 to start with, but fall
+	       * back to 8 on failure in case we are communicating
+	       * with a KDC using the value from the RFC.
+	       */
+	      ms_usage = 8;
+	      continue;
+	  }
+	  ret = KRB5KRB_AP_ERR_BAD_INTEGRITY;
+	  goto cleanup;
+      }
+
+      break;
+  } while (1);
 
   memcpy(output->data, plaintext.data+CONFOUNDERLENGTH,
 	 (plaintext.length-CONFOUNDERLENGTH));
@@ -316,3 +323,12 @@ krb5_arcfour_decrypt(const struct krb5_enc_provider *enc,
   return (ret);
 }
 
+ krb5_error_code krb5int_arcfour_prf(
+					 const struct krb5_enc_provider *enc,
+					 const struct krb5_hash_provider *hash,
+					 const krb5_keyblock *key,
+					 const krb5_data *in, krb5_data *out)
+ {
+   assert(out->length == 20);
+   return krb5_hmac(&krb5int_hash_sha1, key, 1, in, out);
+ }

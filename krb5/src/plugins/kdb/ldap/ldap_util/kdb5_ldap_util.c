@@ -1,7 +1,7 @@
 /*
  * kadmin/ldap_util/kdb5_ldap_util.c
  *
- * (C) Copyright 1990,1991, 1996 by the Massachusetts Institute of Technology.
+ * (C) Copyright 1990,1991, 1996, 2008 by the Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
  * Export of this software from the United States of America may
@@ -104,7 +104,7 @@ krb5_boolean manual_mkey = FALSE;
  * This function prints the usage of kdb5_ldap_util, which is
  * the LDAP configuration utility.
  */
-void usage()
+void usage(void)
 {
     fprintf(stderr, "Usage: "
 "kdb5_ldap_util [-D user_dn [-w passwd]] [-H ldapuri]\n"
@@ -116,7 +116,7 @@ void usage()
 "\t\t[-kdcdn kdc_service_list] [-admindn admin_service_list]\n"
 "\t\t[-pwddn passwd_service_list]\n"
 #endif
-"\t\t[-m|-P password|-sf stashfilename] [-k mkeytype] [-s]\n"
+"\t\t[-m|-P password|-sf stashfilename] [-k mkeytype] [-kv mkeyVNO] [-s]\n"
 "\t\t[-maxtktlife max_ticket_life] [-maxrenewlife max_renewable_ticket_life]\n"
 "\t\t[ticket_flags] [-r realm]\n"
 
@@ -297,11 +297,15 @@ int main(argc, argv)
     unsigned int ldapmask = 0;
     unsigned int passwd_len = 0;
     char *prompt = NULL;
-    kdb5_dal_handle *dal_handle = NULL;
     krb5_ldap_context *ldap_context=NULL;
     char *value = NULL, *conf_section = NULL;
     krb5_boolean realm_name_required = TRUE;
     krb5_boolean print_help_message = FALSE;
+
+    /*
+     * Ensure that "progname" is set before calling com_err.
+     */
+    progname = (strrchr(argv[0], '/') ? strrchr(argv[0], '/')+1 : argv[0]);
 
     retval = krb5_init_context(&util_context);
     set_com_err_hook(extended_com_err_fn);
@@ -310,8 +314,6 @@ int main(argc, argv)
 	exit_status++;
 	goto cleanup;
     }
-
-    progname = (strrchr(argv[0], '/') ? strrchr(argv[0], '/')+1 : argv[0]);
 
     cmd_argv = (char **) malloc(sizeof(char *)*argc);
     if (cmd_argv == NULL) {
@@ -343,10 +345,20 @@ int main(argc, argv)
 		goto cleanup;
 	    }
 	} else if (strcmp(*argv, "-k") == 0 && ARG_VAL) {
-	    if (krb5_string_to_enctype(koptarg, &global_params.enctype))
-		com_err(argv[0], 0, "%s is an invalid enctype", koptarg);
-	    else
+	    if (krb5_string_to_enctype(koptarg, &global_params.enctype)) {
+		com_err(progname, EINVAL, ": %s is an invalid enctype", koptarg);
+		exit_status++;
+		goto cleanup;
+            } else
 		global_params.mask |= KADM5_CONFIG_ENCTYPE;
+	} else if (strcmp(*argv, "-kv") == 0 && ARG_VAL) {
+	    global_params.kvno = (krb5_kvno) atoi(koptarg);
+            if (global_params.kvno == IGNORE_VNO) {
+                com_err(progname, EINVAL, ": %s is an invalid mkeyVNO", koptarg);
+		exit_status++;
+		goto cleanup;
+            } else
+                global_params.mask |= KADM5_CONFIG_KVNO;
 	} else if (strcmp(*argv, "-M") == 0 && ARG_VAL) {
 	    global_params.mkey_name = koptarg;
 	    global_params.mask |= KADM5_CONFIG_MKEY_NAME;
@@ -407,7 +419,6 @@ int main(argc, argv)
      * we will print the help corresponding to the sub-command.
      */
     if (print_help_message) {
-	char *cmd_name = cmd_argv[0];
 	free(cmd_argv);
 	cmd_argv = NULL;
 	usage();
@@ -466,7 +477,7 @@ int main(argc, argv)
 	retval = kadm5_get_config_params(util_context, 1,
 					 &global_params, &global_params);
 	if (retval) {
-	    com_err(argv[0], retval, "while retreiving configuration parameters");
+	    com_err(progname, retval, "while retreiving configuration parameters");
 	    exit_status++;
 	    goto cleanup;
 	}
@@ -474,7 +485,7 @@ int main(argc, argv)
     }
 
     if ((retval = krb5_ldap_lib_init()) != 0) {
-	com_err(argv[0], retval, "while initializing error handling");
+	com_err(progname, retval, "while initializing error handling");
 	exit_status++;
 	goto cleanup;
     }
@@ -482,7 +493,7 @@ int main(argc, argv)
     /* Initialize the ldap context */
     ldap_context = calloc(sizeof(krb5_ldap_context), 1);
     if (ldap_context == NULL) {
-	com_err(argv[0], ENOMEM, "while initializing ldap handle");
+	com_err(progname, ENOMEM, "while initializing ldap handle");
 	exit_status++;
 	goto cleanup;
     }
@@ -495,7 +506,7 @@ int main(argc, argv)
 	if (passwd == NULL) {
 	    passwd = (char *)malloc(MAX_PASSWD_LEN);
 	    if (passwd == NULL) {
-		com_err(argv[0], ENOMEM, "while retrieving ldap configuration");
+		com_err(progname, ENOMEM, "while retrieving ldap configuration");
 		exit_status++;
 		goto cleanup;
 	    }
@@ -503,18 +514,18 @@ int main(argc, argv)
 	    if (prompt == NULL) {
 		free(passwd);
 		passwd = NULL;
-		com_err(argv[0], ENOMEM, "while retrieving ldap configuration");
+		com_err(progname, ENOMEM, "while retrieving ldap configuration");
 		exit_status++;
 		goto cleanup;
 	    }
-	    memset(passwd, 0, sizeof(passwd));
+	    memset(passwd, 0, MAX_PASSWD_LEN);
 	    passwd_len = MAX_PASSWD_LEN - 1;
 	    snprintf(prompt, MAX_PASSWD_PROMPT_LEN, "Password for \"%s\"", bind_dn);
 
 	    db_retval = krb5_read_password(util_context, prompt, NULL, passwd, &passwd_len);
 
 	    if ((db_retval) || (passwd_len == 0)) {
-		com_err(argv[0], ENOMEM, "while retrieving ldap configuration");
+		com_err(progname, ENOMEM, "while retrieving ldap configuration");
 		free(passwd);
 		passwd = NULL;
 		exit_status++;
@@ -523,6 +534,7 @@ int main(argc, argv)
 	}
 
 	ldap_context->bind_pwd = passwd;
+	passwd = NULL;
     }
 
     /* If ldaphost is specified, release entry filled by configuration & use this */
@@ -530,14 +542,14 @@ int main(argc, argv)
 
 	ldap_context->server_info_list = (krb5_ldap_server_info **) calloc (2, sizeof (krb5_ldap_server_info *)) ;
 	if (ldap_context->server_info_list == NULL) {
-	    com_err(argv[0], ENOMEM, "while initializing server list");
+	    com_err(progname, ENOMEM, "while initializing server list");
 	    exit_status++;
 	    goto cleanup;
 	}
 
 	ldap_context->server_info_list[0] = (krb5_ldap_server_info *) calloc (1, sizeof (krb5_ldap_server_info));
 	if (ldap_context->server_info_list[0] == NULL) {
-	    com_err(argv[0], ENOMEM, "while initializing server list");
+	    com_err(progname, ENOMEM, "while initializing server list");
 	    exit_status++;
 	    goto cleanup;
 	}
@@ -546,7 +558,7 @@ int main(argc, argv)
 
 	ldap_context->server_info_list[0]->server_name = strdup(ldap_server);
 	if (ldap_context->server_info_list[0]->server_name == NULL) {
-	    com_err(argv[0], ENOMEM, "while initializing server list");
+	    com_err(progname, ENOMEM, "while initializing server list");
 	    exit_status++;
 	    goto cleanup;
 	}
@@ -554,7 +566,7 @@ int main(argc, argv)
     if (bind_dn) {
 	ldap_context->bind_dn = strdup(bind_dn);
 	if (ldap_context->bind_dn == NULL) {
-	    com_err(argv[0], ENOMEM, "while retrieving ldap configuration");
+	    com_err(progname, ENOMEM, "while retrieving ldap configuration");
 	    exit_status++;
 	    goto cleanup;
 	}
@@ -566,7 +578,7 @@ int main(argc, argv)
     if (realm_name_required) {
 	if ((global_params.enctype != ENCTYPE_UNKNOWN) &&
 	    (!krb5_c_valid_enctype(global_params.enctype))) {
-	    com_err(argv[0], KRB5_PROG_KEYTYPE_NOSUPP,
+	    com_err(progname, KRB5_PROG_KEYTYPE_NOSUPP,
 		    "while setting up enctype %d", global_params.enctype);
 	}
     }
@@ -574,22 +586,24 @@ int main(argc, argv)
     cmd = cmd_lookup(cmd_argv[0]);
 
     /* Setup DAL handle to access the database */
-    dal_handle = calloc((size_t)1, sizeof(kdb5_dal_handle));
-    if (dal_handle == NULL) {
+    db_retval = krb5_db_setup_lib_handle(util_context);
+    if (db_retval) {
+	com_err(progname, db_retval, "while setting up lib handle");
+	exit_status++;
 	goto cleanup;
     }
-    dal_handle->db_context = ldap_context;
-    util_context->db_context = (void *) dal_handle;
+    util_context->dal_handle->db_context = ldap_context;
+    ldap_context = NULL;
 
     db_retval = krb5_ldap_read_server_params(util_context, conf_section, KRB5_KDB_SRV_TYPE_OTHER);
     if (db_retval) {
-	com_err(argv[0], db_retval, "while reading ldap configuration");
+	com_err(progname, db_retval, "while reading ldap configuration");
 	exit_status++;
 	goto cleanup;
     }
 
     if (cmd->opendb) {
-	db_retval = krb5_ldap_db_init(util_context, ldap_context);
+	db_retval = krb5_ldap_db_init(util_context, (krb5_ldap_context *)util_context->dal_handle->db_context);
 	if (db_retval) {
 	    com_err(progname, db_retval, "while initializing database");
 	    exit_status++;
@@ -602,10 +616,15 @@ int main(argc, argv)
     goto cleanup;
 
 cleanup:
-    if (passwd)
-	memset(passwd, 0, sizeof(passwd));
-    if (ldap_context && ldap_context->bind_pwd)
-	memset(ldap_context->bind_pwd, 0, sizeof(ldap_context->bind_pwd));
+    if (passwd) {
+	memset(passwd, 0, strlen(passwd));
+	free(passwd);
+    }
+
+    if (ldap_context) {
+	krb5_ldap_free_server_context_params(ldap_context);
+	free(ldap_context);
+    }
 
     if (util_context) {
 	if (gp_is_static == 0)
@@ -620,8 +639,6 @@ cleanup:
 	free(prompt);
     if (conf_section)
 	free(conf_section);
-    if (dal_handle)
-	free(dal_handle);
 
     if (usage_print) {
 	usage();
