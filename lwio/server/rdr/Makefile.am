@@ -1,11 +1,19 @@
+ADDITIONAL_LIBS =
+NOINST_DEP_LIBS = \
+    @top_builddir@/server/iomgr2/libiomgr2.la
+
 if ENABLE_STATIC_DRIVERS
 noinst_LTLIBRARIES = librdr.sys.la
 DRIVER_CFLAGS =
 DRIVER_LDFLAGS =
+if !ENABLE_SMALL_DAEMON
+ADDITIONAL_LIBS += $(NOINST_DEP_LIBS)
+endif
 else
 lib_LTLIBRARIES = librdr.sys.la
 DRIVER_CFLAGS = -shared
 DRIVER_LDFLAGS = -module -shared -avoid-version
+ADDITIONAL_LIBS += $(NOINST_DEP_LIBS)
 endif
 
 librdr_sys_la_SOURCES =   \
@@ -59,8 +67,8 @@ librdr_sys_la_CPPFLAGS = \
 librdr_sys_la_CFLAGS = $(AM_CFLAGS) $(DRIVER_CFLAGS)
 
 librdr_sys_la_LIBADD = \
-    @top_builddir@/server/iomgr2/libiomgr2.la \
     @top_builddir@/server/smbcommon/liblwiosmbcommon.la \
+    $(ADDITIONAL_LIBS) \
     @UUID_LIBS@ \
     @PTHREAD_LIBS@ \
     @SOCKET_LIBS@

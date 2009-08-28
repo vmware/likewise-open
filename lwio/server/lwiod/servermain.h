@@ -55,6 +55,12 @@ main(
     char* argv[]
     );
 
+int
+lwiod_main(
+    int argc,
+    char* argv[]
+    );
+
 BOOLEAN
 SMBSrvShouldProcessExit();
 

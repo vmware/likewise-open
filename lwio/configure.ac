@@ -303,6 +303,13 @@ then
 	AC_DEFINE([ENABLE_STATIC_DRIVERS], [], [Define if drivers should be built directly into lwiod])
 fi
 
+AC_ARG_ENABLE([small-daemon], [AC_HELP_STRING([--enable-small-daemon], [build small lwiod])])
+AM_CONDITIONAL(ENABLE_SMALL_DAEMON, test x"$enable_small_daemon" = x"yes")
+if test x"$enable_small_daemon" = x"yes"
+then
+	AC_DEFINE([ENABLE_SMALL_DAEMON], [], [Define if lwiod should be small])
+fi
+
 ENABLE_IOTEST=true
 
 AC_ARG_ENABLE([iotest],
