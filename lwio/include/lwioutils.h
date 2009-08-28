@@ -269,7 +269,7 @@ extern pthread_mutex_t gSMBLogLock;
 #define LWIO_UNLOCK_LOGGER pthread_mutex_unlock(&gSMBLogLock)
 
 #define _LWIO_LOG_PREFIX_THREAD(Format) \
-    "0x%x:" Format, ((unsigned int)pthread_self())
+    "%zd:" Format, ((size_t)pthread_self())
 
 #else
 

@@ -294,7 +294,7 @@ ClientPipeThread(
     IO_FILE_HANDLE FileHandle = NULL;
     ULONG i = 0;
 
-    printf("Client thread [0x%x] starting\n", (unsigned int)pthread_self());
+    printf("Client thread [%zd] starting\n", (size_t)pthread_self());
 
     FileHandle =  *pFileHandle;
     while (!ProcessMustExit() && (i++ < gNumIterations)) {
@@ -333,7 +333,7 @@ ClientPipeThread(
         InBytesRead = io_status.BytesTransferred;
 
         if (InBytesRead ==  OutBytesWritten) {
-            printf("Successful echo [Thr:0x%x]:%s\n", (unsigned int)pthread_self(), InBuffer);
+            printf("Successful echo [Thr:%zd]:%s\n", (size_t)pthread_self(), InBuffer);
         }
     }
 
@@ -344,7 +344,7 @@ cleanup:
         NtCloseFile(FileHandle);
     }
 
-    printf("Client thread [0x%x] ending\n", (unsigned int)pthread_self());
+    printf("Client thread [%zd] ending\n", (size_t)pthread_self());
 
     return NULL;
 
