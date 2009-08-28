@@ -447,8 +447,8 @@ SrvBuildOpenState(
             break;
     }
 
-    /* action to take if the file exists */
-    switch (pRequestHeader->usOpenFunction & 0x7)
+    /* desired access mask */
+    switch (pRequestHeader->usDesiredAccess & 0x7)
     {
         case 0x00:
 

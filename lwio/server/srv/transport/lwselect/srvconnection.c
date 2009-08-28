@@ -60,7 +60,6 @@ SrvConnectionGetNextSequence(
     switch (pSmbRequest->pSMBHeader->command)
     {
         case COM_NEGOTIATE:
-        case COM_ECHO:
 
             break;
 
