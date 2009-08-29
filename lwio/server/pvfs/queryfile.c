@@ -61,6 +61,7 @@ static struct _InfoLevelDispatchEntry InfoLevelDispatchTable[] = {
     /* Query Levels */
     { FileAccessInformation,            NULL },
     { FileAlignmentInformation,         NULL },
+    { FileAllInformation,               &PvfsFileAllInfo },
     { FileAlternateNameInformation,     NULL },
     { FileAttributeTagInformation,      NULL },
     { FileEaInformation,                &PvfsFileEaInfo },
