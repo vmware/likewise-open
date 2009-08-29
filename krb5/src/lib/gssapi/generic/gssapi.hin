@@ -144,15 +144,6 @@ typedef int             gss_cred_usage_t;
 #define GSS_C_DELEG_POLICY_FLAG 32768
 
 /*
- * Flag bits used on Microsoft platform
- * (for portability reasons)
- */
-#define ISC_REQ_MUTUAL_AUTH       GSS_C_MUTUAL_FLAG
-#define ISC_REQ_REPLAY_DETECT     GSS_C_REPLAY_FLAG
-#define ISC_REQ_INTEGRITY         GSS_C_INTEG_FLAG
-#define ISC_REQ_CONFIDENTIALITY   GSS_C_CONF_FLAG
-
-/*
  * Credential usage options
  */
 #define GSS_C_BOTH      0
