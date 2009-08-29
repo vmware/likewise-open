@@ -238,7 +238,7 @@ LwLdapOpenDirectoryServerSingleAttempt(
     int rc = LDAP_VERSION3;
     DWORD dwPort = 389;
     struct timeval timeout = {0};
-    DWORD dwSecurity = ISC_REQ_MUTUAL_AUTH | ISC_REQ_REPLAY_DETECT;
+    DWORD dwSecurity = GSS_C_MUTUAL_FLAG | GSS_C_REPLAY_FLAG;
 
     timeout.tv_sec = dwTimeoutSec;
 
@@ -284,11 +284,11 @@ LwLdapOpenDirectoryServerSingleAttempt(
         BAIL_ON_LDAP_ERROR(dwError);
     }
 
-    dwSecurity |= ISC_REQ_INTEGRITY;
+    dwSecurity |= GSS_C_INTEG_FLAG;
     
     if (dwFlags & LW_LDAP_OPT_SIGN_AND_SEAL)
     {
-        dwSecurity |= ISC_REQ_CONFIDENTIALITY;
+        dwSecurity |= GSS_C_CONF_FLAG;
     }
 
     dwError = ldap_set_option(ld, LDAP_OPT_SSPI_FLAGS, (void*)&dwSecurity);
