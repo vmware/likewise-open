@@ -300,7 +300,7 @@ DirectoryConnect(
     *ldconn     = NULL;
     *dn_context = NULL;
 
-    lderr = LdapInitConnection(&ld, domain, ISC_REQ_INTEGRITY);
+    lderr = LdapInitConnection(&ld, domain, GSS_C_INTEG_FLAG);
     BAIL_ON_LDERR_ERROR(lderr);
 
     lderr = LdapGetDirectoryInfo(&info, &res, ld);

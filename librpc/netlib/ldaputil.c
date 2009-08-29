@@ -193,7 +193,7 @@ int LdapInitConnection(LDAP **ldconn, const wchar16_t *host,
     lderr = ldap_set_option(ld, LDAP_OPT_REFERRALS, LDAP_OPT_OFF);
     BAIL_ON_LDERR_ERROR(lderr);
 
-    security |= ISC_REQ_MUTUAL_AUTH | ISC_REQ_REPLAY_DETECT;
+    security |= GSS_C_MUTUAL_FLAG | GSS_C_REPLAY_FLAG;
 
     lderr = ldap_set_option(ld, LDAP_OPT_SSPI_FLAGS, &security);
     BAIL_ON_LDERR_ERROR(lderr);
