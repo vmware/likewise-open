@@ -31,7 +31,6 @@ SRCS = \
 	$(srcdir)/g_init_sec_context.c \
 	$(srcdir)/g_initialize.c \
 	$(srcdir)/g_inq_context.c \
-	$(srcdir)/g_inq_context2.c \
 	$(srcdir)/g_inq_context_oid.c \
 	$(srcdir)/g_inq_cred.c \
 	$(srcdir)/g_inq_cred_oid.c \
@@ -76,7 +75,6 @@ OBJS = \
 	$(OUTPRE)g_init_sec_context.$(OBJEXT) \
 	$(OUTPRE)g_initialize.$(OBJEXT) \
 	$(OUTPRE)g_inq_context.$(OBJEXT) \
-	$(OUTPRE)g_inq_context2.$(OBJEXT) \
 	$(OUTPRE)g_inq_context_oid.$(OBJEXT) \
 	$(OUTPRE)g_inq_cred.$(OBJEXT) \
 	$(OUTPRE)g_inq_cred_oid.$(OBJEXT) \
@@ -121,7 +119,6 @@ STLIBOBJS = \
 	g_init_sec_context.o \
 	g_initialize.o \
 	g_inq_context.o \
-	g_inq_context2.o \
 	g_inq_context_oid.o \
 	g_inq_cred.o \
 	g_inq_cred_oid.o \

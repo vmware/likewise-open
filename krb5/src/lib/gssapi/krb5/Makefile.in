@@ -59,7 +59,6 @@ SRCS = \
 	$(srcdir)/indicate_mechs.c \
 	$(srcdir)/init_sec_context.c \
 	$(srcdir)/inq_context.c \
-	$(srcdir)/inq_context2.c \
 	$(srcdir)/inq_cred.c \
 	$(srcdir)/inq_names.c \
 	$(srcdir)/k5seal.c \
@@ -110,7 +109,6 @@ OBJS = \
 	$(OUTPRE)indicate_mechs.$(OBJEXT) \
 	$(OUTPRE)init_sec_context.$(OBJEXT) \
 	$(OUTPRE)inq_context.$(OBJEXT) \
-	$(OUTPRE)inq_context2.$(OBJEXT) \
 	$(OUTPRE)inq_cred.$(OBJEXT) \
 	$(OUTPRE)inq_names.$(OBJEXT) \
 	$(OUTPRE)k5seal.$(OBJEXT) \
@@ -164,7 +162,6 @@ STLIBOBJS = \
 	indicate_mechs.o \
 	init_sec_context.o \
 	inq_context.o \
-	inq_context2.o \
 	inq_cred.o \
 	inq_names.o \
 	k5seal.o \
