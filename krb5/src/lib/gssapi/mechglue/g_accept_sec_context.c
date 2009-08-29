@@ -146,23 +146,13 @@ gss_cred_id_t *		d_cred;
     
     if(*context_handle == GSS_C_NO_CONTEXT) {
 	
-	if (GSS_EMPTY_BUFFER(input_token_buffer)) {
-	    /*
-	     * There is the a wierd mode of SPNEGO (in CIFS and
-	     * SASL GSS-SPNEGO where the first token is zero
-	     * length and the acceptor returns a mech_list, lets
-	     * hope that is what is happening now.
-	     */
-#define SPNEGO_OID_LENGTH 6
-#define SPNEGO_OID "\053\006\001\005\005\002"
-	    token_mech_type->length = SPNEGO_OID_LENGTH;
-	    token_mech_type->elements = SPNEGO_OID;
-	} else {
-	    /* Get the token mech type */
-	    status = gssint_get_mech_type(token_mech_type, input_token_buffer);
-	    if (status)
-	        return status;
-	}
+	if (input_token_buffer == GSS_C_NO_BUFFER)
+	    return (GSS_S_CALL_INACCESSIBLE_READ);
+
+	/* Get the token mech type */
+	status = gssint_get_mech_type(token_mech_type, input_token_buffer);
+	if (status)
+	    return status;
 
 	status = GSS_S_FAILURE;
 	union_ctx_id = (gss_union_ctx_id_t)

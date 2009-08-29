@@ -56,7 +56,7 @@ KtLdapBind(
     DWORD dwError = 0;
     int lderr = 0;
     LDAP *ld = NULL;
-    int secflags = 0;
+    int secflags = GSS_C_MUTUAL_FLAG | GSS_C_REPLAY_FLAG | GSS_C_INTEG_FLAG;
 
     *ldret = NULL;
 
@@ -72,8 +72,6 @@ KtLdapBind(
     lderr = ldap_set_option(ld, LDAP_OPT_X_GSSAPI_ALLOW_REMOTE_PRINCIPAL,
             LDAP_OPT_ON);
     BAIL_ON_LDAP_ERROR(lderr);
-
-    secflags = ISC_REQ_MUTUAL_AUTH | ISC_REQ_REPLAY_DETECT | ISC_REQ_INTEGRITY;
 
     lderr = ldap_set_option(ld, LDAP_OPT_SSPI_FLAGS, &secflags);
     BAIL_ON_LDAP_ERROR(lderr);

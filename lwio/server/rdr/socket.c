@@ -819,6 +819,7 @@ SMBSocketConnect(
     int ret = 0;
     BOOLEAN bInLock = FALSE;
     struct addrinfo *ai = NULL;
+    struct addrinfo *pCursor = NULL;
     struct addrinfo hints;
 
     memset(&hints, 0, sizeof(struct addrinfo));
@@ -829,11 +830,32 @@ SMBSocketConnect(
         getaddrinfo(pSocket->pszHostname, "445", &hints, &ai));
     BAIL_ON_NT_STATUS(ntStatus);
 
-    if ((fd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol)) < 0)
+    for (pCursor = ai; pCursor; pCursor = pCursor->ai_next)
     {
-        ntStatus = UnixErrnoToNtStatus(errno);
+        fd = socket(pCursor->ai_family, pCursor->ai_socktype, pCursor->ai_protocol);
+
+        if (fd < 0)
+        {
+#ifdef EPROTONOSUPPORT
+            if (errno == EPROTONOSUPPORT)
+            {
+                continue;
+            }
+#endif
+            ntStatus = UnixErrnoToNtStatus(errno);
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+        else
+        {
+            break;
+        }
     }
-    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (fd < 0)
+    {
+        ntStatus = STATUS_BAD_NETWORK_NAME;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
     if (fcntl(fd, F_SETFL, O_NONBLOCK) < 0)
     {
@@ -878,6 +900,11 @@ SMBSocketConnect(
     LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 
 cleanup:
+
+    if (ai)
+    {
+        freeaddrinfo(ai);
+    }
 
     return ntStatus;
 

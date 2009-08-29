@@ -680,7 +680,6 @@ static struct gss_config krb5_mechanism = {
     krb5_gss_unwrap_iov,
     krb5_gss_wrap_iov_length,
     NULL,               /* complete_auth_token */
-    krb5_gss_inquire_context2,
 };
 
 
