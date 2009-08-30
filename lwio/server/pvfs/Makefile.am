@@ -47,6 +47,7 @@ libpvfs_sys_la_SOURCES = \
     util_time.c \
     fileBasicInfo.c \
     fileStandardInfo.c \
+    fileAllInfo.c \
     fileInternalInfo.c \
     fileBothDirInfo.c \
     fileFullDirInfo.c \

@@ -49,4 +49,8 @@
 
 #include "includes.h"
 
-SRV_ELEMENTS_GLOBALS gSrvElements = { .mutex = PTHREAD_MUTEX_INITIALIZER };
+SRV_ELEMENTS_GLOBALS gSrvElements = {
+    .mutex            = PTHREAD_MUTEX_INITIALIZER,
+    .pHintsBuffer     = NULL,
+    .ulHintsLength    = 0
+};

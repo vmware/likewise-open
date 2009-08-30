@@ -101,6 +101,13 @@ SrvElementsShutdown(
 
     SrvTimerFreeContents(&gSrvElements.timer);
 
+    if (gSrvElements.pHintsBuffer != NULL)
+    {
+        SrvFreeMemory(gSrvElements.pHintsBuffer);
+        gSrvElements.pHintsBuffer = NULL;
+        gSrvElements.ulHintsLength = 0;
+    }
+
     return STATUS_SUCCESS;
 }
 

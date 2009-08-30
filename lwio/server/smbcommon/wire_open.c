@@ -94,8 +94,10 @@ WireUnmarshallOpenRequest(
 
     if (ucBufferFormat != SMB_BUFFER_FORMAT_ASCII)
     {
-        ntStatus = STATUS_DATA_ERROR;
-        BAIL_ON_NT_STATUS(ntStatus);
+        /* Technically we should fail here but the Samba client libs fail to
+	   set the buffer format properly.  WinXP doesn't care so it was never
+	   caught. */
+        ntStatus = STATUS_SUCCESS;
     }
 
     pDataCursor += sizeof(ucBufferFormat);

@@ -30,6 +30,7 @@
 
 #include "includes.h"
 
+
 NTSTATUS
 SrvBuildNegotiateResponse_SMB_V1_NTLM_0_12(
     PLWIO_SRV_CONNECTION pConnection,
@@ -45,8 +46,6 @@ SrvBuildNegotiateResponse_SMB_V1_NTLM_0_12(
     uint16_t  byteCount = 0;
     uint8_t*  pDataCursor = NULL;
     PSRV_PROPERTIES pServerProperties = &pConnection->serverProperties;
-    PBYTE     pSessionKey = 0;
-    ULONG     ulSessionKeyLength = 0;
     PSMB_PACKET pSmbResponse = NULL;
 
     ntStatus = SMBPacketAllocate(
@@ -117,36 +116,32 @@ SrvBuildNegotiateResponse_SMB_V1_NTLM_0_12(
     pResponseHeader->systemTimeLow = llUTCTime & 0xFFFFFFFFLL;
     pResponseHeader->systemTimeHigh = (llUTCTime & 0xFFFFFFFF00000000LL) >> 32;
 
-
     pResponseHeader->encryptionKeyLength = 0;
 
     pDataCursor = pSmbResponse->pData;
     if (pResponseHeader->capabilities & CAP_EXTENDED_SECURITY)
     {
+        PBYTE pNegHintsBlob = NULL;
+        ULONG ulNegHintsLength = 0;
+
         memcpy(pDataCursor, pServerProperties->GUID, sizeof(pServerProperties->GUID));
         pDataCursor += sizeof(pServerProperties->GUID);
 
         byteCount += sizeof(pServerProperties->GUID);
 
-        ntStatus = SrvGssBeginNegotiate(
-                        pConnection->hGssContext,
-                        &pConnection->hGssNegotiate);
-        BAIL_ON_NT_STATUS(ntStatus);
+        ntStatus = SrvGssNegHints(
+                       pConnection->hGssContext,
+                       &pNegHintsBlob,
+                       &ulNegHintsLength);
 
-        ntStatus = SrvGssNegotiate(
-                        pConnection->hGssContext,
-                        pConnection->hGssNegotiate,
-                        NULL,
-                        0,
-                        &pSessionKey,
-                        &ulSessionKeyLength);
-        BAIL_ON_NT_STATUS(ntStatus);
+        /* Microsoft clients ignore the security blob on the neg prot response
+           so don't fail here if we can't get a negHintsBlob */
 
-        if (ulSessionKeyLength)
+        if (ntStatus == STATUS_SUCCESS)
         {
-            memcpy(pDataCursor, pSessionKey, ulSessionKeyLength);
-            pDataCursor += ulSessionKeyLength;
-            byteCount += ulSessionKeyLength;
+            memcpy(pDataCursor, pNegHintsBlob, ulNegHintsLength);
+            pDataCursor += ulNegHintsLength;
+            byteCount += ulNegHintsLength;
         }
     }
     else
@@ -164,11 +159,6 @@ SrvBuildNegotiateResponse_SMB_V1_NTLM_0_12(
     *ppSmbResponse = pSmbResponse;
 
 cleanup:
-
-    if (pSessionKey)
-    {
-        SrvFreeMemory(pSessionKey);
-    }
 
     return ntStatus;
 
@@ -250,3 +240,13 @@ error:
     goto cleanup;
 }
 
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

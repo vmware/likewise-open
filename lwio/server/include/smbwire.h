@@ -1338,6 +1338,25 @@ typedef struct _TRANS2_FILE_STANDARD_INFORMATION {
 } __attribute__((__packed__)) TRANS2_FILE_STANDARD_INFORMATION,
                              *PTRANS2_FILE_STANDARD_INFORMATION;
 
+typedef struct _TRANS2_FILE_ALL_INFORMATION {
+    LONG64    CreationTime;
+    LONG64    LastAccessTime;
+    LONG64    LastWriteTime;
+    LONG64    ChangeTime;
+    FILE_ATTRIBUTES FileAttributes;
+    ULONG     unknown;
+    LONG64    AllocationSize;
+    LONG64    EndOfFile;
+    ULONG     NumberOfLinks;
+    BOOLEAN   bDeletePending;
+    BOOLEAN   bDirectory;
+    USHORT    pad;
+    ULONG     EaSize;
+    ULONG     FileNameLength;
+    WCHAR     FileName[];
+} __attribute__((__packed__)) TRANS2_FILE_ALL_INFORMATION,
+                             *PTRANS2_FILE_ALL_INFORMATION;
+
 typedef struct {
     LONG64 EndOfFile;
 } __attribute__((__packed__)) TRANS2_FILE_END_OF_FILE_INFORMATION,
