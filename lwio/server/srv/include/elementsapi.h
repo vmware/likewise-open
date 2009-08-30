@@ -480,6 +480,13 @@ SrvGssReleaseContext(
     );
 
 NTSTATUS
+SrvGssNegHints(
+    HANDLE hGssContext,
+    PBYTE *ppNegHints,
+    ULONG *pulNegHintsLength
+    );
+
+NTSTATUS
 SrvConnectionCreate(
     HANDLE                          hSocket,
     HANDLE                          hPacketAllocator,

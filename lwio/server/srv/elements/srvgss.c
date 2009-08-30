@@ -343,6 +343,18 @@ SrvGssNegotiate(
 
             break;
 
+        case SRV_GSS_CONTEXT_STATE_HINTS:
+
+            ntStatus = SrvGssContinueNegotiate(
+                            pGssContext,
+                            pGssNegotiate,
+                            NULL,
+                            0,
+                            &pSecurityBlob,
+                            &ulSecurityBlobLen);
+
+            break;
+
         case SRV_GSS_CONTEXT_STATE_NEGOTIATE:
 
             if (!pSecurityInputBlob)
@@ -1043,3 +1055,90 @@ error:
 
     goto cleanup;
 }
+
+/**
+ * Caller must not free the memory since it is reused
+ **/
+
+NTSTATUS
+SrvGssNegHints(
+    HANDLE hGssContext,
+    PBYTE *ppNegHints,
+    ULONG *pulNegHintsLength
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    HANDLE hGssNegotiate = NULL;
+    PBYTE pHintsBuffer = gSrvElements.pHintsBuffer;
+    ULONG ulHintsLength = gSrvElements.ulHintsLength;
+
+    /* We only initialize the security buffer once.  Just reuse it
+       on future calls */
+
+    if (pHintsBuffer != NULL)
+    {
+        *ppNegHints = pHintsBuffer;
+        *pulNegHintsLength = ulHintsLength;
+
+        goto cleanup;
+    }
+
+    ntStatus = SrvGssBeginNegotiate(hGssContext, &hGssNegotiate);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    /* MIT Krb5 1.7 returns the NegHints blob if you call
+       gss_accept_sec_context() with a NULL input buffer */
+
+    ((PSRV_GSS_NEGOTIATE_CONTEXT)hGssNegotiate)->state = SRV_GSS_CONTEXT_STATE_HINTS;
+    ntStatus = SrvGssNegotiate(
+                   hGssContext,
+                   hGssNegotiate,
+                   NULL,
+                   0,
+                   &pHintsBuffer,
+                   &ulHintsLength);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    /* Save the output security buffer for later reuse */
+
+    gSrvElements.pHintsBuffer  = pHintsBuffer;
+    gSrvElements.ulHintsLength = ulHintsLength;
+
+    *ppNegHints        = pHintsBuffer;
+    *pulNegHintsLength = ulHintsLength;
+
+cleanup:
+
+    if (hGssNegotiate)
+    {
+        SrvGssEndNegotiate(hGssContext, hGssNegotiate);
+    }
+
+    return ntStatus;
+
+error:
+
+    if (pHintsBuffer)
+    {
+        SrvFreeMemory(pHintsBuffer);
+        pHintsBuffer = NULL;
+        ulHintsLength = 0;
+    }
+
+
+    *ppNegHints = NULL;
+    *pulNegHintsLength = 0;
+
+    goto cleanup;
+}
+
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

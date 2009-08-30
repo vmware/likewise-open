@@ -61,12 +61,28 @@ SrvProcessSessionSetup(
     UNICODE_STRING             uniUsername   = {0};
     PBYTE                      pSecurityBlob        = NULL; // Do Not Free
     ULONG                      ulSecurityBlobLength = 0;
+    PBYTE                      pInitSecurityBlob        = NULL;
+    ULONG                      ulInitSecurityBlobLength = 0;
 
     ntStatus = SrvUnmarshallSessionSetupRequest(
                     pConnection,
                     pSmbRequest,
                     &pSecurityBlob,
                     &ulSecurityBlobLength);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvGssBeginNegotiate(
+                   pConnection->hGssContext,
+                   &pConnection->hGssNegotiate);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvGssNegotiate(
+                   pConnection->hGssContext,
+                   pConnection->hGssNegotiate,
+                   NULL,
+                   0,
+                   &pInitSecurityBlob,
+                   &ulInitSecurityBlobLength);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvMarshallSessionSetupResponse(
@@ -122,6 +138,12 @@ SrvProcessSessionSetup(
     }
 
 cleanup:
+
+    if (pInitSecurityBlob)
+    {
+        SrvFreeMemory(pInitSecurityBlob);
+    }
+
 
     RtlUnicodeStringFree(&uniUsername);
 
@@ -241,8 +263,8 @@ SrvMarshallSessionSetupResponse(
     PBYTE     pReplySecurityBlob = NULL;
     ULONG     ulReplySecurityBlobLength = 0;
     wchar16_t wszNativeOS[] = {'U', 'n', 'i', 'x', 0 };
-    wchar16_t wszNativeLanMan[] = {'L','i','k','e','w','i','s','e',' ','I','O', 0 };
-    wchar16_t wszNativeDomain[] = {'W','O','R','K','G','R','O','U','P',0 };
+    wchar16_t wszNativeLanMan[] = {'L','i','k','e','w','i','s','e',' ','C','I', 'F', 'S', 0 };
+    wchar16_t wszNativeDomain[] = { 0 };
     PBYTE pOutBuffer         = pSmbResponse->pBuffer;
     ULONG ulBytesAvailable   = pSmbResponse->ulBytesAvailable;
     ULONG ulOffset           = 0;
@@ -367,3 +389,11 @@ error:
     goto cleanup;
 }
 
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

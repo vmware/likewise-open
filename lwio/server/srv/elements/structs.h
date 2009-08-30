@@ -94,6 +94,9 @@ typedef struct _SRV_ELEMENTS_GLOBALS
 
     SRV_TIMER timer;
 
+    PBYTE pHintsBuffer;
+    ULONG ulHintsLength;
+
 } SRV_ELEMENTS_GLOBALS, *PSRV_ELEMENTS_GLOBALS;
 
 #endif /* __STRUCTS_H__ */
