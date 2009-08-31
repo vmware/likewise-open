@@ -49,7 +49,6 @@
 
 DWORD
 NtlmClientAcceptSecurityContext(
-    IN HANDLE hServer,
     IN PNTLM_CRED_HANDLE phCredential,
     IN OUT PNTLM_CONTEXT_HANDLE phContext,
     IN PSecBufferDesc pInput,
@@ -67,7 +66,6 @@ NtlmClientAcceptSecurityContext(
     *pfContextAttr = 0;
 
     dwError = NtlmTransactAcceptSecurityContext(
-        hServer,
         phCredential,
         phContext,
         pInput,

@@ -49,7 +49,6 @@
 
 DWORD
 NtlmClientExportSecurityContext(
-    IN HANDLE hServer,
     IN PNTLM_CONTEXT_HANDLE phContext,
     IN DWORD fFlags,
     OUT PSecBuffer pPackedContext,
@@ -67,7 +66,6 @@ NtlmClientExportSecurityContext(
     }
 
     dwError = NtlmTransactExportSecurityContext(
-        hServer,
         phContext,
         fFlags,
         pPackedContext,

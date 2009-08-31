@@ -695,13 +695,11 @@ NtlmSrvIpcQueryCredentialsAttributes(
     dwError = NtlmServerQueryCredentialsAttributes(
         &pReq->hCredential,
         pReq->ulAttribute,
-        pNtlmResp->pBuffer);
+        (PVOID)&pNtlmResp->Buffer);
 
     if (!dwError)
     {
-        // we only support getting the user name for now, so this should be
-        // safe until that changes.
-        pNtlmResp->dwBufferSize = strlen(pNtlmResp->pBuffer);
+        pNtlmResp->ulAttribute = pReq->ulAttribute;
 
         pOut->tag = NTLM_R_QUERY_CREDS_SUCCESS;
         pOut->data = pNtlmResp;

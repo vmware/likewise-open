@@ -49,7 +49,6 @@
 
 DWORD
 NtlmClientAcquireCredentialsHandle(
-    IN HANDLE hServer,
     IN SEC_CHAR *pszPrincipal,
     IN SEC_CHAR *pszPackage,
     IN DWORD fCredentialUse,
@@ -65,7 +64,6 @@ NtlmClientAcquireCredentialsHandle(
     *ptsExpiry = 0;
 
     dwError = NtlmTransactAcquireCredentialsHandle(
-        hServer,
         pszPrincipal,
         pszPackage,
         fCredentialUse,

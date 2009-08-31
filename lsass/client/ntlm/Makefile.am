@@ -9,7 +9,6 @@ liblsaclient_ntlm_la_SOURCES =  \
        encryptmsg.c         \
        exportsecctxt.c      \
        freecreds.c          \
-       globals.c            \
        importsecctxt.c      \
        initsecctxt.c        \
        makesign.c           \
@@ -29,6 +28,6 @@ liblsaclient_ntlm_la_LDFLAGS = \
 
 liblsaclient_ntlm_la_LIBADD =  \
     @top_builddir@/common/liblsacommon.la   \
-    @LWMSG_NOTHR_LIBS@                      \
+    @LWMSG_LIBS@                      \
     @PTHREAD_LIBS@                          \
     @SOCKET_LIBS@

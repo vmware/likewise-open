@@ -62,7 +62,7 @@
 
 #include "defines.h"
 #include "structs.h"
-#include "externs.h"
+//#include "externs.h"
 #include "prototypes.h"
 
 #endif // __CLIENT_H__

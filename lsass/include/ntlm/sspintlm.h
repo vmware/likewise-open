@@ -100,6 +100,15 @@ typedef union _SecPkgContext
     PSecPkgContext_Sizes pSizes;
 } SecPkgContext, *PSecPkgContext;
 
+typedef struct _SecPkgCred_Names
+{
+    SEC_CHAR *pUserName;
+} SecPkgCred_Names, *PSecPkgCred_Names;
+
+typedef struct _SecPkgCred
+{
+    PSecPkgCred_Names pNames;
+} SecPkgCred, *PSecPkgCred;
 
 typedef struct _LUID
 {
@@ -255,6 +264,11 @@ typedef struct _NTLM_CREDENTIALS *NTLM_CRED_HANDLE, **PNTLM_CRED_HANDLE;
 #define SECPKG_ATTR_SIZES                       17
 #define SECPKG_ATTR_TARGET_INFORMATION          18
 
+#define SECPKG_CRED_ATTR_NAMES                  19
+#define SECPKG_ATTR_SUPPORTED_ALGS              20
+#define SECPKG_ATTR_CIPHER_STRENGTHS            21
+#define SECPKG_ATTR_SUPPORTED_PROTOCOLS         22
+
 //******************************************************************************
 //
 // E X T E R N S
@@ -267,7 +281,6 @@ typedef struct _NTLM_CREDENTIALS *NTLM_CRED_HANDLE, **PNTLM_CRED_HANDLE;
 
 DWORD
 NtlmClientAcceptSecurityContext(
-    IN HANDLE hServer,
     IN PNTLM_CRED_HANDLE pCredential,
     IN OUT PNTLM_CONTEXT_HANDLE phContext,
     IN PSecBufferDesc pInput,
@@ -281,7 +294,6 @@ NtlmClientAcceptSecurityContext(
 
 DWORD
 NtlmClientAcquireCredentialsHandle(
-    IN HANDLE hServer,
     IN SEC_CHAR *pszPrincipal,
     IN SEC_CHAR *pszPackage,
     IN DWORD fCredentialUse,
@@ -293,7 +305,6 @@ NtlmClientAcquireCredentialsHandle(
 
 DWORD
 NtlmClientDecryptMessage(
-    IN HANDLE hServer,
     IN PNTLM_CONTEXT_HANDLE phContext,
     IN OUT PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo,
@@ -302,13 +313,11 @@ NtlmClientDecryptMessage(
 
 DWORD
 NtlmClientDeleteSecurityContext(
-    IN HANDLE hServer,
     IN PNTLM_CONTEXT_HANDLE phContext
     );
 
 DWORD
 NtlmClientEncryptMessage(
-    IN HANDLE hServer,
     IN PNTLM_CONTEXT_HANDLE phContext,
     IN BOOLEAN bEncrypt,
     IN OUT PSecBufferDesc pMessage,
@@ -317,7 +326,6 @@ NtlmClientEncryptMessage(
 
 DWORD
 NtlmClientExportSecurityContext(
-    IN HANDLE hServer,
     IN PNTLM_CONTEXT_HANDLE phContext,
     IN DWORD fFlags,
     OUT PSecBuffer pPackedContext,
@@ -326,13 +334,11 @@ NtlmClientExportSecurityContext(
 
 DWORD
 NtlmClientFreeCredentialsHandle(
-    IN HANDLE hServer,
     IN PNTLM_CRED_HANDLE pCredential
     );
 
 DWORD
 NtlmClientImportSecurityContext(
-    IN HANDLE hServer,
     IN PSECURITY_STRING *pszPackage,
     IN PSecBuffer pPackedContext,
     IN OPTIONAL HANDLE pToken,
@@ -341,7 +347,6 @@ NtlmClientImportSecurityContext(
 
 DWORD
 NtlmClientInitializeSecurityContext(
-    IN HANDLE hServer,
     IN OPTIONAL PNTLM_CRED_HANDLE phCredential,
     IN OPTIONAL PNTLM_CONTEXT_HANDLE phContext,
     IN OPTIONAL SEC_CHAR * pszTargetName,
@@ -358,7 +363,6 @@ NtlmClientInitializeSecurityContext(
 
 DWORD
 NtlmClientMakeSignature(
-    IN HANDLE hServer,
     IN PNTLM_CONTEXT_HANDLE phContext,
     IN BOOLEAN bEncrypt,
     IN OUT PSecBufferDesc pMessage,
@@ -367,7 +371,6 @@ NtlmClientMakeSignature(
 
 DWORD
 NtlmClientQueryCredentialsAttributes(
-    IN HANDLE hServer,
     IN PNTLM_CRED_HANDLE phCredential,
     IN DWORD ulAttribute,
     OUT PVOID pBuffer
@@ -375,7 +378,6 @@ NtlmClientQueryCredentialsAttributes(
 
 DWORD
 NtlmClientQueryContextAttributes(
-    IN HANDLE hServer,
     IN PNTLM_CONTEXT_HANDLE phContext,
     IN DWORD ulAttribute,
     OUT PVOID pBuffer
@@ -383,22 +385,11 @@ NtlmClientQueryContextAttributes(
 
 DWORD
 NtlmClientVerifySignature(
-    IN HANDLE hServer,
     IN PNTLM_CONTEXT_HANDLE phContext,
     IN PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo,
     OUT PBOOLEAN pbVerified,
     OUT PBOOLEAN pbEncryted
-    );
-
-DWORD
-NtlmOpenServer(
-    PHANDLE phConnection
-    );
-
-DWORD
-NtlmCloseServer(
-    HANDLE hConnection
     );
 
 #endif // __SSPINTLM_H__

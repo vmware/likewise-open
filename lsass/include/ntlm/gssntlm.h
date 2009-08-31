@@ -45,7 +45,8 @@
 #ifndef __GSSNTLM_H__
 #define __GSSNTLM_H__
 
-#include <gssapi.h>
+#include <gssapi/gssapi.h>
+#include <gssapi/gssapi_ext.h>
 
 //******************************************************************************
 //
@@ -58,9 +59,10 @@
 //
 
 /* 1.3.6.1.4.1.311.2.2.10 */
-#define GSS_MECH_NTLM       "\053\006\001\004\001\001\067\002\002\012"
+#define GSS_MECH_NTLM       "\x2b\x06\x01\x04\x01\x82\x37\x02\x02\x0a"
 #define GSS_MECH_NTLM_LEN   10
 
+#if 0
 #define gss_acquire_cred ntlm_gss_acquire_cred
 #define gss_release_cred ntlm_gss_release_cred
 #define gss_init_sec_context ntlm_gss_init_sec_context
@@ -100,6 +102,7 @@
 #define gss_verify ntlm_gss_verify
 #define gss_seal ntlm_gss_seal
 #define gss_unseal ntlm_gss_unseal
+#endif
 
 //******************************************************************************
 //

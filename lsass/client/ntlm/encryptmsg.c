@@ -49,7 +49,6 @@
 
 DWORD
 NtlmClientEncryptMessage(
-    IN HANDLE hServer,
     IN PNTLM_CONTEXT_HANDLE phContext,
     IN BOOLEAN bEncrypt,
     IN OUT PSecBufferDesc pMessage,
@@ -59,7 +58,6 @@ NtlmClientEncryptMessage(
     DWORD dwError = LW_ERROR_SUCCESS;
 
     dwError = NtlmTransactEncryptMessage(
-        hServer,
         phContext,
         bEncrypt,
         pMessage,

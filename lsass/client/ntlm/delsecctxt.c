@@ -49,14 +49,12 @@
 
 DWORD
 NtlmClientDeleteSecurityContext(
-    IN HANDLE hServer,
     IN PNTLM_CONTEXT_HANDLE phContext
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
 
     dwError = NtlmTransactDeleteSecurityContext(
-        hServer,
         phContext
         );
 

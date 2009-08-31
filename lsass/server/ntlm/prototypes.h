@@ -184,21 +184,27 @@ NtlmServerVerifySignature(
     );
 
 DWORD
-NtlmServerQueryNameAttribute(
+NtlmServerQueryCtxtNameAttribute(
     IN PNTLM_CONTEXT_HANDLE phContext,
     OUT PSecPkgContext_Names* ppBuffer
     );
 
 DWORD
-NtlmServerQuerySessionKeyAttribute(
+NtlmServerQueryCtxtSessionKeyAttribute(
     IN PNTLM_CONTEXT_HANDLE phContext,
     OUT PSecPkgContext_SessionKey* ppBuffer
     );
 
 DWORD
-NtlmServerQuerySizeAttribute(
+NtlmServerQueryCtxtSizeAttribute(
     IN PNTLM_CONTEXT_HANDLE phContext,
     OUT PSecPkgContext_Sizes* ppBuffer
+    );
+
+DWORD
+NtlmServerQueryCredNameAttribute(
+    IN PNTLM_CRED_HANDLE phCred,
+    OUT PSecPkgCred_Names *ppNames
     );
 
 VOID

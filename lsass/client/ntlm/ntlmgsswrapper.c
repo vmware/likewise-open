@@ -44,27 +44,52 @@
 
 #include "client.h"
 
-static HANDLE ghNtlmGssServer = NULL;
-
-#if defined(__LWI_SOLARIS__) || defined(__LWI_AIX__)
-static pthread_once_t NtlmIsInitialized = {PTHREAD_ONCE_INIT};
-#else
-static pthread_once_t NtlmIsInitialized = PTHREAD_ONCE_INIT;
-#endif
-
-static
-VOID
-InitializeGssNtlm(
-    VOID
-    )
+static GSS_MECH_CONFIG gNtlmMech =
 {
-    // T H I S   I S   N O T   A   S O L U T I O N!
+    {GSS_MECH_NTLM_LEN, GSS_MECH_NTLM},
+    NULL,
 
-    // TODO: FIX THIS!
-    // What if NtlmOpenServer fails?
-    // What if we want to close the connection?
-    NtlmOpenServer(&ghNtlmGssServer);
-}
+    ntlm_gss_acquire_cred,
+    ntlm_gss_release_cred,
+    NULL, //ntlm_gss_init_sec_cred,
+    ntlm_gss_accept_sec_context,
+    NULL, //ntlm_gss_process_context_token,
+    ntlm_gss_delete_sec_context,
+    NULL, //ntlm_gss_context_time,
+    NULL, //ntlm_gss_get_mic,
+    NULL, //ntlm_gss_verify_mic,
+    NULL, //ntlm_gss_wrap,
+    NULL, //ntlm_gss_unwrap,
+    NULL, //ntlm_gss_display_status,
+    NULL, //ntlm_gss_indicate_mechs,
+    NULL, //ntlm_gss_compare_name,
+    NULL, //ntlm_gss_display_name,
+    ntlm_gss_import_name,
+    ntlm_gss_release_name,
+    ntlm_gss_inquire_cred,
+    NULL, //ntlm_gss_add_cred,
+    NULL, //ntlm_gss_export_sec_context,
+    NULL, //ntlm_gss_import_sec_context,
+    NULL, //ntlm_gss_inquire_cred_by_mech,
+    NULL, //ntlm_gss_inquire_names_for_mech,
+    NULL, //ntlm_gss_inquire_context,
+    NULL, //ntlm_gss_internal_release_oid,
+    NULL, //ntlm_gss_wrap_size_limit,
+    NULL, //ntlm_gss_export_name,
+    NULL, //ntlm_gss_store_cred,
+    NULL, //ntlm_gss_inquire_sec_context_by_oid,
+    NULL, //ntlm_gss_inquire_cred_by_oid,
+    NULL, //ntlm_gss_set_sec_context_option,
+    NULL, //ntlm_gssspi_set_cred_option,
+    NULL, //ntlm_gssspi_mech_invoke,
+    NULL, //ntlm_gss_wrap_aead,
+    NULL, //ntlm_gss_unwrap_aead,
+    NULL, //ntlm_gss_wrap_iov,
+    NULL, //ntlm_gss_unwrap_iov,
+    NULL, //ntlm_gss_wrap_iov_length,
+    NULL, //ntlm_gss_complete_auth_token,
+    NULL, //ntlm_gss_inquire_context2
+};
 
 OM_uint32
 ntlm_gss_acquire_cred(
@@ -78,8 +103,6 @@ ntlm_gss_acquire_cred(
     OM_uint32 *pTimeRec
     )
 {
-    pthread_once(&NtlmIsInitialized, InitializeGssNtlm);
-
     OM_uint32 MajorStatus = GSS_S_COMPLETE;
     OM_uint32 MinorStatus = LW_ERROR_SUCCESS;
     NTLM_CRED_HANDLE CredHandle = NULL;
@@ -87,8 +110,16 @@ ntlm_gss_acquire_cred(
     DWORD fCredentialUse = 0;
 
     *pOutputCredHandle = (gss_cred_id_t)CredHandle;
-    *pActualMechs = NULL;
-    *pTimeRec = 0;
+
+    if(pActualMechs)
+    {
+        *pActualMechs = NULL;
+    }
+
+    if(pTimeRec)
+    {
+        *pTimeRec = 0;
+    }
 
     switch(CredUsage)
     {
@@ -104,7 +135,6 @@ ntlm_gss_acquire_cred(
     }
 
     MinorStatus = NtlmClientAcquireCredentialsHandle(
-        ghNtlmGssServer,
         (SEC_CHAR*)pDesiredName,
         "NTLM",
         fCredentialUse,
@@ -118,8 +148,16 @@ ntlm_gss_acquire_cred(
 cleanup:
     *pMinorStatus = MinorStatus;
     *pOutputCredHandle = (gss_cred_id_t)CredHandle;
-    *pActualMechs = NULL;
-    *pTimeRec = 0;
+
+    if(pActualMechs)
+    {
+        *pActualMechs = NULL;
+    }
+
+    if(pTimeRec)
+    {
+        *pTimeRec = 0;
+    }
 
     return MajorStatus;
 error:
@@ -136,8 +174,6 @@ ntlm_gss_release_cred(
     gss_cred_id_t *pCredHandle
     )
 {
-    pthread_once(&NtlmIsInitialized, InitializeGssNtlm);
-
     OM_uint32 MajorStatus = GSS_S_COMPLETE;
     OM_uint32 MinorStatus = LW_ERROR_SUCCESS;
     NTLM_CRED_HANDLE CredHandle = NULL;
@@ -152,7 +188,6 @@ ntlm_gss_release_cred(
     CredHandle = (NTLM_CRED_HANDLE)*pCredHandle;
 
     MinorStatus = NtlmTransactFreeCredentialsHandle(
-        ghNtlmGssServer,
         &CredHandle
         );
 
@@ -186,8 +221,6 @@ ntlm_gss_init_sec_context(
     OM_uint32 *pTimeRec
     )
 {
-    pthread_once(&NtlmIsInitialized, InitializeGssNtlm);
-
     OM_uint32 MajorStatus = GSS_S_COMPLETE;
     OM_uint32 MinorStatus = LW_ERROR_SUCCESS;
     PNTLM_CONTEXT_HANDLE phContext = NULL;
@@ -214,7 +247,6 @@ ntlm_gss_init_sec_context(
     InputToken.pvBuffer = pInputToken->value;
 
     MinorStatus = NtlmClientInitializeSecurityContext(
-        ghNtlmGssServer,
         (PNTLM_CRED_HANDLE)(&InitiatorCredHandle),
         phContext,
         (SEC_CHAR*)pTargetName,
@@ -260,8 +292,6 @@ ntlm_gss_accept_sec_context(
     gss_cred_id_t *pDelegatedCredHandle
     )
 {
-    pthread_once(&NtlmIsInitialized, InitializeGssNtlm);
-
     OM_uint32 MajorStatus = GSS_S_COMPLETE;
     OM_uint32 MinorStatus = LW_ERROR_SUCCESS;
     SecBufferDesc InputBuffer = {0};
@@ -289,7 +319,6 @@ ntlm_gss_accept_sec_context(
     InputToken.pvBuffer = pInputTokenBuffer->value;
 
     MinorStatus = NtlmClientAcceptSecurityContext(
-        ghNtlmGssServer,
         (PNTLM_CRED_HANDLE)(&AcceptorCredHandle),
         (PNTLM_CONTEXT_HANDLE)pContextHandle,
         &InputBuffer,
@@ -330,8 +359,6 @@ ntlm_gss_inquire_context2(
     gss_buffer_t session_key
     )
 {
-    pthread_once(&NtlmIsInitialized, InitializeGssNtlm);
-
     OM_uint32 MajorStatus = GSS_S_COMPLETE;
     OM_uint32 MinorStatus = LW_ERROR_SUCCESS;
     SecPkgContext_SessionKey SessionKey = {0};
@@ -370,7 +397,6 @@ ntlm_gss_inquire_context2(
         memset(session_key, 0, sizeof(gss_buffer_desc));
 
         MinorStatus = NtlmClientQueryContextAttributes(
-            ghNtlmGssServer,
             (PNTLM_CONTEXT_HANDLE)context_handle,
             SECPKG_ATTR_SESSION_KEY,
             &SessionKey
@@ -404,8 +430,6 @@ ntlm_gss_delete_sec_context(
     gss_buffer_t OutputToken
     )
 {
-    pthread_once(&NtlmIsInitialized, InitializeGssNtlm);
-
     OM_uint32 MajorStatus = GSS_S_COMPLETE;
     OM_uint32 MinorStatus = LW_ERROR_SUCCESS;
     NTLM_CONTEXT_HANDLE ContextHandle = NULL;
@@ -425,7 +449,6 @@ ntlm_gss_delete_sec_context(
     ContextHandle = (NTLM_CONTEXT_HANDLE)*pContextHandle;
 
     MinorStatus = NtlmClientDeleteSecurityContext(
-        ghNtlmGssServer,
         &ContextHandle
         );
 
@@ -449,8 +472,6 @@ ntlm_gss_process_context_token(
     const gss_buffer_t token_buffer
     )
 {
-    pthread_once(&NtlmIsInitialized, InitializeGssNtlm);
-
     OM_uint32 MajorStatus = GSS_S_FAILURE;
     OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
 
@@ -474,8 +495,6 @@ ntlm_gss_context_time(
     OM_uint32 *time_rec
     )
 {
-    pthread_once(&NtlmIsInitialized, InitializeGssNtlm);
-
     OM_uint32 MajorStatus = GSS_S_FAILURE;
     OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
 
@@ -501,8 +520,6 @@ ntlm_gss_get_mic(
     gss_buffer_t message_token
     )
 {
-    pthread_once(&NtlmIsInitialized, InitializeGssNtlm);
-
     OM_uint32 MajorStatus = GSS_S_FAILURE;
     OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
 
@@ -528,8 +545,6 @@ ntlm_gss_verify_mic(
     gss_qop_t *qop_state
     )
 {
-    pthread_once(&NtlmIsInitialized, InitializeGssNtlm);
-
     OM_uint32 MajorStatus = GSS_S_FAILURE;
     OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
 
@@ -557,8 +572,6 @@ ntlm_gss_wrap(
     gss_buffer_t output_message_buffer
     )
 {
-    pthread_once(&NtlmIsInitialized, InitializeGssNtlm);
-
     OM_uint32 MajorStatus = GSS_S_FAILURE;
     OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
 
@@ -585,8 +598,6 @@ ntlm_gss_unwrap(
     gss_qop_t *qop_state
     )
 {
-    pthread_once(&NtlmIsInitialized, InitializeGssNtlm);
-
     OM_uint32 MajorStatus = GSS_S_FAILURE;
     OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
 
@@ -613,8 +624,6 @@ ntlm_gss_display_status(
     gss_buffer_t status_string
     )
 {
-    pthread_once(&NtlmIsInitialized, InitializeGssNtlm);
-
     OM_uint32 MajorStatus = GSS_S_FAILURE;
     OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
 
@@ -637,8 +646,6 @@ ntlm_gss_indicate_mechs(
     gss_OID_set *mech_set
     )
 {
-    pthread_once(&NtlmIsInitialized, InitializeGssNtlm);
-
     OM_uint32 MajorStatus = GSS_S_FAILURE;
     OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
 
@@ -663,8 +670,6 @@ ntlm_gss_compare_name(
     int *name_equal
     )
 {
-    pthread_once(&NtlmIsInitialized, InitializeGssNtlm);
-
     OM_uint32 MajorStatus = GSS_S_FAILURE;
     OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
 
@@ -689,8 +694,6 @@ ntlm_gss_display_name(
     gss_OID *output_name_type
     )
 {
-    pthread_once(&NtlmIsInitialized, InitializeGssNtlm);
-
     OM_uint32 MajorStatus = GSS_S_FAILURE;
     OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
 
@@ -715,8 +718,6 @@ ntlm_gss_import_name(
     gss_name_t *output_name
     )
 {
-    pthread_once(&NtlmIsInitialized, InitializeGssNtlm);
-
     OM_uint32 MajorStatus = GSS_S_COMPLETE;
     OM_uint32 MinorStatus = LW_ERROR_SUCCESS;
 
@@ -749,8 +750,6 @@ ntlm_gss_export_name(
     gss_buffer_t exported_name
     )
 {
-    pthread_once(&NtlmIsInitialized, InitializeGssNtlm);
-
     OM_uint32 MajorStatus = GSS_S_FAILURE;
     OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
 
@@ -773,8 +772,6 @@ ntlm_gss_release_name(
     gss_name_t *name
     )
 {
-    pthread_once(&NtlmIsInitialized, InitializeGssNtlm);
-
     OM_uint32 MajorStatus = GSS_S_FAILURE;
     OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
 
@@ -797,8 +794,6 @@ ntlm_gss_release_buffer(
     gss_buffer_t pBuffer
     )
 {
-    pthread_once(&NtlmIsInitialized, InitializeGssNtlm);
-
     // According to RFC 2744, this function should not fail
     if (pBuffer)
     {
@@ -817,8 +812,6 @@ ntlm_gss_release_oid_set(
     gss_OID_set *set
     )
 {
-    pthread_once(&NtlmIsInitialized, InitializeGssNtlm);
-
     OM_uint32 MajorStatus = GSS_S_FAILURE;
     OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
 
@@ -845,8 +838,6 @@ ntlm_gss_inquire_cred(
     gss_OID_set *mechanisms
     )
 {
-    pthread_once(&NtlmIsInitialized, InitializeGssNtlm);
-
     OM_uint32 MajorStatus = GSS_S_FAILURE;
     OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
 
@@ -876,8 +867,6 @@ ntlm_gss_inquire_context(
     int *open
     )
 {
-    pthread_once(&NtlmIsInitialized, InitializeGssNtlm);
-
     OM_uint32 MajorStatus = GSS_S_FAILURE;
     OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
 
@@ -904,8 +893,6 @@ ntlm_gss_wrap_size_limit(
     OM_uint32 *max_input_size
     )
 {
-    pthread_once(&NtlmIsInitialized, InitializeGssNtlm);
-
     OM_uint32 MajorStatus = GSS_S_FAILURE;
     OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
 
@@ -937,8 +924,6 @@ ntlm_gss_add_cred(
     OM_uint32 *acceptor_time_rec
     )
 {
-    pthread_once(&NtlmIsInitialized, InitializeGssNtlm);
-
     OM_uint32 MajorStatus = GSS_S_FAILURE;
     OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
 
@@ -966,8 +951,6 @@ ntlm_gss_inquire_cred_by_mech(
     gss_cred_usage_t *cred_usage
     )
 {
-    pthread_once(&NtlmIsInitialized, InitializeGssNtlm);
-
     OM_uint32 MajorStatus = GSS_S_FAILURE;
     OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
 
@@ -991,8 +974,6 @@ ntlm_gss_export_sec_context(
     gss_buffer_t interprocess_token
     )
 {
-    pthread_once(&NtlmIsInitialized, InitializeGssNtlm);
-
     OM_uint32 MajorStatus = GSS_S_FAILURE;
     OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
 
@@ -1016,8 +997,6 @@ ntlm_gss_import_sec_context(
     gss_ctx_id_t *pContextHandle
     )
 {
-    pthread_once(&NtlmIsInitialized, InitializeGssNtlm);
-
     OM_uint32 MajorStatus = GSS_S_FAILURE;
     OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
 
@@ -1040,8 +1019,6 @@ ntlm_gss_create_empty_oid_set(
     gss_OID_set *oid_set
     )
 {
-    pthread_once(&NtlmIsInitialized, InitializeGssNtlm);
-
     OM_uint32 MajorStatus = GSS_S_FAILURE;
     OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
 
@@ -1065,8 +1042,6 @@ ntlm_gss_add_oid_set_member(
     gss_OID_set *oid_set
     )
 {
-    pthread_once(&NtlmIsInitialized, InitializeGssNtlm);
-
     OM_uint32 MajorStatus = GSS_S_FAILURE;
     OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
 
@@ -1091,8 +1066,6 @@ ntlm_gss_test_oid_set_member(
     int *present
     )
 {
-    pthread_once(&NtlmIsInitialized, InitializeGssNtlm);
-
     OM_uint32 MajorStatus = GSS_S_FAILURE;
     OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
 
@@ -1116,8 +1089,6 @@ ntlm_gss_inquire_names_for_mech(
     gss_OID_set *name_types
     )
 {
-    pthread_once(&NtlmIsInitialized, InitializeGssNtlm);
-
     OM_uint32 MajorStatus = GSS_S_FAILURE;
     OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
 
@@ -1141,8 +1112,6 @@ ntlm_gss_inquire_mechs_for_name(
     gss_OID_set *mech_types
     )
 {
-    pthread_once(&NtlmIsInitialized, InitializeGssNtlm);
-
     OM_uint32 MajorStatus = GSS_S_FAILURE;
     OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
 
@@ -1167,8 +1136,6 @@ ntlm_gss_canonicalize_name(
     gss_name_t *output_name
     )
 {
-    pthread_once(&NtlmIsInitialized, InitializeGssNtlm);
-
     OM_uint32 MajorStatus = GSS_S_FAILURE;
     OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
 
@@ -1192,8 +1159,6 @@ ntlm_gss_duplicate_name(
     gss_name_t *dest_name
     )
 {
-    pthread_once(&NtlmIsInitialized, InitializeGssNtlm);
-
     OM_uint32 MajorStatus = GSS_S_FAILURE;
     OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
 
@@ -1219,8 +1184,6 @@ ntlm_gss_sign(
     gss_buffer_t message_token
     )
 {
-    pthread_once(&NtlmIsInitialized, InitializeGssNtlm);
-
     OM_uint32 MajorStatus = GSS_S_FAILURE;
     OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
 
@@ -1246,8 +1209,6 @@ ntlm_gss_verify(
     int *qop_state
     )
 {
-    pthread_once(&NtlmIsInitialized, InitializeGssNtlm);
-
     OM_uint32 MajorStatus = GSS_S_FAILURE;
     OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
 
@@ -1275,8 +1236,6 @@ ntlm_gss_seal(
     gss_buffer_t output_message_buffer
     )
 {
-    pthread_once(&NtlmIsInitialized, InitializeGssNtlm);
-
     OM_uint32 MajorStatus = GSS_S_FAILURE;
     OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
 
@@ -1303,8 +1262,6 @@ ntlm_gss_unseal(
     int *qop_state
     )
 {
-    pthread_once(&NtlmIsInitialized, InitializeGssNtlm);
-
     OM_uint32 MajorStatus = GSS_S_FAILURE;
     OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
 
@@ -1320,3 +1277,10 @@ error:
     }
     goto cleanup;
 }
+
+PGSS_MECH_CONFIG
+gss_mech_initialize(void)
+{
+    return &gNtlmMech;
+}
+

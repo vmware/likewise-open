@@ -219,6 +219,18 @@ static LWMsgTypeSpec gNtlmSecPkgContextSizesSpec[] =
 
 /******************************************************************************/
 
+static LWMsgTypeSpec gNtlmSecPkgCredNamesSpec[] =
+{
+    LWMSG_STRUCT_BEGIN(SecPkgCred_Names),
+
+    LWMSG_MEMBER_PSTR(SecPkgCred_Names, pUserName),
+
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
+
+/******************************************************************************/
+
 static LWMsgTypeSpec gNtlmIpcErrorSpec[] =
 {
     // DWORD dwError;
@@ -690,17 +702,22 @@ static LWMsgTypeSpec gNtlmQueryCredsSpec[] =
 
 static LWMsgTypeSpec gNtlmQueryCredsRespSpec[] =
 {
-    //DWORD dwBufferSize;
-    //PVOID pBuffer;
+    //DWORD ulAttribute;
+    //SecPkgCred Buffer;
 
     LWMSG_STRUCT_BEGIN(NTLM_IPC_QUERY_CREDS_RESPONSE),
 
-    LWMSG_MEMBER_UINT32(NTLM_IPC_QUERY_CREDS_RESPONSE, dwBufferSize),
+    LWMSG_MEMBER_UINT32(NTLM_IPC_QUERY_CREDS_RESPONSE, ulAttribute),
 
-    LWMSG_MEMBER_POINTER_BEGIN(NTLM_IPC_QUERY_CREDS_RESPONSE, pBuffer),
-    LWMSG_UINT8(CHAR),
+    LWMSG_MEMBER_UNION_BEGIN(NTLM_IPC_QUERY_CREDS_RESPONSE, Buffer),
+
+    LWMSG_MEMBER_POINTER_BEGIN(SecPkgCred, pNames),
+    LWMSG_TYPESPEC(gNtlmSecPkgCredNamesSpec),
     LWMSG_POINTER_END,
-    LWMSG_ATTR_LENGTH_MEMBER(NTLM_IPC_QUERY_CREDS_RESPONSE, dwBufferSize),
+    LWMSG_ATTR_TAG(SECPKG_CRED_ATTR_NAMES),
+
+    LWMSG_UNION_END,
+    LWMSG_ATTR_DISCRIM(NTLM_IPC_QUERY_CREDS_RESPONSE, ulAttribute),
 
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END

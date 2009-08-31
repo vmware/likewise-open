@@ -257,8 +257,8 @@ typedef struct __NTLM_IPC_QUERY_CREDS_REQ
 
 typedef struct __NTLM_IPC_QUERY_CREDS_RESPONSE
 {
-    DWORD dwBufferSize;
-    PVOID pBuffer;
+    DWORD ulAttribute;
+    SecPkgCred Buffer;
 } NTLM_IPC_QUERY_CREDS_RESPONSE, *PNTLM_IPC_QUERY_CREDS_RESPONSE;
 
 /******************************************************************************/
