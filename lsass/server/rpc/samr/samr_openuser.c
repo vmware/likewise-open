@@ -50,7 +50,7 @@
 NTSTATUS
 SamrSrvOpenUser(
     /* [in] */ handle_t hBinding,
-    /* [in] */ DOMAIN_HANDLE *hDomain,
+    /* [in] */ DOMAIN_HANDLE hDomain,
     /* [in] */ uint32 access_mask,
     /* [in] */ uint32 rid,
     /* [out] */ ACCOUNT_HANDLE *phUser
@@ -71,12 +71,17 @@ SamrSrvOpenUser(
     pAcctCtx = (PACCOUNT_CONTEXT)hUser;
     pAcctCtx->dwAccountType = SID_TYPE_USER;
 
-    *phUser = hUser;
+    *phUser = (ACCOUNT_HANDLE)pAcctCtx;
 
 cleanup:
+    pAcctCtx = NULL;
+    hUser    = NULL;
+
     return ntStatus;
 
 error:
+    *phUser = NULL;
+
     goto cleanup;
 }
 

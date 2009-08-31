@@ -50,7 +50,7 @@
 NTSTATUS
 SamrSrvOpenAlias(
     /* [in] */ handle_t hBinding,
-    /* [in] */ DOMAIN_HANDLE *hDomain,
+    /* [in] */ DOMAIN_HANDLE hDomain,
     /* [in] */ uint32 access_mask,
     /* [in] */ uint32 rid,
     /* [out] */ ACCOUNT_HANDLE *phAlias
@@ -61,22 +61,27 @@ SamrSrvOpenAlias(
     PACCOUNT_CONTEXT pAcctCtx = NULL;
 
     ntStatus = SamrSrvOpenAccount(hBinding,
-                                hDomain,
-                                access_mask,
-                                rid,
-                                DS_OBJECT_CLASS_LOCAL_GROUP,
-                                &hAlias);
+                                  hDomain,
+                                  access_mask,
+                                  rid,
+                                  DS_OBJECT_CLASS_LOCAL_GROUP,
+                                  &hAlias);
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     pAcctCtx = (PACCOUNT_CONTEXT)hAlias;
     pAcctCtx->dwAccountType = SID_TYPE_ALIAS;
 
-    *phAlias = hAlias;
+    *phAlias = (ACCOUNT_HANDLE)pAcctCtx;
 
 cleanup:
+    pAcctCtx = NULL;
+    hAlias   = NULL;
+
     return ntStatus;
 
 error:
+    *phAlias = NULL;
+
     goto cleanup;
 }
 
