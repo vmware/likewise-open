@@ -457,9 +457,10 @@ AD_NetLookupObjectSidsByNames(
     rpcStatus = InitLsaBindingDefault(&lsa_binding, pszHostname, pAccessToken);
     if (rpcStatus != 0)
     {
-       dwError = LW_ERROR_RPC_LSABINDING_FAILED;
-       bIsNetworkError = TRUE;
-       BAIL_ON_LSA_ERROR(dwError);
+        LSA_LOG_DEBUG("InitLsaBindingDefault() failed with %d (0x%08x)", rpcStatus, rpcStatus);
+        dwError = LW_ERROR_RPC_LSABINDING_FAILED;
+        bIsNetworkError = TRUE;
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     if (lsa_binding == NULL)
@@ -634,6 +635,7 @@ cleanup:
     status = LsaClose(lsa_binding, &lsa_policy);
     if (status != 0 && dwError == 0)
     {
+        LSA_LOG_DEBUG("LsaClose() failed with %d (0x%08x)", status, status);
         dwError = LW_ERROR_RPC_CLOSEPOLICY_FAILED;
     }
     if (lsa_binding)
@@ -780,9 +782,10 @@ AD_NetLookupObjectNamesBySids(
 
     if (rpcStatus != 0)
     {
-       dwError = LW_ERROR_RPC_LSABINDING_FAILED;
-       bIsNetworkError = TRUE;
-       BAIL_ON_LSA_ERROR(dwError);
+        LSA_LOG_DEBUG("InitLsaBindingDefault() failed with %d (0x%08x)", rpcStatus, rpcStatus);
+        dwError = LW_ERROR_RPC_LSABINDING_FAILED;
+        bIsNetworkError = TRUE;
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     if (lsa_binding == NULL)
@@ -1001,6 +1004,7 @@ cleanup:
 
     status = LsaClose(lsa_binding, &lsa_policy);
     if (status != 0 && dwError == 0){
+        LSA_LOG_DEBUG("LsaClose() failed with %d (0x%08x)", status, status);
         dwError = LW_ERROR_RPC_CLOSEPOLICY_FAILED;
     }
 
@@ -1584,6 +1588,7 @@ AD_NetlogonAuthenticationUserEx(
 
         if (nt_status != STATUS_SUCCESS)
         {
+            LSA_LOG_DEBUG("NetrOpenSchannel() failed with %d (0x%08x)", nt_status, nt_status);
             dwError = LW_ERROR_RPC_ERROR;
             BAIL_ON_LSA_ERROR(dwError);
         }
@@ -1627,6 +1632,7 @@ AD_NetlogonAuthenticationUserEx(
 
     if (nt_status != STATUS_SUCCESS)
     {
+        LSA_LOG_DEBUG("NetrSamLogonNetwork() failed with %d (0x%08x)", nt_status, nt_status);
         dwError = LW_ERROR_RPC_NETLOGON_FAILED;
         BAIL_ON_LSA_ERROR(dwError);
     }
