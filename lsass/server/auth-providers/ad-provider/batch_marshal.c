@@ -74,7 +74,16 @@ LsaAdBatchMarshalUserInfoFixHomeDirectory(
                     pszNetbiosDomainName,
                     pszSamAccountName,
                     &pszNewHomeDirectory);
-        BAIL_ON_LSA_ERROR(dwError);
+        if (dwError)
+        {
+            // If we encounter a problem with fixing up the shell, leave the user object with the actual
+            // value stored in AD and log the problem.
+            LSA_LOG_ERROR("While processing information for user (%s), an invalid homedir value was detected (homedir: '%s')",
+                          LSA_SAFE_LOG_STRING(pszSamAccountName),
+                          LSA_SAFE_LOG_STRING(pszHomeDirectory));
+            dwError = 0;
+            goto cleanup;
+        }
 
         LW_SAFE_FREE_STRING(pszHomeDirectory);
         LSA_XFER_STRING(pszNewHomeDirectory, pszHomeDirectory);
@@ -140,7 +149,8 @@ LsaAdBatchMarshalUserInfoAccountControl(
 DWORD
 LsaAdBatchMarshalUserInfoAccountExpires(
     IN UINT64 AccountExpires,
-    IN OUT PLSA_SECURITY_OBJECT_USER_INFO pObjectUserInfo
+    IN OUT PLSA_SECURITY_OBJECT_USER_INFO pObjectUserInfo,
+    IN PCSTR pszSamAccountName
     )
 {
     DWORD dwError = 0;
@@ -157,7 +167,13 @@ LsaAdBatchMarshalUserInfoAccountExpires(
         UINT64 currentNtTime = 0;
 
         dwError = ADGetCurrentNtTime(&currentNtTime);
-        BAIL_ON_LSA_ERROR(dwError);
+        if (dwError);
+        {
+            LSA_LOG_ERROR("While processing information for user (%s), lsass was unable to determine if the account is expired. Defaulting to not expired.", pszSamAccountName);
+            dwError = 0;
+            pObjectUserInfo->bAccountExpired = FALSE;
+            goto error;
+        }
 
         if (currentNtTime <= AccountExpires)
         {
@@ -179,7 +195,8 @@ error:
 DWORD
 LsaAdBatchMarshalUserInfoPasswordLastSet(
     IN UINT64 PasswordLastSet,
-    IN OUT PLSA_SECURITY_OBJECT_USER_INFO pObjectUserInfo
+    IN OUT PLSA_SECURITY_OBJECT_USER_INFO pObjectUserInfo,
+    IN PCSTR pszSamAccountName
     )
 {
     DWORD dwError = 0;
@@ -188,7 +205,13 @@ LsaAdBatchMarshalUserInfoPasswordLastSet(
     UINT64 currentNtTime = 0;
 
     dwError = ADGetCurrentNtTime(&currentNtTime);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (dwError);
+    {
+        LSA_LOG_ERROR("While processing information for user (%s), lsass was unable to determine if the need to promt to change user password is required. Defaulting to no.", pszSamAccountName);
+        dwError = 0;
+        pObjectUserInfo->bPromptPasswordChange = FALSE;
+        goto error;
+    }
 
     // ISSUE-2008/11/18-dalmeida -- Don't we need to check
     // for the max password age of the user domain rather
@@ -385,13 +408,15 @@ LsaAdBatchMarshalUserInfo(
     // Figure out account expiration.
     dwError = LsaAdBatchMarshalUserInfoAccountExpires(
                     pUserInfo->AccountExpires,
-                    pObjectUserInfo);
+                    pObjectUserInfo,
+                    pszSamAccountName);
     BAIL_ON_LSA_ERROR(dwError);
 
     // Figure out password prompting.
     dwError = LsaAdBatchMarshalUserInfoPasswordLastSet(
                     pUserInfo->PasswordLastSet,
-                    pObjectUserInfo);
+                    pObjectUserInfo,
+                    pszSamAccountName);
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:

@@ -70,13 +70,15 @@ LsaAdBatchMarshal(
 DWORD
 LsaAdBatchMarshalUserInfoAccountExpires(
     IN UINT64 AccountExpires,
-    IN OUT PLSA_SECURITY_OBJECT_USER_INFO pObjectUserInfo
+    IN OUT PLSA_SECURITY_OBJECT_USER_INFO pObjectUserInfo,
+    IN PCSTR pszSamAccountName
     );
 
 DWORD
 LsaAdBatchMarshalUserInfoPasswordLastSet(
     IN UINT64 PasswordLastSet,
-    IN OUT PLSA_SECURITY_OBJECT_USER_INFO pObjectUserInfo
+    IN OUT PLSA_SECURITY_OBJECT_USER_INFO pObjectUserInfo,
+    IN PCSTR pszSamAccountName
     );
 
 #endif /* _BATCH_MARSHAL_H_ */
