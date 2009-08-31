@@ -386,9 +386,7 @@ SrvBuildReadAndXResponse(
         // Allow for alignment bytes
         pReadState->ulDataOffset += pReadState->ulDataOffset % 2;
 
-        pReadState->ulBytesToRead =
-            SMB_MIN(pReadState->ullBytesToRead,
-                    pConnection->serverProperties.MaxBufferSize - pReadState->ulDataOffset);
+        pReadState->ulBytesToRead = pReadState->ullBytesToRead;
         pReadState->ulKey = pSmbRequest->pHeader->pid;
 
         ntStatus = SrvAllocateMemory(

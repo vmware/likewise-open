@@ -254,7 +254,6 @@ SrvBuildFindNext2Response(
     USHORT           usSearchResultLen = 0;
     USHORT           usDataOffset = 0;
     USHORT           usParameterOffset = 0;
-    ULONG            usBytesAvailable = 0;
     PUSHORT          pSetup = NULL;
     BYTE             setupCount = 0;
     SMB_FIND_NEXT2_RESPONSE_PARAMETERS responseParams = {0};
@@ -326,16 +325,12 @@ SrvBuildFindNext2Response(
                     &usBytesUsed);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    usBytesAvailable =
-        SMB_MIN(usMaxDataCount,
-                pConnection->serverProperties.MaxBufferSize - usBytesUsed);
-
     ntStatus = SrvFinderGetSearchResults(
                     hSearchSpace,
                     bReturnSingleEntry,
                     bRestartScan,
                     usSearchCount,
-                    usBytesAvailable,
+                    usMaxDataCount,
                     usDataOffset,
                     &pData,
                     &usSearchResultLen,
