@@ -484,7 +484,7 @@ NTSTATUS __SamrDeleteDomAlias(
 
 NTSTATUS __SamrAddAliasMember(
     /* [in] */ handle_t IDL_handle,
-    /* [in] */ PolicyHandle *alias_handle,
+    /* [in] */ ACCOUNT_HANDLE hAlias,
     /* [in] */ SID *sid
     )
 {
@@ -495,7 +495,7 @@ NTSTATUS __SamrAddAliasMember(
 
 NTSTATUS __SamrDeleteAliasMember(
     /* [in] */ handle_t IDL_handle,
-    /* [in] */ PolicyHandle *alias_handle,
+    /* [in] */ ACCOUNT_HANDLE hAlias,
     /* [in] */ SID *sid
     )
 {
@@ -598,7 +598,7 @@ NTSTATUS _samr_Function26(
 
 NTSTATUS __SamrGetUserGroups(
     /* [in] */ handle_t IDL_handle,
-    /* [in] */ PolicyHandle *user_handle,
+    /* [in] */ ACCOUNT_HANDLE hUser,
     /* [out] */ RidWithAttributeArray **rids
     )
 {
@@ -663,7 +663,7 @@ NTSTATUS _samr_Function2b(
 
 NTSTATUS __SamrGetUserPwInfo(
     /* [in] */ handle_t IDL_handle,
-    /* [in] */ PolicyHandle *user_handle,
+    /* [in] */ ACCOUNT_HANDLE hUser,
     /* [out] */ PwInfo *info
     )
 {
