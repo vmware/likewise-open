@@ -121,7 +121,7 @@ SrvBuildNegotiateResponse_SMB_V1_NTLM_0_12(
     pDataCursor = pSmbResponse->pData;
     if (pResponseHeader->capabilities & CAP_EXTENDED_SECURITY)
     {
-        PBYTE pNegHintsBlob = NULL;
+        PBYTE pNegHintsBlob = NULL; /* Do not free */
         ULONG ulNegHintsLength = 0;
 
         memcpy(pDataCursor, pServerProperties->GUID, sizeof(pServerProperties->GUID));

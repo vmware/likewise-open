@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software    2004-2009
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -33,13 +33,13 @@
  *
  * Module Name:
  *
- *        samr_openalias.c
+ *        samr_queryuserinfo.c
  *
  * Abstract:
  *
  *        Remote Procedure Call (RPC) Server Interface
  *
- *        SamrOpenAlias function
+ *        SamrQueryUserInfo function
  *
  * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
@@ -48,40 +48,26 @@
 
 
 NTSTATUS
-SamrSrvOpenAlias(
-    /* [in] */ handle_t hBinding,
+SamrSrvRemoveMemberFromForeignDomain(
+    /* [in] */ handle_t IDL_handle,
     /* [in] */ DOMAIN_HANDLE hDomain,
-    /* [in] */ uint32 access_mask,
-    /* [in] */ uint32 rid,
-    /* [out] */ ACCOUNT_HANDLE *phAlias
+    /* [in] */ PSID sid
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    ACCOUNT_HANDLE hAlias = NULL;
-    PACCOUNT_CONTEXT pAcctCtx = NULL;
+    PDOMAIN_CONTEXT pDomCtx = NULL;
 
-    ntStatus = SamrSrvOpenAccount(hBinding,
-                                  hDomain,
-                                  access_mask,
-                                  rid,
-                                  DS_OBJECT_CLASS_LOCAL_GROUP,
-                                  &hAlias);
-    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    pDomCtx = (PDOMAIN_CONTEXT)hDomain;
 
-    pAcctCtx = (PACCOUNT_CONTEXT)hAlias;
-    pAcctCtx->dwAccountType = SID_TYPE_ALIAS;
-
-    *phAlias = (ACCOUNT_HANDLE)pAcctCtx;
+    if (pDomCtx == NULL || pDomCtx->Type != SamrContextDomain) {
+        ntStatus = STATUS_INVALID_HANDLE;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
 
 cleanup:
-    pAcctCtx = NULL;
-    hAlias   = NULL;
-
     return ntStatus;
 
 error:
-    *phAlias = NULL;
-
     goto cleanup;
 }
 

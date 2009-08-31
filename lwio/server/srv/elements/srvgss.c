@@ -1067,47 +1067,37 @@ SrvGssNegHints(
     ULONG *pulNegHintsLength
     )
 {
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    HANDLE hGssNegotiate = NULL;
-    PBYTE pHintsBuffer = gSrvElements.pHintsBuffer;
-    ULONG ulHintsLength = gSrvElements.ulHintsLength;
+    NTSTATUS ntStatus      = STATUS_SUCCESS;
+    HANDLE   hGssNegotiate = NULL;
+    BOOLEAN  bInLock       = FALSE;
 
-    /* We only initialize the security buffer once.  Just reuse it
-       on future calls */
+    LWIO_LOCK_MUTEX(bInLock, &gSrvElements.mutex);
 
-    if (pHintsBuffer != NULL)
+    if (!gSrvElements.pHintsBuffer)
     {
-        *ppNegHints = pHintsBuffer;
-        *pulNegHintsLength = ulHintsLength;
+        ntStatus = SrvGssBeginNegotiate(hGssContext, &hGssNegotiate);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-        goto cleanup;
+        /* MIT Krb5 1.7 returns the NegHints blob if you call
+           gss_accept_sec_context() with a NULL input buffer */
+
+        ((PSRV_GSS_NEGOTIATE_CONTEXT)hGssNegotiate)->state = SRV_GSS_CONTEXT_STATE_HINTS;
+        ntStatus = SrvGssNegotiate(
+                       hGssContext,
+                       hGssNegotiate,
+                       NULL,
+                       0,
+                       &gSrvElements.pHintsBuffer,
+                       &gSrvElements.ulHintsLength);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = SrvGssBeginNegotiate(hGssContext, &hGssNegotiate);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    /* MIT Krb5 1.7 returns the NegHints blob if you call
-       gss_accept_sec_context() with a NULL input buffer */
-
-    ((PSRV_GSS_NEGOTIATE_CONTEXT)hGssNegotiate)->state = SRV_GSS_CONTEXT_STATE_HINTS;
-    ntStatus = SrvGssNegotiate(
-                   hGssContext,
-                   hGssNegotiate,
-                   NULL,
-                   0,
-                   &pHintsBuffer,
-                   &ulHintsLength);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    /* Save the output security buffer for later reuse */
-
-    gSrvElements.pHintsBuffer  = pHintsBuffer;
-    gSrvElements.ulHintsLength = ulHintsLength;
-
-    *ppNegHints        = pHintsBuffer;
-    *pulNegHintsLength = ulHintsLength;
+    *ppNegHints        = gSrvElements.pHintsBuffer;
+    *pulNegHintsLength = gSrvElements.ulHintsLength;
 
 cleanup:
+
+    LWIO_UNLOCK_MUTEX(bInLock, &gSrvElements.mutex);
 
     if (hGssNegotiate)
     {
@@ -1117,14 +1107,6 @@ cleanup:
     return ntStatus;
 
 error:
-
-    if (pHintsBuffer)
-    {
-        SrvFreeMemory(pHintsBuffer);
-        pHintsBuffer = NULL;
-        ulHintsLength = 0;
-    }
-
 
     *ppNegHints = NULL;
     *pulNegHintsLength = 0;

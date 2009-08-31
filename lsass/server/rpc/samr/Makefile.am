@@ -43,6 +43,7 @@ libsamr_la_SOURCES = \
     samr_deleteaccount.c         \
     samr_deletedomalias.c        \
     samr_deleteuser.c            \
+    samr_rmfromforeigndomain.c   \
     samr_querydisplayinfo.c      \
     samr_querydomaininfo.c       \
     samr_getmembersinalias.c     \
@@ -64,13 +65,15 @@ libsamr_la_CFLAGS = \
     -I$(srv_srcdir)/api     \
     $(DCERPC_INCLUDES)      \
     $(LIBUNISTR_INCLUDES)   \
-    $(LWBASE_INCLUDES)
+    $(LWBASE_INCLUDES)      \
+    $(LWADVAPI_INCLUDES)
 
 libsamr_la_LIBADD = \
     $(DCERPC_LIBS)                        \
     $(NETAPI_LIBS)                        \
     $(LIBUNISTR_LIBS)                     \
     $(LWBASE_LIBS)                        \
+    $(LWADVAPI_LIBS)                      \
     $(srv_srcdir)/api/liblsaserverapi.la  \
     $(srv_srcdir)/store/dsapi/libdsapi.la \
     $(top_srcdir)/common/liblsacommon.la

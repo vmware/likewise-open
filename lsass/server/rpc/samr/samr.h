@@ -173,7 +173,7 @@ SamrSrvLookupRids(
 NTSTATUS
 SamrSrvOpenAlias(
     handle_t hBinding,
-    DOMAIN_HANDLE *hDomain,
+    DOMAIN_HANDLE hDomain,
     uint32 access_mask,
     uint32 rid,
     ACCOUNT_HANDLE *hAlias
@@ -225,7 +225,7 @@ SamrSrvGetMembersInAlias(
 NTSTATUS
 SamrSrvOpenUser(
     handle_t hBinding,
-    DOMAIN_HANDLE *hDomain,
+    DOMAIN_HANDLE hDomain,
     uint32 access_mask,
     uint32 rid,
     ACCOUNT_HANDLE *hUser
@@ -252,6 +252,14 @@ SamrSrvQueryDisplayInfo(
     uint32 *total_size,
     uint32 *returned_size,
     SamrDisplayInfo *info
+    );
+
+
+NTSTATUS
+SamrSrvRemoveMemberFromForeignDomain(
+    handle_t IDL_handle,
+    DOMAIN_HANDLE hDomain,
+    PSID sid
     );
 
 
@@ -294,7 +302,7 @@ SamrSrvEnumDomainAccounts(
 NTSTATUS
 SamrSrvOpenAccount(
     handle_t hBinding,
-    DOMAIN_HANDLE *hDomain,
+    DOMAIN_HANDLE hDomain,
     uint32 access_mask,
     uint32 rid,
     uint32 objectClass,
