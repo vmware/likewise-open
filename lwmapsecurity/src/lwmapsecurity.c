@@ -48,6 +48,8 @@
 #include <lw/base.h>
 #include <lw/safeint.h>
 #include "config.h"
+#include <pthread.h>
+#include <stdlib.h>
 #ifdef HAVE_DLFCN_H
 #include <dlfcn.h>
 #endif
@@ -68,14 +70,41 @@
 #define LOG_ERROR(Format, ...)
 #endif
 
-#define LW_MAP_SECURITY_PLUGIN_PATH LIBDIR "/liblwmapsecurity_lsass" MOD_EXT
+#define ASSERT(Expression) \
+    do { \
+        if (!(Expression)) \
+        { \
+            LOG_ERROR("ASSERTION FAILED: " # Expression); \
+            abort(); \
+        } \
+    } while (0)
 
-typedef struct _LW_MAP_SECURITY_CONTEXT {
-    PSTR LibraryPath;
-    PVOID LibraryHandle;
-    PLW_MAP_SECURITY_PLUGIN_CONTEXT PluginContext;
-    PLW_MAP_SECURITY_PLUGIN_INTERFACE PluginInterface;
-} LW_MAP_SECURITY_CONTEXT;
+#define LOCK_MUTEX(pMutex, bInLock) \
+    do { \
+        int _unixError = pthread_mutex_lock(pMutex); \
+        if (_unixError) \
+        { \
+            LOG_ERROR("ABORTING: Failed to lock mutex (error = %d).", _unixError); \
+            abort(); \
+        } \
+        bInLock = TRUE; \
+    } while (0)
+
+#define UNLOCK_MUTEX(pMutex, bInLock) \
+    do { \
+        if (bInLock) \
+        { \
+            int _unixError = pthread_mutex_unlock(pMutex); \
+            if (_unixError) \
+            { \
+                LOG_ERROR("ABORTING: Failed to unlock mutex (error = %d).", _unixError); \
+                abort(); \
+            } \
+            bInLock = FALSE; \
+        } \
+    } while (0)
+
+#define LW_MAP_SECURITY_PLUGIN_PATH LIBDIR "/liblwmapsecurity_lsass" MOD_EXT
 
 //
 // Unmapped Unix User and Group SIDs
@@ -91,6 +120,48 @@ typedef struct _LW_MAP_SECURITY_CONTEXT {
 
 #define SECURITY_UNMAPPED_UNIX_UID_PREFIX "S-1-22-1-"
 #define SECURITY_UNMAPPED_UNIX_GID_PREFIX "S-1-22-2-"
+
+//
+// Structures
+//
+
+typedef struct _LW_MAP_SECURITY_CONTEXT {
+    PSTR LibraryPath;
+    PVOID LibraryHandle;
+    PLW_MAP_SECURITY_PLUGIN_CONTEXT PluginContext;
+    PLW_MAP_SECURITY_PLUGIN_INTERFACE PluginInterface;
+} LW_MAP_SECURITY_CONTEXT;
+
+typedef struct _LW_MAP_SECURITY_STATE {
+    pthread_mutex_t Mutex;
+    LONG InitCount;
+    LONG RefCount;
+    PLW_MAP_SECURITY_CONTEXT Context;
+} LW_MAP_SECURITY_STATE, *PLW_MAP_SECURITY_STATE;
+
+//
+// Global State
+//
+
+LW_MAP_SECURITY_STATE gLwMapSecurityState = {
+    .Mutex = PTHREAD_MUTEX_INITIALIZER,
+};
+
+//
+// Prototypes
+//
+
+static
+NTSTATUS
+LwMapSecurityCreateContextInternal(
+    OUT PLW_MAP_SECURITY_CONTEXT* Context
+    );
+
+static
+VOID
+LwMapSecurityFreeContextInternal(
+    IN OUT PLW_MAP_SECURITY_CONTEXT* Context
+    );
 
 //
 // Plugin Functions
@@ -139,7 +210,120 @@ cleanup:
 //
 
 NTSTATUS
+LwMapSecurityInitialize(
+    VOID
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    BOOLEAN bInLock = FALSE;
+
+    LOCK_MUTEX(&gLwMapSecurityState.Mutex, bInLock);
+
+    gLwMapSecurityState.InitCount++;
+    ASSERT(gLwMapSecurityState.InitCount >= 1);
+
+    if (!gLwMapSecurityState.Context)
+    {
+        // Ignore failure
+        status = LwMapSecurityCreateContextInternal(&gLwMapSecurityState.Context);
+        status = STATUS_SUCCESS;
+    }
+
+    UNLOCK_MUTEX(&gLwMapSecurityState.Mutex, bInLock);
+
+    return status;
+}
+
+VOID
+LwMapSecurityCleanup(
+    VOID
+    )
+{
+    BOOLEAN bInLock = FALSE;
+
+    LOCK_MUTEX(&gLwMapSecurityState.Mutex, bInLock);
+
+    gLwMapSecurityState.InitCount--;
+    ASSERT(gLwMapSecurityState.InitCount >= 0);
+
+    if (0 == gLwMapSecurityState.InitCount)
+    {
+        if (0 == gLwMapSecurityState.RefCount)
+        {
+            LwMapSecurityFreeContextInternal(&gLwMapSecurityState.Context);
+        }
+        else
+        {
+            LOG_ERROR("lwmapsecurity refcount != 0 (%d) - probably resource leak",
+                      gLwMapSecurityState.RefCount);
+        }
+    }
+
+    UNLOCK_MUTEX(&gLwMapSecurityState.Mutex, bInLock);
+}
+
+NTSTATUS
 LwMapSecurityCreateContext(
+    OUT PLW_MAP_SECURITY_CONTEXT* Context
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    int EE = 0;
+    PLW_MAP_SECURITY_CONTEXT pContext = NULL;
+    BOOLEAN bInLock = FALSE;
+
+    LOCK_MUTEX(&gLwMapSecurityState.Mutex, bInLock);
+
+    if (!gLwMapSecurityState.Context)
+    {
+        status = LwMapSecurityCreateContextInternal(&gLwMapSecurityState.Context);
+        GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+    }
+
+    pContext = gLwMapSecurityState.Context;
+    gLwMapSecurityState.RefCount++;
+    ASSERT(gLwMapSecurityState.RefCount >= 1);
+
+cleanup:
+    UNLOCK_MUTEX(&gLwMapSecurityState.Mutex, bInLock);
+
+    *Context = pContext;
+
+    return status;
+}
+
+VOID
+LwMapSecurityFreeContext(
+    IN OUT PLW_MAP_SECURITY_CONTEXT* Context
+    )
+{
+    PLW_MAP_SECURITY_CONTEXT context = *Context;
+    BOOLEAN bInLock = FALSE;
+
+    if (context)
+    {
+        LOCK_MUTEX(&gLwMapSecurityState.Mutex, bInLock);
+
+        ASSERT(context == gLwMapSecurityState.Context);
+
+        gLwMapSecurityState.RefCount--;
+        ASSERT(gLwMapSecurityState.RefCount >= 0);
+
+        if ((0 == gLwMapSecurityState.RefCount) &&
+            (0 == gLwMapSecurityState.InitCount))
+        {
+            LwMapSecurityFreeContext(&gLwMapSecurityState.Context);
+        }
+
+        UNLOCK_MUTEX(&gLwMapSecurityState.Mutex, bInLock);
+
+        *Context = NULL;
+    }
+}
+
+static
+NTSTATUS
+LwMapSecurityCreateContextInternal(
     OUT PLW_MAP_SECURITY_CONTEXT* Context
     )
 {
@@ -198,8 +382,9 @@ cleanup:
     return status;
 }
 
+static
 VOID
-LwMapSecurityFreeContext(
+LwMapSecurityFreeContextInternal(
     IN OUT PLW_MAP_SECURITY_CONTEXT* Context
     )
 {

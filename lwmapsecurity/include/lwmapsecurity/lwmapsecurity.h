@@ -31,6 +31,25 @@
 
 typedef struct _LW_MAP_SECURITY_CONTEXT *PLW_MAP_SECURITY_CONTEXT;
 
+//
+// Every successful call to LwMapSecurityInitialize() must have
+// exactly one corresponding call to LwMapSecurityCleanup().
+// However, it is not necessary to call LwMapSecurityInitialize()
+// before calling LwMapSecurityCreateContext().  Also, the library
+// may return references to existing contexts and just do reference
+// counting.
+//
+
+NTSTATUS
+LwMapSecurityInitialize(
+    VOID
+    );
+
+VOID
+LwMapSecurityCleanup(
+    VOID
+    );
+
 NTSTATUS
 LwMapSecurityCreateContext(
     OUT PLW_MAP_SECURITY_CONTEXT* Context

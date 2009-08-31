@@ -7,4 +7,5 @@ liblwmapsecurity_la_SOURCES = \
 
 liblwmapsecurity_la_LIBADD = \
         @LWBASE_LIBS@ \
+        @LIB_PTHREAD@ \
         @DL_LIBS@
