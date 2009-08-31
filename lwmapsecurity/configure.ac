@@ -74,7 +74,6 @@ AC_SUBST(LWBASE_LIBS)
 
 # Checks for libraries.
 AC_CHECK_LIB(pthread, pthread_self, [LIB_PTHREAD="-lpthread"], [LIB_PTHREAD=""])
-AC_SUBST(LIB_PTHREAD)
 
 AC_CHECK_LIB([dl], [dlopen], [DL_LIBS="-ldl"])
 AC_SUBST(DL_LIBS)
