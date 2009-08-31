@@ -238,13 +238,13 @@ cpp_quote("#endif")
 
     /* function 0x1f */
     NTSTATUS __SamrAddAliasMember(
-        [in,ref] ACCOUNT_HANDLE hAlias,
+        [in] ACCOUNT_HANDLE hAlias,
         [in,ref] IDLREF_PSID sid
         );
 
     /* function 0x20 */
     NTSTATUS __SamrDeleteAliasMember(
-        [in,ref] ACCOUNT_HANDLE hAlias,
+        [in] ACCOUNT_HANDLE hAlias,
         [in,ref] IDLREF_PSID sid
         );
 
@@ -285,7 +285,7 @@ cpp_quote("#endif")
 
     /* function 0x27 */
     NTSTATUS __SamrGetUserGroups(
-        [in,ref] ACCOUNT_HANDLE hUser,
+        [in] ACCOUNT_HANDLE hUser,
         [out] RidWithAttributeArray **rids
         );
 
@@ -307,7 +307,7 @@ cpp_quote("#endif")
 
     /* function 0x2c */
     NTSTATUS __SamrGetUserPwInfo(
-        [in,ref] ACCOUNT_HANDLE hUser,
+        [in] ACCOUNT_HANDLE hUser,
         [out] PwInfo *info
         );
 
