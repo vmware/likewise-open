@@ -672,11 +672,17 @@ NTSTATUS __SamrGetUserPwInfo(
 }
 
 
-NTSTATUS _samr_Function2d(
-    /* [in] */ handle_t IDL_handle
+NTSTATUS __SamrRemoveMemberFromForeignDomain(
+    /* [in] */ handle_t IDL_handle,
+    /* [in] */ DOMAIN_HANDLE hDomain,
+    /* [in] */ PSID sid
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = SamrSrvRemoveMemberFromForeignDomain(IDL_handle,
+                                                  hDomain,
+                                                  sid);
     return status;
 }
 
