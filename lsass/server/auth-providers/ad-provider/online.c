@@ -1178,12 +1178,14 @@ AD_CacheUserRealInfoFromPac(
 
     dwError = LsaAdBatchMarshalUserInfoAccountExpires(
                pUserInfo->userInfo.qwAccountExpires,
-               &pUserInfo->userInfo);
+               &pUserInfo->userInfo,
+               pUserInfo->pszSamAccountName);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError =  LsaAdBatchMarshalUserInfoPasswordLastSet(
                pUserInfo->userInfo.qwPwdLastSet,
-               &pUserInfo->userInfo);
+               &pUserInfo->userInfo,
+               pUserInfo->pszSamAccountName);
     BAIL_ON_LSA_ERROR(dwError);
 
     pUserInfo->userInfo.bIsAccountInfoKnown = TRUE;

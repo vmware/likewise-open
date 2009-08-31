@@ -142,8 +142,8 @@ extern pthread_mutex_t gLogLock;
 
 #define _LSA_LOG_WITH_THREAD(Level, Format, ...) \
     _LSA_LOG_MESSAGE(Level, \
-                     "0x%x:" Format, \
-                     (unsigned int)pthread_self(), \
+                     "%zd:" Format, \
+                     (size_t)pthread_self(), \
                      ## __VA_ARGS__)
 
 #else
