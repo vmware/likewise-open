@@ -288,7 +288,13 @@ typedef struct _SRV_READ_STATE_SMB_V1
     IO_ASYNC_CONTROL_BLOCK    acb;
     PIO_ASYNC_CONTROL_BLOCK   pAcb;
 
-    PREAD_ANDX_REQUEST_HEADER pRequestHeader; // Do not free
+    UCHAR                     ucWordCount;
+
+    union
+    {
+        PREAD_ANDX_REQUEST_HEADER_WC_10 pRequestHeader_WC_10;
+        PREAD_ANDX_REQUEST_HEADER_WC_12 pRequestHeader_WC_12;
+    }; // Do not free
 
     PLWIO_SRV_FILE            pFile;
 

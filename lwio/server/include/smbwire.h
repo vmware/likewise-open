@@ -1144,11 +1144,27 @@ typedef struct
     uint32_t maxCountHigh;  /* High 16 bits of MaxCount if CAP_LARGE_READX;
                                else MUST BE ZERO */
     uint16_t remaining;     /* Reserved for obsolescent requests */
+    uint16_t byteCount;     /* Count of data bytes = 0 */
+}  __attribute__((__packed__))  READ_ANDX_REQUEST_HEADER_WC_10,
+                               *PREAD_ANDX_REQUEST_HEADER_WC_10;
+
+typedef struct
+{
+    /* wordCount and byteCount are handled at a higher layer */
+    /* AndX chains will be handled at a higher layer */
+
+    uint16_t fid;           /* File handle */
+    uint32_t offset;        /* Offset in file to begin read */
+    uint16_t maxCount;      /* Max number of bytes to return */
+    uint16_t minCount;      /* 0 = non-blocking named pipe read */
+    uint32_t maxCountHigh;  /* High 16 bits of MaxCount if CAP_LARGE_READX;
+                               else MUST BE ZERO */
+    uint16_t remaining;     /* Reserved for obsolescent requests */
     uint32_t offsetHigh;    /* Upper 32 bits of offset
                                (only if wordCount is 12) */
     uint16_t byteCount;     /* Count of data bytes = 0 */
-}  __attribute__((__packed__))  READ_ANDX_REQUEST_HEADER,
-                               *PREAD_ANDX_REQUEST_HEADER;
+}  __attribute__((__packed__))  READ_ANDX_REQUEST_HEADER_WC_12,
+                               *PREAD_ANDX_REQUEST_HEADER_WC_12;
 
 typedef struct
 {
@@ -1933,11 +1949,19 @@ MarshallWriteRequestData(
     );
 
 NTSTATUS
-WireUnmarshallReadAndXRequest(
+WireUnmarshallReadAndXRequest_WC_10(
     const PBYTE pParams,
     ULONG       ulBytesAvailable,
     ULONG       ulBytesUsed,
-    PREAD_ANDX_REQUEST_HEADER* ppHeader
+    PREAD_ANDX_REQUEST_HEADER_WC_10* ppHeader
+    );
+
+NTSTATUS
+WireUnmarshallReadAndXRequest_WC_12(
+    const PBYTE pParams,
+    ULONG       ulBytesAvailable,
+    ULONG       ulBytesUsed,
+    PREAD_ANDX_REQUEST_HEADER_WC_12* ppHeader
     );
 
 NTSTATUS

@@ -39,9 +39,11 @@ SrvBuildReadAndXResponse(
 static
 NTSTATUS
 SrvBuildReadState(
-    PREAD_ANDX_REQUEST_HEADER pRequestHeader,
-    PLWIO_SRV_FILE            pFile,
-    PSRV_READ_STATE_SMB_V1*   ppReadState
+    UCHAR                           ucWordCount,
+    PREAD_ANDX_REQUEST_HEADER_WC_10 pRequestHeader_WC_10,
+    PREAD_ANDX_REQUEST_HEADER_WC_12 pRequestHeader_WC_12,
+    PLWIO_SRV_FILE                  pFile,
+    PSRV_READ_STATE_SMB_V1*         ppReadState
     );
 
 static
@@ -108,7 +110,8 @@ SrvProcessReadAndX(
         PBYTE pBuffer  = pSmbRequest->pBuffer + pSmbRequest->usHeaderSize;
         ULONG ulOffset = pSmbRequest->usHeaderSize;
         ULONG ulBytesAvailable = pSmbRequest->ulMessageSize - pSmbRequest->usHeaderSize;
-        PREAD_ANDX_REQUEST_HEADER pRequestHeader; // Do not free
+        PREAD_ANDX_REQUEST_HEADER_WC_10 pRequestHeader_WC_10 = NULL; // Do not free
+        PREAD_ANDX_REQUEST_HEADER_WC_12 pRequestHeader_WC_12 = NULL; // Do not free
 
         ntStatus = SrvConnectionFindSession_SMB_V1(
                         pCtxSmb1,
@@ -124,22 +127,56 @@ SrvProcessReadAndX(
                         &pTree);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        ntStatus = WireUnmarshallReadAndXRequest(
-                        pBuffer,
-                        ulBytesAvailable,
-                        ulOffset,
-                        &pRequestHeader);
-        BAIL_ON_NT_STATUS(ntStatus);
+        switch (pSmbRequest->pHeader->wordCount)
+        {
+            case 10:
 
-        ntStatus = SrvTreeFindFile_SMB_V1(
-                        pCtxSmb1,
-                        pTree,
-                        pRequestHeader->fid,
-                        &pFile);
-        BAIL_ON_NT_STATUS(ntStatus);
+                ntStatus = WireUnmarshallReadAndXRequest_WC_10(
+                                pBuffer,
+                                ulBytesAvailable,
+                                ulOffset,
+                                &pRequestHeader_WC_10);
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                ntStatus = SrvTreeFindFile_SMB_V1(
+                                pCtxSmb1,
+                                pTree,
+                                pRequestHeader_WC_10->fid,
+                                &pFile);
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                break;
+
+            case 12:
+
+                ntStatus = WireUnmarshallReadAndXRequest_WC_12(
+                                pBuffer,
+                                ulBytesAvailable,
+                                ulOffset,
+                                &pRequestHeader_WC_12);
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                ntStatus = SrvTreeFindFile_SMB_V1(
+                                pCtxSmb1,
+                                pTree,
+                                pRequestHeader_WC_12->fid,
+                                &pFile);
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                break;
+
+            default:
+
+                ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                break;
+        }
 
         ntStatus = SrvBuildReadState(
-                        pRequestHeader,
+                        pSmbRequest->pHeader->wordCount,
+                        pRequestHeader_WC_10,
+                        pRequestHeader_WC_12,
                         pFile,
                         &pReadState);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -155,13 +192,31 @@ SrvProcessReadAndX(
     {
         case SRV_READ_STAGE_SMB_V1_INITIAL:
 
-            pReadState->llByteOffset =
-                    (((LONG64)pReadState->pRequestHeader->offsetHigh) << 32) |
-                    ((LONG64)pReadState->pRequestHeader->offset);
+            switch (pReadState->ucWordCount)
+            {
+                case 10:
+
+                    pReadState->llByteOffset =
+                        pReadState->pRequestHeader_WC_10->offset;
+
+                    break;
+
+                case 12:
+
+                    pReadState->llByteOffset =
+                        (((LONG64)pReadState->pRequestHeader_WC_12->offsetHigh) << 32) |
+                        ((LONG64)pReadState->pRequestHeader_WC_12->offset);
+
+                    break;
+
+                default:
+
+                    break;
+            }
 
             pReadState->ullBytesToRead =
-                    (((ULONG64)pReadState->pRequestHeader->maxCountHigh) << 32)|
-                    ((ULONG64)pReadState->pRequestHeader->maxCount);
+                (((ULONG64)pReadState->pRequestHeader_WC_12->maxCountHigh) << 32)|
+                ((ULONG64)pReadState->pRequestHeader_WC_12->maxCount);
 
             pReadState->stage = SRV_READ_STAGE_SMB_V1_ATTEMPT_READ;
 
@@ -458,9 +513,11 @@ error:
 static
 NTSTATUS
 SrvBuildReadState(
-    PREAD_ANDX_REQUEST_HEADER pRequestHeader,
-    PLWIO_SRV_FILE            pFile,
-    PSRV_READ_STATE_SMB_V1*   ppReadState
+    UCHAR                           ucWordCount,
+    PREAD_ANDX_REQUEST_HEADER_WC_10 pRequestHeader_WC_10,
+    PREAD_ANDX_REQUEST_HEADER_WC_12 pRequestHeader_WC_12,
+    PLWIO_SRV_FILE                  pFile,
+    PSRV_READ_STATE_SMB_V1*         ppReadState
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -478,7 +535,30 @@ SrvBuildReadState(
 
     pReadState->stage = SRV_READ_STAGE_SMB_V1_INITIAL;
 
-    pReadState->pRequestHeader = pRequestHeader;
+    pReadState->ucWordCount    = ucWordCount;
+
+    switch (ucWordCount)
+    {
+        case 10:
+
+            pReadState->pRequestHeader_WC_10 = pRequestHeader_WC_10;
+
+            break;
+
+        case 12:
+
+            pReadState->pRequestHeader_WC_12 = pRequestHeader_WC_12;
+
+            break;
+
+        default:
+
+            ntStatus = STATUS_INVALID_PARAMETER;
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            break;
+    }
+
     pReadState->pFile = pFile;
     InterlockedIncrement(&pFile->refcount);
 

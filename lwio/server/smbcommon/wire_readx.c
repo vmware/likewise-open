@@ -31,22 +31,51 @@
 #include "includes.h"
 
 NTSTATUS
-WireUnmarshallReadAndXRequest(
+WireUnmarshallReadAndXRequest_WC_10(
     const PBYTE pParams,
     ULONG       ulBytesAvailable,
     ULONG       ulBytesUsed,
-    PREAD_ANDX_REQUEST_HEADER* ppHeader
+    PREAD_ANDX_REQUEST_HEADER_WC_10* ppHeader
     )
 {
     NTSTATUS ntStatus = 0;
 
-    if (ulBytesAvailable < sizeof(READ_ANDX_REQUEST_HEADER))
+    if (ulBytesAvailable < sizeof(READ_ANDX_REQUEST_HEADER_WC_10))
     {
         ntStatus = STATUS_INVALID_BUFFER_SIZE;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    *ppHeader = (PREAD_ANDX_REQUEST_HEADER)pParams;
+    *ppHeader = (PREAD_ANDX_REQUEST_HEADER_WC_10)pParams;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppHeader = NULL;
+
+    goto cleanup;
+}
+
+NTSTATUS
+WireUnmarshallReadAndXRequest_WC_12(
+    const PBYTE pParams,
+    ULONG       ulBytesAvailable,
+    ULONG       ulBytesUsed,
+    PREAD_ANDX_REQUEST_HEADER_WC_12* ppHeader
+    )
+{
+    NTSTATUS ntStatus = 0;
+
+    if (ulBytesAvailable < sizeof(READ_ANDX_REQUEST_HEADER_WC_12))
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    *ppHeader = (PREAD_ANDX_REQUEST_HEADER_WC_12)pParams;
 
 cleanup:
 

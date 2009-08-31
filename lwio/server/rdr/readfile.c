@@ -62,7 +62,7 @@ RdrTransactReadFile(
     NTSTATUS ntStatus = STATUS_SUCCESS;
     SMB_PACKET packet = {0};
     uint16_t packetByteCount = 0;
-    READ_ANDX_REQUEST_HEADER *pRequestHeader = NULL;
+    READ_ANDX_REQUEST_HEADER_WC_12 *pRequestHeader = NULL;
     READ_ANDX_RESPONSE_HEADER *pResponseHeader = NULL;
     PSMB_RESPONSE pResponse = NULL;
     PSMB_PACKET pResponsePacket = NULL;
@@ -96,14 +96,14 @@ RdrTransactReadFile(
                 &packet);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    packet.pData = packet.pParams + sizeof(READ_ANDX_REQUEST_HEADER);
+    packet.pData = packet.pParams + sizeof(READ_ANDX_REQUEST_HEADER_WC_12);
     /* @todo: handle size restart */
-    packet.bufferUsed += sizeof(READ_ANDX_REQUEST_HEADER);
+    packet.bufferUsed += sizeof(READ_ANDX_REQUEST_HEADER_WC_12);
 
     /* if LM 0.12 is used, word count is 12. Otherwise 10 */
     packet.pSMBHeader->wordCount = 12;
 
-    pRequestHeader = (READ_ANDX_REQUEST_HEADER *) packet.pParams;
+    pRequestHeader = (PREAD_ANDX_REQUEST_HEADER_WC_12) packet.pParams;
 
     pRequestHeader->fid = usFid;
     pRequestHeader->offset = ullFileReadOffset & 0x00000000FFFFFFFFLL;
@@ -152,7 +152,7 @@ RdrTransactReadFile(
     ntStatus = pResponsePacket->pSMBHeader->error;
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pResponseHeader = (READ_ANDX_RESPONSE_HEADER *) pResponsePacket->pParams;
+    pResponseHeader = (PREAD_ANDX_RESPONSE_HEADER) pResponsePacket->pParams;
 
     // byte order conversions
     SMB_LTOH16_INPLACE(pResponseHeader->dataLength);
