@@ -47,19 +47,35 @@ WireNTTimeToSMBDateTime(
 
     if ((stTime.tm_year + 1900) < 1980)
     {
-        ntStatus = STATUS_DATA_ERROR;
-        BAIL_ON_NT_STATUS(ntStatus);
+        /* Minimum time for SMB format is Jan 1, 1980 00:00:00 */
+        pSmbDate->usDay      = 1;
+        pSmbDate->usMonth    = 1;
+        pSmbDate->usYear     = 0;
+
+        pSmbTime->TwoSeconds = 0;
+        pSmbTime->Minutes    = 0;
+        pSmbTime->Hours      = 0;
     }
+    else
+    {
+        pSmbDate->usDay = stTime.tm_mday;
+        pSmbDate->usMonth = stTime.tm_mon + 1;
+        pSmbDate->usYear = (stTime.tm_year + 1900) - 1980;
 
-    pSmbDate->usDay = stTime.tm_mday;
-    pSmbDate->usMonth = stTime.tm_mon + 1;
-    pSmbDate->usYear = (stTime.tm_year + 1900) - 1980;
-
-    pSmbTime->TwoSeconds = stTime.tm_sec / 2;
-    pSmbTime->Minutes = stTime.tm_min;
-    pSmbTime->Hours = stTime.tm_hour;
-
-error:
+        pSmbTime->TwoSeconds = stTime.tm_sec / 2;
+        pSmbTime->Minutes = stTime.tm_min;
+        pSmbTime->Hours = stTime.tm_hour;
+    }
 
     return ntStatus;
 }
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
