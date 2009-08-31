@@ -55,5 +55,71 @@ NtlmServerQueryCredentialsAttributes(
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
+    PSecPkgCred pCred = (PSecPkgCred)pBuffer;
+
+    switch(ulAttribute)
+    {
+    case SECPKG_CRED_ATTR_NAMES:
+        dwError = NtlmServerQueryCredNameAttribute(
+            phCredential,
+            &pCred->pNames);
+        BAIL_ON_LW_ERROR(dwError);
+        break;
+    case SECPKG_ATTR_SUPPORTED_ALGS:
+    case SECPKG_ATTR_CIPHER_STRENGTHS:
+    case SECPKG_ATTR_SUPPORTED_PROTOCOLS:
+        dwError = LW_ERROR_NOT_IMPLEMENTED;
+        BAIL_ON_LW_ERROR(dwError);
+        break;
+    default:
+        dwError = LW_ERROR_INVALID_ATTRIBUTE_VALUE;
+        BAIL_ON_LW_ERROR(dwError);
+        break;
+    }
+
+cleanup:
     return dwError;
+error:
+    goto cleanup;
+}
+
+DWORD
+NtlmServerQueryCredNameAttribute(
+    IN PNTLM_CRED_HANDLE phCred,
+    OUT PSecPkgCred_Names *ppNames
+    )
+{
+    DWORD dwError = LW_ERROR_SUCCESS;
+    PCSTR pUserName = NULL;
+    PSecPkgCred_Names pName = NULL;
+
+    *ppNames = NULL;
+
+    dwError = LwAllocateMemory(sizeof(*pName), OUT_PPVOID(&pName));
+    BAIL_ON_LW_ERROR(dwError);
+
+    NtlmGetCredentialInfo(
+        *phCred,
+        &pUserName,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL
+        );
+
+    dwError = LwAllocateString(pUserName, &pName->pUserName);
+    BAIL_ON_LW_ERROR(dwError);
+
+cleanup:
+    *ppNames = pName;
+    return dwError;
+error:
+    if(pName)
+    {
+        LW_SAFE_FREE_STRING(pName->pUserName);
+    }
+    LW_SAFE_FREE_MEMORY(pName);
+    goto cleanup;
 }

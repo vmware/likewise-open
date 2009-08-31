@@ -60,19 +60,19 @@ NtlmServerQueryContextAttributes(
     switch(ulAttribute)
     {
     case SECPKG_ATTR_NAMES:
-        dwError = NtlmServerQueryNameAttribute(
+        dwError = NtlmServerQueryCtxtNameAttribute(
             phContext,
             &pContext->pNames);
         BAIL_ON_LW_ERROR(dwError);
         break;
     case SECPKG_ATTR_SESSION_KEY:
-        dwError = NtlmServerQuerySessionKeyAttribute(
+        dwError = NtlmServerQueryCtxtSessionKeyAttribute(
             phContext,
             &pContext->pSessionKey);
         BAIL_ON_LW_ERROR(dwError);
         break;
     case SECPKG_ATTR_SIZES:
-        dwError = NtlmServerQuerySizeAttribute(
+        dwError = NtlmServerQueryCtxtSizeAttribute(
             phContext,
             &pContext->pSizes);
         BAIL_ON_LW_ERROR(dwError);
@@ -108,7 +108,7 @@ error:
 }
 
 DWORD
-NtlmServerQueryNameAttribute(
+NtlmServerQueryCtxtNameAttribute(
     IN PNTLM_CONTEXT_HANDLE phContext,
     OUT PSecPkgContext_Names *ppNames
     )
@@ -158,7 +158,7 @@ error:
 }
 
 DWORD
-NtlmServerQuerySessionKeyAttribute(
+NtlmServerQueryCtxtSessionKeyAttribute(
     IN PNTLM_CONTEXT_HANDLE phContext,
     OUT PSecPkgContext_SessionKey *ppSessionKey
     )
@@ -209,7 +209,7 @@ error:
 }
 
 DWORD
-NtlmServerQuerySizeAttribute(
+NtlmServerQueryCtxtSizeAttribute(
     IN PNTLM_CONTEXT_HANDLE phContext,
     OUT PSecPkgContext_Sizes *ppSizes
     )

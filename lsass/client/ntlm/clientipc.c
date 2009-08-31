@@ -46,124 +46,71 @@
  */
 #include "client.h"
 
-DWORD
-NtlmOpenServer(
-    PHANDLE phConnection
-    )
+
+static LWMsgClient* gpClient = NULL;
+static LWMsgProtocol* gpProtocol = NULL;
+
+#if defined(__LWI_SOLARIS__) || defined (__LWI_AIX__)
+static pthread_once_t gOnceControl = {PTHREAD_ONCE_INIT};
+#else
+static pthread_once_t gOnceControl = PTHREAD_ONCE_INIT;
+#endif
+
+static
+VOID
+__NtlmInitialize(VOID)
 {
+    const DWORD dwMaxConnections = 10;
     DWORD dwError = LW_ERROR_SUCCESS;
-    PNTLM_CLIENT_CONNECTION_CONTEXT pContext = NULL;
-    static LWMsgTime connectTimeout = {2, 0};
 
-    if (!phConnection)
-    {
-        dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LW_ERROR(dwError);
-    }
-
-    dwError = LwAllocateMemory(
-        sizeof(NTLM_CLIENT_CONNECTION_CONTEXT),
-        OUT_PPVOID(&pContext)
-        );
-
+    dwError = LwMapLwmsgStatusToLwError(lwmsg_protocol_new(NULL, &gpProtocol));
     BAIL_ON_LW_ERROR(dwError);
 
-    dwError = NTLM_MAP_LWMSG_ERROR(
-        lwmsg_protocol_new(NULL, &pContext->pProtocol));
+    dwError = LwMapLwmsgStatusToLwError(
+        lwmsg_protocol_add_protocol_spec(gpProtocol, NtlmIpcGetProtocolSpec()));
     BAIL_ON_LW_ERROR(dwError);
 
-    dwError = NTLM_MAP_LWMSG_ERROR(
-        lwmsg_protocol_add_protocol_spec(
-            pContext->pProtocol,
-            NtlmIpcGetProtocolSpec()));
+    dwError = LwMapLwmsgStatusToLwError(
+        lwmsg_client_new(NULL, gpProtocol, &gpClient));
     BAIL_ON_LW_ERROR(dwError);
 
-    dwError = NTLM_MAP_LWMSG_ERROR(
-        lwmsg_connection_new(NULL, pContext->pProtocol, &pContext->pAssoc));
+    dwError = LwMapLwmsgStatusToLwError(
+        lwmsg_client_set_max_concurrent(gpClient, dwMaxConnections));
     BAIL_ON_LW_ERROR(dwError);
 
-    dwError = NTLM_MAP_LWMSG_ERROR(
-        lwmsg_connection_set_endpoint(
-            pContext->pAssoc,
+    dwError = LwMapLwmsgStatusToLwError(
+        lwmsg_client_set_endpoint(
+            gpClient,
             LWMSG_CONNECTION_MODE_LOCAL,
             CACHEDIR "/" NTLM_SERVER_FILENAME));
     BAIL_ON_LW_ERROR(dwError);
 
-    if (getenv("LW_DISABLE_CONNECT_TIMEOUT") == NULL)
-    {
-        /* Give up connecting within 2 seconds in case lsassd
-           is unresponsive (e.g. it's being traced in a debugger) */
-        dwError = NTLM_MAP_LWMSG_ERROR(
-            lwmsg_assoc_set_timeout(
-                pContext->pAssoc,
-                LWMSG_TIMEOUT_ESTABLISH,
-                &connectTimeout));
-        BAIL_ON_LW_ERROR(dwError);
-    }
+    return;
 
-    dwError = NTLM_MAP_LWMSG_ERROR(lwmsg_assoc_establish(pContext->pAssoc));
-    BAIL_ON_LW_ERROR(dwError);
-
-    *phConnection = (HANDLE)pContext;
-
-cleanup:
-    return dwError;
 error:
-    if (pContext)
-    {
-        if (pContext->pAssoc)
-        {
-            lwmsg_assoc_delete(pContext->pAssoc);
-        }
-        if (pContext->pProtocol)
-        {
-            lwmsg_protocol_delete(pContext->pProtocol);
-        }
-        LwFreeMemory(pContext);
-    }
-    if (phConnection)
-    {
-        *phConnection = NULL;
-    }
-    goto cleanup;
+
+    abort();
 }
 
-DWORD
-NtlmCloseServer(
-    HANDLE hConnection
-    )
+static
+VOID
+NtlmInitialize()
 {
-    DWORD dwError = LW_ERROR_SUCCESS;
-    PNTLM_CLIENT_CONNECTION_CONTEXT pContext =
-        (PNTLM_CLIENT_CONNECTION_CONTEXT)hConnection;
-
-    if (pContext->pAssoc)
-    {
-        lwmsg_assoc_close(pContext->pAssoc);
-        lwmsg_assoc_delete(pContext->pAssoc);
-    }
-
-    if (pContext->pProtocol)
-    {
-        lwmsg_protocol_delete(pContext->pProtocol);
-    }
-
-    LwFreeMemory(pContext);
-
-    return dwError;
+    pthread_once(&gOnceControl, __NtlmInitialize);
 }
 
+static
 DWORD
 NtlmIpcAcquireCall(
-    HANDLE hServer,
     LWMsgCall** ppCall
     )
 {
-    DWORD dwError = 0;
-    PNTLM_CLIENT_CONNECTION_CONTEXT pContext = hServer;
+    DWORD dwError = LW_ERROR_SUCCESS;
 
-    dwError = MAP_LWMSG_ERROR(
-        lwmsg_assoc_acquire_call(pContext->pAssoc, ppCall));
+    dwError = LwMapLwmsgStatusToLwError(
+        lwmsg_client_acquire_call(
+            gpClient,
+            ppCall));
     BAIL_ON_LW_ERROR(dwError);
 
 error:
@@ -191,7 +138,6 @@ error:
 
 DWORD
 NtlmTransactAcceptSecurityContext(
-    IN HANDLE hServer,
     IN PNTLM_CRED_HANDLE phCredential,
     IN OUT PNTLM_CONTEXT_HANDLE phContext,
     IN PSecBufferDesc pInput,
@@ -210,7 +156,9 @@ NtlmTransactAcceptSecurityContext(
     LWMsgParams Out= LWMSG_PARAMS_INITIALIZER;
     LWMsgCall* pCall = NULL;
 
-    dwError = NtlmIpcAcquireCall(hServer, &pCall);
+    NtlmInitialize();
+
+    dwError = NtlmIpcAcquireCall(&pCall);
     BAIL_ON_LW_ERROR(dwError);
 
     *pfContextAttr = 0;
@@ -284,7 +232,6 @@ error:
 
 DWORD
 NtlmTransactAcquireCredentialsHandle(
-    IN HANDLE hServer,
     IN SEC_CHAR *pszPrincipal,
     IN SEC_CHAR *pszPackage,
     IN DWORD fCredentialUse,
@@ -301,7 +248,9 @@ NtlmTransactAcquireCredentialsHandle(
     LWMsgParams Out= LWMSG_PARAMS_INITIALIZER;
     LWMsgCall* pCall = NULL;
 
-    dwError = NtlmIpcAcquireCall(hServer, &pCall);
+    NtlmInitialize();
+
+    dwError = NtlmIpcAcquireCall(&pCall);
     BAIL_ON_LW_ERROR(dwError);
 
     memset(&AcquireCredsReq, 0, sizeof(AcquireCredsReq));
@@ -359,7 +308,6 @@ error:
 
 DWORD
 NtlmTransactDecryptMessage(
-    IN HANDLE hServer,
     IN PNTLM_CONTEXT_HANDLE phContext,
     IN OUT PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo,
@@ -373,7 +321,9 @@ NtlmTransactDecryptMessage(
     LWMsgParams Out= LWMSG_PARAMS_INITIALIZER;
     LWMsgCall* pCall = NULL;
 
-    dwError = NtlmIpcAcquireCall(hServer, &pCall);
+    NtlmInitialize();
+
+    dwError = NtlmIpcAcquireCall(&pCall);
     BAIL_ON_LW_ERROR(dwError);
 
     memset(&DecryptMsgReq, 0, sizeof(DecryptMsgReq));
@@ -432,7 +382,6 @@ error:
 
 DWORD
 NtlmTransactDeleteSecurityContext(
-    IN HANDLE hServer,
     IN PNTLM_CONTEXT_HANDLE phContext
     )
 {
@@ -443,7 +392,9 @@ NtlmTransactDeleteSecurityContext(
     LWMsgParams Out= LWMSG_PARAMS_INITIALIZER;
     LWMsgCall* pCall = NULL;
 
-    dwError = NtlmIpcAcquireCall(hServer, &pCall);
+    NtlmInitialize();
+
+    dwError = NtlmIpcAcquireCall(&pCall);
     BAIL_ON_LW_ERROR(dwError);
 
     memset(&DeleteSecCtxtReq, 0, sizeof(DeleteSecCtxtReq));
@@ -489,7 +440,6 @@ error:
 
 DWORD
 NtlmTransactEncryptMessage(
-    IN HANDLE hServer,
     IN PNTLM_CONTEXT_HANDLE phContext,
     IN BOOLEAN bEncrypt,
     IN OUT PSecBufferDesc pMessage,
@@ -503,7 +453,9 @@ NtlmTransactEncryptMessage(
     LWMsgParams Out= LWMSG_PARAMS_INITIALIZER;
     LWMsgCall* pCall = NULL;
 
-    dwError = NtlmIpcAcquireCall(hServer, &pCall);
+    NtlmInitialize();
+
+    dwError = NtlmIpcAcquireCall(&pCall);
     BAIL_ON_LW_ERROR(dwError);
 
     memset(&EncryptMsgReq, 0, sizeof(EncryptMsgReq));
@@ -561,7 +513,6 @@ error:
 
 DWORD
 NtlmTransactExportSecurityContext(
-    IN HANDLE hServer,
     IN PNTLM_CONTEXT_HANDLE phContext,
     IN DWORD fFlags,
     OUT PSecBuffer pPackedContext,
@@ -575,7 +526,9 @@ NtlmTransactExportSecurityContext(
     LWMsgParams Out= LWMSG_PARAMS_INITIALIZER;
     LWMsgCall* pCall = NULL;
 
-    dwError = NtlmIpcAcquireCall(hServer, &pCall);
+    NtlmInitialize();
+
+    dwError = NtlmIpcAcquireCall(&pCall);
     BAIL_ON_LW_ERROR(dwError);
 
     memset(&ExportSecCtxtReq, 0, sizeof(ExportSecCtxtReq));
@@ -634,7 +587,6 @@ error:
 
 DWORD
 NtlmTransactFreeCredentialsHandle(
-    IN HANDLE hServer,
     IN PNTLM_CRED_HANDLE phCredential
     )
 {
@@ -645,7 +597,9 @@ NtlmTransactFreeCredentialsHandle(
     LWMsgParams Out= LWMSG_PARAMS_INITIALIZER;
     LWMsgCall* pCall = NULL;
 
-    dwError = NtlmIpcAcquireCall(hServer, &pCall);
+    NtlmInitialize();
+
+    dwError = NtlmIpcAcquireCall(&pCall);
     BAIL_ON_LW_ERROR(dwError);
 
     memset(&FreeCredsReq, 0, sizeof(FreeCredsReq));
@@ -691,7 +645,6 @@ error:
 
 DWORD
 NtlmTransactImportSecurityContext(
-    IN HANDLE hServer,
     IN PSECURITY_STRING *pszPackage,
     IN PSecBuffer pPackedContext,
     IN OPTIONAL HANDLE pToken,
@@ -705,7 +658,9 @@ NtlmTransactImportSecurityContext(
     LWMsgParams Out= LWMSG_PARAMS_INITIALIZER;
     LWMsgCall* pCall = NULL;
 
-    dwError = NtlmIpcAcquireCall(hServer, &pCall);
+    NtlmInitialize();
+
+    dwError = NtlmIpcAcquireCall(&pCall);
     BAIL_ON_LW_ERROR(dwError);
 
     memset(&ImportSecCtxtReq, 0, sizeof(ImportSecCtxtReq));
@@ -758,7 +713,6 @@ error:
 
 DWORD
 NtlmTransactInitializeSecurityContext(
-    IN HANDLE hServer,
     IN OPTIONAL PNTLM_CRED_HANDLE phCredential,
     IN OPTIONAL PNTLM_CONTEXT_HANDLE phContext,
     IN OPTIONAL SEC_CHAR * pszTargetName,
@@ -780,7 +734,9 @@ NtlmTransactInitializeSecurityContext(
     LWMsgParams Out= LWMSG_PARAMS_INITIALIZER;
     LWMsgCall* pCall = NULL;
 
-    dwError = NtlmIpcAcquireCall(hServer, &pCall);
+    NtlmInitialize();
+
+    dwError = NtlmIpcAcquireCall(&pCall);
     BAIL_ON_LW_ERROR(dwError);
 
     memset(&InitSecCtxtReq, 0, sizeof(InitSecCtxtReq));
@@ -878,7 +834,6 @@ error:
 
 DWORD
 NtlmTransactMakeSignature(
-    IN HANDLE hServer,
     IN PNTLM_CONTEXT_HANDLE phContext,
     IN BOOLEAN bEncrypt,
     IN OUT PSecBufferDesc pMessage,
@@ -892,7 +847,9 @@ NtlmTransactMakeSignature(
     LWMsgParams Out= LWMSG_PARAMS_INITIALIZER;
     LWMsgCall* pCall = NULL;
 
-    dwError = NtlmIpcAcquireCall(hServer, &pCall);
+    NtlmInitialize();
+
+    dwError = NtlmIpcAcquireCall(&pCall);
     BAIL_ON_LW_ERROR(dwError);
 
     memset(&MakeSignReq, 0, sizeof(MakeSignReq));
@@ -950,7 +907,6 @@ error:
 
 DWORD
 NtlmTransactQueryContextAttributes(
-    IN HANDLE hServer,
     IN PNTLM_CONTEXT_HANDLE phContext,
     IN DWORD ulAttribute,
     OUT PVOID pBuffer
@@ -963,7 +919,9 @@ NtlmTransactQueryContextAttributes(
     LWMsgParams Out= LWMSG_PARAMS_INITIALIZER;
     LWMsgCall* pCall = NULL;
 
-    dwError = NtlmIpcAcquireCall(hServer, &pCall);
+    NtlmInitialize();
+
+    dwError = NtlmIpcAcquireCall(&pCall);
     BAIL_ON_LW_ERROR(dwError);
 
     memset(&QueryCtxtReq, 0, sizeof(QueryCtxtReq));
@@ -1042,7 +1000,6 @@ error:
 
 DWORD
 NtlmTransactQueryCredentialsAttributes(
-    IN HANDLE hServer,
     IN PNTLM_CRED_HANDLE phCredential,
     IN DWORD ulAttribute,
     OUT PVOID pBuffer
@@ -1055,7 +1012,9 @@ NtlmTransactQueryCredentialsAttributes(
     LWMsgParams Out= LWMSG_PARAMS_INITIALIZER;
     LWMsgCall* pCall = NULL;
 
-    dwError = NtlmIpcAcquireCall(hServer, &pCall);
+    NtlmInitialize();
+
+    dwError = NtlmIpcAcquireCall(&pCall);
     BAIL_ON_LW_ERROR(dwError);
 
     memset(&QueryCredsReq, 0, sizeof(QueryCredsReq));
@@ -1079,9 +1038,19 @@ NtlmTransactQueryCredentialsAttributes(
         case NTLM_R_QUERY_CREDS_SUCCESS:
             pResultList = (PNTLM_IPC_QUERY_CREDS_RESPONSE)Out.data;
 
-            // This should be a name of a user we're getting back, so this copy
-            // should be sufficient
-            memcpy(pBuffer, pResultList->pBuffer, pResultList->dwBufferSize);
+            switch(pResultList->ulAttribute)
+            {
+            case SECPKG_CRED_ATTR_NAMES:
+                memcpy(
+                    pBuffer,
+                    pResultList->Buffer.pNames,
+                    sizeof(SecPkgContext_Names));
+                pResultList->Buffer.pNames = NULL;
+                break;
+            default:
+                dwError = LW_ERROR_INTERNAL;
+                BAIL_ON_LW_ERROR(dwError);
+            }
 
             break;
         case NTLM_R_GENERIC_FAILURE:
@@ -1109,7 +1078,6 @@ error:
 
 DWORD
 NtlmTransactVerifySignature(
-    IN HANDLE hServer,
     IN PNTLM_CONTEXT_HANDLE phContext,
     IN PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo,
@@ -1124,7 +1092,9 @@ NtlmTransactVerifySignature(
     LWMsgParams Out= LWMSG_PARAMS_INITIALIZER;
     LWMsgCall* pCall = NULL;
 
-    dwError = NtlmIpcAcquireCall(hServer, &pCall);
+    NtlmInitialize();
+
+    dwError = NtlmIpcAcquireCall(&pCall);
     BAIL_ON_LW_ERROR(dwError);
 
     memset(&VerifySignReq, 0, sizeof(VerifySignReq));

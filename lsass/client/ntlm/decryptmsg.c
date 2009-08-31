@@ -49,7 +49,6 @@
 
 DWORD
 NtlmClientDecryptMessage(
-    IN HANDLE hServer,
     IN PNTLM_CONTEXT_HANDLE phContext,
     IN OUT PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo,
@@ -61,7 +60,6 @@ NtlmClientDecryptMessage(
     *pbEncrypted = 0;
 
     dwError = NtlmTransactDecryptMessage(
-        hServer,
         phContext,
         pMessage,
         MessageSeqNo,

@@ -49,7 +49,6 @@
 
 DWORD
 NtlmClientMakeSignature(
-    IN HANDLE hServer,
     IN PNTLM_CONTEXT_HANDLE phContext,
     IN BOOLEAN bEncrypt,
     IN OUT PSecBufferDesc pMessage,
@@ -59,7 +58,6 @@ NtlmClientMakeSignature(
     DWORD dwError = LW_ERROR_SUCCESS;
 
     dwError = NtlmTransactMakeSignature(
-        hServer,
         phContext,
         bEncrypt,
         pMessage,

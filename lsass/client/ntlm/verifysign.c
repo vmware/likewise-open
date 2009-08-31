@@ -49,7 +49,6 @@
 
 DWORD
 NtlmClientVerifySignature(
-    IN HANDLE hServer,
     IN PNTLM_CONTEXT_HANDLE phContext,
     IN PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo,
@@ -63,7 +62,6 @@ NtlmClientVerifySignature(
     *pbEncrypted = 0;
 
     dwError = NtlmTransactVerifySignature(
-        hServer,
         phContext,
         pMessage,
         MessageSeqNo,

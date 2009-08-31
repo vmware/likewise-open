@@ -49,7 +49,6 @@
 
 DWORD
 NtlmClientInitializeSecurityContext(
-    IN HANDLE hServer,
     IN OPTIONAL PNTLM_CRED_HANDLE phCredential,
     IN OPTIONAL PNTLM_CONTEXT_HANDLE phContext,
     IN OPTIONAL SEC_CHAR * pszTargetName,
@@ -70,7 +69,6 @@ NtlmClientInitializeSecurityContext(
     *ptsExpiry = 0;
 
     dwError = NtlmTransactInitializeSecurityContext(
-        hServer,
         phCredential,
         phContext,
         pszTargetName,

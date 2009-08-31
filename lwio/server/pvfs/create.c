@@ -266,6 +266,12 @@ PvfsCreateDirDoSysOpen(
                   &pCreateContext->pCcb->pDirContext->pDir);
     BAIL_ON_NT_STATUS(ntError);
 
+    /* PvfsSysDirFd() may need the filename on some platforms.
+       Go ahead and store it in the CCB just in case. */
+
+    pCreateContext->pCcb->pszFilename = pCreateContext->pszDiskFilename;
+    pCreateContext->pszDiskFilename = NULL;
+
     ntError = PvfsSysDirFd(pCreateContext->pCcb, &fd);
     BAIL_ON_NT_STATUS(ntError);
 
@@ -275,9 +281,6 @@ PvfsCreateDirDoSysOpen(
     pCreateContext->pCcb->ShareFlags = Args.ShareAccess;
     pCreateContext->pCcb->AccessGranted = pCreateContext->GrantedAccess;
     pCreateContext->pCcb->CreateOptions = Args.CreateOptions;
-
-    pCreateContext->pCcb->pszFilename = pCreateContext->pszDiskFilename;
-    pCreateContext->pszDiskFilename = NULL;
 
     ntError = PvfsAddCCBToFCB(pCreateContext->pFcb, pCreateContext->pCcb);
     BAIL_ON_NT_STATUS(ntError);

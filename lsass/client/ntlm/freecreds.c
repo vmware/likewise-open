@@ -49,14 +49,12 @@
 
 DWORD
 NtlmClientFreeCredentialsHandle(
-    IN HANDLE hServer,
     IN PNTLM_CRED_HANDLE phCredential
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
 
     dwError = NtlmTransactFreeCredentialsHandle(
-        hServer,
         phCredential
         );
 

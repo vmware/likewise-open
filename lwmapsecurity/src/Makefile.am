@@ -3,7 +3,6 @@ AM_CPPFLAGS += -I$(top_srcdir)/include
 lib_LTLIBRARIES = liblwmapsecurity.la
 
 liblwmapsecurity_la_SOURCES = \
-    globals.c \
 	lwmapsecurity.c
 
 liblwmapsecurity_la_LIBADD = \

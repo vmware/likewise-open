@@ -49,7 +49,6 @@
 
 DWORD
 NtlmClientImportSecurityContext(
-    IN HANDLE hServer,
     IN PSECURITY_STRING *pszPackage,
     IN PSecBuffer pPackedContext,
     IN OPTIONAL HANDLE pToken,
@@ -61,7 +60,6 @@ NtlmClientImportSecurityContext(
     *phContext = NULL;
 
     dwError = NtlmTransactImportSecurityContext(
-        hServer,
         pszPackage,
         pPackedContext,
         pToken,

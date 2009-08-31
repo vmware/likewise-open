@@ -49,7 +49,6 @@
 
 DWORD
 NtlmClientQueryCredentialsAttributes(
-    IN HANDLE hServer,
     IN PNTLM_CRED_HANDLE phCredential,
     IN DWORD ulAttribute,
     OUT PVOID pBuffer
@@ -58,7 +57,6 @@ NtlmClientQueryCredentialsAttributes(
     DWORD dwError = LW_ERROR_SUCCESS;
 
     dwError = NtlmTransactQueryCredentialsAttributes(
-        hServer,
         phCredential,
         ulAttribute,
         pBuffer

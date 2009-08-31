@@ -1448,6 +1448,7 @@ SrvFinderMarshallBothDirInfoResults(
         pInfoHeader->AllocationSize = pFileInfoCursor->AllocationSize;
         pInfoHeader->FileAttributes = pFileInfoCursor->FileAttributes;
         pInfoHeader->FileNameLength = pFileInfoCursor->FileNameLength;
+        pInfoHeader->Reserved = 0;
 
         if (!pSearchSpace->bUseLongFilenames)
         {

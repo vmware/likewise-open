@@ -49,7 +49,6 @@
 
 DWORD
 NtlmClientQueryContextAttributes(
-    IN HANDLE hServer,
     IN PNTLM_CONTEXT_HANDLE phContext,
     IN DWORD ulAttribute,
     OUT PVOID pBuffer
@@ -58,7 +57,6 @@ NtlmClientQueryContextAttributes(
     DWORD dwError = LW_ERROR_SUCCESS;
 
     dwError = NtlmTransactQueryContextAttributes(
-        hServer,
         phContext,
         ulAttribute,
         pBuffer
