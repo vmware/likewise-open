@@ -32,6 +32,8 @@ typedef void* ACCOUNT_HANDLE;
 #define SAMR_RPC_CFG_DEFAULT_HOMEDIR_PREFIX      "/home"
 #define SAMR_RPC_CFG_DEFAULT_HOMEDIR_TEMPLATE    "%H/%U"
 
+#define LSASS_KRB5_CACHE_PATH                    "FILE:" CACHEDIR "/krb5cc_lsass"
+
 
 
 #define DS_ATTR_RECORD_ID \
