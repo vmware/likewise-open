@@ -208,6 +208,7 @@ AC_SUBST(AM_LDFLAGS)
 AC_DEFINE_UNQUOTED([PREFIXDIR], ["$prefix"], [Prefix directory])
 
 AS_AC_EXPAND(netlogonconfdir, ["$sysconfdir"])
+AS_AC_EXPAND(netlogonregdir, ["$sysconfdir"])
 AC_DEFINE_UNQUOTED([LWNET_CONFIG_DIR], ["$netlogonconfdir"], [Location of netlogon configuration files])
 
 if test x"$localstatedir" = x"/var"; then
@@ -350,6 +351,7 @@ AC_CONFIG_FILES([Makefile
                  server/netlogond/Makefile
                  etc/Makefile
                  etc/netlogon.conf
+                 etc/netlogon.reg
                  include/Makefile
                  tests/Makefile
                  tests/netlogonclient/Makefile
