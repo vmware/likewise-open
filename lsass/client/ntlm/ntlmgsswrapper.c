@@ -51,7 +51,7 @@ static GSS_MECH_CONFIG gNtlmMech =
 
     ntlm_gss_acquire_cred,
     ntlm_gss_release_cred,
-    NULL, //ntlm_gss_init_sec_cred,
+    ntlm_gss_init_sec_context,
     ntlm_gss_accept_sec_context,
     NULL, //ntlm_gss_process_context_token,
     ntlm_gss_delete_sec_context,
@@ -65,7 +65,7 @@ static GSS_MECH_CONFIG gNtlmMech =
     NULL, //ntlm_gss_compare_name,
     NULL, //ntlm_gss_display_name,
     ntlm_gss_import_name,
-    ntlm_gss_release_name,
+    NULL, //ntlm_gss_release_name,
     ntlm_gss_inquire_cred,
     NULL, //ntlm_gss_add_cred,
     NULL, //ntlm_gss_export_sec_context,
@@ -93,7 +93,7 @@ static GSS_MECH_CONFIG gNtlmMech =
 
 OM_uint32
 ntlm_gss_acquire_cred(
-    OM_uint32 *pMinorStatus,
+    OM_uint32* pMinorStatus,
     const gss_name_t pDesiredName,
     OM_uint32 nTimeReq,
     const gss_OID_set pDesiredMechs,
@@ -170,8 +170,8 @@ error:
 
 OM_uint32
 ntlm_gss_release_cred(
-    OM_uint32 *pMinorStatus,
-    gss_cred_id_t *pCredHandle
+    OM_uint32* pMinorStatus,
+    gss_cred_id_t* pCredHandle
     )
 {
     OM_uint32 MajorStatus = GSS_S_COMPLETE;
@@ -206,19 +206,19 @@ error:
 
 OM_uint32
 ntlm_gss_init_sec_context(
-    OM_uint32 *pMinorStatus,
+    OM_uint32* pMinorStatus,
     const gss_cred_id_t InitiatorCredHandle,
-    gss_ctx_id_t *pContextHandle,
+    gss_ctx_id_t* pContextHandle,
     const gss_name_t pTargetName,
     const gss_OID pMechType,
     OM_uint32 nReqFlags,
     OM_uint32 nTimeReq,
     const gss_channel_bindings_t pInputChanBindings,
     const gss_buffer_t pInputToken,
-    gss_OID *pActualMechType,
+    gss_OID* pActualMechType,
     gss_buffer_t pOutputToken,
-    OM_uint32 *pRetFlags,
-    OM_uint32 *pTimeRec
+    OM_uint32* pRetFlags,
+    OM_uint32* pTimeRec
     )
 {
     OM_uint32 MajorStatus = GSS_S_COMPLETE;
@@ -261,7 +261,14 @@ ntlm_gss_init_sec_context(
         &tsExpiry
         );
 
-    BAIL_ON_LW_ERROR(MinorStatus);
+    if(MinorStatus == LW_WARNING_CONTINUE_NEEDED)
+    {
+        MajorStatus = GSS_S_CONTINUE_NEEDED;
+    }
+    else
+    {
+        BAIL_ON_LW_ERROR(MinorStatus);
+    }
 
     pOutputToken->length = OutputToken.cbBuffer;
     pOutputToken->value = OutputToken.pvBuffer;
@@ -279,17 +286,17 @@ error:
 
 OM_uint32
 ntlm_gss_accept_sec_context(
-    OM_uint32 *pMinorStatus,
+    OM_uint32* pMinorStatus,
     gss_ctx_id_t *pContextHandle,
     const gss_cred_id_t AcceptorCredHandle,
     const gss_buffer_t pInputTokenBuffer,
     const gss_channel_bindings_t pInputChanBindings,
-    gss_name_t *pSrcName,
-    gss_OID *pMechType,
+    gss_name_t* pSrcName,
+    gss_OID* pMechType,
     gss_buffer_t pOutputToken,
-    OM_uint32 *pRetFlags,
-    OM_uint32 *pTimeRec,
-    gss_cred_id_t *pDelegatedCredHandle
+    OM_uint32* pRetFlags,
+    OM_uint32* pTimeRec,
+    gss_cred_id_t* pDelegatedCredHandle
     )
 {
     OM_uint32 MajorStatus = GSS_S_COMPLETE;
@@ -302,10 +309,24 @@ ntlm_gss_accept_sec_context(
     NTLM_CONTEXT_HANDLE NewCtxtHandle = NULL;
 
     *pMinorStatus = LW_ERROR_SUCCESS;
-    *pSrcName = NULL;
-    *pMechType = NULL;
-    *pTimeRec = 0;
-    *pDelegatedCredHandle = NULL;
+
+    if(pSrcName)
+    {
+        *pSrcName = NULL;
+    }
+    if(pMechType)
+    {
+        *pMechType = NULL;
+    }
+    if(pTimeRec)
+    {
+        *pTimeRec = 0;
+    }
+    if(pDelegatedCredHandle)
+    {
+        *pDelegatedCredHandle = NULL;
+    }
+
     memset(pOutputToken, 0, sizeof(*pOutputToken));
 
     InputBuffer.cBuffers = 1;
@@ -328,7 +349,15 @@ ntlm_gss_accept_sec_context(
         &OutputBuffer,
         pTimeRec,
         &tsExpiry);
-    BAIL_ON_LW_ERROR(MinorStatus);
+
+    if(MinorStatus == LW_WARNING_CONTINUE_NEEDED)
+    {
+        MajorStatus = GSS_S_CONTINUE_NEEDED;
+    }
+    else
+    {
+        BAIL_ON_LW_ERROR(MinorStatus);
+    }
 
     pOutputToken->length = OutputToken.cbBuffer;
     pOutputToken->value = OutputToken.pvBuffer;
@@ -347,57 +376,57 @@ error:
 
 OM_uint32
 ntlm_gss_inquire_context2(
-    OM_uint32 *pMinorStatus,
-    const gss_ctx_id_t context_handle,
-    gss_name_t *src_name,
-    gss_name_t *targ_name,
-    OM_uint32 *lifetime_rec,
-    gss_OID *mech_type,
-    OM_uint32 *ctx_flags,
-    int *locally_initiated,
-    int *open,
-    gss_buffer_t session_key
+    OM_uint32* pMinorStatus,
+    const gss_ctx_id_t ContextHandle,
+    gss_name_t* pSrcName,
+    gss_name_t* pTargetName,
+    OM_uint32* pLifeTime,
+    gss_OID* pMechType,
+    OM_uint32* pCtxtFlags,
+    PINT pLocallyInitiated,
+    PINT pOpen,
+    gss_buffer_t SessionKeyBuffer
     )
 {
     OM_uint32 MajorStatus = GSS_S_COMPLETE;
     OM_uint32 MinorStatus = LW_ERROR_SUCCESS;
     SecPkgContext_SessionKey SessionKey = {0};
 
-    if (src_name)
+    if (pSrcName)
     {
-        *src_name = NULL;
+        *pSrcName = NULL;
     }
-    if (targ_name)
+    if (pTargetName)
     {
-        *targ_name = NULL;
+        *pTargetName = NULL;
     }
-    if (lifetime_rec)
+    if (pLifeTime)
     {
-        *lifetime_rec = GSS_C_INDEFINITE;
+        *pLifeTime = GSS_C_INDEFINITE;
     }
-    if (mech_type)
+    if (pMechType)
     {
-        *mech_type = GSS_C_NO_OID;
+        *pMechType = GSS_C_NO_OID;
     }
-    if (ctx_flags)
+    if (pCtxtFlags)
     {
-        *ctx_flags = 0;
+        *pCtxtFlags = 0;
     }
-    if (locally_initiated)
+    if (pLocallyInitiated)
     {
-        *locally_initiated = 0;
+        *pLocallyInitiated = 0;
     }
-    if (open)
+    if (pOpen)
     {
-        *open = 1;
+        *pOpen = 1;
     }
 
-    if (session_key)
+    if (SessionKeyBuffer)
     {
-        memset(session_key, 0, sizeof(gss_buffer_desc));
+        memset(SessionKeyBuffer, 0, sizeof(gss_buffer_desc));
 
         MinorStatus = NtlmClientQueryContextAttributes(
-            (PNTLM_CONTEXT_HANDLE)context_handle,
+            (PNTLM_CONTEXT_HANDLE)&ContextHandle,
             SECPKG_ATTR_SESSION_KEY,
             &SessionKey
             );
@@ -405,11 +434,14 @@ ntlm_gss_inquire_context2(
 
         MinorStatus = LwAllocateMemory(
             SessionKey.SessionKeyLength,
-            &session_key->value);
+            &SessionKeyBuffer->value);
         BAIL_ON_LW_ERROR(MinorStatus);
 
-        session_key->length = SessionKey.SessionKeyLength;
-        memcpy(session_key->value, SessionKey.SessionKey, session_key->length);
+        SessionKeyBuffer->length = SessionKey.SessionKeyLength;
+        memcpy(
+            SessionKeyBuffer->value,
+            SessionKey.SessionKey,
+            SessionKeyBuffer->length);
     }
 
 cleanup:
@@ -425,8 +457,8 @@ error:
 
 OM_uint32
 ntlm_gss_delete_sec_context(
-    OM_uint32 *pMinorStatus,
-    gss_ctx_id_t *pContextHandle,
+    OM_uint32* pMinorStatus,
+    gss_ctx_id_t* pContextHandle,
     gss_buffer_t OutputToken
     )
 {
@@ -466,260 +498,17 @@ error:
 }
 
 OM_uint32
-ntlm_gss_process_context_token(
-    OM_uint32 *pMinorStatus,
-    const gss_ctx_id_t context_handle,
-    const gss_buffer_t token_buffer
-    )
-{
-    OM_uint32 MajorStatus = GSS_S_FAILURE;
-    OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
-
-    BAIL_ON_LW_ERROR(MinorStatus);
-
-cleanup:
-    *pMinorStatus = MinorStatus;
-    return MajorStatus;
-error:
-    if (MajorStatus == GSS_S_COMPLETE)
-    {
-        MajorStatus = GSS_S_FAILURE;
-    }
-    goto cleanup;
-}
-
-OM_uint32
-ntlm_gss_context_time(
-    OM_uint32 *pMinorStatus,
-    const gss_ctx_id_t context_handle,
-    OM_uint32 *time_rec
-    )
-{
-    OM_uint32 MajorStatus = GSS_S_FAILURE;
-    OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
-
-    BAIL_ON_LW_ERROR(MinorStatus);
-
-cleanup:
-    *pMinorStatus = MinorStatus;
-    return MajorStatus;
-error:
-    if (MajorStatus == GSS_S_COMPLETE)
-    {
-        MajorStatus = GSS_S_FAILURE;
-    }
-    goto cleanup;
-}
-
-OM_uint32
-ntlm_gss_get_mic(
-    OM_uint32 *pMinorStatus,
-    const gss_ctx_id_t context_handle,
-    gss_qop_t qop_req,
-    const gss_buffer_t message_buffer,
-    gss_buffer_t message_token
-    )
-{
-    OM_uint32 MajorStatus = GSS_S_FAILURE;
-    OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
-
-    BAIL_ON_LW_ERROR(MinorStatus);
-
-cleanup:
-    *pMinorStatus = MinorStatus;
-    return MajorStatus;
-error:
-    if (MajorStatus == GSS_S_COMPLETE)
-    {
-        MajorStatus = GSS_S_FAILURE;
-    }
-    goto cleanup;
-}
-
-OM_uint32
-ntlm_gss_verify_mic(
-    OM_uint32 *pMinorStatus,
-    const gss_ctx_id_t context_handle,
-    const gss_buffer_t message_buffer,
-    const gss_buffer_t token_buffer,
-    gss_qop_t *qop_state
-    )
-{
-    OM_uint32 MajorStatus = GSS_S_FAILURE;
-    OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
-
-    BAIL_ON_LW_ERROR(MinorStatus);
-
-cleanup:
-    *pMinorStatus = MinorStatus;
-    return MajorStatus;
-error:
-    if (MajorStatus == GSS_S_COMPLETE)
-    {
-        MajorStatus = GSS_S_FAILURE;
-    }
-    goto cleanup;
-}
-
-OM_uint32
-ntlm_gss_wrap(
-    OM_uint32 *pMinorStatus,
-    const gss_ctx_id_t context_handle,
-    int conf_req_flag,
-    gss_qop_t qop_req,
-    const gss_buffer_t input_message_buffer,
-    int *conf_state,
-    gss_buffer_t output_message_buffer
-    )
-{
-    OM_uint32 MajorStatus = GSS_S_FAILURE;
-    OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
-
-    BAIL_ON_LW_ERROR(MinorStatus);
-
-cleanup:
-    *pMinorStatus = MinorStatus;
-    return MajorStatus;
-error:
-    if (MajorStatus == GSS_S_COMPLETE)
-    {
-        MajorStatus = GSS_S_FAILURE;
-    }
-    goto cleanup;
-}
-
-OM_uint32
-ntlm_gss_unwrap(
-    OM_uint32 *pMinorStatus,
-    const gss_ctx_id_t context_handle,
-    const gss_buffer_t input_message_buffer,
-    gss_buffer_t output_message_buffer,
-    int *conf_state,
-    gss_qop_t *qop_state
-    )
-{
-    OM_uint32 MajorStatus = GSS_S_FAILURE;
-    OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
-
-    BAIL_ON_LW_ERROR(MinorStatus);
-
-cleanup:
-    *pMinorStatus = MinorStatus;
-    return MajorStatus;
-error:
-    if (MajorStatus == GSS_S_COMPLETE)
-    {
-        MajorStatus = GSS_S_FAILURE;
-    }
-    goto cleanup;
-}
-
-OM_uint32
-ntlm_gss_display_status(
-    OM_uint32 *pMinorStatus,
-    OM_uint32 status_value,
-    int status_type,
-    const gss_OID mech_type,
-    OM_uint32 *message_context,
-    gss_buffer_t status_string
-    )
-{
-    OM_uint32 MajorStatus = GSS_S_FAILURE;
-    OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
-
-    BAIL_ON_LW_ERROR(MinorStatus);
-
-cleanup:
-    *pMinorStatus = MinorStatus;
-    return MajorStatus;
-error:
-    if (MajorStatus == GSS_S_COMPLETE)
-    {
-        MajorStatus = GSS_S_FAILURE;
-    }
-    goto cleanup;
-}
-
-OM_uint32
-ntlm_gss_indicate_mechs(
-    OM_uint32 *pMinorStatus,
-    gss_OID_set *mech_set
-    )
-{
-    OM_uint32 MajorStatus = GSS_S_FAILURE;
-    OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
-
-    BAIL_ON_LW_ERROR(MinorStatus);
-
-cleanup:
-    *pMinorStatus = MinorStatus;
-    return MajorStatus;
-error:
-    if (MajorStatus == GSS_S_COMPLETE)
-    {
-        MajorStatus = GSS_S_FAILURE;
-    }
-    goto cleanup;
-}
-
-OM_uint32
-ntlm_gss_compare_name(
-    OM_uint32 *pMinorStatus,
-    const gss_name_t name1,
-    const gss_name_t name2,
-    int *name_equal
-    )
-{
-    OM_uint32 MajorStatus = GSS_S_FAILURE;
-    OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
-
-    BAIL_ON_LW_ERROR(MinorStatus);
-
-cleanup:
-    *pMinorStatus = MinorStatus;
-    return MajorStatus;
-error:
-    if (MajorStatus == GSS_S_COMPLETE)
-    {
-        MajorStatus = GSS_S_FAILURE;
-    }
-    goto cleanup;
-}
-
-OM_uint32
-ntlm_gss_display_name(
-    OM_uint32 *pMinorStatus,
-    const gss_name_t input_name,
-    gss_buffer_t output_name_buffer,
-    gss_OID *output_name_type
-    )
-{
-    OM_uint32 MajorStatus = GSS_S_FAILURE;
-    OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
-
-    BAIL_ON_LW_ERROR(MinorStatus);
-
-cleanup:
-    *pMinorStatus = MinorStatus;
-    return MajorStatus;
-error:
-    if (MajorStatus == GSS_S_COMPLETE)
-    {
-        MajorStatus = GSS_S_FAILURE;
-    }
-    goto cleanup;
-}
-
-OM_uint32
 ntlm_gss_import_name(
-    OM_uint32 *pMinorStatus,
-    const gss_buffer_t input_name_buffer,
-    const gss_OID input_name_type,
-    gss_name_t *output_name
+    OM_uint32* pMinorStatus,
+    const gss_buffer_t InputNameBuffer,
+    const gss_OID InputNameType,
+    gss_name_t* pOutputName
     )
 {
     OM_uint32 MajorStatus = GSS_S_COMPLETE;
     OM_uint32 MinorStatus = LW_ERROR_SUCCESS;
+
+    *pOutputName = GSS_C_NO_NAME;
 
     // formats we will have to potentially handle
     // GSS_C_NT_USER_NAME - principal@realm
@@ -744,53 +533,8 @@ error:
 }
 
 OM_uint32
-ntlm_gss_export_name(
-    OM_uint32 *pMinorStatus,
-    const gss_name_t input_name,
-    gss_buffer_t exported_name
-    )
-{
-    OM_uint32 MajorStatus = GSS_S_FAILURE;
-    OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
-
-    BAIL_ON_LW_ERROR(MinorStatus);
-
-cleanup:
-    *pMinorStatus = MinorStatus;
-    return MajorStatus;
-error:
-    if (MajorStatus == GSS_S_COMPLETE)
-    {
-        MajorStatus = GSS_S_FAILURE;
-    }
-    goto cleanup;
-}
-
-OM_uint32
-ntlm_gss_release_name(
-    OM_uint32 *pMinorStatus,
-    gss_name_t *name
-    )
-{
-    OM_uint32 MajorStatus = GSS_S_FAILURE;
-    OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
-
-    BAIL_ON_LW_ERROR(MinorStatus);
-
-cleanup:
-    *pMinorStatus = MinorStatus;
-    return MajorStatus;
-error:
-    if (MajorStatus == GSS_S_COMPLETE)
-    {
-        MajorStatus = GSS_S_FAILURE;
-    }
-    goto cleanup;
-}
-
-OM_uint32
 ntlm_gss_release_buffer(
-    OM_uint32 *pMinorStatus,
+    OM_uint32* pMinorStatus,
     gss_buffer_t pBuffer
     )
 {
@@ -806,481 +550,97 @@ ntlm_gss_release_buffer(
     return GSS_S_COMPLETE;
 }
 
-OM_uint32
-ntlm_gss_release_oid_set(
-    OM_uint32 *pMinorStatus,
-    gss_OID_set *set
-    )
-{
-    OM_uint32 MajorStatus = GSS_S_FAILURE;
-    OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
-
-    BAIL_ON_LW_ERROR(MinorStatus);
-
-cleanup:
-    *pMinorStatus = MinorStatus;
-    return MajorStatus;
-error:
-    if (MajorStatus == GSS_S_COMPLETE)
-    {
-        MajorStatus = GSS_S_FAILURE;
-    }
-    goto cleanup;
-}
-
+#if 0
 OM_uint32
 ntlm_gss_inquire_cred(
-    OM_uint32 *pMinorStatus,
+    OM_uint32* pMinorStatus,
     const gss_cred_id_t CredHandle,
-    gss_name_t *name,
-    OM_uint32 *lifetime,
-    gss_cred_usage_t *cred_usage,
-    gss_OID_set *mechanisms
+    gss_name_t* pName,
+    OM_uint32* pLifeTime,
+    gss_cred_usage_t* pCredUsage,
+    gss_OID_set* pMechs
     )
 {
-    OM_uint32 MajorStatus = GSS_S_FAILURE;
-    OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
+    OM_uint32 MajorStatus = GSS_S_COMPLETE;
+    OM_uint32 MinorStatus = LW_ERROR_SUCCESS;
+    SecPkgCred_Names CredNames;
 
+    memset(&CredNames, 0, sizeof(CredNames));
+
+    MinorStatus = NtlmClientQueryCredentialsAttributes(
+        (PNTLM_CRED_HANDLE)&CredHandle,
+        SECPKG_CRED_ATTR_NAMES,
+        &CredNames);
     BAIL_ON_LW_ERROR(MinorStatus);
+
+    if(pLifeTime)
+    {
+        *pLifeTime = 0;
+    }
+
+    if(pCredUsage)
+    {
+        *pCredUsage = 0;
+    }
+
+    if(pMechs)
+    {
+        *pMechs = GSS_C_NO_OID_SET;
+    }
 
 cleanup:
     *pMinorStatus = MinorStatus;
+
+    if(pName)
+    {
+        *pName = (gss_name_t)CredNames.pUserName;
+    }
+
     return MajorStatus;
 error:
     if (MajorStatus == GSS_S_COMPLETE)
     {
         MajorStatus = GSS_S_FAILURE;
     }
+
+    LW_SAFE_FREE_MEMORY(CredNames.pUserName);
+
     goto cleanup;
 }
-
+#else
 OM_uint32
-ntlm_gss_inquire_context(
-    OM_uint32 *pMinorStatus,
-    const gss_ctx_id_t context_handle,
-    gss_name_t *src_name,
-    gss_name_t *targ_name,
-    OM_uint32 *lifetime_rec,
-    gss_OID *mech_type,
-    OM_uint32 *ctx_flags,
-    int *locally_initiated,
-    int *open
-    )
-{
-    OM_uint32 MajorStatus = GSS_S_FAILURE;
-    OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
-
-    BAIL_ON_LW_ERROR(MinorStatus);
-
-cleanup:
-    *pMinorStatus = MinorStatus;
-    return MajorStatus;
-error:
-    if (MajorStatus == GSS_S_COMPLETE)
-    {
-        MajorStatus = GSS_S_FAILURE;
-    }
-    goto cleanup;
-}
-
-OM_uint32
-ntlm_gss_wrap_size_limit(
-    OM_uint32 *pMinorStatus,
-    const gss_ctx_id_t context_handle,
-    int conf_req_flag,
-    gss_qop_t qop_req,
-    OM_uint32 req_output_size,
-    OM_uint32 *max_input_size
-    )
-{
-    OM_uint32 MajorStatus = GSS_S_FAILURE;
-    OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
-
-    BAIL_ON_LW_ERROR(MinorStatus);
-
-cleanup:
-    *pMinorStatus = MinorStatus;
-    return MajorStatus;
-error:
-    if (MajorStatus == GSS_S_COMPLETE)
-    {
-        MajorStatus = GSS_S_FAILURE;
-    }
-    goto cleanup;
-}
-
-OM_uint32
-ntlm_gss_add_cred(
-    OM_uint32 *pMinorStatus,
-    const gss_cred_id_t InputCredHandle,
-    const gss_name_t desired_name,
-    const gss_OID desired_mech,
-    gss_cred_usage_t cred_usage,
-    OM_uint32 initiator_time_req,
-    OM_uint32 acceptor_time_req,
-    gss_cred_id_t *pOutputCredHandle,
-    gss_OID_set *actual_mechs,
-    OM_uint32 *initiator_time_rec,
-    OM_uint32 *acceptor_time_rec
-    )
-{
-    OM_uint32 MajorStatus = GSS_S_FAILURE;
-    OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
-
-    BAIL_ON_LW_ERROR(MinorStatus);
-
-cleanup:
-    *pMinorStatus = MinorStatus;
-    return MajorStatus;
-error:
-    if (MajorStatus == GSS_S_COMPLETE)
-    {
-        MajorStatus = GSS_S_FAILURE;
-    }
-    goto cleanup;
-}
-
-OM_uint32
-ntlm_gss_inquire_cred_by_mech(
-    OM_uint32 *pMinorStatus,
+ntlm_gss_inquire_cred(
+    OM_uint32* pMinorStatus,
     const gss_cred_id_t CredHandle,
-    const gss_OID mech_type,
-    gss_name_t *name,
-    OM_uint32 *initiator_lifetime,
-    OM_uint32 *acceptor_lifetime,
-    gss_cred_usage_t *cred_usage
+    gss_name_t* pName,
+    OM_uint32* pLifeTime,
+    gss_cred_usage_t* pCredUsage,
+    gss_OID_set* pMechs
     )
 {
-    OM_uint32 MajorStatus = GSS_S_FAILURE;
-    OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
-
-    BAIL_ON_LW_ERROR(MinorStatus);
-
-cleanup:
-    *pMinorStatus = MinorStatus;
-    return MajorStatus;
-error:
-    if (MajorStatus == GSS_S_COMPLETE)
+    if(pName)
     {
-        MajorStatus = GSS_S_FAILURE;
+        *pName = GSS_C_NO_NAME;
     }
-    goto cleanup;
-}
-
-OM_uint32
-ntlm_gss_export_sec_context(
-    OM_uint32 *pMinorStatus,
-    gss_ctx_id_t *pContextHandle,
-    gss_buffer_t interprocess_token
-    )
-{
-    OM_uint32 MajorStatus = GSS_S_FAILURE;
-    OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
-
-    BAIL_ON_LW_ERROR(MinorStatus);
-
-cleanup:
-    *pMinorStatus = MinorStatus;
-    return MajorStatus;
-error:
-    if (MajorStatus == GSS_S_COMPLETE)
+    if(pLifeTime)
     {
-        MajorStatus = GSS_S_FAILURE;
+        *pLifeTime = 0;
     }
-    goto cleanup;
-}
-
-OM_uint32
-ntlm_gss_import_sec_context(
-    OM_uint32 *pMinorStatus,
-    const gss_buffer_t interprocess_token,
-    gss_ctx_id_t *pContextHandle
-    )
-{
-    OM_uint32 MajorStatus = GSS_S_FAILURE;
-    OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
-
-    BAIL_ON_LW_ERROR(MinorStatus);
-
-cleanup:
-    *pMinorStatus = MinorStatus;
-    return MajorStatus;
-error:
-    if (MajorStatus == GSS_S_COMPLETE)
+    if(pCredUsage)
     {
-        MajorStatus = GSS_S_FAILURE;
+        *pCredUsage = 0;
     }
-    goto cleanup;
-}
-
-OM_uint32
-ntlm_gss_create_empty_oid_set(
-    OM_uint32 *pMinorStatus,
-    gss_OID_set *oid_set
-    )
-{
-    OM_uint32 MajorStatus = GSS_S_FAILURE;
-    OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
-
-    BAIL_ON_LW_ERROR(MinorStatus);
-
-cleanup:
-    *pMinorStatus = MinorStatus;
-    return MajorStatus;
-error:
-    if (MajorStatus == GSS_S_COMPLETE)
+    if(pMechs)
     {
-        MajorStatus = GSS_S_FAILURE;
+        *pMechs = GSS_C_NO_OID_SET;
     }
-    goto cleanup;
+
+    return GSS_S_COMPLETE;
 }
-
-OM_uint32
-ntlm_gss_add_oid_set_member(
-    OM_uint32 *pMinorStatus,
-    const gss_OID member_oid,
-    gss_OID_set *oid_set
-    )
-{
-    OM_uint32 MajorStatus = GSS_S_FAILURE;
-    OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
-
-    BAIL_ON_LW_ERROR(MinorStatus);
-
-cleanup:
-    *pMinorStatus = MinorStatus;
-    return MajorStatus;
-error:
-    if (MajorStatus == GSS_S_COMPLETE)
-    {
-        MajorStatus = GSS_S_FAILURE;
-    }
-    goto cleanup;
-}
-
-OM_uint32
-ntlm_gss_test_oid_set_member(
-    OM_uint32 *pMinorStatus,
-    const gss_OID member,
-    const gss_OID_set set,
-    int *present
-    )
-{
-    OM_uint32 MajorStatus = GSS_S_FAILURE;
-    OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
-
-    BAIL_ON_LW_ERROR(MinorStatus);
-
-cleanup:
-    *pMinorStatus = MinorStatus;
-    return MajorStatus;
-error:
-    if (MajorStatus == GSS_S_COMPLETE)
-    {
-        MajorStatus = GSS_S_FAILURE;
-    }
-    goto cleanup;
-}
-
-OM_uint32
-ntlm_gss_inquire_names_for_mech(
-    OM_uint32 *pMinorStatus,
-    const gss_OID mechanism,
-    gss_OID_set *name_types
-    )
-{
-    OM_uint32 MajorStatus = GSS_S_FAILURE;
-    OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
-
-    BAIL_ON_LW_ERROR(MinorStatus);
-
-cleanup:
-    *pMinorStatus = MinorStatus;
-    return MajorStatus;
-error:
-    if (MajorStatus == GSS_S_COMPLETE)
-    {
-        MajorStatus = GSS_S_FAILURE;
-    }
-    goto cleanup;
-}
-
-OM_uint32
-ntlm_gss_inquire_mechs_for_name(
-    OM_uint32 *pMinorStatus,
-    const gss_name_t input_name,
-    gss_OID_set *mech_types
-    )
-{
-    OM_uint32 MajorStatus = GSS_S_FAILURE;
-    OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
-
-    BAIL_ON_LW_ERROR(MinorStatus);
-
-cleanup:
-    *pMinorStatus = MinorStatus;
-    return MajorStatus;
-error:
-    if (MajorStatus == GSS_S_COMPLETE)
-    {
-        MajorStatus = GSS_S_FAILURE;
-    }
-    goto cleanup;
-}
-
-OM_uint32
-ntlm_gss_canonicalize_name(
-    OM_uint32 *pMinorStatus,
-    const gss_name_t input_name,
-    const gss_OID mech_type,
-    gss_name_t *output_name
-    )
-{
-    OM_uint32 MajorStatus = GSS_S_FAILURE;
-    OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
-
-    BAIL_ON_LW_ERROR(MinorStatus);
-
-cleanup:
-    *pMinorStatus = MinorStatus;
-    return MajorStatus;
-error:
-    if (MajorStatus == GSS_S_COMPLETE)
-    {
-        MajorStatus = GSS_S_FAILURE;
-    }
-    goto cleanup;
-}
-
-OM_uint32
-ntlm_gss_duplicate_name(
-    OM_uint32 *pMinorStatus,
-    const gss_name_t src_name,
-    gss_name_t *dest_name
-    )
-{
-    OM_uint32 MajorStatus = GSS_S_FAILURE;
-    OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
-
-    BAIL_ON_LW_ERROR(MinorStatus);
-
-cleanup:
-    *pMinorStatus = MinorStatus;
-    return MajorStatus;
-error:
-    if (MajorStatus == GSS_S_COMPLETE)
-    {
-        MajorStatus = GSS_S_FAILURE;
-    }
-    goto cleanup;
-}
-
-OM_uint32
-ntlm_gss_sign(
-    OM_uint32 *pMinorStatus,
-    gss_ctx_id_t context_handle,
-    int qop_req,
-    gss_buffer_t message_buffer,
-    gss_buffer_t message_token
-    )
-{
-    OM_uint32 MajorStatus = GSS_S_FAILURE;
-    OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
-
-    BAIL_ON_LW_ERROR(MinorStatus);
-
-cleanup:
-    *pMinorStatus = MinorStatus;
-    return MajorStatus;
-error:
-    if (MajorStatus == GSS_S_COMPLETE)
-    {
-        MajorStatus = GSS_S_FAILURE;
-    }
-    goto cleanup;
-}
-
-OM_uint32
-ntlm_gss_verify(
-    OM_uint32 *pMinorStatus,
-    gss_ctx_id_t context_handle,
-    gss_buffer_t message_buffer,
-    gss_buffer_t token_buffer,
-    int *qop_state
-    )
-{
-    OM_uint32 MajorStatus = GSS_S_FAILURE;
-    OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
-
-    BAIL_ON_LW_ERROR(MinorStatus);
-
-cleanup:
-    *pMinorStatus = MinorStatus;
-    return MajorStatus;
-error:
-    if (MajorStatus == GSS_S_COMPLETE)
-    {
-        MajorStatus = GSS_S_FAILURE;
-    }
-    goto cleanup;
-}
-
-OM_uint32
-ntlm_gss_seal(
-    OM_uint32 *pMinorStatus,
-    gss_ctx_id_t context_handle,
-    int conf_req_flag,
-    int qop_req,
-    gss_buffer_t input_message_buffer,
-    int *conf_state,
-    gss_buffer_t output_message_buffer
-    )
-{
-    OM_uint32 MajorStatus = GSS_S_FAILURE;
-    OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
-
-    BAIL_ON_LW_ERROR(MinorStatus);
-
-cleanup:
-    *pMinorStatus = MinorStatus;
-    return MajorStatus;
-error:
-    if (MajorStatus == GSS_S_COMPLETE)
-    {
-        MajorStatus = GSS_S_FAILURE;
-    }
-    goto cleanup;
-}
-
-OM_uint32
-ntlm_gss_unseal(
-    OM_uint32 *pMinorStatus,
-    gss_ctx_id_t context_handle,
-    gss_buffer_t input_message_buffer,
-    gss_buffer_t output_message_buffer,
-    int *conf_state,
-    int *qop_state
-    )
-{
-    OM_uint32 MajorStatus = GSS_S_FAILURE;
-    OM_uint32 MinorStatus = LW_ERROR_NOT_IMPLEMENTED;
-
-    BAIL_ON_LW_ERROR(MinorStatus);
-
-cleanup:
-    *pMinorStatus = MinorStatus;
-    return MajorStatus;
-error:
-    if (MajorStatus == GSS_S_COMPLETE)
-    {
-        MajorStatus = GSS_S_FAILURE;
-    }
-    goto cleanup;
-}
+#endif
 
 PGSS_MECH_CONFIG
 gss_mech_initialize(void)
 {
     return &gNtlmMech;
 }
-

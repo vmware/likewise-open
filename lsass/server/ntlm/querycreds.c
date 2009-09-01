@@ -109,6 +109,13 @@ NtlmServerQueryCredNameAttribute(
         NULL
         );
 
+    // It's possible (in the case of a server), that no name is associated with
+    // the credential... handle this case.
+    if(!pUserName)
+    {
+        pUserName = "";
+    }
+
     dwError = LwAllocateString(pUserName, &pName->pUserName);
     BAIL_ON_LW_ERROR(dwError);
 

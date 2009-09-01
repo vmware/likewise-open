@@ -197,11 +197,29 @@ NtlmGetCredentialInfo(
             *pszDnsDomainName = pCred->pszDnsDomainName;
         }
 
-        LsaGetCredentialInfo(
-            pCred->CredHandle,
-            pszUserName,
-            pszPassword,
-            pUid);
+        if(pCred->CredHandle)
+        {
+            LsaGetCredentialInfo(
+                pCred->CredHandle,
+                pszUserName,
+                pszPassword,
+                pUid);
+        }
+        else
+        {
+            if(pszUserName)
+            {
+                *pszUserName = NULL;
+            }
+            if(pszPassword)
+            {
+                *pszPassword = NULL;
+            }
+            if(pUid)
+            {
+                *pUid = 0;
+            }
+        }
     }
 }
 

@@ -61,9 +61,19 @@ NtlmClientAcceptSecurityContext(
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
+    TimeStamp tsTimeStamp = 0;
+    DWORD fContextAttr = 0;
 
-    memset(ptsTimeStamp, 0, sizeof(TimeStamp));
-    *pfContextAttr = 0;
+
+    if(ptsTimeStamp)
+    {
+        memset(ptsTimeStamp, 0, sizeof(TimeStamp));
+    }
+
+    if(pfContextAttr)
+    {
+        *pfContextAttr = 0;
+    }
 
     dwError = NtlmTransactAcceptSecurityContext(
         phCredential,
@@ -73,8 +83,8 @@ NtlmClientAcceptSecurityContext(
         TargetDataRep,
         phNewContext,
         pOutput,
-        pfContextAttr,
-        ptsTimeStamp
+        &fContextAttr,
+        &tsTimeStamp
         );
 
     if (dwError != LW_WARNING_CONTINUE_NEEDED)
@@ -83,13 +93,30 @@ NtlmClientAcceptSecurityContext(
     }
 
 cleanup:
+    if(ptsTimeStamp)
+    {
+        *ptsTimeStamp = tsTimeStamp;
+    }
+    if(pfContextAttr)
+    {
+        *pfContextAttr = fContextAttr;
+    }
+
     return(dwError);
 error:
     // we may not want to clear the IN OUT params on error
-    *phContext = NULL;
-    *phNewContext = NULL;
-    memset(pOutput, 0, sizeof(SecBufferDesc));
-    memset(ptsTimeStamp, 0, sizeof(TimeStamp));
-    *pfContextAttr = 0;
+    if(phContext)
+    {
+        *phContext = NULL;
+    }
+    if(phNewContext)
+    {
+        *phNewContext = NULL;
+    }
+    if(pOutput)
+    {
+        memset(pOutput, 0, sizeof(SecBufferDesc));
+    }
+
     goto cleanup;
 }

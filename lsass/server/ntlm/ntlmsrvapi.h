@@ -69,6 +69,8 @@
 
 #include <lsasrvcred.h>
 #include <lsalist.h>
+#include <lwsecurityidentifier.h>
+#include <lsautils.h>
 #include <lwdef.h>
 #include <lwmem.h>
 #include <lwstr.h>

@@ -87,6 +87,24 @@ error:
 
 static
 DWORD
+NtlmSrvIpcReleaseHandle(
+    LWMsgCall* pCall,
+    PVOID pHandle
+    )
+{
+    DWORD dwError = LW_ERROR_SUCCESS;
+    LWMsgSession* pSession = lwmsg_call_get_session(pCall);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_session_release_handle(pSession, pHandle));
+    BAIL_ON_LW_ERROR(dwError);
+
+error:
+
+    return dwError;
+}
+
+static
+DWORD
 NtlmSrvIpcUnregisterHandle(
     LWMsgCall* pCall,
     PVOID pHandle
@@ -189,6 +207,9 @@ NtlmSrvIpcAcceptSecurityContext(
             // they only clean up the most recent one received, we need to clean
             // up the old one they were nice enough to pass in.
             dwError = NtlmSrvIpcUnregisterHandle(pCall, pReq->hContext);
+            BAIL_ON_LW_ERROR(dwError);
+
+            dwError = NtlmSrvIpcReleaseHandle(pCall, pReq->hContext);
             BAIL_ON_LW_ERROR(dwError);
         }
 
@@ -352,6 +373,9 @@ NtlmSrvIpcDeleteSecurityContext(
     PNTLM_IPC_ERROR pError = NULL;
 
     dwError = NtlmSrvIpcUnregisterHandle(pCall, pIn->data);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = NtlmSrvIpcReleaseHandle(pCall, pIn->data);
     if (!dwError)
     {
         pOut->tag = NTLM_R_DELETE_SEC_CTXT_SUCCESS;
@@ -359,7 +383,7 @@ NtlmSrvIpcDeleteSecurityContext(
     else
     {
         dwError = NtlmSrvIpcCreateError(dwError, &pError);
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
 
         pOut->tag = NTLM_R_GENERIC_FAILURE;
         pOut->data = pError;
@@ -478,6 +502,9 @@ NtlmSrvIpcFreeCredentialsHandle(
     PNTLM_IPC_ERROR pError = NULL;
 
     dwError = NtlmSrvIpcUnregisterHandle(pCall, pIn->data);
+    BAIL_ON_LW_ERROR(dwError);
+
+    dwError = NtlmSrvIpcReleaseHandle(pCall, pIn->data);
     if (!dwError)
     {
         pOut->tag = NTLM_R_FREE_CREDS_SUCCESS;
@@ -582,6 +609,9 @@ NtlmSrvIpcInitializeSecurityContext(
             // they only clean up the most recent one received, we need to clean
             // up the old one they were nice enough to pass in.
             dwError = NtlmSrvIpcUnregisterHandle(pCall, pReq->hContext);
+            BAIL_ON_LW_ERROR(dwError);
+
+            dwError = NtlmSrvIpcReleaseHandle(pCall, pReq->hContext);
             BAIL_ON_LW_ERROR(dwError);
         }
 
