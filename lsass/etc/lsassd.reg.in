@@ -2,54 +2,54 @@
 
 [HKEY_LIKEWISE\Services\lsass]
 
-[HKEY_LIKEWISE\Services\lsass\parameters]
-"enable-eventlog"=dword:00000000
-"log-network-connection-events"=dword:00000001
-"domain-separator"="\\"
+[HKEY_LIKEWISE\Services\lsass\Parameters]
+"EnableEventlog"=dword:00000000
+"LogNetworkConnectionEvents"=dword:00000001
+"DomainSeparator"="\\"
 
-[HKEY_LIKEWISE\Services\lsass\parameters\pam]
-"log-level"="error"
-"display-motd"=dword:00000000
-"user-not-allowed-error"="Access denied"
+[HKEY_LIKEWISE\Services\lsass\Parameters\PAM]
+"LogLevel"="error"
+"DisplayMOTD"=dword:00000000
+"UserNotAllowedError"="Access denied"
 
-[HKEY_LIKEWISE\Services\lsass\parameters\providers]
-"load-order"="activedirectory,local"
+[HKEY_LIKEWISE\Services\lsass\Parameters\Providers]
+"LoadOrder"="ActiveDirectory,Local"
 
-[HKEY_LIKEWISE\Services\lsass\parameters\providers\activedirectory]
-"path"="@providerdir@/liblsass_auth_provider_ad@MOD_EXT@"
-"login-shell-template"="/bin/sh"
-"homedir-prefix"=""
-"homedir-template"="%H/local/%D/%U"
-"ldap-sign-and-seal"=dword:00000000
-"cache-entry-expiry"="4h"
-"machine-password-lifespan"="30d"
-"space-replacement"="^"
-"assume-default-domain"=dword:00000000
-"sync-system-time"=dword:00000001
-"require-membership-of"=""
-"create-k5login"=dword:00000001
-"create-homedir"=dword:00000001
-"homdir-umask"="022"
-"skeleton-dirs"=""
-"refresh-user-credentials"=dword:00000001
-"cell-support"="full"
-"trim-user-membership"=dword:00000001
-"nss-group-members-query-cache-only"=dword:00000001
-"nss-user-membership-query-cache-only"=dword:00000000
-"nss-enumeration-enabled"=dword:@ENABLE_NSS_ENUM_DEFAULT_DWORD@
-"domain-manager-check-domain-online-interval"="5m"
-"domain-manager-unknown-domain-cache-timeout"="1h"
-"cache-type"="sqlite"
-"memory-cache-size-cap"=dword:00002710
+[HKEY_LIKEWISE\Services\lsass\Parameters\Providers\ActiveDirectory]
+"Path"="@providerdir@/liblsass_auth_provider_ad@MOD_EXT@"
+"LoginShellTemplate"="/bin/sh"
+"HomedirPrefix"=""
+"HomedirTemplate"="%H/local/%D/%U"
+"LdapSignAndSeal"=dword:00000000
+"CacheEntryExpiry"="4h"
+"MachinePasswordLifespan"="30d"
+"SpaceReplacement"="^"
+"AssumeDefaultDomain"=dword:00000000
+"SyncSystemTime"=dword:00000001
+"RequireMembershipOf"=""
+"CreateK5login"=dword:00000001
+"CreateHomedir"=dword:00000001
+"HomedirUmask"="022"
+"SkeletonDirs"=""
+"RefreshUserCredentials"=dword:00000001
+"CellSupport"="full"
+"TrimUserMembership"=dword:00000001
+"NssGroupMembersQueryCacheOnly"=dword:00000001
+"NssUserMembershipQueryCacheOnly"=dword:00000000
+"NssEnumerationEnabled"=dword:@ENABLE_NSS_ENUM_DEFAULT_DWORD@
+"DomainManagerCheckDomainOnlineInterval"="5m"
+"DomainManagerUnknownDomainCacheTimeout"="1h"
+"CacheType"="sqlite"
+"MemoryCacheSizeCap"=dword:00002710
 
-[HKEY_LIKEWISE\Services\lsass\parameters\providers\local]
-"path"="@providerdir@/liblsass_auth_provider_local@MOD_EXT@"
-"password-lifespan"="30d"
-"password-change-warning-time"="14d"
-"login-shell-template"="/bin/sh"
-"homedir-prefix"=""
-"homedir-template"="%H/local/%D/%U"
-"create-homedir"=dword:00000001
-"homedir-umask"="022"
-"skeleton-dirs"=""
+[HKEY_LIKEWISE\Services\lsass\Parameters\Providers\Local]
+"Path"="@providerdir@/liblsass_auth_provider_local@MOD_EXT@"
+"PasswordLifespan"="30d"
+"PasswordChangeWarningTime"="14d"
+"LoginShellTemplate"="/bin/sh"
+"HomedirPrefix"=""
+"HomedirTemplate"="%H/local/%D/%U"
+"CreateHomedir"=dword:00000001
+"HomedirUmask"="022"
+"SkeletonDirs"=""
 
