@@ -2,24 +2,24 @@
 
 [HKEY_LIKEWISE\Services\lwiod]
 
-[HKEY_LIKEWISE\Services\lwido\Parameters]
+[HKEY_LIKEWISE\Services\lwiod\Parameters]
 "SignMessagesIfSupported"=dword:00000000
 
-[HKEY_LIKEWISE\Services\lwido\Parameters\Drivers]
+[HKEY_LIKEWISE\Services\lwiod\Parameters\Drivers]
 "Drivers"="rdr"
 
-[HKEY_LIKEWISE\Services\lwido\Parameters\Drivers\pvfs]
+[HKEY_LIKEWISE\Services\lwiod\Parameters\Drivers\pvfs]
 "Path"="@providerdir@/libpvfs.sys@MOD_EXT@"
 
-[HKEY_LIKEWISE\Services\lwido\Parameters\Drivers\npfs]
+[HKEY_LIKEWISE\Services\lwiod\Parameters\Drivers\npfs]
 "Path"="@providerdir@/libnpfs.sys@MOD_EXT@"
 
-[HKEY_LIKEWISE\Services\lwido\Parameters\Drivers\rdr]
+[HKEY_LIKEWISE\Services\lwiod\Parameters\Drivers\rdr]
 "Path"="@providerdir@/librdr.sys@MOD_EXT@"
 
-[HKEY_LIKEWISE\Services\lwido\Parameters\Drivers\srv]
+[HKEY_LIKEWISE\Services\lwiod\Parameters\Drivers\srv]
 "Path"="@providerdir@/libsrv.sys@MOD_EXT@"
 
-[HKEY_LIKEWISE\Services\lwido\Parameters\Drivers\iotest]
+[HKEY_LIKEWISE\Services\lwiod\Parameters\Drivers\iotest]
 "Path"="@providerdir@/libiotest.sys@MOD_EXT@"
 
