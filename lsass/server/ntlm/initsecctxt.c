@@ -96,12 +96,12 @@ NtlmServerInitializeSecurityContext(
             (PBYTE)&gXpSpoof,  //for now add OS ver info... config later
             &pNtlmContext
             );
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
 
         // copy message to the output parameter... this should be a deep copy since
         // the caller will most likely delete it before cleaning up it's context.
         dwError = NtlmCopyContextToSecBufferDesc(pNtlmContext, pOutput);
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
 
         dwError = LW_WARNING_CONTINUE_NEEDED;
     }
@@ -113,18 +113,18 @@ NtlmServerInitializeSecurityContext(
             &dwMessageSize,
             (PVOID*)&pMessage
             );
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
 
         dwError = NtlmCreateResponseContext(
             pMessage,
             phCredential,
             &pNtlmContext);
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
 
         // copy message to the output parameter... this should be a deep copy since
         // the caller will most likely delete it before cleaning up it's context.
         dwError = NtlmCopyContextToSecBufferDesc(pNtlmContext, pOutput);
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     *phNewContext = pNtlmContext;
@@ -169,7 +169,7 @@ NtlmCreateNegotiateContext(
     *ppNtlmContext = NULL;
 
     dwError = NtlmCreateContext(pCredHandle, &pNtlmContext);
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = NtlmCreateNegotiateMessage(
         dwOptions,
@@ -178,7 +178,7 @@ NtlmCreateNegotiateContext(
         pOsVersion,
         &dwMessageSize,
         &pMessage);
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     pNtlmContext->dwMessageSize = dwMessageSize;
     pNtlmContext->pMessage = pMessage;
@@ -233,10 +233,10 @@ NtlmCreateResponseContext(
         NULL);
 
     dwError = NtlmFixUserName(pUserNameTemp, &pUserName);
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = NtlmCreateContext(pCredHandle, &pNtlmContext);
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = NtlmCreateResponseMessage(
         pChlngMsg,
@@ -250,7 +250,7 @@ NtlmCreateResponseContext(
         LmUserSessionKey,
         NtlmUserSessionKey
         );
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     // As a side effect of creating the response, we must also set/produce the
     // master session key...
@@ -273,7 +273,7 @@ NtlmCreateResponseContext(
         dwError = NtlmGetRandomBuffer(
             SecondaryKey,
             NTLM_SESSION_KEY_SIZE);
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
 
         // Encrypt it with the "master key" set above and send it along with the
         // response
@@ -331,13 +331,13 @@ NtlmFixUserName(
     if (!pSymbol)
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     pSymbol++;
 
     dwError = LwAllocateString(pSymbol, &pUserName);
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
     *ppUserName = pUserName;

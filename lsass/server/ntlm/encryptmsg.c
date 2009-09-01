@@ -107,7 +107,7 @@ NtlmServerEncryptMessage(
         !pToken || !pData || !pPadding || !dwDataSize || !dwPaddingSize)
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     if (bEncrypt)

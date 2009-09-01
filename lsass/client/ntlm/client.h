@@ -53,8 +53,11 @@
 #include <pthread.h>
 #include <string.h>
 
+#include <lsasystem.h>
 #include <lwdef.h>
 #include <lwmem.h>
+#include <lwsecurityidentifier.h>
+#include <lsautils.h>
 
 #include <ntlm/sspintlm.h>
 #include <ntlm/gssntlm.h>

@@ -63,19 +63,19 @@ NtlmServerQueryContextAttributes(
         dwError = NtlmServerQueryCtxtNameAttribute(
             phContext,
             &pContext->pNames);
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
         break;
     case SECPKG_ATTR_SESSION_KEY:
         dwError = NtlmServerQueryCtxtSessionKeyAttribute(
             phContext,
             &pContext->pSessionKey);
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
         break;
     case SECPKG_ATTR_SIZES:
         dwError = NtlmServerQueryCtxtSizeAttribute(
             phContext,
             &pContext->pSizes);
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
         break;
     case SECPKG_ATTR_ACCESS_TOKEN:
     case SECPKG_ATTR_AUTHORITY:
@@ -93,11 +93,11 @@ NtlmServerQueryContextAttributes(
     case SECPKG_ATTR_ROOT_STORE:
     case SECPKG_ATTR_TARGET_INFORMATION:
         dwError = LW_ERROR_NOT_IMPLEMENTED;
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
         break;
     default:
         dwError = LW_ERROR_INVALID_ATTRIBUTE_VALUE;
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
         break;
     }
 
@@ -123,7 +123,7 @@ NtlmServerQueryCtxtNameAttribute(
     *ppNames = NULL;
 
     dwError = LwAllocateMemory(sizeof(*pName), OUT_PPVOID(&pName));
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     NtlmGetContextInfo(
         *phContext,
@@ -137,14 +137,14 @@ NtlmServerQueryCtxtNameAttribute(
     if(State != NtlmStateResponse)
     {
         dwError = LW_ERROR_INVALID_CONTEXT;
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     dwError = NtlmGetUserNameFromResponse(
         pMessage,
         dwNegFlags & NTLM_FLAG_UNICODE,
         &pUserName);
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     pName->pUserName = pUserName;
 
@@ -171,7 +171,7 @@ NtlmServerQueryCtxtSessionKeyAttribute(
     *ppSessionKey = NULL;
 
     dwError = LwAllocateMemory(sizeof(*pSessionKey), OUT_PPVOID(&pSessionKey));
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     NtlmGetContextInfo(
         *phContext,
@@ -185,13 +185,13 @@ NtlmServerQueryCtxtSessionKeyAttribute(
     if(State != NtlmStateResponse)
     {
         dwError = LW_ERROR_INVALID_CONTEXT;
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     dwError = LwAllocateMemory(
         NTLM_SESSION_KEY_SIZE,
         OUT_PPVOID(&pSessionKey->SessionKey));
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     memcpy(pSessionKey->SessionKey, pKey, NTLM_SESSION_KEY_SIZE);
     pSessionKey->SessionKeyLength = NTLM_SESSION_KEY_SIZE;
@@ -220,7 +220,7 @@ NtlmServerQueryCtxtSizeAttribute(
     *ppSizes = NULL;
 
     dwError = LwAllocateMemory(sizeof(*pSizes), OUT_PPVOID(&pSizes));
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     // The Challenge message is easily the largest token we send
     pSizes->cbMaxToken =
