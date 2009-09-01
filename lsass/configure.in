@@ -976,6 +976,7 @@ AC_CONFIG_FILES([Makefile
                  lsaunistr/Makefile
                  join/Makefile
                  interop/Makefile
+                 interop/gssntlm/Makefile
                  interop/nsswitch/Makefile
                  interop/nsswitch/common/Makefile
                  interop/nsswitch/linux/Makefile

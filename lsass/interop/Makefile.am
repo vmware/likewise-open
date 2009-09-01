@@ -4,6 +4,7 @@ compat_subdirs = \
 
 full_subdirs= \
 	$(compat_subdirs) \
+	gssntlm \
 	lwmapsecurity \
 	wbclient \
 	lwicompat \
