@@ -349,7 +349,15 @@ SamrSrvAddAliasMember(
     dwError = DirectoryAddToGroup(hDirectory,
                                   pwszGroupDn,
                                   pEntry);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (dwError == LW_ERROR_MEMBER_IN_LOCAL_GROUP)
+    {
+        ntStatus = STATUS_MEMBER_IN_GROUP;
+    }
+    else
+    {
+        ntStatus = STATUS_INTERNAL_ERROR;
+    }
+    BAIL_ON_NTSTATUS_ERROR(dwError);
 
 cleanup:
     if (hLsaBinding)
