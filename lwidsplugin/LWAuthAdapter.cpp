@@ -13,121 +13,53 @@
 
 class LWAuthAdapterImpl * LWAuthAdapter::m_pImpl = NULL;
 
-long
-CheckFileExists(
-    char*  pszPath,
-    bool * pbFileExists
-    )
-{
-    long macError = eDSNoErr;
-
-    struct stat statbuf;
-
-    memset(&statbuf, 0, sizeof(struct stat));
-
-    while (1) {
-        if (stat(pszPath, &statbuf) < 0) {
-            if (errno == EINTR)
-            {
-                continue;
-            }
-            else if (errno == ENOENT || errno == ENOTDIR)
-            {
-                *pbFileExists = FALSE;
-                break;
-            }
-			else
-			{
-                macError = eDSInvalidName;
-                GOTO_CLEANUP_ON_MACERROR(macError);
-			}
-        } else {
-            *pbFileExists = (((statbuf.st_mode & S_IFMT) == S_IFREG) ? TRUE : FALSE);
-            break;
-        }
-    }
-
-cleanup:
-
-    return macError;
-}
-
-long
-IsUsingLsass(
-    bool *pbUsingLsass
-    )
-{
-    long macError = eDSNoErr;
-	
-    macError = CheckFileExists("/opt/likewise/sbin/lsassd", pbUsingLsass);
-
-    if (macError) {
-        *pbUsingLsass = false;
-        macError = eDSNoErr;
-    }
-
-    return macError;
-}
-
 MACERROR LWAuthAdapter::Initialize(
     void
-	)
+    )
 {
     MACERROR macError = eDSNoErr;
-	LWAuthAdapterImpl* pImpl = NULL;
-	bool bUsingLsass = false;
-	
-	if (m_pImpl)
-	{
-	    goto cleanup;
-	}
-	
-	macError = IsUsingLsass(&bUsingLsass);
-	GOTO_CLEANUP_ON_MACERROR(macError);
+    LWAuthAdapterImpl* pImpl = NULL;
 
-	if (bUsingLsass)
-	{
-		pImpl = new LWISAuthAdapter();
-		macError = pImpl->Initialize();
-		GOTO_CLEANUP_ON_MACERROR(macError);
-	}
-	else
-	{
-		macError = eDSPlugInConfigFileError;
-		GOTO_CLEANUP_ON_MACERROR(macError);
-	}
-	
-	m_pImpl = pImpl;
-	pImpl = NULL;
-		
+    if (m_pImpl)
+    {
+        goto cleanup;
+    }
+
+    pImpl = new LWISAuthAdapter();
+    macError = pImpl->Initialize();
+    GOTO_CLEANUP_ON_MACERROR(macError);
+
+    m_pImpl = pImpl;
+    pImpl = NULL;
+
 cleanup:
 
     if (pImpl)
-	{
-		pImpl->Cleanup();
-		delete pImpl;
-		pImpl = NULL;
-	}
+    {
+        pImpl->Cleanup();
+        delete pImpl;
+        pImpl = NULL;
+    }
 
     return macError;
 }
 
 void LWAuthAdapter::Cleanup(
     void
-	)
+    )
 {
     if (m_pImpl)
-	{
-		m_pImpl->Cleanup();
-		delete m_pImpl;
-		m_pImpl = NULL;
-	}
+    {
+        m_pImpl->Cleanup();
+        delete m_pImpl;
+        m_pImpl = NULL;
+    }
 }
 
 void
 LWAuthAdapter::setpwent(
     void
-	)
+    )
 {
     if (m_pImpl)
         m_pImpl->setpwent();
@@ -136,10 +68,10 @@ LWAuthAdapter::setpwent(
 void
 LWAuthAdapter::endpwent(
     void
-	)
+    )
 {
     if (m_pImpl)
-	    m_pImpl->endpwent();
+        m_pImpl->endpwent();
 }
 
 long
@@ -151,8 +83,8 @@ LWAuthAdapter::getpwent(
 {
     if (m_pImpl)
         return m_pImpl->getpwent(result, buffer, buflen, errnop);
-	else
-	    return NSS_STATUS_UNAVAIL;
+    else
+        return NSS_STATUS_UNAVAIL;
 }
 
 long
@@ -166,8 +98,8 @@ LWAuthAdapter::getpwuid(
 {
     if (m_pImpl)
         return m_pImpl->getpwuid(uid, result, buffer, buflen, errnop);
-	else
-	    return NSS_STATUS_UNAVAIL;
+    else
+        return NSS_STATUS_UNAVAIL;
 }
 
 long
@@ -181,8 +113,8 @@ LWAuthAdapter::getpwnam(
 {
     if (m_pImpl)
         return m_pImpl->getpwnam(name, result, buffer, buflen, errnop);
-	else
-	    return NSS_STATUS_UNAVAIL;
+    else
+        return NSS_STATUS_UNAVAIL;
 }
 
 void
@@ -213,8 +145,8 @@ LWAuthAdapter::getgrent(
 {
     if (m_pImpl)
         return m_pImpl->getgrent(result, buffer, buflen, errnop);
-	else
-	    return NSS_STATUS_UNAVAIL;
+    else
+        return NSS_STATUS_UNAVAIL;
 }
 
 long
@@ -228,8 +160,8 @@ LWAuthAdapter::getgrgid(
 {
     if (m_pImpl)
         return m_pImpl->getgrgid(gid, result, buffer, buflen, errnop);
-	else
-	    return NSS_STATUS_UNAVAIL;
+    else
+        return NSS_STATUS_UNAVAIL;
 }
 
 long
@@ -243,8 +175,8 @@ LWAuthAdapter::getgrnam(
 {
     if (m_pImpl)
         return m_pImpl->getgrnam(name, result, buffer, buflen, errnop);
-	else
-	    return NSS_STATUS_UNAVAIL;
+    else
+        return NSS_STATUS_UNAVAIL;
 }
 
 uint32_t
@@ -256,8 +188,8 @@ LWAuthAdapter::authenticate(
 {
     if (m_pImpl)
         return m_pImpl->authenticate(username, password, is_auth_only);
-	else
-	    return NSS_STATUS_UNAVAIL;
+    else
+        return NSS_STATUS_UNAVAIL;
 }
 
 uint32_t
@@ -269,8 +201,8 @@ LWAuthAdapter::change_password(
 {
     if (m_pImpl)
         return m_pImpl->change_password(username, old_password, password);
-	else
-	    return NSS_STATUS_UNAVAIL;
+    else
+        return NSS_STATUS_UNAVAIL;
 }
 
 uint32_t
@@ -281,8 +213,8 @@ LWAuthAdapter::get_principal(
 {
     if (m_pImpl)
        return m_pImpl->get_principal(username, principal_name);
-	else
-	    return NSS_STATUS_UNAVAIL;
+    else
+        return NSS_STATUS_UNAVAIL;
 }
 
 void
@@ -303,8 +235,8 @@ LWAuthAdapter::get_user_groups(
 {
     if (m_pImpl)
         return m_pImpl->get_user_groups(user, groups, num_groups);
-	else
-	    return NSS_STATUS_UNAVAIL;
+    else
+        return NSS_STATUS_UNAVAIL;
 }
 
 void
