@@ -389,6 +389,9 @@ AC_SUBST(lwioconfdir)
 AS_AC_EXPAND(CONFIGDIR, $lwioconfdir)
 AC_DEFINE_UNQUOTED(CONFIGDIR, "$CONFIGDIR", [Config directory])
 
+lwioregdir="$sysconfdir"
+AC_SUBST(lwioregdir)
+
 if test x"$localstatedir" = x"/var"; then
     lwiocachedir="$localstatedir/lib/likewise"
 else
@@ -630,6 +633,7 @@ AC_CONFIG_FILES([Makefile
         include/Makefile
         etc/Makefile
         etc/lwiod.conf
+        etc/lwiod.reg
         utils/Makefile
 	common/Makefile
         logging_r/Makefile
