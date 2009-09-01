@@ -706,6 +706,9 @@ AC_SUBST(lsassconfdir)
 AS_AC_EXPAND(CONFIGDIR, $lsassconfdir)
 AC_DEFINE_UNQUOTED(CONFIGDIR, "$CONFIGDIR", [Config directory])
 
+lsassregdir="$sysconfdir"
+AC_SUBST(lsassregdir)
+
 
 if test x"$localstatedir" = x"/var"; then
     lsasscachedir="$localstatedir/lib/likewise"
@@ -1000,6 +1003,7 @@ AC_CONFIG_FILES([Makefile
                  tools/lw-lsa/Makefile
                  etc/Makefile
                  etc/lsassd.conf
+                 etc/lsassd.reg
                  include/Makefile
                  tests/Makefile
                  tests/test_headers/Makefile
