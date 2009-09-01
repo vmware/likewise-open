@@ -221,13 +221,13 @@ LsaSrvAuthenticateUserEx(
                                             pUserParams,
                                             ppUserInfo);
         if (!dwError)
-	{
+        {
             if (LsaSrvEventlogEnabled())
             {
                 LsaSrvWriteLoginSuccessEvent(hServer,
                                              pProvider->pszName,
-		                             pUserParams && pUserParams->pszAccountName ?
-		                             pUserParams->pszAccountName : "",
+                                             pUserParams && pUserParams->pszAccountName ?
+                                             pUserParams->pszAccountName : "",
                                              LSASS_EVENT_LOGON_PHASE_AUTHENTICATE,
                                              dwError);
             }
@@ -235,7 +235,7 @@ LsaSrvAuthenticateUserEx(
         }
         else if ((dwError == LW_ERROR_NOT_HANDLED) ||
                  (dwError == LW_ERROR_NO_SUCH_USER))
-	{
+        {
             LsaSrvCloseProvider(pProvider, hProvider);
             hProvider = (HANDLE)NULL;
             continue;
@@ -246,12 +246,12 @@ LsaSrvAuthenticateUserEx(
             {
                 LsaSrvWriteLoginFailedEvent(hServer,
                                             pProvider->pszName,
-		                            pUserParams && pUserParams->pszAccountName ?
-		                            pUserParams->pszAccountName : "",
+                                            pUserParams && pUserParams->pszAccountName ?
+                                            pUserParams->pszAccountName : "",
                                             LSASS_EVENT_LOGON_PHASE_AUTHENTICATE,
                                             dwError);
             }
-	    BAIL_ON_LSA_ERROR(dwError);
+            BAIL_ON_LSA_ERROR(dwError);
         }
     }
 
