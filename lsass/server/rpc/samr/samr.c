@@ -488,7 +488,11 @@ NTSTATUS __SamrAddAliasMember(
     /* [in] */ SID *sid
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = SamrSrvAddAliasMember(IDL_handle,
+                                   hAlias,
+                                   sid);
     return status;
 }
 
@@ -499,7 +503,11 @@ NTSTATUS __SamrDeleteAliasMember(
     /* [in] */ SID *sid
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = SamrSrvDeleteAliasMember(IDL_handle,
+                                      hAlias,
+                                      sid);
     return status;
 }
 
