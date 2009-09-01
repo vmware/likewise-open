@@ -353,11 +353,15 @@ SamrSrvAddAliasMember(
     {
         ntStatus = STATUS_MEMBER_IN_GROUP;
     }
+    else if (dwError == ERROR_SUCCESS)
+    {
+        ntStatus = STATUS_SUCCESS;
+    }
     else
     {
         ntStatus = STATUS_INTERNAL_ERROR;
     }
-    BAIL_ON_NTSTATUS_ERROR(dwError);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
 cleanup:
     if (hLsaBinding)

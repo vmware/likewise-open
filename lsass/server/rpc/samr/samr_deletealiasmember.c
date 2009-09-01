@@ -140,6 +140,10 @@ SamrSrvDeleteAliasMember(
     {
         ntStatus = STATUS_MEMBER_NOT_IN_GROUP;
     }
+    else if (dwError == ERROR_SUCCESS)
+    {
+        ntStatus = STATUS_SUCCESS;
+    }
     else
     {
         ntStatus = STATUS_INTERNAL_ERROR;
