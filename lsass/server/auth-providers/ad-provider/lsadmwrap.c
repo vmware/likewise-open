@@ -701,3 +701,45 @@ LsaDmWrapDsGetDcName(
     return dwError;
 }
 
+static
+DWORD
+LsaDmWrappAuthenticateUserExCallback(
+    IN PCSTR pszDnsDomainOrForestName,
+    IN OPTIONAL PLWNET_DC_INFO pDcInfo,
+    IN OPTIONAL PVOID pContext,
+    OUT PBOOLEAN pbIsNetworkError
+    )
+{
+    PLSA_DM_WRAP_AUTH_USER_EX_CALLBACK_CONTEXT pCtx = (PLSA_DM_WRAP_AUTH_USER_EX_CALLBACK_CONTEXT) pContext;
+
+    return AD_NetlogonAuthenticationUserEx(
+                    pDcInfo->pszDomainControllerName,
+                    pCtx->pUserParams,
+                    pCtx->ppUserInfo,
+                    pbIsNetworkError);
+}
+
+DWORD
+LsaDmWrapAuthenticateUserEx(
+    IN PCSTR pszDnsDomainName,
+    IN PLSA_AUTH_USER_PARAMS pUserParams,
+    OUT PLSA_AUTH_USER_INFO *ppUserInfo
+    )
+{
+    DWORD dwError = 0;
+    LSA_DM_WRAP_AUTH_USER_EX_CALLBACK_CONTEXT context = { 0 };
+
+    context.pUserParams = pUserParams;
+    context.ppUserInfo = ppUserInfo;
+
+    dwError = LsaDmConnectDomain(pszDnsDomainName,
+                                      LSA_DM_CONNECT_DOMAIN_FLAG_AUTH |
+                                      LSA_DM_CONNECT_DOMAIN_FLAG_DC_INFO,
+                                      NULL,
+                                      LsaDmWrappAuthenticateUserExCallback,
+                                      &context);
+
+    *ppUserInfo = *(context.ppUserInfo);
+
+    return dwError;
+}

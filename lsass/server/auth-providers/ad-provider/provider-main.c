@@ -561,64 +561,18 @@ AD_AuthenticateUserEx(
     )
 {
     DWORD dwError = LW_ERROR_INTERNAL;
-    PLWNET_DC_INFO pDcInfo = NULL;
-    BOOLEAN bIsNetworkError = FALSE;
 
-    /* Make sure we know of the domain */
-
-    if (!AD_ServicesDomain(pUserParams->pszDomain)) {
-        dwError = LW_ERROR_NOT_HANDLED;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    if (LsaDmIsDomainOffline(gpADProviderData->szDomain))
-    {
-        dwError = LW_ERROR_DOMAIN_IS_OFFLINE;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = AD_MachineCredentialsCacheInitialize();
+    dwError = LsaDmWrapAuthenticateUserEx(
+                      gpADProviderData->szDomain,
+                      pUserParams,
+                      ppUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = AD_NetlogonAuthenticationUserEx(
-                  NULL,
-                  pUserParams,
-                  ppUserInfo,
-                  &bIsNetworkError);
-    if (dwError == LW_ERROR_SUCCESS)
-    {
-        goto cleanup;
-    }
-
-    if (!bIsNetworkError)
-    {
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = LWNetGetDCName(
-                  NULL,
-                  gpADProviderData->szDomain,
-                  NULL,
-                  DS_FORCE_REDISCOVERY,
-                  &pDcInfo);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = AD_NetlogonAuthenticationUserEx(
-                  pDcInfo->pszDomainControllerName,
-                  pUserParams,
-                  ppUserInfo,
-                  &bIsNetworkError);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    /* XXX: Cache the resulting userinfo */
 
 cleanup:
-    LWNET_SAFE_FREE_DC_INFO(pDcInfo);
 
     return dwError;
 
 error:
-
     /* On this one, it is a good idea to fallback to
        the local provider */
 
@@ -626,24 +580,7 @@ error:
         dwError = LW_ERROR_NOT_HANDLED;
     }
 
-    if (bIsNetworkError)
-    {
-        DWORD dwLocalError = LW_ERROR_SUCCESS;
-
-        dwError = LsaDmTransitionOffline(gpADProviderData->szDomain, FALSE);
-
-        if (dwLocalError != LW_ERROR_SUCCESS)
-        {
-            LSA_LOG_DEBUG(
-                "Error %d transitioning %s offline",
-                dwLocalError,
-                gpADProviderData->szDomain);
-        }
-        dwError = LW_ERROR_DOMAIN_IS_OFFLINE;
-    }
-
     goto cleanup;
-
 }
 
 DWORD
