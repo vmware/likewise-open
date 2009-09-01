@@ -564,6 +564,13 @@ AD_AuthenticateUserEx(
     PLWNET_DC_INFO pDcInfo = NULL;
     BOOLEAN bIsNetworkError = FALSE;
 
+    /* Make sure we know of the domain */
+
+    if (!AD_ServicesDomain(pUserParams->pszDomain)) {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
     if (LsaDmIsDomainOffline(gpADProviderData->szDomain))
     {
         dwError = LW_ERROR_DOMAIN_IS_OFFLINE;
