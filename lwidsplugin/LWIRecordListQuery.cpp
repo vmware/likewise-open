@@ -318,7 +318,7 @@ LWIRecordListQuery::Test(
     tDirNodeReference dirNode = 0;
     tDataListPtr dirNodeName = NULL;
     tDataBufferPtr pData = NULL;
-    unsigned long outCount;
+    UInt32 outCount;
     tContextData continueData = NULL;
 
     LOG_ENTER("");

@@ -248,7 +248,7 @@ LWIRecordQuery::GetReferenceInfo(sGetRecRefInfo* pGetRecRefInfo)
     long macError = eDSNoErr;
     PDSRECORD pRecord = NULL;
     tRecordEntryPtr pRecordEntry = NULL;
-    RecordRefMapIter iter = 0;
+    RecordRefMapIter iter;
     unsigned long offset = 0;
     unsigned long size = 0;
     uint16_t attrCount = 0;

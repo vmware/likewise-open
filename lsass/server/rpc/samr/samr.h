@@ -215,6 +215,22 @@ SamrSrvDeleteDomAlias(
 
 
 NTSTATUS
+SamrSrvAddAliasMember(
+    handle_t IDL_handle,
+    ACCOUNT_HANDLE hAlias,
+    PSID pSid
+    );
+
+
+NTSTATUS
+SamrSrvDeleteAliasMember(
+    handle_t IDL_handle,
+    ACCOUNT_HANDLE hAlias,
+    PSID pSid
+    );
+
+
+NTSTATUS
 SamrSrvGetMembersInAlias(
     handle_t hBinding,
     ACCOUNT_HANDLE hAlias,
@@ -357,6 +373,12 @@ SamrSrvConnect5(
     uint32 *level_out,
     SamrConnectInfo *info_out,
     CONNECT_HANDLE *hConn
+    );
+
+
+NTSTATUS
+SamrSrvGetSystemAccessToken(
+    LW_PIO_ACCESS_TOKEN *ppAccessToken
     );
 
 

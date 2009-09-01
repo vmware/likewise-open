@@ -4,7 +4,7 @@ AC_CONFIG_HEADER([include/config.h])
 AC_CANONICAL_HOST
 
 LWBASE_CPPFLAGS=""
-LWBASE_CFLAGS="-Wall -Werror -Wmissing-prototypes"
+LWBASE_CFLAGS="-Wall -Werror -Wmissing-prototypes $CFLAGS"
 LWBASE_LDFLAGS=""
 
 CPPFLAGS="$CPPFLAGS -D_REENTRANT -D_GNU_SOURCE"

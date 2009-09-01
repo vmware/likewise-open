@@ -30,6 +30,7 @@ interface samr
 	[enable_allocate] __SamrGetUserGroups();
 	[enable_allocate] __SamrQueryDisplayInfo();
 	[enable_allocate] __SamrGetUserPwInfo();
+	[enable_allocate] __SamrRemoveMemberFromForeignDomain();
 	[enable_allocate] __SamrCreateUser2();
 	[enable_allocate] __SamrChangePasswordUser2();
 	[enable_allocate] __SamrConnect2();

@@ -150,7 +150,7 @@ $(OUT_PROGRAM): $(OBJS)
 	gcc $(C_COMPILE_FLAGS) -c -o $@ $<
 
 %.o : %.cp
-	g++-4.0 -x c++ $(CXX_COMPILE_FLAGS) -c -o $@ $<
+	gcc -x c++ $(CXX_COMPILE_FLAGS) -c -o $@ $<
 
 %.o : %.cpp
-	g++-4.0 -x c++ $(CXX_COMPILE_FLAGS) -c -o $@ $<
+	gcc -x c++ $(CXX_COMPILE_FLAGS) -c -o $@ $<

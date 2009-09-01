@@ -26,8 +26,6 @@
 #include <pwd.h>
 #include <grp.h>
 
-#include <Carbon/Carbon.h>
-
 #include <CoreFoundation/CoreFoundation.h>
 
 #include <DirectoryService/DirServices.h>

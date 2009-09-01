@@ -49,13 +49,42 @@
 
 NTSTATUS
 SamrSrvRemoveMemberFromForeignDomain(
-    /* [in] */ handle_t IDL_handle,
+    /* [in] */ handle_t hBinding,
     /* [in] */ DOMAIN_HANDLE hDomain,
-    /* [in] */ PSID sid
+    /* [in] */ PSID pSid
     )
 {
+    const DWORD dwAccessMask = ALIAS_ACCESS_REMOVE_MEMBER;
+    const wchar_t wszFilterFmt[] = L"%ws=%d AND %ws='%ws'";
+
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
     PDOMAIN_CONTEXT pDomCtx = NULL;
+    PCONNECT_CONTEXT pConnCtx = NULL;
+    HANDLE hDirectory = NULL;
+    DWORD i = 0;
+    WCHAR wszAttrObjectClass[] = DS_ATTR_OBJECT_CLASS;
+    WCHAR wszAttrObjectSid[] = DS_ATTR_OBJECT_SID;
+    WCHAR wszAttrDomainName[] = DS_ATTR_DOMAIN;
+    PWSTR pwszDomainName = NULL;
+    DWORD dwFilterLen = 0;
+    PWSTR pwszFilter = NULL;
+    PWSTR pwszBase = NULL;
+    DWORD dwScope = 0;
+    DWORD dwObjectClass = DS_OBJECT_CLASS_LOCAL_GROUP;
+    PDIRECTORY_ENTRY pEntries = NULL;
+    DWORD dwEntriesNum = 0;
+    PWSTR pwszAliasSid = NULL;
+    PSID pAliasSid = NULL;
+    DWORD dwRid = 0;
+    ACCOUNT_HANDLE hAlias = NULL;
+    ACCOUNT_HANDLE hAliasClosed = NULL;
+    PACCOUNT_CONTEXT pAcctCtx = NULL;
+
+    PWSTR wszAttributes[] = {
+        wszAttrObjectSid,
+        NULL
+    };
 
     pDomCtx = (PDOMAIN_CONTEXT)hDomain;
 
@@ -64,7 +93,109 @@ SamrSrvRemoveMemberFromForeignDomain(
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
 
+    pConnCtx       = pDomCtx->pConnCtx;
+    pwszDomainName = pDomCtx->pwszDomainName;
+    hDirectory     = pConnCtx->hDirectory;
+
+    dwFilterLen = ((sizeof(wszAttrObjectClass)/sizeof(WCHAR)) - 1) +
+                  10 +
+                  ((sizeof(wszAttrDomainName)/sizeof(WCHAR)) - 1) +
+                  (wc16slen(pwszDomainName) + 1) +
+                  (sizeof(wszFilterFmt)/sizeof(wszFilterFmt[0]));
+
+    dwError = LwAllocateMemory(dwFilterLen * sizeof(*pwszFilter),
+                               OUT_PPVOID(&pwszFilter));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    sw16printfw(pwszFilter, dwFilterLen, wszFilterFmt,
+                wszAttrObjectClass,
+                dwObjectClass,
+                wszAttrDomainName,
+                pwszDomainName);
+
+    dwError = DirectorySearch(hDirectory,
+                              pwszBase,
+                              dwScope,
+                              pwszFilter,
+                              wszAttributes,
+                              FALSE,
+                              &pEntries,
+                              &dwEntriesNum);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    for (i = 0; i < dwEntriesNum; i++)
+    {
+        PDIRECTORY_ENTRY pEntry = &(pEntries[i]);
+
+        dwError = DirectoryGetEntryAttrValueByName(
+                                     pEntry,
+                                     wszAttrObjectSid,
+                                     DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                                     &pwszAliasSid);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        ntStatus = RtlAllocateSidFromWC16String(&pAliasSid,
+                                                pwszAliasSid);
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+        dwRid = pAliasSid->SubAuthority[pAliasSid->SubAuthorityCount - 1];
+
+        ntStatus = SamrSrvOpenAccount(hBinding,
+                                      hDomain,
+                                      dwAccessMask,
+                                      dwRid,
+                                      DS_OBJECT_CLASS_LOCAL_GROUP,
+                                      &hAlias);
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+        ntStatus = SamrSrvDeleteAliasMember(hBinding,
+                                            hAlias,
+                                            pSid);
+        if (ntStatus == STATUS_NO_SUCH_MEMBER ||
+            ntStatus == STATUS_MEMBER_NOT_IN_GROUP)
+        {
+            /* Member is not in this alias so juts ignore it
+               and try another one */
+            ntStatus = STATUS_SUCCESS;
+        }
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+        ntStatus = SamrSrvClose(hBinding, hAlias, &hAliasClosed);
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+        /*
+         * Release the account handle. Normally DCE/RPC runtime
+         * would take care of that but this time the handle wasn't
+         * returned as [context_handle] argument
+         */
+        pAcctCtx = (PACCOUNT_CONTEXT)hAlias;
+        hAlias   = NULL;
+
+        ACCOUNT_HANDLE_rundown(pAcctCtx);
+        RTL_FREE(&pAcctCtx);
+
+        RTL_FREE(&pAliasSid);
+    }
+
 cleanup:
+    LW_SAFE_FREE_MEMORY(pwszFilter);
+
+    if (pEntries)
+    {
+        DirectoryFreeEntries(pEntries, dwEntriesNum);
+    }
+
+    if (hAlias)
+    {
+        pAcctCtx = (PACCOUNT_CONTEXT)hAlias;
+        hAlias   = NULL;
+
+        ACCOUNT_HANDLE_rundown(pAcctCtx);
+        RTL_FREE(&pAcctCtx);
+    }
+
+    RTL_FREE(&pAliasSid);
+
     return ntStatus;
 
 error:

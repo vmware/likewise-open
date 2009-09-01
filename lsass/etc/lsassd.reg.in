@@ -1,16 +1,21 @@
-[HKL\Services\lsass]
+[HKEY_LIKEWISE\Services]
+
+[HKEY_LIKEWISE\Services\lsass]
+
+[HKEY_LIKEWISE\Services\lsass\parameters]
 "enable-eventlog"=dword:00000000
 "log-network-connection-events"=dword:00000001
 "domain-separator"="\\"
 
-[HKL\Services\lsass\pam]
+[HKEY_LIKEWISE\Services\lsass\parameters\pam]
 "log-level"="error"
 "display-motd"=dword:00000000
 "user-not-allowed-error"="Access denied"
 
-[HKL\Services\lsass\auth-provider]
+[HKEY_LIKEWISE\Services\lsass\parameters\providers]
+"load-order"="activedirectory,local"
 
-[HKL\Services\lasss\auth-provider\lsa-activedirectory-provider]
+[HKEY_LIKEWISE\Services\lsass\parameters\providers\activedirectory]
 "path"="@providerdir@/liblsass_auth_provider_ad@MOD_EXT@"
 "login-shell-template"="/bin/sh"
 "homedir-prefix"=""
@@ -31,13 +36,13 @@
 "trim-user-membership"=dword:00000001
 "nss-group-members-query-cache-only"=dword:00000001
 "nss-user-membership-query-cache-only"=dword:00000000
-"nss-enumeration-enabled"=dword:@ENABLE_NSS_ENUM_DEFAULT@
+"nss-enumeration-enabled"="dword:@ENABLE_NSS_ENUM_DEFAULT@"
 "domain-manager-check-domain-online-interval"="5m"
 "domain-manager-unknown-domain-cache-timeout"="1h"
 "cache-type"="sqlite"
 "memory-cache-size-cap"=dword:00002710
 
-[HKL\Services\lasss\auth-provider\lsa-local-provider]
+[HKEY_LIKEWISE\Services\lsass\parameters\providers\local]
 "path"="@providerdir@/liblsass_auth_provider_local@MOD_EXT@"
 "password-lifespan"="30d"
 "password-change-warning-time"="14d"
@@ -47,5 +52,4 @@
 "create-homedir"=dword:00000001
 "homedir-umask"="022"
 "skeleton-dirs"=""
-
 

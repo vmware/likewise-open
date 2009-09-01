@@ -46,8 +46,11 @@ libsamr_la_SOURCES = \
     samr_rmfromforeigndomain.c   \
     samr_querydisplayinfo.c      \
     samr_querydomaininfo.c       \
+    samr_addaliasmember.c        \
+    samr_deletealiasmember.c     \
     samr_getmembersinalias.c     \
     samr_getaliasmembership.c    \
+    samr_accesstoken.c           \
     samr_contexthandle.c
 
 DCEIDL_PASS_INCLUDES = \
@@ -64,9 +67,11 @@ libsamr_la_CFLAGS = \
     -I$(top_srcdir)/include \
     -I$(srv_srcdir)/api     \
     $(DCERPC_INCLUDES)      \
+    $(NETAPI_INCLUDES)      \
     $(LIBUNISTR_INCLUDES)   \
     $(LWBASE_INCLUDES)      \
-    $(LWADVAPI_INCLUDES)
+    $(LWADVAPI_INCLUDES)    \
+    $(NETLOGON_INCLUDES)
 
 libsamr_la_LIBADD = \
     $(DCERPC_LIBS)                        \
@@ -74,6 +79,7 @@ libsamr_la_LIBADD = \
     $(LIBUNISTR_LIBS)                     \
     $(LWBASE_LIBS)                        \
     $(LWADVAPI_LIBS)                      \
+    $(NETLOGON_LIBS)                      \
     $(srv_srcdir)/api/liblsaserverapi.la  \
     $(srv_srcdir)/store/dsapi/libdsapi.la \
     $(top_srcdir)/common/liblsacommon.la

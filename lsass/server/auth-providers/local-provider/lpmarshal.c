@@ -945,7 +945,7 @@ cleanup:
 
 error:
 
-    *ppszMembers = NULL;
+    *pppszMembers = NULL;
 
     if (ppszMembers)
     {
