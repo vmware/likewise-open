@@ -59,6 +59,7 @@
 #include <lwrpc/aliasinfo.h>
 #include <lwrpc/displayinfo.h>
 #include <lwrpc/samrconn.h>
+#include <lwrpc/samrflags.h>
 #include <lwio/lwio.h>
 #include <lwnet.h>
 #include <lwkrb5.h>
