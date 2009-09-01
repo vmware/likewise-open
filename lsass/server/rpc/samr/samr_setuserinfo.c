@@ -566,7 +566,7 @@ cleanup:
     {
         if (AttrValues[i].Type == DIRECTORY_ATTR_TYPE_UNICODE_STRING)
         {
-            LW_SAFE_FREE_MEMORY(AttrValues[i].data.pwszStringValue);
+            SamrSrvFreeMemory(AttrValues[i].data.pwszStringValue);
         }
     }
 
