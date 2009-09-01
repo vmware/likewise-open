@@ -1,0 +1,12 @@
+[HKEY_LIKEWISE\Services]
+
+[HKEY_LIKEWISE\Services\eventlog]
+
+[HKEY_LIKEWISE\Services\eventlog\parameters]
+"AllowReadTo"=""
+"AllowWriteTo"=""
+"AllowDeleteTo"=""
+"MaxDiskUsage"="100M"
+"MaxEventLifespan"="90d"
+"MaxNumEvents"="100k"
+"EventDbPurgeInterval"="1d"
