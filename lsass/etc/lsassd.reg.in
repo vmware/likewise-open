@@ -36,7 +36,7 @@
 "trim-user-membership"=dword:00000001
 "nss-group-members-query-cache-only"=dword:00000001
 "nss-user-membership-query-cache-only"=dword:00000000
-"nss-enumeration-enabled"="dword:@ENABLE_NSS_ENUM_DEFAULT@"
+"nss-enumeration-enabled"=dword:@ENABLE_NSS_ENUM_DEFAULT_DWORD@
 "domain-manager-check-domain-online-interval"="5m"
 "domain-manager-unknown-domain-cache-timeout"="1h"
 "cache-type"="sqlite"
