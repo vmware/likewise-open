@@ -95,6 +95,7 @@
   #include <arpa/nameser.h>
   #include <netinet/in.h>
   #include <resolv.h>
+  #include <locale.h>
 
 #ifdef HAVE_SOCKET_H
   #include <socket.h>
