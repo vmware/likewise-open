@@ -80,7 +80,7 @@ NetLocalGroupChangeMembers(
     access_rights = access;
 
     status = LwIoGetThreadAccessToken(&access_token);
-    BAIL_ON_NT_STATUS(status);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     status = NetConnectSamr(&conn, hostname, access, btin_domain_access, access_token);
     BAIL_ON_NTSTATUS_ERROR(status);

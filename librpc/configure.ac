@@ -143,12 +143,41 @@ AC_ARG_WITH([lwbase-libs],
 		LWBASE_LDFLAGS="-L$withval"
         ])
 
+# lwadvapi
+
+AC_ARG_WITH([lwadvapi],
+        [AC_HELP_STRING([--with-lwadvapi=<dir>], [use lwadvapi located in prefix <dir>])],
+        [
+		LWADVAPI_INCLUDES="-I$withval/include"
+		LWADVAPI_LDFLAGS="-L$withval/lib"
+        ])
+
+AC_ARG_WITH([lwadvapi-includes],
+        [AC_HELP_STRING([--with-lwadvapi-includes=<dir>], [use lwadvapi includes located in <dir>])],
+        [
+		LWADVAPI_INCLUDES="-I$withval"
+        ])
+
+AC_ARG_WITH([lwadvapi-libs],
+        [AC_HELP_STRING([--with-lwadvapi-libs=<dir>], [use lwadvapi libs located in <dir>])],
+        [
+		LWADVAPI_LDFLAGS="-L$withval"
+        ])
+
+
 AC_CHECK_HEADER([lw/base.h],,[AC_MSG_ERROR([Could not find lwbase headers])])
 AC_CHECK_LIB([lwbase], [LwInterlockedIncrement], [LWBASE_LIBS="-llwbase"], [AC_MSG_ERROR([Could not find liblwbase])], [$LWBASE_LDFLAGS])
 
 AC_SUBST(LWBASE_INCLUDES)
 AC_SUBST(LWBASE_LDFLAGS)
 AC_SUBST(LWBASE_LIBS)
+
+AC_CHECK_HEADER([winerror.h],,[AC_MSG_ERROR([Could not find lwadvapi headers])])
+AC_CHECK_LIB([lwadvapi], [LwNtStatusToWin32Error], [LWADVAPI_LIBS="-llwadvapi"], [AC_MSG_ERROR([Could not find liblwadvapi])], [$LWADVAPI_LDFLAGS])
+
+AC_SUBST(LWADVAPI_INCLUDES)
+AC_SUBST(LWADVAPI_LDFLAGS)
+AC_SUBST(LWADVAPI_LIBS)
 
 AC_SUBST(DCERPC_INCLUDES)
 AC_SUBST(DCERPC_LDFLAGS)
@@ -242,7 +271,6 @@ AM_CONDITIONAL(HAVE_MOONUNIT, $HAVE_MOONUNIT)
 
 AC_OUTPUT(Makefile
           include/Makefile
-          error/Makefile
           alloc/Makefile
           msrpc/Makefile
           samr/Makefile

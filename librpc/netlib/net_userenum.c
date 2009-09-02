@@ -110,7 +110,7 @@ NetUserEnum(
     dom_h  = conn->samr.dom_handle;
 
     status = NetConnectSamr(&conn, hostname, dom_flags, 0, access_token);
-    BAIL_ON_NT_STATUS(status);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
 
     samr_b = conn->samr.bind;

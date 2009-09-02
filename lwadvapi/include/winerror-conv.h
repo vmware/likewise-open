@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software
+ * Copyright Likewise Software    2004-2008
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -28,40 +28,89 @@
  * license@likewisesoftware.com
  */
 
-/*
- * Abstract: Lsa interface (rpc client library)
- *
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
- */
+#ifndef __WINERR_CONV_H__
+#define __WINERR_CONV_H__
 
-#include <stdlib.h>
-#include <stddef.h>
-#include <iconv.h>
-#include <string.h>
+#include <lw/base.h>
 
-#include <lwio/lwio.h>
 
-#include <DceSupport.h>
-#include <dce/rpc.h>
-#include <dce/smb.h>
-#include <wc16str.h>
-#include <secdesc/secapi.h>
-#include <lw/ntstatus.h>
-#include <winerror.h>
-#include <winerror-conv.h>
+DWORD
+LwNtStatusToWin32Error(
+    NTSTATUS ntStatus
+    );
 
-#include <lwrpc/types.h>
-#include <lwrpc/dssetup.h>
-#include <lwrpc/unicodestring.h>
-#include <lwrpc/allocate.h>
-#include <lwrpc/memptr.h>
-#include <lwrpc/sidhelper.h>
 
-#include "macros.h"
+int
+LwNtStatusToErrno(
+    NTSTATUS ntStatus
+    );
 
-#include "dsr_memory.h"
-#include "dsr_stubmemory.h"
-#include "dssetup_h.h"
+
+NTSTATUS
+LwErrnoToNtStatus(
+    int uerror
+    );
+
+
+DWORD
+LwErrnoToWin32Error(
+    int uerror
+    );
+
+
+int
+LwWin32ErrorToErrno(
+    DWORD winerr
+    );
+
+
+NTSTATUS
+LwWin32ErrorToNtStatus(
+    DWORD winerr
+    );
+
+
+PCSTR
+LwNtStatusToName(
+    NTSTATUS ntStatus
+    );
+
+
+PCSTR
+LwWin32ErrorToName(
+   int err
+   );
+
+
+int
+LwErrnoToLdapErr(
+   int uerror
+   );
+
+
+DWORD
+LwLdapErrToWin32Error(
+   int lderr
+   );
+
+
+#ifndef LW_STRICT_NAMESPACE
+
+#define NtStatusToWin32Error             LwNtStatusToWin32Error
+#define NtStatusToErrno                  LwNtStatusToErrno
+#define ErrnoToNtStatus                  LwErrnoToNtStatus
+#define ErrnoToWin32Error                LwErrnoToWin32Error
+#define Win32ErrorToErrno                LwWin32ErrorToErrno
+#define Win32ErrorToNtStatus             LwWin32ErrorToNtStatus
+#define NtStatusToName                   LwNtStatusToName
+#define Win32ErrorToName                 LwWin32ErrorToName
+#define ErrnoToLdapErr                   LwErrnoToLdapErr
+#define LdapErrToWin32Error              LwLdapErrToWin32Error
+
+#endif /* LW_STRICT_NAMESPACE */
+
+
+#endif /* __WINERR_CONV_H__ */
 
 
 /*

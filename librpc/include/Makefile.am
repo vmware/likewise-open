@@ -2,10 +2,7 @@ include_HEADERS = \
 	lwrpc/types.h \
 	lwrpc/security.h \
 	lwrpc/unistrdef.h \
-	lwrpc/winerror.h \
-	lwrpc/error-table.h \
 	lwrpc/errcheck.h \
-	lwrpc/errconv.h \
 	byteops.h \
 	random.h \
 	rc4.h \

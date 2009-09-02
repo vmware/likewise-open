@@ -64,7 +64,7 @@ NetUserChangePassword(
     BAIL_ON_INVALID_PTR(newpassword);
 
     status = LwIoGetThreadAccessToken(&access_token);
-    BAIL_ON_NT_STATUS(status);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     hostname = awc16stombs(domain);
     BAIL_ON_NO_MEMORY(hostname);

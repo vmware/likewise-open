@@ -14,13 +14,13 @@
 #include <lw/base.h>
 #include <secdesc/secapi.h>
 #include <lw/ntstatus.h>
+#include <winerror.h>
 #include <lwio/lwio.h>
 #include <lwps/lwps.h>
 #include <lwnet.h>
 
 #include <lwrpc/types.h>
 #include <lwrpc/security.h>
-#include <lwrpc/winerror.h>
 #include <lwrpc/allocate.h>
 #include <lwrpc/sidhelper.h>
 #include <lwrpc/samr.h>

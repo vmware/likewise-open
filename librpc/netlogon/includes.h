@@ -49,10 +49,10 @@
 #include <wc16printf.h>
 #include <secdesc/secapi.h>
 #include <lw/ntstatus.h>
+#include <winerror.h>
+#include <winerror-conv.h>
 
 #include <lwrpc/types.h>
-#include <lwrpc/winerror.h>
-#include <lwrpc/errconv.h>
 #include <lwrpc/netrdefs.h>
 #include <lwrpc/allocate.h>
 #include <lwrpc/memptr.h>
