@@ -1,0 +1,11 @@
+[HKEY_LIKEWISE\Services]
+
+[HKEY_LIKEWISE\Services\netlogon]
+
+[HKEY_LIKEWISE\Services\netlogon\Parameters]
+"PluginPath"=""
+"PingAgainTimeout"="15m"
+"NegativeCacheTimeout"="1m"
+"WritableRediscoveryTimeout"="30m"
+"WritableTimestampMinimumChange"="0m"
+

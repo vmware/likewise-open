@@ -124,7 +124,7 @@ NtlmCreateContext(
     if (!ppNtlmContext)
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     *ppNtlmContext = NULL;
@@ -134,7 +134,7 @@ NtlmCreateContext(
         OUT_PPVOID(&pContext)
         );
 
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     pContext->NtlmState = NtlmStateBlank;
     pContext->nRefCount = 1;
@@ -187,7 +187,7 @@ NtlmGetMessageFromSecBufferDesc(
     if (!pSecBufferDesc)
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     // Transfered context tokens only contain one SecBuffer and are tagged as
@@ -195,7 +195,7 @@ NtlmGetMessageFromSecBufferDesc(
     if (pSecBufferDesc->cBuffers != 1 || !(pSecBufferDesc->pBuffers))
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     pSecBuffer = pSecBufferDesc->pBuffers;
@@ -204,7 +204,7 @@ NtlmGetMessageFromSecBufferDesc(
        pSecBuffer->cbBuffer == 0)
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     pMessage = pSecBuffer->pvBuffer;
@@ -238,7 +238,7 @@ NtlmCopyContextToSecBufferDesc(
     if (!pSecBufferDesc || 1 != pSecBufferDesc->cBuffers)
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     pSecBuffer = pSecBufferDesc->pBuffers;
@@ -246,12 +246,12 @@ NtlmCopyContextToSecBufferDesc(
     if (pSecBuffer->BufferType != SECBUFFER_TOKEN)
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     pSecBuffer->cbBuffer = pNtlmContext->dwMessageSize;
     dwError = LwAllocateMemory(pSecBuffer->cbBuffer, OUT_PPVOID(&pBuffer));
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     memcpy(pBuffer, pNtlmContext->pMessage, pSecBuffer->cbBuffer);
 
@@ -277,7 +277,7 @@ NtlmGetRandomBuffer(
     if (!pBuffer || dwLen <= 0)
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     nFileDesc = open(NTLM_URANDOM_DEV, O_RDONLY);
@@ -287,7 +287,7 @@ NtlmGetRandomBuffer(
         if (-1 == nFileDesc)
         {
             dwError = LW_ERROR_INTERNAL; //LwMapErrnoToLwError(errno);
-            BAIL_ON_LW_ERROR(dwError);
+            BAIL_ON_LSA_ERROR(dwError);
         }
     }
 
@@ -327,7 +327,7 @@ NtlmCreateNegotiateMessage(
     if (!ppNegMsg)
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     *ppNegMsg = NULL;
@@ -338,7 +338,7 @@ NtlmCreateNegotiateMessage(
         if (!pDomain)
         {
             dwError = LW_ERROR_INVALID_PARAMETER;
-            BAIL_ON_LW_ERROR(dwError);
+            BAIL_ON_LSA_ERROR(dwError);
         }
         else
         {
@@ -351,7 +351,7 @@ NtlmCreateNegotiateMessage(
         if (!pWorkstation)
         {
             dwError = LW_ERROR_INVALID_PARAMETER;
-            BAIL_ON_LW_ERROR(dwError);
+            BAIL_ON_LSA_ERROR(dwError);
         }
         else
         {
@@ -383,7 +383,7 @@ NtlmCreateNegotiateMessage(
     }
 
     dwError = LwAllocateMemory(dwSize, OUT_PPVOID(&pMessage));
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     // Data is checked and memory is allocated; fill in the structure
     //
@@ -495,7 +495,7 @@ NtlmCreateChallengeMessage(
     if (!pNegMsg || !ppChlngMsg)
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     *ppChlngMsg = NULL;
@@ -508,7 +508,7 @@ NtlmCreateChallengeMessage(
        !(pNegMsg->NtlmFlags & NTLM_FLAG_NTLM2))
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     // We need to build up the challenge options based on the negotiate options.
@@ -527,7 +527,7 @@ NtlmCreateChallengeMessage(
         // bit of a sanity check, the negotiation message should have had at
         // least one of those flags set... if it didin't...
         dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     // calculate optional data size
@@ -622,7 +622,7 @@ NtlmCreateChallengeMessage(
     dwSize += dwTargetNameSize;
 
     dwError = LwAllocateMemory(dwSize, OUT_PPVOID(&pMessage));
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     // If the client wants to support a dummy signature, we will too
     if (pNegMsg->NtlmFlags & NTLM_FLAG_ALWAYS_SIGN)
@@ -675,7 +675,7 @@ NtlmCreateChallengeMessage(
         NTLM_CHALLENGE_SIZE
         );
 
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     // Main structure has been filled, now fill in optional data
     pBuffer = (PBYTE)pMessage + sizeof(NTLM_CHALLENGE_MESSAGE);
@@ -886,17 +886,17 @@ NtlmCreateResponseMessage(
     if (!pChlngMsg || !ppRespMsg)
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     dwError = NtlmGetAuthTargetNameFromChallenge(pChlngMsg, &pAuthTargetName);
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = gethostname(pWorkstation, HOST_NAME_MAX);
     if (dwError)
     {
         dwError = LwMapErrnoToLwError(errno);
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     *ppRespMsg = NULL;
@@ -925,7 +925,7 @@ NtlmCreateResponseMessage(
         dwNtRespType,
         &dwNtMsgSize
         );
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwSize += dwNtMsgSize;
 
@@ -934,7 +934,7 @@ NtlmCreateResponseMessage(
         dwLmRespType,
         &dwLmMsgSize
         );
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwSize += dwLmMsgSize;
 
@@ -951,7 +951,7 @@ NtlmCreateResponseMessage(
     }
 
     dwError = LwAllocateMemory(dwSize, OUT_PPVOID(&pMessage));
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     // Data is checked and memory is allocated; fill in the structure
     //
@@ -1015,7 +1015,7 @@ NtlmCreateResponseMessage(
         pBuffer
         );
 
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     pBuffer += pMessage->LmResponse.usLength;
 
@@ -1031,7 +1031,7 @@ NtlmCreateResponseMessage(
         pBuffer
         );
 
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     pBuffer += pMessage->NtResponse.usLength;
 
@@ -1184,7 +1184,7 @@ NtlmGetAuthTargetNameFromChallenge(
     if (pChlngMsg->NtlmFlags & NTLM_FLAG_OEM)
     {
         dwError = LwAllocateMemory(dwNameLength + 1, OUT_PPVOID(&pName));
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
 
         memcpy(pName, pBuffer, dwNameLength);
     }
@@ -1193,7 +1193,7 @@ NtlmGetAuthTargetNameFromChallenge(
         dwNameLength = dwNameLength / sizeof(WCHAR);
 
         dwError = LwAllocateMemory(dwNameLength + 1, OUT_PPVOID(&pName));
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
 
         for (nIndex = 0; nIndex < dwNameLength; nIndex++)
         {
@@ -1226,7 +1226,7 @@ NtlmBuildResponse(
     if (!pChlngMsg)
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     switch (dwResponseType)
@@ -1245,7 +1245,7 @@ NtlmBuildResponse(
     case NTLM_RESPONSE_TYPE_LMv2:
         {
             dwError = NtlmBuildLmV2Response();
-            BAIL_ON_LW_ERROR(dwError);
+            BAIL_ON_LSA_ERROR(dwError);
         }
         break;
     case NTLM_RESPONSE_TYPE_NTLM:
@@ -1257,7 +1257,7 @@ NtlmBuildResponse(
                 pUserSessionKey,
                 pBuffer
                 );
-            BAIL_ON_LW_ERROR(dwError);
+            BAIL_ON_LSA_ERROR(dwError);
         }
         break;
     case NTLM_RESPONSE_TYPE_NTLMv2:
@@ -1270,25 +1270,25 @@ NtlmBuildResponse(
                 pUserSessionKey,
                 pBuffer
                 );
-            BAIL_ON_LW_ERROR(dwError);
+            BAIL_ON_LSA_ERROR(dwError);
         }
         break;
     case NTLM_RESPONSE_TYPE_NTLM2:
         {
             dwError = NtlmBuildNtlm2Response();
-            BAIL_ON_LW_ERROR(dwError);
+            BAIL_ON_LSA_ERROR(dwError);
         }
         break;
     case NTLM_RESPONSE_TYPE_ANONYMOUS:
         {
             dwError = NtlmBuildAnonymousResponse();
-            BAIL_ON_LW_ERROR(dwError);
+            BAIL_ON_LSA_ERROR(dwError);
         }
         break;
     default:
         {
             dwError = LW_ERROR_INVALID_PARAMETER;
-            BAIL_ON_LW_ERROR(dwError);
+            BAIL_ON_LSA_ERROR(dwError);
         }
     }
 
@@ -1421,7 +1421,7 @@ NtlmBuildNtlmResponse(
         MD4_DIGEST_LENGTH,
         pUserSessionKey
         );
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     ulKey1 = NtlmCreateKeyFromHash(&NtlmHash[0], 7);
     ulKey2 = NtlmCreateKeyFromHash(&NtlmHash[7], 7);
@@ -1482,16 +1482,16 @@ NtlmBuildNtlmV2Response(
     memset(pUserSessionKey, 0, NTLM_SESSION_KEY_SIZE);
 
     dwError = NtlmCreateNtlmV1Hash(pPassword, NtlmHashV1);
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = NtlmGetAuthTargetNameFromChallenge(pChlngMsg, &pTarget);
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = NtlmCreateNtlmV2Hash(pUserName, pTarget, NtlmHashV1, NtlmHashV2);
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = NtlmCreateNtlmV2Blob(pChlngMsg, NtlmHashV2, &dwBlobSize, &pBlob);
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     LW_ASSERT(dwResponseSize == dwBlobSize);
 
@@ -1564,7 +1564,7 @@ NtlmCreateNtlmV2Blob(
         NTLM_BLOB_TRAILER_SIZE;
 
     dwError = LwAllocateMemory(dwBlobSize, OUT_PPVOID(&pOriginal));
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     // the beginning of the blob will contain the final hash value, so push
     // the blob pointer up by that amount
@@ -1669,7 +1669,7 @@ NtlmGetUserNameFromResponse(
     if (!bUnicode)
     {
         dwError = LwAllocateMemory(dwNameLength + 1, OUT_PPVOID(&pName));
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
 
         memcpy(pName, pBuffer, dwNameLength);
     }
@@ -1678,7 +1678,7 @@ NtlmGetUserNameFromResponse(
         dwNameLength = dwNameLength / sizeof(WCHAR);
 
         dwError = LwAllocateMemory(dwNameLength + 1, OUT_PPVOID(&pName));
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
 
         for (nIndex = 0; nIndex < dwNameLength; nIndex++)
         {
@@ -1708,7 +1708,7 @@ NtlmCalculateResponseSize(
     if (!pChlngMsg)
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     *pdwSize = 0;
@@ -1738,7 +1738,7 @@ NtlmCalculateResponseSize(
     default:
         {
             dwError = LW_ERROR_INVALID_PARAMETER;
-            BAIL_ON_LW_ERROR(dwError);
+            BAIL_ON_LSA_ERROR(dwError);
         }
     }
 
@@ -1787,7 +1787,7 @@ NtlmCreateNtlmV1Hash(
     memset(Hash, 0, MD4_DIGEST_LENGTH);
 
     dwError = LwAllocateMemory(dwTempPassSize, OUT_PPVOID(&pwcTempPass));
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     while (*pPassword)
     {
@@ -1803,7 +1803,7 @@ NtlmCreateNtlmV1Hash(
         dwTempPassSize,
         Hash
         );
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
     LW_SAFE_FREE_MEMORY(pwcTempPass);
@@ -1834,7 +1834,7 @@ NtlmCreateNtlmV2Hash(
     dwTempBufferSize = (strlen(pDomain) + strlen(pUserName)) * sizeof(WCHAR);
 
     dwError = LwAllocateMemory(dwTempBufferSize, OUT_PPVOID(&pTempBuffer));
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     pTrav = pTempBuffer;
 
@@ -1930,7 +1930,7 @@ NtlmCreateMD4Digest(
     if (dwError != 1)
     {
         dwError = LW_ERROR_INTERNAL;
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     dwError = MD4_Update(&Md4Ctx, pBuffer, dwBufferLen);
@@ -1938,7 +1938,7 @@ NtlmCreateMD4Digest(
     if (dwError != 1)
     {
         dwError = LW_ERROR_INTERNAL;
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     dwError = MD4_Final(MD4Digest, &Md4Ctx);
@@ -1946,7 +1946,7 @@ NtlmCreateMD4Digest(
     if (dwError != 1)
     {
         dwError = LW_ERROR_INTERNAL;
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     dwError = LW_ERROR_SUCCESS;

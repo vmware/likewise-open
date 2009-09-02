@@ -88,7 +88,7 @@ NtlmServerAcquireCredentialsHandle(
     if (strcmp("NTLM", pszPackage))
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     dwError = NtlmGetNameInformation(
@@ -96,12 +96,12 @@ NtlmServerAcquireCredentialsHandle(
         &pDomainName,
         &pDnsServerName,
         &pDnsDomainName);
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     if (fCredentialUse == NTLM_CRED_OUTBOUND)
     {
         dwError = NtlmGetProcessSecurity(pCall, &Uid, &Gid);
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
 
         if (!pSecWinAuthData)
         {
@@ -110,7 +110,7 @@ NtlmServerAcquireCredentialsHandle(
             if (!LsaCredHandle)
             {
                 dwError = LW_ERROR_NO_CRED;
-                BAIL_ON_LW_ERROR(dwError);
+                BAIL_ON_LSA_ERROR(dwError);
             }
         }
         else
@@ -120,7 +120,7 @@ NtlmServerAcquireCredentialsHandle(
                 dwError = LwAllocateMemory(
                     pSecWinAuthData->PasswordLength + 1,
                     OUT_PPVOID(&pPassword));
-                BAIL_ON_LW_ERROR(dwError);
+                BAIL_ON_LSA_ERROR(dwError);
 
                 memcpy(
                     pPassword,
@@ -133,7 +133,7 @@ NtlmServerAcquireCredentialsHandle(
                 dwError = LwAllocateMemory(
                     pSecWinAuthData->UserLength + 1,
                     OUT_PPVOID(&pUserName));
-                BAIL_ON_LW_ERROR(dwError);
+                BAIL_ON_LSA_ERROR(dwError);
 
                 memcpy(
                     pUserName,
@@ -143,12 +143,12 @@ NtlmServerAcquireCredentialsHandle(
             else if (pszPrincipal)
             {
                 dwError = LwAllocateString(pszPrincipal, &pUserName);
-                BAIL_ON_LW_ERROR(dwError);
+                BAIL_ON_LSA_ERROR(dwError);
             }
             else
             {
                 dwError = LW_ERROR_INVALID_PARAMETER;
-                BAIL_ON_LW_ERROR(dwError);
+                BAIL_ON_LSA_ERROR(dwError);
             }
 
             if (pPassword && pUserName)
@@ -158,7 +158,7 @@ NtlmServerAcquireCredentialsHandle(
                     "%s\\%s",
                     pDomainName,
                     pUserName);
-                BAIL_ON_LW_ERROR(dwError);
+                BAIL_ON_LSA_ERROR(dwError);
 
                 // In theory, we probably *shouldn't* add this to the list...
                 // but noone should ever be searching the list for -1...
@@ -168,7 +168,7 @@ NtlmServerAcquireCredentialsHandle(
                     pPassword,
                     &InvalidUid,
                     &LsaCredHandle);
-                BAIL_ON_LW_ERROR(dwError);
+                BAIL_ON_LSA_ERROR(dwError);
             }
         }
     }
@@ -181,7 +181,7 @@ NtlmServerAcquireCredentialsHandle(
         pDnsServerName,
         pDnsDomainName,
         &pNtlmCreds);
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
     LW_SAFE_FREE_STRING(pPassword);
@@ -240,7 +240,7 @@ NtlmGetNameInformation(
     if (dwError)
     {
         dwError = LW_ERROR_INTERNAL;
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     // There must be a better way to get this information.
@@ -259,7 +259,7 @@ NtlmGetNameInformation(
     pName = (PSTR)FullDomainName;
 
     dwError = LwAllocateString(pName, &pDnsServerName);
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     pSymbol = strchr(pName, '.');
 
@@ -269,7 +269,7 @@ NtlmGetNameInformation(
     }
 
     dwError = LwAllocateString(pName, &pServerName);
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     LwStrToUpper(pServerName);
 
@@ -280,7 +280,7 @@ NtlmGetNameInformation(
     }
 
     dwError = LwAllocateString(pName, &pDnsDomainName);
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     pSymbol = strchr(pName, '.');
 
@@ -290,7 +290,7 @@ NtlmGetNameInformation(
     }
 
     dwError = LwAllocateString(pName, &pDomainName);
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     LwStrToUpper(pDomainName);
 
@@ -325,11 +325,11 @@ NtlmGetProcessSecurity(
     if (token == NULL || strcmp(lwmsg_security_token_get_type(token), "local"))
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     dwError = MAP_LWMSG_ERROR(lwmsg_local_token_get_eid(token, &uid, &gid));
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
     *pUid = uid;

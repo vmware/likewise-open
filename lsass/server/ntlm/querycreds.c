@@ -63,17 +63,17 @@ NtlmServerQueryCredentialsAttributes(
         dwError = NtlmServerQueryCredNameAttribute(
             phCredential,
             &pCred->pNames);
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
         break;
     case SECPKG_ATTR_SUPPORTED_ALGS:
     case SECPKG_ATTR_CIPHER_STRENGTHS:
     case SECPKG_ATTR_SUPPORTED_PROTOCOLS:
         dwError = LW_ERROR_NOT_IMPLEMENTED;
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
         break;
     default:
         dwError = LW_ERROR_INVALID_ATTRIBUTE_VALUE;
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
         break;
     }
 
@@ -96,7 +96,7 @@ NtlmServerQueryCredNameAttribute(
     *ppNames = NULL;
 
     dwError = LwAllocateMemory(sizeof(*pName), OUT_PPVOID(&pName));
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     NtlmGetCredentialInfo(
         *phCred,
@@ -109,8 +109,15 @@ NtlmServerQueryCredNameAttribute(
         NULL
         );
 
+    // It's possible (in the case of a server), that no name is associated with
+    // the credential... handle this case.
+    if(!pUserName)
+    {
+        pUserName = "";
+    }
+
     dwError = LwAllocateString(pUserName, &pName->pUserName);
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
     *ppNames = pName;

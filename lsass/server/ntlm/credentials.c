@@ -91,33 +91,33 @@ NtlmCreateCredential(
         !pDnsDomainName)
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     *ppNtlmCreds = NULL;
 
     dwError = LwAllocateMemory(sizeof(*pCreds), OUT_PPVOID(&pCreds));
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LwAllocateString(
         pServerName,
         &pCreds->pszServerName);
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LwAllocateString(
         pDomainName,
         &pCreds->pszDomainName);
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LwAllocateString(
         pDnsServerName,
         &pCreds->pszDnsServerName);
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LwAllocateString(
         pDnsDomainName,
         &pCreds->pszDnsDomainName);
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     // A reference is not needed since the way we get the credential that's
     // passed in is already sufficient referenced (we either got it through uid
@@ -197,11 +197,29 @@ NtlmGetCredentialInfo(
             *pszDnsDomainName = pCred->pszDnsDomainName;
         }
 
-        LsaGetCredentialInfo(
-            pCred->CredHandle,
-            pszUserName,
-            pszPassword,
-            pUid);
+        if(pCred->CredHandle)
+        {
+            LsaGetCredentialInfo(
+                pCred->CredHandle,
+                pszUserName,
+                pszPassword,
+                pUid);
+        }
+        else
+        {
+            if(pszUserName)
+            {
+                *pszUserName = NULL;
+            }
+            if(pszPassword)
+            {
+                *pszPassword = NULL;
+            }
+            if(pUid)
+            {
+                *pUid = 0;
+            }
+        }
     }
 }
 

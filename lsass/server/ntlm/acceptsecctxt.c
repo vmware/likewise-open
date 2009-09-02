@@ -46,7 +46,6 @@
  */
 
 #include "ntlmsrvapi.h"
-#include "lwsecurityidentifier.h"
 #include "lsasrvapi.h"
 
 DWORD
@@ -87,17 +86,17 @@ NtlmServerAcceptSecurityContext(
             &dwMessageSize,
             (PVOID*)&pNegMsg
             );
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
 
         dwError = NtlmCreateChallengeContext(
             pNegMsg,
             phCredential,
             &pNtlmCtxtOut);
 
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
 
         dwError = NtlmCopyContextToSecBufferDesc(pNtlmCtxtOut, pOutput);
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
 
         dwError = LW_WARNING_CONTINUE_NEEDED;
     }
@@ -114,7 +113,7 @@ NtlmServerAcceptSecurityContext(
             &dwMessageSize,
             (PVOID*)&pRespMsg
             );
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
 
         dwError = NtlmValidateResponse(
             Handle,
@@ -122,7 +121,7 @@ NtlmServerAcceptSecurityContext(
             dwMessageSize,
             pNtlmCtxtChlng,
             SessionKey);
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
 
         // The response has been validated and contains all the information we
         // are looking for; retain it... the original (challenge) context will
@@ -136,7 +135,7 @@ NtlmServerAcceptSecurityContext(
             phCredential,
             &pNtlmCtxtOut
             );
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     //NtlmAddContext(pNtlmCtxtOut, &ContextHandle);
@@ -177,7 +176,7 @@ NtlmCreateChallengeContext(
     *ppNtlmContext = NULL;
 
     dwError = NtlmCreateContext(pCredHandle, &pNtlmContext);
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     NtlmGetCredentialInfo(
         *pCredHandle,
@@ -201,7 +200,7 @@ NtlmCreateChallengeContext(
         &pMessage
         );
 
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     pNtlmContext->NegotiatedFlags = pMessage->NtlmFlags;
     pNtlmContext->dwMessageSize = dwMessageSize;
@@ -240,7 +239,7 @@ NtlmCreateValidatedContext(
     *ppNtlmContext = NULL;
 
     dwError = NtlmCreateContext(pCredHandle, &pNtlmContext);
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LwAllocateMemory(dwMsgSize, OUT_PPVOID(&pNtlmContext->pMessage));
 
@@ -298,7 +297,7 @@ NtlmValidateResponse(
     if (!pRespMsg || ! pChlngCtxt)
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     pChlngMsg = (PNTLM_CHALLENGE_MESSAGE)pChlngCtxt->pMessage;
@@ -306,17 +305,17 @@ NtlmValidateResponse(
     dwError = LwAllocateMemory(
         NTLM_CHALLENGE_SIZE,
         OUT_PPVOID(&pChallengeBuffer));
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LwAllocateMemory(
         pRespMsg->LmResponse.usLength,
         OUT_PPVOID(&pLMRespBuffer));
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LwAllocateMemory(
         pRespMsg->NtResponse.usLength,
         OUT_PPVOID(&pNTRespBuffer));
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     // The username, domain, and workstation values might come back as Unicode.
     // We could technically prevent this by not allowing NTLM_FLAG_UNICODE to be
@@ -327,19 +326,19 @@ NtlmValidateResponse(
         pRespMsg,
         pChlngMsg->NtlmFlags & NTLM_FLAG_UNICODE,
         &pUserName);
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = NtlmGetDomainNameFromResponse(
         pRespMsg,
         pChlngMsg->NtlmFlags & NTLM_FLAG_UNICODE,
         &pDomainName);
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = NtlmGetWorkstationFromResponse(
         pRespMsg,
         pChlngMsg->NtlmFlags & NTLM_FLAG_UNICODE,
         &pWorkstation);
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     memcpy(
         pChallengeBuffer,
@@ -382,7 +381,7 @@ NtlmValidateResponse(
         &Params,
         &pUserInfo
         );
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     LW_ASSERT(pUserInfo->pSessionKey->dwLen == NTLM_SESSION_KEY_SIZE);
     memcpy(pSessionKey, pUserInfo->pSessionKey->pData, NTLM_SESSION_KEY_SIZE);
@@ -390,7 +389,7 @@ NtlmValidateResponse(
     // Free the pUserInfo for now... we may want to save this off later
     //
     dwError = LsaFreeAuthUserInfo(&pUserInfo);
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
 
@@ -429,7 +428,7 @@ NtlmGetDomainNameFromResponse(
     if (!bUnicode)
     {
         dwError = LwAllocateMemory(dwNameLength + 1, OUT_PPVOID(&pName));
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
 
         memcpy(pName, pBuffer, dwNameLength);
     }
@@ -438,7 +437,7 @@ NtlmGetDomainNameFromResponse(
         dwNameLength = dwNameLength / sizeof(WCHAR);
 
         dwError = LwAllocateMemory(dwNameLength + 1, OUT_PPVOID(&pName));
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
 
         for (nIndex = 0; nIndex < dwNameLength; nIndex++)
         {
@@ -477,7 +476,7 @@ NtlmGetWorkstationFromResponse(
     if (!bUnicode)
     {
         dwError = LwAllocateMemory(dwNameLength + 1, OUT_PPVOID(&pName));
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
 
         memcpy(pName, pBuffer, dwNameLength);
     }
@@ -486,7 +485,7 @@ NtlmGetWorkstationFromResponse(
         dwNameLength = dwNameLength / sizeof(WCHAR);
 
         dwError = LwAllocateMemory(dwNameLength + 1, OUT_PPVOID(&pName));
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
 
         for (nIndex = 0; nIndex < dwNameLength; nIndex++)
         {

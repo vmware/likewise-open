@@ -129,7 +129,7 @@ KtKrb5GetTgt(
     BAIL_ON_KRB5_ERROR(ctx, ret);
 
 error:
-    if (!ctx) {
+    if (ctx) {
         if (client) {
             krb5_free_principal(ctx, client);
         }

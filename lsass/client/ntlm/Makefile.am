@@ -12,7 +12,6 @@ liblsaclient_ntlm_la_SOURCES =  \
        importsecctxt.c      \
        initsecctxt.c        \
        makesign.c           \
-       ntlmgsswrapper.c     \
        querycreds.c         \
        queryctxt.c          \
        verifysign.c

@@ -263,6 +263,8 @@ AC_SUBST(IDLFLAGS)
 
 eventlogconfdir="$sysconfdir"
 AC_SUBST(eventlogconfdir)
+eventlogregdir="$sysconfdir"
+AC_SUBST(eventlogregdir)
 AS_AC_EXPAND(CONFIGDIR, $eventlogconfdir)
 AC_DEFINE_UNQUOTED(CONFIGDIR, "$CONFIGDIR", [Config directory])
 eventlogcachedir="$localstatedir/lib/likewise"
@@ -352,6 +354,7 @@ AC_CHECK_TYPES([wchar16_t], [], [], [AC_INCLUDES_DEFAULT
 
 AC_CONFIG_FILES([Makefile
                  etc/eventlogd.conf
+                 etc/eventlogd.reg
                  etc/Makefile
                  include/Makefile
                  utils/Makefile

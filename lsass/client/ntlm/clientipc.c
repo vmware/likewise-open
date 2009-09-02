@@ -64,26 +64,26 @@ __NtlmInitialize(VOID)
     DWORD dwError = LW_ERROR_SUCCESS;
 
     dwError = LwMapLwmsgStatusToLwError(lwmsg_protocol_new(NULL, &gpProtocol));
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LwMapLwmsgStatusToLwError(
         lwmsg_protocol_add_protocol_spec(gpProtocol, NtlmIpcGetProtocolSpec()));
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LwMapLwmsgStatusToLwError(
         lwmsg_client_new(NULL, gpProtocol, &gpClient));
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LwMapLwmsgStatusToLwError(
         lwmsg_client_set_max_concurrent(gpClient, dwMaxConnections));
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LwMapLwmsgStatusToLwError(
         lwmsg_client_set_endpoint(
             gpClient,
             LWMSG_CONNECTION_MODE_LOCAL,
             CACHEDIR "/" NTLM_SERVER_FILENAME));
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     return;
 
@@ -111,7 +111,7 @@ NtlmIpcAcquireCall(
         lwmsg_client_acquire_call(
             gpClient,
             ppCall));
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
 error:
 
@@ -129,7 +129,7 @@ NtlmIpcUnregisterHandle(
 
     dwError = MAP_LWMSG_ERROR(
         lwmsg_session_unregister_handle(pSession, pHandle));
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
 error:
 
@@ -159,7 +159,7 @@ NtlmTransactAcceptSecurityContext(
     NtlmInitialize();
 
     dwError = NtlmIpcAcquireCall(&pCall);
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     *pfContextAttr = 0;
     *ptsTimeStamp = 0;
@@ -186,7 +186,7 @@ NtlmTransactAcceptSecurityContext(
 
     dwError = MAP_LWMSG_ERROR(
         lwmsg_call_dispatch(pCall, &In, &Out, NULL, NULL));
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     switch (Out.tag)
     {
@@ -194,7 +194,7 @@ NtlmTransactAcceptSecurityContext(
             pResultList = (PNTLM_IPC_ACCEPT_SEC_CTXT_RESPONSE)Out.data;
 
             dwError = NtlmTransferSecBufferDesc(pOutput, &pResultList->Output);
-            BAIL_ON_LW_ERROR(dwError);
+            BAIL_ON_LSA_ERROR(dwError);
 
             *phNewContext = pResultList->hNewContext;
             pResultList->hNewContext = NULL;
@@ -207,11 +207,11 @@ NtlmTransactAcceptSecurityContext(
         case NTLM_R_GENERIC_FAILURE:
             pError = (PNTLM_IPC_ERROR) Out.data;
             dwError = pError->dwError;
-            BAIL_ON_LW_ERROR(dwError);
+            BAIL_ON_LSA_ERROR(dwError);
             break;
         default:
             dwError = LW_ERROR_INTERNAL;
-            BAIL_ON_LW_ERROR(dwError);
+            BAIL_ON_LSA_ERROR(dwError);
     }
 
 cleanup:
@@ -251,7 +251,7 @@ NtlmTransactAcquireCredentialsHandle(
     NtlmInitialize();
 
     dwError = NtlmIpcAcquireCall(&pCall);
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     memset(&AcquireCredsReq, 0, sizeof(AcquireCredsReq));
 
@@ -270,7 +270,7 @@ NtlmTransactAcquireCredentialsHandle(
 
     dwError = MAP_LWMSG_ERROR(
         lwmsg_call_dispatch(pCall, &In, &Out, NULL, NULL));
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     switch (Out.tag)
     {
@@ -286,11 +286,11 @@ NtlmTransactAcquireCredentialsHandle(
         case NTLM_R_GENERIC_FAILURE:
             pError = (PNTLM_IPC_ERROR) Out.data;
             dwError = pError->dwError;
-            BAIL_ON_LW_ERROR(dwError);
+            BAIL_ON_LSA_ERROR(dwError);
             break;
         default:
             dwError = LW_ERROR_INTERNAL;
-            BAIL_ON_LW_ERROR(dwError);
+            BAIL_ON_LSA_ERROR(dwError);
     }
 
 cleanup:
@@ -324,7 +324,7 @@ NtlmTransactDecryptMessage(
     NtlmInitialize();
 
     dwError = NtlmIpcAcquireCall(&pCall);
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     memset(&DecryptMsgReq, 0, sizeof(DecryptMsgReq));
 
@@ -341,7 +341,7 @@ NtlmTransactDecryptMessage(
 
     dwError = MAP_LWMSG_ERROR(
         lwmsg_call_dispatch(pCall, &In, &Out, NULL, NULL));
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     switch (Out.tag)
     {
@@ -352,7 +352,7 @@ NtlmTransactDecryptMessage(
                 pMessage,
                 &pResultList->Message
                 );
-            BAIL_ON_LW_ERROR(dwError);
+            BAIL_ON_LSA_ERROR(dwError);
 
             memcpy(pbEncrypted, &pResultList->bEncrypted, sizeof(BOOL));
 
@@ -360,11 +360,11 @@ NtlmTransactDecryptMessage(
         case NTLM_R_GENERIC_FAILURE:
             pError = (PNTLM_IPC_ERROR) Out.data;
             dwError = pError->dwError;
-            BAIL_ON_LW_ERROR(dwError);
+            BAIL_ON_LSA_ERROR(dwError);
             break;
         default:
             dwError = LW_ERROR_INTERNAL;
-            BAIL_ON_LW_ERROR(dwError);
+            BAIL_ON_LSA_ERROR(dwError);
     }
 
 cleanup:
@@ -395,7 +395,7 @@ NtlmTransactDeleteSecurityContext(
     NtlmInitialize();
 
     dwError = NtlmIpcAcquireCall(&pCall);
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     memset(&DeleteSecCtxtReq, 0, sizeof(DeleteSecCtxtReq));
 
@@ -409,20 +409,22 @@ NtlmTransactDeleteSecurityContext(
 
     dwError = MAP_LWMSG_ERROR(
         lwmsg_call_dispatch(pCall, &In, &Out, NULL, NULL));
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     switch (Out.tag)
     {
         case NTLM_R_DELETE_SEC_CTXT_SUCCESS:
+            dwError = NtlmIpcUnregisterHandle(pCall, *phContext);
+            BAIL_ON_LSA_ERROR(dwError);
             break;
         case NTLM_R_GENERIC_FAILURE:
             pError = (PNTLM_IPC_ERROR) Out.data;
             dwError = pError->dwError;
-            BAIL_ON_LW_ERROR(dwError);
+            BAIL_ON_LSA_ERROR(dwError);
             break;
         default:
             dwError = LW_ERROR_INTERNAL;
-            BAIL_ON_LW_ERROR(dwError);
+            BAIL_ON_LSA_ERROR(dwError);
     }
 
 cleanup:
@@ -456,7 +458,7 @@ NtlmTransactEncryptMessage(
     NtlmInitialize();
 
     dwError = NtlmIpcAcquireCall(&pCall);
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     memset(&EncryptMsgReq, 0, sizeof(EncryptMsgReq));
 
@@ -474,7 +476,7 @@ NtlmTransactEncryptMessage(
 
     dwError = MAP_LWMSG_ERROR(
         lwmsg_call_dispatch(pCall, &In, &Out, NULL, NULL));
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     switch (Out.tag)
     {
@@ -485,17 +487,17 @@ NtlmTransactEncryptMessage(
                 pMessage,
                 &pResultList->Message
                 );
-            BAIL_ON_LW_ERROR(dwError);
+            BAIL_ON_LSA_ERROR(dwError);
 
             break;
         case NTLM_R_GENERIC_FAILURE:
             pError = (PNTLM_IPC_ERROR) Out.data;
             dwError = pError->dwError;
-            BAIL_ON_LW_ERROR(dwError);
+            BAIL_ON_LSA_ERROR(dwError);
             break;
         default:
             dwError = LW_ERROR_INTERNAL;
-            BAIL_ON_LW_ERROR(dwError);
+            BAIL_ON_LSA_ERROR(dwError);
     }
 
 cleanup:
@@ -529,7 +531,7 @@ NtlmTransactExportSecurityContext(
     NtlmInitialize();
 
     dwError = NtlmIpcAcquireCall(&pCall);
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     memset(&ExportSecCtxtReq, 0, sizeof(ExportSecCtxtReq));
 
@@ -545,7 +547,7 @@ NtlmTransactExportSecurityContext(
 
     dwError = MAP_LWMSG_ERROR(
         lwmsg_call_dispatch(pCall, &In, &Out, NULL, NULL));
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     switch (Out.tag)
     {
@@ -565,11 +567,11 @@ NtlmTransactExportSecurityContext(
         case NTLM_R_GENERIC_FAILURE:
             pError = (PNTLM_IPC_ERROR) Out.data;
             dwError = pError->dwError;
-            BAIL_ON_LW_ERROR(dwError);
+            BAIL_ON_LSA_ERROR(dwError);
             break;
         default:
             dwError = LW_ERROR_INTERNAL;
-            BAIL_ON_LW_ERROR(dwError);
+            BAIL_ON_LSA_ERROR(dwError);
     }
 
 cleanup:
@@ -600,7 +602,7 @@ NtlmTransactFreeCredentialsHandle(
     NtlmInitialize();
 
     dwError = NtlmIpcAcquireCall(&pCall);
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     memset(&FreeCredsReq, 0, sizeof(FreeCredsReq));
 
@@ -614,20 +616,22 @@ NtlmTransactFreeCredentialsHandle(
 
     dwError = MAP_LWMSG_ERROR(
         lwmsg_call_dispatch(pCall, &In, &Out, NULL, NULL));
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     switch (Out.tag)
     {
         case NTLM_R_FREE_CREDS_SUCCESS:
+            dwError = NtlmIpcUnregisterHandle(pCall, *phCredential);
+            BAIL_ON_LSA_ERROR(dwError);
             break;
         case NTLM_R_GENERIC_FAILURE:
             pError = (PNTLM_IPC_ERROR) Out.data;
             dwError = pError->dwError;
-            BAIL_ON_LW_ERROR(dwError);
+            BAIL_ON_LSA_ERROR(dwError);
             break;
         default:
             dwError = LW_ERROR_INTERNAL;
-            BAIL_ON_LW_ERROR(dwError);
+            BAIL_ON_LSA_ERROR(dwError);
     }
 
 cleanup:
@@ -661,7 +665,7 @@ NtlmTransactImportSecurityContext(
     NtlmInitialize();
 
     dwError = NtlmIpcAcquireCall(&pCall);
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     memset(&ImportSecCtxtReq, 0, sizeof(ImportSecCtxtReq));
 
@@ -678,7 +682,7 @@ NtlmTransactImportSecurityContext(
 
     dwError = MAP_LWMSG_ERROR(
         lwmsg_call_dispatch(pCall, &In, &Out, NULL, NULL));
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     switch (Out.tag)
     {
@@ -691,11 +695,11 @@ NtlmTransactImportSecurityContext(
         case NTLM_R_GENERIC_FAILURE:
             pError = (PNTLM_IPC_ERROR) Out.data;
             dwError = pError->dwError;
-            BAIL_ON_LW_ERROR(dwError);
+            BAIL_ON_LSA_ERROR(dwError);
             break;
         default:
             dwError = LW_ERROR_INTERNAL;
-            BAIL_ON_LW_ERROR(dwError);
+            BAIL_ON_LSA_ERROR(dwError);
     }
 
 cleanup:
@@ -737,7 +741,7 @@ NtlmTransactInitializeSecurityContext(
     NtlmInitialize();
 
     dwError = NtlmIpcAcquireCall(&pCall);
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     memset(&InitSecCtxtReq, 0, sizeof(InitSecCtxtReq));
 
@@ -770,7 +774,7 @@ NtlmTransactInitializeSecurityContext(
 
     dwError = MAP_LWMSG_ERROR(
         lwmsg_call_dispatch(pCall, &In, &Out, NULL, NULL));
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     switch (Out.tag)
     {
@@ -784,7 +788,7 @@ NtlmTransactInitializeSecurityContext(
                     pOutput,
                     &pResultList->Output
                     );
-                BAIL_ON_LW_ERROR(dwError);
+                BAIL_ON_LSA_ERROR(dwError);
 
             }
 
@@ -807,11 +811,11 @@ NtlmTransactInitializeSecurityContext(
         case NTLM_R_GENERIC_FAILURE:
             pError = (PNTLM_IPC_ERROR) Out.data;
             dwError = pError->dwError;
-            BAIL_ON_LW_ERROR(dwError);
+            BAIL_ON_LSA_ERROR(dwError);
             break;
         default:
             dwError = LW_ERROR_INTERNAL;
-            BAIL_ON_LW_ERROR(dwError);
+            BAIL_ON_LSA_ERROR(dwError);
     }
 
 cleanup:
@@ -850,7 +854,7 @@ NtlmTransactMakeSignature(
     NtlmInitialize();
 
     dwError = NtlmIpcAcquireCall(&pCall);
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     memset(&MakeSignReq, 0, sizeof(MakeSignReq));
 
@@ -868,7 +872,7 @@ NtlmTransactMakeSignature(
 
     dwError = MAP_LWMSG_ERROR(
         lwmsg_call_dispatch(pCall, &In, &Out, NULL, NULL));
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     switch (Out.tag)
     {
@@ -879,17 +883,17 @@ NtlmTransactMakeSignature(
                 pMessage,
                 &pResultList->Message
                 );
-            BAIL_ON_LW_ERROR(dwError);
+            BAIL_ON_LSA_ERROR(dwError);
 
             break;
         case NTLM_R_GENERIC_FAILURE:
             pError = (PNTLM_IPC_ERROR) Out.data;
             dwError = pError->dwError;
-            BAIL_ON_LW_ERROR(dwError);
+            BAIL_ON_LSA_ERROR(dwError);
             break;
         default:
             dwError = LW_ERROR_INTERNAL;
-            BAIL_ON_LW_ERROR(dwError);
+            BAIL_ON_LSA_ERROR(dwError);
     }
 
 cleanup:
@@ -922,7 +926,7 @@ NtlmTransactQueryContextAttributes(
     NtlmInitialize();
 
     dwError = NtlmIpcAcquireCall(&pCall);
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     memset(&QueryCtxtReq, 0, sizeof(QueryCtxtReq));
 
@@ -938,7 +942,7 @@ NtlmTransactQueryContextAttributes(
 
     dwError = MAP_LWMSG_ERROR(
         lwmsg_call_dispatch(pCall, &In, &Out, NULL, NULL));
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     switch (Out.tag)
     {
@@ -970,7 +974,7 @@ NtlmTransactQueryContextAttributes(
                 break;
             default:
                 dwError = LW_ERROR_INVALID_PARAMETER;
-                BAIL_ON_LW_ERROR(dwError);
+                BAIL_ON_LSA_ERROR(dwError);
                 break;
             }
 
@@ -978,11 +982,11 @@ NtlmTransactQueryContextAttributes(
         case NTLM_R_GENERIC_FAILURE:
             pError = (PNTLM_IPC_ERROR) Out.data;
             dwError = pError->dwError;
-            BAIL_ON_LW_ERROR(dwError);
+            BAIL_ON_LSA_ERROR(dwError);
             break;
         default:
             dwError = LW_ERROR_INTERNAL;
-            BAIL_ON_LW_ERROR(dwError);
+            BAIL_ON_LSA_ERROR(dwError);
     }
 
 cleanup:
@@ -1015,7 +1019,7 @@ NtlmTransactQueryCredentialsAttributes(
     NtlmInitialize();
 
     dwError = NtlmIpcAcquireCall(&pCall);
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     memset(&QueryCredsReq, 0, sizeof(QueryCredsReq));
 
@@ -1031,7 +1035,7 @@ NtlmTransactQueryCredentialsAttributes(
 
     dwError = MAP_LWMSG_ERROR(
         lwmsg_call_dispatch(pCall, &In, &Out, NULL, NULL));
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     switch (Out.tag)
     {
@@ -1049,18 +1053,18 @@ NtlmTransactQueryCredentialsAttributes(
                 break;
             default:
                 dwError = LW_ERROR_INTERNAL;
-                BAIL_ON_LW_ERROR(dwError);
+                BAIL_ON_LSA_ERROR(dwError);
             }
 
             break;
         case NTLM_R_GENERIC_FAILURE:
             pError = (PNTLM_IPC_ERROR) Out.data;
             dwError = pError->dwError;
-            BAIL_ON_LW_ERROR(dwError);
+            BAIL_ON_LSA_ERROR(dwError);
             break;
         default:
             dwError = LW_ERROR_INTERNAL;
-            BAIL_ON_LW_ERROR(dwError);
+            BAIL_ON_LSA_ERROR(dwError);
     }
 
 cleanup:
@@ -1095,7 +1099,7 @@ NtlmTransactVerifySignature(
     NtlmInitialize();
 
     dwError = NtlmIpcAcquireCall(&pCall);
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     memset(&VerifySignReq, 0, sizeof(VerifySignReq));
 
@@ -1112,7 +1116,7 @@ NtlmTransactVerifySignature(
 
     dwError = MAP_LWMSG_ERROR(
         lwmsg_call_dispatch(pCall, &In, &Out, NULL, NULL));
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     switch (Out.tag)
     {
@@ -1126,11 +1130,11 @@ NtlmTransactVerifySignature(
         case NTLM_R_GENERIC_FAILURE:
             pError = (PNTLM_IPC_ERROR) Out.data;
             dwError = pError->dwError;
-            BAIL_ON_LW_ERROR(dwError);
+            BAIL_ON_LSA_ERROR(dwError);
             break;
         default:
             dwError = LW_ERROR_INTERNAL;
-            BAIL_ON_LW_ERROR(dwError);
+            BAIL_ON_LSA_ERROR(dwError);
     }
 
 cleanup:
@@ -1158,7 +1162,7 @@ NtlmTransferSecBufferDesc(
     if (pOut->cBuffers != pIn->cBuffers)
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     for (nIndex= 0; nIndex < pIn->cBuffers; nIndex++)

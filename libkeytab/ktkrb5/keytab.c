@@ -80,10 +80,7 @@ KtKrb5KeytabOpen(
     ret = krb5_init_context(&ctx);
     BAIL_ON_KRB5_ERROR(ctx, ret);
 
-    if (pszKtFile) {
-        dwError = KtAllocateString(pszKtFile, &pszKtFilename);
-
-    } else {
+    if (!pszKtFile) {
 
         do {
             dwSize += dwSize;
@@ -107,8 +104,11 @@ KtKrb5KeytabOpen(
 
     BAIL_ON_KRB5_ERROR(ctx, ret);
 
-    dwError = KtAllocateStringPrintf(&pszKtName, "%s:%s",
-                                     pszPrefix, pszKtFilename);
+    dwError = KtAllocateStringPrintf(
+                  &pszKtName,
+                  "%s:%s",
+                  pszPrefix,
+                  pszKtFile ? pszKtFile : pszKtFilename);
     BAIL_ON_KT_ERROR(dwError);
 
     ret = krb5_kt_resolve(ctx, pszKtName, &id);

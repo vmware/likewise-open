@@ -148,6 +148,64 @@ error:
     goto cleanup;
 }
 
+/*
+ * This function assumes queries are a single atomic statement
+ */
+static
+DWORD
+SqlDBExec(
+    sqlite3 * pDbHandle,
+    PCSTR pszQuery,
+    int (*callback)(void*, int, char**, char**),
+    void * arg,
+    PSTR *ppszError)
+{
+    DWORD dwError = 0;
+    DWORD dwCount = 0;
+
+    do {
+        dwError = sqlite3_exec(pDbHandle, pszQuery, callback, arg,
+                ppszError);
+        if (dwError == SQLITE_BUSY)
+        {
+            usleep(dwCount * 1000);
+            if (dwCount < 50)
+                dwCount++;
+        }
+    } while (dwError == SQLITE_BUSY);
+
+    return dwError;
+}
+
+static
+DWORD
+SqlDBGetTable(
+    sqlite3 *pDbHandle,
+    PCSTR pszQuery,
+    PSTR **pppszDbResult,
+    int * pNumRows,
+    int * pNumCols,
+    PSTR * ppszError)
+{
+    DWORD dwError = 0;
+    DWORD dwCount = 0;
+
+    do {
+        dwError = sqlite3_get_table(pDbHandle, pszQuery, pppszDbResult,
+                pNumRows, pNumCols, ppszError);
+
+        if (dwError == SQLITE_BUSY)
+        {
+            usleep(dwCount * 1000);
+            if (dwCount < 50)
+                dwCount++;
+        }
+    } while (dwError == SQLITE_BUSY);
+
+    return dwError;
+}
+
+
 void
 SqlDBClose(
     HANDLE hDb
@@ -196,7 +254,7 @@ SqlDBCreateDb()
     
     pDbHandle = (sqlite3*)hDb;
         
-    dwError = sqlite3_exec(pDbHandle,
+    dwError = SqlDBExec(pDbHandle,
                            DB_QUERY_CREATE_MACHINEPWD_TABLE,
                            NULL,
                            NULL,
@@ -252,7 +310,7 @@ SqlDBSetPwdEntry(
         BAIL_ON_LWPS_ERROR(dwError);
     }
     
-    dwError = sqlite3_exec(pDbHandle,
+    dwError = SqlDBExec(pDbHandle,
                            pszQuery,
                            NULL,
                            NULL,
@@ -277,7 +335,7 @@ SqlDBSetPwdEntry(
         BAIL_ON_LWPS_ERROR(dwError);
     }
     
-    dwError = sqlite3_exec(pDbHandle,
+    dwError = SqlDBExec(pDbHandle,
                            pszQuery,
                            NULL,
                            NULL,
@@ -330,7 +388,7 @@ SqlDBGetPwdEntry(
     
     ENTER_MACHINEPWD_DB_RW_READER_LOCK(bInLock);
     
-    dwError = sqlite3_get_table(pDbHandle,
+    dwError = SqlDBGetTable(pDbHandle,
                            pszQuery,
                            &ppszDbResult,
                            &numRows,
@@ -599,7 +657,7 @@ SqlDBDeletePwdEntryByHostName(
         BAIL_ON_LWPS_ERROR(dwError);
     }
     
-    dwError = sqlite3_exec(pDbHandle,
+    dwError = SqlDBExec(pDbHandle,
                            pszQuery,
                            NULL,
                            NULL,
@@ -637,7 +695,7 @@ SqlDBDeleteAllEntries(
     
     ENTER_MACHINEPWD_DB_RW_WRITER_LOCK(bInLock);
     
-    dwError = sqlite3_exec(pDbHandle,
+    dwError = SqlDBExec(pDbHandle,
                            DB_QUERY_DELETE_ALL_MACHINEPWD_ENTRIES,
                            NULL,
                            NULL,
@@ -674,7 +732,7 @@ SqlDBGetPwdEntries(
     int     iRow = 0, numRows = 0;
     int     iCol = 0, numCols = 0;
     int     iVal = 0;
-    DWORD   dwExpectedNumCols = 9;
+    DWORD   dwExpectedNumCols = 10;
     PSTR    pszError = NULL;
     PSTR*   ppszDbResult = NULL;
     PSTR    pszEndPtr = NULL;
@@ -683,7 +741,7 @@ SqlDBGetPwdEntries(
     
     ENTER_MACHINEPWD_DB_RW_READER_LOCK(bInLock);
     
-    dwError = sqlite3_get_table(
+    dwError = SqlDBGetTable(
                            pDbHandle,
                            DB_QUERY_GET_MACHINEPWD_ENTRIES,
                            &ppszDbResult,
@@ -857,7 +915,7 @@ cleanup:
     
 error:
 
-    *ppAcct = NULL;
+    *pppAcct = NULL;
     *pdwNumEntries = 0;
     
     if (ppAcct) {
