@@ -71,19 +71,22 @@ SrvProcessSessionSetup(
                     &ulSecurityBlobLength);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvGssBeginNegotiate(
-                   pConnection->hGssContext,
-                   &pConnection->hGssNegotiate);
-    BAIL_ON_NT_STATUS(ntStatus);
+    if (pConnection->hGssNegotiate == NULL)
+    {
+        ntStatus = SrvGssBeginNegotiate(
+                       pConnection->hGssContext,
+                       &pConnection->hGssNegotiate);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvGssNegotiate(
-                   pConnection->hGssContext,
-                   pConnection->hGssNegotiate,
-                   NULL,
-                   0,
-                   &pInitSecurityBlob,
-                   &ulInitSecurityBlobLength);
-    BAIL_ON_NT_STATUS(ntStatus);
+        ntStatus = SrvGssNegotiate(
+                       pConnection->hGssContext,
+                       pConnection->hGssNegotiate,
+                       NULL,
+                       0,
+                       &pInitSecurityBlob,
+                       &ulInitSecurityBlobLength);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
     ntStatus = SrvMarshallSessionSetupResponse(
                     pExecContext,
