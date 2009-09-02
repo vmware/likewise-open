@@ -89,6 +89,13 @@ LsaNssHpuxPasswdToPrpasswd(
 
     out->ufld.fd_pw_audflg = 1;
     out->uflg.fg_pw_audflg = 1;
+
+    // HP-UX requires the encrypted password to be explicitly overwritten for
+    // each user. HP-UX will not honor the fg_encrypt value by falling back to
+    // sfld.fd_encrypt if it is 0.
+    out->ufld.fd_encrypt[0] = '*';
+    out->ufld.fd_encrypt[1] = 0;
+    out->uflg.fg_encrypt = 1;
 }
 
 static

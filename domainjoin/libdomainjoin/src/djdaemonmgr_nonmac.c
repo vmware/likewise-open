@@ -199,6 +199,7 @@ cleanup:
     CT_SAFE_FREE_STRING(initDir);
     CT_SAFE_FREE_STRING(daemonPath);
     CT_SAFE_FREE_STRING(altDaemonName);
+    CT_SAFE_FREE_STRING(statusBuffer);
 }
 
 static void FindDaemonScript(PCSTR name, PSTR *path, LWException **exc)
@@ -567,6 +568,8 @@ DJConfigureForDaemonRestart(
     DistroInfo distro;
     PSTR symlinkTarget = NULL;
     PSTR symlinkName = NULL;
+    long status = 0;
+    PSTR statusBuffer = NULL;
 
     memset(&distro, 0, sizeof(distro));
 
@@ -697,11 +700,142 @@ DJConfigureForDaemonRestart(
                         directories, pszDaemonName, &LW_EXC));
         }
     }
+    else if(distro.os == OS_SUNOS)
+    {
+        BOOLEAN bUsesSVCS = FALSE;
+
+        LW_CLEANUP_CTERR(exc, CTCheckFileExists("/usr/sbin/svcadm", &bUsesSVCS));
+        if (bUsesSVCS)
+        {
+            /* On newer Solaris system, in order for a daemon to start in multi-user mode,
+             * we need to register our daemons with the service manager (svcs).
+             *
+             * To add:
+             * svccfg import /etc/likewise/svcs-solaris/<daemon name>.xml
+             * svcadm enable <daemon name>
+             *
+             * To remove:
+             * svcadm disable <daemon name>
+             * svccfg delete  <daemon name>
+             */
+            if(bStatus)
+            {
+                LW_CLEANUP_CTERR(exc, CTShell("/usr/sbin/svccfg import /etc/likewise/svcs-solaris/%daemonName.xml >/dev/null 2>&1; echo $? >%statusBuffer",
+                            CTSHELL_STRING(daemonName, pszDaemonName),
+                            CTSHELL_BUFFER(statusBuffer, &statusBuffer)));
+
+                status = atol(statusBuffer);
+
+                CT_SAFE_FREE_STRING(statusBuffer);
+                statusBuffer = NULL;
+
+                DJ_LOG_INFO("Daemon [%s]: svccfg import /etc/likewise/svcs-solaris/%s.xml status [%d]", pszDaemonName, pszDaemonName, status);
+
+                if (status) {
+                    LW_RAISE_EX(exc, CENTERROR_DOMAINJOIN_INCORRECT_STATUS, "svccfg import failed", "An error occurred while using svccfg to process the '%s' daemon. This daemon was being added to the list of processes to start on reboot.", pszDaemonName);
+                    goto cleanup;
+                }
+
+                LW_CLEANUP_CTERR(exc, CTShell("/usr/sbin/svcadm enable %daemonName >/dev/null 2>&1; echo $? >%statusBuffer",
+                            CTSHELL_STRING(daemonName, pszDaemonName),
+                            CTSHELL_BUFFER(statusBuffer, &statusBuffer)));
+
+                status = atol(statusBuffer);
+
+                DJ_LOG_INFO("Daemon [%s]: svcadm enable %s status [%d]", pszDaemonName, pszDaemonName, status);
+
+                if (status) {
+                    LW_RAISE_EX(exc, CENTERROR_DOMAINJOIN_INCORRECT_STATUS, "svcadm enable failed", "An error occurred while using svcadm to process the '%s' daemon. This daemon was being added to the list of processes to start on reboot.", pszDaemonName);
+                    goto cleanup;
+                }
+            }
+            else
+            {
+                LW_CLEANUP_CTERR(exc, CTShell("/usr/sbin/svcadm disable %daemonName >/dev/null 2>&1; echo $? >%statusBuffer",
+                            CTSHELL_STRING(daemonName, pszDaemonName),
+                            CTSHELL_BUFFER(statusBuffer, &statusBuffer)));
+
+                status = atol(statusBuffer);
+
+                CT_SAFE_FREE_STRING(statusBuffer);
+                statusBuffer = NULL;
+
+                DJ_LOG_INFO("Daemon [%s]: svcadm disable %s status [%d]", pszDaemonName, pszDaemonName, status);
+
+                LW_CLEANUP_CTERR(exc, CTShell("/usr/sbin/svccfg delete %daemonName >/dev/null 2>&1; echo $? >%statusBuffer",
+                            CTSHELL_STRING(daemonName, pszDaemonName),
+                            CTSHELL_BUFFER(statusBuffer, &statusBuffer)));
+
+                status = atol(statusBuffer);
+
+                DJ_LOG_INFO("Daemon [%s]: svccfg delete %s status [%d]", pszDaemonName, pszDaemonName, status);
+            }
+        }
+        else
+        {
+            /* On older Solaris system, in order for a daemon to start in multi-user mode,
+             * a start symlink must be put in /etc/rc2.d, and a stop symlink
+             * must be put in /etc/rc0.d, /etc/rc1.d, /etc/rcS.d.
+             */
+            if(bStatus)
+            {
+                PCSTR relativeName = strrchr(pszDaemonName, '/');
+
+                if (relativeName == NULL)
+                {
+                    relativeName = pszDaemonName;
+                }
+                else
+                {
+                    relativeName++;
+                }
+
+                LW_TRY(exc, FindDaemonScript(pszDaemonName,
+                            &symlinkTarget, &LW_EXC));
+                LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&symlinkName,
+                        "/etc/rc0.d/K%02d%s", stopPriority, relativeName));
+                LW_TRY(exc,
+                        DJOverwriteSymlink(symlinkTarget, symlinkName, &LW_EXC));
+                CT_SAFE_FREE_STRING(symlinkName);
+
+                LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&symlinkName,
+                        "/etc/rc1.d/K%02d%s", stopPriority, relativeName));
+                LW_TRY(exc,
+                        DJOverwriteSymlink(symlinkTarget, symlinkName, &LW_EXC));
+                CT_SAFE_FREE_STRING(symlinkName);
+
+                LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&symlinkName,
+                        "/etc/rcS.d/K%02d%s", stopPriority, relativeName));
+                LW_TRY(exc,
+                        DJOverwriteSymlink(symlinkTarget, symlinkName, &LW_EXC));
+                CT_SAFE_FREE_STRING(symlinkName);
+
+                LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(&symlinkName,
+                        "/etc/rc2.d/S%02d%s", startPriority, relativeName));
+                LW_TRY(exc,
+                        DJOverwriteSymlink(symlinkTarget, symlinkName, &LW_EXC));
+            }
+            else
+            {
+                /* Remove any symlinks to the daemon if they exist */
+                PCSTR directories[] = {
+                    "/etc/rc0.d",
+                    "/etc/rc1.d",
+                    "/etc/rc2.d",
+                    "/etc/rc3.d",
+                    "/etc/rcS.d",
+                    NULL };
+                LW_TRY(exc, DJRemoveDaemonLinksInDirectories(
+                            directories, pszDaemonName, &LW_EXC));
+            }
+        }
+    }
 
 done:
 cleanup:
     CT_SAFE_FREE_STRING(symlinkTarget);
     CT_SAFE_FREE_STRING(symlinkName);
+    CT_SAFE_FREE_STRING(statusBuffer);
 }
 
 void
