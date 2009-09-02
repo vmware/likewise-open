@@ -47,9 +47,6 @@
 #ifndef _SAMR_UTIL_H_
 #define _SAMR_UTIL_H_
 
-#include <lw/ntstatus.h>
-#include <lwrpc/winerror.h>
-
 
 #define BAIL_ON_NO_MEMORY_RPCSTATUS(p, status)   \
     if ((p) == NULL) {                           \
