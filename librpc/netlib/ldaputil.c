@@ -131,13 +131,19 @@ int LdapModFree(LDAPMod **mod)
 
     if (m) {
         SAFE_FREE(m->mod_type);
-        while (m->mod_values[i++]) {
-            SAFE_FREE(m->mod_values[i]);
+
+        if (m->mod_values) {
+            for (i = 0; m->mod_values[i]; i++) {
+                SAFE_FREE(m->mod_values[i]);
+            }
+
+            SAFE_FREE(m->mod_values);
         }
 
-        SAFE_FREE(m->mod_values);
         SAFE_FREE(m);
     }
+
+    *mod = NULL;
 
     return LDAP_SUCCESS;
 }
@@ -703,7 +709,11 @@ int LdapMachAcctSetAttribute(LDAP *ld, const wchar16_t *dn,
 cleanup:
     SAFE_FREE(n);
     SAFE_FREE(dname);
-    SAFE_FREE(mod);
+
+    if (mod)
+    {
+        LdapModFree(&mod);
+    }
 
     return lderr;
 
