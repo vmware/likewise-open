@@ -823,9 +823,6 @@ DJConfigureForDaemonRestart(
                     "/etc/rc1.d",
                     "/etc/rc2.d",
                     "/etc/rc3.d",
-                    "/etc/rc4.d",
-                    "/etc/rc5.d",
-                    "/etc/rc6.d",
                     "/etc/rcS.d",
                     NULL };
                 LW_TRY(exc, DJRemoveDaemonLinksInDirectories(
