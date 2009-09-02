@@ -153,6 +153,92 @@ error:
     goto cleanup;
 }
 
+
+static
+NTSTATUS
+SrvGssGetClientPrincipalName(
+    gss_ctx_id_t Context,
+    PSTR *ppszClientName
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    OM_uint32 gssMajor = GSS_S_COMPLETE;
+    OM_uint32 gssMinor = 0;
+    gss_buffer_desc nameBuffer = {0};
+    gss_buffer_set_t ClientName = NULL;
+    PSTR pszClientPrincipalName = NULL;
+    gss_name_t initiatorName = {0};
+    gss_name_t acceptorName = {0};
+    gss_buffer_desc clientNameBuffer = {0};
+    gss_OID nameOid = {0};
+
+    gssMajor = gss_inquire_sec_context_by_oid(
+                    &gssMinor,
+                    Context,
+                    GSS_C_NT_STRING_UID_NAME,
+                    &ClientName);
+    if (gssMajor == GSS_S_COMPLETE)
+    {
+        if (!ClientName || (ClientName->count == 0))
+        {
+            ntStatus = STATUS_NONE_MAPPED;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        nameBuffer = ClientName->elements[0];
+    }
+    else
+    {
+        gssMajor = gss_inquire_context(
+                       &gssMinor,
+                       Context,
+                       &initiatorName,
+                       &acceptorName,
+                       NULL,
+                       NULL,
+                       NULL,
+                       NULL,
+                       NULL);
+        BAIL_ON_SEC_ERROR(gssMajor);
+
+        gssMajor = gss_display_name(
+                       &gssMinor,
+                       initiatorName,
+                       &clientNameBuffer,
+                       &nameOid);
+        BAIL_ON_SEC_ERROR(gssMajor);
+
+        nameBuffer = clientNameBuffer;
+    }
+
+    ntStatus = SrvAllocateMemory(
+                   (nameBuffer.length + 1) * sizeof(CHAR),
+                   (PVOID*)&pszClientPrincipalName);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    memcpy(pszClientPrincipalName, nameBuffer.value, nameBuffer.length);
+    pszClientPrincipalName[nameBuffer.length] = '\0';
+
+    *ppszClientName = pszClientPrincipalName;
+
+cleanup:
+
+    gss_release_buffer_set(&gssMinor, &ClientName);
+    gss_release_name(&gssMinor, &initiatorName);
+    gss_release_name(&gssMinor, &acceptorName);
+    gss_release_buffer(&gssMinor, &clientNameBuffer);
+
+    return ntStatus;
+
+sec_error:
+
+    ntStatus = LWIO_ERROR_GSS;
+
+error:
+
+    goto cleanup;
+}
+
 NTSTATUS
 SrvGssGetSessionDetails(
     HANDLE hGss,
@@ -164,51 +250,14 @@ SrvGssGetSessionDetails(
 {
     NTSTATUS ntStatus = 0;
     PSRV_GSS_NEGOTIATE_CONTEXT pGssNegotiate = (PSRV_GSS_NEGOTIATE_CONTEXT)hGssNegotiate;
-    ULONG ulMinorStatus = 0;
-    gss_name_t initiatorName = {0};
-    gss_name_t acceptorName = {0};
     PBYTE pSessionKey = NULL;
     DWORD dwSessionKeyLength = 0;
     PSTR pszClientPrincipalName = NULL;
-    gss_buffer_desc nameBuffer = {0};
-    gss_OID nameOid = {0};
 
     if (!SrvGssNegotiateIsComplete(hGss, hGssNegotiate))
     {
         ntStatus = STATUS_DATA_ERROR;
         BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    ntStatus = gss_inquire_context(
-                    &ulMinorStatus,
-                    *pGssNegotiate->pGssContext,
-                    &initiatorName,
-                    &acceptorName,
-                    NULL,
-                    NULL,
-                    NULL,
-                    NULL,
-                    NULL);
-
-    srv_display_status("gss_inquire_context", ntStatus, ulMinorStatus);
-    BAIL_ON_SEC_ERROR(ntStatus);
-
-    if (ppszClientPrincipalName)
-    {
-        ntStatus = gss_display_name(
-            &ulMinorStatus,
-            initiatorName,
-            &nameBuffer,
-            &nameOid);
-        BAIL_ON_SEC_ERROR(ntStatus);
-
-        ntStatus = SrvAllocateMemory(
-                        (nameBuffer.length + 1) * sizeof(CHAR),
-                        (PVOID*)&pszClientPrincipalName);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        memcpy(pszClientPrincipalName, nameBuffer.value, nameBuffer.length);
-        pszClientPrincipalName[nameBuffer.length] = '\0';
     }
 
     if (ppSessionKey)
@@ -217,6 +266,14 @@ SrvGssGetSessionDetails(
                         *pGssNegotiate->pGssContext,
                         &pSessionKey,
                         &dwSessionKeyLength);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (ppszClientPrincipalName)
+    {
+        ntStatus = SrvGssGetClientPrincipalName(
+                       *pGssNegotiate->pGssContext,
+                       &pszClientPrincipalName);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -233,15 +290,7 @@ SrvGssGetSessionDetails(
 
 cleanup:
 
-    gss_release_name(&ulMinorStatus, &initiatorName);
-    gss_release_name(&ulMinorStatus, &acceptorName);
-    gss_release_buffer(&ulMinorStatus, &nameBuffer);
-
     return ntStatus;
-
-sec_error:
-
-    ntStatus = LWIO_ERROR_GSS;
 
 error:
 
