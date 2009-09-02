@@ -47,6 +47,8 @@
 #include <wc16str.h>
 #include <secdesc/secapi.h>
 #include <lw/ntstatus.h>
+#include <winerror.h>
+#include <winerror-conv.h>
 
 #include <lwrpc/types.h>
 #include <lwrpc/dssetup.h>
@@ -54,8 +56,6 @@
 #include <lwrpc/allocate.h>
 #include <lwrpc/memptr.h>
 #include <lwrpc/sidhelper.h>
-#include <lwrpc/errconv.h>
-#include <lwrpc/winerror.h>
 
 #include "macros.h"
 
