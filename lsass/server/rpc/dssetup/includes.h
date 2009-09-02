@@ -48,8 +48,9 @@
 #include <dce/dcethread.h>
 #include <wc16str.h>
 #include <lw/base.h>
+#include <winerror.h>
+#include <winerror-conv.h>
 #include <lwrpc/allocate.h>
-#include <lwrpc/errconv.h>
 #include <lwrpc/lsa.h>
 #include <lwrpc/dssetup.h>
 #include <lwio/lwio.h>
