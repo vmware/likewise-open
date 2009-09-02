@@ -48,6 +48,15 @@
 #include <lwmem.h>
 #include <string.h>
 
+#if 0
+gss_OID_desc gGssNtlmOidDesc = {
+    .length = GSS_MECH_NTLM_LEN,
+    .elements = GSS_MECH_NTLM
+    };
+
+gss_OID gGssNtlmOid = &gGssNtlmOidDesc;
+#endif
+
 #undef BAIL_ON_LW_ERROR
 #define BAIL_ON_LW_ERROR(dwError) \
     do { \
@@ -791,87 +800,6 @@ error:
 }
 
 OM_uint32
-ntlm_gss_inquire_context2(
-    OM_uint32* pMinorStatus,
-    const gss_ctx_id_t ContextHandle,
-    gss_name_t* pSrcName,
-    gss_name_t* pTargetName,
-    OM_uint32* pLifeTime,
-    gss_OID* pMechType,
-    OM_uint32* pCtxtFlags,
-    PINT pLocallyInitiated,
-    PINT pOpen,
-    gss_buffer_t SessionKeyBuffer
-    )
-{
-    OM_uint32 MajorStatus = GSS_S_COMPLETE;
-    OM_uint32 MinorStatus = LW_ERROR_SUCCESS;
-    SecPkgContext_SessionKey SessionKey = {0};
-
-    if (pSrcName)
-    {
-        *pSrcName = NULL;
-    }
-    if (pTargetName)
-    {
-        *pTargetName = NULL;
-    }
-    if (pLifeTime)
-    {
-        *pLifeTime = GSS_C_INDEFINITE;
-    }
-    if (pMechType)
-    {
-        *pMechType = GSS_C_NO_OID;
-    }
-    if (pCtxtFlags)
-    {
-        *pCtxtFlags = 0;
-    }
-    if (pLocallyInitiated)
-    {
-        *pLocallyInitiated = 0;
-    }
-    if (pOpen)
-    {
-        *pOpen = 1;
-    }
-
-    if (SessionKeyBuffer)
-    {
-        memset(SessionKeyBuffer, 0, sizeof(gss_buffer_desc));
-
-        MinorStatus = NtlmClientQueryContextAttributes(
-            (PNTLM_CONTEXT_HANDLE)&ContextHandle,
-            SECPKG_ATTR_SESSION_KEY,
-            &SessionKey
-            );
-        BAIL_ON_LW_ERROR(MinorStatus);
-
-        MinorStatus = LwAllocateMemory(
-            SessionKey.SessionKeyLength,
-            &SessionKeyBuffer->value);
-        BAIL_ON_LW_ERROR(MinorStatus);
-
-        SessionKeyBuffer->length = SessionKey.SessionKeyLength;
-        memcpy(
-            SessionKeyBuffer->value,
-            SessionKey.SessionKey,
-            SessionKeyBuffer->length);
-    }
-
-cleanup:
-    *pMinorStatus = MinorStatus;
-    return MajorStatus;
-error:
-    if (MajorStatus == GSS_S_COMPLETE)
-    {
-        MajorStatus = GSS_S_FAILURE;
-    }
-    goto cleanup;
-}
-
-OM_uint32
 ntlm_gss_delete_sec_context(
     OM_uint32* pMinorStatus,
     gss_ctx_id_t* pContextHandle,
@@ -966,64 +894,6 @@ ntlm_gss_release_buffer(
     return GSS_S_COMPLETE;
 }
 
-#if 0
-OM_uint32
-ntlm_gss_inquire_cred(
-    OM_uint32* pMinorStatus,
-    const gss_cred_id_t CredHandle,
-    gss_name_t* pName,
-    OM_uint32* pLifeTime,
-    gss_cred_usage_t* pCredUsage,
-    gss_OID_set* pMechs
-    )
-{
-    OM_uint32 MajorStatus = GSS_S_COMPLETE;
-    OM_uint32 MinorStatus = LW_ERROR_SUCCESS;
-    SecPkgCred_Names CredNames;
-
-    memset(&CredNames, 0, sizeof(CredNames));
-
-    MinorStatus = NtlmClientQueryCredentialsAttributes(
-        (PNTLM_CRED_HANDLE)&CredHandle,
-        SECPKG_CRED_ATTR_NAMES,
-        &CredNames);
-    BAIL_ON_LW_ERROR(MinorStatus);
-
-    if(pLifeTime)
-    {
-        *pLifeTime = 0;
-    }
-
-    if(pCredUsage)
-    {
-        *pCredUsage = 0;
-    }
-
-    if(pMechs)
-    {
-        *pMechs = GSS_C_NO_OID_SET;
-    }
-
-cleanup:
-    *pMinorStatus = MinorStatus;
-
-    if(pName)
-    {
-        *pName = (gss_name_t)CredNames.pUserName;
-    }
-
-    return MajorStatus;
-error:
-    if (MajorStatus == GSS_S_COMPLETE)
-    {
-        MajorStatus = GSS_S_FAILURE;
-    }
-
-    LW_SAFE_FREE_MEMORY(CredNames.pUserName);
-
-    goto cleanup;
-}
-#else
 OM_uint32
 ntlm_gss_inquire_cred(
     OM_uint32* pMinorStatus,
@@ -1053,56 +923,71 @@ ntlm_gss_inquire_cred(
 
     return GSS_S_COMPLETE;
 }
-#endif
 
 OM_uint32
 ntlm_gss_inquire_sec_context_by_oid(
     OM_uint32* pMinorStatus,
     const gss_ctx_id_t GssCtxtHandle,
     const gss_OID Attrib,
-    gss_buffer_set_t* ppGssSessionKey
+    gss_buffer_set_t* ppBufferSet
     )
 {
     OM_uint32 MajorStatus = GSS_S_COMPLETE;
     OM_uint32 MinorStatus = LW_ERROR_SUCCESS;
     gss_OID SessionKeyOid = GSS_C_INQ_SSPI_SESSION_KEY;
+    gss_OID NamesOid = GSS_C_NT_STRING_UID_NAME;
     NTLM_CONTEXT_HANDLE NtlmCtxtHandle = (NTLM_CONTEXT_HANDLE)GssCtxtHandle;
-    SecPkgContext_SessionKey NtlmSessionKey;
-    gss_buffer_set_t pGssSessionKey = NULL;
-    gss_buffer_t pSessionKeyElement = NULL;
+    SecPkgContext_SessionKey SessionKey = {0};
+    SecPkgContext_Names Names = {0};
+    gss_buffer_set_t pBufferSet = NULL;
+    gss_buffer_t pBuffer = NULL;
 
-    if (Attrib->length != SessionKeyOid->length ||
-        memcmp(Attrib->elements, SessionKeyOid->elements, Attrib->length))
+    MinorStatus = LwAllocateMemory(
+        sizeof(gss_buffer_set_desc),
+        OUT_PPVOID(&pBufferSet));
+    BAIL_ON_LW_ERROR(MinorStatus);
+
+    MinorStatus = LwAllocateMemory(
+        sizeof(gss_buffer_desc),
+        OUT_PPVOID(&pBuffer));
+    BAIL_ON_LW_ERROR(MinorStatus);
+
+    if (Attrib->length == SessionKeyOid->length &&
+        !memcmp(Attrib->elements, SessionKeyOid->elements, Attrib->length))
+    {
+        MinorStatus = NtlmClientQueryContextAttributes(
+            &NtlmCtxtHandle,
+            SECPKG_ATTR_SESSION_KEY,
+            &SessionKey);
+        BAIL_ON_LW_ERROR(MinorStatus);
+
+        pBuffer->value = SessionKey.SessionKey;
+        pBuffer->length = SessionKey.SessionKeyLength;
+    }
+    else if (Attrib->length == NamesOid->length &&
+        !memcmp(Attrib->elements, NamesOid->elements, Attrib->length))
+    {
+        MinorStatus = NtlmClientQueryContextAttributes(
+            &NtlmCtxtHandle,
+            SECPKG_ATTR_NAMES,
+            &Names);
+        BAIL_ON_LW_ERROR(MinorStatus);
+
+        pBuffer->value = Names.pUserName;
+        pBuffer->length = strlen(pBuffer->value);
+    }
+    else
     {
         MinorStatus = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LW_ERROR(MinorStatus);
     }
 
-    MinorStatus = NtlmClientQueryContextAttributes(
-        &NtlmCtxtHandle,
-        SECPKG_ATTR_SESSION_KEY,
-        &NtlmSessionKey);
-    BAIL_ON_LW_ERROR(MinorStatus);
-
-    MinorStatus = LwAllocateMemory(
-        sizeof(gss_buffer_set_desc),
-        OUT_PPVOID(&pGssSessionKey));
-    BAIL_ON_LW_ERROR(MinorStatus);
-
-    MinorStatus = LwAllocateMemory(
-        sizeof(gss_buffer_desc),
-        OUT_PPVOID(&pSessionKeyElement));
-    BAIL_ON_LW_ERROR(MinorStatus);
-
-    pSessionKeyElement->length = NtlmSessionKey.SessionKeyLength;
-    pSessionKeyElement->value = NtlmSessionKey.SessionKey;
-
-    pGssSessionKey->count = 1;
-    pGssSessionKey->elements = pSessionKeyElement;
+    pBufferSet->count = 1;
+    pBufferSet->elements = pBuffer;
 
 cleanup:
     *pMinorStatus = MinorStatus;
-    *ppGssSessionKey = pGssSessionKey;
+    *ppBufferSet = pBufferSet;
 
     return MajorStatus;
 error:
@@ -1111,8 +996,8 @@ error:
         MajorStatus = GSS_S_FAILURE;
     }
 
-    LW_SAFE_FREE_MEMORY(pSessionKeyElement);
-    LW_SAFE_FREE_MEMORY(pGssSessionKey);
+    LW_SAFE_FREE_MEMORY(pBuffer);
+    LW_SAFE_FREE_MEMORY(pBufferSet);
 
     goto cleanup;
 }

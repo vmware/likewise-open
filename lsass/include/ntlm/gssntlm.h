@@ -62,48 +62,6 @@
 #define GSS_MECH_NTLM       "\x2b\x06\x01\x04\x01\x82\x37\x02\x02\x0a"
 #define GSS_MECH_NTLM_LEN   10
 
-#if 0
-#define gss_acquire_cred ntlm_gss_acquire_cred
-#define gss_release_cred ntlm_gss_release_cred
-#define gss_init_sec_context ntlm_gss_init_sec_context
-#define gss_accept_sec_context ntlm_gss_accept_sec_context
-#define gss_process_context_token ntlm_gss_process_context_token
-#define gss_delete_sec_context ntlm_gss_delete_sec_context
-#define gss_context_time ntlm_gss_context_time
-#define gss_get_mic ntlm_gss_get_mic
-#define gss_verify_mic ntlm_gss_verify_mic
-#define gss_wrap ntlm_gss_wrap
-#define gss_unwrap ntlm_gss_unwrap
-#define gss_display_status ntlm_gss_display_status
-#define gss_indicate_mechs ntlm_gss_indicate_mechs
-#define gss_compare_name ntlm_gss_compare_name
-#define gss_display_name ntlm_gss_display_name
-#define gss_import_name ntlm_gss_import_name
-#define gss_export_name ntlm_gss_export_name
-#define gss_release_name ntlm_gss_release_name
-#define gss_release_buffer ntlm_gss_release_buffer
-#define gss_release_oid_set ntlm_gss_release_oid_set
-#define gss_inquire_cred ntlm_gss_inquire_cred
-#define gss_inquire_context ntlm_gss_inquire_context
-#define gss_inquire_context2 ntlm_gss_inquire_context2
-#define gss_wrap_size_limit ntlm_gss_wrap_size_limit
-#define gss_add_cred ntlm_gss_add_cred
-#define gss_inquire_cred_by_mech ntlm_gss_inquire_cred_by_mech
-#define gss_export_sec_context ntlm_gss_export_sec_context
-#define gss_import_sec_context ntlm_gss_import_sec_context
-#define gss_create_empty_oid_set ntlm_gss_create_empty_oid_set
-#define gss_add_oid_set_member ntlm_gss_add_oid_set_member
-#define gss_test_oid_set_member ntlm_gss_test_oid_set_member
-#define gss_inquire_names_for_mech ntlm_gss_inquire_names_for_mech
-#define gss_inquire_mechs_for_name ntlm_gss_inquire_mechs_for_name
-#define gss_canonicalize_name ntlm_gss_canonicalize_name
-#define gss_duplicate_name ntlm_gss_duplicate_name
-#define gss_sign ntlm_gss_sign
-#define gss_verify ntlm_gss_verify
-#define gss_seal ntlm_gss_seal
-#define gss_unseal ntlm_gss_unseal
-#endif
-
 //******************************************************************************
 //
 // E X T E R N S
