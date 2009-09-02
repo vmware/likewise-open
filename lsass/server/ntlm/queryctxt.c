@@ -118,6 +118,8 @@ NtlmServerQueryCtxtNameAttribute(
     NTLM_STATE State = NtlmStateBlank;
     DWORD dwNegFlags = 0;
     SEC_CHAR* pUserName = NULL;
+    SEC_CHAR* pDomainName = NULL;
+    SEC_CHAR* pFullName = NULL;
     PSecPkgContext_Names pName = NULL;
 
     *ppNames = NULL;
@@ -146,14 +148,29 @@ NtlmServerQueryCtxtNameAttribute(
         &pUserName);
     BAIL_ON_LSA_ERROR(dwError);
 
-    pName->pUserName = pUserName;
+    dwError = NtlmGetDomainNameFromResponse(
+        pMessage,
+        dwNegFlags & NTLM_FLAG_UNICODE,
+        &pDomainName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LwAllocateStringPrintf(
+        &pFullName,
+        "%s\\%s",
+        pDomainName,
+        pUserName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pName->pUserName = pFullName;
 
 cleanup:
+    LW_SAFE_FREE_MEMORY(pUserName);
+    LW_SAFE_FREE_MEMORY(pDomainName);
     *ppNames = pName;
     return dwError;
 error:
-    LW_SAFE_FREE_MEMORY(pUserName);
     LW_SAFE_FREE_MEMORY(pName);
+    LW_SAFE_FREE_MEMORY(pFullName);
     goto cleanup;
 }
 
