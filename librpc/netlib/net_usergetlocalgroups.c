@@ -78,7 +78,7 @@ NetUserGetLocalGroups(
     BAIL_ON_INVALID_PTR(hostname);
 
     status = LwIoGetThreadAccessToken(&access_token);
-    BAIL_ON_NT_STATUS(status);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     status = NetConnectSamr(&conn, hostname, 0, builtin_dom_access, access_token);
     BAIL_ON_NTSTATUS_ERROR(status);

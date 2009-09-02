@@ -31,10 +31,6 @@
 #ifndef _NET_UTIL_H_
 #define _NET_UTIL_H_
 
-#include <lw/ntstatus.h>
-#include <lwrpc/winerror.h>
-#include <ldap.h>
-
 
 #define BAIL_ON_NTSTATUS_ERROR(s)            \
     if ((s) != STATUS_SUCCESS) {             \
@@ -74,6 +70,11 @@
         err = ERROR_INVALID_PARAMETER;         \
         goto error;                            \
     }
+
+
+#if !defined(MACHPASS_LEN)
+#define MACHPASS_LEN  (16)
+#endif
 
 
 #endif /* _NET_UTIL_H_ */

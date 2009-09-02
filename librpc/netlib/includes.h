@@ -54,13 +54,14 @@
 #include <dce/rpc.h>
 #include <dce/smb.h>
 #include <lw/ntstatus.h>
+#include <winerror.h>
+#include <winerror-conv.h>
 #include <openssl/md5.h>
 #include <openssl/rc4.h>
+#include <ldap.h>
 #include <lwps/lwps.h>
 
 #include <lwrpc/types.h>
-#include <lwrpc/winerror.h>
-#include <lwrpc/errconv.h>
 #include <lwrpc/unicodestring.h>
 #include <lwrpc/samr.h>
 #include <lwrpc/lsa.h>
@@ -91,16 +92,6 @@
 #include "machinepassword.h"
 #include "externs.h"
 
-#define BAIL_ON_NT_STATUS(s) \
-    do                       \
-    {                        \
-        if ((s)) goto error; \
-    } while (0)
-
-
-#if !defined(MACHPASS_LEN)
-#define MACHPASS_LEN  (16)
-#endif
 
 
 /*

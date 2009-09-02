@@ -75,10 +75,10 @@ NetUserAdd(
     BAIL_ON_NTSTATUS_ERROR(status);
 
     status = LwIoGetThreadAccessToken(&access_token);
-    BAIL_ON_NT_STATUS(status);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     status = NetConnectSamr(&conn, hostname, dom_access, 0, access_token);
-    BAIL_ON_NT_STATUS(status);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     samr_b    = conn->samr.bind;
     domain_h  = conn->samr.dom_handle;
