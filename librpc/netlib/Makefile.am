@@ -62,8 +62,7 @@ INCLUDES =                 \
     $(UNISTR_INCLUDES)     \
     $(LIBTDB_INCDIR)       \
     $(PSTORE_INCLUDES)     \
-    $(KEYTAB_INCLUDES)     \
-    $(librpc_srcdir)
+    $(KEYTAB_INCLUDES)
 
 FEATURETEST_FLAGS="-D__EXTENSIONS__ -D_REENTRANT"
 

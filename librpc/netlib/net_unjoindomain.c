@@ -106,11 +106,13 @@ NET_API_STATUS NetUnjoinDomainLocal(const wchar16_t *machine,
     }
 
 cleanup:
+
     if (localname)
     {
         NetFreeMemory(localname);
     }
 
+    SAFE_FREE(domain_controller_name);
     SAFE_FREE(machine_name);
 
     if (pi) {
@@ -134,7 +136,6 @@ error:
         LwIoDeleteAccessToken(access_token);
     }
 
-    SAFE_FREE(domain_controller_name);
     SAFE_FREE(machine_name);
 
     goto cleanup;
