@@ -46,6 +46,7 @@ liblsass_auth_provider_ad_la_SOURCES = \
        unprov.c
 
 liblsass_auth_provider_ad_la_CPPFLAGS = \
+	$(AM_CPPFLAGS)                \
 	-DLW_ENABLE_THREADS=1         \
 	-I@top_srcdir@/server/include \
 	@PSTORE_INCLUDES@             \
@@ -53,7 +54,7 @@ liblsass_auth_provider_ad_la_CPPFLAGS = \
 	@NETLOGON_INCLUDES@           \
 	@SQLITE_INCLUDES@
 
-liblsass_auth_provider_ad_la_CFLAGS = $(PROVIDER_CFLAGS)
+liblsass_auth_provider_ad_la_CFLAGS = $(AM_CFLAGS) $(PROVIDER_CFLAGS)
 
 liblsass_auth_provider_ad_la_LIBADD = \
 	@top_builddir@/utils/liblsautils.la \
