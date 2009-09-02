@@ -52,6 +52,7 @@
 #include "lsalist.h"
 #include <lw/ntstatus.h>
 #include <lw/security-types.h>
+#include <winerror-conv.h>
 
 #ifndef LW_ENDIAN_SWAP16
 
@@ -104,7 +105,7 @@
 
 #define BAIL_ON_LSA_ERROR(dwError) \
     if (dwError) {\
-       LSA_LOG_DEBUG("Error at %s:%d [code: %d]", __FILE__, __LINE__, dwError); \
+       LSA_LOG_DEBUG("Error code: %d (symbol: %s)", dwError, LwWin32ErrorToName(dwError)); \
        goto error;                 \
     }
 
@@ -212,9 +213,10 @@ extern PFN_LSA_LOG_MESSAGE gpfnLogger;
     _LSA_LOG_IF(LSA_LOG_LEVEL_DEBUG, szFmt, ## __VA_ARGS__)
 
 #define LSA_LOG_ERROR_API_FAILED(hServer, dwError, szFmt, ...) \
-    LSA_LOG_ERROR("Failed to " szFmt " -> error = %d, client pid = %ld", \
+    LSA_LOG_ERROR("Failed to " szFmt " -> error = %d, symbol = %s, client pid = %ld", \
          ## __VA_ARGS__, \
          dwError, \
+         LwWin32ErrorToName(dwError), \
          (long)(hServer? ((PLSA_SRV_API_STATE)hServer)->peerPID : getpid()))
 
 #define LSA_LOG_VERBOSE_ENTRY_NOT_FOUND(hServer, dwError, szFmt, ...) \
