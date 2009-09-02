@@ -189,4 +189,12 @@ ntlm_gss_inquire_cred(
     gss_OID_set *mechanisms
     );
 
+OM_uint32
+ntlm_gss_inquire_sec_context_by_oid(
+    OM_uint32* pMinorStatus,
+    const gss_ctx_id_t GssCtxtHandle,
+    const gss_OID Attrib,
+    gss_buffer_set_t*
+    );
+
 #endif /* __GSSNTLM_H__ */

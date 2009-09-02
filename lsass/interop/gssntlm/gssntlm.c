@@ -489,7 +489,7 @@ static GSS_MECH_CONFIG gNtlmMech =
     NULL, //ntlm_gss_wrap_size_limit,
     NULL, //ntlm_gss_export_name,
     NULL, //ntlm_gss_store_cred,
-    NULL, //ntlm_gss_inquire_sec_context_by_oid,
+    ntlm_gss_inquire_sec_context_by_oid,
     NULL, //ntlm_gss_inquire_cred_by_oid,
     NULL, //ntlm_gss_set_sec_context_option,
     NULL, //ntlm_gssspi_set_cred_option,
@@ -1054,6 +1054,68 @@ ntlm_gss_inquire_cred(
     return GSS_S_COMPLETE;
 }
 #endif
+
+OM_uint32
+ntlm_gss_inquire_sec_context_by_oid(
+    OM_uint32* pMinorStatus,
+    const gss_ctx_id_t GssCtxtHandle,
+    const gss_OID Attrib,
+    gss_buffer_set_t* ppGssSessionKey
+    )
+{
+    OM_uint32 MajorStatus = GSS_S_COMPLETE;
+    OM_uint32 MinorStatus = LW_ERROR_SUCCESS;
+    gss_OID SessionKeyOid = GSS_C_INQ_SSPI_SESSION_KEY;
+    NTLM_CONTEXT_HANDLE NtlmCtxtHandle = (NTLM_CONTEXT_HANDLE)GssCtxtHandle;
+    SecPkgContext_SessionKey NtlmSessionKey;
+    gss_buffer_set_t pGssSessionKey = NULL;
+    gss_buffer_t pSessionKeyElement = NULL;
+
+    if (Attrib->length != SessionKeyOid->length ||
+        memcmp(Attrib->elements, SessionKeyOid->elements, Attrib->length))
+    {
+        MinorStatus = LW_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LW_ERROR(MinorStatus);
+    }
+
+    MinorStatus = NtlmClientQueryContextAttributes(
+        &NtlmCtxtHandle,
+        SECPKG_ATTR_SESSION_KEY,
+        &NtlmSessionKey);
+    BAIL_ON_LW_ERROR(MinorStatus);
+
+    MinorStatus = LwAllocateMemory(
+        sizeof(gss_buffer_set_desc),
+        OUT_PPVOID(&pGssSessionKey));
+    BAIL_ON_LW_ERROR(MinorStatus);
+
+    MinorStatus = LwAllocateMemory(
+        sizeof(gss_buffer_desc),
+        OUT_PPVOID(&pSessionKeyElement));
+    BAIL_ON_LW_ERROR(MinorStatus);
+
+    pSessionKeyElement->length = NtlmSessionKey.SessionKeyLength;
+    pSessionKeyElement->value = NtlmSessionKey.SessionKey;
+
+    pGssSessionKey->count = 1;
+    pGssSessionKey->elements = pSessionKeyElement;
+
+cleanup:
+    *pMinorStatus = MinorStatus;
+    *ppGssSessionKey = pGssSessionKey;
+
+    return MajorStatus;
+error:
+    if (MajorStatus == GSS_S_COMPLETE)
+    {
+        MajorStatus = GSS_S_FAILURE;
+    }
+
+    LW_SAFE_FREE_MEMORY(pSessionKeyElement);
+    LW_SAFE_FREE_MEMORY(pGssSessionKey);
+
+    goto cleanup;
+}
 
 PGSS_MECH_CONFIG
 gss_mech_initialize(void)
