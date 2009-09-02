@@ -69,11 +69,28 @@ SrvConnectionGetNextSequence(
 
             break;
 
+        case COM_SESSION_SETUP_ANDX:
+
+            /* Sequence number increments don't start until the last leg
+               of the first successful session setup */
+
+            if (pConnection->state == LWIO_SRV_CONN_STATE_NEGOTIATE)
+            {
+                ulRequestSequence = 0;
+                pConnection->ulSequence = 2;
+            }
+            else
+            {
+                ulRequestSequence = pConnection->ulSequence;
+                pConnection->ulSequence += 2;
+            }
+
+            break;
+
         default:
 
-            ulRequestSequence = pConnection->ulSequence++;
-
-            pConnection->ulSequence++; // Response
+            ulRequestSequence = pConnection->ulSequence;
+            pConnection->ulSequence += 2;
 
             break;
     }
@@ -444,3 +461,11 @@ error:
     goto cleanup;
 }
 
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
