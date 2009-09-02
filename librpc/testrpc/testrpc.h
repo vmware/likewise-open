@@ -34,8 +34,8 @@
 #include <config.h>
 
 #include <lw/ntstatus.h>
-#include <lwrpc/winerror.h>
-#include <lwrpc/errconv.h>
+#include <winerror.h>
+#include <winerror-conv.h>
 #include <wc16str.h>
 #include <wc16printf.h>
 #include "params.h"
