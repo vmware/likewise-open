@@ -1,4 +1,10 @@
-lib_LTLIBRARIES = libgssapi_ntlm.la
+gssconfdir=$(sysconfdir)/gss
+
+gssconf_DATA=mech
+
+gsslibdir=$(libdir)/gss
+
+gsslib_LTLIBRARIES = libgssapi_ntlm.la
 
 libgssapi_ntlm_la_SOURCES =  \
     gssntlm.c
