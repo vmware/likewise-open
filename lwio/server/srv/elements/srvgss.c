@@ -797,7 +797,7 @@ cleanup:
 
 sec_error:
 
-    ntStatus = LWIO_ERROR_GSS;
+    ntStatus = STATUS_LOGON_FAILURE;
 
 error:
 
