@@ -103,7 +103,20 @@ PvfsRead(
     }
 #endif
 
-    ntError = PvfsAccessCheckFileHandle(pCcb, FILE_READ_DATA);
+    /* Check the right permissions based on the PagingIo flag */
+
+    if (pIrp->Args.ReadWrite.IsPagingIo)
+    {
+        ntError = PvfsAccessCheckAnyFileHandle(
+                      pCcb,
+                      FILE_READ_DATA|FILE_EXECUTE);
+    }
+    else
+    {
+        ntError = PvfsAccessCheckFileHandle(
+                      pCcb,
+                      FILE_READ_DATA);
+    }
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsCreateReadContext(&pReadCtx, pIrpContext, pCcb);

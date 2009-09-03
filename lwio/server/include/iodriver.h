@@ -118,6 +118,7 @@ typedef struct _IRP_ARGS_READ_WRITE {
     IN ULONG Length;
     IN OPTIONAL PLONG64 ByteOffset;
     IN OPTIONAL PULONG Key;
+    IN BOOLEAN IsPagingIo;
     struct {
         LONG64 ByteOffset;
         ULONG Key;

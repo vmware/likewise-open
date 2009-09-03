@@ -399,7 +399,7 @@ SqlDB_ReadHostListByDomainName(
     dwError = SqlDBGetPwdEntries(hDB, &ppAcctInfo, &dwAccounts);
     BAIL_ON_LWPS_ERROR(dwError);
 
-    if (dwNumEntries == 0) {
+    if (dwAccounts == 0) {
         *pppszHostnames = NULL;
         *pdwHostnames = 0;
         goto cleanup;
@@ -409,9 +409,9 @@ SqlDB_ReadHostListByDomainName(
      * Make sure the entries match our hostname
      */
     for (iEntry = 0; iEntry < dwAccounts; iEntry++) {
-        if ((strcmp(ppAcctInfo[iEntry]->pszDomainName, 
+        if ((strcasecmp(ppAcctInfo[iEntry]->pszDomainName,
                         pszDomainName) == 0) ||
-                (strcmp(ppAcctInfo[iEntry]->pszDomainDnsName, 
+                (strcasecmp(ppAcctInfo[iEntry]->pszDomainDnsName,
                         pszDomainName) == 0)) {
             dwNumEntries++;
         }
@@ -426,9 +426,9 @@ SqlDB_ReadHostListByDomainName(
 
     dwNumEntries = 0;
     for (iEntry = 0; iEntry < dwAccounts; iEntry++) {
-        if ((strcmp(ppAcctInfo[iEntry]->pszDomainName, 
+        if ((strcasecmp(ppAcctInfo[iEntry]->pszDomainName,
                         pszDomainName) == 0) ||
-                (strcmp(ppAcctInfo[iEntry]->pszDomainDnsName, 
+                (strcasecmp(ppAcctInfo[iEntry]->pszDomainDnsName,
                         pszDomainName) == 0)) {
             dwError = LwpsAllocateString(ppAcctInfo[iEntry]->pszHostName,
                 &ppszHostNames[dwNumEntries]);

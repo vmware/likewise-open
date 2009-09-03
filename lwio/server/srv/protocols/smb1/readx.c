@@ -97,6 +97,7 @@ SrvProcessReadAndX(
     PLWIO_SRV_FILE         pFile      = NULL;
     PSRV_READ_STATE_SMB_V1 pReadState = NULL;
     BOOLEAN                bInLock = FALSE;
+    UINT16                 usFlags2 = 0;
 
     pReadState = (PSRV_READ_STATE_SMB_V1)pCtxSmb1->hState;
     if (pReadState)
@@ -126,6 +127,8 @@ SrvProcessReadAndX(
                         pSmbRequest->pHeader->tid,
                         &pTree);
         BAIL_ON_NT_STATUS(ntStatus);
+
+        usFlags2 = pSmbRequest->pHeader->flags2;
 
         switch (pSmbRequest->pHeader->wordCount)
         {
@@ -218,6 +221,7 @@ SrvProcessReadAndX(
                 (((ULONG64)pReadState->pRequestHeader_WC_12->maxCountHigh) << 32)|
                 ((ULONG64)pReadState->pRequestHeader_WC_12->maxCount);
 
+            pReadState->bPagedIo = usFlags2 & FLAG2_PAGING_IO ? TRUE : FALSE;
             pReadState->stage = SRV_READ_STAGE_SMB_V1_ATTEMPT_READ;
 
             // Intentional fall through
@@ -396,14 +400,29 @@ SrvBuildReadAndXResponse(
 
         SrvPrepareReadStateAsync(pReadState, pExecContext);
 
-        ntStatus = IoReadFile(
-                        pReadState->pFile->hFile,
-                        pReadState->pAcb,
-                        &pReadState->ioStatusBlock,
-                        pReadState->pData,
-                        pReadState->ulBytesToRead,
-                        &pReadState->llByteOffset,
-                        &pReadState->ulKey);
+        if (pReadState->bPagedIo)
+        {
+            ntStatus = IoPagingReadFile(
+                           pReadState->pFile->hFile,
+                           pReadState->pAcb,
+                           &pReadState->ioStatusBlock,
+                           pReadState->pData,
+                           pReadState->ulBytesToRead,
+                           &pReadState->llByteOffset,
+                           &pReadState->ulKey);
+        }
+        else
+        {
+            ntStatus = IoReadFile(
+                           pReadState->pFile->hFile,
+                           pReadState->pAcb,
+                           &pReadState->ioStatusBlock,
+                           pReadState->pData,
+                           pReadState->ulBytesToRead,
+                           &pReadState->llByteOffset,
+                           &pReadState->ulKey);
+        }
+
         switch (ntStatus)
         {
             case STATUS_SUCCESS:
@@ -713,3 +732,13 @@ SrvFreeReadState(
     SrvFreeMemory(pReadState);
 }
 
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

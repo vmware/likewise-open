@@ -1113,6 +1113,10 @@ SrvGetCommandDescription_SMB_V1(
         {
             COM_WRITE_BULK_DATA,
             COM_WRITE_BULK_DATA_DESC
+        },
+        {
+            COM_LW_OPLOCK,
+            COM_LW_OPLOCK_DESC
         }
     };
     PCSTR pszDescription = NULL;
