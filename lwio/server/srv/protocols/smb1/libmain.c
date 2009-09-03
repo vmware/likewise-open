@@ -50,14 +50,6 @@
 #include "includes.h"
 
 static
-NTSTATUS
-SrvBuildExecContext_SMB_V1(
-    PLWIO_SRV_CONNECTION      pConnection,
-    PSMB_PACKET               pSmbRequest,
-    PSRV_EXEC_CONTEXT_SMB_V1* ppSmb1Context
-    );
-
-static
 PCSTR
 SrvGetCommandDescription_SMB_V1(
     USHORT usCommand
@@ -251,6 +243,12 @@ SrvProtocolExecute_SMB_V1(
 
                 break;
 
+            case COM_LW_OPLOCK:
+
+                ntStatus = SrvProcessOplock(pExecContext);
+
+                break;
+
             case COM_LOCKING_ANDX:
 
                 ntStatus = SrvProcessLockAndX(pExecContext);
@@ -423,7 +421,6 @@ error:
     goto cleanup;
 }
 
-static
 NTSTATUS
 SrvBuildExecContext_SMB_V1(
     PLWIO_SRV_CONNECTION      pConnection,

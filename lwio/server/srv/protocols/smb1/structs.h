@@ -64,6 +64,49 @@ typedef struct
     UCHAR   ucFlags;
 } __attribute__((__packed__)) SMB_IOCTL_HEADER, *PSMB_IOCTL_HEADER;
 
+typedef USHORT LW_OPLOCK_ACTION;
+
+#define LW_OPLOCK_ACTION_SEND_BREAK  0x0001
+#define LW_OPLOCK_ACTION_PROCESS_ACK 0x0002
+
+typedef struct
+{
+    USHORT usFid;
+    USHORT usAction;
+
+} __attribute__((__packed__)) LW_OPLOCK_HEADER, *PLW_OPLOCK_HEADER;
+
+typedef struct _SRV_OPLOCK_INFO
+{
+    UCHAR oplockRequest;
+    UCHAR oplockLevel;
+} SRV_OPLOCK_INFO, *PSRV_OPLOCK_INFO;
+
+typedef struct _SRV_OPLOCK_STATE_SMB_V1
+{
+    LONG                    refCount;
+
+    pthread_mutex_t         mutex;
+    pthread_mutex_t*        pMutex;
+
+    IO_STATUS_BLOCK         ioStatusBlock;
+
+    IO_ASYNC_CONTROL_BLOCK  acb;
+    PIO_ASYNC_CONTROL_BLOCK pAcb;
+
+    PLWIO_SRV_CONNECTION    pConnection;
+    PLWIO_SRV_SESSION       pSession;
+    PLWIO_SRV_TREE          pTree;
+    PLWIO_SRV_FILE          pFile;
+
+    PSRV_TIMER_REQUEST      pTimerRequest;
+
+    IO_FSCTL_OPLOCK_REQUEST_INPUT_BUFFER   oplockBuffer_in;
+    IO_FSCTL_OPLOCK_REQUEST_OUTPUT_BUFFER  oplockBuffer_out;
+    IO_FSCTL_OPLOCK_BREAK_ACK_INPUT_BUFFER oplockBuffer_ack;
+
+} SRV_OPLOCK_STATE_SMB_V1, *PSRV_OPLOCK_STATE_SMB_V1;
+
 typedef enum
 {
     SRV_TREE_CONNECT_STAGE_SMB_V1_INITIAL = 0,
@@ -119,6 +162,7 @@ typedef enum
     SRV_CREATE_STAGE_SMB_V1_CREATE_FILE_COMPLETED,
     SRV_CREATE_STAGE_SMB_V1_ATTEMPT_QUERY_INFO,
     SRV_CREATE_STAGE_SMB_V1_QUERY_INFO_COMPLETED,
+    SRV_CREATE_STAGE_SMB_V1_REQUEST_OPLOCK,
     SRV_CREATE_STAGE_SMB_V1_DONE
 } SRV_CREATE_STAGE_SMB_V1;
 
@@ -157,6 +201,8 @@ typedef struct _SRV_CREATE_STATE_SMB_V1
     FILE_PIPE_LOCAL_INFORMATION  filePipeLocalInfo;
     PFILE_PIPE_LOCAL_INFORMATION pFilePipeLocalInfo;
 
+    UCHAR                                 ucOplockLevel;
+
     PLWIO_SRV_TREE          pTree;
     PLWIO_SRV_FILE          pFile;
     BOOLEAN                 bRemoveFileFromTree;
@@ -168,6 +214,7 @@ typedef enum
     SRV_OPEN_STAGE_SMB_V1_INITIAL = 0,
     SRV_OPEN_STAGE_SMB_V1_OPEN_FILE_COMPLETED,
     SRV_OPEN_STAGE_SMB_V1_ATTEMPT_QUERY_INFO,
+    SRV_OPEN_STAGE_SMB_V1_REQUEST_OPLOCK,
     SRV_OPEN_STAGE_SMB_V1_QUERY_INFO_COMPLETED,
     SRV_OPEN_STAGE_SMB_V1_DONE
 } SRV_OPEN_STAGE_SMB_V1;
@@ -211,6 +258,8 @@ typedef struct _SRV_OPEN_STATE_SMB_V1
 
     FILE_PIPE_LOCAL_INFORMATION  filePipeLocalInfo;
     PFILE_PIPE_LOCAL_INFORMATION pFilePipeLocalInfo;
+
+    UCHAR                        ucOplockLevel;
 
     PLWIO_SRV_TREE               pTree;
     PLWIO_SRV_FILE               pFile;
@@ -837,6 +886,8 @@ typedef struct _SRV_RUNTIME_GLOBALS_SMB_V1
     pthread_mutex_t         mutex;
 
     PSMB_PROD_CONS_QUEUE    pWorkQueue;
+
+    ULONG                   ulOplockTimeout;
 
 } SRV_RUNTIME_GLOBALS_SMB_V1, *PSRV_RUNTIME_GLOBALS_SMB_V1;
 

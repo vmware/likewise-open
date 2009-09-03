@@ -467,6 +467,35 @@ error:
 }
 
 NTSTATUS
+WireUnmarshallOplockRequest(
+    PBYTE              pBuffer,
+    ULONG              ulBytesAvailable,
+    ULONG              ulOffset,
+    PLW_OPLOCK_HEADER* ppRequestHeader
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
+    if (ulBytesAvailable < sizeof(LW_OPLOCK_HEADER))
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    *ppRequestHeader = (PLW_OPLOCK_HEADER)pBuffer;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppRequestHeader = NULL;
+
+    goto cleanup;
+}
+
+NTSTATUS
 SrvVerifyAndXCommandSequence(
     UCHAR ucLeaderCommand,
     UCHAR ucFollowerCommand

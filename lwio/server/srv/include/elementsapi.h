@@ -52,6 +52,15 @@
 #define SMB_FIND_CONTINUE_SEARCH     0x8
 #define SMB_FIND_WITH_BACKUP_INTENT  0x10
 
+typedef UCHAR SMB_OPLOCK_LEVEL;
+
+#define SMB_OPLOCK_LEVEL_NONE  0x00
+#define SMB_OPLOCK_LEVEL_I     0x01
+#define SMB_OPLOCK_LEVEL_BATCH 0x02
+#define SMB_OPLOCK_LEVEL_II    0x03
+
+typedef VOID (*PFN_LWIO_SRV_FREE_OPLOCK_STATE)(HANDLE hOplockState);
+
 typedef struct _LWIO_SRV_FILE
 {
     pthread_rwlock_t        mutex;
@@ -70,6 +79,11 @@ typedef struct _LWIO_SRV_FILE
     FILE_SHARE_FLAGS        shareAccess;
     FILE_CREATE_DISPOSITION createDisposition;
     FILE_CREATE_OPTIONS     createOptions;
+
+    UCHAR                          ucCurrentOplockLevel;
+
+    HANDLE                         hOplockState;
+    PFN_LWIO_SRV_FREE_OPLOCK_STATE pfnFreeOplockState;
 
 } LWIO_SRV_FILE, *PLWIO_SRV_FILE;
 
@@ -403,6 +417,8 @@ typedef struct _SRV_EXEC_CONTEXT
 
     PSMB_PACKET                        pSmbResponse;
     ULONG                              ulNumDuplicates;
+
+    BOOLEAN                            bInternal;
 
 } SRV_EXEC_CONTEXT, *PSRV_EXEC_CONTEXT;
 
@@ -759,6 +775,34 @@ SrvFileCreate(
     PLWIO_SRV_FILE*          ppFile
     );
 
+NTSTATUS
+SrvFileSetOplockState(
+    PLWIO_SRV_FILE                 pFile,
+    HANDLE                         hOplockState,
+    PFN_LWIO_SRV_FREE_OPLOCK_STATE pfnReleaseOplockState
+    );
+
+HANDLE
+SrvFileRemoveOplockState(
+    PLWIO_SRV_FILE pFile
+    );
+
+VOID
+SrvFileResetOplockState(
+    PLWIO_SRV_FILE pFile
+    );
+
+VOID
+SrvFileSetOplockLevel(
+    PLWIO_SRV_FILE pFile,
+    UCHAR          ucOplockLevel
+    );
+
+UCHAR
+SrvFileGetOplockLevel(
+    PLWIO_SRV_FILE pFile
+    );
+
 VOID
 SrvFileRelease(
     PLWIO_SRV_FILE pFile
@@ -838,6 +882,7 @@ NTSTATUS
 SrvBuildExecContext(
    IN  PLWIO_SRV_CONNECTION pConnection,
    IN  PSMB_PACKET          pSmbRequest,
+   IN  BOOLEAN              bInternal,
    OUT PSRV_EXEC_CONTEXT*   ppContext
    );
 

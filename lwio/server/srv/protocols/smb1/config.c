@@ -33,15 +33,15 @@
  *
  * Module Name:
  *
- *        structs.h
+ *        config.c
  *
  * Abstract:
  *
  *        Likewise IO (LWIO) - SRV
  *
- *        Protocols
+ *        SMB V1 API
  *
- *        Globals
+ *        Configuration
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
  *
@@ -49,11 +49,19 @@
 
 #include "includes.h"
 
-SRV_RUNTIME_GLOBALS_SMB_V1 gProtocolGlobals_SMB_V1 =
+ULONG
+SrvConfigGetOplockTimeout_SMB_V1(
+    VOID
+    )
 {
-    .mutex           = PTHREAD_MUTEX_INITIALIZER,
-    .pWorkQueue      = NULL,
-    .ulOplockTimeout = LWIO_SRV_DEFAULT_TIMEOUT_MSECS
-};
+    ULONG   ulTimeout = 0;
+    BOOLEAN bInLock   = FALSE;
 
+    LWIO_LOCK_MUTEX(bInLock, &gProtocolGlobals_SMB_V1.mutex);
 
+    ulTimeout = gProtocolGlobals_SMB_V1.ulOplockTimeout;
+
+    LWIO_UNLOCK_MUTEX(bInLock, &gProtocolGlobals_SMB_V1.mutex);
+
+    return ulTimeout;
+}
