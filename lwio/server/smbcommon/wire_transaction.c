@@ -497,7 +497,10 @@ WireUnmarshallTransactionParameterData(
         } while ((ulNumBytesAvailable > 0) && pwszCursor && *pwszCursor);
     }
 
-    if (ulOffset > ulParameterOffset)
+    /* OS X 10.5 sends a 0 param Offset and 0 paramCount
+       in the TransactNmPipe for RPC binds */
+
+    if ((ulOffset > ulParameterOffset) && (parameterLen != 0))
     {
         ntStatus = STATUS_DATA_ERROR;
         BAIL_ON_NT_STATUS(ntStatus);
