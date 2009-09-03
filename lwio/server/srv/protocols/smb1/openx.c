@@ -664,13 +664,13 @@ SrvRequestOpenXOplocks(
                     &pOplockState);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    if (pOpenState->pRequestHeader->usFlags & SMB_OPLOCK_REQUEST_EXCLUSIVE)
-    {
-        pOplockCursor = &exclOplockChain[0];
-    }
-    else if (pOpenState->pRequestHeader->usFlags & SMB_OPLOCK_REQUEST_BATCH)
+    if (pOpenState->pRequestHeader->usFlags & SMB_OPLOCK_REQUEST_BATCH)
     {
         pOplockCursor = &batchOplockChain[0];
+    }
+    else if (pOpenState->pRequestHeader->usFlags & SMB_OPLOCK_REQUEST_EXCLUSIVE)
+    {
+        pOplockCursor = &exclOplockChain[0];
     }
     else
     {

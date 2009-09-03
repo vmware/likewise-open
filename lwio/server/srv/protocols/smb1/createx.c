@@ -113,6 +113,7 @@ SrvProcessNTCreateAndX(
     PLWIO_SRV_TREE             pTree        = NULL;
     PSRV_CREATE_STATE_SMB_V1   pCreateState = NULL;
     BOOLEAN                    bInLock      = FALSE;
+    PSTR                       pszFilename  = NULL;
 
     pCreateState = (PSRV_CREATE_STATE_SMB_V1)pCtxSmb1->hState;
 
@@ -171,6 +172,11 @@ SrvProcessNTCreateAndX(
     }
 
     LWIO_LOCK_MUTEX(bInLock, &pCreateState->mutex);
+
+    ntStatus = SrvWc16sToMbs(pCreateState->pFilename->FileName, &pszFilename);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    LWIO_LOG_DEBUG("NTCreateAndX processing file [%s]", pszFilename);
 
     switch (pCreateState->stage)
     {
@@ -285,6 +291,11 @@ cleanup:
         LWIO_UNLOCK_MUTEX(bInLock, &pCreateState->mutex);
 
         SrvReleaseCreateState(pCreateState);
+    }
+
+    if (pszFilename)
+    {
+        SrvFreeMemory(pszFilename);
     }
 
     return ntStatus;
@@ -459,13 +470,13 @@ SrvRequestCreateXOplocks(
                     &pOplockState);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    if (pCreateState->pRequestHeader->flags & SMB_OPLOCK_REQUEST_EXCLUSIVE)
-    {
-        pOplockCursor = &exclOplockChain[0];
-    }
-    else if (pCreateState->pRequestHeader->flags & SMB_OPLOCK_REQUEST_BATCH)
+    if (pCreateState->pRequestHeader->flags & SMB_OPLOCK_REQUEST_BATCH)
     {
         pOplockCursor = &batchOplockChain[0];
+    }
+    else if (pCreateState->pRequestHeader->flags & SMB_OPLOCK_REQUEST_EXCLUSIVE)
+    {
+        pOplockCursor = &exclOplockChain[0];
     }
     else
     {
