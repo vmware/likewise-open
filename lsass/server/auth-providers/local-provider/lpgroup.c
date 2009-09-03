@@ -107,6 +107,14 @@ LocalAddMembersToGroup(
     PSTR*                   ppszMembers
     );
 
+static
+DWORD
+LocalDirCreateForeignPrincipalDN(
+    HANDLE     hProvider,
+    PWSTR      pwszSID,
+    PWSTR     *ppwszDN
+    );
+
 DWORD
 LocalDirFindGroupByName(
     HANDLE  hProvider,
@@ -2223,17 +2231,27 @@ LocalDirModifyGroup(
             dwError = LsaMbsToWc16s(pszSID, &pwszSID);
             BAIL_ON_LSA_ERROR(dwError);
 
-            dwError = LsaMbsToWc16s(pszDN, &pwszDN);
-            BAIL_ON_LSA_ERROR(dwError);
+            if (pszDN)
+            {
+                dwError = LsaMbsToWc16s(pszDN, &pwszDN);
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+            else
+            {
+                dwError = LocalDirCreateForeignPrincipalDN(hProvider,
+                                                           pwszSID,
+                                                           &pwszDN);
+                BAIL_ON_LSA_ERROR(dwError);
+            }
 
             dwFilterLen = (sizeof(wszAttrObjectClass) - 2) +
                            10 +
                           (sizeof(wszAttrObjectClass) - 2) +
                            10 +
                           (sizeof(wszAttrObjectSid) - 2) +
-                          (strlen(pszSID) * sizeof(WCHAR)) +
+                          (wc16slen(pwszSID) * sizeof(WCHAR)) +
                           (sizeof(wszAttrDistinguishedName) - 2) +
-                          (strlen(pszDN) * sizeof(WCHAR)) +
+                          (wc16slen(pwszDN) * sizeof(WCHAR)) +
                           sizeof(wszFilterFmt);
 
             dwError = LwAllocateMemory(
@@ -2544,6 +2562,126 @@ error:
 
     goto cleanup;
 }
+
+
+static
+DWORD
+LocalDirCreateForeignPrincipalDN(
+    HANDLE     hProvider,
+    PWSTR      pwszSID,
+    PWSTR     *ppwszDN
+    )
+{
+    DWORD dwError = 0;
+    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
+    PWSTR pwszBase = NULL;
+    ULONG ulScope = 0;
+    wchar_t wszFilterFmt[] = L"%ws=%d";
+    DWORD dwFilterLen = 0;
+    PWSTR pwszFilter = NULL;
+    WCHAR wszAttrObjectClass[] = LOCAL_DIR_ATTR_OBJECT_CLASS;
+    WCHAR wszAttrObjectDomain[] = LOCAL_DIR_ATTR_DOMAIN;
+    DWORD dwDomainObjectClass = LOCAL_OBJECT_CLASS_DOMAIN;
+    PDIRECTORY_ENTRY pEntries = NULL;
+    PDIRECTORY_ENTRY pEntry = NULL;
+    DWORD dwNumEntries = 0;
+    PWSTR pwszDomainName = NULL;
+    wchar_t wszForeignDnFmt[] = L"CN=%ws,"
+                                L"CN=ForeignSecurityPrincipals,"
+                                L"DC=%ws";
+    DWORD dwSidStrLen = 0;
+    DWORD dwDomainNameLen = 0;
+    DWORD dwForeignDnLen = 0;
+    PWSTR pwszDn = NULL;
+
+    PWSTR wszAttributes[] = {
+        wszAttrObjectClass,
+        wszAttrObjectDomain,
+        NULL
+    };
+
+    dwFilterLen = ((sizeof(wszAttrObjectClass)/sizeof(WCHAR)) - 1) +
+                  10 +
+                  (sizeof(wszFilterFmt)/sizeof(wszFilterFmt[0]));
+
+    dwError = LwAllocateMemory(sizeof(WCHAR) * dwFilterLen,
+                               OUT_PPVOID(&pwszFilter));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    sw16printfw(pwszFilter, dwFilterLen, wszFilterFmt,
+                wszAttrObjectClass,
+                dwDomainObjectClass);
+
+    dwError = DirectorySearch(pContext->hDirectory,
+                              pwszBase,
+                              ulScope,
+                              pwszFilter,
+                              wszAttributes,
+                              FALSE,
+                              &pEntries,
+                              &dwNumEntries);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (dwNumEntries == 0 ||
+        dwNumEntries > 1)
+    {
+        dwError = LW_ERROR_SAM_DATABASE_ERROR;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    pEntry = &(pEntries[0]);
+
+    dwError = DirectoryGetEntryAttrValueByName(
+                              pEntry,
+                              wszAttrObjectDomain,
+                              DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                              (PVOID)&pwszDomainName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LwWc16sLen(pwszSID, &dwSidStrLen);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (dwSidStrLen == 0)
+    {
+        dwError = LW_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LwWc16sLen(pwszDomainName, &dwDomainNameLen);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwForeignDnLen = dwSidStrLen +
+                     dwDomainNameLen +
+                     (sizeof(wszForeignDnFmt)/sizeof(wszForeignDnFmt[0]));
+
+    dwError = LwAllocateMemory(sizeof(WCHAR) * dwForeignDnLen,
+                               OUT_PPVOID(&pwszDn));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    sw16printfw(pwszDn, dwForeignDnLen, wszForeignDnFmt,
+                pwszSID,
+                pwszDomainName);
+
+    *ppwszDN = pwszDn;
+
+cleanup:
+    if (pEntries)
+    {
+        DirectoryFreeEntries(pEntries, dwNumEntries);
+    }
+
+    LW_SAFE_FREE_MEMORY(pwszFilter);
+
+    return dwError;
+
+error:
+    LW_SAFE_FREE_MEMORY(pwszDn);
+
+    *ppwszDN = NULL;
+
+    goto cleanup;
+}
+
 
 DWORD
 LocalDirDeleteGroup(
