@@ -361,6 +361,7 @@ typedef struct _SRV_READ_STATE_SMB_V1
     ULONG ulBytesToRead;
     PBYTE pData;
     ULONG ulKey;
+    BOOLEAN bPagedIo;
 
 } SRV_READ_STATE_SMB_V1, *PSRV_READ_STATE_SMB_V1;
 
