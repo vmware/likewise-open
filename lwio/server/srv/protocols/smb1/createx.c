@@ -113,7 +113,6 @@ SrvProcessNTCreateAndX(
     PLWIO_SRV_TREE             pTree        = NULL;
     PSRV_CREATE_STATE_SMB_V1   pCreateState = NULL;
     BOOLEAN                    bInLock      = FALSE;
-    PSTR                       pszFilename  = NULL;
 
     pCreateState = (PSRV_CREATE_STATE_SMB_V1)pCtxSmb1->hState;
 
@@ -172,11 +171,6 @@ SrvProcessNTCreateAndX(
     }
 
     LWIO_LOCK_MUTEX(bInLock, &pCreateState->mutex);
-
-    ntStatus = SrvWc16sToMbs(pCreateState->pFilename->FileName, &pszFilename);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    LWIO_LOG_DEBUG("NTCreateAndX processing file [%s]", pszFilename);
 
     switch (pCreateState->stage)
     {
@@ -291,11 +285,6 @@ cleanup:
         LWIO_UNLOCK_MUTEX(bInLock, &pCreateState->mutex);
 
         SrvReleaseCreateState(pCreateState);
-    }
-
-    if (pszFilename)
-    {
-        SrvFreeMemory(pszFilename);
     }
 
     return ntStatus;
