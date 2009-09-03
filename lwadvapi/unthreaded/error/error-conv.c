@@ -33,6 +33,7 @@
 
 #include <lw/ntstatus.h>
 #include <winerror.h>
+#include <lwerror.h>
 #include <winerror-conv.h>
 #include <ldaperror-table.h>
 

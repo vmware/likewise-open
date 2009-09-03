@@ -78,7 +78,8 @@ DWORD
 AD_CheckPunctuationChar(
     IN PCSTR pszName,
     IN PCSTR pszValue,
-    IN BOOLEAN bAllowSpace
+    IN BOOLEAN bAllowSpace,
+    OUT PCHAR pchValue
     );
 
 static
@@ -645,17 +646,25 @@ DWORD
 AD_CheckPunctuationChar(
     IN PCSTR pszName,
     IN PCSTR pszValue,
-    IN BOOLEAN bAllowSpace
+    IN BOOLEAN bAllowSpace,
+    OUT PCHAR pchValue
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
+    CHAR chValue = 0;
 
     BAIL_ON_INVALID_STRING(pszValue);
 
-    if (pszValue[0] == 0 || pszValue[1] != 0)
+    if ((pszValue[0] == 0) ||
+        ((pszValue[0] == '\'' || pszValue[0] == '"') &&
+            (pszValue[1] == 0 ||
+             pszValue[2] != pszValue[0] ||
+             pszValue[3] != 0)) ||
+        (pszValue[0] != '\'' && pszValue[0] != '"' && pszValue[1] != 0))
     {
         LSA_LOG_ERROR(
-                "Error: '%s' is an invalid setting for %s. %s may only be set to a single character.",
+                "Error: '%s' is an invalid setting for %s. "
+                "%s may only be set to a single character.",
                 pszValue,
                 pszName,
                 pszName);
@@ -663,10 +672,20 @@ AD_CheckPunctuationChar(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    if (!ispunct((int)pszValue[0]) && !(bAllowSpace && pszValue[0] == ' '))
+    if (pszValue[0] == '\'' || pszValue[0] == '"')
+    {
+        chValue = pszValue[1];
+    }
+    else
+    {
+        chValue = pszValue[0];
+    }
+
+    if (!ispunct((int)chValue) && !(bAllowSpace && chValue == ' '))
     {
         LSA_LOG_ERROR(
-                "Error: %s must be set to a punctuation character%s; the value provided is '%s'.",
+                "Error: %s must be set to a punctuation character%s; "
+                "the value provided is '%s'.",
                 pszName,
                 bAllowSpace ? " or space" : "",
                 pszValue);
@@ -674,7 +693,7 @@ AD_CheckPunctuationChar(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    if (pszValue[0] == '@')
+    if (chValue == '@')
     {
         LSA_LOG_ERROR(
                 "Error: %s may not be set to @; the value provided is '%s'.",
@@ -684,11 +703,15 @@ AD_CheckPunctuationChar(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
+    *pchValue = chValue;
+
 cleanup:
 
     return dwError;
 
 error:
+
+    *pchValue = 0;
 
     goto cleanup;
 }
@@ -702,16 +725,18 @@ AD_SetConfig_SpaceReplacement(
     )
 {
     DWORD dwError = 0;
+    CHAR  result = 0;
 
     BAIL_ON_INVALID_STRING(pszValue);
 
     dwError = AD_CheckPunctuationChar(
                     pszName,
                     pszValue,
-                    TRUE);
+                    TRUE,
+                    &result);
     BAIL_ON_LSA_ERROR(dwError);
 
-    pConfig->chSpaceReplacement = pszValue[0];
+    pConfig->chSpaceReplacement = result;
 
 error:
 
@@ -727,16 +752,18 @@ AD_SetConfig_DomainSeparator(
     )
 {
     DWORD dwError = 0;
+    CHAR  result = 0;
 
     BAIL_ON_INVALID_STRING(pszValue);
 
     dwError = AD_CheckPunctuationChar(
                     pszName,
                     pszValue,
-                    FALSE);
+                    FALSE,
+                    &result);
     BAIL_ON_LSA_ERROR(dwError);
 
-    pConfig->chDomainSeparator = pszValue[0];
+    pConfig->chDomainSeparator = result;
 
 error:
 

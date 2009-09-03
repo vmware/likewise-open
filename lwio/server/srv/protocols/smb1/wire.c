@@ -165,7 +165,7 @@ SrvMarshalHeader_SMB_V1(
         usBytesUsed      += sizeof(ANDX_HEADER);
         pBuffer          += sizeof(ANDX_HEADER);
 
-        pAndXHeader->andXCommand  = 0xFF;
+        pAndXHeader->andXCommand  = ulError == 0 ? 0xFF : 0;
         pAndXHeader->andXOffset   = 0;
         pAndXHeader->andXReserved = 0;
     }

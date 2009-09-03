@@ -400,7 +400,10 @@ SrvProtocolExecute_SMB_V1(
         }
         BAIL_ON_NT_STATUS(ntStatus);
 
-        if (pResponse->pAndXHeader)
+	/* Don't set ANDX offsets for failure responses */
+
+        if ((pResponse->pHeader->error == STATUS_SUCCESS) &&
+	    pResponse->pAndXHeader)
         {
             pResponse->pAndXHeader->andXOffset = pResponse->ulMessageSize;
         }

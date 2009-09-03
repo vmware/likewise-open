@@ -55,6 +55,9 @@ static struct
         LW_ERROR_SUCCESS,
         "No error"
     },
+    {   LW_ERROR_ACCESS_DENIED,
+        "Incorrect access attempt"
+    },
     {
         LW_ERROR_INVALID_CACHE_PATH,
         "An invalid cache path was specified"

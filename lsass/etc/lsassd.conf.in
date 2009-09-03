@@ -73,8 +73,9 @@
     machine-password-lifespan = 30d
 
     # Default: ^
-    # Allowed: a punctuation character
-    # Excluded: whitespace, alphanumeric, @, /, domain separator character, #
+    # Allowed: a punctuation character or space
+    # Excluded: alphanumeric, @, /, domain separator character, #
+    # Note: Quotes may be used, ex. "^"
     space-replacement = ^
     
     # Default: no

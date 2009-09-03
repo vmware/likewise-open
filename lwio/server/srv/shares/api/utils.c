@@ -49,24 +49,6 @@
 
 #include "includes.h"
 
-static
-NTSTATUS
-SrvGetShareNameCheckHostname(
-    PCSTR  pszHostname,
-    PCSTR  pszDomain,
-    PWSTR  pwszPath,
-    PWSTR* ppwszSharename
-    );
-
-static
-NTSTATUS
-SrvGetShareNameCheckFQDN(
-    PCSTR  pszHostname,
-    PCSTR  pszDomain,
-    PWSTR  pwszPath,
-    PWSTR* ppwszSharename
-    );
-
 NTSTATUS
 SrvGetShareName(
     IN  PCSTR  pszHostname,
@@ -77,240 +59,58 @@ SrvGetShareName(
 {
     NTSTATUS ntStatus = 0;
     PWSTR    pwszSharename = NULL;
+    PSTR     pszPath = NULL;
+    PSTR     pszShareName = NULL;
+    PSTR     pszCursor = NULL;
 
-    ntStatus = SrvGetShareNameCheckHostname(
-                    pszHostname,
-                    pszDomain,
-                    pwszPath,
-                    &pwszSharename);
-    if (ntStatus)
+    ntStatus = LwRtlCStringAllocateFromWC16String(
+                   &pszPath,
+		   pwszPath);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pszCursor = pszPath;
+
+    /* Skip a leading pair of backslashes */
+
+    if ((LwRtlCStringNumChars(pszCursor) > 2) &&
+	(*pszCursor == '\\') &&
+	(*(pszCursor+1) == '\\'))
     {
-        ntStatus = SrvGetShareNameCheckFQDN(
-                        pszHostname,
-                        pszDomain,
-                        pwszPath,
-                        &pwszSharename);
+        pszCursor += 2;
+    }
+
+    pszShareName = strchr(pszCursor, '\\');
+    if (pszShareName == NULL)
+    {
+        pszShareName = pszCursor;
+    }
+    else
+    {
+        pszShareName++;
+    }
+
+    if (*pszShareName == '\0')
+    {
+        ntStatus = STATUS_BAD_NETWORK_PATH;
         BAIL_ON_NT_STATUS(ntStatus);
     }
+
+    ntStatus = LwRtlWC16StringAllocateFromCString(
+	           &pwszSharename,
+		   pszShareName);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     *ppwszSharename = pwszSharename;
 
 cleanup:
+
+    LwRtlCStringFree(&pszPath);
 
     return ntStatus;
 
 error:
 
     *ppwszSharename = NULL;
-
-    goto cleanup;
-}
-
-static
-NTSTATUS
-SrvGetShareNameCheckHostname(
-    PCSTR  pszHostname,
-    PCSTR  pszDomain,
-    PWSTR  pwszPath,
-    PWSTR* ppwszSharename
-    )
-{
-    NTSTATUS  ntStatus = 0;
-    PSTR      pszHostPrefix = NULL;
-    PWSTR     pwszHostPrefix = NULL;
-    PWSTR     pwszPath_copy = NULL;
-    PWSTR     pwszSharename = NULL;
-    size_t    len = 0, len_prefix = 0, len_sharename = 0;
-
-    len = wc16slen(pwszPath);
-    if (!len)
-    {
-        ntStatus = STATUS_OBJECT_PATH_INVALID;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    ntStatus = SrvAllocateMemory(
-                    (len + 1) * sizeof(wchar16_t),
-                    (PVOID*)&pwszPath_copy);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    memcpy(pwszPath_copy, pwszPath, len * sizeof(wchar16_t));
-
-    wc16supper(pwszPath_copy);
-
-    ntStatus = SrvAllocateStringPrintf(
-                    &pszHostPrefix,
-                    "\\\\%s\\",
-                    pszHostname);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    SMBStrToUpper(pszHostPrefix);
-
-    ntStatus = SrvMbsToWc16s(
-                    pszHostPrefix,
-                    &pwszHostPrefix);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    len_prefix = wc16slen(pwszHostPrefix);
-    if (len <= len_prefix)
-    {
-        ntStatus = STATUS_OBJECT_PATH_INVALID;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    if (memcmp((PBYTE)pwszPath_copy, (PBYTE)pwszHostPrefix, len_prefix * sizeof(wchar16_t)) != 0)
-    {
-        ntStatus = STATUS_OBJECT_PATH_INVALID;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    len_sharename = wc16slen(pwszPath_copy + len_prefix);
-    if (!len_sharename)
-    {
-        ntStatus = STATUS_OBJECT_PATH_INVALID;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    ntStatus = SrvAllocateMemory(
-                    (len_sharename + 1) * sizeof(wchar16_t),
-                    (PVOID*)&pwszSharename);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    // copy from original path
-    memcpy((PBYTE)pwszSharename, (PBYTE)pwszPath + len_prefix * sizeof(wchar16_t), len_sharename * sizeof(wchar16_t));
-
-    *ppwszSharename = pwszSharename;
-
-cleanup:
-
-    if (pszHostPrefix)
-    {
-        SrvFreeMemory(pszHostPrefix);
-    }
-    if (pwszHostPrefix)
-    {
-        SrvFreeMemory(pwszHostPrefix);
-    }
-    if (pwszPath_copy)
-    {
-        SrvFreeMemory(pwszPath_copy);
-    }
-
-    return ntStatus;
-
-error:
-
-    *ppwszSharename = NULL;
-
-    if (pwszSharename)
-    {
-        SrvFreeMemory(pwszSharename);
-    }
-
-    goto cleanup;
-}
-
-static
-NTSTATUS
-SrvGetShareNameCheckFQDN(
-    PCSTR  pszHostname,
-    PCSTR  pszDomain,
-    PWSTR  pwszPath,
-    PWSTR* ppwszSharename
-    )
-{
-    NTSTATUS  ntStatus = 0;
-    PSTR      pszHostPrefix = NULL;
-    PWSTR     pwszHostPrefix = NULL;
-    PWSTR     pwszPath_copy = NULL;
-    PWSTR     pwszSharename = NULL;
-    size_t    len = 0, len_prefix = 0, len_sharename = 0;
-
-    len = wc16slen(pwszPath);
-    if (!len)
-    {
-        ntStatus = STATUS_OBJECT_PATH_INVALID;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    ntStatus = SrvAllocateMemory(
-                    (len + 1) * sizeof(wchar16_t),
-                    (PVOID*)&pwszPath_copy);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    memcpy(pwszPath_copy, pwszPath, len * sizeof(wchar16_t));
-
-    wc16supper(pwszPath_copy);
-
-    ntStatus = SrvAllocateStringPrintf(
-                    &pszHostPrefix,
-                    "\\\\%s.%s\\",
-                    pszHostname,
-                    pszDomain);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    SMBStrToUpper(pszHostPrefix);
-
-    ntStatus = SrvMbsToWc16s(
-                    pszHostPrefix,
-                    &pwszHostPrefix);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    len_prefix = wc16slen(pwszHostPrefix);
-    if (len <= len_prefix)
-    {
-        ntStatus = STATUS_OBJECT_PATH_INVALID;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    if (memcmp((PBYTE)pwszPath_copy, (PBYTE)pwszHostPrefix, len_prefix * sizeof(wchar16_t)) != 0)
-    {
-        ntStatus = STATUS_OBJECT_PATH_INVALID;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    len_sharename = wc16slen(pwszPath_copy + len_prefix);
-    if (!len_sharename)
-    {
-        ntStatus = STATUS_OBJECT_PATH_INVALID;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    ntStatus = SrvAllocateMemory(
-                    (len_sharename + 1) * sizeof(wchar16_t),
-                    (PVOID*)&pwszSharename);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    // copy from original path
-    memcpy((PBYTE)pwszSharename, (PBYTE)pwszPath + len_prefix * sizeof(wchar16_t), len_sharename * sizeof(wchar16_t));
-
-    *ppwszSharename = pwszSharename;
-
-cleanup:
-
-    if (pszHostPrefix)
-    {
-        SrvFreeMemory(pszHostPrefix);
-    }
-    if (pwszHostPrefix)
-    {
-        SrvFreeMemory(pwszHostPrefix);
-    }
-    if (pwszPath_copy)
-    {
-        SrvFreeMemory(pwszPath_copy);
-    }
-
-    return ntStatus;
-
-error:
-
-    *ppwszSharename = NULL;
-
-    if (pwszSharename)
-    {
-        SrvFreeMemory(pwszSharename);
-    }
 
     goto cleanup;
 }

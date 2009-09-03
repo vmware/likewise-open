@@ -168,39 +168,23 @@ SrvGssGetClientPrincipalName(
     gss_buffer_set_t ClientName = NULL;
     PSTR pszClientPrincipalName = NULL;
     gss_name_t initiatorName = {0};
-    gss_name_t acceptorName = {0};
     gss_buffer_desc clientNameBuffer = {0};
     gss_OID nameOid = {0};
 
-    gssMajor = gss_inquire_sec_context_by_oid(
-                    &gssMinor,
-                    Context,
-                    GSS_C_NT_STRING_UID_NAME,
-                    &ClientName);
+    /* Try the old way first */
+
+    gssMajor = gss_inquire_context(
+                   &gssMinor,
+                   Context,
+                   &initiatorName,
+                   NULL,
+                   NULL,
+                   NULL,
+                   NULL,
+                   NULL,
+                   NULL);
     if (gssMajor == GSS_S_COMPLETE)
     {
-        if (!ClientName || (ClientName->count == 0))
-        {
-            ntStatus = STATUS_NONE_MAPPED;
-            BAIL_ON_NT_STATUS(ntStatus);
-        }
-
-        nameBuffer = ClientName->elements[0];
-    }
-    else
-    {
-        gssMajor = gss_inquire_context(
-                       &gssMinor,
-                       Context,
-                       &initiatorName,
-                       &acceptorName,
-                       NULL,
-                       NULL,
-                       NULL,
-                       NULL,
-                       NULL);
-        BAIL_ON_SEC_ERROR(gssMajor);
-
         gssMajor = gss_display_name(
                        &gssMinor,
                        initiatorName,
@@ -209,6 +193,25 @@ SrvGssGetClientPrincipalName(
         BAIL_ON_SEC_ERROR(gssMajor);
 
         nameBuffer = clientNameBuffer;
+    }
+    else
+    {
+        /* Fallback to using the newer inquire_by_oid() method */
+
+        gssMajor = gss_inquire_sec_context_by_oid(
+                        &gssMinor,
+                        Context,
+                        GSS_C_NT_STRING_UID_NAME,
+                        &ClientName);
+        BAIL_ON_SEC_ERROR(gssMajor);
+
+        if (!ClientName || (ClientName->count == 0))
+        {
+            ntStatus = STATUS_NONE_MAPPED;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        nameBuffer = ClientName->elements[0];
     }
 
     ntStatus = SrvAllocateMemory(
@@ -225,7 +228,6 @@ cleanup:
 
     gss_release_buffer_set(&gssMinor, &ClientName);
     gss_release_name(&gssMinor, &initiatorName);
-    gss_release_name(&gssMinor, &acceptorName);
     gss_release_buffer(&gssMinor, &clientNameBuffer);
 
     return ntStatus;
@@ -797,7 +799,7 @@ cleanup:
 
 sec_error:
 
-    ntStatus = LWIO_ERROR_GSS;
+    ntStatus = STATUS_LOGON_FAILURE;
 
 error:
 

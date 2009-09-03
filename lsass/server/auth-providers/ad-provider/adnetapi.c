@@ -44,7 +44,9 @@
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  *          Wei Fu (wfu@likewisesoftware.com)
+ *          Gerald Carter <gcarter@likewise.com>
  */
+
 #include "adprovider.h"
 #include "adnetapi.h"
 
@@ -1343,6 +1345,7 @@ LsaCopyNetrUserInfo3(
     DWORD dwError = LW_ERROR_INTERNAL;
     NetrSamBaseInfo *pBase = NULL;
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    RC4_KEY RC4Key;
 
     BAIL_ON_INVALID_POINTER(pUserInfo);
     BAIL_ON_INVALID_POINTER(pNetrUserInfo3);
@@ -1367,6 +1370,14 @@ LsaCopyNetrUserInfo3(
                                sizeof(pBase->key.key),
                                pBase->key.key);
     BAIL_ON_LSA_ERROR(dwError);
+
+    /* We have to decrypt the user session key before we can use it */
+
+    RC4_set_key(&RC4Key, 16, gpSchannelCreds->session_key);
+    RC4(&RC4Key,
+        pUserInfo->pSessionKey->dwLen,
+        pUserInfo->pSessionKey->pData,
+        pUserInfo->pSessionKey->pData);
 
     dwError = LsaDataBlobStore(&pUserInfo->pLmSessionKey,
                                sizeof(pBase->lmkey.key),
