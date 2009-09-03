@@ -49,6 +49,14 @@
  */
 #include "includes.h"
 
+static
+DWORD
+LWNetSrvGetDCTimeFromDC(
+    IN PCSTR pszDCName,
+    OUT PLWNET_UNIX_TIME_T pDCTime,
+    OUT PBOOLEAN pbIsNetworkError
+    );
+
 DWORD
 LWNetSrvGetDCName(
     IN PCSTR pszServerName,
@@ -412,7 +420,79 @@ LWNetSrvGetDCTime(
     )
 {
     DWORD dwError   = 0;
-    PSTR  pszDC     = NULL;
+    PLWNET_DC_INFO pDcInfo = NULL;
+    PSTR  pszDCTime = NULL;
+    LWNET_UNIX_TIME_T result = 0;
+    BOOLEAN bIsNetworkError = FALSE;
+
+    BAIL_ON_INVALID_POINTER(pDCTime);
+
+    LWNET_LOG_INFO("Determining the current time for domain '%s'",
+            LWNET_SAFE_LOG_STRING(pszDomainFQDN));
+
+    dwError = LWNetSrvGetDCName(
+                  NULL,
+                  pszDomainFQDN,
+                  NULL,
+                  DS_DIRECTORY_SERVICE_REQUIRED,
+                  0,
+                  NULL,
+                  &pDcInfo);
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    dwError = LWNetSrvGetDCTimeFromDC(
+        pDcInfo->pszDomainControllerName,
+        &result,
+        &bIsNetworkError);
+    if (bIsNetworkError)
+    {
+        LWNET_SAFE_FREE_DC_INFO(pDcInfo);
+
+        dwError = LWNetSrvGetDCName(
+                      NULL,
+                      pszDomainFQDN,
+                      NULL,
+                      DS_DIRECTORY_SERVICE_REQUIRED | DS_FORCE_REDISCOVERY,
+                      0,
+                      NULL,
+                      &pDcInfo);
+        BAIL_ON_LWNET_ERROR(dwError);
+
+        dwError = LWNetSrvGetDCTimeFromDC(
+            pDcInfo->pszDomainControllerName,
+            &result,
+            &bIsNetworkError);
+        BAIL_ON_LWNET_ERROR(dwError);
+    }
+    else
+    {
+        BAIL_ON_LWNET_ERROR(dwError);
+    }
+
+error:
+    LWNET_SAFE_FREE_DC_INFO(pDcInfo);
+    LWNET_SAFE_FREE_STRING(pszDCTime);
+
+    if (dwError)
+    {
+        memset(&result, 0, sizeof(result));
+    }
+
+    *pDCTime = result;
+
+    return dwError;
+}
+
+static
+DWORD
+LWNetSrvGetDCTimeFromDC(
+    IN PCSTR pszDCName,
+    OUT PLWNET_UNIX_TIME_T pDCTime,
+    OUT PBOOLEAN pbIsNetworkError
+    )
+{
+    DWORD dwError   = 0;
+    BOOLEAN bIsNetworkError = FALSE;
     PSTR  pszDCTime = NULL;
     struct tm dcTime = {0};
     time_t ttDcTimeUTC = 0;
@@ -433,31 +513,46 @@ LWNetSrvGetDCTime(
 
     BAIL_ON_INVALID_POINTER(pDCTime);
 
-    LWNET_LOG_INFO("Determining the current time for domain '%s'",
-            LWNET_SAFE_LOG_STRING(pszDomainFQDN));
-
-    dwError = LWNetSrvGetDomainController(pszDomainFQDN, &pszDC);
-    BAIL_ON_LWNET_ERROR(dwError);
-    
-    dwError = LwCLdapOpenDirectory(pszDC, &hDirectory);
+    dwError = LwCLdapOpenDirectory(pszDCName, &hDirectory);
+    if (dwError)
+    {
+        LWNET_LOG_ERROR(
+            "Failed ldap open on %s error=%d\n",
+            pszDCName,
+            dwError);
+    }
     BAIL_ON_LWNET_ERROR(dwError);
     
     dwError = LwLdapBindDirectoryAnonymous(hDirectory);
+    if (dwError)
+    {
+        LWNET_LOG_ERROR(
+            "Failed ldap bind on %s error=%d\n",
+            pszDCName,
+            dwError);
+    }
     BAIL_ON_LWNET_ERROR(dwError);
-    
+
     dwError = LwLdapDirectorySearchEx(
-                    hDirectory,
-                    "",
-                    LDAP_SCOPE_BASE,
-                    "(objectclass=*)",
-                    ppszAttributeList,
-                    NULL,
-                    0,
-                    &pMessage);
+                  hDirectory,
+                  "",
+                  LDAP_SCOPE_BASE,
+                  "(objectclass=*)",
+                  ppszAttributeList,
+                  NULL,
+                  0,
+                  &pMessage);
+    if (dwError)
+    {
+        LWNET_LOG_ERROR(
+            "Failed ldap search on %s error=%d\n",
+            pszDCName,
+            dwError);
+    }
     BAIL_ON_LWNET_ERROR(dwError);
     
     dwError = LwLdapGetString(hDirectory, pMessage, "currentTime",
-                                 &pszDCTime);
+                              &pszDCTime);
     BAIL_ON_LWNET_ERROR(dwError);
     
     dwError = LWNetCrackLdapTime(pszDCTime, &dcTime);
@@ -508,7 +603,6 @@ LWNetSrvGetDCTime(
     result = ttDcTimeUTC;
 
 error:
-    LWNET_SAFE_FREE_STRING(pszDC);
     LWNET_SAFE_FREE_STRING(pszDCTime);
 
     if (hDirectory)
@@ -524,9 +618,20 @@ error:
     if (dwError)
     {
         memset(&result, 0, sizeof(result));
+
+        switch (dwError)
+        {
+            case LW_ERROR_LDAP_SERVER_DOWN:
+            case LW_ERROR_LDAP_TIMEOUT:
+            case LW_ERROR_LDAP_SERVER_UNAVAILABLE:
+            case LW_ERROR_LDAP_CONNECT_ERROR:
+                bIsNetworkError = TRUE;
+                break;
+        }
     }
 
     *pDCTime = result;
+    *pbIsNetworkError = bIsNetworkError;
 
     return dwError;
 }
