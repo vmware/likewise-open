@@ -138,6 +138,7 @@ SrvProcessLockAndX(
     PLWIO_SRV_FILE             pFile        = NULL;
     PSRV_LOCK_STATE_SMB_V1     pLockState   = NULL;
     BOOLEAN                    bInLock      = FALSE;
+    PSRV_OPLOCK_STATE_SMB_V1   pOplockState = NULL;
 
     pLockState = (PSRV_LOCK_STATE_SMB_V1)pCtxSmb1->hState;
 
@@ -211,37 +212,69 @@ SrvProcessLockAndX(
     {
         case SRV_LOCK_STAGE_SMB_V1_INITIAL:
 
-            switch (pLockState->pRequestHeader->ulTimeout)
+            if (pLockState->pRequestHeader->ucLockType & LWIO_LOCK_TYPE_OPLOCK_RELEASE)
             {
-                case 0:           /* don't wait i.e. fail immediately */
-                case ((ULONG)-1): /* wait indefinitely                */
+                pOplockState =
+                    (PSRV_OPLOCK_STATE_SMB_V1)SrvFileRemoveOplockState(pLockState->pFile);
 
-                    break;
+                if (pOplockState)
+                {
+                    PSRV_OPLOCK_STATE_SMB_V1 pOplockState2 = NULL;
 
-                default:
-
+                    if (pOplockState->pTimerRequest)
                     {
-                        LONG64 llExpiry = 0LL;
+                        SrvTimerCancelRequest(
+                                        pOplockState->pTimerRequest,
+                                        (PVOID*)&pOplockState2);
+                        if (pOplockState2)
+                        {
+                            SrvReleaseOplockState(pOplockState2);
+                        }
 
-                        llExpiry =
-                            (time(NULL) +
-                             (pLockState->pRequestHeader->ulTimeout/1000) +
-                             11644473600LL) * 10000000LL;
-
-                        ntStatus = SrvTimerPostRequest(
-                                        llExpiry,
-                                        pExecContext,
-                                        &SrvLockExpiredCB,
-                                        &pLockState->pTimerRequest);
-                        BAIL_ON_NT_STATUS(ntStatus);
-
-                        InterlockedIncrement(&pExecContext->refCount);
+                        SrvTimerRelease(pOplockState->pTimerRequest);
+                        pOplockState->pTimerRequest = NULL;
                     }
 
-                    break;
-            }
+                    ntStatus = SrvAcknowledgeOplockBreak(pOplockState);
+                    BAIL_ON_NT_STATUS(ntStatus);
+                }
 
-            pLockState->stage = SRV_LOCK_STAGE_SMB_V1_ATTEMPT_LOCK;
+                goto cleanup;
+            }
+            else
+            {
+                switch (pLockState->pRequestHeader->ulTimeout)
+                {
+                    case 0:           /* don't wait i.e. fail immediately */
+                    case ((ULONG)-1): /* wait indefinitely                */
+
+                        break;
+
+                    default:
+
+                        {
+                            LONG64 llExpiry = 0LL;
+
+                            llExpiry =
+                                (time(NULL) +
+                                 (pLockState->pRequestHeader->ulTimeout/1000) +
+                                 11644473600LL) * 10000000LL;
+
+                            ntStatus = SrvTimerPostRequest(
+                                            llExpiry,
+                                            pExecContext,
+                                            &SrvLockExpiredCB,
+                                            &pLockState->pTimerRequest);
+                            BAIL_ON_NT_STATUS(ntStatus);
+
+                            InterlockedIncrement(&pExecContext->refCount);
+                        }
+
+                        break;
+                }
+
+                pLockState->stage = SRV_LOCK_STAGE_SMB_V1_ATTEMPT_LOCK;
+            }
 
             // Intentional fall through
 
@@ -284,6 +317,11 @@ cleanup:
         LWIO_UNLOCK_MUTEX(bInLock, &pLockState->mutex);
 
         SrvReleaseLockState(pLockState);
+    }
+
+    if (pOplockState)
+    {
+        SrvReleaseOplockState(pOplockState);
     }
 
     return ntStatus;
@@ -333,23 +371,26 @@ SrvBuildLockState(
     NTSTATUS ntStatus = STATUS_SUCCESS;
     PSRV_LOCK_STATE_SMB_V1 pLockState = NULL;
 
-    if (pRequestHeader->ucLockType & LWIO_LOCK_TYPE_LARGE_FILES)
+    if (!(pRequestHeader->ucLockType & LWIO_LOCK_TYPE_OPLOCK_RELEASE))
     {
-        if ((pRequestHeader->usNumUnlocks && !pUnlockRangeLarge) ||
-            (pRequestHeader->usNumLocks && !pLockRangeLarge))
+        if (pRequestHeader->ucLockType & LWIO_LOCK_TYPE_LARGE_FILES)
         {
-            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+            if ((pRequestHeader->usNumUnlocks && !pUnlockRangeLarge) ||
+                (pRequestHeader->usNumLocks && !pLockRangeLarge))
+            {
+                ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+            }
         }
-    }
-    else
-    {
-        if ((pRequestHeader->usNumUnlocks && !pUnlockRange) ||
-            (pRequestHeader->usNumLocks && !pLockRange))
+        else
         {
-            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+            if ((pRequestHeader->usNumUnlocks && !pUnlockRange) ||
+                (pRequestHeader->usNumLocks && !pLockRange))
+            {
+                ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+            }
         }
+        BAIL_ON_NT_STATUS(ntStatus);
     }
-    BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvAllocateMemory(
                         sizeof(SRV_LOCK_STATE_SMB_V1),

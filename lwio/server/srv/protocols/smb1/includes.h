@@ -65,6 +65,7 @@
 
 #include <iodriver.h>
 #include <ioapi.h>
+#include <lwiofsctl.h>
 
 #include <smbwire.h>
 

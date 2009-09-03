@@ -173,7 +173,7 @@ AC_SUBST(LWBASE_LDFLAGS)
 AC_SUBST(LWBASE_LIBS)
 
 AC_CHECK_HEADER([winerror.h],,[AC_MSG_ERROR([Could not find lwadvapi headers])])
-AC_CHECK_LIB([lwadvapi], [LwNtStatusToWin32Error], [LWADVAPI_LIBS="-llwadvapi"], [AC_MSG_ERROR([Could not find liblwadvapi])], [$LWADVAPI_LDFLAGS])
+AC_CHECK_LIB([lwadvapi_nothr], [LwNtStatusToWin32Error], [LWADVAPI_LIBS="-llwadvapi_nothr -llwadvapi"], [AC_MSG_ERROR([Could not find liblwadvapi])], [$LWADVAPI_LDFLAGS])
 
 AC_SUBST(LWADVAPI_INCLUDES)
 AC_SUBST(LWADVAPI_LDFLAGS)

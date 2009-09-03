@@ -38,6 +38,12 @@ SrvQueryFileInformation_inlock(
 
 static
 NTSTATUS
+SrvRequestCreateXOplocks(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
 SrvBuildNTCreateResponse_inlock(
     PSRV_EXEC_CONTEXT pExecContext
     );
@@ -227,6 +233,15 @@ SrvProcessNTCreateAndX(
             ntStatus = SrvQueryFileInformation_inlock(pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
 
+            pCreateState->stage = SRV_CREATE_STAGE_SMB_V1_REQUEST_OPLOCK;
+
+            // intentional fall through
+
+        case SRV_CREATE_STAGE_SMB_V1_REQUEST_OPLOCK:
+
+            ntStatus = SrvRequestCreateXOplocks(pExecContext);
+            BAIL_ON_NT_STATUS(ntStatus);
+
             pCreateState->stage = SRV_CREATE_STAGE_SMB_V1_QUERY_INFO_COMPLETED;
 
             // intentional fall through
@@ -398,11 +413,138 @@ error:
 
 static
 NTSTATUS
+SrvRequestCreateXOplocks(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS        ntStatus           = STATUS_SUCCESS;
+    SRV_OPLOCK_INFO batchOplockChain[] =
+            {
+               { IO_OPLOCK_REQUEST_OPLOCK_BATCH,   SMB_OPLOCK_LEVEL_BATCH },
+               { IO_OPLOCK_REQUEST_OPLOCK_LEVEL_2, SMB_OPLOCK_LEVEL_II    },
+               { SMB_OPLOCK_LEVEL_NONE,            SMB_OPLOCK_LEVEL_NONE  }
+            };
+    SRV_OPLOCK_INFO exclOplockChain[] =
+            {
+               { IO_OPLOCK_REQUEST_OPLOCK_LEVEL_1, SMB_OPLOCK_LEVEL_I     },
+               { IO_OPLOCK_REQUEST_OPLOCK_LEVEL_2, SMB_OPLOCK_LEVEL_II    },
+               { SMB_OPLOCK_LEVEL_NONE,            SMB_OPLOCK_LEVEL_NONE  }
+            };
+    SRV_OPLOCK_INFO noOplockChain[] =
+            {
+               { SMB_OPLOCK_LEVEL_NONE,            SMB_OPLOCK_LEVEL_NONE  }
+            };
+    PSRV_OPLOCK_INFO           pOplockCursor = NULL;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1      = pCtxProtocol->pSmb1Context;
+    PSRV_CREATE_STATE_SMB_V1   pCreateState  = NULL;
+    PSRV_OPLOCK_STATE_SMB_V1   pOplockState  = NULL;
+    BOOLEAN                    bContinue     = TRUE;
+
+    pCreateState = (PSRV_CREATE_STATE_SMB_V1)pCtxSmb1->hState;
+
+    if (SrvTreeIsNamedPipe(pCreateState->pTree) ||
+        pCreateState->fileStdInfo.Directory)
+    {
+        pOplockCursor = &noOplockChain[0];
+
+        goto done;
+    }
+
+    ntStatus = SrvBuildOplockState(
+                    pExecContext->pConnection,
+                    pCtxSmb1->pSession,
+                    pCtxSmb1->pTree,
+                    pCreateState->pFile,
+                    &pOplockState);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (pCreateState->pRequestHeader->flags & SMB_OPLOCK_REQUEST_EXCLUSIVE)
+    {
+        pOplockCursor = &exclOplockChain[0];
+    }
+    else if (pCreateState->pRequestHeader->flags & SMB_OPLOCK_REQUEST_BATCH)
+    {
+        pOplockCursor = &batchOplockChain[0];
+    }
+    else
+    {
+        pOplockCursor = &noOplockChain[0];
+    }
+
+    while (bContinue && (pOplockCursor->oplockRequest != SMB_OPLOCK_LEVEL_NONE))
+    {
+        pOplockState->oplockBuffer_in.OplockRequestType =
+                        pOplockCursor->oplockRequest;
+
+        SrvPrepareOplockStateAsync(pOplockState);
+
+        ntStatus = IoFsControlFile(
+                        pOplockState->pFile->hFile,
+                        pOplockState->pAcb,
+                        &pOplockState->ioStatusBlock,
+                        IO_FSCTL_OPLOCK_REQUEST,
+                        &pOplockState->oplockBuffer_in,
+                        sizeof(pOplockState->oplockBuffer_in),
+                        &pOplockState->oplockBuffer_out,
+                        sizeof(pOplockState->oplockBuffer_out));
+        switch (ntStatus)
+        {
+            case STATUS_OPLOCK_NOT_GRANTED:
+
+                SrvReleaseOplockStateAsync(pOplockState); // completed sync
+
+                pOplockCursor++;
+
+                break;
+
+            case STATUS_PENDING:
+
+                SrvFileSetOplockLevel(
+                        pOplockState->pFile,
+                        pOplockCursor->oplockLevel);
+
+                ntStatus = STATUS_SUCCESS;
+
+                bContinue = FALSE;
+
+                break;
+
+            default:
+
+                SrvReleaseOplockStateAsync(pOplockState); // completed sync
+
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                break;
+        }
+    }
+
+done:
+
+    pCreateState->ucOplockLevel = pOplockCursor->oplockLevel;
+
+cleanup:
+
+    if (pOplockState)
+    {
+        SrvReleaseOplockState(pOplockState);
+    }
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
 SrvBuildNTCreateResponse_inlock(
     PSRV_EXEC_CONTEXT pExecContext
     )
 {
-    NTSTATUS                    ntStatus = 0;
+    NTSTATUS                   ntStatus     = STATUS_SUCCESS;
     PLWIO_SRV_CONNECTION       pConnection  = pExecContext->pConnection;
     PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
     PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
@@ -470,6 +612,7 @@ SrvBuildNTCreateResponse_inlock(
     // ulBytesAvailable -= sizeof(CREATE_RESPONSE_HEADER);
     ulTotalBytesUsed += sizeof(CREATE_RESPONSE_HEADER);
 
+    pResponseHeader->oplockLevel     = pCreateState->ucOplockLevel;
     pResponseHeader->fid             = pCreateState->pFile->fid;
     pResponseHeader->createAction    = pCreateState->ioStatusBlock.CreateResult;
     pResponseHeader->creationTime    = pCreateState->fileBasicInfo.CreationTime;

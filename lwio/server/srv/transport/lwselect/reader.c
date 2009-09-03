@@ -533,7 +533,7 @@ SrvSocketReaderReadMessage(
 
     if (pPacket)
     {
-        ntStatus = SrvBuildExecContext(pConnection, pPacket, &pContext);
+        ntStatus = SrvBuildExecContext(pConnection, pPacket, FALSE, &pContext);
         BAIL_ON_NT_STATUS(ntStatus);
 
         ntStatus = SrvVerifyContext(pContext);

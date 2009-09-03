@@ -3,6 +3,7 @@ noinst_LTLIBRARIES = libsrv.protocols.smb1.la
 libsrv_protocols_smb1_la_SOURCES = \
     checkdir.c       \
     close.c          \
+    config.c         \
     connection.c     \
     creatdir.c       \
     createx.c        \
@@ -21,6 +22,7 @@ libsrv_protocols_smb1_la_SOURCES = \
     negotiate.c      \
     nttransact.c     \
     openx.c          \
+    oplock.c         \
     pipeinfo.c       \
     read.c           \
     readx.c          \

@@ -59,6 +59,7 @@ NTSTATUS
 SrvBuildExecContext(
    IN  PLWIO_SRV_CONNECTION pConnection,
    IN  PSMB_PACKET          pSmbRequest,
+   IN  BOOLEAN              bInternal,
    OUT PSRV_EXEC_CONTEXT*   ppContext
    )
 {
@@ -77,6 +78,8 @@ SrvBuildExecContext(
 
     pContext->pSmbRequest = pSmbRequest;
     InterlockedIncrement(&pSmbRequest->refCount);
+
+    pContext->bInternal = bInternal;
 
     *ppContext = pContext;
 

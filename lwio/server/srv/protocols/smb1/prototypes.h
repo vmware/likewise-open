@@ -64,6 +64,13 @@ SrvProcessCloseAndX(
     PSRV_EXEC_CONTEXT pExecContext
     );
 
+// config.c
+
+ULONG
+SrvConfigGetOplockTimeout_SMB_V1(
+    VOID
+    );
+
 // connection.c
 
 NTSTATUS
@@ -140,6 +147,13 @@ SrvProcessFlush(
 // libmain.c
 
 NTSTATUS
+SrvBuildExecContext_SMB_V1(
+    PLWIO_SRV_CONNECTION      pConnection,
+    PSMB_PACKET               pSmbRequest,
+    PSRV_EXEC_CONTEXT_SMB_V1* ppSmb1Context
+    );;
+
+NTSTATUS
 SrvBuildErrorResponse_SMB_V1(
     PLWIO_SRV_CONNECTION pConnection,
     PSMB_HEADER          pRequestHeader,
@@ -173,6 +187,42 @@ SrvProcessNtTransact(
 NTSTATUS
 SrvProcessOpenAndX(
     PSRV_EXEC_CONTEXT pExecContext
+    );
+
+// oplock.c
+
+NTSTATUS
+SrvProcessOplock(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+NTSTATUS
+SrvAcknowledgeOplockBreak(
+    PSRV_OPLOCK_STATE_SMB_V1 pOplockState
+    );
+
+NTSTATUS
+SrvBuildOplockState(
+    PLWIO_SRV_CONNECTION      pConnection,
+    PLWIO_SRV_SESSION         pSession,
+    PLWIO_SRV_TREE            pTree,
+    PLWIO_SRV_FILE            pFile,
+    PSRV_OPLOCK_STATE_SMB_V1* ppOplockState
+    );
+
+VOID
+SrvReleaseOplockState(
+    PSRV_OPLOCK_STATE_SMB_V1 pOplockState
+    );
+
+VOID
+SrvPrepareOplockStateAsync(
+    PSRV_OPLOCK_STATE_SMB_V1 pOplockState
+    );
+
+VOID
+SrvReleaseOplockStateAsync(
+    PSRV_OPLOCK_STATE_SMB_V1 pOplockState
     );
 
 // read.c
@@ -319,6 +369,14 @@ SrvUnmarshalHeaderAndX_SMB_V1(
     PBYTE*        ppWordCount,
     PANDX_HEADER* ppAndXHeader,
     PUSHORT       pusBytesUsed
+    );
+
+NTSTATUS
+WireUnmarshallOplockRequest(
+    PBYTE              pBuffer,
+    ULONG              ulBytesAvailable,
+    ULONG              ulOffset,
+    PLW_OPLOCK_HEADER* ppRequestHeader
     );
 
 NTSTATUS
