@@ -112,7 +112,8 @@ typedef enum
     COM_GET_PRINT_QUEUE         = 0xC3,
     COM_READ_BULK               = 0xD8,
     COM_WRITE_BULK              = 0xD9,
-    COM_WRITE_BULK_DATA         = 0xDA
+    COM_WRITE_BULK_DATA         = 0xDA,
+    COM_LW_OPLOCK               = 0xDD
 } COMMAND;
 
 typedef enum
@@ -303,7 +304,6 @@ typedef UCHAR LWIO_LOCK_TYPE;
 #define LWIO_LOCK_TYPE_CHANGE_LOCK_TYPE    0x04
 #define LWIO_LOCK_TYPE_CANCEL_LOCK         0x08
 #define LWIO_LOCK_TYPE_LARGE_FILES         0x10
-
 
 typedef enum
 {
