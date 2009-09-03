@@ -263,6 +263,7 @@ IopReadWriteFile(
     IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN BOOLEAN bIsWrite,
+    IN BOOLEAN bIsPagingIo,
     IN OUT PVOID Buffer,
     IN ULONG Length,
     IN OPTIONAL PLONG64 ByteOffset,
@@ -275,6 +276,8 @@ IopReadWriteFile(
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
     IRP_TYPE irpType = bIsWrite ? IRP_TYPE_WRITE : IRP_TYPE_READ;
 
+    LWIO_ASSERT(!(bIsWrite && bIsPagingIo));
+
     status = IopIrpCreate(&pIrp, irpType, FileHandle);
     ioStatusBlock.Status = status;
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
@@ -283,6 +286,7 @@ IopReadWriteFile(
     pIrp->Args.ReadWrite.Length = Length;
     pIrp->Args.ReadWrite.ByteOffset = ByteOffset;
     pIrp->Args.ReadWrite.Key = Key;
+    pIrp->Args.ReadWrite.IsPagingIo = bIsPagingIo;
 
     status = IopIrpDispatch(
                     pIrp,
@@ -323,6 +327,7 @@ IoReadFile(
                 AsyncControlBlock,
                 IoStatusBlock,
                 FALSE,
+                FALSE,
                 Buffer,
                 Length,
                 ByteOffset,
@@ -344,6 +349,30 @@ IoWriteFile(
                 FileHandle,
                 AsyncControlBlock,
                 IoStatusBlock,
+                TRUE,
+                FALSE,
+                Buffer,
+                Length,
+                ByteOffset,
+                Key);
+}
+
+NTSTATUS
+IoPagingReadFile(
+    IN IO_FILE_HANDLE FileHandle,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    OUT PIO_STATUS_BLOCK IoStatusBlock,
+    OUT PVOID Buffer,
+    IN ULONG Length,
+    IN OPTIONAL PLONG64 ByteOffset,
+    IN OPTIONAL PULONG Key
+    )
+{
+    return IopReadWriteFile(
+                FileHandle,
+                AsyncControlBlock,
+                IoStatusBlock,
+                FALSE,
                 TRUE,
                 Buffer,
                 Length,

@@ -122,6 +122,17 @@ IoWriteFile(
     IN OPTIONAL PULONG Key
     );
 
+NTSTATUS
+IoPagingReadFile(
+    IN IO_FILE_HANDLE FileHandle,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    OUT PIO_STATUS_BLOCK IoStatusBlock,
+    OUT PVOID Buffer,
+    IN ULONG Length,
+    IN OPTIONAL PLONG64 ByteOffset,
+    IN OPTIONAL PULONG Key
+    );
+
 NTSTATUS 
 IoDeviceIoControlFile(
     IN IO_FILE_HANDLE FileHandle,
