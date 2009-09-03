@@ -49,6 +49,7 @@
 #define __ADNETAPI_H__
 
 #include <uuid/uuid.h>
+#include <openssl/rc4.h>
 #include <secdesc/secapi.h>
 
 #include <lwrpc/LM.h>
