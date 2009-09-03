@@ -63,18 +63,16 @@ SrvGetShareName(
     PSTR     pszShareName = NULL;
     PSTR     pszCursor = NULL;
 
-    ntStatus = LwRtlCStringAllocateFromWC16String(
-                   &pszPath,
-		   pwszPath);
+    ntStatus = SrvWc16sToMbs(pwszPath, &pszPath);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pszCursor = pszPath;
 
     /* Skip a leading pair of backslashes */
 
-    if ((LwRtlCStringNumChars(pszCursor) > 2) &&
-	(*pszCursor == '\\') &&
-	(*(pszCursor+1) == '\\'))
+    if ((strlen(pszCursor) > 2) &&
+        (*pszCursor == '\\')    &&
+        (*(pszCursor+1) == '\\'))
     {
         pszCursor += 2;
     }
@@ -95,16 +93,17 @@ SrvGetShareName(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = LwRtlWC16StringAllocateFromCString(
-	           &pwszSharename,
-		   pszShareName);
+    ntStatus = SrvMbsToWc16s(pszShareName, &pwszSharename);
     BAIL_ON_NT_STATUS(ntStatus);
 
     *ppwszSharename = pwszSharename;
 
 cleanup:
 
-    LwRtlCStringFree(&pszPath);
+    if (pszPath)
+    {
+        SrvFreeMemory(pszPath);
+    }
 
     return ntStatus;
 
