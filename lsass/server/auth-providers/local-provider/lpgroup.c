@@ -2509,13 +2509,11 @@ LocalAddMembersToGroup(
         }
         else
         {
-#if 0
             dwError = DirectoryAddToGroup(
                             pContext->hDirectory,
                             pwszGroupDN,
                             pwszObjectDN);
             BAIL_ON_LSA_ERROR(dwError);
-#endif
         }
 
         dwMember++;
