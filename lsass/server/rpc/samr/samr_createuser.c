@@ -65,32 +65,34 @@ SamrSrvCreateUser(
 
     pDomCtx = (PDOMAIN_CONTEXT)hDomain;
 
-    if (pDomCtx == NULL || pDomCtx->Type != SamrContextDomain) {
+    if (pDomCtx == NULL || pDomCtx->Type != SamrContextDomain)
+    {
         ntStatus = STATUS_INVALID_HANDLE;
-        BAIL_ON_NTSTATUS_ERROR(status);
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
 
     ntStatus = SamrSrvGetFromUnicodeString(&pwszUserName,
-                                         account_name);
-    BAIL_ON_NTSTATUS_ERROR(status);
+                                           account_name);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     ntStatus = SamrSrvInitUnicodeStringEx(&UserName,
-                                        pwszUserName);
-    BAIL_ON_NTSTATUS_ERROR(status);
+                                          pwszUserName);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     ntStatus = SamrSrvCreateAccount(hBinding,
-                                  hDomain,
-                                  &UserName,
-                                  DS_OBJECT_CLASS_USER,
-                                  ACB_NORMAL,
-                                  access_mask,
-                                  hUser,
-                                  &ulAccessGranted,
-                                  rid);
+                                    hDomain,
+                                    &UserName,
+                                    DS_OBJECT_CLASS_USER,
+                                    ACB_NORMAL,
+                                    access_mask,
+                                    hUser,
+                                    &ulAccessGranted,
+                                    rid);
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
 cleanup:
-    if (pwszUserName) {
+    if (pwszUserName)
+    {
         SamrSrvFreeMemory(pwszUserName);
     }
 
