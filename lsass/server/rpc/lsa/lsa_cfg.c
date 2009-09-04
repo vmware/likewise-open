@@ -362,7 +362,7 @@ LsaSrvConfigGetLpcSocketPath(
     )
 {
     DWORD dwError = 0;
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     BOOL bLocked = 0;
     PSTR pszLpcSocketPath = NULL;
 
@@ -393,7 +393,7 @@ LsaSrvConfigGetSamrLpcSocketPath(
     )
 {
     DWORD dwError = 0;
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     BOOL bLocked = 0;
     PSTR pszLpcSocketPath = NULL;
 
@@ -424,7 +424,7 @@ LsaSrvSetConfigFilePath(
     )
 {
     DWORD dwError = 0;
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     int locked = 0;
     PSTR pszPath = NULL;
 

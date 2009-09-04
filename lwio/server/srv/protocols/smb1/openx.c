@@ -704,6 +704,13 @@ SrvRequestOpenXOplocks(
                 break;
 
             case STATUS_PENDING:
+                ntStatus = SrvFileSetOplockState(
+                               pOpenState->pFile,
+                               pOplockState,
+                               &SrvReleaseOplockStateHandle);
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                InterlockedIncrement(&pOplockState->refCount);
 
                 SrvFileSetOplockLevel(
                         pOpenState->pFile,

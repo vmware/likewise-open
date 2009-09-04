@@ -109,7 +109,7 @@ SamrSrvEnumDomainAccounts(
                   (sizeof(wszFilterFmt)/sizeof(wszFilterFmt[0]));
 
     ntStatus = SamrSrvAllocateMemory((void**)&pwszFilter,
-                                   dwFilterLen * sizeof(*pwszFilter));
+                                     dwFilterLen * sizeof(*pwszFilter));
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     sw16printfw(pwszFilter, dwFilterLen, wszFilterFmt,
@@ -134,7 +134,7 @@ SamrSrvEnumDomainAccounts(
     BAIL_ON_LSA_ERROR(dwError);
 
     ntStatus = SamrSrvAllocateMemory((void**)&pNames,
-                                   sizeof(RidNameArray));
+                                     sizeof(RidNameArray));
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     i = (*resume);
@@ -177,7 +177,7 @@ SamrSrvEnumDomainAccounts(
     dwResume = (*resume) + dwCount;
 
     ntStatus = SamrSrvAllocateMemory((void**)&pNames->entries,
-                                   sizeof(pNames->entries[0]) * dwCount);
+                                     sizeof(pNames->entries[0]) * dwCount);
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     dwCount = 0;
@@ -218,7 +218,7 @@ SamrSrvEnumDomainAccounts(
         pName->rid = (uint32)dwRid;
 
         ntStatus = SamrSrvInitUnicodeString(&pName->name,
-                                          pwszName);
+                                            pwszName);
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
         if (pSid) {
@@ -247,6 +247,12 @@ cleanup:
 
     if (pEntries) {
         DirectoryFreeEntries(pEntries, dwEntriesNum);
+    }
+
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
     }
 
     return ntStatus;

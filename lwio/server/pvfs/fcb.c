@@ -731,12 +731,13 @@ PvfsAddItemPendingOplockBreakAck(
 
     ntError = LwRtlQueueAddItem(pFcb->pOplockPendingOpsQueue,
                                 (PVOID)pPendingOp);
-
-    LWIO_UNLOCK_MUTEX(bLocked, &pFcb->mutexOplock);
-
     BAIL_ON_NT_STATUS(ntError);
 
+    IoIrpMarkPending(pIrpContext->pIrp, PvfsCancelIrp, pIrpContext);
+
 cleanup:
+    LWIO_UNLOCK_MUTEX(bLocked, &pFcb->mutexOplock);
+
     return ntError;
 
 error:

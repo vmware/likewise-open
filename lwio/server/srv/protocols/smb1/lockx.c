@@ -226,17 +226,16 @@ SrvProcessLockAndX(
                         SrvTimerCancelRequest(
                                         pOplockState->pTimerRequest,
                                         (PVOID*)&pOplockState2);
-                        if (pOplockState2)
-                        {
-                            SrvReleaseOplockState(pOplockState2);
-                        }
 
                         SrvTimerRelease(pOplockState->pTimerRequest);
                         pOplockState->pTimerRequest = NULL;
                     }
 
-                    ntStatus = SrvAcknowledgeOplockBreak(pOplockState);
+                    ntStatus = SrvAcknowledgeOplockBreak(pOplockState, FALSE);
                     BAIL_ON_NT_STATUS(ntStatus);
+
+		    SrvReleaseOplockState(pOplockState);
+		    pOplockState = NULL;
                 }
 
                 goto cleanup;

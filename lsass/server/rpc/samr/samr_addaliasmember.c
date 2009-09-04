@@ -349,19 +349,7 @@ SamrSrvAddAliasMember(
     dwError = DirectoryAddToGroup(hDirectory,
                                   pwszGroupDn,
                                   pEntry);
-    if (dwError == LW_ERROR_MEMBER_IN_LOCAL_GROUP)
-    {
-        ntStatus = STATUS_MEMBER_IN_GROUP;
-    }
-    else if (dwError == ERROR_SUCCESS)
-    {
-        ntStatus = STATUS_SUCCESS;
-    }
-    else
-    {
-        ntStatus = STATUS_INTERNAL_ERROR;
-    }
-    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
     if (hLsaBinding)
@@ -416,6 +404,12 @@ cleanup:
     }
 
     LW_SAFE_FREE_MEMORY(pwszMemberDn);
+
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
 
     return ntStatus;
 

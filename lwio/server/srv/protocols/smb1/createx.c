@@ -500,6 +500,14 @@ SrvRequestCreateXOplocks(
 
             case STATUS_PENDING:
 
+                ntStatus = SrvFileSetOplockState(
+                               pCreateState->pFile,
+                               pOplockState,
+                               &SrvReleaseOplockStateHandle);
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                InterlockedIncrement(&pOplockState->refCount);
+
                 SrvFileSetOplockLevel(
                         pCreateState->pFile,
                         pOplockCursor->oplockLevel);
@@ -938,3 +946,14 @@ SrvFreeCreateState(
 
     SrvFreeMemory(pCreateState);
 }
+
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

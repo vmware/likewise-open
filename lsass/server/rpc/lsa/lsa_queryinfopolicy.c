@@ -55,10 +55,10 @@ LsaSrvQueryInfoPolicy(
     LsaPolicyInformation **info
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    status = LsaSrvQueryInfoPolicy2(b, hPolicy, level, info);
-    return status;
+    ntStatus = LsaSrvQueryInfoPolicy2(b, hPolicy, level, info);
+    return ntStatus;
 }
 
 

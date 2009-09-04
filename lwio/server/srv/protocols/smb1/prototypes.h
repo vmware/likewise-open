@@ -198,7 +198,8 @@ SrvProcessOplock(
 
 NTSTATUS
 SrvAcknowledgeOplockBreak(
-    PSRV_OPLOCK_STATE_SMB_V1 pOplockState
+    PSRV_OPLOCK_STATE_SMB_V1 pOplockState,
+    BOOLEAN bFileIsClosed
     );
 
 NTSTATUS
@@ -208,6 +209,11 @@ SrvBuildOplockState(
     PLWIO_SRV_TREE            pTree,
     PLWIO_SRV_FILE            pFile,
     PSRV_OPLOCK_STATE_SMB_V1* ppOplockState
+    );
+
+VOID
+SrvReleaseOplockStateHandle(
+    HANDLE hOplockState
     );
 
 VOID

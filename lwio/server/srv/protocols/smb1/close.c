@@ -109,6 +109,7 @@ SrvProcessCloseAndX(
         ULONG ulOffset         = pSmbRequest->usHeaderSize;
         ULONG ulBytesAvailable = pSmbRequest->ulMessageSize - pSmbRequest->usHeaderSize;
         PCLOSE_REQUEST_HEADER pRequestHeader = NULL; // Do not free
+        PSRV_OPLOCK_STATE_SMB_V1 pOplockState = NULL;
 
         ntStatus = SrvConnectionFindSession_SMB_V1(
                         pCtxSmb1,
@@ -137,6 +138,48 @@ SrvProcessCloseAndX(
                         pRequestHeader->fid,
                         &pFile);
         BAIL_ON_NT_STATUS(ntStatus);
+
+        pOplockState =
+            (PSRV_OPLOCK_STATE_SMB_V1)SrvFileRemoveOplockState(pFile);
+
+        /* Deal with any outstanding oplock issues */
+
+        if (pOplockState)
+        {
+            /* This is an implicit acknowlegdement to any outstanding
+               break requests we sent the client */
+
+            if (pOplockState->bBreakRequestSent)
+            {
+                PSRV_OPLOCK_STATE_SMB_V1 pOplockState2 = NULL;
+
+                if (pOplockState->pTimerRequest)
+                {
+                    SrvTimerCancelRequest(
+                        pOplockState->pTimerRequest,
+                        (PVOID*)&pOplockState2);
+
+                    SrvTimerRelease(pOplockState->pTimerRequest);
+                    pOplockState->pTimerRequest = NULL;
+                }
+
+                ntStatus = SrvAcknowledgeOplockBreak(pOplockState, TRUE);
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                SrvReleaseOplockState(pOplockState);
+                pOplockState = NULL;
+
+            }
+            else
+            {
+                /* Cancel any registered oplock on the file */
+                if (pOplockState->acb.AsyncCancelContext)
+                {
+                    IoCancelAsyncCancelContext(
+                        pOplockState->acb.AsyncCancelContext);
+                }
+            }
+        }
 
         ntStatus = SrvBuildCloseState(
                         pRequestHeader,
@@ -568,3 +611,13 @@ SrvFreeCloseState(
     SrvFreeMemory(pCloseState);
 }
 
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

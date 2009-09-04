@@ -62,6 +62,7 @@ EVTSERVERINFO gServerInfo =
     0,                          /* Max log size  */
     0,                          /* Max records */
     0,                          /* Remove records older than*/
+    0,                          /* Purge records at interval*/
     0,                          /* Enable/disable Remove records a boolean value TRUE or FALSE*/
     { NULL, NULL },             /* Who is allowed to read events   */
     { NULL, NULL },             /* Who is allowed to write events  */
@@ -297,6 +298,22 @@ EVTGetDBPurgeInterval(
     EVT_LOCK_SERVERINFO;
 
     *pdwPurgeInterval = gServerInfo.dwPurgeInterval;
+
+    EVT_UNLOCK_SERVERINFO;
+
+    return (dwError);
+}
+
+DWORD
+EVTGetRemoveAsNeeded(
+    PBOOLEAN pbRemoveAsNeeded
+    )
+{
+    DWORD dwError = 0;
+
+    EVT_LOCK_SERVERINFO;
+
+    *pbRemoveAsNeeded = gServerInfo.bRemoveAsNeeded;
 
     EVT_UNLOCK_SERVERINFO;
 
@@ -878,6 +895,15 @@ EVTConfigNameValuePair(
 		EVTParseDays((PCSTR)pszValue, &dwPurgeInterval);
         EVT_LOCK_SERVERINFO;
         gServerInfo.dwPurgeInterval = dwPurgeInterval;
+        EVT_UNLOCK_SERVERINFO;
+    }
+    else if ( !strcmp(pszName, "remove-events-as-needed") ) {
+		BOOLEAN bRemoveAsNeeded = FALSE;
+        if(!strcmp(pszValue,"true")) {
+		    bRemoveAsNeeded = TRUE;
+        }
+        EVT_LOCK_SERVERINFO;
+        gServerInfo.bRemoveAsNeeded = bRemoveAsNeeded;
         EVT_UNLOCK_SERVERINFO;
     }
     else if ( !strcmp(pszName, "allow-read-to") ) {

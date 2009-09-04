@@ -113,6 +113,12 @@ LsaSrvCreateSamDomainsTable(
     *ppDomains = pDomains;
 
 cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
     return ntStatus;
 
 error:
@@ -156,6 +162,12 @@ LsaSrvGetSamDomainByName(
 
 cleanup:
     LsaSrvSamDomainKeyFree(&pKey);
+
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
 
     return ntStatus;
 
@@ -202,6 +214,12 @@ LsaSrvGetSamDomainBySid(
 
 cleanup:
     LsaSrvSamDomainKeyFree(&pKey);
+
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
 
     return ntStatus;
 
@@ -257,6 +275,12 @@ LsaSrvSetSamDomain(
                               pEntryBySid);
 
 cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
     return ntStatus;
 
 error:
@@ -326,6 +350,12 @@ LsaSrvGetLocalSamDomain(
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
 cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
     return ntStatus;
 
 error:
@@ -346,8 +376,8 @@ LsaSrvSamDomainEntryFree(
     if (!pEntry) return;
 
     RTL_FREE(&pEntry->pSid);
-    RTL_FREE(&pEntry->pwszName);
-    RTL_FREE(&pEntry);
+    LW_SAFE_FREE_MEMORY(pEntry->pwszName);
+    LW_SAFE_FREE_MEMORY(pEntry);
 
     *ppEntry = pEntry;
 }
@@ -471,6 +501,12 @@ LsaSrvSamDomainEntryCopy(
     *ppOut = pOut;
 
 cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
     return ntStatus;
 
 error:
@@ -524,6 +560,12 @@ LsaSrvCreateSamDomainKey(
     *ppKey = pKey;
 
 cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
     return ntStatus;
 
 error:

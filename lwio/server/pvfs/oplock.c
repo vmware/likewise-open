@@ -252,7 +252,9 @@ PvfsOplockBreakAck(
         break;
 
     case IO_OPLOCK_BREAK_CLOSE_PENDING:
-        /* TODO: Deal with an ACK_PENDING_CLOSE */
+        ntError = STATUS_SUCCESS;
+        break;
+
     default:
         break;
 
@@ -691,6 +693,16 @@ PvfsOplockBreakOnCreate(
     /* Don't break our own oplock */
 
     if (PvfsOplockIsMine(pCcb, pOplock)) {
+        goto cleanup;
+    }
+
+    /* Check granted access to see if a break is even possible.
+       If no permissions other than the following have been granted,
+       the oplock will not be broken */
+
+    if ( !(pCcb->AccessGranted &
+           ~(READ_CONTROL|FILE_READ_ATTRIBUTES|FILE_WRITE_ATTRIBUTES)))
+    {
         goto cleanup;
     }
 

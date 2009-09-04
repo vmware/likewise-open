@@ -180,6 +180,12 @@ cleanup:
         DirectoryFreeEntries(pEntries, dwCount);
     }
 
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
     return ntStatus;
 
 error:

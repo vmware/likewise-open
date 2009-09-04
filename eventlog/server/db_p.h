@@ -130,7 +130,7 @@ SrvEventLogCountOlderThan(
     );
 
 DWORD
-SrvDeleteAboveLimitFromEventLog(
+SrvDeleteIfCountExceeds(
     HANDLE hDB,
     DWORD  dwOlderThan
     );

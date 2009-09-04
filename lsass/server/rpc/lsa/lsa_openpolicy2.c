@@ -188,6 +188,12 @@ cleanup:
     LW_SAFE_FREE_MEMORY(pwszSystemName);
     LW_SAFE_FREE_MEMORY(pszSamrLpcSocketPath);
 
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
     return ntStatus;
 
 error:

@@ -59,7 +59,7 @@ LsaSrvLookupNames(
     /* [in, out] */ uint32 *count
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     PPOLICY_CONTEXT pPolCtx = NULL;
     UnicodeStringEx *pNames = NULL;
     PWSTR pwszName = NULL;
@@ -71,27 +71,27 @@ LsaSrvLookupNames(
     pPolCtx = (PPOLICY_CONTEXT)hPolicy;
 
     if (pPolCtx == NULL || pPolCtx->Type != LsaContextPolicy) {
-        status = STATUS_INVALID_HANDLE;
-        BAIL_ON_NTSTATUS_ERROR(status);
+        ntStatus = STATUS_INVALID_HANDLE;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
 
-    status = LsaSrvAllocateMemory((void**)pNames,
+    ntStatus = LsaSrvAllocateMemory((void**)pNames,
                                   sizeof(*pNames) * num_names);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     for (i = 0; i < num_names; i++) {
         pwszName = GetFromUnicodeString(&(names[i]));
         BAIL_ON_NO_MEMORY(pwszName);
 
-        status = LsaSrvInitUnicodeStringEx(&(pNames[i]), pwszName);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        ntStatus = LsaSrvInitUnicodeStringEx(&(pNames[i]), pwszName);
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
         if (pwszName) {
             LW_SAFE_FREE_MEMORY(pwszName);
         }
     }
 
-    status = LsaSrvLookupNames2(IDL_handle,
+    ntStatus = LsaSrvLookupNames2(IDL_handle,
                                 hPolicy,
                                 num_names,
                                 pNames,
@@ -100,17 +100,17 @@ LsaSrvLookupNames(
                                 level,
                                 &dwCount,
                                 0, 0);
-    if (status != STATUS_SUCCESS ||
-        status != LW_STATUS_SOME_NOT_MAPPED ||
-        status != STATUS_NONE_MAPPED) {
-        BAIL_ON_NTSTATUS_ERROR(status);
+    if (ntStatus != STATUS_SUCCESS ||
+        ntStatus != LW_STATUS_SOME_NOT_MAPPED ||
+        ntStatus != STATUS_NONE_MAPPED) {
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
 
     sids->count = pSidArray->count;
 
-    status = LsaSrvAllocateMemory((void**)&(sids->sids),
+    ntStatus = LsaSrvAllocateMemory((void**)&(sids->sids),
                                   sizeof(sids->sids[0]) * sids->count);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     for (i = 0; i < sids->count; i++) {
         TranslatedSid2 *pTransSid2 = &(pSidArray->sids[i]);
@@ -133,7 +133,7 @@ cleanup:
         LsaSrvFreeMemory(pNames);
     }
 
-    return status;
+    return ntStatus;
 
 error:
     if (pDomains) {

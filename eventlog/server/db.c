@@ -135,8 +135,8 @@
                                         ?10)"
 
 //Delete the record over 'n' entries
-#define DB_QUERY_DELETE_ABOVE_LIMIT "DELETE FROM     lwievents    \
-                                     WHERE  EventRecordId > (%d)"
+#define DB_QUERY_DELETE_AT_LIMIT    "DELETE FROM     lwievents    \
+                                     WHERE  EventRecordId >= (%d)"
 
 //To delete records 'n' days older than current date.
 #define DB_QUERY_DELETE_OLDER_THAN  "DELETE FROM     lwievents    \
@@ -662,12 +662,16 @@ SrvMaintainDB(
     dwError = SrvEventLogCountOlderThan(hDB, dwMaxAge, &dwCountOlderThan);
     BAIL_ON_EVT_ERROR(dwError);
 
-    EVT_LOG_VERBOSE("EventLog record count older than curdate = %d",dwCountOlderThan);
-    EVT_LOG_VERBOSE("EventLog Record count = %d",dwRecordCount);
-
     //Get the File size
     dwError = EVTGetFileSize(EVENTLOG_DB,&dwActualSize);
     BAIL_ON_EVT_ERROR(dwError);
+
+    EVT_LOG_VERBOSE("Max Records = %d",dwMaxRecords);
+    EVT_LOG_VERBOSE("Max Age = %d",dwMaxAge);
+    EVT_LOG_VERBOSE("Max Log size = %d",dwMaxLogSize);
+    EVT_LOG_VERBOSE("EventLog record count older than curdate = %d",dwCountOlderThan);
+    EVT_LOG_VERBOSE("EventLog Record count = %d",dwRecordCount);
+    EVT_LOG_VERBOSE("Actual Log size = %d ",dwActualSize);
 
     //Regular house keeping
     if (dwCountOlderThan) {
@@ -680,22 +684,20 @@ SrvMaintainDB(
         BAIL_ON_EVT_ERROR(dwError);
     }
 
-    EVT_LOG_VERBOSE("Record Count = %d ",dwCountOlderThan);
     //If the record count is greater than the Max Records
-    if (dwRecordCount > dwMaxRecords) {
+    if (dwRecordCount >= dwMaxRecords) {
 
+        EVT_LOG_VERBOSE("Record Count = %d which is more than max records set = %d",dwRecordCount,dwMaxRecords);
         EVT_LOG_VERBOSE("DB size exceeds the Max Records Size");
         EVT_LOG_VERBOSE("Going to trim DB.........");
 
         //If records not aged out,then delete the records above Max Records
-        dwError = SrvDeleteAboveLimitFromEventLog(hDB, dwMaxRecords);
+        dwError = SrvDeleteIfCountExceeds(hDB, dwMaxRecords);
         BAIL_ON_EVT_ERROR(dwError);
     }
 
-    EVT_LOG_VERBOSE("Actual Log size = %d ",dwActualSize);
     if(dwActualSize >= dwMaxLogSize) {
         EVT_LOG_VERBOSE("Log Size is exceeds the maximum limit set");
-
         goto error;
     }
 
@@ -723,11 +725,17 @@ SrvWriteToDB(
 {
     DWORD dwError = 0;
     BOOLEAN bSafeInsert = TRUE;
+    BOOLEAN bRemoveAsNeeded = FALSE;
 
-    //Trim the DB
-    EVT_LOG_VERBOSE("Going to trim database .....");
-    dwError = SrvMaintainDB(hDB,&bSafeInsert);
+    dwError = EVTGetRemoveAsNeeded(&bRemoveAsNeeded);
     BAIL_ON_EVT_ERROR(dwError);
+
+    if(bRemoveAsNeeded) {
+        //Trim the DB
+        EVT_LOG_VERBOSE("Going to trim database .....");
+        dwError = SrvMaintainDB(hDB,&bSafeInsert);
+        BAIL_ON_EVT_ERROR(dwError);
+    }
 
     if(bSafeInsert) {
         //Write the eventlog
@@ -851,7 +859,7 @@ SrvEventLogCountOlderThan(
 
 //Delete the record over 'n' entries
 DWORD
-SrvDeleteAboveLimitFromEventLog(
+SrvDeleteIfCountExceeds(
     HANDLE hDB,
     DWORD dwOlderThan
     )
@@ -865,7 +873,7 @@ SrvDeleteAboveLimitFromEventLog(
 
     ENTER_RW_WRITER_LOCK;
 
-    sprintf(szQuery, DB_QUERY_DELETE_ABOVE_LIMIT, dwOlderThan);
+    sprintf(szQuery, DB_QUERY_DELETE_AT_LIMIT, dwOlderThan);
 
     dwError = SrvQueryEventLog(hDB, szQuery, &nRows, &nCols, &ppszResult);
     BAIL_ON_EVT_ERROR(dwError);

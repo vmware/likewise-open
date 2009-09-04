@@ -125,9 +125,6 @@ EVTParseMaxEntries(
 {
     DWORD  dwError = 0;
     PSTR   pszMaxEntriesLocal = 0;
-    DWORD  dwLen = 0;
-    DWORD  dwUnitMultiplier = 0;
-    PSTR   pszUnitCode = NULL;
     
     EVTStripWhitespace(pszMaxEntriesLocal, TRUE, TRUE);
 
@@ -137,33 +134,9 @@ EVTParseMaxEntries(
                     );
     BAIL_ON_EVT_ERROR(dwError);
 
-    dwLen = strlen(pszMaxEntriesLocal);
-    
-    pszUnitCode = pszMaxEntriesLocal + dwLen - 1;
-
-    if (isdigit((int)(*pszUnitCode))) 
-    {
-        dwUnitMultiplier = 1;
-    }
-    else if(*pszUnitCode == 'k' || *pszUnitCode == 'K') 
-    {
-        dwUnitMultiplier = EVT_RECS_IN_K;
-    }
-    else if(*pszUnitCode == 'm' || *pszUnitCode == 'M') 
-    {
-        dwUnitMultiplier = EVT_RECS_IN_M;
-    }
-    else 
-    {
-        dwError = EVT_ERROR_INVALID_PARAMETER;
-        BAIL_ON_EVT_ERROR(dwError);
-    }	
-
-    *pszUnitCode = ' ';
-
     EVTStripWhitespace(pszMaxEntriesLocal, TRUE, TRUE);
     
-    *pdwMaxEntries = (DWORD) atoi(pszMaxEntriesLocal) * dwUnitMultiplier;
+    *pdwMaxEntries = (DWORD) atoi(pszMaxEntriesLocal) ;
     
 cleanup:
     

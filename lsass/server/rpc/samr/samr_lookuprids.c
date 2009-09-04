@@ -233,6 +233,12 @@ cleanup:
     RTL_FREE(&pwszSid);
     RTL_FREE(&pSid);
 
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
     return ntStatus;
 
 error:

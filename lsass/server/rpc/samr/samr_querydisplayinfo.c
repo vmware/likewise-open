@@ -205,7 +205,7 @@ SamrSrvQueryDisplayInfo(
         break;
 
     default:
-        ntStatus = STATUS_INVALID_LEVEL;
+        ntStatus = STATUS_INVALID_INFO_CLASS;
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
         break;
     }
@@ -245,39 +245,39 @@ SamrSrvQueryDisplayInfo(
         switch (level) {
         case 1:
             ntStatus = SamrSrvFillDisplayInfoFull(pDomCtx,
-                                                pEntry,
-                                                NULL,
-                                                i,
-                                                dwCount,
-                                                &dwTotalSize);
+                                                  pEntry,
+                                                  NULL,
+                                                  i,
+                                                  dwCount,
+                                                  &dwTotalSize);
             break;
 
         case 2:
             ntStatus = SamrSrvFillDisplayInfoGeneral(pDomCtx,
-                                                   pEntry,
-                                                   NULL,
-                                                   i,
-                                                   dwCount,
-                                                   &dwTotalSize);
+                                                     pEntry,
+                                                     NULL,
+                                                     i,
+                                                     dwCount,
+                                                     &dwTotalSize);
             break;
 
         case 3:
             ntStatus = SamrSrvFillDisplayInfoGeneralGroups(pDomCtx,
-                                                         pEntry,
-                                                         NULL,
-                                                         i,
-                                                         dwCount,
-                                                         &dwTotalSize);
+                                                           pEntry,
+                                                           NULL,
+                                                           i,
+                                                           dwCount,
+                                                           &dwTotalSize);
             break;
 
         case 4:
         case 5:
             ntStatus = SamrSrvFillDisplayInfoAscii(pDomCtx,
-                                                 pEntry,
-                                                 NULL,
-                                                 i,
-                                                 dwCount,
-                                                 &dwTotalSize);
+                                                   pEntry,
+                                                   NULL,
+                                                   i,
+                                                   dwCount,
+                                                   &dwTotalSize);
             break;
         }
 
@@ -307,54 +307,55 @@ SamrSrvQueryDisplayInfo(
         switch (level) {
         case 1:
             ntStatus = SamrSrvFillDisplayInfoFull(pDomCtx,
-                                                pEntry,
-                                                &Info,
-                                                i,
-                                                dwCount,
-                                                &dwSize);
+                                                  pEntry,
+                                                  &Info,
+                                                  i,
+                                                  dwCount,
+                                                  &dwSize);
             break;
 
         case 2:
             ntStatus = SamrSrvFillDisplayInfoGeneral(pDomCtx,
+                                                     pEntry,
+                                                     &Info,
+                                                     i,
+                                                     dwCount,
+                                                     &dwSize);
+            break;
+
+        case 3:
+            ntStatus = SamrSrvFillDisplayInfoGeneralGroups(pDomCtx,
+                                                           pEntry,
+                                                           &Info,
+                                                           i,
+                                                           dwCount,
+                                                           &dwSize);
+            break;
+
+        case 4:
+            ntStatus = SamrSrvFillDisplayInfoAscii(pDomCtx,
                                                    pEntry,
-                                                   &Info,
+                                                   &Info.info4,
                                                    i,
                                                    dwCount,
                                                    &dwSize);
             break;
 
-        case 3:
-            ntStatus = SamrSrvFillDisplayInfoGeneralGroups(pDomCtx,
-                                                         pEntry,
-                                                         &Info,
-                                                         i,
-                                                         dwCount,
-                                                         &dwSize);
-            break;
-
-        case 4:
-            ntStatus = SamrSrvFillDisplayInfoAscii(pDomCtx,
-                                                 pEntry,
-                                                 &Info.info4,
-                                                 i,
-                                                 dwCount,
-                                                 &dwSize);
-            break;
-
         case 5:
             ntStatus = SamrSrvFillDisplayInfoAscii(pDomCtx,
-                                                 pEntry,
-                                                 &Info.info5,
-                                                 i,
-                                                 dwCount,
-                                                 &dwSize);
+                                                   pEntry,
+                                                   &Info.info5,
+                                                   i,
+                                                   dwCount,
+                                                   &dwSize);
             break;
         }
 
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
 
-    if (dwCount < dwEntriesNum) {
+    if (dwCount < dwEntriesNum)
+    {
         ntStatus = STATUS_MORE_ENTRIES;
     }
 
@@ -363,12 +364,20 @@ SamrSrvQueryDisplayInfo(
     *info          = Info;
 
 cleanup:
-    if (pwszFilter) {
+    if (pwszFilter)
+    {
         SamrSrvFreeMemory(pwszFilter);
     }
 
-    if (pEntries) {
+    if (pEntries)
+    {
         DirectoryFreeEntries(pEntries, dwEntriesNum);
+    }
+
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
     }
 
     return ntStatus;
