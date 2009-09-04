@@ -68,11 +68,20 @@ extern PFN_LWDNS_LOG_MESSAGE gpfnLWDNSLogger;
 #define _LWDNS_LOG_MESSAGE(Level, Format, ...) \
     DNSLogMessage(gpfnLWDNSLogger, Level, Format, ## __VA_ARGS__)
 
+
+#if defined (__LWI_DARWIN_X64__)
 #define _LWDNS_LOG_WITH_THREAD(Level, Format, ...) \
     _LWDNS_LOG_MESSAGE(Level,                      \
                      "%zd:" Format,                \
-                     (size_t)pthread_self(),   \
+                     (size_t)pthread_self(),       \
                      ## __VA_ARGS__)
+#else
+#define _LWDNS_LOG_WITH_THREAD(Level, Format, ...) \
+    _LWDNS_LOG_MESSAGE(Level,                      \
+                     "0x%x:" Format,               \
+                     (unsigned int)pthread_self(), \
+                     ## __VA_ARGS__)
+#endif
 
 #define _LWDNS_LOG_WITH_DEBUG(Level, Format, ...) \
     _LWDNS_LOG_WITH_THREAD(Level,                 \

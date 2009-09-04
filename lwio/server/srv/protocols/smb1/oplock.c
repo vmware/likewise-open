@@ -210,6 +210,11 @@ SrvProcessOplock(
             }
 
             ntStatus = pOplockState->ioStatusBlock.Status;
+            if (ntStatus == STATUS_CANCELLED)
+            {
+                ntStatus = STATUS_SUCCESS;
+                goto cleanup;
+            }
             BAIL_ON_NT_STATUS(ntStatus);
 
             switch (pOplockState->oplockBuffer_out.OplockBreakResult)
@@ -288,6 +293,14 @@ SrvProcessOplock(
 
             if (pOplockState)
             {
+                ntStatus = pOplockState->ioStatusBlock.Status;
+                if (ntStatus == STATUS_CANCELLED)
+                {
+                    ntStatus = STATUS_SUCCESS;
+                    goto cleanup;
+                }
+                BAIL_ON_NT_STATUS(ntStatus);
+
                 ntStatus = SrvAcknowledgeOplockBreak(pOplockState);
                 BAIL_ON_NT_STATUS(ntStatus);
             }
