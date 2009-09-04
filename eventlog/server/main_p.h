@@ -84,6 +84,8 @@ typedef struct {
     DWORD dwMaxAge;
     /* Purge the records at the interval */
     DWORD dwPurgeInterval;
+    /* Flag to prune database*/
+    BOOLEAN bRemoveAsNeeded;
 
     /* Who is allowed to read events */
     EVTALLOWEDDATA  pAllowReadTo;
@@ -114,6 +116,11 @@ EVTGetPrefixPath(
 DWORD
 EVTGetMaxRecords(
     DWORD* pdwMaxRecords
+    );
+
+DWORD
+EVTGetRemoveAsNeeded(
+    PBOOLEAN pbRemoveAsNeeded
     );
 
 DWORD
