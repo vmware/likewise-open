@@ -319,11 +319,17 @@ LocalMarshalEntryToUserInfo_1(
 
     if (ppwszUserDN)
     {
-        dwError = LocalMarshalAttrToUnicodeString(
+        dwError = LocalMarshalAttrToANSIFromUnicodeString(
                         pEntry,
                         &wszAttrNameDN[0],
-                        &pwszUserDN);
+                        &pUserInfo->pszDN);
         BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LwMbsToWc16s(pUserInfo->pszDN,
+                               &pwszUserDN);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        *ppwszUserDN = pwszUserDN;
     }
 
     if (LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszUPN))
