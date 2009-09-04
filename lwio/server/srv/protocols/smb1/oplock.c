@@ -258,8 +258,9 @@ SrvProcessOplock(
 
                 case SMB_OPLOCK_LEVEL_II:
 
-                    ntStatus = SrvEnqueueOplockAckTask(pOplockState);
-                    BAIL_ON_NT_STATUS(ntStatus);
+                    /* We're done.  No Ack needed for level2 breaks */
+
+                    ntStatus = STATUS_SUCCESS;
 
                     break;
 
