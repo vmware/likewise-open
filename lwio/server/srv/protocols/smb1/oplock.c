@@ -231,7 +231,7 @@ SrvProcessOplock(
                             ucOplockLevel);
             BAIL_ON_NT_STATUS(ntStatus);
 
-	    pOplockState->bBreakRequestSent = TRUE;
+            pOplockState->bBreakRequestSent = TRUE;
 
             switch (SrvFileGetOplockLevel(pFile)) // current op-lock level
             {
