@@ -152,6 +152,12 @@ SamrSrvSetAliasInfo(
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
     return ntStatus;
 
 error:
