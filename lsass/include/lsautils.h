@@ -141,11 +141,19 @@ extern pthread_mutex_t gLogLock;
 #define LSA_LOCK_LOGGER   pthread_mutex_lock(&gLogLock)
 #define LSA_UNLOCK_LOGGER pthread_mutex_unlock(&gLogLock)
 
+#if defined (__LWI_DARWIN_X64__)
 #define _LSA_LOG_WITH_THREAD(Level, Format, ...) \
     _LSA_LOG_MESSAGE(Level, \
                      "%zd:" Format, \
                      (size_t)pthread_self(), \
                      ## __VA_ARGS__)
+#else
+#define _LSA_LOG_WITH_THREAD(Level, Format, ...) \
+    _LSA_LOG_MESSAGE(Level, \
+                     "0x%x:" Format, \
+                     (unsigned int)pthread_self(), \
+                     ## __VA_ARGS__)
+#endif
 
 #else
 
