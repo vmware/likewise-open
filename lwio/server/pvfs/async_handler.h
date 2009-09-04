@@ -47,6 +47,12 @@
 #ifndef _PVFS_ASYNC_HANDLER_H_
 #define _PVFS_ASYNC_HANDLER_H_
 
+VOID
+PvfsCancelIrp(
+    PIRP pIrp,
+    PVOID pCancelContext
+    );
+
 NTSTATUS
 PvfsCreateWorkContext(
     OUT PPVFS_WORK_CONTEXT *ppWorkContext,
