@@ -252,7 +252,9 @@ PvfsOplockBreakAck(
         break;
 
     case IO_OPLOCK_BREAK_CLOSE_PENDING:
-        /* TODO: Deal with an ACK_PENDING_CLOSE */
+        ntError = STATUS_SUCCESS;
+        break;
+
     default:
         break;
 
