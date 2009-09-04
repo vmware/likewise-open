@@ -130,6 +130,20 @@ PvfsRead(
         ntError = PvfsReadFileWithContext(pReadCtx);
         break;
 
+    case STATUS_OPLOCK_BREAK_IN_PROGRESS:
+        ntError = PvfsPendOplockBreakTest(
+                      pReadCtx->pCcb->pFcb,
+                      pIrpContext,
+                      pReadCtx->pCcb,
+                      PvfsReadFileWithContext,
+                      PvfsFreeReadContext,
+                      (PVOID)pReadCtx);
+        if (ntError == STATUS_SUCCESS) {
+            pReadCtx = NULL;
+            ntError = STATUS_PENDING;
+        }
+        break;
+
     case STATUS_PENDING:
         ntError = PvfsAddItemPendingOplockBreakAck(
                       pReadCtx->pCcb->pFcb,

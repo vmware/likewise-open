@@ -133,6 +133,20 @@ PvfsLockControl(
             ntError = PvfsLockFileWithContext(pLockCtx);
             break;
 
+        case STATUS_OPLOCK_BREAK_IN_PROGRESS:
+            ntError = PvfsPendOplockBreakTest(
+                          pLockCtx->pCcb->pFcb,
+                          pIrpContext,
+                          pLockCtx->pCcb,
+                          PvfsLockFileWithContext,
+                          PvfsFreeLockContext,
+                          (PVOID)pLockCtx);
+            if (ntError == STATUS_SUCCESS) {
+                pLockCtx = NULL;
+                ntError = STATUS_PENDING;
+            }
+            break;
+
         case STATUS_PENDING:
             ntError = PvfsAddItemPendingOplockBreakAck(
                           pLockCtx->pCcb->pFcb,
