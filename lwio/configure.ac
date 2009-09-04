@@ -27,9 +27,19 @@ case "$host_os:$host_cpu" in
 		AC_DEFINE([__LWI_SOLARIS__], [], [Define if OS is Solaris])
 	    AC_DEFINE([_XOPEN_SOURCE], [500], [Define to desired XOPEN compliance level])
 		;;
-	darwin*:*)
-		AC_DEFINE([__LWI_DARWIN__], [], [Define if OS is Darwin])
-		;;
+        darwin8.*:*)
+                echo "Detected Mac OS X - Tiger"
+                AC_DEFINE([__LWI_DARWIN__], [], [Define if OS is Darwin])
+                ;;
+        darwin9.*:*)
+                echo "Detected Mac OS X - Leopard"
+                AC_DEFINE([__LWI_DARWIN__], [], [Define if OS is Darwin])
+                ;;
+        darwin10.*:*)
+                echo "Detected Mac OS X - Snow Leopard"
+                AC_DEFINE([__LWI_DARWIN__], [], [Define if OS is Darwin - x64 Snow Leopard])
+                AC_DEFINE([__LWI_DARWIN_X64__], [], [Define if OS is Darwin - x64 Snow Leopard])
+                ;;
 	freebsd*:*)
 		AC_DEFINE([__LWI_FREEBSD__], [], [Define if OS is FreeBSD])
 		;;
