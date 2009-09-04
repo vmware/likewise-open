@@ -274,7 +274,7 @@ PvfsOplockBreakAck(
 
     pFcb = pCcb->pFcb;
 
-    LWIO_LOCK_MUTEX(bFcbLocked, &pFcb->ControlBlock);
+    LWIO_LOCK_MUTEX(bFcbLocked, &pFcb->mutexOplock);
 
     pFcb->bOplockBreakInProgress = FALSE;
 
@@ -307,7 +307,7 @@ PvfsOplockBreakAck(
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
-    LWIO_UNLOCK_MUTEX(bFcbLocked, &pFcb->ControlBlock);
+    LWIO_UNLOCK_MUTEX(bFcbLocked, &pFcb->mutexOplock);
 
     if (bOplockGranted)
     {
@@ -411,7 +411,7 @@ PvfsOplockBreakIfLocked(
     PLW_LIST_LINKS pNextLink = NULL;
     ULONG BreakResult = 0;
 
-    LWIO_LOCK_MUTEX(bFcbLocked, &pFcb->ControlBlock);
+    LWIO_LOCK_MUTEX(bFcbLocked, &pFcb->mutexOplock);
 
     /* The caller must treat an OPLOCK_BREAK_IN_PROGRESS just as if
        it were a new break and pend the IRP's remaining work. */
@@ -513,7 +513,7 @@ PvfsOplockBreakIfLocked(
 
 
 cleanup:
-    LWIO_UNLOCK_MUTEX(bFcbLocked, &pFcb->ControlBlock);
+    LWIO_UNLOCK_MUTEX(bFcbLocked, &pFcb->mutexOplock);
 
     if (ntBreakStatus != STATUS_SUCCESS) {
         ntError = ntBreakStatus;
@@ -609,7 +609,7 @@ PvfsOplockBreakAllLevel2Oplocks(
         goto cleanup;
     }
 
-    LWIO_LOCK_MUTEX(bFcbLocked, &pFcb->ControlBlock);
+    LWIO_LOCK_MUTEX(bFcbLocked, &pFcb->mutexOplock);
 
     pOplockLink = LwListTraverse(&pFcb->OplockList, NULL);
 
@@ -644,7 +644,7 @@ PvfsOplockBreakAllLevel2Oplocks(
         PvfsFreeOplockRecord(&pOplock);
     }
 
-    LWIO_UNLOCK_MUTEX(bFcbLocked, &pFcb->ControlBlock);
+    LWIO_UNLOCK_MUTEX(bFcbLocked, &pFcb->mutexOplock);
 
 cleanup:
     return ntError;
@@ -1040,7 +1040,7 @@ PvfsOplockGrantBatchOrLevel1(
 
     pFcb = pCcb->pFcb;
 
-    LWIO_LOCK_MUTEX(bFcbControlLocked, &pFcb->ControlBlock);
+    LWIO_LOCK_MUTEX(bFcbControlLocked, &pFcb->mutexOplock);
 
     /* Any other opens - FAIL */
     /* Cannot grant a second exclusive oplock - FAIL*/
@@ -1071,7 +1071,7 @@ PvfsOplockGrantBatchOrLevel1(
     ntError = STATUS_SUCCESS;
 
 cleanup:
-    LWIO_UNLOCK_MUTEX(bFcbControlLocked, &pFcb->ControlBlock);
+    LWIO_UNLOCK_MUTEX(bFcbControlLocked, &pFcb->mutexOplock);
 
     return ntError;
 
@@ -1097,7 +1097,7 @@ PvfsOplockGrantLevel2(
 
     pFcb = pCcb->pFcb;
 
-    LWIO_LOCK_MUTEX(bFcbControlLocked, &pFcb->ControlBlock);
+    LWIO_LOCK_MUTEX(bFcbControlLocked, &pFcb->mutexOplock);
 
     /* Cannot grant a level2 on an existing exclusive oplock - FAIL*/
 
@@ -1132,7 +1132,7 @@ PvfsOplockGrantLevel2(
     ntError = STATUS_SUCCESS;
 
 cleanup:
-    LWIO_UNLOCK_MUTEX(bFcbControlLocked, &pFcb->ControlBlock);
+    LWIO_UNLOCK_MUTEX(bFcbControlLocked, &pFcb->mutexOplock);
 
     return ntError;
 
@@ -1176,7 +1176,7 @@ PvfsOplockProcessReadyItems(
            the ready queue.  The completeion fn may need to relock the
            FCB and we don't want to deadlock */
 
-        LWIO_LOCK_MUTEX(bFcbLocked, &pFcb->ControlBlock);
+        LWIO_LOCK_MUTEX(bFcbLocked, &pFcb->mutexOplock);
 
         if (LwRtlQueueIsEmpty(pFcb->pOplockReadyOpsQueue))
         {
@@ -1189,7 +1189,7 @@ PvfsOplockProcessReadyItems(
                       &pData);
         BAIL_ON_NT_STATUS(ntError);
 
-        LWIO_UNLOCK_MUTEX(bFcbLocked, &pFcb->ControlBlock);
+        LWIO_UNLOCK_MUTEX(bFcbLocked, &pFcb->mutexOplock);
 
         pPendingOp = (PPVFS_OPLOCK_PENDING_OPERATION)pData;
         pIrp = pPendingOp->pIrpContext->pIrp;
@@ -1216,7 +1216,7 @@ PvfsOplockProcessReadyItems(
     }
 
 cleanup:
-    LWIO_UNLOCK_MUTEX(bFcbLocked, &pFcb->ControlBlock);
+    LWIO_UNLOCK_MUTEX(bFcbLocked, &pFcb->mutexOplock);
 
     return ntError;
 error:

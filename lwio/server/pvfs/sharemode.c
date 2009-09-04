@@ -192,7 +192,7 @@ _PvfsEnforceShareMode(
 
     RtlMapGenericMask(&DesiredAccess, &gPvfsFileGenericMapping);
 
-    LWIO_LOCK_RWMUTEX_SHARED(bLocked, &pFcb->rwLock);
+    LWIO_LOCK_RWMUTEX_SHARED(bLocked, &pFcb->rwCcbLock);
 
     for (pCursor = PvfsNextCCBFromList(pFcb, pCursor);
          pCursor;
@@ -246,7 +246,7 @@ _PvfsEnforceShareMode(
     ntError = STATUS_SUCCESS;
 
 cleanup:
-    LWIO_UNLOCK_RWMUTEX(bLocked, &pFcb->rwLock);
+    LWIO_UNLOCK_RWMUTEX(bLocked, &pFcb->rwCcbLock);
 
     return ntError;
 
