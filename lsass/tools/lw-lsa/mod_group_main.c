@@ -572,8 +572,11 @@ ResolveNames(
                     dwError = LwAllocateString(pGroupInfo->pszSid, &pszSID);
                     BAIL_ON_LSA_ERROR(dwError);
 
-                    dwError = LwAllocateString(pGroupInfo->pszDN, &pszDN);
-                    BAIL_ON_LSA_ERROR(dwError);
+                    if (pGroupInfo->pszDN)
+                    {
+                        dwError = LwAllocateString(pGroupInfo->pszDN, &pszDN);
+                        BAIL_ON_LSA_ERROR(dwError);
+                    }
 
                 } else if (dwError == LW_ERROR_NO_SUCH_GROUP) {
                     dwError = LsaFindUserByName(hLsaConnection,
@@ -585,8 +588,11 @@ ResolveNames(
                     dwError = LwAllocateString(pUserInfo->pszSid, &pszSID);
                     BAIL_ON_LSA_ERROR(dwError);
 
-                    dwError = LwAllocateString(pUserInfo->pszDN, &pszDN);
-                    BAIL_ON_LSA_ERROR(dwError);
+                    if (pUserInfo->pszDN)
+                    {
+                        dwError = LwAllocateString(pUserInfo->pszDN, &pszDN);
+                        BAIL_ON_LSA_ERROR(dwError);
+                    }
 
                 } else {
                     BAIL_ON_LSA_ERROR(dwError);
