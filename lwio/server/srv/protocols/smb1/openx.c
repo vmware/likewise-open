@@ -685,7 +685,7 @@ SrvRequestOpenXOplocks(
         SrvPrepareOplockStateAsync(pOplockState);
 
         ntStatus = IoFsControlFile(
-                        pOplockState->pFile->hFile,
+                        pOpenState->pFile->hFile,
                         pOplockState->pAcb,
                         &pOplockState->ioStatusBlock,
                         IO_FSCTL_OPLOCK_REQUEST,
@@ -706,7 +706,7 @@ SrvRequestOpenXOplocks(
             case STATUS_PENDING:
 
                 SrvFileSetOplockLevel(
-                        pOplockState->pFile,
+                        pOpenState->pFile,
                         pOplockCursor->oplockLevel);
 
                 ntStatus = STATUS_SUCCESS;
@@ -1036,6 +1036,8 @@ SrvFreeOpenState(
     if (pOpenState->bRemoveFileFromTree)
     {
         NTSTATUS ntStatus2 = 0;
+
+        SrvFileResetOplockState(pOpenState->pFile);
 
         ntStatus2 = SrvTreeRemoveFile(
                         pOpenState->pTree,

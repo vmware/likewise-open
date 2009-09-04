@@ -127,8 +127,7 @@ SrvBuildOplockState(
     pOplockState->pTree = pTree;
     InterlockedIncrement(&pTree->refcount);
 
-    pOplockState->pFile = pFile;
-    InterlockedIncrement(&pFile->refcount);
+    pOplockState->usFid = pFile->fid;
 
     *ppOplockState = pOplockState;
 
@@ -337,6 +336,13 @@ SrvAcknowledgeOplockBreak(
 {
     NTSTATUS ntStatus      = STATUS_SUCCESS;
     UCHAR    ucOplockLevel = SMB_OPLOCK_LEVEL_NONE;
+    PLWIO_SRV_FILE pFile   = NULL;
+
+    ntStatus = SrvTreeFindFile(
+                    pOplockState->pTree,
+                    pOplockState->usFid,
+                    &pFile);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     switch (pOplockState->oplockBuffer_out.OplockBreakResult)
     {
@@ -365,7 +371,7 @@ SrvAcknowledgeOplockBreak(
     SrvPrepareOplockStateAsync(pOplockState);
 
     ntStatus = IoFsControlFile(
-                    pOplockState->pFile->hFile,
+                    pFile->hFile,
                     pOplockState->pAcb,
                     &pOplockState->ioStatusBlock,
                     IO_FSCTL_OPLOCK_REQUEST,
@@ -377,7 +383,7 @@ SrvAcknowledgeOplockBreak(
     {
         case STATUS_PENDING:
 
-            SrvFileSetOplockLevel(pOplockState->pFile, ucOplockLevel);
+            SrvFileSetOplockLevel(pFile, ucOplockLevel);
 
             ntStatus = STATUS_SUCCESS;
 
@@ -393,6 +399,11 @@ SrvAcknowledgeOplockBreak(
     }
 
 cleanup:
+
+    if (pFile)
+    {
+        SrvFileRelease(pFile);
+    }
 
     return ntStatus;
 
@@ -470,7 +481,7 @@ SrvBuildOplockBreakResponse(
 
     pRequestHeader->ucLockType    = LWIO_LOCK_TYPE_OPLOCK_RELEASE;
     pRequestHeader->ucOplockLevel = ucOplockLevel;
-    pRequestHeader->usFid         = pOplockState->pFile->fid;
+    pRequestHeader->usFid         = pOplockState->usFid;
     pRequestHeader->usNumLocks    = 0;
     pRequestHeader->usNumUnlocks  = 0;
     pRequestHeader->ulTimeout     = 0;
@@ -590,9 +601,10 @@ SrvFreeOplockState(
     PSRV_OPLOCK_STATE_SMB_V1 pOplockState
     )
 {
-    if (pOplockState->pFile)
+    if (pOplockState->pAcb && pOplockState->pAcb->AsyncCancelContext)
     {
-        SrvFileRelease(pOplockState->pFile);
+        IoDereferenceAsyncCancelContext(
+                    &pOplockState->pAcb->AsyncCancelContext);
     }
 
     if (pOplockState->pTree)
@@ -648,6 +660,7 @@ SrvOplockAsyncCB(
     PSRV_OPLOCK_STATE_SMB_V1 pOplockState = (PSRV_OPLOCK_STATE_SMB_V1)pContext;
     PSRV_EXEC_CONTEXT        pExecContext = NULL;
     BOOLEAN                  bInLock      = FALSE;
+    PLWIO_SRV_FILE           pFile        = NULL;
 
     LWIO_LOCK_MUTEX(bInLock, &pOplockState->mutex);
 
@@ -661,6 +674,12 @@ SrvOplockAsyncCB(
 
     LWIO_UNLOCK_MUTEX(bInLock, &pOplockState->mutex);
 
+    ntStatus = SrvTreeFindFile(
+                    pOplockState->pTree,
+                    pOplockState->usFid,
+                    &pFile);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     ntStatus = SrvBuildOplockExecContext(
                     pOplockState,
                     LW_OPLOCK_ACTION_SEND_BREAK,
@@ -668,7 +687,7 @@ SrvOplockAsyncCB(
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvFileSetOplockState(
-                    pOplockState->pFile,
+                    pFile,
                     pOplockState,
                     &SrvReleaseOplockStateHandle);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -692,6 +711,11 @@ cleanup:
     if (pExecContext)
     {
         SrvReleaseExecContext(pExecContext);
+    }
+
+    if (pFile)
+    {
+        SrvFileRelease(pFile);
     }
 
     return;
@@ -791,7 +815,7 @@ SrvBuildOplockExecContext(
 
     pLwOplockHeader = (PLW_OPLOCK_HEADER)pBuffer;
 
-    pLwOplockHeader->usFid    = pOplockState->pFile->fid;
+    pLwOplockHeader->usFid    = pOplockState->usFid;
     pLwOplockHeader->usAction = usOplockAction;
 
     *pWordCount = 1;
