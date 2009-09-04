@@ -46,6 +46,7 @@ liblsa_la_CFLAGS = \
     $(DCERPC_INCLUDES)       \
     $(LIBUNISTR_INCLUDES)    \
     $(LWBASE_INCLUDES)       \
+    $(LWADVAPI_INCLUDES)     \
     $(NETLOGON_INCLUDES)
 
 liblsa_la_LIBADD = \
@@ -53,6 +54,7 @@ liblsa_la_LIBADD = \
     $(NETAPI_LIBS)                        \
     $(LIBUNISTR_LIBS)                     \
     $(LWBASE_LIBS)                        \
+    $(LWADVAPI_LIBS)                      \
     $(NETLOGON_LIBS)                      \
     $(srv_srcdir)/api/liblsaserverapi.la  \
     $(srv_srcdir)/store/dsapi/libdsapi.la
@@ -62,11 +64,11 @@ liblsa_ss_la_SOURCES = \
     lsa_sstub.c
 
 liblsa_ss_la_CFLAGS = \
-    -DDCERPC_STUB_BUILD \
-    $(FEATURETEST_FLAGS) \
-    @DCERPC_INCLUDES@ \
-    @LIBUNISTR_INCLUDES@ \
-    @LWBASE_INCLUDES@
+    -DDCERPC_STUB_BUILD   \
+    $(FEATURETEST_FLAGS)  \
+    $(DCERPC_INCLUDES)    \
+    $(LIBUNISTR_INCLUDES) \
+    $(LWBASE_INCLUDES)
 
 liblsa_ss_la_LIBADD = \
     liblsa.la
