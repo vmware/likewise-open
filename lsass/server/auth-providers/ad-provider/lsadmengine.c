@@ -641,6 +641,15 @@ LsaDmEngineGetDomainNameWithDiscovery(
         goto cleanup;
     }
 
+    // Check unknown domain cache to avoid always hitting the
+    // network before deciding to ignore bogus domain names.
+
+    if (LsaDmIsUnknownDomainName(pszDomainName))
+    {
+        dwError = LW_ERROR_NO_SUCH_DOMAIN;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
     dwError = LsaDmWrapNetLookupObjectSidByName(
                  gpADProviderData->szDomain,
                  pszDomainName,
@@ -648,6 +657,10 @@ LsaDmEngineGetDomainNameWithDiscovery(
                  &accountType);
     if (dwError)
     {
+        // This domain name is not resolvable, so cache it.
+        dwError = LsaDmCacheUnknownDomainName(pszDomainName);
+        BAIL_ON_LSA_ERROR(dwError);
+
         dwError = LW_ERROR_NO_SUCH_DOMAIN;
         BAIL_ON_LSA_ERROR(dwError);
     }

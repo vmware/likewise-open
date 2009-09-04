@@ -83,6 +83,12 @@ AD_ServicesDomain(
     );
 
 DWORD
+AD_ServicesDomainWithDiscovery(
+    IN PCSTR pszNetBiosName,
+    OUT PBOOLEAN pbFoundDomain
+    );
+
+DWORD
 AD_AuthenticateUser(
     HANDLE hProvider,
     PCSTR  pszUserName,

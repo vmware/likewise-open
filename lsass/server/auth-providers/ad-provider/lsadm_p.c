@@ -151,11 +151,14 @@ typedef struct _LSA_DM_THREAD_INFO {
     BOOLEAN bTrigger;
 } LSA_DM_THREAD_INFO, *PLSA_DM_THREAD_INFO;
 
-typedef struct LSA_DM_UNKNOWN_DOMAIN_SID_ENTRY {
-    PSID pSid;
+typedef struct _LSA_DM_UNKNOWN_DOMAIN_ENTRY {
+    union {
+        PSID pSid;
+        PSTR pszName;
+    };
     LSA_LIST_LINKS Links;
     time_t Time;
-} LSA_DM_UNKNOWN_DOMAIN_SID_ENTRY, *PLSA_DM_UNKNOWN_DOMAIN_SID_ENTRY;
+} LSA_DM_UNKNOWN_DOMAIN_ENTRY, *PLSA_DM_UNKNOWN_DOMAIN_ENTRY;
 
 ///
 /// Keeps track of all domain state.
@@ -177,8 +180,9 @@ typedef struct _LSA_DM_STATE {
     /// Online detection thread info
     LSA_DM_THREAD_INFO OnlineDetectionThread;
 
-    /// List of LSA_DM_UNKNOWN_DOMAIN_SID_ENTRY.
+    /// List of LSA_DM_UNKNOWN_DOMAIN_ENTRY.
     LSA_LIST_LINKS UnknownDomainSidList;
+    LSA_LIST_LINKS UnknownDomainNameList;
 
     /// @name Parameters
     /// @{
@@ -235,6 +239,13 @@ static
 VOID
 LsaDmpLdapConnectionListDestroy(
     IN OUT PLSA_DM_LDAP_CONNECTION* ppList
+    );
+
+static
+VOID
+LsaDmpFreeUnknownDomainEntry(
+    IN OUT PLSA_DM_UNKNOWN_DOMAIN_ENTRY pEntry,
+    IN BOOLEAN bIsSidEntry
     );
 
 static
@@ -538,9 +549,14 @@ LsaDmpStateDestroy(
         while (!LsaListIsEmpty(&Handle->UnknownDomainSidList))
         {
             PLSA_LIST_LINKS pLinks = LsaListRemoveHead(&Handle->UnknownDomainSidList);
-            PLSA_DM_UNKNOWN_DOMAIN_SID_ENTRY pEntry = LW_STRUCT_FROM_FIELD(pLinks, LSA_DM_UNKNOWN_DOMAIN_SID_ENTRY, Links);
-            LwFreeMemory(pEntry->pSid);
-            LwFreeMemory(pEntry);
+            PLSA_DM_UNKNOWN_DOMAIN_ENTRY pEntry = LW_STRUCT_FROM_FIELD(pLinks, LSA_DM_UNKNOWN_DOMAIN_ENTRY, Links);
+            LsaDmpFreeUnknownDomainEntry(pEntry, TRUE);
+        }
+        while (!LsaListIsEmpty(&Handle->UnknownDomainNameList))
+        {
+            PLSA_LIST_LINKS pLinks = LsaListRemoveHead(&Handle->UnknownDomainNameList);
+            PLSA_DM_UNKNOWN_DOMAIN_ENTRY pEntry = LW_STRUCT_FROM_FIELD(pLinks, LSA_DM_UNKNOWN_DOMAIN_ENTRY, Links);
+            LsaDmpFreeUnknownDomainEntry(pEntry, FALSE);
         }
         LW_SAFE_FREE_MEMORY(Handle);
     }
@@ -581,6 +597,7 @@ LsaDmpStateCreate(
     BAIL_ON_LSA_ERROR(dwError);
 
     LsaListInit(&pState->UnknownDomainSidList);
+    LsaListInit(&pState->UnknownDomainNameList);
 
     if (bIsOfflineBehaviorEnabled)
     {
@@ -3050,30 +3067,45 @@ LsaDmpIsNetworkError(
 }
 
 static
-PLSA_DM_UNKNOWN_DOMAIN_SID_ENTRY
-LsaDmpFindUnknownDomainSidEntry(
+PLSA_DM_UNKNOWN_DOMAIN_ENTRY
+LsaDmpFindUnknownDomainEntry(
     IN LSA_DM_STATE_HANDLE Handle,
-    IN PSID pDomainSid,
+    IN OPTIONAL PSID pDomainSid,
+    IN OPTIONAL PCSTR pszDomainName,
     IN BOOLEAN bCanReturnExpired
     )
 {
-    PLSA_DM_UNKNOWN_DOMAIN_SID_ENTRY pFoundEntry = NULL;
+    PLSA_DM_UNKNOWN_DOMAIN_ENTRY pFoundEntry = NULL;
     PLSA_LIST_LINKS pLinks = NULL;
     PLSA_LIST_LINKS pNextLinks = NULL;
+    PLSA_LIST_LINKS pHead = NULL;
+    BOOLEAN bIsBySid = pDomainSid ? TRUE : FALSE;
     time_t now = time(NULL);
+
+    LSA_ASSERT(LSA_IS_XOR(pDomainSid, pszDomainName));
+
+    if (bIsBySid)
+    {
+        pHead = &Handle->UnknownDomainSidList;
+    }
+    else
+    {
+        pHead = &Handle->UnknownDomainNameList;
+    }
 
     // NOTE: The caller must acquire the lock on the state Handle.
     // This is so that the caller can modify the entry and/or cache
     // after doing this lookup.
 
-    for (pLinks = Handle->UnknownDomainSidList.Next;
-         pLinks != &Handle->UnknownDomainSidList;
+    for (pLinks = pHead->Next;
+         pLinks != pHead;
          pLinks = pNextLinks)
     {
-        PLSA_DM_UNKNOWN_DOMAIN_SID_ENTRY pEntry = LW_STRUCT_FROM_FIELD(pLinks, LSA_DM_UNKNOWN_DOMAIN_SID_ENTRY, Links);
+        PLSA_DM_UNKNOWN_DOMAIN_ENTRY pEntry = LW_STRUCT_FROM_FIELD(pLinks, LSA_DM_UNKNOWN_DOMAIN_ENTRY, Links);
         pNextLinks = pLinks->Next;
 
-        if (RtlEqualSid(pEntry->pSid, pDomainSid))
+        if ((bIsBySid && RtlEqualSid(pEntry->pSid, pDomainSid)) ||
+            (!bIsBySid && !strcasecmp(pEntry->pszName, pszDomainName)))
         {
             pFoundEntry = pEntry;
             if (bCanReturnExpired)
@@ -3086,8 +3118,7 @@ LsaDmpFindUnknownDomainSidEntry(
         if (now >= (pEntry->Time + Handle->dwUnknownDomainCacheTimeoutSeconds))
         {
             LsaListRemove(&pEntry->Links);
-            LwFreeMemory(pEntry->pSid);
-            LwFreeMemory(pEntry);
+            LsaDmpFreeUnknownDomainEntry(pEntry, bIsBySid);
 
             if (pFoundEntry)
             {
@@ -3100,36 +3131,55 @@ LsaDmpFindUnknownDomainSidEntry(
     return pFoundEntry;
 }
 
+static
 BOOLEAN
-LsaDmpIsUnknownDomainSid(
+LsaDmpIsUnknownDomain(
     IN LSA_DM_STATE_HANDLE Handle,
-    IN PSID pDomainSid
+    IN OPTIONAL PSID pDomainSid,
+    IN OPTIONAL PCSTR pszDomainName
     )
 {
-    PLSA_DM_UNKNOWN_DOMAIN_SID_ENTRY pFoundEntry = NULL;
+    PLSA_DM_UNKNOWN_DOMAIN_ENTRY pFoundEntry = NULL;
 
     LsaDmpAcquireMutex(Handle->pMutex);
-    pFoundEntry = LsaDmpFindUnknownDomainSidEntry(Handle, pDomainSid, FALSE);
+    pFoundEntry = LsaDmpFindUnknownDomainEntry(Handle, pDomainSid, pszDomainName, FALSE);
     LsaDmpReleaseMutex(Handle->pMutex);
 
     return pFoundEntry ? TRUE : FALSE;
 }
 
+static
 DWORD
-LsaDmpCacheUnknownDomainSid(
+LsaDmpCacheUnknownDomain(
     IN LSA_DM_STATE_HANDLE Handle,
-    IN PSID pDomainSid
+    IN OPTIONAL PSID pDomainSid,
+    IN OPTIONAL PCSTR pszDomainName
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
     BOOLEAN bIsAcquired = FALSE;
-    PLSA_DM_UNKNOWN_DOMAIN_SID_ENTRY pFoundEntry = NULL;
-    PLSA_DM_UNKNOWN_DOMAIN_SID_ENTRY pNewEntry = NULL;
+    PLSA_DM_UNKNOWN_DOMAIN_ENTRY pFoundEntry = NULL;
+    PLSA_DM_UNKNOWN_DOMAIN_ENTRY pNewEntry = NULL;
+    PLSA_LIST_LINKS pHead = NULL;
+    BOOLEAN bIsBySid = pDomainSid ? TRUE : FALSE;
+
+    if (bIsBySid)
+    {
+        pHead = &Handle->UnknownDomainSidList;
+    }
+    else
+    {
+        pHead = &Handle->UnknownDomainNameList;
+    }
 
     LsaDmpAcquireMutex(Handle->pMutex);
     bIsAcquired = TRUE;
 
-    pFoundEntry = LsaDmpFindUnknownDomainSidEntry(Handle, pDomainSid, TRUE);
+    pFoundEntry = LsaDmpFindUnknownDomainEntry(
+                        Handle,
+                        pDomainSid,
+                        pszDomainName,
+                        TRUE);
     if (pFoundEntry)
     {
         pFoundEntry->Time = time(NULL);
@@ -3139,12 +3189,20 @@ LsaDmpCacheUnknownDomainSid(
     dwError = LwAllocateMemory(sizeof(*pNewEntry), OUT_PPVOID(&pNewEntry));
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaDmpDuplicateSid(&pNewEntry->pSid, pDomainSid);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (bIsBySid)
+    {
+        dwError = LsaDmpDuplicateSid(&pNewEntry->pSid, pDomainSid);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    else
+    {
+        dwError = LwAllocateString(pszDomainName, &pNewEntry->pszName);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     pNewEntry->Time = time(NULL);
 
-    LsaListInsertHead(&Handle->UnknownDomainSidList, &pNewEntry->Links);
+    LsaListInsertHead(pHead, &pNewEntry->Links);
 
 cleanup:
     if (bIsAcquired)
@@ -3157,10 +3215,65 @@ cleanup:
 error:
     if (pNewEntry)
     {
-        LW_SAFE_FREE_MEMORY(pNewEntry->pSid);
-        LwFreeMemory(pNewEntry);
+        LsaDmpFreeUnknownDomainEntry(pNewEntry, bIsBySid);
     }
     goto cleanup;
+}
+
+VOID
+LsaDmpFreeUnknownDomainEntry(
+    IN OUT PLSA_DM_UNKNOWN_DOMAIN_ENTRY pEntry,
+    IN BOOLEAN bIsSidEntry
+    )
+{
+    if (pEntry)
+    {
+        if (bIsSidEntry)
+        {
+            LwFreeMemory(pEntry->pSid);
+        }
+        else
+        {
+            LwFreeMemory(pEntry->pszName);
+        }
+        LwFreeMemory(pEntry);
+    }
+}
+
+BOOLEAN
+LsaDmpIsUnknownDomainSid(
+    IN LSA_DM_STATE_HANDLE Handle,
+    IN PSID pDomainSid
+    )
+{
+    return LsaDmpIsUnknownDomain(Handle, pDomainSid, NULL);
+}
+
+BOOLEAN
+LsaDmpIsUnknownDomainName(
+    IN LSA_DM_STATE_HANDLE Handle,
+    IN PCSTR pszDomainName
+    )
+{
+    return LsaDmpIsUnknownDomain(Handle, NULL, pszDomainName);
+}
+
+DWORD
+LsaDmpCacheUnknownDomainSid(
+    IN LSA_DM_STATE_HANDLE Handle,
+    IN PSID pDomainSid
+    )
+{
+    return LsaDmpCacheUnknownDomain(Handle, pDomainSid, NULL);
+}
+
+DWORD
+LsaDmpCacheUnknownDomainName(
+    IN LSA_DM_STATE_HANDLE Handle,
+    IN PCSTR pszDomainName
+    )
+{
+    return LsaDmpCacheUnknownDomain(Handle, NULL, pszDomainName);
 }
 
 VOID
