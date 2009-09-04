@@ -114,7 +114,7 @@ SrvProcessTrans2QueryPathInformation(
                             &pTrans2State->fileName,
                             pTrans2State->pSecurityDescriptor,
                             pTrans2State->pSecurityQOS,
-                            READ_CONTROL|FILE_READ_ATTRIBUTES,
+                            FILE_READ_ATTRIBUTES,
                             0,
                             FILE_ATTRIBUTE_NORMAL,
                             FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,

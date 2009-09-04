@@ -203,6 +203,8 @@ SrvProcessOplock(
                 BAIL_ON_NT_STATUS(ntStatus);
             }
 
+            InterlockedIncrement(&pOplockState->refCount);
+
             switch (pOplockState->oplockBuffer_out.OplockBreakResult)
             {
                 case IO_OPLOCK_BROKEN_TO_NONE:
@@ -231,7 +233,7 @@ SrvProcessOplock(
                             ucOplockLevel);
             BAIL_ON_NT_STATUS(ntStatus);
 
-	    pOplockState->bBreakRequestSent = TRUE;
+            pOplockState->bBreakRequestSent = TRUE;
 
             switch (SrvFileGetOplockLevel(pFile)) // current op-lock level
             {
@@ -281,6 +283,8 @@ SrvProcessOplock(
 
             if (pOplockState)
             {
+                InterlockedIncrement(&pOplockState->refCount);
+
                 ntStatus = SrvAcknowledgeOplockBreak(pOplockState, FALSE);
                 BAIL_ON_NT_STATUS(ntStatus);
             }

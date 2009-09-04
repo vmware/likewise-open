@@ -696,16 +696,6 @@ PvfsOplockBreakOnCreate(
         goto cleanup;
     }
 
-    /* Check granted access to see if a break is even possible.
-       If no permissions other than the following have been granted,
-       the oplock will not be broken */
-
-    if ( !(pCcb->AccessGranted &
-           ~(READ_CONTROL|FILE_READ_ATTRIBUTES|FILE_WRITE_ATTRIBUTES)))
-    {
-        goto cleanup;
-    }
-
     switch (pOplock->OplockType)
     {
     case IO_OPLOCK_REQUEST_OPLOCK_BATCH:

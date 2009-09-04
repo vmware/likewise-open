@@ -32,6 +32,12 @@
 
 static
 NTSTATUS
+SrvClearOplockState(
+   PSRV_EXEC_CONTEXT pExecContext
+   );
+
+static
+NTSTATUS
 SrvBuildCloseState(
     PCLOSE_REQUEST_HEADER    pRequestHeader,
     PLWIO_SRV_FILE           pFile,
@@ -109,7 +115,6 @@ SrvProcessCloseAndX(
         ULONG ulOffset         = pSmbRequest->usHeaderSize;
         ULONG ulBytesAvailable = pSmbRequest->ulMessageSize - pSmbRequest->usHeaderSize;
         PCLOSE_REQUEST_HEADER pRequestHeader = NULL; // Do not free
-        PSRV_OPLOCK_STATE_SMB_V1 pOplockState = NULL;
 
         ntStatus = SrvConnectionFindSession_SMB_V1(
                         pCtxSmb1,
@@ -139,48 +144,6 @@ SrvProcessCloseAndX(
                         &pFile);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        pOplockState =
-            (PSRV_OPLOCK_STATE_SMB_V1)SrvFileRemoveOplockState(pFile);
-
-        /* Deal with any outstanding oplock issues */
-
-        if (pOplockState)
-        {
-            /* This is an implicit acknowlegdement to any outstanding
-               break requests we sent the client */
-
-            if (pOplockState->bBreakRequestSent)
-            {
-                PSRV_OPLOCK_STATE_SMB_V1 pOplockState2 = NULL;
-
-                if (pOplockState->pTimerRequest)
-                {
-                    SrvTimerCancelRequest(
-                        pOplockState->pTimerRequest,
-                        (PVOID*)&pOplockState2);
-
-                    SrvTimerRelease(pOplockState->pTimerRequest);
-                    pOplockState->pTimerRequest = NULL;
-                }
-
-                ntStatus = SrvAcknowledgeOplockBreak(pOplockState, TRUE);
-                BAIL_ON_NT_STATUS(ntStatus);
-
-                SrvReleaseOplockState(pOplockState);
-                pOplockState = NULL;
-
-            }
-            else
-            {
-                /* Cancel any registered oplock on the file */
-                if (pOplockState->acb.AsyncCancelContext)
-                {
-                    IoCancelAsyncCancelContext(
-                        pOplockState->acb.AsyncCancelContext);
-                }
-            }
-        }
-
         ntStatus = SrvBuildCloseState(
                         pRequestHeader,
                         pFile,
@@ -197,6 +160,9 @@ SrvProcessCloseAndX(
     switch (pCloseState->stage)
     {
         case SRV_CLOSE_STAGE_SMB_V1_INITIAL:
+
+            ntStatus = SrvClearOplockState(pExecContext);
+            BAIL_ON_NT_STATUS(ntStatus);
 
             pCloseState->stage = SRV_CLOSE_STAGE_SMB_V1_SET_INFO_COMPLETED;
 
@@ -383,6 +349,77 @@ error:
     {
         SrvFreeCloseState(pCloseState);
     }
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvClearOplockState(
+   PSRV_EXEC_CONTEXT pExecContext
+   )
+{
+    NTSTATUS                   ntStatus     = STATUS_SUCCESS;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
+    PSRV_CLOSE_STATE_SMB_V1    pCloseState  = NULL;
+    PSRV_OPLOCK_STATE_SMB_V1   pOplockState = NULL;
+
+    pCloseState = (PSRV_CLOSE_STATE_SMB_V1)pCtxSmb1->hState;
+
+    pOplockState = (PSRV_OPLOCK_STATE_SMB_V1)SrvFileRemoveOplockState(
+                                                    pCloseState->pFile);
+
+    /* Deal with any outstanding oplock issues */
+
+    if (pOplockState)
+    {
+        /* This is an implicit acknowlegdement to any outstanding
+           break requests we sent the client */
+
+        if (pOplockState->bBreakRequestSent)
+        {
+            if (pOplockState->pTimerRequest)
+            {
+                PSRV_OPLOCK_STATE_SMB_V1 pOplockState2 = NULL;
+
+                SrvTimerCancelRequest(
+                        pOplockState->pTimerRequest,
+                        (PVOID*)&pOplockState2);
+
+                if (pOplockState2)
+                {
+                    SrvReleaseOplockState(pOplockState2);
+                }
+
+                SrvTimerRelease(pOplockState->pTimerRequest);
+                pOplockState->pTimerRequest = NULL;
+            }
+
+            ntStatus = SrvAcknowledgeOplockBreak(pOplockState, TRUE);
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+        else
+        {
+            /* Cancel any registered oplock on the file */
+            if (pOplockState->acb.AsyncCancelContext)
+            {
+                IoCancelAsyncCancelContext(
+                    pOplockState->acb.AsyncCancelContext);
+            }
+        }
+    }
+
+cleanup:
+
+    if (pOplockState)
+    {
+        SrvReleaseOplockState(pOplockState);
+    }
+
+    return ntStatus;
+
+error:
 
     goto cleanup;
 }

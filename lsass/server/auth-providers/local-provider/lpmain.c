@@ -357,12 +357,13 @@ LocalFindUserByName(
 {
     DWORD dwError = STATUS_SUCCESS;
     PVOID pUserInfo = NULL;
+    PWSTR pwszUserDN = NULL;
 
     dwError = LocalFindUserByNameEx(
                 hProvider,
                 pszLoginId,
                 dwUserInfoLevel,
-                NULL,
+                &pwszUserDN,
                 &pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
