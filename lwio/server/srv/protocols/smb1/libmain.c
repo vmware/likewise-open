@@ -389,11 +389,15 @@ SrvProtocolExecute_SMB_V1(
 
             default:
 
-                ntStatus = SrvBuildErrorResponse_SMB_V1(
-                                pExecContext->pConnection,
-                                pRequest->pHeader,
-                                ntStatus,
-                                pResponse);
+                if (!pExecContext->bInternal)
+                {
+                    ntStatus = SrvBuildErrorResponse_SMB_V1(
+                                    pExecContext->pConnection,
+                                    pRequest->pHeader,
+                                    ntStatus,
+                                    pResponse);
+                }
+
                 break;
         }
         BAIL_ON_NT_STATUS(ntStatus);
@@ -401,8 +405,8 @@ SrvProtocolExecute_SMB_V1(
 	/* Don't set ANDX offsets for failure responses */
 
         if (pResponse->pHeader &&
-	    (pResponse->pHeader->error == STATUS_SUCCESS) &&
-	    pResponse->pAndXHeader)
+	        (pResponse->pHeader->error == STATUS_SUCCESS) &&
+	        pResponse->pAndXHeader)
         {
             pResponse->pAndXHeader->andXOffset = pResponse->ulMessageSize;
         }
