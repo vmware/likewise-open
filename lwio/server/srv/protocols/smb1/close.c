@@ -396,24 +396,24 @@ SrvClearOplockState(
                 pOplockState->pTimerRequest = NULL;
             }
 
-                switch (SrvFileGetOplockLevel(pFile))
-                {
-                    case SMB_OPLOCK_LEVEL_I:
-                    case SMB_OPLOCK_LEVEL_BATCH:
+            switch (SrvFileGetOplockLevel(pCloseState->pFile))
+            {
+                case SMB_OPLOCK_LEVEL_I:
+                case SMB_OPLOCK_LEVEL_BATCH:
 
-                        ntStatus = SrvAcknowledgeOplockBreak(pOplockState, TRUE);
-                        break;
+                    ntStatus = SrvAcknowledgeOplockBreak(pOplockState, TRUE);
+                    break;
 
-                    case SMB_OPLOCK_LEVEL_II:
+                case SMB_OPLOCK_LEVEL_II:
 
-                        ntStatus = STATUS_SUCCESS;
-                        break;
+                    ntStatus = STATUS_SUCCESS;
+                    break;
 
-                    case SMB_OPLOCK_LEVEL_NONE:
-                    default:
+                case SMB_OPLOCK_LEVEL_NONE:
+                default:
 
-                        ntStatus = STATUS_INTERNAL_ERROR;
-                }
+                    ntStatus = STATUS_INTERNAL_ERROR;
+            }
             BAIL_ON_NT_STATUS(ntStatus);
         }
         else
