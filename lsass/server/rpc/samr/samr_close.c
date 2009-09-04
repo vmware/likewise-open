@@ -76,7 +76,7 @@ SamrSrvClose(
         /* Something is seriously wrong if we get a context
            we haven't created */
         ntStatus = STATUS_INTERNAL_ERROR;
-        BAIL_ON_NTSTATUS_ERROR(status);
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
 
     *hOut = NULL;
