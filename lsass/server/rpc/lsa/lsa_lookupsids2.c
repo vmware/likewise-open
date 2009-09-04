@@ -437,6 +437,12 @@ cleanup:
     LW_SAFE_FREE_MEMORY(pdwLocalRids);
     LW_SAFE_FREE_MEMORY(pdwBuiltinRids);
 
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
     return ntStatus;
 
 error:
