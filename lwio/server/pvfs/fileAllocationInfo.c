@@ -160,6 +160,20 @@ PvfsSetFileAllocationInfo(
         ntError = PvfsSetAllocationWithContext(pSetAllocationCtx);
         break;
 
+    case STATUS_OPLOCK_BREAK_IN_PROGRESS:
+        ntError = PvfsPendOplockBreakTest(
+                      pSetAllocationCtx->pCcb->pFcb,
+                      pIrpContext,
+                      pSetAllocationCtx->pCcb,
+                      PvfsSetAllocationWithContext,
+                      PvfsFreeSetAllocationContext,
+                      (PVOID)pSetAllocationCtx);
+        if (ntError == STATUS_SUCCESS) {
+            pSetAllocationCtx = NULL;
+            ntError = STATUS_PENDING;
+        }
+        break;
+
     case STATUS_PENDING:
         ntError = PvfsAddItemPendingOplockBreakAck(
                       pSetAllocationCtx->pCcb->pFcb,

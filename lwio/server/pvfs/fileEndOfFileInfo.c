@@ -160,6 +160,20 @@ PvfsSetFileEndOfFileInfo(
         ntError = PvfsSetEndOfFileWithContext(pSetEoFCtx);
         break;
 
+    case STATUS_OPLOCK_BREAK_IN_PROGRESS:
+        ntError = PvfsPendOplockBreakTest(
+                      pSetEoFCtx->pCcb->pFcb,
+                      pIrpContext,
+                      pSetEoFCtx->pCcb,
+                      PvfsSetEndOfFileWithContext,
+                      PvfsFreeSetEndOfFileContext,
+                      (PVOID)pSetEoFCtx);
+        if (ntError == STATUS_SUCCESS) {
+            pSetEoFCtx = NULL;
+            ntError = STATUS_PENDING;
+        }
+        break;
+
     case STATUS_PENDING:
         ntError = PvfsAddItemPendingOplockBreakAck(
                       pSetEoFCtx->pCcb->pFcb,

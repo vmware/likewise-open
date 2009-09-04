@@ -110,6 +110,20 @@ PvfsWrite(
         ntError = PvfsWriteFileWithContext(pWriteCtx);
         break;
 
+    case STATUS_OPLOCK_BREAK_IN_PROGRESS:
+        ntError = PvfsPendOplockBreakTest(
+                      pWriteCtx->pCcb->pFcb,
+                      pIrpContext,
+                      pWriteCtx->pCcb,
+                      PvfsWriteFileWithContext,
+                      PvfsFreeWriteContext,
+                      (PVOID)pWriteCtx);
+        if (ntError == STATUS_SUCCESS) {
+            pWriteCtx = NULL;
+            ntError = STATUS_PENDING;
+        }
+        break;
+
     case STATUS_PENDING:
         ntError = PvfsAddItemPendingOplockBreakAck(
                       pWriteCtx->pCcb->pFcb,
@@ -148,9 +162,9 @@ PvfsWriteFileWithContext(
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PPVFS_PENDING_WRITE pReadCtx = (PPVFS_PENDING_WRITE)pContext;
-    PIRP pIrp = pReadCtx->pIrpContext->pIrp;
-    PPVFS_CCB pCcb = pReadCtx->pCcb;
+    PPVFS_PENDING_WRITE pWriteCtx = (PPVFS_PENDING_WRITE)pContext;
+    PIRP pIrp = pWriteCtx->pIrpContext->pIrp;
+    PPVFS_CCB pCcb = pWriteCtx->pCcb;
     PVOID pBuffer = pIrp->Args.ReadWrite.Buffer;
     ULONG bufLen = pIrp->Args.ReadWrite.Length;
     ULONG Key = pIrp->Args.ReadWrite.Key ? *pIrp->Args.ReadWrite.Key : 0;

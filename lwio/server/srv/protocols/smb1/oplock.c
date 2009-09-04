@@ -203,8 +203,6 @@ SrvProcessOplock(
                 BAIL_ON_NT_STATUS(ntStatus);
             }
 
-            InterlockedIncrement(&pOplockState->refCount);
-
             switch (pOplockState->oplockBuffer_out.OplockBreakResult)
             {
                 case IO_OPLOCK_BROKEN_TO_NONE:
@@ -260,8 +258,9 @@ SrvProcessOplock(
 
                 case SMB_OPLOCK_LEVEL_II:
 
-                    ntStatus = SrvEnqueueOplockAckTask(pOplockState);
-                    BAIL_ON_NT_STATUS(ntStatus);
+                    /* We're done.  No Ack needed for level2 breaks */
+
+                    ntStatus = STATUS_SUCCESS;
 
                     break;
 
@@ -283,8 +282,6 @@ SrvProcessOplock(
 
             if (pOplockState)
             {
-                InterlockedIncrement(&pOplockState->refCount);
-
                 ntStatus = SrvAcknowledgeOplockBreak(pOplockState, FALSE);
                 BAIL_ON_NT_STATUS(ntStatus);
             }
@@ -312,11 +309,6 @@ cleanup:
     if (pSession)
     {
         SrvSessionRelease(pSession);
-    }
-
-    if (pOplockState)
-    {
-        SrvReleaseOplockState(pOplockState);
     }
 
     return ntStatus;
