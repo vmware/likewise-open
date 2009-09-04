@@ -791,9 +791,9 @@ SamDbAddToGroup(
                         hBindHandle,
                         llGroupRecordId,
                         llMemberRecordId);
-        if (dwError == LW_ERROR_MEMBER_NOT_IN_LOCAL_GROUP)
+        if (dwError == ERROR_MEMBER_NOT_IN_GROUP)
         {
-            dwError = LW_ERROR_SUCCESS;
+            dwError = ERROR_SUCCESS;
         }
         BAIL_ON_SAMDB_ERROR(dwError);
 
@@ -951,9 +951,9 @@ SamDbRemoveFromGroup(
                         hBindHandle,
                         llGroupRecordId,
                         llMemberRecordId);
-        if (dwError == LW_ERROR_MEMBER_IN_LOCAL_GROUP)
+        if (dwError == ERROR_MEMBER_IN_GROUP)
         {
-            dwError = LW_ERROR_SUCCESS;
+            dwError = ERROR_SUCCESS;
         }
         BAIL_ON_SAMDB_ERROR(dwError);
 
@@ -1056,12 +1056,12 @@ SamDbCheckExistingMembership_inlock(
     {
     case 0:
         /* No membership records found - member is not in local group */
-        dwError = LW_ERROR_MEMBER_NOT_IN_LOCAL_GROUP;
+        dwError = ERROR_MEMBER_NOT_IN_GROUP;
         break;
 
     case 1:
         /* One membership record found - member is in local group */
-        dwError = LW_ERROR_MEMBER_IN_LOCAL_GROUP;
+        dwError = ERROR_MEMBER_IN_GROUP;
         break;
 
     default:

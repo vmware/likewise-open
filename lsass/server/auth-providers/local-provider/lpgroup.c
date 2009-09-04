@@ -2390,7 +2390,7 @@ LocalDirModifyGroup(
             BAIL_ON_LSA_ERROR(dwError);
 
             if (dwNumEntries == 0) {
-                dwError = LW_ERROR_MEMBER_NOT_IN_LOCAL_GROUP;
+                dwError = ERROR_MEMBER_NOT_IN_GROUP;
                 BAIL_ON_LSA_ERROR(dwError);
 
             } else if (dwNumEntries > 1) {
