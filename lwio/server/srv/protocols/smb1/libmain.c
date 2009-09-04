@@ -400,7 +400,8 @@ SrvProtocolExecute_SMB_V1(
 
 	/* Don't set ANDX offsets for failure responses */
 
-        if ((pResponse->pHeader->error == STATUS_SUCCESS) &&
+        if (pResponse->pHeader &&
+	    (pResponse->pHeader->error == STATUS_SUCCESS) &&
 	    pResponse->pAndXHeader)
         {
             pResponse->pAndXHeader->andXOffset = pResponse->ulMessageSize;

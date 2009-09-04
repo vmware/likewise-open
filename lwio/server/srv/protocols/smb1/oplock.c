@@ -72,12 +72,6 @@ SrvEnqueueOplockAckTask(
 
 static
 VOID
-SrvReleaseOplockStateHandle(
-    HANDLE hOplockState
-    );
-
-static
-VOID
 SrvFreeOplockState(
     PSRV_OPLOCK_STATE_SMB_V1 pOplockState
     );
@@ -201,21 +195,13 @@ SrvProcessOplock(
         case LW_OPLOCK_ACTION_SEND_BREAK:
 
             pOplockState =
-                    (PSRV_OPLOCK_STATE_SMB_V1)SrvFileRemoveOplockState(pFile);
+                    (PSRV_OPLOCK_STATE_SMB_V1)pFile->hOplockState;
 
             if (!pOplockState)
             {
                 ntStatus = STATUS_INTERNAL_ERROR;
                 BAIL_ON_NT_STATUS(ntStatus);
             }
-
-            ntStatus = pOplockState->ioStatusBlock.Status;
-            if (ntStatus == STATUS_CANCELLED)
-            {
-                ntStatus = STATUS_SUCCESS;
-                goto cleanup;
-            }
-            BAIL_ON_NT_STATUS(ntStatus);
 
             switch (pOplockState->oplockBuffer_out.OplockBreakResult)
             {
@@ -244,6 +230,8 @@ SrvProcessOplock(
                             pOplockState,
                             ucOplockLevel);
             BAIL_ON_NT_STATUS(ntStatus);
+
+	    pOplockState->bBreakRequestSent = TRUE;
 
             switch (SrvFileGetOplockLevel(pFile)) // current op-lock level
             {
@@ -289,19 +277,11 @@ SrvProcessOplock(
         case LW_OPLOCK_ACTION_PROCESS_ACK:
 
             pOplockState =
-                    (PSRV_OPLOCK_STATE_SMB_V1)SrvFileRemoveOplockState(pFile);
+                    (PSRV_OPLOCK_STATE_SMB_V1)pFile->hOplockState;
 
             if (pOplockState)
             {
-                ntStatus = pOplockState->ioStatusBlock.Status;
-                if (ntStatus == STATUS_CANCELLED)
-                {
-                    ntStatus = STATUS_SUCCESS;
-                    goto cleanup;
-                }
-                BAIL_ON_NT_STATUS(ntStatus);
-
-                ntStatus = SrvAcknowledgeOplockBreak(pOplockState);
+                ntStatus = SrvAcknowledgeOplockBreak(pOplockState, FALSE);
                 BAIL_ON_NT_STATUS(ntStatus);
             }
 
@@ -344,7 +324,8 @@ error:
 
 NTSTATUS
 SrvAcknowledgeOplockBreak(
-    PSRV_OPLOCK_STATE_SMB_V1 pOplockState
+    PSRV_OPLOCK_STATE_SMB_V1 pOplockState,
+    BOOLEAN bFileIsClosed
     )
 {
     NTSTATUS ntStatus      = STATUS_SUCCESS;
@@ -379,7 +360,14 @@ SrvAcknowledgeOplockBreak(
             break;
     }
 
-    pOplockState->oplockBuffer_ack.Response = IO_OPLOCK_BREAK_ACKNOWLEDGE;
+    if (bFileIsClosed)
+    {
+        pOplockState->oplockBuffer_ack.Response = IO_OPLOCK_BREAK_CLOSE_PENDING;
+    }
+    else
+    {
+        pOplockState->oplockBuffer_ack.Response = IO_OPLOCK_BREAK_ACKNOWLEDGE;
+    }
 
     SrvPrepareOplockStateAsync(pOplockState);
 
@@ -387,7 +375,7 @@ SrvAcknowledgeOplockBreak(
                     pFile->hFile,
                     pOplockState->pAcb,
                     &pOplockState->ioStatusBlock,
-                    IO_FSCTL_OPLOCK_REQUEST,
+                    IO_FSCTL_OPLOCK_BREAK_ACK,
                     &pOplockState->oplockBuffer_ack,
                     sizeof(pOplockState->oplockBuffer_ack),
                     &pOplockState->oplockBuffer_out,
@@ -588,7 +576,6 @@ error:
     goto cleanup;
 }
 
-static
 VOID
 SrvReleaseOplockStateHandle(
     HANDLE hOplockState
@@ -675,6 +662,14 @@ SrvOplockAsyncCB(
     BOOLEAN                  bInLock      = FALSE;
     PLWIO_SRV_FILE           pFile        = NULL;
 
+    /* Nothing to do if this was cancelled */
+
+    if (pOplockState->ioStatusBlock.Status == STATUS_CANCELLED)
+    {
+        ntStatus = STATUS_SUCCESS;
+        goto cleanup;
+    }
+
     LWIO_LOCK_MUTEX(bInLock, &pOplockState->mutex);
 
     if (pOplockState->pAcb->AsyncCancelContext)
@@ -686,6 +681,10 @@ SrvOplockAsyncCB(
     pOplockState->pAcb = NULL;
 
     LWIO_UNLOCK_MUTEX(bInLock, &pOplockState->mutex);
+
+    ntStatus = pOplockState->ioStatusBlock.Status;
+    BAIL_ON_NT_STATUS(ntStatus);
+
 
     ntStatus = SrvTreeFindFile(
                     pOplockState->pTree,
@@ -699,11 +698,13 @@ SrvOplockAsyncCB(
                     &pExecContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
+#if 0
     ntStatus = SrvFileSetOplockState(
                     pFile,
                     pOplockState,
                     &SrvReleaseOplockStateHandle);
     BAIL_ON_NT_STATUS(ntStatus);
+#endif
 
     InterlockedIncrement(&pOplockState->refCount);
 
@@ -892,3 +893,13 @@ SrvReleaseOplockStateAsync(
         pOplockState->pAcb = NULL;
     }
 }
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

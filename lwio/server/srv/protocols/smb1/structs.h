@@ -99,6 +99,7 @@ typedef struct _SRV_OPLOCK_STATE_SMB_V1
     PLWIO_SRV_TREE          pTree;
 
     USHORT                  usFid;
+    BOOLEAN                 bBreakRequestSent;
 
     PSRV_TIMER_REQUEST      pTimerRequest;
 
