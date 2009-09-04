@@ -2236,34 +2236,46 @@ LocalDirModifyGroup(
                 dwError = LsaMbsToWc16s(pszDN, &pwszDN);
                 BAIL_ON_LSA_ERROR(dwError);
             }
-            else
-            {
-                dwError = LocalDirCreateForeignPrincipalDN(hProvider,
-                                                           pwszSID,
-                                                           &pwszDN);
-                BAIL_ON_LSA_ERROR(dwError);
-            }
 
             dwFilterLen = (sizeof(wszAttrObjectClass) - 2) +
                            10 +
                           (sizeof(wszAttrObjectClass) - 2) +
                            10 +
                           (sizeof(wszAttrObjectSid) - 2) +
-                          (wc16slen(pwszSID) * sizeof(WCHAR)) +
-                          (sizeof(wszAttrDistinguishedName) - 2) +
-                          (wc16slen(pwszDN) * sizeof(WCHAR)) +
-                          sizeof(wszFilterFmt);
+                          (wc16slen(pwszSID) * sizeof(WCHAR));
+            if (pwszDN)
+            {
+                dwFilterLen += (sizeof(wszAttrDistinguishedName) - 2) +
+                               (wc16slen(pwszDN) * sizeof(WCHAR)) +
+                               sizeof(wszFilterFmt);
+            }
+            else
+            {
+                dwFilterLen += sizeof(wszFilterFmtSidOnly);
+            }
+
 
             dwError = LwAllocateMemory(
                         dwFilterLen,
                         (PVOID*)&pwszFilter);
             BAIL_ON_LSA_ERROR(dwError);
 
-            sw16printfw(pwszFilter, dwFilterLen/sizeof(WCHAR), wszFilterFmt,
-                        wszAttrObjectClass, dwObjectClassGroupMember,
-                        wszAttrObjectClass, dwObjectClassLocalUser,
-                        wszAttrObjectSid, pwszSID,
-                        wszAttrDistinguishedName, pwszDN);
+            if (pwszDN)
+            {
+                sw16printfw(pwszFilter, dwFilterLen/sizeof(WCHAR), wszFilterFmt,
+                            wszAttrObjectClass, dwObjectClassGroupMember,
+                            wszAttrObjectClass, dwObjectClassLocalUser,
+                            wszAttrObjectSid, pwszSID,
+                            wszAttrDistinguishedName, pwszDN);
+            }
+            else
+            {
+                sw16printfw(pwszFilter, dwFilterLen/sizeof(WCHAR),
+                            wszFilterFmtSidOnly,
+                            wszAttrObjectClass, dwObjectClassGroupMember,
+                            wszAttrObjectClass, dwObjectClassLocalUser,
+                            wszAttrObjectSid, pwszSID);
+            }
 
             dwError = DirectorySearch(
                         pContext->hDirectory,
@@ -2277,6 +2289,11 @@ LocalDirModifyGroup(
             BAIL_ON_LSA_ERROR(dwError);
 
             if (dwNumEntries == 0) {
+                dwError = LocalDirCreateForeignPrincipalDN(hProvider,
+                                                           pwszSID,
+                                                           &pwszDN);
+                BAIL_ON_LSA_ERROR(dwError);
+
                 MemberMods[GRP_MEMBER_IDX_DN].pAttrValues[0].data.pwszStringValue = pwszDN;
                 MemberMods[GRP_MEMBER_IDX_SID].pAttrValues[0].data.pwszStringValue = pwszSID;
 
