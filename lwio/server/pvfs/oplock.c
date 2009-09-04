@@ -433,6 +433,24 @@ PvfsOplockBreakIfLocked(
                       PVFS_OPLOCK_RECORD,
                       Oplocks);
 
+        /* Just removed the oplock record if the IRP was cancelled
+           such as when a file is closed */
+
+        if (pOplock->pIrpContext->bIsCancelled)
+        {
+            pNextLink = LwListTraverse(&pFcb->OplockList, pOplockLink);
+            LwListRemove(pOplockLink);
+            pOplockLink = pNextLink;
+
+            pOplock->pIrpContext->pIrp->IoStatusBlock.Status = STATUS_CANCELLED;
+            IoIrpComplete(pOplock->pIrpContext->pIrp);
+            PvfsFreeIrpContext(&pOplock->pIrpContext);
+
+            PvfsFreeOplockRecord(&pOplock);
+
+            continue;
+        }
+
         /* Do we need to break? */
 
         switch (pIrpContext->pIrp->Type)
