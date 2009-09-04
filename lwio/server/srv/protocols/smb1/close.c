@@ -216,6 +216,8 @@ SrvProcessCloseAndX(
 
         case SRV_CLOSE_STAGE_SMB_V1_ATTEMPT_CLOSE:
 
+            SrvFileResetOplockState(pCloseState->pFile);
+
             ntStatus = SrvTreeRemoveFile(
                             pCtxSmb1->pTree,
                             pCloseState->pFile->fid);

@@ -80,7 +80,8 @@ PvfsFreeFCB(
     RtlCStringFree(&pFcb->pszFilename);
 
     pthread_mutex_destroy(&pFcb->ControlBlock);
-    pthread_rwlock_destroy(&pFcb->rwLock);
+    pthread_mutex_destroy(&pFcb->mutexOplock);
+    pthread_rwlock_destroy(&pFcb->rwCcbLock);
     pthread_rwlock_destroy(&pFcb->rwBrlLock);
 
     LwRtlQueueDestroy(&pFcb->pPendingLockQueue);
@@ -165,7 +166,8 @@ PvfsAllocateFCB(
     /* Initialize mutexes and refcounts */
 
     pthread_mutex_init(&pFcb->ControlBlock, NULL);
-    pthread_rwlock_init(&pFcb->rwLock, NULL);
+    pthread_mutex_init(&pFcb->mutexOplock, NULL);
+    pthread_rwlock_init(&pFcb->rwCcbLock, NULL);
     pthread_rwlock_init(&pFcb->rwBrlLock, NULL);
 
     /* Add initial ref count */
@@ -538,7 +540,7 @@ PvfsAddCCBToFCB(
                                  sizeof(PVFS_CCB_LIST_NODE));
     BAIL_ON_NT_STATUS(ntError);
 
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bFcbWriteLocked, &pFcb->rwLock);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bFcbWriteLocked, &pFcb->rwCcbLock);
 
     /* Add to the front of the list */
 
@@ -551,7 +553,7 @@ PvfsAddCCBToFCB(
     pFcb->pCcbList  = pCcbNode;
     pFcb->CcbCount++;
 
-    LWIO_UNLOCK_RWMUTEX(bFcbWriteLocked, &pFcb->rwLock);
+    LWIO_UNLOCK_RWMUTEX(bFcbWriteLocked, &pFcb->rwCcbLock);
 
     pCcb->pFcb = pFcb;
 
@@ -578,7 +580,7 @@ PvfsRemoveCCBFromFCB(
     PPVFS_CCB_LIST_NODE pTmp = NULL;
     BOOLEAN bFcbWriteLocked = FALSE;
 
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bFcbWriteLocked, &pFcb->rwLock);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bFcbWriteLocked, &pFcb->rwCcbLock);
 
     for (pCursor=pFcb->pCcbList; pCursor; pCursor = pCursor->pNext)
     {
@@ -612,7 +614,7 @@ PvfsRemoveCCBFromFCB(
     ntError = STATUS_SUCCESS;
 
 cleanup:
-    LWIO_UNLOCK_RWMUTEX(bFcbWriteLocked, &pFcb->rwLock);
+    LWIO_UNLOCK_RWMUTEX(bFcbWriteLocked, &pFcb->rwCcbLock);
 
     return ntError;
 
@@ -725,12 +727,12 @@ PvfsAddItemPendingOplockBreakAck(
     pPendingOp->pfnFreeContext = pfnFreeContext;
     pPendingOp->pCompletionContext = pCompletionContext;
 
-    LWIO_LOCK_MUTEX(bLocked, &pFcb->ControlBlock);
+    LWIO_LOCK_MUTEX(bLocked, &pFcb->mutexOplock);
 
     ntError = LwRtlQueueAddItem(pFcb->pOplockPendingOpsQueue,
                                 (PVOID)pPendingOp);
 
-    LWIO_UNLOCK_MUTEX(bLocked, &pFcb->ControlBlock);
+    LWIO_UNLOCK_MUTEX(bLocked, &pFcb->mutexOplock);
 
     BAIL_ON_NT_STATUS(ntError);
 
@@ -755,7 +757,7 @@ PvfsFileHasOtherOpens(
     BOOLEAN bNonSelfOpen = FALSE;
     BOOLEAN bFcbReadLocked = FALSE;
 
-    LWIO_LOCK_RWMUTEX_SHARED(bFcbReadLocked, &pFcb->rwLock);
+    LWIO_LOCK_RWMUTEX_SHARED(bFcbReadLocked, &pFcb->rwCcbLock);
 
     for (pCursor = PvfsNextCCBFromList(pFcb, pCursor);
          pCursor;
@@ -769,7 +771,7 @@ PvfsFileHasOtherOpens(
         }
     }
 
-    LWIO_UNLOCK_RWMUTEX(bFcbReadLocked, &pFcb->rwLock);
+    LWIO_UNLOCK_RWMUTEX(bFcbReadLocked, &pFcb->rwCcbLock);
 
     return bNonSelfOpen;
 }

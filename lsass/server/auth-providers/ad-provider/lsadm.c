@@ -940,10 +940,26 @@ LsaDmIsUnknownDomainSid(
     return LsaDmpIsUnknownDomainSid(gLsaDmState, pDomainSid);
 }
 
+BOOLEAN
+LsaDmIsUnknownDomainName(
+    IN PCSTR pszDomainName
+    )
+{
+    return LsaDmpIsUnknownDomainName(gLsaDmState, pszDomainName);
+}
+
 DWORD
 LsaDmCacheUnknownDomainSid(
     IN PSID pDomainSid
     )
 {
     return LsaDmpCacheUnknownDomainSid(gLsaDmState, pDomainSid);
+}
+
+DWORD
+LsaDmCacheUnknownDomainName(
+    IN PCSTR pszDomainName
+    )
+{
+    return LsaDmpCacheUnknownDomainName(gLsaDmState, pszDomainName);
 }

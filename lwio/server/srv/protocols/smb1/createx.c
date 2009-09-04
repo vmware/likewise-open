@@ -459,13 +459,13 @@ SrvRequestCreateXOplocks(
                     &pOplockState);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    if (pCreateState->pRequestHeader->flags & SMB_OPLOCK_REQUEST_EXCLUSIVE)
-    {
-        pOplockCursor = &exclOplockChain[0];
-    }
-    else if (pCreateState->pRequestHeader->flags & SMB_OPLOCK_REQUEST_BATCH)
+    if (pCreateState->pRequestHeader->flags & SMB_OPLOCK_REQUEST_BATCH)
     {
         pOplockCursor = &batchOplockChain[0];
+    }
+    else if (pCreateState->pRequestHeader->flags & SMB_OPLOCK_REQUEST_EXCLUSIVE)
+    {
+        pOplockCursor = &exclOplockChain[0];
     }
     else
     {
@@ -480,7 +480,7 @@ SrvRequestCreateXOplocks(
         SrvPrepareOplockStateAsync(pOplockState);
 
         ntStatus = IoFsControlFile(
-                        pOplockState->pFile->hFile,
+                        pCreateState->pFile->hFile,
                         pOplockState->pAcb,
                         &pOplockState->ioStatusBlock,
                         IO_FSCTL_OPLOCK_REQUEST,
@@ -501,7 +501,7 @@ SrvRequestCreateXOplocks(
             case STATUS_PENDING:
 
                 SrvFileSetOplockLevel(
-                        pOplockState->pFile,
+                        pCreateState->pFile,
                         pOplockCursor->oplockLevel);
 
                 ntStatus = STATUS_SUCCESS;
@@ -906,6 +906,8 @@ SrvFreeCreateState(
     if (pCreateState->bRemoveFileFromTree)
     {
         NTSTATUS ntStatus2 = 0;
+
+        SrvFileResetOplockState(pCreateState->pFile);
 
         ntStatus2 = SrvTreeRemoveFile(
                         pCreateState->pTree,

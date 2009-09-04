@@ -300,10 +300,22 @@ LsaDmpIsUnknownDomainSid(
     IN PSID pDomainSid
     );
 
+BOOLEAN
+LsaDmpIsUnknownDomainName(
+    IN LSA_DM_STATE_HANDLE Handle,
+    IN PCSTR pszDomainName
+    );
+
 DWORD
 LsaDmpCacheUnknownDomainSid(
     IN LSA_DM_STATE_HANDLE Handle,
     IN PSID pDomainSid
+    );
+
+DWORD
+LsaDmpCacheUnknownDomainName(
+    IN LSA_DM_STATE_HANDLE Handle,
+    IN PCSTR pszDomainName
     );
 
 VOID

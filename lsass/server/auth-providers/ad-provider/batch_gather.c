@@ -612,11 +612,13 @@ LsaAdBatchGatherRealUser(
                     &pItem->UserInfo.UserAccountControl);
     if (dwError == LW_ERROR_INVALID_LDAP_ATTR_VALUE)
     {
-        LSA_LOG_ERROR(
+        LSA_LOG_VERBOSE(
                 "User %s has an invalid value for the userAccountControl"
                 " attribute. Please check that it is set and that the "
-                "machine account has permission to read it.",
-                pItem->pszSid);
+                "machine account has permission to read it. Assuming 0x%x",
+                pItem->pszSid, LSA_AD_UF_DEFAULT);
+        pItem->UserInfo.UserAccountControl = LSA_AD_UF_DEFAULT;
+        dwError = 0;
     }
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -625,6 +627,16 @@ LsaAdBatchGatherRealUser(
                     pMessage,
                     AD_LDAP_ACCOUT_EXP_TAG,
                     &pItem->UserInfo.AccountExpires);
+    if (dwError == LW_ERROR_INVALID_LDAP_ATTR_VALUE)
+    {
+        LSA_LOG_VERBOSE(
+                "User %s has an invalid value for the accountExpires"
+                " attribute. Please check that it is set and that the "
+                "machine account has permission to read it.",
+                pItem->pszSid);
+        pItem->UserInfo.AccountExpires = 0;
+        dwError = 0;
+    }
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LwLdapGetUInt64(
@@ -632,6 +644,15 @@ LsaAdBatchGatherRealUser(
                     pMessage,
                     AD_LDAP_PWD_LASTSET_TAG,
                     &pItem->UserInfo.PasswordLastSet);
+    if (dwError == LW_ERROR_INVALID_LDAP_ATTR_VALUE)
+    {
+        LSA_LOG_VERBOSE(
+                "User %s has an invalid value for the passwordLastSet"
+                " attribute. Please check that it is set and that the "
+                "machine account has permission to read it.",
+                pItem->pszSid);
+        dwError = ADGetCurrentNtTime(&pItem->UserInfo.PasswordLastSet);
+    }
     BAIL_ON_LSA_ERROR(dwError);
 
     SetFlag(pItem->Flags, LSA_AD_BATCH_ITEM_FLAG_ACCOUNT_INFO_KNOWN);

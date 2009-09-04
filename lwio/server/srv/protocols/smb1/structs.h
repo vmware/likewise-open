@@ -97,7 +97,8 @@ typedef struct _SRV_OPLOCK_STATE_SMB_V1
     PLWIO_SRV_CONNECTION    pConnection;
     PLWIO_SRV_SESSION       pSession;
     PLWIO_SRV_TREE          pTree;
-    PLWIO_SRV_FILE          pFile;
+
+    USHORT                  usFid;
 
     PSRV_TIMER_REQUEST      pTimerRequest;
 

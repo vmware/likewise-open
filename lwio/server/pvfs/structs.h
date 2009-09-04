@@ -246,32 +246,43 @@ typedef struct _PVFS_FILE_ID
 struct _PVFS_FCB
 {
     LONG RefCount;
+
+    /* ControlBlock */
     pthread_mutex_t ControlBlock;   /* For ensuring atomic operations
                                        on an individual FCB */
-    pthread_rwlock_t rwLock;        /* For managing the CCB list */
-    pthread_rwlock_t rwBrlLock;     /* For managing the LockTable in
-                                       the CCB list */
-
     PSTR pszFilename;
     PVFS_FILE_ID FileId;
     LONG64 LastWriteTime;          /* Saved mode time from SET_FILE_INFO */
     BOOLEAN bDeleteOnClose;
+    /* End ControlBlock */
+
+
+    /* rwCcbLock */
+    pthread_rwlock_t rwCcbLock;     /* For managing the CCB list */
 
     LONG CcbCount;
     PPVFS_CCB_LIST_NODE pCcbList;
+    /* End rwCcbLock */
 
+    /* rwBrlLock */
+    pthread_rwlock_t rwBrlLock;     /* For managing the LockTable in
+                                       the CCB list, the pendingLockqueue,
+                                       and the LastFailedLock entry */
     PVFS_LOCK_ENTRY LastFailedLock;
     PPVFS_CCB pLastFailedLockOwner;   /* Never reference, only used
                                          to match pointer */
+    PLWRTL_QUEUE pPendingLockQueue;
+    /* End rwBrlLock */
 
-    /* File Object state information */
 
+    /* mutexOplock */
+    pthread_mutex_t  mutexOplock;   /* Managing oplock lists */
     LW_LIST_LINKS OplockList;
     BOOLEAN bOplockBreakInProgress;
 
-    PLWRTL_QUEUE pPendingLockQueue;
     PLWRTL_QUEUE pOplockPendingOpsQueue;
     PLWRTL_QUEUE pOplockReadyOpsQueue;
+    /* End mutexOplock */
 
 };
 

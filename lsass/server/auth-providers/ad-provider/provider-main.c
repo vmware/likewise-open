@@ -562,6 +562,22 @@ AD_AuthenticateUserEx(
 {
     DWORD dwError = LW_ERROR_INTERNAL;
 
+    if (pUserParams->pszDomain)
+    {
+        BOOLEAN bFoundDomain = FALSE;
+
+        dwError = AD_ServicesDomainWithDiscovery(
+                        pUserParams->pszDomain,
+                        &bFoundDomain);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        if (!bFoundDomain)
+        {
+            dwError = LW_ERROR_NOT_HANDLED;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+    }
+
     dwError = LsaDmWrapAuthenticateUserEx(
                       gpADProviderData->szDomain,
                       pUserParams,

@@ -1333,7 +1333,6 @@ error:
     goto cleanup;
 }
 
-static
 DWORD
 AD_ServicesDomainWithDiscovery(
     IN PCSTR pszNetBiosName,
@@ -1567,7 +1566,8 @@ AD_OnlineAuthenticateUser(
                     &bFoundDomain);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (!bFoundDomain) {
+    if (!bFoundDomain)
+    {
         dwError = LW_ERROR_NOT_HANDLED;
         BAIL_ON_LSA_ERROR(dwError);
     }

@@ -542,9 +542,19 @@ LsaDmIsUnknownDomainSid(
     IN PSID pDomainSid
     );
 
+BOOLEAN
+LsaDmIsUnknownDomainName(
+    IN PCSTR pszDomainName
+    );
+
 DWORD
 LsaDmCacheUnknownDomainSid(
     IN PSID pDomainSid
+    );
+
+DWORD
+LsaDmCacheUnknownDomainName(
+    IN PCSTR pszDomainName
     );
 
 /// @} lsa_om
