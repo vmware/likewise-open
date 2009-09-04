@@ -698,16 +698,6 @@ SrvOplockAsyncCB(
                     &pExecContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
-#if 0
-    ntStatus = SrvFileSetOplockState(
-                    pFile,
-                    pOplockState,
-                    &SrvReleaseOplockStateHandle);
-    BAIL_ON_NT_STATUS(ntStatus);
-#endif
-
-    InterlockedIncrement(&pOplockState->refCount);
-
     ntStatus = SrvProdConsEnqueue(
                     gProtocolGlobals_SMB_V1.pWorkQueue,
                     pExecContext);

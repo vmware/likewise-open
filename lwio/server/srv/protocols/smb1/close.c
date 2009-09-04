@@ -158,10 +158,6 @@ SrvProcessCloseAndX(
                     SrvTimerCancelRequest(
                         pOplockState->pTimerRequest,
                         (PVOID*)&pOplockState2);
-                    if (pOplockState2 != pOplockState)
-                    {
-                        SrvReleaseOplockState(pOplockState2);
-                    }
 
                     SrvTimerRelease(pOplockState->pTimerRequest);
                     pOplockState->pTimerRequest = NULL;
@@ -169,6 +165,10 @@ SrvProcessCloseAndX(
 
                 ntStatus = SrvAcknowledgeOplockBreak(pOplockState, TRUE);
                 BAIL_ON_NT_STATUS(ntStatus);
+
+                SrvReleaseOplockState(pOplockState);
+                pOplockState = NULL;
+
             }
             else
             {
