@@ -1,3 +1,49 @@
+/* Editor Settings: expandtabs and use 4 spaces for indentation
+ * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+ */
+
+/*
+ * Copyright Likewise Software    2004-2009
+ * All rights reserved.
+ *
+ * This library is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation; either version 2.1 of the license, or (at
+ * your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
+ * General Public License for more details.  You should have received a copy
+ * of the GNU Lesser General Public License along with this program.  If
+ * not, see <http://www.gnu.org/licenses/>.
+ *
+ * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
+ * TERMS AS WELL.  IF YOU HAVE ENTERED INTO A SEPARATE LICENSE AGREEMENT
+ * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
+ * TERMS OF THAT SOFTWARE LICENSE AGREEMENT INSTEAD OF THE TERMS OF THE GNU
+ * LESSER GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
+ * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
+ * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
+ * license@likewisesoftware.com
+ */
+
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        samrdefs.h
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Server Interface
+ *
+ *        Samr rpc server definitions
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
+ */
+
 #ifndef _SAMRSRVDEFS_H_
 #define _SAMRSRVDEFS_H_
 
@@ -20,10 +66,10 @@ typedef void* ACCOUNT_HANDLE;
 #endif
 
 
-#define LSA_CFG_TAG_RPC_SERVER                 "rpc server"
-#define LSA_CFG_TAG_SAMR_RPC_SERVER            "samr"
-#define LSA_CFG_TAG_AUTH_PROVIDER              "auth provider"
-#define LSA_CFG_TAG_LOCAL_PROVIDER             "lsa-local-provider"
+#define LSA_CFG_TAG_RPC_SERVER                   "rpc server"
+#define LSA_CFG_TAG_SAMR_RPC_SERVER              "samr"
+#define LSA_CFG_TAG_AUTH_PROVIDER                "auth provider"
+#define LSA_CFG_TAG_LOCAL_PROVIDER               "lsa-local-provider"
 
 #define LSA_RPC_DIR                              CACHEDIR "/rpc"
 
@@ -148,9 +194,12 @@ typedef void* ACCOUNT_HANDLE;
 
 #define BAIL_ON_NTSTATUS_ERROR(status)                   \
     do {                                                 \
-        if ((ntStatus) != STATUS_SUCCESS) {              \
-            LSA_LOG_ERROR("Error: NTSTATUS = 0x%08x",    \
-                          (ntStatus));                   \
+        if ((status) != STATUS_SUCCESS) {                \
+            LSA_LOG_DEBUG("Error at %s:%d code: %s "     \
+                          "(0x%08x)",                    \
+                          __FILE__, __LINE__,            \
+                          LwNtStatusToName((status)),    \
+                          (status));                     \
             goto error;                                  \
         }                                                \
     } while (0)
@@ -182,31 +231,6 @@ typedef void* ACCOUNT_HANDLE;
         if (!(cond)) {                                   \
             ntStatus = STATUS_INVALID_PARAMETER;         \
             LSA_LOG_ERROR("Error: invalid parameter");   \
-            goto error;                                  \
-        }                                                \
-    } while (0)
-
-
-
-#ifdef BAIL_ON_LSA_ERROR
-#undef BAIL_ON_LSA_ERROR
-#endif
-
-
-#define BAIL_ON_LSA_ERROR(err)                           \
-    do {                                                 \
-        if ((err) != 0) {                                \
-            switch ((err)) {                             \
-            case LW_ERROR_SAM_DATABASE_ERROR:            \
-                ntStatus = STATUS_SAM_INIT_FAILURE;      \
-                break;                                   \
-                                                         \
-            default:                                     \
-                ntStatus = STATUS_UNSUCCESSFUL;          \
-            }                                            \
-                                                         \
-            LSA_LOG_ERROR("Error at %s:%d [code: %d]",   \
-                          __FILE__, __LINE__, (err));    \
             goto error;                                  \
         }                                                \
     } while (0)
