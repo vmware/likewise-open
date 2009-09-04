@@ -318,10 +318,14 @@ LsaModifyGroup_AddMembers(
         pszSID  = ppszMember[1];
         iMember = pGroupModInfo->dwAddMembersNum - 1;
 
-        dwError = LwAllocateString(
-                    pszDN,
-                    &pGroupModInfo->pAddMembers[iMember].pszDN);
-        BAIL_ON_LSA_ERROR(dwError);
+        /* DN is optional - we could be adding foreign security principal
+           we have no knowledge about the DN of */
+        if (pszDN) {
+            dwError = LwAllocateString(
+                        pszDN,
+                        &pGroupModInfo->pAddMembers[iMember].pszDN);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
 
         dwError = LwAllocateString(
                     pszSID,
