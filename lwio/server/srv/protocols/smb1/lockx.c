@@ -348,7 +348,7 @@ error:
 
             SrvClearLocks(pLockState);
 
-            ntStatus = STATUS_LOCK_NOT_GRANTED;
+            // ntStatus = STATUS_LOCK_NOT_GRANTED;
 
             break;
     }
