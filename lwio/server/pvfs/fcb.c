@@ -733,7 +733,14 @@ PvfsAddItemPendingOplockBreakAck(
                                 (PVOID)pPendingOp);
     BAIL_ON_NT_STATUS(ntError);
 
-    IoIrpMarkPending(pIrpContext->pIrp, PvfsCancelIrp, pIrpContext);
+    /* Some calls such as LockControl may have already been
+       pended before this block */
+
+    if (!pIrpContext->bIsPended)
+    {
+        IoIrpMarkPending(pIrpContext->pIrp, PvfsCancelIrp, pIrpContext);
+        pIrpContext->bIsPended = TRUE;
+    }
 
 cleanup:
     LWIO_UNLOCK_MUTEX(bLocked, &pFcb->mutexOplock);

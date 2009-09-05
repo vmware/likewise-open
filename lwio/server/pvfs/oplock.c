@@ -141,6 +141,7 @@ PvfsOplockRequest(
         pIrpContext->pIrp,
         PvfsCancelOplockRequestIrp,
         pIrpContext);
+    pIrpContext->bIsPended = TRUE;
 
     ntError = STATUS_PENDING;
 
@@ -319,6 +320,7 @@ cleanup:
             pIrpContext->pIrp,
             PvfsCancelOplockRequestIrp,
             pIrpContext);
+        pIrpContext->bIsPended = TRUE;
 
         ntError = STATUS_PENDING;
     }
