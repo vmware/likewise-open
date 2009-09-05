@@ -174,4 +174,11 @@
 #include <libgen.h>
 #endif
 
+#if HAVE_EXECINFO_H
+#include <execinfo.h>
+#endif
+#if HAVE_SYS_REGSET_H
+#include <sys/regset.h>
+#endif
+
 #endif

@@ -799,6 +799,7 @@ AC_CHECK_HEADERS([sys/sysctl.h sys/user.h pwd.h stdio.h grp.h sys/wait.h libgen.
 AC_CHECK_HEADERS([security/pam_appl.h], ,
     [AC_CHECK_HEADERS([pam/pam_appl.h], ,
         [AC_MSG_ERROR([No PAM header files found])])])
+AC_CHECK_HEADERS([execinfo.h sys/regset.h])
 
 AC_PATH_PROG([IDL], [dceidl], [no], [$PATH:$DCERPC_PATH])
 
@@ -842,7 +843,7 @@ AC_CHECK_FUNCS([strtoll __strtoll strtoull __strtoull strtol strtoul])
 AC_CHECK_FUNCS([strchr strerror strerror_r])
 AC_CHECK_FUNCS([vsyslog rpl_realloc rpl_malloc])
 AC_CHECK_FUNCS([clock_gettime clock_settime settimeofday gettimeofday timegm])
-AC_CHECK_FUNCS([getgrouplist sysinfo])
+AC_CHECK_FUNCS([getgrouplist sysinfo backtrace])
 LDFLAGS="$old_LDFLAGS"
 AC_CHECK_DECLS([isblank], [], [], [#include <ctype.h>])
 AC_CHECK_TYPES([wchar16_t], [], [], [AC_INCLUDES_DEFAULT
