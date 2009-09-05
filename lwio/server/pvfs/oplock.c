@@ -417,12 +417,31 @@ PvfsOplockBreakIfLocked(
 
     LWIO_LOCK_MUTEX(bFcbLocked, &pFcb->mutexOplock);
 
-    /* The caller must treat an OPLOCK_BREAK_IN_PROGRESS just as if
-       it were a new break and pend the IRP's remaining work. */
+    /*
+       An OplockBreakInProgress means we are waiting for an acknowledgement.
+       The caller must treat an OPLOCK_BREAK_IN_PROGRESS just as if it were
+       a new break and pend the IRP's remaining work (including this test
+       again).
+
+       However, the handle on which the break is currently in progress is ok
+       and should be give full access without blocking or retriggering another
+       round of break prcessing.  Since We only set the OplockBreakInProgress
+       flag when breaking a batch/level1 oplock, if the CCB's own
+       bOplockBreakInProgress flag is set, then we assume that it is in fact
+       this handle that matches.  The alternative solution is to store a
+       pointer to the associated "breaking" CCBs in the FCB and compare handles.
+
+       PS: Lock requests were seen during the oplock break processing using
+       MS PowerPoint 2007.
+    */
 
     if (pFcb->bOplockBreakInProgress)
     {
-        ntBreakStatus = STATUS_OPLOCK_BREAK_IN_PROGRESS;
+        if (pCcb->bOplockBreakInProgress == TRUE) {
+            ntError = STATUS_SUCCESS;
+        } else {
+            ntError = STATUS_OPLOCK_BREAK_IN_PROGRESS;
+        }
         goto cleanup;
     }
 
