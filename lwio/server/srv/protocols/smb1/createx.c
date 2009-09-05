@@ -240,7 +240,7 @@ SrvProcessNTCreateAndX(
         case SRV_CREATE_STAGE_SMB_V1_REQUEST_OPLOCK:
 
             ntStatus = SrvRequestCreateXOplocks(pExecContext);
-            BAIL_ON_NT_STATUS(ntStatus);
+            // We don't fail to if the oplock cannot be granted
 
             pCreateState->stage = SRV_CREATE_STAGE_SMB_V1_QUERY_INFO_COMPLETED;
 

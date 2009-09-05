@@ -164,6 +164,8 @@ PvfsLockControl(
             BAIL_ON_NT_STATUS(ntError);
             break;
         }
+        BAIL_ON_NT_STATUS(ntError);
+        break;
 
     case IO_LOCK_CONTROL_UNLOCK:
         ntError = PvfsUnlockFile(pCcb, FALSE, Key, Offset, Length);

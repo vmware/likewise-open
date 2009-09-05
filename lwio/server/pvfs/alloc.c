@@ -154,6 +154,7 @@ PvfsAllocateIrpContext(
     pthread_cond_init(&pIrpContext->Event, NULL);
 
     pIrpContext->bIsCancelled = FALSE;
+    pIrpContext->bIsPended = FALSE;
 
     pIrpContext->pIrp = pIrp;
 

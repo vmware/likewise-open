@@ -341,6 +341,7 @@ struct _PVFS_IRP_CONTEXT
     pthread_cond_t  Event;    /* synchronize point for worker threads */
 
     BOOLEAN bIsCancelled;
+    BOOLEAN bIsPended;
 
     PIRP pIrp;
 

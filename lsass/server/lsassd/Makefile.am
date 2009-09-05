@@ -47,6 +47,7 @@ liblsamain_la_SOURCES = \
         globals.c    \
         listener.c   \
         libmain.c    \
+        backtrace.c  \
         sighandler.c
 
 liblsamain_la_LIBADD = $(MAIN_LIBS)

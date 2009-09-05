@@ -205,9 +205,9 @@ LsaAdBatchMarshalUserInfoPasswordLastSet(
     UINT64 currentNtTime = 0;
 
     dwError = ADGetCurrentNtTime(&currentNtTime);
-    if (dwError);
+    if (dwError)
     {
-        LSA_LOG_ERROR("While processing information for user (%s), lsass was unable to determine if the need to promt to change user password is required. Defaulting to no.", pszSamAccountName);
+        LSA_LOG_ERROR("While processing information for user (%s), lsass was unable to determine if the need to prompt to change user password is required. Defaulting to no.", pszSamAccountName);
         dwError = 0;
         pObjectUserInfo->bPromptPasswordChange = FALSE;
         goto error;

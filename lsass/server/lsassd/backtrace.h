@@ -33,42 +33,22 @@
  *
  * Module Name:
  *
- *        lsassd.h
+ *        backtrace.h
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        Service (Private Header)
+ *        Signal Handler API
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ * Authors: Kyle Stemen <kstemen@likewise.com>
  */
+#ifndef __BACKTRACE_H__
+#define __BACKTRACE_H__
 
-#include "config.h"
-#include "lsasystem.h"
-#include "lsadef.h"
-#include "lsa/lsa.h"
-#include "lwmem.h"
-#include "lwstr.h"
-#include "lwsecurityidentifier.h"
-#include "lsautils.h"
-#include "lsaipc.h"
-#include "ntlmipc.h"
-#include "lsalog_r.h"
-#include "lsaserver.h"
-#include "lsasrvapi.h"
+DWORD
+LsaSrvRegisterCrashHandler(
+    VOID
+    );
 
-#include "defs.h"
-#include "structs.h"
-#include "listener.h"
-#include "servermain.h"
-#include "sighandler.h"
-#include "backtrace.h"
-
-#include "externs_p.h"
-
-#include "lsaunistr.h"
-#include <locale.h>
-
-#include "lwio/lwio.h"
+#endif /* __BACKTRACE_H__ */

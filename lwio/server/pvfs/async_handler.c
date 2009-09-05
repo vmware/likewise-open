@@ -81,6 +81,7 @@ PvfsPendIrp(
     PPVFS_IRP_CONTEXT pIrpCtx = pWorkContext->pIrpContext;
 
     IoIrpMarkPending(pIrpCtx->pIrp, PvfsCancelIrp, pIrpCtx);
+    pIrpCtx->bIsPended = TRUE;
 
     ntError = PvfsAddGlobalWorkItem((PVOID)pWorkContext);
     if (ntError != STATUS_SUCCESS) {
@@ -244,6 +245,7 @@ PvfsPendLockControlIrp(
     PPVFS_IRP_CONTEXT pIrpCtx = pWorkContext->pIrpContext;
 
     IoIrpMarkPending(pIrpCtx->pIrp, PvfsCancelLockControlIrp, pIrpCtx);
+    pIrpCtx->bIsPended = TRUE;
 
     ntError = PvfsAddGlobalWorkItem((PVOID)pWorkContext);
     if (ntError != STATUS_SUCCESS) {

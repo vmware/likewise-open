@@ -99,6 +99,11 @@ lsassd_main(
  //   pthread_t* pListenerThreadId = NULL;
 //    void* threadResult = NULL;
 
+    // Register a signal handler for program crashes such that it prints out a
+    // backtrace.
+    dwError = LsaSrvRegisterCrashHandler();
+    BAIL_ON_LSA_ERROR(dwError);
+
     dwError = LsaSrvSetDefaults();
     BAIL_ON_LSA_ERROR(dwError);
 
