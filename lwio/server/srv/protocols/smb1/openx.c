@@ -233,7 +233,7 @@ SrvProcessOpenAndX(
         case SRV_OPEN_STAGE_SMB_V1_REQUEST_OPLOCK:
 
             ntStatus = SrvRequestOpenXOplocks(pExecContext);
-            BAIL_ON_NT_STATUS(ntStatus);
+            // Don't fail on the account on not being granted an oplock
 
             pOpenState->stage = SRV_OPEN_STAGE_SMB_V1_QUERY_INFO_COMPLETED;
 
