@@ -155,6 +155,7 @@ PvfsWorkerDoWork(
             if (ntError != STATUS_PENDING)
             {
                 pIrpCtx->pIrp->IoStatusBlock.Status = ntError;
+                PVFS_ASSERT(pIrpCtx->bIsPended);
                 IoIrpComplete(pIrpCtx->pIrp);
 
                 PvfsFreeIrpContext(&pIrpCtx);

@@ -211,6 +211,7 @@ PvfsOplockBreakAck(
 
     if (!pCcb->bOplockBreakInProgress) {
         ntError = STATUS_INVALID_OPLOCK_PROTOCOL;
+        PVFS_ASSERT(pCcb->bOplockBreakInProgress);
         BAIL_ON_NT_STATUS(ntError);
     }
 
@@ -248,6 +249,7 @@ PvfsOplockBreakAck(
     case IO_OPLOCK_BREAK_ACK_NO_LEVEL_2:
         if (pCcb->OplockBreakResult != IO_OPLOCK_BROKEN_TO_LEVEL_2) {
             ntError = STATUS_INVALID_OPLOCK_PROTOCOL;
+            PVFS_ASSERT(pCcb->OplockBreakResult == IO_OPLOCK_BROKEN_TO_LEVEL_2);
             BAIL_ON_NT_STATUS(ntError);
         }
         break;
@@ -466,6 +468,7 @@ PvfsOplockBreakIfLocked(
             pOplockLink = pNextLink;
 
             pOplock->pIrpContext->pIrp->IoStatusBlock.Status = STATUS_CANCELLED;
+            PVFS_ASSERT(pOplock->pIrpContext->bIsPended);
             IoIrpComplete(pOplock->pIrpContext->pIrp);
             PvfsFreeIrpContext(&pOplock->pIrpContext);
 
@@ -679,6 +682,7 @@ PvfsOplockBreakAllLevel2Oplocks(
         pOutputBuffer->OplockBreakResult = IO_OPLOCK_BROKEN_TO_NONE;
 
         pIrpCtx->pIrp->IoStatusBlock.Status = STATUS_SUCCESS;
+        PVFS_ASSERT(pIrpCtx->bIsPended);
         IoIrpComplete(pIrpCtx->pIrp);
 
         PvfsFreeIrpContext(&pIrpCtx);
@@ -771,6 +775,7 @@ PvfsOplockBreakOnCreate(
         pOutputBuffer->OplockBreakResult = BreakResult;
 
         pOplock->pIrpContext->pIrp->IoStatusBlock.Status = STATUS_SUCCESS;
+        PVFS_ASSERT(pOplock->pIrpContext->bIsPended);
         IoIrpComplete(pOplock->pIrpContext->pIrp);
 
         PvfsFreeIrpContext(&pOplock->pIrpContext);
@@ -837,6 +842,7 @@ PvfsOplockBreakOnRead(
         pOutputBuffer->OplockBreakResult = BreakResult;
 
         pOplock->pIrpContext->pIrp->IoStatusBlock.Status = STATUS_SUCCESS;
+        PVFS_ASSERT(pOplock->pIrpContext->bIsPended);
         IoIrpComplete(pOplock->pIrpContext->pIrp);
 
         PvfsFreeIrpContext(&pOplock->pIrpContext);
@@ -901,6 +907,7 @@ PvfsOplockBreakOnWrite(
         pOutputBuffer->OplockBreakResult = BreakResult;
 
         pOplock->pIrpContext->pIrp->IoStatusBlock.Status = STATUS_SUCCESS;
+        PVFS_ASSERT(pOplock->pIrpContext->bIsPended);
         IoIrpComplete(pOplock->pIrpContext->pIrp);
 
         PvfsFreeIrpContext(&pOplock->pIrpContext);
@@ -964,6 +971,7 @@ PvfsOplockBreakOnLockControl(
         pOutputBuffer->OplockBreakResult = BreakResult;
 
         pOplock->pIrpContext->pIrp->IoStatusBlock.Status = STATUS_SUCCESS;
+        PVFS_ASSERT(pOplock->pIrpContext->bIsPended);
         IoIrpComplete(pOplock->pIrpContext->pIrp);
 
         PvfsFreeIrpContext(&pOplock->pIrpContext);
@@ -1027,6 +1035,7 @@ PvfsOplockBreakOnSetFileInformation(
         pOutputBuffer->OplockBreakResult = BreakResult;
 
         pOplock->pIrpContext->pIrp->IoStatusBlock.Status = STATUS_SUCCESS;
+        PVFS_ASSERT(pOplock->pIrpContext->bIsPended);
         IoIrpComplete(pOplock->pIrpContext->pIrp);
 
         PvfsFreeIrpContext(&pOplock->pIrpContext);
@@ -1244,6 +1253,7 @@ PvfsOplockProcessReadyItems(
         if (ntError != STATUS_PENDING)
         {
             pIrp->IoStatusBlock.Status = ntError;
+            PVFS_ASSERT(pPendingOp->pIrpContext->bIsPended);
             IoIrpComplete(pIrp);
 
             PvfsFreeIrpContext(&pPendingOp->pIrpContext);

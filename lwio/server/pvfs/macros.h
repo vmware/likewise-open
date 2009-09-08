@@ -47,6 +47,16 @@
 #ifndef _PVFS_MACROS_H
 #define _PVFS_MACROS_H
 
+/* Developer cycle testing macros; Disabled for release */
+
+/* #define PVFS_DEVELOPER_DEBUG 1 */
+
+#ifdef PVFS_DEVELOPER_DEBUG
+#define PVFS_ASSERT(x)     LWIO_ASSERT(x)
+#else
+#define PVFS_ASSERT(x)
+#endif
+
 /* Error checking macros */
 
 #define PVFS_BAIL_ON_INVALID_CCB(p, err)            \
