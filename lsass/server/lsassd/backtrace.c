@@ -90,6 +90,12 @@ LsaSrvCrashHandler(
 #elif defined(REG_RIP)
         // Linux 64bit instruction pointer
         ppFunctions[1] = (void *)pContext->uc_mcontext.gregs[REG_RIP];
+#elif defined(HAVE_UCONTEXT_T_UC_MCONTEXT____SS___RIP)
+        // Mac 64bit instruction pointer
+        ppFunctions[1] = (void *)pContext->uc_mcontext->__ss.__rip;
+#elif defined(HAVE_UCONTEXT_T_UC_MCONTEXT____SS___EIP)
+        // Mac 32bit instruction pointer
+        ppFunctions[1] = (void *)pContext->uc_mcontext->__ss.__eip;
 #else
         // Linux 32bit instruction pointer
         ppFunctions[1] = (void *)pContext->uc_mcontext.gregs[REG_EIP];

@@ -851,6 +851,16 @@ AC_CHECK_TYPES([wchar16_t], [], [], [AC_INCLUDES_DEFAULT
 # include <wc16str.h>
 #endif
 ])
+AC_CHECK_MEMBERS([ucontext_t.uc_mcontext,
+		  ucontext_t.uc_mcontext->__ss,
+		  ucontext_t.uc_mcontext->__ss.__rip,
+		  ucontext_t.uc_mcontext->__ss.__eip
+		  ],
+[], [], [AC_INCLUDES_DEFAULT
+#ifdef HAVE_EXECINFO_H
+# include <execinfo.h>
+#endif
+])
 
 AC_CHECK_HEADER([lwmsg/lwmsg.h],,[AC_MSG_ERROR([Could not find lwmsg headers])])
 AC_CHECK_LIB([lwmsg_nothr], [lwmsg_assoc_send], [LWMSG_NOTHR_LIBS="-llwmsg_nothr"], [AC_MSG_ERROR([Could not find liblwmsg_nothr])], [$LWMSG_LDFLAGS])
