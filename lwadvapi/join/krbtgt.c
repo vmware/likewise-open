@@ -63,7 +63,6 @@ LwKrb5GetTgt(
     krb5_ccache cc = NULL;
     krb5_get_init_creds_opt opts;
     krb5_principal client = NULL;
-    krb5_principal existing_client = NULL;
     krb5_creds creds = {0};
     PSTR pszPass = NULL;
     PSTR pszUPN = NULL;
@@ -107,18 +106,6 @@ LwKrb5GetTgt(
     ret = krb5_parse_name(ctx, pszUPN, &client);
     BAIL_ON_KRB_ERROR(ctx, ret);
  
-    dwError = pthread_mutex_lock(&gLwKrb5State.ExistingClientLock);
-    BAIL_ON_LW_ERROR(dwError);
-    bUnlockExistingClientLock = TRUE;
-    
-    ret = krb5_cc_get_principal(ctx, cc, &existing_client);
-    if (ret ||
-        (FALSE == krb5_principal_compare(ctx, existing_client, client)))
-    {
-        ret = krb5_cc_initialize(ctx, cc, client);
-        BAIL_ON_KRB_ERROR(ctx, ret);
-    }
-    
     if (!LW_IS_NULL_OR_EMPTY_STR(pszPassword)) {
         dwError = LwAllocateString(pszPassword, &pszPass);
         BAIL_ON_LW_ERROR(dwError);
@@ -137,6 +124,10 @@ LwKrb5GetTgt(
     } else {
         BAIL_ON_KRB_ERROR(ctx, ret);
     }
+
+    dwError = pthread_mutex_lock(&gLwKrb5State.ExistingClientLock);
+    BAIL_ON_LW_ERROR(dwError);
+    bUnlockExistingClientLock = TRUE;
 
     /* Blow away the old credentials cache so that the old TGT is removed.
      * Otherwise, the new TGT will be stored at the end of the credentials
@@ -169,11 +160,6 @@ cleanup:
             krb5_free_principal(ctx, client);
         }
         
-        if (existing_client)
-        {
-            krb5_free_principal(ctx, existing_client);
-        }
-
         krb5_cc_close(ctx, cc);
 
         krb5_free_cred_contents(ctx, &creds);
