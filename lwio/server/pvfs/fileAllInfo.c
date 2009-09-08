@@ -108,6 +108,8 @@ PvfsQueryFileAllInfo(
     ULONG W16FilenameLenBytes = 0;
     ULONG Needed = 0;
     off_t CurrentOffset = 0;
+    PSTR pszWinFileName = NULL;
+    PSTR pszCursor = NULL;
 
     /* Sanity checks */
 
@@ -175,7 +177,19 @@ PvfsQueryFileAllInfo(
     /* Alignment */
 
     /* Name */
-    ntError = LwRtlWC16StringAllocateFromCString(&pwszFilename, pCcb->pszFilename);
+
+    ntError = LwRtlCStringDuplicate(&pszWinFileName, pCcb->pszFilename);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* Convert to a Windows pathname equivalent */
+    for (pszCursor=pszWinFileName; pszCursor && *pszCursor; pszCursor++)
+    {
+        if (*pszCursor == '/') {
+            *pszCursor = '\\';
+        }
+    }
+
+    ntError = LwRtlWC16StringAllocateFromCString(&pwszFilename, pszWinFileName);
     BAIL_ON_NT_STATUS(ntError);
 
     W16FilenameLen = RtlWC16StringNumChars(pwszFilename);
@@ -194,6 +208,7 @@ PvfsQueryFileAllInfo(
     ntError = STATUS_SUCCESS;
 
 cleanup:
+    LwRtlCStringFree(&pszWinFileName);
     LwRtlWC16StringFree(&pwszFilename);
 
     if (pCcb) {
