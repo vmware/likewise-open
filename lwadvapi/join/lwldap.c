@@ -1535,12 +1535,9 @@ LwLdapGetStringsWithExtDnResult(
     DWORD dwNumValues = 0;
     int iValue = 0;
 
-    if (hDirectory == (HANDLE)NULL)
-    {
-        dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LW_ERROR(dwError);
-    }
+    LW_BAIL_ON_INVALID_HANDLE(hDirectory);
     pDirectory = (PLW_LDAP_DIRECTORY_CONTEXT)hDirectory;
+    LW_BAIL_ON_INVALID_POINTER(pMessage);
 
     ppszLDAPValues = (PSTR*)ldap_get_values(pDirectory->ld, pMessage, pszFieldName);
     if (ppszLDAPValues)
@@ -1888,6 +1885,7 @@ LwLdapDirectoryExtendedDNSearch(
                &pMessage);
     BAIL_ON_LW_ERROR(dwError);
 
+    LW_ASSERT(pMessage != NULL);
     *ppMessage = pMessage;
 
 cleanup:
