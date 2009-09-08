@@ -86,6 +86,7 @@ PvfsPendIrp(
     ntError = PvfsAddGlobalWorkItem((PVOID)pWorkContext);
     if (ntError != STATUS_SUCCESS) {
         pIrpCtx->pIrp->IoStatusBlock.Status = ntError;
+        PVFS_ASSERT(pIrpCtx->bIsPended);
         IoIrpComplete(pIrpCtx->pIrp);
 
         PvfsFreeIrpContext(&pIrpCtx);
@@ -250,6 +251,7 @@ PvfsPendLockControlIrp(
     ntError = PvfsAddGlobalWorkItem((PVOID)pWorkContext);
     if (ntError != STATUS_SUCCESS) {
         pIrpCtx->pIrp->IoStatusBlock.Status = ntError;
+        PVFS_ASSERT(pIrpCtx->bIsPended);
         IoIrpComplete(pIrpCtx->pIrp);
 
         PvfsFreeIrpContext(&pIrpCtx);

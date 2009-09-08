@@ -96,6 +96,7 @@ PvfsFreeFCB(
         pIrp = pOplockRec->pIrpContext->pIrp;
 
         pIrp->IoStatusBlock.Status = STATUS_FILE_CLOSED;
+        PVFS_ASSERT(pOplockRec->pIrpContext->bIsPended);
         IoIrpComplete(pIrp);
 
         PvfsFreeIrpContext(&pOplockRec->pIrpContext);

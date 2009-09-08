@@ -452,6 +452,7 @@ PvfsProcessPendingLocks(
 
             if (pIrp) {
                 pIrp->IoStatusBlock.Status = STATUS_CANCELLED;
+                PVFS_ASSERT(pIrpContext->bIsPended);
                 IoIrpComplete(pIrp);
 
                 PvfsFreeIrpContext(&pIrpContext);
@@ -488,11 +489,13 @@ PvfsProcessPendingLocks(
 
         /* We've processed the lock (to success or failure) */
 
-        PvfsReleaseCCB(pCcb);
+        pIrp->IoStatusBlock.Status = ntError;
+        PVFS_ASSERT(pIrpContext->bIsPended);
+        IoIrpComplete(pIrp);
+
         PvfsFreeIrpContext(&pIrpContext);
 
-        pIrp->IoStatusBlock.Status = ntError;
-        IoIrpComplete(pIrp);
+        PvfsReleaseCCB(pCcb);
     }
 
 cleanup:

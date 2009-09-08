@@ -157,6 +157,8 @@ LsaSrvRegisterCrashHandler(
 cleanup:
     return dwError;
 
+#ifdef HAVE_BACKTRACE
 error:
     goto cleanup;
+#endif
 }
