@@ -334,6 +334,10 @@ SrvAcknowledgeOplockBreak(
                     &pFile);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    /* Clear flag indicating we are waiting an ACK from the client */
+
+    pOplockState->bBreakRequestSent = FALSE;
+
     switch (pOplockState->oplockBuffer_out.OplockBreakResult)
     {
         case IO_OPLOCK_BROKEN_TO_NONE:
@@ -379,6 +383,14 @@ SrvAcknowledgeOplockBreak(
     switch (ntStatus)
     {
         case STATUS_PENDING:
+
+            ntStatus = SrvFileSetOplockState(
+                           pFile,
+                           pOplockState,
+                           &SrvReleaseOplockStateHandle);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            InterlockedIncrement(&pOplockState->refCount);
 
             SrvFileSetOplockLevel(pFile, ucOplockLevel);
 
