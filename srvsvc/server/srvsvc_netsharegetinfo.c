@@ -226,10 +226,8 @@ SrvSvcNetShareGetInfo(
         break;
 
     case 502:
-#if 0
         info->info502 = &pShareInfo->info502;
         memcpy(info->info502, pGetParamsOut->Info.p502, sizeof(*info->info502));
-#endif
         break;
     }
 
