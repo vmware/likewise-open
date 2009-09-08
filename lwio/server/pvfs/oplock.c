@@ -1132,13 +1132,13 @@ PvfsOplockGrantLevel2(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PPVFS_FCB pFcb = NULL;
-    BOOLEAN bFcbControlLocked = FALSE;
+    BOOLEAN bFcbLocked = FALSE;
 
     BAIL_ON_INVALID_PTR(pCcb->pFcb, ntError);
 
     pFcb = pCcb->pFcb;
 
-    LWIO_LOCK_MUTEX(bFcbControlLocked, &pFcb->mutexOplock);
+    LWIO_LOCK_MUTEX(bFcbLocked, &pFcb->mutexOplock);
 
     /* Cannot grant a level2 on an existing exclusive oplock - FAIL*/
 
@@ -1173,7 +1173,7 @@ PvfsOplockGrantLevel2(
     ntError = STATUS_SUCCESS;
 
 cleanup:
-    LWIO_UNLOCK_MUTEX(bFcbControlLocked, &pFcb->mutexOplock);
+    LWIO_UNLOCK_MUTEX(bFcbLocked, &pFcb->mutexOplock);
 
     return ntError;
 

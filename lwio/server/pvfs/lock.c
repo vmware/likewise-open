@@ -100,10 +100,9 @@ PvfsLockControl(
 
     /* Either READ or WRITE access is ok */
 
-    ntError = PvfsAccessCheckFileHandle(pCcb, FILE_READ_DATA);
-    if (ntError == STATUS_ACCESS_DENIED) {
-        ntError = PvfsAccessCheckFileHandle(pCcb, FILE_WRITE_DATA);
-    }
+    ntError = PvfsAccessCheckAnyFileHandle(
+                  pCcb,
+                  FILE_READ_DATA|FILE_WRITE_DATA);
     BAIL_ON_NT_STATUS(ntError);
 
     if (Args.ExclusiveLock) {
