@@ -685,6 +685,7 @@ LsaDmLdapDirectoryExtendedDNSearch(
         }
     }
 
+    LW_ASSERT(*ppMessage != NULL);
     *phDirectory = hDirectory;
 
 cleanup:
