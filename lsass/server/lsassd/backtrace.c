@@ -115,8 +115,8 @@ LsaSrvRegisterCrashHandler(
     VOID
     )
 {
-    DWORD dwError = 0;
 #ifdef HAVE_BACKTRACE
+    DWORD dwError = 0;
     struct sigaction action;
 
     memset(&action, 0, sizeof(action));
@@ -152,13 +152,14 @@ LsaSrvRegisterCrashHandler(
         dwError = LwMapErrnoToLwError(errno);
         BAIL_ON_LSA_ERROR(dwError);
     }
-#endif
 
 cleanup:
     return dwError;
 
-#ifdef HAVE_BACKTRACE
 error:
     goto cleanup;
+
+#else
+    return 0;
 #endif
 }
