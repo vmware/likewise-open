@@ -63,13 +63,15 @@ SrvProtocolFreeExecContext(
 
 NTSTATUS
 SrvProtocolInit(
-    PSMB_PROD_CONS_QUEUE pWorkQueue
+    PSMB_PROD_CONS_QUEUE pWorkQueue,
+    BOOLEAN              bSupportSMB2
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
     BOOLEAN  bSupportSMBV2 = FALSE;
 
-    gProtocolApiGlobals.pWorkQueue = pWorkQueue;
+    gProtocolApiGlobals.pWorkQueue   = pWorkQueue;
+    gProtocolApiGlobals.bSupportSMB2 = bSupportSMB2;
 
     status = SrvProtocolConfigSupports_SMB_V2(&bSupportSMBV2);
     BAIL_ON_NT_STATUS(status);

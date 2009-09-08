@@ -243,6 +243,7 @@ SrvInitialize(
     gSMBSrvGlobals.config.ulNumWorkers = LWIO_SRV_DEFAULT_NUM_WORKERS;
     gSMBSrvGlobals.config.ulMaxNumWorkItemsInQueue =
                                         LWIO_SRV_DEFAULT_NUM_MAX_QUEUE_ITEMS;
+    gSMBSrvGlobals.config.bSupportSMB2 = FALSE;
 
     ntStatus = SMBPacketCreateAllocator(
                     gSMBSrvGlobals.config.ulMaxNumPackets,
@@ -267,7 +268,9 @@ SrvInitialize(
     ntStatus = SrvElementsInit();
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvProtocolInit(&gSMBSrvGlobals.workQueue);
+    ntStatus = SrvProtocolInit(
+                    &gSMBSrvGlobals.workQueue,
+                    gSMBSrvGlobals.config.bSupportSMB2);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvTransportInit(
