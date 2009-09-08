@@ -76,11 +76,6 @@
 
 #include "defs.h"
 #include "structs.h"
-#include "srvshares.h"
-#include "ccb.h"
-#include "deviceio.h"
-#include "devicecreate.h"
-#include "device.h"
-#include "srvworker.h"
+#include "prototypes.h"
 
 #include "externs.h"

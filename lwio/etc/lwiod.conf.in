@@ -25,6 +25,7 @@
 
 #[driver:srv]
 #	path = @providerdir@/libsrv.sys@MOD_EXT@
+#       support-smb2 = yes
 
 #[driver:iotest]
 #	path = @providerdir@/libiotest.sys@MOD_EXT@

@@ -233,17 +233,18 @@ SrvInitialize(
 {
     NTSTATUS ntStatus = 0;
     INT      iWorker = 0;
+    PCSTR    pszConfigFilePath = SRV_CONFIG_FILE_PATH;
 
     memset(&gSMBSrvGlobals, 0, sizeof(gSMBSrvGlobals));
 
     pthread_mutex_init(&gSMBSrvGlobals.mutex, NULL);
     gSMBSrvGlobals.pMutex = &gSMBSrvGlobals.mutex;
 
-    gSMBSrvGlobals.config.ulMaxNumPackets = LWIO_SRV_DEFAULT_NUM_MAX_PACKETS;
-    gSMBSrvGlobals.config.ulNumWorkers = LWIO_SRV_DEFAULT_NUM_WORKERS;
-    gSMBSrvGlobals.config.ulMaxNumWorkItemsInQueue =
-                                        LWIO_SRV_DEFAULT_NUM_MAX_QUEUE_ITEMS;
-    gSMBSrvGlobals.config.bSupportSMB2 = FALSE;
+    ntStatus = SrvInitConfig(&gSMBSrvGlobals.config);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvReadConfig(pszConfigFilePath, &gSMBSrvGlobals.config);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBPacketCreateAllocator(
                     gSMBSrvGlobals.config.ulMaxNumPackets,
@@ -448,6 +449,8 @@ SrvShutdown(
         }
 
         SrvProdConsFreeContents(&gSMBSrvGlobals.workQueue);
+
+        SrvFreeConfigContents(&gSMBSrvGlobals.config);
     }
 
     if (gSMBSrvGlobals.pMutex)

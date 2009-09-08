@@ -55,6 +55,10 @@ typedef ULONG CCB_TYPE;
 
 #define SRV_CCB_DEVICE 1
 
+#define SRV_CONFIG_TAG_DRIVER  "driver:"
+#define SRV_CONFIG_DRIVER_NAME "srv"
+
+#define SRV_CONFIG_FILE_PATH   CONFIGDIR "/lwiod.conf"
 
 #endif /* __DEFS_H__ */
 
