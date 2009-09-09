@@ -52,7 +52,8 @@
 
 NTSTATUS
 SrvProtocolInit(
-    PSMB_PROD_CONS_QUEUE pWorkQueue
+    PSMB_PROD_CONS_QUEUE pWorkQueue,
+    BOOLEAN              bSupportSMB2
     );
 
 NTSTATUS

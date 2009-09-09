@@ -10,6 +10,7 @@ endif
 
 libsrv_sys_la_SOURCES = \
     ccb.c          \
+    config.c       \
     device.c       \
     deviceclose.c  \
     devicecreate.c \

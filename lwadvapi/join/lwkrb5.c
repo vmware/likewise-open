@@ -920,6 +920,7 @@ LwTranslateKrb5Error(
             dwError = LW_ERROR_CLOCK_SKEW;
             break;
         case KRB5KDC_ERR_CLIENT_REVOKED:
+            // The account could also be locked out
             dwError = LW_ERROR_ACCOUNT_DISABLED;
             break;
         case ENOENT:

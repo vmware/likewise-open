@@ -182,7 +182,6 @@ PvfsOplockBreakAck(
     PPVFS_CCB pCcb = NULL;
     PPVFS_FCB pFcb = NULL;
     PVOID pData = NULL;
-    BOOLEAN bOplockGranted = FALSE;
     PIO_FSCTL_OPLOCK_BREAK_ACK_INPUT_BUFFER pOplockBreakResp = NULL;
     BOOLEAN bCcbLocked = FALSE;
     BOOLEAN bFcbLocked = FALSE;
@@ -220,7 +219,7 @@ PvfsOplockBreakAck(
     switch (pOplockBreakResp->Response)
     {
     case IO_OPLOCK_BREAK_ACKNOWLEDGE:
-        /* Only have work if we brok to a level2 oplock */
+        /* Only have work if we broke to a level2 oplock */
         if (pCcb->OplockBreakResult == IO_OPLOCK_BROKEN_TO_LEVEL_2)
         {
             ntError = PvfsOplockGrantLevel2(pIrpContext, pCcb);
@@ -228,9 +227,11 @@ PvfsOplockBreakAck(
             switch (ntError)
             {
             case STATUS_SUCCESS:
-                /* If we were successfully granted the oplock, then
-                   save that information for the return NTSTATUS value. */
-                bOplockGranted = TRUE;
+                IoIrpMarkPending(
+                    pIrpContext->pIrp,
+                    PvfsCancelOplockRequestIrp,
+                    pIrpContext);
+                pIrpContext->bIsPended = TRUE;
                 break;
 
             case STATUS_OPLOCK_NOT_GRANTED:
@@ -241,6 +242,7 @@ PvfsOplockBreakAck(
                 /* We may not actually want to bail here.  Needs more
                    testing */
                 BAIL_ON_NT_STATUS(ntError);
+                break;
             }
 
         }
@@ -252,6 +254,7 @@ PvfsOplockBreakAck(
             PVFS_ASSERT(pCcb->OplockBreakResult == IO_OPLOCK_BROKEN_TO_LEVEL_2);
             BAIL_ON_NT_STATUS(ntError);
         }
+        ntError = STATUS_SUCCESS;
         break;
 
     case IO_OPLOCK_BREAK_CLOSE_PENDING:
@@ -259,8 +262,10 @@ PvfsOplockBreakAck(
         break;
 
     default:
+        ntError = STATUS_INVALID_OPLOCK_PROTOCOL;
+        PVFS_ASSERT(FALSE);
+        BAIL_ON_NT_STATUS(ntError);
         break;
-
     }
 
     /* Reset oplock break state variables */
@@ -314,16 +319,7 @@ PvfsOplockBreakAck(
 cleanup:
     LWIO_UNLOCK_MUTEX(bFcbLocked, &pFcb->mutexOplock);
 
-    if (bOplockGranted)
-    {
-        /* Successful grant so pend the result now */
-
-        IoIrpMarkPending(
-            pIrpContext->pIrp,
-            PvfsCancelOplockRequestIrp,
-            pIrpContext);
-        pIrpContext->bIsPended = TRUE;
-
+    if (pIrpContext->bIsPended == TRUE) {
         ntError = STATUS_PENDING;
     }
 
@@ -1139,7 +1135,7 @@ PvfsOplockGrantLevel2(
     PPVFS_CCB pCcb
     )
 {
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    NTSTATUS ntError = STATUS_OPLOCK_NOT_GRANTED;
     PPVFS_FCB pFcb = NULL;
     BOOLEAN bFcbLocked = FALSE;
 
@@ -1178,8 +1174,6 @@ PvfsOplockGrantLevel2(
                       IO_OPLOCK_REQUEST_OPLOCK_LEVEL_2);
         BAIL_ON_NT_STATUS(ntError);
     }
-
-    ntError = STATUS_SUCCESS;
 
 cleanup:
     LWIO_UNLOCK_MUTEX(bFcbLocked, &pFcb->mutexOplock);

@@ -1578,15 +1578,23 @@ AD_OnlineAuthenticateUser(
                     &pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = AD_VerifyUserAccountCanLogin(
-                pUserInfo);
-    BAIL_ON_LSA_ERROR(dwError);
-
     dwError = AD_OnlineCheckUserPassword(
                     hProvider,
                     pUserInfo,
                     pszPassword,
                     &dwGoodUntilTime);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    ADCacheSafeFreeObject(&pUserInfo);
+
+    dwError = AD_FindUserObjectByName(
+                    hProvider,
+                    pszLoginId,
+                    &pUserInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = AD_VerifyUserAccountCanLogin(
+                pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = AD_OnlineCachePasswordVerifier(

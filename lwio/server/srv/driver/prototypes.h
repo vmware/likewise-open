@@ -28,29 +28,152 @@
  * license@likewisesoftware.com
  */
 
-
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        srvshares.h
+ *        prototypes.h
  *
  * Abstract:
  *
- *       Likewise File System Driver (Srv)
+ *        Likewise IO (LWIO) - SRV
  *
- *       DeviceIo Dispatch Routine
+ *        Driver
  *
- * Authors: Krishna Ganugapati (krishnag@likewise.com)
- *          Sriram Nambakam (snambakam@likewise.com)
- *          Rafal Szczesniak (rafal@likewise.com)
+ *        prototypes
+ *
+ * Authors: Sriram Nambakam (snambakam@likewise.com)
+ *
  */
 
-#ifndef __SRV_SHARES_H__
-#define __SRV_SHARES_H__
+// ccb.c
 
+NTSTATUS
+SrvCCBCreate(
+    PSRV_IRP_CONTEXT pIrpContext,
+    PSRV_CCB * ppCCB
+    );
+
+NTSTATUS
+SrvCCBGet(
+    IO_FILE_HANDLE FileHandle,
+    PSRV_CCB*      ppCCB
+    );
+
+NTSTATUS
+SrvCCBSet(
+    IO_FILE_HANDLE FileHandle,
+    PSRV_CCB       pCCB
+    );
+
+VOID
+SrvCCBRelease(
+    PSRV_CCB pCCB
+    );
+
+// config.c
+
+NTSTATUS
+SrvReadConfig(
+    PCSTR            pszConfigFilePath,
+    PLWIO_SRV_CONFIG pConfig
+    );
+
+NTSTATUS
+SrvInitConfig(
+    PLWIO_SRV_CONFIG pConfig
+    );
+
+VOID
+SrvFreeConfigContents(
+    PLWIO_SRV_CONFIG pConfig
+    );
+
+// devicecreate.c
+
+NTSTATUS
+SrvDeviceCreate(
+    IO_DEVICE_HANDLE IoDeviceHandle,
+    PIRP pIrp
+    );
+
+NTSTATUS
+SrvAllocateIrpContext(
+    PIRP pIrp,
+    PSRV_IRP_CONTEXT * ppIrpContext
+    );
+
+VOID
+SrvFreeIrpContext(
+    PSRV_IRP_CONTEXT pIrpContext
+    );
+
+// device.c
+
+NTSTATUS
+SrvDeviceCreate(
+    IO_DEVICE_HANDLE hDevice,
+    PIRP      pIrp
+    );
+
+NTSTATUS
+SrvDeviceClose(
+    IO_DEVICE_HANDLE hDevice,
+    PIRP pIrp
+    );
+
+NTSTATUS
+SrvDeviceRead(
+    IO_DEVICE_HANDLE hDevice,
+    PIRP pIrp
+    );
+
+NTSTATUS
+SrvDeviceWrite(
+    IO_DEVICE_HANDLE hDevice,
+    PIRP pIrp
+    );
+
+NTSTATUS
+SrvDeviceControlIO(
+    IO_DEVICE_HANDLE hDevice,
+    PIRP pIrp
+    );
+
+NTSTATUS
+SrvDeviceControlFS(
+    IO_DEVICE_HANDLE hDevice,
+    PIRP pIrp
+    );
+
+NTSTATUS
+SrvDeviceFlush(
+    IO_DEVICE_HANDLE hDevice,
+    PIRP pIrp
+    );
+
+NTSTATUS
+SrvDeviceQueryInfo(
+    IO_DEVICE_HANDLE hDevice,
+    PIRP pIrp
+    );
+
+NTSTATUS
+SrvDeviceSetInfo(
+    IO_DEVICE_HANDLE hDevice,
+    PIRP pIrp
+    );
+
+// deviceio.c
+
+NTSTATUS
+SrvDeviceControlIo(
+    IO_DEVICE_HANDLE IoDeviceHandle,
+    PIRP             pIrp
+    );
+
+// srvshares.c
 
 NTSTATUS
 SrvShareGetServiceStringId(
@@ -106,14 +229,20 @@ SrvShareDevCtlSetInfo(
     IN     ULONG ulOutBufferSize
     );
 
-#endif /* __SRV_SHARES_H__ */
+// srvworker.c
 
+NTSTATUS
+SrvWorkerInit(
+    PLWIO_SRV_WORKER      pWorker
+    );
 
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/
+VOID
+SrvWorkerIndicateStop(
+    PLWIO_SRV_WORKER pWorker
+    );
+
+VOID
+SrvWorkerFreeContents(
+    PLWIO_SRV_WORKER pWorker
+    );
+

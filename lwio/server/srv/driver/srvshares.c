@@ -72,6 +72,8 @@ SrvShareDevCtlAdd(
     PWSTR pwszPath = NULL;
     PWSTR pwszPathLocal = NULL;
     PWSTR pwszShareType = NULL;
+    ULONG ulSecDescLen = 0;
+    PBYTE pSecDesc = NULL;
 
     ntStatus = LwShareInfoUnmarshalAddParameters(
                         lpInBuffer,
@@ -120,6 +122,8 @@ SrvShareDevCtlAdd(
         ulShareType   = pShareInfo502->shi502_type;
         pwszComment   = pShareInfo502->shi502_remark;
         pwszPath      = pShareInfo502->shi502_path;
+        pSecDesc      = pShareInfo502->shi502_security_descriptor;
+        ulSecDescLen  = pShareInfo502->shi502_reserved;
         break;
 
     default:
@@ -146,8 +150,8 @@ SrvShareDevCtlAdd(
                         pwszShareName,
                         pwszPathLocal,
                         pwszComment,
-                        NULL,
-                        0,
+                        pSecDesc,
+                        ulSecDescLen,
                         pwszShareType);
 
 error:
@@ -606,8 +610,8 @@ SrvShareDevCtlGetInfo(
             BAIL_ON_NT_STATUS(ntStatus);
 
             p502->shi502_password            = NULL;
-            p502->shi502_reserved            = 0;
-            p502->shi502_security_descriptor = NULL;
+            p502->shi502_reserved            = pShareInfo->ulSecDescLen;
+            p502->shi502_security_descriptor = pShareInfo->pSecDesc;
 
             GetShareInfoParamsOut.Info.p502 = p502;
 
@@ -1191,6 +1195,20 @@ SrvShareUpdateInfo502(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
+    if (pInfo502->shi502_security_descriptor)
+    {
+        ntStatus = SrvAllocateMemory(
+                       pInfo502->shi502_reserved,
+                       (PVOID*)&NewShareInfo.pSecDesc);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        memcpy(
+            NewShareInfo.pSecDesc,
+            pInfo502->shi502_security_descriptor,
+            pInfo502->shi502_reserved);
+        NewShareInfo.ulSecDescLen = pInfo502->shi502_reserved;
+    }
+
     /* Copy to the original share using struct copy */
 
     SrvFreeMemory(pShareInfo->pwszName);
@@ -1203,6 +1221,12 @@ SrvShareUpdateInfo502(
     {
         SrvFreeMemory(pShareInfo->pwszComment);
         pShareInfo->pwszComment = NULL;
+    }
+
+    if (pShareInfo->pSecDesc)
+    {
+        SrvFreeMemory(pShareInfo->pSecDesc);
+        pShareInfo->pSecDesc = NULL;
     }
 
     *pShareInfo = NewShareInfo;

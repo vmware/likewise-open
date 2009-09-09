@@ -231,8 +231,6 @@ SrvProcessOplock(
                             ucOplockLevel);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            pOplockState->bBreakRequestSent = TRUE;
-
             switch (SrvFileGetOplockLevel(pFile)) // current op-lock level
             {
                 case SMB_OPLOCK_LEVEL_I:
@@ -254,11 +252,24 @@ SrvProcessOplock(
                         InterlockedIncrement(&pOplockState->refCount);
                     }
 
+                    /* Indicate that we are waiting a response to trigger the
+                       OplockBreakAck */
+
+                    pOplockState->bBreakRequestSent = TRUE;
+
                     break;
 
                 case SMB_OPLOCK_LEVEL_II:
 
-                    /* We're done.  No Ack needed for level2 breaks */
+                    /* Level2 can only break to none. No Ack needed.
+                       Remove any remaining oplock state */
+
+                    pOplockState = (PSRV_OPLOCK_STATE_SMB_V1)SrvFileRemoveOplockState(pFile);
+                    if (pOplockState)
+                    {
+                        SrvReleaseOplockState(pOplockState);
+                        pOplockState = NULL;
+                    }
 
                     ntStatus = STATUS_SUCCESS;
 
