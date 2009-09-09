@@ -2879,7 +2879,7 @@ cleanup:
 
 error:
 
-    LSA_LOG_ERROR("Failed to create home directory for user (%s), actual error %d", LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszName) ? "" : pUserInfo->pszName, dwError);
+    LSA_LOG_ERROR("Failed to create home directory for user (%s), actual error %d", LSA_SAFE_LOG_STRING(pUserInfo->pszName), dwError);
     dwError = LW_ERROR_FAILED_CREATE_HOMEDIR;
 
     goto cleanup;
