@@ -62,7 +62,7 @@ install: all
 #	cp $(PROGS) $(DESTDIR)/$(bindir)
 	cp $(srcdir)/include/tdb.h $(DESTDIR)/$(includedir)
 	cp tdb.pc $(DESTDIR)/$(libdir)/pkgconfig
-#	cp libtdb.a $(SOLIB) $(DESTDIR)$(libdir)
+	cp libtdb.a $(SOLIB) $(DESTDIR)$(libdir)
 
 $(SOLIB): $(TDB_OBJ)
 	$(CC) $(universalBinaryBuild) $(SHLD_FLAGS) -o $@ $^ $(SONAMEFLAG)$(SONAME)
