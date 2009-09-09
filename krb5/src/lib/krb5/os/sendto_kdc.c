@@ -660,6 +660,8 @@ start_connection (struct conn_state *state,
 {
     int fd, e;
     struct addrinfo *ai = state->addr;
+    static const int one = 1;
+    static const struct linger lopt = { 0, 0 };
 
     dprint("start_connection(@%p)\ngetting %s socket in family %d...", state,
 	   ai->ai_socktype == SOCK_STREAM ? "stream" : "dgram", ai->ai_family);
@@ -679,15 +681,10 @@ start_connection (struct conn_state *state,
 #endif
     set_cloexec_fd(fd);
     /* Make it non-blocking.  */
-    if (ai->ai_socktype == SOCK_STREAM) {
-	static const int one = 1;
-	static const struct linger lopt = { 0, 0 };
-
-	if (ioctlsocket(fd, FIONBIO, (const void *) &one))
-	    dperror("sendto_kdc: ioctl(FIONBIO)");
-	if (setsockopt(fd, SOL_SOCKET, SO_LINGER, &lopt, sizeof(lopt)))
-	    dperror("sendto_kdc: setsockopt(SO_LINGER)");
-    }
+    if (ioctlsocket(fd, FIONBIO, (const void *) &one))
+        dperror("sendto_kdc: ioctl(FIONBIO)");
+    if (setsockopt(fd, SOL_SOCKET, SO_LINGER, &lopt, sizeof(lopt)))
+        dperror("sendto_kdc: setsockopt(SO_LINGER)");
 
     /* Start connecting to KDC.  */
     dprint(" fd %d; connecting to %A...\n", fd, ai);
