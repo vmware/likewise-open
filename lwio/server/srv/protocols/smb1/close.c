@@ -370,14 +370,36 @@ SrvClearOplockState(
     pOplockState = (PSRV_OPLOCK_STATE_SMB_V1)SrvFileRemoveOplockState(
                                                     pCloseState->pFile);
 
-    /* Deal with any outstanding oplock issues */
+    /*
+       Deal with any outstanding oplock issues.  Three possible
+       cases here:
+       1. Active oplock that can be cancelled.
+       2. Oplock that has been broken but not processed
+       3. Oplock awaiting a break ackowledgement from the client.
+    */
 
     if (pOplockState)
     {
-        /* This is an implicit acknowlegdement to any outstanding
-           break requests we sent the client */
+        BOOLEAN bCancelled = FALSE;
+        BOOLEAN bInLock = FALSE;
 
-        if (pOplockState->bBreakRequestSent)
+        LWIO_LOCK_MUTEX(bInLock, &pOplockState->mutex);
+
+        /* Cancel any registered oplock on the file */
+
+        if (pOplockState->pAcb && pOplockState->pAcb->AsyncCancelContext)
+        {
+            bCancelled = IoCancelAsyncCancelContext(
+                             pOplockState->pAcb->AsyncCancelContext);
+        }
+
+        LWIO_UNLOCK_MUTEX(bInLock, &pOplockState->mutex);
+
+        /* If the IoCancel failed, the oplock must have been broken.
+           Do the rundown ourselves, sending any necessary BreakAcks
+           to the file systems */
+
+        if (!bCancelled)
         {
             if (pOplockState->pTimerRequest)
             {
@@ -413,17 +435,9 @@ SrvClearOplockState(
                 default:
 
                     ntStatus = STATUS_INTERNAL_ERROR;
+                    break;
             }
             BAIL_ON_NT_STATUS(ntStatus);
-        }
-        else
-        {
-            /* Cancel any registered oplock on the file */
-            if (pOplockState->acb.AsyncCancelContext)
-            {
-                IoCancelAsyncCancelContext(
-                    pOplockState->acb.AsyncCancelContext);
-            }
         }
     }
 
