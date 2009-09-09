@@ -21,6 +21,7 @@ SHLD_FLAGS = @SHLD_FLAGS@
 PICFLAG = @PICFLAG@
 SONAMEFLAG = @SONAMEFLAG@
 SHLIBEXT = @SHLIBEXT@
+universalBinaryBuild = @universalBinaryBuild@
 
 .PHONY: test
 
@@ -35,7 +36,8 @@ DIRS = bin common tools
 SONAME = libtdb.$(SHLIBEXT).1
 SOLIB = libtdb.$(SHLIBEXT).1
 
-all: showflags dirs $(PROGS) $(SOLIB)
+#all: showflags dirs $(PROGS) $(SOLIB)
+all: showflags dirs $(SOLIB) libtdb.a
 
 showflags:
 	@echo 'tdb will be compiled with flags:'
@@ -57,13 +59,14 @@ install: all
 	mkdir -p $(DESTDIR)/$(includedir)
 	mkdir -p $(DESTDIR)/$(libdir) 
 	mkdir -p $(DESTDIR)/$(libdir)/pkgconfig
-	cp $(PROGS) $(DESTDIR)/$(bindir)
+#	cp $(PROGS) $(DESTDIR)/$(bindir)
 	cp $(srcdir)/include/tdb.h $(DESTDIR)/$(includedir)
 	cp tdb.pc $(DESTDIR)/$(libdir)/pkgconfig
-	cp libtdb.a $(SOLIB) $(DESTDIR)$(libdir)
+#	cp libtdb.a $(SOLIB) $(DESTDIR)$(libdir)
 
 $(SOLIB): $(TDB_OBJ)
-	$(CC) $(SHLD_FLAGS) -o $@ $^ $(SONAMEFLAG)$(SONAME) 
+	$(CC) $(universalBinaryBuild) $(SHLD_FLAGS) -o $@ $^ $(SONAMEFLAG)$(SONAME)
+
 
 libtdb.a: $(TDB_OBJ)
 	ar -rv libtdb.a $(TDB_OBJ)
