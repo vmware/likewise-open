@@ -1643,7 +1643,7 @@ AD_NetlogonAuthenticationUserEx(
 
     if (nt_status != STATUS_SUCCESS)
     {
-        LSA_LOG_DEBUG("NetrSamLogonNetwork() failed with %d (0x%08x)", nt_status, nt_status);
+        LSA_LOG_DEBUG("NetrSamLogonNetwork() failed with %d (0x%08x) (symbol: '%s')", nt_status, nt_status, LSA_SAFE_LOG_STRING(LwNtStatusToName(nt_status)));
         dwError = LW_ERROR_RPC_NETLOGON_FAILED;
         BAIL_ON_LSA_ERROR(dwError);
     }
