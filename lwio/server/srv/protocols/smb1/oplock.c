@@ -183,6 +183,15 @@ SrvProcessOplock(
                     &pRequestHeader);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    /*
+       Failure to find the file could be normal if the file was
+       closed between the break and the processing here.  The
+       SMBclose processing handles the rundown any of outstanding
+       oplock break processing. In the future, we will squash
+       STATUS_NOT_FOUND on failure to prevent unnecessary noise
+       in the logs.
+    */
+
     ntStatus = SrvTreeFindFile_SMB_V1(
                     pCtxSmb1,
                     pTree,
@@ -251,11 +260,6 @@ SrvProcessOplock(
 
                         InterlockedIncrement(&pOplockState->refCount);
                     }
-
-                    /* Indicate that we are waiting a response to trigger the
-                       OplockBreakAck */
-
-                    pOplockState->bBreakRequestSent = TRUE;
 
                     break;
 
@@ -344,10 +348,6 @@ SrvAcknowledgeOplockBreak(
                     pOplockState->usFid,
                     &pFile);
     BAIL_ON_NT_STATUS(ntStatus);
-
-    /* Clear flag indicating we are waiting an ACK from the client */
-
-    pOplockState->bBreakRequestSent = FALSE;
 
     switch (pOplockState->oplockBuffer_out.OplockBreakResult)
     {
@@ -681,14 +681,6 @@ SrvOplockAsyncCB(
     BOOLEAN                  bInLock      = FALSE;
     PLWIO_SRV_FILE           pFile        = NULL;
 
-    /* Nothing to do if this was cancelled */
-
-    if (pOplockState->ioStatusBlock.Status == STATUS_CANCELLED)
-    {
-        ntStatus = STATUS_SUCCESS;
-        goto cleanup;
-    }
-
     LWIO_LOCK_MUTEX(bInLock, &pOplockState->mutex);
 
     if (pOplockState->pAcb->AsyncCancelContext)
@@ -699,11 +691,16 @@ SrvOplockAsyncCB(
 
     pOplockState->pAcb = NULL;
 
-    LWIO_UNLOCK_MUTEX(bInLock, &pOplockState->mutex);
+    /* Nothing to do if this was cancelled */
+
+    if (pOplockState->ioStatusBlock.Status == STATUS_CANCELLED)
+    {
+        ntStatus = STATUS_SUCCESS;
+        goto cleanup;
+    }
 
     ntStatus = pOplockState->ioStatusBlock.Status;
     BAIL_ON_NT_STATUS(ntStatus);
-
 
     ntStatus = SrvTreeFindFile(
                     pOplockState->pTree,
@@ -725,6 +722,8 @@ SrvOplockAsyncCB(
     pExecContext = NULL;
 
 cleanup:
+
+    LWIO_UNLOCK_MUTEX(bInLock, &pOplockState->mutex);
 
     if (pOplockState)
     {
