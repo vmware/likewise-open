@@ -16,18 +16,6 @@ TDBOBJ="common/tdb.o common/dump.o common/transaction.o common/error.o common/tr
 TDBOBJ="$TDBOBJ common/freelist.o common/freelistcheck.o common/io.o common/lock.o common/open.o"
 AC_SUBST(TDBOBJ)
 
-universalBinaryBuild=""
-case "${BUILD_OS_TYPE}" in
-    darwin)
-    case "${OSTYPE}" in
-        darwin10.*)
-        universalBinaryBuild="-arch i386 -arch x86_64"
-        ;;
-    esac
-    ;;
-esac
-AC_SUBST(universalBinaryBuild)
-
 libreplacedir=./replace
 AC_SUBST(libreplacedir)
 

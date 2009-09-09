@@ -528,7 +528,7 @@ static struct
     },
     {
         LW_ERROR_LSA_SERVER_UNREACHABLE,
-        "The LWSS server is not responding."
+        "The LSASS server is not responding."
     },
     {
         LW_ERROR_INVALID_NSS_ARTEFACT_TYPE,
@@ -536,7 +536,7 @@ static struct
     },
     {
         LW_ERROR_INVALID_AGENT_VERSION,
-        "The LWSS Server version is invalid"
+        "The LSASS Server version is invalid"
     },
     {
         LW_ERROR_DOMAIN_IS_OFFLINE,

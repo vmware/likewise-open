@@ -297,11 +297,11 @@ LsaSrvLookupSids2(
                                            &pBuiltinDomain);
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
-        ntStatus = LsaSrvInitUnicodeStringEx(&pLocalDomainInfo->name,
+        ntStatus = LsaSrvInitUnicodeStringEx(&pBuiltinDomainInfo->name,
                                              pBuiltinDomain->pwszName);
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
-        ntStatus = LsaSrvDuplicateSid(&pLocalDomainInfo->sid,
+        ntStatus = LsaSrvDuplicateSid(&pBuiltinDomainInfo->sid,
                                       pBuiltinDomain->pSid);
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
 

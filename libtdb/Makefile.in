@@ -21,7 +21,6 @@ SHLD_FLAGS = @SHLD_FLAGS@
 PICFLAG = @PICFLAG@
 SONAMEFLAG = @SONAMEFLAG@
 SHLIBEXT = @SHLIBEXT@
-universalBinaryBuild = @universalBinaryBuild@
 
 .PHONY: test
 
@@ -65,8 +64,7 @@ install: all
 	cp libtdb.a $(SOLIB) $(DESTDIR)$(libdir)
 
 $(SOLIB): $(TDB_OBJ)
-	$(CC) $(universalBinaryBuild) $(SHLD_FLAGS) -o $@ $^ $(SONAMEFLAG)$(SONAME)
-
+	$(CC) $(SHLD_FLAGS) -o $@ $^ $(SONAMEFLAG)$(SONAME)
 
 libtdb.a: $(TDB_OBJ)
 	ar -rv libtdb.a $(TDB_OBJ)

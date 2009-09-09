@@ -296,15 +296,9 @@ AC_CHECK_LIB([sqlite3], [sqlite3_exec], [SQLITE_LIBS="-lsqlite3"],
     [$SQLITE_LDFLAGS])
 if test x"$enable_tdb" = x"yes"
 then
-    case "${BUILD_OS_TYPE}" in
-    darwin)
-    ;;
-    *)
     AC_CHECK_LIB([tdb], [tdb_open], [TDB_LIBS="-ltdb"],
         AC_MSG_ERROR([Could not find tdb libraries; please use --with-tdb]),
         [$TDB_LDFLAGS])
-    ;;
-    esac
 fi
 AC_CHECK_LIB([pthread], [pthread_self], [PTHREAD_LIBS="-lpthread"], [])
 

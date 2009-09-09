@@ -36,7 +36,7 @@
  *
  * Abstract:
  *
- *        Likewise Security and Authentication Subsystem (LWSS)
+ *        Likewise Security and Authentication Subsystem (LSASS)
  *
  *        Security Identifier API
  *
