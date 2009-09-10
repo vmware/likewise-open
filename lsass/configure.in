@@ -854,8 +854,7 @@ AC_CHECK_TYPES([wchar16_t], [], [], [AC_INCLUDES_DEFAULT
 AC_CHECK_MEMBERS([ucontext_t.uc_mcontext,
 		  ucontext_t.uc_mcontext->__ss,
 		  ucontext_t.uc_mcontext->__ss.__rip,
-		  ucontext_t.uc_mcontext->__ss.__eip
-		  ],
+		  ucontext_t.uc_mcontext->__ss.__eip],
 [], [], [AC_INCLUDES_DEFAULT
 #ifdef HAVE_EXECINFO_H
 # include <execinfo.h>
