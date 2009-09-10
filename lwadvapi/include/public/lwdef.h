@@ -11,7 +11,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -27,7 +27,7 @@
  * license@likewisesoftware.com
  */
 
- 
+
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
@@ -41,7 +41,7 @@
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
- * 
+ *
  */
 #ifndef __LWDEF_H__
 #define __LWDEF_H__

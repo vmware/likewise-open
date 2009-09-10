@@ -229,6 +229,7 @@ AC_HEADER_STDC
 
 AC_CONFIG_FILES([Makefile
                  include/Makefile
+                 include/public/Makefile
                  unthreaded/Makefile
                  unthreaded/memory/Makefile
                  unthreaded/lwunistr/Makefile

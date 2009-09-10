@@ -63,6 +63,7 @@
 #include "lwkrb5.h"
 #include "lwldap.h"
 #include "lwerror.h"
+#include "bail.h"
 #include "externs.h"
 
 #include "lwldap_p.h"
