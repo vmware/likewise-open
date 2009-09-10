@@ -254,7 +254,18 @@ LsaSrvLookupSids2(
         for (i = 0; i < LocalAccounts.dwCount; i++)
         {
             PSID pSid = LocalAccounts.ppSids[i];
-            pdwLocalRids[i] = pSid->SubAuthority[pSid->SubAuthorityCount - 1];
+            DWORD iSubAuthority = pSid->SubAuthorityCount - 1;
+
+            if (pSid->SubAuthorityCount == 5)
+            {
+                pdwLocalRids[i] = pSid->SubAuthority[iSubAuthority];
+            }
+            else
+            {
+                /* This could be local machine SID to be resolved so
+                   just avoid accidental match with existing RID */
+                pdwLocalRids[i] = 0;
+            }
         }
 
         ntStatus = SamrLookupRids(pPolCtx->hSamrBinding,
@@ -274,12 +285,34 @@ LsaSrvLookupSids2(
             DWORD iTransName = LocalAccounts.pdwIndices[i];
             TranslatedName2 *pName = &(NamesArray.names[iTransName]);
 
-            ntStatus = LsaSrvInitUnicodeString(&pName->name,
-                                               ppwszLocalNames[i]);
-            BAIL_ON_NTSTATUS_ERROR(ntStatus);
+            if ((ntStatus == STATUS_SUCCESS ||
+                 ntStatus == LW_STATUS_SOME_NOT_MAPPED) &&
+                ppwszLocalNames[i] != NULL)
+            {
+                /* RID (and thus SID) has been resolved to a name */
+                ntStatus = LsaSrvInitUnicodeString(&pName->name,
+                                                   ppwszLocalNames[i]);
+                BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
-            pName->type      = pdwLocalTypes[i];
-            pName->sid_index = dwLocalDomIndex;
+                pName->type      = pdwLocalTypes[i];
+                pName->sid_index = dwLocalDomIndex;
+            }
+            else if (LocalAccounts.ppSids[i]->SubAuthorityCount == 4 &&
+                     RtlIsPrefixSid(LocalAccounts.ppSids[i],
+                                    pLocalDomain->pSid))
+            {
+                /* RID is unknown because SID turns out to be
+                   the local machine SID, not an account SID */
+                pName->type      = SID_TYPE_DOMAIN;
+                pName->sid_index = dwLocalDomIndex;
+            }
+            else
+            {
+                /* RID is unknown */
+                pName->type      = SID_TYPE_UNKNOWN;
+                pName->sid_index = 0;
+            }
+
             pName->unknown1  = 0;
         }
 
@@ -313,7 +346,18 @@ LsaSrvLookupSids2(
         for (i = 0; i < BuiltinAccounts.dwCount; i++)
         {
             PSID pSid = BuiltinAccounts.ppSids[i];
-            pdwBuiltinRids[i] = pSid->SubAuthority[pSid->SubAuthorityCount - 1];
+            DWORD iSubAuthority = pSid->SubAuthorityCount - 1;
+
+            if (pSid->SubAuthorityCount == 5)
+            {
+                pdwBuiltinRids[i] = pSid->SubAuthority[iSubAuthority];
+            }
+            else
+            {
+                /* This could be builtin domain SID to be resolved so
+                   just avoid accidental match with existing RID */
+                pdwBuiltinRids[i] = 0;
+            }
         }
 
         ntStatus = SamrLookupRids(pPolCtx->hSamrBinding,
@@ -333,12 +377,34 @@ LsaSrvLookupSids2(
             DWORD iTransName = BuiltinAccounts.pdwIndices[i];
             TranslatedName2 *pName = &(NamesArray.names[iTransName]);
 
-            ntStatus = LsaSrvInitUnicodeString(&pName->name,
-                                               ppwszBuiltinNames[i]);
-            BAIL_ON_NTSTATUS_ERROR(ntStatus);
+            if ((ntStatus == STATUS_SUCCESS ||
+                 ntStatus == LW_STATUS_SOME_NOT_MAPPED) &&
+                ppwszBuiltinNames[i] != NULL)
+            {
+                /* RID (and thus SID) has been resolved to a name */
+                ntStatus = LsaSrvInitUnicodeString(&pName->name,
+                                                   ppwszBuiltinNames[i]);
+                BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
-            pName->type      = pdwBuiltinTypes[i];
-            pName->sid_index = dwBuiltinDomIndex;
+                pName->type      = pdwBuiltinTypes[i];
+                pName->sid_index = dwBuiltinDomIndex;
+            }
+            else if (BuiltinAccounts.ppSids[i]->SubAuthorityCount == 4 &&
+                     RtlIsPrefixSid(BuiltinAccounts.ppSids[i],
+                                    pBuiltinDomain->pSid))
+            {
+                /* RID is unknown because SID turns out to be
+                   the builtin domain SID, not an account SID */
+                pName->type      = SID_TYPE_DOMAIN;
+                pName->sid_index = dwBuiltinDomIndex;
+            }
+            else
+            {
+                /* RID is unknown */
+                pName->type      = SID_TYPE_UNKNOWN;
+                pName->sid_index = 0;
+            }
+
             pName->unknown1  = 0;
         }
 
@@ -355,6 +421,8 @@ LsaSrvLookupSids2(
              dwUnknownSidsNum++;
         }
     }
+
+    ntStatus = STATUS_SUCCESS;
 
     if (dwUnknownSidsNum > 0)
     {
