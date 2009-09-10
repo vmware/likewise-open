@@ -144,13 +144,13 @@ endif
 
 $(OUT_PROGRAM): $(OBJS)
 	mkdir -p $(OUT_PROGRAM_DIR)
-	g++-4.0 $(LINK_FLAGS) -o "$@" $(OBJS)
+	$(CXX) $(LINK_FLAGS) -o "$@" $(OBJS)
 
 %.o : %.c
-	gcc $(C_COMPILE_FLAGS) -c -o $@ $<
+	$(CC) $(C_COMPILE_FLAGS) -c -o $@ $<
 
 %.o : %.cp
-	gcc -x c++ $(CXX_COMPILE_FLAGS) -c -o $@ $<
+	$(CXX) $(CXX_COMPILE_FLAGS) -c -o $@ $<
 
 %.o : %.cpp
-	gcc -x c++ $(CXX_COMPILE_FLAGS) -c -o $@ $<
+	$(CXX) $(CXX_COMPILE_FLAGS) -c -o $@ $<
