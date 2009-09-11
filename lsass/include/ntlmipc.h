@@ -49,14 +49,13 @@
 #define __NTLMIPC_H__
 
 #include <lwmsg/lwmsg.h>
-#include <lsaipc.h>
 #include <ntlm/sspintlm.h>
 
-#define NTLM_SERVER_FILENAME LSA_SERVER_FILENAME
+#define NTLM_SERVER_FILENAME ".ntlmd"
 
 typedef enum __NTLM_IPC_TAG
 {
-    NTLM_R_GENERIC_FAILURE = LSA_IPC_TAG_FINAL,
+    NTLM_R_GENERIC_FAILURE,
     NTLM_Q_ACCEPT_SEC_CTXT,
     NTLM_R_ACCEPT_SEC_CTXT_SUCCESS,
     NTLM_Q_ACQUIRE_CREDS,
@@ -303,11 +302,6 @@ NtlmIpcGetProtocolSpec(
 LWMsgDispatchSpec*
 NtlmSrvGetDispatchSpec(
     VOID
-    );
-
-DWORD
-NtlmMapLwmsgStatus(
-    LWMsgStatus status
     );
 
 LWMsgStatus

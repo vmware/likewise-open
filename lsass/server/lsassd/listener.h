@@ -60,7 +60,17 @@ LsaSrvStartListenThread(
     );
 
 DWORD
+NtlmSrvStartListenThread(
+    void
+    );
+
+DWORD
 LsaSrvStopListenThread(
+    void
+    );
+
+DWORD
+NtlmSrvStopListenThread(
     void
     );
 

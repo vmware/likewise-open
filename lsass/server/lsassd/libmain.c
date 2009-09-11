@@ -155,6 +155,9 @@ lsassd_main(
     dwError = LsaSrvStartListenThread();
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = NtlmSrvStartListenThread();
+    BAIL_ON_LSA_ERROR(dwError);
+
     LsaSrvLogProcessStartedEvent();
 
     // Handle signals, blocking until we are supposed to exit.
@@ -173,6 +176,8 @@ cleanup:
     }*/
 
     LsaSrvStopListenThread();
+
+    NtlmSrvStopListenThread();
 
     LsaSrvApiShutdown();
 

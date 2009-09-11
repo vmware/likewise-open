@@ -52,6 +52,10 @@ static LWMsgContext* gpContext = NULL;
 static LWMsgProtocol* gpProtocol = NULL;
 static LWMsgServer* gpServer = NULL;
 
+static LWMsgContext* gpNtlmContext = NULL;
+static LWMsgProtocol* gpNtlmProtocol = NULL;
+static LWMsgServer* gpNtlmServer = NULL;
+
 static
 LWMsgBool
 LsaSrvLogIpc (
@@ -173,11 +177,6 @@ LsaSrvStartListenThread(
                               LsaIPCGetProtocolSpec()));
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_protocol_add_protocol_spec(
-                              gpProtocol,
-                              NtlmIpcGetProtocolSpec()));
-    BAIL_ON_LSA_ERROR(dwError);
-
     /* Set up IPC server object */
     dwError = MAP_LWMSG_ERROR(lwmsg_server_new(gpContext, gpProtocol, &gpServer));
     BAIL_ON_LSA_ERROR(dwError);
@@ -186,12 +185,6 @@ LsaSrvStartListenThread(
                               gpServer,
                               LsaSrvGetDispatchSpec()));
     BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_server_add_dispatch_spec(
-                              gpServer,
-                              NtlmSrvGetDispatchSpec()));
-    BAIL_ON_LSA_ERROR(dwError);
-
 
     dwError = MAP_LWMSG_ERROR(lwmsg_server_set_endpoint(
                               gpServer,
@@ -254,6 +247,126 @@ error:
     return dwError;
 }
 
+DWORD
+NtlmSrvStartListenThread(
+    void
+    )
+{
+    PSTR pszCachePath = NULL;
+    PSTR pszCommPath = NULL;
+    BOOLEAN bDirExists = FALSE;
+    DWORD dwError = 0;
+    static LWMsgTime idleTimeout = {30, 0};
+
+    dwError = LsaSrvGetCachePath(&pszCachePath);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaCheckDirectoryExists(pszCachePath, &bDirExists);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (!bDirExists)
+    {
+        // Directory should be RWX for root and accessible to all
+        // (so they can see the socket.
+        mode_t mode = S_IRWXU | S_IRGRP| S_IXGRP | S_IROTH | S_IXOTH;
+        dwError = LsaCreateDirectory(pszCachePath, mode);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LwAllocateStringPrintf(
+        &pszCommPath,
+        "%s/%s",
+        pszCachePath,
+        NTLM_SERVER_FILENAME);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_context_new(NULL, &gpNtlmContext));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    lwmsg_context_set_log_function(gpNtlmContext, LsaSrvLogIpc, NULL);
+
+    /* Set up IPC protocol object */
+    dwError = MAP_LWMSG_ERROR(lwmsg_protocol_new(gpNtlmContext, &gpNtlmProtocol));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_protocol_add_protocol_spec(
+        gpNtlmProtocol,
+        NtlmIpcGetProtocolSpec()));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    /* Set up IPC server object */
+    dwError = MAP_LWMSG_ERROR(lwmsg_server_new(
+        gpNtlmContext,
+        gpNtlmProtocol,
+        &gpNtlmServer));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_server_add_dispatch_spec(
+        gpNtlmServer,
+        NtlmSrvGetDispatchSpec()));
+    BAIL_ON_LSA_ERROR(dwError);
+
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_server_set_endpoint(
+        gpNtlmServer,
+        LWMSG_CONNECTION_MODE_LOCAL,
+        pszCommPath,
+        0666));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_server_set_max_dispatch(
+        gpNtlmServer,
+        MAX_DISPATCH));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_server_set_max_clients(
+        gpNtlmServer,
+        MAX_CLIENTS));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_server_set_max_backlog(
+        gpNtlmServer,
+        LSA_MAX(5, MAX_CLIENTS / 4)));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_server_set_timeout(
+        gpNtlmServer,
+        LWMSG_TIMEOUT_IDLE,
+        &idleTimeout));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_server_set_session_functions(
+        gpNtlmServer,
+        LsaSrvIpcConstructSession,
+        LsaSrvIpcDestructSession,
+        NULL));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_server_set_exception_function(
+        gpNtlmServer,
+        LsaSrvHandleIpcException,
+        NULL));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_server_start(gpNtlmServer));
+
+error:
+
+    LW_SAFE_FREE_STRING(pszCachePath);
+    LW_SAFE_FREE_STRING(pszCommPath);
+
+    if (dwError)
+    {
+        if (gpNtlmServer)
+        {
+            lwmsg_server_stop(gpNtlmServer);
+            lwmsg_server_delete(gpNtlmServer);
+            gpNtlmServer = NULL;
+        }
+    }
+
+    return dwError;
+}
 
 DWORD
 LsaSrvStopListenThread(
@@ -274,6 +387,30 @@ error:
     {
         lwmsg_server_delete(gpServer);
         gpServer = NULL;
+    }
+
+    return dwError;
+}
+
+DWORD
+NtlmSrvStopListenThread(
+    void
+    )
+{
+    DWORD dwError = 0;
+
+    if (gpNtlmServer)
+    {
+        dwError = MAP_LWMSG_ERROR(lwmsg_server_stop(gpNtlmServer));
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+error:
+
+    if (gpNtlmServer)
+    {
+        lwmsg_server_delete(gpNtlmServer);
+        gpNtlmServer = NULL;
     }
 
     return dwError;
