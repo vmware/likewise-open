@@ -1,5 +1,10 @@
+/* Editor Settings: expandtabs and use 4 spaces for indentation
+ * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+ * -*- mode: c, c-basic-offset: 4 -*- */
+
 /*
- * Copyright (c) Likewise Software.  All rights Reserved.
+ * Copyright Likewise Software
+ * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -7,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -23,34 +28,44 @@
  * license@likewisesoftware.com
  */
 
+
+
 /*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
  * Module Name:
  *
- *        base.h
+ *        dscache.h
  *
  * Abstract:
  *
- *        Base include header
+ *        Likewise Base Library (LwBase)
  *
- * Authors: Brian Koropoff (bkoropoff@likewisesoftware.com)
+ *        Directory Service Cache Exception API
  *
+ * Authors: Glenn Curtis (glennc@likewise.com)
  */
 
-#ifndef __LWBASE_H__
-#define __LWBASE_H__
+#ifndef __LW_DSCACHE_H__
+#define __LW_DSCACHE_H__
 
-#include <lw/types.h>
-#include <lw/attrs.h>
-#include <lw/atomic.h>
-#include <lw/ntstatus.h>
-#include <lw/errno.h>
-#include <lw/rpcstatus.h>
-#include <lw/rtlmemory.h>
-#include <lw/rtlstring.h>
-#include <lw/rbtree.h>
-#include <lw/rtlqueue.h>
-#include <lw/security-types.h>
-#include <lw/security-api.h>
-#include <lw/dscache.h>
+LW_NTSTATUS
+LwAddPidExceptionToDSCache(
+    pid_t pid
+    );
 
-#endif
+LW_NTSTATUS
+LwRemovePidExceptionFromDSCache(
+    pid_t pid
+    );
+
+#endif /* __LW_DSCACHE_H__ */
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

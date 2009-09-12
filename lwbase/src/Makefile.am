@@ -1,4 +1,4 @@
-AM_CFLAGS = $(LWBASE_CFLAGS)
+AM_CFLAGS = $(LWBASE_CFLAGS) -Wno-deprecated-declarations
 AM_CPPFLAGS = $(LWBASE_CPPFLAGS) -I$(top_srcdir)/include
 AM_LDFLAGS = $(LWBASE_LDFLAGS)
 
@@ -22,6 +22,7 @@ liblwbase_nothr_la_SOURCES = \
         security-sd.c
 
 liblwbase_nothr_la_LIBADD = \
+        @DS_FRAMEWORK_LDFLAGS@ \
         @LIBUNISTR_LIBS@ \
         @LIBUUID_LIBS@
 
