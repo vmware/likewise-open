@@ -91,6 +91,13 @@ main(
     dwError = LWNetBlockSelectedSignals();
     BAIL_ON_LWNET_ERROR(dwError);
 
+    dwError = LwDsCacheAddPidException(getpid());
+    if (dwError == LW_ERROR_FAILED_STARTUP_PREREQUISITE_CHECK)
+    {
+        LWNET_LOG_ERROR("Could not register process pid (%d) with Mac DirectoryService Cache plugin", (int) getpid());
+        BAIL_ON_LWNET_ERROR(dwError);
+    }
+
     dwError = LWNetSrvInitialize();
     BAIL_ON_LWNET_ERROR(dwError);
 
@@ -112,6 +119,8 @@ main(
     LWNetSrvLogProcessStoppedEvent(dwError);
 
     LWNetSrvStopListenThread();
+
+    LwDsCacheRemovePidException(getpid());
 
     LWNetSrvApiShutdown();
 
