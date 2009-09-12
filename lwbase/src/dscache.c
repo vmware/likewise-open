@@ -138,7 +138,7 @@ SendDSCustomCall(
 
     memset(&pRequest->auth, 0, sizeof(pRequest->auth));
     pRequest->pid = pid;
-    pPidRequest->fBufferLength = sizeof(tSkipRqst);
+    pPidRequest->fBufferLength = sizeof(DsCacheExceptionRqst);
 
     dirNodeName = dsBuildFromPath(hDirRef, nodeName, "/");
     if (dirNodeName == NULL)
