@@ -51,7 +51,6 @@
 #include "bail.h"
 #include "lwmem.h"
 #include "lwstr.h"
-#include "lwfile.h"
 #include "lwdscache.h"
 
 #endif /* __INCLUDES_H__ */

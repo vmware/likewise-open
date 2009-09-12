@@ -11,4 +11,5 @@ include_HEADERS = \
 	winerror.h \
 	winerror-table.h \
 	ldaperror-table.h \
-	winerror-conv.h
+	winerror-conv.h \
+	lwdscache.h

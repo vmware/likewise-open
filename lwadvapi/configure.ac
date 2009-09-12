@@ -235,6 +235,7 @@ AC_CONFIG_FILES([Makefile
                  unthreaded/lwunistr/Makefile
                  unthreaded/error/Makefile
                  unthreaded/file/Makefile
+                 unthreaded/dscache/Makefile
                  join/Makefile])
 
 AC_OUTPUT

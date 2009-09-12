@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright (c) Likewise Software.  All rights Reserved.
@@ -27,31 +27,68 @@
  * license@likewisesoftware.com
  */
 
-#ifndef __INCLUDES_H__
-#define __INCLUDES_H__
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        lwldap.c
+ *
+ * Abstract:
+ *
+ *        Likewise Advanced API (lwadvapi)
+ *
+ *        Mac Directory Service Cache Exception API
+ *
+ * Authors: Glenn Curtis (glennc@likewise.com)
+ */
+#include "includes.h"
 
-#include "config.h"
-#include <lw/rtlmemory.h>
-#include <lw/dscache.h>
-#include <errno.h>
-#include <stdlib.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <ctype.h>
-#include <sys/stat.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netinet/tcp.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <limits.h>
+DWORD
+LwDsCacheAddPidException(
+    IN pid_t pid
+    )
+{
+    LW_NTSTATUS ntStatus = LW_STATUS_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
 
-#include "lwdef.h"
-#include "lwerror.h"
-#include "bail.h"
-#include "lwmem.h"
-#include "lwstr.h"
-#include "lwfile.h"
-#include "lwdscache.h"
+    ntStatus = LwAddPidExceptionToDSCache(pid);
+    if (ntStatus==LW_STATUS_UNSUCCESSFUL)
+    {
+        dwError = LW_ERROR_FAILED_STARTUP_PREREQUISITE_CHECK;
+        BAIL_ON_LW_ERROR(dwError);
+    }
 
-#endif /* __INCLUDES_H__ */
+error:
+
+    return dwError;
+}
+
+DWORD
+LwDsCacheRemovePidException(
+    IN pid_t pid
+    )
+{
+    LW_NTSTATUS ntStatus = LW_STATUS_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
+
+    ntStatus = LwRemovePidExceptionFromDSCache(pid);
+    if (ntStatus==LW_STATUS_UNSUCCESSFUL)
+    {
+        dwError = LW_ERROR_FAILED_STARTUP_PREREQUISITE_CHECK;
+        BAIL_ON_LW_ERROR(dwError);
+    }
+
+error:
+
+    return dwError;
+}
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
