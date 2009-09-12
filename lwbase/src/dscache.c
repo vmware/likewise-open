@@ -65,16 +65,16 @@
 
 typedef struct _dsCacheExceptionRqst {
     AuthorizationExternalForm auth;
-    pid_t pid;
+    int32_t pid;
 } DsCacheExceptionRqst;
 
 // Local helper function to do the request
-LW_NTSTATUS SendDSCustomCall(int command, pid_t pid);
+LW_NTSTATUS SendDSCustomCall(int command, int32_t pid);
 #endif
 
 LW_NTSTATUS
 LwAddPidExceptionToDSCache(
-    pid_t pid
+    int32_t pid
     )
 {
 #if defined(__LWI_DARWIN__)
@@ -86,7 +86,7 @@ LwAddPidExceptionToDSCache(
 
 LW_NTSTATUS
 LwRemovePidExceptionFromDSCache(
-    pid_t pid
+    int32_t pid
     )
 {
 #if defined(__LWI_DARWIN__)
@@ -100,7 +100,7 @@ LwRemovePidExceptionFromDSCache(
 LW_NTSTATUS
 SendDSCustomCall(
     int command,
-    pid_t pid
+    int32_t pid
     )
 {
     LW_NTSTATUS ntstatus = LW_STATUS_SUCCESS;
