@@ -44,24 +44,30 @@
  */
 #include "includes.h"
 
+#if defined(__LWI_DARWIN__)
+#include <DirectoryService/DirServices.h>
+#include <DirectoryService/DirServicesUtils.h>
+#include <Security/Security.h>
+
+typedef struct _dsCacheExceptionRqst {
+    AuthorizationExternalForm auth;
+    pid_t pid;
+} DsCacheExceptionRqst;
+
+// Local helper function to do the request
+DWORD LwDsSendCustomCall(int command, pid_t pid);
+#endif
+
 DWORD
 LwDsCacheAddPidException(
     IN pid_t pid
     )
 {
-    LW_NTSTATUS ntStatus = LW_STATUS_SUCCESS;
-    DWORD dwError = LW_ERROR_SUCCESS;
-
-    ntStatus = LwAddPidExceptionToDSCache(pid);
-    if (ntStatus==LW_STATUS_UNSUCCESSFUL)
-    {
-        dwError = LW_ERROR_FAILED_STARTUP_PREREQUISITE_CHECK;
-        BAIL_ON_LW_ERROR(dwError);
-    }
-
-error:
-
-    return dwError;
+#if defined(__LWI_DARWIN__)
+    return LwDsSendCustomCall(10000, pid);
+#else
+    return LW_ERROR_SUCCESS;
+#endif
 }
 
 DWORD
@@ -69,20 +75,99 @@ LwDsCacheRemovePidException(
     IN pid_t pid
     )
 {
-    LW_NTSTATUS ntStatus = LW_STATUS_SUCCESS;
-    DWORD dwError = LW_ERROR_SUCCESS;
+#if defined(__LWI_DARWIN__)
+    return LwDsSendCustomCall(10001, pid);
+#else
+    return LW_ERROR_SUCCESS;
+#endif
+}
 
-    ntStatus = LwRemovePidExceptionFromDSCache(pid);
-    if (ntStatus==LW_STATUS_UNSUCCESSFUL)
+#if defined(__LWI_DARWIN__)
+DWORD
+LwDsSendCustomCall(
+    int command,
+    pid_t pid
+    )
+{
+    DWORD dwError = LW_ERROR_SUCCESS;
+    tDirReference hDirRef = 0;
+    tDirNodeReference hNodeRef = 0;
+    tDirStatus status = eDSNoErr;
+    const char nodeName[] = "/Cache";
+    tDataListPtr dirNodeName = NULL;
+    tDataBufferPtr pPidRequest = NULL;
+    tDataBufferPtr pPidResponse = NULL;
+    DsCacheExceptionRqst * pRequest = NULL;
+
+    status = dsOpenDirService(&hDirRef);
+    if(status != eDSNoErr)
     {
         dwError = LW_ERROR_FAILED_STARTUP_PREREQUISITE_CHECK;
-        BAIL_ON_LW_ERROR(dwError);
+        goto errorexit;
     }
 
-error:
+    pPidRequest = dsDataBufferAllocate(hDirRef, sizeof(DsCacheExceptionRqst));
+    if (pPidRequest == NULL)
+    {
+        dwError = LW_ERROR_FAILED_STARTUP_PREREQUISITE_CHECK;
+        goto errorexit;
+    }
+
+    pPidResponse = dsDataBufferAllocate(hDirRef, sizeof(int32_t));
+    if (pPidResponse == NULL)
+    {
+        dwError = LW_ERROR_FAILED_STARTUP_PREREQUISITE_CHECK;
+        goto errorexit;
+    }
+
+    pRequest = (DsCacheExceptionRqst*)pPidRequest->fBufferData;
+
+    memset(&pRequest->auth, 0, sizeof(pRequest->auth));
+    pRequest->pid = pid;
+    pPidRequest->fBufferLength = sizeof(DsCacheExceptionRqst);
+
+    dirNodeName = dsBuildFromPath(hDirRef, nodeName, "/");
+    if (dirNodeName == NULL)
+    {
+        dwError = LW_ERROR_FAILED_STARTUP_PREREQUISITE_CHECK;
+        goto errorexit;
+    }
+
+    status = dsOpenDirNode(hDirRef, dirNodeName, &hNodeRef);
+    if (status != eDSNoErr)
+    {
+        dwError = LW_ERROR_FAILED_STARTUP_PREREQUISITE_CHECK;
+        goto errorexit;
+    }
+
+    status = dsDoPlugInCustomCall(hNodeRef, command, pPidRequest, pPidResponse);
+    if (status != eDSNoErr)
+    {
+        dwError = LW_ERROR_FAILED_STARTUP_PREREQUISITE_CHECK;
+        goto errorexit;
+    }
+
+errorexit:
+
+    if (dirNodeName)
+        dsDataListDeallocate(hDirRef, dirNodeName);
+
+    if (hNodeRef)
+        dsCloseDirNode(hNodeRef);
+
+    if (pPidRequest)
+        dsDataBufferDeAllocate(hDirRef, pPidRequest);
+
+    if (pPidResponse)
+        dsDataBufferDeAllocate(hDirRef, pPidResponse);
+
+    if (hDirRef)
+        dsCloseDirService(hDirRef);
 
     return dwError;
 }
+#endif
+
 
 /*
 local variables:
