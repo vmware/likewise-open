@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright (c) Likewise Software.  All rights Reserved.
@@ -27,56 +27,68 @@
  * license@likewisesoftware.com
  */
 
-#ifndef __INCLUDES_H__
-#define __INCLUDES_H__
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        lwldap.c
+ *
+ * Abstract:
+ *
+ *        Likewise Advanced API (lwadvapi)
+ *
+ *        Mac Directory Service Cache Exception API
+ *
+ * Authors: Glenn Curtis (glennc@likewise.com)
+ */
+#include "includes.h"
 
-#include "config.h"
-#include <stdarg.h>
-#include <krb5.h>
-#include <gssapi.h>
-#include <errno.h>
-#include <sys/stat.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netinet/tcp.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <time.h>
-#include <assert.h>
-#include <pthread.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <stdio.h>
-#include <ctype.h>
-#include <time.h>
-#include <sys/time.h>
+DWORD
+LwDsCacheAddPidException(
+    IN pid_t pid
+    )
+{
+    LW_NTSTATUS ntStatus = LW_STATUS_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
 
-#include <lwps/lwps.h>
-#include <lw/rtlmemory.h>
-#include <lw/attrs.h>
+    ntStatus = LwAddPidExceptionToDSCache(pid);
+    if (ntStatus==LW_STATUS_UNSUCCESSFUL)
+    {
+        dwError = LW_ERROR_FAILED_STARTUP_PREREQUISITE_CHECK;
+        BAIL_ON_LW_ERROR(dwError);
+    }
 
-#include "lwdef.h"
-#include "lwmem.h"
-#include "lwfile.h"
-#include "lwstr.h"
-#include "lwkrb5.h"
-#include "lwldap.h"
-#include "lwerror.h"
-#include "bail.h"
-#include "externs.h"
+error:
 
-#include "lwldap_p.h"
-#include "lwkrb5_p.h"
-#include "lwtime.h"
-#include "lwsecurityidentifier.h"
+    return dwError;
+}
 
-#if !defined(HAVE_STRTOLL) && defined(HAVE___STRTOLL)
-#define strtoll __strtoll
-#endif
+DWORD
+LwDsCacheRemovePidException(
+    IN pid_t pid
+    )
+{
+    LW_NTSTATUS ntStatus = LW_STATUS_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
 
-#if !defined(HAVE_STRTOULL) && defined(HAVE___STRTOULL)
-#define strtoull __strtoull
-#endif
+    ntStatus = LwRemovePidExceptionFromDSCache(pid);
+    if (ntStatus==LW_STATUS_UNSUCCESSFUL)
+    {
+        dwError = LW_ERROR_FAILED_STARTUP_PREREQUISITE_CHECK;
+        BAIL_ON_LW_ERROR(dwError);
+    }
 
-#endif /* __INCLUDES_H__ */
+error:
+
+    return dwError;
+}
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

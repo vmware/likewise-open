@@ -4,6 +4,13 @@ AC_PREREQ([2.13])
 AC_INIT([DCE RPC], [1.1.0.7])
 AC_CONFIG_AUX_DIR([build])
 AC_CANONICAL_TARGET
+AM_INIT_AUTOMAKE(dcerpc, 1.1.0.7)
+AC_PREFIX_DEFAULT(/opt/dcerpc)
+AC_CONFIG_SRCDIR([uuid/uuid.c])
+AC_CONFIG_HEADER([include/config.h])
+
+AC_PROG_CC
+AC_CHECK_SIZEOF([long])
 
 # reduce target_cpu
 case $target_cpu in
@@ -34,7 +41,11 @@ case $target_os in
      darwin10.*)
          echo "Detected Mac OS X 10.6 - Snow Leopard system"
          target_os="darwin6.0"
-         target_cpu="x86_64"
+	 if test "$ac_cv_sizeof_long" = "8" -a "$target_cpu" = "i386"
+	 then
+		echo "Building in 64-bit mode"
+		target_cpu="x86_64"
+	 fi
          ;;
      solaris2.1*)
          echo "Detected Solaris system"
@@ -49,14 +60,9 @@ esac
 AC_SUBST(target_cpu)
 AC_SUBST(target_os)
 
-AM_INIT_AUTOMAKE(dcerpc, 1.1.0.7)
-AC_PREFIX_DEFAULT(/opt/dcerpc)
-AC_CONFIG_SRCDIR([uuid/uuid.c])
-AC_CONFIG_HEADER([include/config.h])
 #AM_CONFIG_HEADER([include/config.h])
 
 dnl Checks for programs.
-AC_PROG_CC
 AC_PROG_CPP
 AC_PROG_CXX
 AC_PROG_AWK

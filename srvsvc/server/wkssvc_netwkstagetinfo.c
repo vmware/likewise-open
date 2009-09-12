@@ -62,13 +62,11 @@ WksSvcNetWkstaGetInfo(
     RPCSTATUS rpcStatus = RPC_S_OK;
     DWORD dwError = 0;
     PWKSTA_INFO_100 pInfo100 = NULL;
-    PSTR pszDomainFqdn = NULL;
-    PSTR pszDcName = NULL;
-    PWSTR pwszDcName = NULL;
     PIO_ACCESS_TOKEN pAccessToken = NULL;
     CHAR szHostname[64];
     PSTR pszLsaLpcSocketPath = NULL;
     handle_t hLsaBinding = NULL;
+    PWSTR pwszLocalHost = NULL;
     PolicyHandle hLocalPolicy = {0};
     LsaPolicyInformation *pPolInfo = NULL;
     PWSTR pwszHostname = NULL;
@@ -76,13 +74,6 @@ WksSvcNetWkstaGetInfo(
 
     dwError = SrvSvcSrvAllocateMemory(sizeof(*pInfo100),
                                       (PVOID*)&pInfo100);
-    BAIL_ON_ERROR(dwError);
-
-    dwError = LWNetGetCurrentDomain(&pszDomainFqdn);
-    BAIL_ON_ERROR(dwError);
-
-    dwError = LWNetGetDomainController(pszDomainFqdn,
-                                       &pszDcName);
     BAIL_ON_ERROR(dwError);
 
     ntStatus = LwIoGetThreadAccessToken(&pAccessToken);
@@ -106,11 +97,11 @@ WksSvcNetWkstaGetInfo(
         BAIL_ON_ERROR(dwError);
     }
 
-    dwError = LwMbsToWc16s(pszDcName, &pwszDcName);
+    dwError = LwMbsToWc16s(szHostname, &pwszLocalHost);
     BAIL_ON_ERROR(dwError);
 
     ntStatus = LsaOpenPolicy2(hLsaBinding,
-                              pwszDcName,
+                              pwszLocalHost,
                               NULL,
                               dwPolicyAccessMask,
                               &hLocalPolicy);
@@ -124,7 +115,7 @@ WksSvcNetWkstaGetInfo(
 
     dwError = SrvSvcSrvGetFromUnicodeStringEx(
                   &pInfo100->wksta100_domain,
-                  &pPolInfo->dns.name);
+                  &pPolInfo->dns.dns_domain);
     BAIL_ON_ERROR(dwError);
 
     dwError = LwMbsToWc16s(szHostname, &pwszHostname);
@@ -153,20 +144,15 @@ cleanup:
         LsaRpcFreeMemory(pPolInfo);
     }
 
-    if (pszDomainFqdn)
-    {
-        LWNetFreeString(pszDomainFqdn);
-    }
-
-    if (pszDcName)
-    {
-        LWNetFreeString(pszDcName);
-    }
-
-    LW_SAFE_FREE_MEMORY(pwszDcName);
     LW_SAFE_FREE_MEMORY(pwszHostname);
 
     FreeLsaBinding(&hLsaBinding);
+
+    if (dwError == ERROR_SUCCESS &&
+        ntStatus != STATUS_SUCCESS)
+    {
+        dwError = LwNtStatusToWin32Error(ntStatus);
+    }
 
     return dwError;
 

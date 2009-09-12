@@ -386,6 +386,10 @@ error:
     /* Regardless of info level the pointer is at the same position */
     memset(&Info, 0, sizeof(Info));
 
+    *total_size    = dwTotalSize;
+    *returned_size = 0;
+    *info          = Info;
+
     goto cleanup;
 }
 

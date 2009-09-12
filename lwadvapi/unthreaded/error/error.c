@@ -688,11 +688,11 @@ static struct
     },
     {
         LW_ERROR_DUPLICATE_KEYVALUENAME,
-        "Duplicate key/value pair were found in registry"
+        "Duplicate key/value name is not allowed in registry"
     },
     {
         LW_ERROR_FAILED_DELETE_HAS_SUBKEY,
-        "The Key has failed in deletion due to non zero subkeys"
+        "Cannot delete key because it still has subkeys (If you want to delete the key, please use delete_tree.)"
     },
     {
         LW_ERROR_NO_SUBKEYS,

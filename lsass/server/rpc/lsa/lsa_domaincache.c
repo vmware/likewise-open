@@ -150,9 +150,17 @@ LsaSrvGetSamDomainByName(
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     dwError = LsaHashGetValue(pPolCtx->pDomains,
-                              (PVOID)&pKey,
+                              (PVOID)pKey,
                               OUT_PPVOID(&pEntry));
-    BAIL_ON_LSA_ERROR(dwError);
+    if (dwError == ERROR_FILE_NOT_FOUND)
+    {
+        ntStatus = STATUS_NO_SUCH_DOMAIN;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
+    else if (dwError != ERROR_SUCCESS)
+    {
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     ntStatus = LsaSrvSamDomainEntryCopy(&pDomain,
                                         (PSAM_DOMAIN_ENTRY)pEntry);

@@ -264,23 +264,36 @@ LsaSrvLookupNames3(
             BAIL_ON_NTSTATUS_ERROR(ntStatus);
         }
 
-        for (i = 0; i < dwCount; i++) {
+        for (i = 0; i < LocalAccounts.dwCount; i++) {
             DWORD iTransSid = LocalAccounts.pdwIndices[i];
             TranslatedSid3 *pSid = &(SidArray.sids[iTransSid]);
             PSID pDomainSid = pDomain->pSid;
             PSID pAcctSid = NULL;
 
-            ntStatus = LsaSrvSidAppendRid(&pAcctSid, pDomainSid, dwRids[i]);
-            BAIL_ON_NTSTATUS_ERROR(ntStatus);
+            if (ntStatus == STATUS_SUCCESS ||
+                ntStatus == LW_STATUS_SOME_NOT_MAPPED)
+            {
+                ntStatus = LsaSrvSidAppendRid(&pAcctSid, pDomainSid, dwRids[i]);
+                BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
-            pSid->type     = dwTypes[i];
-            pSid->sid      = pAcctSid;
+                pSid->type     = dwTypes[i];
+                pSid->sid      = pAcctSid;
+            }
+            else
+            {
+                /* STATUS_NONE_MAPPED is returned along with NULL
+                   results so we have to set translated sids to
+                   invalid one by one */
+                pSid->type     = SID_TYPE_UNKNOWN;
+                pSid->sid      = NULL;
+            }
+
             pSid->index    = dwLocalDomIndex;
             pSid->unknown1 = 0;
         }
 
         pDomains->count  = dwLocalDomIndex + 1;
-        SidArray.count   += dwCount;
+        SidArray.count   += LocalAccounts.dwCount;
     }
 
     /*
@@ -321,23 +334,36 @@ LsaSrvLookupNames3(
             BAIL_ON_NTSTATUS_ERROR(ntStatus);
         }
 
-        for (i = 0; i < dwCount; i++) {
+        for (i = 0; i < BuiltinAccounts.dwCount; i++) {
             DWORD iTransSid = BuiltinAccounts.pdwIndices[i];
             TranslatedSid3 *pSid = &(SidArray.sids[iTransSid]);
             PSID pDomainSid = pDomain->pSid;
             PSID pAcctSid = NULL;
 
-            ntStatus = LsaSrvSidAppendRid(&pAcctSid, pDomainSid, dwRids[i]);
-            BAIL_ON_NTSTATUS_ERROR(ntStatus);
+            if (ntStatus == STATUS_SUCCESS ||
+                ntStatus == LW_STATUS_SOME_NOT_MAPPED)
+            {
+                ntStatus = LsaSrvSidAppendRid(&pAcctSid, pDomainSid, dwRids[i]);
+                BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
-            pSid->type     = dwTypes[i];
-            pSid->sid      = pAcctSid;
+                pSid->type     = dwTypes[i];
+                pSid->sid      = pAcctSid;
+            }
+            else
+            {
+                /* STATUS_NONE_MAPPED is returned along with NULL
+                   results so we have to set translated sids to
+                   invalid one by one */
+                pSid->type     = SID_TYPE_UNKNOWN;
+                pSid->sid      = NULL;
+            }
+
             pSid->index    = dwBuiltinDomIndex;
             pSid->unknown1 = 0;
         }
 
         pDomains->count = dwBuiltinDomIndex + 1;
-        SidArray.count  += dwCount;
+        SidArray.count  += BuiltinAccounts.dwCount;
     }
 
     /*
@@ -420,7 +446,7 @@ LsaSrvLookupNames3(
             BAIL_ON_NTSTATUS_ERROR(ntStatus);
         }
 
-        for (i = 0; i < dwCount; i++)
+        for (i = 0; i < OtherAccounts.dwCount; i++)
         {
             DWORD iTransSid = OtherAccounts.pdwIndices[i];
             TranslatedSid3 *pSid   = &(SidArray.sids[iTransSid]);
@@ -439,10 +465,10 @@ LsaSrvLookupNames3(
                 pSid->type     = dwLocalTypes[i];
                 pSid->sid      = pAcctSid;
                 pSid->index    = dwLocalDomIndex;
-                pSid->unknown1 = 0;
 
             }
-            else
+            else if (dwBuiltinTypes &&
+                     dwBuiltinTypes[i] != SID_TYPE_UNKNOWN)
             {
                 ntStatus = LsaSrvSidAppendRid(&pAcctSid,
                                               pBuiltinDomainSid,
@@ -452,8 +478,15 @@ LsaSrvLookupNames3(
                 pSid->type     = dwBuiltinTypes[i];
                 pSid->sid      = pAcctSid;
                 pSid->index    = dwBuiltinDomIndex;
-                pSid->unknown1 = 0;
             }
+            else
+            {
+                pSid->type     = SID_TYPE_UNKNOWN;
+                pSid->sid      = NULL;
+                pSid->index    = 0;
+            }
+
+            pSid->unknown1  = 0;
         }
 
         SidArray.count += dwCount;

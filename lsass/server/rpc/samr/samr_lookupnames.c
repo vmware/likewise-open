@@ -89,8 +89,7 @@ SamrSrvLookupNames(
     DWORD dwObjectClass = 0;
     DWORD dwRid = 0;
     DWORD dwType = 0;
-    BOOLEAN bNamesFound = FALSE;
-    BOOLEAN bNamesNotFound = FALSE;
+    DWORD dwUnknownNamesNum = 0;
 
     pDomCtx = (PDOMAIN_CONTEXT)hDomain;
 
@@ -220,8 +219,6 @@ SamrSrvLookupNames(
             pIds->ids[i]   = 0;
             pTypes->ids[i] = SID_TYPE_UNKNOWN;
 
-            bNamesNotFound = TRUE;
-
         } else {
             ntStatus = STATUS_INTERNAL_ERROR;
             BAIL_ON_NTSTATUS_ERROR(ntStatus);
@@ -252,11 +249,22 @@ SamrSrvLookupNames(
     types->count = pTypes->count;
     types->ids   = pTypes->ids;
 
-    if (ntStatus == STATUS_SUCCESS) {
-        if (bNamesFound && bNamesNotFound) {
-            ntStatus = LW_STATUS_SOME_NOT_MAPPED;
+    for (i = 0; i < pTypes->count; i++)
+    {
+        if (pTypes->ids[i] == SID_TYPE_UNKNOWN)
+        {
+            dwUnknownNamesNum++;
+        }
+    }
 
-        } else if (!bNamesFound && bNamesNotFound) {
+    if (dwUnknownNamesNum > 0)
+    {
+        if (dwUnknownNamesNum < pTypes->count)
+        {
+            ntStatus = LW_STATUS_SOME_NOT_MAPPED;
+        }
+        else
+        {
             ntStatus = STATUS_NONE_MAPPED;
         }
     }

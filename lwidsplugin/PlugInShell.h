@@ -43,6 +43,8 @@
 
 // System headers
 #include <stdio.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 // Project headers
 #include "PlugInConsts.h"

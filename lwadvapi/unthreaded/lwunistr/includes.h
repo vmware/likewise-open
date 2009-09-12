@@ -54,4 +54,5 @@
 #include "lwmem.h"
 #include "lwstr.h"
 #include "lwerror.h"
+#include "bail.h"
 #include "lwdef.h"

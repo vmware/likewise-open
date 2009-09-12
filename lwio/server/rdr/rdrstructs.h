@@ -113,6 +113,7 @@ typedef struct
     BOOLEAN  bSignedMessagesSupported;
     BOOLEAN  bSignedMessagesRequired;
     BOOLEAN  bUseSignedMessagesIfSupported;
+    BOOLEAN  bIgnoreServerSignatures;
     BOOLEAN  bShutdown;
 
     PBYTE    pSessionKey;

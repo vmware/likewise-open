@@ -27,56 +27,53 @@
  * license@likewisesoftware.com
  */
 
-#ifndef __INCLUDES_H__
-#define __INCLUDES_H__
+#ifndef __BAIL_H__
+#define __BAIL_H__
 
-#include "config.h"
-#include <stdarg.h>
-#include <krb5.h>
-#include <gssapi.h>
-#include <errno.h>
-#include <sys/stat.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netinet/tcp.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <time.h>
-#include <assert.h>
-#include <pthread.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <stdio.h>
-#include <ctype.h>
-#include <time.h>
-#include <sys/time.h>
+#define BAIL_ON_LW_ERROR(dwError) \
+    do { \
+        if (dwError) \
+        { \
+            LW_LOG_DEBUG("Error at %s:%d [code: %d]", __FILE__, __LINE__, dwError); \
+            goto error; \
+        } \
+    } while (0)
 
-#include <lwps/lwps.h>
-#include <lw/rtlmemory.h>
-#include <lw/attrs.h>
+#define BAIL_ON_LDAP_ERROR(dwError) \
+    do { \
+        if (dwError) \
+        { \
+            dwError = LwMapLdapErrorToLwError(dwError); \
+            LW_LOG_DEBUG("Error at %s:%d [code: %d]", __FILE__, __LINE__, dwError); \
+            goto error; \
+        } \
+    } while (0)
 
-#include "lwdef.h"
-#include "lwmem.h"
-#include "lwfile.h"
-#include "lwstr.h"
-#include "lwkrb5.h"
-#include "lwldap.h"
-#include "lwerror.h"
-#include "bail.h"
-#include "externs.h"
+#define LW_BAIL_ON_INVALID_STRING(pszParam) \
+    do { \
+        if (LW_IS_NULL_OR_EMPTY_STR(pszParam)) \
+        { \
+           dwError = LW_ERROR_INVALID_PARAMETER; \
+           BAIL_ON_LW_ERROR(dwError); \
+        } \
+    } while (0)
 
-#include "lwldap_p.h"
-#include "lwkrb5_p.h"
-#include "lwtime.h"
-#include "lwsecurityidentifier.h"
+#define LW_BAIL_ON_INVALID_HANDLE(hParam) \
+    do { \
+        if (!hParam) \
+        { \
+           dwError = LW_ERROR_INVALID_PARAMETER; \
+           BAIL_ON_LW_ERROR(dwError); \
+        } \
+    } while (0)
 
-#if !defined(HAVE_STRTOLL) && defined(HAVE___STRTOLL)
-#define strtoll __strtoll
-#endif
+#define LW_BAIL_ON_INVALID_POINTER(p) \
+    do { \
+        if (!p) \
+        { \
+           dwError = LW_ERROR_INVALID_PARAMETER; \
+           BAIL_ON_LW_ERROR(dwError); \
+        } \
+    } while (0)
 
-#if !defined(HAVE_STRTOULL) && defined(HAVE___STRTOULL)
-#define strtoull __strtoull
-#endif
-
-#endif /* __INCLUDES_H__ */
+#endif /* __BAIL_H__ */

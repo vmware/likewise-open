@@ -81,6 +81,7 @@ SamrSrvLookupRids(
     DWORD dwObjectClass = 0;
     UnicodeStringArray Names = {0};
     Ids Types = {0};
+    DWORD dwUnknownNamesNum = 0;
 
     PWSTR wszAttributes[] = {
         wszAttrSamAccountName,
@@ -155,7 +156,10 @@ SamrSrvLookupRids(
                                       pwszAccountName);
             BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
+            Names.count++;
+
             Types.ids[i] = SID_TYPE_UNKNOWN;
+            Types.count++;
         }
         else if (dwEntriesNum > 1)
         {
@@ -222,6 +226,26 @@ SamrSrvLookupRids(
     pNames->count = Names.count;
     pTypes->ids   = Types.ids;
     pTypes->count = Types.count;
+
+    for (i = 0; i < pTypes->count; i++)
+    {
+        if (pTypes->ids[i] == SID_TYPE_UNKNOWN)
+        {
+            dwUnknownNamesNum++;
+        }
+    }
+
+    if (dwUnknownNamesNum > 0)
+    {
+        if (dwUnknownNamesNum < pTypes->count)
+        {
+            ntStatus = LW_STATUS_SOME_NOT_MAPPED;
+        }
+        else
+        {
+            ntStatus = STATUS_NONE_MAPPED;
+        }
+    }
 
 cleanup:
     if (pEntry)

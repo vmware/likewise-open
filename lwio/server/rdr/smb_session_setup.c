@@ -194,7 +194,7 @@ SessionSetup(
 
         ntStatus = SMBSocketReceiveResponse(
                         pSocket,
-                        packet.haveSignature,
+                        packet.haveSignature && pSocket->pSessionKey != NULL,
                         packet.sequence + 1,
                         &pResponsePacket);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -205,6 +205,19 @@ SessionSetup(
             ntStatus = 0;
         }
         BAIL_ON_NT_STATUS(ntStatus);
+
+        /* Work around issue seen with some Windows servers where
+           signing is supported and required, but the server just
+           reflects back our signature instead of signing properly.
+           In this case, we no longer verify server signatures but
+           continue to sign our own packets */
+        if (packet.haveSignature &&
+            (pResponsePacket->pSMBHeader->extra.securitySignature ==
+             packet.pSMBHeader->extra.securitySignature))
+        {
+            LWIO_LOG_WARNING("Server is exhibiting signing bug; ignoring signatures from server");
+            RdrSocketSetIgnoreServerSignatures(pSocket, TRUE);
+        }
 
         ntStatus = UnmarshallSessionSetupResponse(
                         pResponsePacket->pParams,

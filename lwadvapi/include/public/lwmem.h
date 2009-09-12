@@ -1,3 +1,7 @@
+/* Editor Settings: expandtabs and use 4 spaces for indentation
+ * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+ * -*- mode: c, c-basic-offset: 4 -*- */
+
 /*
  * Copyright (c) Likewise Software.  All rights Reserved.
  *
@@ -7,7 +11,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -24,33 +28,50 @@
  */
 
 /*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
  * Module Name:
  *
- *        base.h
+ *        lwmem.h
  *
  * Abstract:
  *
- *        Base include header
+ *        Likewise Advanced API (lwadvapi) Memory Utilities
  *
- * Authors: Brian Koropoff (bkoropoff@likewisesoftware.com)
- *
+ * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
+ *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
-
-#ifndef __LWBASE_H__
-#define __LWBASE_H__
+#ifndef __LWMEM_H__
+#define __LWMEM_H__
 
 #include <lw/types.h>
 #include <lw/attrs.h>
-#include <lw/atomic.h>
-#include <lw/ntstatus.h>
-#include <lw/errno.h>
-#include <lw/rpcstatus.h>
-#include <lw/rtlmemory.h>
-#include <lw/rtlstring.h>
-#include <lw/rbtree.h>
-#include <lw/rtlqueue.h>
-#include <lw/security-types.h>
-#include <lw/security-api.h>
-#include <lw/dscache.h>
 
-#endif
+#define LW_SAFE_FREE_MEMORY(mem) \
+    do { \
+        if (mem) \
+        { \
+            LwFreeMemory(mem); \
+            (mem) = NULL; \
+        } \
+    } while (0)
+
+LW_DWORD
+LwAllocateMemory(
+    LW_IN LW_DWORD dwSize,
+    LW_OUT LW_PVOID* ppMemory
+    );
+
+LW_DWORD
+LwReallocMemory(
+    LW_IN LW_PVOID pMemory,
+    LW_OUT LW_PVOID* ppNewMemory,
+    LW_IN LW_DWORD dwSize
+    );
+
+LW_VOID
+LwFreeMemory(
+    LW_IN LW_OUT LW_PVOID pMemory
+    );
+
+#endif /* __LWMEM_H__ */

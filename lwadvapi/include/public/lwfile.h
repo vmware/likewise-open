@@ -11,7 +11,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -32,7 +32,7 @@
  *
  * Module Name:
  *
- *        lwmem.h
+ *        lwfile.h
  *
  * Abstract:
  *
@@ -41,37 +41,75 @@
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
-#ifndef __LWMEM_H__
-#define __LWMEM_H__
+#ifndef __LWFILE_H__
+#define __LWFILE_H__
 
-#include <lw/types.h>
-#include <lw/attrs.h>
+typedef enum _LWFILE_TYPE
+{
+    LWFILE_REGULAR,
+    LWFILE_DIRECTORY,
+    LWFILE_SYMLINK,
+    LWFILE_SOCKET,
+    LWFILE_PIPE,
+} LWFILE_TYPE;
 
-#define LW_SAFE_FREE_MEMORY(mem) \
-    do { \
-        if (mem) \
-        { \
-            LwFreeMemory(mem); \
-            (mem) = NULL; \
-        } \
-    } while (0)
-
-LW_DWORD
-LwAllocateMemory(
-    LW_IN LW_DWORD dwSize,
-    LW_OUT LW_PVOID* ppMemory
+DWORD
+LwRemoveFile(
+    PCSTR pszPath
     );
 
-LW_DWORD
-LwReallocMemory(
-    LW_IN LW_PVOID pMemory,
-    LW_OUT LW_PVOID* ppNewMemory,
-    LW_IN LW_DWORD dwSize
+DWORD
+LwMoveFile(
+    PCSTR pszSrcPath,
+    PCSTR pszDstPath
     );
 
-LW_VOID
-LwFreeMemory(
-    LW_IN LW_OUT LW_PVOID pMemory
+DWORD
+LwChangePermissions(
+    PCSTR pszPath,
+    mode_t dwFileMode
     );
 
-#endif /* __LWMEM_H__ */
+DWORD
+LwChangeOwner(
+    PCSTR pszPath,
+    uid_t uid,
+    gid_t gid
+    );
+
+DWORD
+LwChangeOwnerAndPermissions(
+    PCSTR pszPath,
+    uid_t uid,
+    gid_t gid,
+    mode_t dwFileMode
+    );
+
+DWORD
+LwGetCurrentDirectoryPath(
+    PSTR* ppszPath
+    );
+
+DWORD
+LwGetOwnerAndPermissions(
+    PCSTR pszSrcPath,
+    uid_t * uid,
+    gid_t * gid,
+    mode_t * mode
+    );
+
+DWORD
+LwCheckFileTypeExists(
+    PCSTR pszPath,
+    LWFILE_TYPE type,
+    PBOOLEAN pbExists
+    );
+
+DWORD
+LwCreateDirectory(
+    PCSTR pszPath,
+    mode_t dwFileMode
+    );
+
+#endif /* __LWFILE_H__ */
+

@@ -229,11 +229,13 @@ AC_HEADER_STDC
 
 AC_CONFIG_FILES([Makefile
                  include/Makefile
+                 include/public/Makefile
                  unthreaded/Makefile
                  unthreaded/memory/Makefile
                  unthreaded/lwunistr/Makefile
                  unthreaded/error/Makefile
                  unthreaded/file/Makefile
+                 unthreaded/dscache/Makefile
                  join/Makefile])
 
 AC_OUTPUT

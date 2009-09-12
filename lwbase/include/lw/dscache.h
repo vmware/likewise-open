@@ -3,7 +3,8 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright (c) Likewise Software.  All rights Reserved.
+ * Copyright Likewise Software
+ * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -11,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -27,89 +28,44 @@
  * license@likewisesoftware.com
  */
 
+
+
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        lwfile.h
+ *        dscache.h
  *
  * Abstract:
  *
- *        Likewise Advanced API (lwadvapi) Memory Utilities
+ *        Likewise Base Library (LwBase)
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *        Directory Service Cache Exception API
+ *
+ * Authors: Glenn Curtis (glennc@likewise.com)
  */
-#ifndef __LWFILE_H__
-#define __LWFILE_H__
 
-typedef enum _LWFILE_TYPE
-{
-    LWFILE_REGULAR,
-    LWFILE_DIRECTORY,
-    LWFILE_SYMLINK,
-    LWFILE_SOCKET,
-    LWFILE_PIPE,
-} LWFILE_TYPE;
+#ifndef __LW_DSCACHE_H__
+#define __LW_DSCACHE_H__
 
-DWORD
-LwRemoveFile(
-    PCSTR pszPath
+LW_NTSTATUS
+LwAddPidExceptionToDSCache(
+    pid_t pid
     );
 
-DWORD
-LwMoveFile(
-    PCSTR pszSrcPath,
-    PCSTR pszDstPath
+LW_NTSTATUS
+LwRemovePidExceptionFromDSCache(
+    pid_t pid
     );
 
-DWORD
-LwChangePermissions(
-    PCSTR pszPath,
-    mode_t dwFileMode
-    );
+#endif /* __LW_DSCACHE_H__ */
 
-DWORD
-LwChangeOwner(
-    PCSTR pszPath,
-    uid_t uid,
-    gid_t gid
-    );
-
-DWORD
-LwChangeOwnerAndPermissions(
-    PCSTR pszPath,
-    uid_t uid,
-    gid_t gid,
-    mode_t dwFileMode
-    );
-
-DWORD
-LwGetCurrentDirectoryPath(
-    PSTR* ppszPath
-    );
-
-DWORD
-LwGetOwnerAndPermissions(
-    PCSTR pszSrcPath,
-    uid_t * uid,
-    gid_t * gid,
-    mode_t * mode
-    );
-
-DWORD
-LwCheckFileTypeExists(
-    PCSTR pszPath,
-    LWFILE_TYPE type,
-    PBOOLEAN pbExists
-    );
-
-DWORD
-LwCreateDirectory(
-    PCSTR pszPath,
-    mode_t dwFileMode
-    );
-
-#endif /* __LWFILE_H__ */
-
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

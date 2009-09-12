@@ -272,9 +272,6 @@ pam_sm_setcred(
     LsaPamSetLogLevel(pConfig->dwLogLevel);
     LSA_LOG_PAM_DEBUG("pam_sm_setcred::begin");
 
-    dwError = LsaOpenServer(&hLsaConnection);
-    BAIL_ON_LSA_ERROR(dwError);
-
     dwError = LsaPamGetContext(
                     pamh,
                     flags,
@@ -288,6 +285,20 @@ pam_sm_setcred(
         pPamContext,
         &pszLoginId,
         TRUE);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (pPamContext->pamOptions.bSetDefaultRepository)
+    {
+#ifdef HAVE_STRUCT_PAM_REPOSITORY
+        /* This gets mapped to PAM_IGNORE */
+        dwError = LW_ERROR_NOT_HANDLED;
+#else
+        dwError = LW_ERROR_INTERNAL;
+#endif
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LsaOpenServer(&hLsaConnection);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaFindUserByName(
@@ -331,5 +342,17 @@ cleanup:
     return dwError;
 
 error:
+    if (dwError == LW_ERROR_NO_SUCH_USER || dwError == LW_ERROR_NOT_HANDLED)
+    {
+        LSA_LOG_PAM_WARNING("pam_sm_setcred error [login:%s][error code:%d]",
+                          LSA_SAFE_LOG_STRING(pszLoginId),
+                          dwError);
+    }
+    else
+    {
+        LSA_LOG_PAM_ERROR("pam_sm_setcred error [login:%s][error code:%d]",
+                          LSA_SAFE_LOG_STRING(pszLoginId),
+                          dwError);
+    }
     goto cleanup;
 }

@@ -327,7 +327,14 @@ SMBSocketIsSignatureRequired(
 
     LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
 
-    if (pSocket->pSessionKey &&
+    /* We need to sign outgoing packets if we negotiated it and the
+       socket is in the ready state -- that is, we have completed the
+       negotiate stage.  This causes the initial session setup packet to
+       be signed, even though we do not yet have a session key.  This results
+       in signing with a zero-length key, which matches Windows behavior.
+       Note that no known SMB server actually verifies this signature since it
+       is meaningless and probably the result of an implementation quirk. */
+    if (pSocket->state == RDR_SOCKET_STATE_READY &&
         (pSocket->bSignedMessagesRequired ||
          (pSocket->bSignedMessagesSupported && pSocket->bUseSignedMessagesIfSupported)))
     {
@@ -1137,7 +1144,7 @@ retry_wait:
 
     ntStatus = SMBPacketDecodeHeader(
                     pPacket,
-                    bVerifySignature,
+                    bVerifySignature && !pSocket->bIgnoreServerSignatures,
                     dwExpectedSequence,
                     pSocket->pSessionKey,
                     pSocket->dwSessionKeyLength);
@@ -1329,6 +1336,21 @@ SMBSocketFree(
 
     /* @todo: use allocator */
     SMBFreeMemory(pSocket);
+}
+
+VOID
+RdrSocketSetIgnoreServerSignatures(
+    PSMB_SOCKET pSocket,
+    BOOLEAN bValue
+    )
+{
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
+
+    pSocket->bIgnoreServerSignatures = bValue;
+
+    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 }
 
 static
