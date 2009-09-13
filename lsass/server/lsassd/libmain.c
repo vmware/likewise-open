@@ -48,6 +48,8 @@
 #include "config.h"
 #include "lsassd.h"
 #include "lwnet.h"
+#include "lw/base.h"
+#include "lwdscache.h"
 #include "eventlog.h"
 #include "lsasrvutils.h"
 
@@ -148,6 +150,13 @@ lsassd_main(
     dwError = LsaBlockSelectedSignals();
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = LwDsCacheAddPidException(getpid());
+    if (dwError == LW_ERROR_FAILED_STARTUP_PREREQUISITE_CHECK)
+    {
+        LSA_LOG_ERROR("Could not register process pid (%d) with Mac DirectoryService Cache plugin", (int) getpid());
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
     dwError = LsaSrvInitialize();
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -176,6 +185,8 @@ cleanup:
     }*/
 
     LsaSrvStopListenThread();
+
+    LwDsCacheRemovePidException(getpid());
 
     NtlmSrvStopListenThread();
 

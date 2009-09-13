@@ -108,6 +108,30 @@ AC_SUBST(KRB5_INCLUDES)
 AC_SUBST(KRB5_LDFLAGS)
 AC_SUBST(KRB5_LIBS)
 
+
+# lwbase
+
+AC_ARG_WITH([lwbase],
+        [AC_HELP_STRING([--with-lwbase=<dir>], [use lwbase located in prefix <dir>])]
+,
+        [                LWBASE_INCLUDES="-I$withval/include"
+        LWBASE_LDFLAGS="-L$withval/lib"
+        ])
+
+AC_ARG_WITH([lwbase-includes],
+        [AC_HELP_STRING([--with-lwbase-includes=<dir>], [use lwbase includes located
+in <dir>])],
+        [
+                LWBASE_INCLUDES="-I$withval"        ])
+
+AC_ARG_WITH([lwbase-libs],
+        [AC_HELP_STRING([--with-lwbase-libs=<dir>], [use lwbase libs located in <dir>
+])],
+        [
+                LWBASE_LDFLAGS="-L$withval"
+        ])
+
+
 # pstore
 
 AC_ARG_WITH([pstore],

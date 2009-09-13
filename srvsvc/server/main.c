@@ -993,6 +993,13 @@ main(
         dwError = 0;
     }
 
+    dwError = LwDsCacheAddPidException(getpid());
+    if (dwError == LW_ERROR_FAILED_STARTUP_PREREQUISITE_CHECK)
+    {
+        SRVSVC_LOG_ERROR("Could not register process pid (%d) with Mac DirectoryService Cache plugin", (int) getpid());
+        BAIL_ON_SRVSVC_ERROR(dwError);
+    }
+
     dwError = SrvSvcStartSignalHandler();
     BAIL_ON_SRVSVC_ERROR(dwError);
 
@@ -1007,6 +1014,8 @@ main(
      * Indicate that the process is exiting
      */
     SrvSvcSetProcessShouldExit(TRUE);
+
+    LwDsCacheRemovePidException(getpid());
 
     SrvSvcStopSignalHandler();
 

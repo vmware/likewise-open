@@ -51,12 +51,12 @@
 
 LW_NTSTATUS
 LwAddPidExceptionToDSCache(
-    pid_t pid
+    int32_t pid
     );
 
 LW_NTSTATUS
 LwRemovePidExceptionFromDSCache(
-    pid_t pid
+    int32_t pid
     );
 
 #endif /* __LW_DSCACHE_H__ */

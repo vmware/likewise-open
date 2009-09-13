@@ -9,8 +9,9 @@ netlogond_CPPFLAGS = \
 netlogond_LDADD = \
 	@top_builddir@/server/ipc/liblwnetserveripc.la \
 	@top_builddir@/server/api/liblwnetserverapi.la \
-	@top_builddir@/common/liblwnetcommon.la \
-	@RT_LIBS@
+	@top_builddir@/common/liblwnetcommon.la        \
+	@RT_LIBS@                                      \
+	@DS_FRAMEWORK_LDFLAGS@
 
 netlogond_SOURCES = \
 	globals.c    \

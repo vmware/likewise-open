@@ -44,6 +44,9 @@
 #include <lw/ntstatus.h>
 #include <lwmem.h>
 #include <lwstr.h>
+#include <lwerror.h>
+#include <lwdscache.h>
+#include <lw/base.h>
 #include <lwio/lwio.h>
 #include <lwio/ntfileapi.h>
 #include <lwio/lmshare.h>

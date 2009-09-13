@@ -15,6 +15,7 @@ AM_LDFLAGS=""
 # Platform-specific stuff
 
 MOD_EXT=".so"
+DS_FRAMEWORK_LDFLAGS=""
 
 case "$host_os:$host_cpu" in
 	linux*:i?86|linux*:x86_64|linux*:s390*)
@@ -29,6 +30,7 @@ vsyslog(3) in syslog.h])
 	        AC_DEFINE([_XOPEN_SOURCE], [500], [Define to desired XOPEN compliance level])
 		;;
 	darwin*:*)
+                DS_FRAMEWORK_LDFLAGS="-framework DirectoryService"
 		AC_DEFINE([__LWI_DARWIN__], [], [Define if OS is Darwin])
 		;;
 	freebsd*:*)
@@ -50,6 +52,7 @@ vsyslog(3) in syslog.h])
 esac
 
 AC_SUBST(MOD_EXT)
+AC_SUBST(DS_FRAMEWORK_LDFLAGS)
 AC_DEFINE_UNQUOTED([MOD_EXT], ["$MOD_EXT"], [Extension of shared modules])
 
 # krb5

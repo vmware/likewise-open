@@ -16,7 +16,8 @@ endif
 
 MAIN_LDFLAGS = \
 	@NETLOGON_LDFLAGS@ \
-	@LWIO_LDFLAGS@
+	@LWIO_LDFLAGS@     \
+	@DS_FRAMEWORK_LDFLAGS@
 
 MAIN_LIBS = \
     @top_builddir@/server/api/liblsaserverapi.la \
