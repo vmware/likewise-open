@@ -476,10 +476,10 @@ typedef struct { int error; unsigned char did_run; } k5_init_t;
    As far as I know, only PDP11 and ARM (which we don't handle here)
    have strange byte orders where an 8-byte value isn't laid out as
    either 12345678 or 87654321.  */
-# if defined(__i386__) || defined(_MIPSEL) || defined(__alpha__) || defined(__ia64__)
+# if defined(__i386__) || defined(_MIPSEL) || defined(__alpha__) || (defined(__ia64__) && !defined(__hpux))
 #  define K5_LE
 # endif
-# if defined(__hppa__) || defined(__rs6000__) || defined(__sparc__) || defined(_MIPSEB) || defined(__m68k__) || defined(__sparc64__) || defined(__ppc__) || defined(__ppc64__)
+# if defined(__hppa__) || defined(__rs6000__) || defined(__sparc__) || defined(_MIPSEB) || defined(__m68k__) || defined(__sparc64__) || defined(__ppc__) || defined(__ppc64__) || (defined(__hpux) && defined(__ia64))
 #  define K5_BE
 # endif
 #endif
