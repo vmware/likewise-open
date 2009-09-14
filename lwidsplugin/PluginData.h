@@ -158,7 +158,7 @@ typedef struct {
     tDataListPtr      fInDirNodeInfoTypeList;
     tDataBufferPtr    fOutDataBuff;
     bool              fInAttrInfoOnly;
-    unsigned long     fOutAttrInfoCount;
+    uint32_t          fOutAttrInfoCount;
     tAttributeListRef fOutAttrListRef;
     tContextData      fOutContinueData;
 } sGetDirNodeInfo;
@@ -193,7 +193,7 @@ typedef struct {
     tDataListPtr      fInRecTypeList;
     tDataListPtr      fInAttribTypeList;
     bool              fInAttribInfoOnly;
-    unsigned long     fOutRecEntryCount;
+    uint32_t          fOutRecEntryCount;
     tContextData      fIOContinueData;
 } sGetRecordList;
 
@@ -218,7 +218,7 @@ typedef struct {
     int32_t           fResult;
     tDirNodeReference fInNodeRef;
     tDataBufferPtr    fInOutDataBuff;
-    unsigned long     fInRecEntryIndex;
+    uint32_t          fInRecEntryIndex;
     tAttributeListRef fOutAttrListRef;
     tRecordEntryPtr   fOutRecEntryPtr;
 } sGetRecordEntry;
@@ -247,7 +247,7 @@ typedef struct {
     tDirNodeReference      fInNodeRef;
     tDataBufferPtr         fInOutDataBuff;
     tAttributeListRef      fInAttrListRef;
-    unsigned long          fInAttrInfoIndex;
+    uint32_t               fInAttrInfoIndex;
     tAttributeValueListRef fOutAttrValueListRef;
     tAttributeEntryPtr     fOutAttrInfoPtr;
 } sGetAttributeEntry;
@@ -273,7 +273,7 @@ typedef struct {
     int32_t                 fResult;
     tDirNodeReference       fInNodeRef;
     tDataBufferPtr          fInOutDataBuff;
-    unsigned long           fInAttrValueIndex;
+    uint32_t                fInAttrValueIndex;
     tAttributeValueListRef  fInAttrValueListRef;
     tAttributeValueEntryPtr fOutAttrValue;
 } sGetAttributeValue;
@@ -400,7 +400,7 @@ typedef struct {
     int32_t                 fResult;
     tRecordReference        fInRecRef;
     tDataNodePtr            fInAttrType;
-    unsigned long           fInValueID;
+    uint32_t                fInValueID;
     tAttributeValueEntryPtr fOutEntryPtr;
 } sGetRecordAttributeValueByID;
 
@@ -424,7 +424,7 @@ typedef struct {
     int32_t                 fResult;
     tRecordReference        fInRecRef;
     tDataNodePtr            fInAttrType;
-    unsigned long           fInAttrValueIndex;
+    uint32_t                fInAttrValueIndex;
     tAttributeValueEntryPtr fOutEntryPtr;
 } sGetRecordAttributeValueByIndex;
 
@@ -647,7 +647,7 @@ typedef struct {
     int32_t          fResult;
     tRecordReference fInRecRef;
     tDataNodePtr     fInAttrType;
-    unsigned long    fInAttrValueID;
+    uint32_t         fInAttrValueID;
 } sRemoveAttributeValue;
 
 
@@ -750,7 +750,7 @@ typedef struct {
     tDataNodePtr      fInAttrType;
     tDirPatternMatch  fInPattMatchType;
     tDataNodePtr      fInPatt2Match;
-    unsigned long     fOutMatchRecordCount;
+    uint32_t          fOutMatchRecordCount;
     tContextData      fIOContinueData;
 } sDoAttrValueSearch;
 
@@ -784,7 +784,7 @@ typedef struct {
     tDataNodePtr      fInAttrType;
     tDirPatternMatch  fInPattMatchType;
     tDataNodePtr      fInPatt2Match;
-    unsigned long     fOutMatchRecordCount;
+    uint32_t          fOutMatchRecordCount;
     tContextData      fIOContinueData;
     tDataListPtr      fInAttrTypeRequestList;
     bool              fInAttrInfoOnly;
@@ -818,7 +818,7 @@ typedef struct {
     tDataNodePtr      fInAttrType;
     tDirPatternMatch  fInPattMatchType;
     tDataListPtr      fInPatterns2MatchList;
-    unsigned long     fInOutMatchRecordCount;
+    uint32_t          fInOutMatchRecordCount;
     tContextData      fIOContinueData;
 } sDoMultiAttrValueSearch;
 
@@ -852,7 +852,7 @@ typedef struct {
     tDataNodePtr      fInAttrType;
     tDirPatternMatch  fInPattMatchType;
     tDataListPtr      fInPatterns2MatchList;
-    unsigned long     fInOutMatchRecordCount;
+    uint32_t          fInOutMatchRecordCount;
     tContextData      fIOContinueData;
     tDataListPtr      fInAttrTypeRequestList;
     bool              fInAttrInfoOnly;
@@ -877,7 +877,7 @@ typedef struct {
     uint32_t          fType;
     int32_t           fResult;
     tDirNodeReference fInNodeRef;
-    unsigned long     fInRequestCode;
+    uint32_t          fInRequestCode;
     tDataBufferPtr    fInRequestData;
     tDataBufferPtr    fOutRequestResponse;
 } sDoPlugInCustomCall;
