@@ -16,6 +16,7 @@ PKG_VERSION="5.0.0"
 # Platform-specific stuff
 
 MOD_EXT=".so"
+DS_FRAMEWORK_LDFLAGS=""
 
 AC_USE_SYSTEM_EXTENSIONS
 
@@ -29,14 +30,17 @@ case "$host_os:$host_cpu" in
 		;;
         darwin8.*:*)
                 echo "Detected Mac OS X - Tiger"
+                DS_FRAMEWORK_LDFLAGS="-framework DirectoryService"
                 AC_DEFINE([__LWI_DARWIN__], [], [Define if OS is Darwin])
                 ;;
         darwin9.*:*)
                 echo "Detected Mac OS X - Leopard"
+                DS_FRAMEWORK_LDFLAGS="-framework DirectoryService"
                 AC_DEFINE([__LWI_DARWIN__], [], [Define if OS is Darwin])
                 ;;
         darwin10.*:*)
                 echo "Detected Mac OS X - Snow Leopard"
+                DS_FRAMEWORK_LDFLAGS="-framework DirectoryService"
                 AC_DEFINE([__LWI_DARWIN__], [], [Define if OS is Darwin - x64 Snow Leopard])
                 AC_DEFINE([__LWI_DARWIN_X64__], [], [Define if OS is Darwin - x64 Snow Leopard])
                 ;;
@@ -59,6 +63,7 @@ case "$host_os:$host_cpu" in
 esac
 
 AC_SUBST(MOD_EXT)
+AC_SUBST(DS_FRAMEWORK_LDFLAGS)
 
 AC_DEFINE_UNQUOTED([MOD_EXT], ["$MOD_EXT"], [Extension of shared modules])
 
@@ -70,6 +75,36 @@ AC_ARG_WITH([version],
 		PKG_VERSION="$withval"
         ])
 AC_DEFINE_UNQUOTED(PKG_VERSION, "$PKG_VERSION", [Package Version])
+
+
+# lwreg
+
+AC_ARG_WITH([lwreg],
+        [AC_HELP_STRING([--with-lwreg=<dir>], [use lwreg located in prefix <dir>])],
+        [
+		LWREG_INCLUDES="-I$withval/include"
+        LWREG_LDFLAGS="-L$withval/lib"
+        ])
+
+AC_ARG_WITH([lwreg-includes],
+        [AC_HELP_STRING([--with-lwreg-includes=<dir>], [use lwreg includes located in <dir>])],
+        [
+		LWREG_INCLUDES="-I$withval"
+        ])
+
+AC_ARG_WITH([lwreg-libs],
+        [AC_HELP_STRING([--with-lwreg-libs=<dir>], [use lwreg libs located in <dir>])],
+        [
+		LWREG_LDFLAGS="-L$withval"
+        ])
+
+LWREG_LIBS=-lregclient
+
+AC_CHECK_HEADER([reg/reg.h],,[AC_MSG_ERROR([Could not find lwreg headers])])
+AC_SUBST(LWREG_INCLUDES)
+AC_SUBST(LWREG_LDFLAGS)
+AC_SUBST(LWREG_LIBS)
+
 
 # krb5
 

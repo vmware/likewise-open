@@ -15,7 +15,8 @@ MAIN_LIBS = \
     @NETLOGON_LIBS@ \
     @LWMSG_LIBS@
 
-lwiod_LDFLAGS = -L$(top_builddir)/common/.libs
+lwiod_LDFLAGS = -L$(top_builddir)/common/.libs \
+    @DS_FRAMEWORK_LDFLAGS@
 
 if ENABLE_STATIC_DRIVERS
 
