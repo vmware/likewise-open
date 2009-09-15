@@ -7,6 +7,8 @@ LWBASE_CPPFLAGS=""
 LWBASE_CFLAGS="-Wall -Werror -Wmissing-prototypes $CFLAGS"
 LWBASE_LDFLAGS=""
 
+DS_FRAMEWORK_LDFLAGS=""
+
 CPPFLAGS="$CPPFLAGS -D_REENTRANT -D_GNU_SOURCE"
 
 case "$host_os:$host_cpu" in
@@ -22,6 +24,11 @@ case "$host_os:$host_cpu" in
 	aix*:*)
 		LWBASE_CPPFLAGS="$LWBASE_CPPFLAGS -D_THREAD_SAFE"
 		;;	
+        darwin*:*)
+                echo "Detected Mac OS X"
+                DS_FRAMEWORK_LDFLAGS="-framework DirectoryService"
+                AC_DEFINE([__LWI_DARWIN__], [], [Define if OS is Darwin])
+		;;
 esac
 
 case "$host_cpu" in
@@ -39,6 +46,8 @@ esac
 AC_SUBST(LWBASE_CPPFLAGS)
 AC_SUBST(LWBASE_CFLAGS)
 AC_SUBST(LWBASE_LDFLAGS)
+
+AC_SUBST(DS_FRAMEWORK_LDFLAGS)
 
 # Checks for programs.
 AC_PROG_CC
