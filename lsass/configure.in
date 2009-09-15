@@ -170,6 +170,29 @@ AC_ARG_WITH([version],
         ])
 AC_DEFINE_UNQUOTED(PKG_VERSION, "$PKG_VERSION", [Package Version])
 
+# lwreg
+
+AC_ARG_WITH([lwreg],
+        [AC_HELP_STRING([--with-lwreg=<dir>], [use lwreg located in prefix <dir>])],
+        [
+		LWREG_INCLUDES="-I$withval/include"
+        LWREG_LDFLAGS="-L$withval/lib"
+        ])
+
+AC_ARG_WITH([lwreg-includes],
+        [AC_HELP_STRING([--with-lwreg-includes=<dir>], [use lwreg includes located in <dir>])],
+        [
+		LWREG_INCLUDES="-I$withval"
+        ])
+
+AC_ARG_WITH([lwreg-libs],
+        [AC_HELP_STRING([--with-lwreg-libs=<dir>], [use lwreg libs located in <dir>])],
+        [
+		LWREG_LDFLAGS="-L$withval"
+        ])
+
+LWREG_LIBS=-lregclient
+
 # NSS and PAM
 
 AC_ARG_WITH([nss-libdir],
@@ -865,6 +888,11 @@ AC_CHECK_MEMBERS([ucontext_t.uc_mcontext,
 # include <execinfo.h>
 #endif
 ])
+
+AC_CHECK_HEADER([reg/reg.h],,[AC_MSG_ERROR([Could not find lwreg headers])])
+AC_SUBST(LWREG_INCLUDES)
+AC_SUBST(LWREG_LDFLAGS)
+AC_SUBST(LWREG_LIBS)
 
 AC_CHECK_HEADER([lwmsg/lwmsg.h],,[AC_MSG_ERROR([Could not find lwmsg headers])])
 AC_CHECK_LIB([lwmsg_nothr], [lwmsg_assoc_send], [LWMSG_NOTHR_LIBS="-llwmsg_nothr"], [AC_MSG_ERROR([Could not find liblwmsg_nothr])], [$LWMSG_LDFLAGS])

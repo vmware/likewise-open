@@ -15,6 +15,18 @@ AC_DEFINE([_REENTRANT], [1], [Enables strtok_r on HP-UX])
 AC_PROG_CC
 AC_PROG_LIBTOOL
 
+DS_FRAMEWORK_LDFLAGS=""
+
+case "$host_os:$host_cpu" in
+        darwin*:*)
+                echo "Detected Mac OS X"
+                DS_FRAMEWORK_LDFLAGS="-framework DirectoryService"
+                AC_DEFINE([__LWI_DARWIN__], [], [Define if OS is Darwin])
+                ;;
+esac
+
+AC_SUBST(DS_FRAMEWORK_LDFLAGS)
+
 # compat
 
 ENABLE_COMPAT=false

@@ -1,4 +1,4 @@
-AM_CPPFLAGS = -I$(top_srcdir)/include -I$(top_srcdir)/include/public
+AM_CPPFLAGS = -Wno-deprecated-declarations -I$(top_srcdir)/include -I$(top_srcdir)/include/public
 
 noinst_LTLIBRARIES = liblwadvapi_dscache.la
 

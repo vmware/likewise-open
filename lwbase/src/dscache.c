@@ -150,7 +150,8 @@ SendDSCustomCall(
     status = dsOpenDirNode(hDirRef, dirNodeName, &hNodeRef);
     if (status != eDSNoErr)
     {
-        ntstatus = LW_STATUS_UNSUCCESSFUL;
+        // This can happen on older Tiger Mac OS X 10.4 systems, as there is no /Cache plugin.
+        // It is okay to return successful in this scenario.
         goto errorexit;
     }
 
