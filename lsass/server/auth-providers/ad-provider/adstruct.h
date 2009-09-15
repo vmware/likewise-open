@@ -141,6 +141,15 @@ typedef struct _LSA_AD_PROVIDER_STATE {
 
     ADSTATE_CONNECTION_HANDLE hStateConnection;
     DWORD dwMaxAllowedClockDriftSeconds;
+
+    pthread_rwlock_t stateLock;
+    enum
+    {
+        LSA_AD_UNKNOWN,
+        LSA_AD_NOT_JOINED,
+        LSA_AD_JOINED
+    } joinState;
+    pthread_rwlock_t* pStateLock;
 } LSA_AD_PROVIDER_STATE, *PLSA_AD_PROVIDER_STATE;
 
 #endif /* __AD_STRUCT_H__ */

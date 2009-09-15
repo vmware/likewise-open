@@ -51,6 +51,7 @@
 #include "lsasystem.h"
 #include "lsadef.h"
 #include "lsa/lsa.h"
+#include "lsa/join.h"
 
 #include <openssl/md4.h>
 #include <openssl/rand.h>

@@ -44,12 +44,15 @@
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *
  */
+
+#define LWMSG_SPEC_META
+
 #include "ipc.h"
 
 extern LWMsgTypeSpec gLsaUserInfoListSpec[];
 extern LWMsgTypeSpec gLsaGroupInfoListSpec[];
 
-LWMsgTypeSpec gLsaAdIPCEnumUsersFromCacheReqSpec[] =
+static LWMsgTypeSpec gLsaAdIPCEnumUsersFromCacheReqSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA_AD_IPC_ENUM_USERS_FROM_CACHE_REQ),
     LWMSG_MEMBER_PSTR(LSA_AD_IPC_ENUM_USERS_FROM_CACHE_REQ, pszResume),
@@ -59,7 +62,7 @@ LWMsgTypeSpec gLsaAdIPCEnumUsersFromCacheReqSpec[] =
     LWMSG_TYPE_END
 };
 
-LWMsgTypeSpec gLsaAdIPCEnumUsersFromCacheRespSpec[] =
+static LWMsgTypeSpec gLsaAdIPCEnumUsersFromCacheRespSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA_AD_IPC_ENUM_USERS_FROM_CACHE_RESP),
     LWMSG_MEMBER_PSTR(LSA_AD_IPC_ENUM_USERS_FROM_CACHE_RESP, pszResume),
@@ -70,7 +73,7 @@ LWMsgTypeSpec gLsaAdIPCEnumUsersFromCacheRespSpec[] =
     LWMSG_TYPE_END
 };
 
-LWMsgTypeSpec gLsaAdIPCEnumGroupsFromCacheReqSpec[] =
+static LWMsgTypeSpec gLsaAdIPCEnumGroupsFromCacheReqSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA_AD_IPC_ENUM_GROUPS_FROM_CACHE_REQ),
     LWMSG_MEMBER_PSTR(LSA_AD_IPC_ENUM_GROUPS_FROM_CACHE_REQ, pszResume),
@@ -80,13 +83,39 @@ LWMsgTypeSpec gLsaAdIPCEnumGroupsFromCacheReqSpec[] =
     LWMSG_TYPE_END
 };
 
-LWMsgTypeSpec gLsaAdIPCEnumGroupsFromCacheRespSpec[] =
+static LWMsgTypeSpec gLsaAdIPCEnumGroupsFromCacheRespSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA_AD_IPC_ENUM_GROUPS_FROM_CACHE_RESP),
     LWMSG_MEMBER_PSTR(LSA_AD_IPC_ENUM_GROUPS_FROM_CACHE_RESP, pszResume),
     LWMSG_MEMBER_POINTER_BEGIN(LSA_AD_IPC_ENUM_GROUPS_FROM_CACHE_RESP, pGroupInfoList),
     LWMSG_TYPESPEC(gLsaGroupInfoListSpec),
     LWMSG_POINTER_END,
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
+
+static LWMsgTypeSpec gLsaAdIPCJoinDomainReqSpec[] =
+{
+    LWMSG_STRUCT_BEGIN(LSA_AD_IPC_JOIN_DOMAIN_REQ),
+    LWMSG_MEMBER_PSTR(LSA_AD_IPC_JOIN_DOMAIN_REQ, pszHostname), LWMSG_ATTR_NOT_NULL,
+    LWMSG_MEMBER_PSTR(LSA_AD_IPC_JOIN_DOMAIN_REQ, pszHostDnsDomain), LWMSG_ATTR_NOT_NULL,
+    LWMSG_MEMBER_PSTR(LSA_AD_IPC_JOIN_DOMAIN_REQ, pszDomain), LWMSG_ATTR_NOT_NULL,
+    LWMSG_MEMBER_PSTR(LSA_AD_IPC_JOIN_DOMAIN_REQ, pszOU),
+    LWMSG_MEMBER_PSTR(LSA_AD_IPC_JOIN_DOMAIN_REQ, pszUsername), LWMSG_ATTR_NOT_NULL,
+    LWMSG_MEMBER_PSTR(LSA_AD_IPC_JOIN_DOMAIN_REQ, pszPassword), LWMSG_ATTR_NOT_NULL, LWMSG_ATTR_SENSITIVE,
+    LWMSG_MEMBER_PSTR(LSA_AD_IPC_JOIN_DOMAIN_REQ, pszOSName), LWMSG_ATTR_NOT_NULL,
+    LWMSG_MEMBER_PSTR(LSA_AD_IPC_JOIN_DOMAIN_REQ, pszOSVersion), LWMSG_ATTR_NOT_NULL,
+    LWMSG_MEMBER_PSTR(LSA_AD_IPC_JOIN_DOMAIN_REQ, pszOSServicePack), LWMSG_ATTR_NOT_NULL,
+    LWMSG_MEMBER_UINT32(LSA_AD_IPC_JOIN_DOMAIN_REQ, dwFlags),
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
+
+static LWMsgTypeSpec gLsaAdIPCLeaveDomainReqSpec[] =
+{
+    LWMSG_STRUCT_BEGIN(LSA_AD_IPC_LEAVE_DOMAIN_REQ),
+    LWMSG_MEMBER_PSTR(LSA_AD_IPC_LEAVE_DOMAIN_REQ, pszUsername),
+    LWMSG_MEMBER_PSTR(LSA_AD_IPC_LEAVE_DOMAIN_REQ, pszPassword), LWMSG_ATTR_SENSITIVE,
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END
 };
@@ -123,3 +152,18 @@ LsaAdIPCGetEnumGroupsFromCacheRespSpec(
     return gLsaAdIPCEnumGroupsFromCacheRespSpec;
 }
 
+LWMsgTypeSpec*
+LsaAdIPCGetJoinDomainReqSpec(
+    void
+    )
+{
+    return gLsaAdIPCJoinDomainReqSpec;
+}
+
+LWMsgTypeSpec*
+LsaAdIPCGetLeaveDomainReqSpec(
+    void
+    )
+{
+    return gLsaAdIPCLeaveDomainReqSpec;
+}

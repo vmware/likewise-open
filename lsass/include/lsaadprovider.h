@@ -59,6 +59,8 @@
 #define LSA_AD_IO_REMOVEGROUPBYIDCACHE   5
 #define LSA_AD_IO_ENUMUSERSCACHE         6
 #define LSA_AD_IO_ENUMGROUPSCACHE        7
+#define LSA_AD_IO_JOINDOMAIN             8
+#define LSA_AD_IO_LEAVEDOMAIN            9
 
 typedef struct __LSA_AD_IPC_ENUM_USERS_FROM_CACHE_REQ {
     PCSTR pszResume;
@@ -82,6 +84,26 @@ typedef struct __LSA_AD_IPC_ENUM_GROUPS_FROM_CACHE_RESP {
     PLSA_GROUP_INFO_LIST pGroupInfoList;
 } LSA_AD_IPC_ENUM_GROUPS_FROM_CACHE_RESP, *PLSA_AD_IPC_ENUM_GROUPS_FROM_CACHE_RESP;
 
+typedef struct __LSA_AD_IPC_JOIN_DOMAIN_REQ
+{
+    PCSTR pszHostname;
+    PCSTR pszHostDnsDomain;
+    PCSTR pszDomain;
+    PCSTR pszOU;
+    PCSTR pszUsername;
+    PCSTR pszPassword;
+    PCSTR pszOSName;
+    PCSTR pszOSVersion;
+    PCSTR pszOSServicePack;
+    DWORD dwFlags;
+} LSA_AD_IPC_JOIN_DOMAIN_REQ, *PLSA_AD_IPC_JOIN_DOMAIN_REQ;
+
+typedef struct __LSA_AD_IPC_LEAVE_DOMAIN_REQ
+{
+    PCSTR pszUsername;
+    PCSTR pszPassword;
+} LSA_AD_IPC_LEAVE_DOMAIN_REQ, *PLSA_AD_IPC_LEAVE_DOMAIN_REQ;
+
 LWMsgTypeSpec*
 LsaAdIPCGetEnumUsersFromCacheReqSpec(
     void
@@ -99,6 +121,16 @@ LsaAdIPCGetEnumGroupsFromCacheReqSpec(
 
 LWMsgTypeSpec*
 LsaAdIPCGetEnumGroupsFromCacheRespSpec(
+    void
+    );
+
+LWMsgTypeSpec*
+LsaAdIPCGetJoinDomainReqSpec(
+    void
+    );
+
+LWMsgTypeSpec*
+LsaAdIPCGetLeaveDomainReqSpec(
     void
     );
 

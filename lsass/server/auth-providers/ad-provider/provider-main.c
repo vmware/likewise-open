@@ -90,18 +90,6 @@ AD_MachineCredentialsCacheIsInitialized(
     );
 
 static
-BOOLEAN
-LsaAdProviderLwKrb5IsOfflineCallback(
-    IN PCSTR pszRealm
-    );
-
-static
-VOID
-LsaAdProviderLwKrb5TransitionOfflineCallback(
-    IN PCSTR pszRealm
-    );
-
-static
 VOID
 LsaAdProviderMediaSenseTransitionCallback(
     IN PVOID Context,
@@ -165,10 +153,69 @@ AD_SetCanonicalNameToAlias(
     PSTR  pszCanonicalName
     );
 
+static
+DWORD
+AD_JoinDomain(
+    HANDLE  hProvider,
+    uid_t   peerUID,
+    gid_t   peerGID,
+    DWORD   dwInputBufferSize,
+    PVOID   pInputBuffer,
+    DWORD* pdwOutputBufferSize,
+    PVOID* ppOutputBuffer
+    );
+
+static
+DWORD
+AD_TransitionJoined(
+    PLSA_AD_PROVIDER_STATE pState
+    );
+
+static
+DWORD
+AD_Deactivate(
+    PLSA_AD_PROVIDER_STATE pState
+    );
+
+static
+DWORD
+AD_TransitionNotJoined(
+    PLSA_AD_PROVIDER_STATE pState
+    );
 
 void
 InitADCacheFunctionTable(
     PADCACHE_PROVIDER_FUNCTION_TABLE pCacheProviderTable
+    );
+
+static
+VOID
+LsaAdProviderStateAcquireRead(
+    PLSA_AD_PROVIDER_STATE pState
+    );
+
+static
+VOID
+LsaAdProviderStateAcquireWrite(
+    PLSA_AD_PROVIDER_STATE pState
+    );
+
+static
+void
+LsaAdProviderStateRelease(
+    PLSA_AD_PROVIDER_STATE pState
+    );
+
+static
+void*
+LsaAdStartupThread(
+    void* pData
+    );
+
+static
+DWORD
+AD_Activate(
+    PLSA_AD_PROVIDER_STATE pState
     );
 
 DWORD
@@ -179,22 +226,12 @@ LSA_INITIALIZE_PROVIDER(ad)(
     )
 {
     DWORD dwError = 0;
-    PSTR  pszHostname = NULL;
-    PSTR  pszUsername = NULL;
-    PSTR  pszPassword = NULL;
-    PSTR  pszDomainDnsName = NULL;
-    PSTR  pszHostDnsDomain = NULL;
-    BOOLEAN bIsDomainOffline = FALSE;
     LSA_AD_CONFIG config = {0};
+    pthread_t startThread;
 
     pthread_rwlock_init(&gADGlobalDataLock, NULL);
 
     dwError = LsaAdProviderStateCreate(&gpLsaAdProviderState);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LwKrb5Init(
-                LsaAdProviderLwKrb5IsOfflineCallback,
-                LsaAdProviderLwKrb5TransitionOfflineCallback);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = AD_NetInitMemory();
@@ -227,8 +264,153 @@ LSA_INITIALIZE_PROVIDER(ad)(
 
     InitADCacheFunctionTable(gpCacheProvider);
 
-    dwError = ADInitMachinePasswordSync();
+    dwError = LwKrb5SetProcessDefaultCachePath(LSASS_CACHE_PATH);
     BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = ADState_OpenDb(
+                &gpLsaAdProviderState->hStateConnection);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    switch (gpLsaAdProviderState->config.CacheBackend)
+    {
+        default:
+#ifdef AD_CACHE_ENABLE_SQLITE
+        case AD_CACHE_SQLITE:
+            dwError = ADCacheOpen(
+                        LSASS_AD_SQLITE_CACHE_DB,
+                        &gpLsaAdProviderState->hCacheConnection);
+            BAIL_ON_LSA_ERROR(dwError);
+            break;
+#endif
+        case AD_CACHE_IN_MEMORY:
+            dwError = ADCacheOpen(
+                            LSASS_AD_MEMORY_CACHE_DB,
+                            &gpLsaAdProviderState->hCacheConnection);
+            BAIL_ON_LSA_ERROR(dwError);
+            dwError = MemCacheSetSizeCap(
+                            gpLsaAdProviderState->hCacheConnection,
+                            AD_GetCacheSizeCap());
+            BAIL_ON_LSA_ERROR(dwError);
+            break;
+    }
+
+    dwError = ADUnprovPlugin_Initialize();
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LwMapErrnoToLwError(pthread_create(
+                                      &startThread,
+                                      NULL,
+                                      LsaAdStartupThread,
+                                      gpLsaAdProviderState));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LwMapErrnoToLwError(pthread_detach(startThread));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    *ppFunctionTable = &gADProviderAPITable;
+    *ppszProviderName = gpszADProviderName;
+
+cleanup:
+
+    AD_FreeConfigContents(&config);
+
+    return dwError;
+
+error:
+
+    LsaAdProviderStateDestroy(gpLsaAdProviderState);
+    gpLsaAdProviderState = NULL;
+
+    if (gpADProviderData)
+    {
+        ADProviderFreeProviderData(gpADProviderData);
+        gpADProviderData = NULL;
+    }
+
+    *ppszProviderName = NULL;
+    *ppFunctionTable = NULL;
+
+    goto cleanup;
+}
+
+static
+void*
+LsaAdStartupThread(
+    void* pData
+    )
+{
+    DWORD dwError = 0;
+    PLSA_AD_PROVIDER_STATE pState = (PLSA_AD_PROVIDER_STATE) pData;
+
+    LsaAdProviderStateAcquireWrite(pState);
+
+    dwError = LwKrb5GetMachineCreds(NULL, NULL, NULL, NULL);
+    if (dwError == 0)
+    {
+        dwError = AD_Activate(pState);
+        if (dwError == 0)
+        {
+            pState->joinState = LSA_AD_JOINED;
+        }
+    }
+    else
+    {
+        pState->joinState = LSA_AD_NOT_JOINED;
+    }
+
+    LsaAdProviderStateRelease(pState);
+
+    return NULL;
+}
+
+DWORD
+LSA_SHUTDOWN_PROVIDER(ad)(
+    PSTR pszProviderName,
+    PLSA_PROVIDER_FUNCTION_TABLE pFnTable
+    )
+{
+    DWORD dwError = 0;
+
+    LsaAdProviderStateAcquireWrite(gpLsaAdProviderState);
+    if (gpLsaAdProviderState->joinState == LSA_AD_JOINED)
+    {
+        AD_Deactivate(gpLsaAdProviderState);
+    }
+    LsaAdProviderStateRelease(gpLsaAdProviderState);
+
+    ADUnprovPlugin_Cleanup();
+
+    dwError = AD_NetShutdownMemory();
+    if (dwError)
+    {
+        LSA_LOG_DEBUG("AD Provider Shutdown: Failed to shutdown net memory (error = %d)", dwError);
+        dwError = 0;
+    }
+
+    AD_FreeAllowedSIDs_InLock();
+
+    LW_SAFE_FREE_STRING(gpszADConfigFilePath);
+
+    // This will clean up media sense too.
+    LsaAdProviderStateDestroy(gpLsaAdProviderState);
+    gpLsaAdProviderState = NULL;
+
+    return dwError;
+}
+
+static
+DWORD
+AD_Activate(
+    PLSA_AD_PROVIDER_STATE pState
+    )
+{
+    DWORD dwError = 0;
+    PSTR  pszHostname = NULL;
+    PSTR  pszUsername = NULL;
+    PSTR  pszPassword = NULL;
+    PSTR  pszDomainDnsName = NULL;
+    PSTR  pszHostDnsDomain = NULL;
+    BOOLEAN bIsDomainOffline = FALSE;
 
     dwError = LsaDnsGetHostInfo(&pszHostname);
     BAIL_ON_LSA_ERROR(dwError);
@@ -279,36 +461,6 @@ LSA_INITIALIZE_PROVIDER(ad)(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LwKrb5SetProcessDefaultCachePath(LSASS_CACHE_PATH);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = ADState_OpenDb(
-                &gpLsaAdProviderState->hStateConnection);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    switch (gpLsaAdProviderState->config.CacheBackend)
-    {
-        default:
-#ifdef AD_CACHE_ENABLE_SQLITE
-        case AD_CACHE_SQLITE:
-            dwError = ADCacheOpen(
-                        LSASS_AD_SQLITE_CACHE_DB,
-                        &gpLsaAdProviderState->hCacheConnection);
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-#endif
-        case AD_CACHE_IN_MEMORY:
-            dwError = ADCacheOpen(
-                            LSASS_AD_MEMORY_CACHE_DB,
-                            &gpLsaAdProviderState->hCacheConnection);
-            BAIL_ON_LSA_ERROR(dwError);
-            dwError = MemCacheSetSizeCap(
-                            gpLsaAdProviderState->hCacheConnection,
-                            AD_GetCacheSizeCap());
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-    }
-
     dwError = AD_InitializeOperatingMode(
                 pszDomainDnsName,
                 pszUsername,
@@ -316,6 +468,9 @@ LSA_INITIALIZE_PROVIDER(ad)(
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaUmInitialize();
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = ADInitMachinePasswordSync();
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = ADStartMachinePasswordSync();
@@ -330,15 +485,7 @@ LSA_INITIALIZE_PROVIDER(ad)(
                            dwError);
     }
 
-    dwError = ADUnprovPlugin_Initialize();
-    BAIL_ON_LSA_ERROR(dwError);
-
-    *ppFunctionTable = &gADProviderAPITable;
-    *ppszProviderName = gpszADProviderName;
-
 cleanup:
-
-    AD_FreeConfigContents(&config);
 
     LW_SAFE_FREE_STRING(pszHostname);
     LW_SAFE_FREE_STRING(pszUsername);
@@ -349,19 +496,6 @@ cleanup:
     return dwError;
 
 error:
-    // ISSUE-2008/09/16-dalmeida -- We need to clean up everything, especially
-    // any background threads!  We currently take care of cleaning up the
-    // background threads, but we need to make the init/cleanup code
-    // cleaner and more modular.  We cannot yet call LsaShutdownProvider()
-    // because the latter does not necessarily handle partially initialized
-    // state.  So for now, we just clean up what we can here.
-    // I have some notes elsewhere on how to structure init/cleanup code
-    // to make this cleaner.
-
-    // ISSUE-2008/09/19-dalmeida -- The cache reaper and machine password
-    // thread shutdown code should not pthread_cancel but use a proper
-    // self-contained shutdown mechanism.  We need to make those modules
-    // more self-contained wrt having their own shutdown logic.
 
     if (AD_EventlogEnabled())
     {
@@ -374,43 +508,41 @@ error:
 
     ADShutdownMachinePasswordSync();
 
-    // This will clean up media sense too.
-    LsaAdProviderStateDestroy(gpLsaAdProviderState);
-    gpLsaAdProviderState = NULL;
-
     LsaDmCleanup();
-
-    if (gpADProviderData)
-    {
-        ADProviderFreeProviderData(gpADProviderData);
-        gpADProviderData = NULL;
-    }
-
-    *ppszProviderName = NULL;
-    *ppFunctionTable = NULL;
 
     goto cleanup;
 }
 
+static
 DWORD
-LSA_SHUTDOWN_PROVIDER(ad)(
-    PSTR pszProviderName,
-    PLSA_PROVIDER_FUNCTION_TABLE pFnTable
+AD_TransitionJoined(
+    PLSA_AD_PROVIDER_STATE pState
+    )
+{
+    DWORD dwError = 0;
+
+
+    dwError = AD_Activate(pState);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pState->joinState = LSA_AD_JOINED;
+
+error:
+
+    return dwError;
+}
+
+static
+DWORD
+AD_Deactivate(
+    PLSA_AD_PROVIDER_STATE pState
     )
 {
     DWORD dwError = 0;
     BOOLEAN bInLock = FALSE;
 
-    ADUnprovPlugin_Cleanup();
-
     ADShutdownMachinePasswordSync();
-
-    dwError = AD_NetShutdownMemory();
-    if (dwError)
-    {
-        LSA_LOG_DEBUG("AD Provider Shutdown: Failed to shutdown net memory (error = %d)", dwError);
-        dwError = 0;
-    }
+    AD_MachineCredentialsCacheClear();
 
     ENTER_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
 
@@ -420,28 +552,38 @@ LSA_SHUTDOWN_PROVIDER(ad)(
         gpADProviderData = NULL;
     }
 
-    dwError = LwKrb5Shutdown();
-    if (dwError)
+    LEAVE_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
+
+    if (pState->MediaSenseHandle)
     {
-        LSA_LOG_DEBUG("AD Provider Shutdown: Failed to shutdown krb5 (error = %d)", dwError);
-        dwError = 0;
+        MediaSenseStop(&pState->MediaSenseHandle);
+        pState->MediaSenseHandle = NULL;
     }
-
-    AD_FreeAllowedSIDs_InLock();
-
-    LW_SAFE_FREE_STRING(gpszADConfigFilePath);
-
-    // This will clean up media sense too.
-    LsaAdProviderStateDestroy(gpLsaAdProviderState);
-    gpLsaAdProviderState = NULL;
 
     LsaUmCleanup();
 
-    // Clean up the domain manager last since it does not depend on any
-    // other facilities provided by the AD provider.
     LsaDmCleanup();
 
-    LEAVE_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
+    return dwError;
+}
+
+static
+DWORD
+AD_TransitionNotJoined(
+    PLSA_AD_PROVIDER_STATE pState
+    )
+{
+    DWORD dwError = 0;
+
+    dwError = ADCacheEmptyCache(pState->hCacheConnection);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = AD_Deactivate(pState);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pState->joinState = LSA_AD_NOT_JOINED;
+
+error:
 
     return dwError;
 }
@@ -502,6 +644,13 @@ AD_ServicesDomain(
 {
     BOOLEAN bResult = FALSE;
 
+    LsaAdProviderStateAcquireRead(gpLsaAdProviderState);
+
+    if (gpLsaAdProviderState->joinState != LSA_AD_JOINED)
+    {
+        goto cleanup;
+    }
+
     //
     // Added Trusted domains support
     //
@@ -518,6 +667,9 @@ AD_ServicesDomain(
     }
 
 cleanup:
+
+    LsaAdProviderStateRelease(gpLsaAdProviderState);
+
     return bResult;
 }
 
@@ -529,6 +681,14 @@ AD_AuthenticateUser(
     )
 {
     DWORD dwError = 0;
+
+    LsaAdProviderStateAcquireRead(gpLsaAdProviderState);
+
+    if (gpLsaAdProviderState->joinState != LSA_AD_JOINED)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     if (AD_IsOffline())
     {
@@ -550,6 +710,10 @@ AD_AuthenticateUser(
             pszPassword);
     }
 
+    LsaAdProviderStateRelease(gpLsaAdProviderState);
+
+error:
+
     return dwError;
 }
 
@@ -561,6 +725,14 @@ AD_AuthenticateUserEx(
     )
 {
     DWORD dwError = LW_ERROR_INTERNAL;
+
+    LsaAdProviderStateAcquireRead(gpLsaAdProviderState);
+
+    if (gpLsaAdProviderState->joinState != LSA_AD_JOINED)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     if (pUserParams->pszDomain)
     {
@@ -586,6 +758,8 @@ AD_AuthenticateUserEx(
 
 cleanup:
 
+    LsaAdProviderStateRelease(gpLsaAdProviderState);
+
     return dwError;
 
 error:
@@ -610,6 +784,14 @@ AD_ValidateUser(
     PLSA_LOGIN_NAME_INFO pLoginInfo = NULL;
     PLSA_SECURITY_OBJECT pUserInfo = NULL;
 
+    LsaAdProviderStateAcquireRead(gpLsaAdProviderState);
+
+    if (gpLsaAdProviderState->joinState != LSA_AD_JOINED)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
     dwError = LsaCrackDomainQualifiedName(
                     pszLoginId,
                     gpADProviderData->szDomain,
@@ -632,6 +814,9 @@ AD_ValidateUser(
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
+
+    LsaAdProviderStateRelease(gpLsaAdProviderState);
+
     ADCacheSafeFreeObject(&pUserInfo);
 
     if (pLoginInfo)
@@ -659,6 +844,14 @@ AD_CheckUserInList(
     PLSA_SECURITY_OBJECT pUserInfo = NULL;
     size_t  iGroup = 0;
     PLSA_HASH_TABLE pAllowedMemberList = NULL;
+
+    LsaAdProviderStateAcquireRead(gpLsaAdProviderState);
+
+    if (gpLsaAdProviderState->joinState != LSA_AD_JOINED)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     dwError = AD_ResolveConfiguredLists(
                   hProvider,
@@ -701,6 +894,8 @@ AD_CheckUserInList(
 
 cleanup:
 
+    LsaAdProviderStateRelease(gpLsaAdProviderState);
+
     ADCacheSafeFreeObjectList(sNumGroupsFound, &ppGroupList);
     ADCacheSafeFreeObject(&pUserInfo);
     LsaHashSafeFree(&pAllowedMemberList);
@@ -733,6 +928,14 @@ AD_FindUserByName(
     PVOID   pUserInfo = NULL;
     PLSA_SECURITY_OBJECT pInObjectForm = NULL;
 
+    LsaAdProviderStateAcquireRead(gpLsaAdProviderState);
+
+    if (gpLsaAdProviderState->joinState != LSA_AD_JOINED)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
     dwError = AD_FindUserObjectByName(
                     hProvider,
                     pszLoginId,
@@ -757,6 +960,8 @@ AD_FindUserByName(
     *ppUserInfo = pUserInfo;
 
 cleanup:
+
+    LsaAdProviderStateRelease(gpLsaAdProviderState);
 
     ADCacheSafeFreeObject(&pInObjectForm);
 
@@ -786,6 +991,14 @@ AD_FindUserById(
     PVOID   pUserInfo = NULL;
     PLSA_SECURITY_OBJECT pInObjectForm = NULL;
 
+    LsaAdProviderStateAcquireRead(gpLsaAdProviderState);
+
+    if (gpLsaAdProviderState->joinState != LSA_AD_JOINED)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
     dwError = AD_FindUserObjectById(
                 hProvider,
                 uid,
@@ -810,6 +1023,8 @@ AD_FindUserById(
     *ppUserInfo = pUserInfo;
 
 cleanup:
+
+    LsaAdProviderStateRelease(gpLsaAdProviderState);
 
     ADCacheSafeFreeObject(&pInObjectForm);
 
@@ -846,6 +1061,14 @@ AD_FindUserObjectById(
 {
     DWORD dwError = 0;
 
+    LsaAdProviderStateAcquireRead(gpLsaAdProviderState);
+
+    if (gpLsaAdProviderState->joinState != LSA_AD_JOINED)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
     if (AD_IsOffline())
     {
         dwError = LW_ERROR_DOMAIN_IS_OFFLINE;
@@ -866,6 +1089,10 @@ AD_FindUserObjectById(
                     ppResult);
     }
 
+error:
+
+    LsaAdProviderStateRelease(gpLsaAdProviderState);
+
     return dwError;
 }
 
@@ -880,6 +1107,14 @@ AD_BeginEnumUsers(
     DWORD dwError = 0;
     PAD_ENUM_STATE pEnumState = NULL;
 
+    LsaAdProviderStateAcquireRead(gpLsaAdProviderState);
+
+    if (gpLsaAdProviderState->joinState != LSA_AD_JOINED)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
     dwError = AD_CreateUserState(
                         hProvider,
                         dwInfoLevel,
@@ -892,6 +1127,8 @@ AD_BeginEnumUsers(
     *phResume = (HANDLE)pEnumState;
 
 cleanup:
+
+    LsaAdProviderStateRelease(gpLsaAdProviderState);
 
     return dwError;
 
@@ -914,6 +1151,14 @@ AD_EnumUsers(
     DWORD dwError = 0;
     DWORD dwNumUsersFound = 0;
     PVOID* ppUserInfoList = NULL;
+
+    LsaAdProviderStateAcquireRead(gpLsaAdProviderState);
+
+    if (gpLsaAdProviderState->joinState != LSA_AD_JOINED)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     if (AD_IsOffline())
     {
@@ -957,6 +1202,8 @@ AD_EnumUsers(
     *pdwUsersFound = dwNumUsersFound;
 
 cleanup:
+
+    LsaAdProviderStateRelease(gpLsaAdProviderState);
 
     return dwError;
 
@@ -1011,10 +1258,18 @@ AD_EnumUsersFromCache(
     memset(&response, 0, sizeof(response));
     memset(&result, 0, sizeof(result));
 
+    LsaAdProviderStateAcquireRead(gpLsaAdProviderState);
+
+    if (gpLsaAdProviderState->joinState != LSA_AD_JOINED)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
     // restrict access to root
     if (peerUID)
     {
-        dwError = EACCES;
+        dwError = LW_ERROR_ACCESS_DENIED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1128,6 +1383,8 @@ AD_EnumUsersFromCache(
 
 cleanup:
 
+    LsaAdProviderStateRelease(gpLsaAdProviderState);
+
     ADCacheSafeFreeObjectList(dwObjectCount, &ppUserObjectList);
 
     if (ppUserInfoList)
@@ -1182,10 +1439,18 @@ AD_RemoveUserByNameFromCache(
     PSTR                 pszLocalLoginId = NULL;
     PLSA_LOGIN_NAME_INFO pUserNameInfo = NULL;
 
+    LsaAdProviderStateAcquireRead(gpLsaAdProviderState);
+
+    if (gpLsaAdProviderState->joinState != LSA_AD_JOINED)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
     // restrict access to root
     if (peerUID)
     {
-        dwError = EACCES;
+        dwError = LW_ERROR_ACCESS_DENIED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1233,6 +1498,8 @@ AD_RemoveUserByNameFromCache(
 
 cleanup:
 
+    LsaAdProviderStateRelease(gpLsaAdProviderState);
+
     LW_SAFE_FREE_STRING(pszLocalLoginId);
     if (pUserNameInfo)
     {
@@ -1257,6 +1524,14 @@ AD_RemoveUserByIdFromCache(
     DWORD                dwError = 0;
     PLSA_SECURITY_OBJECT pUserInfo = NULL;
 
+    LsaAdProviderStateAcquireRead(gpLsaAdProviderState);
+
+    if (gpLsaAdProviderState->joinState != LSA_AD_JOINED)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
     // restrict access to root
     if (peerUID)
     {
@@ -1277,6 +1552,8 @@ AD_RemoveUserByIdFromCache(
 
 cleanup:
 
+    LsaAdProviderStateRelease(gpLsaAdProviderState);
+
     ADCacheSafeFreeObject(&pUserInfo);
 
     return dwError;
@@ -1296,6 +1573,279 @@ error:
     goto cleanup;
 }
 
+static
+DWORD
+AD_PreJoinDomain(
+    HANDLE hProvider,
+    PLSA_AD_PROVIDER_STATE pState
+    )
+{
+    DWORD dwError = 0;
+
+    switch (pState->joinState)
+    {
+    case LSA_AD_UNKNOWN:
+    case LSA_AD_NOT_JOINED:
+        break;
+    case LSA_AD_JOINED:
+        dwError = AD_TransitionNotJoined(pState);
+        BAIL_ON_LSA_ERROR(dwError);
+        break;
+    }
+
+error:
+
+    return dwError;
+}
+
+static
+DWORD
+AD_PostJoinDomain(
+    HANDLE hProvider,
+    PLSA_AD_PROVIDER_STATE pState
+    )
+{
+    DWORD dwError = 0;
+
+    dwError = AD_TransitionJoined(pState);
+    BAIL_ON_LSA_ERROR(dwError);
+
+error:
+
+    return dwError;
+}
+
+
+static
+DWORD
+AD_JoinDomain(
+    HANDLE  hProvider,
+    uid_t   peerUID,
+    gid_t   peerGID,
+    DWORD   dwInputBufferSize,
+    PVOID   pInputBuffer,
+    DWORD* pdwOutputBufferSize,
+    PVOID* ppOutputBuffer
+    )
+{
+    DWORD dwError = 0;
+    LWMsgDataContext* pDataContext = NULL;
+    PLSA_AD_IPC_JOIN_DOMAIN_REQ pRequest = NULL;
+    PSTR pszMessage = NULL;
+    BOOLEAN bLocked = FALSE;
+
+    if (peerUID != 0)
+    {
+        dwError = LW_ERROR_ACCESS_DENIED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_data_context_new(NULL, &pDataContext));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_data_unmarshal_flat(
+                                  pDataContext,
+                                  LsaAdIPCGetJoinDomainReqSpec(),
+                                  pInputBuffer,
+                                  (size_t) dwInputBufferSize,
+                                  OUT_PPVOID(&pRequest)));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_data_print_graph_alloc(
+                                  pDataContext,
+                                  LsaAdIPCGetJoinDomainReqSpec(),
+                                  pRequest,
+                                  &pszMessage));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    LSA_LOG_TRACE("Domain join request: %s", pszMessage);
+
+    LsaAdProviderStateAcquireWrite(gpLsaAdProviderState);
+    bLocked = TRUE;
+
+    dwError = AD_PreJoinDomain(hProvider, gpLsaAdProviderState);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaNetJoinDomain(
+        pRequest->pszHostname,
+        pRequest->pszHostDnsDomain,
+        pRequest->pszDomain,
+        pRequest->pszOU,
+        pRequest->pszUsername,
+        pRequest->pszPassword,
+        pRequest->pszOSName,
+        pRequest->pszOSVersion,
+        pRequest->pszOSServicePack,
+        pRequest->dwFlags);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = AD_PostJoinDomain(hProvider, gpLsaAdProviderState);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    LSA_LOG_INFO("Joined domain: %s", pRequest->pszDomain);
+
+cleanup:
+
+    if (bLocked)
+    {
+        LsaAdProviderStateRelease(gpLsaAdProviderState);
+    }
+
+    LW_SAFE_FREE_MEMORY(pszMessage);
+
+    if (pRequest)
+    {
+        lwmsg_data_free_graph(
+            pDataContext,
+            LsaAdIPCGetJoinDomainReqSpec(),
+            pRequest);
+    }
+
+    if (pDataContext)
+    {
+        lwmsg_data_context_delete(pDataContext);
+    }
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+static
+DWORD
+AD_PreLeaveDomain(
+    HANDLE hProvider,
+    PLSA_AD_PROVIDER_STATE pState
+    )
+{
+    DWORD dwError = 0;
+
+    switch (pState->joinState)
+    {
+    case LSA_AD_UNKNOWN:
+    case LSA_AD_NOT_JOINED:
+        dwError = LW_ERROR_NOT_JOINED_TO_AD;
+        BAIL_ON_LSA_ERROR(dwError);
+        break;
+    case LSA_AD_JOINED:
+        AD_TransitionNotJoined(pState);
+        break;
+    }
+
+error:
+
+    return dwError;
+}
+
+static
+DWORD
+AD_PostLeaveDomain(
+    HANDLE hProvider,
+    PLSA_AD_PROVIDER_STATE pState
+    )
+{
+    DWORD dwError = 0;
+
+    return dwError;
+}
+
+static
+DWORD
+AD_LeaveDomain(
+    HANDLE  hProvider,
+    uid_t   peerUID,
+    gid_t   peerGID,
+    DWORD   dwInputBufferSize,
+    PVOID   pInputBuffer,
+    DWORD* pdwOutputBufferSize,
+    PVOID* ppOutputBuffer
+    )
+{
+    DWORD dwError = 0;
+    LWMsgDataContext* pDataContext = NULL;
+    PLSA_AD_IPC_LEAVE_DOMAIN_REQ pRequest = NULL;
+    PSTR pszMessage = NULL;
+    BOOLEAN bLocked = FALSE;
+    PSTR pszDomain = NULL;
+
+    if (peerUID != 0)
+    {
+        dwError = LW_ERROR_ACCESS_DENIED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_data_context_new(NULL, &pDataContext));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_data_unmarshal_flat(
+                                  pDataContext,
+                                  LsaAdIPCGetLeaveDomainReqSpec(),
+                                  pInputBuffer,
+                                  (size_t) dwInputBufferSize,
+                                  OUT_PPVOID(&pRequest)));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_data_print_graph_alloc(
+                                  pDataContext,
+                                  LsaAdIPCGetLeaveDomainReqSpec(),
+                                  pRequest,
+                                  &pszMessage));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    LSA_LOG_TRACE("Domain leave request: %s", pszMessage);
+
+    dwError = LwAllocateString(gpADProviderData->szDomain, &pszDomain);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    LsaAdProviderStateAcquireWrite(gpLsaAdProviderState);
+    bLocked = TRUE;
+
+    dwError = AD_PreLeaveDomain(hProvider, gpLsaAdProviderState);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaNetLeaveDomain(
+        pRequest->pszUsername,
+        pRequest->pszPassword);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = AD_PostLeaveDomain(hProvider, gpLsaAdProviderState);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    LSA_LOG_INFO("Left domain: %s\n", pszDomain);
+
+
+cleanup:
+
+    if (bLocked)
+    {
+        LsaAdProviderStateRelease(gpLsaAdProviderState);
+    }
+
+    LW_SAFE_FREE_MEMORY(pszDomain);
+    LW_SAFE_FREE_MEMORY(pszMessage);
+
+    if (pRequest)
+    {
+        lwmsg_data_free_graph(
+            pDataContext,
+            LsaAdIPCGetLeaveDomainReqSpec(),
+            pRequest);
+    }
+
+    if (pDataContext)
+    {
+        lwmsg_data_context_delete(pDataContext);
+    }
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
 DWORD
 AD_FindGroupByName(
     IN HANDLE hProvider,
@@ -1305,19 +1855,35 @@ AD_FindGroupByName(
     OUT PVOID* ppGroupInfo
     )
 {
+    DWORD dwError = 0;
     BOOLEAN bIsCacheOnlyMode = FALSE;
+
+    LsaAdProviderStateAcquireRead(gpLsaAdProviderState);
+
+    if (gpLsaAdProviderState->joinState != LSA_AD_JOINED)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     if (FindFlags & LSA_FIND_FLAGS_NSS)
     {
         bIsCacheOnlyMode = AD_GetNssGroupMembersCacheOnlyEnabled();
     }
 
-    return AD_FindGroupByNameWithCacheMode(
+    dwError = AD_FindGroupByNameWithCacheMode(
                 hProvider,
                 pszGroupName,
                 bIsCacheOnlyMode,
                 dwGroupInfoLevel,
                 ppGroupInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+error:
+
+    LsaAdProviderStateRelease(gpLsaAdProviderState);
+
+    return dwError;
 }
 
 DWORD
@@ -1546,6 +2112,14 @@ AD_FindGroupById(
     PVOID pGroupInfo = NULL;
     BOOLEAN bIsCacheOnlyMode = FALSE;
 
+    LsaAdProviderStateAcquireRead(gpLsaAdProviderState);
+
+    if (gpLsaAdProviderState->joinState != LSA_AD_JOINED)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
     if (FindFlags & LSA_FIND_FLAGS_NSS)
     {
         bIsCacheOnlyMode = AD_GetNssGroupMembersCacheOnlyEnabled();
@@ -1589,6 +2163,8 @@ AD_FindGroupById(
 
 cleanup:
 
+    LsaAdProviderStateRelease(gpLsaAdProviderState);
+
     return dwError;
 
 error:
@@ -1631,10 +2207,18 @@ AD_EnumGroupsFromCache(
     memset(&response, 0, sizeof(response));
     memset(&result, 0, sizeof(result));
 
+    LsaAdProviderStateAcquireRead(gpLsaAdProviderState);
+
+    if (gpLsaAdProviderState->joinState != LSA_AD_JOINED)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
     // restrict access to root
     if (peerUID)
     {
-        dwError = EACCES;
+        dwError = LW_ERROR_ACCESS_DENIED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1755,6 +2339,8 @@ AD_EnumGroupsFromCache(
 
 cleanup:
 
+    LsaAdProviderStateRelease(gpLsaAdProviderState);
+
     ADCacheSafeFreeObjectList(dwObjectCount, &ppGroupObjectList);
 
     if (ppGroupInfoList)
@@ -1815,10 +2401,18 @@ AD_RemoveGroupByNameFromCache(
     PCSTR                pszUseGroupName = NULL;
     PLSA_SECURITY_OBJECT pGroupInfo = NULL;
 
+    LsaAdProviderStateAcquireRead(gpLsaAdProviderState);
+
+    if (gpLsaAdProviderState->joinState != LSA_AD_JOINED)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
     // restrict access to root
     if (peerUID)
     {
-        dwError = EACCES;
+        dwError = LW_ERROR_ACCESS_DENIED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1840,6 +2434,8 @@ AD_RemoveGroupByNameFromCache(
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
+
+    LsaAdProviderStateRelease(gpLsaAdProviderState);
 
     LW_SAFE_FREE_STRING(pszFreeGroupName);
     ADCacheSafeFreeObject(&pGroupInfo);
@@ -1864,10 +2460,18 @@ AD_RemoveGroupByIdFromCache(
     PLSA_GROUP_INFO_0 pGroupInfo = NULL;
     BOOLEAN           bIsCacheOnlyMode = TRUE;
 
+    LsaAdProviderStateAcquireRead(gpLsaAdProviderState);
+
+    if (gpLsaAdProviderState->joinState != LSA_AD_JOINED)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
     // restrict access to root
     if (peerUID)
     {
-        dwError = EACCES;
+        dwError = LW_ERROR_ACCESS_DENIED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1885,6 +2489,8 @@ AD_RemoveGroupByIdFromCache(
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
+
+    LsaAdProviderStateRelease(gpLsaAdProviderState);
 
     if (pGroupInfo)
     {
@@ -2040,6 +2646,14 @@ AD_GetGroupsForUser(
     LSA_HASH_ENTRY *pHashEntry = NULL;
     DWORD dwUserMembershipCount = 0;
     PVOID *ppUserMembership = NULL;
+
+    LsaAdProviderStateAcquireRead(gpLsaAdProviderState);
+
+    if (gpLsaAdProviderState->joinState != LSA_AD_JOINED)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     if (FindFlags & LSA_FIND_FLAGS_NSS)
     {
@@ -2275,6 +2889,9 @@ AD_GetGroupsForUser(
     *pppGroupInfoList  = ppUserMembership;
 
 cleanup:
+
+    LsaAdProviderStateRelease(gpLsaAdProviderState);
+
     ADCacheSafeFreeObject(&pUserInfo);
 
     if (ppUserMembershipInfo)
@@ -2341,6 +2958,14 @@ AD_BeginEnumGroups(
     DWORD dwError = 0;
     PAD_ENUM_STATE pEnumState = NULL;
 
+    LsaAdProviderStateAcquireRead(gpLsaAdProviderState);
+
+    if (gpLsaAdProviderState->joinState != LSA_AD_JOINED)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
     dwError = AD_CreateGroupState(
                         hProvider,
                         dwInfoLevel,
@@ -2354,6 +2979,8 @@ AD_BeginEnumGroups(
     *phResume = (HANDLE)pEnumState;
 
 cleanup:
+
+    LsaAdProviderStateRelease(gpLsaAdProviderState);
 
     return dwError;
 
@@ -2376,6 +3003,14 @@ AD_EnumGroups(
     DWORD dwError = 0;
     PVOID* ppGroupInfoList = NULL;
     DWORD  dwNumGroupsFound = 0;
+
+    LsaAdProviderStateAcquireRead(gpLsaAdProviderState);
+
+    if (gpLsaAdProviderState->joinState != LSA_AD_JOINED)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     if (AD_IsOffline())
     {
@@ -2420,6 +3055,8 @@ AD_EnumGroups(
 
 cleanup:
 
+    LsaAdProviderStateRelease(gpLsaAdProviderState);
+
     return dwError;
 
 error:
@@ -2454,9 +3091,19 @@ AD_ChangePassword(
     PCSTR pszOldPassword
     )
 {
+    DWORD dwError = 0;
+
+    LsaAdProviderStateAcquireRead(gpLsaAdProviderState);
+
+    if (gpLsaAdProviderState->joinState != LSA_AD_JOINED)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
     if (AD_IsOffline())
     {
-        return AD_OfflineChangePassword(
+        dwError = AD_OfflineChangePassword(
             hProvider,
             pszLoginId,
             pszPassword,
@@ -2464,12 +3111,18 @@ AD_ChangePassword(
     }
     else
     {
-        return AD_OnlineChangePassword(
+        dwError = AD_OnlineChangePassword(
             hProvider,
             pszLoginId,
             pszPassword,
             pszOldPassword);
     }
+
+error:
+
+    LsaAdProviderStateRelease(gpLsaAdProviderState);
+
+    return dwError;
 }
 
 DWORD
@@ -2548,10 +3201,17 @@ AD_EmptyCache(
 {
     DWORD dwError = 0;
 
-    // restrict access to root
+    LsaAdProviderStateAcquireRead(gpLsaAdProviderState);
+
+    if (gpLsaAdProviderState->joinState != LSA_AD_JOINED)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
     if (peerUID)
     {
-        dwError = EACCES;
+        dwError = LW_ERROR_ACCESS_DENIED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -2560,6 +3220,8 @@ AD_EmptyCache(
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
+
+    LsaAdProviderStateRelease(gpLsaAdProviderState);
 
     return dwError;
 
@@ -2578,6 +3240,14 @@ AD_OpenSession(
     PLSA_LOGIN_NAME_INFO pLoginInfo = NULL;
     PVOID pUserInfo = NULL;
     DWORD dwUserInfoLevel = 1;
+
+    LsaAdProviderStateAcquireRead(gpLsaAdProviderState);
+
+    if (gpLsaAdProviderState->joinState != LSA_AD_JOINED)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     dwError = LsaCrackDomainQualifiedName(
                     pszLoginId,
@@ -2606,6 +3276,8 @@ AD_OpenSession(
 
 cleanup:
 
+    LsaAdProviderStateRelease(gpLsaAdProviderState);
+
     if (pLoginInfo)
     {
         LsaFreeNameInfo(pLoginInfo);
@@ -2632,6 +3304,14 @@ AD_CloseSession(
     PVOID pUserInfo = NULL;
     DWORD dwUserInfoLevel = 0;
 
+    LsaAdProviderStateAcquireRead(gpLsaAdProviderState);
+
+    if (gpLsaAdProviderState->joinState != LSA_AD_JOINED)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
     dwError = AD_FindUserByName(
                     hProvider,
                     pszLoginId,
@@ -2644,6 +3324,8 @@ AD_CloseSession(
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
+
+    LsaAdProviderStateRelease(gpLsaAdProviderState);
 
     if (pUserInfo) {
         LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
@@ -2666,9 +3348,19 @@ AD_GetNamesBySidList(
     ADAccountType** ppTypes
     )
 {
+    DWORD dwError = 0;
+
+    LsaAdProviderStateAcquireRead(gpLsaAdProviderState);
+
+    if (gpLsaAdProviderState->joinState != LSA_AD_JOINED)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
     if (AD_IsOffline())
     {
-        return AD_OfflineGetNamesBySidList(
+        dwError = AD_OfflineGetNamesBySidList(
             hProvider,
             sCount,
             ppszSidList,
@@ -2678,7 +3370,7 @@ AD_GetNamesBySidList(
     }
     else
     {
-        return AD_OnlineGetNamesBySidList(
+        dwError = AD_OnlineGetNamesBySidList(
             hProvider,
             sCount,
             ppszSidList,
@@ -2686,6 +3378,12 @@ AD_GetNamesBySidList(
             pppszSamAccounts,
             ppTypes);
     }
+
+error:
+
+    LsaAdProviderStateRelease(gpLsaAdProviderState);
+
+    return dwError;
 }
 
 DWORD
@@ -2698,9 +3396,19 @@ AD_FindNSSArtefactByKey(
     PVOID* ppNSSArtefactInfo
     )
 {
+    DWORD dwError = 0;
+
+    LsaAdProviderStateAcquireRead(gpLsaAdProviderState);
+
+    if (gpLsaAdProviderState->joinState != LSA_AD_JOINED)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
     if (AD_IsOffline())
     {
-        return AD_OfflineFindNSSArtefactByKey(
+        dwError = AD_OfflineFindNSSArtefactByKey(
                         hProvider,
                         pszKeyName,
                         pszMapName,
@@ -2710,7 +3418,7 @@ AD_FindNSSArtefactByKey(
     }
     else
     {
-        return AD_OnlineFindNSSArtefactByKey(
+        dwError = AD_OnlineFindNSSArtefactByKey(
                         hProvider,
                         pszKeyName,
                         pszMapName,
@@ -2718,6 +3426,12 @@ AD_FindNSSArtefactByKey(
                         dwFlags,
                         ppNSSArtefactInfo);
     }
+
+error:
+
+    LsaAdProviderStateRelease(gpLsaAdProviderState);
+
+    return dwError;
 }
 
 DWORD
@@ -2731,6 +3445,14 @@ AD_BeginEnumNSSArtefacts(
 {
     DWORD dwError = 0;
     PAD_ENUM_STATE pEnumState = NULL;
+
+    LsaAdProviderStateAcquireRead(gpLsaAdProviderState);
+
+    if (gpLsaAdProviderState->joinState != LSA_AD_JOINED)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     if (!dwFlags)
     {
@@ -2765,6 +3487,8 @@ AD_BeginEnumNSSArtefacts(
 
 cleanup:
 
+    LsaAdProviderStateRelease(gpLsaAdProviderState);
+
     return dwError;
 
 error:
@@ -2783,9 +3507,20 @@ AD_EnumNSSArtefacts(
     PVOID** pppNSSArtefactInfoList
     )
 {
+    DWORD dwError = 0;
+
+    LsaAdProviderStateAcquireRead(gpLsaAdProviderState);
+
+    if (gpLsaAdProviderState->joinState != LSA_AD_JOINED)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+
     if (AD_IsOffline())
     {
-        return AD_OfflineEnumNSSArtefacts(
+        dwError = AD_OfflineEnumNSSArtefacts(
             hProvider,
             hResume,
             dwMaxNSSArtefacts,
@@ -2794,13 +3529,19 @@ AD_EnumNSSArtefacts(
     }
     else
     {
-        return AD_OnlineEnumNSSArtefacts(
+        dwError = AD_OnlineEnumNSSArtefacts(
             hProvider,
             hResume,
             dwMaxNSSArtefacts,
             pdwNSSArtefactsFound,
             pppNSSArtefactInfoList);
     }
+
+error:
+
+    LsaAdProviderStateRelease(gpLsaAdProviderState);
+
+    return dwError;
 }
 
 VOID
@@ -2821,6 +3562,14 @@ AD_GetStatus(
     DWORD dwError = 0;
     PLWNET_DC_INFO pDCInfo = NULL;
     PLSA_AUTH_PROVIDER_STATUS pProviderStatus = NULL;
+
+    LsaAdProviderStateAcquireRead(gpLsaAdProviderState);
+
+    if (gpLsaAdProviderState->joinState != LSA_AD_JOINED)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     dwError = LwAllocateMemory(
                    sizeof(LSA_AUTH_PROVIDER_STATUS),
@@ -2940,6 +3689,8 @@ AD_GetStatus(
     *ppProviderStatus = pProviderStatus;
 
 cleanup:
+
+    LsaAdProviderStateRelease(gpLsaAdProviderState);
 
     LWNET_SAFE_FREE_DC_INFO(pDCInfo);
 
@@ -3402,6 +4153,26 @@ AD_ProviderIoControl(
                           pdwOutputBufferSize,
                           ppOutputBuffer);
             break;
+        case LSA_AD_IO_JOINDOMAIN:
+            dwError = AD_JoinDomain(
+                          hProvider,
+                          peerUID,
+                          peerGID,
+                          dwInputBufferSize,
+                          pInputBuffer,
+                          pdwOutputBufferSize,
+                          ppOutputBuffer);
+            break;
+        case LSA_AD_IO_LEAVEDOMAIN:
+            dwError = AD_LeaveDomain(
+                          hProvider,
+                          peerUID,
+                          peerGID,
+                          dwInputBufferSize,
+                          pInputBuffer,
+                          pdwOutputBufferSize,
+                          ppOutputBuffer);
+            break;
         default:
             dwError = LW_ERROR_NOT_HANDLED;
             break;
@@ -3854,7 +4625,7 @@ LsaAdProviderStateCreate(
     dwError = LwAllocateMemory(sizeof(*pState), (PVOID)&pState);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = pthread_mutex_init(&pState->MachineCreds.Mutex, NULL);
+    dwError = LwMapErrnoToLwError(pthread_mutex_init(&pState->MachineCreds.Mutex, NULL));
     BAIL_ON_LSA_ERROR(dwError);
 
     pState->MachineCreds.pMutex = &pState->MachineCreds.Mutex;
@@ -3864,12 +4635,18 @@ LsaAdProviderStateCreate(
 
     pState->dwMaxAllowedClockDriftSeconds = AD_MAX_ALLOWED_CLOCK_DRIFT_SECONDS;
 
+    dwError = LwMapErrnoToLwError(pthread_rwlock_init(&pState->stateLock, NULL));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pState->pStateLock = &pState->stateLock;
+
     *ppState = pState;
 
 cleanup:
     return dwError;
 
 error:
+
     LsaAdProviderStateDestroy(pState);
     *ppState = NULL;
     goto cleanup;
@@ -3886,22 +4663,80 @@ LsaAdProviderStateDestroy(
         ADCacheSafeClose(&pState->hCacheConnection);
         ADState_SafeCloseDb(&pState->hStateConnection);
 
-        MediaSenseStop(&pState->MediaSenseHandle);
+        if (pState->MediaSenseHandle)
+        {
+            MediaSenseStop(&pState->MediaSenseHandle);
+            pState->MediaSenseHandle = NULL;
+        }
+
         if (pState->MachineCreds.pMutex)
         {
             pthread_mutex_destroy(pState->MachineCreds.pMutex);
             pState->MachineCreds.pMutex = NULL;
         }
         AD_FreeConfigContents(&pState->config);
+
+        if (pState->pStateLock)
+        {
+            pthread_rwlock_destroy(pState->pStateLock);
+        }
+
         LwFreeMemory(pState);
     }
+}
+
+static
+VOID
+LsaAdProviderStateAcquireRead(
+    PLSA_AD_PROVIDER_STATE pState
+    )
+{
+    LW_ASSERT(pthread_rwlock_rdlock(pState->pStateLock) == 0);
+}
+
+static
+VOID
+LsaAdProviderStateAcquireWrite(
+    PLSA_AD_PROVIDER_STATE pState
+    )
+{
+    LW_ASSERT(pthread_rwlock_wrlock(pState->pStateLock) == 0);
+}
+
+static
+void
+LsaAdProviderStateRelease(
+    PLSA_AD_PROVIDER_STATE pState
+    )
+{
+    LW_ASSERT(pthread_rwlock_unlock(pState->pStateLock) == 0);
 }
 
 static
 DWORD
 AD_MachineCredentialsCacheClear()
 {
-    return LwKrb5CleanupMachineSession();
+    DWORD dwError = 0;
+    BOOLEAN bInLock = FALSE;
+
+    pthread_mutex_lock(gpLsaAdProviderState->MachineCreds.pMutex);
+    bInLock = TRUE;
+
+    if (gpLsaAdProviderState->MachineCreds.bIsInitialized)
+    {
+        dwError = LwKrb5CleanupMachineSession();
+        BAIL_ON_LSA_ERROR(dwError);
+        gpLsaAdProviderState->MachineCreds.bIsInitialized = FALSE;
+    }
+
+error:
+
+    if (bInLock)
+    {
+        pthread_mutex_unlock(gpLsaAdProviderState->MachineCreds.pMutex);
+    }
+
+    return dwError;
 }
 
 static
@@ -3978,6 +4813,10 @@ AD_MachineCredentialsCacheInitialize(
                     pszDomainDnsName,
                     pszHostDnsDomain,
                     &dwGoodUntilTime);
+    if (dwError == LW_ERROR_DOMAIN_IS_OFFLINE)
+    {
+        LsaDmTransitionOffline(pszDomainDnsName, FALSE);
+    }
     BAIL_ON_LSA_ERROR(dwError);
 
     ADSetMachineTGTExpiry(dwGoodUntilTime);
@@ -3999,25 +4838,8 @@ cleanup:
     return dwError;
 
 error:
+
     goto cleanup;
-}
-
-static
-BOOLEAN
-LsaAdProviderLwKrb5IsOfflineCallback(
-    IN PCSTR pszRealm
-    )
-{
-    return LsaDmIsDomainOffline(pszRealm);
-}
-
-static
-VOID
-LsaAdProviderLwKrb5TransitionOfflineCallback(
-    IN PCSTR pszRealm
-    )
-{
-    LsaDmTransitionOffline(pszRealm, FALSE);
 }
 
 static

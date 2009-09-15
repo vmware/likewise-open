@@ -52,9 +52,6 @@ LsaNetJoinInitialize(
 {
     DWORD dwError = 0;
 
-    dwError = LwKrb5Init(NULL, NULL);
-    BAIL_ON_LSA_ERROR(dwError);
-
     dwError = LsaRpcInitMemory();
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -80,8 +77,6 @@ VOID
 LsaNetJoinShutdown(
     )
 {
-    LwKrb5Shutdown();
-
     NetrDestroyMemory();
 
     SamrDestroyMemory();

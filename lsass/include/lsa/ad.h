@@ -48,7 +48,7 @@
 #ifndef __LSACLIENT_AD_H__
 #define __LSACLIENT_AD_H__
 
-#include "lsautils.h"
+#include <sys/types.h>
 
 DWORD
 LsaAdEmptyCache(
@@ -97,6 +97,28 @@ LsaAdEnumGroupsFromCache(
     IN DWORD    dwMaxNumGroups,
     OUT PDWORD  pdwGroupsFound,
     OUT PVOID** pppGroupInfoList
+    );
+
+DWORD
+LsaAdJoinDomain(
+    HANDLE hLsaConnection,
+    PCSTR pszHostname,
+    PCSTR pszHostDnsDomain,
+    PCSTR pszDomain,
+    PCSTR pszOU,
+    PCSTR pszUsername,
+    PCSTR pszPassword,
+    PCSTR pszOSName,
+    PCSTR pszOSVersion,
+    PCSTR pszOSServicePack,
+    DWORD dwFlags
+    );
+
+DWORD
+LsaAdLeaveDomain(
+    HANDLE hLsaConnection,
+    PCSTR pszUsername,
+    PCSTR pszPassword
     );
 
 #endif /* __LSACLIENT_AD_H__ */
