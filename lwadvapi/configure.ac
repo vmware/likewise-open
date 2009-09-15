@@ -15,6 +15,18 @@ AC_DEFINE([_REENTRANT], [1], [Enables strtok_r on HP-UX])
 AC_PROG_CC
 AC_PROG_LIBTOOL
 
+DS_FRAMEWORK_LDFLAGS=""
+
+case "$host_os:$host_cpu" in
+        darwin*:*)
+                echo "Detected Mac OS X"
+                DS_FRAMEWORK_LDFLAGS="-framework DirectoryService"
+                AC_DEFINE([__LWI_DARWIN__], [], [Define if OS is Darwin])
+                ;;
+esac
+
+AC_SUBST(DS_FRAMEWORK_LDFLAGS)
+
 # compat
 
 ENABLE_COMPAT=false
@@ -107,6 +119,30 @@ KRB5_LIBS="-lgssapi_krb5 -lkrb5 -lk5crypto"
 AC_SUBST(KRB5_INCLUDES)
 AC_SUBST(KRB5_LDFLAGS)
 AC_SUBST(KRB5_LIBS)
+
+
+# lwbase
+
+AC_ARG_WITH([lwbase],
+        [AC_HELP_STRING([--with-lwbase=<dir>], [use lwbase located in prefix <dir>])]
+,
+        [                LWBASE_INCLUDES="-I$withval/include"
+        LWBASE_LDFLAGS="-L$withval/lib"
+        ])
+
+AC_ARG_WITH([lwbase-includes],
+        [AC_HELP_STRING([--with-lwbase-includes=<dir>], [use lwbase includes located
+in <dir>])],
+        [
+                LWBASE_INCLUDES="-I$withval"        ])
+
+AC_ARG_WITH([lwbase-libs],
+        [AC_HELP_STRING([--with-lwbase-libs=<dir>], [use lwbase libs located in <dir>
+])],
+        [
+                LWBASE_LDFLAGS="-L$withval"
+        ])
+
 
 # pstore
 
@@ -235,6 +271,7 @@ AC_CONFIG_FILES([Makefile
                  unthreaded/lwunistr/Makefile
                  unthreaded/error/Makefile
                  unthreaded/file/Makefile
+                 unthreaded/dscache/Makefile
                  join/Makefile])
 
 AC_OUTPUT

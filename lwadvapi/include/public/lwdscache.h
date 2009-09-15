@@ -27,31 +27,33 @@
  * license@likewisesoftware.com
  */
 
-#ifndef __INCLUDES_H__
-#define __INCLUDES_H__
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        lwldap.h
+ *
+ * Abstract:
+ *
+ *        Likewise Advanced API (lwadvapi)
+ *
+ *        Mac Directory Service Cache Exception API
+ *
+ * Authors: Glenn Curtis (glennc@likewise.com)
+ */
+#ifndef __LWDSCACHE_H__
+#define __LWDSCACHE_H__
 
-#include "config.h"
-#include <lw/rtlmemory.h>
-#include <lw/dscache.h>
-#include <errno.h>
-#include <stdlib.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <ctype.h>
-#include <sys/stat.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netinet/tcp.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <limits.h>
+DWORD
+LwDsCacheAddPidException(
+    IN pid_t pid
+    );
 
-#include "lwdef.h"
-#include "lwerror.h"
-#include "bail.h"
-#include "lwmem.h"
-#include "lwstr.h"
-#include "lwfile.h"
-#include "lwdscache.h"
+DWORD
+LwDsCacheRemovePidException(
+    IN pid_t pid
+    );
 
-#endif /* __INCLUDES_H__ */
+#endif /* __LWDSCACHE_H__ */
+
