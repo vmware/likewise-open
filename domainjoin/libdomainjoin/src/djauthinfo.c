@@ -40,6 +40,7 @@
 #include <dlfcn.h>
 #include <lsa/join.h>
 #include <lsa/lsa.h>
+#include <lsa/ad.h>
 #include <lwnet.h>
 #include <eventlog.h>
 
@@ -1051,6 +1052,8 @@ void DJNetInitialize(BOOLEAN bEnableDcerpcd, LWException **exc)
                     92, 8, &LW_EXC));
         LW_TRY(exc, DJManageDaemon("lwiod", TRUE,
                     92, 10, &LW_EXC));
+        LW_TRY(exc, DJManageDaemon("lsassd", TRUE,
+                    92, 12, &LW_EXC));
 
         if (bEnableDcerpcd)
         {
@@ -1126,6 +1129,7 @@ void DJCreateComputerAccount(
     PSTR likewiseRevision = NULL;
 
     PSTR likewiseOSServicePack = NULL;
+    HANDLE lsa = NULL;
 
     memset(&distro, 0, sizeof(distro));
 
@@ -1190,38 +1194,30 @@ void DJCreateComputerAccount(
         dnsDomain = hostFqdn + strlen(shortHostname) + 1;
     }
 
-    err = LsaNetJoinDomain(
-              options->computerName,
-              dnsDomain,
-              options->domainName,
-              options->ouName,
-              options->username,
-              options->password,
-              osName,
-              distro.version,
-              likewiseOSServicePack,
-              dwFlags);
-    if (err)
-    {
-        switch(err)
-        {
-            case ENOENT:
-                LW_RAISE_EX(exc, CENTERROR_DOMAINJOIN_INVALID_OU, "Lsass Error", "The OU is invalid.");
-                break;
-            case EINVAL:
-                LW_RAISE_EX(exc, CENTERROR_DOMAINJOIN_INVALID_FORMAT, "Lsass Error", "The OU format is invalid.");
-                break;
-            default:
-                LW_RAISE_LSERR(exc, err);
-                break;
-        }
-        goto cleanup;
-    }
+    LW_CLEANUP_LSERR(exc, LsaOpenServer(&lsa));
+
+    LW_CLEANUP_LSERR(exc, LsaAdJoinDomain(
+                         lsa,
+                         options->computerName,
+                         dnsDomain,
+                         options->domainName,
+                         options->ouName,
+                         options->username,
+                         options->password,
+                         osName,
+                         distro.version,
+                         likewiseOSServicePack,
+                         dwFlags));
 
     LW_TRY(exc, DJGuessShortDomainName(
                                  options->domainName,
                                  shortDomainName, &LW_EXC));
 cleanup:
+
+    if (lsa)
+    {
+        LsaCloseServer(lsa);
+    }
 
     if (exc && LW_IS_OK(*exc))
     {
@@ -1259,9 +1255,17 @@ void DJDisableComputerAccount(PCSTR username,
                 JoinProcessOptions *options,
                 LWException **exc)
 {
-    LW_CLEANUP_LSERR(exc, LsaNetLeaveDomain(username, password));
+    HANDLE lsa = NULL;
+
+    LW_CLEANUP_LSERR(exc, LsaOpenServer(&lsa));
+    LW_CLEANUP_LSERR(exc, LsaAdLeaveDomain(lsa, username, password));
 
 cleanup:
+
+    if (lsa)
+    {
+        LsaCloseServer(lsa);
+    }
 
     if (exc && LW_IS_OK(*exc))
     {
