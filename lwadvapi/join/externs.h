@@ -51,8 +51,6 @@ extern DWORD gdwClockDriftSecs;
 typedef struct _LW_KRB5_STATE {
     pthread_mutex_t ExistingClientLock;
     pthread_mutex_t UserCacheMutex;
-    LW_KRB5_REALM_IS_OFFLINE_CALLBACK pfIsOfflineCallback;
-    LW_KRB5_REALM_TRANSITION_OFFLINE_CALLBACK pfTransitionOfflineCallback;
 } LW_KRB5_STATE, *PLW_KRB5_STATE;
 
 extern LW_KRB5_STATE gLwKrb5State;

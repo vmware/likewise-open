@@ -48,5 +48,8 @@
 
 DWORD gdwClockDriftSecs = 60;
 
-
-LW_KRB5_STATE gLwKrb5State;
+LW_KRB5_STATE gLwKrb5State =
+{
+    .ExistingClientLock = PTHREAD_MUTEX_INITIALIZER,
+    .UserCacheMutex = PTHREAD_MUTEX_INITIALIZER
+};
