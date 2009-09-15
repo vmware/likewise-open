@@ -181,7 +181,7 @@ SaveMachinePassword(
      * Find the current key version number for machine account
      */
 
-    ktstatus = KtKrb5FormatPrincipalW(account, NULL, &principal);
+    ktstatus = KtKrb5FormatPrincipalW(account, dns_dom_name_uc, &principal);
     if (ktstatus != 0) {
         err = NtStatusToWin32Error(STATUS_UNSUCCESSFUL);
         goto error;
@@ -205,7 +205,7 @@ SaveMachinePassword(
         goto error;
     }
 
-    ktstatus = KtGetSaltingPrincipalW(machine, account, mach_dns_domain, NULL,
+    ktstatus = KtGetSaltingPrincipalW(machine, account, mach_dns_domain, dns_dom_name_uc,
                                       dc_name, base_dn, &salt);
     if (ktstatus != 0) {
         err = NtStatusToWin32Error(STATUS_UNSUCCESSFUL);
@@ -220,7 +220,7 @@ SaveMachinePassword(
      */
 
     /* MACHINE$@DOMAIN.NET */
-    err = SavePrincipalKey(account, pass, pass_len, NULL, salt, dc_name, kvno);
+    err = SavePrincipalKey(account, pass, pass_len, dns_dom_name_uc, salt, dc_name, kvno);
     BAIL_ON_WINERR_ERROR(err);
 
     /* host/MACHINE@DOMAIN.NET */
@@ -232,7 +232,7 @@ SaveMachinePassword(
         BAIL_ON_WINERR_ERROR(err);
     }
 
-    err = SavePrincipalKey(host_machine_uc, pass, pass_len, NULL, salt,
+    err = SavePrincipalKey(host_machine_uc, pass, pass_len, dns_dom_name_uc, salt,
                            dc_name, kvno);
     BAIL_ON_WINERR_ERROR(err);
 
@@ -255,7 +255,7 @@ SaveMachinePassword(
         BAIL_ON_WINERR_ERROR(err);
     }
 
-    err = SavePrincipalKey(host_machine_fqdn, pass, pass_len, NULL, salt,
+    err = SavePrincipalKey(host_machine_fqdn, pass, pass_len, dns_dom_name_uc, salt,
                            dc_name, kvno);
     BAIL_ON_WINERR_ERROR(err);
 
@@ -270,7 +270,7 @@ SaveMachinePassword(
         BAIL_ON_WINERR_ERROR(err);
     }
 
-    err = SavePrincipalKey(host_machine_fqdn, pass, pass_len, NULL, salt,
+    err = SavePrincipalKey(host_machine_fqdn, pass, pass_len, dns_dom_name_uc, salt,
                            dc_name, kvno);
     BAIL_ON_WINERR_ERROR(err);
 
@@ -285,7 +285,7 @@ SaveMachinePassword(
         BAIL_ON_WINERR_ERROR(err);
     }
 
-    err = SavePrincipalKey(host_machine_fqdn, pass, pass_len, NULL, salt,
+    err = SavePrincipalKey(host_machine_fqdn, pass, pass_len, dns_dom_name_uc, salt,
                            dc_name, kvno);
     BAIL_ON_WINERR_ERROR(err);
 
@@ -300,7 +300,7 @@ SaveMachinePassword(
         BAIL_ON_WINERR_ERROR(err);
     }
 
-    err = SavePrincipalKey(host_machine_fqdn, pass, pass_len, NULL, salt,
+    err = SavePrincipalKey(host_machine_fqdn, pass, pass_len, dns_dom_name_uc, salt,
                            dc_name, kvno);
     BAIL_ON_WINERR_ERROR(err);
 
@@ -312,7 +312,7 @@ SaveMachinePassword(
         BAIL_ON_WINERR_ERROR(err);
     }
 
-    err = SavePrincipalKey(host_machine_lc, pass, pass_len, NULL, salt,
+    err = SavePrincipalKey(host_machine_lc, pass, pass_len, dns_dom_name_uc, salt,
                            dc_name, kvno);
     BAIL_ON_WINERR_ERROR(err);
 
@@ -335,7 +335,7 @@ SaveMachinePassword(
         BAIL_ON_WINERR_ERROR(err);
     }
 
-    err = SavePrincipalKey(cifs_machine_fqdn, pass, pass_len, NULL, salt,
+    err = SavePrincipalKey(cifs_machine_fqdn, pass, pass_len, dns_dom_name_uc, salt,
                            dc_name, kvno);
     BAIL_ON_WINERR_ERROR(err);
 
@@ -350,7 +350,7 @@ SaveMachinePassword(
         BAIL_ON_WINERR_ERROR(err);
     }
 
-    err = SavePrincipalKey(cifs_machine_fqdn, pass, pass_len, NULL, salt,
+    err = SavePrincipalKey(cifs_machine_fqdn, pass, pass_len, dns_dom_name_uc, salt,
                            dc_name, kvno);
     BAIL_ON_WINERR_ERROR(err);
 
@@ -365,7 +365,7 @@ SaveMachinePassword(
         BAIL_ON_WINERR_ERROR(err);
     }
 
-    err = SavePrincipalKey(cifs_machine_fqdn, pass, pass_len, NULL, salt,
+    err = SavePrincipalKey(cifs_machine_fqdn, pass, pass_len, dns_dom_name_uc, salt,
                                dc_name, kvno);
     BAIL_ON_WINERR_ERROR(err);
 
@@ -380,7 +380,7 @@ SaveMachinePassword(
         BAIL_ON_WINERR_ERROR(err);
     }
 
-    err = SavePrincipalKey(cifs_machine_fqdn, pass, pass_len, NULL, salt,
+    err = SavePrincipalKey(cifs_machine_fqdn, pass, pass_len, dns_dom_name_uc, salt,
                                dc_name, kvno);
     BAIL_ON_WINERR_ERROR(err);
 
