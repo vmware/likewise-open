@@ -531,6 +531,28 @@ SamrCleanStubDisplayInfo(
 }
 
 
+void
+SamrCleanStubSecurityDescriptorBuffer(
+    PSECURITY_DESCRIPTOR_BUFFER pSecDescBuffer
+    )
+{
+    RPCSTATUS rpcStatus = 0;
+    rpc_sm_client_free(pSecDescBuffer->pBuffer,
+                       &rpcStatus);
+}
+
+
+void
+SamrFreeStubSecurityDescriptorBuffer(
+    PSECURITY_DESCRIPTOR_BUFFER pSecDescBuffer
+    )
+{
+    RPCSTATUS rpcStatus = 0;
+
+    SamrCleanStubSecurityDescriptorBuffer(pSecDescBuffer);
+    rpc_sm_client_free(pSecDescBuffer, &rpcStatus);
+}
+
 
 /*
 local variables:

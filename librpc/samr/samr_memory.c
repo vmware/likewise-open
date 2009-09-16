@@ -2340,6 +2340,42 @@ error:
 }
 
 
+NTSTATUS
+SamrAllocateSecurityDescriptor(
+    OUT PSECURITY_DESCRIPTOR_RELATIVE *ppOut,
+    IN  PSECURITY_DESCRIPTOR_BUFFER    pIn
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSECURITY_DESCRIPTOR_RELATIVE pSecDesc = NULL;
+
+    BAIL_ON_INVALID_PTR(ppOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
+
+    ntStatus = SamrAllocateMemory((PVOID*)&pSecDesc,
+                                  pIn->ulBufferLen,
+                                  NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    memcpy(pSecDesc, pIn->pBuffer, pIn->ulBufferLen);
+
+    *ppOut = pSecDesc;
+
+cleanup:
+    return ntStatus;
+
+error:
+    if (pSecDesc)
+    {
+        SamrFreeMemory(pSecDesc);
+    }
+
+    *ppOut = NULL;
+
+    goto cleanup;
+}
+
+
 /*
 local variables:
 mode: c
