@@ -5,8 +5,8 @@ export BUILD_ROOT
 
 umask 022
 
-PKG="srvsvc"
-COMPONENTS="srvsvc"
+PKG="lwreg"
+COMPONENTS="lwreg"
 
 for comp in ${COMPONENTS}; do
     echo "Populating files from $comp..."
