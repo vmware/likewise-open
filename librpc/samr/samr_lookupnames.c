@@ -59,6 +59,7 @@ SamrLookupNames(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    NTSTATUS ntLookupStatus = STATUS_SUCCESS;
     UnicodeString *pNames = NULL;
     Ids Rids = {0};
     Ids Types = {0};
@@ -82,7 +83,13 @@ SamrLookupNames(
                                            pNames,
                                            &Rids,
                                            &Types));
-    BAIL_ON_NT_STATUS(ntStatus);
+    if (ntStatus != STATUS_SUCCESS &&
+        ntStatus != STATUS_SOME_NOT_MAPPED)
+    {
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    ntLookupStatus = ntStatus;
 
     if (Rids.count != Types.count)
     {
@@ -114,6 +121,12 @@ cleanup:
     SamrCleanStubIds(&Types);
 
     FreeUnicodeStringArray(pNames, NumNames);
+
+    if (ntStatus == STATUS_SUCCESS &&
+        ntLookupStatus != STATUS_SUCCESS)
+    {
+        ntStatus = ntLookupStatus;
+    }
 
     return ntStatus;
 

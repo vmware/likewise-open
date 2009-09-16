@@ -5,21 +5,21 @@
 [HKEY_LIKEWISE\Services\lsass\Parameters]
 "EnableEventlog"=dword:00000000
 "LogNetworkConnectionEvents"=dword:00000001
-"DomainSeparator"="\\"
+"LogLevel"="error"
 
 [HKEY_LIKEWISE\Services\lsass\Parameters\PAM]
 "LogLevel"="error"
-"DisplayMOTD"=dword:00000000
+"DisplayMotd"=dword:00000000
 "UserNotAllowedError"="Access denied"
 
 [HKEY_LIKEWISE\Services\lsass\Parameters\Providers]
-"LoadOrder"="ActiveDirectory,Local"
+"Load"="ActiveDirectory,Local"
 
 [HKEY_LIKEWISE\Services\lsass\Parameters\Providers\ActiveDirectory]
 "Path"="@providerdir@/liblsass_auth_provider_ad@MOD_EXT@"
 "LoginShellTemplate"="/bin/sh"
-"HomedirPrefix"=""
-"HomedirTemplate"="%H/local/%D/%U"
+"HomeDirPrefix"=""
+"HomeDirTemplate"="%H/local/%D/%U"
 "LdapSignAndSeal"=dword:00000000
 "CacheEntryExpiry"="4h"
 "MachinePasswordLifespan"="30d"
@@ -27,9 +27,9 @@
 "AssumeDefaultDomain"=dword:00000000
 "SyncSystemTime"=dword:00000001
 "RequireMembershipOf"=""
-"CreateK5login"=dword:00000001
-"CreateHomedir"=dword:00000001
-"HomedirUmask"="022"
+"CreateK5Login"=dword:00000001
+"CreateHomeDir"=dword:00000001
+"HomeDirUmask"="022"
 "SkeletonDirs"=""
 "RefreshUserCredentials"=dword:00000001
 "CellSupport"="full"
@@ -44,12 +44,23 @@
 
 [HKEY_LIKEWISE\Services\lsass\Parameters\Providers\Local]
 "Path"="@providerdir@/liblsass_auth_provider_local@MOD_EXT@"
-"PasswordLifespan"="30d"
-"PasswordChangeWarningTime"="14d"
+"EnableEventlog"=dword:00000000
 "LoginShellTemplate"="/bin/sh"
-"HomedirPrefix"=""
-"HomedirTemplate"="%H/local/%D/%U"
-"CreateHomedir"=dword:00000001
-"HomedirUmask"="022"
+"HomeDirPrefix"=""
+"HomeDirTemplate"="%H/local/%D/%U"
+"CreateHomeDir"=dword:00000001
+"HomeDirUmask"="022"
 "SkeletonDirs"=""
+
+[HKEY_LIKEWISE\Services\lsass\Parameters\RPCServers]
+"Load"=""
+
+[HKEY_LIKEWISE\Services\lsass\Parameters\RPCServers\lsarpc]
+"Path"="@rpcserverdir@/liblsa_srv@MOD_EXT@"
+
+[HKEY_LIKEWISE\Services\lsass\Parameters\RPCServers\samr]
+"Path"="@rpcserverdir@/libsamr_srv@MOD_EXT@"
+
+[HKEY_LIKEWISE\Services\lsass\Parameters\RPCServers\dssetup]
+"Path"="@rpcserverdir@/libdssetup_srv@MOD_EXT@"
 

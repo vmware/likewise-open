@@ -139,11 +139,11 @@ error:
     if (dwError == LW_ERROR_NOT_HANDLED ||
         dwError == LW_ERROR_NO_SUCH_USER)
     {
-        LSA_LOG_VERBOSE_ENTRY_NOT_FOUND(hServer, dwError, "authenticate user (name = '%s')", LW_IS_NULL_OR_EMPTY_STR(pszLoginId));
+        LSA_LOG_VERBOSE_ENTRY_NOT_FOUND(hServer, dwError, "authenticate user (name = '%s')", LSA_SAFE_LOG_STRING(pszLoginId));
     }
     else
     {
-        LSA_LOG_ERROR_API_FAILED(hServer, dwError, "authenticate user (name = '%s')", LW_IS_NULL_OR_EMPTY_STR(pszLoginId));
+        LSA_LOG_ERROR_API_FAILED(hServer, dwError, "authenticate user (name = '%s')", LSA_SAFE_LOG_STRING(pszLoginId));
     }
 
     goto cleanup;

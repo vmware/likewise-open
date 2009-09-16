@@ -11,7 +11,8 @@ liblwadvapi_join_la_SOURCES = \
 
 liblwadvapi_join_la_CPPFLAGS =              \
         -DLW_ENABLE_THREADS=1         \
-	-I@top_srcdir@/include \
+	-I$(top_srcdir)/include \
+	-I$(top_srcdir)/include/public \
 	$(OPENLDAP_INCLUDES) \
 	$(PSTORE_INCLUDES) \
 	$(KRB5_INCLUDES)

@@ -36,52 +36,6 @@
 
 #include <lwmsg/status.h>
 
-#define BAIL_ON_LW_ERROR(dwError) \
-    do { \
-        if (dwError) \
-        { \
-            LW_LOG_DEBUG("Error at %s:%d [code: %d]", __FILE__, __LINE__, dwError); \
-            goto error; \
-        } \
-    } while (0)
-
-#define BAIL_ON_LDAP_ERROR(dwError) \
-    do { \
-        if (dwError) \
-        { \
-            dwError = LwMapLdapErrorToLwError(dwError); \
-            LW_LOG_DEBUG("Error at %s:%d [code: %d]", __FILE__, __LINE__, dwError); \
-            goto error; \
-        } \
-    } while (0)
-
-#define LW_BAIL_ON_INVALID_STRING(pszParam) \
-    do { \
-        if (LW_IS_NULL_OR_EMPTY_STR(pszParam)) \
-        { \
-           dwError = LW_ERROR_INVALID_PARAMETER; \
-           BAIL_ON_LW_ERROR(dwError); \
-        } \
-    } while (0)
-
-#define LW_BAIL_ON_INVALID_HANDLE(hParam) \
-    do { \
-        if (!hParam) \
-        { \
-           dwError = LW_ERROR_INVALID_PARAMETER; \
-           BAIL_ON_LW_ERROR(dwError); \
-        } \
-    } while (0)
-
-#define LW_BAIL_ON_INVALID_POINTER(p) \
-    do { \
-        if (!p) \
-        { \
-           dwError = LW_ERROR_INVALID_PARAMETER; \
-           BAIL_ON_LW_ERROR(dwError); \
-        } \
-    } while (0)
-
 /** Success */
 #define LW_ERROR_SUCCESS                                   0
 

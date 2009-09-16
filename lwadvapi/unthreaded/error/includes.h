@@ -47,6 +47,7 @@
 #include "lwmem.h"
 #include "lwstr.h"
 #include "lwerror.h"
+#include "bail.h"
 
 #if !defined(HAVE_STRTOLL) && defined(HAVE___STRTOLL)
 #define strtoll __strtoll

@@ -56,6 +56,9 @@
 #include <lwmsg/server.h>
 
 #include <lwnet.h>
+#include <lwerror.h>
+#include <lwdscache.h>
+#include <lw/base.h>
 
 #include "lwiodef.h"
 #include "lwioutils.h"

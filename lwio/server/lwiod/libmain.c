@@ -243,6 +243,13 @@ lwiod_main(
 
     SMBSrvBlockSignals();
 
+    dwError = LwDsCacheAddPidException(getpid());
+    if (dwError == LW_ERROR_FAILED_STARTUP_PREREQUISITE_CHECK)
+    {
+        LWIO_LOG_ERROR("Could not register process pid (%d) with Mac DirectoryService Cache plugin", (int) getpid());
+        BAIL_ON_LWIO_ERROR(dwError);
+    }
+
     dwError = SMBSrvInitialize();
     BAIL_ON_LWIO_ERROR(dwError);
 
@@ -256,6 +263,8 @@ cleanup:
     IoCleanup();
 
     LWIO_LOG_INFO("SMB Service exiting...");
+
+    LwDsCacheRemovePidException(getpid());
 
     SMBSrvSetProcessExitCode(dwError);
 

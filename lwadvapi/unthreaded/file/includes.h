@@ -32,6 +32,7 @@
 
 #include "config.h"
 #include <lw/rtlmemory.h>
+#include <lw/dscache.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -47,8 +48,10 @@
 
 #include "lwdef.h"
 #include "lwerror.h"
+#include "bail.h"
 #include "lwmem.h"
 #include "lwstr.h"
 #include "lwfile.h"
+#include "lwdscache.h"
 
 #endif /* __INCLUDES_H__ */

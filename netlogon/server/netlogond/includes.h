@@ -56,6 +56,9 @@
 
 #include <lwfile.h>
 #include <lwstr.h>
+#include <lwdscache.h>
+
+#include <lw/base.h>
 
 #include "lwnet-server.h"
 #include "lwnet-server-api.h"

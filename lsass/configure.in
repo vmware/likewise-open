@@ -20,6 +20,7 @@ MOD_EXT=".so"
 
 CF_FRAMEWORK_LDFLAGS=""
 SC_FRAMEWORK_LDFLAGS=""
+DS_FRAMEWORK_LDFLAGS=""
 
 AC_DEFINE(__LW_MOTD_FILE__, "/etc/motd", [File which contains the message of the day])
 AC_DEFINE(__LW_MOTD_MAX_SIZE__, 4096, [The maximum number of bytes which will be displayed from the MOTD])
@@ -70,6 +71,7 @@ case "$host_os:$host_cpu" in
                 ENABLE_NSS_ENUM_DEFAULT="yes"
                 CF_FRAMEWORK_LDFLAGS="-framework CoreFoundation"
                 SC_FRAMEWORK_LDFLAGS="-framework SystemConfiguration"
+                DS_FRAMEWORK_LDFLAGS="-framework DirectoryService"
 		AC_DEFINE([__LWI_DARWIN__], [], [Define if OS is Darwin])
 		;;
 	darwin9.*:*)
@@ -80,6 +82,7 @@ case "$host_os:$host_cpu" in
                 ENABLE_NSS_ENUM_DEFAULT="yes"
                 CF_FRAMEWORK_LDFLAGS="-framework CoreFoundation"
                 SC_FRAMEWORK_LDFLAGS="-framework SystemConfiguration"
+                DS_FRAMEWORK_LDFLAGS="-framework DirectoryService"
 		AC_DEFINE([__LWI_DARWIN__], [], [Define if OS is Darwin])
 		;;
 	darwin10.*:*)
@@ -90,6 +93,7 @@ case "$host_os:$host_cpu" in
                 ENABLE_NSS_ENUM_DEFAULT="yes"
                 CF_FRAMEWORK_LDFLAGS="-framework CoreFoundation"
                 SC_FRAMEWORK_LDFLAGS="-framework SystemConfiguration"
+                DS_FRAMEWORK_LDFLAGS="-framework DirectoryService"
 		AC_DEFINE([__LWI_DARWIN__], [], [Define if OS is Darwin - x64 Snow Leopard])
 		AC_DEFINE([__LWI_DARWIN_X64__], [], [Define if OS is Darwin - x64 Snow Leopard])
 		;;
@@ -144,6 +148,7 @@ AC_SUBST(NSS_SUBDIR)
 AC_SUBST(MOD_EXT)
 AC_SUBST(CF_FRAMEWORK_LDFLAGS)
 AC_SUBST(SC_FRAMEWORK_LDFLAGS)
+AC_SUBST(DS_FRAMEWORK_LDFLAGS)
 if [ ENABLE_NSS_ENUM_DEFAULT = "yes" ]
 then
     ENABLE_NSS_ENUM_DEFAULT_DWORD="00000001"
@@ -854,8 +859,7 @@ AC_CHECK_TYPES([wchar16_t], [], [], [AC_INCLUDES_DEFAULT
 AC_CHECK_MEMBERS([ucontext_t.uc_mcontext,
 		  ucontext_t.uc_mcontext->__ss,
 		  ucontext_t.uc_mcontext->__ss.__rip,
-		  ucontext_t.uc_mcontext->__ss.__eip
-		  ],
+		  ucontext_t.uc_mcontext->__ss.__eip],
 [], [], [AC_INCLUDES_DEFAULT
 #ifdef HAVE_EXECINFO_H
 # include <execinfo.h>

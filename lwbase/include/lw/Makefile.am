@@ -1,6 +1,7 @@
 lwincludedir = $(includedir)/lw
 
 lwinclude_HEADERS = \
+	dscache.h \
 	errno.h \
 	ntstatus.h \
 	rpcstatus.h \

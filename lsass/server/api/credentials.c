@@ -146,13 +146,13 @@ LsaAllocateCred(
     PLSA_CREDENTIALS pCred = NULL;
 
     dwError = LwAllocateMemory(sizeof(*pCred), OUT_PPVOID(&pCred));
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LwAllocateString(pszUserName, &pCred->pUserName);
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LwAllocateString(pszPassword, &pCred->pPassword);
-    BAIL_ON_LW_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     pCred->nRefCount = 1;
 
@@ -241,7 +241,7 @@ LsaAddCredential(
         (pUid && !*pUid))
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     ENTER_CREDS_LIST(bInLock);
@@ -254,7 +254,7 @@ LsaAddCredential(
     if (!pCredOld || !LsaCredContains(pCredOld, pszUserName, pszPassword))
     {
         dwError = LsaAllocateCred(pszUserName, pszPassword, pUid, &pCredNew);
-        BAIL_ON_LW_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
 
         LsaListInsertHead(&gLsaCredState.LsaCredsList, &pCredNew->ListEntry);
 

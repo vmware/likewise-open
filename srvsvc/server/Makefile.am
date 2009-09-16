@@ -84,7 +84,8 @@ srvsvcd_LDFLAGS = \
     $(LIBUNISTR_LDFLAGS) \
     $(LWADVAPI_LDFLAGS)  \
     $(LWIO_LDFLAGS)      \
-    $(NETLOGON_LDFLAGS)
+    $(NETLOGON_LDFLAGS)  \
+    @DS_FRAMEWORK_LDFLAGS@
 
 srvsvcd_LDADD = \
     $(top_builddir)/utils/libsrvsvcutils.la \

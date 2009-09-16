@@ -60,6 +60,7 @@ LsaSrvLookupNames(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    NTSTATUS ntLookupStatus = STATUS_SUCCESS;
     PPOLICY_CONTEXT pPolCtx = NULL;
     UnicodeStringEx *pNames = NULL;
     PWSTR pwszName = NULL;
@@ -75,8 +76,8 @@ LsaSrvLookupNames(
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
 
-    ntStatus = LsaSrvAllocateMemory((void**)pNames,
-                                  sizeof(*pNames) * num_names);
+    ntStatus = LsaSrvAllocateMemory((void**)&pNames,
+                                    sizeof(*pNames) * num_names);
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     for (i = 0; i < num_names; i++) {
@@ -91,6 +92,10 @@ LsaSrvLookupNames(
         }
     }
 
+    ntStatus = LsaSrvAllocateMemory((void**)&pSidArray,
+                                    sizeof(*pSidArray) * num_names);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
     ntStatus = LsaSrvLookupNames2(IDL_handle,
                                 hPolicy,
                                 num_names,
@@ -100,11 +105,13 @@ LsaSrvLookupNames(
                                 level,
                                 &dwCount,
                                 0, 0);
-    if (ntStatus != STATUS_SUCCESS ||
-        ntStatus != LW_STATUS_SOME_NOT_MAPPED ||
+    if (ntStatus != STATUS_SUCCESS &&
+        ntStatus != LW_STATUS_SOME_NOT_MAPPED &&
         ntStatus != STATUS_NONE_MAPPED) {
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
+
+    ntLookupStatus = ntStatus;
 
     sids->count = pSidArray->count;
 
@@ -125,12 +132,30 @@ LsaSrvLookupNames(
     *count   = dwCount;
 
 cleanup:
-    if (pwszName) {
+    if (pSidArray)
+    {
+        if (pSidArray->sids)
+        {
+            LsaSrvFreeMemory(pSidArray->sids);
+        }
+
+        LsaSrvFreeMemory(pSidArray);
+    }
+
+    if (pwszName)
+    {
         LW_SAFE_FREE_MEMORY(pwszName);
     }
 
-    if (pNames) {
+    if (pNames)
+    {
         LsaSrvFreeMemory(pNames);
+    }
+
+    if (ntStatus == STATUS_SUCCESS &&
+        ntLookupStatus != STATUS_SUCCESS)
+    {
+        ntStatus = ntLookupStatus;
     }
 
     return ntStatus;

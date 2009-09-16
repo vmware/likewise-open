@@ -61,7 +61,8 @@ LsaSrvLookupNames2(
     uint32 unknown2
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    NTSTATUS ntLookupStatus = STATUS_SUCCESS;
     TranslatedSidArray2 Sids2;
     TranslatedSidArray3 Sids3;
     DWORD i = 0;
@@ -69,37 +70,50 @@ LsaSrvLookupNames2(
     memset(&Sids2, 0, sizeof(Sids2));
     memset(&Sids3, 0, sizeof(Sids3));
 
-    status = LsaSrvLookupNames3(hBinding,
-                                hPolicy,
-                                num_names,
-                                names,
-                                domains,
-                                &Sids3,
-                                level,
-                                count,
-                                unknown1,
-                                unknown2);
+    ntStatus = LsaSrvLookupNames3(hBinding,
+                                  hPolicy,
+                                  num_names,
+                                  names,
+                                  domains,
+                                  &Sids3,
+                                  level,
+                                  count,
+                                  unknown1,
+                                  unknown2);
+    ntLookupStatus = ntStatus;
 
     Sids2.count = Sids3.count;
-    status = LsaSrvAllocateMemory((void**)&Sids2.sids,
-                                  sizeof(*Sids2.sids) * Sids2.count);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = LsaSrvAllocateMemory((void**)&Sids2.sids,
+                                    sizeof(*Sids2.sids) * Sids2.count);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     for (i = 0; i < Sids2.count; i++) {
         TranslatedSid2 *pOut = &(Sids2.sids[i]);
         TranslatedSid3 *pIn = &(Sids3.sids[i]);
+        DWORD iRid = 0;
 
         pOut->type     = pIn->type;
         pOut->index    = pIn->index;
         pOut->unknown1 = pIn->unknown1;
-        pOut->rid      = pIn->sid->SubAuthority[pIn->sid->SubAuthorityCount - 1];
+
+        if (pIn->sid)
+        {
+            iRid      = pIn->sid->SubAuthorityCount - 1;
+            pOut->rid = pIn->sid->SubAuthority[iRid];
+        }
     }
 
     pSids->count = Sids2.count;
     pSids->sids  = Sids2.sids;
 
 cleanup:
-    return status;
+    if (ntStatus == STATUS_SUCCESS &&
+        ntLookupStatus != STATUS_SUCCESS)
+    {
+        ntStatus = ntLookupStatus;
+    }
+
+    return ntStatus;
 
 error:
     if (Sids2.sids) {

@@ -11,7 +11,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -27,89 +27,30 @@
  * license@likewisesoftware.com
  */
 
-/*
- * Copyright (C) Likewise Software. All rights reserved.
- *
- * Module Name:
- *
- *        lwfile.h
- *
- * Abstract:
- *
- *        Likewise Advanced API (lwadvapi) Memory Utilities
- *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
- */
-#ifndef __LWFILE_H__
-#define __LWFILE_H__
+#ifndef __INCLUDES_H__
+#define __INCLUDES_H__
 
-typedef enum _LWFILE_TYPE
-{
-    LWFILE_REGULAR,
-    LWFILE_DIRECTORY,
-    LWFILE_SYMLINK,
-    LWFILE_SOCKET,
-    LWFILE_PIPE,
-} LWFILE_TYPE;
+#include "config.h"
+#include <lw/rtlmemory.h>
+#include <lw/dscache.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <ctype.h>
+#include <sys/stat.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <limits.h>
 
-DWORD
-LwRemoveFile(
-    PCSTR pszPath
-    );
+#include "lwdef.h"
+#include "lwerror.h"
+#include "bail.h"
+#include "lwmem.h"
+#include "lwstr.h"
+#include "lwdscache.h"
 
-DWORD
-LwMoveFile(
-    PCSTR pszSrcPath,
-    PCSTR pszDstPath
-    );
-
-DWORD
-LwChangePermissions(
-    PCSTR pszPath,
-    mode_t dwFileMode
-    );
-
-DWORD
-LwChangeOwner(
-    PCSTR pszPath,
-    uid_t uid,
-    gid_t gid
-    );
-
-DWORD
-LwChangeOwnerAndPermissions(
-    PCSTR pszPath,
-    uid_t uid,
-    gid_t gid,
-    mode_t dwFileMode
-    );
-
-DWORD
-LwGetCurrentDirectoryPath(
-    PSTR* ppszPath
-    );
-
-DWORD
-LwGetOwnerAndPermissions(
-    PCSTR pszSrcPath,
-    uid_t * uid,
-    gid_t * gid,
-    mode_t * mode
-    );
-
-DWORD
-LwCheckFileTypeExists(
-    PCSTR pszPath,
-    LWFILE_TYPE type,
-    PBOOLEAN pbExists
-    );
-
-DWORD
-LwCreateDirectory(
-    PCSTR pszPath,
-    mode_t dwFileMode
-    );
-
-#endif /* __LWFILE_H__ */
-
+#endif /* __INCLUDES_H__ */
