@@ -761,7 +761,7 @@ RegCacheSafeRecordValuesInfo(
     int iCount = 0;
     size_t sValueNameLen = 0;
     PWSTR pValueName = NULL;
-    size_t sValueLen = 0;
+    DWORD dwValueLen = 0;
 
 
     BAIL_ON_INVALID_POINTER(pKeyResult);
@@ -808,18 +808,18 @@ RegCacheSafeRecordValuesInfo(
         dwError = GetValueAsBytes(ppRegEntries[iCount]->type,
                                   (PCSTR)ppRegEntries[iCount]->pszValue,
                                   NULL,
-                                  &sValueLen);
+                                  &dwValueLen);
         BAIL_ON_REG_ERROR(dwError);
 
         if (pKeyResult->sMaxValueNameLen < sValueNameLen)
             pKeyResult->sMaxValueNameLen = sValueNameLen;
 
-        if (pKeyResult->sMaxValueLen < sValueLen)
-            pKeyResult->sMaxValueLen = sValueLen;
+        if (pKeyResult->sMaxValueLen < (size_t)dwValueLen)
+            pKeyResult->sMaxValueLen = (size_t)dwValueLen;
 
         LW_SAFE_FREE_MEMORY(pValueName);
         sValueNameLen = 0;
-        sValueLen = 0;
+        dwValueLen = 0;
     }
 
     pKeyResult->bHasValueInfo = TRUE;
