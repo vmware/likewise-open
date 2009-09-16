@@ -13,6 +13,7 @@ libregutils_la_SOURCES = \
     syslog.c             \
     regtime.c            \
     dlinkedlist.c        \
+    hashtable.c          \
     regerror.c           \
     regdatatype.c
     

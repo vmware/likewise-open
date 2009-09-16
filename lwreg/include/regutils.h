@@ -129,6 +129,39 @@ typedef struct __REG_BIT_VECTOR
     PDWORD pVector;
 } REG_BIT_VECTOR, *PREG_BIT_VECTOR;
 
+typedef struct __REG_HASH_ENTRY REG_HASH_ENTRY;
+
+typedef int (*REG_HASH_KEY_COMPARE)(PCVOID, PCVOID);
+typedef size_t (*REG_HASH_KEY)(PCVOID);
+typedef void (*REG_HASH_FREE_ENTRY)(const REG_HASH_ENTRY *);
+typedef DWORD (*REG_HASH_COPY_ENTRY)(const REG_HASH_ENTRY *, REG_HASH_ENTRY *);
+
+struct __REG_HASH_ENTRY
+{
+    PVOID pKey;
+    PVOID pValue;
+    //Next value in chain
+    struct __REG_HASH_ENTRY *pNext;
+};
+
+typedef struct __REG_HASH_TABLE
+{
+    size_t sTableSize;
+    size_t sCount;
+    REG_HASH_ENTRY **ppEntries;
+    REG_HASH_KEY_COMPARE fnComparator;
+    REG_HASH_KEY fnHash;
+    REG_HASH_FREE_ENTRY fnFree;
+    REG_HASH_COPY_ENTRY fnCopy;
+} REG_HASH_TABLE, *PREG_HASH_TABLE;
+
+typedef struct __REG_HASH_ITERATOR
+{
+    REG_HASH_TABLE *pTable;
+    size_t sEntryIndex;
+    REG_HASH_ENTRY *pEntryPos;
+} REG_HASH_ITERATOR;
+
 #define _LW_REG_ASSERT(Expression, Action)                            \
     do {                                                           \
         if (!(Expression))                                         \
@@ -628,29 +661,129 @@ RegDLinkedListFree(
     );
 
 DWORD
+RegHashCreate(
+    size_t sTableSize,
+    REG_HASH_KEY_COMPARE fnComparator,
+    REG_HASH_KEY fnHash,
+    REG_HASH_FREE_ENTRY fnFree, //optional
+    REG_HASH_COPY_ENTRY fnCopy, //optional
+    REG_HASH_TABLE** ppResult
+    );
+
+void
+RegHashRemoveAll(
+    REG_HASH_TABLE* pResult
+    );
+
+void
+RegHashSafeFree(
+    REG_HASH_TABLE** ppResult
+    );
+
+DWORD
+RegHashSetValue(
+    REG_HASH_TABLE *pTable,
+    PVOID  pKey,
+    PVOID  pValue
+    );
+
+//Returns ENOENT if pKey is not in the table
+DWORD
+RegHashGetValue(
+    REG_HASH_TABLE *pTable,
+    PCVOID  pKey,
+    PVOID* ppValue
+    );
+
+BOOLEAN
+RegHashExists(
+    IN PREG_HASH_TABLE pTable,
+    IN PCVOID pKey
+    );
+
+DWORD
+RegHashCopy(
+    IN  REG_HASH_TABLE *pTable,
+    OUT REG_HASH_TABLE **ppResult
+    );
+
+//Invalidates all iterators
+DWORD
+RegHashResize(
+    REG_HASH_TABLE *pTable,
+    size_t sTableSize
+    );
+
+VOID
+RegHashGetIterator(
+    REG_HASH_TABLE *pTable,
+    REG_HASH_ITERATOR *pIterator
+    );
+
+// returns NULL after passing the last entry
+REG_HASH_ENTRY *
+RegHashNext(
+    REG_HASH_ITERATOR *pIterator
+    );
+
+DWORD
+RegHashRemoveKey(
+    REG_HASH_TABLE *pTable,
+    PVOID  pKey
+    );
+
+int
+RegHashCaselessStringCompare(
+    PCVOID str1,
+    PCVOID str2
+    );
+
+size_t
+RegHashCaselessStringHash(
+    PCVOID str
+    );
+
+int
+RegHashPVoidCompare(
+    IN PCVOID pvData1,
+    IN PCVOID pvData2
+    );
+
+size_t
+RegHashPVoidHash(
+    IN PCVOID pvData
+    );
+
+VOID
+RegHashFreeStringKey(
+    IN OUT const REG_HASH_ENTRY *pEntry
+    );
+
+DWORD
 RegInitializeStringBuffer(
     REG_STRING_BUFFER *pBuffer,
-    size_t sCapacity);
+    size_t sCapacity
+    );
 
 DWORD
 RegAppendStringBuffer(
     REG_STRING_BUFFER *pBuffer,
-    PCSTR pszAppend);
+    PCSTR pszAppend
+    );
 
 void
 RegFreeStringBufferContents(
     REG_STRING_BUFFER *pBuffer
     );
 
-/* reg data type conversion functions */
 
+/* reg data type conversion functions */
 /* Little Endian DWORD 4 bytes*/
 void ConvertDwordToByteArray(
     IN DWORD dwValue,
     OUT PBYTE pData, //allocated buffer
     IN DWORD cbData
     );
-
 
 DWORD
 ConvertMultiStrsToByteArray(

@@ -50,6 +50,6 @@ typedef struct _REG_SRV_API_KEYLOOKUP {
 
     pthread_mutex_t mutex;
 
-    PDLINKEDLIST pKeyList;
+    PREG_HASH_TABLE pKeyList;
 
 } REG_SRV_API_KEYLOOKUP, *PREG_SRV_API_KEYLOOKUP;

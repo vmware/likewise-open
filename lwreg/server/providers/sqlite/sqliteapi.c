@@ -58,6 +58,15 @@ SqliteProvider_Initialize(
                         &ghCacheConnection);
     BAIL_ON_REG_ERROR(dwError);
 
+    dwError = RegHashCreate(
+                    2 * 1024,
+                    RegHashCaselessStringCompare,
+                    RegHashCaselessStringHash,
+                    RegSrvFreeHashEntry,
+                    NULL,
+                    &gActiveKeyList.pKeyList);
+    BAIL_ON_REG_ERROR(dwError);
+
     dwError = SqliteCreateKeyInternal(LIKEWISE_ROOT_KEY, NULL, NULL);
     BAIL_ON_REG_ERROR(dwError);
 

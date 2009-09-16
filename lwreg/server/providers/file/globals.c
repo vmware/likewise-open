@@ -60,6 +60,8 @@ REGPROV_PROVIDER_FUNCTION_TABLE gRegFileProviderAPITable =
         &FileEnumKeyEx,
         &FileEnumValue,
         &FileGetValue,
+        &FileGetValueA,
+        &FileGetValueW,
         &FileOpenKeyEx,
         &FileQueryInfoKey,
         &FileQueryMultipleValues,

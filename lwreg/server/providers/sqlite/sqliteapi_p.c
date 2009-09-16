@@ -472,23 +472,12 @@ RegSrvLocateActiveKey_inlock(
     )
 {
     PREG_KEY_CONTEXT pKeyResult = NULL;
-    PDLINKEDLIST pActiveKey = NULL;
+    DWORD dwError = 0;
 
-    for (pActiveKey = gActiveKeyList.pKeyList; pActiveKey; pActiveKey = pActiveKey->pNext)
-    {
-        PREG_KEY_CONTEXT pKeyInfo = NULL;
-
-        pKeyInfo = (PREG_KEY_CONTEXT)pActiveKey->pItem;
-
-        if (!strcasecmp(pKeyInfo->pszKeyName, pszKeyName))
-        {
-            pKeyResult = pKeyInfo;
-
-            break;
-        }
-    }
-
-    if (pKeyResult)
+    dwError = RegHashGetValue(gActiveKeyList.pKeyList,
+                              pszKeyName,
+                              (PVOID*)&pKeyResult);
+    if (!dwError && pKeyResult)
     {
         LwInterlockedIncrement(&pKeyResult->refCount);
     }
@@ -525,12 +514,10 @@ RegSrvInsertActiveKey_inlock(
 {
     DWORD dwError = 0;
 
-    dwError = RegDLinkedListPrepend(
-                    &gActiveKeyList.pKeyList,
-                    pKeyResult);
+    dwError = RegHashSetValue(gActiveKeyList.pKeyList,
+                              (PVOID)pKeyResult->pszKeyName,
+                              (PVOID)pKeyResult);
     BAIL_ON_REG_ERROR(dwError);
-
-    //LwInterlockedIncrement(&pKeyResult->refCount);
 
 cleanup:
 
@@ -561,29 +548,32 @@ RegSrvDeleteActiveKey_inlock(
     IN PSTR pszKeyName
     )
 {
-    PDLINKEDLIST pActiveKey = NULL;
-    PVOID pItem = NULL;
+    REG_HASH_ITERATOR hashIterator;
+    REG_HASH_ENTRY* pHashEntry = NULL;
+    int iCount = 0;
+    DWORD dwError = 0;
 
-    for (pActiveKey = gActiveKeyList.pKeyList; pActiveKey; pActiveKey = pActiveKey->pNext)
+    dwError = RegHashGetValue(gActiveKeyList.pKeyList,
+                              pszKeyName,
+                              NULL);
+    if (ENOENT == dwError)
     {
-        PREG_KEY_CONTEXT pKeyInfo = NULL;
+        return;
+    }
 
-        pKeyInfo = (PREG_KEY_CONTEXT)pActiveKey->pItem;
+    RegHashGetIterator(gActiveKeyList.pKeyList, &hashIterator);
 
-        if (!strcasecmp(pKeyInfo->pszKeyName, pszKeyName))
+    for (iCount = 0; (pHashEntry = RegHashNext(&hashIterator)) != NULL; iCount++)
+    {
+        if (!strcasecmp((PCSTR)pHashEntry->pKey, pszKeyName))
         {
-            pItem = pActiveKey->pItem;
+            RegHashRemoveKey(gActiveKeyList.pKeyList, pHashEntry->pKey);
+
             break;
         }
     }
 
-    if (pItem)
-    {
-        RegDLinkedListDelete(&gActiveKeyList.pKeyList,
-                             pItem);
-        RegSafeFreeKeyContext((PREG_KEY_CONTEXT*)&pItem);
-    }
-
+    return;
 }
 
 void
@@ -687,6 +677,17 @@ RegSrvReleaseKey_inlock(
     }
 }
 
+void
+RegSrvFreeHashEntry(
+    IN const REG_HASH_ENTRY* pEntry
+    )
+{
+    if (pEntry->pValue)
+    {
+        RegSafeFreeKeyContext((PREG_KEY_CONTEXT*)&pEntry->pValue);
+    }
+}
+
 DWORD
 GetValueAsBytes(
     IN REG_DATA_TYPE type,
@@ -697,8 +698,8 @@ GetValueAsBytes(
 {
     DWORD dwError = 0;
     PBYTE pTempData = NULL;
-    DWORD cbData = 0;
     DWORD dwValue = 0;
+    DWORD cbData = 0;
 
     if (LW_IS_NULL_OR_EMPTY_STR(pszValue))
         goto cleanup;
