@@ -224,56 +224,53 @@ SqliteQueryInfoKey(
 {
     DWORD dwError = LW_ERROR_SUCCESS;
     PREG_KEY_CONTEXT pKey = (PREG_KEY_CONTEXT)hKey;
-    PREG_KEY_CONTEXT pFoundKey = NULL;
+    PREG_KEY_CONTEXT pKeyResult = NULL;
 
     BAIL_ON_INVALID_KEY(pKey);
 
-    pFoundKey = RegSrvLocateActiveKey(pKey->pszKeyName);
-    //Find key active
-    if (!pFoundKey)
+    dwError = SqliteOpenKeyInternal(pKey->pszKeyName,
+                                    NULL,
+                                    (PHKEY) &pKeyResult);
+    BAIL_ON_REG_ERROR(dwError);
+
+
+    if (!RegSrvHasSubKeyInfo(pKeyResult))
     {
-        dwError = LW_ERROR_INVALID_KEYNAME;
+        dwError = SqliteFillInSubKeysInfo(pKeyResult);
         BAIL_ON_REG_ERROR(dwError);
     }
 
-
-    if (!RegSrvHasSubKeyInfo(pFoundKey))
+    if (!RegSrvHasValueInfo(pKeyResult))
     {
-        dwError = SqliteFillInSubKeysInfo(pFoundKey);
-        BAIL_ON_REG_ERROR(dwError);
-    }
-
-    if (!RegSrvHasValueInfo(pFoundKey))
-    {
-        dwError = SqliteFillinKeyValuesInfo(pFoundKey);
+        dwError = SqliteFillinKeyValuesInfo(pKeyResult);
         BAIL_ON_REG_ERROR(dwError);
     }
 
     if (pcSubKeys)
     {
-        *pcSubKeys = RegSrvSubKeyNum(pFoundKey);
+        *pcSubKeys = RegSrvSubKeyNum(pKeyResult);
     }
     if (pcMaxSubKeyLen)
     {
-        *pcMaxSubKeyLen =RegSrvSubKeyNameMaxLen(pFoundKey);
+        *pcMaxSubKeyLen =RegSrvSubKeyNameMaxLen(pKeyResult);
     }
 
     if (pcValues)
     {
-        *pcValues = RegSrvValueNum(pFoundKey);
+        *pcValues = RegSrvValueNum(pKeyResult);
     }
     if (pcMaxValueNameLen)
     {
-        *pcMaxValueNameLen = RegSrvMaxValueNameLen(pFoundKey);
+        *pcMaxValueNameLen = RegSrvMaxValueNameLen(pKeyResult);
     }
 
     if (pcMaxValueLen)
     {
-        *pcMaxValueLen = RegSrvMaxValueLen(pFoundKey);
+        *pcMaxValueLen = RegSrvMaxValueLen(pKeyResult);
     }
 
 cleanup:
-    RegSrvReleaseKey(pFoundKey);
+    RegSrvReleaseKey(pKeyResult);
 
     return dwError;
 
