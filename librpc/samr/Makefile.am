@@ -12,6 +12,7 @@ libsamr_la_SOURCES =             \
     samr_memory.c                \
     samr_stubmemory.c            \
     samr_close.c                 \
+    samr_querysecurity.c         \
     samr_connect2.c              \
     samr_enumdomains.c           \
     samr_enumdomainusers.c       \

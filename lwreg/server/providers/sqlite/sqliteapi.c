@@ -224,56 +224,53 @@ SqliteQueryInfoKey(
 {
     DWORD dwError = LW_ERROR_SUCCESS;
     PREG_KEY_CONTEXT pKey = (PREG_KEY_CONTEXT)hKey;
-    PREG_KEY_CONTEXT pFoundKey = NULL;
+    PREG_KEY_CONTEXT pKeyResult = NULL;
 
     BAIL_ON_INVALID_KEY(pKey);
 
-    pFoundKey = RegSrvLocateActiveKey(pKey->pszKeyName);
-    //Find key active
-    if (!pFoundKey)
+    dwError = SqliteOpenKeyInternal(pKey->pszKeyName,
+                                    NULL,
+                                    (PHKEY) &pKeyResult);
+    BAIL_ON_REG_ERROR(dwError);
+
+
+    if (!RegSrvHasSubKeyInfo(pKeyResult))
     {
-        dwError = LW_ERROR_INVALID_KEYNAME;
+        dwError = SqliteFillInSubKeysInfo(pKeyResult);
         BAIL_ON_REG_ERROR(dwError);
     }
 
-
-    if (!RegSrvHasSubKeyInfo(pFoundKey))
+    if (!RegSrvHasValueInfo(pKeyResult))
     {
-        dwError = SqliteFillInSubKeysInfo(pFoundKey);
-        BAIL_ON_REG_ERROR(dwError);
-    }
-
-    if (!RegSrvHasValueInfo(pFoundKey))
-    {
-        dwError = SqliteFillinKeyValuesInfo(pFoundKey);
+        dwError = SqliteFillinKeyValuesInfo(pKeyResult);
         BAIL_ON_REG_ERROR(dwError);
     }
 
     if (pcSubKeys)
     {
-        *pcSubKeys = RegSrvSubKeyNum(pFoundKey);
+        *pcSubKeys = RegSrvSubKeyNum(pKeyResult);
     }
     if (pcMaxSubKeyLen)
     {
-        *pcMaxSubKeyLen =RegSrvSubKeyNameMaxLen(pFoundKey);
+        *pcMaxSubKeyLen = RegSrvSubKeyNameMaxLen(pKeyResult);
     }
 
     if (pcValues)
     {
-        *pcValues = RegSrvValueNum(pFoundKey);
+        *pcValues = RegSrvValueNum(pKeyResult);
     }
     if (pcMaxValueNameLen)
     {
-        *pcMaxValueNameLen = RegSrvMaxValueNameLen(pFoundKey);
+        *pcMaxValueNameLen = RegSrvMaxValueNameLen(pKeyResult);
     }
 
     if (pcMaxValueLen)
     {
-        *pcMaxValueLen = RegSrvMaxValueLen(pFoundKey);
+        *pcMaxValueLen = RegSrvMaxValueLen(pKeyResult);
     }
 
 cleanup:
-    RegSrvReleaseKey(pFoundKey);
+    RegSrvReleaseKey(pKeyResult);
 
     return dwError;
 
@@ -514,108 +511,6 @@ GetRegDataType(
     }
 
     return dataType;
-}
-
-static
-DWORD
-GetValueAsBytes(
-    IN REG_DATA_TYPE type,
-    IN PCSTR pszValue,
-    OUT OPTIONAL PBYTE pData,
-    IN OUT OPTIONAL PDWORD pcbData
-    )
-{
-    DWORD dwError = 0;
-    PBYTE pTempData = NULL;
-    DWORD cbData = 0;
-    DWORD dwValue = 0;
-
-    if (LW_IS_NULL_OR_EMPTY_STR(pszValue))
-        goto cleanup;
-
-    switch (type)
-    {
-        case REG_BINARY:
-        case REG_MULTI_SZ:
-            dwError = LwHexStrToByteArray(
-                           pszValue,
-                           NULL,
-                           &pTempData,
-                           &cbData);
-            BAIL_ON_REG_ERROR(dwError);
-
-            if(pData && cbData > *pcbData)
-            {
-                dwError = LW_ERROR_INSUFFICIENT_BUFFER;
-                BAIL_ON_REG_ERROR(dwError);
-            }
-
-            if (pData)
-            {
-                memcpy(pData, pTempData, cbData);
-            }
-
-            break;
-
-        case REG_SZ:
-
-            if(pData && strlen(pszValue)+1 > *pcbData)
-            {
-                dwError = LW_ERROR_INSUFFICIENT_BUFFER;
-                BAIL_ON_REG_ERROR(dwError);
-            }
-
-            cbData = (strlen(pszValue)+1)*sizeof(*pszValue);
-
-            if (pData)
-            {
-                memcpy(pData, pszValue, (strlen(pszValue)+1)*sizeof(*pszValue));
-            }
-
-            break;
-
-        case REG_DWORD:
-
-            if (sizeof(dwValue) > *pcbData && pData)
-            {
-                dwError = LW_ERROR_INSUFFICIENT_BUFFER;
-                BAIL_ON_REG_ERROR(dwError);
-            }
-
-            dwValue = (DWORD)atoi(pszValue);
-
-            if (pData)
-            {
-                ConvertDwordToByteArray(dwValue,
-                                        pData, //allocated buffer
-                                        sizeof(dwValue));
-            }
-
-            cbData = sizeof(dwValue);
-
-            break;
-
-        default:
-            dwError = LW_ERROR_UNKNOWN_DATA_TYPE;
-            BAIL_ON_REG_ERROR(dwError);
-    }
-
-    if (pcbData)
-    {
-        *pcbData = cbData;
-    }
-
-cleanup:
-    LW_SAFE_FREE_MEMORY(pTempData);
-    return dwError;
-
-error:
-    if (pcbData)
-    {
-        *pcbData = 0;
-    }
-
-    goto cleanup;
 }
 
 //Todo get value from ActiveKey first

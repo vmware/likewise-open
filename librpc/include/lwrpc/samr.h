@@ -94,6 +94,15 @@ SamrClose(
     );
 
 NTSTATUS
+SamrQuerySecurity(
+    IN  handle_t                       hSamrBinding,
+    IN  PolicyHandle                  *pHandle,
+    IN  ULONG                          ulSecurityInfo,
+    OUT PSECURITY_DESCRIPTOR_RELATIVE *ppSecDesc,
+    OUT PUINT32                        pulSecDescLen
+    );
+
+NTSTATUS
 SamrLookupDomain(
     IN  handle_t      hSamrBinding,
     IN  PolicyHandle *phConn,

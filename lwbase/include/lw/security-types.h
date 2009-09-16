@@ -901,6 +901,17 @@ typedef struct _SECURITY_DESCRIPTOR_ABSOLUTE *PSECURITY_DESCRIPTOR_ABSOLUTE;
 typedef struct _SECURITY_DESCRIPTOR_RELATIVE *PSECURITY_DESCRIPTOR_RELATIVE;
 #endif
 
+typedef struct _SECURITY_DESCRIPTOR_BUFFER
+{
+    ULONG ulBufferLen;
+#ifdef _DCE_IDL_
+    [size_is(ulBufferLen)]
+#endif
+    PBYTE pBuffer;
+}
+SECURITY_DESCRIPTOR_BUFFER, *PSECURITY_DESCRIPTOR_BUFFER;
+
+
 #define SECURITY_DESCRIPTOR_ABSOLUTE_MIN_SIZE (5 * sizeof(PVOID))
 #define SECURITY_DESCRIPTOR_RELATIVE_MIN_SIZE (5 * sizeof(ULONG))
 // Maximum for a revision 1 security descriptor
@@ -1277,3 +1288,14 @@ typedef struct _SECURITY_QUALITY_OF_SERVICE {
 } SECURITY_QUALITY_OF_SERVICE, *PSECURITY_QUALITY_OF_SERVICE;
 
 #endif /* __LWBASE_SECURITY_TYPES_H__ */
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
+

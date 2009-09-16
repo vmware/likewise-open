@@ -229,7 +229,7 @@ LwSetSystemTime(
     //Make sure the time is now within 5 seconds of what we set
     if (labs(readTime - ttCurTime) > 5)
     {
-        LW_LOG_ERROR("Attempted to set time to %ld, but it is now %ld.", ttCurTime, readTime);
+        LW_LOG_ERROR("Attempted to set time to %ld, but it is now %lld.", ttCurTime, readTime);
         dwError = LW_ERROR_FAILED_TO_SET_TIME;
         BAIL_ON_LW_ERROR(dwError);
     }

@@ -33,121 +33,70 @@
  *
  * Module Name:
  *
- *        samr_memory.h
+ *        samr_querysecurity.c
  *
  * Abstract:
  *
  *        Remote Procedure Call (RPC) Client Interface
  *
- *        Samr rpc memory management functions
+ *        SamrQuerySecurity function
  *
  * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
 
-#ifndef _SAMR_MEMORY_H_
-#define _SAMR_MEMORY_H_
+#include "includes.h"
 
 
 NTSTATUS
-SamrAllocateMemory(
-    OUT PVOID  *ppOut,
-    IN  size_t  Size,
-    IN  PVOID   pDep
-    );
+SamrQuerySecurity(
+    IN  handle_t                       hSamrBinding,
+    IN  PolicyHandle                  *pHandle,
+    IN  ULONG                          ulSecurityInfo,
+    OUT PSECURITY_DESCRIPTOR_RELATIVE *ppSecDesc,
+    OUT PUINT32                        pulSecDescLen
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSECURITY_DESCRIPTOR_BUFFER pSecDescBuffer = NULL;
+    PSECURITY_DESCRIPTOR_RELATIVE pSecDesc = NULL;
 
+    BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
+    BAIL_ON_INVALID_PTR(pHandle, ntStatus);
+    BAIL_ON_INVALID_PTR(ppSecDesc, ntStatus);
+    BAIL_ON_INVALID_PTR(pulSecDescLen, ntStatus);
 
-NTSTATUS
-SamrAddDepMemory(
-    IN  PVOID pPtr,
-    IN  PVOID pDep
-    );
+    DCERPC_CALL(ntStatus, _SamrQuerySecurity(hSamrBinding,
+                                             pHandle,
+                                             ulSecurityInfo,
+                                             &pSecDescBuffer));
+    BAIL_ON_NT_STATUS(ntStatus);
 
+    ntStatus = SamrAllocateSecurityDescriptor(&pSecDesc,
+                                              pSecDescBuffer);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-NTSTATUS
-SamrAllocateNamesAndRids(
-    OUT PWSTR        **pppNames,
-    OUT UINT32       **ppRids,
-    IN  RidNameArray  *pIn
-    );
+    *ppSecDesc     = pSecDesc;
+    *pulSecDescLen = pSecDescBuffer->ulBufferLen;
 
+cleanup:
+    if (pSecDescBuffer)
+    {
+        SamrFreeStubSecurityDescriptorBuffer(pSecDescBuffer);
+    }
 
-NTSTATUS
-SamrAllocateNames(
-    OUT PWSTR **pppwszNames,
-    IN  EntryArray *pNamesArray
-    );
+    return ntStatus;
 
+error:
+    if (pSecDesc)
+    {
+        SamrFreeMemory(pSecDesc);
+    }
 
-NTSTATUS
-SamrAllocateIds(
-    OUT UINT32 **ppOutIds,
-    IN  Ids *pInIds
-    );
+    *ppSecDesc     = NULL;
+    *pulSecDescLen = 0;
 
-
-NTSTATUS
-SamrAllocateDomSid(
-    OUT PSID *ppOut,
-    IN  PSID  pIn,
-    IN  PVOID pDep
-    );
-
-
-NTSTATUS
-SamrAllocateSids(
-    OUT PSID     **pppSids,
-    IN  SidArray  *pSidArray
-    );
-
-
-NTSTATUS
-SamrAllocateRidsAndAttributes(
-    OUT UINT32                **ppRids,
-    OUT UINT32                **ppAttributes,
-    IN  RidWithAttributeArray  *pIn
-    );
-
-
-NTSTATUS
-SamrAllocateAliasInfo(
-    OUT AliasInfo **ppOut,
-    IN  AliasInfo  *pIn,
-    IN  UINT16      Level
-    );
-
-
-NTSTATUS
-SamrAllocateDomainInfo(
-    OUT DomainInfo **ppOut,
-    IN  DomainInfo *pIn,
-    IN  UINT16 Level
-    );
-
-
-NTSTATUS
-SamrAllocateUserInfo(
-    OUT UserInfo **ppOut,
-    IN  UserInfo *pIn,
-    IN  UINT16    Level
-    );
-
-
-NTSTATUS
-SamrAllocateDisplayInfo(
-    OUT SamrDisplayInfo **ppOut,
-    IN  SamrDisplayInfo  *pIn,
-    IN  UINT16            Level
-    );
-
-
-NTSTATUS
-SamrAllocateSecurityDescriptor(
-    OUT PSECURITY_DESCRIPTOR_RELATIVE *ppOut,
-    IN  PSECURITY_DESCRIPTOR_BUFFER    pIn
-    );
-
-
-#endif /* _SAMR_MEMORY_H_ */
+    goto cleanup;
+}
 
 
 /*

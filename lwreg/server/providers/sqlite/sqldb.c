@@ -761,8 +761,7 @@ RegCacheSafeRecordValuesInfo(
     int iCount = 0;
     size_t sValueNameLen = 0;
     PWSTR pValueName = NULL;
-    PWSTR pValue = NULL;
-    size_t sValueLen = 0;
+    DWORD dwValueLen = 0;
 
 
     BAIL_ON_INVALID_POINTER(pKeyResult);
@@ -806,22 +805,21 @@ RegCacheSafeRecordValuesInfo(
         dwError = LwWc16sLen((PCWSTR)pValueName,&sValueNameLen);
         BAIL_ON_REG_ERROR(dwError);
 
-        dwError = LwMbsToWc16s(ppRegEntries[iCount]->pszValue, &pValue);
-        BAIL_ON_REG_ERROR(dwError);
-
-        dwError = LwWc16sLen((PCWSTR)pValue,&sValueLen);
+        dwError = GetValueAsBytes(ppRegEntries[iCount]->type,
+                                  (PCSTR)ppRegEntries[iCount]->pszValue,
+                                  NULL,
+                                  &dwValueLen);
         BAIL_ON_REG_ERROR(dwError);
 
         if (pKeyResult->sMaxValueNameLen < sValueNameLen)
             pKeyResult->sMaxValueNameLen = sValueNameLen;
 
-        if (pKeyResult->sMaxValueLen < sValueLen)
-            pKeyResult->sMaxValueLen = sValueLen;
+        if (pKeyResult->sMaxValueLen < (size_t)dwValueLen)
+            pKeyResult->sMaxValueLen = (size_t)dwValueLen;
 
         LW_SAFE_FREE_MEMORY(pValueName);
-        LW_SAFE_FREE_MEMORY(pValue);
         sValueNameLen = 0;
-        sValueLen = 0;
+        dwValueLen = 0;
     }
 
     pKeyResult->bHasValueInfo = TRUE;

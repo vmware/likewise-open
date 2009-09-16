@@ -4,6 +4,8 @@
 interface samr
 {
 	[enable_allocate] _SamrClose();
+	[enable_allocate] _SamrSetSecurity();
+	[enable_allocate] _SamrQuerySecurity();
 	[enable_allocate] _SamrLookupDomain();
 	[enable_allocate] _SamrEnumDomains();
 	[enable_allocate] _SamrOpenDomain();

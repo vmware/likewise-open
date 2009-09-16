@@ -3654,6 +3654,178 @@ done:
 }
 
 
+int TestSamrQuerySecurity(struct test *t, const wchar16_t *hostname,
+                          const wchar16_t *user, const wchar16_t *pass,
+                          struct parameter *options, int optcount)
+{
+    const PSTR pszDefSidStr = "S-1-5-32-544";
+    const ULONG ulDefSecurityInfo = OWNER_SECURITY_INFORMATION;
+
+    const DWORD dwConnAccess = SAMR_ACCESS_OPEN_DOMAIN |
+                               SAMR_ACCESS_ENUM_DOMAINS;
+    const DWORD dwDomainAccess = DOMAIN_ACCESS_OPEN_ACCOUNT |
+                                 DOMAIN_ACCESS_ENUM_ACCOUNTS |
+                                 DOMAIN_ACCESS_CREATE_USER |
+                                 DOMAIN_ACCESS_LOOKUP_INFO_2;
+
+    const DWORD dwUserAccess = READ_CONTROL |
+                               USER_ACCESS_GET_NAME_ETC |
+                               USER_ACCESS_GET_LOCALE |
+                               USER_ACCESS_GET_LOGONINFO |
+                               USER_ACCESS_GET_ATTRIBUTES |
+                               USER_ACCESS_GET_GROUPS |
+                               USER_ACCESS_GET_GROUP_MEMBERSHIP;
+
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    enum param_err perr = perr_success;
+    PSID pSid = NULL;
+    PSID pDomainSid = NULL;
+    PWSTR pwszSidStr = NULL;
+    ULONG ulRid = 0;
+    ULONG ulSecurityInfo = 0;
+    handle_t bSamr = NULL;
+    PolicyHandle hConn;
+    PolicyHandle hDomain;
+    PolicyHandle hUser;
+    PSECURITY_DESCRIPTOR_RELATIVE pSecDescRel = NULL;
+    UINT32 ulSecDescRelLen = 0;
+    PSECURITY_DESCRIPTOR_ABSOLUTE pSecDesc = NULL;
+    ULONG ulSecDescLen = 1024;
+    PACL pDacl = NULL;
+    ULONG ulDaclLen = 1024;
+    PACL pSacl = NULL;
+    ULONG ulSaclLen = 1024;
+    PSID pOwnerSid = NULL;
+    ULONG ulOwnerSidLen = 1024;
+    PSID pGroupSid = NULL;
+    ULONG ulGroupSidLen = 1024;
+
+    TESTINFO(t, hostname, user, pass);
+
+    perr = fetch_value(options, optcount, "sid", pt_sid,
+                       &pSid, &pszDefSidStr);
+    if (!perr_is_ok(perr)) perr_fail(perr);
+
+    perr = fetch_value(options, optcount, "security_info", pt_uint32,
+                       &ulSecurityInfo, &ulDefSecurityInfo);
+    if (!perr_is_ok(perr)) perr_fail(perr);
+
+    ntStatus = RtlAllocateWC16StringFromSid(&pwszSidStr,
+                                            pSid);
+    if (ntStatus != 0) rpc_fail(ntStatus);
+
+    PARAM_INFO("sid", pt_w16string, pwszSidStr);
+    PARAM_INFO("security_info", pt_uint32, &ulSecurityInfo);
+
+    SET_SESSION_CREDS(pCreds);
+
+    CreateSamrBinding(&bSamr, hostname);
+    if (bSamr == NULL) return false;
+
+    ntStatus = SamrConnect2(bSamr,
+                            hostname,
+                            dwConnAccess,
+                            &hConn);
+    if (ntStatus != 0) rpc_fail(ntStatus);
+
+    /* Create domain SID from account SID */
+    ntStatus = RtlDuplicateSid(&pDomainSid,
+                               pSid);
+    if (ntStatus != 0) rpc_fail(ntStatus);
+
+    pDomainSid->SubAuthorityCount--;
+
+    ntStatus = SamrOpenDomain(bSamr,
+                              &hConn,
+                              dwDomainAccess,
+                              pDomainSid,
+                              &hDomain);
+    if (ntStatus != 0) rpc_fail(ntStatus);
+
+    ulRid = pSid->SubAuthority[pSid->SubAuthorityCount - 1];
+
+    ntStatus = SamrOpenUser(bSamr,
+                            &hDomain,
+                            dwUserAccess,
+                            ulRid,
+                            &hUser);
+    if (ntStatus != 0) rpc_fail(ntStatus);
+
+    ntStatus = SamrQuerySecurity(bSamr,
+                                 &hUser,
+                                 ulSecurityInfo,
+                                 &pSecDescRel,
+                                 &ulSecDescRelLen);
+    if (ntStatus != 0) rpc_fail(ntStatus);
+
+    ulSecDescLen = 1024;
+    ntStatus = RTL_ALLOCATE(&pSecDesc,
+                            VOID,
+                            ulSecDescLen);
+    if (ntStatus != 0) rpc_fail(ntStatus);
+
+    ulDaclLen = 1024;
+    ntStatus = RTL_ALLOCATE(&pDacl,
+                            VOID,
+                            ulDaclLen);
+    if (ntStatus != 0) rpc_fail(ntStatus);
+
+    ulSaclLen = 1024;
+    ntStatus = RTL_ALLOCATE(&pSacl,
+                            VOID,
+                            ulSaclLen);
+    if (ntStatus != 0) rpc_fail(ntStatus);
+
+    ulOwnerSidLen = 1024;
+    ntStatus = RTL_ALLOCATE(&pOwnerSid,
+                            VOID,
+                            ulOwnerSidLen);
+    if (ntStatus != 0) rpc_fail(ntStatus);
+
+    ulGroupSidLen = 1024;
+    ntStatus = RTL_ALLOCATE(&pGroupSid,
+                            VOID,
+                            ulGroupSidLen);
+    if (ntStatus != 0) rpc_fail(ntStatus);
+
+
+    ntStatus = RtlSelfRelativeToAbsoluteSD(pSecDescRel,
+                                           pSecDesc,
+                                           &ulSecDescLen,
+                                           pDacl,
+                                           &ulDaclLen,
+                                           pSacl,
+                                           &ulSaclLen,
+                                           pOwnerSid,
+                                           &ulOwnerSidLen,
+                                           pGroupSid,
+                                           &ulGroupSidLen);
+    if (ntStatus != 0) rpc_fail(ntStatus);
+
+    ntStatus = SamrClose(bSamr, &hUser);
+    if (ntStatus != 0) rpc_fail(ntStatus);
+
+    ntStatus = SamrClose(bSamr, &hDomain);
+    if (ntStatus != 0) rpc_fail(ntStatus);
+
+    ntStatus = SamrClose(bSamr, &hConn);
+    if (ntStatus != 0) rpc_fail(ntStatus);
+
+done:
+    if (pSecDesc)
+    {
+        SamrFreeMemory(pSecDesc);
+    }
+
+    RTL_FREE(&pwszSidStr);
+    RTL_FREE(&pSid);
+    RTL_FREE(&pDomainSid);
+    RTL_FREE(&pSecDesc);
+
+    return (ntStatus == STATUS_SUCCESS);
+}
+
+
 void SetupSamrTests(struct test *t)
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -3684,6 +3856,7 @@ void SetupSamrTests(struct test *t)
     AddTest(t, "SAMR-DOMAINS-QUERY", TestSamrDomainsQuery);
     AddTest(t, "SAMR-USERS", TestSamrUsers);
     AddTest(t, "SAMR-ALIASES", TestSamrAliases);
+    AddTest(t, "SAMR-QUERY-SECURITY", TestSamrQuerySecurity);
 }
 
 
