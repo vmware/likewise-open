@@ -761,7 +761,6 @@ RegCacheSafeRecordValuesInfo(
     int iCount = 0;
     size_t sValueNameLen = 0;
     PWSTR pValueName = NULL;
-    PWSTR pValue = NULL;
     size_t sValueLen = 0;
 
 
@@ -806,10 +805,10 @@ RegCacheSafeRecordValuesInfo(
         dwError = LwWc16sLen((PCWSTR)pValueName,&sValueNameLen);
         BAIL_ON_REG_ERROR(dwError);
 
-        dwError = LwMbsToWc16s(ppRegEntries[iCount]->pszValue, &pValue);
-        BAIL_ON_REG_ERROR(dwError);
-
-        dwError = LwWc16sLen((PCWSTR)pValue,&sValueLen);
+        dwError = GetValueAsBytes(ppRegEntries[iCount]->type,
+                                  (PCSTR)ppRegEntries[iCount]->pszValue,
+                                  NULL,
+                                  &sValueLen);
         BAIL_ON_REG_ERROR(dwError);
 
         if (pKeyResult->sMaxValueNameLen < sValueNameLen)
@@ -819,7 +818,6 @@ RegCacheSafeRecordValuesInfo(
             pKeyResult->sMaxValueLen = sValueLen;
 
         LW_SAFE_FREE_MEMORY(pValueName);
-        LW_SAFE_FREE_MEMORY(pValue);
         sValueNameLen = 0;
         sValueLen = 0;
     }

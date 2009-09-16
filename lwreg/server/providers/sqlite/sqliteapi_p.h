@@ -156,4 +156,12 @@ RegSrvReleaseKey_inlock(
     PREG_KEY_CONTEXT pKeyResult
     );
 
+DWORD
+GetValueAsBytes(
+    IN REG_DATA_TYPE type,
+    IN PCSTR pszValue,
+    OUT OPTIONAL PBYTE pData,
+    IN OUT OPTIONAL PDWORD pcbData
+    );
+
 #endif /* SQLITEAPI_P_H_ */
