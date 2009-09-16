@@ -220,6 +220,9 @@ extern PFN_LSA_LOG_MESSAGE gpfnLogger;
 #define LSA_LOG_DEBUG(szFmt, ...) \
     _LSA_LOG_IF(LSA_LOG_LEVEL_DEBUG, szFmt, ## __VA_ARGS__)
 
+#define LSA_LOG_TRACE(szFmt, ...) \
+    _LSA_LOG_IF(LSA_LOG_LEVEL_TRACE, szFmt, ## __VA_ARGS__)
+
 #define LSA_LOG_ERROR_API_FAILED(hServer, dwError, szFmt, ...) \
     LSA_LOG_ERROR("Failed to " szFmt " -> error = %d, symbol = %s, client pid = %ld", \
          ## __VA_ARGS__, \

@@ -357,8 +357,8 @@ AC_SUBST(LWDNS_INCLUDE)
 AC_SUBST(LWDNS_LDFLAGS)
 AC_SUBST(LWDNS_LIBS)
 
-AC_CHECK_LIB([lsaclient], [LsaOpenServer], [LSASS_LIBS="-llsaclient"])
-AC_CHECK_LIB([lsajoin], [LsaNetJoinDomain], [LSASS_LIBS="-llsajoin"])
+AC_CHECK_LIB([lsaclient], [LsaOpenServer], [LSASS_LIBS="$LSASS_LIBS -llsaclient"])
+AC_CHECK_LIB([lsajoin], [LsaNetJoinDomain], [LSASS_LIBS="$LSASS_LIBS -llsajoin"])
 AC_SUBST(LSASS_LIBS)
 
 CPPFLAGS="$CPPFLAGS -D_REENTRANT -fPIC"

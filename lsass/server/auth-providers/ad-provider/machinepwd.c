@@ -188,6 +188,7 @@ ADSyncMachinePasswordThreadRoutine(
     struct timespec timeout = {0, 0};
     PLWPS_PASSWORD_INFO pAcctInfo = NULL;    
     PSTR pszHostname = NULL;
+    PSTR pszDnsDomainName = NULL;
     DWORD dwGoodUntilTime = 0;
 
     LSA_LOG_INFO("Machine Password Sync Thread starting");
@@ -282,14 +283,25 @@ ADSyncMachinePasswordThreadRoutine(
             dwError = LwKrb5RefreshMachineTGT(&dwGoodUntilTime);
             if (dwError)
             {
-                    if (AD_EventlogEnabled())
-                    {
-                        ADLogMachineTGTRefreshFailureEvent(dwError);
-                    }
+                if (AD_EventlogEnabled())
+                {
+                    ADLogMachineTGTRefreshFailureEvent(dwError);
+                }
 
-                    LSA_LOG_ERROR("Error: Failed to refresh machine TGT [Error code: %ld]", dwError);
-                    dwError = 0;
-                    goto lsa_wait_resync;
+                LSA_LOG_ERROR("Error: Failed to refresh machine TGT [Error code: %ld]", dwError);
+
+                if (dwError == LW_ERROR_DOMAIN_IS_OFFLINE)
+                {
+                    LW_SAFE_FREE_STRING(pszDnsDomainName);
+
+                    dwError = LsaWc16sToMbs(pAcctInfo->pwszDnsDomainName, &pszDnsDomainName);
+                    BAIL_ON_LSA_ERROR(dwError);
+
+                    LsaDmTransitionOffline(pszDnsDomainName, FALSE);
+                }
+
+                dwError = 0;
+                goto lsa_wait_resync;
             }
             ADSetMachineTGTExpiry(dwGoodUntilTime);
 
@@ -345,6 +357,7 @@ cleanup:
     }
 
     LW_SAFE_FREE_STRING(pszHostname);
+    LW_SAFE_FREE_STRING(pszDnsDomainName);
 
     pthread_mutex_unlock(&gAdMachinePasswordSyncState.ThreadLock);
 

@@ -50,34 +50,6 @@
 #include "includes.h"
 
 DWORD
-LwKrb5Init(
-    IN OPTIONAL LW_KRB5_REALM_IS_OFFLINE_CALLBACK pfIsOfflineCallback,
-    IN OPTIONAL LW_KRB5_REALM_TRANSITION_OFFLINE_CALLBACK pfTransitionOfflineCallback
-    )
-{
-    DWORD dwError = 0;
-    
-    dwError = pthread_mutex_init(&gLwKrb5State.ExistingClientLock, NULL);
-    BAIL_ON_LW_ERROR(dwError);
-
-    dwError = pthread_mutex_init(&gLwKrb5State.UserCacheMutex, NULL);
-    BAIL_ON_LW_ERROR(dwError);
-
-    gLwKrb5State.pfIsOfflineCallback = pfIsOfflineCallback;
-    gLwKrb5State.pfTransitionOfflineCallback = pfTransitionOfflineCallback;
-
-cleanup:
-
-    return dwError;
-    
-error:
-
-    LW_LOG_ERROR("Error: Failed to initialize Krb5. [Error code: %d]", dwError);
-
-    goto cleanup;
-}
-
-DWORD
 LwKrb5GetDefaultRealm(
     PSTR* ppszRealm
     )
@@ -702,31 +674,15 @@ error:
     goto cleanup;
 }
 
-DWORD
+static
+void
+__attribute__((destructor))
 LwKrb5Shutdown(
     VOID
     )
 {
-    DWORD dwError = 0;
-
-    gLwKrb5State.pfIsOfflineCallback = NULL;
-    gLwKrb5State.pfTransitionOfflineCallback = NULL;
-
-    dwError = pthread_mutex_destroy(&gLwKrb5State.ExistingClientLock);
-    BAIL_ON_LW_ERROR(dwError);
-
-    dwError = pthread_mutex_destroy(&gLwKrb5State.UserCacheMutex);
-    BAIL_ON_LW_ERROR(dwError);
-    
-cleanup:
-
-    return dwError;
-    
-error:
-
-    LW_LOG_ERROR("Error: Failed to shutdown Krb5. [Error code: %d]", dwError);
-
-    goto cleanup;
+    pthread_mutex_destroy(&gLwKrb5State.ExistingClientLock);
+    pthread_mutex_destroy(&gLwKrb5State.UserCacheMutex);
 }
 
 DWORD
@@ -759,53 +715,85 @@ LwKrb5GetMachineCreds(
         BAIL_ON_LW_ERROR(dwError);
     }
 
-    dwError = LwWc16sToMbs(
-                    pMachineAcctInfo->pwszMachineAccount,
-                    &pszUsername);
-    BAIL_ON_LW_ERROR(dwError);
+    if (ppszUsername)
+    {
+        dwError = LwWc16sToMbs(
+            pMachineAcctInfo->pwszMachineAccount,
+            &pszUsername);
+        BAIL_ON_LW_ERROR(dwError);
 
-    dwError = LwWc16sToMbs(
-                    pMachineAcctInfo->pwszMachinePassword,
-                    &pszPassword);
-    BAIL_ON_LW_ERROR(dwError);
+        if (LW_IS_NULL_OR_EMPTY_STR(pszUsername))
+        {
+            dwError = LW_ERROR_INVALID_ACCOUNT;
+            BAIL_ON_LW_ERROR(dwError);
+        }
+    }
 
-    dwError = LwWc16sToMbs(
-                    pMachineAcctInfo->pwszDnsDomainName,
-                    &pszDomainDnsName);
-    BAIL_ON_LW_ERROR(dwError);
-    
-    dwError = LwWc16sToMbs(
-                    pMachineAcctInfo->pwszHostDnsDomain,
-                    &pszHostDnsDomain);
-    BAIL_ON_LW_ERROR(dwError);
-    
-    if (LW_IS_NULL_OR_EMPTY_STR(pszUsername)) {
-        dwError = LW_ERROR_INVALID_ACCOUNT;
+    if (ppszPassword)
+    {
+        dwError = LwWc16sToMbs(
+            pMachineAcctInfo->pwszMachinePassword,
+            &pszPassword);
+        BAIL_ON_LW_ERROR(dwError);
+
+        if (LW_IS_NULL_OR_EMPTY_STR(pszPassword))
+        {
+            dwError = LW_ERROR_INVALID_PASSWORD;
+            BAIL_ON_LW_ERROR(dwError);
+        }
+    }
+
+    if (ppszDomainDnsName)
+    {
+        dwError = LwWc16sToMbs(
+            pMachineAcctInfo->pwszDnsDomainName,
+            &pszDomainDnsName);
+        BAIL_ON_LW_ERROR(dwError);
+
+        if (LW_IS_NULL_OR_EMPTY_STR(pszDomainDnsName))
+        {
+            dwError = LW_ERROR_INVALID_DOMAIN;
+            BAIL_ON_LW_ERROR(dwError);
+        }
+    }
+
+    if (ppszHostDnsDomain)
+    {
+        dwError = LwWc16sToMbs(
+            pMachineAcctInfo->pwszHostDnsDomain,
+            &pszHostDnsDomain);
         BAIL_ON_LW_ERROR(dwError);
     }
     
-    if (LW_IS_NULL_OR_EMPTY_STR(pszPassword)) {
-        dwError = LW_ERROR_INVALID_PASSWORD;
-        BAIL_ON_LW_ERROR(dwError);
+    if (ppszUsername)
+    {
+        *ppszUsername = pszUsername;
     }
-    
-    if (LW_IS_NULL_OR_EMPTY_STR(pszUsername)) {
-        dwError = LW_ERROR_INVALID_DOMAIN;
-        BAIL_ON_LW_ERROR(dwError);
+
+    if (ppszPassword)
+    {
+        *ppszPassword = pszPassword;
     }
-    
-    *ppszUsername = pszUsername;
-    *ppszPassword = pszPassword;
-    *ppszDomainDnsName = pszDomainDnsName;
-    *ppszHostDnsDomain = pszHostDnsDomain;
+
+    if (ppszDomainDnsName)
+    {
+        *ppszDomainDnsName = pszDomainDnsName;
+    }
+
+    if (ppszHostDnsDomain)
+    {
+        *ppszHostDnsDomain = pszHostDnsDomain;
+    }
     
 cleanup:
 
-    if (pMachineAcctInfo) {
+    if (pMachineAcctInfo)
+    {
         LwpsFreePasswordInfo(hPasswordStore, pMachineAcctInfo);
     }
 
-    if (hPasswordStore != (HANDLE)NULL) {
+    if (hPasswordStore != (HANDLE)NULL)
+    {
        LwpsClosePasswordStore(hPasswordStore);
     }
 
@@ -813,9 +801,25 @@ cleanup:
     
 error:
 
-    *ppszUsername = NULL;
-    *ppszPassword = NULL;
-    *ppszDomainDnsName = NULL;
+    if (ppszUsername)
+    {
+        *ppszUsername = NULL;
+    }
+
+    if (ppszPassword)
+    {
+        *ppszPassword = NULL;
+    }
+
+    if (ppszDomainDnsName)
+    {
+        *ppszDomainDnsName = NULL;
+    }
+
+    if (ppszHostDnsDomain)
+    {
+        *ppszHostDnsDomain = NULL;
+    }
     
     LW_SAFE_FREE_STRING(pszUsername);
     LW_SAFE_FREE_STRING(pszPassword);
@@ -1635,10 +1639,6 @@ error:
     if ((LW_ERROR_KRB5_CALL_FAILED == dwError) &&
         (KRB5_KDC_UNREACH == ret))
     {
-        if (pszUnreachableRealm)
-        {
-            LwKrb5RealmTransitionOffline(pszUnreachableRealm);
-        }
         dwError = LW_ERROR_DOMAIN_IS_OFFLINE;
     }
 

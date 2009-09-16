@@ -50,17 +50,6 @@ static QueryResult QueryStopDaemons(const JoinProcessOptions *options, LWExcepti
 
     /* Check for lwiauthd and likewise-open */
 
-    DJGetDaemonStatus("lsassd", &running, &inner);
-    if (!LW_IS_OK(inner) && inner->code == CENTERROR_DOMAINJOIN_MISSING_DAEMON)
-    {
-        LW_HANDLE(&inner);
-        DJGetDaemonStatus("likewise-open", &running, &inner);
-    }
-    LW_CLEANUP(exc, inner);
-
-    if(running)
-        result = NotConfigured;
-
     DJGetDaemonStatus("gpagentd", &running, &inner);
     if (!LW_IS_OK(inner) && inner->code == CENTERROR_DOMAINJOIN_MISSING_DAEMON)
     {
@@ -130,19 +119,6 @@ static QueryResult QueryStartDaemons(const JoinProcessOptions *options, LWExcept
         goto cleanup;
     }
 
-    /* Check for lwiauthd and likewise-open */
-
-    DJGetDaemonStatus("lsassd", &running, &inner);
-    if (!LW_IS_OK(inner) && inner->code == CENTERROR_DOMAINJOIN_MISSING_DAEMON)
-    {
-        LW_HANDLE(&inner);
-        DJGetDaemonStatus("likewise-open", &running, &inner);
-    }
-    LW_CLEANUP(exc, inner);
-
-    if(!running)
-        result = NotConfigured;
-    
     DJGetDaemonStatus("gpagentd", &running, &inner);
     if (!LW_IS_OK(inner) && inner->code == CENTERROR_DOMAINJOIN_MISSING_DAEMON)
     {

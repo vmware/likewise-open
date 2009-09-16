@@ -50,12 +50,6 @@
 // 12 hours in seconds
 #define LW_KRB5_DEFAULT_TKT_LIFE (12 * 60 * 60)
 
-static
-BOOLEAN
-LwKrb5RealmIsOffline(
-    IN PCSTR pszRealm
-    );
-
 DWORD
 LwKrb5GetTgs(
     PCSTR pszCliPrincipal,

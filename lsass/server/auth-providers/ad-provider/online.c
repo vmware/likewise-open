@@ -220,6 +220,9 @@ AD_OnlineInitializeOperatingMode(
     PLSA_DM_LDAP_CONNECTION pConn = NULL;
     AD_CELL_SUPPORT adCellSupport = AD_CELL_SUPPORT_FULL;
 
+    dwError = LwKrb5SetDefaultCachePath(LSASS_CACHE_PATH, NULL);
+    BAIL_ON_LSA_ERROR(dwError);
+
     dwError = LwAllocateMemory(sizeof(*pProviderData), (PVOID*)&pProviderData);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -1394,6 +1397,7 @@ AD_OnlineCheckUserPassword(
     PSTR pszUpn = NULL;
     PSTR pszUserDnsDomainName = NULL;
     PSTR pszFreeUpn = NULL;
+    PSTR pszUserRealm = NULL;
     char* pchNdrEncodedPac = NULL;
     size_t sNdrEncodedPac = 0;
     PAC_LOGON_INFO *pPac = NULL;
@@ -1457,6 +1461,20 @@ AD_OnlineCheckUserPassword(
         pszUpn = pszFreeUpn;
     }
 
+    if ((pszUserRealm = strchr(pszUpn, '@')) == NULL)
+    {
+        dwError = LW_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    ++pszUserRealm;
+
+    if (LsaDmIsDomainOffline(pszUserRealm))
+    {
+        dwError = LW_ERROR_DOMAIN_IS_OFFLINE;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
     dwError = LwSetupUserLoginSession(
                     pUserInfo->userInfo.uid,
                     pUserInfo->userInfo.gid,
@@ -1478,7 +1496,7 @@ AD_OnlineCheckUserPassword(
                       &pszServicePrincipal,
                       "%s@%s",
                       pszMachineAccountName,
-		      pszDomainDnsName);
+                      pszDomainDnsName);
         BAIL_ON_LSA_ERROR(dwError);
 
         dwError = LwSetupUserLoginSession(
@@ -1491,8 +1509,14 @@ AD_OnlineCheckUserPassword(
                       pszServicePassword,
                       &pchNdrEncodedPac,
                       &sNdrEncodedPac,
-		      pdwGoodUntilTime);
+                      pdwGoodUntilTime);
     }
+
+    if (dwError == LW_ERROR_DOMAIN_IS_OFFLINE)
+    {
+        LsaDmTransitionOffline(pszUserRealm, FALSE);
+    }
+
     BAIL_ON_LSA_ERROR(dwError);
 
     dceStatus = DecodePacLogonInfo(

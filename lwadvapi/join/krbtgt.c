@@ -81,12 +81,6 @@ LwKrb5GetTgt(
 
     LwStrToUpper(++pszRealmIdx);
 
-    if (LwKrb5RealmIsOffline(pszRealmIdx))
-    {
-        dwError = LW_ERROR_DOMAIN_IS_OFFLINE;
-        BAIL_ON_LW_ERROR(dwError);
-    }
-
     ret = krb5_init_context(&ctx);
     BAIL_ON_KRB_ERROR(ctx, ret);
 
@@ -181,7 +175,6 @@ error:
 
     if (KRB5_KDC_UNREACH == ret)
     {
-        LwKrb5RealmTransitionOffline(pszRealmIdx);
         dwError = LW_ERROR_DOMAIN_IS_OFFLINE;
     }
 
@@ -384,33 +377,6 @@ cleanup:
 error:
 
     goto cleanup;
-}
-
-static
-BOOLEAN
-LwKrb5RealmIsOffline(
-    IN PCSTR pszRealm
-    )
-{
-    BOOLEAN bIsOffline = FALSE;
-
-    if (pszRealm && gLwKrb5State.pfIsOfflineCallback)
-    {
-        bIsOffline = gLwKrb5State.pfIsOfflineCallback(pszRealm);
-    }
-
-    return bIsOffline;
-}
-
-VOID
-LwKrb5RealmTransitionOffline(
-    IN PCSTR pszRealm
-    )
-{
-    if (pszRealm && gLwKrb5State.pfTransitionOfflineCallback)
-    {
-        gLwKrb5State.pfTransitionOfflineCallback(pszRealm);
-    }
 }
 
 /*

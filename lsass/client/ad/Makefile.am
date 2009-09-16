@@ -5,7 +5,8 @@ noinst_LTLIBRARIES = liblsaclient_ad.la
 liblsaclient_ad_la_SOURCES = \
     cache.c     \
     groups.c    \
-    users.c
+    users.c     \
+    join.c
 
 liblsaclient_ad_la_CPPFLAGS = \
 	$(AM_CPPFLAGS) \

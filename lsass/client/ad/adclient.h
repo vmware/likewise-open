@@ -49,13 +49,13 @@
 #include "lsasystem.h"
 
 #include "lsa/lsa.h"
+#include "lsa/ad.h"
 
 #include "lsadef.h"
 
 #include <lwmsg/lwmsg.h>
 
 #include "lsaclient.h"
-#include "lsaadclient.h"
 #include "lsaadprovider.h"
 #include "lsaipc.h"
 

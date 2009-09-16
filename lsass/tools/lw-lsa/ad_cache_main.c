@@ -48,9 +48,9 @@
 #include "lsasystem.h"
 #include "lsadef.h"
 #include "lsa/lsa.h"
+#include "lsa/ad.h"
 
 #include "lsaclient.h"
-#include "lsaadclient.h"
 #include "lsaadprovider.h"
 #include "lsaipc.h"
 

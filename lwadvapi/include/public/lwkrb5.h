@@ -97,12 +97,6 @@ typedef BOOLEAN (*LW_KRB5_REALM_IS_OFFLINE_CALLBACK)(IN PCSTR pszRealmName);
 typedef VOID (*LW_KRB5_REALM_TRANSITION_OFFLINE_CALLBACK)(IN PCSTR pszRealmName);
 
 DWORD
-LwKrb5Init(
-    IN OPTIONAL LW_KRB5_REALM_IS_OFFLINE_CALLBACK pfIsOfflineCallback,
-    IN OPTIONAL LW_KRB5_REALM_TRANSITION_OFFLINE_CALLBACK pfTransitionOfflineCallback
-    );
-
-DWORD
 LwKrb5GetDefaultRealm(
     PSTR* ppszRealm
     );
@@ -162,11 +156,6 @@ LwKrb5GetServiceTicketForUser(
     );
 
 DWORD
-LwKrb5Shutdown(
-    VOID
-    );
-
-DWORD
 LwKrb5RefreshMachineTGT(
     PDWORD pdwGoodUntilTime
     );
@@ -185,11 +174,6 @@ LwTranslateKrb5Error(
     krb5_error_code krbError,
     PCSTR pszFile,
     DWORD dwLine
-    );
-
-VOID
-LwKrb5RealmTransitionOffline(
-    IN PCSTR pszRealm
     );
 
 DWORD
