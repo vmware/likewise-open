@@ -771,14 +771,15 @@ LwLdapDirectorySearch(
         }
         if (dwError == LDAP_SERVER_DOWN)
         {
-            LW_LOG_ERROR("Caught LDAP_SERVER_DOWN Error on ldap search");
-            dwError = LW_ERROR_LDAP_SERVER_UNAVAILABLE;
+            /* Note: Do not log as ERROR, since this can occur in normal operations */
+            LW_LOG_INFO("Caught LDAP_SERVER_DOWN Error on ldap search");
+            dwError = LW_ERROR_LDAP_SERVER_DOWN;
             goto error;
         }
         if (dwError == LDAP_TIMEOUT)
         {
             LW_LOG_ERROR("Caught LDAP_TIMEOUT Error on ldap search");
-            dwError = LW_ERROR_LDAP_SERVER_UNAVAILABLE;
+            dwError = LW_ERROR_LDAP_TIMEOUT;
             goto error;
         }
         if (dwError == LDAP_CONNECT_ERROR)
