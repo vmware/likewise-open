@@ -93,7 +93,7 @@ function make_debs
 
     case "${_list}" in
 	all)
-	    _pkg_list="libs lwio netlogon rpc lsass eventlog srvsvc domainjoin"
+	    _pkg_list="libs lwreg lwio netlogon rpc lsass eventlog srvsvc domainjoin"
 	    ;;
 	*)
 	    _pkg_list="${_list}"

@@ -4,7 +4,7 @@
 ##   The REVISION is generated from the SVN rev number sin the log
 ##
 LIKEWISE_OPEN_MAJOR=5
-LIKEWISE_OPEN_MINOR=3
+LIKEWISE_OPEN_MINOR=4
 LIKEWISE_OPEN_BUILD=0
 LIKEWISE_OPEN_REVISION=`git log | grep '\(.*: r[1-9].*\)' | cut -d: -f2 | sed -e 's:\s*r::' -e 's:)$::' | sort -n | tail -1`
 LIKEWISE_OPEN_EXTRA_TAG=""
@@ -13,7 +13,7 @@ LIKEWISE_OPEN_EXTRA_TAG=""
 __COMP_LIST="krb5 openldap libunistr lwbase \
     lwmapsecurity lwmsg centutils \
     sqlite libtdb pstore \
-    lwadvapi netlogon lwio libkeytab libgss \
+    lwadvapi lwreg netlogon lwio libkeytab libgss \
     dcerpc lwrpcrt librpc eventlog lsass \
     lwdns domainjoin srvsvc \
 "
