@@ -789,7 +789,7 @@ LwLdapDirectorySearch(
             goto error;
         }
         LW_LOG_ERROR("Caught ldap error %d on search [%s]",
-                LW_SAFE_LOG_STRING(pszQuery));
+                dwError, LW_SAFE_LOG_STRING(pszQuery));
         BAIL_ON_LDAP_ERROR(dwError);
     }
 
