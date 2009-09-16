@@ -98,8 +98,20 @@ cpp_quote("#endif")
         [in,out,ref] PolicyHandle *handle
         );
 
-    NTSTATUS samr_Function02();
-    NTSTATUS samr_Function03();
+    /* function 0x02 */
+    NTSTATUS _SamrSetSecurity(
+        [in,ref] PolicyHandle *handle,
+        [in] uint32 security_info,
+        [in] PSECURITY_DESCRIPTOR_BUFFER *secdesc
+        );
+
+    /* function 0x03 */
+    NTSTATUS _SamrQuerySecurity(
+        [in,ref] PolicyHandle *handle,
+        [in] uint32 security_info,
+        [out] PSECURITY_DESCRIPTOR_BUFFER *secdesc
+        );
+
     NTSTATUS samr_Function04();
 
     /* function 0x05 */
