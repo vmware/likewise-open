@@ -81,6 +81,14 @@ void SamrFreeStubUserInfo(UserInfo *ptr, uint16 level);
 
 void SamrCleanStubDisplayInfo(SamrDisplayInfo *ptr, uint16 level);
 
+void SamrCleanStubSecurityDescriptorBuffer(
+    PSECURITY_DESCRIPTOR_BUFFER pSecDescBuffer
+    );
+
+void
+SamrFreeStubSecurityDescriptorBuffer(
+    PSECURITY_DESCRIPTOR_BUFFER pSecDescBuffer
+    );
 
 #endif /* _SAMR_STUB_MEMORY_H */
 

@@ -140,6 +140,13 @@ SamrAllocateDisplayInfo(
     );
 
 
+NTSTATUS
+SamrAllocateSecurityDescriptor(
+    OUT PSECURITY_DESCRIPTOR_RELATIVE *ppOut,
+    IN  PSECURITY_DESCRIPTOR_BUFFER    pIn
+    );
+
+
 #endif /* _SAMR_MEMORY_H_ */
 
 
