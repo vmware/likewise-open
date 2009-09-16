@@ -26,7 +26,8 @@ function component_configure
 
     ./configure                        \
 	--prefix=${PREFIXDIR}         \
-        --libdir=${PREFIXDIR}/${_lib}
+        --libdir=${PREFIXDIR}/${_lib} \
+        --localstatedir=${LOCALSTATEDIR}
 }
 
 function component_build
