@@ -103,7 +103,7 @@ ThreadTestAddKey(
                     "%s-%d",
                     pszKeyNamePrefix,
                     dwKeyNum);
-            dwError = RegShellUtilAddKey(hReg, LIKEWISE_ROOT_KEY, pszKeyPath, pszKeyName);
+            dwError = RegShellUtilAddKey(hReg, NULL, pszKeyPath, pszKeyName);
             printf("    >>ThreadTestAddKey: %d %s\\%s\n",
                    dwCount,
                    pszKeyPath,
@@ -150,7 +150,7 @@ ThreadTestDeleteKey(
                     "%s-%d",
                     pszKeyNamePrefix,
                     dwKeyNum);
-            dwError = RegShellUtilDeleteKey(hReg, LIKEWISE_ROOT_KEY, pszKeyPath, pszKeyName);
+            dwError = RegShellUtilDeleteKey(hReg, NULL, pszKeyPath, pszKeyName);
             if (dwError)
             {
                 PrintError("ThreadTestDeleteKey", dwError);

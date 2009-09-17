@@ -166,6 +166,10 @@ RegShellIsValidKey(
     BAIL_ON_INVALID_HANDLE(hReg);
     BAIL_ON_INVALID_POINTER(pszKey);
 
+    if (!pszRootKeyName)
+    {
+        pszRootKeyName = LIKEWISE_ROOT_KEY;
+    }
     dwError = RegOpenRootKey(hReg, pszRootKeyName, &pRootKey);
     BAIL_ON_REG_ERROR(dwError);
 
@@ -211,6 +215,12 @@ RegShellUtilAddKey(
 
     DWORD dwError = 0;
 
+    BAIL_ON_INVALID_HANDLE(hReg);
+
+    if (!pszRootKeyName)
+    {
+        pszRootKeyName = LIKEWISE_ROOT_KEY;
+    }
     dwError = RegShellCanonicalizePath(pszDefaultKey,
                                        pszKeyName,
                                        &pszFullPath,
@@ -283,7 +293,12 @@ RegShellUtilDeleteKey(
     PSTR pszSubKey = NULL;
     HKEY pRootKey = NULL;
 
+    BAIL_ON_INVALID_HANDLE(hReg);
 
+    if (!pszRootKeyName)
+    {
+        pszRootKeyName = LIKEWISE_ROOT_KEY;
+    }
     dwError = RegShellCanonicalizePath(pszDefaultKey,
                                        keyName,
                                        &pszFullPath,
@@ -354,7 +369,12 @@ RegShellUtilDeleteTree(
     PSTR pszSubKey = NULL;
     HKEY pRootKey = NULL;
 
+    BAIL_ON_INVALID_HANDLE(hReg);
 
+    if (!pszRootKeyName)
+    {
+        pszRootKeyName = LIKEWISE_ROOT_KEY;
+    }
     dwError = RegShellCanonicalizePath(pszDefaultKey,
                                        keyName,
                                        &pszFullPath,
@@ -433,6 +453,10 @@ RegShellUtilGetKeys(
 
     BAIL_ON_INVALID_HANDLE(hReg);
 
+    if (!pszRootKeyName)
+    {
+        pszRootKeyName = LIKEWISE_ROOT_KEY;
+    }
     dwError = RegShellCanonicalizePath(pszDefaultKey,
                                        keyName,
                                        &pszParentPath,
@@ -462,26 +486,6 @@ RegShellUtilGetKeys(
         pFullKey = pRootKey;
     }
 
-#if 0
-DWORD
-RegQueryInfoKey(
-    HANDLE hRegConnection,
-    HKEY hKey,
-    PWSTR pClass,
-    PDWORD pcClass,
-    PDWORD pReserved,
-    PDWORD pcSubKeys,
-    PDWORD pcMaxSubKeyLen,
-    PDWORD pcMaxClassLen,
-    PDWORD pcValues,
-    PDWORD pcMaxValueNameLen,
-    PDWORD pcMaxValueLen,
-    PDWORD pcbSecurityDescriptor,
-    PFILETIME pftLastWriteTime
-    );
-#endif
-
-
     dwError = RegQueryInfoKey(
         hReg,
         pFullKey,
@@ -497,7 +501,6 @@ RegQueryInfoKey(
         NULL,
         NULL);
     BAIL_ON_REG_ERROR(dwError);
-printf("RegQueryInfoKey: Values=%d\n", dwValuesCount);
 
     dwError = LwAllocateMemory(
                   sizeof(LW_WCHAR *)*dwSubKeyCount,
@@ -569,6 +572,10 @@ RegShellUtilSetValue(
 
     BAIL_ON_INVALID_HANDLE(hReg);
 
+    if (!pszRootKeyName)
+    {
+        pszRootKeyName = LIKEWISE_ROOT_KEY;
+    }
     dwError = RegShellCanonicalizePath(pszDefaultKey,
                                        keyName,
                                        &pszParentPath,
@@ -670,6 +677,8 @@ error:
 
     goto cleanup;
 }
+
+
 DWORD
 RegShellUtilGetValues(
     HANDLE hReg,
@@ -700,6 +709,10 @@ RegShellUtilGetValues(
     BAIL_ON_INVALID_HANDLE(hReg);
 
 
+    if (!pszRootKeyName)
+    {
+        pszRootKeyName = LIKEWISE_ROOT_KEY;
+    }
     dwError = RegShellCanonicalizePath(pszDefaultKey,
                                        keyName,
                                        &pszParentPath,
@@ -830,6 +843,10 @@ RegShellUtilDeleteValue(
 
     BAIL_ON_INVALID_HANDLE(hReg);
 
+    if (!pszRootKeyName)
+    {
+        pszRootKeyName = LIKEWISE_ROOT_KEY;
+    }
     if (keyName)
     {
         dwError = LwMbsToWc16s(keyName, &pSubKey);
@@ -857,4 +874,3 @@ cleanup:
 error:
     goto cleanup;
 }
-
