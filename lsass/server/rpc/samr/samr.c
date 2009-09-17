@@ -78,11 +78,19 @@ NTSTATUS _samr_Function02(
 }
 
 
-NTSTATUS _samr_Function03(
-    /* [in] */ handle_t IDL_handle
+NTSTATUS __SamrQuerySecurity(
+    /* [in] */ handle_t IDL_handle,
+    /* [in,context_handle] */ void *hObject,
+    /* [in] */ uint32 security_info,
+    /* [out] */ PSECURITY_DESCRIPTOR_BUFFER *secdesc
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = SamrSrvQuerySecurity(IDL_handle,
+                                  hObject,
+                                  security_info,
+                                  secdesc);
     return status;
 }
 
