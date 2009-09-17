@@ -538,8 +538,8 @@ AC_CONFIG_FILES([Makefile
                  parse/Makefile
                  test/Makefile
                  tools/Makefile
-                 tools/lw_regimport/Makefile
-                 tools/lw_regexport/Makefile
+                 tools/regimport/Makefile
+                 tools/regexport/Makefile
                  shellutil/Makefile
                  shell/Makefile
                  logging_r/Makefile])

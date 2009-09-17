@@ -1,2 +1,2 @@
-SUBDIRS=lw_regimport \
-        lw_regexport
+SUBDIRS=regimport \
+        regexport

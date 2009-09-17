@@ -88,15 +88,21 @@ SqliteProvider_Shutdown(
     PREGPROV_PROVIDER_FUNCTION_TABLE pFnTable
     )
 {
-    RegDbSafeClose(&ghCacheConnection);
-    /*
-    //cleanup this
-    REG_SRV_API_KEYLOOKUP gActiveKeyList =
-        {
-                .mutex    = PTHREAD_MUTEX_INITIALIZER,
-                .pKeyList = NULL
-        };*/
+    REG_HASH_ITERATOR hashIterator = {0};
+    REG_HASH_ENTRY*   pHashEntry = NULL;
 
+    RegDbSafeClose(&ghCacheConnection);
+
+    if (gActiveKeyList.pKeyList)
+    {
+        RegHashGetIterator(gActiveKeyList.pKeyList, &hashIterator);
+        while ((pHashEntry = RegHashNext(&hashIterator)) != NULL)
+        {
+            RegSrvFreeHashEntry(pHashEntry);
+        }
+
+        RegHashSafeFree(&gActiveKeyList.pKeyList);
+    }
 }
 
 DWORD
