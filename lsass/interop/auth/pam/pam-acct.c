@@ -185,7 +185,7 @@ error:
                           dwError);
         if (pszLoginId && !strcmp(pszLoginId, "root"))
         {
-            dwError = LSA_ERROR_NO_SUCH_USER;
+            dwError = LW_ERROR_NO_SUCH_USER;
             LSA_LOG_PAM_ERROR("Converting error to %d for root", dwError);
         }
     }
