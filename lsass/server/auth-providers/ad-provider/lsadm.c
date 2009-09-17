@@ -612,7 +612,10 @@ LsaDmLdapDirectorySearch(
                     ppMessage);
         if (LsaDmpLdapIsRetryError(dwError) && dwTry < 3)
         {
-            LSA_LOG_ERROR("Error code %d occurred during attempt %d of a ldap search. Retrying.", dwError, dwTry);
+            if (dwTry > 0)
+            {
+                LSA_LOG_ERROR("Error code %d occurred during attempt %d of a ldap search. Retrying.", dwError, dwTry);
+            }
             dwError = LsaDmpLdapReconnect(
                     gLsaDmState,
                     pConn);
