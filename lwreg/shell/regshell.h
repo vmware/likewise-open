@@ -130,12 +130,6 @@ typedef struct _REGSHELL_REG_TYPE_ENTRY
     DWORD backendType;
 } REGSHELL_REG_TYPE_ENTRY, *PREGSHELL_REG_TYPE_ENTRY;
 
-/* Just to demonstrate user context handle use. Not very useful otherwise */
-typedef struct _IMPORT_CONTEXT
-{
-    HANDLE hReg;
-} IMPORT_CONTEXT;
-
 
 DWORD
 RegShellCmdEnumToString(
@@ -185,14 +179,6 @@ RegShellParseStringType(
     PCHAR pszType,
     PREG_DATA_TYPE pType,
     PDWORD pBackendType);
-
-DWORD parseImportCallback(
-    PREG_PARSE_ITEM pItem,
-    HANDLE userContext);
-
-DWORD parseDebugCallback(
-    PREG_PARSE_ITEM pItem,
-    HANDLE userContext);
 
 DWORD
 RegShellOpenHandle(

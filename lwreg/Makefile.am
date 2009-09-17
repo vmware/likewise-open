@@ -12,8 +12,9 @@ full_subdirs=         \
     logging_r         \
     parse             \
     server            \
+    shellutil         \
     test              \
-    tools              \
+    tools             \
     shell
 
 if ENABLE_COMPAT

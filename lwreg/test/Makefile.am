@@ -1,4 +1,4 @@
-noinst_PROGRAMS = test_regio test_reglex test_regparse test_regiconv test_regdump test_regkeys test_regvalues test_tomulti
+noinst_PROGRAMS = test_regio test_reglex test_regparse test_regiconv test_regdump test_regkeys test_regvalues test_tomulti test_ptlwregd
     
 #test_regkeys
 test_regkeys_SOURCES = \
@@ -119,3 +119,20 @@ test_tomulti_CPPFLAGS = \
     @LWMSG_INCLUDES@ \
     -I@top_builddir@ \
     -I@top_srcdir@/server/include
+
+#test_ptlwregd
+test_ptlwregd_SOURCES = \
+    test_ptlwregd.c
+
+test_ptlwregd_LDADD =                           \
+    @top_builddir@/shellutil/librsutils.la \
+    @top_builddir@/client/libregclient.la \
+    @PTHREAD_LIBS@
+
+
+test_ptlwregd_LDFLAGS = -static
+
+test_ptlwregd_CPPFLAGS = \
+    $(AM_CFLAGS)   \
+    -I@top_srcdir@/shellutil \
+    @LWBASE_INCLUDES@
