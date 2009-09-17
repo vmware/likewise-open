@@ -312,6 +312,53 @@ SamrSrvFreeUnicodeStringEx(
 }
 
 
+NTSTATUS
+SamrSrvAllocateSecDescBuffer(
+    PSECURITY_DESCRIPTOR_BUFFER *ppBuffer,
+    POCTET_STRING                pBlob
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSECURITY_DESCRIPTOR_BUFFER pBuffer = NULL;
+
+    ntStatus = SamrSrvAllocateMemory((void**)&pBuffer,
+                                     sizeof(*pBuffer));
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    if (pBlob && pBlob->ulNumBytes)
+    {
+        pBuffer->ulBufferLen = pBlob->ulNumBytes;
+
+        ntStatus = SamrSrvAllocateMemory((void**)&pBuffer->pBuffer,
+                                         pBlob->ulNumBytes);
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+        memcpy(pBuffer->pBuffer,
+               pBlob->pBytes,
+               pBuffer->ulBufferLen);
+    }
+
+    *ppBuffer = pBuffer;
+
+cleanup:
+    return ntStatus;
+
+error:
+    if (pBuffer)
+    {
+        if (pBuffer->pBuffer)
+        {
+            SamrSrvFreeMemory(pBuffer->pBuffer);
+        }
+
+        SamrSrvFreeMemory(pBuffer);
+    }
+
+    *ppBuffer = NULL;
+    goto cleanup;
+}
+
+
 /*
 local variables:
 mode: c
