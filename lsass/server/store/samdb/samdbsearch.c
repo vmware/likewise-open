@@ -704,6 +704,7 @@ SamDbSearchMarshallResultsAttributesValues(
                     break;
 
                 case SAMDB_ATTR_TYPE_BLOB:
+                case SAMDB_ATTR_TYPE_SECURITY_DESCRIPTOR:
 
                     dwAttrLen = sqlite3_column_bytes(pSqlStatement, iCol);
                     if (dwAttrLen)
@@ -723,7 +724,14 @@ SamDbSearchMarshallResultsAttributesValues(
 
                         pAttrVal = &pAttr->pValues[0];
 
-                        pAttrVal->Type = DIRECTORY_ATTR_TYPE_OCTET_STREAM;
+                        if (pIter->pAttrMap->attributeType == SAMDB_ATTR_TYPE_BLOB)
+                        {
+                            pAttrVal->Type = DIRECTORY_ATTR_TYPE_OCTET_STREAM;
+                        }
+                        else
+                        {
+                            pAttrVal->Type = DIRECTORY_ATTR_TYPE_NT_SECURITY_DESCRIPTOR;
+                        }
 
                         dwError = DirectoryAllocateMemory(
                                     sizeof(OCTET_STRING),

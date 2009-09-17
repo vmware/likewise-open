@@ -20,7 +20,8 @@ libsamdb_la_SOURCES =     \
         samdbschema.c     \
         samdbsearch.c     \
         samdbtrans.c      \
-        samdbuser.c
+        samdbuser.c       \
+        samdbsecurity.c
 
 libsamdb_la_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
