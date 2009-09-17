@@ -54,13 +54,14 @@ RegShellListKeys(
     DWORD dwSubKeyLen = 0;
     DWORD i = 0;
     PSTR pszSubKey = NULL;
-    LW_WCHAR **ppSubKeys;
+    LW_WCHAR **ppSubKeys = NULL;
 
     BAIL_ON_INVALID_HANDLE(pParseState);
     BAIL_ON_INVALID_HANDLE(pParseState->hReg);
     dwError = RegShellUtilGetKeys(
                   pParseState->hReg,
-                  pParseState-> pszDefaultKey,
+                  pParseState->pszRootKeyName,
+                  pParseState->pszDefaultKey,
                   rsItem->keyName,
                   &ppSubKeys,
                   &dwSubKeyLen);
@@ -103,6 +104,7 @@ RegShellAddKey(
 
     dwError = RegShellUtilAddKey(
                   pParseState->hReg,
+                  pParseState->pszRootKeyName,
                   pParseState->pszDefaultKey,
                   rsItem->keyName);
 
@@ -124,6 +126,7 @@ RegShellDeleteKey(
 
     dwError = RegShellUtilDeleteKey(
                   pParseState->hReg,
+                  pParseState->pszRootKeyName,
                   pParseState->pszDefaultKey,
                   rsItem->keyName);
 
@@ -146,6 +149,7 @@ RegShellDeleteTree(
 
     dwError = RegShellUtilDeleteTree(
                   pParseState->hReg,
+                  pParseState->pszRootKeyName,
                   pParseState->pszDefaultKey,
                   rsItem->keyName);
 
@@ -167,6 +171,7 @@ RegShellDeleteValue(
     BAIL_ON_INVALID_HANDLE(pParseState->hReg);
     dwError = RegShellUtilDeleteValue(
                   pParseState->hReg,
+                  pParseState->pszRootKeyName,
                   pParseState->pszDefaultKey,
                   rsItem->keyName,
                   rsItem->valueName);
@@ -206,6 +211,7 @@ RegShellSetValue(
     }
     dwError = RegShellUtilSetValue(
                   pParseState->hReg,
+                  pParseState->pszRootKeyName,
                   pParseState->pszDefaultKey,
                   rsItem->keyName,
                   rsItem->valueName,
@@ -284,6 +290,7 @@ RegShellListValues(
 
     dwError = RegShellUtilGetValues(
                   pParseState->hReg,
+                  pParseState->pszRootKeyName,
                   pParseState->pszDefaultKey,
                   rsItem->keyName,
                   &pValues,
@@ -518,7 +525,10 @@ RegShellProcessCmd(
                         strcpy(pszPwd, pszNewDefaultKey);
                         strcat(pszPwd, "\\");
                         strcat(pszPwd, pszToken);
-                        dwError = RegShellIsValidKey(pParseState->hReg, pszPwd);
+                        dwError = RegShellIsValidKey(
+                                      pParseState->hReg,
+                                      pParseState->pszRootKeyName,
+                                      pszPwd);
                         if (dwError)
                         {
                             dwError = 0;
@@ -537,8 +547,10 @@ RegShellProcessCmd(
                     }
                     else
                     {
-                        dwError = RegShellIsValidKey(pParseState->hReg,
-                                                     pszToken);
+                        dwError = RegShellIsValidKey(
+                                      pParseState->hReg,
+                                      pParseState->pszRootKeyName,
+                                      pszToken);
                         if (dwError)
                         {
                             dwError = 0;
@@ -601,6 +613,20 @@ RegShellProcessCmd(
                 BAIL_ON_REG_ERROR(dwError);
                 break;
 
+            case REGSHELL_CMD_SET_HIVE:
+                if (argc < 3)
+                {
+                    dwError = LW_ERROR_INVALID_CONTEXT;
+                    goto error;
+                }
+
+                LW_SAFE_FREE_STRING(pParseState->pszRootKeyName);
+                dwError = LwAllocateString(argv[2],
+                                           &pParseState->pszRootKeyName);
+                BAIL_ON_REG_ERROR(dwError);
+                LW_SAFE_FREE_STRING(pParseState->pszDefaultKey);
+                break;
+
             default:
                 break;
         }
@@ -639,11 +665,17 @@ RegShellInitParseState(
     BAIL_ON_REG_ERROR(dwError);
 
     dwError = RegOpenServer(&pParseState->hReg);
+    BAIL_ON_REG_ERROR(dwError);
 
     dwError = RegLexOpen(&pParseState->lexHandle);
     BAIL_ON_REG_ERROR(dwError);
 
     dwError = RegIOBufferOpen(&pParseState->ioHandle);
+    BAIL_ON_REG_ERROR(dwError);
+
+    dwError = LwAllocateString(
+                  LIKEWISE_ROOT_KEY,
+                  (LW_PVOID) &pParseState->pszRootKeyName);
     BAIL_ON_REG_ERROR(dwError);
 
     *ppParseState = pParseState;
@@ -652,6 +684,11 @@ cleanup:
     return dwError;
 
 error:
+    LW_SAFE_FREE_STRING(pParseState->pszRootKeyName);
+    RegCloseServer(pParseState->hReg);
+    RegLexClose(pParseState->lexHandle);
+    RegIOClose(pParseState->ioHandle);
+    LW_SAFE_FREE_MEMORY(pParseState);
     goto cleanup;
 }
 
@@ -696,7 +733,9 @@ int main(int argc, char *argv[])
     {
         do
         {
-            printf("%s> ",
+            printf("%s%s%s> ",
+                   parseState->pszRootKeyName,
+                   parseState->pszDefaultKey ? "\\" : "",
                    parseState->pszDefaultKey ?
                    parseState->pszDefaultKey : "\\");
             fflush(stdout);
