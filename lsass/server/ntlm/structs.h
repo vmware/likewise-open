@@ -122,6 +122,8 @@ typedef struct _NTLM_CONTEXT
     LONG nRefCount;
     BYTE SessionKey[NTLM_SESSION_KEY_SIZE];
     DWORD cbSessionKeyLen;
+    RC4_KEY SignAndSealKey;
+    DWORD dwMsgSeqNum;
 } NTLM_CONTEXT, *PNTLM_CONTEXT;
 
 typedef struct _NTLM_CREDENTIALS

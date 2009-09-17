@@ -354,7 +354,7 @@ NtlmTransactDecryptMessage(
                 );
             BAIL_ON_LSA_ERROR(dwError);
 
-            memcpy(pbEncrypted, &pResultList->bEncrypted, sizeof(BOOL));
+            *pbEncrypted = pResultList->bEncrypted;
 
             break;
         case NTLM_R_GENERIC_FAILURE:

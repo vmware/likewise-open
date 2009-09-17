@@ -57,5 +57,86 @@ NtlmServerVerifySignature(
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
+    PNTLM_CONTEXT pContext = *phContext;
+    // The following pointers point into pMessage and will not be freed
+    PSecBuffer pToken = NULL;
+    PSecBuffer pData = NULL;
+    SecBuffer TempToken = {0};
+    BYTE TempTokenData[NTLM_SIGNATURE_SIZE] = {0};
+    BOOLEAN bVerified = FALSE;
+    BOOLEAN bEncrypted = FALSE;
+    DWORD dwIndex = 0;
+
+    for (dwIndex = 0; dwIndex < pMessage->cBuffers; dwIndex++)
+    {
+        if (pMessage->pBuffers[dwIndex].BufferType == SECBUFFER_TOKEN)
+        {
+            if (!pToken)
+            {
+                pToken = &pMessage->pBuffers[dwIndex];
+            }
+        }
+        else if (pMessage->pBuffers[dwIndex].BufferType == SECBUFFER_DATA)
+        {
+            if (!pData)
+            {
+                pData = &pMessage->pBuffers[dwIndex];
+            }
+        }
+    }
+
+    // Do a full sanity check here
+    if (!pToken ||
+        pToken->cbBuffer != NTLM_SIGNATURE_SIZE ||
+        !pToken->pvBuffer ||
+        !pData ||
+        !pData->cbBuffer ||
+        !pData->pvBuffer)
+    {
+        dwError = LW_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    TempToken.BufferType = SECBUFFER_TOKEN;
+    TempToken.cbBuffer = NTLM_SIGNATURE_SIZE;
+    TempToken.pvBuffer = TempTokenData;
+
+    if (pContext->NegotiatedFlags & NTLM_FLAG_SIGN)
+    {
+        NtlmMakeSignature(
+            pContext,
+            pData,
+            MessageSeqNo,
+            &TempToken
+            );
+    }
+    else if (pContext->NegotiatedFlags & NTLM_FLAG_ALWAYS_SIGN)
+    {
+        // Use the dummy signature 0x01000000000000000000000000000000
+        memset(TempTokenData, 0, NTLM_SIGNATURE_SIZE);
+        *((PDWORD)(TempTokenData)) = NTLM_VERSION;
+    }
+    else
+    {
+        dwError = LW_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (TempToken.cbBuffer == pToken->cbBuffer &&
+        !memcmp(TempToken.pvBuffer, pToken->pvBuffer, pToken->cbBuffer))
+    {
+        bVerified = TRUE;
+    }
+
+cleanup:
+    *pbVerified = bVerified;
+    *pbEncrypted = bEncrypted;
+
     return dwError;
+
+error:
+    bVerified = 0;
+    bEncrypted = 0;
+
+    goto cleanup;
 }

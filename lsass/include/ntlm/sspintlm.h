@@ -70,7 +70,7 @@ typedef struct _SecBufferDesc
 {
     // At this point, we do not require version information
     // DWORD      ulVersion;
-    DWORD      cBuffers;
+    DWORD cBuffers;
     PSecBuffer pBuffers;
 } SecBufferDesc, *PSecBufferDesc;
 
@@ -113,7 +113,7 @@ typedef struct _SecPkgCred
 typedef struct _LUID
 {
     DWORD LowPart;
-    INT  HighPart;
+    INT HighPart;
 } LUID, *PLUID;
 
 typedef struct _SEC_WINNT_AUTH_IDENTITY
@@ -128,42 +128,29 @@ typedef struct _SEC_WINNT_AUTH_IDENTITY
 } SEC_WINNT_AUTH_IDENTITY, *PSEC_WINNT_AUTH_IDENTITY;
 
 typedef INT64 SECURITY_INTEGER, *PSECURITY_INTEGER;
-//typedef LARGE_INTEGER _SECURITY_INTEGER, SECURITY_INTEGER, *PSECURITY_INTEGER;
 
-typedef SECURITY_INTEGER TimeStamp;
-typedef SECURITY_INTEGER * PTimeStamp;
+typedef SECURITY_INTEGER TimeStamp, *PTimeStamp;
 
-//
-// If we are in 32 bit mode, define the SECURITY_STRING structure,
-// as a clone of the base UNICODE_STRING structure.  This is used
-// internally in security components, an as the string interface
-// for kernel components (e.g. FSPs)
-//
-// I'm going to default this to always be the non-unicode string
-// type so that its marshalling is predictable.  It can be converted
-// on either side if need be.
-//
 typedef struct _SECURITY_STRING
 {
-    USHORT      Length;
-    USHORT      MaximumLength;
-    PUSHORT     Buffer;
+    USHORT Length;
+    USHORT MaximumLength;
+    PUSHORT Buffer;
 } SECURITY_STRING, * PSECURITY_STRING;
 
 typedef struct _NTLM_SEC_BUFFER
 {
-    USHORT usLength;    // number of bytes used
-    USHORT usMaxLength; // true size of buffer in bytes
-    DWORD  dwOffset;
+    USHORT usLength;
+    USHORT usMaxLength;
+    DWORD dwOffset;
 } NTLM_SEC_BUFFER, *PNTLM_SEC_BUFFER;
-
 
 typedef struct _WIN_VERSION_INFO
 {
-    BYTE    bMajor;
-    BYTE    bMinor;
-    SHORT   sBuild;
-    DWORD   dwReserved;
+    BYTE bMajor;
+    BYTE bMinor;
+    SHORT sBuild;
+    DWORD dwReserved;
 } WIN_VERSION_INFO, *PWIN_VERSION_INFO;
 
 struct _NTLM_CONTEXT;
@@ -174,6 +161,14 @@ typedef struct _NTLM_CONTEXT *NTLM_CONTEXT_HANDLE, **PNTLM_CONTEXT_HANDLE;
 
 struct _NTLM_CREDENTIALS;
 typedef struct _NTLM_CREDENTIALS *NTLM_CRED_HANDLE, **PNTLM_CRED_HANDLE;
+
+typedef struct _NTLM_SIGNATURE
+{
+    DWORD dwVersion;
+    DWORD dwCounterValue;
+    DWORD dwCrc32;
+    DWORD dwMsgSeqNum;
+} NTLM_SIGNATURE, *PNTLM_SIGNATURE;
 
 //******************************************************************************
 //
@@ -193,6 +188,9 @@ typedef struct _NTLM_CREDENTIALS *NTLM_CRED_HANDLE, **PNTLM_CRED_HANDLE;
 
 #define NTLM_NATIVE_DATA_REP    0
 #define NTLM_OTHER_DATA_REP   1
+
+#define NTLM_VERSION                    0x00000001
+
 //  NTLM FLAGS
 //
 #define NTLM_FLAG_UNICODE               0x00000001  /* unicode charset */
@@ -390,6 +388,11 @@ NtlmClientVerifySignature(
     IN DWORD MessageSeqNo,
     OUT PBOOLEAN pbVerified,
     OUT PBOOLEAN pbEncryted
+    );
+
+DWORD
+NtlmFreeContextBuffer(
+    IN PVOID pBuffer
     );
 
 #endif // __SSPINTLM_H__

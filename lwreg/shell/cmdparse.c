@@ -139,6 +139,7 @@ static REGSHELL_CMD_ID shellCmds[] = {
     { "delete_value", REGSHELL_CMD_DELETE_VALUE },
     { "delete_tree", REGSHELL_CMD_DELETE_TREE },
     { "set_value", REGSHELL_CMD_SET_VALUE     },
+    { "set_hive", REGSHELL_CMD_SET_HIVE       },
     { "pwd", REGSHELL_CMD_PWD                 },
     { "help", REGSHELL_CMD_HELP               },
     { "exit", REGSHELL_CMD_QUIT               },
@@ -838,6 +839,7 @@ RegShellCmdParse(
             break;
 
         case REGSHELL_CMD_IMPORT:
+        case REGSHELL_CMD_SET_HIVE:
             if (argc != 3)
             {
                 dwError = LW_ERROR_INVALID_CONTEXT;
@@ -1141,6 +1143,12 @@ RegShellCmdlineParseToArgv(
                      */
                     dwArgc += 1;
                     dwAllocSize = dwArgc + 50;
+                }
+                else if (cmdEnum == REGSHELL_CMD_SET_HIVE)
+                {
+                    dwAllocSize = 4;
+                    dwArgc = 2;
+                    state = REGSHELL_CMDLINE_STATE_IMPORT;
                 }
                 else if (cmdEnum == REGSHELL_CMD_IMPORT)
                 {
@@ -1626,11 +1634,15 @@ RegShellUsage(
         "       set_value [[KeyName]] \"ValueName\" type \"Value\" [\"Value2\"] [...] |\n"
         "       list_values [[keyName]] |\n"
         "       delete_value [[KeyName]] \"ValueName\"\n"
+        "       set_hive HIVE_NAME\n"
+        "       import file.reg\n"
         "       exit | ^D\n"
         "\n"
         "         Type: REG_SZ | REG_DWORD | REG_BINARY | REG_MULTI_SZ\n"
         "               REG_DWORD and REG_BINARY values are hexadecimal\n"
         "         Note: cd and pwd only function in interactive mode\n"
+        "         Note: HKEY_LIKEWISE and HKEY_LIKEWISE_IMPORT are the\n"
+        "               only supported hives\n"
         ,progname);
 }
 

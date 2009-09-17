@@ -58,20 +58,21 @@ NtlmServerEncryptMessage(
     DWORD dwError = LW_ERROR_SUCCESS;
     PNTLM_CONTEXT pContext = *phContext;
     DWORD dwIndex = 0;
-    PBYTE pToken = NULL;
-    PBYTE pData = NULL;
-    PBYTE pPadding = NULL;
-    DWORD dwTokenSize = 0;
-    DWORD dwDataSize = 0;
-    DWORD dwPaddingSize = 0;
-    RC4_KEY Rc4Key;
+    // The following pointers point into pMessage and will not be freed
+    PSecBuffer pToken = NULL;
+    PSecBuffer pData = NULL;
 
-    memset(&Rc4Key, 0, sizeof(Rc4Key));
+    // Sanity check to see if we handle sealing
+    if(!(pContext->NegotiatedFlags & NTLM_FLAG_SEAL))
+    {
+        dwError = LW_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     // The message should be in the format of:
     // SECBUFFER_TOKEN      - Where the signature is placed
     // SECBUFFER_DATA       - The data we are signing
-    // SECBUFFER_PADDING    - Padding (for RC4 or CRC32?)
+    // SECBUFFER_PADDING    - Padding (for RC4 or CRC32?) - ignore padding
     //
     // Find these buffers... the first one found of each type will be the one
     // that is used.
@@ -81,42 +82,41 @@ NtlmServerEncryptMessage(
         {
             if (!pToken)
             {
-                pToken = pMessage->pBuffers[dwIndex].pvBuffer;
-                dwTokenSize = pMessage->pBuffers[dwIndex].cbBuffer;
+                pToken = &pMessage->pBuffers[dwIndex];
             }
         }
         else if (pMessage->pBuffers[dwIndex].BufferType == SECBUFFER_DATA)
         {
             if (!pData)
             {
-                pData = pMessage->pBuffers[dwIndex].pvBuffer;
-                dwDataSize = pMessage->pBuffers[dwIndex].cbBuffer;
-            }
-        }
-        else if (pMessage->pBuffers[dwIndex].BufferType == SECBUFFER_PADDING)
-        {
-            if (!pPadding)
-            {
-                pPadding = pMessage->pBuffers[dwIndex].pvBuffer;
-                dwPaddingSize = pMessage->pBuffers[dwIndex].cbBuffer;
+                pData = &pMessage->pBuffers[dwIndex];
             }
         }
     }
 
-    if (dwTokenSize != NTLM_SIGNATURE_SIZE ||
-        !pToken || !pData || !pPadding || !dwDataSize || !dwPaddingSize)
+    // Do a full sanity check here
+    if (!pToken ||
+        pToken->cbBuffer != NTLM_SIGNATURE_SIZE ||
+        !pToken->pvBuffer ||
+        !pData ||
+        !pData->cbBuffer ||
+        !pData->pvBuffer)
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
+    // Sign the original message before sealing it.
+    NtlmMakeSignature(pContext, pData, dwMsgSeqNum, pToken);
+
     if (bEncrypt)
     {
-        RC4_set_key(&Rc4Key, pContext->cbSessionKeyLen, pContext->SessionKey);
-        RC4(&Rc4Key, dwDataSize, pData, pData);
+        RC4(
+            &pContext->SignAndSealKey,
+            pData->cbBuffer,
+            pData->pvBuffer,
+            pData->pvBuffer);
     }
-
-    NtlmMakeSignature(pContext, pData, dwDataSize, dwMsgSeqNum, pToken);
 
 cleanup:
     return dwError;

@@ -41,3 +41,18 @@
  * Authors:
  *
  */
+#include "client.h"
+
+DWORD
+NtlmFreeContextBuffer(
+    IN PVOID pBuffer
+    )
+{
+    DWORD dwError = LW_ERROR_SUCCESS;
+    if (pBuffer)
+    {
+        free(pBuffer);
+    }
+
+    return dwError;
+}

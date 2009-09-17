@@ -155,6 +155,7 @@ error:
 DWORD
 RegShellIsValidKey(
     HANDLE hReg,
+    PSTR pszRootKeyName,
     PSTR pszKey)
 {
     DWORD dwError = 0;
@@ -165,7 +166,7 @@ RegShellIsValidKey(
     BAIL_ON_INVALID_HANDLE(hReg);
     BAIL_ON_INVALID_POINTER(pszKey);
 
-    dwError = RegOpenRootKey(hReg, LIKEWISE_ROOT_KEY, &pRootKey);
+    dwError = RegOpenRootKey(hReg, pszRootKeyName, &pRootKey);
     BAIL_ON_REG_ERROR(dwError);
 
     dwError = LwMbsToWc16s(pszKey, &pSubKey);
@@ -194,6 +195,7 @@ error:
 DWORD
 RegShellUtilAddKey(
     HANDLE hReg,
+    PSTR pszRootKeyName,
     PSTR pszDefaultKey,
     PSTR pszKeyName)
 {
@@ -216,7 +218,7 @@ RegShellUtilAddKey(
                                        &pszSubKey);
     BAIL_ON_REG_ERROR(dwError);
 
-    dwError = RegOpenRootKey(hReg, LIKEWISE_ROOT_KEY, &pRootKey);
+    dwError = RegOpenRootKey(hReg, pszRootKeyName, &pRootKey);
     BAIL_ON_REG_ERROR(dwError);
 
     pCurrentKey = pRootKey;
@@ -269,6 +271,7 @@ error:
 DWORD
 RegShellUtilDeleteKey(
     HANDLE hReg,
+    PSTR pszRootKeyName,
     PSTR pszDefaultKey,
     PSTR keyName)
 {
@@ -288,10 +291,10 @@ RegShellUtilDeleteKey(
                                        &pszSubKey);
     BAIL_ON_REG_ERROR(dwError);
 
-    dwError = RegShellIsValidKey(hReg, pszFullPath+1);
+    dwError = RegShellIsValidKey(hReg, pszRootKeyName, pszFullPath+1);
     BAIL_ON_REG_ERROR(dwError);
 
-    dwError = RegOpenRootKey(hReg, LIKEWISE_ROOT_KEY, &pRootKey);
+    dwError = RegOpenRootKey(hReg, pszRootKeyName, &pRootKey);
     BAIL_ON_REG_ERROR(dwError);
 
     pCurrentKey = pRootKey;
@@ -339,6 +342,7 @@ error:
 DWORD
 RegShellUtilDeleteTree(
     HANDLE hReg,
+    PSTR pszRootKeyName,
     PSTR pszDefaultKey,
     PSTR keyName)
 {
@@ -358,10 +362,10 @@ RegShellUtilDeleteTree(
                                        &pszSubKey);
     BAIL_ON_REG_ERROR(dwError);
 
-    dwError = RegShellIsValidKey(hReg, pszFullPath+1);
+    dwError = RegShellIsValidKey(hReg, pszRootKeyName, pszFullPath+1);
     BAIL_ON_REG_ERROR(dwError);
 
-    dwError = RegOpenRootKey(hReg, LIKEWISE_ROOT_KEY, &pRootKey);
+    dwError = RegOpenRootKey(hReg, pszRootKeyName, &pRootKey);
     BAIL_ON_REG_ERROR(dwError);
 
     pCurrentKey = pRootKey;
@@ -408,6 +412,7 @@ error:
 DWORD
 RegShellUtilGetKeys(
     HANDLE hReg,
+    PSTR pszRootKeyName,
     PSTR pszDefaultKey,
     PSTR keyName,
     LW_WCHAR ***pppRetSubKeys,
@@ -435,7 +440,7 @@ RegShellUtilGetKeys(
                                        NULL);
     BAIL_ON_REG_ERROR(dwError);
 
-    dwError = RegOpenRootKey(hReg, LIKEWISE_ROOT_KEY, &pRootKey);
+    dwError = RegOpenRootKey(hReg, pszRootKeyName, &pRootKey);
     BAIL_ON_REG_ERROR(dwError);
 
     if (pszParentPath && pszParentPath[1])
@@ -545,6 +550,7 @@ error:
 DWORD
 RegShellUtilSetValue(
     HANDLE hReg,
+    PSTR pszRootKeyName,
     PSTR pszDefaultKey,
     PSTR keyName,
     PSTR valueName,
@@ -570,7 +576,7 @@ RegShellUtilSetValue(
                                        NULL);
     BAIL_ON_REG_ERROR(dwError);
 
-    dwError = RegOpenRootKey(hReg, LIKEWISE_ROOT_KEY, &pRootKey);
+    dwError = RegOpenRootKey(hReg, pszRootKeyName, &pRootKey);
     BAIL_ON_REG_ERROR(dwError);
 
     pFullKey = pRootKey;
@@ -667,6 +673,7 @@ error:
 DWORD
 RegShellUtilGetValues(
     HANDLE hReg,
+    PSTR pszRootKeyName,
     PSTR pszDefaultKey,
     PSTR keyName,
     PREGSHELL_UTIL_VALUE *valueArray,
@@ -700,7 +707,7 @@ RegShellUtilGetValues(
                                        NULL);
     BAIL_ON_REG_ERROR(dwError);
 
-    dwError = RegOpenRootKey(hReg, LIKEWISE_ROOT_KEY, &pRootKey);
+    dwError = RegOpenRootKey(hReg, pszRootKeyName, &pRootKey);
     BAIL_ON_REG_ERROR(dwError);
 
     pFullKey = pRootKey;
@@ -811,6 +818,7 @@ error:
 DWORD
 RegShellUtilDeleteValue(
     HANDLE hReg,
+    PSTR pszRootKeyName,
     PSTR pszDefaultKey,
     PSTR keyName,
     PSTR valueName)
@@ -836,7 +844,7 @@ RegShellUtilDeleteValue(
     dwError = LwMbsToWc16s(valueName, &pValueName);
     BAIL_ON_REG_ERROR(dwError);
 
-    dwError = RegOpenRootKey(hReg, LIKEWISE_ROOT_KEY, &pRootKey);
+    dwError = RegOpenRootKey(hReg, pszRootKeyName, &pRootKey);
     BAIL_ON_REG_ERROR(dwError);
 
     dwError = RegDeleteKeyValue(hReg, pRootKey, pSubKey, pValueName);

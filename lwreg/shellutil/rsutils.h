@@ -45,29 +45,34 @@ RegShellCanonicalizePath(
 DWORD
 RegShellIsValidKey(
     HANDLE hReg,
+    PSTR pszRootKeyName,
     PSTR pszKey);
 
 DWORD
 RegShellUtilAddKey(
     HANDLE hReg,
+    PSTR pszRootKeyName,
     PSTR pszDefaultKey,
     PSTR pszKeyName);
 
 DWORD
 RegShellUtilDeleteKey(
     HANDLE hReg,
+    PSTR pszRootKeyName,
     PSTR pszDefaultKey,
     PSTR keyName);
 
 DWORD
 RegShellUtilDeleteTree(
     HANDLE hReg,
+    PSTR pszRootKeyName,
     PSTR pszDefaultKey,
     PSTR keyName);
 
 DWORD
 RegShellUtilGetKeys(
     HANDLE hReg,
+    PSTR pszRootKeyName,
     PSTR pszDefaultKey,
     PSTR keyName,
     LW_WCHAR ***pppRetSubKeys,
@@ -76,6 +81,7 @@ RegShellUtilGetKeys(
 DWORD
 RegShellUtilSetValue(
     HANDLE hReg,
+    PSTR pszRootKeyName,
     PSTR pszDefaultKey,
     PSTR keyName,
     PSTR valueName,
@@ -86,6 +92,7 @@ RegShellUtilSetValue(
 DWORD
 RegShellUtilGetValues(
     HANDLE hReg,
+    PSTR pszRootKeyName,
     PSTR pszDefaultKey,
     PSTR keyName,
     PREGSHELL_UTIL_VALUE *valueArray,
@@ -94,6 +101,7 @@ RegShellUtilGetValues(
 DWORD
 RegShellUtilDeleteValue(
     HANDLE hReg,
+    PSTR pszRootKeyName,
     PSTR pszDefaultKey,
     PSTR keyName,
     PSTR valueName);

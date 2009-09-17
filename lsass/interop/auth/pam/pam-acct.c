@@ -183,6 +183,11 @@ error:
         LSA_LOG_PAM_ERROR("pam_sm_acct_mgmt failed [login:%s][error code:%d]",
                           LSA_SAFE_LOG_STRING(pszLoginId),
                           dwError);
+        if (pszLoginId && !strcmp(pszLoginId, "root"))
+        {
+            dwError = LSA_ERROR_NO_SUCH_USER;
+            LSA_LOG_PAM_ERROR("Converting error to %d for root", dwError);
+        }
     }
 
     goto cleanup;

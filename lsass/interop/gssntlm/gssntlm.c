@@ -46,16 +46,18 @@
 #include <ntlm/gssntlm.h>
 #include <lwerror.h>
 #include <lwmem.h>
+#include <lwdef.h>
+#include <stdarg.h>
+#include <lwstr.h>
 #include <string.h>
+#include <assert.h>
 
-#if 0
 gss_OID_desc gGssNtlmOidDesc = {
     .length = GSS_MECH_NTLM_LEN,
     .elements = GSS_MECH_NTLM
     };
 
 gss_OID gGssNtlmOid = &gGssNtlmOidDesc;
-#endif
 
 #undef BAIL_ON_LW_ERROR
 #define BAIL_ON_LW_ERROR(dwError) \
@@ -477,23 +479,23 @@ static GSS_MECH_CONFIG gNtlmMech =
     NULL, //ntlm_gss_process_context_token,
     ntlm_gss_delete_sec_context,
     NULL, //ntlm_gss_context_time,
-    NULL, //ntlm_gss_get_mic,
-    NULL, //ntlm_gss_verify_mic,
-    NULL, //ntlm_gss_wrap,
-    NULL, //ntlm_gss_unwrap,
+    ntlm_gss_get_mic,
+    ntlm_gss_verify_mic,
+    ntlm_gss_wrap,
+    ntlm_gss_unwrap,
     NULL, //ntlm_gss_display_status,
     NULL, //ntlm_gss_indicate_mechs,
     NULL, //ntlm_gss_compare_name,
-    NULL, //ntlm_gss_display_name,
+    ntlm_gss_display_name,
     ntlm_gss_import_name,
-    NULL, //ntlm_gss_release_name,
+    ntlm_gss_release_name,
     ntlm_gss_inquire_cred,
     NULL, //ntlm_gss_add_cred,
     NULL, //ntlm_gss_export_sec_context,
     NULL, //ntlm_gss_import_sec_context,
     NULL, //ntlm_gss_inquire_cred_by_mech,
     NULL, //ntlm_gss_inquire_names_for_mech,
-    NULL, //ntlm_gss_inquire_context,
+    ntlm_gss_inquire_context,
     NULL, //ntlm_gss_internal_release_oid,
     NULL, //ntlm_gss_wrap_size_limit,
     NULL, //ntlm_gss_export_name,
@@ -536,12 +538,12 @@ ntlm_gss_acquire_cred(
 
     *pOutputCredHandle = (gss_cred_id_t)CredHandle;
 
-    if(pActualMechs)
+    if (pActualMechs)
     {
         *pActualMechs = NULL;
     }
 
-    if(pTimeRec)
+    if (pTimeRec)
     {
         *pTimeRec = 0;
     }
@@ -574,12 +576,12 @@ cleanup:
     *pMinorStatus = MinorStatus;
     *pOutputCredHandle = (gss_cred_id_t)CredHandle;
 
-    if(pActualMechs)
+    if (pActualMechs)
     {
         *pActualMechs = NULL;
     }
 
-    if(pTimeRec)
+    if (pTimeRec)
     {
         *pTimeRec = 0;
     }
@@ -648,18 +650,15 @@ ntlm_gss_init_sec_context(
 {
     OM_uint32 MajorStatus = GSS_S_COMPLETE;
     OM_uint32 MinorStatus = LW_ERROR_SUCCESS;
-    PNTLM_CONTEXT_HANDLE phContext = NULL;
-    PNTLM_CONTEXT_HANDLE phNewContext = NULL;
+    NTLM_CONTEXT_HANDLE hContext = NULL;
+    NTLM_CONTEXT_HANDLE hNewContext = NULL;
     TimeStamp tsExpiry = 0;
     SecBufferDesc InputBuffer = {0};
     SecBufferDesc OutputBuffer = {0};
     SecBuffer InputToken = {0};
     SecBuffer OutputToken = {0};
-
-    *pActualMechType = NULL;
-    memset(pOutputToken, 0, sizeof(*pOutputToken));
-    *pRetFlags = 0;
-    *pTimeRec = 0;
+    NTLM_CRED_HANDLE CredHandle = (NTLM_CRED_HANDLE)InitiatorCredHandle;
+    TimeStamp Expiry = 0;
 
     InputBuffer.cBuffers = 1;
     InputBuffer.pBuffers = &InputToken;
@@ -668,25 +667,49 @@ ntlm_gss_init_sec_context(
     OutputBuffer.pBuffers = &OutputToken;
 
     InputToken.BufferType = SECBUFFER_TOKEN;
-    InputToken.cbBuffer = pInputToken->length;
-    InputToken.pvBuffer = pInputToken->value;
+
+    if(pInputToken)
+    {
+        InputToken.cbBuffer = pInputToken->length;
+        InputToken.pvBuffer = pInputToken->value;
+    }
+
+    if(pContextHandle)
+    {
+        hContext = (NTLM_CONTEXT_HANDLE)*pContextHandle;
+    }
+
+    // if no credentials are passed in, create default creds
+    if(GSS_C_NO_CREDENTIAL == InitiatorCredHandle)
+    {
+        MinorStatus = NtlmClientAcquireCredentialsHandle(
+            NULL,
+            "NTLM",
+            NTLM_CRED_OUTBOUND,
+            NULL,
+            NULL,
+            &CredHandle,
+            &Expiry
+            );
+        BAIL_ON_LW_ERROR(MinorStatus);
+    }
 
     MinorStatus = NtlmClientInitializeSecurityContext(
-        (PNTLM_CRED_HANDLE)(&InitiatorCredHandle),
-        phContext,
+        &CredHandle,
+        &hContext,
         (SEC_CHAR*)pTargetName,
         nReqFlags,
         0, // Reserved
         NTLM_NATIVE_DATA_REP,
         &InputBuffer,
         0, // Reserved
-        phNewContext,
+        &hNewContext,
         &OutputBuffer,
         pRetFlags,
         &tsExpiry
         );
 
-    if(MinorStatus == LW_WARNING_CONTINUE_NEEDED)
+    if (MinorStatus == LW_WARNING_CONTINUE_NEEDED)
     {
         MajorStatus = GSS_S_CONTINUE_NEEDED;
     }
@@ -695,11 +718,41 @@ ntlm_gss_init_sec_context(
         BAIL_ON_LW_ERROR(MinorStatus);
     }
 
-    pOutputToken->length = OutputToken.cbBuffer;
-    pOutputToken->value = OutputToken.pvBuffer;
 
 cleanup:
     *pMinorStatus = MinorStatus;
+
+    if (GSS_C_NO_CREDENTIAL == InitiatorCredHandle && CredHandle)
+    {
+        NtlmClientFreeCredentialsHandle(&CredHandle);
+    }
+
+    if (pOutputToken)
+    {
+        pOutputToken->length = OutputToken.cbBuffer;
+        pOutputToken->value = OutputToken.pvBuffer;
+    }
+
+    if (pActualMechType)
+    {
+        *pActualMechType = gGssNtlmOid;
+    }
+
+    if (pRetFlags)
+    {
+        *pRetFlags = 0;
+    }
+
+    if (pTimeRec)
+    {
+        *pTimeRec = GSS_C_INDEFINITE;
+    }
+
+    if (pContextHandle)
+    {
+        *pContextHandle = (gss_ctx_id_t)hNewContext;
+    }
+
     return MajorStatus;
 error:
     if (MajorStatus == GSS_S_COMPLETE)
@@ -735,19 +788,19 @@ ntlm_gss_accept_sec_context(
 
     *pMinorStatus = LW_ERROR_SUCCESS;
 
-    if(pSrcName)
+    if (pSrcName)
     {
         *pSrcName = NULL;
     }
-    if(pMechType)
+    if (pMechType)
     {
         *pMechType = NULL;
     }
-    if(pTimeRec)
+    if (pTimeRec)
     {
         *pTimeRec = 0;
     }
-    if(pDelegatedCredHandle)
+    if (pDelegatedCredHandle)
     {
         *pDelegatedCredHandle = NULL;
     }
@@ -775,7 +828,7 @@ ntlm_gss_accept_sec_context(
         pTimeRec,
         &tsExpiry);
 
-    if(MinorStatus == LW_WARNING_CONTINUE_NEEDED)
+    if (MinorStatus == LW_WARNING_CONTINUE_NEEDED)
     {
         MajorStatus = GSS_S_CONTINUE_NEEDED;
     }
@@ -842,6 +895,382 @@ error:
 }
 
 OM_uint32
+ntlm_gss_get_mic(
+    OM_uint32* pMinorStatus,
+    gss_ctx_id_t GssCtxtHandle,
+    gss_qop_t Qop,
+    gss_buffer_t Message,
+    gss_buffer_t Token
+    )
+{
+    OM_uint32 MajorStatus = GSS_S_COMPLETE;
+    OM_uint32 MinorStatus = LW_ERROR_SUCCESS;
+    NTLM_CONTEXT_HANDLE ContextHandle = (NTLM_CONTEXT_HANDLE)GssCtxtHandle;
+    SecBufferDesc NtlmMessage = {0};
+    SecBuffer NtlmBuffer[2];
+    PBYTE pNtlmToken = NULL;
+    SecPkgContext_Sizes spcSizes = {0};
+
+    if(Qop != GSS_C_QOP_DEFAULT)
+    {
+        MajorStatus = GSS_S_BAD_QOP;
+        BAIL_ON_LW_ERROR(MajorStatus);
+    }
+
+    MinorStatus = NtlmClientQueryContextAttributes(
+        &ContextHandle,
+        SECPKG_ATTR_SIZES,
+        &spcSizes
+        );
+    BAIL_ON_LW_ERROR(MinorStatus);
+
+    NtlmMessage.cBuffers = 2;
+    NtlmMessage.pBuffers = NtlmBuffer;
+
+    MinorStatus = LwAllocateMemory(
+        spcSizes.cbMaxSignature,
+        OUT_PPVOID(&pNtlmToken));
+    BAIL_ON_LW_ERROR(MinorStatus);
+
+    NtlmBuffer[0].BufferType = SECBUFFER_DATA;
+    NtlmBuffer[0].cbBuffer = Message->length;
+    NtlmBuffer[0].pvBuffer = Message->value;
+
+    NtlmBuffer[1].BufferType = SECBUFFER_TOKEN;
+    NtlmBuffer[1].cbBuffer = spcSizes.cbMaxSignature;
+    NtlmBuffer[1].pvBuffer = pNtlmToken;
+
+    MinorStatus = NtlmClientMakeSignature(
+        &ContextHandle,
+        0,
+        &NtlmMessage,
+        0
+        );
+    BAIL_ON_LW_ERROR(MinorStatus);
+
+cleanup:
+    *pMinorStatus = MinorStatus;
+
+    Token->value = pNtlmToken;
+    if(Token->value)
+    {
+        Token->length = spcSizes.cbMaxSignature;
+    }
+
+    return MajorStatus;
+
+error:
+    LW_SAFE_FREE_MEMORY(pNtlmToken);
+
+    if (MajorStatus == GSS_S_COMPLETE)
+    {
+        MajorStatus = GSS_S_FAILURE;
+    }
+    goto cleanup;
+}
+
+OM_uint32
+ntlm_gss_verify_mic(
+    OM_uint32* pMinorStatus,
+    gss_ctx_id_t GssCtxtHandle,
+    gss_buffer_t Message,
+    gss_buffer_t Token,
+    gss_qop_t* pQop
+    )
+{
+    OM_uint32 MajorStatus = GSS_S_COMPLETE;
+    OM_uint32 MinorStatus = LW_ERROR_SUCCESS;
+    NTLM_CONTEXT_HANDLE ContextHandle = (NTLM_CONTEXT_HANDLE)GssCtxtHandle;
+    SecBufferDesc NtlmMessage = {0};
+    SecBuffer NtlmBuffer[2];
+    BOOLEAN bVerified = 0;
+    BOOLEAN bEncrypted = 0;
+    PNTLM_SIGNATURE pSignature = NULL;
+    gss_qop_t Qop = GSS_C_QOP_DEFAULT;
+
+    NtlmMessage.cBuffers = 2;
+    NtlmMessage.pBuffers = NtlmBuffer;
+
+    NtlmBuffer[0].BufferType = SECBUFFER_DATA;
+    NtlmBuffer[0].cbBuffer = Message->length;
+    NtlmBuffer[0].pvBuffer = Message->value;
+
+    NtlmBuffer[1].BufferType = SECBUFFER_TOKEN;
+    NtlmBuffer[1].cbBuffer = Token->length;
+    NtlmBuffer[1].pvBuffer = Token->value;
+
+    MinorStatus = NtlmClientVerifySignature(
+        &ContextHandle,
+        &NtlmMessage,
+        0,
+        &bVerified,
+        &bEncrypted
+        );
+    BAIL_ON_LW_ERROR(MinorStatus);
+
+    if (bVerified)
+    {
+        pSignature = (PNTLM_SIGNATURE)Token->value;
+
+        if (pSignature->dwVersion == NTLM_VERSION &&
+            pSignature->dwCounterValue == 0 &&
+            pSignature->dwCrc32 == 0 &&
+            pSignature->dwMsgSeqNum == 0)
+        {
+            Qop = GSS_C_QOP_DUMMY_SIG;
+        }
+    }
+    else
+    {
+        MajorStatus = GSS_S_BAD_SIG;
+        BAIL_ON_LW_ERROR(MajorStatus);
+    }
+
+cleanup:
+    if(pQop)
+    {
+        *pQop = Qop;
+    }
+
+    *pMinorStatus = MinorStatus;
+    return MajorStatus;
+
+error:
+    Qop = GSS_C_QOP_DEFAULT;
+
+    if (MajorStatus == GSS_S_COMPLETE)
+    {
+        MajorStatus = GSS_S_FAILURE;
+    }
+    goto cleanup;
+}
+
+OM_uint32
+ntlm_gss_wrap(
+    OM_uint32* pMinorStatus,
+    gss_ctx_id_t GssCtxtHandle,
+    INT nEncrypt,
+    gss_qop_t Qop,
+    gss_buffer_t InputMessage,
+    PINT pEncrypted,
+    gss_buffer_t OutputMessage
+    )
+{
+    OM_uint32 MajorStatus = GSS_S_COMPLETE;
+    OM_uint32 MinorStatus = LW_ERROR_SUCCESS;
+    NTLM_CONTEXT_HANDLE ContextHandle = (NTLM_CONTEXT_HANDLE)GssCtxtHandle;
+    SecBufferDesc Message = {0};
+    SecBuffer NtlmBuffer[2];
+    SecPkgContext_Sizes Sizes = {0};
+    DWORD dwBufferSize = 0;
+    PBYTE pBuffer = NULL;
+    INT nEncrypted = 0;
+
+    Message.cBuffers = 2;
+    Message.pBuffers = NtlmBuffer;
+
+    memset(NtlmBuffer, 0, sizeof(SecBuffer) * Message.cBuffers);
+
+    if(Qop != GSS_C_QOP_DEFAULT)
+    {
+        MajorStatus = GSS_S_BAD_QOP;
+        BAIL_ON_LW_ERROR(MajorStatus);
+    }
+
+    // Since every encrypted message gets a signature, we need to get the size
+    MinorStatus = NtlmClientQueryContextAttributes(
+        &ContextHandle,
+        SECPKG_ATTR_SIZES,
+        &Sizes
+        );
+    BAIL_ON_LW_ERROR(MinorStatus);
+
+    dwBufferSize += Sizes.cbMaxSignature;       // Token
+    dwBufferSize += InputMessage->length;       // Data
+
+    MinorStatus = LwAllocateMemory(dwBufferSize, OUT_PPVOID(&pBuffer));
+    BAIL_ON_LW_ERROR(MinorStatus);
+
+    NtlmBuffer[0].BufferType = SECBUFFER_TOKEN;
+    NtlmBuffer[0].cbBuffer = Sizes.cbMaxSignature;
+    NtlmBuffer[0].pvBuffer = pBuffer;
+
+    NtlmBuffer[1].BufferType = SECBUFFER_DATA;
+    NtlmBuffer[1].cbBuffer = InputMessage->length;
+    NtlmBuffer[1].pvBuffer =
+        (PBYTE)NtlmBuffer[0].pvBuffer + NtlmBuffer[0].cbBuffer;
+
+    memcpy(
+        NtlmBuffer[1].pvBuffer,
+        InputMessage->value,
+        NtlmBuffer[1].cbBuffer);
+
+    MinorStatus = NtlmClientEncryptMessage(
+        &ContextHandle,
+        nEncrypt ? TRUE : FALSE,
+        &Message,
+        0
+        );
+    BAIL_ON_LW_ERROR(MinorStatus);
+
+    if (nEncrypt)
+    {
+        nEncrypted = 1;
+    }
+
+cleanup:
+    OutputMessage->value = pBuffer;
+    OutputMessage->length = dwBufferSize;
+
+    if (pEncrypted)
+    {
+        *pEncrypted = nEncrypted;
+    }
+
+    *pMinorStatus = MinorStatus;
+    return MajorStatus;
+
+error:
+    LW_SAFE_FREE_MEMORY(pBuffer);
+    dwBufferSize = 0;
+
+    nEncrypted = 0;
+
+    if (MajorStatus == GSS_S_COMPLETE)
+    {
+        MajorStatus = GSS_S_FAILURE;
+    }
+    goto cleanup;
+}
+
+OM_uint32
+ntlm_gss_unwrap(
+    OM_uint32* pMinorStatus,
+    gss_ctx_id_t GssCtxtHandle,
+    gss_buffer_t InputMessage,
+    gss_buffer_t OutputMessage,
+    PINT pEncrypted,
+    gss_qop_t* pQop
+    )
+{
+    OM_uint32 MajorStatus = GSS_S_COMPLETE;
+    OM_uint32 MinorStatus = LW_ERROR_SUCCESS;
+    NTLM_CONTEXT_HANDLE ContextHandle = (NTLM_CONTEXT_HANDLE)GssCtxtHandle;
+    SecBufferDesc Message;
+    SecBuffer NtlmBuffer[2];
+    PBYTE pBuffer = NULL;
+    DWORD dwBufferSize = 0;
+    BOOLEAN bEncrypted = FALSE;
+    SecPkgContext_Sizes Sizes = {0};
+
+    LW_ASSERT(InputMessage);
+
+    Message.cBuffers = 2;
+    Message.pBuffers = NtlmBuffer;
+
+    memset(NtlmBuffer, 0, sizeof(SecBuffer) * Message.cBuffers);
+
+    // Since every encrypted message gets a signature, we need to get the size
+    MinorStatus = NtlmClientQueryContextAttributes(
+        &ContextHandle,
+        SECPKG_ATTR_SIZES,
+        &Sizes
+        );
+    BAIL_ON_LW_ERROR(MinorStatus);
+
+    LW_ASSERT(InputMessage->length > Sizes.cbMaxSignature);
+
+    dwBufferSize = InputMessage->length - Sizes.cbMaxSignature;
+
+    MinorStatus = LwAllocateMemory(
+        dwBufferSize,
+        OUT_PPVOID(&pBuffer));
+    BAIL_ON_LW_ERROR(MinorStatus);
+
+    memcpy(
+        pBuffer,
+        (PBYTE)InputMessage->value + Sizes.cbMaxSignature,
+        dwBufferSize);
+
+    // We should be getting in a blob containing a signature and data... no size
+    // information.  We place these values into a SECBUFFER_TOKEN and a
+    // SECBUFFER_DATA (see ntlm_gss_wrap for how these get packaged
+    // together).  Then we send them to the decryptor.
+    NtlmBuffer[0].BufferType = SECBUFFER_TOKEN;
+    NtlmBuffer[0].cbBuffer = Sizes.cbMaxSignature;
+    NtlmBuffer[0].pvBuffer = InputMessage->value;
+
+    NtlmBuffer[1].BufferType = SECBUFFER_DATA;
+    NtlmBuffer[1].cbBuffer = dwBufferSize;
+    NtlmBuffer[1].pvBuffer = pBuffer;
+
+    MinorStatus = NtlmClientDecryptMessage(
+        &ContextHandle,
+        &Message,
+        0,
+        &bEncrypted
+        );
+    BAIL_ON_LW_ERROR(MinorStatus);
+
+cleanup:
+    LW_SAFE_FREE_MEMORY(pBuffer);
+
+    OutputMessage->value = NtlmBuffer[1].pvBuffer;
+    OutputMessage->length = NtlmBuffer[1].cbBuffer;
+
+    *pMinorStatus = MinorStatus;
+    return MajorStatus;
+
+error:
+    LW_SAFE_FREE_MEMORY(NtlmBuffer[1].pvBuffer);
+    NtlmBuffer[1].cbBuffer = 0;
+
+    if (MajorStatus == GSS_S_COMPLETE)
+    {
+        MajorStatus = GSS_S_FAILURE;
+    }
+    goto cleanup;
+}
+
+OM_uint32
+ntlm_gss_display_name(
+    OM_uint32* pMinorStatus,
+    gss_name_t pGssName,
+    gss_buffer_t pOutputName,
+    gss_OID* ppNameType
+    )
+{
+    OM_uint32 MajorStatus = GSS_S_COMPLETE;
+    OM_uint32 MinorStatus = LW_ERROR_SUCCESS;
+    gss_buffer_t pName = (gss_buffer_t)pGssName;
+
+    if (pName && pOutputName)
+    {
+        MinorStatus = LwAllocateMemory(pName->length, &pOutputName->value);
+        BAIL_ON_LW_ERROR(MinorStatus);
+
+        pOutputName->length = pName->length;
+        memcpy(pOutputName->value, pName->value, pOutputName->length);
+    }
+
+    if (ppNameType)
+    {
+        *ppNameType = GSS_C_NT_HOSTBASED_SERVICE;
+    }
+
+cleanup:
+    *pMinorStatus = MinorStatus;
+    return MajorStatus;
+
+error:
+    if (MajorStatus == GSS_S_COMPLETE)
+    {
+        MajorStatus = GSS_S_FAILURE;
+    }
+    goto cleanup;
+}
+
+OM_uint32
 ntlm_gss_import_name(
     OM_uint32* pMinorStatus,
     const gss_buffer_t InputNameBuffer,
@@ -853,15 +1282,6 @@ ntlm_gss_import_name(
     OM_uint32 MinorStatus = LW_ERROR_SUCCESS;
 
     *pOutputName = GSS_C_NO_NAME;
-
-    // formats we will have to potentially handle
-    // GSS_C_NT_USER_NAME - principal@realm
-    // GSS_C_NT_HOSTBASED_SERVICE - service@host
-    // gss_nt_krb5_name - principal@realm
-    // gss_nt_krb5_principal
-    // GSS_C_NO_OID
-    //
-    // We need one like gss_nt_ntlm_name - NETBios\user@realm
 
     BAIL_ON_LW_ERROR(MinorStatus);
 
@@ -877,17 +1297,24 @@ error:
 }
 
 OM_uint32
-ntlm_gss_release_buffer(
+ntlm_gss_release_name(
     OM_uint32* pMinorStatus,
-    gss_buffer_t pBuffer
+    gss_name_t* ppName
     )
 {
-    // According to RFC 2744, this function should not fail
-    if (pBuffer)
+    gss_buffer_t pName = NULL;
+
+    if (ppName)
     {
-        LW_SAFE_FREE_MEMORY(pBuffer->value);
-        pBuffer->value = NULL;
-        pBuffer->length = 0;
+        pName = (gss_buffer_t)*ppName;
+
+        if (pName && pName->length && pName->value)
+        {
+            LW_SAFE_FREE_MEMORY(pName->value);
+            pName->length = 0;
+        }
+
+        *ppName = GSS_C_NO_NAME;
     }
 
     *pMinorStatus = LW_ERROR_SUCCESS;
@@ -904,24 +1331,114 @@ ntlm_gss_inquire_cred(
     gss_OID_set* pMechs
     )
 {
-    if(pName)
+    if (pName)
     {
         *pName = GSS_C_NO_NAME;
     }
-    if(pLifeTime)
+    if (pLifeTime)
     {
         *pLifeTime = 0;
     }
-    if(pCredUsage)
+    if (pCredUsage)
     {
         *pCredUsage = 0;
     }
-    if(pMechs)
+    if (pMechs)
     {
         *pMechs = GSS_C_NO_OID_SET;
     }
 
     return GSS_S_COMPLETE;
+}
+
+OM_uint32
+ntlm_gss_inquire_context(
+    OM_uint32* pMinorStatus,
+    gss_ctx_id_t GssCtxtHandle,
+    gss_name_t* ppSourceName,
+    gss_name_t* ppTargetName,
+    OM_uint32* pLifeTime,
+    gss_OID* pMechType,
+    OM_uint32* pCtxtFlags,
+    PINT pLocal,
+    PINT pOpen
+    )
+{
+    OM_uint32 MajorStatus = GSS_S_COMPLETE;
+    OM_uint32 MinorStatus = LW_ERROR_SUCCESS;
+    gss_buffer_t pUserName = NULL;
+    NTLM_CONTEXT_HANDLE NtlmCtxtHandle = (NTLM_CONTEXT_HANDLE)GssCtxtHandle;
+    SecPkgContext_Names Names = { 0 };
+    gss_name_t pSourceName = NULL;
+
+    if (ppTargetName || pCtxtFlags || pLocal || pOpen)
+    {
+        MinorStatus = LW_ERROR_NOT_SUPPORTED;
+        BAIL_ON_LW_ERROR(MinorStatus);
+    }
+
+    if (ppSourceName)
+    {
+        MinorStatus = NtlmClientQueryContextAttributes(
+            &NtlmCtxtHandle,
+            SECPKG_ATTR_NAMES,
+            &Names);
+        BAIL_ON_LW_ERROR(MinorStatus);
+
+        MinorStatus = LwAllocateMemory(
+            sizeof(*pUserName),
+            OUT_PPVOID(&pUserName));
+        BAIL_ON_LW_ERROR(MinorStatus);
+
+        MinorStatus = LwAllocateString(
+            Names.pUserName,
+            (PSTR*)(PSTR)(&pUserName->value));
+        BAIL_ON_LW_ERROR(MinorStatus);
+
+        pUserName->length = strlen(pUserName->value);
+
+        pSourceName = (gss_name_t)pUserName;
+        pUserName = NULL;
+    }
+
+cleanup:
+    if(Names.pUserName)
+    {
+        NtlmFreeContextBuffer(Names.pUserName);
+    }
+
+    if(pUserName)
+    {
+        LW_SAFE_FREE_MEMORY(pUserName->value);
+        LW_SAFE_FREE_MEMORY(pUserName);
+    }
+
+    if (ppSourceName)
+    {
+        *ppSourceName = pSourceName;
+    }
+
+    if (pLifeTime)
+    {
+        *pLifeTime = GSS_C_INDEFINITE;
+    }
+
+    if (pMechType)
+    {
+        *pMechType = gGssNtlmOid;
+    }
+
+    return MajorStatus;
+
+error:
+    if (MajorStatus == GSS_S_COMPLETE)
+    {
+        MajorStatus = GSS_S_FAILURE;
+    }
+
+    ntlm_gss_release_name(&MinorStatus, &pSourceName);
+
+    goto cleanup;
 }
 
 OM_uint32
@@ -943,12 +1460,12 @@ ntlm_gss_inquire_sec_context_by_oid(
     gss_buffer_t pBuffer = NULL;
 
     MinorStatus = LwAllocateMemory(
-        sizeof(gss_buffer_set_desc),
+        sizeof(*pBufferSet),
         OUT_PPVOID(&pBufferSet));
     BAIL_ON_LW_ERROR(MinorStatus);
 
     MinorStatus = LwAllocateMemory(
-        sizeof(gss_buffer_desc),
+        sizeof(*pBuffer),
         OUT_PPVOID(&pBuffer));
     BAIL_ON_LW_ERROR(MinorStatus);
 

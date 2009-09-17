@@ -62,10 +62,13 @@
 #define GSS_MECH_NTLM       "\x2b\x06\x01\x04\x01\x82\x37\x02\x02\x0a"
 #define GSS_MECH_NTLM_LEN   10
 
+#define GSS_C_QOP_DUMMY_SIG 1
+
 //******************************************************************************
 //
 // E X T E R N S
 //
+extern gss_OID gGssNtlmOid;
 
 //******************************************************************************
 //
@@ -74,77 +77,143 @@
 
 OM_uint32
 ntlm_gss_acquire_cred(
-    OM_uint32 *minor_status,
-    const gss_name_t desired_name,
-    OM_uint32 time_req,
-    const gss_OID_set desired_mechs,
-    gss_cred_usage_t cred_usage,
-    gss_cred_id_t *output_cred_handle,
-    gss_OID_set *actual_mechs,
-    OM_uint32 *time_rec
+    OM_uint32* pMinorStatus,
+    const gss_name_t pDesiredName,
+    OM_uint32 nTimeReq,
+    const gss_OID_set pDesiredMechs,
+    gss_cred_usage_t CredUsage,
+    gss_cred_id_t* pOutputCredHandle,
+    gss_OID_set* pActualMechs,
+    OM_uint32 *pTimeRec
     );
 
 OM_uint32
 ntlm_gss_release_cred(
-    OM_uint32 *minor_status,
-    gss_cred_id_t *cred_handle
+    OM_uint32* pMinorStatus,
+    gss_cred_id_t* pCredHandle
     );
 
 OM_uint32
 ntlm_gss_init_sec_context(
-    OM_uint32 *minor_status,
-    const gss_cred_id_t initiator_cred_handle,
-    gss_ctx_id_t *context_handle,
-    const gss_name_t target_name,
-    const gss_OID mech_type,
-    OM_uint32 req_flags,
-    OM_uint32 time_req,
-    const gss_channel_bindings_t input_chan_bindings,
-    const gss_buffer_t input_token,
-    gss_OID *actual_mech_type,
-    gss_buffer_t output_token,
-    OM_uint32 *ret_flags,
-    OM_uint32 *time_rec
+    OM_uint32* pMinorStatus,
+    const gss_cred_id_t InitiatorCredHandle,
+    gss_ctx_id_t* pContextHandle,
+    const gss_name_t pTargetName,
+    const gss_OID pMechType,
+    OM_uint32 nReqFlags,
+    OM_uint32 nTimeReq,
+    const gss_channel_bindings_t pInputChanBindings,
+    const gss_buffer_t pInputToken,
+    gss_OID* pActualMechType,
+    gss_buffer_t pOutputToken,
+    OM_uint32* pRetFlags,
+    OM_uint32* pTimeRec
     );
 
 OM_uint32
 ntlm_gss_accept_sec_context(
-    OM_uint32 *minor_status,
-    gss_ctx_id_t *context_handle,
-    const gss_cred_id_t acceptor_cred_handle,
-    const gss_buffer_t input_token_buffer,
-    const gss_channel_bindings_t input_chan_bindings,
-    gss_name_t *src_name,
-    gss_OID *mech_type,
-    gss_buffer_t output_token,
-    OM_uint32 *ret_flags,
-    OM_uint32 *time_rec,
-    gss_cred_id_t *delegated_cred_handle
+    OM_uint32* pMinorStatus,
+    gss_ctx_id_t *pContextHandle,
+    const gss_cred_id_t AcceptorCredHandle,
+    const gss_buffer_t pInputTokenBuffer,
+    const gss_channel_bindings_t pInputChanBindings,
+    gss_name_t* pSrcName,
+    gss_OID* pMechType,
+    gss_buffer_t pOutputToken,
+    OM_uint32* pRetFlags,
+    OM_uint32* pTimeRec,
+    gss_cred_id_t* pDelegatedCredHandle
     );
 
 OM_uint32
 ntlm_gss_delete_sec_context(
-    OM_uint32 *minor_status,
-    gss_ctx_id_t *context_handle,
-    gss_buffer_t output_token
+    OM_uint32* pMinorStatus,
+    gss_ctx_id_t* pContextHandle,
+    gss_buffer_t OutputToken
+    );
+
+OM_uint32
+ntlm_gss_display_name(
+    OM_uint32* pMinorStatus,
+    gss_name_t pGssName,
+    gss_buffer_t pOutputName,
+    gss_OID* ppNameType
+    );
+
+OM_uint32
+ntlm_gss_get_mic(
+    OM_uint32* pMinorStatus,
+    gss_ctx_id_t GssCtxtHandle,
+    gss_qop_t Qop,
+    gss_buffer_t Message,
+    gss_buffer_t Token
+    );
+
+OM_uint32
+ntlm_gss_verify_mic(
+    OM_uint32* pMinorStatus,
+    gss_ctx_id_t GssCtxtHandle,
+    gss_buffer_t Message,
+    gss_buffer_t Token,
+    gss_qop_t* pQop
+    );
+
+OM_uint32
+ntlm_gss_wrap(
+    OM_uint32* pMinorStatus,
+    gss_ctx_id_t GssCtxtHandle,
+    INT nEncrypt,
+    gss_qop_t Qop,
+    gss_buffer_t InputMessage,
+    PINT ActualQop,
+    gss_buffer_t OutputMessage
+    );
+
+OM_uint32
+ntlm_gss_unwrap(
+    OM_uint32* pMinorStatus,
+    gss_ctx_id_t GssCtxtHandle,
+    gss_buffer_t InputMessage,
+    gss_buffer_t OutMessage,
+    PINT pEncrypted,
+    gss_qop_t* pQop
     );
 
 OM_uint32
 ntlm_gss_import_name(
-    OM_uint32 *minor_status,
-    const gss_buffer_t input_name_buffer,
-    const gss_OID input_name_type,
-    gss_name_t *output_name
+    OM_uint32* pMinorStatus,
+    const gss_buffer_t InputNameBuffer,
+    const gss_OID InputNameType,
+    gss_name_t* pOutputName
+    );
+
+OM_uint32
+ntlm_gss_release_name(
+    OM_uint32* pMinorStatus,
+    gss_name_t* pName
     );
 
 OM_uint32
 ntlm_gss_inquire_cred(
-    OM_uint32 *minor_status,
-    const gss_cred_id_t cred_handle,
-    gss_name_t *name,
-    OM_uint32 *lifetime,
-    gss_cred_usage_t *cred_usage,
-    gss_OID_set *mechanisms
+    OM_uint32* pMinorStatus,
+    const gss_cred_id_t CredHandle,
+    gss_name_t* pName,
+    OM_uint32* pLifeTime,
+    gss_cred_usage_t* pCredUsage,
+    gss_OID_set* pMechs
+    );
+
+OM_uint32
+ntlm_gss_inquire_context(
+    OM_uint32* pMinorStatus,
+    gss_ctx_id_t GssCtxtHandle,
+    gss_name_t* ppSourceName,
+    gss_name_t* pTargetName,
+    OM_uint32* pLifeTime,
+    gss_OID* pMechType,
+    OM_uint32* pCtxtFlags,
+    PINT pLocal,
+    PINT pOpen
     );
 
 OM_uint32
@@ -152,7 +221,7 @@ ntlm_gss_inquire_sec_context_by_oid(
     OM_uint32* pMinorStatus,
     const gss_ctx_id_t GssCtxtHandle,
     const gss_OID Attrib,
-    gss_buffer_set_t*
+    gss_buffer_set_t* ppBufferSet
     );
 
 #endif /* __GSSNTLM_H__ */
