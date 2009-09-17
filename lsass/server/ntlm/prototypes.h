@@ -103,10 +103,9 @@ NtlmServerEncryptMessage(
 VOID
 NtlmMakeSignature(
     IN PNTLM_CONTEXT pContext,
-    IN PBYTE pData,
-    IN DWORD dwDataSize,
+    IN PSecBuffer pData,
     IN DWORD dwMsgSeqNum,
-    IN OUT PBYTE pToken
+    IN OUT PSecBuffer pToken
     );
 
 DWORD

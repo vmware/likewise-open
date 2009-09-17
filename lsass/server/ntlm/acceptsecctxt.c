@@ -252,6 +252,11 @@ NtlmCreateValidatedContext(
     memcpy(pNtlmContext->SessionKey, pSessionKey, NTLM_SESSION_KEY_SIZE);
     pNtlmContext->cbSessionKeyLen = dwSessionKeyLen;
 
+    RC4_set_key(
+        &pNtlmContext->SignAndSealKey,
+        pNtlmContext->cbSessionKeyLen,
+        pNtlmContext->SessionKey);
+
 cleanup:
     *ppNtlmContext = pNtlmContext;
     return dwError;

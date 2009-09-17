@@ -296,6 +296,11 @@ NtlmCreateResponseContext(
     pNtlmContext->pMessage = pMessage;
     pNtlmContext->NtlmState = NtlmStateResponse;
 
+    RC4_set_key(
+        &pNtlmContext->SignAndSealKey,
+        pNtlmContext->cbSessionKeyLen,
+        pNtlmContext->SessionKey);
+
 cleanup:
     LW_SAFE_FREE_STRING(pUserName);
 

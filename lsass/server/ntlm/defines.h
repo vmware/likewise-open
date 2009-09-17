@@ -45,7 +45,6 @@
 #ifndef __DEFINES_H__
 #define __DEFINES_H__
 
-//#define MAP_LWMSG_ERROR(_e_) ((_e_) ? NtlmMapLwmsgStatus(_e_) : 0)
 #define MAP_LWNET_ERROR(_e_) ((_e_) ? LWMSG_STATUS_ERROR : LWMSG_STATUS_SUCCESS)
 
 // Message signature and sizes
@@ -88,6 +87,8 @@
 #define NTLM_SESSION_KEY_SIZE           16
 #define NTLM_SIGNATURE_SIZE             16
 #define NTLM_LM_DES_STRING              "KGS!@#$%"
+
+#define NTLM_COUNTER_VALUE              0x78010900
 
 #define NTLM_INITIAL BLOB_SIZE          32
 
