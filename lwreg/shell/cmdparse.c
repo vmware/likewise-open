@@ -370,6 +370,7 @@ RegShellImportBinaryString(
     REGSHELL_HEXSTRING_STATE_E state = REGSHELL_HEX_START;
     PCHAR cursor = NULL;
     DWORD hexDigitCount = 0;
+    DWORD hexDigitModCount = 0;
     PUCHAR binaryValue = NULL;
     DWORD binaryValueLen = 0;
 
@@ -381,6 +382,12 @@ RegShellImportBinaryString(
                                (LW_PVOID) &binaryValue);
     BAIL_ON_REG_ERROR(dwError);
 
+    if (strlen(pszHexString) % 2)
+    {
+        pszHexArray[0] = '0';
+        pszHexArray[1] = '\0';
+        hexDigitModCount = 1;
+    }
     cursor = pszHexString;
     do
     {
@@ -399,7 +406,8 @@ RegShellImportBinaryString(
         switch (state)
         {
             case REGSHELL_HEX_START:
-                hexDigitCount = 0;
+                hexDigitCount = hexDigitModCount;
+                hexDigitModCount = 0;
                 if (*cursor == ' ')
                 {
                     state = REGSHELL_HEX_LEADING_SPACE;
@@ -991,7 +999,6 @@ RegShellCmdlineParseToArgv(
     REGSHELL_CMD_E cmdEnum = 0;
     DWORD dwArgc = 1;
     DWORD dwAllocSize = 1;
-    DWORD dwBinarySize = 0;
     PSTR *pszArgv = NULL;
     REG_DATA_TYPE valueType = REG_UNKNOWN;
     PSTR pszBinaryData = NULL;
@@ -1468,26 +1475,11 @@ RegShellCmdlineParseToArgv(
                     }
                     else if (valueType == REG_BINARY)
                     {
-                        dwBinarySize =
-                            strlen(&pszBinaryData[dwBinaryDataOffset]);
-                        if (dwBinarySize%2)
-                        {
-                            dwError = LwAllocateMemory(
-                                          dwBinarySize+2,
-                                          (LW_PVOID) &pszArgv[dwArgc]);
-                            BAIL_ON_REG_ERROR(dwError);
-                            strcpy(pszArgv[dwArgc], "0");
-                            strcat(pszArgv[dwArgc],
-                                   &pszBinaryData[dwBinaryDataOffset]);
-                            dwArgc++;
-                        }
-                        else
-                        {
-                            dwError = LwAllocateString(
-                                          &pszBinaryData[dwBinaryDataOffset],
-                                          &pszArgv[dwArgc++]);
-                            BAIL_ON_REG_ERROR(dwError);
-                        }
+                        dwError = LwAllocateString(
+                                      &pszBinaryData[dwBinaryDataOffset],
+                                      &pszArgv[dwArgc++]);
+                        BAIL_ON_REG_ERROR(dwError);
+
                         /*
                          * Force a stop now, as the parser will return
                          * subsequent hex pairs, which is not what we want.
