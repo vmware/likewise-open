@@ -636,9 +636,9 @@ NtlmCreateChallengeMessage(
     // NTLM_FLAG_TYPE_SHARE - The authentication target is a network share (?).
     //                        Odd.
     // NTLM_FLAG_NTLM2      - At this point we only support NTLMv1 and NTLMv2
-    // NTLM_FLAG_128        - This is only used for NTLM2 (not supported)
-    dwOptions |= NTLM_FLAG_NTLM |  // we support NTLM
-                 NTLM_FLAG_56; // we support 56 bit encryption
+    dwOptions |= NTLM_FLAG_NTLM | // we support NTLM
+                 NTLM_FLAG_128  | // NON-lanman keys are not weakened
+                 NTLM_FLAG_56;    // we support 56 bit encryption
 
     // These options are being set now simply because they appear to be
     // required for authentication to work
