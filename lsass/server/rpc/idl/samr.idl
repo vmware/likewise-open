@@ -100,7 +100,14 @@ cpp_quote("#endif")
         );
 
     NTSTATUS _samr_Function02();
-    NTSTATUS _samr_Function03();
+
+    /* function 0x03 */
+    NTSTATUS __SamrQuerySecurity(
+        [in,context_handle] void *hObject,
+        [in] uint32 security_info,
+        [out] PSECURITY_DESCRIPTOR_BUFFER *secdesc
+        );
+
     NTSTATUS _samr_Function04();
 
     /* function 0x05 */
@@ -275,6 +282,7 @@ cpp_quote("#endif")
         [out,switch_is(level)] UserInfo **info
         );
 
+    /* function 0x25 */
     NTSTATUS __SamrSetUserInfo(
         [in] ACCOUNT_HANDLE hAccount,
         [in] uint16 level,
