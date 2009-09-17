@@ -989,6 +989,7 @@ RegShellCmdlineParseToArgv(
     REGSHELL_CMD_E cmdEnum = 0;
     DWORD dwArgc = 1;
     DWORD dwAllocSize = 1;
+    DWORD dwBinarySize = 0;
     PSTR *pszArgv = NULL;
     REG_DATA_TYPE valueType = REG_UNKNOWN;
     PSTR pszBinaryData = NULL;
@@ -1459,9 +1460,26 @@ RegShellCmdlineParseToArgv(
                     }
                     else if (valueType == REG_BINARY)
                     {
-                        dwError = LwAllocateString(
-                                      &pszBinaryData[dwBinaryDataOffset],
-                                      &pszArgv[dwArgc++]);
+                        dwBinarySize =
+                            strlen(&pszBinaryData[dwBinaryDataOffset]);
+                        if (dwBinarySize%2)
+                        {
+                            dwError = LwAllocateMemory(
+                                          dwBinarySize+2,
+                                          (LW_PVOID) &pszArgv[dwArgc]);
+                            BAIL_ON_REG_ERROR(dwError);
+                            strcpy(pszArgv[dwArgc], "0");
+                            strcat(pszArgv[dwArgc],
+                                   &pszBinaryData[dwBinaryDataOffset]);
+                            dwArgc++;
+                        }
+                        else
+                        {
+                            dwError = LwAllocateString(
+                                          &pszBinaryData[dwBinaryDataOffset],
+                                          &pszArgv[dwArgc++]);
+                            BAIL_ON_REG_ERROR(dwError);
+                        }
                         /*
                          * Force a stop now, as the parser will return
                          * subsequent hex pairs, which is not what we want.

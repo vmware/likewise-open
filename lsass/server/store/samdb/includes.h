@@ -36,6 +36,7 @@
 #include <uuid/uuid.h>
 
 #include <lw/base.h>
+#include <lwrpc/samrflags.h>
 
 #include "lsa/lsa.h"
 
@@ -62,6 +63,7 @@
 #include "samdbuser.h"
 #include "samdbgroup.h"
 #include "samdbattrlookup.h"
+#include "samdbsecurity.h"
 
 #include "externs.h"
 

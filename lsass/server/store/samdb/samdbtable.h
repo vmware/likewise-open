@@ -49,7 +49,7 @@
 #ifndef __SAM_DB_TABLE_H__
 #define __SAM_DB_TABLE_H__
 
-#define SAM_DB_SCHEMA_VERSION 1
+#define SAM_DB_SCHEMA_VERSION 3
 
 #if !defined(SAM_DB_UID_RID_OFFSET)
 #define SAM_DB_UID_RID_OFFSET     (1000)
@@ -73,6 +73,7 @@
 #define SAM_DB_COL_GROUP_RECORD_ID       "GroupRecordId"
 #define SAM_DB_COL_MEMBER_RECORD_ID      "MemberRecordId"
 #define SAM_DB_COL_OBJECT_SID            "ObjectSID"
+#define SAM_DB_COL_SECURITY_DESCRIPTOR   "SecurityDescriptor"
 #define SAM_DB_COL_DISTINGUISHED_NAME    "DistinguishedName"
 #define SAM_DB_COL_PARENT_DN             "ParentDN"
 #define SAM_DB_COL_OBJECT_CLASS          "ObjectClass"
@@ -136,6 +137,7 @@
     "CREATE TABLE " SAM_DB_OBJECTS_TABLE " (\n"                                \
                  SAM_DB_COL_RECORD_ID " INTEGER PRIMARY KEY AUTOINCREMENT,\n"  \
                  SAM_DB_COL_OBJECT_SID            " TEXT COLLATE NOCASE,\n"    \
+                 SAM_DB_COL_SECURITY_DESCRIPTOR   " BLOB,\n"                   \
                  SAM_DB_COL_DISTINGUISHED_NAME    " TEXT COLLATE NOCASE,\n"    \
                  SAM_DB_COL_PARENT_DN             " TEXT,\n"                   \
                  SAM_DB_COL_OBJECT_CLASS          " INTEGER,\n"                \
@@ -235,7 +237,8 @@ typedef enum
     SAMDB_ATTR_TYPE_INT64,
     SAMDB_ATTR_TYPE_BOOLEAN,
     SAMDB_ATTR_TYPE_BLOB,
-    SAMDB_ATTR_TYPE_DATETIME
+    SAMDB_ATTR_TYPE_DATETIME,
+    SAMDB_ATTR_TYPE_SECURITY_DESCRIPTOR
 } SAMDB_ATTR_TYPE;
 
 #define SAM_DB_DIR_ATTR_NAME_MAX_LEN 32
@@ -246,6 +249,8 @@ typedef enum
     {'O','b','j','e','c','t','R','e','c','o','r','d','I','d',0}
 #define SAM_DB_DIR_ATTR_OBJECT_SID \
     {'O','b','j','e','c','t','S','I','D',0}
+#define SAM_DB_DIR_ATTR_SECURITY_DESCRIPTOR \
+    {'S','e','c','u','r','i','t','y','D','e','s','c','r','i','p','t','o','r',0}
 #define SAM_DB_DIR_ATTR_DISTINGUISHED_NAME  \
     {'D','i','s','t','i','n','g','u','i','s','h','e','d','N','a','m','e',0}
 #define SAM_DB_DIR_ATTR_PARENT_DN \
@@ -394,6 +399,14 @@ typedef struct _SAM_DB_ATTRIBUTE_MAP
         SAM_DB_DIR_ATTR_OBJECT_SID,           \
         SAM_DB_COL_OBJECT_SID,                \
         SAMDB_ATTR_TYPE_TEXT,                 \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_QUERYABLE                   \
+    },                                        \
+    {                                         \
+        SAM_DB_DIR_ATTR_SECURITY_DESCRIPTOR,  \
+        SAM_DB_COL_SECURITY_DESCRIPTOR,       \
+        SAMDB_ATTR_TYPE_SECURITY_DESCRIPTOR,  \
         SAM_DB_IS_NOT_A_ROW_ID,               \
         SAM_DB_IS_NOT_MULTI_VALUED,           \
         SAM_DB_IS_QUERYABLE                   \
@@ -831,6 +844,11 @@ typedef struct _SAMDB_ATTRIBUTE_MAP_INFO
     },                                                            \
     {                                                             \
         SAM_DB_DIR_ATTR_OBJECT_SID,                               \
+        (SAM_DB_ATTR_FLAGS_MANDATORY |                            \
+         SAM_DB_ATTR_FLAGS_GENERATE_IF_NOT_SPECIFIED)             \
+    },                                                            \
+    {                                                             \
+        SAM_DB_DIR_ATTR_SECURITY_DESCRIPTOR,                      \
         (SAM_DB_ATTR_FLAGS_MANDATORY |                            \
          SAM_DB_ATTR_FLAGS_GENERATE_IF_NOT_SPECIFIED)             \
     },                                                            \

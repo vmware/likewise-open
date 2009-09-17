@@ -115,4 +115,11 @@ SamrSrvFreeUnicodeStringEx(
     );
 
 
+NTSTATUS
+SamrSrvAllocateSecDescBuffer(
+    PSECURITY_DESCRIPTOR_BUFFER *ppBuffer,
+    POCTET_STRING                pBlob
+    );
+
+
 #endif /* _SAMRSRV_MEMORY_H_ */

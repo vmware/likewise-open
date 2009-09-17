@@ -42,10 +42,11 @@
  *          Adam Bernstein (abernstein@likewise.com)
  *
  */
-#include "regshell.h"
+#include "rsutils.h"
 #include <../parse/includes.h>
 #include <regclient.h>
 #include <reg/reg.h>
+
 
 static
 DWORD
@@ -69,13 +70,13 @@ ProcessImportedKeyName(
     PSTR pszStrTokSav = NULL;
     HKEY hCurrKey = NULL;
     PSTR pszKeyNameCopy = NULL;
+    BOOLEAN bIsRootKey = TRUE;
 
 
     dwError = LwAllocateString(pszKeyName, &pszKeyNameCopy);
     BAIL_ON_REG_ERROR(dwError);
 
     pszKeyToken = strtok_r (pszKeyNameCopy, pszDelim, &pszStrTokSav);
-
     if (!LW_IS_NULL_OR_EMPTY_STR(pszKeyToken))
     {
         if (!strcmp(pszKeyToken, LIKEWISE_ROOT_KEY))
@@ -135,14 +136,9 @@ ProcessImportedKeyName(
 
             LW_SAFE_FREE_MEMORY(pSubKey);
 
-            if (hCurrKey)
-            {
-              dwError = RegCloseKey(hReg,hCurrKey);
-              BAIL_ON_REG_ERROR(dwError);
-              hCurrKey = NULL;
-            }
-
             hCurrKey = pNewKey;
+            pNewKey = NULL;
+            bIsRootKey = FALSE;
         }
     }
 
@@ -168,7 +164,7 @@ ProcessImportedKeyName(
 
         LW_SAFE_FREE_MEMORY(pSubKey);
 
-        if (hCurrKey)
+        if (hCurrKey && !bIsRootKey)
         {
           dwError = RegCloseKey(hReg,hCurrKey);
           BAIL_ON_REG_ERROR(dwError);
@@ -211,7 +207,6 @@ error:
 
     goto cleanup;
 }
-
 
 static
 DWORD
@@ -345,7 +340,7 @@ error:
     goto cleanup;
 }
 
-DWORD parseImportCallback(PREG_PARSE_ITEM pItem, HANDLE userContext)
+DWORD RegShellUtilImportCallback(PREG_PARSE_ITEM pItem, HANDLE userContext)
 {
     IMPORT_CONTEXT *ctx = (IMPORT_CONTEXT *) userContext;
     DWORD dwError = 0;
@@ -388,76 +383,4 @@ cleanup:
 
 error:
     goto cleanup;
-}
-
-
-
-DWORD parseDebugCallback(PREG_PARSE_ITEM pItem, HANDLE userContext)
-{
-    CHAR tokenName[128];
-    CHAR valueName[128];
-    FILE *outStream = stdout;
-    PCHAR *outMultiSz = NULL;
-    DWORD count = 0;
-
-    fprintf(outStream, "parseCallback: Line number = %d\n", pItem->lineNumber);
-    fprintf(outStream, "parseCallback: Key Name    = %s\n", pItem->keyName);
-    if (pItem->valueName)
-    {
-        fprintf(outStream, "parseCallback: Value name  = '%s'\n", pItem->valueName);
-        fprintf(outStream, "parseCallback: Value length= %d\n", pItem->valueLen);
-    }
-    else
-    {
-        fprintf(outStream, "parseCallback: Value name  = (EMPTY)\n");
-    }
-
-    RegLexBinaryTypeToString(pItem->type, tokenName, FALSE);
-    RegLexBinaryTypeToString(pItem->valueType, valueName, FALSE);
-    fprintf(outStream, "parseCallback: Value type   = %d (%s)\n",
-           pItem->valueType, valueName);
-    fprintf(outStream, "parseCallback: Data type   = %d (%s) - ", pItem->type, tokenName);
-    switch (pItem->type)
-    {
-        case REG_SZ:
-            fprintf(outStream, "'%*s'\n", pItem->valueLen, (PCHAR) pItem->value);
-            break;
-
-        case REG_MULTI_SZ:
-            ConvertByteArrayToMultiStrs(
-                pItem->value,
-                pItem->valueLen,
-                &outMultiSz);
-            printf("\n");
-            for (count=0; outMultiSz[count]; count++)
-            {
-                printf("outMultiSz[%d] = '%s'\n", count, outMultiSz[count]);
-            }
-            ConvertMultiStrsFree(outMultiSz);
-
-            break;
-
-        case REG_DWORD:
-            fprintf(outStream, "0x%08x\n", *((unsigned int *) pItem->value));
-            break;
-
-        case REG_QUADWORD:
-            fprintf(outStream, "0x%016llx\n", *((unsigned long long *) pItem->value));
-            break;
-
-        case REG_BINARY:
-        case REG_EXPAND_SZ:
-        case REG_RESOURCE_REQUIREMENTS_LIST:
-        case REG_RESOURCE_LIST:
-        case REG_FULL_RESOURCE_DESCRIPTOR:
-        case REG_NONE:
-            RegParsePrintBinaryData(pItem->value, pItem->valueLen);
-            break;
-
-        default:
-            break;
-    }
-    fprintf(outStream, "parseCallback: >>>\n\n");
-
-    return 0;
 }

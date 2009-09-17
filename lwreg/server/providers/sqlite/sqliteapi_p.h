@@ -156,6 +156,11 @@ RegSrvReleaseKey_inlock(
     PREG_KEY_CONTEXT pKeyResult
     );
 
+void
+RegSrvFreeHashEntry(
+    IN const REG_HASH_ENTRY* pEntry
+    );
+
 DWORD
 GetValueAsBytes(
     IN REG_DATA_TYPE type,

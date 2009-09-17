@@ -90,6 +90,8 @@ typedef void* ACCOUNT_HANDLE;
     {'O','b','j','e','c','t','C','l','a','s','s',0}
 #define DS_ATTR_OBJECT_SID \
     {'O','b','j','e','c','t','S','I','D',0}
+#define DS_DIR_ATTR_SECURITY_DESCRIPTOR \
+    {'S','e','c','u','r','i','t','y','D','e','s','c','r','i','p','t','o','r',0}
 #define DS_ATTR_COMMON_NAME \
     {'C','o','m','m','o','n','N','a','m','e',0}
 #define DS_ATTR_DOMAIN \

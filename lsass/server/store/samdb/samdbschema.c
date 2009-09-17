@@ -317,8 +317,15 @@ SamDbIsMatchedType(
             break;
 
         case DIRECTORY_ATTR_TYPE_OCTET_STREAM :
-
             if (dbAttrType == SAMDB_ATTR_TYPE_BLOB)
+            {
+                bResult = TRUE;
+            }
+
+            break;
+
+        case DIRECTORY_ATTR_TYPE_NT_SECURITY_DESCRIPTOR:
+            if (dbAttrType == SAMDB_ATTR_TYPE_SECURITY_DESCRIPTOR)
             {
                 bResult = TRUE;
             }

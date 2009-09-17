@@ -8,6 +8,7 @@ lw_regimport_CPPFLAGS = \
     $(AM_CPPFLAGS)
 
 lw_regimport_LDADD = \
+    @top_builddir@/shellutil/librsutils.la       \
     @top_builddir@/client/libregclient.la        \
     @top_builddir@/parse/libregparse.la
 

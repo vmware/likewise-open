@@ -56,6 +56,15 @@ SamrSrvClose(
 
 
 NTSTATUS
+SamrSrvQuerySecurity(
+    handle_t hBinding,
+    void *hObject,
+    uint32 security_info,
+    PSECURITY_DESCRIPTOR_BUFFER *secdesc
+    );
+
+
+NTSTATUS
 SamrSrvLookupDomain(
     handle_t hBinding,
     CONNECT_HANDLE hConn,

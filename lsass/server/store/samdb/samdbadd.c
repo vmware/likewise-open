@@ -202,6 +202,18 @@ SamDbAddGenerateAccountFlags(
 
 static
 DWORD
+SamDbAddGenerateSecurityDescriptor(
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
+    PWSTR                  pwszDN,
+    PWSTR                  pwszParentDN,
+    PWSTR                  pwszObjectName,
+    PWSTR                  pwszDomainName,
+    PATTRIBUTE_VALUE*      ppAttrValues,
+    PDWORD                 pdwNumValues
+    );
+
+static
+DWORD
 SamDbAddConvertUnicodeAttrValues(
     PATTRIBUTE_VALUE  pSrcValues,
     DWORD             dwSrcNumValues,
@@ -257,7 +269,11 @@ static SAMDB_ADD_VALUE_GENERATOR gSamDbValueGenerators[] =
     },
     {
         SAM_DB_COL_ACCOUNT_FLAGS,
-	&SamDbAddGenerateAccountFlags
+        &SamDbAddGenerateAccountFlags
+    },
+    {
+        SAM_DB_COL_SECURITY_DESCRIPTOR,
+        &SamDbAddGenerateSecurityDescriptor
     }
 };
 
@@ -1204,6 +1220,64 @@ error:
 
 static
 DWORD
+SamDbAddGenerateSecurityDescriptor(
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
+    PWSTR                  pwszDN,
+    PWSTR                  pwszParentDN,
+    PWSTR                  pwszObjectName,
+    PWSTR                  pwszDomainName,
+    PATTRIBUTE_VALUE*      ppAttrValues,
+    PDWORD                 pdwNumValues
+    )
+{
+    DWORD dwError = 0;
+    PATTRIBUTE_VALUE pAttrValue = NULL;
+    POCTET_STRING pSecDescBlob = NULL;
+    PSECURITY_DESCRIPTOR_RELATIVE pSecDesc = NULL;
+    ULONG ulSecDescLen = 0;
+    PSID pOwnerSid = NULL;
+
+    dwError = DirectoryAllocateMemory(
+                    sizeof(ATTRIBUTE_VALUE),
+                    (PVOID*)&pAttrValue);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = DirectoryAllocateMemory(
+                    sizeof(*pSecDescBlob),
+                    (PVOID*)&pSecDescBlob);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = SamDbCreateNewLocalAccountSecDesc(pOwnerSid,
+                                                &pSecDesc,
+                                                &ulSecDescLen);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    pSecDescBlob->pBytes     = (PBYTE)pSecDesc;
+    pSecDescBlob->ulNumBytes = ulSecDescLen;
+
+    pAttrValue->Type = DIRECTORY_ATTR_TYPE_NT_SECURITY_DESCRIPTOR;
+    pAttrValue->data.pOctetString = pSecDescBlob;
+
+    *ppAttrValues = pAttrValue;
+    *pdwNumValues = 1;
+
+cleanup:
+    return dwError;
+
+error:
+    *ppAttrValues = pAttrValue;
+    *pdwNumValues = 0;
+
+    if (pAttrValue)
+    {
+        DirectoryFreeAttributeValues(pAttrValue, 1);
+    }
+
+    goto cleanup;
+}
+
+static
+DWORD
 SamDbAddConvertUnicodeAttrValues(
     PATTRIBUTE_VALUE  pSrcValues,
     DWORD             dwSrcNumValues,
@@ -1287,6 +1361,7 @@ SamDbAddConvertUnicodeAttrValues(
                 break;
 
             case DIRECTORY_ATTR_TYPE_OCTET_STREAM:
+            case DIRECTORY_ATTR_TYPE_NT_SECURITY_DESCRIPTOR:
 
                 dwError = DirectoryAllocateMemory(
                             sizeof(OCTET_STRING),
@@ -1445,6 +1520,7 @@ SamDbAddBindValues(
 
                 break;
 
+            case SAMDB_ATTR_TYPE_SECURITY_DESCRIPTOR:
             case SAMDB_ATTR_TYPE_BLOB:
             {
                 POCTET_STRING pOctetString = NULL;

@@ -1,9 +1,9 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -33,23 +33,75 @@
  *
  * Module Name:
  *
- *        externs.h
+ *        samdbsecurity.h
  *
  * Abstract:
  *
- *        Likewise Registry
  *
- *        SQLITE Provider
+ *      Likewise SAM Database Provider
  *
- *        Structures
+ *      Security Descriptor handling routines
  *
- * Authors: Wei Fu (wfu@likewise.com)
+ * Authors: Krishna Ganugapati (krishnag@likewise.com)
+ *          Sriram Nambakam (snambakam@likewise.com)
+ *          Rafal Szczesniak (rafal@likewise.com)
+ *
  */
 
-typedef struct _REG_SRV_API_KEYLOOKUP {
 
-    pthread_mutex_t mutex;
+DWORD
+SamDbCreateLocalDomainSecDesc(
+    PSID pSid,
+    PSECURITY_DESCRIPTOR_RELATIVE *ppSecDescRel,
+    PULONG pulSecDescLen
+    );
 
-    PREG_HASH_TABLE pKeyList;
 
-} REG_SRV_API_KEYLOOKUP, *PREG_SRV_API_KEYLOOKUP;
+DWORD
+SamDbCreateBuiltinDomainSecDesc(
+    PSID pSid,
+    PSECURITY_DESCRIPTOR_RELATIVE *ppSecDescRel,
+    PULONG pulSecDescLen
+    );
+
+
+DWORD
+SamDbCreateLocalUserSecDesc(
+    PSID pSid,
+    PSECURITY_DESCRIPTOR_RELATIVE *ppSecDescRel,
+    PULONG pulSecDescLen
+    );
+
+
+DWORD
+SamDbCreateLocalGroupSecDesc(
+    PSID pSid,
+    PSECURITY_DESCRIPTOR_RELATIVE *ppSecDescRel,
+    PULONG pulSecDescLen
+    );
+
+
+DWORD
+SamDbCreateBuiltinGroupSecDesc(
+    PSID pSid,
+    PSECURITY_DESCRIPTOR_RELATIVE *ppSecDescRel,
+    PULONG ulSecDescLen
+    );
+
+
+DWORD
+SamDbCreateNewLocalAccountSecDesc(
+    PSID pSid,
+    PSECURITY_DESCRIPTOR_RELATIVE *ppSecDescRel,
+    PULONG pulSecDescLen
+    );
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
