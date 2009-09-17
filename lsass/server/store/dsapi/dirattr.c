@@ -290,6 +290,7 @@ DirectoryGetEntryAttrValueByName(
     LONG64 *pllValue = NULL;
     PWSTR *ppwszValue = NULL;
     PSTR *ppszValue = NULL;
+    POCTET_STRING *ppBlob = NULL;
     BOOLEAN bTypeIsCorrect = FALSE;
 
     dwError = DirectoryGetEntryAttributeByName(pEntry,
@@ -331,6 +332,16 @@ DirectoryGetEntryAttrValueByName(
     case DIRECTORY_ATTR_TYPE_ANSI_STRING:
         ppszValue = (PSTR*)pValue;
         *ppszValue = (bTypeIsCorrect) ? pAttrVal->data.pszStringValue : NULL;
+        break;
+
+    case DIRECTORY_ATTR_TYPE_NT_SECURITY_DESCRIPTOR:
+        ppBlob = (POCTET_STRING*)pValue;
+        *ppBlob = (bTypeIsCorrect) ? pAttrVal->data.pOctetString : NULL;
+        break;
+
+    case DIRECTORY_ATTR_TYPE_OCTET_STREAM:
+        ppBlob = (POCTET_STRING*)pValue;
+        *ppBlob = (bTypeIsCorrect) ? pAttrVal->data.pOctetString : NULL;
         break;
 
     default:
