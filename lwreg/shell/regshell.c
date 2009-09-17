@@ -301,7 +301,7 @@ RegShellListValues(
             printf("%s\n  ", pszValueName);
 #else
             printf("ListValues: value='%s\n", pszValueName);
-            printf("ListValues: dataLen='%d'\n", dwDataLen);
+            printf("ListValues: dataLen='%d'\n", pValues[i].dwDataLen);
 #endif
             switch (pValues[i].type)
             {
