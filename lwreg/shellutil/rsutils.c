@@ -343,13 +343,6 @@ cleanup:
     return dwError;
 
 error:
-    if (dwError == LW_ERROR_FAILED_DELETE_HAS_SUBKEY ||
-        dwError == LW_ERROR_KEY_IS_ACTIVE ||
-        dwError == LW_ERROR_NO_SUCH_KEY)
-    {
-
-        PrintError("regshell", dwError);
-    }
     goto cleanup;
 }
 
@@ -419,13 +412,6 @@ cleanup:
     return dwError;
 
 error:
-    if (dwError == LW_ERROR_FAILED_DELETE_HAS_SUBKEY ||
-        dwError == LW_ERROR_KEY_IS_ACTIVE ||
-        dwError == LW_ERROR_NO_SUCH_KEY)
-    {
-
-        PrintError("regshell", dwError);
-    }
     goto cleanup;
 }
 
@@ -668,12 +654,6 @@ cleanup:
 
 error:
     LW_SAFE_FREE_MEMORY(pValueName);
-    if (dwError == LW_ERROR_DUPLICATE_KEYVALUENAME)
-    {
-
-        PrintError("regshell", dwError);
-        dwError = 0;
-    }
 
     goto cleanup;
 }
