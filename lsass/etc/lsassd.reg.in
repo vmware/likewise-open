@@ -16,6 +16,7 @@
 "Load"="ActiveDirectory,Local"
 
 [HKEY_LIKEWISE\Services\lsass\Parameters\Providers\ActiveDirectory]
+"Id"="lsa-activedirectory-provider"
 "Path"="@providerdir@/liblsass_auth_provider_ad@MOD_EXT@"
 "LoginShellTemplate"="/bin/sh"
 "HomeDirPrefix"="@default_homedir_prefix@"
@@ -43,6 +44,7 @@
 "MemoryCacheSizeCap"=dword:00002710
 
 [HKEY_LIKEWISE\Services\lsass\Parameters\Providers\Local]
+"Id"="lsa-local-provider"
 "Path"="@providerdir@/liblsass_auth_provider_local@MOD_EXT@"
 "EnableEventlog"=dword:00000000
 "LoginShellTemplate"="/bin/sh"
