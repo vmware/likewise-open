@@ -200,6 +200,13 @@ RegSrvIsValidKeyName(
     );
 
 DWORD
+RegSrvEnumRootKeys(
+    IN HANDLE Handle,
+    OUT PSTR** pppszRootKeys,
+    OUT PDWORD pdwNumRootKeys
+    );
+
+DWORD
 RegSrvCreateKeyEx(
     IN HANDLE Handle,
     IN HKEY hKey,

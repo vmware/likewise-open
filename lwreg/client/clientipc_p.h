@@ -59,6 +59,13 @@ typedef struct __REG_CLIENT_CONNECTION_CONTEXT
 } REG_CLIENT_CONNECTION_CONTEXT, *PREG_CLIENT_CONNECTION_CONTEXT;
 
 DWORD
+RegTransactEnumRootKeys(
+    IN HANDLE hConnection,
+    OUT PSTR** pppszRootKeyNames,
+    OUT PDWORD pdwNumRootKey
+    );
+
+DWORD
 RegTransactOpenRootKey(
     IN HANDLE hConnection,
     IN PSTR pszRootKeyName,

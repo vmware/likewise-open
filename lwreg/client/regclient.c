@@ -50,6 +50,19 @@
 
 REG_API
 DWORD
+RegEnumRootKeys(
+    IN HANDLE hRegConnection,
+    OUT PSTR** pppszRootKeyNames,
+    OUT PDWORD pdwNumRootKeys
+    )
+{
+    return RegTransactEnumRootKeys(hRegConnection,
+                                   pppszRootKeyNames,
+                                   pdwNumRootKeys);
+}
+
+REG_API
+DWORD
 RegOpenRootKey(
     IN HANDLE hRegConnection,
     IN PSTR pszRootKeyName,

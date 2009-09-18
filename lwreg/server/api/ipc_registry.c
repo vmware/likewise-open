@@ -339,6 +339,61 @@ error:
 }
 
 LWMsgStatus
+RegSrvIpcEnumRootKeys(
+    LWMsgCall* pCall,
+    const LWMsgParams* pIn,
+    LWMsgParams* pOut,
+    void* data
+    )
+{
+    DWORD dwError = 0;
+    PREG_IPC_ENUM_ROOTKEYS_RESPONSE pRegResp = NULL;
+    PREG_IPC_ERROR pError = NULL;
+    PSTR* ppszRootKeyNames = NULL;
+    DWORD dwNumRootKeys = 0;;
+
+    dwError = RegSrvEnumRootKeys(
+        RegSrvIpcGetSessionData(pCall),
+        &ppszRootKeyNames,
+        &dwNumRootKeys
+        );
+
+    if (!dwError)
+    {
+        dwError = LwAllocateMemory(
+            sizeof(*pRegResp),
+            OUT_PPVOID(&pRegResp));
+        BAIL_ON_REG_ERROR(dwError);
+
+        pRegResp->ppszRootKeyNames = ppszRootKeyNames;
+        ppszRootKeyNames = NULL;
+        pRegResp->dwNumRootKeys = dwNumRootKeys;
+
+        pOut->tag = REG_R_ENUM_ROOT_KEYS_SUCCESS;
+        pOut->data = pRegResp;
+    }
+    else
+    {
+        dwError = RegSrvIpcCreateError(dwError, &pError);
+        BAIL_ON_REG_ERROR(dwError);
+
+        pOut->tag = REG_R_ENUM_ROOT_KEYS_FAILURE;
+        pOut->data = pError;
+    }
+
+cleanup:
+    if (ppszRootKeyNames)
+    {
+        LwFreeStringArray(ppszRootKeyNames, dwNumRootKeys);
+    }
+
+    return MAP_REG_ERROR_IPC(dwError);
+
+error:
+    goto cleanup;
+}
+
+LWMsgStatus
 RegSrvIpcCreateKeyEx(
     LWMsgCall* pCall,
     const LWMsgParams* pIn,

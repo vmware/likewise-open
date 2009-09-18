@@ -49,6 +49,14 @@
 #define __IPC_REGISTRY_P_H__
 
 LWMsgStatus
+RegSrvIpcEnumRootKeys(
+    LWMsgCall* pCall,
+    const LWMsgParams* pIn,
+    LWMsgParams* pOut,
+    void* data
+    );
+
+LWMsgStatus
 RegSrvIpcOpenRootKey(
     LWMsgCall* pCall,
     const LWMsgParams* pIn,

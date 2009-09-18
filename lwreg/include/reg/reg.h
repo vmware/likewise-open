@@ -169,11 +169,10 @@ typedef struct _REG_PARSE_ITEM
 #define LIKEWISE_ROOT_KEY "HKEY_LIKEWISE"
 #define LIKEWISE_FOREIGN_ROOT_KEY "HKEY_LIKEWISE_IMPORT"
 
+#define NUM_ROOTKEY  2
 
 #define MAX_KEY_LENGTH 255
 #define MAX_VALUE_LENGTH 1024
-
-
 
 typedef struct _FILETIME {
     DWORD dwLowDateTime;
@@ -266,6 +265,13 @@ VOID
 PrintError(
     IN OPTIONAL PCSTR pszErrorPrefix,
     IN DWORD dwError
+    );
+
+DWORD
+RegEnumRootKeys(
+    IN HANDLE hRegConnection,
+    OUT PSTR** pppszRootKeyNames,
+    OUT PDWORD pdwNumRootKeys
     );
 
 DWORD

@@ -43,23 +43,9 @@
 #define LWREGD_MAX_THEADS 2
 #define LWREGD_MAX_ITERATIONS 10
 
-#include <config.h>
-#include <regsystem.h>
 
-#include <reg/reg.h>
-#include <regutils.h>
-#include <regdef.h>
-#include <regclient.h>
+#include "includes.h"
 #include "rsutils.h"
-
-#include <lw/base.h>
-#include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <lwstr.h>
-#include <lwmem.h>
-#include <lwerror.h>
 
 typedef struct _PTLWREGD_CONTEXT
 {
