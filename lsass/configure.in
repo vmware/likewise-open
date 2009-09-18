@@ -1115,6 +1115,7 @@ AC_CONFIG_FILES([Makefile
                  tests/test_session/Makefile
                  tests/test_checkuserinlist/Makefile
                  tests/test_openldap/Makefile
+                 tests/test_LsaParseConfigFile/Makefile
                  tests/ntlmapps/Makefile
                  tests/ntlmapps/ntlmclient/Makefile
                  tests/ntlmapps/ntlmserver/Makefile
