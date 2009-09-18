@@ -1615,7 +1615,8 @@ LW_VOID
 RegShellUsage(
     PSTR progname)
 {
-    printf("usage: %s command [[keyName]] [options]\n"
+    printf("usage: %s [--file | -f] command_file.txt |\n"
+        "       command [[keyName]] [options]\n"
         "       add_key [[KeyName]] |\n"
         "       list_keys [[keyName]] |\n"
         "       delete_key [KeyName]\n"
@@ -1637,4 +1638,3 @@ RegShellUsage(
         "               only supported hives\n"
         ,progname);
 }
-
