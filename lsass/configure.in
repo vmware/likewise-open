@@ -18,6 +18,30 @@ PKG_VERSION="5.0.0"
 
 MOD_EXT=".so"
 
+# This note was originally in lsass/server/auth-providers/ad-provider/addef.h
+# before the definition for the skeleton dirs on Darwin -- ssalley@likewise.com
+#
+#ISSUE-2008/10/03-dalmeida -- The only difference between this and the
+# createhomedir utility is that the latter uses locale info and sets
+# "AppleLocale" in ~/Library/Preferences/.GlobalPreferences.plist
+# The latter is done by adding at the end of the <dict> section:
+#
+#   <key>AppleLocale</key>
+#   <string>en_US</string>
+#
+# To determine the right thing to do wrt locale, verify createhomedir
+# behavior wrt locale.
+#
+# Note that we must do the non-localized first then the localized to
+# make sure that the localized files overwrite non-localized ones.
+# This actually comes into play, at least on Mac OS X 10.5.
+# Note that this does not handle ACLs (ls -le), which are normally
+# present, at least on Mac OS X 10.5.  But the default ACLs do
+# not appear to be useful.
+default_skeldirs="/etc/skel"
+default_homedir_prefix="/home"
+
+
 CF_FRAMEWORK_LDFLAGS=""
 SC_FRAMEWORK_LDFLAGS=""
 DS_FRAMEWORK_LDFLAGS=""
@@ -60,6 +84,7 @@ case "$host_os:$host_cpu" in
 		pam_libdir="/usr/lib/security"
 		NSS_SUBDIR="solaris"
                 ENABLE_NSS_ENUM_DEFAULT="no"
+        default_homedir_prefix="/export/home"
 		AC_DEFINE([__LWI_SOLARIS__], [], [Define if OS is Solaris])
 		AC_DEFINE([_XOPEN_SOURCE], [500], [Define to desired XOPEN compliance level])
 		;;
@@ -69,6 +94,8 @@ case "$host_os:$host_cpu" in
 		pam_libdir="/usr/lib/pam"
                 NSS_SUBDIR="mac"
                 ENABLE_NSS_ENUM_DEFAULT="yes"
+        default_skeldirs="System/Library/User Template/Non_localized, /System/Library/User Template/English.lproj"
+        default_homedir_prefix="/Users"
                 CF_FRAMEWORK_LDFLAGS="-framework CoreFoundation"
                 SC_FRAMEWORK_LDFLAGS="-framework SystemConfiguration"
                 DS_FRAMEWORK_LDFLAGS="-framework DirectoryService"
@@ -80,6 +107,8 @@ case "$host_os:$host_cpu" in
 		pam_libdir="/usr/lib/pam"
                 NSS_SUBDIR="mac"
                 ENABLE_NSS_ENUM_DEFAULT="yes"
+        default_skeldirs="System/Library/User Template/Non_localized, /System/Library/User Template/English.lproj"
+        default_homedir_prefix="/Users"
                 CF_FRAMEWORK_LDFLAGS="-framework CoreFoundation"
                 SC_FRAMEWORK_LDFLAGS="-framework SystemConfiguration"
                 DS_FRAMEWORK_LDFLAGS="-framework DirectoryService"
@@ -91,6 +120,8 @@ case "$host_os:$host_cpu" in
 		pam_libdir="/usr/lib/pam"
                 NSS_SUBDIR="mac"
                 ENABLE_NSS_ENUM_DEFAULT="yes"
+        default_skeldirs="System/Library/User Template/Non_localized, /System/Library/User Template/English.lproj"
+        default_homedir_prefix="/Users"
                 CF_FRAMEWORK_LDFLAGS="-framework CoreFoundation"
                 SC_FRAMEWORK_LDFLAGS="-framework SystemConfiguration"
                 DS_FRAMEWORK_LDFLAGS="-framework DirectoryService"
@@ -146,6 +177,8 @@ AM_CONDITIONAL(PLATFORM_AIX, [$PLATFORM_AIX])
 
 AC_SUBST(NSS_SUBDIR)
 AC_SUBST(MOD_EXT)
+AC_SUBST(default_skeldirs)
+AC_SUBST(default_homedir_prefix)
 AC_SUBST(CF_FRAMEWORK_LDFLAGS)
 AC_SUBST(SC_FRAMEWORK_LDFLAGS)
 AC_SUBST(DS_FRAMEWORK_LDFLAGS)
@@ -1033,7 +1066,9 @@ AC_CONFIG_FILES([Makefile
                  server/api/Makefile
                  server/ntlm/Makefile
                  server/auth-providers/Makefile
+                 server/auth-providers/ad-provider/addef.h
                  server/auth-providers/ad-provider/Makefile
+                 server/auth-providers/local-provider/lpdefs.h
                  server/auth-providers/local-provider/Makefile
                  server/lsassd/Makefile
                  server/rpc/Makefile
@@ -1066,7 +1101,6 @@ AC_CONFIG_FILES([Makefile
                  tests/test_LsaAllocSecurityIdentifierFromBinary/Makefile
                  tests/test_LsaGetSecurityIdentifierHashedRid/Makefile
                  tests/test_LsaAllocSecurityIdentifierFromString/Makefile
-                 tests/test_LsaParseConfigFile/Makefile
                  tests/test_getpwent/Makefile
                  tests/test_getpwnam/Makefile
                  tests/test_stress_ad_provider/Makefile
