@@ -747,7 +747,7 @@ GetValueAsBytes(
 
         case REG_DWORD:
 
-            if (sizeof(dwValue) > *pcbData && pData)
+            if (pData &&  sizeof(dwValue)+1 > *pcbData)
             {
                 dwError = LW_ERROR_INSUFFICIENT_BUFFER;
                 BAIL_ON_REG_ERROR(dwError);
@@ -755,14 +755,13 @@ GetValueAsBytes(
 
             dwValue = (DWORD)atoi(pszValue);
 
+            cbData = sizeof(dwValue);
+
             if (pData)
             {
-                ConvertDwordToByteArray(dwValue,
-                                        pData, //allocated buffer
-                                        sizeof(dwValue));
+                memcpy(pData, &dwValue, cbData);
+                pData[cbData] = (BYTE)'\0';
             }
-
-            cbData = sizeof(dwValue);
 
             break;
 
