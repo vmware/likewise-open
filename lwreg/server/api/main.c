@@ -50,6 +50,7 @@
 
 static LWMsgDispatchSpec gMessageHandlers[] =
 {
+    LWMSG_DISPATCH_BLOCK(REG_Q_ENUM_ROOT_KEYS, RegSrvIpcEnumRootKeys),
     LWMSG_DISPATCH_BLOCK(REG_Q_OPEN_ROOT_KEY, RegSrvIpcOpenRootKey),
     LWMSG_DISPATCH_BLOCK(REG_Q_CREATE_KEY_EX, RegSrvIpcCreateKeyEx),
     LWMSG_DISPATCH_BLOCK(REG_Q_CLOSE_KEY, RegSrvIpcCloseKey),
@@ -58,7 +59,7 @@ static LWMsgDispatchSpec gMessageHandlers[] =
     LWMSG_DISPATCH_BLOCK(REG_Q_DELETE_TREE, RegSrvIpcDeleteTree),
     LWMSG_DISPATCH_BLOCK(REG_Q_DELETE_VALUE, RegSrvIpcDeleteValue),
     LWMSG_DISPATCH_BLOCK(REG_Q_ENUM_KEY_EX, RegSrvIpcEnumKeyEx),
-    LWMSG_DISPATCH_BLOCK(REG_Q_ENUM_VALUE, RegSrvIpcEnumValue),    
+    LWMSG_DISPATCH_BLOCK(REG_Q_ENUM_VALUE, RegSrvIpcEnumValue),
     LWMSG_DISPATCH_BLOCK(REG_Q_GET_VALUE, RegSrvIpcGetValue),
     LWMSG_DISPATCH_BLOCK(REG_Q_GET_VALUEA, RegSrvIpcGetValueA),
     LWMSG_DISPATCH_BLOCK(REG_Q_GET_VALUEW, RegSrvIpcGetValueW),
@@ -82,7 +83,7 @@ RegSrvApiInit(
     dwError = FileProvider_Initialize(&gpRegProvider);
     BAIL_ON_REG_ERROR(dwError);
 #elif defined(REG_USE_SQLITE)
-    dwError = SqliteProvider_Initialize(&gpRegProvider);
+    dwError = SqliteProvider_Initialize(&gpRegProvider, ROOT_KEYS);
     BAIL_ON_REG_ERROR(dwError);
 #endif
 

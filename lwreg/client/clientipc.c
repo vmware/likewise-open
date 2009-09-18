@@ -181,6 +181,64 @@ error:
 }
 
 DWORD
+RegTransactEnumRootKeys(
+    IN HANDLE hConnection,
+    OUT PSTR** pppszRootKeyNames,
+    OUT PDWORD pdwNumRootKey
+    )
+{
+    DWORD dwError = 0;
+    // Do not free pError
+    PREG_IPC_ERROR pError = NULL;
+    PREG_IPC_ENUM_ROOTKEYS_RESPONSE pEnumRootKeysResp = NULL;
+
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* pCall = NULL;
+
+    dwError = RegIpcAcquireCall(hConnection, &pCall);
+    BAIL_ON_REG_ERROR(dwError);
+
+    in.tag = REG_Q_ENUM_ROOT_KEYS;
+    in.data = NULL;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
+    BAIL_ON_REG_ERROR(dwError);
+
+    switch (out.tag)
+    {
+        case REG_R_ENUM_ROOT_KEYS_SUCCESS:
+            pEnumRootKeysResp = (PREG_IPC_ENUM_ROOTKEYS_RESPONSE)out.data;
+            *pppszRootKeyNames = pEnumRootKeysResp->ppszRootKeyNames;
+            pEnumRootKeysResp->ppszRootKeyNames = NULL;
+            *pdwNumRootKey = pEnumRootKeysResp->dwNumRootKeys;
+            pEnumRootKeysResp->dwNumRootKeys = 0;
+
+            break;
+        case REG_R_ENUM_ROOT_KEYS_FAILURE:
+            pError = (PREG_IPC_ERROR) out.data;
+            dwError = pError->dwError;
+            BAIL_ON_REG_ERROR(dwError);
+            break;
+        default:
+            dwError = EINVAL;
+            BAIL_ON_REG_ERROR(dwError);
+    }
+
+cleanup:
+    if (pCall)
+    {
+        lwmsg_call_destroy_params(pCall, &out);
+        lwmsg_call_release(pCall);
+    }
+
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+DWORD
 RegTransactOpenRootKey(
     IN HANDLE hConnection,
     IN PSTR pszRootKeyName,

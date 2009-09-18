@@ -57,6 +57,9 @@ typedef enum __REG_IPC_TAG
     REG_Q_OPEN_ROOT_KEY,
     REG_R_OPEN_ROOT_KEY_SUCCESS,
     REG_R_OPEN_ROOT_KEY_FAILURE,
+    REG_Q_ENUM_ROOT_KEYS,
+    REG_R_ENUM_ROOT_KEYS_SUCCESS,
+    REG_R_ENUM_ROOT_KEYS_FAILURE,
     REG_Q_CREATE_KEY_EX,
     REG_R_CREATE_KEY_EX_SUCCESS,
     REG_R_CREATE_KEY_EX_FAILURE,
@@ -170,6 +173,14 @@ typedef struct __REG_IPC_CLOSE_KEY_REQ
 // NO RESPONSE
 
 /******************************************************************************/
+
+
+typedef struct __REG_IPC_ENUM_ROOTKEYS_RESPONSE
+{
+    PSTR* ppszRootKeyNames;
+    DWORD dwNumRootKeys;
+} REG_IPC_ENUM_ROOTKEYS_RESPONSE, *PREG_IPC_ENUM_ROOTKEYS_RESPONSE;
+
 
 // IN HKEY hKey,
 // IN PCWSTR pSubKey

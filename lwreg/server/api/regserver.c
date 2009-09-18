@@ -84,6 +84,43 @@ RegSrvIsValidKeyName(
     return pszStr == NULL ? TRUE : FALSE;
 }
 
+DWORD
+RegSrvEnumRootKeys(
+    IN HANDLE Handle,
+    OUT PSTR** pppszRootKeys,
+    OUT PDWORD pdwNumRootKeys
+    )
+{
+    DWORD dwError = 0;
+    PSTR* ppszRootKeys = NULL;
+    int iCount = 0;
+
+    dwError = LwAllocateMemory(sizeof(*ppszRootKeys)*NUM_ROOTKEY, (PVOID)&ppszRootKeys);
+    BAIL_ON_REG_ERROR(dwError);
+
+    for (iCount = 0; iCount< NUM_ROOTKEY; iCount++)
+    {
+        dwError = LwAllocateString(ROOT_KEYS[iCount], &ppszRootKeys[iCount]);
+        BAIL_ON_REG_ERROR(dwError);
+    }
+
+    *pdwNumRootKeys = NUM_ROOTKEY;
+    *pppszRootKeys = ppszRootKeys;
+
+cleanup:
+    return dwError;
+
+error:
+    if (ppszRootKeys)
+    {
+        LwFreeStringArray(ppszRootKeys, NUM_ROOTKEY);
+    }
+    *pdwNumRootKeys = 0;
+    *pppszRootKeys = NULL;
+
+    goto cleanup;
+}
+
 
 DWORD
 RegSrvCreateKeyEx(

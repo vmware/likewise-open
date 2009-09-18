@@ -1,14 +1,15 @@
 AM_CPPFLAGS = -I$(top_srcdir)/include
 
-bin_PROGRAMS = lw_regexport
+bin_PROGRAMS = regimport
 
-lw_regexport_CPPFLAGS = \
+regimport_CPPFLAGS = \
     -I@top_srcdir@/server/include \
     -I@top_builddir@ \
     $(AM_CPPFLAGS)
 
-lw_regexport_LDADD = \
+regimport_LDADD = \
+    @top_builddir@/shellutil/librsutils.la       \
     @top_builddir@/client/libregclient.la        \
     @top_builddir@/parse/libregparse.la
 
-lw_regexport_SOURCES = main.c
+regimport_SOURCES = main.c

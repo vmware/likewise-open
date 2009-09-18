@@ -1515,11 +1515,11 @@ SamDbSetupLocalGroupMemberships(
     WCHAR wszAttrSamAccountName[] = SAM_DB_DIR_ATTR_SAM_ACCOUNT_NAME;
     WCHAR wszAttrObjectSid[] = SAM_DB_DIR_ATTR_OBJECT_SID;
     PWSTR pwszGroupName = NULL;
-    DWORD dwGroupNameLen = 0;
+    size_t dwGroupNameLen = 0;
     PDIRECTORY_ENTRY pGroupEntries = NULL;
     DWORD dwGroupEntriesNum = 0;
     PWSTR pwszMemberName = NULL;
-    DWORD dwMemberNameLen = 0;
+    size_t dwMemberNameLen = 0;
     PWSTR pwszGroupDn = NULL;
     PWSTR pwszMemberFilter = NULL;
     DWORD dwMemberFilterLen = 0;

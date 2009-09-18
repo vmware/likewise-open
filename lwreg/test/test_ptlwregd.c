@@ -43,23 +43,9 @@
 #define LWREGD_MAX_THEADS 2
 #define LWREGD_MAX_ITERATIONS 10
 
-#include <config.h>
-#include <regsystem.h>
 
-#include <reg/reg.h>
-#include <regutils.h>
-#include <regdef.h>
-#include <regclient.h>
+#include "includes.h"
 #include "rsutils.h"
-
-#include <lw/base.h>
-#include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <lwstr.h>
-#include <lwmem.h>
-#include <lwerror.h>
 
 typedef struct _PTLWREGD_CONTEXT
 {
@@ -103,7 +89,7 @@ ThreadTestAddKey(
                     "%s-%d",
                     pszKeyNamePrefix,
                     dwKeyNum);
-            dwError = RegShellUtilAddKey(hReg, pszKeyPath, pszKeyName);
+            dwError = RegShellUtilAddKey(hReg, NULL, pszKeyPath, pszKeyName);
             printf("    >>ThreadTestAddKey: %d %s\\%s\n",
                    dwCount,
                    pszKeyPath,
@@ -150,7 +136,7 @@ ThreadTestDeleteKey(
                     "%s-%d",
                     pszKeyNamePrefix,
                     dwKeyNum);
-            dwError = RegShellUtilDeleteKey(hReg, pszKeyPath, pszKeyName);
+            dwError = RegShellUtilDeleteKey(hReg, NULL, pszKeyPath, pszKeyName);
             if (dwError)
             {
                 PrintError("ThreadTestDeleteKey", dwError);
@@ -340,9 +326,9 @@ int main(int argc, char *argv[])
                          &ctxDel[i]);
     }
 
-ThreadTestPtKey(ctxAdd[0]);
-ThreadTestPtKey(ctxDel[0]);
-//exit(0);
+    ThreadTestPtKey(ctxAdd[0]);
+    ThreadTestPtKey(ctxDel[0]);
+    //exit(0);
     for (i=0; i<LWREGD_MAX_THEADS; i++)
     {
         sts = pthread_create(&ctxAdd[i]->thread,

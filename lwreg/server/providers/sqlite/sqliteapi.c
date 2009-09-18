@@ -49,10 +49,12 @@
 
 DWORD
 SqliteProvider_Initialize(
-    PREGPROV_PROVIDER_FUNCTION_TABLE* ppFnTable
+    PREGPROV_PROVIDER_FUNCTION_TABLE* ppFnTable,
+    const PSTR* ppszRootKeyNames
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
+    int iCount = 0;
 
     dwError = RegDbOpen(REG_CACHE,
                         &ghCacheConnection);
@@ -67,11 +69,11 @@ SqliteProvider_Initialize(
                     &gActiveKeyList.pKeyList);
     BAIL_ON_REG_ERROR(dwError);
 
-    dwError = SqliteCreateKeyInternal(LIKEWISE_ROOT_KEY, NULL, NULL);
-    BAIL_ON_REG_ERROR(dwError);
-
-    dwError = SqliteCreateKeyInternal(LIKEWISE_FOREIGN_ROOT_KEY, NULL, NULL);
-    BAIL_ON_REG_ERROR(dwError);
+    for (iCount = 0; iCount < NUM_ROOTKEY; iCount++)
+    {
+        dwError = SqliteCreateKeyInternal(ppszRootKeyNames[iCount], NULL, NULL);
+        BAIL_ON_REG_ERROR(dwError);
+    }
 
     *ppFnTable = &gRegSqliteProviderAPITable;
 
@@ -88,15 +90,21 @@ SqliteProvider_Shutdown(
     PREGPROV_PROVIDER_FUNCTION_TABLE pFnTable
     )
 {
-    RegDbSafeClose(&ghCacheConnection);
-    /*
-    //cleanup this
-    REG_SRV_API_KEYLOOKUP gActiveKeyList =
-        {
-                .mutex    = PTHREAD_MUTEX_INITIALIZER,
-                .pKeyList = NULL
-        };*/
+    REG_HASH_ITERATOR hashIterator = {0};
+    REG_HASH_ENTRY*   pHashEntry = NULL;
 
+    RegDbSafeClose(&ghCacheConnection);
+
+    if (gActiveKeyList.pKeyList)
+    {
+        RegHashGetIterator(gActiveKeyList.pKeyList, &hashIterator);
+        while ((pHashEntry = RegHashNext(&hashIterator)) != NULL)
+        {
+            RegSrvFreeHashEntry(pHashEntry);
+        }
+
+        RegHashSafeFree(&gActiveKeyList.pKeyList);
+    }
 }
 
 DWORD

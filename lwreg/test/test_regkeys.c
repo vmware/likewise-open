@@ -60,10 +60,22 @@ int main(int argc, char **argv)
     PHKEY pSubKeys = NULL;
     int iCount = 0;
     PWSTR pSubKeyName = NULL;
+    PSTR* ppszRootKeyNames = NULL;
+    DWORD dwNumRootKeys = 0;
 
     printf("Calling: RegOpenServer\n");
     dwError = RegOpenServer(&hReg);
     BAIL_ON_REG_ERROR(dwError);
+
+    dwError = RegEnumRootKeys((HANDLE) hReg,
+                              &ppszRootKeyNames,
+                              &dwNumRootKeys);
+    BAIL_ON_REG_ERROR(dwError);
+
+    for (iCount = 0; iCount < dwNumRootKeys; iCount++)
+    {
+        printf("Hive [%d] name is %s\n", iCount, ppszRootKeyNames[iCount]);
+    }
 
     dwError = RegOpenRootKey(
                (HANDLE) hReg,
@@ -141,6 +153,10 @@ int main(int argc, char **argv)
     BAIL_ON_REG_ERROR(dwError);
 
 finish:
+    if (ppszRootKeyNames)
+    {
+        LwFreeStringArray(ppszRootKeyNames, dwNumRootKeys);
+    }
     LW_SAFE_FREE_MEMORY(pSubKeyName);
     RegCloseServer(hReg);
     fflush(stdout);
