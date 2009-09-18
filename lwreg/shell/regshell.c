@@ -725,68 +725,87 @@ RegShellProcessInteractive(
     DWORD dwNewArgc = 0;
     PSTR *pszNewArgv = NULL;
     PSTR pszTmpStr = NULL;
+    BOOLEAN bDoPrompt = TRUE;
+    BOOLEAN bFoundComment = FALSE;
 
     /* Interactive shell */
     do
     {
-        printf("%s%s%s> ",
-               parseState->pszRootKeyName,
-               parseState->pszDefaultKey ? "\\" : "",
-               parseState->pszDefaultKey ?
-               parseState->pszDefaultKey : "\\");
-        fflush(stdout);
+        if (bDoPrompt)
+        {
+            printf("%s%s%s> ",
+                   parseState->pszRootKeyName,
+                   parseState->pszDefaultKey ? "\\" : "",
+                   parseState->pszDefaultKey ?
+                   parseState->pszDefaultKey : "\\");
+            fflush(stdout);
+        }
         pszCmdLine = fgets(cmdLine, sizeof(cmdLine)-1, readFP);
         if (pszCmdLine)
         {
+            if (strlen(cmdLine) == 1)
+            {
+                if (readFP != stdin)
+                {
+                    bDoPrompt = FALSE;
+                }
+                continue;
+            }
+
+            /* Ignore leading white space or # comment on lines */
+            for (pszTmpStr=cmdLine;
+                 *pszTmpStr && isspace(*pszTmpStr);
+                 pszTmpStr++)
+            {
+                ;
+            }
+
+            if (pszTmpStr && *pszTmpStr == '#')
+            {
+                printf("%s%s", bFoundComment ? "" : "\n", cmdLine);
+                bDoPrompt = FALSE;
+                bFoundComment = TRUE;
+                continue;
+            }
+
             if (cmdLine[strlen(cmdLine)-1] == '\n')
             {
                cmdLine[strlen(cmdLine)-1] = '\0';
             }
-            if (strlen(cmdLine) > 0)
+            if (readFP != stdin)
             {
-                /* Ignore leading white space or # comment on lines */
-                for (pszTmpStr=cmdLine;
-                     *pszTmpStr && isspace(*pszTmpStr);
-                     pszTmpStr++)
+                printf("%s\n", cmdLine);
+            }
+            bDoPrompt = TRUE;
+            bFoundComment = FALSE;
+
+            dwError = RegIOBufferSetData(
+                          parseState->ioHandle,
+                          cmdLine,
+                          strlen(cmdLine));
+            BAIL_ON_REG_ERROR(dwError);
+
+            dwError = RegShellCmdlineParseToArgv(
+                          parseState,
+                          &dwNewArgc,
+                          &pszNewArgv);
+
+            if (dwError == 0 && dwNewArgc > 0 && pszNewArgv)
+            {
+                dwError = RegShellProcessCmd(parseState,
+                                             dwNewArgc,
+                                             pszNewArgv);
+                if (dwError == LW_ERROR_INVALID_CONTEXT)
                 {
-                    ;
+                    PrintError("regshell", dwError);
+                    dwError = 0;
                 }
-                if (pszTmpStr && *pszTmpStr != '#')
-                {
-                    if (readFP != stdin)
-                    {
-                        printf("%s\n", cmdLine);
-                    }
-
-                    dwError = RegIOBufferSetData(
-                                  parseState->ioHandle,
-                                  cmdLine,
-                                  strlen(cmdLine));
-                    BAIL_ON_REG_ERROR(dwError);
-
-                    dwError = RegShellCmdlineParseToArgv(
-                                  parseState,
-                                  &dwNewArgc,
-                                  &pszNewArgv);
-
-                    if (dwError == 0 && dwNewArgc > 0 && pszNewArgv)
-                    {
-                        dwError = RegShellProcessCmd(parseState,
-                                                     dwNewArgc,
-                                                     pszNewArgv);
-                        if (dwError == LW_ERROR_INVALID_CONTEXT)
-                        {
-                            PrintError("regshell", dwError);
-                            dwError = 0;
-                        }
-                        RegShellCmdlineParseFree(dwNewArgc, pszNewArgv);
-                    }
-                    else
-                    {
-                        printf("regshell: unable to parse command '%s'\n\n",
-                               cmdLine);
-                    }
-                }
+                RegShellCmdlineParseFree(dwNewArgc, pszNewArgv);
+            }
+            else
+            {
+                printf("regshell: unable to parse command '%s'\n\n",
+                       cmdLine);
             }
         }
     } while (!feof(readFP));
