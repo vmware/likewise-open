@@ -754,7 +754,7 @@ RegShellProcessInteractive(
 
             /* Ignore leading white space or # comment on lines */
             for (pszTmpStr=cmdLine;
-                 *pszTmpStr && isspace(*pszTmpStr);
+                 (int)*pszTmpStr && isspace((int)*pszTmpStr);
                  pszTmpStr++)
             {
                 ;
