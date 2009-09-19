@@ -51,7 +51,6 @@
 
 DWORD
 LsaInitializeProvider(
-    PCSTR                         pszConfigFilePath,
     PSTR*                         ppszProviderName,
     PLSA_PROVIDER_FUNCTION_TABLE* ppFunctionTable
     );

@@ -8,29 +8,15 @@ typedef struct samr_srv_config {
 } LSA_SRV_CONFIG, *PLSA_SRV_CONFIG;
 
 
-typedef DWORD (*pFnLsaSrvConfigHandler)(PLSA_SRV_CONFIG pConfig,
-					 PCSTR pszName,
-					 PCSTR pszValue);
-
-
-typedef struct samr_config_handler {
-    PCSTR pszId;
-    pFnLsaSrvConfigHandler pFnHandler;
-} LSA_SRV_CONFIG_HANDLER, *PLSA_SRV_CONFIG_HANDLER;
-
-
 DWORD
 LsaSrvInitialiseConfig(
     PLSA_SRV_CONFIG pConfig
     );
 
-
-DWORD
-LsaSrvParseConfigFile(
-    PCSTR pszConfigFilePath,
+VOID
+LsaSrvFreeConfigContents(
     PLSA_SRV_CONFIG pConfig
     );
-
 
 DWORD
 LsaSrvConfigGetLpcSocketPath(
@@ -41,12 +27,6 @@ LsaSrvConfigGetLpcSocketPath(
 DWORD
 LsaSrvConfigGetSamrLpcSocketPath(
     PSTR *ppszSamrLpcSocketPath
-    );
-
-
-DWORD
-LsaSrvSetConfigFilePath(
-    PCSTR pszConfigFilePath
     );
 
 

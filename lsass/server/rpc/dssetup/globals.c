@@ -50,7 +50,6 @@ LSA_RPCSRV_FUNCTION_TABLE gDsrRpcFuncTable = {
 rpc_binding_vector_p_t gpDsrSrvBinding = NULL;
 
 
-PSTR gpszConfigFilePath = NULL;
 DSSETUP_SRV_CONFIG gDsrSrvConfig;
 
 

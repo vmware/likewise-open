@@ -130,7 +130,6 @@ SamDbSetupLocalGroupMemberships(
 
 DWORD
 DirectoryInitializeProvider(
-    PCSTR pszConfigFilePath,
     PSTR* ppszProviderName,
     PDIRECTORY_PROVIDER_FUNCTION_TABLE* ppFnTable
     )

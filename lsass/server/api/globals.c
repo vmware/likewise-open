@@ -58,12 +58,10 @@ pthread_rwlock_t gPerfCounters_rwlock;
 UINT64 gPerfCounters[LsaMetricSentinel];
 
 pthread_mutex_t    gAPIConfigLock     = PTHREAD_MUTEX_INITIALIZER;
-PSTR               gpszConfigFilePath = NULL;
 LSA_SRV_API_CONFIG gAPIConfig = {0};
 
 DWORD
 LsaSrvApiInit(
-    PCSTR pszConfigFilePath,
     PLSA_STATIC_PROVIDER pStaticProviders
     )
 {
@@ -81,9 +79,7 @@ LsaSrvApiInit(
     dwError = LsaSrvApiInitConfig(&gAPIConfig);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaSrvApiReadConfig(
-                    pszConfigFilePath,
-                    &apiConfig);
+    dwError = LsaSrvApiReadRegistry(&apiConfig);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaSrvApiTransferConfigContents(
@@ -91,15 +87,10 @@ LsaSrvApiInit(
                     &gAPIConfig);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaSrvInitAuthProviders(pszConfigFilePath, pStaticProviders);
+    dwError = LsaSrvInitAuthProviders(pStaticProviders);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaInitRpcServers(pszConfigFilePath);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LwAllocateString(
-                    pszConfigFilePath,
-                    &gpszConfigFilePath);
+    dwError = LsaInitRpcServers();
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
@@ -121,8 +112,6 @@ LsaSrvApiShutdown(
     LsaSrvFreeAuthProviders();
 
     pthread_mutex_lock(&gAPIConfigLock);
-
-    LW_SAFE_FREE_STRING(gpszConfigFilePath);
 
     LsaSrvApiFreeConfigContents(&gAPIConfig);
 

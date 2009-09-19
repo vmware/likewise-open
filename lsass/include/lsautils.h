@@ -52,6 +52,7 @@
 #include "lsalist.h"
 #include <lw/ntstatus.h>
 #include <lw/security-types.h>
+#include <reg/reg.h>
 #include <winerror-conv.h>
 
 #ifndef LW_ENDIAN_SWAP16
@@ -360,34 +361,6 @@ typedef struct __LSA_SECURITY_IDENTIFIER {
     DWORD dwByteLength;
 } LSA_SECURITY_IDENTIFIER, *PLSA_SECURITY_IDENTIFIER;
 */
-/*
- * Config parsing callbacks
- */
-typedef DWORD (*PFNCONFIG_START_SECTION)(
-                        PCSTR    pszSectionName,
-                        PVOID    pData,
-                        PBOOLEAN pbSkipSection,
-                        PBOOLEAN pbContinue
-                        );
-
-typedef DWORD (*PFNCONFIG_COMMENT)(
-                        PCSTR    pszComment,
-                        PVOID    pData,
-                        PBOOLEAN pbContinue
-                        );
-
-typedef DWORD (*PFNCONFIG_NAME_VALUE_PAIR)(
-                        PCSTR    pszName,
-                        PCSTR    pszValue,
-                        PVOID    pData,
-                        PBOOLEAN pbContinue
-                        );
-
-typedef DWORD (*PFNCONFIG_END_SECTION)(
-                        PCSTR pszSectionName,
-                        PVOID    pData,
-                        PBOOLEAN pbContinue
-                        );
 
 typedef struct __LSA_BIT_VECTOR
 {
@@ -552,6 +525,35 @@ typedef struct __LSA_CACHE
     DWORD dwNumUsedBuckets;
     DWORD dwNumCollisions;
 } LSA_CACHE, *PLSA_CACHE;
+
+typedef struct __LSA_CONFIG_REG
+{
+    HANDLE  hConnection;
+    HKEY    hKey;
+    wchar16_t   *pwc16sConfigKey;
+    wchar16_t   *pwc16sPolicyKey;
+} LSA_CONFIG_REG, *PLSA_CONFIG_REG;
+
+typedef enum
+{
+    LsaTypeString,
+    LsaTypeDword,
+    LsaTypeBoolean,
+    LsaTypeChar,
+    LsaTypeEnum
+} LSA_CONFIG_TYPE;
+
+typedef struct __LSA_CONFIG
+{
+    PCSTR   pszName;
+    BOOLEAN bUsePolicy;
+    LSA_CONFIG_TYPE Type;
+    DWORD dwMin;
+    DWORD dwMax;
+    const PCSTR *ppszEnumNames;
+    PVOID pValue;
+} LSA_CONFIG, *PLSA_CONFIG;
+
 
 #if !defined(HAVE_STRTOLL)
 
@@ -1149,14 +1151,60 @@ LsaFreeIpcNssArtefactInfoList(
     );
 
 DWORD
-LsaParseConfigFile(
-    PCSTR                     pszFilePath,
-    DWORD                     dwOptions,
-    PFNCONFIG_START_SECTION   pfnStartSectionHandler,
-    PFNCONFIG_COMMENT         pfnCommentHandler,
-    PFNCONFIG_NAME_VALUE_PAIR pfnNameValuePairHandler,
-    PFNCONFIG_END_SECTION     pfnEndSectionHandler,
-    PVOID                     pData
+LsaProcessConfig(
+    PCSTR pszConfigKey,
+    PCSTR pszPolicyKey,
+    PLSA_CONFIG pConfig,
+    DWORD dwConfigEntries
+    );
+
+DWORD
+LsaOpenConfig(
+    PCSTR pszConfigKey,
+    PCSTR pszPolicyKey,
+    PLSA_CONFIG_REG *ppReg
+    );
+
+VOID
+LsaCloseConfig(
+    PLSA_CONFIG_REG pReg
+    );
+
+DWORD
+LsaReadConfigString(
+    PLSA_CONFIG_REG pReg,
+    PCSTR   pszName,
+    BOOLEAN bUsePolicy,
+    PSTR    *ppszValue
+    );
+
+DWORD
+LsaReadConfigDword(
+    PLSA_CONFIG_REG pReg,
+    PCSTR pszName,
+    BOOLEAN bUsePolicy,
+    DWORD   dwMin,
+    DWORD   dwMax,
+    PDWORD pdwValue
+    );
+
+DWORD
+LsaReadConfigBoolean(
+    PLSA_CONFIG_REG pReg,
+    PCSTR pszName,
+    BOOLEAN bUsePolicy,
+    PBOOLEAN pbValue
+    );
+
+DWORD
+LsaReadConfigEnum(
+    PLSA_CONFIG_REG pReg,
+    PCSTR pszName,
+    BOOLEAN bUsePolicy,
+    DWORD dwMin,
+    DWORD dwMax,
+    const PCSTR *ppszEnumNames,
+    PDWORD pdwValue
     );
 
 DWORD

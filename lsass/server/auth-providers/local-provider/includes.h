@@ -50,6 +50,7 @@
 #include "lsasystem.h"
 #include "lsadef.h"
 #include "lsa/lsa.h"
+#include "reg/reg.h"
 
 #include <eventlog.h>
 

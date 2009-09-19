@@ -49,7 +49,6 @@ LSA_RPCSRV_FUNCTION_TABLE gSamrRpcFuncTable = {
 
 rpc_binding_vector_p_t gpSamrSrvBinding = NULL;
 
-PSTR gpszConfigFilePath = NULL;
 SAMR_SRV_CONFIG gSamrSrvConfig;
 
 

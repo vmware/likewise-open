@@ -80,7 +80,6 @@ SamrRpcStopServer(
 
 DWORD
 SamrInitializeRpcSrv(
-    PCSTR pszConfigFilePath,
     PSTR* ppszRpcSrvName,
     PLSA_RPCSRV_FUNCTION_TABLE* ppFnTable
     );

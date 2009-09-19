@@ -67,7 +67,6 @@ typedef struct rpcsrv_function_table {
 #define LSA_SYMBOL_NAME_INITIALIZE_RPCSRV    "LsaInitializeRpcSrv"
 
 typedef DWORD (*PFNINITIALIZERPCSRV)(
-    PCSTR pszConfigFilePath,
     PSTR* ppszRpcSrvName,
     PLSA_RPCSRV_FUNCTION_TABLE* ppFnTable
     );

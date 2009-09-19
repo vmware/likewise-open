@@ -49,7 +49,6 @@
 
 DWORD
 LsaInitializeRpcSrv(
-    PCSTR pszConfigFilePath,
     PSTR* ppszRpcSrvName,
     PLSA_RPCSRV_FUNCTION_TABLE* ppFnTable
     )
@@ -64,18 +63,11 @@ LsaInitializeRpcSrv(
     *ppszRpcSrvName = (PSTR)gpszDsrRpcSrvName;
     *ppFnTable      = &gDsrRpcFuncTable;
 
-    if (!LW_IS_NULL_OR_EMPTY_STR(pszConfigFilePath)) {
+    dwError = DsrSrvInitialiseConfig(&gDsrSrvConfig);
+    BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = DsrSrvInitialiseConfig(&gDsrSrvConfig);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwError = DsrSrvParseConfigFile(pszConfigFilePath,
-                                        &gDsrSrvConfig);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwError = DsrSrvSetConfigFilePath(pszConfigFilePath);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
+    dwError = DsrSrvReadRegistry(&gDsrSrvConfig);
+    BAIL_ON_LSA_ERROR(dwError);
 
     bDsrSrvInitialised = TRUE;
 

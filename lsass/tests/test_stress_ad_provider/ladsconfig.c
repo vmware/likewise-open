@@ -53,6 +53,11 @@ LADSParseConfig(
     )
 {
     DWORD dwError = 0;
+
+    return dwError;
+}
+#if 0
+
     LADS_CONFIG_DATA configData = {0};
     
     dwError = LsaParseConfigFile(
@@ -411,3 +416,4 @@ LADSFreeConfigListItem(
 {
     LW_SAFE_FREE_MEMORY(pItem);
 }
+#endif

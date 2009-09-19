@@ -48,116 +48,77 @@
  */
 #include "includes.h"
 
-#define LSA_PAM_CONFIG_FILE_PATH CONFIGDIR "/lsassd.conf"
 #define LSA_PAM_LOGON_RIGHTS_DENIED_MESSAGE "Access denied"
 
-typedef struct _LSA_CONFIG_READER_CONTEXT
+static const PCSTR gLogLevels[] =
 {
-    DWORD           dwSeenPamSection;
-    PLSA_PAM_CONFIG pConfig;
-} LSA_CONFIG_READER_CONTEXT, *PLSA_CONFIG_READER_CONTEXT;
+    "disabled",
+    "always",
+    "error",
+    "warning",
+    "info",
+    "verbose",
+    "debug"
+};
 
-typedef DWORD (*PFN_PAM_CONFIG_HANDLER)(
-                    PLSA_PAM_CONFIG pConfig,
-                    PCSTR          pszName,
-                    PCSTR          pszValue
-                    );
+static
+LSA_PAM_CONFIG gStagingConfig;
 
-typedef struct __PAM_CONFIG_HANDLER
+static
+LSA_CONFIG gConfigDescription[] =
 {
-    PCSTR                  pszId;
-    PFN_PAM_CONFIG_HANDLER pfnHandler;
-} PAM_CONFIG_HANDLER, *PPAM_CONFIG_HANDLER;
-
-static
-DWORD
-LsaPam_SetConfig_LogLevel(
-    PLSA_PAM_CONFIG pConfig,
-    PCSTR           pszName,
-    PCSTR           pszValue
-    );
-
-static
-DWORD
-LsaPam_SetConfig_DisplayMOTD(
-    PLSA_PAM_CONFIG pConfig,
-    PCSTR           pszName,
-    PCSTR           pszValue
-    );
-
-static
-DWORD
-LsaPam_SetConfig_UserNotAllowedError(
-    PLSA_PAM_CONFIG pConfig,
-    PCSTR           pszName,
-    PCSTR           pszValue
-    );
-
-static
-DWORD
-LsaPamConfigStartSection(
-    PCSTR    pszSectionName,
-    PVOID    pData,
-    PBOOLEAN pbSkipSection,
-    PBOOLEAN pbContinue
-    );
-
-static
-DWORD
-LsaPamConfigNameValuePair(
-    PCSTR    pszName,
-    PCSTR    pszValue,
-    PVOID    pData,
-    PBOOLEAN pbContinue
-    );
-
-static PAM_CONFIG_HANDLER gConfigHandlers[] =
-{
-    { "log-level",              &LsaPam_SetConfig_LogLevel },
-    { "display-motd",           &LsaPam_SetConfig_DisplayMOTD },
-    { "user-not-allowed-error", &LsaPam_SetConfig_UserNotAllowedError }
+    {   "LogLevel",
+        TRUE,
+        LsaTypeEnum,
+        PAM_LOG_LEVEL_DISABLED,
+        PAM_LOG_LEVEL_DEBUG,
+        gLogLevels,
+        &(gStagingConfig.dwLogLevel)
+    },
+    {
+        "DisplayMOTD",
+        TRUE,
+        LsaTypeBoolean,
+        0,
+        -1,
+        NULL,
+        &(gStagingConfig.bLsaPamDisplayMOTD)
+    },
+    {
+        "UserNotAllowedError",
+        TRUE,
+        LsaTypeString,
+        0,
+        -1,
+        NULL,
+        &(gStagingConfig.pszAccessDeniedMessage)
+    }
 };
 
 DWORD
-LsaPamReadConfigFile(
+LsaPamReadRegistry(
     PLSA_PAM_CONFIG* ppConfig
     )
 {
     DWORD dwError = 0;
-    BOOLEAN bExists = FALSE;
     PLSA_PAM_CONFIG pConfig = NULL;
-    LSA_CONFIG_READER_CONTEXT context = {0};
 
-    dwError = LwAllocateMemory(
-                    sizeof(LSA_PAM_CONFIG),
-                    (PVOID*)&pConfig);
+    dwError = LwAllocateMemory(sizeof(LSA_PAM_CONFIG), (PVOID*) &pConfig);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaPamInitializeConfig(pConfig);
+    memset(&gStagingConfig, 0, sizeof(LSA_PAM_CONFIG));
+    dwError = LsaPamInitializeConfig(&gStagingConfig);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaCheckFileExists(
-                LSA_PAM_CONFIG_FILE_PATH,
-                &bExists);
+    dwError = LsaProcessConfig(
+                "Services\\lsass\\Parameters\\PAM",
+                "Policy\\Services\\lsass\\Parameters\\PAM",
+                gConfigDescription,
+                sizeof(gConfigDescription)/sizeof(gConfigDescription[0]));
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (!bExists) {
-        goto done;
-    }
-
-    context.pConfig = pConfig;
-
-    dwError = LsaParseConfigFile(
-                LSA_PAM_CONFIG_FILE_PATH,
-                LSA_CFG_OPTION_STRIP_ALL,
-                &LsaPamConfigStartSection,
-                NULL,
-                &LsaPamConfigNameValuePair,
-                NULL,
-                (PVOID)&context);
-    BAIL_ON_LSA_ERROR(dwError);
-
-done:
+    *pConfig = gStagingConfig;
+    memset(&gStagingConfig, 0, sizeof(LSA_PAM_CONFIG));
 
     *ppConfig = pConfig;
 
@@ -167,10 +128,13 @@ cleanup:
 
 error:
 
-    if (pConfig)
+    if ( pConfig )
     {
-        LsaPamFreeConfig(pConfig);
+        LsaPamFreeConfigContents(pConfig);
+        LW_SAFE_FREE_MEMORY(pConfig);
     }
+
+    LsaPamFreeConfigContents(&gStagingConfig);
 
     goto cleanup;
 }
@@ -216,163 +180,4 @@ LsaPamFreeConfigContents(
     )
 {
     LW_SAFE_FREE_STRING(pConfig->pszAccessDeniedMessage);
-}
-
-static
-DWORD
-LsaPamConfigStartSection(
-    PCSTR    pszSectionName,
-    PVOID    pData,
-    PBOOLEAN pbSkipSection,
-    PBOOLEAN pbContinue
-    )
-{
-    DWORD   dwError = 0;
-    BOOLEAN bSkipSection = FALSE;
-    BOOLEAN bContinue = TRUE;
-    PLSA_CONFIG_READER_CONTEXT  pContext = (PLSA_CONFIG_READER_CONTEXT)pData;
-
-    if (pContext->dwSeenPamSection == TRUE) {
-        bContinue = FALSE;
-        bSkipSection = TRUE;
-        goto done;
-    }
-
-    if (!LW_IS_NULL_OR_EMPTY_STR(pszSectionName) &&
-        !strcasecmp(pszSectionName, "pam")) {
-        pContext->dwSeenPamSection = TRUE;
-    } else {
-        bSkipSection = TRUE;
-    }
-
-done:
-
-    *pbSkipSection = bSkipSection;
-    *pbContinue = bContinue;
-
-    return dwError;
-}
-
-static
-DWORD
-LsaPamConfigNameValuePair(
-    PCSTR    pszName,
-    PCSTR    pszValue,
-    PVOID    pData,
-    PBOOLEAN pbContinue
-    )
-{
-    DWORD dwError = 0;
-
-    if (!LW_IS_NULL_OR_EMPTY_STR(pszName))
-    {
-        DWORD iHandler = 0;
-        DWORD nHandlers = sizeof(gConfigHandlers)/sizeof(gConfigHandlers[0]);
-
-        for (; iHandler < nHandlers; iHandler++)
-        {
-            if (!strcasecmp(gConfigHandlers[iHandler].pszId, pszName))
-            {
-                PLSA_CONFIG_READER_CONTEXT  pContext = (PLSA_CONFIG_READER_CONTEXT)pData;
-                PLSA_PAM_CONFIG pConfig = pContext->pConfig;
-
-                gConfigHandlers[iHandler].pfnHandler(
-                                pConfig,
-                                pszName,
-                                pszValue);
-                break;
-            }
-        }
-    }
-
-    *pbContinue = TRUE;
-
-    return dwError;
-}
-
-static
-DWORD
-LsaPam_SetConfig_LogLevel(
-    PLSA_PAM_CONFIG pConfig,
-    PCSTR           pszName,
-    PCSTR           pszValue
-    )
-{
-    if (LW_IS_NULL_OR_EMPTY_STR(pszValue))
-    {
-        pConfig->dwLogLevel = PAM_LOG_LEVEL_DISABLED;
-    }
-    else if (!strcasecmp(pszValue, "error")) {
-        pConfig->dwLogLevel = PAM_LOG_LEVEL_ERROR;
-    } else if (!strcasecmp(pszValue, "warning")) {
-        pConfig->dwLogLevel = PAM_LOG_LEVEL_WARNING;
-    } else if (!strcasecmp(pszValue, "info")) {
-        pConfig->dwLogLevel = PAM_LOG_LEVEL_INFO;
-    } else if (!strcasecmp(pszValue, "verbose")) {
-        pConfig->dwLogLevel = PAM_LOG_LEVEL_VERBOSE;
-    } else if (!strcasecmp(pszValue, "debug")) {
-        pConfig->dwLogLevel = PAM_LOG_LEVEL_DEBUG;
-    }
-    else
-    {
-        pConfig->dwLogLevel = PAM_LOG_LEVEL_DISABLED;
-    }
-
-    return 0;
-}
-
-static
-DWORD
-LsaPam_SetConfig_DisplayMOTD(
-    PLSA_PAM_CONFIG pConfig,
-    PCSTR           pszName,
-    PCSTR           pszValue
-    )
-{
-    if (!LW_IS_NULL_OR_EMPTY_STR(pszValue) &&
-        (!strcasecmp(pszValue, "true") ||
-         (*pszValue == 'Y') ||
-         (*pszValue == 'y')))
-    {
-        pConfig->bLsaPamDisplayMOTD = TRUE;
-    }
-    else
-    {
-        pConfig->bLsaPamDisplayMOTD = FALSE;
-    }
-
-    return 0;
-}
-
-static
-DWORD
-LsaPam_SetConfig_UserNotAllowedError(
-    PLSA_PAM_CONFIG pConfig,
-    PCSTR           pszName,
-    PCSTR           pszValue
-    )
-{
-    DWORD dwError = 0;
-    PSTR  pszMessage = NULL;
-
-    if (!LW_IS_NULL_OR_EMPTY_STR(pszValue))
-    {
-        dwError = LwAllocateString(
-                        pszValue,
-                        &pszMessage);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        LW_SAFE_FREE_STRING(pConfig->pszAccessDeniedMessage);
-        pConfig->pszAccessDeniedMessage = pszMessage;
-    }
-
-cleanup:
-
-    return dwError;
-
-error:
-
-    LW_SAFE_FREE_STRING(pszMessage);
-
-    goto cleanup;
 }

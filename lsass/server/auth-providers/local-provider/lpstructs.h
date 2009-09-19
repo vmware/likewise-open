@@ -105,7 +105,6 @@ typedef struct _LOCAL_PROVIDER_GLOBALS
     pthread_mutex_t mutex;
 
     PSTR            pszBuiltinDomain;
-    PSTR            pszConfigFilePath;
     PSTR            pszLocalDomain;
     PSTR            pszNetBIOSName;
     PSID            pLocalDomainSID;

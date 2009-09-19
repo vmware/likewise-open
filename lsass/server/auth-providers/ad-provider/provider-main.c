@@ -220,7 +220,6 @@ AD_Activate(
 
 DWORD
 LSA_INITIALIZE_PROVIDER(ad)(
-    PCSTR pszConfigFilePath,
     PSTR* ppszProviderName,
     PLSA_PROVIDER_FUNCTION_TABLE* ppFunctionTable
     )
@@ -237,30 +236,22 @@ LSA_INITIALIZE_PROVIDER(ad)(
     dwError = AD_NetInitMemory();
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (!LW_IS_NULL_OR_EMPTY_STR(pszConfigFilePath)) {
+    dwError = AD_InitializeConfig(&config);
+    BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = AD_InitializeConfig(&config);
-        BAIL_ON_LSA_ERROR(dwError);
+    dwError = AD_ReadRegistry(&config);
+    BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = AD_ParseConfigFile(
-                        pszConfigFilePath,
-                        &config);
-        BAIL_ON_LSA_ERROR(dwError);
+    dwError = AD_TransferConfigContents(
+                    &config,
+                    &gpLsaAdProviderState->config);
+    BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = AD_TransferConfigContents(
-                        &config,
-                        &gpLsaAdProviderState->config);
-        BAIL_ON_LSA_ERROR(dwError);
+    dwError = LsaSetDomainSeparator(
+                gpLsaAdProviderState->config.chDomainSeparator);
+    BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = LsaSetDomainSeparator(
-                    gpLsaAdProviderState->config.chDomainSeparator);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwError = AD_SetConfigFilePath(pszConfigFilePath);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        LsaAdProviderLogConfigReloadEvent();
-    }
+    LsaAdProviderLogConfigReloadEvent();
 
     InitADCacheFunctionTable(gpCacheProvider);
 
@@ -388,8 +379,6 @@ LSA_SHUTDOWN_PROVIDER(ad)(
     }
 
     AD_FreeAllowedSIDs_InLock();
-
-    LW_SAFE_FREE_STRING(gpszADConfigFilePath);
 
     // This will clean up media sense too.
     LsaAdProviderStateDestroy(gpLsaAdProviderState);
@@ -4002,66 +3991,56 @@ AD_RefreshConfiguration(
     )
 {
     DWORD dwError = 0;
-    PSTR  pszConfigFilePath = NULL;
     LSA_AD_CONFIG config = {0};
     BOOLEAN bInLock = FALSE;
     BOOLEAN bUpdateCap = FALSE;
 
-    dwError = AD_GetConfigFilePath(&pszConfigFilePath);
+    dwError = AD_InitializeConfig(&config);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (!LW_IS_NULL_OR_EMPTY_STR(pszConfigFilePath)) {
-        dwError = AD_InitializeConfig(&config);
-        BAIL_ON_LSA_ERROR(dwError);
+    dwError = AD_ReadRegistry(&config);
+    BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = AD_ParseConfigFile(
-                        pszConfigFilePath,
-                        &config);
-        BAIL_ON_LSA_ERROR(dwError);
+    ENTER_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
 
-        ENTER_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
+    dwError = AD_TransferConfigContents(
+                    &config,
+                    &gpLsaAdProviderState->config);
+    BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = AD_TransferConfigContents(
-                        &config,
-                        &gpLsaAdProviderState->config);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwError = LsaSetDomainSeparator(
+    dwError = LsaSetDomainSeparator(
                     gpLsaAdProviderState->config.chDomainSeparator);
-        BAIL_ON_LSA_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
-        AD_FreeAllowedSIDs_InLock();
+    AD_FreeAllowedSIDs_InLock();
 
-        dwError = LsaDmSetState(
-                        NULL,
-                        &gpLsaAdProviderState->config.DomainManager.dwCheckDomainOnlineSeconds,
-                        &gpLsaAdProviderState->config.DomainManager.dwUnknownDomainCacheTimeoutSeconds);
-        BAIL_ON_LSA_ERROR(dwError);
+    dwError = LsaDmSetState(
+                    NULL,
+                    &gpLsaAdProviderState->config.DomainManager.dwCheckDomainOnlineSeconds,
+                    &gpLsaAdProviderState->config.DomainManager.dwUnknownDomainCacheTimeoutSeconds);
+    BAIL_ON_LSA_ERROR(dwError);
 
-        if (gpLsaAdProviderState->config.CacheBackend == AD_CACHE_IN_MEMORY)
-        {
-            bUpdateCap = TRUE;
-        }
-
-        LEAVE_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
-
-        if (bUpdateCap)
-        {
-            dwError = MemCacheSetSizeCap(
-                            gpLsaAdProviderState->hCacheConnection,
-                            AD_GetCacheSizeCap());
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-        LsaAdProviderLogConfigReloadEvent();
-        LsaAdProviderLogRequireMembershipOfChangeEvent(hProvider);
-        LsaAdProviderLogEventLogEnableChangeEvent();
+    if (gpLsaAdProviderState->config.CacheBackend == AD_CACHE_IN_MEMORY)
+    {
+        bUpdateCap = TRUE;
     }
+
+    LEAVE_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
+
+    if (bUpdateCap)
+    {
+        dwError = MemCacheSetSizeCap(
+                        gpLsaAdProviderState->hCacheConnection,
+                        AD_GetCacheSizeCap());
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    LsaAdProviderLogConfigReloadEvent();
+    LsaAdProviderLogRequireMembershipOfChangeEvent(hProvider);
+    LsaAdProviderLogEventLogEnableChangeEvent();
 
 cleanup:
 
     LEAVE_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
-
-    LW_SAFE_FREE_STRING(pszConfigFilePath);
 
     return dwError;
 

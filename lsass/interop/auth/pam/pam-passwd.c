@@ -67,7 +67,7 @@ pam_sm_chauthtok(
 
     LSA_LOG_PAM_DEBUG("pam_sm_chauthtok::begin");
 
-    dwError = LsaPamReadConfigFile(&pConfig);
+    dwError = LsaPamReadRegistry(&pConfig);
     BAIL_ON_LSA_ERROR(dwError);
 
     LsaPamSetLogLevel(pConfig->dwLogLevel);

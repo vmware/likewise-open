@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        adcfg.h
+ *        prototypes.h
  *
  * Abstract:
  *
@@ -46,20 +46,8 @@
  * Authors: Brian Dunstan (bdunstan@likewisesoftware.com)
  *
  */
-#ifndef __AD_CFG_H__
-#define __AD_CFG_H__
-
-typedef DWORD (*PFN_AD_CONFIG_HANDLER)(
-                    PLSA_AD_CONFIG pConfig,
-                    PCSTR          pszName,
-                    PCSTR          pszValue
-                    );
-
-typedef struct __AD_CONFIG_HANDLER
-{
-    PCSTR                 pszId;
-    PFN_AD_CONFIG_HANDLER pfnHandler;
-} AD_CONFIG_HANDLER, *PAD_CONFIG_HANDLER;
+#ifndef __AD_PROTOTYPES_H__
+#define __AD_PROTOTYPES_H__
 
 DWORD
 AD_TransferConfigContents(
@@ -88,41 +76,9 @@ AD_FreeConfigMemberInList(
     PVOID pUserData
     );
 
-DWORD
-AD_ParseConfigFile(
-    PCSTR          pszConfigFilePath,
-    PLSA_AD_CONFIG pConfig
-    );
-
-DWORD
-AD_ConfigStartSection(
-    PCSTR    pszSectionName,
-    PVOID    pData,
-    PBOOLEAN pbSkipSection,
-    PBOOLEAN pbContinue
-    );
-
-DWORD
-AD_ConfigNameValuePair(
-    PCSTR    pszName,
-    PCSTR    pszValue,
-    PVOID    pData,
-    PBOOLEAN pbContinue
-    );
-
 BOOLEAN
 AD_GetBooleanConfigValue(
     PCSTR pszValue
-    );
-
-DWORD
-AD_SetConfigFilePath(
-    PCSTR pszConfigFilePath
-    );
-
-DWORD
-AD_GetConfigFilePath(
-    PSTR* ppszConfigFilePath
     );
 
 DWORD
@@ -289,5 +245,5 @@ AD_GetDomainManagerUnknownDomainCacheTimeoutSeconds(
     VOID
     );
 
-#endif /* __AD_CFG_H__ */
+#endif /* __AD_PROTOTYPES_H__ */
 

@@ -120,7 +120,6 @@ extern UINT64 gPerfCounters[LsaMetricSentinel];
 
 extern pthread_mutex_t    gAPIConfigLock;
 
-extern PSTR               gpszConfigFilePath;
 extern LSA_SRV_API_CONFIG gAPIConfig;
 
 #endif /* __EXTERNS_P_H__ */

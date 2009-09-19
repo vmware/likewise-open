@@ -217,7 +217,6 @@ DirectoryLoadProvider(
     }
 
     dwError = pfnInitProvider(
-                    NULL,
                     &pProvider->pszProviderName,
                     &pProvider->pProviderFnTbl);
     BAIL_ON_DIRECTORY_ERROR(dwError);

@@ -49,17 +49,10 @@
 #ifndef __AD_CFG_H__
 #define __AD_CFG_H__
 
-typedef DWORD (*PFN_AD_CONFIG_HANDLER)(
-                    PLSA_AD_CONFIG pConfig,
-                    PCSTR          pszName,
-                    PCSTR          pszValue
-                    );
-
-typedef struct __AD_CONFIG_HANDLER
-{
-    PCSTR                 pszId;
-    PFN_AD_CONFIG_HANDLER pfnHandler;
-} AD_CONFIG_HANDLER, *PAD_CONFIG_HANDLER;
+DWORD
+AD_ReadRegistry(
+    PLSA_AD_CONFIG pConfig
+    );
 
 DWORD
 AD_TransferConfigContents(
@@ -86,43 +79,6 @@ VOID
 AD_FreeConfigMemberInList(
     PVOID pItem,
     PVOID pUserData
-    );
-
-DWORD
-AD_ParseConfigFile(
-    PCSTR          pszConfigFilePath,
-    PLSA_AD_CONFIG pConfig
-    );
-
-DWORD
-AD_ConfigStartSection(
-    PCSTR    pszSectionName,
-    PVOID    pData,
-    PBOOLEAN pbSkipSection,
-    PBOOLEAN pbContinue
-    );
-
-DWORD
-AD_ConfigNameValuePair(
-    PCSTR    pszName,
-    PCSTR    pszValue,
-    PVOID    pData,
-    PBOOLEAN pbContinue
-    );
-
-BOOLEAN
-AD_GetBooleanConfigValue(
-    PCSTR pszValue
-    );
-
-DWORD
-AD_SetConfigFilePath(
-    PCSTR pszConfigFilePath
-    );
-
-DWORD
-AD_GetConfigFilePath(
-    PSTR* ppszConfigFilePath
     );
 
 DWORD

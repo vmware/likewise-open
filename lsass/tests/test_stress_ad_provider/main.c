@@ -533,7 +533,6 @@ LADSInitAuthProvider(
     }
         
     dwError = pfnInitProvider(
-                    pszConfigFilePath,
                     &pProvider->pszName,
                     &pProvider->pFnTable);
     BAIL_ON_LSA_ERROR(dwError);

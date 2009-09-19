@@ -54,11 +54,6 @@ typedef void* POLICY_HANDLE;
 #endif
 
 
-#define LSA_CFG_TAG_RPC_SERVER                 "rpc server:"
-#define LSA_CFG_TAG_LSA_RPC_SERVER             "lsarpc"
-#define LSA_CFG_TAG_SAMR_RPC_SERVER            "samr"
-
-
 #define LSA_RPC_DIR                            CACHEDIR "/rpc"
 #define LSA_DEFAULT_LPC_SOCKET_PATH            LSA_RPC_DIR "/lsass"
 

@@ -47,8 +47,6 @@
 #ifndef _RPC_SERVER_P_H_
 #define _RPC_SERVER_P_H_
 
-#define LSA_CFG_TAG_RPC_SERVER   "rpc server:"
-
 typedef struct lsa_rpc_server {
     PSTR                        pszSrvLibPath;
     PSTR                        pszName;
@@ -68,7 +66,6 @@ LsaCheckInvalidRpcServer(
 
 DWORD
 LsaInitRpcServers(
-    PCSTR pszConfigFilePath
     );
 
 
@@ -91,20 +88,8 @@ LsaValidateRpcServer(
 
 
 DWORD
-LsaRpcServerConfigStartSection(
-    PCSTR    pszSectionName,
-    PVOID    pData,
-    PBOOLEAN pbSkipSection,
-    PBOOLEAN pbContinue
-    );
-
-
-DWORD
-LsaRpcServerConfigNameValuePair(
-    PCSTR    pszName,
-    PCSTR    pszValue,
-    PVOID    pData,
-    PBOOLEAN pbContinue
+LsaRpcReadRegistry(
+    PLSA_STACK *ppRpcSrvStack
     );
 
 

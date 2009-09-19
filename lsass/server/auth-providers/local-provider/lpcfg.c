@@ -51,64 +51,6 @@
 
 static
 DWORD
-LocalCfgStartSection(
-    PCSTR    pszSectionName,
-    PVOID    pData,
-    PBOOLEAN pbSkipSection,
-    PBOOLEAN pbContinue
-    );
-
-static
-DWORD
-LocalCfgNameValuePair(
-    PCSTR    pszName,
-    PCSTR    pszValue,
-    PVOID    pData,
-    PBOOLEAN pbContinue
-    );
-
-static
-DWORD
-LocalCfgEnableEventLog(
-    PLOCAL_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    );
-
-static
-DWORD
-LocalCfgSetDefaultLoginShell(
-    PLOCAL_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    );
-
-static
-DWORD
-LocalCfgSetHomedirPrefix(
-    PLOCAL_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    );
-
-static
-DWORD
-LocalCfgSetHomedirTemplate(
-    PLOCAL_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    );
-
-static
-DWORD
-LocalCfgSetCreateHomedir(
-    PLOCAL_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    );
-
-static
-DWORD
 LocalCfgSetHomedirUmask(
     PLOCAL_CONFIG pConfig,
     PCSTR          pszName,
@@ -117,40 +59,78 @@ LocalCfgSetHomedirUmask(
 
 static
 DWORD
-LocalCfgSetSkeletonDirs(
-    PLOCAL_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
+LocalCfgExtraValidation(
+    PLOCAL_CONFIG pConfig
     );
 
-static
-BOOLEAN
-LocalCfgGetBooleanValue(
-    PCSTR pszValue
-    );
+PSTR gpszUmask;
+LOCAL_CONFIG gStagingConfig;
 
-typedef DWORD (*PFN_LOCAL_CFG_HANDLER)(
-                    PLOCAL_CONFIG pConfig,
-                    PCSTR         pszName,
-                    PCSTR         pszValue
-                    );
-
-typedef struct __LOCAL_CFG_HANDLER
+static LSA_CONFIG gConfigDescription[] =
 {
-    PCSTR                 pszId;
-    PFN_LOCAL_CFG_HANDLER pfnHandler;
-
-} LOCAL_CFG_HANDLER, *PLOCAL_CFG_HANDLER;
-
-static LOCAL_CFG_HANDLER gLocalCfgHandlers[] =
-{
-    {"enable-eventlog",              &LocalCfgEnableEventLog},
-    {"login-shell-template",         &LocalCfgSetDefaultLoginShell},
-    {"homedir-prefix",               &LocalCfgSetHomedirPrefix},
-    {"homedir-template",             &LocalCfgSetHomedirTemplate},
-    {"create-homedir",               &LocalCfgSetCreateHomedir},
-    {"homedir-umask",                &LocalCfgSetHomedirUmask},
-    {"skeleton-dirs",                &LocalCfgSetSkeletonDirs}
+    {
+        "HomeDirUmask",
+        TRUE,
+        LsaTypeString,
+        0,
+        -1,
+        NULL,
+        &gpszUmask
+    },
+    {
+        "EnableEventlog",
+        TRUE,
+        LsaTypeBoolean,
+        0,
+        -1,
+        NULL,
+        &(gStagingConfig.bEnableEventLog)
+    },
+    {
+        "LoginShellTemplate",
+        TRUE,
+        LsaTypeString,
+        0,
+        -1,
+        NULL,
+        &(gStagingConfig.pszLoginShell)
+    },
+    {
+        "HomeDirPrefix",
+        TRUE,
+        LsaTypeString,
+        0,
+        -1,
+        NULL,
+        &(gStagingConfig.pszHomedirPrefix)
+    },
+    {
+        "HomeDirTemplate",
+        TRUE,
+        LsaTypeString,
+        0,
+        -1,
+        NULL,
+        &(gStagingConfig.pszHomedirTemplate)
+    },
+    {
+        "CreateHomeDir",
+        TRUE,
+        LsaTypeBoolean,
+        0,
+        -1,
+        NULL,
+        &(gStagingConfig.bCreateHomedir)
+    },
+    {
+        "SkeletonDirs",
+        TRUE,
+        LsaTypeString,
+        0,
+        -1,
+        NULL,
+        &(gStagingConfig.pszSkelDirs)
+    }
 };
 
 DWORD
@@ -212,56 +192,6 @@ LocalCfgTransferContents(
     return 0;
 }
 
-DWORD
-LocalCfgParseFile(
-    PCSTR         pszConfigFilePath,
-    PLOCAL_CONFIG pConfig
-    )
-{
-    return LsaParseConfigFile(
-                pszConfigFilePath,
-                LSA_CFG_OPTION_STRIP_ALL,
-                &LocalCfgStartSection,
-                NULL,
-                &LocalCfgNameValuePair,
-                NULL,
-                pConfig);
-}
-
-
-DWORD
-LocalCfgGetFilePath(
-    PSTR* ppszConfigFilePath
-    )
-{
-    DWORD dwError = 0;
-    BOOLEAN bInLock = FALSE;
-    PSTR pszConfigFilePath = NULL;
-
-    LOCAL_LOCK_MUTEX(bInLock, &gLPGlobals.mutex);
-
-    if (!LW_IS_NULL_OR_EMPTY_STR(gLPGlobals.pszConfigFilePath))
-    {
-        dwError = LwAllocateString(
-                        gLPGlobals.pszConfigFilePath,
-                        &pszConfigFilePath);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    *ppszConfigFilePath = pszConfigFilePath;
-
-cleanup:
-
-    LOCAL_UNLOCK_MUTEX(bInLock, &gLPGlobals.mutex);
-
-    return dwError;
-
-error:
-
-    *ppszConfigFilePath = NULL;
-
-    goto cleanup;
-}
 
 DWORD
 LocalCfgGetMaxPasswordAge(
@@ -528,222 +458,86 @@ LocalCfgFreeContents(
     LW_SAFE_FREE_STRING(pConfig->pszSkelDirs);
 }
 
-static
+
 DWORD
-LocalCfgStartSection(
-    PCSTR    pszSectionName,
-    PVOID    pData,
-    PBOOLEAN pbSkipSection,
-    PBOOLEAN pbContinue
+LocalCfgReadRegistry(
+    PLOCAL_CONFIG pConfig
     )
 {
-    DWORD dwError = 0;
-    PCSTR pszLibName = NULL;
-    BOOLEAN bContinue = TRUE;
-    BOOLEAN bSkipSection = FALSE;
+    DWORD dwError = LW_ERROR_SUCCESS;
 
-    if (LW_IS_NULL_OR_EMPTY_STR(pszSectionName) ||
-        (strncasecmp(pszSectionName,
-                     LOCAL_CFG_TAG_AUTH_PROVIDER,
-                     sizeof(LOCAL_CFG_TAG_AUTH_PROVIDER)-1) &&
-         strncasecmp(pszSectionName, "global", sizeof("global")-1)))
-    {
-        bSkipSection = TRUE;
-        goto done;
-    }
-
-    if (!strncasecmp(pszSectionName,
-                     LOCAL_CFG_TAG_AUTH_PROVIDER,
-                     sizeof(LOCAL_CFG_TAG_AUTH_PROVIDER)-1))
-    {
-        pszLibName = pszSectionName + sizeof(LOCAL_CFG_TAG_AUTH_PROVIDER) - 1;
-        if (LW_IS_NULL_OR_EMPTY_STR(pszLibName) ||
-            strcasecmp(pszLibName, LOCAL_CFG_TAG_LOCAL_PROVIDER)) {
-            bSkipSection = TRUE;
-            goto done;
-        }
-    }
-
-done:
-
-    *pbSkipSection = bSkipSection;
-    *pbContinue = bContinue;
-
-    return dwError;
-}
-
-static
-DWORD
-LocalCfgNameValuePair(
-    PCSTR    pszName,
-    PCSTR    pszValue,
-    PVOID    pData,
-    PBOOLEAN pbContinue
-    )
-{
-    DWORD dwError = 0;
-    DWORD iHandler = 0;
-    DWORD nHandlers = sizeof(gLocalCfgHandlers)/sizeof(gLocalCfgHandlers[0]);
-
-    if (!LW_IS_NULL_OR_EMPTY_STR(pszName))
-    {
-        for (; iHandler < nHandlers; iHandler++)
-        {
-            if (!strcasecmp(gLocalCfgHandlers[iHandler].pszId, pszName))
-            {
-                gLocalCfgHandlers[iHandler].pfnHandler(
-                                                (PLOCAL_CONFIG)pData,
-                                                pszName,
-                                                pszValue);
-                break;
-            }
-        }
-    }
-
-    *pbContinue = TRUE;
-
-    return dwError;
-}
-
-static
-DWORD
-LocalCfgEnableEventLog(
-    PLOCAL_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    )
-{
-    pConfig->bEnableEventLog =  LocalCfgGetBooleanValue(pszValue);
-
-    return 0;
-}
-
-static
-DWORD
-LocalCfgSetDefaultLoginShell(
-    PLOCAL_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    )
-{
-    DWORD dwError = 0;
-    PSTR  pszLoginShell = NULL;
-
-    BAIL_ON_INVALID_STRING(pszValue);
-
-    if (access(pszValue, X_OK) != 0)
-    {
-        dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = LwAllocateString(
-                    pszValue,
-                    &pszLoginShell);
+    dwError = LocalCfgInitialize(&gStagingConfig);
     BAIL_ON_LSA_ERROR(dwError);
 
-    LW_SAFE_FREE_STRING(pConfig->pszLoginShell);
+    dwError = LsaProcessConfig(
+                "Services\\lsass\\Parameters\\Providers\\Local",
+                "Policy\\Services\\lsass\\Parameters\\Providers\\Local",
+                gConfigDescription,
+                sizeof(gConfigDescription)/sizeof(gConfigDescription));
+    BAIL_ON_LSA_ERROR(dwError);
 
-    pConfig->pszLoginShell = pszLoginShell;
+    LocalCfgSetHomedirUmask(
+            &gStagingConfig,
+            "HomeDirUmask",
+            gpszUmask);
+
+    dwError = LocalCfgExtraValidation(&gStagingConfig);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    LocalCfgTransferContents(&gStagingConfig, pConfig);
 
 cleanup:
-
+    LocalCfgFreeContents(&gStagingConfig);
     return dwError;
 
 error:
-
-    LW_SAFE_FREE_STRING(pszLoginShell);
-
+    LocalCfgFreeContents(pConfig);
     goto cleanup;
 }
 
-static
 DWORD
-LocalCfgSetHomedirPrefix(
-    PLOCAL_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
+LocalCfgExtraValidation(
+    PLOCAL_CONFIG pConfig
     )
 {
     DWORD dwError = 0;
+    PSTR pszLoginShell = NULL;
     PSTR pszHomedirPrefix = NULL;
 
-    BAIL_ON_INVALID_STRING(pszValue);
-
-    dwError = LwAllocateString(
-                pszValue,
-                &pszHomedirPrefix);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    LwStripWhitespace(pszHomedirPrefix, TRUE, TRUE);
-
-    BAIL_ON_INVALID_STRING(pszHomedirPrefix);
-
-    if (*pszHomedirPrefix != '/')
-    {
-        LSA_LOG_ERROR("Invalid home directory prefix [%s]", pszHomedirPrefix);
-        goto error;
-    }
-
-    LW_SAFE_FREE_STRING(pConfig->pszHomedirPrefix);
-    pConfig->pszHomedirPrefix = pszHomedirPrefix;
-
-cleanup:
-
-    return 0;
-
-error:
-
-    LW_SAFE_FREE_STRING(pszHomedirPrefix);
-
-    goto cleanup;
-}
-
-static
-DWORD
-LocalCfgSetHomedirTemplate(
-    PLOCAL_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    )
-{
-    DWORD dwError = 0;
-    PSTR  pszHomedirTemplate = NULL;
-
-    if ( !LW_IS_NULL_OR_EMPTY_STR(pszValue) )
+    if (access(pConfig->pszLoginShell, X_OK) != 0)
     {
         dwError = LwAllocateString(
-                      pszValue,
-                      &pszHomedirTemplate);
+                    LOCAL_CFG_DEFAULT_LOGIN_SHELL,
+                    &pszLoginShell);
         BAIL_ON_LSA_ERROR(dwError);
+
+        LW_SAFE_FREE_STRING(pConfig->pszLoginShell);
+        pConfig->pszLoginShell = pszLoginShell;
+        pszLoginShell = NULL;
     }
 
-    LW_SAFE_FREE_STRING(pConfig->pszHomedirTemplate);
+    if (pConfig->pszHomedirPrefix[0] != '/')
+    {
+        LSA_LOG_ERROR(
+                "Invalid home directory prefix [%s]",
+                pConfig->pszHomedirPrefix);
 
-    pConfig->pszHomedirTemplate = pszHomedirTemplate;
+        dwError = LwAllocateString(
+                    LOCAL_CFG_DEFAULT_HOMEDIR_PREFIX,
+                    &pszHomedirPrefix);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        LW_SAFE_FREE_STRING(pConfig->pszHomedirPrefix);
+        pConfig->pszHomedirPrefix = pszHomedirPrefix;
+        pszHomedirPrefix = NULL;
+    }
 
 cleanup:
-
     return dwError;
 
 error:
-
-    LW_SAFE_FREE_STRING(pszHomedirTemplate);
-
-    goto cleanup;
-}
-
-static
-DWORD
-LocalCfgSetCreateHomedir(
-    PLOCAL_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    )
-{
-    pConfig->bCreateHomedir = LocalCfgGetBooleanValue(pszValue);
-
-    return 0;
+    LW_SAFE_FREE_STRING(pszHomedirPrefix);
+    LW_SAFE_FREE_STRING(pszLoginShell);
 }
 
 static
@@ -762,6 +556,7 @@ LocalCfgSetHomedirUmask(
     char  cp2[2];
 
     // Convert the umask octal string to a decimal number
+    BAIL_ON_INVALID_STRING(pszValue);
 
     cp2[1] = 0;
 
@@ -807,59 +602,3 @@ error:
 
     goto cleanup;
 }
-
-static
-DWORD
-LocalCfgSetSkeletonDirs(
-    PLOCAL_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    )
-{
-    DWORD dwError = 0;
-    PSTR  pszSkelDirs = NULL;
-
-    if ( !LW_IS_NULL_OR_EMPTY_STR(pszValue) )
-    {
-        dwError = LwAllocateString(
-                      pszValue,
-                      &pszSkelDirs);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    LW_SAFE_FREE_STRING(pConfig->pszSkelDirs);
-
-    pConfig->pszSkelDirs = pszSkelDirs;
-
-cleanup:
-
-    return dwError;
-
-error:
-
-    LW_SAFE_FREE_STRING(pszSkelDirs);
-
-    goto cleanup;
-}
-
-static
-BOOLEAN
-LocalCfgGetBooleanValue(
-    PCSTR pszValue
-    )
-{
-    BOOLEAN bResult = FALSE;
-
-    if (!LW_IS_NULL_OR_EMPTY_STR(pszValue) &&
-        (!strcasecmp(pszValue, "true") ||
-         !strcasecmp(pszValue, "1") ||
-         (*pszValue == 'y') ||
-         (*pszValue == 'Y')))
-    {
-        bResult = TRUE;
-    }
-
-    return bResult;
-}
-
-
