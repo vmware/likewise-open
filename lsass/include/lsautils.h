@@ -83,16 +83,6 @@
 
 #ifndef WIN32
 
-/* Special check for parsing error codes */
-
-#define BAIL_ON_LSA_PARSE_ERROR(dwError) \
-	if ((dwError != LW_ERROR_SUCCESS) &&				\
-	    (dwError != LW_ERROR_INSUFFICIENT_BUFFER)) {		\
-		LSA_LOG_DEBUG("Error at %s:%d [code: %d]",		\
-			      __FILE__, __LINE__, dwError);		\
-		goto error;						\
-	}
-
 #ifndef BAIL_ON_NT_STATUS
 #define BAIL_ON_NT_STATUS(err) \
     do { \
