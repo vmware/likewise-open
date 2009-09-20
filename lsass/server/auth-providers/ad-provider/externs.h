@@ -77,8 +77,6 @@ extern pthread_rwlock_t gADGlobalDataLock;
 
 extern PSTR    gpszADProviderName;
 
-extern PSTR    gpszADConfigFilePath;
-
 extern PAD_PROVIDER_DATA  gpADProviderData;
 
 extern LSA_PROVIDER_FUNCTION_TABLE gADProviderAPITable;

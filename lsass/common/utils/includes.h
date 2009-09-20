@@ -56,6 +56,7 @@
 #include "lwstr.h"
 #include "lwsecurityidentifier.h"
 #include "lsautils.h"
+#include "reg/reg.h"
 
 #include "lsalogger_p.h"
 #include "lsahash_p.h"
@@ -63,7 +64,6 @@
 #include "filelog_p.h"
 #include "consolelog_p.h"
 #include "syslog_p.h"
-#include "lsacfg_p.h"
 #include "lsadns_p.h"
 #include "lsaerror_p.h"
 #include "lsasecurityidentifier_p.h"

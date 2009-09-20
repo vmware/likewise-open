@@ -46,6 +46,13 @@
  */
 #include "api.h"
 
+static
+DWORD
+LsaSrvAuthProviderReadRegistry(
+    PLSA_STACK *ppProviderStack
+    );
+
+
 VOID
 LsaSrvFreeAuthProvider(
     PLSA_AUTH_PROVIDER pProvider
@@ -155,7 +162,6 @@ LsaSrvValidateProvider(
 
 DWORD
 LsaSrvInitAuthProvider(
-    PCSTR pszConfigFilePath,
     PLSA_AUTH_PROVIDER pProvider,
     PLSA_STATIC_PROVIDER pStaticProviders
     )
@@ -240,7 +246,6 @@ LsaSrvInitAuthProvider(
     }
 
     dwError = pfnInitProvider(
-                    pszConfigFilePath,
                     &pProvider->pszName,
                     &pProvider->pFnTable);
     BAIL_ON_LSA_ERROR(dwError);
@@ -259,7 +264,6 @@ error:
 
 DWORD
 LsaSrvInitAuthProviders(
-    PCSTR pszConfigFilePath,
     PLSA_STATIC_PROVIDER pStaticProviders
     )
 {
@@ -269,22 +273,16 @@ LsaSrvInitAuthProviders(
     PLSA_STACK pProviderStack = NULL;
     BOOLEAN bInLock = FALSE;
 
-    dwError = LsaParseConfigFile(
-                    pszConfigFilePath,
-                    LSA_CFG_OPTION_STRIP_ALL,
-                    &LsaSrvAuthProviderConfigStartSection,
-                    NULL,
-                    &LsaSrvAuthProviderConfigNameValuePair,
-                    NULL,
-                    (PVOID)&pProviderStack
-                    );
+    dwError = LsaSrvAuthProviderReadRegistry(&pProviderStack);
     BAIL_ON_LSA_ERROR(dwError);
+
+    pProviderStack = LsaStackReverse(pProviderStack);
 
     pProvider = (PLSA_AUTH_PROVIDER) LsaStackPop(&pProviderStack);
 
     while(pProvider)
     {
-        dwError = LsaSrvInitAuthProvider(pszConfigFilePath, pProvider, pStaticProviders);
+        dwError = LsaSrvInitAuthProvider(pProvider, pStaticProviders);
 
         if (dwError)
         {
@@ -352,130 +350,150 @@ LsaCfgFreeAuthProviderInStack(
     return dwError;
 }
 
-
+static
 DWORD
-LsaSrvAuthProviderConfigStartSection(
-    PCSTR    pszSectionName,
-    PVOID    pData,
-    PBOOLEAN pbSkipSection,
-    PBOOLEAN pbContinue
+LsaSrvAuthProviderRead(
+    PCSTR   pszProviderName,
+    PCSTR   pszProviderKey,
+    PLSA_STACK *ppProviderStack
     )
 {
     DWORD dwError = 0;
-    PLSA_STACK* ppProviderStack = (PLSA_STACK*)pData;
+
+    PLSA_CONFIG_REG pReg = NULL;
+
     PLSA_AUTH_PROVIDER pProvider = NULL;
-    BOOLEAN bContinue = TRUE;
-    BOOLEAN bSkipSection = FALSE;
-    PCSTR   pszLibName = NULL;
 
-    BAIL_ON_INVALID_POINTER(ppProviderStack);
+    PSTR pszId = NULL;
+    PSTR pszPath = NULL;
 
-    if (LW_IS_NULL_OR_EMPTY_STR(pszSectionName) ||
-        strncasecmp(pszSectionName, LSA_CFG_TAG_AUTH_PROVIDER, sizeof(LSA_CFG_TAG_AUTH_PROVIDER)-1))
+    dwError = LwAllocateString(LSA_PROVIDER_AD_PATH, &pszPath);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaOpenConfig(
+                pszProviderKey,
+                pszProviderKey,
+                &pReg);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaReadConfigString(
+                pReg,
+                "Id",
+                FALSE,
+                &pszId);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaReadConfigString(
+                pReg,
+                "Path",
+                FALSE,
+                &pszPath);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (!LW_IS_NULL_OR_EMPTY_STR(pszPath))
     {
-        bSkipSection = TRUE;
-        goto done;
+        dwError = LwAllocateMemory(
+                    sizeof(LSA_AUTH_PROVIDER),
+                    (PVOID*)&pProvider);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LwAllocateString(pszPath, &(pProvider->pszProviderLibpath));
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LwAllocateString(pszId, &(pProvider->pszId));
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LwAllocateString(pszProviderName, &(pProvider->pszName));
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LsaStackPush(pProvider, ppProviderStack);
+        BAIL_ON_LSA_ERROR(dwError);
+        pProvider = NULL;
     }
 
-    pszLibName = pszSectionName + sizeof(LSA_CFG_TAG_AUTH_PROVIDER) - 1;
-    if (LW_IS_NULL_OR_EMPTY_STR(pszLibName)) {
-        LSA_LOG_WARNING("No Auth Provider Plugin name was specified");
-        bSkipSection = TRUE;
-        goto done;
-    }
-
-    dwError = LwAllocateMemory(
-                sizeof(LSA_AUTH_PROVIDER),
-                (PVOID*)&pProvider);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LwAllocateString(
-                pszLibName,
-                &pProvider->pszId);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaStackPush(
-                pProvider,
-                ppProviderStack
-                );
-    BAIL_ON_LSA_ERROR(dwError);
-
-done:
-
-    *pbSkipSection = bSkipSection;
-    *pbContinue = bContinue;
 
 cleanup:
+
+    LW_SAFE_FREE_STRING(pszId);
+    LW_SAFE_FREE_STRING(pszPath);
+
+    LsaCloseConfig(pReg);
+    pReg = NULL;
 
     return dwError;
 
 error:
-
-    *pbContinue = FALSE;
-    *pbSkipSection = TRUE;
 
     if (pProvider)
     {
         LsaSrvFreeAuthProvider(pProvider);
     }
-
     goto cleanup;
 }
 
 DWORD
-LsaSrvAuthProviderConfigNameValuePair(
-    PCSTR    pszName,
-    PCSTR    pszValue,
-    PVOID    pData,
-    PBOOLEAN pbContinue
+LsaSrvAuthProviderReadRegistry(
+    PLSA_STACK *ppProviderStack
     )
 {
     DWORD dwError = 0;
-    PLSA_STACK* ppProviderStack = (PLSA_STACK*)pData;
-    PLSA_AUTH_PROVIDER pProvider = NULL;
-    PSTR pszProviderLibpath = NULL;
+
+    PLSA_CONFIG_REG pReg = NULL;
+    PSTR pszProviders = NULL;
+    PSTR pszProviderKey = NULL;
+
+    PSTR pszProvider = NULL;
+    PSTR pszTokenState = NULL;
 
     BAIL_ON_INVALID_POINTER(ppProviderStack);
 
-    pProvider = (PLSA_AUTH_PROVIDER) LsaStackPeek(*ppProviderStack);
+    dwError = LsaOpenConfig(
+                "Services\\lsass\\Parameters\\Providers",
+                "Policy\\Services\\lsass\\Parameters\\Providers",
+                &pReg);
+    BAIL_ON_LSA_ERROR(dwError);
 
-    if (!pProvider)
+    dwError = LsaReadConfigString(
+                pReg,
+                "Load",
+                FALSE,
+                &pszProviders);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    LsaCloseConfig(pReg);
+    pReg = NULL;
+
+    BAIL_ON_INVALID_STRING(pszProviders);
+
+    pszProvider = strtok_r(pszProviders, ",", &pszTokenState);
+    while ( pszProvider != NULL )
     {
-        dwError = LW_ERROR_INTERNAL;
+        dwError = LwAllocateStringPrintf(
+                    &pszProviderKey,
+                    "Services\\lsass\\Parameters\\Providers\\%s",
+                    pszProvider);
         BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LsaSrvAuthProviderRead(
+                    pszProvider,
+                    pszProviderKey,
+                    ppProviderStack);
+
+        LW_SAFE_FREE_STRING(pszProviderKey);
+        pszProvider = strtok_r(NULL, ",", &pszTokenState);
     }
-
-    if (strcasecmp(pszName, "path") == 0)
-    {
-        if (!LW_IS_NULL_OR_EMPTY_STR(pszValue)) {
-            dwError = LwAllocateString(
-                        pszValue,
-                        &pszProviderLibpath);
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-
-        //don't allow redefinition a value within a section.
-        if (pProvider->pszProviderLibpath != NULL)
-        {
-            LSA_LOG_WARNING("path redefined in configuration file");
-            LW_SAFE_FREE_STRING(pProvider->pszProviderLibpath);
-        }
-
-        pProvider->pszProviderLibpath = pszProviderLibpath;
-        pszProviderLibpath = NULL;
-    }
-
-    *pbContinue = TRUE;
 
 cleanup:
+
+    LW_SAFE_FREE_STRING(pszProviders);
+    LW_SAFE_FREE_STRING(pszProviderKey);
+
+    LsaCloseConfig(pReg);
+    pReg = NULL;
 
     return dwError;
 
 error:
-
-    LW_SAFE_FREE_STRING(pszProviderLibpath);
-
-    *pbContinue = FALSE;
 
     goto cleanup;
 }

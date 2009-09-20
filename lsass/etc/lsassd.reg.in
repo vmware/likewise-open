@@ -16,13 +16,14 @@
 "Load"="ActiveDirectory,Local"
 
 [HKEY_LIKEWISE\Services\lsass\Parameters\Providers\ActiveDirectory]
+"Id"="lsa-activedirectory-provider"
 "Path"="@providerdir@/liblsass_auth_provider_ad@MOD_EXT@"
 "LoginShellTemplate"="/bin/sh"
-"HomeDirPrefix"=""
+"HomeDirPrefix"="@default_homedir_prefix@"
 "HomeDirTemplate"="%H/local/%D/%U"
 "LdapSignAndSeal"=dword:00000000
-"CacheEntryExpiry"="4h"
-"MachinePasswordLifespan"="30d"
+"CacheEntryExpiry"=dword:00003840
+"MachinePasswordLifespan"=dword:00278D00
 "SpaceReplacement"="^"
 "AssumeDefaultDomain"=dword:00000000
 "SyncSystemTime"=dword:00000001
@@ -30,37 +31,43 @@
 "CreateK5Login"=dword:00000001
 "CreateHomeDir"=dword:00000001
 "HomeDirUmask"="022"
-"SkeletonDirs"=""
+"SkeletonDirs"="@default_skeldirs@"
 "RefreshUserCredentials"=dword:00000001
 "CellSupport"="full"
 "TrimUserMembership"=dword:00000001
 "NssGroupMembersQueryCacheOnly"=dword:00000001
 "NssUserMembershipQueryCacheOnly"=dword:00000000
 "NssEnumerationEnabled"=dword:@ENABLE_NSS_ENUM_DEFAULT_DWORD@
-"DomainManagerCheckDomainOnlineInterval"="5m"
-"DomainManagerUnknownDomainCacheTimeout"="1h"
+"DomainManagerCheckDomainOnlineInterval"=dword:0000012C
+"DomainManagerUnknownDomainCacheTimeout"=dword:00000E10
 "CacheType"="sqlite"
 "MemoryCacheSizeCap"=dword:00002710
 
 [HKEY_LIKEWISE\Services\lsass\Parameters\Providers\Local]
+"Id"="lsa-local-provider"
 "Path"="@providerdir@/liblsass_auth_provider_local@MOD_EXT@"
 "EnableEventlog"=dword:00000000
 "LoginShellTemplate"="/bin/sh"
-"HomeDirPrefix"=""
+"HomeDirPrefix"="@default_homedir_prefix@"
 "HomeDirTemplate"="%H/local/%D/%U"
 "CreateHomeDir"=dword:00000001
 "HomeDirUmask"="022"
-"SkeletonDirs"=""
+"SkeletonDirs"="@default_skeldirs@"
 
 [HKEY_LIKEWISE\Services\lsass\Parameters\RPCServers]
 "Load"=""
 
 [HKEY_LIKEWISE\Services\lsass\Parameters\RPCServers\lsarpc]
 "Path"="@rpcserverdir@/liblsa_srv@MOD_EXT@"
+"LpcSocketPath"="@CACHEDIR@/rpc/lsass"
 
 [HKEY_LIKEWISE\Services\lsass\Parameters\RPCServers\samr]
 "Path"="@rpcserverdir@/libsamr_srv@MOD_EXT@"
+"LpcSocketPath"="@CACHEDIR@/rpc/lsass"
+"LoginShellTemplate"="/bin/sh"
+"HomeDirPrefix"="@default_homedir_prefix@"
+"HomeDirTemplate"="%H/local/%D/%U"
 
 [HKEY_LIKEWISE\Services\lsass\Parameters\RPCServers\dssetup]
 "Path"="@rpcserverdir@/libdssetup_srv@MOD_EXT@"
-
+"LpcSocketPath"="@CACHEDIR@/rpc/lsass"

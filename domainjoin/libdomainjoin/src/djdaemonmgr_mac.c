@@ -726,6 +726,8 @@ DJManageDaemon(
         pszDaemonPath = "com.likewisesoftware.eventfwdd";
     else if (!strcmp(pszName, "reapsysld"))
         pszDaemonPath = "com.likewisesoftware.reapsysld";
+    else if (!strcmp(pszName, "lwregd"))
+        pszDaemonPath = "com.likewisesoftware.lwregd";
     else
         pszDaemonPath = pszName;
 

@@ -56,6 +56,7 @@
 #include <winerror.h>
 #include <lw/ntstatus.h>
 #include <lw/base.h>
+#include <reg/reg.h>
 
 #include <eventlog.h>
 
@@ -66,6 +67,7 @@
 #include "lsautils.h"
 #include "lsaunistr.h"
 #include "lsalog_r.h"
+#include "lsaregdef.h"
 
 #include "lsasrvutils.h"
 #include "lsaserver.h"

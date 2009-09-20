@@ -333,7 +333,6 @@ typedef struct __LSA_PROVIDER_FUNCTION_TABLE
 #define LSA_SYMBOL_NAME_INITIALIZE_PROVIDER "LsaInitializeProvider"
 
 typedef DWORD (*PFNINITIALIZEPROVIDER)(
-                    PCSTR pszConfigFilePath,
                     PSTR* ppszProviderName,
                     PLSA_PROVIDER_FUNCTION_TABLE* ppFnTable
                     );

@@ -53,35 +53,13 @@ LsaSrvRefreshConfiguration(
     );
 
 DWORD
-LsaSrvApiGetConfigFilePath(
-    PSTR* ppszConfigFilePath
-    );
-
-DWORD
 LsaSrvApiInitConfig(
     PLSA_SRV_API_CONFIG pConfig
     );
 
 DWORD
-LsaSrvApiReadConfig(
-    PCSTR pszConfigFilePath,
+LsaSrvApiReadRegistry(
     PLSA_SRV_API_CONFIG pConfig
-    );
-
-DWORD
-LsaSrvApiConfigStartSection(
-    PCSTR    pszSectionName,
-    PVOID    pData,
-    PBOOLEAN pbSkipSection,
-    PBOOLEAN pbContinue
-    );
-
-DWORD
-LsaSrvApiConfigNameValuePair(
-    PCSTR    pszName,
-    PCSTR    pszValue,
-    PVOID    pData,
-    PBOOLEAN pbContinue
     );
 
 DWORD

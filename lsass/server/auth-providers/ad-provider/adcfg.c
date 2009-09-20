@@ -51,152 +51,23 @@
 
 static
 DWORD
-AD_SetConfig_EnableEventLog(
-    PLSA_AD_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    );
-
-static
-DWORD
-AD_SetConfig_LoginShellTemplate(
-    PLSA_AD_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    );
-
-static
-DWORD
-AD_SetConfig_HomeDirTemplate(
-    PLSA_AD_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    );
-
-static
-DWORD
 AD_CheckPunctuationChar(
     IN PCSTR pszName,
     IN PCSTR pszValue,
-    IN BOOLEAN bAllowSpace,
-    OUT PCHAR pchValue
+    IN BOOLEAN bAllowSpace
     );
 
 static
 DWORD
 AD_SetConfig_SpaceReplacement(
-    IN OUT PLSA_AD_CONFIG pConfig,
-    IN PCSTR          pszName,
-    IN PCSTR          pszValue
+    PLSA_AD_CONFIG pConfig,
+    PCSTR          pszName,
+    PCSTR          pszValue
     );
 
 static
 DWORD
 AD_SetConfig_DomainSeparator(
-    PLSA_AD_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    );
-
-static
-DWORD
-AD_SetConfig_CachePurgeTimeout(
-    PLSA_AD_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    );
-
-static
-DWORD
-AD_SetConfig_MachinePasswordLifespan(
-    PLSA_AD_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    );
-
-static
-DWORD
-AD_SetConfig_CacheEntryExpiry(
-    PLSA_AD_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    );
-
-static
-DWORD
-AD_SetConfig_CacheSizeCap(
-    PLSA_AD_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    );
-
-static
-DWORD
-AD_SetConfig_LDAPSignAndSeal(
-    PLSA_AD_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    );
-
-static
-DWORD
-AD_SetConfig_RequireMembershipOf(
-    PLSA_AD_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    );
-
-static
-DWORD
-AD_SetConfig_AssumeDefaultDomain(
-    PLSA_AD_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    );
-
-static
-DWORD
-AD_SetConfig_SyncSystemTime(
-    PLSA_AD_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    );
-
-static
-DWORD
-AD_SetConfig_LogNetworkConnectionEvents(
-    PLSA_AD_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    );
-
-static
-DWORD
-AD_SetConfig_CreateK5Login(
-    PLSA_AD_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    );
-
-static
-DWORD
-AD_SetConfig_CreateHomeDir(
-    PLSA_AD_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    );
-
-static
-DWORD
-AD_SetConfig_RefreshUserCreds(
-    PLSA_AD_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    );
-
-static
-DWORD
-AD_SetConfig_SkelDirs(
     PLSA_AD_CONFIG pConfig,
     PCSTR          pszName,
     PCSTR          pszValue
@@ -212,7 +83,7 @@ AD_SetConfig_Umask(
 
 static
 DWORD
-AD_SetConfig_HomedirPrefix(
+AD_SetConfig_RequireMembershipOf(
     PLSA_AD_CONFIG pConfig,
     PCSTR          pszName,
     PCSTR          pszValue
@@ -220,98 +91,287 @@ AD_SetConfig_HomedirPrefix(
 
 static
 DWORD
-AD_SetConfig_CellSupport(
+AD_SetConfig_MachinePasswordLifespan(
     PLSA_AD_CONFIG pConfig,
     PCSTR          pszName,
-    PCSTR          pszValue
+    DWORD          dwMachinePasswordSyncPwdLifetime
     );
 
-static
-DWORD
-AD_SetConfig_CacheType(
-    PLSA_AD_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    );
-
-static
-DWORD
-AD_SetConfig_TrimUserMembershipEnabled(
-    PLSA_AD_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    );
-
-static
-DWORD
-AD_SetConfig_NssGroupMembersCacheOnlyEnabled(
-    PLSA_AD_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    );
-
-static
-DWORD
-AD_SetConfig_NssUserMembershipCacheOnlyEnabled(
-    PLSA_AD_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    );
-
-static
-DWORD
-AD_SetConfig_NssEnumerationEnabled(
-    PLSA_AD_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    );
-
-static
-DWORD
-AD_SetConfig_DomainManagerCheckDomainOnlineSeconds(
-    IN PLSA_AD_CONFIG pConfig,
-    IN PCSTR pszName,
-    IN PCSTR pszValue
-    );
-
-static
-DWORD
-AD_SetConfig_DomainManagerUnknownDomainCacheTimeoutSeconds(
-    IN PLSA_AD_CONFIG pConfig,
-    IN PCSTR pszName,
-    IN PCSTR pszValue
-    );
-
-static AD_CONFIG_HANDLER gADConfigHandlers[] =
+const PCSTR gCellSupport[] =
 {
-    {"enable-eventlog",               &AD_SetConfig_EnableEventLog},
-    {"login-shell-template",          &AD_SetConfig_LoginShellTemplate},
-    {"homedir-template",              &AD_SetConfig_HomeDirTemplate},
-    {"space-replacement",             &AD_SetConfig_SpaceReplacement},
-    {"domain-separator",              &AD_SetConfig_DomainSeparator},
-    {"cache-purge-timeout",           &AD_SetConfig_CachePurgeTimeout},
-    {"machine-password-lifespan",     &AD_SetConfig_MachinePasswordLifespan},
-    {"cache-entry-expiry",            &AD_SetConfig_CacheEntryExpiry},
-    {"memory-cache-size-cap",         &AD_SetConfig_CacheSizeCap},
-    {"ldap-sign-and-seal",            &AD_SetConfig_LDAPSignAndSeal},
-    {"require-membership-of",         &AD_SetConfig_RequireMembershipOf},
-    {"assume-default-domain",         &AD_SetConfig_AssumeDefaultDomain},
-    {"sync-system-time",              &AD_SetConfig_SyncSystemTime},
-    {"log-network-connection-events", &AD_SetConfig_LogNetworkConnectionEvents},
-    {"create-k5login",                &AD_SetConfig_CreateK5Login},
-    {"create-homedir",                &AD_SetConfig_CreateHomeDir},
-    {"skeleton-dirs",                 &AD_SetConfig_SkelDirs},
-    {"homedir-umask",                 &AD_SetConfig_Umask},
-    {"homedir-prefix",                &AD_SetConfig_HomedirPrefix},
-    {"refresh-user-credentials",      &AD_SetConfig_RefreshUserCreds},
-    {"cell-support",                  &AD_SetConfig_CellSupport},
-    {"trim-user-membership",          &AD_SetConfig_TrimUserMembershipEnabled},
-    {"nss-group-members-query-cache-only",   &AD_SetConfig_NssGroupMembersCacheOnlyEnabled},
-    {"nss-user-membership-query-cache-only", &AD_SetConfig_NssUserMembershipCacheOnlyEnabled},
-    {"nss-enumeration-enabled",              &AD_SetConfig_NssEnumerationEnabled},
-    {"domain-manager-check-domain-online-interval", &AD_SetConfig_DomainManagerCheckDomainOnlineSeconds},
-    {"domain-manager-unknown-domain-cache-timeout", &AD_SetConfig_DomainManagerUnknownDomainCacheTimeoutSeconds},
-    {"cache-type",                    &AD_SetConfig_CacheType},
+    "full",
+    "file",
+    "unprovisioned",
+    "default-schema"
+};
+
+const PCSTR gCacheBackend[] =
+{
+    "sqlite",
+    "memory"
+};
+
+static PSTR gpszSpaceReplacement;
+static PSTR gpszDomainSeparator;
+static PSTR gpszUmask;
+static PSTR gpszUnresolvedMemberList;
+static DWORD gdwMachinePasswordSyncLifetime;
+static LSA_AD_CONFIG gStagingConfig;
+
+static LSA_CONFIG gConfigDescription[] =
+{
+    {
+        "SpaceReplacement",
+        TRUE,
+        LsaTypeString,
+        0,
+        -1,
+        NULL,
+        &gpszSpaceReplacement
+    },
+    {
+        "DomainSeparator",
+        TRUE,
+        LsaTypeString,
+        0,
+        -1,
+        NULL,
+        &gpszDomainSeparator
+    },
+    {
+        "HomeDirUmask",
+        TRUE,
+        LsaTypeString,
+        0,
+        -1,
+        NULL,
+        &gpszUmask
+    },
+    {
+        "RequireMembershipOf",
+        TRUE,
+        LsaTypeString,
+        0,
+        -1,
+        NULL,
+        &gpszUnresolvedMemberList
+    },
+    {
+        "EnableEventlog",
+        TRUE,
+        LsaTypeBoolean,
+        0,
+        -1,
+        NULL,
+        &(gStagingConfig.bEnableEventLog)
+    },
+    {
+        "LoginShellTemplate",
+        TRUE,
+        LsaTypeString,
+        0,
+        -1,
+        NULL,
+        &(gStagingConfig.pszShell)
+    },
+    {
+        "HomeDirTemplate",
+        TRUE,
+        LsaTypeString,
+        0,
+        -1,
+        NULL,
+        &(gStagingConfig.pszHomedirTemplate)
+    },
+    {
+        "CachePurgeTimeout",
+        TRUE,
+        LsaTypeDword,
+        AD_CACHE_REAPER_TIMEOUT_MINIMUM_SECS,
+        AD_CACHE_REAPER_TIMEOUT_MAXIMUM_SECS,
+        NULL,
+        &(gStagingConfig.dwCacheReaperTimeoutSecs)
+    },
+    {
+        "MachinePasswordLifespan",
+        TRUE,
+        LsaTypeDword,
+        0,   /* Valid range is 0 or [AD_MACHINE_PASSWORD_SYNC_MINIMUM_SECS,*/
+        -1,  /* AD_MACHINE_PASSWORD_SYNC_MAXIMUM_SECS] */
+        NULL,
+        &gdwMachinePasswordSyncLifetime
+    },
+    {
+        "CacheEntryExpiry",
+        TRUE,
+        LsaTypeDword,
+        AD_CACHE_ENTRY_EXPIRY_MINIMUM_SECS,
+        AD_CACHE_ENTRY_EXPIRY_MAXIMUM_SECS,
+        NULL,
+        &(gStagingConfig.dwCacheEntryExpirySecs)
+    },
+    {
+        "MemoryCacheSizeCap",
+        TRUE,
+        LsaTypeDword,
+        0,
+        -1,
+        NULL,
+        &(gStagingConfig.dwCacheSizeCap)
+    },
+    {
+        "LdapSignAndSeal",
+        TRUE,
+        LsaTypeBoolean,
+        0,
+        -1,
+        NULL,
+        &(gStagingConfig.bLDAPSignAndSeal)
+    },
+    {
+        "AssumeDefaultDomain",
+        TRUE,
+        LsaTypeBoolean,
+        0,
+        -1,
+        NULL,
+        &(gStagingConfig.bAssumeDefaultDomain)
+    },
+    {
+        "SyncSystemTime",
+        TRUE,
+        LsaTypeBoolean,
+        0,
+        -1,
+        NULL,
+        &(gStagingConfig.bSyncSystemTime)
+    },
+    {
+        "LogNetworkConnectionEvents",
+        TRUE,
+        LsaTypeBoolean,
+        0,
+        -1,
+        NULL,
+        &(gStagingConfig.bShouldLogNetworkConnectionEvents)
+    },
+    {
+        "CreateK5Login",
+        TRUE,
+        LsaTypeBoolean,
+        0,
+        -1,
+        NULL,
+        &(gStagingConfig.bCreateK5Login)
+    },
+    {
+        "CreateHomeDir",
+        TRUE,
+        LsaTypeBoolean,
+        0,
+        -1,
+        NULL,
+        &(gStagingConfig.bCreateHomeDir)
+    },
+    {
+        "SkeletonDirs",
+        TRUE,
+        LsaTypeString,
+        0,
+        -1,
+        NULL,
+        &(gStagingConfig.pszSkelDirs)
+    },
+    {
+        "HomeDirPrefix",
+        TRUE,
+        LsaTypeString,
+        0,
+        -1,
+        NULL,
+        &(gStagingConfig.pszHomedirPrefix)
+    },
+    {
+        "RefreshUserCredentials",
+        TRUE,
+        LsaTypeBoolean,
+        0,
+        -1,
+        NULL,
+        &(gStagingConfig.bRefreshUserCreds)
+    },
+    {
+        "TrimUserMembership",
+        TRUE,
+        LsaTypeBoolean,
+        0,
+        -1,
+        NULL,
+        &(gStagingConfig.bTrimUserMembershipEnabled)
+    },
+    {
+        "CellSupport",
+        TRUE,
+        LsaTypeEnum,
+        AD_CELL_SUPPORT_FULL,
+        AD_CELL_SUPPORT_DEFAULT_SCHEMA,
+        gCellSupport,
+        &(gStagingConfig.CellSupport)
+    },
+    {
+        "CacheType",
+        TRUE,
+        LsaTypeEnum,
+        AD_CACHE_SQLITE,
+        AD_CACHE_IN_MEMORY,
+        gCacheBackend,
+        &(gStagingConfig.CacheBackend)
+    },
+    {
+        "NssGroupMembersQueryCacheOnly",
+        TRUE,
+        LsaTypeBoolean,
+        0,
+        -1,
+        NULL,
+        &(gStagingConfig.bNssGroupMembersCacheOnlyEnabled)
+    },
+    {
+        "NssUserMembershipQueryCacheOnly",
+        TRUE,
+        LsaTypeBoolean,
+        0,
+        -1,
+        NULL,
+        &(gStagingConfig.bNssUserMembershipCacheOnlyEnabled)
+    },
+    {
+        "NssEnumerationEnabled",
+        TRUE,
+        LsaTypeBoolean,
+        0,
+        -1,
+        NULL,
+        &(gStagingConfig.bNssEnumerationEnabled)
+    },
+    {
+        "DomainManagerCheckDomainOnlineInterval",
+        TRUE,
+        LsaTypeDword,
+        0,
+        -1,
+        NULL,
+        &(gStagingConfig.DomainManager.dwCheckDomainOnlineSeconds)
+    },
+    {
+        "DomainManagerUnknownDomainCacheTimeout",
+        TRUE,
+        LsaTypeDword,
+        0,
+        -1,
+        NULL,
+        &(gStagingConfig.DomainManager.dwUnknownDomainCacheTimeoutSeconds)
+    }
 };
 
 DWORD
@@ -441,203 +501,85 @@ AD_FreeConfigMemberInList(
 }
 
 DWORD
-AD_ParseConfigFile(
-    PCSTR          pszConfigFilePath,
+AD_ReadRegistry(
     PLSA_AD_CONFIG pConfig
     )
 {
-    DWORD dwError = LW_ERROR_SUCCESS;
+    DWORD dwError = 0;
 
-    dwError = LsaParseConfigFile(
-                pszConfigFilePath,
-                LSA_CFG_OPTION_STRIP_ALL,
-                &AD_ConfigStartSection,
-                NULL,
-                &AD_ConfigNameValuePair,
-                NULL,
-                pConfig);
+    dwError = AD_InitializeConfig(&gStagingConfig);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (pConfig->chSpaceReplacement == 0)
+    gdwMachinePasswordSyncLifetime = AD_MACHINE_PASSWORD_SYNC_DEFAULT_SECS;
+
+    dwError = LsaProcessConfig(
+                "Services\\lsass\\Parameters\\Providers\\ActiveDirectory",
+                "PolicyServices\\lsass\\Parameters\\Providers\\ActiveDirectory",
+                gConfigDescription,
+                sizeof(gConfigDescription)/sizeof(gConfigDescription[0]));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    /* Special handling is used for some values. */
+
+    AD_SetConfig_SpaceReplacement(
+            &gStagingConfig,
+            "SpaceReplacement",
+            gpszSpaceReplacement);
+
+    AD_SetConfig_DomainSeparator(
+            &gStagingConfig,
+            "DomainSeparator",
+            gpszDomainSeparator);
+
+    AD_SetConfig_Umask(
+            &gStagingConfig,
+            "HomeDirUmask",
+            gpszUmask);
+
+    AD_SetConfig_RequireMembershipOf(
+            &gStagingConfig,
+            "RequireMembershipOf",
+            gpszUnresolvedMemberList);
+
+    AD_SetConfig_MachinePasswordLifespan(
+            &gStagingConfig,
+            "MachinePasswordLifespan",
+            gdwMachinePasswordSyncLifetime);
+
+    if (gStagingConfig.chSpaceReplacement == 0)
     {
-        pConfig->chSpaceReplacement = AD_SPACE_REPLACEMENT_DEFAULT;
+        gStagingConfig.chSpaceReplacement = AD_SPACE_REPLACEMENT_DEFAULT;
     }
-    if (pConfig->chDomainSeparator == 0)
+    if (gStagingConfig.chDomainSeparator == 0)
     {
-        pConfig->chDomainSeparator = LSA_DOMAIN_SEPARATOR_DEFAULT;
+        gStagingConfig.chDomainSeparator = LSA_DOMAIN_SEPARATOR_DEFAULT;
     }
 
-    if (pConfig->chSpaceReplacement == pConfig->chDomainSeparator)
+    if (gStagingConfig.chSpaceReplacement == gStagingConfig.chDomainSeparator)
     {
-        LSA_LOG_ERROR("Error: space-replacement and domain-separator are set to '%c' in the config file. Their values must be unique.",
-                        pConfig->chSpaceReplacement);
+        LSA_LOG_ERROR("Error: %s and %s are both set to '%c' in the config file. Their values must be unique.",
+                        "SpaceReplacement",
+                        "DomainSeparator",
+                        gStagingConfig.chSpaceReplacement);
         dwError = LW_ERROR_INVALID_CONFIG;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
+    AD_TransferConfigContents(&gStagingConfig, pConfig);
+
 cleanup:
+
+    LW_SAFE_FREE_STRING(gpszSpaceReplacement);
+    LW_SAFE_FREE_STRING(gpszDomainSeparator);
+    LW_SAFE_FREE_STRING(gpszUmask);
+    LW_SAFE_FREE_STRING(gpszUnresolvedMemberList);
+
+    AD_FreeConfigContents(&gStagingConfig);
 
     return dwError;
 
 error:
-
-    goto cleanup;
-}
-
-DWORD
-AD_ConfigStartSection(
-    PCSTR    pszSectionName,
-    PVOID    pData,
-    PBOOLEAN pbSkipSection,
-    PBOOLEAN pbContinue
-    )
-{
-    DWORD dwError = 0;
-    PCSTR pszLibName = NULL;
-    BOOLEAN bContinue = TRUE;
-    BOOLEAN bSkipSection = FALSE;
-
-    if (LW_IS_NULL_OR_EMPTY_STR(pszSectionName) ||
-        (strncasecmp(pszSectionName, AD_CFG_TAG_AUTH_PROVIDER, sizeof(AD_CFG_TAG_AUTH_PROVIDER)-1) &&
-         strncasecmp(pszSectionName, "global", sizeof("global")-1)))
-    {
-        bSkipSection = TRUE;
-        goto done;
-    }
-
-    if (!strncasecmp(pszSectionName, AD_CFG_TAG_AUTH_PROVIDER, sizeof(AD_CFG_TAG_AUTH_PROVIDER)-1))
-    {
-        pszLibName = pszSectionName + sizeof(AD_CFG_TAG_AUTH_PROVIDER) - 1;
-        if (LW_IS_NULL_OR_EMPTY_STR(pszLibName) ||
-            strcasecmp(pszLibName, AD_CFG_TAG_AD_PROVIDER)) {
-            bSkipSection = TRUE;
-            goto done;
-        }
-    }
-
-done:
-
-    *pbSkipSection = bSkipSection;
-    *pbContinue = bContinue;
-
-    return dwError;
-}
-
-DWORD
-AD_ConfigNameValuePair(
-    PCSTR    pszName,
-    PCSTR    pszValue,
-    PVOID    pData,
-    PBOOLEAN pbContinue
-    )
-{
-    DWORD dwError = 0;
-
-    if (!LW_IS_NULL_OR_EMPTY_STR(pszName))
-    {
-        DWORD iHandler = 0;
-        DWORD nHandlers = sizeof(gADConfigHandlers)/sizeof(gADConfigHandlers[0]);
-
-        for (; iHandler < nHandlers; iHandler++)
-        {
-            if (!strcasecmp(gADConfigHandlers[iHandler].pszId, pszName))
-            {
-                gADConfigHandlers[iHandler].pfnHandler(
-                                (PLSA_AD_CONFIG)pData,
-                                pszName,
-                                pszValue);
-                break;
-            }
-        }
-    }
-
-    *pbContinue = TRUE;
-
-    return dwError;
-}
-
-static
-DWORD
-AD_SetConfig_EnableEventLog(
-    PLSA_AD_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    )
-{
-    pConfig->bEnableEventLog = AD_GetBooleanConfigValue(pszValue);
-
-    return 0;
-}
-
-static
-DWORD
-AD_SetConfig_LoginShellTemplate(
-    PLSA_AD_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    )
-{
-    DWORD dwError = 0;
-    PSTR  pszShell = NULL;
-
-    BAIL_ON_INVALID_STRING(pszValue);
-
-    if (access(pszValue, X_OK) != 0)
-    {
-        dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = LwAllocateString(
-                    pszValue,
-                    &pszShell);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    LW_SAFE_FREE_STRING(pConfig->pszShell);
-
-    pConfig->pszShell = pszShell;
-
-cleanup:
-
-    return dwError;
-
-error:
-
-    LW_SAFE_FREE_STRING(pszShell);
-
-    goto cleanup;
-}
-
-static
-DWORD
-AD_SetConfig_HomeDirTemplate(
-    PLSA_AD_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    )
-{
-    DWORD dwError = 0;
-    PSTR  pszTemplate = NULL;
-
-    BAIL_ON_INVALID_STRING(pszValue);
-
-    dwError = LwAllocateString(
-                    pszValue,
-                    &pszTemplate);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    LW_SAFE_FREE_STRING(pConfig->pszHomedirTemplate);
-
-    pConfig->pszHomedirTemplate = pszTemplate;
-
-cleanup:
-
-    return dwError;
-
-error:
-
-    LW_SAFE_FREE_STRING(pszTemplate);
-
+    AD_FreeConfigContents(pConfig);
     goto cleanup;
 }
 
@@ -646,21 +588,14 @@ DWORD
 AD_CheckPunctuationChar(
     IN PCSTR pszName,
     IN PCSTR pszValue,
-    IN BOOLEAN bAllowSpace,
-    OUT PCHAR pchValue
+    IN BOOLEAN bAllowSpace
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
-    CHAR chValue = 0;
 
     BAIL_ON_INVALID_STRING(pszValue);
 
-    if ((pszValue[0] == 0) ||
-        ((pszValue[0] == '\'' || pszValue[0] == '"') &&
-            (pszValue[1] == 0 ||
-             pszValue[2] != pszValue[0] ||
-             pszValue[3] != 0)) ||
-        (pszValue[0] != '\'' && pszValue[0] != '"' && pszValue[1] != 0))
+    if (pszValue[0] == 0 || pszValue[1] != 0)
     {
         LSA_LOG_ERROR(
                 "Error: '%s' is an invalid setting for %s. "
@@ -672,20 +607,10 @@ AD_CheckPunctuationChar(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    if (pszValue[0] == '\'' || pszValue[0] == '"')
-    {
-        chValue = pszValue[1];
-    }
-    else
-    {
-        chValue = pszValue[0];
-    }
-
-    if (!ispunct((int)chValue) && !(bAllowSpace && chValue == ' '))
+    if (!ispunct((int)pszValue[0]) && !(bAllowSpace && pszValue[0] == ' '))
     {
         LSA_LOG_ERROR(
-                "Error: %s must be set to a punctuation character%s; "
-                "the value provided is '%s'.",
+                "Error: %s must be set to a punctuation character%s; the value provided is '%s'.",
                 pszName,
                 bAllowSpace ? " or space" : "",
                 pszValue);
@@ -693,7 +618,7 @@ AD_CheckPunctuationChar(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    if (chValue == '@')
+    if (pszValue[0] == '@')
     {
         LSA_LOG_ERROR(
                 "Error: %s may not be set to @; the value provided is '%s'.",
@@ -703,15 +628,11 @@ AD_CheckPunctuationChar(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    *pchValue = chValue;
-
 cleanup:
 
     return dwError;
 
 error:
-
-    *pchValue = 0;
 
     goto cleanup;
 }
@@ -725,18 +646,16 @@ AD_SetConfig_SpaceReplacement(
     )
 {
     DWORD dwError = 0;
-    CHAR  result = 0;
 
     BAIL_ON_INVALID_STRING(pszValue);
 
     dwError = AD_CheckPunctuationChar(
                     pszName,
                     pszValue,
-                    TRUE,
-                    &result);
+                    TRUE);
     BAIL_ON_LSA_ERROR(dwError);
 
-    pConfig->chSpaceReplacement = result;
+    pConfig->chSpaceReplacement = pszValue[0];
 
 error:
 
@@ -752,62 +671,77 @@ AD_SetConfig_DomainSeparator(
     )
 {
     DWORD dwError = 0;
-    CHAR  result = 0;
+
+    if(!LW_IS_NULL_OR_EMPTY_STR(pszValue))
+    {
+        dwError = AD_CheckPunctuationChar(
+                        pszName,
+                        pszValue,
+                        FALSE);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pConfig->chDomainSeparator = pszValue[0];
+    }
+
+error:
+
+    return dwError;
+}
+
+static
+DWORD
+AD_SetConfig_Umask(
+    PLSA_AD_CONFIG pConfig,
+    PCSTR          pszName,
+    PCSTR          pszValue
+    )
+{
+    DWORD dwError = 0;
+    PCSTR cp = NULL;
+    DWORD dwOct = 0;
+    DWORD dwVal = 0;
+    DWORD dwCnt = 0;
+    char  cp2[2];
+
+    // Convert the umask octal string to a decimal number
 
     BAIL_ON_INVALID_STRING(pszValue);
 
-    dwError = AD_CheckPunctuationChar(
-                    pszName,
-                    pszValue,
-                    FALSE,
-                    &result);
+    cp2[1] = 0;
+
+    for ( cp = pszValue, dwCnt = 0 ; isdigit((int)*cp) ; cp++, dwCnt++ )
+    {
+        dwOct *= 8;
+
+        cp2[0] = *cp;
+        dwVal = atoi(cp2);
+
+        if ( dwVal > 7 )
+        {
+            dwError = LW_ERROR_INVALID_PARAMETER;
+        }
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwOct += dwVal;
+    }
+
+    if ( dwCnt > 4 )
+    {
+        dwError = LW_ERROR_INVALID_PARAMETER;
+    }
     BAIL_ON_LSA_ERROR(dwError);
 
-    pConfig->chDomainSeparator = result;
-
-error:
-
-    return dwError;
-}
-
-static
-DWORD
-AD_SetConfig_CachePurgeTimeout(
-    PLSA_AD_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    )
-{
-    DWORD dwError = 0;
-    DWORD dwCacheReaperTimeoutSecs = 0;
-
-    if (!LW_IS_NULL_OR_EMPTY_STR(pszValue))
+    // Disallow 07xx since the user should always have
+    // access to his home directory.
+    if ( (dwOct & 0700) == 0700 )
     {
-        dwError = LsaParseDateString(
-                        pszValue,
-                        &dwCacheReaperTimeoutSecs);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    if (dwCacheReaperTimeoutSecs < AD_CACHE_REAPER_TIMEOUT_MINIMUM_SECS)
-    {
-        LSA_LOG_ERROR("Failed to set CacheReaperTimeoutSecs to %u.  Minimum is %u.",
-                      dwCacheReaperTimeoutSecs,
-                      AD_CACHE_REAPER_TIMEOUT_MINIMUM_SECS);
         dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LSA_ERROR(dwError);
     }
-
-    if (dwCacheReaperTimeoutSecs > AD_CACHE_REAPER_TIMEOUT_MAXIMUM_SECS)
+    else
     {
-        LSA_LOG_ERROR("Failed to set CacheReaperTimeoutSecs to %u.  Maximum is %u.",
-                      dwCacheReaperTimeoutSecs,
-                      AD_CACHE_REAPER_TIMEOUT_MAXIMUM_SECS);
-        dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LSA_ERROR(dwError);
+        pConfig->dwUmask = dwOct;
     }
-
-    pConfig->dwCacheReaperTimeoutSecs = dwCacheReaperTimeoutSecs;
+    BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
 
@@ -816,137 +750,6 @@ cleanup:
 error:
 
     goto cleanup;
-}
-
-static
-DWORD
-AD_SetConfig_MachinePasswordLifespan(
-    PLSA_AD_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    )
-{
-    DWORD dwError = 0;
-    DWORD dwMachinePasswordSyncPwdLifetime = 0;
-
-    if (!LW_IS_NULL_OR_EMPTY_STR(pszValue))
-    {
-        dwError = LsaParseDateString(
-                        pszValue,
-                        &dwMachinePasswordSyncPwdLifetime);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    if ((dwMachinePasswordSyncPwdLifetime != 0) &&
-        (dwMachinePasswordSyncPwdLifetime < AD_MACHINE_PASSWORD_SYNC_MINIMUM_SECS))
-    {
-        LSA_LOG_ERROR("Failed to set MachinePasswordSyncPwdLifetime to %u.  Minimum is %u.",
-                        dwMachinePasswordSyncPwdLifetime,
-                        AD_MACHINE_PASSWORD_SYNC_MINIMUM_SECS);
-        dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    if (dwMachinePasswordSyncPwdLifetime > AD_MACHINE_PASSWORD_SYNC_MAXIMUM_SECS)
-    {
-        LSA_LOG_ERROR("Failed to set MachinePasswordSyncPwdLifetime to %u.  Maximum is %u.",
-                        dwMachinePasswordSyncPwdLifetime,
-                        AD_MACHINE_PASSWORD_SYNC_MAXIMUM_SECS);
-        dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    pConfig->dwMachinePasswordSyncLifetime = dwMachinePasswordSyncPwdLifetime;
-
-cleanup:
-
-    return dwError;
-
-error:
-
-    goto cleanup;
-}
-
-static
-DWORD
-AD_SetConfig_CacheEntryExpiry(
-    PLSA_AD_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    )
-{
-    DWORD dwError = 0;
-    DWORD dwExpirySecs = 0;
-
-    if (!LW_IS_NULL_OR_EMPTY_STR(pszValue))
-    {
-        dwError = LsaParseDateString(
-                    pszValue,
-                    &dwExpirySecs);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    if (dwExpirySecs < AD_CACHE_ENTRY_EXPIRY_MINIMUM_SECS)
-    {
-        LSA_LOG_ERROR("Failed to set CacheEntryExpiry to %u.  Minimum is %u.",
-                        dwExpirySecs,
-                        AD_CACHE_ENTRY_EXPIRY_MINIMUM_SECS);
-        dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    if (dwExpirySecs > AD_CACHE_ENTRY_EXPIRY_MAXIMUM_SECS)
-    {
-        LSA_LOG_ERROR("Failed to set CacheEntryExpiry to %u.  Maximum is %u.",
-                        dwExpirySecs,
-                        AD_CACHE_ENTRY_EXPIRY_MAXIMUM_SECS);
-        dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    pConfig->dwCacheEntryExpirySecs = dwExpirySecs;
-
-cleanup:
-
-    return dwError;
-
-error:
-
-    goto cleanup;
-}
-
-static
-DWORD
-AD_SetConfig_CacheSizeCap(
-    PLSA_AD_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    )
-{
-    DWORD dwError = 0;
-    DWORD dwValue = 0;
-
-    if (!LW_IS_NULL_OR_EMPTY_STR(pszValue))
-    {
-        dwValue = (DWORD) atoi(pszValue);
-    }
-
-    pConfig->dwCacheSizeCap = dwValue;
-
-    return dwError;
-}
-
-static
-DWORD
-AD_SetConfig_LDAPSignAndSeal(
-    PLSA_AD_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    )
-{
-    pConfig->bLDAPSignAndSeal = AD_GetBooleanConfigValue(pszValue);
-
-    return 0;
 }
 
 static
@@ -1009,342 +812,38 @@ error:
     goto cleanup;
 }
 
-static
-DWORD
-AD_SetConfig_AssumeDefaultDomain(
-    PLSA_AD_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    )
-{
-    pConfig->bAssumeDefaultDomain = AD_GetBooleanConfigValue(pszValue);
-
-    return 0;
-}
 
 static
 DWORD
-AD_SetConfig_SyncSystemTime(
+AD_SetConfig_MachinePasswordLifespan(
     PLSA_AD_CONFIG pConfig,
     PCSTR          pszName,
-    PCSTR          pszValue
-    )
-{
-    pConfig->bSyncSystemTime = AD_GetBooleanConfigValue(pszValue);
-
-    return 0;
-}
-
-static
-DWORD
-AD_SetConfig_LogNetworkConnectionEvents(
-    PLSA_AD_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    )
-{
-    pConfig->bShouldLogNetworkConnectionEvents = AD_GetBooleanConfigValue(pszValue);
-
-    return 0;
-}
-
-static
-DWORD
-AD_SetConfig_CreateK5Login(
-    PLSA_AD_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    )
-{
-    pConfig->bCreateK5Login = AD_GetBooleanConfigValue(pszValue);
-
-    return 0;
-}
-
-static
-DWORD
-AD_SetConfig_CreateHomeDir(
-    PLSA_AD_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    )
-{
-    pConfig->bCreateHomeDir = AD_GetBooleanConfigValue(pszValue);
-
-    return 0;
-}
-
-static
-DWORD
-AD_SetConfig_RefreshUserCreds(
-    PLSA_AD_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    )
-{
-    pConfig->bRefreshUserCreds = AD_GetBooleanConfigValue(pszValue);
-
-    return 0;
-}
-
-static
-DWORD
-AD_SetConfig_SkelDirs(
-    PLSA_AD_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
+    DWORD          dwMachinePasswordSyncPwdLifetime
     )
 {
     DWORD dwError = 0;
-    PSTR  pszSkelDirs = NULL;
 
-    if ( !LW_IS_NULL_OR_EMPTY_STR(pszValue) )
+    if ((dwMachinePasswordSyncPwdLifetime != 0) &&
+        (dwMachinePasswordSyncPwdLifetime < AD_MACHINE_PASSWORD_SYNC_MINIMUM_SECS))
     {
-        dwError = LwAllocateString(
-                      pszValue,
-                      &pszSkelDirs);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    LW_SAFE_FREE_STRING(pConfig->pszSkelDirs);
-
-    pConfig->pszSkelDirs = pszSkelDirs;
-
-cleanup:
-
-    return dwError;
-
-error:
-
-    LW_SAFE_FREE_STRING(pszSkelDirs);
-
-    goto cleanup;
-}
-
-static
-DWORD
-AD_SetConfig_Umask(
-    PLSA_AD_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    )
-{
-    DWORD dwError = 0;
-    PCSTR cp = NULL;
-    DWORD dwOct = 0;
-    DWORD dwVal = 0;
-    DWORD dwCnt = 0;
-    char  cp2[2];
-
-    // Convert the umask octal string to a decimal number
-
-    cp2[1] = 0;
-
-    for ( cp = pszValue, dwCnt = 0 ; isdigit((int)*cp) ; cp++, dwCnt++ )
-    {
-        dwOct *= 8;
-
-        cp2[0] = *cp;
-        dwVal = atoi(cp2);
-
-        if ( dwVal > 7 )
-        {
-            dwError = LW_ERROR_INVALID_PARAMETER;
-        }
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwOct += dwVal;
-    }
-
-    if ( dwCnt > 4 )
-    {
-        dwError = LW_ERROR_INVALID_PARAMETER;
-    }
-    BAIL_ON_LSA_ERROR(dwError);
-
-    // Disallow 07xx since the user should always have
-    // access to his home directory.
-    if ( (dwOct & 0700) == 0700 )
-    {
-        dwError = LW_ERROR_INVALID_PARAMETER;
-    }
-    else
-    {
-        pConfig->dwUmask = dwOct;
-    }
-    BAIL_ON_LSA_ERROR(dwError);
-
-cleanup:
-
-    return dwError;
-
-error:
-
-    goto cleanup;
-}
-
-static
-DWORD
-AD_SetConfig_HomedirPrefix(
-    PLSA_AD_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    )
-{
-    DWORD dwError = 0;
-    PSTR pszHomedirPrefix = NULL;
-
-    BAIL_ON_INVALID_STRING(pszValue);
-
-    dwError = LwAllocateString(
-                pszValue,
-                &pszHomedirPrefix);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    LwStripWhitespace(pszHomedirPrefix, TRUE, TRUE);
-
-    BAIL_ON_INVALID_STRING(pszHomedirPrefix);
-
-    if (*pszHomedirPrefix != '/')
-    {
-        LSA_LOG_ERROR("Invalid home directory prefix [%s]", pszHomedirPrefix);
-        goto error;
-    }
-
-    LW_SAFE_FREE_STRING(pConfig->pszHomedirPrefix);
-    pConfig->pszHomedirPrefix = pszHomedirPrefix;
-
-cleanup:
-
-    return 0;
-
-error:
-
-    LW_SAFE_FREE_STRING(pszHomedirPrefix);
-
-    goto cleanup;
-}
-
-static
-DWORD
-AD_SetConfig_CellSupport(
-    PLSA_AD_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    )
-{
-    DWORD dwError = 0;
-    if (!strcasecmp(pszValue, "unprovisioned"))
-    {
-        pConfig->CellSupport = AD_CELL_SUPPORT_UNPROVISIONED;
-    }
-#if 0
-    else if (!strcasecmp(pszValue, "file"))
-    {
-        pConfig->CellSupport = AD_CELL_SUPPORT_FILE;
-    }
-#endif
-    else if (!strcasecmp(pszValue, "full"))
-    {
-        pConfig->CellSupport = AD_CELL_SUPPORT_FULL;
-    }
-    else if (!strcasecmp(pszValue, "default-schema"))
-    {
-        pConfig->CellSupport = AD_CELL_SUPPORT_DEFAULT_SCHEMA;
-    }
-    else
-    {
-        LSA_LOG_ERROR("Invalid value for cell-support parameter");
+        LSA_LOG_ERROR("Failed to set MachinePasswordSyncPwdLifetime to %u.  Minimum is %u.",
+                        dwMachinePasswordSyncPwdLifetime,
+                        AD_MACHINE_PASSWORD_SYNC_MINIMUM_SECS);
         dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-cleanup:
-
-    return dwError;
-
-error:
-
-    goto cleanup;
-}
-
-static
-DWORD
-AD_SetConfig_TrimUserMembershipEnabled(
-    PLSA_AD_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    )
-{
-    pConfig->bTrimUserMembershipEnabled = AD_GetBooleanConfigValue(pszValue);
-
-    return 0;
-}
-
-static
-DWORD
-AD_SetConfig_NssGroupMembersCacheOnlyEnabled(
-    PLSA_AD_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    )
-{
-    pConfig->bNssGroupMembersCacheOnlyEnabled = AD_GetBooleanConfigValue(pszValue);
-
-    return 0;
-}
-
-static
-DWORD
-AD_SetConfig_NssUserMembershipCacheOnlyEnabled(
-    PLSA_AD_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    )
-{
-    pConfig->bNssUserMembershipCacheOnlyEnabled = AD_GetBooleanConfigValue(pszValue);
-
-    return 0;
-}
-
-static
-DWORD
-AD_SetConfig_NssEnumerationEnabled(
-    PLSA_AD_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    )
-{
-    pConfig->bNssEnumerationEnabled = AD_GetBooleanConfigValue(pszValue);
-
-    return 0;
-}
-
-static
-DWORD
-AD_SetConfig_CacheType(
-    PLSA_AD_CONFIG pConfig,
-    PCSTR          pszName,
-    PCSTR          pszValue
-    )
-{
-    DWORD dwError = 0;
-
-    if (!strcasecmp(pszValue, "sqlite"))
+    if (dwMachinePasswordSyncPwdLifetime > AD_MACHINE_PASSWORD_SYNC_MAXIMUM_SECS)
     {
-        pConfig->CacheBackend = AD_CACHE_SQLITE;
-    }
-    else if (!strcasecmp(pszValue, "memory"))
-    {
-        pConfig->CacheBackend = AD_CACHE_IN_MEMORY;
-    }
-    else
-    {
-        LSA_LOG_ERROR("Invalid value for cache-type parameter");
+        LSA_LOG_ERROR("Failed to set MachinePasswordSyncPwdLifetime to %u.  Maximum is %u.",
+                        dwMachinePasswordSyncPwdLifetime,
+                        AD_MACHINE_PASSWORD_SYNC_MAXIMUM_SECS);
         dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
+    pConfig->dwMachinePasswordSyncLifetime = dwMachinePasswordSyncPwdLifetime;
+
 cleanup:
 
     return dwError;
@@ -1352,77 +851,6 @@ cleanup:
 error:
 
     goto cleanup;
-}
-
-static
-DWORD
-AD_SetConfig_DomainManagerCheckDomainOnlineSeconds(
-    IN PLSA_AD_CONFIG pConfig,
-    IN PCSTR pszName,
-    IN PCSTR pszValue
-    )
-{
-    DWORD dwError = 0;
-    DWORD result = 0;
-
-    if (!LW_IS_NULL_OR_EMPTY_STR(pszValue))
-    {
-        dwError = LsaParseDateString(pszValue, &result);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    pConfig->DomainManager.dwCheckDomainOnlineSeconds = result;
-
-cleanup:
-    return dwError;
-
-error:
-    goto cleanup;
-}
-
-static
-DWORD
-AD_SetConfig_DomainManagerUnknownDomainCacheTimeoutSeconds(
-    IN PLSA_AD_CONFIG pConfig,
-    IN PCSTR pszName,
-    IN PCSTR pszValue
-    )
-{
-    DWORD dwError = 0;
-    DWORD result = 0;
-
-    if (!LW_IS_NULL_OR_EMPTY_STR(pszValue))
-    {
-        dwError = LsaParseDateString(pszValue, &result);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    pConfig->DomainManager.dwUnknownDomainCacheTimeoutSeconds = result;
-
-cleanup:
-    return dwError;
-
-error:
-    goto cleanup;
-}
-
-BOOLEAN
-AD_GetBooleanConfigValue(
-    PCSTR pszValue
-    )
-{
-    BOOLEAN bResult = FALSE;
-
-    if (!LW_IS_NULL_OR_EMPTY_STR(pszValue) &&
-        (!strcasecmp(pszValue, "true") ||
-         !strcasecmp(pszValue, "1") ||
-         (*pszValue == 'y') ||
-         (*pszValue == 'Y')))
-    {
-        bResult = TRUE;
-    }
-
-    return bResult;
 }
 
 DWORD
@@ -1525,76 +953,6 @@ cleanup:
 error:
 
     *ppszUnprovisionedModeHomedirTemplate = NULL;
-
-    goto cleanup;
-}
-
-DWORD
-AD_SetConfigFilePath(
-    PCSTR pszConfigFilePath
-    )
-{
-    DWORD dwError = 0;
-    BOOLEAN bInLock = FALSE;
-    PSTR pszConfigFilePathLocal = NULL;
-
-    BAIL_ON_INVALID_STRING(pszConfigFilePath);
-
-    dwError = LwAllocateString(
-                    pszConfigFilePath,
-                    &pszConfigFilePathLocal);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    ENTER_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
-
-    LW_SAFE_FREE_STRING(gpszADConfigFilePath);
-
-    gpszADConfigFilePath = pszConfigFilePathLocal;
-
-cleanup:
-
-    LEAVE_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
-
-    return dwError;
-
-error:
-
-    LW_SAFE_FREE_STRING(pszConfigFilePathLocal);
-
-    goto cleanup;
-}
-
-DWORD
-AD_GetConfigFilePath(
-    PSTR* ppszConfigFilePath
-    )
-{
-    DWORD dwError = 0;
-    BOOLEAN bInLock = FALSE;
-    PSTR pszConfigFilePath = NULL;
-
-    ENTER_AD_GLOBAL_DATA_RW_READER_LOCK(bInLock);
-
-    if (!LW_IS_NULL_OR_EMPTY_STR(gpszADConfigFilePath))
-    {
-        dwError = LwAllocateString(
-                        gpszADConfigFilePath,
-                        &pszConfigFilePath
-                        );
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    *ppszConfigFilePath = pszConfigFilePath;
-
-cleanup:
-
-    LEAVE_AD_GLOBAL_DATA_RW_READER_LOCK(bInLock);
-
-    return dwError;
-
-error:
-
-    *ppszConfigFilePath = NULL;
 
     goto cleanup;
 }
@@ -2366,3 +1724,4 @@ AD_GetDomainManagerUnknownDomainCacheTimeoutSeconds(
 
     return result;
 }
+

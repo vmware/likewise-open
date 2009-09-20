@@ -248,7 +248,6 @@ typedef struct __ADCACHE_PROVIDER_FUNCTION_TABLE
 #define ADCACHE_SYMBOL_NAME_INITIALIZE_PROVIDER "AdCacheInitializeProvider"
 
 typedef DWORD (*PFNInitializeCacheProvider)(
-                    PCSTR pszConfigFilePath,
                     PSTR* ppszProviderName,
                     PADCACHE_PROVIDER_FUNCTION_TABLE* ppFnTable
                     );

@@ -50,7 +50,6 @@
 
 DWORD
 LSA_INITIALIZE_PROVIDER(local)(
-    PCSTR pszConfigFilePath,
     PSTR* ppszProviderName,
     PLSA_PROVIDER_FUNCTION_TABLE* ppFunctionTable)
 {
@@ -77,18 +76,8 @@ LSA_INITIALIZE_PROVIDER(local)(
                     &gLPGlobals.llPwdChangeTime);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (!LW_IS_NULL_OR_EMPTY_STR(pszConfigFilePath))
-    {
-        dwError = LocalCfgParseFile(
-                        pszConfigFilePath,
-                        &config);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwError = LwAllocateString(
-                        pszConfigFilePath,
-                        &gLPGlobals.pszConfigFilePath);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
+    LocalCfgReadRegistry(&config);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LocalCfgTransferContents(
                     &config,
@@ -1502,35 +1491,24 @@ LocalRefreshConfiguration(
     )
 {
     DWORD dwError = 0;
-    PSTR pszConfigFilePath = NULL;
     LOCAL_CONFIG config = {0};
     BOOLEAN bInLock = FALSE;
 
-    dwError = LocalCfgGetFilePath(&pszConfigFilePath);
+    dwError = LocalCfgReadRegistry(&config);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (!LW_IS_NULL_OR_EMPTY_STR(pszConfigFilePath))
-    {
-        dwError = LocalCfgParseFile(
-                        pszConfigFilePath,
-                        &config);
-        BAIL_ON_LSA_ERROR(dwError);
+    LOCAL_LOCK_MUTEX(bInLock, &gLPGlobals.mutex);
 
-        LOCAL_LOCK_MUTEX(bInLock, &gLPGlobals.mutex);
-
-        dwError = LocalCfgTransferContents(
-                        &config,
-                        &gLPGlobals.cfg);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
+    dwError = LocalCfgTransferContents(
+                    &config,
+                    &gLPGlobals.cfg);
+    BAIL_ON_LSA_ERROR(dwError);
 
     LOCAL_UNLOCK_MUTEX(bInLock, &gLPGlobals.mutex);
 
     LocalEventLogConfigReload();
 
 cleanup:
-
-    LW_SAFE_FREE_STRING(pszConfigFilePath);
 
     LOCAL_UNLOCK_MUTEX(bInLock, &gLPGlobals.mutex);
 
@@ -1635,7 +1613,6 @@ LSA_SHUTDOWN_PROVIDER(local)(
     PLSA_PROVIDER_FUNCTION_TABLE pFnTable
     )
 {
-    LW_SAFE_FREE_STRING(gLPGlobals.pszConfigFilePath);
     LW_SAFE_FREE_STRING(gLPGlobals.pszLocalDomain);
     LW_SAFE_FREE_STRING(gLPGlobals.pszNetBIOSName);
 

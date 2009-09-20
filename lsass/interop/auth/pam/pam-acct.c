@@ -71,7 +71,7 @@ pam_sm_acct_mgmt(
 
     LSA_LOG_PAM_DEBUG("pam_sm_acct_mgmt::begin");
 
-    dwError = LsaPamReadConfigFile(&pConfig);
+    dwError = LsaPamReadRegistry(&pConfig);
     BAIL_ON_LSA_ERROR(dwError);
 
     LsaPamSetLogLevel(pConfig->dwLogLevel);

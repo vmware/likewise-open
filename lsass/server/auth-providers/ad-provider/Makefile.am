@@ -70,7 +70,8 @@ liblsass_auth_provider_ad_la_SOURCES += \
 endif
 
 liblsass_auth_provider_ad_la_CPPFLAGS = \
-	-DLW_ENABLE_THREADS=1         \
+	$(AM_CPPFLAGS)                \
+    -DLW_ENABLE_THREADS=1         \
 	-I@top_srcdir@/server/include \
         $(PROVIDER_CPPFLAGS)          \
 	@PSTORE_INCLUDES@             \

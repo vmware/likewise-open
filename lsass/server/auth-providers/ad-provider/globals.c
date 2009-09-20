@@ -52,8 +52,6 @@ pthread_rwlock_t gADGlobalDataLock;
 
 PSTR gpszADProviderName = "lsa-activedirectory-provider";
 
-PSTR gpszADConfigFilePath = NULL;
-
 PAD_PROVIDER_DATA gpADProviderData = NULL;
 
 LSA_PROVIDER_FUNCTION_TABLE gADProviderAPITable =

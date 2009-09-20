@@ -94,7 +94,6 @@ error:
 
 DWORD
 LsaInitRpcServer(
-    PCSTR pszConfigFilePath,
     PLSA_RPC_SERVER pRpc
     )
 {
@@ -145,7 +144,6 @@ LsaInitRpcServer(
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = pfnInitRpc(
-                  pszConfigFilePath,
                   &pRpc->pszName,
                   &pRpc->pfnTable);
     BAIL_ON_LSA_ERROR(dwError);
@@ -164,7 +162,6 @@ error:
 
 DWORD
 LsaInitRpcServers(
-    PCSTR pszConfigFilePath
     )
 {
     DWORD dwError = 0;
@@ -173,21 +170,13 @@ LsaInitRpcServers(
     PLSA_STACK pRpcSrvStack = NULL;
     BOOLEAN bLocked = TRUE;
 
-    dwError = LsaParseConfigFile(
-                   pszConfigFilePath,
-                   LSA_CFG_OPTION_STRIP_ALL,
-                   &LsaRpcServerConfigStartSection,
-                   NULL,
-                   &LsaRpcServerConfigNameValuePair,
-                   NULL,
-                   (PVOID)&pRpcSrvStack
-                   );
+    dwError = LsaRpcReadRegistry(&pRpcSrvStack);
     BAIL_ON_LSA_ERROR(dwError);
 
     pRpc = (PLSA_RPC_SERVER) LsaStackPop(&pRpcSrvStack);
 
     while (pRpc) {
-        dwError = LsaInitRpcServer(pszConfigFilePath, pRpc);
+        dwError = LsaInitRpcServer(pRpc);
         if (dwError)
         {
             LSA_LOG_ERROR("Failed to load rpc server [%s] at [%s] [error code:%d]",
@@ -340,122 +329,136 @@ LsaValidateRpcServer(
     return dwError;
 }
 
-
+static
 DWORD
-LsaRpcServerConfigStartSection(
-    PCSTR    pszSectionName,
-    PVOID    pData,
-    PBOOLEAN pbSkipSection,
-    PBOOLEAN pbContinue
+LsaRpcReadServer(
+    PCSTR   pszServerName,
+    PCSTR   pszServerKey,
+    PLSA_STACK *ppRpcSrvStack
     )
 {
     DWORD dwError = 0;
-    PLSA_STACK *ppRpcSrvStack = (PLSA_STACK*)pData;
+
+    PLSA_CONFIG_REG pReg = NULL;
+
     PLSA_RPC_SERVER pRpcSrv = NULL;
-    PCSTR pszLibName = NULL;
-    BOOLEAN bSkipSection = FALSE;
-    BOOLEAN bContinue = TRUE;
 
-    BAIL_ON_INVALID_POINTER(ppRpcSrvStack);
+    PSTR pszPath = NULL;
 
-    if (LW_IS_NULL_OR_EMPTY_STR(pszSectionName) ||
-        strncasecmp(pszSectionName, LSA_CFG_TAG_RPC_SERVER,
-                    sizeof(LSA_CFG_TAG_RPC_SERVER) - 1)) {
-        bSkipSection = TRUE;
-        goto cleanup;
-    }
+    dwError = LsaOpenConfig(
+                pszServerKey,
+                pszServerKey,
+                &pReg);
+    BAIL_ON_LSA_ERROR(dwError);
 
-    pszLibName = pszSectionName + (sizeof(LSA_CFG_TAG_RPC_SERVER) - 1);
-    if (LW_IS_NULL_OR_EMPTY_STR(pszLibName)) {
-        LSA_LOG_WARNING("No RPC server name was specified");
-        bSkipSection = TRUE;
-        goto cleanup;
-    }
+    dwError = LsaReadConfigString(
+                pReg,
+                "Path",
+                FALSE,
+                &pszPath);
+    BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LwAllocateMemory(
+    if(!LW_IS_NULL_OR_EMPTY_STR(pszPath))
+    {
+        dwError = LwAllocateMemory(
                     sizeof(LSA_RPC_SERVER),
                     (PVOID*)&pRpcSrv);
-    BAIL_ON_LSA_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LwAllocateString(
-                    pszLibName,
-                    &pRpcSrv->pszName);
-    BAIL_ON_LSA_ERROR(dwError);
+        pRpcSrv->pszSrvLibPath = pszPath;
+        pszPath = NULL;
 
-    dwError = LsaStackPush(
-                    pRpcSrv,
-                    ppRpcSrvStack);
-    BAIL_ON_LSA_ERROR(dwError);
+        dwError = LwAllocateString(pszServerName, &pRpcSrv->pszName);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LsaStackPush(pRpcSrv, ppRpcSrvStack);
+        BAIL_ON_LSA_ERROR(dwError);
+        pRpcSrv = NULL;
+    }
 
 cleanup:
-    *pbSkipSection = bSkipSection;
-    *pbContinue = bContinue;
+
+    LsaCloseConfig(pReg);
+    pReg = NULL;
 
     return dwError;
 
 error:
-    *pbContinue = FALSE;
-    *pbSkipSection = TRUE;
 
-    if (pRpcSrv) {
+    LW_SAFE_FREE_STRING(pszPath);
+    if (pRpcSrv)
+    {
         LsaFreeRpcServer(pRpcSrv);
+        pRpcSrv = NULL;
     }
-
     goto cleanup;
 }
 
-
 DWORD
-LsaRpcServerConfigNameValuePair(
-    PCSTR    pszName,
-    PCSTR    pszValue,
-    PVOID    pData,
-    PBOOLEAN pbContinue
+LsaRpcReadRegistry(
+    PLSA_STACK *ppRpcSrvStack
     )
 {
     DWORD dwError = 0;
-    PLSA_STACK *ppRpcSrvStack = (PLSA_STACK*)pData;
-    PLSA_RPC_SERVER pRpc = NULL;
-    PSTR pszLibPath = NULL;
+
+    PLSA_CONFIG_REG pReg = NULL;
+    PSTR pszServers = NULL;
+    PSTR pszServerKey = NULL;
+
+    PSTR pszServer = NULL;
+    PSTR pszTokenState = NULL;
 
     BAIL_ON_INVALID_POINTER(ppRpcSrvStack);
 
-    pRpc = (PLSA_RPC_SERVER) LsaStackPeek(*ppRpcSrvStack);
+    dwError = LsaOpenConfig(
+                "Services\\lsass\\Parameters\\RpcServers",
+                "Policy\\Services\\lsass\\Parameters\\RpcServers",
+                &pReg);
+    BAIL_ON_LSA_ERROR(dwError);
 
-    if (pRpc == NULL) {
-        dwError = LW_ERROR_INTERNAL;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
+    dwError = LsaReadConfigString(
+                pReg,
+                "Load",
+                FALSE,
+                &pszServers);
+    BAIL_ON_LSA_ERROR(dwError);
 
-    if (strcasecmp(pszName, "path") == 0) {
-        if (!LW_IS_NULL_OR_EMPTY_STR(pszValue)) {
-            dwError = LwAllocateString(
-                          pszValue,
-                          &pszLibPath);
+    LsaCloseConfig(pReg);
+    pReg = NULL;
+
+    pszServer = strtok_r(pszServers, ",", &pszTokenState);
+    while ( pszServer != NULL )
+    {
+        if(!LW_IS_NULL_OR_EMPTY_STR(pszServer))
+        {
+            dwError = LwAllocateStringPrintf(
+                        &pszServerKey,
+                        "Services\\lsass\\Parameters\\RpcServers",
+                        pszServer);
             BAIL_ON_LSA_ERROR(dwError);
-        }
 
-        if (pRpc->pszSrvLibPath != NULL) {
-            LSA_LOG_WARNING("path redefined in configuration file");
-            LW_SAFE_FREE_STRING(pRpc->pszSrvLibPath);
-        }
+            dwError = LsaRpcReadServer(
+                        pszServer,
+                        pszServerKey,
+                        ppRpcSrvStack);
 
-        pRpc->pszSrvLibPath = pszLibPath;
-        pszLibPath = NULL;
+            LW_SAFE_FREE_STRING(pszServerKey);
+        }
+        pszServer = strtok_r(NULL, ",", &pszTokenState);
     }
-
-    *pbContinue = TRUE;
 
 cleanup:
+    LW_SAFE_FREE_STRING(pszServers);
+    LW_SAFE_FREE_STRING(pszServerKey);
+
+    LsaCloseConfig(pReg);
+    pReg = NULL;
+
     return dwError;
 
 error:
-    LW_SAFE_FREE_STRING(pszLibPath);
-
-    *pbContinue = FALSE;
     goto cleanup;
 }
-
 
 void
 LsaFreeRpcServer(

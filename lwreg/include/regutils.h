@@ -778,12 +778,6 @@ RegFreeStringBufferContents(
 
 
 /* reg data type conversion functions */
-/* Little Endian DWORD 4 bytes*/
-void ConvertDwordToByteArray(
-    IN DWORD dwValue,
-    OUT PBYTE pData, //allocated buffer
-    IN DWORD cbData
-    );
 
 DWORD
 ConvertMultiStrsToByteArray(

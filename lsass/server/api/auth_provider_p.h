@@ -49,8 +49,6 @@
 #ifndef __AUTH_PROVIDER_P_H__
 #define __AUTH_PROVIDER_P_H__
 
-#define LSA_CFG_TAG_AUTH_PROVIDER "auth provider:"
-
 typedef struct __LSA_AUTH_PROVIDER
 {
     PSTR pszId;
@@ -86,14 +84,12 @@ LsaSrvValidateProvider(
 
 DWORD
 LsaSrvInitAuthProvider(
-    PCSTR pszConfigFilePath,
     PLSA_AUTH_PROVIDER pProvider,
     PLSA_STATIC_PROVIDER pStaticProviders
     );
 
 DWORD
 LsaSrvInitAuthProviders(
-    PCSTR pszConfigFilePath,
     PLSA_STATIC_PROVIDER pStaticProviders
     );
 
@@ -101,22 +97,6 @@ DWORD
 LsaCfgFreeAuthProviderInStack(
     PVOID pItem,
     PVOID pUserData
-    );
-
-DWORD
-LsaSrvAuthProviderConfigStartSection(
-    PCSTR    pszSectionName,
-    PVOID    pData,
-    PBOOLEAN pbSkipSection,
-    PBOOLEAN pbContinue
-    );
-
-DWORD
-LsaSrvAuthProviderConfigNameValuePair(
-    PCSTR    pszName,
-    PCSTR    pszValue,
-    PVOID    pData,
-    PBOOLEAN pbContinue
     );
 
 VOID

@@ -2,11 +2,6 @@
 #define _DSRSRVDEFS_H_
 
 
-#define LSA_CFG_TAG_RPC_SERVER                 "rpc server:"
-#define LSA_CFG_TAG_DSR_RPC_SERVER             "dssetup"
-#define LSA_CFG_TAG_LSA_RPC_SERVER             "lsarpc"
-
-
 #define LSA_RPC_DIR                            CACHEDIR "/rpc"
 #define LSA_DEFAULT_LPC_SOCKET_PATH            LSA_RPC_DIR "/lsass"
 

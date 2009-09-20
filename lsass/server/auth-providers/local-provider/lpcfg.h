@@ -62,14 +62,8 @@ LocalCfgTransferContents(
     );
 
 DWORD
-LocalCfgParseFile(
-    PCSTR         pszConfigFilePath,
+LocalCfgReadRegistry(
     PLOCAL_CONFIG pConfig
-    );
-
-DWORD
-LocalCfgGetFilePath(
-    PSTR* ppszConfigFilePath
     );
 
 DWORD

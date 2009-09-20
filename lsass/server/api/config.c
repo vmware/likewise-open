@@ -47,6 +47,7 @@
 
 #include "api.h"
 
+
 DWORD
 LsaSrvRefreshConfiguration(
     HANDLE hServer
@@ -57,7 +58,6 @@ LsaSrvRefreshConfiguration(
     PLSA_AUTH_PROVIDER pProvider = NULL;
     HANDLE hProvider = (HANDLE)NULL;
     PLSA_SRV_API_STATE pServerState = (PLSA_SRV_API_STATE)hServer;
-    PSTR pszConfigFilePath = NULL;
     BOOLEAN bUnlockConfigLock = FALSE;
     LSA_SRV_API_CONFIG apiConfig;
 
@@ -70,12 +70,7 @@ LsaSrvRefreshConfiguration(
     dwError = LsaSrvApiInitConfig(&apiConfig);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaSrvApiGetConfigFilePath(&pszConfigFilePath);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaSrvApiReadConfig(
-                    pszConfigFilePath,
-                    &apiConfig);
+    dwError = LsaSrvApiReadRegistry(&apiConfig);
     BAIL_ON_LSA_ERROR(dwError);
 
     pthread_mutex_lock(&gAPIConfigLock);
@@ -110,8 +105,6 @@ LsaSrvRefreshConfiguration(
 
 cleanup:
 
-    LW_SAFE_FREE_STRING(pszConfigFilePath);
-
     if (hProvider != (HANDLE)NULL) {
         LsaSrvCloseProvider(pProvider, hProvider);
     }
@@ -135,38 +128,6 @@ error:
 }
 
 DWORD
-LsaSrvApiGetConfigFilePath(
-    PSTR* ppszConfigFilePath
-    )
-{
-    DWORD dwError = 0;
-    PSTR  pszConfigFilePath = NULL;
-
-    pthread_mutex_lock(&gAPIConfigLock);
-
-    BAIL_ON_INVALID_STRING(gpszConfigFilePath);
-
-    dwError = LwAllocateString(
-                    gpszConfigFilePath,
-                    &pszConfigFilePath);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    *ppszConfigFilePath = pszConfigFilePath;
-
-cleanup:
-
-    pthread_mutex_unlock(&gAPIConfigLock);
-
-    return dwError;
-
-error:
-
-    *ppszConfigFilePath = NULL;
-
-    goto cleanup;
-}
-
-DWORD
 LsaSrvApiInitConfig(
     PLSA_SRV_API_CONFIG pConfig
     )
@@ -179,38 +140,58 @@ LsaSrvApiInitConfig(
     return 0;
 }
 
+static LSA_SRV_API_CONFIG gStagingConfig;
+
+static
+LSA_CONFIG gConfig[] =
+{
+    {
+       "EnableEventlog",
+       TRUE,
+       LsaTypeBoolean,
+       0,
+       -1,
+       NULL,
+       &(gStagingConfig.bEnableEventLog)
+    },
+    {
+       "LogNetworkConnectionEvents",
+       TRUE,
+       LsaTypeBoolean,
+       0,
+       -1,
+       NULL,
+       &(gStagingConfig.bLogNetworkConnectionEvents)
+    }
+};
+
+
 DWORD
-LsaSrvApiReadConfig(
-    PCSTR pszConfigFilePath,
+LsaSrvApiReadRegistry(
     PLSA_SRV_API_CONFIG pConfig
     )
 {
     DWORD dwError = 0;
-    LSA_SRV_API_CONFIG apiConfig;
 
-    BAIL_ON_INVALID_STRING(pszConfigFilePath);
-
-    dwError = LsaSrvApiInitConfig(&apiConfig);
+    memset(&gStagingConfig, 0, sizeof(gStagingConfig));
+    dwError = LsaSrvApiInitConfig(&gStagingConfig);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaParseConfigFile(
-                    pszConfigFilePath,
-                    LSA_CFG_OPTION_STRIP_ALL,
-                    &LsaSrvApiConfigStartSection,
-                    NULL,
-                    &LsaSrvApiConfigNameValuePair,
-                    NULL,
-                    &apiConfig);
+    dwError = LsaProcessConfig(
+                "Services\\lsass\\Parameters",
+                "Policy\\Services\\lsass\\Parameters",
+                gConfig,
+                sizeof(gConfig)/sizeof(gConfig[0]));
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaSrvApiTransferConfigContents(
-                    &apiConfig,
+                    &gStagingConfig,
                     pConfig);
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
 
-    LsaSrvApiFreeConfigContents(&apiConfig);
+    LsaSrvApiFreeConfigContents(&gStagingConfig);
 
     return dwError;
 
@@ -219,111 +200,60 @@ error:
     goto cleanup;
 }
 
+#if 0
+static
 DWORD
-LsaSrvApiConfigStartSection(
-    PCSTR    pszSectionName,
-    PVOID    pData,
-    PBOOLEAN pbSkipSection,
-    PBOOLEAN pbContinue
+ValidateAndSetLogLevel(
+    PCSTR               pszName,
+    PCSTR               pszValue
     )
 {
     DWORD dwError = 0;
-    BOOLEAN bContinue = TRUE;
-    BOOLEAN bSkipSection = FALSE;
 
-    if (LW_IS_NULL_OR_EMPTY_STR(pszSectionName) ||
-        (strncasecmp(pszSectionName, "global", sizeof("global")-1)))
-    {
-        bSkipSection = TRUE;
-    }
-
-    *pbSkipSection = bSkipSection;
-    *pbContinue = bContinue;
-
-    return dwError;
-}
-
-DWORD
-LsaSrvApiConfigNameValuePair(
-    PCSTR    pszName,
-    PCSTR    pszValue,
-    PVOID    pData,
-    PBOOLEAN pbContinue
-    )
-{
-    DWORD dwError = 0;
-    PLSA_SRV_API_CONFIG pConfig = (PLSA_SRV_API_CONFIG)pData;
     LSA_LOG_INFO LogInfo = {};
 
-    BAIL_ON_INVALID_POINTER(pConfig);
-    BAIL_ON_INVALID_STRING(pszName);
-
-    if (!strcasecmp(pszName, "enable-eventlog"))
+    if (!strcasecmp(pszValue, "error"))
     {
-        if (!LW_IS_NULL_OR_EMPTY_STR(pszValue) &&
-            (!strcasecmp(pszValue, "true") ||
-             !strcasecmp(pszValue, "1") ||
-             (*pszValue == 'y') ||
-             (*pszValue == 'Y')))
-        {
-            pConfig->bEnableEventLog = TRUE;
-        }
-        else
-        {
-            pConfig->bEnableEventLog = FALSE;
-        }
+        LogInfo.maxAllowedLogLevel = LSA_LOG_LEVEL_ERROR;
     }
-    else if (!strcasecmp(pszName, "log-network-connection-events"))
+    else if (!strcasecmp(pszValue, "warning"))
     {
-        if (!LW_IS_NULL_OR_EMPTY_STR(pszValue) &&
-            (!strcasecmp(pszValue, "false") ||
-             !strcasecmp(pszValue, "0") ||
-             (*pszValue == 'n') ||
-             (*pszValue == 'N')))
-        {
-            pConfig->bLogNetworkConnectionEvents = FALSE;
-        }
-        else
-        {
-            pConfig->bLogNetworkConnectionEvents = TRUE;
-        }
+        LogInfo.maxAllowedLogLevel = LSA_LOG_LEVEL_WARNING;
     }
-    else if (!strcasecmp(pszName, "log-level"))
+    else if (!strcasecmp(pszValue, "info"))
     {
-        if (!strcasecmp(pszValue, "error"))
-            LogInfo.maxAllowedLogLevel = LSA_LOG_LEVEL_ERROR;
-        else if (!strcasecmp(pszValue, "warning"))
-            LogInfo.maxAllowedLogLevel = LSA_LOG_LEVEL_WARNING;
-        else if (!strcasecmp(pszValue, "info"))
-            LogInfo.maxAllowedLogLevel = LSA_LOG_LEVEL_INFO;
-        else if (!strcasecmp(pszValue, "verbose"))
-            LogInfo.maxAllowedLogLevel = LSA_LOG_LEVEL_VERBOSE;
-        else if (!strcasecmp(pszValue, "debug"))
-            LogInfo.maxAllowedLogLevel = LSA_LOG_LEVEL_DEBUG;
-        else if (!strcasecmp(pszValue, "trace"))
-            LogInfo.maxAllowedLogLevel = LSA_LOG_LEVEL_TRACE;
-        else
-        {
-            dwError = LW_ERROR_INVALID_LOG_LEVEL;
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-
-        dwError = LsaLogSetInfo_r(&LogInfo);
+        LogInfo.maxAllowedLogLevel = LSA_LOG_LEVEL_INFO;
+    }
+    else if (!strcasecmp(pszValue, "verbose"))
+    {
+        LogInfo.maxAllowedLogLevel = LSA_LOG_LEVEL_VERBOSE;
+    }
+    else if (!strcasecmp(pszValue, "debug"))
+    {
+        LogInfo.maxAllowedLogLevel = LSA_LOG_LEVEL_DEBUG;
+    }
+    else if (!strcasecmp(pszValue, "trace"))
+    {
+        LogInfo.maxAllowedLogLevel = LSA_LOG_LEVEL_TRACE;
+    }
+    else
+    {
+        LSA_LOG_ERROR("Invalid value for %s.",
+                      pszName);
+        dwError = LW_ERROR_INVALID_LOG_LEVEL;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    *pbContinue = TRUE;
+    dwError = LsaLogSetInfo_r(&LogInfo);
+    BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
-
     return dwError;
 
 error:
-
-    *pbContinue = FALSE;
-
     goto cleanup;
 }
+#endif
 
 DWORD
 LsaSrvApiTransferConfigContents(

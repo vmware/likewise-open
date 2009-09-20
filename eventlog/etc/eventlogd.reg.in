@@ -6,7 +6,7 @@
 "AllowReadTo"=""
 "AllowWriteTo"=""
 "AllowDeleteTo"=""
-"MaxDiskUsage"="100M"
-"MaxEventLifespan"="90d"
-"MaxNumEvents"="100k"
-"EventDbPurgeInterval"="1d"
+"MaxDiskUsage"=dword:06400000
+"MaxEventLifespan"=dword:0076A700
+"MaxNumEvents"=dword:000186A0
+"EventDbPurgeInterval"=dword:00015180

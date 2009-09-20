@@ -240,12 +240,13 @@ FillValueData(
         break;
 
     case REG_DWORD:
-        pValue->dwDataLen = sizeof(DWORD)/sizeof(BYTE);
+        pValue->dwDataLen = sizeof(dwSampleDwordVal);
 
         dwError = LwAllocateMemory(sizeof(*pValue->pData)*pValue->dwDataLen, (PVOID)&pValue->pData);
         BAIL_ON_REG_ERROR(dwError);
 
-        ConvertDwordToByteArray(dwSampleDwordVal, pValue->pData, pValue->dwDataLen);
+        memcpy(pValue->pData, &dwSampleDwordVal, pValue->dwDataLen);
+        pValue->pData[pValue->dwDataLen] = (BYTE)'\0';
 
         break;
 

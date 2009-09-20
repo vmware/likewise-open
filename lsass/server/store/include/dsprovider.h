@@ -118,7 +118,6 @@ typedef struct __LSA_DIRECTORY_PROVIDER_FUNCTION_TABLE
 #define DIRECTORY_SYMBOL_NAME_INITIALIZE_PROVIDER "DirectoryInitializeProvider"
 
 typedef DWORD (*PFNINITIALIZEDIRPROVIDER)(
-                    PCSTR pszConfigFilePath,
                     PSTR* ppszProviderName,
                     PDIRECTORY_PROVIDER_FUNCTION_TABLE* ppFnTable
                     );

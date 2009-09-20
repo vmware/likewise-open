@@ -202,7 +202,7 @@ LsaPamCloseLog(
     );
 
 DWORD
-LsaPamReadConfigFile(
+LsaPamReadRegistry(
     PLSA_PAM_CONFIG* ppConfig
     );
 

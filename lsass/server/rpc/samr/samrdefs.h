@@ -66,11 +66,6 @@ typedef void* ACCOUNT_HANDLE;
 #endif
 
 
-#define LSA_CFG_TAG_RPC_SERVER                   "rpc server"
-#define LSA_CFG_TAG_SAMR_RPC_SERVER              "samr"
-#define LSA_CFG_TAG_AUTH_PROVIDER                "auth provider"
-#define LSA_CFG_TAG_LOCAL_PROVIDER               "lsa-local-provider"
-
 #define LSA_RPC_DIR                              CACHEDIR "/rpc"
 
 #define SAMR_RPC_CFG_DEFAULT_LPC_SOCKET_PATH     LSA_RPC_DIR "/lsass"

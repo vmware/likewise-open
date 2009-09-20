@@ -48,26 +48,6 @@
 
 #include "includes.h"
 
-/* Little Endian DWORD 4 bytes*/
-void ConvertDwordToByteArray(
-    IN DWORD dwValue,
-    OUT PBYTE pData, //allocated buffer
-    IN DWORD cbData
-    )
-{
-    if (cbData != 4)
-    {
-        return;
-    }
-
-    pData[3] = (BYTE) ((dwValue >> 24) & 0x000000FF);
-    pData[2] = (BYTE) ((dwValue >> 16) & 0x000000FF);
-    pData[1] = (BYTE) ((dwValue >> 8) & 0x000000FF);
-    pData[0] = (BYTE) (dwValue & 0x00FF);
-
-    return;
-}
-
 DWORD
 ConvertMultiStrsToByteArray(
     PSTR *pszInMultiSz,

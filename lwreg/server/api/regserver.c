@@ -63,7 +63,7 @@ RegSrvCheckAccessRight(
     PREG_SRV_API_STATE pServerState = (PREG_SRV_API_STATE)handle;
     BOOLEAN bIsAccessible = TRUE;
 
-    if (!(pServerState->peerGID == 0 && pServerState->peerUID == 0) && REG_WRITE == access)
+    if (!(pServerState->peerGID == 0 || pServerState->peerUID == 0) && REG_WRITE == access)
     {
         bIsAccessible = FALSE;
     }

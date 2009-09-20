@@ -62,6 +62,7 @@
 #include <lwps/lwps.h>
 #include <lwnet.h>
 #include <lwio/lwio.h>
+#include <reg/reg.h>
 
 #include "lwmem.h"
 #include "lwstr.h"

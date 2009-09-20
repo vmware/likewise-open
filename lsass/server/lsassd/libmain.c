@@ -654,15 +654,14 @@ LsaSrvInitialize(
     )
 {
     DWORD dwError = 0;
-    PCSTR pszConfigFilePath = CONFIGDIR "/lsassd.conf";
 
     dwError = LsaInitCacheFolders();
     BAIL_ON_LSA_ERROR(dwError);
 
 #ifdef ENABLE_STATIC_PROVIDERS
-    dwError = LsaSrvApiInit(pszConfigFilePath, gStaticProviders);
+    dwError = LsaSrvApiInit(gStaticProviders);
 #else
-    dwError = LsaSrvApiInit(pszConfigFilePath, NULL);
+    dwError = LsaSrvApiInit(NULL);
 #endif
     BAIL_ON_LSA_ERROR(dwError);
 

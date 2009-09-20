@@ -440,7 +440,6 @@ SqliteSetValueEx(
 
         case REG_SZ:
 
-
             dwError = LwAllocateMemory(sizeof(*pszValue)*(cbData+1), (PVOID)&pszValue);
             BAIL_ON_REG_ERROR(dwError);
 

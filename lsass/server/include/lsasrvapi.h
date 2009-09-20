@@ -51,7 +51,6 @@
 
 DWORD
 LsaSrvApiInit(
-    PCSTR pszConfigFilePath,
     PLSA_STATIC_PROVIDER pStaticProviders
     );
 

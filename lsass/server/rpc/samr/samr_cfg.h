@@ -12,31 +12,15 @@ typedef struct samr_srv_config
 } SAMR_SRV_CONFIG, *PSAMR_SRV_CONFIG;
 
 
-typedef DWORD (*pFnSamrSrvConfigHandler)(PSAMR_SRV_CONFIG pConfig,
-					 PCSTR pszName,
-					 PCSTR pszValue);
-
-
-typedef struct samr_config_handler
-{
-    PCSTR pszId;
-    pFnSamrSrvConfigHandler pFnHandler;
-
-} SAMR_SRV_CONFIG_HANDLER, *PSAMR_SRV_CONFIG_HANDLER;
-
-
 DWORD
 SamrSrvInitialiseConfig(
     PSAMR_SRV_CONFIG pConfig
     );
 
-
-DWORD
-SamrSrvParseConfigFile(
-    PCSTR pszConfigFilePath,
+VOID
+SamrSrvFreeConfigContents(
     PSAMR_SRV_CONFIG pConfig
     );
-
 
 DWORD
 SamrSrvConfigGetLpcSocketPath(
@@ -59,12 +43,6 @@ SamrSrvConfigGetHomedirPrefix(
 DWORD
 SamrSrvConfigGetHomedirTemplate(
     PSTR *ppszHomedirTemplate
-    );
-
-
-DWORD
-SamrSrvSetConfigFilePath(
-    PCSTR pszConfigFilePath
     );
 
 
