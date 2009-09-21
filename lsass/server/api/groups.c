@@ -716,57 +716,43 @@ LsaSrvGetGroupMembershipByProvider(
 
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
 
-    for (pProvider = gpAuthProviderList;
-         pProvider;
-         pProvider = pProvider->pNext)
-    {
-        if (!strcmp(pProvider->pszId, pszProvider))
-        {
-            dwError = LsaSrvOpenProvider(hServer, pProvider, &hProvider);
-            BAIL_ON_LSA_ERROR(dwError);
-
-            dwError = pProvider->pFnTable->pfnGetGroupMembershipByProvider(
-                                              hProvider,
-                                              pszSid,
-                                              dwGroupInfoLevel,
-                                              &dwGroupsCount,
-                                              &ppMembershipInfo);
-            if (dwError == LW_ERROR_NO_SUCH_USER)
-            {
-                /* "user not found" is not an error here so ignore it */
-                dwError = 0;
-            }
-            else
-            {
-                BAIL_ON_LSA_ERROR(dwError);
-            }
-
-            break;
-        }
-    }
-
-    if (pProvider == NULL)
-    {
-       dwError = LW_ERROR_NOT_HANDLED;
-    }
+    dwError = LsaSrvFindProviderByName(pszProvider, &pProvider);
     BAIL_ON_LSA_ERROR(dwError);
 
-    *pdwGroupsCount    = dwGroupsCount;
-    *pppMembershipInfo = ppMembershipInfo;
+    dwError = LsaSrvOpenProvider(hServer, pProvider, &hProvider);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = pProvider->pFnTable->pfnGetGroupMembershipByProvider(
+                                      hProvider,
+                                      pszSid,
+                                      dwGroupInfoLevel,
+                                      &dwGroupsCount,
+                                      &ppMembershipInfo);
+    BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
-
-    if (hProvider != (HANDLE)NULL) {
+    if (hProvider)
+    {
         LsaSrvCloseProvider(pProvider, hProvider);
     }
 
     LEAVE_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
 
+    *pdwGroupsCount = dwGroupsCount;
+    *pppMembershipInfo = ppMembershipInfo;
+
     return dwError;
 
 error:
-    *pdwGroupsCount    = 0;
-    *pppMembershipInfo = NULL;
+    if (ppMembershipInfo)
+    {
+        LsaFreeGroupInfoList(dwGroupInfoLevel,
+                             (PVOID*)ppMembershipInfo,
+                             dwGroupsCount);
+    }
+
+    dwGroupsCount = 0;
+    ppMembershipInfo = NULL;
 
     goto cleanup;
 }

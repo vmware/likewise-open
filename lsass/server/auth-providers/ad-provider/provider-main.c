@@ -2614,7 +2614,6 @@ AD_GetGroupsForUser(
     IN PVOID** pppGroupInfoList
     )
 {
-    PCSTR pszLocalProvider = "lsa-local-provider";
     DWORD dwError = 0;
     PLSA_SECURITY_OBJECT* ppGroupObjects = NULL;
     size_t sGroupObjectsCount = 0;
@@ -2688,11 +2687,16 @@ AD_GetGroupsForUser(
     /* Get all local groups the user is member of */
     dwError = LsaSrvGetGroupMembershipByProvider(
                 hProvider,
-                pszLocalProvider,
+                LSA_PROVIDER_TAG_LOCAL,
                 pszUserSID,
                 dwGroupInfoLevel,
                 &dwGroupsCount,
                 (PVOID**)&ppUserMembershipInfo);
+    if ((LW_ERROR_INVALID_AUTH_PROVIDER == dwError) ||
+        (LW_ERROR_NO_SUCH_USER  == dwError))
+    {
+        dwError = 0;
+    }
     BAIL_ON_LSA_ERROR(dwError);
 
     /* Store membership list in a hash table */
@@ -2783,11 +2787,16 @@ AD_GetGroupsForUser(
            nested memberships of domain groups */
         dwError = LsaSrvGetGroupMembershipByProvider(
                     hProvider,
-                    pszLocalProvider,
+                    LSA_PROVIDER_TAG_LOCAL,
                     pszGroupSID,
                     dwGroupInfoLevel,
                     &dwGroupsCount,
                     (PVOID**)&ppGroupMembershipInfo);
+        if ((LW_ERROR_INVALID_AUTH_PROVIDER == dwError) ||
+            (LW_ERROR_NO_SUCH_USER  == dwError))
+        {
+            dwError = 0;
+        }
         BAIL_ON_LSA_ERROR(dwError);
 
         /* Store returned local groups in the hash table */

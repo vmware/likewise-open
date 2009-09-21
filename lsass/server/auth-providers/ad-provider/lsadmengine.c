@@ -623,6 +623,7 @@ LsaDmEngineGetDomainNameWithDiscovery(
     PSTR pszDomainSid = NULL;
     PSTR pszDnsForestName = NULL;
     ADAccountType accountType = AccountType_NotFound;
+    BOOLEAN bIsLocalDomain = FALSE;
 
     if (LW_IS_NULL_OR_EMPTY_STR(pszDomainName) ||
         AdIsSpecialDomainName(pszDomainName))
@@ -630,6 +631,25 @@ LsaDmEngineGetDomainNameWithDiscovery(
         dwError = LW_ERROR_NO_SUCH_DOMAIN;
         BAIL_ON_LSA_ERROR(dwError);
     }
+
+    // Check whether this is the local domain.
+
+    dwError = LsaSrvProviderServicesDomain(LSA_PROVIDER_TAG_LOCAL,
+                                           pszDomainName,
+                                           &bIsLocalDomain);
+    if (LW_ERROR_INVALID_AUTH_PROVIDER == dwError)
+    {
+        dwError = 0;
+    }
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (bIsLocalDomain)
+    {
+        dwError = LW_ERROR_NO_SUCH_DOMAIN;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    // Check the domain manager
 
     dwError = LsaDmWrapGetDomainName(pszDomainName,
                                      &pszDnsDomainName,
@@ -649,6 +669,8 @@ LsaDmEngineGetDomainNameWithDiscovery(
         dwError = LW_ERROR_NO_SUCH_DOMAIN;
         BAIL_ON_LSA_ERROR(dwError);
     }
+
+    // Go to the network
 
     dwError = LsaDmWrapNetLookupObjectSidByName(
                  gpADProviderData->szDomain,
