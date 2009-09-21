@@ -81,6 +81,12 @@ typedef struct __LSA_SRV_API_STATE
 } LSA_SRV_API_STATE, *PLSA_SRV_API_STATE;
 
 DWORD
+LsaSrvFindProviderByName(
+    IN PCSTR pszProvider,
+    OUT PLSA_AUTH_PROVIDER* ppProvider
+    );
+
+DWORD
 LsaSrvOpenProvider(
     HANDLE  hServer,
     PLSA_AUTH_PROVIDER pProvider,

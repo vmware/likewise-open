@@ -46,6 +46,44 @@
  */
 #include "api.h"
 
+
+DWORD
+LsaSrvFindProviderByName(
+    IN PCSTR pszProvider,
+    OUT PLSA_AUTH_PROVIDER* ppProvider
+    )
+{
+    DWORD dwError = 0;
+    PLSA_AUTH_PROVIDER pProvider = NULL;
+
+    for (pProvider = gpAuthProviderList;
+         pProvider;
+         pProvider = pProvider->pNext)
+    {
+        if (!strcmp(pProvider->pszId, pszProvider))
+        {
+            break;
+        }
+    }
+
+    if (!pProvider)
+    {
+        dwError = LW_ERROR_INVALID_AUTH_PROVIDER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+    *ppProvider = pProvider;
+
+    return dwError;
+
+error:
+    pProvider = NULL;
+
+    goto cleanup;
+
+}
+
 void
 LsaSrvCloseServer(
     HANDLE hServer

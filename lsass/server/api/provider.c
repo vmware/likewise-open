@@ -116,3 +116,36 @@ error:
 
     goto cleanup;
 }
+
+DWORD
+LsaSrvProviderServicesDomain(
+    IN PCSTR pszProvider,
+    IN PCSTR pszDomainName,
+    OUT PBOOLEAN pbServicesDomain
+    )
+{
+    DWORD dwError = 0;
+    BOOLEAN bInLock = FALSE;
+    PLSA_AUTH_PROVIDER pProvider = NULL;
+    BOOLEAN bServicesDomain = FALSE;
+
+    ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
+
+    dwError = LsaSrvFindProviderByName(pszProvider, &pProvider);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    bServicesDomain = pProvider->pFnTable->pfnServicesDomain(pszDomainName);
+
+cleanup:
+
+    LEAVE_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
+
+    *pbServicesDomain = bServicesDomain;
+
+    return dwError;
+
+error:
+    bServicesDomain = FALSE;
+
+    goto cleanup;
+}

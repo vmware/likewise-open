@@ -387,6 +387,10 @@ LsaSrvRefreshConfiguration(
     HANDLE hServer
     );
 
+//
+// For targeting specific providers
+//
+
 DWORD
 LsaSrvProviderIoControl(
     IN HANDLE  hServer,
@@ -396,6 +400,17 @@ LsaSrvProviderIoControl(
     IN PVOID   pInputBuffer,
     OUT DWORD* pdwOutputBufferSize,
     OUT PVOID* ppOutputBuffer
+    );
+
+//
+// Server-Side only APIs for calling specific providers
+//
+
+DWORD
+LsaSrvProviderServicesDomain(
+    IN PCSTR pszProvider,
+    IN PCSTR pszDomainName,
+    OUT PBOOLEAN pbServicesDomain
     );
 
 DWORD
@@ -408,6 +423,7 @@ LsaSrvGetGroupMembershipByProvider(
     OUT PVOID  **pppMembershipInfo
     );
 
+#define LSA_PROVIDER_TAG_LOCAL "lsa-local-provider"
 
 #endif /* __LSASRVAPI_H__ */
 
