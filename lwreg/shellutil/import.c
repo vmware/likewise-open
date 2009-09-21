@@ -36,7 +36,7 @@
  *        Registry
  *
  *        Registry import utilities (import a win32 compatible registry file)
- *        Originally implemented for lw_regimport (lw_regimport.c)
+ *        Originally implemented for regimport (regimport.c)
  *
  * Authors: Wei Fu (wfu@likewise.com)
  *          Adam Bernstein (abernstein@likewise.com)

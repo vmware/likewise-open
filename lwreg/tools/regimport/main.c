@@ -29,7 +29,7 @@
  *
  * Module Name:
  *
- *        lw_regimport.c
+ *        regimport.c
  *
  * Abstract:
  *

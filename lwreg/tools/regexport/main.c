@@ -29,15 +29,15 @@
  *
  * Module Name:
  *
- *        lw_regexport.c
+ *        regexport.c
  *
  * Abstract:
  *
  *        Likewise registry
  *
- *        Registry .REG parser export functionality test harness
+ *        Registry Export utility
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
+ * Authors: Wei Fu (wfu@likewise.com)
  *          Adam Bernstein (abernstein@likewise.com)
  */
 
