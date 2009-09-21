@@ -352,6 +352,52 @@ LsaCfgFreeAuthProviderInStack(
 
 static
 DWORD
+LsaSrvPushProvider(
+    PCSTR pszName,
+    PCSTR pszId,
+    PCSTR pszPath,
+    PLSA_STACK *ppProviderStack
+    )
+{
+    DWORD dwError = 0;
+
+    PLSA_AUTH_PROVIDER pProvider = NULL;
+
+    dwError = LwAllocateMemory(
+                sizeof(LSA_AUTH_PROVIDER),
+                (PVOID*)&pProvider);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LwAllocateString(pszPath, &(pProvider->pszProviderLibpath));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LwAllocateString(pszId, &(pProvider->pszId));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LwAllocateString(pszName, &(pProvider->pszName));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaStackPush(pProvider, ppProviderStack);
+    BAIL_ON_LSA_ERROR(dwError);
+    pProvider = NULL;
+
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    if (pProvider)
+    {
+        LsaSrvFreeAuthProvider(pProvider);
+        pProvider = NULL;
+    }
+    goto cleanup;
+
+}
+static
+DWORD
 LsaSrvAuthProviderRead(
     PCSTR   pszProviderName,
     PCSTR   pszProviderKey,
@@ -362,19 +408,19 @@ LsaSrvAuthProviderRead(
 
     PLSA_CONFIG_REG pReg = NULL;
 
-    PLSA_AUTH_PROVIDER pProvider = NULL;
-
     PSTR pszId = NULL;
     PSTR pszPath = NULL;
-
-    dwError = LwAllocateString(LSA_PROVIDER_AD_PATH, &pszPath);
-    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaOpenConfig(
                 pszProviderKey,
                 pszProviderKey,
                 &pReg);
     BAIL_ON_LSA_ERROR(dwError);
+
+    if (pReg == NULL)
+    {
+        goto error;
+    }
 
     dwError = LsaReadConfigString(
                 pReg,
@@ -383,6 +429,11 @@ LsaSrvAuthProviderRead(
                 &pszId);
     BAIL_ON_LSA_ERROR(dwError);
 
+    if (LW_IS_NULL_OR_EMPTY_STR(pszId))
+    {
+        goto error;
+    }
+
     dwError = LsaReadConfigString(
                 pReg,
                 "Path",
@@ -390,26 +441,17 @@ LsaSrvAuthProviderRead(
                 &pszPath);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (!LW_IS_NULL_OR_EMPTY_STR(pszPath))
+    if (LW_IS_NULL_OR_EMPTY_STR(pszPath))
     {
-        dwError = LwAllocateMemory(
-                    sizeof(LSA_AUTH_PROVIDER),
-                    (PVOID*)&pProvider);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwError = LwAllocateString(pszPath, &(pProvider->pszProviderLibpath));
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwError = LwAllocateString(pszId, &(pProvider->pszId));
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwError = LwAllocateString(pszProviderName, &(pProvider->pszName));
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwError = LsaStackPush(pProvider, ppProviderStack);
-        BAIL_ON_LSA_ERROR(dwError);
-        pProvider = NULL;
+        goto error;
     }
+
+    dwError = LsaSrvPushProvider(
+                pszProviderName,
+                pszId,
+                pszPath,
+                ppProviderStack);
+    BAIL_ON_LSA_ERROR(dwError);
 
 
 cleanup:
@@ -424,10 +466,6 @@ cleanup:
 
 error:
 
-    if (pProvider)
-    {
-        LsaSrvFreeAuthProvider(pProvider);
-    }
     goto cleanup;
 }
 
@@ -453,6 +491,11 @@ LsaSrvAuthProviderReadRegistry(
                 &pReg);
     BAIL_ON_LSA_ERROR(dwError);
 
+    if (pReg == NULL)
+    {
+        goto error;
+    }
+
     dwError = LsaReadConfigString(
                 pReg,
                 "Load",
@@ -463,7 +506,10 @@ LsaSrvAuthProviderReadRegistry(
     LsaCloseConfig(pReg);
     pReg = NULL;
 
-    BAIL_ON_INVALID_STRING(pszProviders);
+    if (pszProviders == NULL )
+    {
+        goto error;
+    }
 
     pszProvider = strtok_r(pszProviders, ",", &pszTokenState);
     while ( pszProvider != NULL )
@@ -478,8 +524,8 @@ LsaSrvAuthProviderReadRegistry(
                     pszProvider,
                     pszProviderKey,
                     ppProviderStack);
+        BAIL_ON_LSA_ERROR(dwError);
 
-        LW_SAFE_FREE_STRING(pszProviderKey);
         pszProvider = strtok_r(NULL, ",", &pszTokenState);
     }
 
@@ -494,6 +540,27 @@ cleanup:
     return dwError;
 
 error:
+
+    if (dwError == 0)
+    {
+        /* We should only get here if there is some problem with the
+         * registry -- can't access it, the key isn't there, ...
+         * -- so we will try a default set of providers.
+         */
+        LSA_LOG_ERROR("Problem accessing provider configuration in registry. Trying compiled defaults [Local, ActiveDirectory].");
+
+        LsaSrvPushProvider(
+                "Local",
+                "lsa-local-provider",
+                LSA_PROVIDER_LOCAL_PATH,
+                ppProviderStack);
+
+        LsaSrvPushProvider(
+                "ActiveDirectory",
+                "lsa-activedirectory-provider",
+                LSA_PROVIDER_AD_PATH,
+                ppProviderStack);
+    }
 
     goto cleanup;
 }

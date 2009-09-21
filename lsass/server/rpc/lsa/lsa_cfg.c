@@ -103,6 +103,11 @@ LsaSrvReadRegistry(
                 &pReg);
     BAIL_ON_LSA_ERROR(dwError);
 
+    if (!pReg)
+    {
+        goto error;
+    }
+
     dwError = LsaReadConfigString(
                 pReg,
                 "LpcSocketPath",
@@ -118,6 +123,11 @@ LsaSrvReadRegistry(
                 "Policy\\Services\\lsass\\Parameters\\RPCServers\\samr",
                 &pReg);
     BAIL_ON_LSA_ERROR(dwError);
+
+    if (!pReg)
+    {
+        goto error;
+    }
 
     dwError = LsaReadConfigString(
                 pReg,

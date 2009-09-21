@@ -51,23 +51,53 @@
 
 static
 DWORD
+LocalCfgSetDefaultLoginShell(
+    PLOCAL_CONFIG   pConfig,
+    PCSTR           pszName,
+    PCSTR           pszValue
+    );
+
+static
+DWORD
+LocalCfgSetHomedirPrefix(
+    PLOCAL_CONFIG   pConfig,
+    PCSTR           pszName,
+    PCSTR           pszValue
+    );
+
+static
+DWORD
 LocalCfgSetHomedirUmask(
     PLOCAL_CONFIG pConfig,
     PCSTR          pszName,
     PCSTR          pszValue
     );
 
-static
-DWORD
-LocalCfgExtraValidation(
-    PLOCAL_CONFIG pConfig
-    );
-
+PSTR gpszLoginShell;
+PSTR gpszHomedirPrefix;
 PSTR gpszUmask;
 LOCAL_CONFIG gStagingConfig;
 
 static LSA_CONFIG gConfigDescription[] =
 {
+    {
+        "LoginShellTemplate",
+        TRUE,
+        LsaTypeString,
+        0,
+        -1,
+        NULL,
+        &gpszLoginShell
+    },
+    {
+        "HomeDirPrefix",
+        TRUE,
+        LsaTypeString,
+        0,
+        -1,
+        NULL,
+        &gpszHomedirPrefix
+    },
     {
         "HomeDirUmask",
         TRUE,
@@ -85,24 +115,6 @@ static LSA_CONFIG gConfigDescription[] =
         -1,
         NULL,
         &(gStagingConfig.bEnableEventLog)
-    },
-    {
-        "LoginShellTemplate",
-        TRUE,
-        LsaTypeString,
-        0,
-        -1,
-        NULL,
-        &(gStagingConfig.pszLoginShell)
-    },
-    {
-        "HomeDirPrefix",
-        TRUE,
-        LsaTypeString,
-        0,
-        -1,
-        NULL,
-        &(gStagingConfig.pszHomedirPrefix)
     },
     {
         "HomeDirTemplate",
@@ -474,19 +486,33 @@ LocalCfgReadRegistry(
                 "Policy\\Services\\lsass\\Parameters\\Providers\\Local",
                 gConfigDescription,
                 sizeof(gConfigDescription)/sizeof(gConfigDescription));
+    BAIL_ON_NON_LWREG_ERROR(dwError);
+
+    dwError = LocalCfgSetDefaultLoginShell(
+                &gStagingConfig,
+                "LoginShellTemplate",
+                gpszLoginShell);
     BAIL_ON_LSA_ERROR(dwError);
 
-    LocalCfgSetHomedirUmask(
-            &gStagingConfig,
-            "HomeDirUmask",
-            gpszUmask);
+    dwError = LocalCfgSetHomedirPrefix(
+                &gStagingConfig,
+                "HomeDirPrefix",
+                gpszHomedirPrefix);
+    BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LocalCfgExtraValidation(&gStagingConfig);
+    dwError = LocalCfgSetHomedirUmask(
+                &gStagingConfig,
+                "HomeDirUmask",
+                gpszUmask);
     BAIL_ON_LSA_ERROR(dwError);
 
     LocalCfgTransferContents(&gStagingConfig, pConfig);
 
 cleanup:
+    LW_SAFE_FREE_STRING(gpszLoginShell);
+    LW_SAFE_FREE_STRING(gpszHomedirPrefix);
+    LW_SAFE_FREE_STRING(gpszUmask);
+
     LocalCfgFreeContents(&gStagingConfig);
     return dwError;
 
@@ -495,49 +521,91 @@ error:
     goto cleanup;
 }
 
+static
 DWORD
-LocalCfgExtraValidation(
-    PLOCAL_CONFIG pConfig
+LocalCfgSetDefaultLoginShell(
+    PLOCAL_CONFIG pConfig,
+    PCSTR          pszName,
+    PCSTR          pszValue
     )
 {
     DWORD dwError = 0;
+
     PSTR pszLoginShell = NULL;
-    PSTR pszHomedirPrefix = NULL;
 
-    if (access(pConfig->pszLoginShell, X_OK) != 0)
+    if (LW_IS_NULL_OR_EMPTY_STR(pszValue))
     {
-        dwError = LwAllocateString(
-                    LOCAL_CFG_DEFAULT_LOGIN_SHELL,
-                    &pszLoginShell);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        LW_SAFE_FREE_STRING(pConfig->pszLoginShell);
-        pConfig->pszLoginShell = pszLoginShell;
-        pszLoginShell = NULL;
+        goto error;
     }
 
-    if (pConfig->pszHomedirPrefix[0] != '/')
+    if (access(pszValue, X_OK) != 0)
     {
-        LSA_LOG_ERROR(
-                "Invalid home directory prefix [%s]",
-                pConfig->pszHomedirPrefix);
-
-        dwError = LwAllocateString(
-                    LOCAL_CFG_DEFAULT_HOMEDIR_PREFIX,
-                    &pszHomedirPrefix);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        LW_SAFE_FREE_STRING(pConfig->pszHomedirPrefix);
-        pConfig->pszHomedirPrefix = pszHomedirPrefix;
-        pszHomedirPrefix = NULL;
+        LSA_LOG_ERROR("Invalid login shell [%s]", pszValue);
+        goto error;
     }
+
+    dwError = LwAllocateString(pszValue, &pszLoginShell);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    LW_SAFE_FREE_STRING(pConfig->pszLoginShell);
+
+    pConfig->pszLoginShell = pszLoginShell;
+    pszLoginShell = NULL;
 
 cleanup:
     return dwError;
 
 error:
-    LW_SAFE_FREE_STRING(pszHomedirPrefix);
     LW_SAFE_FREE_STRING(pszLoginShell);
+
+    goto cleanup;
+}
+
+static
+DWORD
+LocalCfgSetHomedirPrefix(
+    PLOCAL_CONFIG   pConfig,
+    PCSTR           pszName,
+    PCSTR           pszValue
+    )
+{
+    DWORD dwError = 0;
+    PSTR pszHomedirPrefix = NULL;
+
+    if (LW_IS_NULL_OR_EMPTY_STR(pszValue))
+    {
+        goto error;
+    }
+
+    dwError = LwAllocateString(pszValue, &pszHomedirPrefix);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    LwStripWhitespace(pszHomedirPrefix, TRUE, TRUE);
+
+    if (LW_IS_NULL_OR_EMPTY_STR(pszHomedirPrefix))
+    {
+        goto error;
+    }
+
+    if (*pszHomedirPrefix != '/')
+    {
+        LSA_LOG_ERROR("Invalid home directory prefix [%s]", pszHomedirPrefix);
+        goto error;
+    }
+
+    LW_SAFE_FREE_STRING(pConfig->pszHomedirPrefix);
+
+    pConfig->pszHomedirPrefix = pszHomedirPrefix;
+    pszHomedirPrefix = NULL;
+
+cleanup:
+
+    return dwError;
+
+error:
+    LW_SAFE_FREE_STRING(pszHomedirPrefix);
+
+    goto cleanup;
 }
 
 static
@@ -556,7 +624,10 @@ LocalCfgSetHomedirUmask(
     char  cp2[2];
 
     // Convert the umask octal string to a decimal number
-    BAIL_ON_INVALID_STRING(pszValue);
+    if (LW_IS_NULL_OR_EMPTY_STR(pszValue))
+    {
+        goto error;
+    }
 
     cp2[1] = 0;
 
@@ -569,30 +640,31 @@ LocalCfgSetHomedirUmask(
 
         if ( dwVal > 7 )
         {
-            dwError = LW_ERROR_INVALID_PARAMETER;
+            LSA_LOG_ERROR("Invalid Umask [%s]", pszValue);
+            goto error;
         }
-        BAIL_ON_LSA_ERROR(dwError);
 
         dwOct += dwVal;
     }
 
     if ( dwCnt > 4 )
     {
-        dwError = LW_ERROR_INVALID_PARAMETER;
+        LSA_LOG_ERROR("Invalid Umask [%s]", pszValue);
+        goto error;
     }
-    BAIL_ON_LSA_ERROR(dwError);
 
     // Disallow 07xx since the user should always have
     // access to his home directory.
     if ( (dwOct & 0700) == 0700 )
     {
-        dwError = LW_ERROR_INVALID_PARAMETER;
+        LSA_LOG_ERROR("Invalid Umask [%s]. User cannot access home directory.",
+                pszValue);
+        goto error;
     }
     else
     {
         pConfig->dwHomedirUMask = dwOct;
     }
-    BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
 

@@ -58,49 +58,57 @@ LsaProcessConfig(
     dwError = LsaOpenConfig(pszConfigKey, pszPolicyKey, &pReg);
     BAIL_ON_LSA_ERROR(dwError);
 
+    if ( pReg == NULL )
+    {
+        goto error;
+    }
+
     for (dwEntry = 0; dwEntry < dwConfigEntries; dwEntry++)
     {
+        dwError = 0;
         switch (pConfig[dwEntry].Type)
         {
             case LsaTypeString:
-                LsaReadConfigString(
-                    pReg,
-                    pConfig[dwEntry].pszName,
-                    pConfig[dwEntry].bUsePolicy,
-                    pConfig[dwEntry].pValue);
+                dwError = LsaReadConfigString(
+                            pReg,
+                            pConfig[dwEntry].pszName,
+                            pConfig[dwEntry].bUsePolicy,
+                            pConfig[dwEntry].pValue);
 
             case LsaTypeDword:
-                LsaReadConfigDword(
-                    pReg,
-                    pConfig[dwEntry].pszName,
-                    pConfig[dwEntry].bUsePolicy,
-                    pConfig[dwEntry].dwMin,
-                    pConfig[dwEntry].dwMax,
-                    pConfig[dwEntry].pValue);
+                dwError = LsaReadConfigDword(
+                            pReg,
+                            pConfig[dwEntry].pszName,
+                            pConfig[dwEntry].bUsePolicy,
+                            pConfig[dwEntry].dwMin,
+                            pConfig[dwEntry].dwMax,
+                            pConfig[dwEntry].pValue);
                 break;
 
             case LsaTypeBoolean:
-                LsaReadConfigBoolean(
-                    pReg,
-                    pConfig[dwEntry].pszName,
-                    pConfig[dwEntry].bUsePolicy,
-                    pConfig[dwEntry].pValue);
+                dwError = LsaReadConfigBoolean(
+                            pReg,
+                            pConfig[dwEntry].pszName,
+                            pConfig[dwEntry].bUsePolicy,
+                            pConfig[dwEntry].pValue);
                 break;
 
             case LsaTypeEnum:
-                LsaReadConfigEnum(
-                    pReg,
-                    pConfig[dwEntry].pszName,
-                    pConfig[dwEntry].bUsePolicy,
-                    pConfig[dwEntry].dwMin,
-                    pConfig[dwEntry].dwMax,
-                    pConfig[dwEntry].ppszEnumNames,
-                    pConfig[dwEntry].pValue);
+                dwError = LsaReadConfigEnum(
+                            pReg,
+                            pConfig[dwEntry].pszName,
+                            pConfig[dwEntry].bUsePolicy,
+                            pConfig[dwEntry].dwMin,
+                            pConfig[dwEntry].dwMax,
+                            pConfig[dwEntry].ppszEnumNames,
+                            pConfig[dwEntry].pValue);
                 break;
 
             default:
                 break;
         }
+        BAIL_ON_NON_LWREG_ERROR(dwError);
+        dwError = 0;
     }
 
 cleanup:
@@ -132,14 +140,23 @@ LsaOpenConfig(
 
     dwError = LwMbsToWc16s(pszPolicyKey, &(pReg->pwc16sPolicyKey));
     BAIL_ON_LSA_ERROR(dwError);
+
     dwError = RegOpenServer(&(pReg->hConnection));
-    BAIL_ON_LSA_ERROR(dwError);
+    if ( dwError )
+    {
+        dwError = 0;
+        goto error;
+    }
 
     dwError = RegOpenRootKey(
                 pReg->hConnection,
                 LIKEWISE_ROOT_KEY,
                 &(pReg->hKey));
-    BAIL_ON_LSA_ERROR(dwError);
+    if (dwError)
+    {
+        dwError = 0;
+        goto error;
+    }
 
 cleanup:
 
@@ -394,10 +411,10 @@ LsaReadConfigEnum(
              dwEnumIndex <= dwMax - dwMin;
              dwEnumIndex++)
         {
-            if(!strcmp(pszValue, ppszEnumNames[dwEnumIndex]))
+            if(!strcasecmp(pszValue, ppszEnumNames[dwEnumIndex]))
             {
                 *pdwValue = dwEnumIndex + dwMin;
-                break;
+                goto cleanup;
             }
         }
     }

@@ -351,6 +351,11 @@ LsaRpcReadServer(
                 &pReg);
     BAIL_ON_LSA_ERROR(dwError);
 
+    if (pReg == NULL)
+    {
+        goto error;
+    }
+
     dwError = LsaReadConfigString(
                 pReg,
                 "Path",
@@ -416,6 +421,11 @@ LsaRpcReadRegistry(
                 &pReg);
     BAIL_ON_LSA_ERROR(dwError);
 
+    if (pReg == NULL)
+    {
+        goto error;
+    }
+
     dwError = LsaReadConfigString(
                 pReg,
                 "Load",
@@ -425,6 +435,11 @@ LsaRpcReadRegistry(
 
     LsaCloseConfig(pReg);
     pReg = NULL;
+
+    if (LW_IS_NULL_OR_EMPTY_STR(pszServers) )
+    {
+        goto error;
+    }
 
     pszServer = strtok_r(pszServers, ",", &pszTokenState);
     while ( pszServer != NULL )
@@ -441,8 +456,7 @@ LsaRpcReadRegistry(
                         pszServer,
                         pszServerKey,
                         ppRpcSrvStack);
-
-            LW_SAFE_FREE_STRING(pszServerKey);
+            BAIL_ON_LSA_ERROR(dwError);
         }
         pszServer = strtok_r(NULL, ",", &pszTokenState);
     }

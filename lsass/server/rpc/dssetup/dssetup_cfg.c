@@ -93,6 +93,11 @@ DsrSrvReadRegistry(
                 &pReg);
     BAIL_ON_LSA_ERROR(dwError);
 
+    if (pReg)
+    {
+        goto error;
+    }
+
     dwError = LsaReadConfigString(
                 pReg,
                 "LpcSocketPath",
@@ -109,6 +114,11 @@ DsrSrvReadRegistry(
                 "Policy\\Services\\lsass\\Parameters\\RPCServers\\lsarpc",
                 &pReg);
     BAIL_ON_LSA_ERROR(dwError);
+
+    if (!pReg)
+    {
+        goto error;
+    }
 
     dwError = LsaReadConfigString(
                 pReg,

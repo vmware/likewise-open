@@ -113,6 +113,11 @@ SamrSrvReadRegistry(
             &pReg);
     BAIL_ON_LSA_ERROR(dwError);
 
+    if (!pReg)
+    {
+        goto error;
+    }
+
     dwError = LsaReadConfig(
                 pReg,
                 "LpcSocketPath",
