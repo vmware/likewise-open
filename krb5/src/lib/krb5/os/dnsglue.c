@@ -63,6 +63,10 @@ struct krb5int_dns_state {
 static int initparse(struct krb5int_dns_state *);
 #endif
 
+#if !USE_RES_NINIT
+static k5_mutex_t dns_res_lock = K5_MUTEX_PARTIAL_INITIALIZER;
+#endif
+
 /*
  * krb5int_dns_init()
  *
@@ -102,11 +106,23 @@ krb5int_dns_init(struct krb5int_dns_state **dsp,
 #if USE_RES_NINIT
     memset(&statbuf, 0, sizeof(statbuf));
     ret = res_ninit(&statbuf);
-#else
-    ret = res_init();
-#endif
     if (ret < 0)
 	return -1;
+#else
+    if (!(_res.options & RES_INIT))
+    {
+	ret = res_init();
+	if (ret < 0)
+	    return -1;
+
+	ret = k5_mutex_finish_init(&dns_res_lock);
+	if (ret < 0)
+	    return ret;
+    }
+    ret = k5_mutex_lock(&dns_res_lock);
+    if (ret < 0)
+	return ret;
+#endif
 
     do {
 	p = (ds->ansp == NULL)
@@ -152,6 +168,8 @@ krb5int_dns_init(struct krb5int_dns_state **dsp,
 errout:
 #if USE_RES_NINIT
     res_ndestroy(&statbuf);
+#else
+    k5_mutex_unlock(&dns_res_lock);
 #endif
     if (ret < 0) {
 	if (ds->ansp != NULL) {
