@@ -1,6 +1,10 @@
 AM_CPPFLAGS = -I$(top_srcdir)/include
 
+noinst_PROGRAMS = regimport
+
 bin_PROGRAMS = regimport
+
+regimport_LDFLAGS = -static
 
 regimport_CPPFLAGS = \
     -I@top_srcdir@/server/include \

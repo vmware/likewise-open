@@ -487,8 +487,6 @@ LwLdapBindDirectory(
 
     gss_buffer_desc token = GSS_C_EMPTY_BUFFER;
 
-    struct berval * pServerCreds = NULL;
-
 //    PCtxtHandle pContextHandle = NULL;
     OM_uint32 ret_flags = 0;
 
@@ -595,10 +593,6 @@ error:
 	gss_release_buffer((OM_uint32 *)&dwMinorStatus, &output_desc);
     }
 						    
-    if (pServerCreds) {
-        ber_bvfree(pServerCreds);
-    }
-
     if (*pGSSContext != GSS_C_NO_CONTEXT) {
         gss_delete_sec_context((OM_uint32*)&dwMinorStatus, pGSSContext, GSS_C_NO_BUFFER);
     }

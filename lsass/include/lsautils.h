@@ -516,6 +516,11 @@ typedef struct __LSA_CACHE
     DWORD dwNumCollisions;
 } LSA_CACHE, *PLSA_CACHE;
 
+#define BAIL_ON_NON_LWREG_ERROR(dwError) \
+        if (!(40700 <= dwError && dwError <= 41200)) {  \
+           BAIL_ON_LSA_ERROR(dwError);            \
+        }
+
 typedef struct __LSA_CONFIG_REG
 {
     HANDLE  hConnection;

@@ -517,7 +517,8 @@ AD_ReadRegistry(
                 "PolicyServices\\lsass\\Parameters\\Providers\\ActiveDirectory",
                 gConfigDescription,
                 sizeof(gConfigDescription)/sizeof(gConfigDescription[0]));
-    BAIL_ON_LSA_ERROR(dwError);
+    BAIL_ON_NON_LWREG_ERROR(dwError);
+    dwError = 0;
 
     /* Special handling is used for some values. */
 
@@ -647,13 +648,19 @@ AD_SetConfig_SpaceReplacement(
 {
     DWORD dwError = 0;
 
-    BAIL_ON_INVALID_STRING(pszValue);
+    if (LW_IS_NULL_OR_EMPTY_STR(pszValue))
+    {
+        goto error;
+    }
 
     dwError = AD_CheckPunctuationChar(
                     pszName,
                     pszValue,
                     TRUE);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (dwError)
+    {
+        goto error;
+    }
 
     pConfig->chSpaceReplacement = pszValue[0];
 
@@ -672,16 +679,21 @@ AD_SetConfig_DomainSeparator(
 {
     DWORD dwError = 0;
 
-    if(!LW_IS_NULL_OR_EMPTY_STR(pszValue))
+    if (LW_IS_NULL_OR_EMPTY_STR(pszValue))
     {
-        dwError = AD_CheckPunctuationChar(
-                        pszName,
-                        pszValue,
-                        FALSE);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        pConfig->chDomainSeparator = pszValue[0];
+        goto error;
     }
+
+    dwError = AD_CheckPunctuationChar(
+                    pszName,
+                    pszValue,
+                    FALSE);
+    if (dwError)
+    {
+        goto error;
+    }
+
+    pConfig->chDomainSeparator = pszValue[0];
 
 error:
 
@@ -705,7 +717,10 @@ AD_SetConfig_Umask(
 
     // Convert the umask octal string to a decimal number
 
-    BAIL_ON_INVALID_STRING(pszValue);
+    if (LW_IS_NULL_OR_EMPTY_STR(pszValue))
+    {
+        goto error;
+    }
 
     cp2[1] = 0;
 
@@ -718,30 +733,31 @@ AD_SetConfig_Umask(
 
         if ( dwVal > 7 )
         {
-            dwError = LW_ERROR_INVALID_PARAMETER;
+            LSA_LOG_ERROR("Invalid Umask [%s]", pszValue);
+            goto error;
         }
-        BAIL_ON_LSA_ERROR(dwError);
 
         dwOct += dwVal;
     }
 
     if ( dwCnt > 4 )
     {
-        dwError = LW_ERROR_INVALID_PARAMETER;
+        LSA_LOG_ERROR("Invalid Umask [%s]", pszValue);
+        goto error;
     }
-    BAIL_ON_LSA_ERROR(dwError);
 
     // Disallow 07xx since the user should always have
     // access to his home directory.
     if ( (dwOct & 0700) == 0700 )
     {
-        dwError = LW_ERROR_INVALID_PARAMETER;
+        LSA_LOG_ERROR("Invalid Umask [%s]. User cannot access home directory.",
+                pszValue);
+        goto error;
     }
     else
     {
         pConfig->dwUmask = dwOct;
     }
-    BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
 
