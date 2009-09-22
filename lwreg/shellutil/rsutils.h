@@ -31,6 +31,16 @@ typedef struct _IMPORT_CONTEXT
 {
     HANDLE hReg;
 } IMPORT_CONTEXT;
+
+typedef struct _EXPORT_CONTEXT
+{
+    HANDLE hReg;
+    HKEY hKey;
+    PSTR pszKeyName;
+    DWORD dwNumSubKeys;
+    int iKeyIndex;
+    REG_DATA_TYPE prevType;
+} EXPORT_CONTEXT;
 #endif
 
 
@@ -113,5 +123,13 @@ DWORD RegShellUtilImportCallback(
 DWORD RegShellUtilImportDebugCallback(
     PREG_PARSE_ITEM pItem,
     HANDLE userContext);
+
+DWORD
+RegShellUtilExport(
+    HANDLE hReg,
+    HKEY hKey,
+    PSTR pszKeyName,
+    DWORD dwNumSubKeys
+    );
 
 #endif

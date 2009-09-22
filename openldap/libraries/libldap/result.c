@@ -993,6 +993,7 @@ nextresp2:
 
 			/* need to return -1, because otherwise
 			 * a valid result is expected */
+			ld->ld_errno = LDAP_CONNECT_ERROR;
 			return -1;
 		}
 	}
