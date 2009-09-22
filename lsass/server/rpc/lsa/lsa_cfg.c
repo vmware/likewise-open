@@ -57,12 +57,12 @@ LsaSrvInitialiseConfig(
 
     memset(pConfig, 0, sizeof(*pConfig));
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
             LSA_DEFAULT_LPC_SOCKET_PATH,
             &pConfig->pszLpcSocketPath);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                 LSA_DEFAULT_LPC_SOCKET_PATH,
                 &pConfig->pszSamrLpcSocketPath);
     BAIL_ON_LSA_ERROR(dwError);
