@@ -448,7 +448,7 @@ LsaRpcReadRegistry(
         {
             dwError = LwAllocateStringPrintf(
                         &pszServerKey,
-                        "Services\\lsass\\Parameters\\RpcServers",
+                        "Services\\lsass\\Parameters\\RpcServers\\%s",
                         pszServer);
             BAIL_ON_LSA_ERROR(dwError);
 
