@@ -12,6 +12,7 @@ regexport_CPPFLAGS = \
     $(AM_CPPFLAGS)
 
 regexport_LDADD = \
+    @top_builddir@/shellutil/librsutils.la       \
     @top_builddir@/client/libregclient.la        \
     @top_builddir@/parse/libregparse.la
 

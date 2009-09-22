@@ -33,176 +33,43 @@
  *
  * Abstract:
  *
- *        Likewise registry
+ *        Registry
  *
- *        Registry Export utility
+ *        Registry Export Utility
  *
  * Authors: Wei Fu (wfu@likewise.com)
- *          Adam Bernstein (abernstein@likewise.com)
  */
-
 #include <parse/includes.h>
 #include <regclient.h>
 #include <reg/reg.h>
-
-/* Just to demonstrate user context handle use. Not very useful otherwise */
-typedef struct _USER_CONTEXT
-{
-    int (*pfn_fprintf)(FILE *stream, const char *fmt, ...);
-    int userValue;
-    int count;
-    DWORD refCB;
-    HANDLE parseH;
-    REG_DATA_TYPE prevType;
-} USER_CONTEXT;
-
-
-DWORD parseCallback(PREG_PARSE_ITEM pItem, HANDLE userContext)
-{
-    PSTR dumpString = NULL;
-    DWORD dumpStringLen = 0;
-    USER_CONTEXT *ctx = (USER_CONTEXT *) userContext;
-
-    RegExportEntry(
-        pItem->keyName,
-        pItem->valueType,
-        pItem->valueName,
-        pItem->type,
-        pItem->value,
-        pItem->valueLen,
-        &dumpString,
-        &dumpStringLen);
-
-    if (dumpStringLen > 0 && dumpString)
-    {
-        switch (pItem->type)
-        {
-            case REG_KEY:
-                printf("\r\n%.*s\r\n", dumpStringLen, dumpString);
-                break;
-
-            case REG_PLAIN_TEXT:
-                if (ctx->prevType && ctx->prevType != pItem->type)
-                {
-                    printf("\n");
-                }
-                printf("%*s ", pItem->valueLen, (PCHAR) pItem->value);
-                break;
-
-            default:
-                printf("%.*s\r\n", dumpStringLen, dumpString);
-                break;
-        }
-    }
-    fflush(stdout);
-    ctx->prevType = pItem->type;
-
-    if (dumpString)
-    {
-        LwFreeMemory(dumpString);
-        dumpString = NULL;
-    }
-    return 0;
-}
-
-
-DWORD parseCallbackDebug(PREG_PARSE_ITEM pItem, HANDLE userContext)
-{
-    CHAR tokenName[128];
-    CHAR valueName[128];
-    USER_CONTEXT *ctx = (USER_CONTEXT *) userContext;
-    FILE *outStream = stderr;
-
-    ctx->count++;
-
-    ctx->pfn_fprintf(outStream, "parseCallback: <<< %d\n", ctx->userValue);
-    ctx->pfn_fprintf(outStream, "parseCallback: Line number = %d\n", pItem->lineNumber);
-    ctx->pfn_fprintf(outStream, "parseCallback: Key Name    = %s\n", pItem->keyName);
-    if (pItem->valueName)
-    {
-        ctx->pfn_fprintf(outStream, "parseCallback: Value name  = '%s'\n", pItem->valueName);
-        ctx->pfn_fprintf(outStream, "parseCallback: Value length= %d\n", pItem->valueLen);
-    }
-    else
-    {
-        ctx->pfn_fprintf(outStream, "parseCallback: Value name  = (EMPTY)\n");
-    }
-
-    RegLexTokenToString(pItem->type, tokenName);
-    RegLexTokenToString(pItem->valueType, valueName);
-    ctx->pfn_fprintf(outStream, "parseCallback: Value type   = %d (%s)\n",
-           pItem->valueType, valueName);
-    ctx->pfn_fprintf(outStream, "parseCallback: Data type   = %d (%s) - ", pItem->type, tokenName);
-    switch (pItem->type)
-    {
-        case REG_SZ:
-        case REG_PLAIN_TEXT:
-            ctx->pfn_fprintf(outStream, "'%*s'\n", pItem->valueLen, (PCHAR) pItem->value);
-            break;
-
-        case REG_MULTI_SZ:
-            RegParsePrintASCII(pItem->value, pItem->valueLen);
-            break;
-
-        case REG_DWORD:
-            ctx->pfn_fprintf(outStream, "0x%08x\n", *((unsigned int *) pItem->value));
-            break;
-
-        case REG_QUADWORD:
-            ctx->pfn_fprintf(outStream, "0x%016llx\n", *((ULONG64 *) pItem->value));
-            break;
-
-        case REG_BINARY:
-        case REG_EXPAND_SZ:
-        case REG_RESOURCE_REQUIREMENTS_LIST:
-        case REG_RESOURCE_LIST:
-        case REG_FULL_RESOURCE_DESCRIPTOR:
-        case REG_NONE:
-            RegParsePrintBinaryData(pItem->value, pItem->valueLen);
-            break;
-
-        default:
-            break;
-    }
-    ctx->pfn_fprintf(outStream, "parseCallback: >>>\n\n");
-
-    return 0;
-}
+#include <shellutil/rsutils.h>
 
 
 int main(int argc, char *argv[])
 {
     DWORD dwError;
-    HANDLE parseH = NULL;
-    USER_CONTEXT ctx = {0};
+    HANDLE hReg = NULL;
 
+    dwError = RegOpenServer(&hReg);
+    BAIL_ON_REG_ERROR(dwError);
 
-    if (argc == 1)
-    {
-        printf("usage: %s regfile.reg\n", argv[0]);
-        return 0;
-    }
+    dwError = RegShellUtilExport(hReg,
+                                 NULL,
+                                 NULL,
+                                 0);
+    BAIL_ON_REG_ERROR(dwError);
 
-    dwError = RegParseOpen(argv[1], NULL, NULL, &parseH);
+finish:
+    RegCloseServer(hReg);
+    fflush(stdout);
+    return dwError;
+error:
     if (dwError)
     {
-        fprintf(stderr, "RegParseOpen: failed %d\n", dwError);
-        return 1;
+        PrintError(NULL, dwError);
     }
 
-    ctx.pfn_fprintf = (int (*)(FILE *, const char *, ...)) fprintf;
-    ctx.userValue = 314159;
+    dwError = dwError ? 1 : 0;
 
-#ifdef _DEBUG
-    RegParseInstallCallback(parseH, parseCallbackDebug, &ctx, &ctx.refCB);
-#endif
-    ctx.parseH = parseH;
-    printf("Installed callback; handle='%d'\n", ctx.refCB);
-
-    RegParseInstallCallback(parseH, parseCallback, &ctx, NULL);
-
-    dwError = RegParseRegistry(parseH);
-
-    RegParseClose(parseH);
-    return 0;
+    goto finish;
 }
