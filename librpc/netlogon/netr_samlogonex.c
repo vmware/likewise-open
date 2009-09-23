@@ -134,6 +134,116 @@ error:
 }
 
 
+NTSTATUS
+NetrSamLogonNetworkEx(
+    IN  handle_t              hNetrBinding,
+    IN  PCWSTR                pwszServer,
+    IN  PCWSTR                pwszDomain,
+    IN  PCWSTR                pwszComputer,
+    IN  PCWSTR                pwszUsername,
+    IN  PBYTE                 pChallenge,
+    IN  PBYTE                 pLmResp,
+    IN  UINT32                LmRespLen,
+    IN  PBYTE                 pNtResp,
+    IN  UINT32                NtRespLen,
+    IN  UINT16                LogonLevel,
+    IN  UINT16                ValidationLevel,
+    OUT NetrValidationInfo  **ppValidationInfo,
+    OUT PBYTE                 pAuthoritative
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PWSTR pwszServerName = NULL;
+    PWSTR pwszComputerName = NULL;
+    NetrLogonInfo *pLogonInfo = NULL;
+    NetrValidationInfo ValidationInfo = {0};
+    NetrValidationInfo *pValidationInfo = NULL;
+    BYTE Authoritative = 0;
+    UINT32 Flags = 0;
+
+    BAIL_ON_INVALID_PTR(hNetrBinding, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszServer, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszDomain, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszComputer, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszUsername, ntStatus);
+    BAIL_ON_INVALID_PTR(pChallenge, ntStatus);
+    /* LanMan Response could be NULL */
+    BAIL_ON_INVALID_PTR(pNtResp, ntStatus);
+    BAIL_ON_INVALID_PTR(ppValidationInfo, ntStatus);
+    BAIL_ON_INVALID_PTR(pAuthoritative, ntStatus);
+
+    if (!(LogonLevel == 2 ||
+          LogonLevel == 6))
+    {
+        ntStatus = STATUS_INVALID_INFO_CLASS;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    ntStatus = RtlWC16StringDuplicate(&pwszServerName,
+                                      pwszServer);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = RtlWC16StringDuplicate(&pwszComputerName,
+                                      pwszComputer);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = NetrAllocateLogonInfoNet(&pLogonInfo,
+                                        LogonLevel,
+                                        pwszDomain,
+                                        pwszComputer,
+                                        pwszUsername,
+                                        pChallenge,
+                                        pLmResp,
+                                        LmRespLen,
+                                        pNtResp,
+                                        NtRespLen);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    DCERPC_CALL(ntStatus, _NetrLogonSamLogonEx(hNetrBinding,
+                                               pwszServerName,
+                                               pwszComputerName,
+                                               LogonLevel,
+                                               pLogonInfo,
+                                               ValidationLevel,
+                                               &ValidationInfo,
+                                               &Authoritative,
+                                               &Flags));
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = NetrAllocateValidationInfo(&pValidationInfo,
+                                          &ValidationInfo,
+                                          ValidationLevel);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *ppValidationInfo  = pValidationInfo;
+    *pAuthoritative    = Authoritative;
+
+cleanup:
+    NetrCleanStubValidationInfo(&ValidationInfo,
+                                ValidationLevel);
+
+    RtlWC16StringFree(&pwszServerName);
+    RtlWC16StringFree(&pwszComputerName);
+
+    if (pLogonInfo) {
+        NetrFreeMemory((void*)pLogonInfo);
+    }
+
+    return ntStatus;
+
+error:
+    if (pValidationInfo) {
+        NetrFreeMemory((void*)pValidationInfo);
+    }
+
+    *ppValidationInfo  = NULL;
+    *pAuthoritative    = 0;
+
+    goto cleanup;
+}
+
+
+
 /*
 local variables:
 mode: c
