@@ -43,6 +43,34 @@
 #include "includes.h"
 
 DWORD
+EVTMbsToWc16s(
+    PCSTR pszInputString,
+    PWSTR *ppszOutputString)
+{
+    DWORD dwError = 0;
+    PWSTR pszOutputString = NULL;
+
+    if (!pszInputString)
+    {
+        dwError = EINVAL;
+        BAIL_ON_EVT_ERROR(dwError);
+    }
+
+    pszOutputString = ambstowc16s(pszInputString);
+    if (!pszOutputString)
+    {
+        dwError = ENOMEM;
+        BAIL_ON_EVT_ERROR(dwError);
+    }
+
+error:
+
+    *ppszOutputString = pszOutputString;
+
+    return(dwError);
+}
+
+DWORD
 EVTStrndup(
     PCSTR pszInputString,
     size_t size,

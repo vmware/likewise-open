@@ -6,6 +6,5 @@ SUBDIRS=    \
     utils   \
     server  \
     client  \
-    tools   \
-    tests
+    tools
 

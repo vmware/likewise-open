@@ -108,7 +108,7 @@ EVTAllocateString(
     DWORD dwLen = 0;
     char * pszOutputString = NULL;
 
-    if (!pszInputString || !*pszInputString){
+    if (!pszInputString){
         dwError = EINVAL;
         BAIL_ON_EVT_ERROR(dwError);
     }

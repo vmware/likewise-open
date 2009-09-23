@@ -7,7 +7,6 @@ libeventlogutils_la_SOURCES = \
     evtfutils.c \
     evthost.c   \
     evtlogger.c \
-    evtcfgutils.c \
     evtmem.c    \
     evtrpcmem.c \
     evtstack.c  \
@@ -18,7 +17,8 @@ libeventlogutils_la_SOURCES = \
 libeventlogutils_la_LIBADD = \
     @DCERPC_LIBS@    \
     $(LWRPCRT_LIBS)    \
-    @LIBUNISTR_LIBS@
+    @LIBUNISTR_LIBS@ \
+	@LWREG_LIBS@
 
 libeventlogutils_la_CPPFLAGS = \
     $(AM_CPPFLAGS) \

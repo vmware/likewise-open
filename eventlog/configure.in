@@ -215,6 +215,35 @@ AC_SUBST(GSSAPI_INCLUDES)
 AC_SUBST(GSSAPI_LDFLAGS)
 AC_SUBST(GSSAPI_LIBS)
 
+# lwreg
+
+AC_ARG_WITH([lwreg],
+        [AC_HELP_STRING([--with-lwreg=<dir>], [use lwreg located in prefix <dir>])],
+        [
+		LWREG_INCLUDES="-I$withval/include"
+        LWREG_LDFLAGS="-L$withval/lib"
+        ])
+
+AC_ARG_WITH([lwreg-includes],
+        [AC_HELP_STRING([--with-lwreg-includes=<dir>], [use lwreg includes located in <dir>])],
+        [
+		LWREG_INCLUDES="-I$withval"
+        ])
+
+AC_ARG_WITH([lwreg-libs],
+        [AC_HELP_STRING([--with-lwreg-libs=<dir>], [use lwreg libs located in <dir>])],
+        [
+		LWREG_LDFLAGS="-L$withval"
+        ])
+
+LWREG_LIBS=-lregclient
+
+AC_CHECK_HEADER([reg/reg.h],,[AC_MSG_ERROR([Could not find lwreg headers])])
+AC_SUBST(LWREG_INCLUDES)
+AC_SUBST(LWREG_LDFLAGS)
+AC_SUBST(LWREG_LIBS)
+
+
 # compat
 
 ENABLE_COMPAT=false
@@ -353,7 +382,6 @@ AC_CHECK_TYPES([wchar16_t], [], [], [AC_INCLUDES_DEFAULT
 
 
 AC_CONFIG_FILES([Makefile
-                 etc/eventlogd.conf
                  etc/eventlogd.reg
                  etc/Makefile
                  include/Makefile
@@ -363,8 +391,6 @@ AC_CONFIG_FILES([Makefile
                  tools/Makefile
                  tools/addevent/Makefile
                  tools/cli/Makefile
-                 tests/Makefile
-                 tests/test_parse_config/Makefile
                  ])
 AC_OUTPUT
 
