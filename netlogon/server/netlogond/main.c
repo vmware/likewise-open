@@ -407,9 +407,8 @@ LWNetSrvInitialize(
     )
 {
     DWORD dwError = 0;
-    PCSTR pszConfigFilePath = LWNET_CONFIG_DIR "/netlogon.conf";
     
-    dwError = LWNetSrvApiInit(pszConfigFilePath);
+    dwError = LWNetSrvApiInit();
     BAIL_ON_LWNET_ERROR(dwError);
     
 cleanup:

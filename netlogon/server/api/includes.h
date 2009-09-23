@@ -56,6 +56,8 @@
 #include <lwmsg/lwmsg.h>
 #include <lwfile.h>
 #include <lwstr.h>
+#include <lwmem.h>
+#include <reg/reg.h>
 
 #include "lwnet.h"
 #include "lwnet-utils.h"

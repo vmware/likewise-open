@@ -3,7 +3,6 @@
 [HKEY_LIKEWISE\Services\netlogon]
 
 [HKEY_LIKEWISE\Services\netlogon\Parameters]
-"PluginPath"=""
 "PingAgainTimeout"=dword:00000384
 "NegativeCacheTimeout"=dword:0000003c
 "WritableRediscoveryTimeout"=dword:00000708

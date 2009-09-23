@@ -67,156 +67,84 @@ typedef struct _LWNET_SERVER_CONFIG {
 #define LWNET_WRITABLE_TIMESTAMP_MINIMUM_CHANGE_SECONDS (0 * 60)
 
 LWNET_SERVER_CONFIG gLWNetServerConfig = {
+    .pszPluginPath = NULL,
     .dwPingAgainTimeoutSeconds = LWNET_PING_AGAIN_TIMEOUT_SECONDS,
     .dwNegativeCacheTimeoutSeconds = LWNET_NEGATIVE_CACHE_TIMEOUT_SECONDS,
     .dwWritableRediscoveryTimeoutSeconds = LWNET_WRITABLE_REDISCOVERY_TIMEOUT_SECONDS,
     .dwWritableTimestampMinimumChangeSeconds = LWNET_WRITABLE_TIMESTAMP_MINIMUM_CHANGE_SECONDS,
 };
 
-//
-// Local Prototypes
-//
-
 static
-DWORD
-LWNetSrvCfgStartSection(
-    PCSTR pszSectionName,
-    PVOID pData,
-    PBOOLEAN pbSkipSection,
-    PBOOLEAN pbContinue
-    );
-
-static
-DWORD
-LWNetSrvCfgNameValuePair(
-    PCSTR pszName,
-    PCSTR pszValue,
-    PVOID pData,
-    PBOOLEAN pbContinue
-    );
+LWNET_CONFIG gConfig[] =
+{
+    {
+        "PluginPath",
+        FALSE, /* Don't look at policy. */
+        LWNetTypeString,
+        0,
+        -1,
+        NULL,
+        &gLWNetServerConfig.pszPluginPath
+    },
+    {
+        "PingAgainTimeout",
+        TRUE, /* Try policy. */
+        LWNetTypeDword,
+        0,
+        -1,
+        NULL,
+        &gLWNetServerConfig.dwPingAgainTimeoutSeconds
+    },
+    {
+        "NegativeCacheTimeout",
+        TRUE,
+        LWNetTypeDword,
+        0,
+        -1,
+        NULL,
+        &gLWNetServerConfig.dwNegativeCacheTimeoutSeconds
+    },
+    {
+        "WritableRediscoveryTimeout",
+        TRUE,
+        LWNetTypeDword,
+        0,
+        -1,
+        NULL,
+        &gLWNetServerConfig.dwWritableRediscoveryTimeoutSeconds
+    },
+    {
+        "WritableTimestampMinimumChange",
+        TRUE,
+        LWNetTypeDword,
+        0,
+        -1,
+        NULL,
+        &gLWNetServerConfig.dwWritableTimestampMinimumChangeSeconds
+    }
+};
 
 //
 // Implementation
 //
-
 DWORD
-LWNetSrvParseConfigFile(
-    PCSTR pszFilePath
-    )
+LWNetSrvReadRegistry(
+   )
 {
-    DWORD dwError = 0;
+    DWORD dwError = LW_ERROR_SUCCESS;
 
-    dwError = LWNetParseConfigFile(
-                    pszFilePath,
-                    LWNET_CFG_OPTION_STRIP_ALL,
-                    &LWNetSrvCfgStartSection,
-                    NULL,
-                    &LWNetSrvCfgNameValuePair,
-                    NULL,
-                    NULL);
-
-    return dwError;
-}
-
-static
-DWORD
-LWNetSrvCfgStartSection(
-    PCSTR pszSectionName,
-    PVOID pData,
-    PBOOLEAN pbSkipSection,
-    PBOOLEAN pbContinue
-    )
-{
-
-    DWORD dwError = 0;
-    BOOLEAN bSkipSection = TRUE;
-    BOOLEAN bContinue = TRUE;
-
-    BAIL_ON_INVALID_STRING(pszSectionName);
-
-    if (!strcmp(pszSectionName, "netlogond"))
-    {
-        bSkipSection = FALSE;
-    }
-    
-cleanup:
-    *pbSkipSection = bSkipSection;
-    *pbContinue = bContinue;
-
-    return dwError;
+    dwError = LWNetProcessConfig(
+                "Services\\netlogon\\Parameters",
+                "Policy\\Services\\netlogon\\Parameters",
+                gConfig,
+                sizeof(gConfig)/sizeof(gConfig[0]));
+    BAIL_ON_LWNET_ERROR(dwError);
 
 error:
-    bSkipSection = TRUE;
-    bContinue = TRUE;
-
-    goto cleanup;
-}
-
-static
-DWORD
-LWNetSrvCfgNameValuePair(
-    PCSTR pszName,
-    PCSTR pszValue,
-    PVOID pData,
-    PBOOLEAN pbContinue
-    )
-{
-    DWORD dwError = 0;
-    BOOLEAN bContinue = TRUE;
-
-    BAIL_ON_INVALID_STRING(pszName);
-    BAIL_ON_INVALID_STRING(pszValue);
-
-    if (!strcmp(pszName, "plugin-path"))
-    {
-        LWNET_SAFE_FREE_STRING(gLWNetServerConfig.pszPluginPath);
-        if (!IsNullOrEmptyString(pszValue))
-        {
-            dwError = LWNetAllocateString(pszValue, &gLWNetServerConfig.pszPluginPath);
-            BAIL_ON_LWNET_ERROR(dwError);
-        }
-    }
-    else if (!strcmp(pszName, "ping-again-timeout"))
-    {
-        if (!IsNullOrEmptyString(pszValue))
-        {
-            dwError = LWNetParseDateString(pszValue, &gLWNetServerConfig.dwPingAgainTimeoutSeconds);
-            BAIL_ON_LWNET_ERROR(dwError);
-        }
-    }
-    else if (!strcmp(pszName, "negative-cache-timeout"))
-    {
-        if (!IsNullOrEmptyString(pszValue))
-        {
-            dwError = LWNetParseDateString(pszValue, &gLWNetServerConfig.dwNegativeCacheTimeoutSeconds);
-            BAIL_ON_LWNET_ERROR(dwError);
-        }
-    }
-    else if (!strcmp(pszName, "writable-rediscovery-timeout"))
-    {
-        if (!IsNullOrEmptyString(pszValue))
-        {
-            dwError = LWNetParseDateString(pszValue, &gLWNetServerConfig.dwWritableRediscoveryTimeoutSeconds);
-            BAIL_ON_LWNET_ERROR(dwError);
-        }
-    }
-    else if (!strcmp(pszName, "writable-timestamp-minimum-change"))
-    {
-        if (!IsNullOrEmptyString(pszValue))
-        {
-            dwError = LWNetParseDateString(pszValue, &gLWNetServerConfig.dwWritableTimestampMinimumChangeSeconds);
-            BAIL_ON_LWNET_ERROR(dwError);
-        }
-    }
-
-cleanup:
-    *pbContinue = bContinue;
 
     return dwError;
-
-error:
-    goto cleanup;
 }
+
 
 PCSTR
 LWNetConfigGetPluginPath(

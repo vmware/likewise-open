@@ -49,10 +49,10 @@
 #ifndef __LWNET_SERVER_CFG_H__
 #define __LWNET_SERVER_CFG_H__
 
+
 DWORD
-LWNetSrvParseConfigFile(
-    PCSTR pszFilePath
-    );
+LWNetSrvReadRegistry(
+   );
 
 PCSTR
 LWNetConfigGetPluginPath(

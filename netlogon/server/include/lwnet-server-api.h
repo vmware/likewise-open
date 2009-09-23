@@ -53,7 +53,7 @@
 
 DWORD
 LWNetSrvApiInit(
-    PCSTR pszConfigFilePath
+    VOID
     );
 
 DWORD

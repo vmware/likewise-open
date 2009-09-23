@@ -8,7 +8,8 @@ liblwnetserverapi_la_CPPFLAGS = \
 	@LIBUNISTR_INCLUDES@          \
 	@PSTORE_INCLUDES@             \
 	@LWADVAPI_INCLUDES@           \
-	@LWMSG_INCLUDES@
+	@LWMSG_INCLUDES@              \
+	@LWREG_INCLUDES@
 
 liblwnetserverapi_la_SOURCES = \
        globals.c          \
@@ -27,12 +28,14 @@ liblwnetserverapi_la_LIBADD = \
 	@PSTORE_LIBS@         \
 	@LWADVAPI_LIBS@       \
 	@PTHREAD_LIBS@        \
-	@LWMSG_LIBS@
+	@LWMSG_LIBS@		  \
+	@LWREG_LIBS@
 
 liblwnetserverapi_la_LDFLAGS = \
         @LIBUNISTR_LDFLAGS@    \
         @PSTORE_LDFLAGS@       \
-        @LWADVAPI_LDFLAGS@
+        @LWADVAPI_LDFLAGS@     \
+        @LWREG_LDFLAGS@
 
 noinst_HEADERS = \
 		eventdlapi.h           \

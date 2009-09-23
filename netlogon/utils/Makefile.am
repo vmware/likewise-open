@@ -19,7 +19,6 @@ liblwnetutils_la_SOURCES = \
 noinst_HEADERS = \
         externs.h       \
         includes.h      \
-	lwnet-cfg_p.h   \
 	lwnet-dns_p.h
 
 liblwnetutils_la_LDFLAGS =  \
@@ -27,4 +26,7 @@ liblwnetutils_la_LDFLAGS =  \
 	@RESOLV_LIBS@       \
 	@RT_LIBS@           \
 	@PTHREAD_LIBS@
+
+liblwnetutils_la_LIBADD =  \
+    @LWREG_LIBS@
 
