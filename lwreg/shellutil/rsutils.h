@@ -127,6 +127,7 @@ DWORD RegShellUtilImportDebugCallback(
 DWORD
 RegShellUtilExport(
     HANDLE hReg,
+    FILE* fp,
     HKEY hKey,
     PSTR pszKeyName,
     DWORD dwNumSubKeys

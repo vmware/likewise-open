@@ -49,17 +49,40 @@ int main(int argc, char *argv[])
 {
     DWORD dwError;
     HANDLE hReg = NULL;
+    char szRegFileName[PATH_MAX + 1];
+    FILE* fp = NULL;
+
+    if (argc == 1)
+    {
+        printf("usage: %s regfile.reg\n", argv[0]);
+        return 0;
+    }
+
+    strcpy(szRegFileName, argv[1]);
+
+    LwStripWhitespace(szRegFileName, TRUE, TRUE);
+
+    fp = fopen(szRegFileName, "w");
+    if (fp == NULL) {
+        dwError = errno;
+        goto error;
+    }
 
     dwError = RegOpenServer(&hReg);
     BAIL_ON_REG_ERROR(dwError);
 
     dwError = RegShellUtilExport(hReg,
+                                 fp,
                                  NULL,
                                  NULL,
                                  0);
     BAIL_ON_REG_ERROR(dwError);
 
 finish:
+    if (fp)
+    {
+        fclose(fp);
+    }
     RegCloseServer(hReg);
     fflush(stdout);
     return dwError;
