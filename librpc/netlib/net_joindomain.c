@@ -410,7 +410,7 @@ NetJoinDomainLocalInternal(
      * Open connection to directory server if it's going to be needed
      */
     if (!(options & NETSETUP_DEFER_SPN_SET) ||
-        osname || osver) {
+        osname || osver || ospack) {
 
         err = DirectoryConnect(domain_controller_name, &ld, &base_dn);
         BAIL_ON_WINERR_ERROR(err);
@@ -470,7 +470,7 @@ NetJoinDomainLocalInternal(
         /*
          * Set operating system name and version attributes if specified
          */
-        if (osname || osver) {
+        if (osname) {
             osname_attr_name = ambstowc16s("operatingSystem");
             osname_attr_val[0] = wc16sdup(osname);
             osname_attr_val[1] = NULL;
@@ -490,7 +490,9 @@ NetJoinDomainLocalInternal(
             {
                 BAIL_ON_WINERR_ERROR(err);
             }
+        }
 
+        if (osver) {
             osver_attr_name = ambstowc16s("operatingSystemVersion");
             osver_attr_val[0] = wc16sdup(osver);
             osver_attr_val[1] = NULL;
@@ -507,7 +509,9 @@ NetJoinDomainLocalInternal(
             {
                 BAIL_ON_WINERR_ERROR(err);
             }
+        }
 
+        if (ospack) {
             ospack_attr_name = ambstowc16s("operatingSystemServicePack");
             ospack_attr_val[0] = wc16sdup(ospack);
             ospack_attr_val[1] = NULL;

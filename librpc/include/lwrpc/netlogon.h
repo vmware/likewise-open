@@ -192,6 +192,23 @@ NetrSamLogonEx(
     OUT PBYTE                 pAuthoritative
     );
 
+NTSTATUS
+NetrSamLogonNetworkEx(
+    IN  handle_t              hNetrBinding,
+    IN  PCWSTR                pwszServer,
+    IN  PCWSTR                pwszDomain,
+    IN  PCWSTR                pwszComputer,
+    IN  PCWSTR                pwszUsername,
+    IN  PBYTE                 pChallenge,
+    IN  PBYTE                 pLmResp,
+    IN  UINT32                LmRespLen,
+    IN  PBYTE                 pNtResp,
+    IN  UINT32                NtRespLen,
+    IN  UINT16                LogonLevel,
+    IN  UINT16                ValidationLevel,
+    OUT NetrValidationInfo  **ppValidationInfo,
+    OUT PBYTE                 pAuthoritative
+    );
 
 NTSTATUS
 NetrEnumerateTrustedDomainsEx(
