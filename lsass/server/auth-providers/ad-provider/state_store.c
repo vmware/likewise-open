@@ -275,10 +275,6 @@ ADState_OpenDb(
     BOOLEAN bLockCreated = FALSE;
     PADSTATE_CONNECTION pConn = NULL;
     BOOLEAN bExists = FALSE;
-    FILE * pFileDb = NULL;
-    size_t Cnt = 0;
-    PBYTE FormatType = (PBYTE)FILEDB_FORMAT_TYPE;
-    DWORD dwVersion = FILEDB_FORMAT_VERSION;
 
     dwError = LwAllocateMemory(
                     sizeof(ADSTATE_CONNECTION),
@@ -289,21 +285,6 @@ ADState_OpenDb(
     BAIL_ON_LSA_ERROR(dwError);
     bLockCreated = TRUE;
 
-    dwError = LsaCheckDirectoryExists(LSASS_DB_DIR, &bExists);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (!bExists)
-    {
-        mode_t cacheDirMode = S_IRWXU;
-
-        dwError = LsaCreateDirectory(LSASS_DB_DIR, cacheDirMode);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    /* restrict access to u+rwx to the db folder */
-    dwError = LsaChangeOwnerAndPermissions(LSASS_DB_DIR, 0, 0, S_IRWXU);
-    BAIL_ON_LSA_ERROR(dwError);
-
     dwError = LsaCheckFileExists(
         ADSTATE_DB,
         &bExists);
@@ -311,39 +292,18 @@ ADState_OpenDb(
 
     if (!bExists)
     {
-        pFileDb = fopen(ADSTATE_DB, "w");
-        if (pFileDb == NULL)
-        {
-            dwError = errno;
-        }
-        BAIL_ON_LSA_ERROR(dwError);
-
-        Cnt = fwrite(FormatType, sizeof(BYTE) * 4, 1, pFileDb);
-        if (Cnt != 1)
-        {
-            dwError = LW_ERROR_UNEXPECTED_DB_RESULT;
-        }
-        BAIL_ON_LSA_ERROR(dwError);
-
-        Cnt = fwrite(&dwVersion, sizeof(dwVersion), 1, pFileDb);
-        if (Cnt != 1)
-        {
-            dwError = LW_ERROR_UNEXPECTED_DB_RESULT;
-        }
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwError = LsaChangeOwnerAndPermissions(ADSTATE_DB, 0, 0, S_IRWXU);
+        dwError = ADState_WriteToFile(
+                  pConn,
+                  NULL,
+                  NULL,
+                  0,
+                  NULL);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     *phDb = pConn;
 
 cleanup:
-
-    if (pFileDb != NULL)
-    {
-        fclose(pFileDb);
-    }
 
     return dwError;
 
@@ -392,6 +352,30 @@ cleanup:
 }
 
 DWORD
+ADState_EmptyDb(
+    ADSTATE_CONNECTION_HANDLE hDb
+    )
+{
+    DWORD dwError = 0;
+
+    dwError = ADState_WriteToFile(
+                  hDb,
+                  NULL,
+                  NULL,
+                  0,
+                  NULL);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+DWORD
 ADState_GetProviderData(
     IN ADSTATE_CONNECTION_HANDLE hDb,
     OUT PAD_PROVIDER_DATA* ppResult
@@ -409,12 +393,19 @@ ADState_StoreProviderData(
     IN PAD_PROVIDER_DATA pProvider
     )
 {
-    return ADState_WriteToFile(
-               hDb,
-               pProvider,
-               NULL,
-               0,
-               NULL);
+    DWORD dwError = 0;
+
+    if (pProvider)
+    {
+        dwError = ADState_WriteToFile(
+                      hDb,
+                      pProvider,
+                      NULL,
+                      0,
+                      NULL);
+    }
+
+    return dwError;
 }
 
 DWORD
@@ -436,12 +427,19 @@ ADState_AddDomainTrust(
     IN PLSA_DM_ENUM_DOMAIN_INFO pDomainInfo
     )
 {
-    return ADState_WriteToFile(
-               hDb,
-               NULL,
-               NULL,
-               0,
-               pDomainInfo);
+    DWORD dwError = 0;
+
+    if (pDomainInfo)
+    {
+        dwError = ADState_WriteToFile(
+                      hDb,
+                      NULL,
+                      NULL,
+                      0,
+                      pDomainInfo);
+    }
+
+    return dwError;
 }
 
 DWORD
@@ -451,12 +449,19 @@ ADState_StoreDomainTrustList(
     IN DWORD dwDomainInfoCount
     )
 {
-    return ADState_WriteToFile(
-               hDb,
-               NULL,
-               ppDomainInfo,
-               dwDomainInfoCount,
-               NULL);
+    DWORD dwError = 0;
+
+    if (ppDomainInfo && dwDomainInfoCount)
+    {
+        dwError = ADState_WriteToFile(
+                      hDb,
+                      NULL,
+                      ppDomainInfo,
+                      dwDomainInfoCount,
+                      NULL);
+    }
+
+    return dwError;
 }
 
 static
@@ -1067,75 +1072,80 @@ ADState_WriteToFile(
     }
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_context_new(NULL, &pContext));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_data_context_new(pContext, &pDataContext));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (pProviderData)
+    if (pProviderData || ppDomainInfo || pDomainInfoAppend)
     {
-        PDLINKEDLIST pCellList = pProviderData->pCellList;
-
-        dwError = ADState_WriteProviderData(
-                      pFileDb,
-                      pDataContext,
-                      pProviderData);
+        dwError = MAP_LWMSG_ERROR(lwmsg_context_new(NULL, &pContext));
         BAIL_ON_LSA_ERROR(dwError);
 
-        while (pCellList)
+        dwError = MAP_LWMSG_ERROR(lwmsg_data_context_new(
+                                      pContext,
+                                      &pDataContext));
+        BAIL_ON_LSA_ERROR(dwError);
+
+        if (pProviderData)
         {
-            dwError = ADState_WriteCellEntry(
+            PDLINKEDLIST pCellList = pProviderData->pCellList;
+
+            dwError = ADState_WriteProviderData(
                           pFileDb,
                           pDataContext,
-                          pCellList->pItem);
+                          pProviderData);
             BAIL_ON_LSA_ERROR(dwError);
 
-            pCellList = pCellList->pNext;
+            while (pCellList)
+            {
+                dwError = ADState_WriteCellEntry(
+                              pFileDb,
+                              pDataContext,
+                              pCellList->pItem);
+                BAIL_ON_LSA_ERROR(dwError);
+
+                pCellList = pCellList->pNext;
+            }
         }
-    }
-    else
-    {
-        if (bExists)
+        else
         {
-            dwError = ADState_CopyFromFile(
-                          pFileDb,
-                          TRUE,
-                          FALSE);
-            BAIL_ON_LSA_ERROR(dwError);
+            if (bExists)
+            {
+                dwError = ADState_CopyFromFile(
+                              pFileDb,
+                              TRUE,
+                              FALSE);
+                BAIL_ON_LSA_ERROR(dwError);
+            }
         }
-    }
 
-    if (ppDomainInfo)
-    {
-        for (dwCount = 0 ; dwCount < dwDomainInfoCount ; dwCount++)
+        if (ppDomainInfo)
+        {
+            for (dwCount = 0 ; dwCount < dwDomainInfoCount ; dwCount++)
+            {
+                dwError = ADState_WriteDomainEntry(
+                              pFileDb,
+                              pDataContext,
+                              ppDomainInfo[dwCount]);
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+        }
+        else
+        {
+            if (bExists)
+            {
+                dwError = ADState_CopyFromFile(
+                              pFileDb,
+                              FALSE,
+                              TRUE);
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+        }
+
+        if (pDomainInfoAppend)
         {
             dwError = ADState_WriteDomainEntry(
                           pFileDb,
                           pDataContext,
-                          ppDomainInfo[dwCount]);
+                          pDomainInfoAppend);
             BAIL_ON_LSA_ERROR(dwError);
         }
-    }
-    else
-    {
-        if (bExists)
-        {
-            dwError = ADState_CopyFromFile(
-                          pFileDb,
-                          FALSE,
-                          TRUE);
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-    }
-
-    if (pDomainInfoAppend)
-    {
-        dwError = ADState_WriteDomainEntry(
-                      pFileDb,
-                      pDataContext,
-                      pDomainInfoAppend);
-        BAIL_ON_LSA_ERROR(dwError);
     }
 
     if (pFileDb != NULL)
