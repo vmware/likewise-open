@@ -146,7 +146,7 @@ parse__escape(const char **ptr)
 	if (p[1] == 0)
 		return (-1);
 
-	if (*p == '\\') {
+	if (*p == el_escape_char(NULL)) {
 		p++;
 		switch (*p) {
 		case 'a':

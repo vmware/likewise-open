@@ -145,6 +145,20 @@ el_reset(EditLine *el)
 }
 
 
+public char
+el_escape_char(char *ptr_esc_char)
+{
+	static char esc_char = '\\';
+	char old_esc_char;
+
+	old_esc_char = esc_char;
+	if (ptr_esc_char) {
+		esc_char = *ptr_esc_char;
+	}
+	return old_esc_char;
+}
+
+
 /* el_set():
  *	set the editline parameters
  */
@@ -175,6 +189,12 @@ el_set(EditLine *el, int op, ...)
 		rv = prompt_set(el, p, c, op);
 		break;
 	}
+
+	case EL_ESC_CHAR: {
+		char c = va_arg(ap, int);
+		el_escape_char(&c);
+		break;
+        }
 
 	case EL_TERMINAL:
 		rv = term_set(el, va_arg(ap, char *));

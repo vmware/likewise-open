@@ -111,6 +111,8 @@ int		 el_parse(EditLine *, int, const char **);
 int		 el_set(EditLine *, int, ...);
 int		 el_get(EditLine *, int, ...);
 unsigned char	_el_fn_complete(EditLine *, int);
+char 		 el_escape_char(char *);
+
 
 /*
  * el_set/el_get parameters
@@ -139,6 +141,7 @@ unsigned char	_el_fn_complete(EditLine *, int);
 #define	EL_REFRESH	20	/* , void);			*/
 #define	EL_PROMPT_ESC	21	/* , el_pfunc_t, char);		*/
 #define	EL_RPROMPT_ESC	22	/* , el_pfunc_t, char);		*/
+#define EL_ESC_CHAR     23      /* Set \ escape character value */
 
 #define	EL_BUILTIN_GETCFN	(NULL)
 

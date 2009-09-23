@@ -202,8 +202,7 @@ tok_line(Tokenizer *tok, const LineInfo *line,
 			cc = tok->argc;
 			co = (int)(tok->wptr - tok->wstart);
 		}
-		switch (*ptr) {
-		case '\'':
+		if (*ptr == '\'') {
 			tok->flags |= TOK_KEEP;
 			tok->flags &= ~TOK_EAT;
 			switch (tok->quote) {
@@ -233,9 +232,9 @@ tok_line(Tokenizer *tok, const LineInfo *line,
 			default:
 				return (-1);
 			}
-			break;
 
-		case '"':
+		}
+		else if (*ptr == '"') {
 			tok->flags &= ~TOK_EAT;
 			tok->flags |= TOK_KEEP;
 			switch (tok->quote) {
@@ -264,9 +263,8 @@ tok_line(Tokenizer *tok, const LineInfo *line,
 			default:
 				return (-1);
 			}
-			break;
-
-		case '\\':
+		}
+		else if (*ptr == el_escape_char(NULL)) {
 			tok->flags |= TOK_KEEP;
 			tok->flags &= ~TOK_EAT;
 			switch (tok->quote) {
@@ -295,9 +293,8 @@ tok_line(Tokenizer *tok, const LineInfo *line,
 			default:
 				return (-1);
 			}
-			break;
-
-		case '\n':
+		}
+		else if (*ptr == '\n') {
 			tok->flags &= ~TOK_EAT;
 			switch (tok->quote) {
 			case Q_none:
@@ -321,9 +318,8 @@ tok_line(Tokenizer *tok, const LineInfo *line,
 			default:
 				return (0);
 			}
-			break;
-
-		case '\0':
+		}
+		else if (*ptr == '\0') {
 			switch (tok->quote) {
 			case Q_none:
 				/* Finish word and return */
@@ -352,9 +348,8 @@ tok_line(Tokenizer *tok, const LineInfo *line,
 			default:
 				return (-1);
 			}
-			break;
-
-		default:
+		}
+		else {
 			tok->flags &= ~TOK_EAT;
 			switch (tok->quote) {
 			case Q_none:
@@ -385,7 +380,6 @@ tok_line(Tokenizer *tok, const LineInfo *line,
 				return (-1);
 
 			}
-			break;
 		}
 
 		if (tok->wptr >= tok->wmax - 4) {
