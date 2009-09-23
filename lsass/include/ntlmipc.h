@@ -236,7 +236,7 @@ typedef struct __NTLM_IPC_INIT_SEC_CTXT_RESPONSE
 typedef struct __NTLM_IPC_MAKE_SIGN_REQ
 {
     NTLM_CONTEXT_HANDLE hContext;
-    BOOLEAN bEncrypt;
+    DWORD dwQop;
     PSecBufferDesc pMessage;
     DWORD MessageSeqNo;
 } NTLM_IPC_MAKE_SIGN_REQ, *PNTLM_IPC_MAKE_SIGN_REQ;
@@ -285,8 +285,7 @@ typedef struct __NTLM_IPC_VERIFY_SIGN_REQ
 
 typedef struct __NTLM_IPC_VERIFY_SIGN_RESPONSE
 {
-    BOOLEAN bVerified;
-    BOOLEAN bEncrypted;
+    DWORD dwQop;
 } NTLM_IPC_VERIFY_SIGN_RESPONSE, *PNTLM_IPC_VERIFY_SIGN_RESPONSE;
 
 /******************************************************************************/

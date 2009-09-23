@@ -103,8 +103,8 @@ NtlmServerEncryptMessage(
 VOID
 NtlmMakeSignature(
     IN PNTLM_CONTEXT pContext,
-    IN PSecBuffer pData,
-    IN DWORD dwMsgSeqNum,
+    IN DWORD dwCrc32,
+    IN RC4_KEY* pSignKey,
     IN OUT PSecBuffer pToken
     );
 
@@ -154,7 +154,7 @@ NtlmServerInitializeSecurityContext(
 DWORD
 NtlmServerMakeSignature(
     IN PNTLM_CONTEXT_HANDLE phContext,
-    IN BOOLEAN bEncrypt,
+    IN DWORD dwQop,
     IN OUT PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo
     );
@@ -178,8 +178,15 @@ NtlmServerVerifySignature(
     IN PNTLM_CONTEXT_HANDLE phContext,
     IN PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo,
-    OUT PBOOLEAN pbVerified,
-    OUT PBOOLEAN pbEncryted
+    OUT PDWORD pQop
+    );
+
+DWORD
+NtlmVerifySignature(
+    IN PNTLM_CONTEXT pContext,
+    IN RC4_KEY* pSignKey,
+    IN PSecBuffer pData,
+    IN PSecBuffer pToken
     );
 
 DWORD
@@ -470,6 +477,11 @@ NtlmCreateValidatedContext(
     OUT PNTLM_CONTEXT *ppNtlmContext
     );
 
+VOID
+NtlmInitializeKeys(
+    PNTLM_CONTEXT pNtlmContext
+    );
+
 DWORD
 NtlmValidateResponse(
     IN HANDLE Handle,
@@ -557,6 +569,14 @@ NtlmGetProcessSecurity(
     IN LWMsgCall* pCall,
     OUT uid_t* pUid,
     OUT gid_t* pGid
+    );
+
+VOID
+NtlmGetSecBuffers(
+    PSecBufferDesc pMessage,
+    PSecBuffer* ppToken,
+    PSecBuffer* ppData,
+    PSecBuffer* ppPadding
     );
 
 #endif /* __NTLM_PROTOTYPES_H__ */

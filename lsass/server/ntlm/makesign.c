@@ -50,7 +50,7 @@
 DWORD
 NtlmServerMakeSignature(
     IN PNTLM_CONTEXT_HANDLE phContext,
-    IN BOOLEAN bEncrypt,
+    IN DWORD dwQop,
     IN OUT PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo
     )
@@ -60,25 +60,10 @@ NtlmServerMakeSignature(
     // The following pointers point into pMessage and will not be freed
     PSecBuffer pToken = NULL;
     PSecBuffer pData = NULL;
-    DWORD dwIndex = 0;
+    PNTLM_SIGNATURE pNtlmSignature = NULL;
+    DWORD dwCrc32 = 0;
 
-    for (dwIndex = 0; dwIndex < pMessage->cBuffers; dwIndex++)
-    {
-        if (pMessage->pBuffers[dwIndex].BufferType == SECBUFFER_TOKEN)
-        {
-            if (!pToken)
-            {
-                pToken = &pMessage->pBuffers[dwIndex];
-            }
-        }
-        else if (pMessage->pBuffers[dwIndex].BufferType == SECBUFFER_DATA)
-        {
-            if (!pData)
-            {
-                pData = &pMessage->pBuffers[dwIndex];
-            }
-        }
-    }
+    NtlmGetSecBuffers(pMessage, &pToken, &pData, NULL);
 
     // Do a full sanity check here
     if (!pToken ||
@@ -92,20 +77,26 @@ NtlmServerMakeSignature(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    if (pContext->NegotiatedFlags & NTLM_FLAG_SIGN)
-    {
-        NtlmMakeSignature(
-            pContext,
-            pData,
-            MessageSeqNo,
-            pToken
-            );
-    }
-    else if (pContext->NegotiatedFlags & NTLM_FLAG_ALWAYS_SIGN)
+    if (pContext->NegotiatedFlags & NTLM_FLAG_ALWAYS_SIGN)
     {
         // Use the dummy signature 0x01000000000000000000000000000000
-        memset(pToken->pvBuffer, 0, NTLM_SIGNATURE_SIZE);
-        *((PDWORD)(pToken->pvBuffer)) = NTLM_VERSION;
+        pNtlmSignature = (PNTLM_SIGNATURE)pToken->pvBuffer;
+
+        pNtlmSignature->dwVersion = NTLM_VERSION;
+        pNtlmSignature->dwCounterValue = 0;
+        pNtlmSignature->dwCrc32 = 0;
+        pNtlmSignature->dwMsgSeqNum = 0;
+    }
+    else if (pContext->NegotiatedFlags & NTLM_FLAG_SIGN)
+    {
+        dwCrc32 = NtlmCrc32(pData->pvBuffer, pData->cbBuffer);
+
+        NtlmMakeSignature(
+            pContext,
+            dwCrc32,
+            &pContext->SignKey,
+            pToken
+            );
     }
     else
     {
@@ -123,12 +114,11 @@ error:
 VOID
 NtlmMakeSignature(
     IN PNTLM_CONTEXT pContext,
-    IN PSecBuffer pData,
-    IN DWORD dwMsgSeqNum,
+    IN DWORD dwCrc32,
+    IN RC4_KEY* pSignKey,
     IN OUT PSecBuffer pToken
     )
 {
-    DWORD dwCrc32 = 0;
     PBYTE pBuffer = pToken->pvBuffer;
     DWORD nBufferSize = pToken->cbBuffer;
     BYTE Signature[NTLM_SIGNATURE_SIZE] = {0};
@@ -136,14 +126,12 @@ NtlmMakeSignature(
 
     LW_ASSERT(pToken->cbBuffer == NTLM_SIGNATURE_SIZE);
 
-    memset(pToken, 0, NTLM_SIGNATURE_SIZE);
-
-    dwCrc32 = NtlmCrc32(pData->pvBuffer, pData->cbBuffer);
-
-    pNtlmSig->dwMsgSeqNum = pContext->dwMsgSeqNum;
+    pNtlmSig->dwMsgSeqNum = pContext->dwSignMsgSeqNum;
     pNtlmSig->dwCrc32 = dwCrc32;
 
-    RC4(&pContext->SignAndSealKey, 12, &Signature[4], &Signature[4]);
+    pContext->dwSignMsgSeqNum++;
+
+    RC4(pSignKey, 12, &Signature[4], &Signature[4]);
 
     pNtlmSig->dwCounterValue = NTLM_COUNTER_VALUE;
     pNtlmSig->dwVersion = NTLM_VERSION;

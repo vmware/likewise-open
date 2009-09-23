@@ -56,29 +56,13 @@ NtlmServerDecryptMessage(
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
-    DWORD dwIndex = 0;
     PSecBuffer pData = NULL;
     PSecBuffer pToken = NULL;
     PNTLM_CONTEXT pContext = *phContext;
+    PBYTE pBuffer = NULL;
     BOOLEAN bEncrypted = TRUE;
 
-    for (dwIndex = 0; dwIndex < pMessage->cBuffers; dwIndex++)
-    {
-        if (pMessage->pBuffers[dwIndex].BufferType == SECBUFFER_DATA)
-        {
-            if (!pData)
-            {
-                pData = &pMessage->pBuffers[dwIndex];
-            }
-        }
-        else if (pMessage->pBuffers[dwIndex].BufferType == SECBUFFER_TOKEN)
-        {
-            if (!pToken)
-            {
-                pToken = &pMessage->pBuffers[dwIndex];
-            }
-        }
-    }
+    NtlmGetSecBuffers(pMessage, &pToken, &pData, NULL);
 
     // Do a full sanity check here
     if (!pToken ||
@@ -92,13 +76,31 @@ NtlmServerDecryptMessage(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
+    // we need to play it safe and add padding to this decryption
+    dwError = LwAllocateMemory(
+        pData->cbBuffer + NTLM_PADDING_SIZE,
+        OUT_PPVOID(&pBuffer));
+    BAIL_ON_LSA_ERROR(dwError);
+
     RC4(
-        &pContext->SignAndSealKey,
+        &pContext->UnsealKey,
         pData->cbBuffer,
         pData->pvBuffer,
-        pData->pvBuffer);
+        pBuffer);
+
+    memcpy(pData->pvBuffer, pBuffer, pData->cbBuffer);
+
+    //verify the key
+    dwError = NtlmVerifySignature(
+        pContext,
+        &pContext->UnsealKey,
+        pData,
+        pToken);
+    BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
+    LW_SAFE_FREE_MEMORY(pBuffer);
+
     if (pbEncrypted)
     {
         *pbEncrypted = bEncrypted;
@@ -106,5 +108,6 @@ cleanup:
     return dwError;
 
 error:
+
     goto cleanup;
 }

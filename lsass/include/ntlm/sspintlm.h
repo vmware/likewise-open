@@ -224,8 +224,8 @@ typedef struct _NTLM_SIGNATURE
     NTLM_FLAG_REQUEST_TARGET        | \
     NTLM_FLAG_NTLM                  | \
     NTLM_FLAG_DOMAIN                | \
-    NTLM_FLAG_56                    )
-    //NTLM_FLAG_128                   |
+    NTLM_FLAG_56                    | \
+    NTLM_FLAG_128                   )
     //NTLM_FLAG_NTLM2                 |
     //NTLM_FLAG_UNICODE               |
 
@@ -237,8 +237,8 @@ typedef struct _NTLM_SIGNATURE
     NTLM_FLAG_ALWAYS_SIGN      | \
     NTLM_FLAG_WORKSTATION      | \
     NTLM_FLAG_TARGET_INFO      | \
-    NTLM_FLAG_56               )
-    //NTLM_FLAG_128              |
+    NTLM_FLAG_56               | \
+    NTLM_FLAG_128              )
     //NTLM_FLAG_NTLM2            |
     //NTLM_FLAG_UNICODE          |
 
@@ -362,7 +362,7 @@ NtlmClientInitializeSecurityContext(
 DWORD
 NtlmClientMakeSignature(
     IN PNTLM_CONTEXT_HANDLE phContext,
-    IN BOOLEAN bEncrypt,
+    IN DWORD dwQop,
     IN OUT PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo
     );
@@ -386,8 +386,7 @@ NtlmClientVerifySignature(
     IN PNTLM_CONTEXT_HANDLE phContext,
     IN PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo,
-    OUT PBOOLEAN pbVerified,
-    OUT PBOOLEAN pbEncryted
+    OUT PDWORD pQop
     );
 
 DWORD

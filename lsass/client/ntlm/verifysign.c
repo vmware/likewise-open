@@ -52,21 +52,18 @@ NtlmClientVerifySignature(
     IN PNTLM_CONTEXT_HANDLE phContext,
     IN PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo,
-    OUT PBOOLEAN pbVerified,
-    OUT PBOOLEAN pbEncrypted
+    OUT PDWORD pQop
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
 
-    *pbVerified = 0;
-    *pbEncrypted = 0;
+    *pQop = 0;
 
     dwError = NtlmTransactVerifySignature(
         phContext,
         pMessage,
         MessageSeqNo,
-        pbVerified,
-        pbEncrypted
+        pQop
         );
 
     BAIL_ON_LSA_ERROR(dwError);
@@ -74,8 +71,7 @@ NtlmClientVerifySignature(
 cleanup:
     return(dwError);
 error:
-    *pbVerified = 0;
-    *pbEncrypted = 0;
+    *pQop = 0;
 
     goto cleanup;
 }

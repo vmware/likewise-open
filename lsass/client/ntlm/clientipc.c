@@ -839,7 +839,7 @@ error:
 DWORD
 NtlmTransactMakeSignature(
     IN PNTLM_CONTEXT_HANDLE phContext,
-    IN BOOLEAN bEncrypt,
+    IN DWORD dwQop,
     IN OUT PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo
     )
@@ -863,7 +863,7 @@ NtlmTransactMakeSignature(
     PNTLM_IPC_ERROR pError = NULL;
 
     MakeSignReq.hContext = *phContext;
-    MakeSignReq.bEncrypt = bEncrypt;
+    MakeSignReq.dwQop = dwQop;
     MakeSignReq.pMessage = pMessage;
     MakeSignReq.MessageSeqNo = MessageSeqNo;
 
@@ -1085,8 +1085,7 @@ NtlmTransactVerifySignature(
     IN PNTLM_CONTEXT_HANDLE phContext,
     IN PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo,
-    OUT PBOOLEAN pbVerified,
-    OUT PBOOLEAN pbEncrypted
+    OUT PDWORD pQop
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -1123,8 +1122,7 @@ NtlmTransactVerifySignature(
         case NTLM_R_VERIFY_SIGN_SUCCESS:
             pResultList = (PNTLM_IPC_VERIFY_SIGN_RESPONSE)Out.data;
 
-            *pbVerified = pResultList->bVerified;
-            *pbEncrypted = pResultList->bEncrypted;
+            *pQop = pResultList->dwQop;
 
             break;
         case NTLM_R_GENERIC_FAILURE:

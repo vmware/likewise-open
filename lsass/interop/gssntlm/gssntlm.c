@@ -659,6 +659,7 @@ ntlm_gss_init_sec_context(
     SecBuffer OutputToken = {0};
     NTLM_CRED_HANDLE CredHandle = (NTLM_CRED_HANDLE)InitiatorCredHandle;
     TimeStamp Expiry = 0;
+    DWORD dwNtlmFlags = NTLM_FLAG_NEGOTIATE_DEFAULT;
 
     InputBuffer.cBuffers = 1;
     InputBuffer.pBuffers = &InputToken;
@@ -674,13 +675,27 @@ ntlm_gss_init_sec_context(
         InputToken.pvBuffer = pInputToken->value;
     }
 
-    if(pContextHandle)
+    if( pContextHandle)
     {
         hContext = (NTLM_CONTEXT_HANDLE)*pContextHandle;
     }
 
+    if (nReqFlags & GSS_C_CONF_FLAG)
+    {
+        dwNtlmFlags |= NTLM_FLAG_SEAL;
+    }
+
+    if (nReqFlags & GSS_C_INTEG_FLAG)
+    {
+        dwNtlmFlags |= NTLM_FLAG_SIGN;
+    }
+    else
+    {
+        dwNtlmFlags |= NTLM_FLAG_ALWAYS_SIGN;
+    }
+
     // if no credentials are passed in, create default creds
-    if(GSS_C_NO_CREDENTIAL == InitiatorCredHandle)
+    if (GSS_C_NO_CREDENTIAL == InitiatorCredHandle)
     {
         MinorStatus = NtlmClientAcquireCredentialsHandle(
             NULL,
@@ -698,7 +713,7 @@ ntlm_gss_init_sec_context(
         &CredHandle,
         &hContext,
         (SEC_CHAR*)pTargetName,
-        nReqFlags,
+        dwNtlmFlags,
         0, // Reserved
         NTLM_NATIVE_DATA_REP,
         &InputBuffer,
@@ -779,6 +794,8 @@ ntlm_gss_accept_sec_context(
 {
     OM_uint32 MajorStatus = GSS_S_COMPLETE;
     OM_uint32 MinorStatus = LW_ERROR_SUCCESS;
+    DWORD dwRetFlags = 0;
+    DWORD dwFinalFlags = 0;
     SecBufferDesc InputBuffer = {0};
     SecBufferDesc OutputBuffer = {0};
     SecBuffer InputToken = {0};
@@ -804,6 +821,35 @@ ntlm_gss_accept_sec_context(
     {
         *pDelegatedCredHandle = NULL;
     }
+    if (pRetFlags)
+    {
+        dwRetFlags = *pRetFlags;
+    }
+
+#if 0
+    // convert
+    switch (dwRetFlags)
+    {
+    case GSS_C_DELEG_FLAG:
+        break;
+    case GSS_C_MUTUAL_FLAG:
+        break;
+    case GSS_C_REPLAY_FLAG:
+        break;
+    case GSS_C_SEQUENCE_FLAG:
+        break;
+    case GSS_C_CONF_FLAG:
+        break;
+    case GSS_C_INTEG_FLAG:
+        break;
+    case GSS_C_ANON_FLAG:
+        break;
+    case GSS_C_PROT_READY_FLAG:
+        break;
+    case GSS_C_TRANS_FLAG:
+        break;
+    }
+#endif
 
     memset(pOutputToken, 0, sizeof(*pOutputToken));
 
@@ -821,7 +867,7 @@ ntlm_gss_accept_sec_context(
         (PNTLM_CRED_HANDLE)(&AcceptorCredHandle),
         (PNTLM_CONTEXT_HANDLE)pContextHandle,
         &InputBuffer,
-        0,
+        dwFinalFlags,
         NTLM_NATIVE_DATA_REP,
         &NewCtxtHandle,
         &OutputBuffer,
@@ -951,10 +997,14 @@ ntlm_gss_get_mic(
 cleanup:
     *pMinorStatus = MinorStatus;
 
-    Token->value = pNtlmToken;
+    // NtlmClientMakeSignature is going to replace NtlmBuffer[1].pvBuffer so
+    // it's safe to free this buffer.
+    LW_SAFE_FREE_MEMORY(pNtlmToken);
+
+    Token->value = NtlmBuffer[1].pvBuffer;
     if(Token->value)
     {
-        Token->length = spcSizes.cbMaxSignature;
+        Token->length = NtlmBuffer[1].cbBuffer;
     }
 
     return MajorStatus;
@@ -983,10 +1033,8 @@ ntlm_gss_verify_mic(
     NTLM_CONTEXT_HANDLE ContextHandle = (NTLM_CONTEXT_HANDLE)GssCtxtHandle;
     SecBufferDesc NtlmMessage = {0};
     SecBuffer NtlmBuffer[2];
-    BOOLEAN bVerified = 0;
-    BOOLEAN bEncrypted = 0;
     PNTLM_SIGNATURE pSignature = NULL;
-    gss_qop_t Qop = GSS_C_QOP_DEFAULT;
+    DWORD dwQop = GSS_C_QOP_DEFAULT;
 
     NtlmMessage.cBuffers = 2;
     NtlmMessage.pBuffers = NtlmBuffer;
@@ -1003,40 +1051,36 @@ ntlm_gss_verify_mic(
         &ContextHandle,
         &NtlmMessage,
         0,
-        &bVerified,
-        &bEncrypted
+        &dwQop
         );
-    BAIL_ON_LW_ERROR(MinorStatus);
 
-    if (bVerified)
-    {
-        pSignature = (PNTLM_SIGNATURE)Token->value;
-
-        if (pSignature->dwVersion == NTLM_VERSION &&
-            pSignature->dwCounterValue == 0 &&
-            pSignature->dwCrc32 == 0 &&
-            pSignature->dwMsgSeqNum == 0)
-        {
-            Qop = GSS_C_QOP_DUMMY_SIG;
-        }
-    }
-    else
+    if (MinorStatus)
     {
         MajorStatus = GSS_S_BAD_SIG;
-        BAIL_ON_LW_ERROR(MajorStatus);
+    }
+    BAIL_ON_LW_ERROR(MinorStatus);
+
+    pSignature = (PNTLM_SIGNATURE)Token->value;
+
+    if (pSignature->dwVersion == NTLM_VERSION &&
+        pSignature->dwCounterValue == 0 &&
+        pSignature->dwCrc32 == 0 &&
+        pSignature->dwMsgSeqNum == 0)
+    {
+        dwQop = GSS_C_QOP_DUMMY_SIG;
     }
 
 cleanup:
     if(pQop)
     {
-        *pQop = Qop;
+        *pQop = (gss_qop_t)dwQop;
     }
 
     *pMinorStatus = MinorStatus;
     return MajorStatus;
 
 error:
-    Qop = GSS_C_QOP_DEFAULT;
+    dwQop = GSS_C_QOP_DEFAULT;
 
     if (MajorStatus == GSS_S_COMPLETE)
     {
@@ -1088,6 +1132,11 @@ ntlm_gss_wrap(
     dwBufferSize += Sizes.cbMaxSignature;       // Token
     dwBufferSize += InputMessage->length;       // Data
 
+    // We only need the padding for the duration of this operation, it should
+    // not be returned with the rest of the data.
+
+    dwBufferSize += Sizes.cbSecurityTrailer;    // Padding
+
     MinorStatus = LwAllocateMemory(dwBufferSize, OUT_PPVOID(&pBuffer));
     BAIL_ON_LW_ERROR(MinorStatus);
 
@@ -1112,6 +1161,9 @@ ntlm_gss_wrap(
         0
         );
     BAIL_ON_LW_ERROR(MinorStatus);
+
+    // As noted above, we'll trim the size down to exclude the padding
+    dwBufferSize -= Sizes.cbSecurityTrailer;
 
     if (nEncrypt)
     {
@@ -1180,13 +1232,21 @@ ntlm_gss_unwrap(
 
     LW_ASSERT(InputMessage->length > Sizes.cbMaxSignature);
 
-    dwBufferSize = InputMessage->length - Sizes.cbMaxSignature;
+    // Here we are taking out the signature, but adding back in for the
+    // padding.  The padding is only needed for the duration of the operation
+    // and will be ignored afterwards.
+    dwBufferSize =
+        InputMessage->length - Sizes.cbMaxSignature + Sizes.cbSecurityTrailer;
 
     MinorStatus = LwAllocateMemory(
         dwBufferSize,
         OUT_PPVOID(&pBuffer));
     BAIL_ON_LW_ERROR(MinorStatus);
 
+    // Reduce the size to exclude the padding trailer
+    dwBufferSize -= Sizes.cbSecurityTrailer;
+
+    // Copy the input into our buffer... making sure to skip past the signature
     memcpy(
         pBuffer,
         (PBYTE)InputMessage->value + Sizes.cbMaxSignature,
@@ -1213,16 +1273,23 @@ ntlm_gss_unwrap(
     BAIL_ON_LW_ERROR(MinorStatus);
 
 cleanup:
+    // NtlmClientDecryptMessage is going to replace NtlmBuffer[1].pvBuffer, so
+    // it should be safe to free this buffer here.
     LW_SAFE_FREE_MEMORY(pBuffer);
 
     OutputMessage->value = NtlmBuffer[1].pvBuffer;
     OutputMessage->length = NtlmBuffer[1].cbBuffer;
 
+    if (pEncrypted)
+    {
+        *pEncrypted = bEncrypted;
+    }
+
     *pMinorStatus = MinorStatus;
     return MajorStatus;
 
 error:
-    LW_SAFE_FREE_MEMORY(NtlmBuffer[1].pvBuffer);
+    NtlmBuffer[1].pvBuffer = NULL;
     NtlmBuffer[1].cbBuffer = 0;
 
     if (MajorStatus == GSS_S_COMPLETE)
