@@ -15,7 +15,6 @@ full_subdirs=         \
     shellutil         \
     test              \
     tools             \
-    libedit-20090905-3.0 \
     shell
 
 if ENABLE_COMPAT
