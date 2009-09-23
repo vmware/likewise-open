@@ -2606,6 +2606,103 @@ error:
 }
 
 
+static
+VOID
+FreeHashEntryGroupInfoLevel0(
+    IN OUT const LSA_HASH_ENTRY* pEntry
+    )
+{
+    if (pEntry->pValue)
+    {
+        LsaFreeGroupInfo(0, pEntry->pValue);
+    }
+}
+
+static
+VOID
+FreeHashEntryGroupInfoLevel1(
+    IN OUT const LSA_HASH_ENTRY* pEntry
+    )
+{
+    if (pEntry->pValue)
+    {
+        LsaFreeGroupInfo(1, pEntry->pValue);
+    }
+}
+
+static
+PCSTR
+GetSidFromGroupInfo(
+    IN DWORD dwGroupInfoLevel,
+    IN PVOID pGroupInfo
+    )
+{
+    switch (dwGroupInfoLevel)
+    {
+        case 0:
+            return ((PLSA_GROUP_INFO_0)pGroupInfo)->pszSid;
+        case 1:
+            return ((PLSA_GROUP_INFO_1)pGroupInfo)->pszSid;
+        default:
+            // Should never happen
+            return NULL;
+    }
+}
+
+static
+DWORD
+CopyGroupsFromListToHash(
+    IN OUT PLSA_HASH_TABLE pGroupHash,
+    IN DWORD dwGroupInfoLevel,
+    IN DWORD dwGroupsCount,
+    IN PVOID* ppGroupInfoList
+    )
+{
+    DWORD dwError = 0;
+    DWORD i = 0;
+    PCSTR pszGroupSid = NULL;
+    PVOID pGroupInfo = NULL;
+
+    for (i = 0; i < dwGroupsCount; i++)
+    {
+        pszGroupSid = GetSidFromGroupInfo(dwGroupInfoLevel, ppGroupInfoList[i]);
+
+        dwError = LsaHashGetValue(
+                        pGroupHash,
+                        pszGroupSid,
+                        &pGroupInfo);
+        if (dwError == ENOENT)
+        {
+            dwError = LsaAllocateGroupInfo(
+                            &pGroupInfo,
+                            dwGroupInfoLevel,
+                            ppGroupInfoList[i]);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            pszGroupSid = GetSidFromGroupInfo(dwGroupInfoLevel, pGroupInfo);
+
+            dwError = LsaHashSetValue(
+                            pGroupHash,
+                            (PVOID) pszGroupSid,
+                            pGroupInfo);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        pGroupInfo = NULL;
+    }
+
+cleanup:
+    if (pGroupInfo)
+    {
+        LsaFreeGroupInfo(dwGroupInfoLevel, pGroupInfo);
+    }
+
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
 DWORD
 AD_GetGroupsForUser(
     IN HANDLE hProvider,
@@ -2620,23 +2717,19 @@ AD_GetGroupsForUser(
     DWORD dwError = 0;
     PLSA_SECURITY_OBJECT* ppGroupObjects = NULL;
     size_t sGroupObjectsCount = 0;
-    PVOID* ppGroupInfoList = NULL;
     size_t sIndex = 0;
-    size_t sEnabledCount = 0;
     BOOLEAN bIsCacheOnlyMode = FALSE;
     PLSA_SECURITY_OBJECT pUserInfo = NULL;
-    PSTR pszUserSID = NULL;
-    PSTR pszGroupSID = NULL;
-    DWORD dwGroupsCount = 0;
+    DWORD dwLocalGroupsCount = 0;
     DWORD i = 0;
-    PVOID *ppUserMembershipInfo = NULL;
-    PVOID *ppGroupMembershipInfo = NULL;
+    PVOID pGroupInfo = NULL;
+    PVOID* ppLocalGroupsInfo = NULL;
     PLSA_HASH_TABLE pUserMemberships = NULL;
-    LSA_HASH_ITERATOR hashIterator = {0};
-    PVOID pMemberInfo = NULL;
-    LSA_HASH_ENTRY *pHashEntry = NULL;
-    DWORD dwUserMembershipCount = 0;
-    PVOID *ppUserMembership = NULL;
+    LSA_HASH_ITERATOR hashIterator = { 0 };
+    LSA_HASH_ENTRY* pHashEntry = NULL;
+    LSA_HASH_FREE_ENTRY pfnFreeHashEntry = NULL;
+    DWORD dwNumGroupsFound = 0;
+    PVOID* ppGroupInfoList = NULL;
 
     LsaAdProviderStateAcquireRead(gpLsaAdProviderState);
 
@@ -2651,14 +2744,18 @@ AD_GetGroupsForUser(
         bIsCacheOnlyMode = AD_GetNssUserMembershipCacheOnlyEnabled();
     }
 
-    dwError = LsaHashCreate(
-                    13,
-                    LsaHashCaselessStringCompare,
-                    LsaHashCaselessStringHash,
-                    NULL,
-                    NULL,
-                    &pUserMemberships);
-    BAIL_ON_LSA_ERROR(dwError);
+    switch (dwGroupInfoLevel)
+    {
+        case 0:
+            pfnFreeHashEntry = FreeHashEntryGroupInfoLevel0;
+            break;
+        case 1:
+            pfnFreeHashEntry = FreeHashEntryGroupInfoLevel1;
+            break;
+        default:
+            dwError = LW_ERROR_INVALID_PARAMETER;
+            BAIL_ON_LSA_ERROR(dwError);
+    }
 
     if (pszUserName)
     {
@@ -2685,16 +2782,14 @@ AD_GetGroupsForUser(
                 &ppGroupObjects);
     BAIL_ON_LSA_ERROR(dwError);
 
-    pszUserSID = pUserInfo->pszObjectSid;
-
-    /* Get all local groups the user is member of */
+    // Get user's local groups
     dwError = LsaSrvGetGroupMembershipByProvider(
                 hProvider,
                 LSA_PROVIDER_TAG_LOCAL,
-                pszUserSID,
+                pUserInfo->pszObjectSid,
                 dwGroupInfoLevel,
-                &dwGroupsCount,
-                (PVOID**)&ppUserMembershipInfo);
+                &dwLocalGroupsCount,
+                &ppLocalGroupsInfo);
     if ((LW_ERROR_INVALID_AUTH_PROVIDER == dwError) ||
         (LW_ERROR_NO_SUCH_USER  == dwError))
     {
@@ -2702,43 +2797,35 @@ AD_GetGroupsForUser(
     }
     BAIL_ON_LSA_ERROR(dwError);
 
-    /* Store membership list in a hash table */
-    for (i = 0; i < dwGroupsCount; i++)
-    {
-        pszGroupSID = ((PLSA_GROUP_INFO_0)ppUserMembershipInfo[i])->pszSid;
-
-        dwError = LsaHashGetValue(
-                    pUserMemberships,
-                    (PCVOID)pszGroupSID,
-                    &pMemberInfo);
-        if (dwError == ENOENT) {
-            dwError = LsaAllocateGroupInfo(
-                        &pMemberInfo,
-                        dwGroupInfoLevel,
-                        ppUserMembershipInfo[i]);
-            BAIL_ON_LSA_ERROR(dwError);
-
-            dwError = LsaHashSetValue(
-                        pUserMemberships,
-                        (PVOID)pszGroupSID,
-                        pMemberInfo);
-            BAIL_ON_LSA_ERROR(dwError);
-
-            pMemberInfo = NULL;
-        }
-    }
-
-    /*
-     * Check all domain groups the user is member of and
-     * convert the group objects into group info.
-     */
-
-    dwError = LwAllocateMemory(
-                sizeof(*ppGroupInfoList) * sGroupObjectsCount,
-                (PVOID*)&ppGroupInfoList);
+    dwError = LsaHashCreate(
+                    13,
+                    LsaHashCaselessStringCompare,
+                    LsaHashCaselessStringHash,
+                    pfnFreeHashEntry,
+                    NULL,
+                    &pUserMemberships);
     BAIL_ON_LSA_ERROR(dwError);
+
+    // Add user's direct local memberships to hash table
+    dwError = CopyGroupsFromListToHash(
+                    pUserMemberships,
+                    dwGroupInfoLevel,
+                    dwLocalGroupsCount,
+                    ppLocalGroupsInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    //
+    // For each domain group for the user:
+    //
+    // 1) Convert the data into the appropriate info level.
+    //
+    // 2) Get the local groups to which that domain group belongs.
+    //
+
     for (sIndex = 0; sIndex < sGroupObjectsCount; sIndex++)
     {
+        PVOID singleGroupInfoArray[1] = { NULL };
+
         if (ppGroupObjects[sIndex]->type != AccountType_Group)
         {
             LSA_LOG_DEBUG("Skipping non-group SID %s (type = %d)",
@@ -2747,12 +2834,18 @@ AD_GetGroupsForUser(
             continue;
         }
 
+        if (pGroupInfo)
+        {
+            LsaFreeGroupInfo(dwGroupInfoLevel, pGroupInfo);
+            pGroupInfo = NULL;
+        }
+
         dwError = AD_GroupObjectToGroupInfo(
                     hProvider,
                     ppGroupObjects[sIndex],
                     bIsCacheOnlyMode,
                     dwGroupInfoLevel,
-                    &ppGroupInfoList[sEnabledCount]);
+                    &pGroupInfo);
         if (dwError == LW_ERROR_OBJECT_NOT_ENABLED)
         {
             // Filter this group from the list
@@ -2761,40 +2854,35 @@ AD_GetGroupsForUser(
         }
         BAIL_ON_LSA_ERROR(dwError);
 
-        pszGroupSID = ((PLSA_GROUP_INFO_0)ppGroupInfoList[sEnabledCount])->pszSid;
+        singleGroupInfoArray[0] = pGroupInfo;
 
-        /* Store current group in the hash table */
-        dwError = LsaHashGetValue(
-                    pUserMemberships,
-                    (PCVOID)pszGroupSID,
-                    &pMemberInfo);
-        if (dwError == ENOENT) {
-            dwError = LsaAllocateGroupInfo(
-                        &pMemberInfo,
-                        dwGroupInfoLevel,
-                        ppGroupInfoList[sEnabledCount]);
-            BAIL_ON_LSA_ERROR(dwError);
-
-            dwError = LsaHashSetValue(
+        // Add domain memberships to hash table
+        dwError = CopyGroupsFromListToHash(
                         pUserMemberships,
-                        (PVOID)pszGroupSID,
-                        pMemberInfo);
-            BAIL_ON_LSA_ERROR(dwError);
+                        dwGroupInfoLevel,
+                        1,
+                        singleGroupInfoArray);
+        BAIL_ON_LSA_ERROR(dwError);
 
-            pMemberInfo = NULL;
+        // Get domain group's local groups.  This handles domain
+        // groups being a member of local groups.
+
+        if (ppLocalGroupsInfo)
+        {
+            LsaFreeGroupInfoList(dwGroupInfoLevel,
+                                 ppLocalGroupsInfo,
+                                 dwLocalGroupsCount);
+            ppLocalGroupsInfo = NULL;
+            dwLocalGroupsCount = 0;
         }
 
-        pszGroupSID = ppGroupObjects[sIndex]->pszObjectSid;
-
-        /* Get all local groups that current group is member of. This resolves
-           nested memberships of domain groups */
         dwError = LsaSrvGetGroupMembershipByProvider(
                     hProvider,
                     LSA_PROVIDER_TAG_LOCAL,
-                    pszGroupSID,
+                    ppGroupObjects[sIndex]->pszObjectSid,
                     dwGroupInfoLevel,
-                    &dwGroupsCount,
-                    (PVOID**)&ppGroupMembershipInfo);
+                    &dwLocalGroupsCount,
+                    &ppLocalGroupsInfo);
         if ((LW_ERROR_INVALID_AUTH_PROVIDER == dwError) ||
             (LW_ERROR_NO_SUCH_USER  == dwError))
         {
@@ -2802,60 +2890,27 @@ AD_GetGroupsForUser(
         }
         BAIL_ON_LSA_ERROR(dwError);
 
-        /* Store returned local groups in the hash table */
-        for (i = 0; i < dwGroupsCount; i++)
-        {
-            pszGroupSID = ((PLSA_GROUP_INFO_0)ppGroupMembershipInfo[i])->pszSid;
-
-            dwError = LsaHashGetValue(
+        // Add domain group's local memberships to hash table
+        dwError = CopyGroupsFromListToHash(
                         pUserMemberships,
-                        (PCVOID)pszGroupSID,
-                        &pMemberInfo);
-            if (dwError == ENOENT) {
-                dwError = LsaAllocateGroupInfo(
-                            &pMemberInfo,
-                            dwGroupInfoLevel,
-                            ppGroupMembershipInfo[i]);
-                BAIL_ON_LSA_ERROR(dwError);
-
-                dwError = LsaHashSetValue(
-                            pUserMemberships,
-                            (PVOID)pszGroupSID,
-                            pMemberInfo);
-                BAIL_ON_LSA_ERROR(dwError);
-
-                pMemberInfo = NULL;
-            }
-        }
-
-        sEnabledCount++;
-
-        if (sEnabledCount == DWORD_MAX)
-        {
-            dwError = ERANGE;
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-
-        if (ppGroupMembershipInfo)
-        {
-            LsaFreeGroupInfoList(dwGroupInfoLevel,
-                                 (PVOID*)ppGroupMembershipInfo,
-                                 dwGroupsCount);
-            ppGroupMembershipInfo = NULL;
-        }
+                        dwGroupInfoLevel,
+                        dwLocalGroupsCount,
+                        ppLocalGroupsInfo);
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     dwError = LsaHashGetIterator(pUserMemberships,
                                  &hashIterator);
     BAIL_ON_LSA_ERROR(dwError);
 
+    // TODO: Get a count directly from hash table abstraction/
     while (LsaHashNext(&hashIterator)) {
-        dwUserMembershipCount++;
+        dwNumGroupsFound++;
     }
 
     dwError = LwAllocateMemory(
-                 sizeof(ppUserMembership[0]) * dwUserMembershipCount,
-                 (PVOID*)&ppUserMembership);
+                 sizeof(ppGroupInfoList[0]) * dwNumGroupsFound,
+                 (PVOID*)&ppGroupInfoList);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaHashGetIterator(pUserMemberships, &hashIterator);
@@ -2863,7 +2918,10 @@ AD_GetGroupsForUser(
 
     for (i = 0; (pHashEntry = LsaHashNext(&hashIterator)) != NULL; i++)
     {
-        ppUserMembership[i] = pHashEntry->pValue;
+        ppGroupInfoList[i] = pHashEntry->pValue;
+        // Since the data is moved, need to NULL it to avoid
+        // double-free.
+        pHashEntry->pValue = NULL;
         /* It is safe to remove the entry just returned by
            LsaHashNext() from the hash table because the
            iterator already points to the next item */
@@ -2874,46 +2932,30 @@ AD_GetGroupsForUser(
     {
         DWORD iGroup = 0;
 
-        for (iGroup = 0; iGroup < (DWORD)sEnabledCount; iGroup++)
+        for (iGroup = 0; iGroup < dwNumGroupsFound; iGroup++)
         {
-            PVOID pGroupInfo = *(ppUserMembership + iGroup);
-
             dwError = AD_SetGroupCanonicalNamesToAliases(
                             gpADProviderData->szShortDomain,
                             dwGroupInfoLevel,
-                            pGroupInfo);
+                            ppGroupInfoList[iGroup]);
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
 
-    *pdwNumGroupsFound = dwUserMembershipCount;
-    *pppGroupInfoList  = ppUserMembership;
-
 cleanup:
-
-    LsaAdProviderStateRelease(gpLsaAdProviderState);
-
-    ADCacheSafeFreeObject(&pUserInfo);
-
-    if (ppUserMembershipInfo)
+    if (pGroupInfo)
     {
-        LsaFreeGroupInfoList(dwGroupInfoLevel,
-                             (PVOID*)ppUserMembershipInfo,
-                             dwGroupsCount);
+        LsaFreeGroupInfo(dwGroupInfoLevel, pGroupInfo);
+        pGroupInfo = NULL;
     }
 
-    if (ppGroupInfoList)
+    if (ppLocalGroupsInfo)
     {
         LsaFreeGroupInfoList(dwGroupInfoLevel,
-                             ppGroupInfoList,
-                             sGroupObjectsCount);
-    }
-
-    if (ppGroupMembershipInfo)
-    {
-        LsaFreeGroupInfoList(dwGroupInfoLevel,
-                             (PVOID*)ppGroupMembershipInfo,
-                             dwGroupsCount);
+                             ppLocalGroupsInfo,
+                             dwLocalGroupsCount);
+        ppLocalGroupsInfo = NULL;
+        dwLocalGroupsCount = 0;
     }
 
     if (pUserMemberships)
@@ -2930,20 +2972,24 @@ cleanup:
     }
 
     ADCacheSafeFreeObjectList(sGroupObjectsCount, &ppGroupObjects);
+    ADCacheSafeFreeObject(&pUserInfo);
+
+    *pdwNumGroupsFound = dwNumGroupsFound;
+    *pppGroupInfoList = ppGroupInfoList;
+
     return dwError;
 
 error:
-
-    if (ppUserMembership != NULL)
+    if (ppGroupInfoList)
     {
-        LsaFreeGroupInfoList(
-            dwGroupInfoLevel,
-            ppUserMembership,
-            (DWORD)sEnabledCount);
+        LsaFreeGroupInfoList(dwGroupInfoLevel,
+                             ppGroupInfoList,
+                             dwNumGroupsFound);
     }
 
-    *pdwNumGroupsFound = 0;
-    *pppGroupInfoList = NULL;
+    dwNumGroupsFound = 0;
+    ppGroupInfoList = NULL;
+
     goto cleanup;
 }
 
