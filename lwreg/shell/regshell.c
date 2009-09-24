@@ -43,6 +43,14 @@
 #include "rsutils.h"
 #include "regshell.h"
 #include <locale.h>
+#include "histedit.h"
+
+typedef struct _EDITLINE_CLIENT_DATA
+{
+    int continuation;
+    PREGSHELL_PARSE_STATE pParseState;
+} EDITLINE_CLIENT_DATA, *PEDITLINE_CLIENT_DATA;
+
 
 
 DWORD
@@ -113,6 +121,7 @@ cleanup:
 error:
     goto cleanup;
 }
+
 
 DWORD
 RegShellDeleteKey(
@@ -376,29 +385,17 @@ RegShellProcessCmd(
             case REGSHELL_CMD_LIST_KEYS:
                 pszErrorPrefix = "list_keys: failed ";
                 dwError = RegShellListKeys(pParseState, rsItem);
-                if (dwError)
-                {
-                    PrintError(pszErrorPrefix, dwError);
-                    dwError = 0;
-                }
+                BAIL_ON_REG_ERROR(dwError);
                 break;
 
             case REGSHELL_CMD_LIST:
             case REGSHELL_CMD_DIRECTORY:
                 pszErrorPrefix = "list: failed ";
                 dwError = RegShellListKeys(pParseState, rsItem);
-                if (dwError)
-                {
-                    PrintError(pszErrorPrefix, dwError);
-                    dwError = 0;
-                }
+                BAIL_ON_REG_ERROR(dwError);
                 printf("\n");
                 dwError = RegShellListValues(pParseState, rsItem);
-                if (dwError)
-                {
-                    PrintError(pszErrorPrefix, dwError);
-                    dwError = 0;
-                }
+                BAIL_ON_REG_ERROR(dwError);
                 break;
 
             case REGSHELL_CMD_ADD_KEY:
@@ -601,11 +598,7 @@ RegShellProcessCmd(
             case REGSHELL_CMD_LIST_VALUES:
                 pszErrorPrefix = "list_values: failed ";
                 dwError = RegShellListValues(pParseState, rsItem);
-                if (dwError)
-                {
-                    PrintError(pszErrorPrefix, dwError);
-                    dwError = 0;
-                }
+                BAIL_ON_REG_ERROR(dwError);
                 break;
 
             case REGSHELL_CMD_IMPORT:
@@ -644,7 +637,6 @@ cleanup:
     return dwError;
 
 error:
-    PrintError("regshell", dwError);
     goto cleanup;
 }
 
@@ -713,6 +705,306 @@ error:
     goto cleanup;
 }
 
+static char *
+pfnRegShellPromptCallback(EditLine *el)
+{
+    static char promptBuf[1024] = "";
+    EDITLINE_CLIENT_DATA *cldata = NULL;
+
+    el_get(el, EL_CLIENTDATA, (void *) &cldata);
+    snprintf(promptBuf, sizeof(promptBuf), "%s%s%s%s ",
+             cldata->pParseState->pszRootKeyName,
+             cldata->pParseState->pszDefaultKey ? "\\" : "",
+             cldata->pParseState->pszDefaultKey ?
+             cldata->pParseState->pszDefaultKey : "\\",
+             cldata->continuation ? ">>>" : ">");
+    return promptBuf;
+}
+
+
+DWORD
+RegShellExecuteCmdLine(
+    PREGSHELL_PARSE_STATE pParseState,
+    PSTR pszCmdLine,
+    DWORD dwCmdLineLen)
+{
+    DWORD dwError = 0;
+    DWORD dwNewArgc = 0;
+    PSTR *pszNewArgv = NULL;
+
+    dwError = RegIOBufferSetData(
+                  pParseState->ioHandle,
+                  pszCmdLine,
+                  dwCmdLineLen);
+    BAIL_ON_REG_ERROR(dwError);
+
+    dwError = RegShellCmdlineParseToArgv(
+                  pParseState,
+                  &dwNewArgc,
+                  &pszNewArgv);
+    if (dwError == 0)
+    {
+        dwError = RegShellProcessCmd(pParseState,
+                                     dwNewArgc,
+                                     pszNewArgv);
+    }
+    if (dwError)
+    {
+        PrintError("regshell", dwError);
+        dwError = 0;
+    }
+    RegShellCmdlineParseFree(dwNewArgc, pszNewArgv);
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+
+}
+
+
+DWORD
+RegShellProcessInteractiveEditLine(
+    FILE *readFP,
+    PREGSHELL_PARSE_STATE pParseState,
+    PSTR pszProgramName)
+{
+    History *hist = NULL;
+    HistEvent ev;
+    Tokenizer *tok = NULL;
+    EDITLINE_CLIENT_DATA el_cdata = {0};
+    int ac = 0;
+    int cc = 0;
+    int co = 0;
+    int num = 0;
+    int ncontinuation;
+    int rv = 0;
+    int i = 0;
+    const char **av = NULL;
+    const LineInfo *li = NULL;
+    const char *buf = NULL;
+    EditLine *el = NULL;
+    DWORD dwError = 0;
+    PSTR pszCmdLine = NULL;
+    PSTR pszNumEnd = NULL;
+    DWORD dwCmdLineLen = 0;
+    DWORD dwEventNum = 0;
+    BOOLEAN bHistFirst = FALSE;
+    const char *hist_str = NULL;
+
+    hist = history_init();
+    history(hist, &ev, H_SETSIZE, 100);
+
+    tok  = tok_init(NULL);
+    el = el_init(pszProgramName, stdin, stdout, stderr);
+
+    /* Make configurable in regshellrc file */
+    el_set(el, EL_EDITOR, "emacs");
+
+    /* Signal handling in editline seems not to function... */
+    el_set(el, EL_SIGNAL, 1);
+
+    /* Set escape character from \ to | */
+    el_set(el, EL_ESC_CHAR, (int) '|');
+
+    /* Editline prompt function; display info from pParseState */
+    el_set(el, EL_PROMPT, pfnRegShellPromptCallback);
+
+    /* Set regshell context */
+    el_cdata.pParseState = pParseState;
+    el_set(el, EL_CLIENTDATA, (void *) &el_cdata);
+
+    /* Setup history context, and load previous history file */
+    el_set(el, EL_HIST, history, hist);
+
+    /* Retrieve this from user's home directory */
+    history(hist, &ev, H_LOAD, ".regshell_history");
+
+    /*
+     * Bind j, k in vi command mode to previous and next line, instead
+     * of previous and next history.
+     */
+    el_set(el, EL_BIND, "-a", "k", "ed-prev-line", NULL);
+    el_set(el, EL_BIND, "-a", "j", "ed-next-line", NULL);
+
+    /*
+     * Source the user's defaults file.
+     */
+    el_source(el, NULL);
+
+    while ((buf = el_gets(el, &num))!=NULL && num!=0)
+    {
+        li = el_line(el);
+        if (el_cdata.continuation && num == 1)
+        {
+            continue;
+        }
+
+        ac = 0;
+        cc = 0;
+        co = 0;
+        bHistFirst = FALSE;
+        pszNumEnd = NULL;
+        ncontinuation = tok_line(tok, li, &ac, &av, &cc, &co);
+        if (ncontinuation < 0)
+        {
+            fprintf(stderr, "Internal error\n");
+            el_cdata.continuation = 0;
+            continue;
+        }
+
+        el_cdata.continuation = ncontinuation;
+        ncontinuation = 0;
+        if (el_cdata.continuation)
+        {
+            continue;
+        }
+        if (ac == 0)
+        {
+            continue;
+        }
+
+        if (strcmp(buf, "history\n") == 0)
+        {
+            rv = history(hist, &ev, H_ENTER, buf);
+        }
+
+        /*
+         * Process history command recall (!nnn | !command syntax)
+         */
+        if (av[0][0] =='!')
+        {
+            /* !nnn case */
+            if (isdigit(av[0][1]))
+            {
+                dwEventNum = strtol(&av[0][1], &pszNumEnd, 0);
+                rv = history(hist, &ev, H_NEXT_EVENT, dwEventNum);
+                if (rv == -1)
+                {
+                    printf("regshell: %d: event not found\n", dwEventNum);
+                }
+            }
+            else
+            {
+                /*
+                 * Handle !! command recall. !! recalls previous command,
+                 * !!stuff appends "stuff" to end of previous command.
+                 */
+                if (av[0][1] == '!')
+                {
+                    rv = history(hist, &ev, H_FIRST);
+                    if (rv == -1)
+                    {
+                        printf("regshell: !!: event not found\n");
+                    }
+                    else
+                    {
+                        bHistFirst = TRUE;
+                    }
+                }
+                else
+                {
+                    /*
+                     * !command case. Searches history for last occurrence
+                     * of "command" in history list, and expands command line
+                     * with that command.
+                     */
+                    hist_str = &av[0][1];
+                    rv = history(hist, &ev, H_PREV_STR, hist_str);
+                    if (rv == -1)
+                    {
+                        printf("regshell: %s: event not found\n", hist_str);
+                    }
+                }
+            }
+
+            if (rv == 0)
+            {
+                dwCmdLineLen = 0;
+
+                if (bHistFirst)
+                {
+                    dwCmdLineLen += strlen(&av[0][2]);
+                }
+                else if (pszNumEnd)
+                {
+                    dwCmdLineLen += strlen(pszNumEnd);
+                }
+                dwCmdLineLen += strlen(ev.str);
+                dwCmdLineLen++;
+                dwError = LwAllocateMemory(dwCmdLineLen, (LW_PVOID) &pszCmdLine);
+                BAIL_ON_REG_ERROR(dwError);
+
+                strcpy(pszCmdLine, ev.str);
+                dwCmdLineLen = strlen(pszCmdLine);
+                if (pszCmdLine[dwCmdLineLen-1] == '\n')
+                {
+                    pszCmdLine[dwCmdLineLen-1] = '\0';
+                }
+
+                if (bHistFirst)
+                {
+                    strcat(pszCmdLine, &av[0][2]);
+                }
+                else if (pszNumEnd)
+                {
+                    strcat(pszCmdLine, pszNumEnd);
+                }
+                dwCmdLineLen = strlen(pszCmdLine);
+
+                /*
+                 * Display command from history list
+                 */
+                printf("%s\n", pszCmdLine);
+            }
+        }
+        else if ((rv = el_parse(el, ac, av)) == -1)
+        {
+            for (i=0, dwCmdLineLen=0; i<ac; i++)
+            {
+                dwCmdLineLen += strlen(av[i]);
+                dwCmdLineLen++;
+            }
+            dwCmdLineLen++;
+            dwError = LwAllocateMemory(
+                          dwCmdLineLen,
+                          (LW_PVOID) &pszCmdLine);
+            BAIL_ON_REG_ERROR(dwError);
+            for (i=0; i<ac; i++)
+            {
+                strcat(pszCmdLine, av[i]);
+                if ((i+1) < ac)
+                {
+                    strcat(pszCmdLine, " ");
+                }
+            }
+        }
+
+        if (pszCmdLine)
+        {
+            history(hist, &ev, H_ENTER, pszCmdLine);
+            history(hist, &ev, H_APPEND, "\n");
+            dwError = RegShellExecuteCmdLine(
+                          pParseState,
+                          pszCmdLine,
+                          dwCmdLineLen);
+        }
+        LW_SAFE_FREE_STRING(pszCmdLine);
+
+        tok_reset(tok);
+    }
+
+    /* Save current regshell history */
+    history(hist, &ev, H_SAVE, ".regshell_history");
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
 
 DWORD
 RegShellProcessInteractive(
@@ -722,8 +1014,6 @@ RegShellProcessInteractive(
     CHAR cmdLine[8192] = {0};
     PSTR pszCmdLine = NULL;
     DWORD dwError = 0;
-    DWORD dwNewArgc = 0;
-    PSTR *pszNewArgv = NULL;
     PSTR pszTmpStr = NULL;
     BOOLEAN bDoPrompt = TRUE;
     BOOLEAN bFoundComment = FALSE;
@@ -779,34 +1069,11 @@ RegShellProcessInteractive(
             bDoPrompt = TRUE;
             bFoundComment = FALSE;
 
-            dwError = RegIOBufferSetData(
-                          parseState->ioHandle,
+            dwError = RegShellExecuteCmdLine(
+                          parseState,
                           cmdLine,
                           strlen(cmdLine));
             BAIL_ON_REG_ERROR(dwError);
-
-            dwError = RegShellCmdlineParseToArgv(
-                          parseState,
-                          &dwNewArgc,
-                          &pszNewArgv);
-
-            if (dwError == 0 && dwNewArgc > 0 && pszNewArgv)
-            {
-                dwError = RegShellProcessCmd(parseState,
-                                             dwNewArgc,
-                                             pszNewArgv);
-                if (dwError == LW_ERROR_INVALID_CONTEXT)
-                {
-                    PrintError("regshell", dwError);
-                    dwError = 0;
-                }
-                RegShellCmdlineParseFree(dwNewArgc, pszNewArgv);
-            }
-            else
-            {
-                printf("regshell: unable to parse command '%s'\n\n",
-                       cmdLine);
-            }
         }
     } while (!feof(readFP));
 cleanup:
@@ -824,7 +1091,6 @@ error:
 int main(int argc, char *argv[])
 {
     DWORD dwError = 0;
-    PCSTR pszErrorPrefix = NULL;
     PSTR pszInFile = NULL;
     PREGSHELL_PARSE_STATE parseState = NULL;
     FILE *readFP = stdin;
@@ -847,6 +1113,22 @@ int main(int argc, char *argv[])
                 pszInFile = argv[indx++];
                 argc--;
             }
+            if (pszInFile)
+            {
+                readFP = fopen(pszInFile, "r");
+                if (!readFP)
+                {
+                    fprintf(stderr, "Error opening file '%s'\n", pszInFile);
+                    return 0;
+                }
+            }
+            dwError = RegShellProcessInteractive(readFP, parseState);
+            BAIL_ON_REG_ERROR(dwError);
+            if (readFP != stdin)
+            {
+                fclose(readFP);
+            }
+            return 0;
         }
         else if (strcmp(argv[indx], "--help") == 0 ||
             strcmp(argv[indx], "-h") == 0)
@@ -862,19 +1144,12 @@ int main(int argc, char *argv[])
         }
     }
 
-    if (pszInFile)
-    {
-        readFP = fopen(pszInFile, "r");
-        if (!readFP)
-        {
-            fprintf(stderr, "Error opening file '%s'\n", pszInFile);
-            return 0;
-        }
-    }
-
     if (argc == 1)
     {
-        dwError = RegShellProcessInteractive(readFP, parseState);
+        dwError = RegShellProcessInteractiveEditLine(
+                      readFP,
+                      parseState,
+                      argv[0]);
         BAIL_ON_REG_ERROR(dwError);
     }
     else
@@ -890,7 +1165,7 @@ cleanup:
 error:
     if (dwError)
     {
-        PrintError(pszErrorPrefix, dwError);
+        PrintError("regshell", dwError);
     }
     goto cleanup;
 }

@@ -17,7 +17,6 @@ liblwioutils_la_SOURCES = \
     lwlist.c      \
     memory.c      \
     queue.c       \
-    lwioconfig.c  \
     lwiologinfo.c \
     path.c        \
     stack.c       \
@@ -34,7 +33,8 @@ liblwioutils_la_CPPFLAGS = \
 liblwioutils_la_LIBADD = \
     @LIBUNISTR_LIBS@ \
     @LWBASE_LIBS@ \
-    @DL_LIBS@
+    @DL_LIBS@  \
+	@LWREG_LIBS@
 
 liblwioutils_la_LDFLAGS = \
    $(AM_LDFLAGS) \

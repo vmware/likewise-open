@@ -76,7 +76,6 @@ SrvCCBRelease(
 
 NTSTATUS
 SrvReadConfig(
-    PCSTR            pszConfigFilePath,
     PLWIO_SRV_CONFIG pConfig
     );
 

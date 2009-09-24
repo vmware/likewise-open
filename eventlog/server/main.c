@@ -225,22 +225,6 @@ EVTGetCachePath(
 }
 
 DWORD
-EVTGetConfigPath(
-    PSTR* ppszPath
-    )
-{
-    DWORD dwError = 0;
-
-    EVT_LOCK_SERVERINFO;
-
-    dwError = EVTAllocateString(gServerInfo.szConfigFilePath, ppszPath);
-
-    EVT_UNLOCK_SERVERINFO;
-
-    return (dwError);
-}
-
-DWORD
 EVTGetMaxRecords(
     DWORD* pdwMaxRecords
     )
@@ -820,162 +804,122 @@ EVTStopSignalHandler()
     return (dwError);
 }
 
-/* call back functions to get the values from config file */
-DWORD
-EVTConfigStartSection(
-    PCSTR    pszSectionName,
-    PBOOLEAN pbSkipSection,
-    PBOOLEAN pbContinue
-    )
+static PSTR gpszAllowReadTo;
+static PSTR gpszAllowWriteTo;
+static PSTR gpszAllowDeleteTo;
+static EVT_CONFIG_TABLE gConfigDescription[] =
 {
-
-    //This callback may not be required,retaining it for future
-    EVT_LOG_VERBOSE("EVTConfigStartSection: SECTION Name=%s", pszSectionName);
-
-    *pbSkipSection = FALSE;
-    *pbContinue = TRUE;
-
-    return 0;
-}
-
-DWORD
-EVTConfigComment(
-    PCSTR    pszComment,
-    PBOOLEAN pbContinue
-    )
-{
-    //This callback may not be required,retaining it for future
-    EVT_LOG_VERBOSE("EVTConfigComment: %s",
-        (IsNullOrEmptyString(pszComment) ? "" : pszComment));
-
-    *pbContinue = TRUE;
-
-    return 0;
-}
-
-DWORD
-EVTConfigNameValuePair(
-    PCSTR    pszName,
-    PCSTR    pszValue,
-    PBOOLEAN pbContinue
-    )
-{
-
-    //strip the white spaces
-    EVTStripWhitespace((PSTR)pszName,1,1);
-    EVTStripWhitespace((PSTR)pszValue,1,1);
-
-    EVT_LOG_INFO("EVTConfigNameValuePair: NAME=%s, VALUE=%s",
-        (IsNullOrEmptyString(pszName) ? "" : pszName),
-        (IsNullOrEmptyString(pszValue) ? "" : pszValue));
-
-    if ( !strcmp(pszName, "max-disk-usage") ) {
-        DWORD dwDiskUsage = 0;
-        EVTParseDiskUsage((PCSTR)pszValue, &dwDiskUsage);
-        EVT_LOCK_SERVERINFO;
-        gServerInfo.dwMaxLogSize = dwDiskUsage;
-        EVT_UNLOCK_SERVERINFO;
+    {
+        "MaxDiskUsage",
+        FALSE,
+        EVTTypeDword,
+        0,
+        -1,
+        NULL,
+        &(gServerInfo.dwMaxLogSize)
+    },
+    {
+        "MaxNumEvents",
+        FALSE,
+        EVTTypeDword,
+        0,
+        -1,
+        NULL,
+        &(gServerInfo.dwMaxRecords)
+    },
+    {
+        "MaxEventLifespan",
+        FALSE,
+        EVTTypeDword,
+        0,
+        -1,
+        NULL,
+        &(gServerInfo.dwMaxAge)
+    },
+    {
+        "EventDbPurgeInterval",
+        FALSE,
+        EVTTypeDword,
+        0,
+        -1,
+        NULL,
+        &(gServerInfo.dwPurgeInterval)
+    },
+    {
+        "RemoveEventsAsNeeded",
+        FALSE,
+        EVTTypeBoolean,
+        0,
+        -1,
+        NULL,
+        &(gServerInfo.bRemoveAsNeeded)
+    },
+    {
+        "AllowReadTo",
+        FALSE,
+        EVTTypeString,
+        0,
+        -1,
+        NULL,
+        &gpszAllowReadTo
+    },
+    {
+        "AllowWriteTo",
+        FALSE,
+        EVTTypeString,
+        0,
+        -1,
+        NULL,
+        &gpszAllowWriteTo
+    },
+    {
+        "AllowDeleteTo",
+        FALSE,
+        EVTTypeString,
+        0,
+        -1,
+        NULL,
+        &gpszAllowDeleteTo
     }
-    else if ( !strcmp(pszName, "max-num-events") ) {
-        DWORD dwMaxEntries = 0;
-        EVTParseMaxEntries((PCSTR)pszValue, &dwMaxEntries);
-        EVT_LOCK_SERVERINFO;
-        gServerInfo.dwMaxRecords = dwMaxEntries;
-        EVT_UNLOCK_SERVERINFO;
-    }
-    else if ( !strcmp(pszName, "max-event-lifespan") ) {
-        DWORD dwMaxLifeSpan = 0;
-        EVTParseDays((PCSTR)pszValue, &dwMaxLifeSpan);
-        EVT_LOCK_SERVERINFO;
-        gServerInfo.dwMaxAge = dwMaxLifeSpan;
-        EVT_UNLOCK_SERVERINFO;
-    }
-    else if ( !strcmp(pszName, "event-db-purge-interval") ) {
-		DWORD dwPurgeInterval = 0;
-		EVTParseDays((PCSTR)pszValue, &dwPurgeInterval);
-        EVT_LOCK_SERVERINFO;
-        gServerInfo.dwPurgeInterval = dwPurgeInterval;
-        EVT_UNLOCK_SERVERINFO;
-    }
-    else if ( !strcmp(pszName, "remove-events-as-needed") ) {
-		BOOLEAN bRemoveAsNeeded = FALSE;
-        if(!strcmp(pszValue,"true")) {
-		    bRemoveAsNeeded = TRUE;
-        }
-        EVT_LOCK_SERVERINFO;
-        gServerInfo.bRemoveAsNeeded = bRemoveAsNeeded;
-        EVT_UNLOCK_SERVERINFO;
-    }
-    else if ( !strcmp(pszName, "allow-read-to") ) {
-        EVTSetAllowData( pszValue, &gServerInfo.pAllowReadTo);
-    }
-    else if ( !strcmp(pszName, "allow-write-to") ) {
-        EVTSetAllowData( pszValue, &gServerInfo.pAllowWriteTo);
-    }
-    else if ( !strcmp(pszName, "allow-delete-to") ) {
-        EVTSetAllowData( pszValue, &gServerInfo.pAllowDeleteTo);
-    }
-
-    *pbContinue = TRUE;
-
-    return 0;
-}
-
-DWORD
-EVTConfigEndSection(
-    PCSTR pszSectionName,
-    PBOOLEAN pbContinue
-    )
-{
-    //This callback may not be required,retaining it for future
-    EVT_LOG_VERBOSE("EVTConfigEndSection: SECTION Name=%s", pszSectionName);
-
-    *pbContinue = TRUE;
-
-    return 0;
-}
-
+};
 
 static
 DWORD
 EVTReadEventLogConfigSettings()
 {
     DWORD dwError = 0;
-    PSTR pszConfigFilePath = NULL;
 
     EVT_LOG_INFO("Read Eventlog configuration settings");
 
     dwError = EVTSetConfigDefaults();
     BAIL_ON_EVT_ERROR(dwError);
 
-    dwError = EVTGetConfigPath(&pszConfigFilePath);
-    BAIL_ON_EVT_ERROR(dwError);
+    EVT_LOCK_SERVERINFO;
+    dwError = EVTProcessConfig(
+                "Services\\eventlog\\Parameters",
+                "Policy\\Services\\eventlog\\Parameters",
+                gConfigDescription,
+                sizeof(gConfigDescription)/sizeof(gConfigDescription[0]));
+    EVT_UNLOCK_SERVERINFO;
 
-    dwError = EVTParseConfigFile(
-                pszConfigFilePath,
-                &EVTConfigStartSection,
-                &EVTConfigComment,
-                &EVTConfigNameValuePair,
-                &EVTConfigEndSection);
-    BAIL_ON_EVT_ERROR(dwError);
-
-    if (pszConfigFilePath) {
-        EVTFreeString(pszConfigFilePath);
-        pszConfigFilePath = NULL;
-    }
+    if (gpszAllowReadTo)
+        EVTSetAllowData(gpszAllowReadTo, &gServerInfo.pAllowReadTo);
+    if (gpszAllowWriteTo)
+        EVTSetAllowData(gpszAllowWriteTo, &gServerInfo.pAllowWriteTo);
+    if (gpszAllowDeleteTo)
+        EVTSetAllowData(gpszAllowDeleteTo, &gServerInfo.pAllowDeleteTo);
 
 cleanup:
+
+    EVT_SAFE_FREE_STRING(gpszAllowReadTo);
+    EVT_SAFE_FREE_STRING(gpszAllowWriteTo);
+    EVT_SAFE_FREE_STRING(gpszAllowDeleteTo);
 
     return dwError;
 
 error:
 
-    if (pszConfigFilePath) {
-        EVTFreeString(pszConfigFilePath);
-    }
-
     goto cleanup;
-
 }
 
 static
@@ -1177,7 +1121,7 @@ main(
     dwError = EVTReadEventLogConfigSettings();
     if (dwError != 0)
     {
-        EVT_LOG_ERROR("Failed to read eventlog config file.  Error code: [%u]\n", dwError);
+        EVT_LOG_ERROR("Failed to read eventlog configuration.  Error code: [%u]\n", dwError);
         dwError = 0;
     }
 

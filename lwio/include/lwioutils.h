@@ -415,35 +415,6 @@ LwIoAssertionFailedFormat(
            BAIL_ON_LWIO_ERROR(dwError);            \
         }
 
-/*
- * Config parsing callbacks
- */
-typedef DWORD (*PFNSMB_CONFIG_START_SECTION)(
-                        PCSTR    pszSectionName,
-                        PVOID    pData,
-                        PBOOLEAN pbSkipSection,
-                        PBOOLEAN pbContinue
-                        );
-
-typedef DWORD (*PFNSMB_CONFIG_COMMENT)(
-                        PCSTR    pszComment,
-                        PVOID    pData,
-                        PBOOLEAN pbContinue
-                        );
-
-typedef DWORD (*PFNSMB_CONFIG_NAME_VALUE_PAIR)(
-                        PCSTR    pszName,
-                        PCSTR    pszValue,
-                        PVOID    pData,
-                        PBOOLEAN pbContinue
-                        );
-
-typedef DWORD (*PFNSMB_CONFIG_END_SECTION)(
-                        PCSTR pszSectionName,
-                        PVOID    pData,
-                        PBOOLEAN pbContinue
-                        );
-
 typedef struct __SMB_BIT_VECTOR
 {
     DWORD  dwNumBits;
@@ -1176,17 +1147,6 @@ SMBGetLibDirPath(
 DWORD
 LwioGetHostInfo(
     PSTR* ppszHostname
-    );
-
-DWORD
-SMBParseConfigFile(
-    PCSTR                     pszFilePath,
-    DWORD                     dwOptions,
-    PFNSMB_CONFIG_START_SECTION   pfnStartSectionHandler,
-    PFNSMB_CONFIG_COMMENT         pfnCommentHandler,
-    PFNSMB_CONFIG_NAME_VALUE_PAIR pfnNameValuePairHandler,
-    PFNSMB_CONFIG_END_SECTION     pfnEndSectionHandler,
-    PVOID                     pData
     );
 
 DWORD

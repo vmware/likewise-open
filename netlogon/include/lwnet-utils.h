@@ -47,6 +47,8 @@
 #ifndef __LWNET_UTILS_H__
 #define __LWNET_UTILS_H__
 
+#include <reg/reg.h>
+
 typedef struct __DLINKEDLIST
 {
     PVOID pItem;
@@ -92,33 +94,41 @@ typedef int64_t LWNET_UNIX_NS_TIME_T, *PLWNET_UNIX_NS_TIME_T;
 typedef int64_t LWNET_WINDOWS_TIME_T, *PLWNET_WINDOWS_TIME_T;
 
 /*
- * Config parsing callbacks
+ * Configuration
  */
-typedef DWORD (*PFNLWNET_CONFIG_START_SECTION)(
-                        PCSTR    pszSectionName,
-                        PVOID    pData,
-                        PBOOLEAN pbSkipSection,
-                        PBOOLEAN pbContinue
-                        );
+#define BAIL_ON_NON_LWREG_ERROR(dwError) \
+    if (!(40700 <= dwError && dwError <= 41200)) {\
+        BAIL_ON_LWNET_ERROR(dwError); \
+    }
 
-typedef DWORD (*PFNLWNET_CONFIG_COMMENT)(
-                        PCSTR    pszComment,
-                        PVOID    pData,
-                        PBOOLEAN pbContinue
-                        );
+typedef struct __LWNET_CONFIG_REG
+{
+    HANDLE hConnection;
+    HKEY hKey;
+    wchar16_t *pwc16sConfigKey;
+    wchar16_t *pwc16sPolicyKey;
+} LWNET_CONFIG_REG, *PLWNET_CONFIG_REG;
 
-typedef DWORD (*PFNLWNET_CONFIG_NAME_VALUE_PAIR)(
-                        PCSTR    pszName,
-                        PCSTR    pszValue,
-                        PVOID    pData,
-                        PBOOLEAN pbContinue
-                        );
+typedef enum
+{
+    LWNetTypeString,
+    LWNetTypeDword,
+    LWNetTypeBoolean,
+    LWNetTypeEnum
+} LWNET_CONFIG_TYPE;
 
-typedef DWORD (*PFNLWNET_CONFIG_END_SECTION)(
-                        PCSTR pszSectionName,
-                        PVOID    pData,
-                        PBOOLEAN pbContinue
-                        );
+typedef struct __LWNET_CONFIG
+{
+    PCSTR pszName;
+    BOOLEAN bUsePolicy;
+    LWNET_CONFIG_TYPE Type;
+    DWORD dwMin;
+    DWORD dwMax;
+    const PCSTR *ppszEnumNames;
+    PVOID pValue;
+} LWNET_CONFIG, *PLWNET_CONFIG;
+
+
 
 typedef struct _DNS_SERVER_INFO
 {
@@ -230,14 +240,60 @@ LWNetFreeNullTerminatedStringArray(
     );
 
 DWORD
-LWNetParseConfigFile(
-    PCSTR                            pszFilePath,
-    DWORD                            dwOptions,
-    PFNLWNET_CONFIG_START_SECTION   pfnStartSectionHandler,
-    PFNLWNET_CONFIG_COMMENT         pfnCommentHandler,
-    PFNLWNET_CONFIG_NAME_VALUE_PAIR pfnNameValuePairHandler,
-    PFNLWNET_CONFIG_END_SECTION     pfnEndSectionHandler,
-    PVOID                            pData
+LWNetProcessConfig(
+    PCSTR pszConfigKey,
+    PCSTR pszPolicyKey,
+    PLWNET_CONFIG pConfig,
+    DWORD dwConfigEntries
+    );
+
+DWORD
+LWNetOpenConfig(
+    PCSTR pszConfigKey,
+    PCSTR pszPolicyKey,
+    PLWNET_CONFIG_REG *ppReg
+    );
+
+DWORD
+LWNetReadConfigString(
+    PLWNET_CONFIG_REG pReg,
+    PCSTR   pszName,
+    BOOLEAN bUsePolicy,
+    PSTR    *ppszValue
+    );
+
+DWORD
+LWNetReadConfigDword(
+    PLWNET_CONFIG_REG pReg,
+    PCSTR   pszName,
+    BOOLEAN bUsePolicy,
+    DWORD dwMax,
+    DWORD dwMin,
+    PDWORD  pdwValue
+    );
+
+DWORD
+LWNetReadConfigBoolean(
+    PLWNET_CONFIG_REG pReg,
+    PCSTR pszName,
+    BOOLEAN bUsePolicy,
+    PBOOLEAN pbValue
+    );
+
+DWORD
+LWNetReadConfigEnum(
+    PLWNET_CONFIG_REG pReg,
+    PCSTR pszName,
+    BOOLEAN bUsePolicy,
+    DWORD dwMin,
+    DWORD dwMax,
+    const PCSTR *ppszEnumNames,
+    PDWORD pdwValue
+    );
+
+VOID
+LWNetCloseConfig(
+    PLWNET_CONFIG_REG pReg
     );
 
 DWORD

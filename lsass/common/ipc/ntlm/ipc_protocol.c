@@ -645,7 +645,7 @@ static LWMsgTypeSpec gNtlmInitSecCtxtRespSpec[] =
 static LWMsgTypeSpec gNtlmMakeSignSpec[] =
 {
     // PNTLM_CONTEXT_HANDLE phContext;
-    // DWORD bEncrypt;
+    // DWORD dwQop;
     // PSecBufferDesc pMessage;
     // ULONG MessageSeqNo;
 
@@ -654,7 +654,7 @@ static LWMsgTypeSpec gNtlmMakeSignSpec[] =
     LWMSG_MEMBER_HANDLE(NTLM_IPC_MAKE_SIGN_REQ, hContext, NTLM_CONTEXT_HANDLE),
     LWMSG_ATTR_HANDLE_LOCAL_FOR_RECEIVER,
 
-    LWMSG_MEMBER_UINT32(NTLM_IPC_MAKE_SIGN_REQ, bEncrypt),
+    LWMSG_MEMBER_UINT32(NTLM_IPC_MAKE_SIGN_REQ, dwQop),
 
     LWMSG_MEMBER_POINTER_BEGIN(NTLM_IPC_MAKE_SIGN_REQ, pMessage),
     LWMSG_TYPESPEC(gNtlmSecBufferDescSpec),
@@ -799,14 +799,11 @@ static LWMsgTypeSpec gNtlmVerifySignSpec[] =
 
 static LWMsgTypeSpec gNtlmVerifySignRespSpec[] =
 {
-    //BOOLEAN bVerified;
-    //BOOLEAN bEncryted;
+    //DWORD dwQop;
 
     LWMSG_STRUCT_BEGIN(NTLM_IPC_VERIFY_SIGN_RESPONSE),
 
-    LWMSG_MEMBER_UINT32(NTLM_IPC_VERIFY_SIGN_RESPONSE, bVerified),
-
-    LWMSG_MEMBER_UINT32(NTLM_IPC_VERIFY_SIGN_RESPONSE, bEncrypted),
+    LWMSG_MEMBER_UINT32(NTLM_IPC_VERIFY_SIGN_RESPONSE, dwQop),
 
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END

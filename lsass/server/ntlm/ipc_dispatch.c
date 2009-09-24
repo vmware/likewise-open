@@ -671,7 +671,7 @@ NtlmSrvIpcMakeSignature(
 
     dwError = NtlmServerMakeSignature(
         &pReq->hContext,
-        pReq->bEncrypt,
+        pReq->dwQop,
         pReq->pMessage,
         pReq->MessageSeqNo);
 
@@ -816,8 +816,7 @@ NtlmSrvIpcVerifySignature(
         &pReq->hContext,
         pReq->pMessage,
         pReq->MessageSeqNo,
-        &(pNtlmResp->bVerified),
-        &(pNtlmResp->bEncrypted));
+        &(pNtlmResp->dwQop));
 
     if (!dwError)
     {

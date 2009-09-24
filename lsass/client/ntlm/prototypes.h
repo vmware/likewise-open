@@ -133,7 +133,7 @@ NtlmTransactInitializeSecurityContext(
 DWORD
 NtlmTransactMakeSignature(
     IN PNTLM_CONTEXT_HANDLE phContext,
-    IN BOOLEAN bEncrypt,
+    IN DWORD dwQop,
     IN OUT PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo
     );
@@ -157,8 +157,7 @@ NtlmTransactVerifySignature(
     IN PNTLM_CONTEXT_HANDLE phContext,
     IN PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo,
-    OUT PBOOLEAN pbVerified,
-    OUT PBOOLEAN pbEncrypted
+    OUT PDWORD pQop
     );
 
 DWORD

@@ -50,7 +50,7 @@
 DWORD
 NtlmClientMakeSignature(
     IN PNTLM_CONTEXT_HANDLE phContext,
-    IN BOOLEAN bEncrypt,
+    IN DWORD dwQop,
     IN OUT PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo
     )
@@ -59,7 +59,7 @@ NtlmClientMakeSignature(
 
     dwError = NtlmTransactMakeSignature(
         phContext,
-        bEncrypt,
+        dwQop,
         pMessage,
         MessageSeqNo
         );

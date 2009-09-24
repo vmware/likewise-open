@@ -252,10 +252,7 @@ NtlmCreateValidatedContext(
     memcpy(pNtlmContext->SessionKey, pSessionKey, NTLM_SESSION_KEY_SIZE);
     pNtlmContext->cbSessionKeyLen = dwSessionKeyLen;
 
-    RC4_set_key(
-        &pNtlmContext->SignAndSealKey,
-        pNtlmContext->cbSessionKeyLen,
-        pNtlmContext->SessionKey);
+    NtlmInitializeKeys(pNtlmContext);
 
 cleanup:
     *ppNtlmContext = pNtlmContext;
@@ -268,6 +265,32 @@ error:
         LW_SAFE_FREE_MEMORY(pNtlmContext);
     }
     goto cleanup;
+}
+
+VOID
+NtlmInitializeKeys(
+    PNTLM_CONTEXT pNtlmContext
+    )
+{
+    RC4_set_key(
+        &pNtlmContext->SignKey,
+        pNtlmContext->cbSessionKeyLen,
+        pNtlmContext->SessionKey);
+
+    RC4_set_key(
+        &pNtlmContext->SealKey,
+        pNtlmContext->cbSessionKeyLen,
+        pNtlmContext->SessionKey);
+
+    RC4_set_key(
+        &pNtlmContext->VerifyKey,
+        pNtlmContext->cbSessionKeyLen,
+        pNtlmContext->SessionKey);
+
+    RC4_set_key(
+        &pNtlmContext->UnsealKey,
+        pNtlmContext->cbSessionKeyLen,
+        pNtlmContext->SessionKey);
 }
 
 DWORD

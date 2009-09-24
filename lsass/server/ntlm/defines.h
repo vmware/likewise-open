@@ -89,6 +89,7 @@
 #define NTLM_LM_DES_STRING              "KGS!@#$%"
 
 #define NTLM_COUNTER_VALUE              0x78010900
+#define NTLM_PADDING_SIZE               4
 
 #define NTLM_INITIAL BLOB_SIZE          32
 

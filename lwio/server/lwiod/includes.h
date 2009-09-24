@@ -71,6 +71,7 @@
 #include "servermain.h"
 #include "ipc.h"
 #include "proc.h"
+#include "smbcfg.h"
 
 #include "externs.h"
 

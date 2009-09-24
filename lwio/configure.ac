@@ -677,7 +677,6 @@ CFLAGS="$saved_CFLAGS"
 AC_CONFIG_FILES([Makefile
         include/Makefile
         etc/Makefile
-        etc/lwiod.conf
         etc/lwiod.reg
         utils/Makefile
 	common/Makefile

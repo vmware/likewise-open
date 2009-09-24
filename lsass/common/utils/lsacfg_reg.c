@@ -74,6 +74,7 @@ LsaProcessConfig(
                             pConfig[dwEntry].pszName,
                             pConfig[dwEntry].bUsePolicy,
                             pConfig[dwEntry].pValue);
+                break;
 
             case LsaTypeDword:
                 dwError = LsaReadConfigDword(

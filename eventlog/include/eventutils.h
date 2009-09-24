@@ -58,6 +58,11 @@
 
 #endif
 
+#define BAIL_ON_NON_LWREG_ERROR(dwError) \
+        if (!(40700 <= dwError && dwError <= 41200)) {  \
+           BAIL_ON_EVT_ERROR(dwError);            \
+        }
+
 typedef DWORD (*PFN_EVT_FOREACH_STACK_ITEM)(
                     PVOID pItem,
                     PVOID pUserData
@@ -71,30 +76,6 @@ typedef struct __EVT_STACK
 
 } EVT_STACK, *PEVT_STACK;
 
-/*
- * Config parsing callbacks
- */
-typedef DWORD (*PFNCONFIG_START_SECTION)(
-                        PCSTR    pszSectionName,
-                        PBOOLEAN pbSkipSection,
-                        PBOOLEAN pbContinue
-                        );
-
-typedef DWORD (*PFNCONFIG_COMMENT)(
-                        PCSTR    pszComment,
-                        PBOOLEAN pbContinue
-                        );
-
-typedef DWORD (*PFNCONFIG_NAME_VALUE_PAIR)(
-                        PCSTR    pszName,
-                        PCSTR    pszValue,
-                        PBOOLEAN pbContinue
-                        );
-
-typedef DWORD (*PFNCONFIG_END_SECTION)(
-                        PCSTR pszSectionName,
-                        PBOOLEAN pbContinue
-                        );
 
 typedef struct _LOGFILEINFO {
     CHAR szLogPath[PATH_MAX+1];
@@ -117,6 +98,28 @@ typedef struct _LOGINFO {
     } data;
     BOOLEAN  bLoggingInitiated;
 } LOGINFO, *PLOGINFO;
+
+typedef struct __EVT_CONFIG_REG EVT_CONFIG_REG, *PEVT_CONFIG_REG;
+
+typedef enum
+{
+    EVTTypeString,
+    EVTTypeDword,
+    EVTTypeBoolean,
+    EVTTypeChar,
+    EVTTypeEnum
+} EVT_CONFIG_TYPE;
+
+typedef struct __EVT_CONFIG_TABLE
+{
+    PCSTR   pszName;
+    BOOLEAN bUsePolicy;
+    EVT_CONFIG_TYPE Type;
+    DWORD dwMin;
+    DWORD dwMax;
+    const PCSTR *ppszEnumNames;
+    PVOID pValue;
+} EVT_CONFIG_TABLE, *PEVT_CONFIG_TABLE;
 
 DWORD
 EVTAllocateMemory(
@@ -175,6 +178,12 @@ VOID
 EVTFreeStringArray(
     PSTR* ppStringArray,
     DWORD dwCount
+    );
+
+DWORD
+EVTMbsToWc16s(
+    PCSTR pszInputString,
+    PWSTR *ppszOutputString
     );
 
 DWORD
@@ -285,30 +294,60 @@ EVTStackFree(
     );
 
 DWORD
-EVTParseConfigFile(
-    PCSTR                     pszFilePath,
-    PFNCONFIG_START_SECTION   pfnStartSectionHandler,
-    PFNCONFIG_COMMENT         pfnCommentHandler,
-    PFNCONFIG_NAME_VALUE_PAIR pfnNameValuePairHandler,
-    PFNCONFIG_END_SECTION     pfnEndSectionHandler
+EVTProcessConfig(
+    PCSTR pszConfigKey,
+    PCSTR pszPolicyKey,
+    PEVT_CONFIG_TABLE pConfig,
+    DWORD dwConfigEntries
     );
 
 DWORD
-EVTParseDays(
-    PCSTR  pszTimeInterval,
-    PDWORD pdwTimeInterval
+EVTOpenConfig(
+    PCSTR pszConfigKey,
+    PCSTR pszPolicyKey,
+    PEVT_CONFIG_REG *ppReg
+    );
+
+VOID
+EVTCloseConfig(
+    PEVT_CONFIG_REG pReg
     );
 
 DWORD
-EVTParseDiskUsage(
-    PCSTR  pszDiskUsage,
-    PDWORD pdwDiskUsage
+EVTReadConfigString(
+    PEVT_CONFIG_REG pReg,
+    PCSTR   pszName,
+    BOOLEAN bUsePolicy,
+    PSTR    *ppszValue
     );
 
 DWORD
-EVTParseMaxEntries(
-    PCSTR  pszMaxEntries,
-    PDWORD pdwMaxEntries
+EVTReadConfigDword(
+    PEVT_CONFIG_REG pReg,
+    PCSTR pszName,
+    BOOLEAN bUsePolicy,
+    DWORD   dwMin,
+    DWORD   dwMax,
+    PDWORD pdwValue
+    );
+
+DWORD
+EVTReadConfigBoolean(
+    PEVT_CONFIG_REG pReg,
+    PCSTR pszName,
+    BOOLEAN bUsePolicy,
+    PBOOLEAN pbValue
+    );
+
+DWORD
+EVTReadConfigEnum(
+    PEVT_CONFIG_REG pReg,
+    PCSTR pszName,
+    BOOLEAN bUsePolicy,
+    DWORD dwMin,
+    DWORD dwMax,
+    const PCSTR *ppszEnumNames,
+    PDWORD pdwValue
     );
 
 DWORD

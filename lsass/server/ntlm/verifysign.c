@@ -52,8 +52,7 @@ NtlmServerVerifySignature(
     IN PNTLM_CONTEXT_HANDLE phContext,
     IN PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo,
-    OUT PBOOLEAN pbVerified,
-    OUT PBOOLEAN pbEncrypted
+    OUT PDWORD pQop
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -61,11 +60,104 @@ NtlmServerVerifySignature(
     // The following pointers point into pMessage and will not be freed
     PSecBuffer pToken = NULL;
     PSecBuffer pData = NULL;
-    SecBuffer TempToken = {0};
-    BYTE TempTokenData[NTLM_SIGNATURE_SIZE] = {0};
-    BOOLEAN bVerified = FALSE;
-    BOOLEAN bEncrypted = FALSE;
+
+    NtlmGetSecBuffers(pMessage, &pToken, &pData, NULL);
+
+    // Do a full sanity check here
+    if (!pToken ||
+        pToken->cbBuffer != NTLM_SIGNATURE_SIZE ||
+        !pToken->pvBuffer ||
+        !pData ||
+        !pData->cbBuffer ||
+        !pData->pvBuffer)
+    {
+        dwError = LW_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = NtlmVerifySignature(
+        pContext,
+        &pContext->VerifyKey,
+        pData,
+        pToken
+        );
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+DWORD
+NtlmVerifySignature(
+    IN PNTLM_CONTEXT pContext,
+    IN RC4_KEY* pSignKey,
+    IN PSecBuffer pData,
+    IN PSecBuffer pToken
+    )
+{
+    DWORD dwError = LW_ERROR_SUCCESS;
+    PNTLM_SIGNATURE pNtlmSig = NULL;
+    DWORD dwCrc32 = 0;
+    BYTE TokenData[NTLM_SIGNATURE_SIZE] = {0};
+
+    //Decrypt the received token, remember to skip the first 4 bytes
+    RC4(
+        pSignKey,
+        pToken->cbBuffer - 4,
+        ((PBYTE)(pToken->pvBuffer)) + 4,
+        TokenData);
+
+    pNtlmSig = (PNTLM_SIGNATURE)TokenData;
+    pNtlmSig->dwCounterValue = 0;
+
+    if (pContext->NegotiatedFlags & NTLM_FLAG_ALWAYS_SIGN)
+    {
+        // Use the dummy signature 0x01000000000000000000000000000000
+        dwCrc32 = 0;
+    }
+    else if (pContext->NegotiatedFlags & NTLM_FLAG_SIGN)
+    {
+        // generate a crc for the message
+        dwCrc32 = NtlmCrc32(pData->pvBuffer, pData->cbBuffer);
+    }
+    else
+    {
+        dwError = LW_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    // There is a minor issue we need to contend with... the windows client
+    // appears to be sending us dummy signatures even when we have requested
+    // that it not.  Check for it for now, and we'll figure out the cause.
+    if (dwCrc32 != pNtlmSig->dwCrc32 &&
+        0 != pNtlmSig->dwCrc32)
+    {
+        dwError = LW_ERROR_INVALID_MESSAGE;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+VOID
+NtlmGetSecBuffers(
+    PSecBufferDesc pMessage,
+    PSecBuffer* ppToken,
+    PSecBuffer* ppData,
+    PSecBuffer* ppPadding
+    )
+{
     DWORD dwIndex = 0;
+    PSecBuffer pToken = NULL;
+    PSecBuffer pData = NULL;
+    PSecBuffer pPadding = NULL;
 
     for (dwIndex = 0; dwIndex < pMessage->cBuffers; dwIndex++)
     {
@@ -83,60 +175,27 @@ NtlmServerVerifySignature(
                 pData = &pMessage->pBuffers[dwIndex];
             }
         }
+        else if (pMessage->pBuffers[dwIndex].BufferType == SECBUFFER_PADDING)
+        {
+            if (!pPadding)
+            {
+                pPadding = &pMessage->pBuffers[dwIndex];
+            }
+        }
     }
 
-    // Do a full sanity check here
-    if (!pToken ||
-        pToken->cbBuffer != NTLM_SIGNATURE_SIZE ||
-        !pToken->pvBuffer ||
-        !pData ||
-        !pData->cbBuffer ||
-        !pData->pvBuffer)
+    if (ppToken)
     {
-        dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LSA_ERROR(dwError);
+        *ppToken = pToken;
     }
 
-    TempToken.BufferType = SECBUFFER_TOKEN;
-    TempToken.cbBuffer = NTLM_SIGNATURE_SIZE;
-    TempToken.pvBuffer = TempTokenData;
-
-    if (pContext->NegotiatedFlags & NTLM_FLAG_SIGN)
+    if (ppData)
     {
-        NtlmMakeSignature(
-            pContext,
-            pData,
-            MessageSeqNo,
-            &TempToken
-            );
+        *ppData = pData;
     }
-    else if (pContext->NegotiatedFlags & NTLM_FLAG_ALWAYS_SIGN)
+
+    if (ppPadding)
     {
-        // Use the dummy signature 0x01000000000000000000000000000000
-        memset(TempTokenData, 0, NTLM_SIGNATURE_SIZE);
-        *((PDWORD)(TempTokenData)) = NTLM_VERSION;
+        *ppPadding = pPadding;
     }
-    else
-    {
-        dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    if (TempToken.cbBuffer == pToken->cbBuffer &&
-        !memcmp(TempToken.pvBuffer, pToken->pvBuffer, pToken->cbBuffer))
-    {
-        bVerified = TRUE;
-    }
-
-cleanup:
-    *pbVerified = bVerified;
-    *pbEncrypted = bEncrypted;
-
-    return dwError;
-
-error:
-    bVerified = 0;
-    bEncrypted = 0;
-
-    goto cleanup;
 }

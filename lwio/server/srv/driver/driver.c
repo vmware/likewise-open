@@ -233,7 +233,6 @@ SrvInitialize(
 {
     NTSTATUS ntStatus = 0;
     INT      iWorker = 0;
-    PCSTR    pszConfigFilePath = SRV_CONFIG_FILE_PATH;
 
     memset(&gSMBSrvGlobals, 0, sizeof(gSMBSrvGlobals));
 
@@ -243,7 +242,7 @@ SrvInitialize(
     ntStatus = SrvInitConfig(&gSMBSrvGlobals.config);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvReadConfig(pszConfigFilePath, &gSMBSrvGlobals.config);
+    ntStatus = SrvReadConfig(&gSMBSrvGlobals.config);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBPacketCreateAllocator(

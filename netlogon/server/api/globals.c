@@ -50,14 +50,14 @@
 
 DWORD
 LWNetSrvApiInit(
-    PCSTR pszConfigFilePath
+    VOID
     )
 {
     DWORD dwError = 0;
     
     LWNetSrvInitEventlogInterface();
 
-    dwError = LWNetSrvParseConfigFile(pszConfigFilePath);
+    dwError = LWNetSrvReadRegistry();
     BAIL_ON_LWNET_ERROR(dwError);
 
     dwError = LWNetCacheInitialize();

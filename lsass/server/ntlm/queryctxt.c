@@ -250,7 +250,7 @@ NtlmServerQueryCtxtSizeAttribute(
 
     pSizes->cbMaxSignature = NTLM_SIGNATURE_SIZE;
     pSizes->cbBlockSize = 1;
-    pSizes->cbSecurityTrailer = 4;
+    pSizes->cbSecurityTrailer = NTLM_PADDING_SIZE;
 
 cleanup:
     *ppSizes = pSizes;

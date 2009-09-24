@@ -6,7 +6,7 @@
 "SignMessagesIfSupported"=dword:00000000
 
 [HKEY_LIKEWISE\Services\lwio\Parameters\Drivers]
-"Drivers"="rdr"
+"Load"="rdr"
 
 [HKEY_LIKEWISE\Services\lwio\Parameters\Drivers\pvfs]
 "Path"="@providerdir@/libpvfs.sys@MOD_EXT@"

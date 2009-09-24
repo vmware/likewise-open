@@ -8,6 +8,7 @@ lwio_get_log_info_CPPFLAGS =  \
     -I@top_srcdir@/include
 
 lwio_get_log_info_LDADD = \
-    @top_builddir@/client/liblwioclient.la
+    @top_builddir@/client/liblwioclient.la \
+    @LWREG_LIBS@
 
 lwio_get_log_info_LDFLAGS = -L$(top_builddir)/common/.libs

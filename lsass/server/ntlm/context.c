@@ -624,8 +624,10 @@ NtlmCreateChallengeMessage(
     dwError = LwAllocateMemory(dwSize, OUT_PPVOID(&pMessage));
     BAIL_ON_LSA_ERROR(dwError);
 
-    // If the client wants to support a dummy signature, we will too
-    if (pNegMsg->NtlmFlags & NTLM_FLAG_ALWAYS_SIGN)
+    // If the client wants to support a dummy signature, we will too... as long
+    // as it doesn't support real signing.
+    if (pNegMsg->NtlmFlags & NTLM_FLAG_ALWAYS_SIGN &&
+        !(pNegMsg->NtlmFlags & NTLM_FLAG_SIGN))
     {
         dwOptions |= NTLM_FLAG_ALWAYS_SIGN;
     }

@@ -38,7 +38,6 @@ SMBSrvSetupInitialConfig(
 
 DWORD
 SMBSrvRefreshConfig(
-    IN PCSTR pszConfigFilePath
     );
 
 VOID

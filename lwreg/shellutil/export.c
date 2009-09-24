@@ -49,6 +49,7 @@
 static
 DWORD
 PrintToRegFile(
+    IN FILE* fp,
     IN PSTR pszKeyName,
     IN REG_DATA_TYPE dataType,
     IN PSTR pszValueName,
@@ -75,7 +76,7 @@ PrintToRegFile(
        switch (type)
        {
            case REG_KEY:
-               printf("\r\n%.*s\r\n", dumpStringLen, dumpString);
+               fprintf(fp, "\r\n%.*s\r\n", dumpStringLen, dumpString);
                break;
 
            case REG_PLAIN_TEXT:
@@ -83,11 +84,11 @@ PrintToRegFile(
                {
                    printf("\n");
                }
-               printf("%*s ", dwValueLen, (PCHAR) value);
+               fprintf(fp, "%*s ", dwValueLen, (PCHAR) value);
                break;
 
            default:
-               printf("%.*s\r\n", dumpStringLen, dumpString);
+               fprintf(fp, "%.*s\r\n", dumpStringLen, dumpString);
                break;
        }
    }
@@ -103,11 +104,11 @@ PrintToRegFile(
    return 0;
 }
 
-
 static
 DWORD
 ProcessExportedKeyInfo(
     IN HANDLE hReg,
+    IN FILE* fp,
     IN HKEY hKey,
     IN PSTR pszKeyName,
     IN OUT PREG_DATA_TYPE pPrevType
@@ -116,6 +117,8 @@ ProcessExportedKeyInfo(
     DWORD dwError = 0;
     DWORD dwValueNameLen = MAX_KEY_LENGTH;
     LW_WCHAR valueName[MAX_KEY_LENGTH];   // buffer for subkey name
+    PSTR pszFullValueName = NULL;
+    //Do not free
     PSTR pszValueName = NULL;
     REG_DATA_TYPE dataType = REG_UNKNOWN;
     BYTE value[MAX_VALUE_LENGTH] = {0};
@@ -124,6 +127,7 @@ ProcessExportedKeyInfo(
     DWORD dwValuesCount = 0;
 
     dwError = PrintToRegFile(
+                          fp,
                           pszKeyName,
                           REG_KEY,
                           NULL,
@@ -171,10 +175,18 @@ ProcessExportedKeyInfo(
        BAIL_ON_REG_ERROR(dwError);
 
        dwError = LwWc16sToMbs(valueName,
-                              &pszValueName);
+                              &pszFullValueName);
        BAIL_ON_REG_ERROR(dwError);
 
+       pszValueName = pszFullValueName+strlen(pszKeyName)+1;
+
+       if (LW_IS_NULL_OR_EMPTY_STR(pszValueName))
+       {
+           continue;
+       }
+
        dwError = PrintToRegFile(
+                      fp,
                       pszKeyName,
                       dataType,
                       pszValueName,
@@ -184,7 +196,7 @@ ProcessExportedKeyInfo(
                       pPrevType);
        BAIL_ON_REG_ERROR(dwError);
 
-       LW_SAFE_FREE_STRING(pszValueName);
+       LW_SAFE_FREE_STRING(pszFullValueName);
        memset(valueName, 0 , dwValueNameLen);
        dwValueNameLen = MAX_KEY_LENGTH;
        memset(value, 0 , dwValueLen);
@@ -192,7 +204,7 @@ ProcessExportedKeyInfo(
    }
 
 cleanup:
-    LW_SAFE_FREE_STRING(pszValueName);
+    LW_SAFE_FREE_STRING(pszFullValueName);
     memset(valueName, 0 , dwValueNameLen);
     memset(value, 0 , dwValueLen);
 
@@ -207,6 +219,7 @@ static
 DWORD
 ProcessSubKeys(
     HANDLE hReg,
+    FILE* fp,
     HKEY hKey,
     PSTR pszKeyName,
     DWORD dwNumSubKeys,
@@ -226,6 +239,7 @@ ProcessSubKeys(
     PWSTR pSubKey = NULL;
 
     dwError = PrintToRegFile(
+                          fp,
                           pszKeyName,
                           REG_KEY,
                           NULL,
@@ -293,6 +307,7 @@ ProcessSubKeys(
 
         dwError = RegShellUtilExport(
                         hReg,
+                        fp,
                         hSubKey,
                         pszSubKey,
                         dwNumSubSubKeys);
@@ -334,7 +349,8 @@ error:
 static
 DWORD
 ProcessRootKeys(
-    HANDLE hReg
+    HANDLE hReg,
+    FILE* fp
     )
 {
     DWORD dwError = 0;
@@ -379,6 +395,7 @@ ProcessRootKeys(
         BAIL_ON_REG_ERROR(dwError);
 
         dwError = RegShellUtilExport(hReg,
+                                     fp,
                                      hRootKey,
                                      ppszRootKeyNames[iCount],
                                      dwNumSubKeys);
@@ -411,6 +428,7 @@ error:
 DWORD
 RegShellUtilExport(
     HANDLE hReg,
+    FILE* fp,
     HKEY hKey,
     PSTR pszKeyName,
     DWORD dwNumSubKeys
@@ -422,6 +440,7 @@ RegShellUtilExport(
     if (hKey && dwNumSubKeys == 0)
     {
         dwError = ProcessExportedKeyInfo(hReg,
+                                         fp,
                                          hKey,
                                          pszKeyName,
                                          &prevType);
@@ -430,6 +449,7 @@ RegShellUtilExport(
     else if (hKey && dwNumSubKeys != 0)
     {
         dwError = ProcessSubKeys(hReg,
+                                 fp,
                                  hKey,
                                  pszKeyName,
                                  dwNumSubKeys,
@@ -438,7 +458,8 @@ RegShellUtilExport(
     }
     else if (hKey == NULL && dwNumSubKeys == 0)
     {
-        dwError = ProcessRootKeys(hReg);
+        dwError = ProcessRootKeys(hReg,
+                                  fp);
         BAIL_ON_REG_ERROR(dwError);
     }
     else if (hKey == NULL && dwNumSubKeys != 0)

@@ -13,6 +13,7 @@ lib_LTLIBRARIES = liblwiosmbcommon.la
 endif
 
 liblwiosmbcommon_la_SOURCES = \
+    smbcfg.c             \
     wire_close.c         \
     wire_create_dir.c    \
     wire_create_file.c   \

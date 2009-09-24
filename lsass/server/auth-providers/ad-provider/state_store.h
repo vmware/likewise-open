@@ -61,6 +61,11 @@ ADState_SafeCloseDb(
     );
 
 DWORD
+ADState_EmptyDb(
+    ADSTATE_CONNECTION_HANDLE hDb
+    );
+
+DWORD
 ADState_GetProviderData(
     IN ADSTATE_CONNECTION_HANDLE hDb,
     OUT PAD_PROVIDER_DATA* ppProvider

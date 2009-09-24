@@ -57,10 +57,10 @@ NtlmServerEncryptMessage(
 {
     DWORD dwError = LW_ERROR_SUCCESS;
     PNTLM_CONTEXT pContext = *phContext;
-    DWORD dwIndex = 0;
     // The following pointers point into pMessage and will not be freed
     PSecBuffer pToken = NULL;
     PSecBuffer pData = NULL;
+    DWORD dwCrc32 = 0;
 
     // Sanity check to see if we handle sealing
     if(!(pContext->NegotiatedFlags & NTLM_FLAG_SEAL))
@@ -76,23 +76,7 @@ NtlmServerEncryptMessage(
     //
     // Find these buffers... the first one found of each type will be the one
     // that is used.
-    for (dwIndex = 0; dwIndex < pMessage->cBuffers; dwIndex++)
-    {
-        if (pMessage->pBuffers[dwIndex].BufferType == SECBUFFER_TOKEN)
-        {
-            if (!pToken)
-            {
-                pToken = &pMessage->pBuffers[dwIndex];
-            }
-        }
-        else if (pMessage->pBuffers[dwIndex].BufferType == SECBUFFER_DATA)
-        {
-            if (!pData)
-            {
-                pData = &pMessage->pBuffers[dwIndex];
-            }
-        }
-    }
+    NtlmGetSecBuffers(pMessage, &pToken, &pData, NULL);
 
     // Do a full sanity check here
     if (!pToken ||
@@ -107,16 +91,18 @@ NtlmServerEncryptMessage(
     }
 
     // Sign the original message before sealing it.
-    NtlmMakeSignature(pContext, pData, dwMsgSeqNum, pToken);
+    dwCrc32 = NtlmCrc32(pData->pvBuffer, pData->cbBuffer);
 
     if (bEncrypt)
     {
         RC4(
-            &pContext->SignAndSealKey,
+            &pContext->SealKey,
             pData->cbBuffer,
             pData->pvBuffer,
             pData->pvBuffer);
     }
+
+    NtlmMakeSignature(pContext, dwCrc32, &pContext->SealKey, pToken);
 
 cleanup:
     return dwError;
