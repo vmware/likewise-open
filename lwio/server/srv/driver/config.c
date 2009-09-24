@@ -57,56 +57,43 @@ SrvTransferConfigContents(
     );
 
 
-BOOLEAN gbSupportSMB2;
-
-static
-SMB_CONFIG_TABLE gConfig[] = {
-    {
-        "SupportSmb2",
-        FALSE,
-        SMBTypeBoolean,
-        0,
-        -1,
-        NULL,
-        &gbSupportSMB2
-    }
-};
-
 NTSTATUS
 SrvReadConfig(
     PLWIO_SRV_CONFIG pConfig
     )
 {
     NTSTATUS        ntStatus = STATUS_SUCCESS;
-    ULONG           ulError = 0;
     LWIO_SRV_CONFIG srvConfig;
+
+    PSMB_CONFIG_REG pReg = NULL;
+    DWORD           dwError = 0;
 
     ntStatus = SrvInitConfig(&srvConfig);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    gbSupportSMB2             = FALSE;
-
-    ulError = SMBProcessConfig(
+    dwError = SMBOpenConfig(
                 "Services\\lwio\\Parameters\\Drivers",
                 "Policy\\Services\\lwio\\Parameters\\Drivers",
-                gConfig,
-                sizeof(gConfig)/sizeof(gConfig[0]));
-
-    srvConfig.bSupportSMB2 = gbSupportSMB2;
-
-    if (ulError)
+                &pReg);
+    if (dwError)
     {
-        LWIO_LOG_ERROR("Failed to parse device configuration [error code: %u]",
-                       ulError);
+        LWIO_LOG_ERROR("Failed to access device configuration [error code: %u]",
+                       dwError);
 
         ntStatus = STATUS_DEVICE_CONFIGURATION_ERROR;
     }
     BAIL_ON_NT_STATUS(ntStatus);
 
+    /* Ignore error as it may not exist; we can still use default. */
+    SMBReadConfigBoolean(pReg, "SupportSmb2", FALSE, &(srvConfig.bSupportSMB2));
+
     ntStatus = SrvTransferConfigContents(&srvConfig, pConfig);
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
+
+    SMBCloseConfig(pReg);
+    pReg = NULL;
 
     SrvFreeConfigContents(&srvConfig);
 
