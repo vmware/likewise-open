@@ -422,7 +422,7 @@ RegShellUtilGetKeys(
     PSTR pszDefaultKey,
     PSTR keyName,
     LW_WCHAR ***pppRetSubKeys,
-    PDWORD dwRetSubKeyLen)
+    PDWORD pdwRetSubKeyCount)
 {
     HKEY pRootKey = NULL;
 
@@ -518,7 +518,7 @@ RegShellUtilGetKeys(
     }
 
     *pppRetSubKeys = subKeys;
-    *dwRetSubKeyLen = dwSubKeyCount;
+    *pdwRetSubKeyCount = dwSubKeyCount;
 cleanup:
     if (pFullKey && pFullKey != pRootKey)
     {

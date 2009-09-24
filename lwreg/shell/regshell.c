@@ -221,8 +221,6 @@ RegShellSetValue(
     return dwError;
 }
 
-
-
 DWORD
 RegShellDumpByteArray(
     PBYTE pByteArray,
@@ -244,7 +242,6 @@ cleanup:
 error:
     goto cleanup;
 }
-
 
 DWORD
 RegShellImportFile(
@@ -275,6 +272,44 @@ error:
     goto cleanup;
 }
 
+DWORD
+RegShellExportFile(
+    HANDLE hReg,
+    PREGSHELL_CMD_ITEM rsItem
+    )
+{
+    DWORD dwError = 0;
+    char szRegFileName[PATH_MAX + 1];
+    FILE* fp = NULL;
+
+
+    strcpy(szRegFileName, rsItem->args[0]);
+
+    LwStripWhitespace(szRegFileName, TRUE, TRUE);
+
+    fp = fopen(szRegFileName, "w");
+    if (fp == NULL) {
+        dwError = errno;
+        goto error;
+    }
+
+    dwError = RegShellUtilExport(hReg,
+                                 fp,
+                                 NULL,
+                                 NULL,
+                                 0);
+    BAIL_ON_REG_ERROR(dwError);
+
+cleanup:
+    if (fp)
+    {
+        fclose(fp);
+    }
+    return dwError;
+
+error:
+    goto cleanup;
+}
 
 DWORD
 RegShellListValues(
@@ -345,7 +380,6 @@ cleanup:
 error:
     goto cleanup;
 }
-
 
 DWORD
 RegShellProcessCmd(
@@ -610,6 +644,11 @@ RegShellProcessCmd(
 
             case REGSHELL_CMD_IMPORT:
                 dwError = RegShellImportFile(pParseState->hReg, rsItem);
+                BAIL_ON_REG_ERROR(dwError);
+                break;
+
+            case REGSHELL_CMD_EXPORT:
+                dwError = RegShellExportFile(pParseState->hReg, rsItem);
                 BAIL_ON_REG_ERROR(dwError);
                 break;
 
