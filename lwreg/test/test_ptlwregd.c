@@ -40,6 +40,12 @@
  * Authors: Adam Bernstein (abernstein@likewise.com)
  */
 
+#define TEST_ADD        0
+#define TEST_DELETE     1
+#define TEST_GET_KEY    2
+#define TEST_GET_VALUE  3
+
+
 #define LWREGD_MAX_THEADS 2
 #define LWREGD_MAX_ITERATIONS 10
 
@@ -71,11 +77,7 @@ ThreadTestAddKey(
     DWORD dwCount = 0;
     DWORD dwKeyNum = 0;
     PSTR pszKeyName = NULL;
-
-    dwError = LwAllocateMemory(
-                  strlen(pszKeyNamePrefix) + 20,
-                  (LW_PVOID)&pszKeyName);
-    BAIL_ON_REG_ERROR(dwError);
+    PSTR pszSubKeyPath = NULL;
 
     for (dwCount=0; dwCount<dwIterations; dwCount++)
     {
@@ -85,26 +87,172 @@ ThreadTestAddKey(
                pszKeyNamePrefix);
         for (dwKeyNum=0; dwKeyNum<dwRange; dwKeyNum++)
         {
-            sprintf(pszKeyName,
-                    "%s-%d",
-                    pszKeyNamePrefix,
-                    dwKeyNum);
+            dwError = LwAllocateStringPrintf(
+                      &pszKeyName,
+                      "%s-%d",
+                      pszKeyNamePrefix,
+                      dwKeyNum);
+            BAIL_ON_REG_ERROR(dwError);
+
             dwError = RegShellUtilAddKey(hReg, NULL, pszKeyPath, pszKeyName);
+            BAIL_ON_REG_ERROR(dwError);
+
             printf("    >>ThreadTestAddKey: %d %s\\%s\n",
                    dwCount,
                    pszKeyPath,
                    pszKeyName);
+
+            dwError = LwAllocateStringPrintf(
+                      &pszSubKeyPath,
+                      "%s\\%s",
+                      pszKeyPath,
+                      pszKeyName);
             BAIL_ON_REG_ERROR(dwError);
+
+            dwError = RegShellUtilAddKey(hReg, NULL, pszSubKeyPath, pszKeyName);
+            BAIL_ON_REG_ERROR(dwError);
+
+            printf("    >>ThreadTestAddKey: %d %s\\%s\n",
+                   dwCount,
+                   pszSubKeyPath,
+                   pszKeyName);
         }
     }
 
 cleanup:
+    LW_SAFE_FREE_STRING(pszKeyName);
+    LW_SAFE_FREE_STRING(pszSubKeyPath);
     return dwError;
 
 error:
+    if (dwError)
+    {
+        PrintError("ThreadTestAddKey", dwError);
+    }
     goto cleanup;
 }
 
+DWORD
+ThreadTestGetKeys(
+    HANDLE hReg,
+    PSTR pszKeyPath,
+    PSTR pszKeyNamePrefix,
+    DWORD dwRange,
+    DWORD dwIterations)
+{
+    DWORD dwError = 0;
+    DWORD dwCount = 0;
+    DWORD dwKeyNum = 0;
+    PSTR pszKeyName = NULL;
+    LW_WCHAR **ppSubKeys = NULL;
+    DWORD dwRetSubKeyCount = 0;
+    int i = 0;
+
+    for (dwCount=0; dwCount<dwIterations; dwCount++)
+    {
+        printf("ThreadTestGetKeys: %d %s\\%s\n",
+               dwCount,
+               pszKeyPath,
+               pszKeyNamePrefix);
+        for (dwKeyNum=0; dwKeyNum<dwRange; dwKeyNum++)
+        {
+            dwError = LwAllocateStringPrintf(
+                      &pszKeyName,
+                      "%s-%d",
+                      pszKeyNamePrefix,
+                      dwKeyNum);
+            BAIL_ON_REG_ERROR(dwError);
+
+            dwError = RegShellUtilGetKeys(hReg, NULL, pszKeyPath, pszKeyName, &ppSubKeys, &dwRetSubKeyCount);
+            BAIL_ON_REG_ERROR(dwError);
+
+            printf("    >>ThreadTestGetKeys: %d %s\\%s has %d subkeys\n",
+                   dwCount,
+                   pszKeyPath,
+                   pszKeyName,
+                   dwRetSubKeyCount);
+        }
+    }
+
+cleanup:
+    for (i = 0; i < dwRetSubKeyCount; i++)
+    {
+        LW_SAFE_FREE_MEMORY(ppSubKeys[i]);
+    }
+    LW_SAFE_FREE_MEMORY(ppSubKeys);
+    LW_SAFE_FREE_STRING(pszKeyName);
+
+    return dwError;
+
+error:
+    if (dwError)
+    {
+        PrintError("ThreadTestGetKeys", dwError);
+    }
+
+    goto cleanup;
+}
+
+DWORD
+ThreadTestGetValues(
+    HANDLE hReg,
+    PSTR pszKeyPath,
+    PSTR pszKeyNamePrefix,
+    DWORD dwRange,
+    DWORD dwIterations)
+{
+    DWORD dwError = 0;
+    DWORD dwCount = 0;
+    DWORD dwKeyNum = 0;
+    PSTR pszKeyName = NULL;
+    PREGSHELL_UTIL_VALUE valueArray = NULL;
+    DWORD dwValueArrayLen = 0;
+    int i = 0;
+
+    for (dwCount=0; dwCount<dwIterations; dwCount++)
+    {
+        printf("ThreadTestGetValues: %d %s\\%s\n",
+               dwCount,
+               pszKeyPath,
+               pszKeyNamePrefix);
+        for (dwKeyNum=0; dwKeyNum<dwRange; dwKeyNum++)
+        {
+            dwError = LwAllocateStringPrintf(
+                      &pszKeyName,
+                      "%s-%d",
+                      pszKeyNamePrefix,
+                      dwKeyNum);
+            BAIL_ON_REG_ERROR(dwError);
+
+            dwError = RegShellUtilGetValues(hReg, NULL, pszKeyPath, pszKeyName, &valueArray, &dwValueArrayLen);
+            BAIL_ON_REG_ERROR(dwError);
+
+            printf("    >>ThreadTestGetValues: %d %s\\%s has %d value\n",
+                   dwCount,
+                   pszKeyPath,
+                   pszKeyName,
+                   dwValueArrayLen);
+        }
+    }
+
+cleanup:
+    for (i=0; i<dwValueArrayLen; i++)
+    {
+        LW_SAFE_FREE_MEMORY(valueArray[i].pValueName);
+        LW_SAFE_FREE_MEMORY(valueArray[i].pData);
+    }
+    LW_SAFE_FREE_MEMORY(valueArray);
+    LW_SAFE_FREE_STRING(pszKeyName);
+
+    return dwError;
+
+error:
+    if (dwError)
+    {
+        PrintError("ThreadTestGetValues", dwError);
+    }
+    goto cleanup;
+}
 
 DWORD
 ThreadTestDeleteKey(
@@ -118,11 +266,7 @@ ThreadTestDeleteKey(
     DWORD dwCount = 0;
     DWORD dwKeyNum = 0;
     PSTR pszKeyName = NULL;
-
-    dwError = LwAllocateMemory(
-                  strlen(pszKeyNamePrefix) + 20,
-                  (LW_PVOID)&pszKeyName);
-    BAIL_ON_REG_ERROR(dwError);
+    PSTR pszSubKeyPath = NULL;
 
     for (dwCount=0; dwCount<dwIterations; dwCount++)
     {
@@ -132,15 +276,31 @@ ThreadTestDeleteKey(
                pszKeyNamePrefix);
         for (dwKeyNum=0; dwKeyNum<dwRange; dwKeyNum++)
         {
-            sprintf(pszKeyName,
-                    "%s-%d",
-                    pszKeyNamePrefix,
-                    dwKeyNum);
+            dwError = LwAllocateStringPrintf(
+                      &pszKeyName,
+                      "%s-%d",
+                      pszKeyNamePrefix,
+                      dwKeyNum);
+            BAIL_ON_REG_ERROR(dwError);
+
+            dwError = LwAllocateStringPrintf(
+                      &pszSubKeyPath,
+                      "%s\\%s",
+                      pszKeyPath,
+                      pszKeyName);
+            BAIL_ON_REG_ERROR(dwError);
+
+            dwError = RegShellUtilDeleteKey(hReg, NULL, pszSubKeyPath, pszKeyName);
+            BAIL_ON_REG_ERROR(dwError);
+
+            printf("    >>ThreadTestDeleteKey: %d %s\\%s\n",
+                   dwCount,
+                   pszSubKeyPath,
+                   pszKeyName);
+
             dwError = RegShellUtilDeleteKey(hReg, NULL, pszKeyPath, pszKeyName);
-            if (dwError)
-            {
-                PrintError("ThreadTestDeleteKey", dwError);
-            }
+            BAIL_ON_REG_ERROR(dwError);
+
             printf("    >>ThreadTestDeleteKey: %d %s\\%s\n",
                    dwCount,
                    pszKeyPath,
@@ -149,6 +309,8 @@ ThreadTestDeleteKey(
     }
 
 cleanup:
+    LW_SAFE_FREE_STRING(pszKeyName);
+    LW_SAFE_FREE_STRING(pszSubKeyPath);
     return dwError;
 
 error:
@@ -157,6 +319,11 @@ error:
         dwError == LW_ERROR_NO_SUCH_KEY)
     {
         dwError = 0;
+    }
+
+    if (dwError)
+    {
+        PrintError("ThreadTestDeleteKey", dwError);
     }
     goto cleanup;
 }
@@ -168,32 +335,84 @@ ThreadTestPtKey(
 {
     DWORD dwError = 0;
     PPTLWREGD_CONTEXT context = (PPTLWREGD_CONTEXT) pctx;
-    PSTR pszOperation = context->dwOperation == 0 ?  "Add" : "Delete";
+    PSTR pszOperation = NULL;
+
+    switch (context->dwOperation)
+        {
+        case TEST_ADD:
+            pszOperation = "AddKey";
+
+            break;
+
+        case TEST_DELETE:
+            pszOperation = "DeleteKey";
+
+            break;
+
+        case TEST_GET_KEY:
+            pszOperation = "GetKeys";
+
+            break;
+
+        case TEST_GET_VALUE:
+            pszOperation = "GetValues";
+            break;
+
+        default:
+            pszOperation = "Undefined";
+        }
+
 
     printf("ThreadTestPt%sKey: starting %s\\%s\n",
            pszOperation,
            context->pszKeyPath,
            context->pszKeyNamePrefix);
 
-    if (context->dwOperation == 0)
+
+    switch (context->dwOperation)
     {
+    case TEST_ADD:
         dwError = ThreadTestAddKey(
                       context->hReg,
                       context->pszKeyPath,
                       context->pszKeyNamePrefix,
                       context->dwRange,
                       context->dwIterations);
-    }
-    else
-    {
+        break;
+
+    case TEST_DELETE:
         dwError = ThreadTestDeleteKey(
                       context->hReg,
                       context->pszKeyPath,
                       context->pszKeyNamePrefix,
                       context->dwRange,
                       context->dwIterations);
+        break;
+
+    case TEST_GET_KEY:
+        dwError = ThreadTestGetKeys(
+                     context->hReg,
+                     context->pszKeyPath,
+                     context->pszKeyNamePrefix,
+                     context->dwRange,
+                     context->dwIterations);
+        break;
+
+    case TEST_GET_VALUE:
+        dwError = ThreadTestGetValues(
+                     context->hReg,
+                     context->pszKeyPath,
+                     context->pszKeyNamePrefix,
+                     context->dwRange,
+                     context->dwIterations);
+        pszOperation = "GetValues";
+        break;
+
+    default:
+        pszOperation = "Undefined";
     }
     BAIL_ON_REG_ERROR(dwError);
+
     printf("ThreadTestPt%sKey: %s\\%s done.\n",
            pszOperation,
            context->pszKeyPath,
@@ -204,36 +423,6 @@ cleanup:
 error:
     goto cleanup;
 }
-
-
-void *
-ThreadTestPtDeleteKey(
-    void *pctx)
-{
-    DWORD dwError = 0;
-    PPTLWREGD_CONTEXT context = (PPTLWREGD_CONTEXT) pctx;
-
-    printf("ThreadTestPtDeleteKey: starting %s\\%s\n",
-           context->pszKeyPath,
-           context->pszKeyNamePrefix);
-
-    dwError = ThreadTestDeleteKey(
-                  context->hReg,
-                  context->pszKeyPath,
-                  context->pszKeyNamePrefix,
-                  context->dwRange,
-                  context->dwIterations);
-    BAIL_ON_REG_ERROR(dwError);
-    printf("ThreadTestPtDeleteKey: %s\\%s done.\n",
-           context->pszKeyPath,
-           context->pszKeyNamePrefix);
-cleanup:
-    return NULL;
-
-error:
-    goto cleanup;
-}
-
 
 DWORD
 ThreadTestPtFree(
@@ -301,6 +490,9 @@ int main(int argc, char *argv[])
 {
     PPTLWREGD_CONTEXT ctxAdd[LWREGD_MAX_THEADS] = {0};
     PPTLWREGD_CONTEXT ctxDel[LWREGD_MAX_THEADS] = {0};
+    PPTLWREGD_CONTEXT ctxGetKeys[LWREGD_MAX_THEADS] = {0};
+    PPTLWREGD_CONTEXT ctxGetValues[LWREGD_MAX_THEADS] = {0};
+
     DWORD dwError = 0;
 
     int sts = 0;
@@ -312,7 +504,7 @@ int main(int argc, char *argv[])
                          "TestKey",
                          i,
                          LWREGD_MAX_ITERATIONS,
-                         0,
+                         TEST_ADD,
                          &ctxAdd[i]);
     }
 
@@ -322,13 +514,30 @@ int main(int argc, char *argv[])
                          "TestKey",
                          i,
                          LWREGD_MAX_ITERATIONS,
-                         1,
+                         TEST_DELETE,
                          &ctxDel[i]);
     }
 
-    ThreadTestPtKey(ctxAdd[0]);
-    ThreadTestPtKey(ctxDel[0]);
-    //exit(0);
+    for (i=0; i<LWREGD_MAX_THEADS; i++)
+    {
+        ThreadTestPtInit("thread_tests",
+                         "TestKey",
+                         i,
+                         LWREGD_MAX_ITERATIONS,
+                         TEST_GET_KEY,
+                         &ctxGetKeys[i]);
+    }
+
+    for (i=0; i<LWREGD_MAX_THEADS; i++)
+    {
+        ThreadTestPtInit("thread_tests",
+                         "TestKey",
+                         i,
+                         LWREGD_MAX_ITERATIONS,
+                         TEST_GET_VALUE,
+                         &ctxGetValues[i]);
+    }
+
     for (i=0; i<LWREGD_MAX_THEADS; i++)
     {
         sts = pthread_create(&ctxAdd[i]->thread,
@@ -349,19 +558,49 @@ int main(int argc, char *argv[])
                              ctxDel[i]);
         if (sts == -1)
         {
-            printf("pthread_create: Error ThreadTestPtAddkey(ctxDel[%d])\n", i);
+            printf("pthread_create: Error ThreadTestPtDeletekey(ctxDel[%d])\n", i);
             return 1;
         }
     }
     for (i=0; i<LWREGD_MAX_THEADS; i++)
     {
+        sts = pthread_create(&ctxGetKeys[i]->thread,
+                             NULL,
+                             ThreadTestPtKey,
+                             ctxGetKeys[i]);
+        if (sts == -1)
+        {
+            printf("pthread_create: Error ThreadTestPtGetKeys(ctxGetKeys[%d])\n", i);
+            return 1;
+        }
+    }
+    for (i=0; i<LWREGD_MAX_THEADS; i++)
+    {
+        sts = pthread_create(&ctxGetValues[i]->thread,
+                             NULL,
+                             ThreadTestPtKey,
+                             ctxGetValues[i]);
+        if (sts == -1)
+        {
+            printf("pthread_create: Error ThreadTestPtGetValues(ctxGetValues[%d])\n", i);
+            return 1;
+        }
+    }
+
+
+    for (i=0; i<LWREGD_MAX_THEADS; i++)
+    {
         pthread_join(ctxAdd[i]->thread, NULL);
         pthread_join(ctxDel[i]->thread, NULL);
+        pthread_join(ctxGetKeys[i]->thread, NULL);
+        pthread_join(ctxGetValues[i]->thread, NULL);
     }
     for (i=0; i<LWREGD_MAX_THEADS; i++)
     {
         ThreadTestPtFree(ctxAdd[i]);
         ThreadTestPtFree(ctxDel[i]);
+        ThreadTestPtFree(ctxGetKeys[i]);
+        ThreadTestPtFree(ctxGetValues[i]);
     }
     return dwError;
 }
