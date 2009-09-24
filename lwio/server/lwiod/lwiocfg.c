@@ -117,6 +117,7 @@ SMBSrvReadRegistry(
         "Policy\\Services\\lwio\\Parameters",
         NULL,
         0);
+    BAIL_ON_NON_LWREG_ERROR(dwError);
 
     dwError = SMBSrvTransferConfigContents(
                     &smb_config,
