@@ -35,6 +35,7 @@
 #include "ioinit.h"
 #include <lw/rtlstring.h>
 #include <lw/rtlgoto.h>
+#include <reg/reg.h>
 
 #include "lwlist.h"
 #include "lwioutils.h"
@@ -157,9 +158,8 @@ IopConfigFreeConfig(
     );
 
 NTSTATUS
-IopConfigParse(
-    OUT PIOP_CONFIG* ppConfig,
-    IN PCSTR pszConfigFilePath
+IopConfigReadRegistry(
+    OUT PIOP_CONFIG* ppConfig
     );
 
 // ioroot.c
@@ -324,4 +324,88 @@ IopFileObjectFree(
 VOID
 IopSecurityReferenceSecurityContext(
     IN PIO_CREATE_SECURITY_CONTEXT SecurityContext
+    );
+
+#define BAIL_ON_NON_LWREG_ERROR(dwError) \
+        if (!(40700 <= dwError && dwError <= 41200)) {  \
+           BAIL_ON_LWIO_ERROR(dwError);            \
+        }
+
+typedef struct __SMB_CONFIG_REG SMB_CONFIG_REG, *PSMB_CONFIG_REG;
+
+typedef enum
+{
+    SMBTypeString,
+    SMBTypeDword,
+    SMBTypeBoolean,
+    SMBTypeChar,
+    SMBTypeEnum
+} SMB_CONFIG_TYPE;
+
+typedef struct __SMB_CONFIG_TABLE
+{
+    PCSTR   pszName;
+    BOOLEAN bUsePolicy;
+    SMB_CONFIG_TYPE Type;
+    DWORD dwMin;
+    DWORD dwMax;
+    const PCSTR *ppszEnumNames;
+    PVOID pValue;
+} SMB_CONFIG_TABLE, *PSMB_CONFIG_TABLE;
+
+DWORD
+SMBProcessConfig(
+    PCSTR pszConfigKey,
+    PCSTR pszPolicyKey,
+    PSMB_CONFIG_TABLE pConfig,
+    DWORD dwConfigEntries
+    );
+
+DWORD
+SMBOpenConfig(
+    PCSTR pszConfigKey,
+    PCSTR pszPolicyKey,
+    PSMB_CONFIG_REG *ppReg
+    );
+
+VOID
+SMBCloseConfig(
+    PSMB_CONFIG_REG pReg
+    );
+
+DWORD
+SMBReadConfigString(
+    PSMB_CONFIG_REG pReg,
+    PCSTR   pszName,
+    BOOLEAN bUsePolicy,
+    PSTR    *ppszValue
+    );
+
+DWORD
+SMBReadConfigDword(
+    PSMB_CONFIG_REG pReg,
+    PCSTR pszName,
+    BOOLEAN bUsePolicy,
+    DWORD   dwMin,
+    DWORD   dwMax,
+    PDWORD pdwValue
+    );
+
+DWORD
+SMBReadConfigBoolean(
+    PSMB_CONFIG_REG pReg,
+    PCSTR pszName,
+    BOOLEAN bUsePolicy,
+    PBOOLEAN pbValue
+    );
+
+DWORD
+SMBReadConfigEnum(
+    PSMB_CONFIG_REG pReg,
+    PCSTR pszName,
+    BOOLEAN bUsePolicy,
+    DWORD dwMin,
+    DWORD dwMax,
+    const PCSTR *ppszEnumNames,
+    PDWORD pdwValue
     );

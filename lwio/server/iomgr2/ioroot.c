@@ -72,7 +72,7 @@ IopRootCreate(
     LwListInit(&pRoot->DriverObjectList);
     LwListInit(&pRoot->DeviceObjectList);
 
-    status = IopConfigParse(&pRoot->Config, pszConfigFilePath);
+    status = IopConfigReadRegistry(&pRoot->Config);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     status = LwRtlInitializeMutex(&pRoot->InitMutex, FALSE);

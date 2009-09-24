@@ -5,6 +5,7 @@ lib_LTLIBRARIES = libiomgr2.la
 endif
 
 libiomgr2_la_SOURCES = \
+    iocfg.c \
     ioinit.c \
     ioconfig.c \
     ioroot.c \
@@ -32,7 +33,8 @@ libiomgr2_la_LIBADD = \
     @UUID_LIBS@  \
     @PTHREAD_LIBS@ \
     @SEM_LIBS@ \
-    @SOCKET_LIBS@
+    @SOCKET_LIBS@ \
+	@LWREG_LIBS@
 
 libiomgr2_la_LDFLAGS = \
     -no-undefined

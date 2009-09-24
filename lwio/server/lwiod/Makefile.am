@@ -13,7 +13,8 @@ MAIN_CPPFLAGS = \
 MAIN_LIBS = \
     @top_builddir@/server/iomgr2/libiomgr2.la \
     @NETLOGON_LIBS@ \
-    @LWMSG_LIBS@
+    @LWMSG_LIBS@ \
+	@LWREG_LIBS@
 
 lwiod_LDFLAGS = -L$(top_builddir)/common/.libs \
     @DS_FRAMEWORK_LDFLAGS@

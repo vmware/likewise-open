@@ -8,6 +8,7 @@ lwio_refresh_CPPFLAGS =  \
     -I@top_srcdir@/include
 
 lwio_refresh_LDADD = \
-    @top_builddir@/client/liblwioclient.la
+    @top_builddir@/client/liblwioclient.la \
+    @LWREG_LIBS@
 
 lwio_refresh_LDFLAGS = -L$(top_builddir)/common/.libs

@@ -49,51 +49,25 @@ IopConfigFreeDriverConfig(
     }
 }
 
-static
-DWORD
-IopConfigParseStartSection(
-    IN PCSTR pszSectionName,
-    IN PVOID pData,
-    OUT PBOOLEAN pbSkipSection,
-    OUT PBOOLEAN pbContinue
-    )
+NTSTATUS
+IopConfigAddDriver(
+    PIOP_CONFIG pConfig,
+    PCSTR   pszName,
+    PCSTR   pszPath
+        )
 {
     NTSTATUS status = 0;
     int EE = 0;
-    BOOLEAN bContinue = TRUE;
-    BOOLEAN bSkipSection = FALSE;
-    PIOP_CONFIG_PARSE_STATE pState = (PIOP_CONFIG_PARSE_STATE) pData;
     PIOP_DRIVER_CONFIG pDriverConfig = NULL;
-    PCSTR pszName = NULL;
     PLW_LIST_LINKS pLinks = NULL;
 
-    assert(pszSectionName);
-    assert(pState);
-    assert(!pState->pDriverConfig);
-
-    LWIO_LOG_DEBUG("Section = '%s'", pszSectionName);
-
-    if (strncasecmp(pszSectionName, IOP_CONFIG_TAG_DRIVER, sizeof(IOP_CONFIG_TAG_DRIVER)-1))
-    {
-        bSkipSection = TRUE;
-        GOTO_CLEANUP_EE(EE);
-    }
-
-    pszName = pszSectionName + sizeof(IOP_CONFIG_TAG_DRIVER) - 1;
-    if (IsNullOrEmptyString(pszName))
-    {
-        LWIO_LOG_ERROR("No driver name was specified");
-
-        status = STATUS_UNSUCCESSFUL;
-        GOTO_CLEANUP_EE(EE);
-    }
-
-    // Check for duplicate driver config.
-    for (pLinks = pState->pConfig->DriverConfigList.Next;
-         pLinks != &pState->pConfig->DriverConfigList;
+            // Check for duplicate driver config.
+    for (pLinks = pConfig->DriverConfigList.Next;
+         pLinks != &pConfig->DriverConfigList;
          pLinks = pLinks->Next)
     {
-        PIOP_DRIVER_CONFIG pCheckDriverConfig = LW_STRUCT_FROM_FIELD(pLinks, IOP_DRIVER_CONFIG, Links);
+        PIOP_DRIVER_CONFIG pCheckDriverConfig =
+                LW_STRUCT_FROM_FIELD(pLinks, IOP_DRIVER_CONFIG, Links);
         if (!strcasecmp(pCheckDriverConfig->pszName, pszName))
         {
             LWIO_LOG_ERROR("Duplicate driver name '%s'", pszName);
@@ -103,144 +77,172 @@ IopConfigParseStartSection(
         }
     }
 
-    status = IO_ALLOCATE(&pDriverConfig, IOP_DRIVER_CONFIG, sizeof(*pDriverConfig));
+    status = IO_ALLOCATE(
+                &pDriverConfig,
+                IOP_DRIVER_CONFIG,
+                sizeof(*pDriverConfig));
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     status = RtlCStringDuplicate(&pDriverConfig->pszName, pszName);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
-    LwListInsertTail(&pState->pConfig->DriverConfigList, &pDriverConfig->Links);
-    pState->pConfig->DriverCount++;
+    status = RtlCStringDuplicate(&pDriverConfig->pszPath, pszPath);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
-    pState->pDriverConfig = pDriverConfig;
+    LwListInsertTail(&pConfig->DriverConfigList, &pDriverConfig->Links);
+    pConfig->DriverCount++;
 
 cleanup:
+
     if (status)
     {
-        pState->Status = status;
-
         IopConfigFreeDriverConfig(&pDriverConfig);
-
-        bContinue = FALSE;
-        bSkipSection = TRUE;
     }
     
-    *pbSkipSection = bSkipSection;
-    *pbContinue = bContinue;
-
     // TODO -- Error code mismatch?
     return status;
 }
 
-static
-DWORD
-IopConfigParseEndSection(
-    IN PCSTR pszSectionName,
-    IN PVOID pData,
-    OUT PBOOLEAN pbContinue
-    )
+NTSTATUS
+IopConfigReadDriver(
+     PIOP_CONFIG pConfig,
+     PCSTR pszDriverKey,
+     PCSTR pszDriverName
+     )
 {
+    DWORD dwError = 0;
+
     NTSTATUS status = 0;
     int EE = 0;
-    PIOP_CONFIG_PARSE_STATE pState = (PIOP_CONFIG_PARSE_STATE) pData;
-    BOOLEAN bContinue = TRUE;
+    PSMB_CONFIG_REG pReg = NULL;
+    PSTR pszDriverPath = NULL;
 
-    assert(pszSectionName);
-    assert(pState);
-    assert(pState->pDriverConfig);
-
-    LWIO_LOG_DEBUG("Section = '%s'", pszSectionName);
-
-    // Finished last driver, if any.
-    if (pState->pDriverConfig)
+    dwError = SMBOpenConfig(
+                pszDriverKey,
+                pszDriverKey,
+                &pReg);
+    if (dwError)
     {
-        if (!pState->pDriverConfig->pszPath)
-        {
-            status = STATUS_UNSUCCESSFUL;
-            GOTO_CLEANUP_EE(EE);
-        }
-        pState->pDriverConfig = NULL;
-    }
-
-cleanup:
-    if (status)
-    {
-        pState->Status = status;
-        bContinue = FALSE;
-    }
-    
-    *pbContinue = bContinue;
-
-    // TODO -- Error code mismatch?
-    return status;
-
-}
-
-static
-DWORD
-IopConfigParseNameValuePair(
-    IN PCSTR pszName,
-    IN PCSTR pszValue,
-    IN PVOID pData,
-    OUT PBOOLEAN pbContinue
-    )
-{
-    NTSTATUS status = 0;
-    int EE = 0;
-    PIOP_CONFIG_PARSE_STATE pState = (PIOP_CONFIG_PARSE_STATE) pData;
-    BOOLEAN bContinue = TRUE;
-
-    assert(pszName);
-    assert(pszValue);
-    assert(pState);
-    assert(pState->pDriverConfig);
-    assert(pState->pDriverConfig->pszName);
-
-    LWIO_LOG_DEBUG("Driver = '%s', Name = '%s', Value = '%s'",
-                  pState->pDriverConfig->pszName,
-                  pszName,
-                  pszValue);
-
-    if (strcasecmp(pszName, "path"))
-    {
-        GOTO_CLEANUP_EE(EE);
-    }
-
-    if (pState->pDriverConfig->pszPath)
-    {
-        LWIO_LOG_ERROR("Path for driver '%s' is already defined as '%s'",
-                      pState->pDriverConfig->pszName,
-                      pState->pDriverConfig->pszPath);
-
+        // TODO-Error code issues?
         status = STATUS_UNSUCCESSFUL;
-        GOTO_CLEANUP_EE(EE);
+        GOTO_CLEANUP_ON_STATUS(status);
     }
 
-    if (IsNullOrEmptyString(pszValue))
+    if (!pReg)
     {
-        LWIO_LOG_ERROR("Empty path for driver '%s'",
-                      pState->pDriverConfig->pszName);
-
-        status = STATUS_UNSUCCESSFUL;
-        GOTO_CLEANUP_EE(EE);
+        goto cleanup;
     }
 
-    status = RtlCStringDuplicate(&pState->pDriverConfig->pszPath,
-                                pszValue);
+    dwError = SMBReadConfigString(pReg, "Path", FALSE, &pszDriverPath);
+    if (dwError)
+    {
+        // TODO-Error code issues?
+        status = STATUS_UNSUCCESSFUL;
+        GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+    }
+
+    if (IsNullOrEmptyString(pszDriverPath))
+    {
+        LWIO_LOG_ERROR("Empty path for driver '%s'", pszDriverName);
+        goto cleanup;
+    }
+
+    status = IopConfigAddDriver(pConfig, pszDriverName, pszDriverPath);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
 cleanup:
-    if (status)
-    {
-        pState->Status = status;
 
-        bContinue = FALSE;
-    }
+    SMBCloseConfig(pReg);
+    pReg = NULL;
 
-    *pbContinue = bContinue;
+    LWIO_SAFE_FREE_STRING(pszDriverPath);
 
     // TODO -- Error code mismatch?
     return status;
+
+}
+
+NTSTATUS
+IopConfigAddDrivers(
+     PIOP_CONFIG pConfig
+     )
+{
+    DWORD dwError = 0;
+
+    NTSTATUS status = 0;
+    int EE = 0;
+
+    PSMB_CONFIG_REG pReg = NULL;
+    PSTR pszDriverKey = NULL;
+
+    PCSTR pszDriverName = NULL;
+    PSTR pszDriverNames = NULL;
+    PSTR pszTokenState = NULL;
+
+    dwError = SMBOpenConfig(
+                "Services\\lwio\\Parameters\\Drivers",
+                "Policy\\Services\\lwio\\Parameter\\Drivers",
+                &pReg);
+    if (dwError)
+    {
+        // TODO-Error code issues?
+        status = STATUS_UNSUCCESSFUL;
+        GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+    }
+
+    if (!pReg)
+    {
+        goto add_default;
+    }
+
+    dwError = SMBReadConfigString(pReg, "Load", FALSE, &pszDriverNames);
+    if (dwError)
+    {
+        // TODO-Error code issues?
+        status = STATUS_UNSUCCESSFUL;
+        GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+    }
+
+    if(IsNullOrEmptyString(pszDriverNames))
+    {
+        goto add_default;
+    }
+
+    pszDriverName = strtok_r(pszDriverNames, ",", &pszTokenState);
+    while (!IsNullOrEmptyString(pszDriverName))
+    {
+        status = SMBAllocateStringPrintf(
+                    &pszDriverKey,
+                    "Services\\lwio\\Parameters\\Drivers\\%s",
+                    pszDriverName);
+        GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+        status = IopConfigReadDriver(
+                    pConfig,
+                    pszDriverKey,
+                    pszDriverName);
+        GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+        LWIO_SAFE_FREE_STRING(pszDriverKey);
+
+        pszDriverName = strtok_r(NULL, ",", &pszTokenState);
+    }
+
+cleanup:
+
+    SMBCloseConfig(pReg);
+    pReg = NULL;
+
+    LWIO_SAFE_FREE_STRING(pszDriverNames);
+
+    LWIO_SAFE_FREE_STRING(pszDriverKey);
+
+    // TODO -- Error code mismatch?
+    return status;
+
+add_default:
+    dwError = IopConfigAddDriver(pConfig, "rdr", LIBDIR "/librdr.sys.so");
+    goto cleanup;
 }
 
 VOID
@@ -264,28 +266,20 @@ IopConfigFreeConfig(
 }
 
 NTSTATUS
-IopConfigParse(
-    OUT PIOP_CONFIG* ppConfig,
-    IN PCSTR pszConfigFilePath
+IopConfigReadRegistry(
+    OUT PIOP_CONFIG* ppConfig
     )
 {
     NTSTATUS status = 0;
     DWORD dwError = 0;
     PIOP_CONFIG pConfig = NULL;
-    IOP_CONFIG_PARSE_STATE parseState = { 0 };
-    BOOLEAN bExists = FALSE;
-    PIOP_DRIVER_CONFIG pDriverConfig = NULL;
 
     status = IO_ALLOCATE(&pConfig, IOP_CONFIG, sizeof(*pConfig));
     GOTO_CLEANUP_ON_STATUS(status);
 
     LwListInit(&pConfig->DriverConfigList);
 
-    parseState.pConfig = pConfig;
-
-    dwError = SMBCheckFileExists(
-                  pszConfigFilePath,
-                  &bExists);
+    dwError = IopConfigAddDrivers(pConfig);
     if (dwError)
     {
         // TODO-Error code issues?
@@ -293,57 +287,11 @@ IopConfigParse(
         GOTO_CLEANUP_ON_STATUS(status);
     }
 
-    if (bExists)
-    {
-        dwError = SMBParseConfigFile(
-                      pszConfigFilePath,
-                      SMB_CFG_OPTION_STRIP_ALL,
-                      IopConfigParseStartSection,
-                      NULL,
-                      IopConfigParseNameValuePair,
-                      IopConfigParseEndSection,
-                      &parseState);
-        if (dwError)
-        {
-            // TODO-Error code issues?
-            status = STATUS_UNSUCCESSFUL;
-            GOTO_CLEANUP_ON_STATUS(status);
-        }
-    }
-    else
-    {
-        status = IO_ALLOCATE(&pDriverConfig, IOP_DRIVER_CONFIG, sizeof(*pDriverConfig));
-        GOTO_CLEANUP_ON_STATUS(status);
-
-        status = RtlCStringDuplicate(&pDriverConfig->pszName, "rdr");
-        GOTO_CLEANUP_ON_STATUS(status);
-
-        LwListInsertTail(&parseState.pConfig->DriverConfigList, &pDriverConfig->Links);
-        parseState.pConfig->DriverCount++;
-
-        parseState.pDriverConfig = pDriverConfig;
-        pDriverConfig = NULL;
-
-        status = RtlCStringDuplicate(
-                     &parseState.pDriverConfig->pszPath,
-                     LIBDIR "/librdr.sys.so");
-        GOTO_CLEANUP_ON_STATUS(status);
-
-        parseState.pDriverConfig = NULL;
-    }
-
-    status = parseState.Status;
-    GOTO_CLEANUP_ON_STATUS(status);
-
-    assert(!parseState.pDriverConfig);
-
 cleanup:
-    assert(!(dwError && !status));
 
     if (status)
     {
         IopConfigFreeConfig(&pConfig);
-        IopConfigFreeDriverConfig(&pDriverConfig);
     }
 
     *ppConfig = pConfig;

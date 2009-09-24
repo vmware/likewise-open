@@ -59,7 +59,6 @@
 #include "consolelog_p.h"
 #include "filelog_p.h"
 #include "logger.h"
-#include "lwioconfig.h"
 
 #include "externs.h"
 

@@ -56,27 +56,24 @@ SrvTransferConfigContents(
     PLWIO_SRV_CONFIG pDest
     );
 
-static
-ULONG
-SrvConfigStartSection(
-    PCSTR    pszSectionName,
-    PVOID    pData,
-    PBOOLEAN pbSkipSection,
-    PBOOLEAN pbContinue
-    );
+
+BOOLEAN gbSupportSMB2;
 
 static
-ULONG
-SrvConfigNameValuePair(
-    PCSTR    pszName,
-    PCSTR    pszValue,
-    PVOID    pData,
-    PBOOLEAN pbContinue
-    );
+SMB_CONFIG_TABLE gConfig[] = {
+    {
+        "SupportSmb2",
+        FALSE,
+        SMBTypeBoolean,
+        0,
+        -1,
+        NULL,
+        &gbSupportSMB2
+    }
+};
 
 NTSTATUS
 SrvReadConfig(
-    PCSTR            pszConfigFilePath,
     PLWIO_SRV_CONFIG pConfig
     )
 {
@@ -87,14 +84,16 @@ SrvReadConfig(
     ntStatus = SrvInitConfig(&srvConfig);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ulError = SMBParseConfigFile(
-                    pszConfigFilePath,
-                    SMB_CFG_OPTION_STRIP_ALL,
-                    &SrvConfigStartSection,
-                    NULL,
-                    &SrvConfigNameValuePair,
-                    NULL,
-                    &srvConfig);
+    gbSupportSMB2             = FALSE;
+
+    ulError = SMBProcessConfig(
+                "Services\\lwio\\Parameters\\Drivers",
+                "Policy\\Services\\lwio\\Parameters\\Drivers",
+                gConfig,
+                sizeof(gConfig)/sizeof(gConfig[0]));
+
+    srvConfig.bSupportSMB2 = gbSupportSMB2;
+
     if (ulError)
     {
         LWIO_LOG_ERROR("Failed to parse device configuration [error code: %u]",
@@ -159,68 +158,3 @@ SrvFreeConfigContents(
     // Nothing to free right now
     memset(pConfig, 0, sizeof(*pConfig));
 }
-
-static
-ULONG
-SrvConfigStartSection(
-    PCSTR    pszSectionName,
-    PVOID    pData,
-    PBOOLEAN pbSkipSection,
-    PBOOLEAN pbContinue
-    )
-{
-    ULONG ulError = 0;
-    BOOLEAN bContinue = TRUE;
-    BOOLEAN bSkipSection = TRUE;
-
-    if (!IsNullOrEmptyString(pszSectionName) &&
-        !strncasecmp(
-            pszSectionName,
-            SRV_CONFIG_TAG_DRIVER,
-            sizeof(SRV_CONFIG_TAG_DRIVER)-1) &&
-        !strncmp(pszSectionName + sizeof(SRV_CONFIG_TAG_DRIVER) - 1,
-                 SRV_CONFIG_DRIVER_NAME,
-                 sizeof(SRV_CONFIG_DRIVER_NAME)-1))
-    {
-        bSkipSection = FALSE;
-    }
-
-    *pbSkipSection = bSkipSection;
-    *pbContinue = bContinue;
-
-    return ulError;
-}
-
-static
-DWORD
-SrvConfigNameValuePair(
-    PCSTR    pszName,
-    PCSTR    pszValue,
-    PVOID    pData,
-    PBOOLEAN pbContinue
-    )
-{
-    ULONG ulError = 0;
-    PLWIO_SRV_CONFIG pConfig = (PLWIO_SRV_CONFIG)pData;
-
-    if (!strcasecmp(pszName, "support-smb2"))
-    {
-        if (!IsNullOrEmptyString(pszValue) &&
-            (!strcasecmp(pszValue, "true") ||
-             !strcasecmp(pszValue, "1") ||
-             (*pszValue == 'y') ||
-             (*pszValue == 'Y')))
-        {
-            pConfig->bSupportSMB2 = TRUE;
-        }
-        else
-        {
-            pConfig->bSupportSMB2 = FALSE;
-        }
-    }
-
-    *pbContinue = TRUE;
-
-    return ulError;
-}
-

@@ -42,6 +42,7 @@
 #include <lw/ntstatus.h>
 
 #include "marshal.h"
+#include "smbcfg.h"
 #include "smbwire.h"
 #include "smbkrb5.h"
 
