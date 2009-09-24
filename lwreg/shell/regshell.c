@@ -915,7 +915,7 @@ RegShellProcessInteractiveEditLine(
         if (av[0][0] =='!')
         {
             /* !nnn case */
-            if (isdigit(av[0][1]))
+            if (isdigit((int)av[0][1]))
             {
                 dwEventNum = strtol(&av[0][1], &pszNumEnd, 0);
                 rv = history(hist, &ev, H_NEXT_EVENT, dwEventNum);
