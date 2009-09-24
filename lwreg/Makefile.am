@@ -4,8 +4,7 @@ compat_subdirs = \
     utils        \
     include      \
     ipc          \
-    client       
-    
+    client
 
 full_subdirs=         \
     $(compat_subdirs) \
@@ -15,7 +14,6 @@ full_subdirs=         \
     shellutil         \
     test              \
     tools             \
-    libedit           \
     shell
 
 if ENABLE_COMPAT
