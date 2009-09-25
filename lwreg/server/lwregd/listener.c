@@ -94,7 +94,7 @@ RegSrvLogIpc (
     {
         if (gRegMaxLogLevel >= regLevel)
         {
-            RegLogMessage(gpfnLogger, ghLog, regLevel, "[IPC] %s", pszMessage);
+            RegLogMessage(gpfnRegLogger, ghRegLog, regLevel, "[IPC] %s", pszMessage);
             result = LWMSG_TRUE;
         }
         else

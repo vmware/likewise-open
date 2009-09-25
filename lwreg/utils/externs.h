@@ -60,10 +60,10 @@
 
 #define REG_LOG_TIME_FORMAT "%Y%m%d%H%M%S"
 
-extern HANDLE              ghLog;
-extern PFN_REG_LOG_MESSAGE gpfnLogger;
-extern RegLogTarget        gLogTarget;
-extern RegLogLevel         gLogLevel;
-extern PREG_BIT_VECTOR     gpTraceFlags;
+extern HANDLE              ghRegLog;
+extern PFN_REG_LOG_MESSAGE gpfnRegLogger;
+extern RegLogTarget        gRegLogTarget;
+extern RegLogLevel         gRegLogLevel;
+extern PREG_BIT_VECTOR     gpRegTraceFlags;
 
 #endif /* __EXTERNS_H__ */

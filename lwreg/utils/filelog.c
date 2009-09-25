@@ -128,7 +128,7 @@ RegGetFileLogInfo(
 
     BAIL_ON_INVALID_HANDLE(hLog);
 
-    if ((gLogTarget != REG_LOG_TARGET_FILE) ||
+    if ((gRegLogTarget != REG_LOG_TARGET_FILE) ||
         IsNullOrEmptyString(pFileLog->pszFilePath))
     {
         dwError = LW_ERROR_INTERNAL;

@@ -107,9 +107,9 @@ RegInitLogging(
             BAIL_ON_REG_ERROR(dwError);
     }
 
-    gLogTarget = logTarget;
+    gRegLogTarget = logTarget;
     gRegMaxLogLevel = maxAllowedLogLevel;
-    ghLog = hLog;
+    ghRegLog = hLog;
 
  cleanup:
 
@@ -117,8 +117,8 @@ RegInitLogging(
 
  error:
 
-    gLogTarget = REG_LOG_TARGET_DISABLED;
-    ghLog = (HANDLE)NULL;
+    gRegLogTarget = REG_LOG_TARGET_DISABLED;
+    ghRegLog = (HANDLE)NULL;
 
     goto cleanup;
 }
@@ -131,7 +131,7 @@ RegLogGetInfo(
     DWORD dwError = 0;
     PREG_LOG_INFO pLogInfo = NULL;
 
-    switch(gLogTarget)
+    switch(gRegLogTarget)
     {
         case REG_LOG_TARGET_DISABLED:
         case REG_LOG_TARGET_CONSOLE:
@@ -142,7 +142,7 @@ RegLogGetInfo(
                             (PVOID*)&pLogInfo);
             BAIL_ON_REG_ERROR(dwError);
 
-            pLogInfo->logTarget = gLogTarget;
+            pLogInfo->logTarget = gRegLogTarget;
             pLogInfo->maxAllowedLogLevel = gRegMaxLogLevel;
 
             break;
@@ -150,7 +150,7 @@ RegLogGetInfo(
         case REG_LOG_TARGET_FILE:
 
             dwError = RegGetFileLogInfo(
-                            ghLog,
+                            ghRegLog,
                             &pLogInfo);
             BAIL_ON_REG_ERROR(dwError);
 
@@ -194,7 +194,7 @@ RegLogSetInfo(
 
     gRegMaxLogLevel = pLogInfo->maxAllowedLogLevel;
 
-    switch (gLogTarget)
+    switch (gRegLogTarget)
     {
         case REG_LOG_TARGET_SYSLOG:
 
@@ -223,23 +223,23 @@ RegShutdownLogging(
 {
     DWORD dwError = 0;
 
-    if (ghLog != (HANDLE)NULL)
+    if (ghRegLog != (HANDLE)NULL)
     {
-        switch(gLogTarget)
+        switch(gRegLogTarget)
         {
             case REG_LOG_TARGET_DISABLED:
                 break;
 
             case REG_LOG_TARGET_CONSOLE:
-                RegCloseConsoleLog(ghLog);
+                RegCloseConsoleLog(ghRegLog);
                 break;
 
             case REG_LOG_TARGET_FILE:
-                RegCloseFileLog(ghLog);
+                RegCloseFileLog(ghRegLog);
                 break;
 
             case REG_LOG_TARGET_SYSLOG:
-                RegCloseSyslog(ghLog);
+                RegCloseSyslog(ghRegLog);
             break;
         }
     }
@@ -263,9 +263,9 @@ RegSetupLogging(
 		goto error;
 	}
 
-	ghLog = hLog;
+	ghRegLog = hLog;
 	gRegMaxLogLevel = maxAllowedLogLevel;
-	gpfnLogger = pfnLogger;
+	gpfnRegLogger = pfnLogger;
 
 error:
 
@@ -278,8 +278,8 @@ RegResetLogging(
     )
 {
 	gRegMaxLogLevel = REG_LOG_LEVEL_ERROR;
-	gpfnLogger = NULL;
-	ghLog = (HANDLE)NULL;
+	gpfnRegLogger = NULL;
+	ghRegLog = (HANDLE)NULL;
 }
 
 VOID
@@ -340,12 +340,12 @@ RegTraceInitialize(
 
     BAIL_ON_REG_ERROR(dwError);
 
-    if (gpTraceFlags)
+    if (gpRegTraceFlags)
     {
-        RegBitVectorFree(gpTraceFlags);
+        RegBitVectorFree(gpRegTraceFlags);
     }
 
-    gpTraceFlags = pTraceVector;
+    gpRegTraceFlags = pTraceVector;
 
 cleanup:
 
@@ -368,9 +368,9 @@ RegTraceIsFlagSet(
 {
     BOOLEAN bResult = FALSE;
 
-    if (gpTraceFlags &&
+    if (gpRegTraceFlags &&
         dwTraceFlag &&
-        RegBitVectorIsSet(gpTraceFlags, dwTraceFlag))
+        RegBitVectorIsSet(gpRegTraceFlags, dwTraceFlag))
     {
         bResult = TRUE;
     }
@@ -387,7 +387,7 @@ RegTraceIsAllowed(
     BOOLEAN bResult = FALSE;
     DWORD   iFlag = 0;
 
-    if (gpTraceFlags)
+    if (gpRegTraceFlags)
     {
         for (; !bResult && (iFlag < dwNumFlags); iFlag++)
         {
@@ -408,14 +408,14 @@ RegTraceSetFlag(
 {
     DWORD dwError = 0;
 
-    if (!gpTraceFlags)
+    if (!gpRegTraceFlags)
     {
         dwError = LW_ERROR_TRACE_NOT_INITIALIZED;
         BAIL_ON_REG_ERROR(dwError);
     }
 
     dwError = RegBitVectorSetBit(
-                    gpTraceFlags,
+                    gpRegTraceFlags,
                     dwTraceFlag);
 
 error:
@@ -430,14 +430,14 @@ RegTraceUnsetFlag(
 {
     DWORD dwError = 0;
 
-    if (!gpTraceFlags)
+    if (!gpRegTraceFlags)
     {
         dwError = LW_ERROR_TRACE_NOT_INITIALIZED;
         BAIL_ON_REG_ERROR(dwError);
     }
 
     dwError = RegBitVectorUnsetBit(
-                    gpTraceFlags,
+                    gpRegTraceFlags,
                     dwTraceFlag);
 
 error:
@@ -450,9 +450,9 @@ RegTraceShutdown(
     VOID
     )
 {
-    if (gpTraceFlags)
+    if (gpRegTraceFlags)
     {
-        RegBitVectorFree(gpTraceFlags);
-        gpTraceFlags = NULL;
+        RegBitVectorFree(gpRegTraceFlags);
+        gpRegTraceFlags = NULL;
     }
 }
