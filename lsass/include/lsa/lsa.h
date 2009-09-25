@@ -460,7 +460,6 @@ typedef struct __LSA_GROUP_INFO_LIST
 
 typedef struct __LSA_GROUP_MEMBER_INFO
 {
-    LW_PSTR pszDN;
     LW_PSTR pszSid;
 } LSA_GROUP_MEMBER_INFO, *PLSA_GROUP_MEMBER_INFO;
 

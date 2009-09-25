@@ -296,14 +296,12 @@ LsaModifyGroup_AddMembers(
     )
 {
     DWORD dwError = 0;
-    PCSTR pszDN = NULL;
     PCSTR pszSID = NULL;
-    PCSTR *ppszMember = NULL;
     DWORD iMember = 0;
 
     BAIL_ON_INVALID_POINTER(pGroupModInfo);
 
-    ppszMember = (PCSTR*)pData;
+    pszSID = (PCSTR)pData;
     pGroupModInfo->dwAddMembersNum++;
 
     dwError = LwReallocMemory(pGroupModInfo->pAddMembers,
@@ -312,20 +310,9 @@ LsaModifyGroup_AddMembers(
                                pGroupModInfo->dwAddMembersNum);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (ppszMember)
+    if (pszSID)
     {
-        pszDN   = ppszMember[0];
-        pszSID  = ppszMember[1];
         iMember = pGroupModInfo->dwAddMembersNum - 1;
-
-        /* DN is optional - we could be adding foreign security principal
-           we have no knowledge about the DN of */
-        if (pszDN) {
-            dwError = LwAllocateString(
-                        pszDN,
-                        &pGroupModInfo->pAddMembers[iMember].pszDN);
-            BAIL_ON_LSA_ERROR(dwError);
-        }
 
         dwError = LwAllocateString(
                     pszSID,
@@ -349,14 +336,12 @@ LsaModifyGroup_RemoveMembers(
     )
 {
     DWORD dwError = 0;
-    PCSTR pszDN = NULL;
     PCSTR pszSID = NULL;
-    PCSTR *ppszMember = NULL;
     DWORD iMember = 0;
 
     BAIL_ON_INVALID_POINTER(pGroupModInfo);
 
-    ppszMember = (PCSTR*)pData;
+    pszSID = (PCSTR)pData;
     pGroupModInfo->dwRemoveMembersNum++;
 
     dwError = LwReallocMemory(pGroupModInfo->pRemoveMembers,
@@ -366,20 +351,9 @@ LsaModifyGroup_RemoveMembers(
     BAIL_ON_LSA_ERROR(dwError);
 
 
-    if (ppszMember)
+    if (pszSID)
     {
-        pszDN   = ppszMember[0];
-        pszSID  = ppszMember[1];
         iMember = pGroupModInfo->dwRemoveMembersNum - 1;
-
-        /* DN is optional - we could be removing a member that doesn't
-           exist anymore. In that case we'd know only its SID */
-        if (pszDN) {
-            dwError = LwAllocateString(
-                        pszDN,
-                        &pGroupModInfo->pRemoveMembers[iMember].pszDN);
-            BAIL_ON_LSA_ERROR(dwError);
-        }
 
         dwError = LwAllocateString(
                     pszSID,
@@ -403,14 +377,14 @@ LsaFreeGroupModInfo(
 {
     DWORD i = 0;
 
-    for (i = 0; i < pGroupModInfo->dwAddMembersNum; i++) {
-        LW_SAFE_FREE_STRING(pGroupModInfo->pAddMembers[i].pszDN);
+    for (i = 0; i < pGroupModInfo->dwAddMembersNum; i++)
+    {
         LW_SAFE_FREE_STRING(pGroupModInfo->pAddMembers[i].pszSid);
     }
     LW_SAFE_FREE_MEMORY(pGroupModInfo->pAddMembers);
 
-    for (i = 0; i < pGroupModInfo->dwRemoveMembersNum; i++) {
-        LW_SAFE_FREE_STRING(pGroupModInfo->pRemoveMembers[i].pszDN);
+    for (i = 0; i < pGroupModInfo->dwRemoveMembersNum; i++)
+    {
         LW_SAFE_FREE_STRING(pGroupModInfo->pRemoveMembers[i].pszSid);
     }
     LW_SAFE_FREE_MEMORY(pGroupModInfo->pRemoveMembers);
