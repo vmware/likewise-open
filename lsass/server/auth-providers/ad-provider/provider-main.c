@@ -702,9 +702,9 @@ AD_AuthenticateUser(
             pszPassword);
     }
 
-    LsaAdProviderStateRelease(gpLsaAdProviderState);
-
 error:
+
+    LsaAdProviderStateRelease(gpLsaAdProviderState);
 
     return dwError;
 }
@@ -2943,6 +2943,9 @@ AD_GetGroupsForUser(
     }
 
 cleanup:
+
+    LsaAdProviderStateRelease(gpLsaAdProviderState);
+
     if (pGroupInfo)
     {
         LsaFreeGroupInfo(dwGroupInfoLevel, pGroupInfo);
