@@ -42,6 +42,8 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <unistd.h>
+#include <fcntl.h>
 #if HAVE_SYS_VARARGS_H
 #include <sys/varargs.h>
 #endif
@@ -447,3 +449,18 @@ error:
     goto done;
 }
 #endif
+
+LWMsgStatus
+lwmsg_set_close_on_exec(
+    int fd
+    )
+{
+    if (fcntl(fd, F_SETFD, 1) < 0)
+    {
+        return lwmsg_error_map_errno(errno);
+    }
+    else
+    {
+        return LWMSG_STATUS_SUCCESS;
+    }
+}

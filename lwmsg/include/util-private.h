@@ -383,6 +383,11 @@ lwmsg_strerror(
     char** message
     );
 
+LWMsgStatus
+lwmsg_set_close_on_exec(
+    int fd
+    );
+
 #define LWMSG_OBJECT_FROM_MEMBER(_ptr_, _type_, _field_) \
     ((_type_ *) ((unsigned char*) (_ptr_) - offsetof(_type_, _field_)))
 
