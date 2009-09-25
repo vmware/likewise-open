@@ -13,7 +13,6 @@ full_subdirs=         \
     server            \
     shellutil         \
     test              \
-    tools             \
     shell
 
 if ENABLE_COMPAT
