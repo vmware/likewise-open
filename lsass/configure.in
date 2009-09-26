@@ -790,6 +790,8 @@ AC_DEFINE_UNQUOTED(CACHEDIR, "$CACHEDIR", [Cache directory])
 AS_AC_EXPAND(providerdir, $libdir)
 AS_AC_EXPAND(rpcserverdir, $libdir)
 
+AS_AC_EXPAND(SBINDIR, ["${sbindir}"])
+
 testbindir='$(exec_prefix)/test'
 AC_SUBST(testbindir)
 

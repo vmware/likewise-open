@@ -1,6 +1,11 @@
 [HKEY_LIKEWISE\Services]
 
 [HKEY_LIKEWISE\Services\lsass]
+"Name"="Likewise Security and Authentication Subsystem"
+"Path"="@SBINDIR@/lsassd"
+"Arguments"="lsassd"
+"Dependencies"="netlogon lwio"
+"Type"=dword:00000000
 
 [HKEY_LIKEWISE\Services\lsass\Parameters]
 "EnableEventlog"=dword:00000000
