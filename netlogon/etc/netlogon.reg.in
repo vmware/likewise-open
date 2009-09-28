@@ -1,7 +1,7 @@
 [HKEY_LIKEWISE\Services]
 
 [HKEY_LIKEWISE\Services\netlogon]
-"Name"="Likewise Site Affinity Service"
+"Description"="Likewise Site Affinity Service"
 "Path"="@SBINDIR@/netlogond"
 "Arguments"="netlogond"
 "Dependencies"=""
