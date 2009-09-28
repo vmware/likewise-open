@@ -24,15 +24,26 @@ function component_configure
     run_autogen ${COMP_SOURCES}
     exit_on_error $?
 
-    ./configure                        \
-	--prefix=${PREFIXDIR}         \
-        --libdir=${PREFIXDIR}/${_lib} \
-        --localstatedir=${LOCALSTATEDIR}
+    pushd libedit
+    ./configure
+    exit_on_error $?
+    popd
+
+    ./configure                          \
+	--prefix=${PREFIXDIR}            \
+        --libdir=${PREFIXDIR}/${_lib}    \
+        --localstatedir=${LOCALSTATEDIR} \
+	--sysconfdir=${SYSCONFDIR}
+    exit_on_error $?
 }
 
 function component_build
 {
     _setup_build_env
+
+    pushd libedit
+    ${MAKE} ${_mflags} all
+    popd
 
     ${MAKE} ${_mflags} all
 }
