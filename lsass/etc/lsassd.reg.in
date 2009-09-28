@@ -1,7 +1,7 @@
 [HKEY_LIKEWISE\Services]
 
 [HKEY_LIKEWISE\Services\lsass]
-"Name"="Likewise Security and Authentication Subsystem"
+"Description"="Likewise Security and Authentication Subsystem"
 "Path"="@SBINDIR@/lsassd"
 "Arguments"="lsassd"
 "Dependencies"="netlogon lwio"
