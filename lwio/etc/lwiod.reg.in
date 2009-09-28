@@ -1,7 +1,7 @@
 [HKEY_LIKEWISE\Services]
 
 [HKEY_LIKEWISE\Services\lwio]
-"Name"="Likewise IO Manager"
+"Description"="Likewise IO Manager"
 "Path"="@SBINDIR@/lwiod"
 "Arguments"="lwiod"
 "Dependencies"=""

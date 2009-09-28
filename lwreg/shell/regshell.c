@@ -45,6 +45,8 @@
 #include <locale.h>
 #include "histedit.h"
 
+#define REGSHELL_ESC_CHAR '|'
+
 typedef struct _EDITLINE_CLIENT_DATA
 {
     int continuation;
@@ -811,21 +813,16 @@ RegShellProcessInteractiveEditLine(
 {
     History *hist = NULL;
     HistEvent ev;
-    Tokenizer *tok = NULL;
     EDITLINE_CLIENT_DATA el_cdata = {0};
-    int ac = 0;
-    int cc = 0;
-    int co = 0;
     int num = 0;
-    int ncontinuation;
+    int ncontinuation = 0;
     int rv = 0;
-    int i = 0;
-    const char **av = NULL;
-    const LineInfo *li = NULL;
+
     const char *buf = NULL;
     EditLine *el = NULL;
     DWORD dwError = 0;
     PSTR pszCmdLine = NULL;
+    PSTR pszNewCmdLine = NULL;
     PSTR pszNumEnd = NULL;
     DWORD dwCmdLineLen = 0;
     DWORD dwEventNum = 0;
@@ -835,7 +832,6 @@ RegShellProcessInteractiveEditLine(
     hist = history_init();
     history(hist, &ev, H_SETSIZE, 100);
 
-    tok  = tok_init(NULL);
     el = el_init(pszProgramName, stdin, stdout, stderr);
 
     /* Make configurable in regshellrc file */
@@ -845,7 +841,7 @@ RegShellProcessInteractiveEditLine(
     el_set(el, EL_SIGNAL, 1);
 
     /* Set escape character from \ to | */
-    el_set(el, EL_ESC_CHAR, (int) '|');
+    el_set(el, EL_ESC_CHAR, (int) REGSHELL_ESC_CHAR);
 
     /* Editline prompt function; display info from pParseState */
     el_set(el, EL_PROMPT, pfnRegShellPromptCallback);
@@ -874,50 +870,49 @@ RegShellProcessInteractiveEditLine(
 
     while ((buf = el_gets(el, &num))!=NULL && num!=0)
     {
-        li = el_line(el);
-        if (el_cdata.continuation && num == 1)
+        if (num>1 && buf[num-2] == REGSHELL_ESC_CHAR)
         {
-            continue;
+            ncontinuation = 1;
         }
-
-        ac = 0;
-        cc = 0;
-        co = 0;
-        bHistFirst = FALSE;
-        pszNumEnd = NULL;
-        ncontinuation = tok_line(tok, li, &ac, &av, &cc, &co);
-        if (ncontinuation < 0)
+        else
         {
-            fprintf(stderr, "Internal error\n");
-            el_cdata.continuation = 0;
-            continue;
+            ncontinuation = 0;
         }
 
         el_cdata.continuation = ncontinuation;
-        ncontinuation = 0;
-        if (el_cdata.continuation)
+        dwError = LwAllocateMemory(
+                      dwCmdLineLen + num + 1,
+                      (LW_PVOID) &pszNewCmdLine);
+        BAIL_ON_REG_ERROR(dwError);
+        if (pszCmdLine)
         {
-            continue;
+            strncat(pszNewCmdLine, pszCmdLine, dwCmdLineLen);
+            LW_SAFE_FREE_STRING(pszCmdLine);
         }
-        if (ac == 0)
+        if (ncontinuation)
         {
+            num -= 2;
+        }
+        strncat(&pszNewCmdLine[dwCmdLineLen], buf, num);
+        dwCmdLineLen += num;
+        pszCmdLine = pszNewCmdLine;
+        pszNewCmdLine = NULL;
+        if (ncontinuation)
+        {
+            ncontinuation = 0;
             continue;
         }
 
-        if (strcmp(buf, "history\n") == 0)
-        {
-            rv = history(hist, &ev, H_ENTER, buf);
-        }
 
         /*
          * Process history command recall (!nnn | !command syntax)
          */
-        if (av[0][0] =='!')
+        if (pszCmdLine[0] =='!')
         {
             /* !nnn case */
-            if (isdigit((int)av[0][1]))
+            if (isdigit((int)pszCmdLine[1]))
             {
-                dwEventNum = strtol(&av[0][1], &pszNumEnd, 0);
+                dwEventNum = strtol(&pszCmdLine[1], &pszNumEnd, 0);
                 rv = history(hist, &ev, H_NEXT_EVENT, dwEventNum);
                 if (rv == -1)
                 {
@@ -930,7 +925,7 @@ RegShellProcessInteractiveEditLine(
                  * Handle !! command recall. !! recalls previous command,
                  * !!stuff appends "stuff" to end of previous command.
                  */
-                if (av[0][1] == '!')
+                if (pszCmdLine[1] == '!')
                 {
                     rv = history(hist, &ev, H_FIRST);
                     if (rv == -1)
@@ -949,7 +944,7 @@ RegShellProcessInteractiveEditLine(
                      * of "command" in history list, and expands command line
                      * with that command.
                      */
-                    hist_str = &av[0][1];
+                    hist_str = &pszCmdLine[1];
                     rv = history(hist, &ev, H_PREV_STR, hist_str);
                     if (rv == -1)
                     {
@@ -964,7 +959,7 @@ RegShellProcessInteractiveEditLine(
 
                 if (bHistFirst)
                 {
-                    dwCmdLineLen += strlen(&av[0][2]);
+                    dwCmdLineLen += strlen(&pszCmdLine[2]);
                 }
                 else if (pszNumEnd)
                 {
@@ -972,25 +967,30 @@ RegShellProcessInteractiveEditLine(
                 }
                 dwCmdLineLen += strlen(ev.str);
                 dwCmdLineLen++;
-                dwError = LwAllocateMemory(dwCmdLineLen, (LW_PVOID) &pszCmdLine);
+                dwError = LwAllocateMemory(
+                              dwCmdLineLen,
+                              (LW_PVOID) &pszNewCmdLine);
                 BAIL_ON_REG_ERROR(dwError);
 
-                strcpy(pszCmdLine, ev.str);
-                dwCmdLineLen = strlen(pszCmdLine);
-                if (pszCmdLine[dwCmdLineLen-1] == '\n')
+                strcpy(pszNewCmdLine, ev.str);
+                dwCmdLineLen = strlen(pszNewCmdLine);
+                if (pszNewCmdLine[dwCmdLineLen-1] == '\n')
                 {
-                    pszCmdLine[dwCmdLineLen-1] = '\0';
+                    pszNewCmdLine[dwCmdLineLen-1] = '\0';
                 }
 
                 if (bHistFirst)
                 {
-                    strcat(pszCmdLine, &av[0][2]);
+                    strcat(pszNewCmdLine, &pszNewCmdLine[2]);
                 }
                 else if (pszNumEnd)
                 {
-                    strcat(pszCmdLine, pszNumEnd);
+                    strcat(pszNewCmdLine, pszNumEnd);
                 }
-                dwCmdLineLen = strlen(pszCmdLine);
+                dwCmdLineLen = strlen(pszNewCmdLine);
+                LW_SAFE_FREE_STRING(pszCmdLine);
+                pszCmdLine = pszNewCmdLine;
+                pszNewCmdLine = NULL;
 
                 /*
                  * Display command from history list
@@ -998,40 +998,29 @@ RegShellProcessInteractiveEditLine(
                 printf("%s\n", pszCmdLine);
             }
         }
-        else if ((rv = el_parse(el, ac, av)) == -1)
-        {
-            for (i=0, dwCmdLineLen=0; i<ac; i++)
-            {
-                dwCmdLineLen += strlen(av[i]);
-                dwCmdLineLen++;
-            }
-            dwCmdLineLen++;
-            dwError = LwAllocateMemory(
-                          dwCmdLineLen,
-                          (LW_PVOID) &pszCmdLine);
-            BAIL_ON_REG_ERROR(dwError);
-            for (i=0; i<ac; i++)
-            {
-                strcat(pszCmdLine, av[i]);
-                if ((i+1) < ac)
-                {
-                    strcat(pszCmdLine, " ");
-                }
-            }
-        }
 
         if (pszCmdLine)
         {
-            history(hist, &ev, H_ENTER, pszCmdLine);
-            history(hist, &ev, H_APPEND, "\n");
-            dwError = RegShellExecuteCmdLine(
-                          pParseState,
-                          pszCmdLine,
-                          dwCmdLineLen);
+            rv = history(hist, &ev, H_ENTER, pszCmdLine);
+            if (strcmp(pszCmdLine, "history\n") == 0)
+            {
+                for (rv = history(hist, &ev, H_LAST);
+                     rv != -1;
+                     rv = history(hist, &ev, H_PREV))
+                {
+                    fprintf(stdout, "%4d %s", ev.num, ev.str);
+                }
+            }
+            else
+            {
+                dwError = RegShellExecuteCmdLine(
+                              pParseState,
+                              pszCmdLine,
+                              dwCmdLineLen);
+            }
         }
         LW_SAFE_FREE_STRING(pszCmdLine);
-
-        tok_reset(tok);
+        dwCmdLineLen = 0;
     }
 
     /* Save current regshell history */
