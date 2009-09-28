@@ -46,6 +46,7 @@
  */
 
 #include "includes.h"
+#include <locale.h>
 
 static
 PSTR
@@ -485,6 +486,7 @@ int main(int argc, char **argv)
     DWORD dwIndex_subkey = 0;
     PWSTR pKey = NULL;
 
+    setlocale(LC_ALL, "");
 
     printf("Calling: RegOpenServer\n");
     dwError = RegOpenServer(&hReg);

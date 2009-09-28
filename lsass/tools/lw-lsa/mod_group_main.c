@@ -404,14 +404,9 @@ FreeTask(
     PGROUP_MOD_TASK pTask
     )
 {
-    PSTR *ppMember = pTask->pData;
+    PSTR pszMember = pTask->pData;
 
-    if (ppMember) {
-        LW_SAFE_FREE_STRING(ppMember[0]);
-        LW_SAFE_FREE_STRING(ppMember[1]);
-        LW_SAFE_FREE_MEMORY(ppMember);
-    }
-
+    LW_SAFE_FREE_STRING(pszMember);
     LwFreeMemory(pTask);
 }
 
@@ -542,9 +537,7 @@ ResolveNames(
     PLSA_USER_INFO_1 pUserInfo = NULL;
     PGROUP_MOD_TASK pTask = NULL;
     PSTR pszName = NULL;
-    PSTR pszDN = NULL;
     PSTR pszSID = NULL;
-    PSTR *ppszMember = NULL;
     PSID pSid = NULL;
 
     for (; pListMember; pListMember = pListMember->pNext)
@@ -556,29 +549,27 @@ ResolveNames(
             pszName = (PSTR)pTask->pData;
 
             ntStatus = RtlAllocateSidFromCString(&pSid, pszName);
-            if (ntStatus == STATUS_SUCCESS) {
-                pszDN  = NULL;
-
+            if (ntStatus == STATUS_SUCCESS)
+            {
                 dwError = LwAllocateString(pszName, &pszSID);
                 BAIL_ON_LSA_ERROR(dwError);
 
-            } else {
+            }
+            else
+            {
                 dwError = LsaFindGroupByName(hLsaConnection,
                                              pszName,
                                              LSA_FIND_FLAGS_NSS,
                                              dwGroupInfoLevel,
                                              (PVOID*)&pGroupInfo);
-                if (dwError == 0) {
+                if (dwError == 0)
+                {
                     dwError = LwAllocateString(pGroupInfo->pszSid, &pszSID);
                     BAIL_ON_LSA_ERROR(dwError);
 
-                    if (pGroupInfo->pszDN)
-                    {
-                        dwError = LwAllocateString(pGroupInfo->pszDN, &pszDN);
-                        BAIL_ON_LSA_ERROR(dwError);
-                    }
-
-                } else if (dwError == LW_ERROR_NO_SUCH_GROUP) {
+                }
+                else if (dwError == LW_ERROR_NO_SUCH_GROUP)
+                {
                     dwError = LsaFindUserByName(hLsaConnection,
                                                 pszName,
                                                 dwUserInfoLevel,
@@ -587,14 +578,9 @@ ResolveNames(
 
                     dwError = LwAllocateString(pUserInfo->pszSid, &pszSID);
                     BAIL_ON_LSA_ERROR(dwError);
-
-                    if (pUserInfo->pszDN)
-                    {
-                        dwError = LwAllocateString(pUserInfo->pszDN, &pszDN);
-                        BAIL_ON_LSA_ERROR(dwError);
-                    }
-
-                } else {
+                }
+                else
+                {
                     BAIL_ON_LSA_ERROR(dwError);
                 }
             }
@@ -602,34 +588,36 @@ ResolveNames(
             LW_SAFE_FREE_STRING(pTask->pData);
             pTask->pData = NULL;
 
-            dwError = LwAllocateMemory(sizeof(PSTR[2]), (PVOID*)&ppszMember);
-            BAIL_ON_LSA_ERROR(dwError);
+            pTask->pData = pszSID;
 
-            ppszMember[0] = pszDN;
-            ppszMember[1] = pszSID;
-
-            pTask->pData = ppszMember;
-
-            if (pGroupInfo) {
+            if (pGroupInfo)
+            {
                 LsaFreeGroupInfo(dwGroupInfoLevel, pGroupInfo);
                 pGroupInfo = NULL;
             }
 
-            if (pUserInfo) {
+            if (pUserInfo)
+            {
                 LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
                 pUserInfo = NULL;
             }
+
+            RTL_FREE(&pSid);
         }
     }
 
 cleanup:
-    if (pGroupInfo) {
+    if (pGroupInfo)
+    {
         LsaFreeGroupInfo(dwGroupInfoLevel, pGroupInfo);
     }
 
-    if (pUserInfo) {
+    if (pUserInfo)
+    {
         LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
     }
+
+    RTL_FREE(&pSid);
 
     return dwError;
 

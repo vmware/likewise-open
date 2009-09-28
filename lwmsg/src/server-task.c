@@ -555,6 +555,8 @@ lwmsg_server_task_perform_accept(
                 }
             }
 
+            BAIL_ON_ERROR(status = lwmsg_set_close_on_exec(client_fd));
+
             /* Create new connection with client fd, put it into task, schedule task */
             BAIL_ON_ERROR(status = lwmsg_connection_new(server->context, server->protocol, &assoc));
             BAIL_ON_ERROR(status = lwmsg_connection_set_fd(assoc, LWMSG_CONNECTION_MODE_LOCAL, client_fd));
@@ -1103,6 +1105,8 @@ lwmsg_server_task_create_local_socket(
     {
         BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
     }
+
+    BAIL_ON_ERROR(status = lwmsg_set_close_on_exec(sock));
 
     sockaddr.sun_family = AF_UNIX;
 

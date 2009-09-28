@@ -86,7 +86,7 @@ RegShellUtilGetKeys(
     PSTR pszDefaultKey,
     PSTR keyName,
     LW_WCHAR ***pppRetSubKeys,
-    PDWORD dwRetSubKeyLen);
+    PDWORD pdwRetSubKeyCount);
 
 DWORD
 RegShellUtilSetValue(

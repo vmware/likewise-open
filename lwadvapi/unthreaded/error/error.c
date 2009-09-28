@@ -717,6 +717,26 @@ static struct
     {
         LW_ERROR_INVALID_KEYNAME,
         "The keyname cannot have '\\'"
+    },
+    {
+        LW_ERROR_INVALID_SERVICE_TRANSITION,
+        "The operation is invalid from the service's present state"
+    },
+    {
+        LW_ERROR_SERVICE_DEPENDENCY_UNMET,
+        "The service cannot be started because another service it depends on is not running"
+    },
+    {
+        LW_ERROR_SERVICE_UNRESPONSIVE,
+        "The service is not responding to requests"
+    },
+    {
+        LW_ERROR_NO_SUCH_SERVICE,
+        "No service with the specified name exists"
+    },
+    {
+        LW_ERROR_DEPENDENT_SERVICE_STILL_RUNNING,
+        "The service cannot be stopped because another service that depends on it is still running"
     }
 };
 

@@ -1,6 +1,11 @@
 [HKEY_LIKEWISE\Services]
 
 [HKEY_LIKEWISE\Services\lwio]
+"Name"="Likewise IO Manager"
+"Path"="@SBINDIR@/lwiod"
+"Arguments"="lwiod"
+"Dependencies"=""
+"Type"=dword:00000000
 
 [HKEY_LIKEWISE\Services\lwio\Parameters]
 "SignMessagesIfSupported"=dword:00000000

@@ -135,3 +135,4 @@ lwmsg_archive_destroy_message
 lwmsg_fd_type_class
 lwmsg_handle_type_class
 lwmsg_error_name
+lwmsg_set_close_on_exec

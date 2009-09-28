@@ -4,8 +4,7 @@ compat_subdirs = \
     utils        \
     include      \
     ipc          \
-    client       
-    
+    client
 
 full_subdirs=         \
     $(compat_subdirs) \
@@ -14,7 +13,6 @@ full_subdirs=         \
     server            \
     shellutil         \
     test              \
-    tools             \
     shell
 
 if ENABLE_COMPAT

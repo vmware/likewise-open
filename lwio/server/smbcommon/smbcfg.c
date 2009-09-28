@@ -277,8 +277,8 @@ SMBReadConfigDword(
     PSMB_CONFIG_REG pReg,
     PCSTR pszName,
     BOOLEAN bUsePolicy,
-    DWORD dwMax,
     DWORD dwMin,
+    DWORD dwMax,
     PDWORD pdwValue
     )
 {

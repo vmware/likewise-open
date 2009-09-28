@@ -101,6 +101,13 @@ LocalDirValidateGID(
 
 static
 DWORD
+LocalDirCheckLocalOrBuiltinSid(
+    IN PCSTR pszSid,
+    OUT PBOOLEAN pbIsLocalOrBuiltinSid
+    );
+
+static
+DWORD
 LocalAddMembersToGroup(
     PLOCAL_PROVIDER_CONTEXT pContext,
     PWSTR                   pwszGroupDN,
@@ -2136,15 +2143,15 @@ LocalDirModifyGroup(
     PWSTR pwszGroupDN = NULL;
     DWORD i = 0;
     PSTR pszSID = NULL;
-    PSTR pszDN = NULL;
     PWSTR pwszSID = NULL;
     PWSTR pwszDN = NULL;
+    BOOLEAN bIsLocalOrBuiltinSid = FALSE;
+    BOOLEAN bForeignSid = FALSE;
     DWORD dwObjectClassGroupMember = LOCAL_OBJECT_CLASS_GROUP_MEMBER;
     DWORD dwObjectClassLocalUser = LOCAL_OBJECT_CLASS_USER;
     PLSA_GROUP_INFO_0 pGroupInfo = NULL;
     PWSTR pwszBase = NULL;
     ULONG ulScope = 0;
-    wchar_t wszFilterFmt[] = L"(%ws=%d OR %ws=%d) AND %ws=\'%ws\' AND %ws=\'%ws\'";
     wchar_t wszFilterFmtSidOnly[] = L"(%ws=%d OR %ws=%d) AND %ws=\'%ws\'";
     PWSTR pwszFilter = NULL;
     DWORD dwFilterLen = 0;
@@ -2226,56 +2233,34 @@ LocalDirModifyGroup(
         for (i = 0; i < pGroupModInfo->dwAddMembersNum; i++)
         {
             pszSID = pGroupModInfo->pAddMembers[i].pszSid;
-            pszDN  = pGroupModInfo->pAddMembers[i].pszDN;
+
+            dwError = LocalDirCheckLocalOrBuiltinSid(
+                            pszSID,
+                            &bIsLocalOrBuiltinSid);
+
+            bForeignSid = !bIsLocalOrBuiltinSid;
 
             dwError = LsaMbsToWc16s(pszSID, &pwszSID);
             BAIL_ON_LSA_ERROR(dwError);
-
-            if (pszDN)
-            {
-                dwError = LsaMbsToWc16s(pszDN, &pwszDN);
-                BAIL_ON_LSA_ERROR(dwError);
-            }
 
             dwFilterLen = (sizeof(wszAttrObjectClass) - 2) +
                            10 +
                           (sizeof(wszAttrObjectClass) - 2) +
                            10 +
                           (sizeof(wszAttrObjectSid) - 2) +
-                          (wc16slen(pwszSID) * sizeof(WCHAR));
-            if (pwszDN)
-            {
-                dwFilterLen += (sizeof(wszAttrDistinguishedName) - 2) +
-                               (wc16slen(pwszDN) * sizeof(WCHAR)) +
-                               sizeof(wszFilterFmt);
-            }
-            else
-            {
-                dwFilterLen += sizeof(wszFilterFmtSidOnly);
-            }
-
+                          (wc16slen(pwszSID) * sizeof(WCHAR)) +
+                          sizeof(wszFilterFmtSidOnly);
 
             dwError = LwAllocateMemory(
                         dwFilterLen,
                         (PVOID*)&pwszFilter);
             BAIL_ON_LSA_ERROR(dwError);
 
-            if (pwszDN)
-            {
-                sw16printfw(pwszFilter, dwFilterLen/sizeof(WCHAR), wszFilterFmt,
-                            wszAttrObjectClass, dwObjectClassGroupMember,
-                            wszAttrObjectClass, dwObjectClassLocalUser,
-                            wszAttrObjectSid, pwszSID,
-                            wszAttrDistinguishedName, pwszDN);
-            }
-            else
-            {
-                sw16printfw(pwszFilter, dwFilterLen/sizeof(WCHAR),
-                            wszFilterFmtSidOnly,
-                            wszAttrObjectClass, dwObjectClassGroupMember,
-                            wszAttrObjectClass, dwObjectClassLocalUser,
-                            wszAttrObjectSid, pwszSID);
-            }
+            sw16printfw(pwszFilter, dwFilterLen/sizeof(WCHAR),
+                        wszFilterFmtSidOnly,
+                        wszAttrObjectClass, dwObjectClassGroupMember,
+                        wszAttrObjectClass, dwObjectClassLocalUser,
+                        wszAttrObjectSid, pwszSID);
 
             dwError = DirectorySearch(
                         pContext->hDirectory,
@@ -2288,7 +2273,9 @@ LocalDirModifyGroup(
                         &dwNumEntries);
             BAIL_ON_LSA_ERROR(dwError);
 
-            if (dwNumEntries == 0) {
+            if (dwNumEntries == 0 &&
+                bForeignSid)
+            {
                 dwError = LocalDirCreateForeignPrincipalDN(hProvider,
                                                            pwszSID,
                                                            &pwszDN);
@@ -2312,6 +2299,17 @@ LocalDirModifyGroup(
                             0,
                             &pMember,
                             &dwNumEntries);
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+            else if (dwNumEntries == 0 &&
+                     !bForeignSid)
+            {
+                dwError = LW_ERROR_INVALID_ACCOUNT;
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+            else if (dwNumEntries > 1)
+            {
+                dwError = LW_ERROR_SAM_DATABASE_ERROR;
                 BAIL_ON_LSA_ERROR(dwError);
             }
 
@@ -2346,54 +2344,34 @@ LocalDirModifyGroup(
             }
         }
 
-    } else if (pGroupModInfo->actions.bRemoveMembers)
+    }
+    else if (pGroupModInfo->actions.bRemoveMembers)
     {
         for (i = 0; i < pGroupModInfo->dwRemoveMembersNum; i++)
         {
             pszSID = pGroupModInfo->pRemoveMembers[i].pszSid;
-            pszDN  = pGroupModInfo->pRemoveMembers[i].pszDN;
 
             dwError = LsaMbsToWc16s(pszSID, &pwszSID);
             BAIL_ON_LSA_ERROR(dwError);
-
-            if (pszDN) {
-                dwError = LsaMbsToWc16s(pszDN, &pwszDN);
-                BAIL_ON_LSA_ERROR(dwError);
-            }
 
             dwFilterLen = (sizeof(wszAttrObjectClass) - 1) +
                            10 +
                           (sizeof(wszAttrObjectClass) - 2) +
                            10 +
                           (sizeof(wszAttrObjectSid) - 1) +
-                          (strlen(pszSID) * sizeof(WCHAR));
-            if (pwszDN) {
-                dwFilterLen += (sizeof(wszAttrDistinguishedName) - 2) +
-                               (strlen(pszDN) * sizeof(WCHAR)) +
-                               sizeof(wszFilterFmt);
-            } else {
-                dwFilterLen += sizeof(wszFilterFmtSidOnly);
-            }
+                          (strlen(pszSID) * sizeof(WCHAR)) +
+                          sizeof(wszFilterFmtSidOnly);
 
             dwError = LwAllocateMemory(
                         dwFilterLen,
                         (PVOID*)&pwszFilter);
             BAIL_ON_LSA_ERROR(dwError);
 
-            if (pwszDN) {
-                sw16printfw(pwszFilter, dwFilterLen/sizeof(WCHAR), wszFilterFmt,
-                            wszAttrObjectClass, dwObjectClassGroupMember,
-                            wszAttrObjectClass, dwObjectClassLocalUser,
-                            wszAttrObjectSid, pwszSID,
-                            wszAttrDistinguishedName, pwszDN);
-
-            } else {
-                sw16printfw(pwszFilter, dwFilterLen/sizeof(WCHAR),
-                            wszFilterFmtSidOnly,
-                            wszAttrObjectClass, dwObjectClassGroupMember,
-                            wszAttrObjectClass, dwObjectClassLocalUser,
-                            wszAttrObjectSid, pwszSID);
-            }
+            sw16printfw(pwszFilter, dwFilterLen/sizeof(WCHAR),
+                        wszFilterFmtSidOnly,
+                        wszAttrObjectClass, dwObjectClassGroupMember,
+                        wszAttrObjectClass, dwObjectClassLocalUser,
+                        wszAttrObjectSid, pwszSID);
 
             dwError = DirectorySearch(
                         pContext->hDirectory,
@@ -2406,11 +2384,14 @@ LocalDirModifyGroup(
                         &dwNumEntries);
             BAIL_ON_LSA_ERROR(dwError);
 
-            if (dwNumEntries == 0) {
+            if (dwNumEntries == 0)
+            {
                 dwError = ERROR_MEMBER_NOT_IN_GROUP;
                 BAIL_ON_LSA_ERROR(dwError);
 
-            } else if (dwNumEntries > 1) {
+            }
+            else if (dwNumEntries > 1)
+            {
                 dwError = LW_ERROR_SAM_DATABASE_ERROR;
                 BAIL_ON_LSA_ERROR(dwError);
             }
@@ -2478,6 +2459,52 @@ cleanup:
     return dwError;
 
 error:
+    goto cleanup;
+}
+
+static
+DWORD
+LocalDirCheckLocalOrBuiltinSid(
+    IN PCSTR pszSid,
+    OUT PBOOLEAN pbIsLocalOrBuiltinSid
+    )
+{
+    DWORD dwError = 0;
+    BOOLEAN bIsLocalOrBuiltinSid = FALSE;
+    PSID pSid = NULL;
+    PSID pBuiltinSid = NULL;
+
+    dwError = LsaAllocateSidFromCString(&pSid, pszSid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (RtlIsPrefixSid(gLPGlobals.pLocalDomainSID, pSid))
+    {
+        bIsLocalOrBuiltinSid = TRUE;
+        goto cleanup;
+    }
+
+    dwError = LsaAllocateSidFromCString(&pBuiltinSid, "S-1-5-32");
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (RtlIsPrefixSid(pBuiltinSid, pSid))
+    {
+        bIsLocalOrBuiltinSid = TRUE;
+        goto cleanup;
+    }
+
+    bIsLocalOrBuiltinSid = FALSE;
+
+cleanup:
+    LW_SAFE_FREE_MEMORY(pBuiltinSid);
+    LW_SAFE_FREE_MEMORY(pSid);
+
+    *pbIsLocalOrBuiltinSid = bIsLocalOrBuiltinSid;
+
+    return dwError;
+
+error:
+    bIsLocalOrBuiltinSid = FALSE;
+
     goto cleanup;
 }
 

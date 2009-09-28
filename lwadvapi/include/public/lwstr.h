@@ -46,6 +46,8 @@
 #ifndef __LWSTR_H__
 #define __LWSTR_H__
 
+#include <stdarg.h>
+
 #include <lw/types.h>
 #include <lw/attrs.h>
 

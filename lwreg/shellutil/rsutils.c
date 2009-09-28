@@ -422,7 +422,7 @@ RegShellUtilGetKeys(
     PSTR pszDefaultKey,
     PSTR keyName,
     LW_WCHAR ***pppRetSubKeys,
-    PDWORD dwRetSubKeyLen)
+    PDWORD pdwRetSubKeyCount)
 {
     HKEY pRootKey = NULL;
 
@@ -518,7 +518,7 @@ RegShellUtilGetKeys(
     }
 
     *pppRetSubKeys = subKeys;
-    *dwRetSubKeyLen = dwSubKeyCount;
+    *pdwRetSubKeyCount = dwSubKeyCount;
 cleanup:
     if (pFullKey && pFullKey != pRootKey)
     {
@@ -654,7 +654,10 @@ cleanup:
 
 error:
     LW_SAFE_FREE_MEMORY(pValueName);
-
+    if (dwError == LW_ERROR_DUPLICATE_KEYVALUENAME)
+    {
+        dwError = 0;
+    }
     goto cleanup;
 }
 

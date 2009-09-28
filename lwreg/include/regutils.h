@@ -221,17 +221,17 @@ extern pthread_mutex_t gLogLock;
                          __LINE__,               \
                          ## __VA_ARGS__)
 
-extern HANDLE              ghLog;
+extern HANDLE              ghRegLog;
 extern RegLogLevel         gRegMaxLogLevel;
-extern PFN_REG_LOG_MESSAGE gpfnLogger;
+extern PFN_REG_LOG_MESSAGE gpfnRegLogger;
 
 #define _REG_LOG_MESSAGE(Level, Format, ...)                        \
-    RegLogMessage(gpfnLogger, ghLog, Level, Format, ## __VA_ARGS__)
+    RegLogMessage(gpfnRegLogger, ghRegLog, Level, Format, ## __VA_ARGS__)
 
 #define _REG_LOG_IF(Level, Format, ...)                              \
     do {                                                             \
         REG_LOCK_LOGGER;                                             \
-        if (gpfnLogger && (gRegMaxLogLevel >= (Level)))              \
+        if (gpfnRegLogger && (gRegMaxLogLevel >= (Level)))              \
         {                                                            \
             if (gRegMaxLogLevel >= REG_LOG_LEVEL_DEBUG)              \
             {                                                        \

@@ -384,6 +384,12 @@
 #define LW_ERROR_NO_MORE_ITEMS                             40710
 #define LW_ERROR_INVALID_KEYNAME                           40711
 
+/* Range 41201 - 41700 is reserved for service manager errors */
+#define LW_ERROR_INVALID_SERVICE_TRANSITION                41201
+#define LW_ERROR_SERVICE_DEPENDENCY_UNMET                  41202
+#define LW_ERROR_SERVICE_UNRESPONSIVE                      41203
+#define LW_ERROR_NO_SUCH_SERVICE                           41204
+#define LW_ERROR_DEPENDENT_SERVICE_STILL_RUNNING           41205
 
 size_t
 LwGetErrorString(

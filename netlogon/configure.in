@@ -254,6 +254,8 @@ AC_DEFINE_UNQUOTED([PREFIXDIR], ["$prefix"], [Prefix directory])
 
 AS_AC_EXPAND(netlogonconfdir, ["$sysconfdir"])
 AS_AC_EXPAND(netlogonregdir, ["$sysconfdir"])
+AS_AC_EXPAND(SBINDIR, ["${sbindir}"])
+
 AC_DEFINE_UNQUOTED([LWNET_CONFIG_DIR], ["$netlogonconfdir"], [Location of netlogon configuration files])
 
 if test x"$localstatedir" = x"/var"; then
