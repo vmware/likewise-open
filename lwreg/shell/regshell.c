@@ -813,7 +813,6 @@ RegShellProcessInteractiveEditLine(
 {
     History *hist = NULL;
     HistEvent ev;
-    Tokenizer *tok = NULL;
     EDITLINE_CLIENT_DATA el_cdata = {0};
     int num = 0;
     int ncontinuation = 0;
@@ -833,7 +832,6 @@ RegShellProcessInteractiveEditLine(
     hist = history_init();
     history(hist, &ev, H_SETSIZE, 100);
 
-    tok  = tok_init(NULL);
     el = el_init(pszProgramName, stdin, stdout, stderr);
 
     /* Make configurable in regshellrc file */
@@ -905,10 +903,6 @@ RegShellProcessInteractiveEditLine(
             continue;
         }
 
-        if (strcmp(pszCmdLine, "history\n") == 0)
-        {
-            rv = history(hist, &ev, H_ENTER, buf);
-        }
 
         /*
          * Process history command recall (!nnn | !command syntax)
@@ -1007,17 +1001,26 @@ RegShellProcessInteractiveEditLine(
 
         if (pszCmdLine)
         {
-            history(hist, &ev, H_ENTER, pszCmdLine);
-            history(hist, &ev, H_APPEND, "\n");
-            dwError = RegShellExecuteCmdLine(
-                          pParseState,
-                          pszCmdLine,
-                          dwCmdLineLen);
+            rv = history(hist, &ev, H_ENTER, pszCmdLine);
+            if (strcmp(pszCmdLine, "history\n") == 0)
+            {
+                for (rv = history(hist, &ev, H_LAST);
+                     rv != -1;
+                     rv = history(hist, &ev, H_PREV))
+                {
+                    fprintf(stdout, "%4d %s", ev.num, ev.str);
+                }
+            }
+            else
+            {
+                dwError = RegShellExecuteCmdLine(
+                              pParseState,
+                              pszCmdLine,
+                              dwCmdLineLen);
+            }
         }
         LW_SAFE_FREE_STRING(pszCmdLine);
         dwCmdLineLen = 0;
-
-        tok_reset(tok);
     }
 
     /* Save current regshell history */
