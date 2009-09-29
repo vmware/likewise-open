@@ -943,6 +943,116 @@ error:
 }
 
 LWMsgStatus
+RegSrvIpcQueryValueExA(
+    LWMsgCall* pCall,
+    const LWMsgParams* pIn,
+    LWMsgParams* pOut,
+    void* data
+    )
+{
+    DWORD dwError = 0;
+    PREG_IPC_GET_VALUE_REQ pReq = pIn->data;
+    PREG_IPC_GET_VALUE_RESPONSE pRegResp = NULL;
+    PREG_IPC_ERROR pError = NULL;
+    DWORD dwType = 0;
+
+    dwError = RegSrvQueryValueExA(
+        RegSrvIpcGetSessionData(pCall),
+        pReq->hKey,
+        pReq->pValue,
+        NULL,
+        &dwType,
+        pReq->pData,
+        &pReq->cbData
+        );
+
+    if (!dwError)
+    {
+        dwError = LwAllocateMemory(
+            sizeof(*pRegResp),
+            OUT_PPVOID(&pRegResp));
+        BAIL_ON_REG_ERROR(dwError);
+
+        pRegResp->cbData = pReq->cbData;
+        pRegResp->pvData = pReq->pData;
+        pRegResp->dwType = dwType;
+
+        pOut->tag = REG_R_QUERY_VALUEA_EX_SUCCESS;
+        pOut->data = pRegResp;
+    }
+    else
+    {
+        dwError = RegSrvIpcCreateError(dwError, &pError);
+        BAIL_ON_REG_ERROR(dwError);
+
+        pOut->tag = REG_R_QUERY_VALUEA_EX_FAILURE;
+        pOut->data = pError;
+    }
+    pReq->pData = NULL;
+
+cleanup:
+    return MAP_REG_ERROR_IPC(dwError);
+
+error:
+    goto cleanup;
+}
+
+LWMsgStatus
+RegSrvIpcQueryValueExW(
+    LWMsgCall* pCall,
+    const LWMsgParams* pIn,
+    LWMsgParams* pOut,
+    void* data
+    )
+{
+    DWORD dwError = 0;
+    PREG_IPC_GET_VALUE_REQ pReq = pIn->data;
+    PREG_IPC_GET_VALUE_RESPONSE pRegResp = NULL;
+    PREG_IPC_ERROR pError = NULL;
+    DWORD dwType = 0;
+
+    dwError = RegSrvQueryValueExW(
+        RegSrvIpcGetSessionData(pCall),
+        pReq->hKey,
+        pReq->pValue,
+        NULL,
+        &dwType,
+        pReq->pData,
+        &pReq->cbData
+        );
+
+    if (!dwError)
+    {
+        dwError = LwAllocateMemory(
+            sizeof(*pRegResp),
+            OUT_PPVOID(&pRegResp));
+        BAIL_ON_REG_ERROR(dwError);
+
+        pRegResp->cbData = pReq->cbData;
+        pRegResp->pvData = pReq->pData;
+        pRegResp->dwType = dwType;
+
+        pOut->tag = REG_R_QUERY_VALUEW_EX_SUCCESS;
+        pOut->data = pRegResp;
+    }
+    else
+    {
+        dwError = RegSrvIpcCreateError(dwError, &pError);
+        BAIL_ON_REG_ERROR(dwError);
+
+        pOut->tag = REG_R_QUERY_VALUEW_EX_FAILURE;
+        pOut->data = pError;
+    }
+    pReq->pData = NULL;
+
+cleanup:
+    return MAP_REG_ERROR_IPC(dwError);
+
+error:
+    goto cleanup;
+}
+
+LWMsgStatus
 RegSrvIpcDeleteKeyValue(
     LWMsgCall* pCall,
     const LWMsgParams* pIn,
@@ -1107,6 +1217,126 @@ RegSrvIpcEnumValue(
         BAIL_ON_REG_ERROR(dwError);
 
         pOut->tag = REG_R_ENUM_VALUE_FAILURE;
+        pOut->data = pError;
+    }
+
+    pReq->pName = NULL;
+    pReq->pValue = NULL;
+
+cleanup:
+    return MAP_REG_ERROR_IPC(dwError);
+
+error:
+    goto cleanup;
+}
+
+LWMsgStatus
+RegSrvIpcEnumValueA(
+    LWMsgCall* pCall,
+    const LWMsgParams* pIn,
+    LWMsgParams* pOut,
+    void* data
+    )
+{
+    DWORD dwError = 0;
+    PREG_IPC_ENUM_VALUE_REQ pReq = pIn->data;
+    PREG_IPC_ENUM_VALUE_RESPONSE pRegResp = NULL;
+    PREG_IPC_ERROR pError = NULL;
+    REG_DATA_TYPE type = REG_UNKNOWN;
+
+    dwError = RegSrvEnumValueA(
+        RegSrvIpcGetSessionData(pCall),
+        pReq->hKey,
+        pReq->dwIndex,
+        pReq->pName,
+        &pReq->cName,
+        NULL,
+        &type,
+        pReq->pValue,
+        &pReq->cValue);
+
+    if (!dwError)
+    {
+        dwError = LwAllocateMemory(
+            sizeof(*pRegResp),
+            OUT_PPVOID(&pRegResp));
+        BAIL_ON_REG_ERROR(dwError);
+
+        pRegResp->pName= pReq->pName;
+        pRegResp->cName = pReq->cName;
+        pRegResp->pValue = pReq->pValue;
+        pRegResp->cValue = pReq->cValue;
+        pRegResp->type = type;
+
+        pOut->tag = REG_R_ENUM_VALUEA_SUCCESS;
+        pOut->data = pRegResp;
+    }
+    else
+    {
+        dwError = RegSrvIpcCreateError(dwError, &pError);
+        BAIL_ON_REG_ERROR(dwError);
+
+        pOut->tag = REG_R_ENUM_VALUEA_FAILURE;
+        pOut->data = pError;
+    }
+
+    pReq->pName = NULL;
+    pReq->pValue = NULL;
+
+cleanup:
+    return MAP_REG_ERROR_IPC(dwError);
+
+error:
+    goto cleanup;
+}
+
+LWMsgStatus
+RegSrvIpcEnumValueW(
+    LWMsgCall* pCall,
+    const LWMsgParams* pIn,
+    LWMsgParams* pOut,
+    void* data
+    )
+{
+    DWORD dwError = 0;
+    PREG_IPC_ENUM_VALUE_REQ pReq = pIn->data;
+    PREG_IPC_ENUM_VALUE_RESPONSE pRegResp = NULL;
+    PREG_IPC_ERROR pError = NULL;
+    REG_DATA_TYPE type = REG_UNKNOWN;
+
+    dwError = RegSrvEnumValueW(
+        RegSrvIpcGetSessionData(pCall),
+        pReq->hKey,
+        pReq->dwIndex,
+        pReq->pName,
+        &pReq->cName,
+        NULL,
+        &type,
+        pReq->pValue,
+        &pReq->cValue);
+
+    if (!dwError)
+    {
+        dwError = LwAllocateMemory(
+            sizeof(*pRegResp),
+            OUT_PPVOID(&pRegResp));
+        BAIL_ON_REG_ERROR(dwError);
+
+        pRegResp->pName= pReq->pName;
+        pRegResp->cName = pReq->cName;
+        pRegResp->pValue = pReq->pValue;
+        pRegResp->cValue = pReq->cValue;
+        pRegResp->type = type;
+
+        pOut->tag = REG_R_ENUM_VALUEW_SUCCESS;
+        pOut->data = pRegResp;
+    }
+    else
+    {
+        dwError = RegSrvIpcCreateError(dwError, &pError);
+        BAIL_ON_REG_ERROR(dwError);
+
+        pOut->tag = REG_R_ENUM_VALUEW_FAILURE;
         pOut->data = pError;
     }
 

@@ -200,14 +200,6 @@ SqliteDeleteValue(
     IN OPTIONAL PCWSTR pValueName
     );
 
-
-
-
-
-
-
-
-
 DWORD
 SqliteEnumValue(
     HANDLE Handle,
@@ -221,9 +213,56 @@ SqliteEnumValue(
     PDWORD pcbData
     );
 
+DWORD
+SqliteEnumValueA(
+    HANDLE Handle,
+    HKEY hKey,
+    DWORD dwIndex,
+    PWSTR pValueName,
+    PDWORD pcchValueName,
+    PDWORD pReserved,
+    PDWORD pType,
+    PBYTE pData,
+    PDWORD pcbData
+    );
+
+DWORD
+SqliteEnumValueW(
+    HANDLE Handle,
+    HKEY hKey,
+    DWORD dwIndex,
+    PWSTR pValueName,
+    PDWORD pcchValueName,
+    PDWORD pReserved,
+    PDWORD pType,
+    PBYTE pData,
+    PDWORD pcbData
+    );
 
 DWORD
 SqliteQueryValueEx(
+    IN HANDLE Handle,
+    IN HKEY hKey,
+    IN PCWSTR pValueName,
+    IN PDWORD pReserved,
+    OUT PDWORD pType,
+    OUT OPTIONAL PBYTE pData,
+    IN OUT OPTIONAL PDWORD pcbData
+    );
+
+DWORD
+SqliteQueryValueExA(
+    IN HANDLE Handle,
+    IN HKEY hKey,
+    IN PCWSTR pValueName,
+    IN PDWORD pReserved,
+    OUT PDWORD pType,
+    OUT OPTIONAL PBYTE pData,
+    IN OUT OPTIONAL PDWORD pcbData
+    );
+
+DWORD
+SqliteQueryValueExW(
     IN HANDLE Handle,
     IN HKEY hKey,
     IN PCWSTR pValueName,

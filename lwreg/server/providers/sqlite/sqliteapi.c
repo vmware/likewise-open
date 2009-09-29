@@ -629,7 +629,14 @@ SqliteGetValueA(
     IN OUT OPTIONAL PDWORD pcbData
     )
 {
-    return LW_ERROR_NOT_IMPLEMENTED;
+    return SqliteGetValue(Handle,
+                          hKey,
+                          pSubKey,
+                          pValue,
+                          dwFlags,
+                          pdwType,
+                          pData,
+                          pcbData);
 
 }
 
@@ -645,7 +652,14 @@ SqliteGetValueW(
     IN OUT OPTIONAL PDWORD pcbData
     )
 {
-    return LW_ERROR_NOT_IMPLEMENTED;
+    return SqliteGetValue(Handle,
+                          hKey,
+                          pSubKey,
+                          pValue,
+                          dwFlags,
+                          pdwType,
+                          pData,
+                          pcbData);
 
 }
 
@@ -968,7 +982,99 @@ error:
 }
 
 DWORD
+SqliteEnumValueA(
+    IN HANDLE Handle,
+    IN HKEY hKey,
+    IN DWORD dwIndex,
+    OUT PWSTR pValueName, /*buffer hold valueName*/
+    IN OUT PDWORD pcchValueName, /*input - buffer pValueName length*/
+    IN PDWORD pReserved,
+    OUT OPTIONAL PDWORD pType,
+    OUT OPTIONAL PBYTE pData,/*buffer hold value content*/
+    IN OUT OPTIONAL PDWORD pcbData /*input - buffer pData length*/
+    )
+{
+    return SqliteEnumValue(Handle,
+                           hKey,
+                           dwIndex,
+                           pValueName, /*buffer hold valueName*/
+                           pcchValueName, /*input - buffer pValueName length*/
+                           pReserved,
+                           pType,
+                           pData,/*buffer hold value content*/
+                           pcbData /*input - buffer pData length*/);
+}
+
+DWORD
+SqliteEnumValueW(
+    IN HANDLE Handle,
+    IN HKEY hKey,
+    IN DWORD dwIndex,
+    OUT PWSTR pValueName, /*buffer hold valueName*/
+    IN OUT PDWORD pcchValueName, /*input - buffer pValueName length*/
+    IN PDWORD pReserved,
+    OUT OPTIONAL PDWORD pType,
+    OUT OPTIONAL PBYTE pData,/*buffer hold value content*/
+    IN OUT OPTIONAL PDWORD pcbData /*input - buffer pData length*/
+    )
+{
+    return SqliteEnumValue(Handle,
+                           hKey,
+                           dwIndex,
+                           pValueName, /*buffer hold valueName*/
+                           pcchValueName, /*input - buffer pValueName length*/
+                           pReserved,
+                           pType,
+                           pData,/*buffer hold value content*/
+                           pcbData /*input - buffer pData length*/);
+}
+
+DWORD
 SqliteQueryValueEx(
+    IN HANDLE Handle,
+    IN HKEY hKey,
+    IN PCWSTR pValueName,
+    IN PDWORD pReserved,
+    OUT PDWORD pType,
+    OUT OPTIONAL PBYTE pData,
+    IN OUT OPTIONAL PDWORD pcbData
+    )
+{
+    return SqliteGetValue(
+             Handle,
+             hKey,
+             NULL,
+             pValueName,
+             RRF_RT_REG_NONE,
+             pType,
+             pData,
+             pcbData);
+}
+
+DWORD
+SqliteQueryValueExA(
+    IN HANDLE Handle,
+    IN HKEY hKey,
+    IN PCWSTR pValueName,
+    IN PDWORD pReserved,
+    OUT PDWORD pType,
+    OUT OPTIONAL PBYTE pData,
+    IN OUT OPTIONAL PDWORD pcbData
+    )
+{
+    return SqliteGetValue(
+             Handle,
+             hKey,
+             NULL,
+             pValueName,
+             RRF_RT_REG_NONE,
+             pType,
+             pData,
+             pcbData);
+}
+
+DWORD
+SqliteQueryValueExW(
     IN HANDLE Handle,
     IN HKEY hKey,
     IN PCWSTR pValueName,

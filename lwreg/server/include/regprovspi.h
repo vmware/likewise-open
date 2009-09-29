@@ -122,9 +122,38 @@ DWORD
     PDWORD pcClass,
     PFILETIME pftLastWriteTime
     );
+
 typedef
 DWORD
 (*PFNRegSrvEnumValue)(
+    HANDLE Handle,
+    HKEY hKey,
+    DWORD dwIndex,
+    PWSTR pValueName,
+    PDWORD pcchValueName,
+    PDWORD pReserved,
+    PDWORD pType,
+    PBYTE pData,
+    PDWORD pcbData
+    );
+
+typedef
+DWORD
+(*PFNRegSrvEnumValueA)(
+    HANDLE Handle,
+    HKEY hKey,
+    DWORD dwIndex,
+    PWSTR pValueName,
+    PDWORD pcchValueName,
+    PDWORD pReserved,
+    PDWORD pType,
+    PBYTE pData,
+    PDWORD pcbData
+    );
+
+typedef
+DWORD
+(*PFNRegSrvEnumValueW)(
     HANDLE Handle,
     HKEY hKey,
     DWORD dwIndex,
@@ -228,6 +257,30 @@ DWORD
 
 typedef
 DWORD
+(*PFNRegSrvQueryValueExA)(
+    HANDLE Handle,
+    HKEY hKey,
+    PCWSTR pValueName,
+    PDWORD pReserved,
+    PDWORD pType,
+    PBYTE pData,
+    PDWORD pcbData
+    );
+
+typedef
+DWORD
+(*PFNRegSrvQueryValueExW)(
+    HANDLE Handle,
+    HKEY hKey,
+    PCWSTR pValueName,
+    PDWORD pReserved,
+    PDWORD pType,
+    PBYTE pData,
+    PDWORD pcbData
+    );
+
+typedef
+DWORD
 (*PFNRegSrvSetValueEx)(
     HANDLE Handle,
     HKEY hKey,
@@ -249,6 +302,8 @@ typedef struct __REGPROV_PROVIDER_FUNCTION_TABLE
     PFNRegSrvDeleteTree          pfnRegSrvDeleteTree;
     PFNRegSrvEnumKeyEx           pfnRegSrvEnumKeyEx;
     PFNRegSrvEnumValue           pfnRegSrvEnumValue;
+    PFNRegSrvEnumValueA          pfnRegSrvEnumValueA;
+    PFNRegSrvEnumValueW          pfnRegSrvEnumValueW;
     PFNRegSrvGetValue            pfnRegSrvGetValue;
     PFNRegSrvGetValueA           pfnRegSrvGetValueA;
     PFNRegSrvGetValueW           pfnRegSrvGetValueW;
@@ -256,6 +311,8 @@ typedef struct __REGPROV_PROVIDER_FUNCTION_TABLE
     PFNRegSrvQueryInfoKey        pfnRegSrvQueryInfoKey;
     PFNRegSrvQueryMultipleValues pfnRegSrvQueryMultipleValues;
     PFNRegSrvQueryValueEx        pfnRegSrvQueryValueEx;
+    PFNRegSrvQueryValueExA       pfnRegSrvQueryValueExA;
+    PFNRegSrvQueryValueExW       pfnRegSrvQueryValueExW;
     PFNRegSrvSetValueEx          pfnRegSrvSetValueEx;
 } REGPROV_PROVIDER_FUNCTION_TABLE, *PREGPROV_PROVIDER_FUNCTION_TABLE;
 

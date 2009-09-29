@@ -121,7 +121,6 @@ error:
     goto cleanup;
 }
 
-
 DWORD
 RegSrvCreateKeyEx(
     IN HANDLE Handle,
@@ -376,7 +375,6 @@ RegSrvSetValueEx(
 
 error:
     return dwError;
-
 }
 
 DWORD
@@ -436,7 +434,7 @@ RegSrvGetValueA(
         BAIL_ON_REG_ERROR(dwError);
     }
 
-    dwError = gpRegProvider->pfnRegSrvGetValue(
+    dwError = gpRegProvider->pfnRegSrvGetValueA(
             Handle,
             hKey,
             pSubKey,
@@ -473,7 +471,7 @@ RegSrvGetValueW(
         BAIL_ON_REG_ERROR(dwError);
     }
 
-    dwError = gpRegProvider->pfnRegSrvGetValue(
+    dwError = gpRegProvider->pfnRegSrvGetValueW(
             Handle,
             hKey,
             pSubKey,
@@ -487,7 +485,6 @@ RegSrvGetValueW(
 
 error:
     return dwError;
-
 }
 
 DWORD
@@ -512,6 +509,84 @@ RegSrvEnumValue(
     }
 
     dwError = gpRegProvider->pfnRegSrvEnumValue(
+            Handle,
+            hKey,
+            dwIndex,
+            pValueName,
+            pcchValueName,
+            pReserved,
+            pType,
+            pData,
+            pcbData);
+    BAIL_ON_REG_ERROR(dwError);
+
+
+error:
+    return dwError;
+
+}
+
+DWORD
+RegSrvEnumValueA(
+    IN HANDLE Handle,
+    IN HKEY hKey,
+    IN DWORD dwIndex,
+    OUT PWSTR pValueName, /*buffer hold valueName*/
+    IN OUT PDWORD pcchValueName, /*input - buffer pValueName length*/
+    IN PDWORD pReserved,
+    OUT OPTIONAL PDWORD pType,
+    OUT OPTIONAL PBYTE pData,/*buffer hold value content*/
+    IN OUT OPTIONAL PDWORD pcbData /*input - buffer pData length*/
+    )
+{
+    DWORD dwError = 0;
+
+    if (!RegSrvCheckAccessRight(Handle, REG_READ))
+    {
+        dwError = LW_ERROR_ACCESS_DENIED;
+        BAIL_ON_REG_ERROR(dwError);
+    }
+
+    dwError = gpRegProvider->pfnRegSrvEnumValueA(
+            Handle,
+            hKey,
+            dwIndex,
+            pValueName,
+            pcchValueName,
+            pReserved,
+            pType,
+            pData,
+            pcbData);
+    BAIL_ON_REG_ERROR(dwError);
+
+
+error:
+    return dwError;
+
+}
+
+DWORD
+RegSrvEnumValueW(
+    IN HANDLE Handle,
+    IN HKEY hKey,
+    IN DWORD dwIndex,
+    OUT PWSTR pValueName, /*buffer hold valueName*/
+    IN OUT PDWORD pcchValueName, /*input - buffer pValueName length*/
+    IN PDWORD pReserved,
+    OUT OPTIONAL PDWORD pType,
+    OUT OPTIONAL PBYTE pData,/*buffer hold value content*/
+    IN OUT OPTIONAL PDWORD pcbData /*input - buffer pData length*/
+    )
+{
+    DWORD dwError = 0;
+
+    if (!RegSrvCheckAccessRight(Handle, REG_READ))
+    {
+        dwError = LW_ERROR_ACCESS_DENIED;
+        BAIL_ON_REG_ERROR(dwError);
+    }
+
+    dwError = gpRegProvider->pfnRegSrvEnumValueW(
             Handle,
             hKey,
             dwIndex,
@@ -602,7 +677,6 @@ RegSrvQueryMultipleValues(
             pdwTotalsize);
     BAIL_ON_REG_ERROR(dwError);
 
-
 error:
     return dwError;
 }
@@ -627,6 +701,72 @@ RegSrvQueryValueEx(
     }
 
     dwError = gpRegProvider->pfnRegSrvQueryValueEx(
+            Handle,
+            hKey,
+            pValueName,
+            pReserved,
+            pType,
+            pData,
+            pcbData);
+    BAIL_ON_REG_ERROR(dwError);
+
+error:
+    return dwError;
+}
+
+DWORD
+RegSrvQueryValueExA(
+    IN HANDLE Handle,
+    IN HKEY hKey,
+    IN PCWSTR pValueName,
+    IN PDWORD pReserved,
+    OUT PDWORD pType,
+    OUT PBYTE pData,
+    IN OUT PDWORD pcbData
+    )
+{
+    DWORD dwError = 0;
+
+    if (!RegSrvCheckAccessRight(Handle, REG_READ))
+    {
+        dwError = LW_ERROR_ACCESS_DENIED;
+        BAIL_ON_REG_ERROR(dwError);
+    }
+
+    dwError = gpRegProvider->pfnRegSrvQueryValueExA(
+            Handle,
+            hKey,
+            pValueName,
+            pReserved,
+            pType,
+            pData,
+            pcbData);
+    BAIL_ON_REG_ERROR(dwError);
+
+error:
+    return dwError;
+}
+
+DWORD
+RegSrvQueryValueExW(
+    IN HANDLE Handle,
+    IN HKEY hKey,
+    IN PCWSTR pValueName,
+    IN PDWORD pReserved,
+    OUT PDWORD pType,
+    OUT PBYTE pData,
+    IN OUT PDWORD pcbData
+    )
+{
+    DWORD dwError = 0;
+
+    if (!RegSrvCheckAccessRight(Handle, REG_READ))
+    {
+        dwError = LW_ERROR_ACCESS_DENIED;
+        BAIL_ON_REG_ERROR(dwError);
+    }
+
+    dwError = gpRegProvider->pfnRegSrvQueryValueExW(
             Handle,
             hKey,
             pValueName,
