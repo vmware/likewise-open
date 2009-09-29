@@ -49,6 +49,23 @@
  */
 #include "includes.h"
 
+
+#define LWNET_LOCK_RESOLVER_API(bInLock) \
+    do { \
+        pthread_mutex_lock(&gLwnetResolverLock); \
+        bInLock = TRUE; \
+    } while (0)
+
+#define LWNET_UNLOCK_RESOLVER_API(bInLock) \
+    do { \
+        if (bInLock) \
+        { \
+            pthread_mutex_unlock(&gLwnetResolverLock); \
+            bInLock = FALSE; \
+        } \
+    } while (0)
+
+
 DWORD
 LWNetDnsGetHostInfoEx(
     OUT OPTIONAL PSTR* ppszHostname,
@@ -1134,14 +1151,14 @@ LWNetDnsQueryWithBuffer(
     DWORD dwError = 0;
     PDNS_RESPONSE_HEADER pHeader = (PDNS_RESPONSE_HEADER)pBuffer;
     int responseSize =  0;
+    BOOLEAN bInLock = FALSE;
 
-    if (!(_res.options & RES_INIT))
+    LWNET_LOCK_RESOLVER_API(bInLock);
+
+    if (res_init() != 0)
     {
-        if (res_init() != 0)
-        {
-            dwError = ERROR_NOT_FOUND;
-            BAIL_ON_LWNET_ERROR(dwError);
-        }
+        dwError = ERROR_NOT_FOUND;
+        BAIL_ON_LWNET_ERROR(dwError);
     }
 
     if (dwBufferSize < CT_MIN(sizeof(DNS_RESPONSE_HEADER), MAX_DNS_UDP_BUFFER))
@@ -1161,8 +1178,8 @@ LWNetDnsQueryWithBuffer(
         _res.options &= ~(RES_USEVC);
     }
 
-    responseSize = res_query(pszQuestion, ns_c_in, ns_t_srv,
-                             (PBYTE)pBuffer, dwBufferSize);
+    /* Assertion: pResolverContext != NULL && pResolverContext->bLocked == TRUE */
+    responseSize = res_query(pszQuestion, ns_c_in, ns_t_srv, (PBYTE) pBuffer, dwBufferSize);
     if (responseSize < 0)
     {
         LWNET_LOG_ERROR("DNS lookup for '%s' failed with errno %d, h_errno = %d", pszQuestion, errno, h_errno);
@@ -1189,6 +1206,12 @@ LWNetDnsQueryWithBuffer(
     }
 
 error:
+
+    /* Indicate that we are done with the resolver */
+    res_close();
+
+    LWNET_UNLOCK_RESOLVER_API(bInLock);
+
     if (dwError)
     {
         responseSize = 0;
