@@ -196,6 +196,14 @@ extern LOGINFO gLwnetLogInfo;
 #define LWNET_LOG_DEBUG(szFmt, ...) \
     _LWNET_LOG_IF(LWNET_LOG_LEVEL_DEBUG, szFmt, ## __VA_ARGS__)
 
+
+//
+// DNS resolver library utils
+//
+extern pthread_mutex_t gLwnetResolverLock;
+
+
+
 DWORD
 LWNetAllocateMemory(
     DWORD dwSize,
