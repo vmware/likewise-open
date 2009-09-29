@@ -1705,7 +1705,9 @@ LsaAdBatchResolveRpcObjects(
 
         if (ppTranslatedNames)
         {
-            LsaFreeTranslatedNameList(ppTranslatedNames, dwCount);
+            // Note that there are dwQueryCount elements, not dwCount.
+            // If dwCount != dwQueryCount, some elements are NULL.
+            LsaFreeTranslatedNameList(ppTranslatedNames, dwQueryCount);
         }
         ppTranslatedNames = NULL;
 
@@ -1780,7 +1782,9 @@ cleanup:
     LwFreeStringArray(ppszQueryList, dwQueryCount);
     if (ppTranslatedNames)
     {
-        LsaFreeTranslatedNameList(ppTranslatedNames, dwCount);
+        // Note that there are dwQueryCount elements, not dwCount.
+        // If dwCount != dwQueryCount, some elements are NULL.
+        LsaFreeTranslatedNameList(ppTranslatedNames, dwQueryCount);
     }
     return dwError;
 
