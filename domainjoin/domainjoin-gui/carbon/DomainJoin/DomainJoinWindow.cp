@@ -205,10 +205,6 @@ DomainJoinWindow::ValidateDomainname(const std::string& domainName)
 	{
 	   throw InvalidDomainnameException();
 	}
-	if (!DomainJoinInterface::IsDomainNameResolvable(domainName))
-	{
-	   throw UnresolvedDomainNameException();
-	}
 }
 
 bool
