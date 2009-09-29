@@ -96,10 +96,10 @@ PvfsFreeFCB(
         pIrp = pOplockRec->pIrpContext->pIrp;
 
         pIrp->IoStatusBlock.Status = STATUS_FILE_CLOSED;
-        PVFS_ASSERT(pOplockRec->pIrpContext->bIsPended);
-        IoIrpComplete(pIrp);
 
+        PvfsAsyncIrpComplete(pOplockRec->pIrpContext);
         PvfsFreeIrpContext(&pOplockRec->pIrpContext);
+
         PvfsFreeOplockRecord(&pOplockRec);
     }
 
@@ -216,12 +216,14 @@ error:
 /*******************************************************
  ******************************************************/
 
-ULONG
+PPVFS_FCB
 PvfsReferenceFCB(
     IN PPVFS_FCB pFcb
     )
 {
-    return InterlockedIncrement(&pFcb->RefCount);
+    InterlockedIncrement(&pFcb->RefCount);
+
+    return pFcb;
 }
 
 /*******************************************************
@@ -702,6 +704,33 @@ error:
 /*****************************************************************************
  ****************************************************************************/
 
+VOID
+PvfsQueueCancelOplockPendingOp(
+    IN PIRP pIrp,
+    IN PVOID pCancelContext
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PPVFS_IRP_CONTEXT pIrpCtx = (PPVFS_IRP_CONTEXT)pCancelContext;
+    BOOLEAN bIsLocked = FALSE;
+
+    LWIO_LOCK_MUTEX(bIsLocked, &pIrpCtx->Mutex);
+
+    pIrpCtx->bIsCancelled = TRUE;
+
+    // ntError = PvfsScheduleOplockPendingOpCancel(pIrpCtx);
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    LWIO_UNLOCK_MUTEX(bIsLocked, &pIrpCtx->Mutex);
+
+    return;
+
+error:
+    goto cleanup;
+}
+
+
 NTSTATUS
 PvfsAddItemPendingOplockBreakAck(
     IN PPVFS_FCB pFcb,
@@ -730,18 +759,17 @@ PvfsAddItemPendingOplockBreakAck(
 
     LWIO_LOCK_MUTEX(bLocked, &pFcb->mutexOplock);
 
-    ntError = LwRtlQueueAddItem(pFcb->pOplockPendingOpsQueue,
-                                (PVOID)pPendingOp);
+    ntError = LwRtlQueueAddItem(
+                  pFcb->pOplockPendingOpsQueue,
+                  (PVOID)pPendingOp);
     BAIL_ON_NT_STATUS(ntError);
 
-    /* Some calls such as LockControl may have already been
-       pended before this block */
+    pIrpContext->pFcb = PvfsReferenceFCB(pFcb);
 
-    if (!pIrpContext->bIsPended)
-    {
-        IoIrpMarkPending(pIrpContext->pIrp, PvfsCancelIrp, pIrpContext);
-        pIrpContext->bIsPended = TRUE;
-    }
+    PvfsIrpMarkPending(
+        pIrpContext,
+        PvfsQueueCancelOplockPendingOp,
+        pIrpContext);
 
 cleanup:
     LWIO_UNLOCK_MUTEX(bLocked, &pFcb->mutexOplock);
@@ -876,7 +904,7 @@ PvfsAddOplockRecord(
     BAIL_ON_NT_STATUS(ntError);
 
     pOplock->OplockType = OplockType;
-    pOplock->pCcb = pCcb;
+    pOplock->pCcb = PvfsReferenceCCB(pCcb);
     pOplock->pIrpContext = pIrpContext;
 
     ntError = PvfsStoreOplockRecord(pFcb, pOplock);

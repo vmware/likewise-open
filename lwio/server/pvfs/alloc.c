@@ -123,6 +123,11 @@ PvfsFreeIrpContext(
 
     if (ppIrpContext && *ppIrpContext)
     {
+        if ((*ppIrpContext)->pFcb)
+        {
+            PvfsReleaseFCB((*ppIrpContext)->pFcb);
+        }
+
         pthread_mutex_destroy(&(*ppIrpContext)->Mutex);
         pthread_cond_destroy(&(*ppIrpContext)->Event);
 
@@ -155,6 +160,7 @@ PvfsAllocateIrpContext(
 
     pIrpContext->bIsCancelled = FALSE;
     pIrpContext->bIsPended = FALSE;
+    pIrpContext->pFcb = NULL;
 
     pIrpContext->pIrp = pIrp;
 

@@ -59,7 +59,7 @@ PvfsAllocateFCB(
     PPVFS_FCB *ppFcb
     );
 
-ULONG
+PPVFS_FCB
 PvfsReferenceFCB(
     IN PPVFS_FCB pFcb
     );

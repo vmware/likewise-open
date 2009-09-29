@@ -175,6 +175,32 @@ RegTransactEnumValue(
     );
 
 DWORD
+RegTransactEnumValueA(
+    HANDLE Handle,
+    HKEY hKey,
+    DWORD dwIndex,
+    PWSTR pValueName,
+    PDWORD pcchValueName,
+    PDWORD pReserved,
+    PDWORD pType,
+    PBYTE pData,
+    PDWORD pcbData
+    );
+
+DWORD
+RegTransactEnumValueW(
+    IN HANDLE hConnection,
+    IN HKEY hKey,
+    IN DWORD dwIndex,
+    OUT PWSTR pValueName,
+    IN OUT PDWORD pcchValueName,
+    IN PDWORD pReserved,
+    OUT OPTIONAL PDWORD pType,
+    OUT OPTIONAL PBYTE pData,
+    IN OUT OPTIONAL PDWORD pcbData
+    );
+
+DWORD
 RegTransactGetValue(
     HANDLE Handle,
     HKEY hKey,
@@ -222,6 +248,28 @@ RegTransactQueryMultipleValues(
 
 DWORD
 RegTransactQueryValueEx(
+    HANDLE Handle,
+    HKEY hKey,
+    PCWSTR pValueName,
+    PDWORD pReserved,
+    PDWORD pType,
+    PBYTE pData,
+    PDWORD pcbData
+    );
+
+DWORD
+RegTransactQueryValueExA(
+    HANDLE Handle,
+    HKEY hKey,
+    PCWSTR pValueName,
+    PDWORD pReserved,
+    PDWORD pType,
+    PBYTE pData,
+    PDWORD pcbData
+    );
+
+DWORD
+RegTransactQueryValueExW(
     HANDLE Handle,
     HKEY hKey,
     PCWSTR pValueName,

@@ -142,6 +142,19 @@ if [ $? -ne 0 ]; then
     alias seq=seq_replacement
 fi
 
+ShowError()
+{
+    __output="`"$@" 2>&1`"
+    __rc="$?"
+
+    if [ "$__rc" -ne 0 ]
+    then
+        echo "$__output" >&2
+    fi
+
+    return "$__rc"
+}
+
 Help()
 {
     echo "usage: $0 nsswitch_restart"
@@ -164,77 +177,79 @@ GetDistroVersion()
 
 GracefulSSHDRestart()
 {
-# can't just restart sshd, 'cause that would tear down
-# the remote installer session, so we need to SIGHUP just
-# the parent sshd process. However, on SuSE that file
-# is called /var/run/sshd.init.pid, and on RedHat it is
-# /var/run/sshd.pid...|
-    result=0
-    files=`ls /var/run/sshd*.pid 2> /dev/null`
-    shouldBeRunning=0
-    stillRunning=0
-    if [ -n "$files" ]; then
-        for pidfile in "$files"; do
-            if [ -f "$pidfile" ]; then
-                shouldBeRunning=1
-                sshdpid=`cat $pidfile`
-                kill -HUP $sshdpid || result=$?
-                # We want this daemon to restart and change pids, so we'll
-                # wait up to 15 seconds for that to happen
-                for count in `seq 15`; do
-                    ps -p $sshdpid >/dev/null 2>&1 || break
-                done
-            fi
-        done
-        if [ $shouldBeRunning -ne 0 ]; then
-            # sshd on SuSE 9.0 and 8.2 have a bug that causes it to die on a
-	    # SIGHUP. So try starting sshd in that case.
+    if [ -x /etc/init.d/sshd ]; then
+        ShowError /etc/init.d/sshd restart
+    elif [ -x /etc/init.d/ssh ]; then
+        ShowError /etc/init.d/ssh restart
+    else
+        # Can't find an appropriate init script, try
+        # finding the pid and sending SIGHUP instead
+        result=0
+        files=`ls /var/run/sshd*.pid 2> /dev/null`
+        shouldBeRunning=0
+        stillRunning=0
+        if [ -n "$files" ]; then
             for pidfile in "$files"; do
-                if [ -f "$pidfile" ] && ps -p `cat $pidfile` >/dev/null 2>&1
-                then
-                    stillRunning=1
+                if [ -f "$pidfile" ]; then
+                    shouldBeRunning=1
+                    sshdpid=`cat $pidfile`
+                    kill -HUP $sshdpid || result=$?
+                    # We want this daemon to restart and change pids, so we'll
+                    # wait up to 15 seconds for that to happen
+                    for count in `seq 15`; do
+                        ps -p $sshdpid >/dev/null 2>&1 || break
+                    done
                 fi
             done
-            if [ $stillRunning -eq 0 ]; then
+            if [ $shouldBeRunning -ne 0 ]; then
+                # sshd on SuSE 9.0 and 8.2 have a bug that causes it to die on a
+	        # SIGHUP. So try starting sshd in that case.
+                for pidfile in "$files"; do
+                    if [ -f "$pidfile" ] && ps -p `cat $pidfile` >/dev/null 2>&1
+                    then
+                        stillRunning=1
+                    fi
+                done
+                if [ $stillRunning -eq 0 ]; then
                 # It died
-                /etc/init.d/sshd start > /dev/null 2>&1
+                    /etc/init.d/sshd start > /dev/null 2>&1
+	        fi
             fi
-        fi
-    elif [ -x /usr/bin/lssrc ]; then
-        # This is an AIX system. We have to use lssrc to get SSHD's pid.
-        # lssrc returns the output in this form:
-        # Subsystem   Group   PID  Status
-        #  sshd       ssh     123  active
-        sshdpid=""
-        sshdstatus="`/usr/bin/lssrc -s sshd`"
-        if [ $? -eq 0 ]; then
-            sshdpid=`echo "$sshdstatus" | tail -1 | awk '{ print $3 }'`
-        fi
-        if [ -n "$sshdpid" ]; then
-            # Let's double check that the pid is valid. It could say
-            # "inoperative".
-            ps -p "$sshdpid" >/dev/null 2>&1
-            if [ $? -ne 0 ]; then
-                # The pid isn't valid
-                sshdpid=""
+        elif [ -x /usr/bin/lssrc ]; then
+            # This is an AIX system. We have to use lssrc to get SSHD's pid.
+            # lssrc returns the output in this form:
+            # Subsystem   Group   PID  Status
+            #  sshd       ssh     123  active
+            sshdpid=""
+            sshdstatus="`/usr/bin/lssrc -s sshd`"
+            if [ $? -eq 0 ]; then
+                sshdpid=`echo "$sshdstatus" | tail -1 | awk '{ print $3 }'`
             fi
-        fi
-        if [ -n "$sshdpid" ]; then
-            kill -HUP "$sshdpid" || result=$?
+            if [ -n "$sshdpid" ]; then
+                # Let's double check that the pid is valid. It could say
+                # "inoperative".
+                ps -p "$sshdpid" >/dev/null 2>&1
+                if [ $? -ne 0 ]; then
+                    # The pid isn't valid
+                    sshdpid=""
+                fi
+            fi
+            if [ -n "$sshdpid" ]; then
+                kill -HUP "$sshdpid" || result=$?
+            else
+                echo "sshd does not appear to be running"
+                fi
         else
             echo "sshd does not appear to be running"
         fi
-    else
-        echo "sshd does not appear to be running"
+        # Ignore kill errors because .pid files may have been orphaned.
+        return 0
     fi
-    # Ignore kill errors because .pid files may have been orphaned.
-    return 0
 }
 
 GracefulCronRestart()
 {
-   sh ${LIBEXECDIR}/gpcron restart
-   return $?
+    ShowError sh ${LIBEXECDIR}/gpcron restart
 }
 
 IsProcessRunning()
@@ -254,16 +269,15 @@ GracefulNscdRestart()
 {
     _is_nscd_running=0
     if [ -x /etc/init.d/nscd ]; then
-        /etc/init.d/nscd status 2>&1 >/dev/null
+        /etc/init.d/nscd status >/dev/null 2>&1
         if [ $? -eq 0 ]; then
             _is_nscd_running=1
         elif IsProcessRunning nscd ; then
             _is_nscd_running=1
         fi
         if [ $_is_nscd_running -ne 0 ]; then
-            echo "Restarting nscd"
-            /etc/init.d/nscd stop
-            /etc/init.d/nscd start
+            ShowError /etc/init.d/nscd stop
+            ShowError /etc/init.d/nscd start
         fi
     fi
     return 0

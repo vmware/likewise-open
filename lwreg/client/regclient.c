@@ -235,6 +235,60 @@ RegEnumValue(
 
 REG_API
 DWORD
+RegEnumValueA(
+    IN HANDLE hRegConnection,
+    IN HKEY hKey,
+    IN DWORD dwIndex,
+    OUT PWSTR pValueName,
+    IN OUT PDWORD pcchValueName,
+    IN PDWORD pReserved,
+    OUT OPTIONAL PDWORD pType,
+    OUT OPTIONAL PBYTE pData,
+    IN OUT OPTIONAL PDWORD pcbData
+    )
+{
+    return RegTransactEnumValueA(
+        hRegConnection,
+        hKey,
+        dwIndex,
+        pValueName,
+        pcchValueName,
+        pReserved,
+        pType,
+        pData,
+        pcbData
+        );
+}
+
+REG_API
+DWORD
+RegEnumValueW(
+    IN HANDLE hRegConnection,
+    IN HKEY hKey,
+    IN DWORD dwIndex,
+    OUT PWSTR pValueName,
+    IN OUT PDWORD pcchValueName,
+    IN PDWORD pReserved,
+    OUT OPTIONAL PDWORD pType,
+    OUT OPTIONAL PBYTE pData,
+    IN OUT OPTIONAL PDWORD pcbData
+    )
+{
+    return RegTransactEnumValueW(
+        hRegConnection,
+        hKey,
+        dwIndex,
+        pValueName,
+        pcchValueName,
+        pReserved,
+        pType,
+        pData,
+        pcbData
+        );
+}
+
+REG_API
+DWORD
 RegGetValue(
     IN HANDLE hRegConnection,
     IN HKEY hKey,
@@ -398,6 +452,52 @@ RegQueryValueEx(
     )
 {
     return RegTransactQueryValueEx(
+        hRegConnection,
+        hKey,
+        pValueName,
+        pReserved,
+        pType,
+        pData,
+        pcbData
+        );
+}
+
+REG_API
+DWORD
+RegQueryValueExA(
+    IN HANDLE hRegConnection,
+    IN HKEY hKey,
+    IN OPTIONAL PCWSTR pValueName,
+    IN PDWORD pReserved,
+    OUT OPTIONAL PDWORD pType,
+    OUT OPTIONAL PBYTE pData,
+    IN OUT OPTIONAL PDWORD pcbData
+    )
+{
+    return RegTransactQueryValueExA(
+        hRegConnection,
+        hKey,
+        pValueName,
+        pReserved,
+        pType,
+        pData,
+        pcbData
+        );
+}
+
+REG_API
+DWORD
+RegQueryValueExW(
+    IN HANDLE hRegConnection,
+    IN HKEY hKey,
+    IN OPTIONAL PCWSTR pValueName,
+    IN PDWORD pReserved,
+    OUT OPTIONAL PDWORD pType,
+    OUT OPTIONAL PBYTE pData,
+    IN OUT OPTIONAL PDWORD pcbData
+    )
+{
+    return RegTransactQueryValueExW(
         hRegConnection,
         hKey,
         pValueName,

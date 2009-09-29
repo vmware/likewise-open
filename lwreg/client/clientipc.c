@@ -1044,6 +1044,164 @@ error:
 }
 
 DWORD
+RegTransactQueryValueExA(
+    IN HANDLE hConnection,
+    IN HKEY hKey,
+    IN OPTIONAL PCWSTR pValueName,
+    IN PDWORD pReserved,
+    OUT OPTIONAL PDWORD pType,
+    OUT OPTIONAL PBYTE pData,
+    IN OUT OPTIONAL PDWORD pcbData
+    )
+{
+    DWORD dwError = 0;
+    REG_IPC_GET_VALUE_REQ QueryValueExReq;
+    PREG_IPC_GET_VALUE_RESPONSE pQueryValueResp = NULL;
+    // Do not free pError
+    PREG_IPC_ERROR pError = NULL;
+
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* pCall = NULL;
+
+    dwError = RegIpcAcquireCall(hConnection, &pCall);
+    BAIL_ON_REG_ERROR(dwError);
+
+    QueryValueExReq.hKey = hKey;
+    QueryValueExReq.pValue = pValueName;
+    QueryValueExReq.pData = pData;
+    QueryValueExReq.cbData = *pcbData;
+
+
+    in.tag = REG_Q_QUERY_VALUEA_EX;
+    in.data = &QueryValueExReq;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
+    BAIL_ON_REG_ERROR(dwError);
+
+    switch (out.tag)
+    {
+        case REG_R_QUERY_VALUEA_EX_SUCCESS:
+            pQueryValueResp = (PREG_IPC_GET_VALUE_RESPONSE) out.data;
+
+            if (pType)
+            {
+                *pType = pQueryValueResp->dwType;
+            }
+
+            if (pData)
+            {
+                memcpy(pData, pQueryValueResp->pvData, pQueryValueResp->cbData);
+            }
+
+            if (pcbData)
+            {
+                *pcbData = pQueryValueResp->cbData;
+            }
+            break;
+        case REG_R_QUERY_VALUEA_EX_FAILURE:
+            pError = (PREG_IPC_ERROR) out.data;
+            dwError = pError->dwError;
+            BAIL_ON_REG_ERROR(dwError);
+            break;
+        default:
+            dwError = EINVAL;
+            BAIL_ON_REG_ERROR(dwError);
+    }
+
+cleanup:
+    if (pCall)
+    {
+        lwmsg_call_destroy_params(pCall, &out);
+        lwmsg_call_release(pCall);
+    }
+
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+DWORD
+RegTransactQueryValueExW(
+    IN HANDLE hConnection,
+    IN HKEY hKey,
+    IN OPTIONAL PCWSTR pValueName,
+    IN PDWORD pReserved,
+    OUT OPTIONAL PDWORD pType,
+    OUT OPTIONAL PBYTE pData,
+    IN OUT OPTIONAL PDWORD pcbData
+    )
+{
+    DWORD dwError = 0;
+    REG_IPC_GET_VALUE_REQ QueryValueExReq;
+    PREG_IPC_GET_VALUE_RESPONSE pQueryValueResp = NULL;
+    // Do not free pError
+    PREG_IPC_ERROR pError = NULL;
+
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* pCall = NULL;
+
+    dwError = RegIpcAcquireCall(hConnection, &pCall);
+    BAIL_ON_REG_ERROR(dwError);
+
+    QueryValueExReq.hKey = hKey;
+    QueryValueExReq.pValue = pValueName;
+    QueryValueExReq.pData = pData;
+    QueryValueExReq.cbData = *pcbData;
+
+
+    in.tag = REG_Q_QUERY_VALUEW_EX;
+    in.data = &QueryValueExReq;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
+    BAIL_ON_REG_ERROR(dwError);
+
+    switch (out.tag)
+    {
+        case REG_R_QUERY_VALUEW_EX_SUCCESS:
+            pQueryValueResp = (PREG_IPC_GET_VALUE_RESPONSE) out.data;
+
+            if (pType)
+            {
+                *pType = pQueryValueResp->dwType;
+            }
+
+            if (pData)
+            {
+                memcpy(pData, pQueryValueResp->pvData, pQueryValueResp->cbData);
+            }
+
+            if (pcbData)
+            {
+                *pcbData = pQueryValueResp->cbData;
+            }
+            break;
+        case REG_R_QUERY_VALUEW_EX_FAILURE:
+            pError = (PREG_IPC_ERROR) out.data;
+            dwError = pError->dwError;
+            BAIL_ON_REG_ERROR(dwError);
+            break;
+        default:
+            dwError = EINVAL;
+            BAIL_ON_REG_ERROR(dwError);
+    }
+
+cleanup:
+    if (pCall)
+    {
+        lwmsg_call_destroy_params(pCall, &out);
+        lwmsg_call_release(pCall);
+    }
+
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+DWORD
 RegTransactDeleteKeyValue(
     IN HANDLE hConnection,
     IN HKEY hKey,
@@ -1278,6 +1436,182 @@ RegTransactEnumValue(
             break;
 
         case REG_R_ENUM_VALUE_FAILURE:
+            pError = (PREG_IPC_ERROR) out.data;
+            dwError = pError->dwError;
+            BAIL_ON_REG_ERROR(dwError);
+            break;
+        default:
+            dwError = EINVAL;
+            BAIL_ON_REG_ERROR(dwError);
+    }
+
+cleanup:
+    if (pCall)
+    {
+        lwmsg_call_destroy_params(pCall, &out);
+        lwmsg_call_release(pCall);
+    }
+
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+DWORD
+RegTransactEnumValueA(
+    IN HANDLE hConnection,
+    IN HKEY hKey,
+    IN DWORD dwIndex,
+    OUT PWSTR pValueName,
+    IN OUT PDWORD pcchValueName,
+    IN PDWORD pReserved,
+    OUT OPTIONAL PDWORD pType,
+    OUT OPTIONAL PBYTE pData,
+    IN OUT OPTIONAL PDWORD pcbData
+    )
+{
+    DWORD dwError = 0;
+    REG_IPC_ENUM_VALUE_REQ EnumValueReq;
+    PREG_IPC_ENUM_VALUE_RESPONSE pEnumValueResp = NULL;
+    // Do not free pError
+    PREG_IPC_ERROR pError = NULL;
+
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* pCall = NULL;
+
+    dwError = RegIpcAcquireCall(hConnection, &pCall);
+    BAIL_ON_REG_ERROR(dwError);
+
+    EnumValueReq.hKey = hKey;
+    EnumValueReq.dwIndex = dwIndex;
+    EnumValueReq.pName = pValueName;
+    EnumValueReq.cName = *pcchValueName;
+    EnumValueReq.pValue = pData;
+    EnumValueReq.cValue = pcbData == NULL ? 0 : *pcbData;
+
+
+    in.tag = REG_Q_ENUM_VALUEA;
+    in.data = &EnumValueReq;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
+    BAIL_ON_REG_ERROR(dwError);
+
+    switch (out.tag)
+    {
+        case REG_R_ENUM_VALUEA_SUCCESS:
+            pEnumValueResp = (PREG_IPC_ENUM_VALUE_RESPONSE) out.data;
+
+            memcpy(pValueName, pEnumValueResp->pName, (pEnumValueResp->cName+1)*sizeof(*pValueName));
+            *pcchValueName = pEnumValueResp->cName;
+
+            if (pData)
+            {
+                memcpy(pData, pEnumValueResp->pValue, pEnumValueResp->cValue*sizeof(*pData));
+            }
+
+            if (pcbData)
+            {
+                *pcbData = pEnumValueResp->cValue;
+            }
+
+            if (pType)
+            {
+                *pType = pEnumValueResp->type;
+            }
+
+            break;
+
+        case REG_R_ENUM_VALUEA_FAILURE:
+            pError = (PREG_IPC_ERROR) out.data;
+            dwError = pError->dwError;
+            BAIL_ON_REG_ERROR(dwError);
+            break;
+        default:
+            dwError = EINVAL;
+            BAIL_ON_REG_ERROR(dwError);
+    }
+
+cleanup:
+    if (pCall)
+    {
+        lwmsg_call_destroy_params(pCall, &out);
+        lwmsg_call_release(pCall);
+    }
+
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+DWORD
+RegTransactEnumValueW(
+    IN HANDLE hConnection,
+    IN HKEY hKey,
+    IN DWORD dwIndex,
+    OUT PWSTR pValueName,
+    IN OUT PDWORD pcchValueName,
+    IN PDWORD pReserved,
+    OUT OPTIONAL PDWORD pType,
+    OUT OPTIONAL PBYTE pData,
+    IN OUT OPTIONAL PDWORD pcbData
+    )
+{
+    DWORD dwError = 0;
+    REG_IPC_ENUM_VALUE_REQ EnumValueReq;
+    PREG_IPC_ENUM_VALUE_RESPONSE pEnumValueResp = NULL;
+    // Do not free pError
+    PREG_IPC_ERROR pError = NULL;
+
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* pCall = NULL;
+
+    dwError = RegIpcAcquireCall(hConnection, &pCall);
+    BAIL_ON_REG_ERROR(dwError);
+
+    EnumValueReq.hKey = hKey;
+    EnumValueReq.dwIndex = dwIndex;
+    EnumValueReq.pName = pValueName;
+    EnumValueReq.cName = *pcchValueName;
+    EnumValueReq.pValue = pData;
+    EnumValueReq.cValue = pcbData == NULL ? 0 : *pcbData;
+
+
+    in.tag = REG_Q_ENUM_VALUEW;
+    in.data = &EnumValueReq;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
+    BAIL_ON_REG_ERROR(dwError);
+
+    switch (out.tag)
+    {
+        case REG_R_ENUM_VALUEW_SUCCESS:
+            pEnumValueResp = (PREG_IPC_ENUM_VALUE_RESPONSE) out.data;
+
+            memcpy(pValueName, pEnumValueResp->pName, (pEnumValueResp->cName+1)*sizeof(*pValueName));
+            *pcchValueName = pEnumValueResp->cName;
+
+            if (pData)
+            {
+                memcpy(pData, pEnumValueResp->pValue, pEnumValueResp->cValue*sizeof(*pData));
+            }
+
+            if (pcbData)
+            {
+                *pcbData = pEnumValueResp->cValue;
+            }
+
+            if (pType)
+            {
+                *pType = pEnumValueResp->type;
+            }
+
+            break;
+
+        case REG_R_ENUM_VALUEW_FAILURE:
             pError = (PREG_IPC_ERROR) out.data;
             dwError = pError->dwError;
             BAIL_ON_REG_ERROR(dwError);

@@ -357,6 +357,32 @@ RegEnumValue(
     );
 
 DWORD
+RegEnumValueA(
+    HANDLE hRegConnection,
+    HKEY hKey,
+    DWORD dwIndex,
+    PWSTR pValueName,
+    PDWORD pcchValueName,
+    PDWORD pReserved,
+    PDWORD pType,
+    PBYTE pData,
+    PDWORD pcbData
+    );
+
+DWORD
+RegEnumValueW(
+    HANDLE hRegConnection,
+    HKEY hKey,
+    DWORD dwIndex,
+    PWSTR pValueName,
+    PDWORD pcchValueName,
+    PDWORD pReserved,
+    PDWORD pType,
+    PBYTE pData,
+    PDWORD pcbData
+    );
+
+DWORD
 RegGetValue(
     HANDLE hRegConnection,
     HKEY hKey,
@@ -431,6 +457,28 @@ RegQueryMultipleValues(
 
 DWORD
 RegQueryValueEx(
+    HANDLE hRegConnection,
+    HKEY hKey,
+    PCWSTR pValueName,
+    PDWORD pReserved,
+    PDWORD pType,
+    PBYTE pData,
+    PDWORD pcbData
+    );
+
+DWORD
+RegQueryValueExA(
+    HANDLE hRegConnection,
+    HKEY hKey,
+    PCWSTR pValueName,
+    PDWORD pReserved,
+    PDWORD pType,
+    PBYTE pData,
+    PDWORD pcbData
+    );
+
+DWORD
+RegQueryValueExW(
     HANDLE hRegConnection,
     HKEY hKey,
     PCWSTR pValueName,

@@ -47,10 +47,11 @@
 
 extern PSTR             gpszPVFSProviderName;
 extern GENERIC_MAPPING  gPvfsFileGenericMapping;
+
 extern PPVFS_WORK_QUEUE gpPvfsIoWorkQueue;
+extern PPVFS_WORK_QUEUE gpPvfsInternalWorkQueue;
 
 extern PSMB_HASH_TABLE gpPathCache;
 extern pthread_rwlock_t gPathCacheRwLock;
-
 
 #endif /* __EXTERNS_H__ */

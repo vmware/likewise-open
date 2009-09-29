@@ -159,7 +159,7 @@ PvfsDriverDispatch(
         ntError = PvfsWrite(pIrpCtx);
         break;
     case IRP_TYPE_LOCK_CONTROL:
-        ntError = PvfsDispatchLockControl(pIrpCtx);
+        ntError = PvfsLockControl(pIrpCtx);
         break;
     case IRP_TYPE_FS_CONTROL:
         ntError = PvfsDispatchFsIoControl(pIrpCtx);

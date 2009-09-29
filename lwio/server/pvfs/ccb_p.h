@@ -69,6 +69,11 @@ PvfsReleaseCCB(
     PPVFS_CCB pCCB
     );
 
+PPVFS_CCB
+PvfsReferenceCCB(
+    PPVFS_CCB pCCB
+    );
+
 NTSTATUS
 PvfsAcquireCCB(
     IO_FILE_HANDLE FileHandle,

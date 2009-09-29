@@ -72,9 +72,18 @@ PvfsInitWorkerThreads(
     int i = 0;
     int unixerr = 0;
 
-    ntError = PvfsInitWorkQueue(&gpPvfsIoWorkQueue,
-                                PVFS_WORKERS_MAX_WORK_ITEMS,
-                                (PLWRTL_QUEUE_FREE_DATA_FN)PvfsFreeWorkContext);
+    ntError = PvfsInitWorkQueue(
+                  &gpPvfsInternalWorkQueue,
+                  0, /* unlimited */
+                  (PLWRTL_QUEUE_FREE_DATA_FN)PvfsFreeWorkContext,
+                  FALSE);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsInitWorkQueue(
+                  &gpPvfsIoWorkQueue,
+                  PVFS_WORKERS_MAX_WORK_ITEMS,
+                  (PLWRTL_QUEUE_FREE_DATA_FN)PvfsFreeWorkContext,
+                  TRUE);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsAllocateMemory(
@@ -114,31 +123,47 @@ PvfsWorkerDoWork(
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PPVFS_IRP_CONTEXT pIrpCtx = NULL;
     PPVFS_WORK_CONTEXT pWorkCtx = NULL;
     PVOID pData = NULL;
     BOOL bInLock = FALSE;
+    PPVFS_IRP_CONTEXT pIrpCtx = NULL;
 
     while(1)
     {
         bInLock = FALSE;
         pData = NULL;
-        pIrpCtx = NULL;
         pWorkCtx = NULL;
+        pIrpCtx = NULL;
 
-        /* Failing to get the next work item is really bad.
-           Should not happen */
+        /*
+         * Pull from the internal work queue first.  Fallback to the
+         * I/O Work queue if the internal one is empty.  The activity
+         * in the internal work queue should never cause starvation
+         * of the I/O queue since the internal queue is driven by
+         * additional state from IRPs.
+         */
 
-        ntError = PvfsNextGlobalWorkItem(&pData);
-        BAIL_ON_NT_STATUS(ntError);
+        ntError = PvfsNextWorkItem(gpPvfsInternalWorkQueue, &pData);
+        if (ntError == STATUS_NOT_FOUND)
+        {
+            ntError = PvfsNextWorkItem(gpPvfsIoWorkQueue, &pData);
+        }
+        PVFS_ASSERT(ntError == STATUS_SUCCESS);
+
+        /* If the work item is NULL, try again next time around.   Should
+           never happen. */
 
         pWorkCtx = (PPVFS_WORK_CONTEXT)pData;
+        if (!pWorkCtx)
+        {
+            continue;
+        }
 
         /* Deal with IRPs slightly differently than non IRP work items */
 
-        if (pWorkCtx->pIrpContext)
+        if (pWorkCtx->bIsIrpContext)
         {
-            pIrpCtx = pWorkCtx->pIrpContext;
+            pIrpCtx = (PPVFS_IRP_CONTEXT)pWorkCtx->pContext;
 
             LWIO_LOCK_MUTEX(bInLock, &pIrpCtx->Mutex);
 
@@ -155,31 +180,25 @@ PvfsWorkerDoWork(
             if (ntError != STATUS_PENDING)
             {
                 pIrpCtx->pIrp->IoStatusBlock.Status = ntError;
-                PVFS_ASSERT(pIrpCtx->bIsPended);
-                IoIrpComplete(pIrpCtx->pIrp);
 
+                PvfsAsyncIrpComplete(pIrpCtx);
                 PvfsFreeIrpContext(&pIrpCtx);
             }
+
+            /* The IRP has been completed or pended again.  In either case,
+               the work context* is done and releases */
+
+            pWorkCtx->pContext = NULL;
         }
         else
         {
             ntError = pWorkCtx->pfnCompletion(pWorkCtx->pContext);
         }
 
-        /* Free the work item and context */
-
-        if (pWorkCtx->pfnFreeContext) {
-            pWorkCtx->pfnFreeContext(&pWorkCtx->pContext);
-        }
-
         PvfsFreeWorkContext(&pWorkCtx);
     }
 
-cleanup:
     return NULL;
-
-error:
-    goto cleanup;
 }
 
 

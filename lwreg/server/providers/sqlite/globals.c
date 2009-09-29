@@ -61,6 +61,8 @@ REGPROV_PROVIDER_FUNCTION_TABLE gRegSqliteProviderAPITable =
         &SqliteDeleteTree,
         &SqliteEnumKeyEx,
         &SqliteEnumValue,
+        &SqliteEnumValueA,
+        &SqliteEnumValueW,
         &SqliteGetValue,
         &SqliteGetValueA,
         &SqliteGetValueW,
@@ -68,6 +70,8 @@ REGPROV_PROVIDER_FUNCTION_TABLE gRegSqliteProviderAPITable =
         &SqliteQueryInfoKey,
         &SqliteQueryMultipleValues,
         &SqliteQueryValueEx,
+        &SqliteQueryValueExA,
+        &SqliteQueryValueExW,
         &SqliteSetValueEx
 };
 
