@@ -514,22 +514,40 @@ AD_NetLookupObjectSidsByNames(
                    &dwFoundSidsCount);
     if (status != 0)
     {
-        if (LW_STATUS_SOME_NOT_MAPPED == status)
+        if (LW_STATUS_NONE_MAPPED == status)
         {
+            // This is ok.
+            LSA_LOG_DEBUG("LsaLookupNames2() empty results (0 out of %u)",
+                          dwNamesCount);
+
+            dwFoundSidsCount = 0;
+
+            dwError = LwAllocateMemory(
+                            sizeof(*ppTranslatedSids)*dwNamesCount,
+                            (PVOID*)&ppTranslatedSids);
+            BAIL_ON_LSA_ERROR(dwError);
+
             dwError = 0;
-            LSA_LOG_DEBUG("LsaLookupNames2() succeeded incomplete results with %d (0x%08x) -- Partial results returned (got %u, expected %u)",
-                           status, status, dwFoundSidsCount, dwNamesCount);
+            goto cleanup;
+        }
+        else if (LW_STATUS_SOME_NOT_MAPPED == status)
+        {
+            LSA_LOG_DEBUG("LsaLookupNames2() partial results (%u out of %u)",
+                          dwFoundSidsCount, dwNamesCount);
+            dwError = 0;
         }
         else
         {
             LSA_LOG_DEBUG("LsaLookupNames2() failed with %d (0x%08x)", status, status);
-            dwError = LW_ERROR_RPC_LSA_LOOKUPNAME2_FAILED;
+
             if (AD_NtStatusIsConnectionError(status))
             {
                 bIsNetworkError = TRUE;
             }
+
+            dwError = LW_ERROR_RPC_LSA_LOOKUPNAME2_FAILED;
+            BAIL_ON_LSA_ERROR(dwError);
         }
-        BAIL_ON_LSA_ERROR(dwError);
     }
     if (dwFoundSidsCount == 0)
     {
@@ -604,18 +622,7 @@ AD_NetLookupObjectSidsByNames(
         }
     }
 
-    *pppTranslatedSids = ppTranslatedSids;
-    if (pdwFoundSidsCount)
-    {
-        *pdwFoundSidsCount = dwFoundSidsCount;
-    }
-
 cleanup:
-    if (pbIsNetworkError)
-    {
-        *pbIsNetworkError = bIsNetworkError;
-    }
-
     LW_SAFE_FREE_MEMORY(pwcHost);
     if (ppwcNames)
     {
@@ -658,18 +665,27 @@ cleanup:
         LwIoDeleteAccessToken(pAccessToken);
     }
 
+    *pppTranslatedSids = ppTranslatedSids;
+
+    if (pdwFoundSidsCount)
+    {
+        *pdwFoundSidsCount = dwFoundSidsCount;
+    }
+
+    if (pbIsNetworkError)
+    {
+        *pbIsNetworkError = bIsNetworkError;
+    }
+
     return dwError;
 
 error:
-   *pppTranslatedSids = NULL;
-   if (pdwFoundSidsCount)
-   {
-       *pdwFoundSidsCount = 0;
-   }
    if (ppTranslatedSids)
    {
        LsaFreeTranslatedNameList(ppTranslatedSids, dwNamesCount);
+       ppTranslatedSids = NULL;
    }
+   dwFoundSidsCount = 0;
 
    goto cleanup;
 }
@@ -841,23 +857,40 @@ AD_NetLookupObjectNamesBySids(
                    &dwFoundNamesCount);
     if (status != 0)
     {
-        if (LW_STATUS_SOME_NOT_MAPPED == status)
+        if (LW_STATUS_NONE_MAPPED == status)
         {
+            // This is ok.
+            LSA_LOG_DEBUG("LsaLookupNames2() empty results (0 out of %u)",
+                          dwSidsCount);
+
+            dwFoundNamesCount = 0;
+
+            dwError = LwAllocateMemory(
+                            sizeof(*ppTranslatedNames)*dwSidsCount,
+                            (PVOID*)&ppTranslatedNames);
+            BAIL_ON_LSA_ERROR(dwError);
+
             dwError = 0;
-            LSA_LOG_DEBUG("LsaLookupSids() succeeded incomplete results with %d (0x%08x) -- Partial results returned (got %u, expected %u)",
-                           status, status, dwFoundNamesCount, dwSidsCount);
+            goto cleanup;
+        }
+        else if (LW_STATUS_SOME_NOT_MAPPED == status)
+        {
+            LSA_LOG_DEBUG("LsaLookupSids() partial results (%u out of %u)",
+                          dwFoundNamesCount, dwSidsCount);
+            dwError = 0;
         }
         else
         {
             LSA_LOG_DEBUG("LsaLookupSids() failed with %d (0x%08x)", status, status);
 
-            dwError = LW_ERROR_RPC_LSA_LOOKUPSIDS_FAILED;
             if (AD_NtStatusIsConnectionError(status))
             {
                 bIsNetworkError = TRUE;
             }
+
+            dwError = LW_ERROR_RPC_LSA_LOOKUPSIDS_FAILED;
+            BAIL_ON_LSA_ERROR(dwError);
         }
-        BAIL_ON_LSA_ERROR(dwError);
     }
     if (dwFoundNamesCount == 0)
     {
@@ -904,17 +937,17 @@ AD_NetLookupObjectNamesBySids(
         ADAccountType ObjectType = AccountType_NotFound;
         PCSTR pszDomainName = NULL;
 
+        ObjectType = GetObjectType(name_array[i].type);
+        if (ObjectType == AccountType_NotFound)
+        {
+            continue;
+        }
+
         // Check for invalid domain indexing
         if (name_array[i].sid_index >= pDomains->count)
         {
             dwError = LW_ERROR_RPC_LSA_LOOKUPSIDS_NOT_FOUND;
             BAIL_ON_LSA_ERROR(dwError);
-        }
-
-        ObjectType = GetObjectType(name_array[i].type);
-        if (ObjectType == AccountType_NotFound)
-        {
-            continue;
         }
 
         pszDomainName = ppszDomainNames[name_array[i].sid_index];
@@ -964,20 +997,7 @@ AD_NetLookupObjectNamesBySids(
         LW_SAFE_FREE_STRING(pszUsername);
     }
 
-    *pppTranslatedNames = ppTranslatedNames;
-
 cleanup:
-
-    if (pdwFoundNamesCount)
-    {
-        *pdwFoundNamesCount = dwFoundNamesCount;
-    }
-
-    if (pbIsNetworkError)
-    {
-        *pbIsNetworkError = bIsNetworkError;
-    }
-
     if (pDomains)
     {
         LwFreeStringArray(ppszDomainNames,pDomains->count);
@@ -1028,16 +1048,27 @@ cleanup:
         LwIoDeleteAccessToken(pAccessToken);
     }
 
+    *pppTranslatedNames = ppTranslatedNames;
+
+    if (pdwFoundNamesCount)
+    {
+        *pdwFoundNamesCount = dwFoundNamesCount;
+    }
+
+    if (pbIsNetworkError)
+    {
+        *pbIsNetworkError = bIsNetworkError;
+    }
+
     return dwError;
 
 error:
-
-    *pppTranslatedNames = NULL;
-
     if (ppTranslatedNames)
     {
         LsaFreeTranslatedNameList(ppTranslatedNames, dwSidsCount);
+        ppTranslatedNames = NULL;
     }
+    dwFoundNamesCount = 0;
 
     goto cleanup;
 }
