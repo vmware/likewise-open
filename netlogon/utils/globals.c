@@ -58,3 +58,7 @@ LOGINFO gLwnetLogInfo =
     0,
     0
 };
+
+pthread_mutex_t gLwnetResolverLock = PTHREAD_MUTEX_INITIALIZER;
+
+
