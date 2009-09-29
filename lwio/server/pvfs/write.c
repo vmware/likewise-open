@@ -142,7 +142,8 @@ PvfsWrite(
 cleanup:
     PvfsFreeWriteContext((PVOID*)&pWriteCtx);
 
-    if ((ntError != STATUS_PENDING) && pCcb) {
+    if (pCcb)
+    {
         PvfsReleaseCCB(pCcb);
     }
 
@@ -246,7 +247,7 @@ PvfsCreateWriteContext(
     BAIL_ON_NT_STATUS(ntError);
 
     pWriteCtx->pIrpContext = pIrpContext;
-    pWriteCtx->pCcb = pCcb;
+    pWriteCtx->pCcb = PvfsReferenceCCB(pCcb);
 
     *ppWriteContext = pWriteCtx;
 
@@ -268,11 +269,22 @@ PvfsFreeWriteContext(
     IN OUT PVOID *ppContext
     )
 {
-    if (!ppContext || !*ppContext) {
+    PPVFS_PENDING_WRITE pWriteCtx = NULL;
+
+    if (!ppContext || !(*ppContext))
+    {
         return;
     }
 
-    PVFS_FREE(ppContext);
+    pWriteCtx = (PPVFS_PENDING_WRITE)(*ppContext);
+
+    if (pWriteCtx->pCcb)
+    {
+        PvfsReleaseCCB(pWriteCtx->pCcb);
+    }
+
+    PVFS_FREE(&pWriteCtx);
+    *ppContext = NULL;
 
     return;
 }

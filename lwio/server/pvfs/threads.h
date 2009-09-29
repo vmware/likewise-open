@@ -70,6 +70,8 @@ typedef struct _PVFS_WORK_QUEUE {
     pthread_cond_t  ItemsAvailable;
     pthread_cond_t  SpaceAvailable;
 
+    BOOLEAN bWait;
+
     PLWRTL_QUEUE pQueue;
 
 } PVFS_WORK_QUEUE, *PPVFS_WORK_QUEUE;
@@ -91,7 +93,8 @@ NTSTATUS
 PvfsInitWorkQueue(
     PPVFS_WORK_QUEUE *ppWorkQueue,
     INT32 iSize,
-    PLWRTL_QUEUE_FREE_DATA_FN pfnFreeData
+    PLWRTL_QUEUE_FREE_DATA_FN pfnFreeData,
+    BOOLEAN bWaitSemantics
     );
 
 NTSTATUS
@@ -105,17 +108,6 @@ PvfsNextWorkItem(
     PPVFS_WORK_QUEUE pWorkQueue,
     PVOID *ppItem
     );
-
-NTSTATUS
-PvfsAddGlobalWorkItem(
-    IN PVOID pItem
-    );
-
-NTSTATUS
-PvfsNextGlobalWorkItem(
-    OUT PVOID *ppData
-    );
-
 
 
 #endif    /* __PVFS_THREADS_H__ */

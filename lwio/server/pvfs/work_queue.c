@@ -54,7 +54,8 @@ NTSTATUS
 PvfsInitWorkQueue(
     PPVFS_WORK_QUEUE *ppWorkQueue,
     INT32 iSize,
-    PLWRTL_QUEUE_FREE_DATA_FN pfnFreeData
+    PLWRTL_QUEUE_FREE_DATA_FN pfnFreeData,
+    BOOLEAN bWaitSemantics
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
@@ -69,6 +70,8 @@ PvfsInitWorkQueue(
     pthread_mutex_init(&pWorkQ->Mutex, NULL);
     pthread_cond_init(&pWorkQ->ItemsAvailable, NULL);
     pthread_cond_init(&pWorkQ->SpaceAvailable, NULL);
+
+    pWorkQ->bWait = bWaitSemantics;
 
     *ppWorkQueue = pWorkQ;
     pWorkQ = NULL;
@@ -100,20 +103,26 @@ PvfsAddWorkItem(
 
     LWIO_LOCK_MUTEX(bInLock, &pWorkQueue->Mutex);
 
-    while (LwRtlQueueIsFull(pWorkQueue->pQueue))
+    if (pWorkQueue->bWait)
     {
-        pthread_cond_wait(&pWorkQueue->SpaceAvailable,
-                          &pWorkQueue->Mutex);
-    }
+        while (LwRtlQueueIsFull(pWorkQueue->pQueue))
+        {
+            pthread_cond_wait(
+                &pWorkQueue->SpaceAvailable,
+                &pWorkQueue->Mutex);
+        }
 
-    if (LwRtlQueueIsEmpty(pWorkQueue->pQueue)) {
-        bSignal = TRUE;
+        if (LwRtlQueueIsEmpty(pWorkQueue->pQueue))
+        {
+            bSignal = TRUE;
+        }
     }
 
     ntError = LwRtlQueueAddItem(pWorkQueue->pQueue, pItem);
     BAIL_ON_NT_STATUS(ntError);
 
-    if (bSignal) {
+    if (bSignal)
+    {
         pthread_cond_broadcast(&pWorkQueue->ItemsAvailable);
     }
 
@@ -144,20 +153,26 @@ PvfsNextWorkItem(
 
     LWIO_LOCK_MUTEX(bInLock, &pWorkQueue->Mutex);
 
-    while (LwRtlQueueIsEmpty(pWorkQueue->pQueue))
+    if (pWorkQueue->bWait)
     {
-        pthread_cond_wait(&pWorkQueue->ItemsAvailable,
-                          &pWorkQueue->Mutex);
-    }
+        while (LwRtlQueueIsEmpty(pWorkQueue->pQueue))
+        {
+            pthread_cond_wait(
+                &pWorkQueue->ItemsAvailable,
+                &pWorkQueue->Mutex);
+        }
 
-    if (LwRtlQueueIsFull(pWorkQueue->pQueue)) {
-        bSignal = TRUE;
+        if (LwRtlQueueIsFull(pWorkQueue->pQueue))
+        {
+            bSignal = TRUE;
+        }
     }
 
     ntError = LwRtlQueueRemoveItem(pWorkQueue->pQueue, ppItem);
     BAIL_ON_NT_STATUS(ntError);
 
-    if (bSignal) {
+    if (bSignal)
+    {
         pthread_cond_broadcast(&pWorkQueue->SpaceAvailable);
     }
 
@@ -169,31 +184,6 @@ cleanup:
 error:
     goto cleanup;
 }
-
-
-/*****************************************************************************
- ****************************************************************************/
-
-NTSTATUS
-PvfsNextGlobalWorkItem(
-    OUT PVOID *ppData
-    )
-{
-    return PvfsNextWorkItem(gpPvfsIoWorkQueue, ppData);
-}
-
-/*****************************************************************************
- ****************************************************************************/
-
-NTSTATUS
-PvfsAddGlobalWorkItem(
-    IN PVOID pData
-    )
-{
-    return PvfsAddWorkItem(gpPvfsIoWorkQueue, pData);
-}
-
-
 
 
 /*

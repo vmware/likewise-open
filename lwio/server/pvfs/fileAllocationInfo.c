@@ -192,7 +192,8 @@ PvfsSetFileAllocationInfo(
 cleanup:
     PvfsFreeSetAllocationContext((PVOID*)&pSetAllocationCtx);
 
-    if ((ntError != STATUS_PENDING) && pCcb) {
+    if (pCcb)
+    {
         PvfsReleaseCCB(pCcb);
     }
 
@@ -253,7 +254,7 @@ PvfsCreateSetAllocationContext(
     BAIL_ON_NT_STATUS(ntError);
 
     pSetAllocationCtx->pIrpContext = pIrpContext;
-    pSetAllocationCtx->pCcb = pCcb;
+    pSetAllocationCtx->pCcb = PvfsReferenceCCB(pCcb);
 
     *ppSetAllocationContext = pSetAllocationCtx;
 
@@ -275,11 +276,22 @@ PvfsFreeSetAllocationContext(
     IN OUT PVOID *ppContext
     )
 {
-    if (!ppContext || !*ppContext) {
+    PPVFS_PENDING_SET_ALLOCATION pAllocationCtx = NULL;
+
+    if (!ppContext || !(*ppContext))
+    {
         return;
     }
 
-    PVFS_FREE(ppContext);
+    pAllocationCtx = (PPVFS_PENDING_SET_ALLOCATION)(*ppContext);
+
+    if (pAllocationCtx->pCcb)
+    {
+        PvfsReleaseCCB(pAllocationCtx->pCcb);
+    }
+
+    PVFS_FREE(&pAllocationCtx);
+    *ppContext = NULL;
 
     return;
 }

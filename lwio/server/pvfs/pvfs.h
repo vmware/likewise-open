@@ -350,6 +350,12 @@ PvfsEnforceShareMode(
 
 /* From locking.c */
 
+VOID
+PvfsQueueCancelLock(
+    PIRP pIrp,
+    PVOID pCancelContext
+    );
+
 NTSTATUS
 PvfsLockFile(
     PPVFS_IRP_CONTEXT pIrpCtx,
@@ -453,6 +459,11 @@ PvfsFreeOplockBreakTestContext(
     IN OUT PPVFS_PENDING_OPLOCK_BREAK_TEST *ppContext
     );
 
+VOID
+PvfsQueueCancelOplock(
+    IN PIRP pIrp,
+    IN PVOID pCancelContext
+    );
 
 
 #endif /* __PVFS_H__ */

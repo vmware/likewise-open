@@ -47,16 +47,13 @@
 #ifndef _PVFS_ASYNC_HANDLER_H_
 #define _PVFS_ASYNC_HANDLER_H_
 
-VOID
-PvfsCancelIrp(
-    PIRP pIrp,
-    PVOID pCancelContext
-    );
+
+/* Work Context API */
 
 NTSTATUS
 PvfsCreateWorkContext(
     OUT PPVFS_WORK_CONTEXT *ppWorkContext,
-    IN  PPVFS_IRP_CONTEXT pIrpContext,
+    IN  BOOLEAN bIsIrpContext,
     IN  PVOID pContext,
     IN  PPVFS_WORK_CONTEXT_CALLBACK pfnCompletion,
     IN  PPVFS_WORK_CONTEXT_FREE_CTX pfnFreeContext
@@ -66,6 +63,9 @@ VOID
 PvfsFreeWorkContext(
     IN OUT PPVFS_WORK_CONTEXT *ppWorkContext
     );
+
+
+/* Pvfs IRP Async API */
 
 NTSTATUS
 PvfsAsyncCreate(
@@ -123,6 +123,19 @@ PvfsAsyncSetSecurityFile(
     );
 
 
+/* Pvfs IRP Wrapper API */
+
+VOID
+PvfsIrpMarkPending(
+    IN PPVFS_IRP_CONTEXT pIrpContext,
+    IN PIO_IRP_CALLBACK CancelCallback,
+    IN OPTIONAL PVOID CancelCallbackContext
+    );
+
+VOID
+PvfsAsyncIrpComplete(
+    PPVFS_IRP_CONTEXT pIrpContext
+    );
 
 
 #endif /* _PVFS_ASYNC_HANDLER_H_ */

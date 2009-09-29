@@ -343,6 +343,7 @@ struct _PVFS_IRP_CONTEXT
     BOOLEAN bIsCancelled;
     BOOLEAN bIsPended;
 
+    PPVFS_FCB pFcb;
     PIRP pIrp;
 
     /* Used to cancel a pending blocking lock */
@@ -378,7 +379,7 @@ typedef VOID (*PPVFS_WORK_CONTEXT_FREE_CTX)(
 
 typedef struct _PVFS_WORK_CONTEXT
 {
-    PPVFS_IRP_CONTEXT pIrpContext;
+    BOOLEAN bIsIrpContext;
     PVOID pContext;
 
     PPVFS_WORK_CONTEXT_CALLBACK pfnCompletion;
