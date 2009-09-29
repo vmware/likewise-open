@@ -75,7 +75,7 @@
                     <string name="viewFrame">14 35 349 19 </string>
                     <ostype name="controlSignature">CnTs</ostype>
                     <int name="controlID">135</int>
-                    <string name="title">Default to &quot;Computers&quot; container.</string>
+                    <string name="title">Computers container or existing computer location.</string>
                     <ostype name="command">oudf</ostype>
                     <object name="layoutInfo" class="IBCarbonHILayoutInfo">
                       <int name="bindingTopKind">1</int>

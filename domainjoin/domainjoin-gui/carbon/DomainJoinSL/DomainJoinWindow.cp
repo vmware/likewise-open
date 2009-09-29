@@ -60,7 +60,7 @@ DomainJoinWindow::GetComputerName()
 	   std::string errMsg("Failed to get computer name from control");
 	   throw DomainJoinException(-1, "Domain Join Error", errMsg);
 	}
-	
+
 	return result;
 }
 
@@ -74,7 +74,7 @@ DomainJoinWindow::GetDomainName()
 	   std::string errMsg("Failed to get domain name from control");
 	   throw DomainJoinException(-1, "Domain Join Error", errMsg);
 	}
-	
+
 	return result;
 }
 
@@ -91,10 +91,10 @@ DomainJoinWindow::GetOUPath()
 	      throw DomainJoinException(-1, "Domain Join Error", errMsg);
 	   }
 	}
-	
+
 	return result;
 }
-		
+
 void
 DomainJoinWindow::SetComputerName(const std::string& name)
 {
@@ -125,7 +125,7 @@ DomainJoinWindow::GetCredentialsDialog()
 	{
 	   _credentialsDialog = new CredentialsDialog(GetAppSignature(), *this);
 	}
-	
+
 	return *_credentialsDialog;
 }
 
@@ -171,8 +171,8 @@ DomainJoinWindow::ValidateHostname(const std::string& hostName)
 	   {
 	       char ch = (char)hostName[i];
 		   if (!(isdigit(ch) ||
-				 ((ch >= 'a') && (ch <= 'z')) || 
-				 ((ch >= 'A') && (ch <= 'Z')) || 
+				 ((ch >= 'a') && (ch <= 'z')) ||
+				 ((ch >= 'A') && (ch <= 'Z')) ||
 				 (ch == '-')
 				)
 			  )
@@ -212,7 +212,7 @@ DomainJoinWindow::ValidateData()
 {
     bool result = false;
 	std::string domainName;
-	
+
     try
 	{
 	    domainName = GetDomainName();
@@ -273,7 +273,7 @@ DomainJoinWindow::ValidateData()
 					   NULL,
 					   &outItemHit);
 	}
-	
+
 	return result;
 }
 
@@ -399,24 +399,24 @@ DomainJoinWindow::HandleCommand( const HICommandExtended& inCommand )
         case CANCEL_CMD_ID:
 			this->Close();
 			return true;
-			
+
 		case DEFAULT_OU_CMD_ID:
 		     UnsetRadioButton(OU_PATH_RADIO_ID);
 			 DisableLocalControl(OU_PATH_TEXT_ID);
 		     return true;
-			 
+
 		case OU_PATH_RADIO_CMD_ID:
 		     UnsetRadioButton(DEFAULT_OU_RADIO_ID);
 			 EnableLocalControl(OU_PATH_TEXT_ID);
 		     return true;
-	
+
 	    case JOIN_CMD_ID:
 		     if (ValidateData())
 			 {
 		        GetCredentials();
 			 }
 		     return true;
-			 
+
 		case CREDENTIALS_CMD_OK:
 		{
 		     CredentialsDialog& credsDialog = dynamic_cast<CredentialsDialog&>(GetCredentialsDialog());
@@ -425,10 +425,10 @@ DomainJoinWindow::HandleCommand( const HICommandExtended& inCommand )
 		     HandleJoinDomain();
 		}
 		     return true;
-			 
+
 		case CREDENTIALS_CMD_CANCEL:
 		     return true;
-        
+
         default:
             return false;
     }
