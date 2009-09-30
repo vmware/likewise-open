@@ -1048,9 +1048,9 @@ void DJNetInitialize(BOOLEAN bEnableDcerpcd, LWException **exc)
     if (geteuid() == 0)
     {
         LW_TRY(exc, DJManageDaemon("netlogond", TRUE,
-                    92, 8, &LW_EXC));
+                    19, 9, &LW_EXC));
         LW_TRY(exc, DJManageDaemon("lwiod", TRUE,
-                    92, 10, &LW_EXC));
+                    20, 9, &LW_EXC));
 
         if (bEnableDcerpcd)
         {
@@ -1067,10 +1067,10 @@ void DJNetInitialize(BOOLEAN bEnableDcerpcd, LWException **exc)
             else
             {
                 LW_TRY(exc, DJManageDaemon("dcerpcd", TRUE,
-                            92, 11, &LW_EXC));
+                            19, 9, &LW_EXC));
             }
 
-            DJManageDaemon("eventlogd", TRUE, 92, 11, &innerExc);
+            DJManageDaemon("eventlogd", TRUE, 20, 11, &innerExc);
             if (!LW_IS_OK(innerExc) && innerExc->code != CENTERROR_DOMAINJOIN_MISSING_DAEMON)
             {
                 DJLogException(LOG_LEVEL_WARNING, innerExc);
@@ -1080,7 +1080,7 @@ void DJNetInitialize(BOOLEAN bEnableDcerpcd, LWException **exc)
 
 #if 0
         LW_TRY(exc, DJManageDaemon("srvsvcd", TRUE,
-                    92, 12, &LW_EXC));
+                    21, 9, &LW_EXC));
 #endif
 #endif
 

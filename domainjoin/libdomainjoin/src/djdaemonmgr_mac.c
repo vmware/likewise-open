@@ -804,11 +804,11 @@ cleanup:
 }
 
 struct _DaemonList daemonList[] = {
-    { "com.likewisesoftware.lsassd", {NULL}, TRUE, 92, 10 },
-    { "com.likewisesoftware.gpagentd", {NULL}, FALSE, 94, 9 },
-    { "com.likewisesoftware.lwmgmtd", {NULL}, FALSE, 95, 8 },
-    //{ "com.likewisesoftware.eventfwdd", {NULL}, FALSE, 96, 7 },
-    //{ "com.likewisesoftware.reapsysld", {NULL}, FALSE, 97, 6 },
+    { "com.likewisesoftware.lsassd", {NULL}, TRUE, 21, 9 },
+    { "com.likewisesoftware.gpagentd", {NULL}, FALSE, 22, 9 },
+    { "com.likewisesoftware.lwmgmtd", {NULL}, FALSE, 21, 9 },
+    //{ "com.likewisesoftware.eventfwdd", {NULL}, FALSE, 21, 9 },
+    //{ "com.likewisesoftware.reapsysld", {NULL}, FALSE, 12, 9 },
     { NULL, {NULL}, FALSE, 0, 0 },
 };
 
