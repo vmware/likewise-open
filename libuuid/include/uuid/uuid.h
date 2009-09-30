@@ -39,19 +39,7 @@
 #include <sys/time.h>
 #include <time.h>
 
-#if defined(__APPLE__)
-#ifndef _UUID_T
-#define _UUID_T
-typedef __darwin_uuid_t uuid_t;
-#endif /* _UUID_T */
-
-#ifndef _UUID_STRING_T
-#define _UUID_STRING_T
-typedef __darwin_uuid_string_t  uuid_string_t;
-#endif /* _UUID_STRING_T */
-#else
 typedef unsigned char uuid_t[16];
-#endif
 
 /* UUID Variant definitions */
 #define UUID_VARIANT_NCS 	0
