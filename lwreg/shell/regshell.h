@@ -52,6 +52,7 @@
 #include <regclient.h>
 
 #include <lw/base.h>
+#include <lw/swab.h>
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>

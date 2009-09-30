@@ -244,7 +244,7 @@ RegShellDumpByteArray(
 
     for (i=0; i<dwByteArrayLen; i++)
     {
-        printf("%02x", pByteArray[i]);
+        printf("%02x%s", pByteArray[i], (i+1)<dwByteArrayLen ? "," : "");
     }
 
 cleanup:
@@ -330,9 +330,14 @@ RegShellListValues(
     DWORD dwError = 0;
     DWORD dwValuesLen = 0;
     DWORD i = 0;
+    DWORD dwMultiIndex = 0;
     PREGSHELL_UTIL_VALUE pValues = NULL;
     PSTR pszValueName = NULL;
     PBYTE pData = NULL;
+    PSTR *ppszMultiStrArray = NULL;
+    DWORD dwValueNameLenMax = 0;
+    DWORD dwValueNameLen = 0;
+    DWORD dwValue = 0;
 
     dwError = RegShellUtilGetValues(
                   pParseState->hReg,
@@ -345,13 +350,23 @@ RegShellListValues(
 
     for (i=0; i<dwValuesLen; i++)
     {
+        dwValueNameLen = wc16slen(pValues[i].pValueName);
+        if (dwValueNameLen>dwValueNameLenMax)
+        {
+            dwValueNameLenMax = dwValueNameLen;
+        }
+    }
+    dwValueNameLenMax++;
+
+    for (i=0; i<dwValuesLen; i++)
+    {
         if (dwError == 0)
         {
             dwError = LwWc16sToMbs(pValues[i].pValueName, &pszValueName);
             BAIL_ON_REG_ERROR(dwError);
 
 #ifndef _DEBUG
-            printf("%s\n  ", pszValueName);
+            printf("%s%*s", pszValueName, strlen(pszValueName)-dwValueNameLenMax, "");
 #else
             printf("ListValues: value='%s\n", pszValueName);
             printf("ListValues: dataLen='%d'\n", pValues[i].dwDataLen);
@@ -359,20 +374,45 @@ RegShellListValues(
             switch (pValues[i].type)
             {
                 case REG_SZ:
-                    printf("REG_SZ:     pData='%s'\n",
+                    printf("REG_SZ:          \"%s\"\n",
                            (PSTR) pValues[i].pData);
                     break;
 
                 case REG_DWORD:
-                    printf("REG_DWORD:  pData=<%08x>\n",
-                           *((PDWORD) pValues[i].pData));
+                    printf("REG_DWORD:       ");
+
+
+                    memcpy(&dwValue, pValues[i].pData, sizeof(DWORD));
+                    dwValue = LW_HTOB32(dwValue);
+                    RegShellDumpByteArray((PBYTE) &dwValue, 4);
+                    printf("\n");
                     break;
 
                 case REG_BINARY:
-                    printf("REG_BINARY: ");
+                    printf("REG_BINARY:      ");
                     RegShellDumpByteArray(pValues[i].pData,
                                           pValues[i].dwDataLen);
                     printf("\n");
+                    break;
+
+                case REG_MULTI_SZ:
+                    dwError = ConvertByteArrayToMultiStrs(
+                                  pValues[i].pData,
+                                  pValues[i].dwDataLen,
+                                  &ppszMultiStrArray);
+                    BAIL_ON_REG_ERROR(dwError);
+                    for (dwMultiIndex=0;
+                         ppszMultiStrArray[dwMultiIndex];
+                         dwMultiIndex++)
+                    {
+                        printf("%*sREG_MULTI_SZ[%d]: \"%s\"\n",
+                               dwMultiIndex == 0 ? 0 :
+                                   dwValueNameLenMax,
+                                   "",
+                               dwMultiIndex,
+                               ppszMultiStrArray[dwMultiIndex]);
+
+                    }
                     break;
 
                 default:
@@ -383,7 +423,6 @@ RegShellListValues(
             LW_SAFE_FREE_MEMORY(pData);
             pData = NULL;
         }
-        printf("\n");
     }
 cleanup:
     return dwError;
@@ -999,7 +1038,7 @@ RegShellProcessInteractiveEditLine(
             }
         }
 
-        if (pszCmdLine)
+        if (pszCmdLine && pszCmdLine[0] != '\n')
         {
             rv = history(hist, &ev, H_ENTER, pszCmdLine);
             if (strcmp(pszCmdLine, "history\n") == 0)

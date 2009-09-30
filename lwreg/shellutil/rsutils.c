@@ -654,10 +654,6 @@ cleanup:
 
 error:
     LW_SAFE_FREE_MEMORY(pValueName);
-    if (dwError == LW_ERROR_DUPLICATE_KEYVALUENAME)
-    {
-        dwError = 0;
-    }
     goto cleanup;
 }
 
