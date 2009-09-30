@@ -60,17 +60,17 @@ static void uuid_unparse_x(const uuid_t uu, char *out, const char *fmt)
 		uuid.node[3], uuid.node[4], uuid.node[5]);
 }
 
-void uuid_unparse_lower(const uuid_t uu, char *out)
+void uuid_unparse_lower(const uuid_t uu, uuid_string_t out)
 {
 	uuid_unparse_x(uu, out,	fmt_lower);
 }
 
-void uuid_unparse_upper(const uuid_t uu, char *out)
+void uuid_unparse_upper(const uuid_t uu, uuid_string_t out)
 {
 	uuid_unparse_x(uu, out,	fmt_upper);
 }
 
-void uuid_unparse(const uuid_t uu, char *out)
+void uuid_unparse(const uuid_t uu, uuid_string_t out)
 {
 	uuid_unparse_x(uu, out, FMT_DEFAULT);
 }
