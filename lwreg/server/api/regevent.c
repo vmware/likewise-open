@@ -250,8 +250,8 @@ cleanup:
 
 error:
 
-    REG_LOG_ERROR("Failed to post service success event.");
-    REG_LOG_ERROR("Error code: [%d]", dwError);
+    REG_LOG_VERBOSE("Failed to post service success event.");
+    REG_LOG_VERBOSE("Error code: [%d]", dwError);
 
     goto cleanup;
 }
@@ -289,8 +289,8 @@ cleanup:
 
 error:
 
-    REG_LOG_ERROR("Failed to post service warning event.");
-    REG_LOG_ERROR("Error code: [%d]", dwError);
+    REG_LOG_VERBOSE("Failed to post service warning event.");
+    REG_LOG_VERBOSE("Error code: [%d]", dwError);
 
     goto cleanup;
 }
@@ -328,8 +328,8 @@ cleanup:
 
 error:
 
-    REG_LOG_ERROR("Failed to post service failure event.");
-    REG_LOG_ERROR("Error code: [%d]", dwError);
+    REG_LOG_VERBOSE("Failed to post service failure event.");
+    REG_LOG_VERBOSE("Error code: [%d]", dwError);
 
     goto cleanup;
 }
