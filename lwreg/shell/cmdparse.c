@@ -143,6 +143,7 @@ static REGSHELL_CMD_ID shellCmds[] = {
     { "pwd", REGSHELL_CMD_PWD                 },
     { "help", REGSHELL_CMD_HELP               },
     { "exit", REGSHELL_CMD_QUIT               },
+    { "quit", REGSHELL_CMD_QUIT               },
     { "import", REGSHELL_CMD_IMPORT           },
     { "export", REGSHELL_CMD_EXPORT           },
 };
@@ -1737,22 +1738,21 @@ LW_VOID
 RegShellUsage(
     PSTR progname)
 {
-    printf("usage: %s [--file | -f] command_file.txt |\n"
-        "       command [[keyName]] [options]\n"
-        "       add_key [[KeyName]] |\n"
-        "       list_keys [[keyName]] |\n"
+    printf("usage: %s [--file | -f] command_file.txt\n"
+        "       add_key [[KeyName]]\n"
+        "       list_keys [[keyName]]\n"
         "       delete_key [KeyName]\n"
         "       delete_tree [KeyName]\n"
-        "       cd [KeyName] |\n"
-        "       pwd |\n"
-        "       add_value [[KeyName]] \"ValueName\" type \"Value\" [\"Value2\"] [...] |\n"
-        "       set_value [[KeyName]] \"ValueName\" type \"Value\" [\"Value2\"] [...] |\n"
-        "       list_values [[keyName]] |\n"
+        "       cd [KeyName]\n"
+        "       pwd\n"
+        "       add_value [[KeyName]] \"ValueName\" Type \"Value\" [\"Value2\"] [...]\n"
+        "       set_value [[KeyName]] \"ValueName\" Type \"Value\" [\"Value2\"] [...]\n"
+        "       list_values [[keyName]]\n"
         "       delete_value [[KeyName]] \"ValueName\"\n"
         "       set_hive HIVE_NAME\n"
         "       import file.reg\n"
         "       export file.reg\n"
-        "       exit | ^D\n"
+        "       exit | quit | ^D\n"
         "\n"
         "         Type: REG_SZ | REG_DWORD | REG_BINARY | REG_MULTI_SZ\n"
         "               REG_DWORD and REG_BINARY values are hexadecimal\n"
