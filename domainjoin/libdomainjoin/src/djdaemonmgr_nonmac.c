@@ -916,11 +916,11 @@ cleanup:
 }
 
 struct _DaemonList daemonList[] = {    
-    { "lsassd", {"likewise-open", NULL}, TRUE, 93, 10 },
-    //{ "reapsysld", {NULL}, FALSE, 25, 75 },
-    { "gpagentd", {NULL}, FALSE, 94, 9 },
-    { "lwmgmtd", {NULL}, FALSE, 95, 8 },
-    //{ "eventfwdd", {NULL}, FALSE, 96, 7 },
+    { "lsassd", {"likewise-open", NULL}, TRUE, 21, 9 },
+    //{ "reapsysld", {NULL}, FALSE, 12, 9 },
+    { "gpagentd", {NULL}, FALSE, 22, 9 },
+    { "lwmgmtd", {NULL}, FALSE, 21, 9 },
+    //{ "eventfwdd", {NULL}, FALSE, 21, 9 },
     { NULL, {NULL}, FALSE, 0, 0 },
 };
 
