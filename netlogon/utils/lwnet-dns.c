@@ -1207,8 +1207,11 @@ LWNetDnsQueryWithBuffer(
 
 error:
 
-    /* Indicate that we are done with the resolver */
+    /* Indicate that we are done with the resolver, except on HPUX which
+       does not implement the res_close function. */
+#ifndef __LWI_HP_UX__
     res_close();
+#endif
 
     LWNET_UNLOCK_RESOLVER_API(bInLock);
 
