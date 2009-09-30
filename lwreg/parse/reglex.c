@@ -536,7 +536,7 @@ RegLexParseBinary(
             strcasecmp(lexHandle->curToken.pszValue, "REG_DWORD") == 0)
         {
             lexHandle->curToken.token = REGLEX_REG_DWORD;
-            lexHandle->state = REGLEX_STATE_DWORD;
+            lexHandle->state = REGLEX_STATE_BINHEX_STR;
             lexHandle->curToken.valueCursor = 0;
         }
         else if (strcasecmp(lexHandle->curToken.pszValue, "hex") == 0 ||
@@ -910,12 +910,9 @@ RegLexGetToken(
 
     if (lexHandle->isToken &&
         lexHandle->curToken.token != REGLEX_HEXPAIR &&
-        lexHandle->curToken.token != REGLEX_REG_BINARY)
+        lexHandle->curToken.token != REGLEX_REG_BINARY &&
+        lexHandle->curToken.token != REGLEX_REG_DWORD)
     {
-        if ( lexHandle->curToken.token == REGLEX_REG_DWORD)
-        {
-            lexHandle->state = REGLEX_FIRST;
-        }
         lexHandle->isToken = FALSE;
         lexHandle->curToken.token = REGLEX_FIRST;
         lexHandle->curToken.valueCursor = 0;
