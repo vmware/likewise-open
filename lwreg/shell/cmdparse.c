@@ -1100,6 +1100,7 @@ RegShellCmdlineParseToArgv(
     DWORD dwArgc = 1;
     DWORD dwAllocSize = 1;
     PSTR *pszArgv = NULL;
+    PSTR *pszArgvRealloc = NULL;
     REG_DATA_TYPE valueType = REG_UNKNOWN;
     PSTR pszBinaryData = NULL;
     DWORD dwBinaryDataOffset = 0;
@@ -1223,34 +1224,32 @@ RegShellCmdlineParseToArgv(
                 {
                     d_printf(("RegShellCmdlineParseToArgv: add_value found\n"));
                     state = REGSHELL_CMDLINE_STATE_ADDVALUE;
-                    /*
-                     * Problem here, no real idea how many values have been
-                     * specified. Only an issue for MULTI_SZ at this point.
-                     */
                     dwArgc += 1;
-                    dwAllocSize = dwArgc + 50;
+                    /*
+                     * Realloc pszArgv as needed for additional args,
+                     * as there is no way to know how many arguments
+                     * will follow for REG_MULTI_SZ.
+                     */
+                    dwAllocSize = dwArgc + 64;
                 }
                 else if (cmdEnum == REGSHELL_CMD_DELETE_VALUE)
                 {
                     d_printf(("RegShellCmdlineParseToArgv: delete_value found\n"));
                     state = REGSHELL_CMDLINE_STATE_ADDVALUE;
-                    /*
-                     * Problem here, no real idea how many values have been
-                     * specified. Only an issue for MULTI_SZ at this point.
-                     */
                     dwArgc += 1;
                     dwAllocSize = dwArgc + 3;
                 }
                 else if (cmdEnum == REGSHELL_CMD_SET_VALUE)
                 {
                     d_printf(("RegShellCmdlineParseToArgv: set_value found\n"));
-                    state = REGSHELL_CMDLINE_STATE_ADDVALUE;
-                    /*
-                     * Problem here, no real idea how many values have been
-                     * specified. Only an issue for MULTI_SZ at this point.
-                     */
                     dwArgc += 1;
-                    dwAllocSize = dwArgc + 50;
+                    /*
+                     * Realloc pszArgv as needed for additional args,
+                     * as there is no way to know how many arguments
+                     * will follow for REG_MULTI_SZ.
+                     */
+                    state = REGSHELL_CMDLINE_STATE_ADDVALUE;
+                    dwAllocSize = dwArgc + 64;
                 }
                 else if (cmdEnum == REGSHELL_CMD_SET_HIVE)
                 {
@@ -1579,6 +1578,17 @@ RegShellCmdlineParseToArgv(
                                            &attrSize,
                                            &pszAttr);
                         dwError = LwAllocateString(pszAttr, &pszArgv[dwArgc++]);
+                        BAIL_ON_REG_ERROR(dwError);
+                        if (dwArgc >= dwAllocSize)
+                        {
+                            dwAllocSize *= 2;
+                            dwError = LwReallocMemory(
+                                          pszArgv,
+                                          (LW_PVOID) &pszArgvRealloc,
+                                          dwAllocSize * sizeof(PSTR *));
+                            BAIL_ON_REG_ERROR(dwError);
+                            pszArgv = pszArgvRealloc;
+                        }
                     }
                     else if (valueType == REG_BINARY || valueType == REG_DWORD)
                     {
