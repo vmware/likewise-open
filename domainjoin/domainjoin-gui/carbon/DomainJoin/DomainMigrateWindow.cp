@@ -1705,7 +1705,7 @@ GetLocalUserList(
                 }
             }
         }
-    } while (pContinuationData != NULL);
+    } while (pContinuationData);
 
     *ppLocalUsers = pLocalUsers;
     pLocalUsers = NULL;
