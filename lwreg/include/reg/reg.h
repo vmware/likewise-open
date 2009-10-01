@@ -343,18 +343,49 @@ RegEnumKeyEx(
     PFILETIME pftLastWriteTime
     );
 
-DWORD
-RegEnumValue(
-    HANDLE hRegConnection,
-    HKEY hKey,
-    DWORD dwIndex,
-    PWSTR pValueName,
-    PDWORD pcchValueName,
-    PDWORD pReserved,
-    PDWORD pType,
-    PBYTE pData,
-    PDWORD pcbData
-    );
+#ifdef UNICODE
+#define RegEnumValue(hRegConnection, \
+                     hKey, \
+                     dwIndex, \
+                     pValueName, \
+                     pcchValueName, \
+                     pReserved, \
+                     pType, \
+                     pData, \
+                     pcbData) \
+        \
+        RegEnumValueW(hRegConnection, \
+                             hKey, \
+                             dwIndex, \
+                             pValueName, \
+                             pcchValueName, \
+                             pReserved, \
+                             pType, \
+                             pData, \
+                             pcbData)
+        \
+#else
+#define RegEnumValue(hRegConnection, \
+                     hKey, \
+                     dwIndex, \
+                     pValueName, \
+                     pcchValueName, \
+                     pReserved, \
+                     pType, \
+                     pData, \
+                     pcbData) \
+        \
+        RegEnumValueA(hRegConnection, \
+                             hKey, \
+                             dwIndex, \
+                             pValueName, \
+                             pcchValueName, \
+                             pReserved, \
+                             pType, \
+                             pData, \
+                             pcbData)
+        \
+#endif
 
 DWORD
 RegEnumValueA(
@@ -382,17 +413,43 @@ RegEnumValueW(
     PDWORD pcbData
     );
 
-DWORD
-RegGetValue(
-    HANDLE hRegConnection,
-    HKEY hKey,
-    PCWSTR pSubKey,
-    PCWSTR pValue,
-    DWORD dwFlags,
-    PDWORD pdwType,
-    PVOID pvData,
-    PDWORD pcbData
-    );
+#ifdef UNICODE
+#define RegGetValue(hRegConnection, \
+                    hKey, \
+                    pSubKey, \
+                    pValue, \
+                    dwFlags, \
+                    pdwType, \
+                    pvData, \
+                    pcbData) \
+        \
+        RegGetValueA(hRegConnection, \
+                    hKey, \
+                    pSubKey, \
+                    pValue, \
+                    dwFlags, \
+                    pdwType, \
+                    pvData, \
+                    pcbData)
+#else
+#define RegGetValue(hRegConnection, \
+                    hKey, \
+                    pSubKey, \
+                    pValue, \
+                    dwFlags, \
+                    pdwType, \
+                    pvData, \
+                    pcbData) \
+        \
+        RegGetValueW(hRegConnection, \
+                    hKey, \
+                    pSubKey, \
+                    pValue, \
+                    dwFlags, \
+                    pdwType, \
+                    pvData, \
+                    pcbData)
+#endif
 
 DWORD
 RegGetValueA(
@@ -455,16 +512,40 @@ RegQueryMultipleValues(
     PDWORD dwTotsize
     );
 
-DWORD
-RegQueryValueEx(
-    HANDLE hRegConnection,
-    HKEY hKey,
-    PCWSTR pValueName,
-    PDWORD pReserved,
-    PDWORD pType,
-    PBYTE pData,
-    PDWORD pcbData
-    );
+#ifdef UNICODE
+#define RegQueryValueEx(hRegConnection, \
+                        hKey, \
+                        pValueName, \
+                        pReserved, \
+                        pType, \
+                        pData, \
+                        pcbData) \
+        \
+        RegQueryValueExW(hRegConnection, \
+                        hKey, \
+                        pValueName, \
+                        pReserved, \
+                        pType, \
+                        pData, \
+                        pcbData)
+        \
+#else
+#define RegQueryValueEx(hRegConnection, \
+                        hKey, \
+                        pValueName, \
+                        pReserved, \
+                        pType, \
+                        pData, \
+                        pcbData) \
+        \
+        RegQueryValueExA(hRegConnection, \
+                        hKey, \
+                        pValueName, \
+                        pReserved, \
+                        pType, \
+                        pData, \
+                        pcbData)
+#endif
 
 DWORD
 RegQueryValueExA(
@@ -488,8 +569,54 @@ RegQueryValueExW(
     PDWORD pcbData
     );
 
+#ifdef UNICODE
+#define RegSetValueEx(hRegConnection, \
+                      hKey, \
+                      pValueName, \
+                      Reserved, \
+                      dwType, \
+                      pData, \
+                      cbData) \
+        \
+        RegSetValueExW(hRegConnection, \
+                       hKey, \
+                       pValueName, \
+                       Reserved, \
+                       dwType, \
+                       pData, \
+                       cbData)
+        \
+#else
+#define RegSetValueEx(hRegConnection, \
+                      hKey, \
+                      pValueName, \
+                      Reserved, \
+                      dwType, \
+                      pData, \
+                      cbData) \
+        \
+        RegSetValueExA(hRegConnection, \
+                       hKey, \
+                       pValueName, \
+                       Reserved, \
+                       dwType, \
+                       pData, \
+                       cbData)
+#endif
+
 DWORD
-RegSetValueEx(
+RegSetValueExA(
+    HANDLE hRegConnection,
+    HKEY hKey,
+    PCWSTR pValueName,
+    DWORD Reserved,
+    DWORD dwType,
+    const BYTE *pData,
+    DWORD cbData
+    );
+
+DWORD
+RegSetValueExW(
     HANDLE hRegConnection,
     HKEY hKey,
     PCWSTR pValueName,

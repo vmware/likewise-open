@@ -807,6 +807,7 @@ RegCacheSafeRecordValuesInfo(
 
         dwError = GetValueAsBytes(ppRegEntries[iCount]->type,
                                   (PCSTR)ppRegEntries[iCount]->pszValue,
+                                  FALSE,
                                   NULL,
                                   &dwValueLen);
         BAIL_ON_REG_ERROR(dwError);

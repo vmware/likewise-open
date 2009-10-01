@@ -165,6 +165,7 @@ DWORD
 GetValueAsBytes(
     IN REG_DATA_TYPE type,
     IN PCSTR pszValue,
+    IN BOOLEAN bDoAnsi,
     OUT OPTIONAL PBYTE pData,
     IN OUT OPTIONAL PDWORD pcbData
     );

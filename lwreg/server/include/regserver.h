@@ -285,19 +285,6 @@ RegSrvEnumKeyEx(
     );
 
 DWORD
-RegSrvEnumValue(
-    IN HANDLE Handle,
-    IN HKEY hKey,
-    IN DWORD dwIndex,
-    OUT PWSTR pValueName, /*buffer hold valueName*/
-    IN OUT PDWORD pcchValueName, /*input - buffer pValueName length*/
-    IN PDWORD pReserved,
-    OUT OPTIONAL PDWORD pType,
-    OUT OPTIONAL PBYTE pData,/*buffer hold value content*/
-    IN OUT OPTIONAL PDWORD pcbData /*input - buffer pData length*/
-    );
-
-DWORD
 RegSrvEnumValueA(
     IN HANDLE Handle,
     IN HKEY hKey,
@@ -321,18 +308,6 @@ RegSrvEnumValueW(
     OUT OPTIONAL PDWORD pType,
     OUT OPTIONAL PBYTE pData,/*buffer hold value content*/
     IN OUT OPTIONAL PDWORD pcbData /*input - buffer pData length*/
-    );
-
-DWORD
-RegSrvGetValue(
-    IN HANDLE Handle,
-    IN HKEY hKey,
-    IN OPTIONAL PCWSTR pSubKey,
-    IN OPTIONAL PCWSTR pValue,
-    IN OPTIONAL DWORD dwFlags,
-    OUT PDWORD pdwType,
-    OUT PBYTE pData,
-    IN OUT PDWORD pcbData
     );
 
 DWORD
@@ -387,17 +362,6 @@ RegSrvQueryMultipleValues(
     );
 
 DWORD
-RegSrvQueryValueEx(
-    IN HANDLE Handle,
-    IN HKEY hKey,
-    IN PCWSTR pValueName,
-    IN PDWORD pReserved,
-    OUT PDWORD pType,
-    OUT PBYTE pData,
-    IN OUT PDWORD pcbData
-    );
-
-DWORD
 RegSrvQueryValueExA(
     IN HANDLE Handle,
     IN HKEY hKey,
@@ -420,7 +384,7 @@ RegSrvQueryValueExW(
     );
 
 DWORD
-RegSrvSetValueEx(
+RegSrvSetValueExA(
     IN HANDLE Handle,
     IN HKEY hKey,
     IN OPTIONAL PCWSTR pValueName,
@@ -430,7 +394,16 @@ RegSrvSetValueEx(
     DWORD cbData
     );
 
-
+DWORD
+RegSrvSetValueExW(
+    IN HANDLE Handle,
+    IN HKEY hKey,
+    IN OPTIONAL PCWSTR pValueName,
+    IN DWORD Reserved,
+    IN DWORD dwType,
+    IN const BYTE *pData,
+    DWORD cbData
+    );
 
 
 //Server side helper functions
