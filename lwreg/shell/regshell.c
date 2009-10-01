@@ -366,7 +366,7 @@ RegShellListValues(
             BAIL_ON_REG_ERROR(dwError);
 
 #ifndef _DEBUG
-            printf("%s%*s", pszValueName, strlen(pszValueName)-dwValueNameLenMax, "");
+            printf("%s%*s", pszValueName, (int) (strlen(pszValueName)-dwValueNameLenMax), "");
 #else
             printf("ListValues: value='%s\n", pszValueName);
             printf("ListValues: dataLen='%d'\n", pValues[i].dwDataLen);
