@@ -121,7 +121,8 @@ LdapAttrValSvcPrincipalName(
 int
 LdapMachAcctCreate(
     LDAP *ld,
-    const wchar16_t *name,
+    const wchar16_t *machname,
+    const wchar16_t *machacct_name,
     const wchar16_t *ou
     );
 
