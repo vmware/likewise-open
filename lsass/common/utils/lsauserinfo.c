@@ -483,7 +483,7 @@ error:
 }
 
 DWORD
-LsaModifyUser_SetAccountExpiryDate(
+LsaModifyUser_SetExpiryDate(
     PLSA_USER_MOD_INFO pUserModInfo,
     PCSTR pszDate
     )
@@ -514,6 +514,124 @@ cleanup:
 
 error:
 
+    goto cleanup;
+}
+
+DWORD
+LsaModifyUser_SetPrimaryGroup(
+    PLSA_USER_MOD_INFO pUserModInfo,
+    PCSTR pszGid
+    )
+{
+    DWORD dwError = 0;
+    gid_t Gid = -1;
+    PSTR pszEndPtr = NULL;
+
+    BAIL_ON_INVALID_POINTER(pUserModInfo);
+
+    if (!LW_IS_NULL_OR_EMPTY_STR(pszGid))
+    {
+        Gid = (gid_t) strtoul(pszGid, &pszEndPtr, 10);
+        if (errno)
+        {
+            dwError = LwErrnoToWin32Error(errno);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+        else if (pszGid == pszEndPtr)
+        {
+            dwError = ERROR_INVALID_PARAMETER;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        pUserModInfo->gid = Gid;
+        pUserModInfo->actions.bSetPrimaryGroup = TRUE;
+    }
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+DWORD
+LsaModifyUser_SetHomedir(
+    PLSA_USER_MOD_INFO pUserModInfo,
+    PCSTR pszHomedir
+    )
+{
+    DWORD dwError = 0;
+
+    BAIL_ON_INVALID_POINTER(pUserModInfo);
+
+    if (!LW_IS_NULL_OR_EMPTY_STR(pszHomedir))
+    {
+        dwError = LwAllocateString(
+                    pszHomedir,
+                    &pUserModInfo->pszHomedir);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pUserModInfo->actions.bSetHomedir = TRUE;
+    }
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+DWORD
+LsaModifyUser_SetShell(
+    PLSA_USER_MOD_INFO pUserModInfo,
+    PCSTR pszShell
+    )
+{
+    DWORD dwError = 0;
+
+    BAIL_ON_INVALID_POINTER(pUserModInfo);
+
+    if (!LW_IS_NULL_OR_EMPTY_STR(pszShell))
+    {
+        dwError = LwAllocateString(
+                    pszShell,
+                    &pUserModInfo->pszShell);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pUserModInfo->actions.bSetShell = TRUE;
+    }
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+DWORD
+LsaModifyUser_SetGecos(
+    PLSA_USER_MOD_INFO pUserModInfo,
+    PCSTR pszGecos
+    )
+{
+    DWORD dwError = 0;
+
+    BAIL_ON_INVALID_POINTER(pUserModInfo);
+
+    if (!LW_IS_NULL_OR_EMPTY_STR(pszGecos))
+    {
+        dwError = LwAllocateString(
+                    pszGecos,
+                    &pUserModInfo->pszGecos);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pUserModInfo->actions.bSetGecos = TRUE;
+    }
+
+cleanup:
+    return dwError;
+
+error:
     goto cleanup;
 }
 
@@ -631,6 +749,9 @@ LsaFreeUserModInfo(
     LW_SAFE_FREE_STRING(pUserModInfo->pszAddToGroups);
     LW_SAFE_FREE_STRING(pUserModInfo->pszRemoveFromGroups);
     LW_SAFE_FREE_STRING(pUserModInfo->pszExpiryDate);
+    LW_SAFE_FREE_STRING(pUserModInfo->pszHomedir);
+    LW_SAFE_FREE_STRING(pUserModInfo->pszShell);
+    LW_SAFE_FREE_STRING(pUserModInfo->pszGecos);
 
     if (pUserModInfo->pNtPasswordHash) {
         LW_SAFE_FREE_MEMORY(pUserModInfo->pNtPasswordHash->pData);

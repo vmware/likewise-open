@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -199,9 +199,13 @@ ParseArgs(
         PARSE_MODE_OPEN = 0,
         PARSE_MODE_ADD_TO_GROUPS,
         PARSE_MODE_REMOVE_FROM_GROUPS,
-        PARSE_MODE_SET_ACCOUNT_EXPIRY,
+        PARSE_MODE_SET_EXPIRY_DATE,
+        PARSE_MODE_SET_PRIMARY_GROUP,
         PARSE_MODE_SET_NT_PASSWORD_HASH,
         PARSE_MODE_SET_LM_PASSWORD_HASH,
+        PARSE_MODE_SET_HOMEDIR,
+        PARSE_MODE_SET_SHELL,
+        PARSE_MODE_SET_GECOS,
         PARSE_MODE_DONE
     } ParseMode;
 
@@ -306,10 +310,6 @@ ParseArgs(
                 {
                     parseMode = PARSE_MODE_REMOVE_FROM_GROUPS;
                 }
-                else if (!strcmp(pArg, "--set-account-expiry"))
-                {
-                    parseMode = PARSE_MODE_SET_ACCOUNT_EXPIRY;
-                }
                 else if (!strcmp(pArg, "--set-nt-password-hash"))
                 {
                     parseMode = PARSE_MODE_SET_NT_PASSWORD_HASH;
@@ -318,6 +318,26 @@ ParseArgs(
                 {
                     parseMode = PARSE_MODE_SET_LM_PASSWORD_HASH;
                 }
+                else if (!strcmp(pArg, "--set-homedir"))
+                {
+                    parseMode = PARSE_MODE_SET_HOMEDIR;
+                }
+                else if (!strcmp(pArg, "--set-shell"))
+                {
+                    parseMode = PARSE_MODE_SET_SHELL;
+                }
+                else if (!strcmp(pArg, "--set-gecos"))
+                {
+                    parseMode = PARSE_MODE_SET_GECOS;
+                }
+                else if (!strcmp(pArg, "--set-account-expiry-date"))
+                {
+                    parseMode = PARSE_MODE_SET_EXPIRY_DATE;
+                }
+                else if (!strcmp(pArg, "--set-primary-group"))
+                {
+                    parseMode = PARSE_MODE_SET_PRIMARY_GROUP;
+                }
                 else
                 {
                     dwError = LwAllocateString(pArg, &pszLoginId);
@@ -325,26 +345,6 @@ ParseArgs(
                     parseMode = PARSE_MODE_DONE;
                 }
                 break;
-            }
-
-            case PARSE_MODE_SET_ACCOUNT_EXPIRY:
-            {
-                  dwError = LwAllocateMemory(sizeof(USER_MOD_TASK), (PVOID*)&pTask);
-                  BAIL_ON_LSA_ERROR(dwError);
-
-                  pTask->taskType = UserModTask_SetAccountExpiryDate;
-
-                  dwError = LwAllocateString(pArg, &pTask->pszData);
-                  BAIL_ON_LSA_ERROR(dwError);
-
-                  dwError = LsaDLinkedListAppend(&pTaskList, pTask);
-                  BAIL_ON_LSA_ERROR(dwError);
-
-                  pTask = NULL;
-
-                  parseMode = PARSE_MODE_OPEN;
-
-                  break;
             }
 
             case PARSE_MODE_REMOVE_FROM_GROUPS:
@@ -407,6 +407,96 @@ ParseArgs(
                 BAIL_ON_LSA_ERROR(dwError);
 
                 pTask->taskType = UserModTask_SetLmPasswordHash;
+
+                dwError = LwAllocateString(pArg, &pTask->pszData);
+                BAIL_ON_LSA_ERROR(dwError);
+
+                dwError = LsaDLinkedListAppend(&pTaskList, pTask);
+                BAIL_ON_LSA_ERROR(dwError);
+
+                parseMode = PARSE_MODE_OPEN;
+
+                break;
+            }
+
+            case PARSE_MODE_SET_EXPIRY_DATE:
+            {
+                dwError = LwAllocateMemory(sizeof(USER_MOD_TASK), (PVOID*)&pTask);
+                BAIL_ON_LSA_ERROR(dwError);
+
+                pTask->taskType = UserModTask_SetExpiryDate;
+
+                dwError = LwAllocateString(pArg, &pTask->pszData);
+                BAIL_ON_LSA_ERROR(dwError);
+
+                dwError = LsaDLinkedListAppend(&pTaskList, pTask);
+                BAIL_ON_LSA_ERROR(dwError);
+
+                parseMode = PARSE_MODE_OPEN;
+
+                break;
+            }
+
+            case PARSE_MODE_SET_PRIMARY_GROUP:
+            {
+                dwError = LwAllocateMemory(sizeof(USER_MOD_TASK), (PVOID*)&pTask);
+                BAIL_ON_LSA_ERROR(dwError);
+
+                pTask->taskType = UserModTask_SetPrimaryGroup;
+
+                dwError = LwAllocateString(pArg, &pTask->pszData);
+                BAIL_ON_LSA_ERROR(dwError);
+
+                dwError = LsaDLinkedListAppend(&pTaskList, pTask);
+                BAIL_ON_LSA_ERROR(dwError);
+
+                parseMode = PARSE_MODE_OPEN;
+
+                break;
+            }
+
+            case PARSE_MODE_SET_HOMEDIR:
+            {
+                dwError = LwAllocateMemory(sizeof(USER_MOD_TASK), (PVOID*)&pTask);
+                BAIL_ON_LSA_ERROR(dwError);
+
+                pTask->taskType = UserModTask_SetHomedir;
+
+                dwError = LwAllocateString(pArg, &pTask->pszData);
+                BAIL_ON_LSA_ERROR(dwError);
+
+                dwError = LsaDLinkedListAppend(&pTaskList, pTask);
+                BAIL_ON_LSA_ERROR(dwError);
+
+                parseMode = PARSE_MODE_OPEN;
+
+                break;
+            }
+
+            case PARSE_MODE_SET_SHELL:
+            {
+                dwError = LwAllocateMemory(sizeof(USER_MOD_TASK), (PVOID*)&pTask);
+                BAIL_ON_LSA_ERROR(dwError);
+
+                pTask->taskType = UserModTask_SetShell;
+
+                dwError = LwAllocateString(pArg, &pTask->pszData);
+                BAIL_ON_LSA_ERROR(dwError);
+
+                dwError = LsaDLinkedListAppend(&pTaskList, pTask);
+                BAIL_ON_LSA_ERROR(dwError);
+
+                parseMode = PARSE_MODE_OPEN;
+
+                break;
+            }
+
+            case PARSE_MODE_SET_GECOS:
+            {
+                dwError = LwAllocateMemory(sizeof(USER_MOD_TASK), (PVOID*)&pTask);
+                BAIL_ON_LSA_ERROR(dwError);
+
+                pTask->taskType = UserModTask_SetGecos;
 
                 dwError = LwAllocateString(pArg, &pTask->pszData);
                 BAIL_ON_LSA_ERROR(dwError);
@@ -625,7 +715,6 @@ ShowUsage(
     fprintf(stdout, "{ --help }\n");
     fprintf(stdout, "{ --disable-user | --enable-user }\n");
     fprintf(stdout, "{ --unlock }\n");
-    fprintf(stdout, "{ --set-account-expiry expiry-date (YYYY-MM-DD format) }\n");
     fprintf(stdout, "{ --change-password-at-next-logon }\n");
     fprintf(stdout, "{ --password-never-expires }\n");
     fprintf(stdout, "{ --password-must-expire }\n");
@@ -633,6 +722,11 @@ ShowUsage(
     fprintf(stdout, "{ --remove-from-groups nt4-style-group-name }\n");
     fprintf(stdout, "{ --set-nt-password-hash password-hash-hex }\n");
     fprintf(stdout, "{ --set-lm-password-hash password-hash-hex }\n");
+    fprintf(stdout, "{ --set-homedir home-directory }\n");
+    fprintf(stdout, "{ --set-shell shell }\n");
+    fprintf(stdout, "{ --set-gecos gecos }\n");
+    fprintf(stdout, "{ --set-account-expiry expiry-date (YYYY-MM-DD format) }\n");
+    fprintf(stdout, "{ --set-primary-group gid }\n");
 
     fprintf(stdout, "\nNotes:\n");
     fprintf(stdout, "a) Set the expiry-date to 0 for an account that must never expire.\n");
@@ -761,13 +855,6 @@ BuildUserModInfo(
 
                  break;
             }
-            case UserModTask_SetAccountExpiryDate:
-            {
-                 dwError = LsaModifyUser_SetAccountExpiryDate(pUserModInfo, pTask->pszData);
-                 BAIL_ON_LSA_ERROR(dwError);
-
-                 break;
-            }
             case UserModTask_AddToGroups:
             {
                  dwError = LsaModifyUser_AddToGroups(pUserModInfo, pTask->pszData);
@@ -807,6 +894,41 @@ BuildUserModInfo(
             {
                 dwError = LsaModifyUser_SetLmPasswordHash(pUserModInfo,
                                                           pTask->pszData);
+                BAIL_ON_LSA_ERROR(dwError);
+                break;
+            }
+            case UserModTask_SetExpiryDate:
+            {
+                dwError = LsaModifyUser_SetExpiryDate(pUserModInfo,
+                                                      pTask->pszData);
+                BAIL_ON_LSA_ERROR(dwError);
+                break;
+            }
+            case UserModTask_SetPrimaryGroup:
+            {
+                dwError = LsaModifyUser_SetPrimaryGroup(pUserModInfo,
+                                                        pTask->pszData);
+                BAIL_ON_LSA_ERROR(dwError);
+                break;
+            }
+            case UserModTask_SetHomedir:
+            {
+                dwError = LsaModifyUser_SetHomedir(pUserModInfo,
+                                                   pTask->pszData);
+                BAIL_ON_LSA_ERROR(dwError);
+                break;
+            }
+            case UserModTask_SetShell:
+            {
+                dwError = LsaModifyUser_SetShell(pUserModInfo,
+                                                 pTask->pszData);
+                BAIL_ON_LSA_ERROR(dwError);
+                break;
+            }
+            case UserModTask_SetGecos:
+            {
+                dwError = LsaModifyUser_SetGecos(pUserModInfo,
+                                                 pTask->pszData);
                 BAIL_ON_LSA_ERROR(dwError);
                 break;
             }
@@ -864,3 +986,13 @@ mod_user_main(
 {
     return LsaModUserMain(argc, argv);
 }
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

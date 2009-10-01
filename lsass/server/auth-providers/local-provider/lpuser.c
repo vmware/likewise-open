@@ -2388,30 +2388,7 @@ LocalDirModifyUser(
     DWORD   dwUserInfoFlags = 0;
     DWORD   dwOrigUserInfoFlags = 0;
     WCHAR   wszAttrDN[] = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
-    DIRECTORY_MOD mods[] =
-        {
-            /* place-holder for user info flags */
-            {
-                    DIR_MOD_FLAGS_REPLACE,
-                    NULL,
-                    0,
-                    NULL
-            },
-            /* place-holder for account expiry date */
-            {
-                    DIR_MOD_FLAGS_REPLACE,
-                    NULL,
-                    0,
-                    NULL
-            },
-            /* place-holder for terminator */
-            {
-                    DIR_MOD_FLAGS_REPLACE,
-                    NULL,
-                    0,
-                    NULL
-            }
-        };
+    DIRECTORY_MOD mods[9] = {0};
 
     ATTRIBUTE_VALUE UserAttrVal[] = {
         {
@@ -2444,10 +2421,18 @@ LocalDirModifyUser(
     WCHAR wszAttrNameAccountExpiry[] = LOCAL_DIR_ATTR_ACCOUNT_EXPIRY;
     WCHAR wszAttrNameNtHash [] = LOCAL_DIR_ATTR_NT_HASH;
     WCHAR wszAttrNameLmHash [] = LOCAL_DIR_ATTR_LM_HASH;
+    WCHAR wszAttrNamePrimaryGroup [] = LOCAL_DIR_ATTR_PRIMARY_GROUP;
+    WCHAR wszAttrNameShell [] = LOCAL_DIR_ATTR_SHELL;
+    WCHAR wszAttrNameGecos [] = LOCAL_DIR_ATTR_GECOS;
+    WCHAR wszAttrNameHomedir [] = LOCAL_DIR_ATTR_HOME_DIR;
     ATTRIBUTE_VALUE avUserInfoFlags = {0};
     ATTRIBUTE_VALUE avAccountExpiry = {0};
     ATTRIBUTE_VALUE avNtHash = {0};
     ATTRIBUTE_VALUE avLmHash = {0};
+    ATTRIBUTE_VALUE avPrimaryGroup = {0};
+    ATTRIBUTE_VALUE avShell = {0};
+    ATTRIBUTE_VALUE avGecos = {0};
+    ATTRIBUTE_VALUE avHomedir = {0};
     DWORD             dwNumMods = 0;
     DWORD             dwGroupInfoLevel = 0;
     PWSTR             pwszGroupDN_remove = NULL;
@@ -2505,6 +2490,7 @@ LocalDirModifyUser(
 
     if (dwUserInfoFlags != dwOrigUserInfoFlags)
     {
+        mods[dwNumMods].ulOperationFlags = DIR_MOD_FLAGS_REPLACE;
         mods[dwNumMods].pwszAttrName = &wszAttrNameUserInfoFlags[0];
         mods[dwNumMods].ulNumValues = 1;
         avUserInfoFlags.Type = DIRECTORY_ATTR_TYPE_INTEGER;
@@ -2524,6 +2510,7 @@ LocalDirModifyUser(
             BAIL_ON_LSA_ERROR(dwError);
         }
 
+        mods[dwNumMods].ulOperationFlags = DIR_MOD_FLAGS_REPLACE;
         mods[dwNumMods].pwszAttrName = &wszAttrNameAccountExpiry[0];
         mods[dwNumMods].ulNumValues = 1;
         avAccountExpiry.Type = DIRECTORY_ATTR_TYPE_LARGE_INTEGER;
@@ -2538,6 +2525,7 @@ LocalDirModifyUser(
         NtHashBlob.ulNumBytes = pUserModInfo->pNtPasswordHash->dwLen;
         NtHashBlob.pBytes     = pUserModInfo->pNtPasswordHash->pData;
 
+        mods[dwNumMods].ulOperationFlags = DIR_MOD_FLAGS_REPLACE;
         mods[dwNumMods].pwszAttrName = &wszAttrNameNtHash[0];
         mods[dwNumMods].ulNumValues = 1;
         avNtHash.Type = DIRECTORY_ATTR_TYPE_OCTET_STREAM;
@@ -2552,6 +2540,7 @@ LocalDirModifyUser(
         LmHashBlob.ulNumBytes = pUserModInfo->pLmPasswordHash->dwLen;
         LmHashBlob.pBytes     = pUserModInfo->pLmPasswordHash->pData;
 
+        mods[dwNumMods].ulOperationFlags = DIR_MOD_FLAGS_REPLACE;
         mods[dwNumMods].pwszAttrName = &wszAttrNameLmHash[0];
         mods[dwNumMods].ulNumValues = 1;
         avLmHash.Type = DIRECTORY_ATTR_TYPE_OCTET_STREAM;
@@ -2560,6 +2549,52 @@ LocalDirModifyUser(
 
         dwNumMods++;
     }
+
+    if (pUserModInfo->actions.bSetPrimaryGroup)
+    {
+        mods[dwNumMods].ulOperationFlags = DIR_MOD_FLAGS_REPLACE;
+        mods[dwNumMods].pwszAttrName = &wszAttrNamePrimaryGroup[0];
+        mods[dwNumMods].ulNumValues = 1;
+        avPrimaryGroup.Type = DIRECTORY_ATTR_TYPE_INTEGER;
+        avPrimaryGroup.data.ulValue = pUserModInfo->gid;
+        mods[dwNumMods].pAttrValues = &avPrimaryGroup;
+
+        dwNumMods++;
+    }
+    if (pUserModInfo->actions.bSetShell)
+    {
+        mods[dwNumMods].ulOperationFlags = DIR_MOD_FLAGS_REPLACE;
+        mods[dwNumMods].pwszAttrName = &wszAttrNameShell[0];
+        mods[dwNumMods].ulNumValues = 1;
+        avShell.Type = DIRECTORY_ATTR_TYPE_ANSI_STRING;
+        avShell.data.pszStringValue = pUserModInfo->pszShell;
+        mods[dwNumMods].pAttrValues = &avShell;
+
+        dwNumMods++;
+    }
+    if (pUserModInfo->actions.bSetGecos)
+    {
+        mods[dwNumMods].ulOperationFlags = DIR_MOD_FLAGS_REPLACE;
+        mods[dwNumMods].pwszAttrName = &wszAttrNameGecos[0];
+        mods[dwNumMods].ulNumValues = 1;
+        avGecos.Type = DIRECTORY_ATTR_TYPE_ANSI_STRING;
+        avGecos.data.pszStringValue = pUserModInfo->pszGecos;
+        mods[dwNumMods].pAttrValues = &avGecos;
+
+        dwNumMods++;
+    }
+    if (pUserModInfo->actions.bSetHomedir)
+    {
+        mods[dwNumMods].ulOperationFlags = DIR_MOD_FLAGS_REPLACE;
+        mods[dwNumMods].pwszAttrName = &wszAttrNameHomedir[0];
+        mods[dwNumMods].ulNumValues = 1;
+        avHomedir.Type = DIRECTORY_ATTR_TYPE_ANSI_STRING;
+        avHomedir.data.pszStringValue = pUserModInfo->pszHomedir;
+        mods[dwNumMods].pAttrValues = &avHomedir;
+
+        dwNumMods++;
+    }
+
 
     if (dwNumMods)
     {
