@@ -185,19 +185,24 @@ lwmsg_server_call_cancel(
     ServerCall* scall = SERVER_CALL(call);
 
     pthread_mutex_lock(&scall->lock);
-    scall->state |= SERVER_CALL_CANCELLED;
 
-    /* If the dispatch function is not finished running,
-       we don't call the cancel callback right now --
-       lwmsg_server_call_dispatch() will handle it.
-
-       If the call is already completed, we silently
-       ignore the cancel request and return success */
-
-    if ((scall->state & SERVER_CALL_DISPATCHED) &&
-        !(scall->state & SERVER_CALL_COMPLETED))
+    if (!(scall->state & SERVER_CALL_CANCELLED))
     {
-        scall->cancel(call, scall->cancel_data);
+        scall->state |= SERVER_CALL_CANCELLED;
+
+        /* If the dispatch function is not finished running,
+           we don't call the cancel callback right now --
+           lwmsg_server_call_dispatch() will handle it.
+
+           If the call is already completed, we silently
+           ignore the cancel request and return success */
+
+        if ((scall->state & SERVER_CALL_DISPATCHED) &&
+            !(scall->state & SERVER_CALL_COMPLETED) &&
+            scall->cancel != NULL)
+        {
+            scall->cancel(call, scall->cancel_data);
+        }
     }
 
     pthread_mutex_unlock(&scall->lock);
