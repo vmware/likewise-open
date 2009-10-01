@@ -439,6 +439,7 @@ RegShellProcessCmd(
 {
 
     DWORD dwError = 0;
+    DWORD dwOpenRootKeyError = 0;
     PREGSHELL_CMD_ITEM rsItem = NULL;
     PCSTR pszErrorPrefix = NULL;
     PSTR pszPwd = NULL;
@@ -448,6 +449,7 @@ RegShellProcessCmd(
     PSTR pszNewDefaultKey = NULL;
     PSTR pszStrtokState = NULL;
     BOOLEAN bChdirOk = TRUE;
+    HKEY hRootKey = NULL;
 
     dwError = RegShellCmdParse(argc, argv, &rsItem);
     if (dwError == 0)
@@ -469,8 +471,11 @@ RegShellProcessCmd(
                 dwError = RegShellListKeys(pParseState, rsItem);
                 BAIL_ON_REG_ERROR(dwError);
                 printf("\n");
-                dwError = RegShellListValues(pParseState, rsItem);
-                BAIL_ON_REG_ERROR(dwError);
+                if (pParseState->pszRootKeyName)
+                {
+                    dwError = RegShellListValues(pParseState, rsItem);
+                    BAIL_ON_REG_ERROR(dwError);
+                }
                 break;
 
             case REGSHELL_CMD_ADD_KEY:
@@ -519,7 +524,7 @@ RegShellProcessCmd(
                 pszNewKeyName [strlen(pszNewKeyName) - 1] = '\0';
                 pszKeyName = pszNewKeyName;
                 pszToken = strtok_r(pszKeyName, "\\/", &pszStrtokState);
-                if (!pszToken && strlen(pszKeyName) > 0)
+                if (!pszToken)
                 {
                     /*
                      * Handle special case where the only thing provided in
@@ -528,8 +533,12 @@ RegShellProcessCmd(
                      * a non-zero length pszKeyName string. This is essentially
                      * the cd \ case
                      */
-                    LwFreeMemory(pParseState->pszDefaultKey);
-                    pParseState->pszDefaultKey = NULL;
+                    if (pParseState->pszDefaultKey)
+                    {
+                        LW_SAFE_FREE_MEMORY(pParseState->pszDefaultKey);
+                        return 0;
+                    }
+                    LW_SAFE_FREE_MEMORY(pParseState->pszRootKeyName);
                 }
 
 
@@ -546,10 +555,25 @@ RegShellProcessCmd(
                         BAIL_ON_REG_ERROR(dwError);
                     }
                 }
+
+
                 while (pszToken)
                 {
                     pszKeyName = NULL;
-                    if (strcmp(pszToken, "..") == 0)
+                    dwOpenRootKeyError = RegOpenRootKey(
+                                  pParseState->hReg,
+                                  pszToken,
+                                  &hRootKey);
+                    if (dwOpenRootKeyError == 0)
+                    {
+                        RegCloseKey(pParseState->hReg, hRootKey);
+                        LW_SAFE_FREE_MEMORY(pParseState->pszRootKeyName);
+                        dwError = LwAllocateString(
+                                      pszToken,
+                                      &pParseState->pszRootKeyName);
+                        BAIL_ON_REG_ERROR(dwError);
+                    }
+                    else if (strcmp(pszToken, "..") == 0)
                     {
                         if (pszNewDefaultKey)
                         {
@@ -569,8 +593,7 @@ RegShellProcessCmd(
                                 }
                                 else
                                 {
-                                    LwFreeMemory(pszNewDefaultKey);
-                                    pszNewDefaultKey = NULL;
+                                    LW_SAFE_FREE_MEMORY(pszNewDefaultKey);
                                 }
                             }
                         }
@@ -745,11 +768,6 @@ RegShellInitParseState(
     dwError = RegIOBufferOpen(&pParseState->ioHandle);
     BAIL_ON_REG_ERROR(dwError);
 
-    dwError = LwAllocateString(
-                  LIKEWISE_ROOT_KEY,
-                  (LW_PVOID) &pParseState->pszRootKeyName);
-    BAIL_ON_REG_ERROR(dwError);
-
     *ppParseState = pParseState;
 
 cleanup:
@@ -793,7 +811,8 @@ pfnRegShellPromptCallback(EditLine *el)
 
     el_get(el, EL_CLIENTDATA, (void *) &cldata);
     snprintf(promptBuf, sizeof(promptBuf), "%s%s%s%s ",
-             cldata->pParseState->pszRootKeyName,
+             cldata->pParseState->pszRootKeyName ?
+                 cldata->pParseState->pszRootKeyName : "",
              cldata->pParseState->pszDefaultKey ? "\\" : "",
              cldata->pParseState->pszDefaultKey ?
              cldata->pParseState->pszDefaultKey : "\\",

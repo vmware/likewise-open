@@ -436,13 +436,45 @@ RegShellUtilGetKeys(
     HKEY pFullKey = NULL;
     PSTR pszParentPath = NULL;
     PWSTR pwszSubKey = NULL;
+    PSTR *ppszRootKeyNames = NULL;
+    DWORD dwNumRootKeys = 0;
 
     BAIL_ON_INVALID_HANDLE(hReg);
 
     if (!pszRootKeyName)
     {
-        pszRootKeyName = LIKEWISE_ROOT_KEY;
+        dwError = RegEnumRootKeys(
+                      hReg,
+                      &ppszRootKeyNames,
+                      &dwNumRootKeys);
+        BAIL_ON_REG_ERROR(dwError);
+
+#if 1
+        /*
+         * Allocation of this array and conversion to unicode should not
+         * be needed. This should be the type of data returned by
+         * RegEnumRootKeys(), and that array can be the return value of
+         * this function.
+         */
+        dwError = LwAllocateMemory(
+                      sizeof(LW_WCHAR *)*dwNumRootKeys,
+                      (LW_PVOID) &subKeys);
+        BAIL_ON_REG_ERROR(dwError);
+        for (i=0; i<dwNumRootKeys; i++)
+        {
+            dwError = LwMbsToWc16s(
+                          ppszRootKeyNames[i],
+                          &subKeys[i]);
+            LW_SAFE_FREE_STRING(ppszRootKeyNames[i]);
+        }
+        LW_SAFE_FREE_MEMORY(ppszRootKeyNames);
+#endif
+
+        *pppRetSubKeys = subKeys;
+        *pdwRetSubKeyCount = dwNumRootKeys;
+        return dwError;
     }
+
     dwError = RegShellCanonicalizePath(pszDefaultKey,
                                        keyName,
                                        &pszParentPath,
@@ -687,10 +719,9 @@ RegShellUtilGetValues(
 
     BAIL_ON_INVALID_HANDLE(hReg);
 
-
     if (!pszRootKeyName)
     {
-        pszRootKeyName = LIKEWISE_ROOT_KEY;
+        return 0;
     }
     dwError = RegShellCanonicalizePath(pszDefaultKey,
                                        keyName,
