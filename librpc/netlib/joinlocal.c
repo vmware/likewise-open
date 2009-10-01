@@ -121,7 +121,7 @@ error:
 NTSTATUS
 CreateWksAccount(
     NetConn *conn,
-    wchar16_t *name,
+    wchar16_t *samacct_name,
     PolicyHandle *account_h
     )
 {
@@ -134,8 +134,6 @@ CreateWksAccount(
     handle_t samr_b = NULL;
     uint32 access_granted = 0;
     uint32 rid = 0;
-    wchar16_t *account_name = NULL;
-    size_t account_name_cch = 0;
     PolicyHandle *domain_h = NULL;
     PwInfo pwinfo;
     UserInfo *info = NULL;
@@ -143,29 +141,13 @@ CreateWksAccount(
     memset((void*)&pwinfo, 0, sizeof(pwinfo));
 
     BAIL_ON_INVALID_PTR(conn);
-    BAIL_ON_INVALID_PTR(name);
+    BAIL_ON_INVALID_PTR(samacct_name);
     BAIL_ON_INVALID_PTR(account_h);
 
     samr_b   = conn->samr.bind;
     domain_h = &conn->samr.dom_handle;
 
-    account_name_cch = wc16slen(name) + 2;
-    status = NetAllocateMemory((void**)&account_name,
-                               sizeof(wchar16_t) * account_name_cch,
-                               NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    if (sw16printfw(
-                account_name,
-                account_name_cch,
-                L"%ws$",
-                name) < 0)
-    {
-        status = ErrnoToNtStatus(errno);
-        BAIL_ON_NTSTATUS_ERROR(status);
-    }
-
-    status = SamrCreateUser2(samr_b, domain_h, account_name, ACB_WSTRUST,
+    status = SamrCreateUser2(samr_b, domain_h, samacct_name, ACB_WSTRUST,
                              user_access, account_h, &access_granted, &rid);
     BAIL_ON_NTSTATUS_ERROR(status);
 
@@ -189,10 +171,6 @@ CreateWksAccount(
 cleanup:
     if (info) {
         SamrFreeMemory((void*)info);
-    }
-
-    if (account_name) {
-        NetFreeMemory((void*)account_name);
     }
 
     return status;
@@ -478,7 +456,8 @@ error:
 NET_API_STATUS
 MachAcctCreate(
     LDAP *ld,
-    const wchar16_t *machine,
+    const wchar16_t *machine_name,
+    const wchar16_t *machacct_name,
     const wchar16_t *ou,
     int rejoin
     )
@@ -495,10 +474,11 @@ MachAcctCreate(
     wchar16_t **dn_val = NULL;
 
     BAIL_ON_INVALID_PTR(ld);
-    BAIL_ON_INVALID_PTR(machine);
+    BAIL_ON_INVALID_PTR(machine_name);
+    BAIL_ON_INVALID_PTR(machacct_name);
     BAIL_ON_INVALID_PTR(ou);
 
-    lderr = LdapMachAcctCreate(ld, machine, ou);
+    lderr = LdapMachAcctCreate(ld, machine_name, machacct_name, ou);
     if (lderr == LDAP_ALREADY_EXISTS && rejoin) {
         lderr = LdapGetDirectoryInfo(&info, &res, ld);
         BAIL_ON_LDERR_ERROR(lderr);
@@ -516,7 +496,8 @@ MachAcctCreate(
             goto error;
         }
 
-        lderr = LdapMachAcctSearch(&machacct, ld, machine, dn_context_val[0]);
+        lderr = LdapMachAcctSearch(&machacct, ld, machacct_name,
+                                   dn_context_val[0]);
         BAIL_ON_LDERR_ERROR(lderr);
 
         dn_name = ambstowc16s("distinguishedName");
@@ -532,7 +513,7 @@ MachAcctCreate(
             goto error;
         }
 
-        lderr = LdapMachAcctMove(ld, dn_val[0], machine, ou);
+        lderr = LdapMachAcctMove(ld, dn_val[0], machine_name, ou);
         BAIL_ON_LDERR_ERROR(lderr);
     }
 

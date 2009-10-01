@@ -418,7 +418,13 @@ wchar16_t *LdapAttrValSvcPrincipalName(const wchar16_t *name)
 }
 
 
-int LdapMachAcctCreate(LDAP *ld, const wchar16_t *name, const wchar16_t *ou)
+int
+LdapMachAcctCreate(
+    LDAP *ld,
+    const wchar16_t *machname,
+    const wchar16_t *machacct_name,
+    const wchar16_t *ou
+    )
 {
     int lderr = LDAP_SUCCESS;
     WINERR err = ERROR_SUCCESS;
@@ -426,7 +432,6 @@ int LdapMachAcctCreate(LDAP *ld, const wchar16_t *name, const wchar16_t *ou)
     wchar16_t *machname_lc = NULL;
     wchar16_t *dname = NULL;
     char *dn = NULL;
-    wchar16_t *samacct = NULL;
     wchar16_t *objclass[5] = {0};
     int flags, i;
     LDAPMod *name_m = NULL;
@@ -435,9 +440,9 @@ int LdapMachAcctCreate(LDAP *ld, const wchar16_t *name, const wchar16_t *ou)
     LDAPMod *acctflags_m = NULL;
     LDAPMod *attrs[5];
 
-    if (!ld || !name || !ou) return LDAP_PARAM_ERROR;
+    if (!ld || !machname || !machacct_name || !ou) return LDAP_PARAM_ERROR;
 
-    machname_lc = wc16sdup(name);
+    machname_lc = wc16sdup(machname);
     wc16slower(machname_lc);
 
     cn_name = ambstowc16s("cn");
@@ -446,9 +451,6 @@ int LdapMachAcctCreate(LDAP *ld, const wchar16_t *name, const wchar16_t *ou)
 
     dn = awc16stombs(dname);
     goto_if_no_memory_lderr(dn, done);
-
-    samacct = LdapAttrValSamAcctName(name);
-    goto_if_no_memory_lderr(samacct, done);
 
     objclass[0] = ambstowc16s("top");
     objclass[1] = ambstowc16s("organizationalPerson");
@@ -459,7 +461,7 @@ int LdapMachAcctCreate(LDAP *ld, const wchar16_t *name, const wchar16_t *ou)
     flags = UF_ACCOUNTDISABLE | UF_WORKSTATION_TRUST_ACCOUNT;
 
     LdapModAddStrValue(&name_m, "name", machname_lc);
-    LdapModAddStrValue(&samacct_m, "sAMAccountName", samacct);
+    LdapModAddStrValue(&samacct_m, "sAMAccountName", machacct_name);
     LdapModAddStrValue(&objectclass_m, "objectClass", objclass[0]);
     LdapModAddStrValue(&objectclass_m, "objectClass", objclass[1]);
     LdapModAddStrValue(&objectclass_m, "objectClass", objclass[2]);
@@ -484,20 +486,24 @@ done:
     SAFE_FREE(machname_lc);
     SAFE_FREE(dname);
     SAFE_FREE(dn);
-    SAFE_FREE(samacct);
     SAFE_FREE(cn_name);
-    for (i = 0; objclass[i]; i++) SAFE_FREE(objclass[i]);
+    for (i = 0; objclass[i]; i++)
+    {
+        SAFE_FREE(objclass[i]);
+    }
 
     return lderr;
 }
 
 
-int LdapMachDnsNameSearch(
-        LDAPMessage **out,
-        LDAP *ld,
-        const wchar16_t *name,
-        const wchar16_t *dns_domain_name,
-        const wchar16_t *base)
+int
+LdapMachDnsNameSearch(
+    LDAPMessage **out,
+    LDAP *ld,
+    const wchar16_t *name,
+    const wchar16_t *dns_domain_name,
+    const wchar16_t *base
+    )
 {
     const wchar_t *filter_fmt = L"(&(objectClass=computer)(dNSHostName=%ws))";
 
@@ -562,8 +568,13 @@ error:
 }
 
 
-int LdapMachAcctSearch(LDAPMessage **out, LDAP *ld, const wchar16_t *name,
-                       const wchar16_t *base)
+int
+LdapMachAcctSearch(
+    LDAPMessage **out,
+    LDAP *ld,
+    const wchar16_t *samacct_name,
+    const wchar16_t *base
+    )
 {
     const wchar_t *filter_fmt = L"(&(objectClass=computer)(sAMAccountName=%ws))";
 
@@ -572,8 +583,7 @@ int LdapMachAcctSearch(LDAPMessage **out, LDAP *ld, const wchar16_t *name,
     NTSTATUS status = STATUS_SUCCESS;
     size_t basedn_len = 0;
     size_t filter_len = 0;
-    size_t samacct_len = 0;
-    wchar16_t *samacct = NULL;
+    size_t samacctname_len = 0;
     char *basedn = NULL;
     wchar16_t *filterw16 = NULL;
     char *filter = NULL;
@@ -583,22 +593,20 @@ int LdapMachAcctSearch(LDAPMessage **out, LDAP *ld, const wchar16_t *name,
 
     BAIL_ON_INVALID_PTR(out);
     BAIL_ON_INVALID_PTR(ld);
-    BAIL_ON_INVALID_PTR(name);
+    BAIL_ON_INVALID_PTR(samacct_name);
     BAIL_ON_INVALID_PTR(base);
 
     basedn = awc16stombs(base);
     goto_if_no_memory_lderr(basedn, error);
     basedn_len = strlen(basedn);
 
-    samacct = LdapAttrValSamAcctName(name);
-    goto_if_no_memory_lderr(samacct, error);
-    samacct_len = wc16slen(samacct);
+    samacctname_len = wc16slen(samacct_name);
 
-    filter_len = samacct_len + wcslen(filter_fmt);
+    filter_len = samacctname_len + wcslen(filter_fmt);
     filterw16 = (wchar16_t*) malloc(sizeof(wchar16_t) * filter_len);
     goto_if_no_memory_lderr(filterw16, error);
 
-    if (sw16printfw(filterw16, filter_len, filter_fmt, samacct) < 0) {
+    if (sw16printfw(filterw16, filter_len, filter_fmt, samacct_name) < 0) {
         lderr = LDAP_LOCAL_ERROR;
         goto error;
     }
@@ -613,7 +621,6 @@ int LdapMachAcctSearch(LDAPMessage **out, LDAP *ld, const wchar16_t *name,
 cleanup:
     SAFE_FREE(filter);
     SAFE_FREE(filterw16);
-    SAFE_FREE(samacct);
     SAFE_FREE(basedn);
 
     *out = res;
