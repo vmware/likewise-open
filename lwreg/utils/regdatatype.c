@@ -49,10 +49,11 @@
 #include "includes.h"
 
 DWORD
-ConvertMultiStrsToByteArray(
-    PSTR *pszInMultiSz,
+ConvertMultiStrsToByteArrayW(
+    PSTR* ppszInMultiSz,
     PBYTE *outBuf,
-    SSIZE_T *outBufLen)
+    SSIZE_T *outBufLen
+    )
 {
     DWORD dwError = 0;
     DWORD count = 0;
@@ -62,13 +63,13 @@ ConvertMultiStrsToByteArray(
     PCHAR pszMultiString = NULL;
     PCHAR ptrMultiString = NULL;
 
-    BAIL_ON_INVALID_POINTER(pszInMultiSz);
+    BAIL_ON_INVALID_POINTER(ppszInMultiSz);
     BAIL_ON_INVALID_POINTER(outBuf);
 
     /* Determine length of all multi strings in bytes */
-    for (count=0, multiStringLen=0; pszInMultiSz[count]; count++)
+    for (count=0, multiStringLen=0; ppszInMultiSz[count]; count++)
     {
-        ucs2StringLen = strlen(pszInMultiSz[count]);
+        ucs2StringLen = strlen(ppszInMultiSz[count]);
         multiStringLen += (ucs2StringLen+1) * 2;
     }
 
@@ -81,9 +82,9 @@ ConvertMultiStrsToByteArray(
     BAIL_ON_REG_ERROR(dwError);
 
     ptrMultiString = pszMultiString;
-    for (count=0; pszInMultiSz[count]; count++)
+    for (count=0; ppszInMultiSz[count]; count++)
     {
-        dwError = LwMbsToWc16s(pszInMultiSz[count], &pszUcs2String);
+        dwError = LwMbsToWc16s(ppszInMultiSz[count], &pszUcs2String);
         BAIL_ON_REG_ERROR(dwError);
         dwError = LwWc16sLen(pszUcs2String, &ucs2StringLen);
         BAIL_ON_REG_ERROR(dwError);
@@ -105,12 +106,63 @@ error:
     goto cleanup;
 }
 
+DWORD
+ConvertMultiStrsToByteArrayA(
+    PSTR* ppszInMultiSz,
+    PBYTE *outBuf,
+    SSIZE_T *outBufLen
+    )
+{
+    DWORD dwError = 0;
+    DWORD count = 0;
+    size_t ansiStringLen = 0;
+    DWORD multiStringLen = 0;
+    PCHAR pszMultiString = NULL;
+    PCHAR ptrMultiString = NULL;
+
+    BAIL_ON_INVALID_POINTER(ppszInMultiSz);
+    BAIL_ON_INVALID_POINTER(outBuf);
+
+    /* Determine length of all multi strings in bytes */
+    for (count=0, multiStringLen=0; ppszInMultiSz[count]; count++)
+    {
+        ansiStringLen = strlen(ppszInMultiSz[count]);
+        multiStringLen += (ansiStringLen+1);
+    }
+
+    /*
+     * These are the double '\0' terminations at the end of every string.
+     */
+    multiStringLen += (count + 2) * 2;
+    dwError = LwAllocateMemory(sizeof(CHAR) * multiStringLen,
+                               (LW_PVOID) &pszMultiString);
+    BAIL_ON_REG_ERROR(dwError);
+
+    ptrMultiString = pszMultiString;
+    for (count=0; ppszInMultiSz[count]; count++)
+    {
+        ansiStringLen = strlen(ppszInMultiSz[count]) + 1;
+        memcpy(ptrMultiString, ppszInMultiSz[count], ansiStringLen);
+        ptrMultiString += ansiStringLen;
+    }
+    *++ptrMultiString = '\0';
+    *++ptrMultiString = '\0';
+
+   *outBuf = (PBYTE) pszMultiString;
+   *outBufLen = ptrMultiString - pszMultiString;
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
 
 DWORD
-ConvertByteArrayToMultiStrs(
+ConvertByteArrayToMultiStrsW(
     PBYTE pInBuf,
     SSIZE_T bufLen,
-    PSTR **pppszOutMultiSz)
+    PSTR **pppszOutMultiSz
+    )
 {
     DWORD dwError;
     size_t strLen = 0;
@@ -153,12 +205,79 @@ ConvertByteArrayToMultiStrs(
         if (strLen)
         {
             ppszOutMultiSz[count++] = pszUTF8;
+            pszUTF8 = NULL;
             pwszInString += strLen + 1;
         }
     } while (strLen);
 
     *pppszOutMultiSz = ppszOutMultiSz;
+
 cleanup:
+    LW_SAFE_FREE_STRING(pszUTF8);
+
+    return dwError;
+
+error:
+    ConvertMultiStrsFree(ppszOutMultiSz);
+    goto cleanup;
+}
+
+DWORD
+ConvertByteArrayToMultiStrsA(
+    PBYTE pInBuf,
+    SSIZE_T bufLen,
+    PSTR **pppszOutMultiSz
+    )
+{
+    DWORD dwError;
+    size_t sLen = 0;
+    DWORD count = 0;
+    PSTR pszUTF8 = NULL;
+    PSTR *ppszOutMultiSz = NULL;
+    PSTR pszInString = NULL;
+
+    BAIL_ON_INVALID_POINTER(pInBuf);
+    BAIL_ON_INVALID_POINTER(pppszOutMultiSz);
+
+
+    /* Loop through multistring once to count number of entries */
+    pszInString = (PSTR) pInBuf;
+    do
+    {
+        sLen = strlen(pszInString);
+
+        if (sLen)
+        {
+            pszInString += sLen + 1;
+            count++;
+        }
+    } while (sLen);
+    dwError = LwAllocateMemory(sizeof(PCHAR) * (count + 1),
+                               (LW_PVOID) &ppszOutMultiSz);
+    BAIL_ON_REG_ERROR(dwError);
+
+    /* Loop through multistring again to convert to UTF8 */
+    count = 0;
+    pszInString = (PSTR) pInBuf;
+    do
+    {
+        dwError = LwAllocateString(pszInString, &pszUTF8);
+        BAIL_ON_REG_ERROR(dwError);
+
+        sLen = strlen(pszInString);
+
+        if (sLen)
+        {
+            ppszOutMultiSz[count++] = pszUTF8;
+            pszUTF8 = NULL;
+            pszInString += sLen + 1;
+        }
+    } while (sLen);
+
+    *pppszOutMultiSz = ppszOutMultiSz;
+
+cleanup:
+    LW_SAFE_FREE_STRING(pszUTF8);
     return dwError;
 
 error:

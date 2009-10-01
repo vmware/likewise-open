@@ -779,11 +779,73 @@ RegFreeStringBufferContents(
 
 /* reg data type conversion functions */
 
+#ifdef UNICODE
+#define ConvertMultiStrsToByteArray(ppszInMultiSz, \
+                                    outBuf, \
+                                    outBufLen) \
+        \
+        ConvertMultiStrsToByteArrayW(ppszInMultiSz, \
+                                     outBuf, \
+                                     outBufLen)
+        \
+#else
+#define ConvertMultiStrsToByteArray(ppszInMultiSz, \
+                                    outBuf, \
+                                    outBufLen) \
+        \
+        ConvertMultiStrsToByteArrayA(ppszInMultiSz, \
+                                     outBuf, \
+                                     outBufLen)
+        \
+#endif
+
 DWORD
-ConvertMultiStrsToByteArray(
-    PSTR *pszInMultiSz,
+ConvertMultiStrsToByteArrayW(
+    PSTR* ppszInMultiSz,
     PBYTE *outBuf,
-    SSIZE_T *outBufLen);
+    SSIZE_T *outBufLen
+    );
+
+DWORD
+ConvertMultiStrsToByteArrayA(
+    PSTR* ppszInMultiSz,
+    PBYTE *outBuf,
+    SSIZE_T *outBufLen
+    );
+
+#ifdef UNICODE
+#define ConvertByteArrayToMultiStrs(pInBuf, \
+                                    bufLen, \
+                                    pppszOutMultiSz) \
+        \
+        ConvertByteArrayToMultiStrsW(pInBuf, \
+                                     bufLen, \
+                                     pppszOutMultiSz)
+        \
+#else
+#define ConvertByteArrayToMultiStrs(pInBuf, \
+                                    bufLen, \
+                                    pppszOutMultiSz) \
+        \
+        ConvertByteArrayToMultiStrsA(pInBuf, \
+                                     bufLen, \
+                                     pppszOutMultiSz)
+        \
+#endif
+
+DWORD
+ConvertByteArrayToMultiStrsW(
+    PBYTE pInBuf,
+    SSIZE_T bufLen,
+    PSTR **pppszOutMultiSz
+    );
+
+DWORD
+ConvertByteArrayToMultiStrsA(
+    PBYTE pInBuf,
+    SSIZE_T bufLen,
+    PSTR **pppszOutMultiSz
+    );
 
 DWORD
 ConvertByteArrayToMultiStrs(
