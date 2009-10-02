@@ -1004,6 +1004,13 @@ fi
 saved_CFLAGS="$CFLAGS"
 CFLAGS="$CFLAGS -Wall -Werror"
 
+AC_MSG_CHECKING([if pthread_mutex_lock is available outside of libpthread])
+AC_TRY_LINK_FUNC([pthread_mutex_lock], [
+AC_MSG_RESULT([yes])
+AC_DEFINE([HAVE_NONLIBPTHREAD_MUTEX_LOCK], [], [Define if pthread_mutex_lock is available outside of libpthread])],[
+AC_MSG_RESULT([no])
+])
+
 AC_MSG_CHECKING([if getsockname takes socklen_t*])
 AC_TRY_COMPILE([
 #include <sys/types.h> 
