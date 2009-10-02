@@ -602,6 +602,8 @@ LsaAdBatchDestroyBatchItem(
         LsaFreeMemory(pItem);
         *ppItem = NULL;
     }
+
+    memset(pItem, 0, sizeof(*pItem));
 }
 
 static
