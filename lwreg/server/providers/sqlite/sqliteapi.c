@@ -559,12 +559,12 @@ SqliteSetValueExW(
 static
 REG_DATA_TYPE
 GetRegDataType(
-    DWORD dwFlags
+    REG_DATA_TYPE_FLAGS Flags
     )
 {
     REG_DATA_TYPE dataType = 0;
 
-    switch (dwFlags)
+    switch (Flags)
     {
         case RRF_RT_REG_SZ:
             dataType = REG_SZ;
@@ -594,7 +594,7 @@ SqliteGetValueInternal(
     IN BOOLEAN bDoAnsi,
     IN OPTIONAL PCWSTR pSubKey,
     IN OPTIONAL PCWSTR pValue,
-    IN OPTIONAL DWORD dwFlags,
+    IN OPTIONAL REG_DATA_TYPE_FLAGS Flags,
     OUT OPTIONAL PDWORD pdwType,
     OUT OPTIONAL PBYTE pData,
     IN OUT OPTIONAL PDWORD pcbData
@@ -642,7 +642,7 @@ SqliteGetValueInternal(
     dwError = RegDbGetKeyValue(ghCacheConnection,
                                pszKeyName,
                                pszValueName,
-                               GetRegDataType(dwFlags),
+                               GetRegDataType(Flags),
                                &bIsWrongType,
                                &pRegEntry);
     BAIL_ON_REG_ERROR(dwError);
@@ -682,7 +682,7 @@ SqliteGetValueA(
     IN HKEY hKey,
     IN OPTIONAL PCWSTR pSubKey,
     IN OPTIONAL PCWSTR pValue,
-    IN OPTIONAL DWORD dwFlags,
+    IN OPTIONAL REG_DATA_TYPE_FLAGS Flags,
     OUT OPTIONAL PDWORD pdwType,
     OUT OPTIONAL PBYTE pData,
     IN OUT OPTIONAL PDWORD pcbData
@@ -693,7 +693,7 @@ SqliteGetValueA(
                                   TRUE,
                                   pSubKey,
                                   pValue,
-                                  dwFlags,
+                                  Flags,
                                   pdwType,
                                   pData,
                                   pcbData);
@@ -706,7 +706,7 @@ SqliteGetValueW(
     IN HKEY hKey,
     IN OPTIONAL PCWSTR pSubKey,
     IN OPTIONAL PCWSTR pValue,
-    IN OPTIONAL DWORD dwFlags,
+    IN OPTIONAL REG_DATA_TYPE_FLAGS Flags,
     OUT OPTIONAL PDWORD pdwType,
     OUT OPTIONAL PBYTE pData,
     IN OUT OPTIONAL PDWORD pcbData
@@ -717,7 +717,7 @@ SqliteGetValueW(
                                   FALSE,
                                   pSubKey,
                                   pValue,
-                                  dwFlags,
+                                  Flags,
                                   pdwType,
                                   pData,
                                   pcbData);

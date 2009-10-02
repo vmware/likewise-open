@@ -268,7 +268,7 @@ RegGetValueA(
     IN HKEY hKey,
     IN OPTIONAL PCWSTR pSubKey,
     IN OPTIONAL PCWSTR pValue,
-    IN OPTIONAL DWORD dwFlags,
+    IN OPTIONAL REG_DATA_TYPE_FLAGS Flags,
     OUT OPTIONAL PDWORD pdwType,
     OUT OPTIONAL PVOID pvData,
     IN OUT OPTIONAL PDWORD pcbData
@@ -279,7 +279,7 @@ RegGetValueA(
         hKey,
         pSubKey,
         pValue,
-        dwFlags,
+        Flags,
         pdwType,
         pvData,
         pcbData
@@ -293,7 +293,7 @@ RegGetValueW(
     IN HKEY hKey,
     IN OPTIONAL PCWSTR pSubKey,
     IN OPTIONAL PCWSTR pValue,
-    IN OPTIONAL DWORD dwFlags,
+    IN OPTIONAL REG_DATA_TYPE_FLAGS Flags,
     OUT OPTIONAL PDWORD pdwType,
     OUT OPTIONAL PVOID pvData,
     IN OUT OPTIONAL PDWORD pcbData
@@ -304,7 +304,7 @@ RegGetValueW(
         hKey,
         pSubKey,
         pValue,
-        dwFlags,
+        Flags,
         pdwType,
         pvData,
         pcbData

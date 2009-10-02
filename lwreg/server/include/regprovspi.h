@@ -158,7 +158,7 @@ DWORD
     HKEY hKey,
     PCWSTR lpSubKey,
     PCWSTR lpValue,
-    DWORD dwFlags,
+    REG_DATA_TYPE_FLAGS Flags,
     PDWORD pdwType,
     PBYTE pvData,
     PDWORD pcbData
@@ -171,7 +171,7 @@ DWORD
     HKEY hKey,
     PCWSTR lpSubKey,
     PCWSTR lpValue,
-    DWORD dwFlags,
+    REG_DATA_TYPE_FLAGS Flags,
     PDWORD pdwType,
     PBYTE pvData,
     PDWORD pcbData

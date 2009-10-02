@@ -417,7 +417,7 @@ RegSrvGetValueA(
     IN HKEY hKey,
     IN OPTIONAL PCWSTR pSubKey,
     IN OPTIONAL PCWSTR pValue,
-    IN OPTIONAL DWORD dwFlags,
+    IN OPTIONAL REG_DATA_TYPE_FLAGS Flags,
     OUT PDWORD pdwType,
     OUT PBYTE pData,
     IN OUT PDWORD pcbData
@@ -436,7 +436,7 @@ RegSrvGetValueA(
             hKey,
             pSubKey,
             pValue,
-            dwFlags,
+            Flags,
             pdwType,
             pData,
             pcbData);
@@ -454,7 +454,7 @@ RegSrvGetValueW(
     IN HKEY hKey,
     IN OPTIONAL PCWSTR pSubKey,
     IN OPTIONAL PCWSTR pValue,
-    IN OPTIONAL DWORD dwFlags,
+    IN OPTIONAL REG_DATA_TYPE_FLAGS Flags,
     OUT PDWORD pdwType,
     OUT PBYTE pData,
     IN OUT PDWORD pcbData
@@ -473,7 +473,7 @@ RegSrvGetValueW(
             hKey,
             pSubKey,
             pValue,
-            dwFlags,
+            Flags,
             pdwType,
             pData,
             pcbData);

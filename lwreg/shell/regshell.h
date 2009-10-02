@@ -47,9 +47,6 @@
 #include <regsystem.h>
 
 #include <reg/reg.h>
-#include <regutils.h>
-#include <regdef.h>
-#include <regclient.h>
 
 #include <lw/base.h>
 #include <lw/swab.h>
@@ -60,6 +57,11 @@
 #include <lwstr.h>
 #include <lwmem.h>
 #include <lwerror.h>
+
+#include <regutils.h>
+#include <regdef.h>
+#include <regclient.h>
+#include <regparse_r.h>
 
 #include "../parse/regio.h"
 #include "../parse/reglex.h"

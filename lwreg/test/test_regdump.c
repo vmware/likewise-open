@@ -78,7 +78,7 @@ DWORD parseCallback(PREG_PARSE_ITEM pItem, HANDLE userContext)
             case REG_KEY:
                 printf("\r\n%.*s\r\n", dumpStringLen, dumpString);
                 break;
-   
+
             case REG_PLAIN_TEXT:
                 if (ctx->prevType && ctx->prevType != pItem->type)
                 {
@@ -146,7 +146,7 @@ DWORD parseCallbackDebug(PREG_PARSE_ITEM pItem, HANDLE userContext)
             ctx->pfn_fprintf(outStream, "0x%08x\n", *((unsigned int *) pItem->value));
             break;
 
-        case REG_QUADWORD:
+        case REG_QWORD:
             ctx->pfn_fprintf(outStream, "0x%016llx\n", *((unsigned long long *) pItem->value));
             break;
 
@@ -188,7 +188,7 @@ int main(int argc, char *argv[])
         fprintf(stderr, "RegParseOpen: failed %d\n", dwError);
         return 1;
     }
-    
+
     ctx.pfn_fprintf = (int (*)(FILE *, const char *, ...)) fprintf;
     ctx.userValue = 314159;
 

@@ -721,7 +721,7 @@ RegTransactGetValueA(
     IN HKEY hKey,
     IN OPTIONAL PCWSTR pSubKey,
     IN OPTIONAL PCWSTR pValue,
-    IN OPTIONAL DWORD dwFlags,
+    IN OPTIONAL REG_DATA_TYPE_FLAGS Flags,
     OUT OPTIONAL PDWORD pdwType,
     OUT OPTIONAL PVOID pvData,
     IN OUT OPTIONAL PDWORD pcbData
@@ -743,7 +743,7 @@ RegTransactGetValueA(
     GetValueReq.hKey = hKey;
     GetValueReq.pSubKey = pSubKey;
     GetValueReq.pValue = pValue;
-    GetValueReq.dwFlags = dwFlags;
+    GetValueReq.Flags = Flags;
     GetValueReq.pData = pvData;
     GetValueReq.cbData = *pcbData;
 
@@ -804,7 +804,7 @@ RegTransactGetValueW(
     IN HKEY hKey,
     IN OPTIONAL PCWSTR pSubKey,
     IN OPTIONAL PCWSTR pValue,
-    IN OPTIONAL DWORD dwFlags,
+    IN OPTIONAL REG_DATA_TYPE_FLAGS Flags,
     OUT OPTIONAL PDWORD pdwType,
     OUT OPTIONAL PVOID pvData,
     IN OUT OPTIONAL PDWORD pcbData
@@ -826,7 +826,7 @@ RegTransactGetValueW(
     GetValueReq.hKey = hKey;
     GetValueReq.pSubKey = pSubKey;
     GetValueReq.pValue = pValue;
-    GetValueReq.dwFlags = dwFlags;
+    GetValueReq.Flags = Flags;
     GetValueReq.pData = pvData;
     GetValueReq.cbData = *pcbData;
 

@@ -407,7 +407,7 @@ static LWMsgTypeSpec gRegGetValueSpec[] =
     //HKEY hKey;
     //PCWSTR pSubKey;
     //PCWSTR pValue;
-    //DWORD dwFlags;
+    //REG_DATA_TYPE_FLAGS Flags;
     //PBYTE pData;
     //DWORD cbData;
 
@@ -418,7 +418,7 @@ static LWMsgTypeSpec gRegGetValueSpec[] =
 
     LWMSG_MEMBER_PWSTR(REG_IPC_GET_VALUE_REQ, pSubKey),
     LWMSG_MEMBER_PWSTR(REG_IPC_GET_VALUE_REQ, pValue),
-    LWMSG_MEMBER_UINT32(REG_IPC_GET_VALUE_REQ, dwFlags),
+    LWMSG_MEMBER_UINT32(REG_IPC_GET_VALUE_REQ, Flags),
 
     LWMSG_MEMBER_UINT32(REG_IPC_GET_VALUE_REQ, cbData),
     LWMSG_MEMBER_PBYTE(REG_IPC_GET_VALUE_REQ, pData),

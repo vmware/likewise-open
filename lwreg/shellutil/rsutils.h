@@ -8,6 +8,7 @@
 #include <regutils.h>
 #include <regdef.h>
 #include <regclient.h>
+#include <regparse_r.h>
 
 #include <lw/base.h>
 #include <ctype.h>

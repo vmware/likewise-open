@@ -62,8 +62,8 @@
 
 #include <regdef.h>
 #include <regutils.h>
-
 #include <regclient.h>
+#include <regparse_r.h>
 
 
 #endif /* INCLUDES_H_ */

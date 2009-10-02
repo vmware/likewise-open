@@ -76,9 +76,6 @@ main(
 
     REG_LOG_VERBOSE("Logging started");
 
-    dwError = RegInitTracing_r();
-    BAIL_ON_REG_ERROR(dwError);
-
     if (atexit(RegSrvExitHandler) < 0)
     {
        dwError = errno;
@@ -123,8 +120,6 @@ cleanup:
     RegSrvSetProcessExitCode(dwError);
 
     RegShutdownLogging_r();
-
-    RegShutdownTracing_r();
 
     return dwError;
 

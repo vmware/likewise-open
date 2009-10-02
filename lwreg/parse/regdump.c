@@ -69,7 +69,7 @@ RegExportEntry(
         case REG_RESOURCE_LIST:
         case REG_FULL_RESOURCE_DESCRIPTOR:
         case REG_RESOURCE_REQUIREMENTS_LIST:
-        case REG_QUADWORD:
+        case REG_QWORD:
             dwError = RegExportBinaryData(valueType,
                                           valueName,
                                           type,

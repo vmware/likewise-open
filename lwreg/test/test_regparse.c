@@ -102,7 +102,7 @@ DWORD parseCallback(PREG_PARSE_ITEM pItem, HANDLE userContext)
             ctx->pfn_fprintf(outStream, "0x%08x\n", *((unsigned int *) pItem->value));
             break;
 
-        case REG_QUADWORD:
+        case REG_QWORD:
             ctx->pfn_fprintf(outStream, "0x%016llx\n", *((ULONG64 *) pItem->value));
             break;
 
@@ -151,7 +151,7 @@ int main(int argc, char *argv[])
         fprintf(stderr, "RegParseOpen: failed %d\n", dwError);
         return 1;
     }
-    
+
     dwError = RegParseRegistry(parseH);
     BAIL_ON_REG_ERROR(dwError);
 

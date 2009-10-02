@@ -118,25 +118,14 @@ error:
     return dwError;
 }
 
-#if 0
 static
-DWORD
-RegSrvIpcReleaseHandle(
-    LWMsgCall* pCall,
+VOID
+RegSrvIpcCloseHandle(
     PVOID pHandle
     )
 {
-    DWORD dwError = 0;
-    LWMsgSession* pSession = lwmsg_call_get_session(pCall);
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_session_release_handle(pSession, pHandle));
-    BAIL_ON_REG_ERROR(dwError);
-
-error:
-
-    return dwError;
+    return RegSrvCloseKey((HKEY)pHandle);
 }
-#endif
 
 static
 DWORD
@@ -308,8 +297,8 @@ RegSrvIpcOpenRootKey(
         dwError = RegSrvIpcRegisterHandle(
                                       pCall,
                                       "HKEY",
-                                      pRegResp->hRootKey,
-                                      RegSrvCloseKey);
+                                      (PVOID)pRegResp->hRootKey,
+                                      RegSrvIpcCloseHandle);
         BAIL_ON_REG_ERROR(dwError);
 
         //LwInterlockedIncrement(&((PREG_KEY_CONTEXT)pRegResp->hRootKey)->refCount);
@@ -330,7 +319,7 @@ RegSrvIpcOpenRootKey(
     }
 
 cleanup:
-    RegSrvCloseKey(hRootKey);
+    RegSrvIpcCloseHandle((PVOID)hRootKey);
 
     return MAP_REG_ERROR_IPC(dwError);
 
@@ -435,8 +424,8 @@ RegSrvIpcCreateKeyEx(
         dwError = RegSrvIpcRegisterHandle(
                                       pCall,
                                       "HKEY",
-                                      pRegResp->hkResult,
-                                      RegSrvCloseKey);
+                                      (PVOID)pRegResp->hkResult,
+                                      RegSrvIpcCloseHandle);
         BAIL_ON_REG_ERROR(dwError);
 
         pOut->tag = REG_R_CREATE_KEY_EX_SUCCESS;
@@ -455,7 +444,7 @@ RegSrvIpcCreateKeyEx(
     }
 
 cleanup:
-    RegSrvCloseKey(hkResult);
+    RegSrvIpcCloseHandle((PVOID)hkResult);
 
     return MAP_REG_ERROR_IPC(dwError);
 
@@ -497,8 +486,8 @@ RegSrvIpcOpenKeyEx(
         dwError = RegSrvIpcRegisterHandle(
                                       pCall,
                                       "HKEY",
-                                      pRegResp->hkResult,
-                                      RegSrvCloseKey);
+                                      (PVOID)pRegResp->hkResult,
+                                      RegSrvIpcCloseHandle);
         BAIL_ON_REG_ERROR(dwError);
 
        // LwInterlockedIncrement(&((PREG_KEY_CONTEXT)pRegResp->hkResult)->refCount);
@@ -519,7 +508,8 @@ RegSrvIpcOpenKeyEx(
     }
 
 cleanup:
-    RegSrvCloseKey(hkResult);
+    RegSrvIpcCloseHandle((PVOID)hkResult);
+
     return MAP_REG_ERROR_IPC(dwError);
 
 error:
@@ -738,7 +728,7 @@ RegSrvIpcGetValueA(
         pReq->hKey,
         pReq->pSubKey,
         pReq->pValue,
-        pReq->dwFlags,
+        pReq->Flags,
         &dwType,
         pReq->pData,
         &pReq->cbData
@@ -794,7 +784,7 @@ RegSrvIpcGetValueW(
         pReq->hKey,
         pReq->pSubKey,
         pReq->pValue,
-        pReq->dwFlags,
+        pReq->Flags,
         &dwType,
         pReq->pData,
         &pReq->cbData

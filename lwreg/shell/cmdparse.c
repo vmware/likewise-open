@@ -330,7 +330,7 @@ RegShellParseStringType(
         { "REG_RESOURCE_REQUIREMENTS_LIST",
            REG_RESOURCE_REQUIREMENTS_LIST ,
            RRF_RT_ANY                                          },
-        { "REG_QUADWORD", REG_QUADWORD, RRF_RT_QWORD           },
+        { "REG_QUADWORD", REG_QWORD, RRF_RT_QWORD              },
         { "REG_KEY", REG_KEY, RRF_RT_REG_SZ                    },
         { "REG_KEY_DEFAULT", REG_KEY_DEFAULT, RRF_RT_REG_SZ    },
         { "REG_PLAIN_TEXT", REG_PLAIN_TEXT, RRF_RT_REG_SZ      },

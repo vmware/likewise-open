@@ -566,65 +566,6 @@ RegLogMessage(
     );
 
 DWORD
-RegTraceInitialize(
-    VOID
-    );
-
-DWORD
-RegTraceSetFlag(
-    DWORD dwTraceFlag
-    );
-
-DWORD
-RegTraceUnsetFlag(
-    DWORD dwTraceFlag
-    );
-
-BOOLEAN
-RegTraceIsFlagSet(
-    DWORD dwTraceFlag
-    );
-
-VOID
-RegTraceShutdown(
-    VOID
-    );
-
-DWORD
-RegBitVectorCreate(
-    DWORD dwNumBits,
-    PREG_BIT_VECTOR* ppBitVector
-    );
-
-VOID
-RegBitVectorFree(
-    PREG_BIT_VECTOR pBitVector
-    );
-
-BOOLEAN
-RegBitVectorIsSet(
-    PREG_BIT_VECTOR pBitVector,
-    DWORD           iBit
-    );
-
-DWORD
-RegBitVectorSetBit(
-    PREG_BIT_VECTOR pBitVector,
-    DWORD           iBit
-    );
-
-DWORD
-RegBitVectorUnsetBit(
-    PREG_BIT_VECTOR pBitVector,
-    DWORD           iBit
-    );
-
-VOID
-RegBitVectorReset(
-    PREG_BIT_VECTOR pBitVector
-    );
-
-DWORD
 RegDLinkedList(
     PDLINKEDLIST* ppList,
     PVOID        pItem
@@ -855,6 +796,13 @@ ConvertByteArrayToMultiStrs(
 
 void
 ConvertMultiStrsFree(
-    PCHAR *pszMultiSz);
+    PCHAR *pszMultiSz
+    );
+
+VOID
+RegPrintError(
+    IN OPTIONAL PCSTR pszErrorPrefix,
+    IN DWORD dwError
+    );
 
 #endif /* __REG_UTILS_H__ */

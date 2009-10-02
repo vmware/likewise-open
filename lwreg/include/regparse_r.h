@@ -1,9 +1,5 @@
-/* Editor Settings: expandtabs and use 4 spaces for indentation
- * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
-
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software    2004-2009
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -33,82 +29,30 @@
  *
  * Module Name:
  *
- *        tracing.c
+ *        regparse.h
  *
  * Abstract:
  *
- *        Registry Subsystem
+ *        Registry
  *
- *        Tracing API (Private)
+ *        Registry .REG parser header
  *
- *        Thread Safe
- *
- * Authors: Sriram Nambakam (snambakam@likewisesoftware.com)
- *          Marc Guy (mguy@likewisesoftware.com)
- *
+ * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
+ *          Adam Bernstein (abernstein@likewise.com)
  */
-#include "includes.h"
 
-DWORD
-RegInitTracing_r(
-    VOID
-    )
+#ifndef REGPARSE_R_H
+#define REGPARSE_R_H
+
+typedef struct _REG_PARSE_ITEM
 {
-    DWORD dwError = 0;
+    REG_DATA_TYPE type;
+    REG_DATA_TYPE valueType;
+    PSTR keyName;
+    PSTR valueName;
+    DWORD lineNumber;
+    void *value;
+    DWORD valueLen;
+} REG_PARSE_ITEM, *PREG_PARSE_ITEM;
 
-    REG_LOCK_TRACER;
-
-    dwError = RegTraceInitialize();
-
-    REG_UNLOCK_TRACER;
-
-    return dwError;
-}
-
-DWORD
-RegTraceSetFlag_r(
-    DWORD   dwTraceFlag,
-    BOOLEAN bStatus
-    )
-{
-    DWORD dwError = 0;
-
-    REG_LOCK_TRACER;
-
-    if (bStatus)
-    {
-        dwError = RegTraceSetFlag(dwTraceFlag);
-    }
-    else
-    {
-        dwError = RegTraceUnsetFlag(dwTraceFlag);
-    }
-
-    REG_UNLOCK_TRACER;
-
-    return dwError;
-}
-
-DWORD
-RegTraceGetInfo_r(
-    DWORD    dwTraceFlag,
-    PBOOLEAN pbStatus
-    )
-{
-    REG_LOCK_TRACER;
-
-    *pbStatus = RegTraceIsFlagSet(dwTraceFlag);
-
-    REG_UNLOCK_TRACER;
-
-    return 0;
-}
-
-VOID
-RegShutdownTracing_r(
-    VOID
-    )
-{
-    RegTraceShutdown();
-}
-
+#endif /* __REGPARSE_R_H__ */

@@ -198,7 +198,7 @@ SqliteCreateKeyInternal(
 
     if (ppKeyResult)
     {
-        *ppKeyResult = (PHKEY)pKeyResult;
+        *ppKeyResult = pKeyResult;
         pKeyResult = NULL;
     }
     else

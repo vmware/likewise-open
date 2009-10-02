@@ -849,7 +849,7 @@ RegShellExecuteCmdLine(
     }
     if (dwError)
     {
-        PrintError("regshell", dwError);
+        RegPrintError("regshell", dwError);
         dwError = 0;
     }
     RegShellCmdlineParseFree(dwNewArgc, pszNewArgv);
@@ -1168,7 +1168,7 @@ cleanup:
 error:
     if (dwError)
     {
-        PrintError("regshell", dwError);
+        RegPrintError("regshell", dwError);
     }
     goto cleanup;
 }
@@ -1251,7 +1251,7 @@ cleanup:
 error:
     if (dwError)
     {
-        PrintError("regshell", dwError);
+        RegPrintError("regshell", dwError);
     }
     goto cleanup;
 }

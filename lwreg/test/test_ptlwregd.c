@@ -127,7 +127,7 @@ cleanup:
 error:
     if (dwError)
     {
-        PrintError("ThreadTestAddKey", dwError);
+        RegPrintError("ThreadTestAddKey", dwError);
     }
     goto cleanup;
 }
@@ -187,7 +187,7 @@ cleanup:
 error:
     if (dwError)
     {
-        PrintError("ThreadTestGetKeys", dwError);
+        RegPrintError("ThreadTestGetKeys", dwError);
     }
 
     goto cleanup;
@@ -249,7 +249,7 @@ cleanup:
 error:
     if (dwError)
     {
-        PrintError("ThreadTestGetValues", dwError);
+        RegPrintError("ThreadTestGetValues", dwError);
     }
     goto cleanup;
 }
@@ -323,7 +323,7 @@ error:
 
     if (dwError)
     {
-        PrintError("ThreadTestDeleteKey", dwError);
+        RegPrintError("ThreadTestDeleteKey", dwError);
     }
     goto cleanup;
 }

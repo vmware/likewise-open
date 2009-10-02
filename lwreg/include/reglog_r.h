@@ -74,26 +74,4 @@ RegShutdownLogging_r(
     VOID
     );
 
-DWORD
-RegInitTracing_r(
-    VOID
-    );
-
-DWORD
-RegTraceSetFlag_r(
-    DWORD   dwTraceFlag,
-    BOOLEAN bStatus
-    );
-
-DWORD
-RegTraceGetInfo_r(
-    DWORD    dwTraceFlag,
-    PBOOLEAN pbStatus
-    );
-
-VOID
-RegShutdownTracing_r(
-    VOID
-    );
-
 #endif /* __REGLOG_R_H__ */

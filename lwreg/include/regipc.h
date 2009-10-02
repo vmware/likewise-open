@@ -312,7 +312,7 @@ typedef struct __REG_IPC_GET_VALUE_REQ
     HKEY hKey;
     PCWSTR pSubKey;
     PCWSTR pValue;
-    DWORD dwFlags;
+    REG_DATA_TYPE_FLAGS Flags;
     PBYTE pData;
     DWORD cbData;
 } REG_IPC_GET_VALUE_REQ, *PREG_IPC_GET_VALUE_REQ;
