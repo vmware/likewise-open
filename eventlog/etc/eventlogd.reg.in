@@ -3,7 +3,7 @@
 [HKEY_LIKEWISE\Services\eventlog]
 "Description"="Likewise Event Log Service"
 "Path"="@SBINDIR@/eventlogd"
-"Arguments"="eventlogd"
+"Arguments"="eventlogd --syslog"
 "Dependencies"="dcerpc"
 "Type"=dword:00000000
 
