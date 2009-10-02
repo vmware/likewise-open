@@ -1,0 +1,8 @@
+[HKEY_LIKEWISE\Services]
+
+[HKEY_LIKEWISE\Services\lwreg]
+"Description"="Likewise Registry Service"
+"Path"="@SBINDIR@/lwregd"
+"Arguments"="lwregd"
+"Dependencies"=""
+"Type"=dword:00000000
