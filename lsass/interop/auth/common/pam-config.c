@@ -50,6 +50,11 @@
 
 #define LSA_PAM_LOGON_RIGHTS_DENIED_MESSAGE "Access denied"
 
+
+static
+LSA_PAM_CONFIG gStagingConfig;
+
+#if 0
 static const PCSTR gLogLevels[] =
 {
     "disabled",
@@ -60,9 +65,6 @@ static const PCSTR gLogLevels[] =
     "verbose",
     "debug"
 };
-
-static
-LSA_PAM_CONFIG gStagingConfig;
 
 static
 LSA_CONFIG gConfigDescription[] =
@@ -94,6 +96,7 @@ LSA_CONFIG gConfigDescription[] =
         &(gStagingConfig.pszAccessDeniedMessage)
     }
 };
+#endif
 
 DWORD
 LsaPamReadRegistry(
@@ -110,12 +113,14 @@ LsaPamReadRegistry(
     dwError = LsaPamInitializeConfig(&gStagingConfig);
     BAIL_ON_LSA_ERROR(dwError);
 
+#if 0
     dwError = LsaProcessConfig(
                 "Services\\lsass\\Parameters\\PAM",
                 "Policy\\Services\\lsass\\Parameters\\PAM",
                 gConfigDescription,
                 sizeof(gConfigDescription)/sizeof(gConfigDescription[0]));
     BAIL_ON_LSA_ERROR(dwError);
+#endif
 
     *pConfig = gStagingConfig;
     memset(&gStagingConfig, 0, sizeof(LSA_PAM_CONFIG));
