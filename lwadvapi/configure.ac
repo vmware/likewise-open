@@ -15,18 +15,6 @@ AC_DEFINE([_REENTRANT], [1], [Enables strtok_r on HP-UX])
 AC_PROG_CC
 AC_PROG_LIBTOOL
 
-DS_FRAMEWORK_LDFLAGS=""
-
-case "$host_os:$host_cpu" in
-        darwin*:*)
-                echo "Detected Mac OS X"
-                DS_FRAMEWORK_LDFLAGS="-framework DirectoryService"
-                AC_DEFINE([__LWI_DARWIN__], [], [Define if OS is Darwin])
-                ;;
-esac
-
-AC_SUBST(DS_FRAMEWORK_LDFLAGS)
-
 # compat
 
 ENABLE_COMPAT=false
@@ -233,6 +221,16 @@ AC_CHECK_LIB([unistr], [mbstowc16s], [LIBUNISTR_LIBS="-lunistr"], [], [$LIBUNIST
 AC_CHECK_LIB([uuid], [uuid_generate_time], [LIBUUID_LIBS="-luuid"], [], [$LIBUUID_LDFLAGS])
 AC_CHECK_LIB([rt], [clock_settime], [RT_LIBS="-lrt"])
 
+DS_FRAMEWORK_LDFLAGS=""
+AC_MSG_CHECKING([for -framework DirectoryService])
+old_LDFLAGS="$LDFLAGS"
+LDFLAGS="$LDFLAGS -framework DirectoryService"
+AC_TRY_LINK(, , [AC_MSG_RESULT([yes])
+		DS_FRAMEWORK_LDFLAGS="-framework DirectoryService"],
+		[AC_MSG_RESULT(no)])
+LDFLAGS="$old_LDFLAGS"
+AC_SUBST(DS_FRAMEWORK_LDFLAGS)
+
 AC_SUBST(LIB_PTHREAD)
 AC_SUBST(LIBUNISTR_LIBS)
 AC_SUBST(LIBUUID_LIBS)
@@ -249,8 +247,13 @@ LDFLAGS="$LDFLAGS $RT_LIBS"
 AC_CHECK_FUNCS([clock_gettime clock_settime settimeofday gettimeofday timegm])
 LDFLAGS="$old_LDFLAGS"
 
+old_LDFLAGS="$LDFLAGS"
+LDFLAGS="$LDFLAGS $DS_FRAMEWORK_LDFLAGS"
+AC_CHECK_FUNCS([dsOpenDirService])
+LDFLAGS="$old_LDFLAGS"
+
 # Checks for header files.
-AC_CHECK_HEADERS([string.h strings.h sys/types.h sys/socket.h sys/varargs.h pthread.h])
+AC_CHECK_HEADERS([string.h strings.h sys/types.h sys/socket.h sys/varargs.h pthread.h DirectoryService/DirServices.h])
 
 old_CFLAGS="$CFLAGS"
 CFLAGS="$CFLAGS:$LIBUUID_INCLUDES"
