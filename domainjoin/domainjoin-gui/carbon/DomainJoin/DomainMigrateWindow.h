@@ -136,7 +136,7 @@ class DomainMigrateWindow : public TWindow
                               const std::string& adUserGID,
                               bool  bMoveProfile,
                               bool  bDeleteAccount);
-        int CallMigrateCommand(const std::string& localUserHomeDir,
+        int CallMigrateCommand(const std::string& localUserName,
                                const std::string& adUserName,
                                const std::string& logFileName,
                                bool bMoveProfile,
