@@ -1,3 +1,5 @@
+ACLOCAL_AMFLAGS = -I m4
+
 ## Process this file with automake to produce Makefile.in
 include $(top_srcdir)/include.mk
 
