@@ -80,6 +80,8 @@ _nss_lsass_setnetgrent (
     NSS_STATUS ret = NSS_STATUS_SUCCESS;
     PSTR pszValue = NULL;
 
+    NSS_LOCK();
+
     ret = LsaNssCommonNetgroupFindByName(
         &hLsaConnection,
         group,
@@ -92,6 +94,8 @@ _nss_lsass_setnetgrent (
     result->first = 1;
 
 error:
+
+    NSS_UNLOCK();
 
     return ret;
 }

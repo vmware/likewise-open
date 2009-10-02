@@ -47,6 +47,19 @@
 #ifndef __LSA_NSS_LINUX_EXTERNS_H__
 #define __LSA_NSS_LINUX_EXTERNS_H__
 
+#ifdef HAVE_NONLIBPTHREAD_MUTEX_LOCK
+#include <pthread.h>
+#endif
+
 extern HANDLE hLsaConnection;
+#ifdef HAVE_NONLIBPTHREAD_MUTEX_LOCK
+extern pthread_mutex_t gLock;
+#define NSS_LOCK() pthread_mutex_lock(&gLock);
+#define NSS_UNLOCK() pthread_mutex_unlock(&gLock);
+#else
+#define NSS_LOCK() 0;
+#define NSS_UNLOCK() 0;
+#endif
+
 
 #endif
