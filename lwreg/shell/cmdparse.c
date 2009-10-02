@@ -378,7 +378,7 @@ RegShellHexStringExtentLen(
 
     for (dwIndx=0; pszHexString[dwIndx]; dwIndx++)
     {
-        if (!isxdigit(pszHexString[dwIndx]))
+        if (!isxdigit((int) pszHexString[dwIndx]))
         {
             break;
         }
