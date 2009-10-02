@@ -1,0 +1,8 @@
+[HKEY_LIKEWISE\Services]
+
+[HKEY_LIKEWISE\Services\srvsvc]
+"Description"="Likewise Server Service"
+"Path"="@SBINDIR@/srvsvcd"
+"Arguments"="srvsvcd"
+"Dependencies"="lwio"
+"Type"=dword:00000000
