@@ -4,7 +4,7 @@
 "Description"="Likewise IO Manager"
 "Path"="@SBINDIR@/lwiod"
 "Arguments"="lwiod"
-"Dependencies"=""
+"Dependencies"="lwreg"
 "Type"=dword:00000000
 
 [HKEY_LIKEWISE\Services\lwio\Parameters]
