@@ -223,7 +223,7 @@ LsaReadConfigString(
     {
         dwSize = sizeof(szValue);
         memset(szValue, 0, dwSize);
-        dwError = RegGetValue(
+        dwError = RegGetValueA(
                     pReg->hConnection,
                     pReg->hKey,
                     pReg->pwc16sPolicyKey,
@@ -240,7 +240,7 @@ LsaReadConfigString(
     {
         dwSize = sizeof(szValue);
         memset(szValue, 0, dwSize);
-        dwError = RegGetValue(
+        dwError = RegGetValueA(
                     pReg->hConnection,
                     pReg->hKey,
                     pReg->pwc16sConfigKey,
