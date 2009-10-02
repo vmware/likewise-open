@@ -3,7 +3,7 @@
 [HKEY_LIKEWISE\Services\lsass]
 "Description"="Likewise Security and Authentication Subsystem"
 "Path"="@SBINDIR@/lsassd"
-"Arguments"="lsassd"
+"Arguments"="lsassd --syslog"
 "Dependencies"="netlogon lwio lwreg"
 "Type"=dword:00000000
 
