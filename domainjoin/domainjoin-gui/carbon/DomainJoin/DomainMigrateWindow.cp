@@ -516,7 +516,7 @@ DomainMigrateWindow::ConfirmMigration(
     {
         msgStrRef = CFStringCreateWithFormat(NULL,
                                              NULL,
-                                             CFSTR("Are you sure you want to migrate the profile?\n\tFrom local user: %s\n\tTo AD user: %s\n\nLocal account will %s after migration completes\n\nContents from '%s' will be %s to '%s'.\nOwnership will be asssigned to (UID: %s, GID: %s)"),
+                                             CFSTR("Are you sure you want to migrate the profile?\n\tFrom local user: %s\n\tTo AD user: %s\n\nLocal account will %s after migration completes\n\nContents from '%s' will be %s to '%s'.\nOwnership will be asssigned to (UID: %s, GID: %s)\n\nPLEASE NOTE: Migration operation can take a long time for a very large user profile. Be prepared to wait for migration to complete\n\nClick Yes to start the migration..."),
                                              localUserName.c_str(),
                                              adUserName.c_str(),
                                              bDeleteAccount ? "be deleted" : "remain available",
