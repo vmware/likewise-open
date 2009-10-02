@@ -57,8 +57,8 @@ extern pthread_mutex_t gLock;
 #define NSS_LOCK() pthread_mutex_lock(&gLock);
 #define NSS_UNLOCK() pthread_mutex_unlock(&gLock);
 #else
-#define NSS_LOCK() 0;
-#define NSS_UNLOCK() 0;
+#define NSS_LOCK()
+#define NSS_UNLOCK()
 #endif
 
 
