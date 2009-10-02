@@ -610,6 +610,7 @@ LsaAdBatchDestroyBatchItemContents(
             LW_SAFE_FREE_STRING(pItem->GroupInfo.pszPasswd);
             break;
     }
+    memset(pItem,0,sizeof(*pItem));
 }
 
 static
