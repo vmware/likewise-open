@@ -1397,6 +1397,11 @@ cleanup:
             request);
     }
 
+    if (pDataContext)
+    {
+        lwmsg_data_context_delete(pDataContext);
+    }
+
     if ( context )
     {
         lwmsg_context_delete(context);
