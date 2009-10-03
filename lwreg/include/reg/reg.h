@@ -52,37 +52,6 @@
 
 #include <lw/types.h>
 #include <lw/attrs.h>
-
-#ifndef REG_ERRORS_DEFINED
-#define REG_ERRORS_DEFINED 1
-#endif
-
-#define REG_EVENT_INFO_SERVICE_STARTED                             1000
-#define REG_EVENT_ERROR_SERVICE_START_FAILURE                      1001
-#define REG_EVENT_INFO_SERVICE_STOPPED                             1002
-#define REG_EVENT_ERROR_SERVICE_STOPPED                            1003
-#define REG_EVENT_INFO_SERVICE_CONFIGURATION_CHANGED               1004
-
-/*
- * Tracing support
- */
-#define REG_TRACE_FLAG_USER_GROUP_QUERIES        1
-#define REG_TRACE_FLAG_AUTHENTICATION            2
-#define REG_TRACE_FLAG_USER_GROUP_ADMINISTRATION 3
-#define REG_TRACE_FLAG_SENTINEL                  4
-
-typedef struct __REG_TRACE_INFO
-{
-    DWORD   dwTraceFlag;
-    BOOLEAN bStatus;
-} REG_TRACE_INFO, *PREG_TRACE_INFO;
-
-typedef struct __REG_TRACE_INFO_LIST
-{
-    DWORD dwNumFlags;
-    PREG_TRACE_INFO pTraceInfoArray;
-} REG_TRACE_INFO_LIST, *PREG_TRACE_INFO_LIST;
-
 /*
  * Logging
  */
@@ -118,29 +87,38 @@ typedef struct __REG_LOG_INFO {
     PSTR         pszPath;
 } REG_LOG_INFO, *PREG_LOG_INFO;
 
-typedef HANDLE HKEY, *PHKEY;
-typedef CHAR *LPCSTR;
-typedef TCHAR *LPCTSTR;
-typedef DWORD REGSAM;
+typedef struct __REG_KEY_CONTEXT *HKEY, **PHKEY;
 
-typedef enum __REG_DATA_TYPE
-{
-    /* Registry data types */
-    REG_UNKNOWN = 0,
-    REG_DWORD = 1,                  /* dword:    */
-    REG_SZ,                         /* ="REG_SZ" */
-    REG_BINARY,                     /* hex:      */
-    REG_NONE,                       /* hex(0):   */
-    REG_EXPAND_SZ,                  /* hex(2):   */
-    REG_MULTI_SZ,                   /* hex(7):   */
-    REG_RESOURCE_LIST,              /* hex(8):   */
-    REG_FULL_RESOURCE_DESCRIPTOR,   /* hex(9):   */
-    REG_RESOURCE_REQUIREMENTS_LIST, /* hex(a):   */
-    REG_QUADWORD,                   /* hex(b):   */
-    REG_KEY,                        /* represent the reg entry is a Key*/
-    REG_KEY_DEFAULT,                /* Default "@" entry */
-    REG_PLAIN_TEXT,                 /* A string without "" around it */
-} REG_DATA_TYPE, *PREG_DATA_TYPE;
+typedef DWORD REG_ACCESS_MASK;
+typedef REG_ACCESS_MASK REGSAM;
+
+
+typedef DWORD REG_DATA_TYPE;
+typedef DWORD *PREG_DATA_TYPE;
+
+#define REG_NONE                           0 // No value type
+#define REG_SZ                             1 // Unicode null terminated string
+#define REG_EXPAND_SZ                      2 // hex(2): (Not supported)
+#define REG_BINARY                         3 // hex:
+#define REG_DWORD                          4 // dword
+#define REG_DWORD_LITTLE_ENDIAN            4 // 32-bit number (same as REG_DWORD)
+#define REG_DWORD_BIG_ENDIAN               5 // 32-bit number (Not supported)
+#define REG_LINK                           6 // hex(7): (Not supported)
+#define REG_MULTI_SZ                       7 // Multiple Unicode strings
+#define REG_RESOURCE_LIST                  8 // hex(8): (Not supported)
+#define REG_FULL_RESOURCE_DESCRIPTOR       9 // hex(9): (Not supported)
+#define REG_RESOURCE_REQUIREMENTS_LIST     10// hex(a): (Not supported)
+#define REG_QWORD                          11// hex(b): (Not supported)
+#define REG_QWORD_LITTLE_ENDIAN            11// hex(b):
+
+
+#define REG_KEY                            21// represent the reg entry is a Key
+#define REG_KEY_DEFAULT                    22// Default "@" entry
+#define REG_PLAIN_TEXT                     23// A string without "" around it
+#define REG_UNKNOWN                        24// Unknown data type
+
+
+typedef DWORD REG_DATA_TYPE_FLAGS;
 
 #define RRF_RT_REG_NONE       0x00000001
 #define RRF_RT_REG_SZ         0x00000002 //Restrict type to REG_SZ.
@@ -155,21 +133,8 @@ typedef enum __REG_DATA_TYPE
 #define RRF_NOEXPAND          0x10000000
 #define RRF_ZEROONFAILURE     0x20000000
 
-typedef struct _REG_PARSE_ITEM
-{
-    REG_DATA_TYPE type;
-    REG_DATA_TYPE valueType;
-    PSTR keyName;
-    PSTR valueName;
-    DWORD lineNumber;
-    void *value;
-    DWORD valueLen;
-} REG_PARSE_ITEM, *PREG_PARSE_ITEM;
-
 #define LIKEWISE_ROOT_KEY "HKEY_LIKEWISE"
 #define LIKEWISE_FOREIGN_ROOT_KEY "HKEY_LIKEWISE_IMPORT"
-
-#define NUM_ROOTKEY  2
 
 #define MAX_KEY_LENGTH 255
 #define MAX_VALUE_LENGTH 1024
@@ -233,40 +198,14 @@ RegFreeLogInfo(
     PREG_LOG_INFO pLogInfo
     );
 
-DWORD
-RegSetTraceFlags(
-    HANDLE          hRegConnection,
-    PREG_TRACE_INFO pTraceFlagArray,
-    DWORD           dwNumFlags
-    );
-
-DWORD
-RegEnumTraceFlags(
-    HANDLE           hRegConnection,
-    PREG_TRACE_INFO* ppTraceFlagArray,
-    PDWORD           pdwNumFlags
-    );
-
-DWORD
-RegGetTraceFlag(
-    HANDLE           hRegConnection,
-    DWORD            dwTraceFlag,
-    PREG_TRACE_INFO* ppTraceFlag
-    );
-
-
 LW_DWORD
 RegGetErrorMessageForLoggingEvent(
     LW_DWORD dwError,
     LW_PSTR* ppszErrorMsg
     );
 
-VOID
-PrintError(
-    IN OPTIONAL PCSTR pszErrorPrefix,
-    IN DWORD dwError
-    );
 
+// Registry Client Side APIs
 DWORD
 RegEnumRootKeys(
     IN HANDLE hRegConnection,
@@ -343,18 +282,49 @@ RegEnumKeyEx(
     PFILETIME pftLastWriteTime
     );
 
-DWORD
-RegEnumValue(
-    HANDLE hRegConnection,
-    HKEY hKey,
-    DWORD dwIndex,
-    PWSTR pValueName,
-    PDWORD pcchValueName,
-    PDWORD pReserved,
-    PDWORD pType,
-    PBYTE pData,
-    PDWORD pcbData
-    );
+#ifdef UNICODE
+#define RegEnumValue(hRegConnection, \
+                     hKey, \
+                     dwIndex, \
+                     pValueName, \
+                     pcchValueName, \
+                     pReserved, \
+                     pType, \
+                     pData, \
+                     pcbData) \
+        \
+        RegEnumValueW(hRegConnection, \
+                             hKey, \
+                             dwIndex, \
+                             pValueName, \
+                             pcchValueName, \
+                             pReserved, \
+                             pType, \
+                             pData, \
+                             pcbData)
+        \
+#else
+#define RegEnumValue(hRegConnection, \
+                     hKey, \
+                     dwIndex, \
+                     pValueName, \
+                     pcchValueName, \
+                     pReserved, \
+                     pType, \
+                     pData, \
+                     pcbData) \
+        \
+        RegEnumValueA(hRegConnection, \
+                             hKey, \
+                             dwIndex, \
+                             pValueName, \
+                             pcchValueName, \
+                             pReserved, \
+                             pType, \
+                             pData, \
+                             pcbData)
+        \
+#endif
 
 DWORD
 RegEnumValueA(
@@ -382,17 +352,43 @@ RegEnumValueW(
     PDWORD pcbData
     );
 
-DWORD
-RegGetValue(
-    HANDLE hRegConnection,
-    HKEY hKey,
-    PCWSTR pSubKey,
-    PCWSTR pValue,
-    DWORD dwFlags,
-    PDWORD pdwType,
-    PVOID pvData,
-    PDWORD pcbData
-    );
+#ifdef UNICODE
+#define RegGetValue(hRegConnection, \
+                    hKey, \
+                    pSubKey, \
+                    pValue, \
+                    Flags, \
+                    pdwType, \
+                    pvData, \
+                    pcbData) \
+        \
+        RegGetValueW(hRegConnection, \
+                    hKey, \
+                    pSubKey, \
+                    pValue, \
+                    Flags, \
+                    pdwType, \
+                    pvData, \
+                    pcbData)
+#else
+#define RegGetValue(hRegConnection, \
+                    hKey, \
+                    pSubKey, \
+                    pValue, \
+                    Flags, \
+                    pdwType, \
+                    pvData, \
+                    pcbData) \
+        \
+        RegGetValueA(hRegConnection, \
+                    hKey, \
+                    pSubKey, \
+                    pValue, \
+                    Flags, \
+                    pdwType, \
+                    pvData, \
+                    pcbData)
+#endif
 
 DWORD
 RegGetValueA(
@@ -400,7 +396,7 @@ RegGetValueA(
     IN HKEY hKey,
     IN OPTIONAL PCWSTR pSubKey,
     IN OPTIONAL PCWSTR pValue,
-    IN OPTIONAL DWORD dwFlags,
+    IN OPTIONAL REG_DATA_TYPE_FLAGS Flags,
     OUT OPTIONAL PDWORD pdwType,
     OUT OPTIONAL PVOID pvData,
     IN OUT OPTIONAL PDWORD pcbData
@@ -412,7 +408,7 @@ RegGetValueW(
     IN HKEY hKey,
     IN OPTIONAL PCWSTR pSubKey,
     IN OPTIONAL PCWSTR pValue,
-    IN OPTIONAL DWORD dwFlags,
+    IN OPTIONAL REG_DATA_TYPE_FLAGS Flags,
     OUT OPTIONAL PDWORD pdwType,
     OUT OPTIONAL PVOID pvData,
     IN OUT OPTIONAL PDWORD pcbData
@@ -455,16 +451,40 @@ RegQueryMultipleValues(
     PDWORD dwTotsize
     );
 
-DWORD
-RegQueryValueEx(
-    HANDLE hRegConnection,
-    HKEY hKey,
-    PCWSTR pValueName,
-    PDWORD pReserved,
-    PDWORD pType,
-    PBYTE pData,
-    PDWORD pcbData
-    );
+#ifdef UNICODE
+#define RegQueryValueEx(hRegConnection, \
+                        hKey, \
+                        pValueName, \
+                        pReserved, \
+                        pType, \
+                        pData, \
+                        pcbData) \
+        \
+        RegQueryValueExW(hRegConnection, \
+                        hKey, \
+                        pValueName, \
+                        pReserved, \
+                        pType, \
+                        pData, \
+                        pcbData)
+        \
+#else
+#define RegQueryValueEx(hRegConnection, \
+                        hKey, \
+                        pValueName, \
+                        pReserved, \
+                        pType, \
+                        pData, \
+                        pcbData) \
+        \
+        RegQueryValueExA(hRegConnection, \
+                        hKey, \
+                        pValueName, \
+                        pReserved, \
+                        pType, \
+                        pData, \
+                        pcbData)
+#endif
 
 DWORD
 RegQueryValueExA(
@@ -488,8 +508,54 @@ RegQueryValueExW(
     PDWORD pcbData
     );
 
+#ifdef UNICODE
+#define RegSetValueEx(hRegConnection, \
+                      hKey, \
+                      pValueName, \
+                      Reserved, \
+                      dwType, \
+                      pData, \
+                      cbData) \
+        \
+        RegSetValueExW(hRegConnection, \
+                       hKey, \
+                       pValueName, \
+                       Reserved, \
+                       dwType, \
+                       pData, \
+                       cbData)
+        \
+#else
+#define RegSetValueEx(hRegConnection, \
+                      hKey, \
+                      pValueName, \
+                      Reserved, \
+                      dwType, \
+                      pData, \
+                      cbData) \
+        \
+        RegSetValueExA(hRegConnection, \
+                       hKey, \
+                       pValueName, \
+                       Reserved, \
+                       dwType, \
+                       pData, \
+                       cbData)
+#endif
+
 DWORD
-RegSetValueEx(
+RegSetValueExA(
+    HANDLE hRegConnection,
+    HKEY hKey,
+    PCWSTR pValueName,
+    DWORD Reserved,
+    DWORD dwType,
+    const BYTE *pData,
+    DWORD cbData
+    );
+
+DWORD
+RegSetValueExW(
     HANDLE hRegConnection,
     HKEY hKey,
     PCWSTR pValueName,

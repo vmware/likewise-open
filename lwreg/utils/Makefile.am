@@ -5,7 +5,6 @@ libregutils_la_SOURCES = \
     filelog.c            \
     fileutils.c          \
     globals.c            \
-    regbitvector.c       \
     reglogger.c          \
     regloginfo.c         \
     regmem.c             \

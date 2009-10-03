@@ -368,6 +368,7 @@
 #define LW_ERROR_TEST_FAILED                               40601
 #define LW_ERROR_CSV_BAD_FORMAT                            40602
 #define LW_ERROR_CSV_NO_SUCH_FIELD                         40603
+#define LW_ERROR_TEST_SKIPPED                              40604
 
 
 /*Range 40700 - 41200 is reserved for registry specific error*/

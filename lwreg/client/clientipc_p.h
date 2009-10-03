@@ -162,19 +162,6 @@ RegTransactDeleteValue(
     );
 
 DWORD
-RegTransactEnumValue(
-    HANDLE Handle,
-    HKEY hKey,
-    DWORD dwIndex,
-    PWSTR pValueName,
-    PDWORD pcchValueName,
-    PDWORD pReserved,
-    PDWORD pType,
-    PBYTE pData,
-    PDWORD pcbData
-    );
-
-DWORD
 RegTransactEnumValueA(
     HANDLE Handle,
     HKEY hKey,
@@ -201,24 +188,12 @@ RegTransactEnumValueW(
     );
 
 DWORD
-RegTransactGetValue(
-    HANDLE Handle,
-    HKEY hKey,
-    PCWSTR pSubKey,
-    PCWSTR pValue,
-    DWORD dwFlags,
-    PDWORD pdwType,
-    PVOID pvData,
-    PDWORD pcbData
-    );
-
-DWORD
 RegTransactGetValueA(
     IN HANDLE hConnection,
     IN HKEY hKey,
     IN OPTIONAL PCWSTR pSubKey,
     IN OPTIONAL PCWSTR pValue,
-    IN OPTIONAL DWORD dwFlags,
+    IN OPTIONAL REG_DATA_TYPE_FLAGS Flags,
     OUT OPTIONAL PDWORD pdwType,
     OUT OPTIONAL PVOID pvData,
     IN OUT OPTIONAL PDWORD pcbData
@@ -230,7 +205,7 @@ RegTransactGetValueW(
     IN HKEY hKey,
     IN OPTIONAL PCWSTR pSubKey,
     IN OPTIONAL PCWSTR pValue,
-    IN OPTIONAL DWORD dwFlags,
+    IN OPTIONAL REG_DATA_TYPE_FLAGS Flags,
     OUT OPTIONAL PDWORD pdwType,
     OUT OPTIONAL PVOID pvData,
     IN OUT OPTIONAL PDWORD pcbData
@@ -244,17 +219,6 @@ RegTransactQueryMultipleValues(
     DWORD num_vals,
     PWSTR pValueBuf,
     PDWORD dwTotsize
-    );
-
-DWORD
-RegTransactQueryValueEx(
-    HANDLE Handle,
-    HKEY hKey,
-    PCWSTR pValueName,
-    PDWORD pReserved,
-    PDWORD pType,
-    PBYTE pData,
-    PDWORD pcbData
     );
 
 DWORD
@@ -291,7 +255,18 @@ RegTransactSetKeyValue(
     );
 
 DWORD
-RegTransactSetValueEx(
+RegTransactSetValueExA(
+    HANDLE Handle,
+    HKEY hKey,
+    PCWSTR pValueName,
+    DWORD Reserved,
+    DWORD dwType,
+    const BYTE *pData,
+    DWORD cbData
+    );
+
+DWORD
+RegTransactSetValueExW(
     HANDLE Handle,
     HKEY hKey,
     PCWSTR pValueName,

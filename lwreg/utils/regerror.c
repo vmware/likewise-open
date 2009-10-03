@@ -101,7 +101,7 @@ error:
 }
 
 VOID
-PrintError(
+RegPrintError(
     IN OPTIONAL PCSTR pszErrorPrefix,
     IN DWORD dwError
     )

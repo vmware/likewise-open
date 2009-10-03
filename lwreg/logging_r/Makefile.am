@@ -2,8 +2,7 @@ lib_LTLIBRARIES = libreglog_r.la
 
 libreglog_r_la_SOURCES = \
 	globals.c \
-	logging.c \
-	tracing.c
+	logging.c
 	
 libreglog_r_la_CPPFLAGS = \
         -DLW_ENABLE_THREADS=1

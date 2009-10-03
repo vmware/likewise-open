@@ -219,7 +219,7 @@ LWNetReadConfigString(
     {
         dwSize = sizeof(szValue);
         memset(szValue, 0, dwSize);
-        dwError = RegGetValue(
+        dwError = RegGetValueA(
                     pReg->hConnection,
                     pReg->hKey,
                     pReg->pwc16sPolicyKey,
@@ -236,7 +236,7 @@ LWNetReadConfigString(
     {
         dwSize = sizeof(szValue);
         memset(szValue, 0, dwSize);
-        dwError = RegGetValue(
+        dwError = RegGetValueA(
                     pReg->hConnection,
                     pReg->hKey,
                     pReg->pwc16sConfigKey,

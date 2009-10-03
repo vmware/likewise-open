@@ -47,11 +47,9 @@
 #include <regsystem.h>
 
 #include <reg/reg.h>
-#include <regutils.h>
-#include <regdef.h>
-#include <regclient.h>
 
 #include <lw/base.h>
+#include <lw/swab.h>
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -59,6 +57,11 @@
 #include <lwstr.h>
 #include <lwmem.h>
 #include <lwerror.h>
+
+#include <regutils.h>
+#include <regdef.h>
+#include <regclient.h>
+#include <regparse_r.h>
 
 #include "../parse/regio.h"
 #include "../parse/reglex.h"
@@ -121,8 +124,12 @@ typedef struct _REGSHELL_PARSE_STATE
     HANDLE ioHandle;
     PREGLEX_ITEM lexHandle;
     HANDLE hReg;
-    PSTR pszRootKeyName;
+    PSTR pszDefaultRootKeyName;
     PSTR pszDefaultKey;
+
+    // Overrides pszDefaultKey when root key path is specified
+    PSTR pszFullRootKeyName;
+    PSTR pszFullKeyPath;
 } REGSHELL_PARSE_STATE, *PREGSHELL_PARSE_STATE;
 
 
@@ -147,6 +154,7 @@ RegShellCmdStringToEnum(
 
 DWORD
 RegShellCmdParse(
+    PREGSHELL_PARSE_STATE pParseState,
     DWORD argc,
     PCHAR *argv,
     PREGSHELL_CMD_ITEM *parsedCmd);

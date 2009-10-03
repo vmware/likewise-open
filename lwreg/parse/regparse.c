@@ -95,45 +95,6 @@
 
 #include "includes.h"
 
-typedef struct _REGPARSE_CALLBACK_ENTRY
-{
-    PFN_REG_CALLBACK pfnCallback;
-    HANDLE userContext;
-    BOOLEAN used;
-}  REGPARSE_CALLBACK_ENTRY, *PREGPARSE_CALLBACK_ENTRY;
-
-
-typedef struct _REGPARSE_CALLBACK
-{
-    REGPARSE_CALLBACK_ENTRY callbacks[64];
-    DWORD entries;
-} REGPARSE_CALLBACK, *PREGPARSE_CALLBACK;
-
-
-struct _REGPARSE_HANDLE
-{
-    HANDLE ioHandle;
-    PREGLEX_ITEM lexHandle;
-    REGLEX_TOKEN valueType;
-    REGLEX_TOKEN dataType;
-    PSTR keyName;
-    PSTR valueName;
-    REG_PARSE_ITEM registryEntry;
-    PSTR pszStringData;
-    UCHAR *binaryData;
-    DWORD binaryDataLen;
-    DWORD binaryDataAllocLen;
-    REGPARSE_CALLBACK parseCallback;
-};
-
-
-typedef struct _UCS2_STRING_ENTRY
-{
-    PWSTR ucs2String;
-    DWORD ucs2StringLen;
-} UCS2_STRING_ENTRY, *PUCS2_STRING_ENTRY;
-
-
 void RegParseExternDataType(
     REGLEX_TOKEN valueType,
     PREG_DATA_TYPE externValueType)
@@ -172,7 +133,7 @@ void RegParseExternDataType(
             *externValueType = REG_RESOURCE_REQUIREMENTS_LIST;
             break;
         case REGLEX_REG_QUADWORD:
-            *externValueType = REG_QUADWORD;
+            *externValueType = REG_QWORD;
             break;
         case REGLEX_REG_KEY:
             *externValueType = REG_KEY;

@@ -216,7 +216,7 @@ RegDbOpen(
             "from " REG_DB_TABLE_NAME_CACHE_TAGS ", " REG_DB_TABLE_NAME_ENTRIES " "
             "where " REG_DB_TABLE_NAME_CACHE_TAGS ".CacheId = " REG_DB_TABLE_NAME_ENTRIES ".CacheId "
                     "AND " REG_DB_TABLE_NAME_ENTRIES ".KeyName = ?1 "
-                    "AND " REG_DB_TABLE_NAME_ENTRIES ".Type = 11",
+                    "AND " REG_DB_TABLE_NAME_ENTRIES ".Type = 21",
             -1, //search for null termination in szQuery to get length
             &pConn->pstOpenKeyEx,
             NULL);
@@ -257,7 +257,7 @@ RegDbOpen(
             "where " REG_DB_TABLE_NAME_CACHE_TAGS ".CacheId = " REG_DB_TABLE_NAME_ENTRIES ".CacheId "
                     "AND " REG_DB_TABLE_NAME_ENTRIES ".KeyName LIKE ?1  || '\\%' "
                     "AND NOT " REG_DB_TABLE_NAME_ENTRIES ".KeyName LIKE ?1  || '\\%\\%' "
-                    "AND " REG_DB_TABLE_NAME_ENTRIES ".Type = 11",
+                    "AND " REG_DB_TABLE_NAME_ENTRIES ".Type = 21",
             -1, //search for null termination in szQuery to get length
             &pConn->pstQuerySubKeys,
             NULL);
@@ -276,7 +276,7 @@ RegDbOpen(
             "from " REG_DB_TABLE_NAME_CACHE_TAGS ", " REG_DB_TABLE_NAME_ENTRIES " "
             "where " REG_DB_TABLE_NAME_CACHE_TAGS ".CacheId = " REG_DB_TABLE_NAME_ENTRIES ".CacheId "
                     "AND " REG_DB_TABLE_NAME_ENTRIES ".KeyName = ?1 "
-                    "AND " REG_DB_TABLE_NAME_ENTRIES ".Type != 11",
+                    "AND " REG_DB_TABLE_NAME_ENTRIES ".Type != 21",
             -1, //search for null termination in szQuery to get length
             &pConn->pstQueryValues,
             NULL);
@@ -336,7 +336,7 @@ RegDbOpen(
             "where " REG_DB_TABLE_NAME_CACHE_TAGS ".CacheId = " REG_DB_TABLE_NAME_ENTRIES ".CacheId "
                     "AND " REG_DB_TABLE_NAME_ENTRIES ".KeyName = ?1 "
                     "AND " REG_DB_TABLE_NAME_ENTRIES ".ValueName = ?2 "
-                    "AND " REG_DB_TABLE_NAME_ENTRIES ".Type != 11",
+                    "AND " REG_DB_TABLE_NAME_ENTRIES ".Type != 21",
             -1, //search for null termination in szQuery to get length
             &pConn->pstQueryKeyValue,
             NULL);
@@ -807,6 +807,7 @@ RegCacheSafeRecordValuesInfo(
 
         dwError = GetValueAsBytes(ppRegEntries[iCount]->type,
                                   (PCSTR)ppRegEntries[iCount]->pszValue,
+                                  FALSE,
                                   NULL,
                                   &dwValueLen);
         BAIL_ON_REG_ERROR(dwError);

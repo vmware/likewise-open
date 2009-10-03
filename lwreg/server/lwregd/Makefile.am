@@ -19,6 +19,8 @@ lwregd_LDADD =                             \
     @top_builddir@/logging_r/libreglog_r.la   \
     @DS_FRAMEWORK_LDFLAGS@                    \
     @LWMSG_LIBS@
-    
+
+sysconf_DATA = lwreg.reg
+
 install-data-local:
 	$(mkinstalldirs) $(DESTDIR)$(registrycachedir)

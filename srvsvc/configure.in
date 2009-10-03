@@ -344,6 +344,8 @@ AC_DEFINE_UNQUOTED(PREFIXDIR, "$PREFIXDIR", [Prefix directory])
 AS_AC_EXPAND(LIBDIR, $libdir)
 AC_DEFINE_UNQUOTED(LIBDIR, "$LIBDIR", [Library directory])
 
+AS_AC_EXPAND(SBINDIR, $sbindir)
+
 AC_C_BIGENDIAN
 
 AC_PROG_CC
@@ -422,6 +424,7 @@ AC_CONFIG_FILES([Makefile
                  include/Makefile
                  etc/Makefile
                  etc/srvsvcd.conf
+		 etc/srvsvcd.reg
                  utils/Makefile
                  client/Makefile
                  test/Makefile

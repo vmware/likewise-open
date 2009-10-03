@@ -143,6 +143,7 @@ static REGSHELL_CMD_ID shellCmds[] = {
     { "pwd", REGSHELL_CMD_PWD                 },
     { "help", REGSHELL_CMD_HELP               },
     { "exit", REGSHELL_CMD_QUIT               },
+    { "quit", REGSHELL_CMD_QUIT               },
     { "import", REGSHELL_CMD_IMPORT           },
     { "export", REGSHELL_CMD_EXPORT           },
 };
@@ -256,19 +257,48 @@ error:
 
 DWORD
 RegShellCmdParseKeyName(
+    PREGSHELL_PARSE_STATE pParseState,
     REGSHELL_CMD_E cmd,
     DWORD argc,
     PCHAR *argv,
     PREGSHELL_CMD_ITEM *pRetCmdItem)
 {
     DWORD dwError = 0;
+    DWORD dwRootKeyError = 0;
     DWORD keyNameLen = 0;
+    DWORD dwOffset = 0;
     PCHAR pszKeyName = NULL;
+    PSTR pszBackslash = NULL;
+    PSTR pszTmpKey = NULL;
     PREGSHELL_CMD_ITEM pCmdItem = NULL;
+    HKEY hRootKey = NULL;
+
 
     BAIL_ON_INVALID_POINTER(argv);
     BAIL_ON_INVALID_POINTER(pRetCmdItem);
     pszKeyName = argv[2];
+    if (pszKeyName[0] == '[')
+    {
+        dwOffset++;
+    }
+    dwError = LwAllocateString(&pszKeyName[dwOffset], &pszTmpKey);
+    BAIL_ON_REG_ERROR(dwError);
+    pszBackslash = strchr(pszTmpKey, '\\');
+    if (pszBackslash)
+    {
+        *pszBackslash = '\0';
+        dwRootKeyError = RegOpenRootKey(
+                             pParseState->hReg,
+                             pszTmpKey,
+                             &hRootKey);
+        if (dwRootKeyError == 0)
+        {
+            RegCloseKey(pParseState->hReg, hRootKey);
+            pParseState->pszFullRootKeyName = pszTmpKey;
+            *pszBackslash = '\0';
+            pszKeyName = pszBackslash+1;
+        }
+    }
 
     dwError = RegShellCmdParseCommand(
                   cmd,
@@ -291,8 +321,22 @@ RegShellCmdParseKeyName(
     }
     else
     {
-        dwError = LwAllocateString(pszKeyName, &pCmdItem->keyName);
+        dwError = LwAllocateMemory(
+                      sizeof(CHAR)*(keyNameLen + 1),
+                      (LW_PVOID) &pCmdItem->keyName);
         BAIL_ON_REG_ERROR(dwError);
+        strcat(pCmdItem->keyName, "\\");
+        strcat(pCmdItem->keyName, pszKeyName);
+    }
+
+    keyNameLen = strlen(pCmdItem->keyName);
+    if (pCmdItem->keyName[keyNameLen-1] == ']')
+    {
+        pCmdItem->keyName[keyNameLen-1] = '\0';
+    }
+    if (dwRootKeyError == 0)
+    {
+        pParseState->pszFullKeyPath = pCmdItem->keyName;
     }
     *pRetCmdItem = pCmdItem;
 
@@ -329,7 +373,7 @@ RegShellParseStringType(
         { "REG_RESOURCE_REQUIREMENTS_LIST",
            REG_RESOURCE_REQUIREMENTS_LIST ,
            RRF_RT_ANY                                          },
-        { "REG_QUADWORD", REG_QUADWORD, RRF_RT_QWORD           },
+        { "REG_QUADWORD", REG_QWORD, RRF_RT_QWORD              },
         { "REG_KEY", REG_KEY, RRF_RT_REG_SZ                    },
         { "REG_KEY_DEFAULT", REG_KEY_DEFAULT, RRF_RT_REG_SZ    },
         { "REG_PLAIN_TEXT", REG_PLAIN_TEXT, RRF_RT_REG_SZ      },
@@ -360,6 +404,42 @@ error:
 }
 
 
+/*
+ * Return the longest contiguous extent of hex digits before
+ * a separator character or the end of string is found
+ */
+DWORD
+RegShellHexStringExtentLen(
+    PSTR pszHexString,
+    PDWORD pdwHexLen)
+{
+    DWORD dwIndx = 0;
+    DWORD dwCount = 0;
+    DWORD dwError = 0;
+
+    BAIL_ON_INVALID_POINTER(pszHexString);
+
+    for (dwIndx=0; pszHexString[dwIndx]; dwIndx++)
+    {
+        if (!isxdigit((int) pszHexString[dwIndx]))
+        {
+            break;
+        }
+        dwCount++;
+    }
+
+    *pdwHexLen = dwCount;
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+
+
+
 DWORD
 RegShellImportBinaryString(
     PCHAR pszHexString,
@@ -374,6 +454,7 @@ RegShellImportBinaryString(
     DWORD hexDigitModCount = 0;
     PUCHAR binaryValue = NULL;
     DWORD binaryValueLen = 0;
+    DWORD dwHexStringLen = 0;
 
     BAIL_ON_INVALID_POINTER(pszHexString);
     BAIL_ON_INVALID_POINTER(ppBinaryValue);
@@ -383,10 +464,13 @@ RegShellImportBinaryString(
                                (LW_PVOID) &binaryValue);
     BAIL_ON_REG_ERROR(dwError);
 
-    if (strlen(pszHexString) % 2)
+    dwError = RegShellHexStringExtentLen(
+                  pszHexString,
+                  &dwHexStringLen);
+    BAIL_ON_REG_ERROR(dwError);
+
+    if (dwHexStringLen % 2)
     {
-        pszHexArray[0] = '0';
-        pszHexArray[1] = '\0';
         hexDigitModCount = 1;
     }
     cursor = pszHexString;
@@ -407,6 +491,11 @@ RegShellImportBinaryString(
         switch (state)
         {
             case REGSHELL_HEX_START:
+                if (hexDigitModCount)
+                {
+                    pszHexArray[0] = '0';
+                    pszHexArray[1] = '\0';
+                }
                 hexDigitCount = hexDigitModCount;
                 hexDigitModCount = 0;
                 if (*cursor == ' ')
@@ -457,6 +546,18 @@ RegShellImportBinaryString(
                     state = REGSHELL_HEX_COMMA_SEPARATOR;
                     cursor++;
                 }
+                else if (*cursor == '\n')
+                {
+                    dwError = RegShellHexStringExtentLen(
+                                  cursor,
+                                  &dwHexStringLen);
+                    BAIL_ON_REG_ERROR(dwError);
+                    if (dwHexStringLen % 2)
+                    {
+                        hexDigitModCount = 1;
+                    }
+                    state = REGSHELL_HEX_END;
+                }
                 else
                 {
                     state = REGSHELL_HEX_ERROR;
@@ -470,6 +571,14 @@ RegShellImportBinaryString(
                 }
                 else if (isxdigit((int)*cursor))
                 {
+                    dwError = RegShellHexStringExtentLen(
+                                  cursor,
+                                  &dwHexStringLen);
+                    BAIL_ON_REG_ERROR(dwError);
+                    if (dwHexStringLen % 2)
+                    {
+                        hexDigitModCount = 1;
+                    }
                     state = REGSHELL_HEX_END;
                 }
                 else
@@ -485,6 +594,14 @@ RegShellImportBinaryString(
                 }
                 else if (isxdigit((int)*cursor))
                 {
+                    dwError = RegShellHexStringExtentLen(
+                                  cursor,
+                                  &dwHexStringLen);
+                    BAIL_ON_REG_ERROR(dwError);
+                    if (dwHexStringLen % 2)
+                    {
+                        hexDigitModCount = 1;
+                    }
                     state = REGSHELL_HEX_END;
                 }
                 else
@@ -494,10 +611,19 @@ RegShellImportBinaryString(
                 break;
 
             case REGSHELL_HEX_END:
-                binaryValue[binaryValueLen] = (UCHAR) strtoul(pszHexArray, NULL, 16);
+                if (hexDigitCount < 2)
+                {
+                    pszHexArray[1] = pszHexArray[0];
+                    pszHexArray[0] = ' ';
+                }
+                binaryValue[binaryValueLen] =
+                    (UCHAR) strtoul(pszHexArray, NULL, 16);
                 binaryValueLen++;
 
-                if (*cursor == '\0')
+                hexDigitCount = 0;
+                pszHexArray[hexDigitCount] = '\0';
+
+                if (*cursor == '\0' || *cursor == '\n')
                 {
                     state = REGSHELL_HEX_STOP;
                 }
@@ -540,6 +666,7 @@ error:
 
 DWORD
 RegShellCmdParseValueName(
+    PREGSHELL_PARSE_STATE pParseState,
     REGSHELL_CMD_E cmd,
     DWORD argc,
     PCHAR *argv,
@@ -558,6 +685,7 @@ RegShellCmdParseValueName(
     ssize_t multiStringLen = 0;
     PCHAR pszString = NULL;
     DWORD argIndx = 2;
+    DWORD dwOffset = 0;
 
     BAIL_ON_INVALID_POINTER(argv);
     BAIL_ON_INVALID_POINTER(pRetCmdItem);
@@ -565,6 +693,7 @@ RegShellCmdParseValueName(
     if (argv[2][0] == '[')
     {
         dwError = RegShellCmdParseKeyName(
+                      pParseState,
                       cmd,
                       argc,
                       argv,
@@ -654,17 +783,32 @@ RegShellCmdParseValueName(
     switch (pCmdItem->type)
     {
         case REG_DWORD:
-            if (strlen(pCmdItem->args[0]) > 8)
+
+            dwError = RegShellImportBinaryString(
+                            pCmdItem->args[0],
+                            &binaryValue,
+                            &binaryValueLen);
+            BAIL_ON_REG_ERROR(dwError);
+
+            if (binaryValueLen > sizeof(DWORD))
             {
                 dwError = LW_ERROR_INVALID_CONTEXT;
                 goto error;
             }
+            if (binaryValueLen < sizeof(DWORD))
+            {
+                dwOffset = sizeof(DWORD) - binaryValueLen;
+                memmove(binaryValue+dwOffset, binaryValue, binaryValueLen);
+                memset(binaryValue, 0, dwOffset);
+            }
+            memcpy(&dwValue, binaryValue, sizeof(DWORD));
+            dwValue = LW_BTOH32(dwValue);
+            memcpy(binaryValue, &dwValue, sizeof(DWORD));
+
             dwError = LwAllocateMemory(sizeof(DWORD),
                                        (LW_PVOID) &pCmdItem->binaryValue);
             BAIL_ON_REG_ERROR(dwError);
-
-            dwValue = strtoul(pCmdItem->args[0], 0, 16);
-            memcpy(pCmdItem->binaryValue, &dwValue, sizeof(DWORD));
+            pCmdItem->binaryValue = binaryValue;
             pCmdItem->binaryValueLen = sizeof(DWORD);
             break;
 
@@ -764,7 +908,7 @@ RegShellDumpCmdItem(
                           &pszDumpData,
                           &dumpDataLen);
             BAIL_ON_REG_ERROR(dwError);
-            printf("RegShellCmdParseValueName: '%s'\n", pszDumpData);
+            printf("RegShellDumpCmdItem: '%s'\n", pszDumpData);
             break;
 
         case REG_MULTI_SZ:
@@ -796,6 +940,7 @@ error:
 
 DWORD
 RegShellCmdParse(
+    PREGSHELL_PARSE_STATE pParseState,
     DWORD argc,
     PCHAR *argv,
     PREGSHELL_CMD_ITEM *parsedCmd)
@@ -839,7 +984,12 @@ RegShellCmdParse(
         case REGSHELL_CMD_QUIT:
             if (argc > 2)
             {
-                dwError = RegShellCmdParseKeyName(cmd, argc, argv, &pCmdItem);
+                dwError = RegShellCmdParseKeyName(
+                              pParseState,
+                              cmd,
+                              argc,
+                              argv,
+                              &pCmdItem);
             }
             else
             {
@@ -880,7 +1030,12 @@ RegShellCmdParse(
                 dwError = LW_ERROR_INVALID_CONTEXT;
                 goto error;
             }
-            dwError = RegShellCmdParseKeyName(cmd, argc, argv, &pCmdItem);
+            dwError = RegShellCmdParseKeyName(
+                          pParseState,
+                          cmd,
+                          argc,
+                          argv,
+                          &pCmdItem);
             break;
 
         case REGSHELL_CMD_DELETE_VALUE:
@@ -889,7 +1044,12 @@ RegShellCmdParse(
                 dwError = LW_ERROR_INVALID_CONTEXT;
                 goto error;
             }
-            dwError = RegShellCmdParseValueName(cmd, argc, argv, &pCmdItem);
+            dwError = RegShellCmdParseValueName(
+                          pParseState,
+                          cmd,
+                          argc,
+                          argv,
+                          &pCmdItem);
             break;
        /*
         * Commands that take ValueName/REG_TYPE/Values_List
@@ -902,7 +1062,12 @@ RegShellCmdParse(
                 dwError = LW_ERROR_INVALID_CONTEXT;
                 goto error;
             }
-            dwError = RegShellCmdParseValueName(cmd, argc, argv, &pCmdItem);
+            dwError = RegShellCmdParseValueName(
+                          pParseState,
+                          cmd,
+                          argc,
+                          argv,
+                          &pCmdItem);
             break;
 
         default:
@@ -1002,9 +1167,11 @@ RegShellCmdlineParseToArgv(
     DWORD dwArgc = 1;
     DWORD dwAllocSize = 1;
     PSTR *pszArgv = NULL;
+    PSTR *pszArgvRealloc = NULL;
     REG_DATA_TYPE valueType = REG_UNKNOWN;
     PSTR pszBinaryData = NULL;
     DWORD dwBinaryDataOffset = 0;
+    DWORD dwLen = 0;
 
     BAIL_ON_INVALID_HANDLE(pParseState->ioHandle);
     BAIL_ON_INVALID_HANDLE(pParseState->lexHandle);
@@ -1124,34 +1291,32 @@ RegShellCmdlineParseToArgv(
                 {
                     d_printf(("RegShellCmdlineParseToArgv: add_value found\n"));
                     state = REGSHELL_CMDLINE_STATE_ADDVALUE;
-                    /*
-                     * Problem here, no real idea how many values have been
-                     * specified. Only an issue for MULTI_SZ at this point.
-                     */
                     dwArgc += 1;
-                    dwAllocSize = dwArgc + 50;
+                    /*
+                     * Realloc pszArgv as needed for additional args,
+                     * as there is no way to know how many arguments
+                     * will follow for REG_MULTI_SZ.
+                     */
+                    dwAllocSize = dwArgc + 64;
                 }
                 else if (cmdEnum == REGSHELL_CMD_DELETE_VALUE)
                 {
                     d_printf(("RegShellCmdlineParseToArgv: delete_value found\n"));
                     state = REGSHELL_CMDLINE_STATE_ADDVALUE;
-                    /*
-                     * Problem here, no real idea how many values have been
-                     * specified. Only an issue for MULTI_SZ at this point.
-                     */
                     dwArgc += 1;
                     dwAllocSize = dwArgc + 3;
                 }
                 else if (cmdEnum == REGSHELL_CMD_SET_VALUE)
                 {
                     d_printf(("RegShellCmdlineParseToArgv: set_value found\n"));
-                    state = REGSHELL_CMDLINE_STATE_ADDVALUE;
-                    /*
-                     * Problem here, no real idea how many values have been
-                     * specified. Only an issue for MULTI_SZ at this point.
-                     */
                     dwArgc += 1;
-                    dwAllocSize = dwArgc + 50;
+                    /*
+                     * Realloc pszArgv as needed for additional args,
+                     * as there is no way to know how many arguments
+                     * will follow for REG_MULTI_SZ.
+                     */
+                    state = REGSHELL_CMDLINE_STATE_ADDVALUE;
+                    dwAllocSize = dwArgc + 64;
                 }
                 else if (cmdEnum == REGSHELL_CMD_SET_HIVE)
                 {
@@ -1448,7 +1613,7 @@ RegShellCmdlineParseToArgv(
                      * the next call to RegLexGetToken(), as it consumes
                      * the first hex pair if found.
                      */
-                    if (valueType == REG_BINARY)
+                    if (valueType == REG_BINARY || REG_DWORD)
                     {
                         dwError = RegIOBufferGetData(
                                       pParseState->ioHandle,
@@ -1480,14 +1645,30 @@ RegShellCmdlineParseToArgv(
                                            &attrSize,
                                            &pszAttr);
                         dwError = LwAllocateString(pszAttr, &pszArgv[dwArgc++]);
+                        BAIL_ON_REG_ERROR(dwError);
+                        if (dwArgc >= dwAllocSize)
+                        {
+                            dwAllocSize *= 2;
+                            dwError = LwReallocMemory(
+                                          pszArgv,
+                                          (LW_PVOID) &pszArgvRealloc,
+                                          dwAllocSize * sizeof(PSTR *));
+                            BAIL_ON_REG_ERROR(dwError);
+                            pszArgv = pszArgvRealloc;
+                        }
                     }
-                    else if (valueType == REG_BINARY)
+                    else if (valueType == REG_BINARY || valueType == REG_DWORD)
                     {
                         dwError = LwAllocateString(
                                       &pszBinaryData[dwBinaryDataOffset],
-                                      &pszArgv[dwArgc++]);
+                                      &pszArgv[dwArgc]);
                         BAIL_ON_REG_ERROR(dwError);
-
+                        dwLen = strlen(pszArgv[dwArgc]);
+                        if (dwLen>1 && pszArgv[dwArgc][dwLen-1] == '\n')
+                        {
+                            pszArgv[dwArgc][dwLen-1] = '\0';
+                        }
+                        dwArgc++;
                         /*
                          * Force a stop now, as the parser will return
                          * subsequent hex pairs, which is not what we want.
@@ -1623,22 +1804,21 @@ LW_VOID
 RegShellUsage(
     PSTR progname)
 {
-    printf("usage: %s [--file | -f] command_file.txt |\n"
-        "       command [[keyName]] [options]\n"
-        "       add_key [[KeyName]] |\n"
-        "       list_keys [[keyName]] |\n"
+    printf("usage: %s [--file | -f] command_file.txt\n"
+        "       add_key [[KeyName]]\n"
+        "       list_keys [[keyName]]\n"
         "       delete_key [KeyName]\n"
         "       delete_tree [KeyName]\n"
-        "       cd [KeyName] |\n"
-        "       pwd |\n"
-        "       add_value [[KeyName]] \"ValueName\" type \"Value\" [\"Value2\"] [...] |\n"
-        "       set_value [[KeyName]] \"ValueName\" type \"Value\" [\"Value2\"] [...] |\n"
-        "       list_values [[keyName]] |\n"
+        "       cd [KeyName]\n"
+        "       pwd\n"
+        "       add_value [[KeyName]] \"ValueName\" Type \"Value\" [\"Value2\"] [...]\n"
+        "       set_value [[KeyName]] \"ValueName\" Type \"Value\" [\"Value2\"] [...]\n"
+        "       list_values [[keyName]]\n"
         "       delete_value [[KeyName]] \"ValueName\"\n"
         "       set_hive HIVE_NAME\n"
         "       import file.reg\n"
         "       export file.reg\n"
-        "       exit | ^D\n"
+        "       exit | quit | ^D\n"
         "\n"
         "         Type: REG_SZ | REG_DWORD | REG_BINARY | REG_MULTI_SZ\n"
         "               REG_DWORD and REG_BINARY values are hexadecimal\n"

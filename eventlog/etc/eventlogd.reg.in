@@ -1,6 +1,11 @@
 [HKEY_LIKEWISE\Services]
 
 [HKEY_LIKEWISE\Services\eventlog]
+"Description"="Likewise Event Log Service"
+"Path"="@SBINDIR@/eventlogd"
+"Arguments"="eventlogd --syslog"
+"Dependencies"="dcerpc"
+"Type"=dword:00000000
 
 [HKEY_LIKEWISE\Services\eventlog\parameters]
 "AllowReadTo"=""

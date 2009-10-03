@@ -629,7 +629,7 @@ finish:
 error:
     if (dwError)
     {
-        PrintError(NULL, dwError);
+        RegPrintError(NULL, dwError);
     }
 
     dwError = dwError ? 1 : 0;

@@ -38,8 +38,8 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
-
- *        Driver for program to modify an exiting user
+ *
+ *        Driver for program to modify an existing user
  *
  * Authors:
  *
@@ -55,14 +55,18 @@ typedef enum
     UserModTask_EnableUser,
     UserModTask_DisableUser,
     UserModTask_UnlockUser,
-    UserModTask_SetAccountExpiryDate,
     UserModTask_ChangePasswordAtNextLogon,
     UserModTask_SetPasswordNeverExpires,
     UserModTask_SetPasswordMustExpire,
     UserModTask_AddToGroups,
     UserModTask_RemoveFromGroups,
     UserModTask_SetNtPasswordHash,
-    UserModTask_SetLmPasswordHash
+    UserModTask_SetLmPasswordHash,
+    UserModTask_SetExpiryDate,
+    UserModTask_SetPrimaryGroup,
+    UserModTask_SetHomedir,
+    UserModTask_SetShell,
+    UserModTask_SetGecos
 } UserModificationTaskType;
 
 typedef struct __USER_MOD_TASK

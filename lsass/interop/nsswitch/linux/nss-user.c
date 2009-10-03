@@ -57,8 +57,16 @@ _nss_lsass_setpwent(
     void
     )
 {
-    return LsaNssCommonPasswdSetpwent(&hLsaConnection,
-                                      &gEnumUsersState);
+    NSS_STATUS status;
+
+    NSS_LOCK();
+
+    status = LsaNssCommonPasswdSetpwent(&hLsaConnection,
+                                        &gEnumUsersState);
+
+    NSS_UNLOCK();
+
+    return status;
 }
 
 NSS_STATUS
@@ -69,13 +77,21 @@ _nss_lsass_getpwent_r(
     int *           pErrorNumber
     )
 {
-    return LsaNssCommonPasswdGetpwent(
+    NSS_STATUS status;
+
+    NSS_LOCK();
+
+    status = LsaNssCommonPasswdGetpwent(
         &hLsaConnection,
         &gEnumUsersState,
         pResultUser,
         pszBuf,
         bufLen,
         pErrorNumber);
+
+    NSS_UNLOCK();
+
+    return status;
 }
 
 NSS_STATUS
@@ -83,9 +99,17 @@ _nss_lsass_endpwent(
     void
     )
 {
-    return LsaNssCommonPasswdEndpwent(
+    NSS_STATUS status;
+
+    NSS_LOCK();
+
+    status = LsaNssCommonPasswdEndpwent(
         &hLsaConnection,
         &gEnumUsersState);
+
+    NSS_UNLOCK();
+
+    return status;
 }
 
 NSS_STATUS
@@ -97,12 +121,20 @@ _nss_lsass_getpwnam_r(
     int *            pErrorNumber
     )
 {
-    return LsaNssCommonPasswdGetpwnam(&hLsaConnection,
-                                      pszLoginId,
-                                      pResultUser,
-                                      pszBuf,
-                                      bufLen,
-                                      pErrorNumber);
+    NSS_STATUS status;
+
+    NSS_LOCK();
+
+    status = LsaNssCommonPasswdGetpwnam(&hLsaConnection,
+                                        pszLoginId,
+                                        pResultUser,
+                                        pszBuf,
+                                        bufLen,
+                                        pErrorNumber);
+
+    NSS_UNLOCK();
+
+    return status;
 }
 
 NSS_STATUS
@@ -114,11 +146,19 @@ _nss_lsass_getpwuid_r(
     int *           pErrorNumber
     )
 {
-    return LsaNssCommonPasswdGetpwuid(&hLsaConnection,
-                                      uid,
-                                      pResultUser,
-                                      pszBuf,
-                                      bufLen,
-                                      pErrorNumber);
+    NSS_STATUS status;
+
+    NSS_LOCK();
+
+    status = LsaNssCommonPasswdGetpwuid(&hLsaConnection,
+                                        uid,
+                                        pResultUser,
+                                        pszBuf,
+                                        bufLen,
+                                        pErrorNumber);
+
+    NSS_UNLOCK();
+
+    return status;
 }
 

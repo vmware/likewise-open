@@ -49,6 +49,44 @@
 typedef struct _REGPARSE_HANDLE REGPARSE_HANDLE, *PREGPARSE_HANDLE;
 typedef DWORD (*PFN_REG_CALLBACK)(PREG_PARSE_ITEM pItem, HANDLE userContext);
 
+typedef struct _REGPARSE_CALLBACK_ENTRY
+{
+    PFN_REG_CALLBACK pfnCallback;
+    HANDLE userContext;
+    BOOLEAN used;
+}  REGPARSE_CALLBACK_ENTRY, *PREGPARSE_CALLBACK_ENTRY;
+
+
+typedef struct _REGPARSE_CALLBACK
+{
+    REGPARSE_CALLBACK_ENTRY callbacks[64];
+    DWORD entries;
+} REGPARSE_CALLBACK, *PREGPARSE_CALLBACK;
+
+
+struct _REGPARSE_HANDLE
+{
+    HANDLE ioHandle;
+    PREGLEX_ITEM lexHandle;
+    REGLEX_TOKEN valueType;
+    REGLEX_TOKEN dataType;
+    PSTR keyName;
+    PSTR valueName;
+    REG_PARSE_ITEM registryEntry;
+    PSTR pszStringData;
+    UCHAR *binaryData;
+    DWORD binaryDataLen;
+    DWORD binaryDataAllocLen;
+    REGPARSE_CALLBACK parseCallback;
+};
+
+
+typedef struct _UCS2_STRING_ENTRY
+{
+    PWSTR ucs2String;
+    DWORD ucs2StringLen;
+} UCS2_STRING_ENTRY, *PUCS2_STRING_ENTRY;
+
 #if 1 /* Public parser API. */
 
 DWORD

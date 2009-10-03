@@ -198,7 +198,7 @@ SqliteCreateKeyInternal(
 
     if (ppKeyResult)
     {
-        *ppKeyResult = (PHKEY)pKeyResult;
+        *ppKeyResult = pKeyResult;
         pKeyResult = NULL;
     }
     else
@@ -692,6 +692,7 @@ DWORD
 GetValueAsBytes(
     IN REG_DATA_TYPE type,
     IN PCSTR pszValue,
+    IN BOOLEAN bDoAnsi,
     OUT OPTIONAL PBYTE pData,
     IN OUT OPTIONAL PDWORD pcbData
     )
@@ -700,6 +701,7 @@ GetValueAsBytes(
     PBYTE pTempData = NULL;
     DWORD dwValue = 0;
     DWORD cbData = 0;
+    PWSTR pwcValue = NULL;
 
     if (LW_IS_NULL_OR_EMPTY_STR(pszValue))
         goto cleanup;
@@ -730,17 +732,37 @@ GetValueAsBytes(
 
         case REG_SZ:
 
-            if(pData && strlen(pszValue)+1 > *pcbData)
+            if (bDoAnsi)
             {
-                dwError = LW_ERROR_INSUFFICIENT_BUFFER;
-                BAIL_ON_REG_ERROR(dwError);
+                if(pData && strlen(pszValue)+1 > *pcbData)
+                {
+                    dwError = LW_ERROR_INSUFFICIENT_BUFFER;
+                    BAIL_ON_REG_ERROR(dwError);
+                }
+                cbData = strlen(pszValue)*sizeof(*pszValue);
+                if (pData)
+                {
+                    memcpy(pData, pszValue, (strlen(pszValue)+1)*sizeof(*pszValue));
+                }
             }
-
-            cbData = strlen(pszValue)*sizeof(*pszValue);
-
-            if (pData)
+            else
             {
-                memcpy(pData, pszValue, (strlen(pszValue)+1)*sizeof(*pszValue));
+                dwError = LwMbsToWc16s(pszValue, &pwcValue);
+                BAIL_ON_REG_ERROR(dwError);
+
+                dwError = LwWc16sLen(pwcValue, (size_t*)&cbData);
+                BAIL_ON_REG_ERROR(dwError);
+
+                if(pData && (cbData + sizeof(*pwcValue)) > *pcbData)
+                {
+                    dwError = LW_ERROR_INSUFFICIENT_BUFFER;
+                    BAIL_ON_REG_ERROR(dwError);
+                }
+
+                if (pData)
+                {
+                    memcpy(pData, pwcValue, (cbData + sizeof(*pwcValue))*sizeof(*pwcValue));
+                }
             }
 
             break;
@@ -776,6 +798,7 @@ GetValueAsBytes(
 
 cleanup:
     LW_SAFE_FREE_MEMORY(pTempData);
+    LW_SAFE_FREE_MEMORY(pwcValue);
     return dwError;
 
 error:

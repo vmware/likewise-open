@@ -60,7 +60,9 @@ lw_lsa_SOURCES = \
 	trace_info_main.c \
 	main.c
 
-lw_lsa_LDADD = @top_builddir@/client/liblsaclient.la
+lw_lsa_LDADD = \
+	@top_builddir@/client/liblsaclient.la \
+	@top_builddir@/common/liblsacommon.la
 
 install-exec-hook:
 	cd $(DESTDIR)$(bindir) && \

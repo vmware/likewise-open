@@ -32,6 +32,7 @@
  * %End-Header%
  */
 
+
 #ifndef _UUID_UUID_H
 #define _UUID_UUID_H
 
@@ -39,19 +40,9 @@
 #include <sys/time.h>
 #include <time.h>
 
-#if defined(__APPLE__)
-#ifndef _UUID_T
-#define _UUID_T
-typedef __darwin_uuid_t uuid_t;
-#endif /* _UUID_T */
-
-#ifndef _UUID_STRING_T
-#define _UUID_STRING_T
-typedef __darwin_uuid_string_t  uuid_string_t;
-#endif /* _UUID_STRING_T */
-#else
 typedef unsigned char uuid_t[16];
-#endif
+
+typedef char * uuid_string_t;
 
 /* UUID Variant definitions */
 #define UUID_VARIANT_NCS 	0
@@ -94,12 +85,12 @@ void uuid_generate_time(uuid_t out);
 int uuid_is_null(const uuid_t uu);
 
 /* parse.c */
-int uuid_parse(const char *in, uuid_t uu);
+int uuid_parse(const uuid_string_t in, uuid_t uu);
 
 /* unparse.c */
-void uuid_unparse(const uuid_t uu, char *out);
-void uuid_unparse_lower(const uuid_t uu, char *out);
-void uuid_unparse_upper(const uuid_t uu, char *out);
+void uuid_unparse(const uuid_t uu, uuid_string_t out);
+void uuid_unparse_lower(const uuid_t uu, uuid_string_t out);
+void uuid_unparse_upper(const uuid_t uu, uuid_string_t out);
 
 /* uuid_time.c */
 time_t uuid_time(const uuid_t uu, struct timeval *ret_tv);

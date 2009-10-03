@@ -1075,9 +1075,33 @@ LsaModifyUser_SetPasswordMustExpire(
     );
 
 DWORD
-LsaModifyUser_SetAccountExpiryDate(
+LsaModifyUser_SetExpiryDate(
     PLSA_USER_MOD_INFO pUserModInfo,
     PCSTR pszDate
+    );
+
+DWORD
+LsaModifyUser_SetPrimaryGroup(
+    PLSA_USER_MOD_INFO pUserModInfo,
+    PCSTR pszGid
+    );
+
+DWORD
+LsaModifyUser_SetHomedir(
+    PLSA_USER_MOD_INFO pUserModInfo,
+    PCSTR pszHomedir
+    );
+
+DWORD
+LsaModifyUser_SetShell(
+    PLSA_USER_MOD_INFO pUserModInfo,
+    PCSTR pszShell
+    );
+
+DWORD
+LsaModifyUser_SetGecos(
+    PLSA_USER_MOD_INFO pUserModInfo,
+    PCSTR pszGecos
     );
 
 DWORD

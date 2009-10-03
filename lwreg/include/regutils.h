@@ -566,65 +566,6 @@ RegLogMessage(
     );
 
 DWORD
-RegTraceInitialize(
-    VOID
-    );
-
-DWORD
-RegTraceSetFlag(
-    DWORD dwTraceFlag
-    );
-
-DWORD
-RegTraceUnsetFlag(
-    DWORD dwTraceFlag
-    );
-
-BOOLEAN
-RegTraceIsFlagSet(
-    DWORD dwTraceFlag
-    );
-
-VOID
-RegTraceShutdown(
-    VOID
-    );
-
-DWORD
-RegBitVectorCreate(
-    DWORD dwNumBits,
-    PREG_BIT_VECTOR* ppBitVector
-    );
-
-VOID
-RegBitVectorFree(
-    PREG_BIT_VECTOR pBitVector
-    );
-
-BOOLEAN
-RegBitVectorIsSet(
-    PREG_BIT_VECTOR pBitVector,
-    DWORD           iBit
-    );
-
-DWORD
-RegBitVectorSetBit(
-    PREG_BIT_VECTOR pBitVector,
-    DWORD           iBit
-    );
-
-DWORD
-RegBitVectorUnsetBit(
-    PREG_BIT_VECTOR pBitVector,
-    DWORD           iBit
-    );
-
-VOID
-RegBitVectorReset(
-    PREG_BIT_VECTOR pBitVector
-    );
-
-DWORD
 RegDLinkedList(
     PDLINKEDLIST* ppList,
     PVOID        pItem
@@ -779,11 +720,73 @@ RegFreeStringBufferContents(
 
 /* reg data type conversion functions */
 
+#ifdef UNICODE
+#define ConvertMultiStrsToByteArray(ppszInMultiSz, \
+                                    outBuf, \
+                                    outBufLen) \
+        \
+        ConvertMultiStrsToByteArrayW(ppszInMultiSz, \
+                                     outBuf, \
+                                     outBufLen)
+        \
+#else
+#define ConvertMultiStrsToByteArray(ppszInMultiSz, \
+                                    outBuf, \
+                                    outBufLen) \
+        \
+        ConvertMultiStrsToByteArrayA(ppszInMultiSz, \
+                                     outBuf, \
+                                     outBufLen)
+        \
+#endif
+
 DWORD
-ConvertMultiStrsToByteArray(
-    PSTR *pszInMultiSz,
+ConvertMultiStrsToByteArrayW(
+    PSTR* ppszInMultiSz,
     PBYTE *outBuf,
-    SSIZE_T *outBufLen);
+    SSIZE_T *outBufLen
+    );
+
+DWORD
+ConvertMultiStrsToByteArrayA(
+    PSTR* ppszInMultiSz,
+    PBYTE *outBuf,
+    SSIZE_T *outBufLen
+    );
+
+#ifdef UNICODE
+#define ConvertByteArrayToMultiStrs(pInBuf, \
+                                    bufLen, \
+                                    pppszOutMultiSz) \
+        \
+        ConvertByteArrayToMultiStrsW(pInBuf, \
+                                     bufLen, \
+                                     pppszOutMultiSz)
+        \
+#else
+#define ConvertByteArrayToMultiStrs(pInBuf, \
+                                    bufLen, \
+                                    pppszOutMultiSz) \
+        \
+        ConvertByteArrayToMultiStrsA(pInBuf, \
+                                     bufLen, \
+                                     pppszOutMultiSz)
+        \
+#endif
+
+DWORD
+ConvertByteArrayToMultiStrsW(
+    PBYTE pInBuf,
+    SSIZE_T bufLen,
+    PSTR **pppszOutMultiSz
+    );
+
+DWORD
+ConvertByteArrayToMultiStrsA(
+    PBYTE pInBuf,
+    SSIZE_T bufLen,
+    PSTR **pppszOutMultiSz
+    );
 
 DWORD
 ConvertByteArrayToMultiStrs(
@@ -793,6 +796,13 @@ ConvertByteArrayToMultiStrs(
 
 void
 ConvertMultiStrsFree(
-    PCHAR *pszMultiSz);
+    PCHAR *pszMultiSz
+    );
+
+VOID
+RegPrintError(
+    IN OPTIONAL PCSTR pszErrorPrefix,
+    IN DWORD dwError
+    );
 
 #endif /* __REG_UTILS_H__ */

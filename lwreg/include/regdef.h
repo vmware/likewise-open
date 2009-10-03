@@ -59,9 +59,6 @@
 #define REG_SECONDS_IN_HOUR   (60 * REG_SECONDS_IN_MINUTE)
 #define REG_SECONDS_IN_DAY    (24 * REG_SECONDS_IN_HOUR)
 
-#define REG_MAX_USER_NAME_LENGTH  256
-#define REG_MAX_GROUP_NAME_LENGTH 256
-
 #ifndef REG_MAX
 #define REG_MAX(a, b) (((a) > (b)) ? (a) : (b))
 #endif
@@ -88,5 +85,7 @@ typedef int             SOCKET;
 
 #define REG_DB_DIR CACHEDIR "/db"
 #define REG_CACHE  REG_DB_DIR "/regcache.db"
+
+#define NUM_ROOTKEY  2
 
 #endif /* __REGDEF_H__ */

@@ -58,6 +58,7 @@
 #include <lwmsg/lwmsg.h>
 
 #include <lw/base.h>
+#include <lw/swab.h>
 #include <lwstr.h>
 #include <lwmem.h>
 #include <lwerror.h>
@@ -65,11 +66,12 @@
 #include <regdef.h>
 #include <regutils.h>
 #include <regipc.h>
+#include <regparse_r.h>
 
 #include "regio.h"
 #include "reglex.h"
 #include "regiconv.h"
-#include "regparse.h"
 #include "regdump.h"
+#include "regparse.h"
 
 #endif

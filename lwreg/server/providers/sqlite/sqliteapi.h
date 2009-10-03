@@ -129,7 +129,7 @@ SqliteQueryInfoKey(
     );
 
 DWORD
-SqliteSetValueEx(
+SqliteSetValueExA(
     IN HANDLE Handle,
     IN HKEY hKey,
     IN OPTIONAL PCWSTR pValueName,
@@ -140,15 +140,14 @@ SqliteSetValueEx(
     );
 
 DWORD
-SqliteGetValue(
+SqliteSetValueExW(
     IN HANDLE Handle,
     IN HKEY hKey,
-    IN OPTIONAL PCWSTR pSubKey,
-    IN OPTIONAL PCWSTR pValue,
-    IN OPTIONAL DWORD dwFlags,
-    OUT OPTIONAL PDWORD pdwType,
-    OUT OPTIONAL PBYTE pData,
-    IN OUT OPTIONAL PDWORD pcbData
+    IN OPTIONAL PCWSTR pValueName,
+    IN DWORD Reserved,
+    IN DWORD dwType,
+    IN const BYTE *pData,
+    DWORD cbData
     );
 
 DWORD
@@ -157,7 +156,7 @@ SqliteGetValueA(
     IN HKEY hKey,
     IN OPTIONAL PCWSTR pSubKey,
     IN OPTIONAL PCWSTR pValue,
-    IN OPTIONAL DWORD dwFlags,
+    IN OPTIONAL REG_DATA_TYPE_FLAGS Flags,
     OUT OPTIONAL PDWORD pdwType,
     OUT OPTIONAL PBYTE pData,
     IN OUT OPTIONAL PDWORD pcbData
@@ -169,7 +168,7 @@ SqliteGetValueW(
     IN HKEY hKey,
     IN OPTIONAL PCWSTR pSubKey,
     IN OPTIONAL PCWSTR pValue,
-    IN OPTIONAL DWORD dwFlags,
+    IN OPTIONAL REG_DATA_TYPE_FLAGS Flags,
     OUT OPTIONAL PDWORD pdwType,
     OUT OPTIONAL PBYTE pData,
     IN OUT OPTIONAL PDWORD pcbData
@@ -201,19 +200,6 @@ SqliteDeleteValue(
     );
 
 DWORD
-SqliteEnumValue(
-    HANDLE Handle,
-    HKEY hKey,
-    DWORD dwIndex,
-    PWSTR pValueName,
-    PDWORD pcchValueName,
-    PDWORD pReserved,
-    PDWORD pType,
-    PBYTE pData,
-    PDWORD pcbData
-    );
-
-DWORD
 SqliteEnumValueA(
     HANDLE Handle,
     HKEY hKey,
@@ -237,17 +223,6 @@ SqliteEnumValueW(
     PDWORD pType,
     PBYTE pData,
     PDWORD pcbData
-    );
-
-DWORD
-SqliteQueryValueEx(
-    IN HANDLE Handle,
-    IN HKEY hKey,
-    IN PCWSTR pValueName,
-    IN PDWORD pReserved,
-    OUT PDWORD pType,
-    OUT OPTIONAL PBYTE pData,
-    IN OUT OPTIONAL PDWORD pcbData
     );
 
 DWORD

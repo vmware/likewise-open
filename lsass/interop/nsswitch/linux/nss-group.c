@@ -58,8 +58,16 @@ _nss_lsass_setgrent(
     void
     )
 {
-    return LsaNssCommonGroupSetgrent(&hLsaConnection,
-                                     &gEnumGroupsState);
+    NSS_STATUS status;
+
+    NSS_LOCK();
+
+    status = LsaNssCommonGroupSetgrent(&hLsaConnection,
+                                       &gEnumGroupsState);
+
+    NSS_UNLOCK();
+
+    return status;
 }
 
 NSS_STATUS
@@ -70,13 +78,21 @@ _nss_lsass_getgrent_r(
     int*           pErrorNumber
     )
 {
-    return LsaNssCommonGroupGetgrent(
+    NSS_STATUS status;
+
+    NSS_LOCK();
+
+    status = LsaNssCommonGroupGetgrent(
         &hLsaConnection,
         &gEnumGroupsState,
         pResultGroup,
         pszBuf,
         bufLen,
         pErrorNumber);
+
+    NSS_UNLOCK();
+
+    return status;
 }
 
 NSS_STATUS
@@ -84,7 +100,15 @@ _nss_lsass_endgrent(
     void
     )
 {
-    return LsaNssCommonGroupEndgrent(&hLsaConnection, &gEnumGroupsState);
+    NSS_STATUS status;
+
+    NSS_LOCK();
+
+    status = LsaNssCommonGroupEndgrent(&hLsaConnection, &gEnumGroupsState);
+
+    NSS_UNLOCK();
+
+    return status;
 }
 
 NSS_STATUS
@@ -96,12 +120,20 @@ _nss_lsass_getgrgid_r(
     int*           pErrorNumber
     )
 {
-    return LsaNssCommonGroupGetgrgid(&hLsaConnection,
-                                     gid,
-                                     pResultGroup,
-                                     pszBuf,
-                                     bufLen,
-                                     pErrorNumber);
+    NSS_STATUS status;
+
+    NSS_LOCK();
+
+    status = LsaNssCommonGroupGetgrgid(&hLsaConnection,
+                                       gid,
+                                       pResultGroup,
+                                       pszBuf,
+                                       bufLen,
+                                       pErrorNumber);
+
+    NSS_UNLOCK();
+
+    return status;
 }
 
 NSS_STATUS
@@ -113,12 +145,20 @@ _nss_lsass_getgrnam_r(
     int*           pErrorNumber
     )
 {
-    return LsaNssCommonGroupGetgrnam(&hLsaConnection,
-                                     pszGroupName,
-                                     pResultGroup,
-                                     pszBuf,
-                                     bufLen,
-                                     pErrorNumber);
+    NSS_STATUS status;
+
+    NSS_LOCK();
+
+    status = LsaNssCommonGroupGetgrnam(&hLsaConnection,
+                                       pszGroupName,
+                                       pResultGroup,
+                                       pszBuf,
+                                       bufLen,
+                                       pErrorNumber);
+
+    NSS_UNLOCK();
+
+    return status;
 }
 
 NSS_STATUS
@@ -138,6 +178,8 @@ _nss_lsass_initgroups_dyn(
     size_t resultsSize = 0;
     gid_t* pGidResults = *ppGidResults;
     gid_t* pGidResultsNew = NULL;
+
+    NSS_LOCK();
 
     ret = LsaNssCommonGroupGetGroupsByUserName(
         &hLsaConnection,
@@ -190,6 +232,8 @@ _nss_lsass_initgroups_dyn(
     }
 
 error:
+
+    NSS_UNLOCK();
 
     return ret;
 }

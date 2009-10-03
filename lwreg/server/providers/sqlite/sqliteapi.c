@@ -389,10 +389,12 @@ error:
     goto cleanup;
 }
 
+static
 DWORD
-SqliteSetValueEx(
+SqliteSetValueExInternal(
     IN HANDLE Handle,
     IN HKEY hKey,
+    IN BOOLEAN bDoAnsi,
     IN OPTIONAL PCWSTR pValueName,
     IN DWORD Reserved,
     IN DWORD dwType,
@@ -404,6 +406,7 @@ SqliteSetValueEx(
     PREG_KEY_CONTEXT pKey = (PREG_KEY_CONTEXT)hKey;
     PSTR pszValueName = NULL;
     PSTR pszValue = NULL;
+    PWSTR pwcValue = NULL;
     DWORD dwValue = 0;
     BOOLEAN bIsWrongType = TRUE;
 
@@ -440,10 +443,21 @@ SqliteSetValueEx(
 
         case REG_SZ:
 
-            dwError = LwAllocateMemory(sizeof(*pszValue)*(cbData+1), (PVOID)&pszValue);
-            BAIL_ON_REG_ERROR(dwError);
+            if (bDoAnsi)
+            {
+                dwError = LwAllocateMemory(sizeof(*pszValue)*(cbData+1), (PVOID)&pszValue);
+                BAIL_ON_REG_ERROR(dwError);
 
-            memcpy(pszValue, pData, cbData*sizeof(*pData));
+                memcpy(pszValue, pData, cbData*sizeof(*pData));
+            }
+            else
+            {
+                dwError = LwAllocateMemory(sizeof(*pwcValue)*(cbData+1), (PVOID)&pwcValue);
+                BAIL_ON_REG_ERROR(dwError);
+
+                dwError = LwWc16sToMbs(pwcValue, &pszValue);
+                BAIL_ON_REG_ERROR(dwError);
+            }
             break;
 
         case REG_DWORD:
@@ -492,6 +506,7 @@ SqliteSetValueEx(
 cleanup:
     LW_SAFE_FREE_STRING(pszValueName);
     LW_SAFE_FREE_STRING(pszValue);
+    LW_SAFE_FREE_MEMORY(pwcValue);
 
     return dwError;
 
@@ -499,15 +514,57 @@ error:
     goto cleanup;
 }
 
+DWORD
+SqliteSetValueExA(
+    IN HANDLE Handle,
+    IN HKEY hKey,
+    IN OPTIONAL PCWSTR pValueName,
+    IN DWORD Reserved,
+    IN DWORD dwType,
+    IN const BYTE *pData,
+    DWORD cbData
+    )
+{
+    return SqliteSetValueExInternal(Handle,
+                                    hKey,
+                                    TRUE,
+                                    pValueName,
+                                    Reserved,
+                                    dwType,
+                                    pData,
+                                    cbData);
+}
+
+DWORD
+SqliteSetValueExW(
+    IN HANDLE Handle,
+    IN HKEY hKey,
+    IN OPTIONAL PCWSTR pValueName,
+    IN DWORD Reserved,
+    IN DWORD dwType,
+    IN const BYTE *pData,
+    DWORD cbData
+    )
+{
+    return SqliteSetValueExInternal(Handle,
+                                    hKey,
+                                    FALSE,
+                                    pValueName,
+                                    Reserved,
+                                    dwType,
+                                    pData,
+                                    cbData);
+}
+
 static
 REG_DATA_TYPE
 GetRegDataType(
-    DWORD dwFlags
+    REG_DATA_TYPE_FLAGS Flags
     )
 {
     REG_DATA_TYPE dataType = 0;
 
-    switch (dwFlags)
+    switch (Flags)
     {
         case RRF_RT_REG_SZ:
             dataType = REG_SZ;
@@ -529,14 +586,15 @@ GetRegDataType(
     return dataType;
 }
 
-//Todo get value from ActiveKey first
+static
 DWORD
-SqliteGetValue(
+SqliteGetValueInternal(
     IN HANDLE Handle,
     IN HKEY hKey,
+    IN BOOLEAN bDoAnsi,
     IN OPTIONAL PCWSTR pSubKey,
     IN OPTIONAL PCWSTR pValue,
-    IN OPTIONAL DWORD dwFlags,
+    IN OPTIONAL REG_DATA_TYPE_FLAGS Flags,
     OUT OPTIONAL PDWORD pdwType,
     OUT OPTIONAL PBYTE pData,
     IN OUT OPTIONAL PDWORD pcbData
@@ -584,13 +642,14 @@ SqliteGetValue(
     dwError = RegDbGetKeyValue(ghCacheConnection,
                                pszKeyName,
                                pszValueName,
-                               GetRegDataType(dwFlags),
+                               GetRegDataType(Flags),
                                &bIsWrongType,
                                &pRegEntry);
     BAIL_ON_REG_ERROR(dwError);
 
     dwError = GetValueAsBytes(pRegEntry->type,
                               (PCSTR)pRegEntry->pszValue,
+                              bDoAnsi,
                               pData,
                               pcbData);
     BAIL_ON_REG_ERROR(dwError);
@@ -623,20 +682,21 @@ SqliteGetValueA(
     IN HKEY hKey,
     IN OPTIONAL PCWSTR pSubKey,
     IN OPTIONAL PCWSTR pValue,
-    IN OPTIONAL DWORD dwFlags,
+    IN OPTIONAL REG_DATA_TYPE_FLAGS Flags,
     OUT OPTIONAL PDWORD pdwType,
     OUT OPTIONAL PBYTE pData,
     IN OUT OPTIONAL PDWORD pcbData
     )
 {
-    return SqliteGetValue(Handle,
-                          hKey,
-                          pSubKey,
-                          pValue,
-                          dwFlags,
-                          pdwType,
-                          pData,
-                          pcbData);
+     return SqliteGetValueInternal(Handle,
+                                  hKey,
+                                  TRUE,
+                                  pSubKey,
+                                  pValue,
+                                  Flags,
+                                  pdwType,
+                                  pData,
+                                  pcbData);
 
 }
 
@@ -646,21 +706,21 @@ SqliteGetValueW(
     IN HKEY hKey,
     IN OPTIONAL PCWSTR pSubKey,
     IN OPTIONAL PCWSTR pValue,
-    IN OPTIONAL DWORD dwFlags,
+    IN OPTIONAL REG_DATA_TYPE_FLAGS Flags,
     OUT OPTIONAL PDWORD pdwType,
     OUT OPTIONAL PBYTE pData,
     IN OUT OPTIONAL PDWORD pcbData
     )
 {
-    return SqliteGetValue(Handle,
-                          hKey,
-                          pSubKey,
-                          pValue,
-                          dwFlags,
-                          pdwType,
-                          pData,
-                          pcbData);
-
+    return SqliteGetValueInternal(Handle,
+                                  hKey,
+                                  FALSE,
+                                  pSubKey,
+                                  pValue,
+                                  Flags,
+                                  pdwType,
+                                  pData,
+                                  pcbData);
 }
 
 DWORD
@@ -884,10 +944,12 @@ error:
     goto cleanup;
 }
 
+static
 DWORD
-SqliteEnumValue(
+SqliteEnumValueInternal(
     IN HANDLE Handle,
     IN HKEY hKey,
+    IN BOOLEAN bDoAnsi,
     IN DWORD dwIndex,
     OUT PWSTR pValueName, /*buffer hold valueName*/
     IN OUT PDWORD pcchValueName, /*input - buffer pValueName length*/
@@ -953,6 +1015,7 @@ SqliteEnumValue(
     {
         dwError = GetValueAsBytes(valueType,
                                   RegSrvValueContent(pKeyResult, dwIndex),
+                                  bDoAnsi,
                                   pData,
                                   pcbData);
         BAIL_ON_REG_ERROR(dwError);
@@ -994,15 +1057,17 @@ SqliteEnumValueA(
     IN OUT OPTIONAL PDWORD pcbData /*input - buffer pData length*/
     )
 {
-    return SqliteEnumValue(Handle,
-                           hKey,
-                           dwIndex,
-                           pValueName, /*buffer hold valueName*/
-                           pcchValueName, /*input - buffer pValueName length*/
-                           pReserved,
-                           pType,
-                           pData,/*buffer hold value content*/
-                           pcbData /*input - buffer pData length*/);
+    return SqliteEnumValueInternal(
+            Handle,
+            hKey,
+            TRUE,
+            dwIndex,
+            pValueName,
+            pcchValueName,
+            pReserved,
+            pType,
+            pData,
+            pcbData);
 }
 
 DWORD
@@ -1018,37 +1083,17 @@ SqliteEnumValueW(
     IN OUT OPTIONAL PDWORD pcbData /*input - buffer pData length*/
     )
 {
-    return SqliteEnumValue(Handle,
-                           hKey,
-                           dwIndex,
-                           pValueName, /*buffer hold valueName*/
-                           pcchValueName, /*input - buffer pValueName length*/
-                           pReserved,
-                           pType,
-                           pData,/*buffer hold value content*/
-                           pcbData /*input - buffer pData length*/);
-}
-
-DWORD
-SqliteQueryValueEx(
-    IN HANDLE Handle,
-    IN HKEY hKey,
-    IN PCWSTR pValueName,
-    IN PDWORD pReserved,
-    OUT PDWORD pType,
-    OUT OPTIONAL PBYTE pData,
-    IN OUT OPTIONAL PDWORD pcbData
-    )
-{
-    return SqliteGetValue(
-             Handle,
-             hKey,
-             NULL,
-             pValueName,
-             RRF_RT_REG_NONE,
-             pType,
-             pData,
-             pcbData);
+    return SqliteEnumValueInternal(
+            Handle,
+            hKey,
+            FALSE,
+            dwIndex,
+            pValueName,
+            pcchValueName,
+            pReserved,
+            pType,
+            pData,
+            pcbData);
 }
 
 DWORD
@@ -1062,7 +1107,7 @@ SqliteQueryValueExA(
     IN OUT OPTIONAL PDWORD pcbData
     )
 {
-    return SqliteGetValue(
+    return SqliteGetValueA(
              Handle,
              hKey,
              NULL,
@@ -1084,7 +1129,7 @@ SqliteQueryValueExW(
     IN OUT OPTIONAL PDWORD pcbData
     )
 {
-    return SqliteGetValue(
+    return SqliteGetValueW(
              Handle,
              hKey,
              NULL,

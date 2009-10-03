@@ -411,13 +411,21 @@ typedef struct __LSA_USER_MOD_INFO
         LW_BOOLEAN bAddToGroups;
         LW_BOOLEAN bRemoveFromGroups;
         LW_BOOLEAN bSetAccountExpiryDate;
+        LW_BOOLEAN bSetHomedir;
+        LW_BOOLEAN bSetShell;
+        LW_BOOLEAN bSetGecos;
+        LW_BOOLEAN bSetPrimaryGroup;
         LW_BOOLEAN bSetNtPasswordHash;
         LW_BOOLEAN bSetLmPasswordHash;
     } actions;
 
-    LW_PSTR           pszAddToGroups;
-    LW_PSTR           pszRemoveFromGroups;
-    LW_PSTR           pszExpiryDate;
+    gid_t   gid;
+    LW_PSTR pszAddToGroups;
+    LW_PSTR pszRemoveFromGroups;
+    LW_PSTR pszExpiryDate;
+    LW_PSTR pszHomedir;
+    LW_PSTR pszShell;
+    LW_PSTR pszGecos;
     PLW_LSA_DATA_BLOB pNtPasswordHash;
     PLW_LSA_DATA_BLOB pLmPasswordHash;
 

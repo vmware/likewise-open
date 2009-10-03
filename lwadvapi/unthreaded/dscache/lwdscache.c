@@ -44,11 +44,13 @@
  */
 #include "includes.h"
 
-#if defined(__LWI_DARWIN__)
+#ifdef HAVE_DIRECTORYSERVICE_DIRSERVICES_H
 #include <DirectoryService/DirServices.h>
 #include <DirectoryService/DirServicesUtils.h>
 #include <Security/Security.h>
+#endif
 
+#ifdef HAVE_DSOPENDIRSERVICE
 typedef struct _dsCacheExceptionRqst {
     AuthorizationExternalForm auth;
     pid_t pid;
@@ -63,7 +65,7 @@ LwDsCacheAddPidException(
     IN pid_t pid
     )
 {
-#if defined(__LWI_DARWIN__)
+#ifdef HAVE_DSOPENDIRSERVICE
     return LwDsSendCustomCall(10000, pid);
 #else
     return LW_ERROR_SUCCESS;
@@ -75,14 +77,14 @@ LwDsCacheRemovePidException(
     IN pid_t pid
     )
 {
-#if defined(__LWI_DARWIN__)
+#ifdef HAVE_DSOPENDIRSERVICE
     return LwDsSendCustomCall(10001, pid);
 #else
     return LW_ERROR_SUCCESS;
 #endif
 }
 
-#if defined(__LWI_DARWIN__)
+#ifdef HAVE_DSOPENDIRSERVICE
 DWORD
 LwDsSendCustomCall(
     int command,

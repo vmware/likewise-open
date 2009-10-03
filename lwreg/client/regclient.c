@@ -206,32 +206,6 @@ RegEnumKeyEx(
         );
 }
 
-REG_API
-DWORD
-RegEnumValue(
-    IN HANDLE hRegConnection,
-    IN HKEY hKey,
-    IN DWORD dwIndex,
-    OUT PWSTR pValueName,
-    IN OUT PDWORD pcchValueName,
-    IN PDWORD pReserved,
-    OUT OPTIONAL PDWORD pType,
-    OUT OPTIONAL PBYTE pData,
-    IN OUT OPTIONAL PDWORD pcbData
-    )
-{
-    return RegTransactEnumValue(
-        hRegConnection,
-        hKey,
-        dwIndex,
-        pValueName,
-        pcchValueName,
-        pReserved,
-        pType,
-        pData,
-        pcbData
-        );
-}
 
 REG_API
 DWORD
@@ -289,37 +263,12 @@ RegEnumValueW(
 
 REG_API
 DWORD
-RegGetValue(
-    IN HANDLE hRegConnection,
-    IN HKEY hKey,
-    IN OPTIONAL PCWSTR pSubKey,
-    IN OPTIONAL PCWSTR pValue,
-    IN OPTIONAL DWORD dwFlags,
-    OUT OPTIONAL PDWORD pdwType,
-    OUT OPTIONAL PVOID pvData,
-    IN OUT OPTIONAL PDWORD pcbData
-    )
-{
-    return RegTransactGetValue(
-        hRegConnection,
-        hKey,
-        pSubKey,
-        pValue,
-        dwFlags,
-        pdwType,
-        pvData,
-        pcbData
-        );
-}
-
-REG_API
-DWORD
 RegGetValueA(
     IN HANDLE hRegConnection,
     IN HKEY hKey,
     IN OPTIONAL PCWSTR pSubKey,
     IN OPTIONAL PCWSTR pValue,
-    IN OPTIONAL DWORD dwFlags,
+    IN OPTIONAL REG_DATA_TYPE_FLAGS Flags,
     OUT OPTIONAL PDWORD pdwType,
     OUT OPTIONAL PVOID pvData,
     IN OUT OPTIONAL PDWORD pcbData
@@ -330,7 +279,7 @@ RegGetValueA(
         hKey,
         pSubKey,
         pValue,
-        dwFlags,
+        Flags,
         pdwType,
         pvData,
         pcbData
@@ -344,7 +293,7 @@ RegGetValueW(
     IN HKEY hKey,
     IN OPTIONAL PCWSTR pSubKey,
     IN OPTIONAL PCWSTR pValue,
-    IN OPTIONAL DWORD dwFlags,
+    IN OPTIONAL REG_DATA_TYPE_FLAGS Flags,
     OUT OPTIONAL PDWORD pdwType,
     OUT OPTIONAL PVOID pvData,
     IN OUT OPTIONAL PDWORD pcbData
@@ -355,7 +304,7 @@ RegGetValueW(
         hKey,
         pSubKey,
         pValue,
-        dwFlags,
+        Flags,
         pdwType,
         pvData,
         pcbData
@@ -441,29 +390,6 @@ RegQueryMultipleValues(
 
 REG_API
 DWORD
-RegQueryValueEx(
-    IN HANDLE hRegConnection,
-    IN HKEY hKey,
-    IN OPTIONAL PCWSTR pValueName,
-    IN PDWORD pReserved,
-    OUT OPTIONAL PDWORD pType,
-    OUT OPTIONAL PBYTE pData,
-    IN OUT OPTIONAL PDWORD pcbData
-    )
-{
-    return RegTransactQueryValueEx(
-        hRegConnection,
-        hKey,
-        pValueName,
-        pReserved,
-        pType,
-        pData,
-        pcbData
-        );
-}
-
-REG_API
-DWORD
 RegQueryValueExA(
     IN HANDLE hRegConnection,
     IN HKEY hKey,
@@ -510,7 +436,7 @@ RegQueryValueExW(
 
 REG_API
 DWORD
-RegSetValueEx(
+RegSetValueExA(
     IN HANDLE hRegConnection,
     IN HKEY hKey,
     IN OPTIONAL PCWSTR pValueName,
@@ -520,7 +446,30 @@ RegSetValueEx(
     IN DWORD cbData
     )
 {
-    return RegTransactSetValueEx(
+    return RegTransactSetValueExA(
+        hRegConnection,
+        hKey,
+        pValueName,
+        Reserved,
+        dwType,
+        pData,
+        cbData
+        );
+}
+
+REG_API
+DWORD
+RegSetValueExW(
+    IN HANDLE hRegConnection,
+    IN HKEY hKey,
+    IN OPTIONAL PCWSTR pValueName,
+    IN DWORD Reserved,
+    IN DWORD dwType,
+    IN OPTIONAL const BYTE *pData,
+    IN DWORD cbData
+    )
+{
+    return RegTransactSetValueExW(
         hRegConnection,
         hKey,
         pValueName,
