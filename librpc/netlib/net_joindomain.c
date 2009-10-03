@@ -101,24 +101,26 @@ NetGetAccountName(
     wchar16_t *base_dn = NULL;
     wchar16_t *dn = NULL;
     wchar16_t *machname_lc = NULL;
-    wchar16_t *samacct = NULL;
+    wchar16_t *samname = NULL;     /* short name valid for SAM account */
     wchar16_t *hashstr = NULL;
+    wchar16_t *samacctname = NULL; /* account name (with trailing '$') */
     uint32    hash = 0;
     uint32    offset = 0;
     wchar16_t newname[16];
     size_t    hashstrlen = 0;
+    size_t    samacctname_len = 0;
 
-    memset( newname, 0, sizeof(newname));
+    memset(newname, 0, sizeof(newname));
 
     /* the host name is short enough to use as is */
-    if ( wc16slen(machname) < 16 )
+    if (wc16slen(machname) < 16)
     {
-        samacct = wc16sdup(machname);
-        BAIL_ON_NO_MEMORY(samacct);
+        samname = wc16sdup(machname);
+        BAIL_ON_NO_MEMORY(samname);
     }
 
     /* look for an existing account using the dns_host_name attribute */
-    if ( !samacct )
+    if (!samname)
     {
         machname_lc = wc16sdup(machname);
         BAIL_ON_NO_MEMORY(machname_lc);
@@ -127,10 +129,10 @@ NetGetAccountName(
         err = DirectoryConnect(domain_controller_name, &ld, &base_dn);
         BAIL_ON_WINERR_ERROR(err);
 
-        err = MachDnsNameSearch(ld, machname_lc, base_dn, dns_domain_name, &samacct);
-        if ( err == ERROR_SUCCESS )
+        err = MachDnsNameSearch(ld, machname_lc, base_dn, dns_domain_name, &samname);
+        if (err == ERROR_SUCCESS)
         {
-            samacct[wc16slen(samacct) - 1] = 0;
+            samname[wc16slen(samname) - 1] = 0;
         }
         else
         {
@@ -145,7 +147,7 @@ NetGetAccountName(
       * that name and if a collision is detected, increment the hash
       * and try again.
       */
-    if ( !samacct )
+    if (!samname)
     {
         hash = NetWc16sHash(machname_lc);
 
@@ -165,8 +167,8 @@ NetGetAccountName(
             {
                 err = ERROR_SUCCESS;
 
-                samacct = wc16sdup(newname);
-                BAIL_ON_NO_MEMORY(samacct);
+                samname = wc16sdup(newname);
+                BAIL_ON_NO_MEMORY(samname);
 
                 break;
             }
@@ -178,11 +180,23 @@ NetGetAccountName(
         }
     }
 
-    *account_name = samacct;
+    samacctname_len = wc16slen(samname) + 2;
+    samacctname = (wchar16_t*) malloc(sizeof(wchar16_t) * samacctname_len);
+    BAIL_ON_NO_MEMORY(samacctname);
+
+    if (sw16printfw(samacctname,
+                    samacctname_len,
+                    L"%ws$",
+                    samname) < 0)
+    {
+        err = ErrnoToWin32Error(errno);
+        BAIL_ON_WINERR_ERROR(err);
+    }
+
+    *account_name = samacctname;
 
 cleanup:
-
-    if ( ld )
+    if (ld)
     {
         DirectoryDisconnect(ld);
     }
@@ -190,14 +204,13 @@ cleanup:
     SAFE_FREE(machname_lc);
     SAFE_FREE(hashstr);
     SAFE_FREE(dn);
+    SAFE_FREE(samname);
 
     return err;
 
 error:
-
+    SAFE_FREE(samacctname);
     *account_name = NULL;
-
-    SAFE_FREE(samacct);
 
     goto cleanup;
 }
@@ -239,8 +252,6 @@ NetJoinDomainLocalInternal(
     wchar16_t *machname = NULL;
     wchar16_t *machacct_name = NULL;
     wchar16_t machine_pass[MACHPASS_LEN+1];
-    wchar16_t *account_name = NULL;
-    size_t account_name_cch = 0;
     wchar16_t *dns_domain_name = NULL;
     wchar16_t *domain_controller_name = NULL;
     uint32 rid, newacct;
@@ -312,7 +323,7 @@ NetJoinDomainLocalInternal(
         err = DirectoryConnect(domain_controller_name, &ld, &base_dn);
         BAIL_ON_WINERR_ERROR(err);
 
-        err = MachAcctCreate(ld, machacct_name, account_ou,
+        err = MachAcctCreate(ld, machname, machacct_name, account_ou,
                              (options & NETSETUP_DOMAIN_JOIN_IF_JOINED));
         BAIL_ON_WINERR_ERROR(err);
 
@@ -331,25 +342,11 @@ NetJoinDomainLocalInternal(
 
     get_random_string_w16(machine_pass, sizeof(machine_pass)/sizeof(wchar16_t));
 
-    /* create account$ name */
-    account_name_cch = wc16slen(machacct_name) + 2;
-    account_name = (wchar16_t*) malloc(sizeof(wchar16_t) * account_name_cch);
-    BAIL_ON_NO_MEMORY(account_name);
-
-    if (sw16printfw(
-                account_name,
-                account_name_cch,
-                L"%ws$",
-                machacct_name) < 0)
-    {
-        status = ErrnoToNtStatus(errno);
-        BAIL_ON_NTSTATUS_ERROR(status);
-    }
-
     /* for start, let's assume the account already exists */
     newacct = false;
 
-    status = NetOpenUser(conn, account_name, user_access, &account_handle, &rid);
+    status = NetOpenUser(conn, machacct_name, user_access,
+                         &account_handle, &rid);
     if (status == STATUS_NONE_MAPPED) {
         if (!(options & NETSETUP_ACCT_CREATE)) goto error;
 
@@ -383,7 +380,7 @@ NetJoinDomainLocalInternal(
 
     status = RtlAllocateWC16StringFromSid(&sid_str, conn->samr.dom_sid);
     if (status != STATUS_SUCCESS) {
-        close_status = DisableWksAccount(conn, machname, &account_handle);
+        close_status = DisableWksAccount(conn, machacct_name, &account_handle);
         BAIL_ON_NTSTATUS_ERROR(close_status);
 
         err = NtStatusToWin32Error(status);
@@ -392,7 +389,7 @@ NetJoinDomainLocalInternal(
 
     err = SaveMachinePassword(
               machname,
-              account_name,
+              machacct_name,
               machine_dns_domain ? machine_dns_domain : dns_domain_name,
               conn->samr.dom_name,
               dns_domain_name,
@@ -410,7 +407,7 @@ NetJoinDomainLocalInternal(
      * Open connection to directory server if it's going to be needed
      */
     if (!(options & NETSETUP_DEFER_SPN_SET) ||
-        osname || osver) {
+        osname || osver || ospack) {
 
         err = DirectoryConnect(domain_controller_name, &ld, &base_dn);
         BAIL_ON_WINERR_ERROR(err);
@@ -419,7 +416,7 @@ NetJoinDomainLocalInternal(
         BAIL_ON_WINERR_ERROR(err);
 
         /*
-         * Set SPN and DnsHostName attributes unless this part is to be deferred
+         * Set SPN and dnsHostName attributes unless this part is to be deferred
          */
         if (!(options & NETSETUP_DEFER_SPN_SET)) {
             wchar16_t *dnshostname;
@@ -470,7 +467,7 @@ NetJoinDomainLocalInternal(
         /*
          * Set operating system name and version attributes if specified
          */
-        if (osname || osver) {
+        if (osname) {
             osname_attr_name = ambstowc16s("operatingSystem");
             osname_attr_val[0] = wc16sdup(osname);
             osname_attr_val[1] = NULL;
@@ -490,7 +487,9 @@ NetJoinDomainLocalInternal(
             {
                 BAIL_ON_WINERR_ERROR(err);
             }
+        }
 
+        if (osver) {
             osver_attr_name = ambstowc16s("operatingSystemVersion");
             osver_attr_val[0] = wc16sdup(osver);
             osver_attr_val[1] = NULL;
@@ -507,7 +506,9 @@ NetJoinDomainLocalInternal(
             {
                 BAIL_ON_WINERR_ERROR(err);
             }
+        }
 
+        if (ospack) {
             ospack_attr_name = ambstowc16s("operatingSystemServicePack");
             ospack_attr_val[0] = wc16sdup(ospack);
             ospack_attr_val[1] = NULL;
@@ -560,7 +561,6 @@ cleanup:
     }
 
     RTL_FREE(&sid_str);
-    SAFE_FREE(account_name);
     SAFE_FREE(dns_domain_name);
     SAFE_FREE(machname);
     SAFE_FREE(machacct_name);

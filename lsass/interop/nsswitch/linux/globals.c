@@ -29,8 +29,14 @@
  */
 
 #include "lsanss.h"
+#ifdef HAVE_NONLIBPTHREAD_MUTEX_LOCK
+#include <pthread.h>
+#endif
 
 HANDLE hLsaConnection = (HANDLE)NULL;
+#ifdef HAVE_NONLIBPTHREAD_MUTEX_LOCK
+pthread_mutex_t gLock = PTHREAD_MUTEX_INITIALIZER;
+#endif
 
 static
 void

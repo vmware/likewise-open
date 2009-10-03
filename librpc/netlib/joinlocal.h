@@ -49,7 +49,7 @@ ResetWksAccount(
 NTSTATUS
 CreateWksAccount(
     NetConn *conn,
-    wchar16_t *name,
+    wchar16_t *samacct_name,
     PolicyHandle *account_h
     );
 
@@ -93,7 +93,8 @@ MachAcctSearch(
 NET_API_STATUS
 MachAcctCreate(
     LDAP *ld,
-    const wchar16_t *machine,
+    const wchar16_t *machine_name,
+    const wchar16_t *machacct_name,
     const wchar16_t *ou,
     int rejoin
     );

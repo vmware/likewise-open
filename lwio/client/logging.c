@@ -82,7 +82,7 @@ SMBSetLogInfo(
     BAIL_ON_NT_STATUS(status);
 
     in.tag = SMB_SET_LOG_INFO;
-    in.data = NULL;
+    in.data = pLogInfo;
 
     status = MAP_LWMSG_STATUS(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
 
