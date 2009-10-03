@@ -1023,6 +1023,8 @@ void DJNetInitialize(BOOLEAN bEnableDcerpcd, LWException **exc)
 #ifndef MINIMAL_JOIN
     if (geteuid() == 0)
     {
+        LW_TRY(exc, DJManageDaemon("lwsmd", TRUE,
+                    17, 10, &LW_EXC));
         LW_TRY(exc, DJManageDaemon("lwregd", TRUE,
                     18, 9, &LW_EXC));
         LW_TRY(exc, DJManageDaemon("netlogond", TRUE,
