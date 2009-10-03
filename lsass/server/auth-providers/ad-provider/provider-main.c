@@ -1765,7 +1765,6 @@ AD_LeaveDomain(
     PLSA_AD_IPC_LEAVE_DOMAIN_REQ pRequest = NULL;
     PSTR pszMessage = NULL;
     BOOLEAN bLocked = FALSE;
-    PSTR pszDomain = NULL;
 
     if (peerUID != 0)
     {
@@ -1793,9 +1792,6 @@ AD_LeaveDomain(
 
     LSA_LOG_TRACE("Domain leave request: %s", pszMessage);
 
-    dwError = LwAllocateString(gpADProviderData->szDomain, &pszDomain);
-    BAIL_ON_LSA_ERROR(dwError);
-
     LsaAdProviderStateAcquireWrite(gpLsaAdProviderState);
     bLocked = TRUE;
 
@@ -1810,8 +1806,7 @@ AD_LeaveDomain(
     dwError = AD_PostLeaveDomain(hProvider, gpLsaAdProviderState);
     BAIL_ON_LSA_ERROR(dwError);
 
-    LSA_LOG_INFO("Left domain: %s\n", pszDomain);
-
+    LSA_LOG_INFO("Left domain\n");
 
 cleanup:
 
@@ -1820,7 +1815,6 @@ cleanup:
         LsaAdProviderStateRelease(gpLsaAdProviderState);
     }
 
-    LW_SAFE_FREE_MEMORY(pszDomain);
     LW_SAFE_FREE_MEMORY(pszMessage);
 
     if (pRequest)
