@@ -1068,6 +1068,11 @@ PvfsOplockCleanOplockQueue(
     PVOID pContext
     );
 
+static VOID
+PvfsOplockCleanupOplockFree(
+    PVOID *ppContext
+    );
+
 static NTSTATUS
 PvfsScheduleOplockCancel(
     PPVFS_IRP_CONTEXT pIrpContext
@@ -1083,7 +1088,7 @@ PvfsScheduleOplockCancel(
                   FALSE,
                   pIrpContext,
                   (PPVFS_WORK_CONTEXT_CALLBACK)PvfsOplockCleanOplockQueue,
-                  NULL);
+                  (PPVFS_WORK_CONTEXT_FREE_CTX)PvfsOplockCleanupOplockFree);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsAddWorkItem(gpPvfsInternalWorkQueue, (PVOID)pWorkCtx);
@@ -1153,6 +1158,14 @@ PvfsOplockCleanOplockQueue(
     return ntError;
 }
 
+static VOID
+PvfsOplockCleanupOplockFree(
+    PVOID *ppContext
+    )
+{
+    /* No op -- context released in PvfsOplockCleanOplockQueue */
+    return;
+}
 
 /*****************************************************************************
  ****************************************************************************/
