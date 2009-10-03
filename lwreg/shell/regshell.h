@@ -124,8 +124,12 @@ typedef struct _REGSHELL_PARSE_STATE
     HANDLE ioHandle;
     PREGLEX_ITEM lexHandle;
     HANDLE hReg;
-    PSTR pszRootKeyName;
+    PSTR pszDefaultRootKeyName;
     PSTR pszDefaultKey;
+
+    // Overrides pszDefaultKey when root key path is specified
+    PSTR pszFullRootKeyName;
+    PSTR pszFullKeyPath;
 } REGSHELL_PARSE_STATE, *PREGSHELL_PARSE_STATE;
 
 
@@ -150,6 +154,7 @@ RegShellCmdStringToEnum(
 
 DWORD
 RegShellCmdParse(
+    PREGSHELL_PARSE_STATE pParseState,
     DWORD argc,
     PCHAR *argv,
     PREGSHELL_CMD_ITEM *parsedCmd);

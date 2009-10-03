@@ -257,19 +257,48 @@ error:
 
 DWORD
 RegShellCmdParseKeyName(
+    PREGSHELL_PARSE_STATE pParseState,
     REGSHELL_CMD_E cmd,
     DWORD argc,
     PCHAR *argv,
     PREGSHELL_CMD_ITEM *pRetCmdItem)
 {
     DWORD dwError = 0;
+    DWORD dwRootKeyError = 0;
     DWORD keyNameLen = 0;
+    DWORD dwOffset = 0;
     PCHAR pszKeyName = NULL;
+    PSTR pszBackslash = NULL;
+    PSTR pszTmpKey = NULL;
     PREGSHELL_CMD_ITEM pCmdItem = NULL;
+    HKEY hRootKey = NULL;
+
 
     BAIL_ON_INVALID_POINTER(argv);
     BAIL_ON_INVALID_POINTER(pRetCmdItem);
     pszKeyName = argv[2];
+    if (pszKeyName[0] == '[')
+    {
+        dwOffset++;
+    }
+    dwError = LwAllocateString(&pszKeyName[dwOffset], &pszTmpKey);
+    BAIL_ON_REG_ERROR(dwError);
+    pszBackslash = strchr(pszTmpKey, '\\');
+    if (pszBackslash)
+    {
+        *pszBackslash = '\0';
+        dwRootKeyError = RegOpenRootKey(
+                             pParseState->hReg,
+                             pszTmpKey,
+                             &hRootKey);
+        if (dwRootKeyError == 0)
+        {
+            RegCloseKey(pParseState->hReg, hRootKey);
+            pParseState->pszFullRootKeyName = pszTmpKey;
+            *pszBackslash = '\0';
+            pszKeyName = pszBackslash+1;
+        }
+    }
 
     dwError = RegShellCmdParseCommand(
                   cmd,
@@ -292,8 +321,22 @@ RegShellCmdParseKeyName(
     }
     else
     {
-        dwError = LwAllocateString(pszKeyName, &pCmdItem->keyName);
+        dwError = LwAllocateMemory(
+                      sizeof(CHAR)*(keyNameLen + 1),
+                      (LW_PVOID) &pCmdItem->keyName);
         BAIL_ON_REG_ERROR(dwError);
+        strcat(pCmdItem->keyName, "\\");
+        strcat(pCmdItem->keyName, pszKeyName);
+    }
+
+    keyNameLen = strlen(pCmdItem->keyName);
+    if (pCmdItem->keyName[keyNameLen-1] == ']')
+    {
+        pCmdItem->keyName[keyNameLen-1] = '\0';
+    }
+    if (dwRootKeyError == 0)
+    {
+        pParseState->pszFullKeyPath = pCmdItem->keyName;
     }
     *pRetCmdItem = pCmdItem;
 
@@ -623,6 +666,7 @@ error:
 
 DWORD
 RegShellCmdParseValueName(
+    PREGSHELL_PARSE_STATE pParseState,
     REGSHELL_CMD_E cmd,
     DWORD argc,
     PCHAR *argv,
@@ -649,6 +693,7 @@ RegShellCmdParseValueName(
     if (argv[2][0] == '[')
     {
         dwError = RegShellCmdParseKeyName(
+                      pParseState,
                       cmd,
                       argc,
                       argv,
@@ -863,7 +908,7 @@ RegShellDumpCmdItem(
                           &pszDumpData,
                           &dumpDataLen);
             BAIL_ON_REG_ERROR(dwError);
-            printf("RegShellCmdParseValueName: '%s'\n", pszDumpData);
+            printf("RegShellDumpCmdItem: '%s'\n", pszDumpData);
             break;
 
         case REG_MULTI_SZ:
@@ -895,6 +940,7 @@ error:
 
 DWORD
 RegShellCmdParse(
+    PREGSHELL_PARSE_STATE pParseState,
     DWORD argc,
     PCHAR *argv,
     PREGSHELL_CMD_ITEM *parsedCmd)
@@ -938,7 +984,12 @@ RegShellCmdParse(
         case REGSHELL_CMD_QUIT:
             if (argc > 2)
             {
-                dwError = RegShellCmdParseKeyName(cmd, argc, argv, &pCmdItem);
+                dwError = RegShellCmdParseKeyName(
+                              pParseState,
+                              cmd,
+                              argc,
+                              argv,
+                              &pCmdItem);
             }
             else
             {
@@ -979,7 +1030,12 @@ RegShellCmdParse(
                 dwError = LW_ERROR_INVALID_CONTEXT;
                 goto error;
             }
-            dwError = RegShellCmdParseKeyName(cmd, argc, argv, &pCmdItem);
+            dwError = RegShellCmdParseKeyName(
+                          pParseState,
+                          cmd,
+                          argc,
+                          argv,
+                          &pCmdItem);
             break;
 
         case REGSHELL_CMD_DELETE_VALUE:
@@ -988,7 +1044,12 @@ RegShellCmdParse(
                 dwError = LW_ERROR_INVALID_CONTEXT;
                 goto error;
             }
-            dwError = RegShellCmdParseValueName(cmd, argc, argv, &pCmdItem);
+            dwError = RegShellCmdParseValueName(
+                          pParseState,
+                          cmd,
+                          argc,
+                          argv,
+                          &pCmdItem);
             break;
        /*
         * Commands that take ValueName/REG_TYPE/Values_List
@@ -1001,7 +1062,12 @@ RegShellCmdParse(
                 dwError = LW_ERROR_INVALID_CONTEXT;
                 goto error;
             }
-            dwError = RegShellCmdParseValueName(cmd, argc, argv, &pCmdItem);
+            dwError = RegShellCmdParseValueName(
+                          pParseState,
+                          cmd,
+                          argc,
+                          argv,
+                          &pCmdItem);
             break;
 
         default:

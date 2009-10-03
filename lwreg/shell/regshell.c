@@ -55,6 +55,26 @@ typedef struct _EDITLINE_CLIENT_DATA
 
 
 
+PSTR
+RegShellGetRootKey(
+    PREGSHELL_PARSE_STATE pParseState)
+{
+    return pParseState->pszFullRootKeyName ?
+               pParseState->pszFullRootKeyName :
+               pParseState->pszDefaultRootKeyName;
+}
+
+
+PSTR
+RegShellGetDefaultKey(
+    PREGSHELL_PARSE_STATE pParseState)
+{
+    return pParseState->pszFullKeyPath ?
+               pParseState->pszFullKeyPath :
+               pParseState->pszDefaultKey;
+}
+
+
 DWORD
 RegShellListKeys(
     PREGSHELL_PARSE_STATE pParseState,
@@ -70,8 +90,8 @@ RegShellListKeys(
     BAIL_ON_INVALID_HANDLE(pParseState->hReg);
     dwError = RegShellUtilGetKeys(
                   pParseState->hReg,
-                  pParseState->pszRootKeyName,
-                  pParseState->pszDefaultKey,
+                  RegShellGetRootKey(pParseState),
+                  RegShellGetDefaultKey(pParseState),
                   rsItem->keyName,
                   &ppSubKeys,
                   &dwSubKeyLen);
@@ -114,8 +134,8 @@ RegShellAddKey(
 
     dwError = RegShellUtilAddKey(
                   pParseState->hReg,
-                  pParseState->pszRootKeyName,
-                  pParseState->pszDefaultKey,
+                  RegShellGetRootKey(pParseState),
+                  RegShellGetDefaultKey(pParseState),
                   rsItem->keyName);
 
 cleanup:
@@ -137,8 +157,8 @@ RegShellDeleteKey(
 
     dwError = RegShellUtilDeleteKey(
                   pParseState->hReg,
-                  pParseState->pszRootKeyName,
-                  pParseState->pszDefaultKey,
+                  RegShellGetRootKey(pParseState),
+                  RegShellGetDefaultKey(pParseState),
                   rsItem->keyName);
 
 cleanup:
@@ -160,8 +180,8 @@ RegShellDeleteTree(
 
     dwError = RegShellUtilDeleteTree(
                   pParseState->hReg,
-                  pParseState->pszRootKeyName,
-                  pParseState->pszDefaultKey,
+                  RegShellGetRootKey(pParseState),
+                  RegShellGetDefaultKey(pParseState),
                   rsItem->keyName);
 
 cleanup:
@@ -182,8 +202,8 @@ RegShellDeleteValue(
     BAIL_ON_INVALID_HANDLE(pParseState->hReg);
     dwError = RegShellUtilDeleteValue(
                   pParseState->hReg,
-                  pParseState->pszRootKeyName,
-                  pParseState->pszDefaultKey,
+                  RegShellGetRootKey(pParseState),
+                  RegShellGetDefaultKey(pParseState),
                   rsItem->keyName,
                   rsItem->valueName);
 cleanup:
@@ -222,8 +242,8 @@ RegShellSetValue(
     }
     dwError = RegShellUtilSetValue(
                   pParseState->hReg,
-                  pParseState->pszRootKeyName,
-                  pParseState->pszDefaultKey,
+                  RegShellGetRootKey(pParseState),
+                  RegShellGetDefaultKey(pParseState),
                   rsItem->keyName,
                   rsItem->valueName,
                   rsItem->type,
@@ -341,8 +361,8 @@ RegShellListValues(
 
     dwError = RegShellUtilGetValues(
                   pParseState->hReg,
-                  pParseState->pszRootKeyName,
-                  pParseState->pszDefaultKey,
+                  RegShellGetRootKey(pParseState),
+                  RegShellGetDefaultKey(pParseState),
                   rsItem->keyName,
                   &pValues,
                   &dwValuesLen);
@@ -451,7 +471,7 @@ RegShellProcessCmd(
     BOOLEAN bChdirOk = TRUE;
     HKEY hRootKey = NULL;
 
-    dwError = RegShellCmdParse(argc, argv, &rsItem);
+    dwError = RegShellCmdParse(pParseState, argc, argv, &rsItem);
     if (dwError == 0)
     {
 #ifdef _DEBUG
@@ -471,7 +491,8 @@ RegShellProcessCmd(
                 dwError = RegShellListKeys(pParseState, rsItem);
                 BAIL_ON_REG_ERROR(dwError);
                 printf("\n");
-                if (pParseState->pszRootKeyName)
+                if (pParseState->pszDefaultRootKeyName ||
+                    pParseState->pszFullRootKeyName)
                 {
                     dwError = RegShellListValues(pParseState, rsItem);
                     BAIL_ON_REG_ERROR(dwError);
@@ -538,7 +559,7 @@ RegShellProcessCmd(
                         LW_SAFE_FREE_MEMORY(pParseState->pszDefaultKey);
                         return 0;
                     }
-                    LW_SAFE_FREE_MEMORY(pParseState->pszRootKeyName);
+                    LW_SAFE_FREE_MEMORY(pParseState->pszDefaultRootKeyName);
                 }
 
 
@@ -567,10 +588,10 @@ RegShellProcessCmd(
                     if (dwOpenRootKeyError == 0)
                     {
                         RegCloseKey(pParseState->hReg, hRootKey);
-                        LW_SAFE_FREE_MEMORY(pParseState->pszRootKeyName);
+                        LW_SAFE_FREE_MEMORY(pParseState->pszDefaultRootKeyName);
                         dwError = LwAllocateString(
                                       pszToken,
-                                      &pParseState->pszRootKeyName);
+                                      &pParseState->pszDefaultRootKeyName);
                         BAIL_ON_REG_ERROR(dwError);
                     }
                     else if (strcmp(pszToken, "..") == 0)
@@ -622,7 +643,7 @@ RegShellProcessCmd(
                         strcat(pszPwd, pszToken);
                         dwError = RegShellIsValidKey(
                                       pParseState->hReg,
-                                      pParseState->pszRootKeyName,
+                                      pParseState->pszDefaultRootKeyName,
                                       pszPwd);
                         if (dwError)
                         {
@@ -644,7 +665,7 @@ RegShellProcessCmd(
                     {
                         dwError = RegShellIsValidKey(
                                       pParseState->hReg,
-                                      pParseState->pszRootKeyName,
+                                      pParseState->pszDefaultRootKeyName,
                                       pszToken);
                         if (dwError)
                         {
@@ -716,9 +737,9 @@ RegShellProcessCmd(
                     goto error;
                 }
 
-                LW_SAFE_FREE_STRING(pParseState->pszRootKeyName);
+                LW_SAFE_FREE_STRING(pParseState->pszDefaultRootKeyName);
                 dwError = LwAllocateString(argv[2],
-                                           &pParseState->pszRootKeyName);
+                                           &pParseState->pszDefaultRootKeyName);
                 BAIL_ON_REG_ERROR(dwError);
                 LW_SAFE_FREE_STRING(pParseState->pszDefaultKey);
                 break;
@@ -774,7 +795,7 @@ cleanup:
     return dwError;
 
 error:
-    LW_SAFE_FREE_STRING(pParseState->pszRootKeyName);
+    LW_SAFE_FREE_STRING(pParseState->pszDefaultRootKeyName);
     RegCloseServer(pParseState->hReg);
     RegLexClose(pParseState->lexHandle);
     RegIOClose(pParseState->ioHandle);
@@ -811,8 +832,8 @@ pfnRegShellPromptCallback(EditLine *el)
 
     el_get(el, EL_CLIENTDATA, (void *) &cldata);
     snprintf(promptBuf, sizeof(promptBuf), "%s%s%s%s ",
-             cldata->pParseState->pszRootKeyName ?
-                 cldata->pParseState->pszRootKeyName : "",
+             cldata->pParseState->pszDefaultRootKeyName ?
+                 cldata->pParseState->pszDefaultRootKeyName : "",
              cldata->pParseState->pszDefaultKey ? "\\" : "",
              cldata->pParseState->pszDefaultKey ?
              cldata->pParseState->pszDefaultKey : "\\",
@@ -853,6 +874,8 @@ RegShellExecuteCmdLine(
         dwError = 0;
     }
     RegShellCmdlineParseFree(dwNewArgc, pszNewArgv);
+    pParseState->pszFullRootKeyName = NULL;
+    pParseState->pszFullKeyPath = NULL;
 
 cleanup:
     return dwError;
@@ -1110,7 +1133,7 @@ RegShellProcessInteractive(
         if (bDoPrompt)
         {
             printf("%s%s%s> ",
-                   parseState->pszRootKeyName,
+                   parseState->pszDefaultRootKeyName,
                    parseState->pszDefaultKey ? "\\" : "",
                    parseState->pszDefaultKey ?
                    parseState->pszDefaultKey : "\\");
