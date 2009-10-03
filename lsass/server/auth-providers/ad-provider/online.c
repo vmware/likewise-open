@@ -1424,10 +1424,6 @@ AD_OnlineAuthenticateUser(
                         NULL);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = AD_VerifyUserAccountCanLogin(
-                pUserInfo);
-    BAIL_ON_LSA_ERROR(dwError);
-
     dwError = LsaDnsGetHostInfo(&pszHostname);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -1530,6 +1526,18 @@ AD_OnlineAuthenticateUser(
 
         LSA_ASSERT(pUserInfo->userInfo.bIsAccountInfoKnown);
     }
+
+    ADCacheSafeFreeObject(&pUserInfo);
+
+    dwError = AD_FindUserObjectByName(
+                    hProvider,
+                    pszLoginId,
+                    &pUserInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = AD_VerifyUserAccountCanLogin(
+                pUserInfo);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = AD_OnlineCachePasswordVerifier(
                     pUserInfo,
