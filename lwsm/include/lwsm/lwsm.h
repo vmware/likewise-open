@@ -104,11 +104,13 @@ typedef LW_SERVICE_STATUS *PLW_SERVICE_STATUS;
 typedef enum _LW_SERVICE_TYPE
 {
     /** Service is an executable */
-    LW_SERVICE_EXECUTABLE = 0x0,
+    LW_SERVICE_EXECUTABLE = 0,
+    /** Service is a lwsm-compatible executable */
+    LW_SERVICE_SM_EXECUTABLE = 1,
     /** Service is a module for a container */
-    LW_SERVICE_MODULE = 0x1,
+    LW_SERVICE_MODULE = 2,
     /** Service is a driver */
-    LW_SERVICE_DRIVER = 0x2
+    LW_SERVICE_DRIVER = 3
 } LW_SERVICE_TYPE;
 
 /**

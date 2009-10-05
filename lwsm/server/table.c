@@ -65,7 +65,8 @@ static SM_TABLE gServiceTable =
 
 static PSM_OBJECT_VTBL gVtblTable[] =
 {
-    [LW_SERVICE_EXECUTABLE] = &gExecutableVtbl
+    [LW_SERVICE_EXECUTABLE] = &gExecutableVtbl,
+    [LW_SERVICE_SM_EXECUTABLE] = &gExecutableVtbl
 };
 
 DWORD

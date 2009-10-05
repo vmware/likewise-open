@@ -70,7 +70,8 @@ static SM_PROCESS_TABLE gProcTable =
 static
 DWORD
 LwSmExecProgram(
-    PSM_EXECUTABLE pExec
+    PSM_EXECUTABLE pExec,
+    int* pNotifyPipe
     );
 
 static
@@ -90,6 +91,9 @@ LwSmExecutableStart(
     BOOLEAN bLocked = FALSE;
     pid_t pid = -1;
     struct timespec ts = {1, 0};
+    int notifyPipe[2] = {-1, -1};
+    char c = 0;
+    int ret = 0;
 
     LOCK(bLocked, &gProcTable.lock);
 
@@ -98,6 +102,15 @@ LwSmExecutableStart(
     {
         dwError = LW_ERROR_INVALID_SERVICE_TRANSITION;
         BAIL_ON_ERROR(dwError);
+    }
+
+    if (pEntry->pInfo->type == LW_SERVICE_SM_EXECUTABLE)
+    {
+        if (pipe(notifyPipe) != 0)
+        {
+            dwError = LwMapErrnoToLwError(errno);
+            BAIL_ON_ERROR(dwError);
+        }
     }
 
     pid = fork();
@@ -109,7 +122,12 @@ LwSmExecutableStart(
     }
     else if (pid == 0)
     {
-        dwError = LwSmExecProgram(pExec);
+        dwError = LwSmExecProgram(
+            pExec,
+            pEntry->pInfo->type == LW_SERVICE_SM_EXECUTABLE ?
+            notifyPipe :
+            NULL
+            );
         BAIL_ON_ERROR(dwError);
     }
     else
@@ -124,13 +142,33 @@ LwSmExecutableStart(
         /* Signal state change */
         LwSmTableNotifyEntryChanged(pEntry);
         
-        /* Wait for process to start up */
-        if (nanosleep(&ts, NULL) != 0)
+        if (pEntry->pInfo->type == LW_SERVICE_SM_EXECUTABLE)
         {
-            dwError = LwMapErrnoToLwError(errno);
-            BAIL_ON_ERROR(dwError);
+            /* Close write side of pipe since we do not need it */
+            close(notifyPipe[1]);
+            notifyPipe[1] = -1;
+
+            do
+            {
+                ret = read(notifyPipe[0], &c, sizeof(c));
+            } while (ret < 0 && errno == EINTR);
+
+            if (ret != sizeof(c) || c != 0)
+            {
+                dwError = LW_ERROR_SERVICE_UNRESPONSIVE;
+                BAIL_ON_ERROR(dwError);
+            }
         }
-        
+        else
+        {
+            /* Wait for process to start up */
+            if (nanosleep(&ts, NULL) != 0)
+            {
+                dwError = LwMapErrnoToLwError(errno);
+                BAIL_ON_ERROR(dwError);
+            }
+        }
+
         pExec->status = LW_SERVICE_RUNNING;
         
         /* Signal state change */
@@ -138,6 +176,16 @@ LwSmExecutableStart(
     }
 
 cleanup:
+
+    if (notifyPipe[0] >= 0)
+    {
+        close(notifyPipe[0]);
+    }
+
+    if (notifyPipe[1] >= 0)
+    {
+        close(notifyPipe[1]);
+    }
 
     UNLOCK(bLocked, &gProcTable.lock);
 
@@ -151,7 +199,8 @@ error:
 static
 DWORD
 LwSmExecProgram(
-    PSM_EXECUTABLE pExec
+    PSM_EXECUTABLE pExec,
+    int* pNotifyPipe
     )
 {
     DWORD dwError = 0;
@@ -179,6 +228,18 @@ LwSmExecProgram(
     {
         dwError = LwWc16sToMbs(pEntry->pInfo->ppwszArgs[i], &ppszArgs[i]);
         BAIL_ON_ERROR(dwError);
+    }
+
+    if (pNotifyPipe)
+    {
+        close(pNotifyPipe[0]);
+        if (dup2(pNotifyPipe[1], 3) < 0)
+        {
+            dwError = LwMapErrnoToLwError(errno);
+            BAIL_ON_ERROR(dwError);
+        }
+        close(pNotifyPipe[1]);
+        putenv("LIKEWISE_SM_NOTIFY=3");
     }
 
     if (execv(pszPath, ppszArgs) < 0)

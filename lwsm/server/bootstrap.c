@@ -41,11 +41,15 @@
 static SM_BOOTSTRAP_SERVICE gRegistryService =
 {
     .pszName = "lwreg",
-    .type = LW_SERVICE_EXECUTABLE,
+    .type = LW_SERVICE_SM_EXECUTABLE,
     .pszPath = SBINDIR "/lwregd",
     .ppszArgs =
     {
         "lwregd",
+        "--logfile",
+        "/tmp/lwregd.log",
+        "--loglevel",
+        "trace",
         NULL
     }
 };

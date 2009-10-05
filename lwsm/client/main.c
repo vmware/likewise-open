@@ -80,7 +80,9 @@ LwSmTypeToString(
     switch (type)
     {
     case LW_SERVICE_EXECUTABLE:
-        return "executable";
+        return "legacy executable";
+    case LW_SERVICE_SM_EXECUTABLE:
+        return "service manager executable";
     case LW_SERVICE_MODULE:
         return "module";
     case LW_SERVICE_DRIVER:
