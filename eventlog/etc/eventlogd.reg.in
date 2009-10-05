@@ -5,7 +5,7 @@
 "Path"="@SBINDIR@/eventlogd"
 "Arguments"="eventlogd --syslog"
 "Dependencies"="dcerpc"
-"Type"=dword:00000000
+"Type"=dword:00000001
 
 [HKEY_LIKEWISE\Services\eventlog\parameters]
 "AllowReadTo"=""
