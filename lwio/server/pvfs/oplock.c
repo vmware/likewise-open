@@ -1132,12 +1132,14 @@ PvfsOplockCleanOplockQueue(
                       PVFS_OPLOCK_RECORD,
                       Oplocks);
 
+        pNextLink = LwListTraverse(&pFcb->OplockList, pOplockLink);
+
         if (pOplock->pIrpContext != pIrpCtx)
         {
+            pOplockLink = pNextLink;
             continue;
         }
 
-        pNextLink = LwListTraverse(&pFcb->OplockList, pOplockLink);
         LwListRemove(pOplockLink);
         pOplockLink = pNextLink;
 
