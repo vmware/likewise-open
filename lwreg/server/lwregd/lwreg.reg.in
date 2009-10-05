@@ -5,4 +5,4 @@
 "Path"="@SBINDIR@/lwregd"
 "Arguments"="lwregd"
 "Dependencies"=""
-"Type"=dword:00000000
+"Type"=dword:00000001
