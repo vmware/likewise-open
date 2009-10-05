@@ -123,6 +123,11 @@ typedef struct _LWIO_SRV_FILE_2
     LWIO_SRV_SEARCH_SPACE_2  searchSpace;
     PLWIO_SRV_SEARCH_SPACE_2 pSearchSpace;
 
+    UCHAR                          ucCurrentOplockLevel;
+
+    HANDLE                         hOplockState;
+    PFN_LWIO_SRV_FREE_OPLOCK_STATE pfnFreeOplockState;
+
 } LWIO_SRV_FILE_2, *PLWIO_SRV_FILE_2;
 
 typedef struct _LWIO_SRV_TREE
@@ -822,6 +827,35 @@ SrvFile2Create(
     FILE_CREATE_OPTIONS     createOptions,
     PLWIO_SRV_FILE_2*       ppFile
     );
+
+NTSTATUS
+SrvFile2SetOplockState(
+    PLWIO_SRV_FILE_2               pFile,
+    HANDLE                         hOplockState,
+    PFN_LWIO_SRV_FREE_OPLOCK_STATE pfnReleaseOplockState
+    );
+
+HANDLE
+SrvFile2RemoveOplockState(
+    PLWIO_SRV_FILE_2 pFile
+    );
+
+VOID
+SrvFile2ResetOplockState(
+    PLWIO_SRV_FILE_2 pFile
+    );
+
+VOID
+SrvFile2SetOplockLevel(
+    PLWIO_SRV_FILE_2 pFile,
+    UCHAR            ucOplockLevel
+    );
+
+UCHAR
+SrvFile2GetOplockLevel(
+    PLWIO_SRV_FILE_2 pFile
+    );
+
 
 VOID
 SrvFile2Release(

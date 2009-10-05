@@ -53,11 +53,61 @@
 
 static
 NTSTATUS
-SrvBuildIOCTLResponse_SMB_V2(
-    PSRV_EXEC_CONTEXT          pExecContext,
+SrvBuildIOCTLState_SMB_V2(
+    PLWIO_SRV_CONNECTION       pConnection,
     PSMB2_IOCTL_REQUEST_HEADER pRequestHeader,
-    PBYTE                      pResponseBuffer,
-    ULONG                      ulResponseBufferLen
+    PBYTE                      pData,
+    PLWIO_SRV_FILE_2           pFile,
+    PSRV_IOCTL_STATE_SMB_V2*   ppIOCTLState
+    );
+
+static
+NTSTATUS
+SrvExecuteIOCTL_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
+SrvBuildIOCTLResponse_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+VOID
+SrvPrepareIOCTLStateAsync_SMB_V2(
+    PSRV_IOCTL_STATE_SMB_V2 pIOCTLState,
+    PSRV_EXEC_CONTEXT       pExecContext
+    );
+
+static
+VOID
+SrvExecuteIOCTLAsyncCB_SMB_V2(
+    PVOID pContext
+    );
+
+static
+VOID
+SrvReleaseIOCTLStateAsync_SMB_V2(
+    PSRV_IOCTL_STATE_SMB_V2 pIOCTLState
+    );
+
+static
+VOID
+SrvReleaseIOCTLStateHandle_SMB_V2(
+    HANDLE hIOCTLState
+    );
+
+static
+VOID
+SrvReleaseIOCTLState_SMB_V2(
+    PSRV_IOCTL_STATE_SMB_V2 pIOCTLState
+    );
+
+static
+VOID
+SrvFreeIOCTLState_SMB_V2(
+    PSRV_IOCTL_STATE_SMB_V2 pIOCTLState
     );
 
 NTSTATUS
@@ -65,102 +115,103 @@ SrvProcessIOCTL_SMB_V2(
     PSRV_EXEC_CONTEXT pExecContext
     )
 {
-    NTSTATUS                   ntStatus = STATUS_SUCCESS;
+    NTSTATUS                   ntStatus      = STATUS_SUCCESS;
     PLWIO_SRV_CONNECTION       pConnection   = pExecContext->pConnection;
     PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
     PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
-    ULONG                      iMsg          = pCtxSmb2->iMsg;
-    PSRV_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
-    PLWIO_SRV_SESSION_2        pSession = NULL;
-    PLWIO_SRV_TREE_2           pTree    = NULL;
-    PLWIO_SRV_FILE_2           pFile    = NULL;
-    PSMB2_IOCTL_REQUEST_HEADER pRequestHeader  = NULL; // Do not free
-    PBYTE                      pData           = NULL; // Do not free
-    IO_STATUS_BLOCK            ioStatusBlock   = {0};
-    PBYTE                      pResponseBuffer = NULL;
-    size_t                     sResponseBufferLen  = 0;
-    ULONG                      ulResponseBufferLen = 0;
+    PSRV_IOCTL_STATE_SMB_V2    pIOCTLState   = NULL;
+    PLWIO_SRV_SESSION_2        pSession      = NULL;
+    PLWIO_SRV_TREE_2           pTree         = NULL;
+    PLWIO_SRV_FILE_2           pFile         = NULL;
+    BOOLEAN                    bInLock       = FALSE;
 
-    ntStatus = SrvConnection2FindSession_SMB_V2(
-                    pCtxSmb2,
-                    pConnection,
-                    pSmbRequest->pHeader->ullSessionId,
-                    &pSession);
-    BAIL_ON_NT_STATUS(ntStatus);
+    pIOCTLState = (PSRV_IOCTL_STATE_SMB_V2)pCtxSmb2->hState;
 
-    ntStatus = SrvSession2FindTree_SMB_V2(
-                    pCtxSmb2,
-                    pSession,
-                    pSmbRequest->pHeader->ulTid,
-                    &pTree);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SMB2UnmarshalIOCTLRequest(
-                    pSmbRequest,
-                    &pRequestHeader,
-                    &pData);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SrvTree2FindFile_SMB_V2(
-                    pCtxSmb2,
-                    pTree,
-                    &pRequestHeader->fid,
-                    &pFile);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    // TODO: Should we just allocate 64 * 1024 bytes in this buffer?
-
-    ntStatus = SMBPacketBufferAllocate(
-                    pConnection->hPacketAllocator,
-                    pRequestHeader->ulMaxOutLength,
-                    &pResponseBuffer,
-                    &sResponseBufferLen);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ulResponseBufferLen = sResponseBufferLen;
-
-    if (pRequestHeader->ulFlags & 0x1)
+    if (pIOCTLState)
     {
-        ntStatus = IoFsControlFile(
-                                pFile->hFile,
-                                NULL,
-                                &ioStatusBlock,
-                                pRequestHeader->ulFunctionCode,
-                                pData,
-                                pRequestHeader->ulInLength,
-                                pResponseBuffer,
-                                ulResponseBufferLen);
+        InterlockedIncrement(&pIOCTLState->refCount);
     }
     else
     {
-        ntStatus = IoDeviceIoControlFile(
-                                pFile->hFile,
-                                NULL,
-                                &ioStatusBlock,
-                                pRequestHeader->ulFunctionCode,
-                                pData,
-                                pRequestHeader->ulInLength,
-                                pResponseBuffer,
-                                ulResponseBufferLen);
-    }
-    BAIL_ON_NT_STATUS(ntStatus);
+        ULONG                      iMsg           = pCtxSmb2->iMsg;
+        PSRV_MESSAGE_SMB_V2        pSmbRequest    = &pCtxSmb2->pRequests[iMsg];
+        PSMB2_IOCTL_REQUEST_HEADER pRequestHeader = NULL; // Do not free
+        PBYTE                      pData          = NULL; // Do not free
 
-    ntStatus = SrvBuildIOCTLResponse_SMB_V2(
-                    pExecContext,
-                    pRequestHeader,
-                    pResponseBuffer,
-                    ioStatusBlock.BytesTransferred);
-    BAIL_ON_NT_STATUS(ntStatus);
+        ntStatus = SrvConnection2FindSession_SMB_V2(
+                        pCtxSmb2,
+                        pConnection,
+                        pSmbRequest->pHeader->ullSessionId,
+                        &pSession);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = SrvSession2FindTree_SMB_V2(
+                        pCtxSmb2,
+                        pSession,
+                        pSmbRequest->pHeader->ulTid,
+                        &pTree);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = SMB2UnmarshalIOCTLRequest(
+                        pSmbRequest,
+                        &pRequestHeader,
+                        &pData);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = SrvTree2FindFile_SMB_V2(
+                        pCtxSmb2,
+                        pTree,
+                        &pRequestHeader->fid,
+                        &pFile);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = SrvBuildIOCTLState_SMB_V2(
+                        pConnection,
+                        pRequestHeader,
+                        pData,
+                        pFile,
+                        &pIOCTLState);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pCtxSmb2->hState = pIOCTLState;
+        InterlockedIncrement(&pIOCTLState->refCount);
+        pCtxSmb2->pfnStateRelease = &SrvReleaseIOCTLStateHandle_SMB_V2;
+    }
+
+    LWIO_LOCK_MUTEX(bInLock, &pIOCTLState->mutex);
+
+    switch (pIOCTLState->stage)
+    {
+        case SRV_IOCTL_STAGE_SMB_V2_INITIAL:
+
+            pIOCTLState->stage = SRV_IOCTL_STAGE_SMB_V2_ATTEMPT_IO;
+
+            // intentional fall through
+
+        case SRV_IOCTL_STAGE_SMB_V2_ATTEMPT_IO:
+
+            ntStatus = SrvExecuteIOCTL_SMB_V2(pExecContext);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            pIOCTLState->stage = SRV_IOCTL_STAGE_SMB_V2_BUILD_RESPONSE;
+
+            // intentional fall through
+
+        case SRV_IOCTL_STAGE_SMB_V2_BUILD_RESPONSE:
+
+            ntStatus = SrvBuildIOCTLResponse_SMB_V2(pExecContext);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            pIOCTLState->stage = SRV_IOCTL_STAGE_SMB_V2_DONE;
+
+            // intentional fall through
+
+        case SRV_IOCTL_STAGE_SMB_V2_DONE:
+
+            break;
+    }
 
 cleanup:
-
-    if (pResponseBuffer)
-    {
-        SMBPacketBufferFree(
-            pConnection->hPacketAllocator,
-            pResponseBuffer,
-            sResponseBufferLen);
-    }
 
     if (pFile)
     {
@@ -177,33 +228,179 @@ cleanup:
         SrvSession2Release(pSession);
     }
 
+    if (pIOCTLState)
+    {
+        LWIO_UNLOCK_MUTEX(bInLock, &pIOCTLState->mutex);
+
+        SrvReleaseIOCTLState_SMB_V2(pIOCTLState);
+    }
+
     return ntStatus;
 
 error:
+
+    switch (ntStatus)
+    {
+        case STATUS_PENDING:
+
+            // TODO: Add an indicator to the file object to trigger a
+            //       cleanup if the connection gets closed and all the
+            //       files involved have to be closed
+
+            break;
+
+        default:
+
+            if (pIOCTLState)
+            {
+                SrvReleaseIOCTLStateAsync_SMB_V2(pIOCTLState);
+            }
+
+            break;
+    }
 
     goto cleanup;
 }
 
 static
 NTSTATUS
-SrvBuildIOCTLResponse_SMB_V2(
-    PSRV_EXEC_CONTEXT          pExecContext,
+SrvBuildIOCTLState_SMB_V2(
+    PLWIO_SRV_CONNECTION       pConnection,
     PSMB2_IOCTL_REQUEST_HEADER pRequestHeader,
-    PBYTE                      pResponseBuffer,
-    ULONG                      ulResponseBufferLen
+    PBYTE                      pData,
+    PLWIO_SRV_FILE_2           pFile,
+    PSRV_IOCTL_STATE_SMB_V2*   ppIOCTLState
     )
 {
-    NTSTATUS ntStatus = 0;
+    NTSTATUS                ntStatus    = STATUS_SUCCESS;
+    PSRV_IOCTL_STATE_SMB_V2 pIOCTLState = NULL;
+
+    ntStatus = SrvAllocateMemory(
+                    sizeof(SRV_IOCTL_STATE_SMB_V2),
+                    (PVOID*)&pIOCTLState);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pIOCTLState->refCount = 1;
+
+    pthread_mutex_init(&pIOCTLState->mutex, NULL);
+    pIOCTLState->pMutex = &pIOCTLState->mutex;
+
+    pIOCTLState->pConnection = pConnection;
+    InterlockedIncrement(&pConnection->refCount);
+
+    pIOCTLState->pFile = pFile;
+    InterlockedIncrement(&pFile->refcount);
+
+    pIOCTLState->pRequestHeader = pRequestHeader;
+    pIOCTLState->pData          = pData;
+
+    *ppIOCTLState = pIOCTLState;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppIOCTLState = NULL;
+
+    if (pIOCTLState)
+    {
+        SrvFreeIOCTLState_SMB_V2(pIOCTLState);
+    }
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvExecuteIOCTL_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS                   ntStatus      = STATUS_SUCCESS;
+    PLWIO_SRV_CONNECTION       pConnection   = pExecContext->pConnection;
     PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
     PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    PSRV_IOCTL_STATE_SMB_V2    pIOCTLState   = NULL;
+
+    pIOCTLState = (PSRV_IOCTL_STATE_SMB_V2)pCtxSmb2->hState;
+
+    ntStatus = pIOCTLState->ioStatusBlock.Status;
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (!pIOCTLState->pResponseBuffer)
+    {
+        // TODO: Should we just allocate 64 * 1024 bytes in this buffer?
+
+        ntStatus = SMBPacketBufferAllocate(
+                        pConnection->hPacketAllocator,
+                        pIOCTLState->pRequestHeader->ulMaxOutLength,
+                        &pIOCTLState->pResponseBuffer,
+                        &pIOCTLState->sResponseBufferLen);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pIOCTLState->ulResponseBufferLen = pIOCTLState->sResponseBufferLen;
+
+        SrvPrepareIOCTLStateAsync_SMB_V2(pIOCTLState, pExecContext);
+
+        if (pIOCTLState->pRequestHeader->ulFlags & 0x1)
+        {
+            ntStatus = IoFsControlFile(
+                                    pIOCTLState->pFile->hFile,
+                                    pIOCTLState->pAcb,
+                                    &pIOCTLState->ioStatusBlock,
+                                    pIOCTLState->pRequestHeader->ulFunctionCode,
+                                    pIOCTLState->pData,
+                                    pIOCTLState->pRequestHeader->ulInLength,
+                                    pIOCTLState->pResponseBuffer,
+                                    pIOCTLState->ulResponseBufferLen);
+        }
+        else
+        {
+            ntStatus = IoDeviceIoControlFile(
+                                    pIOCTLState->pFile->hFile,
+                                    pIOCTLState->pAcb,
+                                    &pIOCTLState->ioStatusBlock,
+                                    pIOCTLState->pRequestHeader->ulFunctionCode,
+                                    pIOCTLState->pData,
+                                    pIOCTLState->pRequestHeader->ulInLength,
+                                    pIOCTLState->pResponseBuffer,
+                                    pIOCTLState->ulResponseBufferLen);
+        }
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        SrvReleaseIOCTLStateAsync_SMB_V2(pIOCTLState); // completed sync
+    }
+
+    pIOCTLState->ulResponseBufferLen =
+                                    pIOCTLState->ioStatusBlock.BytesTransferred;
+
+error:
+
+    return ntStatus;
+}
+
+static
+NTSTATUS
+SrvBuildIOCTLResponse_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS                   ntStatus      = STATUS_SUCCESS;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    PSRV_IOCTL_STATE_SMB_V2    pIOCTLState   = NULL;
     ULONG                      iMsg          = pCtxSmb2->iMsg;
     PSRV_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
     PSRV_MESSAGE_SMB_V2        pSmbResponse  = &pCtxSmb2->pResponses[iMsg];
-    PBYTE pOutBuffer       = pSmbResponse->pBuffer;
-    ULONG ulBytesAvailable = pSmbResponse->ulBytesAvailable;
-    ULONG ulOffset         = 0;
-    ULONG ulBytesUsed      = 0;
-    ULONG ulTotalBytesUsed = 0;
+    PBYTE                     pOutBuffer       = pSmbResponse->pBuffer;
+    ULONG                     ulBytesAvailable = pSmbResponse->ulBytesAvailable;
+    ULONG                     ulOffset         = 0;
+    ULONG                     ulBytesUsed      = 0;
+    ULONG                     ulTotalBytesUsed = 0;
+
+    pIOCTLState = (PSRV_IOCTL_STATE_SMB_V2)pCtxSmb2->hState;
 
     ntStatus = SMB2MarshalHeader(
                     pOutBuffer,
@@ -232,9 +429,10 @@ SrvBuildIOCTLResponse_SMB_V2(
                     pOutBuffer,
                     ulOffset,
                     ulBytesAvailable,
-                    pRequestHeader,
-                    pResponseBuffer,
-                    SMB_MIN(ulResponseBufferLen, pRequestHeader->ulMaxOutLength),
+                    pIOCTLState->pRequestHeader,
+                    pIOCTLState->pResponseBuffer,
+                    SMB_MIN(pIOCTLState->ulResponseBufferLen,
+                            pIOCTLState->pRequestHeader->ulMaxOutLength),
                     &ulBytesUsed);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -261,4 +459,147 @@ error:
     pSmbResponse->ulMessageSize = 0;
 
     goto cleanup;
+}
+
+static
+VOID
+SrvPrepareIOCTLStateAsync_SMB_V2(
+    PSRV_IOCTL_STATE_SMB_V2 pIOCTLState,
+    PSRV_EXEC_CONTEXT       pExecContext
+    )
+{
+    pIOCTLState->acb.Callback        = &SrvExecuteIOCTLAsyncCB_SMB_V2;
+
+    pIOCTLState->acb.CallbackContext = pExecContext;
+    InterlockedIncrement(&pExecContext->refCount);
+
+    pIOCTLState->acb.AsyncCancelContext = NULL;
+
+    pIOCTLState->pAcb = &pIOCTLState->acb;
+}
+
+static
+VOID
+SrvExecuteIOCTLAsyncCB_SMB_V2(
+    PVOID pContext
+    )
+{
+    NTSTATUS                   ntStatus         = STATUS_SUCCESS;
+    PSRV_EXEC_CONTEXT          pExecContext     = (PSRV_EXEC_CONTEXT)pContext;
+    PSRV_PROTOCOL_EXEC_CONTEXT pProtocolContext = pExecContext->pProtocolContext;
+    PSRV_IOCTL_STATE_SMB_V2    pIOCTLState      = NULL;
+    BOOLEAN                    bInLock          = FALSE;
+
+    pIOCTLState = (PSRV_IOCTL_STATE_SMB_V2)pProtocolContext->pSmb2Context->hState;
+
+    LWIO_LOCK_MUTEX(bInLock, &pIOCTLState->mutex);
+
+    if (pIOCTLState->pAcb->AsyncCancelContext)
+    {
+        IoDereferenceAsyncCancelContext(
+                &pIOCTLState->pAcb->AsyncCancelContext);
+    }
+
+    pIOCTLState->pAcb = NULL;
+
+    LWIO_UNLOCK_MUTEX(bInLock, &pIOCTLState->mutex);
+
+    ntStatus = SrvProdConsEnqueue(gProtocolGlobals_SMB_V2.pWorkQueue, pContext);
+    if (ntStatus != STATUS_SUCCESS)
+    {
+        LWIO_LOG_ERROR("Failed to enqueue execution context [status:0x%x]",
+                       ntStatus);
+
+        SrvReleaseExecContext(pExecContext);
+    }
+}
+
+static
+VOID
+SrvReleaseIOCTLStateAsync_SMB_V2(
+    PSRV_IOCTL_STATE_SMB_V2 pIOCTLState
+    )
+{
+    if (pIOCTLState->pAcb)
+    {
+        pIOCTLState->acb.Callback        = NULL;
+
+        if (pIOCTLState->pAcb->CallbackContext)
+        {
+            PSRV_EXEC_CONTEXT pExecContext = NULL;
+
+            pExecContext = (PSRV_EXEC_CONTEXT)pIOCTLState->pAcb->CallbackContext;
+
+            SrvReleaseExecContext(pExecContext);
+
+            pIOCTLState->pAcb->CallbackContext = NULL;
+        }
+
+        if (pIOCTLState->pAcb->AsyncCancelContext)
+        {
+            IoDereferenceAsyncCancelContext(
+                    &pIOCTLState->pAcb->AsyncCancelContext);
+        }
+
+        pIOCTLState->pAcb = NULL;
+    }
+}
+
+static
+VOID
+SrvReleaseIOCTLStateHandle_SMB_V2(
+    HANDLE hIOCTLState
+    )
+{
+    return SrvReleaseIOCTLState_SMB_V2((PSRV_IOCTL_STATE_SMB_V2)hIOCTLState);
+}
+
+static
+VOID
+SrvReleaseIOCTLState_SMB_V2(
+    PSRV_IOCTL_STATE_SMB_V2 pIOCTLState
+    )
+{
+    if (InterlockedDecrement(&pIOCTLState->refCount) == 0)
+    {
+        SrvFreeIOCTLState_SMB_V2(pIOCTLState);
+    }
+}
+
+static
+VOID
+SrvFreeIOCTLState_SMB_V2(
+    PSRV_IOCTL_STATE_SMB_V2 pIOCTLState
+    )
+{
+    if (pIOCTLState->pAcb && pIOCTLState->pAcb->AsyncCancelContext)
+    {
+        IoDereferenceAsyncCancelContext(
+                    &pIOCTLState->pAcb->AsyncCancelContext);
+    }
+
+    if (pIOCTLState->pFile)
+    {
+        SrvFile2Release(pIOCTLState->pFile);
+    }
+
+    if (pIOCTLState->pResponseBuffer)
+    {
+        SMBPacketBufferFree(
+            pIOCTLState->pConnection->hPacketAllocator,
+            pIOCTLState->pResponseBuffer,
+            pIOCTLState->sResponseBufferLen);
+    }
+
+    if (pIOCTLState->pConnection)
+    {
+        SrvConnectionRelease(pIOCTLState->pConnection);
+    }
+
+    if (pIOCTLState->pMutex)
+    {
+        pthread_mutex_destroy(&pIOCTLState->mutex);
+    }
+
+    SrvFreeMemory(pIOCTLState);
 }
