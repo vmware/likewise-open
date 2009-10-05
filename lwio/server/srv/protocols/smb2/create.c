@@ -53,9 +53,68 @@
 
 static
 NTSTATUS
+SrvBuildCreateState_SMB_V2(
+    PSRV_EXEC_CONTEXT           pExecContext,
+    PSMB2_CREATE_REQUEST_HEADER pRequestHeader,
+    PUNICODE_STRING             pwszFilename,
+    PSRV_CREATE_CONTEXT*        ppCreateContexts,
+    ULONG                       ulNumContexts,
+    PSRV_CREATE_STATE_SMB_V2*   ppCreateState
+    );
+
+static
+NTSTATUS
+SrvQueryFileInformation_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
+SrvRequestCreateOplocks_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+VOID
+SrvPrepareCreateStateAsync_SMB_V2(
+    PSRV_CREATE_STATE_SMB_V2 pCreateState,
+    PSRV_EXEC_CONTEXT        pExecContext
+    );
+
+static
+VOID
+SrvReleaseCreateStateAsync_SMB_V2(
+    PSRV_CREATE_STATE_SMB_V2 pCreateState
+    );
+
+static
+VOID
+SrvExecuteCreateAsyncCB_SMB_V2(
+    PVOID pContext
+    );
+
+static
+VOID
+SrvReleaseCreateStateHandle_SMB_V2(
+    HANDLE hState
+    );
+
+static
+VOID
+SrvReleaseCreateState_SMB_V2(
+    PSRV_CREATE_STATE_SMB_V2 pCreateState
+    );
+
+static
+VOID
+SrvFreeCreateState_SMB_V2(
+    PSRV_CREATE_STATE_SMB_V2 pCreateState
+    );
+
+static
+NTSTATUS
 SrvBuildCreateResponse_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext,
-    PIO_STATUS_BLOCK  pIoStatusBlock
+    PSRV_EXEC_CONTEXT pExecContext
     );
 
 NTSTATUS
@@ -67,158 +126,179 @@ SrvProcessCreate_SMB_V2(
     PLWIO_SRV_CONNECTION       pConnection   = pExecContext->pConnection;
     PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
     PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
-    ULONG                      iMsg          = pCtxSmb2->iMsg;
-    PSRV_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
-    PLWIO_SRV_SESSION_2 pSession = NULL;
-    PLWIO_SRV_TREE_2    pTree = NULL;
-    IO_FILE_HANDLE      hFile = NULL;
-    IO_STATUS_BLOCK     ioStatusBlock = {0};
-    PVOID               pSecurityDescriptor = NULL;
-    PVOID               pSecurityQOS = NULL;
-    PIO_FILE_NAME       pFilename = NULL;
-    PIO_ECP_LIST        pEcpList = NULL;
-    BOOLEAN             bRemoveFileFromTree = FALSE;
-    PWSTR               pwszFilename = NULL;
-    wchar16_t           wszEmpty[] = {0};
-    PIO_ASYNC_CONTROL_BLOCK     pAsyncControlBlock = NULL;
-    PSMB2_CREATE_REQUEST_HEADER pCreateRequestHeader = NULL;// Do not free
-    UNICODE_STRING              wszFileName = {0}; // Do not free
-    PSRV_CREATE_CONTEXT         pCreateContexts = NULL;
-    ULONG                       ulNumContexts = 0;
-    BOOLEAN bTreeInLock = FALSE;
+    PLWIO_SRV_SESSION_2        pSession = NULL;
+    PLWIO_SRV_TREE_2           pTree = NULL;
+    PSRV_CREATE_STATE_SMB_V2   pCreateState = NULL;
+    PSRV_CREATE_CONTEXT        pCreateContexts = NULL;
+    ULONG                      ulNumContexts = 0;
+    BOOLEAN                    bInLock = FALSE;
 
-    if (pCtxSmb2->pFile)
+    pCreateState = (PSRV_CREATE_STATE_SMB_V2)pCtxSmb2->hState;
+    if (pCreateState)
     {
-        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        InterlockedIncrement(&pCreateState->refCount);
+    }
+    else
+    {
+        ULONG               iMsg        = pCtxSmb2->iMsg;
+        PSRV_MESSAGE_SMB_V2 pSmbRequest = &pCtxSmb2->pRequests[iMsg];
+        PSMB2_CREATE_REQUEST_HEADER pCreateRequestHeader = NULL;// Do not free
+        UNICODE_STRING              wszFileName = {0};          // Do not free
+        wchar16_t                   wszEmpty[] = {0};
+
+        if (pCtxSmb2->pFile)
+        {
+            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        ntStatus = SrvConnection2FindSession_SMB_V2(
+                        pCtxSmb2,
+                        pConnection,
+                        pSmbRequest->pHeader->ullSessionId,
+                        &pSession);
         BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = SrvSession2FindTree_SMB_V2(
+                        pCtxSmb2,
+                        pSession,
+                        pSmbRequest->pHeader->ulTid,
+                        &pTree);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = SMB2UnmarshalCreateRequest(
+                        pSmbRequest,
+                        &pCreateRequestHeader,
+                        &wszFileName,
+                        &pCreateContexts,
+                        &ulNumContexts);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        if (!wszFileName.Length)
+        {
+            wszFileName.Buffer = &wszEmpty[0];
+            wszFileName.Length = 0;
+            wszFileName.MaximumLength = sizeof(wszEmpty);
+        }
+
+        ntStatus = SrvBuildCreateState_SMB_V2(
+                        pExecContext,
+                        pCreateRequestHeader,
+                        &wszFileName,
+                        &pCreateContexts,
+                        ulNumContexts,
+                        &pCreateState);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pCtxSmb2->hState = pCreateState;
+        InterlockedIncrement(&pCreateState->refCount);
+        pCtxSmb2->pfnStateRelease = &SrvReleaseCreateStateHandle_SMB_V2;
     }
 
-    ntStatus = SMB2UnmarshalCreateRequest(
-                    pSmbRequest,
-                    &pCreateRequestHeader,
-                    &wszFileName,
-                    &pCreateContexts,
-                    &ulNumContexts);
-    BAIL_ON_NT_STATUS(ntStatus);
+    LWIO_LOCK_MUTEX(bInLock, &pCreateState->mutex);
 
-    ntStatus = SrvConnection2FindSession_SMB_V2(
-                    pCtxSmb2,
-                    pConnection,
-                    pSmbRequest->pHeader->ullSessionId,
-                    &pSession);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SrvSession2FindTree_SMB_V2(
-                    pCtxSmb2,
-                    pSession,
-                    pSmbRequest->pHeader->ulTid,
-                    &pTree);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    if (!wszFileName.Length)
+    switch (pCreateState->stage)
     {
-        wszFileName.Buffer = &wszEmpty[0];
-        wszFileName.Length = 0;
-        wszFileName.MaximumLength = sizeof(wszEmpty);
+        case SRV_CREATE_STAGE_SMB_V2_INITIAL:
+
+            pCreateState->stage = SRV_CREATE_STAGE_SMB_V2_CREATE_FILE_COMPLETED;
+
+            SrvPrepareCreateStateAsync_SMB_V2(pCreateState, pExecContext);
+
+            ntStatus = IoCreateFile(
+                            &pCreateState->hFile,
+                            pCreateState->pAcb,
+                            &pCreateState->ioStatusBlock,
+                            pSession->pIoSecurityContext,
+                            pCreateState->pFilename,
+                            pCreateState->pSecurityDescriptor,
+                            pCreateState->pSecurityQOS,
+                            pCreateState->pRequestHeader->ulDesiredAccess,
+                            0LL,
+                            pCreateState->pRequestHeader->ulFileAttributes,
+                            pCreateState->pRequestHeader->ulShareAccess,
+                            pCreateState->pRequestHeader->ulCreateDisposition,
+                            pCreateState->pRequestHeader->ulCreateOptions,
+                            NULL, /* EA Buffer */
+                            0,    /* EA Length */
+                            pCreateState->pEcpList);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            SrvReleaseCreateStateAsync_SMB_V2(pCreateState); // completed synchronously
+
+            // intentional fall through
+
+        case SRV_CREATE_STAGE_SMB_V2_CREATE_FILE_COMPLETED:
+
+            ntStatus = pCreateState->ioStatusBlock.Status;
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            ntStatus = SrvTree2CreateFile(
+                            pCreateState->pTree,
+                            pCreateState->pwszFilename,
+                            &pCreateState->hFile,
+                            &pCreateState->pFilename,
+                            pCreateState->pRequestHeader->ulDesiredAccess,
+                            0LL,
+                            pCreateState->pRequestHeader->ulFileAttributes,
+                            pCreateState->pRequestHeader->ulShareAccess,
+                            pCreateState->pRequestHeader->ulCreateDisposition,
+                            pCreateState->pRequestHeader->ulCreateOptions,
+                            &pCreateState->pFile);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            pCreateState->bRemoveFileFromTree = TRUE;
+
+            pCreateState->stage = SRV_CREATE_STAGE_SMB_V2_ATTEMPT_QUERY_INFO;
+
+            // intentional fall through
+
+        case SRV_CREATE_STAGE_SMB_V2_ATTEMPT_QUERY_INFO:
+
+            ntStatus = SrvQueryFileInformation_SMB_V2(pExecContext);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            pCreateState->stage = SRV_CREATE_STAGE_SMB_V2_REQUEST_OPLOCK;
+
+            // intentional fall through
+
+        case SRV_CREATE_STAGE_SMB_V2_REQUEST_OPLOCK:
+
+            ntStatus = SrvRequestCreateOplocks_SMB_V2(pExecContext);
+            // Don't fail if the op-lock cannot be granted
+
+            pCreateState->stage = SRV_CREATE_STAGE_SMB_V2_QUERY_INFO_COMPLETED;
+
+            // intentional fall through
+
+        case SRV_CREATE_STAGE_SMB_V2_QUERY_INFO_COMPLETED:
+
+            ntStatus = pCreateState->ioStatusBlock.Status;
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            // TODO: Execute create contexts and add results
+
+            ntStatus = SrvBuildCreateResponse_SMB_V2(pExecContext);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            pCreateState->stage = SRV_CREATE_STAGE_SMB_V2_DONE;
+
+            // intentional fall through
+
+        case SRV_CREATE_STAGE_SMB_V2_DONE:
+
+            pCreateState->bRemoveFileFromTree = FALSE;
+
+            pCtxSmb2->pFile = pCreateState->pFile;
+            InterlockedIncrement(&pCreateState->pFile->refcount);
+
+            break;
     }
-
-    ntStatus = SrvAllocateMemory(
-                    wszFileName.Length + sizeof(wchar16_t),
-                    (PVOID*)&pwszFilename);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    if (wszFileName.Length)
-    {
-        memcpy((PBYTE)pwszFilename,
-               (PBYTE)wszFileName.Buffer,
-               wszFileName.Length);
-    }
-
-    ntStatus = SrvAllocateMemory(sizeof(IO_FILE_NAME), (PVOID*)&pFilename);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    LWIO_LOCK_RWMUTEX_SHARED(bTreeInLock, &pTree->mutex);
-
-    ntStatus = SrvBuildFilePath(
-                    pTree->pShareInfo->pwszPath,
-                    pwszFilename,
-                    &pFilename->FileName);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    LWIO_UNLOCK_RWMUTEX(bTreeInLock, &pTree->mutex);
-
-    /* For named pipes, we need to pipe some extra data into the npfs driver
-     *  - Session key
-     *  - Client principal name
-     *  - Client address
-     */
-    if (SrvTree2IsNamedPipe(pTree))
-    {
-        ntStatus = IoRtlEcpListAllocate(&pEcpList);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        ntStatus = SrvConnectionGetNamedPipeSessionKey(
-                       pConnection,
-                       pEcpList);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        ntStatus = SrvSession2GetNamedPipeClientPrincipal(
-                       pSession,
-                       pEcpList);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        ntStatus = SrvConnectionGetNamedPipeClientAddress(
-                       pConnection,
-                       pEcpList);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    ntStatus = IoCreateFile(
-                    &hFile,
-                    pAsyncControlBlock,
-                    &ioStatusBlock,
-                    pSession->pIoSecurityContext,
-                    pFilename,
-                    pSecurityDescriptor,
-                    pSecurityQOS,
-                    pCreateRequestHeader->ulDesiredAccess,
-                    0LL,
-                    pCreateRequestHeader->ulFileAttributes,
-                    pCreateRequestHeader->ulShareAccess,
-                    pCreateRequestHeader->ulCreateDisposition,
-                    pCreateRequestHeader->ulCreateOptions,
-                    NULL, /* EA Buffer */
-                    0,    /* EA Length */
-                    pEcpList);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SrvTree2CreateFile(
-                    pTree,
-                    pwszFilename,
-                    &hFile,
-                    &pFilename,
-                    pCreateRequestHeader->ulDesiredAccess,
-                    0LL,
-                    pCreateRequestHeader->ulFileAttributes,
-                    pCreateRequestHeader->ulShareAccess,
-                    pCreateRequestHeader->ulCreateDisposition,
-                    pCreateRequestHeader->ulCreateOptions,
-                    &pCtxSmb2->pFile);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    bRemoveFileFromTree = TRUE;
-
-    // TODO: Execute create contexts and add results
-
-    ntStatus = SrvBuildCreateResponse_SMB_V2(pExecContext, &ioStatusBlock);
-    BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
 
     if (pTree)
     {
-        LWIO_UNLOCK_RWMUTEX(bTreeInLock, &pTree->mutex);
-
         SrvTree2Release(pTree);
     }
 
@@ -227,46 +307,37 @@ cleanup:
         SrvSession2Release(pSession);
     }
 
-    if (pEcpList)
+    if (pCreateState)
     {
-        IoRtlEcpListFree(&pEcpList);
+        LWIO_UNLOCK_MUTEX(bInLock, &pCreateState->mutex);
+
+        SrvReleaseCreateState_SMB_V2(pCreateState);
     }
 
-    SRV_SAFE_FREE_MEMORY(pwszFilename);
     SRV_SAFE_FREE_MEMORY(pCreateContexts);
 
     return ntStatus;
 
 error:
 
-    if (pFilename)
+    switch (ntStatus)
     {
-        SRV_SAFE_FREE_MEMORY (pFilename->FileName);
-        SrvFreeMemory(pFilename);
-    }
+        case STATUS_PENDING:
 
-    if (hFile)
-    {
-        IoCloseFile(hFile);
-    }
+            // TODO: Add an indicator to the file object to trigger a
+            //       cleanup if the connection gets closed and all the
+            //       files involved have to be closed
 
-    if (bRemoveFileFromTree)
-    {
-        NTSTATUS ntStatus2 = 0;
+            break;
 
-        ntStatus2 = SrvTree2RemoveFile(
-                        pTree,
-                        pCtxSmb2->pFile->ullFid);
-        if (ntStatus2)
-        {
-            LWIO_LOG_ERROR("Failed to remove file from tree [Tid:%u][Fid:%ul][code:%d]",
-                           pCtxSmb2->pTree->ulTid,
-                           pCtxSmb2->pFile->ullFid,
-                           ntStatus2);
-        }
+        default:
 
-        SrvFile2Release(pCtxSmb2->pFile);
-        pCtxSmb2->pFile = NULL;
+            if (pCreateState)
+            {
+                SrvReleaseCreateStateAsync_SMB_V2(pCreateState);
+            }
+
+            break;
     }
 
     goto cleanup;
@@ -274,44 +345,559 @@ error:
 
 static
 NTSTATUS
-SrvBuildCreateResponse_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext,
-    PIO_STATUS_BLOCK  pIoStatusBlock
+SrvBuildCreateState_SMB_V2(
+    PSRV_EXEC_CONTEXT           pExecContext,
+    PSMB2_CREATE_REQUEST_HEADER pRequestHeader,
+    PUNICODE_STRING             pwszFilename,
+    PSRV_CREATE_CONTEXT*        ppCreateContexts,
+    ULONG                       ulNumContexts,
+    PSRV_CREATE_STATE_SMB_V2*   ppCreateState
     )
 {
-    NTSTATUS                     ntStatus = 0;
+    NTSTATUS                   ntStatus       = STATUS_SUCCESS;
+    PLWIO_SRV_CONNECTION       pConnection    = pExecContext->pConnection;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol   = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2       = pCtxProtocol->pSmb2Context;
+    PSRV_CREATE_STATE_SMB_V2   pCreateState   = NULL;
+    BOOLEAN                    bTreeInLock    = FALSE;
+
+    ntStatus = SrvAllocateMemory(
+                    sizeof(SRV_CREATE_STATE_SMB_V2),
+                    (PVOID*)&pCreateState);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pCreateState->refCount = 1;
+
+    pthread_mutex_init(&pCreateState->mutex, NULL);
+    pCreateState->pMutex = &pCreateState->mutex;
+
+    pCreateState->stage = SRV_CREATE_STAGE_SMB_V2_INITIAL;
+
+    ntStatus = SrvAllocateMemory(
+                    pwszFilename->Length + sizeof(wchar16_t),
+                    (PVOID*)&pCreateState->pwszFilename);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (pwszFilename->Length)
+    {
+        memcpy((PBYTE)pCreateState->pwszFilename,
+               (PBYTE)pwszFilename->Buffer,
+               pwszFilename->Length);
+    }
+
+    // TODO: Handle root fids
+    ntStatus = SrvAllocateMemory(
+                    sizeof(IO_FILE_NAME),
+                    (PVOID*)&pCreateState->pFilename);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pCreateState->pTree = pCtxSmb2->pTree;
+    InterlockedIncrement(&pCtxSmb2->pTree->refcount);
+
+    LWIO_LOCK_RWMUTEX_SHARED(bTreeInLock, &pCtxSmb2->pTree->mutex);
+
+    ntStatus = SrvBuildFilePath(
+                    pCtxSmb2->pTree->pShareInfo->pwszPath,
+                    pCreateState->pwszFilename,
+                    &pCreateState->pFilename->FileName);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    LWIO_UNLOCK_RWMUTEX(bTreeInLock, &pCtxSmb2->pTree->mutex);
+
+    /* For named pipes, we need to pipe some extra data into the npfs driver:
+     *  - Session key
+     *  - Client principal name
+     *  - Client address
+     */
+    if (SrvTree2IsNamedPipe(pCtxSmb2->pTree))
+    {
+        ntStatus = IoRtlEcpListAllocate(&pCreateState->pEcpList);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = SrvConnectionGetNamedPipeSessionKey(
+                       pConnection,
+                       pCreateState->pEcpList);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = SrvSession2GetNamedPipeClientPrincipal(
+                       pCtxSmb2->pSession,
+                       pCreateState->pEcpList);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = SrvConnectionGetNamedPipeClientAddress(
+                       pConnection,
+                       pCreateState->pEcpList);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pCreateState->pCreateContexts = *ppCreateContexts;
+    *ppCreateContexts = NULL;
+
+    pCreateState->ulNumContexts   = ulNumContexts;
+
+    pCreateState->pRequestHeader = pRequestHeader;
+
+    *ppCreateState = pCreateState;
+
+cleanup:
+
+    LWIO_UNLOCK_RWMUTEX(bTreeInLock, &pCtxSmb2->pTree->mutex);
+
+    return ntStatus;
+
+error:
+
+    *ppCreateState = NULL;
+
+    if (pCreateState)
+    {
+        SrvFreeCreateState_SMB_V2(pCreateState);
+    }
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvQueryFileInformation_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS                    ntStatus = 0;
+    PSRV_PROTOCOL_EXEC_CONTEXT  pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V2    pCtxSmb2     = pCtxProtocol->pSmb2Context;
+    PSRV_CREATE_STATE_SMB_V2    pCreateState = NULL;
+
+    pCreateState = (PSRV_CREATE_STATE_SMB_V2)pCtxSmb2->hState;
+
+    if (!pCreateState->pFileBasicInfo)
+    {
+        pCreateState->pFileBasicInfo = &pCreateState->fileBasicInfo;
+
+        SrvPrepareCreateStateAsync_SMB_V2(pCreateState, pExecContext);
+
+        ntStatus = IoQueryInformationFile(
+                        pCreateState->pFile->hFile,
+                        pCreateState->pAcb,
+                        &pCreateState->ioStatusBlock,
+                        pCreateState->pFileBasicInfo,
+                        sizeof(pCreateState->fileBasicInfo),
+                        FileBasicInformation);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        SrvReleaseCreateStateAsync_SMB_V2(pCreateState); // completed sync
+    }
+
+    if (!pCreateState->pFileStdInfo)
+    {
+        pCreateState->pFileStdInfo = &pCreateState->fileStdInfo;
+
+        SrvPrepareCreateStateAsync_SMB_V2(pCreateState, pExecContext);
+
+        ntStatus = IoQueryInformationFile(
+                        pCreateState->pFile->hFile,
+                        pCreateState->pAcb,
+                        &pCreateState->ioStatusBlock,
+                        pCreateState->pFileStdInfo,
+                        sizeof(pCreateState->fileStdInfo),
+                        FileStandardInformation);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        SrvReleaseCreateStateAsync_SMB_V2(pCreateState); // completed sync
+    }
+
+    if (SrvTree2IsNamedPipe(pCreateState->pTree))
+    {
+        if (!pCreateState->pFilePipeInfo)
+        {
+            pCreateState->pFilePipeInfo = &pCreateState->filePipeInfo;
+
+            SrvPrepareCreateStateAsync_SMB_V2(pCreateState, pExecContext);
+
+            ntStatus = IoQueryInformationFile(
+                            pCreateState->pFile->hFile,
+                            pCreateState->pAcb,
+                            &pCreateState->ioStatusBlock,
+                            pCreateState->pFilePipeInfo,
+                            sizeof(pCreateState->filePipeInfo),
+                            FilePipeInformation);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            SrvReleaseCreateStateAsync_SMB_V2(pCreateState); // completed sync
+        }
+
+        if (!pCreateState->pFilePipeLocalInfo)
+        {
+            pCreateState->pFilePipeLocalInfo = &pCreateState->filePipeLocalInfo;
+
+            SrvPrepareCreateStateAsync_SMB_V2(pCreateState, pExecContext);
+
+            ntStatus = IoQueryInformationFile(
+                            pCreateState->pFile->hFile,
+                            pCreateState->pAcb,
+                            &pCreateState->ioStatusBlock,
+                            pCreateState->pFilePipeLocalInfo,
+                            sizeof(pCreateState->filePipeLocalInfo),
+                            FilePipeLocalInformation);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            SrvReleaseCreateStateAsync_SMB_V2(pCreateState); // completed sync
+        }
+    }
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvRequestCreateOplocks_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS        ntStatus           = STATUS_SUCCESS;
+    SRV_OPLOCK_INFO batchOplockChain[] =
+            {
+               { IO_OPLOCK_REQUEST_OPLOCK_BATCH,   SMB_OPLOCK_LEVEL_BATCH },
+               { IO_OPLOCK_REQUEST_OPLOCK_LEVEL_2, SMB_OPLOCK_LEVEL_II    },
+               { SMB_OPLOCK_LEVEL_NONE,            SMB_OPLOCK_LEVEL_NONE  }
+            };
+    SRV_OPLOCK_INFO exclOplockChain[] =
+            {
+               { IO_OPLOCK_REQUEST_OPLOCK_LEVEL_1, SMB_OPLOCK_LEVEL_I     },
+               { IO_OPLOCK_REQUEST_OPLOCK_LEVEL_2, SMB_OPLOCK_LEVEL_II    },
+               { SMB_OPLOCK_LEVEL_NONE,            SMB_OPLOCK_LEVEL_NONE  }
+            };
+    SRV_OPLOCK_INFO noOplockChain[] =
+            {
+               { SMB_OPLOCK_LEVEL_NONE,            SMB_OPLOCK_LEVEL_NONE  }
+            };
+    PSRV_OPLOCK_INFO           pOplockCursor = NULL;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    PSRV_CREATE_STATE_SMB_V2   pCreateState  = NULL;
+    PSRV_OPLOCK_STATE_SMB_V2   pOplockState  = NULL;
+    BOOLEAN                    bContinue     = TRUE;
+
+    pCreateState = (PSRV_CREATE_STATE_SMB_V2)pCtxSmb2->hState;
+
+    if (SrvTree2IsNamedPipe(pCreateState->pTree) ||
+        pCreateState->fileStdInfo.Directory)
+    {
+        pOplockCursor = &noOplockChain[0];
+
+        goto done;
+    }
+
+    ntStatus = SrvBuildOplockState_SMB_V2(
+                    pExecContext->pConnection,
+                    pCtxSmb2->pSession,
+                    pCtxSmb2->pTree,
+                    pCreateState->pFile,
+                    &pOplockState);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    switch (pCreateState->pRequestHeader->ucOplockLevel)
+    {
+        case SMB2_OPLOCK_LEVEL_BATCH:
+
+            pOplockCursor = &batchOplockChain[0];
+
+            break;
+
+        case SMB2_OPLOCK_LEVEL_I:
+
+            pOplockCursor = &exclOplockChain[0];
+
+            break;
+
+        default:
+
+            pOplockCursor = &noOplockChain[0];
+
+            break;
+    }
+
+    while (bContinue && (pOplockCursor->oplockRequest != SMB_OPLOCK_LEVEL_NONE))
+    {
+        pOplockState->oplockBuffer_in.OplockRequestType =
+                        pOplockCursor->oplockRequest;
+
+        SrvPrepareOplockStateAsync_SMB_V2(pOplockState);
+
+        ntStatus = IoFsControlFile(
+                        pCreateState->pFile->hFile,
+                        pOplockState->pAcb,
+                        &pOplockState->ioStatusBlock,
+                        IO_FSCTL_OPLOCK_REQUEST,
+                        &pOplockState->oplockBuffer_in,
+                        sizeof(pOplockState->oplockBuffer_in),
+                        &pOplockState->oplockBuffer_out,
+                        sizeof(pOplockState->oplockBuffer_out));
+        switch (ntStatus)
+        {
+            case STATUS_OPLOCK_NOT_GRANTED:
+
+                SrvReleaseOplockStateAsync_SMB_V2(pOplockState); // completed sync
+
+                pOplockCursor++;
+
+                break;
+
+            case STATUS_PENDING:
+
+                ntStatus = SrvFile2SetOplockState(
+                               pCreateState->pFile,
+                               pOplockState,
+                               &SrvReleaseOplockStateHandle_SMB_V2);
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                InterlockedIncrement(&pOplockState->refCount);
+
+                SrvFile2SetOplockLevel(
+                        pCreateState->pFile,
+                        pOplockCursor->oplockLevel);
+
+                ntStatus = STATUS_SUCCESS;
+
+                bContinue = FALSE;
+
+                break;
+
+            default:
+
+                SrvReleaseOplockStateAsync_SMB_V2(pOplockState); // completed sync
+
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                break;
+        }
+    }
+
+done:
+
+    pCreateState->ucOplockLevel = pOplockCursor->oplockLevel;
+
+cleanup:
+
+    if (pOplockState)
+    {
+        SrvReleaseOplockState_SMB_V2(pOplockState);
+    }
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
+}
+
+static
+VOID
+SrvPrepareCreateStateAsync_SMB_V2(
+    PSRV_CREATE_STATE_SMB_V2 pCreateState,
+    PSRV_EXEC_CONTEXT        pExecContext
+    )
+{
+    pCreateState->acb.Callback        = &SrvExecuteCreateAsyncCB_SMB_V2;
+
+    pCreateState->acb.CallbackContext = pExecContext;
+    InterlockedIncrement(&pExecContext->refCount);
+
+    pCreateState->acb.AsyncCancelContext = NULL;
+
+    pCreateState->pAcb = &pCreateState->acb;
+}
+
+static
+VOID
+SrvExecuteCreateAsyncCB_SMB_V2(
+    PVOID pContext
+    )
+{
+    NTSTATUS                   ntStatus         = STATUS_SUCCESS;
+    PSRV_EXEC_CONTEXT          pExecContext     = (PSRV_EXEC_CONTEXT)pContext;
+    PSRV_PROTOCOL_EXEC_CONTEXT pProtocolContext = pExecContext->pProtocolContext;
+    PSRV_CREATE_STATE_SMB_V2   pCreateState     = NULL;
+    BOOLEAN                    bInLock          = FALSE;
+
+    pCreateState = (PSRV_CREATE_STATE_SMB_V2)pProtocolContext->pSmb2Context->hState;
+
+    LWIO_LOCK_MUTEX(bInLock, &pCreateState->mutex);
+
+    if (pCreateState->pAcb->AsyncCancelContext)
+    {
+        IoDereferenceAsyncCancelContext(
+                &pCreateState->pAcb->AsyncCancelContext);
+    }
+
+    pCreateState->pAcb = NULL;
+
+    LWIO_UNLOCK_MUTEX(bInLock, &pCreateState->mutex);
+
+    ntStatus = SrvProdConsEnqueue(gProtocolGlobals_SMB_V2.pWorkQueue, pContext);
+    if (ntStatus != STATUS_SUCCESS)
+    {
+        LWIO_LOG_ERROR("Failed to enqueue execution context [status:0x%x]",
+                       ntStatus);
+
+        SrvReleaseExecContext(pExecContext);
+    }
+}
+
+static
+VOID
+SrvReleaseCreateStateAsync_SMB_V2(
+    PSRV_CREATE_STATE_SMB_V2 pCreateState
+    )
+{
+    if (pCreateState->pAcb)
+    {
+        pCreateState->acb.Callback        = NULL;
+
+        if (pCreateState->pAcb->CallbackContext)
+        {
+            PSRV_EXEC_CONTEXT pExecContext = NULL;
+
+            pExecContext = (PSRV_EXEC_CONTEXT)pCreateState->pAcb->CallbackContext;
+
+            SrvReleaseExecContext(pExecContext);
+
+            pCreateState->pAcb->CallbackContext = NULL;
+        }
+
+        if (pCreateState->pAcb->AsyncCancelContext)
+        {
+            IoDereferenceAsyncCancelContext(
+                    &pCreateState->pAcb->AsyncCancelContext);
+        }
+
+        pCreateState->pAcb = NULL;
+    }
+}
+
+static
+VOID
+SrvReleaseCreateStateHandle_SMB_V2(
+    HANDLE hState
+    )
+{
+    SrvReleaseCreateState_SMB_V2((PSRV_CREATE_STATE_SMB_V2)hState);
+}
+
+static
+VOID
+SrvReleaseCreateState_SMB_V2(
+    PSRV_CREATE_STATE_SMB_V2 pCreateState
+    )
+{
+    if (InterlockedDecrement(&pCreateState->refCount) == 0)
+    {
+        SrvFreeCreateState_SMB_V2(pCreateState);
+    }
+}
+
+static
+VOID
+SrvFreeCreateState_SMB_V2(
+    PSRV_CREATE_STATE_SMB_V2 pCreateState
+    )
+{
+    if (pCreateState->pEcpList)
+    {
+        IoRtlEcpListFree(&pCreateState->pEcpList);
+    }
+
+    if (pCreateState->pAcb && pCreateState->pAcb->AsyncCancelContext)
+    {
+        IoDereferenceAsyncCancelContext(
+                    &pCreateState->pAcb->AsyncCancelContext);
+    }
+
+    // TODO: Free the following if set
+    // pSecurityDescriptor;
+    // pSecurityQOS;
+
+    if (pCreateState->pFilename)
+    {
+        if (pCreateState->pFilename->FileName)
+        {
+            SrvFreeMemory(pCreateState->pFilename->FileName);
+        }
+
+        SrvFreeMemory(pCreateState->pFilename);
+    }
+
+    if (pCreateState->hFile)
+    {
+        IoCloseFile(pCreateState->hFile);
+    }
+
+    if (pCreateState->bRemoveFileFromTree)
+    {
+        NTSTATUS ntStatus2 = 0;
+
+        SrvFile2ResetOplockState(pCreateState->pFile);
+
+        ntStatus2 = SrvTree2RemoveFile(
+                        pCreateState->pTree,
+                        pCreateState->pFile->ullFid);
+        if (ntStatus2)
+        {
+            LWIO_LOG_ERROR("Failed to remove file from tree [Tid:%u][Fid:%ul][code:%d]",
+                           pCreateState->pTree->ulTid,
+                           pCreateState->pFile->ullFid,
+                           ntStatus2);
+        }
+    }
+
+    SRV_SAFE_FREE_MEMORY(pCreateState->pwszFilename);
+    SRV_SAFE_FREE_MEMORY(pCreateState->pCreateContexts);
+
+    if (pCreateState->pFile)
+    {
+        SrvFile2Release(pCreateState->pFile);
+    }
+
+    if (pCreateState->pTree)
+    {
+        SrvTree2Release(pCreateState->pTree);
+    }
+
+    if (pCreateState->pMutex)
+    {
+        pthread_mutex_destroy(&pCreateState->mutex);
+    }
+
+    SrvFreeMemory(pCreateState);
+}
+
+static
+NTSTATUS
+SrvBuildCreateResponse_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS                   ntStatus      = STATUS_SUCCESS;
     PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
     PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
     ULONG                      iMsg          = pCtxSmb2->iMsg;
     PSRV_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
     PSRV_MESSAGE_SMB_V2        pSmbResponse  = &pCtxSmb2->pResponses[iMsg];
-    FILE_BASIC_INFORMATION       fileBasicInfo = {0};
-    FILE_STANDARD_INFORMATION    fileStdInfo = {0};
-    IO_STATUS_BLOCK              ioStatusBlock = {0};
+    PSRV_CREATE_STATE_SMB_V2   pCreateState  = NULL;
     PSMB2_CREATE_RESPONSE_HEADER pResponseHeader = NULL; // Do not free
-    PBYTE pOutBuffer = pSmbResponse->pBuffer;
+    PBYTE pOutBuffer       = pSmbResponse->pBuffer;
     ULONG ulBytesAvailable = pSmbResponse->ulBytesAvailable;
-    ULONG ulOffset    = 0;
-    ULONG ulBytesUsed = 0;
+    ULONG ulOffset         = 0;
+    ULONG ulBytesUsed      = 0;
     ULONG ulTotalBytesUsed = 0;
 
-    ntStatus = IoQueryInformationFile(
-                    pCtxSmb2->pFile->hFile,
-                    NULL,
-                    &ioStatusBlock,
-                    &fileBasicInfo,
-                    sizeof(fileBasicInfo),
-                    FileBasicInformation);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = IoQueryInformationFile(
-                    pCtxSmb2->pFile->hFile,
-                    NULL,
-                    &ioStatusBlock,
-                    &fileStdInfo,
-                    sizeof(fileStdInfo),
-                    FileStandardInformation);
-    BAIL_ON_NT_STATUS(ntStatus);
+    pCreateState = (PSRV_CREATE_STATE_SMB_V2)pCtxSmb2->hState;
 
     ntStatus = SMB2MarshalHeader(
                     pOutBuffer,
@@ -350,15 +936,49 @@ SrvBuildCreateResponse_SMB_V2(
     ulBytesAvailable -= sizeof(SMB2_CREATE_RESPONSE_HEADER);
     ulTotalBytesUsed += sizeof(SMB2_CREATE_RESPONSE_HEADER);
 
-    pResponseHeader->fid.ullVolatileId = pCtxSmb2->pFile->ullFid;
-    pResponseHeader->ulCreateAction    = pIoStatusBlock->CreateResult;
-    pResponseHeader->ullCreationTime   = fileBasicInfo.CreationTime;
-    pResponseHeader->ullLastAccessTime = fileBasicInfo.LastAccessTime;
-    pResponseHeader->ullLastWriteTime  = fileBasicInfo.LastWriteTime;
-    pResponseHeader->ullLastChangeTime = fileBasicInfo.ChangeTime;
-    pResponseHeader->ulFileAttributes  = fileBasicInfo.FileAttributes;
-    pResponseHeader->ullAllocationSize = fileStdInfo.AllocationSize;
-    pResponseHeader->ullEndOfFile      = fileStdInfo.EndOfFile;
+    switch (pCreateState->ucOplockLevel)
+    {
+        case SMB_OPLOCK_LEVEL_BATCH:
+
+            pResponseHeader->ucOplockLevel = SMB2_OPLOCK_LEVEL_BATCH;
+
+            break;
+
+        case SMB_OPLOCK_LEVEL_I:
+
+            pResponseHeader->ucOplockLevel = SMB2_OPLOCK_LEVEL_I;
+
+            break;
+
+        case SMB_OPLOCK_LEVEL_II:
+
+            pResponseHeader->ucOplockLevel = SMB2_OPLOCK_LEVEL_II;
+
+            break;
+
+        default:
+
+            pResponseHeader->ucOplockLevel = SMB2_OPLOCK_LEVEL_NONE;
+
+            break;
+    }
+
+    pResponseHeader->fid.ullVolatileId = pCreateState->pFile->ullFid;
+    pResponseHeader->ulCreateAction    =
+                                pCreateState->ioStatusBlock.CreateResult;
+    pResponseHeader->ullCreationTime   =
+                                pCreateState->pFileBasicInfo->CreationTime;
+    pResponseHeader->ullLastAccessTime =
+                                pCreateState->pFileBasicInfo->LastAccessTime;
+    pResponseHeader->ullLastWriteTime  =
+                                pCreateState->pFileBasicInfo->LastWriteTime;
+    pResponseHeader->ullLastChangeTime =
+                                pCreateState->pFileBasicInfo->ChangeTime;
+    pResponseHeader->ulFileAttributes  =
+                                pCreateState->pFileBasicInfo->FileAttributes;
+    pResponseHeader->ullAllocationSize =
+                                pCreateState->pFileStdInfo->AllocationSize;
+    pResponseHeader->ullEndOfFile      = pCreateState->pFileStdInfo->EndOfFile;
     pResponseHeader->usLength          = ulBytesUsed + 1;
 
     pSmbResponse->ulMessageSize = ulTotalBytesUsed;

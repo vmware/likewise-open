@@ -53,82 +53,108 @@
 
 static
 NTSTATUS
+SrvBuildSetInfoState_SMB_V2(
+    PSMB2_SET_INFO_REQUEST_HEADER pRequestHeader,
+    PLWIO_SRV_FILE_2              pFile,
+    PBYTE                         pData,
+    PSRV_SET_INFO_STATE_SMB_V2*   ppSetInfoState
+    );
+
+static
+NTSTATUS
+SrvSetInfo_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
+SrvBuildSetInfoResponse_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
 SrvSetFileInfo_SMB_V2(
-    PSRV_EXEC_CONTEXT             pExecContext,
-    PSMB2_SET_INFO_REQUEST_HEADER pRequestHeader,
-    PBYTE                         pData
+    PSRV_EXEC_CONTEXT pExecContext
     );
 
+static
 NTSTATUS
-SrvSetFileBasicInfo_SMB_V2(
-    PSRV_EXEC_CONTEXT             pExecContext,
-    PSMB2_SET_INFO_REQUEST_HEADER pRequestHeader,
-    PBYTE                         pData
+SrvBuildSetFileInfoResponse_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
     );
 
-NTSTATUS
-SrvSetFileRenameInfo_SMB_V2(
-    PSRV_EXEC_CONTEXT             pExecContext,
-    PSMB2_SET_INFO_REQUEST_HEADER pRequestHeader,
-    PBYTE                         pData
-    );
-
-NTSTATUS
-SrvSetFileDispositionInfo_SMB_V2(
-    PSRV_EXEC_CONTEXT             pExecContext,
-    PSMB2_SET_INFO_REQUEST_HEADER pRequestHeader,
-    PBYTE                         pData
-    );
-
-NTSTATUS
-SrvSetFilePositionInfo_SMB_V2(
-    PSRV_EXEC_CONTEXT             pExecContext,
-    PSMB2_SET_INFO_REQUEST_HEADER pRequestHeader,
-    PBYTE                         pData
-    );
-
-NTSTATUS
-SrvSetFileModeInfo_SMB_V2(
-    PSRV_EXEC_CONTEXT             pExecContext,
-    PSMB2_SET_INFO_REQUEST_HEADER pRequestHeader,
-    PBYTE                         pData
-    );
-
+static
 NTSTATUS
 SrvSetFileAllocationInfo_SMB_V2(
-    PSRV_EXEC_CONTEXT             pExecContext,
-    PSMB2_SET_INFO_REQUEST_HEADER pRequestHeader,
-    PBYTE                         pData
+    PSRV_EXEC_CONTEXT pExecContext
     );
 
+static
 NTSTATUS
-SrvSetFileEOFInfo_SMB_V2(
-    PSRV_EXEC_CONTEXT             pExecContext,
-    PSMB2_SET_INFO_REQUEST_HEADER pRequestHeader,
-    PBYTE                         pData
-    );
-
-NTSTATUS
-SrvSetPipeInfo_SMB_V2(
-    PSRV_EXEC_CONTEXT             pExecContext,
-    PSMB2_SET_INFO_REQUEST_HEADER pRequestHeader,
-    PBYTE                         pData
+SrvBuildSetFileAllocationInfoResponse_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
     );
 
 static
 NTSTATUS
 SrvSetFileSystemInfo_SMB_V2(
-    PSRV_EXEC_CONTEXT             pExecContext,
-    PSMB2_SET_INFO_REQUEST_HEADER pRequestHeader,
-    PBYTE                         pData
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
+SrvBuildSetFileSystemInfoResponse_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
     );
 
 static
 NTSTATUS
 SrvSetSecurityInfo_SMB_V2(
-    PSRV_EXEC_CONTEXT             pExecContext,
-    PSMB2_SET_INFO_REQUEST_HEADER pRequestHeader,
-    PBYTE                         pData
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
+SrvBuildSetSecurityInfoResponse_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+VOID
+SrvPrepareSetInfoStateAsync_SMB_V2(
+    PSRV_SET_INFO_STATE_SMB_V2 pSetInfoState,
+    PSRV_EXEC_CONTEXT          pExecContext
+    );
+
+static
+VOID
+SrvExecuteSetInfoAsyncCB_SMB_V2(
+    PVOID pContext
+    );
+
+static
+VOID
+SrvReleaseSetInfoStateAsync_SMB_V2(
+    PSRV_SET_INFO_STATE_SMB_V2 pSetInfoState
+    );
+
+static
+VOID
+SrvReleaseSetInfoStateHandle_SMB_V2(
+    HANDLE hSetInfoState
+    );
+
+static
+VOID
+SrvReleaseSetInfoState_SMB_V2(
+    PSRV_SET_INFO_STATE_SMB_V2 pSetInfoState
+    );
+
+static
+VOID
+SrvFreeSetInfoState_SMB_V2(
+    PSRV_SET_INFO_STATE_SMB_V2 pSetInfoState
     );
 
 NTSTATUS
@@ -136,81 +162,97 @@ SrvProcessSetInfo_SMB_V2(
     PSRV_EXEC_CONTEXT pExecContext
     )
 {
-    NTSTATUS ntStatus = STATUS_SUCCESS;
+    NTSTATUS                   ntStatus      = STATUS_SUCCESS;
     PLWIO_SRV_CONNECTION       pConnection   = pExecContext->pConnection;
     PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
     PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
-    ULONG                      iMsg          = pCtxSmb2->iMsg;
-    PSRV_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
-    PSMB2_SET_INFO_REQUEST_HEADER pRequestHeader = NULL; // Do not free
-    PBYTE                         pData = NULL; // Do not free
-    PLWIO_SRV_SESSION_2 pSession = NULL;
-    PLWIO_SRV_TREE_2    pTree = NULL;
-    PLWIO_SRV_FILE_2    pFile = NULL;
+    PSRV_SET_INFO_STATE_SMB_V2 pSetInfoState = NULL;
+    PLWIO_SRV_SESSION_2        pSession      = NULL;
+    PLWIO_SRV_TREE_2           pTree         = NULL;
+    PLWIO_SRV_FILE_2           pFile         = NULL;
+    BOOLEAN                    bInLock       = FALSE;
 
-    ntStatus = SrvConnection2FindSession_SMB_V2(
-                    pCtxSmb2,
-                    pConnection,
-                    pSmbRequest->pHeader->ullSessionId,
-                    &pSession);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SrvSession2FindTree_SMB_V2(
-                    pCtxSmb2,
-                    pSession,
-                    pSmbRequest->pHeader->ulTid,
-                    &pTree);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SMB2UnmarshalSetInfoRequest(
-                    pSmbRequest,
-                    &pRequestHeader,
-                    &pData);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SrvTree2FindFile_SMB_V2(
-                        pCtxSmb2,
-                        pTree,
-                        &pRequestHeader->fid,
-                        &pFile);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    switch (pRequestHeader->ucInfoType)
+    pSetInfoState = (PSRV_SET_INFO_STATE_SMB_V2)pCtxSmb2->hState;
+    if (pSetInfoState)
     {
-        case SMB2_INFO_TYPE_FILE:
+        InterlockedIncrement(&pSetInfoState->refCount);
+    }
+    else
+    {
+        ULONG                      iMsg          = pCtxSmb2->iMsg;
+        PSRV_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
+        PSMB2_SET_INFO_REQUEST_HEADER pRequestHeader = NULL; // Do not free
+        PBYTE                         pData          = NULL; // Do not free
 
-            ntStatus = SrvSetFileInfo_SMB_V2(
-                            pExecContext,
+        ntStatus = SrvConnection2FindSession_SMB_V2(
+                        pCtxSmb2,
+                        pConnection,
+                        pSmbRequest->pHeader->ullSessionId,
+                        &pSession);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = SrvSession2FindTree_SMB_V2(
+                        pCtxSmb2,
+                        pSession,
+                        pSmbRequest->pHeader->ulTid,
+                        &pTree);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = SMB2UnmarshalSetInfoRequest(
+                        pSmbRequest,
+                        &pRequestHeader,
+                        &pData);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = SrvTree2FindFile_SMB_V2(
+                            pCtxSmb2,
+                            pTree,
+                            &pRequestHeader->fid,
+                            &pFile);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = SrvBuildSetInfoState_SMB_V2(
                             pRequestHeader,
-                            pData);
+                            pFile,
+                            pData,
+                            &pSetInfoState);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-            break;
+        pCtxSmb2->hState = pSetInfoState;
+        InterlockedIncrement(&pSetInfoState->refCount);
+        pCtxSmb2->pfnStateRelease = &SrvReleaseSetInfoStateHandle_SMB_V2;
+    }
 
-        case SMB2_INFO_TYPE_FILE_SYSTEM:
+    LWIO_LOCK_MUTEX(bInLock, &pSetInfoState->mutex);
 
-            ntStatus = SrvSetFileSystemInfo_SMB_V2(
-                            pExecContext,
-                            pRequestHeader,
-                            pData);
+    switch (pSetInfoState->stage)
+    {
+        case SRV_SET_INFO_STAGE_SMB_V2_INITIAL:
 
-            break;
+            pSetInfoState->stage = SRV_GET_INFO_STAGE_SMB_V2_ATTEMPT_IO;
 
-        case SMB2_INFO_TYPE_SECURITY:
+            // intentional fall through
 
-            ntStatus = SrvSetSecurityInfo_SMB_V2(
-                            pExecContext,
-                            pRequestHeader,
-                            pData);
+        case SRV_SET_INFO_STAGE_SMB_V2_ATTEMPT_IO:
 
-            break;
+            ntStatus = SrvSetInfo_SMB_V2(pExecContext);
+            BAIL_ON_NT_STATUS(ntStatus);
 
-        default:
+            pSetInfoState->stage = SRV_SET_INFO_STAGE_SMB_V2_BUILD_RESPONSE;
 
-            ntStatus = STATUS_INVALID_INFO_CLASS;
+            // intentional fall through
+
+        case SRV_SET_INFO_STAGE_SMB_V2_BUILD_RESPONSE:
+
+            ntStatus = SrvBuildSetInfoResponse_SMB_V2(pExecContext);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            pSetInfoState->stage = SRV_SET_INFO_STAGE_SMB_V2_DONE;
+
+        case SRV_SET_INFO_STAGE_SMB_V2_DONE:
 
             break;
     }
-    BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
 
@@ -229,94 +271,118 @@ cleanup:
         SrvSession2Release(pSession);
     }
 
+    if (pSetInfoState)
+    {
+        LWIO_UNLOCK_MUTEX(bInLock, &pSetInfoState->mutex);
+
+        SrvReleaseSetInfoState_SMB_V2(pSetInfoState);
+    }
+
     return ntStatus;
 
 error:
+
+    switch (ntStatus)
+    {
+        case STATUS_PENDING:
+
+            // TODO: Add an indicator to the file object to trigger a
+            //       cleanup if the connection gets closed and all the
+            //       files involved have to be closed
+
+            break;
+
+        default:
+
+            if (pSetInfoState)
+            {
+                SrvReleaseSetInfoStateAsync_SMB_V2(pSetInfoState);
+            }
+
+            break;
+    }
 
     goto cleanup;
 }
 
 static
 NTSTATUS
-SrvSetFileInfo_SMB_V2(
-    PSRV_EXEC_CONTEXT             pExecContext,
+SrvBuildSetInfoState_SMB_V2(
     PSMB2_SET_INFO_REQUEST_HEADER pRequestHeader,
-    PBYTE                         pData
+    PLWIO_SRV_FILE_2              pFile,
+    PBYTE                         pData,
+    PSRV_SET_INFO_STATE_SMB_V2*   ppSetInfoState
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_SET_INFO_STATE_SMB_V2 pSetInfoState = NULL;
 
-    switch (pRequestHeader->ucInfoClass)
+    ntStatus = SrvAllocateMemory(
+                    sizeof(SRV_SET_INFO_STATE_SMB_V2),
+                    (PVOID*)&pSetInfoState);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pSetInfoState->refCount = 1;
+
+    pthread_mutex_init(&pSetInfoState->mutex, NULL);
+    pSetInfoState->pMutex = &pSetInfoState->mutex;
+
+    pSetInfoState->stage = SRV_SET_INFO_STAGE_SMB_V2_INITIAL;
+
+    pSetInfoState->pRequestHeader = pRequestHeader;
+    pSetInfoState->pData          = pData;
+
+    pSetInfoState->pFile = pFile;
+    InterlockedIncrement(&pFile->refcount);
+
+    *ppSetInfoState = pSetInfoState;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppSetInfoState = NULL;
+
+    if (pSetInfoState)
     {
-        case SMB2_FILE_INFO_CLASS_BASIC :
+        SrvFreeSetInfoState_SMB_V2(pSetInfoState);
+    }
 
-            ntStatus = SrvSetFileBasicInfo_SMB_V2(
-                            pExecContext,
-                            pRequestHeader,
-                            pData);
+    goto cleanup;
+}
 
-            break;
+static
+NTSTATUS
+SrvSetInfo_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS                   ntStatus      = STATUS_SUCCESS;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    PSRV_SET_INFO_STATE_SMB_V2 pSetInfoState = NULL;
 
-        case SMB2_FILE_INFO_CLASS_RENAME :
+    pSetInfoState = (PSRV_SET_INFO_STATE_SMB_V2)pCtxSmb2->hState;
 
-            ntStatus = SrvSetFileRenameInfo_SMB_V2(
-                            pExecContext,
-                            pRequestHeader,
-                            pData);
+    switch (pSetInfoState->pRequestHeader->ucInfoType)
+    {
+        case SMB2_INFO_TYPE_FILE:
 
-            break;
-
-        case SMB2_FILE_INFO_CLASS_DISPOSITION :
-
-            ntStatus = SrvSetFileDispositionInfo_SMB_V2(
-                            pExecContext,
-                            pRequestHeader,
-                            pData);
-
-            break;
-
-        case SMB2_FILE_INFO_CLASS_POSITION :
-
-            ntStatus = SrvSetFilePositionInfo_SMB_V2(
-                            pExecContext,
-                            pRequestHeader,
-                            pData);
+            ntStatus = SrvSetFileInfo_SMB_V2(pExecContext);
 
             break;
 
-        case SMB2_FILE_INFO_CLASS_MODE :
+        case SMB2_INFO_TYPE_FILE_SYSTEM:
 
-            ntStatus = SrvSetFileModeInfo_SMB_V2(
-                            pExecContext,
-                            pRequestHeader,
-                            pData);
+            ntStatus = SrvSetFileSystemInfo_SMB_V2(pExecContext);
 
             break;
 
-        case SMB2_FILE_INFO_CLASS_ALLOCATION :
+        case SMB2_INFO_TYPE_SECURITY:
 
-            ntStatus = SrvSetFileAllocationInfo_SMB_V2(
-                            pExecContext,
-                            pRequestHeader,
-                            pData);
-
-            break;
-
-        case SMB2_FILE_INFO_CLASS_EOF :
-
-            ntStatus = SrvSetFileEOFInfo_SMB_V2(
-                            pExecContext,
-                            pRequestHeader,
-                            pData);
-
-            break;
-
-        case SMB2_FILE_INFO_CLASS_PIPE:
-
-            ntStatus = SrvSetPipeInfo_SMB_V2(
-                            pExecContext,
-                            pRequestHeader,
-                            pData);
+            ntStatus = SrvSetSecurityInfo_SMB_V2(pExecContext);
 
             break;
 
@@ -330,64 +396,181 @@ SrvSetFileInfo_SMB_V2(
     return ntStatus;
 }
 
+static
 NTSTATUS
-SrvSetFileBasicInfo_SMB_V2(
-    PSRV_EXEC_CONTEXT             pExecContext,
-    PSMB2_SET_INFO_REQUEST_HEADER pRequestHeader,
-    PBYTE                         pData
+SrvBuildSetInfoResponse_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
     )
 {
-    return STATUS_NOT_SUPPORTED;
+    NTSTATUS                   ntStatus      = STATUS_SUCCESS;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    PSRV_SET_INFO_STATE_SMB_V2 pSetInfoState = NULL;
+
+    pSetInfoState = (PSRV_SET_INFO_STATE_SMB_V2)pCtxSmb2->hState;
+
+    switch (pSetInfoState->pRequestHeader->ucInfoType)
+    {
+        case SMB2_INFO_TYPE_FILE:
+
+            ntStatus = SrvBuildSetFileInfoResponse_SMB_V2(pExecContext);
+
+            break;
+
+        case SMB2_INFO_TYPE_FILE_SYSTEM:
+
+            ntStatus = SrvBuildSetFileSystemInfoResponse_SMB_V2(pExecContext);
+
+            break;
+
+        case SMB2_INFO_TYPE_SECURITY:
+
+            ntStatus = SrvBuildSetSecurityInfoResponse_SMB_V2(pExecContext);
+
+            break;
+
+        default:
+
+            ntStatus = STATUS_INVALID_INFO_CLASS;
+
+            break;
+    }
+
+    return ntStatus;
 }
 
+static
 NTSTATUS
-SrvSetFileRenameInfo_SMB_V2(
-    PSRV_EXEC_CONTEXT             pExecContext,
-    PSMB2_SET_INFO_REQUEST_HEADER pRequestHeader,
-    PBYTE                         pData
+SrvSetFileInfo_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
     )
 {
-    return STATUS_NOT_SUPPORTED;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    PSRV_SET_INFO_STATE_SMB_V2 pSetInfoState = NULL;
+
+    pSetInfoState = (PSRV_SET_INFO_STATE_SMB_V2)pCtxSmb2->hState;
+
+    switch (pSetInfoState->pRequestHeader->ucInfoClass)
+    {
+        case SMB2_FILE_INFO_CLASS_BASIC :
+        case SMB2_FILE_INFO_CLASS_RENAME :
+        case SMB2_FILE_INFO_CLASS_DISPOSITION :
+        case SMB2_FILE_INFO_CLASS_POSITION :
+        case SMB2_FILE_INFO_CLASS_MODE :
+        case SMB2_FILE_INFO_CLASS_EOF :
+        case SMB2_FILE_INFO_CLASS_PIPE :
+
+            ntStatus = STATUS_NOT_SUPPORTED;
+
+            break;
+
+        case SMB2_FILE_INFO_CLASS_ALLOCATION :
+
+            ntStatus = SrvSetFileAllocationInfo_SMB_V2(pExecContext);
+
+            break;
+
+        default:
+
+            ntStatus = STATUS_INVALID_INFO_CLASS;
+
+            break;
+    }
+
+    return ntStatus;
 }
 
+static
 NTSTATUS
-SrvSetFileDispositionInfo_SMB_V2(
-    PSRV_EXEC_CONTEXT             pExecContext,
-    PSMB2_SET_INFO_REQUEST_HEADER pRequestHeader,
-    PBYTE                         pData
+SrvBuildSetFileInfoResponse_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
     )
 {
-    return STATUS_NOT_SUPPORTED;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    PSRV_SET_INFO_STATE_SMB_V2 pSetInfoState = NULL;
+
+    pSetInfoState = (PSRV_SET_INFO_STATE_SMB_V2)pCtxSmb2->hState;
+
+    switch (pSetInfoState->pRequestHeader->ucInfoClass)
+    {
+        case SMB2_FILE_INFO_CLASS_BASIC :
+        case SMB2_FILE_INFO_CLASS_RENAME :
+        case SMB2_FILE_INFO_CLASS_DISPOSITION :
+        case SMB2_FILE_INFO_CLASS_POSITION :
+        case SMB2_FILE_INFO_CLASS_MODE :
+        case SMB2_FILE_INFO_CLASS_EOF :
+        case SMB2_FILE_INFO_CLASS_PIPE :
+
+            ntStatus = STATUS_NOT_SUPPORTED;
+
+            break;
+
+        case SMB2_FILE_INFO_CLASS_ALLOCATION :
+
+            ntStatus = SrvBuildSetFileAllocationInfoResponse_SMB_V2(
+                                    pExecContext);
+
+            break;
+
+        default:
+
+            ntStatus = STATUS_INVALID_INFO_CLASS;
+
+            break;
+    }
+
+    return ntStatus;
 }
 
-NTSTATUS
-SrvSetFilePositionInfo_SMB_V2(
-    PSRV_EXEC_CONTEXT             pExecContext,
-    PSMB2_SET_INFO_REQUEST_HEADER pRequestHeader,
-    PBYTE                         pData
-    )
-{
-    return STATUS_NOT_SUPPORTED;
-}
-
-NTSTATUS
-SrvSetFileModeInfo_SMB_V2(
-    PSRV_EXEC_CONTEXT             pExecContext,
-    PSMB2_SET_INFO_REQUEST_HEADER pRequestHeader,
-    PBYTE                         pData
-    )
-{
-    return STATUS_NOT_SUPPORTED;
-}
-
+static
 NTSTATUS
 SrvSetFileAllocationInfo_SMB_V2(
-    PSRV_EXEC_CONTEXT             pExecContext,
-    PSMB2_SET_INFO_REQUEST_HEADER pRequestHeader,
-    PBYTE                         pData
+    PSRV_EXEC_CONTEXT pExecContext
     )
 {
-    NTSTATUS ntStatus = 0;
+    NTSTATUS                     ntStatus      = STATUS_SUCCESS;
+    PSRV_PROTOCOL_EXEC_CONTEXT   pCtxProtocol  = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V2     pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    PSRV_SET_INFO_STATE_SMB_V2   pSetInfoState = NULL;
+
+    pSetInfoState = (PSRV_SET_INFO_STATE_SMB_V2)pCtxSmb2->hState;
+
+    if (pSetInfoState->pRequestHeader->ulInputBufferLen <
+                    sizeof(FILE_ALLOCATION_INFORMATION))
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    SrvPrepareSetInfoStateAsync_SMB_V2(pSetInfoState, pExecContext);
+
+    ntStatus = IoSetInformationFile(
+                    pCtxSmb2->pFile->hFile,
+                    pSetInfoState->pAcb,
+                    &pSetInfoState->ioStatusBlock,
+                    (PFILE_ALLOCATION_INFORMATION)pSetInfoState->pData,
+                    sizeof(FILE_ALLOCATION_INFORMATION),
+                    FileAllocationInformation);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    SrvReleaseSetInfoStateAsync_SMB_V2(pSetInfoState); // completed sync
+
+error:
+
+    return ntStatus;
+}
+
+static
+NTSTATUS
+SrvBuildSetFileAllocationInfoResponse_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS                   ntStatus      = STATUS_SUCCESS;
     PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
     PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
     ULONG                      iMsg          = pCtxSmb2->iMsg;
@@ -397,26 +580,7 @@ SrvSetFileAllocationInfo_SMB_V2(
     ULONG ulBytesAvailable = pSmbResponse->ulBytesAvailable;
     ULONG ulOffset         = 0;
     ULONG ulTotalBytesUsed = 0;
-    PFILE_ALLOCATION_INFORMATION pFileAllocationInfo = NULL;
-    IO_STATUS_BLOCK ioStatusBlock = {0};
     PSMB2_SET_INFO_RESPONSE_HEADER pResponseHeader = NULL; // Do not free
-
-    if (pRequestHeader->ulInputBufferLen < sizeof(FILE_ALLOCATION_INFORMATION))
-    {
-        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    pFileAllocationInfo = (PFILE_ALLOCATION_INFORMATION)pData;
-
-    ntStatus = IoSetInformationFile(
-                    pCtxSmb2->pFile->hFile,
-                    NULL,
-                    &ioStatusBlock,
-                    pFileAllocationInfo,
-                    sizeof(FILE_ALLOCATION_INFORMATION),
-                    FileAllocationInformation);
-    BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMB2MarshalHeader(
                     pOutBuffer,
@@ -475,21 +639,10 @@ error:
     goto cleanup;
 }
 
+static
 NTSTATUS
-SrvSetFileEOFInfo_SMB_V2(
-    PSRV_EXEC_CONTEXT             pExecContext,
-    PSMB2_SET_INFO_REQUEST_HEADER pRequestHeader,
-    PBYTE                         pData
-    )
-{
-    return STATUS_NOT_SUPPORTED;
-}
-
-NTSTATUS
-SrvSetPipeInfo_SMB_V2(
-    PSRV_EXEC_CONTEXT             pExecContext,
-    PSMB2_SET_INFO_REQUEST_HEADER pRequestHeader,
-    PBYTE                         pData
+SrvSetFileSystemInfo_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
     )
 {
     return STATUS_NOT_SUPPORTED;
@@ -497,10 +650,8 @@ SrvSetPipeInfo_SMB_V2(
 
 static
 NTSTATUS
-SrvSetFileSystemInfo_SMB_V2(
-    PSRV_EXEC_CONTEXT             pExecContext,
-    PSMB2_SET_INFO_REQUEST_HEADER pRequestHeader,
-    PBYTE                         pData
+SrvBuildSetFileSystemInfoResponse_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
     )
 {
     return STATUS_NOT_SUPPORTED;
@@ -509,10 +660,148 @@ SrvSetFileSystemInfo_SMB_V2(
 static
 NTSTATUS
 SrvSetSecurityInfo_SMB_V2(
-    PSRV_EXEC_CONTEXT             pExecContext,
-    PSMB2_SET_INFO_REQUEST_HEADER pRequestHeader,
-    PBYTE                         pData
+    PSRV_EXEC_CONTEXT pExecContext
     )
 {
     return STATUS_NOT_SUPPORTED;
+}
+
+static
+NTSTATUS
+SrvBuildSetSecurityInfoResponse_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    return STATUS_NOT_SUPPORTED;
+}
+
+static
+VOID
+SrvPrepareSetInfoStateAsync_SMB_V2(
+    PSRV_SET_INFO_STATE_SMB_V2 pSetInfoState,
+    PSRV_EXEC_CONTEXT          pExecContext
+    )
+{
+    pSetInfoState->acb.Callback        = &SrvExecuteSetInfoAsyncCB_SMB_V2;
+
+    pSetInfoState->acb.CallbackContext = pExecContext;
+    InterlockedIncrement(&pExecContext->refCount);
+
+    pSetInfoState->acb.AsyncCancelContext = NULL;
+
+    pSetInfoState->pAcb = &pSetInfoState->acb;
+}
+
+static
+VOID
+SrvExecuteSetInfoAsyncCB_SMB_V2(
+    PVOID pContext
+    )
+{
+    NTSTATUS                   ntStatus         = STATUS_SUCCESS;
+    PSRV_EXEC_CONTEXT          pExecContext     = (PSRV_EXEC_CONTEXT)pContext;
+    PSRV_PROTOCOL_EXEC_CONTEXT pProtocolContext = pExecContext->pProtocolContext;
+    PSRV_SET_INFO_STATE_SMB_V2 pSetInfoState    = NULL;
+    BOOLEAN                    bInLock          = FALSE;
+
+    pSetInfoState =
+        (PSRV_SET_INFO_STATE_SMB_V2)pProtocolContext->pSmb2Context->hState;
+
+    LWIO_LOCK_MUTEX(bInLock, &pSetInfoState->mutex);
+
+    if (pSetInfoState->pAcb->AsyncCancelContext)
+    {
+        IoDereferenceAsyncCancelContext(&pSetInfoState->pAcb->AsyncCancelContext);
+    }
+
+    pSetInfoState->pAcb = NULL;
+
+    LWIO_UNLOCK_MUTEX(bInLock, &pSetInfoState->mutex);
+
+    ntStatus = SrvProdConsEnqueue(gProtocolGlobals_SMB_V2.pWorkQueue, pContext);
+    if (ntStatus != STATUS_SUCCESS)
+    {
+        LWIO_LOG_ERROR("Failed to enqueue execution context [status:0x%x]",
+                       ntStatus);
+
+        SrvReleaseExecContext(pExecContext);
+    }
+}
+
+static
+VOID
+SrvReleaseSetInfoStateAsync_SMB_V2(
+    PSRV_SET_INFO_STATE_SMB_V2 pSetInfoState
+    )
+{
+    if (pSetInfoState->pAcb)
+    {
+        pSetInfoState->acb.Callback = NULL;
+
+        if (pSetInfoState->pAcb->CallbackContext)
+        {
+            PSRV_EXEC_CONTEXT pExecContext = NULL;
+
+            pExecContext = (PSRV_EXEC_CONTEXT)pSetInfoState->pAcb->CallbackContext;
+
+            SrvReleaseExecContext(pExecContext);
+
+            pSetInfoState->pAcb->CallbackContext = NULL;
+        }
+
+        if (pSetInfoState->pAcb->AsyncCancelContext)
+        {
+            IoDereferenceAsyncCancelContext(
+                    &pSetInfoState->pAcb->AsyncCancelContext);
+        }
+
+        pSetInfoState->pAcb = NULL;
+    }
+}
+
+static
+VOID
+SrvReleaseSetInfoStateHandle_SMB_V2(
+    HANDLE hSetInfoState
+    )
+{
+    return SrvReleaseSetInfoState_SMB_V2(
+                    (PSRV_SET_INFO_STATE_SMB_V2)hSetInfoState);
+}
+
+static
+VOID
+SrvReleaseSetInfoState_SMB_V2(
+    PSRV_SET_INFO_STATE_SMB_V2 pSetInfoState
+    )
+{
+    if (InterlockedDecrement(&pSetInfoState->refCount) == 0)
+    {
+        SrvFreeSetInfoState_SMB_V2(pSetInfoState);
+    }
+}
+
+static
+VOID
+SrvFreeSetInfoState_SMB_V2(
+    PSRV_SET_INFO_STATE_SMB_V2 pSetInfoState
+    )
+{
+    if (pSetInfoState->pAcb && pSetInfoState->pAcb->AsyncCancelContext)
+    {
+        IoDereferenceAsyncCancelContext(
+                &pSetInfoState->pAcb->AsyncCancelContext);
+    }
+
+    if (pSetInfoState->pFile)
+    {
+        SrvFile2Release(pSetInfoState->pFile);
+    }
+
+    if (pSetInfoState->pMutex)
+    {
+        pthread_mutex_destroy(&pSetInfoState->mutex);
+    }
+
+    SrvFreeMemory(pSetInfoState);
 }

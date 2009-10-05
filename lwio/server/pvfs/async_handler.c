@@ -176,7 +176,7 @@ PvfsFreeWorkContext(
             {
                 if (pWorkCtx->pfnFreeContext)
                 {
-                    pWorkCtx->pfnFreeContext(pWorkCtx->pContext);
+                    pWorkCtx->pfnFreeContext(&pWorkCtx->pContext);
                 }
                 else
                 {

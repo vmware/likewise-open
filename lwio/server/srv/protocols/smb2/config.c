@@ -28,59 +28,40 @@
  * license@likewisesoftware.com
  */
 
-
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        includes.h
+ *        config.c
  *
  * Abstract:
  *
  *        Likewise IO (LWIO) - SRV
  *
- *        Protocols
+ *        SMB V2 API
+ *
+ *        Configuration
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
+ *
  */
 
-#include <config.h>
-#include <lwiosys.h>
+#include "includes.h"
 
-#include <uuid/uuid.h>
+ULONG
+SrvConfigGetOplockTimeout_SMB_V2(
+    VOID
+    )
+{
+    ULONG   ulTimeout = 0;
+    BOOLEAN bInLock   = FALSE;
 
-#include <lwio/lwio.h>
+    LWIO_LOCK_MUTEX(bInLock, &gProtocolGlobals_SMB_V2.mutex);
 
-#include <lwiodef.h>
-#include <lwioutils.h>
-#include <lwiolog_r.h>
-#include <lwnet.h>
+    ulTimeout = gProtocolGlobals_SMB_V2.ulOplockTimeout;
 
-#include <lw/ntstatus.h>
+    LWIO_UNLOCK_MUTEX(bInLock, &gProtocolGlobals_SMB_V2.mutex);
 
-#include <lwio/lmshare.h>
-#include <lwio/lwshareinfo.h>
-
-#include <iodriver.h>
-#include <ioapi.h>
-#include <lwiofsctl.h>
-
-#include <smbwire.h>
-
-#include <srvutils.h>
-#include <shareapi.h>
-#include <elementsapi.h>
-#include <transportapi.h>
-#include <protocolapi.h>
-
-#include <protocolapi_p.h>
-#include <smb2.h>
-
-#include "defs.h"
-#include "structs.h"
-#include "prototypes.h"
-
-#include "externs.h"
-
+    return ulTimeout;
+}

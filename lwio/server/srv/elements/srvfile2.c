@@ -125,6 +125,105 @@ error:
     goto cleanup;
 }
 
+NTSTATUS
+SrvFile2SetOplockState(
+    PLWIO_SRV_FILE_2               pFile,
+    HANDLE                         hOplockState,
+    PFN_LWIO_SRV_FREE_OPLOCK_STATE pfnFreeOplockState
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    BOOLEAN  bInLock  = FALSE;
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pFile->mutex);
+
+    if (pFile->hOplockState && pFile->pfnFreeOplockState)
+    {
+        pFile->pfnFreeOplockState(pFile->hOplockState);
+        pFile->hOplockState       = NULL;
+        pFile->pfnFreeOplockState = NULL;
+    }
+
+    pFile->hOplockState       = hOplockState;
+    pFile->pfnFreeOplockState = pfnFreeOplockState;
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pFile->mutex);
+
+    return ntStatus;
+}
+
+HANDLE
+SrvFile2RemoveOplockState(
+    PLWIO_SRV_FILE_2 pFile
+    )
+{
+    HANDLE  hOplockState = NULL;
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pFile->mutex);
+
+    hOplockState = pFile->hOplockState;
+
+    pFile->hOplockState       = NULL;
+    pFile->pfnFreeOplockState = NULL;
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pFile->mutex);
+
+    return hOplockState;
+}
+
+VOID
+SrvFile2ResetOplockState(
+    PLWIO_SRV_FILE_2 pFile
+    )
+{
+    BOOLEAN  bInLock  = FALSE;
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pFile->mutex);
+
+    if (pFile->hOplockState && pFile->pfnFreeOplockState)
+    {
+        pFile->pfnFreeOplockState(pFile->hOplockState);
+        pFile->hOplockState       = NULL;
+        pFile->pfnFreeOplockState = NULL;
+    }
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pFile->mutex);
+}
+
+VOID
+SrvFile2SetOplockLevel(
+    PLWIO_SRV_FILE_2 pFile,
+    UCHAR            ucOplockLevel
+    )
+{
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pFile->mutex);
+
+    pFile->ucCurrentOplockLevel = ucOplockLevel;
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pFile->mutex);
+}
+
+UCHAR
+SrvFile2GetOplockLevel(
+    PLWIO_SRV_FILE_2 pFile
+    )
+{
+    UCHAR ucOplockLevel = SMB_OPLOCK_LEVEL_NONE;
+
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pFile->mutex);
+
+    ucOplockLevel = pFile->ucCurrentOplockLevel;
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pFile->mutex);
+
+    return ucOplockLevel;
+}
+
 VOID
 SrvFile2Release(
     PLWIO_SRV_FILE_2 pFile

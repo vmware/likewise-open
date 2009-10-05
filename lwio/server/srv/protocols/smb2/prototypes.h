@@ -68,6 +68,13 @@ SrvConnection2FindSession_SMB_V2(
     PLWIO_SRV_SESSION_2*     ppSession
     );
 
+// config.c
+
+ULONG
+SrvConfigGetOplockTimeout_SMB_V2(
+    VOID
+    );
+
 // create.c
 
 NTSTATUS
@@ -128,6 +135,48 @@ SrvProcessLogoff_SMB_V2(
 NTSTATUS
 SrvProcessNegotiate_SMB_V2(
     PSRV_EXEC_CONTEXT pExecContext
+    );
+
+// oplock.c
+
+NTSTATUS
+SrvBuildOplockState_SMB_V2(
+    PLWIO_SRV_CONNECTION      pConnection,
+    PLWIO_SRV_SESSION_2       pSession,
+    PLWIO_SRV_TREE_2          pTree,
+    PLWIO_SRV_FILE_2          pFile,
+    PSRV_OPLOCK_STATE_SMB_V2* ppOplockState
+    );
+
+NTSTATUS
+SrvProcessOplock_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+NTSTATUS
+SrvAcknowledgeOplockBreak_SMB_V2(
+    PSRV_OPLOCK_STATE_SMB_V2 pOplockState,
+    BOOLEAN bFileIsClosed
+    );
+
+VOID
+SrvReleaseOplockStateHandle_SMB_V2(
+    HANDLE hOplockState
+    );
+
+VOID
+SrvReleaseOplockState_SMB_V2(
+    PSRV_OPLOCK_STATE_SMB_V2 pOplockState
+    );
+
+VOID
+SrvPrepareOplockStateAsync_SMB_V2(
+    PSRV_OPLOCK_STATE_SMB_V2 pOplockState
+    );
+
+VOID
+SrvReleaseOplockStateAsync_SMB_V2(
+    PSRV_OPLOCK_STATE_SMB_V2 pOplockState
     );
 
 // session.c

@@ -281,7 +281,15 @@ SrvProtocolExecute_SMB_V2(
 
             case COM2_LOCK:
 
-                ntStatus = SrvProcessLock_SMB_V2(pExecContext);
+                // TODO:
+                if (pExecContext->bInternal)
+                {
+                    ntStatus = SrvProcessOplock_SMB_V2(pExecContext);
+                }
+                else
+                {
+                    ntStatus = SrvProcessLock_SMB_V2(pExecContext);
+                }
 
                 break;
 
