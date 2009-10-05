@@ -1056,7 +1056,7 @@ lwmsg_server_task_perform_finish(
         lwmsg_server_task_subject_to_timeout(server, *task, shutdown))
     {
         /* Perform timeout logic on tasks that are still blocked */
-        if (lwmsg_server_task_is_past_due(*task, now))
+        if (lwmsg_server_task_is_past_due(*task, now) || shutdown)
         {
             /* Task is past due */
             switch ((*task)->type)
