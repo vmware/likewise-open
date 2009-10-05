@@ -414,6 +414,124 @@ error:
 
 static
 DWORD
+LwSmRestartAll(
+    int argc,
+    char** pArgv
+    )
+{
+    DWORD dwError = 0;
+    PWSTR pwszServiceName = NULL;
+    LW_SERVICE_HANDLE hHandle = NULL;
+    PWSTR* ppwszReverseDeps = NULL;
+    PLW_SERVICE_STATUS pStatus = NULL;
+    PLW_SERVICE_HANDLE phDepHandles = NULL;
+    PSTR pszTemp = NULL;
+    size_t count = 0;
+    size_t i = 0;
+
+    dwError = LwMbsToWc16s(pArgv[1], &pwszServiceName);
+    BAIL_ON_ERROR(dwError);
+
+    dwError = LwSmAcquireServiceHandle(pwszServiceName, &hHandle);
+    BAIL_ON_ERROR(dwError);
+
+    dwError = LwSmGetServiceReverseDependencyClosure(hHandle, &ppwszReverseDeps);
+    BAIL_ON_ERROR(dwError);
+
+    count = LwSmStringListLength(ppwszReverseDeps);
+
+    dwError = LwAllocateMemory(sizeof(*pStatus) * count, OUT_PPVOID(&pStatus));
+    BAIL_ON_ERROR(dwError);
+
+    dwError = LwAllocateMemory(sizeof(*phDepHandles) * count, OUT_PPVOID(&phDepHandles));
+    BAIL_ON_ERROR(dwError);
+
+    for (i = 0; i < count; i++)
+    {
+        dwError = LwSmAcquireServiceHandle(ppwszReverseDeps[i], &phDepHandles[i]);
+        BAIL_ON_ERROR(dwError);
+
+        dwError = LwSmGetServiceStatus(phDepHandles[i], &pStatus[i]);
+        BAIL_ON_ERROR(dwError);
+
+        if (pStatus[i] != LW_SERVICE_STOPPED)
+        {
+            if (!gState.bQuiet)
+            {
+                dwError = LwWc16sToMbs(ppwszReverseDeps[i], &pszTemp);
+                BAIL_ON_ERROR(dwError);
+                printf("Stopping service reverse dependency: %s\n", pszTemp);
+                LW_SAFE_FREE_MEMORY(pszTemp);
+            }
+            dwError = LwSmStopService(phDepHandles[i]);
+            BAIL_ON_ERROR(dwError);
+        }
+    }
+
+    if (!gState.bQuiet)
+    {
+        printf("Stopping service: %s\n", pArgv[1]);
+    }
+
+    dwError = LwSmStopService(hHandle);
+    BAIL_ON_ERROR(dwError);
+
+    if (!gState.bQuiet)
+    {
+        printf("Starting service: %s\n", pArgv[1]);
+    }
+
+    dwError = LwSmStartService(hHandle);
+    BAIL_ON_ERROR(dwError);
+
+    for (i = 0; i < count; i++)
+    {
+        if (pStatus[count - 1 - i] == LW_SERVICE_RUNNING)
+        {
+            if (!gState.bQuiet)
+            {
+                dwError = LwWc16sToMbs(ppwszReverseDeps[count - 1 - i], &pszTemp);
+                BAIL_ON_ERROR(dwError);
+                printf("Starting service reverse dependency: %s\n", pszTemp);
+                LW_SAFE_FREE_MEMORY(pszTemp);
+            }
+            dwError = LwSmStartService(phDepHandles[count - 1 - i]);
+            BAIL_ON_ERROR(dwError);
+        }
+    }
+
+cleanup:
+
+    LW_SAFE_FREE_MEMORY(pwszServiceName);
+    LW_SAFE_FREE_MEMORY(pStatus);
+
+    if (hHandle)
+    {
+        LwSmReleaseServiceHandle(hHandle);
+    }
+
+    if (phDepHandles)
+    {
+        for (i = 0; i < count; i++)
+        {
+            if (phDepHandles[i])
+            {
+                LwSmReleaseServiceHandle(phDepHandles[i]);
+            }
+        }
+
+        LW_SAFE_FREE_MEMORY(phDepHandles);
+    }
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+static
+DWORD
 LwSmRefresh(
     int argc,
     char** pArgv
@@ -599,6 +717,7 @@ LwSmUsage(
            "    start-all <service>        Start a service and all dependencies\n"
            "    stop <service>             Stop a service\n"
            "    stop-all <service>         Stop a service and all reverse dependencies\n"
+           "    restart-all <service>      Restart a service and all running reverse dependencies\n"
            "    refresh <service>          Refresh service's configuration\n"
            "    info <service>             Get information about a service\n"
            "    status <service>           Get the status of a service\n\n");
@@ -671,6 +790,11 @@ main(
         else if (!strcmp(pArgv[i], "refresh"))
         {
             dwError = LwSmRefresh(argc-i, pArgv+i);
+            goto error;
+        }
+        else if (!strcmp(pArgv[i], "restart-all"))
+        {
+            dwError = LwSmRestartAll(argc-i, pArgv+i);
             goto error;
         }
         else
