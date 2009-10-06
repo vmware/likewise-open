@@ -787,23 +787,6 @@ EVTInitLogging(
     }
 }
 
-static
-DWORD
-EVTStopSignalHandler()
-{
-    DWORD dwError = 0;
-    uint32_t status = 0;
-
-    rpc_mgmt_stop_server_listening(NULL, (unsigned32*)&status);
-
-    if (pgSignalHandlerThread && !pthread_cancel(gSignalHandlerThread)) {
-        pthread_join(gSignalHandlerThread, NULL);
-        pgSignalHandlerThread = NULL;
-    }
-
-    return (dwError);
-}
-
 static PSTR gpszAllowReadTo;
 static PSTR gpszAllowWriteTo;
 static PSTR gpszAllowDeleteTo;
@@ -935,9 +918,9 @@ EVTInterruptHandler(
 }
 
 static
-PVOID
+DWORD
 EVTHandleSignals(
-    PVOID pArg
+    void
     )
 {
     DWORD dwError = 0;
@@ -945,7 +928,6 @@ EVTHandleSignals(
     sigset_t catch_signal_mask;
     int which_signal = 0;
     int sysRet = 0;
-    unsigned32 status = 0;
 
     // After starting up threads, we now want to handle SIGINT async
     // instead of using sigwait() on it.  The reason for this is so
@@ -985,12 +967,8 @@ EVTHandleSignals(
             case SIGQUIT:
             case SIGTERM:
             {
-                rpc_mgmt_stop_server_listening(NULL, &status);
-                EVTSetProcessShouldExit(TRUE);
-
-                break;
+                goto error;
             }
-
             case SIGPIPE:
             {
                 EVT_LOG_DEBUG("Handled SIGPIPE");
@@ -1008,44 +986,79 @@ EVTHandleSignals(
     }
 
 error:
-    return NULL;
+
+    return dwError;
 }
 
-/*
- * Set up the process environment to properly deal with signals.
- * By default, we isolate all threads from receiving asynchronous
- * signals. We create a thread that handles all async signals.
- * The signal handling actions are handled in the handler thread.
- *
- * For AIX, we cant use a thread that sigwaits() on a specific signal,
- * we use a plain old, lame old Unix signal handler.
- *
- */
 static
-DWORD
-EVTStartSignalHandler()
+void*
+EVTListenThread(
+    void* pArg
+    )
 {
     DWORD dwError = 0;
 
-    dwError = pthread_create(&gSignalHandlerThread,
-                             NULL,
-                             EVTHandleSignals,
-                             NULL);
+    dwError = EVTListen();
     BAIL_ON_EVT_ERROR(dwError);
-
-    pgSignalHandlerThread = &gSignalHandlerThread;
-
-cleanup:
-
-    return (dwError);
 
 error:
 
-    pgSignalHandlerThread = NULL;
+    if (dwError)
+    {
+        raise(SIGTERM);
+    }
 
-    goto cleanup;
+    return NULL;
 }
 
+static
+void*
+EVTNetworkThread(
+    void* pArg
+    )
+{
+    DWORD dwError = 0;
+    DWORD index = 0;
+    static ENDPOINT endpoints[] =
+    {
+        {"ncacn_ip_tcp", NULL},
+        {NULL, NULL}
+    };
+    struct timespec delay = {5, 0};
+
+    while (endpoints[index].protocol)
+    {
+        dwError = EVTRegisterEndpoint(
+            "Likewise Eventlog Service",
+            &endpoints[index]
+            );
+
+        if (dwError)
+        {
+            dwError = 0;
+            dcethread_delay(&delay);
+        }
+        else
+        {
+            if (endpoints[index].endpoint)
+            {
+                EVT_LOG_VERBOSE("Listening on %s:[%s]",
+                                endpoints[index].protocol,
+                                endpoints[index].endpoint);
+            }
+            else
+            {
+                EVT_LOG_VERBOSE("Listening on %s",
+                                endpoints[index].protocol,
+                                endpoints[index].endpoint);
+            }
+
+            index++;
+        }
+    }
+
+    return NULL;
+}
 
 int
 main(
@@ -1053,14 +1066,18 @@ main(
     char* argv[])
 {
     DWORD dwError = 0;
-    rpc_binding_vector_p_t pServerBinding = NULL;
-    DWORD dwBindAttempts = 0;
-    static const DWORD dwMaxBindAttempts = 5;
-    static const DWORD dwBindSleepSeconds = 5;
     PCSTR pszSmNotify = NULL;
     int notifyFd = -1;
     char notifyCode = 0;
     int ret = 0;
+    DWORD i = 0;
+    dcethread* listenThread = NULL;
+    dcethread* networkThread = NULL;
+    static ENDPOINT localEndpoints[] =
+    {
+        {"ncalrpc", CACHEDIR "/rpc/socket"},
+        {NULL, NULL}
+    };
 
     dwError = EVTSetServerDefaults();
     BAIL_ON_EVT_ERROR(dwError);
@@ -1101,27 +1118,6 @@ main(
 
     EVTBlockSelectedSignals();
 
-    /* Binding to our RPC endpoint might fail if dcerpcd is not
-       yet ready when we start, so attempt it in a loop with
-       a small delay between attempts */
-    for (dwBindAttempts = 0; dwBindAttempts < dwMaxBindAttempts; dwBindAttempts++)
-    {
-        dwError = EVTRegisterForRPC("Likewise Eventlog Service",
-                                    &pServerBinding);
-        if (dwError)
-        {
-            EVT_LOG_INFO("Failed to bind endpoint; retrying in %i seconds...", (int) dwBindSleepSeconds);
-            sleep(dwBindSleepSeconds);
-        }
-        else
-        {
-            break;
-        }
-    }
-    /* Bail if we still haven't succeeded after several attempts */
-    BAIL_ON_EVT_ERROR(dwError);
-
-    //Read the event log information from eventlog-settings.conf
     dwError = EVTReadEventLogConfigSettings();
     if (dwError != 0)
     {
@@ -1129,11 +1125,49 @@ main(
         dwError = 0;
     }
 
-    dwError = EVTStartSignalHandler();
-    BAIL_ON_EVT_ERROR(dwError);
-
     dwError = SrvInitEventDatabase();
     BAIL_ON_EVT_ERROR(dwError);
+
+    dwError = EVTRegisterInterface();
+    BAIL_ON_EVT_ERROR(dwError);
+
+    for (i = 0; localEndpoints[i].protocol; i++)
+    {
+        dwError = EVTRegisterEndpoint("Likewise Eventlog Service",
+                                      &localEndpoints[i]);
+        BAIL_ON_EVT_ERROR(dwError);
+
+        if (localEndpoints[i].endpoint)
+        {
+            EVT_LOG_VERBOSE("Listening on %s:[%s]",
+                            localEndpoints[i].protocol,
+                            localEndpoints[i].endpoint);
+        }
+        else
+        {
+            EVT_LOG_VERBOSE("Listening on %s",
+                            localEndpoints[i].protocol,
+                            localEndpoints[i].endpoint);
+        }
+    }
+
+    dwError = LwMapErrnoToLwError(dcethread_create(
+                                      &listenThread,
+                                      NULL,
+                                      EVTListenThread,
+                                      NULL));
+    BAIL_ON_EVT_ERROR(dwError);
+
+    dwError = LwMapErrnoToLwError(dcethread_create(
+                                      &networkThread,
+                                      NULL,
+                                      EVTNetworkThread,
+                                      NULL));
+    BAIL_ON_EVT_ERROR(dwError);
+
+    while (!EVTIsListening())
+    {
+    }
 
     if ((pszSmNotify = getenv("LIKEWISE_SM_NOTIFY")) != NULL)
     {
@@ -1154,10 +1188,25 @@ main(
         close(notifyFd);
     }
 
-    dwError = EVTListenForRPC();
+    dwError = EVTHandleSignals();
     BAIL_ON_EVT_ERROR(dwError);
 
     EVT_LOG_INFO("Eventlog Service exiting...");
+
+    dwError = EVTUnregisterAllEndpoints();
+    BAIL_ON_EVT_ERROR(dwError);
+
+    dwError = EVTStopListen();
+    BAIL_ON_EVT_ERROR(dwError);
+
+    dwError = LwMapErrnoToLwError(dcethread_interrupt(networkThread));
+    BAIL_ON_EVT_ERROR(dwError);
+
+    dwError = LwMapErrnoToLwError(dcethread_join(listenThread, NULL));
+    BAIL_ON_EVT_ERROR(dwError);
+
+    dwError = LwMapErrnoToLwError(dcethread_join(networkThread, NULL));
+    BAIL_ON_EVT_ERROR(dwError);
 
  cleanup:
 
@@ -1165,12 +1214,6 @@ main(
      * Indicate that the process is exiting
      */
     EVTSetProcessShouldExit(TRUE);
-
-    EVTStopSignalHandler();
-
-    if (pServerBinding) {
-        EVTUnregisterForRPC(pServerBinding);
-    }
 
     EVTCloseLog();
 
