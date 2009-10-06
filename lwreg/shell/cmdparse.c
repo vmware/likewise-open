@@ -322,7 +322,7 @@ RegShellCmdParseKeyName(
     else
     {
         dwError = LwAllocateMemory(
-                      sizeof(CHAR)*(keyNameLen + 1),
+                      sizeof(CHAR)*(keyNameLen + 2),
                       (LW_PVOID) &pCmdItem->keyName);
         BAIL_ON_REG_ERROR(dwError);
         strcat(pCmdItem->keyName, "\\");

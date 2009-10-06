@@ -47,8 +47,8 @@
 
 #include "includes.h"
 
-/******************************************************
- *****************************************************/
+/***********************************************************************
+ **********************************************************************/
 
 int
 main(
@@ -110,6 +110,10 @@ main(
     {
         ntError = LockTest(argv[2]);
     }
+    else if (strcmp(argv[1], "--ls-open-files") == 0)
+    {
+        ntError = ListOpenFiles(argv[2]);
+    }
     else
     {
         PrintUsage(argv[0]);
@@ -132,8 +136,8 @@ error:
     goto cleanup;
 }
 
-/******************************************************
- *****************************************************/
+/***********************************************************************
+ **********************************************************************/
 
 void
 PrintUsage(
@@ -157,8 +161,8 @@ PrintUsage(
     return;
 }
 
-/******************************************************
- *****************************************************/
+/***********************************************************************
+ **********************************************************************/
 
 NTSTATUS
 CopyFileToPvfs(
@@ -261,8 +265,8 @@ error:
     goto cleanup;
 }
 
-/******************************************************
- *****************************************************/
+/***********************************************************************
+ **********************************************************************/
 
 NTSTATUS
 CopyFileFromPvfs(
@@ -367,8 +371,8 @@ error:
 }
 
 
-/******************************************************
- *****************************************************/
+/***********************************************************************
+ **********************************************************************/
 
 NTSTATUS
 CatFileFromPvfs(
@@ -452,8 +456,8 @@ error:
 }
 
 
-/******************************************************
- *****************************************************/
+/***********************************************************************
+ **********************************************************************/
 
 NTSTATUS
 StatRemoteFile(
@@ -542,8 +546,8 @@ error:
     goto cleanup;
 }
 
-/******************************************************
- *****************************************************/
+/***********************************************************************
+ **********************************************************************/
 
 VOID
 PrintFileBothDirInformation(
@@ -584,8 +588,8 @@ error:
     goto cleanup;
 }
 
-/******************************************************
- *****************************************************/
+/***********************************************************************
+ **********************************************************************/
 
 NTSTATUS
 ListDirectory(
@@ -680,8 +684,8 @@ error:
     goto cleanup;
 }
 
-/******************************************************
- *****************************************************/
+/***********************************************************************
+ **********************************************************************/
 
 NTSTATUS
 DeletePath(
@@ -699,8 +703,9 @@ error:
     goto cleanup;
 }
 
-/******************************************************
- *****************************************************/
+
+/***********************************************************************
+ **********************************************************************/
 
 NTSTATUS
 SetEndOfFile(
@@ -814,8 +819,8 @@ error:
     goto cleanup;
 }
 
-/******************************************************
- *****************************************************/
+/***********************************************************************
+ **********************************************************************/
 
 NTSTATUS
 LockTest(
@@ -876,8 +881,8 @@ error:
 }
 
 
-/*****************************************************************************
- ****************************************************************************/
+/***********************************************************************
+ **********************************************************************/
 
 NTSTATUS
 RequestOplock(
@@ -976,6 +981,157 @@ error:
 }
 
 
+/***********************************************************************
+ **********************************************************************/
+
+static
+NTSTATUS
+PrintOpenFileInfo0(
+    PVOID pBuffer
+    );
+
+NTSTATUS
+ListOpenFiles(
+    char *pszInfoLevel
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    ULONG Level = 0;
+    PSTR pszString = NULL;
+    IO_OPEN_FILE_INFO_INPUT_BUFFER InputBuffer = {0};
+    PVOID pOutputBuffer = NULL;
+    IO_STATUS_BLOCK Status = {0};
+    IO_FILE_NAME FileName = {0};
+    IO_FILE_HANDLE hDevice = (IO_FILE_HANDLE)NULL;
+
+    if (pszInfoLevel)
+    {
+        Level = strtol(pszInfoLevel, &pszString, 10);
+        if (pszString != NULL && *pszString != '\0')
+        {
+            printf("Invalid infor level (%s)\n", pszInfoLevel);
+            ntError = STATUS_INVALID_INFO_CLASS;
+            BAIL_ON_NT_STATUS(ntError);
+        }
+    }
+
+    ntError = LwRtlWC16StringAllocateFromCString(
+                  &FileName.FileName,
+                  "\\pvfs");
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = NtCreateFile(
+                  &hDevice,
+                  NULL,
+                  &Status,
+                  &FileName,
+                  NULL,
+                  NULL,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  NULL,
+                  0,
+                  NULL);
+    BAIL_ON_NT_STATUS(ntError);
+
+    InputBuffer.Level = Level;
+
+    ntError = RTL_ALLOCATE(&pOutputBuffer, VOID, 4096);
+    BAIL_ON_NT_STATUS(ntError);
+
+    memset(pOutputBuffer, 0xFF, 4096);
+
+    ntError = NtDeviceIoControlFile(
+                  hDevice,
+                  NULL,
+                  &Status,
+                  IO_DEVICE_CTL_OPEN_FILE_INFO,
+                  &InputBuffer,
+                  sizeof(InputBuffer),
+                  pOutputBuffer,
+                  4096);
+    BAIL_ON_NT_STATUS(ntError);
+
+    switch(Level)
+    {
+    case 0:
+        ntError = PrintOpenFileInfo0(pOutputBuffer);
+        break;
+    default:
+        printf("Don't know how to print OpenFileInfo level %d\n", Level);
+        ntError = STATUS_INVALID_INFO_CLASS;
+    }
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    if (hDevice)
+    {
+        NtCloseFile(hDevice);
+        hDevice = (IO_FILE_HANDLE)NULL;
+    }
+
+    LW_RTL_FREE(&pOutputBuffer);
+
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+
+/***********************************************************************
+ **********************************************************************/
+
+static
+NTSTATUS
+PrintOpenFileInfo0(
+    PVOID pBuffer
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PIO_OPEN_FILE_INFO_0 pInfo0 = (PIO_OPEN_FILE_INFO_0)pBuffer;
+    PSTR pszFilename = NULL;
+    ULONG Offset = 0;
+
+    printf("Handles Filename\n");
+    printf("------- ---------\n");
+
+    while (pBuffer)
+    {
+        pInfo0 = (PIO_OPEN_FILE_INFO_0)(pBuffer + Offset);
+
+        LwRtlCStringFree(&pszFilename);
+
+        ntError = LwRtlCStringAllocateFromWC16String(
+                      &pszFilename,
+                      (PCWSTR)pInfo0->pwszFileName);
+        BAIL_ON_NT_STATUS(ntError);
+
+        printf("%-4d    %s\n", pInfo0->OpenHandleCount, pszFilename);
+
+        if (pInfo0->NextEntryOffset != 0)
+        {
+            Offset += pInfo0->NextEntryOffset;
+        }
+        else
+        {
+            pBuffer = NULL;
+        }
+    }
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+
+
 
 /*
 local variables:
@@ -985,3 +1141,4 @@ indent-tabs-mode: nil
 tab-width: 4
 end:
 */
+

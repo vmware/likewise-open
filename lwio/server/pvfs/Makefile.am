@@ -26,6 +26,7 @@ libpvfs_sys_la_SOURCES = \
     close.c \
     create_file.c \
     create_dir.c \
+    create_device.c \
     alloc.c \
     ccb.c \
     fcb.c \
@@ -63,7 +64,8 @@ libpvfs_sys_la_SOURCES = \
     fileFsSizeInfo.c \
     thread_worker.c \
     work_queue.c \
-    oplock.c
+    oplock.c \
+    ioctlOpenFileInfo.c
 
 
 libpvfs_sys_la_CPPFLAGS = \

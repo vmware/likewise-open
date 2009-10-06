@@ -188,7 +188,7 @@ PvfsDriverDispatch(
         ntError = PvfsClose(pIrpCtx);
         break;
     case IRP_TYPE_DEVICE_IO_CONTROL:
-        ntError = PvfsDeviceIoControl(pIrpCtx);
+        ntError = PvfsDispatchDeviceIoControl(pIrpCtx);
         break;
 
     /* Not implemented */

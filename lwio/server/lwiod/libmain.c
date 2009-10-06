@@ -919,6 +919,10 @@ SMBSrvExecute(
     LWMsgProtocol* pProtocol = NULL;
     LWMsgServer* pServer = NULL;
     LWMsgTime timeout = { 30, 0 }; /* 30 seconds */
+    PCSTR pszSmNotify = NULL;
+    int notifyFd = -1;
+    char notifyCode = 0;
+    int ret = 0;
 
     dwError = MAP_LWMSG_STATUS(lwmsg_context_new(NULL, &pContext));
     BAIL_ON_LWIO_ERROR(dwError);
@@ -968,6 +972,25 @@ SMBSrvExecute(
 
     dwError = MAP_LWMSG_STATUS(lwmsg_server_start(pServer));
     BAIL_ON_LWIO_ERROR(dwError);
+
+    if ((pszSmNotify = getenv("LIKEWISE_SM_NOTIFY")) != NULL)
+    {
+        notifyFd = atoi(pszSmNotify);
+
+        do
+        {
+            ret = write(notifyFd, &notifyCode, sizeof(notifyCode));
+        } while(ret != sizeof(notifyCode) && errno == EINTR);
+
+        if (ret < 0)
+        {
+            LWIO_LOG_ERROR("Could not notify service manager: %s (%i)", strerror(errno), errno);
+            dwError = LwMapErrnoToLwError(errno);
+            BAIL_ON_LWIO_ERROR(dwError);
+        }
+
+        close(notifyFd);
+    }
 
     dwError = SMBHandleSignals();
     BAIL_ON_LWIO_ERROR(dwError);

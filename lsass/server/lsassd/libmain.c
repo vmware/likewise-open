@@ -97,9 +97,10 @@ lsassd_main(
     )
 {
     DWORD dwError = 0;
- //   pthread_t listenerThreadId;
- //   pthread_t* pListenerThreadId = NULL;
-//    void* threadResult = NULL;
+    PCSTR pszSmNotify = NULL;
+    int notifyFd = -1;
+    char notifyCode = 0;
+    int ret = 0;
 
     // Register a signal handler for program crashes such that it prints out a
     // backtrace.
@@ -167,6 +168,25 @@ lsassd_main(
     dwError = NtlmSrvStartListenThread();
     BAIL_ON_LSA_ERROR(dwError);
 
+    if ((pszSmNotify = getenv("LIKEWISE_SM_NOTIFY")) != NULL)
+    {
+        notifyFd = atoi(pszSmNotify);
+
+        do
+        {
+            ret = write(notifyFd, &notifyCode, sizeof(notifyCode));
+        } while(ret != sizeof(notifyCode) && errno == EINTR);
+
+        if (ret < 0)
+        {
+            LSA_LOG_ERROR("Could not notify service manager: %s (%i)", strerror(errno), errno);
+            dwError = LwMapErrnoToLwError(errno);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        close(notifyFd);
+    }
+
     LsaSrvLogProcessStartedEvent();
 
     // Handle signals, blocking until we are supposed to exit.
@@ -178,11 +198,6 @@ cleanup:
     LSA_LOG_VERBOSE("Lsa main cleaning up");
 
     LsaSrvStopProcess();
-
-/*    if (pListenerThreadId)
-    {
-        pthread_join(listenerThreadId, &threadResult);
-    }*/
 
     LsaSrvStopListenThread();
 

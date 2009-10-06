@@ -65,6 +65,18 @@ PvfsCreate(
     PSTR pszDiskFilename = NULL;
     PVFS_STAT Stat = {0};
 
+    /* Check to see if this is a Device Create() */
+
+    if (*pIrp->Args.Create.FileName.FileName == '\0')
+    {
+        ntError = PvfsCreateDevice(pIrpContext);
+        BAIL_ON_NT_STATUS(ntError);
+
+        goto cleanup;
+    }
+
+    /* Regular File/Directory Create() */
+
     CreateOptions = pIrp->Args.Create.CreateOptions;
 
     if (CreateOptions & FILE_DIRECTORY_FILE)
@@ -79,8 +91,9 @@ PvfsCreate(
     {
         /* stat() the path and find out if this is a file or directory */
 
-        ntError = PvfsCanonicalPathName(&pszFilename,
-                                        pIrp->Args.Create.FileName);
+        ntError = PvfsCanonicalPathName(
+                      &pszFilename,
+                      pIrp->Args.Create.FileName);
         BAIL_ON_NT_STATUS(ntError);
 
         ntError = PvfsLookupPath(&pszDiskFilename, pszFilename, FALSE);
@@ -96,7 +109,6 @@ PvfsCreate(
                            S_ISDIR(Stat.s_mode) : FALSE;
         }
     }
-
 
     if (bIsDirectory)
     {

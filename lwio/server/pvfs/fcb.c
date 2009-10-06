@@ -46,19 +46,72 @@
 
 #include "pvfs.h"
 
-/* Forward declarations */
+/*****************************************************************************
+ ****************************************************************************/
 
-/* File Globals */
+static
+int
+FcbTableFilenameCompare(
+    PVOID a,
+    PVOID b
+    );
 
-typedef struct _PVFS_FCB_TABLE
+NTSTATUS
+PvfsInitializeFCBTable(
+    VOID
+    )
 {
-    pthread_rwlock_t rwLock;
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
 
-    PLWRTL_RB_TREE pFcbTree;
+    pthread_rwlock_init(&gFcbTable.rwLock, NULL);
 
-} PVFS_FCB_TABLE;
+    ntError = LwRtlRBTreeCreate(&FcbTableFilenameCompare,
+                                NULL,
+                                NULL,
+                                &gFcbTable.pFcbTree);
+    BAIL_ON_NT_STATUS(ntError);
 
-static PVFS_FCB_TABLE gFcbTable;
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+static int
+FcbTableFilenameCompare(
+    PVOID a,
+    PVOID b
+    )
+{
+    int iReturn = 0;
+
+    PSTR pszFilename1 = (PSTR)a;
+    PSTR pszFilename2 = (PSTR)b;
+
+    iReturn = RtlCStringCompare(pszFilename1, pszFilename2, TRUE);
+
+    return iReturn;
+}
+
+/*****************************************************************************
+ ****************************************************************************/
+
+NTSTATUS
+PvfsDestroyFCBTable(
+    VOID
+    )
+{
+    /* Need to add tree traversal here and remove
+       data */
+
+    LwRtlRBTreeFree(gFcbTable.pFcbTree);
+    pthread_rwlock_destroy(&gFcbTable.rwLock);
+
+    PVFS_ZERO_MEMORY(&gFcbTable);
+
+    return STATUS_SUCCESS;
+}
 
 
 /*****************************************************************************
@@ -327,68 +380,6 @@ PvfsReleaseFCB(
     return;
 }
 
-/*******************************************************
- ******************************************************/
-
-static int
-FcbTableFilenameCompare(
-    PVOID a,
-    PVOID b
-    )
-{
-    int iReturn = 0;
-
-    PSTR pszFilename1 = (PSTR)a;
-    PSTR pszFilename2 = (PSTR)b;
-
-    iReturn = RtlCStringCompare(pszFilename1, pszFilename2, TRUE);
-
-    return iReturn;
-}
-
-/*******************************************************
- ******************************************************/
-
-NTSTATUS
-PvfsInitializeFCBTable(
-    VOID
-    )
-{
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-
-    pthread_rwlock_init(&gFcbTable.rwLock, NULL);
-
-    ntError = LwRtlRBTreeCreate(&FcbTableFilenameCompare,
-                                NULL,
-                                NULL,
-                                &gFcbTable.pFcbTree);
-    BAIL_ON_NT_STATUS(ntError);
-
-cleanup:
-    return ntError;
-
-error:
-    goto cleanup;
-}
-
-/*******************************************************
- ******************************************************/
-
-NTSTATUS
-PvfsDestroyFCBTable(
-    VOID
-    )
-{
-    /* Need to add tree traversal here and remove
-       data */
-
-    LwRtlRBTreeFree(gFcbTable.pFcbTree);
-    pthread_rwlock_destroy(&gFcbTable.rwLock);
-
-    PVFS_ZERO_MEMORY(&gFcbTable);
-
-    return STATUS_SUCCESS;
-}
 
 /*******************************************************
  ******************************************************/

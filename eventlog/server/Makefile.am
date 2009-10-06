@@ -22,7 +22,8 @@ eventlogd_CPPFLAGS = \
 eventlogd_LDADD = \
     @top_builddir@/utils/libeventlogutils.la \
     @GSSAPI_LIBS@ \
-    @SQLITE_LIBS@
+    @SQLITE_LIBS@ \
+    -llwadvapi
 
 eventlogd_LDFLAGS = \
     @GSSAPI_LDFLAGS@ \

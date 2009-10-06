@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        create.c
+ *        create_file.c
  *
  * Abstract:
  *
@@ -44,23 +44,59 @@
  * Authors: Gerald Carter <gcarter@likewise.com>
  */
 
-#ifndef _PVFS_CREATE_P_H
-#define _PVFS_CREATE_P_H
+#include "pvfs.h"
 
 
-NTSTATUS
-PvfsCreateFile(
-    PPVFS_IRP_CONTEXT pIrpContext
-    );
+/***********************************************************************
+ **********************************************************************/
 
 NTSTATUS
-PvfsCreateDirectory(
+PvfsCreateDevice(
     PPVFS_IRP_CONTEXT pIrpContext
-    );
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    BOOLEAN bLocked = FALSE;
+    PPVFS_CCB pCcb = NULL;
+
+    ntError = PvfsAllocateCCB(&pCcb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    LWIO_LOCK_MUTEX(bLocked, &gDeviceFcbMutex);
+
+    if (!gpPvfsDeviceFcb)
+    {
+        ntError = PvfsAllocateFCB(&gpPvfsDeviceFcb);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    ntError = PvfsAddCCBToFCB(gpPvfsDeviceFcb, pCcb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* Add an extra reference to prevent us from freeing this
+       on the last handle close */
+
+    PvfsReferenceFCB(gpPvfsDeviceFcb);
+
+    ntError = PvfsStoreCCB(pIrpContext->pIrp->FileHandle, pCcb);
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    LWIO_UNLOCK_MUTEX(bLocked, &gDeviceFcbMutex);
+
+    return ntError;
+
+error:
+    if (pCcb)
+    {
+        PvfsReleaseCCB(pCcb);
+    }
+
+    goto cleanup;
+}
 
 
 
-#endif       /* _PVFS_CREATE_P_H */
 
 /*
 local variables:
@@ -70,4 +106,3 @@ indent-tabs-mode: nil
 tab-width: 4
 end:
 */
-

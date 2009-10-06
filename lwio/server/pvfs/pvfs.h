@@ -64,6 +64,7 @@
 
 #include "lwiosys.h"
 #include "lwio/lwiofsctl.h"
+#include "lwio/lwiodevctl.h"
 #include "iodriver.h"
 #include "lwioutils.h"
 #include "lwlist.h"
@@ -75,7 +76,6 @@
 #include "macros.h"
 #include "fileinfo_p.h"
 #include "security_p.h"
-#include "create_p.h"
 #include "alloc_p.h"
 #include "time_p.h"
 #include "syswrap_p.h"
@@ -148,7 +148,7 @@ PvfsCheckReadOnlyDeleteOnClose(
     );
 
 NTSTATUS
-PvfsDeviceIoControl(
+PvfsDispatchDeviceIoControl(
     PPVFS_IRP_CONTEXT  pIrpContext
     );
 
@@ -219,6 +219,23 @@ PvfsQuerySecurityFile(
 
 NTSTATUS
 PvfsSetSecurityFile(
+    PPVFS_IRP_CONTEXT pIrpContext
+    );
+
+/* Various Create dispatchers */
+
+NTSTATUS
+PvfsCreateDevice(
+    PPVFS_IRP_CONTEXT pIrpContext
+    );
+
+NTSTATUS
+PvfsCreateFile(
+    PPVFS_IRP_CONTEXT pIrpContext
+    );
+
+NTSTATUS
+PvfsCreateDirectory(
     PPVFS_IRP_CONTEXT pIrpContext
     );
 
@@ -415,20 +432,20 @@ PvfsFileHasOpenByteRangeLocks(
 
 NTSTATUS
 PvfsOplockRequest(
-    IN  PPVFS_IRP_CONTEXT pIrpContext,
-    IN  PVOID InputBuffer,
-    IN  ULONG InputBufferLength,
-    OUT PVOID OutputBuffer,
-    IN  ULONG OutputBufferLength
+    IN     PPVFS_IRP_CONTEXT pIrpContext,
+    IN     PVOID  InputBuffer,
+    IN     ULONG  InputBufferLength,
+    OUT    PVOID  OutputBuffer,
+    IN OUT PULONG pOutputBufferLength
     );
 
 NTSTATUS
 PvfsOplockBreakAck(
-    IN  PPVFS_IRP_CONTEXT pIrpContext,
-    IN  PVOID InputBuffer,
-    IN  ULONG InputBufferLength,
-    OUT PVOID OutputBuffer,
-    IN  ULONG OutputBufferLength
+    IN     PPVFS_IRP_CONTEXT pIrpContext,
+    IN     PVOID  InputBuffer,
+    IN     ULONG  InputBufferLength,
+    OUT    PVOID  OutputBuffer,
+    IN OUT PULONG pOutputBufferLength
     );
 
 NTSTATUS
@@ -465,6 +482,16 @@ PvfsQueueCancelOplock(
     IN PVOID pCancelContext
     );
 
+/* From ioctlOpenFileInfo.c */
+
+NTSTATUS
+PvfsIoCtlOpenFileInfo(
+    IN     PPVFS_IRP_CONTEXT pIrpContext,
+    IN     PVOID  InputBuffer,
+    IN     ULONG  InputBufferLength,
+    OUT    PVOID  OutputBuffer,
+    IN OUT PULONG pOutputBufferLength
+    );
 
 #endif /* __PVFS_H__ */
 

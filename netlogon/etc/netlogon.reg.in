@@ -5,7 +5,7 @@
 "Path"="@SBINDIR@/netlogond"
 "Arguments"="netlogond --syslog"
 "Dependencies"="lwreg"
-"Type"=dword:00000000
+"Type"=dword:00000001
 
 [HKEY_LIKEWISE\Services\netlogon\Parameters]
 "PingAgainTimeout"=dword:00000384

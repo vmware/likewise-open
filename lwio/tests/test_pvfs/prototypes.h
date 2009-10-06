@@ -113,6 +113,12 @@ RequestOplock(
     char *argv[]
     );
 
+NTSTATUS
+ListOpenFiles(
+    char *pszInfoLevel
+    );
+
+
 
 #endif /* _TEST_PVFS_PROTOTYPES_H_ */
 

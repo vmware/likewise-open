@@ -286,6 +286,14 @@ struct _PVFS_FCB
 
 };
 
+typedef struct _PVFS_FCB_TABLE
+{
+    pthread_rwlock_t rwLock;
+
+    PLWRTL_RB_TREE pFcbTree;
+
+} PVFS_FCB_TABLE;
+
 typedef struct _PVFS_LOCK_LIST
 {
     ULONG NumberOfLocks;
@@ -386,6 +394,17 @@ typedef struct _PVFS_WORK_CONTEXT
     PPVFS_WORK_CONTEXT_FREE_CTX pfnFreeContext;
 
 } PVFS_WORK_CONTEXT, *PPVFS_WORK_CONTEXT;
+
+
+typedef struct _PVFS_OPEN_FILE_INFO
+{
+    ULONG Level;
+    ULONG BytesAvailable;
+    ULONG Offset;
+    PVOID pData;
+    PVOID pPreviousEntry;
+
+} PVFS_OPEN_FILE_INFO, *PPVFS_OPEN_FILE_INFO;
 
 
 #endif    /* _PVFS_STRUCTS_H */

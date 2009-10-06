@@ -58,3 +58,4 @@
 #include "lsaaccess.h"
 #include "access_p.h"
 
+#include <lwerror.h>

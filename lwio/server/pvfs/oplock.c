@@ -73,17 +73,18 @@ PvfsOplockGrantLevel2(
 
 NTSTATUS
 PvfsOplockRequest(
-    IN  PPVFS_IRP_CONTEXT pIrpContext,
-    IN  PVOID InputBuffer,
-    IN  ULONG InputBufferLength,
-    OUT PVOID OutputBuffer,
-    IN  ULONG OutputBufferLength
+    IN     PPVFS_IRP_CONTEXT pIrpContext,
+    IN     PVOID  InputBuffer,
+    IN     ULONG  InputBufferLength,
+    OUT    PVOID  OutputBuffer,
+    IN OUT PULONG pOutputBufferLength
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PIRP pIrp = pIrpContext->pIrp;
     PPVFS_CCB pCcb = NULL;
     PIO_FSCTL_OPLOCK_REQUEST_INPUT_BUFFER pOplockRequest = NULL;
+    ULONG OutputBufLen = *pOutputBufferLength;
 
     /* Sanity checks */
 
@@ -91,7 +92,7 @@ PvfsOplockRequest(
     BAIL_ON_INVALID_PTR(OutputBuffer, ntError);
 
     if ((InputBufferLength < sizeof(IO_FSCTL_OPLOCK_REQUEST_INPUT_BUFFER)) ||
-        (OutputBufferLength < sizeof(IO_FSCTL_OPLOCK_REQUEST_OUTPUT_BUFFER)))
+        (OutputBufLen < sizeof(IO_FSCTL_OPLOCK_REQUEST_OUTPUT_BUFFER)))
     {
         ntError = STATUS_BUFFER_TOO_SMALL;
         BAIL_ON_NT_STATUS(ntError);
@@ -135,6 +136,8 @@ PvfsOplockRequest(
 
     PvfsIrpMarkPending(pIrpContext, PvfsQueueCancelOplock, pIrpContext);
 
+    *pOutputBufferLength = sizeof(IO_FSCTL_OPLOCK_REQUEST_OUTPUT_BUFFER);
+
     ntError = STATUS_PENDING;
 
 cleanup:
@@ -164,11 +167,11 @@ PvfsFreeOplockReadyItemsContext(
 
 NTSTATUS
 PvfsOplockBreakAck(
-    IN  PPVFS_IRP_CONTEXT pIrpContext,
-    IN  PVOID InputBuffer,
-    IN  ULONG InputBufferLength,
-    OUT PVOID OutputBuffer,
-    IN  ULONG OutputBufferLength
+    IN     PPVFS_IRP_CONTEXT pIrpContext,
+    IN     PVOID  InputBuffer,
+    IN     ULONG  InputBufferLength,
+    OUT    PVOID  OutputBuffer,
+    IN OUT PULONG pOutputBufferLength
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
@@ -179,13 +182,14 @@ PvfsOplockBreakAck(
     BOOLEAN bCcbLocked = FALSE;
     BOOLEAN bFcbLocked = FALSE;
     PPVFS_WORK_CONTEXT pWorkCtx = NULL;
+    ULONG OutputBufLen = *pOutputBufferLength;
 
     /* Sanity checks */
 
     BAIL_ON_INVALID_PTR(InputBuffer, ntError);
 
     if ((InputBufferLength < sizeof(IO_FSCTL_OPLOCK_BREAK_ACK_INPUT_BUFFER)) ||
-        (OutputBufferLength < sizeof(IO_FSCTL_OPLOCK_BREAK_ACK_OUTPUT_BUFFER)))
+        (OutputBufLen < sizeof(IO_FSCTL_OPLOCK_BREAK_ACK_OUTPUT_BUFFER)))
     {
         ntError = STATUS_BUFFER_TOO_SMALL;
         BAIL_ON_NT_STATUS(ntError);
@@ -309,6 +313,8 @@ PvfsOplockBreakAck(
 
     ntError = PvfsAddWorkItem(gpPvfsIoWorkQueue, (PVOID)pWorkCtx);
     BAIL_ON_NT_STATUS(ntError);
+
+    *pOutputBufferLength = sizeof(IO_FSCTL_OPLOCK_BREAK_ACK_OUTPUT_BUFFER);
 
 cleanup:
     LWIO_UNLOCK_MUTEX(bFcbLocked, &pFcb->mutexOplock);

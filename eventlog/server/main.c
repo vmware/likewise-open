@@ -1057,6 +1057,10 @@ main(
     DWORD dwBindAttempts = 0;
     static const DWORD dwMaxBindAttempts = 5;
     static const DWORD dwBindSleepSeconds = 5;
+    PCSTR pszSmNotify = NULL;
+    int notifyFd = -1;
+    char notifyCode = 0;
+    int ret = 0;
 
     dwError = EVTSetServerDefaults();
     BAIL_ON_EVT_ERROR(dwError);
@@ -1130,6 +1134,25 @@ main(
 
     dwError = SrvInitEventDatabase();
     BAIL_ON_EVT_ERROR(dwError);
+
+    if ((pszSmNotify = getenv("LIKEWISE_SM_NOTIFY")) != NULL)
+    {
+        notifyFd = atoi(pszSmNotify);
+
+        do
+        {
+            ret = write(notifyFd, &notifyCode, sizeof(notifyCode));
+        } while(ret != sizeof(notifyCode) && errno == EINTR);
+
+        if (ret < 0)
+        {
+            EVT_LOG_ERROR("Could not notify service manager: %s (%i)", strerror(errno), errno);
+            dwError = LwMapErrnoToLwError(errno);
+            BAIL_ON_EVT_ERROR(dwError);
+        }
+
+        close(notifyFd);
+    }
 
     dwError = EVTListenForRPC();
     BAIL_ON_EVT_ERROR(dwError);

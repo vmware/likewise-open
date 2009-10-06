@@ -55,6 +55,10 @@ main(
     )
 {
     DWORD dwError = 0;
+    PCSTR pszSmNotify = NULL;
+    int notifyFd = -1;
+    char notifyCode = 0;
+    int ret = 0;
 
     dwError = LWNetSrvSetDefaults();
     BAIL_ON_LWNET_ERROR(dwError);
@@ -103,6 +107,25 @@ main(
 
     dwError = LWNetSrvStartListenThread();
     BAIL_ON_LWNET_ERROR(dwError);
+
+    if ((pszSmNotify = getenv("LIKEWISE_SM_NOTIFY")) != NULL)
+    {
+        notifyFd = atoi(pszSmNotify);
+
+        do
+        {
+            ret = write(notifyFd, &notifyCode, sizeof(notifyCode));
+        } while(ret != sizeof(notifyCode) && errno == EINTR);
+
+        if (ret < 0)
+        {
+            LWNET_LOG_ERROR("Could not notify service manager: %s (%i)", strerror(errno), errno);
+            dwError = LwMapErrnoToLwError(errno);
+            BAIL_ON_LWNET_ERROR(dwError);
+        }
+
+        close(notifyFd);
+    }
 
     // Post service started event to eventlog
     LWNetSrvLogProcessStartedEvent();

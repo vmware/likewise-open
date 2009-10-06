@@ -5,7 +5,7 @@
 "Path"="@SBINDIR@/lsassd"
 "Arguments"="lsassd --syslog"
 "Dependencies"="netlogon lwio lwreg"
-"Type"=dword:00000000
+"Type"=dword:00000001
 
 [HKEY_LIKEWISE\Services\lsass\Parameters]
 "EnableEventlog"=dword:00000000

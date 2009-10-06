@@ -54,4 +54,9 @@ extern PPVFS_WORK_QUEUE gpPvfsInternalWorkQueue;
 extern PSMB_HASH_TABLE gpPathCache;
 extern pthread_rwlock_t gPathCacheRwLock;
 
+extern PVFS_FCB_TABLE gFcbTable;
+
+extern pthread_mutex_t gDeviceFcbMutex;
+extern PPVFS_FCB gpPvfsDeviceFcb;
+
 #endif /* __EXTERNS_H__ */

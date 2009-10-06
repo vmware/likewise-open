@@ -804,7 +804,7 @@ SrvBuildOplockExecContext_SMB_V2(
                     0,                  /* epoch       */
                     1,                  /* credits     */
                     0,                  /* pid         */
-                    0xFFFFFFFFFFFFFFFF, /* mid = -1    */
+                    0xFFFFFFFFFFFFFFFFLL, /* mid = -1    */
                     pOplockState->pTree->ulTid,
                     pOplockState->pSession->ullUid,
                     STATUS_SUCCESS,

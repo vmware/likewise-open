@@ -59,17 +59,20 @@
 
 /* Error checking macros */
 
-#define PVFS_BAIL_ON_INVALID_CCB(p, err)            \
-    do {                                            \
-        if ((p) == NULL) {                          \
-            err = STATUS_INVALID_PARAMETER;         \
-            goto error;                             \
-        }                                           \
-        if ((p)->fd == -1) {                        \
-            err = STATUS_INVALID_HANDLE;            \
-            goto error;                             \
-        }                                           \
-    } while(0);
+#define PVFS_IS_DEVICE_HANDLE(p)  ((p)->pFcb == gpPvfsDeviceFcb)
+
+#define PVFS_BAIL_ON_INVALID_CCB(p, err)                    \
+    do {                                                    \
+        if ((p) == NULL) {                                  \
+            err = STATUS_INVALID_PARAMETER;                 \
+            goto error;                                     \
+        }                                                   \
+        if (((p)->fd == -1) && !PVFS_IS_DEVICE_HANDLE(p))   \
+        {                                                   \
+            err = STATUS_INVALID_HANDLE;                    \
+            goto error;                                     \
+        }                                                   \
+    } while(0)
 
 #define PVFS_BAIL_ON_UNIX_ERROR(unixerr, nterr)             \
     do {                                                    \
@@ -78,7 +81,7 @@
             nterr = PvfsMapUnixErrnoToNtStatus(unixerr);    \
             BAIL_ON_NT_STATUS(nterr);                       \
         }                                                   \
-    } while(0);
+    } while(0)
 
 
 #define PVFS_BAIL_ON_CANCELLED_IRP(pIrpCtx, nterr)  \
@@ -87,7 +90,7 @@
             nterr = STATUS_CANCELLED;               \
             goto error;                             \
         }                                           \
-    } while(0);
+    } while(0)
 
 
 
@@ -98,7 +101,7 @@
         if ((*pp) != NULL) {                    \
             PvfsFreeMemory((PVOID*)pp);         \
         }                                       \
-    } while(0);
+    } while(0)
 
 
 #define PVFS_ZERO_MEMORY(p)                     \
@@ -106,7 +109,7 @@
         if ((p) != NULL) {                      \
             memset(p, 0x0, sizeof(*p));          \
         }                                       \
-    } while (0);
+    } while (0)
 
 #define PVFS_PTR_DIFF(old,new)  ((size_t)((new)-(old)))
 
