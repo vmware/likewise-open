@@ -621,6 +621,34 @@ error:
     return dwError;
 }
 
+DWORD
+LwSmTableGetEntryProcess(
+    PSM_TABLE_ENTRY pEntry,
+    PLW_SERVICE_PROCESS pProcess,
+    pid_t* pPid
+    )
+{
+    DWORD dwError = 0;
+    BOOLEAN bLocked = FALSE;
+
+    LOCK(bLocked, pEntry->pLock);
+
+    if (!pEntry->bValid)
+    {
+        dwError = LW_ERROR_INVALID_HANDLE;
+        BAIL_ON_ERROR(dwError);
+    }
+
+    dwError = pEntry->pVtbl->pfnGetProcess(pEntry, pProcess, pPid);
+    BAIL_ON_ERROR(dwError);
+
+error:
+
+    UNLOCK(bLocked, pEntry->pLock);
+
+    return dwError;
+}
+
 static
 DWORD
 LwSmTableUnmarkDependencies(

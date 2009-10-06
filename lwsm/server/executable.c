@@ -314,8 +314,35 @@ LwSmExecutableGetStatus(
 {
     DWORD dwError = 0;
     PSM_EXECUTABLE pExec = pEntry->pData;
+    BOOLEAN bLocked = FALSE;
+
+    LOCK(bLocked, &gProcTable.lock);
 
     *pStatus = pExec->status;
+
+    UNLOCK(bLocked, &gProcTable.lock);
+
+    return dwError;
+}
+
+static
+DWORD
+LwSmExecutableGetProcess(
+    PSM_TABLE_ENTRY pEntry,
+    PLW_SERVICE_PROCESS pProcess,
+    pid_t* pPid
+    )
+{
+    DWORD dwError = 0;
+    PSM_EXECUTABLE pExec = pEntry->pData;
+    BOOLEAN bLocked = FALSE;
+
+    LOCK(bLocked, &gProcTable.lock);
+
+    *pProcess = LW_SERVICE_PROCESS_STANDALONE;
+    *pPid = pExec->pid;
+
+    UNLOCK(bLocked, &gProcTable.lock);
 
     return dwError;
 }
@@ -417,6 +444,7 @@ SM_OBJECT_VTBL gExecutableVtbl =
     .pfnStart = LwSmExecutableStart,
     .pfnStop = LwSmExecutableStop,
     .pfnGetStatus = LwSmExecutableGetStatus,
+    .pfnGetProcess = LwSmExecutableGetProcess,
     .pfnRefresh = LwSmExecutableRefresh,
     .pfnConstruct = LwSmExecutableConstruct,
     .pfnDestruct = LwSmExecutableDestruct

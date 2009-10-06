@@ -73,6 +73,27 @@ LwSmStatusToString(
 
 static
 PCSTR
+LwSmProcessToString(
+    LW_SERVICE_PROCESS process
+    )
+{
+    switch (process)
+    {
+    case LW_SERVICE_PROCESS_STANDALONE:
+        return "standalone";
+    case LW_SERVICE_PROCESS_CONTAINER:
+        return "container";
+    case LW_SERVICE_PROCESS_IO_MANAGER:
+        return "io";
+    case LW_SERVICE_PROCESS_SERVICE_MANAGER:
+        return "sm";
+    default:
+        return "unknown";
+    }
+}
+
+static
+PCSTR
 LwSmTypeToString(
     LW_SERVICE_TYPE type
     )
@@ -103,11 +124,26 @@ LwSmList(
     PWSTR* ppwszServiceNames = NULL;
     PSTR pszServiceName = NULL;
     LW_SERVICE_STATUS status = LW_SERVICE_DEAD;
+    LW_SERVICE_PROCESS process = LW_SERVICE_PROCESS_STANDALONE;
+    pid_t pid = -1;
     LW_SERVICE_HANDLE hHandle = NULL;
     size_t i = 0;
+    size_t len = 0;
+    size_t maxLen = 0;
 
     dwError = LwSmEnumerateServices(&ppwszServiceNames);
     BAIL_ON_ERROR(dwError);
+
+    for (i = 0; ppwszServiceNames[i]; i++)
+    {
+        dwError = LwWc16sLen(ppwszServiceNames[i], &len);
+        BAIL_ON_ERROR(dwError);
+
+        if (len > maxLen)
+        {
+            maxLen = len;
+        }
+    }
 
     for (i = 0; ppwszServiceNames[i]; i++)
     {
@@ -117,17 +153,41 @@ LwSmList(
         dwError = LwSmGetServiceStatus(hHandle, &status);
         BAIL_ON_ERROR(dwError);
 
-        dwError = LwSmReleaseServiceHandle(hHandle);
-        hHandle = NULL;
-        BAIL_ON_ERROR(dwError);
-
         dwError = LwWc16sToMbs(ppwszServiceNames[i], &pszServiceName);
         BAIL_ON_ERROR(dwError);
         
         if (!gState.bQuiet)
         {
-            printf("%s: %s\n", pszServiceName, LwSmStatusToString(status));
+            printf("%s", pszServiceName);
+
+            dwError = LwWc16sLen(ppwszServiceNames[i], &len);
+            BAIL_ON_ERROR(dwError);
+
+            for (; len < maxLen; len++)
+            {
+                printf(" ");
+            }
+            printf("    ");
+
+            switch (status)
+            {
+            case LW_SERVICE_RUNNING:
+                dwError = LwSmGetServiceProcess(hHandle, &process, &pid);
+                BAIL_ON_ERROR(dwError);
+                printf("%s (%s: %li)\n",
+                       LwSmStatusToString(status),
+                       LwSmProcessToString(process),
+                       (long) pid);
+                break;
+            default:
+                printf("%s\n", LwSmStatusToString(status));
+                break;
+            }
         }
+
+        dwError = LwSmReleaseServiceHandle(hHandle);
+        hHandle = NULL;
+        BAIL_ON_ERROR(dwError);
 
         LW_SAFE_FREE_MEMORY(pszServiceName);    
     }
@@ -668,6 +728,8 @@ LwSmStatus(
     PWSTR pwszServiceName = NULL;
     LW_SERVICE_HANDLE hHandle = NULL;
     LW_SERVICE_STATUS status = LW_SERVICE_DEAD;
+    LW_SERVICE_PROCESS process;
+    pid_t pid;
 
     dwError = LwMbsToWc16s(pArgv[1], &pwszServiceName);
     BAIL_ON_ERROR(dwError);
@@ -680,7 +742,20 @@ LwSmStatus(
     
     if (!gState.bQuiet)
     {
-        printf("%s\n", LwSmStatusToString(status));
+        switch (status)
+        {
+        case LW_SERVICE_RUNNING:
+            dwError = LwSmGetServiceProcess(hHandle, &process, &pid);
+            BAIL_ON_ERROR(dwError);
+            printf("%s (%s: %li)\n",
+                   LwSmStatusToString(status),
+                   LwSmProcessToString(process),
+                   (long) pid);
+            break;
+        default:
+            printf("%s\n", LwSmStatusToString(status));
+            break;
+        }
     }
 
     *pRet = status;

@@ -448,6 +448,60 @@ error:
     goto cleanup;
 }
 
+DWORD
+LwSmGetServiceProcess(
+    LW_SERVICE_HANDLE hHandle,
+    PLW_SERVICE_PROCESS pProcessType,
+    pid_t* pProcessPid
+    )
+{
+    DWORD dwError = 0;
+    LWMsgCall* pCall = NULL;
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    PSM_IPC_GET_SERVICE_PROCESS_RES_STRUCT pRes = NULL;
+
+    in.tag = SM_IPC_GET_SERVICE_PROCESS_REQ;
+    in.data = hHandle;
+
+    dwError = LwSmIpcAcquireCall(&pCall);
+    BAIL_ON_ERROR(dwError);
+
+    dwError = MAP_LWMSG_STATUS(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
+    BAIL_ON_ERROR(dwError);
+
+    switch (out.tag)
+    {
+    case SM_IPC_GET_SERVICE_PROCESS_RES:
+        pRes = out.data;
+        *pProcessType = pRes->process;
+        *pProcessPid = pRes->pid;
+        break;
+    case SM_IPC_ERROR:
+        dwError = *(PDWORD) out.data;
+        BAIL_ON_ERROR(dwError);
+        break;
+    default:
+        dwError = LW_ERROR_INTERNAL;
+        BAIL_ON_ERROR(dwError);
+        break;
+    }
+
+cleanup:
+
+    if (pCall)
+    {
+        lwmsg_call_destroy_params(pCall, &out);
+        lwmsg_call_release(pCall);
+    }
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
 /**
  * Refresh service
  */

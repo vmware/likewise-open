@@ -324,6 +324,48 @@ error:
 
 static
 LWMsgStatus
+LwSmDispatchGetServiceProcess(
+    LWMsgCall* pCall,
+    LWMsgParams* pIn,
+    LWMsgParams* pOut,
+    PVOID pData
+    )
+{
+    DWORD dwError = 0;
+    LW_SERVICE_HANDLE hHandle = (LW_SERVICE_HANDLE) pIn->data;
+    PSM_IPC_GET_SERVICE_PROCESS_RES_STRUCT pRes = NULL;
+
+    dwError = LwAllocateMemory(sizeof(*pRes), OUT_PPVOID(&pRes));
+    BAIL_ON_ERROR(dwError);
+
+    dwError = LwSmTableGetEntryProcess(hHandle->pEntry, &pRes->process, &pRes->pid);
+
+    if (dwError == 0)
+    {
+        pOut->tag = SM_IPC_GET_SERVICE_PROCESS_RES;
+        pOut->data = pRes;
+        pRes = NULL;
+    }
+    else
+    {
+        dwError = LwSmSetError(pOut, dwError);
+        BAIL_ON_ERROR(dwError);
+    }
+
+cleanup:
+
+    LW_SAFE_FREE_MEMORY(pRes);
+
+    return LwSmMapLwError(dwError);
+
+error:
+
+    goto cleanup;
+}
+
+
+static
+LWMsgStatus
 LwSmDispatchStartService(
     LWMsgCall* pCall,
     LWMsgParams* pIn,
@@ -509,6 +551,7 @@ LWMsgDispatchSpec gDispatchSpec[] =
     LWMSG_DISPATCH_BLOCK(SM_IPC_REFRESH_SERVICE_REQ, LwSmDispatchRefreshService),
     LWMSG_DISPATCH_BLOCK(SM_IPC_GET_SERVICE_STATUS_REQ, LwSmDispatchGetServiceStatus),
     LWMSG_DISPATCH_BLOCK(SM_IPC_GET_SERVICE_INFO_REQ, LwSmDispatchGetServiceInfo),
+    LWMSG_DISPATCH_BLOCK(SM_IPC_GET_SERVICE_PROCESS_REQ, LwSmDispatchGetServiceProcess),
     LWMSG_DISPATCH_END
 };
 

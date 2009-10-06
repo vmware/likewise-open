@@ -143,6 +143,28 @@ typedef struct _LW_SERVICE_INFO
 } LW_SERVICE_INFO;
 
 /**
+ * @brief Service process type
+ *
+ * Denotes the type of process in which a service is running.
+ */
+typedef enum _LW_SERVICE_PROCESS
+{
+    /** @brief Service is running in a standalone process */
+    LW_SERVICE_PROCESS_STANDALONE,
+    /** @brief Service is running in a service container */
+    LW_SERVICE_PROCESS_CONTAINER,
+    /** @brief Service is running in the IO manager */
+    LW_SERVICE_PROCESS_IO_MANAGER,
+    /** @brief Service is running directly in the service manager */
+    LW_SERVICE_PROCESS_SERVICE_MANAGER
+} LW_SERVICE_PROCESS;
+
+/**
+ * @brief A pointer to a service process value
+ */
+typedef LW_SERVICE_PROCESS *PLW_SERVICE_PROCESS;
+
+/**
  * @brief A pointer to a service info structure
  */
 typedef LW_SERVICE_INFO *PLW_SERVICE_INFO;
@@ -318,6 +340,25 @@ DWORD
 LwSmGetServiceInfo(
     LW_SERVICE_HANDLE hHandle,
     PLW_SERVICE_INFO* ppInfo
+    );
+
+/**
+ * @brief Get service process information
+ *
+ * Gets information about the process in which a service is running:
+ * - The type of process
+ * - The pid of the process
+ *
+ * @param[in] hHandle the service handle
+ * @param[out] pProcessType the type of process
+ * @param[out] pProcessPid the pid of the process
+ * @retval LW_ERROR_SUCCESS success
+ */
+DWORD
+LwSmGetServiceProcess(
+    LW_SERVICE_HANDLE hHandle,
+    PLW_SERVICE_PROCESS pProcessType,
+    pid_t* pProcessPid
     );
 
 /**
