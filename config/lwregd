@@ -19,21 +19,7 @@
 #LWI_STARTUP_TYPE_SUSE# Description: Start and Stop the Likewise Registry Daemon
 #LWI_STARTUP_TYPE_SUSE### END INIT INFO
 
-PROG_DESC="Likewise Registry Service"
-PROG_BIN=PREFIX_DIR/sbin/lwregd
-PROG_ARGS="--start-as-daemon"
-PROG_ERR=/var/lib/likewise/lwregd/lwregd.err
-PIDFILE=/var/run/lwregd.pid
-SCRIPTNAME="lwregd"
-STARTHOOK="fix_locale"
+PREFIX="PREFIX_DIR"
+SERVICE_NAME="lwreg"
 
-fix_locale()
-{
-    if [ "$LC_ALL" = "POSIX" ]
-    then
-        unset LC_ALL
-        export LC_ALL
-    fi
-}
-
-. PREFIX_DIR/bin/init-base.sh
+. EXECDIR/init-lwsm.sh

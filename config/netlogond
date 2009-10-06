@@ -11,18 +11,14 @@
 #LWI_STARTUP_TYPE_REDHAT#
 #LWI_STARTUP_TYPE_SUSE### BEGIN INIT INFO
 #LWI_STARTUP_TYPE_SUSE# Provides: netlogond
-#LWI_STARTUP_TYPE_SUSE# Required-Start: $network $remote_fs
+#LWI_STARTUP_TYPE_SUSE# Required-Start: $network $remote_fs lwsmd
 #LWI_STARTUP_TYPE_SUSE# Required-Stop: $network $remote_fs
 #LWI_STARTUP_TYPE_SUSE# Default-Start: 3 5
 #LWI_STARTUP_TYPE_SUSE# Default-Stop: 0 1 2 6
 #LWI_STARTUP_TYPE_SUSE# Description: Start and Stop NETLOGON
 #LWI_STARTUP_TYPE_SUSE### END INIT INFO
 
-PROG_DESC="Likewise Site Affinity Service"
-PROG_BIN=PREFIX_DIR/sbin/netlogond
-PROG_ARGS="--start-as-daemon"
-PROG_ERR=/var/cache/likewise/netlogond/netlogond.err
-PIDFILE=/var/run/netlogond.pid
-SCRIPTNAME="netlogond"
+PREFIX="PREFIX_DIR"
+SERVICE_NAME="netlogon"
 
-. EXECDIR/init-base.sh
+. EXECDIR/init-lwsm.sh

@@ -1,33 +1,34 @@
 # ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4:
 
-%{!?Compat32: %define Compat32 0}
+%{!?i386compat: %define i386compat 0}
 
-Name:		__PKG_NAME
-Summary:	Likewise Security and Authentication Subsystem (LSASS)
+Name: 		__PKG_NAME
+Summary:	Likewise Service Manager
 Version: 	__PKG_VERSION
 Release: 	1
-License: 	LGPLv2/1+/GPLv2+
+License: 	GPLv2+
 Group: 		Development/Libraries
 URL: 		http://www.likewise.com/
 BuildRoot: 	/var/tmp/%{name}-%{version}
 
-Requires: likewise-open-rpc, likewise-open-libs
+Requires: likewise-open-libs, likewise-open-rpc, likewise-open-lwio
+
 
 AutoReq: no
 
+%define INIT_DIR /etc/init.d
 %define _LIB lib
 
 %ifarch x86_64
 %define _LIB lib64
-%else
+%endif
+
+%if %{i386compat}
 %define _LIB lib
 %endif
 
-
 %description
-The Likewise Security and Authentication Subsystem
-contains components to authenticate users and groups
-in Windows Active Directory from Linux/UNIX hosts.
+Likewise Server Service
 
 %prep
 
@@ -43,18 +44,13 @@ rsync -a __PKG_POPULATE_DIR/ ${RPM_BUILD_ROOT}/
 
 %files
 %defattr(-,root,root)
-%if ! %{Compat32}
-%{_sysconfdir}/init.d/*
-%config(noreplace) /etc/likewise/pstore.conf
-%config /etc/likewise/likewise-krb5-ad.conf
+%{INIT_DIR}/*
 %{PrefixDir}/sbin/*
 %{PrefixDir}/bin/*
-%endif
-%{PrefixDir}/%{_lib}/*
-/%{_lib}/*
 
-%if ! %{Compat32}
-%define initScriptPathList %{_sysconfdir}/init.d/lsassd
+%{PrefixDir}/%{_LIB}/*
+
+%define initScriptPathList %{INIT_DIR}/lwsmd
 %post
 ## chkconfig behaves differently on various updates of RHEL and SUSE
 ## So, we massage the init script according to the release, for now.
@@ -79,7 +75,5 @@ for daemon in %{initScriptPathList}; do
         fi
     fi
 done
-%endif
 
 %changelog
-

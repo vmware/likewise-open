@@ -21,11 +21,7 @@
 #LWI_STARTUP_TYPE_SUSE# Description: Start and Stop the Likewise Likewise Eventlog
 #LWI_STARTUP_TYPE_SUSE### END INIT INFO
 
-PROG_DESC="Likewise Event Log Service"
-PROG_BIN=PREFIX_DIR/sbin/eventlogd
-PROG_ARGS="--start-as-daemon"
-PROG_ERR=/var/cache/likewise/eventlogd/eventlogd.err
-PIDFILE=/var/run/likewise-eventlogd.pid
-SCRIPTNAME="eventlogd"
+PREFIX="PREFIX_DIR"
+SERVICE_NAME="eventlog"
 
-. EXECDIR/init-base.sh
+. EXECDIR/init-lwsm.sh

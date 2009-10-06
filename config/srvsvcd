@@ -18,11 +18,7 @@
 #LWI_STARTUP_TYPE_SUSE# Description: Start and Stop SrvSvcd
 #LWI_STARTUP_TYPE_SUSE### END INIT INFO
 
-PROG_DESC="Likewise Server Service"
-PROG_BIN=PREFIX_DIR/sbin/srvsvcd
-PROG_ARGS="--start-as-daemon"
-PROG_ERR=/var/lib/likewise/srvsvcd/srvsvcd.err
-PIDFILE=/var/run/srvsvcd.pid
-SCRIPTNAME="srvsvcd"
+PREFIX="PREFIX_DIR"
+SERVICE_NAME="srvsvc"
 
-. EXECDIR/init-base.sh
+. EXECDIR/init-lwsm.sh

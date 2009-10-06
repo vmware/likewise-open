@@ -108,6 +108,8 @@ elif [ "`uname -s`" = 'HP-UX' ]; then
     PLATFORM="HP-UX"
 elif [ "`uname -s`" = 'SunOS' ]; then
     PLATFORM="SOLARIS"
+elif [ "`uname -s`" = 'VMkernel' ]; then                                  
+    PLATFORM="ESXI"                             
 elif [ "`uname`" = "FreeBSD" -o "`uname`" = "Isilon OneFS" ]; then
     PLATFORM="FREEBSD"
 else
@@ -209,7 +211,7 @@ status_success() {
             ;;
         DEBIAN)
             ;;
-        AIX | HP-UX | SOLARIS | FREEBSD | UNKNOWN)
+        AIX | HP-UX | SOLARIS | FREEBSD | ESXI | UNKNOWN)
             echo "...ok"
             ;;
     esac
@@ -228,7 +230,7 @@ status_failed() {
             ;;
         DEBIAN)
             ;;
-        AIX | HP-UX | SOLARIS | UNKNOWN)
+        AIX | HP-UX | SOLARIS | ESXI | UNKNOWN)
             echo "...failed"
             ;;
     esac
@@ -260,6 +262,14 @@ generic_status()
         #Is the pid valid?
         #Does the program with that pid match our program name?
         #HP-UX needs UNIX95 set to support the -o option
+        if [ "${PLATFORM}" = "ESXI" ]; then
+            if kill -0 $pid > /dev/null 2>&1 ; then
+                # pid is valid. have to assume it's the right program
+                return 0
+            else
+                return 1
+            fi
+        fi
 	pid_comm="`UNIX95=1 ps -p "$pid" -o args= 2>/dev/null | awk '{print $1}'`"
 	if [ "$pid_comm" = "<defunct>" ]; then
             #It is a zombie process
@@ -296,6 +306,9 @@ generic_pid()
 	    FREEBSD)
 		pgrep -f "^${PROG_BIN}"
 		;;
+	    ESXI)
+		( ps | grep "^[0-9]* [0-9]* `basename ${PROG_BIN}` *${PROG_BIN}" | awk '{ print $1 };' | head -1 )
+		;;
 	    HP-UX)
 		( UNIX95= ps -e -o pid= -o args= | grep "^ *[0123456789]* *${PROG_BIN}" | awk '{ print $1 };' )
 		;;
@@ -328,11 +341,10 @@ daemon_start() {
             status=$?
             ;;
         DEBIAN)
-            log_daemon_msg "Starting $PROG_DESC" "`basename $PROG_BIN`"
+            log_daemon_msg "Starting $PROG_DESC: `basename $PROG_BIN`"
             start-stop-daemon --start --exec ${PROG_BIN} -- ${PROG_ARGS}
             status=$?
             log_end_msg $status
-            sleep 1
             ;;
         AIX)
             echo -n "Starting $PROG_DESC"
@@ -356,7 +368,7 @@ daemon_start() {
                 done
             fi
             ;;
-        HP-UX | SOLARIS | FREEBSD)
+        HP-UX | SOLARIS | FREEBSD | ESXI)
             echo -n "Starting $PROG_DESC"
             ${PROG_BIN} ${PROG_ARGS}
             status=$?
@@ -398,7 +410,7 @@ daemon_stop() {
             status=$?
             ;;
         DEBIAN)
-            log_daemon_msg "Stopping $PROG_DESC " "`basename $PROG_BIN`"
+            log_daemon_msg "Stopping $PROG_DESC: `basename $PROG_BIN`"
             status=1
             #only try to stop the daemon if it is running
             if generic_status; then
@@ -424,7 +436,7 @@ daemon_stop() {
             fi
             log_end_msg $status
             ;;
-        AIX | HP-UX | SOLARIS | FREEBSD)
+        AIX | HP-UX | SOLARIS | FREEBSD | ESXI)
             echo -n "Stopping $PROG_DESC"
             status=1
             #only try to stop the daemon if it is running
@@ -455,6 +467,30 @@ daemon_stop() {
     return $status
 }
 
+daemon_reload()
+{
+    case "${PLATFORM}" in 
+        REDHAT | SUSE | FREEBSD | ESXI)
+            echo -n $"Reloading ${PROG_DESC} configuration"
+	    killall -HUP "`basename ${PROG_BIN}`"
+            status=$?
+            ;;
+        DEBIAN)
+            log_daemon_msg "Reloading $PROG_DESC configuration"
+	    killall -HUP "`basename ${PROG_BIN}`"
+	    status=$?
+            log_end_msg $status
+            ;;
+        AIX | HP-UX | SOLARIS | UNKNOWN)
+            echo -n "Stopping $PROG_DESC"
+	    generic_killall -HUP
+	    status=$?
+            ;;
+    esac
+
+    return $status
+}
+
 daemon_status() {
     case "${PLATFORM}" in
         REDHAT)
@@ -464,7 +500,7 @@ daemon_status() {
             checkproc ${PROG_BIN}
             rc_status -v
             ;;
-        AIX | HP-UX | SOLARIS | DEBIAN | FREEBSD)
+        AIX | HP-UX | SOLARIS | DEBIAN | FREEBSD | ESXI)
             generic_status
             status=$?
             case "$status" in
@@ -582,21 +618,15 @@ case "$1" in
         ;;
 
     reload)
-        echo -n "Reloading $PROG_DESC configuration file"
-        if [ ${PLATFORM} = "AIX" -o ${PLATFORM} = "HP-UX" -o ${PLATFORM} = "SOLARIS" ]; then
-            #killall on AIX cannot search for a program name. We have to use
-            #our own
-            generic_killall -HUP
-        else
-            killall -HUP `basename ${PROG_BIN}`
-        fi
-
-        ret=$?
-        print_status $ret
+	# Ignore SIGHUP since killall could send it to us as well
+	trap '' HUP
+	daemon_reload
+	ret=$?
+	print_status $ret
         ;;
-
     *)
         echo "Usage: $0 {start|stop|restart|status|reload}"
         exit 1
         ;;
 esac
+

@@ -45,7 +45,6 @@ rsync -a __PKG_POPULATE_DIR/ ${RPM_BUILD_ROOT}/
 %files
 %defattr(-,root,root)
 %{INIT_DIR}/*
-%config(noreplace) /etc/likewise/srvsvcd.conf
 %{PrefixDir}/sbin/*
 %{PrefixDir}/bin/*
 

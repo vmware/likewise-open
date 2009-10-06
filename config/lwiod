@@ -18,11 +18,7 @@
 #LWI_STARTUP_TYPE_SUSE# Description: Start and Stop LWIOD
 #LWI_STARTUP_TYPE_SUSE### END INIT INFO
 
-PROG_DESC="Likewise IO Manager Service"
-PROG_BIN=PREFIX_DIR/sbin/lwiod
-PROG_ARGS="--start-as-daemon"
-PROG_ERR=/var/lib/likewise/lwiod/lwiod.err
-PIDFILE=/var/run/lwiod.pid
-SCRIPTNAME="lwiod"
+PREFIX="PREFIX_DIR"
+SERVICE_NAME="lwio"
 
-. EXECDIR/init-base.sh
+. EXECDIR/init-lwsm.sh

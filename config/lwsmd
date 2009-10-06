@@ -6,19 +6,22 @@
 #
 #LWI_STARTUP_TYPE_REDHAT###
 #LWI_STARTUP_TYPE_REDHAT# chkconfig: 35 91 9
-#LWI_STARTUP_TYPE_REDHAT# description: Start and Stop the Likewise DCE RPC Daemon
+#LWI_STARTUP_TYPE_REDHAT# description: Start and Stop Likewise Service Manager
 #LWI_STARTUP_TYPE_REDHAT###
 #LWI_STARTUP_TYPE_REDHAT#
 #LWI_STARTUP_TYPE_SUSE### BEGIN INIT INFO
-#LWI_STARTUP_TYPE_SUSE# Provides: rpcd
-#LWI_STARTUP_TYPE_SUSE# Required-Start: $network
-#LWI_STARTUP_TYPE_SUSE# Required-Stop: $network
+#LWI_STARTUP_TYPE_SUSE# Provides: lsassd
+#LWI_STARTUP_TYPE_SUSE# Required-Start:
+#LWI_STARTUP_TYPE_SUSE# Required-Stop:
 #LWI_STARTUP_TYPE_SUSE# Default-Start: 3 5
 #LWI_STARTUP_TYPE_SUSE# Default-Stop: 0 1 2 6
-#LWI_STARTUP_TYPE_SUSE# Description: Start and Stop the Likewise DCE RPC Daemon
+#LWI_STARTUP_TYPE_SUSE# Description: Start and Stop Likewise Service Manager
 #LWI_STARTUP_TYPE_SUSE### END INIT INFO
 
-PREFIX="PREFIX_DIR"
-SERVICE_NAME="dcerpc"
+PROG_DESC="Likewise Service Manager"
+PROG_BIN=PREFIX_DIR/sbin/lwsmd
+PROG_ARGS="--start-as-daemon"
+PIDFILE=/var/run/lwsmd.pid
+SCRIPTNAME="lwsmd"
 
-. EXECDIR/init-lwsm.sh
+. EXECDIR/init-base.sh
