@@ -593,7 +593,7 @@ LsaAdBatchEnumObjectsInCell(
         // However, if this function failed in a previous invocation, the
         // bSearchFinished would be set to true, but the caller would bail out
         // before moving to the next cell.
-        dwError = LsaAdBatchEnumGetNoMoreError(objectType);
+        dwError = LsaAdBatchEnumGetNoMoreError(ObjectType);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
