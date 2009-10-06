@@ -264,7 +264,7 @@ RegShellCmdParseKeyName(
     PREGSHELL_CMD_ITEM *pRetCmdItem)
 {
     DWORD dwError = 0;
-    DWORD dwRootKeyError = 0;
+    DWORD dwRootKeyError = LW_ERROR_NO_SUCH_KEY;
     DWORD keyNameLen = 0;
     DWORD dwOffset = 0;
     PCHAR pszKeyName = NULL;
