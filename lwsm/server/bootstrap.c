@@ -46,10 +46,6 @@ static SM_BOOTSTRAP_SERVICE gRegistryService =
     .ppszArgs =
     {
         "lwregd",
-        "--logfile",
-        "/tmp/lwregd.log",
-        "--loglevel",
-        "trace",
         NULL
     }
 };
