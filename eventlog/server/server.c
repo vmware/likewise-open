@@ -427,7 +427,7 @@ prepare_domain_socket(PCSTR pszPath)
     BAIL_ON_EVT_ERROR(dwError);
     
     /* Ensure directory is only accessible by root */
-    if (chmod(pszDirname, 0600))
+    if (chmod(pszDirname, 0700))
     {
         dwError = errno;
         BAIL_ON_EVT_ERROR(dwError);

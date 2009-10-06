@@ -1,0 +1,15 @@
+LwSmAcquireServiceHandle
+LwSmReleaseServiceHandle
+LwSmEnumerateServices
+LwSmFreeServiceNameList
+LwSmAddService
+LwSmRemoveService
+LwSmStartService
+LwSmStopService
+LwSmGetServiceStatus
+LwSmGetServiceProcess
+LwSmRefreshService
+LwSmGetServiceInfo
+LwSmFreeServiceInfo
+LwSmGetServiceDependencyClosure
+LwSmGetServiceReverseDependencyClosure
