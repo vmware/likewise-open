@@ -24,6 +24,7 @@
 
 [HKEY_LIKEWISE\Services\lwio\Parameters\Drivers\srv]
 "Path"="@providerdir@/libsrv.sys@MOD_EXT@"
+"SupportSmb2"=dword:00000000
 
 [HKEY_LIKEWISE\Services\lwio\Parameters\Drivers\iotest]
 "Path"="@providerdir@/libiotest.sys@MOD_EXT@"
