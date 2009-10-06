@@ -158,11 +158,11 @@ LsaLdapOpenDirectoryWithReaffinity(
         {
             break;
         }
-        LSA_LOG_DEBUG("Ldap open failed for %s '%s' (dwError = %d (0x%08x))",
+        LSA_LOG_DEBUG("Ldap open failed for %s '%s' (dwError = %d (symbol: %s))",
                       bNeedGc ? "forest" : "domain",
                       pszDnsDomainOrForestName,
                       dwError,
-                      dwError);
+                      LwWin32ErrorToName(dwError));
 
         if (dwBlackListCount < MAX_SERVERS_TO_TRY)
         {
