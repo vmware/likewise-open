@@ -586,7 +586,16 @@ LsaAdBatchEnumObjectsInCell(
     BOOLEAN bIsByRealObject = FALSE;
     BOOLEAN bIsSchemaMode = SchemaMode == adMode;
 
-    LSA_ASSERT(!pCookie->bSearchFinished);
+    if (pCookie->bSearchFinished)
+    {
+        // Client programs cannot directly call this function, so typically
+        // this function will not get called after the search is finished.
+        // However, if this function failed in a previous invocation, the
+        // bSearchFinished would be set to true, but the caller would bail out
+        // before moving to the next cell.
+        dwError = LsaAdBatchEnumGetNoMoreError(objectType);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     if ((DEFAULT_MODE == dwDirectoryMode && SchemaMode == adMode) ||
         (UNPROVISIONED_MODE == dwDirectoryMode))
