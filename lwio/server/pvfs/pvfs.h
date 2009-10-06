@@ -432,20 +432,20 @@ PvfsFileHasOpenByteRangeLocks(
 
 NTSTATUS
 PvfsOplockRequest(
-    IN  PPVFS_IRP_CONTEXT pIrpContext,
-    IN  PVOID InputBuffer,
-    IN  ULONG InputBufferLength,
-    OUT PVOID OutputBuffer,
-    IN  ULONG OutputBufferLength
+    IN     PPVFS_IRP_CONTEXT pIrpContext,
+    IN     PVOID  InputBuffer,
+    IN     ULONG  InputBufferLength,
+    OUT    PVOID  OutputBuffer,
+    IN OUT PULONG pOutputBufferLength
     );
 
 NTSTATUS
 PvfsOplockBreakAck(
-    IN  PPVFS_IRP_CONTEXT pIrpContext,
-    IN  PVOID InputBuffer,
-    IN  ULONG InputBufferLength,
-    OUT PVOID OutputBuffer,
-    IN  ULONG OutputBufferLength
+    IN     PPVFS_IRP_CONTEXT pIrpContext,
+    IN     PVOID  InputBuffer,
+    IN     ULONG  InputBufferLength,
+    OUT    PVOID  OutputBuffer,
+    IN OUT PULONG pOutputBufferLength
     );
 
 NTSTATUS
@@ -486,13 +486,12 @@ PvfsQueueCancelOplock(
 
 NTSTATUS
 PvfsIoCtlOpenFileInfo(
-    IN  PPVFS_IRP_CONTEXT pIrpContext,
-    IN  PVOID InputBuffer,
-    IN  ULONG InputBufferLength,
-    OUT PVOID OutputBuffer,
-    IN  ULONG OutputBufferLength
+    IN     PPVFS_IRP_CONTEXT pIrpContext,
+    IN     PVOID  InputBuffer,
+    IN     ULONG  InputBufferLength,
+    OUT    PVOID  OutputBuffer,
+    IN OUT PULONG pOutputBufferLength
     );
-
 
 #endif /* __PVFS_H__ */
 

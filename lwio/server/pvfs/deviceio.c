@@ -50,11 +50,11 @@ struct _PVFS_DEVICECTL_DISPATCH_TABLE
 {
     ULONG DeviceCtlCode;
     NTSTATUS (*fn)(
-        IN PPVFS_IRP_CONTEXT pIrpContext,
-        IN PVOID InputBuffer,
-        IN ULONG InputBufferLength,
-        OUT PVOID OutputBuffer,
-        IN ULONG OutputBufferLength);
+        IN     PPVFS_IRP_CONTEXT pIrpContext,
+        IN     PVOID  InputBuffer,
+        IN     ULONG  InputBufferLength,
+        OUT    PVOID  OutputBuffer,
+        IN OUT PULONG pOutputBufferLength);
 
 } PvfsDeviceCtlHandlerTable[] = {
     { IO_DEVICE_CTL_OPEN_FILE_INFO,       PvfsIoCtlOpenFileInfo }
@@ -68,7 +68,8 @@ PvfsDispatchDeviceIoControl(
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    IRP_ARGS_IO_FS_CONTROL Args = pIrpContext->pIrp->Args.IoFsControl;
+    PIRP pIrp = pIrpContext->pIrp;
+    IRP_ARGS_IO_FS_CONTROL Args = pIrp->Args.IoFsControl;
     ULONG DeviceCtlCode = Args.ControlCode;
     ULONG i = 0;
     ULONG TableSize = sizeof(PvfsDeviceCtlHandlerTable) /
@@ -93,7 +94,7 @@ PvfsDispatchDeviceIoControl(
                           Args.InputBuffer,
                           Args.InputBufferLength,
                           Args.OutputBuffer,
-                          Args.OutputBufferLength);
+                          &Args.OutputBufferLength);
             break;
         }
     }
@@ -102,6 +103,8 @@ PvfsDispatchDeviceIoControl(
         ntError = STATUS_NOT_SUPPORTED;
     }
     BAIL_ON_NT_STATUS(ntError);
+
+    pIrp->IoStatusBlock.BytesTransferred = Args.OutputBufferLength;
 
 cleanup:
     return ntError;

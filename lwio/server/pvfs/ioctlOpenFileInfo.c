@@ -54,22 +54,25 @@ static NTSTATUS
 PvfsFillOpenFileInfo(
     OUT PVOID pBuffer,
     IN  ULONG BufLen,
+    OUT PULONG BytesConsumed,
     IN  ULONG Level
     );
 
 NTSTATUS
 PvfsIoCtlOpenFileInfo(
-    IN  PPVFS_IRP_CONTEXT pIrpContext,
-    IN  PVOID InputBuffer,
-    IN  ULONG InputBufferLength,
-    OUT PVOID OutputBuffer,
-    IN  ULONG OutputBufferLength
+    IN     PPVFS_IRP_CONTEXT pIrpContext,
+    IN     PVOID  InputBuffer,
+    IN     ULONG  InputBufferLength,
+    OUT    PVOID  OutputBuffer,
+    IN OUT PULONG pOutputBufferLength
     )
 {
     NTSTATUS ntError =  STATUS_UNSUCCESSFUL;
     PIO_OPEN_FILE_INFO_INPUT_BUFFER pOpenFileInfoInput = NULL;
     PPVFS_CCB pCcb = NULL;
     PIRP pIrp = pIrpContext->pIrp;
+    ULONG BytesConsumed = 0;
+
 
     ntError = PvfsAcquireCCB(pIrp->FileHandle, &pCcb);
     BAIL_ON_NT_STATUS(ntError);
@@ -92,14 +95,18 @@ PvfsIoCtlOpenFileInfo(
     case 0:
         ntError = PvfsFillOpenFileInfo(
                       OutputBuffer,
-                      OutputBufferLength,
+                      *pOutputBufferLength,
+                      &BytesConsumed,
                       pOpenFileInfoInput->Level);
         break;
+
     default:
         ntError = STATUS_INVALID_INFO_CLASS;
         break;
     }
     BAIL_ON_NT_STATUS(ntError);
+
+    *pOutputBufferLength = BytesConsumed;
 
 cleanup:
     if (pCcb)
@@ -131,6 +138,7 @@ NTSTATUS
 PvfsFillOpenFileInfo(
     OUT PVOID pBuffer,
     IN  ULONG BufLen,
+    OUT PULONG pBytesConsumed,
     IN  ULONG Level
     )
 {
@@ -155,6 +163,8 @@ PvfsFillOpenFileInfo(
                   PvfsOpenFileInfo,
                   &OpenFileInfo);
     BAIL_ON_NT_STATUS(ntError);
+
+    *pBytesConsumed = BufLen - OpenFileInfo.BytesAvailable;
 
 cleanup:
     LWIO_UNLOCK_RWMUTEX(bLocked, &gFcbTable.rwLock);

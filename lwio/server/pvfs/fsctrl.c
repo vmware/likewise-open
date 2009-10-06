@@ -50,11 +50,11 @@ struct _PVFS_FSCTL_DISPATCH_TABLE
 {
     ULONG FsCtlCode;
     NTSTATUS (*fn)(
-        IN PPVFS_IRP_CONTEXT pIrpContext,
-        IN PVOID InputBuffer,
-        IN ULONG InputBufferLength,
-        OUT PVOID OutputBuffer,
-        IN ULONG OutputBufferLength);
+        IN     PPVFS_IRP_CONTEXT pIrpContext,
+        IN     PVOID  InputBuffer,
+        IN     ULONG  InputBufferLength,
+        OUT    PVOID  OutputBuffer,
+        IN OUT PULONG pOutputBufferLength);
 
 } PvfsFsCtlHandlerTable[] = {
     { IO_FSCTL_OPLOCK_REQUEST,       PvfsOplockRequest },
@@ -68,7 +68,8 @@ PvfsDispatchFsIoControl(
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    IRP_ARGS_IO_FS_CONTROL Args = pIrpContext->pIrp->Args.IoFsControl;
+    PIRP pIrp = pIrpContext->pIrp;
+    IRP_ARGS_IO_FS_CONTROL Args = pIrp->Args.IoFsControl;
     ULONG FsCtlCode = Args.ControlCode;
     ULONG i = 0;
     ULONG TableSize = sizeof(PvfsFsCtlHandlerTable) /
@@ -88,11 +89,12 @@ PvfsDispatchFsIoControl(
                 break;
             }
 
-            ntError = PvfsFsCtlHandlerTable[i].fn(pIrpContext,
-                                                  Args.InputBuffer,
-                                                  Args.InputBufferLength,
-                                                  Args.OutputBuffer,
-                                                  Args.OutputBufferLength);
+            ntError = PvfsFsCtlHandlerTable[i].fn(
+                          pIrpContext,
+                          Args.InputBuffer,
+                          Args.InputBufferLength,
+                          Args.OutputBuffer,
+                          &Args.OutputBufferLength);
             break;
         }
     }
@@ -101,6 +103,8 @@ PvfsDispatchFsIoControl(
         ntError = STATUS_NOT_SUPPORTED;
     }
     BAIL_ON_NT_STATUS(ntError);
+
+    pIrp->IoStatusBlock.BytesTransferred = Args.OutputBufferLength;
 
 cleanup:
     return ntError;
