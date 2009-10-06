@@ -308,11 +308,12 @@ DomainJoinWindow::HandleJoinDomain()
         std::string ouPath = GetOUPath();
         ValidateOUPath(ouPath);
 
-        if (computerName != _originalComputerName)
-        {
+        // Need to call SetComputerName since it in not always safe to
+        // assume that the hostname is configured permanently. We have
+        // seen cases where the GetComputerName results are from a DHCP
+        // configured hostname, and not a locally set value.
         DomainJoinInterface::SetComputerName(computerName, domainName);
         _originalComputerName = computerName;
-        }
 
         // For launchctl to work, RUID and EUID should be 0
         setuid(0);
