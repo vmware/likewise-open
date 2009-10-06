@@ -22,6 +22,7 @@ const int DomainMigrateWindow::AD_USER_UID_ID      = 504;
 const int DomainMigrateWindow::AD_USER_GID_ID      = 505;
 const int DomainMigrateWindow::COPY_RADIO_ID       = 506;
 const int DomainMigrateWindow::MOVE_RADIO_ID       = 507;
+const int DomainMigrateWindow::DELETE_ACCOUNT_ID   = 508;
 const int DomainMigrateWindow::CANCEL_ID           = 511;
 const int DomainMigrateWindow::MIGRATE_ID          = 512;
 const int DomainMigrateWindow::VALIDATE_ID         = 513;
@@ -148,6 +149,12 @@ bool
 DomainMigrateWindow::IsMoveOptionSelected()
 {
     return IsRadioButtonSet(MOVE_RADIO_ID);
+}
+
+bool
+DomainMigrateWindow::IsDeleteOptionSelected()
+{
+    return IsRadioButtonSet(DELETE_ACCOUNT_ID);
 }
 
 void
@@ -474,7 +481,8 @@ DomainMigrateWindow::ConfirmMigration(
     const std::string& adUserHomeDir,
     const std::string& adUserUID,
     const std::string& adUserGID,
-    bool bMoveProfile
+    bool bMoveProfile,
+    bool bDeleteAccount
     )
 {
     AlertStdCFStringAlertParamRec params;
@@ -496,9 +504,10 @@ DomainMigrateWindow::ConfirmMigration(
     {
         msgStrRef = CFStringCreateWithFormat(NULL,
                                              NULL,
-                                             CFSTR("Are you sure you want to migrate the profile?\n\tFrom local user: %s\n\tTo AD user: %s\n\nSince the two profiles share the same home directory path, the contents of '%s' will be reassigned to the new owner (UID: %s, GID: %s)"),
+                                             CFSTR("Are you sure you want to migrate the profile?\n\tFrom local user: %s\n\tTo AD user: %s\n\nLocal account will %s after migration completes\n\nSince the two profiles share the same home directory path, the contents of '%s' will be reassigned to the new owner (UID: %s, GID: %s)"),
                                              localUserName.c_str(),
                                              adUserName.c_str(),
+                                             bDeleteAccount ? "be deleted" : "remain available",
                                              localUserHomeDir.c_str(),
                                              adUserUID.c_str(),
                                              adUserGID.c_str());
@@ -507,9 +516,10 @@ DomainMigrateWindow::ConfirmMigration(
     {
         msgStrRef = CFStringCreateWithFormat(NULL,
                                              NULL,
-                                             CFSTR("Are you sure you want to migrate the profile?\n\tFrom local user: %s\n\tTo AD user: %s\n\nContents from '%s' will be %s to '%s'.\nOwnership will be asssigned to (UID: %s, GID: %s)"),
+                                             CFSTR("Are you sure you want to migrate the profile?\n\tFrom local user: %s\n\tTo AD user: %s\n\nLocal account will %s after migration completes\n\nContents from '%s' will be %s to '%s'.\nOwnership will be asssigned to (UID: %s, GID: %s)\n\nPLEASE NOTE: Migration operation can take a long time for a very large user profile. Be prepared to wait for migration to complete\n\nClick Yes to start the migration..."),
                                              localUserName.c_str(),
                                              adUserName.c_str(),
+                                             bDeleteAccount ? "be deleted" : "remain available",
                                              localUserHomeDir.c_str(),
                                              bMoveProfile ? "moved" : "copied",
                                              adUserHomeDir.c_str(),
@@ -545,32 +555,28 @@ DomainMigrateWindow::ConfirmMigration(
 
 int
 DomainMigrateWindow::CallMigrateCommand(
-    const std::string& localUserHomeDir,
+    const std::string& localUserName,
     const std::string& adUserName,
     const std::string& logFileName,
     bool bMoveProfile,
+    bool bDeleteAccount,
     char ** ppszOutput
     )
 {
     long macError = eDSNoErr;
     char * pszOutput = NULL;
     int exitCode = 0;
-    const char* argsCopy[] = { "/opt/likewise/bin/lw-local-user-migrate.sh",
-                               localUserHomeDir.c_str(),
-                               adUserName.c_str(),
-                               "--log",
-                               logFileName.c_str(),
-                               (char *) NULL };
-    const char* argsMove[] = { "/opt/likewise/bin/lw-local-user-migrate.sh",
-                               localUserHomeDir.c_str(),
-                               adUserName.c_str(),
-                               "--move",
-                               "--log",
-                               logFileName.c_str(),
-                               (char *) NULL };
+    const char* args[] = { "/opt/likewise/bin/lw-local-user-migrate.sh",
+        localUserName.c_str(),
+        adUserName.c_str(),
+        bMoveProfile ? "--move" : " ",
+        bDeleteAccount ? "--delete" : " ",
+        "--log",
+        logFileName.c_str(),
+        (char *) NULL };
 
-    macError = CallCommandWithOutputAndErr(bMoveProfile ? argsMove[0] : argsCopy[0],
-                                           bMoveProfile ? argsMove : argsCopy,
+    macError = CallCommandWithOutputAndErr(args[0],
+                                           args,
                                            true,
                                            &pszOutput,
                                            &exitCode);
@@ -639,10 +645,11 @@ DomainMigrateWindow::HandleMigration()
         std::string adUserUID = GetADUserUID();
         std::string adUserGID = GetADUserGID();
         bool bMoveProfile = IsMoveOptionSelected();
+        bool bDeleteAccount = IsDeleteOptionSelected();
 
         ShowMigrateProgressBar();
 
-        if (ConfirmMigration(localUserName, localUserHomeDir, adUserName, adUserHomeDir, adUserUID, adUserGID, bMoveProfile))
+        if (ConfirmMigration(localUserName, localUserHomeDir, adUserName, adUserHomeDir, adUserUID, adUserGID, bMoveProfile, bDeleteAccount))
         {
             int ret = 0;
             char szLogFileName[256] = { 0 };
@@ -651,7 +658,7 @@ DomainMigrateWindow::HandleMigration()
             sprintf(szLogFileName, "/tmp/lw-migrate.%s.log", localUserName.c_str());
 
             // Migrate user with the parameters we have determined...
-            ret = CallMigrateCommand(localUserHomeDir, adUserName, szLogFileName, bMoveProfile, &pszErrorMessage);
+            ret = CallMigrateCommand(localUserName, adUserName, szLogFileName, bMoveProfile, bDeleteAccount, &pszErrorMessage);
 
             HideMigrateProgressBar();
 
