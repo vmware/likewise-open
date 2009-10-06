@@ -57,14 +57,13 @@ struct _PVFS_DEVICECTL_DISPATCH_TABLE
         IN ULONG OutputBufferLength);
 
 } PvfsDeviceCtlHandlerTable[] = {
-    { 0,       NULL },
-
+    { IO_DEVICE_CTL_OPEN_FILE_INFO,       PvfsIoCtlOpenFileInfo }
 };
 
 
 
 NTSTATUS
-PvfsDeviceIoControl(
+PvfsDispatchDeviceIoControl(
     PPVFS_IRP_CONTEXT  pIrpContext
     )
 {
@@ -89,11 +88,12 @@ PvfsDeviceIoControl(
                 break;
             }
 
-            ntError = PvfsDeviceCtlHandlerTable[i].fn(pIrpContext,
-                                                      Args.InputBuffer,
-                                                      Args.InputBufferLength,
-                                                      Args.OutputBuffer,
-                                                      Args.OutputBufferLength);
+            ntError = PvfsDeviceCtlHandlerTable[i].fn(
+                          pIrpContext,
+                          Args.InputBuffer,
+                          Args.InputBufferLength,
+                          Args.OutputBuffer,
+                          Args.OutputBufferLength);
             break;
         }
     }

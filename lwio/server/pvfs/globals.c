@@ -61,6 +61,11 @@ PPVFS_WORK_QUEUE gpPvfsInternalWorkQueue = NULL;
 PSMB_HASH_TABLE gpPathCache = NULL;
 pthread_rwlock_t gPathCacheRwLock;
 
+pthread_mutex_t gDeviceFcbMutex = PTHREAD_MUTEX_INITIALIZER;
+PPVFS_FCB gpPvfsDeviceFcb = NULL;
+
+PVFS_FCB_TABLE gFcbTable;
+
 
 /*
 local variables:
