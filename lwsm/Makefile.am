@@ -106,7 +106,7 @@ doxygen-pdf-install: doc/lwsm.pdf
 
 all-local: doxygen-html $(DOXYGEN_PDF_TARGET)
 
-install-data-local: doxygen-html-install doxygen-pdf-install
+install-data-local: doxygen-html-install $(DOXYGEN_PDF_INSTALL_TARGET)
 
 endif
 
