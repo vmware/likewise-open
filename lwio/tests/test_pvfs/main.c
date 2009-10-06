@@ -1097,8 +1097,8 @@ PrintOpenFileInfo0(
     PSTR pszFilename = NULL;
     ULONG Offset = 0;
 
-    printf("Filename                                             Handles\n");
-    printf("------------------------------------------------------------\n");
+    printf("Handles Filename\n");
+    printf("------- ---------\n");
 
     while (pBuffer)
     {
@@ -1111,9 +1111,7 @@ PrintOpenFileInfo0(
                       (PCWSTR)pInfo0->pwszFileName);
         BAIL_ON_NT_STATUS(ntError);
 
-        printf("%-50s    %d\n",
-               pszFilename,
-               pInfo0->OpenHandleCount);
+        printf("%-4d    %s\n", pInfo0->OpenHandleCount, pszFilename);
 
         if (pInfo0->NextEntryOffset != 0)
         {
