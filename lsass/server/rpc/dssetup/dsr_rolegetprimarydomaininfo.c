@@ -136,7 +136,7 @@ DsrSrvRoleGetPDCInfoBasic(
     PSTR pszLsaLpcSocketPath = NULL;
     PSTR pszDcName = NULL;
     PWSTR pwszDcName = NULL;
-    PIO_ACCESS_TOKEN pAccessToken = NULL;
+    PIO_CREDS pCreds = NULL;
     CHAR szHostname[64];
     handle_t hLsaBinding = NULL;
     PolicyHandle hLocalPolicy;
@@ -155,7 +155,7 @@ DsrSrvRoleGetPDCInfoBasic(
                                        &pszDcName);
     BAIL_ON_LSA_ERROR(dwError);
 
-    status = LwIoGetThreadAccessToken(&pAccessToken);
+    status = LwIoGetThreadCreds(&pCreds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     dwError = gethostname(szHostname, sizeof(szHostname));

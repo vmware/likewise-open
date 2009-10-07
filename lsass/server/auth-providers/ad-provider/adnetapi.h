@@ -71,7 +71,7 @@ typedef struct _LSA_TRANSLATED_NAME_OR_SID {
 
 DWORD
 AD_SetSystemAccess(
-    OUT OPTIONAL LW_PIO_ACCESS_TOKEN* ppOldToken
+    OUT OPTIONAL LW_PIO_CREDS* ppOldToken
     );
 
 DWORD

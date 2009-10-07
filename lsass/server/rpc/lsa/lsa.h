@@ -230,8 +230,8 @@ LsaSrvFreeAccountSids(
 
 
 NTSTATUS
-LsaSrvGetSystemAccessToken(
-    LW_PIO_ACCESS_TOKEN *ppAccessToken
+LsaSrvGetSystemCreds(
+    LW_PIO_CREDS *ppCreds
     );
 
 

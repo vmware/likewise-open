@@ -83,7 +83,7 @@ SamrSrvAddAliasMember(
     PSTR pszDomainFqdn = NULL;
     PSTR pszDcName = NULL;
     PWSTR pwszDcName = NULL;
-    LW_PIO_ACCESS_TOKEN pAccessToken = NULL;
+    LW_PIO_CREDS pCreds = NULL;
     handle_t hLsaBinding = NULL;
     PolicyHandle hDcPolicy;
     SidArray SidsArray = {0};
@@ -243,12 +243,12 @@ SamrSrvAddAliasMember(
                                            &pszDcName);
         BAIL_ON_LSA_ERROR(dwError);
 
-        ntStatus = SamrSrvGetSystemAccessToken(&pAccessToken);
+        ntStatus = SamrSrvGetSystemCreds(&pCreds);
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
         rpcStatus = InitLsaBindingDefault(&hLsaBinding,
                                           pszDcName,
-                                          pAccessToken);
+                                          pCreds);
         if (rpcStatus)
         {
             dwError = LW_ERROR_RPC_ERROR;
@@ -357,9 +357,9 @@ cleanup:
         FreeLsaBinding(&hLsaBinding);
     }
 
-    if (pAccessToken)
+    if (pCreds)
     {
-        LwIoDeleteAccessToken(pAccessToken);
+        LwIoDeleteCreds(pCreds);
     }
 
     if (pEntry)

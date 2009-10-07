@@ -47,21 +47,21 @@
 
 #include "includes.h"
 
-typedef struct _LSA_ACCESS_TOKEN_FREE_INFO
+typedef struct _LSA_CREDS_FREE_INFO
 {
     krb5_context ctx;
     krb5_ccache cc;
-    LW_PIO_ACCESS_TOKEN hAccessToken;
-} LSA_ACCESS_TOKEN_FREE_INFO;
+    LW_PIO_CREDS hCreds;
+} LSA_CREDS_FREE_INFO;
 
 DWORD
-LsaSetSMBAccessToken(
+LsaSetSMBCreds(
     IN PCSTR pszDomain,
     IN PCSTR pszUsername,
     IN PCSTR pszPassword,
     IN BOOLEAN bSetDefaultCachePath,
-    OUT PLSA_ACCESS_TOKEN_FREE_INFO* ppFreeInfo,
-    OUT OPTIONAL LW_PIO_ACCESS_TOKEN* ppOldToken
+    OUT PLSA_CREDS_FREE_INFO* ppFreeInfo,
+    OUT OPTIONAL LW_PIO_CREDS* ppOldToken
     )
 {
     DWORD dwError = 0;
@@ -71,9 +71,9 @@ LsaSetSMBAccessToken(
     PCSTR  pszCacheType = NULL;
     krb5_context ctx = 0;
     krb5_ccache cc = 0;
-    LW_PIO_ACCESS_TOKEN pNewAccessToken = NULL;
-    LW_PIO_ACCESS_TOKEN pOldAccessToken = NULL;
-    PLSA_ACCESS_TOKEN_FREE_INFO pFreeInfo = NULL;
+    LW_PIO_CREDS pNewCreds = NULL;
+    LW_PIO_CREDS pOldCreds = NULL;
+    PLSA_CREDS_FREE_INFO pFreeInfo = NULL;
 
     BAIL_ON_INVALID_POINTER(ppFreeInfo);
     BAIL_ON_INVALID_STRING(pszDomain);
@@ -112,43 +112,43 @@ LsaSetSMBAccessToken(
                 NULL);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LwIoCreateKrb5AccessTokenA(
+    dwError = LwIoCreateKrb5CredsA(
         pszUsername,
         pszNewCachePath,
-        &pNewAccessToken);
+        &pNewCreds);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LwAllocateMemory(sizeof(*pFreeInfo), (PVOID*)&pFreeInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LwIoGetThreadAccessToken(&pOldAccessToken);
+    dwError = LwIoGetThreadCreds(&pOldCreds);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LwIoSetThreadAccessToken(pNewAccessToken);
+    dwError = LwIoSetThreadCreds(pNewCreds);
     BAIL_ON_LSA_ERROR(dwError);
 
     pFreeInfo->ctx = ctx;
     pFreeInfo->cc = cc;
-    pFreeInfo->hAccessToken = pNewAccessToken;
-    pNewAccessToken = NULL;
+    pFreeInfo->hCreds = pNewCreds;
+    pNewCreds = NULL;
 
 cleanup:
     *ppFreeInfo = pFreeInfo;
     if (ppOldToken)
     {
-        *ppOldToken = pOldAccessToken;
+        *ppOldToken = pOldCreds;
     }
     else
     {
-        if (pOldAccessToken != NULL)
+        if (pOldCreds != NULL)
         {
-            LwIoDeleteAccessToken(pOldAccessToken);
+            LwIoDeleteCreds(pOldCreds);
         }
     }
 
-    if (pNewAccessToken != NULL)
+    if (pNewCreds != NULL)
     {
-        LwIoDeleteAccessToken(pNewAccessToken);
+        LwIoDeleteCreds(pNewCreds);
     }
     LW_SAFE_FREE_STRING(pszNewCachePath);
 
@@ -170,31 +170,31 @@ error:
         pFreeInfo = NULL;
     }
 
-    if (pOldAccessToken != NULL)
+    if (pOldCreds != NULL)
     {
-        LwIoDeleteAccessToken(pOldAccessToken);
-        pOldAccessToken = NULL;
+        LwIoDeleteCreds(pOldCreds);
+        pOldCreds = NULL;
     }
 
     goto cleanup;
 }
 
 void
-LsaFreeSMBAccessToken(
-    IN OUT PLSA_ACCESS_TOKEN_FREE_INFO* ppFreeInfo
+LsaFreeSMBCreds(
+    IN OUT PLSA_CREDS_FREE_INFO* ppFreeInfo
     )
 {
-    PLSA_ACCESS_TOKEN_FREE_INFO pFreeInfo = *ppFreeInfo;
+    PLSA_CREDS_FREE_INFO pFreeInfo = *ppFreeInfo;
 
     if (!pFreeInfo)
     {
         goto cleanup;
     }
 
-    if (pFreeInfo->hAccessToken != NULL)
+    if (pFreeInfo->hCreds != NULL)
     {
-        LwIoSetThreadAccessToken(pFreeInfo->hAccessToken);
-        LwIoDeleteAccessToken(pFreeInfo->hAccessToken);
+        LwIoSetThreadCreds(pFreeInfo->hCreds);
+        LwIoDeleteCreds(pFreeInfo->hCreds);
     }
 
     if (pFreeInfo->ctx != NULL)

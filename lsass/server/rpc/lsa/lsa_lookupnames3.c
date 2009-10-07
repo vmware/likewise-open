@@ -68,7 +68,7 @@ LsaSrvLookupNames3(
     RPCSTATUS rpcstatus = 0;
     PPOLICY_CONTEXT pPolCtx = NULL;
     handle_t hLsaBinding = NULL;
-    PIO_ACCESS_TOKEN pAccessToken = NULL;
+    PIO_CREDS pCreds = NULL;
     PolicyHandle hDcPolicy;
     PSAM_DOMAIN_ENTRY pDomain = NULL;
     PSAM_DOMAIN_ENTRY pLocalDomain = NULL;
@@ -141,12 +141,12 @@ LsaSrvLookupNames3(
                                            &pszDcName);
         BAIL_ON_LSA_ERROR(dwError);
 
-        ntStatus = LsaSrvGetSystemAccessToken(&pAccessToken);
+        ntStatus = LsaSrvGetSystemCreds(&pCreds);
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
         rpcstatus = InitLsaBindingDefault(&hLsaBinding,
                                           pszDcName,
-                                          pAccessToken);
+                                          pCreds);
         if (rpcstatus) {
             dwError = LW_ERROR_RPC_ERROR;
             BAIL_ON_LSA_ERROR(dwError);
@@ -523,9 +523,9 @@ LsaSrvLookupNames3(
     *count      = SidArray.count;
 
 cleanup:
-    if (pAccessToken)
+    if (pCreds)
     {
-        LwIoDeleteAccessToken(pAccessToken);
+        LwIoDeleteCreds(pCreds);
     }
 
     if (pwszSystemName)

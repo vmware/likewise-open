@@ -60,7 +60,7 @@ LsaNetLeaveDomain(
     DWORD dwOptions = (NETSETUP_ACCT_DELETE);
     PLWPS_PASSWORD_INFO pPassInfo = NULL;
     PLSA_MACHINE_ACCT_INFO pAcct = NULL;
-    PLSA_ACCESS_TOKEN_FREE_INFO pAccessInfo = NULL;
+    PLSA_CREDS_FREE_INFO pAccessInfo = NULL;
 
     if (geteuid() != 0) {
         dwError = EACCES;
@@ -107,7 +107,7 @@ LsaNetLeaveDomain(
     if (!LW_IS_NULL_OR_EMPTY_STR(pszUsername) &&
         !LW_IS_NULL_OR_EMPTY_STR(pszPassword))
     {
-        dwError = LsaSetSMBAccessToken(
+        dwError = LsaSetSMBCreds(
                     pAcct->pszDnsDomainName,
                     pszUsername,
                     pszPassword,
@@ -149,7 +149,7 @@ cleanup:
 
     LW_SAFE_FREE_MEMORY(pwszHostname);
     LW_SAFE_FREE_MEMORY(pwszDnsDomainName);
-    LsaFreeSMBAccessToken(&pAccessInfo);
+    LsaFreeSMBCreds(&pAccessInfo);
 
     return dwError;
 
