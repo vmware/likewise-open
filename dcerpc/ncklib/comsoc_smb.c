@@ -27,7 +27,7 @@ typedef struct rpc_smb_transport_info_s
         unsigned16 length;
         unsigned char* data;
     } session_key;
-    PIO_ACCESS_TOKEN access_token;
+    PIO_CREDS creds;
     boolean schannel;
 } rpc_smb_transport_info_t, *rpc_smb_transport_info_p_t;
 
@@ -70,8 +70,8 @@ typedef struct rpc_smb_socket_s
 } rpc_smb_socket_t, *rpc_smb_socket_p_t;
 
 void
-rpc_smb_transport_info_from_lwio_token(
-    void* access_token,
+rpc_smb_transport_info_from_lwio_creds(
+    void* creds,
     boolean schannel,
     rpc_transport_info_handle_t* info,
     unsigned32* st
@@ -87,7 +87,7 @@ rpc_smb_transport_info_from_lwio_token(
         goto error;
     }
 
-    if (LwIoCopyAccessToken(access_token, &smb_info->access_token) != 0)
+    if (LwIoCopyCreds(creds, &smb_info->creds) != 0)
     {
         *st = rpc_s_no_memory;
         goto error;
@@ -115,9 +115,9 @@ rpc__smb_transport_info_destroy(
     rpc_smb_transport_info_p_t smb_info
     )
 {
-    if (smb_info->access_token)
+    if (smb_info->creds)
     {
-        LwIoDeleteAccessToken(smb_info->access_token);
+        LwIoDeleteCreds(smb_info->creds);
     }
 
     if (smb_info->session_key.data)
@@ -185,9 +185,9 @@ rpc__smb_transport_info_equal(
     rpc_smb_transport_info_p_t smb_info2 = (rpc_smb_transport_info_p_t) info2;
 
     return (smb_info1->schannel == smb_info2->schannel &&
-            ((smb_info1->access_token == NULL && smb_info2->access_token == NULL) ||
-             (smb_info1->access_token != NULL && smb_info2->access_token != NULL &&
-              LwIoCompareAccessTokens(smb_info1->access_token, smb_info2->access_token))));
+            ((smb_info1->creds == NULL && smb_info2->creds == NULL) ||
+             (smb_info1->creds != NULL && smb_info2->creds != NULL &&
+              LwIoCompareCredss(smb_info1->creds, smb_info2->creds))));
 }
 
 INTERNAL
@@ -575,9 +575,9 @@ rpc__smb_socket_construct(
 
     if (smb_info)
     {
-        if (smb_info->access_token)
+        if (smb_info->creds)
         {
-            serr = NtStatusToUnixErrno(LwIoCopyAccessToken(smb_info->access_token, &smb_sock->info.access_token));
+            serr = NtStatusToUnixErrno(LwIoCopyCreds(smb_info->creds, &smb_sock->info.creds));
             if (serr)
             {
                 goto error;
@@ -694,7 +694,7 @@ rpc__smb_socket_connect(
     serr = NtStatusToUnixErrno(
         NtCtxCreateFile(
             smb->context,                            /* IO context */
-            smb->info.access_token,                  /* Security token */
+            smb->info.creds,                         /* Security token */
             &smb->np,                                /* Created handle */
             NULL,                                    /* Async control block */
             &io_status,                              /* Status block */
@@ -1592,9 +1592,9 @@ rpc__smb_socket_inq_transport_info(
 
     smb_info->schannel = smb->info.schannel;
 
-    if (smb->info.access_token)
+    if (smb->info.creds)
     {
-        serr = NtStatusToUnixErrno(LwIoCopyAccessToken(smb->info.access_token, &smb_info->access_token));
+        serr = NtStatusToUnixErrno(LwIoCopyCreds(smb->info.creds, &smb_info->creds));
         if (serr)
         {
             goto error;
