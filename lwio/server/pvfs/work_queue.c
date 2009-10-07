@@ -135,8 +135,15 @@ error:
     goto cleanup;
 }
 
-/*********************************************************
- ********************************************************/
+/***********************************************************************
+ **********************************************************************/
+
+static
+VOID
+PvfsMakeWorkItemTimeout(
+    OUT struct timespec *pTimeout,
+    IN  ULONG MilliSeconds
+    );
 
 NTSTATUS
 PvfsNextWorkItem(
@@ -147,6 +154,8 @@ PvfsNextWorkItem(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     BOOL bInLock = FALSE;
     BOOL bSignal = FALSE;
+    struct timespec Wait = {0};
+    int UnixError = 0;
 
     BAIL_ON_INVALID_PTR(pWorkQueue, ntError);
     BAIL_ON_INVALID_PTR(ppItem, ntError);
@@ -155,11 +164,21 @@ PvfsNextWorkItem(
 
     if (pWorkQueue->bWait)
     {
+        PvfsMakeWorkItemTimeout(&Wait, 250);
+
         while (LwRtlQueueIsEmpty(pWorkQueue->pQueue))
         {
-            pthread_cond_wait(
-                &pWorkQueue->ItemsAvailable,
-                &pWorkQueue->Mutex);
+            UnixError = pthread_cond_timedwait(
+                            &pWorkQueue->ItemsAvailable,
+                            &pWorkQueue->Mutex,
+                            &Wait);
+            ntError = PvfsMapUnixErrnoToNtStatus(UnixError);
+
+            if (ntError == STATUS_MORE_PROCESSING_REQUIRED)
+            {
+                continue;
+            }
+            BAIL_ON_NT_STATUS(ntError);
         }
 
         if (LwRtlQueueIsFull(pWorkQueue->pQueue))
@@ -183,6 +202,25 @@ cleanup:
 
 error:
     goto cleanup;
+}
+
+
+static
+VOID
+PvfsMakeWorkItemTimeout(
+    OUT struct timespec *pTimeout,
+    IN  ULONG MilliSeconds
+    )
+{
+    struct timeval Now = {0};
+    struct timezone TZ = {0};
+
+    gettimeofday(&Now, &TZ);
+
+    pTimeout->tv_sec = Now.tv_sec;
+    pTimeout->tv_nsec = Now.tv_usec * 1000;
+
+    pTimeout->tv_nsec += (MilliSeconds * 1000 * 1000);
 }
 
 
