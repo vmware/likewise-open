@@ -92,7 +92,7 @@ LwSmRegistryEnumServices(
     DWORD i = 0;
 
     static const PSTR pszServicesKeyName = "\\Services";
-    
+
     dwError = LwMbsToWc16s(pszServicesKeyName + 1, &pwszParentPath);
 
     dwError = RegOpenRootKey(hReg, LIKEWISE_ROOT_KEY, &pRootKey);
@@ -116,7 +116,7 @@ LwSmRegistryEnumServices(
         NULL,
         NULL);
     BAIL_ON_ERROR(dwError);
-    
+
     dwError = LwAllocateMemory(
         sizeof(*ppwszNames) * (dwKeyCount + 1),
         OUT_PPVOID(&ppwszNames));
@@ -125,12 +125,12 @@ LwSmRegistryEnumServices(
     for (i = 0; i < dwKeyCount; i++)
     {
         dwKeyLen = dwMaxKeyLen + 1;
-        
+
         dwError = LwAllocateMemory(
             sizeof(**ppwszNames) * dwKeyLen,
             OUT_PPVOID(&ppwszNames[i]));
         BAIL_ON_ERROR(dwError);
-        
+
         dwError = RegEnumKeyEx(hReg, pParentKey, i, ppwszNames[i], &dwKeyLen, NULL, NULL, NULL, NULL);
         BAIL_ON_ERROR(dwError);
 
@@ -173,7 +173,7 @@ error:
 
     goto cleanup;
 }
-    
+
 DWORD
 LwSmRegistryReadServiceInfo(
     HANDLE hReg,
@@ -188,18 +188,18 @@ LwSmRegistryReadServiceInfo(
     DWORD dwType = 0;
     PSTR pszName = NULL;
     PSTR pszParentKey = NULL;
-    
-    static const WCHAR wszDescription[] = 
+
+    static const WCHAR wszDescription[] =
         {'D', 'e', 's', 'c', 'r', 'i', 'p', 't', 'i', 'o', 'n', 0};
-    static const WCHAR wszType[] = 
+    static const WCHAR wszType[] =
         {'T', 'y', 'p', 'e', 0};
-    static const WCHAR wszPath[] = 
+    static const WCHAR wszPath[] =
         {'P', 'a', 't', 'h', 0};
-    static const WCHAR wszArguments[] = 
+    static const WCHAR wszArguments[] =
         {'A', 'r', 'g', 'u', 'm', 'e', 'n', 't', 's', 0};
-    static const WCHAR wszDependencies[] = 
+    static const WCHAR wszDependencies[] =
         {'D', 'e', 'p', 'e', 'n', 'd', 'e', 'n', 'c', 'i', 'e', 's', 0};
-    
+
     dwError = LwWc16sToMbs(pwszName, &pszName);
     BAIL_ON_ERROR(dwError);
 
@@ -296,7 +296,7 @@ LwSmRegistryReadDword(
     DWORD dwSize = sizeof(*pdwValue) + 1;
     DWORD dwType = 0;
 
-    dwError = RegGetValue(
+    dwError = RegGetValueW(
         hReg,
         pRootKey,
         pwszParentKey,
@@ -327,25 +327,25 @@ LwSmRegistryReadString(
     )
 {
     DWORD dwError = 0;
-    char szValue[MAX_VALUE_LENGTH];
+    WCHAR wszValue[MAX_VALUE_LENGTH];
     DWORD dwSize = 0;
     DWORD dwType = 0;
 
-    memset(szValue, 0, sizeof(szValue));
-    dwSize = sizeof(szValue);
+    memset(wszValue, 0, sizeof(wszValue));
+    dwSize = sizeof(wszValue);
 
-    dwError = RegGetValue(
+    dwError = RegGetValueW(
         hReg,
         pRootKey,
         pwszParentKey,
         pwszValueName,
         RRF_RT_REG_SZ,
         &dwType,
-        szValue,
+        wszValue,
         &dwSize);
     BAIL_ON_ERROR(dwError);
 
-    dwError = LwMbsToWc16s(szValue, ppwszValue);
+    dwError = LwAllocateWc16String(ppwszValue, wszValue);
     BAIL_ON_ERROR(dwError);
 
 cleanup:
@@ -353,7 +353,6 @@ cleanup:
     return dwError;
 
 error:
-
     *ppwszValue = NULL;
 
     goto cleanup;
@@ -376,7 +375,7 @@ LwSmRegistryReadStringList(
     PWSTR* ppwszValues = NULL;
     size_t count = 0;
     size_t i = 0;
-    
+
     dwError = LwSmRegistryReadString(hReg, pRootKey, pwszParentKey, pwszValueName, &pwszValuesString);
     BAIL_ON_ERROR(dwError);
 
@@ -395,14 +394,14 @@ LwSmRegistryReadStringList(
     for (pwszCursor = pwszValuesString, i = 0; i < count; i++)
     {
         for (pwszSpace = pwszCursor; *pwszSpace && *pwszSpace != ' '; pwszSpace++);
-        
+
         *pwszSpace = (WCHAR) '\0';
-        
+
         LwAllocateWc16String(&ppwszValues[i], pwszCursor);
 
         pwszCursor = pwszSpace + 1;
     }
-        
+
     *pppwszValues = ppwszValues;
 
 cleanup:
