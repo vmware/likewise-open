@@ -42,8 +42,8 @@ struct __SMB_CONFIG_REG
 {
     HANDLE hConnection;
     HKEY hKey;
-    wchar16_t *pwc16sConfigKey;
-    wchar16_t *pwc16sPolicyKey;
+    PSTR pszConfigKey;
+    PSTR pszPolicyKey;
 };
 
 DWORD
@@ -140,10 +140,10 @@ SMBOpenConfig(
     SMBAllocateMemory(sizeof(SMB_CONFIG_REG), (PVOID*)&pReg);
     BAIL_ON_LWIO_ERROR(dwError);
 
-    dwError = SMBMbsToWc16s(pszConfigKey, &(pReg->pwc16sConfigKey));
+    dwError = SMBAllocateString(pszConfigKey, &(pReg->pszConfigKey));
     BAIL_ON_LWIO_ERROR(dwError);
 
-    dwError = SMBMbsToWc16s(pszPolicyKey, &(pReg->pwc16sPolicyKey));
+    dwError = SMBAllocateString(pszPolicyKey, &(pReg->pszPolicyKey));
     BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = RegOpenServer(&(pReg->hConnection));
@@ -184,9 +184,9 @@ SMBCloseConfig(
 {
     if ( pReg )
     {
-        LWIO_SAFE_FREE_MEMORY(pReg->pwc16sConfigKey);
+        LWIO_SAFE_FREE_STRING(pReg->pszConfigKey);
 
-        LWIO_SAFE_FREE_MEMORY(pReg->pwc16sPolicyKey);
+        LWIO_SAFE_FREE_STRING(pReg->pszPolicyKey);
         if ( pReg->hConnection )
         {
             if ( pReg->hKey )
@@ -212,16 +212,11 @@ SMBReadConfigString(
 {
     DWORD dwError = 0;
 
-    wchar16_t *pwc16sName = NULL;
-
     BOOLEAN bGotValue = FALSE;
     PSTR pszValue = NULL;
     char szValue[MAX_VALUE_LENGTH];
     DWORD dwType;
     DWORD dwSize;
-
-    dwError = SMBMbsToWc16s(pszName, &pwc16sName);
-    BAIL_ON_LWIO_ERROR(dwError);
 
     if ( bUsePolicy )
     {
@@ -230,8 +225,8 @@ SMBReadConfigString(
         dwError = RegGetValueA(
                     pReg->hConnection,
                     pReg->hKey,
-                    pReg->pwc16sPolicyKey,
-                    pwc16sName,
+                    pReg->pszPolicyKey,
+                    pszName,
                     RRF_RT_REG_SZ,
                     &dwType,
                     szValue,
@@ -247,8 +242,8 @@ SMBReadConfigString(
         dwError = RegGetValueA(
                     pReg->hConnection,
                     pReg->hKey,
-                    pReg->pwc16sConfigKey,
-                    pwc16sName,
+                    pReg->pszConfigKey,
+                    pszName,
                     RRF_RT_REG_SZ,
                     &dwType,
                     szValue,
@@ -270,9 +265,7 @@ SMBReadConfigString(
     dwError = 0;
 
 cleanup:
-    LWIO_SAFE_FREE_MEMORY(pwc16sName);
-
-    LWIO_SAFE_FREE_MEMORY(pszValue);
+    LWIO_SAFE_FREE_STRING(pszValue);
 
     return dwError;
 
@@ -292,24 +285,19 @@ SMBReadConfigDword(
 {
     DWORD dwError = 0;
 
-    wchar16_t *pwc16sName = NULL;
-
     BOOLEAN bGotValue = FALSE;
     DWORD dwValue;
     DWORD dwSize;
     DWORD dwType;
 
-    dwError = SMBMbsToWc16s(pszName, &pwc16sName);
-    BAIL_ON_LWIO_ERROR(dwError);
-
     if (bUsePolicy)
     {
         dwSize = sizeof(dwValue);
-        dwError = RegGetValue(
+        dwError = RegGetValueA(
                     pReg->hConnection,
                     pReg->hKey,
-                    pReg->pwc16sPolicyKey,
-                    pwc16sName,
+                    pReg->pszPolicyKey,
+                    pszName,
                     RRF_RT_REG_DWORD,
                     &dwType,
                     (PBYTE)&dwValue,
@@ -323,11 +311,11 @@ SMBReadConfigDword(
     if (!bGotValue)
     {
         dwSize = sizeof(dwValue);
-        dwError = RegGetValue(
+        dwError = RegGetValueA(
                     pReg->hConnection,
                     pReg->hKey,
-                    pReg->pwc16sConfigKey,
-                    pwc16sName,
+                    pReg->pszConfigKey,
+                    pszName,
                     RRF_RT_REG_DWORD,
                     &dwType,
                     (PBYTE)&dwValue,
@@ -346,13 +334,7 @@ SMBReadConfigDword(
 
     dwError = 0;
 
-cleanup:
-    LWIO_SAFE_FREE_MEMORY(pwc16sName);
-
     return dwError;
-
-error:
-    goto cleanup;
 }
 
 DWORD
