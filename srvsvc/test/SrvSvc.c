@@ -93,7 +93,7 @@ handle_t CreateSrvSvcBinding(handle_t *binding, const wchar16_t *host)
     RPCSTATUS status = RPC_S_OK;
     size_t hostname_size = 0;
     unsigned char *hostname = NULL;
-    PIO_ACCESS_TOKEN pAccessToken = NULL;
+    PIO_CREDS pCreds = NULL;
 
     if (binding == NULL || host == NULL) return NULL;
 
@@ -102,12 +102,12 @@ handle_t CreateSrvSvcBinding(handle_t *binding, const wchar16_t *host)
     if (hostname == NULL) return NULL;
     wc16stombs(hostname, host, hostname_size);
 
-    if (LwIoGetThreadAccessToken(&pAccessToken) != STATUS_SUCCESS)
+    if (LwIoGetThreadCreds(&pCreds) != STATUS_SUCCESS)
     {
         return NULL;
     }
 
-    status = InitSrvSvcBindingDefault(binding, hostname, pAccessToken);
+    status = InitSrvSvcBindingDefault(binding, hostname, pCreds);
     if (status != RPC_S_OK) {
         int result;
         unsigned char errmsg[dce_c_error_string_len];
@@ -122,9 +122,9 @@ handle_t CreateSrvSvcBinding(handle_t *binding, const wchar16_t *host)
         return NULL;
     }
 
-    if (pAccessToken)
+    if (pCreds)
     {
-        LwIoDeleteAccessToken(pAccessToken);
+        LwIoDeleteCreds(pCreds);
     }
 
     free(hostname);

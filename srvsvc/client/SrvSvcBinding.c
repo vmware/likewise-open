@@ -41,7 +41,7 @@ RPCSTATUS
 InitSrvSvcBindingDefault(
     handle_t         *phSrvSvcBinding,
     PCSTR             pszHostname,
-    PIO_ACCESS_TOKEN  pAccessToken
+    PIO_CREDS  pCreds
     )
 {
     RPCSTATUS rpcstatus = RPC_S_OK;
@@ -53,7 +53,7 @@ InitSrvSvcBindingDefault(
 
     rpcstatus = InitSrvSvcBindingFull(&hSrvSvcBinding,
                                       prot_seq, pszHostname, endpoint,
-                                      uuid, options, pAccessToken);
+                                      uuid, options, pCreds);
     goto_if_rpcstatus_not_success(rpcstatus, error);
 
     *phSrvSvcBinding = hSrvSvcBinding;
@@ -76,7 +76,7 @@ InitSrvSvcBindingFull(
     const char *endpoint,
     const char *uuid,
     const char *options,
-    PIO_ACCESS_TOKEN pAccessToken
+    PIO_CREDS pCreds
     )
 {
     RPCSTATUS rpcstatus = RPC_S_OK;
@@ -123,7 +123,7 @@ InitSrvSvcBindingFull(
                                     &rpcstatus);
     goto_if_rpcstatus_not_success(rpcstatus, error);
 
-    rpc_smb_transport_info_from_lwio_token(pAccessToken,
+    rpc_smb_transport_info_from_lwio_creds(pCreds,
                                            FALSE,
                                            &info,
                                            &rpcstatus);

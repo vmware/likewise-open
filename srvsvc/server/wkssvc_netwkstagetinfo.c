@@ -62,7 +62,7 @@ WksSvcNetWkstaGetInfo(
     RPCSTATUS rpcStatus = RPC_S_OK;
     DWORD dwError = 0;
     PWKSTA_INFO_100 pInfo100 = NULL;
-    PIO_ACCESS_TOKEN pAccessToken = NULL;
+    PIO_CREDS pCreds = NULL;
     CHAR szHostname[64];
     PSTR pszLsaLpcSocketPath = NULL;
     handle_t hLsaBinding = NULL;
@@ -76,7 +76,7 @@ WksSvcNetWkstaGetInfo(
                                       (PVOID*)&pInfo100);
     BAIL_ON_ERROR(dwError);
 
-    ntStatus = LwIoGetThreadAccessToken(&pAccessToken);
+    ntStatus = LwIoGetThreadCreds(&pCreds);
     BAIL_ON_NT_STATUS(ntStatus);
 
     dwError = gethostname(szHostname, sizeof(szHostname));
