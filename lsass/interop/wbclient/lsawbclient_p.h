@@ -69,52 +69,66 @@
 #define OUT
 #endif
 
-#define _WBC_FREE(x)                \
-    do {                    \
-        _wbc_free((void *)x);            \
-        (x) = NULL;            \
-    } while (0);
+#define _WBC_FREE(x)          \
+    do {                      \
+        _wbc_free((void *)x); \
+        (x) = NULL;           \
+    } while (0)
 
-#define _WBC_FREE_CONST_DISCARD(x)        \
-    do {                    \
-        _wbc_free((void*)x);        \
-        (x) = NULL;            \
-    } while (0);
+#define _WBC_FREE_CONST_DISCARD(x)    \
+    do {                              \
+        _wbc_free((void*)x);          \
+        (x) = NULL;                   \
+    } while (0)
 
-#define BAIL_ON_WBC_ERR(x)            \
-    do {                    \
+#define BAIL_ON_WBC_ERR(x)           \
+    do {                             \
         if (x != WBC_ERR_SUCCESS)    \
-            goto done;        \
-    } while(0);
+            goto done;               \
+    } while(0)
 
-#define BAIL_ON_LSA_ERR(x)            \
-    do {                    \
-        if (x != LW_ERROR_SUCCESS)    \
-            goto done;        \
-    } while(0);
-
-#define BAIL_ON_NETLOGON_ERR(x)            \
-    do {                    \
-        if (x != ERROR_SUCCESS)    \
-            goto done;            \
-    } while(0);
-
-
-#define BAIL_ON_NULL_PTR(x, y)                \
-    do {                        \
-        if (x == NULL) {            \
-            y = LW_ERROR_OUT_OF_MEMORY;    \
-            goto done;            \
-        }                    \
-    } while(0);
-
-#define BAIL_ON_NULL_PTR_PARAM(x, y)                \
+#define BAIL_ON_LSA_ERR(x)          \
     do {                            \
+        if (x != LW_ERROR_SUCCESS)  \
+            goto done;              \
+    } while(0)
+
+#define BAIL_ON_NETLOGON_ERR(x)    \
+    do {                           \
+        if (x != ERROR_SUCCESS)    \
+            goto done;             \
+    } while(0)
+
+
+#define BAIL_ON_NULL_PTR(x, y)          \
+    do {                                \
         if (x == NULL) {                \
+            y = LW_ERROR_OUT_OF_MEMORY; \
+            goto done;                  \
+        }                               \
+    } while(0)
+
+#define BAIL_ON_NULL_PTR_PARAM(x, y)           \
+    do {                                       \
+        if (x == NULL) {                       \
             y = LW_ERROR_INVALID_PARAMETER;    \
-            goto done;                \
-        }                        \
-    } while(0);
+            goto done;                         \
+        }                                      \
+    } while(0)
+
+#define SET_OUT_PTR_NULL(p)  \
+    do {                     \
+        if (p) {             \
+            *(p) = NULL;     \
+        }                    \
+    } while(0)
+
+#define SET_OUT_VALUE(p, v)  \
+    do {                     \
+        if (p) {             \
+            *(p) = v;        \
+        }                    \
+    } while(0)
 
 #define LW_ERROR_IS_OK(x)         ((x) == LW_ERROR_SUCCESS)
 
@@ -157,6 +171,8 @@ char* _wbc_strdup(const char *str);
 int   _wbc_free_string_array(void *p);
 
 #endif /* _LSAWBCLIENT_P_H */
+
+
 /*
 local variables:
 mode: c

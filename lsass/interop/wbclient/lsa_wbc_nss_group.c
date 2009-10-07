@@ -102,6 +102,8 @@ static DWORD FillStructGroupFromGroupInfo0(struct group **grp, LSA_GROUP_INFO_1 
     DWORD dwErr = LW_ERROR_INTERNAL;
     struct group *gr = NULL;
 
+    SET_OUT_PTR_NULL(grp);
+
     gr = _wbc_malloc_zero(sizeof(struct group), FreeStructGroup);
     BAIL_ON_NULL_PTR(gr, dwErr);
 
@@ -144,10 +146,10 @@ wbcErr wbcGetgrnam(const char *name, struct group **grp)
     DWORD dwErr = LW_ERROR_INTERNAL;
     wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
 
+    SET_OUT_PTR_NULL(grp);
+
     BAIL_ON_NULL_PTR_PARAM(name, dwErr);
     BAIL_ON_NULL_PTR_PARAM(grp, dwErr);
-
-    *grp = NULL;
 
     dwErr = LsaOpenServer(&hLsa);
     BAIL_ON_LSA_ERR(dwErr);
@@ -189,9 +191,9 @@ wbcErr wbcGetgrgid(gid_t gid, struct group **grp)
     DWORD dwErr = LW_ERROR_INTERNAL;
     wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
 
-    BAIL_ON_NULL_PTR_PARAM(grp, dwErr);
+    SET_OUT_PTR_NULL(grp);
 
-    *grp = NULL;
+    BAIL_ON_NULL_PTR_PARAM(grp, dwErr);
 
     dwErr = LsaOpenServer(&hLsa);
     BAIL_ON_LSA_ERR(dwErr);

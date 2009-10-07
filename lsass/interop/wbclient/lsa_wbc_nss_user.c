@@ -67,6 +67,8 @@ static DWORD FillStructPasswdFromUserInfo0(struct passwd **pwd, LSA_USER_INFO_0 
     DWORD dwErr = LW_ERROR_INTERNAL;
     struct passwd *pw = NULL;
 
+    SET_OUT_PTR_NULL(pwd);
+
     pw = _wbc_malloc_zero(sizeof(struct passwd), FreeStructPasswd);
     BAIL_ON_NULL_PTR(pw, dwErr);
 
@@ -118,10 +120,10 @@ wbcErr wbcGetpwnam(const char *name, struct passwd **pwd)
     DWORD dwErr = LW_ERROR_INTERNAL;
     wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
 
+    SET_OUT_PTR_NULL(pwd);
+
     BAIL_ON_NULL_PTR_PARAM(name, dwErr);
     BAIL_ON_NULL_PTR_PARAM(pwd, dwErr);
-
-    *pwd = NULL;
 
     dwErr = LsaOpenServer(&hLsa);
     BAIL_ON_LSA_ERR(dwErr);
@@ -164,9 +166,9 @@ wbcErr wbcGetpwuid(uid_t uid, struct passwd **pwd)
     DWORD dwErr = LW_ERROR_INTERNAL;
     wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
 
-    BAIL_ON_NULL_PTR_PARAM(pwd, dwErr);
+    SET_OUT_PTR_NULL(pwd);
 
-    *pwd = NULL;
+    BAIL_ON_NULL_PTR_PARAM(pwd, dwErr);
 
     dwErr = LsaOpenServer(&hLsa);
     BAIL_ON_LSA_ERR(dwErr);
@@ -227,11 +229,11 @@ wbcErr wbcGetGroups(const char *account,
     DWORD dwNumGids = 0;
     gid_t *gids = NULL;
 
+    SET_OUT_PTR_NULL(groups);
+    SET_OUT_VALUE(num_groups, 0);
+
     BAIL_ON_NULL_PTR_PARAM(groups, dwErr);
     BAIL_ON_NULL_PTR_PARAM(num_groups, dwErr);
-
-    *groups = NULL;
-    *num_groups = 0;
 
     dwErr = LsaOpenServer(&hLsa);
     BAIL_ON_LSA_ERR(dwErr);
@@ -254,7 +256,9 @@ wbcErr wbcGetGroups(const char *account,
 
 done:
     if (dwErr != LW_ERROR_SUCCESS) {
-        _WBC_FREE(*groups);
+        if (groups) {
+            _WBC_FREE(*groups);
+        }
     }
 
     if (hLsa) {

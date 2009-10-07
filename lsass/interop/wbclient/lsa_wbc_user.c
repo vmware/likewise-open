@@ -65,7 +65,10 @@ wbcErr wbcLookupUserSids(const struct wbcDomainSid *user_sid,
     PSTR ppszSidList[2];
     CHAR pszAccountName[512] = "";
     PLSA_SID_INFO pNameList = NULL;
-        CHAR chDomainSeparator = 0;
+    CHAR chDomainSeparator = 0;
+
+    SET_OUT_PTR_NULL(sids);
+    SET_OUT_VALUE(num_sids, 0);
 
     BAIL_ON_NULL_PTR_PARAM(user_sid, dwErr);
     BAIL_ON_NULL_PTR_PARAM(num_sids, dwErr);
@@ -135,6 +138,7 @@ wbcErr wbcLookupUserSids(const struct wbcDomainSid *user_sid,
     BAIL_ON_LSA_ERR(dwErr);
 
     *sids = sidList;
+    sidList = NULL;
     *num_sids = dwNumGids;
 
     dwErr = LW_ERROR_SUCCESS;
@@ -233,13 +237,13 @@ wbcErr wbcListUsers(const char *domain_name,
     uint32_t userSize = 0;
     char **userList = NULL;
 
+    SET_OUT_PTR_NULL(users);
+    SET_OUT_VALUE(num_users, 0);
+
     /* For now ignore the domain name nutil the LsaXXX() API supports it */
 
     BAIL_ON_NULL_PTR_PARAM(users, dwErr);
     BAIL_ON_NULL_PTR_PARAM(num_users, dwErr);
-
-    *users = NULL;
-    *num_users = 0;
 
     dwErr = LsaOpenServer(&hLsa);
     BAIL_ON_LSA_ERR(dwErr);

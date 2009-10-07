@@ -115,13 +115,13 @@ wbcErr wbcListGroups(const char *domain_name,
     uint32_t groupSize = 0;
     char **groupList = NULL;
 
+    SET_OUT_PTR_NULL(groups);
+    SET_OUT_VALUE(num_groups, 0);
+
     /* For now ignore the domain name nutil the LsaXXX() API supports it */
 
     BAIL_ON_NULL_PTR_PARAM(groups, dwErr);
     BAIL_ON_NULL_PTR_PARAM(num_groups, dwErr);
-
-    *groups = NULL;
-    *num_groups = 0;
 
     dwErr = LsaOpenServer(&hLsa);
     BAIL_ON_LSA_ERR(dwErr);

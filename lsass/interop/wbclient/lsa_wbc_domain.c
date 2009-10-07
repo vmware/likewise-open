@@ -81,6 +81,8 @@ wbcDomainInfo(
     PLSA_AUTH_PROVIDER_STATUS pADProvStatus = NULL;
     int i = 0;
 
+    SET_OUT_PTR_NULL(info);
+
     /* Sanity check */
 
     BAIL_ON_NULL_PTR_PARAM(domain, dwErr);
@@ -182,6 +184,9 @@ wbcListTrusts(
     PLSA_AUTH_PROVIDER_STATUS pADProvStatus = NULL;
     size_t NumDomains = 0;
     int i = 0;
+
+    SET_OUT_PTR_NULL(domains);
+    SET_OUT_VALUE(num_domains, 0);
 
     /* Sanity check */
 

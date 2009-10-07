@@ -535,6 +535,9 @@ wbcAuthenticateUserEx(
     LSA_AUTH_USER_INFO *pLsaUserInfo = NULL;
     struct wbcAuthUserInfo *pWbcUserInfo = NULL;
 
+    SET_OUT_PTR_NULL(info);
+    SET_OUT_PTR_NULL(error);
+
     /* Sanity and setup */
 
     BAIL_ON_NULL_PTR_PARAM(params, dwErr);
@@ -600,10 +603,9 @@ wbcAuthenticateUserEx(
     /* Copy OUT params */
     *info = pWbcUserInfo;
 
+done:
     FillErrorInfo(dwErr, error);
 
-
-done:
     if (hLsa) {
         LsaCloseServer(hLsa);
         hLsa = (HANDLE)NULL;
