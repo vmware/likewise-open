@@ -125,6 +125,7 @@ class DomainMigrateWindow : public TWindow
         std::string GetADUserUID();
         std::string GetADUserGID();
         bool IsMoveOptionSelected();
+        bool IsDeleteOptionSelected();
         void HandleMigration();
         bool HandleValidateUser();
         bool ConfirmMigration(const std::string& localUserName,
@@ -133,11 +134,13 @@ class DomainMigrateWindow : public TWindow
                               const std::string& adUserHomeDir,
                               const std::string& adUserUID,
                               const std::string& adUserGID,
-                              bool  bMoveProfile);
-        int CallMigrateCommand(const std::string& localUserHomeDir,
+                              bool  bMoveProfile,
+                              bool  bDeleteAccount);
+        int CallMigrateCommand(const std::string& localUserName,
                                const std::string& adUserName,
                                const std::string& logFileName,
                                bool bMoveProfile,
+                               bool bDeleteAccount,
                                char ** ppszOutput);
         void ShowMigrateCompleteDialog(const std::string& value);
         void ShowMigrateCompleteErrorDialog(const std::string& value, int code, const std::string& resultMessage);
@@ -158,6 +161,7 @@ class DomainMigrateWindow : public TWindow
         static const int AD_USER_GID_ID;
         static const int COPY_RADIO_ID;
         static const int MOVE_RADIO_ID;
+        static const int DELETE_ACCOUNT_ID;
         static const int VALIDATE_ID;
         static const int CANCEL_ID;
         static const int MIGRATE_ID;
