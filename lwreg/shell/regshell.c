@@ -51,6 +51,12 @@ typedef struct _EDITLINE_CLIENT_DATA
 {
     int continuation;
     PREGSHELL_PARSE_STATE pParseState;
+
+    /* File name completion Data */
+    PSTR pszCompletePrevCmd;
+    PSTR pszCompletePrevArg;
+    PSTR *ppszCompleteMatches;
+    DWORD dwCompleteMatchesLen;
 } EDITLINE_CLIENT_DATA, *PEDITLINE_CLIENT_DATA;
 
 
@@ -110,14 +116,14 @@ RegShellListKeys(
         LW_SAFE_FREE_STRING(pszSubKey);
     }
 cleanup:
-    return dwError;
-
-error:
     for (i=0; i<dwSubKeyLen; i++)
     {
         LW_SAFE_FREE_MEMORY(ppSubKeys[i]);
     }
     LW_SAFE_FREE_MEMORY(ppSubKeys);
+    return dwError;
+
+error:
     goto cleanup;
 }
 
@@ -283,7 +289,6 @@ RegShellImportFile(
     HANDLE parseH = NULL;
     DWORD dwError = 0;
 
-
     ctx.hReg = hReg;
 
     dwError = RegParseOpen(rsItem->args[0], NULL, NULL, &parseH);
@@ -394,12 +399,12 @@ RegShellListValues(
             switch (pValues[i].type)
             {
                 case REG_SZ:
-                    printf("REG_SZ:          \"%s\"\n", (PSTR)pValues[i].pData);
-
+                    printf("REG_SZ          \"%s\"\n",
+                           (PSTR) pValues[i].pData);
                     break;
 
                 case REG_DWORD:
-                    printf("REG_DWORD:       ");
+                    printf("REG_DWORD       ");
 
 
                     memcpy(&dwValue, pValues[i].pData, sizeof(DWORD));
@@ -409,7 +414,7 @@ RegShellListValues(
                     break;
 
                 case REG_BINARY:
-                    printf("REG_BINARY:      ");
+                    printf("REG_BINARY      ");
                     RegShellDumpByteArray(pValues[i].pData,
                                           pValues[i].dwDataLen);
                     printf("\n");
@@ -425,7 +430,7 @@ RegShellListValues(
                          ppszMultiStrArray[dwMultiIndex];
                          dwMultiIndex++)
                     {
-                        printf("%*sREG_MULTI_SZ[%d]: \"%s\"\n",
+                        printf("%*sREG_MULTI_SZ[%d] \"%s\"\n",
                                dwMultiIndex == 0 ? 0 :
                                    dwValueNameLenMax,
                                    "",
@@ -691,6 +696,7 @@ RegShellProcessCmd(
                         LW_SAFE_FREE_MEMORY(pParseState->pszDefaultKey);
                     }
                     pParseState->pszDefaultKey = pszNewDefaultKey;
+
                 }
                 else
                 {
@@ -824,6 +830,266 @@ error:
     goto cleanup;
 }
 
+
+DWORD
+RegShellCompletionMatch(
+    PSTR pszMatchStr,
+    PWSTR *ppSubKeys,
+    DWORD dwSubKeyLen,
+    PSTR pszDefaultRootKeyName,
+    PSTR pszDefaultKey,
+    PSTR **pppMatchArgs,
+    PDWORD pdwMatchArgsLen,
+    PDWORD pdwMatchCommonIndex)
+{
+    DWORD dwError = 0;
+    DWORD i = 0;
+    DWORD dwMatchArgsLen = 0;
+    DWORD dwMinCommonLen = INT32_MAX;
+    DWORD dwMinCommonLenIndex = 0;
+    DWORD dwStrLen = 0;
+    PSTR pszSubKey = NULL;
+
+    PSTR *ppMatchArgs = NULL;
+    PSTR pszPtr = NULL;
+
+
+    dwError = LwAllocateMemory(
+                  sizeof(PSTR) * dwSubKeyLen,
+                  (LW_PVOID) &ppMatchArgs);
+
+    BAIL_ON_REG_ERROR(dwError);
+
+    for (i=0; i<dwSubKeyLen; i++)
+    {
+        dwError = LwWc16sToMbs(ppSubKeys[i], &pszSubKey);
+        BAIL_ON_REG_ERROR(dwError);
+        pszPtr = NULL;
+        if (pszMatchStr && *pszMatchStr)
+        {
+            pszPtr = strstr(pszSubKey, pszMatchStr);
+        }
+        if (pszPtr && pszPtr == pszSubKey)
+        {
+            dwError = LwAllocateString(
+                          pszSubKey,
+                          &ppMatchArgs[dwMatchArgsLen]);
+            BAIL_ON_REG_ERROR(dwError);
+            dwStrLen = strlen(pszSubKey);
+            if (dwStrLen < dwMinCommonLen)
+            {
+                dwMinCommonLen = dwStrLen;
+                dwMinCommonLenIndex = dwMatchArgsLen;
+            }
+            dwMatchArgsLen++;
+        }
+        LW_SAFE_FREE_STRING(pszSubKey);
+    }
+
+    *pppMatchArgs = ppMatchArgs;
+    *pdwMatchArgsLen = dwMatchArgsLen;
+    *pdwMatchCommonIndex = dwMinCommonLenIndex;
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+
+}
+
+
+unsigned char
+pfnRegShellCompleteCallback(
+    EditLine *el,
+    int ch)
+{
+    const LineInfo *lineInfoCtx = el_line(el);
+    PEDITLINE_CLIENT_DATA cldata = NULL;
+    DWORD dwError = 0;
+    DWORD dwSubKeyLen = 0;
+    LW_WCHAR **ppSubKeys = NULL;
+    DWORD i = 0;
+    DWORD dwLineLen = 0;
+    PSTR pszCurrentCmd = NULL;
+    PSTR pszPtr = NULL;
+    PSTR pszArgPtr = NULL;
+    PSTR pszSubKey = NULL;
+    PSTR *ppMatchArgs = NULL;
+    DWORD dwMatchArgsLen = 0;
+    DWORD dwMatchBestIndex = 0;
+    BOOLEAN bExactMatch = FALSE;
+    DWORD dwStrLen = 0;
+    PSTR pszFullMatchStr = NULL;
+
+    dwError =  CC_ERROR;
+    el_get(el, EL_CLIENTDATA, (void *) &cldata);
+    BAIL_ON_INVALID_HANDLE(cldata);
+    BAIL_ON_INVALID_HANDLE(cldata->pParseState);
+    BAIL_ON_INVALID_HANDLE(cldata->pParseState->hReg);
+
+    dwError = RegShellUtilGetKeys(
+                  cldata->pParseState->hReg,
+                  RegShellGetRootKey(cldata->pParseState),
+                  RegShellGetDefaultKey(cldata->pParseState),
+                  NULL,
+                  &ppSubKeys,
+                  &dwSubKeyLen);
+    BAIL_ON_REG_ERROR(dwError);
+
+    dwLineLen = lineInfoCtx->cursor - lineInfoCtx->buffer,
+    dwError = LwAllocateMemory(sizeof(CHAR) * (dwLineLen+1),
+                               (LW_PVOID) &pszCurrentCmd);
+    BAIL_ON_REG_ERROR(dwError);
+    strncat(pszCurrentCmd, lineInfoCtx->buffer, dwLineLen);
+
+    /* Find end of current command */
+    for (pszPtr = pszCurrentCmd; *pszPtr && !isspace((int) *pszPtr); pszPtr++)
+        ;
+    for (;*pszPtr && isspace((int) *pszPtr); pszPtr++)
+    {
+        *pszPtr = '\0';
+    }
+    if (*pszPtr)
+    {
+        dwLineLen = pszPtr - pszCurrentCmd;
+        pszArgPtr = pszCurrentCmd + dwLineLen;
+        dwStrLen = strlen(pszArgPtr) +
+                       (cldata->pParseState->pszDefaultRootKeyName ? strlen(cldata->pParseState->pszDefaultRootKeyName) : 0) +
+                       (cldata->pParseState->pszDefaultKey ? strlen(cldata->pParseState->pszDefaultKey) : 0) + 3;
+        dwError = LwAllocateMemory(
+                      sizeof(CHAR) * dwStrLen,
+                      (LW_PVOID) &pszFullMatchStr);
+        BAIL_ON_REG_ERROR(dwError);
+        if (cldata->pParseState->pszDefaultRootKeyName)
+        {
+            strcat(pszFullMatchStr, cldata->pParseState->pszDefaultRootKeyName);
+            strcat(pszFullMatchStr, "\\");
+        }
+        if (cldata->pParseState->pszDefaultKey)
+        {
+            strcat(pszFullMatchStr, cldata->pParseState->pszDefaultKey);
+            strcat(pszFullMatchStr, "\\");
+        }
+        strcat(pszFullMatchStr, pszArgPtr);
+        pszArgPtr = pszFullMatchStr;
+    }
+    else
+    {
+        pszArgPtr = "";
+    }
+
+    if (cldata->pszCompletePrevCmd && cldata->pszCompletePrevArg &&
+        strcmp(cldata->pszCompletePrevCmd,  pszCurrentCmd) == 0 &&
+        strcmp(cldata->pszCompletePrevArg, pszArgPtr) == 0)
+    {
+        ppMatchArgs = cldata->ppszCompleteMatches;
+        dwMatchArgsLen = cldata->dwCompleteMatchesLen;
+        printf("\n");
+        for (i=0; i<dwMatchArgsLen; i++)
+        {
+            printf("%s	", ppMatchArgs[i]);
+        }
+
+        putchar('\a');
+        printf("\n");
+        el_set(el, EL_REFRESH);
+    }
+    else
+    {
+        dwError = RegShellCompletionMatch(
+                      pszArgPtr,
+                      ppSubKeys,
+                      dwSubKeyLen,
+                      cldata->pParseState->pszDefaultRootKeyName,
+                      cldata->pParseState->pszDefaultKey,
+                      &ppMatchArgs,
+                      &dwMatchArgsLen,
+                      &dwMatchBestIndex);
+        if (dwMatchArgsLen > 1)
+        {
+            if (pszArgPtr && *pszArgPtr)
+            {
+                dwStrLen = strlen(pszArgPtr);
+                if (ppMatchArgs[dwMatchBestIndex][dwStrLen] &&
+                    el_insertstr(el, &ppMatchArgs[dwMatchBestIndex][dwStrLen]) == -1)
+                {
+                    printf("Oops: 1 el_insertstr failed\n");
+                }
+                else
+                {
+                    putchar('\a');
+                    el_set(el, EL_REFRESH);
+                }
+            }
+            else
+            {
+                for (i=0; i<dwMatchArgsLen; i++)
+                {
+                    printf("\n%s	", ppMatchArgs[i]);
+                }
+                printf("\n");
+            }
+            el_set(el, EL_REFRESH);
+
+        }
+        else if (dwMatchArgsLen == 1)
+        {
+            dwStrLen = strlen(pszArgPtr);
+            if (ppMatchArgs[i][dwStrLen] &&
+                el_insertstr(el, &ppMatchArgs[i][dwStrLen]) == -1)
+            {
+                printf("Oops: 2 el_insertstr failed\n");
+            }
+            else
+            {
+                /* No string to append */
+                if (el_insertstr(el, "\\") == -1)
+                {
+                    printf("Oops: 3 el_insertstr failed\n");
+                }
+            }
+            bExactMatch = TRUE;
+            dwError = CC_REFRESH;
+        }
+        else
+        {
+            printf("\n");
+            for (i=0; i<dwSubKeyLen; i++)
+            {
+                dwError = LwWc16sToMbs(ppSubKeys[i], &pszSubKey);
+                BAIL_ON_REG_ERROR(dwError);
+                printf("%s\n", pszSubKey);
+                LW_SAFE_FREE_STRING(pszSubKey);
+            }
+            el_set(el, EL_REFRESH);
+        }
+    }
+
+
+cleanup:
+    if (bExactMatch)
+    {
+        for (i=0; i<dwSubKeyLen; i++)
+        {
+            LW_SAFE_FREE_MEMORY(ppSubKeys[i]);
+        }
+        LW_SAFE_FREE_MEMORY(ppSubKeys);
+    }
+    else
+    {
+        cldata->pszCompletePrevCmd = pszCurrentCmd;
+        cldata->pszCompletePrevArg = pszArgPtr;
+        cldata->ppszCompleteMatches = ppMatchArgs;
+        cldata->dwCompleteMatchesLen = dwMatchArgsLen;
+    }
+    return dwError;
+
+error:
+    goto cleanup;
+
+}
+
+
 static char *
 pfnRegShellPromptCallback(EditLine *el)
 {
@@ -831,7 +1097,7 @@ pfnRegShellPromptCallback(EditLine *el)
     EDITLINE_CLIENT_DATA *cldata = NULL;
 
     el_get(el, EL_CLIENTDATA, (void *) &cldata);
-    snprintf(promptBuf, sizeof(promptBuf), "%s%s%s%s ",
+    snprintf(promptBuf, sizeof(promptBuf), "\r%s%s%s%s ",
              cldata->pParseState->pszDefaultRootKeyName ?
                  cldata->pParseState->pszDefaultRootKeyName : "",
              cldata->pParseState->pszDefaultKey ? "\\" : "",
@@ -943,6 +1209,17 @@ RegShellProcessInteractiveEditLine(
      */
     el_set(el, EL_BIND, "-a", "k", "ed-prev-line", NULL);
     el_set(el, EL_BIND, "-a", "j", "ed-next-line", NULL);
+
+    /*
+     * Register complete function callback
+     */
+    el_set(el,
+           EL_ADDFN,
+           "ed-complete",
+           "Complete argument",
+           pfnRegShellCompleteCallback);
+    el_set(el, EL_BIND, "^I", "ed-complete", NULL);
+
 
     /*
      * Source the user's defaults file.
