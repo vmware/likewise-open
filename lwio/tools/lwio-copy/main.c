@@ -125,8 +125,8 @@ main(
     PSTR pszCachePath = NULL;
     PSTR pszPrincipal = NULL;
     PSTR pszPassword = NULL;
-    PIO_ACCESS_TOKEN pAccessToken = NULL;
-    BOOLEAN bRevertThreadAccessToken = FALSE;
+    PIO_CREDS pCreds = NULL;
+    BOOLEAN bRevertThreadCreds = FALSE;
     BOOLEAN bDestroyKrb5Cache = FALSE;
     BOOLEAN bCopyRecursive = FALSE;
 
@@ -180,16 +180,16 @@ main(
             ntStatus = STATUS_INVALID_PARAMETER;
             BAIL_ON_NT_STATUS(ntStatus);
         }
-        ntStatus = LwIoCreateKrb5AccessTokenA(
+        ntStatus = LwIoCreateKrb5CredsA(
                         pszPrincipal,
                         pszCachePath,
-                        &pAccessToken);
+                        &pCreds);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        ntStatus = LwIoSetThreadAccessToken(pAccessToken);
+        ntStatus = LwIoSetThreadCreds(pCreds);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        bRevertThreadAccessToken = TRUE;
+        bRevertThreadCreds = TRUE;
     }
 
     ntStatus = CopyFile(pszSourcePath, pszTargetPath, bCopyRecursive);
@@ -197,14 +197,14 @@ main(
 
 cleanup:
 
-    if (pAccessToken)
+    if (pCreds)
     {
-        if (bRevertThreadAccessToken)
+        if (bRevertThreadCreds)
         {
-            LwIoSetThreadAccessToken(NULL);
+            LwIoSetThreadCreds(NULL);
         }
 
-        LwIoDeleteAccessToken(pAccessToken);
+        LwIoDeleteCreds(pCreds);
     }
 
     if (bDestroyKrb5Cache)

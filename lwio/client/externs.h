@@ -55,9 +55,9 @@ LwIoContextAcquireCall(
     );
 
 NTSTATUS
-LwIoResolveAccessToken(
-    PIO_ACCESS_TOKEN pBaseToken,
-    PIO_ACCESS_TOKEN* ppResolvedToken
+LwIoResolveCreds(
+    PIO_CREDS pBaseToken,
+    PIO_CREDS* ppResolvedToken
     );
 
 #endif /* __EXTERNS_H__ */

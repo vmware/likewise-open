@@ -31,7 +31,7 @@
 #include "includes.h"
 
 static LWMsgClient* gpClient = NULL;
-static PIO_ACCESS_TOKEN gpProcessAccessToken = NULL;
+static PIO_CREDS gpProcessCreds = NULL;
 
 #if defined(__LWI_SOLARIS__) || defined (__LWI_AIX__)
 static pthread_once_t gOnceControl = {PTHREAD_ONCE_INIT};
@@ -48,9 +48,9 @@ LwIoThreadStateDestruct(
 {
     PIO_THREAD_STATE pState = (PIO_THREAD_STATE) pData;
 
-    if (pState->pAccessToken)
+    if (pState->pCreds)
     {
-        LwIoDeleteAccessToken(pState->pAccessToken);
+        LwIoDeleteCreds(pState->pCreds);
     }
 
     LwIoFreeMemory(pState);
@@ -58,8 +58,8 @@ LwIoThreadStateDestruct(
 
 static
 NTSTATUS
-LwIoCreateDefaultKrb5AccessToken(
-    PIO_ACCESS_TOKEN* ppAccessToken
+LwIoCreateDefaultKrb5Creds(
+    PIO_CREDS* ppCreds
     )
 {
     NTSTATUS Status = STATUS_SUCCESS;
@@ -69,9 +69,9 @@ LwIoCreateDefaultKrb5AccessToken(
     krb5_principal pKrb5Principal = NULL;
     char* pszPrincipalName = NULL;
     const char* pszCredCachePath = NULL;
-    PIO_ACCESS_TOKEN pAccessToken = NULL;
+    PIO_CREDS pCreds = NULL;
 
-    *ppAccessToken = NULL;
+    *ppCreds = NULL;
 
     krb5Error = krb5_init_context(&pKrb5Context);
     if (krb5Error)
@@ -108,24 +108,24 @@ LwIoCreateDefaultKrb5AccessToken(
         BAIL_ON_NT_STATUS(Status);
     }
     
-    Status = LwIoAllocateMemory(sizeof(*pAccessToken), OUT_PPVOID(&pAccessToken));
+    Status = LwIoAllocateMemory(sizeof(*pCreds), OUT_PPVOID(&pCreds));
     BAIL_ON_NT_STATUS(Status);
 
-    pAccessToken->type = IO_ACCESS_TOKEN_TYPE_KRB5_CCACHE;
+    pCreds->type = IO_CREDS_TYPE_KRB5_CCACHE;
 
     Status = LwRtlWC16StringAllocateFromCString(
-        &pAccessToken->payload.krb5Ccache.pwszPrincipal,
+        &pCreds->payload.krb5Ccache.pwszPrincipal,
         pszPrincipalName
         );
     BAIL_ON_NT_STATUS(Status);
     
     Status = LwRtlWC16StringAllocateFromCString(
-        &pAccessToken->payload.krb5Ccache.pwszCachePath,
+        &pCreds->payload.krb5Ccache.pwszCachePath,
         pszCredCachePath
         );
     BAIL_ON_NT_STATUS(Status);
 
-    *ppAccessToken = pAccessToken;
+    *ppCreds = pCreds;
 
 cleanup:
 
@@ -150,9 +150,9 @@ cleanup:
 
 error:
 
-    if (pAccessToken)
+    if (pCreds)
     {
-        LwIoDeleteAccessToken(pAccessToken);
+        LwIoDeleteCreds(pCreds);
     }
 
     goto cleanup;
@@ -160,19 +160,19 @@ error:
 
 static
 NTSTATUS
-LwIoInitProcessAccessToken(
+LwIoInitProcessCreds(
     VOID
     )
 {
     NTSTATUS Status = STATUS_SUCCESS;
-    PIO_ACCESS_TOKEN pAccessToken = NULL;
+    PIO_CREDS pCreds = NULL;
 
-    Status = LwIoCreateDefaultKrb5AccessToken(&pAccessToken);
+    Status = LwIoCreateDefaultKrb5Creds(&pCreds);
     BAIL_ON_NT_STATUS(Status);
 
-    if (pAccessToken)
+    if (pCreds)
     {
-        gpProcessAccessToken = pAccessToken;
+        gpProcessCreds = pCreds;
     }
     
 error:
@@ -210,7 +210,7 @@ __LwIoThreadInit(
         BAIL_ON_NT_STATUS(Status);
     }
 
-    Status = LwIoInitProcessAccessToken();
+    Status = LwIoInitProcessCreds();
     BAIL_ON_NT_STATUS(Status);
 
     return;
@@ -243,9 +243,9 @@ LwIoGetThreadState(
         Status = LwIoAllocateMemory(sizeof(*pState), OUT_PPVOID(&pState));
         BAIL_ON_NT_STATUS(Status);
         
-        if (gpProcessAccessToken)
+        if (gpProcessCreds)
         {
-            Status = LwIoCopyAccessToken(gpProcessAccessToken, &pState->pAccessToken);
+            Status = LwIoCopyCreds(gpProcessCreds, &pState->pCreds);
             BAIL_ON_NT_STATUS(Status);
         }
 
@@ -264,8 +264,8 @@ error:
 }
 
 NTSTATUS
-LwIoSetThreadAccessToken(
-    PIO_ACCESS_TOKEN pAccessToken
+LwIoSetThreadCreds(
+    PIO_CREDS pCreds
     )
 {
     NTSTATUS Status = STATUS_SUCCESS;
@@ -274,14 +274,14 @@ LwIoSetThreadAccessToken(
     Status = LwIoGetThreadState(&pState);
     BAIL_ON_NT_STATUS(Status);
 
-    if (pState->pAccessToken)
+    if (pState->pCreds)
     {
-        LwIoDeleteAccessToken(pState->pAccessToken);
+        LwIoDeleteCreds(pState->pCreds);
     }
 
-    Status = LwIoCopyAccessToken(
-        pAccessToken ? pAccessToken : gpProcessAccessToken,
-        &pState->pAccessToken);
+    Status = LwIoCopyCreds(
+        pCreds ? pCreds : gpProcessCreds,
+        &pState->pCreds);
     BAIL_ON_NT_STATUS(Status);
 
 error:
@@ -290,19 +290,19 @@ error:
 }
 
 NTSTATUS
-LwIoGetThreadAccessToken(
-    PIO_ACCESS_TOKEN* ppAccessToken
+LwIoGetThreadCreds(
+    PIO_CREDS* ppCreds
     )
 {
     NTSTATUS Status = STATUS_SUCCESS;
     PIO_THREAD_STATE pState = NULL;
 
-    *ppAccessToken = NULL;
+    *ppCreds = NULL;
 
     Status = LwIoGetThreadState(&pState);
     BAIL_ON_NT_STATUS(Status);
 
-    Status = LwIoCopyAccessToken(pState->pAccessToken, ppAccessToken);
+    Status = LwIoCopyCreds(pState->pCreds, ppCreds);
     BAIL_ON_NT_STATUS(Status);
 
 error:
@@ -323,7 +323,7 @@ LwIoAcquireContext(
     Status = LwIoGetThreadState(&pState);
     BAIL_ON_NT_STATUS(Status);
 
-    pContext->pAccessToken = pState->pAccessToken;
+    pContext->pCreds = pState->pCreds;
     pContext->pClient = gpClient;
 
 error:

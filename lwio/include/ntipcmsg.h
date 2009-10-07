@@ -157,7 +157,7 @@ typedef struct _NT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT {
 //
 
 typedef struct _NT_IPC_MESSAGE_CREATE_FILE {
-    IN PIO_ACCESS_TOKEN pSecurityToken;
+    IN PIO_CREDS pSecurityToken;
     IN IO_FILE_NAME FileName;
     IN ACCESS_MASK DesiredAccess;
     IN OPTIONAL LONG64 AllocationSize;

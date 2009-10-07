@@ -35,7 +35,7 @@ typedef struct _IO_CREATE_SECURITY_CONTEXT {
     LONG ReferenceCount;
     IO_SECURITY_CONTEXT_PROCESS_INFORMATION Process;
     PACCESS_TOKEN AccessToken;
-    LW_PIO_ACCESS_TOKEN Credentials;
+    LW_PIO_CREDS Credentials;
 } IO_CREATE_SECURITY_CONTEXT;
 
 PIO_SECURITY_CONTEXT_PROCESS_INFORMATION
@@ -54,7 +54,7 @@ IoSecurityGetAccessToken(
     return SecurityContext->AccessToken;
 }
 
-LW_PIO_ACCESS_TOKEN
+LW_PIO_CREDS
 IoSecurityGetCredentials(
     IN PIO_CREATE_SECURITY_CONTEXT SecurityContext
     )
@@ -114,7 +114,7 @@ IopSecurityCreateSecurityContext(
     IN uid_t Uid,
     IN gid_t Gid,
     IN PACCESS_TOKEN AccessToken,
-    IN OPTIONAL LW_PIO_ACCESS_TOKEN Credentials
+    IN OPTIONAL LW_PIO_CREDS Credentials
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -148,7 +148,7 @@ IoSecurityCreateSecurityContextFromUidGid(
     OUT PIO_CREATE_SECURITY_CONTEXT* SecurityContext,
     IN uid_t Uid,
     IN gid_t Gid,
-    IN OPTIONAL LW_PIO_ACCESS_TOKEN Credentials
+    IN OPTIONAL LW_PIO_CREDS Credentials
     )
 {
     NTSTATUS status = STATUS_SUCCESS;

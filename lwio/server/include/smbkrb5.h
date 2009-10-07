@@ -82,7 +82,7 @@ SMBKrb5Shutdown(
 
 NTSTATUS
 SMBCredTokenToKrb5CredCache(
-    PIO_ACCESS_TOKEN pCredToken,
+    PIO_CREDS pCredToken,
     PSTR* ppszCachePath
     );
 

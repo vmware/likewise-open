@@ -117,6 +117,12 @@ typedef enum
     LWIO_LOG_TARGET_SYSLOG
 } LWIO_LOG_TARGET;
 
+typedef enum
+{
+    LWIO_DRIVER_UNLOADED,
+    LWIO_DRIVER_LOADED
+} LWIO_DRIVER_STATUS;
+
 typedef VOID (*PFN_LWIO_LOG_MESSAGE)(
                             HANDLE      hLog,
                             LWIO_LOG_LEVEL logLevel,
@@ -174,53 +180,71 @@ LwIoFreeLogInfo(
     );
 
 LW_NTSTATUS
+LwIoGetDriverStatus(
+    LW_PIO_CONTEXT pContext,
+    LW_PWSTR pwszDriverName
+    );
+
+LW_NTSTATUS
+LwIoLoadDriver(
+    LW_PIO_CONTEXT pContext,
+    LW_PWSTR pwszDriverNAme
+    );
+
+LW_NTSTATUS
+LwIoUnloadDriver(
+    LW_PIO_CONTEXT pContext,
+    LW_PWSTR pwszDriverName
+    );
+
+LW_NTSTATUS
 LwIoCloseContext(
     LW_PIO_CONTEXT pContext
     );
 
 LW_NTSTATUS
-LwIoCreatePlainAccessTokenW(
+LwIoCreatePlainCredsW(
     LW_PCWSTR pwszUsername,
     LW_PCWSTR pwszPassword,
-    LW_PIO_ACCESS_TOKEN* ppAccessToken
+    LW_PIO_CREDS* ppCreds
     );
 
 LW_NTSTATUS
-LwIoCreatePlainAccessTokenA(
+LwIoCreatePlainCredsA(
     PCSTR pszUsername,
     PCSTR pszPassword,
-    LW_PIO_ACCESS_TOKEN* ppAccessToken
+    LW_PIO_CREDS* ppCreds
     );
 
 LW_NTSTATUS
-LwIoCreateKrb5AccessTokenW(
+LwIoCreateKrb5CredsW(
     PCWSTR pwszPrincipal,
     PCWSTR pwszCachePath,
-    LW_PIO_ACCESS_TOKEN* ppAccessToken
+    LW_PIO_CREDS* ppCreds
     );
 
 LW_NTSTATUS
-LwIoCreateKrb5AccessTokenA(
+LwIoCreateKrb5CredsA(
     PCSTR pszPrincipal,
     PCSTR pszCachePath,
-    LW_PIO_ACCESS_TOKEN* ppAccessToken
+    LW_PIO_CREDS* ppCreds
     );
 
 BOOLEAN
-LwIoCompareAccessTokens(
-    LW_PIO_ACCESS_TOKEN pAccessToken1,
-    LW_PIO_ACCESS_TOKEN pAccessToken2
+LwIoCompareCredss(
+    LW_PIO_CREDS pCreds1,
+    LW_PIO_CREDS pCreds2
     );
 
 LW_NTSTATUS
-LwIoCopyAccessToken(
-    LW_PIO_ACCESS_TOKEN pAccessToken,
-    LW_PIO_ACCESS_TOKEN * ppCopy
+LwIoCopyCreds(
+    LW_PIO_CREDS pCreds,
+    LW_PIO_CREDS * ppCopy
     );
 
 VOID
-LwIoDeleteAccessToken(
-    LW_PIO_ACCESS_TOKEN pAccessToken
+LwIoDeleteCreds(
+    LW_PIO_CREDS pCreds
     );
 
 #ifndef LW_NO_THREADS
@@ -231,13 +255,13 @@ LwIoOpenContextShared(
     );
 
 LW_NTSTATUS
-LwIoSetThreadAccessToken(
-    LW_PIO_ACCESS_TOKEN pToken
+LwIoSetThreadCreds(
+    LW_PIO_CREDS pToken
     );
 
 LW_NTSTATUS
-LwIoGetThreadAccessToken(
-    LW_PIO_ACCESS_TOKEN* ppToken
+LwIoGetThreadCreds(
+    LW_PIO_CREDS* ppToken
     );
 
 #endif /* ! LW_NO_THREADS */

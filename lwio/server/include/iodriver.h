@@ -359,7 +359,7 @@ IoSecurityGetAccessToken(
     IN PIO_CREATE_SECURITY_CONTEXT SecurityContext
     );
 
-LW_PIO_ACCESS_TOKEN
+LW_PIO_CREDS
 IoSecurityGetCredentials(
     IN PIO_CREATE_SECURITY_CONTEXT SecurityContext
     );
@@ -374,7 +374,7 @@ IoSecurityCreateSecurityContextFromUidGid(
     OUT PIO_CREATE_SECURITY_CONTEXT* SecurityContext,
     IN uid_t Uid,
     IN gid_t Gid,
-    IN OPTIONAL LW_PIO_ACCESS_TOKEN Credentials
+    IN OPTIONAL LW_PIO_CREDS Credentials
     );
 
 NTSTATUS

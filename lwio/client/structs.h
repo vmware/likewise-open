@@ -33,13 +33,13 @@
 
 struct __LW_IO_CONTEXT
 {
-    PIO_ACCESS_TOKEN pAccessToken;
+    PIO_CREDS pCreds;
     LWMsgClient* pClient;
 };
 
 typedef struct __LW_IO_THREAD_STATE
 {
-    PIO_ACCESS_TOKEN pAccessToken;
+    PIO_CREDS pCreds;
 } IO_THREAD_STATE, *PIO_THREAD_STATE;
 
 #endif /* __STRUCTS_H__ */
