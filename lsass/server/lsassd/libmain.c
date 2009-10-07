@@ -207,6 +207,8 @@ cleanup:
 
     LsaSrvApiShutdown();
 
+    LwIoShutdown();
+
     LSA_LOG_INFO("LSA Service exiting...");
 
     LsaSrvSetProcessExitCode(dwError);
@@ -373,9 +375,6 @@ LsaSrvVerifyLwIoStatus(
     DWORD dwError = 0;
     PLWIO_LOG_INFO pLogInfo = NULL;
     PIO_CONTEXT pContext = NULL;
-
-    dwError = LwIoInitialize();
-    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LwIoOpenContext(&pContext);
     LSA_LOG_INFO("LsaSrvVerifyLwIoStatus call to LwIo API returned %d", dwError);
