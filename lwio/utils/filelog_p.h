@@ -57,14 +57,14 @@ typedef struct
 DWORD
 SMBOpenFileLog(
     PCSTR       pszFilePath,
-    SMBLogLevel maxAllowedLogLevel,
+    LWIO_LOG_LEVEL maxAllowedLogLevel,
     PHANDLE     phLog
     );
 
 VOID
 SMBLogToFile(
     HANDLE      hLog,
-    SMBLogLevel dwLogLevel,
+    LWIO_LOG_LEVEL dwLogLevel,
     PCSTR       pszFormat,
     va_list     msgList
     );

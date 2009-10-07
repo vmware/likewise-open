@@ -56,9 +56,9 @@ typedef struct {
     /* Should start as daemon */
     DWORD dwStartAsDaemon;
     /* where are we logging */
-    SMBLogTarget logTarget;
+    LWIO_LOG_TARGET logTarget;
     /* How much logging do you want? */
-    SMBLogLevel maxAllowedLogLevel;
+    LWIO_LOG_LEVEL maxAllowedLogLevel;
     /* Enable debug logs */
     BOOLEAN bEnableDebugLogs;
     /* log file path */

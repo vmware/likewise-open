@@ -51,8 +51,8 @@
 DWORD
 SMBInitLogging_r(
     PCSTR         pszProgramName,
-    SMBLogTarget  logTarget,
-    SMBLogLevel   maxAllowedLogLevel,
+    LWIO_LOG_TARGET  logTarget,
+    LWIO_LOG_LEVEL   maxAllowedLogLevel,
     PCSTR         pszPath
     )
 {

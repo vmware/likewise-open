@@ -52,8 +52,8 @@
 DWORD
 SMBInitLogging(
     PCSTR         pszProgramName,
-    SMBLogTarget  logTarget,
-    SMBLogLevel   maxAllowedLogLevel,
+    LWIO_LOG_TARGET  logTarget,
+    LWIO_LOG_LEVEL   maxAllowedLogLevel,
     PCSTR         pszPath
     )
 {
@@ -108,8 +108,8 @@ SMBInitLogging(
             dwError = LWIO_ERROR_INVALID_PARAMETER;
             BAIL_ON_LWIO_ERROR(dwError);
     }
-    
-    gSMBLogTarget = logTarget;
+
+    gLWIO_LOG_TARGET = logTarget;
     gSMBMaxLogLevel = maxAllowedLogLevel;
     ghSMBLog = hLog;
 
@@ -119,7 +119,7 @@ SMBInitLogging(
 
  error:
  
-    gSMBLogTarget = LWIO_LOG_TARGET_DISABLED;
+    gLWIO_LOG_TARGET = LWIO_LOG_TARGET_DISABLED;
     ghSMBLog = (HANDLE)NULL;
 
     goto cleanup;
@@ -133,7 +133,7 @@ SMBLogGetInfo(
     DWORD dwError = 0;
     PLWIO_LOG_INFO pLogInfo = NULL;
     
-    switch(gSMBLogTarget)
+    switch(gLWIO_LOG_TARGET)
     {
         case LWIO_LOG_TARGET_DISABLED:
         case LWIO_LOG_TARGET_CONSOLE:
@@ -144,7 +144,7 @@ SMBLogGetInfo(
                             (PVOID*)&pLogInfo);
             BAIL_ON_LWIO_ERROR(dwError);
             
-            pLogInfo->logTarget = gSMBLogTarget;
+            pLogInfo->logTarget = gLWIO_LOG_TARGET;
             pLogInfo->maxAllowedLogLevel = gSMBMaxLogLevel;
             
             break;
@@ -175,7 +175,7 @@ error:
     
     if (pLogInfo)
     {
-        SMBFreeLogInfo(pLogInfo);
+        LwIoFreeLogInfo(pLogInfo);
     }
 
     goto cleanup;
@@ -196,7 +196,7 @@ SMBLogSetInfo(
     
     gSMBMaxLogLevel = pLogInfo->maxAllowedLogLevel;
     
-    switch (gSMBLogTarget)
+    switch (gLWIO_LOG_TARGET)
     {
         case LWIO_LOG_TARGET_SYSLOG:
             
@@ -227,7 +227,7 @@ SMBShutdownLogging(
     
     if (ghSMBLog != (HANDLE)NULL)
     {
-        switch(gSMBLogTarget)
+        switch(gLWIO_LOG_TARGET)
         {
             case LWIO_LOG_TARGET_DISABLED:
                 break;
@@ -252,7 +252,7 @@ SMBShutdownLogging(
 DWORD
 SMBSetupLogging(
 	HANDLE              hLog,
-	SMBLogLevel         maxAllowedLogLevel,
+	LWIO_LOG_LEVEL         maxAllowedLogLevel,
 	PFN_LWIO_LOG_MESSAGE pfnLogger
 	)
 {
@@ -288,7 +288,7 @@ VOID
 SMBLogMessage(
 	PFN_LWIO_LOG_MESSAGE pfnLogger,
 	HANDLE hLog,
-	SMBLogLevel logLevel,
+	LWIO_LOG_LEVEL logLevel,
 	PCSTR  pszFormat,
 	...
 	)

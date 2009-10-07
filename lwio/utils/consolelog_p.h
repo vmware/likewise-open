@@ -56,14 +56,14 @@ typedef struct
 
 DWORD
 SMBOpenConsoleLog(
-    SMBLogLevel maxAllowedLogLevel,
+    LWIO_LOG_LEVEL maxAllowedLogLevel,
     PHANDLE     phLog
     );
 
 VOID
 SMBLogToConsole(
     HANDLE      hLog,
-    SMBLogLevel dwLogLevel,
+    LWIO_LOG_LEVEL dwLogLevel,
     PCSTR       pszFormat,
     va_list     msgList
     );

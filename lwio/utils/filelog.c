@@ -52,7 +52,7 @@
 DWORD
 SMBOpenFileLog(
     PCSTR       pszFilePath,
-    SMBLogLevel maxAllowedLogLevel,
+    LWIO_LOG_LEVEL maxAllowedLogLevel,
     PHANDLE     phLog
     )
 {
@@ -127,7 +127,7 @@ SMBGetFileLogInfo(
     
     BAIL_ON_INVALID_HANDLE(hLog);
     
-    if ((gSMBLogTarget != LWIO_LOG_TARGET_FILE) ||
+    if ((gLWIO_LOG_TARGET != LWIO_LOG_TARGET_FILE) ||
         IsNullOrEmptyString(pFileLog->pszFilePath))
     {
         dwError = LWIO_ERROR_INTERNAL;
@@ -157,7 +157,7 @@ error:
 
     if (pLogInfo)
     {
-        SMBFreeLogInfo(pLogInfo);
+        LwIoFreeLogInfo(pLogInfo);
     }
     
     *ppLogInfo = NULL;
@@ -184,7 +184,7 @@ SMBCloseFileLog(
 VOID
 SMBLogToFile(
     HANDLE      hLog,
-    SMBLogLevel logLevel,
+    LWIO_LOG_LEVEL logLevel,
     PCSTR       pszFormat,
     va_list     msgList
     )

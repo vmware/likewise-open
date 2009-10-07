@@ -59,7 +59,7 @@ typedef struct
 DWORD
 SMBOpenSyslog(
     PCSTR       pszIdentifier,
-    SMBLogLevel maxAllowedLogLevel,
+    LWIO_LOG_LEVEL maxAllowedLogLevel,
     DWORD       dwOptions,
     DWORD       dwFacility,
     PHANDLE     phLog
@@ -67,13 +67,13 @@ SMBOpenSyslog(
 
 VOID
 SMBSetSyslogMask(
-    SMBLogLevel logLevel
+    LWIO_LOG_LEVEL logLevel
     );
 
 VOID
 SMBLogToSyslog(
     HANDLE      hLog,
-    SMBLogLevel dwLogLevel,
+    LWIO_LOG_LEVEL dwLogLevel,
     PCSTR       pszFormat,
     va_list     msgList
     );

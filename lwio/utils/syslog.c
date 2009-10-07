@@ -52,7 +52,7 @@
 DWORD
 SMBOpenSyslog(
     PCSTR       pszIdentifier,
-    SMBLogLevel maxAllowedLogLevel,
+    LWIO_LOG_LEVEL maxAllowedLogLevel,
     DWORD       dwOptions,
     DWORD       dwFacility,
     PHANDLE     phLog
@@ -118,7 +118,7 @@ error:
     
 VOID
 SMBSetSyslogMask(
-    SMBLogLevel logLevel
+    LWIO_LOG_LEVEL logLevel
     )
 {
     DWORD dwSysLogLevel;
@@ -161,7 +161,7 @@ SMBSetSyslogMask(
 VOID
 SMBLogToSyslog(
     HANDLE      hLog,
-    SMBLogLevel logLevel,
+    LWIO_LOG_LEVEL logLevel,
     PCSTR       pszFormat,
     va_list     msgList
     )

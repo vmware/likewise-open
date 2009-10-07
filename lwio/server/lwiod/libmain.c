@@ -860,7 +860,7 @@ LwIoDaemonLogIpc (
     void* pData
     )
 {
-    SMBLogLevel ioLevel;
+    LWIO_LOG_LEVEL ioLevel;
     LWMsgBool result;
 
     switch (level)

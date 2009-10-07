@@ -60,8 +60,8 @@
 #define LWIO_LOG_TIME_FORMAT "%Y%m%d%H%M%S"
 
 extern HANDLE              ghSMBLog;
-extern SMBLogLevel         gSMBLsaMaxLogLevel;
-extern SMBLogTarget        gSMBLogTarget;
+extern LWIO_LOG_LEVEL         gSMBLsaMaxLogLevel;
+extern LWIO_LOG_TARGET        gLWIO_LOG_TARGET;
 extern PFN_LWIO_LOG_MESSAGE gpfnSMBLogger;
 
 #endif /* __EXTERNS_H__ */

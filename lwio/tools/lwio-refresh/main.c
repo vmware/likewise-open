@@ -92,7 +92,7 @@ main(
     dwError = LwIoOpenContext(&pContext);
     BAIL_ON_LWIO_ERROR(dwError);
 
-    dwError = SMBRefreshConfiguration((HANDLE) pContext);
+    dwError = LwIoRefreshConfiguration((HANDLE) pContext);
     BAIL_ON_LWIO_ERROR(dwError);
 
 cleanup:

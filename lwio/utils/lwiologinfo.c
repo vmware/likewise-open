@@ -48,7 +48,7 @@
 #include "includes.h"
 
 VOID
-SMBFreeLogInfo(
+LwIoFreeLogInfo(
     PLWIO_LOG_INFO pLogInfo
     )
 {

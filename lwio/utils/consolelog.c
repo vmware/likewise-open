@@ -51,7 +51,7 @@
 
 DWORD
 SMBOpenConsoleLog(
-    SMBLogLevel maxAllowedLogLevel,
+    LWIO_LOG_LEVEL maxAllowedLogLevel,
     PHANDLE     phLog
     )
 {
@@ -116,7 +116,7 @@ SMBCloseConsoleLog(
 VOID
 SMBLogToConsole(
     HANDLE      hLog,
-    SMBLogLevel logLevel,
+    LWIO_LOG_LEVEL logLevel,
     PCSTR       pszFormat,
     va_list     msgList
     )

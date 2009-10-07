@@ -31,18 +31,15 @@
 #include "includes.h"
 
 NTSTATUS
-SMBRefreshConfiguration(
-    HANDLE hConnection
+LwIoRefreshConfiguration(
+    PIO_CONTEXT pConnection
     )
 {
     NTSTATUS status = 0;
     SMB_REQUEST request = {0};
-    PIO_CONTEXT pConnection = NULL;
     LWMsgCall* pCall = NULL;
     LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
     LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
-
-    pConnection = (PIO_CONTEXT)hConnection;
 
     status = LwIoContextAcquireCall(pConnection, &pCall);
     BAIL_ON_NT_STATUS(status);

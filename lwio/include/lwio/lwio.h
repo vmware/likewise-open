@@ -107,7 +107,7 @@ typedef enum
     LWIO_LOG_LEVEL_VERBOSE,
     LWIO_LOG_LEVEL_DEBUG,
     LWIO_LOG_LEVEL_TRACE
-} SMBLogLevel;
+} LWIO_LOG_LEVEL;
 
 typedef enum
 {
@@ -115,18 +115,18 @@ typedef enum
     LWIO_LOG_TARGET_CONSOLE,
     LWIO_LOG_TARGET_FILE,
     LWIO_LOG_TARGET_SYSLOG
-} SMBLogTarget;
+} LWIO_LOG_TARGET;
 
 typedef VOID (*PFN_LWIO_LOG_MESSAGE)(
                             HANDLE      hLog,
-                            SMBLogLevel logLevel,
+                            LWIO_LOG_LEVEL logLevel,
                             PCSTR       pszFormat,
                             va_list     msgList
                             );
 
 typedef struct __LWIO_LOG_INFO {
-    SMBLogLevel  maxAllowedLogLevel;
-    SMBLogTarget logTarget;
+    LWIO_LOG_LEVEL  maxAllowedLogLevel;
+    LWIO_LOG_TARGET logTarget;
     PSTR         pszPath;
 } LWIO_LOG_INFO, *PLWIO_LOG_INFO;
 
@@ -146,30 +146,30 @@ LwIoOpenContext(
     );
 
 LW_NTSTATUS
-SMBRefreshConfiguration(
-    HANDLE hConnection
+LwIoRefreshConfiguration(
+    LW_PIO_CONTEXT hConnection
     );
 
 LW_NTSTATUS
-SMBSetLogLevel(
-    HANDLE      hSMBConnection,
-    SMBLogLevel logLevel
+LwIoSetLogLevel(
+    LW_PIO_CONTEXT pContext,
+    LWIO_LOG_LEVEL logLevel
     );
 
 LW_NTSTATUS
-SMBGetLogInfo(
-    HANDLE         hSMBConnection,
+LwIoGetLogInfo(
+    LW_PIO_CONTEXT pContext,
     PLWIO_LOG_INFO* ppLogInfo
     );
 
 LW_NTSTATUS
-SMBSetLogInfo(
-    HANDLE        hSMBConnection,
+LwIoSetLogInfo(
+    LW_PIO_CONTEXT pContext,
     PLWIO_LOG_INFO pLogInfo
     );
 
 VOID
-SMBFreeLogInfo(
+LwIoFreeLogInfo(
     PLWIO_LOG_INFO pLogInfo
     );
 
@@ -240,7 +240,7 @@ LwIoGetThreadAccessToken(
     LW_PIO_ACCESS_TOKEN* ppToken
     );
 
-#endif /* ! SMB_NO_THREADS */
+#endif /* ! LW_NO_THREADS */
 
 #include <lwio/ntfileapi.h>
 #include <lwio/smbfileapi.h>
