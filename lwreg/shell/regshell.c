@@ -117,7 +117,7 @@ RegShellListKeys(
         BAIL_ON_REG_ERROR(dwError);
 
 #ifndef _DEBUG
-        printf("%s\n", pszSubKey);
+        printf("[%s]\n", pszSubKey);
 #else
         printf("SubKey %d name is '%s'\n", i, pszSubKey);
 #endif
@@ -398,12 +398,16 @@ RegShellListValues(
             dwError = LwWc16sToMbs(pValues[i].pValueName, &pszValueName);
             BAIL_ON_REG_ERROR(dwError);
 
-#ifndef _DEBUG
-            printf("%s%*s", pszValueName, (int) (strlen(pszValueName)-dwValueNameLenMax), "");
-#else
+#ifdef _DEBUG
             printf("ListValues: value='%s\n", pszValueName);
             printf("ListValues: dataLen='%d'\n", pValues[i].dwDataLen);
 #endif
+
+            if (strcmp(pszValueName, "@") == 0 && *((PSTR) pValues[i].pData) == '\0')
+            {
+                continue;
+            }
+            printf("  %s%*s", pszValueName, (int) (strlen(pszValueName)-dwValueNameLenMax), "");
             switch (pValues[i].type)
             {
                 case REG_SZ:
@@ -412,13 +416,8 @@ RegShellListValues(
                     break;
 
                 case REG_DWORD:
-                    printf("REG_DWORD       ");
-
-
                     memcpy(&dwValue, pValues[i].pData, sizeof(DWORD));
-                    dwValue = LW_HTOB32(dwValue);
-                    RegShellDumpByteArray((PBYTE) &dwValue, 4);
-                    printf("\n");
+                    printf("REG_DWORD       0x%08x (%u)\n", dwValue, dwValue);
                     break;
 
                 case REG_BINARY:
@@ -440,7 +439,7 @@ RegShellListValues(
                     {
                         printf("%*sREG_MULTI_SZ[%d] \"%s\"\n",
                                dwMultiIndex == 0 ? 0 :
-                                   dwValueNameLenMax,
+                                   dwValueNameLenMax + 2,
                                    "",
                                dwMultiIndex,
                                ppszMultiStrArray[dwMultiIndex]);
@@ -501,15 +500,23 @@ RegShellProcessCmd(
             case REGSHELL_CMD_LIST:
             case REGSHELL_CMD_DIRECTORY:
                 pszErrorPrefix = "list: failed ";
-                dwError = RegShellListKeys(pParseState, rsItem);
-                BAIL_ON_REG_ERROR(dwError);
-                printf("\n");
+                printf("\n[%s%s%s]\n",
+                    pParseState->pszDefaultRootKeyName ?
+                        pParseState->pszDefaultRootKeyName : "",
+                    pParseState->pszDefaultKey ? "\\" : "",
+                    pParseState->pszDefaultKey ?
+                        pParseState->pszDefaultKey : "\\");
+
                 if (pParseState->pszDefaultRootKeyName ||
                     pParseState->pszFullRootKeyName)
                 {
                     dwError = RegShellListValues(pParseState, rsItem);
                     BAIL_ON_REG_ERROR(dwError);
                 }
+                printf("\n");
+                dwError = RegShellListKeys(pParseState, rsItem);
+                BAIL_ON_REG_ERROR(dwError);
+                printf("\n");
                 break;
 
             case REGSHELL_CMD_ADD_KEY:
