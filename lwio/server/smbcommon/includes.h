@@ -38,11 +38,11 @@
 
 #include "lwiodef.h"
 #include "lwioutils.h"
+#include "lwiocfg.h"
 
 #include <lw/ntstatus.h>
 
 #include "marshal.h"
-#include "smbcfg.h"
 #include "smbwire.h"
 #include "smbkrb5.h"
 

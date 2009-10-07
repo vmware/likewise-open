@@ -42,7 +42,7 @@ endif
 liblwiomain_la_SOURCES = \
     globals.c   \
     libmain.c   \
-    lwiocfg.c   \
+    cfg.c    \
     ipc.c       \
     proc.c
 

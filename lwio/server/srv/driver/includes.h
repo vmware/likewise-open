@@ -55,6 +55,7 @@
 
 #include <lwiodef.h>
 #include <lwioutils.h>
+#include <lwiocfg.h>
 #include <lwiolog_r.h>
 #include <lwnet.h>
 
@@ -67,7 +68,6 @@
 #include <ioapi.h>
 
 #include <smbwire.h>
-#include <smbcfg.h>
 
 #include <srvutils.h>
 #include <shareapi.h>

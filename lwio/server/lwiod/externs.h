@@ -74,8 +74,8 @@ extern pthread_t* gpSignalHandlerThread;
         }
 
 extern pthread_mutex_t gServerConfigLock;
-extern SMB_CONFIG      gServerConfig;
-extern PSMB_CONFIG     gpServerConfig;
+extern LWIO_CONFIG      gServerConfig;
+extern PLWIO_CONFIG     gpServerConfig;
 
 #define LWIO_LOCK_SERVERCONFIG(bInLock)               \
         if (!bInLock) {                              \

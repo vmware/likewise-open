@@ -73,12 +73,12 @@ typedef struct {
     DWORD dwExitCode;
 } SMBSERVERINFO, *PSMBSERVERINFO;
 
-typedef struct __SMB_CONFIG
+typedef struct __LWIO_CONFIG
 {
 
     DWORD dwPlaceHolder;
 
-} SMB_CONFIG, *PSMB_CONFIG;
+} LWIO_CONFIG, *PLWIO_CONFIG;
 
 #endif /* __STRUCTS_H__ */
 

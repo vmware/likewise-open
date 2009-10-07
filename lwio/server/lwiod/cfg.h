@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -28,27 +28,38 @@
  * license@likewisesoftware.com
  */
 
-#ifndef __SMBCFG_H__
-#define __SMBCFG_H__
+#ifndef __LWIO_CONFIG_H__
+#define __LWIO_CONFIG_H__
+
+#include "includes.h"
 
 DWORD
-SMBSrvSetupInitialConfig(
+LwioSrvSetupInitialConfig(
     VOID
     );
 
 DWORD
-SMBSrvRefreshConfig(
+LwioSrvRefreshConfig(
     );
 
 VOID
-SMBSrvFreeConfig(
-    IN OUT PSMB_CONFIG pConfig
+LwIoSrvFreeConfig(
+    IN OUT PLWIO_CONFIG pConfig
     );
 
 VOID
-SMBSrvFreeConfigContents(
-    IN OUT PSMB_CONFIG pConfig
+LwioSrvFreeConfigContents(
+    IN OUT PLWIO_CONFIG pConfig
     );
 
 #endif
 
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

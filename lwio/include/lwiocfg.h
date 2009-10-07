@@ -28,6 +28,10 @@
  * license@likewisesoftware.com
  */
 
+
+#ifndef _LWIOCFG_H_
+#define _LWIOCFG_H_
+
 #include <reg/reg.h>
 
 #define BAIL_ON_NON_LWREG_ERROR(dwError) \
@@ -35,65 +39,59 @@
            BAIL_ON_LWIO_ERROR(dwError);            \
         }
 
-typedef struct __SMB_CONFIG_REG
-{
-    HANDLE hConnection;
-    HKEY hKey;
-    PSTR pszConfigKey;
-    PSTR pszPolicyKey;
-} SMB_CONFIG_REG, *PSMB_CONFIG_REG;
+typedef struct __LWIO_CONFIG_REG LWIO_CONFIG_REG, *PLWIO_CONFIG_REG;
 
 typedef enum
 {
-    SMBTypeString,
-    SMBTypeDword,
-    SMBTypeBoolean,
-    SMBTypeChar,
-    SMBTypeEnum
-} SMB_CONFIG_TYPE;
+    LwIoTypeString,
+    LwIoTypeDword,
+    LwIoTypeBoolean,
+    LwIoTypeChar,
+    LwIoTypeEnum
+} LWIO_CONFIG_TYPE;
 
-typedef struct __SMB_CONFIG_TABLE
+typedef struct __LWIO_CONFIG_TABLE
 {
     PCSTR   pszName;
     BOOLEAN bUsePolicy;
-    SMB_CONFIG_TYPE Type;
+    LWIO_CONFIG_TYPE Type;
     DWORD dwMin;
     DWORD dwMax;
     const PCSTR *ppszEnumNames;
     PVOID pValue;
-} SMB_CONFIG_TABLE, *PSMB_CONFIG_TABLE;
+} LWIO_CONFIG_TABLE, *PLWIO_CONFIG_TABLE;
 
 DWORD
-SMBProcessConfig(
+LwIoProcessConfig(
     PCSTR pszConfigKey,
     PCSTR pszPolicyKey,
-    PSMB_CONFIG_TABLE pConfig,
+    PLWIO_CONFIG_TABLE pConfig,
     DWORD dwConfigEntries
     );
 
 DWORD
-SMBOpenConfig(
+LwIoOpenConfig(
     PCSTR pszConfigKey,
     PCSTR pszPolicyKey,
-    PSMB_CONFIG_REG *ppReg
+    PLWIO_CONFIG_REG *ppReg
     );
 
 VOID
-SMBCloseConfig(
-    PSMB_CONFIG_REG pReg
+LwIoCloseConfig(
+    PLWIO_CONFIG_REG pReg
     );
 
 DWORD
-SMBReadConfigString(
-    PSMB_CONFIG_REG pReg,
+LwIoReadConfigString(
+    PLWIO_CONFIG_REG pReg,
     PCSTR   pszName,
     BOOLEAN bUsePolicy,
     PSTR    *ppszValue
     );
 
 DWORD
-SMBReadConfigDword(
-    PSMB_CONFIG_REG pReg,
+LwIoReadConfigDword(
+    PLWIO_CONFIG_REG pReg,
     PCSTR pszName,
     BOOLEAN bUsePolicy,
     DWORD   dwMin,
@@ -102,16 +100,16 @@ SMBReadConfigDword(
     );
 
 DWORD
-SMBReadConfigBoolean(
-    PSMB_CONFIG_REG pReg,
+LwIoReadConfigBoolean(
+    PLWIO_CONFIG_REG pReg,
     PCSTR pszName,
     BOOLEAN bUsePolicy,
     PBOOLEAN pbValue
     );
 
 DWORD
-SMBReadConfigEnum(
-    PSMB_CONFIG_REG pReg,
+LwIoReadConfigEnum(
+    PLWIO_CONFIG_REG pReg,
     PCSTR pszName,
     BOOLEAN bUsePolicy,
     DWORD dwMin,
@@ -119,3 +117,15 @@ SMBReadConfigEnum(
     const PCSTR *ppszEnumNames,
     PDWORD pdwValue
     );
+
+#endif    // _LWIOCFG_H_
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
+

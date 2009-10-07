@@ -542,11 +542,10 @@ SMBSrvInitialize(
     DWORD dwError = 0;
     PCSTR pszConfigPath = SMB_CONFIG_FILE_PATH;
 
-    dwError = SMBSrvSetupInitialConfig();
+    dwError = LwioSrvSetupInitialConfig();
     BAIL_ON_LWIO_ERROR(dwError);
 
-    dwError = SMBSrvRefreshConfig(
-                    pszConfigPath);
+    dwError = LwioSrvRefreshConfig(pszConfigPath);
     BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = SMBInitCacheFolders();
@@ -1072,7 +1071,7 @@ SMBHandleSignals(
                     DWORD dwError2 = 0;
                     PCSTR pszConfigPath = SMB_CONFIG_FILE_PATH;
 
-                    dwError2 = SMBSrvRefreshConfig(pszConfigPath);
+                    dwError2 = LwioSrvRefreshConfig(pszConfigPath);
                     if (dwError2)
                     {
                         LWIO_LOG_ERROR("Failed to refresh configuration [code:%d]", dwError2);

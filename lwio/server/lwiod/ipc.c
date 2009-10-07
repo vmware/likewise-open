@@ -52,7 +52,7 @@ LwIoDaemonIpcRefreshConfiguration(
                     (PVOID*)&pStatusResponse);
     BAIL_ON_LWIO_ERROR(dwError);
 
-    dwError = SMBSrvRefreshConfig(pszConfigPath);
+    dwError = LwioSrvRefreshConfig(pszConfigPath);
 
     /* Transmit refresh error to client but do not fail out of dispatch loop */
     if (dwError)
