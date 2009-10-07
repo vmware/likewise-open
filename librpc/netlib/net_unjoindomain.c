@@ -54,7 +54,7 @@ NET_API_STATUS NetUnjoinDomainLocal(const wchar16_t *machine,
     char *localname = NULL;
     wchar16_t *domain_controller_name = NULL;
     wchar16_t *machine_name = NULL;
-    PIO_ACCESS_TOKEN access_token = NULL;
+    PIO_CREDS creds = NULL;
 
     BAIL_ON_INVALID_PTR(machine);
     BAIL_ON_INVALID_PTR(domain);
@@ -86,16 +86,16 @@ NET_API_STATUS NetUnjoinDomainLocal(const wchar16_t *machine,
     if (options & NETSETUP_ACCT_DELETE) {
         if (account && password)
         {
-            status = LwIoCreatePlainAccessTokenW(account, password, &access_token);
+            status = LwIoCreatePlainCredsW(account, password, &creds);
             BAIL_ON_NTSTATUS_ERROR(status);
         }
         else
         {
-            status = LwIoGetThreadAccessToken(&access_token);
+            status = LwIoGetThreadCreds(&creds);
             BAIL_ON_NTSTATUS_ERROR(status);
         }
 
-        status = NetConnectSamr(&conn, domain_controller_name, domain_access, 0, access_token);
+        status = NetConnectSamr(&conn, domain_controller_name, domain_access, 0, creds);
         BAIL_ON_NTSTATUS_ERROR(status);
 
         status = DisableWksAccount(conn, pi->pwszMachineAccount, &account_h);
@@ -131,9 +131,9 @@ cleanup:
     return err;
 
 error:
-    if (access_token)
+    if (creds)
     {
-        LwIoDeleteAccessToken(access_token);
+        LwIoDeleteCreds(creds);
     }
 
     SAFE_FREE(machine_name);

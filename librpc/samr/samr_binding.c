@@ -51,7 +51,7 @@ RPCSTATUS
 InitSamrBindingDefault(
     handle_t         *phSamrBinding,
     PCSTR             pszHostname,
-    PIO_ACCESS_TOKEN  pAccessToken
+    PIO_CREDS  pCreds
     )
 {
     RPCSTATUS rpcStatus = RPC_S_OK;
@@ -67,7 +67,7 @@ InitSamrBindingDefault(
                                     pszEndpoint,
                                     pszUuid,
                                     pszOptions,
-                                    pAccessToken);
+                                    pCreds);
     BAIL_ON_RPCSTATUS_ERROR(rpcStatus);
 
     *phSamrBinding = hSamrBinding;
@@ -90,7 +90,7 @@ InitSamrBindingFull(
     PCSTR pszEndpoint,
     PCSTR pszUuid,
     PCSTR pszOptions,
-    PIO_ACCESS_TOKEN pAccessToken
+    PIO_CREDS pCreds
     )
 {
     RPCSTATUS rpcStatus = RPC_S_OK;
@@ -144,7 +144,7 @@ InitSamrBindingFull(
                                     &rpcStatus);
     BAIL_ON_RPCSTATUS_ERROR(rpcStatus);
 
-    rpc_smb_transport_info_from_lwio_token(pAccessToken,
+    rpc_smb_transport_info_from_lwio_creds(pCreds,
                                            FALSE,
                                            &info,
                                            &rpcStatus);

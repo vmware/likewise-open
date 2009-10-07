@@ -41,7 +41,7 @@ RPCSTATUS
 InitNetlogonBindingDefault(
     OUT handle_t            *phNetrBinding,
     IN  PCSTR                pszHostname,
-    IN  LW_PIO_ACCESS_TOKEN  pAccessToken,
+    IN  LW_PIO_CREDS  pAccessToken,
     IN  BOOLEAN              bIsSchannel
     )
 {
@@ -82,7 +82,7 @@ InitNetlogonBindingFull(
     IN  PCSTR                 pszEndpoint,
     IN  PCSTR                 pszUuid,
     IN  PCSTR                 pszOptions,
-    IN  LW_PIO_ACCESS_TOKEN   pAccessToken,
+    IN  LW_PIO_CREDS   pAccessToken,
     IN  BOOLEAN               bIsSchannel
     )
 {
@@ -134,7 +134,7 @@ InitNetlogonBindingFull(
     rpc_binding_from_string_binding(binding_string, &hNetrBinding, &rpcStatus);
     BAIL_ON_RPCSTATUS_ERROR(rpcStatus);
 
-    rpc_smb_transport_info_from_lwio_token(pAccessToken, bIsSchannel, &info, &rpcStatus);
+    rpc_smb_transport_info_from_lwio_creds(pAccessToken, bIsSchannel, &info, &rpcStatus);
     BAIL_ON_RPCSTATUS_ERROR(rpcStatus);
 
     rpc_binding_set_transport_info(hNetrBinding, info, &rpcStatus);

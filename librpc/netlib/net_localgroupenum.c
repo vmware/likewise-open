@@ -70,7 +70,7 @@ NetLocalGroupEnum(
     wchar16_t *grp_name = NULL;
     wchar16_t *grp_desc = NULL;
     UnicodeString *desc = NULL;
-    PIO_ACCESS_TOKEN access_token = NULL;
+    PIO_CREDS creds = NULL;
 
     BAIL_ON_INVALID_PTR(hostname);
     BAIL_ON_INVALID_PTR(buffer);
@@ -78,10 +78,10 @@ NetLocalGroupEnum(
     BAIL_ON_INVALID_PTR(out_total);
     BAIL_ON_INVALID_PTR(out_resume);
 
-    status = LwIoGetThreadAccessToken(&access_token);
+    status = LwIoGetThreadCreds(&creds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = NetConnectSamr(&conn, hostname, 0, 0, access_token);
+    status = NetConnectSamr(&conn, hostname, 0, 0, creds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     samr_b         = conn->samr.bind;
@@ -298,9 +298,9 @@ error:
         NetFreeMemory((void*)info);
     }
 
-    if (access_token)
+    if (creds)
     {
-        LwIoDeleteAccessToken(access_token);
+        LwIoDeleteCreds(creds);
     }
 
     buffer       = NULL;

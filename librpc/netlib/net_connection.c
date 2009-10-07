@@ -228,7 +228,7 @@ NetConnectSamr(
     const wchar16_t *hostname,
     uint32 req_dom_flags,
     uint32 req_btin_dom_flags,
-    PIO_ACCESS_TOKEN access_token
+    PIO_CREDS creds
     )
 {
     const uint32 conn_flags = SAMR_ACCESS_OPEN_DOMAIN |
@@ -315,7 +315,7 @@ NetConnectSamr(
         host = awc16stombs(hostname);
         BAIL_ON_NO_MEMORY(host);
 
-        rpcstatus = InitSamrBindingDefault(&samr_b, host, access_token);
+        rpcstatus = InitSamrBindingDefault(&samr_b, host, creds);
         if (rpcstatus != 0) {
             BAIL_ON_NTSTATUS_ERROR(STATUS_UNSUCCESSFUL);
         }
@@ -512,7 +512,7 @@ NetConnectLsa(
     NetConn **conn,
     const wchar16_t *hostname,
     uint32 req_lsa_flags,
-    PIO_ACCESS_TOKEN access_token
+    PIO_CREDS creds
     )
 {
     const uint32 lsa_flags = LSA_ACCESS_LOOKUP_NAMES_SIDS;
@@ -579,7 +579,7 @@ NetConnectLsa(
         host = awc16stombs(hostname);
         BAIL_ON_NO_MEMORY(host);
 
-        rpcstatus = InitLsaBindingDefault(&lsa_b, host, access_token);
+        rpcstatus = InitLsaBindingDefault(&lsa_b, host, creds);
         if (rpcstatus != 0) {
             status = STATUS_UNSUCCESSFUL;
             goto error;

@@ -65,7 +65,7 @@ NetUserEnum(
     UserInfo *ui = NULL;
     uint32 total = 0;
     uint32 resume = 0;
-    PIO_ACCESS_TOKEN access_token = NULL;
+    PIO_CREDS creds = NULL;
 
     BAIL_ON_INVALID_PTR(hostname);
     BAIL_ON_INVALID_PTR(buffer);
@@ -103,13 +103,13 @@ NetUserEnum(
         goto error;
     }
 
-    status = LwIoGetThreadAccessToken(&access_token);
+    status = LwIoGetThreadCreds(&creds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     samr_b = conn->samr.bind;
     dom_h  = conn->samr.dom_handle;
 
-    status = NetConnectSamr(&conn, hostname, dom_flags, 0, access_token);
+    status = NetConnectSamr(&conn, hostname, dom_flags, 0, creds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
 
@@ -214,9 +214,9 @@ error:
         NetFreeMemory((void*)ninfo);
     }
 
-    if (access_token)
+    if (creds)
     {
-        LwIoDeleteAccessToken(access_token);
+        LwIoDeleteCreds(creds);
     }
 
     *buffer  = NULL;

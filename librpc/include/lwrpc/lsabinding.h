@@ -48,7 +48,7 @@ RPCSTATUS
 InitLsaBindingDefault(
     handle_t *binding,
     const char *hostname,
-    PIO_ACCESS_TOKEN access_token
+    PIO_CREDS creds
     );
 
 RPCSTATUS
@@ -59,7 +59,7 @@ InitLsaBindingFull(
     const char *endpoint,
     const char *uuid,
     const char *options,
-    PIO_ACCESS_TOKEN access_token
+    PIO_CREDS creds
     );
 
 RPCSTATUS

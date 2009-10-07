@@ -44,15 +44,15 @@ NetGetDomainName(
     WINERR err = ERROR_SUCCESS;
     NetConn *cn = NULL;
     wchar16_t *domain_name = NULL;
-    PIO_ACCESS_TOKEN access_token = NULL;
+    PIO_CREDS creds = NULL;
 
     BAIL_ON_INVALID_PTR(hostname);
     BAIL_ON_INVALID_PTR(domname);
 
-    status = LwIoGetThreadAccessToken(&access_token);
+    status = LwIoGetThreadCreds(&creds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = NetConnectSamr(&cn, hostname, conn_access, 0, access_token);
+    status = NetConnectSamr(&cn, hostname, conn_access, 0, creds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     domain_name = wc16sdup(cn->samr.dom_name);
@@ -74,9 +74,9 @@ cleanup:
 error:
     *domname = NULL;
 
-    if (access_token)
+    if (creds)
     {
-        LwIoDeleteAccessToken(access_token);
+        LwIoDeleteCreds(creds);
     }
 
     goto cleanup;

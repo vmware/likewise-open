@@ -51,7 +51,7 @@ NetUserChangePassword(
     uint8 new_nthash[16];
     uint8 ntpassbuf[516];
     uint8 ntverhash[16];
-    PIO_ACCESS_TOKEN access_token = NULL;
+    PIO_CREDS creds = NULL;
 
     memset((void*)old_nthash, 0, sizeof(old_nthash));
     memset((void*)new_nthash, 0, sizeof(new_nthash));
@@ -63,7 +63,7 @@ NetUserChangePassword(
     BAIL_ON_INVALID_PTR(oldpassword);
     BAIL_ON_INVALID_PTR(newpassword);
 
-    status = LwIoGetThreadAccessToken(&access_token);
+    status = LwIoGetThreadCreds(&creds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     hostname = awc16stombs(domain);
@@ -75,7 +75,7 @@ NetUserChangePassword(
     username = wc16sdup(user);
     BAIL_ON_NO_MEMORY(username);
 
-    status = InitSamrBindingDefault(&samr_b, hostname, access_token);
+    status = InitSamrBindingDefault(&samr_b, hostname, creds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     oldlen = wc16slen(oldpassword);
@@ -106,9 +106,9 @@ cleanup:
     SAFE_FREE(domainname);
     SAFE_FREE(username);
 
-    if (access_token)
+    if (creds)
     {
-        LwIoDeleteAccessToken(access_token);
+        LwIoDeleteCreds(creds);
     }
 
     if (err == ERROR_SUCCESS &&

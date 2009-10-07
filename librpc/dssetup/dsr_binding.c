@@ -51,7 +51,7 @@ RPCSTATUS
 InitDsrBindingDefault(
     handle_t *phBinding,
     PCSTR pszHostname,
-    PIO_ACCESS_TOKEN pIoAccessToken
+    PIO_CREDS pIoAccessToken
     )
 {
     RPCSTATUS rpcStatus = RPC_S_OK;
@@ -89,7 +89,7 @@ InitDsrBindingFull(
     PCSTR pszEndpoint,
     PCSTR pszUuid,
     PCSTR pszOptions,
-    PIO_ACCESS_TOKEN pIoAccessToken
+    PIO_CREDS pIoAccessToken
     )
 {
     RPCSTATUS rpcStatus = RPC_S_OK;
@@ -147,7 +147,7 @@ InitDsrBindingFull(
         &rpcStatus);
     BAIL_ON_RPC_STATUS(rpcStatus);
 
-    rpc_smb_transport_info_from_lwio_token(
+    rpc_smb_transport_info_from_lwio_creds(
         pIoAccessToken,
         FALSE,
         &hTransportInfo,

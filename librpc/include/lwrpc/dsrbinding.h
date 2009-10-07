@@ -58,7 +58,7 @@ RPCSTATUS
 InitDsrBindingDefault(
     handle_t *phBinding,
     PCSTR pszHostname,
-    PIO_ACCESS_TOKEN pIoAccessToken
+    PIO_CREDS pIoAccessToken
     );
 
 RPCSTATUS
@@ -69,7 +69,7 @@ InitDsrBindingFull(
     PCSTR pszEndpoint,
     PCSTR pszUuid,
     PCSTR pszOptions,
-    PIO_ACCESS_TOKEN pIoAccessToken
+    PIO_CREDS pIoAccessToken
     );
 
 
