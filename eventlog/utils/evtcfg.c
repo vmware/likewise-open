@@ -49,8 +49,8 @@ struct __EVT_CONFIG_REG
 {
     HANDLE hConnection;
     HKEY hKey;
-    wchar16_t *pwc16sConfigKey;
-    wchar16_t *pwc16sPolicyKey;
+    PSTR pszConfigKey;
+    PSTR pszPolicyKey;
 };
 
 DWORD
@@ -144,13 +144,13 @@ EVTOpenConfig(
 
     PEVT_CONFIG_REG pReg = NULL;
 
-    EVTAllocateMemory(sizeof(EVT_CONFIG_REG), (PVOID*)&pReg);
+    dwError = EVTAllocateMemory(sizeof(EVT_CONFIG_REG), (PVOID*)&pReg);
     BAIL_ON_EVT_ERROR(dwError);
 
-    dwError = EVTMbsToWc16s(pszConfigKey, &(pReg->pwc16sConfigKey));
+    dwError = EVTAllocateString(pszConfigKey, &(pReg->pszConfigKey));
     BAIL_ON_EVT_ERROR(dwError);
 
-    dwError = EVTMbsToWc16s(pszPolicyKey, &(pReg->pwc16sPolicyKey));
+    dwError = EVTAllocateString(pszPolicyKey, &(pReg->pszPolicyKey));
     BAIL_ON_EVT_ERROR(dwError);
 
     dwError = RegOpenServer(&(pReg->hConnection));
@@ -191,9 +191,9 @@ EVTCloseConfig(
 {
     if ( pReg )
     {
-        EVT_SAFE_FREE_MEMORY(pReg->pwc16sConfigKey);
+        EVT_SAFE_FREE_STRING(pReg->pszConfigKey);
 
-        EVT_SAFE_FREE_MEMORY(pReg->pwc16sPolicyKey);
+        EVT_SAFE_FREE_STRING(pReg->pszPolicyKey);
         if ( pReg->hConnection )
         {
             if ( pReg->hKey )
@@ -219,16 +219,11 @@ EVTReadConfigString(
 {
     DWORD dwError = 0;
 
-    wchar16_t *pwc16sName = NULL;
-
     BOOLEAN bGotValue = FALSE;
     PSTR pszValue = NULL;
     char szValue[MAX_VALUE_LENGTH];
     DWORD dwType;
     DWORD dwSize;
-
-    dwError = EVTMbsToWc16s(pszName, &pwc16sName);
-    BAIL_ON_EVT_ERROR(dwError);
 
     if ( bUsePolicy )
     {
@@ -237,8 +232,8 @@ EVTReadConfigString(
         dwError = RegGetValueA(
                     pReg->hConnection,
                     pReg->hKey,
-                    pReg->pwc16sPolicyKey,
-                    pwc16sName,
+                    pReg->pszPolicyKey,
+                    pszName,
                     RRF_RT_REG_SZ,
                     &dwType,
                     szValue,
@@ -254,8 +249,8 @@ EVTReadConfigString(
         dwError = RegGetValueA(
                     pReg->hConnection,
                     pReg->hKey,
-                    pReg->pwc16sConfigKey,
-                    pwc16sName,
+                    pReg->pszConfigKey,
+                    pszName,
                     RRF_RT_REG_SZ,
                     &dwType,
                     szValue,
@@ -277,9 +272,7 @@ EVTReadConfigString(
     dwError = 0;
 
 cleanup:
-    EVT_SAFE_FREE_MEMORY(pwc16sName);
-
-    EVT_SAFE_FREE_MEMORY(pszValue);
+    EVT_SAFE_FREE_STRING(pszValue);
 
     return dwError;
 
@@ -299,24 +292,19 @@ EVTReadConfigDword(
 {
     DWORD dwError = 0;
 
-    wchar16_t *pwc16sName = NULL;
-
     BOOLEAN bGotValue = FALSE;
     DWORD dwValue;
     DWORD dwSize;
     DWORD dwType;
 
-    dwError = EVTMbsToWc16s(pszName, &pwc16sName);
-    BAIL_ON_EVT_ERROR(dwError);
-
     if (bUsePolicy)
     {
         dwSize = sizeof(dwValue);
-        dwError = RegGetValue(
+        dwError = RegGetValueA(
                     pReg->hConnection,
                     pReg->hKey,
-                    pReg->pwc16sPolicyKey,
-                    pwc16sName,
+                    pReg->pszPolicyKey,
+                    pszName,
                     RRF_RT_REG_DWORD,
                     &dwType,
                     (PBYTE)&dwValue,
@@ -330,11 +318,11 @@ EVTReadConfigDword(
     if (!bGotValue)
     {
         dwSize = sizeof(dwValue);
-        dwError = RegGetValue(
+        dwError = RegGetValueA(
                     pReg->hConnection,
                     pReg->hKey,
-                    pReg->pwc16sConfigKey,
-                    pwc16sName,
+                    pReg->pszConfigKey,
+                    pszName,
                     RRF_RT_REG_DWORD,
                     &dwType,
                     (PBYTE)&dwValue,
@@ -353,13 +341,7 @@ EVTReadConfigDword(
 
     dwError = 0;
 
-cleanup:
-    EVT_SAFE_FREE_MEMORY(pwc16sName);
-
     return dwError;
-
-error:
-    goto cleanup;
 }
 
 DWORD
