@@ -47,6 +47,8 @@
 
 #define REGSHELL_ESC_CHAR '|'
 
+static int gCaughtSignal;
+
 typedef struct _EDITLINE_CLIENT_DATA
 {
     int continuation;
@@ -58,6 +60,12 @@ typedef struct _EDITLINE_CLIENT_DATA
     PSTR *ppszCompleteMatches;
     DWORD dwCompleteMatchesLen;
 } EDITLINE_CLIENT_DATA, *PEDITLINE_CLIENT_DATA;
+
+void
+pfnRegShellSignal(int signal)
+{
+    gCaughtSignal = signal;
+}
 
 
 
@@ -1152,6 +1160,19 @@ error:
 }
 
 
+void
+RegShellHandleSignalEditLine(int *signal, void *ctx)
+{
+#ifdef SIGWINCH
+    if (*signal == SIGWINCH)
+    {
+        el_set((EditLine *) ctx, EL_REFRESH);
+    }
+#endif
+    *signal = 0;
+}
+
+
 DWORD
 RegShellProcessInteractiveEditLine(
     FILE *readFP,
@@ -1185,7 +1206,7 @@ RegShellProcessInteractiveEditLine(
     el_set(el, EL_EDITOR, "emacs");
 
     /* Signal handling in editline seems not to function... */
-    el_set(el, EL_SIGNAL, 1);
+    el_set(el, EL_SIGNAL, 0);
 
     /* Set escape character from \ to | */
     el_set(el, EL_ESC_CHAR, (int) REGSHELL_ESC_CHAR);
@@ -1220,7 +1241,6 @@ RegShellProcessInteractiveEditLine(
            pfnRegShellCompleteCallback);
     el_set(el, EL_BIND, "^I", "ed-complete", NULL);
 
-
     /*
      * Source the user's defaults file.
      */
@@ -1228,6 +1248,10 @@ RegShellProcessInteractiveEditLine(
 
     while ((buf = el_gets(el, &num))!=NULL && num!=0)
     {
+        if (gCaughtSignal > 0)
+        {
+            RegShellHandleSignalEditLine(&gCaughtSignal, (LW_PVOID) el);
+        }
         if (num>1 && buf[num-2] == REGSHELL_ESC_CHAR)
         {
             ncontinuation = 1;
@@ -1392,6 +1416,7 @@ error:
 }
 
 
+
 DWORD
 RegShellProcessInteractive(
     FILE *readFP,
@@ -1481,10 +1506,29 @@ int main(int argc, char *argv[])
     PREGSHELL_PARSE_STATE parseState = NULL;
     FILE *readFP = stdin;
     DWORD indx = 0;
+    struct sigaction action;
 
     setlocale(LC_ALL, "");
     dwError = RegShellInitParseState(&parseState);
     BAIL_ON_REG_ERROR(dwError);
+
+
+    memset(&action, 0, sizeof(action));
+    action.sa_handler = pfnRegShellSignal;
+    action.sa_flags = SA_RESTART;
+    if (sigaction(SIGINT, &action, NULL) < 0)
+    {
+        dwError = LwMapErrnoToLwError(errno);
+        BAIL_ON_REG_ERROR(dwError);
+    }
+
+#ifdef SIGWINCH
+    if (sigaction(SIGWINCH, &action, NULL) < 0)
+    {
+        dwError = LwMapErrnoToLwError(errno);
+        BAIL_ON_REG_ERROR(dwError);
+    }
+#endif
 
     indx = 1;
     while (argc>1 && argv[indx][0] == '-')
