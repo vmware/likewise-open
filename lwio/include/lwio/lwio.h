@@ -137,11 +137,6 @@ typedef struct __LWIO_LOG_INFO {
 } LWIO_LOG_INFO, *PLWIO_LOG_INFO;
 
 LW_NTSTATUS
-LwIoInitialize(
-    VOID
-    );
-
-LW_NTSTATUS
 LwIoShutdown(
     VOID
     );

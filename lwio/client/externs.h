@@ -60,4 +60,9 @@ LwIoResolveCreds(
     PIO_CREDS* ppResolvedToken
     );
 
+LW_NTSTATUS
+LwIoInitialize(
+    VOID
+    );
+
 #endif /* __EXTERNS_H__ */
