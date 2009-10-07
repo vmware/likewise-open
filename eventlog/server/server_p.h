@@ -42,18 +42,41 @@
 #ifndef __EVTSERVER_H__
 #define __EVTSERVER_H__
 
+typedef const struct
+{
+    PCSTR protocol;
+    PCSTR endpoint;
+} ENDPOINT, *PENDPOINT;
+
 DWORD
-EVTRegisterForRPC(
-    PSTR pszServiceName,
-    rpc_binding_vector_p_t* ppServerBinding
+EVTRegisterInterface(
+    VOID
     );
 
 DWORD
-EVTListenForRPC();
+EVTRegisterEndpoint(
+    PSTR pszServiceName,
+    PENDPOINT pEndpoint
+    );
 
 DWORD
-EVTUnregisterForRPC(
-    rpc_binding_vector_p_t pServerBinding
-    ); 
+EVTListen(
+    VOID
+    );
+
+BOOLEAN
+EVTIsListening(
+    VOID
+    );
+
+DWORD
+EVTStopListen(
+    VOID
+    );
+
+DWORD
+EVTUnregisterAllEndpoints(
+    VOID
+    );
 
 #endif /* __EVTSERVER_H__ */

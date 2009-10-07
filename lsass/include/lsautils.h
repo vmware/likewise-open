@@ -521,12 +521,12 @@ typedef struct __LSA_CACHE
            BAIL_ON_LSA_ERROR(dwError);            \
         }
 
-typedef struct __LSA_CONFIG_REG
+typedef struct _LSA_CONFIG_REG
 {
     HANDLE  hConnection;
     HKEY    hKey;
-    wchar16_t   *pwc16sConfigKey;
-    wchar16_t   *pwc16sPolicyKey;
+    PSTR    pszConfigKey;
+    PSTR    pszPolicyKey;
 } LSA_CONFIG_REG, *PLSA_CONFIG_REG;
 
 typedef enum

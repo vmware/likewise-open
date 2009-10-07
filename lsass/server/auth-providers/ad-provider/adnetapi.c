@@ -742,7 +742,11 @@ error:
     LW_SAFE_FREE_STRING(pszNT4Name);
     *pObjectType = AccountType_NotFound;
 
-    LSA_LOG_ERROR("Failed to find user or group. [Error code: %d]", dwError);
+    LSA_LOG_ERROR("Failed to find user, group, or domain by sid (sid = '%s', searched host = '%s') -> error = %d, symbol = %s",
+            LSA_SAFE_LOG_STRING(pszObjectSid),
+            LSA_SAFE_LOG_STRING(pszHostname),
+            dwError,
+            LwWin32ErrorToName(dwError));
 
     dwError = LW_ERROR_NO_SUCH_OBJECT;
 

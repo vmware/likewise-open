@@ -788,10 +788,8 @@ RegCacheSafeRecordValuesInfo(
 
     for (iCount = 0; iCount < (DWORD)sCount; iCount++)
     {
-        dwError = LwAllocateStringPrintf(&pKeyResult->ppszValueNames[iCount],
-                                         "%s\\%s",
-                                         ppRegEntries[iCount]->pszKeyName,
-                                         ppRegEntries[iCount]->pszValueName);
+        dwError = LwAllocateString(ppRegEntries[iCount]->pszValueName,
+                                   &pKeyResult->ppszValueNames[iCount]);
         BAIL_ON_REG_ERROR(dwError);
 
         dwError = LwAllocateString(ppRegEntries[iCount]->pszValue, &pKeyResult->ppszValues[iCount]);

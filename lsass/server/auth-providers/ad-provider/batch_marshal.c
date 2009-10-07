@@ -513,6 +513,10 @@ LsaAdBatchMarshal(
         (pItem->ObjectType != LSA_AD_BATCH_OBJECT_TYPE_GROUP))
     {
         // Skip any disabled non-groups.
+        LSA_LOG_VERBOSE("Skipping disabled object (sid = %s, name = %s\\%s)",
+                LSA_SAFE_LOG_STRING(pItem->pszSid),
+                LSA_SAFE_LOG_STRING(pszNetbiosDomainName),
+                LSA_SAFE_LOG_STRING(pItem->pszSamAccountName));
         dwError = 0;
         goto cleanup;
     }

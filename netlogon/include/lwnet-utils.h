@@ -105,8 +105,8 @@ typedef struct __LWNET_CONFIG_REG
 {
     HANDLE hConnection;
     HKEY hKey;
-    wchar16_t *pwc16sConfigKey;
-    wchar16_t *pwc16sPolicyKey;
+    PSTR pszConfigKey;
+    PSTR pszPolicyKey;
 } LWNET_CONFIG_REG, *PLWNET_CONFIG_REG;
 
 typedef enum

@@ -719,8 +719,8 @@ DWORD
 RegTransactGetValueA(
     IN HANDLE hConnection,
     IN HKEY hKey,
-    IN OPTIONAL PCWSTR pSubKey,
-    IN OPTIONAL PCWSTR pValue,
+    IN OPTIONAL PCSTR pszSubKey,
+    IN OPTIONAL PCSTR pszValue,
     IN OPTIONAL REG_DATA_TYPE_FLAGS Flags,
     OUT OPTIONAL PDWORD pdwType,
     OUT OPTIONAL PVOID pvData,
@@ -728,7 +728,7 @@ RegTransactGetValueA(
     )
 {
     DWORD dwError = 0;
-    REG_IPC_GET_VALUE_REQ GetValueReq;
+    REG_IPC_GET_VALUEA_REQ GetValueReq;
     PREG_IPC_GET_VALUE_RESPONSE pGetValueResp = NULL;
     // Do not free pError
     PREG_IPC_ERROR pError = NULL;
@@ -741,8 +741,8 @@ RegTransactGetValueA(
     BAIL_ON_REG_ERROR(dwError);
 
     GetValueReq.hKey = hKey;
-    GetValueReq.pSubKey = pSubKey;
-    GetValueReq.pValue = pValue;
+    GetValueReq.pszSubKey = pszSubKey;
+    GetValueReq.pszValue = pszValue;
     GetValueReq.Flags = Flags;
     GetValueReq.pData = pvData;
     GetValueReq.cbData = *pcbData;
@@ -885,7 +885,7 @@ DWORD
 RegTransactQueryValueExA(
     IN HANDLE hConnection,
     IN HKEY hKey,
-    IN OPTIONAL PCWSTR pValueName,
+    IN OPTIONAL PCSTR pszValueName,
     IN PDWORD pReserved,
     OUT OPTIONAL PDWORD pType,
     OUT OPTIONAL PBYTE pData,
@@ -893,7 +893,7 @@ RegTransactQueryValueExA(
     )
 {
     DWORD dwError = 0;
-    REG_IPC_GET_VALUE_REQ QueryValueExReq;
+    REG_IPC_GET_VALUEA_REQ QueryValueExReq;
     PREG_IPC_GET_VALUE_RESPONSE pQueryValueResp = NULL;
     // Do not free pError
     PREG_IPC_ERROR pError = NULL;
@@ -906,7 +906,7 @@ RegTransactQueryValueExA(
     BAIL_ON_REG_ERROR(dwError);
 
     QueryValueExReq.hKey = hKey;
-    QueryValueExReq.pValue = pValueName;
+    QueryValueExReq.pszValue = pszValueName;
     QueryValueExReq.pData = pData;
     QueryValueExReq.cbData = *pcbData;
 
@@ -1213,7 +1213,7 @@ RegTransactEnumValueA(
     IN HANDLE hConnection,
     IN HKEY hKey,
     IN DWORD dwIndex,
-    OUT PWSTR pValueName,
+    OUT PSTR pszValueName,
     IN OUT PDWORD pcchValueName,
     IN PDWORD pReserved,
     OUT OPTIONAL PDWORD pType,
@@ -1222,8 +1222,8 @@ RegTransactEnumValueA(
     )
 {
     DWORD dwError = 0;
-    REG_IPC_ENUM_VALUE_REQ EnumValueReq;
-    PREG_IPC_ENUM_VALUE_RESPONSE pEnumValueResp = NULL;
+    REG_IPC_ENUM_VALUEA_REQ EnumValueReq;
+    PREG_IPC_ENUM_VALUEA_RESPONSE pEnumValueResp = NULL;
     // Do not free pError
     PREG_IPC_ERROR pError = NULL;
 
@@ -1236,7 +1236,7 @@ RegTransactEnumValueA(
 
     EnumValueReq.hKey = hKey;
     EnumValueReq.dwIndex = dwIndex;
-    EnumValueReq.pName = pValueName;
+    EnumValueReq.pszName = pszValueName;
     EnumValueReq.cName = *pcchValueName;
     EnumValueReq.pValue = pData;
     EnumValueReq.cValue = pcbData == NULL ? 0 : *pcbData;
@@ -1251,9 +1251,9 @@ RegTransactEnumValueA(
     switch (out.tag)
     {
         case REG_R_ENUM_VALUEA_SUCCESS:
-            pEnumValueResp = (PREG_IPC_ENUM_VALUE_RESPONSE) out.data;
+            pEnumValueResp = (PREG_IPC_ENUM_VALUEA_RESPONSE) out.data;
 
-            memcpy(pValueName, pEnumValueResp->pName, (pEnumValueResp->cName+1)*sizeof(*pValueName));
+            memcpy(pszValueName, pEnumValueResp->pszName, (pEnumValueResp->cName+1)*sizeof(*pszValueName));
             *pcchValueName = pEnumValueResp->cName;
 
             if (pData)
@@ -1547,7 +1547,7 @@ DWORD
 RegTransactSetValueExA(
     IN HANDLE hConnection,
     IN HKEY hKey,
-    IN OPTIONAL PCWSTR pValueName,
+    IN OPTIONAL PCSTR pszValueName,
     IN DWORD Reserved,
     IN DWORD dwType,
     IN OPTIONAL const BYTE *pData,
@@ -1558,7 +1558,7 @@ RegTransactSetValueExA(
     PREG_CLIENT_CONNECTION_CONTEXT pContext =
                      (PREG_CLIENT_CONNECTION_CONTEXT)hConnection;
 
-    REG_IPC_SET_VALUE_EX_REQ SetValueExReq;
+    REG_IPC_SET_VALUEA_EX_REQ SetValueExReq;
     // Do not free pError
     PREG_IPC_ERROR pError = NULL;
 
@@ -1566,7 +1566,7 @@ RegTransactSetValueExA(
     LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     SetValueExReq.hKey = hKey;
-    SetValueExReq.pValueName = pValueName;
+    SetValueExReq.pszValueName = pszValueName;
     SetValueExReq.dwType = dwType;
     SetValueExReq.pData = pData;
     SetValueExReq.cbData = cbData;

@@ -2,7 +2,6 @@ lib_LTLIBRARIES = libregclient.la
 
 libregclient_la_SOURCES = \
     clientipc.c \
-    regclientutils.c \
     regclient.c
         
 libregclient_la_CPPFLAGS = \

@@ -718,7 +718,7 @@ RegSrvIpcGetValueA(
     )
 {
     DWORD dwError = 0;
-    PREG_IPC_GET_VALUE_REQ pReq = pIn->data;
+    PREG_IPC_GET_VALUEA_REQ pReq = pIn->data;
     PREG_IPC_GET_VALUE_RESPONSE pRegResp = NULL;
     PREG_IPC_ERROR pError = NULL;
     DWORD dwType = 0;
@@ -726,8 +726,8 @@ RegSrvIpcGetValueA(
     dwError = RegSrvGetValueA(
         RegSrvIpcGetSessionData(pCall),
         pReq->hKey,
-        pReq->pSubKey,
-        pReq->pValue,
+        pReq->pszSubKey,
+        pReq->pszValue,
         pReq->Flags,
         &dwType,
         pReq->pData,
@@ -830,7 +830,7 @@ RegSrvIpcQueryValueExA(
     )
 {
     DWORD dwError = 0;
-    PREG_IPC_GET_VALUE_REQ pReq = pIn->data;
+    PREG_IPC_GET_VALUEA_REQ pReq = pIn->data;
     PREG_IPC_GET_VALUE_RESPONSE pRegResp = NULL;
     PREG_IPC_ERROR pError = NULL;
     DWORD dwType = 0;
@@ -838,7 +838,7 @@ RegSrvIpcQueryValueExA(
     dwError = RegSrvQueryValueExA(
         RegSrvIpcGetSessionData(pCall),
         pReq->hKey,
-        pReq->pValue,
+        pReq->pszValue,
         NULL,
         &dwType,
         pReq->pData,
@@ -1058,8 +1058,8 @@ RegSrvIpcEnumValueA(
     )
 {
     DWORD dwError = 0;
-    PREG_IPC_ENUM_VALUE_REQ pReq = pIn->data;
-    PREG_IPC_ENUM_VALUE_RESPONSE pRegResp = NULL;
+    PREG_IPC_ENUM_VALUEA_REQ pReq = pIn->data;
+    PREG_IPC_ENUM_VALUEA_RESPONSE pRegResp = NULL;
     PREG_IPC_ERROR pError = NULL;
     REG_DATA_TYPE type = REG_UNKNOWN;
 
@@ -1067,7 +1067,7 @@ RegSrvIpcEnumValueA(
         RegSrvIpcGetSessionData(pCall),
         pReq->hKey,
         pReq->dwIndex,
-        pReq->pName,
+        pReq->pszName,
         &pReq->cName,
         NULL,
         &type,
@@ -1081,7 +1081,7 @@ RegSrvIpcEnumValueA(
             OUT_PPVOID(&pRegResp));
         BAIL_ON_REG_ERROR(dwError);
 
-        pRegResp->pName= pReq->pName;
+        pRegResp->pszName= pReq->pszName;
         pRegResp->cName = pReq->cName;
         pRegResp->pValue = pReq->pValue;
         pRegResp->cValue = pReq->cValue;
@@ -1099,7 +1099,7 @@ RegSrvIpcEnumValueA(
         pOut->data = pError;
     }
 
-    pReq->pName = NULL;
+    pReq->pszName = NULL;
     pReq->pValue = NULL;
 
 cleanup:
@@ -1233,13 +1233,13 @@ RegSrvIpcSetValueExA(
     )
 {
     DWORD dwError = 0;
-    PREG_IPC_SET_VALUE_EX_REQ pReq = pIn->data;
+    PREG_IPC_SET_VALUEA_EX_REQ pReq = pIn->data;
     PREG_IPC_ERROR pError = NULL;
 
     dwError = RegSrvSetValueExA(
         RegSrvIpcGetSessionData(pCall),
         pReq->hKey,
-        pReq->pValueName,
+        pReq->pszValueName,
         0,
         pReq->dwType,
         pReq->pData,

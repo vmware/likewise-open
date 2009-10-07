@@ -345,6 +345,36 @@ static LWMsgTypeSpec gRegEnumKeyExRespSpec[] =
 
 /******************************************************************************/
 
+static LWMsgTypeSpec gRegEnumValueASpec[] =
+{
+    //HKEY hKey;
+    //DWORD dwIndex;
+    //PSTR pszName;
+    //DWORD cName;
+    //REG_DATA_TYPE type;
+    //PBYTE pValue;
+    //DWORD cValue;
+
+    LWMSG_STRUCT_BEGIN(REG_IPC_ENUM_VALUEA_REQ),
+
+    LWMSG_MEMBER_HANDLE(REG_IPC_ENUM_VALUEA_REQ, hKey, HKEY),
+    LWMSG_ATTR_HANDLE_LOCAL_FOR_RECEIVER,
+
+    LWMSG_MEMBER_UINT32(REG_IPC_ENUM_VALUEA_REQ, dwIndex),
+
+    LWMSG_MEMBER_UINT32(REG_IPC_ENUM_VALUEA_REQ, cName),
+    LWMSG_MEMBER_PSTR(REG_IPC_ENUM_VALUEA_REQ, pszName),
+    LWMSG_ATTR_LENGTH_MEMBER(REG_IPC_ENUM_VALUEA_REQ, cName),
+
+
+    LWMSG_MEMBER_UINT32(REG_IPC_ENUM_VALUEA_REQ, cValue),
+    LWMSG_MEMBER_PBYTE(REG_IPC_ENUM_VALUEA_REQ, pValue),
+    LWMSG_ATTR_LENGTH_MEMBER(REG_IPC_ENUM_VALUEA_REQ, cValue),
+
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
+
 static LWMsgTypeSpec gRegEnumValueSpec[] =
 {
     //HKEY hKey;
@@ -375,6 +405,30 @@ static LWMsgTypeSpec gRegEnumValueSpec[] =
     LWMSG_TYPE_END
 };
 
+static LWMsgTypeSpec gRegEnumValueARespSpec[] =
+{
+    //PSTR pszName;
+    //DWORD cName;
+    //PBYTE pValue;
+    //DWORD cValue;
+    //REG_DATA_TYPE type;
+
+    LWMSG_STRUCT_BEGIN(REG_IPC_ENUM_VALUEA_RESPONSE),
+
+    LWMSG_MEMBER_PSTR(REG_IPC_ENUM_VALUEA_RESPONSE, pszName),
+    LWMSG_MEMBER_UINT32(REG_IPC_ENUM_VALUEA_RESPONSE, cName),
+    LWMSG_ATTR_LENGTH_MEMBER(REG_IPC_ENUM_VALUEA_RESPONSE, cName),
+
+    LWMSG_MEMBER_UINT32(REG_IPC_ENUM_VALUEA_RESPONSE, type),
+
+    LWMSG_MEMBER_UINT32(REG_IPC_ENUM_VALUEA_RESPONSE, cValue),
+    LWMSG_MEMBER_PBYTE(REG_IPC_ENUM_VALUEA_RESPONSE, pValue),
+    LWMSG_ATTR_LENGTH_MEMBER(REG_IPC_ENUM_VALUEA_RESPONSE, cValue),
+
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
+
 static LWMsgTypeSpec gRegEnumValueRespSpec[] =
 {
     //PWSTR pName;
@@ -400,7 +454,35 @@ static LWMsgTypeSpec gRegEnumValueRespSpec[] =
 };
 
 
+
+
 /******************************************************************************/
+
+static LWMsgTypeSpec gRegGetValueASpec[] =
+{
+    //HKEY hKey;
+    //PCSTR pSubKey;
+    //PCSTR pValue;
+    //REG_DATA_TYPE_FLAGS Flags;
+    //PBYTE pData;
+    //DWORD cbData;
+
+    LWMSG_STRUCT_BEGIN(REG_IPC_GET_VALUEA_REQ),
+
+    LWMSG_MEMBER_HANDLE(REG_IPC_GET_VALUEA_REQ, hKey, HKEY),
+    LWMSG_ATTR_HANDLE_LOCAL_FOR_RECEIVER,
+
+    LWMSG_MEMBER_PSTR(REG_IPC_GET_VALUEA_REQ, pszSubKey),
+    LWMSG_MEMBER_PSTR(REG_IPC_GET_VALUEA_REQ, pszValue),
+    LWMSG_MEMBER_UINT32(REG_IPC_GET_VALUEA_REQ, Flags),
+
+    LWMSG_MEMBER_UINT32(REG_IPC_GET_VALUEA_REQ, cbData),
+    LWMSG_MEMBER_PBYTE(REG_IPC_GET_VALUEA_REQ, pData),
+    LWMSG_ATTR_LENGTH_MEMBER(REG_IPC_GET_VALUEA_REQ, cbData),
+
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
 
 static LWMsgTypeSpec gRegGetValueSpec[] =
 {
@@ -657,6 +739,32 @@ static LWMsgTypeSpec gRegSetValueExSpec[] =
     LWMSG_TYPE_END
 };
 
+static LWMsgTypeSpec gRegSetValueAExSpec[] =
+{
+    // HKEY hKey;
+    // PCTSTR pValueName;
+    //DWORD dwType;
+    // const PBYTE pData;
+    // DWORD cbData;
+
+    LWMSG_STRUCT_BEGIN(REG_IPC_SET_VALUEA_EX_REQ),
+
+    LWMSG_MEMBER_HANDLE(REG_IPC_SET_VALUEA_EX_REQ, hKey, HKEY),
+    LWMSG_ATTR_HANDLE_LOCAL_FOR_RECEIVER,
+
+    LWMSG_MEMBER_PSTR(REG_IPC_SET_VALUEA_EX_REQ, pszValueName),
+
+    LWMSG_MEMBER_UINT32(REG_IPC_SET_VALUEA_EX_REQ, dwType),
+
+    LWMSG_MEMBER_UINT32(REG_IPC_SET_VALUEA_EX_REQ, cbData),
+
+    LWMSG_MEMBER_POINTER(REG_IPC_SET_VALUEA_EX_REQ, pData, LWMSG_UINT8(BYTE)),
+    LWMSG_ATTR_LENGTH_MEMBER(REG_IPC_SET_VALUEA_EX_REQ, cbData),
+
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
+
 /******************************************************************************/
 
 static LWMsgProtocolSpec gRegIPCSpec[] =
@@ -687,19 +795,19 @@ static LWMsgProtocolSpec gRegIPCSpec[] =
     LWMSG_MESSAGE(REG_R_ENUM_KEY_EX_SUCCESS, gRegEnumKeyExRespSpec),
     LWMSG_MESSAGE(REG_R_ENUM_KEY_EX_FAILURE, gRegIPCErrorSpec),
     /*Value Operation APIs*/
-    LWMSG_MESSAGE(REG_Q_SET_VALUEA_EX, gRegSetValueExSpec),
+    LWMSG_MESSAGE(REG_Q_SET_VALUEA_EX, gRegSetValueAExSpec),
     LWMSG_MESSAGE(REG_R_SET_VALUEA_EX_SUCCESS, NULL),
     LWMSG_MESSAGE(REG_R_SET_VALUEA_EX_FAILURE, gRegIPCErrorSpec),
     LWMSG_MESSAGE(REG_Q_SET_VALUEW_EX, gRegSetValueExSpec),
     LWMSG_MESSAGE(REG_R_SET_VALUEW_EX_SUCCESS, NULL),
     LWMSG_MESSAGE(REG_R_SET_VALUEW_EX_FAILURE, gRegIPCErrorSpec),
-    LWMSG_MESSAGE(REG_Q_GET_VALUEA, gRegGetValueSpec),
+    LWMSG_MESSAGE(REG_Q_GET_VALUEA, gRegGetValueASpec),
     LWMSG_MESSAGE(REG_R_GET_VALUEA_SUCCESS, gRegGetValueRespSpec),
     LWMSG_MESSAGE(REG_R_GET_VALUEA_FAILURE, gRegIPCErrorSpec),
     LWMSG_MESSAGE(REG_Q_GET_VALUEW, gRegGetValueSpec),
     LWMSG_MESSAGE(REG_R_GET_VALUEW_SUCCESS, gRegGetValueRespSpec),
     LWMSG_MESSAGE(REG_R_GET_VALUEW_FAILURE, gRegIPCErrorSpec),
-    LWMSG_MESSAGE(REG_Q_QUERY_VALUEA_EX, gRegGetValueSpec),
+    LWMSG_MESSAGE(REG_Q_QUERY_VALUEA_EX, gRegGetValueASpec),
     LWMSG_MESSAGE(REG_R_QUERY_VALUEA_EX_SUCCESS, gRegGetValueRespSpec),
     LWMSG_MESSAGE(REG_R_QUERY_VALUEA_EX_FAILURE, gRegIPCErrorSpec),
     LWMSG_MESSAGE(REG_Q_QUERY_VALUEW_EX, gRegGetValueSpec),
@@ -714,8 +822,8 @@ static LWMsgProtocolSpec gRegIPCSpec[] =
     LWMSG_MESSAGE(REG_Q_DELETE_VALUE, gRegDeleteValueSpec),
     LWMSG_MESSAGE(REG_R_DELETE_VALUE_SUCCESS, NULL),
     LWMSG_MESSAGE(REG_R_DELETE_VALUE_FAILURE, gRegIPCErrorSpec),
-    LWMSG_MESSAGE(REG_Q_ENUM_VALUEA, gRegEnumValueSpec),
-    LWMSG_MESSAGE(REG_R_ENUM_VALUEA_SUCCESS, gRegEnumValueRespSpec),
+    LWMSG_MESSAGE(REG_Q_ENUM_VALUEA, gRegEnumValueASpec),
+    LWMSG_MESSAGE(REG_R_ENUM_VALUEA_SUCCESS, gRegEnumValueARespSpec),
     LWMSG_MESSAGE(REG_R_ENUM_VALUEA_FAILURE, gRegIPCErrorSpec),
     LWMSG_MESSAGE(REG_Q_ENUM_VALUEW, gRegEnumValueSpec),
     LWMSG_MESSAGE(REG_R_ENUM_VALUEW_SUCCESS, gRegEnumValueRespSpec),

@@ -324,12 +324,6 @@ error:
     goto cleanup;
 }
 
-typedef const struct
-{
-    PCSTR protocol;
-    PCSTR endpoint;
-} ENDPOINT, *PENDPOINT;
-
 static
 DWORD
 mkdir_recursive(PSTR pszPath, mode_t mode)
@@ -446,43 +440,33 @@ DWORD
 bind_server(
     rpc_binding_vector_p_t * server_binding,
     rpc_if_handle_t interface_spec,
-    PENDPOINT pEndPoints
+    PENDPOINT pEndPoint
     )
 {
     DWORD dwError = 0;
     DWORD dwRpcStatus = 0;
-    DWORD i;
 
-    /*
-     * Prepare the server binding handle
-     * use all avail protocols (UDP and TCP). This basically allocates
-     * new sockets for us and associates the interface UUID and
-     * object UUID of with those communications endpoints.
-     */
-    for (i = 0; pEndPoints[i].protocol != NULL; i++)
+    if (!pEndPoint->endpoint)
     {
-        if (!pEndPoints[i].endpoint)
+        rpc_server_use_protseq((unsigned char *)pEndPoint->protocol,
+                               rpc_c_protseq_max_calls_default,
+                               (unsigned32*)&dwRpcStatus);
+        BAIL_ON_DCE_ERROR(dwError, dwRpcStatus);
+    }
+    else
+    {
+        if (!strcmp(pEndPoint->protocol, "ncalrpc") &&
+            pEndPoint->endpoint[0] == '/')
         {
-            rpc_server_use_protseq((unsigned char *)pEndPoints[i].protocol,
-                                   rpc_c_protseq_max_calls_default,
-                                   (unsigned32*)&dwRpcStatus);
-            BAIL_ON_DCE_ERROR(dwError, dwRpcStatus);
+            dwError = prepare_domain_socket(pEndPoint->endpoint);
+            BAIL_ON_EVT_ERROR(dwError);
         }
-        else
-        {
-            if (!strcmp(pEndPoints[i].protocol, "ncalrpc") &&
-                pEndPoints[i].endpoint[0] == '/')
-            {
-                dwError = prepare_domain_socket(pEndPoints[i].endpoint);
-                BAIL_ON_EVT_ERROR(dwError);
-            }
 
-            rpc_server_use_protseq_ep((unsigned char *)pEndPoints[i].protocol,
-                                      rpc_c_protseq_max_calls_default,
-                                      (unsigned char *)pEndPoints[i].endpoint,
-                                      (unsigned32*)&dwRpcStatus);
-            BAIL_ON_DCE_ERROR(dwError, dwRpcStatus);
-        }
+        rpc_server_use_protseq_ep((unsigned char *)pEndPoint->protocol,
+                                  rpc_c_protseq_max_calls_default,
+                                  (unsigned char *)pEndPoint->endpoint,
+                                  (unsigned32*)&dwRpcStatus);
+        BAIL_ON_DCE_ERROR(dwError, dwRpcStatus);
     }
 
     rpc_server_inq_bindings(server_binding, (unsigned32*)&dwRpcStatus);
@@ -494,23 +478,12 @@ error:
 }
 
 DWORD
-EVTRegisterForRPC(
-    PSTR pszServiceName,
-    rpc_binding_vector_p_t* ppServerBinding
+EVTRegisterInterface(
+    VOID
     )
 {
     volatile DWORD dwError = 0;
     volatile DWORD dwRpcStatus = 0;
-    rpc_binding_vector_p_t pServerBinding = NULL;
-    BOOLEAN bRegistered = FALSE;
-    BOOLEAN bBound = FALSE;
-    BOOLEAN bEPRegistered = FALSE;
-    static ENDPOINT endpoints[] =
-    {
-        {"ncacn_ip_tcp", NULL},
-        {"ncalrpc", CACHEDIR "/rpc/socket"},
-        {NULL, NULL}
-    };
 
     TRY
     {
@@ -532,17 +505,31 @@ EVTRegisterForRPC(
     }
     ENDTRY;
 
-    BAIL_ON_DCE_ERROR(dwError, dwRpcStatus);
     BAIL_ON_EVT_ERROR(dwError);
 
-    bRegistered = TRUE;
-    EVT_LOG_INFO("RPC Service registered successfully.");
+error:
+
+    return dwError;
+}
+
+DWORD
+EVTRegisterEndpoint(
+    PSTR pszServiceName,
+    PENDPOINT pEndpoint
+    )
+{
+    volatile DWORD dwError = 0;
+    volatile DWORD dwRpcStatus = 0;
+    unsigned32 tmpStatus = 0;
+    rpc_binding_vector_p_t pServerBinding = NULL;
+    BOOLEAN bEPRegistered = FALSE;
+    BOOLEAN bBound = TRUE;
 
     TRY
     {
         dwError = bind_server(&pServerBinding,
                               eventlog_v1_0_s_ifspec,
-                              endpoints);
+                              pEndpoint);
     }
     CATCH_ALL
     {
@@ -588,9 +575,12 @@ EVTRegisterForRPC(
     bEPRegistered = TRUE;
     EVT_LOG_INFO("RPC Endpoint registered successfully.");
 
-    *ppServerBinding = pServerBinding;
-
 cleanup:
+
+    if (pServerBinding)
+    {
+        rpc_binding_vector_free(&pServerBinding, &tmpStatus);
+    }
 
     return dwError;
 
@@ -598,51 +588,13 @@ error:
 
     EVT_LOG_ERROR("Failed to register RPC endpoint.  Error Code: [%u]\n", dwError);
 
-    if (bEPRegistered)
-    {
-        TRY
-        {
-            DWORD tmpStatus = 0;
-            rpc_ep_unregister(eventlog_v1_0_s_ifspec,
-                              pServerBinding,
-                              NULL,
-                              (unsigned32*)&tmpStatus);
-        }
-        CATCH_ALL
-        ENDTRY;
-    }
-
-    if (bBound) {
-        TRY
-        {
-            DWORD tmpStatus = 0;
-            rpc_binding_vector_free(&pServerBinding,
-                                    (unsigned32*)&tmpStatus);
-        }
-        CATCH_ALL
-        ENDTRY;
-    }
-
-    if (bRegistered)
-    {
-        TRY
-        {
-            DWORD tmpStatus = 0;
-            rpc_server_unregister_if (eventlog_v1_0_s_ifspec,
-                                      NULL,
-                                      (unsigned32*)&tmpStatus);
-        }
-        CATCH_ALL
-        ENDTRY;
-    }
-
-    *ppServerBinding = NULL;
-
     goto cleanup;
 }
 
 DWORD
-EVTListenForRPC()
+EVTListen(
+    VOID
+    )
 {
     volatile DWORD dwError = 0;
 
@@ -674,85 +626,139 @@ error:
 }
 
 DWORD
-EVTUnregisterForRPC(
-    rpc_binding_vector_p_t pServerBinding
+EVTStopListen(
+    VOID
     )
 {
     volatile DWORD dwError = 0;
-    volatile DWORD dwRpcStatus = 0;
 
     TRY
     {
-        EVT_LOG_INFO("Unregistering server from the endpoint mapper...");
-        rpc_ep_unregister(eventlog_v1_0_s_ifspec,
-                            pServerBinding,
-                            NULL,
-                            (unsigned32*)&dwRpcStatus);
+        rpc_mgmt_stop_server_listening(NULL, (unsigned32*)&dwError);
     }
     CATCH_ALL
     {
-        if ( dwRpcStatus == RPC_S_OK )
+        if (!dwError)
         {
             dwError = dcethread_exc_getstatus (THIS_CATCH);
-            if(!dwError)
-            {
-                dwError = EVT_ERROR_RPC_EXCEPTION_UPON_UNREGISTER;
-            }
+        }
+        if(!dwError)
+        {
+            dwError = EVT_ERROR_RPC_EXCEPTION_UPON_LISTEN;
         }
     }
     ENDTRY
 
-    BAIL_ON_DCE_ERROR(dwError, dwRpcStatus);
-    BAIL_ON_EVT_ERROR(dwError);
-
-    TRY
-    {
-        rpc_binding_vector_free(&pServerBinding, (unsigned32*)&dwRpcStatus);
-    }
-    CATCH_ALL
-    {
-        if ( dwRpcStatus == RPC_S_OK )
-        {
-            dwError = dcethread_exc_getstatus (THIS_CATCH);
-            if(!dwError)
-            {
-                dwError = EVT_ERROR_RPC_EXCEPTION_UPON_UNREGISTER;
-            }
-        }
-    }
-    ENDTRY
-    
-    BAIL_ON_DCE_ERROR(dwError, dwRpcStatus);
-    BAIL_ON_EVT_ERROR(dwError);
-
-    TRY
-    {
-        EVT_LOG_INFO("Cleaning up the communications endpoints...");
-        rpc_server_unregister_if (eventlog_v1_0_s_ifspec,
-                                 NULL,
-                                 (unsigned32*)&dwRpcStatus);
-    }
-    CATCH_ALL
-    {
-        if ( dwRpcStatus == RPC_S_OK )
-        {
-            dwError = dcethread_exc_getstatus (THIS_CATCH);
-            if(!dwError)
-            {
-                dwError = EVT_ERROR_RPC_EXCEPTION_UPON_UNREGISTER;
-            }
-        }
-    }
-    ENDTRY
-
-    BAIL_ON_DCE_ERROR(dwError, dwRpcStatus);
     BAIL_ON_EVT_ERROR(dwError);
 
 cleanup:
     return dwError;
 
 error:
-    EVT_LOG_ERROR("Failed to unregister RPC endpoint.  Error code [%d]\n", dwError);
+
+    EVT_LOG_ERROR("Failed to stop RPC listening.  Error code [%d]\n", dwError);
+    goto cleanup;
+}
+
+BOOLEAN
+EVTIsListening(
+    VOID
+    )
+{
+    volatile DWORD dwError = 0;
+    boolean32 bIsListening = FALSE;
+
+    TRY
+    {
+        bIsListening = rpc_mgmt_is_server_listening(NULL, (unsigned32*)&dwError);
+    }
+    CATCH_ALL
+    {
+        if (!dwError)
+        {
+            dwError = dcethread_exc_getstatus (THIS_CATCH);
+        }
+        if(!dwError)
+        {
+            dwError = EVT_ERROR_RPC_EXCEPTION_UPON_LISTEN;
+        }
+    }
+    ENDTRY
+
+    BAIL_ON_EVT_ERROR(dwError);
+
+cleanup:
+
+    return (BOOLEAN) bIsListening;
+
+error:
+
+    bIsListening = FALSE;
+
+    goto cleanup;
+}
+
+DWORD
+EVTUnregisterAllEndpoints(
+    VOID
+    )
+{
+    volatile DWORD dwError = 0;
+    volatile DWORD dwRpcStatus = 0;
+    rpc_binding_vector_p_t serverBindings = NULL;
+
+    TRY
+    {
+        EVT_LOG_INFO("Unregistering server from the endpoint mapper...");
+        rpc_server_inq_bindings(&serverBindings, (unsigned32*)&dwRpcStatus);
+
+        if (dwRpcStatus == rpc_s_ok)
+        {
+            rpc_ep_unregister(eventlog_v1_0_s_ifspec,
+                              serverBindings,
+                              NULL,
+                              (unsigned32*)&dwRpcStatus);
+        }
+    }
+    CATCH_ALL
+    {
+        if ( dwRpcStatus == RPC_S_OK )
+        {
+            dwError = dcethread_exc_getstatus (THIS_CATCH);
+            if(!dwError)
+            {
+                dwError = EVT_ERROR_RPC_EXCEPTION_UPON_UNREGISTER;
+            }
+        }
+    }
+    ENDTRY
+
+    BAIL_ON_DCE_ERROR(dwError, dwRpcStatus);
+    BAIL_ON_EVT_ERROR(dwError);
+
+    BAIL_ON_DCE_ERROR(dwError, dwRpcStatus);
+    BAIL_ON_EVT_ERROR(dwError);
+
+cleanup:
+
+    if (serverBindings)
+    {
+        TRY
+        {
+            rpc_binding_vector_free(&serverBindings, (unsigned32*)&dwRpcStatus);
+        }
+        CATCH_ALL
+        {
+        }
+        ENDTRY;
+    }
+
+    return dwError;
+
+error:
+
+    EVT_LOG_ERROR("Failed to unregister RPC endpoints.  Error code [%d]\n", dwError);
+
     goto cleanup;
 }
 

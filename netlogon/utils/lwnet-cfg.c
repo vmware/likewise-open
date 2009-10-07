@@ -132,10 +132,10 @@ LWNetOpenConfig(
     LWNetAllocateMemory(sizeof(LWNET_CONFIG_REG), (PVOID*)&pReg);
     BAIL_ON_LWNET_ERROR(dwError);
 
-    dwError = LwMbsToWc16s(pszConfigKey, &(pReg->pwc16sConfigKey));
+    dwError = LwAllocateString(pszConfigKey, &(pReg->pszConfigKey));
     BAIL_ON_LWNET_ERROR(dwError);
 
-    dwError = LwMbsToWc16s(pszPolicyKey, &(pReg->pwc16sPolicyKey));
+    dwError = LwAllocateString(pszPolicyKey, &(pReg->pszPolicyKey));
     BAIL_ON_LWNET_ERROR(dwError);
 
     dwError = RegOpenServer(&(pReg->hConnection));
@@ -176,9 +176,9 @@ LWNetCloseConfig(
 {
     if ( pReg )
     {
-        LWNET_SAFE_FREE_MEMORY(pReg->pwc16sConfigKey);
+        LWNET_SAFE_FREE_STRING(pReg->pszConfigKey);
 
-        LWNET_SAFE_FREE_MEMORY(pReg->pwc16sPolicyKey);
+        LWNET_SAFE_FREE_STRING(pReg->pszPolicyKey);
         if ( pReg->hConnection )
         {
             if ( pReg->hKey )
@@ -204,16 +204,11 @@ LWNetReadConfigString(
 {
     DWORD dwError = 0;
 
-    wchar16_t *pwc16sName = NULL;
-
     BOOLEAN bGotValue = FALSE;
     PSTR pszValue = NULL;
     char szValue[MAX_VALUE_LENGTH];
     DWORD dwType;
     DWORD dwSize;
-
-    dwError = LwMbsToWc16s(pszName, &pwc16sName);
-    BAIL_ON_LWNET_ERROR(dwError);
 
     if ( bUsePolicy )
     {
@@ -222,8 +217,8 @@ LWNetReadConfigString(
         dwError = RegGetValueA(
                     pReg->hConnection,
                     pReg->hKey,
-                    pReg->pwc16sPolicyKey,
-                    pwc16sName,
+                    pReg->pszPolicyKey,
+                    pszName,
                     RRF_RT_REG_SZ,
                     &dwType,
                     szValue,
@@ -239,8 +234,8 @@ LWNetReadConfigString(
         dwError = RegGetValueA(
                     pReg->hConnection,
                     pReg->hKey,
-                    pReg->pwc16sConfigKey,
-                    pwc16sName,
+                    pReg->pszConfigKey,
+                    pszName,
                     RRF_RT_REG_SZ,
                     &dwType,
                     szValue,
@@ -262,9 +257,7 @@ LWNetReadConfigString(
     dwError = 0;
 
 cleanup:
-    LWNET_SAFE_FREE_MEMORY(pwc16sName);
-
-    LWNET_SAFE_FREE_MEMORY(pszValue);
+    LWNET_SAFE_FREE_STRING(pszValue);
 
     return dwError;
 
@@ -284,24 +277,19 @@ LWNetReadConfigDword(
 {
     DWORD dwError = 0;
 
-    wchar16_t *pwc16sName = NULL;
-
     BOOLEAN bGotValue = FALSE;
     DWORD dwValue;
     DWORD dwSize;
     DWORD dwType;
 
-    dwError = LwMbsToWc16s(pszName, &pwc16sName);
-    BAIL_ON_LWNET_ERROR(dwError);
-
     if (bUsePolicy)
     {
         dwSize = sizeof(dwValue);
-        dwError = RegGetValue(
+        dwError = RegGetValueA(
                     pReg->hConnection,
                     pReg->hKey,
-                    pReg->pwc16sPolicyKey,
-                    pwc16sName,
+                    pReg->pszPolicyKey,
+                    pszName,
                     RRF_RT_REG_DWORD,
                     &dwType,
                     (PBYTE)&dwValue,
@@ -315,11 +303,11 @@ LWNetReadConfigDword(
     if (!bGotValue)
     {
         dwSize = sizeof(dwValue);
-        dwError = RegGetValue(
+        dwError = RegGetValueA(
                     pReg->hConnection,
                     pReg->hKey,
-                    pReg->pwc16sConfigKey,
-                    pwc16sName,
+                    pReg->pszConfigKey,
+                    pszName,
                     RRF_RT_REG_DWORD,
                     &dwType,
                     (PBYTE)&dwValue,
@@ -338,13 +326,7 @@ LWNetReadConfigDword(
 
     dwError = 0;
 
-cleanup:
-    LWNET_SAFE_FREE_MEMORY(pwc16sName);
-
     return dwError;
-
-error:
-    goto cleanup;
 }
 
 DWORD

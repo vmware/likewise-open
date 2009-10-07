@@ -116,10 +116,7 @@ ProcessExportedKeyInfo(
 {
     DWORD dwError = 0;
     DWORD dwValueNameLen = MAX_KEY_LENGTH;
-    LW_WCHAR valueName[MAX_KEY_LENGTH];   // buffer for subkey name
-    PSTR pszFullValueName = NULL;
-    //Do not free
-    PSTR pszValueName = NULL;
+    CHAR valueName[MAX_KEY_LENGTH];   // buffer for subkey name
     REG_DATA_TYPE dataType = REG_UNKNOWN;
     BYTE value[MAX_VALUE_LENGTH] = {0};
     DWORD dwValueLen = 0;
@@ -163,7 +160,7 @@ ProcessExportedKeyInfo(
        dwValueLen = MAX_VALUE_LENGTH;
        dwValueNameLen = MAX_KEY_LENGTH;
 
-       dwError = RegEnumValue((HANDLE)hReg,
+       dwError = RegEnumValueA((HANDLE)hReg,
                                hKey,
                                iCount,
                                valueName,
@@ -174,29 +171,17 @@ ProcessExportedKeyInfo(
                                &dwValueLen);
        BAIL_ON_REG_ERROR(dwError);
 
-       dwError = LwWc16sToMbs(valueName,
-                              &pszFullValueName);
-       BAIL_ON_REG_ERROR(dwError);
-
-       pszValueName = pszFullValueName+strlen(pszKeyName)+1;
-
-       if (LW_IS_NULL_OR_EMPTY_STR(pszValueName))
-       {
-           continue;
-       }
-
        dwError = PrintToRegFile(
                       fp,
                       pszKeyName,
                       dataType,
-                      pszValueName,
+                      valueName,
                       dataType,
                       value,
                       dwValueLen,
                       pPrevType);
        BAIL_ON_REG_ERROR(dwError);
 
-       LW_SAFE_FREE_STRING(pszFullValueName);
        memset(valueName, 0 , dwValueNameLen);
        dwValueNameLen = MAX_KEY_LENGTH;
        memset(value, 0 , dwValueLen);
@@ -204,7 +189,6 @@ ProcessExportedKeyInfo(
    }
 
 cleanup:
-    LW_SAFE_FREE_STRING(pszFullValueName);
     memset(valueName, 0 , dwValueNameLen);
     memset(value, 0 , dwValueLen);
 

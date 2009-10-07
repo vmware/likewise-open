@@ -734,7 +734,7 @@ GetValueAsBytes(
 
             if (bDoAnsi)
             {
-                if(pData && strlen(pszValue)+1 > *pcbData)
+                if(pData && strlen(pszValue) > *pcbData)
                 {
                     dwError = LW_ERROR_INSUFFICIENT_BUFFER;
                     BAIL_ON_REG_ERROR(dwError);
@@ -742,7 +742,7 @@ GetValueAsBytes(
                 cbData = strlen(pszValue)*sizeof(*pszValue);
                 if (pData)
                 {
-                    memcpy(pData, pszValue, (strlen(pszValue)+1)*sizeof(*pszValue));
+                    memcpy(pData, pszValue, strlen(pszValue)*sizeof(*pszValue));
                 }
             }
             else
@@ -753,7 +753,7 @@ GetValueAsBytes(
                 dwError = LwWc16sLen(pwcValue, (size_t*)&cbData);
                 BAIL_ON_REG_ERROR(dwError);
 
-                if(pData && (cbData + sizeof(*pwcValue)) > *pcbData)
+                if(pData && cbData*sizeof(*pwcValue) > *pcbData)
                 {
                     dwError = LW_ERROR_INSUFFICIENT_BUFFER;
                     BAIL_ON_REG_ERROR(dwError);
@@ -761,8 +761,10 @@ GetValueAsBytes(
 
                 if (pData)
                 {
-                    memcpy(pData, pwcValue, (cbData + sizeof(*pwcValue))*sizeof(*pwcValue));
+                    memcpy(pData, pwcValue, cbData*sizeof(*pwcValue));
                 }
+
+                cbData = cbData*sizeof(*pwcValue);
             }
 
             break;
