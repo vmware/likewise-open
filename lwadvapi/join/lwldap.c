@@ -569,6 +569,20 @@ LwLdapBindDirectory(
         dwError = LwKrb5RefreshMachineTGT(NULL);
         BAIL_ON_LW_ERROR(dwError);
     }
+
+    if (dwMajorStatus == GSS_S_FAILURE)
+    {
+        switch (dwMinorStatus)
+        {
+            case KRB5KRB_AP_ERR_SKEW:
+                dwError = ERROR_TIME_SKEW;
+                BAIL_ON_LW_ERROR(dwError);
+                break;
+            default:
+                BAIL_ON_SEC_ERROR(dwMajorStatus);
+                break;
+        }
+    }
 	
     if (dwMajorStatus != 0 &&
         dwMajorStatus != GSS_S_CONTINUE_NEEDED)
