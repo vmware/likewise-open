@@ -54,6 +54,7 @@ CPPFLAGS="$CPPFLAGS $LWMSG_CPPFLAGS"
 
 # Checks for programs.
 AC_PROG_CC
+AM_PROG_CC_C_O
 AC_PROG_INSTALL
 AC_PROG_MKDIR_P
 AC_PROG_LIBTOOL
@@ -139,6 +140,6 @@ AM_CONDITIONAL(HAVE_MOONUNIT, $HAVE_MOONUNIT)
 
 CPPFLAGS="$saved_CPPFLAGS"
 
-AC_CONFIG_FILES([Makefile include/Makefile include/lwmsg/Makefile src/Makefile test/Makefile doc/Makefile doc/Doxyfile example/Makefile])
+AC_CONFIG_FILES([Makefile doc/Doxyfile])
 
 AC_OUTPUT

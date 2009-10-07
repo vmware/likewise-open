@@ -93,7 +93,7 @@ main(
     dwError = LwIoOpenContext(&pContext);
     BAIL_ON_LWIO_ERROR(dwError);
 
-    dwError = SMBGetLogInfo(
+    dwError = LwIoGetLogInfo(
         (HANDLE) pContext,
         &pLogInfo);
     BAIL_ON_LWIO_ERROR(dwError);
@@ -105,7 +105,7 @@ cleanup:
 
     if (pLogInfo)
     {
-        SMBFreeLogInfo(pLogInfo);
+        LwIoFreeLogInfo(pLogInfo);
     }
 
     if (pContext != NULL)

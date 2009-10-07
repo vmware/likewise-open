@@ -72,15 +72,15 @@ NetUserGetLocalGroups(
     uint32 entries = 0;
     uint32 total = 0;
     wchar16_t *alias_name = NULL;
-    PIO_ACCESS_TOKEN access_token = NULL;
+    PIO_CREDS creds = NULL;
 
     BAIL_ON_INVALID_PTR(username);
     BAIL_ON_INVALID_PTR(hostname);
 
-    status = LwIoGetThreadAccessToken(&access_token);
+    status = LwIoGetThreadCreds(&creds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = NetConnectSamr(&conn, hostname, 0, builtin_dom_access, access_token);
+    status = NetConnectSamr(&conn, hostname, 0, builtin_dom_access, creds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     samr_b        = conn->samr.bind;
@@ -184,9 +184,9 @@ error:
         NetFreeMemory((void*)info);
     }
 
-    if (access_token)
+    if (creds)
     {
-        LwIoDeleteAccessToken(access_token);
+        LwIoDeleteCreds(creds);
     }
 
     *out_entries = 0;

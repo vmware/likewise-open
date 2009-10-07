@@ -150,7 +150,7 @@ NtpCtxGetBufferResult(
 NTSTATUS
 LwNtCtxCreateNamedPipeFile(
     IN PIO_CONTEXT pConnection,
-    IN LW_PIO_ACCESS_TOKEN pSecurityToken,
+    IN LW_PIO_CREDS pSecurityToken,
     OUT PIO_FILE_HANDLE FileHandle,
     IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
@@ -233,7 +233,7 @@ cleanup:
 NTSTATUS
 LwNtCtxCreateFile(
     IN PIO_CONTEXT pConnection,
-    IN LW_PIO_ACCESS_TOKEN pSecurityToken,
+    IN LW_PIO_CREDS pSecurityToken,
     OUT PIO_FILE_HANDLE FileHandle,
     IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
@@ -261,7 +261,7 @@ LwNtCtxCreateFile(
     PVOID pReply = NULL;
     IO_FILE_HANDLE fileHandle = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
-    PIO_ACCESS_TOKEN pResolvedSecurityToken = NULL;
+    PIO_CREDS pResolvedSecurityToken = NULL;
 
     if (AsyncControlBlock)
     {
@@ -269,7 +269,7 @@ LwNtCtxCreateFile(
         GOTO_CLEANUP_EE(EE);
     }
 
-    status = LwIoResolveAccessToken(pSecurityToken, &pResolvedSecurityToken);
+    status = LwIoResolveCreds(pSecurityToken, &pResolvedSecurityToken);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     status = LwIoContextAcquireCall(pConnection, &pCall);
@@ -338,7 +338,7 @@ cleanup:
 
     if (pResolvedSecurityToken)
     {
-        LwIoDeleteAccessToken(pResolvedSecurityToken);
+        LwIoDeleteCreds(pResolvedSecurityToken);
     }
 
     if (status)

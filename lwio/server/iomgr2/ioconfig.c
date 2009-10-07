@@ -114,10 +114,10 @@ IopConfigReadDriver(
 
     NTSTATUS status = 0;
     int EE = 0;
-    PSMB_CONFIG_REG pReg = NULL;
+    PLWIO_CONFIG_REG pReg = NULL;
     PSTR pszDriverPath = NULL;
 
-    dwError = SMBOpenConfig(
+    dwError = LwIoOpenConfig(
                 pszDriverKey,
                 pszDriverKey,
                 &pReg);
@@ -133,7 +133,7 @@ IopConfigReadDriver(
         goto cleanup;
     }
 
-    dwError = SMBReadConfigString(pReg, "Path", FALSE, &pszDriverPath);
+    dwError = LwIoReadConfigString(pReg, "Path", FALSE, &pszDriverPath);
     if (dwError)
     {
         // TODO-Error code issues?
@@ -152,10 +152,10 @@ IopConfigReadDriver(
 
 cleanup:
 
-    SMBCloseConfig(pReg);
+    LwIoCloseConfig(pReg);
     pReg = NULL;
 
-    LWIO_SAFE_FREE_STRING(pszDriverPath);
+    LwRtlCStringFree(&pszDriverPath);
 
     // TODO -- Error code mismatch?
     return status;
@@ -168,25 +168,22 @@ IopConfigAddDrivers(
      )
 {
     DWORD dwError = 0;
-
-    NTSTATUS status = 0;
+    NTSTATUS status = STATUS_SUCCESS;
     int EE = 0;
-
-    PSMB_CONFIG_REG pReg = NULL;
+    PLWIO_CONFIG_REG pReg = NULL;
     PSTR pszDriverKey = NULL;
-
     PCSTR pszDriverName = NULL;
     PSTR pszDriverNames = NULL;
     PSTR pszTokenState = NULL;
 
-    dwError = SMBOpenConfig(
+    dwError = LwIoOpenConfig(
                 "Services\\lwio\\Parameters\\Drivers",
                 "Policy\\Services\\lwio\\Parameter\\Drivers",
                 &pReg);
     if (dwError)
     {
         // TODO-Error code issues?
-        status = STATUS_UNSUCCESSFUL;
+        status = STATUS_DEVICE_CONFIGURATION_ERROR;
         GOTO_CLEANUP_ON_STATUS_EE(status, EE);
     }
 
@@ -195,11 +192,11 @@ IopConfigAddDrivers(
         goto add_default;
     }
 
-    dwError = SMBReadConfigString(pReg, "Load", FALSE, &pszDriverNames);
+    dwError = LwIoReadConfigString(pReg, "Load", FALSE, &pszDriverNames);
     if (dwError)
     {
         // TODO-Error code issues?
-        status = STATUS_UNSUCCESSFUL;
+        status = STATUS_DEVICE_CONFIGURATION_ERROR;
         GOTO_CLEANUP_ON_STATUS_EE(status, EE);
     }
 
@@ -211,7 +208,7 @@ IopConfigAddDrivers(
     pszDriverName = strtok_r(pszDriverNames, ",", &pszTokenState);
     while (!IsNullOrEmptyString(pszDriverName))
     {
-        status = SMBAllocateStringPrintf(
+        status = LwRtlCStringAllocatePrintf(
                     &pszDriverKey,
                     "Services\\lwio\\Parameters\\Drivers\\%s",
                     pszDriverName);
@@ -223,19 +220,19 @@ IopConfigAddDrivers(
                     pszDriverName);
         GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
-        LWIO_SAFE_FREE_STRING(pszDriverKey);
+        LwRtlCStringFree(&pszDriverKey);
 
         pszDriverName = strtok_r(NULL, ",", &pszTokenState);
     }
 
 cleanup:
 
-    SMBCloseConfig(pReg);
+    LwIoCloseConfig(pReg);
     pReg = NULL;
 
-    LWIO_SAFE_FREE_STRING(pszDriverNames);
+    LwRtlCStringFree(&pszDriverNames);
 
-    LWIO_SAFE_FREE_STRING(pszDriverKey);
+    LwRtlCStringFree(&pszDriverKey);
 
     // TODO -- Error code mismatch?
     return status;
@@ -298,3 +295,13 @@ cleanup:
 
     return status;
 }
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

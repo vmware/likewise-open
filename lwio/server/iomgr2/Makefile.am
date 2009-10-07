@@ -5,7 +5,6 @@ lib_LTLIBRARIES = libiomgr2.la
 endif
 
 libiomgr2_la_SOURCES = \
-    iocfg.c \
     ioinit.c \
     ioconfig.c \
     ioroot.c \

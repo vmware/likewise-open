@@ -66,7 +66,7 @@ NetLocalGroupChangeMembers(
     uint32 sid_index = 0;
     TranslatedSid *sids = NULL;
     RefDomainList *domains = NULL;
-    PIO_ACCESS_TOKEN access_token = NULL;
+    PIO_CREDS creds = NULL;
 
     BAIL_ON_INVALID_PTR(hostname);
     BAIL_ON_INVALID_PTR(aliasname);
@@ -79,10 +79,10 @@ NetLocalGroupChangeMembers(
 
     access_rights = access;
 
-    status = LwIoGetThreadAccessToken(&access_token);
+    status = LwIoGetThreadCreds(&creds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = NetConnectSamr(&conn, hostname, access, btin_domain_access, access_token);
+    status = NetConnectSamr(&conn, hostname, access, btin_domain_access, creds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     samr_b = conn->samr.bind;
@@ -100,7 +100,7 @@ NetLocalGroupChangeMembers(
         goto error;
     }
 
-    status = NetConnectLsa(&conn, hostname, lsa_access, access_token);
+    status = NetConnectLsa(&conn, hostname, lsa_access, creds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     lsa_b = conn->lsa.bind;
@@ -185,9 +185,9 @@ cleanup:
     return err;
 
 error:
-    if (access_token)
+    if (creds)
     {
-        LwIoDeleteAccessToken(access_token);
+        LwIoDeleteCreds(creds);
     }
 
     goto cleanup;

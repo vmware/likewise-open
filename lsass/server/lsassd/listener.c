@@ -66,7 +66,7 @@ LsaSrvLogIpc (
     void* pData
     )
 {
-    SMBLogLevel lsaLevel;
+    LsaLogLevel lsaLevel;
     LWMsgBool result;
 
     switch (level)

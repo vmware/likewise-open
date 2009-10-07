@@ -59,6 +59,6 @@
 // components. Also use liblsalog_r.so
 //
 HANDLE              ghSMBLog           = (HANDLE)NULL;
-SMBLogLevel         gSMBMaxLogLevel    = LWIO_LOG_LEVEL_ERROR;
-SMBLogTarget        gSMBLogTarget      = LWIO_LOG_TARGET_DISABLED;
+LWIO_LOG_LEVEL         gSMBMaxLogLevel    = LWIO_LOG_LEVEL_ERROR;
+LWIO_LOG_TARGET        gLWIO_LOG_TARGET      = LWIO_LOG_TARGET_DISABLED;
 PFN_LWIO_LOG_MESSAGE gpfnSMBLogger      = NULL;

@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        lsa_accesstoken.c
+ *        lsa_creds.c
  *
  * Abstract:
  *
@@ -48,13 +48,13 @@
 
 
 NTSTATUS
-LsaSrvGetSystemAccessToken(
-    LW_PIO_ACCESS_TOKEN *ppAccessToken
+LsaSrvGetSystemCreds(
+    LW_PIO_CREDS *ppCreds
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = ERROR_SUCCESS;
-    LW_PIO_ACCESS_TOKEN pAccessToken = NULL;
+    LW_PIO_CREDS pCreds = NULL;
     PSTR pszUsername = NULL;
     PSTR pszPassword = NULL;
     PSTR pszDomainDnsName = NULL;
@@ -75,13 +75,13 @@ LsaSrvGetSystemAccessToken(
                     pszDomainDnsName);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LwIoCreateKrb5AccessTokenA(
+    dwError = LwIoCreateKrb5CredsA(
                     pszMachinePrincipal,
                     LSASS_KRB5_CACHE_PATH,
-                    &pAccessToken);
+                    &pCreds);
     BAIL_ON_LSA_ERROR(dwError);
 
-    *ppAccessToken = pAccessToken;
+    *ppCreds = pCreds;
 
 cleanup:
     LW_SAFE_FREE_STRING(pszUsername);
@@ -99,12 +99,12 @@ cleanup:
     return ntStatus;
 
 error:
-    if (pAccessToken)
+    if (pCreds)
     {
-        LwIoDeleteAccessToken(pAccessToken);
+        LwIoDeleteCreds(pCreds);
     }
 
-    *ppAccessToken = NULL;
+    *ppCreds = NULL;
     goto cleanup;
 }
 

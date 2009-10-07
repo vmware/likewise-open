@@ -33,15 +33,15 @@
 static
 NTSTATUS
 LwIoCredentialCacheToTgt(
-    PIO_ACCESS_TOKEN pCacheToken,
-    PIO_ACCESS_TOKEN* ppAccessToken
+    PIO_CREDS pCacheToken,
+    PIO_CREDS* ppCreds
     );
 
 NTSTATUS
-LwIoCreatePlainAccessTokenA(
+LwIoCreatePlainCredsA(
     PCSTR pszUsername,
     PCSTR pszPassword,
-    PIO_ACCESS_TOKEN* ppAccessToken
+    PIO_CREDS* ppCreds
     )
 {
     NTSTATUS Status = STATUS_SUCCESS;
@@ -54,7 +54,7 @@ LwIoCreatePlainAccessTokenA(
     Status = LwRtlWC16StringAllocateFromCString(&pwszPassword, pszPassword);
     BAIL_ON_NT_STATUS(Status);
 
-    Status = LwIoCreatePlainAccessTokenW(pwszUsername, pwszPassword, ppAccessToken);
+    Status = LwIoCreatePlainCredsW(pwszUsername, pwszPassword, ppCreds);
     BAIL_ON_NT_STATUS(Status);
 
 error:
@@ -66,31 +66,31 @@ error:
 }
 
 NTSTATUS
-LwIoCreatePlainAccessTokenW(
+LwIoCreatePlainCredsW(
     PCWSTR pwszUsername,
     PCWSTR pwszPassword,
-    PIO_ACCESS_TOKEN* ppAccessToken
+    PIO_CREDS* ppCreds
     )
 {
     NTSTATUS Status = STATUS_SUCCESS;
-    PIO_ACCESS_TOKEN pAccessToken = NULL;
+    PIO_CREDS pCreds = NULL;
 
-    Status = LwIoAllocateMemory(sizeof(*pAccessToken), OUT_PPVOID(&pAccessToken));
+    Status = LwIoAllocateMemory(sizeof(*pCreds), OUT_PPVOID(&pCreds));
     BAIL_ON_NT_STATUS(Status);
 
-    pAccessToken->type = IO_ACCESS_TOKEN_TYPE_PLAIN;
+    pCreds->type = IO_CREDS_TYPE_PLAIN;
     
     Status = RtlWC16StringDuplicate(
-        &pAccessToken->payload.plain.pwszUsername,
+        &pCreds->payload.plain.pwszUsername,
         pwszUsername);
     BAIL_ON_NT_STATUS(Status);
 
     Status = RtlWC16StringDuplicate(
-        &pAccessToken->payload.plain.pwszPassword,
+        &pCreds->payload.plain.pwszPassword,
         pwszPassword);
     BAIL_ON_NT_STATUS(Status);
     
-    *ppAccessToken = pAccessToken;
+    *ppCreds = pCreds;
     
 cleanup:
 
@@ -98,19 +98,19 @@ cleanup:
 
 error:
 
-    if (pAccessToken)
+    if (pCreds)
     {
-        LwIoDeleteAccessToken(pAccessToken);
+        LwIoDeleteCreds(pCreds);
     }
 
     goto cleanup;
 }
 
 NTSTATUS
-LwIoCreateKrb5AccessTokenA(
+LwIoCreateKrb5CredsA(
     PCSTR pszPrincipal,
     PCSTR pszCachePath,
-    PIO_ACCESS_TOKEN* ppAccessToken
+    PIO_CREDS* ppCreds
     )
 {
     NTSTATUS Status = STATUS_SUCCESS;
@@ -123,7 +123,7 @@ LwIoCreateKrb5AccessTokenA(
     Status = LwRtlWC16StringAllocateFromCString(&pwszCachePath, pszCachePath);
     BAIL_ON_NT_STATUS(Status);
 
-    Status = LwIoCreateKrb5AccessTokenW(pwszPrincipal, pwszCachePath, ppAccessToken);
+    Status = LwIoCreateKrb5CredsW(pwszPrincipal, pwszCachePath, ppCreds);
     BAIL_ON_NT_STATUS(Status);
 
 error:
@@ -135,31 +135,31 @@ error:
 }
 
 NTSTATUS
-LwIoCreateKrb5AccessTokenW(
+LwIoCreateKrb5CredsW(
     PCWSTR pwszPrincipal,
     PCWSTR pwszCachePath,
-    PIO_ACCESS_TOKEN* ppAccessToken
+    PIO_CREDS* ppCreds
     )
 {
     NTSTATUS Status = STATUS_SUCCESS;
-    PIO_ACCESS_TOKEN pAccessToken = NULL;
+    PIO_CREDS pCreds = NULL;
 
-    Status = LwIoAllocateMemory(sizeof(*pAccessToken), OUT_PPVOID(&pAccessToken));
+    Status = LwIoAllocateMemory(sizeof(*pCreds), OUT_PPVOID(&pCreds));
     BAIL_ON_NT_STATUS(Status);
 
-    pAccessToken->type = IO_ACCESS_TOKEN_TYPE_KRB5_CCACHE;
+    pCreds->type = IO_CREDS_TYPE_KRB5_CCACHE;
     
     Status = RtlWC16StringDuplicate(
-        &pAccessToken->payload.krb5Ccache.pwszPrincipal,
+        &pCreds->payload.krb5Ccache.pwszPrincipal,
         pwszPrincipal);
     BAIL_ON_NT_STATUS(Status);
 
     Status = RtlWC16StringDuplicate(
-        &pAccessToken->payload.krb5Ccache.pwszCachePath,
+        &pCreds->payload.krb5Ccache.pwszCachePath,
         pwszCachePath);
     BAIL_ON_NT_STATUS(Status);
     
-    *ppAccessToken = pAccessToken;
+    *ppCreds = pCreds;
     
 cleanup:
 
@@ -167,9 +167,9 @@ cleanup:
 
 error:
 
-    if (pAccessToken)
+    if (pCreds)
     {
-        LwIoDeleteAccessToken(pAccessToken);
+        LwIoDeleteCreds(pCreds);
     }
 
     goto cleanup;
@@ -177,83 +177,83 @@ error:
 
 
 NTSTATUS
-LwIoCopyAccessToken(
-    PIO_ACCESS_TOKEN pAccessToken,
-    PIO_ACCESS_TOKEN* ppAccessTokenCopy
+LwIoCopyCreds(
+    PIO_CREDS pCreds,
+    PIO_CREDS* ppCredsCopy
     )
 {
     NTSTATUS Status = STATUS_SUCCESS;
-    PIO_ACCESS_TOKEN pAccessTokenCopy = NULL;
+    PIO_CREDS pCredsCopy = NULL;
 
-    if (pAccessToken)
+    if (pCreds)
     {
-        Status = LwIoAllocateMemory(sizeof(*pAccessTokenCopy), OUT_PPVOID(&pAccessTokenCopy));
+        Status = LwIoAllocateMemory(sizeof(*pCredsCopy), OUT_PPVOID(&pCredsCopy));
         BAIL_ON_NT_STATUS(Status);
         
-        pAccessTokenCopy->type = pAccessToken->type;
+        pCredsCopy->type = pCreds->type;
         
-        switch (pAccessToken->type)
+        switch (pCreds->type)
         {
-        case IO_ACCESS_TOKEN_TYPE_PLAIN:
+        case IO_CREDS_TYPE_PLAIN:
             Status = RtlWC16StringDuplicate(
-                &pAccessTokenCopy->payload.plain.pwszUsername,
-                pAccessToken->payload.plain.pwszUsername);
+                &pCredsCopy->payload.plain.pwszUsername,
+                pCreds->payload.plain.pwszUsername);
             BAIL_ON_NT_STATUS(Status);
             Status = RtlWC16StringDuplicate(
-                &pAccessTokenCopy->payload.plain.pwszPassword,
-                pAccessToken->payload.plain.pwszPassword);
+                &pCredsCopy->payload.plain.pwszPassword,
+                pCreds->payload.plain.pwszPassword);
             BAIL_ON_NT_STATUS(Status);
             break;
-        case IO_ACCESS_TOKEN_TYPE_KRB5_CCACHE:
+        case IO_CREDS_TYPE_KRB5_CCACHE:
             Status = RtlWC16StringDuplicate(
-                &pAccessTokenCopy->payload.krb5Ccache.pwszPrincipal,
-                pAccessToken->payload.krb5Ccache.pwszPrincipal);
+                &pCredsCopy->payload.krb5Ccache.pwszPrincipal,
+                pCreds->payload.krb5Ccache.pwszPrincipal);
             BAIL_ON_NT_STATUS(Status);
             Status = RtlWC16StringDuplicate(
-                &pAccessTokenCopy->payload.krb5Ccache.pwszCachePath,
-                pAccessToken->payload.krb5Ccache.pwszCachePath);
+                &pCredsCopy->payload.krb5Ccache.pwszCachePath,
+                pCreds->payload.krb5Ccache.pwszCachePath);
             BAIL_ON_NT_STATUS(Status);
             break;
-        case IO_ACCESS_TOKEN_TYPE_KRB5_TGT:
+        case IO_CREDS_TYPE_KRB5_TGT:
             Status = RtlWC16StringDuplicate(
-                &pAccessTokenCopy->payload.krb5Tgt.pwszClientPrincipal,
-                pAccessToken->payload.krb5Tgt.pwszClientPrincipal);
+                &pCredsCopy->payload.krb5Tgt.pwszClientPrincipal,
+                pCreds->payload.krb5Tgt.pwszClientPrincipal);
             BAIL_ON_NT_STATUS(Status);
             Status = RtlWC16StringDuplicate(
-                &pAccessTokenCopy->payload.krb5Tgt.pwszServerPrincipal,
-                pAccessToken->payload.krb5Tgt.pwszServerPrincipal);
+                &pCredsCopy->payload.krb5Tgt.pwszServerPrincipal,
+                pCreds->payload.krb5Tgt.pwszServerPrincipal);
             BAIL_ON_NT_STATUS(Status);
-            pAccessTokenCopy->payload.krb5Tgt.authTime = pAccessToken->payload.krb5Tgt.authTime;
-            pAccessTokenCopy->payload.krb5Tgt.startTime = pAccessToken->payload.krb5Tgt.startTime;
-            pAccessTokenCopy->payload.krb5Tgt.endTime = pAccessToken->payload.krb5Tgt.endTime;
-            pAccessTokenCopy->payload.krb5Tgt.renewTillTime = pAccessToken->payload.krb5Tgt.renewTillTime;
-            pAccessTokenCopy->payload.krb5Tgt.ulKeySize = pAccessToken->payload.krb5Tgt.ulKeySize;
+            pCredsCopy->payload.krb5Tgt.authTime = pCreds->payload.krb5Tgt.authTime;
+            pCredsCopy->payload.krb5Tgt.startTime = pCreds->payload.krb5Tgt.startTime;
+            pCredsCopy->payload.krb5Tgt.endTime = pCreds->payload.krb5Tgt.endTime;
+            pCredsCopy->payload.krb5Tgt.renewTillTime = pCreds->payload.krb5Tgt.renewTillTime;
+            pCredsCopy->payload.krb5Tgt.ulKeySize = pCreds->payload.krb5Tgt.ulKeySize;
             Status = LwIoAllocateMemory(
-                pAccessToken->payload.krb5Tgt.ulKeySize,
-                OUT_PPVOID(&pAccessTokenCopy->payload.krb5Tgt.pKeyData));
+                pCreds->payload.krb5Tgt.ulKeySize,
+                OUT_PPVOID(&pCredsCopy->payload.krb5Tgt.pKeyData));
             BAIL_ON_NT_STATUS(Status);
             memcpy(
-                pAccessTokenCopy->payload.krb5Tgt.pKeyData,
-                pAccessToken->payload.krb5Tgt.pKeyData,
-                pAccessToken->payload.krb5Tgt.ulKeySize);
-            pAccessTokenCopy->payload.krb5Tgt.tgtFlags = pAccessToken->payload.krb5Tgt.tgtFlags;
-            pAccessTokenCopy->payload.krb5Tgt.ulTgtSize = pAccessToken->payload.krb5Tgt.ulTgtSize;
+                pCredsCopy->payload.krb5Tgt.pKeyData,
+                pCreds->payload.krb5Tgt.pKeyData,
+                pCreds->payload.krb5Tgt.ulKeySize);
+            pCredsCopy->payload.krb5Tgt.tgtFlags = pCreds->payload.krb5Tgt.tgtFlags;
+            pCredsCopy->payload.krb5Tgt.ulTgtSize = pCreds->payload.krb5Tgt.ulTgtSize;
             Status = LwIoAllocateMemory(
-                pAccessToken->payload.krb5Tgt.ulTgtSize,
-                OUT_PPVOID(&pAccessTokenCopy->payload.krb5Tgt.pTgtData));
+                pCreds->payload.krb5Tgt.ulTgtSize,
+                OUT_PPVOID(&pCredsCopy->payload.krb5Tgt.pTgtData));
             BAIL_ON_NT_STATUS(Status);
             memcpy(
-                pAccessTokenCopy->payload.krb5Tgt.pTgtData,
-                pAccessToken->payload.krb5Tgt.pTgtData,
-                pAccessToken->payload.krb5Tgt.ulTgtSize);
+                pCredsCopy->payload.krb5Tgt.pTgtData,
+                pCreds->payload.krb5Tgt.pTgtData,
+                pCreds->payload.krb5Tgt.ulTgtSize);
             break;
         }
         
-        *ppAccessTokenCopy = pAccessTokenCopy;
+        *ppCredsCopy = pCredsCopy;
     }
     else
     {
-        *ppAccessTokenCopy = NULL;
+        *ppCredsCopy = NULL;
     }
     
 cleanup:
@@ -262,78 +262,78 @@ cleanup:
 
 error:
 
-    if (pAccessTokenCopy)
+    if (pCredsCopy)
     {
-        LwIoDeleteAccessToken(pAccessTokenCopy);
+        LwIoDeleteCreds(pCredsCopy);
     }
 
     goto cleanup;
 }
 
 VOID
-LwIoDeleteAccessToken(
-    PIO_ACCESS_TOKEN pAccessToken
+LwIoDeleteCreds(
+    PIO_CREDS pCreds
     )
 {
-    if (pAccessToken)
+    if (pCreds)
     {
-        switch (pAccessToken->type)
+        switch (pCreds->type)
         {
-        case IO_ACCESS_TOKEN_TYPE_PLAIN:
-            IO_SAFE_FREE_MEMORY(pAccessToken->payload.plain.pwszUsername);
-            IO_SAFE_FREE_MEMORY(pAccessToken->payload.plain.pwszPassword);
+        case IO_CREDS_TYPE_PLAIN:
+            IO_SAFE_FREE_MEMORY(pCreds->payload.plain.pwszUsername);
+            IO_SAFE_FREE_MEMORY(pCreds->payload.plain.pwszPassword);
             break;
-        case IO_ACCESS_TOKEN_TYPE_KRB5_CCACHE:
-            IO_SAFE_FREE_MEMORY(pAccessToken->payload.krb5Ccache.pwszPrincipal);
-            IO_SAFE_FREE_MEMORY(pAccessToken->payload.krb5Ccache.pwszCachePath);
+        case IO_CREDS_TYPE_KRB5_CCACHE:
+            IO_SAFE_FREE_MEMORY(pCreds->payload.krb5Ccache.pwszPrincipal);
+            IO_SAFE_FREE_MEMORY(pCreds->payload.krb5Ccache.pwszCachePath);
             break;
-        case IO_ACCESS_TOKEN_TYPE_KRB5_TGT:
-            IO_SAFE_FREE_MEMORY(pAccessToken->payload.krb5Tgt.pwszClientPrincipal);
-            IO_SAFE_FREE_MEMORY(pAccessToken->payload.krb5Tgt.pwszServerPrincipal);
-            IO_SAFE_FREE_MEMORY(pAccessToken->payload.krb5Tgt.pKeyData);
-            IO_SAFE_FREE_MEMORY(pAccessToken->payload.krb5Tgt.pTgtData);
+        case IO_CREDS_TYPE_KRB5_TGT:
+            IO_SAFE_FREE_MEMORY(pCreds->payload.krb5Tgt.pwszClientPrincipal);
+            IO_SAFE_FREE_MEMORY(pCreds->payload.krb5Tgt.pwszServerPrincipal);
+            IO_SAFE_FREE_MEMORY(pCreds->payload.krb5Tgt.pKeyData);
+            IO_SAFE_FREE_MEMORY(pCreds->payload.krb5Tgt.pTgtData);
             break;
         }
 
-        LwIoFreeMemory(pAccessToken);
+        LwIoFreeMemory(pCreds);
     }
 }
 
 BOOLEAN
-LwIoCompareAccessTokens(
-    PIO_ACCESS_TOKEN pAccessTokenOne,
-    PIO_ACCESS_TOKEN pAccessTokenTwo
+LwIoCompareCredss(
+    PIO_CREDS pCredsOne,
+    PIO_CREDS pCredsTwo
     )
 {
-    if (pAccessTokenOne == NULL && pAccessTokenTwo == NULL)
+    if (pCredsOne == NULL && pCredsTwo == NULL)
     {
         return TRUE;
     }
-    else if (pAccessTokenOne != NULL && pAccessTokenTwo != NULL &&
-             pAccessTokenOne->type == pAccessTokenTwo->type)
+    else if (pCredsOne != NULL && pCredsTwo != NULL &&
+             pCredsOne->type == pCredsTwo->type)
     {
-        switch (pAccessTokenOne->type)
+        switch (pCredsOne->type)
         {
-        case IO_ACCESS_TOKEN_TYPE_PLAIN:
-            return (!SMBWc16sCmp(pAccessTokenOne->payload.plain.pwszUsername,
-                                 pAccessTokenTwo->payload.plain.pwszUsername) &&
-                    !SMBWc16sCmp(pAccessTokenOne->payload.plain.pwszPassword,
-                                 pAccessTokenTwo->payload.plain.pwszPassword));
-        case IO_ACCESS_TOKEN_TYPE_KRB5_CCACHE:
-            return (!SMBWc16sCmp(pAccessTokenOne->payload.krb5Ccache.pwszPrincipal,
-                                 pAccessTokenTwo->payload.krb5Ccache.pwszPrincipal) &&
-                    !SMBWc16sCmp(pAccessTokenOne->payload.krb5Ccache.pwszCachePath,
-                                 pAccessTokenTwo->payload.krb5Ccache.pwszCachePath));
-        case IO_ACCESS_TOKEN_TYPE_KRB5_TGT:
-            return (!SMBWc16sCmp(pAccessTokenOne->payload.krb5Tgt.pwszClientPrincipal,
-                                 pAccessTokenTwo->payload.krb5Tgt.pwszClientPrincipal) &&
-                    !SMBWc16sCmp(pAccessTokenOne->payload.krb5Tgt.pwszServerPrincipal,
-                                 pAccessTokenTwo->payload.krb5Tgt.pwszServerPrincipal) &&
-                    (pAccessTokenOne->payload.krb5Tgt.ulTgtSize ==
-                     pAccessTokenTwo->payload.krb5Tgt.ulTgtSize) &&
-                    memcpy(pAccessTokenOne->payload.krb5Tgt.pTgtData,
-                           pAccessTokenTwo->payload.krb5Tgt.pTgtData,
-                           pAccessTokenOne->payload.krb5Tgt.ulTgtSize) == 0);
+        case IO_CREDS_TYPE_PLAIN:
+            return (!SMBWc16sCmp(pCredsOne->payload.plain.pwszUsername,
+                                 pCredsTwo->payload.plain.pwszUsername) &&
+                    !SMBWc16sCmp(pCredsOne->payload.plain.pwszPassword,
+                                 pCredsTwo->payload.plain.pwszPassword));
+        case IO_CREDS_TYPE_KRB5_CCACHE:
+            return (!SMBWc16sCmp(pCredsOne->payload.krb5Ccache.pwszPrincipal,
+                                 pCredsTwo->payload.krb5Ccache.pwszPrincipal) &&
+                    !SMBWc16sCmp(pCredsOne->payload.krb5Ccache.pwszCachePath,
+                                 pCredsTwo->payload.krb5Ccache.pwszCachePath));
+        case IO_CREDS_TYPE_KRB5_TGT:
+            return (!SMBWc16sCmp(pCredsOne->payload.krb5Tgt.pwszClientPrincipal,
+                                 pCredsTwo->payload.krb5Tgt.pwszClientPrincipal) &&
+                    !SMBWc16sCmp(pCredsOne->payload.krb5Tgt.pwszServerPrincipal,
+                                 pCredsTwo->payload.krb5Tgt.pwszServerPrincipal) &&
+                    (pCredsOne->payload.krb5Tgt.ulTgtSize ==
+                     pCredsTwo->payload.krb5Tgt.ulTgtSize) &&
+                    memcpy(pCredsOne->payload.krb5Tgt.pTgtData,
+                           pCredsTwo->payload.krb5Tgt.pTgtData,
+                           pCredsOne->payload.krb5Tgt.ulTgtSize) == 0);
         }
     }
 
@@ -341,19 +341,19 @@ LwIoCompareAccessTokens(
 }
 
 NTSTATUS
-LwIoResolveAccessToken(
-    PIO_ACCESS_TOKEN pBaseToken,
-    PIO_ACCESS_TOKEN* ppResolvedToken
+LwIoResolveCreds(
+    PIO_CREDS pBaseToken,
+    PIO_CREDS* ppResolvedToken
     )
 {
     if (pBaseToken)
     {
         switch (pBaseToken->type)
         {
-        case IO_ACCESS_TOKEN_TYPE_KRB5_TGT:
-        case IO_ACCESS_TOKEN_TYPE_PLAIN:
-            return LwIoCopyAccessToken(pBaseToken, ppResolvedToken);
-        case IO_ACCESS_TOKEN_TYPE_KRB5_CCACHE:
+        case IO_CREDS_TYPE_KRB5_TGT:
+        case IO_CREDS_TYPE_PLAIN:
+            return LwIoCopyCreds(pBaseToken, ppResolvedToken);
+        case IO_CREDS_TYPE_KRB5_CCACHE:
             return LwIoCredentialCacheToTgt(pBaseToken, ppResolvedToken);
         }
     }
@@ -365,8 +365,8 @@ LwIoResolveAccessToken(
 static
 NTSTATUS
 LwIoCredentialCacheToTgt(
-    PIO_ACCESS_TOKEN pCacheToken,
-    PIO_ACCESS_TOKEN* ppAccessToken
+    PIO_CREDS pCacheToken,
+    PIO_CREDS* ppCreds
     )
 {
     NTSTATUS Status = STATUS_SUCCESS;
@@ -377,7 +377,7 @@ LwIoCredentialCacheToTgt(
     PSTR pszServerPrincipalName = NULL;
     PSTR pszDesiredPrincipal = NULL;
     PSTR pszCredCachePath = NULL;
-    PIO_ACCESS_TOKEN pAccessToken = NULL;
+    PIO_CREDS pCreds = NULL;
     BOOLEAN bFoundTgt = FALSE;
     BOOLEAN bStartSeq = FALSE;
     krb5_creds creds;
@@ -458,53 +458,53 @@ LwIoCredentialCacheToTgt(
     }
 
     /* Construct token from krb5 credential data */
-    Status = LwIoAllocateMemory(sizeof(*pAccessToken), OUT_PPVOID(&pAccessToken));
+    Status = LwIoAllocateMemory(sizeof(*pCreds), OUT_PPVOID(&pCreds));
     BAIL_ON_NT_STATUS(Status);
 
-    pAccessToken->type = IO_ACCESS_TOKEN_TYPE_KRB5_TGT;
+    pCreds->type = IO_CREDS_TYPE_KRB5_TGT;
 
     /* Copy principal names */
     Status = LwRtlWC16StringAllocateFromCString(
-        &pAccessToken->payload.krb5Tgt.pwszClientPrincipal,
+        &pCreds->payload.krb5Tgt.pwszClientPrincipal,
         pszClientPrincipalName);
     BAIL_ON_NT_STATUS(Status);
 
     Status = LwRtlWC16StringAllocateFromCString(
-        &pAccessToken->payload.krb5Tgt.pwszServerPrincipal,
+        &pCreds->payload.krb5Tgt.pwszServerPrincipal,
         pszServerPrincipalName);
     BAIL_ON_NT_STATUS(Status);
 
     /* Set time fields */
-    pAccessToken->payload.krb5Tgt.authTime = creds.times.authtime;
-    pAccessToken->payload.krb5Tgt.startTime = creds.times.starttime;
-    pAccessToken->payload.krb5Tgt.endTime = creds.times.endtime;
-    pAccessToken->payload.krb5Tgt.renewTillTime = creds.times.renew_till;
+    pCreds->payload.krb5Tgt.authTime = creds.times.authtime;
+    pCreds->payload.krb5Tgt.startTime = creds.times.starttime;
+    pCreds->payload.krb5Tgt.endTime = creds.times.endtime;
+    pCreds->payload.krb5Tgt.renewTillTime = creds.times.renew_till;
 
     /* Copy encryption key */
-    pAccessToken->payload.krb5Tgt.keyType = creds.keyblock.enctype;
-    pAccessToken->payload.krb5Tgt.ulKeySize = creds.keyblock.length;
+    pCreds->payload.krb5Tgt.keyType = creds.keyblock.enctype;
+    pCreds->payload.krb5Tgt.ulKeySize = creds.keyblock.length;
     Status = LwIoAllocateMemory(
         creds.keyblock.length,
-        OUT_PPVOID(&pAccessToken->payload.krb5Tgt.pKeyData));
+        OUT_PPVOID(&pCreds->payload.krb5Tgt.pKeyData));
     BAIL_ON_NT_STATUS(Status);
     memcpy(
-        pAccessToken->payload.krb5Tgt.pKeyData,
+        pCreds->payload.krb5Tgt.pKeyData,
         creds.keyblock.contents,
         creds.keyblock.length);
 
     /* Copy tgt */
-    pAccessToken->payload.krb5Tgt.tgtFlags = creds.ticket_flags;
-    pAccessToken->payload.krb5Tgt.ulTgtSize = creds.ticket.length;
+    pCreds->payload.krb5Tgt.tgtFlags = creds.ticket_flags;
+    pCreds->payload.krb5Tgt.ulTgtSize = creds.ticket.length;
     Status = LwIoAllocateMemory(
         creds.ticket.length,
-        OUT_PPVOID(&pAccessToken->payload.krb5Tgt.pTgtData));
+        OUT_PPVOID(&pCreds->payload.krb5Tgt.pTgtData));
     BAIL_ON_NT_STATUS(Status);
     memcpy(
-        pAccessToken->payload.krb5Tgt.pTgtData,
+        pCreds->payload.krb5Tgt.pTgtData,
         creds.ticket.data,
         creds.ticket.length);
 
-    *ppAccessToken = pAccessToken;
+    *ppCreds = pCreds;
 
 cleanup:
 
@@ -545,11 +545,11 @@ cleanup:
 
 error:
 
-    *ppAccessToken = NULL;
+    *ppCreds = NULL;
 
-    if (pAccessToken)
+    if (pCreds)
     {
-        LwIoDeleteAccessToken(pAccessToken);
+        LwIoDeleteCreds(pCreds);
     }
 
     goto cleanup;

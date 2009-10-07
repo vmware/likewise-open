@@ -49,36 +49,33 @@
 
 SMB_API
 NTSTATUS
-SMBSetLogLevel(
-    HANDLE      hSMBConnection,
-    SMBLogLevel logLevel
+LwIoSetLogLevel(
+    PIO_CONTEXT      pContext,
+    LWIO_LOG_LEVEL logLevel
     )
 {
     LWIO_LOG_INFO logInfo = {0};
 
     logInfo.maxAllowedLogLevel = logLevel;
 
-    return SMBSetLogInfo(
-                    hSMBConnection,
+    return LwIoSetLogInfo(
+                    pContext,
                     &logInfo);
 }
 
 SMB_API
 NTSTATUS
-SMBSetLogInfo(
-    HANDLE hSMBConnection,
+LwIoSetLogInfo(
+    PIO_CONTEXT pContext,
     PLWIO_LOG_INFO pLogInfo
     )
 {
     NTSTATUS status = 0;
-    PIO_CONTEXT pConnection = NULL;
     LWMsgCall* pCall = NULL;
     LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
     LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
 
-    pConnection = (PIO_CONTEXT)hSMBConnection;
-
-    status = LwIoContextAcquireCall(pConnection, &pCall);
+    status = LwIoContextAcquireCall(pContext, &pCall);
     BAIL_ON_NT_STATUS(status);
 
     in.tag = SMB_SET_LOG_INFO;
@@ -118,21 +115,18 @@ error:
 
 SMB_API
 NTSTATUS
-SMBGetLogInfo(
-    HANDLE         hSMBConnection,
+LwIoGetLogInfo(
+    PIO_CONTEXT         pContext,
     PLWIO_LOG_INFO* ppLogInfo
     )
 {
     NTSTATUS status = 0;
     SMB_REQUEST request = {0};
-    PIO_CONTEXT pConnection = NULL;
     LWMsgCall* pCall = NULL;
     LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
     LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
 
-    pConnection = (PIO_CONTEXT)hSMBConnection;
-
-    status = LwIoContextAcquireCall(pConnection, &pCall);
+    status = LwIoContextAcquireCall(pContext, &pCall);
     BAIL_ON_NT_STATUS(status);
 
     /* FIXME: what is this for? */

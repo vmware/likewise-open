@@ -24,7 +24,8 @@ liblwioutils_la_SOURCES = \
     strings.c     \
     sysfuncs.c    \
     syslog.c      \
-    unistr.c
+    unistr.c      \
+    regcfg.c
 
 liblwioutils_la_CPPFLAGS = \
     $(AM_CPPFLAGS) \

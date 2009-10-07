@@ -35,10 +35,13 @@
  *
  * Abstract:
  *
+ * Authors: Scott Salley <ssalley@likewise.com>
+ *
  */
-#include "iop.h"
 
-struct __SMB_CONFIG_REG
+#include "includes.h"
+
+struct __LWIO_CONFIG_REG
 {
     HANDLE hConnection;
     HKEY hKey;
@@ -47,22 +50,21 @@ struct __SMB_CONFIG_REG
 };
 
 DWORD
-SMBProcessConfig(
+LwIoProcessConfig(
     PCSTR pszConfigKey,
     PCSTR pszPolicyKey,
-    PSMB_CONFIG_TABLE pConfig,
+    PLWIO_CONFIG_TABLE pConfig,
     DWORD dwConfigEntries
     )
 {
     DWORD dwError = 0;
-    DWORD dwEntry;
+    DWORD dwEntry = 0;
+    PLWIO_CONFIG_REG pReg = NULL;
 
-    PSMB_CONFIG_REG pReg = NULL;
-
-    dwError = SMBOpenConfig(pszConfigKey, pszPolicyKey, &pReg);
+    dwError = LwIoOpenConfig(pszConfigKey, pszPolicyKey, &pReg);
     BAIL_ON_LWIO_ERROR(dwError);
 
-    if ( pReg == NULL )
+    if (pReg == NULL)
     {
         goto error;
     }
@@ -72,16 +74,16 @@ SMBProcessConfig(
         dwError = 0;
         switch (pConfig[dwEntry].Type)
         {
-            case SMBTypeString:
-                dwError = SMBReadConfigString(
+            case LwIoTypeString:
+                dwError = LwIoReadConfigString(
                             pReg,
                             pConfig[dwEntry].pszName,
                             pConfig[dwEntry].bUsePolicy,
                             pConfig[dwEntry].pValue);
                 break;
 
-            case SMBTypeDword:
-                dwError = SMBReadConfigDword(
+            case LwIoTypeDword:
+                dwError = LwIoReadConfigDword(
                             pReg,
                             pConfig[dwEntry].pszName,
                             pConfig[dwEntry].bUsePolicy,
@@ -90,16 +92,16 @@ SMBProcessConfig(
                             pConfig[dwEntry].pValue);
                 break;
 
-            case SMBTypeBoolean:
-                dwError = SMBReadConfigBoolean(
+            case LwIoTypeBoolean:
+                dwError = LwIoReadConfigBoolean(
                             pReg,
                             pConfig[dwEntry].pszName,
                             pConfig[dwEntry].bUsePolicy,
                             pConfig[dwEntry].pValue);
                 break;
 
-            case SMBTypeEnum:
-                dwError = SMBReadConfigEnum(
+            case LwIoTypeEnum:
+                dwError = LwIoReadConfigEnum(
                             pReg,
                             pConfig[dwEntry].pszName,
                             pConfig[dwEntry].bUsePolicy,
@@ -117,7 +119,7 @@ SMBProcessConfig(
     }
 
 cleanup:
-    SMBCloseConfig(pReg);
+    LwIoCloseConfig(pReg);
     pReg = NULL;
 
     return dwError;
@@ -127,26 +129,29 @@ error:
 }
 
 DWORD
-SMBOpenConfig(
+LwIoOpenConfig(
     PCSTR pszConfigKey,
     PCSTR pszPolicyKey,
-    PSMB_CONFIG_REG *ppReg
+    PLWIO_CONFIG_REG *ppReg
     )
 {
     DWORD dwError = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PLWIO_CONFIG_REG pReg = NULL;
 
-    PSMB_CONFIG_REG pReg = NULL;
+    ntStatus = LW_RTL_ALLOCATE(
+                   (PVOID*)&pReg,
+                   LWIO_CONFIG_REG,
+                   sizeof(LWIO_CONFIG_REG));
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    SMBAllocateMemory(sizeof(SMB_CONFIG_REG), (PVOID*)&pReg);
-    BAIL_ON_LWIO_ERROR(dwError);
+    ntStatus = LwRtlCStringDuplicate(&pReg->pszConfigKey, pszConfigKey);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = SMBAllocateString(pszConfigKey, &(pReg->pszConfigKey));
-    BAIL_ON_LWIO_ERROR(dwError);
+    ntStatus = LwRtlCStringDuplicate(&pReg->pszPolicyKey, pszPolicyKey);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = SMBAllocateString(pszPolicyKey, &(pReg->pszPolicyKey));
-    BAIL_ON_LWIO_ERROR(dwError);
-
-    dwError = RegOpenServer(&(pReg->hConnection));
+    dwError = RegOpenServer(&pReg->hConnection);
     if ( dwError )
     {
         dwError = 0;
@@ -156,7 +161,7 @@ SMBOpenConfig(
     dwError = RegOpenRootKey(
                 pReg->hConnection,
                 LIKEWISE_ROOT_KEY,
-                &(pReg->hKey));
+                &pReg->hKey);
     if (dwError)
     {
         dwError = 0;
@@ -171,23 +176,24 @@ cleanup:
 
 error:
 
-    SMBCloseConfig(pReg);
+    LwIoCloseConfig(pReg);
     pReg = NULL;
 
     goto cleanup;
 }
 
 VOID
-SMBCloseConfig(
-    PSMB_CONFIG_REG pReg
+LwIoCloseConfig(
+    PLWIO_CONFIG_REG pReg
     )
 {
-    if ( pReg )
+    if (pReg)
     {
-        LWIO_SAFE_FREE_STRING(pReg->pszConfigKey);
+        LwRtlCStringFree(&pReg->pszConfigKey);
 
-        LWIO_SAFE_FREE_STRING(pReg->pszPolicyKey);
-        if ( pReg->hConnection )
+        LwRtlCStringFree(&pReg->pszPolicyKey);
+
+        if (pReg->hConnection)
         {
             if ( pReg->hKey )
             {
@@ -198,27 +204,26 @@ SMBCloseConfig(
             pReg->hConnection = NULL;
         }
 
-        LWIO_SAFE_FREE_MEMORY(pReg);
+        RTL_FREE(&pReg);
     }
 }
 
 DWORD
-SMBReadConfigString(
-    PSMB_CONFIG_REG pReg,
+LwIoReadConfigString(
+    PLWIO_CONFIG_REG pReg,
     PCSTR   pszName,
     BOOLEAN bUsePolicy,
     PSTR    *ppszValue
     )
 {
     DWORD dwError = 0;
-
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     BOOLEAN bGotValue = FALSE;
-    PSTR pszValue = NULL;
     char szValue[MAX_VALUE_LENGTH];
-    DWORD dwType;
-    DWORD dwSize;
+    DWORD dwType = 0;
+    DWORD dwSize = 0;
 
-    if ( bUsePolicy )
+    if (bUsePolicy)
     {
         dwSize = sizeof(szValue);
         memset(szValue, 0, dwSize);
@@ -232,10 +237,12 @@ SMBReadConfigString(
                     szValue,
                     &dwSize);
         if (!dwError)
+        {
             bGotValue = TRUE;
+        }
     }
 
-    if (!bGotValue )
+    if (!bGotValue)
     {
         dwSize = sizeof(szValue);
         memset(szValue, 0, dwSize);
@@ -249,24 +256,20 @@ SMBReadConfigString(
                     szValue,
                     &dwSize);
         if (!dwError)
+        {
             bGotValue = TRUE;
+        }
     }
 
     if (bGotValue)
     {
-        dwError = SMBAllocateString(szValue, &pszValue);
-        BAIL_ON_LWIO_ERROR(dwError);
-
-        LWIO_SAFE_FREE_STRING(*ppszValue);
-        *ppszValue = pszValue;
-        pszValue = NULL;
+        ntStatus = LwRtlCStringDuplicate(ppszValue, szValue);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
     dwError = 0;
 
 cleanup:
-    LWIO_SAFE_FREE_STRING(pszValue);
-
     return dwError;
 
 error:
@@ -274,21 +277,20 @@ error:
 }
 
 DWORD
-SMBReadConfigDword(
-    PSMB_CONFIG_REG pReg,
+LwIoReadConfigDword(
+    PLWIO_CONFIG_REG pReg,
     PCSTR pszName,
     BOOLEAN bUsePolicy,
-    DWORD dwMax,
     DWORD dwMin,
+    DWORD dwMax,
     PDWORD pdwValue
     )
 {
     DWORD dwError = 0;
-
     BOOLEAN bGotValue = FALSE;
-    DWORD dwValue;
-    DWORD dwSize;
-    DWORD dwType;
+    DWORD dwValue = 0;
+    DWORD dwSize =0;
+    DWORD dwType = 0;
 
     if (bUsePolicy)
     {
@@ -328,8 +330,10 @@ SMBReadConfigDword(
 
     if (bGotValue)
     {
-        if ( dwMin <= dwValue && dwValue <= dwMax)
+        if (dwMin <= dwValue && dwValue <= dwMax)
+        {
             *pdwValue = dwValue;
+        }
     }
 
     dwError = 0;
@@ -338,8 +342,8 @@ SMBReadConfigDword(
 }
 
 DWORD
-SMBReadConfigBoolean(
-    PSMB_CONFIG_REG pReg,
+LwIoReadConfigBoolean(
+    PLWIO_CONFIG_REG pReg,
     PCSTR pszName,
     BOOLEAN bUsePolicy,
     PBOOLEAN pbValue
@@ -347,10 +351,9 @@ SMBReadConfigBoolean(
 {
 
     DWORD dwError = 0;
-
     DWORD dwValue = *pbValue == TRUE ? 0x00000001 : 0x00000000;
 
-    dwError = SMBReadConfigDword(
+    dwError = LwIoReadConfigDword(
                 pReg,
                 pszName,
                 bUsePolicy,
@@ -370,8 +373,8 @@ error:
 }
 
 DWORD
-SMBReadConfigEnum(
-    PSMB_CONFIG_REG pReg,
+LwIoReadConfigEnum(
+    PLWIO_CONFIG_REG pReg,
     PCSTR   pszName,
     BOOLEAN bUsePolicy,
     DWORD   dwMin,
@@ -382,10 +385,9 @@ SMBReadConfigEnum(
 {
     DWORD dwError = 0;
     PSTR pszValue = NULL;
+    DWORD dwEnumIndex = 0;
 
-    DWORD dwEnumIndex;
-
-    dwError = SMBReadConfigString(
+    dwError = LwIoReadConfigString(
                 pReg,
                 pszName,
                 bUsePolicy,
@@ -398,19 +400,32 @@ SMBReadConfigEnum(
              dwEnumIndex <= dwMax - dwMin;
              dwEnumIndex++)
         {
-            if(!strcasecmp(pszValue, ppszEnumNames[dwEnumIndex]))
+            if(LwRtlCStringCompare(
+                   pszValue,
+                   ppszEnumNames[dwEnumIndex], FALSE) == 0)
             {
                 *pdwValue = dwEnumIndex + dwMin;
-                goto cleanup;
+                break;
             }
         }
     }
 
 cleanup:
-    LWIO_SAFE_FREE_STRING(pszValue);
+    LwRtlCStringFree(&pszValue);
+
     return dwError;
 
 error:
     goto cleanup;
 }
 
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

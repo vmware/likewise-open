@@ -107,7 +107,7 @@ typedef enum
     LWIO_LOG_LEVEL_VERBOSE,
     LWIO_LOG_LEVEL_DEBUG,
     LWIO_LOG_LEVEL_TRACE
-} SMBLogLevel;
+} LWIO_LOG_LEVEL;
 
 typedef enum
 {
@@ -115,18 +115,24 @@ typedef enum
     LWIO_LOG_TARGET_CONSOLE,
     LWIO_LOG_TARGET_FILE,
     LWIO_LOG_TARGET_SYSLOG
-} SMBLogTarget;
+} LWIO_LOG_TARGET;
+
+typedef enum
+{
+    LWIO_DRIVER_UNLOADED,
+    LWIO_DRIVER_LOADED
+} LWIO_DRIVER_STATUS;
 
 typedef VOID (*PFN_LWIO_LOG_MESSAGE)(
                             HANDLE      hLog,
-                            SMBLogLevel logLevel,
+                            LWIO_LOG_LEVEL logLevel,
                             PCSTR       pszFormat,
                             va_list     msgList
                             );
 
 typedef struct __LWIO_LOG_INFO {
-    SMBLogLevel  maxAllowedLogLevel;
-    SMBLogTarget logTarget;
+    LWIO_LOG_LEVEL  maxAllowedLogLevel;
+    LWIO_LOG_TARGET logTarget;
     PSTR         pszPath;
 } LWIO_LOG_INFO, *PLWIO_LOG_INFO;
 
@@ -146,31 +152,49 @@ LwIoOpenContext(
     );
 
 LW_NTSTATUS
-SMBRefreshConfiguration(
-    HANDLE hConnection
+LwIoRefreshConfiguration(
+    LW_PIO_CONTEXT hConnection
     );
 
 LW_NTSTATUS
-SMBSetLogLevel(
-    HANDLE      hSMBConnection,
-    SMBLogLevel logLevel
+LwIoSetLogLevel(
+    LW_PIO_CONTEXT pContext,
+    LWIO_LOG_LEVEL logLevel
     );
 
 LW_NTSTATUS
-SMBGetLogInfo(
-    HANDLE         hSMBConnection,
+LwIoGetLogInfo(
+    LW_PIO_CONTEXT pContext,
     PLWIO_LOG_INFO* ppLogInfo
     );
 
 LW_NTSTATUS
-SMBSetLogInfo(
-    HANDLE        hSMBConnection,
+LwIoSetLogInfo(
+    LW_PIO_CONTEXT pContext,
     PLWIO_LOG_INFO pLogInfo
     );
 
 VOID
-SMBFreeLogInfo(
+LwIoFreeLogInfo(
     PLWIO_LOG_INFO pLogInfo
+    );
+
+LW_NTSTATUS
+LwIoGetDriverStatus(
+    LW_PIO_CONTEXT pContext,
+    LW_PWSTR pwszDriverName
+    );
+
+LW_NTSTATUS
+LwIoLoadDriver(
+    LW_PIO_CONTEXT pContext,
+    LW_PWSTR pwszDriverNAme
+    );
+
+LW_NTSTATUS
+LwIoUnloadDriver(
+    LW_PIO_CONTEXT pContext,
+    LW_PWSTR pwszDriverName
     );
 
 LW_NTSTATUS
@@ -179,48 +203,48 @@ LwIoCloseContext(
     );
 
 LW_NTSTATUS
-LwIoCreatePlainAccessTokenW(
+LwIoCreatePlainCredsW(
     LW_PCWSTR pwszUsername,
     LW_PCWSTR pwszPassword,
-    LW_PIO_ACCESS_TOKEN* ppAccessToken
+    LW_PIO_CREDS* ppCreds
     );
 
 LW_NTSTATUS
-LwIoCreatePlainAccessTokenA(
+LwIoCreatePlainCredsA(
     PCSTR pszUsername,
     PCSTR pszPassword,
-    LW_PIO_ACCESS_TOKEN* ppAccessToken
+    LW_PIO_CREDS* ppCreds
     );
 
 LW_NTSTATUS
-LwIoCreateKrb5AccessTokenW(
+LwIoCreateKrb5CredsW(
     PCWSTR pwszPrincipal,
     PCWSTR pwszCachePath,
-    LW_PIO_ACCESS_TOKEN* ppAccessToken
+    LW_PIO_CREDS* ppCreds
     );
 
 LW_NTSTATUS
-LwIoCreateKrb5AccessTokenA(
+LwIoCreateKrb5CredsA(
     PCSTR pszPrincipal,
     PCSTR pszCachePath,
-    LW_PIO_ACCESS_TOKEN* ppAccessToken
+    LW_PIO_CREDS* ppCreds
     );
 
 BOOLEAN
-LwIoCompareAccessTokens(
-    LW_PIO_ACCESS_TOKEN pAccessToken1,
-    LW_PIO_ACCESS_TOKEN pAccessToken2
+LwIoCompareCredss(
+    LW_PIO_CREDS pCreds1,
+    LW_PIO_CREDS pCreds2
     );
 
 LW_NTSTATUS
-LwIoCopyAccessToken(
-    LW_PIO_ACCESS_TOKEN pAccessToken,
-    LW_PIO_ACCESS_TOKEN * ppCopy
+LwIoCopyCreds(
+    LW_PIO_CREDS pCreds,
+    LW_PIO_CREDS * ppCopy
     );
 
 VOID
-LwIoDeleteAccessToken(
-    LW_PIO_ACCESS_TOKEN pAccessToken
+LwIoDeleteCreds(
+    LW_PIO_CREDS pCreds
     );
 
 #ifndef LW_NO_THREADS
@@ -231,16 +255,16 @@ LwIoOpenContextShared(
     );
 
 LW_NTSTATUS
-LwIoSetThreadAccessToken(
-    LW_PIO_ACCESS_TOKEN pToken
+LwIoSetThreadCreds(
+    LW_PIO_CREDS pToken
     );
 
 LW_NTSTATUS
-LwIoGetThreadAccessToken(
-    LW_PIO_ACCESS_TOKEN* ppToken
+LwIoGetThreadCreds(
+    LW_PIO_CREDS* ppToken
     );
 
-#endif /* ! SMB_NO_THREADS */
+#endif /* ! LW_NO_THREADS */
 
 #include <lwio/ntfileapi.h>
 #include <lwio/smbfileapi.h>

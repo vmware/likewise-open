@@ -57,7 +57,7 @@ DWORD
 ParseArgs(
     int    argc,
     char*  argv[],
-    SMBLogLevel* pLogLevel
+    LWIO_LOG_LEVEL* pLogLevel
     );
 
 VOID
@@ -80,7 +80,7 @@ main(
     )
 {
     DWORD dwError = 0;
-    SMBLogLevel logLevel = LWIO_LOG_LEVEL_ERROR;
+    LWIO_LOG_LEVEL logLevel = LWIO_LOG_LEVEL_ERROR;
     PIO_CONTEXT pContext = (HANDLE)NULL;
     PLWIO_LOG_INFO pLogInfo = NULL;
     size_t dwErrorBufferSize = 0;
@@ -101,14 +101,14 @@ main(
     dwError = LwIoOpenContext(&pContext);
     BAIL_ON_LWIO_ERROR(dwError);
 
-    dwError = SMBSetLogLevel(
+    dwError = LwIoSetLogLevel(
         (HANDLE) pContext,
         logLevel);
     BAIL_ON_LWIO_ERROR(dwError);
 
     fprintf(stdout, "The log level was set successfully\n\n");
 
-    dwError = SMBGetLogInfo(
+    dwError = LwIoGetLogInfo(
         (HANDLE) pContext,
         &pLogInfo);
     BAIL_ON_LWIO_ERROR(dwError);
@@ -120,7 +120,7 @@ cleanup:
 
     if (pLogInfo)
     {
-        SMBFreeLogInfo(pLogInfo);
+        LwIoFreeLogInfo(pLogInfo);
     }
 
     if (pContext != NULL) {
@@ -172,7 +172,7 @@ DWORD
 ParseArgs(
     int    argc,
     char*  argv[],
-    SMBLogLevel* pLogLevel
+    LWIO_LOG_LEVEL* pLogLevel
     )
 {
     typedef enum {
@@ -183,7 +183,7 @@ ParseArgs(
     int iArg = 1;
     PSTR pszArg = NULL;
     ParseMode parseMode = PARSE_MODE_OPEN;
-    SMBLogLevel logLevel = LWIO_LOG_LEVEL_ERROR;
+    LWIO_LOG_LEVEL logLevel = LWIO_LOG_LEVEL_ERROR;
     BOOLEAN bLogLevelSpecified = FALSE;
 
     do {

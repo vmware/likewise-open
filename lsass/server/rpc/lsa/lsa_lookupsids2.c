@@ -66,7 +66,7 @@ LsaSrvLookupSids2(
     RPCSTATUS rpcstatus = 0;
     PPOLICY_CONTEXT pPolCtx = NULL;
     handle_t hLsaBinding = NULL;
-    LW_PIO_ACCESS_TOKEN pAccessToken = NULL;
+    LW_PIO_CREDS pCreds = NULL;
     PolicyHandle hDcPolicy;
     PSAM_DOMAIN_ENTRY pLocalDomain = NULL;
     PSAM_DOMAIN_ENTRY pBuiltinDomain = NULL;
@@ -139,12 +139,12 @@ LsaSrvLookupSids2(
                                            &pszDcName);
         BAIL_ON_LSA_ERROR(dwError);
 
-        ntStatus = LsaSrvGetSystemAccessToken(&pAccessToken);
+        ntStatus = LsaSrvGetSystemCreds(&pCreds);
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
         rpcstatus = InitLsaBindingDefault(&hLsaBinding,
                                           pszDcName,
-                                          pAccessToken);
+                                          pCreds);
         if (rpcstatus) {
             dwError = LW_ERROR_RPC_ERROR;
             BAIL_ON_LSA_ERROR(dwError);
@@ -450,9 +450,9 @@ cleanup:
         FreeLsaBinding(&hLsaBinding);
     }
 
-    if (pAccessToken)
+    if (pCreds)
     {
-        LwIoDeleteAccessToken(pAccessToken);
+        LwIoDeleteCreds(pCreds);
     }
 
     if (pszDomainFqdn)

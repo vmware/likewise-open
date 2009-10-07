@@ -62,16 +62,16 @@
 
 #include "lwiodef.h"
 #include "lwioutils.h"
+#include "lwiocfg.h"
 #include "lwiolog_r.h"
 #include "lwioipc.h"
 
 #include "defs.h"
 #include "structs.h"
-#include "lwiocfg.h"
+#include "cfg.h"
 #include "servermain.h"
 #include "ipc.h"
 #include "proc.h"
-#include "smbcfg.h"
 
 #include "externs.h"
 

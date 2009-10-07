@@ -140,6 +140,8 @@ wbcErr wbcInterfaceDetails(struct wbcInterfaceDetails **details)
     PSTR pszMyDnsDomain = NULL;
     PLWNET_DC_INFO pDcInfo = NULL;
 
+    SET_OUT_PTR_NULL(details);
+
     BAIL_ON_NULL_PTR_PARAM(details, dwErr);
 
     /* Find our domain */
@@ -189,6 +191,8 @@ wbcErr wbcLibraryDetails(struct wbcLibraryDetails **details)
 {
     DWORD dwErr = LW_ERROR_INTERNAL;
     wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
+
+    SET_OUT_PTR_NULL(details);
 
     BAIL_ON_NULL_PTR_PARAM(details, dwErr);
 

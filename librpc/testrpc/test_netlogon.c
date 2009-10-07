@@ -40,11 +40,11 @@ handle_t CreateNetlogonBinding(handle_t *binding, const wchar16_t *host)
     RPCSTATUS status = RPC_S_OK;
     size_t hostname_size = 0;
     char *hostname = NULL;
-    PIO_ACCESS_TOKEN access_token = NULL;
+    PIO_CREDS creds = NULL;
 
     if (binding == NULL || host == NULL) return NULL;
 
-    if (LwIoGetThreadAccessToken(&access_token) != STATUS_SUCCESS) return NULL;
+    if (LwIoGetThreadCreds(&creds) != STATUS_SUCCESS) return NULL;
 
     hostname_size = wc16slen(host) + 1;
     hostname = (char*) malloc(hostname_size * sizeof(char));
@@ -52,7 +52,7 @@ handle_t CreateNetlogonBinding(handle_t *binding, const wchar16_t *host)
 
     wc16stombs(hostname, host, hostname_size);
 
-    status = InitNetlogonBindingDefault(binding, hostname, access_token, FALSE);
+    status = InitNetlogonBindingDefault(binding, hostname, creds, FALSE);
     if (status != RPC_S_OK) {
         int result;
         unsigned char errmsg[dce_c_error_string_len];
@@ -70,9 +70,9 @@ handle_t CreateNetlogonBinding(handle_t *binding, const wchar16_t *host)
 
     SAFE_FREE(hostname);
 
-    if (access_token)
+    if (creds)
     {
-        LwIoDeleteAccessToken(access_token);
+        LwIoDeleteCreds(creds);
     }
 
     return *binding;
@@ -91,7 +91,7 @@ handle_t TestOpenSchannel(handle_t netr_b,
     NTSTATUS status = STATUS_SUCCESS;
     wchar16_t *machine_acct = NULL;
     handle_t schn_b = NULL;
-    PIO_ACCESS_TOKEN auth = NULL;
+    PIO_CREDS auth = NULL;
     uint8 srv_cred[8];
     rpc_schannel_auth_info_t schnauth_info;
 
@@ -115,13 +115,13 @@ handle_t TestOpenSchannel(handle_t netr_b,
     schnauth_info.machine_name = (unsigned char*) awc16stombs(computer);
     schnauth_info.sender_flags = rpc_schn_initiator_flags;
 
-    status = LwIoCreatePlainAccessTokenW(user, pass, &auth);
+    status = LwIoCreatePlainCredsW(user, pass, &auth);
     goto_if_ntstatus_not_success(status, error);
 
-    status = LwIoSetThreadAccessToken(auth);
+    status = LwIoSetThreadCreds(auth);
     goto_if_ntstatus_not_success(status, error);
 
-    LwIoDeleteAccessToken(auth);
+    LwIoDeleteCreds(auth);
 
 done:
     SAFE_FREE(machine_acct);
@@ -138,7 +138,7 @@ void TestCloseSchannel(handle_t schn_b)
 {
     FreeNetlogonBinding(&schn_b);
 
-    LwIoSetThreadAccessToken(NULL);
+    LwIoSetThreadCreds(NULL);
 }
 
 
@@ -339,15 +339,15 @@ int TestNetlogonSamLogoff(struct test *t, const wchar16_t *hostname,
     if (username && password)
     {
         /* Set up access token */
-        PIO_ACCESS_TOKEN hAccessToken = NULL;
+        PIO_CREDS hCreds = NULL;
 
-        status = LwIoCreatePlainAccessTokenW(user, pass, &hAccessToken);
+        status = LwIoCreatePlainCredsW(user, pass, &hCreds);
         goto_if_ntstatus_not_success(status, done);
 
-        status = LwIoSetThreadAccessToken(hAccessToken);
+        status = LwIoSetThreadCreds(hCreds);
         goto_if_ntstatus_not_success(status, done);
 
-        LwIoDeleteAccessToken(hAccessToken);
+        LwIoDeleteCreds(hCreds);
     }
 
     hostname_len = wc16slen(hostname);
@@ -413,7 +413,7 @@ close:
 
     if (username && password)
     {
-        status = LwIoSetThreadAccessToken(NULL);
+        status = LwIoSetThreadCreds(NULL);
         goto_if_ntstatus_not_success(status, cleanup);
     }
 

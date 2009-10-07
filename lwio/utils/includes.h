@@ -53,6 +53,7 @@
 
 #include "lwiodef.h"
 #include "lwioutils.h"
+#include "lwiocfg.h"
 
 #include "sysfuncs_p.h"
 #include "syslog_p.h"

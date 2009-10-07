@@ -56,7 +56,7 @@ NetrOpenSchannel(
     BYTE SrvChal[8] = {0};
     BYTE SrvCred[8] = {0};
     rpc_schannel_auth_info_t SchannelAuthInfo = {0};
-    PIO_ACCESS_TOKEN pAccessToken = NULL;
+    PIO_CREDS pIoCreds = NULL;
     size_t HostnameSize = 0;
     PSTR pszHostname = NULL;
     handle_t hSchannelBinding = NULL;
@@ -103,7 +103,7 @@ NetrOpenSchannel(
     BAIL_ON_NULL_PTR(SchannelAuthInfo.domain_name, ntStatus);
     BAIL_ON_NULL_PTR(SchannelAuthInfo.machine_name, ntStatus);
 
-    ntStatus = LwIoGetThreadAccessToken(&pAccessToken);
+    ntStatus = LwIoGetThreadCreds(&pIoCreds);
     BAIL_ON_NT_STATUS(ntStatus);
 
     HostnameSize = wc16slen(pwszHostname) + 1;
@@ -116,7 +116,7 @@ NetrOpenSchannel(
 
     ntStatus = InitNetlogonBindingDefault(&hSchannelBinding,
                                           pszHostname,
-                                          pAccessToken,
+                                          pIoCreds,
                                           TRUE);
     BAIL_ON_RPCSTATUS_ERROR(rpcStatus);
 
@@ -146,9 +146,9 @@ cleanup:
         NetrFreeMemory(pszHostname);
     }
 
-    if (pAccessToken)
+    if (pIoCreds)
     {
-        LwIoDeleteAccessToken(pAccessToken);
+        LwIoDeleteCreds(pIoCreds);
     }
 
     return ntStatus;

@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -28,29 +28,40 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ * Abstract:
+ *
+ * Authors: Scott Salley <ssalley@likewise.com>
+ *
+ */
+
 #include "includes.h"
 
 static
 DWORD
-SMBSrvInitializeConfig(
-    IN OUT PSMB_CONFIG pConfig
+LwioSrvInitializeConfig(
+    IN OUT PLWIO_CONFIG pConfig
     );
 
 static
 DWORD
-SMBSrvReadRegistry(
-    IN OUT PSMB_CONFIG pConfig
+LwioSrvReadRegistry(
+    IN OUT PLWIO_CONFIG pConfig
     );
 
 static
 DWORD
-SMBSrvTransferConfigContents(
-    PSMB_CONFIG pSrcConfig,
-    PSMB_CONFIG pDstConfig
+LwioSrvTransferConfigContents(
+    PLWIO_CONFIG pSrcConfig,
+    PLWIO_CONFIG pDstConfig
     );
 
 DWORD
-SMBSrvSetupInitialConfig(
+LwioSrvSetupInitialConfig(
     VOID
     )
 {
@@ -59,7 +70,7 @@ SMBSrvSetupInitialConfig(
 
     LWIO_LOCK_SERVERCONFIG(bUnlockConfig);
 
-    dwError = SMBSrvInitializeConfig(gpServerConfig);
+    dwError = LwioSrvInitializeConfig(gpServerConfig);
 
     LWIO_UNLOCK_SERVERCONFIG(bUnlockConfig);
 
@@ -67,20 +78,21 @@ SMBSrvSetupInitialConfig(
 }
 
 DWORD
-SMBSrvRefreshConfig(
+LwioSrvRefreshConfig(
+    VOID
     )
 {
     DWORD dwError = 0;
     BOOLEAN bUnlockConfig = FALSE;
-    SMB_CONFIG smb_config;
+    LWIO_CONFIG LwIoConfig;
 
-    dwError = SMBSrvReadRegistry(&smb_config);
+    dwError = LwioSrvReadRegistry(&LwIoConfig);
     BAIL_ON_LWIO_ERROR(dwError);
 
     LWIO_LOCK_SERVERCONFIG(bUnlockConfig);
 
-    dwError = SMBSrvTransferConfigContents(
-                    &smb_config,
+    dwError = LwioSrvTransferConfigContents(
+                    &LwIoConfig,
                     gpServerConfig);
     BAIL_ON_LWIO_ERROR(dwError);
 
@@ -92,35 +104,34 @@ cleanup:
 
 error:
 
-    SMBSrvFreeConfigContents(&smb_config);
+    LwioSrvFreeConfigContents(&LwIoConfig);
 
     goto cleanup;
 }
 
 static
 DWORD
-SMBSrvReadRegistry(
-    IN OUT PSMB_CONFIG pConfig
+LwioSrvReadRegistry(
+    IN OUT PLWIO_CONFIG pConfig
     )
 {
     DWORD dwError = 0;
-    SMB_CONFIG smb_config;
+    LWIO_CONFIG LwIoConfig;
 
-    memset(&smb_config, 0, sizeof(SMB_CONFIG));
+    memset(&LwIoConfig, 0, sizeof(LWIO_CONFIG));
 
-    dwError = SMBSrvInitializeConfig(&smb_config);
+    dwError = LwioSrvInitializeConfig(&LwIoConfig);
     BAIL_ON_LWIO_ERROR(dwError);
 
-
-    dwError = SMBProcessConfig(
+    dwError = LwIoProcessConfig(
         "Services\\lwio\\Parameters",
         "Policy\\Services\\lwio\\Parameters",
         NULL,
         0);
     BAIL_ON_NON_LWREG_ERROR(dwError);
 
-    dwError = SMBSrvTransferConfigContents(
-                    &smb_config,
+    dwError = LwioSrvTransferConfigContents(
+                    &LwIoConfig,
                     pConfig);
     BAIL_ON_LWIO_ERROR(dwError);
 
@@ -130,15 +141,15 @@ cleanup:
 
 error:
 
-    SMBSrvFreeConfigContents(&smb_config);
+    LwioSrvFreeConfigContents(&LwIoConfig);
 
     goto cleanup;
 }
 
 static
 DWORD
-SMBSrvInitializeConfig(
-    IN OUT PSMB_CONFIG pConfig
+LwioSrvInitializeConfig(
+    IN OUT PLWIO_CONFIG pConfig
     )
 {
     return 0;
@@ -146,12 +157,12 @@ SMBSrvInitializeConfig(
 
 static
 DWORD
-SMBSrvTransferConfigContents(
-    PSMB_CONFIG pSrcConfig,
-    PSMB_CONFIG pDstConfig
+LwioSrvTransferConfigContents(
+    PLWIO_CONFIG pSrcConfig,
+    PLWIO_CONFIG pDstConfig
     )
 {
-    SMBSrvFreeConfigContents(pDstConfig);
+    LwioSrvFreeConfigContents(pDstConfig);
 
     memcpy(pDstConfig, pSrcConfig, sizeof(*pSrcConfig));
     memset(pSrcConfig, 0, sizeof(*pSrcConfig));
@@ -160,20 +171,29 @@ SMBSrvTransferConfigContents(
 }
 
 VOID
-SMBSrvFreeConfig(
-    IN OUT PSMB_CONFIG pConfig
+LwioSrvFreeConfig(
+    IN OUT PLWIO_CONFIG pConfig
     )
 {
-    SMBSrvFreeConfigContents(pConfig);
+    LwioSrvFreeConfigContents(pConfig);
 
-    SMBFreeMemory(pConfig);
+    LwIoFreeMemory(pConfig);
 }
 
 VOID
-SMBSrvFreeConfigContents(
-    IN OUT PSMB_CONFIG pConfig
+LwioSrvFreeConfigContents(
+    IN OUT PLWIO_CONFIG pConfig
     )
 {
     // Nothing to do right now
 }
 
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

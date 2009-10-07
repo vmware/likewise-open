@@ -274,7 +274,7 @@ NetJoinDomainLocalInternal(
     wchar16_t *ospack_attr_name = NULL;
     wchar16_t *ospack_attr_val[2] = {0};
     wchar16_t *sid_str = NULL;
-    LW_PIO_ACCESS_TOKEN access_token = NULL;
+    LW_PIO_CREDS creds = NULL;
 
     machname = wc16sdup(machine);
     BAIL_ON_NO_MEMORY(machname);
@@ -285,19 +285,19 @@ NetJoinDomainLocalInternal(
 
     if (account && password)
     {
-        status = LwIoCreatePlainAccessTokenW(account, password, &access_token);
+        status = LwIoCreatePlainCredsW(account, password, &creds);
         BAIL_ON_NTSTATUS_ERROR(status);
     }
     else
     {
-        status = LwIoGetThreadAccessToken(&access_token);
+        status = LwIoGetThreadCreds(&creds);
         BAIL_ON_NTSTATUS_ERROR(status);
     }
 
     status = NetConnectLsa(&lsa_conn,
                            domain_controller_name,
                            lsa_access,
-                           access_token);
+                           creds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     lsa_b = lsa_conn->lsa.bind;
@@ -335,7 +335,7 @@ NetJoinDomainLocalInternal(
                             domain_controller_name,
                             domain_access,
                             0,
-                            access_token);
+                            creds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     samr_b = conn->samr.bind;
@@ -555,9 +555,9 @@ cleanup:
         LsaRpcFreeMemory((void*)lsa_policy_info);
     }
 
-    if (access_token)
+    if (creds)
     {
-        LwIoDeleteAccessToken(access_token);
+        LwIoDeleteCreds(creds);
     }
 
     RTL_FREE(&sid_str);

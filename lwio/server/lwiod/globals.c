@@ -68,7 +68,7 @@ pthread_t  gSignalHandlerThread;
 pthread_t* gpSignalHandlerThread = NULL;
 
 pthread_mutex_t gServerConfigLock = PTHREAD_MUTEX_INITIALIZER;
-SMB_CONFIG gServerConfig;
-PSMB_CONFIG gpServerConfig = &gServerConfig;
+LWIO_CONFIG gServerConfig;
+PLWIO_CONFIG gpServerConfig = &gServerConfig;
 
 

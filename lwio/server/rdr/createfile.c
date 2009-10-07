@@ -73,7 +73,7 @@ RdrTransactCreateFile(
 
 NTSTATUS
 RdrCreateFileEx(
-    PIO_ACCESS_TOKEN pSecurityToken,
+    PIO_CREDS pSecurityToken,
     PIO_SECURITY_CONTEXT_PROCESS_INFORMATION pProcessInfo,
     PCWSTR pwszPath,
     ACCESS_MASK desiredAccess,
@@ -94,7 +94,7 @@ RdrCreateFileEx(
     PSTR   pszCachePath = NULL;
     PSTR   pszPrincipal = NULL;
 
-    if (!pSecurityToken || pSecurityToken->type != IO_ACCESS_TOKEN_TYPE_KRB5_TGT)
+    if (!pSecurityToken || pSecurityToken->type != IO_CREDS_TYPE_KRB5_TGT)
     {
         ntStatus = STATUS_ACCESS_DENIED;
         BAIL_ON_NT_STATUS(ntStatus);

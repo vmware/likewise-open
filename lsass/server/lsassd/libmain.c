@@ -381,7 +381,7 @@ LsaSrvVerifyLwIoStatus(
     LSA_LOG_INFO("LsaSrvVerifyLwIoStatus call to LwIo API returned %d", dwError);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = SMBGetLogInfo(
+    dwError = LwIoGetLogInfo(
                   (HANDLE) pContext,
                   &pLogInfo);
     LSA_LOG_INFO("LsaSrvVerifyLwIoStatus call to LwIo API returned %d", dwError);
@@ -391,7 +391,7 @@ cleanup:
 
     if (pLogInfo)
     {
-        SMBFreeLogInfo(pLogInfo);
+        LwIoFreeLogInfo(pLogInfo);
     }
 
     if (pContext != NULL)

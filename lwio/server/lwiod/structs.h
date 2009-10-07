@@ -56,9 +56,9 @@ typedef struct {
     /* Should start as daemon */
     DWORD dwStartAsDaemon;
     /* where are we logging */
-    SMBLogTarget logTarget;
+    LWIO_LOG_TARGET logTarget;
     /* How much logging do you want? */
-    SMBLogLevel maxAllowedLogLevel;
+    LWIO_LOG_LEVEL maxAllowedLogLevel;
     /* Enable debug logs */
     BOOLEAN bEnableDebugLogs;
     /* log file path */
@@ -73,12 +73,12 @@ typedef struct {
     DWORD dwExitCode;
 } SMBSERVERINFO, *PSMBSERVERINFO;
 
-typedef struct __SMB_CONFIG
+typedef struct __LWIO_CONFIG
 {
 
     DWORD dwPlaceHolder;
 
-} SMB_CONFIG, *PSMB_CONFIG;
+} LWIO_CONFIG, *PLWIO_CONFIG;
 
 #endif /* __STRUCTS_H__ */
 

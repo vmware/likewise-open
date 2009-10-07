@@ -309,7 +309,7 @@ extern pthread_mutex_t gSMBLogLock;
                             ## __VA_ARGS__)
 
 extern HANDLE              ghSMBLog;
-extern SMBLogLevel         gSMBMaxLogLevel;
+extern LWIO_LOG_LEVEL      gSMBMaxLogLevel;
 extern PFN_LWIO_LOG_MESSAGE gpfnSMBLogger;
 
 #define _LWIO_LOG_MESSAGE(Level, Format, ...) \
@@ -1152,8 +1152,8 @@ LwioGetHostInfo(
 DWORD
 SMBInitLogging(
     PCSTR         pszProgramName,
-    SMBLogTarget  logTarget,
-    SMBLogLevel   maxAllowedLogLevel,
+    LWIO_LOG_TARGET  logTarget,
+    LWIO_LOG_LEVEL   maxAllowedLogLevel,
     PCSTR         pszPath
     );
 
@@ -1171,7 +1171,7 @@ VOID
 SMBLogMessage(
     PFN_LWIO_LOG_MESSAGE pfnLogger,
     HANDLE hLog,
-    SMBLogLevel logLevel,
+    LWIO_LOG_LEVEL logLevel,
     PCSTR  pszFormat,
     ...
     );

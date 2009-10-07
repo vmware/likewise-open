@@ -45,12 +45,12 @@ NetUserDel(
     handle_t samr_b = NULL;
     PolicyHandle user_h;
     uint32 user_rid = 0;
-    PIO_ACCESS_TOKEN access_token = NULL;
+    PIO_CREDS creds = NULL;
 
-    status = LwIoGetThreadAccessToken(&access_token);
+    status = LwIoGetThreadCreds(&creds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = NetConnectSamr(&conn, hostname, 0, 0, access_token);
+    status = NetConnectSamr(&conn, hostname, 0, 0, creds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     samr_b = conn->samr.bind;
@@ -70,9 +70,9 @@ cleanup:
     return err;
 
 error:
-    if (access_token)
+    if (creds)
     {
-        LwIoDeleteAccessToken(access_token);
+        LwIoDeleteCreds(creds);
     }
 
     goto cleanup;

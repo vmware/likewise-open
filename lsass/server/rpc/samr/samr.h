@@ -386,8 +386,8 @@ SamrSrvConnect5(
 
 
 NTSTATUS
-SamrSrvGetSystemAccessToken(
-    LW_PIO_ACCESS_TOKEN *ppAccessToken
+SamrSrvGetSystemCreds(
+    LW_PIO_CREDS *ppCreds
     );
 
 

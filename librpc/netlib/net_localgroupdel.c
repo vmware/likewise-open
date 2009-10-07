@@ -45,15 +45,15 @@ NetLocalGroupDel(
     handle_t samr_b = NULL;
     PolicyHandle alias_h;
     uint32 alias_rid = 0;
-    PIO_ACCESS_TOKEN access_token = NULL;
+    PIO_CREDS creds = NULL;
 
     BAIL_ON_INVALID_PTR(hostname);
     BAIL_ON_INVALID_PTR(aliasname);
 
-    status = LwIoGetThreadAccessToken(&access_token);
+    status = LwIoGetThreadCreds(&creds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = NetConnectSamr(&conn, hostname, 0, 0, access_token);
+    status = NetConnectSamr(&conn, hostname, 0, 0, creds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     status = NetOpenAlias(conn, aliasname, alias_access, &alias_h,
@@ -74,9 +74,9 @@ cleanup:
     return err;
 
 error:
-    if (access_token)
+    if (creds)
     {
-        LwIoDeleteAccessToken(access_token);
+        LwIoDeleteCreds(creds);
     }
 
     goto cleanup;

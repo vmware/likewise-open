@@ -66,7 +66,7 @@
 NTSTATUS
 LwNtCtxCreateNamedPipeFile(
     IN PIO_CONTEXT pConnection,
-    IN LW_PIO_ACCESS_TOKEN pSecurityToken,
+    IN LW_PIO_CREDS pSecurityToken,
     OUT PIO_FILE_HANDLE FileHandle,
     IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
@@ -89,7 +89,7 @@ LwNtCtxCreateNamedPipeFile(
 NTSTATUS
 LwNtCtxCreateFile(
     IN PIO_CONTEXT pConnection,
-    IN LW_PIO_ACCESS_TOKEN pSecurityToken,
+    IN LW_PIO_CREDS pSecurityToken,
     OUT PIO_FILE_HANDLE FileHandle,
     IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,

@@ -76,27 +76,27 @@
 
 typedef ULONG KRB5_TIME, KRB5_ENCTYPE, KRB5_FLAGS;
 
-struct __LW_IO_ACCESS_TOKEN
+struct __LW_IO_CREDS
 {
     enum
     {
-        IO_ACCESS_TOKEN_TYPE_PLAIN = 0,
-        IO_ACCESS_TOKEN_TYPE_KRB5_CCACHE = 1,
-        IO_ACCESS_TOKEN_TYPE_KRB5_TGT = 2
+        IO_CREDS_TYPE_PLAIN = 0,
+        IO_CREDS_TYPE_KRB5_CCACHE = 1,
+        IO_CREDS_TYPE_KRB5_TGT = 2
     } type;
-    union _LW_IO_ACCESS_TOKEN_U
+    union _LW_IO_CREDS_U
     {
-        struct _LW_IO_ACCESS_TOKEN_PLAIN
+        struct _LW_IO_CREDS_PLAIN
         {
             PWSTR pwszUsername;
             PWSTR pwszPassword;
         } plain;
-        struct _LW_IO_ACCESS_TOKEN_KRB5_CCACHE
+        struct _LW_IO_CREDS_KRB5_CCACHE
         {
             PWSTR pwszPrincipal;
             PWSTR pwszCachePath;
         } krb5Ccache;
-        struct _LW_IO_ACCESS_TOKEN_KRB5_TGT
+        struct _LW_IO_CREDS_KRB5_TGT
         {
             PWSTR pwszClientPrincipal;
             PWSTR pwszServerPrincipal;

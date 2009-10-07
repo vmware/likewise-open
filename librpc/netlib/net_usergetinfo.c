@@ -55,7 +55,7 @@ NetUserGetInfo(
     uint32 user_rid = 0;
     UserInfo *info = NULL;
     USER_INFO_20 *ninfo20 = NULL;
-    PIO_ACCESS_TOKEN access_token = NULL;
+    PIO_CREDS creds = NULL;
 
     BAIL_ON_INVALID_PTR(hostname);
     BAIL_ON_INVALID_PTR(username);
@@ -66,12 +66,12 @@ NetUserGetInfo(
         goto cleanup;
     }
 
-    status = LwIoGetThreadAccessToken(&access_token);
+    status = LwIoGetThreadCreds(&creds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     samr_b = conn->samr.bind;
 
-    status = NetConnectSamr(&conn, hostname, 0, 0, access_token);
+    status = NetConnectSamr(&conn, hostname, 0, 0, creds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     status = NetOpenUser(conn, username, access_rights, &user_h,
@@ -102,9 +102,9 @@ error:
         NetFreeMemory((void*)ninfo20);
     }
 
-    if (access_token)
+    if (creds)
     {
-        LwIoDeleteAccessToken(access_token);
+        LwIoDeleteCreds(creds);
     }
 
     *buffer = NULL;

@@ -112,6 +112,8 @@ wbcErr wbcSidToString(
     int i = 0;
     DWORD dwErr = LW_ERROR_INTERNAL;
 
+    SET_OUT_PTR_NULL(sid_string);
+
     BAIL_ON_NULL_PTR_PARAM(sid, dwErr);
     BAIL_ON_NULL_PTR_PARAM(sid_string, dwErr);
 
@@ -338,6 +340,9 @@ wbcErr wbcLookupSid(
     PSTR ppszSidList[2];
     PLSA_SID_INFO pNameList = NULL;
 
+    SET_OUT_PTR_NULL(domain);
+    SET_OUT_PTR_NULL(name);
+
     BAIL_ON_NULL_PTR_PARAM(sid, dwErr);
 
     /* Validate the SID */
@@ -405,8 +410,12 @@ done:
     }
 
     if (dwErr != LW_ERROR_SUCCESS) {
-        _WBC_FREE(*domain);
-        _WBC_FREE(*name);
+        if (domain) {
+            _WBC_FREE(*domain);
+        }
+        if (name) {
+            _WBC_FREE(*name);
+        }
     }
 
     wbc_status = map_error_to_wbc_status(dwErr);
@@ -427,7 +436,11 @@ wbcErr wbcLookupRids(
     DWORD dwErr = LW_ERROR_INTERNAL;
     struct wbcDomainSid sid;
     int i;
-        char *domain = NULL;
+    char *domain = NULL;
+
+    SET_OUT_PTR_NULL(domain_name);
+    SET_OUT_PTR_NULL(names);
+    SET_OUT_PTR_NULL(types);
 
     BAIL_ON_NULL_PTR_PARAM(dom_sid, dwErr);
     BAIL_ON_NULL_PTR_PARAM(rids, dwErr);
@@ -479,10 +492,12 @@ done:
     }
 
     if (dwErr != LW_ERROR_SUCCESS) {
-        if (types && *types)
+        if (types) {
             _WBC_FREE(*types);
-        if (names && *names)
-            _WBC_FREE(*names)
+        }
+        if (names) {
+            _WBC_FREE(*names);
+        }
     }
 
     wbc_status = map_error_to_wbc_status(dwErr);

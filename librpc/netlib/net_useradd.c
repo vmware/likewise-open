@@ -65,7 +65,7 @@ NetUserAdd(
     uint32 out_parm_err = 0;
     USER_INFO_X *ninfo = NULL;
     UserInfo *sinfo = NULL;
-    PIO_ACCESS_TOKEN access_token = NULL;
+    PIO_CREDS creds = NULL;
 
     BAIL_ON_INVALID_PTR(buffer);
     BAIL_ON_INVALID_PTR(parm_err);
@@ -74,10 +74,10 @@ NetUserAdd(
                              &out_parm_err);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = LwIoGetThreadAccessToken(&access_token);
+    status = LwIoGetThreadCreds(&creds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = NetConnectSamr(&conn, hostname, dom_access, 0, access_token);
+    status = NetConnectSamr(&conn, hostname, dom_access, 0, creds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     samr_b    = conn->samr.bind;
@@ -133,9 +133,9 @@ cleanup:
     return err;
 
 error:
-    if (access_token)
+    if (creds)
     {
-        LwIoDeleteAccessToken(access_token);
+        LwIoDeleteCreds(creds);
     }
 
     goto cleanup;

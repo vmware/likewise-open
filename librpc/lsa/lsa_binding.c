@@ -51,7 +51,7 @@ RPCSTATUS
 InitLsaBindingDefault(
     OUT handle_t *phBinding,
     IN  PCSTR pszHostname,
-    IN  PIO_ACCESS_TOKEN pIoAccessToken
+    IN  PIO_CREDS pIoAccessToken
     )
 {
     RPCSTATUS rpcStatus = RPC_S_OK;
@@ -90,7 +90,7 @@ InitLsaBindingFull(
     PCSTR pszEndpoint,
     PCSTR pszUuid,
     PCSTR pszOptions,
-    PIO_ACCESS_TOKEN IoAccessToken
+    PIO_CREDS IoAccessToken
     )
 {
     RPCSTATUS rpcStatus = RPC_S_OK;
@@ -145,7 +145,7 @@ InitLsaBindingFull(
         &rpcStatus);
     BAIL_ON_RPC_STATUS(rpcStatus);
 
-    rpc_smb_transport_info_from_lwio_token(
+    rpc_smb_transport_info_from_lwio_creds(
         IoAccessToken,
         FALSE,
         &Info,

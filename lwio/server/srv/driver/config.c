@@ -64,16 +64,15 @@ SrvReadConfig(
 {
     NTSTATUS        ntStatus = STATUS_SUCCESS;
     LWIO_SRV_CONFIG srvConfig;
-
-    PSMB_CONFIG_REG pReg = NULL;
+    PLWIO_CONFIG_REG pReg = NULL;
     DWORD           dwError = 0;
 
     ntStatus = SrvInitConfig(&srvConfig);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = SMBOpenConfig(
-                "Services\\lwio\\Parameters\\Drivers",
-                "Policy\\Services\\lwio\\Parameters\\Drivers",
+    dwError = LwIoOpenConfig(
+                "Services\\lwio\\Parameters\\Drivers\\srv",
+                "Policy\\Services\\lwio\\Parameters\\Drivers\\srv",
                 &pReg);
     if (dwError)
     {
@@ -85,14 +84,14 @@ SrvReadConfig(
     BAIL_ON_NT_STATUS(ntStatus);
 
     /* Ignore error as it may not exist; we can still use default. */
-    SMBReadConfigBoolean(pReg, "SupportSmb2", FALSE, &(srvConfig.bSupportSMB2));
+    LwIoReadConfigBoolean(pReg, "SupportSmb2", FALSE, &(srvConfig.bSupportSMB2));
 
     ntStatus = SrvTransferConfigContents(&srvConfig, pConfig);
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
 
-    SMBCloseConfig(pReg);
+    LwIoCloseConfig(pReg);
     pReg = NULL;
 
     SrvFreeConfigContents(&srvConfig);

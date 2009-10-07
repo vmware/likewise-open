@@ -105,7 +105,7 @@ handle_t CreateSamrBinding(handle_t *binding, const wchar16_t *host)
     RPCSTATUS status = RPC_S_OK;
     size_t hostname_size = 0;
     char *hostname = NULL;
-    PIO_ACCESS_TOKEN access_token = NULL;
+    PIO_CREDS creds = NULL;
 
     if (binding == NULL || host == NULL) return NULL;
 
@@ -115,12 +115,12 @@ handle_t CreateSamrBinding(handle_t *binding, const wchar16_t *host)
 
     wc16stombs(hostname, host, hostname_size);
 
-    if (LwIoGetThreadAccessToken(&access_token) != STATUS_SUCCESS)
+    if (LwIoGetThreadCreds(&creds) != STATUS_SUCCESS)
     {
         return NULL;
     }
 
-    status = InitSamrBindingDefault(binding, hostname, access_token);
+    status = InitSamrBindingDefault(binding, hostname, creds);
     if (status != RPC_S_OK) {
         int result;
         unsigned char errmsg[dce_c_error_string_len];
@@ -136,8 +136,8 @@ handle_t CreateSamrBinding(handle_t *binding, const wchar16_t *host)
         return NULL;
     }
 
-    if (access_token) {
-        LwIoDeleteAccessToken(access_token);
+    if (creds) {
+        LwIoDeleteCreds(creds);
     }
 
     SAFE_FREE(hostname);

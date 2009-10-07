@@ -59,20 +59,20 @@
 #include "externs.h"
 #include <lwio/lwio.h>
 
-typedef struct _LSA_ACCESS_TOKEN_FREE_INFO *PLSA_ACCESS_TOKEN_FREE_INFO;
+typedef struct _LSA_CREDS_FREE_INFO *PLSA_CREDS_FREE_INFO;
 
 DWORD
-LsaSetSMBAccessToken(
+LsaSetSMBCreds(
     IN PCSTR pszDomain,
     IN PCSTR pszUsername,
     IN PCSTR pszPassword,
     IN BOOLEAN bSetDefaultCachePath,
-    OUT PLSA_ACCESS_TOKEN_FREE_INFO* ppFreeInfo,
-    OUT OPTIONAL LW_PIO_ACCESS_TOKEN* ppOldToken
+    OUT PLSA_CREDS_FREE_INFO* ppFreeInfo,
+    OUT OPTIONAL LW_PIO_CREDS* ppOldToken
     );
 
 void
-LsaFreeSMBAccessToken(
-    IN OUT PLSA_ACCESS_TOKEN_FREE_INFO* ppFreeInfo
+LsaFreeSMBCreds(
+    IN OUT PLSA_CREDS_FREE_INFO* ppFreeInfo
     );
 

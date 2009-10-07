@@ -49,7 +49,7 @@ RPCSTATUS
 InitSamrBindingDefault(
     handle_t         *phSamrBinding,
     PCSTR             pszHostname,
-    PIO_ACCESS_TOKEN  pAccessToken
+    PIO_CREDS  pCreds
     );
 
 
@@ -61,7 +61,7 @@ InitSamrBindingFull(
     PCSTR pszEndpoint,
     PCSTR pszUuid,
     PCSTR pszOptions,
-    PIO_ACCESS_TOKEN pAccessToken
+    PIO_CREDS pCreds
     );
 
 

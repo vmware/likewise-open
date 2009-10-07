@@ -112,7 +112,7 @@ extern int verbose_mode;
 #define SET_SESSION_CREDS_KRB5(principal, ccache)                       \
     do {                                                                \
         DWORD dwError = 0;                                              \
-        LW_PIO_ACCESS_TOKEN hAccessToken = NULL;                        \
+        LW_PIO_CREDS hCreds = NULL;                        \
         PSTR pszPrincipal = NULL;                                       \
         PSTR pszCache = NULL;                                           \
                                                                         \
@@ -120,20 +120,20 @@ extern int verbose_mode;
         pszCache     = (ccache);                                        \
                                                                         \
         /* Set up access token */                                       \
-        dwError = LwIoCreateKrb5AccessTokenA(pszPrincipal, pszCache,    \
-                                             &hAccessToken);            \
+        dwError = LwIoCreateKrb5CredsA(pszPrincipal, pszCache,    \
+                                             &hCreds);            \
         if (dwError) {                                                  \
             printf("Failed to create access token\n");                  \
             goto done;                                                  \
         }                                                               \
                                                                         \
-        dwError = LwIoSetThreadAccessToken(hAccessToken);               \
+        dwError = LwIoSetThreadCreds(hCreds);               \
         if (dwError) {                                                  \
             printf("Failed to set access token on thread\n");           \
             goto done;                                                  \
         }                                                               \
                                                                         \
-        LwIoDeleteAccessToken(hAccessToken);                            \
+        LwIoDeleteCreds(hCreds);                            \
                                                                         \
     } while(0);
 
@@ -152,7 +152,7 @@ extern int verbose_mode;
     do {                                                                \
         DWORD dwError = 0;                                              \
                                                                         \
-        dwError = LwIoSetThreadAccessToken(NULL);                       \
+        dwError = LwIoSetThreadCreds(NULL);                       \
         if (dwError) {                                                  \
             printf("Failed to set release access token on thread\n");   \
             goto done;                                                  \

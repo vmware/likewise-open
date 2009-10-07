@@ -59,7 +59,7 @@ RPCSTATUS
 InitSrvSvcBindingDefault(
     handle_t         *phSrvSvcBinding,
     PCSTR             pszHostname,
-    PIO_ACCESS_TOKEN  pAccessToken
+    PIO_CREDS  pCreds
     );
 
 
@@ -71,7 +71,7 @@ InitSrvSvcBindingFull(
     const char *endpoint,
     const char *uuid,
     const char *options,
-    PIO_ACCESS_TOKEN pAccessToken
+    PIO_CREDS pCreds
     );
 
 
