@@ -347,7 +347,7 @@ DWORD
 RegSrvSetValueExA(
     IN HANDLE Handle,
     IN HKEY hKey,
-    IN OPTIONAL PCWSTR pValueName,
+    IN OPTIONAL PCSTR pszValueName,
     IN DWORD Reserved,
     IN DWORD dwType,
     IN const BYTE *pData,
@@ -365,7 +365,7 @@ RegSrvSetValueExA(
     dwError = gpRegProvider->pfnRegSrvSetValueExA(
             Handle,
             hKey,
-            pValueName,
+            pszValueName,
             Reserved,
             dwType,
             pData,
@@ -415,8 +415,8 @@ DWORD
 RegSrvGetValueA(
     IN HANDLE Handle,
     IN HKEY hKey,
-    IN OPTIONAL PCWSTR pSubKey,
-    IN OPTIONAL PCWSTR pValue,
+    IN OPTIONAL PCSTR pszSubKey,
+    IN OPTIONAL PCSTR pszValue,
     IN OPTIONAL REG_DATA_TYPE_FLAGS Flags,
     OUT PDWORD pdwType,
     OUT PBYTE pData,
@@ -434,8 +434,8 @@ RegSrvGetValueA(
     dwError = gpRegProvider->pfnRegSrvGetValueA(
             Handle,
             hKey,
-            pSubKey,
-            pValue,
+            pszSubKey,
+            pszValue,
             Flags,
             pdwType,
             pData,
@@ -489,7 +489,7 @@ RegSrvEnumValueA(
     IN HANDLE Handle,
     IN HKEY hKey,
     IN DWORD dwIndex,
-    OUT PWSTR pValueName, /*buffer hold valueName*/
+    OUT PSTR pszValueName, /*buffer hold valueName*/
     IN OUT PDWORD pcchValueName, /*input - buffer pValueName length*/
     IN PDWORD pReserved,
     OUT OPTIONAL PDWORD pType,
@@ -509,7 +509,7 @@ RegSrvEnumValueA(
             Handle,
             hKey,
             dwIndex,
-            pValueName,
+            pszValueName,
             pcchValueName,
             pReserved,
             pType,
@@ -643,7 +643,7 @@ DWORD
 RegSrvQueryValueExA(
     IN HANDLE Handle,
     IN HKEY hKey,
-    IN PCWSTR pValueName,
+    IN PCSTR pszValueName,
     IN PDWORD pReserved,
     OUT PDWORD pType,
     OUT PBYTE pData,
@@ -661,7 +661,7 @@ RegSrvQueryValueExA(
     dwError = gpRegProvider->pfnRegSrvQueryValueExA(
             Handle,
             hKey,
-            pValueName,
+            pszValueName,
             pReserved,
             pType,
             pData,

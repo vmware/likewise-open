@@ -107,7 +107,8 @@ RegShellUtilGetValues(
     PSTR pszDefaultKey,
     PSTR keyName,
     PREGSHELL_UTIL_VALUE *valueArray,
-    PDWORD pdwValueArrayLen);
+    PDWORD pdwValueArrayLen
+    );
 
 DWORD
 RegShellUtilDeleteValue(

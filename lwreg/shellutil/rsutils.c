@@ -582,7 +582,6 @@ RegShellUtilSetValue(
     DWORD dwError = 0;
     PBYTE pData = NULL;
     SSIZE_T dwDataLen = 0;
-    PWSTR pValueName = NULL;
     PWSTR pwszParentPath = NULL;
     HKEY pFullKey = NULL;
     HKEY pRootKey = NULL;
@@ -620,14 +619,10 @@ RegShellUtilSetValue(
         LW_SAFE_FREE_MEMORY(pwszParentPath);
     }
 
-    dwError = LwMbsToWc16s(valueName, &pValueName);
-    BAIL_ON_REG_ERROR(dwError);
-
-
     switch (type)
     {
         case REG_MULTI_SZ:
-            dwError = ConvertMultiStrsToByteArray(
+            dwError = ConvertMultiStrsToByteArrayA(
                                         data,
                                         &pData,
                                         &dwDataLen);
@@ -638,8 +633,7 @@ RegShellUtilSetValue(
             dwError = LwAllocateString(data, (LW_PVOID) &pData);
             BAIL_ON_REG_ERROR(dwError);
 
-            /* Should not have to save NULL string terminator */
-            dwDataLen = strlen((PSTR) pData) + 1;
+            dwDataLen = strlen((PSTR) pData);
             break;
 
         case REG_DWORD:
@@ -660,11 +654,10 @@ RegShellUtilSetValue(
             break;
     }
 
-    // Set specified value from command line
-    dwError = RegSetValueEx(
+    dwError = RegSetValueExA(
         hReg,
         pFullKey,
-        pValueName,
+        valueName,
         0,
         type,
         pData,
@@ -674,7 +667,6 @@ RegShellUtilSetValue(
     {
         LW_SAFE_FREE_MEMORY(pData);
     }
-    LW_SAFE_FREE_MEMORY(pValueName);
 
 cleanup:
     LW_SAFE_FREE_MEMORY(pwszParentPath);
@@ -685,7 +677,6 @@ cleanup:
     return dwError;
 
 error:
-    LW_SAFE_FREE_MEMORY(pValueName);
     goto cleanup;
 }
 
@@ -697,12 +688,13 @@ RegShellUtilGetValues(
     PSTR pszDefaultKey,
     PSTR keyName,
     PREGSHELL_UTIL_VALUE *valueArray,
-    PDWORD pdwValueArrayLen)
+    PDWORD pdwValueArrayLen
+    )
 {
 
     DWORD dwError = 0;
     DWORD indx = 0;
-    PWSTR pValueName = NULL;
+    PSTR pszValueName = NULL;
     DWORD dwValueNameLen = 0;
     DWORD regType = 0;
     PBYTE pData = NULL;
@@ -773,49 +765,41 @@ RegShellUtilGetValues(
      * which is why this adjustment is needed.
      */
     dwMaxValueLen = (dwMaxValueLen + 1) * sizeof(wchar16_t);
-    do {
-        dwValueNameLen = (dwMaxValueNameLen + 2) * sizeof(wchar16_t);
+    for (indx = 0; indx < dwValuesCount; indx++)
+    {
+        dwValueNameLen = dwMaxValueNameLen + 1;
         dwError = LwAllocateMemory(
-                      dwValueNameLen,
-                      (LW_PVOID) &pValueName);
+                      (dwMaxValueNameLen+1),
+                      (LW_PVOID) &pszValueName);
         BAIL_ON_REG_ERROR(dwError);
 
         dwDataLen = dwMaxValueLen;
         dwError = LwAllocateMemory(dwDataLen, (LW_PVOID) &pData);
         BAIL_ON_REG_ERROR(dwError);
 
-        /* test retrevial of data length */
-        /* Does not work yet! */
-        dwError = RegEnumValue(
+        dwError = RegEnumValueA(
                       hReg,
                       pFullKey,
                       indx,
-                      pValueName,
+                      pszValueName,
                       &dwValueNameLen,
                       NULL,
                       &regType,
                       pData,
                       &dwDataLen);
-        if (dwError == 0)
-        {
-            pValueArray[indx].type = regType;
-            pValueArray[indx].pValueName = pValueName;
-            pValueArray[indx].pData = pData;
-            pValueArray[indx].dwDataLen = dwDataLen;
-            indx++;
-        }
-        else
-        {
-            LW_SAFE_FREE_MEMORY(pValueName);
-            LW_SAFE_FREE_MEMORY(pData);
-        }
-    } while (dwError == 0);
-    if (dwError == LW_ERROR_NO_MORE_ITEMS)
-    {
-        dwError = 0;
-        *valueArray = pValueArray;
-        *pdwValueArrayLen = indx;
+        BAIL_ON_REG_ERROR(dwError);
+
+        dwError = LwMbsToWc16s(pszValueName, &pValueArray[indx].pValueName);
+        BAIL_ON_REG_ERROR(dwError);
+
+        pValueArray[indx].type = regType;
+        pValueArray[indx].pData = pData;
+        pData = NULL;
+        pValueArray[indx].dwDataLen = dwDataLen;
     }
+
+    *valueArray = pValueArray;
+    *pdwValueArrayLen = indx;
 
 cleanup:
     if (pFullKey && pFullKey != pRootKey)

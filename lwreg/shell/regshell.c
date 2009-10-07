@@ -394,8 +394,8 @@ RegShellListValues(
             switch (pValues[i].type)
             {
                 case REG_SZ:
-                    printf("REG_SZ:          \"%s\"\n",
-                           (PSTR) pValues[i].pData);
+                    printf("REG_SZ:          \"%s\"\n", (PSTR)pValues[i].pData);
+
                     break;
 
                 case REG_DWORD:
@@ -416,7 +416,7 @@ RegShellListValues(
                     break;
 
                 case REG_MULTI_SZ:
-                    dwError = ConvertByteArrayToMultiStrs(
+                    dwError = ConvertByteArrayToMultiStrsA(
                                   pValues[i].pData,
                                   pValues[i].dwDataLen,
                                   &ppszMultiStrArray);

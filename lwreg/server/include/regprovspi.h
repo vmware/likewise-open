@@ -129,7 +129,7 @@ DWORD
     HANDLE Handle,
     HKEY hKey,
     DWORD dwIndex,
-    PWSTR pValueName,
+    PSTR pszValueName,
     PDWORD pcchValueName,
     PDWORD pReserved,
     PDWORD pType,
@@ -156,8 +156,8 @@ DWORD
 (*PFNRegSrvGetValueA)(
     HANDLE Handle,
     HKEY hKey,
-    PCWSTR lpSubKey,
-    PCWSTR lpValue,
+    PCSTR pszSubKey,
+    PCSTR pszValue,
     REG_DATA_TYPE_FLAGS Flags,
     PDWORD pdwType,
     PBYTE pvData,
@@ -221,7 +221,7 @@ DWORD
 (*PFNRegSrvQueryValueExA)(
     HANDLE Handle,
     HKEY hKey,
-    PCWSTR pValueName,
+    PCSTR pszValueName,
     PDWORD pReserved,
     PDWORD pType,
     PBYTE pData,
@@ -245,7 +245,7 @@ DWORD
 (*PFNRegSrvSetValueExA)(
     HANDLE Handle,
     HKEY hKey,
-    PCWSTR pValueName,
+    PCSTR pszValueName,
     DWORD Reserved,
     DWORD dwType,
     const BYTE *pData,

@@ -274,6 +274,16 @@ typedef struct __REG_IPC_ENUM_KEY_EX_RESPONSE
 /******************************************************************************/
 
 
+typedef struct __REG_IPC_ENUM_VALUEA_REQ
+{
+    HKEY hKey;
+    DWORD dwIndex;
+    PSTR pszName;
+    DWORD cName;
+    PBYTE pValue;
+    DWORD cValue;
+} REG_IPC_ENUM_VALUEA_REQ, *PREG_IPC_ENUM_VALUEA_REQ;
+
 typedef struct __REG_IPC_ENUM_VALUE_REQ
 {
     HKEY hKey;
@@ -283,6 +293,18 @@ typedef struct __REG_IPC_ENUM_VALUE_REQ
     PBYTE pValue;
     DWORD cValue;
 } REG_IPC_ENUM_VALUE_REQ, *PREG_IPC_ENUM_VALUE_REQ;
+
+typedef struct __REG_IPC_ENUM_VALUEA_RESPONSE
+{
+    PSTR pszName;
+    DWORD cName;
+    PBYTE pValue;
+    DWORD cValue;
+    REG_DATA_TYPE type;
+    //PWSTR pClass;
+    //PDWORD pcClass;
+    //PFILETIME pftLastWriteTime;
+} REG_IPC_ENUM_VALUEA_RESPONSE, *PREG_IPC_ENUM_VALUEA_RESPONSE;
 
 typedef struct __REG_IPC_ENUM_VALUE_RESPONSE
 {
@@ -306,6 +328,16 @@ typedef struct __REG_IPC_ENUM_VALUE_RESPONSE
 // OUT OPTIONAL PDWORD pdwType,
 // OUT OPTIONAL PVOID pvData,
 // IN OUT OPTIONAL PDWORD pcbData
+
+typedef struct __REG_IPC_GET_VALUEA_REQ
+{
+    HKEY hKey;
+    PCSTR pszSubKey;
+    PCSTR pszValue;
+    REG_DATA_TYPE_FLAGS Flags;
+    PBYTE pData;
+    DWORD cbData;
+} REG_IPC_GET_VALUEA_REQ, *PREG_IPC_GET_VALUEA_REQ;
 
 typedef struct __REG_IPC_GET_VALUE_REQ
 {
@@ -461,6 +493,15 @@ typedef struct __REG_IPC_SET_KEY_VALUE_REQ
 // IN DWORD dwType,
 // IN OPTIONAL const BYTE *pData,
 // IN DWORD cbData
+
+typedef struct __REG_IPC_SET_VALUEA_EX_REQ
+{
+    HKEY hKey;
+    PCSTR pszValueName;
+    DWORD dwType;
+    const BYTE *pData;
+    DWORD cbData;
+} REG_IPC_SET_VALUEA_EX_REQ, *PREG_IPC_SET_VALUEA_EX_REQ;
 
 typedef struct __REG_IPC_SET_VALUE_EX_REQ
 {

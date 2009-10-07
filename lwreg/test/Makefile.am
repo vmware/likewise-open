@@ -1,30 +1,4 @@
-noinst_PROGRAMS = test_regio test_reglex test_regparse test_regiconv test_regdump test_regkeys test_regvalues test_tomulti test_ptlwregd
-    
-#test_regkeys
-test_regkeys_SOURCES = \
-    test_regkeys.c
-
-test_regkeys_LDADD =                           \
-    @top_builddir@/client/libregclient.la
-
-test_regkeys_LDFLAGS = -static
-
-test_regkeys_CPPFLAGS = \
-    $(AM_CFLAGS)   \
-    @LWBASE_INCLUDES@
-    
-#test_regvalues
-test_regvalues_SOURCES = \
-    test_regvalues.c
-
-test_regvalues_LDADD =                           \
-    @top_builddir@/client/libregclient.la
-
-test_regvalues_LDFLAGS = -static
-
-test_regvaluess_CPPFLAGS = \
-    $(AM_CFLAGS)   \
-    @LWBASE_INCLUDES@
+noinst_PROGRAMS = test_regio test_reglex test_regparse test_regiconv test_regdump test_tomulti test_ptlwregd
 
 #test_regio
 test_regio_SOURCES = \

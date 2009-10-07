@@ -49,6 +49,7 @@ DWORD
 GetValueAsStr(
     IN REG_DATA_TYPE dataType,
     IN PBYTE value,
+    IN BOOLEAN bDoAnsi,
     IN DWORD dwValueLen,
     OUT PSTR* ppszValue
     )

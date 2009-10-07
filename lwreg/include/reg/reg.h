@@ -287,7 +287,7 @@ RegEnumValueA(
     HANDLE hRegConnection,
     HKEY hKey,
     DWORD dwIndex,
-    PWSTR pValueName,
+    PSTR pszValueName,
     PDWORD pcchValueName,
     PDWORD pReserved,
     PDWORD pType,
@@ -312,8 +312,8 @@ DWORD
 RegGetValueA(
     IN HANDLE hRegConnection,
     IN HKEY hKey,
-    IN OPTIONAL PCWSTR pSubKey,
-    IN OPTIONAL PCWSTR pValue,
+    IN OPTIONAL PCSTR pszSubKey,
+    IN OPTIONAL PCSTR pszValue,
     IN OPTIONAL REG_DATA_TYPE_FLAGS Flags,
     OUT OPTIONAL PDWORD pdwType,
     OUT OPTIONAL PVOID pvData,
@@ -373,7 +373,7 @@ DWORD
 RegQueryValueExA(
     HANDLE hRegConnection,
     HKEY hKey,
-    PCWSTR pValueName,
+    PCSTR pszValueName,
     PDWORD pReserved,
     PDWORD pType,
     PBYTE pData,
@@ -393,13 +393,13 @@ RegQueryValueExW(
 
 DWORD
 RegSetValueExA(
-    HANDLE hRegConnection,
-    HKEY hKey,
-    PCWSTR pValueName,
-    DWORD Reserved,
-    DWORD dwType,
-    const BYTE *pData,
-    DWORD cbData
+    IN HANDLE hRegConnection,
+    IN HKEY hKey,
+    IN OPTIONAL PCSTR pszValueName,
+    IN DWORD Reserved,
+    IN DWORD dwType,
+    IN OPTIONAL const BYTE *pData,
+    IN DWORD cbData
     );
 
 DWORD

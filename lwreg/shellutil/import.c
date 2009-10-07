@@ -224,7 +224,6 @@ ProcessImportedValue(
     PSTR pszStrTokSav = NULL;
     //Do not free
     PSTR pszSubKeyName = NULL;
-    PWSTR pValueName = NULL;
     PWSTR pSubKey = NULL;
     //Do not close
     HKEY hKey = NULL;
@@ -292,16 +291,10 @@ ProcessImportedValue(
         hKey = hCurrRootKey;
     }
 
-    if (pItem->valueName)
-    {
-        dwError = LwMbsToWc16s(pItem->valueName, &pValueName);
-        BAIL_ON_REG_ERROR(dwError);
-    }
-
-    dwError = RegSetValueEx(
+    dwError = RegSetValueExA(
         hReg,
         hKey,
-        pValueName,
+        pItem->valueName,
         0,
         pItem->type,
         pItem->value,
@@ -313,7 +306,6 @@ ProcessImportedValue(
 
 cleanup:
     LW_SAFE_FREE_MEMORY(pSubKey);
-    LW_SAFE_FREE_MEMORY(pValueName);
     LW_SAFE_FREE_STRING(pszKeyName);
 
     if (hSubKey)
