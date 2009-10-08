@@ -40,6 +40,13 @@
 
 static
 DWORD
+LwSmTablePollEntry(
+    PSM_TABLE_ENTRY pEntry,
+    PLW_SERVICE_STATUS pStatus
+    );
+
+static
+DWORD
 LwSmTableVerifyAndMarkDependencies(
     PSM_TABLE_ENTRY pEntry
     );
@@ -347,7 +354,7 @@ LwSmTableStartEntry(
 
     while (status != LW_SERVICE_RUNNING)
     {
-        dwError = pEntry->pVtbl->pfnGetStatus(pEntry, &status);
+        dwError = LwSmTablePollEntry(pEntry, &status);
         BAIL_ON_ERROR(dwError);
 
         switch (status)
@@ -429,7 +436,7 @@ LwSmTableVerifyAndMarkDependencies(
             BAIL_ON_ERROR(dwError);
         }
 
-        dwError = pDependency->pVtbl->pfnGetStatus(pDependency, &status);
+        dwError = LwSmTablePollEntry(pDependency, &status);
         BAIL_ON_ERROR(dwError);
 
         if (status != LW_SERVICE_RUNNING &&
@@ -507,7 +514,7 @@ LwSmTableStopEntry(
 
     while (status != LW_SERVICE_STOPPED)
     {
-        dwError = pEntry->pVtbl->pfnGetStatus(pEntry, &status);
+        dwError = LwSmTablePollEntry(pEntry, &status);
         BAIL_ON_ERROR(dwError);
 
         switch (status)
@@ -577,7 +584,7 @@ LwSmTableRefreshEntry(
         BAIL_ON_ERROR(dwError);
     }
 
-    dwError = pEntry->pVtbl->pfnGetStatus(pEntry, &status);
+    dwError = LwSmTablePollEntry(pEntry, &status);
     BAIL_ON_ERROR(dwError);
 
     switch (status)
@@ -617,8 +624,8 @@ LwSmTableGetEntryStatus(
         dwError = LW_ERROR_INVALID_HANDLE;
         BAIL_ON_ERROR(dwError);
     }
-    
-    dwError = pEntry->pVtbl->pfnGetStatus(pEntry, pStatus);
+
+    dwError = LwSmTablePollEntry(pEntry, pStatus);
     BAIL_ON_ERROR(dwError);
     
 error:
@@ -652,6 +659,40 @@ LwSmTableGetEntryProcess(
 error:
 
     UNLOCK(bLocked, pEntry->pLock);
+
+    return dwError;
+}
+
+static
+DWORD
+LwSmTablePollEntry(
+    PSM_TABLE_ENTRY pEntry,
+    PLW_SERVICE_STATUS pStatus
+    )
+{
+    DWORD dwError = 0;
+
+    dwError = pEntry->pVtbl->pfnGetStatus(pEntry, pStatus);
+    BAIL_ON_ERROR(dwError);
+
+    if ((*pStatus == LW_SERVICE_STOPPED ||
+         *pStatus == LW_SERVICE_DEAD) &&
+        pEntry->bDepsMarked)
+    {
+        dwError = LwSmTableUnmarkDependencies(pEntry);
+        BAIL_ON_ERROR(dwError);
+        pEntry->bDepsMarked = FALSE;
+    }
+    else if ((*pStatus != LW_SERVICE_STOPPED &&
+              *pStatus != LW_SERVICE_DEAD) &&
+             !pEntry->bDepsMarked)
+    {
+        dwError = LwSmTableVerifyAndMarkDependencies(pEntry);
+        BAIL_ON_ERROR(dwError);
+        pEntry->bDepsMarked = TRUE;
+    }
+
+error:
 
     return dwError;
 }
