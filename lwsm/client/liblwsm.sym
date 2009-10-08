@@ -6,10 +6,9 @@ LwSmAddService
 LwSmRemoveService
 LwSmStartService
 LwSmStopService
-LwSmGetServiceStatus
-LwSmGetServiceProcess
+LwSmQueryServiceStatus
 LwSmRefreshService
-LwSmGetServiceInfo
+LwSmQueryServiceInfo
 LwSmFreeServiceInfo
-LwSmGetServiceDependencyClosure
-LwSmGetServiceReverseDependencyClosure
+LwSmQueryServiceDependencyClosure
+LwSmQueryServiceReverseDependencyClosure

@@ -48,23 +48,23 @@ static struct
 
 static
 PCSTR
-LwSmStatusToString(
-    LW_SERVICE_STATUS status
+LwSmStateToString(
+    LW_SERVICE_STATE state
     )
 {
-    switch (status)
+    switch (state)
     {
-    case LW_SERVICE_STOPPED:
+    case LW_SERVICE_STATE_STOPPED:
         return "stopped";
-    case LW_SERVICE_STARTING:
+    case LW_SERVICE_STATE_STARTING:
         return "starting";
-    case LW_SERVICE_RUNNING:
+    case LW_SERVICE_STATE_RUNNING:
         return "running";
-    case LW_SERVICE_STOPPING:
+    case LW_SERVICE_STATE_STOPPING:
         return "stopping";
-    case LW_SERVICE_PAUSED:
+    case LW_SERVICE_STATE_PAUSED:
         return "paused";
-    case LW_SERVICE_DEAD:
+    case LW_SERVICE_STATE_DEAD:
         return "dead";
     default:
         return "unknown";
@@ -73,19 +73,19 @@ LwSmStatusToString(
 
 static
 PCSTR
-LwSmProcessToString(
-    LW_SERVICE_PROCESS process
+LwSmHomeToString(
+    LW_SERVICE_HOME home
     )
 {
-    switch (process)
+    switch (home)
     {
-    case LW_SERVICE_PROCESS_STANDALONE:
+    case LW_SERVICE_HOME_STANDALONE:
         return "standalone";
-    case LW_SERVICE_PROCESS_CONTAINER:
+    case LW_SERVICE_HOME_CONTAINER:
         return "container";
-    case LW_SERVICE_PROCESS_IO_MANAGER:
+    case LW_SERVICE_HOME_IO_MANAGER:
         return "io";
-    case LW_SERVICE_PROCESS_SERVICE_MANAGER:
+    case LW_SERVICE_HOME_SERVICE_MANAGER:
         return "sm";
     default:
         return "unknown";
@@ -100,13 +100,13 @@ LwSmTypeToString(
 {
     switch (type)
     {
-    case LW_SERVICE_EXECUTABLE:
+    case LW_SERVICE_TYPE_LEGACY_EXECUTABLE:
         return "legacy executable";
-    case LW_SERVICE_SM_EXECUTABLE:
-        return "service manager executable";
-    case LW_SERVICE_MODULE:
+    case LW_SERVICE_TYPE_EXECUTABLE:
+        return "executable";
+    case LW_SERVICE_TYPE_MODULE:
         return "module";
-    case LW_SERVICE_DRIVER:
+    case LW_SERVICE_TYPE_DRIVER:
         return "driver";
     default:
         return "unknown";
@@ -123,9 +123,7 @@ LwSmList(
     DWORD dwError = 0;
     PWSTR* ppwszServiceNames = NULL;
     PSTR pszServiceName = NULL;
-    LW_SERVICE_STATUS status = LW_SERVICE_DEAD;
-    LW_SERVICE_PROCESS process = LW_SERVICE_PROCESS_STANDALONE;
-    pid_t pid = -1;
+    LW_SERVICE_STATUS status;
     LW_SERVICE_HANDLE hHandle = NULL;
     size_t i = 0;
     size_t len = 0;
@@ -150,7 +148,7 @@ LwSmList(
         dwError = LwSmAcquireServiceHandle(ppwszServiceNames[i], &hHandle);
         BAIL_ON_ERROR(dwError);
 
-        dwError = LwSmGetServiceStatus(hHandle, &status);
+        dwError = LwSmQueryServiceStatus(hHandle, &status);
         BAIL_ON_ERROR(dwError);
 
         dwError = LwWc16sToMbs(ppwszServiceNames[i], &pszServiceName);
@@ -169,18 +167,17 @@ LwSmList(
             }
             printf("    ");
 
-            switch (status)
+            switch (status.state)
             {
-            case LW_SERVICE_RUNNING:
-                dwError = LwSmGetServiceProcess(hHandle, &process, &pid);
+            case LW_SERVICE_STATE_RUNNING:
                 BAIL_ON_ERROR(dwError);
                 printf("%s (%s: %li)\n",
-                       LwSmStatusToString(status),
-                       LwSmProcessToString(process),
-                       (long) pid);
+                       LwSmStateToString(status.state),
+                       LwSmHomeToString(status.home),
+                       (long) status.pid);
                 break;
             default:
-                printf("%s\n", LwSmStatusToString(status));
+                printf("%s\n", LwSmStateToString(status.state));
                 break;
             }
         }
@@ -266,7 +263,7 @@ LwSmStartAll(
     PWSTR pwszServiceName = NULL;
     LW_SERVICE_HANDLE hHandle = NULL;
     LW_SERVICE_HANDLE hDepHandle = NULL;
-    LW_SERVICE_STATUS status = LW_SERVICE_DEAD;
+    LW_SERVICE_STATUS status = {0};
     PWSTR* ppwszDependencies = NULL;
     PSTR pszTemp = NULL;
     size_t i = 0;
@@ -277,7 +274,7 @@ LwSmStartAll(
     dwError = LwSmAcquireServiceHandle(pwszServiceName, &hHandle);
     BAIL_ON_ERROR(dwError);
     
-    dwError = LwSmGetServiceDependencyClosure(hHandle, &ppwszDependencies);
+    dwError = LwSmQueryServiceDependencyClosure(hHandle, &ppwszDependencies);
     BAIL_ON_ERROR(dwError);
 
     for (i = 0; ppwszDependencies[i]; i++)
@@ -285,10 +282,10 @@ LwSmStartAll(
         dwError = LwSmAcquireServiceHandle(ppwszDependencies[i], &hDepHandle);
         BAIL_ON_ERROR(dwError);
 
-        dwError = LwSmGetServiceStatus(hDepHandle, &status);
+        dwError = LwSmQueryServiceStatus(hDepHandle, &status);
         BAIL_ON_ERROR(dwError);
 
-        if (status != LW_SERVICE_RUNNING)
+        if (status.state != LW_SERVICE_STATE_RUNNING)
         {
             if (!gState.bQuiet)
             {
@@ -395,7 +392,7 @@ LwSmStopAll(
     PWSTR pwszServiceName = NULL;
     LW_SERVICE_HANDLE hHandle = NULL;
     LW_SERVICE_HANDLE hDepHandle = NULL;
-    LW_SERVICE_STATUS status = LW_SERVICE_DEAD;
+    LW_SERVICE_STATUS status = {0};
     PWSTR* ppwszDependencies = NULL;
     PSTR pszTemp = NULL;
     size_t i = 0;
@@ -406,7 +403,7 @@ LwSmStopAll(
     dwError = LwSmAcquireServiceHandle(pwszServiceName, &hHandle);
     BAIL_ON_ERROR(dwError);
     
-    dwError = LwSmGetServiceReverseDependencyClosure(hHandle, &ppwszDependencies);
+    dwError = LwSmQueryServiceReverseDependencyClosure(hHandle, &ppwszDependencies);
     BAIL_ON_ERROR(dwError);
 
     for (i = 0; ppwszDependencies[i]; i++)
@@ -414,10 +411,10 @@ LwSmStopAll(
         dwError = LwSmAcquireServiceHandle(ppwszDependencies[i], &hDepHandle);
         BAIL_ON_ERROR(dwError);
 
-        dwError = LwSmGetServiceStatus(hDepHandle, &status);
+        dwError = LwSmQueryServiceStatus(hDepHandle, &status);
         BAIL_ON_ERROR(dwError);
 
-        if (status != LW_SERVICE_STOPPED)
+        if (status.state != LW_SERVICE_STATE_STOPPED)
         {
             if (!gState.bQuiet)
             {
@@ -495,7 +492,7 @@ LwSmRestartAll(
     dwError = LwSmAcquireServiceHandle(pwszServiceName, &hHandle);
     BAIL_ON_ERROR(dwError);
 
-    dwError = LwSmGetServiceReverseDependencyClosure(hHandle, &ppwszReverseDeps);
+    dwError = LwSmQueryServiceReverseDependencyClosure(hHandle, &ppwszReverseDeps);
     BAIL_ON_ERROR(dwError);
 
     count = LwSmStringListLength(ppwszReverseDeps);
@@ -511,10 +508,10 @@ LwSmRestartAll(
         dwError = LwSmAcquireServiceHandle(ppwszReverseDeps[i], &phDepHandles[i]);
         BAIL_ON_ERROR(dwError);
 
-        dwError = LwSmGetServiceStatus(phDepHandles[i], &pStatus[i]);
+        dwError = LwSmQueryServiceStatus(phDepHandles[i], &pStatus[i]);
         BAIL_ON_ERROR(dwError);
 
-        if (pStatus[i] != LW_SERVICE_STOPPED)
+        if (pStatus[i].state != LW_SERVICE_STATE_STOPPED)
         {
             if (!gState.bQuiet)
             {
@@ -546,7 +543,7 @@ LwSmRestartAll(
 
     for (i = 0; i < count; i++)
     {
-        if (pStatus[count - 1 - i] == LW_SERVICE_RUNNING)
+        if (pStatus[count - 1 - i].state == LW_SERVICE_STATE_RUNNING)
         {
             if (!gState.bQuiet)
             {
@@ -651,7 +648,7 @@ LwSmInfo(
     dwError = LwSmAcquireServiceHandle(pwszServiceName, &hHandle);
     BAIL_ON_ERROR(dwError);
     
-    dwError = LwSmGetServiceInfo(hHandle, &pInfo);
+    dwError = LwSmQueryServiceInfo(hHandle, &pInfo);
     BAIL_ON_ERROR(dwError);
     
     printf("Service: %s\n", pArgv[1]);
@@ -663,7 +660,7 @@ LwSmInfo(
     LW_SAFE_FREE_MEMORY(pszTemp);
 
     printf("Type: %s\n", LwSmTypeToString(pInfo->type));
-    printf("Startup service: %s\n", pInfo->bStartupService ? "yes" : "no");
+    printf("Autostart: %s\n", pInfo->bAutostart ? "yes" : "no");
 
     dwError = LwWc16sToMbs(pInfo->pwszPath, &pszTemp);
     BAIL_ON_ERROR(dwError);
@@ -727,9 +724,7 @@ LwSmStatus(
     DWORD dwError = 0;
     PWSTR pwszServiceName = NULL;
     LW_SERVICE_HANDLE hHandle = NULL;
-    LW_SERVICE_STATUS status = LW_SERVICE_DEAD;
-    LW_SERVICE_PROCESS process;
-    pid_t pid;
+    LW_SERVICE_STATUS status = {0};
 
     dwError = LwMbsToWc16s(pArgv[1], &pwszServiceName);
     BAIL_ON_ERROR(dwError);
@@ -737,28 +732,26 @@ LwSmStatus(
     dwError = LwSmAcquireServiceHandle(pwszServiceName, &hHandle);
     BAIL_ON_ERROR(dwError);
     
-    dwError = LwSmGetServiceStatus(hHandle, &status);
+    dwError = LwSmQueryServiceStatus(hHandle, &status);
     BAIL_ON_ERROR(dwError);
     
     if (!gState.bQuiet)
     {
-        switch (status)
+        switch (status.state)
         {
-        case LW_SERVICE_RUNNING:
-            dwError = LwSmGetServiceProcess(hHandle, &process, &pid);
-            BAIL_ON_ERROR(dwError);
+        case LW_SERVICE_STATE_RUNNING:
             printf("%s (%s: %li)\n",
-                   LwSmStatusToString(status),
-                   LwSmProcessToString(process),
-                   (long) pid);
+                   LwSmStateToString(status.state),
+                   LwSmHomeToString(status.home),
+                   (long) status.pid);
             break;
         default:
-            printf("%s\n", LwSmStatusToString(status));
+            printf("%s\n", LwSmStateToString(status.state));
             break;
         }
     }
 
-    *pRet = status;
+    *pRet = status.state;
 
 cleanup:
     

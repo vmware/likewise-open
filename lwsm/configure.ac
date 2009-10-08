@@ -32,6 +32,15 @@ esac
 AS_AC_EXPAND(SBINDIR, $sbindir)
 AC_DEFINE_UNQUOTED(SBINDIR, "$SBINDIR", [sbin directory])
 
+if test x"$localstatedir" = x"/var"; then
+    cachedir="$localstatedir/lib/likewise"
+else
+    cachedir="$localstatedir"
+fi
+
+AS_AC_EXPAND(CACHEDIR, $cachedir)
+AC_DEFINE_UNQUOTED(CACHEDIR, "$CACHEDIR", [Cache directory])
+
 AC_SUBST(LWSM_CPPFLAGS)
 AC_SUBST(LWSM_CFLAGS)
 AC_SUBST(LWSM_LDFLAGS)

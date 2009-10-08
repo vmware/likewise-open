@@ -193,7 +193,7 @@ LwSmCopyServiceInfo(
     BAIL_ON_ERROR(dwError);
 
     pCopy->type = pInfo->type;
-    pCopy->bStartupService = pInfo->bStartupService;
+    pCopy->bAutostart = pInfo->bAutostart;
     
     dwError = LwAllocateWc16String(&pCopy->pwszPath, pInfo->pwszPath);
     BAIL_ON_ERROR(dwError);

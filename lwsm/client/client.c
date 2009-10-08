@@ -203,7 +203,8 @@ LwSmFreeServiceNameList(
 
 DWORD
 LwSmAddService(
-    PCLW_SERVICE_INFO pServiceInfo
+    PCLW_SERVICE_INFO pServiceInfo,
+    PLW_SERVICE_HANDLE phHandle
     )
 {
     DWORD dwError = 0;
@@ -223,6 +224,8 @@ LwSmAddService(
     switch (out.tag)
     {
     case SM_IPC_ADD_SERVICE_RES:
+        *phHandle = out.data;
+        out.data = NULL;
         break;
     case SM_IPC_ERROR:
         dwError = *(PDWORD) out.data;
@@ -251,7 +254,7 @@ error:
 
 DWORD
 LwSmRemoveService(
-    LW_PCWSTR pwszName
+    LW_SERVICE_HANDLE hHandle
     )
 {
     DWORD dwError = 0;
@@ -260,7 +263,7 @@ LwSmRemoveService(
     LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
 
     in.tag = SM_IPC_REMOVE_SERVICE_REQ;
-    in.data = (PVOID) pwszName;
+    in.data = (PVOID) hHandle;
 
     dwError = LwSmIpcAcquireCall(&pCall);
     BAIL_ON_ERROR(dwError);
@@ -271,6 +274,7 @@ LwSmRemoveService(
     switch (out.tag)
     {
     case SM_IPC_REMOVE_SERVICE_RES:
+        break;
     case SM_IPC_ERROR:
         dwError = *(PDWORD) out.data;
         BAIL_ON_ERROR(dwError);
@@ -399,7 +403,7 @@ error:
 }
    
 DWORD
-LwSmGetServiceStatus(
+LwSmQueryServiceStatus(
     LW_SERVICE_HANDLE hHandle,
     PLW_SERVICE_STATUS pStatus
     )
@@ -409,7 +413,7 @@ LwSmGetServiceStatus(
     LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
     LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
 
-    in.tag = SM_IPC_GET_SERVICE_STATUS_REQ;
+    in.tag = SM_IPC_QUERY_SERVICE_STATUS_REQ;
     in.data = hHandle;
 
     dwError = LwSmIpcAcquireCall(&pCall);
@@ -420,62 +424,8 @@ LwSmGetServiceStatus(
 
     switch (out.tag)
     {
-    case SM_IPC_GET_SERVICE_STATUS_RES:
-        *pStatus = *(PDWORD) out.data;
-        break;
-    case SM_IPC_ERROR:
-        dwError = *(PDWORD) out.data;
-        BAIL_ON_ERROR(dwError);
-        break;
-    default:
-        dwError = LW_ERROR_INTERNAL;
-        BAIL_ON_ERROR(dwError);
-        break;
-    }
-
-cleanup:
-
-    if (pCall)
-    {
-        lwmsg_call_destroy_params(pCall, &out);
-        lwmsg_call_release(pCall);
-    }
-
-    return dwError;
-
-error:
-
-    goto cleanup;
-}
-
-DWORD
-LwSmGetServiceProcess(
-    LW_SERVICE_HANDLE hHandle,
-    PLW_SERVICE_PROCESS pProcessType,
-    pid_t* pProcessPid
-    )
-{
-    DWORD dwError = 0;
-    LWMsgCall* pCall = NULL;
-    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
-    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
-    PSM_IPC_GET_SERVICE_PROCESS_RES_STRUCT pRes = NULL;
-
-    in.tag = SM_IPC_GET_SERVICE_PROCESS_REQ;
-    in.data = hHandle;
-
-    dwError = LwSmIpcAcquireCall(&pCall);
-    BAIL_ON_ERROR(dwError);
-
-    dwError = MAP_LWMSG_STATUS(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
-    BAIL_ON_ERROR(dwError);
-
-    switch (out.tag)
-    {
-    case SM_IPC_GET_SERVICE_PROCESS_RES:
-        pRes = out.data;
-        *pProcessType = pRes->process;
-        *pProcessPid = pRes->pid;
+    case SM_IPC_QUERY_SERVICE_STATUS_RES:
+        *pStatus = *(PLW_SERVICE_STATUS) out.data;
         break;
     case SM_IPC_ERROR:
         dwError = *(PDWORD) out.data;
@@ -554,7 +504,7 @@ error:
 }
 
 DWORD
-LwSmGetServiceInfo(
+LwSmQueryServiceInfo(
     LW_SERVICE_HANDLE hHandle,
     PLW_SERVICE_INFO* ppInfo
     )
@@ -564,7 +514,7 @@ LwSmGetServiceInfo(
     LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
     LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
 
-    in.tag = SM_IPC_GET_SERVICE_INFO_REQ;
+    in.tag = SM_IPC_QUERY_SERVICE_INFO_REQ;
     in.data = hHandle;
 
     dwError = LwSmIpcAcquireCall(&pCall);
@@ -575,7 +525,7 @@ LwSmGetServiceInfo(
 
     switch (out.tag)
     {
-    case SM_IPC_GET_SERVICE_INFO_RES:
+    case SM_IPC_QUERY_SERVICE_INFO_RES:
         *ppInfo = out.data;
         out.data = NULL;
         break;
@@ -616,7 +566,7 @@ LwSmFreeServiceInfo(
 
 static
 DWORD
-LwSmGetServiceDependencyClosureHelper(
+LwSmQueryServiceDependencyClosureHelper(
     LW_SERVICE_HANDLE hHandle,
     PWSTR** pppwszServiceList
     )
@@ -627,7 +577,7 @@ LwSmGetServiceDependencyClosureHelper(
     PWSTR pwszDepName = NULL;
     size_t i = 0;
 
-    dwError = LwSmGetServiceInfo(hHandle, &pInfo);
+    dwError = LwSmQueryServiceInfo(hHandle, &pInfo);
     BAIL_ON_ERROR(dwError);
 
     for (i = 0; pInfo->ppwszDependencies[i]; i++)
@@ -635,7 +585,7 @@ LwSmGetServiceDependencyClosureHelper(
         dwError = LwSmAcquireServiceHandle(pInfo->ppwszDependencies[i], &hDepHandle);
         BAIL_ON_ERROR(dwError);
 
-        dwError = LwSmGetServiceDependencyClosureHelper(hDepHandle, pppwszServiceList);
+        dwError = LwSmQueryServiceDependencyClosureHelper(hDepHandle, pppwszServiceList);
         BAIL_ON_ERROR(dwError);
 
         if (!LwSmStringListContains(*pppwszServiceList, pInfo->ppwszDependencies[i]))
@@ -675,7 +625,7 @@ error:
 }
 
 DWORD
-LwSmGetServiceDependencyClosure(
+LwSmQueryServiceDependencyClosure(
     LW_SERVICE_HANDLE hHandle,
     PWSTR** pppwszServiceList
     )
@@ -686,7 +636,7 @@ LwSmGetServiceDependencyClosure(
     dwError = LwAllocateMemory(sizeof(*ppwszServiceList) * 1, OUT_PPVOID(&ppwszServiceList));
     BAIL_ON_ERROR(dwError);
 
-    dwError = LwSmGetServiceDependencyClosureHelper(hHandle, &ppwszServiceList);
+    dwError = LwSmQueryServiceDependencyClosureHelper(hHandle, &ppwszServiceList);
     BAIL_ON_ERROR(dwError);
 
     *pppwszServiceList = ppwszServiceList;
@@ -709,7 +659,7 @@ error:
 
 static
 DWORD
-LwSmGetServiceReverseDependencyClosureHelper(
+LwSmQueryServiceReverseDependencyClosureHelper(
     LW_SERVICE_HANDLE hHandle,
     PWSTR* ppwszAllServices,
     PWSTR** pppwszServiceList
@@ -722,7 +672,7 @@ LwSmGetServiceReverseDependencyClosureHelper(
     LW_SERVICE_HANDLE hDepHandle = NULL;
     PWSTR pwszDepName = NULL;
 
-    dwError = LwSmGetServiceInfo(hHandle, &pInfo);
+    dwError = LwSmQueryServiceInfo(hHandle, &pInfo);
     BAIL_ON_ERROR(dwError);
 
     for (i = 0; ppwszAllServices[i]; i++)
@@ -730,12 +680,12 @@ LwSmGetServiceReverseDependencyClosureHelper(
         dwError = LwSmAcquireServiceHandle(ppwszAllServices[i], &hDepHandle);
         BAIL_ON_ERROR(dwError);
 
-        dwError = LwSmGetServiceInfo(hDepHandle, &pDepInfo);
+        dwError = LwSmQueryServiceInfo(hDepHandle, &pDepInfo);
         BAIL_ON_ERROR(dwError);
 
         if (LwSmStringListContains(pDepInfo->ppwszDependencies, pInfo->pwszName))
         {
-            dwError = LwSmGetServiceReverseDependencyClosureHelper(
+            dwError = LwSmQueryServiceReverseDependencyClosureHelper(
                 hDepHandle,
                 ppwszAllServices,
                 pppwszServiceList);
@@ -785,7 +735,7 @@ error:
 }
 
 DWORD
-LwSmGetServiceReverseDependencyClosure(
+LwSmQueryServiceReverseDependencyClosure(
     LW_SERVICE_HANDLE hHandle,
     PWSTR** pppwszServiceList
     )
@@ -800,7 +750,7 @@ LwSmGetServiceReverseDependencyClosure(
     dwError = LwSmEnumerateServices(&ppwszAllServices);
     BAIL_ON_ERROR(dwError);
 
-    dwError = LwSmGetServiceReverseDependencyClosureHelper(
+    dwError = LwSmQueryServiceReverseDependencyClosureHelper(
         hHandle,
         ppwszAllServices,
         &ppwszServiceList);

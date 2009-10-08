@@ -50,7 +50,7 @@ typedef struct _SM_PROCESS_TABLE
 
 typedef struct _SM_EXECUTABLE
 {
-    LW_SERVICE_STATUS status;
+    LW_SERVICE_STATE state;
     pid_t pid;
     PSM_TABLE_ENTRY pEntry;
     SM_LINK link;
@@ -97,14 +97,14 @@ LwSmExecutableStart(
 
     LOCK(bLocked, &gProcTable.lock);
 
-    if (pExec->status != LW_SERVICE_STOPPED &&
-        pExec->status != LW_SERVICE_DEAD)
+    if (pExec->state != LW_SERVICE_STATE_STOPPED &&
+        pExec->state != LW_SERVICE_STATE_DEAD)
     {
         dwError = LW_ERROR_INVALID_SERVICE_TRANSITION;
         BAIL_ON_ERROR(dwError);
     }
 
-    if (pEntry->pInfo->type == LW_SERVICE_SM_EXECUTABLE)
+    if (pEntry->pInfo->type == LW_SERVICE_TYPE_EXECUTABLE)
     {
         if (pipe(notifyPipe) != 0)
         {
@@ -124,7 +124,7 @@ LwSmExecutableStart(
     {
         dwError = LwSmExecProgram(
             pExec,
-            pEntry->pInfo->type == LW_SERVICE_SM_EXECUTABLE ?
+            pEntry->pInfo->type == LW_SERVICE_TYPE_EXECUTABLE ?
             notifyPipe :
             NULL
             );
@@ -133,7 +133,7 @@ LwSmExecutableStart(
     else
     {
         pExec->pid = pid;
-        pExec->status = LW_SERVICE_STARTING;
+        pExec->state = LW_SERVICE_STATE_STARTING;
         
         /* Take an additional reference to the table entry
            because our child monitoring thread will need it */
@@ -142,7 +142,7 @@ LwSmExecutableStart(
         /* Signal state change */
         LwSmTableNotifyEntryChanged(pEntry);
         
-        if (pEntry->pInfo->type == LW_SERVICE_SM_EXECUTABLE)
+        if (pEntry->pInfo->type == LW_SERVICE_TYPE_EXECUTABLE)
         {
             /* Close write side of pipe since we do not need it */
             close(notifyPipe[1]);
@@ -169,8 +169,8 @@ LwSmExecutableStart(
             }
         }
 
-        pExec->status = LW_SERVICE_RUNNING;
-        
+        pExec->state = LW_SERVICE_STATE_RUNNING;
+
         /* Signal state change */
         LwSmTableNotifyEntryChanged(pEntry);
     }
@@ -268,28 +268,28 @@ LwSmExecutableStop(
 
     LOCK(bLocked, &gProcTable.lock);
 
-    switch (pExec->status)
+    switch (pExec->state)
     {
     default:
         dwError = LW_ERROR_INVALID_SERVICE_TRANSITION;
         BAIL_ON_ERROR(dwError);
         break;
-    case LW_SERVICE_RUNNING:
+    case LW_SERVICE_STATE_RUNNING:
         if (kill(pExec->pid, SIGTERM) < 0)
         {
             dwError = LwMapErrnoToLwError(errno);
             BAIL_ON_ERROR(dwError);
         }
-        pExec->status = LW_SERVICE_STOPPING;
+        pExec->state = LW_SERVICE_STATE_STOPPING;
         LwSmTableNotifyEntryChanged(pEntry);
         
         /* The background thread will notice when the
            child process finally exits and update the
            status to LW_SERVICE_STOPPED */
         break;
-    case LW_SERVICE_DEAD:
+    case LW_SERVICE_STATE_DEAD:
         /* Go directly to stopped state */
-        pExec->status = LW_SERVICE_STOPPED;
+        pExec->state = LW_SERVICE_STATE_STOPPED;
         LwSmTableNotifyEntryChanged(pEntry);
         break;
     }
@@ -318,29 +318,9 @@ LwSmExecutableGetStatus(
 
     LOCK(bLocked, &gProcTable.lock);
 
-    *pStatus = pExec->status;
-
-    UNLOCK(bLocked, &gProcTable.lock);
-
-    return dwError;
-}
-
-static
-DWORD
-LwSmExecutableGetProcess(
-    PSM_TABLE_ENTRY pEntry,
-    PLW_SERVICE_PROCESS pProcess,
-    pid_t* pPid
-    )
-{
-    DWORD dwError = 0;
-    PSM_EXECUTABLE pExec = pEntry->pData;
-    BOOLEAN bLocked = FALSE;
-
-    LOCK(bLocked, &gProcTable.lock);
-
-    *pProcess = LW_SERVICE_PROCESS_STANDALONE;
-    *pPid = pExec->pid;
+    pStatus->state = pExec->state;
+    pStatus->pid = pExec->pid;
+    pStatus->home = LW_SERVICE_HOME_STANDALONE;
 
     UNLOCK(bLocked, &gProcTable.lock);
 
@@ -359,9 +339,9 @@ LwSmExecutableRefresh(
 
     LOCK(bLocked, &gProcTable.lock);
 
-    switch (pExec->status)
+    switch (pExec->state)
     {
-    case LW_SERVICE_RUNNING:
+    case LW_SERVICE_STATE_RUNNING:
         if (kill(pExec->pid, SIGHUP) < 0)
         {
             dwError = LwMapErrnoToLwError(errno);
@@ -397,7 +377,7 @@ LwSmExecutableConstruct(
     BAIL_ON_ERROR(dwError);
 
     pExec->pid = -1;
-    pExec->status = LW_SERVICE_STOPPED;
+    pExec->state = LW_SERVICE_STATE_STOPPED;
     pExec->pEntry = pEntry;
     LwSmLinkInit(&pExec->link);
     LwSmLinkInit(&pExec->threadLink);
@@ -444,7 +424,6 @@ SM_OBJECT_VTBL gExecutableVtbl =
     .pfnStart = LwSmExecutableStart,
     .pfnStop = LwSmExecutableStop,
     .pfnGetStatus = LwSmExecutableGetStatus,
-    .pfnGetProcess = LwSmExecutableGetProcess,
     .pfnRefresh = LwSmExecutableRefresh,
     .pfnConstruct = LwSmExecutableConstruct,
     .pfnDestruct = LwSmExecutableDestruct
@@ -495,13 +474,13 @@ LwSmExecutableThread(
                 
                 if (pid == pExec->pid)
                 {
-                    switch (pExec->status)
+                    switch (pExec->state)
                     {
-                    case LW_SERVICE_STOPPING:
-                        pExec->status = LW_SERVICE_STOPPED;
+                    case LW_SERVICE_STATE_STOPPING:
+                        pExec->state = LW_SERVICE_STATE_STOPPED;
                         break;
                     default:
-                        pExec->status = LW_SERVICE_DEAD;
+                        pExec->state = LW_SERVICE_STATE_DEAD;
                         break;
                     }
                     

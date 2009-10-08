@@ -90,59 +90,48 @@ LwSmDriverGetStatus(
     )
 {
     DWORD dwError = 0;
-    LWIO_DRIVER_STATUS status = 0;
-
-    dwError = LwNtStatusToWin32Error(LwIoGetDriverStatus(
-                                         pEntry->pInfo->pwszName,
-                                         &status));
-
-    if (dwError)
-    {
-        *pStatus = LW_SERVICE_STOPPED;
-        dwError = 0;
-    }
-    else switch (status)
-    {
-    case LWIO_DRIVER_LOADED:
-        *pStatus = LW_SERVICE_RUNNING;
-        break;
-    case LWIO_DRIVER_UNLOADED:
-        *pStatus = LW_SERVICE_STOPPED;
-        break;
-    default:
-        dwError = LW_ERROR_INTERNAL;
-        BAIL_ON_ERROR(dwError);
-        break;
-    }
-
-cleanup:
-
-    return dwError;
-
-error:
-
-    goto cleanup;
-}
-
-static
-DWORD
-LwSmDriverGetProcess(
-    PSM_TABLE_ENTRY pEntry,
-    PLW_SERVICE_PROCESS pProcess,
-    pid_t* pPid
-    )
-{
-    DWORD dwError = 0;
-    WCHAR wszLwio[] = {'l', 'w', 'i', 'o', '\0'};
+    LWIO_DRIVER_STATUS driverStatus = 0;
     PSM_TABLE_ENTRY pLwioEntry = NULL;
+    LW_SERVICE_STATUS lwioStatus;
+    WCHAR wszLwio[] = {'l', 'w', 'i', 'o', '\0'};
 
     dwError = LwSmTableGetEntry(wszLwio, &pLwioEntry);
     BAIL_ON_ERROR(dwError);
 
-    dwError = LwSmTableGetEntryProcess(pLwioEntry, pProcess, pPid);
+    dwError = LwSmTableGetEntryStatus(pLwioEntry, &lwioStatus);
     BAIL_ON_ERROR(dwError);
 
-    *pProcess = LW_SERVICE_PROCESS_IO_MANAGER;
+    pStatus->home = LW_SERVICE_HOME_IO_MANAGER;
+    pStatus->pid = lwioStatus.pid;
+
+    switch (lwioStatus.state)
+    {
+    case LW_SERVICE_STATE_RUNNING:
+        dwError = LwNtStatusToWin32Error(LwIoGetDriverStatus(
+                                             pEntry->pInfo->pwszName,
+                                             &driverStatus));
+        BAIL_ON_ERROR(dwError);
+        switch (driverStatus)
+        {
+        case LWIO_DRIVER_LOADED:
+            pStatus->state = LW_SERVICE_STATE_RUNNING;
+            break;
+        case LWIO_DRIVER_UNLOADED:
+            pStatus->state = LW_SERVICE_STATE_STOPPED;
+            break;
+        default:
+            dwError = LW_ERROR_INTERNAL;
+            BAIL_ON_ERROR(dwError);
+            break;
+        }
+        break;
+    case LW_SERVICE_STATE_DEAD:
+        pStatus->state = LW_SERVICE_STATE_DEAD;
+        break;
+    default:
+        pStatus->state = LW_SERVICE_STATE_STOPPED;
+        break;
+    }
 
 cleanup:
 
@@ -194,7 +183,6 @@ SM_OBJECT_VTBL gDriverVtbl =
     .pfnStart = LwSmDriverStart,
     .pfnStop = LwSmDriverStop,
     .pfnGetStatus = LwSmDriverGetStatus,
-    .pfnGetProcess = LwSmDriverGetProcess,
     .pfnRefresh = LwSmDriverRefresh,
     .pfnConstruct = LwSmDriverConstruct,
     .pfnDestruct = LwSmDriverDestruct

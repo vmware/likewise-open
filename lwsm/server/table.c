@@ -72,9 +72,9 @@ static SM_TABLE gServiceTable =
 
 static PSM_OBJECT_VTBL gVtblTable[] =
 {
-    [LW_SERVICE_EXECUTABLE] = &gExecutableVtbl,
-    [LW_SERVICE_SM_EXECUTABLE] = &gExecutableVtbl,
-    [LW_SERVICE_DRIVER] = &gDriverVtbl
+    [LW_SERVICE_TYPE_LEGACY_EXECUTABLE] = &gExecutableVtbl,
+    [LW_SERVICE_TYPE_EXECUTABLE] = &gExecutableVtbl,
+    [LW_SERVICE_TYPE_DRIVER] = &gDriverVtbl
 };
 
 DWORD
@@ -334,7 +334,7 @@ LwSmTableStartEntry(
 {
     DWORD dwError = 0;
     BOOLEAN bLocked = FALSE;
-    LW_SERVICE_STATUS status = LW_SERVICE_DEAD;
+    LW_SERVICE_STATUS status = {.state = LW_SERVICE_STATE_DEAD};
     DWORD dwAttempts = 0;
 
     LOCK(bLocked, pEntry->pLock);
@@ -352,17 +352,17 @@ LwSmTableStartEntry(
         pEntry->bDepsMarked = TRUE;
     }
 
-    while (status != LW_SERVICE_RUNNING)
+    while (status.state != LW_SERVICE_STATE_RUNNING)
     {
         dwError = LwSmTablePollEntry(pEntry, &status);
         BAIL_ON_ERROR(dwError);
 
-        switch (status)
+        switch (status.state)
         {
-        case LW_SERVICE_RUNNING:
+        case LW_SERVICE_STATE_RUNNING:
             break;
-        case LW_SERVICE_STOPPED:
-        case LW_SERVICE_DEAD:
+        case LW_SERVICE_STATE_STOPPED:
+        case LW_SERVICE_STATE_DEAD:
             if (dwAttempts == 0)
             {
                 dwError = pEntry->pVtbl->pfnStart(pEntry);
@@ -375,12 +375,12 @@ LwSmTableStartEntry(
                 BAIL_ON_ERROR(dwError);
             }
             break;
-        case LW_SERVICE_STARTING:
-        case LW_SERVICE_STOPPING:
+        case LW_SERVICE_STATE_STARTING:
+        case LW_SERVICE_STATE_STOPPING:
             dwError = LwSmTableWaitEntryChanged(pEntry);
             BAIL_ON_ERROR(dwError);
             break;
-        case LW_SERVICE_PAUSED:
+        case LW_SERVICE_STATE_PAUSED:
             dwError = LW_ERROR_INVALID_SERVICE_TRANSITION;
             BAIL_ON_ERROR(dwError);
             break;
@@ -414,7 +414,7 @@ LwSmTableVerifyAndMarkDependencies(
     DWORD dwIndex = 0;
     DWORD dwMaxIndex = 0;
     PSM_TABLE_ENTRY pDependency = NULL;
-    LW_SERVICE_STATUS status = LW_SERVICE_DEAD;
+    LW_SERVICE_STATUS status = {.state = LW_SERVICE_STATE_DEAD};
     BOOLEAN bLocked = FALSE;
 
     for (dwIndex = 0; pEntry->pInfo->ppwszDependencies[dwIndex]; dwIndex++)
@@ -439,8 +439,8 @@ LwSmTableVerifyAndMarkDependencies(
         dwError = LwSmTablePollEntry(pDependency, &status);
         BAIL_ON_ERROR(dwError);
 
-        if (status != LW_SERVICE_RUNNING &&
-            status != LW_SERVICE_PAUSED)
+        if (status.state != LW_SERVICE_STATE_RUNNING &&
+            status.state != LW_SERVICE_STATE_PAUSED)
         {
             dwError = LW_ERROR_SERVICE_DEPENDENCY_UNMET;
             BAIL_ON_ERROR(dwError);
@@ -495,7 +495,7 @@ LwSmTableStopEntry(
 {
     DWORD dwError = 0;
     BOOLEAN bLocked = FALSE;
-    LW_SERVICE_STATUS status = LW_SERVICE_RUNNING;
+    LW_SERVICE_STATUS status = {.state = LW_SERVICE_STATE_RUNNING};
     DWORD dwAttempts = 0;
 
     LOCK(bLocked, pEntry->pLock);
@@ -512,15 +512,15 @@ LwSmTableStopEntry(
         BAIL_ON_ERROR(dwError);
     }
 
-    while (status != LW_SERVICE_STOPPED)
+    while (status.state != LW_SERVICE_STATE_STOPPED)
     {
         dwError = LwSmTablePollEntry(pEntry, &status);
         BAIL_ON_ERROR(dwError);
 
-        switch (status)
+        switch (status.state)
         {
-        case LW_SERVICE_RUNNING:
-        case LW_SERVICE_DEAD:
+        case LW_SERVICE_STATE_RUNNING:
+        case LW_SERVICE_STATE_DEAD:
             /* A service that is dead should go directly
                to the stop state when requested */
             if (dwAttempts == 0)
@@ -535,14 +535,14 @@ LwSmTableStopEntry(
                 BAIL_ON_ERROR(dwError);
             }
             break;
-        case LW_SERVICE_STOPPED:
+        case LW_SERVICE_STATE_STOPPED:
             break;
-        case LW_SERVICE_STARTING:
-        case LW_SERVICE_STOPPING:
+        case LW_SERVICE_STATE_STARTING:
+        case LW_SERVICE_STATE_STOPPING:
             dwError = LwSmTableWaitEntryChanged(pEntry);
             BAIL_ON_ERROR(dwError);
             break;
-        case LW_SERVICE_PAUSED:
+        case LW_SERVICE_STATE_PAUSED:
             dwError = LW_ERROR_INVALID_SERVICE_TRANSITION;
             BAIL_ON_ERROR(dwError);
             break;
@@ -574,7 +574,7 @@ LwSmTableRefreshEntry(
 {
     DWORD dwError = 0;
     BOOLEAN bLocked = FALSE;
-    LW_SERVICE_STATUS status = LW_SERVICE_RUNNING;
+    LW_SERVICE_STATUS status = {.state = LW_SERVICE_STATE_DEAD};
 
     LOCK(bLocked, pEntry->pLock);
 
@@ -587,9 +587,9 @@ LwSmTableRefreshEntry(
     dwError = LwSmTablePollEntry(pEntry, &status);
     BAIL_ON_ERROR(dwError);
 
-    switch (status)
+    switch (status.state)
     {
-    case LW_SERVICE_RUNNING:
+    case LW_SERVICE_STATE_RUNNING:
         dwError = pEntry->pVtbl->pfnRefresh(pEntry);
         BAIL_ON_ERROR(dwError);
         break;
@@ -635,34 +635,6 @@ error:
     return dwError;
 }
 
-DWORD
-LwSmTableGetEntryProcess(
-    PSM_TABLE_ENTRY pEntry,
-    PLW_SERVICE_PROCESS pProcess,
-    pid_t* pPid
-    )
-{
-    DWORD dwError = 0;
-    BOOLEAN bLocked = FALSE;
-
-    LOCK(bLocked, pEntry->pLock);
-
-    if (!pEntry->bValid)
-    {
-        dwError = LW_ERROR_INVALID_HANDLE;
-        BAIL_ON_ERROR(dwError);
-    }
-
-    dwError = pEntry->pVtbl->pfnGetProcess(pEntry, pProcess, pPid);
-    BAIL_ON_ERROR(dwError);
-
-error:
-
-    UNLOCK(bLocked, pEntry->pLock);
-
-    return dwError;
-}
-
 static
 DWORD
 LwSmTablePollEntry(
@@ -677,16 +649,16 @@ LwSmTablePollEntry(
 
     /* If an unannounced change in the service status occured,
        we may need to unmark or mark dependencies */
-    if ((*pStatus == LW_SERVICE_STOPPED ||
-         *pStatus == LW_SERVICE_DEAD) &&
+    if ((pStatus->state == LW_SERVICE_STATE_STOPPED ||
+         pStatus->state == LW_SERVICE_STATE_DEAD) &&
         pEntry->bDepsMarked)
     {
         dwError = LwSmTableUnmarkDependencies(pEntry);
         BAIL_ON_ERROR(dwError);
         pEntry->bDepsMarked = FALSE;
     }
-    else if ((*pStatus != LW_SERVICE_STOPPED &&
-              *pStatus != LW_SERVICE_DEAD) &&
+    else if ((pStatus->state != LW_SERVICE_STATE_STOPPED &&
+              pStatus->state != LW_SERVICE_STATE_DEAD) &&
              !pEntry->bDepsMarked)
     {
         dwError = LwSmTableVerifyAndMarkDependencies(pEntry);

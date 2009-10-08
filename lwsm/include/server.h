@@ -50,7 +50,6 @@ typedef struct _SM_OBJECT_VTBL
     DWORD (*pfnStart)(struct _SM_TABLE_ENTRY* pEntry);
     DWORD (*pfnStop)(struct _SM_TABLE_ENTRY* pEntry);
     DWORD (*pfnGetStatus)(struct _SM_TABLE_ENTRY* pEntry, PLW_SERVICE_STATUS pStatus);
-    DWORD (*pfnGetProcess)(struct _SM_TABLE_ENTRY* pEntry, PLW_SERVICE_PROCESS pProcess, pid_t* pPid);
     DWORD (*pfnRefresh)(struct _SM_TABLE_ENTRY* pEntry);
     DWORD (*pfnConstruct)(struct _SM_TABLE_ENTRY* pEntry);
     VOID  (*pfnDestruct)(struct _SM_TABLE_ENTRY* pEntry);
@@ -222,13 +221,6 @@ DWORD
 LwSmTableGetEntryStatus(
     PSM_TABLE_ENTRY pEntry,
     PLW_SERVICE_STATUS pStatus
-    );
-
-DWORD
-LwSmTableGetEntryProcess(
-    PSM_TABLE_ENTRY pEntry,
-    PLW_SERVICE_PROCESS pProcess,
-    pid_t* pPid
     );
 
 DWORD
