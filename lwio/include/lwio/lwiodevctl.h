@@ -56,6 +56,16 @@ typedef struct _IO_OPEN_FILE_INFO_0
 
 } IO_OPEN_FILE_INFO_0, *PIO_OPEN_FILE_INFO_0;
 
+typedef struct _IO_OPEN_FILE_INFO_100
+{
+    ULONG NextEntryOffset;
+    ULONG OpenHandleCount;
+    BOOLEAN bDeleteOnClose;
+    ULONG FileNameLength;
+    PWSTR pwszFileName[1];
+
+} IO_OPEN_FILE_INFO_100, *PIO_OPEN_FILE_INFO_100;
+
 typedef struct _IO_OPEN_FILE_INFO_INPUT_BUFFER
 {
     DWORD Level;
