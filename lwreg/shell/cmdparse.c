@@ -1509,7 +1509,8 @@ RegShellCmdlineParseToArgv(
                     state = REGSHELL_CMDLINE_STATE_ADDVALUE_KEYNAME;
                 }
                 else if (token == REGLEX_REG_SZ ||
-                         token == REGLEX_PLAIN_TEXT)
+                         token == REGLEX_PLAIN_TEXT ||
+                         token == REGLEX_KEY_NAME_DEFAULT)
                 {
                     state = REGSHELL_CMDLINE_STATE_ADDVALUE_VALUENAME;
                 }
@@ -1541,7 +1542,8 @@ RegShellCmdlineParseToArgv(
                         dwError = LW_ERROR_INVALID_CONTEXT;
                     }
                     else if (token == REGLEX_REG_SZ ||
-                             token == REGLEX_PLAIN_TEXT)
+                             token == REGLEX_PLAIN_TEXT ||
+                         token == REGLEX_KEY_NAME_DEFAULT)
                     {
                         state = REGSHELL_CMDLINE_STATE_ADDVALUE_VALUENAME;
                     }

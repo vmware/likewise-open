@@ -42,37 +42,32 @@
 
 #include <lwrpc/samrbinding.h>
 #include <lwrpc/unicodestring.h>
-#include <lwrpc/samrflags.h>
-#include <lwrpc/samrconn.h>
-#include <lwrpc/userinfo.h>
-#include <lwrpc/aliasinfo.h>
-#include <lwrpc/domaininfo.h>
-#include <lwrpc/displayinfo.h>
+#include <lwrpc/samrdefs.h>
 
 
 NTSTATUS
 SamrConnect2(
-    IN  handle_t      hSamrBinding,
-    IN  PCWSTR        pwszSysName,
-    IN  UINT32        AccessMask,
-    OUT PolicyHandle *phConn
+    IN  handle_t        hSamrBinding,
+    IN  PCWSTR          pwszSysName,
+    IN  UINT32          AccessMask,
+    OUT CONNECT_HANDLE *phConn
     );
 
 NTSTATUS
 SamrConnect3(
-    IN  handle_t      hSamrBinding,
-    IN  PCWSTR        pwszSysName,
-    IN  UINT32        AccessMask,
-    OUT PolicyHandle *phConn
+    IN  handle_t        hSamrBinding,
+    IN  PCWSTR          pwszSysName,
+    IN  UINT32          AccessMask,
+    OUT CONNECT_HANDLE *phConn
     );
 
 NTSTATUS
 SamrConnect4(
-    IN  handle_t      hSamrBinding,
-    IN  PCWSTR        pwszSysName,
-    IN  UINT32        ClientVersion,
-    IN  UINT32        AccessMask,
-    OUT PolicyHandle *phConn
+    IN  handle_t        hSamrBinding,
+    IN  PCWSTR          pwszSysName,
+    IN  UINT32          ClientVersion,
+    IN  UINT32          AccessMask,
+    OUT CONNECT_HANDLE *phConn
     );
 
 NTSTATUS
@@ -84,19 +79,19 @@ SamrConnect5(
     IN  SamrConnectInfo *pInfoIn,
     IN  PUINT32          pLevelOut,
     OUT SamrConnectInfo *pInfoOut,
-    OUT PolicyHandle    *phConn
+    OUT CONNECT_HANDLE  *phConn
     );
 
 NTSTATUS
 SamrClose(
-    IN  handle_t         hSamrBinding,
-    IN OUT PolicyHandle *phContext
+    IN  handle_t  hSamrBinding,
+    IN  void     *hIn
     );
 
 NTSTATUS
 SamrQuerySecurity(
     IN  handle_t                       hSamrBinding,
-    IN  PolicyHandle                  *pHandle,
+    IN  void                          *hObject,
     IN  ULONG                          ulSecurityInfo,
     OUT PSECURITY_DESCRIPTOR_RELATIVE *ppSecDesc,
     OUT PUINT32                        pulSecDescLen
@@ -104,67 +99,67 @@ SamrQuerySecurity(
 
 NTSTATUS
 SamrLookupDomain(
-    IN  handle_t      hSamrBinding,
-    IN  PolicyHandle *phConn,
-    IN  PCWSTR        pwszDomainName,
-    OUT PSID         *ppSid
+    IN  handle_t        hSamrBinding,
+    IN  CONNECT_HANDLE  hConn,
+    IN  PCWSTR          pwszDomainName,
+    OUT PSID           *ppSid
     );
 
 NTSTATUS
 SamrOpenDomain(
-    IN  handle_t      hSamrBinding,
-    IN  PolicyHandle *phConn,
-    IN  UINT32        AccessMask,
-    IN  PSID          pSid,
-    OUT PolicyHandle *phDomain
+    IN  handle_t        hSamrBinding,
+    IN  CONNECT_HANDLE  hConn,
+    IN  UINT32          AccessMask,
+    IN  PSID            pSid,
+    OUT DOMAIN_HANDLE  *phDomain
     );
 
 NTSTATUS
 SamrQueryDomainInfo(
-    IN  handle_t      hSamrBinding,
-    IN  PolicyHandle *phDomain,
-    IN  UINT16        Level,
-    OUT DomainInfo  **ppInfo
+    IN  handle_t        hSamrBinding,
+    IN  DOMAIN_HANDLE   hDomain,
+    IN  UINT16          Level,
+    OUT DomainInfo    **ppInfo
     );
 
 NTSTATUS
 SamrLookupNames(
-    IN  handle_t      hSamrBinding,
-    IN  PolicyHandle *phDomain,
-    IN  UINT32        NumNames,
-    IN  PWSTR        *ppwszNames,
-    OUT UINT32      **ppRids,
-    OUT UINT32      **ppTypes,
-    OUT UINT32       *pRidsCount
+    IN  handle_t        hSamrBinding,
+    IN  DOMAIN_HANDLE   hDomain,
+    IN  UINT32          NumNames,
+    IN  PWSTR          *ppwszNames,
+    OUT UINT32        **ppRids,
+    OUT UINT32        **ppTypes,
+    OUT UINT32         *pRidsCount
     );
 
 NTSTATUS
 SamrOpenUser(
-    IN  handle_t      hSamrBinding,
-    IN  PolicyHandle *phDomain,
-    IN  UINT32        AccessMask,
-    IN  UINT32        Rid,
-    OUT PolicyHandle *phUser
+    IN  handle_t        hSamrBinding,
+    IN  DOMAIN_HANDLE   hDomain,
+    IN  UINT32          AccessMask,
+    IN  UINT32          Rid,
+    OUT ACCOUNT_HANDLE *phUser
     );
 
 NTSTATUS
 SamrQueryUserInfo(
-    IN  handle_t       hSamrBinding,
-    IN  PolicyHandle  *phUser,
-    IN  UINT16         Level,
-    OUT UserInfo     **ppInfo
+    IN  handle_t         hSamrBinding,
+    IN  ACCOUNT_HANDLE   hUser,
+    IN  UINT16           Level,
+    OUT UserInfo       **ppInfo
     );
 
 NTSTATUS
 SamrEnumDomainUsers(
-    IN  handle_t      hSamrBinding,
-    IN  PolicyHandle *phDomain,
-    IN OUT UINT32    *pResume,
-    IN  UINT32        AccountFlags,
-    IN  UINT32        MaxSize,
-    OUT PWSTR       **pppwszNames,
-    OUT UINT32      **ppRids,
-    OUT UINT32       *pCount
+    IN  handle_t         hSamrBinding,
+    IN  ACCOUNT_HANDLE   hDomain,
+    IN OUT UINT32       *pResume,
+    IN  UINT32           AccountFlags,
+    IN  UINT32           MaxSize,
+    OUT PWSTR          **pppwszNames,
+    OUT UINT32         **ppRids,
+    OUT UINT32          *pCount
     );
 
 NTSTATUS
@@ -181,91 +176,91 @@ SamrChangePasswordUser2(
 
 NTSTATUS
 SamrEnumDomains(
-    IN  handle_t hSamrBinding,
-    IN  PolicyHandle *phConn,
-    IN OUT UINT32 *pResume,
-    IN  UINT32 Size,
-    OUT PWSTR **pppwszNames,
-    OUT UINT32 *pCount
+    IN  handle_t         hSamrBinding,
+    IN  CONNECT_HANDLE   hConn,
+    IN OUT UINT32       *pResume,
+    IN  UINT32           Size,
+    OUT PWSTR          **pppwszNames,
+    OUT UINT32          *pCount
     );
 
 NTSTATUS
 SamrCreateUser(
-    IN  handle_t      hSamrBinding,
-    IN  PolicyHandle *phDomain,
-    IN  PWSTR         pwszAccountName,
-    IN  UINT32        AccessMask,
-    OUT PolicyHandle *phUser,
-    OUT PUINT32       pRid
+    IN  handle_t        hSamrBinding,
+    IN  DOMAIN_HANDLE   hDomain,
+    IN  PWSTR           pwszAccountName,
+    IN  UINT32          AccessMask,
+    OUT ACCOUNT_HANDLE *phUser,
+    OUT PUINT32         pRid
     );
 
 NTSTATUS
 SamrDeleteUser(
-    IN  handle_t hSamrBinding,
-    IN  PolicyHandle *phUser
+    IN  handle_t        hSamrBinding,
+    IN  ACCOUNT_HANDLE  hUser
     );
 
 NTSTATUS
 SamrSetUserInfo(
-    IN  handle_t      hSamrBinding,
-    IN  PolicyHandle *phUser,
-    IN  UINT16        Level,
-    IN  UserInfo     *pInfo
+    IN  handle_t        hSamrBinding,
+    IN  ACCOUNT_HANDLE  hUser,
+    IN  UINT16          Level,
+    IN  UserInfo       *pInfo
     );
 
 NTSTATUS
 SamrSetUserInfo2(
-    IN  handle_t      hSamrBinding,
-    IN  PolicyHandle *phUser,
-    IN  UINT16        Level,
-    IN  UserInfo     *pInfo
+    IN  handle_t        hSamrBinding,
+    IN  ACCOUNT_HANDLE  hUser,
+    IN  UINT16          Level,
+    IN  UserInfo       *pInfo
     );
 
 NTSTATUS
 SamrCreateDomAlias(
-    IN  handle_t      hSamrBinding,
-    IN  PolicyHandle *phDomain,
-    IN  PWSTR         pwszAliasName,
-    IN  UINT32        AccessMask,
-    OUT PolicyHandle *phAlias,
-    OUT PUINT32       pRid
+    IN  handle_t        hSamrBinding,
+    IN  DOMAIN_HANDLE   hDomain,
+    IN  PWSTR           pwszAliasName,
+    IN  UINT32          AccessMask,
+    OUT ACCOUNT_HANDLE *phAlias,
+    OUT PUINT32         pRid
     );
 
 NTSTATUS
 SamrDeleteDomAlias(
-    IN  handle_t      hSamrBinding,
-    OUT PolicyHandle *phAlias
+    IN  handle_t        hSamrBinding,
+    IN  ACCOUNT_HANDLE  hAlias
     );
 
 NTSTATUS
 SamrOpenAlias(
-    IN  handle_t hSamrBinding,
-    IN  PolicyHandle *phDomain,
-    IN  UINT32 AccessMask,
-    IN  UINT32 Rid,
-    OUT PolicyHandle *phAlias
+    IN  handle_t        hSamrBinding,
+    IN  DOMAIN_HANDLE   hDomain,
+    IN  UINT32          AccessMask,
+    IN  UINT32          Rid,
+    OUT ACCOUNT_HANDLE *phAlias
     );
 
 NTSTATUS
 SamrQueryAliasInfo(
-    IN  handle_t       hSamrBinding,
-    IN  PolicyHandle  *phAlias,
-    IN  UINT16         Level,
-    OUT AliasInfo    **ppInfo
+    IN  handle_t         hSamrBinding,
+    IN  ACCOUNT_HANDLE   hAlias,
+    IN  UINT16           Level,
+    OUT AliasInfo      **ppInfo
     );
 
 NTSTATUS
 SamrSetAliasInfo(
-    IN  handle_t      hSamrBinding,
-    IN  PolicyHandle *phAlias,
-    IN  UINT16        Level,
-    IN  AliasInfo    *pInfo
+    IN  handle_t        hSamrBinding,
+    IN  ACCOUNT_HANDLE  hAlias,
+    IN  UINT16          Level,
+    IN  AliasInfo      *pInfo
     );
 
 NTSTATUS
 SamrEnumDomainAliases(
     IN  handle_t      hSamrBinding,
-    IN  PolicyHandle *phDomain,
+    IN  DOMAIN_HANDLE hDomain,
     IN  PUINT32       pResume,
     IN  UINT32        AccountFlags,
     OUT PWSTR       **pppwszNames,
@@ -276,7 +271,7 @@ SamrEnumDomainAliases(
 NTSTATUS
 SamrGetAliasMembership(
     IN  handle_t       hSamrBinding,
-    IN  PolicyHandle  *phDomain,
+    IN  DOMAIN_HANDLE  hDomain,
     IN  PSID          *ppSids,
     IN  UINT32         NumSids,
     OUT UINT32       **ppRids,
@@ -285,68 +280,68 @@ SamrGetAliasMembership(
 
 NTSTATUS
 SamrGetMembersInAlias(
-    IN  handle_t       hSamrBinding,
-    IN  PolicyHandle  *phAlias,
-    OUT PSID         **pppSids,
-    OUT UINT32        *pCount
+    IN  handle_t         hSamrBinding,
+    IN  ACCOUNT_HANDLE   hAlias,
+    OUT PSID           **pppSids,
+    OUT UINT32          *pCount
     );
 
 NTSTATUS
 SamrAddAliasMember(
-    IN  handle_t      hSamrBinding,
-    IN  PolicyHandle *phAlias,
-    IN  PSID          pSid
+    IN  handle_t       hSamrBinding,
+    IN  ACCOUNT_HANDLE hAlias,
+    IN  PSID           pSid
     );
 
 NTSTATUS
 SamrDeleteAliasMember(
-    IN  handle_t      hSamrBinding,
-    IN  PolicyHandle *phAlias,
-    IN  PSID          pSid
+    IN  handle_t       hSamrBinding,
+    IN  ACCOUNT_HANDLE hAlias,
+    IN  PSID           pSid
     );
 
 NTSTATUS
 SamrCreateUser2(
-    IN  handle_t      hSamrBinding,
-    IN  PolicyHandle *phDomain,
-    IN  PWSTR         pwszAccountName,
-    IN  UINT32        AccountFlags,
-    IN  UINT32        AccessMask,
-    OUT PolicyHandle *phUser,
-    OUT PUINT32       pAccessGranted,
-    OUT PUINT32       pRid
+    IN  handle_t        hSamrBinding,
+    IN  DOMAIN_HANDLE   hDomain,
+    IN  PWSTR           pwszAccountName,
+    IN  UINT32          AccountFlags,
+    IN  UINT32          AccessMask,
+    OUT ACCOUNT_HANDLE *phUser,
+    OUT PUINT32         pAccessGranted,
+    OUT PUINT32         pRid
     );
 
 NTSTATUS
 SamrGetUserPwInfo(
-    IN  handle_t      hSamrBinding,
-    IN  PolicyHandle *phUser,
-    OUT PwInfo       *pInfo
+    IN  handle_t        hSamrBinding,
+    IN  ACCOUNT_HANDLE  hUser,
+    OUT PwInfo         *pInfo
     );
 
 NTSTATUS
 SamrLookupRids(
-    IN  handle_t      hSamrBinding,
-    IN  PolicyHandle *phDomain,
-    IN  UINT32        NumRids,
-    IN  UINT32       *pRids,
-    OUT PWSTR       **pppwszNames,
-    OUT UINT32      **ppTypes
+    IN  handle_t        hSamrBinding,
+    IN  DOMAIN_HANDLE   hDomain,
+    IN  UINT32          NumRids,
+    IN  UINT32         *pRids,
+    OUT PWSTR         **pppwszNames,
+    OUT UINT32        **ppTypes
     );
 
 NTSTATUS
 SamrGetUserGroups(
-    IN  handle_t       hSamrBinding,
-    IN  PolicyHandle  *phUser,
-    OUT UINT32       **ppRids,
-    OUT UINT32       **ppAttributes,
-    OUT UINT32        *pCount
+    IN  handle_t         hSamrBinding,
+    IN  ACCOUNT_HANDLE   hUser,
+    OUT UINT32         **ppRids,
+    OUT UINT32         **ppAttributes,
+    OUT UINT32          *pCount
     );
 
 NTSTATUS
 SamrQueryDisplayInfo(
     IN  handle_t          hSamrBinding,
-    IN  PolicyHandle     *phDomain,
+    IN  DOMAIN_HANDLE     hDomain,
     IN  UINT16            Level,
     IN  UINT32            StartIdx,
     IN  UINT32            MaxEntries,
@@ -358,27 +353,27 @@ SamrQueryDisplayInfo(
 
 NTSTATUS
 SamrCreateDomGroup(
-    IN  handle_t      hSamrBinding,
-    IN  PolicyHandle *phDomain,
-    IN  PWSTR         pwszGroupName,
-    IN  UINT32        AccessMask,
-    OUT PolicyHandle *phGroup,
-    OUT PUINT32       pRid
+    IN  handle_t        hSamrBinding,
+    IN  DOMAIN_HANDLE   hDomain,
+    IN  PWSTR           pwszGroupName,
+    IN  UINT32          AccessMask,
+    OUT ACCOUNT_HANDLE *phGroup,
+    OUT PUINT32         pRid
     );
 
 NTSTATUS
 SamrDeleteDomGroup(
-    IN  handle_t      hSamrBinding,
-    IN  PolicyHandle *phGroup
+    IN  handle_t        hSamrBinding,
+    IN  ACCOUNT_HANDLE  hGroup
     );
 
 NTSTATUS
 SamrOpenGroup(
-    IN  handle_t hSamrBinding,
-    IN  PolicyHandle *phDomain,
-    IN  UINT32 AccessMask,
-    IN  UINT32 Rid,
-    OUT PolicyHandle *phGroup
+    IN  handle_t        hSamrBinding,
+    IN  DOMAIN_HANDLE   hDomain,
+    IN  UINT32          AccessMask,
+    IN  UINT32          Rid,
+    OUT ACCOUNT_HANDLE *phGroup
     );
 
 NTSTATUS

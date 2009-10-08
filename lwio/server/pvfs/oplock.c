@@ -319,11 +319,13 @@ PvfsOplockBreakAck(
 cleanup:
     LWIO_UNLOCK_MUTEX(bFcbLocked, &pFcb->mutexOplock);
 
-    if (pIrpContext->bIsPended == TRUE) {
+    if (pIrpContext->bIsPended == TRUE)
+    {
         ntError = STATUS_PENDING;
     }
 
-    if ((ntError != STATUS_PENDING) && pCcb) {
+    if (pCcb)
+    {
         PvfsReleaseCCB(pCcb);
     }
 
@@ -460,7 +462,6 @@ PvfsOplockBreakIfLocked(
         if (pOplock->pIrpContext->bIsCancelled)
         {
             pNextLink = LwListTraverse(&pFcb->OplockList, pOplockLink);
-            LwListRemove(pOplockLink);
             pOplockLink = pNextLink;
 
             continue;
@@ -1131,6 +1132,8 @@ PvfsOplockCleanOplockQueue(
 
     pOplockLink = LwListTraverse(&pFcb->OplockList, NULL);
 
+    PVFS_ASSERT(pOplockLink != NULL);
+
     while (pOplockLink)
     {
         pOplock = LW_STRUCT_FROM_FIELD(
@@ -1147,7 +1150,7 @@ PvfsOplockCleanOplockQueue(
         }
 
         LwListRemove(pOplockLink);
-        pOplockLink = pNextLink;
+        pOplockLink = NULL;
 
         pOplock->pIrpContext->pIrp->IoStatusBlock.Status = STATUS_CANCELLED;
 
@@ -1157,8 +1160,6 @@ PvfsOplockCleanOplockQueue(
         PvfsFreeOplockRecord(&pOplock);
 
         /* Can only be one IrpContext match so we are done */
-
-        break;
     }
 
     LWIO_UNLOCK_MUTEX(bLocked, &pFcb->mutexOplock);
@@ -1364,6 +1365,8 @@ PvfsOplockProcessReadyItems(
 
         if (pPendingOp->pCompletionContext) {
             pPendingOp->pfnFreeContext(&pPendingOp->pCompletionContext);
+        } else {
+            PVFS_FREE(&pPendingOp->pCompletionContext);
         }
 
         PVFS_FREE(&pPendingOp);
@@ -1388,7 +1391,8 @@ PvfsFreeOplockReadyItemsContext(
 {
     PPVFS_FCB pFcb = *ppFcb;
 
-    if (pFcb) {
+    if (pFcb)
+    {
         PvfsReleaseFCB(pFcb);
     }
 

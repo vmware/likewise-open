@@ -37,7 +37,7 @@ NetOpenUser(
     NetConn *conn,
     const wchar16_t *username,
     uint32 access_mask,
-    PolicyHandle *user_h,
+    ACCOUNT_HANDLE *phUser,
     uint32 *rid
     );
 
@@ -47,7 +47,7 @@ NetOpenAlias(
     NetConn *conn,
     const wchar16_t *aliasname,
     uint32 access_mask,
-    PolicyHandle *out_alias_h,
+    ACCOUNT_HANDLE *phAlias,
     uint32 *out_rid
     );
 

@@ -49,22 +49,22 @@
 
 NTSTATUS
 SamrOpenUser(
-    IN  handle_t      hSamrBinding,
-    IN  PolicyHandle *phDomain,
-    IN  UINT32        AccessMask,
-    IN  UINT32        Rid,
-    OUT PolicyHandle *phUser
+    IN  handle_t        hSamrBinding,
+    IN  DOMAIN_HANDLE   hDomain,
+    IN  UINT32          AccessMask,
+    IN  UINT32          Rid,
+    OUT ACCOUNT_HANDLE *phUser
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PolicyHandle hUser = {0};
+    ACCOUNT_HANDLE hUser = NULL;
 
     BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
-    BAIL_ON_INVALID_PTR(phDomain, ntStatus);
+    BAIL_ON_INVALID_PTR(hDomain, ntStatus);
     BAIL_ON_INVALID_PTR(phUser, ntStatus);
 
     DCERPC_CALL(ntStatus, _SamrOpenUser(hSamrBinding,
-                                        phDomain,
+                                        hDomain,
                                         AccessMask,
                                         Rid,
                                         &hUser));
@@ -76,7 +76,7 @@ cleanup:
     return ntStatus;
 
 error:
-    memset(phUser, 0, sizeof(*phUser));
+    phUser = NULL;
 
     goto cleanup;
 }

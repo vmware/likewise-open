@@ -43,80 +43,87 @@
 
 NTSTATUS
 LsaOpenPolicy2(
-    handle_t hBinding,
-    PCWSTR pwszSysname,
-    PVOID attrib,
-    UINT32 AccessMask,
-    PolicyHandle *phPolicy
+    IN  handle_t       hBinding,
+    IN  PCWSTR         pwszSysname,
+    IN  PVOID          attrib,
+    IN  UINT32         AccessMask,
+    OUT POLICY_HANDLE *phPolicy
     );
+
 
 NTSTATUS
 LsaClose(
-    handle_t hBinding,
-    PolicyHandle *phPolicy
+    IN  handle_t hBinding,
+    IN  void*    hObject
     );
+
 
 NTSTATUS
 LsaQueryInfoPolicy(
-    handle_t hBinding,
-    PolicyHandle *phPolicy,
-    UINT16 Level,
-    LsaPolicyInformation **ppInfo
+    IN  handle_t               hBinding,
+    IN  POLICY_HANDLE          hPolicy,
+    IN  UINT16                 Level,
+    OUT LsaPolicyInformation **ppInfo
     );
+
 
 NTSTATUS
 LsaQueryInfoPolicy2(
-    handle_t hBinding,
-    PolicyHandle *phPolicy,
-    UINT16 Level,
-    LsaPolicyInformation **ppInfo
+    IN  handle_t               hBinding,
+    IN  POLICY_HANDLE          hPolicy,
+    IN  UINT16                 Level,
+    OUT LsaPolicyInformation **ppInfo
     );
+
 
 NTSTATUS
 LsaLookupNames(
-    IN  handle_t hBinding,
-    IN  PolicyHandle *hPolicy,
-    IN  UINT32 NumNames,
-    IN  PWSTR *ppwszNames,
+    IN  handle_t        hBinding,
+    IN  POLICY_HANDLE   hPolicy,
+    IN  UINT32          NumNames,
+    IN  PWSTR          *ppwszNames,
     OUT RefDomainList **ppDomList,
     OUT TranslatedSid **ppSids,
-    IN  UINT32 Level,
-    IN OUT UINT32 *Count
+    IN  UINT32          Level,
+    IN OUT UINT32      *Count
     );
+
 
 NTSTATUS
 LsaLookupNames2(
-    IN  handle_t hBinding,
-    IN  PolicyHandle *hPolicy,
-    IN  UINT32 NumNames,
-    IN  PWSTR *ppNames,
-    OUT RefDomainList **ppDomList,
-    OUT TranslatedSid2** ppSids,
-    IN  uint16 Level,
-    IN OUT UINT32 *Count
+    IN  handle_t         hBinding,
+    IN  POLICY_HANDLE    hPolicy,
+    IN  UINT32           NumNames,
+    IN  PWSTR           *ppNames,
+    OUT RefDomainList  **ppDomList,
+    OUT TranslatedSid2 **ppSids,
+    IN  uint16           Level,
+    IN OUT UINT32       *Count
     );
+
 
 NTSTATUS
 LsaLookupNames3(
-    IN  handle_t hBinding,
-    IN  PolicyHandle *hPolicy,
-    IN  UINT32 NumNames,
-    IN  PWSTR *ppNames,
-    OUT RefDomainList **ppDomList,
-    OUT TranslatedSid3** ppSids,
-    IN  uint16 Level,
-    IN OUT UINT32 *Count
+    IN  handle_t         hBinding,
+    IN  POLICY_HANDLE    hPolicy,
+    IN  UINT32           NumNames,
+    IN  PWSTR           *ppNames,
+    OUT RefDomainList  **ppDomList,
+    OUT TranslatedSid3 **ppSids,
+    IN  uint16           Level,
+    IN OUT UINT32       *Count
     );
+
 
 NTSTATUS
 LsaLookupSids(
-    IN  handle_t hBinding,
-    IN  PolicyHandle *phPolicy,
-    IN  SidArray *pSids,
-    OUT RefDomainList **ppRefDomList,
+    IN  handle_t         hBinding,
+    IN  POLICY_HANDLE    hPolicy,
+    IN  SidArray        *pSids,
+    OUT RefDomainList  **ppRefDomList,
     OUT TranslatedName **ppTransNames,
-    IN  UINT16 Level,
-    IN OUT UINT32 *Count
+    IN  UINT16           Level,
+    IN OUT UINT32       *Count
     );
 
 

@@ -36,7 +36,7 @@
 #include <uuid/uuid.h>
 
 #include <lw/base.h>
-#include <lwrpc/samrflags.h>
+#include <lwrpc/samrdefs.h>
 
 #include "lsa/lsa.h"
 

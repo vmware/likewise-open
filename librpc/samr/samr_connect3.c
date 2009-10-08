@@ -49,17 +49,17 @@
 
 NTSTATUS
 SamrConnect3(
-    IN  handle_t      hSamrBinding,
-    IN  PCWSTR        pwszSysName,
-    IN  UINT32        AccessMask,
-    OUT PolicyHandle *phConn
+    IN  handle_t        hSamrBinding,
+    IN  PCWSTR          pwszSysName,
+    IN  UINT32          AccessMask,
+    OUT CONNECT_HANDLE *phConn
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     PWSTR pwszSystemName = NULL;
     UINT32 SystemNameLen = 0;
     UINT32 Unknown = 0;
-    PolicyHandle hConn = {0};
+    CONNECT_HANDLE hConn = NULL;
 
     BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
     BAIL_ON_INVALID_PTR(pwszSysName, ntStatus);
@@ -86,7 +86,7 @@ cleanup:
     return ntStatus;
 
 error:
-    memset(phConn, 0, sizeof(*phConn));
+    phConn = NULL;
 
     goto cleanup;
 }

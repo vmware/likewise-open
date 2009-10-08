@@ -33,26 +33,27 @@
 
 NET_API_STATUS
 NetLocalGroupGetMembers(
-const wchar16_t *hostname,
-const wchar16_t *aliasname,
-uint32 level,
-void **buffer,
-uint32 prefmaxlen,
-uint32 *out_entries,
-uint32 *out_total,
-uint32 *out_resume
-)
+    const wchar16_t *hostname,
+    const wchar16_t *aliasname,
+    uint32 level,
+    void **buffer,
+    uint32 prefmaxlen,
+    uint32 *out_entries,
+    uint32 *out_total,
+    uint32 *out_resume
+    )
 {
-const uint32 lsa_access = LSA_ACCESS_LOOKUP_NAMES_SIDS;
-const uint32 alias_access = ALIAS_ACCESS_GET_MEMBERS;
-const uint16 lookup_level = 1;
+    const uint32 lsa_access = LSA_ACCESS_LOOKUP_NAMES_SIDS;
+    const uint32 alias_access = ALIAS_ACCESS_GET_MEMBERS;
+    const uint16 lookup_level = 1;
 
     NTSTATUS status = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
     NetConn *conn = NULL;
     handle_t samr_b, lsa_b;
-    PolicyHandle domain_h, btin_domain_h;
-    PolicyHandle alias_h;
+    DOMAIN_HANDLE hDomain = NULL;
+    DOMAIN_HANDLE hBtinDomain = NULL;
+    ACCOUNT_HANDLE hAlias = NULL;
     PSID *sids = NULL;
     uint32 entries = 0;
     uint32 total = 0;
@@ -62,7 +63,7 @@ const uint16 lookup_level = 1;
     uint32 num_sids = 0;
     uint32 count = 0;
     LOCALGROUP_MEMBERS_INFO_3 *info = NULL;
-    PolicyHandle lsa_h;
+    POLICY_HANDLE hPolicy = NULL;
     SidArray *sid_array = NULL;
     RefDomainList *domains = NULL;
     TranslatedName *names = NULL;
@@ -92,17 +93,17 @@ const uint16 lookup_level = 1;
     status = NetConnectSamr(&conn, hostname, 0, 0, creds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    samr_b        = conn->samr.bind;
-    domain_h      = conn->samr.dom_handle;
-    btin_domain_h = conn->samr.btin_dom_handle;
+    samr_b      = conn->samr.bind;
+    hDomain     = conn->samr.hDomain;
+    hBtinDomain = conn->samr.hBtinDomain;
 
-    status = NetOpenAlias(conn, aliasname, alias_access, &alias_h,
+    status = NetOpenAlias(conn, aliasname, alias_access, &hAlias,
                           &alias_rid);
     if (status == STATUS_NONE_MAPPED) {
         /* No such alias in host's domain.
            Try to look in builtin domain. */
         status = NetOpenAlias(conn, aliasname, alias_access,
-                              &alias_h, &alias_rid);
+                              &hAlias, &alias_rid);
         BAIL_ON_NTSTATUS_ERROR(status);
 
     } else if (status != STATUS_SUCCESS) {
@@ -110,7 +111,7 @@ const uint16 lookup_level = 1;
         goto error;
     }
 
-    status = SamrGetMembersInAlias(samr_b, &alias_h, &sids, &num_sids);
+    status = SamrGetMembersInAlias(samr_b, hAlias, &sids, &num_sids);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     total += num_sids;
@@ -127,8 +128,8 @@ const uint16 lookup_level = 1;
     status = NetConnectLsa(&conn, hostname, lsa_access, creds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    lsa_b = conn->lsa.bind;
-    lsa_h = conn->lsa.policy_handle;
+    lsa_b   = conn->lsa.bind;
+    hPolicy = conn->lsa.hPolicy;
 
     status = NetAllocateMemory((void**)&sid_array, sizeof(SidArray), NULL);
     BAIL_ON_NTSTATUS_ERROR(status);
@@ -144,7 +145,7 @@ const uint16 lookup_level = 1;
         sid_array->sids[i].sid = sids[i];
     }
 
-    status = LsaLookupSids(lsa_b, &lsa_h, sid_array, &domains,
+    status = LsaLookupSids(lsa_b, hPolicy, sid_array, &domains,
                            &names, lookup_level, &count);
     if (status != STATUS_SUCCESS &&
         status != LW_STATUS_SOME_NOT_MAPPED) {
@@ -200,7 +201,7 @@ const uint16 lookup_level = 1;
         can_username    = NULL;
     }
 
-    status = SamrClose(samr_b, &alias_h);
+    status = SamrClose(samr_b, hAlias);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     *buffer      = (void*)info;

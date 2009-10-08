@@ -47,13 +47,6 @@
 #ifndef _LSASRVDEFS_H_
 #define _LSASRVDEFS_H_
 
-#ifdef _DCE_IDL_
-typedef [context_handle] void* POLICY_HANDLE;
-#else
-typedef void* POLICY_HANDLE;
-#endif
-
-
 #define LSA_RPC_DIR                            CACHEDIR "/rpc"
 #define LSA_DEFAULT_LPC_SOCKET_PATH            LSA_RPC_DIR "/lsass"
 

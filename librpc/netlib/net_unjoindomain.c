@@ -47,7 +47,7 @@ NET_API_STATUS NetUnjoinDomainLocal(const wchar16_t *machine,
                                   DOMAIN_ACCESS_CREATE_USER;
     WINERR err = ERROR_SUCCESS;
     NTSTATUS status = STATUS_SUCCESS;
-    PolicyHandle account_h;
+    ACCOUNT_HANDLE hAccount = NULL;
     HANDLE hStore = (HANDLE)NULL;
     PLWPS_PASSWORD_INFO pi = NULL;
     NetConn *conn = NULL;
@@ -98,7 +98,7 @@ NET_API_STATUS NetUnjoinDomainLocal(const wchar16_t *machine,
         status = NetConnectSamr(&conn, domain_controller_name, domain_access, 0, creds);
         BAIL_ON_NTSTATUS_ERROR(status);
 
-        status = DisableWksAccount(conn, pi->pwszMachineAccount, &account_h);
+        status = DisableWksAccount(conn, pi->pwszMachineAccount, &hAccount);
         BAIL_ON_NTSTATUS_ERROR(status);
 
         status = NetDisconnectSamr(conn);

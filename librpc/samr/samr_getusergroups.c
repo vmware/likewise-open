@@ -49,11 +49,11 @@
 
 NTSTATUS
 SamrGetUserGroups(
-    IN  handle_t       hSamrBinding,
-    IN  PolicyHandle  *phUser,
-    OUT UINT32       **ppRids,
-    OUT UINT32       **ppAttributes,
-    OUT UINT32        *pCount
+    IN  handle_t         hSamrBinding,
+    IN  ACCOUNT_HANDLE   hUser,
+    OUT UINT32         **ppRids,
+    OUT UINT32         **ppAttributes,
+    OUT UINT32          *pCount
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -62,13 +62,13 @@ SamrGetUserGroups(
     RidWithAttributeArray *pRidWithAttr = NULL;
 
     BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
-    BAIL_ON_INVALID_PTR(phUser, ntStatus);
+    BAIL_ON_INVALID_PTR(hUser, ntStatus);
     BAIL_ON_INVALID_PTR(ppRids, ntStatus);
     BAIL_ON_INVALID_PTR(ppAttributes, ntStatus);
     BAIL_ON_INVALID_PTR(pCount, ntStatus);
 
     DCERPC_CALL(ntStatus, _SamrGetUserGroups(hSamrBinding,
-                                             phUser,
+                                             hUser,
                                              &pRidWithAttr));
     BAIL_ON_NT_STATUS(ntStatus);
 

@@ -49,10 +49,6 @@
 
 #include <lwrpc/types.h>
 #include <lwrpc/unicodestring.h>
-#include <lwrpc/domaininfo.h>
-#include <lwrpc/userinfo.h>
-#include <lwrpc/aliasinfo.h>
-#include <lwrpc/displayinfo.h>
 #include <lwrpc/allocate.h>
 #include <lwrpc/memptr.h>
 #include <lwrpc/sidhelper.h>

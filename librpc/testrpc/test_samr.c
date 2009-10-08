@@ -49,7 +49,7 @@ BOOL
 CallSamrConnect(
     handle_t hBinding,
     const wchar16_t *system_name,
-    PolicyHandle *phConn
+    CONNECT_HANDLE *phConn
     );
 
 
@@ -57,45 +57,45 @@ static
 BOOL
 CallSamrClose(
     handle_t hBinding,
-    PolicyHandle *phConnect
+    CONNECT_HANDLE *phConn
     );
 
 
 static
 BOOL
 CallSamrEnumDomains(
-    handle_t hBinding,
-    PolicyHandle *phConn,
-    PSID *ppDomainSid,
-    PSID *ppBuiltinSid
+    handle_t        hBinding,
+    CONNECT_HANDLE  hConn,
+    PSID           *ppDomainSid,
+    PSID           *ppBuiltinSid
     );
 
 
 static
 BOOL
 CallSamrOpenDomains(
-    handle_t hBinding,
-    PolicyHandle *phConn,
-    PSID pDomainSid,
-    PSID pBuiltinSid,
-    PolicyHandle *phDomain,
-    PolicyHandle *phBuiltin
+    handle_t        hBinding,
+    CONNECT_HANDLE  hConn,
+    PSID            pDomainSid,
+    PSID            pBuiltinSid,
+    DOMAIN_HANDLE  *phDomain,
+    DOMAIN_HANDLE  *phBuiltin
     );
 
 
 static
 BOOL
 CallSamrEnumDomainUsers(
-    handle_t hBinding,
-    PolicyHandle *phDomain
+    handle_t       hBinding,
+    DOMAIN_HANDLE  hDomain
     );
 
 
 static
 BOOL
 CallSamrEnumDomainAliases(
-    handle_t hBinding,
-    PolicyHandle *phDomain
+    handle_t       hBinding,
+    DOMAIN_HANDLE  hDomain
     );
 
 
@@ -183,7 +183,7 @@ NTSTATUS GetSamDomainName(wchar16_t **domname, const wchar16_t *hostname)
     NTSTATUS status = STATUS_SUCCESS;
     NTSTATUS ret = STATUS_SUCCESS;
     handle_t samr_binding = NULL;
-    PolicyHandle conn_handle = {0};
+    CONNECT_HANDLE hConn = NULL;
     uint32 resume = 0;
     uint32 count = 0;
     uint32 i = 0;
@@ -196,13 +196,13 @@ NTSTATUS GetSamDomainName(wchar16_t **domname, const wchar16_t *hostname)
     samr_binding = CreateSamrBinding(&samr_binding, hostname);
     if (samr_binding == NULL) return STATUS_UNSUCCESSFUL;
 
-    status = SamrConnect2(samr_binding, hostname, conn_access, &conn_handle);
+    status = SamrConnect2(samr_binding, hostname, conn_access, &hConn);
     if (status != 0) rpc_fail(status);
 
     dom_names = NULL;
 
     do {
-        status = SamrEnumDomains(samr_binding, &conn_handle, &resume,
+        status = SamrEnumDomains(samr_binding, hConn, &resume,
                                  enum_size, &dom_names, &count);
         if (status != STATUS_SUCCESS &&
             status != STATUS_MORE_ENTRIES) rpc_fail(status);
@@ -228,7 +228,7 @@ NTSTATUS GetSamDomainName(wchar16_t **domname, const wchar16_t *hostname)
     ret = STATUS_NOT_FOUND;
 
 found:
-    status = SamrClose(samr_binding, &conn_handle);
+    status = SamrClose(samr_binding, hConn);
     if (status != 0) return status;
 
 done:
@@ -248,7 +248,7 @@ NTSTATUS GetSamDomainSid(PSID* sid, const wchar16_t *hostname)
 
     NTSTATUS status = STATUS_SUCCESS;
     handle_t samr_b = NULL;
-    PolicyHandle conn_h = {0};
+    CONNECT_HANDLE hConn = NULL;
     wchar16_t *domname = NULL;
     PSID out_sid = NULL;
 
@@ -262,13 +262,13 @@ NTSTATUS GetSamDomainSid(PSID* sid, const wchar16_t *hostname)
     samr_b = CreateSamrBinding(&samr_b, hostname);
     if (samr_b == NULL) rpc_fail(STATUS_UNSUCCESSFUL);
 
-    status = SamrConnect2(samr_b, hostname, conn_access, &conn_h);
+    status = SamrConnect2(samr_b, hostname, conn_access, &hConn);
     if (status != 0) rpc_fail(status);
 
-    status = SamrLookupDomain(samr_b, &conn_h, domname, &out_sid);
+    status = SamrLookupDomain(samr_b, hConn, domname, &out_sid);
     if (status != 0) rpc_fail(status);
 
-    status = SamrClose(samr_b, &conn_h);
+    status = SamrClose(samr_b, hConn);
     if (status != 0) rpc_fail(status);
 
     /* Allocate a copy of sid so it can be freed clean by the caller */
@@ -302,9 +302,9 @@ NTSTATUS EnsureUserAccount(const wchar16_t *hostname, wchar16_t *username,
     NTSTATUS status = STATUS_SUCCESS;
     PSID sid = NULL;
     handle_t samr_b = NULL;
-    PolicyHandle conn_h = {0};
-    PolicyHandle domain_h = {0};
-    PolicyHandle user_h = {0};
+    CONNECT_HANDLE hConn = NULL;
+    DOMAIN_HANDLE hDomain = NULL;
+    ACCOUNT_HANDLE hUser = NULL;
     uint32 user_rid = 0;
 
     if (created) *created = false;
@@ -315,27 +315,27 @@ NTSTATUS EnsureUserAccount(const wchar16_t *hostname, wchar16_t *username,
     CreateSamrBinding(&samr_b, hostname);
     if (samr_b == NULL) goto done;
 
-    status = SamrConnect2(samr_b, hostname, conn_access, &conn_h);
+    status = SamrConnect2(samr_b, hostname, conn_access, &hConn);
     if (status != 0) rpc_fail(status)
 
-    status = SamrOpenDomain(samr_b, &conn_h, domain_access, sid, &domain_h);
+    status = SamrOpenDomain(samr_b, hConn, domain_access, sid, &hDomain);
     if (status != 0) rpc_fail(status);
 
-    status = SamrCreateUser(samr_b, &domain_h, username, account_flags,
-                            &user_h, &user_rid);
+    status = SamrCreateUser(samr_b, hDomain, username, account_flags,
+                            &hUser, &user_rid);
     if (status == STATUS_SUCCESS) {
         if (created) *created = true;
 
-        status = SamrClose(samr_b, &user_h);
+        status = SamrClose(samr_b, hUser);
         if (status != 0) rpc_fail(status);
 
     } else if (status != 0 &&
                status != STATUS_USER_EXISTS) rpc_fail(status);
 
-    status = SamrClose(samr_b, &domain_h);
+    status = SamrClose(samr_b, hDomain);
     if (status != 0) rpc_fail(status);
 
-    status = SamrClose(samr_b, &conn_h);
+    status = SamrClose(samr_b, hConn);
     if (status != 0) rpc_fail(status);
 
 done:
@@ -355,9 +355,9 @@ NTSTATUS CleanupAccount(const wchar16_t *hostname, wchar16_t *username)
 
     handle_t samr_b = NULL;
     NTSTATUS status = STATUS_SUCCESS;
-    PolicyHandle conn_h = {0};
-    PolicyHandle domain_h = {0};
-    PolicyHandle account_h = {0};
+    CONNECT_HANDLE hConn = NULL;
+    DOMAIN_HANDLE hDomain = NULL;
+    ACCOUNT_HANDLE hAccount = NULL;
     PSID sid = NULL;
     wchar16_t *names[1] = {0};
     uint32 *rids = NULL;
@@ -370,14 +370,14 @@ NTSTATUS CleanupAccount(const wchar16_t *hostname, wchar16_t *username)
     CreateSamrBinding(&samr_b, hostname);
     if (samr_b == NULL) rpc_fail(status);
 
-    status = SamrConnect2(samr_b, hostname, conn_access, &conn_h);
+    status = SamrConnect2(samr_b, hostname, conn_access, &hConn);
     if (status != 0) rpc_fail(status);
 
-    status = SamrOpenDomain(samr_b, &conn_h, domain_access, sid, &domain_h);
+    status = SamrOpenDomain(samr_b, hConn, domain_access, sid, &hDomain);
     if (status != 0) rpc_fail(status);
 
     names[0] = username;
-    status = SamrLookupNames(samr_b, &domain_h, 1, names, &rids, &types,
+    status = SamrLookupNames(samr_b, hDomain, 1, names, &rids, &types,
                              &rids_count);
 
     /* if no account has been found return success */
@@ -389,16 +389,16 @@ NTSTATUS CleanupAccount(const wchar16_t *hostname, wchar16_t *username)
         rpc_fail(status);
     }
 
-    status = SamrOpenUser(samr_b, &domain_h, user_access, rids[0], &account_h);
+    status = SamrOpenUser(samr_b, hDomain, user_access, rids[0], &hAccount);
     if (status != 0) rpc_fail(status);
 
-    status = SamrDeleteUser(samr_b, &account_h);
+    status = SamrDeleteUser(samr_b, hAccount);
     if (status != 0) rpc_fail(status);
 
-    status = SamrClose(samr_b, &domain_h);
+    status = SamrClose(samr_b, hDomain);
     if (status != 0) rpc_fail(status);
 
-    status = SamrClose(samr_b, &conn_h);
+    status = SamrClose(samr_b, hConn);
     if (status != 0) rpc_fail(status);
 
     FreeSamrBinding(&samr_b);
@@ -429,9 +429,9 @@ NTSTATUS EnsureAlias(const wchar16_t *hostname, wchar16_t *aliasname,
     NTSTATUS status = STATUS_SUCCESS;
     PSID sid = NULL;
     handle_t samr_b = NULL;
-    PolicyHandle conn_h = {0};
-    PolicyHandle domain_h = {0};
-    PolicyHandle alias_h = {0};
+    CONNECT_HANDLE hConn = NULL;
+    DOMAIN_HANDLE hDomain = NULL;
+    ACCOUNT_HANDLE hAlias = NULL;
     uint32 alias_rid = 0;
 
     if (created) *created = false;
@@ -442,28 +442,28 @@ NTSTATUS EnsureAlias(const wchar16_t *hostname, wchar16_t *aliasname,
     CreateSamrBinding(&samr_b, hostname);
     if (samr_b == NULL) goto done;
 
-    status = SamrConnect2(samr_b, hostname, conn_access, &conn_h);
+    status = SamrConnect2(samr_b, hostname, conn_access, &hConn);
     if (status != 0) rpc_fail(status);
 
-    status = SamrOpenDomain(samr_b, &conn_h, domain_access, sid, &domain_h);
+    status = SamrOpenDomain(samr_b, hConn, domain_access, sid, &hDomain);
     if (status != 0) return status;
 
-    status = SamrCreateDomAlias(samr_b, &domain_h, aliasname, alias_access,
-                                &alias_h, &alias_rid);
+    status = SamrCreateDomAlias(samr_b, hDomain, aliasname, alias_access,
+                                &hAlias, &alias_rid);
     if (status == STATUS_SUCCESS) {
         /* Let caller know that new alias have been created */
         if (created) *created = true;
 
-        status = SamrClose(samr_b, &alias_h);
+        status = SamrClose(samr_b, hAlias);
         if (status != 0) rpc_fail(status);
 
     } else if (status != 0 &&
                status != STATUS_ALIAS_EXISTS) rpc_fail(status);
 
-    status = SamrClose(samr_b, &domain_h);
+    status = SamrClose(samr_b, hDomain);
     if (status != 0) rpc_fail(status);
 
-    status = SamrClose(samr_b, &conn_h);
+    status = SamrClose(samr_b, hConn);
     if (status != 0) rpc_fail(status);
 
 done:
@@ -482,10 +482,10 @@ NTSTATUS CleanupAlias(const wchar16_t *hostname, wchar16_t *username)
     const uint32 alias_access = DELETE;
 
     handle_t samr_b = NULL;
-    NTSTATUS status;
-    PolicyHandle conn_h = {0};
-    PolicyHandle domain_h = {0};
-    PolicyHandle alias_h = {0};
+    NTSTATUS status = STATUS_SUCCESS;
+    CONNECT_HANDLE hConn = NULL;
+    DOMAIN_HANDLE hDomain = NULL;
+    ACCOUNT_HANDLE hAlias = NULL;
     PSID sid = NULL;
     wchar16_t *names[1] = {0};
     uint32 *rids = NULL;
@@ -498,14 +498,14 @@ NTSTATUS CleanupAlias(const wchar16_t *hostname, wchar16_t *username)
     CreateSamrBinding(&samr_b, hostname);
     if (samr_b == NULL) goto done;
 
-    status = SamrConnect2(samr_b, hostname, conn_access, &conn_h);
+    status = SamrConnect2(samr_b, hostname, conn_access, &hConn);
     if (status != 0) rpc_fail(status);
 
-    status = SamrOpenDomain(samr_b, &conn_h, domain_access, sid, &domain_h);
+    status = SamrOpenDomain(samr_b, hConn, domain_access, sid, &hDomain);
     if (status != 0) rpc_fail(status);
 
     names[0] = username;
-    status = SamrLookupNames(samr_b, &domain_h, 1, names, &rids, &types,
+    status = SamrLookupNames(samr_b, hDomain, 1, names, &rids, &types,
                              &rids_count);
 
     /* if no account has been found return success */
@@ -517,16 +517,16 @@ NTSTATUS CleanupAlias(const wchar16_t *hostname, wchar16_t *username)
         rpc_fail(status)
     }
 
-    status = SamrOpenAlias(samr_b, &domain_h, alias_access, rids[0], &alias_h);
+    status = SamrOpenAlias(samr_b, hDomain, alias_access, rids[0], &hAlias);
     if (status != 0) rpc_fail(status);
 
-    status = SamrDeleteDomAlias(samr_b, &alias_h);
+    status = SamrDeleteDomAlias(samr_b, hAlias);
     if (status != 0) rpc_fail(status);
 
-    status = SamrClose(samr_b, &domain_h);
+    status = SamrClose(samr_b, hDomain);
     if (status != 0) rpc_fail(status);
 
-    status = SamrClose(samr_b, &conn_h);
+    status = SamrClose(samr_b, hConn);
     if (status != 0) rpc_fail(status);
 
     FreeSamrBinding(&samr_b);
@@ -546,7 +546,7 @@ BOOL
 CallSamrConnect(
     handle_t hBinding,
     const wchar16_t *system_name,
-    PolicyHandle *phConn
+    CONNECT_HANDLE *phConn
     )
 {
     BOOL ret = TRUE;
@@ -559,8 +559,8 @@ CallSamrConnect(
     uint32 level_out = 0;
     SamrConnectInfo info_in;
     SamrConnectInfo info_out;
-    PolicyHandle hConn;
-    PolicyHandle h;
+    CONNECT_HANDLE hConn = NULL;
+    CONNECT_HANDLE h = NULL;
 
     memset(&info_in, 0, sizeof(info_in));
     memset(&info_out, 0, sizeof(info_out));
@@ -626,6 +626,7 @@ CallSamrConnect(
     }
 
     *phConn = hConn;
+
     return ret;
 }
 
@@ -633,16 +634,19 @@ CallSamrConnect(
 static
 BOOL
 CallSamrClose(
-    handle_t hBinding,
-    PolicyHandle *phConn
+    handle_t        hBinding,
+    CONNECT_HANDLE *phConn
     )
 {
     BOOL ret = TRUE;
     NTSTATUS status = STATUS_SUCCESS;
+    CONNECT_HANDLE hConn = NULL;
 
     DISPLAY_COMMENT(("Testing SamrClose\n"));
 
-    status = SamrClose(hBinding, phConn);
+    hConn = *phConn;
+
+    status = SamrClose(hBinding, hConn);
     if (status) {
         DISPLAY_ERROR(("SamrClose error %s\n", NtStatusToName(status)));
     }
@@ -654,10 +658,10 @@ CallSamrClose(
 static
 BOOL
 CallSamrEnumDomains(
-    handle_t hBinding,
-    PolicyHandle *phConn,
-    PSID *ppDomainSid,
-    PSID *ppBuiltinSid
+    handle_t        hBinding,
+    CONNECT_HANDLE  hConn,
+    PSID           *ppDomainSid,
+    PSID           *ppBuiltinSid
     )
 {
     BOOL ret = TRUE;
@@ -674,7 +678,7 @@ CallSamrEnumDomains(
     DISPLAY_COMMENT(("Testing SamrEnumDomains with max_size = %d\n", max_size));
 
     do {
-        status = SamrEnumDomains(hBinding, phConn, &resume, max_size,
+        status = SamrEnumDomains(hBinding, hConn, &resume, max_size,
                                  &domains, &num_entries);
 
         if (status != STATUS_SUCCESS &&
@@ -696,7 +700,7 @@ CallSamrEnumDomains(
     DISPLAY_COMMENT(("Testing SamrEnumDomains with max_size = %d\n", max_size));
 
     do {
-        status = SamrEnumDomains(hBinding, phConn, &resume, max_size,
+        status = SamrEnumDomains(hBinding, hConn, &resume, max_size,
                                  &domains, &num_entries);
 
         if (status != STATUS_SUCCESS &&
@@ -718,7 +722,7 @@ CallSamrEnumDomains(
     DISPLAY_COMMENT(("Testing SamrEnumDomains with max_size = %d\n", max_size));
 
     do {
-        status = SamrEnumDomains(hBinding, phConn, &resume, max_size,
+        status = SamrEnumDomains(hBinding, hConn, &resume, max_size,
                                  &domains, &num_entries);
 
         if (status != STATUS_SUCCESS &&
@@ -740,7 +744,7 @@ CallSamrEnumDomains(
     DISPLAY_COMMENT(("Testing SamrEnumDomains with max_size = %d\n", max_size));
 
     do {
-        status = SamrEnumDomains(hBinding, phConn, &resume, max_size,
+        status = SamrEnumDomains(hBinding, hConn, &resume, max_size,
                                  &domains, &num_entries);
 
         if (status != STATUS_SUCCESS &&
@@ -756,7 +760,7 @@ CallSamrEnumDomains(
 
                 DISPLAY_COMMENT(("Testing SamrLookupDomain\n"));
 
-                status = SamrLookupDomain(hBinding, phConn, domain, &pSid);
+                status = SamrLookupDomain(hBinding, hConn, domain, &pSid);
                 if (status) {
                     DISPLAY_ERROR(("SamrLookupDomain error %s\n",
                                    NtStatusToName(status)));
@@ -790,12 +794,12 @@ CallSamrEnumDomains(
 static
 BOOL
 CallSamrOpenDomains(
-    handle_t hBinding,
-    PolicyHandle *phConn,
-    PSID pDomainSid,
-    PSID pBuiltinSid,
-    PolicyHandle *phDomain,
-    PolicyHandle *phBuiltin
+    handle_t        hBinding,
+    CONNECT_HANDLE  hConn,
+    PSID            pDomainSid,
+    PSID            pBuiltinSid,
+    DOMAIN_HANDLE  *phDomain,
+    DOMAIN_HANDLE  *phBuiltin
     )
 {
     BOOL ret = TRUE;
@@ -806,15 +810,15 @@ CallSamrOpenDomains(
                          DOMAIN_ACCESS_CREATE_ALIAS |
                          DOMAIN_ACCESS_LOOKUP_INFO_2 |
                          DOMAIN_ACCESS_LOOKUP_INFO_1;
-    PolicyHandle hDomain;
-    PolicyHandle hBuiltin;
+    DOMAIN_HANDLE hDomain = NULL;
+    DOMAIN_HANDLE hBuiltin = NULL;
     DomainInfo *pInfo = NULL;
     uint16 i = 0;
 
     if (pDomainSid) {
         DISPLAY_COMMENT(("Testing SamrOpenDomain\n"));
 
-        status = SamrOpenDomain(hBinding, phConn, access_mask, pDomainSid,
+        status = SamrOpenDomain(hBinding, hConn, access_mask, pDomainSid,
                                 &hDomain);
         if (status) {
             DISPLAY_ERROR(("SamrOpenDomain error %s\n", NtStatusToName(status)));
@@ -822,12 +826,23 @@ CallSamrOpenDomains(
 
         } else {
             for (i = 1; i <= 13; i++) {
+                if (i == 10)
+                {
+                    /* domain info level 10 doesn't exist */
+                    continue;
+                }
+
                 DISPLAY_COMMENT(("Testing SamrQueryDomainInfo (level=%d)\n", i));
 
-                status = SamrQueryDomainInfo(hBinding, &hDomain, i, &pInfo);
+                status = SamrQueryDomainInfo(hBinding, hDomain, i, &pInfo);
                 if (status) {
                     DISPLAY_ERROR(("SamrQueryDomainInfo error %s\n", NtStatusToName(status)));
                     ret = FALSE;
+                }
+
+                if (pInfo)
+                {
+                    SamrFreeMemory(pInfo);
                 }
             }
         }
@@ -838,7 +853,7 @@ CallSamrOpenDomains(
     if (pBuiltinSid) {
         DISPLAY_COMMENT(("Testing SamrOpenDomain\n"));
 
-        status = SamrOpenDomain(hBinding, phConn, access_mask, pBuiltinSid,
+        status = SamrOpenDomain(hBinding, hConn, access_mask, pBuiltinSid,
                                 &hBuiltin);
         if (status) {
             DISPLAY_ERROR(("SamrOpenDomain error %s\n", NtStatusToName(status)));
@@ -846,12 +861,23 @@ CallSamrOpenDomains(
 
         } else {
             for (i = 1; i <= 13; i++) {
+                if (i == 10)
+                {
+                    /* domain info level 10 doesn't exist */
+                    continue;
+                }
+
                 DISPLAY_COMMENT(("Testing SamrQueryDomainInfo (level=%d)\n", i));
 
-                status = SamrQueryDomainInfo(hBinding, &hBuiltin, i, &pInfo);
+                status = SamrQueryDomainInfo(hBinding, hBuiltin, i, &pInfo);
                 if (status) {
                     DISPLAY_ERROR(("SamrQueryDomainInfo error %s\n", NtStatusToName(status)));
                     ret = FALSE;
+                }
+
+                if (pInfo)
+                {
+                    SamrFreeMemory(pInfo);
                 }
             }
         }
@@ -879,8 +905,8 @@ CallSamrOpenDomains(
 static
 BOOL
 CallSamrEnumDomainUsers(
-    handle_t hBinding,
-    PolicyHandle *phDomain
+    handle_t       hBinding,
+    DOMAIN_HANDLE  hDomain
     )
 {
     BOOL ret = TRUE;
@@ -902,7 +928,7 @@ CallSamrEnumDomainUsers(
     account_flags = ACB_NORMAL;
 
     do {
-        status = SamrEnumDomainUsers(hBinding, phDomain, &resume, account_flags,
+        status = SamrEnumDomainUsers(hBinding, hDomain, &resume, account_flags,
                                      max_size, &users, &rids, &num_entries);
 
         if (status != STATUS_SUCCESS &&
@@ -924,7 +950,7 @@ CallSamrEnumDomainUsers(
     DISPLAY_COMMENT(("Testing SamrEnumDomainUsers with max_size = %d\n", max_size));
 
     do {
-        status = SamrEnumDomainUsers(hBinding, phDomain, &resume, account_flags,
+        status = SamrEnumDomainUsers(hBinding, hDomain, &resume, account_flags,
                                      max_size, &users, &rids, &num_entries);
 
         if (status != STATUS_SUCCESS &&
@@ -946,7 +972,7 @@ CallSamrEnumDomainUsers(
     DISPLAY_COMMENT(("Testing SamrEnumDomainUsers with max_size = %d\n", max_size));
 
     do {
-        status = SamrEnumDomainUsers(hBinding, phDomain, &resume, account_flags,
+        status = SamrEnumDomainUsers(hBinding, hDomain, &resume, account_flags,
                                      max_size, &users, &rids, &num_entries);
 
         if (status != STATUS_SUCCESS &&
@@ -968,7 +994,7 @@ CallSamrEnumDomainUsers(
     DISPLAY_COMMENT(("Testing SamrEnumDomainUsers with max_size = %d\n", max_size));
 
     do {
-        status = SamrEnumDomainUsers(hBinding, phDomain, &resume, account_flags,
+        status = SamrEnumDomainUsers(hBinding, hDomain, &resume, account_flags,
                                      max_size, &users, &rids, &num_entries);
 
         if (status != STATUS_SUCCESS &&
@@ -987,7 +1013,7 @@ CallSamrEnumDomainUsers(
 
                 DISPLAY_COMMENT(("Testing SamrLookupNames\n"));
 
-                status = SamrLookupNames(hBinding, phDomain, 1, names,
+                status = SamrLookupNames(hBinding, hDomain, 1, names,
                                          &rids, &types, &rids_count);
                 if (status) {
                     DISPLAY_ERROR(("SamrLookupNames error %s\n",
@@ -1016,8 +1042,8 @@ CallSamrEnumDomainUsers(
 static
 BOOL
 CallSamrEnumDomainAliases(
-    handle_t hBinding,
-    PolicyHandle *phDomain
+    handle_t       hBinding,
+    DOMAIN_HANDLE  hDomain
     )
 {
     BOOL ret = TRUE;
@@ -1038,7 +1064,7 @@ CallSamrEnumDomainAliases(
     DISPLAY_COMMENT(("Testing SamrEnumDomainAliases\n"));
 
     do {
-        status = SamrEnumDomainAliases(hBinding, phDomain, &resume, account_flags,
+        status = SamrEnumDomainAliases(hBinding, hDomain, &resume, account_flags,
                                        &aliases, &rids, &num_entries);
 
         if (status != STATUS_SUCCESS &&
@@ -1057,7 +1083,7 @@ CallSamrEnumDomainAliases(
 
                 DISPLAY_COMMENT(("Testing SamrLookupNames\n"));
 
-                status = SamrLookupNames(hBinding, phDomain, 1, names,
+                status = SamrLookupNames(hBinding, hDomain, 1, names,
                                          &rids, &types, &rids_count);
                 if (status) {
                     DISPLAY_ERROR(("SamrLookupNames error %s\n",
@@ -1093,7 +1119,7 @@ TestSamrConnect(struct test *t, const wchar16_t *hostname,
     BOOL ret = TRUE;
     enum param_err perr = perr_success;
     handle_t hBinding = NULL;
-    PolicyHandle hConn;
+    CONNECT_HANDLE hConn = NULL;
     PWSTR pwszSysName = NULL;
 
     perr = fetch_value(options, optcount, "systemname", pt_w16string,
@@ -1114,6 +1140,10 @@ TestSamrConnect(struct test *t, const wchar16_t *hostname,
                          &hConn);
 
 done:
+    FreeSamrBinding(&hBinding);
+
+    SAFE_FREE(pwszSysName);
+
     return (int)ret;
 }
 
@@ -1129,7 +1159,7 @@ TestSamrDomains(struct test *t, const wchar16_t *hostname,
     BOOL ret = TRUE;
     enum param_err perr = perr_success;
     handle_t hBinding = NULL;
-    PolicyHandle hConn;
+    CONNECT_HANDLE hConn = NULL;
     PSID pDomainSid = NULL;
     PSID pBuiltinSid = NULL;
     PWSTR pwszSysName = NULL;
@@ -1149,7 +1179,7 @@ TestSamrDomains(struct test *t, const wchar16_t *hostname,
                            &hConn);
 
     ret &= CallSamrEnumDomains(hBinding,
-                               &hConn,
+                               hConn,
                                &pDomainSid,
                                &pBuiltinSid);
 
@@ -1157,6 +1187,10 @@ TestSamrDomains(struct test *t, const wchar16_t *hostname,
                          &hConn);
 
 done:
+    FreeSamrBinding(&hBinding);
+
+    SAFE_FREE(pwszSysName);
+
     return (int)ret;
 }
 
@@ -1171,12 +1205,12 @@ TestSamrDomainsQuery(struct test *t, const wchar16_t *hostname,
     BOOL ret = TRUE;
     enum param_err perr = perr_success;
     handle_t hBinding = NULL;
-    PolicyHandle hConn;
+    CONNECT_HANDLE hConn = NULL;
     PSID pDomainSid = NULL;
     PSID pBuiltinSid = NULL;
     PWSTR pwszSysName = NULL;
-    PolicyHandle hDomain;
-    PolicyHandle hBuiltin;
+    DOMAIN_HANDLE hDomain = NULL;
+    DOMAIN_HANDLE hBuiltin = NULL;
 
     perr = fetch_value(options, optcount, "systemname", pt_w16string,
                        &pwszSysName, &pszDefSysName);
@@ -1193,18 +1227,31 @@ TestSamrDomainsQuery(struct test *t, const wchar16_t *hostname,
                            &hConn);
 
     ret &= CallSamrEnumDomains(hBinding,
-                               &hConn,
+                               hConn,
                                &pDomainSid,
                                &pBuiltinSid);
 
     ret &= CallSamrOpenDomains(hBinding,
-                               &hConn,
+                               hConn,
                                pDomainSid,
                                pBuiltinSid,
                                &hDomain,
                                &hBuiltin);
 
+    ret &= CallSamrClose(hBinding,
+                         &hDomain);
+
+    ret &= CallSamrClose(hBinding,
+                         &hBuiltin);
+
+    ret &= CallSamrClose(hBinding,
+                         &hConn);
+
 done:
+    FreeSamrBinding(&hBinding);
+
+    SAFE_FREE(pwszSysName);
+
     return (int)ret;
 }
 
@@ -1219,12 +1266,12 @@ TestSamrUsers(struct test *t, const wchar16_t *hostname,
     BOOL ret = TRUE;
     enum param_err perr = perr_success;
     handle_t hBinding = NULL;
-    PolicyHandle hConn;
+    CONNECT_HANDLE hConn = NULL;
     PSID pDomainSid = NULL;
     PSID pBuiltinSid = NULL;
     PWSTR pwszSysName = NULL;
-    PolicyHandle hDomain;
-    PolicyHandle hBuiltin;
+    DOMAIN_HANDLE hDomain = NULL;
+    DOMAIN_HANDLE hBuiltin = NULL;
 
     perr = fetch_value(options, optcount, "systemname", pt_w16string,
                        &pwszSysName, &pszDefSysName);
@@ -1241,27 +1288,31 @@ TestSamrUsers(struct test *t, const wchar16_t *hostname,
                            &hConn);
 
     ret &= CallSamrEnumDomains(hBinding,
-                               &hConn,
+                               hConn,
                                &pDomainSid,
                                &pBuiltinSid);
 
     ret &= CallSamrOpenDomains(hBinding,
-                               &hConn,
+                               hConn,
                                pDomainSid,
                                pBuiltinSid,
                                &hDomain,
                                &hBuiltin);
 
     ret &= CallSamrEnumDomainUsers(hBinding,
-                                   &hDomain);
+                                   hDomain);
 
     ret &= CallSamrEnumDomainUsers(hBinding,
-                                   &hBuiltin);
+                                   hBuiltin);
 
     ret &= CallSamrClose(hBinding,
                          &hConn);
 
 done:
+    FreeSamrBinding(&hBinding);
+
+    SAFE_FREE(pwszSysName);
+
     return (int)ret;
 }
 
@@ -1276,12 +1327,12 @@ TestSamrAliases(struct test *t, const wchar16_t *hostname,
     BOOL ret = TRUE;
     enum param_err perr = perr_success;
     handle_t hBinding = NULL;
-    PolicyHandle hConn;
+    CONNECT_HANDLE hConn = NULL;
     PSID pDomainSid = NULL;
     PSID pBuiltinSid = NULL;
     PWSTR pwszSysName = NULL;
-    PolicyHandle hDomain;
-    PolicyHandle hBuiltin;
+    DOMAIN_HANDLE hDomain = NULL;
+    DOMAIN_HANDLE hBuiltin = NULL;
 
     perr = fetch_value(options, optcount, "systemname", pt_w16string,
                        &pwszSysName, &pszDefSysName);
@@ -1298,12 +1349,12 @@ TestSamrAliases(struct test *t, const wchar16_t *hostname,
                            &hConn);
 
     ret &= CallSamrEnumDomains(hBinding,
-                               &hConn,
+                               hConn,
                                &pDomainSid,
                                &pBuiltinSid);
 
     ret &= CallSamrOpenDomains(hBinding,
-                               &hConn,
+                               hConn,
                                pDomainSid,
                                pBuiltinSid,
                                &hDomain,
@@ -1351,9 +1402,9 @@ int TestSamrQueryUser(struct test *t, const wchar16_t *hostname,
     enum param_err perr = perr_success;
     handle_t samr_binding = NULL;
     int i = 0;
-    PolicyHandle conn_handle = {0};
-    PolicyHandle dom_handle = {0};
-    PolicyHandle user_handle = {0};
+    CONNECT_HANDLE hConn = NULL;
+    DOMAIN_HANDLE hDomain = NULL;
+    ACCOUNT_HANDLE hUser = NULL;
     PSID sid = NULL;
     wchar16_t *names[1];
     wchar16_t *username = NULL;
@@ -1392,20 +1443,22 @@ int TestSamrQueryUser(struct test *t, const wchar16_t *hostname,
     /*
      * Simple user account querying
      */
-    status = SamrConnect2(samr_binding, hostname, conn_access_mask, &conn_handle);
+    status = SamrConnect2(samr_binding, hostname, conn_access_mask, &hConn);
     if (status != 0) rpc_fail(status);
 
-    status = SamrLookupDomain(samr_binding, &conn_handle, domainname, &sid);
+    status = SamrLookupDomain(samr_binding, hConn, domainname, &sid);
     if (status != 0) rpc_fail(status);
 
-    status = SamrOpenDomain(samr_binding, &conn_handle, dom_access_mask, sid, &dom_handle);
+    status = SamrOpenDomain(samr_binding, hConn, dom_access_mask, sid,
+                            &hDomain);
     if (status != 0) rpc_fail(status);
 
-    status = SamrLookupNames(samr_binding, &dom_handle, 1, names, &rids, &types,
+    status = SamrLookupNames(samr_binding, hDomain, 1, names, &rids, &types,
                              &rids_count);
     if (status != 0) rpc_fail(status);
 
-    status = SamrOpenUser(samr_binding, &dom_handle, usr_access_mask, rids[0], &user_handle);
+    status = SamrOpenUser(samr_binding, hDomain, usr_access_mask, rids[0],
+                          &hUser);
     if (status != 0) rpc_fail(status);
 
     SamrFreeMemory((void*)rids);
@@ -1416,10 +1469,10 @@ int TestSamrQueryUser(struct test *t, const wchar16_t *hostname,
             if (i == 5) continue;      /* infolevel 5 is still broken for some reason */
 
             INPUT_ARG_PTR(samr_binding);
-            INPUT_ARG_PTR(&user_handle);
+            INPUT_ARG_PTR(hUser);
             INPUT_ARG_UINT(i);
 
-            CALL_MSRPC(status = SamrQueryUserInfo(samr_binding, &user_handle,
+            CALL_MSRPC(status = SamrQueryUserInfo(samr_binding, hUser,
                                                   (uint16)i, &info));
             if (status != STATUS_SUCCESS &&
                 status != STATUS_INVALID_INFO_CLASS) rpc_fail(status);
@@ -1429,10 +1482,10 @@ int TestSamrQueryUser(struct test *t, const wchar16_t *hostname,
         }
     } else {
         INPUT_ARG_PTR(samr_binding);
-        INPUT_ARG_PTR(&user_handle);
+        INPUT_ARG_PTR(hUser);
         INPUT_ARG_UINT(level);
 
-        CALL_MSRPC(status = SamrQueryUserInfo(samr_binding, &user_handle,
+        CALL_MSRPC(status = SamrQueryUserInfo(samr_binding, hUser,
                                               (uint16)level, &info));
         if (status != STATUS_SUCCESS &&
             status != STATUS_INVALID_INFO_CLASS) rpc_fail(status);
@@ -1441,13 +1494,13 @@ int TestSamrQueryUser(struct test *t, const wchar16_t *hostname,
         info = NULL;
     }
 
-    status = SamrClose(samr_binding, &user_handle);
+    status = SamrClose(samr_binding, hUser);
     if (status != 0) rpc_fail(status);
 
-    status = SamrClose(samr_binding, &dom_handle);
+    status = SamrClose(samr_binding, hDomain);
     if (status != 0) rpc_fail(status);
 
-    status = SamrClose(samr_binding, &conn_handle);
+    status = SamrClose(samr_binding, hConn);
     if (status != 0) rpc_fail(status);
 
     RELEASE_SESSION_CREDS;
@@ -1507,9 +1560,9 @@ int TestSamrQueryAlias(struct test *t, const wchar16_t *hostname,
     enum param_err perr = perr_success;
     handle_t samr_binding = NULL;
     int i = 0;
-    PolicyHandle conn_handle = {0};
-    PolicyHandle dom_handle = {0};
-    PolicyHandle alias_handle = {0};
+    CONNECT_HANDLE hConn = NULL;
+    DOMAIN_HANDLE hDomain = NULL;
+    ACCOUNT_HANDLE hAlias = NULL;
     PSID sid = NULL;
     wchar16_t *names[1];
     wchar16_t *aliasname = NULL;
@@ -1548,20 +1601,22 @@ int TestSamrQueryAlias(struct test *t, const wchar16_t *hostname,
     /*
      * Simple alias account querying
      */
-    status = SamrConnect2(samr_binding, hostname, conn_access_mask, &conn_handle);
+    status = SamrConnect2(samr_binding, hostname, conn_access_mask, &hConn);
     if (status != 0) rpc_fail(status);
 
-    status = SamrLookupDomain(samr_binding, &conn_handle, domainname, &sid);
+    status = SamrLookupDomain(samr_binding, hConn, domainname, &sid);
     if (status != 0) rpc_fail(status);
 
-    status = SamrOpenDomain(samr_binding, &conn_handle, dom_access_mask, sid, &dom_handle);
+    status = SamrOpenDomain(samr_binding, hConn, dom_access_mask, sid,
+                            &hDomain);
     if (status != 0) rpc_fail(status);
 
-    status = SamrLookupNames(samr_binding, &dom_handle, 1, names, &rids, &types,
+    status = SamrLookupNames(samr_binding, hDomain, 1, names, &rids, &types,
                              &rids_count);
     if (status != 0) rpc_fail(status);
 
-    status = SamrOpenAlias(samr_binding, &dom_handle, alias_access_mask, rids[0], &alias_handle);
+    status = SamrOpenAlias(samr_binding, hDomain, alias_access_mask, rids[0],
+                           &hAlias);
     if (status != 0) rpc_fail(status);
 
     SamrFreeMemory((void*)rids);
@@ -1570,10 +1625,10 @@ int TestSamrQueryAlias(struct test *t, const wchar16_t *hostname,
     if (level == 0) {
         for (i = 1; i <= 3; i++) {
             INPUT_ARG_PTR(samr_binding);
-            INPUT_ARG_PTR(&alias_handle);
+            INPUT_ARG_PTR(hAlias);
             INPUT_ARG_UINT(i);
 
-            CALL_MSRPC(status = SamrQueryAliasInfo(samr_binding, &alias_handle,
+            CALL_MSRPC(status = SamrQueryAliasInfo(samr_binding, hAlias,
                                                    (uint16)i, &info));
             if (status != STATUS_SUCCESS &&
                 status != STATUS_INVALID_INFO_CLASS) rpc_fail(status);
@@ -1585,10 +1640,10 @@ int TestSamrQueryAlias(struct test *t, const wchar16_t *hostname,
         }
     } else {
         INPUT_ARG_PTR(samr_binding);
-        INPUT_ARG_PTR(&alias_handle);
+        INPUT_ARG_PTR(hAlias);
         INPUT_ARG_UINT(level);
 
-        CALL_MSRPC(status = SamrQueryAliasInfo(samr_binding, &alias_handle,
+        CALL_MSRPC(status = SamrQueryAliasInfo(samr_binding, hAlias,
                                               (uint16)level, &info));
         if (status != STATUS_SUCCESS &&
             status != STATUS_INVALID_INFO_CLASS) rpc_fail(status);
@@ -1599,13 +1654,13 @@ int TestSamrQueryAlias(struct test *t, const wchar16_t *hostname,
         info = NULL;
     }
 
-    status = SamrClose(samr_binding, &alias_handle);
+    status = SamrClose(samr_binding, hAlias);
     if (status != 0) rpc_fail(status);
 
-    status = SamrClose(samr_binding, &dom_handle);
+    status = SamrClose(samr_binding, hDomain);
     if (status != 0) rpc_fail(status);
 
-    status = SamrClose(samr_binding, &conn_handle);
+    status = SamrClose(samr_binding, hConn);
     if (status != 0) rpc_fail(status);
 
     RELEASE_SESSION_CREDS;
@@ -1656,10 +1711,10 @@ int TestSamrAlias(struct test *t, const wchar16_t *hostname,
     wchar16_t *domname = NULL;
     int i = 0;
     uint32 rids_count = 0;
-    PolicyHandle conn_handle = {0};
-    PolicyHandle dom_handle = {0};
-    PolicyHandle alias_handle = {0};
-    PolicyHandle user_handle = {0};
+    CONNECT_HANDLE hConn = NULL;
+    DOMAIN_HANDLE hDomain = NULL;
+    ACCOUNT_HANDLE hAlias = NULL;
+    ACCOUNT_HANDLE hUser = NULL;
     wchar16_t *names[1] = {0};
     PSID sid = NULL;
     PSID user_sid = NULL;
@@ -1695,17 +1750,17 @@ int TestSamrAlias(struct test *t, const wchar16_t *hostname,
      * Creating and querying/setting alias (in the host domain)
      */
 
-    status = SamrConnect2(samr_binding, hostname, conn_access_mask, &conn_handle);
+    status = SamrConnect2(samr_binding, hostname, conn_access_mask, &hConn);
     if (status != 0) rpc_fail(status);
 
     status = GetSamDomainName(&domname, hostname);
     if (status != 0) rpc_fail(status);
 
-    status = SamrLookupDomain(samr_binding, &conn_handle, domname, &sid);
+    status = SamrLookupDomain(samr_binding, hConn, domname, &sid);
     if (status != 0) rpc_fail(status);
 
-    status = SamrOpenDomain(samr_binding, &conn_handle, dom_access_mask, sid,
-                            &dom_handle);
+    status = SamrOpenDomain(samr_binding, hConn, dom_access_mask, sid,
+                            &hDomain);
     if (status != 0) rpc_fail(status);
 
     /*
@@ -1716,7 +1771,7 @@ int TestSamrAlias(struct test *t, const wchar16_t *hostname,
 
     names[0] = aliasname;
 
-    status = SamrLookupNames(samr_binding, &dom_handle, 1, names,
+    status = SamrLookupNames(samr_binding, hDomain, 1, names,
                              &rids, &types, &rids_count);
     if (status != 0) rpc_fail(status);
 
@@ -1725,8 +1780,8 @@ int TestSamrAlias(struct test *t, const wchar16_t *hostname,
         rpc_fail(STATUS_UNSUCCESSFUL);
     }
 
-    status = SamrOpenAlias(samr_binding, &dom_handle, alias_access_mask,
-                           rids[0], &alias_handle);
+    status = SamrOpenAlias(samr_binding, hDomain, alias_access_mask,
+                           rids[0], &hAlias);
     if (status != 0) rpc_fail(status);
 
     if (rids) SamrFreeMemory((void*)rids);
@@ -1742,7 +1797,7 @@ int TestSamrAlias(struct test *t, const wchar16_t *hostname,
 
     names[0] = username;
 
-    status = SamrLookupNames(samr_binding, &dom_handle, 1, names, &rids, &types,
+    status = SamrLookupNames(samr_binding, hDomain, 1, names, &rids, &types,
                              &rids_count);
     if (status != 0) rpc_fail(status);
 
@@ -1760,29 +1815,29 @@ int TestSamrAlias(struct test *t, const wchar16_t *hostname,
 
     for (i = 3; i > 1; i--) {
         INPUT_ARG_PTR(samr_binding);
-        INPUT_ARG_PTR(&alias_handle);
+        INPUT_ARG_PTR(hAlias);
         INPUT_ARG_UINT(i);
 
-        CALL_MSRPC(status = SamrQueryAliasInfo(samr_binding, &alias_handle,
+        CALL_MSRPC(status = SamrQueryAliasInfo(samr_binding, hAlias,
                                                (uint16)i, &aliasinfo));
         if (status != 0) rpc_fail(status);
 
         if (aliasinfo) SamrFreeMemory((void*)aliasinfo);
     }
 
-    status = SamrQueryAliasInfo(samr_binding, &alias_handle, 1, &aliasinfo);
+    status = SamrQueryAliasInfo(samr_binding, hAlias, 1, &aliasinfo);
     if (status != 0) rpc_fail(status);
 
     status = InitUnicodeString(&setaliasinfo.description, aliasdesc);
     if (status != 0) rpc_fail(status);
 
-    status = SamrSetAliasInfo(samr_binding, &alias_handle, 3, &setaliasinfo);
+    status = SamrSetAliasInfo(samr_binding, hAlias, 3, &setaliasinfo);
     if (status != 0) rpc_fail(status);
 
     status = MsRpcAllocateSidAppendRid(&user_sid, sid, user_rid);
     if (status != 0) rpc_fail(status);
 
-    status = SamrGetAliasMembership(samr_binding, &dom_handle, &user_sid, 1,
+    status = SamrGetAliasMembership(samr_binding, hDomain, &user_sid, 1,
                                     &rids, &num_rids);
     if (status != 0) rpc_fail(status);
 
@@ -1791,14 +1846,14 @@ int TestSamrAlias(struct test *t, const wchar16_t *hostname,
      * Adding, deleting and querying members in alias
      */
 
-    status = SamrAddAliasMember(samr_binding, &alias_handle, user_sid);
+    status = SamrAddAliasMember(samr_binding, hAlias, user_sid);
     if (status != 0) rpc_fail(status);
 
-    status = SamrGetMembersInAlias(samr_binding, &alias_handle, &member_sids,
+    status = SamrGetMembersInAlias(samr_binding, hAlias, &member_sids,
                                    &members_num);
     if (status != 0) rpc_fail(status);
 
-    status = SamrDeleteAliasMember(samr_binding, &alias_handle, user_sid);
+    status = SamrDeleteAliasMember(samr_binding, hAlias, user_sid);
     if (status != 0) rpc_fail(status);
 
 
@@ -1807,23 +1862,23 @@ int TestSamrAlias(struct test *t, const wchar16_t *hostname,
      */
 
     if (alias_created) {
-        status = SamrDeleteDomAlias(samr_binding, &alias_handle);
+        status = SamrDeleteDomAlias(samr_binding, hAlias);
         if (status != 0) rpc_fail(status);
 
     } else {
-        status = SamrClose(samr_binding, &alias_handle);
+        status = SamrClose(samr_binding, hAlias);
         if (status != 0) rpc_fail(status);
     }
 
     if (user_created) {
-        status = SamrDeleteUser(samr_binding, &user_handle);
+        status = SamrDeleteUser(samr_binding, hUser);
         if (status != 0) rpc_fail(status);
     }
 
-    status = SamrClose(samr_binding, &dom_handle);
+    status = SamrClose(samr_binding, hDomain);
     if (status != 0) rpc_fail(status);
 
-    status = SamrClose(samr_binding, &conn_handle);
+    status = SamrClose(samr_binding, hConn);
     if (status != 0) rpc_fail(status);
 
     FreeSamrBinding(&samr_binding);
@@ -1864,8 +1919,8 @@ int TestSamrUsersInAliases(struct test *t, const wchar16_t *hostname,
     NTSTATUS status = STATUS_SUCCESS;
     enum param_err perr = perr_success;
     handle_t samr_binding = NULL;
-    PolicyHandle conn_handle = {0};
-    PolicyHandle builtin_dom_handle = {0};
+    CONNECT_HANDLE hConn = NULL;
+    DOMAIN_HANDLE hBtinDomain = NULL;
     char *sidstr = NULL;
     PSID sid = NULL;
     DomainInfo *dominfo = NULL;
@@ -1888,11 +1943,11 @@ int TestSamrUsersInAliases(struct test *t, const wchar16_t *hostname,
     RtlAllocateSidFromCString(&sid, sidstr);
 
     status = SamrConnect2(samr_binding, hostname, conn_access_mask,
-                          &conn_handle);
+                          &hConn);
     if (status != 0) rpc_fail(status);
 
-    status = SamrOpenDomain(samr_binding, &conn_handle, builtin_dom_access_mask,
-                            sid, &builtin_dom_handle);
+    status = SamrOpenDomain(samr_binding, hConn, builtin_dom_access_mask,
+                            sid, &hBtinDomain);
     if (status == 0) {
         uint32 acct_flags = ACB_NORMAL;
         uint32 resume = 0;
@@ -1903,7 +1958,7 @@ int TestSamrUsersInAliases(struct test *t, const wchar16_t *hostname,
         PSID alias_sid = NULL;
 
         do {
-            status = SamrEnumDomainAliases(samr_binding, &builtin_dom_handle,
+            status = SamrEnumDomainAliases(samr_binding, hBtinDomain,
                                            &resume, acct_flags, &names, &rids,
                                            &num_entries);
 
@@ -1917,7 +1972,7 @@ int TestSamrUsersInAliases(struct test *t, const wchar16_t *hostname,
 
                 /* there's actually no need to check status code here */
                 status = SamrGetAliasMembership(samr_binding,
-                                                &builtin_dom_handle,
+                                                hBtinDomain,
                                                 &alias_sid, 1, &member_rids,
                                                 &count);
                 SAFE_FREE(alias_sid);
@@ -1932,13 +1987,13 @@ int TestSamrUsersInAliases(struct test *t, const wchar16_t *hostname,
 
         } while (status == STATUS_MORE_ENTRIES);
 
-        status = SamrQueryDomainInfo(samr_binding, &builtin_dom_handle,
+        status = SamrQueryDomainInfo(samr_binding, hBtinDomain,
                                      (uint16)2, &dominfo);
 
-        status = SamrClose(samr_binding, &builtin_dom_handle);
+        status = SamrClose(samr_binding, hBtinDomain);
     }
 
-    status = SamrClose(samr_binding, &conn_handle);
+    status = SamrClose(samr_binding, hConn);
     if (status != 0) rpc_fail(status);
 
     FreeSamrBinding(&samr_binding);
@@ -1972,8 +2027,8 @@ int TestSamrOpenDomain(struct test *t, const wchar16_t *hostname,
     NTSTATUS status = STATUS_SUCCESS;
     enum param_err perr = perr_success;
     handle_t samr_binding = NULL;
-    PolicyHandle conn_handle = {0};
-    PolicyHandle dom_handle = {0};
+    CONNECT_HANDLE hConn = NULL;
+    DOMAIN_HANDLE hDomain = NULL;
     PSID sid = NULL;
     wchar16_t *domainname = NULL;
 
@@ -1987,20 +2042,20 @@ int TestSamrOpenDomain(struct test *t, const wchar16_t *hostname,
     if (samr_binding == NULL) return false;
 
     status = SamrConnect2(samr_binding, hostname, conn_access_mask,
-                          &conn_handle);
+                          &hConn);
     if (status != 0) rpc_fail(status);
 
-    status = SamrLookupDomain(samr_binding, &conn_handle, domainname, &sid);
+    status = SamrLookupDomain(samr_binding, hConn, domainname, &sid);
     if (status != 0) rpc_fail(status);
 
-    status = SamrOpenDomain(samr_binding, &conn_handle, dom_access_mask,
-                            sid, &dom_handle);
+    status = SamrOpenDomain(samr_binding, hConn, dom_access_mask,
+                            sid, &hDomain);
     if (status != 0) rpc_fail(status);
 
-    status = SamrClose(samr_binding, &dom_handle);
+    status = SamrClose(samr_binding, hDomain);
     if (status != 0) rpc_fail(status);
 
-    status = SamrClose(samr_binding, &conn_handle);
+    status = SamrClose(samr_binding, hConn);
     if (status != 0) rpc_fail(status);
 
     FreeSamrBinding(&samr_binding);
@@ -2032,8 +2087,8 @@ int TestSamrQueryDomain(struct test *t, const wchar16_t *hostname,
     NTSTATUS status = STATUS_SUCCESS;
     handle_t samr_binding = NULL;
     int i = 0;
-    PolicyHandle conn_handle = {0};
-    PolicyHandle dom_handle = {0};
+    CONNECT_HANDLE hConn = NULL;
+    DOMAIN_HANDLE hDomain = NULL;
     PSID sid = NULL;
     DomainInfo *dominfo = NULL;
     wchar16_t *domname = NULL;
@@ -2044,28 +2099,28 @@ int TestSamrQueryDomain(struct test *t, const wchar16_t *hostname,
     if (samr_binding == NULL) return false;
 
     status = SamrConnect2(samr_binding, hostname, conn_access_mask,
-                          &conn_handle);
+                          &hConn);
     if (status != 0) rpc_fail(status);
 
     status = GetSamDomainName(&domname, hostname);
     if (status != 0) rpc_fail(status);
 
-    status = SamrLookupDomain(samr_binding, &conn_handle, domname, &sid);
+    status = SamrLookupDomain(samr_binding, hConn, domname, &sid);
     if (status != 0) rpc_fail(status);
 
-    status = SamrOpenDomain(samr_binding, &conn_handle, dom_access_mask,
-                            sid, &dom_handle);
+    status = SamrOpenDomain(samr_binding, hConn, dom_access_mask,
+                            sid, &hDomain);
     if (status != 0) rpc_fail(status);
 
     for (i = 1; i < 13; i++) {
         if (i == 10) continue;
 
         INPUT_ARG_PTR(samr_binding);
-        INPUT_ARG_PTR(&dom_handle);
+        INPUT_ARG_PTR(hDomain);
         INPUT_ARG_INT(i);
         INPUT_ARG_PTR(dominfo);
 
-        CALL_MSRPC(status = SamrQueryDomainInfo(samr_binding, &dom_handle,
+        CALL_MSRPC(status = SamrQueryDomainInfo(samr_binding, hDomain,
                                                 (uint16)i, &dominfo));
 
         OUTPUT_ARG_PTR(dominfo);
@@ -2075,10 +2130,10 @@ int TestSamrQueryDomain(struct test *t, const wchar16_t *hostname,
         }
     }
 
-    status = SamrClose(samr_binding, &dom_handle);
+    status = SamrClose(samr_binding, hDomain);
     if (status != 0) rpc_fail(status);
 
-    status = SamrClose(samr_binding, &conn_handle);
+    status = SamrClose(samr_binding, hConn);
     if (status != 0) rpc_fail(status);
 
     FreeSamrBinding(&samr_binding);
@@ -2134,8 +2189,8 @@ int TestSamrEnumUsers(struct test *t, const wchar16_t *hostname,
     wchar16_t *domname = NULL;
     wchar16_t *domainname = NULL;
     uint32 *enum_rids = NULL;
-    PolicyHandle conn_handle = {0};
-    PolicyHandle dom_handle = {0};
+    CONNECT_HANDLE hConn = NULL;
+    DOMAIN_HANDLE hDomain = NULL;
     PSID sid = NULL;
     int specifydomain = 0;
 
@@ -2157,7 +2212,7 @@ int TestSamrEnumUsers(struct test *t, const wchar16_t *hostname,
     if (samr_binding == NULL) return false;
 
     status = SamrConnect2(samr_binding, hostname, conn_access_mask,
-                          &conn_handle);
+                          &hConn);
     if (status != 0) rpc_fail(status);
 
     if (specifydomain) {
@@ -2168,11 +2223,11 @@ int TestSamrEnumUsers(struct test *t, const wchar16_t *hostname,
         if (status != 0) rpc_fail(status);
     }
 
-    status = SamrLookupDomain(samr_binding, &conn_handle, domname, &sid);
+    status = SamrLookupDomain(samr_binding, hConn, domname, &sid);
     if (status != 0) rpc_fail(status);
 
-    status = SamrOpenDomain(samr_binding, &conn_handle, dom_access_mask,
-                            sid, &dom_handle);
+    status = SamrOpenDomain(samr_binding, hConn, dom_access_mask,
+                            sid, &hDomain);
     if (status != 0) rpc_fail(status);
 
     /*
@@ -2183,7 +2238,7 @@ int TestSamrEnumUsers(struct test *t, const wchar16_t *hostname,
     resume = 0;
     account_flags = ACB_NORMAL;
     do {
-        status = SamrEnumDomainUsers(samr_binding, &dom_handle, &resume,
+        status = SamrEnumDomainUsers(samr_binding, hDomain, &resume,
                                      account_flags, max_size, &enum_names,
                                      &enum_rids, &num_entries);
 
@@ -2200,7 +2255,7 @@ int TestSamrEnumUsers(struct test *t, const wchar16_t *hostname,
     resume = 0;
     account_flags = ACB_DOMTRUST;
     do {
-        status = SamrEnumDomainUsers(samr_binding, &dom_handle,&resume,
+        status = SamrEnumDomainUsers(samr_binding, hDomain, &resume,
                                      account_flags, max_size, &enum_names,
                                      &enum_rids, &num_entries);
         if (status == STATUS_SUCCESS ||
@@ -2216,7 +2271,7 @@ int TestSamrEnumUsers(struct test *t, const wchar16_t *hostname,
     resume = 0;
     account_flags = ACB_WSTRUST;
     do {
-        status = SamrEnumDomainUsers(samr_binding, &dom_handle,&resume,
+        status = SamrEnumDomainUsers(samr_binding, hDomain, &resume,
                                      account_flags, max_size, &enum_names,
                                      &enum_rids, &num_entries);
         if (status == STATUS_SUCCESS ||
@@ -2232,7 +2287,7 @@ int TestSamrEnumUsers(struct test *t, const wchar16_t *hostname,
     resume = 0;
     account_flags = acb_flags;
     do {
-        status = SamrEnumDomainUsers(samr_binding, &dom_handle, &resume,
+        status = SamrEnumDomainUsers(samr_binding, hDomain, &resume,
                                      account_flags, max_size, &enum_names,
                                      &enum_rids, &num_entries);
         if (status == STATUS_SUCCESS ||
@@ -2246,10 +2301,10 @@ int TestSamrEnumUsers(struct test *t, const wchar16_t *hostname,
     } while (status == STATUS_MORE_ENTRIES);
 
 
-    SamrClose(samr_binding, &dom_handle);
+    SamrClose(samr_binding, hDomain);
     if (status != 0) rpc_fail(status);
 
-    SamrClose(samr_binding, &conn_handle);
+    SamrClose(samr_binding, hConn);
     if (status != 0) rpc_fail(status);
 
     FreeSamrBinding(&samr_binding);
@@ -2292,8 +2347,8 @@ int TestSamrQueryDisplayInfo(struct test *t, const wchar16_t *hostname,
     enum param_err perr = perr_success;
     wchar16_t *domname = NULL;
     wchar16_t *domainname = NULL;
-    PolicyHandle conn_handle = {0};
-    PolicyHandle dom_handle = {0};
+    CONNECT_HANDLE hConn = NULL;
+    DOMAIN_HANDLE hDomain = NULL;
     PSID sid = NULL;
     int specifydomain = 0;
     int32 level = 0;
@@ -2330,7 +2385,7 @@ int TestSamrQueryDisplayInfo(struct test *t, const wchar16_t *hostname,
     if (samr_binding == NULL) return false;
 
     status = SamrConnect2(samr_binding, hostname, conn_access_mask,
-                          &conn_handle);
+                          &hConn);
     if (status != 0) rpc_fail(status);
 
     if (specifydomain) {
@@ -2341,11 +2396,11 @@ int TestSamrQueryDisplayInfo(struct test *t, const wchar16_t *hostname,
         if (status != 0) rpc_fail(status);
     }
 
-    status = SamrLookupDomain(samr_binding, &conn_handle, domname, &sid);
+    status = SamrLookupDomain(samr_binding, hConn, domname, &sid);
     if (status != 0) rpc_fail(status);
 
-    status = SamrOpenDomain(samr_binding, &conn_handle, dom_access_mask,
-                            sid, &dom_handle);
+    status = SamrOpenDomain(samr_binding, hConn, dom_access_mask,
+                            sid, &hDomain);
     if (status != 0) rpc_fail(status);
 
     if (level == 0) {
@@ -2354,7 +2409,7 @@ int TestSamrQueryDisplayInfo(struct test *t, const wchar16_t *hostname,
 
             do {
                 CALL_MSRPC(status = SamrQueryDisplayInfo(samr_binding,
-                                                         &dom_handle,
+                                                         hDomain,
                                                          (uint16)level,
                                                          start_idx,
                                                          max_entries,
@@ -2403,7 +2458,7 @@ int TestSamrQueryDisplayInfo(struct test *t, const wchar16_t *hostname,
 
     } else {
         do {
-            CALL_MSRPC(status = SamrQueryDisplayInfo(samr_binding, &dom_handle,
+            CALL_MSRPC(status = SamrQueryDisplayInfo(samr_binding, hDomain,
                                                      (uint16)level, start_idx,
                                                      max_entries, buf_size,
                                                      &total_size, &returned_size,
@@ -2448,10 +2503,10 @@ int TestSamrQueryDisplayInfo(struct test *t, const wchar16_t *hostname,
         } while (status == STATUS_MORE_ENTRIES);
     }
 
-    SamrClose(samr_binding, &dom_handle);
+    SamrClose(samr_binding, hDomain);
     if (status != 0) rpc_fail(status);
 
-    SamrClose(samr_binding, &conn_handle);
+    SamrClose(samr_binding, hConn);
     if (status != 0) rpc_fail(status);
 
     FreeSamrBinding(&samr_binding);
@@ -2486,7 +2541,7 @@ int TestSamrEnumDomains(struct test *t, const wchar16_t *hostname,
     uint32 num_entries = 0;
     uint32 max_size = 0;
     wchar16_t **enum_domains = NULL;
-    PolicyHandle conn_handle = {0};
+    CONNECT_HANDLE hConn = NULL;
 
     perr = fetch_value(options, optcount, "maxsize", pt_uint32,
                        &max_size, &def_max_size);
@@ -2498,13 +2553,13 @@ int TestSamrEnumDomains(struct test *t, const wchar16_t *hostname,
     if (samr_binding == NULL) return false;
 
     status = SamrConnect2(samr_binding, hostname, conn_access_mask,
-                          &conn_handle);
+                          &hConn);
     if (status != 0) rpc_fail(status);
 
     resume = 0;
 
     do {
-        status = SamrEnumDomains(samr_binding, &conn_handle, &resume, max_size,
+        status = SamrEnumDomains(samr_binding, hConn, &resume, max_size,
                                  &enum_domains, &num_entries);
 
         DISPLAY_DOMAINS(enum_domains, num_entries);
@@ -2513,7 +2568,7 @@ int TestSamrEnumDomains(struct test *t, const wchar16_t *hostname,
 
     } while (status == STATUS_MORE_ENTRIES);
 
-    status = SamrClose(samr_binding, &conn_handle);
+    status = SamrClose(samr_binding, hConn);
     if (status != 0) rpc_fail(status);
 
     FreeSamrBinding(&samr_binding);
@@ -2554,9 +2609,9 @@ int TestSamrCreateUserAccount(struct test *t, const wchar16_t *hostname,
     wchar16_t *newusername = NULL;
     wchar16_t *domname = NULL;
     uint32 rid = 0;
-    PolicyHandle conn_handle = {0};
-    PolicyHandle dom_handle = {0};
-    PolicyHandle account_handle = {0};
+    CONNECT_HANDLE hConn = NULL;
+    DOMAIN_HANDLE hDomain = NULL;
+    ACCOUNT_HANDLE hAccount = NULL;
     PSID sid = NULL;
 
     perr = fetch_value(options, optcount, "username", pt_w16string,
@@ -2580,37 +2635,37 @@ int TestSamrCreateUserAccount(struct test *t, const wchar16_t *hostname,
      */
 
     status = SamrConnect2(samr_binding, hostname, conn_access_mask,
-                          &conn_handle);
+                          &hConn);
     if (status != 0) rpc_fail(status);
 
     status = GetSamDomainName(&domname, hostname);
     if (status != 0) rpc_fail(status);
 
-    status = SamrLookupDomain(samr_binding, &conn_handle, domname, &sid);
+    status = SamrLookupDomain(samr_binding, hConn, domname, &sid);
     if (status != 0) rpc_fail(status);
 
-    status = SamrOpenDomain(samr_binding, &conn_handle, dom_access_mask,
-                            sid, &dom_handle);
+    status = SamrOpenDomain(samr_binding, hConn, dom_access_mask,
+                            sid, &hDomain);
     if (status != 0) rpc_fail(status);
 
-    status = SamrCreateUser(samr_binding, &dom_handle, newusername,
-                            account_flags, &account_handle, &rid);
+    status = SamrCreateUser(samr_binding, hDomain, newusername,
+                            account_flags, &hAccount, &rid);
     if (status != 0) rpc_fail(status);
 
-    status = SamrClose(samr_binding, &account_handle);
+    status = SamrClose(samr_binding, hAccount);
     if (status != 0) rpc_fail(status);
 
-    status = SamrOpenUser(samr_binding, &dom_handle, usr_access_mask,
-                          rid, &account_handle);
+    status = SamrOpenUser(samr_binding, hDomain, usr_access_mask,
+                          rid, &hAccount);
     if (status != 0) rpc_fail(status);
 
-    status = SamrDeleteUser(samr_binding, &account_handle);
+    status = SamrDeleteUser(samr_binding, hAccount);
     if (status != 0) rpc_fail(status);
 
-    status = SamrClose(samr_binding, &dom_handle);
+    status = SamrClose(samr_binding, hDomain);
     if (status != 0) rpc_fail(status);
 
-    status = SamrClose(samr_binding, &conn_handle);
+    status = SamrClose(samr_binding, hConn);
     if (status != 0) rpc_fail(status);
 
     FreeSamrBinding(&samr_binding);
@@ -2652,9 +2707,9 @@ int TestSamrCreateAlias(struct test *t, const wchar16_t *hostname,
     wchar16_t *newaliasname = NULL;
     wchar16_t *domname = NULL;
     uint32 rid = 0;
-    PolicyHandle conn_handle = {0};
-    PolicyHandle dom_handle = {0};
-    PolicyHandle account_handle = {0};
+    CONNECT_HANDLE hConn = NULL;
+    DOMAIN_HANDLE hDomain = NULL;
+    ACCOUNT_HANDLE hAccount = NULL;
     PSID sid = NULL;
 
     perr = fetch_value(options, optcount, "aliasname", pt_w16string,
@@ -2670,37 +2725,37 @@ int TestSamrCreateAlias(struct test *t, const wchar16_t *hostname,
     if (samr_binding == NULL) return false;
 
     status = SamrConnect2(samr_binding, hostname, conn_access_mask,
-                          &conn_handle);
+                          &hConn);
     if (status != 0) rpc_fail(status);
 
     status = GetSamDomainName(&domname, hostname);
     if (status != 0) rpc_fail(status);
 
-    status = SamrLookupDomain(samr_binding, &conn_handle, domname, &sid);
+    status = SamrLookupDomain(samr_binding, hConn, domname, &sid);
     if (status != 0) rpc_fail(status);
 
-    status = SamrOpenDomain(samr_binding, &conn_handle, dom_access_mask,
-                            sid, &dom_handle);
+    status = SamrOpenDomain(samr_binding, hConn, dom_access_mask,
+                            sid, &hDomain);
     if (status != 0) rpc_fail(status);
 
-    status = SamrCreateDomAlias(samr_binding, &dom_handle, newaliasname,
-                                alias_access, &account_handle, &rid);
+    status = SamrCreateDomAlias(samr_binding, hDomain, newaliasname,
+                                alias_access, &hAccount, &rid);
     if (status != 0) rpc_fail(status);
 
-    status = SamrClose(samr_binding, &account_handle);
+    status = SamrClose(samr_binding, hAccount);
     if (status != 0) rpc_fail(status);
 
-    status = SamrOpenAlias(samr_binding, &dom_handle, alias_access, rid,
-                           &account_handle);
+    status = SamrOpenAlias(samr_binding, hDomain, alias_access, rid,
+                           &hAccount);
     if (status != 0) rpc_fail(status);
 
-    status = SamrDeleteDomAlias(samr_binding, &account_handle);
+    status = SamrDeleteDomAlias(samr_binding, hAccount);
     if (status != 0) rpc_fail(status);
 
-    status = SamrClose(samr_binding, &dom_handle);
+    status = SamrClose(samr_binding, hDomain);
     if (status != 0) rpc_fail(status);
 
-    status = SamrClose(samr_binding, &conn_handle);
+    status = SamrClose(samr_binding, hConn);
     if (status != 0) rpc_fail(status);
 
     FreeSamrBinding(&samr_binding);
@@ -2743,9 +2798,9 @@ int TestSamrCreateGroup(struct test *t, const wchar16_t *hostname,
     wchar16_t *newgroupname = NULL;
     wchar16_t *domname = NULL;
     uint32 rid = 0;
-    PolicyHandle conn_handle = {0};
-    PolicyHandle dom_handle = {0};
-    PolicyHandle account_handle = {0};
+    CONNECT_HANDLE hConn = NULL;
+    DOMAIN_HANDLE hDomain = NULL;
+    ACCOUNT_HANDLE hAccount = NULL;
     PSID sid = NULL;
 
     perr = fetch_value(options, optcount, "groupname", pt_w16string,
@@ -2758,37 +2813,37 @@ int TestSamrCreateGroup(struct test *t, const wchar16_t *hostname,
     if (samr_binding == NULL) return false;
 
     status = SamrConnect2(samr_binding, hostname, conn_access_mask,
-                          &conn_handle);
+                          &hConn);
     if (status != 0) rpc_fail(status);
 
     status = GetSamDomainName(&domname, hostname);
     if (status != 0) rpc_fail(status);
 
-    status = SamrLookupDomain(samr_binding, &conn_handle, domname, &sid);
+    status = SamrLookupDomain(samr_binding, hConn, domname, &sid);
     if (status != 0) rpc_fail(status);
 
-    status = SamrOpenDomain(samr_binding, &conn_handle, dom_access_mask,
-                            sid, &dom_handle);
+    status = SamrOpenDomain(samr_binding, hConn, dom_access_mask,
+                            sid, &hDomain);
     if (status != 0) rpc_fail(status);
 
-    status = SamrCreateDomGroup(samr_binding, &dom_handle, newgroupname,
-                                group_access, &account_handle, &rid);
+    status = SamrCreateDomGroup(samr_binding, hDomain, newgroupname,
+                                group_access, &hAccount, &rid);
     if (status != 0) rpc_fail(status);
 
-    status = SamrClose(samr_binding, &account_handle);
+    status = SamrClose(samr_binding, hAccount);
     if (status != 0) rpc_fail(status);
 
-    status = SamrOpenGroup(samr_binding, &dom_handle, group_access, rid,
-                           &account_handle);
+    status = SamrOpenGroup(samr_binding, hDomain, group_access, rid,
+                           &hAccount);
     if (status != 0) rpc_fail(status);
 
-    status = SamrDeleteDomGroup(samr_binding, &account_handle);
+    status = SamrDeleteDomGroup(samr_binding, hAccount);
     if (status != 0) rpc_fail(status);
 
-    status = SamrClose(samr_binding, &dom_handle);
+    status = SamrClose(samr_binding, hDomain);
     if (status != 0) rpc_fail(status);
 
-    status = SamrClose(samr_binding, &conn_handle);
+    status = SamrClose(samr_binding, hConn);
     if (status != 0) rpc_fail(status);
 
     FreeSamrBinding(&samr_binding);
@@ -2837,9 +2892,9 @@ int TestSamrSetUserPassword(struct test *t, const wchar16_t *hostname,
     int newacct;
     wchar16_t *newusername, *domname;
     uint32 rid;
-    PolicyHandle conn_handle = {0};
-    PolicyHandle dom_handle = {0};
-    PolicyHandle account_handle = {0};
+    CONNECT_HANDLE hConn = NULL;
+    DOMAIN_HANDLE hDomain = NULL;
+    ACCOUNT_HANDLE hAccount = NULL;
     PSID sid = NULL;
     uint32 *rids, *types, rids_count;
     wchar16_t *names[1];
@@ -2881,7 +2936,7 @@ int TestSamrSetUserPassword(struct test *t, const wchar16_t *hostname,
      */
 
     status = SamrConnect2(samr_binding, hostname, conn_access_mask,
-                          &conn_handle);
+                          &hConn);
     if (status != 0) rpc_fail(status);
 
     GetSessionKey(samr_binding, &sess_key, &sess_key_len, &rpcstatus);
@@ -2890,29 +2945,29 @@ int TestSamrSetUserPassword(struct test *t, const wchar16_t *hostname,
     status = GetSamDomainName(&domname, hostname);
     if (status != 0) rpc_fail(status);
 
-    status = SamrLookupDomain(samr_binding, &conn_handle, domname, &sid);
+    status = SamrLookupDomain(samr_binding, hConn, domname, &sid);
     if (status != 0) rpc_fail(status);
 
-    status = SamrOpenDomain(samr_binding, &conn_handle, dom_access_mask,
-                            sid, &dom_handle);
+    status = SamrOpenDomain(samr_binding, hConn, dom_access_mask,
+                            sid, &hDomain);
     if (status != 0) rpc_fail(status);
 
     names[0] = newusername;
 
-    status = SamrLookupNames(samr_binding, &dom_handle, 1, names, &rids, &types,
+    status = SamrLookupNames(samr_binding, hDomain, 1, names, &rids, &types,
                              &rids_count);
     if (status != 0) rpc_fail(status);
 
     rid = rids[0];
 
-    status = SamrOpenUser(samr_binding, &dom_handle, usr_access_mask,
-                          rid, &account_handle);
+    status = SamrOpenUser(samr_binding, hDomain, usr_access_mask,
+                          rid, &hAccount);
     if (status != 0) rpc_fail(status);
 
     info9 = &userinfo.info9;
     info9->primary_gid = primary_gid;
 
-    status = SamrSetUserInfo(samr_binding, &account_handle, 9, &userinfo);
+    status = SamrSetUserInfo(samr_binding, hAccount, 9, &userinfo);
     if (status != 0) rpc_fail(status);
 
     info26 = &userinfo.info26;
@@ -2929,18 +2984,18 @@ int TestSamrSetUserPassword(struct test *t, const wchar16_t *hostname,
     rc4(info26->password.data, 516, digested_sess_key, 16);
     memcpy((void*)&info26->password.data, initval, 16);
 
-    status = SamrSetUserInfo(samr_binding, &account_handle, 26, &userinfo);
+    status = SamrSetUserInfo(samr_binding, hAccount, 26, &userinfo);
     if (status != 0) rpc_fail(status);
 
     if (newacct) {
-        status = SamrDeleteUser(samr_binding, &account_handle);
+        status = SamrDeleteUser(samr_binding, hAccount);
         if (status != 0) rpc_fail(status);
     }
 
-    status = SamrClose(samr_binding, &dom_handle);
+    status = SamrClose(samr_binding, hDomain);
     if (status != 0) rpc_fail(status);
 
-    status = SamrClose(samr_binding, &conn_handle);
+    status = SamrClose(samr_binding, hConn);
     if (status != 0) rpc_fail(status);
 
     FreeSamrBinding(&samr_binding);
@@ -2970,8 +3025,8 @@ int TestSamrMultipleConnections(struct test *t, const wchar16_t *hostname,
     NTSTATUS status = STATUS_SUCCESS;
     handle_t samr_binding1 = NULL;
     handle_t samr_binding2 = NULL;
-    PolicyHandle conn_handle1 = {0};
-    PolicyHandle conn_handle2 = {0};
+    CONNECT_HANDLE hConn1 = NULL;
+    CONNECT_HANDLE hConn2 = NULL;
     unsigned char *key1 = NULL;
     unsigned char *key2 = NULL;
     unsigned16 key_len1, key_len2;
@@ -2985,7 +3040,7 @@ int TestSamrMultipleConnections(struct test *t, const wchar16_t *hostname,
     samr_binding1 = CreateSamrBinding(&samr_binding1, hostname);
     if (samr_binding1 == NULL) return false;
 
-    status = SamrConnect2(samr_binding1, hostname, conn_access, &conn_handle1);
+    status = SamrConnect2(samr_binding1, hostname, conn_access, &hConn1);
     if (status != 0) rpc_fail(status);
 
     GetSessionKey(samr_binding1, &key1, &key_len1, &st);
@@ -2994,16 +3049,16 @@ int TestSamrMultipleConnections(struct test *t, const wchar16_t *hostname,
     samr_binding2 = CreateSamrBinding(&samr_binding2, hostname);
     if (samr_binding2 == NULL) return false;
 
-    status = SamrConnect2(samr_binding2, hostname, conn_access, &conn_handle2);
+    status = SamrConnect2(samr_binding2, hostname, conn_access, &hConn2);
     if (status != 0) rpc_fail(status);
 
     GetSessionKey(samr_binding2, &key2, &key_len2, &st);
     if (st != 0) return false;
 
-    status = SamrClose(samr_binding1, &conn_handle1);
+    status = SamrClose(samr_binding1, hConn1);
     if (status != 0) rpc_fail(status);
 
-    status = SamrClose(samr_binding2, &conn_handle2);
+    status = SamrClose(samr_binding2, hConn2);
     if (status != 0) rpc_fail(status);
 
     FreeSamrBinding(&samr_binding1);
@@ -3012,9 +3067,6 @@ int TestSamrMultipleConnections(struct test *t, const wchar16_t *hostname,
     RELEASE_SESSION_CREDS;
 
 done:
-    SAFE_FREE(key1);
-    SAFE_FREE(key2);
-
     return (status == STATUS_SUCCESS);
 }
 
@@ -3116,8 +3168,8 @@ int TestSamrEnumAliases(struct test *t, const wchar16_t *hostname,
     uint32 account_flags;
     wchar16_t **enum_names, *domname, *domainname;
     uint32 *enum_rids;
-    PolicyHandle conn_handle = {0};
-    PolicyHandle dom_handle = {0};
+    CONNECT_HANDLE hConn = NULL;
+    DOMAIN_HANDLE hDomain = NULL;
     PSID sid = NULL;
     int specifydomain;
 
@@ -3136,7 +3188,7 @@ int TestSamrEnumAliases(struct test *t, const wchar16_t *hostname,
     if (samr_binding == NULL) return false;
 
     status = SamrConnect2(samr_binding, hostname, conn_access_mask,
-                          &conn_handle);
+                          &hConn);
     if (status != 0) rpc_fail(status);
 
     if (specifydomain) {
@@ -3147,11 +3199,11 @@ int TestSamrEnumAliases(struct test *t, const wchar16_t *hostname,
         if (status != 0) rpc_fail(status);
     }
 
-    status = SamrLookupDomain(samr_binding, &conn_handle, domname, &sid);
+    status = SamrLookupDomain(samr_binding, hConn, domname, &sid);
     if (status != 0) rpc_fail(status);
 
-    status = SamrOpenDomain(samr_binding, &conn_handle, dom_access_mask,
-                            sid, &dom_handle);
+    status = SamrOpenDomain(samr_binding, hConn, dom_access_mask,
+                            sid, &hDomain);
     if (status != 0) rpc_fail(status);
 
     /*
@@ -3165,7 +3217,7 @@ int TestSamrEnumAliases(struct test *t, const wchar16_t *hostname,
         enum_names = NULL;
         enum_rids  = NULL;
 
-        status = SamrEnumDomainAliases(samr_binding, &dom_handle, &resume,
+        status = SamrEnumDomainAliases(samr_binding, hDomain, &resume,
                                        account_flags, &enum_names, &enum_rids,
                                        &num_entries);
 
@@ -3179,10 +3231,10 @@ int TestSamrEnumAliases(struct test *t, const wchar16_t *hostname,
 
     } while (status == STATUS_MORE_ENTRIES);
 
-    SamrClose(samr_binding, &dom_handle);
+    SamrClose(samr_binding, hDomain);
     if (status != 0) rpc_fail(status);
 
-    SamrClose(samr_binding, &conn_handle);
+    SamrClose(samr_binding, hConn);
     if (status != 0) rpc_fail(status);
 
     RELEASE_SESSION_CREDS;
@@ -3226,10 +3278,10 @@ int TestSamrGetUserGroups(struct test *t, const wchar16_t *hostname,
     handle_t samr_b = NULL;
     handle_t lsa_b = NULL;
     PSID domsid = NULL;
-    PolicyHandle conn_h = {0};
-    PolicyHandle domain_h = {0};
-    PolicyHandle user_h = {0};
-    PolicyHandle lsa_h = {0};
+    CONNECT_HANDLE hConn = NULL;
+    DOMAIN_HANDLE hDomain = NULL;
+    ACCOUNT_HANDLE hUser = NULL;
+    POLICY_HANDLE hPolicy = NULL;
     wchar16_t *username = NULL;
     int resolvesids = 0;
     uint32 resolve_level = 0;
@@ -3274,26 +3326,26 @@ int TestSamrGetUserGroups(struct test *t, const wchar16_t *hostname,
     samr_b = CreateSamrBinding(&samr_b, hostname);
     if (samr_b == NULL) return false;
 
-    status = SamrConnect2(samr_b, hostname, conn_access, &conn_h);
+    status = SamrConnect2(samr_b, hostname, conn_access, &hConn);
     if (status != 0) rpc_fail(status);
 
-    status = SamrOpenDomain(samr_b, &conn_h, domain_access, domsid, &domain_h);
+    status = SamrOpenDomain(samr_b, hConn, domain_access, domsid, &hDomain);
     if (status != 0) rpc_fail(status);
 
     names[0] = username;
-    status = SamrLookupNames(samr_b, &domain_h, 1, names, &rids, &types,
+    status = SamrLookupNames(samr_b, hDomain, 1, names, &rids, &types,
                              &rids_count);
     if (status != 0) rpc_fail(status);
 
-    status = SamrOpenUser(samr_b, &domain_h, user_access, rids[0], &user_h);
+    status = SamrOpenUser(samr_b, hDomain, user_access, rids[0], &hUser);
     if (status != 0) rpc_fail(status);
 
     INPUT_ARG_PTR(samr_b);
-    INPUT_ARG_PTR(&user_h);
+    INPUT_ARG_PTR(hUser);
     INPUT_ARG_PTR(grp_rids);
     INPUT_ARG_PTR(grp_attrs);
 
-    CALL_MSRPC(status = SamrGetUserGroups(samr_b, &user_h, &grp_rids,
+    CALL_MSRPC(status = SamrGetUserGroups(samr_b, hUser, &grp_rids,
                                           &grp_attrs, &grp_count));
 
     OUTPUT_ARG_PTR(grp_rids);
@@ -3330,10 +3382,10 @@ int TestSamrGetUserGroups(struct test *t, const wchar16_t *hostname,
         lsa_b = CreateLsaBinding(&lsa_b, hostname);
         if (lsa_b == NULL) rpc_fail(STATUS_UNSUCCESSFUL);
 
-        status = LsaOpenPolicy2(lsa_b, hostname, NULL, lsa_access, &lsa_h);
+        status = LsaOpenPolicy2(lsa_b, hostname, NULL, lsa_access, &hPolicy);
         if (status != 0) rpc_fail(status);
 
-        status = LsaLookupSids(lsa_b, &lsa_h, &sid_array, &domains,
+        status = LsaLookupSids(lsa_b, hPolicy, &sid_array, &domains,
                                &trans_names, resolve_level, &names_count);
         if (status != 0) rpc_fail(status);
     }
@@ -3361,17 +3413,17 @@ int TestSamrGetUserGroups(struct test *t, const wchar16_t *hostname,
         printf("\n");
     }
 
-    status = SamrClose(samr_b, &user_h);
+    status = SamrClose(samr_b, hUser);
     if (status != 0) rpc_fail(status);
 
-    status = SamrClose(samr_b, &domain_h);
+    status = SamrClose(samr_b, hDomain);
     if (status != 0) rpc_fail(status);
 
-    status = SamrClose(samr_b, &conn_h);
+    status = SamrClose(samr_b, hConn);
     if (status != 0) rpc_fail(status);
 
     if (resolvesids) {
-        status = LsaClose(lsa_b, &lsa_h);
+        status = LsaClose(lsa_b, hPolicy);
         if (status != 0) rpc_fail(status);
 
         FreeLsaBinding(&lsa_b);
@@ -3437,10 +3489,10 @@ int TestSamrGetUserAliases(struct test *t, const wchar16_t *hostname,
     handle_t lsa_b = NULL;
     PSID btinsid = NULL;
     PSID domsid = NULL;
-    PolicyHandle lsa_h = {0};
-    PolicyHandle conn_h = {0};
-    PolicyHandle btin_h = {0};
-    PolicyHandle domain_h = {0};
+    POLICY_HANDLE hPolicy = NULL;
+    CONNECT_HANDLE hConn = NULL;
+    DOMAIN_HANDLE hBtinDomain = NULL;
+    DOMAIN_HANDLE hDomain = NULL;
     wchar16_t *username = NULL;
     int resolvesids = 0;
     wchar16_t *names[1];
@@ -3488,13 +3540,13 @@ int TestSamrGetUserAliases(struct test *t, const wchar16_t *hostname,
     lsa_b = CreateLsaBinding(&lsa_b, hostname);
     if (lsa_b == NULL) rpc_fail(STATUS_UNSUCCESSFUL);
 
-    status = LsaOpenPolicy2(lsa_b, hostname, NULL, lsa_access, &lsa_h);
+    status = LsaOpenPolicy2(lsa_b, hostname, NULL, lsa_access, &hPolicy);
     if (status != 0) rpc_fail(status);
 
     names[0] = username;
     level = LSA_LOOKUP_NAMES_ALL;
 
-    status = LsaLookupNames2(lsa_b, &lsa_h, 1, names, &usr_domains, &trans_sids,
+    status = LsaLookupNames2(lsa_b, hPolicy, 1, names, &usr_domains, &trans_sids,
                              level, &sids_count);
     if (status != 0) rpc_fail(status);
 
@@ -3510,35 +3562,42 @@ int TestSamrGetUserAliases(struct test *t, const wchar16_t *hostname,
     samr_b = CreateSamrBinding(&samr_b, hostname);
     if (samr_b == NULL) return false;
 
-    status = SamrConnect2(samr_b, hostname, conn_access, &conn_h);
+    status = SamrConnect2(samr_b, hostname, conn_access, &hConn);
     if (status != 0) rpc_fail(status);
 
     RtlAllocateSidFromCString(&btinsid, btin_sidstr);
 
-    status = SamrOpenDomain(samr_b, &conn_h, btin_access, btinsid, &btin_h);
+    status = SamrOpenDomain(samr_b, hConn, btin_access, btinsid, &hBtinDomain);
     if (status != 0) rpc_fail(status);
 
     INPUT_ARG_PTR(samr_b);
-    INPUT_ARG_PTR(&btin_h);
+    INPUT_ARG_PTR(hBtinDomain);
     INPUT_ARG_PTR(usr_sid);
     INPUT_ARG_UINT(sids_count);
 
-    CALL_MSRPC(status = SamrGetAliasMembership(samr_b, &btin_h, &usr_sid, sids_count,
-                                               &btin_rids, &btin_rids_count));
+    CALL_MSRPC(status = SamrGetAliasMembership(samr_b,
+                                               hBtinDomain,
+                                               &usr_sid,
+                                               sids_count,
+                                               &btin_rids,
+                                               &btin_rids_count));
 
     OUTPUT_ARG_PTR(&btin_rids);
     OUTPUT_ARG_UINT(btin_rids_count);
 
-    status = SamrOpenDomain(samr_b, &conn_h, domain_access, domsid, &domain_h);
+    status = SamrOpenDomain(samr_b, hConn, domain_access, domsid, &hDomain);
     if (status != 0) rpc_fail(status);
 
     INPUT_ARG_PTR(samr_b);
-    INPUT_ARG_PTR(&domain_h);
+    INPUT_ARG_PTR(hDomain);
     INPUT_ARG_PTR(usr_sid);
     INPUT_ARG_UINT(sids_count);
 
-    CALL_MSRPC(status = SamrGetAliasMembership(samr_b, &domain_h, &usr_sid,
-                                               sids_count, &dom_rids,
+    CALL_MSRPC(status = SamrGetAliasMembership(samr_b,
+                                               &hDomain,
+                                               &usr_sid,
+                                               sids_count,
+                                               &dom_rids,
                                                &dom_rids_count));
 
     OUTPUT_ARG_PTR(&dom_rids);
@@ -3580,10 +3639,10 @@ int TestSamrGetUserAliases(struct test *t, const wchar16_t *hostname,
         lsa_b = CreateLsaBinding(&lsa_b, hostname);
         if (lsa_b == NULL) rpc_fail(STATUS_UNSUCCESSFUL);
 
-        status = LsaOpenPolicy2(lsa_b, hostname, NULL, lsa_access, &lsa_h);
+        status = LsaOpenPolicy2(lsa_b, hostname, NULL, lsa_access, &hPolicy);
         if (status != 0) rpc_fail(status);
 
-        status = LsaLookupSids(lsa_b, &lsa_h, &sid_array, &alias_domains,
+        status = LsaLookupSids(lsa_b, hPolicy, &sid_array, &alias_domains,
                                &trans_names, resolve_level, &names_count);
         if (status != 0) rpc_fail(status);
     }
@@ -3611,16 +3670,16 @@ int TestSamrGetUserAliases(struct test *t, const wchar16_t *hostname,
         printf("\n");
     }
 
-    status = LsaClose(lsa_b, &lsa_h);
+    status = LsaClose(lsa_b, hPolicy);
     if (status != 0) rpc_fail(status);
 
-    status = SamrClose(samr_b, &btin_h);
+    status = SamrClose(samr_b, hBtinDomain);
     if (status != 0) rpc_fail(status);
 
-    status = SamrClose(samr_b, &domain_h);
+    status = SamrClose(samr_b, hDomain);
     if (status != 0) rpc_fail(status);
 
-    status = SamrClose(samr_b, &conn_h);
+    status = SamrClose(samr_b, hConn);
     if (status != 0) rpc_fail(status);
 
     FreeLsaBinding(&lsa_b);
@@ -3684,9 +3743,9 @@ int TestSamrQuerySecurity(struct test *t, const wchar16_t *hostname,
     ULONG ulRid = 0;
     ULONG ulSecurityInfo = 0;
     handle_t bSamr = NULL;
-    PolicyHandle hConn;
-    PolicyHandle hDomain;
-    PolicyHandle hUser;
+    CONNECT_HANDLE hConn = NULL;
+    DOMAIN_HANDLE hDomain = NULL;
+    ACCOUNT_HANDLE hUser = NULL;
     PSECURITY_DESCRIPTOR_RELATIVE pSecDescRel = NULL;
     UINT32 ulSecDescRelLen = 0;
     PSECURITY_DESCRIPTOR_ABSOLUTE pSecDesc = NULL;
@@ -3736,7 +3795,7 @@ int TestSamrQuerySecurity(struct test *t, const wchar16_t *hostname,
     pDomainSid->SubAuthorityCount--;
 
     ntStatus = SamrOpenDomain(bSamr,
-                              &hConn,
+                              hConn,
                               dwDomainAccess,
                               pDomainSid,
                               &hDomain);
@@ -3745,14 +3804,14 @@ int TestSamrQuerySecurity(struct test *t, const wchar16_t *hostname,
     ulRid = pSid->SubAuthority[pSid->SubAuthorityCount - 1];
 
     ntStatus = SamrOpenUser(bSamr,
-                            &hDomain,
+                            hDomain,
                             dwUserAccess,
                             ulRid,
                             &hUser);
     if (ntStatus != 0) rpc_fail(ntStatus);
 
     ntStatus = SamrQuerySecurity(bSamr,
-                                 &hUser,
+                                 hUser,
                                  ulSecurityInfo,
                                  &pSecDescRel,
                                  &ulSecDescRelLen);
@@ -3802,13 +3861,13 @@ int TestSamrQuerySecurity(struct test *t, const wchar16_t *hostname,
                                            &ulGroupSidLen);
     if (ntStatus != 0) rpc_fail(ntStatus);
 
-    ntStatus = SamrClose(bSamr, &hUser);
+    ntStatus = SamrClose(bSamr, hUser);
     if (ntStatus != 0) rpc_fail(ntStatus);
 
-    ntStatus = SamrClose(bSamr, &hDomain);
+    ntStatus = SamrClose(bSamr, hDomain);
     if (ntStatus != 0) rpc_fail(ntStatus);
 
-    ntStatus = SamrClose(bSamr, &hConn);
+    ntStatus = SamrClose(bSamr, hConn);
     if (ntStatus != 0) rpc_fail(ntStatus);
 
 done:

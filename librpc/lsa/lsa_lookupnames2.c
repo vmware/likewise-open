@@ -49,14 +49,14 @@
 
 NTSTATUS
 LsaLookupNames2(
-    IN  handle_t hBinding,
-    IN  PolicyHandle *hPolicy,
-    IN  UINT32 NumNames,
-    IN  PWSTR *ppNames,
-    OUT RefDomainList **ppDomList,
-    OUT TranslatedSid2** ppSids,
-    IN  uint16 Level,
-    IN OUT UINT32 *Count
+    IN  handle_t         hBinding,
+    IN  POLICY_HANDLE    hPolicy,
+    IN  UINT32           NumNames,
+    IN  PWSTR           *ppNames,
+    OUT RefDomainList  **ppDomList,
+    OUT TranslatedSid2 **ppSids,
+    IN  uint16           Level,
+    IN OUT UINT32       *Count
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;

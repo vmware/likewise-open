@@ -56,13 +56,13 @@ SamrConnect5(
     IN  SamrConnectInfo *pInfoIn,
     IN  PUINT32          pLevelOut,
     OUT SamrConnectInfo *pInfoOut,
-    OUT PolicyHandle    *phConn
+    OUT CONNECT_HANDLE  *phConn
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     PWSTR pwszSystemName = NULL;
     UINT32 SystemNameLen = 0;
-    PolicyHandle hConn = {0};
+    CONNECT_HANDLE hConn = NULL;
     UINT32 Level = 0;
     SamrConnectInfo Info;
 
@@ -101,9 +101,13 @@ cleanup:
     return ntStatus;
 
 error:
-    memset(pInfoOut, 0, sizeof(*pInfoOut));
-    memset(phConn, 0, sizeof(*phConn));
-   *pLevelOut = 0;
+    if (pInfoOut)
+    {
+        memset(pInfoOut, 0, sizeof(*pInfoOut));
+    }
+
+    *phConn    = NULL;
+    *pLevelOut = 0;
 
     goto cleanup;
 }

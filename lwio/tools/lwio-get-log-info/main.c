@@ -87,9 +87,6 @@ main(
     dwError = ParseArgs(argc, argv);
     BAIL_ON_LWIO_ERROR(dwError);
 
-    dwError = LwIoInitialize();
-    BAIL_ON_LWIO_ERROR(dwError);
-
     dwError = LwIoOpenContext(&pContext);
     BAIL_ON_LWIO_ERROR(dwError);
 

@@ -50,8 +50,9 @@ NetLocalGroupEnum(
     WINERR err = ERROR_SUCCESS;
     NetConn *conn = NULL;
     handle_t samr_b = NULL;
-    PolicyHandle domain_h, btin_domain_h;
-    PolicyHandle alias_h;
+    DOMAIN_HANDLE hDomain = NULL;
+    DOMAIN_HANDLE hBtinDomain = NULL;
+    ACCOUNT_HANDLE hAlias = NULL;
     DomainInfo *dominfo = NULL;
     DomainInfo *btin_dominfo = NULL;
     AliasInfo *aliasinfo = NULL;
@@ -84,21 +85,21 @@ NetLocalGroupEnum(
     status = NetConnectSamr(&conn, hostname, 0, 0, creds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    samr_b         = conn->samr.bind;
-    domain_h       = conn->samr.dom_handle;
-    btin_domain_h  = conn->samr.btin_dom_handle;
+    samr_b      = conn->samr.bind;
+    hDomain     = conn->samr.hDomain;
+    hBtinDomain = conn->samr.hBtinDomain;
 
     num_dom_aliases   = 0;
     num_btin_aliases  = 0;
 
     if (prefmaxlen == MAX_PREFERRED_LENGTH) {
-        status = SamrQueryDomainInfo(samr_b, &domain_h, dominfo_level,
+        status = SamrQueryDomainInfo(samr_b, hDomain, dominfo_level,
                                      &dominfo);
         BAIL_ON_NTSTATUS_ERROR(status);
 
         entries += dominfo->info2.num_aliases;
 
-        status = SamrQueryDomainInfo(samr_b, &btin_domain_h,
+        status = SamrQueryDomainInfo(samr_b, &hBtinDomain,
                                      dominfo_level, &btin_dominfo);
         BAIL_ON_NTSTATUS_ERROR(status);
 
@@ -126,7 +127,7 @@ NetLocalGroupEnum(
     res      = 0;
 
     do {
-        status = SamrEnumDomainAliases(samr_b, &domain_h, &res,
+        status = SamrEnumDomainAliases(samr_b, hDomain, &res,
                                        account_flags, &names,
                                        &rids, &num_entries);
         if (status != 0 &&
@@ -148,12 +149,12 @@ NetLocalGroupEnum(
             status = NetAddDepMemory(grp_name, info);
             BAIL_ON_NTSTATUS_ERROR(status);
 
-            status = SamrOpenAlias(samr_b, &domain_h,
+            status = SamrOpenAlias(samr_b, hDomain,
                                    alias_access, rids[i],
-                                   &alias_h);
+                                   &hAlias);
             BAIL_ON_NTSTATUS_ERROR(status);
 
-            status = SamrQueryAliasInfo(samr_b, &alias_h,
+            status = SamrQueryAliasInfo(samr_b, hAlias,
                                         ALIAS_INFO_DESCRIPTION,
                                         &aliasinfo);
             BAIL_ON_NTSTATUS_ERROR(status);
@@ -171,7 +172,7 @@ NetLocalGroupEnum(
                 info[info_idx].lgrpi1_comment = 0;
             }
 
-            status = SamrClose(samr_b, &alias_h);
+            status = SamrClose(samr_b, hAlias);
             BAIL_ON_NTSTATUS_ERROR(status);
 
             if (aliasinfo) {
@@ -200,7 +201,7 @@ NetLocalGroupEnum(
     desc     = NULL;
 
     do {
-        status = SamrEnumDomainAliases(samr_b, &btin_domain_h,
+        status = SamrEnumDomainAliases(samr_b, hBtinDomain,
                                        &res, account_flags, &names,
                                        &rids, &num_entries);
         BAIL_ON_NTSTATUS_ERROR(status);
@@ -218,12 +219,12 @@ NetLocalGroupEnum(
             status = NetAddDepMemory(grp_name, info);
             BAIL_ON_NTSTATUS_ERROR(status);
 
-            status = SamrOpenAlias(samr_b, &btin_domain_h,
+            status = SamrOpenAlias(samr_b, hBtinDomain,
                                    alias_access, rids[i],
-                                   &alias_h);
+                                   &hAlias);
             BAIL_ON_NTSTATUS_ERROR(status);
 
-            status = SamrQueryAliasInfo(samr_b, &alias_h,
+            status = SamrQueryAliasInfo(samr_b, hAlias,
                                         ALIAS_INFO_DESCRIPTION,
                                         &aliasinfo);
             BAIL_ON_NTSTATUS_ERROR(status);
@@ -241,7 +242,7 @@ NetLocalGroupEnum(
                 info[info_idx].lgrpi1_comment = 0;
             }
 
-            status = SamrClose(samr_b, &alias_h);
+            status = SamrClose(samr_b, hAlias);
             BAIL_ON_NTSTATUS_ERROR(status);
 
             if (aliasinfo) {

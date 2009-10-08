@@ -49,10 +49,10 @@
 
 NTSTATUS
 SamrQueryUserInfo(
-    IN  handle_t       hSamrBinding,
-    IN  PolicyHandle  *phUser,
-    IN  UINT16         Level,
-    OUT UserInfo     **ppInfo
+    IN  handle_t         hSamrBinding,
+    IN  ACCOUNT_HANDLE   hUser,
+    IN  UINT16           Level,
+    OUT UserInfo       **ppInfo
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -60,11 +60,11 @@ SamrQueryUserInfo(
     UserInfo *pOutInfo = NULL;
 
     BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
-    BAIL_ON_INVALID_PTR(phUser, ntStatus);
+    BAIL_ON_INVALID_PTR(hUser, ntStatus);
     BAIL_ON_INVALID_PTR(ppInfo, ntStatus);
 
     DCERPC_CALL(ntStatus, _SamrQueryUserInfo(hSamrBinding,
-                                             phUser,
+                                             hUser,
                                              Level,
                                              &pInfo));
     BAIL_ON_NT_STATUS(ntStatus);

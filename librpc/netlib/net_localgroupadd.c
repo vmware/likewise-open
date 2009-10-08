@@ -47,7 +47,8 @@ NetLocalGroupAdd(
     WINERR err = ERROR_SUCCESS;
     NetConn *conn = NULL;
     handle_t samr_b = NULL;
-    PolicyHandle domain_h, alias_h;
+    DOMAIN_HANDLE hDomain = NULL;
+    ACCOUNT_HANDLE hAlias = NULL;
     wchar16_t *alias_name = NULL;
     wchar16_t *comment = NULL;
     LOCALGROUP_INFO_0 *info0 = NULL;
@@ -92,22 +93,22 @@ NetLocalGroupAdd(
         goto error;
     }
 
-    samr_b    = conn->samr.bind;
-    domain_h  = conn->samr.dom_handle;
+    samr_b  = conn->samr.bind;
+    hDomain = conn->samr.hDomain;
 
-    status = SamrCreateDomAlias(samr_b, &domain_h, alias_name, alias_access,
-                                &alias_h, &rid);
+    status = SamrCreateDomAlias(samr_b, hDomain, alias_name, alias_access,
+                                &hAlias, &rid);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     if (comment) {
         InitUnicodeString(&info.description, comment);
 
-        status = SamrSetAliasInfo(samr_b, &alias_h,
+        status = SamrSetAliasInfo(samr_b, hAlias,
                                   ALIAS_INFO_DESCRIPTION, &info);
         BAIL_ON_NTSTATUS_ERROR(status);
     }
 
-    status = SamrClose(samr_b, &alias_h);
+    status = SamrClose(samr_b, hAlias);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     *parm_err = 0;

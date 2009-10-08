@@ -67,7 +67,7 @@ LsaSrvLookupSids2(
     PPOLICY_CONTEXT pPolCtx = NULL;
     handle_t hLsaBinding = NULL;
     LW_PIO_CREDS pCreds = NULL;
-    PolicyHandle hDcPolicy;
+    POLICY_HANDLE hDcPolicy = NULL;
     PSAM_DOMAIN_ENTRY pLocalDomain = NULL;
     PSAM_DOMAIN_ENTRY pBuiltinDomain = NULL;
     ACCOUNT_SIDS DomainAccounts = {0};
@@ -173,7 +173,7 @@ LsaSrvLookupSids2(
         }
 
         ntStatus = LsaLookupSids(hLsaBinding,
-                                 &hDcPolicy,
+                                 hDcPolicy,
                                  &SidsArray,
                                  &pRemoteDomains,
                                  &pRemoteNames,
@@ -220,7 +220,7 @@ LsaSrvLookupSids2(
 
         NamesArray.count += dwRemoteNamesCount;
 
-        ntStatus = LsaClose(hLsaBinding, &hDcPolicy);
+        ntStatus = LsaClose(hLsaBinding, hDcPolicy);
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
 

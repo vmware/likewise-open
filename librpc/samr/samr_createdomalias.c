@@ -49,21 +49,21 @@
 
 NTSTATUS
 SamrCreateDomAlias(
-    IN  handle_t      hSamrBinding,
-    IN  PolicyHandle *phDomain,
-    IN  PWSTR         pwszAliasName,
-    IN  UINT32        AccessMask,
-    OUT PolicyHandle *phAlias,
-    OUT PUINT32       pRid
+    IN  handle_t        hSamrBinding,
+    IN  DOMAIN_HANDLE   hDomain,
+    IN  PWSTR           pwszAliasName,
+    IN  UINT32          AccessMask,
+    OUT ACCOUNT_HANDLE *phAlias,
+    OUT PUINT32         pRid
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     UnicodeString AliasName = {0};
-    PolicyHandle hAlias = {0};
+    ACCOUNT_HANDLE hAlias = NULL;
     UINT32 Rid = 0;
 
     BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
-    BAIL_ON_INVALID_PTR(phDomain, ntStatus);
+    BAIL_ON_INVALID_PTR(hDomain, ntStatus);
     BAIL_ON_INVALID_PTR(pwszAliasName, ntStatus);
     BAIL_ON_INVALID_PTR(phAlias, ntStatus);
     BAIL_ON_INVALID_PTR(pRid, ntStatus);
@@ -72,7 +72,7 @@ SamrCreateDomAlias(
     BAIL_ON_NT_STATUS(ntStatus);
 
     DCERPC_CALL(ntStatus, _SamrCreateDomAlias(hSamrBinding,
-                                              phDomain,
+                                              hDomain,
                                               &AliasName,
                                               AccessMask,
                                               &hAlias,
@@ -88,7 +88,7 @@ cleanup:
     return ntStatus;
 
 error:
-    memset(phAlias, 0, sizeof(*phAlias));
+    *phAlias = NULL;
 
     goto cleanup;
 }

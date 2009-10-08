@@ -45,7 +45,7 @@ NetLocalGroupGetInfo(
     WINERR err = ERROR_SUCCESS;
     NetConn *conn = NULL;
     handle_t samr_b = NULL;
-    PolicyHandle alias_h;
+    ACCOUNT_HANDLE hAlias = NULL;
     uint32 alias_rid = 0;
     AliasInfo *info = NULL;
     void *ninfo = NULL;
@@ -63,10 +63,10 @@ NetLocalGroupGetInfo(
 
     samr_b = conn->samr.bind;
 
-    status = NetOpenAlias(conn, aliasname, access_rights, &alias_h, &alias_rid);
+    status = NetOpenAlias(conn, aliasname, access_rights, &hAlias, &alias_rid);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = SamrQueryAliasInfo(samr_b, &alias_h, ALIAS_INFO_ALL, &info);
+    status = SamrQueryAliasInfo(samr_b, hAlias, ALIAS_INFO_ALL, &info);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     switch (level) {
@@ -83,7 +83,7 @@ NetLocalGroupGetInfo(
     }
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = SamrClose(samr_b, &alias_h);
+    status = SamrClose(samr_b, hAlias);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     *buffer = ninfo;

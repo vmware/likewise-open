@@ -49,10 +49,10 @@
 
 NTSTATUS
 SamrLookupDomain(
-    IN  handle_t      hSamrBinding,
-    IN  PolicyHandle *phConn,
-    IN  PCWSTR        pwszDomainName,
-    OUT PSID         *ppSid
+    IN  handle_t        hSamrBinding,
+    IN  CONNECT_HANDLE  hConn,
+    IN  PCWSTR          pwszDomainName,
+    OUT PSID           *ppSid
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -61,7 +61,7 @@ SamrLookupDomain(
     PSID pRetSid = NULL;
 
     BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
-    BAIL_ON_INVALID_PTR(phConn, ntStatus);
+    BAIL_ON_INVALID_PTR(hConn, ntStatus);
     BAIL_ON_INVALID_PTR(pwszDomainName, ntStatus);
     BAIL_ON_INVALID_PTR(ppSid, ntStatus);
 
@@ -69,7 +69,7 @@ SamrLookupDomain(
     BAIL_ON_NT_STATUS(ntStatus);
 
     DCERPC_CALL(ntStatus, _SamrLookupDomain(hSamrBinding,
-                                            phConn,
+                                            hConn,
                                             &DomainName,
                                             &pSid));
     BAIL_ON_NT_STATUS(ntStatus);

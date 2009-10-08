@@ -35,7 +35,7 @@ BOOL
 CallLsaOpenPolicy(
     handle_t hBinding,
     PWSTR pwszSysName,
-    PolicyHandle *phPolicy
+    POLICY_HANDLE *phPolicy
     );
 
 
@@ -91,7 +91,7 @@ int TestLsaOpenPolicy(struct test *t, const wchar16_t *hostname,
     int ret = true;
     NTSTATUS status = STATUS_SUCCESS;
     handle_t lsa_b = NULL;
-    PolicyHandle lsa_policy = {0};
+    POLICY_HANDLE hPolicy = NULL;
 
     TESTINFO(t, hostname, user, pass);
 
@@ -105,13 +105,13 @@ int TestLsaOpenPolicy(struct test *t, const wchar16_t *hostname,
     INPUT_ARG_UINT(access_rights);
 
     CALL_MSRPC(status = LsaOpenPolicy2(lsa_b, hostname, NULL,
-                                       access_rights, &lsa_policy));
+                                       access_rights, &hPolicy));
     if (status != 0) rpc_fail(status);
 
     OUTPUT_ARG_PTR(lsa_b);
-    OUTPUT_ARG_PTR(&lsa_policy);
+    OUTPUT_ARG_PTR(hPolicy);
 
-    status = LsaClose(lsa_b, &lsa_policy);
+    status = LsaClose(lsa_b, hPolicy);
     if (status != 0) rpc_fail(status);
 
     FreeLsaBinding(&lsa_b);
@@ -143,7 +143,7 @@ int TestLsaLookupNames(struct test *t, const wchar16_t *hostname,
     wchar16_t **usernames = NULL;
     int usernames_count = 0;
     uint32 revlookup = 0;
-    PolicyHandle lsa_policy = {0};
+    POLICY_HANDLE hPolicy = NULL;
     RefDomainList *domains = NULL;
     TranslatedSid *sids = NULL;
     SidArray sid_array = {0};
@@ -167,7 +167,7 @@ int TestLsaLookupNames(struct test *t, const wchar16_t *hostname,
     if (lsa_b == NULL) test_fail(("Test failed: couldn't create lsa binding\n"));
 
     status = LsaOpenPolicy2(lsa_b, hostname, NULL, access_rights,
-                            &lsa_policy);
+                            &hPolicy);
     if (status != 0) rpc_fail(status);
 
     while (usernames[usernames_count++]);
@@ -186,7 +186,7 @@ int TestLsaLookupNames(struct test *t, const wchar16_t *hostname,
     level = 1;
 
     INPUT_ARG_PTR(lsa_b);
-    INPUT_ARG_PTR(&lsa_policy);
+    INPUT_ARG_PTR(hPolicy);
     INPUT_ARG_UINT(num_names);
 
     for (i = 0; i < num_names; i++) {
@@ -197,7 +197,7 @@ int TestLsaLookupNames(struct test *t, const wchar16_t *hostname,
     INPUT_ARG_PTR(sids);
     INPUT_ARG_UINT(level);
 
-    CALL_MSRPC(status = LsaLookupNames(lsa_b, &lsa_policy, num_names, names,
+    CALL_MSRPC(status = LsaLookupNames(lsa_b, hPolicy, num_names, names,
                                        &domains, &sids, level, &sids_count));
 
     OUTPUT_ARG_UINT(sids_count);
@@ -233,13 +233,13 @@ int TestLsaLookupNames(struct test *t, const wchar16_t *hostname,
     level = 6;
 
     INPUT_ARG_PTR(lsa_b);
-    INPUT_ARG_PTR(&lsa_policy);
+    INPUT_ARG_PTR(hPolicy);
     INPUT_ARG_PTR(&sid_array);
     INPUT_ARG_PTR(domains);
     INPUT_ARG_PTR(trans_names);
     INPUT_ARG_UINT(level);
 
-    CALL_MSRPC(status = LsaLookupSids(lsa_b, &lsa_policy, &sid_array,
+    CALL_MSRPC(status = LsaLookupSids(lsa_b, hPolicy, &sid_array,
                                       &domains, &trans_names, level,
                                       &names_count));
 
@@ -250,7 +250,7 @@ int TestLsaLookupNames(struct test *t, const wchar16_t *hostname,
         domains = NULL;
     }
 
-    status = LsaClose(lsa_b, &lsa_policy);
+    status = LsaClose(lsa_b, hPolicy);
 
     FreeLsaBinding(&lsa_b);
 
@@ -317,7 +317,7 @@ int TestLsaLookupNames2(struct test *t, const wchar16_t *hostname,
     wchar16_t **usernames = NULL;
     int usernames_count = 0;
     uint32 revlookup;
-    PolicyHandle lsa_policy = {0};
+    POLICY_HANDLE hPolicy = NULL;
     RefDomainList *domains = NULL;
     TranslatedSid2 *sids = NULL;
     SidArray sid_array = {0};
@@ -344,7 +344,7 @@ int TestLsaLookupNames2(struct test *t, const wchar16_t *hostname,
     if (status != 0) rpc_fail(status);
 
     status = LsaOpenPolicy2(lsa_b, hostname, NULL, access_rights,
-                            &lsa_policy);
+                            &hPolicy);
     if (status != 0) rpc_fail(status);
 
     while (usernames[usernames_count++]);
@@ -363,7 +363,7 @@ int TestLsaLookupNames2(struct test *t, const wchar16_t *hostname,
     level = 1;
 
     INPUT_ARG_PTR(lsa_b);
-    INPUT_ARG_PTR(&lsa_policy);
+    INPUT_ARG_PTR(hPolicy);
     INPUT_ARG_UINT(num_names);
 
     for (i = 0; i < num_names; i++) {
@@ -374,7 +374,7 @@ int TestLsaLookupNames2(struct test *t, const wchar16_t *hostname,
     INPUT_ARG_PTR(sids);
     INPUT_ARG_UINT(level);
 
-    CALL_MSRPC(status = LsaLookupNames2(lsa_b, &lsa_policy, num_names, names,
+    CALL_MSRPC(status = LsaLookupNames2(lsa_b, hPolicy, num_names, names,
                                         &domains, &sids, level, &sids_count));
 
     OUTPUT_ARG_UINT(sids_count);
@@ -416,13 +416,13 @@ int TestLsaLookupNames2(struct test *t, const wchar16_t *hostname,
     level = 6;
 
     INPUT_ARG_PTR(lsa_b);
-    INPUT_ARG_PTR(&lsa_policy);
+    INPUT_ARG_PTR(hPolicy);
     INPUT_ARG_PTR(&sid_array);
     INPUT_ARG_PTR(domains);
     INPUT_ARG_PTR(trans_names);
     INPUT_ARG_UINT(level);
 
-    CALL_MSRPC(status = LsaLookupSids(lsa_b, &lsa_policy, &sid_array,
+    CALL_MSRPC(status = LsaLookupSids(lsa_b, hPolicy, &sid_array,
                                       &domains, &trans_names, level,
                                       &names_count));
 
@@ -433,7 +433,7 @@ int TestLsaLookupNames2(struct test *t, const wchar16_t *hostname,
         domains = NULL;
     }
 
-    status = LsaClose(lsa_b, &lsa_policy);
+    status = LsaClose(lsa_b, hPolicy);
 
     FreeLsaBinding(&lsa_b);
 
@@ -494,7 +494,7 @@ int TestLsaLookupNames3(struct test *t, const wchar16_t *hostname,
     wchar16_t **usernames = NULL;
     int usernames_count = 0;
     uint32 revlookup;
-    PolicyHandle lsa_policy = {0};
+    POLICY_HANDLE hPolicy = NULL;
     RefDomainList *domains = NULL;
     TranslatedSid3 *sids = NULL;
     SidArray sid_array = {0};
@@ -521,7 +521,7 @@ int TestLsaLookupNames3(struct test *t, const wchar16_t *hostname,
     if (status != 0) rpc_fail(status);
 
     status = LsaOpenPolicy2(lsa_b, hostname, NULL, access_rights,
-                            &lsa_policy);
+                            &hPolicy);
     if (status != 0) rpc_fail(status);
 
     while (usernames[usernames_count++]);
@@ -540,7 +540,7 @@ int TestLsaLookupNames3(struct test *t, const wchar16_t *hostname,
     level = 1;
 
     INPUT_ARG_PTR(lsa_b);
-    INPUT_ARG_PTR(&lsa_policy);
+    INPUT_ARG_PTR(hPolicy);
     INPUT_ARG_UINT(num_names);
 
     for (i = 0; i < num_names; i++) {
@@ -551,7 +551,7 @@ int TestLsaLookupNames3(struct test *t, const wchar16_t *hostname,
     INPUT_ARG_PTR(sids);
     INPUT_ARG_UINT(level);
 
-    CALL_MSRPC(status = LsaLookupNames3(lsa_b, &lsa_policy, num_names, names,
+    CALL_MSRPC(status = LsaLookupNames3(lsa_b, hPolicy, num_names, names,
                                         &domains, &sids, level, &sids_count));
 
     OUTPUT_ARG_UINT(sids_count);
@@ -586,13 +586,13 @@ int TestLsaLookupNames3(struct test *t, const wchar16_t *hostname,
     level = 6;
 
     INPUT_ARG_PTR(lsa_b);
-    INPUT_ARG_PTR(&lsa_policy);
+    INPUT_ARG_PTR(hPolicy);
     INPUT_ARG_PTR(&sid_array);
     INPUT_ARG_PTR(domains);
     INPUT_ARG_PTR(trans_names);
     INPUT_ARG_UINT(level);
 
-    CALL_MSRPC(status = LsaLookupSids(lsa_b, &lsa_policy, &sid_array,
+    CALL_MSRPC(status = LsaLookupSids(lsa_b, hPolicy, &sid_array,
                                       &domains, &trans_names, level,
                                       &names_count));
 
@@ -603,19 +603,19 @@ int TestLsaLookupNames3(struct test *t, const wchar16_t *hostname,
         domains = NULL;
     }
 
-    status = LsaClose(lsa_b, &lsa_policy);
+    status = LsaClose(lsa_b, hPolicy);
 
     FreeLsaBinding(&lsa_b);
 
     RELEASE_SESSION_CREDS;
 
-    for (i = 0; i < sid_array.num_sids; i++) {
-        SAFE_FREE(sid_array.sids[i].sid);
-    }
-
 done:
     if (trans_names) {
         LsaRpcFreeMemory((void*)trans_names);
+    }
+
+    if (sids) {
+        LsaRpcFreeMemory((void*)sids);
     }
 
     LsaRpcDestroyMemory();
@@ -662,7 +662,7 @@ int TestLsaLookupSids(struct test *t, const wchar16_t *hostname,
     int input_sid_count = 0;
     wchar16_t *domname = NULL;
     wchar16_t *names[2] = {0};
-    PolicyHandle lsa_policy = {0};
+    POLICY_HANDLE hPolicy = NULL;
     RefDomainList *domains = NULL;
     SidArray sid_array = {0};
     TranslatedName *trans_names = NULL;
@@ -686,7 +686,7 @@ int TestLsaLookupSids(struct test *t, const wchar16_t *hostname,
     if (status != 0) rpc_fail(status);
 
     status = LsaOpenPolicy2(lsa_b, hostname, NULL, access_rights,
-                            &lsa_policy);
+                            &hPolicy);
     if (status != 0) rpc_fail(status);
 
     /* Count SIDs to resolve */
@@ -711,13 +711,13 @@ int TestLsaLookupSids(struct test *t, const wchar16_t *hostname,
     level = 1;
 
     INPUT_ARG_PTR(lsa_b);
-    INPUT_ARG_PTR(&lsa_policy);
+    INPUT_ARG_PTR(hPolicy);
     INPUT_ARG_PTR(&sid_array);
     INPUT_ARG_PTR(domains);
     INPUT_ARG_PTR(names);
     INPUT_ARG_UINT(level);
 
-    CALL_MSRPC(status = LsaLookupSids(lsa_b, &lsa_policy, &sid_array,
+    CALL_MSRPC(status = LsaLookupSids(lsa_b, hPolicy, &sid_array,
                                       &domains, &trans_names, level, &count));
 
     OUTPUT_ARG_UINT(count);
@@ -727,7 +727,7 @@ int TestLsaLookupSids(struct test *t, const wchar16_t *hostname,
         if (status != 0) rpc_fail(status);
     }
 
-    status = LsaClose(lsa_b, &lsa_policy);
+    status = LsaClose(lsa_b, hPolicy);
 
     FreeLsaBinding(&lsa_b);
 
@@ -774,7 +774,7 @@ int TestLsaQueryInfoPolicy(struct test *t, const wchar16_t *hostname,
     enum param_err perr = perr_success;
     handle_t lsa_b = NULL;
     wchar16_t *domname = NULL;
-    PolicyHandle lsa_policy = {0};
+    POLICY_HANDLE hPolicy = NULL;
     LsaPolicyInformation *info = NULL;
     uint32 level = 0;
 
@@ -793,7 +793,7 @@ int TestLsaQueryInfoPolicy(struct test *t, const wchar16_t *hostname,
     if (status != 0) rpc_fail(status);
 
     status = LsaOpenPolicy2(lsa_b, hostname, NULL, access_rights,
-                            &lsa_policy);
+                            &hPolicy);
     if (status != 0) rpc_fail(status);
 
     /*
@@ -806,11 +806,11 @@ int TestLsaQueryInfoPolicy(struct test *t, const wchar16_t *hostname,
         }
 
         INPUT_ARG_PTR(lsa_b);
-        INPUT_ARG_PTR(&lsa_policy);
+        INPUT_ARG_PTR(hPolicy);
         INPUT_ARG_UINT(level);
         INPUT_ARG_PTR(&info);
 
-        CALL_MSRPC(status = LsaQueryInfoPolicy(lsa_b, &lsa_policy,
+        CALL_MSRPC(status = LsaQueryInfoPolicy(lsa_b, hPolicy,
                                                level, &info));
         OUTPUT_ARG_PTR(&info);
 
@@ -824,11 +824,11 @@ int TestLsaQueryInfoPolicy(struct test *t, const wchar16_t *hostname,
             if (level == 1) continue;
 
             INPUT_ARG_PTR(lsa_b);
-            INPUT_ARG_PTR(&lsa_policy);
+            INPUT_ARG_PTR(hPolicy);
             INPUT_ARG_UINT(level);
             INPUT_ARG_PTR(&info);
 
-            CALL_MSRPC(status = LsaQueryInfoPolicy(lsa_b, &lsa_policy,
+            CALL_MSRPC(status = LsaQueryInfoPolicy(lsa_b, hPolicy,
                                                   level, &info));
             OUTPUT_ARG_PTR(&info);
 
@@ -841,7 +841,7 @@ int TestLsaQueryInfoPolicy(struct test *t, const wchar16_t *hostname,
         }
     }
 
-    status = LsaClose(lsa_b, &lsa_policy);
+    status = LsaClose(lsa_b, hPolicy);
     FreeLsaBinding(&lsa_b);
 
     RELEASE_SESSION_CREDS;
@@ -879,7 +879,7 @@ int TestLsaQueryInfoPolicy2(struct test *t, const wchar16_t *hostname,
     enum param_err perr = perr_success;
     handle_t lsa_b = NULL;
     wchar16_t *domname = NULL;
-    PolicyHandle lsa_policy = {0};
+    POLICY_HANDLE hPolicy = NULL;
     LsaPolicyInformation *info = NULL;
     uint32 level = 0;
 
@@ -898,7 +898,7 @@ int TestLsaQueryInfoPolicy2(struct test *t, const wchar16_t *hostname,
     if (status != 0) rpc_fail(status);
 
     status = LsaOpenPolicy2(lsa_b, hostname, NULL, access_rights,
-                            &lsa_policy);
+                            &hPolicy);
     if (status != 0) rpc_fail(status);
 
     /*
@@ -911,11 +911,11 @@ int TestLsaQueryInfoPolicy2(struct test *t, const wchar16_t *hostname,
         }
 
         INPUT_ARG_PTR(lsa_b);
-        INPUT_ARG_PTR(&lsa_policy);
+        INPUT_ARG_PTR(hPolicy);
         INPUT_ARG_UINT(level);
         INPUT_ARG_PTR(&info);
 
-        CALL_MSRPC(status = LsaQueryInfoPolicy2(lsa_b, &lsa_policy,
+        CALL_MSRPC(status = LsaQueryInfoPolicy2(lsa_b, hPolicy,
                                                 level, &info));
         OUTPUT_ARG_PTR(&info);
 
@@ -929,11 +929,11 @@ int TestLsaQueryInfoPolicy2(struct test *t, const wchar16_t *hostname,
             if (level == 1) continue;
 
             INPUT_ARG_PTR(lsa_b);
-            INPUT_ARG_PTR(&lsa_policy);
+            INPUT_ARG_PTR(hPolicy);
             INPUT_ARG_UINT(level);
             INPUT_ARG_PTR(info);
 
-            CALL_MSRPC(status = LsaQueryInfoPolicy2(lsa_b, &lsa_policy,
+            CALL_MSRPC(status = LsaQueryInfoPolicy2(lsa_b, hPolicy,
                                                     level, &info));
             OUTPUT_ARG_PTR(info);
 
@@ -946,7 +946,7 @@ int TestLsaQueryInfoPolicy2(struct test *t, const wchar16_t *hostname,
         }
     }
 
-    status = LsaClose(lsa_b, &lsa_policy);
+    status = LsaClose(lsa_b, hPolicy);
     FreeLsaBinding(&lsa_b);
 
     RELEASE_SESSION_CREDS;
@@ -964,7 +964,7 @@ BOOL
 CallLsaOpenPolicy(
     handle_t hBinding,
     PWSTR pwszSysName,
-    PolicyHandle *phPolicy
+    POLICY_HANDLE *phPolicy
     )
 {
     BOOL ret = TRUE;
@@ -981,7 +981,7 @@ CallLsaOpenPolicy(
                            LSA_ACCESS_GET_SENSITIVE_POLICY_INFO |
                            LSA_ACCESS_VIEW_SYS_AUDIT_REQS |
                            LSA_ACCESS_VIEW_POLICY_INFO;
-    PolicyHandle hPolicy;
+    POLICY_HANDLE hPolicy = NULL;
     LsaPolicyInformation *pPolicyInfo = NULL;
     uint32 i = 0;
 
@@ -993,8 +993,13 @@ CallLsaOpenPolicy(
         DISPLAY_ERROR(("LsaOpenPolicy error %s\n", NtStatusToName(status)));
         ret = FALSE;
     } else {
-        for (i = 1; i <= 12; i++) {
-            status = LsaQueryInfoPolicy(hBinding, &hPolicy, i, &pPolicyInfo);
+        for (i = 1; i <= 12; i++)
+        {
+            if (i == 1) continue;
+
+            DISPLAY_COMMENT(("Testing LsaQueryInfoPolicy (level = %d)\n", i));
+
+            status = LsaQueryInfoPolicy(hBinding, hPolicy, i, &pPolicyInfo);
             if (status) {
                 DISPLAY_ERROR(("LsaQueryInfoPolicy error %s\n",
                                NtStatusToName(status)));
@@ -1003,6 +1008,16 @@ CallLsaOpenPolicy(
         }
     }
 
+    DISPLAY_COMMENT(("Testing LsaClose\n"));
+    status = LsaClose(hBinding, hPolicy);
+    if (status != 0) {
+        DISPLAY_ERROR(("LsaClose error %s\n",
+                       NtStatusToName(status)));
+        ret = FALSE;
+        goto done;
+    }
+
+    hPolicy = NULL;
 
     DISPLAY_COMMENT(("Testing LsaOpenPolicy2\n"));
 
@@ -1012,8 +1027,13 @@ CallLsaOpenPolicy(
         DISPLAY_ERROR(("LsaOpenPolicy2 error %s\n", NtStatusToName(status)));
         ret = FALSE;
     } else {
-        for (i = 1; i <= 12; i++) {
-            status = LsaQueryInfoPolicy2(hBinding, &hPolicy, i, &pPolicyInfo);
+        for (i = 1; i <= 12; i++)
+        {
+            if (i == 1) continue;
+
+            DISPLAY_COMMENT(("Testing LsaQueryInfoPolicy2 (level = %d)\n", i));
+
+            status = LsaQueryInfoPolicy2(hBinding, hPolicy, i, &pPolicyInfo);
             if (status) {
                 DISPLAY_ERROR(("LsaQueryInfoPolicy2 error %s\n",
                                NtStatusToName(status)));
@@ -1023,6 +1043,32 @@ CallLsaOpenPolicy(
     }
 
     *phPolicy = hPolicy;
+
+done:
+    return ret;
+}
+
+
+BOOL
+CallLsaClosePolicy(
+    handle_t hBinding,
+    POLICY_HANDLE *phPolicy
+    )
+{
+    BOOL ret = TRUE;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    POLICY_HANDLE hPolicy = NULL;
+
+    DISPLAY_COMMENT(("Testing LsaClose\n"));
+
+    hPolicy = *phPolicy;
+    ntStatus = LsaClose(hBinding, hPolicy);
+    if (ntStatus)
+    {
+        DISPLAY_COMMENT(("LsaClose error %s\n", NtStatusToName(ntStatus)));
+        ret = FALSE;
+    }
+
     return ret;
 }
 
@@ -1037,7 +1083,7 @@ TestLsaInfoPolicy(struct test *t, const wchar16_t *hostname,
     BOOL ret = TRUE;
     enum param_err perr = perr_success;
     handle_t hBinding = NULL;
-    PolicyHandle hPolicy;
+    POLICY_HANDLE hPolicy = NULL;
     PWSTR pwszSysName = NULL;
 
     perr = fetch_value(options, optcount, "systemname", pt_w16string,
@@ -1052,10 +1098,14 @@ TestLsaInfoPolicy(struct test *t, const wchar16_t *hostname,
 
     ret &= CallLsaOpenPolicy(hBinding, pwszSysName, &hPolicy);
 
+    ret &= CallLsaClosePolicy(hBinding, &hPolicy);
+
     FreeLsaBinding(&hBinding);
     RELEASE_SESSION_CREDS;
 
 done:
+    SAFE_FREE(pwszSysName);
+
     return (int)ret;
 }
 

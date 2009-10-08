@@ -36,7 +36,7 @@ NetOpenUser(
     NetConn *conn,
     const wchar16_t *username,
     uint32 access_mask,
-    PolicyHandle *user_h,
+    ACCOUNT_HANDLE *phUser,
     uint32 *rid
     )
 {
@@ -45,31 +45,33 @@ NetOpenUser(
     NTSTATUS status = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
     handle_t samr_b = NULL;
-    PolicyHandle domain_h = {0};
+    DOMAIN_HANDLE hDomain = NULL;
+    ACCOUNT_HANDLE hUser = NULL;
     wchar16_t *usernames[1] = {0};
     uint32 *rids = NULL;
     uint32 *types = NULL;
 
     BAIL_ON_INVALID_PTR(conn);
     BAIL_ON_INVALID_PTR(username);
-    BAIL_ON_INVALID_PTR(user_h);
+    BAIL_ON_INVALID_PTR(phUser);
     BAIL_ON_INVALID_PTR(rid);
 
     samr_b   = conn->samr.bind;
-    domain_h = conn->samr.dom_handle;
+    hDomain  = conn->samr.hDomain;
 
     usernames[0] = wc16sdup(username);
     BAIL_ON_NO_MEMORY(usernames[0]);
 
-    status = SamrLookupNames(samr_b, &domain_h, num_users, usernames,
+    status = SamrLookupNames(samr_b, hDomain, num_users, usernames,
                              &rids, &types, NULL);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = SamrOpenUser(samr_b, &domain_h, access_mask, rids[0],
-                          user_h);
+    status = SamrOpenUser(samr_b, hDomain, access_mask, rids[0],
+                          &hUser);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    *rid = rids[0];
+    *rid    = rids[0];
+    *phUser = hUser;
 
 cleanup:
     if (rids) {
@@ -85,7 +87,9 @@ cleanup:
     return status;
 
 error:
-    *rid = 0;
+    *rid    = 0;
+    *phUser = NULL;
+
     goto cleanup;
 }
 
@@ -95,8 +99,8 @@ NetOpenAlias(
     NetConn *conn,
     const wchar16_t *aliasname,
     uint32 access_mask,
-    PolicyHandle *out_alias_h,
-    uint32 *out_rid
+    ACCOUNT_HANDLE *phAlias,
+    uint32 *rid
     )
 {
     const uint32 num_aliases = 1;
@@ -104,7 +108,9 @@ NetOpenAlias(
     NTSTATUS status = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
     handle_t samr_b = NULL;
-    PolicyHandle domains_h[2], domain_h, alias_h;
+    DOMAIN_HANDLE hDomains[2] = {0};
+    DOMAIN_HANDLE hDomain = NULL;
+    ACCOUNT_HANDLE hAlias = NULL;
     wchar16_t *aliasnames[1] = {0};
     uint32 *rids = NULL;
     uint32 *types = NULL;
@@ -113,12 +119,12 @@ NetOpenAlias(
 
     BAIL_ON_INVALID_PTR(conn);
     BAIL_ON_INVALID_PTR(aliasname);
-    BAIL_ON_INVALID_PTR(out_alias_h);
-    BAIL_ON_INVALID_PTR(out_rid);
+    BAIL_ON_INVALID_PTR(phAlias);
+    BAIL_ON_INVALID_PTR(rid);
 
-    samr_b        = conn->samr.bind;
-    domains_h[0]  = conn->samr.dom_handle;
-    domains_h[1]  = conn->samr.btin_dom_handle;
+    samr_b       = conn->samr.bind;
+    hDomains[0]  = conn->samr.hDomain;
+    hDomains[1]  = conn->samr.hBtinDomain;
 
     aliasnames[0] = wc16sdup(aliasname);
     BAIL_ON_NO_MEMORY(aliasnames[0]);
@@ -126,14 +132,15 @@ NetOpenAlias(
     /*
      * Try to look for alias in host domain first, then in builtin
      */
-    for (i = 0; i < sizeof(domains_h)/sizeof(domains_h[0]); i++) {
-        status = SamrLookupNames(samr_b, &domains_h[i], num_aliases, aliasnames,
+    for (i = 0; i < sizeof(hDomains)/sizeof(hDomains[0]); i++)
+    {
+        status = SamrLookupNames(samr_b, hDomains[i], num_aliases, aliasnames,
                                  &rids, &types, NULL);
 
         if (status == STATUS_SUCCESS) {
             /* alias has been found in one of domain so pass the domain's
                handle further down */
-            domain_h  = domains_h[i];
+            hDomain   = hDomains[i];
             alias_rid = rids[0];
             break;
 
@@ -158,12 +165,12 @@ NetOpenAlias(
     /* Allow to open alias only if a valid one has been found */
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = SamrOpenAlias(samr_b, &domain_h, access_mask, alias_rid,
-                           &alias_h);
+    status = SamrOpenAlias(samr_b, hDomain, access_mask, alias_rid,
+                           &hAlias);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    *out_rid     = alias_rid;
-    *out_alias_h = alias_h;
+    *rid     = alias_rid;
+    *phAlias = hAlias;
 
 cleanup:
     SAFE_FREE(aliasnames[0]);
@@ -179,7 +186,9 @@ cleanup:
     return status;
 
 error:
-    *out_rid = 0;
+    *rid     = 0;
+    *phAlias = NULL;
+
     goto cleanup;
 }
 

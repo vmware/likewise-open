@@ -43,7 +43,7 @@ NetUserDel(
     WINERR err = ERROR_SUCCESS;
     NetConn *conn = NULL;
     handle_t samr_b = NULL;
-    PolicyHandle user_h;
+    ACCOUNT_HANDLE hUser = NULL;
     uint32 user_rid = 0;
     PIO_CREDS creds = NULL;
 
@@ -55,10 +55,10 @@ NetUserDel(
 
     samr_b = conn->samr.bind;
 
-    status = NetOpenUser(conn, username, user_access, &user_h, &user_rid);
+    status = NetOpenUser(conn, username, user_access, &hUser, &user_rid);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = SamrDeleteUser(samr_b, &user_h);
+    status = SamrDeleteUser(samr_b, hUser);
     BAIL_ON_NTSTATUS_ERROR(status);
 
 cleanup:

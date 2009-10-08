@@ -148,10 +148,8 @@ PvfsWorkerDoWork(
         {
             ntError = PvfsNextWorkItem(gpPvfsIoWorkQueue, &pData);
         }
-        PVFS_ASSERT(ntError == STATUS_SUCCESS);
 
-        /* If the work item is NULL, try again next time around.   Should
-           never happen. */
+        /* If the work item is NULL, try again next time around.  */
 
         pWorkCtx = (PPVFS_WORK_CONTEXT)pData;
         if (!pWorkCtx)

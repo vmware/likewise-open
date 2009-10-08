@@ -57,8 +57,8 @@ NetUserAdd(
     WINERR err = ERROR_SUCCESS;
     NetConn *conn = NULL;
     handle_t samr_b = NULL;
-    PolicyHandle domain_h = {0};
-    PolicyHandle user_h = {0};
+    DOMAIN_HANDLE hDomain = NULL;
+    ACCOUNT_HANDLE hUser = NULL;
     wchar16_t *user_name = NULL;
     uint32 rid = 0;
     uint32 samr_infolevel = 0;
@@ -81,13 +81,13 @@ NetUserAdd(
     BAIL_ON_NTSTATUS_ERROR(status);
 
     samr_b    = conn->samr.bind;
-    domain_h  = conn->samr.dom_handle;
+    hDomain   = conn->samr.hDomain;
 
     ninfo     = (USER_INFO_X*)buffer;
     user_name = ninfo->name;
 
-    status = SamrCreateUser(samr_b, &domain_h, user_name, user_access,
-                            &user_h, &rid);
+    status = SamrCreateUser(samr_b, hDomain, user_name, user_access,
+                            &hUser, &rid);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     /* If there was password specified do an extra samr call to set it */
@@ -106,14 +106,14 @@ NetUserAdd(
                                info26->password_len, conn);
         BAIL_ON_NTSTATUS_ERROR(status);
 
-        status = SamrSetUserInfo(samr_b, &user_h, 26, &pwinfo);
+        status = SamrSetUserInfo(samr_b, hUser, 26, &pwinfo);
         BAIL_ON_NTSTATUS_ERROR(status);
     }
 
-    status = SamrSetUserInfo(samr_b, &user_h, samr_infolevel, sinfo);
+    status = SamrSetUserInfo(samr_b, hUser, samr_infolevel, sinfo);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = SamrClose(samr_b, &user_h);
+    status = SamrClose(samr_b, hUser);
     BAIL_ON_NTSTATUS_ERROR(status);
 
 cleanup:

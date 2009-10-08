@@ -50,7 +50,7 @@
 NTSTATUS
 LsaQueryInfoPolicy2(
     IN  handle_t               hBinding,
-    IN  PolicyHandle          *phPolicy,
+    IN  POLICY_HANDLE          hPolicy,
     IN  UINT16                 Level,
     OUT LsaPolicyInformation **ppInfo
     )
@@ -60,14 +60,14 @@ LsaQueryInfoPolicy2(
     LsaPolicyInformation *pOutInfo = NULL;
 
     BAIL_ON_INVALID_PTR(hBinding, ntStatus);
-    BAIL_ON_INVALID_PTR(phPolicy, ntStatus);
+    BAIL_ON_INVALID_PTR(hPolicy, ntStatus);
     BAIL_ON_INVALID_PTR(ppInfo, ntStatus);
 
     *ppInfo = NULL;
 
     DCERPC_CALL(ntStatus, _LsaQueryInfoPolicy2(
                               hBinding,
-                              phPolicy,
+                              hPolicy,
                               Level,
                               &pInfo));
     BAIL_ON_NT_STATUS(ntStatus);

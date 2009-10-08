@@ -20,12 +20,7 @@ include_HEADERS = \
 	lwrpc/lsadefs.h \
 	lwrpc/samr.h \
 	lwrpc/samrbinding.h \
-	lwrpc/userinfo.h \
-	lwrpc/aliasinfo.h \
-	lwrpc/domaininfo.h \
-        lwrpc/displayinfo.h \
-        lwrpc/samrconn.h \
-	lwrpc/samrflags.h \
+	lwrpc/samrdefs.h \
 	lwrpc/netlogon.h \
 	lwrpc/netlogonbinding.h \
 	lwrpc/netrdefs.h \

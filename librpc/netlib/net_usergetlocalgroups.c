@@ -51,9 +51,9 @@ NetUserGetLocalGroups(
     WINERR err = ERROR_SUCCESS;
     NetConn *conn = NULL;
     handle_t samr_b = NULL;
-    PolicyHandle domain_h;
-    PolicyHandle btin_domain_h;
-    PolicyHandle user_h;
+    DOMAIN_HANDLE hDomain = NULL;
+    DOMAIN_HANDLE hBtinDomain = NULL;
+    ACCOUNT_HANDLE hUser = NULL;
     PSID domain_sid = NULL;
     PSID user_sid = NULL;
     uint32 user_rid = 0;
@@ -83,12 +83,12 @@ NetUserGetLocalGroups(
     status = NetConnectSamr(&conn, hostname, 0, builtin_dom_access, creds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    samr_b        = conn->samr.bind;
-    domain_h      = conn->samr.dom_handle;
-    btin_domain_h = conn->samr.btin_dom_handle;
-    domain_sid    = conn->samr.dom_sid;
+    samr_b      = conn->samr.bind;
+    hDomain     = conn->samr.hDomain;
+    hBtinDomain = conn->samr.hBtinDomain;
+    domain_sid  = conn->samr.dom_sid;
 
-    status = NetOpenUser(conn, username, user_access, &user_h, &user_rid);
+    status = NetOpenUser(conn, username, user_access, &hUser, &user_rid);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     status = MsRpcAllocateSidAppendRid(&user_sid, domain_sid, user_rid);
@@ -98,28 +98,28 @@ NetUserGetLocalGroups(
     sid_ptr.sid = user_sid;
     sids.sids = &sid_ptr;
 
-    status = SamrGetAliasMembership(samr_b, &domain_h, &user_sid, 1,
+    status = SamrGetAliasMembership(samr_b, hDomain, &user_sid, 1,
                                     &user_rids, &rids_count);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = SamrGetAliasMembership(samr_b, &btin_domain_h, &user_sid, 1,
+    status = SamrGetAliasMembership(samr_b, hBtinDomain, &user_sid, 1,
                                     &btin_user_rids, &btin_rids_count);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     if (rids_count > 0) {
-        status = SamrLookupRids(samr_b, &domain_h, rids_count,
+        status = SamrLookupRids(samr_b, hDomain, rids_count,
                                 user_rids, &alias_names, &alias_types);
         BAIL_ON_NTSTATUS_ERROR(status);
     }
 
     if (btin_rids_count > 0) {
-        status = SamrLookupRids(samr_b, &btin_domain_h,
+        status = SamrLookupRids(samr_b, hBtinDomain,
                                 btin_rids_count, btin_user_rids,
                                 &btin_alias_names, &btin_alias_types);
         BAIL_ON_NTSTATUS_ERROR(status);
     }
 
-    status = SamrClose(samr_b, &user_h);
+    status = SamrClose(samr_b, hUser);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     total = rids_count + btin_rids_count;

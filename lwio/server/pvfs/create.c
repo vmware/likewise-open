@@ -517,11 +517,13 @@ PvfsFreeCreateContext(
     RtlCStringFree(&pCreateCtx->pszDiskFilename);
     RtlCStringFree(&pCreateCtx->pszOriginalFilename);
 
-    if (pCreateCtx->pCcb) {
+    if (pCreateCtx->pCcb)
+    {
         PvfsReleaseCCB(pCreateCtx->pCcb);
     }
 
-    if (pCreateCtx->pFcb) {
+    if (pCreateCtx->pFcb)
+    {
         PvfsReleaseFCB(pCreateCtx->pFcb);
     }
 

@@ -49,10 +49,10 @@
 
 NTSTATUS
 SamrQueryDomainInfo(
-    IN  handle_t      hSamrBinding,
-    IN  PolicyHandle *phDomain,
-    IN  UINT16        Level,
-    OUT DomainInfo  **ppInfo
+    IN  handle_t        hSamrBinding,
+    IN  DOMAIN_HANDLE   hDomain,
+    IN  UINT16          Level,
+    OUT DomainInfo    **ppInfo
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -60,11 +60,11 @@ SamrQueryDomainInfo(
     DomainInfo *pOutInfo = NULL;
 
     BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
-    BAIL_ON_INVALID_PTR(phDomain, ntStatus);
+    BAIL_ON_INVALID_PTR(hDomain, ntStatus);
     BAIL_ON_INVALID_PTR(ppInfo, ntStatus);
 
     DCERPC_CALL(ntStatus, _SamrQueryDomainInfo(hSamrBinding,
-                                               phDomain,
+                                               hDomain,
                                                Level,
                                                &pInfo));
     BAIL_ON_NT_STATUS(ntStatus);

@@ -34,7 +34,7 @@
 NTSTATUS
 ResetAccountPasswordTimer(
     handle_t samr_b,
-    PolicyHandle *account_h
+    ACCOUNT_HANDLE hAccount
     )
 {
     const uint32 flags_enable  = ACB_WSTRUST;
@@ -50,21 +50,21 @@ ResetAccountPasswordTimer(
     info16 = &info.info16;
 
     BAIL_ON_INVALID_PTR(samr_b);
-    BAIL_ON_INVALID_PTR(account_h);
+    BAIL_ON_INVALID_PTR(hAccount);
 
     /* flip ACB_DISABLED flag - this way password timeout counter
        gets restarted */
 
     info16->account_flags = flags_enable;
-    status = SamrSetUserInfo(samr_b, account_h, level, &info);
+    status = SamrSetUserInfo(samr_b, hAccount, level, &info);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     info16->account_flags = flags_disable;
-    status = SamrSetUserInfo(samr_b, account_h, level, &info);
+    status = SamrSetUserInfo(samr_b, hAccount, level, &info);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     info16->account_flags = flags_enable;
-    status = SamrSetUserInfo(samr_b, account_h, level, &info);
+    status = SamrSetUserInfo(samr_b, hAccount, level, &info);
     BAIL_ON_NTSTATUS_ERROR(status);
 
 cleanup:
@@ -77,9 +77,9 @@ error:
 
 NTSTATUS
 ResetWksAccount(
-    NetConn *conn,
-    wchar16_t *name,
-    PolicyHandle *account_h
+    NetConn        *conn,
+    wchar16_t      *name,
+    ACCOUNT_HANDLE  hAccount
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -89,11 +89,11 @@ ResetWksAccount(
 
     BAIL_ON_INVALID_PTR(conn);
     BAIL_ON_INVALID_PTR(name);
-    BAIL_ON_INVALID_PTR(account_h);
+    BAIL_ON_INVALID_PTR(hAccount);
 
-    samr_b   = conn->samr.bind;
+    samr_b = conn->samr.bind;
 
-    status = SamrQueryUserInfo(samr_b, account_h, 16, &info);
+    status = SamrQueryUserInfo(samr_b, hAccount, 16, &info);
     if (status == STATUS_SUCCESS &&
         !(info->info16.account_flags & ACB_WSTRUST)) {
         status = STATUS_INVALID_ACCOUNT_NAME;
@@ -103,7 +103,7 @@ ResetWksAccount(
         goto error;
     }
 
-    status = ResetAccountPasswordTimer(samr_b, account_h);
+    status = ResetAccountPasswordTimer(samr_b, hAccount);
     BAIL_ON_NTSTATUS_ERROR(status);
 
 cleanup:
@@ -120,9 +120,9 @@ error:
 
 NTSTATUS
 CreateWksAccount(
-    NetConn *conn,
-    wchar16_t *samacct_name,
-    PolicyHandle *account_h
+    NetConn        *conn,
+    wchar16_t      *samacct_name,
+    ACCOUNT_HANDLE *phAccount
     )
 {
     const uint32 user_access = USER_ACCESS_GET_ATTRIBUTES |
@@ -134,7 +134,8 @@ CreateWksAccount(
     handle_t samr_b = NULL;
     uint32 access_granted = 0;
     uint32 rid = 0;
-    PolicyHandle *domain_h = NULL;
+    DOMAIN_HANDLE hDomain = NULL;
+    ACCOUNT_HANDLE hAccount = NULL;
     PwInfo pwinfo;
     UserInfo *info = NULL;
 
@@ -142,16 +143,16 @@ CreateWksAccount(
 
     BAIL_ON_INVALID_PTR(conn);
     BAIL_ON_INVALID_PTR(samacct_name);
-    BAIL_ON_INVALID_PTR(account_h);
+    BAIL_ON_INVALID_PTR(phAccount);
 
-    samr_b   = conn->samr.bind;
-    domain_h = &conn->samr.dom_handle;
+    samr_b  = conn->samr.bind;
+    hDomain = &conn->samr.hDomain;
 
-    status = SamrCreateUser2(samr_b, domain_h, samacct_name, ACB_WSTRUST,
-                             user_access, account_h, &access_granted, &rid);
+    status = SamrCreateUser2(samr_b, hDomain, samacct_name, ACB_WSTRUST,
+                             user_access, &hAccount, &access_granted, &rid);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = SamrQueryUserInfo(samr_b, account_h, 16, &info);
+    status = SamrQueryUserInfo(samr_b, hAccount, 16, &info);
     if (status == STATUS_SUCCESS &&
         !(info->info16.account_flags & ACB_WSTRUST)) {
         status = STATUS_INVALID_ACCOUNT_NAME;
@@ -162,11 +163,13 @@ CreateWksAccount(
     /* It's not certain yet what is this call for here.
        Access denied is not fatal here, so we don't want to report
        a fatal error */
-    ret = SamrGetUserPwInfo(samr_b, account_h, &pwinfo);
+    ret = SamrGetUserPwInfo(samr_b, hAccount, &pwinfo);
     if (ret != STATUS_SUCCESS &&
         ret != STATUS_ACCESS_DENIED) {
         status = ret;
     }
+
+    *phAccount = hAccount;
 
 cleanup:
     if (info) {
@@ -176,17 +179,19 @@ cleanup:
     return status;
 
 error:
+    *phAccount = NULL;
+
     goto cleanup;
 }
 
 
 NTSTATUS
 SetMachinePassword(
-    NetConn *conn,
-    PolicyHandle *account_h,
-    uint32 new,
-    wchar16_t *name,
-    wchar16_t *password
+    NetConn        *conn,
+    ACCOUNT_HANDLE  hAccount,
+    uint32          new,
+    wchar16_t      *name,
+    wchar16_t      *password
     )
 {
 	NTSTATUS status = STATUS_SUCCESS;
@@ -202,7 +207,7 @@ SetMachinePassword(
     memset((void*)&pwinfo, 0, sizeof(pwinfo));
 
     BAIL_ON_INVALID_PTR(conn);
-    BAIL_ON_INVALID_PTR(account_h);
+    BAIL_ON_INVALID_PTR(hAccount);
     BAIL_ON_INVALID_PTR(name);
     BAIL_ON_INVALID_PTR(password);
 
@@ -239,7 +244,7 @@ SetMachinePassword(
 		level = 26;
 	}
 
-	status = SamrSetUserInfo(samr_b, account_h, level, &pwinfo);
+	status = SamrSetUserInfo(samr_b, hAccount, level, &pwinfo);
     BAIL_ON_NTSTATUS_ERROR(status);
 
 cleanup:

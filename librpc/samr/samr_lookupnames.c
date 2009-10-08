@@ -49,13 +49,13 @@
 
 NTSTATUS
 SamrLookupNames(
-    IN  handle_t      hSamrBinding,
-    IN  PolicyHandle *phDomain,
-    IN  UINT32        NumNames,
-    IN  PWSTR        *ppwszNames,
-    OUT UINT32      **ppRids,
-    OUT UINT32      **ppTypes,
-    OUT UINT32       *pRidsCount
+    IN  handle_t        hSamrBinding,
+    IN  DOMAIN_HANDLE   hDomain,
+    IN  UINT32          NumNames,
+    IN  PWSTR          *ppwszNames,
+    OUT UINT32        **ppRids,
+    OUT UINT32        **ppTypes,
+    OUT UINT32         *pRidsCount
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -67,7 +67,7 @@ SamrLookupNames(
     uint32 *pTypes = NULL;
 
     BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
-    BAIL_ON_INVALID_PTR(phDomain, ntStatus);
+    BAIL_ON_INVALID_PTR(hDomain, ntStatus);
     BAIL_ON_INVALID_PTR(ppwszNames, ntStatus);
     BAIL_ON_INVALID_PTR(ppRids, ntStatus);
     BAIL_ON_INVALID_PTR(ppTypes, ntStatus);
@@ -78,7 +78,7 @@ SamrLookupNames(
     BAIL_ON_NULL_PTR(pNames, ntStatus);
 
     DCERPC_CALL(ntStatus, _SamrLookupNames(hSamrBinding,
-                                           phDomain,
+                                           hDomain,
                                            NumNames,
                                            pNames,
                                            &Rids,

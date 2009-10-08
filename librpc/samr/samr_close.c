@@ -49,19 +49,23 @@
 
 NTSTATUS
 SamrClose(
-    IN  handle_t         hSamrBinding,
-    IN OUT PolicyHandle *phContext
+    IN  handle_t  hSamrBinding,
+    IN  void     *hIn
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    unsigned32 rpcStatus = 0;
+    void *hOut = NULL;
 
     BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
-    BAIL_ON_INVALID_PTR(phContext, ntStatus);
+    BAIL_ON_INVALID_PTR(hIn, ntStatus);
 
     DCERPC_CALL(ntStatus, _SamrClose(hSamrBinding,
-                                     phContext));
-
+                                     hIn,
+                                     &hOut));
     BAIL_ON_NT_STATUS(ntStatus);
+
+    rpc_sm_destroy_client_context(&hIn, &rpcStatus);
 
 cleanup:
     return ntStatus;

@@ -51,7 +51,8 @@ NetUserEnum(
     WINERR err = ERROR_SUCCESS;
     NetConn *conn = NULL;
     handle_t samr_b = NULL;
-    PolicyHandle dom_h, user_h;
+    DOMAIN_HANDLE hDomain = NULL;
+    ACCOUNT_HANDLE hUser = NULL;
     DomainInfo *dominfo = NULL;
     uint32 num_entries = 0;
     uint32 max_size = 0;
@@ -106,24 +107,24 @@ NetUserEnum(
     status = LwIoGetThreadCreds(&creds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    samr_b = conn->samr.bind;
-    dom_h  = conn->samr.dom_handle;
+    samr_b  = conn->samr.bind;
+    hDomain = conn->samr.hDomain;
 
     status = NetConnectSamr(&conn, hostname, dom_flags, 0, creds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
 
-    samr_b = conn->samr.bind;
-    dom_h  = conn->samr.dom_handle;
+    samr_b  = conn->samr.bind;
+    hDomain = conn->samr.hDomain;
 
-    status = SamrQueryDomainInfo(samr_b, &dom_h, dominfo_level, &dominfo);
+    status = SamrQueryDomainInfo(samr_b, hDomain, dominfo_level, &dominfo);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     total    = dominfo->info2.num_users;
     resume   = *out_resume;
     max_size = maxlen;
 
-    status = SamrEnumDomainUsers(samr_b, &dom_h, &resume, acct_flags,
+    status = SamrEnumDomainUsers(samr_b, hDomain, &resume, acct_flags,
                                  max_size, &usernames, &userrids,
                                  &num_entries);
     if (status != 0 &&
@@ -147,11 +148,11 @@ NetUserEnum(
                          USER_ACCESS_GET_LOGONINFO |
                          USER_ACCESS_GET_GROUPS;
 
-            status = SamrOpenUser(samr_b, &dom_h, user_flags, userrids[i],
-                                  &user_h);
+            status = SamrOpenUser(samr_b, hDomain, user_flags, userrids[i],
+                                  &hUser);
             BAIL_ON_NTSTATUS_ERROR(status);
 
-            status = SamrQueryUserInfo(samr_b, &user_h, infolevel, &ui);
+            status = SamrQueryUserInfo(samr_b, hUser, infolevel, &ui);
             BAIL_ON_NTSTATUS_ERROR(status);
 
             if (ui) {
@@ -159,7 +160,7 @@ NetUserEnum(
                 NetFreeMemory((void*)ui);
             }
 
-            status = SamrClose(samr_b, &user_h);
+            status = SamrClose(samr_b, hUser);
             BAIL_ON_NTSTATUS_ERROR(status);
         }
     }

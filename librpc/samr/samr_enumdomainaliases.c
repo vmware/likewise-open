@@ -50,7 +50,7 @@
 NTSTATUS
 SamrEnumDomainAliases(
     IN  handle_t      hSamrBinding,
-    IN  PolicyHandle *phDomain,
+    IN  DOMAIN_HANDLE hDomain,
     IN  PUINT32       pResume,
     IN  UINT32        AccountFlags,
     OUT PWSTR       **pppwszNames,
@@ -67,7 +67,7 @@ SamrEnumDomainAliases(
     UINT32 *pRids = NULL;
 
     BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
-    BAIL_ON_INVALID_PTR(phDomain, ntStatus);
+    BAIL_ON_INVALID_PTR(hDomain, ntStatus);
     BAIL_ON_INVALID_PTR(pResume, ntStatus);
     BAIL_ON_INVALID_PTR(pppwszNames, ntStatus);
     BAIL_ON_INVALID_PTR(ppRids, ntStatus);
@@ -76,7 +76,7 @@ SamrEnumDomainAliases(
     Resume = *pResume;
 
     DCERPC_CALL(ntStatus, _SamrEnumDomainAliases(hSamrBinding,
-                                                 phDomain,
+                                                 hDomain,
                                                  &Resume,
                                                  AccountFlags,
                                                  &pEntries,

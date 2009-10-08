@@ -38,22 +38,22 @@ typedef struct net_conn {
     struct samr {
         handle_t bind;
 
-        PolicyHandle conn_handle;
+        CONNECT_HANDLE hConn;
         uint32 conn_access;
 
-        PolicyHandle dom_handle;
+        DOMAIN_HANDLE hDomain;
         uint32 dom_access;
         wchar16_t *dom_name;
         PSID dom_sid;
 
-        PolicyHandle btin_dom_handle;
+        DOMAIN_HANDLE hBtinDomain;
         uint32 btin_dom_access;
     } samr;
 
     struct lsa {
         handle_t bind;
 
-        PolicyHandle policy_handle;
+        POLICY_HANDLE hPolicy;
         uint32 lsa_access;
     } lsa;
 

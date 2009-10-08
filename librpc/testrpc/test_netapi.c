@@ -548,6 +548,7 @@ int TestNetUserSetInfo(struct test *t, const wchar16_t *hostname,
        holding the new name thus allowing for account deletion */
     SAFE_FREE(username);
     username = newuser;
+    newuser  = NULL;
 
     level = 1003;
     memset((void*)buffer, 0, sizeof(buffer));
