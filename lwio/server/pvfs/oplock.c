@@ -462,7 +462,6 @@ PvfsOplockBreakIfLocked(
         if (pOplock->pIrpContext->bIsCancelled)
         {
             pNextLink = LwListTraverse(&pFcb->OplockList, pOplockLink);
-            LwListRemove(pOplockLink);
             pOplockLink = pNextLink;
 
             continue;
@@ -1133,6 +1132,8 @@ PvfsOplockCleanOplockQueue(
 
     pOplockLink = LwListTraverse(&pFcb->OplockList, NULL);
 
+    PVFS_ASSERT(pOplockLink != NULL);
+
     while (pOplockLink)
     {
         pOplock = LW_STRUCT_FROM_FIELD(
@@ -1149,7 +1150,7 @@ PvfsOplockCleanOplockQueue(
         }
 
         LwListRemove(pOplockLink);
-        pOplockLink = pNextLink;
+        pOplockLink = NULL;
 
         pOplock->pIrpContext->pIrp->IoStatusBlock.Status = STATUS_CANCELLED;
 
@@ -1159,8 +1160,6 @@ PvfsOplockCleanOplockQueue(
         PvfsFreeOplockRecord(&pOplock);
 
         /* Can only be one IrpContext match so we are done */
-
-        break;
     }
 
     LWIO_UNLOCK_MUTEX(bLocked, &pFcb->mutexOplock);
