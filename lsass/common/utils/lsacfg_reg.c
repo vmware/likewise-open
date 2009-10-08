@@ -65,7 +65,6 @@ LsaProcessConfig(
 
     for (dwEntry = 0; dwEntry < dwConfigEntries; dwEntry++)
     {
-        dwError = 0;
         switch (pConfig[dwEntry].Type)
         {
             case LsaTypeString:
@@ -108,8 +107,7 @@ LsaProcessConfig(
             default:
                 break;
         }
-        BAIL_ON_NON_LWREG_ERROR(dwError);
-        dwError = 0;
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
 cleanup:
