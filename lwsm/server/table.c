@@ -675,6 +675,8 @@ LwSmTablePollEntry(
     dwError = pEntry->pVtbl->pfnGetStatus(pEntry, pStatus);
     BAIL_ON_ERROR(dwError);
 
+    /* If an unannounced change in the service status occured,
+       we may need to unmark or mark dependencies */
     if ((*pStatus == LW_SERVICE_STOPPED ||
          *pStatus == LW_SERVICE_DEAD) &&
         pEntry->bDepsMarked)
@@ -688,8 +690,22 @@ LwSmTablePollEntry(
              !pEntry->bDepsMarked)
     {
         dwError = LwSmTableVerifyAndMarkDependencies(pEntry);
-        BAIL_ON_ERROR(dwError);
-        pEntry->bDepsMarked = TRUE;
+        switch (dwError)
+        {
+        case LW_ERROR_SUCCESS:
+            pEntry->bDepsMarked = TRUE;
+            break;
+        case LW_ERROR_SERVICE_DEPENDENCY_UNMET:
+            /* This means we're in an inconsistent state where
+               an active service has an inactive dependency,
+               but we should not raise an error about it
+               when merely polling status */
+            dwError = LW_ERROR_SUCCESS;
+            break;
+        default:
+            BAIL_ON_ERROR(dwError);
+            break;
+        }
     }
 
 error:
