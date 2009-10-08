@@ -102,7 +102,7 @@
 
 /* Driver defines */
 
-#define PVFS_WORKERS_NUMBER_THREADS      4
+#define PVFS_WORKERS_NUMBER_THREADS      2
 #define PVFS_WORKERS_MAX_WORK_ITEMS      1024
 
 

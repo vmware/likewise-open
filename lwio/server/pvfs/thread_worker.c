@@ -71,12 +71,15 @@ PvfsInitWorkerThreads(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     int i = 0;
     int unixerr = 0;
+    int ret = 0;
+
+    /* Both of these will be blocking queues */
 
     ntError = PvfsInitWorkQueue(
                   &gpPvfsInternalWorkQueue,
                   0, /* unlimited */
                   (PLWRTL_QUEUE_FREE_DATA_FN)PvfsFreeWorkContext,
-                  FALSE);
+                  TRUE);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsInitWorkQueue(
@@ -87,23 +90,34 @@ PvfsInitWorkerThreads(
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsAllocateMemory(
-                  (PVOID*)&gWorkPool.Workers,
+                  (PVOID*)&gWorkPool.IoWorkers,
                   PVFS_WORKERS_NUMBER_THREADS * sizeof(PVFS_WORKER));
     BAIL_ON_NT_STATUS(ntError);
 
-    gWorkPool.PoolSize = PVFS_WORKERS_NUMBER_THREADS;
+    /* I/O Worker Threads */
 
+    gWorkPool.PoolSize = PVFS_WORKERS_NUMBER_THREADS;
     for (i=0; i<gWorkPool.PoolSize; i++)
     {
-        int ret = 0;
-
-        ret = pthread_create(&gWorkPool.Workers[i].hThread,
-                             NULL,
-                             &PvfsWorkerDoWork,
-                             NULL);
+        ret = pthread_create(
+                  &gWorkPool.IoWorkers[i].hThread,
+                  NULL,
+                  &PvfsWorkerDoWork,
+                  (PVOID)gpPvfsIoWorkQueue);
         if (ret != 0) {
             PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
         }
+    }
+
+    /* One priority internal work queue thread */
+
+    ret = pthread_create(
+              &gWorkPool.PriorityWorker.hThread,
+              NULL,
+              &PvfsWorkerDoWork,
+              (PVOID)gpPvfsInternalWorkQueue);
+    if (ret != 0) {
+        PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
     }
 
 cleanup:
@@ -114,12 +128,12 @@ error:
 }
 
 
-/************************************************************
-  **********************************************************/
+/***********************************************************************
+ **********************************************************************/
 
 static PVOID
 PvfsWorkerDoWork(
-    PVOID pArgs
+    PVOID pQueue
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
@@ -127,6 +141,7 @@ PvfsWorkerDoWork(
     PVOID pData = NULL;
     BOOL bInLock = FALSE;
     PPVFS_IRP_CONTEXT pIrpCtx = NULL;
+    PPVFS_WORK_QUEUE pWorkQueue = (PPVFS_WORK_QUEUE)pQueue;
 
     while(1)
     {
@@ -143,11 +158,8 @@ PvfsWorkerDoWork(
          * additional state from IRPs.
          */
 
-        ntError = PvfsNextWorkItem(gpPvfsInternalWorkQueue, &pData);
-        if (ntError == STATUS_NOT_FOUND)
-        {
-            ntError = PvfsNextWorkItem(gpPvfsIoWorkQueue, &pData);
-        }
+        ntError = PvfsNextWorkItem(pWorkQueue, &pData);
+        PVFS_ASSERT(ntError == STATUS_SUCCESS);
 
         /* If the work item is NULL, try again next time around.  */
 
@@ -198,7 +210,6 @@ PvfsWorkerDoWork(
 
     return NULL;
 }
-
 
 
 /*

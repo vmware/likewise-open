@@ -138,13 +138,6 @@ error:
 /***********************************************************************
  **********************************************************************/
 
-static
-VOID
-PvfsMakeWorkItemTimeout(
-    OUT struct timespec *pTimeout,
-    IN  ULONG MilliSeconds
-    );
-
 NTSTATUS
 PvfsNextWorkItem(
     PPVFS_WORK_QUEUE pWorkQueue,
@@ -154,8 +147,6 @@ PvfsNextWorkItem(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     BOOL bInLock = FALSE;
     BOOL bSignal = FALSE;
-    struct timespec Wait = {0};
-    int UnixError = 0;
 
     BAIL_ON_INVALID_PTR(pWorkQueue, ntError);
     BAIL_ON_INVALID_PTR(ppItem, ntError);
@@ -164,21 +155,11 @@ PvfsNextWorkItem(
 
     if (pWorkQueue->bWait)
     {
-        PvfsMakeWorkItemTimeout(&Wait, 250);
-
         while (LwRtlQueueIsEmpty(pWorkQueue->pQueue))
         {
-            UnixError = pthread_cond_timedwait(
-                            &pWorkQueue->ItemsAvailable,
-                            &pWorkQueue->Mutex,
-                            &Wait);
-            ntError = PvfsMapUnixErrnoToNtStatus(UnixError);
-
-            if (ntError == STATUS_MORE_PROCESSING_REQUIRED)
-            {
-                continue;
-            }
-            BAIL_ON_NT_STATUS(ntError);
+            pthread_cond_wait(
+                &pWorkQueue->ItemsAvailable,
+                &pWorkQueue->Mutex);
         }
 
         if (LwRtlQueueIsFull(pWorkQueue->pQueue))
@@ -205,6 +186,8 @@ error:
 }
 
 
+#if 0 /* Unused for now */
+
 static
 VOID
 PvfsMakeWorkItemTimeout(
@@ -223,6 +206,7 @@ PvfsMakeWorkItemTimeout(
     pTimeout->tv_nsec += (MilliSeconds * 1000 * 1000);
 }
 
+#endif
 
 /*
 local variables:
