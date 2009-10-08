@@ -224,6 +224,8 @@ error_status_t  *st;
     dce_error_string_t estr;
     int             tmp_st;
 
+    memset(estr,0,sizeof(dce_error_string_t));
+
     dce_error_inq_text(*st, (unsigned char*) estr, &tmp_st);
     fprintf(stderr, "(rpcd) %s: (0x%lx) %s\n", str, (unsigned long) *st, estr);
     syslog(LOG_ERR, "%s: (0x%lx) %s\n", str, (unsigned long) *st, estr);
@@ -391,13 +393,6 @@ error_status_t  *status;
     if (use_all_protseqs)
     {
         rpc_server_use_all_protseqs_if(0, ept_v3_0_s_ifspec, status);
-        if (! STATUS_OK(status)) 
-        {
-            if (*status == rpc_s_cant_bind_sock)
-                show_st("Verify that no other rpcd/llbd is running", status);
-            else
-                show_st("Unable to rpc_server_use_all_protseqs for ept", status);
-        }
     }
     else
     {
@@ -406,10 +401,7 @@ error_status_t  *status;
             rpc_server_use_protseq_if(protseq[i], 0, ept_v3_0_s_ifspec, status);
             if (! STATUS_OK(status)) 
             {
-                if (*status == rpc_s_cant_bind_sock)
-                    show_st("Verify that no other rpcd/llbd is running", status);
-                else
-                    show_st("Unable to rpc_server_use_all_protseqs for ept", status);
+                break;
             }
         }
     }
@@ -1004,7 +996,15 @@ int main(int argc, char *argv[])
         sleep(try_interval);
     }
 
-    if (! STATUS_OK(&status)) exit(1);
+    if (! STATUS_OK(&status))
+    {
+        if (status == rpc_s_cant_bind_sock)
+            show_st("Verify that no other rpcd/llbd is running", &status);
+        else
+            show_st("Unable to rpc_server_use_all_protseqs for ept", &status);
+
+        exit(1);
+    }
 
     /*
      * Start handling RPCs and performing forwarding.
