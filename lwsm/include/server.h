@@ -263,5 +263,6 @@ LwSmBootstrap(
     );
 
 extern SM_OBJECT_VTBL gExecutableVtbl;
+extern SM_OBJECT_VTBL gDriverVtbl;
 
 #endif

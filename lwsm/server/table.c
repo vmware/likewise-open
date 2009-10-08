@@ -66,7 +66,8 @@ static SM_TABLE gServiceTable =
 static PSM_OBJECT_VTBL gVtblTable[] =
 {
     [LW_SERVICE_EXECUTABLE] = &gExecutableVtbl,
-    [LW_SERVICE_SM_EXECUTABLE] = &gExecutableVtbl
+    [LW_SERVICE_SM_EXECUTABLE] = &gExecutableVtbl,
+    [LW_SERVICE_DRIVER] = &gDriverVtbl
 };
 
 DWORD
@@ -386,6 +387,12 @@ cleanup:
     return dwError;
 
 error:
+
+    if (pEntry->bDepsMarked)
+    {
+        LwSmTableUnmarkDependencies(pEntry);
+        pEntry->bDepsMarked = FALSE;
+    }
 
     goto cleanup;
 }

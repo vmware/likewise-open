@@ -535,9 +535,6 @@ EXCLUDE_SYMBOLS        =
 # the \include command).
 
 EXAMPLE_PATH =
-EXAMPLE_PATH += @top_srcdir@/example/fserv/include/protocol.h
-EXAMPLE_PATH += @top_srcdir@/example/fserv/src/protocol.c
-EXAMPLE_PATH += @top_srcdir@/example/fserv/src/fserv.c
 
 # If the value of the EXAMPLE_PATH tag contains directories, you can use the 
 # EXAMPLE_PATTERNS tag to specify one or more wildcard pattern (like *.cpp 

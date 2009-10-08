@@ -51,10 +51,12 @@
 #include <fcntl.h>
 #include <time.h>
 #include <lwerror.h>
+#include <winerror-conv.h>
 #include <lwmem.h>
 #include <lwstr.h>
 #include <reg/reg.h>
 #include <lwmsg/lwmsg.h>
+#include <lwio/lwio.h>
 
 #include "server.h"
 
