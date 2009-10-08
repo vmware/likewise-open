@@ -406,7 +406,11 @@ error:
     *ppszObjectSid = NULL;
     LW_SAFE_FREE_STRING(pszObjectSid);
     *pObjectType = AccountType_NotFound;
-    LSA_LOG_ERROR("Failed to find user or group. [Error code: %d]", dwError);
+    LSA_LOG_ERROR("Failed to find user, group, or domain by name (name = '%s', searched host = '%s') -> error = %d, symbol = %s",
+            LSA_SAFE_LOG_STRING(pszObjectName),
+            LSA_SAFE_LOG_STRING(pszHostname),
+            dwError,
+            LwWin32ErrorToName(dwError));
     dwError = LW_ERROR_NO_SUCH_OBJECT;
 
     goto cleanup;
