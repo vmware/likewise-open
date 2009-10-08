@@ -35,32 +35,35 @@
 NTSTATUS
 ResetAccountPasswordTimer(
     handle_t samr_b,
-    PolicyHandle *account_h
+    ACCOUNT_HANDLE hAccount
     );
 
 
 NTSTATUS
 ResetWksAccount(
-    NetConn *conn,
-    wchar16_t *name,
-    PolicyHandle *account_h
+    NetConn        *conn,
+    wchar16_t      *name,
+    ACCOUNT_HANDLE  hAccount
     );
+
 
 NTSTATUS
 CreateWksAccount(
-    NetConn *conn,
-    wchar16_t *samacct_name,
-    PolicyHandle *account_h
+    NetConn        *conn,
+    wchar16_t      *samacct_name,
+    ACCOUNT_HANDLE *phAccount
     );
+
 
 NTSTATUS
 SetMachinePassword(
-    NetConn *conn,
-    PolicyHandle *account_h,
-    uint32 new,
-    wchar16_t *name,
-    wchar16_t *password
+    NetConn        *conn,
+    ACCOUNT_HANDLE  hAccount,
+    uint32          new,
+    wchar16_t      *name,
+    wchar16_t      *password
     );
+
 
 NET_API_STATUS
 DirectoryConnect(

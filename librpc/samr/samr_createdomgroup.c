@@ -48,21 +48,21 @@
 
 NTSTATUS
 SamrCreateDomGroup(
-    IN  handle_t      hSamrBinding,
-    IN  PolicyHandle *phDomain,
-    IN  PWSTR         pwszGroupName,
-    IN  UINT32        AccessMask,
-    OUT PolicyHandle *phGroup,
-    OUT PUINT32       pRid
+    IN  handle_t        hSamrBinding,
+    IN  DOMAIN_HANDLE   hDomain,
+    IN  PWSTR           pwszGroupName,
+    IN  UINT32          AccessMask,
+    OUT ACCOUNT_HANDLE *phGroup,
+    OUT PUINT32         pRid
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     UnicodeString GroupName = {0};
-    PolicyHandle hGroup = {0};
+    ACCOUNT_HANDLE hGroup = NULL;
     UINT32 Rid = 0;
 
     BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
-    BAIL_ON_INVALID_PTR(phDomain, ntStatus);
+    BAIL_ON_INVALID_PTR(hDomain, ntStatus);
     BAIL_ON_INVALID_PTR(pwszGroupName, ntStatus);
     BAIL_ON_INVALID_PTR(phGroup, ntStatus);
     BAIL_ON_INVALID_PTR(pRid, ntStatus);
@@ -71,7 +71,7 @@ SamrCreateDomGroup(
     BAIL_ON_NT_STATUS(ntStatus);
 
     DCERPC_CALL(ntStatus, _SamrCreateDomGroup(hSamrBinding,
-                                              phDomain,
+                                              hDomain,
                                               &GroupName,
                                               AccessMask,
                                               &hGroup,
@@ -87,8 +87,8 @@ cleanup:
     return ntStatus;
 
 error:
-    memset(phGroup, 0, sizeof(*phGroup));
-    *pRid = 0;
+    *phGroup = NULL;
+    *pRid    = 0;
 
     goto cleanup;
 }

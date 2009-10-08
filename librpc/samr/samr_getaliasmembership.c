@@ -50,7 +50,7 @@
 NTSTATUS
 SamrGetAliasMembership(
     IN  handle_t       hSamrBinding,
-    IN  PolicyHandle  *phDomain,
+    IN  DOMAIN_HANDLE  hDomain,
     IN  PSID          *ppSids,
     IN  UINT32         NumSids,
     OUT UINT32       **ppRids,
@@ -64,7 +64,7 @@ SamrGetAliasMembership(
     UINT32 *pRids = NULL;
 
     BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
-    BAIL_ON_INVALID_PTR(phDomain, ntStatus);
+    BAIL_ON_INVALID_PTR(hDomain, ntStatus);
     BAIL_ON_INVALID_PTR(ppSids, ntStatus);
     BAIL_ON_INVALID_PTR(ppRids, ntStatus);
     BAIL_ON_INVALID_PTR(pCount, ntStatus);
@@ -80,7 +80,7 @@ SamrGetAliasMembership(
     }
 
     DCERPC_CALL(ntStatus, _SamrGetAliasMembership(hSamrBinding,
-                                                  phDomain,
+                                                  hDomain,
                                                   &Sids,
                                                   &Rids));
     BAIL_ON_NT_STATUS(ntStatus);

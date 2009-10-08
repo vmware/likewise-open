@@ -252,9 +252,9 @@ NetConnectSamr(
     NetConnList *cnlist = NULL;
     NetConn *cn = NULL;
     NetConn *lookup = NULL;
-    PolicyHandle conn_handle = {0};
-    PolicyHandle dom_handle = {0};
-    PolicyHandle btin_dom_handle = {0};
+    CONNECT_HANDLE hConn = NULL;
+    DOMAIN_HANDLE hDomain = NULL;
+    DOMAIN_HANDLE hBtinDomain = NULL;
     PSID btin_dom_sid = NULL;
     PSID dom_sid = NULL;
     uint32 conn_access = 0;
@@ -320,12 +320,12 @@ NetConnectSamr(
             BAIL_ON_NTSTATUS_ERROR(STATUS_UNSUCCESSFUL);
         }
 
-        status = SamrConnect2(samr_b, hostname, conn_access, &conn_handle);
+        status = SamrConnect2(samr_b, hostname, conn_access, &hConn);
         BAIL_ON_NTSTATUS_ERROR(status);
 
         cn->samr.conn_access = conn_access;
         cn->samr.bind        = samr_b;
-        cn->samr.conn_handle = conn_handle;
+        cn->samr.hConn       = hConn;
 
         sess_key     = NULL;
         sess_key_len = 0;
@@ -345,8 +345,8 @@ NetConnectSamr(
         }
 
     } else {
-        samr_b      = cn->samr.bind;
-        conn_handle = cn->samr.conn_handle;
+        samr_b = cn->samr.bind;
+        hConn  = cn->samr.hConn;
     }
 
     /* check if requested builtin domain access flags have been
@@ -356,25 +356,29 @@ NetConnectSamr(
         cn->samr.btin_dom_access != 0 &&
         (cn->samr.btin_dom_access & req_btin_dom_flags) != req_btin_dom_flags) {
 
-        status = SamrClose(samr_b, &cn->samr.btin_dom_handle);
+        status = SamrClose(samr_b,
+                           cn->samr.hBtinDomain);
         BAIL_ON_NTSTATUS_ERROR(status);
 
-        memset(&cn->samr.btin_dom_handle, 0, sizeof(cn->samr.btin_dom_handle));
+        memset(&cn->samr.hBtinDomain, 0, sizeof(cn->samr.hBtinDomain));
         cn->samr.btin_dom_access = 0;
     }
 
     if (cn->samr.btin_dom_access == 0) {
         btin_dom_access = btin_dom_flags | req_btin_dom_flags;
-        conn_handle = cn->samr.conn_handle;
+        hConn           = cn->samr.hConn;
 
         status = RtlAllocateSidFromCString(&btin_dom_sid, SID_BUILTIN_DOMAIN);
         BAIL_ON_NTSTATUS_ERROR(status);
 
-        status = SamrOpenDomain(samr_b, &conn_handle, btin_dom_access,
-                                btin_dom_sid, &btin_dom_handle);
+        status = SamrOpenDomain(samr_b,
+                                hConn,
+                                btin_dom_access,
+                                btin_dom_sid,
+                                &hBtinDomain);
         BAIL_ON_NTSTATUS_ERROR(status);
 
-        cn->samr.btin_dom_handle = btin_dom_handle;
+        cn->samr.hBtinDomain     = hBtinDomain;
         cn->samr.btin_dom_access = btin_dom_access;
 
         RTL_FREE(&btin_dom_sid);
@@ -387,15 +391,14 @@ NetConnectSamr(
         cn->samr.dom_access != 0 &&
         (cn->samr.dom_access & req_dom_flags) != req_dom_flags) {
 
-        status = SamrClose(samr_b, &cn->samr.dom_handle);
+        status = SamrClose(samr_b,
+                           cn->samr.hDomain);
         BAIL_ON_NTSTATUS_ERROR(status);
 
-        memset(&cn->samr.dom_handle, 0, sizeof(cn->samr.dom_handle));
+        cn->samr.hDomain    = NULL;
         cn->samr.dom_access = 0;
-        if (cn->samr.dom_sid) {
-            RTL_FREE(&cn->samr.dom_sid);
-            cn->samr.dom_sid = NULL;
-        }
+        RTL_FREE(&cn->samr.dom_sid);
+        cn->samr.dom_sid = NULL;
     }
 
     if (cn->samr.dom_access == 0) {
@@ -404,8 +407,12 @@ NetConnectSamr(
         dom_names = NULL;
 
         do {
-            status = SamrEnumDomains(samr_b, &conn_handle, &resume, size,
-                                     &dom_names, &entries);
+            status = SamrEnumDomains(samr_b,
+                                     hConn,
+                                     &resume,
+                                     size,
+                                     &dom_names,
+                                     &entries);
             if (status != STATUS_SUCCESS &&
                 status != STATUS_MORE_ENTRIES) goto error;
 
@@ -433,16 +440,22 @@ NetConnectSamr(
         } while (status == STATUS_MORE_ENTRIES);
 
 domain_name_found:
-        status = SamrLookupDomain(samr_b, &conn_handle, dom_name, &dom_sid);
+        status = SamrLookupDomain(samr_b,
+                                  hConn,
+                                  dom_name,
+                                  &dom_sid);
         BAIL_ON_NTSTATUS_ERROR(status);
 
         dom_access = dom_flags | req_dom_flags;
 
-        status = SamrOpenDomain(samr_b, &conn_handle, dom_access, dom_sid,
-                                &dom_handle);
+        status = SamrOpenDomain(samr_b,
+                                hConn,
+                                dom_access,
+                                dom_sid,
+                                &hDomain);
         BAIL_ON_NTSTATUS_ERROR(status);
 
-        cn->samr.dom_handle = dom_handle;
+        cn->samr.hDomain    = hDomain;
         cn->samr.dom_access = dom_access;
         cn->samr.dom_name   = wc16sdup(dom_name);
 
@@ -526,7 +539,7 @@ NetConnectLsa(
     NetConnList *cnlist = NULL;
     NetConn *cn = NULL;
     NetConn *lookup = NULL;
-    PolicyHandle policy_handle = {0};
+    POLICY_HANDLE hPolicy = NULL;
     uint32 lsa_access = 0;
     wchar16_t localhost_addr[10] = {0};
 
@@ -565,10 +578,10 @@ NetConnectLsa(
 
     if (!(cn->lsa.lsa_access & req_lsa_flags) &&
         cn->lsa.bind) {
-        status = LsaClose(lsa_b, &cn->lsa.policy_handle);
+        status = LsaClose(lsa_b, cn->lsa.hPolicy);
         BAIL_ON_NTSTATUS_ERROR(status);
 
-        memset(&cn->lsa.policy_handle, 0, sizeof(cn->lsa.policy_handle));
+        cn->lsa.hPolicy    = NULL;
         cn->lsa.lsa_access = 0;
     }
 
@@ -586,12 +599,12 @@ NetConnectLsa(
         }
 
         status = LsaOpenPolicy2(lsa_b, hostname, NULL, lsa_access,
-                                &policy_handle);
+                                &hPolicy);
         BAIL_ON_NTSTATUS_ERROR(status);
 
-        cn->lsa.bind          = lsa_b;
-        cn->lsa.policy_handle = policy_handle;
-        cn->lsa.lsa_access    = lsa_access;
+        cn->lsa.bind       = lsa_b;
+        cn->lsa.hPolicy    = hPolicy;
+        cn->lsa.lsa_access = lsa_access;
     }
 
     /* set the host name if it's completely new connection */
@@ -642,10 +655,11 @@ NetDisconnectSamr(
 
     samr_b = cn->samr.bind;
 
-    status = SamrClose(samr_b, &cn->samr.dom_handle);
+    status = SamrClose(samr_b,
+                       cn->samr.hDomain);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    memset(&cn->samr.dom_handle, 0, sizeof(cn->samr.dom_handle));
+    cn->samr.hDomain    = NULL;
     cn->samr.dom_access = 0;
     if (cn->samr.dom_name) {
         NetFreeMemory((void*)cn->samr.dom_name);
@@ -656,16 +670,18 @@ NetDisconnectSamr(
         RTL_FREE(&cn->samr.dom_sid);
     }
 
-    status = SamrClose(samr_b, &cn->samr.btin_dom_handle);
+    status = SamrClose(samr_b,
+                       cn->samr.hBtinDomain);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    memset(&cn->samr.btin_dom_handle, 0, sizeof(cn->samr.btin_dom_handle));
+    cn->samr.hBtinDomain     = NULL;
     cn->samr.btin_dom_access = 0;
 
-    status = SamrClose(samr_b, &cn->samr.conn_handle);
+    status = SamrClose(samr_b,
+                       cn->samr.hConn);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    memset(&cn->samr.conn_handle, 0, sizeof(cn->samr.conn_handle));
+    cn->samr.hConn       = NULL;
     cn->samr.conn_access = 0;
 
     FreeSamrBinding(&samr_b);
@@ -702,10 +718,10 @@ NetDisconnectLsa(
 
     lsa_b = cn->lsa.bind;
 
-    status = LsaClose(lsa_b, &cn->lsa.policy_handle);
+    status = LsaClose(lsa_b, cn->lsa.hPolicy);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    memset(&cn->lsa.policy_handle, 0, sizeof(cn->lsa.policy_handle));
+    cn->lsa.hPolicy    = NULL;
     cn->lsa.lsa_access = 0;
 
     FreeLsaBinding(&lsa_b);

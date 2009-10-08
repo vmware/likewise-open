@@ -49,13 +49,13 @@
 
 NTSTATUS
 LsaLookupSids(
-    IN  handle_t hBinding,
-    IN  PolicyHandle *phPolicy,
-    IN  SidArray *pSids,
-    OUT RefDomainList **ppRefDomList,
+    IN  handle_t         hBinding,
+    IN  POLICY_HANDLE    hPolicy,
+    IN  SidArray        *pSids,
+    OUT RefDomainList  **ppRefDomList,
     OUT TranslatedName **ppTransNames,
-    IN  UINT16 Level,
-    IN OUT UINT32 *Count
+    IN  UINT16           Level,
+    IN OUT UINT32       *Count
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -66,7 +66,7 @@ LsaLookupSids(
     RefDomainList *pOutDomains = NULL;
 
     BAIL_ON_INVALID_PTR(hBinding, ntStatus);
-    BAIL_ON_INVALID_PTR(phPolicy, ntStatus);
+    BAIL_ON_INVALID_PTR(hPolicy, ntStatus);
     BAIL_ON_INVALID_PTR(pSids, ntStatus);
     BAIL_ON_INVALID_PTR(ppRefDomList, ntStatus);
     BAIL_ON_INVALID_PTR(ppTransNames, ntStatus);
@@ -78,7 +78,7 @@ LsaLookupSids(
 
     DCERPC_CALL(ntStatus, _LsaLookupSids(
                               hBinding,
-                              phPolicy,
+                              hPolicy,
                               pSids,
                               &pRefDomains,
                               &NameArray,

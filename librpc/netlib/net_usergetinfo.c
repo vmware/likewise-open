@@ -51,7 +51,7 @@ NetUserGetInfo(
     WINERR err = ERROR_SUCCESS;
     NetConn *conn = NULL;
     handle_t samr_b = NULL;
-    PolicyHandle user_h;
+    ACCOUNT_HANDLE hUser = NULL;
     uint32 user_rid = 0;
     UserInfo *info = NULL;
     USER_INFO_20 *ninfo20 = NULL;
@@ -69,22 +69,22 @@ NetUserGetInfo(
     status = LwIoGetThreadCreds(&creds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    samr_b = conn->samr.bind;
-
     status = NetConnectSamr(&conn, hostname, 0, 0, creds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = NetOpenUser(conn, username, access_rights, &user_h,
+    status = NetOpenUser(conn, username, access_rights, &hUser,
                          &user_rid);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = SamrQueryUserInfo(samr_b, &user_h, samr_level, &info);
+    samr_b = conn->samr.bind;
+
+    status = SamrQueryUserInfo(samr_b, hUser, samr_level, &info);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     status = PullUserInfo20((void**)&ninfo20, &info->info21, num);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = SamrClose(samr_b, &user_h);
+    status = SamrClose(samr_b, hUser);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     *buffer = ninfo20;

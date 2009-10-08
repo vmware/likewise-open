@@ -43,7 +43,7 @@ NetLocalGroupDel(
     WINERR err = ERROR_SUCCESS;
     NetConn *conn = NULL;
     handle_t samr_b = NULL;
-    PolicyHandle alias_h;
+    ACCOUNT_HANDLE hAlias = NULL;
     uint32 alias_rid = 0;
     PIO_CREDS creds = NULL;
 
@@ -56,13 +56,13 @@ NetLocalGroupDel(
     status = NetConnectSamr(&conn, hostname, 0, 0, creds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = NetOpenAlias(conn, aliasname, alias_access, &alias_h,
+    status = NetOpenAlias(conn, aliasname, alias_access, &hAlias,
                           &alias_rid);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     samr_b = conn->samr.bind;
 
-    status = SamrDeleteDomAlias(samr_b, &alias_h);
+    status = SamrDeleteDomAlias(samr_b, hAlias);
     BAIL_ON_NTSTATUS_ERROR(status);
 
 cleanup:

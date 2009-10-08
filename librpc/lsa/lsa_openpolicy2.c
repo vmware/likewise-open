@@ -52,12 +52,12 @@ LsaOpenPolicy2(
     IN  PCWSTR         pwszSysname,
     IN  PVOID          attrib,
     IN  UINT32         AccessMask,
-    OUT PolicyHandle  *phPolicy
+    OUT POLICY_HANDLE *phPolicy
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     PWSTR pwszSystemName = NULL;
-    PolicyHandle hLsaPolicy = {0};
+    POLICY_HANDLE hPolicy = NULL;
     SECURITY_QUALITY_OF_SERVICE SecQos = {0};
     ObjectAttribute ObjAttribute = {0};
 
@@ -89,10 +89,10 @@ LsaOpenPolicy2(
                               pwszSystemName,
                               &ObjAttribute,
                               AccessMask,
-                              &hLsaPolicy));
+                              &hPolicy));
     BAIL_ON_NT_STATUS(ntStatus);
 
-    *phPolicy = hLsaPolicy;
+    *phPolicy = hPolicy;
 
 cleanup:
     RtlWC16StringFree(&pwszSystemName);
@@ -100,6 +100,8 @@ cleanup:
     return ntStatus;
 
 error:
+    *phPolicy = NULL;
+
     goto cleanup;
 }
 

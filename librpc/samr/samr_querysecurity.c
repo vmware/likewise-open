@@ -50,7 +50,7 @@
 NTSTATUS
 SamrQuerySecurity(
     IN  handle_t                       hSamrBinding,
-    IN  PolicyHandle                  *pHandle,
+    IN  void                          *hObject,
     IN  ULONG                          ulSecurityInfo,
     OUT PSECURITY_DESCRIPTOR_RELATIVE *ppSecDesc,
     OUT PUINT32                        pulSecDescLen
@@ -61,12 +61,12 @@ SamrQuerySecurity(
     PSECURITY_DESCRIPTOR_RELATIVE pSecDesc = NULL;
 
     BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
-    BAIL_ON_INVALID_PTR(pHandle, ntStatus);
+    BAIL_ON_INVALID_PTR(hObject, ntStatus);
     BAIL_ON_INVALID_PTR(ppSecDesc, ntStatus);
     BAIL_ON_INVALID_PTR(pulSecDescLen, ntStatus);
 
     DCERPC_CALL(ntStatus, _SamrQuerySecurity(hSamrBinding,
-                                             pHandle,
+                                             hObject,
                                              ulSecurityInfo,
                                              &pSecDescBuffer));
     BAIL_ON_NT_STATUS(ntStatus);

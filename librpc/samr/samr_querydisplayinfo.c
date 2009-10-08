@@ -50,7 +50,7 @@
 NTSTATUS
 SamrQueryDisplayInfo(
     IN  handle_t          hSamrBinding,
-    IN  PolicyHandle     *phDomain,
+    IN  DOMAIN_HANDLE     hDomain,
     IN  UINT16            Level,
     IN  UINT32            StartIdx,
     IN  UINT32            MaxEntries,
@@ -68,7 +68,7 @@ SamrQueryDisplayInfo(
     SamrDisplayInfo *pDispInfo = NULL;
 
     BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
-    BAIL_ON_INVALID_PTR(phDomain, ntStatus);
+    BAIL_ON_INVALID_PTR(hDomain, ntStatus);
     BAIL_ON_INVALID_PTR(pTotalSize, ntStatus);
     BAIL_ON_INVALID_PTR(pReturnedSize, ntStatus);
     BAIL_ON_INVALID_PTR(ppInfo, ntStatus);
@@ -76,7 +76,7 @@ SamrQueryDisplayInfo(
     memset(&Info, 0, sizeof(Info));
 
     DCERPC_CALL(ntStatus, _SamrQueryDisplayInfo(hSamrBinding,
-                                                phDomain,
+                                                hDomain,
                                                 Level,
                                                 StartIdx,
                                                 MaxEntries,

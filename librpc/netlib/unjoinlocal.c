@@ -33,9 +33,9 @@
 
 NTSTATUS
 DisableWksAccount(
-    NetConn *conn,
-    wchar16_t *account_name,
-    PolicyHandle *account_h
+    NetConn        *conn,
+    wchar16_t      *account_name,
+    ACCOUNT_HANDLE *phAccount
     )
 {
 	const uint32 user_access = USER_ACCESS_GET_ATTRIBUTES |
@@ -44,7 +44,8 @@ DisableWksAccount(
 
 	NTSTATUS status;
 	handle_t samr_b;
-	PolicyHandle *domain_h;
+	DOMAIN_HANDLE hDomain = NULL;
+    ACCOUNT_HANDLE hAccount = NULL;
 	wchar16_t *names[1];
 	UserInfo16 *info16;
 	uint32 *rids, *types;
@@ -53,35 +54,42 @@ DisableWksAccount(
 
     memset((void*)&sinfo, 0, sizeof(sinfo));
 
-	samr_b   = conn->samr.bind;
-	domain_h = &conn->samr.dom_handle;
-	info16   = &sinfo.info16;
+	samr_b  = conn->samr.bind;
+	hDomain = &conn->samr.hDomain;
+	info16  = &sinfo.info16;
 
 	names[0] = account_name;
-	status = SamrLookupNames(samr_b, domain_h, 1, names, &rids, &types, NULL);
-	if (status != STATUS_SUCCESS) goto done;
+	status = SamrLookupNames(samr_b, hDomain, 1, names, &rids, &types, NULL);
+	if (status != STATUS_SUCCESS) goto error;
 
 	/* TODO: what should we actually do if the number of rids found
 	   is greater than 1 ? */
 
-	status = SamrOpenUser(samr_b, domain_h, user_access, rids[0], account_h);
-	if (status != STATUS_SUCCESS) goto done;
+	status = SamrOpenUser(samr_b, hDomain, user_access, rids[0], &hAccount);
+	if (status != STATUS_SUCCESS) goto error;
 
-	status = SamrQueryUserInfo(samr_b, account_h, acct_flags_level, &qinfo);
-	if (status != STATUS_SUCCESS) goto done;
+	status = SamrQueryUserInfo(samr_b, hAccount, acct_flags_level, &qinfo);
+	if (status != STATUS_SUCCESS) goto error;
 
 	/* set "account disabled" flag */
 	info16->account_flags = qinfo->info16.account_flags;
 	info16->account_flags |= ACB_DISABLED;
 
-	status = SamrSetUserInfo(samr_b, account_h, acct_flags_level, &sinfo);
+	status = SamrSetUserInfo(samr_b, hAccount, acct_flags_level, &sinfo);
 
-done:
+    *phAccount = hAccount;
+
+cleanup:
     if (rids) SamrFreeMemory((void*)rids);
     if (types) SamrFreeMemory((void*)types);
     if (qinfo) SamrFreeMemory((void*)qinfo);
 
 	return status;
+
+error:
+    *phAccount = NULL;
+
+    goto cleanup;
 }
 
 

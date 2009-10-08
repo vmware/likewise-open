@@ -59,7 +59,7 @@ NetUserSetInfo(
     WINERR err = ERROR_SUCCESS;
     NetConn *conn = NULL;
     handle_t samr_b = NULL;
-    PolicyHandle user_h;
+    ACCOUNT_HANDLE hUser = NULL;
     uint32 user_rid = 0;
     UserInfo *info = NULL;
     USER_INFO_0 *ninfo0 = NULL;
@@ -84,7 +84,7 @@ NetUserSetInfo(
 
     samr_b = conn->samr.bind;
 
-    status = NetOpenUser(conn, username, access_rights, &user_h, &user_rid);
+    status = NetOpenUser(conn, username, access_rights, &hUser, &user_rid);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     switch (level) {
@@ -140,10 +140,10 @@ NetUserSetInfo(
     }
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = SamrSetUserInfo(samr_b, &user_h, samr_level, info);
+    status = SamrSetUserInfo(samr_b, hUser, samr_level, info);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = SamrClose(samr_b, &user_h);
+    status = SamrClose(samr_b, hUser);
     BAIL_ON_NTSTATUS_ERROR(status);
 
 cleanup:

@@ -49,10 +49,10 @@
 
 NTSTATUS
 SamrGetMembersInAlias(
-    IN  handle_t       hSamrBinding,
-    IN  PolicyHandle  *phAlias,
-    OUT PSID         **pppSids,
-    OUT UINT32        *pCount
+    IN  handle_t         hSamrBinding,
+    IN  ACCOUNT_HANDLE   hAlias,
+    OUT PSID           **pppSids,
+    OUT UINT32          *pCount
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -60,12 +60,12 @@ SamrGetMembersInAlias(
     PSID *ppSids = NULL;
 
     BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
-    BAIL_ON_INVALID_PTR(phAlias, ntStatus);
+    BAIL_ON_INVALID_PTR(hAlias, ntStatus);
     BAIL_ON_INVALID_PTR(pppSids, ntStatus);
     BAIL_ON_INVALID_PTR(pCount, ntStatus);
 
     DCERPC_CALL(ntStatus, _SamrGetMembersInAlias(hSamrBinding,
-                                                 phAlias,
+                                                 hAlias,
                                                  &Sids));
     BAIL_ON_NT_STATUS(ntStatus);
 

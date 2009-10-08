@@ -49,17 +49,19 @@
 
 NTSTATUS
 SamrDeleteDomAlias(
-    IN  handle_t      hSamrBinding,
-    OUT PolicyHandle *phAlias
+    IN  handle_t        hSamrBinding,
+    OUT ACCOUNT_HANDLE  hAlias
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    ACCOUNT_HANDLE hAliasOut = NULL;
 
     BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
-    BAIL_ON_INVALID_PTR(phAlias, ntStatus);
+    BAIL_ON_INVALID_PTR(hAlias, ntStatus);
 
     DCERPC_CALL(ntStatus, _SamrDeleteDomAlias(hSamrBinding,
-                                              phAlias));
+                                              hAlias,
+                                              &hAliasOut));
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:

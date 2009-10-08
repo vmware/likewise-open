@@ -248,7 +248,7 @@ NetJoinDomainLocalInternal(
     handle_t lsa_b = NULL;
     handle_t samr_b = NULL;
     LsaPolicyInformation *lsa_policy_info = NULL;
-    PolicyHandle account_handle;
+    ACCOUNT_HANDLE hAccount = NULL;
     wchar16_t *machname = NULL;
     wchar16_t *machacct_name = NULL;
     wchar16_t machine_pass[MACHPASS_LEN+1];
@@ -302,7 +302,7 @@ NetJoinDomainLocalInternal(
 
     lsa_b = lsa_conn->lsa.bind;
 
-    status = LsaQueryInfoPolicy2(lsa_b, &lsa_conn->lsa.policy_handle,
+    status = LsaQueryInfoPolicy2(lsa_b, lsa_conn->lsa.hPolicy,
                                  LSA_POLICY_INFO_DNS, &lsa_policy_info);
     BAIL_ON_NTSTATUS_ERROR(status);
 
@@ -346,11 +346,11 @@ NetJoinDomainLocalInternal(
     newacct = false;
 
     status = NetOpenUser(conn, machacct_name, user_access,
-                         &account_handle, &rid);
+                         &hAccount, &rid);
     if (status == STATUS_NONE_MAPPED) {
         if (!(options & NETSETUP_ACCT_CREATE)) goto error;
 
-        status = CreateWksAccount(conn, machacct_name, &account_handle);
+        status = CreateWksAccount(conn, machacct_name, &hAccount);
         BAIL_ON_NTSTATUS_ERROR(status);
 
         if (machine_pass[0] == '\0') {
@@ -368,19 +368,19 @@ NetJoinDomainLocalInternal(
         BAIL_ON_NTSTATUS_ERROR(status);
     }
 
-    status = ResetWksAccount(conn, machacct_name, &account_handle);
+    status = ResetWksAccount(conn, machacct_name, hAccount);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = SetMachinePassword(conn, &account_handle, newacct, machname,
+    status = SetMachinePassword(conn, hAccount, newacct, machname,
                                 machine_pass);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = SamrClose(samr_b, &account_handle);
+    status = SamrClose(samr_b, hAccount);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     status = RtlAllocateWC16StringFromSid(&sid_str, conn->samr.dom_sid);
     if (status != STATUS_SUCCESS) {
-        close_status = DisableWksAccount(conn, machacct_name, &account_handle);
+        close_status = DisableWksAccount(conn, machacct_name, hAccount);
         BAIL_ON_NTSTATUS_ERROR(close_status);
 
         err = NtStatusToWin32Error(status);
@@ -397,7 +397,7 @@ NetJoinDomainLocalInternal(
               sid_str,
               machine_pass);
     if (err != ERROR_SUCCESS) {
-        close_status = DisableWksAccount(conn, machacct_name, &account_handle);
+        close_status = DisableWksAccount(conn, machacct_name, hAccount);
         BAIL_ON_NTSTATUS_ERROR(close_status);
 
         BAIL_ON_WINERR_ERROR(err);

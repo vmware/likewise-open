@@ -44,7 +44,7 @@
 #include <lwrpc/security.h>
 #include <lwrpc/unistrdef.h>
 #include <lwrpc/rid.h>
-#include <lwrpc/userinfo.h>
+#include <lwrpc/samrdefs.h>
 
 /*
  * Domain trust definitions

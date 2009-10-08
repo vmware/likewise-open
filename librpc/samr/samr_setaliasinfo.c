@@ -49,20 +49,20 @@
 
 NTSTATUS
 SamrSetAliasInfo(
-    IN  handle_t      hSamrBinding,
-    IN  PolicyHandle *phAlias,
-    IN  UINT16        Level,
-    IN  AliasInfo    *pInfo
+    IN  handle_t        hSamrBinding,
+    IN  ACCOUNT_HANDLE  hAlias,
+    IN  UINT16          Level,
+    IN  AliasInfo      *pInfo
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
     BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
-    BAIL_ON_INVALID_PTR(phAlias, ntStatus);
+    BAIL_ON_INVALID_PTR(hAlias, ntStatus);
     BAIL_ON_INVALID_PTR(pInfo, ntStatus);
 
     DCERPC_CALL(ntStatus, _SamrSetAliasInfo(hSamrBinding,
-                                            phAlias,
+                                            hAlias,
                                             Level,
                                             pInfo));
     BAIL_ON_NT_STATUS(ntStatus);

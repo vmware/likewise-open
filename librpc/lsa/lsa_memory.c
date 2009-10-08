@@ -267,21 +267,30 @@ LsaAllocateTranslatedSids3(
             pNewArray[i].index    = pIn->sids[i].index;
             pNewArray[i].unknown1 = pIn->sids[i].unknown1;
 
-            if (pIn->sids[i].sid)
+            if (pIn->sids[i].sid &&
+                (pIn->sids[i].type != SID_TYPE_INVALID &&
+                 pIn->sids[i].type != SID_TYPE_UNKNOWN))
             {
                 ntStatus = MsRpcDuplicateSid(
                                &(pNewArray[i].sid),
                                pIn->sids[i].sid);
                 BAIL_ON_NT_STATUS(ntStatus);
 
+                ntStatus = LsaRpcAddDepMemory(
+                               pNewArray[i].sid,
+                               pNewArray);
+                BAIL_ON_NT_STATUS(ntStatus);
             }
-            else
+            else if (pIn->sids[i].type == SID_TYPE_INVALID ||
+                     pIn->sids[i].type == SID_TYPE_UNKNOWN)
             {
                 pNewArray[i].sid = NULL;
             }
-
-            ntStatus = LsaRpcAddDepMemory(pNewArray[i].sid, pNewArray);
-            BAIL_ON_NT_STATUS(ntStatus);
+            else
+            {
+                ntStatus = STATUS_INVALID_SID;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
         }
     }
 

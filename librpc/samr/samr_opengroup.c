@@ -49,22 +49,22 @@
 
 NTSTATUS
 SamrOpenGroup(
-    IN  handle_t hSamrBinding,
-    IN  PolicyHandle *phDomain,
-    IN  UINT32 AccessMask,
-    IN  UINT32 Rid,
-    OUT PolicyHandle *phGroup
+    IN  handle_t        hSamrBinding,
+    IN  DOMAIN_HANDLE   hDomain,
+    IN  UINT32          AccessMask,
+    IN  UINT32          Rid,
+    OUT ACCOUNT_HANDLE *phGroup
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PolicyHandle hGroup = {0};
+    ACCOUNT_HANDLE hGroup = NULL;
 
     BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
-    BAIL_ON_INVALID_PTR(phDomain, ntStatus);
+    BAIL_ON_INVALID_PTR(hDomain, ntStatus);
     BAIL_ON_INVALID_PTR(phGroup, ntStatus);
 
     DCERPC_CALL(ntStatus, _SamrOpenGroup(hSamrBinding,
-                                         phDomain,
+                                         hDomain,
                                          AccessMask,
                                          Rid,
                                          &hGroup));
@@ -76,7 +76,7 @@ cleanup:
     return ntStatus;
 
 error:
-    memset(phGroup, 0, sizeof(*phGroup));
+    phGroup = NULL;
 
     goto cleanup;
 }

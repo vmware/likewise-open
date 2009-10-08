@@ -53,14 +53,14 @@ NetLocalGroupChangeMembers(
     handle_t lsa_b = NULL;
     wchar16_t *member = NULL;
     size_t member_len = 0;
-    PolicyHandle alias_h;
+    ACCOUNT_HANDLE hAlias = NULL;
     PSID user_sid = NULL;
     PSID dom_sid = NULL;
     uint32 alias_rid = 0;
     uint32 i = 0;
     LOCALGROUP_MEMBERS_INFO_0 *info0 = NULL;
     LOCALGROUP_MEMBERS_INFO_3 *info3 = NULL;
-    PolicyHandle lsa_h;
+    POLICY_HANDLE hPolicy = NULL;
     wchar16_t *names[1] = {NULL};
     uint32 count = 0;
     uint32 sid_index = 0;
@@ -87,13 +87,13 @@ NetLocalGroupChangeMembers(
 
     samr_b = conn->samr.bind;
 
-    status = NetOpenAlias(conn, aliasname, access_rights, &alias_h,
+    status = NetOpenAlias(conn, aliasname, access_rights, &hAlias,
                           &alias_rid);
     if (status == STATUS_NONE_MAPPED) {
         /* No such alias in host's domain.
            Try to look in builtin domain. */
         status = NetOpenAlias(conn, aliasname, access_rights,
-                              &alias_h, &alias_rid);
+                              hAlias, &alias_rid);
         BAIL_ON_NTSTATUS_ERROR(status);
 
     } else if (status != STATUS_SUCCESS) {
@@ -103,8 +103,8 @@ NetLocalGroupChangeMembers(
     status = NetConnectLsa(&conn, hostname, lsa_access, creds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    lsa_b = conn->lsa.bind;
-    lsa_h = conn->lsa.policy_handle;
+    lsa_b   = conn->lsa.bind;
+    hPolicy = conn->lsa.hPolicy;
 
     for (i = 0; i < entries; i++) {
         if (level == 3) {
@@ -125,7 +125,7 @@ NetLocalGroupChangeMembers(
             names[0] = member;
             count    = 0;
 
-            status = LsaLookupNames(lsa_b, &lsa_h, num_names, names,
+            status = LsaLookupNames(lsa_b, hPolicy, num_names, names,
                                     &domains, &sids, lookup_level, &count);
             BAIL_ON_NTSTATUS_ERROR(status);
 
@@ -160,11 +160,11 @@ NetLocalGroupChangeMembers(
         }
 
         if (access_rights == ALIAS_ACCESS_ADD_MEMBER) {
-            status = SamrAddAliasMember(samr_b, &alias_h, user_sid);
+            status = SamrAddAliasMember(samr_b, hAlias, user_sid);
             BAIL_ON_NTSTATUS_ERROR(status);
 
         } else if (access_rights == ALIAS_ACCESS_REMOVE_MEMBER) {
-            status = SamrDeleteAliasMember(samr_b, &alias_h, user_sid);
+            status = SamrDeleteAliasMember(samr_b, hAlias, user_sid);
             BAIL_ON_NTSTATUS_ERROR(status);
         }
 
@@ -173,7 +173,7 @@ NetLocalGroupChangeMembers(
         }
     }
 
-    status = SamrClose(samr_b, &alias_h);
+    status = SamrClose(samr_b, hAlias);
     BAIL_ON_NTSTATUS_ERROR(status);
 
 cleanup:

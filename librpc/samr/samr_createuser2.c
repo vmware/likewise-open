@@ -49,24 +49,24 @@
 
 NTSTATUS
 SamrCreateUser2(
-    IN  handle_t      hSamrBinding,
-    IN  PolicyHandle *phDomain,
-    IN  PWSTR         pwszAccountName,
-    IN  UINT32        AccountFlags,
-    IN  UINT32        AccessMask,
-    OUT PolicyHandle *phUser,
-    OUT PUINT32       pAccessGranted,
-    OUT PUINT32       pRid
+    IN  handle_t        hSamrBinding,
+    IN  DOMAIN_HANDLE   hDomain,
+    IN  PWSTR           pwszAccountName,
+    IN  UINT32          AccountFlags,
+    IN  UINT32          AccessMask,
+    OUT ACCOUNT_HANDLE *phUser,
+    OUT PUINT32         pAccessGranted,
+    OUT PUINT32         pRid
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     UnicodeStringEx AccountName = {0};
-    PolicyHandle hUser = {0};
+    ACCOUNT_HANDLE hUser = NULL;
     UINT32 AccessGranted = 0;
     UINT32 Rid = 0;
 
     BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
-    BAIL_ON_INVALID_PTR(phDomain, ntStatus);
+    BAIL_ON_INVALID_PTR(hDomain, ntStatus);
     BAIL_ON_INVALID_PTR(pwszAccountName, ntStatus);
     BAIL_ON_INVALID_PTR(phUser, ntStatus);
     BAIL_ON_INVALID_PTR(pAccessGranted, ntStatus);
@@ -76,7 +76,7 @@ SamrCreateUser2(
     BAIL_ON_NT_STATUS(ntStatus);
 
     DCERPC_CALL(ntStatus, _SamrCreateUser2(hSamrBinding,
-                                           phDomain,
+                                           hDomain,
                                            &AccountName,
                                            AccountFlags,
                                            AccessMask,
@@ -95,7 +95,7 @@ cleanup:
     return ntStatus;
 
 error:
-    memset(phUser, 0, sizeof(*phUser));
+    phUser          = NULL;
     *pAccessGranted = 0;
     *pRid           = 0;
 

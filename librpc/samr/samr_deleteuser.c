@@ -49,17 +49,19 @@
 
 NTSTATUS
 SamrDeleteUser(
-    IN  handle_t hSamrBinding,
-    IN  PolicyHandle *phUser
+    IN  handle_t        hSamrBinding,
+    IN  ACCOUNT_HANDLE  hUser
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    ACCOUNT_HANDLE hUserOut = NULL;
 
     BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
-    BAIL_ON_INVALID_PTR(phUser, ntStatus);
+    BAIL_ON_INVALID_PTR(hUser, ntStatus);
 
     DCERPC_CALL(ntStatus, _SamrDeleteUser(hSamrBinding,
-                                          phUser));
+                                          hUser,
+                                          &hUserOut));
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:

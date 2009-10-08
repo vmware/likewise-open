@@ -35,7 +35,8 @@ cpp_quote("#endif")
 
 	/* function 0x00 */
     NTSTATUS _LsaClose(
-        [in,out] PolicyHandle *handle
+        [in,context_handle] void *hIn,
+        [out,context_handle] void **hOut
         );
 
     NTSTATUS lsa_Function01();
@@ -47,7 +48,7 @@ cpp_quote("#endif")
 
 	/* function 0x07 */
     NTSTATUS _LsaQueryInfoPolicy(
-        [in] PolicyHandle *handle,
+        [in] POLICY_HANDLE hPolicy,
         [in] uint16 level,
         [out,switch_is(level)] LsaPolicyInformation **info
         );
@@ -61,7 +62,7 @@ cpp_quote("#endif")
 
 	/* function 0x0e */
     NTSTATUS _LsaLookupNames(
-        [in] PolicyHandle *handle,
+        [in] POLICY_HANDLE hPolicy,
         [in,range(0,1000)] uint32 num_names,
         [in,size_is(num_names)] UnicodeString *names,
         [out] RefDomainList **domains,
@@ -72,7 +73,7 @@ cpp_quote("#endif")
 
 	/* function 0x0f */
     NTSTATUS _LsaLookupSids(
-        [in] PolicyHandle *handle,
+        [in] POLICY_HANDLE hPolicy,
         [in] SidArray *sids,
         [out] RefDomainList **domains,
         [in,out] TranslatedNameArray *names,
@@ -114,14 +115,14 @@ cpp_quote("#endif")
         [in,string,unique] wchar16_t *system_name,
         [in] ObjectAttribute *attrib,
         [in] uint32 access_mask,
-        [out,ref] PolicyHandle *handle
+        [out] POLICY_HANDLE *phPolicy
         );
 
     NTSTATUS lsa_Function2d();
 
 	/* function 0x2e */
     NTSTATUS _LsaQueryInfoPolicy2(
-        [in] PolicyHandle *handle,
+        [in] POLICY_HANDLE hPolicy,
         [in] uint16 level,
         [out,switch_is(level)] LsaPolicyInformation **info
         );
@@ -140,7 +141,7 @@ cpp_quote("#endif")
 
 	/* function 0x3a */
     NTSTATUS _LsaLookupNames2(
-        [in] PolicyHandle *handle,
+        [in] POLICY_HANDLE hPolicy,
         [in,range(0,1000)] uint32 num_names,
         [in,size_is(num_names)] UnicodeStringEx *names,
         [out] RefDomainList **domains,
@@ -162,7 +163,7 @@ cpp_quote("#endif")
     NTSTATUS lsa_Function43();
 
     NTSTATUS _LsaLookupNames3(
-        [in] PolicyHandle *handle,
+        [in] POLICY_HANDLE hPolicy,
         [in,range(0,1000)] uint32 num_names,
         [in,size_is(num_names)] UnicodeStringEx *names,
         [out] RefDomainList **domains,

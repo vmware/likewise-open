@@ -49,18 +49,24 @@
 
 NTSTATUS
 LsaClose(
-    handle_t hBinding,
-    PolicyHandle *phPolicy
+    IN  handle_t hBinding,
+    IN  void*    hObject
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    unsigned32 rpcStatus = 0;
+    void *hOut = NULL;
 
     BAIL_ON_INVALID_PTR(hBinding, ntStatus);
-    BAIL_ON_INVALID_PTR(phPolicy, ntStatus);
+    BAIL_ON_INVALID_PTR(hObject, ntStatus);
 
     DCERPC_CALL(ntStatus, _LsaClose(
                               hBinding,
-                              phPolicy));
+                              hObject,
+                              &hOut));
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    rpc_sm_destroy_client_context(&hObject, &rpcStatus);
 
 cleanup:
     return ntStatus;
