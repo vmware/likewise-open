@@ -319,11 +319,13 @@ PvfsOplockBreakAck(
 cleanup:
     LWIO_UNLOCK_MUTEX(bFcbLocked, &pFcb->mutexOplock);
 
-    if (pIrpContext->bIsPended == TRUE) {
+    if (pIrpContext->bIsPended == TRUE)
+    {
         ntError = STATUS_PENDING;
     }
 
-    if ((ntError != STATUS_PENDING) && pCcb) {
+    if (pCcb)
+    {
         PvfsReleaseCCB(pCcb);
     }
 
@@ -1364,6 +1366,8 @@ PvfsOplockProcessReadyItems(
 
         if (pPendingOp->pCompletionContext) {
             pPendingOp->pfnFreeContext(&pPendingOp->pCompletionContext);
+        } else {
+            PVFS_FREE(&pPendingOp->pCompletionContext);
         }
 
         PVFS_FREE(&pPendingOp);
@@ -1388,7 +1392,8 @@ PvfsFreeOplockReadyItemsContext(
 {
     PPVFS_FCB pFcb = *ppFcb;
 
-    if (pFcb) {
+    if (pFcb)
+    {
         PvfsReleaseFCB(pFcb);
     }
 
