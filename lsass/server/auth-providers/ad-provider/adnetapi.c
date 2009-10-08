@@ -428,7 +428,7 @@ AD_NetLookupObjectSidsByNames(
     NTSTATUS status = 0;
     handle_t lsa_binding = (HANDLE)NULL;
     DWORD dwAccess_rights = LSA_ACCESS_LOOKUP_NAMES_SIDS;
-    PolicyHandle lsa_policy = {0};
+    POLICY_HANDLE hPolicy = NULL;
     DWORD dwLevel;
     DWORD dwFoundSidsCount = 0;
     PWSTR* ppwcNames = NULL;
@@ -489,7 +489,7 @@ AD_NetLookupObjectSidsByNames(
                             pwcHost,
                             NULL,
                             dwAccess_rights,
-                            &lsa_policy);
+                            &hPolicy);
     if (status != 0)
     {
         LSA_LOG_DEBUG("LsaOpenPolicy2() failed with %d (0x%08x)", status, status);
@@ -505,7 +505,7 @@ AD_NetLookupObjectSidsByNames(
     dwLevel = 1;
     status = LsaLookupNames2(
                    lsa_binding,
-                   &lsa_policy,
+                   hPolicy,
                    dwNamesCount,
                    ppwcNames,
                    &pDomains,
@@ -641,7 +641,7 @@ cleanup:
         LsaRpcFreeMemory(pSids);
     }
     LW_SAFE_FREE_MEMORY(pObject_sid);
-    status = LsaClose(lsa_binding, &lsa_policy);
+    status = LsaClose(lsa_binding, hPolicy);
     if (status != 0 && dwError == 0)
     {
         LSA_LOG_DEBUG("LsaClose() failed with %d (0x%08x)", status, status);
@@ -769,7 +769,7 @@ AD_NetLookupObjectNamesBySids(
     NTSTATUS status = 0;
     handle_t lsa_binding = (HANDLE)NULL;
     DWORD dwAccess_rights = LSA_ACCESS_LOOKUP_NAMES_SIDS;
-    PolicyHandle lsa_policy = {0};
+    POLICY_HANDLE hPolicy = NULL;
     SidArray sid_array  = {0};
     DWORD dwLevel = 1;
     DWORD dwFoundNamesCount = 0;
@@ -838,7 +838,7 @@ AD_NetLookupObjectNamesBySids(
                             pwcHost,
                             NULL,
                             dwAccess_rights,
-                            &lsa_policy);
+                            &hPolicy);
     if (status != 0)
     {
         LSA_LOG_DEBUG("LsaOpenPolicy2() failed with %d (0x%08x)", status, status);
@@ -853,7 +853,7 @@ AD_NetLookupObjectNamesBySids(
     /* Lookup sid to name */
     status = LsaLookupSids(
                    lsa_binding,
-                   &lsa_policy,
+                   hPolicy,
                    &sid_array,
                    &pDomains,
                    &name_array,
@@ -1028,7 +1028,7 @@ cleanup:
 
     LW_SAFE_FREE_MEMORY(pObjectSID);
 
-    status = LsaClose(lsa_binding, &lsa_policy);
+    status = LsaClose(lsa_binding, hPolicy);
     if (status != 0 && dwError == 0){
         LSA_LOG_DEBUG("LsaClose() failed with %d (0x%08x)", status, status);
         dwError = LW_ERROR_RPC_CLOSEPOLICY_FAILED;

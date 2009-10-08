@@ -11,7 +11,7 @@ cpp_quote("#ifdef DCERPC_STUB_BUILD")
 #include <security.idl>
 #include <lwrpc/unistrdef.h>
 #include <lwrpc/lsadefs.h>
-#include "lsadefs.h"
+
 
     /* LsaPolicyInformation union returned from LsaQueryInfoPolicy */
     typedef [switch_type(uint16)] union lsa_policy_information {

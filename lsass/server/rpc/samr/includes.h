@@ -46,20 +46,15 @@
 
 #include <dce/rpc.h>
 #include <dce/dcethread.h>
-#include <winerror.h>
 #include <wc16str.h>
 #include <wc16printf.h>
 #include <lw/base.h>
+#include <winerror.h>
 #include <lwrpc/allocate.h>
 #include <lwrpc/unicodestring.h>
 #include <lwrpc/rid.h>
 #include <lwrpc/lsadefs.h>
-#include <lwrpc/domaininfo.h>
-#include <lwrpc/userinfo.h>
-#include <lwrpc/aliasinfo.h>
-#include <lwrpc/displayinfo.h>
-#include <lwrpc/samrconn.h>
-#include <lwrpc/samrflags.h>
+#include <lwrpc/samrdefs.h>
 #include <lwio/lwio.h>
 #include <lwnet.h>
 #include <lwkrb5.h>

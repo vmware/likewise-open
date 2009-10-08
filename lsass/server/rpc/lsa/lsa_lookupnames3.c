@@ -69,7 +69,7 @@ LsaSrvLookupNames3(
     PPOLICY_CONTEXT pPolCtx = NULL;
     handle_t hLsaBinding = NULL;
     PIO_CREDS pCreds = NULL;
-    PolicyHandle hDcPolicy;
+    POLICY_HANDLE hDcPolicy = NULL;
     PSAM_DOMAIN_ENTRY pDomain = NULL;
     PSAM_DOMAIN_ENTRY pLocalDomain = NULL;
     PSAM_DOMAIN_ENTRY pBuiltinDomain = NULL;
@@ -163,7 +163,7 @@ LsaSrvLookupNames3(
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
         ntStatus = LsaLookupNames3(hLsaBinding,
-                                   &hDcPolicy,
+                                   hDcPolicy,
                                    DomainAccounts.dwCount,
                                    DomainAccounts.ppwszNames,
                                    &pRemoteDomains,
@@ -220,7 +220,7 @@ LsaSrvLookupNames3(
             LsaRpcFreeMemory(pRemoteSids);
         }
 
-        ntStatus = LsaClose(hLsaBinding, &hDcPolicy);
+        ntStatus = LsaClose(hLsaBinding, hDcPolicy);
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
         FreeLsaBinding(&hLsaBinding);

@@ -47,25 +47,6 @@
 #ifndef _SAMRSRVDEFS_H_
 #define _SAMRSRVDEFS_H_
 
-#ifdef _DCE_IDL_
-typedef [context_handle] void* CONNECT_HANDLE;
-#else
-typedef void* CONNECT_HANDLE;
-#endif
-
-#ifdef _DCE_IDL_
-typedef [context_handle] void* DOMAIN_HANDLE;
-#else
-typedef void* DOMAIN_HANDLE;
-#endif
-
-#ifdef _DCE_IDL_
-typedef [context_handle] void* ACCOUNT_HANDLE;
-#else
-typedef void* ACCOUNT_HANDLE;
-#endif
-
-
 #define LSA_RPC_DIR                              CACHEDIR "/rpc"
 
 #define SAMR_RPC_CFG_DEFAULT_LPC_SOCKET_PATH     LSA_RPC_DIR "/lsass"
