@@ -93,6 +93,7 @@ PvfsIoCtlOpenFileInfo(
     switch(pOpenFileInfoInput->Level)
     {
     case 0:
+    case 100:
         ntError = PvfsFillOpenFileInfo(
                       OutputBuffer,
                       *pOutputBufferLength,
@@ -191,6 +192,16 @@ PvfsFillOpenFileInfo0(
 
 static
 NTSTATUS
+PvfsFillOpenFileInfo100(
+    PVOID pBuffer,
+    ULONG BufferLength,
+    PVOID pPreviousEntry,
+    PPVFS_FCB pFcb,
+    PULONG pBytesUsed
+    );
+
+static
+NTSTATUS
 PvfsOpenFileInfo(
     PVOID pKey,
     PVOID pData,
@@ -207,6 +218,15 @@ PvfsOpenFileInfo(
     {
     case 0:
         ntError = PvfsFillOpenFileInfo0(
+                      pOpenFileInfo->pData + pOpenFileInfo->Offset,
+                      pOpenFileInfo->BytesAvailable,
+                      pOpenFileInfo->pPreviousEntry,
+                      pFcb,
+                      &BytesUsed);
+        break;
+
+    case 100:
+        ntError = PvfsFillOpenFileInfo100(
                       pOpenFileInfo->pData + pOpenFileInfo->Offset,
                       pOpenFileInfo->BytesAvailable,
                       pOpenFileInfo->pPreviousEntry,
@@ -280,6 +300,63 @@ PvfsFillOpenFileInfo0(
     }
 
     *pBytesUsed = sizeof(IO_OPEN_FILE_INFO_0)
+                  + FilenameByteCount
+                  - sizeof(WCHAR);
+
+cleanup:
+    LwRtlWC16StringFree(&pwszFilename);
+
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+/***********************************************************************
+ **********************************************************************/
+
+static
+NTSTATUS
+PvfsFillOpenFileInfo100(
+    PVOID pBuffer,
+    ULONG BufferLength,
+    PVOID pPreviousEntry,
+    PPVFS_FCB pFcb,
+    PULONG pBytesUsed
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PIO_OPEN_FILE_INFO_100 pInfo100 = (PIO_OPEN_FILE_INFO_100)pBuffer;
+    PIO_OPEN_FILE_INFO_100 pPrev = (PIO_OPEN_FILE_INFO_100)pPreviousEntry;
+    PWSTR pwszFilename = NULL;
+    ULONG FilenameByteCount = 0;
+
+    ntError = LwRtlWC16StringAllocateFromCString(
+                  &pwszFilename,
+                  pFcb->pszFilename);
+    BAIL_ON_NT_STATUS(ntError);
+
+    FilenameByteCount = (LwRtlWC16StringNumChars(pwszFilename)+1) *
+                        sizeof(WCHAR);
+
+    if (BufferLength < (sizeof(IO_OPEN_FILE_INFO_100)+FilenameByteCount))
+    {
+        ntError = STATUS_BUFFER_TOO_SMALL;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    pInfo100->NextEntryOffset = 0;
+    pInfo100->OpenHandleCount = pFcb->CcbCount;
+    pInfo100->bDeleteOnClose = pFcb->bDeleteOnClose;
+    pInfo100->FileNameLength = FilenameByteCount;
+    memcpy(pInfo100->pwszFileName, pwszFilename, FilenameByteCount);
+
+    if (pPrev)
+    {
+        pPrev->NextEntryOffset = PVFS_PTR_DIFF(pPreviousEntry, pBuffer);
+    }
+
+    *pBytesUsed = sizeof(IO_OPEN_FILE_INFO_100)
                   + FilenameByteCount
                   - sizeof(WCHAR);
 
