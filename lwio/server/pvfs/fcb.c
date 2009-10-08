@@ -824,22 +824,41 @@ PvfsFileIsOplockedExclusive(
     )
 {
     BOOLEAN bExclusiveOplock = FALSE;
-    PPVFS_OPLOCK_RECORD pOplockRec = NULL;
+    PPVFS_OPLOCK_RECORD pOplock = NULL;
+    PLW_LIST_LINKS pOplockLink = NULL;
+    PLW_LIST_LINKS pNextLink = NULL;
 
     if (LwListIsEmpty(&pFcb->OplockList)) {
         return FALSE;
     }
 
-    /* We only need to check the list head since the list itself must
-       be consistent and non-conflicting */
+    /* We only need to check for the first non-cancelled oplock record
+       in the list since the list itself must be consistent and
+       non-conflicting */
 
-    pOplockRec = LW_STRUCT_FROM_FIELD(
-                     &pFcb->OplockList,
-                     PVFS_OPLOCK_RECORD,
-                     Oplocks);
+    pOplockLink = LwListTraverse(&pFcb->OplockList, NULL);
 
-    if ((pOplockRec->OplockType == IO_OPLOCK_REQUEST_OPLOCK_BATCH) ||
-        (pOplockRec->OplockType == IO_OPLOCK_REQUEST_OPLOCK_LEVEL_1))
+    while (pOplockLink)
+    {
+        pOplock = LW_STRUCT_FROM_FIELD(
+                      pOplockLink,
+                      PVFS_OPLOCK_RECORD,
+                      Oplocks);
+
+        pNextLink = LwListTraverse(&pFcb->OplockList, pOplockLink);
+
+        if (pOplock->pIrpContext->bIsCancelled)
+        {
+            pOplockLink = pNextLink;
+            continue;
+        }
+
+        pOplockLink = NULL;
+    }
+
+    if (pOplock &&
+        ((pOplock->OplockType == IO_OPLOCK_REQUEST_OPLOCK_BATCH) ||
+         (pOplock->OplockType == IO_OPLOCK_REQUEST_OPLOCK_LEVEL_1)))
     {
         bExclusiveOplock = TRUE;
     }
@@ -855,10 +874,6 @@ PvfsFileIsOplockedShared(
     IN PPVFS_FCB pFcb
     )
 {
-    if (LwListIsEmpty(&pFcb->OplockList)) {
-        return FALSE;
-    }
-
     return !PvfsFileIsOplockedExclusive(pFcb);
 }
 
@@ -918,13 +933,15 @@ PvfsFreeOplockRecord(
     PPVFS_OPLOCK_RECORD *ppOplockRec
     )
 {
-    if (!ppOplockRec || !*ppOplockRec) {
-        return;
+    if (ppOplockRec && *ppOplockRec)
+    {
+        if ((*ppOplockRec)->pCcb)
+        {
+            PvfsReleaseCCB((*ppOplockRec)->pCcb);
+        }
+
+        PVFS_FREE(ppOplockRec);
     }
-
-    PvfsReleaseCCB((*ppOplockRec)->pCcb);
-
-    PVFS_FREE(ppOplockRec);
 
     return;
 }
