@@ -990,6 +990,12 @@ PrintOpenFileInfo0(
     PVOID pBuffer
     );
 
+static
+NTSTATUS
+PrintOpenFileInfo100(
+    PVOID pBuffer
+    );
+
 NTSTATUS
 ListOpenFiles(
     char *pszInfoLevel
@@ -1003,6 +1009,7 @@ ListOpenFiles(
     IO_STATUS_BLOCK Status = {0};
     IO_FILE_NAME FileName = {0};
     IO_FILE_HANDLE hDevice = (IO_FILE_HANDLE)NULL;
+    ULONG AllocSize = 4096;
 
     if (pszInfoLevel)
     {
@@ -1040,27 +1047,39 @@ ListOpenFiles(
 
     InputBuffer.Level = Level;
 
-    ntError = RTL_ALLOCATE(&pOutputBuffer, VOID, 4096);
-    BAIL_ON_NT_STATUS(ntError);
+    do
+    {
+        ntError = RTL_ALLOCATE(&pOutputBuffer, VOID, AllocSize);
+        BAIL_ON_NT_STATUS(ntError);
 
-    memset(pOutputBuffer, 0xFF, 4096);
+        ntError = NtDeviceIoControlFile(
+                      hDevice,
+                      NULL,
+                      &Status,
+                      IO_DEVICE_CTL_OPEN_FILE_INFO,
+                      &InputBuffer,
+                      sizeof(InputBuffer),
+                      pOutputBuffer,
+                      AllocSize);
 
-    ntError = NtDeviceIoControlFile(
-                  hDevice,
-                  NULL,
-                  &Status,
-                  IO_DEVICE_CTL_OPEN_FILE_INFO,
-                  &InputBuffer,
-                  sizeof(InputBuffer),
-                  pOutputBuffer,
-                  4096);
-    BAIL_ON_NT_STATUS(ntError);
+        if (ntError == STATUS_BUFFER_TOO_SMALL)
+        {
+            AllocSize *= 2;
+            RTL_FREE(&pOutputBuffer);
+        }
+    } while (ntError == STATUS_BUFFER_TOO_SMALL);
+
 
     switch(Level)
     {
     case 0:
         ntError = PrintOpenFileInfo0(pOutputBuffer);
         break;
+
+    case 100:
+        ntError = PrintOpenFileInfo100(pOutputBuffer);
+        break;
+
     default:
         printf("Don't know how to print OpenFileInfo level %d\n", Level);
         ntError = STATUS_INVALID_INFO_CLASS;
@@ -1116,6 +1135,57 @@ PrintOpenFileInfo0(
         if (pInfo0->NextEntryOffset != 0)
         {
             Offset += pInfo0->NextEntryOffset;
+        }
+        else
+        {
+            pBuffer = NULL;
+        }
+    }
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+
+/***********************************************************************
+ **********************************************************************/
+
+static
+NTSTATUS
+PrintOpenFileInfo100(
+    PVOID pBuffer
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PIO_OPEN_FILE_INFO_100 pInfo100 = (PIO_OPEN_FILE_INFO_100)pBuffer;
+    PSTR pszFilename = NULL;
+    ULONG Offset = 0;
+
+    printf("Handles Delete Filename\n");
+    printf("------- ------ ---------\n");
+
+    while (pBuffer)
+    {
+        pInfo100 = (PIO_OPEN_FILE_INFO_100)(pBuffer + Offset);
+
+        LwRtlCStringFree(&pszFilename);
+
+        ntError = LwRtlCStringAllocateFromWC16String(
+                      &pszFilename,
+                      (PCWSTR)pInfo100->pwszFileName);
+        BAIL_ON_NT_STATUS(ntError);
+
+        printf("%-4d    %-6s %s\n",
+               pInfo100->OpenHandleCount,
+               pInfo100->bDeleteOnClose ? "Yes" : "No",
+               pszFilename);
+
+        if (pInfo100->NextEntryOffset != 0)
+        {
+            Offset += pInfo100->NextEntryOffset;
         }
         else
         {
