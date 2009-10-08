@@ -1,6 +1,7 @@
 SUBDIRS = \
 	test_headers \
 	lsaclient \
+	ntlmapps \
 	test_getgrgid \
 	test_getpwuid \
 	test_LsaGetNamesBySidList \

@@ -23,11 +23,14 @@
 #ifndef _NTLM_SERVER_DEFINES_H_
 #define _NTLM_SERVER_DEFINES_H_
 
-#define BAIL_ON_ERROR(dwError) \
-    if (dwError)               \
-    {                          \
-        goto error;            \
-    }
+#define BAIL_ON_NTLM_ERROR(dwError) \
+    do { \
+        if (dwError) \
+        { \
+            printf("Error at %s:%d [code: %d]", __FILE__, __LINE__, dwError); \
+            goto error; \
+        } \
+    } while (0)
 
 #define SOCKET          INT
 #define INVALID_SOCKET  ((SOCKET)~0)

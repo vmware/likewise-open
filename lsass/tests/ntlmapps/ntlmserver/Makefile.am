@@ -1,4 +1,4 @@
-noinst_PROGRAMS = ntlm-server
+testbin_PROGRAMS = ntlm-server
 
 ntlm_server_CFLAGS = \
     $(AM_CFLAGS) \
@@ -9,4 +9,4 @@ ntlm_server_SOURCES = \
     ntlm-server.c
 
 ntlm_server_LDADD = \
-    $(top_builddir)/client/liblsaclient.la
+    $(top_builddir)/client/ntlm/liblsaclient_ntlm.la
