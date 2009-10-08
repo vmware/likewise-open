@@ -4,5 +4,5 @@
 "Description"="Likewise Server Service"
 "Path"="@SBINDIR@/srvsvcd"
 "Arguments"="srvsvcd"
-"Dependencies"="lwio"
+"Dependencies"="dcerpc lwio srv"
 "Type"=dword:00000001
