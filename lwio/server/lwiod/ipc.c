@@ -32,6 +32,7 @@
 #include "ntipcmsg.h"
 #include "goto.h"
 #include "ntlogmacros.h"
+#include "ioinit.h"
 
 static
 LWMsgStatus
@@ -44,11 +45,11 @@ LwIoDaemonIpcRefreshConfiguration(
 {
     DWORD dwError = 0;
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    PSMB_STATUS_REPLY pStatusResponse = NULL;
+    PLWIO_STATUS_REPLY pStatusResponse = NULL;
     PCSTR pszConfigPath = SMB_CONFIG_FILE_PATH;
 
     dwError = SMBAllocateMemory(
-                    sizeof(SMB_STATUS_REPLY),
+                    sizeof(LWIO_STATUS_REPLY),
                     (PVOID*)&pStatusResponse);
     BAIL_ON_LWIO_ERROR(dwError);
 
@@ -58,14 +59,14 @@ LwIoDaemonIpcRefreshConfiguration(
     if (dwError)
     {
         pStatusResponse->dwError = dwError;
-        pOut->tag = SMB_REFRESH_CONFIG_FAILED;
+        pOut->tag = LWIO_REFRESH_CONFIG_FAILED;
         pOut->data = (PVOID) pStatusResponse;
 
         dwError = 0;
         goto cleanup;
     }
 
-    pOut->tag = SMB_REFRESH_CONFIG_SUCCESS;
+    pOut->tag = LWIO_REFRESH_CONFIG_SUCCESS;
     pOut->data = (PVOID) pStatusResponse;
 
 cleanup:
@@ -88,10 +89,10 @@ LwIoDaemonIpcSetLogInfo(
 {
     DWORD dwError = 0;
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    PSMB_STATUS_REPLY pStatusResponse = NULL;
+    PLWIO_STATUS_REPLY pStatusResponse = NULL;
 
     dwError = SMBAllocateMemory(
-                    sizeof(SMB_STATUS_REPLY),
+                    sizeof(LWIO_STATUS_REPLY),
                     (PVOID*)&pStatusResponse);
     BAIL_ON_LWIO_ERROR(dwError);
 
@@ -103,14 +104,14 @@ LwIoDaemonIpcSetLogInfo(
     if (dwError)
     {
         pStatusResponse->dwError = dwError;
-        pOut->tag = SMB_SET_LOG_INFO_FAILED;
+        pOut->tag = LWIO_SET_LOG_INFO_FAILED;
         pOut->data = pStatusResponse;
 
         dwError = 0;
         goto cleanup;
     }
 
-    pOut->tag = SMB_SET_LOG_INFO_SUCCESS;
+    pOut->tag = LWIO_SET_LOG_INFO_SUCCESS;
     pOut->data = pStatusResponse;
 
 cleanup:
@@ -133,11 +134,11 @@ LwIoDaemonIpcGetLogInfo(
 {
     DWORD dwError = 0;
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    PSMB_STATUS_REPLY pStatusResponse = NULL;
+    PLWIO_STATUS_REPLY pStatusResponse = NULL;
     PLWIO_LOG_INFO pLogInfo = NULL;
 
     dwError = SMBAllocateMemory(
-                    sizeof(SMB_STATUS_REPLY),
+                    sizeof(LWIO_STATUS_REPLY),
                     (PVOID*)&pStatusResponse);
     BAIL_ON_LWIO_ERROR(dwError);
 
@@ -146,7 +147,7 @@ LwIoDaemonIpcGetLogInfo(
     if (dwError)
     {
         pStatusResponse->dwError = dwError;
-        pOut->tag = SMB_GET_LOG_INFO_FAILED;
+        pOut->tag = LWIO_GET_LOG_INFO_FAILED;
         pOut->data = pStatusResponse;
         pStatusResponse = NULL;
 
@@ -154,8 +155,124 @@ LwIoDaemonIpcGetLogInfo(
         goto cleanup;
     }
 
-    pOut->tag = SMB_GET_LOG_INFO_SUCCESS;
+    pOut->tag = LWIO_GET_LOG_INFO_SUCCESS;
     pOut->data = pLogInfo;
+
+cleanup:
+
+    LWIO_SAFE_FREE_MEMORY(pStatusResponse);
+
+    return status;
+
+error:
+
+    goto cleanup;
+}
+
+static
+LWMsgStatus
+LwIoDaemonIpcGetDriverStatus(
+    IN LWMsgCall* pCall,
+    IN const LWMsgParams* pIn,
+    OUT LWMsgParams* pOut,
+    IN void* pData
+    )
+{
+    DWORD dwError = 0;
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    PWSTR pwszDriverName = pIn->data;
+    PLWIO_DRIVER_STATUS pStatus = NULL;
+    PLWIO_STATUS_REPLY pStatusResponse = NULL;
+
+    dwError = SMBAllocateMemory(sizeof(*pStatus), OUT_PPVOID(&pStatus));
+    BAIL_ON_LWIO_ERROR(dwError);
+
+    if (dwError)
+    {
+        pStatusResponse->dwError = dwError;
+        pOut->tag = LWIO_GET_DRIVER_STATUS_FAILED;
+        pOut->data = pStatusResponse;
+        pStatusResponse = NULL;
+
+        dwError = 0;
+        goto cleanup;
+    }
+
+    *pStatus = IoMgrGetDriverStatus(pwszDriverName);
+    pOut->tag = LWIO_GET_DRIVER_STATUS_SUCCESS;
+    pOut->data = pStatus;
+    pStatus = NULL;
+
+cleanup:
+
+    LWIO_SAFE_FREE_MEMORY(pStatus);
+    LWIO_SAFE_FREE_MEMORY(pStatusResponse);
+
+    return status;
+
+error:
+
+    goto cleanup;
+}
+
+static
+LWMsgStatus
+LwIoDaemonIpcLoadDriver(
+    IN LWMsgCall* pCall,
+    IN const LWMsgParams* pIn,
+    OUT LWMsgParams* pOut,
+    IN void* pData
+    )
+{
+    DWORD dwError = 0;
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    PWSTR pwszDriverName = pIn->data;
+    PLWIO_STATUS_REPLY pStatusResponse = NULL;
+
+    dwError = SMBAllocateMemory(sizeof(*pStatusResponse), OUT_PPVOID(&pStatusResponse));
+    BAIL_ON_LWIO_ERROR(dwError);
+
+    dwError = IoMgrLoadDriver(pwszDriverName);
+
+    pStatusResponse->dwError = dwError;
+    pOut->tag = dwError ? LWIO_LOAD_DRIVER_SUCCESS : LWIO_LOAD_DRIVER_FAILED;
+    pOut->data = pStatusResponse;
+    pStatusResponse = NULL;
+
+cleanup:
+
+    LWIO_SAFE_FREE_MEMORY(pStatusResponse);
+
+    return status;
+
+error:
+
+    goto cleanup;
+}
+
+static
+LWMsgStatus
+LwIoDaemonIpcUnloadDriver(
+    IN LWMsgCall* pCall,
+    IN const LWMsgParams* pIn,
+    OUT LWMsgParams* pOut,
+    IN void* pData
+    )
+{
+    DWORD dwError = 0;
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    PWSTR pwszDriverName = pIn->data;
+    PLWIO_STATUS_REPLY pStatusResponse = NULL;
+
+    dwError = SMBAllocateMemory(sizeof(*pStatusResponse), OUT_PPVOID(&pStatusResponse));
+    BAIL_ON_LWIO_ERROR(dwError);
+
+    dwError = IoMgrUnloadDriver(pwszDriverName);
+
+    pStatusResponse->dwError = dwError;
+    pOut->tag = dwError ? LWIO_UNLOAD_DRIVER_SUCCESS : LWIO_UNLOAD_DRIVER_FAILED;
+    pOut->data = pStatusResponse;
+    pStatusResponse = NULL;
 
 cleanup:
 
@@ -170,9 +287,12 @@ error:
 
 static LWMsgDispatchSpec gLwIoDaemonIpcDispatchSpec[] =
 {
-    LWMSG_DISPATCH_NONBLOCK(SMB_REFRESH_CONFIG, LwIoDaemonIpcRefreshConfiguration),
-    LWMSG_DISPATCH_NONBLOCK(SMB_SET_LOG_INFO,   LwIoDaemonIpcSetLogInfo),
-    LWMSG_DISPATCH_NONBLOCK(SMB_GET_LOG_INFO,   LwIoDaemonIpcGetLogInfo),
+    LWMSG_DISPATCH_NONBLOCK(LWIO_REFRESH_CONFIG, LwIoDaemonIpcRefreshConfiguration),
+    LWMSG_DISPATCH_NONBLOCK(LWIO_SET_LOG_INFO, LwIoDaemonIpcSetLogInfo),
+    LWMSG_DISPATCH_NONBLOCK(LWIO_GET_LOG_INFO, LwIoDaemonIpcGetLogInfo),
+    LWMSG_DISPATCH_NONBLOCK(LWIO_GET_DRIVER_STATUS, LwIoDaemonIpcGetDriverStatus),
+    LWMSG_DISPATCH_NONBLOCK(LWIO_LOAD_DRIVER, LwIoDaemonIpcLoadDriver),
+    LWMSG_DISPATCH_NONBLOCK(LWIO_UNLOAD_DRIVER, LwIoDaemonIpcUnloadDriver),
     LWMSG_DISPATCH_END
 };
 

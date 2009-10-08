@@ -81,23 +81,12 @@ LWMsgTypeSpec gSecurityTokenRepSpec[] =
     LWMSG_TYPE_END
 };
 
-static LWMsgTypeSpec gRequestConfigSpec[] =
-{
-    /* Begin structure */
-    LWMSG_STRUCT_BEGIN(SMB_REQUEST),
-    /* 32-bit unsigned integer */
-    LWMSG_MEMBER_UINT32(SMB_REQUEST, dwCurTime),
-    /* End structure */
-    LWMSG_STRUCT_END,
-    LWMSG_TYPE_END
-};
-
 static LWMsgTypeSpec gStatusReplySpec[] =
 {
     /* Begin structure */
-    LWMSG_STRUCT_BEGIN(SMB_STATUS_REPLY),
+    LWMSG_STRUCT_BEGIN(LWIO_STATUS_REPLY),
     /* err - marshal as 32-bit unsigned integer */
-    LWMSG_MEMBER_UINT32(SMB_STATUS_REPLY, dwError),
+    LWMSG_MEMBER_UINT32(LWIO_STATUS_REPLY, dwError),
     /* End structure */
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END
@@ -118,17 +107,40 @@ static LWMsgTypeSpec gLogInfoSpec[] =
     LWMSG_TYPE_END
 };
 
+static LWMsgTypeSpec gDriverNameSpec[] =
+{
+    LWMSG_PWSTR,
+    LWMSG_ATTR_NOT_NULL,
+    LWMSG_TYPE_END
+};
+
+static LWMsgTypeSpec gDriverStatusSpec[] =
+{
+    LWMSG_UINT8(LWIO_DRIVER_STATUS),
+    LWMSG_ATTR_RANGE(LWIO_DRIVER_UNLOADED, LWIO_DRIVER_LOADED),
+    LWMSG_TYPE_END
+};
+
 static LWMsgProtocolSpec gLwIoDaemonProtocolSpec[] =
 {
-    LWMSG_MESSAGE(SMB_REFRESH_CONFIG,              gRequestConfigSpec),
-    LWMSG_MESSAGE(SMB_REFRESH_CONFIG_SUCCESS,      gStatusReplySpec),
-    LWMSG_MESSAGE(SMB_REFRESH_CONFIG_FAILED,       gStatusReplySpec),
-    LWMSG_MESSAGE(SMB_SET_LOG_INFO,                gLogInfoSpec),
-    LWMSG_MESSAGE(SMB_SET_LOG_INFO_SUCCESS,        gStatusReplySpec),
-    LWMSG_MESSAGE(SMB_SET_LOG_INFO_FAILED,         gStatusReplySpec),
-    LWMSG_MESSAGE(SMB_GET_LOG_INFO,                gRequestConfigSpec),
-    LWMSG_MESSAGE(SMB_GET_LOG_INFO_SUCCESS,        gLogInfoSpec),
-    LWMSG_MESSAGE(SMB_GET_LOG_INFO_FAILED,         gStatusReplySpec),
+    LWMSG_MESSAGE(LWIO_REFRESH_CONFIG,              NULL),
+    LWMSG_MESSAGE(LWIO_REFRESH_CONFIG_SUCCESS,      gStatusReplySpec),
+    LWMSG_MESSAGE(LWIO_REFRESH_CONFIG_FAILED,       gStatusReplySpec),
+    LWMSG_MESSAGE(LWIO_SET_LOG_INFO,                gLogInfoSpec),
+    LWMSG_MESSAGE(LWIO_SET_LOG_INFO_SUCCESS,        gStatusReplySpec),
+    LWMSG_MESSAGE(LWIO_SET_LOG_INFO_FAILED,         gStatusReplySpec),
+    LWMSG_MESSAGE(LWIO_GET_LOG_INFO,                NULL),
+    LWMSG_MESSAGE(LWIO_GET_LOG_INFO_SUCCESS,        gLogInfoSpec),
+    LWMSG_MESSAGE(LWIO_GET_LOG_INFO_FAILED,         gStatusReplySpec),
+    LWMSG_MESSAGE(LWIO_GET_DRIVER_STATUS,           gDriverNameSpec),
+    LWMSG_MESSAGE(LWIO_GET_DRIVER_STATUS_SUCCESS,   gDriverStatusSpec),
+    LWMSG_MESSAGE(LWIO_GET_DRIVER_STATUS_FAILED,    gStatusReplySpec),
+    LWMSG_MESSAGE(LWIO_LOAD_DRIVER,                 gDriverNameSpec),
+    LWMSG_MESSAGE(LWIO_LOAD_DRIVER_SUCCESS,         gStatusReplySpec),
+    LWMSG_MESSAGE(LWIO_LOAD_DRIVER_FAILED,          gStatusReplySpec),
+    LWMSG_MESSAGE(LWIO_UNLOAD_DRIVER,               gDriverNameSpec),
+    LWMSG_MESSAGE(LWIO_UNLOAD_DRIVER_SUCCESS,       gStatusReplySpec),
+    LWMSG_MESSAGE(LWIO_UNLOAD_DRIVER_FAILED,        gStatusReplySpec),
     LWMSG_PROTOCOL_END
 };
 

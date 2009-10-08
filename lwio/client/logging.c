@@ -78,18 +78,18 @@ LwIoSetLogInfo(
     status = LwIoContextAcquireCall(pContext, &pCall);
     BAIL_ON_NT_STATUS(status);
 
-    in.tag = SMB_SET_LOG_INFO;
+    in.tag = LWIO_SET_LOG_INFO;
     in.data = pLogInfo;
 
     status = MAP_LWMSG_STATUS(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
 
     switch (out.tag)
     {
-        case SMB_SET_LOG_INFO_SUCCESS:
+        case LWIO_SET_LOG_INFO_SUCCESS:
             break;
 
-        case SMB_SET_LOG_INFO_FAILED:
-            status = ((PSMB_STATUS_REPLY) out.data)->dwError;
+        case LWIO_SET_LOG_INFO_FAILED:
+            status = ((PLWIO_STATUS_REPLY) out.data)->dwError;
             break;
 
         default:
@@ -121,7 +121,6 @@ LwIoGetLogInfo(
     )
 {
     NTSTATUS status = 0;
-    SMB_REQUEST request = {0};
     LWMsgCall* pCall = NULL;
     LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
     LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
@@ -129,23 +128,21 @@ LwIoGetLogInfo(
     status = LwIoContextAcquireCall(pContext, &pCall);
     BAIL_ON_NT_STATUS(status);
 
-    /* FIXME: what is this for? */
-    request.dwCurTime = time(NULL);
-    in.tag = SMB_GET_LOG_INFO;
-    in.data = &request;
+    in.tag = LWIO_GET_LOG_INFO;
+    in.data = NULL;
 
     status = MAP_LWMSG_STATUS(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
     BAIL_ON_NT_STATUS(status);
 
     switch (out.tag)
     {
-        case SMB_GET_LOG_INFO_SUCCESS:
+        case LWIO_GET_LOG_INFO_SUCCESS:
             *ppLogInfo = out.data;
             out.data = NULL;
             break;
 
-        case SMB_GET_LOG_INFO_FAILED:
-            status = ((PSMB_STATUS_REPLY) out.data)->dwError;
+        case LWIO_GET_LOG_INFO_FAILED:
+            status = ((PLWIO_STATUS_REPLY) out.data)->dwError;
             break;
 
         default:

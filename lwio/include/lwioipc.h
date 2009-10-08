@@ -36,13 +36,20 @@
 #define LWIO_SERVER_FILENAME CACHEDIR "/.lwiod"
 
 #define MAP_LWMSG_STATUS(status) \
-    SMBIPCMapLWMsgStatus(status);
+    LwIoIPCMapLWMsgStatus(status);
 
 #if defined(WORDS_BIGENDIAN)
 #  define UCS2_NATIVE "UCS-2BE"
 #else
 #  define UCS2_NATIVE "UCS-2LE"
 #endif
+
+#define LWMSG_PWSTR                                 \
+    LWMSG_POINTER_BEGIN,                            \
+    LWMSG_UINT16(wchar16_t),                        \
+    LWMSG_POINTER_END,                              \
+    LWMSG_ATTR_ZERO_TERMINATED,                     \
+    LWMSG_ATTR_ENCODING(UCS2_NATIVE)
 
 #define LWMSG_MEMBER_PWSTR(_type, _field)           \
     LWMSG_MEMBER_POINTER_BEGIN(_type, _field),      \
@@ -59,31 +66,35 @@
 /*
  *  Protocol message enumeration
  */
-typedef enum SMBIpcMessageType
+typedef enum _LWIO_IPC_MESSAGE_TAG
 {
-    SMB_REFRESH_CONFIG,                   // SMB_REQUEST
-    SMB_REFRESH_CONFIG_SUCCESS,           // SMB_STATUS_REPLY
-    SMB_REFRESH_CONFIG_FAILED,            // SMB_STATUS_REPLY
-    SMB_SET_LOG_INFO,                     // LWIO_LOG_INFO
-    SMB_SET_LOG_INFO_SUCCESS,             // SMB_STATUS_REPLY
-    SMB_SET_LOG_INFO_FAILED,              // SMB_STATUS_REPLY
-    SMB_GET_LOG_INFO,                     // LWIO_LOG_INFO
-    SMB_GET_LOG_INFO_SUCCESS,             // SMB_STATUS_REPLY
-    SMB_GET_LOG_INFO_FAILED,              // SMB_STATUS_REPLY
-} SMBIpcMessageType;
-
-typedef struct _SMB_REQUEST
-{
-    DWORD dwCurTime;
-} SMB_REQUEST, *PSMB_REQUEST;
+    LWIO_REFRESH_CONFIG,                   // NULL
+    LWIO_REFRESH_CONFIG_SUCCESS,           // LWIO_STATUS_REPLY
+    LWIO_REFRESH_CONFIG_FAILED,            // LWIO_STATUS_REPLY
+    LWIO_SET_LOG_INFO,                     // LWIO_LOG_INFO
+    LWIO_SET_LOG_INFO_SUCCESS,             // LWIO_STATUS_REPLY
+    LWIO_SET_LOG_INFO_FAILED,              // LWIO_STATUS_REPLY
+    LWIO_GET_LOG_INFO,                     // LWIO_LOG_INFO
+    LWIO_GET_LOG_INFO_SUCCESS,             // LWIO_STATUS_REPLY
+    LWIO_GET_LOG_INFO_FAILED,              // LWIO_STATUS_REPLY
+    LWIO_GET_DRIVER_STATUS,
+    LWIO_GET_DRIVER_STATUS_SUCCESS,
+    LWIO_GET_DRIVER_STATUS_FAILED,
+    LWIO_LOAD_DRIVER,
+    LWIO_LOAD_DRIVER_SUCCESS,
+    LWIO_LOAD_DRIVER_FAILED,
+    LWIO_UNLOAD_DRIVER,
+    LWIO_UNLOAD_DRIVER_SUCCESS,
+    LWIO_UNLOAD_DRIVER_FAILED,
+} LWIO_IPC_MESSAGE_TAG;
 
 /*
  *  Generic status code reply
  */
-typedef struct _SMB_STATUS_REPLY
+typedef struct _LWIO_STATUS_REPLY
 {
     DWORD dwError;
-} SMB_STATUS_REPLY, *PSMB_STATUS_REPLY;
+} LWIO_STATUS_REPLY, *PLWIO_STATUS_REPLY;
 
 NTSTATUS
 LwIoDaemonIpcAddProtocolSpec(
@@ -97,7 +108,7 @@ LwIoDaemonIpcAddProtocolSpecEx(
     );
 
 DWORD
-SMBIPCMapLWMsgStatus(
+LwIoIPCMapLWMsgStatus(
     LWMsgStatus status
     );
 

@@ -31,7 +31,7 @@
 #include "includes.h"
 
 DWORD
-SMBIPCMapLWMsgStatus(
+LwIoIPCMapLWMsgStatus(
     LWMsgStatus status
     )
 {

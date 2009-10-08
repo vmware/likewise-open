@@ -4,6 +4,7 @@ liblwioclient_la_SOURCES = \
     access.c               \
     config.c               \
     connect.c              \
+    driver.c               \
     globals.c              \
     libmain.c              \
     logging.c              \

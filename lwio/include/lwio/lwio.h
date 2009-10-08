@@ -121,7 +121,7 @@ typedef enum
 {
     LWIO_DRIVER_UNLOADED,
     LWIO_DRIVER_LOADED
-} LWIO_DRIVER_STATUS;
+} LWIO_DRIVER_STATUS, *PLWIO_DRIVER_STATUS;
 
 typedef VOID (*PFN_LWIO_LOG_MESSAGE)(
                             HANDLE      hLog,
@@ -176,19 +176,17 @@ LwIoFreeLogInfo(
 
 LW_NTSTATUS
 LwIoGetDriverStatus(
-    LW_PIO_CONTEXT pContext,
-    LW_PWSTR pwszDriverName
+    LW_PWSTR pwszDriverName,
+    PLWIO_DRIVER_STATUS pStatus
     );
 
 LW_NTSTATUS
 LwIoLoadDriver(
-    LW_PIO_CONTEXT pContext,
-    LW_PWSTR pwszDriverNAme
+    LW_PWSTR pwszDriverName
     );
 
 LW_NTSTATUS
 LwIoUnloadDriver(
-    LW_PIO_CONTEXT pContext,
     LW_PWSTR pwszDriverName
     );
 

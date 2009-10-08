@@ -177,9 +177,16 @@ IopRootCreate(
     );
 
 NTSTATUS
-IopRootLoadDrivers(
+IopRootLoadDriver(
     IN PIOP_ROOT_STATE pRoot,
-    IN PIO_STATIC_DRIVER pStaticDrivers
+    IN PIO_STATIC_DRIVER pStaticDrivers,
+    IN PWSTR pwszDriverName
+    );
+
+PIO_DRIVER_OBJECT
+IopRootFindDriver(
+    IN PIOP_ROOT_STATE pRoot,
+    IN PWSTR pwszDriverName
     );
 
 PIO_DEVICE_OBJECT

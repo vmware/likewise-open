@@ -88,6 +88,8 @@ IoDeviceCreate(
     status = LwRtlInitializeMutex(&pDeviceObject->CancelMutex, TRUE);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
+    *pDeviceHandle = pDeviceObject;
+
 cleanup:
     if (status)
     {
@@ -117,7 +119,7 @@ IoDeviceDelete(
         // TODO -- add proper drain support...
         assert(LwListIsEmpty(&pDeviceObject->FileObjectsList));
         IopDriverRemoveDevice(pDeviceObject->Driver, &pDeviceObject->DriverLinks);
-        IopRootInsertDevice(pDeviceObject->Driver->Root, &pDeviceObject->RootLinks);
+        IopRootRemoveDevice(pDeviceObject->Driver->Root, &pDeviceObject->RootLinks);
         RtlUnicodeStringFree(&pDeviceObject->DeviceName);
         LwRtlCleanupMutex(&pDeviceObject->CancelMutex);
         LwRtlCleanupMutex(&pDeviceObject->FileObjectMutex);

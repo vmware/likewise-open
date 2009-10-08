@@ -50,6 +50,8 @@
 
 #include "rdr.h"
 
+static IO_DEVICE_HANDLE gDeviceHandle = NULL;
+
 static
 NTSTATUS
 RdrInitialize(
@@ -68,6 +70,11 @@ RdrDriverShutdown(
     )
 {
     RdrShutdown();
+
+    if (gDeviceHandle)
+    {
+        IoDeviceDelete(&gDeviceHandle);
+    }
 }
 
 NTSTATUS
@@ -167,7 +174,6 @@ IO_DRIVER_ENTRY(rdr)(
     )
 {
     NTSTATUS ntStatus = 0;
-    IO_DEVICE_HANDLE deviceHandle = NULL;
 
     if (IO_DRIVER_ENTRY_INTERFACE_VERSION != InterfaceVersion)
     {
@@ -181,7 +187,7 @@ IO_DRIVER_ENTRY(rdr)(
                                   RdrDriverDispatch);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = IoDeviceCreate(&deviceHandle,
+    ntStatus = IoDeviceCreate(&gDeviceHandle,
                               DriverHandle,
                               "rdr",
                               NULL);
