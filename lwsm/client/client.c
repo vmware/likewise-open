@@ -719,7 +719,7 @@ cleanup:
 
     if (pDepInfo)
     {
-        LwSmCommonFreeServiceInfo(pInfo);
+        LwSmCommonFreeServiceInfo(pDepInfo);
     }
 
     if (hDepHandle)
