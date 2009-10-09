@@ -156,6 +156,12 @@ LwSmStringListAppend(
     );
 
 DWORD
+LwSmCopyString(
+    PCWSTR pwszString,
+    PWSTR* ppwszCopy
+    );
+
+DWORD
 LwSmCopyServiceInfo(
     PLW_SERVICE_INFO pInfo,
     PLW_SERVICE_INFO* ppCopy

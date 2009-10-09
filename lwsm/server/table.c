@@ -230,29 +230,60 @@ error:
 DWORD
 LwSmTableUpdateEntry(
     PSM_TABLE_ENTRY pEntry,
-    PLW_SERVICE_INFO pInfo
+    PCLW_SERVICE_INFO pInfo,
+    LW_SERVICE_INFO_MASK mask
     )
 {
     DWORD dwError = 0;
     BOOL bLocked = FALSE;
     BOOL bTableLocked = FALSE;
-    PLW_SERVICE_INFO pInfoCopy = NULL;
-
-    dwError = LwSmCopyServiceInfo(pInfo, &pInfoCopy);
-    BAIL_ON_ERROR(dwError);
+    PLW_SERVICE_INFO pUpdate = NULL;
 
     LOCK(bLocked, pEntry->pLock);
+    /* We must also hold the service table lock to prevent
+       concurrent access to pEntry->pInfo by LwSmTableGetEntry */
     LOCK(bTableLocked, gServiceTable.pLock);
 
+    dwError = LwAllocateMemory(sizeof(*pUpdate), OUT_PPVOID(&pUpdate));
+    BAIL_ON_ERROR(dwError);
+
+    dwError = LwSmCopyString(
+        mask & LW_SERVICE_INFO_MASK_NAME ? pInfo->pwszName : pEntry->pInfo->pwszName,
+        &pUpdate->pwszName);
+    BAIL_ON_ERROR(dwError);
+
+    dwError = LwSmCopyString(
+        mask & LW_SERVICE_INFO_MASK_PATH ? pInfo->pwszPath : pEntry->pInfo->pwszPath,
+        &pUpdate->pwszPath);
+
+    dwError = LwSmCopyString(
+        mask & LW_SERVICE_INFO_MASK_DESCRIPTION ? pInfo->pwszDescription : pEntry->pInfo->pwszDescription,
+        &pUpdate->pwszDescription);
+    BAIL_ON_ERROR(dwError);
+
+    dwError = LwSmCopyStringList(
+        mask & LW_SERVICE_INFO_MASK_ARGS ? pInfo->ppwszArgs : pEntry->pInfo->ppwszArgs,
+        &pUpdate->ppwszArgs);
+    BAIL_ON_ERROR(dwError);
+
+    dwError = LwSmCopyStringList(
+        mask & LW_SERVICE_INFO_MASK_DEPENDENCIES ? pInfo->ppwszDependencies : pEntry->pInfo->ppwszDependencies,
+        &pUpdate->ppwszDependencies);
+    BAIL_ON_ERROR(dwError);
+
+    pUpdate->type = mask & LW_SERVICE_INFO_MASK_TYPE ? pInfo->type : pEntry->pInfo->type;
+    pUpdate->bAutostart = mask & LW_SERVICE_INFO_MASK_AUTOSTART ? pInfo->bAutostart : pEntry->pInfo->bAutostart;
+
+    /* Atomically replace previous info structure */
     LwSmCommonFreeServiceInfo(pEntry->pInfo);
-    pEntry->pInfo = pInfoCopy;
-    pInfoCopy = NULL;
+    pEntry->pInfo = pUpdate;
+    pUpdate = NULL;
 
 cleanup:
 
-    if (pInfoCopy)
+    if (pUpdate)
     {
-        LwSmCommonFreeServiceInfo(pInfoCopy);
+        LwSmCommonFreeServiceInfo(pUpdate);
     }
 
     UNLOCK(bTableLocked, gServiceTable.pLock);

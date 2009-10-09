@@ -126,24 +126,49 @@ typedef enum _LW_SERVICE_HOME
  * A bitmask which indicates which fields to update
  * in an #LwSmUpdateServiceInfo() call.
  *
- * @hideinitializer
  */
 typedef enum _LW_SERVICE_INFO_MASK
 {
-    /** @brief Update name */
-    LW_SERVICE_INFO_MASK_NAME =           0x01,
-    /** @brief Update description */
-    LW_SERVICE_INFO_MASK_DESCRIPTION =    0x02,
-    /** @brief Update type */
-    LW_SERVICE_INFO_MASK_TYPE =           0x04,
-    /** @brief Update path */
-    LW_SERVICE_INFO_MASK_PATH =           0x08,
-    /** @brief Update arguments */
-    LW_SERVICE_INFO_MASK_ARGS =           0x10,
-    /** @brief Update dependencies */
-    LW_SERVICE_INFO_MASK_DEPENDENCIES =   0x20,
-    /** @brief Update autostart flag */
-    LW_SERVICE_INFO_MASK_AUTOSTART =      0x40
+    /**
+     * @brief Update name
+     * @hideinitializer
+     */
+    LW_SERVICE_INFO_MASK_NAME         = 0x01,
+    /**
+     * @brief Update description
+     * @hideinitializer
+     */
+    LW_SERVICE_INFO_MASK_DESCRIPTION  = 0x02,
+    /**
+     * @brief Update type
+     * @hideinitializer
+     */
+    LW_SERVICE_INFO_MASK_TYPE         = 0x04,
+    /**
+     * @brief Update path
+     * @hideinitializer
+     */
+    LW_SERVICE_INFO_MASK_PATH         = 0x08,
+    /**
+     * @brief Update arguments
+     * @hideinitializer
+     */
+    LW_SERVICE_INFO_MASK_ARGS         = 0x10,
+    /**
+     * @brief Update dependencies
+     * @hideinitializer
+     */
+    LW_SERVICE_INFO_MASK_DEPENDENCIES = 0x20,
+    /**
+     * @brief Update autostart flag
+     * @hideinitializer
+     */
+    LW_SERVICE_INFO_MASK_AUTOSTART    = 0x40,
+    /**
+     * @brief Update all flags
+     * @hideinitializer
+     */
+    LW_SERVICE_INFO_MASK_ALL          = 0x7F
 } LW_SERVICE_INFO_MASK, *PLW_SERVICE_INFO_MASK;
 
 /**

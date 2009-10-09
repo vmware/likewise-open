@@ -179,7 +179,8 @@ LwSmTableAddEntry(
 DWORD
 LwSmTableUpdateEntry(
     PSM_TABLE_ENTRY pEntry,
-    PLW_SERVICE_INFO pInfo
+    PCLW_SERVICE_INFO pInfo,
+    LW_SERVICE_INFO_MASK mask
     );
 
 VOID
