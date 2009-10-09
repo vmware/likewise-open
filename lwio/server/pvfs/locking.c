@@ -1113,14 +1113,76 @@ error:
 /*****************************************************************************
  ****************************************************************************/
 
+static
+NTSTATUS
+PvfsCleanPendingLockQueue(
+    PVOID pContext
+    );
+
+static
+VOID
+PvfsCleanPendingLockFree(
+    PVOID *ppContext
+    );
+
 NTSTATUS
 PvfsScheduleCancelLock(
     PPVFS_IRP_CONTEXT pIrpContext
     )
 {
-    return STATUS_SUCCESS;
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PPVFS_WORK_CONTEXT pWorkCtx = NULL;
+
+    BAIL_ON_INVALID_PTR(pIrpContext->pFcb, ntError);
+
+    ntError = PvfsCreateWorkContext(
+                  &pWorkCtx,
+                  FALSE,
+                  pIrpContext,
+                  (PPVFS_WORK_CONTEXT_CALLBACK)PvfsCleanPendingLockQueue,
+                  (PPVFS_WORK_CONTEXT_FREE_CTX)PvfsCleanPendingLockFree);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsAddWorkItem(gpPvfsInternalWorkQueue, (PVOID)pWorkCtx);
+    BAIL_ON_NT_STATUS(ntError);
+
+    pWorkCtx = NULL;
+
+cleanup:
+    PVFS_FREE(&pWorkCtx);
+
+    return ntError;
+
+error:
+    goto cleanup;
 }
 
+/*****************************************************************************
+ ****************************************************************************/
+
+static
+NTSTATUS
+PvfsCleanPendingLockQueue(
+    PVOID pContext
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+
+    return ntError;
+}
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static
+ VOID
+PvfsCleanPendingLockFree(
+    PVOID *ppContext
+    )
+{
+    /* No op -- context released in PvfsOplockCleanPendingLockQueue */
+    return;
+}
 
 /*
 local variables:

@@ -133,8 +133,8 @@ PvfsOplockRequest(
     /* Successful grant so pend the resulit now */
 
     pIrpContext->pFcb = PvfsReferenceFCB(pCcb->pFcb);
-
     pIrpContext->QueueType = PVFS_QUEUE_TYPE_OPLOCK;
+
     PvfsIrpMarkPending(pIrpContext, PvfsQueueCancelIrp, pIrpContext);
 
     *pOutputBufferLength = sizeof(IO_FSCTL_OPLOCK_REQUEST_OUTPUT_BUFFER);
@@ -228,6 +228,7 @@ PvfsOplockBreakAck(
             {
             case STATUS_SUCCESS:
                 pIrpContext->pFcb = PvfsReferenceFCB(pFcb);
+                pIrpContext->QueueType = PVFS_QUEUE_TYPE_OPLOCK;
 
                 PvfsIrpMarkPending(
                     pIrpContext,
@@ -1042,7 +1043,7 @@ PvfsOplockCleanOplockQueue(
     );
 
 static VOID
-PvfsOplockCleanupOplockFree(
+PvfsOplockCleanOplockFree(
     PVOID *ppContext
     );
 
@@ -1061,7 +1062,7 @@ PvfsScheduleCancelOplock(
                   FALSE,
                   pIrpContext,
                   (PPVFS_WORK_CONTEXT_CALLBACK)PvfsOplockCleanOplockQueue,
-                  (PPVFS_WORK_CONTEXT_FREE_CTX)PvfsOplockCleanupOplockFree);
+                  (PPVFS_WORK_CONTEXT_FREE_CTX)PvfsOplockCleanOplockFree);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsAddWorkItem(gpPvfsInternalWorkQueue, (PVOID)pWorkCtx);
@@ -1134,7 +1135,7 @@ PvfsOplockCleanOplockQueue(
 }
 
 static VOID
-PvfsOplockCleanupOplockFree(
+PvfsOplockCleanOplockFree(
     PVOID *ppContext
     )
 {
