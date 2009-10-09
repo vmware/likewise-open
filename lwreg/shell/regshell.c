@@ -395,6 +395,7 @@ RegShellListValues(
     {
         if (dwError == 0)
         {
+            LW_SAFE_FREE_STRING(pszValueName);
             dwError = LwWc16sToMbs(pValues[i].pValueName, &pszValueName);
             BAIL_ON_REG_ERROR(dwError);
 
@@ -407,7 +408,10 @@ RegShellListValues(
             {
                 continue;
             }
-            printf("  %s%*s", pszValueName, (int) (strlen(pszValueName)-dwValueNameLenMax), "");
+            printf("  %s%*s",
+                   pszValueName,
+                   (int) (strlen(pszValueName)-dwValueNameLenMax),
+                   "");
             switch (pValues[i].type)
             {
                 case REG_SZ:
@@ -450,13 +454,11 @@ RegShellListValues(
                 default:
                     printf("no handler for datatype %d\n", pValues[i].type);
             }
-            LW_SAFE_FREE_STRING(pszValueName);
-            pszValueName = NULL;
             LW_SAFE_FREE_MEMORY(pData);
-            pData = NULL;
         }
     }
 cleanup:
+    LW_SAFE_FREE_STRING(pszValueName);
     return dwError;
 
 error:
@@ -847,6 +849,41 @@ error:
 
 
 DWORD
+RegShellStrcmpLen(
+    PSTR pszMatchStr,
+    PSTR pszHaystackStr,
+    PDWORD pdwExtentLen)
+{
+    DWORD index = 0;
+    DWORD dwMaxMatch = 0;
+    DWORD dwError = 0;
+
+    BAIL_ON_INVALID_POINTER(pszMatchStr);
+    BAIL_ON_INVALID_POINTER(pszHaystackStr);
+    BAIL_ON_INVALID_POINTER(pdwExtentLen);
+
+    dwMaxMatch = *pdwExtentLen;
+    for (index = 0;
+         pszMatchStr[index] &&
+         pszHaystackStr[index] &&
+         pszMatchStr[index] == pszHaystackStr[index] &&
+         index < dwMaxMatch;
+         index++)
+    {
+        ;
+    }
+    *pdwExtentLen = index;
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+
+
+DWORD
 RegShellCompletionMatch(
     PSTR pszMatchStr,
     PWSTR *ppSubKeys,
@@ -855,13 +892,17 @@ RegShellCompletionMatch(
     PSTR pszDefaultKey,
     PSTR **pppMatchArgs,
     PDWORD pdwMatchArgsLen,
-    PDWORD pdwMatchCommonIndex)
+    PDWORD pdwMatchCommonIndex,
+    PDWORD pdwMatchCommonLen)
 {
     DWORD dwError = 0;
     DWORD i = 0;
     DWORD dwMatchArgsLen = 0;
     DWORD dwMinCommonLen = INT32_MAX;
+    DWORD dwMaxCommonLen = 0;
+    DWORD dwPrevMaxCommonLen = 0;
     DWORD dwMinCommonLenIndex = 0;
+    DWORD dwMaxCommonLenIndex = 0;
     DWORD dwStrLen = 0;
     PSTR pszSubKey = NULL;
 
@@ -869,11 +910,13 @@ RegShellCompletionMatch(
     PSTR pszPtr = NULL;
 
 
-    dwError = LwAllocateMemory(
-                  sizeof(PSTR) * dwSubKeyLen,
-                  (LW_PVOID) &ppMatchArgs);
-
-    BAIL_ON_REG_ERROR(dwError);
+    if (dwSubKeyLen > 0)
+    {
+        dwError = LwAllocateMemory(
+                      sizeof(PSTR) * dwSubKeyLen,
+                      (LW_PVOID) &ppMatchArgs);
+        BAIL_ON_REG_ERROR(dwError);
+    }
 
     for (i=0; i<dwSubKeyLen; i++)
     {
@@ -901,9 +944,32 @@ RegShellCompletionMatch(
         LW_SAFE_FREE_STRING(pszSubKey);
     }
 
+    /*
+     * Use dwMinCommonLenIndex as needle to find the longest
+     * common string among the strings that matched pszMatchStr
+     */
+    dwStrLen = INT32_MAX;
+    if (ppMatchArgs && ppMatchArgs[dwMinCommonLenIndex])
+    {
+        dwMaxCommonLen = strlen(ppMatchArgs[dwMinCommonLenIndex]);
+    }
+    for (i=0; i<dwMatchArgsLen; i++)
+    {
+        dwError = RegShellStrcmpLen(
+                      ppMatchArgs[dwMinCommonLenIndex],
+                      ppMatchArgs[i],
+                      &dwMaxCommonLen);
+        if (dwMaxCommonLen != dwPrevMaxCommonLen)
+        {
+            dwMaxCommonLenIndex = i;
+            dwPrevMaxCommonLen = dwMaxCommonLen;
+        }
+
+    }
     *pppMatchArgs = ppMatchArgs;
     *pdwMatchArgsLen = dwMatchArgsLen;
-    *pdwMatchCommonIndex = dwMinCommonLenIndex;
+    *pdwMatchCommonIndex = dwMaxCommonLenIndex;
+    *pdwMatchCommonLen = dwPrevMaxCommonLen;
 cleanup:
     return dwError;
 
@@ -930,8 +996,10 @@ pfnRegShellCompleteCallback(
     PSTR pszArgPtr = NULL;
     PSTR pszSubKey = NULL;
     PSTR *ppMatchArgs = NULL;
+    PSTR pszBestMatchValue = NULL;
     DWORD dwMatchArgsLen = 0;
     DWORD dwMatchBestIndex = 0;
+    DWORD dwMatchBestLen = 0;
     BOOLEAN bExactMatch = FALSE;
     DWORD dwStrLen = 0;
     PSTR pszFullMatchStr = NULL;
@@ -942,14 +1010,15 @@ pfnRegShellCompleteCallback(
     BAIL_ON_INVALID_HANDLE(cldata->pParseState);
     BAIL_ON_INVALID_HANDLE(cldata->pParseState->hReg);
 
-    dwError = RegShellUtilGetKeys(
-                  cldata->pParseState->hReg,
-                  RegShellGetRootKey(cldata->pParseState),
-                  RegShellGetDefaultKey(cldata->pParseState),
-                  NULL,
-                  &ppSubKeys,
-                  &dwSubKeyLen);
-    BAIL_ON_REG_ERROR(dwError);
+    if (cldata->pParseState->pszDefaultKey &&
+        !cldata->pParseState->pszDefaultKeyCompletion)
+    {
+        dwError = LwAllocateString(
+                      cldata->pParseState->pszDefaultKey,
+                      &cldata->pParseState->pszDefaultKeyCompletion);
+        BAIL_ON_REG_ERROR(dwError);
+    }
+
 
     dwLineLen = lineInfoCtx->cursor - lineInfoCtx->buffer,
     dwError = LwAllocateMemory(sizeof(CHAR) * (dwLineLen+1),
@@ -968,21 +1037,36 @@ pfnRegShellCompleteCallback(
     {
         dwLineLen = pszPtr - pszCurrentCmd;
         pszArgPtr = pszCurrentCmd + dwLineLen;
-        dwStrLen = strlen(pszArgPtr) +
-                       (cldata->pParseState->pszDefaultRootKeyName ? strlen(cldata->pParseState->pszDefaultRootKeyName) : 0) +
-                       (cldata->pParseState->pszDefaultKey ? strlen(cldata->pParseState->pszDefaultKey) : 0) + 3;
+
+        pszPtr = strrchr(pszArgPtr, '\\');
+        if (pszPtr)
+        {
+            pszArgPtr = pszPtr + 1;
+        }
+
+        dwStrLen = strlen(pszArgPtr) + 3;
+        if (cldata->pParseState->pszDefaultRootKeyName)
+        {
+            dwStrLen += strlen(cldata->pParseState->pszDefaultRootKeyName);
+        }
+        if (cldata->pParseState->pszDefaultKeyCompletion)
+        {
+            dwStrLen += strlen(cldata->pParseState->pszDefaultKeyCompletion);
+        }
         dwError = LwAllocateMemory(
                       sizeof(CHAR) * dwStrLen,
                       (LW_PVOID) &pszFullMatchStr);
         BAIL_ON_REG_ERROR(dwError);
         if (cldata->pParseState->pszDefaultRootKeyName)
         {
-            strcat(pszFullMatchStr, cldata->pParseState->pszDefaultRootKeyName);
+            strcat(pszFullMatchStr,
+                   cldata->pParseState->pszDefaultRootKeyName);
             strcat(pszFullMatchStr, "\\");
         }
-        if (cldata->pParseState->pszDefaultKey)
+        if (cldata->pParseState->pszDefaultKeyCompletion)
         {
-            strcat(pszFullMatchStr, cldata->pParseState->pszDefaultKey);
+            strcat(pszFullMatchStr,
+                   cldata->pParseState->pszDefaultKeyCompletion);
             strcat(pszFullMatchStr, "\\");
         }
         strcat(pszFullMatchStr, pszArgPtr);
@@ -993,6 +1077,11 @@ pfnRegShellCompleteCallback(
         pszArgPtr = "";
     }
 
+    /*
+     * Something was looked up already by tab completion. Look to see if
+     * any input has changed since the last list was presented. If not,
+     * just display the existing list again.
+     */
     if (cldata->pszCompletePrevCmd && cldata->pszCompletePrevArg &&
         strcmp(cldata->pszCompletePrevCmd,  pszCurrentCmd) == 0 &&
         strcmp(cldata->pszCompletePrevArg, pszArgPtr) == 0)
@@ -1002,7 +1091,7 @@ pfnRegShellCompleteCallback(
         printf("\n");
         for (i=0; i<dwMatchArgsLen; i++)
         {
-            printf("%s	", ppMatchArgs[i]);
+            printf("%s\t", ppMatchArgs[i]);
         }
 
         putchar('\a');
@@ -1011,22 +1100,41 @@ pfnRegShellCompleteCallback(
     }
     else
     {
+        dwError = RegShellUtilGetKeys(
+                      cldata->pParseState->hReg,
+                      RegShellGetRootKey(cldata->pParseState),
+                      cldata->pParseState->pszDefaultKeyCompletion,
+                      NULL,
+                      &ppSubKeys,
+                      &dwSubKeyLen);
+        BAIL_ON_REG_ERROR(dwError);
+
         dwError = RegShellCompletionMatch(
                       pszArgPtr,
                       ppSubKeys,
                       dwSubKeyLen,
                       cldata->pParseState->pszDefaultRootKeyName,
-                      cldata->pParseState->pszDefaultKey,
+                      cldata->pParseState->pszDefaultKeyCompletion,
                       &ppMatchArgs,
                       &dwMatchArgsLen,
-                      &dwMatchBestIndex);
+                      &dwMatchBestIndex,
+                      &dwMatchBestLen);
+        /*
+         * Match is ambiguous. Display the longest matches that are all common.
+         */
         if (dwMatchArgsLen > 1)
         {
             if (pszArgPtr && *pszArgPtr)
             {
                 dwStrLen = strlen(pszArgPtr);
-                if (ppMatchArgs[dwMatchBestIndex][dwStrLen] &&
-                    el_insertstr(el, &ppMatchArgs[dwMatchBestIndex][dwStrLen]) == -1)
+                dwError = LwAllocateString(
+                              ppMatchArgs[dwMatchBestIndex],
+                              &pszBestMatchValue);
+                BAIL_ON_REG_ERROR(dwError);
+
+                pszBestMatchValue[dwMatchBestLen] = '\0';
+                if (pszBestMatchValue[dwStrLen] &&
+                    el_insertstr(el, &pszBestMatchValue[dwStrLen]) == -1)
                 {
                     printf("Oops: 1 el_insertstr failed\n");
                 }
@@ -1038,31 +1146,107 @@ pfnRegShellCompleteCallback(
             }
             else
             {
+                /*
+                 * No input provided, display all keys at this level
+                 */
                 for (i=0; i<dwMatchArgsLen; i++)
                 {
-                    printf("\n%s	", ppMatchArgs[i]);
+                    printf("%s\t", ppMatchArgs[i]);
                 }
                 printf("\n");
             }
             el_set(el, EL_REFRESH);
 
         }
-        else if (dwMatchArgsLen == 1)
+        else if (dwMatchArgsLen == 1 || dwSubKeyLen == 1)
         {
-            dwStrLen = strlen(pszArgPtr);
-            if (ppMatchArgs[i][dwStrLen] &&
-                el_insertstr(el, &ppMatchArgs[i][dwStrLen]) == -1)
+            if (dwMatchArgsLen == 1)
             {
-                printf("Oops: 2 el_insertstr failed\n");
+                dwStrLen = strlen(pszArgPtr);
+                /*
+                 * Completion is unique. add to command line.
+                 */
+                if (ppMatchArgs[i][dwStrLen] &&
+                    el_insertstr(el, &ppMatchArgs[i][dwStrLen]) == -1)
+                {
+                    printf("Oops: 2 el_insertstr failed\n");
+                }
+                else
+                {
+                    /* No string to append */
+                    if (el_insertstr(el, "\\") == -1)
+                    {
+                        printf("Oops: 3 el_insertstr failed\n");
+                    }
+                }
             }
             else
             {
+                dwError = LwWc16sToMbs(ppSubKeys[0], &pszSubKey);
+                BAIL_ON_REG_ERROR(dwError);
+
+                /*
+                 * Completion is unique. add to command line.
+                 */
+                pszPtr = strrchr(pszSubKey, '\\');
+                if (pszPtr)
+                {
+                    pszPtr++;
+                }
+                dwStrLen = strlen(pszPtr);
+                if (el_insertstr(el, pszPtr) == -1)
+                {
+                    printf("Oops: 2 el_insertstr failed\n");
+                }
+
                 /* No string to append */
                 if (el_insertstr(el, "\\") == -1)
                 {
                     printf("Oops: 3 el_insertstr failed\n");
                 }
+                el_set(el, EL_REFRESH);
             }
+
+            LW_SAFE_FREE_STRING(cldata->pParseState->pszDefaultKeyCompletion);
+            if (ppMatchArgs[i])
+            {
+                pszPtr = strchr(ppMatchArgs[i], '\\');
+                if (pszPtr)
+                {
+                    pszPtr++;
+                }
+                else
+                {
+                    pszPtr = ppMatchArgs[i];
+                }
+            }
+            else
+            {
+                pszPtr = strchr(pszSubKey, '\\');
+                if (pszPtr)
+                {
+                    pszPtr++;
+                }
+                else
+                {
+                    pszPtr = pszSubKey;
+                }
+            }
+
+            dwError = LwAllocateString(
+                          pszPtr,
+                          &cldata->pParseState->pszDefaultKeyCompletion);
+            BAIL_ON_REG_ERROR(dwError);
+            LW_SAFE_FREE_STRING(cldata->pszCompletePrevCmd);
+            LW_SAFE_FREE_STRING(cldata->pszCompletePrevArg);
+            for (i=0;
+                 cldata->ppszCompleteMatches && i<cldata->dwCompleteMatchesLen;
+                 i++)
+            {
+                LW_SAFE_FREE_STRING(cldata->ppszCompleteMatches[i]);
+            }
+            LW_SAFE_FREE_MEMORY(cldata->ppszCompleteMatches);
+            cldata->dwCompleteMatchesLen = 0;
             bExactMatch = TRUE;
             dwError = CC_REFRESH;
         }
@@ -1073,30 +1257,31 @@ pfnRegShellCompleteCallback(
             {
                 dwError = LwWc16sToMbs(ppSubKeys[i], &pszSubKey);
                 BAIL_ON_REG_ERROR(dwError);
-                printf("%s\n", pszSubKey);
+                printf("%s\t", pszSubKey);
                 LW_SAFE_FREE_STRING(pszSubKey);
             }
+            printf("\n");
             el_set(el, EL_REFRESH);
         }
     }
 
 
 cleanup:
-    if (bExactMatch)
+    for (i=0; i<dwSubKeyLen; i++)
     {
-        for (i=0; i<dwSubKeyLen; i++)
-        {
-            LW_SAFE_FREE_MEMORY(ppSubKeys[i]);
-        }
-        LW_SAFE_FREE_MEMORY(ppSubKeys);
+        LW_SAFE_FREE_MEMORY(ppSubKeys[i]);
     }
-    else
+    LW_SAFE_FREE_MEMORY(ppSubKeys);
+    if (!bExactMatch)
     {
+        LW_SAFE_FREE_STRING(cldata->pszCompletePrevCmd);
         cldata->pszCompletePrevCmd = pszCurrentCmd;
-        cldata->pszCompletePrevArg = pszArgPtr;
+        cldata->pszCompletePrevArg = pszBestMatchValue;
         cldata->ppszCompleteMatches = ppMatchArgs;
         cldata->dwCompleteMatchesLen = dwMatchArgsLen;
     }
+
+    LW_SAFE_FREE_MEMORY(pszFullMatchStr);
     return dwError;
 
 error:
@@ -1155,7 +1340,7 @@ RegShellExecuteCmdLine(
         dwError = 0;
     }
     RegShellCmdlineParseFree(dwNewArgc, pszNewArgv);
-    pParseState->pszFullRootKeyName = NULL;
+    LW_SAFE_FREE_STRING(pParseState->pszFullRootKeyName);
     pParseState->pszFullKeyPath = NULL;
 
 cleanup:
@@ -1196,6 +1381,7 @@ RegShellProcessInteractiveEditLine(
     const char *buf = NULL;
     EditLine *el = NULL;
     DWORD dwError = 0;
+    DWORD i = 0;
     PSTR pszCmdLine = NULL;
     PSTR pszNewCmdLine = NULL;
     PSTR pszNumEnd = NULL;
@@ -1267,6 +1453,17 @@ RegShellProcessInteractiveEditLine(
         {
             ncontinuation = 0;
         }
+
+#if 1 /* This mess needs to be put into a completion cleanup function */
+        LW_SAFE_FREE_STRING(el_cdata.pParseState->pszDefaultKeyCompletion);
+        for (i=0; el_cdata.ppszCompleteMatches && i<el_cdata.dwCompleteMatchesLen; i++)
+        {
+            LW_SAFE_FREE_STRING(el_cdata.ppszCompleteMatches[i]);
+        }
+        LW_SAFE_FREE_MEMORY(el_cdata.ppszCompleteMatches);
+        LW_SAFE_FREE_STRING(el_cdata.pszCompletePrevCmd);
+#endif
+
 
         el_cdata.continuation = ncontinuation;
         dwError = LwAllocateMemory(
@@ -1416,6 +1613,8 @@ RegShellProcessInteractiveEditLine(
     history(hist, &ev, H_SAVE, ".regshell_history");
 
 cleanup:
+    el_end(el);
+    history_end(hist);
     return dwError;
 
 error:

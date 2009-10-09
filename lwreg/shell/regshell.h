@@ -127,6 +127,9 @@ typedef struct _REGSHELL_PARSE_STATE
     PSTR pszDefaultRootKeyName;
     PSTR pszDefaultKey;
 
+    // Same as pszDefaultKey, but manipulated during tab completion
+    PSTR pszDefaultKeyCompletion;
+
     // Overrides pszDefaultKey when root key path is specified
     PSTR pszFullRootKeyName;
     PSTR pszFullKeyPath;
