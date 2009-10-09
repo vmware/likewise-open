@@ -76,6 +76,13 @@ SrvTimerFree(
     );
 
 static
+VOID
+SrvTimerShutdownCB(
+    PSRV_TIMER_REQUEST pTimerRequest,
+    PVOID              pUserData
+    );
+
+static
 BOOLEAN
 SrvTimerMustStop_inlock(
     IN  PSRV_TIMER_CONTEXT pContext
@@ -515,15 +522,44 @@ SrvTimerFree(
     SrvFreeMemory(pTimerRequest);
 }
 
-VOID
+NTSTATUS
 SrvTimerIndicateStop(
     IN  PSRV_TIMER pTimer
     )
 {
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_TIMER_REQUEST pTimerRequest = NULL;
+
     if (pTimer->pTimerThread)
     {
         SrvTimerStop(&pTimer->context);
+
+        // Wake up the timer thread
+        ntStatus = SrvTimerPostRequest(
+                        1LL,
+                        NULL,
+                        &SrvTimerShutdownCB,
+                        &pTimerRequest);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
+
+error:
+
+    if (pTimerRequest)
+    {
+        SrvTimerRelease(pTimerRequest);
+    }
+
+    return ntStatus;
+}
+
+static
+VOID
+SrvTimerShutdownCB(
+    PSRV_TIMER_REQUEST pTimerRequest,
+    PVOID              pUserData
+    )
+{
 }
 
 VOID

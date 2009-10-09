@@ -71,7 +71,7 @@ SrvTimerCancelRequestSpecific(
     OUT PVOID*             ppUserData
     );
 
-VOID
+NTSTATUS
 SrvTimerIndicateStop(
     PSRV_TIMER pTimer
     );
