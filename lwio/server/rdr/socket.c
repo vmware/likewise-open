@@ -1353,6 +1353,24 @@ RdrSocketSetIgnoreServerSignatures(
     LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 }
 
+BOOLEAN
+RdrSocketGetIgnoreServerSignatures(
+    PSMB_SOCKET pSocket
+    )
+{
+    BOOLEAN bInLock = FALSE;
+    BOOLEAN bValue = FALSE;
+
+    LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
+
+    bValue = pSocket->bIgnoreServerSignatures;
+
+    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
+
+    return bValue;
+}
+
+
 static
 NTSTATUS
 RdrEaiToNtStatus(

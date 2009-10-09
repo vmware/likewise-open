@@ -436,7 +436,7 @@ retry_wait:
 
     ntStatus = SMBPacketDecodeHeader(
                     pResponse->pPacket,
-                    bVerifySignature,
+                    bVerifySignature && !RdrSocketGetIgnoreServerSignatures(pTree->pSession->pSocket),
                     dwExpectedSequence,
                     pTree->pSession->pSocket->pSessionKey,
                     pTree->pSession->pSocket->dwSessionKeyLength);
