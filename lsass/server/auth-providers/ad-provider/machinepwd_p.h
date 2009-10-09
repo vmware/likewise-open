@@ -73,4 +73,9 @@ ADSetMachineTGTExpiry(
     DWORD dwGoodUntil
     );
 
+VOID
+ADSetMachineTGTExpiryError(
+    VOID
+    );
+
 #endif /* __MACHINEPWD_P_H__ */
