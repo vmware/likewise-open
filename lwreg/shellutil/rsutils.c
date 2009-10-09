@@ -474,9 +474,6 @@ RegShellUtilGetKeys(
 
         *pppRetSubKeys = subKeys;
         *pdwRetSubKeyCount = dwNumRootKeys;
-printf("subKeys=%p\n", subKeys);
-for (i=0; i<dwNumRootKeys; i++)
-printf("subKeys[%d]=%p\n", i, subKeys[i]);
         return dwError;
     }
 
@@ -556,9 +553,6 @@ printf("subKeys[%d]=%p\n", i, subKeys[i]);
 
     *pppRetSubKeys = subKeys;
     *pdwRetSubKeyCount = dwSubKeyCount;
-printf("subKeys=%p\n", subKeys);
-for (i=0; i<dwSubKeyCount; i++)
-printf("subKeys[%d]=%p\n", i, subKeys[i]);
 cleanup:
     if (pFullKey && pFullKey != pRootKey)
     {
