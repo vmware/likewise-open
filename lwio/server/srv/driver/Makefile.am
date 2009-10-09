@@ -36,6 +36,7 @@ libsrv_sys_la_LIBADD = \
     @top_builddir@/server/srv/shares/api/libshareapi.la \
     @top_builddir@/server/srv/utils/libsrvutils.la \
     @top_builddir@/server/iomgr2/libiomgr2.la \
+    @top_builddir@/server/smbcommon/liblwiosmbcommon.la \
     @top_builddir@/libshareinfo/liblwioshareinfo.la \
     @KRB5_LIBS@ \
     @UUID_LIBS@ \

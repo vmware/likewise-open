@@ -63,38 +63,28 @@
  * A handle to a particular service that can be used to query or
  * perform operations upon it.
  */
-typedef struct _LW_SERVICE_HANDLE *LW_SERVICE_HANDLE;
+typedef struct _LW_SERVICE_HANDLE *LW_SERVICE_HANDLE, **PLW_SERVICE_HANDLE;
 
 /**
- * @brief A pointer to an opaque service handle
- */
-typedef struct _LW_SERVICE_HANDLE **PLW_SERVICE_HANDLE;
-
-/**
- * @brief Status of a service
+ * @brief State of a service
  *
- * Represents the status of a service (running, stopped, etc.)
+ * Represents the state of a service (running, stopped, etc.)
  */
-typedef enum _LW_SERVICE_STATUS
+typedef enum _LW_SERVICE_STATE
 {
     /** @brief Service is running */
-    LW_SERVICE_RUNNING = 0,
+    LW_SERVICE_STATE_RUNNING = 0,
     /** @brief Service is stopped */
-    LW_SERVICE_STOPPED = 1,
+    LW_SERVICE_STATE_STOPPED = 1,
     /** @brief Service is starting */
-    LW_SERVICE_STARTING = 2,
+    LW_SERVICE_STATE_STARTING = 2,
     /** @brief Service is stopping */
-    LW_SERVICE_STOPPING = 3,
+    LW_SERVICE_STATE_STOPPING = 3,
     /** @brief Service is paused */
-    LW_SERVICE_PAUSED = 4,
+    LW_SERVICE_STATE_PAUSED = 4,
     /** @brief Service is pining for the fjords */
-    LW_SERVICE_DEAD = 5
-} LW_SERVICE_STATUS;
-
-/**
- * @brief A pointer to a service status value
- */
-typedef LW_SERVICE_STATUS *PLW_SERVICE_STATUS;
+    LW_SERVICE_STATE_DEAD = 5
+} LW_SERVICE_STATE, *PLW_SERVICE_STATE;
 
 /**
  * @brief Service type
@@ -103,20 +93,83 @@ typedef LW_SERVICE_STATUS *PLW_SERVICE_STATUS;
  */
 typedef enum _LW_SERVICE_TYPE
 {
-    /** Service is an executable */
-    LW_SERVICE_EXECUTABLE = 0,
-    /** Service is a lwsm-compatible executable */
-    LW_SERVICE_SM_EXECUTABLE = 1,
+    /** Service is a legacy executable */
+    LW_SERVICE_TYPE_LEGACY_EXECUTABLE = 0,
+    /** Service is an executable that communicates with the service manager */
+    LW_SERVICE_TYPE_EXECUTABLE = 1,
     /** Service is a module for a container */
-    LW_SERVICE_MODULE = 2,
+    LW_SERVICE_TYPE_MODULE = 2,
     /** Service is a driver */
-    LW_SERVICE_DRIVER = 3
-} LW_SERVICE_TYPE;
+    LW_SERVICE_TYPE_DRIVER = 3
+} LW_SERVICE_TYPE, *PLW_SERVICE_TYPE;
 
 /**
- * @brief A pointer to a service type value
+ * @brief Service home
+ *
+ * Denotes the location of a running service.
  */
-typedef LW_SERVICE_TYPE *PLW_SERVICE_TYPE;
+typedef enum _LW_SERVICE_HOME
+{
+    /** @brief Service is running in a standalone process */
+    LW_SERVICE_HOME_STANDALONE,
+    /** @brief Service is running in a service container */
+    LW_SERVICE_HOME_CONTAINER,
+    /** @brief Service is running in the IO manager */
+    LW_SERVICE_HOME_IO_MANAGER,
+    /** @brief Service is running directly in the service manager */
+    LW_SERVICE_HOME_SERVICE_MANAGER
+} LW_SERVICE_HOME, *PLW_SERVICE_HOME;
+
+/**
+ * @brief Service info mask
+ *
+ * A bitmask which indicates which fields to update
+ * in an #LwSmUpdateServiceInfo() call.
+ *
+ */
+typedef enum _LW_SERVICE_INFO_MASK
+{
+    /**
+     * @brief Update name
+     * @hideinitializer
+     */
+    LW_SERVICE_INFO_MASK_NAME         = 0x01,
+    /**
+     * @brief Update description
+     * @hideinitializer
+     */
+    LW_SERVICE_INFO_MASK_DESCRIPTION  = 0x02,
+    /**
+     * @brief Update type
+     * @hideinitializer
+     */
+    LW_SERVICE_INFO_MASK_TYPE         = 0x04,
+    /**
+     * @brief Update path
+     * @hideinitializer
+     */
+    LW_SERVICE_INFO_MASK_PATH         = 0x08,
+    /**
+     * @brief Update arguments
+     * @hideinitializer
+     */
+    LW_SERVICE_INFO_MASK_ARGS         = 0x10,
+    /**
+     * @brief Update dependencies
+     * @hideinitializer
+     */
+    LW_SERVICE_INFO_MASK_DEPENDENCIES = 0x20,
+    /**
+     * @brief Update autostart flag
+     * @hideinitializer
+     */
+    LW_SERVICE_INFO_MASK_AUTOSTART    = 0x40,
+    /**
+     * @brief Update all flags
+     * @hideinitializer
+     */
+    LW_SERVICE_INFO_MASK_ALL          = 0x7F
+} LW_SERVICE_INFO_MASK, *PLW_SERVICE_INFO_MASK;
 
 /**
  * @brief Service information
@@ -138,41 +191,26 @@ typedef struct _LW_SERVICE_INFO
     LW_PWSTR* ppwszArgs;
     /** @brief Names of services on which this service depends */
     LW_PWSTR* ppwszDependencies;
-    /** @brief Is this service started on system startup? */
-    LW_BOOL bStartupService;
-} LW_SERVICE_INFO;
+    /** @brief Is this service automatically started? */
+    LW_BOOL bAutostart;
+} LW_SERVICE_INFO, *PLW_SERVICE_INFO;
+
+typedef const LW_SERVICE_INFO* PCLW_SERVICE_INFO;
 
 /**
- * @brief Service process type
+ * @brief Service status
  *
- * Denotes the type of process in which a service is running.
+ * Describes the runtime status of a service
  */
-typedef enum _LW_SERVICE_PROCESS
+typedef struct _LW_SERVICE_STATUS
 {
-    /** @brief Service is running in a standalone process */
-    LW_SERVICE_PROCESS_STANDALONE,
-    /** @brief Service is running in a service container */
-    LW_SERVICE_PROCESS_CONTAINER,
-    /** @brief Service is running in the IO manager */
-    LW_SERVICE_PROCESS_IO_MANAGER,
-    /** @brief Service is running directly in the service manager */
-    LW_SERVICE_PROCESS_SERVICE_MANAGER
-} LW_SERVICE_PROCESS;
-
-/**
- * @brief A pointer to a service process value
- */
-typedef LW_SERVICE_PROCESS *PLW_SERVICE_PROCESS;
-
-/**
- * @brief A pointer to a service info structure
- */
-typedef LW_SERVICE_INFO *PLW_SERVICE_INFO;
-
-/**
- * @brief A pointer to a constant service info structure
- */
-typedef LW_SERVICE_INFO const * PCLW_SERVICE_INFO;
+    /** Brief Service state (stopped, running, etc.) */
+    LW_SERVICE_STATE state;
+    /** Brief Service home */
+    LW_SERVICE_HOME home;
+    /** Brief Process ID of service home */
+    pid_t pid;
+} LW_SERVICE_STATUS, *PLW_SERVICE_STATUS;
 
 /**
  * @brief Acquire service handle
@@ -234,27 +272,49 @@ LwSmFreeServiceNameList(
  * @brief Add new service
  *
  * Adds a new service to the service manager described by
- * the provided service info structure.
+ * the provided service info structure and returns a handle
+ * to it.
  *
  * @param[in] pServiceInfo a service info structure describing the new service
+ * @param[out] phHandle the created service
  */
 DWORD
 LwSmAddService(
-    PCLW_SERVICE_INFO pServiceInfo
+    PCLW_SERVICE_INFO pServiceInfo,
+    PLW_SERVICE_HANDLE phHandle
     );
 
 /**
  * @brief Remove an existing service
  *
- * Removes an existing service with the given name from the service manager.
+ * Removes an existing service from the service manager.
+ * The service will not actually be removed until the last
+ * handle to it is released with #LwSmReleaseServiceHandle().
  *
- * @param[in] pwszName the name of the service
+ * @param[in] hHandle the service handle
  * @retval LW_ERROR_SUCCESS success
- * @retval LW_ERROR_NO_SUCH_SERVICE a service with the specified name did not exist
  */
 DWORD
 LwSmRemoveService(
-    LW_PCWSTR pwszName
+    LW_SERVICE_HANDLE hHandle
+    );
+
+/**
+ * @brief Update service information
+ *
+ * Updates the basic information for a service.
+ *
+ * @param[in] hHandle the service handle
+ * @param[in] pServiceInfo service information
+ * @param[in] mask a bitmask describing which information fields to update
+ * @retval LW_ERROR_SUCCESS success
+ * @retval LW_ERROR_ACCESS_DENIED the caller does not have permission to update the service
+ */
+DWORD
+LwSmUpdateServiceInfo(
+    LW_SERVICE_HANDLE hHandle,
+    PCLW_SERVICE_INFO pServiceInfo,
+    LW_SERVICE_INFO_MASK mask
     );
 
 /**
@@ -306,7 +366,7 @@ LwSmStopService(
  * @retval LW_ERROR_SUCCESS success
  */
 DWORD
-LwSmGetServiceStatus(
+LwSmQueryServiceStatus(
     LW_SERVICE_HANDLE hHandle,
     PLW_SERVICE_STATUS pStatus
     );
@@ -337,28 +397,9 @@ LwSmRefreshService(
  * @retval LW_ERROR_SUCCESS success
  */
 DWORD
-LwSmGetServiceInfo(
+LwSmQueryServiceInfo(
     LW_SERVICE_HANDLE hHandle,
     PLW_SERVICE_INFO* ppInfo
-    );
-
-/**
- * @brief Get service process information
- *
- * Gets information about the process in which a service is running:
- * - The type of process
- * - The pid of the process
- *
- * @param[in] hHandle the service handle
- * @param[out] pProcessType the type of process
- * @param[out] pProcessPid the pid of the process
- * @retval LW_ERROR_SUCCESS success
- */
-DWORD
-LwSmGetServiceProcess(
-    LW_SERVICE_HANDLE hHandle,
-    PLW_SERVICE_PROCESS pProcessType,
-    pid_t* pProcessPid
     );
 
 /**
@@ -376,7 +417,7 @@ LwSmGetServiceProcess(
  * @retval LW_ERROR_SUCCESS success
  */
 DWORD
-LwSmGetServiceDependencyClosure(
+LwSmQueryServiceDependencyClosure(
     LW_SERVICE_HANDLE hHandle,
     PWSTR** pppwszServiceList
     );
@@ -396,7 +437,7 @@ LwSmGetServiceDependencyClosure(
  * @retval LW_ERROR_SUCCESS success
  */
 DWORD
-LwSmGetServiceReverseDependencyClosure(
+LwSmQueryServiceReverseDependencyClosure(
     LW_SERVICE_HANDLE hHandle,
     PWSTR** pppwszServiceList
     );
@@ -405,7 +446,7 @@ LwSmGetServiceReverseDependencyClosure(
  * @brief Free service info structure
  *
  * Frees a service info structure as returned by e.g.
- * #LwSmGetServiceInfo()
+ * #LwSmQueryServiceInfo()
  *
  * @param[in,out] pInfo the service info structure to free
  */

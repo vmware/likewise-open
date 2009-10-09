@@ -104,18 +104,25 @@ LwSmCopyStringList(
     size_t len = 0;
     size_t i = 0;
 
-    len = LwSmStringListLength(ppwszStrings);
-    
-    dwError = LwAllocateMemory(sizeof(*ppwszCopy) * (len + 1), OUT_PPVOID(&ppwszCopy));
-    BAIL_ON_ERROR(dwError);
-
-    for (i = 0; i < len; i++)
+    if (ppwszStrings)
     {
-        dwError = LwAllocateWc16String(&ppwszCopy[i], ppwszStrings[i]);
-        BAIL_ON_ERROR(dwError);
-    }
+        len = LwSmStringListLength(ppwszStrings);
 
-    *pppwszCopy = ppwszCopy;
+        dwError = LwAllocateMemory(sizeof(*ppwszCopy) * (len + 1), OUT_PPVOID(&ppwszCopy));
+        BAIL_ON_ERROR(dwError);
+
+        for (i = 0; i < len; i++)
+        {
+            dwError = LwAllocateWc16String(&ppwszCopy[i], ppwszStrings[i]);
+            BAIL_ON_ERROR(dwError);
+        }
+
+        *pppwszCopy = ppwszCopy;
+    }
+    else
+    {
+        *pppwszCopy = NULL;
+    }
 
 cleanup:
 
@@ -181,6 +188,23 @@ error:
 }
 
 DWORD
+LwSmCopyString(
+    PCWSTR pwszString,
+    PWSTR* ppwszCopy
+    )
+{
+    if (pwszString)
+    {
+        return LwAllocateWc16String(ppwszCopy, pwszString);
+    }
+    else
+    {
+        *ppwszCopy = NULL;
+        return LW_ERROR_SUCCESS;
+    }
+}
+
+DWORD
 LwSmCopyServiceInfo(
     PLW_SERVICE_INFO pInfo,
     PLW_SERVICE_INFO* ppCopy
@@ -193,19 +217,16 @@ LwSmCopyServiceInfo(
     BAIL_ON_ERROR(dwError);
 
     pCopy->type = pInfo->type;
-    pCopy->bStartupService = pInfo->bStartupService;
+    pCopy->bAutostart = pInfo->bAutostart;
     
-    dwError = LwAllocateWc16String(&pCopy->pwszPath, pInfo->pwszPath);
+    dwError = LwSmCopyString(pInfo->pwszPath, &pCopy->pwszPath);
     BAIL_ON_ERROR(dwError);
 
-    dwError = LwAllocateWc16String(&pCopy->pwszName, pInfo->pwszName);
+    dwError = LwSmCopyString(pInfo->pwszName, &pCopy->pwszName);
     BAIL_ON_ERROR(dwError);
 
-    if (pInfo->pwszDescription)
-    {
-        dwError = LwAllocateWc16String(&pCopy->pwszDescription, pInfo->pwszDescription);
-        BAIL_ON_ERROR(dwError);
-    }
+    dwError = LwSmCopyString(pInfo->pwszDescription, &pCopy->pwszDescription);
+    BAIL_ON_ERROR(dwError);
 
     dwError = LwSmCopyStringList(pInfo->ppwszArgs, &pCopy->ppwszArgs);
     BAIL_ON_ERROR(dwError);

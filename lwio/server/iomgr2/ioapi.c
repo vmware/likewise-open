@@ -139,7 +139,7 @@ IoCreateFile(
         GOTO_CLEANUP_ON_STATUS_EE(status, EE);
     }
 
-    status = IopFileObjectAllocate(&pFileObject, pDevice);
+    status = IopFileObjectAllocate(&pFileObject, pDevice, &fileName);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     if (EcpList)
@@ -197,8 +197,9 @@ IoCreateFile(
         ioStatusBlock = pIrp->IoStatusBlock;
         if (STATUS_SUCCESS == status)
         {
+            // Already referenced by IRP completion processing for
+            // create-type IRPs.
             pResultFileObject = pIrp->FileHandle;
-            IopFileObjectReference(pResultFileObject);
         }
     }
 
@@ -224,6 +225,28 @@ cleanup:
     return status;
 }
 
+VOID
+IoCancelFile(
+    IN IO_FILE_HANDLE FileHandle
+    )
+{
+    IopIrpCancelFileObject(FileHandle);
+}
+
+NTSTATUS
+IoAsyncCloseFile(
+    IN OUT IO_FILE_HANDLE FileHandle,
+    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    OUT PIO_STATUS_BLOCK IoStatusBlock
+    )
+{
+    return IopFileObjectRundown(
+                    FileHandle,
+                    AsyncControlBlock ? AsyncControlBlock->Callback : NULL,
+                    AsyncControlBlock ? AsyncControlBlock->CallbackContext : NULL,
+                    IoStatusBlock);
+}
+
 NTSTATUS
 IoCloseFile(
     IN OUT IO_FILE_HANDLE FileHandle
@@ -231,26 +254,13 @@ IoCloseFile(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    PIRP pIrp = NULL;
-    // In case we need it in the future...
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
-    PIO_FILE_OBJECT pFileObject = FileHandle;
 
-    status = IopIrpCreate(&pIrp, IRP_TYPE_CLOSE, FileHandle);
-    ioStatusBlock.Status = status;
+    status = IoAsyncCloseFile(FileHandle, NULL, &ioStatusBlock);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
-    status = IopDeviceCallDriver(FileHandle->pDevice, pIrp);
-    ioStatusBlock = pIrp->IoStatusBlock;
-    // TODO -- handle asyc behavior.
-    assert(ioStatusBlock.Status == status);
-
 cleanup:
-    IopIrpDereference(&pIrp);
-    if (!status)
-    {
-        IopFileObjectDereference(&pFileObject);
-    }
+    LWIO_ASSERT(NT_SUCCESS_OR_NOT(status));
 
     IO_LOG_LEAVE_ON_STATUS_EE(status, EE);
     return status;
@@ -275,6 +285,12 @@ IopReadWriteFile(
     PIRP pIrp = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
     IRP_TYPE irpType = bIsWrite ? IRP_TYPE_WRITE : IRP_TYPE_READ;
+
+    if (!FileHandle || !IoStatusBlock)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP_EE(EE);
+    }
 
     LWIO_ASSERT(!(bIsWrite && bIsPagingIo));
 
@@ -400,6 +416,12 @@ IopControlFile(
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
     IRP_TYPE irpType = bIsFsControl? IRP_TYPE_FS_CONTROL : IRP_TYPE_DEVICE_IO_CONTROL;
 
+    if (!FileHandle || !IoStatusBlock)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP_EE(EE);
+    }
+
     status = IopIrpCreate(&pIrp, irpType, FileHandle);
     ioStatusBlock.Status = status;
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
@@ -492,6 +514,12 @@ IoFlushBuffersFile(
     PIRP pIrp = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
 
+    if (!FileHandle || !IoStatusBlock)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP_EE(EE);
+    }
+
     status = IopIrpCreate(&pIrp, IRP_TYPE_FLUSH_BUFFERS, FileHandle);
     ioStatusBlock.Status = status;
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
@@ -535,6 +563,12 @@ IopQuerySetInformationFile(
     PIRP pIrp = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
     IRP_TYPE irpType = bIsSet ? IRP_TYPE_SET_INFORMATION : IRP_TYPE_QUERY_INFORMATION;
+
+    if (!FileHandle || !IoStatusBlock)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP_EE(EE);
+    }
 
     status = IopIrpCreate(&pIrp, irpType, FileHandle);
     ioStatusBlock.Status = status;
@@ -645,6 +679,12 @@ IoQueryDirectoryFile(
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
     PIO_MATCH_FILE_SPEC fileSpec = NULL;
 
+    if (!FileHandle || !IoStatusBlock)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP_EE(EE);
+    }
+
     if (FileSpec)
     {
         status = IO_ALLOCATE(&fileSpec, IO_MATCH_FILE_SPEC, sizeof(*fileSpec));
@@ -717,6 +757,12 @@ IopQuerySetVolumeInformationFile(
     PIRP pIrp = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
     IRP_TYPE irpType = bIsSet ? IRP_TYPE_SET_VOLUME_INFORMATION : IRP_TYPE_QUERY_VOLUME_INFORMATION;
+
+    if (!FileHandle || !IoStatusBlock)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP_EE(EE);
+    }
 
     status = IopIrpCreate(&pIrp, irpType, FileHandle);
     ioStatusBlock.Status = status;
@@ -806,6 +852,12 @@ IoLockFile(
     PIRP pIrp = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
 
+    if (!FileHandle || !IoStatusBlock)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP_EE(EE);
+    }
+
     status = IopIrpCreate(&pIrp, IRP_TYPE_LOCK_CONTROL, FileHandle);
     ioStatusBlock.Status = status;
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
@@ -856,6 +908,12 @@ IoUnlockFile(
     int EE = 0;
     PIRP pIrp = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
+
+    if (!FileHandle || !IoStatusBlock)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP_EE(EE);
+    }
 
     status = IopIrpCreate(&pIrp, IRP_TYPE_LOCK_CONTROL, FileHandle);
     ioStatusBlock.Status = status;
@@ -994,6 +1052,12 @@ IopQuerySetSecurityFile(
     PIRP pIrp = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
     IRP_TYPE irpType = bIsSet ? IRP_TYPE_SET_SECURITY : IRP_TYPE_QUERY_SECURITY;
+
+    if (!FileHandle || !IoStatusBlock)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP_EE(EE);
+    }
 
     status = IopIrpCreate(&pIrp, irpType, FileHandle);
     ioStatusBlock.Status = status;

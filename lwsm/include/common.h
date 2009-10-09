@@ -39,6 +39,7 @@
 #ifndef __LWSM_COMMON_H__
 #define __LWSM_COMMON_H__
 
+#include "config.h"
 #include <lwsm/lwsm.h>
 
 #define BAIL_ON_ERROR(_e_)  \
@@ -81,7 +82,7 @@
 #define STRUCT_FROM_MEMBER(_ptr_, _type_, _field_)                      \
     ((_type_ *) ((unsigned char*) (_ptr_) - offsetof(_type_, _field_)))
 
-#define SM_ENDPOINT "/tmp/.lwsm"
+#define SM_ENDPOINT (CACHEDIR "/.lwsm")
 
 typedef enum _SM_IPC_TAG
 {
@@ -102,19 +103,13 @@ typedef enum _SM_IPC_TAG
     SM_IPC_STOP_SERVICE_RES,
     SM_IPC_REFRESH_SERVICE_REQ,
     SM_IPC_REFRESH_SERVICE_RES,
-    SM_IPC_GET_SERVICE_STATUS_REQ,
-    SM_IPC_GET_SERVICE_STATUS_RES,
-    SM_IPC_GET_SERVICE_INFO_REQ,
-    SM_IPC_GET_SERVICE_INFO_RES,
-    SM_IPC_GET_SERVICE_PROCESS_REQ,
-    SM_IPC_GET_SERVICE_PROCESS_RES
+    SM_IPC_QUERY_SERVICE_STATUS_REQ,
+    SM_IPC_QUERY_SERVICE_STATUS_RES,
+    SM_IPC_QUERY_SERVICE_INFO_REQ,
+    SM_IPC_QUERY_SERVICE_INFO_RES,
+    SM_IPC_QUERY_SERVICE_PROCESS_REQ,
+    SM_IPC_QUERY_SERVICE_PROCESS_RES
 } SM_IPC_TAG;
-
-typedef struct _SM_IPC_GET_SERVICE_RES_STRUCT
-{
-    LW_SERVICE_PROCESS process;
-    pid_t pid;
-} SM_IPC_GET_SERVICE_PROCESS_RES_STRUCT, *PSM_IPC_GET_SERVICE_PROCESS_RES_STRUCT;
 
 typedef struct _SM_LINK
 {
@@ -158,6 +153,12 @@ DWORD
 LwSmStringListAppend(
     PWSTR** pppwszStrings,
     PWSTR pwszElement
+    );
+
+DWORD
+LwSmCopyString(
+    PCWSTR pwszString,
+    PWSTR* ppwszCopy
     );
 
 DWORD

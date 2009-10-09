@@ -140,32 +140,6 @@ LsaSrvApiInitConfig(
     return 0;
 }
 
-static LSA_SRV_API_CONFIG gStagingConfig;
-
-static
-LSA_CONFIG gConfig[] =
-{
-    {
-       "EnableEventlog",
-       TRUE,
-       LsaTypeBoolean,
-       0,
-       -1,
-       NULL,
-       &(gStagingConfig.bEnableEventLog)
-    },
-    {
-       "LogNetworkConnectionEvents",
-       TRUE,
-       LsaTypeBoolean,
-       0,
-       -1,
-       NULL,
-       &(gStagingConfig.bLogNetworkConnectionEvents)
-    }
-};
-
-
 DWORD
 LsaSrvApiReadRegistry(
     PLSA_SRV_API_CONFIG pConfig
@@ -173,25 +147,48 @@ LsaSrvApiReadRegistry(
 {
     DWORD dwError = 0;
 
-    memset(&gStagingConfig, 0, sizeof(gStagingConfig));
-    dwError = LsaSrvApiInitConfig(&gStagingConfig);
+    LSA_SRV_API_CONFIG StagingConfig;
+    LSA_CONFIG Config[] =
+    {
+        {
+           "EnableEventlog",
+           TRUE,
+           LsaTypeBoolean,
+           0,
+           MAXDWORD,
+           NULL,
+           &StagingConfig.bEnableEventLog
+        },
+        {
+           "LogNetworkConnectionEvents",
+           TRUE,
+           LsaTypeBoolean,
+           0,
+           MAXDWORD,
+           NULL,
+           &StagingConfig.bLogNetworkConnectionEvents
+        }
+    };
+
+    memset(&StagingConfig, 0, sizeof(StagingConfig));
+    dwError = LsaSrvApiInitConfig(&StagingConfig);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaProcessConfig(
                 "Services\\lsass\\Parameters",
                 "Policy\\Services\\lsass\\Parameters",
-                gConfig,
-                sizeof(gConfig)/sizeof(gConfig[0]));
+                Config,
+                sizeof(Config)/sizeof(Config[0]));
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaSrvApiTransferConfigContents(
-                    &gStagingConfig,
+                    &StagingConfig,
                     pConfig);
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
 
-    LsaSrvApiFreeConfigContents(&gStagingConfig);
+    LsaSrvApiFreeConfigContents(&StagingConfig);
 
     return dwError;
 

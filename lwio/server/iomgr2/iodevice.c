@@ -77,16 +77,18 @@ IoDeviceCreate(
     IoMemoryZero(&deviceName, sizeof(deviceName));
     pDeviceObject->Context = DeviceContext;
 
-    status = LwRtlInitializeMutex(&pDeviceObject->FileObjectMutex, TRUE);
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
     LwListInit(&pDeviceObject->FileObjectsList);
 
     IopDriverInsertDevice(pDeviceObject->Driver, &pDeviceObject->DriverLinks);
     IopRootInsertDevice(pDeviceObject->Driver->Root, &pDeviceObject->RootLinks);
 
+    status = LwRtlInitializeMutex(&pDeviceObject->Mutex, TRUE);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
     status = LwRtlInitializeMutex(&pDeviceObject->CancelMutex, TRUE);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    *pDeviceHandle = pDeviceObject;
 
 cleanup:
     if (status)
@@ -110,17 +112,17 @@ IoDeviceDelete(
 {
     PIO_DEVICE_OBJECT pDeviceObject = *pDeviceHandle;
 
-    assert(pDeviceObject);
+    LWIO_ASSERT(pDeviceObject);
 
     if (pDeviceObject)
     {
         // TODO -- add proper drain support...
-        assert(LwListIsEmpty(&pDeviceObject->FileObjectsList));
+        LWIO_ASSERT(LwListIsEmpty(&pDeviceObject->FileObjectsList));
         IopDriverRemoveDevice(pDeviceObject->Driver, &pDeviceObject->DriverLinks);
-        IopRootInsertDevice(pDeviceObject->Driver->Root, &pDeviceObject->RootLinks);
+        IopRootRemoveDevice(pDeviceObject->Driver->Root, &pDeviceObject->RootLinks);
         RtlUnicodeStringFree(&pDeviceObject->DeviceName);
+        LwRtlCleanupMutex(&pDeviceObject->Mutex);
         LwRtlCleanupMutex(&pDeviceObject->CancelMutex);
-        LwRtlCleanupMutex(&pDeviceObject->FileObjectMutex);
         IoMemoryFree(pDeviceObject);
         *pDeviceHandle = NULL;
     }
@@ -140,7 +142,21 @@ IopDeviceCallDriver(
     IN OUT PIRP pIrp
     )
 {
-    // TODO -- Add IRP list management, etc.
     return DeviceHandle->Driver->Callback.Dispatch(DeviceHandle, pIrp);
 }
 
+VOID
+IopDeviceLock(
+    IN PIO_DEVICE_OBJECT pDeviceObject
+    )
+{
+    LwRtlLockMutex(&pDeviceObject->Mutex);
+}
+
+VOID
+IopDeviceUnlock(
+    IN PIO_DEVICE_OBJECT pDeviceObject
+    )
+{
+    LwRtlUnlockMutex(&pDeviceObject->Mutex);
+}

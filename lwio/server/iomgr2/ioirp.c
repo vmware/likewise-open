@@ -32,15 +32,18 @@
 
 typedef ULONG IRP_FLAGS;
 
-#define IRP_FLAG_PENDING    0x00000001
-#define IRP_FLAG_COMPLETE   0x00000002
-#define IRP_FLAG_CANCEL     0x00000004
+#define IRP_FLAG_PENDING                    0x00000001
+#define IRP_FLAG_COMPLETE                   0x00000002
+#define IRP_FLAG_CANCEL_PENDING             0x00000004
+#define IRP_FLAG_CANCELLED                  0x00000008
+#define IRP_FLAG_DISPATCHED                 0x00000010
 
 typedef struct _IRP_INTERNAL {
     IRP Irp;
     LONG ReferenceCount;
     IRP_FLAGS Flags;
     LW_LIST_LINKS FileObjectLinks;
+    LW_LIST_LINKS CancelLinks;
     struct {
         PIO_IRP_CALLBACK Callback;
         PVOID CallbackContext;
@@ -127,11 +130,20 @@ IopIrpCreate(
     pIrp->DeviceHandle = pFileObject->pDevice;
     pIrp->DriverHandle = pFileObject->pDevice->Driver;
 
-    // XXX - LOCK...
-    LwRtlLockMutex(&pFileObject->IrpListMutex);
-    LwListInsertTail(&pFileObject->IrpList,
-                     &irpInternal->FileObjectLinks);
-    LwRtlUnlockMutex(&pFileObject->IrpListMutex);
+    IopFileObjectLock(pFileObject);
+    // TODO-Add FILE_OBJECT_FLAG_CLOSED
+    if ((Type != IRP_TYPE_CLOSE) && IsSetFlag(pFileObject->Flags, FILE_OBJECT_FLAG_RUNDOWN))
+    {
+        status = STATUS_CANCELLED;
+    }
+    else
+    {
+        LwListInsertTail(&pFileObject->IrpList,
+                         &irpInternal->FileObjectLinks);
+    }
+    IopFileObjectUnlock(pFileObject);
+
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
 cleanup:
     if (status)
@@ -145,7 +157,6 @@ cleanup:
     return status;
 }
 
-// should become static
 static
 VOID
 IopIrpFree(
@@ -157,7 +168,6 @@ IopIrpFree(
     if (pIrp)
     {
         PIRP_INTERNAL irpInternal = IopIrpGetInternal(pIrp);
-        PIO_FILE_OBJECT pFileObject = pIrp->FileHandle;
 
         LWIO_ASSERT(0 == irpInternal->ReferenceCount);
         LWIO_ASSERT(STATUS_PENDING != pIrp->IoStatusBlock.Status);
@@ -180,69 +190,20 @@ IopIrpFree(
                 break;
         }
 
-        LwRtlLockMutex(&pFileObject->IrpListMutex);
-        LwListRemove(&irpInternal->FileObjectLinks);
-        LwRtlUnlockMutex(&pFileObject->IrpListMutex);
+        // Note that the parent (FO) lock is already held
+        // by IopIrpDereference().
 
+        // Might not be in the list if IRP creation failed.
+        if (irpInternal->FileObjectLinks.Next)
+        {
+            LwListRemove(&irpInternal->FileObjectLinks);
+        }
         IopFileObjectDereference(&pIrp->FileHandle);
 
         IoMemoryFree(pIrp);
         *ppIrp = NULL;
     }
 }
-
-static
-VOID
-IopIrpSetAsyncCompletionCallback(
-    IN PIRP pIrp,
-    IN PIO_ASYNC_COMPLETE_CALLBACK Callback,
-    IN OPTIONAL PVOID CallbackContext,
-    IN PIO_STATUS_BLOCK pIoStatusBlock,
-    IN OPTIONAL PIO_FILE_HANDLE pCreateFileHandle
-    )
-{
-    PIRP_INTERNAL irpInternal = IopIrpGetInternal(pIrp);
-
-    LWIO_ASSERT(Callback);
-    LWIO_ASSERT(pIoStatusBlock);
-    LWIO_ASSERT(IS_BOTH_OR_NEITHER(pCreateFileHandle, IRP_TYPE_CREATE == pIrp->Type));
-
-    irpInternal->Completion.IsAsyncCall = TRUE;
-    irpInternal->Completion.Async.Callback = Callback;
-    irpInternal->Completion.Async.CallbackContext = CallbackContext;
-    irpInternal->Completion.Async.pIoStatusBlock = pIoStatusBlock;
-    irpInternal->Completion.Async.pCreateFileHandle = pCreateFileHandle;
-}
-
-static
-VOID
-IopIrpSetSyncCompletionCallback(
-    IN PIRP pIrp,
-    IN PLW_RTL_EVENT pEvent
-    )
-{
-    PIRP_INTERNAL irpInternal = IopIrpGetInternal(pIrp);
-
-    irpInternal->Completion.IsAsyncCall = FALSE;
-    irpInternal->Completion.Sync.Event = pEvent;
-}
-
-#if 0
-BOOLEAN
-IoIrpIsCancelled(
-    IN PIRP pIrp
-    )
-{
-    BOOLEAN isCancelled = FALSE;
-    PIRP_INTERNAL irpInternal = IopIrpGetInternal(pIrp);
-
-    IopIrpAcquireCancelLock(pIrp);
-    isCancelled = IsSetFlag(irpInternal->Flags, IRP_FLAG_CANCEL);
-    IopIrpReleaseCancelLock(pIrp);
-
-    return isCancelled;
-}
-#endif
 
 VOID
 IoIrpMarkPending(
@@ -260,7 +221,7 @@ IoIrpMarkPending(
     LWIO_ASSERT(!irpInternal->Cancel.Callback);
     LWIO_ASSERT(!IsSetFlag(irpInternal->Flags, IRP_FLAG_PENDING));
     LWIO_ASSERT(!IsSetFlag(irpInternal->Flags, IRP_FLAG_COMPLETE));
-    LWIO_ASSERT(!IsSetFlag(irpInternal->Flags, IRP_FLAG_CANCEL));
+    LWIO_ASSERT(!IsSetFlag(irpInternal->Flags, IRP_FLAG_CANCELLED));
 
     SetFlag(irpInternal->Flags, IRP_FLAG_PENDING);
     irpInternal->Cancel.Callback = CancelCallback;
@@ -275,37 +236,97 @@ IoIrpMarkPending(
     IopIrpReference(pIrp);
 }
 
-#if 0
+static
 VOID
-IoIrpSetCancelCallback(
-    IN PIRP pIrp,
-    IN OPTIONAL PIO_IRP_CALLBACK CancelCallback,
-    IN OPTIONAL PVOID CancelCallbackContext
+IopIrpCompleteInternal(
+    IN OUT PIRP pIrp,
+    IN BOOLEAN IsAsyncCompletion
     )
 {
     PIRP_INTERNAL irpInternal = IopIrpGetInternal(pIrp);
 
     IopIrpAcquireCancelLock(pIrp);
 
-    LWIO_ASSERT(IsSetFlag(irpInternal->Flags, IRP_FLAG_PENDING));
-    LWIO_ASSERT(!IsSetFlag(irpInternal->Flags, IRP_FLAG_CANCEL));
-    LWIO_ASSERT(!IsSetFlag(irpInternal->Flags, IRP_FLAG_COMPLETE));
+    LWIO_ASSERT_MSG(IS_BOTH_OR_NEITHER(IsAsyncCompletion, IsSetFlag(irpInternal->Flags, IRP_FLAG_PENDING)), "IRP pending state is inconsistent.");
+    LWIO_ASSERT_MSG(IsSetFlag(irpInternal->Flags, IRP_FLAG_DISPATCHED), "IRP cannot be completed unless it was properly dispatched.");
+    LWIO_ASSERT_MSG(!IsSetFlag(irpInternal->Flags, IRP_FLAG_COMPLETE), "IRP cannot be completed more than once.");
 
-    if (CancelCallback)
-    {
-        LWIO_ASSERT(!irpInternal->Cancel.Callback);
-    }
-    else
-    {
-        LWIO_ASSERT(irpInternal->Cancel.Callback);
-    }
+    //
+    // Note that the IRP may be CANCEL_PENDING or CANCELLED, but that
+    // is ok.  In fact, completion may have been called in response
+    // to cancellation.
+    //
 
-    irpInternal->Cancel.Callback = CancelCallback;
-    irpInternal->Cancel.CallbackContext = CancelCallbackContext;
+    SetFlag(irpInternal->Flags, IRP_FLAG_COMPLETE);
 
     IopIrpReleaseCancelLock(pIrp);
+
+    IopFileObjectRemoveDispatched(pIrp->FileHandle, pIrp->Type);
+
+    LWIO_ASSERT(NT_SUCCESS_OR_NOT(pIrp->IoStatusBlock.Status));
+
+    if (STATUS_SUCCESS == pIrp->IoStatusBlock.Status)
+    {
+        // Handle special success processing having to do with file handle.
+        switch (pIrp->Type)
+        {
+            case IRP_TYPE_CREATE:
+            case IRP_TYPE_CREATE_NAMED_PIPE:
+                // ISSUE-May not need lock since it should be only reference
+                IopFileObjectLock(pIrp->FileHandle);
+                SetFlag(pIrp->FileHandle->Flags, FILE_OBJECT_FLAG_CREATE_DONE);
+                IopFileObjectUnlock(pIrp->FileHandle);
+
+                IopFileObjectReference(pIrp->FileHandle);
+                if (IsAsyncCompletion && irpInternal->Completion.IsAsyncCall)
+                {
+                    *irpInternal->Completion.Async.pCreateFileHandle = pIrp->FileHandle;
+                }
+                break;
+
+            case IRP_TYPE_CLOSE:
+            {
+                PIO_FILE_OBJECT pFileObject = NULL;
+
+                SetFlag(pIrp->FileHandle->Flags, FILE_OBJECT_FLAG_CLOSE_DONE);
+
+                // Note that we must delete the reference from the create
+                // w/o removing the file object value from the IRP (which
+                // will be removed when the IRP is freed).
+
+                pFileObject = pIrp->FileHandle;
+                IopFileObjectDereference(&pFileObject);
+
+                break;
+            }
+        }
+    }
+    else if (IRP_TYPE_CLOSE == pIrp->Type)
+    {
+        LWIO_LOG_ERROR("Unable to close file object, status = 0x%08x",
+                       pIrp->IoStatusBlock.Status);
+    }
+
+    if (IsAsyncCompletion)
+    {
+        if (irpInternal->Completion.IsAsyncCall)
+        {
+            *irpInternal->Completion.Async.pIoStatusBlock = pIrp->IoStatusBlock;
+            irpInternal->Completion.Async.Callback(
+                    irpInternal->Completion.Async.CallbackContext);
+        }
+        else
+        {
+            LwRtlSetEvent(irpInternal->Completion.Sync.Event);
+        }
+
+        //
+        // Release reference from IoIrpMarkPending().
+        //
+
+        IopIrpDereference(&pIrp);
+    }
 }
-#endif
 
 // must have set IO status block in IRP.
 VOID
@@ -313,41 +334,7 @@ IoIrpComplete(
     IN OUT PIRP pIrp
     )
 {
-    PIRP_INTERNAL irpInternal = IopIrpGetInternal(pIrp);
-
-    IopIrpAcquireCancelLock(pIrp);
-
-    LWIO_ASSERT_MSG(IsSetFlag(irpInternal->Flags, IRP_FLAG_PENDING), "IRP must have been pending to be completed this way.");
-    LWIO_ASSERT_MSG(!IsSetFlag(irpInternal->Flags, IRP_FLAG_COMPLETE), "IRP cannot be completed more than once.");
-
-    SetFlag(irpInternal->Flags, IRP_FLAG_COMPLETE);
-
-    IopIrpReleaseCancelLock(pIrp);
-
-    if (irpInternal->Completion.IsAsyncCall)
-    {
-        if (((IRP_TYPE_CREATE == pIrp->Type) ||
-             (IRP_TYPE_CREATE_NAMED_PIPE == pIrp->Type)) &&
-            (STATUS_SUCCESS == pIrp->IoStatusBlock.Status))
-        {
-            *irpInternal->Completion.Async.pCreateFileHandle = pIrp->FileHandle;
-            IopFileObjectReference(pIrp->FileHandle);
-        }
-        *irpInternal->Completion.Async.pIoStatusBlock = pIrp->IoStatusBlock;
-        irpInternal->Completion.Async.Callback(
-                irpInternal->Completion.Async.CallbackContext);
-        // IopIrpDereference(&pIrp);
-    }
-    else
-    {
-        LwRtlSetEvent(irpInternal->Completion.Sync.Event);
-    }
-
-    //
-    // Release reference from IoIrpMarkPending().
-    //
-
-    IopIrpDereference(&pIrp);
+    IopIrpCompleteInternal(pIrp, TRUE);
 }
 
 VOID
@@ -364,14 +351,33 @@ IopIrpDereference(
     IN OUT PIRP* ppIrp
     )
 {
-    if (*ppIrp)
+    PIRP pIrp = *ppIrp;
+    if (pIrp)
     {
-        PIRP_INTERNAL irpInternal = IopIrpGetInternal(*ppIrp);
-        LONG count = InterlockedDecrement(&irpInternal->ReferenceCount);
+        PIRP_INTERNAL irpInternal = IopIrpGetInternal(pIrp);
+        LONG count = 0;
+        PIO_FILE_OBJECT pFileObject = pIrp->FileHandle;
+
+        if (pFileObject)
+        {
+            // Take a reference in case we free the IRP.
+            IopFileObjectReference(pFileObject);
+            // Lock since we may free and manipulate the FO IRP list.
+            IopFileObjectLock(pFileObject);
+        }
+
+        count = InterlockedDecrement(&irpInternal->ReferenceCount);
         LWIO_ASSERT(count >= 0);
         if (0 == count)
         {
             IopIrpFree(ppIrp);
+        }
+
+        // Remove our reference.
+        if (pFileObject)
+        {
+            IopFileObjectUnlock(pFileObject);
+            IopFileObjectDereference(&pFileObject);
         }
         *ppIrp = NULL;
     }
@@ -396,17 +402,20 @@ IopIrpCancel(
     IopIrpAcquireCancelLock(pIrp);
     isAcquired = TRUE;
 
-    // TODO -- Add IRP_FLAG_CANCEL_PENDING?
-
-    if (!IsSetFlag(irpInternal->Flags, IRP_FLAG_CANCEL | IRP_FLAG_COMPLETE))
+    if (!IsSetFlag(irpInternal->Flags, IRP_FLAG_CANCELLED | IRP_FLAG_COMPLETE))
     {
-        SetFlag(irpInternal->Flags, IRP_FLAG_CANCEL);
         if (irpInternal->Cancel.Callback)
         {
+            ClearFlag(irpInternal->Flags, IRP_FLAG_CANCEL_PENDING);
+            SetFlag(irpInternal->Flags, IRP_FLAG_CANCELLED);
             isCancellable = TRUE;
             irpInternal->Cancel.Callback(
                     pIrp,
                     irpInternal->Cancel.CallbackContext);
+        }
+        else
+        {
+            SetFlag(irpInternal->Flags, IRP_FLAG_CANCEL_PENDING);
         }
     }
     else
@@ -434,7 +443,7 @@ NTSTATUS
 IopIrpDispatch(
     IN PIRP pIrp,
     IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
-    IN OPTIONAL PIO_STATUS_BLOCK pIoStatusBlock,
+    IN PIO_STATUS_BLOCK pIoStatusBlock,
     IN OPTIONAL PIO_FILE_HANDLE pCreateFileHandle
     )
 {
@@ -443,18 +452,27 @@ IopIrpDispatch(
     BOOLEAN isAsyncCall = FALSE;
     LW_RTL_EVENT event = LW_RTL_EVENT_ZERO_INITIALIZER;
     PIRP pExtraIrpReference = NULL;
+    PIRP_INTERNAL irpInternal = IopIrpGetInternal(pIrp);
+    BOOLEAN needCancel = FALSE;
 
-    if (AsyncControlBlock)
+    LWIO_ASSERT(pIoStatusBlock);
+    LWIO_ASSERT(IS_BOTH_OR_NEITHER(pCreateFileHandle,
+                                   (IRP_TYPE_CREATE == pIrp->Type) ||
+                                   (IRP_TYPE_CREATE_NAMED_PIPE == pIrp->Type)));
+
+    isAsyncCall = AsyncControlBlock ? TRUE : FALSE;
+
+    irpInternal->Completion.IsAsyncCall = isAsyncCall;
+
+    if (isAsyncCall)
     {
         LWIO_ASSERT(!AsyncControlBlock->AsyncCancelContext);
+        LWIO_ASSERT(AsyncControlBlock->Callback);
 
-        isAsyncCall = TRUE;
-        IopIrpSetAsyncCompletionCallback(
-                pIrp,
-                AsyncControlBlock->Callback,
-                AsyncControlBlock->CallbackContext,
-                pIoStatusBlock,
-                pCreateFileHandle);
+        irpInternal->Completion.Async.Callback = AsyncControlBlock->Callback;
+        irpInternal->Completion.Async.CallbackContext = AsyncControlBlock->CallbackContext;
+        irpInternal->Completion.Async.pIoStatusBlock = pIoStatusBlock;
+        irpInternal->Completion.Async.pCreateFileHandle = pCreateFileHandle;
 
         // Reference IRP since we may need to return an an async cancel context.
         IopIrpReference(pIrp);
@@ -462,20 +480,46 @@ IopIrpDispatch(
     }
     else
     {
-        isAsyncCall = FALSE;
-
         status = LwRtlInitializeEvent(&event);
         GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
-        IopIrpSetSyncCompletionCallback(
-                pIrp,
-                &event);
+        irpInternal->Completion.Sync.Event = &event;
     }
 
+    // We have to dispatch once we add the IRP as "dipatched"
+    // and we have to call IopIrpCompleteInternal() so that
+    // it gets subtracted.
+
+    status = IopFileObjectAddDispatched(pIrp->FileHandle, pIrp->Type);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    SetFlag(irpInternal->Flags, IRP_FLAG_DISPATCHED);
+
     status = IopDeviceCallDriver(pIrp->DeviceHandle, pIrp);
-    if (!isAsyncCall)
+    // Handle synchronous completion
+    if (STATUS_PENDING != status)
     {
-        if (STATUS_PENDING == status)
+        IopIrpCompleteInternal(pIrp, FALSE);
+    }
+    // Handle asynchronous dispatch
+    else
+    {
+        IopIrpAcquireCancelLock(pIrp);
+
+        LWIO_ASSERT(IsSetFlag(irpInternal->Flags, IRP_FLAG_PENDING));
+        LWIO_ASSERT(irpInternal->Cancel.Callback);
+
+        needCancel = IsSetFlag(irpInternal->Flags, IRP_FLAG_CANCEL_PENDING);
+
+        IopIrpReleaseCancelLock(pIrp);
+
+        if (needCancel)
+        {
+            IopIrpCancel(pIrp);
+        }
+
+        // Handle waiting for asynchronous completion for synchronous caller
+        if (!isAsyncCall)
         {
             LwRtlWaitEvent(&event, NULL);
 
@@ -514,10 +558,57 @@ cleanup:
     if (STATUS_PENDING != status)
     {
         pIrp->IoStatusBlock.Status = status;
+        *pIoStatusBlock = pIrp->IoStatusBlock;
     }
 
     LwRtlCleanupEvent(&event);
 
+    LWIO_ASSERT(IS_BOTH_OR_NEITHER(pExtraIrpReference, (STATUS_PENDING == status)));
+    LWIO_ASSERT((STATUS_PENDING != status) || isAsyncCall);
     LWIO_ASSERT(NT_PENDING_OR_SUCCESS_OR_NOT(status));
     return status;
+}
+
+VOID
+IopIrpCancelFileObject(
+    IN PIO_FILE_OBJECT pFileObject
+    )
+{
+    PLW_LIST_LINKS pLinks = NULL;
+    PIRP_INTERNAL irpInternal = NULL;
+    LW_LIST_LINKS cancelList = { 0 };
+    PIRP pIrp = NULL;
+
+    LwListInit(&cancelList);
+
+    // Gather IRPs we want to cancel while holding FO lock.
+    IopFileObjectLock(pFileObject);
+    // gather list of IRPs
+    for (pLinks = pFileObject->IrpList.Next;
+         pLinks != &pFileObject->IrpList;
+         pLinks = pLinks->Next)
+    {
+        irpInternal = LW_STRUCT_FROM_FIELD(pLinks, IRP_INTERNAL, FileObjectLinks);
+
+        LWIO_ASSERT(irpInternal->Irp.FileHandle == pFileObject);
+
+        // Verify that this IRP is not already being cancelled.
+        if (!irpInternal->CancelLinks.Next)
+        {
+            IopIrpReference(&irpInternal->Irp);
+            LwListInsertTail(&cancelList, &irpInternal->CancelLinks);
+        }
+    }
+    IopFileObjectUnlock(pFileObject);
+
+    // Iterate over list, calling IopIrpCancel as appropriate.
+    while (!LwListIsEmpty(&cancelList))
+    {
+        pLinks = LwListRemoveHead(&cancelList);
+        irpInternal = LW_STRUCT_FROM_FIELD(pLinks, IRP_INTERNAL, CancelLinks);
+        pIrp = &irpInternal->Irp;
+
+        IopIrpCancel(pIrp);
+        IopIrpDereference(&pIrp);
+    }
 }

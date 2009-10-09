@@ -7,11 +7,39 @@
 "Dependencies"="lwreg"
 "Type"=dword:00000001
 
+[HKEY_LIKEWISE\Services\rdr]
+"Description"="Likewise CIFS Redirector"
+"Path"="@providerdir@/librdr.sys@MOD_EXT@"
+"Arguments"="rdr"
+"Dependencies"="lwio"
+"Type"=dword:00000003
+
+[HKEY_LIKEWISE\Services\srv]
+"Description"="Likewise CIFS Server"
+"Path"="@providerdir@/libsrv.sys@MOD_EXT@"
+"Arguments"="srv"
+"Dependencies"="lwio pvfs npfs lsass"
+"Type"=dword:00000003
+
+[HKEY_LIKEWISE\Services\pvfs]
+"Description"="Likewise POSIX VFS Filesystem"
+"Path"="@providerdir@/libpvfs.sys@MOD_EXT@"
+"Arguments"="pvfs"
+"Dependencies"="lwio"
+"Type"=dword:00000003
+
+[HKEY_LIKEWISE\Services\npfs]
+"Description"="Likewise Named Pipe Filesystem"
+"Path"="@providerdir@/libpvfs.sys@MOD_EXT@"
+"Arguments"="pvfs"
+"Dependencies"="lwio"
+"Type"=dword:00000003
+
 [HKEY_LIKEWISE\Services\lwio\Parameters]
 "SignMessagesIfSupported"=dword:00000000
 
 [HKEY_LIKEWISE\Services\lwio\Parameters\Drivers]
-"Load"="rdr"
+"Load"="rdr,srv,pvfs,npfs"
 
 [HKEY_LIKEWISE\Services\lwio\Parameters\Drivers\pvfs]
 "Path"="@providerdir@/libpvfs.sys@MOD_EXT@"
@@ -28,4 +56,3 @@
 
 [HKEY_LIKEWISE\Services\lwio\Parameters\Drivers\iotest]
 "Path"="@providerdir@/libiotest.sys@MOD_EXT@"
-

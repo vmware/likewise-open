@@ -176,7 +176,8 @@ ItDriverDispatch(
     }
 
 cleanup:
-    LOG_LEAVE_IF_STATUS_EE_EX(status, EE, "Type = %u", pIrp->Type);
+    LOG_LEAVE_IF_STATUS_EE_EX(status, EE, "Type = %u (%s)", pIrp->Type,
+                              IoGetIrpTypeString(pIrp->Type));
     return status;
 }
 
@@ -215,7 +216,7 @@ DriverEntry(
                             NULL);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
-    LWIO_ASSERT(ItTestStartup(IOTEST_DEVICE_PATH) != STATUS_SUCCESS);
+    LWIO_ASSERT(ItTestStartup(IOTEST_DEVICE_PATH) == STATUS_SUCCESS);
     LWIO_ASSERT(ItTestStartup(IOTEST_PATH_ALLOW) == STATUS_SUCCESS);
 
 cleanup:

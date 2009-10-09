@@ -534,7 +534,8 @@ LwSmPopulateTable(
         dwError = LwSmTableGetEntry(pwszName, &pEntry);
         if (!dwError)
         {
-            dwError = LwSmTableUpdateEntry(pEntry, pInfo);
+            dwError = LwSmTableUpdateEntry(pEntry, pInfo, LW_SERVICE_INFO_MASK_ALL);
+            BAIL_ON_ERROR(dwError);
         }
         else if (dwError == LW_ERROR_NO_SUCH_SERVICE)
         {

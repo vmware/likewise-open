@@ -97,282 +97,6 @@ AD_SetConfig_MachinePasswordLifespan(
     DWORD          dwMachinePasswordSyncPwdLifetime
     );
 
-const PCSTR gCellSupport[] =
-{
-    "full",
-    "file",
-    "unprovisioned",
-    "default-schema"
-};
-
-const PCSTR gCacheBackend[] =
-{
-    "sqlite",
-    "memory"
-};
-
-static PSTR gpszSpaceReplacement;
-static PSTR gpszDomainSeparator;
-static PSTR gpszUmask;
-static PSTR gpszUnresolvedMemberList;
-static DWORD gdwMachinePasswordSyncLifetime;
-static LSA_AD_CONFIG gStagingConfig;
-
-static LSA_CONFIG gConfigDescription[] =
-{
-    {
-        "SpaceReplacement",
-        TRUE,
-        LsaTypeString,
-        0,
-        -1,
-        NULL,
-        &gpszSpaceReplacement
-    },
-    {
-        "DomainSeparator",
-        TRUE,
-        LsaTypeString,
-        0,
-        -1,
-        NULL,
-        &gpszDomainSeparator
-    },
-    {
-        "HomeDirUmask",
-        TRUE,
-        LsaTypeString,
-        0,
-        -1,
-        NULL,
-        &gpszUmask
-    },
-    {
-        "RequireMembershipOf",
-        TRUE,
-        LsaTypeString,
-        0,
-        -1,
-        NULL,
-        &gpszUnresolvedMemberList
-    },
-    {
-        "EnableEventlog",
-        TRUE,
-        LsaTypeBoolean,
-        0,
-        -1,
-        NULL,
-        &(gStagingConfig.bEnableEventLog)
-    },
-    {
-        "LoginShellTemplate",
-        TRUE,
-        LsaTypeString,
-        0,
-        -1,
-        NULL,
-        &(gStagingConfig.pszShell)
-    },
-    {
-        "HomeDirTemplate",
-        TRUE,
-        LsaTypeString,
-        0,
-        -1,
-        NULL,
-        &(gStagingConfig.pszHomedirTemplate)
-    },
-    {
-        "CachePurgeTimeout",
-        TRUE,
-        LsaTypeDword,
-        AD_CACHE_REAPER_TIMEOUT_MINIMUM_SECS,
-        AD_CACHE_REAPER_TIMEOUT_MAXIMUM_SECS,
-        NULL,
-        &(gStagingConfig.dwCacheReaperTimeoutSecs)
-    },
-    {
-        "MachinePasswordLifespan",
-        TRUE,
-        LsaTypeDword,
-        0,   /* Valid range is 0 or [AD_MACHINE_PASSWORD_SYNC_MINIMUM_SECS,*/
-        -1,  /* AD_MACHINE_PASSWORD_SYNC_MAXIMUM_SECS] */
-        NULL,
-        &gdwMachinePasswordSyncLifetime
-    },
-    {
-        "CacheEntryExpiry",
-        TRUE,
-        LsaTypeDword,
-        AD_CACHE_ENTRY_EXPIRY_MINIMUM_SECS,
-        AD_CACHE_ENTRY_EXPIRY_MAXIMUM_SECS,
-        NULL,
-        &(gStagingConfig.dwCacheEntryExpirySecs)
-    },
-    {
-        "MemoryCacheSizeCap",
-        TRUE,
-        LsaTypeDword,
-        0,
-        -1,
-        NULL,
-        &(gStagingConfig.dwCacheSizeCap)
-    },
-    {
-        "LdapSignAndSeal",
-        TRUE,
-        LsaTypeBoolean,
-        0,
-        -1,
-        NULL,
-        &(gStagingConfig.bLDAPSignAndSeal)
-    },
-    {
-        "AssumeDefaultDomain",
-        TRUE,
-        LsaTypeBoolean,
-        0,
-        -1,
-        NULL,
-        &(gStagingConfig.bAssumeDefaultDomain)
-    },
-    {
-        "SyncSystemTime",
-        TRUE,
-        LsaTypeBoolean,
-        0,
-        -1,
-        NULL,
-        &(gStagingConfig.bSyncSystemTime)
-    },
-    {
-        "LogNetworkConnectionEvents",
-        TRUE,
-        LsaTypeBoolean,
-        0,
-        -1,
-        NULL,
-        &(gStagingConfig.bShouldLogNetworkConnectionEvents)
-    },
-    {
-        "CreateK5Login",
-        TRUE,
-        LsaTypeBoolean,
-        0,
-        -1,
-        NULL,
-        &(gStagingConfig.bCreateK5Login)
-    },
-    {
-        "CreateHomeDir",
-        TRUE,
-        LsaTypeBoolean,
-        0,
-        -1,
-        NULL,
-        &(gStagingConfig.bCreateHomeDir)
-    },
-    {
-        "SkeletonDirs",
-        TRUE,
-        LsaTypeString,
-        0,
-        -1,
-        NULL,
-        &(gStagingConfig.pszSkelDirs)
-    },
-    {
-        "HomeDirPrefix",
-        TRUE,
-        LsaTypeString,
-        0,
-        -1,
-        NULL,
-        &(gStagingConfig.pszHomedirPrefix)
-    },
-    {
-        "RefreshUserCredentials",
-        TRUE,
-        LsaTypeBoolean,
-        0,
-        -1,
-        NULL,
-        &(gStagingConfig.bRefreshUserCreds)
-    },
-    {
-        "TrimUserMembership",
-        TRUE,
-        LsaTypeBoolean,
-        0,
-        -1,
-        NULL,
-        &(gStagingConfig.bTrimUserMembershipEnabled)
-    },
-    {
-        "CellSupport",
-        TRUE,
-        LsaTypeEnum,
-        AD_CELL_SUPPORT_FULL,
-        AD_CELL_SUPPORT_DEFAULT_SCHEMA,
-        gCellSupport,
-        &(gStagingConfig.CellSupport)
-    },
-    {
-        "CacheType",
-        TRUE,
-        LsaTypeEnum,
-        AD_CACHE_SQLITE,
-        AD_CACHE_IN_MEMORY,
-        gCacheBackend,
-        &(gStagingConfig.CacheBackend)
-    },
-    {
-        "NssGroupMembersQueryCacheOnly",
-        TRUE,
-        LsaTypeBoolean,
-        0,
-        -1,
-        NULL,
-        &(gStagingConfig.bNssGroupMembersCacheOnlyEnabled)
-    },
-    {
-        "NssUserMembershipQueryCacheOnly",
-        TRUE,
-        LsaTypeBoolean,
-        0,
-        -1,
-        NULL,
-        &(gStagingConfig.bNssUserMembershipCacheOnlyEnabled)
-    },
-    {
-        "NssEnumerationEnabled",
-        TRUE,
-        LsaTypeBoolean,
-        0,
-        -1,
-        NULL,
-        &(gStagingConfig.bNssEnumerationEnabled)
-    },
-    {
-        "DomainManagerCheckDomainOnlineInterval",
-        TRUE,
-        LsaTypeDword,
-        0,
-        -1,
-        NULL,
-        &(gStagingConfig.DomainManager.dwCheckDomainOnlineSeconds)
-    },
-    {
-        "DomainManagerUnknownDomainCacheTimeout",
-        TRUE,
-        LsaTypeDword,
-        0,
-        -1,
-        NULL,
-        &(gStagingConfig.DomainManager.dwUnknownDomainCacheTimeoutSeconds)
-    }
-};
 
 DWORD
 AD_TransferConfigContents(
@@ -506,76 +230,349 @@ AD_ReadRegistry(
     )
 {
     DWORD dwError = 0;
+    PSTR pszSpaceReplacement = NULL;
+    PSTR pszDomainSeparator = NULL;
+    PSTR pszUmask = NULL;
+    PSTR pszUnresolvedMemberList = NULL;
+    DWORD dwMachinePasswordSyncLifetime = 0;
+    LSA_AD_CONFIG StagingConfig;
 
-    dwError = AD_InitializeConfig(&gStagingConfig);
+    const PCSTR CellSupport[] = {
+        "full",
+        "file",
+        "unprovisioned",
+        "default-schema"
+    };
+
+    const PCSTR CacheBackend[] =
+    {
+        "sqlite",
+        "memory"
+    };
+
+    LSA_CONFIG ConfigDescription[] =
+    {
+        {
+            "SpaceReplacement",
+            TRUE,
+            LsaTypeString,
+            0,
+            MAXDWORD,
+            NULL,
+            &pszSpaceReplacement
+        },
+        {
+            "DomainSeparator",
+            TRUE,
+            LsaTypeString,
+            0,
+            MAXDWORD,
+            NULL,
+            &pszDomainSeparator
+        },
+        {
+            "HomeDirUmask",
+            TRUE,
+            LsaTypeString,
+            0,
+            MAXDWORD,
+            NULL,
+            &pszUmask
+        },
+        {
+            "RequireMembershipOf",
+            TRUE,
+            LsaTypeString,
+            0,
+            MAXDWORD,
+            NULL,
+            &pszUnresolvedMemberList
+        },
+        {
+            "EnableEventlog",
+            TRUE,
+            LsaTypeBoolean,
+            0,
+            MAXDWORD,
+            NULL,
+            &StagingConfig.bEnableEventLog
+        },
+        {
+            "LoginShellTemplate",
+            TRUE,
+            LsaTypeString,
+            0,
+            MAXDWORD,
+            NULL,
+            &StagingConfig.pszShell
+        },
+        {
+            "HomeDirTemplate",
+            TRUE,
+            LsaTypeString,
+            0,
+            MAXDWORD,
+            NULL,
+            &StagingConfig.pszHomedirTemplate
+        },
+        {
+            "CachePurgeTimeout",
+            TRUE,
+            LsaTypeDword,
+            AD_CACHE_REAPER_TIMEOUT_MINIMUM_SECS,
+            AD_CACHE_REAPER_TIMEOUT_MAXIMUM_SECS,
+            NULL,
+            &StagingConfig.dwCacheReaperTimeoutSecs
+        },
+        {
+            "MachinePasswordLifespan",
+            TRUE,
+            LsaTypeDword,
+            0,  /* Valid range is 0 or [AD_MACHINE_PASSWORD_SYNC_MINIMUM_SECS,*/
+            MAXDWORD, /* AD_MACHINE_PASSWORD_SYNC_MAXIMUM_SECS] */
+            NULL,
+            &dwMachinePasswordSyncLifetime
+        },
+        {
+            "CacheEntryExpiry",
+            TRUE,
+            LsaTypeDword,
+            AD_CACHE_ENTRY_EXPIRY_MINIMUM_SECS,
+            AD_CACHE_ENTRY_EXPIRY_MAXIMUM_SECS,
+            NULL,
+            &StagingConfig.dwCacheEntryExpirySecs
+        },
+        {
+            "MemoryCacheSizeCap",
+            TRUE,
+            LsaTypeDword,
+            0,
+            MAXDWORD,
+            NULL,
+            &StagingConfig.dwCacheSizeCap
+        },
+        {
+            "LdapSignAndSeal",
+            TRUE,
+            LsaTypeBoolean,
+            0,
+            MAXDWORD,
+            NULL,
+            &StagingConfig.bLDAPSignAndSeal
+        },
+        {
+            "AssumeDefaultDomain",
+            TRUE,
+            LsaTypeBoolean,
+            0,
+            MAXDWORD,
+            NULL,
+            &StagingConfig.bAssumeDefaultDomain
+        },
+        {
+            "SyncSystemTime",
+            TRUE,
+            LsaTypeBoolean,
+            0,
+            MAXDWORD,
+            NULL,
+            &StagingConfig.bSyncSystemTime
+        },
+        {
+            "LogNetworkConnectionEvents",
+            TRUE,
+            LsaTypeBoolean,
+            0,
+            MAXDWORD,
+            NULL,
+            &StagingConfig.bShouldLogNetworkConnectionEvents
+        },
+        {
+            "CreateK5Login",
+            TRUE,
+            LsaTypeBoolean,
+            0,
+            MAXDWORD,
+            NULL,
+            &StagingConfig.bCreateK5Login
+        },
+        {
+            "CreateHomeDir",
+            TRUE,
+            LsaTypeBoolean,
+            0,
+            -1,
+            NULL,
+            &StagingConfig.bCreateHomeDir
+        },
+        {
+            "SkeletonDirs",
+            TRUE,
+            LsaTypeString,
+            0,
+            MAXDWORD,
+            NULL,
+            &StagingConfig.pszSkelDirs
+        },
+        {
+            "HomeDirPrefix",
+            TRUE,
+            LsaTypeString,
+            0,
+            MAXDWORD,
+            NULL,
+            &StagingConfig.pszHomedirPrefix
+        },
+        {
+            "RefreshUserCredentials",
+            TRUE,
+            LsaTypeBoolean,
+            0,
+            MAXDWORD,
+            NULL,
+            &StagingConfig.bRefreshUserCreds
+        },
+        {
+            "TrimUserMembership",
+            TRUE,
+            LsaTypeBoolean,
+            0,
+            MAXDWORD,
+            NULL,
+            &StagingConfig.bTrimUserMembershipEnabled
+        },
+        {
+            "CellSupport",
+            TRUE,
+            LsaTypeEnum,
+            AD_CELL_SUPPORT_FULL,
+            AD_CELL_SUPPORT_DEFAULT_SCHEMA,
+            CellSupport,
+            &StagingConfig.CellSupport
+        },
+        {
+            "CacheType",
+            TRUE,
+            LsaTypeEnum,
+            AD_CACHE_SQLITE,
+            AD_CACHE_IN_MEMORY,
+            CacheBackend,
+            &StagingConfig.CacheBackend
+        },
+        {
+            "NssGroupMembersQueryCacheOnly",
+            TRUE,
+            LsaTypeBoolean,
+            0,
+            MAXDWORD,
+            NULL,
+            &StagingConfig.bNssGroupMembersCacheOnlyEnabled
+        },
+        {
+            "NssUserMembershipQueryCacheOnly",
+            TRUE,
+            LsaTypeBoolean,
+            0,
+            MAXDWORD,
+            NULL,
+            &StagingConfig.bNssUserMembershipCacheOnlyEnabled
+        },
+        {
+            "NssEnumerationEnabled",
+            TRUE,
+            LsaTypeBoolean,
+            0,
+            MAXDWORD,
+            NULL,
+            &StagingConfig.bNssEnumerationEnabled
+        },
+        {
+            "DomainManagerCheckDomainOnlineInterval",
+            TRUE,
+            LsaTypeDword,
+            0,
+            MAXDWORD,
+            NULL,
+            &StagingConfig.DomainManager.dwCheckDomainOnlineSeconds
+        },
+        {
+            "DomainManagerUnknownDomainCacheTimeout",
+            TRUE,
+            LsaTypeDword,
+            0,
+            MAXDWORD,
+            NULL,
+            &StagingConfig.DomainManager.dwUnknownDomainCacheTimeoutSeconds
+        }
+    };
+
+    dwError = AD_InitializeConfig(&StagingConfig);
     BAIL_ON_LSA_ERROR(dwError);
 
-    gdwMachinePasswordSyncLifetime = AD_MACHINE_PASSWORD_SYNC_DEFAULT_SECS;
+    dwMachinePasswordSyncLifetime = AD_MACHINE_PASSWORD_SYNC_DEFAULT_SECS;
 
     dwError = LsaProcessConfig(
                 "Services\\lsass\\Parameters\\Providers\\ActiveDirectory",
                 "PolicyServices\\lsass\\Parameters\\Providers\\ActiveDirectory",
-                gConfigDescription,
-                sizeof(gConfigDescription)/sizeof(gConfigDescription[0]));
-    BAIL_ON_NON_LWREG_ERROR(dwError);
-    dwError = 0;
+                ConfigDescription,
+                sizeof(ConfigDescription)/sizeof(ConfigDescription[0]));
+    BAIL_ON_LSA_ERROR(dwError);
 
     /* Special handling is used for some values. */
-
     AD_SetConfig_SpaceReplacement(
-            &gStagingConfig,
+            &StagingConfig,
             "SpaceReplacement",
-            gpszSpaceReplacement);
+            pszSpaceReplacement);
 
     AD_SetConfig_DomainSeparator(
-            &gStagingConfig,
+            &StagingConfig,
             "DomainSeparator",
-            gpszDomainSeparator);
+            pszDomainSeparator);
 
     AD_SetConfig_Umask(
-            &gStagingConfig,
+            &StagingConfig,
             "HomeDirUmask",
-            gpszUmask);
+            pszUmask);
 
     AD_SetConfig_RequireMembershipOf(
-            &gStagingConfig,
+            &StagingConfig,
             "RequireMembershipOf",
-            gpszUnresolvedMemberList);
+            pszUnresolvedMemberList);
 
     AD_SetConfig_MachinePasswordLifespan(
-            &gStagingConfig,
+            &StagingConfig,
             "MachinePasswordLifespan",
-            gdwMachinePasswordSyncLifetime);
+            dwMachinePasswordSyncLifetime);
 
-    if (gStagingConfig.chSpaceReplacement == 0)
+    if (StagingConfig.chSpaceReplacement == 0)
     {
-        gStagingConfig.chSpaceReplacement = AD_SPACE_REPLACEMENT_DEFAULT;
+        StagingConfig.chSpaceReplacement = AD_SPACE_REPLACEMENT_DEFAULT;
     }
-    if (gStagingConfig.chDomainSeparator == 0)
+    if (StagingConfig.chDomainSeparator == 0)
     {
-        gStagingConfig.chDomainSeparator = LSA_DOMAIN_SEPARATOR_DEFAULT;
+        StagingConfig.chDomainSeparator = LSA_DOMAIN_SEPARATOR_DEFAULT;
     }
 
-    if (gStagingConfig.chSpaceReplacement == gStagingConfig.chDomainSeparator)
+    if (StagingConfig.chSpaceReplacement == StagingConfig.chDomainSeparator)
     {
         LSA_LOG_ERROR("Error: %s and %s are both set to '%c' in the config file. Their values must be unique.",
                         "SpaceReplacement",
                         "DomainSeparator",
-                        gStagingConfig.chSpaceReplacement);
+                        StagingConfig.chSpaceReplacement);
         dwError = LW_ERROR_INVALID_CONFIG;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    AD_TransferConfigContents(&gStagingConfig, pConfig);
+    AD_TransferConfigContents(&StagingConfig, pConfig);
 
 cleanup:
 
-    LW_SAFE_FREE_STRING(gpszSpaceReplacement);
-    LW_SAFE_FREE_STRING(gpszDomainSeparator);
-    LW_SAFE_FREE_STRING(gpszUmask);
-    LW_SAFE_FREE_STRING(gpszUnresolvedMemberList);
+    LW_SAFE_FREE_STRING(pszSpaceReplacement);
+    LW_SAFE_FREE_STRING(pszDomainSeparator);
+    LW_SAFE_FREE_STRING(pszUmask);
+    LW_SAFE_FREE_STRING(pszUnresolvedMemberList);
 
-    AD_FreeConfigContents(&gStagingConfig);
+    AD_FreeConfigContents(&StagingConfig);
 
     return dwError;
 

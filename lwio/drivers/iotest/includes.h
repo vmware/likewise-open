@@ -72,6 +72,8 @@
 #define IOTEST_PATH_ALLOW IOTEST_DEVICE_PATH IOTEST_INTERNAL_PATH_ALLOW
 #define IOTEST_PATH_ASYNC IOTEST_DEVICE_PATH IOTEST_INTERNAL_PATH_ASYNC
 
+#include <iotestctl.h>
+
 //
 // Driver State
 //
@@ -89,11 +91,20 @@ ItGetDriverState(
 // IRP Context
 //
 
-typedef struct _IT_IRP_CONTEXT {
+struct _IT_IRP_CONTEXT;
+typedef struct _IT_IRP_CONTEXT IT_IRP_CONTEXT, *PIT_IRP_CONTEXT;
+
+typedef VOID (*IT_CONTINUE_CALLBACK)(
+    IN PIT_IRP_CONTEXT pIrpContext
+    );
+
+struct _IT_IRP_CONTEXT {
     PIRP pIrp;
     PIOTEST_WORK_ITEM pWorkItem;
     BOOLEAN IsCancelled;
-} IT_IRP_CONTEXT, *PIT_IRP_CONTEXT;
+    IT_CONTINUE_CALLBACK ContinueCallback;
+    PVOID ContinueContext;
+};
 
 NTSTATUS
 ItCreateIrpContext(
@@ -104,6 +115,28 @@ ItCreateIrpContext(
 VOID
 ItDestroyIrpContext(
     IN OUT PIT_IRP_CONTEXT* ppIrpContext
+    );
+
+//
+// Async Helper
+//
+
+NTSTATUS
+ItDispatchAsync(
+    IN PIRP pIrp,
+    IN ULONG WaitSeconds,
+    IN IT_CONTINUE_CALLBACK ContinueCallback,
+    IN PVOID ContinueContext
+    );
+
+VOID
+ItAsyncCompleteSetEvent(
+    IN PVOID pCallbackContext
+    );
+
+VOID
+ItSimpleSuccessContinueCallback(
+    IN PIT_IRP_CONTEXT pIrpContext
     );
 
 //
@@ -204,6 +237,17 @@ NTSTATUS
 ItTestAsyncCreate(
     IN BOOLEAN UseAsyncCall,
     IN BOOLEAN DoCancel
+    );
+
+NTSTATUS
+ItTestRundown(
+    VOID
+    );
+
+NTSTATUS
+ItTestSleep(
+    IN PIRP pIrp,
+    IN ULONG Seconds
     );
 
 #endif /* __INCLUDES_H__ */

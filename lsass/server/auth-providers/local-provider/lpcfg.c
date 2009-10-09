@@ -73,78 +73,6 @@ LocalCfgSetHomedirUmask(
     PCSTR          pszValue
     );
 
-PSTR gpszLoginShell;
-PSTR gpszHomedirPrefix;
-PSTR gpszUmask;
-LOCAL_CONFIG gStagingConfig;
-
-static LSA_CONFIG gConfigDescription[] =
-{
-    {
-        "LoginShellTemplate",
-        TRUE,
-        LsaTypeString,
-        0,
-        -1,
-        NULL,
-        &gpszLoginShell
-    },
-    {
-        "HomeDirPrefix",
-        TRUE,
-        LsaTypeString,
-        0,
-        -1,
-        NULL,
-        &gpszHomedirPrefix
-    },
-    {
-        "HomeDirUmask",
-        TRUE,
-        LsaTypeString,
-        0,
-        -1,
-        NULL,
-        &gpszUmask
-    },
-    {
-        "EnableEventlog",
-        TRUE,
-        LsaTypeBoolean,
-        0,
-        -1,
-        NULL,
-        &(gStagingConfig.bEnableEventLog)
-    },
-    {
-        "HomeDirTemplate",
-        TRUE,
-        LsaTypeString,
-        0,
-        -1,
-        NULL,
-        &(gStagingConfig.pszHomedirTemplate)
-    },
-    {
-        "CreateHomeDir",
-        TRUE,
-        LsaTypeBoolean,
-        0,
-        -1,
-        NULL,
-        &(gStagingConfig.bCreateHomedir)
-    },
-    {
-        "SkeletonDirs",
-        TRUE,
-        LsaTypeString,
-        0,
-        -1,
-        NULL,
-        &(gStagingConfig.pszSkelDirs)
-    }
-};
-
 DWORD
 LocalCfgInitialize(
     PLOCAL_CONFIG pConfig
@@ -195,7 +123,7 @@ LocalCfgTransferContents(
     PLOCAL_CONFIG pDstConfig
     )
 {
-    memset(pDstConfig, 0, sizeof(LOCAL_CONFIG));
+    LocalCfgFreeContents(pDstConfig);
 
     *pDstConfig = *pSrcConfig;
 
@@ -477,43 +405,114 @@ LocalCfgReadRegistry(
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
+    PSTR pszLoginShell = NULL;
+    PSTR pszHomedirPrefix = NULL;
+    PSTR pszUmask = NULL;
+    LOCAL_CONFIG StagingConfig;
 
-    dwError = LocalCfgInitialize(&gStagingConfig);
+    LSA_CONFIG ConfigDescription[] =
+    {
+        {
+            "LoginShellTemplate",
+            TRUE,
+            LsaTypeString,
+            0,
+            MAXDWORD,
+            NULL,
+            &pszLoginShell
+        },
+        {
+            "HomeDirPrefix",
+            TRUE,
+            LsaTypeString,
+            0,
+            MAXDWORD,
+            NULL,
+            &pszHomedirPrefix
+        },
+        {
+            "HomeDirUmask",
+            TRUE,
+            LsaTypeString,
+            0,
+            MAXDWORD,
+            NULL,
+            &pszUmask
+        },
+        {
+            "EnableEventlog",
+            TRUE,
+            LsaTypeBoolean,
+            0,
+            MAXDWORD,
+            NULL,
+            &StagingConfig.bEnableEventLog
+        },
+        {
+            "HomeDirTemplate",
+            TRUE,
+            LsaTypeString,
+            0,
+            MAXDWORD,
+            NULL,
+            &StagingConfig.pszHomedirTemplate
+        },
+        {
+            "CreateHomeDir",
+            TRUE,
+            LsaTypeBoolean,
+            0,
+            MAXDWORD,
+            NULL,
+            &StagingConfig.bCreateHomedir
+        },
+        {
+            "SkeletonDirs",
+            TRUE,
+            LsaTypeString,
+            0,
+            MAXDWORD,
+            NULL,
+            &StagingConfig.pszSkelDirs
+        }
+    };
+
+    dwError = LocalCfgInitialize(&StagingConfig);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaProcessConfig(
                 "Services\\lsass\\Parameters\\Providers\\Local",
                 "Policy\\Services\\lsass\\Parameters\\Providers\\Local",
-                gConfigDescription,
-                sizeof(gConfigDescription)/sizeof(gConfigDescription));
-    BAIL_ON_NON_LWREG_ERROR(dwError);
+                ConfigDescription,
+                sizeof(ConfigDescription)/sizeof(ConfigDescription));
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LocalCfgSetDefaultLoginShell(
-                &gStagingConfig,
+                &StagingConfig,
                 "LoginShellTemplate",
-                gpszLoginShell);
+                pszLoginShell);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LocalCfgSetHomedirPrefix(
-                &gStagingConfig,
+                &StagingConfig,
                 "HomeDirPrefix",
-                gpszHomedirPrefix);
+                pszHomedirPrefix);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LocalCfgSetHomedirUmask(
-                &gStagingConfig,
+                &StagingConfig,
                 "HomeDirUmask",
-                gpszUmask);
+                pszUmask);
     BAIL_ON_LSA_ERROR(dwError);
 
-    LocalCfgTransferContents(&gStagingConfig, pConfig);
+    LocalCfgTransferContents(&StagingConfig, pConfig);
 
 cleanup:
-    LW_SAFE_FREE_STRING(gpszLoginShell);
-    LW_SAFE_FREE_STRING(gpszHomedirPrefix);
-    LW_SAFE_FREE_STRING(gpszUmask);
+    LW_SAFE_FREE_STRING(pszLoginShell);
+    LW_SAFE_FREE_STRING(pszHomedirPrefix);
+    LW_SAFE_FREE_STRING(pszUmask);
 
-    LocalCfgFreeContents(&gStagingConfig);
+    LocalCfgFreeContents(&StagingConfig);
     return dwError;
 
 error:

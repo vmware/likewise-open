@@ -100,15 +100,20 @@ cleanup:
 }
 
 NTSTATUS
-IopRootLoadDrivers(
+IopRootLoadDriver(
     IN PIOP_ROOT_STATE pRoot,
-    IN PIO_STATIC_DRIVER pStaticDrivers
+    IN PIO_STATIC_DRIVER pStaticDrivers,
+    IN PWSTR pwszDriverName
     )
 {
     NTSTATUS status = 0;
     int EE = 0;
     PLW_LIST_LINKS pLinks = NULL;
     PIO_DRIVER_OBJECT pDriverObject = NULL;
+    PSTR pszDriverName = NULL;
+
+    status = RtlCStringAllocateFromWC16String(&pszDriverName, pwszDriverName);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     for (pLinks = pRoot->Config->DriverConfigList.Next;
          pLinks != &pRoot->Config->DriverConfigList;
@@ -116,13 +121,59 @@ IopRootLoadDrivers(
     {
         PIOP_DRIVER_CONFIG pDriverConfig = LW_STRUCT_FROM_FIELD(pLinks, IOP_DRIVER_CONFIG, Links);
 
-        status = IopDriverLoad(&pDriverObject, pRoot, pDriverConfig, pStaticDrivers);
-        GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+        if (RtlCStringIsEqual(pszDriverName, pDriverConfig->pszName, TRUE))
+        {
+            status = IopDriverLoad(&pDriverObject, pRoot, pDriverConfig, pStaticDrivers);
+            GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+            goto cleanup;
+        }
+    }
+
+    status = STATUS_NOT_FOUND;
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+cleanup:
+
+    LWIO_SAFE_FREE_MEMORY(pszDriverName);
+
+    IO_LOG_LEAVE_ON_STATUS_EE(status, EE);
+
+    return status;
+}
+
+PIO_DRIVER_OBJECT
+IopRootFindDriver(
+    IN PIOP_ROOT_STATE pRoot,
+    IN PWSTR pwszDriverName
+    )
+{
+    NTSTATUS status = 0;
+    int EE = 0;
+    PLW_LIST_LINKS pLinks = NULL;
+    PSTR pszDriverName = NULL;
+    PIO_DRIVER_OBJECT pFoundDriver = NULL;
+
+    status = RtlCStringAllocateFromWC16String(&pszDriverName, pwszDriverName);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    for (pLinks = pRoot->DriverObjectList.Next;
+         pLinks != &pRoot->DriverObjectList;
+         pLinks = pLinks->Next)
+    {
+        PIO_DRIVER_OBJECT pDriverObject = LW_STRUCT_FROM_FIELD(pLinks, IO_DRIVER_OBJECT, RootLinks);
+
+        if (RtlCStringIsEqual(pszDriverName, pDriverObject->Config->pszName, TRUE))
+        {
+            pFoundDriver = pDriverObject;
+            break;
+        }
     }
 
 cleanup:
-    IO_LOG_LEAVE_ON_STATUS_EE(status, EE);
-    return status;
+
+    LWIO_SAFE_FREE_MEMORY(pszDriverName);
+
+    return pFoundDriver;
 }
 
 PIO_DEVICE_OBJECT

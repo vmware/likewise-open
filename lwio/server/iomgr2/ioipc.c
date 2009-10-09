@@ -392,9 +392,11 @@ IopIpcReadFile(
     pOut->tag = replyType;
     pOut->data = pReply;
 
-    // TODO--make sure allocate handles 0...
-    pReply->Status = IO_ALLOCATE(&pReply->Buffer, VOID, pMessage->Length);
-    GOTO_CLEANUP_ON_STATUS_EE(pReply->Status, EE);
+    if (pMessage->Length)
+    {
+        pReply->Status = IO_ALLOCATE(&pReply->Buffer, VOID, pMessage->Length);
+        GOTO_CLEANUP_ON_STATUS_EE(pReply->Status, EE);
+    }
 
     pReply->Status = IoReadFile(
                             pMessage->FileHandle,
@@ -476,9 +478,11 @@ IopIpcDeviceIoControlFile(
     pOut->tag = replyType;
     pOut->data = pReply;
 
-    // TODO--make sure allocate handles 0...
-    pReply->Status = IO_ALLOCATE(&pReply->Buffer, VOID, pMessage->OutputBufferLength);
-    GOTO_CLEANUP_ON_STATUS_EE(pReply->Status, EE);
+    if (pMessage->OutputBufferLength)
+    {
+        pReply->Status = IO_ALLOCATE(&pReply->Buffer, VOID, pMessage->OutputBufferLength);
+        GOTO_CLEANUP_ON_STATUS_EE(pReply->Status, EE);
+    }
 
     pReply->Status = IoDeviceIoControlFile(
                             pMessage->FileHandle,
@@ -524,7 +528,6 @@ IopIpcFsControlFile(
     pOut->tag = replyType;
     pOut->data = pReply;
 
-    // TODO--make sure allocate handles 0...
     if (pMessage->OutputBufferLength)
     {
         pReply->Status = IO_ALLOCATE(&pReply->Buffer, VOID, pMessage->OutputBufferLength);
@@ -623,9 +626,11 @@ IopIpcQueryInformationFile(
     pOut->tag = replyType;
     pOut->data = pReply;
 
-    // TODO--make sure allocate handles 0...
-    pReply->Status = IO_ALLOCATE(&pReply->Buffer, VOID, pMessage->Length);
-    GOTO_CLEANUP_ON_STATUS_EE(pReply->Status, EE);
+    if (pMessage->Length)
+    {
+        pReply->Status = IO_ALLOCATE(&pReply->Buffer, VOID, pMessage->Length);
+        GOTO_CLEANUP_ON_STATUS_EE(pReply->Status, EE);
+    }
 
     pReply->Status = IoQueryInformationFile(
                             pMessage->FileHandle,
@@ -705,9 +710,11 @@ IopIpcQueryDirectoryFile(
     pOut->tag = replyType;
     pOut->data = pReply;
 
-    // TODO--make sure allocate handles 0...
-    pReply->Status = IO_ALLOCATE(&pReply->Buffer, VOID, pMessage->Length);
-    GOTO_CLEANUP_ON_STATUS_EE(pReply->Status, EE);
+    if (pMessage->Length)
+    {
+        pReply->Status = IO_ALLOCATE(&pReply->Buffer, VOID, pMessage->Length);
+        GOTO_CLEANUP_ON_STATUS_EE(pReply->Status, EE);
+    }
 
     pReply->Status = IoQueryDirectoryFile(
                             pMessage->FileHandle,
@@ -751,9 +758,11 @@ IopIpcQueryVolumeInformationFile(
     pOut->tag = replyType;
     pOut->data = pReply;
 
-    // TODO--make sure allocate handles 0...
-    pReply->Status = IO_ALLOCATE(&pReply->Buffer, VOID, pMessage->Length);
-    GOTO_CLEANUP_ON_STATUS_EE(pReply->Status, EE);
+    if (pMessage->Length)
+    {
+        pReply->Status = IO_ALLOCATE(&pReply->Buffer, VOID, pMessage->Length);
+        GOTO_CLEANUP_ON_STATUS_EE(pReply->Status, EE);
+    }
 
     pReply->Status = IoQueryVolumeInformationFile(
                             pMessage->FileHandle,
@@ -840,8 +849,8 @@ IopIpcLockFile(
                             pMessage->ByteOffset,
                             pMessage->Length,
                             pMessage->Key,
-			    pMessage->FailImmediately,
-			    pMessage->ExclusiveLock);
+                            pMessage->FailImmediately,
+                            pMessage->ExclusiveLock);
     pReply->Status = ioStatusBlock.Status;
     pReply->BytesTransferred = ioStatusBlock.BytesTransferred;
 
@@ -874,9 +883,11 @@ IopIpcQuerySecurityFile(
     pOut->tag = replyType;
     pOut->data = pReply;
 
-    // TODO--make sure allocate handles 0...
-    pReply->Status = IO_ALLOCATE(&pReply->Buffer, VOID, pMessage->Length);
-    GOTO_CLEANUP_ON_STATUS_EE(pReply->Status, EE);
+    if (pMessage->Length)
+    {
+        pReply->Status = IO_ALLOCATE(&pReply->Buffer, VOID, pMessage->Length);
+        GOTO_CLEANUP_ON_STATUS_EE(pReply->Status, EE);
+    }
 
     pReply->Status = IoQuerySecurityFile(
         pMessage->FileHandle,

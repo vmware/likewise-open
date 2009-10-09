@@ -51,7 +51,7 @@ typedef IO_DEVICE_OBJECT *IO_DEVICE_HANDLE, **PIO_DEVICE_HANDLE;
 
 typedef ULONG IRP_TYPE;
 
-#define IRP_TYPE_UNKNOWN                   0
+#define IRP_TYPE_UNINITIALIZED             0
 #define IRP_TYPE_CREATE                    1
 #define IRP_TYPE_CLOSE                     2
 #define IRP_TYPE_READ                      3
@@ -386,6 +386,11 @@ IoSecurityCreateSecurityContextFromUsername(
 //
 // Logging
 //
+
+PCSTR
+IoGetIrpTypeString(
+    IN IRP_TYPE Type
+    );
 
 #define IO_LOG_ENTER(Format, ...) \
     LWIO_LOG_DEBUG("ENTER: " Format, ## __VA_ARGS__)

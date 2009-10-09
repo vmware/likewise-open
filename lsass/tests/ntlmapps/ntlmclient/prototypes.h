@@ -59,11 +59,6 @@ ClientEstablishContext(
     );
 
 DWORD
-FreeContextBuffer(
-    IN PVOID pBuffer
-    );
-
-DWORD
 SendToken(
     IN INT nSocket,
     IN PSecBuffer pToken

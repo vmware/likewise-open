@@ -13,7 +13,8 @@ libiotest_sys_la_SOURCES = \
     ccb.c \
     test.c \
     workqueue.c \
-    irpcontext.c
+    irpcontext.c \
+    async.c
 
 libiotest_sys_la_CPPFLAGS = \
     -I@top_srcdir@         \

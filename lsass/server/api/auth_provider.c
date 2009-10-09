@@ -353,7 +353,6 @@ LsaCfgFreeAuthProviderInStack(
 static
 DWORD
 LsaSrvPushProvider(
-    PCSTR pszName,
     PCSTR pszId,
     PCSTR pszPath,
     PLSA_STACK *ppProviderStack
@@ -372,9 +371,6 @@ LsaSrvPushProvider(
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LwAllocateString(pszId, &(pProvider->pszId));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LwAllocateString(pszName, &(pProvider->pszName));
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaStackPush(pProvider, ppProviderStack);
@@ -447,7 +443,6 @@ LsaSrvAuthProviderRead(
     }
 
     dwError = LsaSrvPushProvider(
-                pszProviderName,
                 pszId,
                 pszPath,
                 ppProviderStack);
@@ -550,13 +545,11 @@ error:
         LSA_LOG_ERROR("Problem accessing provider configuration in registry. Trying compiled defaults [Local, ActiveDirectory].");
 
         LsaSrvPushProvider(
-                "Local",
                 "lsa-local-provider",
                 LSA_PROVIDER_LOCAL_PATH,
                 ppProviderStack);
 
         LsaSrvPushProvider(
-                "ActiveDirectory",
                 "lsa-activedirectory-provider",
                 LSA_PROVIDER_AD_PATH,
                 ppProviderStack);

@@ -75,94 +75,13 @@ cleanup:
 
 static
 VOID
-ItpAsyncCreateCompleteWorkCallback(
-    IN PIOTEST_WORK_ITEM pWorkItem,
-    IN PVOID pContext
+ItpCreateContinueCallback(
+    IN PIT_IRP_CONTEXT pIrpContext
     )
 {
-    PIT_IRP_CONTEXT pIrpContext = (PIT_IRP_CONTEXT) pContext;
-
-    if (pIrpContext->IsCancelled)
-    {
-        pIrpContext->pIrp->IoStatusBlock.Status = STATUS_CANCELLED;
-    }
-    else
-    {
-        ItCreateInternal(pIrpContext->pIrp);
-    }
+    ItCreateInternal(pIrpContext->pIrp);
     IoIrpComplete(pIrpContext->pIrp);
     ItDestroyIrpContext(&pIrpContext);
-}
-
-static
-VOID
-ItpCancelAsyncCreate(
-    IN PIRP pIrp,
-    IN PVOID CallbackContext
-    )
-{
-    PIT_IRP_CONTEXT pIrpContext = (PIT_IRP_CONTEXT) CallbackContext;
-    PIT_DRIVER_STATE pState = NULL;
-    BOOLEAN wasInQueue = FALSE;
-
-    pState = ItGetDriverState(pIrp);
-
-    wasInQueue = ItRemoveWorkQueue(pState->pWorkQueue, pIrpContext->pWorkItem);
-
-    if (wasInQueue)
-    {
-        NTSTATUS status = STATUS_SUCCESS;
-
-        pIrpContext->IsCancelled = TRUE;
-
-        status = ItAddWorkQueue(
-                        pState->pWorkQueue,
-                        pIrpContext->pWorkItem,
-                        pIrpContext,
-                        0,
-                        ItpAsyncCreateCompleteWorkCallback);
-        LWIO_ASSERT(!status);
-    }
-}
-
-
-static
-NTSTATUS
-ItDispatchAsyncCreate(
-    OUT PIT_IRP_CONTEXT* ppIrpContext,
-    IN PIRP pIrp,
-    IN ULONG WaitSeconds
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
-    int EE = 0;
-    PIT_IRP_CONTEXT pIrpContext = NULL;
-    PIT_DRIVER_STATE pState = NULL;
-
-    status = ItCreateIrpContext(&pIrpContext, pIrp);
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
-    pState = ItGetDriverState(pIrp);
-
-    status = ItAddWorkQueue(
-                    pState->pWorkQueue,
-                    pIrpContext->pWorkItem,
-                    pIrpContext,
-                    WaitSeconds,
-                    ItpAsyncCreateCompleteWorkCallback);
-    LWIO_ASSERT(!status);
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
-cleanup:
-    if (status)
-    {
-        ItDestroyIrpContext(&pIrpContext);
-    }
-
-    *ppIrpContext = pIrpContext;
-
-    LOG_LEAVE_IF_STATUS_EE(status, EE);
-    return status;
 }
 
 NTSTATUS
@@ -193,20 +112,17 @@ ItDispatchCreate(
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     // Only succeed for certain paths.
-    if (RtlUnicodeStringIsEqual(&path, &allowPath, FALSE))
+    if (path.Length == 0)
+    {
+        // Ok
+    }
+    else if (RtlUnicodeStringIsEqual(&path, &allowPath, FALSE))
     {
         // Ok
     }
     else if (RtlUnicodeStringIsEqual(&path, &asyncPath, FALSE))
     {
-        PIT_IRP_CONTEXT pIrpContext = NULL;
-
-        status = ItDispatchAsyncCreate(&pIrpContext, pIrp, 5);
-        GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
-        IoIrpMarkPending(pIrp, ItpCancelAsyncCreate, pIrpContext);
-        status = STATUS_PENDING;
-
+        status = ItDispatchAsync(pIrp, 5, ItpCreateContinueCallback, NULL);
         GOTO_CLEANUP_EE(EE);
     }
     else if (RtlUnicodeStringIsEqual(&path, &testSyncPath, FALSE))

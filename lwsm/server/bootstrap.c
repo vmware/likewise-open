@@ -41,7 +41,7 @@
 static SM_BOOTSTRAP_SERVICE gRegistryService =
 {
     .pszName = "lwreg",
-    .type = LW_SERVICE_SM_EXECUTABLE,
+    .type = LW_SERVICE_TYPE_EXECUTABLE,
     .pszPath = SBINDIR "/lwregd",
     .ppszArgs =
     {

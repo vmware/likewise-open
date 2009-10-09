@@ -4,7 +4,7 @@
 "Description"="Likewise Security and Authentication Subsystem"
 "Path"="@SBINDIR@/lsassd"
 "Arguments"="lsassd --syslog"
-"Dependencies"="netlogon lwio lwreg"
+"Dependencies"="netlogon lwio lwreg rdr"
 "Type"=dword:00000001
 
 [HKEY_LIKEWISE\Services\lsass\Parameters]

@@ -16,7 +16,8 @@ libiomgr2_la_SOURCES = \
     ioapi.c \
     ioipc.c \
     iosecurity.c \
-    lwthreads.c
+    lwthreads.c \
+    iolog.c
 
 libiomgr2_la_CPPFLAGS = \
     -DLW_ENABLE_THREADS=1 \

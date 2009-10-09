@@ -1,8 +1,9 @@
-noinst_PROGRAMS = lwio-tool
+bin_PROGRAMS = lwio-tool
 
 lwio_tool_SOURCES = \
     lwparseargs.c \
-    lwio-tool.c
+    lwio-tool.c \
+    iotest.c
 
 lwio_tool_CPPFLAGS =  \
     -I@top_srcdir@/include

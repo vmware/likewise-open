@@ -95,6 +95,18 @@ IoCreateFile(
     IN OPTIONAL PIO_ECP_LIST EcpList
     );
 
+VOID
+IoCancelFile(
+    IN IO_FILE_HANDLE FileHandle
+    );
+
+NTSTATUS
+IoAsyncCloseFile(
+    IN OUT IO_FILE_HANDLE FileHandle,
+    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    OUT PIO_STATUS_BLOCK IoStatusBlock
+    );
+
 NTSTATUS
 IoCloseFile(
     IN OUT IO_FILE_HANDLE FileHandle

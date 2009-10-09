@@ -46,6 +46,21 @@
 
 #include <lwio/io-types.h>
 
+//
+// Note that Windows FSCTL/IOCTL codes are defined as follows:
+//
+// The code is a 32-bit value with the bits divided as follows
+// (from high to low):
+//
+// 31 .................................... 0
+// [ Device | Access | Function | Transfer ]
+//
+// 16 bits for device type (top bit for non-MS)
+//  2 bits for access required (0, read, write, or "any/special")
+// 12 bits for function code (top bit for non-MS)
+//  2 bits for transfer method (buffered, in direct, out direct, neither)
+//
+
 #define _IOTEST_IOCTL_BASE 0
 #define _IOTEST_IOCTL(x) (_IOTEST_IOCTL_BASE + (x))
 
@@ -53,6 +68,8 @@
 #define IOTEST_IOCTL_ADD                        _IOTEST_IOCTL(2)
 #define IOTEST_IOCTL_TEST_SYNC_CREATE           _IOTEST_IOCTL(3)
 #define IOTEST_IOCTL_TEST_ASYNC_CREATE          _IOTEST_IOCTL(4)
+#define IOTEST_IOCTL_TEST_RUNDOWN               _IOTEST_IOCTL(5)
+#define IOTEST_IOCTL_TEST_SLEEP                 _IOTEST_IOCTL(6)
 
 // IOTEST_IOCTL_ECHO
 // IN: Buffer
@@ -76,6 +93,14 @@ typedef struct _IOTEST_OUTBUFFER_IOCTL_ADD {
 // OUT: N/A
 
 // IOTEST_IOCTL_TEST_ASYNC_CREATE
+// IN: N/A
+// OUT: N/A
+
+// IOTEST_IOCTL_TEST_SHUTDOWN
+// IN: N/A
+// OUT: N/A
+
+// IOTEST_IOCTL_TEST_SLEEP
 // IN: N/A
 // OUT: N/A
 

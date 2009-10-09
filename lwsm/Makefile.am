@@ -44,13 +44,15 @@ server_lwsmd_SOURCES = \
 	server/table.c \
 	server/api.c \
 	server/dispatch.c \
+	server/driver.c \
 	server/executable.c \
 	server/registry.c \
 	server/bootstrap.c \
 	server/main.c
 server_lwsmd_LDADD = \
 	$(top_builddir)/common/liblwsmcommon.la \
-	@LIB_LWMSG@ @LIB_REGCLIENT@ @LIB_LWADVAPI@ @LIB_LWBASE@ @LIB_PTHREAD@
+	@LIB_LWMSG@ @LIB_LWIOCLIENT@ @LIB_REGCLIENT@ \
+	@LIB_LWADVAPI@ @LIB_LWBASE@ @LIB_PTHREAD@
 
 bin_PROGRAMS = client/lwsm
 

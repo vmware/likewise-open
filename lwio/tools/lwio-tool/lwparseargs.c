@@ -42,10 +42,7 @@
  * Authors: Danilo Almeida (dalmeida@likewisesoftware.com)
  */
 
-#include "config.h"
-#include "lwiosys.h"
 #include "lwparseargs.h"
-#include "goto.h"
 
 VOID
 LwParseArgsInit(

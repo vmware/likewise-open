@@ -53,4 +53,19 @@ IoInitialize(
     IN PIO_STATIC_DRIVER pStaticDrivers
     );
 
+LWIO_DRIVER_STATUS
+IoMgrGetDriverStatus(
+    PWSTR pwszDriverName
+    );
+
+NTSTATUS
+IoMgrLoadDriver(
+    PWSTR pwszDriverName
+    );
+
+NTSTATUS
+IoMgrUnloadDriver(
+    PWSTR pwszDriverName
+    );
+
 #endif /* __IOINIT_H__ */

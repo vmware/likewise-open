@@ -36,7 +36,6 @@ LwIoRefreshConfiguration(
     )
 {
     NTSTATUS status = 0;
-    SMB_REQUEST request = {0};
     LWMsgCall* pCall = NULL;
     LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
     LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
@@ -44,20 +43,19 @@ LwIoRefreshConfiguration(
     status = LwIoContextAcquireCall(pConnection, &pCall);
     BAIL_ON_NT_STATUS(status);
 
-    request.dwCurTime = time(NULL);
-    in.tag = SMB_REFRESH_CONFIG;
-    in.data = &request;
+    in.tag = LWIO_REFRESH_CONFIG;
+    in.data = NULL;
 
     status = MAP_LWMSG_STATUS(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
     BAIL_ON_NT_STATUS(status);
 
     switch (out.tag)
     {
-        case SMB_REFRESH_CONFIG_SUCCESS:
+        case LWIO_REFRESH_CONFIG_SUCCESS:
             LWIO_LOG_INFO("Configuration refresh succeeded");
             break;
-        case SMB_REFRESH_CONFIG_FAILED:
-            status = ((PSMB_STATUS_REPLY) out.data)->dwError;
+        case LWIO_REFRESH_CONFIG_FAILED:
+            status = ((PLWIO_STATUS_REPLY) out.data)->dwError;
             break;
 
         default:
