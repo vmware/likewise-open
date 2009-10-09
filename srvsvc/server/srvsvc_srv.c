@@ -226,6 +226,7 @@ SrvSvcRegisterForRPC(
     BOOLEAN bEPRegistered = FALSE;
     static ENDPOINT endpoints[] =
     {
+        {"ncacn_ip_tcp", NULL},
         {"ncacn_np"    , "\\\\pipe\\\\srvsvc"},
         {NULL          , NULL}
     };
