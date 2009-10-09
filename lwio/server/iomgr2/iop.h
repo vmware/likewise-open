@@ -103,7 +103,6 @@ struct _IO_DRIVER_OBJECT {
 
     // For each list to which this object belongs.
     LW_LIST_LINKS RootLinks;
-
 };
 
 struct _IO_DEVICE_OBJECT {
@@ -113,29 +112,55 @@ struct _IO_DEVICE_OBJECT {
     PVOID Context;
 
     // File objects for this device.
-    LW_RTL_MUTEX FileObjectMutex;
     LW_LIST_LINKS FileObjectsList;
 
     // For each list to which this object belongs.
     LW_LIST_LINKS DriverLinks;
     LW_LIST_LINKS RootLinks;
 
+    LW_RTL_MUTEX Mutex;
+
     LW_RTL_MUTEX CancelMutex;
 };
+
+typedef ULONG FILE_OBJECT_FLAGS;
+
+#define FILE_OBJECT_FLAG_CREATE_DONE        0x00000001
+#define FILE_OBJECT_FLAG_CANCELLED          0x00000002
+#define FILE_OBJECT_FLAG_RUNDOWN            0x00000004
+#define FILE_OBJECT_FLAG_CLOSE_DONE         0x00000008
+#define FILE_OBJECT_FLAG_RELATIVE           0x00000010
 
 struct _IO_FILE_OBJECT {
     LONG ReferenceCount;
     PIO_DEVICE_OBJECT pDevice;
     PVOID pContext;
 
+    UNICODE_STRING FileName;
+
+    FILE_OBJECT_FLAGS Flags;
+
     // TODO -- Track file vs named pipe
 
-    // IRPs for this file object.
-    LW_RTL_MUTEX IrpListMutex;
+    LW_RTL_MUTEX Mutex;
+
+    // Count of IRPs that have dispatched but are not complete.
+    LONG DispatchedIrpCount;
+
+    // List of referencing IRPs (via IRP_INTERNAL.FileObjectLinks)
     LW_LIST_LINKS IrpList;
 
-    // For each list to which this object belongs.
+    // Links for IO_DEVICE_OBJECT.FileObjectsList
     LW_LIST_LINKS DeviceLinks;
+
+    struct {
+        LW_RTL_CONDITION_VARIABLE Condition;
+        PIO_ASYNC_COMPLETE_CALLBACK Callback;
+        PVOID CallbackContext;
+        PIO_STATUS_BLOCK pIoStatusBlock;
+    } Rundown;
+
+    // TODO -- Pre-allocate IRP_TYPE_CLOSE...
 };
 
 // ioinit.c
@@ -267,6 +292,16 @@ IopDeviceCallDriver(
     IN OUT PIRP pIrp
     );
 
+VOID
+IopDeviceLock(
+    IN PIO_DEVICE_OBJECT pDeviceObject
+    );
+
+VOID
+IopDeviceUnlock(
+    IN PIO_DEVICE_OBJECT pDeviceObject
+    );
+
 // ioirp.c
 
 NTSTATUS
@@ -304,7 +339,22 @@ IopIrpDispatch(
     IN OPTIONAL PIO_FILE_HANDLE pCreateFileHandle
     );
 
+VOID
+IopIrpCancelFileObject(
+    IN PIO_FILE_OBJECT pFileObject
+    );
+
 // iofile.c
+
+VOID
+IopFileObjectLock(
+    IN PIO_FILE_OBJECT pFileObject
+    );
+
+VOID
+IopFileObjectUnlock(
+    IN PIO_FILE_OBJECT pFileObject
+    );
 
 VOID
 IopFileObjectReference(
@@ -319,12 +369,33 @@ IopFileObjectDereference(
 NTSTATUS
 IopFileObjectAllocate(
     OUT PIO_FILE_OBJECT* ppFileObject,
-    IN PIO_DEVICE_OBJECT pDevice
+    IN PIO_DEVICE_OBJECT pDevice,
+    IN PIO_FILE_NAME FileName
     );
 
 VOID
 IopFileObjectFree(
     IN OUT PIO_FILE_OBJECT* ppFileObject
+    );
+
+NTSTATUS
+IopFileObjectRundown(
+    IN PIO_FILE_OBJECT pFileObject,
+    IN OPTIONAL PIO_ASYNC_COMPLETE_CALLBACK Callback,
+    IN OPTIONAL PVOID CallbackContext,
+    IN OPTIONAL PIO_STATUS_BLOCK IoStatusBlock
+    );
+
+NTSTATUS
+IopFileObjectAddDispatched(
+    IN PIO_FILE_OBJECT pFileObject,
+    IN IRP_TYPE Type
+    );
+
+VOID
+IopFileObjectRemoveDispatched(
+    IN PIO_FILE_OBJECT pFileObject,
+    IN IRP_TYPE Type
     );
 
 // iosecurity.c
@@ -334,3 +405,10 @@ IopSecurityReferenceSecurityContext(
     IN PIO_CREATE_SECURITY_CONTEXT SecurityContext
     );
 
+// ioapi.c -- internally available
+
+// TODO--Replace with Iop helper function
+VOID
+IoDereferenceAsyncCancelContext(
+    IN OUT PIO_ASYNC_CANCEL_CONTEXT* AsyncCancelContext
+    );

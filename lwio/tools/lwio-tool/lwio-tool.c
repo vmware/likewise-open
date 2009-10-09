@@ -44,14 +44,7 @@
 
 #define _POSIX_PTHREAD_SEMANTICS 1
 
-#include "config.h"
-#include "lwiosys.h"
-#include <lwio/ntfileapi.h>
-#include "lwiodef.h"
-#include "lwioutils.h"
-#include "lwparseargs.h"
-#include <lw/rtlgoto.h>
-#include "ntlogmacros.h"
+#include "lwio-tool.h"
 
 static
 NTSTATUS
@@ -327,6 +320,11 @@ main(
     if (!strcmp(pszCommand, "testfileapi"))
     {
         status = DoTestFileApi(&args, &pszUsageError);
+        GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+    }
+    else if (!strcmp(pszCommand, "iotest"))
+    {
+        status = IoTestMain(&args, &pszUsageError);
         GOTO_CLEANUP_ON_STATUS_EE(status, EE);
     }
     else

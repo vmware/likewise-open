@@ -153,17 +153,6 @@ cleanup:
     return status;
 }
 
-static
-VOID
-ItTestAsyncCreateComplete(
-    IN PVOID pCallbackContext
-    )
-{
-    IO_LOG_ENTER("");
-    LwRtlSetEvent((PLW_RTL_EVENT) pCallbackContext);
-    IO_LOG_LEAVE("");
-}
-
 NTSTATUS
 ItTestAsyncCreate(
     IN BOOLEAN UseAsyncCall,
@@ -191,7 +180,7 @@ ItTestAsyncCreate(
     status = IoSecurityCreateSecurityContextFromUidGid(&securityContext, 0, 0, NULL);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
-    asyncControlBlock.Callback = ItTestAsyncCreateComplete;
+    asyncControlBlock.Callback = ItAsyncCompleteSetEvent;
     asyncControlBlock.CallbackContext = &event;
 
     if (UseAsyncCall)
@@ -260,5 +249,115 @@ cleanup:
 
     IO_LOG_LEAVE_STATUS_EE(status, EE);
 
+    return status;
+}
+
+NTSTATUS
+ItTestRundown(
+    VOID
+    )
+{
+    NTSTATUS status = 0;
+    int EE = 0;
+    IO_FILE_HANDLE fileHandle = NULL;
+    IO_ASYNC_CONTROL_BLOCK asyncControlBlock = { 0 };
+    IO_STATUS_BLOCK ioStatusBlock = { 0 };
+    PIO_CREATE_SECURITY_CONTEXT securityContext = NULL;
+    IO_FILE_NAME filename = { 0 };
+    LW_RTL_EVENT event = LW_RTL_EVENT_ZERO_INITIALIZER;
+
+    IO_LOG_ENTER("");
+
+    status = LwRtlInitializeEvent(&event);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    status = RtlWC16StringAllocateFromCString(&filename.FileName, IOTEST_PATH_ALLOW);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    status = IoSecurityCreateSecurityContextFromUidGid(&securityContext, 0, 0, NULL);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    status = IoCreateFile(
+                    &fileHandle,
+                    NULL,
+                    &ioStatusBlock,
+                    securityContext,
+                    &filename,
+                    NULL,
+                    NULL,
+                    SYNCHRONIZE,
+                    0,
+                    0,
+                    FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                    FILE_OPEN_IF,
+                    0,
+                    NULL,
+                    0,
+                    NULL);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    asyncControlBlock.Callback = ItAsyncCompleteSetEvent;
+    asyncControlBlock.CallbackContext = &event;
+
+    status = IoDeviceIoControlFile(
+                    fileHandle,
+                    &asyncControlBlock,
+                    &ioStatusBlock,
+                    IOTEST_IOCTL_TEST_SLEEP,
+                    NULL,
+                    0,
+                    NULL,
+                    0);
+    if (STATUS_PENDING == status)
+    {
+        LWIO_LOG_DEBUG("calling close");
+        status = IoCloseFile(fileHandle);
+        LWIO_ASSERT(STATUS_SUCCESS == status);
+        GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+        fileHandle = NULL;
+        LWIO_LOG_DEBUG("close finished");
+
+        LWIO_LOG_DEBUG("Waiting for async completion");
+        LwRtlWaitEvent(&event, NULL);
+        LWIO_LOG_DEBUG("Got async completion");
+
+        status = ioStatusBlock.Status;
+        LWIO_ASSERT((STATUS_SUCCESS == status) || (STATUS_CANCELLED == status));
+
+        IoDereferenceAsyncCancelContext(&asyncControlBlock.AsyncCancelContext);
+    }
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+cleanup:
+    if (fileHandle)
+    {
+        NTSTATUS localStatus = IoCloseFile(fileHandle);
+        LWIO_ASSERT(NT_SUCCESS(localStatus));
+    }
+    if (filename.FileName)
+    {
+        RTL_FREE(&filename.FileName);
+    }
+    IoSecurityDereferenceSecurityContext(&securityContext);
+
+    IO_LOG_LEAVE_STATUS_EE(status, EE);
+
+    return status;
+}
+
+NTSTATUS
+ItTestSleep(
+    IN PIRP pIrp,
+    IN ULONG Seconds
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    int EE = 0;
+
+    status = ItDispatchAsync(pIrp, Seconds, ItSimpleSuccessContinueCallback, NULL);
+    GOTO_CLEANUP_EE(EE);
+
+cleanup:
+    LOG_LEAVE_IF_STATUS_EE(status, EE);
     return status;
 }

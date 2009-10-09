@@ -56,10 +56,40 @@ ItDispatchDeviceIoControl(
     switch (pIrp->Args.IoFsControl.ControlCode)
     {
         case IOTEST_IOCTL_TEST_SYNC_CREATE:
+            if (pIrp->Args.IoFsControl.InputBufferLength ||
+                pIrp->Args.IoFsControl.OutputBufferLength)
+            {
+                status = STATUS_INVALID_PARAMETER;
+                GOTO_CLEANUP_EE(EE);
+            }
             status = ItTestSyncCreate();
             break;
         case IOTEST_IOCTL_TEST_ASYNC_CREATE:
+            if (pIrp->Args.IoFsControl.InputBufferLength ||
+                pIrp->Args.IoFsControl.OutputBufferLength)
+            {
+                status = STATUS_INVALID_PARAMETER;
+                GOTO_CLEANUP_EE(EE);
+            }
             status = ItTestAsyncCreate(TRUE, FALSE);
+            break;
+        case IOTEST_IOCTL_TEST_RUNDOWN:
+            if (pIrp->Args.IoFsControl.InputBufferLength ||
+                pIrp->Args.IoFsControl.OutputBufferLength)
+            {
+                status = STATUS_INVALID_PARAMETER;
+                GOTO_CLEANUP_EE(EE);
+            }
+            status = ItTestRundown();
+            break;
+        case IOTEST_IOCTL_TEST_SLEEP:
+            if (pIrp->Args.IoFsControl.InputBufferLength ||
+                pIrp->Args.IoFsControl.OutputBufferLength)
+            {
+                status = STATUS_INVALID_PARAMETER;
+                GOTO_CLEANUP_EE(EE);
+            }
+            status = ItTestSleep(pIrp, 10);
             break;
         default:
             status = STATUS_INVALID_PARAMETER;
@@ -67,6 +97,10 @@ ItDispatchDeviceIoControl(
     }
 
 cleanup:
-    pIrp->IoStatusBlock.Status = status;
+    if (STATUS_PENDING != status)
+    {
+        pIrp->IoStatusBlock.Status = status;
+    }
+
     return status;
 }
