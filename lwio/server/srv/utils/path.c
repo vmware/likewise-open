@@ -52,14 +52,14 @@ SrvBuildFilePath(
     PWSTR* ppwszFilename
     )
 {
-    NTSTATUS ntStatus = 0;
-    size_t              len_prefix = 0;
-    size_t              len_suffix = 0;
-    size_t              len_separator = 0;
-    PWSTR               pDataCursor = NULL;
-    wchar16_t           wszFwdSlash;
-    wchar16_t           wszBackSlash;
-    PWSTR               pwszFilename = NULL;
+    NTSTATUS  ntStatus       = 0;
+    size_t    len_prefix     = 0;
+    size_t    len_suffix     = 0;
+    size_t    len_separator  = 0;
+    PWSTR     pDataCursor    = NULL;
+    wchar16_t wszFwdSlash[]  = {'/',  0};
+    wchar16_t wszBackSlash[] = {'\\', 0};
+    PWSTR     pwszFilename   = NULL;
 
     if (!pwszPrefix)
     {
@@ -75,16 +75,13 @@ SrvBuildFilePath(
     }
     BAIL_ON_NT_STATUS(ntStatus);
 
-    wcstowc16s(&wszFwdSlash, L"/", 1);
-    wcstowc16s(&wszBackSlash, L"\\", 1);
-
     len_prefix = wc16slen(pwszPrefix);
     len_suffix = wc16slen(pwszSuffix);
 
     if (len_suffix && *pwszSuffix &&
-        (*pwszSuffix != wszFwdSlash) && (*pwszSuffix != wszBackSlash))
+        (*pwszSuffix != wszFwdSlash[0]) && (*pwszSuffix != wszBackSlash[0]))
     {
-        len_separator = sizeof(wszBackSlash);
+        len_separator = sizeof(wszBackSlash[0]);
     }
 
     ntStatus = SrvAllocateMemory(
@@ -100,7 +97,7 @@ SrvBuildFilePath(
 
     if (len_separator)
     {
-        *pDataCursor++ = wszBackSlash;
+        *pDataCursor++ = wszBackSlash[0];
     }
 
     while (pwszSuffix && *pwszSuffix)
@@ -111,9 +108,9 @@ SrvBuildFilePath(
     pDataCursor = pwszFilename;
     while (pDataCursor && *pDataCursor)
     {
-        if (*pDataCursor == wszFwdSlash)
+        if (*pDataCursor == wszFwdSlash[0])
         {
-            *pDataCursor = wszBackSlash;
+            *pDataCursor = wszBackSlash[0];
         }
         pDataCursor++;
     }
