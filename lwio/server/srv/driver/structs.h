@@ -127,6 +127,8 @@ typedef struct _LWIO_SRV_RUNTIME_GLOBALS
 
     PSRV_CCB                  pCCBList;
 
+    IO_DEVICE_HANDLE          hDevice;
+
 } LWIO_SRV_RUNTIME_GLOBALS, *PLWIO_SRV_RUNTIME_GLOBALS;
 
 

@@ -93,8 +93,7 @@ IO_DRIVER_ENTRY(srv)(
     )
 {
     NTSTATUS ntStatus = 0;
-    IO_DEVICE_HANDLE hDevice = NULL;
-    PCSTR    pszName = "srv";
+    PCSTR    pszName  = "srv";
     PVOID    pDeviceContext = NULL;
 
     if (IO_DRIVER_ENTRY_INTERFACE_VERSION != ulInterfaceVersion)
@@ -111,7 +110,7 @@ IO_DRIVER_ENTRY(srv)(
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = IoDeviceCreate(
-                    &hDevice,
+                    &gSMBSrvGlobals.hDevice,
                     hDriver,
                     pszName,
                     pDeviceContext);
@@ -223,12 +222,28 @@ SrvDriverShutdown(
     IN IO_DRIVER_HANDLE hDriver
     )
 {
-    NTSTATUS ntStatus = SrvShutdown();
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
+    ntStatus = SrvShutdown();
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (gSMBSrvGlobals.hDevice)
+    {
+        IoDeviceDelete(&gSMBSrvGlobals.hDevice);
+    }
+
+cleanup:
+
+    return;
+
+error:
 
     if (ntStatus)
     {
         LWIO_LOG_ERROR("[srv] driver failed to stop. [code: %d]", ntStatus);
     }
+
+    goto cleanup;
 }
 
 static
