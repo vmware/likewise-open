@@ -240,12 +240,14 @@ PvfsAddPendingLock(
                   pFcb->pPendingLockQueue,
                   (PVOID)pPendingLock);
     BAIL_ON_NT_STATUS(ntError);
+    pIrpCtx->QueueType = PVFS_QUEUE_TYPE_PENDING_LOCK;
 
     if (!pIrpCtx->bIsPended)
     {
-        PvfsIrpMarkPending(pIrpCtx, PvfsQueueCancelLock, pIrpCtx);
+        PvfsIrpMarkPending(pIrpCtx, PvfsQueueCancelIrp, pIrpCtx);
         ntError = STATUS_PENDING;
     }
+
 
     /* Memory has been given to the Queue */
 
@@ -1111,54 +1113,76 @@ error:
 /*****************************************************************************
  ****************************************************************************/
 
-// FIXME!!! update this
+static
+NTSTATUS
+PvfsCleanPendingLockQueue(
+    PVOID pContext
+    );
 
+static
 VOID
-PvfsQueueCancelLock(
-    PIRP pIrp,
-    PVOID pCancelContext
+PvfsCleanPendingLockFree(
+    PVOID *ppContext
+    );
+
+NTSTATUS
+PvfsScheduleCancelLock(
+    PPVFS_IRP_CONTEXT pIrpContext
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PPVFS_IRP_CONTEXT pIrpCtx = (PPVFS_IRP_CONTEXT)pCancelContext;
-    BOOLEAN bIsLocked = FALSE;
+    PPVFS_WORK_CONTEXT pWorkCtx = NULL;
 
-    LWIO_LOCK_MUTEX(bIsLocked, &pIrpCtx->Mutex);
+    BAIL_ON_INVALID_PTR(pIrpContext->pFcb, ntError);
 
-    pIrpCtx->bIsCancelled = TRUE;
+    ntError = PvfsCreateWorkContext(
+                  &pWorkCtx,
+                  FALSE,
+                  pIrpContext,
+                  (PPVFS_WORK_CONTEXT_CALLBACK)PvfsCleanPendingLockQueue,
+                  (PPVFS_WORK_CONTEXT_FREE_CTX)PvfsCleanPendingLockFree);
+    BAIL_ON_NT_STATUS(ntError);
 
-    if (pIrpCtx->pPendingLock)
-    {
-        PPVFS_WORK_CONTEXT pWorkCtx = NULL;
+    ntError = PvfsAddWorkItem(gpPvfsInternalWorkQueue, (PVOID)pWorkCtx);
+    BAIL_ON_NT_STATUS(ntError);
 
-        /* Cancel the pending lock */
+    pWorkCtx = NULL;
 
-        pIrpCtx->pPendingLock->bIsCancelled = TRUE;
-        PvfsReleaseCCB(pIrpCtx->pPendingLock->pCcb);
-        pIrpCtx->pPendingLock->pCcb = NULL;
+cleanup:
+    PVFS_FREE(&pWorkCtx);
 
-        ntError = PvfsCreateWorkContext(
-                      &pWorkCtx,
-                      TRUE,
-                      (PVOID)pIrpCtx,
-                      NULL,    /* Cancelled - no completion function */
-                      NULL);
-        if (ntError == STATUS_SUCCESS)
-        {
-            ntError = PvfsAddWorkItem(gpPvfsIoWorkQueue, (PVOID)pWorkCtx);
-            if (ntError == STATUS_SUCCESS) {
-                pIrpCtx->pIrp = NULL;
-            } else {
-                PvfsFreeWorkContext(&pWorkCtx);
-            }
-        }
-    }
+    return ntError;
 
-    LWIO_UNLOCK_MUTEX(bIsLocked, &pIrpCtx->Mutex);
-
-    return;
+error:
+    goto cleanup;
 }
 
+/*****************************************************************************
+ ****************************************************************************/
+
+static
+NTSTATUS
+PvfsCleanPendingLockQueue(
+    PVOID pContext
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+
+    return ntError;
+}
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static
+ VOID
+PvfsCleanPendingLockFree(
+    PVOID *ppContext
+    )
+{
+    /* No op -- context released in PvfsOplockCleanPendingLockQueue */
+    return;
+}
 
 /*
 local variables:

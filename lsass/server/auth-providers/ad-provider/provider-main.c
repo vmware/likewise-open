@@ -4852,9 +4852,14 @@ AD_MachineCredentialsCacheInitialize(
                     pszDomainDnsName,
                     pszHostDnsDomain,
                     &dwGoodUntilTime);
-    if (dwError == LW_ERROR_DOMAIN_IS_OFFLINE)
+    if (dwError)
     {
-        LsaDmTransitionOffline(pszDomainDnsName, FALSE);
+        if (dwError == LW_ERROR_DOMAIN_IS_OFFLINE)
+        {
+            LsaDmTransitionOffline(pszDomainDnsName, FALSE);
+        }
+
+        ADSetMachineTGTExpiryError();
     }
     BAIL_ON_LSA_ERROR(dwError);
 

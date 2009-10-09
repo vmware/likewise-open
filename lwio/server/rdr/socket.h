@@ -142,4 +142,9 @@ RdrSocketSetIgnoreServerSignatures(
     BOOLEAN bValue
     );
 
+BOOLEAN
+RdrSocketGetIgnoreServerSignatures(
+    PSMB_SOCKET pSocket
+    );
+
 #endif /* __SOCKET_H__ */

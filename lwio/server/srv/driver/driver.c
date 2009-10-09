@@ -76,6 +76,12 @@ SrvShareBootstrap(
 
 static
 NTSTATUS
+SrvCreateDefaultSharePath(
+    PCSTR pszDefaultSharePath
+    );
+
+static
+NTSTATUS
 SrvShutdown(
     VOID
     );
@@ -349,8 +355,11 @@ SrvShareBootstrap(
         wchar16_t wszDesc[] =
                         {'D','e','f','a','u','l','t',' ','S','h','a','r','e',0};
         wchar16_t wszServiceType[] = LWIO_SRV_SHARE_STRING_ID_DISK_W;
-        CHAR szTmpFSRoot[] = LWIO_SRV_FILE_SYSTEM_ROOT_A;
-        CHAR szDefaultSharePath[] = LWIO_SRV_DEFAULT_SHARE_PATH_A;
+        CHAR      szTmpFSRoot[] = LWIO_SRV_FILE_SYSTEM_ROOT_A;
+        CHAR      szDefaultSharePath[] = LWIO_SRV_DEFAULT_SHARE_PATH_A;
+
+        ntStatus = SrvCreateDefaultSharePath(&szDefaultSharePath[0]);
+        BAIL_ON_NT_STATUS(ntStatus);
 
         ntStatus = SrvAllocateStringPrintf(
                             &pszFileSystemRoot,
@@ -386,6 +395,53 @@ error:
 
     LWIO_LOG_ERROR("Failed to bootstrap default shares. [error code: %d]",
                    ntStatus);
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvCreateDefaultSharePath(
+    PCSTR pszDefaultSharePath
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSTR     pszPath = NULL;
+    PSTR     pszCursor = NULL;
+    BOOLEAN  bDirExists = FALSE;
+
+    ntStatus = SMBAllocateString(pszDefaultSharePath, &pszPath);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    for (pszCursor = pszPath; pszCursor && *pszCursor; pszCursor++)
+    {
+        if (*pszCursor == '\\')
+        {
+            *pszCursor = '/';
+        }
+    }
+
+    ntStatus = SMBCheckDirectoryExists(pszPath, &bDirExists);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (!bDirExists)
+    {
+        ntStatus = SMBCreateDirectory(
+                        pszPath,
+                        S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+cleanup:
+
+    if (pszPath)
+    {
+        SMBFreeString(pszPath);
+    }
+
+    return ntStatus;
+
+error:
 
     goto cleanup;
 }

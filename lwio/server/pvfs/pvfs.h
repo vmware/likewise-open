@@ -427,6 +427,11 @@ PvfsFileHasOpenByteRangeLocks(
     PPVFS_FCB pFcb
     );
 
+NTSTATUS
+PvfsScheduleCancelLock(
+    PPVFS_IRP_CONTEXT pIrpContext
+    );
+
 
 /* From oplock.c */
 
@@ -476,11 +481,11 @@ PvfsFreeOplockBreakTestContext(
     IN OUT PPVFS_PENDING_OPLOCK_BREAK_TEST *ppContext
     );
 
-VOID
-PvfsQueueCancelOplock(
-    IN PIRP pIrp,
-    IN PVOID pCancelContext
+NTSTATUS
+PvfsScheduleCancelOplock(
+    PPVFS_IRP_CONTEXT pIrpContext
     );
+
 
 /* From ioctlOpenFileInfo.c */
 

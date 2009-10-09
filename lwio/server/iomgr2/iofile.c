@@ -352,7 +352,9 @@ IopFileObjectCompleteRundown(
     // Is this safe?  In theory, the only IRP that could
     // change this is the close IRP, but that should wait
     // until this function calls or signals.
-    LWIO_ASSERT(0 == pFileObject->DispatchedIrpCount);
+    //
+    // FIXME - This needs to be revisited and verify the invariant
+    LWIO_ASSERT(pFileObject->DispatchedIrpCount <= 1);
 
     if (pFileObject->Rundown.Callback)
     {

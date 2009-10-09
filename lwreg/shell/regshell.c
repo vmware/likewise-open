@@ -852,6 +852,7 @@ DWORD
 RegShellStrcmpLen(
     PSTR pszMatchStr,
     PSTR pszHaystackStr,
+    DWORD dwMatchMaxLen,
     PDWORD pdwExtentLen)
 {
     DWORD index = 0;
@@ -872,7 +873,21 @@ RegShellStrcmpLen(
     {
         ;
     }
-    *pdwExtentLen = index;
+    if (dwMatchMaxLen)
+    {
+        if (pszHaystackStr[dwMatchMaxLen] == '\0')
+        {
+            *pdwExtentLen = index;
+        }
+        else
+        {
+            dwError = LW_ERROR_INVALID_CONTEXT;
+        }
+    }
+    else
+    {
+        *pdwExtentLen = index;
+    }
 
 cleanup:
     return dwError;
@@ -903,7 +918,9 @@ RegShellCompletionMatch(
     DWORD dwPrevMaxCommonLen = 0;
     DWORD dwMinCommonLenIndex = 0;
     DWORD dwMaxCommonLenIndex = 0;
+    DWORD dwMatchMaxLen = 0;
     DWORD dwStrLen = 0;
+    BOOLEAN bBackslashEnd = FALSE;
     PSTR pszSubKey = NULL;
 
     PSTR *ppMatchArgs = NULL;
@@ -918,6 +935,12 @@ RegShellCompletionMatch(
         BAIL_ON_REG_ERROR(dwError);
     }
 
+    dwStrLen = strlen(pszMatchStr);
+    if (dwStrLen>0 && pszMatchStr[dwStrLen-1] == '\\')
+    {
+        dwMatchMaxLen = dwStrLen-1;
+        pszMatchStr[dwMatchMaxLen] = '\0';
+    }
     for (i=0; i<dwSubKeyLen; i++)
     {
         dwError = LwWc16sToMbs(ppSubKeys[i], &pszSubKey);
@@ -927,7 +950,8 @@ RegShellCompletionMatch(
         {
             pszPtr = strstr(pszSubKey, pszMatchStr);
         }
-        if (pszPtr && pszPtr == pszSubKey)
+        if (pszPtr && pszPtr == pszSubKey &&
+            (dwMatchMaxLen == 0 || pszPtr[dwMatchMaxLen] == '\0'))
         {
             dwError = LwAllocateString(
                           pszSubKey,
@@ -951,15 +975,19 @@ RegShellCompletionMatch(
     dwStrLen = INT32_MAX;
     if (ppMatchArgs && ppMatchArgs[dwMinCommonLenIndex])
     {
-        dwMaxCommonLen = strlen(ppMatchArgs[dwMinCommonLenIndex]);
+        if (!bBackslashEnd)
+        {
+            dwMaxCommonLen = strlen(ppMatchArgs[dwMinCommonLenIndex]);
+        }
     }
     for (i=0; i<dwMatchArgsLen; i++)
     {
         dwError = RegShellStrcmpLen(
                       ppMatchArgs[dwMinCommonLenIndex],
                       ppMatchArgs[i],
+                      dwMatchMaxLen,
                       &dwMaxCommonLen);
-        if (dwMaxCommonLen != dwPrevMaxCommonLen)
+        if (dwError == 0 && dwMaxCommonLen != dwPrevMaxCommonLen)
         {
             dwMaxCommonLenIndex = i;
             dwPrevMaxCommonLen = dwMaxCommonLen;
@@ -1001,6 +1029,7 @@ pfnRegShellCompleteCallback(
     DWORD dwMatchBestIndex = 0;
     DWORD dwMatchBestLen = 0;
     BOOLEAN bExactMatch = FALSE;
+    BOOLEAN bBackslashEnd = FALSE;
     DWORD dwStrLen = 0;
     PSTR pszFullMatchStr = NULL;
 
@@ -1019,7 +1048,6 @@ pfnRegShellCompleteCallback(
         BAIL_ON_REG_ERROR(dwError);
     }
 
-
     dwLineLen = lineInfoCtx->cursor - lineInfoCtx->buffer,
     dwError = LwAllocateMemory(sizeof(CHAR) * (dwLineLen+1),
                                (LW_PVOID) &pszCurrentCmd);
@@ -1029,6 +1057,8 @@ pfnRegShellCompleteCallback(
     /* Find end of current command */
     for (pszPtr = pszCurrentCmd; *pszPtr && !isspace((int) *pszPtr); pszPtr++)
         ;
+
+    /* Find the start of the current key */
     for (;*pszPtr && isspace((int) *pszPtr); pszPtr++)
     {
         *pszPtr = '\0';
@@ -1038,10 +1068,27 @@ pfnRegShellCompleteCallback(
         dwLineLen = pszPtr - pszCurrentCmd;
         pszArgPtr = pszCurrentCmd + dwLineLen;
 
-        pszPtr = strrchr(pszArgPtr, '\\');
-        if (pszPtr)
+        if (pszArgPtr[strlen(pszArgPtr)-1] != '\\')
         {
-            pszArgPtr = pszPtr + 1;
+            pszPtr = strrchr(pszArgPtr, '\\');
+            if (pszPtr)
+            {
+                pszArgPtr = pszPtr + 1;
+            }
+        }
+        else
+        {
+            /*
+             * This is not quite right here.
+             * When user enters "cd a\b\c" then tries tab
+             * completion, this code breaks.
+             */
+            pszPtr = strchr(pszArgPtr, '\\');
+            if (pszPtr && pszPtr != &pszArgPtr[strlen(pszArgPtr)-1])
+            {
+                pszArgPtr = pszPtr + 1;
+            }
+            bBackslashEnd = TRUE;
         }
 
         dwStrLen = strlen(pszArgPtr) + 3;
@@ -1069,7 +1116,21 @@ pfnRegShellCompleteCallback(
                    cldata->pParseState->pszDefaultKeyCompletion);
             strcat(pszFullMatchStr, "\\");
         }
-        strcat(pszFullMatchStr, pszArgPtr);
+
+        if (cldata->pParseState->pszDefaultKeyCompletion)
+        {
+            pszPtr = strstr(pszArgPtr,
+                            cldata->pParseState->pszDefaultKeyCompletion);
+
+        }
+        else {
+            pszPtr = NULL;
+        }
+        if (!pszPtr ||
+            (pszPtr && pszPtr != pszArgPtr))
+        {
+            strcat(pszFullMatchStr, pszArgPtr);
+        }
         pszArgPtr = pszFullMatchStr;
     }
     else
@@ -1091,7 +1152,16 @@ pfnRegShellCompleteCallback(
         printf("\n");
         for (i=0; i<dwMatchArgsLen; i++)
         {
-            printf("%s\t", ppMatchArgs[i]);
+            pszPtr = strrchr(ppMatchArgs[i], '\\');
+            if (pszPtr)
+            {
+                pszPtr++;
+            }
+            else
+            {
+                pszPtr = ppMatchArgs[i];
+            }
+            printf("%s\t", pszPtr);
         }
 
         putchar('\a');
@@ -1171,7 +1241,7 @@ pfnRegShellCompleteCallback(
                 {
                     printf("Oops: 2 el_insertstr failed\n");
                 }
-                else
+                else if (!bBackslashEnd)
                 {
                     /* No string to append */
                     if (el_insertstr(el, "\\") == -1)
@@ -1257,7 +1327,16 @@ pfnRegShellCompleteCallback(
             {
                 dwError = LwWc16sToMbs(ppSubKeys[i], &pszSubKey);
                 BAIL_ON_REG_ERROR(dwError);
-                printf("%s\t", pszSubKey);
+            pszPtr = strrchr(pszSubKey, '\\');
+            if (pszPtr)
+            {
+                pszPtr++;
+            }
+            else
+            {
+                pszPtr = pszSubKey;
+            }
+                printf("%s\t", pszPtr);
                 LW_SAFE_FREE_STRING(pszSubKey);
             }
             printf("\n");

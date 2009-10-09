@@ -180,6 +180,7 @@ PvfsWorkerDoWork(
             if (pIrpCtx->bIsCancelled) {
                 ntError = STATUS_CANCELLED;
             } else {
+                pIrpCtx->bInProgress = TRUE;
                 ntError = pWorkCtx->pfnCompletion(pWorkCtx->pContext);
             }
 

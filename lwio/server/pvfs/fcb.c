@@ -695,33 +695,6 @@ error:
 /*****************************************************************************
  ****************************************************************************/
 
-VOID
-PvfsQueueCancelOplockPendingOp(
-    IN PIRP pIrp,
-    IN PVOID pCancelContext
-    )
-{
-    NTSTATUS ntError = STATUS_SUCCESS;
-    PPVFS_IRP_CONTEXT pIrpCtx = (PPVFS_IRP_CONTEXT)pCancelContext;
-    BOOLEAN bIsLocked = FALSE;
-
-    LWIO_LOCK_MUTEX(bIsLocked, &pIrpCtx->Mutex);
-
-    pIrpCtx->bIsCancelled = TRUE;
-
-    // ntError = PvfsScheduleOplockPendingOpCancel(pIrpCtx);
-    BAIL_ON_NT_STATUS(ntError);
-
-cleanup:
-    LWIO_UNLOCK_MUTEX(bIsLocked, &pIrpCtx->Mutex);
-
-    return;
-
-error:
-    goto cleanup;
-}
-
-
 NTSTATUS
 PvfsAddItemPendingOplockBreakAck(
     IN PPVFS_FCB pFcb,
@@ -754,12 +727,13 @@ PvfsAddItemPendingOplockBreakAck(
                   pFcb->pOplockPendingOpsQueue,
                   (PVOID)pPendingOp);
     BAIL_ON_NT_STATUS(ntError);
+    pIrpContext->QueueType = PVFS_QUEUE_TYPE_PENDING_OPLOCK_BREAK;
 
     pIrpContext->pFcb = PvfsReferenceFCB(pFcb);
 
     PvfsIrpMarkPending(
         pIrpContext,
-        PvfsQueueCancelOplockPendingOp,
+        PvfsQueueCancelIrp,
         pIrpContext);
 
 cleanup:
@@ -945,6 +919,83 @@ PvfsFreeOplockRecord(
 
     return;
 }
+
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static
+NTSTATUS
+PvfsOplockCleanPendingOpQueue(
+    PVOID pContext
+    );
+
+static
+VOID
+PvfsOplockCleanPendingOpFree(
+    PVOID *ppContext
+    );
+
+NTSTATUS
+PvfsScheduleCancelPendingOp(
+    PPVFS_IRP_CONTEXT pIrpContext
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PPVFS_WORK_CONTEXT pWorkCtx = NULL;
+
+    BAIL_ON_INVALID_PTR(pIrpContext->pFcb, ntError);
+
+    ntError = PvfsCreateWorkContext(
+                  &pWorkCtx,
+                  FALSE,
+                  pIrpContext,
+                  (PPVFS_WORK_CONTEXT_CALLBACK)PvfsOplockCleanPendingOpQueue,
+                  (PPVFS_WORK_CONTEXT_FREE_CTX)PvfsOplockCleanPendingOpFree);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsAddWorkItem(gpPvfsInternalWorkQueue, (PVOID)pWorkCtx);
+    BAIL_ON_NT_STATUS(ntError);
+
+    pWorkCtx = NULL;
+
+cleanup:
+    PVFS_FREE(&pWorkCtx);
+
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static
+NTSTATUS
+PvfsOplockCleanPendingOpQueue(
+    PVOID pContext
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+
+    return ntError;
+}
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static
+ VOID
+PvfsOplockCleanPendingOpFree(
+    PVOID *ppContext
+    )
+{
+    /* No op -- context released in PvfsOplockCleanPendingOpQueue */
+    return;
+}
+
 
 /*
 local variables:

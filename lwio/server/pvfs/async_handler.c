@@ -51,26 +51,62 @@
 
 /* Code */
 
-/************************************************************
- ***********************************************************/
+/***********************************************************************
+ **********************************************************************/
 
-static VOID
-PvfsQueueCancelIo(
+VOID
+PvfsQueueCancelIrp(
     PIRP pIrp,
     PVOID pCancelContext
     )
 {
-    PPVFS_IRP_CONTEXT pIrpCtx = (PPVFS_IRP_CONTEXT)pCancelContext;
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PPVFS_IRP_CONTEXT pIrpContext = (PPVFS_IRP_CONTEXT)pCancelContext;
     BOOLEAN bIsLocked = FALSE;
 
-    LWIO_LOCK_MUTEX(bIsLocked, &pIrpCtx->Mutex);
+    LWIO_LOCK_MUTEX(bIsLocked, &pIrpContext->Mutex);
 
-    pIrpCtx->bIsCancelled = TRUE;
+    if (pIrpContext->bInProgress) {
+        return;
+    }
 
-    LWIO_UNLOCK_MUTEX(bIsLocked, &pIrpCtx->Mutex);
+    pIrpContext->bIsCancelled = TRUE;
+
+    switch(pIrpContext->QueueType)
+    {
+    case PVFS_QUEUE_TYPE_IO:
+        /* Nothing to do.  Let the general Io Work queue processing
+           handle it */
+        ntError = STATUS_SUCCESS;
+        break;
+
+    case PVFS_QUEUE_TYPE_OPLOCK:
+        ntError = PvfsScheduleCancelOplock(pIrpContext);
+        break;
+
+    case PVFS_QUEUE_TYPE_PENDING_OPLOCK_BREAK:
+        ntError = PvfsScheduleCancelPendingOp(pIrpContext);
+        break;
+
+    case PVFS_QUEUE_TYPE_PENDING_LOCK:
+        ntError = PvfsScheduleCancelLock(pIrpContext);
+        break;
+
+    default:
+        /* Should never be reachable */
+        PVFS_ASSERT(FALSE);
+        break;
+
+    }
+
+    LWIO_UNLOCK_MUTEX(bIsLocked, &pIrpContext->Mutex);
 
     return;
 }
+
+
+/***********************************************************************
+ **********************************************************************/
 
 static NTSTATUS
 PvfsScheduleIoWorkItem(
@@ -83,8 +119,9 @@ PvfsScheduleIoWorkItem(
     if (pWorkContext->bIsIrpContext)
     {
         pIrpCtx = (PPVFS_IRP_CONTEXT)pWorkContext->pContext;
+        pIrpCtx->QueueType = PVFS_QUEUE_TYPE_IO;
 
-        PvfsIrpMarkPending(pIrpCtx, PvfsQueueCancelIo, pIrpCtx);
+        PvfsIrpMarkPending(pIrpCtx, PvfsQueueCancelIrp, pIrpCtx);
     }
 
     ntError = PvfsAddWorkItem(gpPvfsIoWorkQueue, (PVOID)pWorkContext);
