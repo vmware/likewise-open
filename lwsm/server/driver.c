@@ -126,7 +126,7 @@ LwSmDriverGetStatus(
         }
         break;
     case LW_SERVICE_STATE_DEAD:
-        pStatus->state = LW_SERVICE_STATE_DEAD;
+        pStatus->state = LW_SERVICE_STATE_STOPPED;
         break;
     default:
         pStatus->state = LW_SERVICE_STATE_STOPPED;
