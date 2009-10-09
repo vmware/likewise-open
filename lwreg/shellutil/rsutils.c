@@ -186,6 +186,8 @@ RegShellIsValidKey(
     BAIL_ON_REG_ERROR(dwError);
 
 cleanup:
+
+    LW_SAFE_FREE_MEMORY(pSubKey);
     if (pFullKey && pFullKey != pRootKey)
     {
         RegCloseKey(hReg, pFullKey);
@@ -472,6 +474,9 @@ RegShellUtilGetKeys(
 
         *pppRetSubKeys = subKeys;
         *pdwRetSubKeyCount = dwNumRootKeys;
+printf("subKeys=%p\n", subKeys);
+for (i=0; i<dwNumRootKeys; i++)
+printf("subKeys[%d]=%p\n", i, subKeys[i]);
         return dwError;
     }
 
@@ -551,6 +556,9 @@ RegShellUtilGetKeys(
 
     *pppRetSubKeys = subKeys;
     *pdwRetSubKeyCount = dwSubKeyCount;
+printf("subKeys=%p\n", subKeys);
+for (i=0; i<dwSubKeyCount; i++)
+printf("subKeys[%d]=%p\n", i, subKeys[i]);
 cleanup:
     if (pFullKey && pFullKey != pRootKey)
     {
@@ -603,7 +611,6 @@ RegShellUtilSetValue(
     dwError = RegOpenRootKey(hReg, pszRootKeyName, &pRootKey);
     BAIL_ON_REG_ERROR(dwError);
 
-    pFullKey = pRootKey;
     if (pszParentPath && pszParentPath[1])
     {
         dwError = LwMbsToWc16s(pszParentPath+1, &pwszParentPath);
@@ -617,6 +624,10 @@ RegShellUtilSetValue(
                       &pFullKey);
         BAIL_ON_REG_ERROR(dwError);
         LW_SAFE_FREE_MEMORY(pwszParentPath);
+    }
+    else
+    {
+        pFullKey = pRootKey;
     }
 
     switch (type)
@@ -670,9 +681,13 @@ RegShellUtilSetValue(
 
 cleanup:
     LW_SAFE_FREE_MEMORY(pwszParentPath);
-    if (pFullKey && pFullKey != pRootKey)
+    if (pFullKey)
     {
         RegCloseKey(hReg, pFullKey);
+    }
+    if (pRootKey)
+    {
+        RegCloseKey(hReg, pRootKey);
     }
     return dwError;
 
