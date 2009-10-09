@@ -30,8 +30,8 @@
 
 [HKEY_LIKEWISE\Services\npfs]
 "Description"="Likewise Named Pipe Filesystem"
-"Path"="@providerdir@/libpvfs.sys@MOD_EXT@"
-"Arguments"="pvfs"
+"Path"="@providerdir@/libnpfs.sys@MOD_EXT@"
+"Arguments"="npfs"
 "Dependencies"="lwio"
 "Type"=dword:00000003
 
