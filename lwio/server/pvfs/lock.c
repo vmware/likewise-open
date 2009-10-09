@@ -186,68 +186,6 @@ error:
 }
 
 
-/************************************************************
- ***********************************************************/
-
-#if 0
-static NTSTATUS
-PvfsPendLockControlIrp(
-    IN PPVFS_WORK_CONTEXT pWorkContext
-    )
-{
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PPVFS_IRP_CONTEXT pIrpCtx = pWorkContext->pIrpContext;
-
-    PvfsIrpMarkPending(pIrpCtx, PvfsQueueCancelLock, pIrpCtx);
-
-    ntError = PvfsAddWorkItem(gpPvfsIoWorkQueue, (PVOID)pWorkContext);
-    if (ntError != STATUS_SUCCESS) {
-        pIrpCtx->pIrp->IoStatusBlock.Status = ntError;
-
-        PvfsAsyncIrpComplete(pIrpCtx);
-        PvfsFreeIrpContext(&pIrpCtx);
-
-        return ntError;
-    }
-
-    /* Always return STATUS_PENDING here */
-
-    return STATUS_PENDING;
-}
-
-NTSTATUS
-PvfsAsyncLockControl(
-    PPVFS_IRP_CONTEXT  pIrpContext
-    )
-{
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PPVFS_WORK_CONTEXT pWorkCtx = NULL;
-
-    ntError = PvfsCreateWorkContext(
-                  &pWorkCtx,
-                  TRUE,
-                  (PVOID)pIrpContext,
-                  (PPVFS_WORK_CONTEXT_CALLBACK)PvfsLockControl,
-                  NULL);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsPendLockControlIrp(pWorkCtx);
-    if (ntError == STATUS_PENDING)
-    {
-        pWorkCtx = NULL;
-    }
-
-cleanup:
-    PvfsFreeWorkContext(&pWorkCtx);
-
-    return ntError;
-
-error:
-    goto cleanup;
-}
-#endif
-
-
 /*
 local variables:
 mode: c

@@ -65,6 +65,15 @@ PvfsFreeWorkContext(
     );
 
 
+/* Cancellation routine */
+
+VOID
+PvfsQueueCancelIrp(
+    PIRP pIrp,
+    PVOID pCancelContext
+    );
+
+
 /* Pvfs IRP Async API */
 
 NTSTATUS

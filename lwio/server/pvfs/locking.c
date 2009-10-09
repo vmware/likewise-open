@@ -240,12 +240,14 @@ PvfsAddPendingLock(
                   pFcb->pPendingLockQueue,
                   (PVOID)pPendingLock);
     BAIL_ON_NT_STATUS(ntError);
+    pIrpCtx->QueueType = PVFS_QUEUE_TYPE_PENDING_LOCK;
 
     if (!pIrpCtx->bIsPended)
     {
-        PvfsIrpMarkPending(pIrpCtx, PvfsQueueCancelLock, pIrpCtx);
+        PvfsIrpMarkPending(pIrpCtx, PvfsQueueCancelIrp, pIrpCtx);
         ntError = STATUS_PENDING;
     }
+
 
     /* Memory has been given to the Queue */
 
@@ -1111,52 +1113,12 @@ error:
 /*****************************************************************************
  ****************************************************************************/
 
-// FIXME!!! update this
-
-VOID
-PvfsQueueCancelLock(
-    PIRP pIrp,
-    PVOID pCancelContext
+NTSTATUS
+PvfsScheduleCancelLock(
+    PPVFS_IRP_CONTEXT pIrpContext
     )
 {
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PPVFS_IRP_CONTEXT pIrpCtx = (PPVFS_IRP_CONTEXT)pCancelContext;
-    BOOLEAN bIsLocked = FALSE;
-
-    LWIO_LOCK_MUTEX(bIsLocked, &pIrpCtx->Mutex);
-
-    pIrpCtx->bIsCancelled = TRUE;
-
-    if (pIrpCtx->pPendingLock)
-    {
-        PPVFS_WORK_CONTEXT pWorkCtx = NULL;
-
-        /* Cancel the pending lock */
-
-        pIrpCtx->pPendingLock->bIsCancelled = TRUE;
-        PvfsReleaseCCB(pIrpCtx->pPendingLock->pCcb);
-        pIrpCtx->pPendingLock->pCcb = NULL;
-
-        ntError = PvfsCreateWorkContext(
-                      &pWorkCtx,
-                      TRUE,
-                      (PVOID)pIrpCtx,
-                      NULL,    /* Cancelled - no completion function */
-                      NULL);
-        if (ntError == STATUS_SUCCESS)
-        {
-            ntError = PvfsAddWorkItem(gpPvfsIoWorkQueue, (PVOID)pWorkCtx);
-            if (ntError == STATUS_SUCCESS) {
-                pIrpCtx->pIrp = NULL;
-            } else {
-                PvfsFreeWorkContext(&pWorkCtx);
-            }
-        }
-    }
-
-    LWIO_UNLOCK_MUTEX(bIsLocked, &pIrpCtx->Mutex);
-
-    return;
+    return STATUS_SUCCESS;
 }
 
 

@@ -134,7 +134,8 @@ PvfsOplockRequest(
 
     pIrpContext->pFcb = PvfsReferenceFCB(pCcb->pFcb);
 
-    PvfsIrpMarkPending(pIrpContext, PvfsQueueCancelOplock, pIrpContext);
+    pIrpContext->QueueType = PVFS_QUEUE_TYPE_OPLOCK;
+    PvfsIrpMarkPending(pIrpContext, PvfsQueueCancelIrp, pIrpContext);
 
     *pOutputBufferLength = sizeof(IO_FSCTL_OPLOCK_REQUEST_OUTPUT_BUFFER);
 
@@ -230,7 +231,7 @@ PvfsOplockBreakAck(
 
                 PvfsIrpMarkPending(
                     pIrpContext,
-                    PvfsQueueCancelOplock,
+                    PvfsQueueCancelIrp,
                     pIrpContext);
                 break;
 
@@ -1036,41 +1037,6 @@ PvfsOplockBreakOnSetFileInformation(
  ****************************************************************************/
 
 static NTSTATUS
-PvfsScheduleOplockCancel(
-    PPVFS_IRP_CONTEXT pIrpContext
-    );
-
-VOID
-PvfsQueueCancelOplock(
-    IN PIRP pIrp,
-    IN PVOID pCancelContext
-    )
-{
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PPVFS_IRP_CONTEXT pIrpCtx = (PPVFS_IRP_CONTEXT)pCancelContext;
-    BOOLEAN bIsLocked = FALSE;
-
-    LWIO_LOCK_MUTEX(bIsLocked, &pIrpCtx->Mutex);
-
-    pIrpCtx->bIsCancelled = TRUE;
-
-    ntError = PvfsScheduleOplockCancel(pIrpCtx);
-    BAIL_ON_NT_STATUS(ntError);
-
-cleanup:
-    LWIO_UNLOCK_MUTEX(bIsLocked, &pIrpCtx->Mutex);
-
-    return;
-
-error:
-    goto cleanup;
-}
-
-
-/*****************************************************************************
- ****************************************************************************/
-
-static NTSTATUS
 PvfsOplockCleanOplockQueue(
     PVOID pContext
     );
@@ -1080,8 +1046,8 @@ PvfsOplockCleanupOplockFree(
     PVOID *ppContext
     );
 
-static NTSTATUS
-PvfsScheduleOplockCancel(
+NTSTATUS
+PvfsScheduleCancelOplock(
     PPVFS_IRP_CONTEXT pIrpContext
     )
 {
@@ -1324,9 +1290,12 @@ PvfsOplockProcessReadyItems(
     PPVFS_OPLOCK_PENDING_OPERATION pPendingOp = NULL;
     PVOID pData = NULL;
     BOOLEAN bFinished = FALSE;
+    BOOLEAN bIrpCtxLocked = FALSE;
 
     while (!bFinished)
     {
+        bIrpCtxLocked = FALSE;
+
         /* Only keep the FCB locked long enough to get an item from
            the ready queue.  The completeion fn may need to relock the
            FCB and we don't want to deadlock */
@@ -1349,11 +1318,15 @@ PvfsOplockProcessReadyItems(
         pPendingOp = (PPVFS_OPLOCK_PENDING_OPERATION)pData;
         pIrp = pPendingOp->pIrpContext->pIrp;
 
+        LWIO_LOCK_MUTEX(bIrpCtxLocked, &pPendingOp->pIrpContext->Mutex);
+
         if (pPendingOp->pIrpContext->bIsCancelled) {
             ntError = STATUS_CANCELLED;
         } else {
+            pPendingOp->pIrpContext->bInProgress = TRUE;
             ntError = pPendingOp->pfnCompletion(pPendingOp->pCompletionContext);
         }
+        LWIO_UNLOCK_MUTEX(bIrpCtxLocked, &pPendingOp->pIrpContext->Mutex);
 
         if (ntError != STATUS_PENDING)
         {

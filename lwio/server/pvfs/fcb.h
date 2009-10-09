@@ -178,6 +178,11 @@ PvfsFreeOplockRecord(
     PPVFS_OPLOCK_RECORD *ppOplockRec
     );
 
+NTSTATUS
+PvfsScheduleCancelPendingOp(
+    PPVFS_IRP_CONTEXT pIrpContext
+    );
+
 
 #endif   /* _PVFS_FCB_H */
 

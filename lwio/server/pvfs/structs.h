@@ -343,6 +343,17 @@ struct _PVFS_CCB
 
 };
 
+typedef enum
+{
+    PVFS_QUEUE_TYPE_NONE = 0,
+    PVFS_QUEUE_TYPE_IO,
+    PVFS_QUEUE_TYPE_OPLOCK,
+    PVFS_QUEUE_TYPE_PENDING_OPLOCK_BREAK,
+    PVFS_QUEUE_TYPE_PENDING_LOCK
+
+} PVFS_QUEUE_TYPE;
+
+
 struct _PVFS_IRP_CONTEXT
 {
     pthread_mutex_t Mutex;
@@ -350,6 +361,8 @@ struct _PVFS_IRP_CONTEXT
 
     BOOLEAN bIsCancelled;
     BOOLEAN bIsPended;
+    BOOLEAN bInProgress;
+    PVFS_QUEUE_TYPE QueueType;
 
     PPVFS_FCB pFcb;
     PIRP pIrp;
