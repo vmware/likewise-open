@@ -239,7 +239,6 @@ ConvertByteArrayToMultiStrsA(
     BAIL_ON_INVALID_POINTER(pInBuf);
     BAIL_ON_INVALID_POINTER(pppszOutMultiSz);
 
-
     /* Loop through multistring once to count number of entries */
     pszInString = (PSTR) pInBuf;
     do

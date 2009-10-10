@@ -702,6 +702,9 @@ GetValueAsBytes(
     DWORD dwValue = 0;
     DWORD cbData = 0;
     PWSTR pwcValue = NULL;
+    PSTR* ppszOutMultiSz = NULL;
+    PBYTE pOutData = NULL;
+    SSIZE_T cOutDataLen = 0;
 
     if (LW_IS_NULL_OR_EMPTY_STR(pszValue))
         goto cleanup;
@@ -709,7 +712,6 @@ GetValueAsBytes(
     switch (type)
     {
         case REG_BINARY:
-        case REG_MULTI_SZ:
             dwError = LwHexStrToByteArray(
                            pszValue,
                            NULL,
@@ -726,6 +728,53 @@ GetValueAsBytes(
             if (pData)
             {
                 memcpy(pData, pTempData, cbData);
+            }
+
+            break;
+
+        case REG_MULTI_SZ:
+            dwError = LwHexStrToByteArray(
+                           pszValue,
+                           NULL,
+                           &pTempData,
+                           &cbData);
+            BAIL_ON_REG_ERROR(dwError);
+
+            if (bDoAnsi)
+            {
+                if(pData && cbData > *pcbData)
+                {
+                    dwError = LW_ERROR_INSUFFICIENT_BUFFER;
+                    BAIL_ON_REG_ERROR(dwError);
+                }
+                if (pData)
+                {
+                    memcpy(pData, pTempData, cbData);
+                }
+            }
+            else
+            {
+                dwError = ConvertByteArrayToMultiStrsA(pTempData,
+                                                       cbData,
+                                                       &ppszOutMultiSz);
+                BAIL_ON_REG_ERROR(dwError);
+
+                dwError = ConvertMultiStrsToByteArrayW(
+                                            ppszOutMultiSz,
+                                            &pOutData,
+                                            &cOutDataLen);
+                BAIL_ON_REG_ERROR(dwError);
+
+                if(pData && (DWORD)cOutDataLen > *pcbData)
+                {
+                    dwError = LW_ERROR_INSUFFICIENT_BUFFER;
+                    BAIL_ON_REG_ERROR(dwError);
+                }
+
+                if (pData)
+                {
+                    memcpy(pData, pOutData, cOutDataLen);
+                }
             }
 
             break;
@@ -800,7 +849,10 @@ GetValueAsBytes(
 
 cleanup:
     LW_SAFE_FREE_MEMORY(pTempData);
+    LW_SAFE_FREE_MEMORY(pOutData);
     LW_SAFE_FREE_MEMORY(pwcValue);
+    ConvertMultiStrsFree(ppszOutMultiSz);
+
     return dwError;
 
 error:
