@@ -457,4 +457,54 @@ LwSmFreeServiceInfo(
 
 /*@}*/
 
+#define LW_SERVICE_LOADER_INTERFACE_VERSION 1
+
+typedef struct _LW_SERVICE_OBJECT LW_SERVICE_OBJECT, *PLW_SERVICE_OBJECT;
+
+typedef struct _LW_SERVICE_LOADER_VTBL
+{
+    DWORD (*pfnStart)(PLW_SERVICE_OBJECT pObject);
+    DWORD (*pfnStop)(PLW_SERVICE_OBJECT pObject);
+    DWORD (*pfnGetStatus)(PLW_SERVICE_OBJECT pObject, PLW_SERVICE_STATUS pStatus);
+    DWORD (*pfnRefresh)(PLW_SERVICE_OBJECT pObject);
+    DWORD (*pfnConstruct)(PLW_SERVICE_OBJECT pObject, PCLW_SERVICE_INFO pInfo, PVOID* ppData);
+    VOID  (*pfnDestruct)(PLW_SERVICE_OBJECT pObject);
+} LW_SERVICE_LOADER_VTBL, *PLW_SERVICE_LOADER_VTBL;
+
+typedef const struct _LW_SERVICE_LOADER_PLUGIN
+{
+    DWORD dwInterfaceVersion;
+    PLW_SERVICE_LOADER_VTBL pVtbl;
+    PCSTR pszName;
+    PCSTR pszAuthor;
+    PCSTR pszLicense;
+} LW_SERVICE_LOADER_PLUGIN, *PLW_SERVICE_LOADER_PLUGIN;
+
+extern DWORD
+ServiceLoaderInit(
+    DWORD dwInterfaceVersion,
+    PLW_SERVICE_LOADER_PLUGIN* ppPlugin
+    );
+
+PVOID
+LwSmGetServiceObjectData(
+    PLW_SERVICE_OBJECT pObject
+    );
+
+VOID
+LwSmRetainServiceObject(
+    PLW_SERVICE_OBJECT pObject
+    );
+
+VOID
+LwSmReleaseServiceObject(
+    PLW_SERVICE_OBJECT pObject
+    );
+
+VOID
+LwSmNotifyServiceObjectStateChange(
+    PLW_SERVICE_OBJECT pObject,
+    LW_SERVICE_STATE newState
+    );
+
 #endif

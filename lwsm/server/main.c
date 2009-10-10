@@ -133,6 +133,10 @@ main(
         BAIL_ON_ERROR(dwError);
     }
 
+    /* Initialize the service loader subsystem */
+    dwError = LwSmLoaderInitialize(&gTableCalls);
+    BAIL_ON_ERROR(dwError);
+
     /* Bootstrap ourselves by adding and starting any
        services we need to run (e.g. registry) */
     dwError = LwSmBootstrap();

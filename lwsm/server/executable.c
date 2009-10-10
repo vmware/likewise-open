@@ -52,7 +52,10 @@ typedef struct _SM_EXECUTABLE
 {
     LW_SERVICE_STATE state;
     pid_t pid;
-    PSM_TABLE_ENTRY pEntry;
+    LW_SERVICE_TYPE type;
+    PWSTR pwszPath;
+    PWSTR* ppwszArgs;
+    PLW_SERVICE_OBJECT pObject;
     SM_LINK link;
     SM_LINK threadLink;
 } SM_EXECUTABLE, *PSM_EXECUTABLE;
@@ -83,11 +86,11 @@ LwSmExecutableThread(
 static
 DWORD
 LwSmExecutableStart(
-    PSM_TABLE_ENTRY pEntry
+    PLW_SERVICE_OBJECT pObject
     )
 {
     DWORD dwError = 0;
-    PSM_EXECUTABLE pExec = pEntry->pData;
+    PSM_EXECUTABLE pExec = LwSmGetServiceObjectData(pObject);
     BOOLEAN bLocked = FALSE;
     pid_t pid = -1;
     struct timespec ts = {1, 0};
@@ -104,7 +107,7 @@ LwSmExecutableStart(
         BAIL_ON_ERROR(dwError);
     }
 
-    if (pEntry->pInfo->type == LW_SERVICE_TYPE_EXECUTABLE)
+    if (pExec->type == LW_SERVICE_TYPE_EXECUTABLE)
     {
         if (pipe(notifyPipe) != 0)
         {
@@ -124,7 +127,7 @@ LwSmExecutableStart(
     {
         dwError = LwSmExecProgram(
             pExec,
-            pEntry->pInfo->type == LW_SERVICE_TYPE_EXECUTABLE ?
+            pExec->type == LW_SERVICE_TYPE_EXECUTABLE ?
             notifyPipe :
             NULL
             );
@@ -137,12 +140,9 @@ LwSmExecutableStart(
         
         /* Take an additional reference to the table entry
            because our child monitoring thread will need it */
-        LwSmTableRetainEntry(pEntry);
+        LwSmRetainServiceObject(pObject);
         
-        /* Signal state change */
-        LwSmTableNotifyEntryChanged(pEntry);
-        
-        if (pEntry->pInfo->type == LW_SERVICE_TYPE_EXECUTABLE)
+        if (pExec->type == LW_SERVICE_TYPE_EXECUTABLE)
         {
             /* Close write side of pipe since we do not need it */
             close(notifyPipe[1]);
@@ -170,9 +170,6 @@ LwSmExecutableStart(
         }
 
         pExec->state = LW_SERVICE_STATE_RUNNING;
-
-        /* Signal state change */
-        LwSmTableNotifyEntryChanged(pEntry);
     }
 
 cleanup:
@@ -204,7 +201,6 @@ LwSmExecProgram(
     )
 {
     DWORD dwError = 0;
-    PSM_TABLE_ENTRY pEntry = pExec->pEntry;
     PSTR pszPath = NULL;
     PSTR* ppszArgs = NULL;
     size_t argsLen = 0;
@@ -216,17 +212,17 @@ LwSmExecProgram(
     dwError = LwMapErrnoToLwError(pthread_sigmask(SIG_SETMASK, &set, NULL));
     BAIL_ON_ERROR(dwError);
 
-    dwError = LwWc16sToMbs(pEntry->pInfo->pwszPath, &pszPath);
+    dwError = LwWc16sToMbs(pExec->pwszPath, &pszPath);
     BAIL_ON_ERROR(dwError);
 
-    argsLen = LwSmStringListLength(pEntry->pInfo->ppwszArgs);
+    argsLen = LwSmStringListLength(pExec->ppwszArgs);
 
     dwError = LwAllocateMemory((argsLen + 1) * sizeof(*ppszArgs), OUT_PPVOID(&ppszArgs));
     BAIL_ON_ERROR(dwError);
 
     for (i = 0; i < argsLen; i++)
     {
-        dwError = LwWc16sToMbs(pEntry->pInfo->ppwszArgs[i], &ppszArgs[i]);
+        dwError = LwWc16sToMbs(pExec->ppwszArgs[i], &ppszArgs[i]);
         BAIL_ON_ERROR(dwError);
     }
 
@@ -259,11 +255,11 @@ error:
 static
 DWORD
 LwSmExecutableStop(
-    PSM_TABLE_ENTRY pEntry
+    PLW_SERVICE_OBJECT pObject
     )
 {
     DWORD dwError = 0;
-    PSM_EXECUTABLE pExec = pEntry->pData;
+    PSM_EXECUTABLE pExec = LwSmGetServiceObjectData(pObject);
     BOOLEAN bLocked = FALSE;
 
     LOCK(bLocked, &gProcTable.lock);
@@ -281,7 +277,6 @@ LwSmExecutableStop(
             BAIL_ON_ERROR(dwError);
         }
         pExec->state = LW_SERVICE_STATE_STOPPING;
-        LwSmTableNotifyEntryChanged(pEntry);
         
         /* The background thread will notice when the
            child process finally exits and update the
@@ -290,7 +285,6 @@ LwSmExecutableStop(
     case LW_SERVICE_STATE_DEAD:
         /* Go directly to stopped state */
         pExec->state = LW_SERVICE_STATE_STOPPED;
-        LwSmTableNotifyEntryChanged(pEntry);
         break;
     }
 
@@ -308,12 +302,12 @@ error:
 static
 DWORD
 LwSmExecutableGetStatus(
-    PSM_TABLE_ENTRY pEntry,
+    PLW_SERVICE_OBJECT pObject,
     PLW_SERVICE_STATUS pStatus
     )
 {
     DWORD dwError = 0;
-    PSM_EXECUTABLE pExec = pEntry->pData;
+    PSM_EXECUTABLE pExec = LwSmGetServiceObjectData(pObject);
     BOOLEAN bLocked = FALSE;
 
     LOCK(bLocked, &gProcTable.lock);
@@ -330,11 +324,11 @@ LwSmExecutableGetStatus(
 static
 DWORD
 LwSmExecutableRefresh(
-    PSM_TABLE_ENTRY pEntry
+    PLW_SERVICE_OBJECT pObject
     )
 {
     DWORD dwError = 0;
-    PSM_EXECUTABLE pExec = pEntry->pData;
+    PSM_EXECUTABLE pExec = LwSmGetServiceObjectData(pObject);
     BOOLEAN bLocked = FALSE;
 
     LOCK(bLocked, &gProcTable.lock);
@@ -366,7 +360,9 @@ error:
 static
 DWORD
 LwSmExecutableConstruct(
-    PSM_TABLE_ENTRY pEntry
+    PLW_SERVICE_OBJECT pObject,
+    PCLW_SERVICE_INFO pInfo,
+    PVOID* ppData
     )
 {
     DWORD dwError = 0;
@@ -376,12 +372,20 @@ LwSmExecutableConstruct(
     dwError = LwAllocateMemory(sizeof(*pExec), OUT_PPVOID(&pExec));
     BAIL_ON_ERROR(dwError);
 
+    dwError = LwSmCopyString(pInfo->pwszPath, &pExec->pwszPath);
+    BAIL_ON_ERROR(dwError);
+
+    dwError = LwSmCopyStringList(pInfo->ppwszArgs, &pExec->ppwszArgs);
+    BAIL_ON_ERROR(dwError);
+
     pExec->pid = -1;
+    pExec->type = pInfo->type;
     pExec->state = LW_SERVICE_STATE_STOPPED;
-    pExec->pEntry = pEntry;
+    pExec->pObject = pObject;
     LwSmLinkInit(&pExec->link);
     LwSmLinkInit(&pExec->threadLink);
-    pEntry->pData = pExec;
+
+    *ppData = pExec;
 
     LOCK(bLocked, &gProcTable.lock);
 
@@ -413,21 +417,11 @@ error:
 static
 VOID
 LwSmExecutableDestruct(
-    PSM_TABLE_ENTRY pEntry
+    PLW_SERVICE_OBJECT pObject
     )
 {
     return;
 }
-
-SM_OBJECT_VTBL gExecutableVtbl =
-{
-    .pfnStart = LwSmExecutableStart,
-    .pfnStop = LwSmExecutableStop,
-    .pfnGetStatus = LwSmExecutableGetStatus,
-    .pfnRefresh = LwSmExecutableRefresh,
-    .pfnConstruct = LwSmExecutableConstruct,
-    .pfnDestruct = LwSmExecutableDestruct
-};
 
 static
 PVOID
@@ -439,7 +433,7 @@ LwSmExecutableThread(
     PSM_LINK pLink = NULL;
     PSM_LINK pNext = NULL;
     PSM_EXECUTABLE pExec = NULL;
-    PSM_TABLE_ENTRY pEntry = NULL;
+    PLW_SERVICE_OBJECT pObject = NULL;
     pid_t pid = -1;
     int status = 0;
     SM_LINK changed;
@@ -498,12 +492,12 @@ LwSmExecutableThread(
         {
             pNext = pLink->pNext;
             pExec = STRUCT_FROM_MEMBER(pLink, SM_EXECUTABLE, threadLink);
-            pEntry = pExec->pEntry;
+            pObject = pExec->pObject;
             
             LwSmLinkRemove(pLink);
             
-            LwSmTableNotifyEntryChanged(pEntry);
-            LwSmTableReleaseEntry(pEntry);
+            LwSmNotifyServiceObjectStateChange(pObject, pExec->state);
+            LwSmReleaseServiceObject(pObject);
         }
 
         do
@@ -513,4 +507,36 @@ LwSmExecutableThread(
     }
 
     return NULL;
+}
+
+static
+LW_SERVICE_LOADER_VTBL gExecutableVtbl =
+{
+    .pfnStart = LwSmExecutableStart,
+    .pfnStop = LwSmExecutableStop,
+    .pfnGetStatus = LwSmExecutableGetStatus,
+    .pfnRefresh = LwSmExecutableRefresh,
+    .pfnConstruct = LwSmExecutableConstruct,
+    .pfnDestruct = LwSmExecutableDestruct
+};
+
+static
+LW_SERVICE_LOADER_PLUGIN gPlugin =
+{
+    .dwInterfaceVersion = LW_SERVICE_LOADER_INTERFACE_VERSION,
+    .pVtbl = &gExecutableVtbl,
+    .pszName = "executable",
+    .pszAuthor = "Likewise",
+    .pszLicense = "GPLv2"
+};
+
+DWORD
+ServiceLoaderInit(
+    DWORD dwInterfaceVersion,
+    PLW_SERVICE_LOADER_PLUGIN* ppPlugin
+    )
+{
+    *ppPlugin = &gPlugin;
+
+    return LW_ERROR_SUCCESS;
 }

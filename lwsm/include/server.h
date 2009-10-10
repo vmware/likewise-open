@@ -43,17 +43,18 @@
 
 #include <pthread.h>
 
-struct _SM_TABLE_ENTRY;
-
-typedef struct _SM_OBJECT_VTBL
+struct _LW_SERVICE_OBJECT
 {
-    DWORD (*pfnStart)(struct _SM_TABLE_ENTRY* pEntry);
-    DWORD (*pfnStop)(struct _SM_TABLE_ENTRY* pEntry);
-    DWORD (*pfnGetStatus)(struct _SM_TABLE_ENTRY* pEntry, PLW_SERVICE_STATUS pStatus);
-    DWORD (*pfnRefresh)(struct _SM_TABLE_ENTRY* pEntry);
-    DWORD (*pfnConstruct)(struct _SM_TABLE_ENTRY* pEntry);
-    VOID  (*pfnDestruct)(struct _SM_TABLE_ENTRY* pEntry);
-} SM_OBJECT_VTBL, *PSM_OBJECT_VTBL;
+    PVOID pData;
+};
+
+typedef struct _SM_LOADER_CALLS
+{
+    PVOID (*pfnGetServiceObjectData) (PLW_SERVICE_OBJECT pObject);
+    VOID (*pfnRetainServiceObject) (PLW_SERVICE_OBJECT pObject);
+    VOID (*pfnReleaseServiceObject) (PLW_SERVICE_OBJECT pObject);
+    VOID (*pfnNotifyServiceObjectStateChange) (PLW_SERVICE_OBJECT pObject, LW_SERVICE_STATE newState);
+} SM_LOADER_CALLS, *PSM_LOADER_CALLS;
 
 /* Entry in the running object table */
 typedef struct _SM_TABLE_ENTRY
@@ -71,7 +72,9 @@ typedef struct _SM_TABLE_ENTRY
     pthread_cond_t event;
     pthread_cond_t* pEvent;
     /* Pointer to vtbl */
-    PSM_OBJECT_VTBL pVtbl;
+    PLW_SERVICE_LOADER_VTBL pVtbl;
+    /* Loader handle */
+    LW_SERVICE_OBJECT object;
     /* Data */
     void* pData;
     /* Reverse dependency count
@@ -255,7 +258,17 @@ LwSmBootstrap(
     VOID
     );
 
-extern SM_OBJECT_VTBL gExecutableVtbl;
-extern SM_OBJECT_VTBL gDriverVtbl;
+DWORD
+LwSmLoaderInitialize(
+    PSM_LOADER_CALLS pCalls
+    );
+
+DWORD
+LwSmLoaderGetVtbl(
+    PCWSTR pwszLoaderName,
+    PLW_SERVICE_LOADER_VTBL* ppVtbl
+    );
+
+extern SM_LOADER_CALLS gTableCalls;
 
 #endif
