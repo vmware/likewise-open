@@ -64,7 +64,7 @@ typedef struct lsa_policy_context {
     PACCESS_TOKEN        pUserToken;
     HANDLE               hDirectory;
     handle_t             hSamrBinding;
-    PolicyHandle         hConn;
+    CONNECT_HANDLE       hConn;
     PLSA_HASH_TABLE      pDomains;
     DWORD                dwSamrDomainsNum;
 } POLICY_CONTEXT, *PPOLICY_CONTEXT;

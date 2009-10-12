@@ -66,7 +66,7 @@ typedef struct _SAMR_DOMAIN {
     PWSTR        pwszName;
     PSID         pSid;
     BOOLEAN      bLocal;
-    PolicyHandle hDomain;
+    DOMAIN_HANDLE hDomain;
 
 } SAM_DOMAIN_ENTRY, *PSAM_DOMAIN_ENTRY;
 
