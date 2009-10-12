@@ -183,7 +183,7 @@ LwSmTableAddEntry(
     BOOL bLocked = TRUE;
     PSM_TABLE_ENTRY pEntry = NULL;
     pthread_mutexattr_t attr;
-    pthread_mutexattr_t* pAttr;
+    pthread_mutexattr_t* pAttr = NULL;
     PWSTR pwszLoaderName = NULL;
 
     dwError = LwMapErrnoToLwError(pthread_mutexattr_init(&attr));
