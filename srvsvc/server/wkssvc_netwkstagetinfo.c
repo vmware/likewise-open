@@ -67,7 +67,7 @@ WksSvcNetWkstaGetInfo(
     PSTR pszLsaLpcSocketPath = NULL;
     handle_t hLsaBinding = NULL;
     PWSTR pwszLocalHost = NULL;
-    PolicyHandle hLocalPolicy = {0};
+    POLICY_HANDLE hLocalPolicy = NULL;
     LsaPolicyInformation *pPolInfo = NULL;
     PWSTR pwszHostname = NULL;
     ULONG HostnameLen = 0;
@@ -108,7 +108,7 @@ WksSvcNetWkstaGetInfo(
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = LsaQueryInfoPolicy(hLsaBinding,
-                                  &hLocalPolicy,
+                                  hLocalPolicy,
                                   LSA_POLICY_INFO_DNS,
                                   &pPolInfo);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -135,7 +135,7 @@ WksSvcNetWkstaGetInfo(
 
     info->info100 = pInfo100;
 
-    ntStatus = LsaClose(hLsaBinding, &hLocalPolicy);
+    ntStatus = LsaClose(hLsaBinding, hLocalPolicy);
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
