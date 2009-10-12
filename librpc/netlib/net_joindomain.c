@@ -251,7 +251,7 @@ NetJoinDomainLocalInternal(
     ACCOUNT_HANDLE hAccount = NULL;
     wchar16_t *machname = NULL;
     wchar16_t *machacct_name = NULL;
-    wchar16_t machine_pass[MACHPASS_LEN+1];
+    wchar16_t machine_pass[MACHPASS_LEN+1] = {0};
     wchar16_t *dns_domain_name = NULL;
     wchar16_t *domain_controller_name = NULL;
     uint32 rid, newacct;
