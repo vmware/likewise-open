@@ -32,7 +32,7 @@
 #ifndef _LWIOCFG_H_
 #define _LWIOCFG_H_
 
-#include <reg/reg.h>
+//#include <reg/reg.h>
 
 #define BAIL_ON_NON_LWREG_ERROR(dwError) \
         if (!(40700 <= dwError && dwError <= 41200)) {  \
