@@ -104,51 +104,52 @@ static const char randomchar[] = "abcdefghijklmnoprstuvwxyz"
                                  "ABCDEFGHIJKLMNOPRSTUVWXYZ"
                                  "-+/*,.;:!<=>%'&()0123456789";
 
-void get_random_string(char *out, size_t outlen)
+void get_random_string(char *out, size_t outsize)
 {
-    int i;
+    int i = 0;
 
-    if (out == NULL) return;
+    if (out == NULL || outsize == 0) return;
 
-    get_random_buffer((unsigned char*)out, outlen);
-    if (out[0] == '\0' || outlen == 0) return;
+    get_random_buffer((unsigned char*)out, outsize - 1);
+    if (out[0] == '\0') return;
 
     /* replace each byte with its ASCII equivalent */
-    for (i = 0; i < (outlen - 1); i++) {
-	out[i] = randomchar[out[i] % (sizeof(randomchar)-1)];
+    for (i = 0; i < (outsize - 1); i++) {
+        out[i] = randomchar[out[i] % (sizeof(randomchar)-1)];
     }
 
     /* terminate the string */
-    out[outlen - 1] = '\0';
+    out[outsize - 1] = '\0';
 }
 
 
-void get_random_string_w16(wchar16_t *out, size_t outlen)
+void get_random_string_w16(wchar16_t *out, size_t outsize)
 {
-    int i;
-    unsigned char *bytes;
+    int i = 0;
+    unsigned char *bytes = NULL;
 
-    if (out == NULL || outlen == 0) return;
+    if (out == NULL || outsize == 0) return;
 
-    bytes = (unsigned char*) malloc(sizeof(unsigned char) * outlen);
+    bytes = (unsigned char*) malloc(sizeof(unsigned char) * outsize);
     if (bytes == NULL) {
         out[0] = '\0';
         return;
     }
 
-    get_random_buffer((unsigned char*)bytes, outlen);
-    if (bytes[0] == '\0' || outlen == 0) goto done;
+    get_random_buffer((unsigned char*)bytes, outsize - 1);
+    if (bytes[0] == '\0') goto done;
 
     /* replace each byte with its alphanum equivalent
        converted to 2-byte unicode */
-    for (i = 0; i < (outlen - 1); i++) {
+    for (i = 0; i < (outsize - 1); i++) {
         out[i] = (wchar16_t)randomchar[bytes[i] % (sizeof(randomchar)-1)];
     }
 
     /* terminate the string */
-    out[outlen - 1] = '\0';
+    out[outsize - 1] = '\0';
 
 done:
+    memset(bytes, 0, sizeof(sizeof(unsigned char) * outsize));
     free(bytes);
 }
 

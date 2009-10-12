@@ -69,7 +69,7 @@ LsaSrvOpenPolicy2(
     handle_t hSamrBinding = NULL;
     CHAR szHostname[64] = {0};
     PWSTR pwszSystemName = NULL;
-    PolicyHandle hConn;
+    CONNECT_HANDLE hConn = (CONNECT_HANDLE)NULL;
     DWORD dwResume = 0;
     DWORD dwMaxSize = -1;
     DWORD dwCount = 0;
@@ -77,7 +77,7 @@ LsaSrvOpenPolicy2(
     DWORD i = 0;
     PWSTR pwszDomainName = NULL;
     PSID pDomainSid = NULL;
-    PolicyHandle hDomain;
+    DOMAIN_HANDLE hDomain = (DOMAIN_HANDLE)NULL;
     SAM_DOMAIN_ENTRY Domain = {0};
 
     ntStatus = RTL_ALLOCATE(&pPolCtx, POLICY_CONTEXT, sizeof(*pPolCtx));
@@ -130,7 +130,7 @@ LsaSrvOpenPolicy2(
 
     /* Get local and builtin domains info */
     ntStatus = SamrEnumDomains(hSamrBinding,
-                               &hConn,
+                               hConn,
                                &dwResume,
                                dwMaxSize,
                                &ppwszLocalDomainNames,
@@ -143,13 +143,13 @@ LsaSrvOpenPolicy2(
         memset(&Domain, 0, sizeof(Domain));
 
         ntStatus = SamrLookupDomain(hSamrBinding,
-                                    &hConn,
+                                    hConn,
                                     pwszDomainName,
                                     &pDomainSid);
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
         ntStatus = SamrOpenDomain(hSamrBinding,
-                                  &hConn,
+                                  hConn,
                                   dwSamrDomainAccess,
                                   pDomainSid,
                                   &hDomain);
