@@ -50,6 +50,9 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <time.h>
+#include <dirent.h>
+#include <dlfcn.h>
+#include <stdio.h>
 #include <lwerror.h>
 #include <winerror-conv.h>
 #include <lwmem.h>

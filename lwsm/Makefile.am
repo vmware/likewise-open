@@ -23,7 +23,7 @@ lwsm_include_HEADERS = include/lwsm/lwsm.h
 
 # libraries
 
-lib_LTLIBRARIES = common/liblwsmcommon.la client/liblwsm.la
+lib_LTLIBRARIES = common/liblwsmcommon.la client/liblwsm.la server/liblwsmloader.la
 
 common_liblwsmcommon_la_SOURCES = \
 	common/protocol.c \
@@ -36,6 +36,26 @@ client_liblwsm_la_SOURCES = \
 client_liblwsm_la_LIBADD = $(top_builddir)/common/liblwsmcommon.la @LIB_PTHREAD@
 client_liblwsm_la_LDFLAGS = $(AM_LDFLAGS) -export-symbols $(top_srcdir)/client/liblwsm.sym
 
+server_liblwsmloader_la_SOURCES = server/loader.c
+server_liblwsmloader_la_LIBADD = $(top_builddir)/common/liblwsmcommon.la @LIB_PTHREAD@ -ldl
+server_liblwsmloader_la_LDFLAGS = $(AM_LDFLAGS) -export-symbols $(top_srcdir)/server/liblwsmloader.sym
+
+# loaders
+
+LOADER_CFLAGS = -shared
+LOADER_LDFLAGS = -shared -module -avoid-version
+loader_LTLIBRARIES = server/executable.la server/driver.la
+
+server_executable_la_SOURCES = server/executable.c
+server_executable_la_CFLAGS = $(AM_CFLAGS) $(LOADER_CFLAGS)
+server_executable_la_LIBADD = $(top_builddir)/server/liblwsmloader.la
+server_executable_la_LDFLAGS = $(AM_LDFLAGS) $(LOADER_LDFLAGS)
+
+server_driver_la_SOURCES = server/driver.c
+server_driver_la_CFLAGS = $(AM_CFLAGS) $(LOADER_CFLAGS)
+server_driver_la_LIBADD = $(top_builddir)/server/liblwsmloader.la
+server_driver_la_LDFLAGS = $(AM_LDFLAGS) $(LOADER_LDFLAGS)
+
 # programs
 
 sbin_PROGRAMS = server/lwsmd
@@ -44,13 +64,12 @@ server_lwsmd_SOURCES = \
 	server/table.c \
 	server/api.c \
 	server/dispatch.c \
-	server/driver.c \
-	server/executable.c \
 	server/registry.c \
 	server/bootstrap.c \
 	server/main.c
 server_lwsmd_LDADD = \
 	$(top_builddir)/common/liblwsmcommon.la \
+	$(top_builddir)/server/liblwsmloader.la \
 	@LIB_LWMSG@ @LIB_LWIOCLIENT@ @LIB_REGCLIENT@ \
 	@LIB_LWADVAPI@ @LIB_LWBASE@ @LIB_PTHREAD@
 

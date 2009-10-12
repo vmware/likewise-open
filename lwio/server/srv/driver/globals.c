@@ -49,7 +49,11 @@
  */
 #include "includes.h"
 
-LWIO_SRV_RUNTIME_GLOBALS gSMBSrvGlobals = { PTHREAD_MUTEX_INITIALIZER };
+LWIO_SRV_RUNTIME_GLOBALS gSMBSrvGlobals =
+{
+    .mutex   = PTHREAD_MUTEX_INITIALIZER,
+    .hDevice = NULL
+};
 
 
 /*

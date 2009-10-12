@@ -605,6 +605,7 @@ RegShellUtilSetValue(
     dwError = RegOpenRootKey(hReg, pszRootKeyName, &pRootKey);
     BAIL_ON_REG_ERROR(dwError);
 
+    pFullKey = pRootKey;
     if (pszParentPath && pszParentPath[1])
     {
         dwError = LwMbsToWc16s(pszParentPath+1, &pwszParentPath);
@@ -618,10 +619,6 @@ RegShellUtilSetValue(
                       &pFullKey);
         BAIL_ON_REG_ERROR(dwError);
         LW_SAFE_FREE_MEMORY(pwszParentPath);
-    }
-    else
-    {
-        pFullKey = pRootKey;
     }
 
     switch (type)
@@ -675,13 +672,9 @@ RegShellUtilSetValue(
 
 cleanup:
     LW_SAFE_FREE_MEMORY(pwszParentPath);
-    if (pFullKey)
+    if (pFullKey && pFullKey != pRootKey)
     {
         RegCloseKey(hReg, pFullKey);
-    }
-    if (pRootKey)
-    {
-        RegCloseKey(hReg, pRootKey);
     }
     return dwError;
 

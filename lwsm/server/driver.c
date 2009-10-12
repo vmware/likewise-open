@@ -41,15 +41,14 @@
 static
 DWORD
 LwSmDriverStart(
-    PSM_TABLE_ENTRY pEntry
+    PLW_SERVICE_OBJECT pObject
     )
 {
     DWORD dwError = 0;
+    PWSTR pwszName = LwSmGetServiceObjectData(pObject);
 
-    dwError = LwNtStatusToWin32Error(LwIoLoadDriver(pEntry->pInfo->pwszName));
+    dwError = LwNtStatusToWin32Error(LwIoLoadDriver(pwszName));
     BAIL_ON_ERROR(dwError);
-
-    LwSmTableNotifyEntryChanged(pEntry);
 
 cleanup:
 
@@ -63,15 +62,14 @@ error:
 static
 DWORD
 LwSmDriverStop(
-    PSM_TABLE_ENTRY pEntry
+    PLW_SERVICE_OBJECT pObject
     )
 {
     DWORD dwError = 0;
+    PWSTR pwszName = LwSmGetServiceObjectData(pObject);
 
-    dwError = LwNtStatusToWin32Error(LwIoUnloadDriver(pEntry->pInfo->pwszName));
+    dwError = LwNtStatusToWin32Error(LwIoUnloadDriver(pwszName));
     BAIL_ON_ERROR(dwError);
-
-    LwSmTableNotifyEntryChanged(pEntry);
 
 cleanup:
 
@@ -85,60 +83,40 @@ error:
 static
 DWORD
 LwSmDriverGetStatus(
-    PSM_TABLE_ENTRY pEntry,
+    PLW_SERVICE_OBJECT pObject,
     PLW_SERVICE_STATUS pStatus
     )
 {
     DWORD dwError = 0;
     LWIO_DRIVER_STATUS driverStatus = 0;
-    PSM_TABLE_ENTRY pLwioEntry = NULL;
-    LW_SERVICE_STATUS lwioStatus;
-    WCHAR wszLwio[] = {'l', 'w', 'i', 'o', '\0'};
-
-    dwError = LwSmTableGetEntry(wszLwio, &pLwioEntry);
-    BAIL_ON_ERROR(dwError);
-
-    dwError = LwSmTableGetEntryStatus(pLwioEntry, &lwioStatus);
-    BAIL_ON_ERROR(dwError);
+    PWSTR pwszName = LwSmGetServiceObjectData(pObject);
 
     pStatus->home = LW_SERVICE_HOME_IO_MANAGER;
-    pStatus->pid = lwioStatus.pid;
+    pStatus->pid = -1;
 
-    switch (lwioStatus.state)
+    dwError = LwNtStatusToWin32Error(LwIoGetDriverStatus(
+                                         pwszName,
+                                         &driverStatus));
+    if (dwError)
     {
-    case LW_SERVICE_STATE_RUNNING:
-        dwError = LwNtStatusToWin32Error(LwIoGetDriverStatus(
-                                             pEntry->pInfo->pwszName,
-                                             &driverStatus));
-        BAIL_ON_ERROR(dwError);
-        switch (driverStatus)
-        {
-        case LWIO_DRIVER_LOADED:
-            pStatus->state = LW_SERVICE_STATE_RUNNING;
-            break;
-        case LWIO_DRIVER_UNLOADED:
-            pStatus->state = LW_SERVICE_STATE_STOPPED;
-            break;
-        default:
-            dwError = LW_ERROR_INTERNAL;
-            BAIL_ON_ERROR(dwError);
-            break;
-        }
+        pStatus->state = LW_SERVICE_STATE_STOPPED;
+        dwError = 0;
+    }
+    else switch(driverStatus)
+    {
+    case LWIO_DRIVER_LOADED:
+        pStatus->state = LW_SERVICE_STATE_RUNNING;
         break;
-    case LW_SERVICE_STATE_DEAD:
+    case LWIO_DRIVER_UNLOADED:
         pStatus->state = LW_SERVICE_STATE_STOPPED;
         break;
     default:
-        pStatus->state = LW_SERVICE_STATE_STOPPED;
+        dwError = LW_ERROR_INTERNAL;
+        BAIL_ON_ERROR(dwError);
         break;
     }
 
 cleanup:
-
-    if (pLwioEntry)
-    {
-        LwSmTableReleaseEntry(pLwioEntry);
-    }
 
     return dwError;
 
@@ -150,7 +128,7 @@ error:
 static
 DWORD
 LwSmDriverRefresh(
-    PSM_TABLE_ENTRY pEntry
+    PLW_SERVICE_OBJECT pObject
     )
 {
     DWORD dwError = 0;
@@ -161,10 +139,20 @@ LwSmDriverRefresh(
 static
 DWORD
 LwSmDriverConstruct(
-    PSM_TABLE_ENTRY pEntry
+    PLW_SERVICE_OBJECT pObject,
+    PCLW_SERVICE_INFO pInfo,
+    PVOID* ppData
     )
 {
     DWORD dwError = 0;
+    PWSTR pwszName = NULL;
+
+    dwError = LwSmCopyString(pInfo->pwszName, &pwszName);
+    BAIL_ON_ERROR(dwError);
+
+    *ppData = pwszName;
+
+error:
 
     return dwError;
 }
@@ -172,13 +160,16 @@ LwSmDriverConstruct(
 static
 VOID
 LwSmDriverDestruct(
-    PSM_TABLE_ENTRY pEntry
+    PLW_SERVICE_OBJECT pObject
     )
 {
+    LwFreeMemory(LwSmGetServiceObjectData(pObject));
+
     return;
 }
 
-SM_OBJECT_VTBL gDriverVtbl =
+static
+LW_SERVICE_LOADER_VTBL gDriverVtbl =
 {
     .pfnStart = LwSmDriverStart,
     .pfnStop = LwSmDriverStop,
@@ -187,3 +178,24 @@ SM_OBJECT_VTBL gDriverVtbl =
     .pfnConstruct = LwSmDriverConstruct,
     .pfnDestruct = LwSmDriverDestruct
 };
+
+static
+LW_SERVICE_LOADER_PLUGIN gPlugin =
+{
+    .dwInterfaceVersion = LW_SERVICE_LOADER_INTERFACE_VERSION,
+    .pVtbl = &gDriverVtbl,
+    .pszName = "driver",
+    .pszAuthor = "Likewise",
+    .pszLicense = "GPLv2"
+};
+
+DWORD
+ServiceLoaderInit(
+    DWORD dwInterfaceVersion,
+    PLW_SERVICE_LOADER_PLUGIN* ppPlugin
+    )
+{
+    *ppPlugin = &gPlugin;
+
+    return LW_ERROR_SUCCESS;
+}

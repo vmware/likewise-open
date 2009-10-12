@@ -97,7 +97,10 @@ SrvElementsShutdown(
     VOID
     )
 {
-    SrvTimerIndicateStop(&gSrvElements.timer);
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
+    ntStatus = SrvTimerIndicateStop(&gSrvElements.timer);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     SrvTimerFreeContents(&gSrvElements.timer);
 
@@ -108,6 +111,8 @@ SrvElementsShutdown(
         gSrvElements.ulHintsLength = 0;
     }
 
-    return STATUS_SUCCESS;
+error:
+
+    return ntStatus;
 }
 

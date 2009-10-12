@@ -70,11 +70,11 @@ static SM_TABLE gServiceTable =
     .entries = {&gServiceTable.entries, &gServiceTable.entries}
 };
 
-static PSM_OBJECT_VTBL gVtblTable[] =
+static PCSTR gLoaderTable[] =
 {
-    [LW_SERVICE_TYPE_LEGACY_EXECUTABLE] = &gExecutableVtbl,
-    [LW_SERVICE_TYPE_EXECUTABLE] = &gExecutableVtbl,
-    [LW_SERVICE_TYPE_DRIVER] = &gDriverVtbl
+    [LW_SERVICE_TYPE_LEGACY_EXECUTABLE] = "executable",
+    [LW_SERVICE_TYPE_EXECUTABLE] = "executable",
+    [LW_SERVICE_TYPE_DRIVER] = "driver"
 };
 
 DWORD
@@ -182,6 +182,17 @@ LwSmTableAddEntry(
     DWORD dwError = 0;
     BOOL bLocked = TRUE;
     PSM_TABLE_ENTRY pEntry = NULL;
+    pthread_mutexattr_t attr;
+    pthread_mutexattr_t* pAttr = NULL;
+    PWSTR pwszLoaderName = NULL;
+
+    dwError = LwMapErrnoToLwError(pthread_mutexattr_init(&attr));
+    BAIL_ON_ERROR(dwError);
+
+    pAttr = &attr;
+
+    dwError = LwMapErrnoToLwError(pthread_mutexattr_settype(pAttr, PTHREAD_MUTEX_RECURSIVE));
+    BAIL_ON_ERROR(dwError);
 
     dwError = LwAllocateMemory(sizeof(*pEntry), OUT_PPVOID(&pEntry));
     BAIL_ON_ERROR(dwError);
@@ -190,7 +201,7 @@ LwSmTableAddEntry(
 
     dwError = LwSmCopyServiceInfo(pInfo, &pEntry->pInfo);
     
-    dwError = LwMapErrnoToLwError(pthread_mutex_init(&pEntry->lock, NULL));
+    dwError = LwMapErrnoToLwError(pthread_mutex_init(&pEntry->lock, pAttr));
     BAIL_ON_ERROR(dwError);
     pEntry->pLock = &pEntry->lock;
 
@@ -198,9 +209,13 @@ LwSmTableAddEntry(
     BAIL_ON_ERROR(dwError);
     pEntry->pEvent = &pEntry->event;
 
-    pEntry->pVtbl = gVtblTable[pEntry->pInfo->type];
+    dwError = LwMbsToWc16s(gLoaderTable[pEntry->pInfo->type], &pwszLoaderName);
+    BAIL_ON_ERROR(dwError);
 
-    dwError = pEntry->pVtbl->pfnConstruct(pEntry);
+    dwError = LwSmLoaderGetVtbl(pwszLoaderName, &pEntry->pVtbl);
+    BAIL_ON_ERROR(dwError);
+
+    dwError = pEntry->pVtbl->pfnConstruct(&pEntry->object, pEntry->pInfo, &pEntry->object.pData);
     BAIL_ON_ERROR(dwError);
 
     LOCK(bLocked, gServiceTable.pLock);
@@ -214,6 +229,13 @@ LwSmTableAddEntry(
     *ppEntry = pEntry;
 
 cleanup:
+
+    LW_SAFE_FREE_MEMORY(pwszLoaderName);
+
+    if (pAttr)
+    {
+        pthread_mutexattr_destroy(pAttr);
+    }
 
     return dwError;
 
@@ -339,7 +361,7 @@ LwSmTableFreeEntry(
 {
     if (pEntry->pVtbl)
     {
-        pEntry->pVtbl->pfnDestruct(pEntry);
+        pEntry->pVtbl->pfnDestruct(&pEntry->object);
     }
 
     if (pEntry->pInfo)
@@ -396,7 +418,7 @@ LwSmTableStartEntry(
         case LW_SERVICE_STATE_DEAD:
             if (dwAttempts == 0)
             {
-                dwError = pEntry->pVtbl->pfnStart(pEntry);
+                dwError = pEntry->pVtbl->pfnStart(&pEntry->object);
                 BAIL_ON_ERROR(dwError);
                 dwAttempts++;
             }
@@ -556,7 +578,7 @@ LwSmTableStopEntry(
                to the stop state when requested */
             if (dwAttempts == 0)
             {
-                dwError = pEntry->pVtbl->pfnStop(pEntry);
+                dwError = pEntry->pVtbl->pfnStop(&pEntry->object);
                 BAIL_ON_ERROR(dwError);
                 dwAttempts++;
             }
@@ -621,7 +643,7 @@ LwSmTableRefreshEntry(
     switch (status.state)
     {
     case LW_SERVICE_STATE_RUNNING:
-        dwError = pEntry->pVtbl->pfnRefresh(pEntry);
+        dwError = pEntry->pVtbl->pfnRefresh(&pEntry->object);
         BAIL_ON_ERROR(dwError);
         break;
     default:
@@ -675,7 +697,7 @@ LwSmTablePollEntry(
 {
     DWORD dwError = 0;
 
-    dwError = pEntry->pVtbl->pfnGetStatus(pEntry, pStatus);
+    dwError = pEntry->pVtbl->pfnGetStatus(&pEntry->object, pStatus);
     BAIL_ON_ERROR(dwError);
 
     /* If an unannounced change in the service status occured,
@@ -1013,3 +1035,54 @@ error:
 
     goto cleanup;
 }
+
+static
+PVOID
+LwSmTableGetServiceObjectData(
+    PLW_SERVICE_OBJECT pObject
+    )
+{
+    return pObject->pData;
+}
+
+static
+VOID
+LwSmTableRetainServiceObject(
+    PLW_SERVICE_OBJECT pObject
+    )
+{
+    PSM_TABLE_ENTRY pEntry = STRUCT_FROM_MEMBER(pObject, SM_TABLE_ENTRY, object);
+
+    LwSmTableRetainEntry(pEntry);
+}
+
+static
+VOID
+LwSmTableReleaseServiceObject(
+    PLW_SERVICE_OBJECT pObject
+    )
+{
+    PSM_TABLE_ENTRY pEntry = STRUCT_FROM_MEMBER(pObject, SM_TABLE_ENTRY, object);
+
+    LwSmTableReleaseEntry(pEntry);
+}
+
+static
+VOID
+LwSmTableNotifyServiceObjectStateChange(
+    PLW_SERVICE_OBJECT pObject,
+    LW_SERVICE_STATE newState
+    )
+{
+    PSM_TABLE_ENTRY pEntry = STRUCT_FROM_MEMBER(pObject, SM_TABLE_ENTRY, object);
+
+    return LwSmTableNotifyEntryChanged(pEntry);
+}
+
+SM_LOADER_CALLS gTableCalls =
+{
+    .pfnGetServiceObjectData = LwSmTableGetServiceObjectData,
+    .pfnRetainServiceObject = LwSmTableRetainServiceObject,
+    .pfnReleaseServiceObject = LwSmTableReleaseServiceObject,
+    .pfnNotifyServiceObjectStateChange = LwSmTableNotifyServiceObjectStateChange
+};

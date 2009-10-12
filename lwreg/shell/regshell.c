@@ -358,7 +358,8 @@ error:
 DWORD
 RegShellListValues(
     PREGSHELL_PARSE_STATE pParseState,
-    PREGSHELL_CMD_ITEM rsItem)
+    PREGSHELL_CMD_ITEM rsItem,
+    PDWORD pdwValuesListed)
 {
     DWORD dwError = 0;
     DWORD dwValuesLen = 0;
@@ -371,6 +372,7 @@ RegShellListValues(
     DWORD dwValueNameLenMax = 0;
     DWORD dwValueNameLen = 0;
     DWORD dwValue = 0;
+    DWORD dwValuesListed = 0;
 
     dwError = RegShellUtilGetValues(
                   pParseState->hReg,
@@ -404,10 +406,12 @@ RegShellListValues(
             printf("ListValues: dataLen='%d'\n", pValues[i].dwDataLen);
 #endif
 
-            if (strcmp(pszValueName, "@") == 0 && *((PSTR) pValues[i].pData) == '\0')
+            if (strcmp(pszValueName, "@") == 0 &&
+                *((PSTR) pValues[i].pData) == '\0')
             {
                 continue;
             }
+            dwValuesListed++;
             printf("  %s%*s",
                    pszValueName,
                    (int) (strlen(pszValueName)-dwValueNameLenMax),
@@ -458,12 +462,17 @@ RegShellListValues(
         }
     }
 cleanup:
+    if (pdwValuesListed)
+    {
+        *pdwValuesListed = dwValuesListed;
+    }
     LW_SAFE_FREE_STRING(pszValueName);
     return dwError;
 
 error:
     goto cleanup;
 }
+
 
 DWORD
 RegShellProcessCmd(
@@ -474,6 +483,7 @@ RegShellProcessCmd(
 
     DWORD dwError = 0;
     DWORD dwOpenRootKeyError = 0;
+    DWORD dwValuesListed = 0;
     PREGSHELL_CMD_ITEM rsItem = NULL;
     PCSTR pszErrorPrefix = NULL;
     PSTR pszPwd = NULL;
@@ -512,10 +522,16 @@ RegShellProcessCmd(
                 if (pParseState->pszDefaultRootKeyName ||
                     pParseState->pszFullRootKeyName)
                 {
-                    dwError = RegShellListValues(pParseState, rsItem);
+                    dwError = RegShellListValues(
+                                  pParseState,
+                                  rsItem,
+                                  &dwValuesListed);
                     BAIL_ON_REG_ERROR(dwError);
                 }
-                printf("\n");
+                if (dwValuesListed > 0)
+                {
+                    printf("\n");
+                }
                 dwError = RegShellListKeys(pParseState, rsItem);
                 BAIL_ON_REG_ERROR(dwError);
                 printf("\n");
@@ -739,7 +755,7 @@ RegShellProcessCmd(
 
             case REGSHELL_CMD_LIST_VALUES:
                 pszErrorPrefix = "list_values: failed ";
-                dwError = RegShellListValues(pParseState, rsItem);
+                dwError = RegShellListValues(pParseState, rsItem, NULL);
                 BAIL_ON_REG_ERROR(dwError);
                 break;
 

@@ -41,6 +41,11 @@ fi
 AS_AC_EXPAND(CACHEDIR, $cachedir)
 AC_DEFINE_UNQUOTED(CACHEDIR, "$CACHEDIR", [Cache directory])
 
+loaderdir="$libdir/lwsm-loader"
+AS_AC_EXPAND(LOADERDIR, $loaderdir)
+AC_DEFINE_UNQUOTED(LOADERDIR, "$LOADERDIR", [Loader directory])
+
+AC_SUBST(loaderdir)
 AC_SUBST(LWSM_CPPFLAGS)
 AC_SUBST(LWSM_CFLAGS)
 AC_SUBST(LWSM_LDFLAGS)
