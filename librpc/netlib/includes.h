@@ -60,6 +60,7 @@
 #include <openssl/rc4.h>
 #include <ldap.h>
 #include <lwps/lwps.h>
+#include <lwio/lwio.h>
 
 #include <lwrpc/types.h>
 #include <lwrpc/unicodestring.h>
