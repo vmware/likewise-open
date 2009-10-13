@@ -222,17 +222,6 @@ ProcessSubKeys(
     PSTR pszSubKeyName = NULL;
     PWSTR pSubKey = NULL;
 
-    dwError = PrintToRegFile(
-                          fp,
-                          pszKeyName,
-                          REG_KEY,
-                          NULL,
-                          REG_KEY,
-                          NULL,
-                          0,
-                          pPrevType);
-    BAIL_ON_REG_ERROR(dwError);
-
     // Get the subkeys and values under this key from registry
     for (iCount = 0; iCount < dwNumSubKeys; iCount++)
     {
@@ -421,7 +410,7 @@ RegShellUtilExport(
     DWORD dwError = 0;
     REG_DATA_TYPE prevType = REG_UNKNOWN;
 
-    if (hKey && dwNumSubKeys == 0)
+    if (hKey)
     {
         dwError = ProcessExportedKeyInfo(hReg,
                                          fp,
@@ -430,7 +419,7 @@ RegShellUtilExport(
                                          &prevType);
         BAIL_ON_REG_ERROR(dwError);
     }
-    else if (hKey && dwNumSubKeys != 0)
+    if (hKey && dwNumSubKeys != 0)
     {
         dwError = ProcessSubKeys(hReg,
                                  fp,
