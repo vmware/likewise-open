@@ -108,20 +108,32 @@ DWORD RegLexBinaryTypeToString(
 {
     DWORD dwError = 0;
     static char *typeStrs[][2] = {
-        { "REG_UNKNOWN", "REG_UNKNOWN" },
-        { "dword:", "REG_DWORD" },
-        { "REG_SZ", "REG_SZ"},
-        { "hex:", "REG_BINARY" },
         { "hex(0):", "REG_NONE" },
+        { "REG_SZ", "REG_SZ"},
         { "hex(2):", "REG_EXPAND_SZ" },
+        { "hex:", "REG_BINARY" },
+        { "dword:", "REG_DWORD" },
+        { "dwordbe:", "REG_DWORD_BIG_ENDIAN" },
+        { "link:", "REG_LINK" },
         { "hex(7):", "REG_MULTI_SZ" },
         { "hex(8):", "REG_RESOURCE_LIST" },
         { "hex(9):", "REG_FULL_RESOURCE_DESCRIPTOR" },
         { "hex(a):", "REG_RESOURCE_REQUIREMENTS_LIST" },
         { "hex(b):", "REG_QUADWORD" },
+        { "unknown12:", "REG_UNKNOWN12" },
+        { "unknown13:", "REG_UNKNOWN13" },
+        { "unknown14:", "REG_UNKNOWN14" },
+        { "unknown15:", "REG_UNKNOWN15" },
+        { "unknown16:", "REG_UNKNOWN16" },
+        { "unknown17:", "REG_UNKNOWN17" },
+        { "unknown18:", "REG_UNKNOWN18" },
+        { "unknown19:", "REG_UNKNOWN19" },
+        { "unknown20:", "REG_UNKNOWN20" },
         { "REG_KEY", "REG_KEY" },
         { "REG_KEY_DEFAULT", "REG_KEY_DEFAULT" },
         { "REG_PLAIN_TEXT", "REG_PLAIN_TEXT" },
+        { "REG_UNKNOWN", "REG_UNKNOWN" },
+        { "sza:", "REG_STRING_ARRAY" }, /* Maps to REG_MULTI_SZ */
     };
 
     BAIL_ON_INVALID_POINTER(tokenStr);
@@ -180,6 +192,7 @@ DWORD RegLexTokenToString(
         "REGLEX_REG_QUADWORD",                           /* hex(b):   */
         "REGLEX_REG_KEY",
         "REGLEX_REG_NAME_DEFAULT",
+        "REGLEX_REG_STRING_ARRAY",                       /* sza:      */
     };
     if (token < (sizeof(tokenStrs)/sizeof(char *)))
     {
@@ -470,7 +483,8 @@ RegLexParseBackslash(
     DWORD dwError = 0;
     BOOLEAN eof = FALSE;
 
-    if (lexHandle->state == REGLEX_STATE_BINHEX_STR)
+    if (lexHandle->state == REGLEX_STATE_BINHEX_STR ||
+        lexHandle->tokenDataType == REGLEX_REG_STRING_ARRAY)
     {
         /* Eat line continuation character when in BINHEX state */
         dwError = RegIOGetChar(ioHandle, &inC, &eof);
@@ -573,6 +587,22 @@ RegLexParseBinary(
             lexHandle->isToken = TRUE;
             lexHandle->curToken.token = REGLEX_REG_MULTI_SZ;
             lexHandle->state = REGLEX_STATE_BINHEX_STR;
+            lexHandle->curToken.valueCursor = 0;
+        }
+        else if (strcasecmp(lexHandle->curToken.pszValue, "sza") == 0 ||
+                 strcasecmp(lexHandle->curToken.pszValue, "REG_STRING_ARRAY") == 0)
+        {
+            /* REG_STRING_ARRAY
+             * Similar to REG_MULTI_SZ (token type returned will be MULTI_SZ).
+             * However, the parse format is:
+             * "ValueName"=sza:"String 1" "String 2" \
+             *              "String 3" "Last string"
+             */
+
+            lexHandle->isToken = TRUE;
+            lexHandle->curToken.token = REGLEX_REG_STRING_ARRAY;
+            lexHandle->tokenDataType = REGLEX_REG_STRING_ARRAY;
+            lexHandle->state = REGLEX_STATE_INIT;
             lexHandle->curToken.valueCursor = 0;
         }
         else if (strcasecmp(lexHandle->curToken.pszValue, "hex(8)") == 0 ||
@@ -705,6 +735,12 @@ RegLexParseNewline(
         lexHandle->isToken = TRUE;
         lexHandle->curToken.token = REGLEX_HEXPAIR_END;
         lexHandle->state = REGLEX_STATE_INIT;
+        return dwError;
+    }
+    else if (lexHandle->tokenDataType == REGLEX_REG_STRING_ARRAY)
+    {
+        lexHandle->isToken = TRUE;
+        lexHandle->tokenDataType = REGLEX_FIRST;
         return dwError;
     }
     else if (lexHandle->state == REGLEX_STATE_DWORD)
@@ -879,8 +915,8 @@ RegLexResetToken(
 
     BAIL_ON_INVALID_HANDLE(lexHandle);
 
-
     lexHandle->state = REGLEX_FIRST;
+    lexHandle->tokenDataType = REGLEX_FIRST;
     lexHandle->isToken = FALSE;
 
 cleanup:

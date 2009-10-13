@@ -436,7 +436,7 @@ RegShellListValues(
                     break;
 
                 case REG_MULTI_SZ:
-                    dwError = ConvertByteArrayToMultiStrsA(
+                    dwError = ConvertByteArrayToMultiStrsW(
                                   pValues[i].pData,
                                   pValues[i].dwDataLen,
                                   &ppszMultiStrArray);

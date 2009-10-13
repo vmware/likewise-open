@@ -85,7 +85,7 @@ DWORD parseCallback(PREG_PARSE_ITEM pItem, HANDLE userContext)
             break;
 
         case REG_MULTI_SZ:
-            ConvertByteArrayToMultiStrs(
+            ConvertByteArrayToMultiStrsW(
                 pItem->value,
                 pItem->valueLen,
                 &outMultiSz);
