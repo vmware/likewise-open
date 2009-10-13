@@ -624,7 +624,7 @@ RegShellUtilSetValue(
     switch (type)
     {
         case REG_MULTI_SZ:
-            dwError = ConvertMultiStrsToByteArrayA(
+            dwError = ConvertMultiStrsToByteArrayW(
                                         data,
                                         &pData,
                                         &dwDataLen);

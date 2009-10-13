@@ -74,6 +74,7 @@ typedef enum __REGLEX_TOKEN
     REGLEX_REG_QUADWORD,                   /* hex(b):   */
     REGLEX_REG_KEY,
     REGLEX_KEY_NAME_DEFAULT,
+    REGLEX_REG_STRING_ARRAY,               /* sza:      */
 } REGLEX_TOKEN, *PREGLEX_TOKEN;
 
 
@@ -105,6 +106,7 @@ typedef struct __REGLEX_ITEM
 {
     REGLEX_TOKEN_ITEM curToken;
     REGLEX_TOKEN_ITEM prevToken;
+    REGLEX_TOKEN tokenDataType;
     DWORD parseLineNum;
     REGLEX_STATE state;
     BOOLEAN isToken;

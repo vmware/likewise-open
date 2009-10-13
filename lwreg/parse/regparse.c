@@ -75,11 +75,11 @@
  *      [hex(2)]         [hex(b)]         [hex(a)]
  *
  *
- * ...-------+-----------------------+
- *           |                       |
- *   ValueResourceList    FullResourceDescriptor
- *   (REG_RESOURCE_LIST)  (REG_FULL_RESOURCE_LIST)
- *         [hex(8)]             [hex(9)]
+ * ...-------+-----------------------+-------------------------+
+ *           |                       |                         |
+ *   ValueResourceList    FullResourceDescriptor       ValueStringArray
+ *   (REG_RESOURCE_LIST)  (REG_FULL_RESOURCE_LIST)    (REG_MULTI_SZ)
+ *         [hex(8)]             [hex(9)]                    [sza]
  *
  * Note: All "hex()" types are TypeBinary, a sequence of binary
  *       hex values.
@@ -161,19 +161,17 @@ RegParseTypeNone(
     return dwError;
 }
 
-DWORD RegParseAppendData(
-    PREGPARSE_HANDLE parseHandle,
-    PSTR pszHexValue)
+
+DWORD
+RegParseReAllocateData(
+    PREGPARSE_HANDLE parseHandle)
 {
     DWORD dwError = 0;
-    PVOID pNewMemory = NULL;
     DWORD newValueSize = 0;
-    DWORD attrSize = 0;
-    PSTR pszAttr = 0;
-    DWORD binaryValue = 0;
+    PVOID pNewMemory = NULL;
 
     BAIL_ON_INVALID_POINTER(parseHandle);
-    RegLexGetAttribute(parseHandle->lexHandle, &attrSize, &pszAttr);
+
     if (parseHandle->binaryDataLen >= parseHandle->binaryDataAllocLen)
     {
         newValueSize = parseHandle->binaryDataAllocLen * 2;
@@ -186,6 +184,30 @@ DWORD RegParseAppendData(
         parseHandle->binaryData = pNewMemory;
         parseHandle->binaryDataAllocLen = newValueSize;
     }
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+
+DWORD
+RegParseAppendData(
+    PREGPARSE_HANDLE parseHandle,
+    PSTR pszHexValue)
+{
+    DWORD dwError = 0;
+    DWORD attrSize = 0;
+    PSTR pszAttr = 0;
+    DWORD binaryValue = 0;
+
+    BAIL_ON_INVALID_POINTER(parseHandle);
+
+    RegLexGetAttribute(parseHandle->lexHandle, &attrSize, &pszAttr);
+    dwError = RegParseReAllocateData(parseHandle);
+    BAIL_ON_REG_ERROR(dwError);
 
     switch(parseHandle->dataType)
     {
@@ -460,6 +482,79 @@ RegParseTypeMultiStringValue(
 
 
 DWORD
+RegParseTypeStringArrayValue(
+    PREGPARSE_HANDLE parseHandle)
+{
+    DWORD attrSize = 0;
+    DWORD lineNum = 0;
+    DWORD dwError = 0;
+    DWORD dwStrLen = 0;
+    PSTR pszAttr = 0;
+    REGLEX_TOKEN token = 0;
+    BOOLEAN eof = FALSE;
+    PWSTR pwszString = NULL;
+
+    RegLexGetAttribute(parseHandle->lexHandle, &attrSize, &pszAttr);
+    RegLexGetLineNumber(parseHandle->lexHandle, &lineNum);
+
+    dwError = RegLexGetToken(parseHandle->ioHandle,
+                             parseHandle->lexHandle,
+                             &token,
+                             &eof);
+    if (eof)
+    {
+        return eof;
+    }
+    while (token == REGLEX_REG_SZ ||
+           (token == REGLEX_PLAIN_TEXT && strcmp(pszAttr, "\\")==0))
+    {
+        RegLexGetAttribute(parseHandle->lexHandle, &attrSize, &pszAttr);
+        RegLexGetLineNumber(parseHandle->lexHandle, &lineNum);
+        if (token == REGLEX_REG_SZ)
+        {
+            printf("REG_STRING_ARRAY: %d='%s'\n", lineNum, pszAttr);
+            dwError = LwMbsToWc16s(pszAttr, &pwszString);
+            BAIL_ON_REG_ERROR(dwError);
+
+
+            dwStrLen = (strlen(pszAttr)+1) * 2;
+            while (parseHandle->binaryDataAllocLen < dwStrLen)
+            {
+                dwError = RegParseReAllocateData(parseHandle);
+                BAIL_ON_REG_ERROR(dwError);
+            }
+            memcpy(&parseHandle->binaryData[parseHandle->binaryDataLen],
+                   pwszString,
+                   dwStrLen);
+            parseHandle->binaryDataLen += dwStrLen;
+        }
+
+        dwError = RegLexGetToken(parseHandle->ioHandle,
+                                 parseHandle->lexHandle,
+                                 &token,
+                                 &eof);
+        RegLexGetAttribute(parseHandle->lexHandle, &attrSize, &pszAttr);
+        printf("REG_STRING_ARRAY: Token=%d %s\n", token, pszAttr);
+    }
+    parseHandle->binaryData[parseHandle->binaryDataLen++] = '\0';
+    parseHandle->binaryData[parseHandle->binaryDataLen++] = '\0';
+    RegLexUnGetToken(parseHandle->lexHandle);
+
+    parseHandle->dataType = REGLEX_REG_MULTI_SZ;
+    parseHandle->lexHandle->isToken = TRUE;
+    RegParseExternDataType(parseHandle->dataType,
+                           &parseHandle->registryEntry.type);
+
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+
+DWORD
 RegParseInstallCallback(
     PREGPARSE_HANDLE parseHandle,
     PFN_REG_CALLBACK parseCallback,
@@ -644,6 +739,11 @@ RegParseTypeValue(
         case REGLEX_REG_MULTI_SZ:
             parseHandle->dataType = REGLEX_REG_MULTI_SZ;
             RegParseTypeMultiStringValue(parseHandle);
+            break;
+
+        case REGLEX_REG_STRING_ARRAY:
+            parseHandle->dataType = REGLEX_REG_STRING_ARRAY;
+            RegParseTypeStringArrayValue(parseHandle);
             break;
 
         case REGLEX_REG_DWORD:
