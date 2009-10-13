@@ -269,7 +269,7 @@ ProcessImportedValue(
 
     pszSubKeyName = strchr(pItem->keyName, c);
 
-    if (!LW_IS_NULL_OR_EMPTY_STR(pszSubKeyName+1))
+    if (pszSubKeyName && !LW_IS_NULL_OR_EMPTY_STR(pszSubKeyName+1))
     {
         //Open the subkey
         dwError = LwMbsToWc16s(pszSubKeyName+1, &pSubKey);
