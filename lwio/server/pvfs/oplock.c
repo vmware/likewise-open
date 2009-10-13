@@ -530,7 +530,9 @@ PvfsOplockBreakIfLocked(
 
         /* No break -- just continue processing */
 
-        if (BreakResult == IO_OPLOCK_NOT_BROKEN) {
+        if (BreakResult == IO_OPLOCK_NOT_BROKEN)
+        {
+            pOplockLink = PvfsListTraverse(pFcb->pOplockList, pOplockLink);
             continue;
         }
 
