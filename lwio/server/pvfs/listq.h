@@ -32,71 +32,83 @@
  *
  * Module Name:
  *
- *        rtlqueue.c
+ *        listq.h
  *
  * Abstract:
  *
- *        Base FIFO Queue data structure
+ *        Bounded FIFO List data structure
  *
  *
  * Authors: Gerald Carter <gcarter@likewise.com>
  */
 
 
-#ifndef __LW_QUEUE_H__
-#define __LW_QUEUE_H__
+#ifndef _PVFS_LIST_H_
+#define _PVFS_LIST_H_
 
-#include <lw/types.h>
-#include <lw/attrs.h>
-#include <lw/ntstatus.h>
+typedef struct _PVFS_LIST *PPVFS_LIST;
 
-typedef struct _LWRTL_QUEUE *PLWRTL_QUEUE;
-
-typedef VOID  (*PLWRTL_QUEUE_FREE_DATA_FN)(PVOID *ppData);
+typedef VOID  (*PPVFS_LIST_FREE_DATA_FN)(PVOID *ppData);
 
 NTSTATUS
-LwRtlQueueInit(
-    PLWRTL_QUEUE *ppNewQueue,
+PvfsListInit(
+    PPVFS_LIST *ppNewList,
     DWORD dwMaxSize,
-    PLWRTL_QUEUE_FREE_DATA_FN pfnFreeData
+    PPVFS_LIST_FREE_DATA_FN pfnFreeData
     );
 
 NTSTATUS
-LwRtlQueueSetMaxSize(
-    PLWRTL_QUEUE pQueue,
+PvfsListSetMaxSize(
+    PPVFS_LIST pList,
     DWORD dwNewLength
     );
 
 BOOL
-LwRtlQueueIsEmpty(
-    PLWRTL_QUEUE pQueue
+PvfsListIsEmpty(
+    PPVFS_LIST pList
     );
 
 BOOL
-LwRtlQueueIsFull(
-    PLWRTL_QUEUE pQueue
+PvfsListIsFull(
+    PPVFS_LIST pList
     );
 
 NTSTATUS
-LwRtlQueueAddItem(
-    PLWRTL_QUEUE pQueue,
-    PVOID pItem
+PvfsListAddTail(
+    PPVFS_LIST pList,
+    PLW_LIST_LINKS pItem
     );
 
+NTSTATUS
+PvfsListRemoveHead(
+    PPVFS_LIST pList,
+    PLW_LIST_LINKS *ppItem
+    );
 
 NTSTATUS
-LwRtlQueueRemoveItem(
-    PLWRTL_QUEUE pQueue,
-    PVOID *ppItem
+PvfsListRemoveItem(
+    PPVFS_LIST pList,
+    PLW_LIST_LINKS pItem
     );
 
 VOID
-LwRtlQueueDestroy(
-    PLWRTL_QUEUE *ppQueue
+PvfsListDestroy(
+    PPVFS_LIST *ppList
+    );
+
+PLW_LIST_LINKS
+PvfsListTraverse(
+    PPVFS_LIST pList,
+    PLW_LIST_LINKS pCursor
+    );
+
+LONG
+PvfsListLength(
+    PPVFS_LIST pList
     );
 
 
-#endif    /* __LW_QUEUE_H__ */
+#endif    /* _PVFS_LIST_H_ */
 
 
 /*

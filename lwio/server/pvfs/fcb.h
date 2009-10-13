@@ -49,11 +49,6 @@
 
 #include "pvfs.h"
 
-VOID
-PvfsFreePendingLock(
-    PVOID *ppData
-    );
-
 NTSTATUS
 PvfsAllocateFCB(
     PPVFS_FCB *ppFcb
@@ -110,19 +105,6 @@ NTSTATUS
 PvfsRemoveCCBFromFCB(
     PPVFS_FCB pFcb,
     PPVFS_CCB pCcb
-    );
-
-
-PPVFS_CCB_LIST_NODE
-PvfsNextCCBFromList(
-    PPVFS_FCB pFcb,
-    PPVFS_CCB_LIST_NODE pCurrent
-    );
-
-PPVFS_CCB_LIST_NODE
-PvfsPreviousCCBFromList(
-    PPVFS_FCB pFcb,
-    PPVFS_CCB_LIST_NODE pCurrent
     );
 
 BOOLEAN

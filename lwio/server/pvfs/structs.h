@@ -143,6 +143,8 @@ typedef struct _PVFS_LOCK_ENTRY
 
 typedef struct _PVFS_PENDING_LOCK
 {
+    LW_LIST_LINKS LockList;
+
     PVFS_LOCK_ENTRY PendingLock;
     PPVFS_CCB pCcb;
     PPVFS_IRP_CONTEXT pIrpContext;
@@ -224,6 +226,8 @@ typedef struct _PVFS_PENDING_OPLOCK_BREAK_TEST
 
 typedef struct _PVFS_OPLOCK_PENDING_OPERATION
 {
+    LW_LIST_LINKS PendingOpList;
+
     PPVFS_IRP_CONTEXT pIrpContext;
 
     PPVFS_OPLOCK_PENDING_COMPLETION_CALLBACK pfnCompletion;
@@ -259,10 +263,9 @@ struct _PVFS_FCB
 
     /* rwCcbLock */
     pthread_rwlock_t rwCcbLock;     /* For managing the CCB list */
-
-    LONG CcbCount;
-    PPVFS_CCB_LIST_NODE pCcbList;
+    PPVFS_LIST pCcbList;
     /* End rwCcbLock */
+
 
     /* rwBrlLock */
     pthread_rwlock_t rwBrlLock;     /* For managing the LockTable in
@@ -271,19 +274,18 @@ struct _PVFS_FCB
     PVFS_LOCK_ENTRY LastFailedLock;
     PPVFS_CCB pLastFailedLockOwner;   /* Never reference, only used
                                          to match pointer */
-    PLWRTL_QUEUE pPendingLockQueue;
+    PPVFS_LIST pPendingLockQueue;
     /* End rwBrlLock */
 
 
     /* mutexOplock */
     pthread_mutex_t  mutexOplock;   /* Managing oplock lists */
-    LW_LIST_LINKS OplockList;
+    PPVFS_LIST pOplockList;
     BOOLEAN bOplockBreakInProgress;
 
-    PLWRTL_QUEUE pOplockPendingOpsQueue;
-    PLWRTL_QUEUE pOplockReadyOpsQueue;
+    PPVFS_LIST pOplockPendingOpsQueue;
+    PPVFS_LIST pOplockReadyOpsQueue;
     /* End mutexOplock */
-
 };
 
 typedef struct _PVFS_FCB_TABLE
@@ -312,6 +314,8 @@ typedef struct _PVFS_LOCK_TABLE
 
 struct _PVFS_CCB
 {
+    LW_LIST_LINKS FcbList;
+
     pthread_mutex_t FileMutex;      /* Use for fd buffer operations */
     pthread_mutex_t ControlBlock;   /* Use for CCB SetFileInfo operations */
 
@@ -381,7 +385,7 @@ struct _InfoLevelDispatchEntry {
 
 struct _PVFS_OPLOCK_RECORD
 {
-    LW_LIST_LINKS Oplocks;
+    LW_LIST_LINKS OplockList;
 
     ULONG OplockType;
     PPVFS_CCB pCcb;
@@ -400,6 +404,8 @@ typedef VOID (*PPVFS_WORK_CONTEXT_FREE_CTX)(
 
 typedef struct _PVFS_WORK_CONTEXT
 {
+    LW_LIST_LINKS WorkList;
+
     BOOLEAN bIsIrpContext;
     PVOID pContext;
 

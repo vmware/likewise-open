@@ -178,7 +178,7 @@ PvfsOplockBreakAck(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PPVFS_CCB pCcb = NULL;
     PPVFS_FCB pFcb = NULL;
-    PVOID pData = NULL;
+    PLW_LIST_LINKS pData = NULL;
     PIO_FSCTL_OPLOCK_BREAK_ACK_INPUT_BUFFER pOplockBreakResp = NULL;
     BOOLEAN bCcbLocked = FALSE;
     BOOLEAN bFcbLocked = FALSE;
@@ -300,17 +300,19 @@ PvfsOplockBreakAck(
     /* We remove/add like this rather than changing pointers
        to deal with a non-empty ready queue */
 
-    while (!LwRtlQueueIsEmpty(pFcb->pOplockPendingOpsQueue))
+    while (!PvfsListIsEmpty(pFcb->pOplockPendingOpsQueue))
     {
-        ntError = LwRtlQueueRemoveItem(
+        ntError = PvfsListRemoveHead(
                       pFcb->pOplockPendingOpsQueue,
                       &pData);
         BAIL_ON_NT_STATUS(ntError);
 
-        ntError = LwRtlQueueAddItem(
+        ntError = PvfsListAddTail(
                       pFcb->pOplockReadyOpsQueue,
                       pData);
         BAIL_ON_NT_STATUS(ntError);
+
+        pData = NULL;
     }
 
     ntError = PvfsAddWorkItem(gpPvfsIoWorkQueue, (PVOID)pWorkCtx);
@@ -439,15 +441,18 @@ PvfsOplockBreakIfLocked(
 
     if (pFcb->bOplockBreakInProgress)
     {
-        if (pCcb->bOplockBreakInProgress == TRUE) {
+        if (pCcb->bOplockBreakInProgress == TRUE)
+        {
             ntError = STATUS_SUCCESS;
-        } else {
+        }
+        else
+        {
             ntError = STATUS_OPLOCK_BREAK_IN_PROGRESS;
         }
         goto cleanup;
     }
 
-    pOplockLink = LwListTraverse(&pFcb->OplockList, NULL);
+    pOplockLink = PvfsListTraverse(pFcb->pOplockList, NULL);
 
     while (pOplockLink)
     {
@@ -456,16 +461,14 @@ PvfsOplockBreakIfLocked(
         pOplock = LW_STRUCT_FROM_FIELD(
                       pOplockLink,
                       PVFS_OPLOCK_RECORD,
-                      Oplocks);
+                      OplockList);
 
         /* Canceled records will be cleaned up outside of the
            oplock break processing.  Just ignore them. */
 
         if (pOplock->pIrpContext->bIsCancelled)
         {
-            pNextLink = LwListTraverse(&pFcb->OplockList, pOplockLink);
-            pOplockLink = pNextLink;
-
+            pOplockLink = PvfsListTraverse(pFcb->pOplockList, pOplockLink);
             continue;
         }
 
@@ -519,19 +522,20 @@ PvfsOplockBreakIfLocked(
             break;
 
         default:
-            pOplockLink = LwListTraverse(&pFcb->OplockList, pOplockLink);
-            continue;
+            /* This IRP will not cause a break at all */
+            ntBreakStatus = STATUS_SUCCESS;
+            ntError = STATUS_SUCCESS;
+            goto cleanup;
         }
 
         /* No break -- just continue processing */
 
         if (BreakResult == IO_OPLOCK_NOT_BROKEN) {
-            pOplockLink = LwListTraverse(&pFcb->OplockList, pOplockLink);
             continue;
         }
 
-        pNextLink = LwListTraverse(&pFcb->OplockList, pOplockLink);
-        LwListRemove(pOplockLink);
+        pNextLink = PvfsListTraverse(pFcb->pOplockList, pOplockLink);
+        PvfsListRemoveItem(pFcb->pOplockList, pOplockLink);
         pOplockLink = pNextLink;
 
         PvfsFreeOplockRecord(&pOplock);
@@ -641,23 +645,24 @@ PvfsOplockBreakAllLevel2Oplocks(
     PLW_LIST_LINKS pOplockLink = NULL;
     PIO_FSCTL_OPLOCK_REQUEST_OUTPUT_BUFFER pOutputBuffer = NULL;
 
-    if (!PvfsFileIsOplocked(pFcb)) {
+    if (!PvfsFileIsOplocked(pFcb))
+    {
         goto cleanup;
     }
 
     LWIO_LOCK_MUTEX(bFcbLocked, &pFcb->mutexOplock);
 
-    pOplockLink = LwListTraverse(&pFcb->OplockList, NULL);
-
-    while (!LwListIsEmpty(&pFcb->OplockList))
+    while (!PvfsListIsEmpty(pFcb->pOplockList))
     {
         /* Setup */
 
-        pOplockLink = LwListRemoveTail(&pFcb->OplockList);
+        ntError = PvfsListRemoveHead(pFcb->pOplockList, &pOplockLink);
+        BAIL_ON_NT_STATUS(ntError);
+
         pOplock = LW_STRUCT_FROM_FIELD(
                       pOplockLink,
                       PVFS_OPLOCK_RECORD,
-                      Oplocks);
+                      OplockList);
         pIrpCtx = pOplock->pIrpContext;
         pOutputBuffer = (PIO_FSCTL_OPLOCK_REQUEST_OUTPUT_BUFFER)
                         pIrpCtx->pIrp->Args.IoFsControl.OutputBuffer;
@@ -681,9 +686,9 @@ PvfsOplockBreakAllLevel2Oplocks(
         PvfsFreeOplockRecord(&pOplock);
     }
 
+cleanup:
     LWIO_UNLOCK_MUTEX(bFcbLocked, &pFcb->mutexOplock);
 
-cleanup:
     return ntError;
 
 error:
@@ -1097,7 +1102,7 @@ PvfsOplockCleanOplockQueue(
 
     LWIO_LOCK_MUTEX(bLocked, &pFcb->mutexOplock);
 
-    pOplockLink = LwListTraverse(&pFcb->OplockList, NULL);
+    pOplockLink = PvfsListTraverse(pFcb->pOplockList, NULL);
 
     PVFS_ASSERT(pOplockLink != NULL);
 
@@ -1106,9 +1111,9 @@ PvfsOplockCleanOplockQueue(
         pOplock = LW_STRUCT_FROM_FIELD(
                       pOplockLink,
                       PVFS_OPLOCK_RECORD,
-                      Oplocks);
+                      OplockList);
 
-        pNextLink = LwListTraverse(&pFcb->OplockList, pOplockLink);
+        pNextLink = PvfsListTraverse(pFcb->pOplockList, pOplockLink);
 
         if (pOplock->pIrpContext != pIrpCtx)
         {
@@ -1116,7 +1121,7 @@ PvfsOplockCleanOplockQueue(
             continue;
         }
 
-        LwListRemove(pOplockLink);
+        PvfsListRemoveItem(pFcb->pOplockList, pOplockLink);
         pOplockLink = NULL;
 
         pOplock->pIrpContext->pIrp->IoStatusBlock.Status = STATUS_CANCELLED;
@@ -1289,7 +1294,7 @@ PvfsOplockProcessReadyItems(
     PIRP pIrp = NULL;
     BOOLEAN bFcbLocked = FALSE;
     PPVFS_OPLOCK_PENDING_OPERATION pPendingOp = NULL;
-    PVOID pData = NULL;
+    PLW_LIST_LINKS pData = NULL;
     BOOLEAN bFinished = FALSE;
     BOOLEAN bIrpCtxLocked = FALSE;
 
@@ -1303,20 +1308,25 @@ PvfsOplockProcessReadyItems(
 
         LWIO_LOCK_MUTEX(bFcbLocked, &pFcb->mutexOplock);
 
-        if (LwRtlQueueIsEmpty(pFcb->pOplockReadyOpsQueue))
+        if (PvfsListIsEmpty(pFcb->pOplockReadyOpsQueue))
         {
             bFinished = TRUE;
             continue;
         }
 
-        ntError = LwRtlQueueRemoveItem(
+        ntError = PvfsListRemoveHead(
                       pFcb->pOplockReadyOpsQueue,
                       &pData);
         BAIL_ON_NT_STATUS(ntError);
 
         LWIO_UNLOCK_MUTEX(bFcbLocked, &pFcb->mutexOplock);
 
-        pPendingOp = (PPVFS_OPLOCK_PENDING_OPERATION)pData;
+
+        pPendingOp = LW_STRUCT_FROM_FIELD(
+                         pData,
+                         PVFS_OPLOCK_PENDING_OPERATION,
+                         PendingOpList);
+
         pIrp = pPendingOp->pIrpContext->pIrp;
 
         LWIO_LOCK_MUTEX(bIrpCtxLocked, &pPendingOp->pIrpContext->Mutex);
