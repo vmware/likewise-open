@@ -69,6 +69,7 @@
 #include "lwioutils.h"
 #include "lwlist.h"
 
+#include "listq.h"
 #include "structs.h"
 #include "async_handler.h"
 #include "threads.h"
@@ -366,6 +367,11 @@ PvfsEnforceShareMode(
     );
 
 /* From locking.c */
+
+VOID
+PvfsFreePendingLock(
+    PVOID *ppData
+    );
 
 VOID
 PvfsQueueCancelLock(

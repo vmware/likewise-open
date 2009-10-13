@@ -179,7 +179,8 @@ _PvfsEnforceShareMode(
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
-    PPVFS_CCB_LIST_NODE pCursor = NULL;
+    PLW_LIST_LINKS pCursor = NULL;
+    PPVFS_CCB pCcb = NULL;
     BOOLEAN bLocked = FALSE;
     ACCESS_MASK AllRights = (FILE_READ_DATA|
                              FILE_WRITE_DATA|
@@ -194,16 +195,16 @@ _PvfsEnforceShareMode(
 
     LWIO_LOCK_RWMUTEX_SHARED(bLocked, &pFcb->rwCcbLock);
 
-    for (pCursor = PvfsNextCCBFromList(pFcb, pCursor);
-         pCursor;
-         pCursor = PvfsNextCCBFromList(pFcb, pCursor))
+    while ((pCursor = PvfsListTraverse(pFcb->pCcbList, pCursor)) != NULL)
     {
-        ACCESS_MASK CurAccess = pCursor->pCcb->AccessGranted;
-        FILE_SHARE_FLAGS CurShareMode = pCursor->pCcb->ShareFlags;
+        pCcb = LW_STRUCT_FROM_FIELD(
+                   pCursor,
+                   PVFS_CCB,
+                   FcbList);
 
         /* Ignore handles that are in the midst of being closed */
 
-        if (pCursor->pCcb->bCloseInProgress)
+        if (pCcb->bCloseInProgress)
         {
             continue;
         }
@@ -212,7 +213,7 @@ _PvfsEnforceShareMode(
            access, then we cannot conflict */
 
         if (((DesiredAccess & AllRights) == 0) ||
-            ((CurAccess & AllRights) == 0))
+            ((pCcb->AccessGranted & AllRights) == 0))
         {
             continue;
         }
@@ -223,7 +224,7 @@ _PvfsEnforceShareMode(
                an existing share mode */
 
             if ((DesiredAccess & ShareModeTable[i].Access) &&
-                !(CurShareMode & ShareModeTable[i].ShareFlag))
+                !(pCcb->ShareFlags & ShareModeTable[i].ShareFlag))
             {
                 ntError = STATUS_SHARING_VIOLATION;
                 BAIL_ON_NT_STATUS(ntError);
@@ -232,13 +233,15 @@ _PvfsEnforceShareMode(
             /* Check for a conflict between the request share mode
                and an existing granted access mask */
 
-            if ((CurAccess & ShareModeTable[i].Access) &&
+            if ((pCcb->AccessGranted & ShareModeTable[i].Access) &&
                 !(ShareAccess & ShareModeTable[i].ShareFlag))
             {
                 ntError = STATUS_SHARING_VIOLATION;
                 BAIL_ON_NT_STATUS(ntError);
             }
         }
+
+        pCcb = NULL;
     }
 
     /* Cone - No conflicts*/

@@ -53,8 +53,8 @@
 NTSTATUS
 PvfsInitWorkQueue(
     PPVFS_WORK_QUEUE *ppWorkQueue,
-    INT32 iSize,
-    PLWRTL_QUEUE_FREE_DATA_FN pfnFreeData,
+    LONG Size,
+    PPVFS_LIST_FREE_DATA_FN pfnFreeData,
     BOOLEAN bWaitSemantics
     )
 {
@@ -64,7 +64,7 @@ PvfsInitWorkQueue(
     ntError = PvfsAllocateMemory((PVOID*)&pWorkQ, sizeof(PVFS_WORK_QUEUE));
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = LwRtlQueueInit(&pWorkQ->pQueue, iSize, pfnFreeData);
+    ntError = PvfsListInit(&pWorkQ->pQueue, Size, pfnFreeData);
     BAIL_ON_NT_STATUS(ntError);
 
     pthread_mutex_init(&pWorkQ->Mutex, NULL);
@@ -91,7 +91,7 @@ error:
 NTSTATUS
 PvfsAddWorkItem(
     PPVFS_WORK_QUEUE pWorkQueue,
-    PVOID pItem
+    PPVFS_WORK_CONTEXT pWork
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
@@ -99,26 +99,26 @@ PvfsAddWorkItem(
     BOOL bSignal = FALSE;
 
     BAIL_ON_INVALID_PTR(pWorkQueue, ntError);
-    BAIL_ON_INVALID_PTR(pItem, ntError);
+    BAIL_ON_INVALID_PTR(pWork, ntError);
 
     LWIO_LOCK_MUTEX(bInLock, &pWorkQueue->Mutex);
 
     if (pWorkQueue->bWait)
     {
-        while (LwRtlQueueIsFull(pWorkQueue->pQueue))
+        while (PvfsListIsFull(pWorkQueue->pQueue))
         {
             pthread_cond_wait(
                 &pWorkQueue->SpaceAvailable,
                 &pWorkQueue->Mutex);
         }
 
-        if (LwRtlQueueIsEmpty(pWorkQueue->pQueue))
+        if (PvfsListIsEmpty(pWorkQueue->pQueue))
         {
             bSignal = TRUE;
         }
     }
 
-    ntError = LwRtlQueueAddItem(pWorkQueue->pQueue, pItem);
+    ntError = PvfsListAddTail(pWorkQueue->pQueue, &pWork->WorkList);
     BAIL_ON_NT_STATUS(ntError);
 
     if (bSignal)
@@ -141,35 +141,41 @@ error:
 NTSTATUS
 PvfsNextWorkItem(
     PPVFS_WORK_QUEUE pWorkQueue,
-    PVOID *ppItem
+    PPVFS_WORK_CONTEXT *ppWork
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     BOOL bInLock = FALSE;
     BOOL bSignal = FALSE;
+    PLW_LIST_LINKS pData = NULL;
 
     BAIL_ON_INVALID_PTR(pWorkQueue, ntError);
-    BAIL_ON_INVALID_PTR(ppItem, ntError);
+    BAIL_ON_INVALID_PTR(ppWork, ntError);
 
     LWIO_LOCK_MUTEX(bInLock, &pWorkQueue->Mutex);
 
     if (pWorkQueue->bWait)
     {
-        while (LwRtlQueueIsEmpty(pWorkQueue->pQueue))
+        while (PvfsListIsEmpty(pWorkQueue->pQueue))
         {
             pthread_cond_wait(
                 &pWorkQueue->ItemsAvailable,
                 &pWorkQueue->Mutex);
         }
 
-        if (LwRtlQueueIsFull(pWorkQueue->pQueue))
+        if (PvfsListIsFull(pWorkQueue->pQueue))
         {
             bSignal = TRUE;
         }
     }
 
-    ntError = LwRtlQueueRemoveItem(pWorkQueue->pQueue, ppItem);
+    ntError = PvfsListRemoveHead(pWorkQueue->pQueue, &pData);
     BAIL_ON_NT_STATUS(ntError);
+
+    *ppWork = LW_STRUCT_FROM_FIELD(
+                  pData,
+                  PVFS_WORK_CONTEXT,
+                  WorkList);
 
     if (bSignal)
     {

@@ -138,7 +138,6 @@ PvfsWorkerDoWork(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PPVFS_WORK_CONTEXT pWorkCtx = NULL;
-    PVOID pData = NULL;
     BOOL bInLock = FALSE;
     PPVFS_IRP_CONTEXT pIrpCtx = NULL;
     PPVFS_WORK_QUEUE pWorkQueue = (PPVFS_WORK_QUEUE)pQueue;
@@ -146,7 +145,6 @@ PvfsWorkerDoWork(
     while(1)
     {
         bInLock = FALSE;
-        pData = NULL;
         pWorkCtx = NULL;
         pIrpCtx = NULL;
 
@@ -158,13 +156,12 @@ PvfsWorkerDoWork(
          * additional state from IRPs.
          */
 
-        ntError = PvfsNextWorkItem(pWorkQueue, &pData);
+        ntError = PvfsNextWorkItem(pWorkQueue, &pWorkCtx);
         PVFS_ASSERT(ntError == STATUS_SUCCESS);
 
         /* If the work item is NULL, try again next time around.  */
 
-        pWorkCtx = (PPVFS_WORK_CONTEXT)pData;
-        if (!pWorkCtx)
+        if (pWorkCtx == NULL)
         {
             continue;
         }
@@ -177,9 +174,12 @@ PvfsWorkerDoWork(
 
             LWIO_LOCK_MUTEX(bInLock, &pIrpCtx->Mutex);
 
-            if (pIrpCtx->bIsCancelled) {
+            if (pIrpCtx->bIsCancelled)
+            {
                 ntError = STATUS_CANCELLED;
-            } else {
+            }
+            else
+            {
                 pIrpCtx->bInProgress = TRUE;
                 ntError = pWorkCtx->pfnCompletion(pWorkCtx->pContext);
             }
