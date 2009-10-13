@@ -36,7 +36,6 @@ liblwiosmbcommon_la_SOURCES = \
     wire_tree_connect.c  \
     wire_write.c         \
     wire_writex.c        \
-    globals.c            \
     smbkrb5.c
 
 liblwiosmbcommon_la_CPPFLAGS =    \
