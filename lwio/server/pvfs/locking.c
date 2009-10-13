@@ -437,7 +437,7 @@ PvfsProcessPendingLocks(
         ntError = PvfsListInit(
                       &pFcb->pPendingLockQueue,
                       PVFS_FCB_MAX_PENDING_LOCKS,
-                      PvfsFreePendingLock);
+                      (PPVFS_LIST_FREE_DATA_FN)PvfsFreePendingLock);
     }
 
     LWIO_UNLOCK_RWMUTEX(bBrlWriteLocked, &pFcb->rwBrlLock);
@@ -484,7 +484,7 @@ PvfsProcessPendingLocks(
                 PvfsFreeIrpContext(&pIrpContext);
             }
 
-            PvfsFreePendingLock((PVOID*)&pPendingLock);
+            PvfsFreePendingLock(&pPendingLock);
             continue;
         }
 
@@ -508,7 +508,7 @@ PvfsProcessPendingLocks(
                                ByteOffset,
                                Length,
                                Flags);
-        PvfsFreePendingLock((PVOID*)&pPendingLock);
+        PvfsFreePendingLock(&pPendingLock);
         if (ntError == STATUS_PENDING) {
             continue;
         }
@@ -1221,14 +1221,13 @@ PvfsCleanPendingLockFree(
 
 VOID
 PvfsFreePendingLock(
-    PVOID *ppData
+    PPVFS_PENDING_LOCK *ppPendingLock
     )
 {
-    if (!ppData || !*ppData) {
-        return;
+    if (ppPendingLock && *ppPendingLock)
+    {
+        PVFS_FREE(ppPendingLock);
     }
-
-    PVFS_FREE(ppData);
 
     return;
 }

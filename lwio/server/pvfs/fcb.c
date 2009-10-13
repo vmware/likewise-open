@@ -143,8 +143,25 @@ PvfsFreeFCB(
     return;
 }
 
-/***********************************************************
- **********************************************************/
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static
+VOID
+PvfsFCBFreeCCB(
+PVOID *ppData
+    )
+{
+    /* This should never be called.  The CCB count has to be 0 when
+       we call PvfsFreeFCB() and hence destroy the FCB->pCcbList */
+
+    PVFS_ASSERT(FALSE);
+}
+
+
+/*****************************************************************************
+ ****************************************************************************/
 
 NTSTATUS
 PvfsAllocateFCB(
@@ -173,7 +190,7 @@ PvfsAllocateFCB(
     ntError = PvfsListInit(
                   &pFcb->pPendingLockQueue,
                   PVFS_FCB_MAX_PENDING_LOCKS,
-                  PvfsFreePendingLock);
+                  (PPVFS_LIST_FREE_DATA_FN)PvfsFreePendingLock);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Oplock pending ops queue */
@@ -181,13 +198,13 @@ PvfsAllocateFCB(
     ntError = PvfsListInit(
                   &pFcb->pOplockPendingOpsQueue,
                   PVFS_FCB_MAX_PENDING_OPERATIONS,
-                  NULL /* TODO - generic free function */);
+                  (PPVFS_LIST_FREE_DATA_FN)PvfsFreePendingOp);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsListInit(
                   &pFcb->pOplockReadyOpsQueue,
                   PVFS_FCB_MAX_PENDING_OPERATIONS,
-                  NULL /* TODO - generic free function */);
+                  (PPVFS_LIST_FREE_DATA_FN)PvfsFreePendingOp);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Oplock list and state */
@@ -196,7 +213,7 @@ PvfsAllocateFCB(
     ntError = PvfsListInit(
                   &pFcb->pOplockList,
                   0,
-                  NULL /* TODO - generic free function */);
+                  (PPVFS_LIST_FREE_DATA_FN)PvfsFreeOplockRecord);
     BAIL_ON_NT_STATUS(ntError);
 
     /* List of CCBs */
@@ -204,7 +221,7 @@ PvfsAllocateFCB(
     ntError = PvfsListInit(
                   &pFcb->pCcbList,
                   0,
-                  NULL /* TODO - generic free function */);
+                  (PPVFS_LIST_FREE_DATA_FN)PvfsFCBFreeCCB);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Miscellaneous */
