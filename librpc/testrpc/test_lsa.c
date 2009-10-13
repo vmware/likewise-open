@@ -95,7 +95,7 @@ int TestLsaOpenPolicy(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     lsa_b = CreateLsaBinding(&lsa_b, hostname);
     if (lsa_b == NULL) test_fail(("Test failed: couldn't create lsa binding\n"));
@@ -153,7 +153,7 @@ int TestLsaLookupNames(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     perr = fetch_value(options, optcount, "usernames", pt_w16string_list,
                        &usernames, &def_usernames);
@@ -327,7 +327,7 @@ int TestLsaLookupNames2(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     perr = fetch_value(options, optcount, "usernames", pt_w16string_list,
                        &usernames, &def_username);
@@ -504,7 +504,7 @@ int TestLsaLookupNames3(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     perr = fetch_value(options, optcount, "usernames", pt_w16string_list,
                        &usernames, &def_username);
@@ -673,7 +673,7 @@ int TestLsaLookupSids(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     perr = fetch_value(options, optcount, "sids", pt_sid_list, &input_sids,
                        &def_input_sids);
@@ -780,7 +780,7 @@ int TestLsaQueryInfoPolicy(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     perr = fetch_value(options, optcount, "level", pt_uint32, &level,
                        &def_level);
@@ -885,7 +885,7 @@ int TestLsaQueryInfoPolicy2(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     perr = fetch_value(options, optcount, "level", pt_uint32, &level,
                        &def_level);
@@ -1092,7 +1092,7 @@ TestLsaInfoPolicy(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     CreateLsaBinding(&hBinding, hostname);
 

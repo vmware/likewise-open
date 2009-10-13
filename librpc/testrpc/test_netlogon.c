@@ -215,7 +215,7 @@ int TestNetlogonSamLogon(struct test *t, const wchar16_t *hostname,
                        &validation_level, &def_validation_level);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     computer_name = awc16stombs(computer);
     machine_pass  = awc16stombs(machpass);
@@ -465,7 +465,7 @@ int TestNetlogonSamLogonEx(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     perr = fetch_value(options, optcount, "computer", pt_w16string, &computer,
                        &def_computer);
@@ -643,7 +643,7 @@ int TestNetlogonEnumTrustedDomains(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     perr = fetch_value(options, optcount, "server", pt_w16string, &server,
                        &def_server);
@@ -693,7 +693,7 @@ int TestNetlogonEnumDomainTrusts(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     perr = fetch_value(options, optcount, "trustflags", pt_uint32, &trustflags,
                        &def_trustflags);
@@ -738,7 +738,7 @@ int TestNetlogonGetDcName(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     perr = fetch_value(options, optcount, "getdcflags", pt_uint32, &getdcflags,
                        &def_getdcflags);

@@ -357,7 +357,7 @@ int TestNetUserAdd(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     level = 1;
     info1 = (USER_INFO_1*) malloc(sizeof(USER_INFO_1));
@@ -432,7 +432,7 @@ int TestNetUserDel(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     perr = fetch_value(options, optcount, "username", pt_w16string,
                        &username, &testusername);
@@ -472,7 +472,7 @@ int TestNetUserGetInfo(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     perr = fetch_value(options, optcount, "username", pt_w16string,
                        &username, &testusername);
@@ -523,7 +523,7 @@ int TestNetUserSetInfo(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     perr = fetch_value(options, optcount, "username", pt_w16string,
                        &username, &oldusername);
@@ -780,7 +780,7 @@ int TestNetUserChangePassword(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     perr = fetch_value(options, optcount, "username", pt_w16string,
                        &username, &defusername);
@@ -839,7 +839,7 @@ int TestNetUserLocalGroups(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     perr = fetch_value(options, optcount, "username", pt_w16string,
                        &username, &defusername);
@@ -987,7 +987,7 @@ int TestNetLocalGroupsEnum(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     resume = 0;
     maxlen = MAX_PREFERRED_LENGTH;
@@ -1071,7 +1071,7 @@ int TestNetLocalGroupAdd(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     perr = fetch_value(options, optcount, "aliasname", pt_w16string, &aliasname,
                        &def_aliasname);
@@ -1109,7 +1109,7 @@ int TestDelLocalGroup(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     perr = fetch_value(options, optcount, "aliasname", pt_w16string, &aliasname,
                        &def_aliasname);
@@ -1145,7 +1145,7 @@ int TestNetLocalGroupGetInfo(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     perr = fetch_value(options, optcount, "aliasname", pt_w16string, &aliasname,
                        &def_aliasname);
@@ -1202,7 +1202,7 @@ int TestNetLocalGroupSetInfo(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     perr = fetch_value(options, optcount, "aliasname", pt_w16string, &aliasname,
                        &def_aliasname);
@@ -1275,7 +1275,7 @@ int TestNetLocalGroupGetMembers(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     perr = fetch_value(options, optcount, "aliasname", pt_w16string, &aliasname,
                        &def_aliasname);
@@ -1445,7 +1445,7 @@ int TestNetGetDomainName(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     CALL_NETAPI(err = NetGetDomainName(hostname, &domain_name));
     if (err != 0) netapi_fail(err);

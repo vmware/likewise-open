@@ -60,22 +60,7 @@ struct test {
 };
 
 
-typedef struct user_creds {
-    int use_kerberos;
-
-    /* krb5 credentials */
-    char *principal;
-    char *ccache;
-
-    /* ntlm credentials */
-    char *username;
-    char *password;
-    char *domain;
-    char *workstation;
-
-} UserCreds;
-
-extern UserCreds *pCreds;
+extern NET_CREDS_HANDLE hCreds;
 
 
 void AddTest(struct test *ft, const char *name, test_fn function);
@@ -141,40 +126,14 @@ extern int verbose_mode;
 #define WINERR_IS_OK(err)       ((err) == ERROR_SUCCESS)
 
 
-#define SET_SESSION_CREDS_KRB5(principal, ccache)                       \
-    do {                                                                \
-        DWORD dwError = 0;                                              \
-        LW_PIO_CREDS hCreds = NULL;                        \
-        PSTR pszPrincipal = NULL;                                       \
-        PSTR pszCache = NULL;                                           \
-                                                                        \
-        pszPrincipal = (principal);                                     \
-        pszCache     = (ccache);                                        \
-                                                                        \
-        /* Set up access token */                                       \
-        dwError = LwIoCreateKrb5CredsA(pszPrincipal, pszCache,    \
-                                             &hCreds);            \
-        if (dwError) {                                                  \
-            printf("Failed to create access token\n");                  \
-            goto done;                                                  \
-        }                                                               \
-                                                                        \
-        dwError = LwIoSetThreadCreds(hCreds);               \
-        if (dwError) {                                                  \
-            printf("Failed to set access token on thread\n");           \
-            goto done;                                                  \
-        }                                                               \
-                                                                        \
-        LwIoDeleteCreds(hCreds);                            \
-                                                                        \
-    } while(0);
-
-
 #define SET_SESSION_CREDS(creds)                                        \
     do {                                                                \
-        if ((creds)->use_kerberos) {                                    \
-            SET_SESSION_CREDS_KRB5((creds)->principal,                  \
-                                   (creds)->ccache);                    \
+        DWORD dwError = ERROR_SUCCESS;                                  \
+                                                                        \
+        dwError = NetSetCredentials((creds));                           \
+        if (dwError) {                                                  \
+            printf("Failed to set user credentials\n");                 \
+            goto done;                                                  \
         }                                                               \
                                                                         \
     } while(0);
@@ -184,7 +143,7 @@ extern int verbose_mode;
     do {                                                                \
         DWORD dwError = 0;                                              \
                                                                         \
-        dwError = LwIoSetThreadCreds(NULL);                       \
+        dwError = NetSetCredentials(NULL);                              \
         if (dwError) {                                                  \
             printf("Failed to set release access token on thread\n");   \
             goto done;                                                  \
