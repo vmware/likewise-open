@@ -48,7 +48,6 @@
 #include <lw/rtlmemory.h>
 #include <lw/rtlstring.h>
 #include <lw/rbtree.h>
-#include <lw/rtlqueue.h>
 #include <lw/security-types.h>
 #include <lw/security-api.h>
 #include <lw/dscache.h>
