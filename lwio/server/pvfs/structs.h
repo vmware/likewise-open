@@ -148,7 +148,6 @@ typedef struct _PVFS_PENDING_LOCK
     PVFS_LOCK_ENTRY PendingLock;
     PPVFS_CCB pCcb;
     PPVFS_IRP_CONTEXT pIrpContext;
-    BOOLEAN bIsCancelled;
 
 } PVFS_PENDING_LOCK, *PPVFS_PENDING_LOCK;
 
@@ -371,9 +370,6 @@ struct _PVFS_IRP_CONTEXT
 
     PPVFS_FCB pFcb;
     PIRP pIrp;
-
-    /* Used to cancel a pending blocking lock */
-    PPVFS_PENDING_LOCK pPendingLock;
 };
 
 /* Used for Query/Set level handlers */

@@ -889,14 +889,103 @@ error:
 
 static
 NTSTATUS
+PvfsOplockCleanPendingOpInternal(
+    PPVFS_LIST pQueue,
+    PPVFS_IRP_CONTEXT pIrpContext
+    );
+
+static
+NTSTATUS
 PvfsOplockCleanPendingOpQueue(
     PVOID pContext
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
+    PPVFS_IRP_CONTEXT pIrpCtx = (PPVFS_IRP_CONTEXT)pContext;
+    PPVFS_FCB pFcb = PvfsReferenceFCB(pIrpCtx->pFcb);
+    BOOLEAN bLocked = FALSE;
+
+    LWIO_LOCK_MUTEX(bLocked, &pFcb->mutexOplock);
+
+    /* We have to check both the "pending" and the "ready" queues.
+       Although, it is possible that the "ready" queue processed a
+       cancelled IRP before we get to it here. */
+
+    ntError = PvfsOplockCleanPendingOpInternal(
+                  pFcb->pOplockPendingOpsQueue,
+                  pIrpCtx);
+    if (ntError != STATUS_SUCCESS)
+    {
+        ntError = PvfsOplockCleanPendingOpInternal(
+                      pFcb->pOplockReadyOpsQueue,
+                      pIrpCtx);
+    }
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    LWIO_UNLOCK_MUTEX(bLocked, &pFcb->mutexOplock);
+
+    if (pFcb)
+    {
+        PvfsReleaseFCB(pFcb);
+    }
+
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static
+NTSTATUS
+PvfsOplockCleanPendingOpInternal(
+    PPVFS_LIST pQueue,
+    PPVFS_IRP_CONTEXT pIrpContext
+    )
+{
+    NTSTATUS ntError = STATUS_NOT_FOUND;
+    PPVFS_OPLOCK_PENDING_OPERATION pOperation = NULL;
+    PLW_LIST_LINKS pOpLink = NULL;
+    PLW_LIST_LINKS pNextLink = NULL;
+
+    pOpLink = PvfsListTraverse(pQueue, NULL);
+
+    while (pOpLink)
+    {
+        pOperation = LW_STRUCT_FROM_FIELD(
+                         pOpLink,
+                         PVFS_OPLOCK_PENDING_OPERATION,
+                         PendingOpList);
+
+        pNextLink = PvfsListTraverse(pQueue, pOpLink);
+
+        if (pOperation->pIrpContext != pIrpContext)
+        {
+            pOpLink = pNextLink;
+            continue;
+        }
+
+        PvfsListRemoveItem(pQueue, pOpLink);
+        pOpLink = NULL;
+
+        pOperation->pIrpContext->pIrp->IoStatusBlock.Status = STATUS_CANCELLED;
+
+        PvfsAsyncIrpComplete(pOperation->pIrpContext);
+        PvfsFreeIrpContext(&pOperation->pIrpContext);
+
+        PvfsFreePendingOp(&pOperation);
+
+        /* Can only be one IrpContext match so we are done */
+        ntError = STATUS_SUCCESS;
+    }
 
     return ntError;
 }
+
 
 /*****************************************************************************
  ****************************************************************************/

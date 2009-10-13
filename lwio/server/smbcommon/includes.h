@@ -60,4 +60,3 @@
 
 #include "defs.h"
 #include "structs.h"
-#include "externs.h"

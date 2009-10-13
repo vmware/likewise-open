@@ -1096,7 +1096,7 @@ PvfsOplockCleanOplockQueue(
 {
     NTSTATUS ntError = STATUS_SUCCESS;
     PPVFS_IRP_CONTEXT pIrpCtx = (PPVFS_IRP_CONTEXT)pContext;
-    PPVFS_FCB pFcb = pIrpCtx->pFcb;
+    PPVFS_FCB pFcb = PvfsReferenceFCB(pIrpCtx->pFcb);
     BOOLEAN bLocked = FALSE;
     PPVFS_OPLOCK_RECORD pOplock = NULL;
     PLW_LIST_LINKS pOplockLink = NULL;
@@ -1137,6 +1137,11 @@ PvfsOplockCleanOplockQueue(
     }
 
     LWIO_UNLOCK_MUTEX(bLocked, &pFcb->mutexOplock);
+
+    if (pFcb)
+    {
+        PvfsReleaseFCB(pFcb);
+    }
 
     return ntError;
 }
@@ -1299,12 +1304,19 @@ PvfsFreePendingOp(
     {
         pPendingOp = *ppPendingOp;
 
-        pIrp = pPendingOp->pIrpContext->pIrp;
+        /* We may need to complete an IRP */
 
-        pIrp->IoStatusBlock.Status = STATUS_FILE_CLOSED;
+        if (pPendingOp->pIrpContext)
+        {
+            pIrp = pPendingOp->pIrpContext->pIrp;
 
-        PvfsAsyncIrpComplete(pPendingOp->pIrpContext);
-        PvfsFreeIrpContext(&pPendingOp->pIrpContext);
+            pIrp->IoStatusBlock.Status = STATUS_FILE_CLOSED;
+
+            PvfsAsyncIrpComplete(pPendingOp->pIrpContext);
+            PvfsFreeIrpContext(&pPendingOp->pIrpContext);
+        }
+
+        /* Release the context state */
 
         if (pPendingOp->pCompletionContext)
         {
