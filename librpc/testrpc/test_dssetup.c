@@ -97,7 +97,7 @@ CallDsrRoleGetPrimaryDomainInformation(struct test *t,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     CreateDsrBinding(&hBinding, hostname);
 

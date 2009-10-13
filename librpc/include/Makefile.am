@@ -34,6 +34,7 @@ include_HEADERS = \
 	lwrpc/LMdebug.h \
 	lwrpc/LMcrypt.h \
 	lwrpc/LMmem.h \
+	lwrpc/LMcreds.h \
 	lwrpc/krb5pac.h \
 	lwrpc/krb5pacdefs.h
 

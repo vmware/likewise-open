@@ -1128,7 +1128,7 @@ TestSamrConnect(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     CreateSamrBinding(&hBinding, hostname);
 
@@ -1141,6 +1141,7 @@ TestSamrConnect(struct test *t, const wchar16_t *hostname,
 
 done:
     FreeSamrBinding(&hBinding);
+    RELEASE_SESSION_CREDS;
 
     SAFE_FREE(pwszSysName);
 
@@ -1170,7 +1171,7 @@ TestSamrDomains(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     CreateSamrBinding(&hBinding, hostname);
 
@@ -1218,7 +1219,7 @@ TestSamrDomainsQuery(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     CreateSamrBinding(&hBinding, hostname);
 
@@ -1279,7 +1280,7 @@ TestSamrUsers(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     CreateSamrBinding(&hBinding, hostname);
 
@@ -1340,7 +1341,7 @@ TestSamrAliases(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     CreateSamrBinding(&hBinding, hostname);
 
@@ -1417,7 +1418,7 @@ int TestSamrQueryUser(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     samr_binding = CreateSamrBinding(&samr_binding, hostname);
     if (samr_binding == NULL) return -1;
@@ -1575,7 +1576,7 @@ int TestSamrQueryAlias(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     samr_binding = CreateSamrBinding(&samr_binding, hostname);
     if (samr_binding == NULL) return -1;
@@ -1727,7 +1728,7 @@ int TestSamrAlias(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     samr_binding = CreateSamrBinding(&samr_binding, hostname);
     if (samr_binding == NULL) return false;
@@ -1927,7 +1928,7 @@ int TestSamrUsersInAliases(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     samr_binding = CreateSamrBinding(&samr_binding, hostname);
     if (samr_binding == NULL) return false;
@@ -2032,7 +2033,7 @@ int TestSamrOpenDomain(struct test *t, const wchar16_t *hostname,
     PSID sid = NULL;
     wchar16_t *domainname = NULL;
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     perr = fetch_value(options, optcount, "domainname", pt_w16string,
                        &domainname, &def_domainname);
@@ -2093,7 +2094,7 @@ int TestSamrQueryDomain(struct test *t, const wchar16_t *hostname,
     DomainInfo *dominfo = NULL;
     wchar16_t *domname = NULL;
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     samr_binding = CreateSamrBinding(&samr_binding, hostname);
     if (samr_binding == NULL) return false;
@@ -2206,7 +2207,7 @@ int TestSamrEnumUsers(struct test *t, const wchar16_t *hostname,
                        &acb_flags, &def_acb_flags);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     samr_binding = CreateSamrBinding(&samr_binding, hostname);
     if (samr_binding == NULL) return false;
@@ -2379,7 +2380,7 @@ int TestSamrQueryDisplayInfo(struct test *t, const wchar16_t *hostname,
                        &def_buf_size);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     samr_binding = CreateSamrBinding(&samr_binding, hostname);
     if (samr_binding == NULL) return false;
@@ -2547,7 +2548,7 @@ int TestSamrEnumDomains(struct test *t, const wchar16_t *hostname,
                        &max_size, &def_max_size);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     samr_binding = CreateSamrBinding(&samr_binding, hostname);
     if (samr_binding == NULL) return false;
@@ -2619,7 +2620,7 @@ int TestSamrCreateUserAccount(struct test *t, const wchar16_t *hostname,
     if (!perr_is_ok(perr)) perr_fail(perr);
 
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     /*
      * Make sure there's no account with the same name already
@@ -2716,7 +2717,7 @@ int TestSamrCreateAlias(struct test *t, const wchar16_t *hostname,
                        &newaliasname, &def_aliasname);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     status = CleanupAlias(hostname, newaliasname);
     if (status != 0) rpc_fail(status);
@@ -2807,7 +2808,7 @@ int TestSamrCreateGroup(struct test *t, const wchar16_t *hostname,
                        &newgroupname, &def_groupname);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     samr_binding = CreateSamrBinding(&samr_binding, hostname);
     if (samr_binding == NULL) return false;
@@ -2923,7 +2924,7 @@ int TestSamrSetUserPassword(struct test *t, const wchar16_t *hostname,
                        &primary_gid, &def_primary_gid);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     samr_binding = CreateSamrBinding(&samr_binding, hostname);
     if (samr_binding == NULL) return false;
@@ -3035,7 +3036,7 @@ int TestSamrMultipleConnections(struct test *t, const wchar16_t *hostname,
     samr_binding1 = NULL;
     samr_binding2 = NULL;
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     samr_binding1 = CreateSamrBinding(&samr_binding1, hostname);
     if (samr_binding1 == NULL) return false;
@@ -3104,7 +3105,7 @@ int TestSamrChangeUserPassword(struct test *t, const wchar16_t *hostname,
                        &newpassword, &defnewpass);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     samr_b = CreateSamrBinding(&samr_b, hostname);
     if (samr_b == NULL) return STATUS_UNSUCCESSFUL;
@@ -3182,7 +3183,7 @@ int TestSamrEnumAliases(struct test *t, const wchar16_t *hostname,
     if (!perr_is_ok(perr)) perr_fail(perr);
 
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     samr_binding = CreateSamrBinding(&samr_binding, hostname);
     if (samr_binding == NULL) return false;
@@ -3318,7 +3319,7 @@ int TestSamrGetUserGroups(struct test *t, const wchar16_t *hostname,
     PARAM_INFO("resolvesids", pt_int32, &resolvesids);
     PARAM_INFO("resolvelevel", pt_uint32, &resolve_level);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     status = GetSamDomainSid(&domsid, hostname);
     if (status != 0) rpc_fail(status);
@@ -3532,7 +3533,7 @@ int TestSamrGetUserAliases(struct test *t, const wchar16_t *hostname,
     PARAM_INFO("resolvesids", pt_int32, &resolvesids);
     PARAM_INFO("resolvelevel", pt_uint32, &resolve_level);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     /*
      * Resolve username to sid first
@@ -3776,7 +3777,7 @@ int TestSamrQuerySecurity(struct test *t, const wchar16_t *hostname,
     PARAM_INFO("sid", pt_w16string, pwszSidStr);
     PARAM_INFO("security_info", pt_uint32, &ulSecurityInfo);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     CreateSamrBinding(&bSamr, hostname);
     if (bSamr == NULL) return false;

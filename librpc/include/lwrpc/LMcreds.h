@@ -29,22 +29,84 @@
  */
 
 /*
- * Abstract: NetAPI main header (rpc client library)
+ * Copyright (C) Likewise Software. All rights reserved.
  *
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ * Module Name:
+ *
+ *        LMcreds.h
+ *
+ * Abstract:
+ *
+ *        Network Management API (a.k.a. LanMan API) rpc client library
+ *
+ *        Session credentials handling functions
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
 
-#ifndef _LM_H_
-#define _LM_H_
+#ifndef _LM_CREDS_H_
+#define _LM_CREDS_H_
 
-#ifdef _GNU_SOURCE
-#include <lwrpc/LMErr.h>
-#endif
-#include <lwrpc/LMaccess.h>
-#include <lwrpc/LMjoin.h>
-#include <lwrpc/LMdebug.h>
-#include <lwrpc/LMcrypt.h>
-#include <lwrpc/LMmem.h>
-#include <lwrpc/LMcreds.h>
 
-#endif /* _LM_H_ */
+typedef void* NET_CREDS_HANDLE;
+
+
+NET_API_STATUS
+NetCreateKrb5CredentialsW(
+    PWSTR              pwszPrincipal,
+    PWSTR              pwszCache,
+    NET_CREDS_HANDLE  *phCreds
+    );
+
+
+NET_API_STATUS
+NetCreateKrb5CredentialsA(
+    PSTR               pszPrincipal,
+    PSTR               pszCache,
+    NET_CREDS_HANDLE  *phCreds
+    );
+
+
+NET_API_STATUS
+NetCreateNtlmCredentialsW(
+    PWSTR              pwszUsername,
+    PWSTR              pwszPassword,
+    PWSTR              pwszDomainName,
+    DWORD              dwFlags,
+    NET_CREDS_HANDLE  *phCreds
+    );
+
+
+NET_API_STATUS
+NetCreateNtlmCredentialsA(
+    PSTR               pszUsername,
+    PSTR               pszPassword,
+    PSTR               pszDomainName,
+    DWORD              dwFlags,
+    NET_CREDS_HANDLE  *phCreds
+    );
+
+
+NET_API_STATUS
+NetSetCredentials(
+    NET_CREDS_HANDLE hCreds
+    );
+
+
+VOID
+NetDeleteCredentials(
+    NET_CREDS_HANDLE *phCreds
+    );
+
+
+#endif /* _LM_CREDS_H_ */
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

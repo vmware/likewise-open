@@ -104,7 +104,7 @@ void display_usage()
 }
 
 
-UserCreds *pCreds = NULL;
+NET_CREDS_HANDLE hCreds = NULL;
 
 extern char *optarg;
 int verbose_mode;
@@ -112,6 +112,7 @@ int verbose_mode;
 
 int main(int argc, char *argv[])
 {
+    DWORD dwError = ERROR_SUCCESS;
     int i, opt, ret;
     char *testname = NULL;
     char *host = NULL;
@@ -119,7 +120,6 @@ int main(int argc, char *argv[])
     char *user = NULL;
     char *pass = NULL;
     char *dom = NULL;
-    char *wks = NULL;
     char *princ = NULL;
     char *cache = NULL;
     int krb5_auth = 1;
@@ -134,7 +134,7 @@ int main(int argc, char *argv[])
 
     verbose_mode = false;
 
-    while ((opt = getopt(argc, argv, "h:o:vu:p:d:w:r:c:k")) != -1) {
+    while ((opt = getopt(argc, argv, "h:o:vu:p:d:r:c:k")) != -1) {
         switch (opt) {
         case 'h':
             host = optarg;
@@ -150,10 +150,6 @@ int main(int argc, char *argv[])
 
         case 'd':
             dom = optarg;
-            break;
-
-        case 'w':
-            wks = optarg;
             break;
 
         case 'u':
@@ -202,73 +198,27 @@ int main(int argc, char *argv[])
     hostname = (wchar16_t*) talloc(tests, hostname_size * sizeof(wchar16_t), NULL);
     mbstowc16s(hostname, host, hostname_size);
 
-    pCreds = TNEW(NULL, UserCreds);
-    if (pCreds == NULL) {
-        printf("Failed to allocate UserCreds\n");
-        goto done;
-    }
-
-    if (user) {
-        pCreds->username = talloc(pCreds, strlen(user) + 1, NULL);
-        if (pCreds->username == NULL) {
-            printf("Failed to allocate username for user credentials\n");
+    if (user && pass) {
+        dwError = NetCreateNtlmCredentialsA(user,
+                                            pass,
+                                            dom,
+                                            0,
+                                            &hCreds);
+        if (dwError) {
+            printf("Failed to create NTLM credentials\n");
             goto done;
         }
-
-        strcpy(pCreds->username, user);
     }
 
-    if (pass) {
-        pCreds->password = talloc(pCreds, strlen(pass) + 1, NULL);
-        if (pCreds->password == NULL) {
-            printf("Failed to allocate password for user credentials\n");
+    if (princ && cache) {
+        dwError = NetCreateKrb5CredentialsA(princ,
+                                            cache,
+                                            &hCreds);
+        if (dwError) {
+            printf("Failed to create KRB5 credentials\n");
             goto done;
         }
-
-        strcpy(pCreds->password, pass);
     }
-
-    if (dom) {
-        pCreds->domain = talloc(pCreds, strlen(dom) + 1, NULL);
-        if (pCreds->domain == NULL) {
-            printf("Failed to allocate domain for user credentials\n");
-            goto done;
-        }
-
-        strcpy(pCreds->domain, dom);
-    }
-
-    if (wks) {
-        pCreds->workstation = talloc(pCreds, strlen(wks) + 1, NULL);
-        if (pCreds->workstation == NULL) {
-            printf("Failed to allocate workstation for user credentials\n");
-            goto done;
-        }
-
-        strcpy(pCreds->workstation, wks);
-    }
-
-    if (princ) {
-        pCreds->principal = talloc(pCreds, strlen(princ) + 1, NULL);
-        if (pCreds->principal == NULL) {
-            printf("Failed to allocate principal for user credentials\n");
-            goto done;
-        }
-
-        strcpy(pCreds->principal, princ);
-    }
-
-    if (cache) {
-        pCreds->ccache = talloc(pCreds, strlen(cache) + 1, NULL);
-        if (pCreds->ccache == NULL) {
-            printf("Failed to allocate credentials cache for user credentials\n");
-            goto done;
-        }
-
-        strcpy(pCreds->ccache, cache);
-    }
-
-    pCreds->use_kerberos = krb5_auth;
 
     params = get_optional_params(optional_args, &params_len);
     if ((params != NULL && params_len == 0) ||
@@ -315,6 +265,8 @@ done:
         SAFE_FREE(params[i].val);
     }
     SAFE_FREE(params);
+
+    NetDeleteCredentials(&hCreds);
 
     return 0;
 }
