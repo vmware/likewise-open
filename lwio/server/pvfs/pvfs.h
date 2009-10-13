@@ -370,7 +370,7 @@ PvfsEnforceShareMode(
 
 VOID
 PvfsFreePendingLock(
-    PVOID *ppData
+    PPVFS_PENDING_LOCK *ppPendingLock
     );
 
 VOID
@@ -490,6 +490,11 @@ PvfsFreeOplockBreakTestContext(
 NTSTATUS
 PvfsScheduleCancelOplock(
     PPVFS_IRP_CONTEXT pIrpContext
+    );
+
+VOID
+PvfsFreePendingOp(
+    PPVFS_OPLOCK_PENDING_OPERATION *ppPendingOp
     );
 
 

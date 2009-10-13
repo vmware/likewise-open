@@ -530,7 +530,9 @@ PvfsOplockBreakIfLocked(
 
         /* No break -- just continue processing */
 
-        if (BreakResult == IO_OPLOCK_NOT_BROKEN) {
+        if (BreakResult == IO_OPLOCK_NOT_BROKEN)
+        {
+            pOplockLink = PvfsListTraverse(pFcb->pOplockList, pOplockLink);
             continue;
         }
 
@@ -1285,6 +1287,44 @@ PvfsOplockIsMine(
 /*****************************************************************************
  ****************************************************************************/
 
+VOID
+PvfsFreePendingOp(
+    PPVFS_OPLOCK_PENDING_OPERATION *ppPendingOp
+    )
+{
+    PPVFS_OPLOCK_PENDING_OPERATION pPendingOp = NULL;
+    PIRP pIrp = NULL;
+
+    if (ppPendingOp && *ppPendingOp)
+    {
+        pPendingOp = *ppPendingOp;
+
+        pIrp = pPendingOp->pIrpContext->pIrp;
+
+        pIrp->IoStatusBlock.Status = STATUS_FILE_CLOSED;
+
+        PvfsAsyncIrpComplete(pPendingOp->pIrpContext);
+        PvfsFreeIrpContext(&pPendingOp->pIrpContext);
+
+        if (pPendingOp->pCompletionContext)
+        {
+            pPendingOp->pfnFreeContext(&pPendingOp->pCompletionContext);
+        }
+        else
+        {
+            PVFS_FREE(&pPendingOp->pCompletionContext);
+        }
+
+        PVFS_FREE(&pPendingOp);
+    }
+
+    return;
+}
+
+
+/*****************************************************************************
+ ****************************************************************************/
+
 static NTSTATUS
 PvfsOplockProcessReadyItems(
     PPVFS_FCB pFcb
@@ -1321,7 +1361,6 @@ PvfsOplockProcessReadyItems(
 
         LWIO_UNLOCK_MUTEX(bFcbLocked, &pFcb->mutexOplock);
 
-
         pPendingOp = LW_STRUCT_FROM_FIELD(
                          pData,
                          PVFS_OPLOCK_PENDING_OPERATION,
@@ -1331,12 +1370,16 @@ PvfsOplockProcessReadyItems(
 
         LWIO_LOCK_MUTEX(bIrpCtxLocked, &pPendingOp->pIrpContext->Mutex);
 
-        if (pPendingOp->pIrpContext->bIsCancelled) {
+        if (pPendingOp->pIrpContext->bIsCancelled)
+        {
             ntError = STATUS_CANCELLED;
-        } else {
+        }
+        else
+        {
             pPendingOp->pIrpContext->bInProgress = TRUE;
             ntError = pPendingOp->pfnCompletion(pPendingOp->pCompletionContext);
         }
+
         LWIO_UNLOCK_MUTEX(bIrpCtxLocked, &pPendingOp->pIrpContext->Mutex);
 
         if (ntError != STATUS_PENDING)
@@ -1347,9 +1390,12 @@ PvfsOplockProcessReadyItems(
             PvfsFreeIrpContext(&pPendingOp->pIrpContext);
         }
 
-        if (pPendingOp->pCompletionContext) {
+        if (pPendingOp->pCompletionContext)
+        {
             pPendingOp->pfnFreeContext(&pPendingOp->pCompletionContext);
-        } else {
+        }
+        else
+        {
             PVFS_FREE(&pPendingOp->pCompletionContext);
         }
 
