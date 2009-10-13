@@ -78,14 +78,14 @@ PvfsInitWorkerThreads(
     ntError = PvfsInitWorkQueue(
                   &gpPvfsInternalWorkQueue,
                   0, /* unlimited */
-                  (PLWRTL_QUEUE_FREE_DATA_FN)PvfsFreeWorkContext,
+                  (PPVFS_LIST_FREE_DATA_FN)PvfsFreeWorkContext,
                   TRUE);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsInitWorkQueue(
                   &gpPvfsIoWorkQueue,
                   PVFS_WORKERS_MAX_WORK_ITEMS,
-                  (PLWRTL_QUEUE_FREE_DATA_FN)PvfsFreeWorkContext,
+                  (PPVFS_LIST_FREE_DATA_FN)PvfsFreeWorkContext,
                   TRUE);
     BAIL_ON_NT_STATUS(ntError);
 
