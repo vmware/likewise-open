@@ -457,6 +457,16 @@ LwSmFreeServiceInfo(
 
 /*@}*/
 
+/**
+ * @defgroup loader Loader API
+ * @brief Loader API
+ *
+ * This module contains the API and interface definitions for writing a
+ * service loader plugin.
+ */
+
+/*@{*/
+
 #define LW_SERVICE_LOADER_INTERFACE_VERSION 1
 
 typedef struct _LW_SERVICE_OBJECT LW_SERVICE_OBJECT, *PLW_SERVICE_OBJECT;
@@ -506,5 +516,7 @@ LwSmNotifyServiceObjectStateChange(
     PLW_SERVICE_OBJECT pObject,
     LW_SERVICE_STATE newState
     );
+
+/*@}*/
 
 #endif
