@@ -13,7 +13,6 @@ lwinclude_HEADERS = \
 	base.h \
 	rtlgoto.h \
         rbtree.h \
-        rtlqueue.h \
         swab.h \
         safeint.h \
         security-types.h \
