@@ -60,7 +60,7 @@ LsaAdBatchMarshalUserInfoFixHomeDirectory(
     PSTR pszHomeDirectory = *ppszHomeDirectory;
     PSTR pszNewHomeDirectory = NULL;
 
-    if (!pszHomeDirectory)
+    if (LW_IS_NULL_OR_EMPTY_STR(pszHomeDirectory))
     {
         dwError = AD_GetUnprovisionedModeHomedirTemplate(&pszHomeDirectory);
         BAIL_ON_LSA_ERROR(dwError);
@@ -108,7 +108,7 @@ LsaAdBatchMarshalUserInfoFixShell(
     DWORD dwError = 0;
     PSTR pszShell = *ppszShell;
 
-    if (!pszShell)
+    if (LW_IS_NULL_OR_EMPTY_STR(pszShell))
     {
         dwError = AD_GetUnprovisionedModeShell(&pszShell);
         BAIL_ON_LSA_ERROR(dwError);
@@ -377,10 +377,12 @@ LsaAdBatchMarshalUserInfo(
     pObjectUserInfo->qwAccountExpires = pUserInfo->AccountExpires;
 
     // Handle shell.
+    LwStripWhitespace(pObjectUserInfo->pszShell);
     dwError = LsaAdBatchMarshalUserInfoFixShell(&pObjectUserInfo->pszShell);
     BAIL_ON_LSA_ERROR(dwError);
 
     // Handle home directory.
+    LwStripWhitespace(pObjectUserInfo->pszHomedir);
     dwError = LsaAdBatchMarshalUserInfoFixHomeDirectory(
                     &pObjectUserInfo->pszHomedir,
                     pszNetbiosDomainName,
