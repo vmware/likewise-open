@@ -280,8 +280,9 @@ struct _PVFS_FCB
 
     /* mutexOplock */
     pthread_mutex_t  mutexOplock;   /* Managing oplock lists */
-    PPVFS_LIST pOplockList;
     BOOLEAN bOplockBreakInProgress;
+
+    PPVFS_LIST pOplockList;
 
     PPVFS_LIST pOplockPendingOpsQueue;
     PPVFS_LIST pOplockReadyOpsQueue;
