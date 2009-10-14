@@ -1258,7 +1258,14 @@ AD_DsGetDcName(
                       pszDomainName,
                       pszServerName,
                       winError);
-        dwError = LW_ERROR_GET_DC_NAME_FAILED;
+        if (ERROR_NO_SUCH_DOMAIN == winError)
+        {
+            dwError = LW_ERROR_NO_SUCH_DOMAIN;
+        }
+        else
+        {
+            dwError = LW_ERROR_GET_DC_NAME_FAILED;
+        }
         if (AD_WinErrorIsConnectionError(winError))
         {
             bIsNetworkError = TRUE;
