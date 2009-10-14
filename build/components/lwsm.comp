@@ -64,6 +64,9 @@ function component_install
 
     chmod 755 ${INSTALL_ROOT}/etc/init.d/${COMP_NAME}d
 
+    install -m755 ${BUILD_ROOT}/config/init-lwsm.sh \
+        ${INSTALL_ROOT}/${PREFIXDIR}/bin
+
     rsync -a ${INSTALL_ROOT}/ ${STAGE_INSTALL_DIR}/
 
     libtool_rewrite_staging
