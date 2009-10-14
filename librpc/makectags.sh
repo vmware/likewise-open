@@ -16,7 +16,7 @@ BASE=`cd "$BASE"; pwd`
 rm -f "$BASE/tags"
 /usr/bin/ctags.emacs22 --declarations --defines --globals --typedefs-and-c++ -o "$BASE/tags" `find $BASE -name '*.h' -o -name '*.c'`
 for dir in `find "$BASE" -type d`; do
-    if echo "$dir" | grep -v \\.svn >/dev/null &&
+    if [ "$dir" != "$BASE" ] && echo "$dir" | grep -v \\.svn >/dev/null &&
 	anyfileexists "$dir"/*.h "$dir"/*.c; then
 	echo "Updating tags symlink in $dir"
 	rm -f "$dir/tags" 2>/dev/null
