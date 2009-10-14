@@ -50,17 +50,12 @@
 
 #include <uuid/uuid.h>
 #include <openssl/rc4.h>
-#include <secdesc/secapi.h>
 
-#include <lwrpc/LM.h>
 #include <lw/ntstatus.h>
 #include <lwrpc/lsa.h>
 #include <lwrpc/netlogon.h>
 #include <lwrpc/samr.h>
-#include <lwrpc/security.h>
-#include <lwrpc/lsabinding.h>
-#include <lwrpc/netlogonbinding.h>
-#include <lwrpc/LMjoin.h>
+#include <lwrpc/LM.h>
 #include <lwrpc/errcheck.h>
 
 

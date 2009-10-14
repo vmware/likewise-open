@@ -63,19 +63,6 @@ RegEnumRootKeys(
 
 REG_API
 DWORD
-RegOpenRootKey(
-    IN HANDLE hRegConnection,
-    IN PSTR pszRootKeyName,
-    OUT PHKEY phkResult
-    )
-{
-    return RegTransactOpenRootKey(hRegConnection,
-                                  pszRootKeyName,
-                                  phkResult);
-}
-
-REG_API
-DWORD
 RegCreateKeyEx(
     IN HANDLE hRegConnection,
     IN HKEY hKey,
@@ -313,7 +300,28 @@ RegGetValueW(
 
 REG_API
 DWORD
-RegOpenKeyEx(
+RegOpenKeyExA(
+    IN HANDLE hRegConnection,
+    IN HKEY hKey,
+    IN OPTIONAL PCSTR pszSubKey,
+    IN DWORD ulOptions,
+    IN REGSAM samDesired,
+    OUT PHKEY phkResult
+    )
+{
+    return RegTransactOpenKeyExA(
+        hRegConnection,
+        hKey,
+        pszSubKey,
+        ulOptions,
+        samDesired,
+        phkResult
+        );
+}
+
+REG_API
+DWORD
+RegOpenKeyExW(
     IN HANDLE hRegConnection,
     IN HKEY hKey,
     IN OPTIONAL PCWSTR pSubKey,
@@ -322,7 +330,7 @@ RegOpenKeyEx(
     OUT PHKEY phkResult
     )
 {
-    return RegTransactOpenKeyEx(
+    return RegTransactOpenKeyExW(
         hRegConnection,
         hKey,
         pSubKey,

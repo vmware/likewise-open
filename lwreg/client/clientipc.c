@@ -239,65 +239,6 @@ error:
 }
 
 DWORD
-RegTransactOpenRootKey(
-    IN HANDLE hConnection,
-    IN PSTR pszRootKeyName,
-    OUT PHKEY phkResult
-    )
-{
-    DWORD dwError = 0;
-    REG_IPC_OPEN_ROOT_KEY_REQ OpenRootKeyReq;
-    // Do not free pError
-    PREG_IPC_ERROR pError = NULL;
-    PREG_IPC_OPEN_ROOT_KEY_RESPONSE pOpenRootKeyResp = NULL;
-
-    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
-    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
-    LWMsgCall* pCall = NULL;
-
-    dwError = RegIpcAcquireCall(hConnection, &pCall);
-    BAIL_ON_REG_ERROR(dwError);
-
-    OpenRootKeyReq.pszRootKeyName = pszRootKeyName;
-
-    in.tag = REG_Q_OPEN_ROOT_KEY;
-    in.data = &OpenRootKeyReq;
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
-    BAIL_ON_REG_ERROR(dwError);
-
-    switch (out.tag)
-    {
-        case REG_R_OPEN_ROOT_KEY_SUCCESS:
-            pOpenRootKeyResp = (PREG_IPC_OPEN_ROOT_KEY_RESPONSE)out.data;
-            *phkResult = pOpenRootKeyResp->hRootKey;
-            pOpenRootKeyResp->hRootKey = NULL;
-
-            break;
-        case REG_R_OPEN_ROOT_KEY_FAILURE:
-            pError = (PREG_IPC_ERROR) out.data;
-            dwError = pError->dwError;
-            BAIL_ON_REG_ERROR(dwError);
-            break;
-        default:
-            dwError = EINVAL;
-            BAIL_ON_REG_ERROR(dwError);
-    }
-
-cleanup:
-    if (pCall)
-    {
-        lwmsg_call_destroy_params(pCall, &out);
-        lwmsg_call_release(pCall);
-    }
-
-    return dwError;
-
-error:
-    goto cleanup;
-}
-
-DWORD
 RegTransactCreateKeyEx(
     IN HANDLE hConnection,
     IN HKEY hKey,
@@ -374,10 +315,75 @@ error:
 }
 
 DWORD
-RegTransactOpenKeyEx(
+RegTransactOpenKeyExA(
     IN HANDLE hConnection,
     IN HKEY hKey,
-    IN OPTIONAL PCWSTR pSubKey,
+    IN OPTIONAL PCSTR pszSubKey,
+    IN DWORD ulOptions,
+    IN REGSAM samDesired,
+    OUT PHKEY phkResult
+    )
+{
+    DWORD dwError = 0;
+    REG_IPC_OPEN_KEYA_EX_REQ OpenKeyExReq;
+    // Do not free pError
+    PREG_IPC_ERROR pError = NULL;
+    PREG_IPC_OPEN_KEY_EX_RESPONSE pOpenKeyExResp = NULL;
+
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* pCall = NULL;
+
+    dwError = RegIpcAcquireCall(hConnection, &pCall);
+    BAIL_ON_REG_ERROR(dwError);
+
+    OpenKeyExReq.hKey = hKey;
+    OpenKeyExReq.pszSubKey = pszSubKey;
+    OpenKeyExReq.samDesired = samDesired;
+
+    in.tag = REG_Q_OPEN_KEYA_EX;
+    in.data = &OpenKeyExReq;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
+    BAIL_ON_REG_ERROR(dwError);
+
+    switch (out.tag)
+    {
+        case REG_R_OPEN_KEYA_EX_SUCCESS:
+            pOpenKeyExResp = (PREG_IPC_OPEN_KEY_EX_RESPONSE) out.data;
+
+            *phkResult = pOpenKeyExResp->hkResult;
+            pOpenKeyExResp->hkResult = NULL;
+
+            break;
+        case REG_R_OPEN_KEYA_EX_FAILURE:
+            pError = (PREG_IPC_ERROR) out.data;
+            dwError = pError->dwError;
+            BAIL_ON_REG_ERROR(dwError);
+            break;
+        default:
+            dwError = EINVAL;
+            BAIL_ON_REG_ERROR(dwError);
+    }
+
+cleanup:
+    if (pCall)
+    {
+        lwmsg_call_destroy_params(pCall, &out);
+        lwmsg_call_release(pCall);
+    }
+
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+DWORD
+RegTransactOpenKeyExW(
+    IN HANDLE hConnection,
+    IN HKEY hKey,
+    IN OPTIONAL PCWSTR pwszSubKey,
     IN DWORD ulOptions,
     IN REGSAM samDesired,
     OUT PHKEY phkResult
@@ -397,10 +403,10 @@ RegTransactOpenKeyEx(
     BAIL_ON_REG_ERROR(dwError);
 
     OpenKeyExReq.hKey = hKey;
-    OpenKeyExReq.pSubKey = pSubKey;
+    OpenKeyExReq.pSubKey = pwszSubKey;
     OpenKeyExReq.samDesired = samDesired;
 
-    in.tag = REG_Q_OPEN_KEY_EX;
+    in.tag = REG_Q_OPEN_KEYW_EX;
     in.data = &OpenKeyExReq;
 
     dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
@@ -408,14 +414,14 @@ RegTransactOpenKeyEx(
 
     switch (out.tag)
     {
-        case REG_R_OPEN_KEY_EX_SUCCESS:
+        case REG_R_OPEN_KEYW_EX_SUCCESS:
             pOpenKeyExResp = (PREG_IPC_OPEN_KEY_EX_RESPONSE) out.data;
 
             *phkResult = pOpenKeyExResp->hkResult;
             pOpenKeyExResp->hkResult = NULL;
 
             break;
-        case REG_R_OPEN_KEY_EX_FAILURE:
+        case REG_R_OPEN_KEYW_EX_FAILURE:
             pError = (PREG_IPC_ERROR) out.data;
             dwError = pError->dwError;
             BAIL_ON_REG_ERROR(dwError);

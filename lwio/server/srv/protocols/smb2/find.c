@@ -195,7 +195,7 @@ SrvProcessFind_SMB_V2(
                     ulBytesAvailable,
                     COM2_FIND,
                     0,
-                    1,
+                    pSmbRequest->pHeader->usCredits,
                     pSmbRequest->pHeader->ulPid,
                     pSmbRequest->pHeader->ullCommandSequence,
                     pTree->ulTid,

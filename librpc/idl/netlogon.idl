@@ -9,8 +9,8 @@ interface netlogon
 
 cpp_quote("#ifdef DCERPC_STUB_BUILD")
 
+#include <lw/security-types.h>
 #include <lwrpc/types.h>
-#include <security.idl>
 #include <lwrpc/unistrdef.h>
 #include <lwrpc/rid.h>
 #include <lwrpc/netrdefs.h>

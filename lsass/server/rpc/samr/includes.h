@@ -71,7 +71,6 @@
 
 #include "samr_cfg.h"
 #include "samr_srv.h"
-#include <secdesc/sectypes.h>
 #include "samrdefs.h"
 #include "samr_contexthandle.h"
 #include "samr_memory.h"

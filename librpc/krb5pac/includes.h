@@ -32,6 +32,7 @@
 
 #include <dce/rpc.h>
 #include <dce/idlddefs.h>
+#include <lw/security-types.h>
 
 #include <lwrpc/types.h>
 #include <lwrpc/unistrdef.h>

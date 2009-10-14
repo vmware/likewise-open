@@ -763,7 +763,7 @@ AC_ARG_ENABLE([profiling],
 
 CPPFLAGS="$CPPFLAGS -D_REENTRANT"
 
-AM_CPPFLAGS="$AM_CPPFLAGS -I${top_srcdir}/include"
+AM_CPPFLAGS="$AM_CPPFLAGS -I\$(top_srcdir)/include"
 AM_CFLAGS="$AM_CFLAGS -Wall -Werror -fno-strict-aliasing"
 
 AC_SUBST(AM_CPPFLAGS)

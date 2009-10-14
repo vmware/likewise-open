@@ -163,36 +163,10 @@ error:
 }
 
 DWORD
-RegSrvOpenRootKey(
-    IN HANDLE Handle,
-    IN PSTR pszRootKeyName,
-    OUT PHKEY phkResult
-    )
-{
-    DWORD dwError = 0;
-
-    if (!RegSrvCheckAccessRight(Handle, REG_READ))
-    {
-        dwError = LW_ERROR_ACCESS_DENIED;
-        BAIL_ON_REG_ERROR(dwError);
-    }
-
-    dwError = gpRegProvider->pfnRegSrvOpenRootKey(
-                        Handle,
-                        pszRootKeyName,
-                        phkResult);
-    BAIL_ON_REG_ERROR(dwError);
-
-
-error:
-    return dwError;
-}
-
-DWORD
-RegSrvOpenKeyEx(
+RegSrvOpenKeyExW(
     IN HANDLE Handle,
     IN HKEY hKey,
-    IN OPTIONAL PCWSTR pSubKey,
+    IN OPTIONAL PCWSTR pwszSubKey,
     IN DWORD ulOptions,
     IN REGSAM samDesired,
     OUT PHKEY phkResult
@@ -206,10 +180,42 @@ RegSrvOpenKeyEx(
         BAIL_ON_REG_ERROR(dwError);
     }
 
-    dwError = gpRegProvider->pfnRegSrvOpenKeyEx(
+    dwError = gpRegProvider->pfnRegSrvOpenKeyExW(
                                  Handle,
                                  hKey,
-                                 pSubKey,
+                                 pwszSubKey,
+                                 ulOptions,
+                                 samDesired,
+                                 phkResult);
+    BAIL_ON_REG_ERROR(dwError);
+
+
+error:
+    return dwError;
+}
+
+DWORD
+RegSrvOpenKeyExA(
+    IN HANDLE Handle,
+    IN HKEY hKey,
+    IN OPTIONAL PCSTR pszSubKey,
+    IN DWORD ulOptions,
+    IN REGSAM samDesired,
+    OUT PHKEY phkResult
+    )
+{
+    DWORD dwError = 0;
+
+    if (!RegSrvCheckAccessRight(Handle, REG_READ))
+    {
+        dwError = LW_ERROR_ACCESS_DENIED;
+        BAIL_ON_REG_ERROR(dwError);
+    }
+
+    dwError = gpRegProvider->pfnRegSrvOpenKeyExA(
+                                 Handle,
+                                 hKey,
+                                 pszSubKey,
                                  ulOptions,
                                  samDesired,
                                  phkResult);

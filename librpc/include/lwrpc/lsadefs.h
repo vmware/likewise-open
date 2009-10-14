@@ -39,8 +39,6 @@
 
 #include <lwrpc/types.h>
 #include <lwrpc/unistrdef.h>
-#include <secdesc/sectypes.h>
-#include <lwrpc/unistrdef.h>
 
 
 #define LSA_LOOKUP_NAMES_ALL                   1
@@ -63,6 +61,18 @@
 #define LSA_ACCESS_VIEW_SYS_AUDIT_REQS         0x00000002
 #define LSA_ACCESS_VIEW_POLICY_INFO            0x00000001
 
+
+typedef struct _object_attribute {
+    ULONG len;
+    PBYTE root_dir;
+#ifdef _DCE_IDL_
+    [string]
+#endif
+    PWSTR object_name;
+    ULONG attributes;
+    PBYTE sec_desc;
+    PSECURITY_QUALITY_OF_SERVICE sec_qos;
+} ObjectAttribute;
 
 typedef struct audit_log_info {
     uint32 percent_full;
@@ -125,6 +135,14 @@ typedef struct audit_full_query_info {
     uint8 shutdown_on_full;
     uint8 log_is_full;
 } AuditFullQueryInfo;
+
+typedef struct _guid {
+    UINT32 time_low;
+    UINT16 time_mid;
+    UINT16 time_hi_and_version;
+    UINT8  clock_seq[2];
+    UINT8  node[6];
+} Guid;
 
 typedef struct dns_domain_info {
     UnicodeStringEx name;
@@ -280,6 +298,21 @@ typedef struct translated_name_array2 {
 #endif
     TranslatedName2 *names;
 } TranslatedNameArray2;
+
+typedef struct _sid_ptr {
+    PSID sid;
+} SidPtr;
+
+typedef struct _sid_array {
+#ifdef _DCE_IDL_
+    [range(0,1000)]
+#endif
+    ULONG num_sids;
+#ifdef _DCE_IDL_
+    [size_is(num_sids)]
+#endif
+    SidPtr* sids;
+} SidArray;
 
 
 typedef

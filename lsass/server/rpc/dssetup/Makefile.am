@@ -40,8 +40,8 @@ libdssetup_la_LIBADD = \
     $(LIBUNISTR_LIBS)                     \
     $(LWBASE_LIBS)                        \
     $(NETLOGON_LIBS)                      \
-    $(srv_srcdir)/api/liblsaserverapi.la  \
-    $(srv_srcdir)/store/dsapi/libdsapi.la
+    $(top_builddir)/server/api/liblsaserverapi.la  \
+    $(top_builddir)/server/store/dsapi/libdsapi.la
 
 libdssetup_ss_la_SOURCES = \
     dssetup_sstub.c
@@ -67,5 +67,5 @@ CLEAN_FILES = dssetup_cstub.c dssetup_sstub.c dssetup_h.h
 BUILT_SOURCES = dssetup_h.h
 
 dssetup_sstub.c dssetup_cstub.c dssetup_h.h: $(idl_srcdir)/dssetup.idl dssetup.acf
-	$(IDL) $(IDLFLAGS) -keep c_source -header dssetup_h.h -I$(idl_srcdir) \
+	$(IDL) $(IDLFLAGS) -keep c_source -header dssetup_h.h -I$(srcdir) -I$(idl_srcdir) \
 		$(DCEIDL_PASS_INCLUDES) $<

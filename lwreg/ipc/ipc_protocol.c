@@ -151,30 +151,6 @@ static LWMsgTypeSpec gRegCreateKeyExSpec[] =
     LWMSG_TYPE_END
 };
 
-static LWMsgTypeSpec gRegOpenRootKeySpec[] =
-{
-    //PSTR pszRootKeyName;
-
-    LWMSG_STRUCT_BEGIN(REG_IPC_OPEN_ROOT_KEY_REQ),
-
-    LWMSG_MEMBER_PSTR(REG_IPC_OPEN_ROOT_KEY_REQ, pszRootKeyName),
-    LWMSG_STRUCT_END,
-    LWMSG_TYPE_END
-};
-
-static LWMsgTypeSpec gRegOpenRootKeyRespSpec[] =
-{
-    // OUT HKEY hkResult,
-
-    LWMSG_STRUCT_BEGIN(REG_IPC_OPEN_ROOT_KEY_RESPONSE),
-
-    LWMSG_MEMBER_HANDLE(REG_IPC_OPEN_ROOT_KEY_RESPONSE, hRootKey, HKEY),
-    LWMSG_ATTR_HANDLE_LOCAL_FOR_SENDER,
-
-    LWMSG_STRUCT_END,
-    LWMSG_TYPE_END
-};
-
 static LWMsgTypeSpec gRegCreateKeyExRespSpec[] =
 {
     // OUT HKEY hkResult,
@@ -529,6 +505,25 @@ static LWMsgTypeSpec gRegGetValueRespSpec[] =
 
 /******************************************************************************/
 
+static LWMsgTypeSpec gRegOpenKeyAExSpec[] =
+{
+    // HKEY hKey;
+    // PCSTR pszSubKey;
+    // REGSAM samDesired;
+
+    LWMSG_STRUCT_BEGIN(REG_IPC_OPEN_KEYA_EX_REQ),
+
+    LWMSG_MEMBER_HANDLE(REG_IPC_OPEN_KEYA_EX_REQ, hKey, HKEY),
+    LWMSG_ATTR_HANDLE_LOCAL_FOR_RECEIVER,
+
+    LWMSG_MEMBER_PSTR(REG_IPC_OPEN_KEYA_EX_REQ, pszSubKey),
+
+    LWMSG_MEMBER_UINT32(REG_IPC_OPEN_KEYA_EX_REQ, samDesired),
+
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
+
 static LWMsgTypeSpec gRegOpenKeyExSpec[] =
 {
     // HKEY hKey;
@@ -773,12 +768,12 @@ static LWMsgProtocolSpec gRegIPCSpec[] =
     LWMSG_MESSAGE(REG_Q_ENUM_ROOT_KEYS, NULL),
     LWMSG_MESSAGE(REG_R_ENUM_ROOT_KEYS_SUCCESS, gRegEnumRootKeysRespSpec),
     LWMSG_MESSAGE(REG_R_ENUM_ROOT_KEYS_FAILURE, gRegIPCErrorSpec),
-    LWMSG_MESSAGE(REG_Q_OPEN_ROOT_KEY, gRegOpenRootKeySpec),
-    LWMSG_MESSAGE(REG_R_OPEN_ROOT_KEY_SUCCESS, gRegOpenRootKeyRespSpec),
-    LWMSG_MESSAGE(REG_R_OPEN_ROOT_KEY_FAILURE, gRegIPCErrorSpec),
-    LWMSG_MESSAGE(REG_Q_OPEN_KEY_EX, gRegOpenKeyExSpec),
-    LWMSG_MESSAGE(REG_R_OPEN_KEY_EX_SUCCESS, gRegOpenKeyExRespSpec),
-    LWMSG_MESSAGE(REG_R_OPEN_KEY_EX_FAILURE, gRegIPCErrorSpec),
+    LWMSG_MESSAGE(REG_Q_OPEN_KEYA_EX, gRegOpenKeyAExSpec),
+    LWMSG_MESSAGE(REG_R_OPEN_KEYA_EX_SUCCESS, gRegOpenKeyExRespSpec),
+    LWMSG_MESSAGE(REG_R_OPEN_KEYA_EX_FAILURE, gRegIPCErrorSpec),
+    LWMSG_MESSAGE(REG_Q_OPEN_KEYW_EX, gRegOpenKeyExSpec),
+    LWMSG_MESSAGE(REG_R_OPEN_KEYW_EX_SUCCESS, gRegOpenKeyExRespSpec),
+    LWMSG_MESSAGE(REG_R_OPEN_KEYW_EX_FAILURE, gRegIPCErrorSpec),
     LWMSG_MESSAGE(REG_Q_CREATE_KEY_EX, gRegCreateKeyExSpec),
     LWMSG_MESSAGE(REG_R_CREATE_KEY_EX_SUCCESS, gRegCreateKeyExRespSpec),
     LWMSG_MESSAGE(REG_R_CREATE_KEY_EX_FAILURE, gRegIPCErrorSpec),

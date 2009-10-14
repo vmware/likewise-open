@@ -214,13 +214,6 @@ RegEnumRootKeys(
     );
 
 DWORD
-RegOpenRootKey(
-    IN HANDLE hRegConnection,
-    IN PSTR pszRootKeyName,
-    OUT PHKEY phkResult
-    );
-
-DWORD
 RegCreateKeyEx(
     HANDLE hRegConnection,
     HKEY hKey,
@@ -333,10 +326,20 @@ RegGetValueW(
     );
 
 DWORD
-RegOpenKeyEx(
+RegOpenKeyExA(
     HANDLE hRegConnection,
     HKEY hKey,
-    PCWSTR pSubKey,
+    PCSTR pszSubKey,
+    DWORD ulOptions,
+    REGSAM samDesired,
+    PHKEY phkResult
+    );
+
+DWORD
+RegOpenKeyExW(
+    HANDLE hRegConnection,
+    HKEY hKey,
+    PCWSTR pwszSubKey,
     DWORD ulOptions,
     REGSAM samDesired,
     PHKEY phkResult
@@ -422,6 +425,9 @@ RegSetValueExW(
     RegQueryValueExW(hRegConnection, hKey, pValueName, pReserved, pType, pData, pcbData)
 #define RegSetValueEx(hRegConnection, hKey, pValueName, Reserved, dwType, pData, cbData) \
     RegSetValueExW(hRegConnection, hKey, pValueName, Reserved, dwType, pData, cbData)
+#define RegOpenKeyEx(hRegConnection, hKey, pSubKey, ulOptions, samDesired, phkResult) \
+    RegOpenKeyExW(hRegConnection, hKey, pwszSubKey, ulOptions, samDesired, phkResult)
+
 #else
 #define RegEnumValue(hRegConnection, hKey, dwIndex, pValueName, pcchValueName, pReserved, pType, pData, pcbData) \
     RegEnumValueA(hRegConnection, hKey, dwIndex, pValueName, pcchValueName, pReserved, pType, pData, pcbData)
@@ -431,6 +437,8 @@ RegSetValueExW(
     RegQueryValueExA(hRegConnection, hKey, pValueName, pReserved, pType, pData, pcbData)
 #define RegSetValueEx(hRegConnection, hKey, pValueName, Reserved, dwType, pData, cbData) \
     RegSetValueExA(hRegConnection, hKey, pValueName, Reserved, dwType, pData, cbData)
+#define RegOpenKeyEx(hRegConnection, hKey, pSubKey, ulOptions, samDesired, phkResult) \
+    RegOpenKeyExA(hRegConnection, hKey, pszSubKey, ulOptions, samDesired, phkResult)
 #endif
 
 #endif /* __REG_H__ */

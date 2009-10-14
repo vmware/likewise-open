@@ -50,7 +50,6 @@
 #include <wc16printf.h>
 #include <gssapi/gssapi.h>
 #include <keytab.h>
-#include <secdesc/secapi.h>
 #include <dce/rpc.h>
 #include <dce/smb.h>
 #include <lw/ntstatus.h>

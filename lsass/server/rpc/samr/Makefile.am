@@ -81,9 +81,9 @@ libsamr_la_LIBADD = \
     $(LWBASE_LIBS)                        \
     $(LWADVAPI_LIBS)                      \
     $(NETLOGON_LIBS)                      \
-    $(srv_srcdir)/api/liblsaserverapi.la  \
-    $(srv_srcdir)/store/dsapi/libdsapi.la \
-    $(top_srcdir)/common/liblsacommon.la
+    $(top_builddir)/server/api/liblsaserverapi.la  \
+    $(top_builddir)/server/store/dsapi/libdsapi.la \
+    $(top_builddir)/common/liblsacommon.la
 
 
 libsamr_ss_la_SOURCES = \
@@ -111,5 +111,5 @@ CLEAN_FILES = samr_cstub.c samr_sstub.c samr_h.h
 BUILT_SOURCES = samr_h.h
 
 samr_sstub.c samr_cstub.c samr_h.h: $(idl_srcdir)/samr.idl samr.acf
-	$(IDL) $(IDLFLAGS) -keep c_source -header samr_h.h -I$(idl_srcdir) \
+	$(IDL) $(IDLFLAGS) -keep c_source -header samr_h.h -I$(srcdir) -I$(idl_srcdir) \
                 $(DCEIDL_PASS_INCLUDES) $<

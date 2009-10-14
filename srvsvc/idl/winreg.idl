@@ -32,7 +32,6 @@ interface winreg
 cpp_quote("#ifdef DCERPC_STUB_BUILD")
 
 #include <lwrpc/types.h>
-#include <security.idl>
 #include <srvsvc/winregdefs.h>
 
     cpp_quote("#ifndef __WINREG_IDL__")

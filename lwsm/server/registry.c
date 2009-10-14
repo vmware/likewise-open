@@ -95,10 +95,16 @@ LwSmRegistryEnumServices(
 
     dwError = LwMbsToWc16s(pszServicesKeyName + 1, &pwszParentPath);
 
-    dwError = RegOpenRootKey(hReg, LIKEWISE_ROOT_KEY, &pRootKey);
+    dwError = RegOpenKeyExA(
+            hReg,
+            NULL,
+            LIKEWISE_ROOT_KEY,
+            0,
+            0,
+            &pRootKey);
     BAIL_ON_ERROR(dwError);
 
-    dwError = RegOpenKeyEx(hReg, pRootKey, pwszParentPath, 0, 0, &pParentKey);
+    dwError = RegOpenKeyExW(hReg, pRootKey, pwszParentPath, 0, 0, &pParentKey);
     BAIL_ON_ERROR(dwError);
 
     dwError = RegQueryInfoKey(
@@ -209,7 +215,13 @@ LwSmRegistryReadServiceInfo(
     dwError = LwMbsToWc16s(pszParentKey, &pwszParentKey);
     BAIL_ON_ERROR(dwError);
 
-    dwError = RegOpenRootKey(hReg, LIKEWISE_ROOT_KEY, &pRootKey);
+    dwError = RegOpenKeyExA(
+            hReg,
+            NULL,
+            LIKEWISE_ROOT_KEY,
+            0,
+            0,
+            &pRootKey);
     BAIL_ON_ERROR(dwError);
 
     dwError = LwAllocateMemory(sizeof(*pInfo), OUT_PPVOID(&pInfo));

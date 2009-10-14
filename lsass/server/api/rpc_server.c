@@ -416,8 +416,8 @@ LsaRpcReadRegistry(
     BAIL_ON_INVALID_POINTER(ppRpcSrvStack);
 
     dwError = LsaOpenConfig(
-                "Services\\lsass\\Parameters\\RpcServers",
-                "Policy\\Services\\lsass\\Parameters\\RpcServers",
+                "Services\\lsass\\Parameters\\RPCServers",
+                "Policy\\Services\\lsass\\Parameters\\RPCServers",
                 &pReg);
     BAIL_ON_LSA_ERROR(dwError);
 

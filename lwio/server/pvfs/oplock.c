@@ -132,6 +132,8 @@ PvfsOplockRequest(
 
     /* Successful grant so pend the resulit now */
 
+    pCcb->OplockState = PVFS_OPLOCK_STATE_GRANTED;
+
     pIrpContext->pFcb = PvfsReferenceFCB(pCcb->pFcb);
     pIrpContext->QueueType = PVFS_QUEUE_TYPE_OPLOCK;
 
@@ -178,11 +180,7 @@ PvfsOplockBreakAck(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PPVFS_CCB pCcb = NULL;
     PPVFS_FCB pFcb = NULL;
-    PLW_LIST_LINKS pData = NULL;
     PIO_FSCTL_OPLOCK_BREAK_ACK_INPUT_BUFFER pOplockBreakResp = NULL;
-    BOOLEAN bCcbLocked = FALSE;
-    BOOLEAN bFcbLocked = FALSE;
-    PPVFS_WORK_CONTEXT pWorkCtx = NULL;
     ULONG OutputBufLen = *pOutputBufferLength;
 
     /* Sanity checks */
@@ -208,9 +206,10 @@ PvfsOplockBreakAck(
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    if (!pCcb->bOplockBreakInProgress) {
+    if (pCcb->OplockState != PVFS_OPLOCK_STATE_BREAK_IN_PROGRESS)
+    {
         ntError = STATUS_INVALID_OPLOCK_PROTOCOL;
-        PVFS_ASSERT(pCcb->bOplockBreakInProgress);
+        PVFS_ASSERT(pCcb->OplockState == PVFS_OPLOCK_STATE_BREAK_IN_PROGRESS);
         BAIL_ON_NT_STATUS(ntError);
     }
 
@@ -229,6 +228,8 @@ PvfsOplockBreakAck(
             case STATUS_SUCCESS:
                 pIrpContext->pFcb = PvfsReferenceFCB(pFcb);
                 pIrpContext->QueueType = PVFS_QUEUE_TYPE_OPLOCK;
+                PVFS_ASSERT(pCcb->OplockState == PVFS_OPLOCK_STATE_NONE);
+                pCcb->OplockState = PVFS_OPLOCK_STATE_GRANTED;
 
                 PvfsIrpMarkPending(
                     pIrpContext,
@@ -270,10 +271,48 @@ PvfsOplockBreakAck(
         break;
     }
 
+    ntError = PvfsOplockMarkPendedOpsReady(pFcb, pCcb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    *pOutputBufferLength = sizeof(IO_FSCTL_OPLOCK_BREAK_ACK_OUTPUT_BUFFER);
+
+cleanup:
+    if (pIrpContext->bIsPended == TRUE)
+    {
+        ntError = STATUS_PENDING;
+    }
+
+    if (pCcb)
+    {
+        PvfsReleaseCCB(pCcb);
+    }
+
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+
+/*****************************************************************************
+ ****************************************************************************/
+
+NTSTATUS
+PvfsOplockMarkPendedOpsReady(
+    PPVFS_FCB pFcb,
+    PPVFS_CCB pCcb
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PLW_LIST_LINKS pData = NULL;
+    BOOLEAN bCcbLocked = FALSE;
+    BOOLEAN bFcbLocked = FALSE;
+    PPVFS_WORK_CONTEXT pWorkCtx = NULL;
+
     /* Reset oplock break state variables */
 
     LWIO_LOCK_MUTEX(bCcbLocked, &pCcb->ControlBlock);
-    pCcb->bOplockBreakInProgress = FALSE;
+    pCcb->OplockState = PVFS_OPLOCK_STATE_NONE;
     pCcb->OplockBreakResult = 0;
     LWIO_UNLOCK_MUTEX(bCcbLocked, &pCcb->ControlBlock);
 
@@ -318,20 +357,8 @@ PvfsOplockBreakAck(
     ntError = PvfsAddWorkItem(gpPvfsIoWorkQueue, (PVOID)pWorkCtx);
     BAIL_ON_NT_STATUS(ntError);
 
-    *pOutputBufferLength = sizeof(IO_FSCTL_OPLOCK_BREAK_ACK_OUTPUT_BUFFER);
-
 cleanup:
     LWIO_UNLOCK_MUTEX(bFcbLocked, &pFcb->mutexOplock);
-
-    if (pIrpContext->bIsPended == TRUE)
-    {
-        ntError = STATUS_PENDING;
-    }
-
-    if (pCcb)
-    {
-        PvfsReleaseCCB(pCcb);
-    }
 
     return ntError;
 
@@ -431,9 +458,10 @@ PvfsOplockBreakIfLocked(
        and should be give full access without blocking or retriggering another
        round of break prcessing.  Since We only set the OplockBreakInProgress
        flag when breaking a batch/level1 oplock, if the CCB's own
-       bOplockBreakInProgress flag is set, then we assume that it is in fact
-       this handle that matches.  The alternative solution is to store a
-       pointer to the associated "breaking" CCBs in the FCB and compare handles.
+       PVFS_OPLOCK_STATE_BREAK_IN_PROGRESS flag is set, then we assume that
+       it is in fact this handle that matches.  The alternative solution
+       is to store a pointer to the associated "breaking" CCBs in the FCB
+       and compare handles.
 
        PS: Lock requests were seen during the oplock break processing using
        MS PowerPoint 2007.
@@ -441,7 +469,7 @@ PvfsOplockBreakIfLocked(
 
     if (pFcb->bOplockBreakInProgress)
     {
-        if (pCcb->bOplockBreakInProgress == TRUE)
+        if (pCcb->OplockState == PVFS_OPLOCK_STATE_BREAK_IN_PROGRESS)
         {
             ntError = STATUS_SUCCESS;
         }
@@ -737,7 +765,8 @@ PvfsOplockBreakOnCreate(
         }
 
         LWIO_LOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
-        pOplock->pCcb->bOplockBreakInProgress = TRUE;
+        PVFS_ASSERT(pOplock->pCcb->OplockState == PVFS_OPLOCK_STATE_GRANTED);
+        pOplock->pCcb->OplockState = PVFS_OPLOCK_STATE_BREAK_IN_PROGRESS;
         pOplock->pCcb->OplockBreakResult = BreakResult;
         LWIO_UNLOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
 
@@ -753,6 +782,13 @@ PvfsOplockBreakOnCreate(
         case FILE_OVERWRITE:
         case FILE_OVERWRITE_IF:
             BreakResult = IO_OPLOCK_BROKEN_TO_NONE;
+
+            LWIO_LOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
+            PVFS_ASSERT(pOplock->pCcb->OplockState == PVFS_OPLOCK_STATE_GRANTED);
+            pOplock->pCcb->OplockState = PVFS_OPLOCK_STATE_NONE;
+            pOplock->pCcb->OplockBreakResult = BreakResult;
+            LWIO_UNLOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
+
             break;
 
         default:
@@ -812,16 +848,22 @@ PvfsOplockBreakOnRead(
     {
     case IO_OPLOCK_REQUEST_OPLOCK_BATCH:
     case IO_OPLOCK_REQUEST_OPLOCK_LEVEL_1:
-        BreakResult = IO_OPLOCK_BROKEN_TO_NONE;
+        /* Don't break our own lock */
+        if (!PvfsOplockIsMine(pCcb, pOplock))
+        {
+            BreakResult = IO_OPLOCK_BROKEN_TO_NONE;
 
-        LWIO_LOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
-        pOplock->pCcb->bOplockBreakInProgress = TRUE;
-        pOplock->pCcb->OplockBreakResult = BreakResult;
-        LWIO_UNLOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
+            LWIO_LOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
+            PVFS_ASSERT(pOplock->pCcb->OplockState == PVFS_OPLOCK_STATE_GRANTED);
+            pOplock->pCcb->OplockState = PVFS_OPLOCK_STATE_BREAK_IN_PROGRESS;
+            pOplock->pCcb->OplockBreakResult = BreakResult;
+            LWIO_UNLOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
 
-        pFcb->bOplockBreakInProgress = TRUE;
+            pFcb->bOplockBreakInProgress = TRUE;
 
-        ntError = STATUS_PENDING;
+            ntError = STATUS_PENDING;
+        }
+
         break;
 
     case IO_OPLOCK_REQUEST_OPLOCK_LEVEL_2:
@@ -874,11 +916,13 @@ PvfsOplockBreakOnWrite(
     case IO_OPLOCK_REQUEST_OPLOCK_BATCH:
     case IO_OPLOCK_REQUEST_OPLOCK_LEVEL_1:
         /* Don't break our own lock */
-        if (!PvfsOplockIsMine(pCcb, pOplock)) {
+        if (!PvfsOplockIsMine(pCcb, pOplock))
+        {
             BreakResult = IO_OPLOCK_BROKEN_TO_NONE;
 
             LWIO_LOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
-            pOplock->pCcb->bOplockBreakInProgress = TRUE;
+            PVFS_ASSERT(pOplock->pCcb->OplockState == PVFS_OPLOCK_STATE_GRANTED);
+            pOplock->pCcb->OplockState = PVFS_OPLOCK_STATE_BREAK_IN_PROGRESS;
             pOplock->pCcb->OplockBreakResult = BreakResult;
             LWIO_UNLOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
 
@@ -890,6 +934,13 @@ PvfsOplockBreakOnWrite(
 
     case IO_OPLOCK_REQUEST_OPLOCK_LEVEL_2:
         BreakResult = IO_OPLOCK_BROKEN_TO_NONE;
+
+        LWIO_LOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
+        PVFS_ASSERT(pOplock->pCcb->OplockState == PVFS_OPLOCK_STATE_GRANTED);
+        pOplock->pCcb->OplockState = PVFS_OPLOCK_STATE_NONE;
+        pOplock->pCcb->OplockBreakResult = BreakResult;
+        LWIO_UNLOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
+
         ntError = STATUS_SUCCESS;
         break;
 
@@ -937,11 +988,13 @@ PvfsOplockBreakOnLockControl(
     case IO_OPLOCK_REQUEST_OPLOCK_BATCH:
     case IO_OPLOCK_REQUEST_OPLOCK_LEVEL_1:
         /* Don't break our own lock */
-        if (!PvfsOplockIsMine(pCcb, pOplock)) {
+        if (!PvfsOplockIsMine(pCcb, pOplock))
+        {
             BreakResult = IO_OPLOCK_BROKEN_TO_NONE;
 
             LWIO_LOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
-            pOplock->pCcb->bOplockBreakInProgress = TRUE;
+            PVFS_ASSERT(pOplock->pCcb->OplockState == PVFS_OPLOCK_STATE_GRANTED);
+            pOplock->pCcb->OplockState = PVFS_OPLOCK_STATE_BREAK_IN_PROGRESS;
             pOplock->pCcb->OplockBreakResult = BreakResult;
             LWIO_UNLOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
 
@@ -953,6 +1006,13 @@ PvfsOplockBreakOnLockControl(
 
     case IO_OPLOCK_REQUEST_OPLOCK_LEVEL_2:
         BreakResult = IO_OPLOCK_BROKEN_TO_NONE;
+
+        LWIO_LOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
+        PVFS_ASSERT(pOplock->pCcb->OplockState == PVFS_OPLOCK_STATE_GRANTED);
+        pOplock->pCcb->OplockState = PVFS_OPLOCK_STATE_NONE;
+        pOplock->pCcb->OplockBreakResult = BreakResult;
+        LWIO_UNLOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
+
         ntError = STATUS_SUCCESS;
         break;
 
@@ -1000,11 +1060,13 @@ PvfsOplockBreakOnSetFileInformation(
     case IO_OPLOCK_REQUEST_OPLOCK_BATCH:
     case IO_OPLOCK_REQUEST_OPLOCK_LEVEL_1:
         /* Don't break our own lock */
-        if (!PvfsOplockIsMine(pCcb, pOplock)) {
+        if (!PvfsOplockIsMine(pCcb, pOplock))
+        {
             BreakResult = IO_OPLOCK_BROKEN_TO_NONE;
 
             LWIO_LOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
-            pOplock->pCcb->bOplockBreakInProgress = TRUE;
+            PVFS_ASSERT(pOplock->pCcb->OplockState == PVFS_OPLOCK_STATE_GRANTED);
+            pOplock->pCcb->OplockState = PVFS_OPLOCK_STATE_BREAK_IN_PROGRESS;
             pOplock->pCcb->OplockBreakResult = BreakResult;
             LWIO_UNLOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
 
@@ -1016,6 +1078,13 @@ PvfsOplockBreakOnSetFileInformation(
 
     case IO_OPLOCK_REQUEST_OPLOCK_LEVEL_2:
         BreakResult = IO_OPLOCK_BROKEN_TO_NONE;
+
+        LWIO_LOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
+        PVFS_ASSERT(pOplock->pCcb->OplockState == PVFS_OPLOCK_STATE_GRANTED);
+        pOplock->pCcb->OplockState = PVFS_OPLOCK_STATE_NONE;
+        pOplock->pCcb->OplockBreakResult = BreakResult;
+        LWIO_UNLOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
+
         ntError = STATUS_SUCCESS;
         break;
 
@@ -1097,12 +1166,13 @@ PvfsOplockCleanOplockQueue(
     NTSTATUS ntError = STATUS_SUCCESS;
     PPVFS_IRP_CONTEXT pIrpCtx = (PPVFS_IRP_CONTEXT)pContext;
     PPVFS_FCB pFcb = PvfsReferenceFCB(pIrpCtx->pFcb);
-    BOOLEAN bLocked = FALSE;
+    BOOLEAN bFcbLocked = FALSE;
+    BOOLEAN bCcbLocked= FALSE;
     PPVFS_OPLOCK_RECORD pOplock = NULL;
     PLW_LIST_LINKS pOplockLink = NULL;
     PLW_LIST_LINKS pNextLink = NULL;
 
-    LWIO_LOCK_MUTEX(bLocked, &pFcb->mutexOplock);
+    LWIO_LOCK_MUTEX(bFcbLocked, &pFcb->mutexOplock);
 
     pOplockLink = PvfsListTraverse(pFcb->pOplockList, NULL);
 
@@ -1131,12 +1201,17 @@ PvfsOplockCleanOplockQueue(
         PvfsAsyncIrpComplete(pOplock->pIrpContext);
         PvfsFreeIrpContext(&pOplock->pIrpContext);
 
+
+        LWIO_LOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
+        pOplock->pCcb->OplockState = PVFS_OPLOCK_STATE_NONE;
+        LWIO_UNLOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
+
         PvfsFreeOplockRecord(&pOplock);
 
         /* Can only be one IrpContext match so we are done */
     }
 
-    LWIO_UNLOCK_MUTEX(bLocked, &pFcb->mutexOplock);
+    LWIO_UNLOCK_MUTEX(bFcbLocked, &pFcb->mutexOplock);
 
     if (pFcb)
     {
@@ -1146,6 +1221,10 @@ PvfsOplockCleanOplockQueue(
     return ntError;
 }
 
+
+/*****************************************************************************
+ ****************************************************************************/
+
 static VOID
 PvfsOplockCleanOplockFree(
     PVOID *ppContext
@@ -1154,6 +1233,56 @@ PvfsOplockCleanOplockFree(
     /* No op -- context released in PvfsOplockCleanOplockQueue */
     return;
 }
+
+
+/*****************************************************************************
+ ****************************************************************************/
+
+NTSTATUS
+PvfsOplockCloseFile(
+    PPVFS_FCB pFcb,
+    PPVFS_CCB pCcb
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    BOOLEAN bLocked = FALSE;
+    PPVFS_OPLOCK_RECORD pOplock = NULL;
+    PLW_LIST_LINKS pOplockLink = NULL;
+    PLW_LIST_LINKS pNextLink = NULL;
+
+    LWIO_LOCK_MUTEX(bLocked, &pFcb->mutexOplock);
+
+    pOplockLink = PvfsListTraverse(pFcb->pOplockList, NULL);
+
+    while (pOplockLink)
+    {
+        pOplock = LW_STRUCT_FROM_FIELD(
+                      pOplockLink,
+                      PVFS_OPLOCK_RECORD,
+                      OplockList);
+
+        pNextLink = PvfsListTraverse(pFcb->pOplockList, pOplockLink);
+
+        if (pOplock->pCcb == pCcb)
+        {
+            PvfsListRemoveItem(pFcb->pOplockList, pOplockLink);
+
+            pOplock->pIrpContext->pIrp->IoStatusBlock.Status = STATUS_FILE_CLOSED;
+
+            PvfsAsyncIrpComplete(pOplock->pIrpContext);
+            PvfsFreeIrpContext(&pOplock->pIrpContext);
+
+            PvfsFreeOplockRecord(&pOplock);
+        }
+
+        pOplockLink = pNextLink;
+    }
+
+    LWIO_UNLOCK_MUTEX(bLocked, &pFcb->mutexOplock);
+
+    return ntError;
+}
+
 
 /*****************************************************************************
  ****************************************************************************/

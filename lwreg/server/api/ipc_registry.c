@@ -266,68 +266,6 @@ error:
 }
 
 LWMsgStatus
-RegSrvIpcOpenRootKey(
-    LWMsgCall* pCall,
-    const LWMsgParams* pIn,
-    LWMsgParams* pOut,
-    void* data
-    )
-{
-    DWORD dwError = 0;
-    PREG_IPC_OPEN_ROOT_KEY_REQ pReq = pIn->data;
-    PREG_IPC_OPEN_ROOT_KEY_RESPONSE pRegResp = NULL;
-    PREG_IPC_ERROR pError = NULL;
-    HKEY hRootKey = NULL;
-
-    dwError = RegSrvOpenRootKey(
-               RegSrvIpcGetSessionData(pCall),
-               pReq->pszRootKeyName,
-               &hRootKey);
-
-    if (!dwError)
-    {
-        dwError = LwAllocateMemory(
-            sizeof(*pRegResp),
-            OUT_PPVOID(&pRegResp));
-        BAIL_ON_REG_ERROR(dwError);
-
-        pRegResp->hRootKey = hRootKey;
-        hRootKey = NULL;
-
-        dwError = RegSrvIpcRegisterHandle(
-                                      pCall,
-                                      "HKEY",
-                                      (PVOID)pRegResp->hRootKey,
-                                      RegSrvIpcCloseHandle);
-        BAIL_ON_REG_ERROR(dwError);
-
-        //LwInterlockedIncrement(&((PREG_KEY_CONTEXT)pRegResp->hRootKey)->refCount);
-
-        pOut->tag = REG_R_OPEN_ROOT_KEY_SUCCESS;
-        pOut->data = pRegResp;
-
-        dwError = RegSrvIpcRetainHandle(pCall, pRegResp->hRootKey);
-        BAIL_ON_REG_ERROR(dwError);
-    }
-    else
-    {
-        dwError = RegSrvIpcCreateError(dwError, &pError);
-        BAIL_ON_REG_ERROR(dwError);
-
-        pOut->tag = REG_R_OPEN_ROOT_KEY_FAILURE;
-        pOut->data = pError;
-    }
-
-cleanup:
-    RegSrvIpcCloseHandle((PVOID)hRootKey);
-
-    return MAP_REG_ERROR_IPC(dwError);
-
-error:
-    goto cleanup;
-}
-
-LWMsgStatus
 RegSrvIpcEnumRootKeys(
     LWMsgCall* pCall,
     const LWMsgParams* pIn,
@@ -453,7 +391,69 @@ error:
 }
 
 LWMsgStatus
-RegSrvIpcOpenKeyEx(
+RegSrvIpcOpenKeyExA(
+    LWMsgCall* pCall,
+    const LWMsgParams* pIn,
+    LWMsgParams* pOut,
+    void* data
+    )
+{
+    DWORD dwError = 0;
+    PREG_IPC_OPEN_KEYA_EX_REQ pReq = pIn->data;
+    PREG_IPC_OPEN_KEY_EX_RESPONSE pRegResp = NULL;
+    PREG_IPC_ERROR pError = NULL;
+    HKEY hkResult = NULL;
+
+    dwError = RegSrvOpenKeyExA(
+        RegSrvIpcGetSessionData(pCall),
+        pReq->hKey,
+        pReq->pszSubKey,
+        0,
+        pReq->samDesired,
+        &hkResult
+        );
+
+    if (!dwError)
+    {
+        dwError = LwAllocateMemory(sizeof(*pRegResp), OUT_PPVOID(&pRegResp));
+        BAIL_ON_REG_ERROR(dwError);
+
+        pRegResp->hkResult = hkResult;
+        hkResult = NULL;
+
+        dwError = RegSrvIpcRegisterHandle(
+                                      pCall,
+                                      "HKEY",
+                                      (PVOID)pRegResp->hkResult,
+                                      RegSrvIpcCloseHandle);
+        BAIL_ON_REG_ERROR(dwError);
+
+        pOut->tag = REG_R_OPEN_KEYA_EX_SUCCESS;
+        pOut->data = pRegResp;
+
+        dwError = RegSrvIpcRetainHandle(pCall, pRegResp->hkResult);
+        BAIL_ON_REG_ERROR(dwError);
+    }
+    else
+    {
+        dwError = RegSrvIpcCreateError(dwError, &pError);
+        BAIL_ON_REG_ERROR(dwError);
+
+        pOut->tag = REG_R_OPEN_KEYA_EX_FAILURE;
+        pOut->data = pError;
+    }
+
+cleanup:
+    RegSrvIpcCloseHandle((PVOID)hkResult);
+
+    return MAP_REG_ERROR_IPC(dwError);
+
+error:
+    goto cleanup;
+}
+
+LWMsgStatus
+RegSrvIpcOpenKeyExW(
     LWMsgCall* pCall,
     const LWMsgParams* pIn,
     LWMsgParams* pOut,
@@ -466,7 +466,7 @@ RegSrvIpcOpenKeyEx(
     PREG_IPC_ERROR pError = NULL;
     HKEY hkResult = NULL;
 
-    dwError = RegSrvOpenKeyEx(
+    dwError = RegSrvOpenKeyExW(
         RegSrvIpcGetSessionData(pCall),
         pReq->hKey,
         pReq->pSubKey,
@@ -490,9 +490,7 @@ RegSrvIpcOpenKeyEx(
                                       RegSrvIpcCloseHandle);
         BAIL_ON_REG_ERROR(dwError);
 
-       // LwInterlockedIncrement(&((PREG_KEY_CONTEXT)pRegResp->hkResult)->refCount);
-
-        pOut->tag = REG_R_OPEN_KEY_EX_SUCCESS;
+        pOut->tag = REG_R_OPEN_KEYW_EX_SUCCESS;
         pOut->data = pRegResp;
 
         dwError = RegSrvIpcRetainHandle(pCall, pRegResp->hkResult);
@@ -503,7 +501,7 @@ RegSrvIpcOpenKeyEx(
         dwError = RegSrvIpcCreateError(dwError, &pError);
         BAIL_ON_REG_ERROR(dwError);
 
-        pOut->tag = REG_R_OPEN_KEY_EX_FAILURE;
+        pOut->tag = REG_R_OPEN_KEYW_EX_FAILURE;
         pOut->data = pError;
     }
 

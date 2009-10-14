@@ -56,8 +56,8 @@ liblsa_la_LIBADD = \
     $(LWBASE_LIBS)                        \
     $(LWADVAPI_LIBS)                      \
     $(NETLOGON_LIBS)                      \
-    $(srv_srcdir)/api/liblsaserverapi.la  \
-    $(srv_srcdir)/store/dsapi/libdsapi.la
+    $(top_builddir)/server/api/liblsaserverapi.la  \
+    $(top_builddir)/server/store/dsapi/libdsapi.la
 
 
 liblsa_ss_la_SOURCES = \
@@ -85,5 +85,5 @@ CLEAN_FILES = lsa_cstub.c lsa_sstub.c lsa_h.h
 BUILT_SOURCES = lsa_h.h
 
 lsa_sstub.c lsa_cstub.c lsa_h.h: $(idl_srcdir)/lsa.idl lsa.acf
-	$(IDL) $(IDLFLAGS) -keep c_source -header lsa_h.h -I$(idl_srcdir) \
+	$(IDL) $(IDLFLAGS) -keep c_source -header lsa_h.h -I$(srcdir) -I$(idl_srcdir) \
 		$(DCEIDL_PASS_INCLUDES) $<

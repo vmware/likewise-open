@@ -81,11 +81,13 @@ SMBSrvGetLocalIPAddress(
 
 NTSTATUS
 SrvListenerInit(
-    HANDLE                    hPacketAllocator,
+    HANDLE                     hPacketAllocator,
     PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
     PLWIO_SRV_SOCKET_READER    pReaderArray,
-    ULONG                     ulNumReaders,
-    PLWIO_SRV_LISTENER         pListener
+    ULONG                      ulNumReaders,
+    PLWIO_SRV_LISTENER         pListener,
+    BOOLEAN                    bEnableSecuritySignatures,
+    BOOLEAN                    bRequireSecuritySignatures
     )
 {
     NTSTATUS ntStatus = 0;
@@ -103,8 +105,10 @@ SrvListenerInit(
     uuid_generate(pListener->context.serverProperties.GUID);
 
     pListener->context.serverProperties.preferredSecurityMode = SMB_SECURITY_MODE_USER;
-    pListener->context.serverProperties.bEnableSecuritySignatures = TRUE;
-    pListener->context.serverProperties.bRequireSecuritySignatures = TRUE;
+    pListener->context.serverProperties.bEnableSecuritySignatures =
+                                                    bEnableSecuritySignatures;
+    pListener->context.serverProperties.bRequireSecuritySignatures =
+                                                    bRequireSecuritySignatures;
     pListener->context.serverProperties.bEncryptPasswords = TRUE;
     pListener->context.serverProperties.MaxRawSize = 64 * 1024;
     pListener->context.serverProperties.MaxMpxCount = 50;

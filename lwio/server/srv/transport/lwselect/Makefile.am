@@ -1,6 +1,7 @@
 noinst_LTLIBRARIES = libsrv.transport.select.la
 
 libsrv_transport_select_la_SOURCES = \
+    config.c        \
     globals.c       \
     libmain.c       \
     listener.c      \

@@ -38,7 +38,7 @@
 #ifndef _LM_ACCESS_H_
 #define _LM_ACCESS_H_
 
-#include <secdesc/sectypes.h>
+#include <lw/security-types.h>
 #include <lwrpc/types.h>
 
 

@@ -74,7 +74,7 @@ PvfsAllocateCCB(
     pthread_mutex_init(&pCCB->ControlBlock, NULL);
 
     pCCB->bCloseInProgress = FALSE;
-    pCCB->bOplockBreakInProgress = FALSE;
+    pCCB->OplockState = PVFS_OPLOCK_STATE_NONE;
 
     /* Add initial ref count */
 
@@ -99,17 +99,12 @@ PvfsFreeCCB(
     PPVFS_CCB pCCB
     )
 {
+    NTSTATUS ntError = STATUS_SUCCESS;
+
     if (pCCB->pFcb)
     {
-        if (pCCB->CreateOptions & FILE_NON_DIRECTORY_FILE)
-        {
-            /* Release all byte range locks to ensure proper
-               processing of pending locks */
+        ntError = PvfsRemoveCCBFromFCB(pCCB->pFcb, pCCB);
 
-            PvfsUnlockFile(pCCB, TRUE, 0, 0, 0);
-        }
-
-        PvfsRemoveCCBFromFCB(pCCB->pFcb, pCCB);
         PvfsReleaseFCB(pCCB->pFcb);
 
         pCCB->pFcb = NULL;

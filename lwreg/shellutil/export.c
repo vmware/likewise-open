@@ -346,8 +346,11 @@ ProcessRootKeys(
 
     for (iCount = 0; iCount < dwNumRootKeys; iCount++)
     {
-        dwError = RegOpenRootKey((HANDLE) hReg,
+        dwError = RegOpenKeyExA((HANDLE) hReg,
+                                 NULL,
                                  ppszRootKeyNames[iCount],
+                                 0,
+                                 0,
                                  &hRootKey);
         BAIL_ON_REG_ERROR(dwError);
 

@@ -33,7 +33,7 @@
 #include <string.h>
 
 #include <wc16str.h>
-#include <secdesc/sectypes.h>
+#include <lw/security-types.h>
 #include <lw/ntstatus.h>
 
 #include <srvsvc/types.h>

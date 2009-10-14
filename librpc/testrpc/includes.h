@@ -12,7 +12,6 @@
 #include <dce/schannel.h>
 #include <wc16str.h>
 #include <lw/base.h>
-#include <secdesc/secapi.h>
 #include <lw/ntstatus.h>
 #include <winerror.h>
 #include <lwio/lwio.h>
@@ -20,7 +19,6 @@
 #include <lwnet.h>
 
 #include <lwrpc/types.h>
-#include <lwrpc/security.h>
 #include <lwrpc/allocate.h>
 #include <lwrpc/sidhelper.h>
 #include <lwrpc/samr.h>

@@ -368,7 +368,7 @@ NetConnectSamr(
         btin_dom_access = btin_dom_flags | req_btin_dom_flags;
         hConn           = cn->samr.hConn;
 
-        status = RtlAllocateSidFromCString(&btin_dom_sid, SID_BUILTIN_DOMAIN);
+        status = RtlAllocateSidFromCString(&btin_dom_sid, "S-1-5-32");
         BAIL_ON_NTSTATUS_ERROR(status);
 
         status = SamrOpenDomain(samr_b,

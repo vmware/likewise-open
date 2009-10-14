@@ -54,7 +54,8 @@ typedef enum {
 } SAM_DOMAIN_KEY_TYPE;
 
 
-typedef struct _SAM_DOMAIN_KEY {
+typedef struct _SAM_DOMAIN_KEY
+{
     SAM_DOMAIN_KEY_TYPE eType;
     PSID                pSid;
     PWSTR               pwszName;
@@ -62,10 +63,11 @@ typedef struct _SAM_DOMAIN_KEY {
 } SAM_DOMAIN_KEY, *PSAM_DOMAIN_KEY;
 
 
-typedef struct _SAMR_DOMAIN {
-    PWSTR        pwszName;
-    PSID         pSid;
-    BOOLEAN      bLocal;
+typedef struct _SAMR_DOMAIN
+{
+    PWSTR         pwszName;
+    PSID          pSid;
+    BOOLEAN       bLocal;
     DOMAIN_HANDLE hDomain;
 
 } SAM_DOMAIN_ENTRY, *PSAM_DOMAIN_ENTRY;

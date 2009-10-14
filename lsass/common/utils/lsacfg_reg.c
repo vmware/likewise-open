@@ -147,10 +147,13 @@ LsaOpenConfig(
         goto error;
     }
 
-    dwError = RegOpenRootKey(
-                pReg->hConnection,
-                LIKEWISE_ROOT_KEY,
-                &(pReg->hKey));
+    dwError = RegOpenKeyExA(
+            pReg->hConnection,
+            NULL,
+            LIKEWISE_ROOT_KEY,
+            0,
+            0,
+            &(pReg->hKey));
     if (dwError)
     {
         dwError = 0;

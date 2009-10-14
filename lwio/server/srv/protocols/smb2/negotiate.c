@@ -70,10 +70,8 @@ SrvProcessNegotiate_SMB_V2(
     PSRV_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
     PSRV_MESSAGE_SMB_V2        pSmbResponse  = &pCtxSmb2->pResponses[iMsg];
     PSMB2_NEGOTIATE_REQUEST_HEADER pNegotiateRequestHeader = NULL;// Do not free
-    PUSHORT pusDialects = NULL; // Do not free
-    USHORT  iDialect = 0;
-    PBYTE   pSessionKey = NULL;
-    ULONG   ulSessionKeyLength = 0;
+    PUSHORT pusDialects      = NULL; // Do not free
+    USHORT  iDialect         = 0;
 
     ntStatus = SMB2UnmarshalNegotiateRequest(
                         pSmbRequest,
@@ -99,32 +97,26 @@ SrvProcessNegotiate_SMB_V2(
 
     if (iDialect < pNegotiateRequestHeader->usDialectCount)
     {
-        ntStatus = SrvGssBeginNegotiate(
-                        pConnection->hGssContext,
-                        &pConnection->hGssNegotiate);
-        BAIL_ON_NT_STATUS(ntStatus);
+        PBYTE pNegHintsBlob = NULL; /* Do not free */
+        ULONG ulNegHintsLength = 0;
 
-        ntStatus = SrvGssNegotiate(
-                        pConnection->hGssContext,
-                        pConnection->hGssNegotiate,
-                        NULL,
-                        0,
-                        &pSessionKey,
-                        &ulSessionKeyLength);
-        BAIL_ON_NT_STATUS(ntStatus);
+        ntStatus = SrvGssNegHints(
+                       pConnection->hGssContext,
+                       &pNegHintsBlob,
+                       &ulNegHintsLength);
 
-        if (!ulSessionKeyLength)
+        /* Microsoft clients ignore the security blob on the neg prot response
+           so don't fail here if we can't get a negHintsBlob */
+
+        if (ntStatus == STATUS_SUCCESS)
         {
-            ntStatus = STATUS_NOT_SUPPORTED;
+            ntStatus = SrvMarshalNegotiateResponse_SMB_V2(
+                            pConnection,
+                            pNegHintsBlob,
+                            ulNegHintsLength,
+                            pSmbResponse);
             BAIL_ON_NT_STATUS(ntStatus);
         }
-
-        ntStatus = SrvMarshalNegotiateResponse_SMB_V2(
-                        pConnection,
-                        pSessionKey,
-                        ulSessionKeyLength,
-                        pSmbResponse);
-        BAIL_ON_NT_STATUS(ntStatus);
     }
     else
     {
@@ -134,11 +126,6 @@ SrvProcessNegotiate_SMB_V2(
     }
 
 cleanup:
-
-    if (pSessionKey)
-    {
-        SrvFreeMemory(pSessionKey);
-    }
 
     return ntStatus;
 
@@ -154,11 +141,11 @@ SrvBuildNegotiateResponse_SMB_V2(
     OUT PSMB_PACKET*         ppSmbResponse
     )
 {
-    NTSTATUS    ntStatus           = STATUS_SUCCESS;
-    PSMB_PACKET pSmbResponse       = NULL;
-    PBYTE       pSessionKey        = NULL;
-    ULONG       ulSessionKeyLength = 0;
-    SRV_MESSAGE_SMB_V2 response = {0};
+    NTSTATUS    ntStatus         = STATUS_SUCCESS;
+    PSMB_PACKET pSmbResponse     = NULL;
+    PBYTE       pNegHintsBlob    = NULL; /* Do not free */
+    ULONG       ulNegHintsLength = 0;
+    SRV_MESSAGE_SMB_V2 response  = {0};
 
     ntStatus = SMBPacketAllocate(
                     pConnection->hPacketAllocator,
@@ -175,49 +162,40 @@ SrvBuildNegotiateResponse_SMB_V2(
     ntStatus = SMB2InitPacket(pSmbResponse, FALSE);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvGssBeginNegotiate(
-                    pConnection->hGssContext,
-                    &pConnection->hGssNegotiate);
-    BAIL_ON_NT_STATUS(ntStatus);
+    ntStatus = SrvGssNegHints(
+                   pConnection->hGssContext,
+                   &pNegHintsBlob,
+                   &ulNegHintsLength);
 
-    ntStatus = SrvGssNegotiate(
-                    pConnection->hGssContext,
-                    pConnection->hGssNegotiate,
-                    NULL,
-                    0,
-                    &pSessionKey,
-                    &ulSessionKeyLength);
-    BAIL_ON_NT_STATUS(ntStatus);
+    /* Microsoft clients ignore the security blob on the neg prot response
+       so don't fail here if we can't get a negHintsBlob */
 
-    if (!ulSessionKeyLength)
+    if (ntStatus == STATUS_SUCCESS)
+    {
+        response.pBuffer = pSmbResponse->pRawBuffer + pSmbResponse->bufferUsed;
+        response.ulBytesAvailable =
+                        pSmbResponse->bufferLen - pSmbResponse->bufferUsed;
+
+        ntStatus = SrvMarshalNegotiateResponse_SMB_V2(
+                        pConnection,
+                        pNegHintsBlob,
+                        ulNegHintsLength,
+                        &response);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pSmbResponse->bufferUsed += response.ulMessageSize;
+
+        ntStatus = SMB2MarshalFooter(pSmbResponse);
+    }
+    else
     {
         ntStatus = STATUS_NOT_SUPPORTED;
-        BAIL_ON_NT_STATUS(ntStatus);
     }
-
-    response.pBuffer = pSmbResponse->pRawBuffer + pSmbResponse->bufferUsed;
-    response.ulBytesAvailable = pSmbResponse->bufferLen - pSmbResponse->bufferUsed;
-
-    ntStatus = SrvMarshalNegotiateResponse_SMB_V2(
-                    pConnection,
-                    pSessionKey,
-                    ulSessionKeyLength,
-                    &response);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pSmbResponse->bufferUsed += response.ulMessageSize;
-
-    ntStatus = SMB2MarshalFooter(pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
     *ppSmbResponse = pSmbResponse;
 
 cleanup:
-
-    if (pSessionKey)
-    {
-        SrvFreeMemory(pSessionKey);
-    }
 
     return ntStatus;
 
@@ -299,6 +277,7 @@ SrvMarshalNegotiateResponse_SMB_V2(
     {
         pNegotiateHeader->ucFlags |= 0x1;
     }
+
     if (pServerProperties->bRequireSecuritySignatures)
     {
         pNegotiateHeader->ucFlags |= 0x2;

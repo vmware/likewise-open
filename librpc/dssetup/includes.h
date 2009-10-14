@@ -45,7 +45,6 @@
 #include <dce/rpc.h>
 #include <dce/smb.h>
 #include <wc16str.h>
-#include <secdesc/secapi.h>
 #include <lw/ntstatus.h>
 #include <winerror.h>
 #include <winerror-conv.h>

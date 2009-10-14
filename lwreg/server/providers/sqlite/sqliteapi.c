@@ -138,20 +138,46 @@ error:
 }
 
 DWORD
-SqliteOpenRootKey(
+SqliteOpenKeyExA(
     IN HANDLE Handle,
-    IN PSTR pszRootKeyName,
+    IN HKEY hKey,
+    IN OPTIONAL PCSTR pszSubKey,
+    IN DWORD ulOptions,
+    IN REGSAM samDesired,
     OUT PHKEY phkResult
     )
 {
-    return SqliteOpenKeyInternal(pszRootKeyName, NULL, phkResult);
+    DWORD dwError = 0;
+    PWSTR pwszSubKey = NULL;
+
+    if (pszSubKey)
+    {
+        dwError = LwMbsToWc16s(pszSubKey,
+                               &pwszSubKey);
+        BAIL_ON_REG_ERROR(dwError);
+    }
+
+    dwError = SqliteOpenKeyExW(Handle,
+                               hKey,
+                               pwszSubKey,
+                               ulOptions,
+                               samDesired,
+                               phkResult);
+    BAIL_ON_REG_ERROR(dwError);
+
+cleanup:
+    LW_SAFE_FREE_MEMORY(pwszSubKey);
+    return dwError;
+
+error:
+    goto cleanup;
 }
 
 DWORD
-SqliteOpenKeyEx(
+SqliteOpenKeyExW(
     IN HANDLE Handle,
     IN HKEY hKey,
-    IN OPTIONAL PCWSTR pSubKey,
+    IN OPTIONAL PCWSTR pwszSubKey,
     IN DWORD ulOptions,
     IN REGSAM samDesired,
     OUT PHKEY phkResult
@@ -159,16 +185,49 @@ SqliteOpenKeyEx(
 {
     DWORD dwError = 0;
     PREG_KEY_CONTEXT pKey = (PREG_KEY_CONTEXT)hKey;
+    PSTR pszRootKeyName = NULL;
 
-    BAIL_ON_INVALID_KEY(pKey);
+    if (pKey)
+    {
+        if (LW_IS_NULL_OR_EMPTY_STR(pKey->pszKeyName))
+        {
+            dwError = LW_ERROR_INVALID_PARAMETER;
+            BAIL_ON_REG_ERROR(dwError);
+        }
 
-    dwError = SqliteOpenKeyInternal(pKey->pszKeyName,
-                                 pSubKey,
-                                 phkResult);
-    BAIL_ON_REG_ERROR(dwError);
+        dwError = SqliteOpenKeyInternal(pKey->pszKeyName,
+                                        pwszSubKey,
+                                        phkResult);
+        BAIL_ON_REG_ERROR(dwError);
+    }
+    else
+    {
+        if (!pwszSubKey)
+        {
+            dwError = LW_ERROR_INVALID_PARAMETER;
+            BAIL_ON_REG_ERROR(dwError);
+        }
+
+        dwError =  LwWc16sToMbs(pwszSubKey, &pszRootKeyName);
+        BAIL_ON_REG_ERROR(dwError);
+
+        if (LW_IS_NULL_OR_EMPTY_STR(pszRootKeyName))
+        {
+            dwError = LW_ERROR_INVALID_PARAMETER;
+            BAIL_ON_REG_ERROR(dwError);
+        }
+
+        dwError = SqliteOpenKeyInternal(pszRootKeyName, NULL, phkResult);
+        BAIL_ON_REG_ERROR(dwError);
+    }
+
+cleanup:
+    LW_SAFE_FREE_STRING(pszRootKeyName);
+
+    return dwError;
 
 error:
-    return dwError;
+    goto cleanup;
 }
 
 VOID
@@ -1295,7 +1354,7 @@ SqliteDeleteTreeInternal(
         dwError = LwMbsToWc16s(pszSubKeyName+1, &pwszSubKey);
         BAIL_ON_REG_ERROR(dwError);
 
-        dwError = SqliteOpenKeyEx(Handle,
+        dwError = SqliteOpenKeyExW(Handle,
                                   hKey,
                                   pwszSubKey,
                                   0,
@@ -1346,7 +1405,7 @@ SqliteDeleteTree(
 
     if (pSubKey)
     {
-        dwError = SqliteOpenKeyEx(Handle,
+        dwError = SqliteOpenKeyExW(Handle,
                                   hKey,
                                   pSubKey,
                                   0,

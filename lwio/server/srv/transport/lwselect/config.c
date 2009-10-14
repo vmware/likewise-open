@@ -39,41 +39,56 @@
  *
  * Abstract:
  *
- *        Likewise I/O (LWIO) - SRV
+ *        Likewise I/O Subsystem
+ *
+ *        SRV Select Transport
  *
  *        Configuration
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ * Authors: Sriram Nambakam (snambakam@likewise.com)
+ *
  */
 
 #include "includes.h"
 
 static
 NTSTATUS
-SrvTransferConfigContents(
-    PLWIO_SRV_CONFIG pSrc,
-    PLWIO_SRV_CONFIG pDest
+SrvSelectTransportTransferConfigContents(
+    PLWIO_SRV_SELECT_TRANSPORT_CONFIG pSrcConfig,
+    PLWIO_SRV_SELECT_TRANSPORT_CONFIG pDstConfig
     );
 
-
 NTSTATUS
-SrvReadConfig(
-    PLWIO_SRV_CONFIG pConfig
+SrvSelectTransportInitConfig(
+    PLWIO_SRV_SELECT_TRANSPORT_CONFIG pConfig
     )
 {
-    NTSTATUS        ntStatus = STATUS_SUCCESS;
-    LWIO_SRV_CONFIG srvConfig = {0};
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
+    pConfig->ulNumReaders     = LWIO_SRV_DEFAULT_NUM_READERS;
+    pConfig->bEnableSigning   = FALSE;
+    pConfig->bRequireSigning = FALSE;
+
+    return ntStatus;
+}
+
+NTSTATUS
+SrvSelectTransportReadConfig(
+    PLWIO_SRV_SELECT_TRANSPORT_CONFIG pConfig
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    LWIO_SRV_SELECT_TRANSPORT_CONFIG config = {0};
     PLWIO_CONFIG_REG pReg = NULL;
     DWORD           dwError = 0;
 
-    ntStatus = SrvInitConfig(&srvConfig);
+    ntStatus = SrvSelectTransportInitConfig(&config);
     BAIL_ON_NT_STATUS(ntStatus);
 
     dwError = LwIoOpenConfig(
-                "Services\\lwio\\Parameters\\Drivers\\srv",
-                "Policy\\Services\\lwio\\Parameters\\Drivers\\srv",
-                &pReg);
+                    "Services\\lwio\\Parameters\\Drivers\\srv",
+                    "Policy\\Services\\lwio\\Parameters\\Drivers\\srv",
+                    &pReg);
     if (dwError)
     {
         LWIO_LOG_ERROR("Failed to access device configuration [error code: %u]",
@@ -83,10 +98,20 @@ SrvReadConfig(
     }
     BAIL_ON_NT_STATUS(ntStatus);
 
-    /* Ignore error as it may not exist; we can still use default. */
-    LwIoReadConfigBoolean(pReg, "SupportSmb2", FALSE, &(srvConfig.bSupportSMB2));
+    /* Ignore errors */
+    LwIoReadConfigBoolean(
+                    pReg,
+                    "EnableSecuritySignatures",
+                    TRUE,
+                    &(config.bEnableSigning));
 
-    ntStatus = SrvTransferConfigContents(&srvConfig, pConfig);
+    LwIoReadConfigBoolean(
+                    pReg,
+                    "RequireSecuritySignatures",
+                    TRUE,
+                    &(config.bRequireSigning));
+
+    ntStatus = SrvSelectTransportTransferConfigContents(&config, pConfig);
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
@@ -96,7 +121,7 @@ cleanup:
         LwIoCloseConfig(pReg);
     }
 
-    SrvFreeConfigContents(&srvConfig);
+    SrvSelectTransportFreeConfigContents(&config);
 
     return ntStatus;
 
@@ -105,44 +130,25 @@ error:
     goto cleanup;
 }
 
+static
 NTSTATUS
-SrvInitConfig(
-    PLWIO_SRV_CONFIG pConfig
+SrvSelectTransportTransferConfigContents(
+    PLWIO_SRV_SELECT_TRANSPORT_CONFIG pSrcConfig,
+    PLWIO_SRV_SELECT_TRANSPORT_CONFIG pDstConfig
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    SrvFreeConfigContents(pConfig);
-
-    pConfig->ulMaxNumPackets          = LWIO_SRV_DEFAULT_NUM_MAX_PACKETS;
-    pConfig->ulNumWorkers             = LWIO_SRV_DEFAULT_NUM_WORKERS;
-    pConfig->ulMaxNumWorkItemsInQueue = LWIO_SRV_DEFAULT_NUM_MAX_QUEUE_ITEMS;
-    pConfig->bSupportSMB2             = FALSE;
+    memset(pDstConfig, 0, sizeof(LWIO_SRV_SELECT_TRANSPORT_CONFIG));
+    memcpy(pDstConfig, pSrcConfig, sizeof(LWIO_SRV_SELECT_TRANSPORT_CONFIG));
+    memset(pSrcConfig, 0, sizeof(LWIO_SRV_SELECT_TRANSPORT_CONFIG));
 
     return ntStatus;
 }
 
-static
-NTSTATUS
-SrvTransferConfigContents(
-    PLWIO_SRV_CONFIG pSrc,
-    PLWIO_SRV_CONFIG pDest
-    )
-{
-    SrvFreeConfigContents(pDest);
-
-    *pDest = *pSrc;
-
-    SrvFreeConfigContents(pSrc);
-
-    return 0;
-}
-
 VOID
-SrvFreeConfigContents(
-    PLWIO_SRV_CONFIG pConfig
+SrvSelectTransportFreeConfigContents(
+    PLWIO_SRV_SELECT_TRANSPORT_CONFIG pConfig
     )
 {
-    // Nothing to free right now
-    memset(pConfig, 0, sizeof(*pConfig));
 }

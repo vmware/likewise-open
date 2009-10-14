@@ -39,8 +39,8 @@
 
 NTSTATUS
 SamrGetUserPwInfo(
-    /* [in] */ PolicyHandle *user_handle,
-    /* [out] */ PwInfo *info
+    /* [in] */  ACCOUNT_HANDLE hUser,
+    /* [out] */ PwInfo *pInfo
     )
 {
     NTSTATUS ntStatus = STATUS_NOT_IMPLEMENTED;

@@ -73,17 +73,46 @@ PvfsClose(
 
     /* Call closedir() for directions and close() for files */
 
-    if (PVFS_IS_DIR(pCcb)) {
+    if (PVFS_IS_DIR(pCcb))
+    {
         ntError = PvfsSysCloseDir(pCcb->pDirContext->pDir);
         /* pCcb->fd is invalid now */
-    } else {
+    }
+    else
+    {
+        /* Release all byte range locks to ensure proper
+           processing of pending locks */
+
+        ntError = PvfsUnlockFile(pCcb, TRUE, 0, 0, 0);
+
+        /* Deal with any pended operations awaiting an oplock
+           break response */
+
+        switch (pCcb->OplockState)
+        {
+        case PVFS_OPLOCK_STATE_NONE:
+            break;
+
+        case PVFS_OPLOCK_STATE_GRANTED:
+            /* Cancel any outstanding oplock grants on this file */
+            ntError = PvfsOplockCloseFile(pCcb->pFcb, pCcb);
+            break;
+
+        case PVFS_OPLOCK_STATE_BREAK_IN_PROGRESS:
+            /* This is our Ack */
+            ntError = PvfsOplockMarkPendedOpsReady(pCcb->pFcb, pCcb);
+            break;
+        }
+
+        /* Close the fd */
         ntError = PvfsSysClose(pCcb->fd);
     }
 
 cleanup:
     /* This is the final Release that will free the memory */
 
-    if (pCcb) {
+    if (pCcb)
+    {
         PvfsReleaseCCB(pCcb);
     }
 

@@ -54,9 +54,6 @@
 
 typedef enum __REG_IPC_TAG
 {
-    REG_Q_OPEN_ROOT_KEY,
-    REG_R_OPEN_ROOT_KEY_SUCCESS,
-    REG_R_OPEN_ROOT_KEY_FAILURE,
     REG_Q_ENUM_ROOT_KEYS,
     REG_R_ENUM_ROOT_KEYS_SUCCESS,
     REG_R_ENUM_ROOT_KEYS_FAILURE,
@@ -93,9 +90,12 @@ typedef enum __REG_IPC_TAG
     REG_Q_GET_VALUEW,
     REG_R_GET_VALUEW_SUCCESS,
     REG_R_GET_VALUEW_FAILURE,
-    REG_Q_OPEN_KEY_EX,
-    REG_R_OPEN_KEY_EX_SUCCESS,
-    REG_R_OPEN_KEY_EX_FAILURE,
+    REG_Q_OPEN_KEYA_EX,
+    REG_R_OPEN_KEYA_EX_SUCCESS,
+    REG_R_OPEN_KEYA_EX_FAILURE,
+    REG_Q_OPEN_KEYW_EX,
+    REG_R_OPEN_KEYW_EX_SUCCESS,
+    REG_R_OPEN_KEYW_EX_FAILURE,
     REG_Q_QUERY_MULTIPLE_VALUES,
     REG_R_QUERY_MULTIPLE_VALUES_SUCCESS,
     REG_R_QUERY_MULTIPLE_VALUES_FAILURE,
@@ -126,18 +126,6 @@ typedef struct __REG_IPC_ERROR
 {
     DWORD dwError;
 } REG_IPC_ERROR, *PREG_IPC_ERROR;
-
-//Open Root Key Request
-typedef struct __REG_IPC_OPEN_ROOT_KEY_REQ
-{
-    PSTR pszRootKeyName;
-} REG_IPC_OPEN_ROOT_KEY_REQ, *PREG_IPC_OPEN_ROOT_KEY_REQ;
-
-//Open Root Key Response
-typedef struct __REG_IPC_OPEN_ROOT_KEY_RESPONSE
-{
-    HKEY hRootKey;
-} REG_IPC_OPEN_ROOT_KEY_RESPONSE, *PREG_IPC_OPEN_ROOT_KEY_RESPONSE;
 
 /******************************************************************************/
 
@@ -363,6 +351,14 @@ typedef struct __REG_IPC_GET_VALUE_RESPONSE
 // RESERVED DWORD ulOptions,
 // IN REGSAM samDesired,
 // OUT HKEY hkResult
+
+typedef struct __REG_IPC_OPEN_KEYA_EX_REQ
+{
+    HKEY hKey;
+    PCSTR pszSubKey;
+    REGSAM samDesired;
+} REG_IPC_OPEN_KEYA_EX_REQ, *PREG_IPC_OPEN_KEYA_EX_REQ;
+
 
 typedef struct __REG_IPC_OPEN_KEY_EX_REQ
 {
