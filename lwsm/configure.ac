@@ -78,7 +78,7 @@ AC_CHECK_LIB(pthread, pthread_self, [LIB_PTHREAD="-lpthread"], [LIB_PTHREAD=""])
 AC_CHECK_LIB(lwmsg, lwmsg_server_new, [LIB_LWMSG="-llwmsg"], [AC_MSG_ERROR([Could not find liblwmsg_nothr])])
 AC_CHECK_LIB(lwadvapi, LwBuildSIDString, [LIB_LWADVAPI="-llwadvapi"], [AC_MSG_ERROR([Could not find liblwadvapi])])
 AC_CHECK_LIB(lwbase, RtlAccessCheck, [LIB_LWBASE="-llwbase"], [AC_MSG_ERROR([Could not find liblwbase])])
-AC_CHECK_LIB(regclient, RegOpenRootKey, [LIB_REGCLIENT="-lregclient"], [AC_MSG_ERROR([Could not find libregclient])])
+AC_CHECK_LIB(regclient, RegOpenKeyExA, [LIB_REGCLIENT="-lregclient"], [AC_MSG_ERROR([Could not find libregclient])])
 AC_CHECK_LIB(lwioclient, LwIoGetDriverStatus, [LIB_LWIOCLIENT="-llwioclient"], [AC_MSG_ERROR([Could not find liblwioclient])])
 
 
