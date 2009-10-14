@@ -63,7 +63,7 @@ SrvReadConfig(
     )
 {
     NTSTATUS        ntStatus = STATUS_SUCCESS;
-    LWIO_SRV_CONFIG srvConfig;
+    LWIO_SRV_CONFIG srvConfig = {0};
     PLWIO_CONFIG_REG pReg = NULL;
     DWORD           dwError = 0;
 
@@ -91,8 +91,10 @@ SrvReadConfig(
 
 cleanup:
 
-    LwIoCloseConfig(pReg);
-    pReg = NULL;
+    if (pReg)
+    {
+        LwIoCloseConfig(pReg);
+    }
 
     SrvFreeConfigContents(&srvConfig);
 
