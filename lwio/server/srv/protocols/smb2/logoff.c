@@ -129,7 +129,7 @@ SrvBuildLogoffResponse_SMB_V2(
                     ulBytesAvailable,
                     COM2_LOGOFF,
                     0,
-                    1,
+                    pSmbRequest->pHeader->usCredits,
                     pSmbRequest->pHeader->ulPid,
                     pSmbRequest->pHeader->ullCommandSequence,
                     pSmbRequest->pHeader->ulTid,

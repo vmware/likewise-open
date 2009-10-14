@@ -78,7 +78,7 @@ SrvProcessEcho_SMB_V2(
                     ulBytesAvailable,
                     COM2_ECHO,
                     0,
-                    1,
+                    pSmbRequest->pHeader->usCredits,
                     pSmbRequest->pHeader->ulPid,
                     pSmbRequest->pHeader->ullCommandSequence,
                     pSmbRequest->pHeader->ulTid,

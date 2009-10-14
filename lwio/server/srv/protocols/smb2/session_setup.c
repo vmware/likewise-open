@@ -61,12 +61,14 @@ SrvProcessSessionSetup_SMB_V2(
     PSRV_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
     PSRV_MESSAGE_SMB_V2        pSmbResponse  = &pCtxSmb2->pResponses[iMsg];
     PSMB2_SESSION_SETUP_REQUEST_HEADER pSessionSetupHeader = NULL;// Do not free
-    PBYTE       pSecurityBlob = NULL; // Do not free
-    ULONG       ulSecurityBlobLen = 0;
-    PBYTE       pReplySecurityBlob = NULL;
+    PBYTE       pSecurityBlob             = NULL; // Do not free
+    ULONG       ulSecurityBlobLen         = 0;
+    PBYTE       pReplySecurityBlob        = NULL;
     ULONG       ulReplySecurityBlobLength = 0;
+    PBYTE       pInitSecurityBlob         = NULL;
+    ULONG       ulInitSecurityBlobLength  = 0;
     UNICODE_STRING uniUsername = {0};
-    PBYTE pOutBuffer = pSmbResponse->pBuffer;
+    PBYTE pOutBuffer       = pSmbResponse->pBuffer;
     ULONG ulBytesAvailable = pSmbResponse->ulBytesAvailable;
     ULONG ulOffset    = 0;
     ULONG ulBytesUsed = 0;
@@ -85,6 +87,23 @@ SrvProcessSessionSetup_SMB_V2(
                     &ulSecurityBlobLen);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    if (pConnection->hGssNegotiate == NULL)
+    {
+        ntStatus = SrvGssBeginNegotiate(
+                       pConnection->hGssContext,
+                       &pConnection->hGssNegotiate);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = SrvGssNegotiate(
+                       pConnection->hGssContext,
+                       pConnection->hGssNegotiate,
+                       NULL,
+                       0,
+                       &pInitSecurityBlob,
+                       &ulInitSecurityBlobLength);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
     ntStatus = SrvGssNegotiate(
                     pConnection->hGssContext,
                     pConnection->hGssNegotiate,
@@ -100,7 +119,7 @@ SrvProcessSessionSetup_SMB_V2(
                     ulBytesAvailable,
                     COM2_SESSION_SETUP,
                     0,
-                    9,
+                    pSmbRequest->pHeader->usCredits,
                     pSmbRequest->pHeader->ulPid,
                     pSmbRequest->pHeader->ullCommandSequence,
                     pSmbRequest->pHeader->ulTid,
@@ -184,6 +203,11 @@ SrvProcessSessionSetup_SMB_V2(
     pSmbResponse->ulMessageSize = ulTotalBytesUsed;
 
 cleanup:
+
+    if (pInitSecurityBlob)
+    {
+        SrvFreeMemory(pInitSecurityBlob);
+    }
 
     RtlUnicodeStringFree(&uniUsername);
 

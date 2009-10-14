@@ -53,8 +53,11 @@
 
 #include <lwio/lwio.h>
 
+#include <reg/reg.h>
+
 #include <lwiodef.h>
 #include <lwioutils.h>
+#include <lwiocfg.h>
 #include <lwiolog_r.h>
 #include <lwnet.h>
 
@@ -76,11 +79,7 @@
 
 #include "defs.h"
 #include "structs.h"
-#include "libmain.h"
-#include "listener.h"
-#include "reader.h"
-#include "srvconnection.h"
-#include "srvsocket.h"
+#include "prototypes.h"
 
 #include "externs.h"
 

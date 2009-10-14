@@ -60,9 +60,15 @@ SrvSelectTransportInit(
     NTSTATUS status = STATUS_SUCCESS;
     INT iReader = 0;
 
+    status = SrvSelectTransportInitConfig(&gSrvSelectTransport.config);
+    BAIL_ON_NT_STATUS(status);
+
+    status = SrvSelectTransportReadConfig(&gSrvSelectTransport.config);
+    BAIL_ON_NT_STATUS(status);
+
     gSrvSelectTransport.hPacketAllocator = hPacketAllocator;
-    gSrvSelectTransport.pShareList = pShareList;
-    gSrvSelectTransport.ulNumReaders = LWIO_SRV_DEFAULT_NUM_READERS;
+    gSrvSelectTransport.pShareList   = pShareList;
+    gSrvSelectTransport.ulNumReaders = gSrvSelectTransport.config.ulNumReaders;
 
     gSrvSelectTransport.pWorkQueue = pWorkQueue;
 
@@ -88,7 +94,9 @@ SrvSelectTransportInit(
                     gSrvSelectTransport.pShareList,
                     gSrvSelectTransport.pReaderArray,
                     gSrvSelectTransport.ulNumReaders,
-                    &gSrvSelectTransport.listener);
+                    &gSrvSelectTransport.listener,
+                    gSrvSelectTransport.config.bEnableSigning,
+                    gSrvSelectTransport.config.bRequireSigning);
     BAIL_ON_NT_STATUS(status);
 
     *ppFnTable = &gSrvSelectTransport.fnTable;
@@ -150,6 +158,8 @@ SrvSelectTransportShutdown(
     }
 
     gSrvSelectTransport.pWorkQueue = NULL;
+
+    SrvSelectTransportFreeConfigContents(&gSrvSelectTransport.config);
 
 error:
 

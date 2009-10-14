@@ -225,6 +225,10 @@ SrvProtocolExecute_SMB_V2(
 
         switch (pRequest->pHeader->command)
         {
+            case COM2_NEGOTIATE:
+
+                break;
+
             case COM2_SESSION_SETUP:
 
                 ntStatus = SrvProcessSessionSetup_SMB_V2(pExecContext);

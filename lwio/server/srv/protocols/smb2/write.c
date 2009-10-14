@@ -482,7 +482,7 @@ SrvBuildWriteResponse_SMB_V2(
                     ulBytesAvailable,
                     COM2_WRITE,
                     0,
-                    1,
+                    pSmbRequest->pHeader->usCredits,
                     pSmbRequest->pHeader->ulPid,
                     pSmbRequest->pHeader->ullCommandSequence,
                     pCtxSmb2->pTree->ulTid,
