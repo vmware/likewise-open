@@ -139,14 +139,13 @@ DsrSrvRoleGetPDCInfoBasic(
     PIO_CREDS pCreds = NULL;
     CHAR szHostname[64];
     handle_t hLsaBinding = NULL;
-    PolicyHandle hLocalPolicy;
+    POLICY_HANDLE hLocalPolicy = NULL;
     LsaPolicyInformation *pPolInfo = NULL;
     PWSTR pwszDomain = NULL;
     PWSTR pwszDnsDomain = NULL;
     PWSTR pwszForest = NULL;
 
     memset(szHostname, 0, sizeof(szHostname));
-    memset(&hLocalPolicy, 0, sizeof(hLocalPolicy));
 
     dwError = LWNetGetCurrentDomain(&pszDomainFqdn);
     BAIL_ON_LSA_ERROR(dwError);
@@ -187,7 +186,7 @@ DsrSrvRoleGetPDCInfoBasic(
     BAIL_ON_NTSTATUS_ERROR(status);
 
     status = LsaQueryInfoPolicy(hLsaBinding,
-                                &hLocalPolicy,
+                                hLocalPolicy,
                                 LSA_POLICY_INFO_DNS,
                                 &pPolInfo);
     BAIL_ON_NTSTATUS_ERROR(status);
@@ -207,7 +206,7 @@ DsrSrvRoleGetPDCInfoBasic(
     memcpy(&pInfo->DomainGuid, &pPolInfo->dns.domain_guid,
            sizeof(pInfo->DomainGuid));
 
-    status = LsaClose(hLsaBinding, &hLocalPolicy);
+    status = LsaClose(hLsaBinding, hLocalPolicy);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     pInfo->uiRole        = DS_ROLE_MEMBER_SERVER;
@@ -228,6 +227,8 @@ cleanup:
     if (pszDcName) {
         LWNetFreeString(pszDcName);
     }
+
+    LW_SAFE_FREE_MEMORY(pwszDcName);
 
     FreeLsaBinding(&hLsaBinding);
 

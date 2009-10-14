@@ -39,8 +39,8 @@
 
 NTSTATUS
 SamrGetUserGroups(
-    /* [in] */ PolicyHandle *user_handle,
-    /* [out] */ RidWithAttributeArray **rids
+    /* [in] */  ACCOUNT_HANDLE hUser,
+    /* [out] */ RidWithAttributeArray **ppRids
     )
 {
     NTSTATUS ntStatus = STATUS_NOT_IMPLEMENTED;
