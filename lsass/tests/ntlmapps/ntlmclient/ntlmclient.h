@@ -38,6 +38,8 @@
 #include <unistd.h>
 #include <stddef.h>
 #include <sys/types.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
 
 #include "externs.h"
 #include "defines.h"
