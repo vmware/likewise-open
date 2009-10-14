@@ -1,6 +1,5 @@
 include_HEADERS = \
 	lwrpc/types.h \
-	lwrpc/security.h \
 	lwrpc/unistrdef.h \
 	lwrpc/errcheck.h \
 	byteops.h \
