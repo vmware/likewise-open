@@ -822,11 +822,26 @@ PvfsFreeOplockRecord(
     PPVFS_OPLOCK_RECORD *ppOplockRec
     )
 {
+    PPVFS_CCB pCcb = NULL;
+    PPVFS_IRP_CONTEXT pIrpContext = NULL;
+
     if (ppOplockRec && *ppOplockRec)
     {
-        if ((*ppOplockRec)->pCcb)
+        pCcb = (*ppOplockRec)->pCcb;
+        pIrpContext = (*ppOplockRec)->pIrpContext;
+
+        if (pIrpContext)
         {
-            PvfsReleaseCCB((*ppOplockRec)->pCcb);
+            pIrpContext->pIrp->IoStatusBlock.Status = STATUS_FILE_CLOSED;
+
+            PvfsAsyncIrpComplete(pIrpContext);
+            PvfsFreeIrpContext(&pIrpContext);
+        }
+
+
+        if (pCcb)
+        {
+            PvfsReleaseCCB(pCcb);
         }
 
         PVFS_FREE(ppOplockRec);

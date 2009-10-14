@@ -312,6 +312,14 @@ typedef struct _PVFS_LOCK_TABLE
 
 } PVFS_LOCK_TABLE, *PPVFS_LOCK_TABLE;
 
+typedef enum _PVFS_OPLOCK_STATE
+{
+    PVFS_OPLOCK_STATE_NONE = 0,
+    PVFS_OPLOCK_STATE_GRANTED,
+    PVFS_OPLOCK_STATE_BREAK_IN_PROGRESS
+
+} PVFS_OPLOCK_STATE, *PPVFS_OPLOCK_STATE;
+
 struct _PVFS_CCB
 {
     LW_LIST_LINKS FcbList;
@@ -342,7 +350,7 @@ struct _PVFS_CCB
 
     PVFS_LOCK_TABLE LockTable;
 
-    BOOLEAN bOplockBreakInProgress;
+    PVFS_OPLOCK_STATE OplockState;
     ULONG OplockBreakResult;
 
 };

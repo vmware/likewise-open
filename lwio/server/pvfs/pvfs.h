@@ -497,6 +497,18 @@ PvfsFreePendingOp(
     PPVFS_OPLOCK_PENDING_OPERATION *ppPendingOp
     );
 
+NTSTATUS
+PvfsOplockMarkPendedOpsReady(
+    PPVFS_FCB pFcb,
+    PPVFS_CCB pCcb
+    );
+
+NTSTATUS
+PvfsOplockCloseFile(
+    PPVFS_FCB pFcb,
+    PPVFS_CCB pCcb
+    );
+
 
 /* From ioctlOpenFileInfo.c */
 
