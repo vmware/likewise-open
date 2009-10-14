@@ -85,7 +85,7 @@ SamrSrvAddAliasMember(
     PWSTR pwszDcName = NULL;
     LW_PIO_CREDS pCreds = NULL;
     handle_t hLsaBinding = NULL;
-    PolicyHandle hDcPolicy;
+    POLICY_HANDLE hDcPolicy = NULL;
     SidArray SidsArray = {0};
     RefDomainList *pRemoteDomains = NULL;
     TranslatedName *pRemoteNames = NULL;
@@ -94,7 +94,7 @@ SamrSrvAddAliasMember(
     DWORD dwRemoteNamesCount = 0;
     PWSTR pwszName = NULL;
     DWORD dwNameLen = 0;
-    DWORD dwObjectClass = DS_OBJECT_CLASS_LOCALGRP_MEMBER;
+    DWORD dwObjectClass = DS_OBJECT_CLASS_UNKNOWN;
     PWSTR pwszDomain = NULL;
     DWORD dwDomainLen = 0;
     PWSTR pwszMemberDn = NULL;
@@ -234,6 +234,26 @@ SamrSrvAddAliasMember(
         ntStatus = STATUS_INTERNAL_ERROR;
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
+    else if (dwEntriesNum == 1)
+    {
+        dwError = DirectoryGetEntryAttrValueByName(
+                                  pEntry,
+                                  wszAttrObjectClass,
+                                  DIRECTORY_ATTR_TYPE_INTEGER,
+                                  &dwObjectClass);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        /*
+         * Only local users and domain accounts (user/group) can
+         * be an alias member
+         */
+        if (dwObjectClass != DS_OBJECT_CLASS_USER &&
+            dwObjectClass != DS_OBJECT_CLASS_LOCALGRP_MEMBER)
+        {
+            ntStatus = STATUS_INVALID_MEMBER;
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
+        }
+    }
     else if (dwEntriesNum == 0)
     {
         dwError = LWNetGetCurrentDomain(&pszDomainFqdn);
@@ -277,7 +297,7 @@ SamrSrvAddAliasMember(
         dwLookupLevel         = LSA_LOOKUP_NAMES_ALL;
 
         ntStatus = LsaLookupSids(hLsaBinding,
-                                 &hDcPolicy,
+                                 hDcPolicy,
                                  &SidsArray,
                                  &pRemoteDomains,
                                  &pRemoteNames,
@@ -286,8 +306,19 @@ SamrSrvAddAliasMember(
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
         ntStatus = LsaClose(hLsaBinding,
-                            &hDcPolicy);
+                            hDcPolicy);
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+        /*
+         * Only domain users and groups can be a member of an alias
+         */
+        if (pRemoteNames[0].type != SID_TYPE_USER &&
+            pRemoteNames[0].type != SID_TYPE_DOM_GRP &&
+            pRemoteNames[0].type != SID_TYPE_WKN_GRP)
+        {
+            ntStatus = STATUS_INVALID_MEMBER;
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
+        }
 
         ntStatus = SamrSrvGetFromUnicodeString(&pwszName,
                                                &pRemoteNames[0].name);
@@ -315,8 +346,9 @@ SamrSrvAddAliasMember(
         sw16printfw(pwszMemberDn, dwMemberDnLen, wszMemberDnFmt,
                     pwszName, pwszDomain);
 
+        AttrValues[ATTR_IDX_OBJECT_CLASS].data.ulValue
+            = DS_OBJECT_CLASS_LOCALGRP_MEMBER;
         AttrValues[ATTR_IDX_DN].data.pwszStringValue             = pwszMemberDn;
-        AttrValues[ATTR_IDX_OBJECT_CLASS].data.ulValue          = dwObjectClass;
         AttrValues[ATTR_IDX_OBJECT_SID].data.pwszStringValue       = pwszSid;
         AttrValues[ATTR_IDX_DOMAIN].data.pwszStringValue           = pwszDomain;
         AttrValues[ATTR_IDX_NETBIOS_NAME].data.pwszStringValue     = pwszDomain;
