@@ -213,6 +213,10 @@ PvfsOplockBreakAck(
         BAIL_ON_NT_STATUS(ntError);
     }
 
+    /* Reset oplock state */
+
+    pCcb->OplockState = PVFS_OPLOCK_STATE_NONE;
+
     /* Check to see if we need to re-register a level 2 oplock */
 
     switch (pOplockBreakResp->Response)
@@ -228,7 +232,6 @@ PvfsOplockBreakAck(
             case STATUS_SUCCESS:
                 pIrpContext->pFcb = PvfsReferenceFCB(pFcb);
                 pIrpContext->QueueType = PVFS_QUEUE_TYPE_OPLOCK;
-                PVFS_ASSERT(pCcb->OplockState == PVFS_OPLOCK_STATE_NONE);
                 pCcb->OplockState = PVFS_OPLOCK_STATE_GRANTED;
 
                 PvfsIrpMarkPending(
