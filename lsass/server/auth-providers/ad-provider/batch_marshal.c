@@ -377,12 +377,12 @@ LsaAdBatchMarshalUserInfo(
     pObjectUserInfo->qwAccountExpires = pUserInfo->AccountExpires;
 
     // Handle shell.
-    LwStripWhitespace(pObjectUserInfo->pszShell);
+    LwStripWhitespace(pObjectUserInfo->pszShell, TRUE, TRUE);
     dwError = LsaAdBatchMarshalUserInfoFixShell(&pObjectUserInfo->pszShell);
     BAIL_ON_LSA_ERROR(dwError);
 
     // Handle home directory.
-    LwStripWhitespace(pObjectUserInfo->pszHomedir);
+    LwStripWhitespace(pObjectUserInfo->pszHomedir, TRUE, TRUE);
     dwError = LsaAdBatchMarshalUserInfoFixHomeDirectory(
                     &pObjectUserInfo->pszHomedir,
                     pszNetbiosDomainName,
