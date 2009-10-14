@@ -70,17 +70,20 @@ SqliteCreateKeyEx(
     );
 
 DWORD
-SqliteOpenRootKey(
+SqliteOpenKeyExA(
     IN HANDLE Handle,
-    IN PSTR pszRootKeyName,
+    IN HKEY hKey,
+    IN OPTIONAL PCSTR pszSubKey,
+    IN DWORD ulOptions,
+    IN REGSAM samDesired,
     OUT PHKEY phkResult
     );
 
 DWORD
-SqliteOpenKeyEx(
+SqliteOpenKeyExW(
     IN HANDLE Handle,
     IN HKEY hKey,
-    IN OPTIONAL PCWSTR pSubKey,
+    IN OPTIONAL PCWSTR pwszSubKey,
     IN DWORD ulOptions,
     IN REGSAM samDesired,
     OUT PHKEY phkResult

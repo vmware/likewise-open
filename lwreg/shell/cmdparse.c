@@ -287,9 +287,12 @@ RegShellCmdParseKeyName(
     if (pszBackslash)
     {
         *pszBackslash = '\0';
-        dwRootKeyError = RegOpenRootKey(
+        dwRootKeyError = RegOpenKeyExA(
                              pParseState->hReg,
+                             NULL,
                              pszTmpKey,
+                             0,
+                             0,
                              &hRootKey);
         if (dwRootKeyError == 0)
         {

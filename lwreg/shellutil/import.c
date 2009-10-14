@@ -83,9 +83,12 @@ ProcessImportedKeyName(
         {
             if (!hRootKey)
             {
-                dwError = RegOpenRootKey(
+                dwError = RegOpenKeyExA(
                            hReg,
+                           NULL,
                            LIKEWISE_ROOT_KEY,
+                           0,
+                           0,
                            &hRootKey);
                 BAIL_ON_REG_ERROR(dwError);
             }
@@ -95,9 +98,12 @@ ProcessImportedKeyName(
         {
             if (!hRootKeyImport)
             {
-                dwError = RegOpenRootKey(
+                dwError = RegOpenKeyExA(
                            hReg,
+                           NULL,
                            LIKEWISE_FOREIGN_ROOT_KEY,
+                           0,
+                           0,
                            &hRootKeyImport);
                 BAIL_ON_REG_ERROR(dwError);
             }
@@ -108,9 +114,12 @@ ProcessImportedKeyName(
         {
             if (!hRootKeyImport)
             {
-                dwError = RegOpenRootKey(
+                dwError = RegOpenKeyExA(
                            hReg,
+                           NULL,
                            LIKEWISE_FOREIGN_ROOT_KEY,
+                           0,
+                           0,
                            &hRootKeyImport);
                 BAIL_ON_REG_ERROR(dwError);
             }
@@ -250,7 +259,7 @@ ProcessImportedValue(
     {
         if (!hRootKey)
         {
-            dwError = RegOpenRootKey(hReg, LIKEWISE_ROOT_KEY, &hRootKey);
+            dwError = RegOpenKeyExA(hReg, NULL, LIKEWISE_ROOT_KEY, 0, 0, &hRootKey);
             BAIL_ON_REG_ERROR(dwError);
         }
 
@@ -260,7 +269,7 @@ ProcessImportedValue(
     {
         if (!hRootKeyImport)
         {
-            dwError = RegOpenRootKey(hReg, LIKEWISE_FOREIGN_ROOT_KEY, &hRootKeyImport);
+            dwError = RegOpenKeyExA(hReg, NULL, LIKEWISE_FOREIGN_ROOT_KEY, 0, 0, &hRootKeyImport);
             BAIL_ON_REG_ERROR(dwError);
         }
 
@@ -275,7 +284,7 @@ ProcessImportedValue(
         dwError = LwMbsToWc16s(pszSubKeyName+1, &pSubKey);
         BAIL_ON_REG_ERROR(dwError);
 
-        dwError = RegOpenKeyEx(
+        dwError = RegOpenKeyExW(
             hReg,
             hCurrRootKey,
             pSubKey,

@@ -52,7 +52,6 @@ REG_DB_HANDLE ghCacheConnection = {0};
 
 REGPROV_PROVIDER_FUNCTION_TABLE gRegSqliteProviderAPITable =
 {
-        &SqliteOpenRootKey,
         &SqliteCreateKeyEx,
         &SqliteCloseKey,
         &SqliteDeleteKey,
@@ -64,7 +63,8 @@ REGPROV_PROVIDER_FUNCTION_TABLE gRegSqliteProviderAPITable =
         &SqliteEnumValueW,
         &SqliteGetValueA,
         &SqliteGetValueW,
-        &SqliteOpenKeyEx,
+        &SqliteOpenKeyExA,
+        &SqliteOpenKeyExW,
         &SqliteQueryInfoKey,
         &SqliteQueryMultipleValues,
         &SqliteQueryValueExA,

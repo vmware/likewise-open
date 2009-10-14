@@ -57,14 +57,6 @@ RegSrvIpcEnumRootKeys(
     );
 
 LWMsgStatus
-RegSrvIpcOpenRootKey(
-    LWMsgCall* pCall,
-    const LWMsgParams* pIn,
-    LWMsgParams* pOut,
-    void* data
-    );
-
-LWMsgStatus
 RegSrvIpcCreateKeyEx(
     LWMsgCall* pCall,
     const LWMsgParams* pIn,
@@ -153,7 +145,15 @@ RegSrvIpcGetValueW(
     );
 
 LWMsgStatus
-RegSrvIpcOpenKeyEx(
+RegSrvIpcOpenKeyExA(
+    LWMsgCall* pCall,
+    const LWMsgParams* pIn,
+    LWMsgParams* pOut,
+    void* data
+    );
+
+LWMsgStatus
+RegSrvIpcOpenKeyExW(
     LWMsgCall* pCall,
     const LWMsgParams* pIn,
     LWMsgParams* pOut,

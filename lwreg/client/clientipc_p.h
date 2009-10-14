@@ -66,17 +66,20 @@ RegTransactEnumRootKeys(
     );
 
 DWORD
-RegTransactOpenRootKey(
-    IN HANDLE hConnection,
-    IN PSTR pszRootKeyName,
-    OUT PHKEY phkResult
+RegTransactOpenKeyExA(
+    HANDLE Handle,
+    HKEY hKey,
+    PCSTR pszSubKey,
+    DWORD ulOptions,
+    REGSAM samDesired,
+    PHKEY phkResult
     );
 
 DWORD
-RegTransactOpenKeyEx(
+RegTransactOpenKeyExW(
     HANDLE Handle,
     HKEY hKey,
-    PCWSTR pSubKey,
+    PCWSTR pwszSubKey,
     DWORD ulOptions,
     REGSAM samDesired,
     PHKEY phkResult

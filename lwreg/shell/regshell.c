@@ -619,9 +619,12 @@ RegShellProcessCmd(
                 while (pszToken)
                 {
                     pszKeyName = NULL;
-                    dwOpenRootKeyError = RegOpenRootKey(
+                    dwOpenRootKeyError = RegOpenKeyExA(
                                   pParseState->hReg,
+                                  NULL,
                                   pszToken,
+                                  0,
+                                  0,
                                   &hRootKey);
                     if (dwOpenRootKeyError == 0)
                     {

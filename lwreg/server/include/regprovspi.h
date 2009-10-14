@@ -49,14 +49,6 @@
 
 typedef
 DWORD
-(*PFNRegSrvOpenRootKey)(
-    IN HANDLE Handle,
-    IN PSTR pszRootKeyName,
-    OUT PHKEY phkResult
-    );
-
-typedef
-DWORD
 (*PFNRegSrvCreateKeyEx)(
     HANDLE Handle,
     HKEY hKey,
@@ -179,10 +171,21 @@ DWORD
 
 typedef
 DWORD
-(*PFNRegSrvOpenKeyEx)(
+(*PFNRegSrvOpenKeyExA)(
     HANDLE Handle,
     HKEY hKey,
-    PCWSTR lpSubKey,
+    PCSTR pszSubKey,
+    DWORD ulOptions,
+    REGSAM samDesired,
+    PHKEY phkResult
+    );
+
+typedef
+DWORD
+(*PFNRegSrvOpenKeyExW)(
+    HANDLE Handle,
+    HKEY hKey,
+    PCWSTR pwszSubKey,
     DWORD ulOptions,
     REGSAM samDesired,
     PHKEY phkResult
@@ -266,7 +269,6 @@ DWORD
 
 typedef struct __REGPROV_PROVIDER_FUNCTION_TABLE
 {
-    PFNRegSrvOpenRootKey         pfnRegSrvOpenRootKey;
     PFNRegSrvCreateKeyEx         pfnRegSrvCreateKeyEx;
     PFNRegSrvCloseKey            pfnRegSrvCloseKey;
     PFNRegSrvDeleteKey           pfnRegSrvDeleteKey;
@@ -278,7 +280,8 @@ typedef struct __REGPROV_PROVIDER_FUNCTION_TABLE
     PFNRegSrvEnumValueW          pfnRegSrvEnumValueW;
     PFNRegSrvGetValueA           pfnRegSrvGetValueA;
     PFNRegSrvGetValueW           pfnRegSrvGetValueW;
-    PFNRegSrvOpenKeyEx           pfnRegSrvOpenKeyEx;
+    PFNRegSrvOpenKeyExA          pfnRegSrvOpenKeyExA;
+    PFNRegSrvOpenKeyExW          pfnRegSrvOpenKeyExW;
     PFNRegSrvQueryInfoKey        pfnRegSrvQueryInfoKey;
     PFNRegSrvQueryMultipleValues pfnRegSrvQueryMultipleValues;
     PFNRegSrvQueryValueExA       pfnRegSrvQueryValueExA;
