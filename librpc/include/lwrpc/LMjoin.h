@@ -39,7 +39,6 @@
 
 #include <lwps/lwps.h>
 #include <lwrpc/types.h>
-#include <lwrpc/security.h>
 
 
 /* (un)join domain flags */

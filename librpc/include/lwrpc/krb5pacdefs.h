@@ -31,6 +31,7 @@
 #ifndef _KRB5PAC_H_
 #define _KRB5PAC_H_
 
+#include <lwrpc/lsadefs.h>
 #include <lwrpc/netrdefs.h>
 
 typedef struct {

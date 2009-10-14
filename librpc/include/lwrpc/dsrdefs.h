@@ -33,7 +33,7 @@
 #define _DSRDEFS_H_
 
 #include <lw/types.h>
-#include <secdesc/sectypes.h>
+#include <lwrpc/lsadefs.h>
 
 
 #define DS_ROLE_STANDALONE_WORKSTATION         (0)

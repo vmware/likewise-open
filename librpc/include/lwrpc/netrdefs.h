@@ -40,11 +40,8 @@
 #include <lwrpc/types.h>
 #include <lwrpc/unistrdef.h>
 #include <lwrpc/rid.h>
-#include <secdesc/sectypes.h>
-#include <lwrpc/security.h>
-#include <lwrpc/unistrdef.h>
-#include <lwrpc/rid.h>
 #include <lwrpc/samrdefs.h>
+#include <lwrpc/lsadefs.h>
 
 /*
  * Domain trust definitions

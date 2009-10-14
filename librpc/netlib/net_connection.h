@@ -26,7 +26,6 @@
 #define _NET_CONNECTION_H_
 
 #include <lwrpc/types.h>
-#include <lwrpc/security.h>
 
 
 typedef struct net_conn {

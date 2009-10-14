@@ -47,19 +47,16 @@
 #include <dce/schannel.h>
 #include <wc16str.h>
 #include <wc16printf.h>
-#include <secdesc/secapi.h>
 #include <lw/ntstatus.h>
 #include <winerror.h>
 #include <winerror-conv.h>
 
 #include <lwrpc/types.h>
-#include <lwrpc/netrdefs.h>
 #include <lwrpc/allocate.h>
 #include <lwrpc/memptr.h>
 #include <lwrpc/sidhelper.h>
 #include <lwrpc/unicodestring.h>
-#include <lwrpc/netlogonbinding.h>
-#include <lwrpc/netrdefs.h>
+#include <lwrpc/lsadefs.h>
 #include <lwrpc/netlogon.h>
 
 #include <md4.h>

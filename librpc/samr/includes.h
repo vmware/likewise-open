@@ -44,7 +44,6 @@
 #include <dce/smb.h>
 #include <DceSupport.h>
 #include <wc16str.h>
-#include <secdesc/secapi.h>
 #include <lw/ntstatus.h>
 
 #include <lwrpc/types.h>
@@ -53,6 +52,7 @@
 #include <lwrpc/memptr.h>
 #include <lwrpc/sidhelper.h>
 #include <lwrpc/rid.h>
+#include <lwrpc/lsadefs.h>
 #include <lwrpc/samr.h>
 
 #include "samr_util.h"
