@@ -152,7 +152,6 @@ AM_CONDITIONAL(HAVE_MOONUNIT, $HAVE_MOONUNIT)
 AC_CONFIG_FILES([Makefile
                  include/Makefile
                  include/lw/Makefile
-                 include/secdesc/Makefile
                  src/Makefile
                  moonunit/Makefile])
 

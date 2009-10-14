@@ -50,7 +50,6 @@
 #include <uuid/uuid.h>
 #endif
 
-#include <secdesc/secapi.h>
 #include "secdesc_p.h"
 
 #include "compat.h"
