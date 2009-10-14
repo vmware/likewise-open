@@ -207,10 +207,10 @@ NtlmServerQueryCtxtSessionKeyAttribute(
 
     dwError = LwAllocateMemory(
         NTLM_SESSION_KEY_SIZE,
-        OUT_PPVOID(&pSessionKey->SessionKey));
+        OUT_PPVOID(&pSessionKey->pSessionKey));
     BAIL_ON_LSA_ERROR(dwError);
 
-    memcpy(pSessionKey->SessionKey, pKey, NTLM_SESSION_KEY_SIZE);
+    memcpy(pSessionKey->pSessionKey, pKey, NTLM_SESSION_KEY_SIZE);
     pSessionKey->SessionKeyLength = NTLM_SESSION_KEY_SIZE;
 
 cleanup:
@@ -219,7 +219,7 @@ cleanup:
 error:
     if(pSessionKey)
     {
-        LW_SAFE_FREE_MEMORY(pSessionKey->SessionKey);
+        LW_SAFE_FREE_MEMORY(pSessionKey->pSessionKey);
     }
     LW_SAFE_FREE_MEMORY(pSessionKey);
     goto cleanup;

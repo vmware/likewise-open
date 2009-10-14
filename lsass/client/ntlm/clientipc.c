@@ -232,8 +232,8 @@ error:
 
 DWORD
 NtlmTransactAcquireCredentialsHandle(
-    IN SEC_CHAR *pszPrincipal,
-    IN SEC_CHAR *pszPackage,
+    IN const SEC_CHAR *pszPrincipal,
+    IN const SEC_CHAR *pszPackage,
     IN DWORD fCredentialUse,
     IN PLUID pvLogonID,
     IN PVOID pAuthData,
@@ -952,25 +952,26 @@ NtlmTransactQueryContextAttributes(
             switch(pResultList->ulAttribute)
             {
             case SECPKG_ATTR_NAMES:
-                memcpy(
-                    pBuffer,
-                    pResultList->Buffer.pNames,
-                    sizeof(SecPkgContext_Names));
-                pResultList->Buffer.pNames = NULL;
+                ((PSecPkgContext_Names)pBuffer)->pUserName =
+                    pResultList->Buffer.pNames->pUserName;
+                pResultList->Buffer.pNames->pUserName = NULL;
                 break;
             case SECPKG_ATTR_SESSION_KEY:
-                memcpy(
-                    pBuffer,
-                    pResultList->Buffer.pSessionKey,
-                    sizeof(SecPkgContext_SessionKey));
-                pResultList->Buffer.pSessionKey = NULL;
+                ((PSecPkgContext_SessionKey)pBuffer)->pSessionKey =
+                    pResultList->Buffer.pSessionKey->pSessionKey;
+                ((PSecPkgContext_SessionKey)pBuffer)->SessionKeyLength =
+                    pResultList->Buffer.pSessionKey->SessionKeyLength;
+                pResultList->Buffer.pSessionKey->pSessionKey = NULL;
                 break;
             case SECPKG_ATTR_SIZES:
-                memcpy(
-                    pBuffer,
-                    pResultList->Buffer.pSizes,
-                    sizeof(SecPkgContext_Sizes));
-                pResultList->Buffer.pSizes = NULL;
+                ((PSecPkgContext_Sizes)pBuffer)->cbMaxToken =
+                    pResultList->Buffer.pSizes->cbMaxToken;
+                ((PSecPkgContext_Sizes)pBuffer)->cbMaxSignature =
+                    pResultList->Buffer.pSizes->cbMaxSignature;
+                ((PSecPkgContext_Sizes)pBuffer)->cbBlockSize =
+                    pResultList->Buffer.pSizes->cbBlockSize;
+                ((PSecPkgContext_Sizes)pBuffer)->cbSecurityTrailer =
+                    pResultList->Buffer.pSizes->cbSecurityTrailer;
                 break;
             default:
                 dwError = LW_ERROR_INVALID_PARAMETER;

@@ -51,6 +51,7 @@
 #include <lwstr.h>
 #include <string.h>
 #include <assert.h>
+//#include <structs.h>
 
 gss_OID_desc gGssNtlmOidDesc = {
     .length = GSS_MECH_NTLM_LEN,
@@ -454,6 +455,13 @@ typedef struct _GSS_MECH_CONFIG
 
 } GSS_MECH_CONFIG, *PGSS_MECH_CONFIG;
 
+typedef struct _NTLM_GSS_NAME
+{
+    // This always points to a static global structure
+    gss_OID NameType;
+    PSTR pszName;
+} NTLM_GSS_NAME, *PNTLM_GSS_NAME;
+
 //
 // Prototypes
 //
@@ -496,7 +504,7 @@ static GSS_MECH_CONFIG gNtlmMech =
     NULL, //ntlm_gss_inquire_cred_by_mech,
     NULL, //ntlm_gss_inquire_names_for_mech,
     ntlm_gss_inquire_context,
-    NULL, //ntlm_gss_internal_release_oid,
+    NULL, // ntlm_gss_release_oid,
     NULL, //ntlm_gss_wrap_size_limit,
     NULL, //ntlm_gss_export_name,
     NULL, //ntlm_gss_store_cred,
@@ -521,7 +529,7 @@ static GSS_MECH_CONFIG gNtlmMech =
 OM_uint32
 ntlm_gss_acquire_cred(
     OM_uint32* pMinorStatus,
-    const gss_name_t pDesiredName,
+    const gss_name_t hDesiredName,
     OM_uint32 nTimeReq,
     const gss_OID_set pDesiredMechs,
     gss_cred_usage_t CredUsage,
@@ -535,6 +543,9 @@ ntlm_gss_acquire_cred(
     NTLM_CRED_HANDLE CredHandle = NULL;
     TimeStamp tsExpiry = 0;
     DWORD fCredentialUse = 0;
+    PNTLM_GSS_NAME pDesiredName = (PNTLM_GSS_NAME)hDesiredName;
+    BOOLEAN bIsUserName = TRUE;
+    PCSTR pszName = NULL;
 
     *pOutputCredHandle = (gss_cred_id_t)CredHandle;
 
@@ -561,8 +572,27 @@ ntlm_gss_acquire_cred(
         BAIL_ON_LW_ERROR(MinorStatus);
     }
 
+    if (pDesiredName)
+    {
+        MajorStatus = ntlm_gss_compare_oid(
+                &MinorStatus,
+                pDesiredName->NameType,
+                GSS_C_NT_USER_NAME,
+                &bIsUserName);
+        BAIL_ON_LW_ERROR(MinorStatus);
+
+        if (!bIsUserName)
+        {
+            MajorStatus = GSS_S_BAD_NAMETYPE;
+            MinorStatus = LW_ERROR_BAD_NAMETYPE;
+            BAIL_ON_LW_ERROR(MinorStatus);
+        }
+
+        pszName = pDesiredName->pszName;
+    }
+
     MinorStatus = NtlmClientAcquireCredentialsHandle(
-        (SEC_CHAR*)pDesiredName,
+        pszName,
         "NTLM",
         fCredentialUse,
         NULL,
@@ -1309,20 +1339,29 @@ ntlm_gss_display_name(
 {
     OM_uint32 MajorStatus = GSS_S_COMPLETE;
     OM_uint32 MinorStatus = LW_ERROR_SUCCESS;
-    gss_buffer_t pName = (gss_buffer_t)pGssName;
+    PNTLM_GSS_NAME pName = (PNTLM_GSS_NAME)pGssName;
 
-    if (pName && pOutputName)
+    if (!pName)
     {
-        MinorStatus = LwAllocateMemory(pName->length, &pOutputName->value);
+        MajorStatus = GSS_S_BAD_NAME;
+        MinorStatus = LW_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LW_ERROR(MinorStatus);
+    }
+
+    if (pOutputName)
+    {
+        MinorStatus = LwAllocateString(
+            pName->pszName,
+            (PSTR*)(PSTR)(&pOutputName->value));
         BAIL_ON_LW_ERROR(MinorStatus);
 
-        pOutputName->length = pName->length;
-        memcpy(pOutputName->value, pName->value, pOutputName->length);
+        pOutputName->length = strlen(pOutputName->value);
     }
 
     if (ppNameType)
     {
-        *ppNameType = GSS_C_NT_HOSTBASED_SERVICE;
+        // The caller assumes that *ppNameType is static read only memory
+        *ppNameType = pName->NameType;
     }
 
 cleanup:
@@ -1330,11 +1369,46 @@ cleanup:
     return MajorStatus;
 
 error:
+    if (pOutputName)
+    {
+        LW_SAFE_FREE_STRING(pOutputName->value);
+        pOutputName->length = 0;
+    }
+    if (ppNameType)
+    {
+        *ppNameType = NULL;
+    }
     if (MajorStatus == GSS_S_COMPLETE)
     {
         MajorStatus = GSS_S_FAILURE;
     }
     goto cleanup;
+}
+
+OM_uint32
+ntlm_gss_compare_oid(
+    OM_uint32* pMinorStatus,
+    const gss_OID a,
+    const gss_OID b,
+    BOOLEAN *bIsEqual
+    )
+{
+    *pMinorStatus = 0;
+
+    if (a->length != b->length)
+    {
+        *bIsEqual = FALSE;
+        return 0;
+    }
+
+    if (!a->elements)
+    {
+        *bIsEqual = !b->elements;
+        return 0;
+    }
+
+    *bIsEqual = !memcmp(a->elements, b->elements, a->length);
+    return 0;
 }
 
 OM_uint32
@@ -1347,19 +1421,58 @@ ntlm_gss_import_name(
 {
     OM_uint32 MajorStatus = GSS_S_COMPLETE;
     OM_uint32 MinorStatus = LW_ERROR_SUCCESS;
+    PNTLM_GSS_NAME pResult = NULL;
+    BOOLEAN bIsUserName = FALSE;
+    BOOLEAN bIsHostService = FALSE;
 
-    *pOutputName = GSS_C_NO_NAME;
-
+    MinorStatus = LwAllocateMemory(
+        sizeof(*pResult),
+        OUT_PPVOID(&pResult));
     BAIL_ON_LW_ERROR(MinorStatus);
+
+    ntlm_gss_compare_oid(
+            &MinorStatus,
+            InputNameType,
+            GSS_C_NT_USER_NAME,
+            &bIsUserName);
+    BAIL_ON_LW_ERROR(MinorStatus);
+    ntlm_gss_compare_oid(
+            &MinorStatus,
+            InputNameType,
+            GSS_C_NT_HOSTBASED_SERVICE,
+            &bIsHostService);
+    BAIL_ON_LW_ERROR(MinorStatus);
+
+    if (bIsUserName)
+    {
+        pResult->NameType = GSS_C_NT_USER_NAME;
+    }
+    else if(bIsHostService)
+    {
+        pResult->NameType = GSS_C_NT_HOSTBASED_SERVICE;
+    }
+    else
+    {
+        MajorStatus = GSS_S_BAD_NAMETYPE;
+        MinorStatus = LW_ERROR_BAD_NAMETYPE;
+        BAIL_ON_LW_ERROR(MinorStatus);
+    }
+
+    MinorStatus = LwStrndup(
+        InputNameBuffer->value,
+        InputNameBuffer->length,
+        &pResult->pszName);
+    BAIL_ON_LW_ERROR(MinorStatus);
+
+    *pOutputName = (gss_name_t)pResult;
 
 cleanup:
     *pMinorStatus = MinorStatus;
     return MajorStatus;
+
 error:
-    if (MajorStatus == GSS_S_COMPLETE)
-    {
-        MajorStatus = GSS_S_FAILURE;
-    }
+    *pOutputName = NULL;
+    ntlm_gss_release_name(NULL, (gss_name_t *)&pResult);
     goto cleanup;
 }
 
@@ -1369,22 +1482,18 @@ ntlm_gss_release_name(
     gss_name_t* ppName
     )
 {
-    gss_buffer_t pName = NULL;
+    PNTLM_GSS_NAME pName = (PNTLM_GSS_NAME)*ppName;
 
-    if (ppName)
+    if (pName)
     {
-        pName = (gss_buffer_t)*ppName;
-
-        if (pName && pName->length && pName->value)
-        {
-            LW_SAFE_FREE_MEMORY(pName->value);
-            pName->length = 0;
-        }
-
-        *ppName = GSS_C_NO_NAME;
+        LW_SAFE_FREE_STRING(pName->pszName);
+        LW_SAFE_FREE_MEMORY(pName);
+        *ppName = NULL;
     }
-
-    *pMinorStatus = LW_ERROR_SUCCESS;
+    if (pMinorStatus)
+    {
+        *pMinorStatus = LW_ERROR_SUCCESS;
+    }
     return GSS_S_COMPLETE;
 }
 
@@ -1433,10 +1542,10 @@ ntlm_gss_inquire_context(
 {
     OM_uint32 MajorStatus = GSS_S_COMPLETE;
     OM_uint32 MinorStatus = LW_ERROR_SUCCESS;
-    gss_buffer_t pUserName = NULL;
     NTLM_CONTEXT_HANDLE NtlmCtxtHandle = (NTLM_CONTEXT_HANDLE)GssCtxtHandle;
     SecPkgContext_Names Names = { 0 };
     gss_name_t pSourceName = NULL;
+    PNTLM_GSS_NAME pUserName = NULL;
 
     if (ppTargetName || pCtxtFlags || pLocal || pOpen)
     {
@@ -1457,12 +1566,12 @@ ntlm_gss_inquire_context(
             OUT_PPVOID(&pUserName));
         BAIL_ON_LW_ERROR(MinorStatus);
 
+        pUserName->NameType = GSS_C_NT_USER_NAME;
+
         MinorStatus = LwAllocateString(
             Names.pUserName,
-            (PSTR*)(PSTR)(&pUserName->value));
+            (PSTR*)(PSTR)(&pUserName->pszName));
         BAIL_ON_LW_ERROR(MinorStatus);
-
-        pUserName->length = strlen(pUserName->value);
 
         pSourceName = (gss_name_t)pUserName;
         pUserName = NULL;
@@ -1474,10 +1583,9 @@ cleanup:
         NtlmFreeContextBuffer(Names.pUserName);
     }
 
-    if(pUserName)
+    if (pUserName)
     {
-        LW_SAFE_FREE_MEMORY(pUserName->value);
-        LW_SAFE_FREE_MEMORY(pUserName);
+        ntlm_gss_release_name(&MinorStatus, (gss_name_t *)&pUserName);
     }
 
     if (ppSourceName)
@@ -1545,7 +1653,7 @@ ntlm_gss_inquire_sec_context_by_oid(
             &SessionKey);
         BAIL_ON_LW_ERROR(MinorStatus);
 
-        pBuffer->value = SessionKey.SessionKey;
+        pBuffer->value = SessionKey.pSessionKey;
         pBuffer->length = SessionKey.SessionKeyLength;
     }
     else if (Attrib->length == NamesOid->length &&
