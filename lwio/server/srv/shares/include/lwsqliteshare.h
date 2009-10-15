@@ -1,9 +1,5 @@
-/* Editor Settings: expandtabs and use 4 spaces for indentation
- * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
-
 /*
- * Copyright Likewise Software
+ * Copyright Likewise Software    2004-2008
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -33,64 +29,31 @@
  *
  * Module Name:
  *
- *        mapping.c
+ *        lwshare.h
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise I/O (LWIO) - SRV
  *
- *        Share Repository API
+ *        Share Repository based on Sqlite
  *
- *        Library Main
+ *        Public header
  *
- * Authors: Sriram Nambakam (snambakam@likewise.com)
+ * Authors: Sriram Nambakam (snambakam@likewisesoftware.com)
  *
  */
 
-#include "includes.h"
+#ifndef __LWSQLITESHARE_H__
+#define __LWSQLITESHARE_H__
 
 NTSTATUS
-SrvShareInit(
-    VOID
-    )
-{
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
-
-#if defined(LW_USE_SHARE_REPOSITORY_SQLITE)
-
-    status = LwSqliteShareRepositoryInit(&gSrvShareApi.pFnTable);
-
-#elif defined(LW_USE_SHARE_REPOSITORY_REGISTRY)
-
-    status = LwRegShareRepositoryInit(&gSrvShareApi.pFnTable);
-
-#endif
-
-    return status;
-}
+LwSqliteShareRepositoryInit(
+    OUT PSRV_SHARE_REPOSITORY_FUNCTION_TABLE* ppFnTable
+    );
 
 NTSTATUS
-SrvShareShutdown(
-    VOID
-    )
-{
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+LwSqliteShareRepositoryShutdown(
+    IN PSRV_SHARE_REPOSITORY_FUNCTION_TABLE pFnTable
+    );
 
-#if defined(LW_USE_SHARE_REPOSITORY_SQLITE)
-
-    status = LwSqliteShareRepositoryShutdown(gSrvShareApi.pFnTable);
-
-#elif defined(LW_USE_SHARE_REPOSITORY_REGISTRY)
-
-    status = LwRegShareRepositoryShutdown(gSrvShareApi.pFnTable);
-
-#endif
-    BAIL_ON_NT_STATUS(status);
-
-    gSrvShareApi.pFnTable = NULL;
-
-error:
-
-    return status;
-}
-
+#endif /* __LWSQLITESHARE_H__ */

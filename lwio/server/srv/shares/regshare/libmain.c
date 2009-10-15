@@ -1,9 +1,5 @@
-/* Editor Settings: expandtabs and use 4 spaces for indentation
- * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
-
 /*
- * Copyright Likewise Software
+ * Copyright Likewise Software    2004-2008
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -25,7 +21,7 @@
  * GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
  * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
  * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
- * license@likewisesoftware.com
+ * license@likewise.com
  */
 
 /*
@@ -33,13 +29,13 @@
  *
  * Module Name:
  *
- *        mapping.c
+ *        globals.c
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise I/O (LWIO) - SRV
  *
- *        Share Repository API
+ *        Share Repository based on Registry
  *
  *        Library Main
  *
@@ -50,47 +46,30 @@
 #include "includes.h"
 
 NTSTATUS
-SrvShareInit(
-    VOID
+LwRegShareRepositoryInit(
+    OUT PSRV_SHARE_REPOSITORY_FUNCTION_TABLE* ppFnTable
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
 
-#if defined(LW_USE_SHARE_REPOSITORY_SQLITE)
+    *ppFnTable = &gShareRepository_registry.fnTable;
 
-    status = LwSqliteShareRepositoryInit(&gSrvShareApi.pFnTable);
-
-#elif defined(LW_USE_SHARE_REPOSITORY_REGISTRY)
-
-    status = LwRegShareRepositoryInit(&gSrvShareApi.pFnTable);
-
-#endif
+cleanup:
 
     return status;
-}
-
-NTSTATUS
-SrvShareShutdown(
-    VOID
-    )
-{
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
-
-#if defined(LW_USE_SHARE_REPOSITORY_SQLITE)
-
-    status = LwSqliteShareRepositoryShutdown(gSrvShareApi.pFnTable);
-
-#elif defined(LW_USE_SHARE_REPOSITORY_REGISTRY)
-
-    status = LwRegShareRepositoryShutdown(gSrvShareApi.pFnTable);
-
-#endif
-    BAIL_ON_NT_STATUS(status);
-
-    gSrvShareApi.pFnTable = NULL;
 
 error:
 
-    return status;
+    *ppFnTable = NULL;
+
+    goto cleanup;
+}
+
+NTSTATUS
+LwRegShareRepositoryShutdown(
+    IN PSRV_SHARE_REPOSITORY_FUNCTION_TABLE pFnTable
+    )
+{
+    return STATUS_SUCCESS;
 }
 

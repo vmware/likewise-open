@@ -52,7 +52,5 @@
 #ifndef __SRV_SHAREAPI_DEFS_H__
 #define __SRV_SHAREAPI_DEFS_H__
 
-#define SRV_SHAREAPI_USE_LWSHARE 1
-
 #endif /* __SRV_SHAREAPI_DEFS_H__ */
 

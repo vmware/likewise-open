@@ -29,13 +29,13 @@
  *
  * Module Name:
  *
- *        lwshare.h
+ *        lwregshare.h
  *
  * Abstract:
  *
  *        Likewise I/O (LWIO) - SRV
  *
- *        Share Repository based on Sqlite
+ *        Share Repository based on Registry
  *
  *        Public header
  *
@@ -43,17 +43,17 @@
  *
  */
 
-#ifndef __LWSHARE_H__
-#define __LWSHARE_H__
+#ifndef __LWREGSHARE_H__
+#define __LWREGSHARE_H__
 
 NTSTATUS
-LwShareRepositoryInit(
+LwRegShareRepositoryInit(
     OUT PSRV_SHARE_REPOSITORY_FUNCTION_TABLE* ppFnTable
     );
 
 NTSTATUS
-LwShareRepositoryShutdown(
+LwRegShareRepositoryShutdown(
     IN PSRV_SHARE_REPOSITORY_FUNCTION_TABLE pFnTable
     );
 
-#endif /* __LWSHARE_H__ */
+#endif /* __LWREGSHARE_H__ */
