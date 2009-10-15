@@ -6,7 +6,7 @@ librsutils_la_SOURCES = \
     export.c
 
 librsutils_la_CPPFLAGS = \
-    $(AM_CFLAGS)          \
+    $(AM_CPPFLAGS)          \
     -I@top_srcdir@/server/include \
     @LWADVAPI_INCLUDES@   \
     @LWMSG_INCLUDES@

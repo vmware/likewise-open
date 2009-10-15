@@ -10,13 +10,12 @@ test_regio_LDADD =                           \
 test_regio_LDFLAGS = -static
 
 test_regio_CPPFLAGS = \
-    $(AM_CFLAGS)      \
+    $(AM_CPPFLAGS)      \
     @LWADVAPI_INCLUDES@   \
     @LWMSG_INCLUDES@ \
-    -I@top_builddir@ \
+    -I@top_srcdir@ \
     -I@top_srcdir@/server/include
-    
-    
+
 #test_reglex
 test_reglex_SOURCES = \
     test_reglex.c
@@ -26,12 +25,12 @@ test_reglex_LDADD =                           \
 
 test_reglex_LDFLAGS = -static
 test_reglex_CPPFLAGS = \
-    $(AM_CFLAGS)       \
+    $(AM_CPPFLAGS)       \
     @LWADVAPI_INCLUDES@   \
     @LWMSG_INCLUDES@ \
-    -I@top_builddir@ \
+    -I@top_srcdir@ \
     -I@top_srcdir@/server/include
-    
+
 test_regparse_SOURCES = \
     test_regparse.c
 
@@ -42,11 +41,11 @@ test_regparse_LDADD =                           \
 
 test_regparse_LDFLAGS = -static
 test_regparse_CPPFLAGS = \
-    $(AM_CFLAGS)       \
+    $(AM_CPPFLAGS)       \
     -I@top_srcdir@/server/include \
     @LWADVAPI_INCLUDES@   \
     @LWMSG_INCLUDES@ \
-    -I@top_builddir@ \
+    -I@top_srcdir@ \
     -I@top_srcdir@/server/include
 
 #test regdump
@@ -58,12 +57,12 @@ test_regdump_LDADD =                           \
 
 test_regdump_LDFLAGS = -static
 test_regdump_CPPFLAGS = \
-    $(AM_CFLAGS)       \
+    $(AM_CPPFLAGS)       \
     @LWADVAPI_INCLUDES@   \
     @LWMSG_INCLUDES@ \
-    -I@top_builddir@ \
+    -I@top_srcdir@ \
     -I@top_srcdir@/server/include
-    
+
 #test regiconv
 test_regiconv_SOURCES = \
     test_regiconv.c
@@ -73,10 +72,10 @@ test_regiconv_LDADD =                           \
 
 test_regiconv_LDFLAGS = -static
 test_regiconv_CPPFLAGS = \
-    $(AM_CFLAGS)       \
+    $(AM_CPPFLAGS)       \
     @LWADVAPI_INCLUDES@   \
     @LWMSG_INCLUDES@ \
-    -I@top_builddir@ \
+    -I@top_srcdir@ \
     -I@top_srcdir@/server/include
 
 #test tomulti
@@ -88,10 +87,10 @@ test_tomulti_LDADD =                           \
 
 test_tomulti_LDFLAGS = -static
 test_tomulti_CPPFLAGS = \
-    $(AM_CFLAGS)       \
+    $(AM_CPPFLAGS)       \
     @LWADVAPI_INCLUDES@   \
     @LWMSG_INCLUDES@ \
-    -I@top_builddir@ \
+    -I@top_srcdir@ \
     -I@top_srcdir@/server/include
 
 #test_ptlwregd
@@ -107,6 +106,6 @@ test_ptlwregd_LDADD =                           \
 test_ptlwregd_LDFLAGS = -static
 
 test_ptlwregd_CPPFLAGS = \
-    $(AM_CFLAGS)   \
+    $(AM_CPPFLAGS)   \
     -I@top_srcdir@/shellutil \
     @LWBASE_INCLUDES@
