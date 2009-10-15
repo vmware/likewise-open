@@ -55,7 +55,7 @@ DisableWksAccount(
     memset((void*)&sinfo, 0, sizeof(sinfo));
 
 	samr_b  = conn->samr.bind;
-	hDomain = &conn->samr.hDomain;
+	hDomain = conn->samr.hDomain;
 	info16  = &sinfo.info16;
 
 	names[0] = account_name;
