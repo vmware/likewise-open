@@ -407,7 +407,7 @@ SrvBuildIOCTLResponse_SMB_V2(
                     ulOffset,
                     ulBytesAvailable,
                     COM2_IOCTL,
-                    0,
+                    pSmbRequest->pHeader->usEpoch,
                     pSmbRequest->pHeader->usCredits,
                     pSmbRequest->pHeader->ulPid,
                     pSmbRequest->pHeader->ullCommandSequence,

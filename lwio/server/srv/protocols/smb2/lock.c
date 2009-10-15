@@ -658,7 +658,7 @@ SrvBuildLockResponse_SMB_V2(
                 ulOffset,
                 ulBytesAvailable,
                 COM2_LOCK,
-                0,
+                pSmbRequest->pHeader->usEpoch,
                 pSmbRequest->pHeader->usCredits,
                 pSmbRequest->pHeader->ulPid,
                 pSmbRequest->pHeader->ullCommandSequence,
