@@ -37,7 +37,7 @@ client_liblwsm_la_LIBADD = $(top_builddir)/common/liblwsmcommon.la @LIB_PTHREAD@
 client_liblwsm_la_LDFLAGS = $(AM_LDFLAGS) -export-symbols $(top_srcdir)/client/liblwsm.sym
 
 server_liblwsmloader_la_SOURCES = server/loader.c
-server_liblwsmloader_la_LIBADD = $(top_builddir)/common/liblwsmcommon.la @LIB_PTHREAD@ -ldl
+server_liblwsmloader_la_LIBADD = $(top_builddir)/common/liblwsmcommon.la @LIB_PTHREAD@ @LIB_DL@
 server_liblwsmloader_la_LDFLAGS = $(AM_LDFLAGS) -export-symbols $(top_srcdir)/server/liblwsmloader.sym
 
 # loaders
