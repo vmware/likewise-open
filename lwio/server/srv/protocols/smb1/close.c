@@ -32,12 +32,6 @@
 
 static
 NTSTATUS
-SrvClearOplockState(
-   PSRV_EXEC_CONTEXT pExecContext
-   );
-
-static
-NTSTATUS
 SrvBuildCloseState(
     PCLOSE_REQUEST_HEADER    pRequestHeader,
     PLWIO_SRV_FILE           pFile,
@@ -160,9 +154,6 @@ SrvProcessCloseAndX(
     switch (pCloseState->stage)
     {
         case SRV_CLOSE_STAGE_SMB_V1_INITIAL:
-
-            ntStatus = SrvClearOplockState(pExecContext);
-            BAIL_ON_NT_STATUS(ntStatus);
 
             pCloseState->stage = SRV_CLOSE_STAGE_SMB_V1_SET_INFO_COMPLETED;
 
@@ -353,107 +344,6 @@ error:
     goto cleanup;
 }
 
-static
-NTSTATUS
-SrvClearOplockState(
-   PSRV_EXEC_CONTEXT pExecContext
-   )
-{
-    NTSTATUS                   ntStatus     = STATUS_SUCCESS;
-    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
-    PSRV_CLOSE_STATE_SMB_V1    pCloseState  = NULL;
-    PSRV_OPLOCK_STATE_SMB_V1   pOplockState = NULL;
-
-    pCloseState = (PSRV_CLOSE_STATE_SMB_V1)pCtxSmb1->hState;
-
-    pOplockState = (PSRV_OPLOCK_STATE_SMB_V1)SrvFileRemoveOplockState(
-                                                    pCloseState->pFile);
-
-    /*
-       Deal with any outstanding oplock issues.  Three possible
-       cases here:
-       1. Active oplock that can be cancelled.
-       2. Oplock that has been broken but not processed
-       3. Oplock awaiting a break ackowledgement from the client.
-    */
-
-    if (pOplockState)
-    {
-        BOOLEAN bCancelled = FALSE;
-        BOOLEAN bInLock = FALSE;
-
-        LWIO_LOCK_MUTEX(bInLock, &pOplockState->mutex);
-
-        /* Cancel any registered oplock on the file */
-
-        if (pOplockState->pAcb && pOplockState->pAcb->AsyncCancelContext)
-        {
-            bCancelled = IoCancelAsyncCancelContext(
-                             pOplockState->pAcb->AsyncCancelContext);
-        }
-
-        LWIO_UNLOCK_MUTEX(bInLock, &pOplockState->mutex);
-
-        /* If the IoCancel failed, the oplock must have been broken.
-           Do the rundown ourselves, sending any necessary BreakAcks
-           to the file systems */
-
-        if (!bCancelled)
-        {
-            if (pOplockState->pTimerRequest)
-            {
-                PSRV_OPLOCK_STATE_SMB_V1 pOplockState2 = NULL;
-
-                SrvTimerCancelRequest(
-                        pOplockState->pTimerRequest,
-                        (PVOID*)&pOplockState2);
-
-                if (pOplockState2)
-                {
-                    SrvReleaseOplockState(pOplockState2);
-                }
-
-                SrvTimerRelease(pOplockState->pTimerRequest);
-                pOplockState->pTimerRequest = NULL;
-            }
-
-            switch (SrvFileGetOplockLevel(pCloseState->pFile))
-            {
-                case SMB_OPLOCK_LEVEL_I:
-                case SMB_OPLOCK_LEVEL_BATCH:
-
-                    ntStatus = SrvAcknowledgeOplockBreak(pOplockState, TRUE);
-                    break;
-
-                case SMB_OPLOCK_LEVEL_II:
-
-                    ntStatus = STATUS_SUCCESS;
-                    break;
-
-                case SMB_OPLOCK_LEVEL_NONE:
-                default:
-
-                    ntStatus = STATUS_INTERNAL_ERROR;
-                    break;
-            }
-            BAIL_ON_NT_STATUS(ntStatus);
-        }
-    }
-
-cleanup:
-
-    if (pOplockState)
-    {
-        SrvReleaseOplockState(pOplockState);
-    }
-
-    return ntStatus;
-
-error:
-
-    goto cleanup;
-}
 
 static
 NTSTATUS

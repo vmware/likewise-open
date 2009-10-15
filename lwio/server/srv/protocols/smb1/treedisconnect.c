@@ -116,6 +116,11 @@ SrvProcessTreeDisconnectAndX(
 
 cleanup:
 
+    if (pSession)
+    {
+        SrvSessionRelease(pSession);
+    }
+
     return ntStatus;
 
 error:

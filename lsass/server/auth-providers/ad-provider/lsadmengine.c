@@ -232,6 +232,9 @@ LsaDmEnginepDiscoverTrustsForDomain(
             LSA_LOG_WARNING("Ignoring down level trust to domain '%s'",
                             LSA_SAFE_LOG_STRING(pszNetbiosName));
 
+            dwError = LsaDmCacheUnknownDomainName(pszNetbiosName);
+            BAIL_ON_LSA_ERROR(dwError);
+
             continue;
         }
 
@@ -622,6 +625,7 @@ LsaDmEngineGetDomainNameWithDiscovery(
     PSTR pszNetbiosDomainName = NULL;
     PSTR pszDomainSid = NULL;
     PSTR pszDnsForestName = NULL;
+    PSID pDomainSid = NULL;
     ADAccountType accountType = AccountType_NotFound;
     BOOLEAN bIsLocalDomain = FALSE;
 
@@ -708,6 +712,22 @@ LsaDmEngineGetDomainNameWithDiscovery(
                     TRUE,
                     &pszDnsDomainName,
                     &pszDnsForestName);
+    if (LW_ERROR_NO_SUCH_DOMAIN == dwError)
+    {
+        // This domain name is not resolvable, so cache it.
+        dwError = LsaDmCacheUnknownDomainName(pszDomainName);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LsaAllocateSidFromCString(&pDomainSid,
+                                            pszDomainSid);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LsaDmCacheUnknownDomainSid(pDomainSid);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LW_ERROR_NO_SUCH_DOMAIN;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaDmWrapDsGetDcName(
@@ -726,6 +746,8 @@ LsaDmEngineGetDomainNameWithDiscovery(
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
+    LW_SAFE_FREE_MEMORY(pDomainSid);
+
     if (!ppszDnsDomainName)
     {
         LW_SAFE_FREE_STRING(pszDnsDomainName);
@@ -850,6 +872,18 @@ LsaDmEngineGetDomainNameAndSidByObjectSidWithDiscovery(
                     TRUE,
                     &pszDnsDomainName,
                     &pszDnsForestName);
+    if (LW_ERROR_NO_SUCH_DOMAIN == dwError)
+    {
+        // This domain name is not resolvable, so cache it.
+        dwError = LsaDmCacheUnknownDomainName(pszNetbiosDomainName);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LsaDmCacheUnknownDomainSid(pDomainSid);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LW_ERROR_NO_SUCH_DOMAIN;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaDmEnginepAddOneWayOtherForestDomain(

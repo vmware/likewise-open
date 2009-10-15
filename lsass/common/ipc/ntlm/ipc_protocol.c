@@ -186,7 +186,7 @@ static LWMsgTypeSpec gNtlmSecPkgContextSessionKeySpec[] =
 
     LWMSG_MEMBER_POINTER(
         SecPkgContext_SessionKey,
-        SessionKey,
+        pSessionKey,
         LWMSG_UINT8(CHAR)),
     LWMSG_ATTR_LENGTH_MEMBER(SecPkgContext_SessionKey, SessionKeyLength),
 

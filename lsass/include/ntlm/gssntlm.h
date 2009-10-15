@@ -180,6 +180,14 @@ ntlm_gss_unwrap(
     );
 
 OM_uint32
+ntlm_gss_compare_oid(
+    OM_uint32* pMinorStatus,
+    const gss_OID a,
+    const gss_OID b,
+    BOOLEAN *bIsEqual
+    );
+
+OM_uint32
 ntlm_gss_import_name(
     OM_uint32* pMinorStatus,
     const gss_buffer_t InputNameBuffer,

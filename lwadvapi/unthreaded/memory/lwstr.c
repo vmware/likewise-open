@@ -500,9 +500,7 @@ LwStrndup(
         BAIL_ON_LW_ERROR(dwError);
     }
 
-    copylen = strlen(pszInputString);
-    if (copylen > size)
-        copylen = size;
+    for (copylen = 0; copylen < size && pszInputString[copylen]; copylen++);
 
     dwError = LwAllocateMemory(copylen+1, OUT_PPVOID(&pszOutputString));
     BAIL_ON_LW_ERROR(dwError);

@@ -117,8 +117,8 @@ typedef struct __NTLM_IPC_ACCEPT_SEC_CTXT_RESPONSE
 
 typedef struct __NTLM_IPC_ACQUIRE_CREDS_REQ
 {
-    SEC_CHAR *pszPrincipal;
-    SEC_CHAR *pszPackage;
+    const SEC_CHAR *pszPrincipal;
+    const SEC_CHAR *pszPackage;
     DWORD fCredentialUse;
     PLUID pvLogonID;
     PVOID pAuthData;

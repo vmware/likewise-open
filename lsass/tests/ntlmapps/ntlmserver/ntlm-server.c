@@ -376,7 +376,7 @@ SignServer(
     printf("Session Key: ");
     for(nIndex = 0; nIndex < SessionKey.SessionKeyLength; nIndex++)
     {
-        printf("%02X ", SessionKey.SessionKey[nIndex]);
+        printf("%02X ", SessionKey.pSessionKey[nIndex]);
     }
     printf("\n\n");
 

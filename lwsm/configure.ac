@@ -55,6 +55,7 @@ AC_SUBST(LIB_LWADVAPI)
 AC_SUBST(LIB_LWBASE)
 AC_SUBST(LIB_REGCLIENT)
 AC_SUBST(LIB_LWIOCLIENT)
+AC_SUBST(LIB_DL)
 AC_SUBST(MOD_EXT)
 AC_DEFINE_UNQUOTED([MOD_EXT], ["$MOD_EXT"], [Extension of dynamic shared modules])
 
@@ -80,7 +81,7 @@ AC_CHECK_LIB(lwadvapi, LwBuildSIDString, [LIB_LWADVAPI="-llwadvapi"], [AC_MSG_ER
 AC_CHECK_LIB(lwbase, RtlAccessCheck, [LIB_LWBASE="-llwbase"], [AC_MSG_ERROR([Could not find liblwbase])])
 AC_CHECK_LIB(regclient, RegOpenKeyExA, [LIB_REGCLIENT="-lregclient"], [AC_MSG_ERROR([Could not find libregclient])])
 AC_CHECK_LIB(lwioclient, LwIoGetDriverStatus, [LIB_LWIOCLIENT="-llwioclient"], [AC_MSG_ERROR([Could not find liblwioclient])])
-
+AC_CHECK_LIB(dl, dlopen, [LIB_DL="-ldl"], [LIB_DL=""])
 
 # Checks for header files.
 AC_CHECK_HEADERS([lwmsg/lwmsg.h lwdef.h lwerror.h lw/base.h pthread.h])

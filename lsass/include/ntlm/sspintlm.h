@@ -82,7 +82,7 @@ typedef struct _SecPkgContext_Names
 typedef struct _SecPkgContext_SessionKey
 {
     ULONG SessionKeyLength;
-    PBYTE SessionKey;
+    PBYTE pSessionKey;
 } SecPkgContext_SessionKey, *PSecPkgContext_SessionKey;
 
 typedef struct _SecPkgContext_Sizes
@@ -292,8 +292,8 @@ NtlmClientAcceptSecurityContext(
 
 DWORD
 NtlmClientAcquireCredentialsHandle(
-    IN SEC_CHAR *pszPrincipal,
-    IN SEC_CHAR *pszPackage,
+    IN const SEC_CHAR *pszPrincipal,
+    IN const SEC_CHAR *pszPackage,
     IN DWORD fCredentialUse,
     IN PLUID pvLogonID,
     IN PVOID pAuthData,

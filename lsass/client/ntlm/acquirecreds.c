@@ -49,8 +49,8 @@
 
 DWORD
 NtlmClientAcquireCredentialsHandle(
-    IN SEC_CHAR *pszPrincipal,
-    IN SEC_CHAR *pszPackage,
+    IN const SEC_CHAR *pszPrincipal,
+    IN const SEC_CHAR *pszPackage,
     IN DWORD fCredentialUse,
     IN PLUID pvLogonID,
     IN PVOID pAuthData,
