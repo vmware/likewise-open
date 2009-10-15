@@ -512,7 +512,6 @@ RegParseTypeStringArrayValue(
         RegLexGetLineNumber(parseHandle->lexHandle, &lineNum);
         if (token == REGLEX_REG_SZ)
         {
-            printf("REG_STRING_ARRAY: %d='%s'\n", lineNum, pszAttr);
             dwError = LwMbsToWc16s(pszAttr, &pwszString);
             BAIL_ON_REG_ERROR(dwError);
 
@@ -534,7 +533,6 @@ RegParseTypeStringArrayValue(
                                  &token,
                                  &eof);
         RegLexGetAttribute(parseHandle->lexHandle, &attrSize, &pszAttr);
-        printf("REG_STRING_ARRAY: Token=%d %s\n", token, pszAttr);
     }
     parseHandle->binaryData[parseHandle->binaryDataLen++] = '\0';
     parseHandle->binaryData[parseHandle->binaryDataLen++] = '\0';
