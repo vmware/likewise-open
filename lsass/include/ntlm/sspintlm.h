@@ -296,7 +296,7 @@ NtlmClientAcquireCredentialsHandle(
     IN const SEC_CHAR *pszPackage,
     IN DWORD fCredentialUse,
     IN PLUID pvLogonID,
-    IN PVOID pAuthData,
+    IN PVOID pAuthData, //The real type is PSEC_WINNT_AUTH_IDENTITY
     OUT PNTLM_CRED_HANDLE pCredential,
     OUT PTimeStamp ptsExpiry
     );

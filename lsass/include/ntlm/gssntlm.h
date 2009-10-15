@@ -62,6 +62,9 @@
 #define GSS_MECH_NTLM       "\x2b\x06\x01\x04\x01\x82\x37\x02\x02\x0a"
 #define GSS_MECH_NTLM_LEN   10
 
+#define GSS_CRED_OPT_PW     "\x2b\x06\x01\x01"
+#define GSS_CRED_OPT_PW_LEN 4
+
 #define GSS_C_QOP_DUMMY_SIG 1
 
 //******************************************************************************
@@ -230,6 +233,14 @@ ntlm_gss_inquire_sec_context_by_oid(
     const gss_ctx_id_t GssCtxtHandle,
     const gss_OID Attrib,
     gss_buffer_set_t* ppBufferSet
+    );
+
+OM_uint32
+ntlm_gssspi_set_cred_option(
+    OM_uint32* pMinorStatus,
+    gss_cred_id_t GssCredHandle,
+    const gss_OID Option,
+    const gss_buffer_t Buffer
     );
 
 #endif /* __GSSNTLM_H__ */
