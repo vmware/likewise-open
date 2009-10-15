@@ -212,8 +212,9 @@ SessionSetup(
            In this case, we no longer verify server signatures but
            continue to sign our own packets */
         if (packet.haveSignature &&
-            (pResponsePacket->pSMBHeader->extra.securitySignature ==
-             packet.pSMBHeader->extra.securitySignature))
+            (!memcmp(pResponsePacket->pSMBHeader->extra.securitySignature,
+                     packet.pSMBHeader->extra.securitySignature,
+                     sizeof(packet.pSMBHeader->extra.securitySignature))))
         {
             LWIO_LOG_WARNING("Server is exhibiting signing bug; ignoring signatures from server");
             RdrSocketSetIgnoreServerSignatures(pSocket, TRUE);
