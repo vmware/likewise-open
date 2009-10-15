@@ -3983,6 +3983,10 @@ AD_MachineCredentialsCacheInitialize(
                     pszDomainDnsName,
                     pszHostDnsDomain,
                     &dwGoodUntilTime);
+    if (dwError)
+    {
+        ADSetMachineTGTExpiryError();
+    }
     BAIL_ON_LSA_ERROR(dwError);
 
     ADSetMachineTGTExpiry(dwGoodUntilTime);

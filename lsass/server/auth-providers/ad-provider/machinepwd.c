@@ -48,6 +48,8 @@
 
 #include "adprovider.h"
 
+#define DEFAULT_THREAD_WAITSECS  (30 * LSA_SECONDS_IN_MINUTE)
+#define ERROR_THREAD_WAITSECS  (5 * LSA_SECONDS_IN_MINUTE)
 
 //
 // Global Module State Type
@@ -77,13 +79,13 @@ typedef struct _AD_MACHINE_PASSWORD_SYNC_STATE {
 
 static AD_MACHINE_PASSWORD_SYNC_STATE gAdMachinePasswordSyncState = {
     .bThreadShutdown = FALSE,
-    .dwThreadWaitSecs = 30 * LSA_SECONDS_IN_MINUTE,
+    .dwThreadWaitSecs = DEFAULT_THREAD_WAITSECS,
     .ThreadLock = PTHREAD_MUTEX_INITIALIZER,
     .ThreadCondition = PTHREAD_COND_INITIALIZER,
     .pThread = NULL,
     .hPasswordStore = NULL,
     .dwTgtExpiry = 0,
-    .dwTgtExpiryGraceSeconds = 60 * LSA_SECONDS_IN_MINUTE,
+    .dwTgtExpiryGraceSeconds = 2 * DEFAULT_THREAD_WAITSECS,
 };
 
 //
@@ -124,6 +126,13 @@ static
 VOID
 ADLogMachineTGTRefreshFailureEvent(
     DWORD dwErrCode
+    );
+
+static
+VOID
+ADSetMachineTGTExpiryInternal(
+    DWORD dwGoodUntil,
+    DWORD dwThreadWaitSecs
     );
 
 //
@@ -288,6 +297,7 @@ ADSyncMachinePasswordThreadRoutine(
                     }
 
                     LSA_LOG_ERROR("Error: Failed to refresh machine TGT [Error code: %ld]", dwError);
+                    ADSetMachineTGTExpiryError();
                     dwError = 0;
                     goto lsa_wait_resync;
             }
@@ -452,12 +462,50 @@ VOID
 ADSetMachineTGTExpiry(
     DWORD dwGoodUntil
     )
-    {
+{
+    ADSetMachineTGTExpiryInternal(dwGoodUntil, DEFAULT_THREAD_WAITSECS);
+}
+
+VOID
+ADSetMachineTGTExpiryError(
+    VOID
+    )
+{
+    ADSetMachineTGTExpiryInternal(0, ERROR_THREAD_WAITSECS);
+}
+
+static
+VOID
+ADSetMachineTGTExpiryInternal(
+    DWORD dwGoodUntil,
+    DWORD dwThreadWaitSecs
+    )
+{
     BOOLEAN bInLock = FALSE;
+    DWORD lifetime = 0;
 
     ENTER_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
 
-    gAdMachinePasswordSyncState.dwTgtExpiry = dwGoodUntil;
+    if (dwGoodUntil)
+    {
+        gAdMachinePasswordSyncState.dwTgtExpiry = dwGoodUntil;
+
+        lifetime = difftime(
+                       gAdMachinePasswordSyncState.dwTgtExpiry,
+                       time(NULL));
+
+        gAdMachinePasswordSyncState.dwTgtExpiryGraceSeconds =
+            LW_MAX(lifetime / 2, 2 * DEFAULT_THREAD_WAITSECS);
+    }
+
+    if (dwThreadWaitSecs)
+    {
+        gAdMachinePasswordSyncState.dwThreadWaitSecs = dwThreadWaitSecs;
+    }
+    else
+    {
+        gAdMachinePasswordSyncState.dwThreadWaitSecs = DEFAULT_THREAD_WAITSECS;
+    }
 
     LEAVE_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
 }
