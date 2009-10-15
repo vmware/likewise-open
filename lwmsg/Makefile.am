@@ -6,7 +6,7 @@ AUTOMAKE_OPTIONS = subdir-objects
 # General configuration
 
 AM_CFLAGS = @LWMSG_CFLAGS@
-AM_CPPFLAGS = @LWMSG_CPPFLAGS@ -I$(top_srcdir)/include
+AM_CPPFLAGS = @LWMSG_CPPFLAGS@ -I$(top_srcdir)/include -I$(top_builddir)/include
 MKDIR_P = @MKDIR_P@
 
 lib_LTLIBRARIES =
