@@ -42,50 +42,60 @@
  *
  */
 #include "ntlmsrvapi.h"
-#include <krb5.h>
+
+VOID
+ShiftLeft(
+    PDWORD nCrc,
+    PBYTE pBuffer,
+    DWORD nBitOffset
+    )
+{
+    DWORD nByteOffset = nBitOffset / 8;
+    DWORD nRemainder = nBitOffset % 8;
+    DWORD nResult = *nCrc;
+
+    nResult <<= 1;
+
+    nResult |=
+#if 0
+        (pBuffer[nByteOffset] & (1 << (7 - nRemainder))) >> (7 - nRemainder);
+#else
+        (pBuffer[nByteOffset] & (1 << (nRemainder))) >> (nRemainder);
+#endif
+
+    *nCrc = nResult;
+}
 
 DWORD
 NtlmCrc32(
     PBYTE pBuffer,
-    DWORD dwBufferSize,
-    PDWORD pdwCrc32
+    DWORD nLength
     )
 {
-    DWORD dwCrc32 = 0;
-    DWORD dwError = LW_ERROR_SUCCESS;
-    krb5_error_code KrbError= 0;
-    krb5_data Input;
-    krb5_checksum Output;
+    DWORD nCrc = -1;
+    DWORD Poly = 0x04C11DB7;
 
-    memset(&Input, 0, sizeof(Input));
-    memset(&Output, 0, sizeof(Output));
+    DWORD i = 0;
+    DWORD nBits = nLength * 8;
 
-    Input.data = (PCHAR)pBuffer;
-    Input.length = dwBufferSize;
-
-    KrbError = krb5_c_make_checksum(
-        NULL,
-        CKSUMTYPE_CRC32,
-        NULL,
-        0,
-        &Input,
-        &Output
-        );
-
-    if(KrbError)
+    for(i = 0; i < nBits; i++)
     {
-        dwError = LW_ERROR_KRB5_CALL_FAILED;
-        BAIL_ON_LSA_ERROR(dwError);
+        nCrc = LW_ENDIAN_SWAP32(nCrc);
+
+        if(nCrc & 0x80000000)
+        {
+            ShiftLeft(&nCrc, pBuffer, i);
+            nCrc ^= Poly;
+        }
+        else
+        {
+            ShiftLeft(&nCrc, pBuffer, i);
+        }
+
+        nCrc = LW_ENDIAN_SWAP32(nCrc);
+
     }
 
-    LW_ASSERT(Output.length == 4);
-
-    memcpy(&dwCrc32, Output.contents, Output.length);
-
-cleanup:
-    krb5_free_checksum_contents(NULL, &Output);
-    return *pdwCrc32 = dwCrc32;
-error:
-    dwCrc32 = 0;
-    goto cleanup;
+    nCrc = ~nCrc;
+    return nCrc;
 }
