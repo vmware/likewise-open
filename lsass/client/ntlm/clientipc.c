@@ -193,7 +193,9 @@ NtlmTransactAcceptSecurityContext(
         case NTLM_R_ACCEPT_SEC_CTXT_SUCCESS:
             pResultList = (PNTLM_IPC_ACCEPT_SEC_CTXT_RESPONSE)Out.data;
 
-            dwError = NtlmTransferSecBufferDesc(pOutput, &pResultList->Output);
+            dwError = NtlmTransferSecBufferDesc(pOutput,
+                    &pResultList->Output,
+                    FALSE);
             BAIL_ON_LSA_ERROR(dwError);
 
             *phNewContext = pResultList->hNewContext;
@@ -350,7 +352,8 @@ NtlmTransactDecryptMessage(
 
             dwError = NtlmTransferSecBufferDesc(
                 pMessage,
-                &pResultList->Message
+                &pResultList->Message,
+                TRUE
                 );
             BAIL_ON_LSA_ERROR(dwError);
 
@@ -485,7 +488,8 @@ NtlmTransactEncryptMessage(
 
             dwError = NtlmTransferSecBufferDesc(
                 pMessage,
-                &pResultList->Message
+                &pResultList->Message,
+                TRUE
                 );
             BAIL_ON_LSA_ERROR(dwError);
 
@@ -786,7 +790,8 @@ NtlmTransactInitializeSecurityContext(
 
                 dwError = NtlmTransferSecBufferDesc(
                     pOutput,
-                    &pResultList->Output
+                    &pResultList->Output,
+                    FALSE
                     );
                 BAIL_ON_LSA_ERROR(dwError);
 
@@ -881,7 +886,8 @@ NtlmTransactMakeSignature(
 
             dwError = NtlmTransferSecBufferDesc(
                 pMessage,
-                &pResultList->Message
+                &pResultList->Message,
+                TRUE
                 );
             BAIL_ON_LSA_ERROR(dwError);
 
@@ -1152,7 +1158,8 @@ error:
 DWORD
 NtlmTransferSecBufferDesc(
     OUT PSecBufferDesc pOut,
-    IN PSecBufferDesc pIn
+    IN PSecBufferDesc pIn,
+    BOOLEAN bDeepCopy
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -1166,13 +1173,27 @@ NtlmTransferSecBufferDesc(
 
     for (nIndex= 0; nIndex < pIn->cBuffers; nIndex++)
     {
-        pOut->pBuffers[nIndex].pvBuffer = pIn->pBuffers[nIndex].pvBuffer;
-        pIn->pBuffers[nIndex].pvBuffer = NULL;
+        if (bDeepCopy)
+        {
+            if (pOut->pBuffers[nIndex].cbBuffer !=
+                    pIn->pBuffers[nIndex].cbBuffer)
+            {
+                dwError = ERROR_INCORRECT_SIZE;
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+            memcpy(pOut->pBuffers[nIndex].pvBuffer,
+                    pIn->pBuffers[nIndex].pvBuffer,
+                    pIn->pBuffers[nIndex].cbBuffer);
+        }
+        else
+        {
+            pOut->pBuffers[nIndex].pvBuffer = pIn->pBuffers[nIndex].pvBuffer;
+            pIn->pBuffers[nIndex].pvBuffer = NULL;
 
+            pOut->pBuffers[nIndex].cbBuffer = pIn->pBuffers[nIndex].cbBuffer;
+            pIn->pBuffers[nIndex].cbBuffer = 0;
+        }
         pOut->pBuffers[nIndex].BufferType = pIn->pBuffers[nIndex].BufferType;
-
-        pOut->pBuffers[nIndex].cbBuffer = pIn->pBuffers[nIndex].cbBuffer;
-        pIn->pBuffers[nIndex].cbBuffer = 0;
     }
 
 cleanup:

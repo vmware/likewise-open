@@ -323,8 +323,7 @@ SrvBuildCloseState(
 
     pCloseState->pRequestHeader = pRequestHeader;
 
-    pCloseState->pFile          = pFile;
-    InterlockedIncrement(&pFile->refcount);
+    pCloseState->pFile          = SrvFileAcquire(pFile);
 
     *ppCloseState = pCloseState;
 

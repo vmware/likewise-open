@@ -317,8 +317,7 @@ SrvBuildReadState_SMB_V2(
 
     pReadState->pRequestHeader = pRequestHeader;
 
-    pReadState->pFile = pFile;
-    InterlockedIncrement(&pFile->refcount);
+    pReadState->pFile = SrvFile2Acquire(pFile);
 
     *ppReadState = pReadState;
 

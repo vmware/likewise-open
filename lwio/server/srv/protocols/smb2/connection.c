@@ -71,8 +71,7 @@ SrvConnection2FindSession_SMB_V2(
             }
             else
             {
-                pSession = pSmb2Context->pSession;
-                InterlockedIncrement(&pSession->refcount);
+                pSession = SrvSession2Acquire(pSmb2Context->pSession);
             }
         }
         else
@@ -83,14 +82,12 @@ SrvConnection2FindSession_SMB_V2(
                             &pSession);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            pSmb2Context->pSession = pSession;
-            InterlockedIncrement(&pSession->refcount);
+            pSmb2Context->pSession = SrvSession2Acquire(pSession);
         }
     }
     else if (pSmb2Context->pSession)
     {
-        pSession = pSmb2Context->pSession;
-        InterlockedIncrement(&pSession->refcount);
+        pSession = SrvSession2Acquire(pSmb2Context->pSession);
     }
     else
     {

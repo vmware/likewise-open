@@ -163,7 +163,8 @@ NtlmTransactVerifySignature(
 DWORD
 NtlmTransferSecBufferDesc(
     OUT PSecBufferDesc pOut,
-    IN PSecBufferDesc pIn
+    IN PSecBufferDesc pIn,
+    BOOLEAN bDeepCopy
     );
 
 #endif // __PROTOTYPES_H__

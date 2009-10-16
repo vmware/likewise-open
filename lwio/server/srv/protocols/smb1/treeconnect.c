@@ -185,8 +185,7 @@ SrvProcessTreeConnectAndX(
         InterlockedIncrement(&pTConState->refCount);
         pCtxSmb1->pfnStateRelease = &SrvReleaseTreeConnectStateHandle;
 
-        pTConState->pSession = pSession;
-        InterlockedIncrement(&pSession->refcount);
+        pTConState->pSession = SrvSessionAcquire(pSession);
     }
 
     LWIO_LOCK_MUTEX(bTConStateInLock, &pTConState->mutex);
@@ -257,8 +256,7 @@ SrvProcessTreeConnectAndX(
 
             pTConState->bRemoveTreeFromSession = FALSE;
 
-            pCtxSmb1->pTree = pTConState->pTree;
-            InterlockedIncrement(&pTConState->pTree->refcount);
+            pCtxSmb1->pTree = SrvTreeAcquire(pTConState->pTree);
 
             break;
     }

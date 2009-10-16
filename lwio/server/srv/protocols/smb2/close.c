@@ -292,11 +292,9 @@ SrvBuildCloseState_SMB_V2(
 
     pCloseState->pFid = pFid;
 
-    pCloseState->pTree = pTree;
-    InterlockedIncrement(&pTree->refcount);
+    pCloseState->pTree = SrvTree2Acquire(pTree);
 
-    pCloseState->pFile = pFile;
-    InterlockedIncrement(&pFile->refcount);
+    pCloseState->pFile = SrvFile2Acquire(pFile);
 
     *ppCloseState = pCloseState;
 

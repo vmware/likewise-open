@@ -288,8 +288,7 @@ SrvBuildIOCTLState_SMB_V2(
     pIOCTLState->pConnection = pConnection;
     InterlockedIncrement(&pConnection->refCount);
 
-    pIOCTLState->pFile = pFile;
-    InterlockedIncrement(&pFile->refcount);
+    pIOCTLState->pFile = SrvFile2Acquire(pFile);
 
     pIOCTLState->pRequestHeader = pRequestHeader;
     pIOCTLState->pData          = pData;

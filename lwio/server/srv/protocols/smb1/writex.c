@@ -278,8 +278,7 @@ SrvBuildWriteXState(
 
     pWriteState->pRequestHeader = pRequestHeader;
     pWriteState->pData          = pData;
-    pWriteState->pFile          = pFile;
-    InterlockedIncrement(&pFile->refcount);
+    pWriteState->pFile          = SrvFileAcquire(pFile);
 
     *ppWriteState = pWriteState;
 

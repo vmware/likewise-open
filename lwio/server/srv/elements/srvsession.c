@@ -285,6 +285,18 @@ error:
     goto cleanup;
 }
 
+PLWIO_SRV_SESSION
+SrvSessionAcquire(
+    PLWIO_SRV_SESSION pSession
+    )
+{
+    LWIO_LOG_DEBUG("Acquiring session [uid:%u]", pSession->uid);
+
+    InterlockedIncrement(&pSession->refcount);
+
+    return pSession;
+}
+
 VOID
 SrvSessionRelease(
     PLWIO_SRV_SESSION pSession

@@ -576,8 +576,7 @@ SrvBuildReadState(
             break;
     }
 
-    pReadState->pFile = pFile;
-    InterlockedIncrement(&pFile->refcount);
+    pReadState->pFile = SrvFileAcquire(pFile);
 
     *ppReadState = pReadState;
 

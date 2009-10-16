@@ -115,11 +115,9 @@ SrvBuildOplockState_SMB_V2(
     pOplockState->pConnection = pConnection;
     InterlockedIncrement(&pConnection->refCount);
 
-    pOplockState->pSession = pSession;
-    InterlockedIncrement(&pSession->refcount);
+    pOplockState->pSession = SrvSession2Acquire(pSession);
 
-    pOplockState->pTree = pTree;
-    InterlockedIncrement(&pTree->refcount);
+    pOplockState->pTree = SrvTree2Acquire(pTree);
 
     pOplockState->ullFid = pFile->ullFid;
 

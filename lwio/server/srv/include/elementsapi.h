@@ -633,6 +633,11 @@ SrvSessionGetNamedPipeClientPrincipal(
     PIO_ECP_LIST     pEcpList
     );
 
+PLWIO_SRV_SESSION
+SrvSessionAcquire(
+    PLWIO_SRV_SESSION pSession
+    );
+
 VOID
 SrvSessionRelease(
     PLWIO_SRV_SESSION pSession
@@ -668,6 +673,11 @@ NTSTATUS
 SrvSession2GetNamedPipeClientPrincipal(
     PLWIO_SRV_SESSION_2 pSession,
     PIO_ECP_LIST        pEcpList
+    );
+
+PLWIO_SRV_SESSION_2
+SrvSession2Acquire(
+    PLWIO_SRV_SESSION_2 pSession
     );
 
 VOID
@@ -715,6 +725,11 @@ SrvTreeIsNamedPipe(
     PLWIO_SRV_TREE pTree
     );
 
+PLWIO_SRV_TREE
+SrvTreeAcquire(
+    PLWIO_SRV_TREE pTree
+    );
+
 VOID
 SrvTreeRelease(
     PLWIO_SRV_TREE pTree
@@ -757,6 +772,11 @@ SrvTree2RemoveFile(
 
 BOOLEAN
 SrvTree2IsNamedPipe(
+    PLWIO_SRV_TREE_2 pTree
+    );
+
+PLWIO_SRV_TREE_2
+SrvTree2Acquire(
     PLWIO_SRV_TREE_2 pTree
     );
 
@@ -808,6 +828,11 @@ SrvFileGetOplockLevel(
     PLWIO_SRV_FILE pFile
     );
 
+PLWIO_SRV_FILE
+SrvFileAcquire(
+    PLWIO_SRV_FILE pFile
+    );
+
 VOID
 SrvFileRelease(
     PLWIO_SRV_FILE pFile
@@ -856,6 +881,10 @@ SrvFile2GetOplockLevel(
     PLWIO_SRV_FILE_2 pFile
     );
 
+PLWIO_SRV_FILE_2
+SrvFile2Acquire(
+    PLWIO_SRV_FILE_2 pFile
+    );
 
 VOID
 SrvFile2Release(

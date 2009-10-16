@@ -262,8 +262,7 @@ SrvProcessNTCreateAndX(
 
             pCreateState->bRemoveFileFromTree = FALSE;
 
-            pCtxSmb1->pFile = pCreateState->pFile;
-            InterlockedIncrement(&pCreateState->pFile->refcount);
+            pCtxSmb1->pFile = SrvFileAcquire(pCreateState->pFile);
 
             break;
     }
@@ -743,8 +742,7 @@ SrvBuildCreateState(
                     (PVOID*)&pCreateState->pFilename);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pCreateState->pTree = pCtxSmb1->pTree;
-    InterlockedIncrement(&pCtxSmb1->pTree->refcount);
+    pCreateState->pTree = SrvTreeAcquire(pCtxSmb1->pTree);
 
     LWIO_LOCK_RWMUTEX_SHARED(bTreeInLock, &pCtxSmb1->pTree->mutex);
 

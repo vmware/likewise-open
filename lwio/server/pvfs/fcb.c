@@ -659,10 +659,15 @@ PvfsAddItemPendingOplockBreakAck(
 
     pIrpContext->pFcb = PvfsReferenceFCB(pFcb);
 
-    PvfsIrpMarkPending(
-        pIrpContext,
-        PvfsQueueCancelIrp,
-        pIrpContext);
+    /* An item could be requeued here */
+
+    if (!pIrpContext->bIsPended)
+    {
+        PvfsIrpMarkPending(
+            pIrpContext,
+            PvfsQueueCancelIrp,
+            pIrpContext);
+    }
 
 cleanup:
     LWIO_UNLOCK_MUTEX(bLocked, &pFcb->mutexOplock);
