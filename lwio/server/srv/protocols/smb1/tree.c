@@ -71,8 +71,7 @@ SrvTreeFindFile_SMB_V1(
             }
             else
             {
-                pFile = pSmb1Context->pFile;
-                InterlockedIncrement(&pFile->refcount);
+                pFile = SrvFileAcquire(pSmb1Context->pFile);
             }
         }
         else
@@ -83,14 +82,12 @@ SrvTreeFindFile_SMB_V1(
                             &pFile);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            pSmb1Context->pFile = pFile;
-            InterlockedIncrement(&pFile->refcount);
+            pSmb1Context->pFile = SrvFileAcquire(pFile);
         }
     }
     else if (pSmb1Context->pFile)
     {
-        pFile = pSmb1Context->pFile;
-        InterlockedIncrement(&pFile->refcount);
+        pFile = SrvFileAcquire(pSmb1Context->pFile);
     }
     else
     {

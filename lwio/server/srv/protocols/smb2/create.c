@@ -289,8 +289,7 @@ SrvProcessCreate_SMB_V2(
 
             pCreateState->bRemoveFileFromTree = FALSE;
 
-            pCtxSmb2->pFile = pCreateState->pFile;
-            InterlockedIncrement(&pCreateState->pFile->refcount);
+            pCtxSmb2->pFile = SrvFile2Acquire(pCreateState->pFile);
 
             break;
     }

@@ -265,8 +265,7 @@ SrvBuildFlushState(
     pFlushState->stage = SRV_FLUSH_STAGE_SMB_V1_INITIAL;
 
     pFlushState->pRequestHeader = pRequestHeader;
-    pFlushState->pFile          = pFile;
-    InterlockedIncrement(&pFile->refcount);
+    pFlushState->pFile          = SrvFileAcquire(pFile);
 
     *ppFlushState = pFlushState;
 

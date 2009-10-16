@@ -258,8 +258,7 @@ SrvProcessOpenAndX(
 
             pOpenState->bRemoveFileFromTree = FALSE;
 
-            pCtxSmb1->pFile = pOpenState->pFile;
-            InterlockedIncrement(&pOpenState->pFile->refcount);
+            pCtxSmb1->pFile = SrvFileAcquire(pOpenState->pFile);
 
             break;
     }

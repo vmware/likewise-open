@@ -414,8 +414,7 @@ SrvBuildLockState(
     pLockState->bRequestExclusiveLock =
      !(pLockState->pRequestHeader->ucLockType & LWIO_LOCK_TYPE_SHARED_LOCK);
 
-    pLockState->pFile = pFile;
-    InterlockedIncrement(&pFile->refcount);
+    pLockState->pFile = SrvFileAcquire(pFile);
 
     pLockState->bExpired   = FALSE;
     pLockState->bCompleted = FALSE;

@@ -224,6 +224,18 @@ SrvFile2GetOplockLevel(
     return ucOplockLevel;
 }
 
+PLWIO_SRV_FILE_2
+SrvFile2Acquire(
+    PLWIO_SRV_FILE_2 pFile
+    )
+{
+    LWIO_LOG_DEBUG("Acquiring file [fid:%lu]", pFile->ullFid);
+
+    InterlockedIncrement(&pFile->refcount);
+
+    return pFile;
+}
+
 VOID
 SrvFile2Release(
     PLWIO_SRV_FILE_2 pFile

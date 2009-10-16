@@ -385,8 +385,11 @@ SrvFindBothDirInformation(
     ULONG    ulOffset = ulDataOffset;
     ULONG    ulBytesAvailable = ulMaxDataLength;
     BOOLEAN  bEndOfSearch = FALSE;
-    BOOLEAN  bRestartScan = (pRequestHeader->ucSearchFlags & SMB2_SEARCH_FLAGS_RESTART_SCAN);
-    BOOLEAN  bReturnSingleEntry = (pRequestHeader->ucSearchFlags & SMB2_SEARCH_FLAGS_RETURN_SINGLE_ENTRY);
+    BOOLEAN  bRestartScan =
+               ((pRequestHeader->ucSearchFlags & SMB2_SEARCH_FLAGS_RESTART_SCAN) ||
+                (pRequestHeader->ucSearchFlags & SMB2_SEARCH_FLAGS_REOPEN));
+    BOOLEAN  bReturnSingleEntry =
+               (pRequestHeader->ucSearchFlags & SMB2_SEARCH_FLAGS_RETURN_SINGLE_ENTRY);
     PFILE_BOTH_DIR_INFORMATION pFileInfoCursor = NULL;
     PSMB2_FILE_BOTH_DIR_INFO_HEADER pLastInfoHeader = NULL; // Do not free
     PLWIO_SRV_SEARCH_SPACE_2 pSearchSpace = NULL;

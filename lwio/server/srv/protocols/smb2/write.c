@@ -303,8 +303,7 @@ SrvBuildWriteState_SMB_V2(
     pWriteState->pRequestHeader = pRequestHeader;
     pWriteState->pData          = pData;
 
-    pWriteState->pFile          = pFile;
-    InterlockedIncrement(&pFile->refcount);
+    pWriteState->pFile          = SrvFile2Acquire(pFile);
 
     pWriteState->ulKey          = ulKey;
 

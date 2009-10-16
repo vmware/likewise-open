@@ -808,6 +808,11 @@ SrvFileGetOplockLevel(
     PLWIO_SRV_FILE pFile
     );
 
+PLWIO_SRV_FILE
+SrvFileAcquire(
+    PLWIO_SRV_FILE pFile
+    );
+
 VOID
 SrvFileRelease(
     PLWIO_SRV_FILE pFile
@@ -856,6 +861,10 @@ SrvFile2GetOplockLevel(
     PLWIO_SRV_FILE_2 pFile
     );
 
+PLWIO_SRV_FILE_2
+SrvFile2Acquire(
+    PLWIO_SRV_FILE_2 pFile
+    );
 
 VOID
 SrvFile2Release(

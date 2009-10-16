@@ -262,8 +262,7 @@ SrvProcessNTCreateAndX(
 
             pCreateState->bRemoveFileFromTree = FALSE;
 
-            pCtxSmb1->pFile = pCreateState->pFile;
-            InterlockedIncrement(&pCreateState->pFile->refcount);
+            pCtxSmb1->pFile = SrvFileAcquire(pCreateState->pFile);
 
             break;
     }

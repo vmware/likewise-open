@@ -338,8 +338,7 @@ SrvBuildSetInfoState_SMB_V2(
     pSetInfoState->pRequestHeader = pRequestHeader;
     pSetInfoState->pData          = pData;
 
-    pSetInfoState->pFile = pFile;
-    InterlockedIncrement(&pFile->refcount);
+    pSetInfoState->pFile = SrvFile2Acquire(pFile);
 
     *ppSetInfoState = pSetInfoState;
 
