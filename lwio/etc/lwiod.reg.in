@@ -1,60 +1,60 @@
-[HKEY_LIKEWISE\Services]
+[HKEY_THIS_MACHINE\Services]
 
-[HKEY_LIKEWISE\Services\lwio]
+[HKEY_THIS_MACHINE\Services\lwio]
 "Description"="Likewise IO Manager"
 "Path"="@SBINDIR@/lwiod"
 "Arguments"="lwiod --syslog"
 "Dependencies"="lwreg"
 "Type"=dword:00000001
 
-[HKEY_LIKEWISE\Services\rdr]
+[HKEY_THIS_MACHINE\Services\rdr]
 "Description"="Likewise CIFS Redirector"
 "Path"="@providerdir@/librdr.sys@MOD_EXT@"
 "Arguments"="rdr"
 "Dependencies"="lwio"
 "Type"=dword:00000003
 
-[HKEY_LIKEWISE\Services\srv]
+[HKEY_THIS_MACHINE\Services\srv]
 "Description"="Likewise CIFS Server"
 "Path"="@providerdir@/libsrv.sys@MOD_EXT@"
 "Arguments"="srv"
 "Dependencies"="lwio pvfs npfs lsass"
 "Type"=dword:00000003
 
-[HKEY_LIKEWISE\Services\pvfs]
+[HKEY_THIS_MACHINE\Services\pvfs]
 "Description"="Likewise POSIX VFS Filesystem"
 "Path"="@providerdir@/libpvfs.sys@MOD_EXT@"
 "Arguments"="pvfs"
 "Dependencies"="lwio"
 "Type"=dword:00000003
 
-[HKEY_LIKEWISE\Services\npfs]
+[HKEY_THIS_MACHINE\Services\npfs]
 "Description"="Likewise Named Pipe Filesystem"
 "Path"="@providerdir@/libnpfs.sys@MOD_EXT@"
 "Arguments"="npfs"
 "Dependencies"="lwio"
 "Type"=dword:00000003
 
-[HKEY_LIKEWISE\Services\lwio\Parameters]
+[HKEY_THIS_MACHINE\Services\lwio\Parameters]
 "SignMessagesIfSupported"=dword:00000000
 
-[HKEY_LIKEWISE\Services\lwio\Parameters\Drivers]
+[HKEY_THIS_MACHINE\Services\lwio\Parameters\Drivers]
 "Load"="rdr,srv,pvfs,npfs"
 
-[HKEY_LIKEWISE\Services\lwio\Parameters\Drivers\pvfs]
+[HKEY_THIS_MACHINE\Services\lwio\Parameters\Drivers\pvfs]
 "Path"="@providerdir@/libpvfs.sys@MOD_EXT@"
 
-[HKEY_LIKEWISE\Services\lwio\Parameters\Drivers\npfs]
+[HKEY_THIS_MACHINE\Services\lwio\Parameters\Drivers\npfs]
 "Path"="@providerdir@/libnpfs.sys@MOD_EXT@"
 
-[HKEY_LIKEWISE\Services\lwio\Parameters\Drivers\rdr]
+[HKEY_THIS_MACHINE\Services\lwio\Parameters\Drivers\rdr]
 "Path"="@providerdir@/librdr.sys@MOD_EXT@"
 
-[HKEY_LIKEWISE\Services\lwio\Parameters\Drivers\srv]
+[HKEY_THIS_MACHINE\Services\lwio\Parameters\Drivers\srv]
 "Path"="@providerdir@/libsrv.sys@MOD_EXT@"
 "SupportSmb2"=dword:00000000
 "EnableSecuritySignatures"=dword:00000000
 "RequireSecuritySignatures"=dword:00000000
 
-[HKEY_LIKEWISE\Services\lwio\Parameters\Drivers\iotest]
+[HKEY_THIS_MACHINE\Services\lwio\Parameters\Drivers\iotest]
 "Path"="@providerdir@/libiotest.sys@MOD_EXT@"
