@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
  * Copyright Likewise Software
@@ -25,72 +25,46 @@
  * GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
  * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
  * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
- * license@likewisesoftware.com
+ * license@likewise.com
  */
+
+
 
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        mapping.c
+ *        includes.h
  *
  * Abstract:
  *
  *        Likewise IO (LWIO) - SRV
  *
- *        Share Repository API
- *
- *        Library Main
+ *        Utilities
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
- *
  */
 
-#include "includes.h"
+#include <config.h>
+#include <lwiosys.h>
 
-NTSTATUS
-SrvShareInit(
-    VOID
-    )
-{
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+#include <lwio/lwio.h>
 
-#if defined(LW_USE_SHARE_REPOSITORY_SQLITE)
+#include <reg/reg.h>
 
-    status = LwSqliteShareRepositoryInit(&gSrvShareApi.pFnTable);
+#include <lwiodef.h>
+#include <lwioutils.h>
+#include <lwiolog_r.h>
 
-#elif defined(LW_USE_SHARE_REPOSITORY_REGISTRY)
+#include <lw/ntstatus.h>
 
-    status = LwRegShareRepositoryInit(&gSrvShareApi.pFnTable);
+#include <srvutils.h>
+#include <shareapi.h>
+#include <sharerepository.h>
 
-#endif
+#include "defs.h"
+#include "structs.h"
+#include "regshare.h"
 
-    return status;
-}
-
-NTSTATUS
-SrvShareShutdown(
-    VOID
-    )
-{
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
-
-#if defined(LW_USE_SHARE_REPOSITORY_SQLITE)
-
-    status = LwSqliteShareRepositoryShutdown(gSrvShareApi.pFnTable);
-
-#elif defined(LW_USE_SHARE_REPOSITORY_REGISTRY)
-
-    status = LwRegShareRepositoryShutdown(gSrvShareApi.pFnTable);
-
-#endif
-    BAIL_ON_NT_STATUS(status);
-
-    gSrvShareApi.pFnTable = NULL;
-
-error:
-
-    return status;
-}
-
+#include "externs.h"

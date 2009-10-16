@@ -1,14 +1,14 @@
 sbin_PROGRAMS = lwregd
 
-lwregd_SOURCES = \
+lwregd_SOURCES =    \
     globals.c       \
     listener.c      \
     main.c          \
     sighandler.c
 
-lwregd_CPPFLAGS =              \
+lwregd_CPPFLAGS =                 \
     -DLW_ENABLE_THREADS=1         \
-    $(AM_CFLAGS)                  \
+    $(AM_CPPFLAGS)                \
     -I@top_srcdir@/server/include \
     @LWADVAPI_INCLUDES@
 

@@ -8,7 +8,7 @@ libregparse_la_SOURCES = \
     regdump.c
 
 libregparse_la_CPPFLAGS = \
-    $(AM_CFLAGS)          \
+    $(AM_CPPFLAGS)        \
     -I@top_srcdir@/server/include \
     @LWADVAPI_INCLUDES@   \
     @LWMSG_INCLUDES@

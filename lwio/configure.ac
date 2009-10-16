@@ -304,6 +304,42 @@ AC_SUBST(SQLITE_INCLUDES)
 AC_SUBST(SQLITE_LDFLAGS)
 AC_SUBST(SQLITE_LIBS)
 
+# share repository
+share_repository=sqlite
+
+AC_ARG_WITH([share-repository],
+        [AC_HELP_STRING([--with-share-repository=<type>], [use share repository <type>])],
+        [
+                share_repository="$withval"
+        ])
+
+case "$share_repository" in
+
+    sqlite)
+
+        SHARE_REPOSITORY_TYPE_DEFINES=-DLW_USE_SHARE_REPOSITORY_SQLITE
+
+        ;;
+
+    registry)
+
+        SHARE_REPOSITORY_TYPE_DEFINES=-DLW_USE_SHARE_REPOSITORY_REGISTRY
+
+        ;;
+
+    *)
+
+        share_repository="registry"
+        SHARE_REPOSITORY_TYPE_DEFINES=-DLW_USE_SHARE_REPOSITORY_REGISTRY
+
+        ;;
+esac
+
+AM_CONDITIONAL(ENABLE_SHARE_REPOSITORY_SQLITE, test x"$share_repository" = x"sqlite")
+AM_CONDITIONAL(ENABLE_SHARE_REPOSITORY_REGISTRY, test x"$share_repository" = x"registry")
+
+AC_SUBST(SHARE_REPOSITORY_TYPE_DEFINES)
+
 AC_ARG_WITH([drivers], [AC_HELP_STRING([--with-drivers], [list of drivers to build (npfs pvfs srv rdr)])],
 		       [], [with_drivers="npfs pvfs srv rdr"])
 
@@ -693,6 +729,7 @@ AC_CONFIG_FILES([Makefile
         server/srv/utils/Makefile
         server/srv/shares/Makefile
         server/srv/shares/lwshare/Makefile
+        server/srv/shares/regshare/Makefile
         server/srv/shares/api/Makefile
         server/srv/elements/Makefile
         server/srv/protocols/Makefile

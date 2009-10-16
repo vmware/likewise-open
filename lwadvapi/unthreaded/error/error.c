@@ -1275,6 +1275,8 @@ LwMapLwmsgStatusToLwError(
         case LWMSG_STATUS_PEER_CLOSE:
         case LWMSG_STATUS_SESSION_LOST:
             return LW_ERROR_ERRNO_EPIPE;
+        case LWMSG_STATUS_INVALID_HANDLE:
+            return ERROR_INVALID_HANDLE;
         default:
             LW_LOG_ERROR("Unable to map lwmsg status %d", status);
             return LW_ERROR_INTERNAL;

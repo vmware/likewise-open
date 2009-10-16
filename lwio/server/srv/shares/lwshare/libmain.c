@@ -46,7 +46,7 @@
 #include "includes.h"
 
 NTSTATUS
-LwShareRepositoryInit(
+LwSqliteShareRepositoryInit(
     OUT PSRV_SHARE_REPOSITORY_FUNCTION_TABLE* ppFnTable
     )
 {
@@ -76,7 +76,7 @@ error:
 }
 
 NTSTATUS
-LwShareRepositoryShutdown(
+LwSqliteShareRepositoryShutdown(
     IN PSRV_SHARE_REPOSITORY_FUNCTION_TABLE pFnTable
     )
 {

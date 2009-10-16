@@ -1,9 +1,9 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software
+ * Copyright Likewise Software    2004-2008
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -33,64 +33,93 @@
  *
  * Module Name:
  *
- *        mapping.c
+ *        regshare.h
  *
  * Abstract:
  *
  *        Likewise IO (LWIO) - SRV
  *
- *        Share Repository API
+ *        Share Repository based on Registry
  *
- *        Library Main
+ *        Share Management
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
  *
  */
 
-#include "includes.h"
+#ifndef __SRV_REGSHARE_H__
+#define __SRV_REGSHARE_H__
 
 NTSTATUS
-SrvShareInit(
+SrvShareRegInit(
     VOID
-    )
-{
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
-
-#if defined(LW_USE_SHARE_REPOSITORY_SQLITE)
-
-    status = LwSqliteShareRepositoryInit(&gSrvShareApi.pFnTable);
-
-#elif defined(LW_USE_SHARE_REPOSITORY_REGISTRY)
-
-    status = LwRegShareRepositoryInit(&gSrvShareApi.pFnTable);
-
-#endif
-
-    return status;
-}
+    );
 
 NTSTATUS
-SrvShareShutdown(
+SrvShareRegOpen(
+    OUT PHANDLE phRepository
+    );
+
+NTSTATUS
+SrvShareRegFindByName(
+    IN  HANDLE           hRepository,
+    IN  PWSTR            pwszShareName,
+    OUT PSRV_SHARE_INFO* ppShareInfo
+    );
+
+NTSTATUS
+SrvShareRegAdd(
+    IN HANDLE hRepository,
+    IN PWSTR  pwszShareName,
+    IN PWSTR  pwszPath,
+    IN PWSTR  pwszComment,
+    IN PBYTE  pSecDesc,
+    IN ULONG  ulSecDescLen,
+    IN PWSTR  pwszService
+    );
+
+NTSTATUS
+SrvShareRegBeginEnum(
+    IN  HANDLE  hRepository,
+    IN  ULONG   ulLimit,
+    OUT PHANDLE phResume
+    );
+
+NTSTATUS
+SrvShareRegEnum(
+    IN     HANDLE            hRepository,
+    IN     HANDLE            hResume,
+    OUT    PSRV_SHARE_INFO** pppShareInfoList,
+    IN OUT PULONG            pulNumSharesFound
+    );
+
+NTSTATUS
+SrvShareRegEndEnum(
+    IN HANDLE           hRepository,
+    IN HANDLE           hResume
+    );
+
+NTSTATUS
+SrvShareRegDelete(
+    IN HANDLE hRepository,
+    IN PWSTR  pwszShareName
+    );
+
+NTSTATUS
+SrvShareRegGetCount(
+    IN     HANDLE  hRepository,
+    IN OUT PULONG  pulNumShares
+    );
+
+VOID
+SrvShareRegClose(
+    IN HANDLE hRepository
+    );
+
+VOID
+SrvShareRegShutdown(
     VOID
-    )
-{
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    );
 
-#if defined(LW_USE_SHARE_REPOSITORY_SQLITE)
-
-    status = LwSqliteShareRepositoryShutdown(gSrvShareApi.pFnTable);
-
-#elif defined(LW_USE_SHARE_REPOSITORY_REGISTRY)
-
-    status = LwRegShareRepositoryShutdown(gSrvShareApi.pFnTable);
-
-#endif
-    BAIL_ON_NT_STATUS(status);
-
-    gSrvShareApi.pFnTable = NULL;
-
-error:
-
-    return status;
-}
+#endif /* __SRV_REGSHARE_H__ */
 

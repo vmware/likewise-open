@@ -65,8 +65,10 @@
 #include "defs.h"
 #include "structs.h"
 
-#if defined(SRV_SHAREAPI_USE_LWSHARE)
-#include "lwshare.h"
+#if defined(LW_USE_SHARE_REPOSITORY_SQLITE)
+#include "lwsqliteshare.h"
+#elif defined(LW_USE_SHARE_REPOSITORY_REGISTRY)
+#include "lwregshare.h"
 #else
 #error "No share repository was defined"
 #endif

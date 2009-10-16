@@ -74,21 +74,13 @@ DWORD
 NtlmCreateCredential(
     IN PLSA_CRED_HANDLE pLsaCredHandle,
     IN DWORD dwDirection,
-    IN PSTR pServerName,
-    IN PSTR pDomainName,
-    IN PSTR pDnsServerName,
-    IN PSTR pDnsDomainName,
     OUT PNTLM_CREDENTIALS* ppNtlmCreds
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
     PNTLM_CREDENTIALS pCreds = NULL;
 
-    if (!ppNtlmCreds ||
-        !pServerName ||
-        !pDomainName ||
-        !pDnsServerName ||
-        !pDnsDomainName)
+    if (!ppNtlmCreds)
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
@@ -97,26 +89,6 @@ NtlmCreateCredential(
     *ppNtlmCreds = NULL;
 
     dwError = LwAllocateMemory(sizeof(*pCreds), OUT_PPVOID(&pCreds));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LwAllocateString(
-        pServerName,
-        &pCreds->pszServerName);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LwAllocateString(
-        pDomainName,
-        &pCreds->pszDomainName);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LwAllocateString(
-        pDnsServerName,
-        &pCreds->pszDnsServerName);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LwAllocateString(
-        pDnsDomainName,
-        &pCreds->pszDnsDomainName);
     BAIL_ON_LSA_ERROR(dwError);
 
     // A reference is not needed since the way we get the credential that's
@@ -131,11 +103,6 @@ cleanup:
 error:
     if (pCreds)
     {
-        LW_SAFE_FREE_STRING(pCreds->pszServerName);
-        LW_SAFE_FREE_STRING(pCreds->pszDomainName);
-        LW_SAFE_FREE_STRING(pCreds->pszDnsServerName);
-        LW_SAFE_FREE_STRING(pCreds->pszDnsDomainName);
-
         LsaReleaseCredential(&pCreds->CredHandle);
     }
 
@@ -149,53 +116,12 @@ NtlmGetCredentialInfo(
     IN NTLM_CRED_HANDLE CredHandle,
     OUT OPTIONAL PCSTR* pszUserName,
     OUT OPTIONAL PCSTR* pszPassword,
-    OUT OPTIONAL uid_t* pUid,
-    OUT OPTIONAL PCSTR* pszServerName,
-    OUT OPTIONAL PCSTR* pszDomainName,
-    OUT OPTIONAL PCSTR* pszDnsServerName,
-    OUT OPTIONAL PCSTR* pszDnsDomainName
+    OUT OPTIONAL uid_t* pUid
     )
 {
-    if (pszServerName)
-    {
-        *pszServerName = NULL;
-    }
-    if (pszDomainName)
-    {
-        *pszDomainName = NULL;
-    }
-    if (pszDnsServerName)
-    {
-        *pszDnsServerName = NULL;
-    }
-    if (pszDnsDomainName)
-    {
-        *pszDnsDomainName = NULL;
-    }
-
     if (CredHandle)
     {
         PNTLM_CREDENTIALS pCred = CredHandle;
-
-        if (pszServerName)
-        {
-            *pszServerName = pCred->pszServerName;
-        }
-
-        if (pszDomainName)
-        {
-            *pszDomainName = pCred->pszDomainName;
-        }
-
-        if (pszDnsServerName)
-        {
-            *pszDnsServerName = pCred->pszDnsServerName;
-        }
-
-        if (pszDnsDomainName)
-        {
-            *pszDnsDomainName = pCred->pszDnsDomainName;
-        }
 
         if(pCred->CredHandle)
         {
@@ -245,10 +171,5 @@ NtlmFreeCredential(
     )
 {
     LsaReleaseCredential(&pCreds->CredHandle);
-
-    LW_SAFE_FREE_STRING(pCreds->pszDomainName);
-    LW_SAFE_FREE_STRING(pCreds->pszServerName);
-    LW_SAFE_FREE_STRING(pCreds->pszDnsDomainName);
-    LW_SAFE_FREE_STRING(pCreds->pszDnsServerName);
 }
 

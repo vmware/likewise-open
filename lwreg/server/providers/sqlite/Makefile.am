@@ -13,7 +13,7 @@ libregserver_provider_sqlite_la_SOURCES = \
 
 libregserver_provider_sqlite_la_CPPFLAGS =        \
     -DLW_ENABLE_THREADS=1         \
-    $(AM_CFLAGS)                  \
+    $(AM_CPPFLAGS)                \
     -I@top_srcdir@/server/include \
     @LWADVAPI_INCLUDES@ \
     $(PROVIDER_CPPFLAGS)          
@@ -24,7 +24,7 @@ libregserver_provider_sqlite_la_LIBADD = \
     @LWADVAPI_LIBS@ \
     @LWBASE_LIBS@ \
     $(PROVIDER_LIBADD)
-    
+
 libregserver_provider_sqlite_la_LDFLAGS = \
     @LWADVAPI_LDFLAGS@ \
     $(PROVIDER_LDFLAGS)

@@ -1,4 +1,15 @@
+if ENABLE_SHARE_REPOSITORY_SQLITE
+
+METHOD=lwshare
+
+endif
+
+if ENABLE_SHARE_REPOSITORY_REGISTRY
+
+METHOD=regshare
+
+endif
 
 SUBDIRS =   \
-    lwshare \
+    $(METHOD) \
     api

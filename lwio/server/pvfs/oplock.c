@@ -854,7 +854,7 @@ PvfsOplockBreakOnRead(
         /* Don't break our own lock */
         if (!PvfsOplockIsMine(pCcb, pOplock))
         {
-            BreakResult = IO_OPLOCK_BROKEN_TO_NONE;
+            BreakResult = IO_OPLOCK_BROKEN_TO_LEVEL_2;
 
             LWIO_LOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
             PVFS_ASSERT(pOplock->pCcb->OplockState == PVFS_OPLOCK_STATE_GRANTED);

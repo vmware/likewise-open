@@ -1,13 +1,13 @@
-[HKEY_LIKEWISE\Services]
+[HKEY_THIS_MACHINE\Services]
 
-[HKEY_LIKEWISE\Services\netlogon]
+[HKEY_THIS_MACHINE\Services\netlogon]
 "Description"="Likewise Site Affinity Service"
 "Path"="@SBINDIR@/netlogond"
 "Arguments"="netlogond --syslog"
 "Dependencies"="lwreg"
 "Type"=dword:00000001
 
-[HKEY_LIKEWISE\Services\netlogon\Parameters]
+[HKEY_THIS_MACHINE\Services\netlogon\Parameters]
 "PingAgainTimeout"=dword:00000384
 "NegativeCacheTimeout"=dword:0000003c
 "WritableRediscoveryTimeout"=dword:00000708

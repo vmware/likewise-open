@@ -146,7 +146,7 @@ CreateWksAccount(
     BAIL_ON_INVALID_PTR(phAccount);
 
     samr_b  = conn->samr.bind;
-    hDomain = &conn->samr.hDomain;
+    hDomain = conn->samr.hDomain;
 
     status = SamrCreateUser2(samr_b, hDomain, samacct_name, ACB_WSTRUST,
                              user_access, &hAccount, &access_granted, &rid);

@@ -237,7 +237,7 @@ SrvMarshalNegotiateResponse_SMB_V2(
                 ulOffset,
                 ulBytesAvailable,
                 COM2_NEGOTIATE,
-                0, /* usEpoch      */
+                1, /* usEpoch      */
                 1, /* usCredits    */
                 0, /* usPid        */
                 0, /* ullMid       */

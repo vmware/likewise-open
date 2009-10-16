@@ -8,11 +8,11 @@ libregserverapi_la_SOURCES = \
 
 libregserverapi_la_CPPFLAGS =        \
 	-DLW_ENABLE_THREADS=1         \
-	$(AM_CFLAGS)                  \
+	$(AM_CPPFLAGS)                \
 	-I@top_srcdir@/server/include \
 	@LWADVAPI_INCLUDES@ \
 	@REG_BACKEND_DEFINES@
-	
+
 libregserverapi_la_LDFLAGS = @LWADVAPI_LDFLAGS@
 
 if USE_SQLITE_BACKEND

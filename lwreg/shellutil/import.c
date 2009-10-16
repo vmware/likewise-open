@@ -53,13 +53,11 @@ DWORD
 ProcessImportedKeyName(
     HANDLE hReg,
     PHKEY phRootKey,
-    PHKEY phRootKeyImport,
     PCSTR pszKeyName
     )
 {
     DWORD dwError = 0;
     HKEY hRootKey = *phRootKey;
-    HKEY hRootKeyImport = *phRootKeyImport;
 
     PCSTR pszDelim = "\\";
     PWSTR pSubKey = NULL;
@@ -94,60 +92,10 @@ ProcessImportedKeyName(
             }
             hCurrKey = hRootKey;
         }
-        else if (!strcmp(pszKeyToken, LIKEWISE_FOREIGN_ROOT_KEY))
-        {
-            if (!hRootKeyImport)
-            {
-                dwError = RegOpenKeyExA(
-                           hReg,
-                           NULL,
-                           LIKEWISE_FOREIGN_ROOT_KEY,
-                           0,
-                           0,
-                           &hRootKeyImport);
-                BAIL_ON_REG_ERROR(dwError);
-            }
-
-            hCurrKey = hRootKeyImport;
-        }
         else
         {
-            if (!hRootKeyImport)
-            {
-                dwError = RegOpenKeyExA(
-                           hReg,
-                           NULL,
-                           LIKEWISE_FOREIGN_ROOT_KEY,
-                           0,
-                           0,
-                           &hRootKeyImport);
-                BAIL_ON_REG_ERROR(dwError);
-            }
-
-            hCurrKey = hRootKeyImport;
-
-            dwError = LwMbsToWc16s(pszKeyToken, &pSubKey);
-            BAIL_ON_REG_ERROR(dwError);
-
-            dwError = RegCreateKeyEx(
-                (HANDLE) hReg,
-                (HKEY) hCurrKey,
-                pSubKey,
-                (DWORD) 0,
-                (PWSTR) "",
-                (DWORD) 0,
-                (REGSAM) 0,
-                (PSECURITY_ATTRIBUTES) NULL,
-                (PHKEY) &pNewKey,
-                (PDWORD) NULL
-                );
-            BAIL_ON_REG_ERROR(dwError);
-
-            LW_SAFE_FREE_MEMORY(pSubKey);
-
-            hCurrKey = pNewKey;
-            pNewKey = NULL;
-            bIsRootKey = FALSE;
+            REG_LOG_DEBUG("Found invalid Key Path in REG file that is imported");
+            goto cleanup;
         }
     }
 
@@ -186,7 +134,6 @@ ProcessImportedKeyName(
     }
 
     *phRootKey = hRootKey;
-    *phRootKeyImport = hRootKeyImport;
 
 cleanup:
     LW_SAFE_FREE_STRING(pszCurrKeyName);
@@ -206,13 +153,8 @@ error:
     {
         dwError = RegCloseKey(hReg,hRootKey);
     }
-    else if (hRootKeyImport)
-    {
-        dwError = RegCloseKey(hReg,hRootKeyImport);
-    }
 
     *phRootKey = NULL;
-    *phRootKeyImport = NULL;
 
     goto cleanup;
 }
@@ -222,7 +164,6 @@ DWORD
 ProcessImportedValue(
     HANDLE hReg,
     PHKEY phRootKey,
-    PHKEY phRootKeyImport,
     PREG_PARSE_ITEM pItem
     )
 {
@@ -239,7 +180,6 @@ ProcessImportedValue(
     //Do not close
     HKEY hCurrRootKey = NULL;
     HKEY hRootKey = NULL;
-    HKEY hRootKeyImport = NULL;
     HKEY hSubKey = NULL;
     PSTR pszKeyName = NULL;
 
@@ -267,13 +207,8 @@ ProcessImportedValue(
     }
     else
     {
-        if (!hRootKeyImport)
-        {
-            dwError = RegOpenKeyExA(hReg, NULL, LIKEWISE_FOREIGN_ROOT_KEY, 0, 0, &hRootKeyImport);
-            BAIL_ON_REG_ERROR(dwError);
-        }
-
-        hCurrRootKey = hRootKeyImport;
+        REG_LOG_DEBUG("Found invalid Key Path in REG file that is imported");
+        goto cleanup;
     }
 
     pszSubKeyName = strchr(pItem->keyName, c);
@@ -311,7 +246,6 @@ ProcessImportedValue(
     BAIL_ON_REG_ERROR(dwError);
 
     *phRootKey = hRootKey;
-    *phRootKeyImport = hRootKeyImport;
 
 cleanup:
     LW_SAFE_FREE_MEMORY(pSubKey);
@@ -329,14 +263,8 @@ error:
     {
         dwError = RegCloseKey(hReg,hRootKey);
     }
-    else if (hRootKeyImport)
-    {
-        dwError = RegCloseKey(hReg,hRootKeyImport);
-    }
 
     *phRootKey = NULL;
-    *phRootKeyImport = NULL;
-
 
     goto cleanup;
 }
@@ -346,14 +274,12 @@ DWORD RegShellUtilImportCallback(PREG_PARSE_ITEM pItem, HANDLE userContext)
     IMPORT_CONTEXT *ctx = (IMPORT_CONTEXT *) userContext;
     DWORD dwError = 0;
     HKEY pRootKey = NULL;
-    HKEY pRootKeyImport = NULL;
 
     if (pItem->type == REG_KEY)
     {
         dwError = ProcessImportedKeyName(
                 (HANDLE) ctx->hReg,
                 &pRootKey,
-                &pRootKeyImport,
                 (PCSTR)pItem->keyName);
         BAIL_ON_REG_ERROR(dwError);
     }
@@ -362,7 +288,6 @@ DWORD RegShellUtilImportCallback(PREG_PARSE_ITEM pItem, HANDLE userContext)
         dwError = ProcessImportedValue(
                  (HANDLE) ctx->hReg,
                  &pRootKey,
-                 &pRootKeyImport,
                  pItem);
         BAIL_ON_REG_ERROR(dwError);
     }
@@ -370,11 +295,6 @@ DWORD RegShellUtilImportCallback(PREG_PARSE_ITEM pItem, HANDLE userContext)
     if (pRootKey)
     {
         dwError = RegCloseKey(ctx->hReg,pRootKey);
-        BAIL_ON_REG_ERROR(dwError);
-    }
-    else if (pRootKeyImport)
-    {
-        dwError = RegCloseKey(ctx->hReg,pRootKeyImport);
         BAIL_ON_REG_ERROR(dwError);
     }
 

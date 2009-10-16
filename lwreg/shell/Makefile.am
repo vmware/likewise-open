@@ -20,7 +20,7 @@ regshell_LDADD = \
         @LWMSG_NOTHR_LIBS@
 
 regshell_CPPFLAGS = \
-    $(AM_CFLAGS)   \
+    $(AM_CPPFLAGS)   \
     -I@top_srcdir@/shellutil \
     -I@top_srcdir@/server/include \
     -I@top_srcdir@/libedit/src \

@@ -1,9 +1,9 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software
+ * Copyright Likewise Software    2004-2008
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -25,7 +25,7 @@
  * GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
  * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
  * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
- * license@likewisesoftware.com
+ * license@likewise.com
  */
 
 /*
@@ -33,64 +33,23 @@
  *
  * Module Name:
  *
- *        mapping.c
+ *        externs.h
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise I/O (LWIO) - SRV
  *
- *        Share Repository API
+ *        Share Repository based on Registry
  *
- *        Library Main
+ *        Externs
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
  *
  */
+#ifndef __LWREGSHARE_EXTERNS_H__
+#define __LWREGSHARE_EXTERNS_H__
 
-#include "includes.h"
+extern SRV_SHARE_REG_GLOBALS gShareRepository_registry;
 
-NTSTATUS
-SrvShareInit(
-    VOID
-    )
-{
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
-
-#if defined(LW_USE_SHARE_REPOSITORY_SQLITE)
-
-    status = LwSqliteShareRepositoryInit(&gSrvShareApi.pFnTable);
-
-#elif defined(LW_USE_SHARE_REPOSITORY_REGISTRY)
-
-    status = LwRegShareRepositoryInit(&gSrvShareApi.pFnTable);
-
-#endif
-
-    return status;
-}
-
-NTSTATUS
-SrvShareShutdown(
-    VOID
-    )
-{
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
-
-#if defined(LW_USE_SHARE_REPOSITORY_SQLITE)
-
-    status = LwSqliteShareRepositoryShutdown(gSrvShareApi.pFnTable);
-
-#elif defined(LW_USE_SHARE_REPOSITORY_REGISTRY)
-
-    status = LwRegShareRepositoryShutdown(gSrvShareApi.pFnTable);
-
-#endif
-    BAIL_ON_NT_STATUS(status);
-
-    gSrvShareApi.pFnTable = NULL;
-
-error:
-
-    return status;
-}
+#endif /* __LWREGSHARE_EXTERNS_H__ */
 

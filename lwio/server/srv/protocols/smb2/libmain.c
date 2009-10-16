@@ -342,15 +342,25 @@ SrvProtocolExecute_SMB_V2(
 
             case STATUS_SUCCESS:
 
+                if (pExecContext->pProtocolContext->pSmb2Context->hState &&
+                    pExecContext->pProtocolContext->pSmb2Context->pfnStateRelease)
+                {
+                    pExecContext->pProtocolContext->pSmb2Context->pfnStateRelease(pExecContext->pProtocolContext->pSmb2Context->hState);
+                    pExecContext->pProtocolContext->pSmb2Context->hState = NULL;
+                }
+
                 break;
 
             default:
 
-                ntStatus = SrvBuildErrorResponse_SMB_V2(
-                                pExecContext,
-                                ntStatus,
-                                NULL,
-                                0);
+                if (!pExecContext->bInternal)
+                {
+                    ntStatus = SrvBuildErrorResponse_SMB_V2(
+                                    pExecContext,
+                                    ntStatus,
+                                    NULL,
+                                    0);
+                }
                 break;
         }
         BAIL_ON_NT_STATUS(ntStatus);
