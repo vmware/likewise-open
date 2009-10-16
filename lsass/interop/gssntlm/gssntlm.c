@@ -1302,7 +1302,6 @@ ntlm_gss_unwrap(
     NTLM_CONTEXT_HANDLE ContextHandle = (NTLM_CONTEXT_HANDLE)GssCtxtHandle;
     SecBufferDesc Message;
     SecBuffer NtlmBuffer[2];
-    PBYTE pBuffer = NULL;
     DWORD dwBufferSize = 0;
     BOOLEAN bEncrypted = FALSE;
     SecPkgContext_Sizes Sizes = {0};
@@ -1364,13 +1363,10 @@ ntlm_gss_unwrap(
         );
     BAIL_ON_LSA_ERROR(MinorStatus);
 
-cleanup:
-    // NtlmClientDecryptMessage is going to replace NtlmBuffer[1].pvBuffer, so
-    // it should be safe to free this buffer here.
-    LW_SAFE_FREE_MEMORY(pBuffer);
+    OutputMessage->value = pBuffer;
+    OutputMessage->length = dwBufferSize;
 
-    OutputMessage->value = NtlmBuffer[1].pvBuffer;
-    OutputMessage->length = NtlmBuffer[1].cbBuffer;
+cleanup:
 
     if (pEncrypted)
     {
@@ -1381,8 +1377,9 @@ cleanup:
     return MajorStatus;
 
 error:
-    NtlmBuffer[1].pvBuffer = NULL;
-    NtlmBuffer[1].cbBuffer = 0;
+    LW_SAFE_FREE_MEMORY(NtlmBuffer[1].pvBuffer);
+    OutputMessage->value = NULL;
+    OutputMessage->length = 0;
 
     if (MajorStatus == GSS_S_COMPLETE)
     {
