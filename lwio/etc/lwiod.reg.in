@@ -56,5 +56,9 @@
 "EnableSecuritySignatures"=dword:00000000
 "RequireSecuritySignatures"=dword:00000000
 
+[HKEY_THIS_MACHINE\Services\lwio\Parameters\Drivers\srv\shares]
+
+[HKEY_THIS_MACHINE\Services\lwio\Parameters\Drivers\srv\shares\security]
+
 [HKEY_THIS_MACHINE\Services\lwio\Parameters\Drivers\iotest]
 "Path"="@providerdir@/libiotest.sys@MOD_EXT@"
