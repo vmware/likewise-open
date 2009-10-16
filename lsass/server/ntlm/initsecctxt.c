@@ -65,8 +65,8 @@ NtlmServerInitializeSecurityContext(
 {
     DWORD dwError = LW_ERROR_SUCCESS;
     PNTLM_CONTEXT pNtlmContext = NULL;
-    PCSTR Workstation = NULL;
-    PCSTR pDomain = NULL;
+    PSTR pWorkstation = NULL;
+    PSTR pDomain = NULL;
     PNTLM_CHALLENGE_MESSAGE pMessage = NULL;
     DWORD dwMessageSize = 0;
 
@@ -77,22 +77,20 @@ NtlmServerInitializeSecurityContext(
 
     if (!pNtlmContext)
     {
-        NtlmGetCredentialInfo(
-            *phCredential,
-            NULL,
-            NULL,
-            NULL,
-            &Workstation,
-            &pDomain,
-            NULL,
-            NULL);
+        dwError = NtlmGetNameInformation(
+                &pWorkstation,
+                &pDomain,
+                NULL,
+                NULL);
+        BAIL_ON_LSA_ERROR(dwError);
+
 
         // If we start with a NULL context, create a negotiate message
         dwError = NtlmCreateNegotiateContext(
             phCredential,
             fContextReq,
             pDomain,
-            Workstation,
+            pWorkstation,
             (PBYTE)&gXpSpoof,  //for now add OS ver info... config later
             &pNtlmContext
             );
@@ -131,6 +129,8 @@ NtlmServerInitializeSecurityContext(
 
 
 cleanup:
+    LW_SAFE_FREE_STRING(pWorkstation);
+    LW_SAFE_FREE_STRING(pDomain);
     return dwError;
 error:
     // If this function has already succeed once, we MUST make sure phNewContext
@@ -210,7 +210,6 @@ NtlmCreateResponseContext(
 {
     DWORD dwError = LW_ERROR_SUCCESS;
     PNTLM_RESPONSE_MESSAGE pMessage = NULL;
-    PSTR pUserName = NULL;
     PCSTR pUserNameTemp = NULL;
     PCSTR pPassword = NULL;
     PNTLM_CONTEXT pNtlmContext = NULL;
@@ -219,6 +218,7 @@ NtlmCreateResponseContext(
     BYTE NtlmUserSessionKey[NTLM_SESSION_KEY_SIZE] = {0};
     BYTE LanManagerSessionKey[NTLM_SESSION_KEY_SIZE] = {0};
     BYTE SecondaryKey[NTLM_SESSION_KEY_SIZE] = {0};
+    PLSA_LOGIN_NAME_INFO pUserNameInfo = NULL;
 
     *ppNtlmContext = NULL;
 
@@ -226,13 +226,12 @@ NtlmCreateResponseContext(
         *pCredHandle,
         &pUserNameTemp,
         &pPassword,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
         NULL);
 
-    dwError = NtlmFixUserName(pUserNameTemp, &pUserName);
+    dwError = LsaCrackDomainQualifiedName(
+                        pUserNameTemp,
+                        NULL,
+                        &pUserNameInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = NtlmCreateContext(pCredHandle, &pNtlmContext);
@@ -240,7 +239,8 @@ NtlmCreateResponseContext(
 
     dwError = NtlmCreateResponseMessage(
         pChlngMsg,
-        (PCSTR)pUserName,
+        pUserNameInfo->pszName,
+        pUserNameInfo->pszDomainNetBiosName,
         pPassword,
         (PBYTE)&gXpSpoof,
         NTLM_RESPONSE_TYPE_NTLM,
@@ -299,7 +299,10 @@ NtlmCreateResponseContext(
     NtlmInitializeKeys(pNtlmContext);
 
 cleanup:
-    LW_SAFE_FREE_STRING(pUserName);
+    if (pUserNameInfo)
+    {
+        LsaFreeNameInfo(pUserNameInfo);
+    }
 
     *ppNtlmContext = pNtlmContext;
 

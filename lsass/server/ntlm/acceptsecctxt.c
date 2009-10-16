@@ -168,26 +168,22 @@ NtlmCreateChallengeContext(
     PNTLM_CONTEXT pNtlmContext = NULL;
     DWORD dwMessageSize = 0;
     PNTLM_CHALLENGE_MESSAGE pMessage = NULL;
-    PCSTR pServerName = NULL;
-    PCSTR pDomainName = NULL;
-    PCSTR pDnsServerName = NULL;
-    PCSTR pDnsDomainName = NULL;
+    PSTR pServerName = NULL;
+    PSTR pDomainName = NULL;
+    PSTR pDnsServerName = NULL;
+    PSTR pDnsDomainName = NULL;
 
     *ppNtlmContext = NULL;
 
     dwError = NtlmCreateContext(pCredHandle, &pNtlmContext);
     BAIL_ON_LSA_ERROR(dwError);
 
-    NtlmGetCredentialInfo(
-        *pCredHandle,
-        NULL,
-        NULL,
-        NULL,
+    dwError = NtlmGetNameInformation(
         &pServerName,
         &pDomainName,
         &pDnsServerName,
-        &pDnsDomainName
-        );
+        &pDnsDomainName);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = NtlmCreateChallengeMessage(
         pNtlmNegMsg,
@@ -209,6 +205,10 @@ NtlmCreateChallengeContext(
 
 cleanup:
     *ppNtlmContext = pNtlmContext;
+    LW_SAFE_FREE_STRING(pServerName);
+    LW_SAFE_FREE_STRING(pDomainName);
+    LW_SAFE_FREE_STRING(pDnsServerName);
+    LW_SAFE_FREE_STRING(pDnsDomainName);
     return dwError;
 
 error:
@@ -216,8 +216,8 @@ error:
 
     if (pNtlmContext)
     {
-        NtlmReleaseCredential(pCredHandle);
-        LW_SAFE_FREE_MEMORY(pNtlmContext);
+        NtlmReleaseContext(&pNtlmContext);
+        *ppNtlmContext = NULL;
     }
     goto cleanup;
 }

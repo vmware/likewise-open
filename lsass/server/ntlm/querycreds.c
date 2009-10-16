@@ -102,12 +102,7 @@ NtlmServerQueryCredNameAttribute(
         *phCred,
         &pUserName,
         NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL
-        );
+        NULL);
 
     // It's possible (in the case of a server), that no name is associated with
     // the credential... handle this case.

@@ -270,10 +270,6 @@ DWORD
 NtlmCreateCredential(
     IN PLSA_CRED_HANDLE pLsaCredHandle,
     IN DWORD dwDirection,
-    IN PSTR pServerName,
-    IN PSTR pDomainName,
-    IN PSTR pDnsServerName,
-    IN PSTR pDnsDomainName,
     OUT PNTLM_CREDENTIALS* ppNtlmCreds
     );
 
@@ -282,11 +278,7 @@ NtlmGetCredentialInfo(
     IN NTLM_CRED_HANDLE CredHandle,
     OUT OPTIONAL PCSTR* pszUserName,
     OUT OPTIONAL PCSTR* pszPassword,
-    OUT OPTIONAL uid_t* pUid,
-    OUT OPTIONAL PCSTR* pszServerName,
-    OUT OPTIONAL PCSTR* pszDomainName,
-    OUT OPTIONAL PCSTR* pszDnsServerName,
-    OUT OPTIONAL PCSTR* pszDnsDomainName
+    OUT OPTIONAL uid_t* pUid
     );
 
 VOID
@@ -344,6 +336,7 @@ DWORD
 NtlmCreateResponseMessage(
     IN PNTLM_CHALLENGE_MESSAGE pChlngMsg,
     IN PCSTR pUserName,
+    IN PCSTR pDomainName,
     IN PCSTR pPassword,
     IN PBYTE pOsVersion,
     IN DWORD dwNtRespType,

@@ -859,6 +859,7 @@ DWORD
 NtlmCreateResponseMessage(
     IN PNTLM_CHALLENGE_MESSAGE pChlngMsg,
     IN PCSTR pUserName,
+    IN PCSTR pDomainName,
     IN PCSTR pPassword,
     IN PBYTE pOsVersion,
     IN DWORD dwNtRespType,
@@ -880,7 +881,6 @@ NtlmCreateResponseMessage(
     CHAR pWorkstation[HOST_NAME_MAX];
     // The following pointers point into pMessage and will not be freed on error
     PBYTE pTrav = NULL;
-    PCHAR pAuthTargetName;
     PNTLM_SEC_BUFFER pSessionKey = NULL;
     PBYTE pBuffer = NULL;
 
@@ -890,9 +890,6 @@ NtlmCreateResponseMessage(
         dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
-
-    dwError = NtlmGetAuthTargetNameFromChallenge(pChlngMsg, &pAuthTargetName);
-    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = gethostname(pWorkstation, HOST_NAME_MAX);
     if (dwError)
@@ -906,7 +903,7 @@ NtlmCreateResponseMessage(
 
     dwSize += sizeof(NTLM_RESPONSE_MESSAGE);
 
-    dwAuthTrgtNameSize = strlen(pAuthTargetName);
+    dwAuthTrgtNameSize = strlen(pDomainName);
     dwUserNameSize = strlen(pUserName);
     dwWorkstationSize = strlen(pWorkstation);
 
@@ -1038,7 +1035,7 @@ NtlmCreateResponseMessage(
     pBuffer += pMessage->NtResponse.usLength;
 
     pMessage->AuthTargetName.dwOffset = pBuffer - (PBYTE)pMessage;
-    pTrav = (PBYTE)pAuthTargetName;
+    pTrav = (PBYTE)pDomainName;
     while (*pTrav)
     {
         *pBuffer = *pTrav;
