@@ -1,6 +1,6 @@
-[HKEY_LIKEWISE\Services]
+[HKEY_THIS_MACHINE\Services]
 
-[HKEY_LIKEWISE\Services\srvsvc]
+[HKEY_THIS_MACHINE\Services\srvsvc]
 "Description"="Likewise Server Service"
 "Path"="@SBINDIR@/srvsvcd"
 "Arguments"="srvsvcd"
