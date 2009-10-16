@@ -1,5 +1,7 @@
 SUBDIRS = include
 
+AM_CPPFLAGS += -I$(top_srcdir)/include -I$(top_builddir)/include
+
 lib_LTLIBRARIES = liblwrpcrt.la
 
 liblwrpcrt_la_SOURCES = lwrpcrt.c
