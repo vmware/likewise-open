@@ -1,13 +1,13 @@
-[HKEY_LIKEWISE\Services]
+[HKEY_THIS_MACHINE\Services]
 
-[HKEY_LIKEWISE\Services\eventlog]
+[HKEY_THIS_MACHINE\Services\eventlog]
 "Description"="Likewise Event Log Service"
 "Path"="@SBINDIR@/eventlogd"
 "Arguments"="eventlogd --syslog"
 "Dependencies"="dcerpc"
 "Type"=dword:00000001
 
-[HKEY_LIKEWISE\Services\eventlog\parameters]
+[HKEY_THIS_MACHINE\Services\eventlog\parameters]
 "AllowReadTo"=""
 "AllowWriteTo"=""
 "AllowDeleteTo"=""
