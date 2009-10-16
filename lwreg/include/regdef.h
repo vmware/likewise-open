@@ -86,6 +86,6 @@ typedef int             SOCKET;
 #define REG_DB_DIR CACHEDIR "/db"
 #define REG_CACHE  REG_DB_DIR "/regcache.db"
 
-#define NUM_ROOTKEY  2
+#define NUM_ROOTKEY  1
 
 #endif /* __REGDEF_H__ */

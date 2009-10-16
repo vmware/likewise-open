@@ -53,7 +53,7 @@
  * set_value ["[KeyName]"] "ValueName" type "Value" ["Value2"] ["Value3"] [...]
  * add_value ["[KeyName]"] "ValueName" type "Value" ["Value2"] ["Value3"] [...]
  *
- * Note: "KeyName" format is [HKEY_LIKEWISE/Subkey1/SubKey2]. ["[KeyName]"]
+ * Note: "KeyName" format is [HKEY_THIS_MACHINE/Subkey1/SubKey2]. ["[KeyName]"]
  * means the key parameter is optional.
  *
  * Token sequence from reglex for above comands:
@@ -1828,7 +1828,6 @@ RegShellUsage(
         "         Type: REG_SZ | REG_DWORD | REG_BINARY | REG_MULTI_SZ\n"
         "               REG_DWORD and REG_BINARY values are hexadecimal\n"
         "         Note: cd and pwd only function in interactive mode\n"
-        "         Note: HKEY_LIKEWISE and HKEY_LIKEWISE_IMPORT are the\n"
-        "               only supported hives\n"
+        "         Note: HKEY_THIS_MACHINE is the only supported hive\n"
         ,progname);
 }
