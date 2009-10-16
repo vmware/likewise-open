@@ -1302,6 +1302,7 @@ ntlm_gss_unwrap(
     NTLM_CONTEXT_HANDLE ContextHandle = (NTLM_CONTEXT_HANDLE)GssCtxtHandle;
     SecBufferDesc Message;
     SecBuffer NtlmBuffer[2];
+    PVOID pBuffer = NULL;
     DWORD dwBufferSize = 0;
     BOOLEAN bEncrypted = FALSE;
     SecPkgContext_Sizes Sizes = {0};
