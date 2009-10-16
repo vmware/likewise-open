@@ -185,8 +185,7 @@ SrvProcessTreeConnectAndX(
         InterlockedIncrement(&pTConState->refCount);
         pCtxSmb1->pfnStateRelease = &SrvReleaseTreeConnectStateHandle;
 
-        pTConState->pSession = pSession;
-        InterlockedIncrement(&pSession->refcount);
+        pTConState->pSession = SrvSessionAcquire(pSession);
     }
 
     LWIO_LOCK_MUTEX(bTConStateInLock, &pTConState->mutex);

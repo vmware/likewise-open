@@ -115,8 +115,7 @@ SrvBuildOplockState(
     pOplockState->pConnection = pConnection;
     InterlockedIncrement(&pConnection->refCount);
 
-    pOplockState->pSession = pSession;
-    InterlockedIncrement(&pSession->refcount);
+    pOplockState->pSession = SrvSessionAcquire(pSession);
 
     pOplockState->pTree = pTree;
     InterlockedIncrement(&pTree->refcount);

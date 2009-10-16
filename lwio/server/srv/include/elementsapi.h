@@ -633,6 +633,11 @@ SrvSessionGetNamedPipeClientPrincipal(
     PIO_ECP_LIST     pEcpList
     );
 
+PLWIO_SRV_SESSION
+SrvSessionAcquire(
+    PLWIO_SRV_SESSION pSession
+    );
+
 VOID
 SrvSessionRelease(
     PLWIO_SRV_SESSION pSession
@@ -668,6 +673,11 @@ NTSTATUS
 SrvSession2GetNamedPipeClientPrincipal(
     PLWIO_SRV_SESSION_2 pSession,
     PIO_ECP_LIST        pEcpList
+    );
+
+PLWIO_SRV_SESSION_2
+SrvSession2Acquire(
+    PLWIO_SRV_SESSION_2 pSession
     );
 
 VOID
