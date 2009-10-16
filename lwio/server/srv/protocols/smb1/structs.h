@@ -95,9 +95,9 @@ typedef struct _SRV_OPLOCK_STATE_SMB_V1
     PIO_ASYNC_CONTROL_BLOCK pAcb;
 
     PLWIO_SRV_CONNECTION    pConnection;
-    PLWIO_SRV_SESSION       pSession;
-    PLWIO_SRV_TREE          pTree;
 
+    USHORT                  usUid;
+    USHORT                  usTid;
     USHORT                  usFid;
 
     PSRV_TIMER_REQUEST      pTimerRequest;

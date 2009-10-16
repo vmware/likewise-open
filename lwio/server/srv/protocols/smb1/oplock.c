@@ -115,10 +115,8 @@ SrvBuildOplockState(
     pOplockState->pConnection = pConnection;
     InterlockedIncrement(&pConnection->refCount);
 
-    pOplockState->pSession = SrvSessionAcquire(pSession);
-
-    pOplockState->pTree = SrvTreeAcquire(pTree);
-
+    pOplockState->usUid = pSession->uid;
+    pOplockState->usTid = pTree->tid;
     pOplockState->usFid = pFile->fid;
 
     *ppOplockState = pOplockState;
@@ -295,7 +293,10 @@ SrvProcessOplock(
 
             if (pOplockState)
             {
-                ntStatus = SrvAcknowledgeOplockBreak(pOplockState, FALSE);
+                ntStatus = SrvAcknowledgeOplockBreak(
+                               pCtxSmb1,
+                               pOplockState,
+                               FALSE);
                 BAIL_ON_NT_STATUS(ntStatus);
             }
 
@@ -333,16 +334,33 @@ error:
 
 NTSTATUS
 SrvAcknowledgeOplockBreak(
+    PSRV_EXEC_CONTEXT_SMB_V1 pCtxSmb1,
     PSRV_OPLOCK_STATE_SMB_V1 pOplockState,
     BOOLEAN bFileIsClosed
     )
 {
     NTSTATUS ntStatus      = STATUS_SUCCESS;
     UCHAR    ucOplockLevel = SMB_OPLOCK_LEVEL_NONE;
+    PLWIO_SRV_SESSION pSession = NULL;
+    PLWIO_SRV_TREE pTree   = NULL;
     PLWIO_SRV_FILE pFile   = NULL;
 
+    ntStatus = SrvConnectionFindSession_SMB_V1(
+                   pCtxSmb1,
+                   pOplockState->pConnection,
+                   pOplockState->usUid,
+                   &pSession);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvSessionFindTree_SMB_V1(
+                   pCtxSmb1,
+                   pSession,
+                   pOplockState->usTid,
+                   &pTree);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     ntStatus = SrvTreeFindFile(
-                    pOplockState->pTree,
+                    pTree,
                     pOplockState->usFid,
                     &pFile);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -417,6 +435,16 @@ SrvAcknowledgeOplockBreak(
     }
 
 cleanup:
+
+    if (pSession)
+    {
+        SrvSessionRelease(pSession);
+    }
+
+    if (pTree)
+    {
+        SrvTreeRelease(pTree);
+    }
 
     if (pFile)
     {
@@ -624,16 +652,6 @@ SrvFreeOplockState(
                     &pOplockState->pAcb->AsyncCancelContext);
     }
 
-    if (pOplockState->pTree)
-    {
-        SrvTreeRelease(pOplockState->pTree);
-    }
-
-    if (pOplockState->pSession)
-    {
-        SrvSessionRelease(pOplockState->pSession);
-    }
-
     if (pOplockState->pConnection)
     {
         SrvConnectionRelease(pOplockState->pConnection);
@@ -677,7 +695,6 @@ SrvOplockAsyncCB(
     PSRV_OPLOCK_STATE_SMB_V1 pOplockState = (PSRV_OPLOCK_STATE_SMB_V1)pContext;
     PSRV_EXEC_CONTEXT        pExecContext = NULL;
     BOOLEAN                  bInLock      = FALSE;
-    PLWIO_SRV_FILE           pFile        = NULL;
 
     LWIO_LOCK_MUTEX(bInLock, &pOplockState->mutex);
 
@@ -698,12 +715,6 @@ SrvOplockAsyncCB(
     }
 
     ntStatus = pOplockState->ioStatusBlock.Status;
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SrvTreeFindFile(
-                    pOplockState->pTree,
-                    pOplockState->usFid,
-                    &pFile);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvBuildOplockExecContext(
@@ -731,11 +742,6 @@ cleanup:
     if (pExecContext)
     {
         SrvReleaseExecContext(pExecContext);
-    }
-
-    if (pFile)
-    {
-        SrvFileRelease(pFile);
     }
 
     return;
@@ -812,9 +818,9 @@ SrvBuildOplockExecContext(
                     COM_LW_OPLOCK,
                     STATUS_SUCCESS,
                     FALSE,  /* not a response */
-                    pOplockState->pTree->tid,
+                    pOplockState->usTid,
                     0,      /* pid */
-                    pOplockState->pSession->uid,
+                    pOplockState->usUid,
                     0xFFFF, /* mid = -1 */
                     pOplockState->pConnection->serverProperties.bRequireSecuritySignatures,
                     &pHeader,
