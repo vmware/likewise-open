@@ -78,9 +78,9 @@ LsaAdBatchMarshalUserInfoFixHomeDirectory(
         {
             // If we encounter a problem with fixing up the shell, leave the user object with the actual
             // value stored in AD and log the problem.
-            LSA_LOG_ERROR("While processing information for user (%s), an invalid homedir value was detected (homedir: '%s')",
-                          LSA_SAFE_LOG_STRING(pszSamAccountName),
-                          LSA_SAFE_LOG_STRING(pszHomeDirectory));
+            LSA_LOG_INFO("While processing information for user (%s), an invalid homedir value was detected (homedir: '%s')",
+                         LSA_SAFE_LOG_STRING(pszSamAccountName),
+                         LSA_SAFE_LOG_STRING(pszHomeDirectory));
             dwError = 0;
             goto cleanup;
         }
@@ -169,7 +169,7 @@ LsaAdBatchMarshalUserInfoAccountExpires(
         dwError = ADGetCurrentNtTime(&currentNtTime);
         if (dwError);
         {
-            LSA_LOG_ERROR("While processing information for user (%s), lsass was unable to determine if the account is expired. Defaulting to not expired.", pszSamAccountName);
+            LSA_LOG_INFO("While processing information for user (%s), lsass was unable to determine if the account is expired. Defaulting to not expired.", pszSamAccountName);
             dwError = 0;
             pObjectUserInfo->bAccountExpired = FALSE;
             goto error;
@@ -207,7 +207,7 @@ LsaAdBatchMarshalUserInfoPasswordLastSet(
     dwError = ADGetCurrentNtTime(&currentNtTime);
     if (dwError)
     {
-        LSA_LOG_ERROR("While processing information for user (%s), lsass was unable to determine if the need to prompt to change user password is required. Defaulting to no.", pszSamAccountName);
+        LSA_LOG_INFO("While processing information for user (%s), lsass was unable to determine if the need to prompt to change user password is required. Defaulting to no.", pszSamAccountName);
         dwError = 0;
         pObjectUserInfo->bPromptPasswordChange = FALSE;
         goto error;
