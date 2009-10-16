@@ -292,6 +292,18 @@ SrvTreeIsNamedPipe(
     return bResult;
 }
 
+PLWIO_SRV_TREE
+SrvTreeAcquire(
+    PLWIO_SRV_TREE pTree
+    )
+{
+    LWIO_LOG_DEBUG("Acquiring tree [tid:%u]", pTree->tid);
+
+    InterlockedIncrement(&pTree->refcount);
+
+    return pTree;
+}
+
 VOID
 SrvTreeRelease(
     PLWIO_SRV_TREE pTree

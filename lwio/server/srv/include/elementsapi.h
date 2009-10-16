@@ -725,6 +725,11 @@ SrvTreeIsNamedPipe(
     PLWIO_SRV_TREE pTree
     );
 
+PLWIO_SRV_TREE
+SrvTreeAcquire(
+    PLWIO_SRV_TREE pTree
+    );
+
 VOID
 SrvTreeRelease(
     PLWIO_SRV_TREE pTree
@@ -767,6 +772,11 @@ SrvTree2RemoveFile(
 
 BOOLEAN
 SrvTree2IsNamedPipe(
+    PLWIO_SRV_TREE_2 pTree
+    );
+
+PLWIO_SRV_TREE_2
+SrvTree2Acquire(
     PLWIO_SRV_TREE_2 pTree
     );
 

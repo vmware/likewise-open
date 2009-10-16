@@ -71,8 +71,7 @@ SrvSession2FindTree_SMB_V2(
             }
             else
             {
-                pTree = pSmb2Context->pTree;
-                InterlockedIncrement(&pTree->refcount);
+                pTree = SrvTree2Acquire(pSmb2Context->pTree);
             }
         }
         else
@@ -83,14 +82,12 @@ SrvSession2FindTree_SMB_V2(
                             &pTree);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            pSmb2Context->pTree = pTree;
-            InterlockedIncrement(&pTree->refcount);
+            pSmb2Context->pTree = SrvTree2Acquire(pTree);
         }
     }
     else if (pSmb2Context->pTree)
     {
-        pTree = pSmb2Context->pTree;
-        InterlockedIncrement(&pTree->refcount);
+        pTree = SrvTree2Acquire(pSmb2Context->pTree);
     }
     else
     {

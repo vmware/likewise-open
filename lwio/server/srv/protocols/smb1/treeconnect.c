@@ -256,8 +256,7 @@ SrvProcessTreeConnectAndX(
 
             pTConState->bRemoveTreeFromSession = FALSE;
 
-            pCtxSmb1->pTree = pTConState->pTree;
-            InterlockedIncrement(&pTConState->pTree->refcount);
+            pCtxSmb1->pTree = SrvTreeAcquire(pTConState->pTree);
 
             break;
     }
