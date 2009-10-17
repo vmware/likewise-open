@@ -103,12 +103,15 @@ NtlmVerifySignature(
     DWORD dwCrc32 = 0;
     BYTE TokenData[NTLM_SIGNATURE_SIZE] = {0};
 
-    //Decrypt the received token, remember to skip the first 4 bytes
+    //Decrypt the received token, remember to skip the first 4 bytes (which is
+    //the unencrypted version field
     RC4(
         pSignKey,
         pToken->cbBuffer - 4,
         ((PBYTE)(pToken->pvBuffer)) + 4,
-        TokenData);
+        TokenData + 4);
+    // Copy the version field
+    memcpy(TokenData, pToken->pvBuffer, 4);
 
     pNtlmSig = (PNTLM_SIGNATURE)TokenData;
     pNtlmSig->dwCounterValue = 0;
@@ -121,7 +124,8 @@ NtlmVerifySignature(
     else if (pContext->NegotiatedFlags & NTLM_FLAG_SIGN)
     {
         // generate a crc for the message
-        dwCrc32 = NtlmCrc32(pData->pvBuffer, pData->cbBuffer);
+        dwError = NtlmCrc32(pData->pvBuffer, pData->cbBuffer, &dwCrc32);
+        BAIL_ON_LSA_ERROR(dwError);
     }
     else
     {
@@ -129,11 +133,7 @@ NtlmVerifySignature(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    // There is a minor issue we need to contend with... the windows client
-    // appears to be sending us dummy signatures even when we have requested
-    // that it not.  Check for it for now, and we'll figure out the cause.
-    if (dwCrc32 != pNtlmSig->dwCrc32 &&
-        0 != pNtlmSig->dwCrc32)
+    if (dwCrc32 != pNtlmSig->dwCrc32)
     {
         dwError = LW_ERROR_INVALID_MESSAGE;
         BAIL_ON_LSA_ERROR(dwError);

@@ -606,7 +606,7 @@ NtlmCreateChallengeMessage(
             dwOptions |= NTLM_FLAG_TYPE_SERVER;
         }
 
-        if (pNegMsg->NtlmFlags & NTLM_FLAG_UNICODE)
+        if (dwOptions & NTLM_FLAG_UNICODE)
         {
             dwTargetNameSize *= sizeof(WCHAR);
         }
@@ -728,7 +728,7 @@ NtlmCreateChallengeMessage(
         {
             *pBuffer = *pTrav;
 
-            if (pMessage->NtlmFlags & NTLM_FLAG_UNICODE)
+            if (dwOptions & NTLM_FLAG_UNICODE)
             {
                 pBuffer++;
             }
