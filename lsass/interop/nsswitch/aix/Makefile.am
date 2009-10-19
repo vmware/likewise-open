@@ -11,6 +11,7 @@ LSASS_la_SOURCES = \
 	globals.c
 
 LSASS_la_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
 	-I@srcdir@/../include \
 	-I@top_srcdir@/interop/auth/include
 
@@ -27,6 +28,7 @@ lsass_la_SOURCES = \
 	netsvc-netgrp.c
 
 lsass_la_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
 	-I@srcdir@/../include \
 	-I@top_srcdir@/interop/auth/include
 

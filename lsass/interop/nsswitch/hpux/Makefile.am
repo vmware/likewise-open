@@ -7,6 +7,7 @@ libnss_lsass_la_SOURCES = \
 	nss-pruser.c
 
 libnss_lsass_la_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
 	-I$(srcdir)/../include
 
 libnss_lsass_la_LIBADD = \

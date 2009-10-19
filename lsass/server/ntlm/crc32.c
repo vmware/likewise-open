@@ -73,7 +73,7 @@ NtlmCrc32(
         BYTE pbTemp[] = { 0x62, 0xF5, 0x26, 0x92, 0, 0, 0, 0 };
         memcpy(pbTemp + 4, pBuffer, dwBufferSize);
 
-        Input.data = pbTemp;
+        Input.data = (char*)pbTemp;
         Input.length = 4 + dwBufferSize;
 
         KrbError = krb5_c_make_checksum(
