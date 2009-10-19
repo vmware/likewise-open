@@ -657,7 +657,7 @@ LsaDbFindUserByName(
             dwError = sqlite3_bind_text(
                     pstQuery,
                     2,
-                    pUserNameInfo->pszFullDomainName,
+                    pUserNameInfo->pszDomainNetBiosName,
                     -1, // let sqlite calculate the length
                     SQLITE_TRANSIENT //let sqlite make its own copy
                     );
