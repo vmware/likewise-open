@@ -7,6 +7,7 @@ nss_lsass_la_SOURCES = \
         nss-netgrp.c
 
 nss_lsass_la_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
 	-I@srcdir@/../include
 
 nss_lsass_la_LIBADD = \
