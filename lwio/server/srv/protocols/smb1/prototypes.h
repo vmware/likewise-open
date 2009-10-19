@@ -198,6 +198,7 @@ SrvProcessOplock(
 
 NTSTATUS
 SrvAcknowledgeOplockBreak(
+    PSRV_EXEC_CONTEXT_SMB_V1 pCtxSmb1,
     PSRV_OPLOCK_STATE_SMB_V1 pOplockState,
     BOOLEAN bFileIsClosed
     );

@@ -91,7 +91,8 @@ NtlmServerEncryptMessage(
     }
 
     // Sign the original message before sealing it.
-    dwCrc32 = NtlmCrc32(pData->pvBuffer, pData->cbBuffer);
+    dwError = NtlmCrc32(pData->pvBuffer, pData->cbBuffer, &dwCrc32);
+    BAIL_ON_LSA_ERROR(dwError);
 
     if (bEncrypt)
     {

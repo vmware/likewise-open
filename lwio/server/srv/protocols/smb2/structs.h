@@ -570,8 +570,9 @@ typedef struct _SRV_OPLOCK_STATE_SMB_V2
     PIO_ASYNC_CONTROL_BLOCK pAcb;
 
     PLWIO_SRV_CONNECTION    pConnection;
-    PLWIO_SRV_SESSION_2     pSession;
-    PLWIO_SRV_TREE_2        pTree;
+
+    ULONG64                 ullUid;
+    ULONG64                 ulTid;
 
     ULONG64                 ullFid;
     BOOLEAN                 bBreakRequestSent;

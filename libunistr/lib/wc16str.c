@@ -381,7 +381,7 @@ int wc16sncmp(const wchar16_t *s1, const wchar16_t *s2, size_t n)
         return (int)sLenDiff;
     }
 
-    len = s1_len;
+    len = s1_len * sizeof(wchar16_t);
     return memcmp((void*)s1, (void*)s2, len);
 }
 

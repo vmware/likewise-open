@@ -1086,23 +1086,18 @@ ntlm_gss_get_mic(
         );
     BAIL_ON_LSA_ERROR(MinorStatus);
 
+    Token->value = NtlmBuffer[1].pvBuffer;
+    Token->length = NtlmBuffer[1].cbBuffer;
+
 cleanup:
     *pMinorStatus = MinorStatus;
-
-    // NtlmClientMakeSignature is going to replace NtlmBuffer[1].pvBuffer so
-    // it's safe to free this buffer.
-    LW_SAFE_FREE_MEMORY(pNtlmToken);
-
-    Token->value = NtlmBuffer[1].pvBuffer;
-    if(Token->value)
-    {
-        Token->length = NtlmBuffer[1].cbBuffer;
-    }
 
     return MajorStatus;
 
 error:
     LW_SAFE_FREE_MEMORY(pNtlmToken);
+    Token->value = NULL;
+    Token->length = 0;
 
     if (MajorStatus == GSS_S_COMPLETE)
     {
@@ -1378,7 +1373,7 @@ cleanup:
     return MajorStatus;
 
 error:
-    LW_SAFE_FREE_MEMORY(NtlmBuffer[1].pvBuffer);
+    LW_SAFE_FREE_MEMORY(pBuffer);
     OutputMessage->value = NULL;
     OutputMessage->length = 0;
 

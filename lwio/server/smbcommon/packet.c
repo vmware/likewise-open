@@ -574,6 +574,7 @@ SMB2PacketVerifySignature(
 
     if (pSessionKey)
     {
+        BYTE    sessionKey[16];
         PBYTE   pBuffer          = pPacket->pRawBuffer + sizeof(NETBIOS_HEADER);
         ULONG   ulBytesAvailable = pPacket->pNetBIOSHeader->len;
         uint8_t origSignature[16];
@@ -585,6 +586,11 @@ SMB2PacketVerifySignature(
             ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
             BAIL_ON_NT_STATUS(ntStatus);
         }
+
+        memset(&sessionKey[0], 0, sizeof(sessionKey));
+        memcpy(&sessionKey[0],
+               pSessionKey,
+               SMB_MIN(ulSessionKeyLength, sizeof(sessionKey)));
 
         while (pBuffer)
         {
@@ -619,8 +625,8 @@ SMB2PacketVerifySignature(
                    sizeof(pHeader->signature));
 
             HMAC(EVP_sha256(),
-                 pSessionKey,
-                 ulSessionKeyLength,
+                 &sessionKey[0],
+                 sizeof(sessionKey),
                  pBuffer,
                  ulPacketSize,
                  &ucDigest[0],
@@ -745,8 +751,14 @@ SMB2PacketSign(
 
     if (pSessionKey)
     {
+        BYTE  sessionKey[16];
         PBYTE pBuffer = (PBYTE)pPacket->pSMB2Header;
         ULONG ulBytesAvailable = htonl(pPacket->pNetBIOSHeader->len);
+
+        memset(&sessionKey[0], 0, sizeof(sessionKey));
+        memcpy(&sessionKey[0],
+               pSessionKey,
+               SMB_MIN(ulSessionKeyLength, sizeof(sessionKey)));
 
         while (pBuffer)
         {
@@ -781,8 +793,8 @@ SMB2PacketSign(
                    sizeof(pHeader->signature));
 
             HMAC(EVP_sha256(),
-                 pSessionKey,
-                 ulSessionKeyLength,
+                 &sessionKey[0],
+                 sizeof(sessionKey),
                  (PBYTE)pHeader,
                  ulPacketSize,
                  &ucDigest[0],

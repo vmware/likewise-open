@@ -63,7 +63,6 @@
 #include <shareapi.h>
 #include <sharerepository.h>
 
-#include "defs.h"
 #include "structs.h"
 #include "regshare.h"
 

@@ -26,7 +26,7 @@ endif
 if ENABLE_SHARE_REPOSITORY_REGISTRY
 
 libshareapi_la_LIBADD = \
-    @top_builddir@/server/srv/shares/lwregshare/liblwregshare.la
+    @top_builddir@/server/srv/shares/regshare/liblwregshare.la
 
 endif
 

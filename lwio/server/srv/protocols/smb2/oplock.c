@@ -115,9 +115,9 @@ SrvBuildOplockState_SMB_V2(
     pOplockState->pConnection = pConnection;
     InterlockedIncrement(&pConnection->refCount);
 
-    pOplockState->pSession = SrvSession2Acquire(pSession);
+    pOplockState->ullUid = pSession->ullUid;
 
-    pOplockState->pTree = SrvTree2Acquire(pTree);
+    pOplockState->ulTid = pTree->ulTid;
 
     pOplockState->ullFid = pFile->ullFid;
 
@@ -317,14 +317,22 @@ SrvAcknowledgeOplockBreak_SMB_V2(
     BOOLEAN                  bFileIsClosed
     )
 {
-    NTSTATUS         ntStatus      = STATUS_SUCCESS;
-    UCHAR            ucOplockLevel = SMB_OPLOCK_LEVEL_NONE;
-    PLWIO_SRV_FILE_2 pFile         = NULL;
+    NTSTATUS            ntStatus      = STATUS_SUCCESS;
+    UCHAR               ucOplockLevel = SMB_OPLOCK_LEVEL_NONE;
+    PLWIO_SRV_SESSION_2 pSession      = NULL;
+    PLWIO_SRV_TREE_2    pTree         = NULL;
+    PLWIO_SRV_FILE_2    pFile         = NULL;
 
-    ntStatus = SrvTree2FindFile(
-                    pOplockState->pTree,
-                    pOplockState->ullFid,
-                    &pFile);
+    ntStatus = SrvConnection2FindSession(
+                    pOplockState->pConnection,
+                    pOplockState->ullUid,
+                    &pSession);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvSession2FindTree(pSession, pOplockState->ulTid, &pTree);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvTree2FindFile(pTree, pOplockState->ullFid, &pFile);
     BAIL_ON_NT_STATUS(ntStatus);
 
     /* Clear flag indicating we are waiting an ACK from the client */
@@ -405,6 +413,16 @@ cleanup:
     if (pFile)
     {
         SrvFile2Release(pFile);
+    }
+
+    if (pTree)
+    {
+        SrvTree2Release(pTree);
+    }
+
+    if (pSession)
+    {
+        SrvSession2Release(pSession);
     }
 
     return ntStatus;
@@ -615,16 +633,6 @@ SrvFreeOplockState_SMB_V2(
                     &pOplockState->pAcb->AsyncCancelContext);
     }
 
-    if (pOplockState->pTree)
-    {
-        SrvTree2Release(pOplockState->pTree);
-    }
-
-    if (pOplockState->pSession)
-    {
-        SrvSession2Release(pOplockState->pSession);
-    }
-
     if (pOplockState->pConnection)
     {
         SrvConnectionRelease(pOplockState->pConnection);
@@ -668,6 +676,8 @@ SrvOplockAsyncCB_SMB_V2(
     PSRV_OPLOCK_STATE_SMB_V2 pOplockState = (PSRV_OPLOCK_STATE_SMB_V2)pContext;
     PSRV_EXEC_CONTEXT        pExecContext = NULL;
     BOOLEAN                  bInLock      = FALSE;
+    PLWIO_SRV_SESSION_2      pSession     = NULL;
+    PLWIO_SRV_TREE_2         pTree        = NULL;
     PLWIO_SRV_FILE_2         pFile        = NULL;
 
     /* Nothing to do if this was cancelled */
@@ -693,8 +703,20 @@ SrvOplockAsyncCB_SMB_V2(
     ntStatus = pOplockState->ioStatusBlock.Status;
     BAIL_ON_NT_STATUS(ntStatus);
 
+    ntStatus = SrvConnection2FindSession(
+                    pOplockState->pConnection,
+                    pOplockState->ullUid,
+                    &pSession);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvSession2FindTree(
+                    pSession,
+                    pOplockState->ulTid,
+                    &pTree);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     ntStatus = SrvTree2FindFile(
-                    pOplockState->pTree,
+                    pTree,
                     pOplockState->ullFid,
                     &pFile);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -727,6 +749,16 @@ cleanup:
     if (pFile)
     {
         SrvFile2Release(pFile);
+    }
+
+    if (pTree)
+    {
+        SrvTree2Release(pTree);
+    }
+
+    if (pSession)
+    {
+        SrvSession2Release(pSession);
     }
 
     return;
@@ -803,8 +835,8 @@ SrvBuildOplockExecContext_SMB_V2(
                     1,                  /* credits     */
                     0,                  /* pid         */
                     0xFFFFFFFFFFFFFFFFLL, /* mid = -1    */
-                    pOplockState->pTree->ulTid,
-                    pOplockState->pSession->ullUid,
+                    pOplockState->ulTid,
+                    pOplockState->ullUid,
                     STATUS_SUCCESS,
                     FALSE,              /* is response */
                     FALSE,              /* chained message */

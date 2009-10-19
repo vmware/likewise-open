@@ -89,7 +89,8 @@ NtlmServerMakeSignature(
     }
     else if (pContext->NegotiatedFlags & NTLM_FLAG_SIGN)
     {
-        dwCrc32 = NtlmCrc32(pData->pvBuffer, pData->cbBuffer);
+        dwError = NtlmCrc32(pData->pvBuffer, pData->cbBuffer, &dwCrc32);
+        BAIL_ON_LSA_ERROR(dwError);
 
         NtlmMakeSignature(
             pContext,

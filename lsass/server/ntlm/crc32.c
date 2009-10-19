@@ -38,64 +38,99 @@
  * Abstract:
  *        CRC32-C generator
  *
- * Authors: Marc Guy (mguy@likewisesoftware.com)
+ * Authors: Kyle Stemen <kstemen@likewise.com>
  *
  */
 #include "ntlmsrvapi.h"
-
-VOID
-ShiftLeft(
-    PDWORD nCrc,
-    PBYTE pBuffer,
-    DWORD nBitOffset
-    )
-{
-    DWORD nByteOffset = nBitOffset / 8;
-    DWORD nRemainder = nBitOffset % 8;
-    DWORD nResult = *nCrc;
-
-    nResult <<= 1;
-
-    nResult |=
-#if 0
-        (pBuffer[nByteOffset] & (1 << (7 - nRemainder))) >> (7 - nRemainder);
-#else
-        (pBuffer[nByteOffset] & (1 << (nRemainder))) >> (nRemainder);
-#endif
-
-    *nCrc = nResult;
-}
+#include <krb5.h>
 
 DWORD
 NtlmCrc32(
     PBYTE pBuffer,
-    DWORD nLength
+    DWORD dwBufferSize,
+    PDWORD pdwCrc32
     )
 {
-    DWORD nCrc = -1;
-    DWORD Poly = 0x04C11DB7;
+    DWORD dwError = LW_ERROR_SUCCESS;
+    krb5_error_code KrbError= 0;
+    krb5_data Input;
+    krb5_checksum Output;
+    DWORD dwChecksum = 0;
 
-    DWORD i = 0;
-    DWORD nBits = nLength * 8;
+    memset(&Input, 0, sizeof(Input));
+    memset(&Output, 0, sizeof(Output));
 
-    for(i = 0; i < nBits; i++)
+    // NTLM uses the "Preset to -1" and "Post-invert" variant of CRC32, where
+    // the checksum is initialized to -1 before taking the input data into
+    // account. After processing the input data, the one's complement of the
+    // checksum is calculated. (see
+    // http://en.wikipedia.org/wiki/Computation_of_CRC#Preset_to_.E2.88.921 )
+
+    if (dwBufferSize < 4)
     {
-        nCrc = LW_ENDIAN_SWAP32(nCrc);
+        // Calculating this 4 byte magic sequence will set the current checksum
+        // to -1. The remaining 4 bytes are used for the input data.
+        BYTE pbTemp[] = { 0x62, 0xF5, 0x26, 0x92, 0, 0, 0, 0 };
+        memcpy(pbTemp + 4, pBuffer, dwBufferSize);
 
-        if(nCrc & 0x80000000)
+        Input.data = pbTemp;
+        Input.length = 4 + dwBufferSize;
+
+        KrbError = krb5_c_make_checksum(
+            NULL,
+            CKSUMTYPE_CRC32,
+            NULL,
+            0,
+            &Input,
+            &Output
+            );
+    }
+    else
+    {
+        // Initializing the checksum to -1 is the same as inverting the first
+        // 32bits of the input data. So this will be temporarily done on the
+        // input data.
+        int i = 0;
+        for (i = 0; i < 4; i++)
         {
-            ShiftLeft(&nCrc, pBuffer, i);
-            nCrc ^= Poly;
+            pBuffer[i] ^= 0xFF;
         }
-        else
+
+        Input.data = (PCHAR)pBuffer;
+        Input.length = dwBufferSize;
+
+        KrbError = krb5_c_make_checksum(
+            NULL,
+            CKSUMTYPE_CRC32,
+            NULL,
+            0,
+            &Input,
+            &Output
+            );
+
+        for (i = 0; i < 4; i++)
         {
-            ShiftLeft(&nCrc, pBuffer, i);
+            pBuffer[i] ^= 0xFF;
         }
-
-        nCrc = LW_ENDIAN_SWAP32(nCrc);
-
     }
 
-    nCrc = ~nCrc;
-    return nCrc;
+    if(KrbError)
+    {
+        dwError = LW_ERROR_KRB5_CALL_FAILED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    LW_ASSERT(Output.length == 4);
+
+    memcpy(&dwChecksum, Output.contents, Output.length);
+    // Do the post-invert
+    *pdwCrc32 = dwChecksum ^ 0xFFFFFFFF;
+
+cleanup:
+    krb5_free_checksum_contents(NULL, &Output);
+    return dwError;
+
+error:
+    *pdwCrc32 = 0;
+    goto cleanup;
 }

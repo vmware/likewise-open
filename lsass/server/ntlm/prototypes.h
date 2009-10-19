@@ -110,8 +110,9 @@ NtlmMakeSignature(
 
 DWORD
 NtlmCrc32(
-    IN PBYTE pData,
-    IN DWORD dwDataSize
+    PBYTE pData,
+    DWORD dwBufferSize,
+    PDWORD pdwCrc32
     );
 
 DWORD

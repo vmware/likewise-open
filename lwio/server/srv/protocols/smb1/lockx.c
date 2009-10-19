@@ -236,7 +236,10 @@ SrvProcessLockAndX(
                         pOplockState->pTimerRequest = NULL;
                     }
 
-                    ntStatus = SrvAcknowledgeOplockBreak(pOplockState, FALSE);
+                    ntStatus = SrvAcknowledgeOplockBreak(
+                                   pCtxSmb1,
+                                   pOplockState,
+                                   FALSE);
                     BAIL_ON_NT_STATUS(ntStatus);
                 }
 
@@ -955,3 +958,11 @@ SrvFreeLockState(
     SrvFreeMemory(pLockState);
 }
 
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
