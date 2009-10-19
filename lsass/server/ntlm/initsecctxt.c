@@ -318,36 +318,3 @@ error:
 
     goto cleanup;
 }
-
-DWORD
-NtlmFixUserName(
-    IN PCSTR pOriginalUserName,
-    OUT PSTR* ppUserName
-    )
-{
-    DWORD dwError = LW_ERROR_SUCCESS;
-    PSTR pUserName = NULL;
-    PCHAR pSymbol = NULL;
-
-    // The original name is in the NetBiosName\username format...
-    // We're just interested in the username portion... isolate it.
-    pSymbol = strchr(pOriginalUserName, '\\');
-
-    if (!pSymbol)
-    {
-        dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    pSymbol++;
-
-    dwError = LwAllocateString(pSymbol, &pUserName);
-    BAIL_ON_LSA_ERROR(dwError);
-
-cleanup:
-    *ppUserName = pUserName;
-    return dwError;
-error:
-    LW_SAFE_FREE_STRING(pUserName);
-    goto cleanup;
-}
