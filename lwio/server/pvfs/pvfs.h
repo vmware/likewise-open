@@ -499,8 +499,7 @@ PvfsFreePendingOp(
 
 NTSTATUS
 PvfsOplockMarkPendedOpsReady(
-    PPVFS_FCB pFcb,
-    PPVFS_CCB pCcb
+    PPVFS_FCB pFcb
     );
 
 NTSTATUS

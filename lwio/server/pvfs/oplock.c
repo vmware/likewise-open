@@ -274,7 +274,7 @@ PvfsOplockBreakAck(
         break;
     }
 
-    ntError = PvfsOplockMarkPendedOpsReady(pFcb, pCcb);
+    ntError = PvfsOplockMarkPendedOpsReady(pFcb);
     BAIL_ON_NT_STATUS(ntError);
 
     *pOutputBufferLength = sizeof(IO_FSCTL_OPLOCK_BREAK_ACK_OUTPUT_BUFFER);
@@ -302,22 +302,13 @@ error:
 
 NTSTATUS
 PvfsOplockMarkPendedOpsReady(
-    PPVFS_FCB pFcb,
-    PPVFS_CCB pCcb
+    PPVFS_FCB pFcb
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PLW_LIST_LINKS pData = NULL;
-    BOOLEAN bCcbLocked = FALSE;
     BOOLEAN bFcbLocked = FALSE;
     PPVFS_WORK_CONTEXT pWorkCtx = NULL;
-
-    /* Reset oplock break state variables */
-
-    LWIO_LOCK_MUTEX(bCcbLocked, &pCcb->ControlBlock);
-    pCcb->OplockState = PVFS_OPLOCK_STATE_NONE;
-    pCcb->OplockBreakResult = 0;
-    LWIO_UNLOCK_MUTEX(bCcbLocked, &pCcb->ControlBlock);
 
     /*****
      * Here we will mark all the deferred operations as ready by
