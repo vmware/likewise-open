@@ -1426,13 +1426,10 @@ LWNetCacheDbUpdate(
                   &pNewEntry->DcInfo.pszNetBIOSHostName);
     BAIL_ON_LWNET_ERROR(dwError);
 
-    if (pDcInfo->pszUserName)
-    {
-        dwError = LWNetAllocateString(
-                      pDcInfo->pszUserName,
-                      &pNewEntry->DcInfo.pszUserName);
-        BAIL_ON_LWNET_ERROR(dwError);
-    }
+    dwError = LWNetAllocateString(
+	          pDcInfo->pszUserName ? pDcInfo->pszUserName : "",
+		  &pNewEntry->DcInfo.pszUserName);
+    BAIL_ON_LWNET_ERROR(dwError);
 
     RW_LOCK_ACQUIRE_WRITE(DbHandle->pLock);
     isAcquired = TRUE;
