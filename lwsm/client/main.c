@@ -1000,6 +1000,11 @@ LwSmProxy(
     dwError = LwMapErrnoToLwError(pthread_detach(waitThread));
     BAIL_ON_ERROR(dwError);
 
+    if (!gState.bQuiet)
+    {
+        printf("Proxying for service: %s\n", pArgv[1]);
+    }
+
     dwError = LwSmWaitSignals(&sig);
     BAIL_ON_ERROR(dwError);
 
@@ -1047,6 +1052,7 @@ LwSmUsage(
            "    stop-all <service>         Stop a service and all reverse dependencies\n"
            "    restart-all <service>      Restart a service and all running reverse dependencies\n"
            "    refresh <service>          Refresh service's configuration\n"
+           "    proxy <service>            Act as a proxy process for a service\n"
            "    info <service>             Get information about a service\n"
            "    status <service>           Get the status of a service\n\n");
     printf("Options:\n"
