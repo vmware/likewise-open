@@ -1282,7 +1282,6 @@ pfnRegShellCompleteCallback(
                 {
                     pszPtr++;
                 }
-                dwStrLen = strlen(pszPtr);
                 if (el_insertstr(el, pszPtr) == -1)
                 {
                     printf("Oops: 2 el_insertstr failed\n");
