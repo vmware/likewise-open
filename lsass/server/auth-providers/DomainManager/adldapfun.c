@@ -11,4 +11,3 @@ AdSearchObjects(
 
 	return dwError;
 }
-

@@ -36,5 +36,3 @@ error:
 
 	return dwError
 }
-
-

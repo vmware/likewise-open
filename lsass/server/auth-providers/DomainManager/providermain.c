@@ -87,7 +87,7 @@ LSA_SHUTDOWN_PROVIDER(ad)(
 
 
 DWORD
-ADOpenHandle(
+ActiveDirectoryOpenHandle(
     uid_t   uid,
     gid_t   gid,
     pid_t   pid,
@@ -124,7 +124,7 @@ error:
 }
 
 void
-ADCloseHandle(
+ActiveDirectoryCloseHandle(
     HANDLE hProvider
     )
 {
@@ -136,43 +136,17 @@ ADCloseHandle(
 }
 
 BOOLEAN
-ADServicesDomain(
+ActiveDirectoryServicesDomain(
     PWSTR pszDomain
     )
 {
     BOOLEAN bResult = FALSE;
 
-    LsaAdProviderStateAcquireRead(gpLsaAdProviderState);
-
-    if (gpLsaAdProviderState->joinState != LSA_ADJOINED)
-    {
-        goto cleanup;
-    }
-
-    //
-    // Added Trusted domains support
-    //
-    if (LW_IS_NULL_OR_EMPTY_STR(pszDomain) ||
-        LW_IS_NULL_OR_EMPTY_STR(gpADProviderData->szDomain) ||
-        LW_IS_NULL_OR_EMPTY_STR(gpADProviderData->szShortDomain)) {
-       goto cleanup;
-    }
-
-    bResult = LsaDmIsDomainPresent(pszDomain);
-    if (!bResult)
-    {
-        LSA_LOG_INFO("ADServicesDomain was passed unknown domain '%s'", pszDomain);
-    }
-
-cleanup:
-
-    LsaAdProviderStateRelease(gpLsaAdProviderState);
-
     return bResult;
 }
 
 DWORD
-ADAuthenticateUser(
+ActiveDirectoryAuthenticateUser(
     HANDLE hProvider,
     PWSTR  pszLoginId,
     PWSTR  pszPassword
@@ -183,7 +157,7 @@ ADAuthenticateUser(
 }
 
 DWORD
-ADAuthenticateUserEx(
+ActiveDirectoryAuthenticateUserEx(
     HANDLE hProvider,
     PLSA_AUTH_USER_PARAMS pUserParams,
     PLSA_AUTH_USER_INFO *ppUserInfo
@@ -192,7 +166,7 @@ ADAuthenticateUserEx(
 }
 
 DWORD
-ADValidateUser(
+ActiveDirectoryValidateUser(
     HANDLE hProvider,
     PWSTR  pszLoginId,
     PWSTR  pszPassword
@@ -200,13 +174,11 @@ ADValidateUser(
 {
     return dwError;
 
-error:
-
-    goto cleanup;
 }
 
+
 DWORD
-ADCheckUserInList(
+ActiveDirectoryCheckUserInList(
     HANDLE hProvider,
     PWSTR  pszUserName,
     PWSTR  pszListName
@@ -219,7 +191,7 @@ ADCheckUserInList(
 }
 
 DWORD
-ADFindUserByName(
+ActiveDirectoryFindUserByName(
     HANDLE  hProvider,
     PWSTR   pszLoginId,
     DWORD   dwUserInfoLevel,
@@ -228,11 +200,11 @@ ADFindUserByName(
 {
     DWORD   dwError = 0;
 
-	return dwError;
+    return dwError;
 }
 
 DWORD
-ADFindUserById(
+ActiveDirectoryFindUserById(
     HANDLE  hProvider,
     uid_t   uid,
     DWORD   dwUserInfoLevel,
@@ -241,19 +213,34 @@ ADFindUserById(
 {
     DWORD   dwError = 0;
 
-}
-DWORD
-ADFindUserObjectById(
-    IN HANDLE  hProvider,
-    IN uid_t   uid,
-    OUT PLSA_SECURITY_OBJECT* ppResult
-    )
-{
+    dwError = ADFindUserById(
+                    hProvider,
+                    uid,
+                    &pLsaSecurityObject
+                    );
+    BAIL_ON_ERROR(dwError);
+
+    dwError = ConvertLsaSecurityObjectToInfoLevel(
+                    dwUserInfoLevel,
+                    pLsaSecurityObject,
+                    ppUserInfo
+                    );
+    BAIL_ON_ERROR(dwError);
+
+cleanup:
+
+    if (pLsaSecurityObject) {
+
+        LsaFreeSecurityObject(pLsaSecurityObject);
+    }
+
+error:
+
     return dwError;
 }
 
 DWORD
-ADBeginEnumUsers(
+ActiveDirectoryBeginEnumUsers(
     HANDLE  hProvider,
     DWORD   dwInfoLevel,
     LSA_FIND_FLAGS FindFlags,
@@ -264,7 +251,7 @@ ADBeginEnumUsers(
 }
 
 DWORD
-ADEnumUsers(
+ActiveDirectoryEnumUsers(
     HANDLE  hProvider,
     HANDLE  hResume,
     DWORD   dwMaxNumUsers,
@@ -278,7 +265,7 @@ ADEnumUsers(
 }
 
 VOID
-ADEndEnumUsers(
+ActiveDirectoryEndEnumUsers(
     HANDLE hProvider,
     HANDLE hResume
     )
@@ -287,275 +274,8 @@ ADEndEnumUsers(
 }
 
 
-static
 DWORD
-ADPreJoinDomain(
-    HANDLE hProvider,
-    PLSA_ADPROVIDER_STATE pState
-    )
-{
-    DWORD dwError = 0;
-
-    switch (pState->joinState)
-    {
-    case LSA_ADUNKNOWN:
-    case LSA_ADNOT_JOINED:
-        break;
-    case LSA_ADJOINED:
-        dwError = ADTransitionNotJoined(pState);
-        BAIL_ON_LSA_ERROR(dwError);
-        break;
-    }
-
-error:
-
-    return dwError;
-}
-
-static
-DWORD
-ADPostJoinDomain(
-    HANDLE hProvider,
-    PLSA_ADPROVIDER_STATE pState
-    )
-{
-    DWORD dwError = 0;
-
-    dwError = ADTransitionJoined(pState);
-    BAIL_ON_LSA_ERROR(dwError);
-
-error:
-
-    return dwError;
-}
-
-
-static
-DWORD
-ADJoinDomain(
-    HANDLE  hProvider,
-    uid_t   peerUID,
-    gid_t   peerGID,
-    DWORD   dwInputBufferSize,
-    PVOID   pInputBuffer,
-    DWORD* pdwOutputBufferSize,
-    PVOID* ppOutputBuffer
-    )
-{
-    DWORD dwError = 0;
-    LWMsgDataContext* pDataContext = NULL;
-    PLSA_ADIPC_JOIN_DOMAIN_REQ pRequest = NULL;
-    PSTR pszMessage = NULL;
-    BOOLEAN bLocked = FALSE;
-
-    if (peerUID != 0)
-    {
-        dwError = LW_ERROR_ACCESS_DENIED;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_data_context_new(NULL, &pDataContext));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_data_unmarshal_flat(
-                                  pDataContext,
-                                  LsaAdIPCGetJoinDomainReqSpec(),
-                                  pInputBuffer,
-                                  (size_t) dwInputBufferSize,
-                                  OUT_PPVOID(&pRequest)));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_data_print_graph_alloc(
-                                  pDataContext,
-                                  LsaAdIPCGetJoinDomainReqSpec(),
-                                  pRequest,
-                                  &pszMessage));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    LSA_LOG_TRACE("Domain join request: %s", pszMessage);
-
-    LsaAdProviderStateAcquireWrite(gpLsaAdProviderState);
-    bLocked = TRUE;
-
-    dwError = ADPreJoinDomain(hProvider, gpLsaAdProviderState);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaNetJoinDomain(
-        pRequest->pszHostname,
-        pRequest->pszHostDnsDomain,
-        pRequest->pszDomain,
-        pRequest->pszOU,
-        pRequest->pszUsername,
-        pRequest->pszPassword,
-        pRequest->pszOSName,
-        pRequest->pszOSVersion,
-        pRequest->pszOSServicePack,
-        pRequest->dwFlags);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = ADPostJoinDomain(hProvider, gpLsaAdProviderState);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    LSA_LOG_INFO("Joined domain: %s", pRequest->pszDomain);
-
-cleanup:
-
-    if (bLocked)
-    {
-        LsaAdProviderStateRelease(gpLsaAdProviderState);
-    }
-
-    LW_SAFE_FREE_MEMORY(pszMessage);
-
-    if (pRequest)
-    {
-        lwmsg_data_free_graph(
-            pDataContext,
-            LsaAdIPCGetJoinDomainReqSpec(),
-            pRequest);
-    }
-
-    if (pDataContext)
-    {
-        lwmsg_data_context_delete(pDataContext);
-    }
-
-    return dwError;
-
-error:
-
-    goto cleanup;
-}
-
-static
-DWORD
-ADPreLeaveDomain(
-    HANDLE hProvider,
-    PLSA_ADPROVIDER_STATE pState
-    )
-{
-    DWORD dwError = 0;
-
-    switch (pState->joinState)
-    {
-    case LSA_ADUNKNOWN:
-    case LSA_ADNOT_JOINED:
-        dwError = LW_ERROR_NOT_JOINED_TO_AD;
-        BAIL_ON_LSA_ERROR(dwError);
-        break;
-    case LSA_ADJOINED:
-        ADTransitionNotJoined(pState);
-        break;
-    }
-
-error:
-
-    return dwError;
-}
-
-static
-DWORD
-ADPostLeaveDomain(
-    HANDLE hProvider,
-    PLSA_ADPROVIDER_STATE pState
-    )
-{
-    DWORD dwError = 0;
-
-    return dwError;
-}
-
-static
-DWORD
-ADLeaveDomain(
-    HANDLE  hProvider,
-    uid_t   peerUID,
-    gid_t   peerGID,
-    DWORD   dwInputBufferSize,
-    PVOID   pInputBuffer,
-    DWORD* pdwOutputBufferSize,
-    PVOID* ppOutputBuffer
-    )
-{
-    DWORD dwError = 0;
-    LWMsgDataContext* pDataContext = NULL;
-    PLSA_ADIPC_LEAVE_DOMAIN_REQ pRequest = NULL;
-    PSTR pszMessage = NULL;
-    BOOLEAN bLocked = FALSE;
-
-    if (peerUID != 0)
-    {
-        dwError = LW_ERROR_ACCESS_DENIED;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_data_context_new(NULL, &pDataContext));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_data_unmarshal_flat(
-                                  pDataContext,
-                                  LsaAdIPCGetLeaveDomainReqSpec(),
-                                  pInputBuffer,
-                                  (size_t) dwInputBufferSize,
-                                  OUT_PPVOID(&pRequest)));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_data_print_graph_alloc(
-                                  pDataContext,
-                                  LsaAdIPCGetLeaveDomainReqSpec(),
-                                  pRequest,
-                                  &pszMessage));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    LSA_LOG_TRACE("Domain leave request: %s", pszMessage);
-
-    LsaAdProviderStateAcquireWrite(gpLsaAdProviderState);
-    bLocked = TRUE;
-
-    dwError = ADPreLeaveDomain(hProvider, gpLsaAdProviderState);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaNetLeaveDomain(
-        pRequest->pszUsername,
-        pRequest->pszPassword);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = ADPostLeaveDomain(hProvider, gpLsaAdProviderState);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    LSA_LOG_INFO("Left domain\n");
-
-cleanup:
-
-    if (bLocked)
-    {
-        LsaAdProviderStateRelease(gpLsaAdProviderState);
-    }
-
-    LW_SAFE_FREE_MEMORY(pszMessage);
-
-    if (pRequest)
-    {
-        lwmsg_data_free_graph(
-            pDataContext,
-            LsaAdIPCGetLeaveDomainReqSpec(),
-            pRequest);
-    }
-
-    if (pDataContext)
-    {
-        lwmsg_data_context_delete(pDataContext);
-    }
-
-    return dwError;
-
-error:
-
-    goto cleanup;
-}
-
-DWORD
-ADFindGroupByName(
+ActiveDirectoryFindGroupByName(
     IN HANDLE hProvider,
     IN PWSTR pszGroupName,
     IN LSA_FIND_FLAGS FindFlags,
@@ -564,32 +284,6 @@ ADFindGroupByName(
     )
 {
     DWORD dwError = 0;
-    BOOLEAN bIsCacheOnlyMode = FALSE;
-
-    LsaAdProviderStateAcquireRead(gpLsaAdProviderState);
-
-    if (gpLsaAdProviderState->joinState != LSA_ADJOINED)
-    {
-        dwError = LW_ERROR_NOT_HANDLED;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    if (FindFlags & LSA_FIND_FLAGS_NSS)
-    {
-        bIsCacheOnlyMode = ADGetNssGroupMembersCacheOnlyEnabled();
-    }
-
-    dwError = ADFindGroupByNameWithCacheMode(
-                hProvider,
-                pszGroupName,
-                bIsCacheOnlyMode,
-                dwGroupInfoLevel,
-                ppGroupInfo);
-    BAIL_ON_LSA_ERROR(dwError);
-
-error:
-
-    LsaAdProviderStateRelease(gpLsaAdProviderState);
 
     return dwError;
 }
@@ -597,7 +291,7 @@ error:
 
 static
 DWORD
-ADGetExpandedGroupUsersEx(
+ActiveDirectoryGetExpandedGroupUsersEx(
     IN HANDLE hProvider,
     IN PWSTR pszDomainName,
     IN BOOLEAN bIsOffline,
@@ -611,10 +305,10 @@ ADGetExpandedGroupUsersEx(
 {
     DWORD dwError = LW_ERROR_SUCCESS;
 
-	return dwError;
+    return dwError;
 }
 DWORD
-ADFindGroupById(
+ActiveDirectoryFindGroupById(
     IN HANDLE hProvider,
     IN gid_t gid,
     IN LSA_FIND_FLAGS FindFlags,
@@ -624,12 +318,12 @@ ADFindGroupById(
 {
     DWORD dwError = 0;
 
-	return dwError;
+    return dwError;
 }
 
 
 DWORD
-ADGetUserGroupObjectMembership(
+ActiveDirectoryGetUserGroupObjectMembership(
     IN HANDLE hProvider,
     IN PLSA_SECURITY_OBJECT pUserInfo,
     IN BOOLEAN bIsCacheOnlyMode,
@@ -638,10 +332,12 @@ ADGetUserGroupObjectMembership(
     )
 {
     DWORD dwError = 0;
+
+    return dwError;
 }
 
 DWORD
-ADGetGroupsForUser(
+ActiveDirectoryGetGroupsForUser(
     IN HANDLE hProvider,
     IN OPTIONAL PWSTR pszUserName,
     IN OPTIONAL uid_t uid,
@@ -657,7 +353,7 @@ ADGetGroupsForUser(
 }
 
 DWORD
-ADBeginEnumGroups(
+ActiveDirectoryBeginEnumGroups(
     HANDLE  hProvider,
     DWORD   dwInfoLevel,
     BOOLEAN bCheckGroupMembersOnline,
@@ -671,7 +367,7 @@ ADBeginEnumGroups(
 }
 
 DWORD
-ADEnumGroups(
+ActiveDirectoryEnumGroups(
     HANDLE  hProvider,
     HANDLE  hResume,
     DWORD   dwMaxGroups,
@@ -680,10 +376,12 @@ ADEnumGroups(
     )
 {
     DWORD dwError = 0;
+
+    return dwError;
 }
 
 VOID
-ADEndEnumGroups(
+ActiveDirectoryEndEnumGroups(
     HANDLE hProvider,
     HANDLE hResume
     )
@@ -692,19 +390,20 @@ ADEndEnumGroups(
 }
 
 DWORD
-ADChangePassword(
+ActiveDirectoryChangePassword(
     HANDLE hProvider,
     PWSTR pszLoginId,
     PWSTR pszPassword,
     PWSTR pszOldPassword
     )
 {
+    DWORD dwError = 0;
 
     return dwError;
 }
 
 DWORD
-ADSetPassword(
+ActiveDirectorySetPassword(
     HANDLE hProvider,
     PWSTR pszLoginId,
     PWSTR pszPassword
@@ -715,7 +414,7 @@ ADSetPassword(
 
 
 DWORD
-ADAddUser(
+ActiveDirectoryAddUser(
     HANDLE hProvider,
     DWORD  dwUserInfoLevel,
     PVOID  pUserInfo
@@ -725,7 +424,7 @@ ADAddUser(
 }
 
 DWORD
-ADModifyUser(
+ActiveDirectoryModifyUser(
     HANDLE hProvider,
     PLSA_USER_MOD_INFO pUserModInfo
     )
@@ -734,7 +433,7 @@ ADModifyUser(
 }
 
 DWORD
-ADDeleteUser(
+ActiveDirectoryDeleteUser(
     HANDLE hProvider,
     uid_t  uid
     )
@@ -743,7 +442,7 @@ ADDeleteUser(
 }
 
 DWORD
-ADAddGroup(
+ActiveDirectoryAddGroup(
     HANDLE hProvider,
     DWORD dwGroupInfoLevel,
     PVOID pGroupInfo
@@ -753,7 +452,7 @@ ADAddGroup(
 }
 
 DWORD
-ADModifyGroup(
+ActiveDirectoryModifyGroup(
     HANDLE hProvider,
     PLSA_GROUP_MOD_INFO pGroupModInfo
     )
@@ -762,7 +461,7 @@ ADModifyGroup(
 }
 
 DWORD
-ADDeleteGroup(
+ActiveDirectoryDeleteGroup(
     HANDLE hProvider,
     gid_t  gid
     )
@@ -771,7 +470,7 @@ ADDeleteGroup(
 }
 
 DWORD
-ADOpenSession(
+ActiveDirectoryOpenSession(
     HANDLE hProvider,
     PWSTR  pszLoginId
     )
@@ -780,15 +479,18 @@ ADOpenSession(
 }
 
 DWORD
-ADCloseSession(
+ActiveDirectoryCloseSession(
     HANDLE hProvider,
     PWSTR  pszLoginId
     )
 {
+    DWORD dwError = 0;
+
+    return dwError;
 }
 
 DWORD
-ADGetNamesBySidList(
+ActiveDirectoryGetNamesBySidList(
     HANDLE          hProvider,
     size_t          sCount,
     PSTR*           ppszSidList,
@@ -797,10 +499,14 @@ ADGetNamesBySidList(
     ADAccountType** ppTypes
     )
 {
+    DWORD dwError = 0;
+
+
+    return dwError;
 }
 
 DWORD
-ADFindNSSArtefactByKey(
+ActiveDirectoryFindNSSArtefactByKey(
     HANDLE hProvider,
     PWSTR  pszKeyName,
     PWSTR  pszMapName,
@@ -809,10 +515,13 @@ ADFindNSSArtefactByKey(
     PVOID* ppNSSArtefactInfo
     )
 {
+    DWORD dwError = 0;
+
+    return dwError;
 }
 
 DWORD
-ADBeginEnumNSSArtefacts(
+ActiveDirectoryBeginEnumNSSArtefacts(
     HANDLE  hProvider,
     DWORD   dwInfoLevel,
     PWSTR   pszMapName,
@@ -820,10 +529,13 @@ ADBeginEnumNSSArtefacts(
     PHANDLE phResume
     )
 {
+    DWORD dwError = 0;
+
+    return dwError;
 }
 
 DWORD
-ADEnumNSSArtefacts(
+ActiveDirectoryEnumNSSArtefacts(
     HANDLE  hProvider,
     HANDLE  hResume,
     DWORD   dwMaxNSSArtefacts,
@@ -831,19 +543,25 @@ ADEnumNSSArtefacts(
     PVOID** pppNSSArtefactInfoList
     )
 {
+    DWORD dwError = 0;
+
+    return dwError;
 }
 
 VOID
-ADEndEnumNSSArtefacts(
+ActiveDirectoryEndEnumNSSArtefacts(
     HANDLE hProvider,
     HANDLE hResume
     )
 {
 
+    DWORD dwError = 0;
+
+    return dwError;
 }
 
 DWORD
-ADGetStatus(
+ActiveDirectoryGetStatus(
     HANDLE hProvider,
     PLSA_AUTH_PROVIDER_STATUS* ppProviderStatus
     )
@@ -853,14 +571,14 @@ ADGetStatus(
 
 
 DWORD
-ADRefreshConfiguration(
+ActiveDirectoryRefreshConfiguration(
     HANDLE hProvider
     )
 {
 }
 
 DWORD
-ADProviderIoControl(
+ActiveDirectoryProviderIoControl(
     IN HANDLE  hProvider,
     IN uid_t   peerUID,
     IN uid_t   peerGID,
@@ -874,7 +592,7 @@ ADProviderIoControl(
 }
 
 DWORD
-ADGetGroupMembershipByProvider(
+ActiveDirectoryGetGroupMembershipByProvider(
     IN HANDLE     hProvider,
     IN PWSTR      pszSid,
     IN DWORD      dwGroupInfoLevel,
@@ -882,30 +600,18 @@ ADGetGroupMembershipByProvider(
     OUT PVOID   **pppMembershipInfo
     )
 {
-    return LW_ERROR_NOT_HANDLED;
-}
 
 
-DWORD
-ADFindUserObjectByName(
-    IN HANDLE  hProvider,
-    IN PWSTR   pszLoginId,
-    OUT PLSA_SECURITY_OBJECT* ppResult
-    )
-{
     DWORD dwError = 0;
-    goto cleanup;
-}
 
-DWORD
-ADFindGroupObjectByName(
-    IN HANDLE  hProvider,
-    IN PWSTR   pszGroupName,
-    OUT PLSA_SECURITY_OBJECT* ppResult
-    )
-{
-	DWORD dwError = 0;
+    dwError = ADGetGroupMembershipByProvider(
+                    hProvider,
+                    pszSid,
+                    &ppLsaSecurityObjects,
+                    &dwNumObjects
+                    );
+    BAIL_ON_ERROR(dwError);
 
-	return dwError;
+    return dwError;
 }
 
