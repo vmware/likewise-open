@@ -342,6 +342,15 @@ error:
 }
 
 static
+VOID
+LwSmHandleSigint(
+    int sig
+    )
+{
+    raise(SIGTERM);
+}
+
+static
 DWORD
 LwSmConfigureSignals(
     VOID
