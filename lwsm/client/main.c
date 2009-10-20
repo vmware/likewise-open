@@ -240,6 +240,46 @@ error:
 
 static
 DWORD
+LwSmWaitForLwsmd(
+    void
+    )
+{
+    DWORD dwError = 0;
+    int try = 0;
+    static const int maxTries = 4;
+    static const int interval = 5;
+    PWSTR* ppwszServices = NULL;
+
+    do
+    {
+        dwError = LwSmEnumerateServices(&ppwszServices);
+
+        if (dwError)
+        {
+            sleep(interval);
+        }
+
+        try++;
+    } while (dwError != LW_ERROR_SUCCESS && try < maxTries);
+
+    BAIL_ON_ERROR(dwError);
+
+cleanup:
+
+    if (ppwszServices)
+    {
+        LwSmFreeServiceNameList(ppwszServices);
+    }
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+static
+DWORD
 LwSmList(
     int argc,
     char** pArgv
@@ -934,6 +974,9 @@ LwSmProxy(
     PWSTR pwszServiceName = NULL;
     pthread_t waitThread;
     int sig = 0;
+
+    dwError = LwSmWaitForLwsmd();
+    BAIL_ON_ERROR(dwError);
 
     dwError = LwSmConfigureSignals();
     BAIL_ON_ERROR(dwError);
