@@ -100,7 +100,7 @@ PvfsClose(
 
         case PVFS_OPLOCK_STATE_BREAK_IN_PROGRESS:
             /* This is our Ack */
-            ntError = PvfsOplockMarkPendedOpsReady(pCcb->pFcb, pCcb);
+            ntError = PvfsOplockMarkPendedOpsReady(pCcb->pFcb);
             break;
         }
 
