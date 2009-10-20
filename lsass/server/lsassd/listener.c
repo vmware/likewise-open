@@ -125,8 +125,11 @@ LsaSrvHandleIpcException(
     switch (status)
     {
     case LWMSG_STATUS_MEMORY:
+    case LWMSG_STATUS_RESOURCE_LIMIT:
+        /* Attempt to recover from resource shortages */
         break;
     default:
+        /* Abort on any other exception */
         LSA_LOG_ERROR("Terminating on fatal IPC exception");
         kill(getpid(), SIGTERM);
         break;
