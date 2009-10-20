@@ -131,6 +131,7 @@ test_lwmsg_mu_la_LIBADD = @LIB_moonunit@ $(top_builddir)/src/liblwmsg.la
 test_lwmsg_mu_la_LDFLAGS = -shared -module -avoid-version
 
 test/stub.c: $(TEST_SOURCES)
+	$(MKDIR_P) test
 	$(MOONUNIT_STUB) -o $@ CPP="$(CPP)" CPPFLAGS="$(CPPFLAGS) $(AM_CPPFLAGS) $(test_lwmsg_mu_la_CPPFLAGS)" $^
 
 endif
