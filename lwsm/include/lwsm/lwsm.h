@@ -371,6 +371,13 @@ LwSmQueryServiceStatus(
     PLW_SERVICE_STATUS pStatus
     );
 
+DWORD
+LwSmWaitService(
+    LW_SERVICE_HANDLE hHandle,
+    LW_SERVICE_STATE currentState,
+    PLW_SERVICE_STATE pNewState
+    );
+
 /**
  * @brief Refresh service
  *

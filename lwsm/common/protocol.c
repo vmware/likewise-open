@@ -114,6 +114,22 @@ static LWMsgTypeSpec gServiceInfoSpec[] =
     LWMSG_TYPE_END
 };
 
+static LWMsgTypeSpec gWaitStateChangeSpec[] =
+{
+    LWMSG_STRUCT_BEGIN(SM_IPC_WAIT_STATE_CHANGE_REQ),
+    LWMSG_MEMBER_TYPESPEC(SM_IPC_WAIT_STATE_CHANGE_REQ, hHandle, gExistingHandleSpec),
+    LWMSG_MEMBER_UINT8(SM_IPC_WAIT_STATE_CHANGE_REQ, state),
+    LWMSG_ATTR_RANGE(LW_SERVICE_STATE_RUNNING, LW_SERVICE_STATE_DEAD),
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
+
+static LWMsgTypeSpec gServiceStateSpec[] =
+{
+    LWMSG_UINT8(LW_SERVICE_STATE),
+    LWMSG_TYPE_END
+};
+
 static LWMsgTypeSpec gServiceStatusSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LW_SERVICE_STATUS),
@@ -149,6 +165,8 @@ static LWMsgProtocolSpec gIpcSpec[] =
     LWMSG_MESSAGE(SM_IPC_QUERY_SERVICE_STATUS_RES, gServiceStatusSpec),
     LWMSG_MESSAGE(SM_IPC_QUERY_SERVICE_INFO_REQ, gExistingHandleSpec),
     LWMSG_MESSAGE(SM_IPC_QUERY_SERVICE_INFO_RES, gServiceInfoSpec),
+    LWMSG_MESSAGE(SM_IPC_WAIT_SERVICE_REQ, gWaitStateChangeSpec),
+    LWMSG_MESSAGE(SM_IPC_WAIT_SERVICE_RES, gServiceStateSpec),
     LWMSG_PROTOCOL_END,
 };
 

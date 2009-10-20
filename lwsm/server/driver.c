@@ -50,6 +50,8 @@ LwSmDriverStart(
     dwError = LwNtStatusToWin32Error(LwIoLoadDriver(pwszName));
     BAIL_ON_ERROR(dwError);
 
+    LwSmNotifyServiceObjectStateChange(pObject, LW_SERVICE_STATE_RUNNING);
+
 cleanup:
 
     return dwError;
@@ -70,6 +72,8 @@ LwSmDriverStop(
 
     dwError = LwNtStatusToWin32Error(LwIoUnloadDriver(pwszName));
     BAIL_ON_ERROR(dwError);
+
+    LwSmNotifyServiceObjectStateChange(pObject, LW_SERVICE_STATE_STOPPED);
 
 cleanup:
 

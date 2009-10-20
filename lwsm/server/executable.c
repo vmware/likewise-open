@@ -138,6 +138,8 @@ LwSmExecutableStart(
         pExec->pid = pid;
         pExec->state = LW_SERVICE_STATE_STARTING;
         
+        LwSmNotifyServiceObjectStateChange(pObject, pExec->state);
+
         /* Take an additional reference to the table entry
            because our child monitoring thread will need it */
         LwSmRetainServiceObject(pObject);
@@ -170,6 +172,8 @@ LwSmExecutableStart(
         }
 
         pExec->state = LW_SERVICE_STATE_RUNNING;
+
+        LwSmNotifyServiceObjectStateChange(pObject, pExec->state);
     }
 
 cleanup:
@@ -277,7 +281,8 @@ LwSmExecutableStop(
             BAIL_ON_ERROR(dwError);
         }
         pExec->state = LW_SERVICE_STATE_STOPPING;
-        
+        LwSmNotifyServiceObjectStateChange(pObject, pExec->state);
+
         /* The background thread will notice when the
            child process finally exits and update the
            status to LW_SERVICE_STOPPED */
@@ -285,6 +290,7 @@ LwSmExecutableStop(
     case LW_SERVICE_STATE_DEAD:
         /* Go directly to stopped state */
         pExec->state = LW_SERVICE_STATE_STOPPED;
+        LwSmNotifyServiceObjectStateChange(pObject, pExec->state);
         break;
     }
 

@@ -41,6 +41,7 @@
 
 #include <stdio.h>
 #include <pthread.h>
+#include <signal.h>
 
 #include <lwerror.h>
 #include <lwmem.h>

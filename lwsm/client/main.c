@@ -114,6 +114,131 @@ LwSmTypeToString(
 }
 
 static
+VOID
+LwSmHandleSigint(
+    int sig
+    )
+{
+    raise(SIGTERM);
+}
+
+static
+DWORD
+LwSmConfigureSignals(
+    VOID
+    )
+{
+    DWORD dwError = 0;
+    sigset_t set;
+    static int blockSignals[] =
+    {
+        SIGTERM,
+        SIGCHLD,
+        SIGHUP,
+        -1
+    };
+    int i = 0;
+    struct sigaction intAction;
+
+    memset(&intAction, 0, sizeof(intAction));
+
+    if (sigemptyset(&set) < 0)
+    {
+        dwError = LwMapErrnoToLwError(errno);
+        BAIL_ON_ERROR(dwError);
+    }
+
+    for (i = 0; blockSignals[i] != -1; i++)
+    {
+        if (sigaddset(&set, blockSignals[i]) < 0)
+        {
+            dwError = LwMapErrnoToLwError(errno);
+            BAIL_ON_ERROR(dwError);
+        }
+    }
+
+    dwError = LwMapErrnoToLwError(pthread_sigmask(SIG_SETMASK, &set, NULL));
+    BAIL_ON_ERROR(dwError);
+
+    intAction.sa_handler = LwSmHandleSigint;
+    intAction.sa_flags = 0;
+
+    if (sigaction(SIGINT, &intAction, NULL) < 0)
+    {
+        dwError = LwMapErrnoToLwError(errno);
+        BAIL_ON_ERROR(dwError);
+    }
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+static
+DWORD
+LwSmWaitSignals(
+    int* pSig
+    )
+{
+    DWORD dwError = 0;
+    sigset_t set;
+    static int waitSignals[] =
+    {
+        SIGTERM,
+        SIGHUP,
+        -1
+    };
+    int sig = -1;
+    int i = 0;
+
+    if (sigemptyset(&set) < 0)
+    {
+        dwError = LwMapErrnoToLwError(errno);
+        BAIL_ON_ERROR(dwError);
+    }
+
+    for (i = 0; waitSignals[i] != -1; i++)
+    {
+        if (sigaddset(&set, waitSignals[i]) < 0)
+        {
+            dwError = LwMapErrnoToLwError(errno);
+            BAIL_ON_ERROR(dwError);
+        }
+    }
+
+    for (;;)
+    {
+        if (sigwait(&set, &sig) < 0)
+        {
+            dwError = LwMapErrnoToLwError(errno);
+            BAIL_ON_ERROR(dwError);
+        }
+
+        switch (sig)
+        {
+        case SIGTERM:
+        case SIGHUP:
+            *pSig = sig;
+            goto cleanup;
+        default:
+            break;
+        }
+    }
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+};
+
+static
 DWORD
 LwSmList(
     int argc,
@@ -770,6 +895,98 @@ error:
 }
 
 static
+PVOID
+LwSmWaitThread(
+    PVOID pData
+    )
+{
+    DWORD dwError = 0;
+    LW_SERVICE_HANDLE hHandle = pData;
+    LW_SERVICE_STATUS status = {0};
+
+    while (status.state != LW_SERVICE_STATE_STOPPED &&
+           status.state != LW_SERVICE_STATE_DEAD)
+    {
+        dwError = LwSmWaitService(hHandle, status.state, &status.state);
+        BAIL_ON_ERROR(dwError);
+    }
+
+cleanup:
+
+    kill(getpid(), SIGHUP);
+
+    return NULL;
+
+error:
+
+    goto cleanup;
+}
+
+static
+DWORD
+LwSmProxy(
+    int argc,
+    char** pArgv
+    )
+{
+    DWORD dwError = 0;
+    LW_SERVICE_HANDLE hHandle = NULL;
+    PWSTR pwszServiceName = NULL;
+    pthread_t waitThread;
+    int sig = 0;
+
+    dwError = LwSmConfigureSignals();
+    BAIL_ON_ERROR(dwError);
+
+    dwError = LwSmStartAll(argc, pArgv);
+    BAIL_ON_ERROR(dwError);
+
+    dwError = LwMbsToWc16s(pArgv[1], &pwszServiceName);
+    BAIL_ON_ERROR(dwError);
+
+    dwError = LwSmAcquireServiceHandle(pwszServiceName, &hHandle);
+    BAIL_ON_ERROR(dwError);
+
+    dwError = LwMapErrnoToLwError(pthread_create(
+                                      &waitThread,
+                                      NULL,
+                                      LwSmWaitThread,
+                                      hHandle));
+    BAIL_ON_ERROR(dwError);
+
+    dwError = LwMapErrnoToLwError(pthread_detach(waitThread));
+    BAIL_ON_ERROR(dwError);
+
+    dwError = LwSmWaitSignals(&sig);
+    BAIL_ON_ERROR(dwError);
+
+    switch (sig)
+    {
+    case SIGTERM:
+        dwError = LwSmStopAll(argc, pArgv);
+        BAIL_ON_ERROR(dwError);
+        break;
+    default:
+        break;
+    }
+
+cleanup:
+
+    LW_SAFE_FREE_MEMORY(pwszServiceName);
+
+    if (hHandle)
+    {
+        LwSmReleaseServiceHandle(hHandle);
+    }
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+static
 DWORD
 LwSmUsage(
     int argc,
@@ -863,6 +1080,11 @@ main(
         else if (!strcmp(pArgv[i], "restart-all"))
         {
             dwError = LwSmRestartAll(argc-i, pArgv+i);
+            goto error;
+        }
+        else if (!strcmp(pArgv[i], "proxy"))
+        {
+            dwError = LwSmProxy(argc-i, pArgv+i);
             goto error;
         }
         else

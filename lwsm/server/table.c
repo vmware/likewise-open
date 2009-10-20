@@ -197,6 +197,9 @@ LwSmTableAddEntry(
     dwError = LwAllocateMemory(sizeof(*pEntry), OUT_PPVOID(&pEntry));
     BAIL_ON_ERROR(dwError);
 
+    LwSmLinkInit(&pEntry->link);
+    LwSmLinkInit(&pEntry->waiters);
+
     pEntry->bValid = TRUE;
 
     dwError = LwSmCopyServiceInfo(pInfo, &pEntry->pInfo);
@@ -787,11 +790,35 @@ error:
 }
 
 VOID
-LwSmTableNotifyEntryChanged(
-    PSM_TABLE_ENTRY pEntry
+LwSmTableNotifyEntryStateChanged(
+    PSM_TABLE_ENTRY pEntry,
+    LW_SERVICE_STATE state
     )
 {
+    BOOLEAN bLocked = FALSE;
+    PSM_LINK pLink = NULL;
+    PSM_LINK pNext = NULL;
+    PSM_ENTRY_NOTIFY pNotify = NULL;
+
+    LOCK(bLocked, pEntry->pLock);
+
+    for (pLink = LwSmLinkBegin(&pEntry->waiters);
+         LwSmLinkValid(&pEntry->waiters, pLink);
+         pLink = pNext)
+    {
+        pNext = LwSmLinkNext(pLink);
+        pNotify = STRUCT_FROM_MEMBER(pLink, SM_ENTRY_NOTIFY, link);
+
+        LwSmLinkRemove(pLink);
+
+        pNotify->pfnNotifyEntryStateChange(state, pNotify->pData);
+
+        LwFreeMemory(pNotify);
+    }
+
     pthread_cond_broadcast(pEntry->pEvent);
+
+    UNLOCK(bLocked, pEntry->pLock);
 }
 
 DWORD
@@ -812,6 +839,53 @@ LwSmTableWaitEntryChanged(
     }
 
     return 0;
+}
+
+DWORD
+LwSmTableRegisterEntryNotify(
+    PSM_TABLE_ENTRY pEntry,
+    LW_SERVICE_STATE currentState,
+    VOID (*pfnNotifyEntryStateChange)(LW_SERVICE_STATE state, PVOID pData),
+    PVOID pData
+    )
+{
+    DWORD dwError = 0;
+    BOOLEAN bLocked = FALSE;
+    PSM_ENTRY_NOTIFY pNotify = NULL;
+    LW_SERVICE_STATUS status = {0};
+
+    LOCK(bLocked, pEntry->pLock);
+
+    dwError = LwSmTablePollEntry(pEntry, &status);
+    BAIL_ON_ERROR(dwError);
+
+    if (status.state != currentState)
+    {
+        pfnNotifyEntryStateChange(status.state, pData);
+    }
+    else
+    {
+        dwError = LwAllocateMemory(sizeof(*pNotify), OUT_PPVOID(&pNotify));
+        BAIL_ON_ERROR(dwError);
+
+        LwSmLinkInit(&pNotify->link);
+        pNotify->pfnNotifyEntryStateChange = pfnNotifyEntryStateChange;
+        pNotify->pData = pData;
+
+        LwSmLinkInsertBefore(&pEntry->waiters, &pNotify->link);
+    }
+
+cleanup:
+
+    UNLOCK(bLocked, pEntry->pLock);
+
+    return dwError;
+
+error:
+
+    LW_SAFE_FREE_MEMORY(pNotify);
+
+    goto cleanup;
 }
 
 static
@@ -1076,7 +1150,7 @@ LwSmTableNotifyServiceObjectStateChange(
 {
     PSM_TABLE_ENTRY pEntry = STRUCT_FROM_MEMBER(pObject, SM_TABLE_ENTRY, object);
 
-    return LwSmTableNotifyEntryChanged(pEntry);
+    return LwSmTableNotifyEntryStateChanged(pEntry, newState);
 }
 
 SM_LOADER_CALLS gTableCalls =
