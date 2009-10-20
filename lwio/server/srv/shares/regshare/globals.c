@@ -45,6 +45,9 @@
 
 #include "includes.h"
 
+PCSTR pszSharePath = "Services\\lwio\\Parameters\\Drivers\\srv\\shares";
+PCSTR pszShareSecPath = "Services\\lwio\\Parameters\\Drivers\\srv\\shares\\security";
+
 SRV_SHARE_REG_GLOBALS gShareRepository_registry =
 {
     .mutex   = PTHREAD_MUTEX_INITIALIZER,

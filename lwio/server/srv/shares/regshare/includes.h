@@ -51,7 +51,9 @@
 
 #include <lwio/lwio.h>
 
+#include <lwerror.h>
 #include <reg/reg.h>
+
 
 #include <lwiodef.h>
 #include <lwioutils.h>

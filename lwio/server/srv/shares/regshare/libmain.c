@@ -54,15 +54,7 @@ LwRegShareRepositoryInit(
 
     *ppFnTable = &gShareRepository_registry.fnTable;
 
-cleanup:
-
     return status;
-
-error:
-
-    *ppFnTable = NULL;
-
-    goto cleanup;
 }
 
 NTSTATUS
