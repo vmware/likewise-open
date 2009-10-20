@@ -1246,6 +1246,7 @@ LwMapLwmsgStatusToLwError(
         case LWMSG_STATUS_ERROR:
             return LW_ERROR_INTERNAL;
         case LWMSG_STATUS_MEMORY:
+        case LWMSG_STATUS_RESOURCE_LIMIT:
             return LW_ERROR_OUT_OF_MEMORY;
         case LWMSG_STATUS_MALFORMED:
         case LWMSG_STATUS_OVERFLOW:
