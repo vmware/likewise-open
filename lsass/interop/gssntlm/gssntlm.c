@@ -898,6 +898,9 @@ ntlm_gss_accept_sec_context(
     SecBuffer OutputToken = {0};
     TimeStamp tsExpiry = 0;
     NTLM_CONTEXT_HANDLE NewCtxtHandle = NULL;
+    gss_cred_id_t LocalCreds = NULL;
+    // Do not free
+    gss_cred_id_t PassAcceptorCredHandle = NULL;
 
     *pMinorStatus = LW_ERROR_SUCCESS;
 
@@ -922,11 +925,23 @@ ntlm_gss_accept_sec_context(
         dwRetFlags = *pRetFlags;
     }
 
-    if (!AcceptorCredHandle)
+    if (AcceptorCredHandle)
     {
-        MajorStatus = GSS_S_NO_CRED;
-        MinorStatus = LW_ERROR_INVALID_PARAMETER;
+        PassAcceptorCredHandle = AcceptorCredHandle;
+    }
+    else
+    {
+        MajorStatus = ntlm_gss_acquire_cred(
+            &MinorStatus,
+            NULL,
+            0,
+            NULL,
+            GSS_C_ACCEPT,
+            &LocalCreds,
+            NULL,
+            NULL);
         BAIL_ON_LSA_ERROR(MinorStatus);
+        PassAcceptorCredHandle = LocalCreds;
     }
 
 #if 0
@@ -967,7 +982,7 @@ ntlm_gss_accept_sec_context(
     InputToken.pvBuffer = pInputTokenBuffer->value;
 
     MinorStatus = NtlmClientAcceptSecurityContext(
-        &((PNTLM_GSS_CREDS)AcceptorCredHandle)->CredHandle,
+        &((PNTLM_GSS_CREDS)PassAcceptorCredHandle)->CredHandle,
         (PNTLM_CONTEXT_HANDLE)pContextHandle,
         &InputBuffer,
         dwFinalFlags,
@@ -991,6 +1006,9 @@ ntlm_gss_accept_sec_context(
 
     *pContextHandle = (gss_ctx_id_t)NewCtxtHandle;
 cleanup:
+    ntlm_gss_release_cred(
+            NULL,
+            &LocalCreds);
     *pMinorStatus = MinorStatus;
     return MajorStatus;
 error:
