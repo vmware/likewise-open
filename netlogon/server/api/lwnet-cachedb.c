@@ -1297,10 +1297,13 @@ LWNetCacheDbQuery(
                   &pDcInfo->pszNetBIOSHostName);
     BAIL_ON_LWNET_ERROR(dwError);
 
-    dwError = LWNetAllocateString(
-                  pEntry->DcInfo.pszUserName,
-                  &pDcInfo->pszUserName);
-    BAIL_ON_LWNET_ERROR(dwError);
+    if (pEntry->DcInfo.pszUserName)
+    {
+        dwError = LWNetAllocateString(
+                      pEntry->DcInfo.pszUserName,
+                      &pDcInfo->pszUserName);
+        BAIL_ON_LWNET_ERROR(dwError);
+    }
 
 error:
     if (isAcquired)
@@ -1637,10 +1640,13 @@ LWNetCacheDbExport(
                         &pNewEntry->DcInfo.pszNetBIOSHostName);
         BAIL_ON_LWNET_ERROR(dwError);
 
-        dwError = LWNetAllocateString(
-                        pEntry->DcInfo.pszUserName,
-                        &pNewEntry->DcInfo.pszUserName);
-        BAIL_ON_LWNET_ERROR(dwError);
+        if (pEntry->DcInfo.pszUserName)
+        {
+            dwError = LWNetAllocateString(
+                            pEntry->DcInfo.pszUserName,
+                            &pNewEntry->DcInfo.pszUserName);
+            BAIL_ON_LWNET_ERROR(dwError);
+        }
 
         i++;
     }
