@@ -39,5 +39,5 @@ libntlmserver_la_LIBADD = \
     $(top_builddir)/common/liblsacommon.la \
     $(LWMSG_NOTHR_LIBS) \
     $(CRYPTO_LIBS) \
-    $(KRB5_LDFLAGS) \
+    $(KRB5_LIBS) \
     $(SOCKET_LIBS)
