@@ -117,7 +117,19 @@ PvfsFileFullDirInfo(
     );
 
 NTSTATUS
+PvfsFileIdFullDirInfo(
+    PVFS_INFO_TYPE Type,
+    PPVFS_IRP_CONTEXT pIrpContext
+    );
+
+NTSTATUS
 PvfsFileBothDirInfo(
+    PVFS_INFO_TYPE Type,
+    PPVFS_IRP_CONTEXT pIrpContext
+    );
+
+NTSTATUS
+PvfsFileIdBothDirInfo(
     PVFS_INFO_TYPE Type,
     PPVFS_IRP_CONTEXT pIrpContext
     );
