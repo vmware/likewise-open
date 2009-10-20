@@ -53,12 +53,12 @@
 /* File Globals */
 
 static struct _InfoLevelDispatchEntry InfoLevelDispatchTable[] = {
-    { FileBothDirectoryInformation,     &PvfsFileBothDirInfo },
-    { FileDirectoryInformation,         &PvfsFileDirInfo },
-    { FileFullDirectoryInformation,     &PvfsFileFullDirInfo },
+    { FileBothDirectoryInformation,     PvfsFileBothDirInfo },
+    { FileDirectoryInformation,         PvfsFileDirInfo },
+    { FileFullDirectoryInformation,     PvfsFileFullDirInfo },
     { FileIdBothDirectoryInformation,   NULL },
     { FileIdFullDirectoryInformation,   NULL },
-    { FileNamesInformation,             NULL },
+    { FileNamesInformation,             PvfsFileNamesInfo },
     { FileObjectIdInformation,          NULL },
     { FileReparsePointInformation,      NULL }
 };
