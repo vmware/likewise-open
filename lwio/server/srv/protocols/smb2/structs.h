@@ -552,6 +552,26 @@ typedef struct _SMB2_FILE_ID_BOTH_DIR_INFORMATION
 } __attribute__((__packed__)) SMB2_FILE_ID_BOTH_DIR_INFO_HEADER,
                              *PSMB2_FILE_ID_BOTH_DIR_INFO_HEADER;
 
+typedef struct _SMB2_FILE_ID_FULL_DIR_INFORMATION
+{
+    ULONG           ulNextEntryOffset;
+    ULONG           ulFileIndex;
+    LONG64          ullCreationTime;
+    LONG64          ullLastAccessTime;
+    LONG64          ullLastWriteTime;
+    LONG64          ullChangeTime;
+    LONG64          ullEndOfFile;
+    LONG64          ullAllocationSize;
+    FILE_ATTRIBUTES ulFileAttributes;
+    ULONG           ulFileNameLength;
+    ULONG           ulEaSize;
+    ULONG           ulReserved;
+    LONG64          llFileId;
+    // WCHAR           wszFileName[1];
+
+} __attribute__((__packed__)) SMB2_FILE_ID_FULL_DIR_INFO_HEADER,
+                             *PSMB2_FILE_ID_FULL_DIR_INFO_HEADER;
+
 typedef struct _SMB2_FILE_BOTH_DIR_INFORMATION
 {
     ULONG           ulNextEntryOffset;
