@@ -108,7 +108,7 @@ RegDbUnpackRegEntryInfo(
         &pResult->pszValueName);
     BAIL_ON_REG_ERROR(dwError);
 
-    dwError =RegSqliteReadUInt32(
+    dwError = RegSqliteReadUInt32(
         pstQuery,
         piColumnPos,
         "Type",

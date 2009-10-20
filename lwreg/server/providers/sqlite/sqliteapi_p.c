@@ -754,12 +754,12 @@ GetValueAsBytes(
             }
             else
             {
-                dwError = ConvertByteArrayToMultiStrsA(pTempData,
-                                                       cbData,
-                                                       &ppszOutMultiSz);
+                dwError = RegByteArrayToMultiStrsA(pTempData,
+                                                   cbData,
+                                                   &ppszOutMultiSz);
                 BAIL_ON_REG_ERROR(dwError);
 
-                dwError = ConvertMultiStrsToByteArrayW(
+                dwError = RegMultiStrsToByteArrayW(
                                             ppszOutMultiSz,
                                             &pOutData,
                                             &cOutDataLen);
@@ -851,7 +851,7 @@ cleanup:
     LW_SAFE_FREE_MEMORY(pTempData);
     LW_SAFE_FREE_MEMORY(pOutData);
     LW_SAFE_FREE_MEMORY(pwcValue);
-    ConvertMultiStrsFree(ppszOutMultiSz);
+    RegMultiStrsFree(ppszOutMultiSz);
 
     return dwError;
 

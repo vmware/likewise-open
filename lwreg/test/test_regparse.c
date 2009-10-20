@@ -85,7 +85,7 @@ DWORD parseCallback(PREG_PARSE_ITEM pItem, HANDLE userContext)
             break;
 
         case REG_MULTI_SZ:
-            ConvertByteArrayToMultiStrsW(
+            RegByteArrayToMultiStrsW(
                 pItem->value,
                 pItem->valueLen,
                 &outMultiSz);
@@ -94,7 +94,7 @@ DWORD parseCallback(PREG_PARSE_ITEM pItem, HANDLE userContext)
             {
                 printf("outMultiSz[%d] = '%s'\n", count, outMultiSz[count]);
             }
-            ConvertMultiStrsFree(outMultiSz);
+            RegMultiStrsFree(outMultiSz);
 
             break;
 

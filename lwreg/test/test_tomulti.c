@@ -75,7 +75,7 @@ int main(int argc, char *argv[])
     }
 
     RegIconvConvertOpen(&ivHandle, "ucs-2le", "utf-8");
-    ConvertMultiStrsToByteArray(multiStringList,
+    RegMultiStrsToByteArray(multiStringList,
                                 &multiString,
                                 &multiStringLen);
     RegExportEntry("HKLM_LINUX/likewise/registry/devel",

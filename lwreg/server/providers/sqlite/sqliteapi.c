@@ -468,6 +468,9 @@ SqliteSetValueExInternal(
     PWSTR pwcValue = NULL;
     DWORD dwValue = 0;
     BOOLEAN bIsWrongType = TRUE;
+    PSTR* ppszOutMultiSz = NULL;
+    PBYTE pOutData = NULL;
+    SSIZE_T cOutDataLen = 0;
 
     BAIL_ON_INVALID_KEY(pKey);
 
@@ -492,13 +495,43 @@ SqliteSetValueExInternal(
     switch (dwType)
     {
         case REG_BINARY:
-        case REG_MULTI_SZ:
             dwError = LwByteArrayToHexStr((UCHAR*)pData,
                                           cbData,
                                           &pszValue);
             BAIL_ON_REG_ERROR(dwError);
 
             break;
+
+        // Internally store reg_multi_sz as ansi
+        case REG_MULTI_SZ:
+            if (bDoAnsi)
+            {
+                dwError = LwByteArrayToHexStr((UCHAR*)pData,
+                                              cbData,
+                                              &pszValue);
+                BAIL_ON_REG_ERROR(dwError);
+            }
+            else
+            {
+                dwError = RegByteArrayToMultiStrsW((UCHAR*)pData,
+                                                   cbData,
+                                                   &ppszOutMultiSz);
+                BAIL_ON_REG_ERROR(dwError);
+
+                dwError = RegMultiStrsToByteArrayA(
+                                            ppszOutMultiSz,
+                                            &pOutData,
+                                            &cOutDataLen);
+                BAIL_ON_REG_ERROR(dwError);
+
+                dwError = LwByteArrayToHexStr((UCHAR*)pOutData,
+                                              cOutDataLen,
+                                              &pszValue);
+                BAIL_ON_REG_ERROR(dwError);
+            }
+
+            break;
+
 
         case REG_SZ:
 
@@ -566,6 +599,8 @@ cleanup:
     LW_SAFE_FREE_STRING(pszValueName);
     LW_SAFE_FREE_STRING(pszValue);
     LW_SAFE_FREE_MEMORY(pwcValue);
+    LW_SAFE_FREE_MEMORY(pOutData);
+    RegMultiStrsFree(ppszOutMultiSz);
 
     return dwError;
 
