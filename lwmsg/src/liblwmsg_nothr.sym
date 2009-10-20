@@ -38,6 +38,7 @@ lwmsg_local_token_get_eid
 lwmsg_local_token_get_pid
 lwmsg_error_message
 lwmsg_error_clear
+lwmsg_error_map_errno
 lwmsg_call_dispatch
 lwmsg_call_pend
 lwmsg_call_complete
