@@ -772,7 +772,7 @@ SrvMarshalIdBothDirInfoSearchResults(
                    (PBYTE)pFileInfoCursor->ShortName,
                    sizeof(pInfoHeader->wszShortName));
 
-            pInfoHeader->usShortNameLength = pFileInfoCursor->ShortNameLength;
+            pInfoHeader->ucShortNameLength = pFileInfoCursor->ShortNameLength;
         }
         else
         {
@@ -780,7 +780,7 @@ SrvMarshalIdBothDirInfoSearchResults(
                    0x0,
                    sizeof(pInfoHeader->wszShortName));
 
-            pInfoHeader->usShortNameLength = 0;
+            pInfoHeader->ucShortNameLength = 0;
         }
 
         pDataCursor += sizeof(SMB2_FILE_ID_BOTH_DIR_INFO_HEADER);

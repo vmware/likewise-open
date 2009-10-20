@@ -542,7 +542,7 @@ typedef struct _SMB2_FILE_ID_BOTH_DIR_INFORMATION
     FILE_ATTRIBUTES ulFileAttributes;
     ULONG           ulFileNameLength;
     ULONG           ulEaSize;
-    USHORT          usShortNameLength;
+    UCHAR           ucShortNameLength;
     UCHAR           ucReserved1;
     WCHAR           wszShortName[12];
     USHORT          usReserved2;
