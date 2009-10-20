@@ -922,6 +922,13 @@ ntlm_gss_accept_sec_context(
         dwRetFlags = *pRetFlags;
     }
 
+    if (!AcceptorCredHandle)
+    {
+        MajorStatus = GSS_S_NO_CRED;
+        MinorStatus = LW_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(MinorStatus);
+    }
+
 #if 0
     // convert
     switch (dwRetFlags)
