@@ -471,7 +471,7 @@ NtlmCreateValidatedContext(
     OUT PNTLM_CONTEXT *ppNtlmContext
     );
 
-VOID
+DWORD
 NtlmInitializeKeys(
     PNTLM_CONTEXT pNtlmContext
     );

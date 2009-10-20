@@ -876,7 +876,7 @@ SrvFinderGetNamesInfoSearchResults(
                                 &ioStatusBlock,
                                 pSearchSpace->pFileInfo,
                                 pSearchSpace->usFileInfoLen,
-                                FileBothDirectoryInformation,
+                                FileNamesInformation,
                                 bReturnSingleEntry,
                                 &ioFileSpec,
                                 bRestartScan);

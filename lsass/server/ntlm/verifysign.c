@@ -77,7 +77,7 @@ NtlmServerVerifySignature(
 
     dwError = NtlmVerifySignature(
         pContext,
-        &pContext->VerifyKey,
+        pContext->pSealKey,
         pData,
         pToken
         );
@@ -135,9 +135,15 @@ NtlmVerifySignature(
 
     if (dwCrc32 != pNtlmSig->dwCrc32)
     {
-        dwError = LW_ERROR_INVALID_MESSAGE;
+        dwError = ERROR_CRC;
         BAIL_ON_LSA_ERROR(dwError);
     }
+    if (pContext->dwMsgSeqNum != pNtlmSig->dwMsgSeqNum)
+    {
+        dwError = ERROR_REQUEST_OUT_OF_SEQUENCE;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    pContext->dwMsgSeqNum++;
 
 cleanup:
     return dwError;

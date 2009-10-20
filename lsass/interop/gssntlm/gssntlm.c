@@ -693,6 +693,10 @@ ntlm_gss_release_cred(
 
     LW_SAFE_FREE_MEMORY(pCreds->pszUserName);
 
+    LW_SAFE_FREE_MEMORY(pCreds);
+
+    *pCredHandle = NULL;
+
 cleanup:
     if (pMinorStatus)
     {

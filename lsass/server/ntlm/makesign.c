@@ -95,7 +95,7 @@ NtlmServerMakeSignature(
         NtlmMakeSignature(
             pContext,
             dwCrc32,
-            &pContext->SignKey,
+            pContext->pUnsealKey,
             pToken
             );
     }
@@ -127,10 +127,10 @@ NtlmMakeSignature(
 
     LW_ASSERT(pToken->cbBuffer == NTLM_SIGNATURE_SIZE);
 
-    pNtlmSig->dwMsgSeqNum = pContext->dwSignMsgSeqNum;
     pNtlmSig->dwCrc32 = dwCrc32;
 
-    pContext->dwSignMsgSeqNum++;
+    pNtlmSig->dwMsgSeqNum = pContext->dwMsgSeqNum;
+    pContext->dwMsgSeqNum++;
 
     RC4(pSignKey, 12, &Signature[4], &Signature[4]);
 

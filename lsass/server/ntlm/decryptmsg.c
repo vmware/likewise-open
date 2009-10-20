@@ -83,7 +83,7 @@ NtlmServerDecryptMessage(
     BAIL_ON_LSA_ERROR(dwError);
 
     RC4(
-        &pContext->UnsealKey,
+        pContext->pUnsealKey,
         pData->cbBuffer,
         pData->pvBuffer,
         pBuffer);
@@ -93,7 +93,7 @@ NtlmServerDecryptMessage(
     //verify the key
     dwError = NtlmVerifySignature(
         pContext,
-        &pContext->UnsealKey,
+        pContext->pUnsealKey,
         pData,
         pToken);
     BAIL_ON_LSA_ERROR(dwError);

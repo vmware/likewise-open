@@ -46,12 +46,22 @@
 #ifndef __STRUCTS_H__
 #define __STRUCTS_H__
 
+
 typedef struct _SRV_SHARE_REG_GLOBALS
 {
     pthread_mutex_t      mutex;
 
     SRV_SHARE_REPOSITORY_FUNCTION_TABLE fnTable;
 
+    HANDLE hRegConnection;
+
 } SRV_SHARE_REG_GLOBALS, *PSRV_SHARE_REG_GLOBALS;
+
+typedef struct _SRV_SHARE_REG_ENUM_CONTEXT
+{
+    ULONG ulMaxIndex;
+    ULONG ulMaxValueNameLen;
+    ULONG ulMaxValueLen;
+} SRV_SHARE_REG_ENUM_CONTEXT, *PSRV_SHARE_REG_ENUM_CONTEXT;
 
 #endif /* __STRUCTS_H__ */

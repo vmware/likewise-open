@@ -163,9 +163,25 @@ NtlmFreeContext(
     memset(pContext->pMessage, 0, pContext->dwMessageSize);
     LW_SAFE_FREE_MEMORY(pContext->pMessage);
 
+    if (pContext->pSealKey && pContext->pSealKey != pContext->pSignKey)
+    {
+        LW_SAFE_FREE_MEMORY(pContext->pSealKey);
+    }
+    if (pContext->pVerifyKey && pContext->pVerifyKey != pContext->pSignKey)
+    {
+        LW_SAFE_FREE_MEMORY(pContext->pVerifyKey);
+    }
+    if (pContext->pUnsealKey && pContext->pUnsealKey != pContext->pSignKey)
+    {
+        LW_SAFE_FREE_MEMORY(pContext->pUnsealKey);
+    }
+    if (pContext->pSignKey)
+    {
+        LW_SAFE_FREE_MEMORY(pContext->pSignKey);
+    }
+
     LW_SAFE_FREE_MEMORY(pContext);
     *ppContext = NULL;
-
 }
 
 /******************************************************************************/

@@ -252,7 +252,8 @@ NtlmCreateValidatedContext(
     memcpy(pNtlmContext->SessionKey, pSessionKey, NTLM_SESSION_KEY_SIZE);
     pNtlmContext->cbSessionKeyLen = dwSessionKeyLen;
 
-    NtlmInitializeKeys(pNtlmContext);
+    dwError = NtlmInitializeKeys(pNtlmContext);
+    BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
     *ppNtlmContext = pNtlmContext;
@@ -267,30 +268,31 @@ error:
     goto cleanup;
 }
 
-VOID
+DWORD
 NtlmInitializeKeys(
     PNTLM_CONTEXT pNtlmContext
     )
 {
+    DWORD dwError = 0;
+
+    dwError = LwAllocateMemory(
+        sizeof(*pNtlmContext->pSignKey),
+        OUT_PPVOID(&pNtlmContext->pSignKey));
+    BAIL_ON_LSA_ERROR(dwError);
+
     RC4_set_key(
-        &pNtlmContext->SignKey,
+        pNtlmContext->pSignKey,
         pNtlmContext->cbSessionKeyLen,
         pNtlmContext->SessionKey);
 
-    RC4_set_key(
-        &pNtlmContext->SealKey,
-        pNtlmContext->cbSessionKeyLen,
-        pNtlmContext->SessionKey);
+    pNtlmContext->pSealKey = pNtlmContext->pSignKey;
+    pNtlmContext->pVerifyKey = pNtlmContext->pSignKey;
+    pNtlmContext->pUnsealKey = pNtlmContext->pSignKey;
 
-    RC4_set_key(
-        &pNtlmContext->VerifyKey,
-        pNtlmContext->cbSessionKeyLen,
-        pNtlmContext->SessionKey);
-
-    RC4_set_key(
-        &pNtlmContext->UnsealKey,
-        pNtlmContext->cbSessionKeyLen,
-        pNtlmContext->SessionKey);
+cleanup:
+    return dwError;
+error:
+    goto cleanup;
 }
 
 DWORD

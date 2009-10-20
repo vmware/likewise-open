@@ -64,8 +64,6 @@ LWMsgDispatchSpec gNtlmMessageHandlers[] =
     LWMSG_DISPATCH_END
 };
 
-pthread_t gRpcSrvWorker;
-
 BOOLEAN gbUseNtlmV2 = TRUE;
 
 WIN_VERSION_INFO gW2KSpoof = {5, 0, 2195, 0x0f000000};

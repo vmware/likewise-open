@@ -171,5 +171,6 @@ NtlmFreeCredential(
     )
 {
     LsaReleaseCredential(&pCreds->CredHandle);
+    LW_SAFE_FREE_MEMORY(pCreds);
 }
 
