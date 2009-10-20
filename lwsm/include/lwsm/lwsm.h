@@ -371,6 +371,24 @@ LwSmQueryServiceStatus(
     PLW_SERVICE_STATUS pStatus
     );
 
+/**
+ * @brief Wait for service state change
+ *
+ * Waits for the given service's state to change.  The last known
+ * state of the service must be specified as a parameter, and the new
+ * state will be returned when a change occurs.
+ *
+ * @note This function requires the last known state of the service
+ * to be passed in to guard against a race condition in which the service
+ * changes state after its status is queried but before this function is
+ * called.  Passing in the last known state guarantees that this function
+ * will return immediately if the service has changed state since the last
+ * query.
+ *
+ * @param[in] hHandle the service handle
+ * @param[in] currentState the last known state of the service
+ * @param[out] pNewState the new state of the service
+ */
 DWORD
 LwSmWaitService(
     LW_SERVICE_HANDLE hHandle,

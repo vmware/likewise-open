@@ -1072,6 +1072,7 @@ main(
     CHAR szErrorMessage[2048];
     int ret = 0;
     int i = 0;
+    PCSTR pszErrorName = NULL;
 
     for (i = 1; i < argc; i++)
     {
@@ -1152,10 +1153,12 @@ error:
     {
         memset(szErrorMessage, 0, sizeof(szErrorMessage));
         LwGetErrorString(dwError, szErrorMessage, sizeof(szErrorMessage) - 1);
+        pszErrorName = LwWin32ErrorToName(dwError);
 
         if (!gState.bQuiet)
         {
-            printf("Error: %s\n", szErrorMessage);
+            printf("Error: %s (%lu)\n", pszErrorName ? pszErrorName : "UNKNOWN", (unsigned long) dwError);
+            printf("%s\n", szErrorMessage);
         }
 
         return 1;
