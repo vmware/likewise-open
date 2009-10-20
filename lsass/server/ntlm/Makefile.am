@@ -26,15 +26,18 @@ libntlmserver_la_CPPFLAGS = \
     $(AM_CPPFLAGS) \
     $(LWADVAPI_INCLUDES) \
     -I$(top_srcdir)/server/include \
-    @LWMSG_INCLUDES@ \
-    @CRYPTO_INCLUDES@
+    $(LWMSG_INCLUDES) \
+    $(KRB5_INCLUDES) \
+    $(CRYPTO_INCLUDES)
 
 libntlmserver_la_LDFLAGS = \
     $(AM_LDFLAGS) \
-    @CRYPTO_LDFLAGS@
+    $(KRB5_LDFFLAGS) \
+    $(CRYPTO_LDFLAGS)
 
 libntlmserver_la_LIBADD = \
-    @top_builddir@/common/liblsacommon.la \
-    @LWMSG_NOTHR_LIBS@ \
-    @CRYPTO_LIBS@ \
-    @SOCKET_LIBS@
+    $(top_builddir)/common/liblsacommon.la \
+    $(LWMSG_NOTHR_LIBS) \
+    $(CRYPTO_LIBS) \
+    $(KRB5_LDFLAGS) \
+    $(SOCKET_LIBS)
