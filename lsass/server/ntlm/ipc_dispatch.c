@@ -420,7 +420,7 @@ NtlmSrvIpcEncryptMessage(
     if (!dwError)
     {
         memcpy(&(pNtlmResp->Message), pReq->pMessage, sizeof(SecBufferDesc));
-        pReq->pMessage = NULL;
+        LW_SAFE_FREE_MEMORY(pReq->pMessage);
 
         pOut->tag = NTLM_R_ENCRYPT_MSG_SUCCESS;
         pOut->data = pNtlmResp;
@@ -619,7 +619,7 @@ NtlmSrvIpcInitializeSecurityContext(
 
         memcpy(&(pNtlmResp->Output), pReq->pOutput, sizeof(SecBufferDesc));
 
-        pReq->pOutput = NULL;
+        LW_SAFE_FREE_MEMORY(pReq->pOutput);
 
         dwError = NtlmSrvIpcRegisterHandle(
             pCall,

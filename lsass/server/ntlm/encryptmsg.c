@@ -97,13 +97,13 @@ NtlmServerEncryptMessage(
     if (bEncrypt)
     {
         RC4(
-            &pContext->SealKey,
+            pContext->pSealKey,
             pData->cbBuffer,
             pData->pvBuffer,
             pData->pvBuffer);
     }
 
-    NtlmMakeSignature(pContext, dwCrc32, &pContext->SealKey, pToken);
+    NtlmMakeSignature(pContext, dwCrc32, pContext->pSealKey, pToken);
 
 cleanup:
     return dwError;

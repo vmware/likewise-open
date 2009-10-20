@@ -267,17 +267,33 @@ cleanup:
     {
         *ppszServerName = pServerName;
     }
+    else
+    {
+        LW_SAFE_FREE_STRING(pServerName);
+    }
     if (ppszDomainName)
     {
         *ppszDomainName = pDomainName;
+    }
+    else
+    {
+        LW_SAFE_FREE_STRING(pDomainName);
     }
     if (ppszDnsServerName)
     {
         *ppszDnsServerName = pDnsServerName;
     }
+    else
+    {
+        LW_SAFE_FREE_STRING(pDnsServerName);
+    }
     if (ppszDnsDomainName)
     {
         *ppszDnsDomainName = pDnsDomainName;
+    }
+    else
+    {
+        LW_SAFE_FREE_STRING(pDnsDomainName);
     }
 
     return dwError;
