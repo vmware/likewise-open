@@ -200,10 +200,13 @@ ADMarshalFromGroupCache(
                                 &pGroupInfo1->pszSid);
             BAIL_ON_LSA_ERROR(dwError);
 
-            dwError = LwAllocateString(
-                                pGroup->pszDN,
-                                &pGroupInfo1->pszDN);
-            BAIL_ON_LSA_ERROR(dwError);
+            if (pGroup->pszDN)
+            {
+                dwError = LwAllocateString(
+                                    pGroup->pszDN,
+                                    &pGroupInfo1->pszDN);
+                BAIL_ON_LSA_ERROR(dwError);
+            }
 
             for (sIndex = 0; sIndex < sMembers; sIndex++)
             {
