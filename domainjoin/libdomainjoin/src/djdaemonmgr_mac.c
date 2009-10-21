@@ -32,6 +32,11 @@
 #include "djdaemonmgr.h"
 #include <libxml/xpath.h>
 #include <libxml/parser.h>
+#include <lwsm/lwsm.h>
+#include <lwerror.h>
+#include <lwstr.h>
+#include <lwmem.h>
+#include <lw/base.h>
 
 #define GCE(x) GOTO_CLEANUP_ON_CENTERROR((x))
 
@@ -215,6 +220,44 @@ cleanup:
     ;
 }
 
+static
+DWORD
+DJGetServiceStatus(
+    PCSTR pszServiceName,
+    PBOOLEAN pbStarted
+    )
+{
+    DWORD dwError = 0;
+    LW_SERVICE_HANDLE hHandle = NULL;
+    LW_SERVICE_STATUS status = {0};
+    PWSTR pwszServiceName = NULL;
+
+    dwError = LwMbsToWc16s(pszServiceName, &pwszServiceName);
+    BAIL_ON_CENTERIS_ERROR(dwError);
+
+    dwError = LwSmAcquireServiceHandle(pwszServiceName, &hHandle);
+    BAIL_ON_CENTERIS_ERROR(dwError);
+
+    dwError = LwSmQueryServiceStatus(hHandle, &status);
+    BAIL_ON_CENTERIS_ERROR(dwError);
+
+    *pbStarted = status.state == LW_SERVICE_STATE_RUNNING;
+
+error:
+
+    if (hHandle)
+    {
+        LwSmReleaseServiceHandle(hHandle);
+    }
+
+    if (pwszServiceName)
+    {
+        LwFreeMemory(pwszServiceName);
+    }
+
+    return dwError;
+}
+
 void
 DJGetDaemonStatus(
     PCSTR pszDaemonPath,
@@ -231,6 +274,7 @@ DJGetDaemonStatus(
     CENTERROR ceError;
     PSTR configFile = NULL;
     PSTR command = NULL;
+    PSTR pszServiceName = NULL;
     PSTR command2 = NULL;
     int argNum = 0;
     PSTR whitePos = NULL;
@@ -247,6 +291,10 @@ DJGetDaemonStatus(
         pszDaemonPath = "com.likewisesoftware.eventfwdd";
     else if (!strcmp(pszDaemonPath, "reapsysld"))
         pszDaemonPath = "com.likewisesoftware.reapsysld";
+    else if (!strcmp(pszDaemonPath, "lwregd"))
+        pszDaemonPath = "com.likewisesoftware.lwregd";
+    else if (!strcmp(pszDaemonPath, "lwsmd"))
+        pszDaemonPath = "com.likewisesoftware.lwsmd";
 
     /* Find the .plist file for the daemon */
     ceError = DJDaemonLabelToConfigFile(&configFile, "/Library/LaunchDaemons", pszDaemonPath);
@@ -269,71 +317,68 @@ DJGetDaemonStatus(
 
     DJ_LOG_INFO("Found daemon binary [%s] for daemon [%s]", command, pszDaemonPath);
 
-    /* Need to special case those daemons that are running in a wrapper script. The ProgramArguments
-       will say the daemon is /opt/likewise/sbin/<daemon>-wrap, but the actual daemon will be
-       exec'd from the wrapper as the name without -wrap. So we need to check for the name in this
-       form also. */
-    LW_CLEANUP_CTERR(exc, CTAllocateString(command, &command2));
-    wrapPos = strstr(command2, "-wrap");
-    if (wrapPos)
+    if (strstr(command, "/bin/lwsm") != NULL)
     {
-        *wrapPos = '\0';
-        DJ_LOG_INFO("Found daemon binary (alt) [%s] for daemon [%s]", command2, pszDaemonPath);
-    }
+        LW_CLEANUP_CTERR(exc, CTAllocateString(strrchr(pszDaemonPath, '.') + 1, &pszServiceName));
 
-    DJ_LOG_INFO("Checking status of daemon [%s]", pszDaemonPath);
-
-    LW_CLEANUP_CTERR(exc, CTAllocateMemory(sizeof(PSTR)*nArgs, (PVOID*)&ppszArgs));
-
-    LW_CLEANUP_CTERR(exc, CTAllocateString("/bin/ps", ppszArgs + argNum++));
-
-    LW_CLEANUP_CTERR(exc, CTAllocateString("-U", ppszArgs + argNum++));
-
-    LW_CLEANUP_CTERR(exc, CTAllocateString("root", ppszArgs + argNum++));
-
-    LW_CLEANUP_CTERR(exc, CTAllocateString("-o", ppszArgs + argNum++));
-
-    LW_CLEANUP_CTERR(exc, CTAllocateString("command=", ppszArgs + argNum++));
-
-    LW_CLEANUP_CTERR(exc, DJSpawnProcess(ppszArgs[0], ppszArgs, &pProcInfo));
-
-    LW_CLEANUP_CTERR(exc, DJGetProcessStatus(pProcInfo, &status));
-
-    *pbStarted = FALSE;
-    if (!status) {
-
-        fp = fdopen(pProcInfo->fdout, "r");
-        if (!fp) {
-            LW_CLEANUP_CTERR(exc, CTMapSystemError(errno));
+        if (pszServiceName[strlen(pszServiceName) - 1] == 'd')
+        {
+            pszServiceName[strlen(pszServiceName) - 1] = '\0';
         }
 
-        while (1) {
+        LW_CLEANUP_CTERR(exc, DJGetServiceStatus(pszServiceName, pbStarted));
+    }
+    else
+    {
+        DJ_LOG_INFO("Checking status of daemon [%s]", pszDaemonPath);
 
-            if (fgets(szBuf, 1024, fp) == NULL) {
-                if (!feof(fp)) {
-                    LW_CLEANUP_CTERR(exc, CTMapSystemError(errno));
+        LW_CLEANUP_CTERR(exc, CTAllocateMemory(sizeof(PSTR)*nArgs, (PVOID*)&ppszArgs));
+
+        LW_CLEANUP_CTERR(exc, CTAllocateString("/bin/ps", ppszArgs + argNum++));
+
+        LW_CLEANUP_CTERR(exc, CTAllocateString("-U", ppszArgs + argNum++));
+
+        LW_CLEANUP_CTERR(exc, CTAllocateString("root", ppszArgs + argNum++));
+
+        LW_CLEANUP_CTERR(exc, CTAllocateString("-o", ppszArgs + argNum++));
+
+        LW_CLEANUP_CTERR(exc, CTAllocateString("command=", ppszArgs + argNum++));
+
+        LW_CLEANUP_CTERR(exc, DJSpawnProcess(ppszArgs[0], ppszArgs, &pProcInfo));
+
+        LW_CLEANUP_CTERR(exc, DJGetProcessStatus(pProcInfo, &status));
+
+        *pbStarted = FALSE;
+        if (!status) {
+
+            fp = fdopen(pProcInfo->fdout, "r");
+            if (!fp) {
+                LW_CLEANUP_CTERR(exc, CTMapSystemError(errno));
+            }
+
+            while (1) {
+
+                if (fgets(szBuf, 1024, fp) == NULL) {
+                    if (!feof(fp)) {
+                        LW_CLEANUP_CTERR(exc, CTMapSystemError(errno));
+                    }
+                    else
+                        break;
                 }
-                else
+
+                CTStripWhitespace(szBuf);
+
+                if (IsNullOrEmptyString(szBuf))
+                    continue;
+
+                whitePos = strchr(szBuf, ' ');
+                if(whitePos != NULL)
+                    *whitePos = '\0';
+
+                if (!strcmp(szBuf, command)) {
+                    *pbStarted = TRUE;
                     break;
-            }
-
-            CTStripWhitespace(szBuf);
-
-            if (IsNullOrEmptyString(szBuf))
-                continue;
-
-            whitePos = strchr(szBuf, ' ');
-            if(whitePos != NULL)
-                *whitePos = '\0';
-
-            if (!strcmp(szBuf, command)) {
-                *pbStarted = TRUE;
-                break;
-            }
-
-            if (!strcmp(szBuf, command2)) {
-                *pbStarted = TRUE;
-                break;
+                }
             }
         }
     }
@@ -351,7 +396,7 @@ cleanup:
 
     CT_SAFE_FREE_STRING(configFile);
     CT_SAFE_FREE_STRING(command);
-    CT_SAFE_FREE_STRING(command2);
+    CT_SAFE_FREE_STRING(pszServiceName);
 }
 
 void
@@ -728,6 +773,8 @@ DJManageDaemon(
         pszDaemonPath = "com.likewisesoftware.reapsysld";
     else if (!strcmp(pszName, "lwregd"))
         pszDaemonPath = "com.likewisesoftware.lwregd";
+    else if (!strcmp(pszName, "lwsmd"))
+        pszDaemonPath = "com.likewisesoftware.lwsmd";
     else
         pszDaemonPath = pszName;
 

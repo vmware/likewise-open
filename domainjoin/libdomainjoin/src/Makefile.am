@@ -39,6 +39,7 @@ libdomainjoin_la_LIBADD = \
 	$(ADDITIONAL_LIBS) \
 	$(LSASS_LDFLAGS) \
 	$(LSASS_LIBS) \
+        -llwsm \
         @LIB_XNET@
 
 libdomainjoin_la_SOURCES = \
