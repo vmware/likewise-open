@@ -1376,6 +1376,13 @@ typedef struct _TRANS2_FILE_ALL_INFORMATION {
 } __attribute__((__packed__)) TRANS2_FILE_ALL_INFORMATION,
                              *PTRANS2_FILE_ALL_INFORMATION;
 
+typedef struct _TRANS2_FILE_NAME_INFORMATION
+{
+    ULONG     ulFileNameLength;
+    WCHAR     FileName[];
+} __attribute__((__packed__)) TRANS2_FILE_NAME_INFORMATION,
+                             *PTRANS2_FILE_NAME_INFORMATION;
+
 typedef struct {
     LONG64 EndOfFile;
 } __attribute__((__packed__)) TRANS2_FILE_END_OF_FILE_INFORMATION,
