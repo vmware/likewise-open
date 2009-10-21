@@ -103,6 +103,8 @@ PvfsSetFileDispositionInfo(
     PPVFS_CCB pCcb = NULL;
     PFILE_DISPOSITION_INFORMATION pFileInfo = NULL;
     IRP_ARGS_QUERY_SET_INFORMATION Args = pIrpContext->pIrp->Args.QuerySetInformation;
+    IO_MATCH_FILE_SPEC FileSpec = {0};
+    WCHAR wszPattern[2] = {L'*', 0x0 };
 
     /* Sanity checks */
 
@@ -129,7 +131,18 @@ PvfsSetFileDispositionInfo(
 
     if (pFileInfo->DeleteFile == TRUE)
     {
-        /* Set */
+        if (PVFS_IS_DIR(pCcb))
+        {
+            LwRtlUnicodeStringInit(&FileSpec.Pattern, wszPattern);
+
+            ntError = PvfsEnumerateDirectory(pCcb, &FileSpec, 1);
+            if (ntError == STATUS_SUCCESS)
+            {
+                ntError = STATUS_DIRECTORY_NOT_EMPTY;
+                BAIL_ON_NT_STATUS(ntError);
+            }
+        }
+
         pCcb->pFcb->bDeleteOnClose = TRUE;
     }
     else

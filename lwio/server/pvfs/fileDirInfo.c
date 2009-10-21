@@ -281,7 +281,10 @@ PvfsQueryFileDirInfo(
 
     LWIO_LOCK_MUTEX(bLocked, &pCcb->FileMutex);
     if (!pCcb->pDirContext->bScanned) {
-        ntError = PvfsEnumerateDirectory(pCcb, &pIrp->Args.QueryDirectory);
+        ntError = PvfsEnumerateDirectory(
+                      pCcb,
+                      pIrp->Args.QueryDirectory.FileSpec,
+                      -1);
     }
     LWIO_UNLOCK_MUTEX(bLocked, &pCcb->FileMutex);
 

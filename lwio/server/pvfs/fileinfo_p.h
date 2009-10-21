@@ -176,7 +176,8 @@ PvfsFileFsSizeInfo(
 NTSTATUS
 PvfsEnumerateDirectory(
     PPVFS_CCB pCcb,
-    PIRP_ARGS_QUERY_DIRECTORY pQueryDirArgs
+    PIO_MATCH_FILE_SPEC pFileSpec,
+    LONG Count
     );
 
 VOID
