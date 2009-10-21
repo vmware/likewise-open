@@ -512,12 +512,15 @@ RegShellProcessCmd(
             case REGSHELL_CMD_LIST:
             case REGSHELL_CMD_DIRECTORY:
                 pszErrorPrefix = "list: failed ";
-                printf("\n[%s%s%s]\n",
-                    pParseState->pszDefaultRootKeyName ?
-                        pParseState->pszDefaultRootKeyName : "",
-                    pParseState->pszDefaultKey ? "\\" : "",
-                    pParseState->pszDefaultKey ?
-                        pParseState->pszDefaultKey : "\\");
+                if (pParseState->pszDefaultRootKeyName)
+                {
+                    printf("\n[%s%s%s]\n",
+                        pParseState->pszDefaultRootKeyName ?
+                            pParseState->pszDefaultRootKeyName : "",
+                        pParseState->pszDefaultKey ? "\\" : "",
+                        pParseState->pszDefaultKey ?
+                            pParseState->pszDefaultKey : "\\");
+                }
 
                 if (pParseState->pszDefaultRootKeyName ||
                     pParseState->pszFullRootKeyName)
@@ -1281,12 +1284,17 @@ pfnRegShellCompleteCallback(
                 if (pszPtr)
                 {
                     pszPtr++;
+
                 }
+                else
+                {
+                    pszPtr = pszSubKey;
+                }
+
                 if (el_insertstr(el, pszPtr) == -1)
                 {
                     printf("Oops: 2 el_insertstr failed\n");
                 }
-
                 /* No string to append */
                 if (el_insertstr(el, "\\") == -1)
                 {
