@@ -78,7 +78,8 @@ static const StatusInfo status_info[] =
     STATUS_INFO(LWMSG_STATUS_UNSUPPORTED, "Unsupported operation"),
     STATUS_INFO(LWMSG_STATUS_INVALID_HANDLE, "Invalid handle"),
     STATUS_INFO(LWMSG_STATUS_BUSY, "Conflicting operation already in progress"),
-    STATUS_INFO(LWMSG_STATUS_PENDING, "Operating is pending")
+    STATUS_INFO(LWMSG_STATUS_PENDING, "Operating is pending"),
+    STATUS_INFO(LWMSG_STATUS_RESOURCE_LIMIT, "System resource limit reached")
 };
 
 LWMsgStatus
@@ -88,6 +89,15 @@ lwmsg_error_map_errno(
 {
     switch (err)
     {
+    case 0:
+        return LWMSG_STATUS_SUCCESS;
+    case EINVAL:
+        return LWMSG_STATUS_INVALID_PARAMETER;
+    case EMFILE:
+    case ENFILE:
+    case ENOBUFS:
+    case ENOMEM:
+        return LWMSG_STATUS_RESOURCE_LIMIT;
     case ENOENT:
         return LWMSG_STATUS_FILE_NOT_FOUND;
     default:

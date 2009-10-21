@@ -251,6 +251,9 @@ PvfsCreateDirDoSysOpen(
     int unixFlags = 0;
     PIO_CREATE_SECURITY_CONTEXT pSecCtx = Args.SecurityContext;
     FILE_CREATE_RESULT CreateResult = 0;
+    IO_MATCH_FILE_SPEC FileSpec = {0};
+    WCHAR wszPattern[2] = {L'*', 0x0 };
+
 
     /* Do the open() */
 
@@ -327,6 +330,15 @@ PvfsCreateDirDoSysOpen(
 
     if (Args.CreateOptions & FILE_DELETE_ON_CLOSE)
     {
+        LwRtlUnicodeStringInit(&FileSpec.Pattern, wszPattern);
+
+        ntError = PvfsEnumerateDirectory(pCreateContext->pCcb, &FileSpec, 1);
+        if (ntError == STATUS_SUCCESS)
+        {
+            ntError = STATUS_DIRECTORY_NOT_EMPTY;
+            BAIL_ON_NT_STATUS(ntError);
+        }
+
         pCreateContext->pCcb->pFcb->bDeleteOnClose = TRUE;
     }
 

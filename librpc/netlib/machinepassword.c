@@ -95,8 +95,9 @@ SaveMachinePassword(
     wchar16_t *account = NULL;
     wchar16_t *dom_name = NULL;
     wchar16_t *ad_dns_dom_name_lc = NULL;
-    wchar16_t *dns_dom_name_uc = NULL;
-    wchar16_t *dns_dom_name_lc = NULL;
+    wchar16_t *ad_dns_dom_name_uc = NULL;
+    wchar16_t *mach_dns_dom_name_uc = NULL;
+    wchar16_t *mach_dns_dom_name_lc = NULL;
     wchar16_t *sid = NULL;
     wchar16_t *hostname_uc = NULL;
     wchar16_t *hostname_lc = NULL;
@@ -126,15 +127,20 @@ SaveMachinePassword(
 
     wc16slower(ad_dns_dom_name_lc);
 
-    dns_dom_name_uc = wc16sdup(mach_dns_domain);
-    BAIL_ON_NO_MEMORY(dns_dom_name_uc);
+    ad_dns_dom_name_uc = wc16sdup(dns_domain_name);
+    BAIL_ON_NO_MEMORY(ad_dns_dom_name_uc);
 
-    wc16supper(dns_dom_name_uc);
+    wc16supper(ad_dns_dom_name_uc);
 
-    dns_dom_name_lc = wc16sdup(mach_dns_domain);
-    BAIL_ON_NO_MEMORY(dns_dom_name_lc);
+    mach_dns_dom_name_uc = wc16sdup(mach_dns_domain);
+    BAIL_ON_NO_MEMORY(mach_dns_dom_name_uc);
 
-    wc16slower(dns_dom_name_lc);
+    wc16supper(mach_dns_dom_name_uc);
+
+    mach_dns_dom_name_lc = wc16sdup(mach_dns_domain);
+    BAIL_ON_NO_MEMORY(mach_dns_dom_name_lc);
+
+    wc16slower(mach_dns_dom_name_lc);
 
     sid = wc16sdup(sid_str);
     BAIL_ON_NO_MEMORY(sid);
@@ -160,7 +166,7 @@ SaveMachinePassword(
     pi.pwszDnsDomainName   = ad_dns_dom_name_lc;
     pi.pwszSID             = sid;
     pi.pwszHostname        = hostname_uc;
-    pi.pwszHostDnsDomain   = dns_dom_name_lc;
+    pi.pwszHostDnsDomain   = mach_dns_dom_name_lc;
     pi.pwszMachineAccount  = account;
     pi.pwszMachinePassword = pass;
     pi.last_change_time    = time(NULL);
@@ -181,7 +187,7 @@ SaveMachinePassword(
      * Find the current key version number for machine account
      */
 
-    ktstatus = KtKrb5FormatPrincipalW(account, dns_dom_name_uc, &principal);
+    ktstatus = KtKrb5FormatPrincipalW(account, ad_dns_dom_name_uc, &principal);
     if (ktstatus != 0) {
         err = NtStatusToWin32Error(STATUS_UNSUCCESSFUL);
         goto error;
@@ -205,7 +211,7 @@ SaveMachinePassword(
         goto error;
     }
 
-    ktstatus = KtGetSaltingPrincipalW(machine, account, mach_dns_domain, dns_dom_name_uc,
+    ktstatus = KtGetSaltingPrincipalW(machine, account, mach_dns_domain, ad_dns_dom_name_uc,
                                       dc_name, base_dn, &salt);
     if (ktstatus != 0) {
         err = NtStatusToWin32Error(STATUS_UNSUCCESSFUL);
@@ -220,7 +226,7 @@ SaveMachinePassword(
      */
 
     /* MACHINE$@DOMAIN.NET */
-    err = SavePrincipalKey(account, pass, pass_len, dns_dom_name_uc, salt, dc_name, kvno);
+    err = SavePrincipalKey(account, pass, pass_len, ad_dns_dom_name_uc, salt, dc_name, kvno);
     BAIL_ON_WINERR_ERROR(err);
 
     /* host/MACHINE@DOMAIN.NET */
@@ -232,13 +238,13 @@ SaveMachinePassword(
         BAIL_ON_WINERR_ERROR(err);
     }
 
-    err = SavePrincipalKey(host_machine_uc, pass, pass_len, dns_dom_name_uc, salt,
+    err = SavePrincipalKey(host_machine_uc, pass, pass_len, ad_dns_dom_name_uc, salt,
                            dc_name, kvno);
     BAIL_ON_WINERR_ERROR(err);
 
     /* host/machine.domain.net@DOMAIN.NET */
     host_machine_fqdn_size = wc16slen(hostname_lc) +
-                             wc16slen(dns_dom_name_lc) +
+                             wc16slen(mach_dns_dom_name_lc) +
                              8;
     host_machine_fqdn = (wchar16_t*) malloc(sizeof(wchar16_t) *
                                             host_machine_fqdn_size);
@@ -249,13 +255,13 @@ SaveMachinePassword(
                 host_machine_fqdn_size,
                 L"host/%ws.%ws",
                 hostname_lc,
-                dns_dom_name_lc) < 0)
+                mach_dns_dom_name_lc) < 0)
     {
         err = ErrnoToWin32Error(errno);
         BAIL_ON_WINERR_ERROR(err);
     }
 
-    err = SavePrincipalKey(host_machine_fqdn, pass, pass_len, dns_dom_name_uc, salt,
+    err = SavePrincipalKey(host_machine_fqdn, pass, pass_len, ad_dns_dom_name_uc, salt,
                            dc_name, kvno);
     BAIL_ON_WINERR_ERROR(err);
 
@@ -264,13 +270,13 @@ SaveMachinePassword(
                 host_machine_fqdn_size,
                 L"host/%ws.%ws",
                 hostname_uc,
-                dns_dom_name_uc) < 0)
+                mach_dns_dom_name_uc) < 0)
     {
         err = ErrnoToWin32Error(errno);
         BAIL_ON_WINERR_ERROR(err);
     }
 
-    err = SavePrincipalKey(host_machine_fqdn, pass, pass_len, dns_dom_name_uc, salt,
+    err = SavePrincipalKey(host_machine_fqdn, pass, pass_len, ad_dns_dom_name_uc, salt,
                            dc_name, kvno);
     BAIL_ON_WINERR_ERROR(err);
 
@@ -279,13 +285,13 @@ SaveMachinePassword(
                 host_machine_fqdn_size,
                 L"host/%ws.%ws",
                 hostname_uc,
-                dns_dom_name_lc) < 0)
+                mach_dns_dom_name_lc) < 0)
     {
         err = ErrnoToWin32Error(errno);
         BAIL_ON_WINERR_ERROR(err);
     }
 
-    err = SavePrincipalKey(host_machine_fqdn, pass, pass_len, dns_dom_name_uc, salt,
+    err = SavePrincipalKey(host_machine_fqdn, pass, pass_len, ad_dns_dom_name_uc, salt,
                            dc_name, kvno);
     BAIL_ON_WINERR_ERROR(err);
 
@@ -294,13 +300,13 @@ SaveMachinePassword(
                 host_machine_fqdn_size,
                 L"host/%ws.%ws",
                 hostname_lc,
-                dns_dom_name_uc) < 0)
+                mach_dns_dom_name_uc) < 0)
     {
         err = ErrnoToWin32Error(errno);
         BAIL_ON_WINERR_ERROR(err);
     }
 
-    err = SavePrincipalKey(host_machine_fqdn, pass, pass_len, dns_dom_name_uc, salt,
+    err = SavePrincipalKey(host_machine_fqdn, pass, pass_len, ad_dns_dom_name_uc, salt,
                            dc_name, kvno);
     BAIL_ON_WINERR_ERROR(err);
 
@@ -312,13 +318,13 @@ SaveMachinePassword(
         BAIL_ON_WINERR_ERROR(err);
     }
 
-    err = SavePrincipalKey(host_machine_lc, pass, pass_len, dns_dom_name_uc, salt,
+    err = SavePrincipalKey(host_machine_lc, pass, pass_len, ad_dns_dom_name_uc, salt,
                            dc_name, kvno);
     BAIL_ON_WINERR_ERROR(err);
 
     /* cifs/machine.domain.net@DOMAIN.NET */
     cifs_machine_fqdn_size = wc16slen(hostname_lc) +
-                             wc16slen(dns_dom_name_lc) +
+                             wc16slen(mach_dns_dom_name_lc) +
                              8;
     cifs_machine_fqdn = (wchar16_t*) malloc(sizeof(wchar16_t) *
                                             cifs_machine_fqdn_size);
@@ -329,13 +335,13 @@ SaveMachinePassword(
                 cifs_machine_fqdn_size,
                 L"cifs/%ws.%ws",
                 hostname_lc,
-                dns_dom_name_lc) < 0)
+                mach_dns_dom_name_lc) < 0)
     {
         err = ErrnoToWin32Error(errno);
         BAIL_ON_WINERR_ERROR(err);
     }
 
-    err = SavePrincipalKey(cifs_machine_fqdn, pass, pass_len, dns_dom_name_uc, salt,
+    err = SavePrincipalKey(cifs_machine_fqdn, pass, pass_len, ad_dns_dom_name_uc, salt,
                            dc_name, kvno);
     BAIL_ON_WINERR_ERROR(err);
 
@@ -344,13 +350,13 @@ SaveMachinePassword(
                 cifs_machine_fqdn_size,
                 L"cifs/%ws.%ws",
                 hostname_uc,
-                dns_dom_name_uc) < 0)
+                mach_dns_dom_name_uc) < 0)
     {
         err = ErrnoToWin32Error(errno);
         BAIL_ON_WINERR_ERROR(err);
     }
 
-    err = SavePrincipalKey(cifs_machine_fqdn, pass, pass_len, dns_dom_name_uc, salt,
+    err = SavePrincipalKey(cifs_machine_fqdn, pass, pass_len, ad_dns_dom_name_uc, salt,
                            dc_name, kvno);
     BAIL_ON_WINERR_ERROR(err);
 
@@ -359,13 +365,13 @@ SaveMachinePassword(
                 cifs_machine_fqdn_size,
                 L"cifs/%ws.%ws",
                 hostname_uc,
-                dns_dom_name_lc) < 0)
+                mach_dns_dom_name_lc) < 0)
     {
         err = ErrnoToWin32Error(errno);
         BAIL_ON_WINERR_ERROR(err);
     }
 
-    err = SavePrincipalKey(cifs_machine_fqdn, pass, pass_len, dns_dom_name_uc, salt,
+    err = SavePrincipalKey(cifs_machine_fqdn, pass, pass_len, ad_dns_dom_name_uc, salt,
                                dc_name, kvno);
     BAIL_ON_WINERR_ERROR(err);
 
@@ -374,13 +380,13 @@ SaveMachinePassword(
                 cifs_machine_fqdn_size,
                 L"cifs/%ws.%ws",
                 hostname_lc,
-                dns_dom_name_uc) < 0)
+                mach_dns_dom_name_uc) < 0)
     {
         err = ErrnoToWin32Error(errno);
         BAIL_ON_WINERR_ERROR(err);
     }
 
-    err = SavePrincipalKey(cifs_machine_fqdn, pass, pass_len, dns_dom_name_uc, salt,
+    err = SavePrincipalKey(cifs_machine_fqdn, pass, pass_len, mach_dns_dom_name_uc, salt,
                                dc_name, kvno);
     BAIL_ON_WINERR_ERROR(err);
 
@@ -390,8 +396,9 @@ cleanup:
 
     SAFE_FREE(dom_name);
     SAFE_FREE(ad_dns_dom_name_lc);
-    SAFE_FREE(dns_dom_name_lc);
-    SAFE_FREE(dns_dom_name_uc);
+    SAFE_FREE(ad_dns_dom_name_uc);
+    SAFE_FREE(mach_dns_dom_name_lc);
+    SAFE_FREE(mach_dns_dom_name_uc);
     SAFE_FREE(sid);
     SAFE_FREE(hostname_lc);
     SAFE_FREE(hostname_uc);

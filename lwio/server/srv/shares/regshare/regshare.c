@@ -41,7 +41,7 @@
  *
  *        Server sub-system
  *
- *        Server share database interface
+ *        Server share registry interface
  *
  * Authors: Sriram Nambakam (snambakam@likewisesoftware.com)
  *
@@ -69,6 +69,123 @@ SrvShareFreeStringArray(
     }
 }
 
+static
+NTSTATUS
+SrvShareRegWriteToShareInfo(
+    IN REG_DATA_TYPE regDataType,
+    IN PSTR pszValueName,
+    IN PBYTE pData,
+    IN ULONG ulDataLen,
+    IN REG_DATA_TYPE regSecDataType,
+    IN PBYTE pSecData,
+    IN ULONG ulSecDataLen,
+    OUT PSRV_SHARE_INFO* ppShareInfo
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PSRV_SHARE_INFO pShareInfo = NULL;
+    PSTR* ppszOutMultiSz = NULL;
+    ULONG ulMultiIndex = 0;
+
+    ntStatus = SrvAllocateMemory(
+                    sizeof(*pShareInfo),
+                    (PVOID*)&pShareInfo);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pShareInfo->refcount = 1;
+
+    pthread_rwlock_init(&pShareInfo->mutex, NULL);
+    pShareInfo->pMutex = &pShareInfo->mutex;
+
+    ntStatus = SrvMbsToWc16s(pszValueName,
+                             &pShareInfo->pwszName);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = RegByteArrayToMultiStrsA(pData,
+                                        ulDataLen,
+                                        &ppszOutMultiSz);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    for (ulMultiIndex=0; ppszOutMultiSz[ulMultiIndex]; ulMultiIndex++)
+    {
+        PSTR pszPtr = NULL;
+
+        switch(ulMultiIndex)
+        {
+            case 0:
+                pszPtr = strstr(ppszOutMultiSz[ulMultiIndex], "Path=");
+                if (pszPtr)
+                {
+                    ntStatus = SrvMbsToWc16s(
+                                   (PCSTR)pszPtr+strlen("Path="),
+                                   &pShareInfo->pwszPath);
+                    BAIL_ON_NT_STATUS(ntStatus);
+                }
+                else
+                {
+                    ntStatus = STATUS_INVALID_PARAMETER_3;
+                    BAIL_ON_NT_STATUS(ntStatus);
+                }
+
+                break;
+
+            case 1:
+                pszPtr = strstr(ppszOutMultiSz[ulMultiIndex], "Comment=");
+                if (pszPtr)
+                {
+                    ntStatus = SrvMbsToWc16s(
+                                   (PCSTR)pszPtr+strlen("Comment="),
+                                   &pShareInfo->pwszComment);
+                    BAIL_ON_NT_STATUS(ntStatus);
+                }
+
+                break;
+
+            case 2:
+                pszPtr = strstr(ppszOutMultiSz[ulMultiIndex], "Service=");
+                if (pszPtr)
+                {
+                    ntStatus = SrvShareMapServiceStringToId(
+                                                     (PCSTR)pszPtr+strlen("Service="),
+                                                     &pShareInfo->service);
+                    BAIL_ON_NT_STATUS(ntStatus);
+                }
+
+                break;
+
+            default:
+                ntStatus = STATUS_INVALID_PARAMETER_3;
+                BAIL_ON_NT_STATUS(ntStatus);
+        }
+    }
+
+    if (ulSecDataLen)
+    {
+        ntStatus = SrvAllocateMemory(
+                       ulSecDataLen,
+                       (PVOID*)&pShareInfo->pSecDesc);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        memcpy(pShareInfo->pSecDesc, pSecData, ulSecDataLen);
+        pShareInfo->ulSecDescLen = ulSecDataLen;
+    }
+
+    *ppShareInfo = pShareInfo;
+
+cleanup:
+    RegMultiStrsFree(ppszOutMultiSz);
+
+    return ntStatus;
+
+error:
+    if (pShareInfo)
+    {
+        SrvShareReleaseInfo(pShareInfo);
+    }
+
+    goto cleanup;
+}
+
 NTSTATUS
 SrvShareRegInit(
     VOID
@@ -92,7 +209,110 @@ SrvShareRegFindByName(
     PSRV_SHARE_INFO* ppShareInfo
     )
 {
-    return STATUS_NOT_IMPLEMENTED;
+    NTSTATUS ntStatus = 0;
+    PSTR pszShareName = NULL;
+    HKEY hRootKey = NULL;
+    HKEY hKey = NULL;
+    HKEY hSecKey = NULL;
+    REG_DATA_TYPE dataType = REG_UNKNOWN;
+    ULONG ulValueLen = MAX_VALUE_LENGTH;
+    BYTE pData[MAX_VALUE_LENGTH] = {0};
+    REG_DATA_TYPE dataSecType = REG_UNKNOWN;
+    ULONG ulSecValueLen = MAX_VALUE_LENGTH;
+    BYTE pSecData[MAX_VALUE_LENGTH] = {0};
+    PSRV_SHARE_INFO pShareInfo = NULL;
+
+    ntStatus = RegOpenKeyExA(
+            hRepository,
+            NULL,
+            LIKEWISE_ROOT_KEY,
+            0,
+            0,
+            &hRootKey);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    // Open key "Services\\lwio\\Parameters\\Drivers\\srv\\shares"
+    ntStatus = RegOpenKeyExA(
+            hRepository,
+            hRootKey,
+            pszSharePath,
+            0,
+            0,
+            &hKey);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    // "Services\\lwio\\Parameters\\Drivers\\srv\\shares\\security"
+    ntStatus = RegOpenKeyExA(
+                hRepository,
+                hRootKey,
+                pszShareSecPath,
+                0,
+                0,
+                &hSecKey);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvWc16sToMbs(pwszShareName, &pszShareName);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = RegGetValueA(
+            hRepository,
+            hKey,
+            NULL,
+            pszShareName,
+            RRF_RT_REG_MULTI_SZ,
+            &dataType,
+            pData,
+            &ulValueLen);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = RegGetValueA(
+            hRepository,
+            hSecKey,
+            NULL,
+            pszShareName,
+            RRF_RT_REG_BINARY,
+            &dataSecType,
+            pSecData,
+            &ulSecValueLen);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvShareRegWriteToShareInfo(
+                  dataType,
+                  pszShareName,
+                  pData,
+                  ulValueLen,
+                  dataSecType,
+                  pSecData,
+                  ulSecValueLen,
+                  &pShareInfo);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *ppShareInfo = pShareInfo;
+
+cleanup:
+    if (hRootKey)
+    {
+        RegCloseKey(hRepository, hRootKey);
+    }
+    if (hKey)
+    {
+        RegCloseKey(hRepository, hKey);
+    }
+    if (hSecKey)
+    {
+        RegCloseKey(hRepository, hSecKey);
+    }
+    SRV_SAFE_FREE_MEMORY(pszShareName);
+
+    return ntStatus;
+
+error:
+    if (pShareInfo)
+    {
+        SrvShareReleaseInfo(pShareInfo);
+    }
+
+    goto cleanup;
 }
 
 NTSTATUS
@@ -192,7 +412,7 @@ SrvShareRegAdd(
     {
         ntStatus = SrvAllocateStringPrintf(
                      &ppszValue[ulCount++],
-                     "Services=%s",
+                     "Service=%s",
                      pszService);
         BAIL_ON_NT_STATUS(ntStatus);
     }
@@ -350,121 +570,6 @@ error:
     goto cleanup;
 }
 
-static
-NTSTATUS
-SrvShareRegWriteToShareInfo(
-    IN REG_DATA_TYPE regDataType,
-    IN PSTR pszValueName,
-    IN PBYTE pData,
-    IN ULONG ulDataLen,
-    IN REG_DATA_TYPE regSecDataType,
-    IN PBYTE pSecData,
-    IN ULONG ulSecDataLen,
-    OUT PSRV_SHARE_INFO* ppShareInfo
-    )
-{
-    NTSTATUS ntStatus = 0;
-    PSRV_SHARE_INFO pShareInfo = NULL;
-    PSTR* ppszOutMultiSz = NULL;
-    ULONG ulMultiIndex = 0;
-
-    ntStatus = SrvAllocateMemory(
-                    sizeof(*pShareInfo),
-                    (PVOID*)&pShareInfo);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pShareInfo->refcount = 1;
-
-    pthread_rwlock_init(&pShareInfo->mutex, NULL);
-    pShareInfo->pMutex = &pShareInfo->mutex;
-
-    ntStatus = SrvMbsToWc16s(pszValueName,
-                             &pShareInfo->pwszName);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = RegByteArrayToMultiStrsA(pData,
-                                        ulDataLen,
-                                        &ppszOutMultiSz);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    for (ulMultiIndex=0; ppszOutMultiSz[ulMultiIndex]; ulMultiIndex++)
-    {
-        PSTR pszPtr = NULL;
-
-        switch(ulMultiIndex)
-        {
-            case 0:
-                pszPtr = strstr(ppszOutMultiSz[ulMultiIndex], "Path=");
-                if (pszPtr)
-                {
-                    ntStatus = SrvMbsToWc16s(
-                                   (PCSTR)pszPtr+1,
-                                   &pShareInfo->pwszPath);
-                    BAIL_ON_NT_STATUS(ntStatus);
-                }
-                else
-                {
-                    ntStatus = STATUS_INVALID_PARAMETER_3;
-                    BAIL_ON_NT_STATUS(ntStatus);
-                }
-
-                break;
-
-            case 1:
-                pszPtr = strstr(ppszOutMultiSz[ulMultiIndex], "Comment=");
-                if (pszPtr)
-                {
-                    ntStatus = SrvMbsToWc16s(
-                                   (PCSTR)pszPtr+1,
-                                   &pShareInfo->pwszComment);
-                    BAIL_ON_NT_STATUS(ntStatus);
-                }
-
-                break;
-
-            case 2:
-                pszPtr = strstr(ppszOutMultiSz[ulMultiIndex], "Services=");
-
-                ntStatus = SrvShareMapServiceStringToId(
-                                (PCSTR)pszPtr+1,
-                                &pShareInfo->service);
-                BAIL_ON_NT_STATUS(ntStatus);
-
-                break;
-
-            default:
-                ntStatus = STATUS_INVALID_PARAMETER_3;
-                BAIL_ON_NT_STATUS(ntStatus);
-        }
-    }
-
-    if (ulSecDataLen)
-    {
-        ntStatus = SrvAllocateMemory(
-                       ulSecDataLen,
-                       (PVOID*)&pShareInfo->pSecDesc);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        memcpy(pShareInfo->pSecDesc, pSecData, ulSecDataLen);
-        pShareInfo->ulSecDescLen = ulSecDataLen;
-    }
-
-    *ppShareInfo = pShareInfo;
-
-cleanup:
-    RegMultiStrsFree(ppszOutMultiSz);
-
-    return ntStatus;
-
-error:
-    if (pShareInfo)
-    {
-        SrvShareReleaseInfo(pShareInfo);
-    }
-
-    goto cleanup;
-}
-
 NTSTATUS
 SrvShareRegEnum(
     HANDLE            hRepository,
@@ -526,19 +631,26 @@ SrvShareRegEnum(
 
     for (ulIndex = 0; ulIndex < pResume->ulMaxIndex; ulIndex++)
     {
-        ulMaxValueNameLen = (pResume->ulMaxValueNameLen + 1) * sizeof(*pszValueName);
+        ulMaxValueNameLen = (pResume->ulMaxValueNameLen + 1) *
+                            sizeof(*pszValueName);
         ulMaxValueLen = pResume->ulMaxValueLen;
         ulMaxSecValueLen = MAX_VALUE_LENGTH;
 
-        ntStatus = SrvAllocateMemory(
+        if (ulMaxValueNameLen)
+        {
+            ntStatus = SrvAllocateMemory(
                       ulMaxValueNameLen,
                       (PVOID) &pszValueName);
-        BAIL_ON_NT_STATUS(ntStatus);
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
 
-        ntStatus = SrvAllocateMemory(
+        if (ulMaxValueLen)
+        {
+            ntStatus = SrvAllocateMemory(
                       ulMaxValueLen,
                       (PVOID) &pData);
-        BAIL_ON_NT_STATUS(ntStatus);
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
 
         ntStatus = RegEnumValueA(
                       hRepository,

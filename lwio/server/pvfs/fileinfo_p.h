@@ -107,6 +107,12 @@ PvfsFileAllInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     );
 
+NTSTATUS
+PvfsFileNameInfo(
+    PVFS_INFO_TYPE Type,
+    PPVFS_IRP_CONTEXT pIrpContext
+    );
+
 
 /* QueryDirectoryInformation */
 
@@ -117,7 +123,19 @@ PvfsFileFullDirInfo(
     );
 
 NTSTATUS
+PvfsFileIdFullDirInfo(
+    PVFS_INFO_TYPE Type,
+    PPVFS_IRP_CONTEXT pIrpContext
+    );
+
+NTSTATUS
 PvfsFileBothDirInfo(
+    PVFS_INFO_TYPE Type,
+    PPVFS_IRP_CONTEXT pIrpContext
+    );
+
+NTSTATUS
+PvfsFileIdBothDirInfo(
     PVFS_INFO_TYPE Type,
     PPVFS_IRP_CONTEXT pIrpContext
     );
@@ -164,7 +182,8 @@ PvfsFileFsSizeInfo(
 NTSTATUS
 PvfsEnumerateDirectory(
     PPVFS_CCB pCcb,
-    PIRP_ARGS_QUERY_DIRECTORY pQueryDirArgs
+    PIO_MATCH_FILE_SPEC pFileSpec,
+    LONG Count
     );
 
 VOID

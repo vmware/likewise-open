@@ -52,41 +52,6 @@
 #include "stdafx.h"
 
 
-
-DWORD
-LSA_INITIALIZE_PROVIDER(ad)(
-    PSTR* ppszProviderName,
-    PLSA_PROVIDER_FUNCTION_TABLE* ppFunctionTable
-    )
-{
-    *ppFunctionTable = &gADProviderAPITable;
-    *ppszProviderName = gpszADProviderName;
-
-cleanup:
-
-
-    return dwError;
-
-error:
-
-    *ppszProviderName = NULL;
-    *ppFunctionTable = NULL;
-
-    goto cleanup;
-}
-
-
-DWORD
-LSA_SHUTDOWN_PROVIDER(ad)(
-    PWSTR pszProviderName,
-    PLSA_PROVIDER_FUNCTION_TABLE pFnTable
-    )
-{
-    DWORD dwError = 0;
-    return dwError;
-}
-
-
 DWORD
 ADOpenHandle(
     uid_t   uid,
@@ -234,7 +199,7 @@ ADEnumUsers(
     HANDLE  hResume,
     DWORD   dwMaxNumUsers,
     PDWORD  pdwUsersFound,
-	PLSA_SECURITY_OBJECT * ppLsaSecurityObjects
+    PLSA_SECURITY_OBJECT * ppLsaSecurityObjects
     )
 {
     DWORD dwError = 0;

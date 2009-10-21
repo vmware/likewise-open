@@ -416,6 +416,40 @@ RegSetValueExW(
     DWORD cbData
     );
 
+/* registry multi-str data type conversion functions */
+DWORD
+RegMultiStrsToByteArrayW(
+    PSTR* ppszInMultiSz,
+    PBYTE *outBuf,
+    SSIZE_T *outBufLen
+    );
+
+DWORD
+RegMultiStrsToByteArrayA(
+    PSTR* ppszInMultiSz,
+    PBYTE *outBuf,
+    SSIZE_T *outBufLen
+    );
+
+DWORD
+RegByteArrayToMultiStrsW(
+    PBYTE pInBuf,
+    SSIZE_T bufLen,
+    PSTR **pppszOutMultiSz
+    );
+
+DWORD
+RegByteArrayToMultiStrsA(
+    PBYTE pInBuf,
+    SSIZE_T bufLen,
+    PSTR **pppszOutMultiSz
+    );
+
+void
+RegMultiStrsFree(
+    PCHAR *pszMultiSz
+    );
+
 #ifdef UNICODE
 #define RegEnumValue(hRegConnection, hKey, dwIndex, pValueName, pcchValueName, pReserved, pType, pData, pcbData) \
     RegEnumValueW(hRegConnection, hKey, dwIndex, pValueName, pcchValueName, pReserved, pType, pData, pcbData)
@@ -427,6 +461,10 @@ RegSetValueExW(
     RegSetValueExW(hRegConnection, hKey, pValueName, Reserved, dwType, pData, cbData)
 #define RegOpenKeyEx(hRegConnection, hKey, pSubKey, ulOptions, samDesired, phkResult) \
     RegOpenKeyExW(hRegConnection, hKey, pwszSubKey, ulOptions, samDesired, phkResult)
+#define RegMultiStrsToByteArray(ppszInMultiSz, outBuf, outBufLen) \
+    RegMultiStrsToByteArrayW(ppszInMultiSz, outBuf, outBufLen)
+#define RegByteArrayToMultiStrs(pInBuf, bufLen, pppszOutMultiSz) \
+    RegByteArrayToMultiStrsW(pInBuf, bufLen, pppszOutMultiSz)
 
 #else
 #define RegEnumValue(hRegConnection, hKey, dwIndex, pValueName, pcchValueName, pReserved, pType, pData, pcbData) \
@@ -439,6 +477,10 @@ RegSetValueExW(
     RegSetValueExA(hRegConnection, hKey, pValueName, Reserved, dwType, pData, cbData)
 #define RegOpenKeyEx(hRegConnection, hKey, pSubKey, ulOptions, samDesired, phkResult) \
     RegOpenKeyExA(hRegConnection, hKey, pszSubKey, ulOptions, samDesired, phkResult)
+#define RegMultiStrsToByteArray(ppszInMultiSz, outBuf, outBufLen) \
+    RegMultiStrsToByteArrayA(ppszInMultiSz, outBuf, outBufLen)
+#define RegByteArrayToMultiStrs(pInBuf, bufLen, pppszOutMultiSz) \
+    RegByteArrayToMultiStrsA(pInBuf, bufLen, pppszOutMultiSz)
 #endif
 
 #endif /* __REG_H__ */

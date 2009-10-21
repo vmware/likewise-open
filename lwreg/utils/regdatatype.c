@@ -49,7 +49,7 @@
 #include "includes.h"
 
 DWORD
-ConvertMultiStrsToByteArrayW(
+RegMultiStrsToByteArrayW(
     PSTR* ppszInMultiSz,
     PBYTE *outBuf,
     SSIZE_T *outBufLen
@@ -107,7 +107,7 @@ error:
 }
 
 DWORD
-ConvertMultiStrsToByteArrayA(
+RegMultiStrsToByteArrayA(
     PSTR* ppszInMultiSz,
     PBYTE *outBuf,
     SSIZE_T *outBufLen
@@ -158,7 +158,7 @@ error:
 }
 
 DWORD
-ConvertByteArrayToMultiStrsW(
+RegByteArrayToMultiStrsW(
     PBYTE pInBuf,
     SSIZE_T bufLen,
     PSTR **pppszOutMultiSz
@@ -218,12 +218,12 @@ cleanup:
     return dwError;
 
 error:
-    ConvertMultiStrsFree(ppszOutMultiSz);
+    RegMultiStrsFree(ppszOutMultiSz);
     goto cleanup;
 }
 
 DWORD
-ConvertByteArrayToMultiStrsA(
+RegByteArrayToMultiStrsA(
     PBYTE pInBuf,
     SSIZE_T bufLen,
     PSTR **pppszOutMultiSz
@@ -280,13 +280,13 @@ cleanup:
     return dwError;
 
 error:
-    ConvertMultiStrsFree(ppszOutMultiSz);
+    RegMultiStrsFree(ppszOutMultiSz);
     goto cleanup;
 }
 
 
 void
-ConvertMultiStrsFree(
+RegMultiStrsFree(
     PCHAR *pszMultiSz)
 {
     DWORD count = 0;
@@ -300,5 +300,3 @@ ConvertMultiStrsFree(
         LwFreeMemory(pszMultiSz);
     }
 }
-
-

@@ -93,15 +93,9 @@ lwmsg_client_new(
         BAIL_ON_ERROR(status = LWMSG_STATUS_MEMORY);
     }
 
-    if (pthread_mutex_init(&client->lock, NULL))
-    {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
-    }
+    BAIL_ON_ERROR(status = lwmsg_error_map_errno(pthread_mutex_init(&client->lock, NULL)));
 
-    if (pthread_cond_init(&client->event, NULL))
-    {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
-    }
+    BAIL_ON_ERROR(status = lwmsg_error_map_errno(pthread_cond_init(&client->event, NULL)));
 
     BAIL_ON_ERROR(status = lwmsg_shared_session_manager_new(&client->manager));
 

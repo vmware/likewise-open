@@ -498,6 +498,104 @@ error:
     goto cleanup;
 }
 
+typedef struct _SM_WAIT_CONTEXT
+{
+    PSM_TABLE_ENTRY pEntry;
+    LWMsgCall* pCall;
+    LWMsgParams* pOut;
+} SM_WAIT_CONTEXT, *PSM_WAIT_CONTEXT;
+
+static
+VOID
+LwSmWaitNotifyCallback(
+    LW_SERVICE_STATE state,
+    PVOID pData
+    )
+{
+    DWORD dwError = 0;
+    PSM_WAIT_CONTEXT pContext = pData;
+    PLW_SERVICE_STATE pState = NULL;
+
+    dwError = LwAllocateMemory(sizeof(*pState), OUT_PPVOID(&pState));
+
+    if (dwError == 0)
+    {
+        *pState = state;
+        pContext->pOut->data = pState;
+        pContext->pOut->tag = SM_IPC_WAIT_SERVICE_RES;
+    }
+    else
+    {
+        dwError = LwSmSetError(pContext->pOut, dwError);
+    }
+
+    lwmsg_call_complete(pContext->pCall, LwSmMapLwError(dwError));
+
+    LwFreeMemory(pContext);
+}
+
+static
+VOID
+LwSmWaitCancelCallback(
+    LWMsgCall* pCall,
+    PVOID pData
+    )
+{
+    DWORD dwError = 0;
+    PSM_WAIT_CONTEXT pContext = (PSM_WAIT_CONTEXT) pData;
+
+    dwError = LwSmTableUnregisterEntryNotify(pContext->pEntry, LwSmWaitNotifyCallback, pData);
+
+    if (dwError == LW_ERROR_SUCCESS)
+    {
+        lwmsg_call_complete(pContext->pCall, LWMSG_STATUS_CANCELLED);
+
+        LwFreeMemory(pContext);
+    }
+}
+
+static
+LWMsgStatus
+LwSmDispatchWaitService(
+    LWMsgCall* pCall,
+    LWMsgParams* pIn,
+    LWMsgParams* pOut,
+    PVOID pData
+    )
+{
+    DWORD dwError = 0;
+    PSM_IPC_WAIT_STATE_CHANGE_REQ pReq = pIn->data;
+    PSM_WAIT_CONTEXT pContext = NULL;
+
+    dwError = LwAllocateMemory(sizeof(*pContext), OUT_PPVOID(&pContext));
+    BAIL_ON_ERROR(dwError);
+
+    pContext->pEntry = pReq->hHandle->pEntry;
+    pContext->pCall = pCall;
+    pContext->pOut = pOut;
+
+    lwmsg_call_pend(pCall, LwSmWaitCancelCallback, pContext);
+
+    dwError = LwSmTableRegisterEntryNotify(
+        pContext->pEntry,
+        pReq->state,
+        LwSmWaitNotifyCallback,
+        pContext);
+    BAIL_ON_ERROR(dwError);
+
+    pContext = NULL;
+
+cleanup:
+
+    LW_SAFE_FREE_MEMORY(pContext);
+
+    return dwError ? LwSmMapLwError(dwError) : LWMSG_STATUS_PENDING;
+
+error:
+
+    goto cleanup;
+}
+
 static
 LWMsgDispatchSpec gDispatchSpec[] =
 {
@@ -509,6 +607,7 @@ LWMsgDispatchSpec gDispatchSpec[] =
     LWMSG_DISPATCH_BLOCK(SM_IPC_REFRESH_SERVICE_REQ, LwSmDispatchRefreshService),
     LWMSG_DISPATCH_BLOCK(SM_IPC_QUERY_SERVICE_STATUS_REQ, LwSmDispatchGetServiceStatus),
     LWMSG_DISPATCH_BLOCK(SM_IPC_QUERY_SERVICE_INFO_REQ, LwSmDispatchGetServiceInfo),
+    LWMSG_DISPATCH_BLOCK(SM_IPC_WAIT_SERVICE_REQ, LwSmDispatchWaitService),
     LWMSG_DISPATCH_END
 };
 

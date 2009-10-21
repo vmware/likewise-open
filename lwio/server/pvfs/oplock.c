@@ -201,7 +201,8 @@ PvfsOplockBreakAck(
 
     pFcb = pCcb->pFcb;
 
-    if (PVFS_IS_DIR(pCcb)) {
+    if (PVFS_IS_DIR(pCcb))
+    {
         ntError = STATUS_INVALID_PARAMETER;
         BAIL_ON_NT_STATUS(ntError);
     }
@@ -255,7 +256,8 @@ PvfsOplockBreakAck(
         break;
 
     case IO_OPLOCK_BREAK_ACK_NO_LEVEL_2:
-        if (pCcb->OplockBreakResult != IO_OPLOCK_BROKEN_TO_LEVEL_2) {
+        if (pCcb->OplockBreakResult != IO_OPLOCK_BROKEN_TO_LEVEL_2)
+        {
             ntError = STATUS_INVALID_OPLOCK_PROTOCOL;
             PVFS_ASSERT(pCcb->OplockBreakResult == IO_OPLOCK_BROKEN_TO_LEVEL_2);
             BAIL_ON_NT_STATUS(ntError);
@@ -668,6 +670,7 @@ PvfsOplockBreakAllLevel2Oplocks(
     PPVFS_OPLOCK_RECORD pOplock = NULL;
     PLW_LIST_LINKS pOplockLink = NULL;
     PIO_FSCTL_OPLOCK_REQUEST_OUTPUT_BUFFER pOutputBuffer = NULL;
+    BOOLEAN bCcbLocked = FALSE;
 
     if (!PvfsFileIsOplocked(pFcb))
     {
@@ -678,6 +681,8 @@ PvfsOplockBreakAllLevel2Oplocks(
 
     while (!PvfsListIsEmpty(pFcb->pOplockList))
     {
+        bCcbLocked = FALSE;
+
         /* Setup */
 
         ntError = PvfsListRemoveHead(pFcb->pOplockList, &pOplockLink);
@@ -693,7 +698,8 @@ PvfsOplockBreakAllLevel2Oplocks(
 
         /* This should never fire */
 
-        if (pOplock->OplockType != IO_OPLOCK_REQUEST_OPLOCK_LEVEL_2) {
+        if (pOplock->OplockType != IO_OPLOCK_REQUEST_OPLOCK_LEVEL_2)
+        {
             ntError = STATUS_INVALID_OPLOCK_PROTOCOL;
             BAIL_ON_NT_STATUS(ntError);
         }
@@ -705,7 +711,11 @@ PvfsOplockBreakAllLevel2Oplocks(
         pIrpCtx->pIrp->IoStatusBlock.Status = STATUS_SUCCESS;
 
         PvfsAsyncIrpComplete(pIrpCtx);
-        PvfsFreeIrpContext(&pIrpCtx);
+        PvfsFreeIrpContext(&pOplock->pIrpContext);
+
+        LWIO_LOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
+        pOplock->pCcb->OplockState = PVFS_OPLOCK_STATE_NONE;
+        LWIO_UNLOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
 
         PvfsFreeOplockRecord(&pOplock);
     }
@@ -738,7 +748,8 @@ PvfsOplockBreakOnCreate(
 
     /* Don't break our own oplock */
 
-    if (PvfsOplockIsMine(pCcb, pOplock)) {
+    if (PvfsOplockIsMine(pCcb, pOplock))
+    {
         goto cleanup;
     }
 
@@ -834,7 +845,8 @@ PvfsOplockBreakOnRead(
 
     /* Don't break our own lock */
 
-    if (PvfsOplockIsMine(pCcb, pOplock)) {
+    if (PvfsOplockIsMine(pCcb, pOplock))
+    {
         goto cleanup;
     }
 
@@ -1194,7 +1206,6 @@ PvfsOplockCleanOplockQueue(
 
         PvfsAsyncIrpComplete(pOplock->pIrpContext);
         PvfsFreeIrpContext(&pOplock->pIrpContext);
-
 
         LWIO_LOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
         pOplock->pCcb->OplockState = PVFS_OPLOCK_STATE_NONE;

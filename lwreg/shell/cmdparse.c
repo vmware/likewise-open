@@ -834,9 +834,9 @@ RegShellCmdParseValueName(
             break;
 
         case REG_MULTI_SZ:
-            ConvertMultiStrsToByteArray(pCmdItem->args,
-                                        &multiString,
-                                        &multiStringLen);
+            RegMultiStrsToByteArray(pCmdItem->args,
+                                    &multiString,
+                                    &multiStringLen);
             pCmdItem->binaryValue = (PUCHAR) multiString;
             pCmdItem->binaryValueLen = multiStringLen;
             break;
@@ -915,7 +915,7 @@ RegShellDumpCmdItem(
             break;
 
         case REG_MULTI_SZ:
-            ConvertByteArrayToMultiStrs(
+            RegByteArrayToMultiStrs(
                 rsItem->binaryValue,
                 rsItem->binaryValueLen,
                 &outMultiSz);

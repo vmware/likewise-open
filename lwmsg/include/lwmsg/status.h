@@ -178,6 +178,11 @@ typedef enum
      * @hideinitializer
      */
     LWMSG_STATUS_INTERNAL = 26,
+    /**
+     * System resource limit encountered
+     * @hideinitializer
+     */
+    LWMSG_STATUS_RESOURCE_LIMIT = 27,
 #ifndef DOXYGEN
     LWMSG_STATUS_COUNT
 #endif

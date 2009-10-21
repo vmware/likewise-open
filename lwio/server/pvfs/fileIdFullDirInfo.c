@@ -33,13 +33,13 @@
  *
  * Module Name:
  *
- *        fileNamesInfo,c
+ *        fileIdFullDirInfo,c
  *
  * Abstract:
  *
  *        Likewise Posix File System Driver (PVFS)
  *
- *        FileNamesInformation
+ *        FileIdFullDirectoryInformation
  *
  * Authors: Gerald Carter <gcarter@likewise.com>
  */
@@ -51,12 +51,12 @@
  ****************************************************************************/
 
 static NTSTATUS
-PvfsQueryFileNamesInfo(
+PvfsQueryFileIdFullDirInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     );
 
 NTSTATUS
-PvfsFileNamesInfo(
+PvfsFileIdFullDirInfo(
     PVFS_INFO_TYPE Type,
     PPVFS_IRP_CONTEXT pIrpContext
     )
@@ -70,7 +70,7 @@ PvfsFileNamesInfo(
         break;
 
     case PVFS_QUERY:
-        ntError = PvfsQueryFileNamesInfo(pIrpContext);
+        ntError = PvfsQueryFileIdFullDirInfo(pIrpContext);
         break;
 
     default:
@@ -91,7 +91,7 @@ error:
  ****************************************************************************/
 
 static NTSTATUS
-FillFileNamesInfoBuffer(
+FillFileIdFullDirInfoBuffer(
     PVOID pBuffer,
     DWORD dwBufLen,
     PSTR pszParent,
@@ -100,15 +100,15 @@ FillFileNamesInfoBuffer(
     );
 
 static NTSTATUS
-PvfsQueryFileNamesInfo(
+PvfsQueryFileIdFullDirInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PIRP pIrp = pIrpContext->pIrp;
     PPVFS_CCB pCcb = NULL;
-    PFILE_NAMES_INFORMATION pFileInfo = NULL;
-    PFILE_NAMES_INFORMATION pPrevFileInfo = NULL;
+    PFILE_ID_FULL_DIR_INFORMATION pFileInfo = NULL;
+    PFILE_ID_FULL_DIR_INFORMATION pPrevFileInfo = NULL;
     IRP_ARGS_QUERY_DIRECTORY Args = pIrpContext->pIrp->Args.QueryDirectory;
     PVOID pBuffer = NULL;
     DWORD dwBufLen = 0;
@@ -138,7 +138,7 @@ PvfsQueryFileNamesInfo(
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    pFileInfo = (PFILE_NAMES_INFORMATION)Args.FileInformation;
+    pFileInfo = (PFILE_ID_FULL_DIR_INFORMATION)Args.FileInformation;
 
     /* Scen the first time through */
 
@@ -168,6 +168,7 @@ PvfsQueryFileNamesInfo(
         BAIL_ON_NT_STATUS(ntError);
     }
 
+
     /* Fill in the buffer */
 
     pBuffer = Args.FileInformation;
@@ -181,12 +182,12 @@ PvfsQueryFileNamesInfo(
         PPVFS_DIRECTORY_ENTRY pEntry = NULL;
         DWORD dwIndex;
 
-        pFileInfo = (PFILE_NAMES_INFORMATION)(pBuffer + dwOffset);
+        pFileInfo = (PFILE_ID_FULL_DIR_INFORMATION)(pBuffer + dwOffset);
         pFileInfo->NextEntryOffset = 0;
 
         dwIndex = pCcb->pDirContext->dwIndex;
         pEntry  = &pCcb->pDirContext->pDirEntries[dwIndex];
-        ntError = FillFileNamesInfoBuffer(
+        ntError = FillFileIdFullDirInfoBuffer(
                       pFileInfo,
                       dwBufLen - dwOffset,
                       pCcb->pszFilename,
@@ -239,13 +240,12 @@ PvfsQueryFileNamesInfo(
     }
     /* Exit loop when we are out of buffer or out of entries.  The
        filling function can also break us out of the loop. */
-    while (((dwBufLen - dwOffset) > sizeof(FILE_NAMES_INFORMATION)) &&
+    while (((dwBufLen - dwOffset) > sizeof(FILE_ID_FULL_DIR_INFORMATION)) &&
              (pCcb->pDirContext->dwIndex < pCcb->pDirContext->dwNumEntries));
 
     /* Update final offset */
 
-    if (pFileInfo)
-    {
+    if (pFileInfo) {
         pFileInfo->NextEntryOffset = 0;
     }
 
@@ -253,8 +253,7 @@ PvfsQueryFileNamesInfo(
     ntError = STATUS_SUCCESS;
 
 cleanup:
-    if (pCcb)
-    {
+    if (pCcb) {
         PvfsReleaseCCB(pCcb);
     }
 
@@ -268,6 +267,13 @@ error:
 /*****************************************************************************
  ****************************************************************************/
 
+static NTSTATUS
+FillFileIdFullDirInfoStatic(
+    PFILE_ID_FULL_DIR_INFORMATION pFileInfo,
+    PWSTR pwszShortFilename,
+    PPVFS_STAT pStat
+    );
+
 /**
  * Returns:
  *   STATUS_BUFFER_TOO_SMALL (not enough space)
@@ -275,7 +281,7 @@ error:
  **/
 
 static NTSTATUS
-FillFileNamesInfoBuffer(
+FillFileIdFullDirInfoBuffer(
     PVOID pBuffer,
     DWORD dwBufLen,
     PSTR pszParent,
@@ -284,7 +290,7 @@ FillFileNamesInfoBuffer(
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PFILE_NAMES_INFORMATION pFileInfo = (PFILE_NAMES_INFORMATION)pBuffer;
+    PFILE_ID_FULL_DIR_INFORMATION pFileInfo = (PFILE_ID_FULL_DIR_INFORMATION)pBuffer;
     PWSTR pwszFilename = NULL;
     PSTR pszFullPath = NULL;
     DWORD dwNeeded = 0;
@@ -299,8 +305,6 @@ FillFileNamesInfoBuffer(
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    pFileInfo->FileIndex = 0;
-
     /* Build the absolute path and stat() it */
 
     ntError = RtlCStringAllocatePrintf(
@@ -310,9 +314,26 @@ FillFileNamesInfoBuffer(
                   pEntry->pszFilename);
     BAIL_ON_NT_STATUS(ntError);
 
+    ntError = PvfsSysStat(pszFullPath, &pEntry->Stat);
+    BAIL_ON_NT_STATUS(ntError);
+
     ntError = RtlWC16StringAllocateFromCString(
                   &pwszFilename,
                   pEntry->pszFilename);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = FillFileIdFullDirInfoStatic(
+                  pFileInfo,
+                  pwszFilename,
+                  &pEntry->Stat);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* We have more information here to fill in the
+       file attributes */
+
+    ntError = PvfsGetFilenameAttributes(
+                  pszFullPath,
+                  &pFileInfo->FileAttributes);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Save what we have used so far */
@@ -352,6 +373,51 @@ cleanup:
 error:
     goto cleanup;
 }
+
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static NTSTATUS
+FillFileIdFullDirInfoStatic(
+    PFILE_ID_FULL_DIR_INFORMATION pFileInfo,
+    PWSTR pwszShortFilename,
+    PPVFS_STAT pStat
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+
+    /* Fill in Timestamps */
+
+    ntError = PvfsUnixToWinTime(&pFileInfo->LastAccessTime, pStat->s_atime);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsUnixToWinTime(&pFileInfo->LastWriteTime, pStat->s_mtime);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsUnixToWinTime(&pFileInfo->ChangeTime, pStat->s_ctime);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsUnixToWinTime(&pFileInfo->CreationTime, pStat->s_crtime);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* File details */
+
+    pFileInfo->FileId         = pStat->s_ino;
+    pFileInfo->FileIndex      = 0;
+    pFileInfo->EaSize         = 0;
+    pFileInfo->EndOfFile      = pStat->s_size;
+    pFileInfo->AllocationSize = pStat->s_alloc;
+
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
 
 
 

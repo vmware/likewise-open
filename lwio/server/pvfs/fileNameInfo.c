@@ -33,13 +33,13 @@
  *
  * Module Name:
  *
- *        fileDispositionInfo.c
+ *        fileNameInfo.c
  *
  * Abstract:
  *
  *        Likewise Posix File System Driver (PVFS)
  *
- *        FileDispositionInformation Handler
+ *        FileNameInformation Handler
  *
  * Authors: Gerald Carter <gcarter@likewise.com>
  */
@@ -49,7 +49,7 @@
 /* Forward declarations */
 
 static NTSTATUS
-PvfsSetFileDispositionInfo(
+PvfsQueryFileNameInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     );
 
@@ -62,7 +62,7 @@ PvfsSetFileDispositionInfo(
 
 
 NTSTATUS
-PvfsFileDispositionInfo(
+PvfsFileNameInfo(
     PVFS_INFO_TYPE Type,
     PPVFS_IRP_CONTEXT pIrpContext
     )
@@ -72,11 +72,11 @@ PvfsFileDispositionInfo(
     switch(Type)
     {
     case PVFS_SET:
-        ntError = PvfsSetFileDispositionInfo(pIrpContext);
+        ntError = STATUS_NOT_SUPPORTED;
         break;
 
     case PVFS_QUERY:
-        ntError = STATUS_NOT_SUPPORTED;
+        ntError = PvfsQueryFileNameInfo(pIrpContext);
         break;
 
     default:
@@ -92,19 +92,22 @@ error:
     goto cleanup;
 }
 
-
 static NTSTATUS
-PvfsSetFileDispositionInfo(
+PvfsQueryFileNameInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PIRP pIrp = pIrpContext->pIrp;
     PPVFS_CCB pCcb = NULL;
-    PFILE_DISPOSITION_INFORMATION pFileInfo = NULL;
+    PFILE_NAME_INFORMATION pFileInfo = NULL;
     IRP_ARGS_QUERY_SET_INFORMATION Args = pIrpContext->pIrp->Args.QuerySetInformation;
-    IO_MATCH_FILE_SPEC FileSpec = {0};
-    WCHAR wszPattern[2] = {L'*', 0x0 };
+    PWSTR pwszFilename  = NULL;
+    ULONG W16FilenameLen = 0;
+    ULONG W16FilenameLenBytes = 0;
+    ULONG Needed = 0;
+    PSTR pszWinFileName = NULL;
+    PSTR pszCursor = NULL;
 
     /* Sanity checks */
 
@@ -113,11 +116,7 @@ PvfsSetFileDispositionInfo(
 
     BAIL_ON_INVALID_PTR(Args.FileInformation, ntError);
 
-    /* Should really be a check on the parent, but I'm not
-       entirely positive */
-
-    ntError = PvfsAccessCheckFileHandle(pCcb, DELETE);
-    BAIL_ON_NT_STATUS(ntError);
+    /* No access checked needed for this call */
 
     if (Args.Length < sizeof(*pFileInfo))
     {
@@ -125,36 +124,45 @@ PvfsSetFileDispositionInfo(
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    pFileInfo = (PFILE_DISPOSITION_INFORMATION)Args.FileInformation;
+    pFileInfo = (PFILE_NAME_INFORMATION)Args.FileInformation;
 
     /* Real work starts here */
 
-    if (pFileInfo->DeleteFile == TRUE)
-    {
-        if (PVFS_IS_DIR(pCcb))
-        {
-            LwRtlUnicodeStringInit(&FileSpec.Pattern, wszPattern);
+    /* Name */
 
-            ntError = PvfsEnumerateDirectory(pCcb, &FileSpec, 1);
-            if (ntError == STATUS_SUCCESS)
-            {
-                ntError = STATUS_DIRECTORY_NOT_EMPTY;
-                BAIL_ON_NT_STATUS(ntError);
-            }
+    ntError = LwRtlCStringDuplicate(&pszWinFileName, pCcb->pszFilename);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* Convert to a Windows pathname equivalent */
+    for (pszCursor=pszWinFileName; pszCursor && *pszCursor; pszCursor++)
+    {
+        if (*pszCursor == '/') {
+            *pszCursor = '\\';
         }
+    }
 
-        pCcb->pFcb->bDeleteOnClose = TRUE;
+    ntError = LwRtlWC16StringAllocateFromCString(&pwszFilename, pszWinFileName);
+    BAIL_ON_NT_STATUS(ntError);
+
+    W16FilenameLen = RtlWC16StringNumChars(pwszFilename);
+    W16FilenameLenBytes = W16FilenameLen * sizeof(WCHAR);
+    Needed = sizeof(*pFileInfo) + W16FilenameLenBytes;
+
+    if (Needed > (Args.Length - sizeof(*pFileInfo))) {
+        ntError = STATUS_BUFFER_TOO_SMALL;
+        BAIL_ON_NT_STATUS(ntError);
     }
-    else
-    {
-        /* Clear */
-        pCcb->pFcb->bDeleteOnClose = FALSE;
-    }
+
+    pFileInfo->FileNameLength = W16FilenameLenBytes;
+    memcpy(pFileInfo->FileName, pwszFilename, W16FilenameLenBytes);
 
     pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);
     ntError = STATUS_SUCCESS;
 
 cleanup:
+    LwRtlCStringFree(&pszWinFileName);
+    LwRtlWC16StringFree(&pwszFilename);
+
     if (pCcb) {
         PvfsReleaseCCB(pCcb);
     }
@@ -164,7 +172,6 @@ cleanup:
 error:
     goto cleanup;
 }
-
 
 /*
 local variables:

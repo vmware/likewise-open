@@ -114,6 +114,171 @@ LwSmTypeToString(
 }
 
 static
+VOID
+LwSmHandleSigint(
+    int sig
+    )
+{
+    raise(SIGTERM);
+}
+
+static
+DWORD
+LwSmConfigureSignals(
+    VOID
+    )
+{
+    DWORD dwError = 0;
+    sigset_t set;
+    static int blockSignals[] =
+    {
+        SIGTERM,
+        SIGCHLD,
+        SIGHUP,
+        -1
+    };
+    int i = 0;
+    struct sigaction intAction;
+
+    memset(&intAction, 0, sizeof(intAction));
+
+    if (sigemptyset(&set) < 0)
+    {
+        dwError = LwMapErrnoToLwError(errno);
+        BAIL_ON_ERROR(dwError);
+    }
+
+    for (i = 0; blockSignals[i] != -1; i++)
+    {
+        if (sigaddset(&set, blockSignals[i]) < 0)
+        {
+            dwError = LwMapErrnoToLwError(errno);
+            BAIL_ON_ERROR(dwError);
+        }
+    }
+
+    dwError = LwMapErrnoToLwError(pthread_sigmask(SIG_SETMASK, &set, NULL));
+    BAIL_ON_ERROR(dwError);
+
+    intAction.sa_handler = LwSmHandleSigint;
+    intAction.sa_flags = 0;
+
+    if (sigaction(SIGINT, &intAction, NULL) < 0)
+    {
+        dwError = LwMapErrnoToLwError(errno);
+        BAIL_ON_ERROR(dwError);
+    }
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+static
+DWORD
+LwSmWaitSignals(
+    int* pSig
+    )
+{
+    DWORD dwError = 0;
+    sigset_t set;
+    static int waitSignals[] =
+    {
+        SIGTERM,
+        SIGHUP,
+        -1
+    };
+    int sig = -1;
+    int i = 0;
+
+    if (sigemptyset(&set) < 0)
+    {
+        dwError = LwMapErrnoToLwError(errno);
+        BAIL_ON_ERROR(dwError);
+    }
+
+    for (i = 0; waitSignals[i] != -1; i++)
+    {
+        if (sigaddset(&set, waitSignals[i]) < 0)
+        {
+            dwError = LwMapErrnoToLwError(errno);
+            BAIL_ON_ERROR(dwError);
+        }
+    }
+
+    for (;;)
+    {
+        if (sigwait(&set, &sig) < 0)
+        {
+            dwError = LwMapErrnoToLwError(errno);
+            BAIL_ON_ERROR(dwError);
+        }
+
+        switch (sig)
+        {
+        case SIGTERM:
+        case SIGHUP:
+            *pSig = sig;
+            goto cleanup;
+        default:
+            break;
+        }
+    }
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+};
+
+static
+DWORD
+LwSmWaitForLwsmd(
+    void
+    )
+{
+    DWORD dwError = 0;
+    int try = 0;
+    static const int maxTries = 4;
+    static const int interval = 5;
+    PWSTR* ppwszServices = NULL;
+
+    do
+    {
+        dwError = LwSmEnumerateServices(&ppwszServices);
+
+        if (dwError)
+        {
+            sleep(interval);
+        }
+
+        try++;
+    } while (dwError != LW_ERROR_SUCCESS && try < maxTries);
+
+    BAIL_ON_ERROR(dwError);
+
+cleanup:
+
+    if (ppwszServices)
+    {
+        LwSmFreeServiceNameList(ppwszServices);
+    }
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+static
 DWORD
 LwSmList(
     int argc,
@@ -770,6 +935,106 @@ error:
 }
 
 static
+PVOID
+LwSmWaitThread(
+    PVOID pData
+    )
+{
+    DWORD dwError = 0;
+    LW_SERVICE_HANDLE hHandle = pData;
+    LW_SERVICE_STATUS status = {0};
+
+    while (status.state != LW_SERVICE_STATE_STOPPED &&
+           status.state != LW_SERVICE_STATE_DEAD)
+    {
+        dwError = LwSmWaitService(hHandle, status.state, &status.state);
+        BAIL_ON_ERROR(dwError);
+    }
+
+cleanup:
+
+    kill(getpid(), SIGHUP);
+
+    return NULL;
+
+error:
+
+    goto cleanup;
+}
+
+static
+DWORD
+LwSmProxy(
+    int argc,
+    char** pArgv
+    )
+{
+    DWORD dwError = 0;
+    LW_SERVICE_HANDLE hHandle = NULL;
+    PWSTR pwszServiceName = NULL;
+    pthread_t waitThread;
+    int sig = 0;
+
+    dwError = LwSmWaitForLwsmd();
+    BAIL_ON_ERROR(dwError);
+
+    dwError = LwSmConfigureSignals();
+    BAIL_ON_ERROR(dwError);
+
+    dwError = LwSmStartAll(argc, pArgv);
+    BAIL_ON_ERROR(dwError);
+
+    dwError = LwMbsToWc16s(pArgv[1], &pwszServiceName);
+    BAIL_ON_ERROR(dwError);
+
+    dwError = LwSmAcquireServiceHandle(pwszServiceName, &hHandle);
+    BAIL_ON_ERROR(dwError);
+
+    dwError = LwMapErrnoToLwError(pthread_create(
+                                      &waitThread,
+                                      NULL,
+                                      LwSmWaitThread,
+                                      hHandle));
+    BAIL_ON_ERROR(dwError);
+
+    dwError = LwMapErrnoToLwError(pthread_detach(waitThread));
+    BAIL_ON_ERROR(dwError);
+
+    if (!gState.bQuiet)
+    {
+        printf("Proxying for service: %s\n", pArgv[1]);
+    }
+
+    dwError = LwSmWaitSignals(&sig);
+    BAIL_ON_ERROR(dwError);
+
+    switch (sig)
+    {
+    case SIGTERM:
+        dwError = LwSmStopAll(argc, pArgv);
+        BAIL_ON_ERROR(dwError);
+        break;
+    default:
+        break;
+    }
+
+cleanup:
+
+    LW_SAFE_FREE_MEMORY(pwszServiceName);
+
+    if (hHandle)
+    {
+        LwSmReleaseServiceHandle(hHandle);
+    }
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+static
 DWORD
 LwSmUsage(
     int argc,
@@ -787,6 +1052,7 @@ LwSmUsage(
            "    stop-all <service>         Stop a service and all reverse dependencies\n"
            "    restart-all <service>      Restart a service and all running reverse dependencies\n"
            "    refresh <service>          Refresh service's configuration\n"
+           "    proxy <service>            Act as a proxy process for a service\n"
            "    info <service>             Get information about a service\n"
            "    status <service>           Get the status of a service\n\n");
     printf("Options:\n"
@@ -806,6 +1072,7 @@ main(
     CHAR szErrorMessage[2048];
     int ret = 0;
     int i = 0;
+    PCSTR pszErrorName = NULL;
 
     for (i = 1; i < argc; i++)
     {
@@ -865,6 +1132,11 @@ main(
             dwError = LwSmRestartAll(argc-i, pArgv+i);
             goto error;
         }
+        else if (!strcmp(pArgv[i], "proxy"))
+        {
+            dwError = LwSmProxy(argc-i, pArgv+i);
+            goto error;
+        }
         else
         {
             dwError = LW_ERROR_INVALID_PARAMETER;
@@ -881,10 +1153,12 @@ error:
     {
         memset(szErrorMessage, 0, sizeof(szErrorMessage));
         LwGetErrorString(dwError, szErrorMessage, sizeof(szErrorMessage) - 1);
+        pszErrorName = LwWin32ErrorToName(dwError);
 
         if (!gState.bQuiet)
         {
-            printf("Error: %s\n", szErrorMessage);
+            printf("Error: %s (%lu)\n", pszErrorName ? pszErrorName : "UNKNOWN", (unsigned long) dwError);
+            printf("%s\n", szErrorMessage);
         }
 
         return 1;

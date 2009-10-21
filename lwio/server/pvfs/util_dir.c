@@ -161,7 +161,8 @@ error:
 NTSTATUS
 PvfsEnumerateDirectory(
     PPVFS_CCB pCcb,
-    PIRP_ARGS_QUERY_DIRECTORY pQueryDirArgs
+    PIO_MATCH_FILE_SPEC pFileSpec,
+    LONG Count
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
@@ -170,7 +171,13 @@ PvfsEnumerateDirectory(
     PSTR pszPattern = NULL;
     BOOLEAN bCaseSensitive = FALSE;
 
-    ntError = AllocateCStringFileSpec(&pszPattern, pQueryDirArgs->FileSpec);
+    if (Count == 0)
+    {
+        ntError = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    ntError = AllocateCStringFileSpec(&pszPattern, pFileSpec);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Loop to read entries */
@@ -178,23 +185,29 @@ PvfsEnumerateDirectory(
     pCcb->pDirContext->bScanned = TRUE;
     pDir = pCcb->pDirContext->pDir;
 
-    /* Always add '.' and '..' first if thet match */
+    /* -1 means to fill in whatever you can including current and
+       parent directory entries */
 
-    if (PvfsWildcardMatch(".", pszPattern, FALSE))
+    if (Count == -1)
     {
-        ntError = PvfsDirContextAddEntry(pCcb->pDirContext, ".");
-        BAIL_ON_NT_STATUS(ntError);
-    }
-    if (PvfsWildcardMatch("..", pszPattern, FALSE))
-    {
-        ntError = PvfsDirContextAddEntry(pCcb->pDirContext, "..");
-        BAIL_ON_NT_STATUS(ntError);
+        /* Always add '.' and '..' first if thet match */
+
+        if (PvfsWildcardMatch(".", pszPattern, FALSE))
+        {
+            ntError = PvfsDirContextAddEntry(pCcb->pDirContext, ".");
+            BAIL_ON_NT_STATUS(ntError);
+        }
+        if (PvfsWildcardMatch("..", pszPattern, FALSE))
+        {
+            ntError = PvfsDirContextAddEntry(pCcb->pDirContext, "..");
+            BAIL_ON_NT_STATUS(ntError);
+        }
     }
 
     /* Loop through directory entries */
 
     for(ntError = PvfsSysReadDir(pDir, &pDirEntry);
-        pDirEntry;
+        pDirEntry && ((Count == -1) || (pCcb->pDirContext->dwNumEntries < Count));
         ntError = PvfsSysReadDir(pDir, &pDirEntry))
     {
         /* First check the error return */

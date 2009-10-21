@@ -160,6 +160,7 @@ typedef UCHAR SMB2_INFO_TYPE;
 
 typedef UCHAR SMB2_FILE_INFO_CLASS;
 
+#define SMB2_FILE_INFO_CLASS_FULL_DIR       0x02
 #define SMB2_FILE_INFO_CLASS_BOTH_DIR       0x03
 #define SMB2_FILE_INFO_CLASS_BASIC          0x04
 #define SMB2_FILE_INFO_CLASS_STANDARD       0x05
@@ -181,6 +182,8 @@ typedef UCHAR SMB2_FILE_INFO_CLASS;
 #define SMB2_FILE_INFO_CLASS_COMPRESSION    0x1C
 #define SMB2_FILE_INFO_CLASS_NETWORK_OPEN   0x22
 #define SMB2_FILE_INFO_CLASS_ATTRIBUTE_TAG  0x23
+#define SMB2_FILE_INFO_CLASS_ID_BOTH_DIR    0x25
+#define SMB2_FILE_INFO_CLASS_ID_FULL_DIR    0x26
 
 typedef UCHAR SMB2_FS_INFO_CLASS;
 
@@ -1372,6 +1375,13 @@ typedef struct _TRANS2_FILE_ALL_INFORMATION {
     WCHAR     FileName[];
 } __attribute__((__packed__)) TRANS2_FILE_ALL_INFORMATION,
                              *PTRANS2_FILE_ALL_INFORMATION;
+
+typedef struct _TRANS2_FILE_NAME_INFORMATION
+{
+    ULONG     ulFileNameLength;
+    WCHAR     FileName[];
+} __attribute__((__packed__)) TRANS2_FILE_NAME_INFORMATION,
+                             *PTRANS2_FILE_NAME_INFORMATION;
 
 typedef struct {
     LONG64 EndOfFile;

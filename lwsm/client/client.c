@@ -564,6 +564,63 @@ LwSmFreeServiceInfo(
     LwSmCommonFreeServiceInfo(pInfo);
 }
 
+
+DWORD
+LwSmWaitService(
+    LW_SERVICE_HANDLE hHandle,
+    LW_SERVICE_STATE currentState,
+    PLW_SERVICE_STATE pNewState
+    )
+{
+    DWORD dwError = 0;
+    LWMsgCall* pCall = NULL;
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    SM_IPC_WAIT_STATE_CHANGE_REQ req = {0};
+
+    req.hHandle = hHandle;
+    req.state = currentState;
+
+    in.tag = SM_IPC_WAIT_SERVICE_REQ;
+    in.data = &req;
+
+    dwError = LwSmIpcAcquireCall(&pCall);
+    BAIL_ON_ERROR(dwError);
+
+    dwError = MAP_LWMSG_STATUS(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
+    BAIL_ON_ERROR(dwError);
+
+    switch (out.tag)
+    {
+    case SM_IPC_WAIT_SERVICE_RES:
+        *pNewState = *(PLW_SERVICE_STATE) out.data;
+        break;
+    case SM_IPC_ERROR:
+        dwError = *(PDWORD) out.data;
+        BAIL_ON_ERROR(dwError);
+        break;
+    default:
+        dwError = LW_ERROR_INTERNAL;
+        BAIL_ON_ERROR(dwError);
+        break;
+    }
+
+cleanup:
+
+    if (pCall)
+    {
+        lwmsg_call_destroy_params(pCall, &out);
+        lwmsg_call_release(pCall);
+    }
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+
 static
 DWORD
 LwSmQueryServiceDependencyClosureHelper(

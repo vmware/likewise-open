@@ -342,6 +342,15 @@ error:
 }
 
 static
+VOID
+LwSmHandleSigint(
+    int sig
+    )
+{
+    raise(SIGTERM);
+}
+
+static
 DWORD
 LwSmConfigureSignals(
     VOID
@@ -357,6 +366,9 @@ LwSmConfigureSignals(
         -1
     };
     int i = 0;
+    struct sigaction intAction;
+
+    memset(&intAction, 0, sizeof(intAction));
 
     if (sigemptyset(&set) < 0)
     {
@@ -375,6 +387,15 @@ LwSmConfigureSignals(
 
     dwError = LwMapErrnoToLwError(pthread_sigmask(SIG_SETMASK, &set, NULL));
     BAIL_ON_ERROR(dwError); 
+
+    intAction.sa_handler = LwSmHandleSigint;
+    intAction.sa_flags = 0;
+
+    if (sigaction(SIGINT, &intAction, NULL) < 0)
+    {
+        dwError = LwMapErrnoToLwError(errno);
+        BAIL_ON_ERROR(dwError);
+    }
 
 cleanup:
 

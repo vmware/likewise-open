@@ -8,6 +8,7 @@ LwSmStartService
 LwSmStopService
 LwSmQueryServiceStatus
 LwSmRefreshService
+LwSmWaitService
 LwSmQueryServiceInfo
 LwSmFreeServiceInfo
 LwSmQueryServiceDependencyClosure

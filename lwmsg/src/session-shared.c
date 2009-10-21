@@ -319,10 +319,7 @@ shared_enter_session(
 
         session->base.manager = manager;
 
-        if (pthread_mutex_init(&session->lock, NULL))
-        {
-            BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
-        }
+        BAIL_ON_ERROR(status = lwmsg_error_map_errno(pthread_mutex_init(&session->lock, NULL)));
 
         memcpy(session->rsmid.bytes, rsmid->bytes, sizeof(rsmid->bytes));
 
@@ -827,10 +824,7 @@ lwmsg_shared_session_manager_new(
     BAIL_ON_ERROR(status = LWMSG_ALLOC(&my_manager));
     BAIL_ON_ERROR(status = lwmsg_session_manager_init(&my_manager->base, &shared_class));
 
-    if (pthread_mutex_init(&my_manager->lock, NULL))
-    {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
-    }
+    BAIL_ON_ERROR(status = lwmsg_error_map_errno(pthread_mutex_init(&my_manager->lock, NULL)));
 
     *manager = LWMSG_SESSION_MANAGER(my_manager);
 

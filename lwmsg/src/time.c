@@ -53,13 +53,7 @@ lwmsg_time_now(
 
     if (gettimeofday(&tv, NULL))
     {
-        switch (errno)
-        {
-        case EINVAL:
-            BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_PARAMETER);
-        default:
-            BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
-        }
+        BAIL_ON_ERROR(status = lwmsg_error_map_errno(errno));
     }
 
     out->seconds = (ssize_t) tv.tv_sec;

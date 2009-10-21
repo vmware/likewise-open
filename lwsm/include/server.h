@@ -56,6 +56,13 @@ typedef struct _SM_LOADER_CALLS
     VOID (*pfnNotifyServiceObjectStateChange) (PLW_SERVICE_OBJECT pObject, LW_SERVICE_STATE newState);
 } SM_LOADER_CALLS, *PSM_LOADER_CALLS;
 
+typedef struct _SM_ENTRY_NOTIFY
+{
+    VOID (*pfnNotifyEntryStateChange)(LW_SERVICE_STATE state, PVOID pData);
+    PVOID pData;
+    SM_LINK link;
+} SM_ENTRY_NOTIFY, *PSM_ENTRY_NOTIFY;
+
 /* Entry in the running object table */
 typedef struct _SM_TABLE_ENTRY
 {
@@ -71,6 +78,8 @@ typedef struct _SM_TABLE_ENTRY
     /* State change event */
     pthread_cond_t event;
     pthread_cond_t* pEvent;
+    /* State change waiters */
+    SM_LINK waiters;
     /* Pointer to vtbl */
     PLW_SERVICE_LOADER_VTBL pVtbl;
     /* Loader handle */
@@ -212,8 +221,24 @@ LwSmTableRefreshEntry(
     );
 
 VOID
-LwSmTableNotifyEntryChanged(
-    PSM_TABLE_ENTRY pEntry
+LwSmTableNotifyEntryStateChanged(
+    PSM_TABLE_ENTRY pEntry,
+    LW_SERVICE_STATE state
+    );
+
+DWORD
+LwSmTableRegisterEntryNotify(
+    PSM_TABLE_ENTRY pEntry,
+    LW_SERVICE_STATE currentState,
+    VOID (*pfnNotifyEntryStateChange)(LW_SERVICE_STATE state, PVOID pData),
+    PVOID pData
+    );
+
+DWORD
+LwSmTableUnregisterEntryNotify(
+    PSM_TABLE_ENTRY pEntry,
+    VOID (*pfnNotifyEntryStateChange)(LW_SERVICE_STATE state, PVOID pData),
+    PVOID pData
     );
 
 DWORD
