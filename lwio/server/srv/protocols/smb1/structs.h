@@ -64,6 +64,15 @@ typedef struct
     UCHAR   ucFlags;
 } __attribute__((__packed__)) SMB_IOCTL_HEADER, *PSMB_IOCTL_HEADER;
 
+typedef struct
+{
+    ULONG   ulCompletionFilter;
+    USHORT  usFid;
+    BOOLEAN bWatchTree;
+    UCHAR   ucReserved;
+} __attribute__((__packed__)) SMB_NOTIFY_CHANGE_HEADER,
+                             *PSMB_NOTIFY_CHANGE_HEADER;
+
 typedef USHORT LW_OPLOCK_ACTION;
 
 #define LW_OPLOCK_ACTION_SEND_BREAK  0x0001

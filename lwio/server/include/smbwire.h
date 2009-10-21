@@ -1420,6 +1420,15 @@ typedef struct {
 } __attribute__((__packed__)) TRANS2_FILE_DISPOSITION_INFORMATION,
                              *PTRANS2_FILE_DISPOSITION_INFORMATION;
 
+typedef struct _SMB_NOTIFY_INFO_HEADER
+{
+    ULONG     ulNextEntryOffset;
+    ULONG     ulAction;
+    ULONG     ulFileNameLength;
+    WCHAR     wszFileName[1];
+
+} __attribute__((__packed__)) SMB_NOTIFY_INFO_HEADER, *PSMB_NOTIFY_INFO_HEADER;
+
 typedef struct _SMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER
 {
     ULONG     NextEntryOffset;
