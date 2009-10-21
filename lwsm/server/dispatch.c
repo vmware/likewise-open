@@ -500,6 +500,7 @@ error:
 
 typedef struct _SM_WAIT_CONTEXT
 {
+    PSM_TABLE_ENTRY pEntry;
     LWMsgCall* pCall;
     LWMsgParams* pOut;
 } SM_WAIT_CONTEXT, *PSM_WAIT_CONTEXT;
@@ -534,6 +535,26 @@ LwSmWaitNotifyCallback(
 }
 
 static
+VOID
+LwSmWaitCancelCallback(
+    LWMsgCall* pCall,
+    PVOID pData
+    )
+{
+    DWORD dwError = 0;
+    PSM_WAIT_CONTEXT pContext = (PSM_WAIT_CONTEXT) pData;
+
+    dwError = LwSmTableUnregisterEntryNotify(pContext->pEntry, LwSmWaitNotifyCallback, pData);
+
+    if (dwError == LW_ERROR_SUCCESS)
+    {
+        lwmsg_call_complete(pContext->pCall, LWMSG_STATUS_CANCELLED);
+
+        LwFreeMemory(pContext);
+    }
+}
+
+static
 LWMsgStatus
 LwSmDispatchWaitService(
     LWMsgCall* pCall,
@@ -549,13 +570,14 @@ LwSmDispatchWaitService(
     dwError = LwAllocateMemory(sizeof(*pContext), OUT_PPVOID(&pContext));
     BAIL_ON_ERROR(dwError);
 
+    pContext->pEntry = pReq->hHandle->pEntry;
     pContext->pCall = pCall;
     pContext->pOut = pOut;
 
-    lwmsg_call_pend(pCall, NULL, NULL);
+    lwmsg_call_pend(pCall, LwSmWaitCancelCallback, pContext);
 
     dwError = LwSmTableRegisterEntryNotify(
-        pReq->hHandle->pEntry,
+        pContext->pEntry,
         pReq->state,
         LwSmWaitNotifyCallback,
         pContext);

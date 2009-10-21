@@ -888,6 +888,51 @@ error:
     goto cleanup;
 }
 
+DWORD
+LwSmTableUnregisterEntryNotify(
+    PSM_TABLE_ENTRY pEntry,
+    VOID (*pfnNotifyEntryStateChange)(LW_SERVICE_STATE state, PVOID pData),
+    PVOID pData
+    )
+{
+    DWORD dwError = 0;
+    BOOLEAN bLocked = FALSE;
+    PSM_LINK pLink = NULL;
+    PSM_LINK pNext = NULL;
+    PSM_ENTRY_NOTIFY pNotify = NULL;
+
+    LOCK(bLocked, pEntry->pLock);
+
+    for (pLink = LwSmLinkBegin(&pEntry->waiters);
+         LwSmLinkValid(&pEntry->waiters, pLink);
+         pLink = pNext)
+    {
+        pNext = LwSmLinkNext(pLink);
+        pNotify = STRUCT_FROM_MEMBER(pLink, SM_ENTRY_NOTIFY, link);
+
+        if (pNotify->pfnNotifyEntryStateChange == pfnNotifyEntryStateChange &&
+            pNotify->pData == pData)
+        {
+            LwSmLinkRemove(pLink);
+            LwFreeMemory(pNotify);
+            goto cleanup;
+        }
+    }
+
+    dwError = LW_ERROR_INVALID_PARAMETER;
+    BAIL_ON_ERROR(dwError);
+
+cleanup:
+
+    UNLOCK(bLocked, pEntry->pLock);
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
 static
 DWORD
 LwSmTableGetEntryDependencyClosureHelper(

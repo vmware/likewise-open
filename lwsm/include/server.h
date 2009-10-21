@@ -235,6 +235,13 @@ LwSmTableRegisterEntryNotify(
     );
 
 DWORD
+LwSmTableUnregisterEntryNotify(
+    PSM_TABLE_ENTRY pEntry,
+    VOID (*pfnNotifyEntryStateChange)(LW_SERVICE_STATE state, PVOID pData),
+    PVOID pData
+    );
+
+DWORD
 LwSmTableWaitEntryChanged(
     PSM_TABLE_ENTRY pEntry
     );
