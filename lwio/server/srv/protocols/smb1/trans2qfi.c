@@ -279,12 +279,17 @@ SrvQueryFileInfo(
 
             break;
 
+        case SMB_QUERY_FILE_ALT_NAME_INFO :
+
+            ntStatus = SrvQueryFileAltNameInfo(pExecContext);
+
+            break;
+
         case SMB_INFO_STANDARD :
         case SMB_INFO_QUERY_EA_SIZE :
         case SMB_INFO_QUERY_EAS_FROM_LIST :
         case SMB_INFO_QUERY_ALL_EAS :
         case SMB_INFO_IS_NAME_VALID :
-        case SMB_QUERY_FILE_ALT_NAME_INFO :
         case SMB_QUERY_FILE_COMPRESSION_INFO :
         case SMB_QUERY_FILE_UNIX_BASIC :
         case SMB_QUERY_FILE_UNIX_LINK :
@@ -354,12 +359,17 @@ SrvBuildQueryFileInfoResponse(
 
             break;
 
+        case SMB_QUERY_FILE_ALT_NAME_INFO :
+
+            ntStatus = SrvBuildQueryFileAltNameInfoResponse(pExecContext);
+
+            break;
+
         case SMB_INFO_STANDARD :
         case SMB_INFO_QUERY_EA_SIZE :
         case SMB_INFO_QUERY_EAS_FROM_LIST :
         case SMB_INFO_QUERY_ALL_EAS :
         case SMB_INFO_IS_NAME_VALID :
-        case SMB_QUERY_FILE_ALT_NAME_INFO :
         case SMB_QUERY_FILE_COMPRESSION_INFO :
         case SMB_QUERY_FILE_UNIX_BASIC :
         case SMB_QUERY_FILE_UNIX_LINK :
@@ -1735,6 +1745,120 @@ error:
     }
 
     goto cleanup;
+}
+
+NTSTATUS
+SrvQueryFileAltNameInfo(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS                   ntStatus     = 0;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
+    PSRV_TRANS2_STATE_SMB_V1   pTrans2State = NULL;
+    BOOLEAN                    bContinue    = TRUE;
+
+    pTrans2State = (PSRV_TRANS2_STATE_SMB_V1)pCtxSmb1->hState;
+
+    do
+    {
+        ntStatus = pTrans2State->ioStatusBlock.Status;
+
+        switch (ntStatus)
+        {
+            case STATUS_BUFFER_TOO_SMALL:
+
+                {
+                    USHORT usNewSize =  0;
+
+                    if (!pTrans2State->usBytesAllocated)
+                    {
+                        usNewSize = pTrans2State->usBytesAllocated +
+                                        sizeof(FILE_NAME_INFORMATION) +
+                                        256 * sizeof(wchar16_t);
+                    }
+                    else
+                    {
+                        usNewSize = pTrans2State->usBytesAllocated +
+                                        256 * sizeof(wchar16_t);
+                    }
+
+                    ntStatus = SMBReallocMemory(
+                                    pTrans2State->pData2,
+                                    (PVOID*)&pTrans2State->pData2,
+                                    usNewSize);
+                    BAIL_ON_NT_STATUS(ntStatus);
+
+                    pTrans2State->usBytesAllocated = usNewSize;
+
+                    SrvPrepareTrans2StateAsync(pTrans2State, pExecContext);
+
+                    ntStatus = IoQueryInformationFile(
+                                            (pTrans2State->pFile ?
+                                                    pTrans2State->pFile->hFile :
+                                                    pTrans2State->hFile),
+                                            pTrans2State->pAcb,
+                                            &pTrans2State->ioStatusBlock,
+                                            pTrans2State->pData2,
+                                            pTrans2State->usBytesAllocated,
+                                            FileAlternateNameInformation);
+                    switch (ntStatus)
+                    {
+                        case STATUS_SUCCESS:
+
+                            bContinue = FALSE;
+
+                            // intentional fall through
+
+                        case STATUS_BUFFER_TOO_SMALL:
+
+                            // synchronous completion
+                            SrvReleaseTrans2StateAsync(pTrans2State);
+
+                            break;
+
+                        default:
+
+                            BAIL_ON_NT_STATUS(ntStatus);
+                    }
+                }
+
+                break;
+
+            case STATUS_SUCCESS:
+
+                if (!pTrans2State->pData2)
+                {
+                    pTrans2State->ioStatusBlock.Status =
+                                            STATUS_BUFFER_TOO_SMALL;
+                }
+                else
+                {
+                    bContinue = FALSE;
+                }
+
+                break;
+
+            default:
+
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                break;
+        }
+
+    } while (bContinue);
+
+error:
+
+    return ntStatus;
+}
+
+NTSTATUS
+SrvBuildQueryFileAltNameInfoResponse(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    return SrvBuildQueryFileNameInfoResponse(pExecContext);
 }
 
 

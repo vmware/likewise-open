@@ -95,5 +95,15 @@ SrvBuildQueryFileNameInfoResponse(
     PSRV_EXEC_CONTEXT pExecContext
     );
 
+NTSTATUS
+SrvQueryFileAltNameInfo(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+NTSTATUS
+SrvBuildQueryFileAltNameInfoResponse(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
 
 #endif /* __SRV_TRANS2QFI_H__ */
