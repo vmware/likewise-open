@@ -297,6 +297,7 @@ MU_TEST(async, nonblock_asynchronous_shutdown)
 {
     LWMsgMessage request_msg = LWMSG_MESSAGE_INITIALIZER;
     LWMsgAssoc* assoc = NULL;
+    struct timespec ts = {0, 500000000};
 
     request_msg.tag = NONBLOCK_REQUEST_ASYNCHRONOUS;
 
@@ -304,6 +305,8 @@ MU_TEST(async, nonblock_asynchronous_shutdown)
     MU_TRY_ASSOC(assoc, lwmsg_connection_set_endpoint(assoc, LWMSG_CONNECTION_MODE_LOCAL, TEST_ENDPOINT));
     MU_TRY_ASSOC(assoc, lwmsg_assoc_establish(assoc));
     MU_TRY_ASSOC(assoc, lwmsg_assoc_send_message(assoc, &request_msg));
+
+    nanosleep(&ts, NULL);
 
     MU_TRY(lwmsg_server_stop(server));
 
@@ -387,6 +390,7 @@ MU_TEST(async, block_asynchronous_shutdown)
 {
     LWMsgMessage request_msg = LWMSG_MESSAGE_INITIALIZER;
     LWMsgAssoc* assoc = NULL;
+    struct timespec ts = {0, 500000000};
 
     request_msg.tag = BLOCK_REQUEST_ASYNCHRONOUS;
 
@@ -394,6 +398,8 @@ MU_TEST(async, block_asynchronous_shutdown)
     MU_TRY_ASSOC(assoc, lwmsg_connection_set_endpoint(assoc, LWMSG_CONNECTION_MODE_LOCAL, TEST_ENDPOINT));
     MU_TRY_ASSOC(assoc, lwmsg_assoc_establish(assoc));
     MU_TRY_ASSOC(assoc, lwmsg_assoc_send_message(assoc, &request_msg));
+
+    nanosleep(&ts, NULL);
 
     MU_TRY(lwmsg_server_stop(server));
 
