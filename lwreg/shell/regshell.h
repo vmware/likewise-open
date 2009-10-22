@@ -63,9 +63,9 @@
 #include <regclient.h>
 #include <regparse_r.h>
 
+#include "rsutils.h"
 #include "../parse/regio.h"
 #include "../parse/reglex.h"
-#include "../parse/regdump.h"
 #include "../parse/regiconv.h"
 #include "../parse/regparse.h"
 

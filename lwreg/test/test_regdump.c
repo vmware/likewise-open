@@ -41,6 +41,7 @@
  *          Adam Bernstein (abernstein@likewise.com)
  */
 #include <parse/includes.h>
+#include <shellutil/rsutils.h>
 #include <locale.h>
 
 /* Just to demonstrate user context handle use. Not very useful otherwise */

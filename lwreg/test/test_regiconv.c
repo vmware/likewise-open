@@ -48,7 +48,6 @@
 #include "parse/reglex.h"
 #include "parse/regiconv.h"
 #include "parse/regparse.h"
-#include "parse/regdump.h"
 
 BYTE testbuf[] = {
   0x49, 0x00, 0x4e, 0x00, 0x54, 0x00, 0x45,

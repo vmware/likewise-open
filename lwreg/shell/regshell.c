@@ -40,7 +40,6 @@
  * Authors: Adam Bernstein (abernstein@likewise.com)
  */
 
-#include "rsutils.h"
 #include "regshell.h"
 #include <locale.h>
 #include "histedit.h"
@@ -294,16 +293,13 @@ RegShellImportFile(
     HANDLE hReg,
     PREGSHELL_CMD_ITEM rsItem)
 {
-    IMPORT_CONTEXT ctx = {0};
     HANDLE parseH = NULL;
     DWORD dwError = 0;
-
-    ctx.hReg = hReg;
 
     dwError = RegParseOpen(rsItem->args[0], NULL, NULL, &parseH);
     BAIL_ON_REG_ERROR(dwError);
 
-    RegParseInstallCallback(parseH, RegShellUtilImportCallback, &ctx, NULL);
+    RegParseInstallCallback(parseH, RegShellUtilImportCallback, hReg, NULL);
 
     dwError = RegParseRegistry(parseH);
     BAIL_ON_REG_ERROR(dwError);

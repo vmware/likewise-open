@@ -71,7 +71,6 @@
 #include "regio.h"
 #include "reglex.h"
 #include "regiconv.h"
-#include "regdump.h"
 #include "regparse.h"
 
 #endif

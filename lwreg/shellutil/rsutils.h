@@ -19,6 +19,8 @@
 #include <lwmem.h>
 #include <lwerror.h>
 
+#define REGEXPORT_LINE_WIDTH 80
+
 typedef struct _REGSHELL_UTIL_VALUE
 {
     REG_DATA_TYPE type;
@@ -26,23 +28,6 @@ typedef struct _REGSHELL_UTIL_VALUE
     LW_PVOID pData;
     DWORD dwDataLen;
 } REGSHELL_UTIL_VALUE, *PREGSHELL_UTIL_VALUE;
-#if 1
-
-typedef struct _IMPORT_CONTEXT
-{
-    HANDLE hReg;
-} IMPORT_CONTEXT;
-
-typedef struct _EXPORT_CONTEXT
-{
-    HANDLE hReg;
-    HKEY hKey;
-    PSTR pszKeyName;
-    DWORD dwNumSubKeys;
-    int iKeyIndex;
-    REG_DATA_TYPE prevType;
-} EXPORT_CONTEXT;
-#endif
 
 
 DWORD
@@ -134,5 +119,60 @@ RegShellUtilExport(
     PSTR pszKeyName,
     DWORD dwNumSubKeys
     );
+
+DWORD RegExportBinaryTypeToString(
+    REG_DATA_TYPE token,
+    PSTR tokenStr,
+    BOOLEAN dumpFormat);
+
+
+DWORD
+RegExportEntry(
+    PSTR keyName,
+    REG_DATA_TYPE valueType,
+    PSTR valueName,
+    REG_DATA_TYPE type,
+    LW_PVOID value,
+    DWORD valueLen,
+    PSTR *dumpString,
+    PDWORD dumpStringLen);
+
+DWORD
+RegExportDword(
+    REG_DATA_TYPE valueType,
+    PSTR valueName,
+    DWORD value,
+    PSTR *dumpString,
+    PDWORD dumpStringLen);
+
+DWORD
+RegExportRegKey(
+    PSTR keyName,
+    PSTR *dumpString,
+    PDWORD dumpStringLen);
+
+DWORD
+RegExportString(
+    REG_DATA_TYPE valueType,
+    PSTR valueName,
+    PCHAR value,
+    PSTR *dumpString,
+    PDWORD dumpStringLen);
+
+DWORD
+RegExportBinaryData(
+    REG_DATA_TYPE valueType,
+    PSTR valueName,
+    REG_DATA_TYPE type,
+    UCHAR *value,
+    DWORD valueLen,
+    PSTR *dumpString,
+    PDWORD dumpStringLen);
+
+DWORD
+RegExportPlainText(
+    PCHAR value,
+    PSTR *dumpString,
+    PDWORD dumpStringLen);
 
 #endif

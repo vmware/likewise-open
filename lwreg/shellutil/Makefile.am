@@ -1,6 +1,7 @@
 lib_LTLIBRARIES = librsutils.la
 
 librsutils_la_SOURCES = \
+    regutilwrap.c \
     rsutils.c \
     import.c \
     export.c

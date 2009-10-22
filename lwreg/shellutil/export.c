@@ -46,6 +46,356 @@
 #include <regclient.h>
 #include <reg/reg.h>
 
+
+DWORD RegExportBinaryTypeToString(
+    REG_DATA_TYPE token,
+    PSTR tokenStr,
+    BOOLEAN dumpFormat)
+{
+    DWORD dwError = 0;
+    static char *typeStrs[][2] = {
+        { "hex(0):", "REG_NONE" },
+        { "REG_SZ", "REG_SZ"},
+        { "hex(2):", "REG_EXPAND_SZ" },
+        { "hex:", "REG_BINARY" },
+        { "dword:", "REG_DWORD" },
+        { "dwordbe:", "REG_DWORD_BIG_ENDIAN" },
+        { "link:", "REG_LINK" },
+        { "hex(7):", "REG_MULTI_SZ" },
+        { "hex(8):", "REG_RESOURCE_LIST" },
+        { "hex(9):", "REG_FULL_RESOURCE_DESCRIPTOR" },
+        { "hex(a):", "REG_RESOURCE_REQUIREMENTS_LIST" },
+        { "hex(b):", "REG_QUADWORD" },
+        { "unknown12:", "REG_UNKNOWN12" },
+        { "unknown13:", "REG_UNKNOWN13" },
+        { "unknown14:", "REG_UNKNOWN14" },
+        { "unknown15:", "REG_UNKNOWN15" },
+        { "unknown16:", "REG_UNKNOWN16" },
+        { "unknown17:", "REG_UNKNOWN17" },
+        { "unknown18:", "REG_UNKNOWN18" },
+        { "unknown19:", "REG_UNKNOWN19" },
+        { "unknown20:", "REG_UNKNOWN20" },
+        { "REG_KEY", "REG_KEY" },
+        { "REG_KEY_DEFAULT", "REG_KEY_DEFAULT" },
+        { "REG_PLAIN_TEXT", "REG_PLAIN_TEXT" },
+        { "REG_UNKNOWN", "REG_UNKNOWN" },
+        { "sza:", "REG_STRING_ARRAY" }, /* Maps to REG_MULTI_SZ */
+    };
+
+    BAIL_ON_INVALID_POINTER(tokenStr);
+
+    if (token < ((sizeof(typeStrs)/sizeof(char *))/2))
+    {
+        if (dumpFormat)
+        {
+            strcpy(tokenStr, typeStrs[token][0]);
+        }
+        else
+        {
+            strcpy(tokenStr, typeStrs[token][1]);
+        }
+    }
+    else
+    {
+        sprintf(tokenStr, "ERROR: No Such Token %d", token);
+    }
+
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+DWORD
+RegExportEntry(
+    PSTR keyName,
+    REG_DATA_TYPE valueType,
+    PSTR valueName,
+    REG_DATA_TYPE type,
+    LW_PVOID value,
+    DWORD valueLen,
+    PSTR *dumpString,
+    PDWORD dumpStringLen)
+{
+    DWORD dwError = 0;
+    switch (type)
+    {
+        case REG_BINARY:
+        case REG_NONE:
+        case REG_EXPAND_SZ:
+        case REG_MULTI_SZ:
+        case REG_RESOURCE_LIST:
+        case REG_FULL_RESOURCE_DESCRIPTOR:
+        case REG_RESOURCE_REQUIREMENTS_LIST:
+        case REG_QWORD:
+            dwError = RegExportBinaryData(valueType,
+                                          valueName,
+                                          type,
+                                          value,
+                                          valueLen,
+                                          dumpString,
+                                          dumpStringLen);
+            break;
+        case REG_DWORD:
+            dwError = RegExportDword(valueType,
+                                     valueName,
+                                     *((PDWORD) value),
+                                     dumpString,
+                                     dumpStringLen);
+            break;
+
+        case REG_KEY:
+            dwError = RegExportRegKey(keyName,
+                                      dumpString,
+                                      dumpStringLen);
+            break;
+
+        case REG_SZ:
+            dwError = RegExportString(valueType,
+                                      valueName,
+                                      (PCHAR) value,
+                                      dumpString,
+                                      dumpStringLen);
+            break;
+        case REG_PLAIN_TEXT:
+        default:
+            dwError = RegExportPlainText((PCHAR) value,
+                                        dumpString,
+                                        dumpStringLen);
+    }
+    return dwError;
+}
+
+
+DWORD
+RegExportDword(
+    REG_DATA_TYPE valueType,
+    PSTR valueName,
+    DWORD value,
+    PSTR *dumpString,
+    PDWORD dumpStringLen)
+{
+    DWORD bufLen = 0;
+    PSTR dumpBuf = NULL;
+    DWORD dwError = 0;
+
+    BAIL_ON_INVALID_POINTER(valueName);
+    BAIL_ON_INVALID_POINTER(dumpString);
+    BAIL_ON_INVALID_POINTER(dumpStringLen);
+
+    /*
+     *  "name"=1234ABCD\r\n\0
+     *  14: *  ""=1234ABCD\r\n\0
+     */
+    bufLen = strlen(valueName) + 20;
+    dwError = LwAllocateMemory(bufLen, (LW_PVOID) &dumpBuf);
+    BAIL_ON_REG_ERROR(dwError);
+
+    if (valueType == REG_KEY_DEFAULT)
+    {
+        *dumpStringLen = sprintf(dumpBuf, "@=dword:%08x",
+                                 value);
+    }
+    else
+    {
+        *dumpStringLen = sprintf(dumpBuf, "\"%s\"=dword:%08x",
+                                 valueName,
+                                 value);
+    }
+
+    *dumpString = dumpBuf;
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+
+}
+
+
+DWORD
+RegExportRegKey(
+    PSTR keyName,
+    PSTR *dumpString,
+    PDWORD dumpStringLen)
+{
+    DWORD bufLen = 0;
+    PSTR dumpBuf = NULL;
+    DWORD dwError = 0;
+
+    BAIL_ON_INVALID_POINTER(keyName);
+    BAIL_ON_INVALID_POINTER(dumpString);
+    BAIL_ON_INVALID_POINTER(dumpStringLen);
+
+    /*
+     *  [key_name]\r\n\0
+     *  5:  []\r\n\0
+     */
+    bufLen = strlen(keyName) + 5;
+    dwError = LwAllocateMemory(bufLen, (LW_PVOID) &dumpBuf);
+    BAIL_ON_REG_ERROR(dwError);
+    *dumpStringLen = sprintf(dumpBuf, "[%s]", keyName);
+    *dumpString = dumpBuf;
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+
+DWORD RegExportString(
+    REG_DATA_TYPE valueType,
+    PSTR valueName,
+    PCHAR value,
+    PSTR *dumpString,
+    PDWORD dumpStringLen)
+{
+    DWORD bufLen = 0;
+    PSTR dumpBuf = NULL;
+    DWORD dwError = 0;
+
+    BAIL_ON_INVALID_POINTER(valueName);
+    BAIL_ON_INVALID_POINTER(dumpString);
+    BAIL_ON_INVALID_POINTER(dumpStringLen);
+
+    /*
+     */
+    bufLen = strlen(valueName) + strlen(value) + 8;
+    dwError = LwAllocateMemory(bufLen, (LW_PVOID) &dumpBuf);
+    BAIL_ON_REG_ERROR(dwError);
+    if (valueType == REG_KEY_DEFAULT)
+    {
+        *dumpStringLen = sprintf(dumpBuf, "@=\"%s\"",
+                             (PCHAR) value);
+    }
+    else
+    {
+        *dumpStringLen = sprintf(dumpBuf, "\"%s\"=\"%s\"",
+                             valueName,
+                             (PCHAR) value);
+    }
+    *dumpString = dumpBuf;
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+
+DWORD
+RegExportPlainText(
+    PCHAR value,
+    PSTR *dumpString,
+    PDWORD dumpStringLen)
+{
+    DWORD bufLen = 0;
+    PSTR dumpBuf = NULL;
+    DWORD dwError = 0;
+
+    BAIL_ON_INVALID_POINTER(dumpString);
+    BAIL_ON_INVALID_POINTER(dumpStringLen);
+
+    bufLen = strlen(value) + 8;
+    dwError = LwAllocateMemory(bufLen, (LW_PVOID) &dumpBuf);
+    BAIL_ON_REG_ERROR(dwError);
+    *dumpStringLen = sprintf(dumpBuf, "%s", (PCHAR) value);
+    *dumpString = dumpBuf;
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+
+DWORD
+RegExportBinaryData(
+    REG_DATA_TYPE valueType,
+    PSTR valueName,
+    REG_DATA_TYPE type,
+    UCHAR *value,
+    DWORD valueLen,
+    PSTR *dumpString,
+    PDWORD dumpStringLen)
+{
+    DWORD bufLen = 0;
+    DWORD formatLines = 0;
+    DWORD indx = 0;
+    DWORD dwError = 0;
+    DWORD linePos = 0;
+    PSTR dumpBuf = NULL;
+    PSTR fmtCursor = NULL;
+    UCHAR *pValue = NULL;
+    BOOLEAN firstHex = FALSE;
+
+    CHAR typeName[128];
+
+    RegExportBinaryTypeToString(type, typeName, TRUE);
+    /* 5 extra for " "= \\n characters on first line */
+    bufLen = strlen(valueName) + strlen(typeName) + 6;
+
+    /* 4 extra characters per line: Prefix "  " spaces, suffix \ and \r\n */
+    formatLines = valueLen / 25 + 1;
+    bufLen += valueLen * 3 + (formatLines * 5) + 1;
+
+    dwError = LwAllocateMemory(bufLen, (LW_PVOID) &dumpBuf);
+    BAIL_ON_REG_ERROR(dwError);
+
+    /* Format binary prefix */
+    fmtCursor = dumpBuf;
+    if (valueType == REG_KEY_DEFAULT)
+    {
+        fmtCursor += sprintf(fmtCursor, "@=%s", typeName);
+    }
+    else
+    {
+        fmtCursor += sprintf(fmtCursor, "\"%s\"=%s",
+                             valueName, typeName);
+    }
+
+    pValue = (UCHAR *) value;
+    linePos = fmtCursor - dumpBuf;
+    indx = 0;
+    while (indx < valueLen)
+    {
+        while(((linePos + 3)<REGEXPORT_LINE_WIDTH && indx<valueLen) ||
+               !firstHex)
+        {
+            firstHex = TRUE;
+            fmtCursor += sprintf(fmtCursor, "%02x,", pValue[indx]);
+            linePos += 3;
+            indx++;
+        }
+        if (indx < valueLen)
+        {
+            fmtCursor += sprintf(fmtCursor, "\\\r\n  ");
+            linePos = 2;
+        }
+        else
+        {
+            fmtCursor[-1] = '\0';
+            linePos = 0;
+        }
+
+    }
+
+    *dumpString = dumpBuf;
+    *dumpStringLen = fmtCursor - dumpBuf;
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
 static
 DWORD
 PrintToRegFile(

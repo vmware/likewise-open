@@ -4,8 +4,7 @@ libregparse_la_SOURCES = \
     regio.c \
     reglex.c \
     regiconv.c \
-    regparse.c \
-    regdump.c
+    regparse.c
 
 libregparse_la_CPPFLAGS = \
     $(AM_CPPFLAGS)        \

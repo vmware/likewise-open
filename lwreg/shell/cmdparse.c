@@ -880,7 +880,7 @@ RegShellDumpCmdItem(
     }
     if (rsItem->type != REG_UNKNOWN)
     {
-        RegLexBinaryTypeToString(
+        RegExportBinaryTypeToString(
             rsItem->type,
             tokenName,
             FALSE);
