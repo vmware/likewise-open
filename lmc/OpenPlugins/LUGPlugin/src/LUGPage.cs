@@ -53,11 +53,9 @@ public partial class LUGPage : StandardPage
     #region class data
     
     private ListViewColumnSorter lvwColumnSorter;
-    private UInt32 PageNumber = 0;
     private UInt32 PageSize = 50;
     private UInt32 Uppercount = 50;
     private UInt32 nOffset = 0;
-    private bool bFlag = false;
     public ListViewItem[] lvArr;
     
     public enum LUGStatusIcon
@@ -66,8 +64,9 @@ public partial class LUGPage : StandardPage
         UserDisabled,
         Group
     }
-    
+
     public delegate void EnumLUG(CredentialEntry creds, string serverName, int resumeHandle, LUGAPI.LUGEnumStatusDelegate callback);
+    //public delegate void EnumLUG(CredentialEntry creds, string serverName, int resumeHandle, out LUGAPI.LUGEnumStatus enumStatus);
     
     public delegate bool DeleteLUG(CredentialEntry ce, string servername, string username);
     
@@ -123,12 +122,11 @@ public partial class LUGPage : StandardPage
             lvLUGBETA.SuspendLayout();
             memberTypeString = "Blank";
             enumLUG = NETAPIWrapper.EnumUsers;
+            //enumLUG = LUGAPI.NetEnumUsers;
             this.lblCaption.Text = "Select \"Users\" or \"Groups\" to view entries";
             columnLabels = new string[] { "Name" };
 
             lvLUGBETA.GridLines = false;
-            this.panel3.Hide();
-            //this.panel3.Location = this.panel2.Location;
             lvLUGBETA.ResumeLayout();
         }
         else if (type == LUGAPI.LUGType.User)
@@ -144,8 +142,7 @@ public partial class LUGPage : StandardPage
 
             columnLabels = new string[] { "", "Status", "Username", "Full Name", "Description" };
 
-            lvLUGBETA.GridLines = true;
-            this.panel3.Show();
+            lvLUGBETA.GridLines = false;
         }
         else if (type == LUGAPI.LUGType.Group)
         {
@@ -153,6 +150,7 @@ public partial class LUGPage : StandardPage
             //so that User and Group pages can have different sets of controls.
             memberTypeString = "Group";
             enumLUG = NETAPIWrapper.EnumGroups;
+            //enumLUG = LUGAPI.NetEnumGroups;
             deleteLUG = LUGAPI.NetDeleteGroup;
             renameLUG = LUGAPI.NetRenameGroup;
 
@@ -161,8 +159,7 @@ public partial class LUGPage : StandardPage
 
             columnLabels = new string[] { "", "Group Name", "Description" };
 
-            lvLUGBETA.GridLines = true;
-            this.panel3.Show();
+            lvLUGBETA.GridLines = false;
         }
         else
         {
@@ -499,6 +496,10 @@ public partial class LUGPage : StandardPage
                 {
                     //container.SetCursor(Cursors.WaitCursor);
                     enumLUG(hn.creds, hn.hostName, 0, enumLUGCallback);
+
+                    //LUGAPI.LUGEnumStatus enumStatus;
+                    //enumLUG(hn.creds, hn.hostName, 0, out enumStatus);
+                    //enumLUGCallback(enumStatus);
                 }
                 catch (AuthSessionException e)
                 {
@@ -580,37 +581,6 @@ public partial class LUGPage : StandardPage
         }
         if (enumStatus.entries != null && enumStatus.entries.Count > 0)
         {
-            if (!bFlag)
-            {
-                UInt32 nNoOfPages = Convert.ToUInt32((enumStatus.entries.Count / PageSize));
-                UInt32 nReminder = Convert.ToUInt32((enumStatus.entries.Count % PageSize));
-                
-                if (nReminder != 0)
-                {
-                    nNoOfPages = nNoOfPages + 1;
-                }
-                
-                if (cbLog.Items.Count != 0)
-                {
-                    cbLog.Items.Clear();
-                }
-                
-                string[] items = new string[nNoOfPages];
-                for (int npage = 0; npage < nNoOfPages; npage++)
-                {
-                    items[npage] = npage.ToString();
-                }
-                
-                ComboAddRangeDelegate c = ThreadSafeComboAddRange;
-                this.Invoke(c, new object[]
-                {
-                    items
-                }
-                );
-                
-                bFlag = true;
-                return;
-            }
             if (Convert.ToInt32(enumStatus.entries.Count - nOffset) > PageSize)
             {
                 lvArr = new ListViewItem[PageSize];
@@ -652,11 +622,15 @@ public partial class LUGPage : StandardPage
                 {
                     if (enumStatus.type == LUGAPI.LUGType.User)
                     {
-                        LUGAPI.NetEnumUsers(hn.creds, hn.hostName, enumStatus.resumeHandle, enumLUGCallback);
+                        //LUGAPI.NetEnumUsers(hn.creds, hn.hostName, enumStatus.resumeHandle, enumLUGCallback);
+                        LUGAPI.NetEnumUsers(hn.creds, hn.hostName, enumStatus.resumeHandle, out enumStatus);
+                        enumLUGCallback(enumStatus);
                     }
                     else if (enumStatus.type == LUGAPI.LUGType.Group)
                     {
-                        LUGAPI.NetEnumGroups(hn.creds, hn.hostName, enumStatus.resumeHandle, enumLUGCallback);
+                        //LUGAPI.NetEnumGroups(hn.creds, hn.hostName, enumStatus.resumeHandle, enumLUGCallback);
+                        LUGAPI.NetEnumGroups(hn.creds, hn.hostName, enumStatus.resumeHandle, out enumStatus);
+                        enumLUGCallback(enumStatus);
                     }
                 }
                 catch(Exception ex)
@@ -677,15 +651,6 @@ public partial class LUGPage : StandardPage
         if (range != null && range.Length > 0)
         {
             this.lvLUGBETA.Items.AddRange(range);
-        }
-    }
-    
-    private void ThreadSafeComboAddRange(string[] range)
-    {
-        if (range != null && range.Length > 0)
-        {
-            this.cbLog.Items.AddRange(range);
-            this.cbLog.SelectedIndex = 0;
         }
     }
     
@@ -1248,13 +1213,14 @@ public partial class LUGPage : StandardPage
     
     private void cbLog_SelectedIndexChanged(object sender, EventArgs e)
     {
-        PageNumber = (UInt32)Int32.Parse(cbLog.SelectedItem.ToString());
         Hostinfo hn = ctx as Hostinfo;
         lvLUGBETA.Items.Clear();
-        nOffset = PageNumber * PageSize;
-        Uppercount = nOffset + 50;
+
         enumLUG(hn.creds, hn.hostName, 0, enumLUGCallback);
-        
+
+        //LUGAPI.LUGEnumStatus enumStatus;
+        //enumLUG(hn.creds, hn.hostName, 0, out enumStatus);
+        //enumLUGCallback(enumStatus);
     }
 }
 

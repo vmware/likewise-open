@@ -605,10 +605,12 @@ namespace Likewise.LMC.NETAPI
             CredentialEntry ce,
             string servername,
             int resumeHandle,
-            LUGEnumStatusDelegate callback
+            out LUGEnumStatus enumStatus
+            //LUGEnumStatusDelegate callback
             )
         {
-            LUGEnumStatus enumStatus = new LUGEnumStatus();
+            //LUGEnumStatus enumStatus = new LUGEnumStatus();
+            enumStatus = new LUGEnumStatus();
             enumStatus.initializeToNull();
             enumStatus.type = LUGType.User;
 
@@ -672,11 +674,11 @@ namespace Likewise.LMC.NETAPI
                     }
                 }
 
-                if (callback != null)
-                {
-                    callback(enumStatus);
-                    callback = null;
-                }
+                //if (callback != null)
+                //{
+                //    callback(enumStatus);
+                //    callback = null;
+                //}
             }
             catch (Exception e)
             {
@@ -698,10 +700,12 @@ namespace Likewise.LMC.NETAPI
             CredentialEntry ce,
             string servername,
             int resumeHandle,
-            LUGEnumStatusDelegate callback
+            out LUGEnumStatus enumStatus
+            //LUGEnumStatusDelegate callback
             )
         {
-            LUGEnumStatus enumStatus = new LUGEnumStatus();
+            //LUGEnumStatus enumStatus = new LUGEnumStatus();
+            enumStatus = new LUGEnumStatus();
             enumStatus.initializeToNull();
             enumStatus.type = LUGType.Group;
 
@@ -756,10 +760,10 @@ namespace Likewise.LMC.NETAPI
                     enumStatus.moreEntries = true;
                 }
 
-                if (callback != null)
-                {
-                    callback(enumStatus);
-                }
+                //if (callback != null)
+                //{
+                //    callback(enumStatus);
+                //}
             }
             catch (Exception e)
             {
