@@ -65,11 +65,11 @@ public partial class LUGPage : StandardPage
         Group
     }
 
-    public delegate void EnumLUG(CredentialEntry creds, string serverName, int resumeHandle, LUGAPI.LUGEnumStatusDelegate callback);
-    //public delegate void EnumLUG(CredentialEntry creds, string serverName, int resumeHandle, out LUGAPI.LUGEnumStatus enumStatus);
-    
+    //public delegate void EnumLUG(CredentialEntry creds, string serverName, int resumeHandle, LUGAPI.LUGEnumStatusDelegate callback);
+    public delegate void EnumLUG(CredentialEntry creds, string serverName, int resumeHandle, out LUGAPI.LUGEnumStatus enumStatus);
+
     public delegate bool DeleteLUG(CredentialEntry ce, string servername, string username);
-    
+
     public delegate bool RenameLUG(CredentialEntry ce, string servername, string oldname, string newname);
     
     private delegate void AddRangeDelegate(ListViewItem[] range);
@@ -121,8 +121,8 @@ public partial class LUGPage : StandardPage
         {
             lvLUGBETA.SuspendLayout();
             memberTypeString = "Blank";
-            enumLUG = NETAPIWrapper.EnumUsers;
-            //enumLUG = LUGAPI.NetEnumUsers;
+            //enumLUG = NETAPIWrapper.EnumUsers;
+            enumLUG = LUGAPI.NetEnumUsers;
             this.lblCaption.Text = "Select \"Users\" or \"Groups\" to view entries";
             columnLabels = new string[] { "Name" };
 
@@ -135,8 +135,8 @@ public partial class LUGPage : StandardPage
             //so that User and Group pages can have different sets of controls.
 
             memberTypeString = "User";
-            //enumLUG = LUGAPI.NetEnumUsers;
-            enumLUG = NETAPIWrapper.EnumUsers;
+            enumLUG = LUGAPI.NetEnumUsers;
+            //enumLUG = NETAPIWrapper.EnumUsers;
             deleteLUG = LUGAPI.NetDeleteUser;
             renameLUG = LUGAPI.NetRenameUser;
 
@@ -149,8 +149,8 @@ public partial class LUGPage : StandardPage
             //The following controls are added here rather than in InitializeComponent,
             //so that User and Group pages can have different sets of controls.
             memberTypeString = "Group";
-            enumLUG = NETAPIWrapper.EnumGroups;
-            //enumLUG = LUGAPI.NetEnumGroups;
+            //enumLUG = NETAPIWrapper.EnumGroups;
+            enumLUG = LUGAPI.NetEnumGroups;
             deleteLUG = LUGAPI.NetDeleteGroup;
             renameLUG = LUGAPI.NetRenameGroup;
 
@@ -495,11 +495,12 @@ public partial class LUGPage : StandardPage
                 try
                 {
                     //container.SetCursor(Cursors.WaitCursor);
-                    enumLUG(hn.creds, hn.hostName, 0, enumLUGCallback);
 
-                    //LUGAPI.LUGEnumStatus enumStatus;
-                    //enumLUG(hn.creds, hn.hostName, 0, out enumStatus);
-                    //enumLUGCallback(enumStatus);
+                    //enumLUG(hn.creds, hn.hostName, 0, enumLUGCallback);
+
+                    LUGAPI.LUGEnumStatus enumStatus;
+                    enumLUG(hn.creds, hn.hostName, 0, out enumStatus);
+                    enumLUGCallback(enumStatus);
                 }
                 catch (AuthSessionException e)
                 {
@@ -1216,11 +1217,11 @@ public partial class LUGPage : StandardPage
         Hostinfo hn = ctx as Hostinfo;
         lvLUGBETA.Items.Clear();
 
-        enumLUG(hn.creds, hn.hostName, 0, enumLUGCallback);
+        //enumLUG(hn.creds, hn.hostName, 0, enumLUGCallback);
 
-        //LUGAPI.LUGEnumStatus enumStatus;
-        //enumLUG(hn.creds, hn.hostName, 0, out enumStatus);
-        //enumLUGCallback(enumStatus);
+        LUGAPI.LUGEnumStatus enumStatus;
+        enumLUG(hn.creds, hn.hostName, 0, out enumStatus);
+        enumLUGCallback(enumStatus);
     }
 }
 
