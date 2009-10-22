@@ -534,7 +534,7 @@ AC_CONFIG_FILES([Makefile
                  server/providers/sqlite/Makefile
                  server/providers/file/Makefile
                  server/lwregd/Makefile
-		 server/lwregd/lwreg.reg
+		         server/lwregd/lwreg.reg
                  ipc/Makefile
                  include/Makefile
                  client/Makefile
