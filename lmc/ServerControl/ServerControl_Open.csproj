@@ -57,6 +57,12 @@
     <Compile Include="src\Action.designer.cs">
       <DependentUpon>Action.cs</DependentUpon>
     </Compile>
+    <Compile Include="src\ActionBox.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="src\ActionBox.designer.cs">
+      <DependentUpon>ActionBox.cs</DependentUpon>
+    </Compile>
     <Compile Include="src\DbConnInfo.cs" />
     <Compile Include="src\GPObjectInfo.cs" />
     <Compile Include="src\KeyboardInfo.cs" />
@@ -122,7 +128,7 @@
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="src\StandardPage.cs">
-      <SubType>UserControl</SubType>
+      <SubType>Component</SubType>
     </Compile>
     <Compile Include="src\StandardPage.Designer.cs">
       <DependentUpon>StandardPage.cs</DependentUpon>
@@ -154,6 +160,10 @@
     </EmbeddedResource>
     <EmbeddedResource Include="src\Action.resx">
       <DependentUpon>Action.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\ActionBox.resx">
+      <DependentUpon>ActionBox.cs</DependentUpon>
       <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="src\EditDialog.resx">
