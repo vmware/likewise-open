@@ -397,7 +397,7 @@ AC_CONFIG_FILES([Makefile
                  server/ipc/Makefile
                  server/netlogond/Makefile
                  etc/Makefile
-                 etc/netlogon.reg
+                 etc/netlogond.reg
                  include/Makefile
                  tests/Makefile
                  tests/netlogonclient/Makefile

@@ -1,3 +1,3 @@
 # This file will be installed into netlogonconfdir (defined in configure.in)
 
-netlogonreg_DATA = netlogon.reg
+netlogonreg_DATA = netlogond.reg

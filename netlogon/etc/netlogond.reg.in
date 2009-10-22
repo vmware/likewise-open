@@ -9,6 +9,6 @@
 
 [HKEY_THIS_MACHINE\Services\netlogon\Parameters]
 "PingAgainTimeout"=dword:00000384
-"NegativeCacheTimeout"=dword:0000003c
+"NegativeCacheTimeout"=dword:0000003C
 "WritableRediscoveryTimeout"=dword:00000708
 "WritableTimestampMinimumChange"=dword:00000000
