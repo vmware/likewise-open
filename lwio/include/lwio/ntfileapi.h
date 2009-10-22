@@ -223,6 +223,18 @@ LwNtCtxQueryDirectoryFile(
     );
 
 NTSTATUS
+LwNtCtxReadDirectoryChangeFile(
+    IN PIO_CONTEXT pConnection,
+    IN IO_FILE_HANDLE FileHandle,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    OUT PIO_STATUS_BLOCK IoStatusBlock,
+    OUT PVOID Buffer,
+    IN ULONG Length,
+    IN BOOLEAN WatchTree,
+    IN FILE_NOTIFY_CHANGE NotifyFilter
+    );
+
+NTSTATUS
 LwNtCtxQueryVolumeInformationFile(
     IN PIO_CONTEXT pConnection,
     IN IO_FILE_HANDLE FileHandle,
@@ -508,6 +520,17 @@ LwNtQueryDirectoryFile(
     LW_IN LW_BOOLEAN RestartScan
     );
 
+NTSTATUS
+LwNtReadDirectoryChangeFile(
+    IN IO_FILE_HANDLE FileHandle,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    OUT PIO_STATUS_BLOCK IoStatusBlock,
+    OUT PVOID Buffer,
+    IN ULONG Length,
+    IN BOOLEAN WatchTree,
+    IN FILE_NOTIFY_CHANGE NotifyFilter
+    );
+
 LW_NTSTATUS
 LwNtQueryVolumeInformationFile(
     LW_IN IO_FILE_HANDLE FileHandle,
@@ -653,6 +676,7 @@ LwNtSetSecurityFile(
 #define NtCtxSetInformationFile            LwNtCtxSetInformationFile
 #define NtCtxQueryFullAttributesFile       LwNtCtxQueryFullAttributesFile
 #define NtCtxQueryDirectoryFile            LwNtCtxQueryDirectoryFile
+#define NtCtxReadDirectoryChangeFile       LwNtCtxReadDirectoryChangeFile
 #define NtCtxQueryVolumeInformationFile    LwNtCtxQueryVolumeInformationFile
 #define NtCtxSetVolumeInformationFile      LwNtCtxSetVolumeInformationFile
 #define NtCtxLockFile                      LwNtCtxLockFile
@@ -680,6 +704,7 @@ LwNtSetSecurityFile(
 #define NtSetInformationFile            LwNtSetInformationFile
 #define NtQueryFullAttributesFile       LwNtQueryFullAttributesFile
 #define NtQueryDirectoryFile            LwNtQueryDirectoryFile
+#define NtReadDirectoryChangeFile       LwNtReadDirectoryChangeFile
 #define NtQueryVolumeInformationFile    LwNtQueryVolumeInformationFile
 #define NtSetVolumeInformationFile      LwNtSetVolumeInformationFile
 #define NtLockFile                      LwNtLockFile
@@ -698,3 +723,14 @@ LwNtSetSecurityFile(
 #endif /* ! LW_STRICT_NAMESPACE */
 
 #endif /* __NT_FILE_API__ */
+
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

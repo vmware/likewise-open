@@ -933,6 +933,68 @@ cleanup:
     return status;
 }
 
+NTSTATUS
+LwNtCtxReadDirectoryChangeFile(
+    IN PIO_CONTEXT pConnection,
+    IN IO_FILE_HANDLE FileHandle,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    OUT PIO_STATUS_BLOCK IoStatusBlock,
+    OUT PVOID Buffer,
+    IN ULONG Length,
+    IN BOOLEAN WatchTree,
+    IN FILE_NOTIFY_CHANGE NotifyFilter
+    )
+{
+    NTSTATUS status = 0;
+    int EE = 0;
+    const LWMsgTag requestType = NT_IPC_MESSAGE_TYPE_READ_DIRECTORY_CHANGE_FILE;
+    const LWMsgTag responseType = NT_IPC_MESSAGE_TYPE_READ_DIRECTORY_CHANGE_FILE_RESULT;
+    NT_IPC_MESSAGE_READ_DIRECTORY_CHANGE_FILE request = { 0 };
+    PNT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT pResponse = NULL;
+    PVOID pReply = NULL;
+    IO_STATUS_BLOCK ioStatusBlock = { 0 };
+    LWMsgCall* pCall = NULL;
+
+    status = LwIoContextAcquireCall(pConnection, &pCall);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    if (AsyncControlBlock)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP_EE(EE);
+    }
+
+    request.FileHandle = FileHandle;
+    request.Length = Length;
+    request.WatchTree = WatchTree;
+    request.NotifyFilter = NotifyFilter;
+
+    status = NtpCtxCall(pCall,
+                        requestType,
+                        &request,
+                        responseType,
+                        &pReply);
+    ioStatusBlock.Status = status;
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    pResponse = (PNT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT) pReply;
+
+    status = NtpCtxGetBufferResult(&ioStatusBlock, Buffer, Length, pResponse);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+cleanup:
+
+    if (pCall)
+    {
+        NtpCtxFreeResponse(pCall, responseType, pResponse);
+        lwmsg_call_release(pCall);
+    }
+
+    *IoStatusBlock = ioStatusBlock;
+
+    LOG_LEAVE_IF_STATUS_EE(status, EE);
+    return status;
+}
 
 NTSTATUS
 LwNtCtxQueryVolumeInformationFile(
