@@ -85,10 +85,11 @@ int StartTest(struct test *t, const wchar16_t *hostname,
 {
     int ret;
 
-    if (t == NULL || hostname == NULL) return -1;
+    if (t == NULL) return -1;
 
-    ret = t->function(t, hostname, username, password,
-		      options, optcount);
+    ret = t->function(t,
+                      hostname, username, password,
+                      options, optcount);
     printf("%s\n", (ret) ? "SUCCEEDED" : "FAILED");
     return ret;
 }
@@ -188,15 +189,12 @@ int main(int argc, char *argv[])
     tests->function = NULL;
     tests->next     = NULL;
 
-    if (host == NULL) {
-        printf("Error: no hostname specified\n\n");
-        display_usage();
-        return -1;
+    if (host)
+    {
+        hostname_size = strlen(host) + 1;
+        hostname = (wchar16_t*) talloc(tests, hostname_size * sizeof(wchar16_t), NULL);
+        mbstowc16s(hostname, host, hostname_size);
     }
-
-    hostname_size = strlen(host) + 1;
-    hostname = (wchar16_t*) talloc(tests, hostname_size * sizeof(wchar16_t), NULL);
-    mbstowc16s(hostname, host, hostname_size);
 
     if (user && pass) {
         dwError = NetCreateNtlmCredentialsA(user,
@@ -254,7 +252,11 @@ int main(int argc, char *argv[])
 
 
 done:
-    tfree(hostname);
+    if (hostname)
+    {
+        tfree(hostname);
+    }
+
     tfree(tests);
 
     SAFE_FREE(username);
