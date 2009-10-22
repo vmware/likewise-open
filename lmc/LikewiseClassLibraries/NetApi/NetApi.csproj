@@ -37,9 +37,6 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="src\FilesHandle.cs" />
     <Compile Include="src\LUGAPI.cs" />
-    <Compile Include="src\NETAPI.cs" />
-    <Compile Include="src\NETAPIHelper.cs" />
-    <Compile Include="src\NETAPIMarshal.cs" />
     <Compile Include="src\printapi.cs" />
     <Compile Include="src\SharesAPI.cs" />
   </ItemGroup>

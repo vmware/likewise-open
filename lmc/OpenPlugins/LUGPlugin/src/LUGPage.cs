@@ -40,7 +40,6 @@ using System.Net;
 using Likewise.LMC.NETAPI;
 using Likewise.LMC.Netlogon;
 
-using Likewise.LMC.NETAPI.APIMarshal;
 using Likewise.LMC.AuthUtils;
 using Likewise.LMC.Plugins.LUG.src;
 
@@ -65,7 +64,6 @@ public partial class LUGPage : StandardPage
         Group
     }
 
-    //public delegate void EnumLUG(CredentialEntry creds, string serverName, int resumeHandle, LUGAPI.LUGEnumStatusDelegate callback);
     public delegate void EnumLUG(CredentialEntry creds, string serverName, int resumeHandle, out LUGAPI.LUGEnumStatus enumStatus);
 
     public delegate bool DeleteLUG(CredentialEntry ce, string servername, string username);
@@ -121,7 +119,6 @@ public partial class LUGPage : StandardPage
         {
             lvLUGBETA.SuspendLayout();
             memberTypeString = "Blank";
-            //enumLUG = NETAPIWrapper.EnumUsers;
             enumLUG = LUGAPI.NetEnumUsers;
             this.lblCaption.Text = "Select \"Users\" or \"Groups\" to view entries";
             columnLabels = new string[] { "Name" };
@@ -136,7 +133,6 @@ public partial class LUGPage : StandardPage
 
             memberTypeString = "User";
             enumLUG = LUGAPI.NetEnumUsers;
-            //enumLUG = NETAPIWrapper.EnumUsers;
             deleteLUG = LUGAPI.NetDeleteUser;
             renameLUG = LUGAPI.NetRenameUser;
 
@@ -149,7 +145,6 @@ public partial class LUGPage : StandardPage
             //The following controls are added here rather than in InitializeComponent,
             //so that User and Group pages can have different sets of controls.
             memberTypeString = "Group";
-            //enumLUG = NETAPIWrapper.EnumGroups;
             enumLUG = LUGAPI.NetEnumGroups;
             deleteLUG = LUGAPI.NetDeleteGroup;
             renameLUG = LUGAPI.NetRenameGroup;

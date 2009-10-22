@@ -107,7 +107,6 @@ public partial class NewGroupDlg : EditDialog, IUIInitialize
         {
             try
             {
-                //NETAPIWrapper.AddGroupMember(ce, domain, _servername, this.GroupName, lvMembers.Items[i].Text, null);
                 retVal = !Convert.ToBoolean(
                     LUGAPI.NetAddGroupMember(
                         ce,
