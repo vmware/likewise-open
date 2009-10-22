@@ -44,7 +44,7 @@ server_liblwsmloader_la_LDFLAGS = $(AM_LDFLAGS) -export-symbols $(top_srcdir)/se
 
 LOADER_CFLAGS = -shared
 LOADER_LDFLAGS = -shared -module -avoid-version
-loader_LTLIBRARIES = server/executable.la server/driver.la
+loader_LTLIBRARIES = server/executable.la server/driver.la server/stub.la
 
 server_executable_la_SOURCES = server/executable.c
 server_executable_la_CFLAGS = $(AM_CFLAGS) $(LOADER_CFLAGS)
@@ -55,6 +55,11 @@ server_driver_la_SOURCES = server/driver.c
 server_driver_la_CFLAGS = $(AM_CFLAGS) $(LOADER_CFLAGS)
 server_driver_la_LIBADD = $(top_builddir)/server/liblwsmloader.la
 server_driver_la_LDFLAGS = $(AM_LDFLAGS) $(LOADER_LDFLAGS)
+
+server_stub_la_SOURCES = server/stub.c
+server_stub_la_CFLAGS = $(AM_CFLAGS) $(LOADER_CFLAGS)
+server_stub_la_LIBADD = $(top_builddir)/server/liblwsmloader.la
+server_stub_la_LDFLAGS = $(AM_LDFLAGS) $(LOADER_LDFLAGS)
 
 # programs
 

@@ -100,7 +100,9 @@ typedef enum _LW_SERVICE_TYPE
     /** Service is a module for a container */
     LW_SERVICE_TYPE_MODULE = 2,
     /** Service is a driver */
-    LW_SERVICE_TYPE_DRIVER = 3
+    LW_SERVICE_TYPE_DRIVER = 3,
+    /** Service is a dummy stub */
+    LW_SERVICE_TYPE_STUB = 4
 } LW_SERVICE_TYPE, *PLW_SERVICE_TYPE;
 
 /**

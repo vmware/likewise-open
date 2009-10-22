@@ -108,6 +108,8 @@ LwSmTypeToString(
         return "module";
     case LW_SERVICE_TYPE_DRIVER:
         return "driver";
+    case LW_SERVICE_TYPE_STUB:
+        return "stub";
     default:
         return "unknown";
     }
