@@ -5,4 +5,4 @@
 "Path"="@SBINDIR@/dcerpcd"
 "Arguments"="dcerpcd -f"
 "Dependencies"=""
-"Type"=dword:00000001
+"Type"=@DCERPCD_SERVICE_TYPE@
