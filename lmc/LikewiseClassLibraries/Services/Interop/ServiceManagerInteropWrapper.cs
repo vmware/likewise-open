@@ -198,7 +198,7 @@ namespace Likewise.LMC.Services
         public static ServiceManagerApi.LW_SERVICE_INFO ApiLwSmQueryServiceInfo(IntPtr phServiceHandle)
         {
             ServiceManagerApi.LW_SERVICE_INFO serviceInfo = new ServiceManagerApi.LW_SERVICE_INFO();
-			IntPtr serviceInfoPtr = IntPtr.Zero;
+            IntPtr serviceInfoPtr = IntPtr.Zero;
             try
             {
                 Logger.Log("ServiceManagerInteropWrapper:ApiLwSmQueryServiceInfo()", Logger.ServiceManagerLoglevel);
@@ -211,7 +211,7 @@ namespace Likewise.LMC.Services
                 }
                 Logger.Log("ServiceManagerInteropWrapper:ApiLwSmQueryServiceInfo is success", Logger.ServiceManagerLoglevel);
 
-				serviceInfo = ServiceManagerInterop.UnmarshalServiceInfo(serviceInfoPtr);
+                serviceInfo = ServiceManagerInterop.UnmarshalServiceInfo(serviceInfoPtr);
             }
             catch (Exception ex)
             {

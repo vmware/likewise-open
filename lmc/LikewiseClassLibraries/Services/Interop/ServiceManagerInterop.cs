@@ -38,102 +38,102 @@ namespace Likewise.LMC.Services
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     struct _LW_SERVICE_INFO
     {
-		[MarshalAs(UnmanagedType.LPWStr)]
+        [MarshalAs(UnmanagedType.LPWStr)]
         public string pwszName;
-		[MarshalAs(UnmanagedType.LPWStr)]
+        [MarshalAs(UnmanagedType.LPWStr)]
         public string pwszDescription;
         public ServiceManagerApi.LW_SERVICE_TYPE type;
         [MarshalAs(UnmanagedType.LPWStr)]
         public string pwszPath;
         public IntPtr ppwszArgs;
-		public IntPtr ppwszDependencies;
-		[MarshalAs(UnmanagedType.Bool)]
+        public IntPtr ppwszDependencies;
+        [MarshalAs(UnmanagedType.Bool)]
         public bool bAutostart;
-	}
+    }
 
-	class ServiceManagerInterop
+    class ServiceManagerInterop
     {
         private const string advapiDllPath = "liblwsm.so";
 
-		public static IntPtr MarshalStringList(string[] values)
-		{
-			if (values == null)
-			{
-				return IntPtr.Zero;
-			}
-			else
-			{
-				IntPtr arrPtr = Marshal.AllocHGlobal((values.Length + 1) * IntPtr.Size);
+        public static IntPtr MarshalStringList(string[] values)
+        {
+            if (values == null)
+            {
+                return IntPtr.Zero;
+            }
+            else
+            {
+                IntPtr arrPtr = Marshal.AllocHGlobal((values.Length + 1) * IntPtr.Size);
 
-				for (int i = 0; i < values.Length; i++)
-				{
-					Marshal.WriteIntPtr(arrPtr, i * IntPtr.Size, Marshal.StringToHGlobalUni(values[i]));
-				}
+                for (int i = 0; i < values.Length; i++)
+                {
+                    Marshal.WriteIntPtr(arrPtr, i * IntPtr.Size, Marshal.StringToHGlobalUni(values[i]));
+                }
 
-				Marshal.WriteIntPtr(arrPtr, values.Length * IntPtr.Size, IntPtr.Zero);
+                Marshal.WriteIntPtr(arrPtr, values.Length * IntPtr.Size, IntPtr.Zero);
 
-				return arrPtr;
-			}
-		}
+                return arrPtr;
+            }
+        }
 
-		public static string[] UnmarshalStringList(IntPtr pNativeData)
-		{
-			if (pNativeData == IntPtr.Zero)
-			{
-				return null;
-			}
-			else
-			{
-				string[] res = null;
-				int len = 0;
-				int i = 0;
+        public static string[] UnmarshalStringList(IntPtr pNativeData)
+        {
+            if (pNativeData == IntPtr.Zero)
+            {
+                return null;
+            }
+            else
+            {
+                string[] res = null;
+                int len = 0;
+                int i = 0;
 
-				for (len = 0; Marshal.ReadIntPtr(pNativeData, len * IntPtr.Size) != IntPtr.Zero; len++);
+                for (len = 0; Marshal.ReadIntPtr(pNativeData, len * IntPtr.Size) != IntPtr.Zero; len++);
 
-				res = new string[len];
+                res = new string[len];
 
-				for (i = 0; i < len; i++)
-				{
-					res[i] = Marshal.PtrToStringUni(Marshal.ReadIntPtr(pNativeData, i * IntPtr.Size));
-				}
+                for (i = 0; i < len; i++)
+                {
+                    res[i] = Marshal.PtrToStringUni(Marshal.ReadIntPtr(pNativeData, i * IntPtr.Size));
+                }
 
-				return res;
-			}
-		}
+                return res;
+            }
+        }
 
-		public static ServiceManagerApi.LW_SERVICE_INFO UnmarshalServiceInfo(IntPtr pNativeData)
-		{
-			_LW_SERVICE_INFO _info = (_LW_SERVICE_INFO) Marshal.PtrToStructure(pNativeData, typeof(_LW_SERVICE_INFO));
-			ServiceManagerApi.LW_SERVICE_INFO info = new ServiceManagerApi.LW_SERVICE_INFO();
+        public static ServiceManagerApi.LW_SERVICE_INFO UnmarshalServiceInfo(IntPtr pNativeData)
+        {
+            _LW_SERVICE_INFO _info = (_LW_SERVICE_INFO) Marshal.PtrToStructure(pNativeData, typeof(_LW_SERVICE_INFO));
+            ServiceManagerApi.LW_SERVICE_INFO info = new ServiceManagerApi.LW_SERVICE_INFO();
 
-			info.type = _info.type;
-			info.pwszName = _info.pwszName;
-			info.pwszPath = _info.pwszPath;
-			info.pwszDescription = _info.pwszDescription;
-			info.bAutostart = _info.bAutostart;
-			info.ppwszArgs = ServiceManagerInterop.UnmarshalStringList(_info.ppwszArgs);
-			info.ppwszDependencies = ServiceManagerInterop.UnmarshalStringList(_info.ppwszDependencies);
+            info.type = _info.type;
+            info.pwszName = _info.pwszName;
+            info.pwszPath = _info.pwszPath;
+            info.pwszDescription = _info.pwszDescription;
+            info.bAutostart = _info.bAutostart;
+            info.ppwszArgs = ServiceManagerInterop.UnmarshalStringList(_info.ppwszArgs);
+            info.ppwszDependencies = ServiceManagerInterop.UnmarshalStringList(_info.ppwszDependencies);
 
-			return info;
-		}
+            return info;
+        }
 
-		public static IntPtr MarshalServiceInfo(object ManagedObj)
-		{
-			ServiceManagerApi.LW_SERVICE_INFO info = (ServiceManagerApi.LW_SERVICE_INFO) ManagedObj;
-			_LW_SERVICE_INFO _info = new _LW_SERVICE_INFO();
-			IntPtr infoPtr = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(_LW_SERVICE_INFO)));
+        public static IntPtr MarshalServiceInfo(object ManagedObj)
+        {
+            ServiceManagerApi.LW_SERVICE_INFO info = (ServiceManagerApi.LW_SERVICE_INFO) ManagedObj;
+            _LW_SERVICE_INFO _info = new _LW_SERVICE_INFO();
+            IntPtr infoPtr = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(_LW_SERVICE_INFO)));
 
-			_info.pwszName = info.pwszName;
-			_info.pwszPath = info.pwszPath;
-			_info.pwszDescription = info.pwszDescription;
-			_info.bAutostart = info.bAutostart;
-			_info.ppwszArgs = ServiceManagerInterop.MarshalStringList(info.ppwszArgs);
-			_info.ppwszDependencies = ServiceManagerInterop.MarshalStringList(info.ppwszDependencies);
+            _info.pwszName = info.pwszName;
+            _info.pwszPath = info.pwszPath;
+            _info.pwszDescription = info.pwszDescription;
+            _info.bAutostart = info.bAutostart;
+            _info.ppwszArgs = ServiceManagerInterop.MarshalStringList(info.ppwszArgs);
+            _info.ppwszDependencies = ServiceManagerInterop.MarshalStringList(info.ppwszDependencies);
 
-			Marshal.StructureToPtr(_info, infoPtr, false);
+            Marshal.StructureToPtr(_info, infoPtr, false);
 
-			return infoPtr;
-		}
+            return infoPtr;
+        }
 
 
         //DWORD
@@ -183,17 +183,17 @@ namespace Likewise.LMC.Services
         //DWORD
         //LwSmSrvEnumerateServices(
         //    PWSTR** pppwszServiceNames
-        //    );      
+        //    );
         [DllImport(advapiDllPath)]
         public static extern int LwSmEnumerateServices(
-			[MarshalAs(UnmanagedType.CustomMarshaler, MarshalTypeRef = typeof(ServiceNameListMarshaler))]
-		    out string[] pppwszServiceNames);
+            [MarshalAs(UnmanagedType.CustomMarshaler, MarshalTypeRef = typeof(ServiceNameListMarshaler))]
+            out string[] pppwszServiceNames);
 
-		[DllImport(advapiDllPath)]
-		public static extern void LwSmFreeServiceNameList(IntPtr pList);
+        [DllImport(advapiDllPath)]
+        public static extern void LwSmFreeServiceNameList(IntPtr pList);
 
-		[DllImport(advapiDllPath)]
-		public static extern void LwSmFreeServiceInfo(IntPtr pList);
+        [DllImport(advapiDllPath)]
+        public static extern void LwSmFreeServiceInfo(IntPtr pList);
 
         //DWORD
         //LwSmQueryServiceInfo(
@@ -201,73 +201,73 @@ namespace Likewise.LMC.Services
         //    );
         [DllImport(advapiDllPath)]
         public static extern int LwSmQueryServiceInfo(
-			IntPtr phHandle,
-		    out IntPtr ppInfo);
+            IntPtr phHandle,
+            out IntPtr ppInfo);
     }
 
-	class ServiceNameListMarshaler: ICustomMarshaler
-	{
-		static ICustomMarshaler GetInstance(string cookie)
-		{
-			return new ServiceNameListMarshaler();
-		}
+    class ServiceNameListMarshaler: ICustomMarshaler
+    {
+        static ICustomMarshaler GetInstance(string cookie)
+        {
+            return new ServiceNameListMarshaler();
+        }
 
-		void ICustomMarshaler.CleanUpManagedData (object ManagedObj)
-		{
-			return;
-		}
+        void ICustomMarshaler.CleanUpManagedData (object ManagedObj)
+        {
+            return;
+        }
 
-		void ICustomMarshaler.CleanUpNativeData (IntPtr pNativeData)
-		{
-			ServiceManagerInterop.LwSmFreeServiceNameList(pNativeData);
-		}
+        void ICustomMarshaler.CleanUpNativeData (IntPtr pNativeData)
+        {
+            ServiceManagerInterop.LwSmFreeServiceNameList(pNativeData);
+        }
 
-		int ICustomMarshaler.GetNativeDataSize ()
-		{
-			return Marshal.SizeOf(typeof(IntPtr));
-		}
+        int ICustomMarshaler.GetNativeDataSize ()
+        {
+            return Marshal.SizeOf(typeof(IntPtr));
+        }
 
-		IntPtr ICustomMarshaler.MarshalManagedToNative (object ManagedObj)
-		{
-			return ServiceManagerInterop.MarshalStringList((string[]) ManagedObj);
-		}
+        IntPtr ICustomMarshaler.MarshalManagedToNative (object ManagedObj)
+        {
+            return ServiceManagerInterop.MarshalStringList((string[]) ManagedObj);
+        }
 
-		object ICustomMarshaler.MarshalNativeToManaged (IntPtr pNativeData)
-		{
-			return ServiceManagerInterop.UnmarshalStringList(pNativeData);
-		}
-	}
+        object ICustomMarshaler.MarshalNativeToManaged (IntPtr pNativeData)
+        {
+            return ServiceManagerInterop.UnmarshalStringList(pNativeData);
+        }
+    }
 
-	class ServiceInfoMarshaler: ICustomMarshaler
-	{
-		static ICustomMarshaler GetInstance(string cookie)
-		{
-			return new ServiceInfoMarshaler();
-		}
+    class ServiceInfoMarshaler: ICustomMarshaler
+    {
+        static ICustomMarshaler GetInstance(string cookie)
+        {
+            return new ServiceInfoMarshaler();
+        }
 
-		void ICustomMarshaler.CleanUpManagedData (object ManagedObj)
-		{
-			return;
-		}
+        void ICustomMarshaler.CleanUpManagedData (object ManagedObj)
+        {
+            return;
+        }
 
-		void ICustomMarshaler.CleanUpNativeData (IntPtr pNativeData)
-		{
-			ServiceManagerInterop.LwSmFreeServiceInfo(pNativeData);
-		}
+        void ICustomMarshaler.CleanUpNativeData (IntPtr pNativeData)
+        {
+            ServiceManagerInterop.LwSmFreeServiceInfo(pNativeData);
+        }
 
-		int ICustomMarshaler.GetNativeDataSize ()
-		{
-			return IntPtr.Size;
-		}
+        int ICustomMarshaler.GetNativeDataSize ()
+        {
+            return IntPtr.Size;
+        }
 
-		IntPtr ICustomMarshaler.MarshalManagedToNative (object ManagedObj)
-		{
-			return ServiceManagerInterop.MarshalServiceInfo(ManagedObj);
-		}
+        IntPtr ICustomMarshaler.MarshalManagedToNative (object ManagedObj)
+        {
+            return ServiceManagerInterop.MarshalServiceInfo(ManagedObj);
+        }
 
-		object ICustomMarshaler.MarshalNativeToManaged (IntPtr pNativeData)
-		{
-			return ServiceManagerInterop.UnmarshalServiceInfo(pNativeData);
-		}
-	}
+        object ICustomMarshaler.MarshalNativeToManaged (IntPtr pNativeData)
+        {
+            return ServiceManagerInterop.UnmarshalServiceInfo(pNativeData);
+        }
+    }
 }
