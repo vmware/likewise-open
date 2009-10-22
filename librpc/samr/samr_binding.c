@@ -56,18 +56,21 @@ InitSamrBindingDefault(
 {
     RPCSTATUS rpcStatus = RPC_S_OK;
     PSTR pszProtSeq = (PSTR)SAMR_DEFAULT_PROT_SEQ;
+    PSTR pszLpcProtSeq = (PSTR)"ncalrpc";
     PSTR pszEndpoint = (PSTR)SAMR_DEFAULT_ENDPOINT;
+    PSTR pszLpcEndpoint = (PSTR)SAMR_LOCAL_ENDPOINT;
     PSTR pszUuid = NULL;
     PSTR pszOptions = NULL;
     handle_t hSamrBinding = NULL;
 
-    rpcStatus = InitSamrBindingFull(&hSamrBinding,
-                                    pszProtSeq,
-                                    pszHostname,
-                                    pszEndpoint,
-                                    pszUuid,
-                                    pszOptions,
-                                    pCreds);
+    rpcStatus = InitSamrBindingFull(
+                    &hSamrBinding,
+                    (pszHostname) ? pszProtSeq : pszLpcProtSeq,
+                    pszHostname,
+                    (pszHostname) ? pszEndpoint : pszLpcEndpoint,
+                    pszUuid,
+                    pszOptions,
+                    pCreds);
     BAIL_ON_RPCSTATUS_ERROR(rpcStatus);
 
     *phSamrBinding = hSamrBinding;
@@ -102,7 +105,7 @@ InitSamrBindingFull(
     unsigned char *options    = NULL;
     unsigned char *address    = NULL;
     handle_t hSamrBinding = NULL;
-    rpc_transport_info_handle_t info;
+    rpc_transport_info_handle_t hInfo = NULL;
 
     BAIL_ON_INVALID_PTR_RPCSTATUS(phSamrBinding, rpcStatus);
     BAIL_ON_INVALID_PTR_RPCSTATUS(pszProtSeq, rpcStatus);
@@ -144,18 +147,23 @@ InitSamrBindingFull(
                                     &rpcStatus);
     BAIL_ON_RPCSTATUS_ERROR(rpcStatus);
 
-    rpc_smb_transport_info_from_lwio_creds(pCreds,
-                                           FALSE,
-                                           &info,
-                                           &rpcStatus);
-    BAIL_ON_RPCSTATUS_ERROR(rpcStatus);
+    if (strcmp(pszProtSeq, "ncacn_np") == 0)
+    {
+        rpc_smb_transport_info_from_lwio_creds(
+            pCreds,
+            FALSE,
+            &hInfo,
+            &rpcStatus);
+        BAIL_ON_RPCSTATUS_ERROR(rpcStatus);
 
-    rpc_binding_set_transport_info(hSamrBinding,
-                                   info,
-                                   &rpcStatus);
-    BAIL_ON_RPCSTATUS_ERROR(rpcStatus);
+        rpc_binding_set_transport_info(
+            hSamrBinding,
+            hInfo,
+            &rpcStatus);
+        BAIL_ON_RPCSTATUS_ERROR(rpcStatus);
 
-	info = NULL;
+        hInfo = NULL;
+    }
 
     rpc_mgmt_set_com_timeout(hSamrBinding,
                              6,
@@ -171,9 +179,9 @@ cleanup:
     SAFE_FREE(options);
     SAFE_FREE(address);
 
-    if (info)
+    if (hInfo)
     {
-        rpc_smb_transport_info_free(info);
+        rpc_smb_transport_info_free(hInfo);
     }
 
     if (binding_string)
