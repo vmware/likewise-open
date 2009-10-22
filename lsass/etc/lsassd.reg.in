@@ -60,7 +60,7 @@
 "SkeletonDirs"="@default_skeldirs@"
 
 [HKEY_THIS_MACHINE\Services\lsass\Parameters\RPCServers]
-"Load"=""
+"Load"="lsarpc,samr,dssetup"
 
 [HKEY_THIS_MACHINE\Services\lsass\Parameters\RPCServers\lsarpc]
 "Path"="@rpcserverdir@/liblsa_srv@MOD_EXT@"
