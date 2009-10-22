@@ -351,6 +351,15 @@ LwSmHandleSigint(
 }
 
 static
+VOID
+LwSmHandleSig(
+    int sig
+    )
+{
+    return;
+}
+
+static
 DWORD
 LwSmConfigureSignals(
     VOID
@@ -366,9 +375,9 @@ LwSmConfigureSignals(
         -1
     };
     int i = 0;
-    struct sigaction intAction;
+    struct sigaction action;
 
-    memset(&intAction, 0, sizeof(intAction));
+    memset(&action, 0, sizeof(action));
 
     if (sigemptyset(&set) < 0)
     {
@@ -383,15 +392,24 @@ LwSmConfigureSignals(
             dwError = LwMapErrnoToLwError(errno);
             BAIL_ON_ERROR(dwError); 
         }
+
+	action.sa_handler = LwSmHandleSig;
+	action.sa_flags = 0;
+
+	if (sigaction(blockSignals[i], &action, NULL) < 0)
+        {
+             dwError = LwMapErrnoToLwError(errno);
+             BAIL_ON_ERROR(dwError);
+        }
     }
 
     dwError = LwMapErrnoToLwError(pthread_sigmask(SIG_SETMASK, &set, NULL));
     BAIL_ON_ERROR(dwError); 
 
-    intAction.sa_handler = LwSmHandleSigint;
-    intAction.sa_flags = 0;
+    action.sa_handler = LwSmHandleSigint;
+    action.sa_flags = 0;
 
-    if (sigaction(SIGINT, &intAction, NULL) < 0)
+    if (sigaction(SIGINT, &action, NULL) < 0)
     {
         dwError = LwMapErrnoToLwError(errno);
         BAIL_ON_ERROR(dwError);

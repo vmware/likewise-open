@@ -686,6 +686,14 @@ ntlm_gss_release_cred(
 
     pCreds = (PNTLM_GSS_CREDS)*pCredHandle;
 
+    if (!pCreds)
+    {
+        MajorStatus = GSS_S_NO_CRED;
+        MinorStatus = LW_ERROR_NO_CRED;
+        BAIL_ON_LSA_ERROR(MinorStatus);
+    }
+
+
     MinorStatus = NtlmClientFreeCredentialsHandle(
         &pCreds->CredHandle
         );

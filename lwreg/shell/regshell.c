@@ -59,6 +59,7 @@ typedef struct _EDITLINE_CLIENT_DATA
     PSTR pszCompletePrevArg;
     PSTR *ppszCompleteMatches;
     DWORD dwCompleteMatchesLen;
+    DWORD dwEnteredTextLen;
 } EDITLINE_CLIENT_DATA, *PEDITLINE_CLIENT_DATA;
 
 void
@@ -1044,6 +1045,7 @@ pfnRegShellCompleteCallback(
     PSTR pszCurrentCmd = NULL;
     PSTR pszPtr = NULL;
     PSTR pszArgPtr = NULL;
+    DWORD dwArgPtrLen = 0;
     PSTR pszSubKey = NULL;
     PSTR *ppMatchArgs = NULL;
     PSTR pszBestMatchValue = NULL;
@@ -1070,7 +1072,7 @@ pfnRegShellCompleteCallback(
         BAIL_ON_REG_ERROR(dwError);
     }
 
-    dwLineLen = lineInfoCtx->cursor - lineInfoCtx->buffer,
+    dwLineLen = lineInfoCtx->cursor - lineInfoCtx->buffer;
     dwError = LwAllocateMemory(sizeof(CHAR) * (dwLineLen+1),
                                (LW_PVOID) &pszCurrentCmd);
     BAIL_ON_REG_ERROR(dwError);
@@ -1085,8 +1087,9 @@ pfnRegShellCompleteCallback(
     {
         *pszPtr = '\0';
     }
-    if (*pszPtr)
+    if (pszPtr && *pszPtr)
     {
+        dwArgPtrLen = strlen(pszPtr);
         dwLineLen = pszPtr - pszCurrentCmd;
         pszArgPtr = pszCurrentCmd + dwLineLen;
 
@@ -1250,7 +1253,9 @@ pfnRegShellCompleteCallback(
             el_set(el, EL_REFRESH);
 
         }
-        else if (dwMatchArgsLen == 1 || dwSubKeyLen == 1)
+        else if (dwMatchArgsLen == 1 ||
+                 (dwSubKeyLen == 1 &&
+                  (dwArgPtrLen-cldata->dwEnteredTextLen) == 0))
         {
             if (dwMatchArgsLen == 1)
             {
@@ -1343,6 +1348,7 @@ pfnRegShellCompleteCallback(
             }
             LW_SAFE_FREE_MEMORY(cldata->ppszCompleteMatches);
             cldata->dwCompleteMatchesLen = 0;
+            cldata-> dwEnteredTextLen = strlen(pszPtr) + 1;
             bExactMatch = TRUE;
             dwError = CC_REFRESH;
         }
@@ -1353,15 +1359,15 @@ pfnRegShellCompleteCallback(
             {
                 dwError = LwWc16sToMbs(ppSubKeys[i], &pszSubKey);
                 BAIL_ON_REG_ERROR(dwError);
-            pszPtr = strrchr(pszSubKey, '\\');
-            if (pszPtr)
-            {
-                pszPtr++;
-            }
-            else
-            {
-                pszPtr = pszSubKey;
-            }
+                pszPtr = strrchr(pszSubKey, '\\');
+                if (pszPtr)
+                {
+                    pszPtr++;
+                }
+                else
+                {
+                    pszPtr = pszSubKey;
+                }
                 printf("%s\t", pszPtr);
                 LW_SAFE_FREE_STRING(pszSubKey);
             }
@@ -1567,6 +1573,7 @@ RegShellProcessInteractiveEditLine(
         }
         LW_SAFE_FREE_MEMORY(el_cdata.ppszCompleteMatches);
         LW_SAFE_FREE_STRING(el_cdata.pszCompletePrevCmd);
+        el_cdata.dwEnteredTextLen = 0;
 #endif
 
 
