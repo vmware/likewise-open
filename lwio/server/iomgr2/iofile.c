@@ -278,6 +278,8 @@ IopFileObjectRundown(
     {
         // Need to wait
 
+        SetFlag(pFileObject->Flags, FILE_OBJECT_FLAG_RUNDOWN_WAIT);
+
         if (!Callback)
         {
             // Wait inline for synchronous case
@@ -337,39 +339,6 @@ cleanup:
     return status;
 }
 
-
-static
-VOID
-IopFileObjectCompleteRundown(
-    IN PIO_FILE_OBJECT pFileObject
-    )
-{
-    // The file object lock should not be held.
-
-    // Safe because this bit is never reset.
-    LWIO_ASSERT(IsSetFlag(pFileObject->Flags, FILE_OBJECT_FLAG_RUNDOWN));
-
-    // Is this safe?  In theory, the only IRP that could
-    // change this is the close IRP, but that should wait
-    // until this function calls or signals.
-    //
-    // FIXME - This needs to be revisited and verify the invariant
-    LWIO_ASSERT(pFileObject->DispatchedIrpCount <= 1);
-
-    if (pFileObject->Rundown.Callback)
-    {
-        IopContinueAsyncCloseFile(
-                pFileObject,
-                pFileObject->Rundown.Callback,
-                pFileObject->Rundown.CallbackContext,
-                pFileObject->Rundown.pIoStatusBlock);
-    }
-    else
-    {
-        LwRtlSignalConditionVariable(&pFileObject->Rundown.Condition);
-    }
-}
-
 NTSTATUS
 IopFileObjectAddDispatched(
     IN PIO_FILE_OBJECT pFileObject,
@@ -404,24 +373,40 @@ IopFileObjectRemoveDispatched(
     IN IRP_TYPE Type
     )
 {
-    BOOLEAN needCompleteRundown = FALSE;
+    BOOLEAN needContinueAsycClose = FALSE;
 
     IopFileObjectLock(pFileObject);
 
     pFileObject->DispatchedIrpCount--;
     LWIO_ASSERT(pFileObject->DispatchedIrpCount >= 0);
 
-    if ((Type != IRP_TYPE_CLOSE) &&
-        IsSetFlag(pFileObject->Flags, FILE_OBJECT_FLAG_RUNDOWN) &&
+    if (IsSetFlag(pFileObject->Flags, FILE_OBJECT_FLAG_RUNDOWN_WAIT) &&
         (0 == pFileObject->DispatchedIrpCount))
     {
-        needCompleteRundown = TRUE;
+        // TODO-Perhaps remove Type parameter since the use of
+        // FILE_OBJECT_FLAG_RUNDOWN_WAIT negates the need for it.
+        LWIO_ASSERT(Type != IRP_TYPE_CLOSE);
+
+        if (pFileObject->Rundown.Callback)
+        {
+            needContinueAsycClose = TRUE;
+        }
+        else
+        {
+            LwRtlSignalConditionVariable(&pFileObject->Rundown.Condition);
+        }
+
+        ClearFlag(pFileObject->Flags, FILE_OBJECT_FLAG_RUNDOWN_WAIT);
     }
 
     IopFileObjectUnlock(pFileObject);
 
-    if (needCompleteRundown)
+    if (needContinueAsycClose)
     {
-        IopFileObjectCompleteRundown(pFileObject);
+        IopContinueAsyncCloseFile(
+                pFileObject,
+                pFileObject->Rundown.Callback,
+                pFileObject->Rundown.CallbackContext,
+                pFileObject->Rundown.pIoStatusBlock);
     }
 }
