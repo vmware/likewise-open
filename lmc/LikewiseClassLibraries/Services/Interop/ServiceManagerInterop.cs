@@ -35,189 +35,239 @@ using System.Runtime.InteropServices;
 
 namespace Likewise.LMC.Services
 {
-    class ServiceManagerInterop
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    struct _LW_SERVICE_INFO
     {
-        private const string advapiDllPath = "liblwsm.dll";
+		[MarshalAs(UnmanagedType.LPWStr)]
+        public string pwszName;
+		[MarshalAs(UnmanagedType.LPWStr)]
+        public string pwszDescription;
+        public ServiceManagerApi.LW_SERVICE_TYPE type;
+        [MarshalAs(UnmanagedType.LPWStr)]
+        public string pwszPath;
+        public IntPtr ppwszArgs;
+		public IntPtr ppwszDependencies;
+		[MarshalAs(UnmanagedType.Bool)]
+        public bool bAutostart;
+	}
+
+	class ServiceManagerInterop
+    {
+        private const string advapiDllPath = "liblwsm.so";
+
+		public static IntPtr MarshalStringList(string[] values)
+		{
+			if (values == null)
+			{
+				return IntPtr.Zero;
+			}
+			else
+			{
+				IntPtr arrPtr = Marshal.AllocHGlobal((values.Length + 1) * IntPtr.Size);
+
+				for (int i = 0; i < values.Length; i++)
+				{
+					Marshal.WriteIntPtr(arrPtr, i * IntPtr.Size, Marshal.StringToHGlobalUni(values[i]));
+				}
+
+				Marshal.WriteIntPtr(arrPtr, values.Length * IntPtr.Size, IntPtr.Zero);
+
+				return arrPtr;
+			}
+		}
+
+		public static string[] UnmarshalStringList(IntPtr pNativeData)
+		{
+			if (pNativeData == IntPtr.Zero)
+			{
+				return null;
+			}
+			else
+			{
+				string[] res = null;
+				int len = 0;
+				int i = 0;
+
+				for (len = 0; Marshal.ReadIntPtr(pNativeData, len * IntPtr.Size) != IntPtr.Zero; len++);
+
+				res = new string[len];
+
+				for (i = 0; i < len; i++)
+				{
+					res[i] = Marshal.PtrToStringUni(Marshal.ReadIntPtr(pNativeData, i * IntPtr.Size));
+				}
+
+				return res;
+			}
+		}
+
+		public static ServiceManagerApi.LW_SERVICE_INFO UnmarshalServiceInfo(IntPtr pNativeData)
+		{
+			_LW_SERVICE_INFO _info = (_LW_SERVICE_INFO) Marshal.PtrToStructure(pNativeData, typeof(_LW_SERVICE_INFO));
+			ServiceManagerApi.LW_SERVICE_INFO info = new ServiceManagerApi.LW_SERVICE_INFO();
+
+			info.type = _info.type;
+			info.pwszName = _info.pwszName;
+			info.pwszPath = _info.pwszPath;
+			info.pwszDescription = _info.pwszDescription;
+			info.bAutostart = _info.bAutostart;
+			info.ppwszArgs = ServiceManagerInterop.UnmarshalStringList(_info.ppwszArgs);
+			info.ppwszDependencies = ServiceManagerInterop.UnmarshalStringList(_info.ppwszDependencies);
+
+			return info;
+		}
+
+		public static IntPtr MarshalServiceInfo(object ManagedObj)
+		{
+			ServiceManagerApi.LW_SERVICE_INFO info = (ServiceManagerApi.LW_SERVICE_INFO) ManagedObj;
+			_LW_SERVICE_INFO _info = new _LW_SERVICE_INFO();
+			IntPtr infoPtr = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(_LW_SERVICE_INFO)));
+
+			_info.pwszName = info.pwszName;
+			_info.pwszPath = info.pwszPath;
+			_info.pwszDescription = info.pwszDescription;
+			_info.bAutostart = info.bAutostart;
+			_info.ppwszArgs = ServiceManagerInterop.MarshalStringList(info.ppwszArgs);
+			_info.ppwszDependencies = ServiceManagerInterop.MarshalStringList(info.ppwszDependencies);
+
+			Marshal.StructureToPtr(_info, infoPtr, false);
+
+			return infoPtr;
+		}
+
 
         //DWORD
         //LwSmAcquireServiceHandle(
         //        PCWSTR pwszName,
         //        PLW_SERVICE_HANDLE phHandle);       
-        [DllImport(advapiDllPath, SetLastError = true)]
+        [DllImport(advapiDllPath)]
         public static extern int LwSmAcquireServiceHandle(
                 [MarshalAs(UnmanagedType.LPWStr)] string pName,
-                IntPtr phHandle);
+                out IntPtr phHandle);
 
         //VOID
         //LwSmReleaseServiceHandle(
         //    LW_SERVICE_HANDLE hHandle
         //    );       
-        [DllImport(advapiDllPath, SetLastError = true)]
+        [DllImport(advapiDllPath)]
         public static extern int LwSmReleaseServiceHandle(IntPtr phHandle);
 
         //VOID
         //LwSmStartService(
         //    LW_SERVICE_HANDLE hHandle
         //    );       
-        [DllImport(advapiDllPath, SetLastError = true)]
+        [DllImport(advapiDllPath)]
         public static extern int LwSmStartService(IntPtr phHandle);
 
         //VOID
         //LwSmStopService(
         //    LW_SERVICE_HANDLE hHandle
         //    );       
-        [DllImport(advapiDllPath, SetLastError = true)]
+        [DllImport(advapiDllPath)]
         public static extern int LwSmStopService(IntPtr phHandle);
 
         //VOID
         //LwSmRefreshService(
         //    LW_SERVICE_HANDLE hHandle
         //    );       
-        [DllImport(advapiDllPath, SetLastError = true)]
+        [DllImport(advapiDllPath)]
         public static extern int LwSmRefreshService(IntPtr phHandle);
 
         //VOID
         //LwSmQueryServiceStatus(
         //    LW_SERVICE_HANDLE hHandle
         //    );       
-        [DllImport(advapiDllPath, SetLastError = true)]
-        public static extern int LwSmQueryServiceStatus(IntPtr phHandle, IntPtr pStatus);
+        [DllImport(advapiDllPath)]
+        public static extern int LwSmQueryServiceStatus(IntPtr phHandle, out ServiceManagerApi.LW_SERVICE_STATUS pStatus);
 
         //DWORD
         //LwSmSrvEnumerateServices(
         //    PWSTR** pppwszServiceNames
         //    );      
-        [DllImport(advapiDllPath, SetLastError = true)]
-        public static extern int LwSmEnumerateServices([MarshalAs(UnmanagedType.LPWStr)] out string[] pppwszServiceNames);
+        [DllImport(advapiDllPath)]
+        public static extern int LwSmEnumerateServices(
+			[MarshalAs(UnmanagedType.CustomMarshaler, MarshalTypeRef = typeof(ServiceNameListMarshaler))]
+		    out string[] pppwszServiceNames);
 
-        //DWORD
-        //LwSmSrvGetServiceStatus(
-        //    LW_SERVICE_HANDLE hHandle,
-        //    PLW_SERVICE_STATUS pStatus
-        //    );
-        [DllImport(advapiDllPath, SetLastError = true)]
-        public static extern void LwSmSrvGetServiceStatus(IntPtr phHandle, IntPtr pStatus);
+		[DllImport(advapiDllPath)]
+		public static extern void LwSmFreeServiceNameList(IntPtr pList);
 
-        //DWORD
-        //LwSmSrvStartService(
-        //    LW_SERVICE_HANDLE hHandle
-        //    );
-        [DllImport(advapiDllPath, SetLastError = true)]
-        public static extern void LwSmSrvStartService(IntPtr phHandle);
-
-        //DWORD
-        //LwSmSrvStopService(
-        //    LW_SERVICE_HANDLE hHandle
-        //    );
-        [DllImport(advapiDllPath, SetLastError = true)]
-        public static extern void LwSmSrvStopService(IntPtr phHandle);
+		[DllImport(advapiDllPath)]
+		public static extern void LwSmFreeServiceInfo(IntPtr pList);
 
         //DWORD
         //LwSmQueryServiceInfo(
         //    LW_SERVICE_HANDLE hHandle
         //    );
-        [DllImport(advapiDllPath, SetLastError = true)]
-        public static extern int LwSmQueryServiceInfo(IntPtr phHandle, out IntPtr ppInfo);
-
-        //DWORD
-        //LwSmSrvGetServiceInfo(
-        //    LW_SERVICE_HANDLE hHandle,
-        //    PLW_SERVICE_INFO* ppInfo
-        //    );
-        [DllImport(advapiDllPath, SetLastError = true)]
-        public static extern uint LwSmSrvGetServiceInfo(IntPtr phHandle, IntPtr ppInfo);
-
-        //LWMsgDispatchSpec*
-        //LwSmGetDispatchSpec(
-        //    void
-        //    );
-        [DllImport(advapiDllPath, SetLastError = true)]
-        public static extern IntPtr LwSmGetDispatchSpec();
-
-        //DWORD
-        //LwSmTableGetEntry(
-        //    PCWSTR pwszName,
-        //    PSM_TABLE_ENTRY* ppEntry
-        //    );
-        [DllImport(advapiDllPath, SetLastError = true)]
-        public static extern IntPtr LwSmTableGetEntry([MarshalAs(UnmanagedType.LPWStr)] string pwszName,
-                                    IntPtr ppEntry);
-
-        //DWORD
-        //LwSmTableEnumerateEntries(
-        //    PWSTR** pppwszServiceNames
-        //    );
-        [DllImport(advapiDllPath, SetLastError = true)]
-        public static extern IntPtr LwSmTableEnumerateEntries([MarshalAs(UnmanagedType.LPWStr)] string[] pppwszServiceNames);
-
-        //VOID
-        //LwSmTableRetainEntry(
-        //    PSM_TABLE_ENTRY pEntry
-        //    );
-        [DllImport(advapiDllPath, SetLastError = true)]
-        public static extern IntPtr LwSmTableRetainEntry(IntPtr pEntry);
-
-        //VOID
-        //LwSmTableReleaseEntry(
-        //    PSM_TABLE_ENTRY pEntry
-        //    );
-        [DllImport(advapiDllPath, SetLastError = true)]
-        public static extern IntPtr LwSmTableReleaseEntry(IntPtr pEntry);
-
-        //DWORD
-        //LwSmTableStartEntry(
-        //    PSM_TABLE_ENTRY pEntry
-        //    );
-        [DllImport(advapiDllPath, SetLastError = true)]
-        public static extern IntPtr LwSmTableStartEntry(IntPtr pEntry);
-
-        //DWORD
-        //LwSmTableStopEntry(
-        //    PSM_TABLE_ENTRY pEntry
-        //    );
-        [DllImport(advapiDllPath, SetLastError = true)]
-        public static extern IntPtr LwSmTableStopEntry(IntPtr pEntry);
-
-        //VOID
-        //LwSmTableNotifyEntryChanged(
-        //    PSM_TABLE_ENTRY pEntry
-        //    );
-        [DllImport(advapiDllPath, SetLastError = true)]
-        public static extern IntPtr LwSmTableNotifyEntryChanged(IntPtr pEntry);
-
-        //DWORD
-        //LwSmTableWaitEntryChanged(
-        //    PSM_TABLE_ENTRY pEntry
-        //    );
-        [DllImport(advapiDllPath, SetLastError = true)]
-        public static extern IntPtr LwSmTableWaitEntryChanged(IntPtr pEntry);
-
-        //DWORD
-        //LwSmTableGetEntryStatus(
-        //    PSM_TABLE_ENTRY pEntry,
-        //    PLW_SERVICE_STATUS pStatus
-        //    );
-        [DllImport(advapiDllPath, SetLastError = true)]
-        public static extern IntPtr LwSmTableGetEntryStatus(IntPtr pEntry, IntPtr pStatus);
-
-        //DWORD
-        //LwSmRegistryEnumServices(
-        //    HANDLE hReg,
-        //    PWSTR** pppwszNames
-        //    );
-        [DllImport(advapiDllPath, SetLastError = true)]
-        public static extern IntPtr LwSmRegistryEnumServices([MarshalAs(UnmanagedType.LPWStr)] out string[] pppwszNames);
-
-        //DWORD
-        //LwSmRegistryReadServiceInfo(
-        //    HANDLE hReg,
-        //    PCWSTR pwszName,
-        //    PLW_SERVICE_INFO* ppInfo
-        //    );
-        [DllImport(advapiDllPath, SetLastError = true)]
-        public static extern uint LwSmRegistryEnumServices(IntPtr hReg,
-                            [MarshalAs(UnmanagedType.LPWStr)] string pwszName,
-                            IntPtr ppInfo);
-
+        [DllImport(advapiDllPath)]
+        public static extern int LwSmQueryServiceInfo(
+			IntPtr phHandle,
+		    out IntPtr ppInfo);
     }
+
+	class ServiceNameListMarshaler: ICustomMarshaler
+	{
+		static ICustomMarshaler GetInstance(string cookie)
+		{
+			return new ServiceNameListMarshaler();
+		}
+
+		void ICustomMarshaler.CleanUpManagedData (object ManagedObj)
+		{
+			return;
+		}
+
+		void ICustomMarshaler.CleanUpNativeData (IntPtr pNativeData)
+		{
+			ServiceManagerInterop.LwSmFreeServiceNameList(pNativeData);
+		}
+
+		int ICustomMarshaler.GetNativeDataSize ()
+		{
+			return Marshal.SizeOf(typeof(IntPtr));
+		}
+
+		IntPtr ICustomMarshaler.MarshalManagedToNative (object ManagedObj)
+		{
+			return ServiceManagerInterop.MarshalStringList((string[]) ManagedObj);
+		}
+
+		object ICustomMarshaler.MarshalNativeToManaged (IntPtr pNativeData)
+		{
+			return ServiceManagerInterop.UnmarshalStringList(pNativeData);
+		}
+	}
+
+	class ServiceInfoMarshaler: ICustomMarshaler
+	{
+		static ICustomMarshaler GetInstance(string cookie)
+		{
+			return new ServiceInfoMarshaler();
+		}
+
+		void ICustomMarshaler.CleanUpManagedData (object ManagedObj)
+		{
+			return;
+		}
+
+		void ICustomMarshaler.CleanUpNativeData (IntPtr pNativeData)
+		{
+			ServiceManagerInterop.LwSmFreeServiceInfo(pNativeData);
+		}
+
+		int ICustomMarshaler.GetNativeDataSize ()
+		{
+			return IntPtr.Size;
+		}
+
+		IntPtr ICustomMarshaler.MarshalManagedToNative (object ManagedObj)
+		{
+			return ServiceManagerInterop.MarshalServiceInfo(ManagedObj);
+		}
+
+		object ICustomMarshaler.MarshalNativeToManaged (IntPtr pNativeData)
+		{
+			return ServiceManagerInterop.UnmarshalServiceInfo(pNativeData);
+		}
+	}
 }

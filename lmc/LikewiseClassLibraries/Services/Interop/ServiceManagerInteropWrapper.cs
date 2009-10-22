@@ -68,7 +68,7 @@ namespace Likewise.LMC.Services
             {
                 Logger.Log("ServiceManagerInteropWrapper:ApiLwSmAcquireServiceHandle()", Logger.ServiceManagerLoglevel);
 
-                int iRet = ServiceManagerInterop.LwSmAcquireServiceHandle(sServiceName, phServiceHandle);
+                int iRet = ServiceManagerInterop.LwSmAcquireServiceHandle(sServiceName, out phServiceHandle);
                 if (iRet != 0)
                 {
                     Logger.Log("ServiceManagerInteropWrapper:ApiLwSmAcquireServiceHandle returns" + iRet.ToString(), Logger.ServiceManagerLoglevel);
@@ -173,23 +173,17 @@ namespace Likewise.LMC.Services
 
         public static ServiceManagerApi.LW_SERVICE_STATUS ApiLwSmQueryServiceStatus(IntPtr phServiceHandle)
         {
-            IntPtr pServiceStatus = IntPtr.Zero;
             ServiceManagerApi.LW_SERVICE_STATUS serviceStatus = new ServiceManagerApi.LW_SERVICE_STATUS();
 
             try
             {
                 Logger.Log("ServiceManagerInteropWrapper:ApiLwSmQueryServiceStatus()", Logger.ServiceManagerLoglevel);
 
-                int iRet = ServiceManagerInterop.LwSmQueryServiceStatus(phServiceHandle, pServiceStatus);
+                int iRet = ServiceManagerInterop.LwSmQueryServiceStatus(phServiceHandle, out serviceStatus);
                 if (iRet != 0)
                 {
                     Logger.Log("ServiceManagerInteropWrapper:ApiLwSmQueryServiceStatus returns" + iRet.ToString(), Logger.ServiceManagerLoglevel);
                     return serviceStatus;
-                }
-                if (pServiceStatus != IntPtr.Zero)
-                {
-                    Marshal.PtrToStructure(pServiceStatus, serviceStatus);
-                    Console.WriteLine(serviceStatus.state);
                 }
                 Logger.Log("ServiceManagerInteropWrapper:ApiLwSmQueryServiceStatus is success", Logger.ServiceManagerLoglevel);
             }
@@ -204,12 +198,12 @@ namespace Likewise.LMC.Services
         public static ServiceManagerApi.LW_SERVICE_INFO ApiLwSmQueryServiceInfo(IntPtr phServiceHandle)
         {
             ServiceManagerApi.LW_SERVICE_INFO serviceInfo = new ServiceManagerApi.LW_SERVICE_INFO();
+			IntPtr serviceInfoPtr = IntPtr.Zero;
             try
             {
-                IntPtr ppInfo = IntPtr.Zero;
                 Logger.Log("ServiceManagerInteropWrapper:ApiLwSmQueryServiceInfo()", Logger.ServiceManagerLoglevel);
 
-                int iRet = ServiceManagerInterop.LwSmQueryServiceInfo(phServiceHandle, out ppInfo);
+                int iRet = ServiceManagerInterop.LwSmQueryServiceInfo(phServiceHandle, out serviceInfoPtr);
                 if (iRet != 0)
                 {
                     Logger.Log("ServiceManagerInteropWrapper:ApiLwSmQueryServiceInfo returns" + iRet.ToString(), Logger.ServiceManagerLoglevel);
@@ -217,14 +211,7 @@ namespace Likewise.LMC.Services
                 }
                 Logger.Log("ServiceManagerInteropWrapper:ApiLwSmQueryServiceInfo is success", Logger.ServiceManagerLoglevel);
 
-                if (ppInfo != IntPtr.Zero)
-                {
-                    Marshal.PtrToStructure(ppInfo, serviceInfo);
-                    Console.WriteLine(serviceInfo.pwszName);
-                    Console.WriteLine(serviceInfo.pwszDescription);
-                    Console.WriteLine(serviceInfo.pwszPath);
-                    Console.WriteLine(serviceInfo.bAutostart);
-                }
+				serviceInfo = ServiceManagerInterop.UnmarshalServiceInfo(serviceInfoPtr);
             }
             catch (Exception ex)
             {

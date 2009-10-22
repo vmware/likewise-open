@@ -124,21 +124,20 @@ namespace Likewise.LMC.Services
         * Describes the basic information about a service,
         * such as its path, command line arguments, etc.
         */
-        [StructLayout(LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
         public struct LW_SERVICE_INFO
         {
-            /** @brief Service short name */
             public string pwszName;
             /** @brief Service description */
             public string pwszDescription;
             /** @brief Service type */
-            LW_SERVICE_TYPE type;
+            public LW_SERVICE_TYPE type;
             /** @brief Path to service executable or module */
             public string pwszPath;
             /** @brief Arguments to service when started */
-            public IntPtr ppwszArgs;
+            public string[] ppwszArgs;
             /** @brief Names of services on which this service depends */
-            IntPtr ppwszDependencies;
+            public string[] ppwszDependencies;
             /** @brief Is this service automatically started? */
             public bool bAutostart;
         }
@@ -172,7 +171,7 @@ namespace Likewise.LMC.Services
             /** Brief Service home */
             public LW_SERVICE_HOME home;
             /** Brief Process ID of service home */
-            public  IntPtr pid;
+            public int pid;
         }
 
         /**
