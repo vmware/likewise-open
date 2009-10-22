@@ -494,6 +494,7 @@ lwmsg_server_task_handle_assoc_error(
     case LWMSG_STATUS_OVERFLOW:
     case LWMSG_STATUS_UNDERFLOW:
     case LWMSG_STATUS_CANCELLED:
+    case LWMSG_STATUS_UNSUPPORTED:
         LWMSG_LOG_VERBOSE(server->context, "(assoc:0x%lx) Dropping: %s",
                           LWMSG_POINTER_AS_ULONG((*task)->info.call.assoc),
                           lwmsg_assoc_get_error_message((*task)->info.call.assoc, status));
@@ -768,6 +769,13 @@ lwmsg_server_task_perform_call(
     }
 
     spec = server->dispatch.vector[(*task)->info.call.incoming.tag];
+    if (spec == NULL)
+    {
+        BAIL_ON_ERROR(status = lwmsg_server_task_handle_assoc_error(
+                          server,
+                          task,
+                          LWMSG_STATUS_UNSUPPORTED));
+    }
 
     lwmsg_server_call_setup(&(*task)->info.call, thread, spec, server->dispatch_data);
 
