@@ -164,6 +164,9 @@ PvfsDriverDispatch(
     case IRP_TYPE_FS_CONTROL:
         ntError = PvfsDispatchFsIoControl(pIrpCtx);
         break;
+    case IRP_TYPE_READ_DIRECTORY_CHANGE:
+        ntError = PvfsReadDirectoryChange(pIrpCtx);
+        break;
     case IRP_TYPE_SET_INFORMATION:
         ntError = PvfsSetInformationFile(pIrpCtx);
         break;

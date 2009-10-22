@@ -740,6 +740,60 @@ cleanup:
     return status;
 }
 
+NTSTATUS
+IoReadDirectoryChangeFile(
+    IN IO_FILE_HANDLE FileHandle,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    OUT PIO_STATUS_BLOCK IoStatusBlock,
+    OUT PVOID Buffer,
+    IN ULONG Length,
+    IN BOOLEAN WatchTree,
+    IN FILE_NOTIFY_CHANGE NotifyFilter
+    )
+{
+    NTSTATUS status = 0;
+    int EE = 0;
+    PIRP pIrp = NULL;
+    IO_STATUS_BLOCK ioStatusBlock = { 0 };
+
+    if (!FileHandle || !IoStatusBlock)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP_EE(EE);
+    }
+
+    status = IopIrpCreate(&pIrp, IRP_TYPE_READ_DIRECTORY_CHANGE, FileHandle);
+    ioStatusBlock.Status = status;
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    pIrp->Args.ReadDirectoryChange.Buffer = Buffer;
+    pIrp->Args.ReadDirectoryChange.Length = Length;
+    pIrp->Args.ReadDirectoryChange.WatchTree = WatchTree;
+    pIrp->Args.ReadDirectoryChange.NotifyFilter = NotifyFilter;
+
+    status = IopIrpDispatch(
+                    pIrp,
+                    AsyncControlBlock,
+                    IoStatusBlock,
+                    NULL);
+    if (STATUS_PENDING != status)
+    {
+        ioStatusBlock = pIrp->IoStatusBlock;
+        LWIO_ASSERT(ioStatusBlock.BytesTransferred <= Length);
+    }
+
+cleanup:
+    IopIrpDereference(&pIrp);
+
+    if (STATUS_PENDING != status)
+    {
+        *IoStatusBlock = ioStatusBlock;
+    }
+
+    IO_LOG_LEAVE_ON_STATUS_EE(status, EE);
+    return status;
+}
+
 static
 NTSTATUS
 IopQuerySetVolumeInformationFile(
@@ -1130,4 +1184,16 @@ IoSetSecurityFile(
 }
 
 // TODO: QueryEaFile and SetEaFile.
+
+
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
 

@@ -64,17 +64,17 @@ typedef ULONG IRP_TYPE;
 #define IRP_TYPE_CREATE_NAMED_PIPE        10
 #define IRP_TYPE_CREATE_MAILSLOT          11
 // In Windows, DIRECTORY_CONTROL has two subtypes:
-// - NOTIFY_CHANGE_DIRECTORY
 // - QUERY_DIRECTORY
+// - READ_CHANGE_DIRECTORY
 // Here, however, two separate IRPs are used.
 #define IRP_TYPE_QUERY_DIRECTORY          12
-#define IRP_TYPE_QUERY_VOLUME_INFORMATION 13
-#define IRP_TYPE_SET_VOLUME_INFORMATION   14
-#define IRP_TYPE_LOCK_CONTROL             15
-#define IRP_TYPE_QUERY_SECURITY           16
-#define IRP_TYPE_SET_SECURITY             17
+#define IRP_TYPE_READ_DIRECTORY_CHANGE    13
+#define IRP_TYPE_QUERY_VOLUME_INFORMATION 14
+#define IRP_TYPE_SET_VOLUME_INFORMATION   15
+#define IRP_TYPE_LOCK_CONTROL             16
+#define IRP_TYPE_QUERY_SECURITY           17
+#define IRP_TYPE_SET_SECURITY             18
 #if 0
-#define IRP_TYPE_NOTIFY_CHANGE_DIRECTORY  18
 #define IPP_TYPE_QUERY_EA                 19
 #define IPP_TYPE_SET_EA                   20
 #define IRP_TYPE_QUERY_QUOTA              21
@@ -91,6 +91,13 @@ typedef ULONG IO_LOCK_CONTROL;
 #define IO_LOCK_CONTROL_UNLOCK            2
 #define IO_LOCK_CONTROL_UNLOCK_ALL_BY_KEY 3
 #define IO_LOCK_CONTROL_UNLOCK_ALL        4
+
+typedef struct _IRP_ARGS_READ_DIRECTORY_CHANGE {
+    OUT PVOID Buffer;
+    IN ULONG Length;
+    IN BOOLEAN WatchTree;
+    IN FILE_NOTIFY_CHANGE NotifyFilter;
+} IRP_ARGS_READ_DIRECTORY_CHANGE, *PIRP_ARGS_READ_DIRECTORY_CHANGE;
 
 // "Storage" field is so we do not have to allocate
 // extra memory blocks for small optional parameters
@@ -189,6 +196,8 @@ typedef struct _IRP {
         IRP_ARGS_QUERY_SET_INFORMATION QuerySetInformation;
         // IRP_TYPE_QUERY_DIRECTORY
         IRP_ARGS_QUERY_DIRECTORY QueryDirectory;
+        // IRP_TYPE_READ_DIRECTORY_CHANGE
+        IRP_ARGS_READ_DIRECTORY_CHANGE ReadDirectoryChange;
         // IRP_TYPE_QUERY_VOLUME
         IRP_ARGS_QUERY_SET_VOLUME_INFORMATION QuerySetVolumeInformation;
         // IRP_TYPE_LOCK_CONTROL

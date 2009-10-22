@@ -224,6 +224,17 @@ IoQueryDirectoryFile(
     );
 
 NTSTATUS
+IoReadDirectoryChangeFile(
+    IN IO_FILE_HANDLE FileHandle,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    OUT PIO_STATUS_BLOCK IoStatusBlock,
+    OUT PVOID Buffer,
+    IN ULONG Length,
+    IN BOOLEAN WatchTree,
+    IN FILE_NOTIFY_CHANGE NotifyFilter
+    );
+
+NTSTATUS
 IoQueryVolumeInformationFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
@@ -353,3 +364,13 @@ IoSetSecurityFile(
 // TODO: QueryEaFile and SetEaFile.
 
 #endif /* __IO_API_H__ */
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

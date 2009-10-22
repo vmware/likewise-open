@@ -423,6 +423,42 @@ cleanup:
 }
 
 NTSTATUS 
+NtReadDirectoryChangeFile(
+    IN IO_FILE_HANDLE FileHandle,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    OUT PIO_STATUS_BLOCK IoStatusBlock,
+    OUT PVOID Buffer,
+    IN ULONG Length,
+    IN BOOLEAN WatchTree,
+    IN FILE_NOTIFY_CHANGE NotifyFilter
+    )
+{
+    NTSTATUS status = 0;
+    int EE = 0;
+    IO_CONTEXT context = { 0 };
+
+    NtpInitializeIoStatusBlock(IoStatusBlock);
+
+    status = LwIoAcquireContext(&context);
+    IoStatusBlock->Status = status;
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    status = NtCtxReadDirectoryChangeFile(
+                    &context,
+                    FileHandle,
+                    AsyncControlBlock,
+                    IoStatusBlock,
+                    Buffer,
+                    Length,
+                    WatchTree,
+                    NotifyFilter);
+
+cleanup:
+    LwIoReleaseContext(&context);
+    return status;
+}
+
+NTSTATUS
 NtSetInformationFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
@@ -768,3 +804,13 @@ cleanup:
 }
 
 // TODO: QueryEaFile and SetEaFile.
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

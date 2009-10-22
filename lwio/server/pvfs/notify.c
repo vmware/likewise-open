@@ -1,5 +1,9 @@
+/* Editor Settings: expandtabs and use 4 spaces for indentation
+ * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+ * -*- mode: c, c-basic-offset: 4 -*- */
+
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -21,7 +25,7 @@
  * GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
  * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
  * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
- * license@likewise.com
+ * license@likewisesoftware.com
  */
 
 /*
@@ -29,37 +33,49 @@
  *
  * Module Name:
  *
- *        globals.c
+ *       notify.c
  *
  * Abstract:
  *
- *        Likewise I/O (LWIO) - SRV
+ *        Likewise Posix File System Driver (PVFS)
  *
- *        Share Repository based on Registry
+ *        Directory Change Notify Package
  *
- *        Structures
- *
- * Authors: Sriram Nambakam (snambakam@likewise.com)
- *
+ * Authors: Gerald Carter <gcarter@likewise.com>
  */
 
-#ifndef __STRUCTS_H__
-#define __STRUCTS_H__
+#include "pvfs.h"
 
 
-typedef struct _SRV_SHARE_REG_GLOBALS
+/* Code */
+
+/*****************************************************************************
+ ****************************************************************************/
+
+NTSTATUS
+PvfsReadDirectoryChange(
+    PPVFS_IRP_CONTEXT  pIrpContext
+    )
 {
-    pthread_mutex_t      mutex;
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
 
-    SRV_SHARE_REPOSITORY_FUNCTION_TABLE fnTable;
+    ntError = STATUS_NOT_IMPLEMENTED;
+    BAIL_ON_NT_STATUS(ntError);
 
-} SRV_SHARE_REG_GLOBALS, *PSRV_SHARE_REG_GLOBALS;
+cleanup:
+    return ntError;
 
-typedef struct _SRV_SHARE_REG_ENUM_CONTEXT
-{
-    ULONG ulMaxIndex;
-    ULONG ulMaxValueNameLen;
-    ULONG ulMaxValueLen;
-} SRV_SHARE_REG_ENUM_CONTEXT, *PSRV_SHARE_REG_ENUM_CONTEXT;
+error:
+    goto cleanup;
+}
 
-#endif /* __STRUCTS_H__ */
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

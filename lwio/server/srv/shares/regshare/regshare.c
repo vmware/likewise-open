@@ -799,7 +799,65 @@ SrvShareRegGetCount(
     IN OUT PULONG  pulNumShares
     )
 {
-    return STATUS_NOT_IMPLEMENTED;
+    NTSTATUS ntStatus = 0;
+    ULONG ulNumShares = 0;
+    HKEY hRootKey = NULL;
+    HKEY hKey = NULL;
+
+    ntStatus = RegOpenKeyExA(
+            hRepository,
+            NULL,
+            LIKEWISE_ROOT_KEY,
+            0,
+            0,
+            &hRootKey);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    // Add share value under "Services\\lwio\\Parameters\\Drivers\\srv\\shares"
+    ntStatus = RegOpenKeyExA(
+            hRepository,
+            hRootKey,
+            pszSharePath,
+            0,
+            0,
+            &hKey);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = RegQueryInfoKey(
+        hRepository,
+        hKey,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        &ulNumShares,
+        NULL,
+        NULL,
+        NULL,
+        NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *pulNumShares = ulNumShares;
+
+cleanup:
+    if (hRootKey)
+    {
+        RegCloseKey(hRepository, hRootKey);
+    }
+    if (hKey)
+    {
+        RegCloseKey(hRepository, hKey);
+    }
+
+    return ntStatus;
+
+error:
+
+    *pulNumShares = 0;
+
+    goto cleanup;
 }
 
 VOID
@@ -807,7 +865,7 @@ SrvShareRegClose(
     IN HANDLE hRepository
     )
 {
-    // TODO
+    RegCloseServer(hRepository);
 }
 
 VOID
@@ -815,5 +873,5 @@ SrvShareRegShutdown(
     VOID
     )
 {
-    // TODO
+    //Do nothing
 }
