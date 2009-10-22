@@ -51,6 +51,12 @@
     <Compile Include="src\About.Designer.cs">
       <DependentUpon>About.cs</DependentUpon>
     </Compile>
+    <Compile Include="src\Action.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="src\Action.designer.cs">
+      <DependentUpon>Action.cs</DependentUpon>
+    </Compile>
     <Compile Include="src\DbConnInfo.cs" />
     <Compile Include="src\GPObjectInfo.cs" />
     <Compile Include="src\KeyboardInfo.cs" />
@@ -144,6 +150,10 @@
   <ItemGroup>
     <EmbeddedResource Include="src\About.resx">
       <DependentUpon>About.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\Action.resx">
+      <DependentUpon>Action.cs</DependentUpon>
       <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="src\EditDialog.resx">
