@@ -189,6 +189,12 @@ PvfsQueryDirInformation(
     );
 
 NTSTATUS
+PvfsReadDirectoryChange(
+    PPVFS_IRP_CONTEXT  pIrpContext
+    );
+
+
+NTSTATUS
 PvfsQueryVolumeInformation(
     PPVFS_IRP_CONTEXT  pIrpContext
     );

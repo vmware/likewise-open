@@ -69,6 +69,7 @@ libpvfs_sys_la_SOURCES = \
     thread_worker.c \
     work_queue.c \
     oplock.c \
+    notify.c \
     ioctlOpenFileInfo.c \
     listq.c
 
