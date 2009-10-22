@@ -364,7 +364,7 @@ lwmsg_server_set_fd(
         BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_PARAMETER);
     }
 
-    BAIL_ON_ERROR(status = lwmsg_server_task_new_listen(mode, NULL, 0, fd, &task));
+    BAIL_ON_ERROR(status = lwmsg_server_task_new_listen(server, mode, NULL, 0, fd, &task));
 
     lwmsg_ring_insert_after(&server->io_tasks, &task->ring);
 
@@ -406,12 +406,10 @@ lwmsg_server_set_endpoint(
         BAIL_ON_ERROR(status = LWMSG_STATUS_UNSUPPORTED);
     }
 
-    BAIL_ON_ERROR(status = lwmsg_server_task_new_listen(mode, endpoint, permissions, -1, &task));
+    BAIL_ON_ERROR(status = lwmsg_server_task_new_listen(server, mode, endpoint, permissions, -1, &task));
 
     lwmsg_ring_insert_after(&server->io_tasks, &task->ring);
     task = NULL;
-
-    server->num_endpoints++;
 
 error:
 
@@ -580,17 +578,7 @@ lwmsg_server_startup(
         lwmsg_server_queue_io_task(server, task);
     }
 
-    SERVER_LOCK(server, locked);
-
-    while (server->num_running_endpoints < server->num_endpoints &&
-           server->status == LWMSG_STATUS_SUCCESS)
-    {
-        pthread_cond_wait(&server->event, &server->lock);
-    }
-
     BAIL_ON_ERROR(status = server->status);
-
-    SERVER_UNLOCK(server, locked);
 
     LWMSG_LOG_INFO(server->context, "Server started");
 
