@@ -42,32 +42,32 @@
 
 #define SAMR_DEFAULT_PROT_SEQ   "ncacn_np"
 #define SAMR_DEFAULT_ENDPOINT   "\\pipe\\samr"
-//#define SAMR_DEFAULT_ENDPOINT   ""
+#define SAMR_LOCAL_ENDPOINT     "/var/lib/likewise/rpc/lsass"
 
 
 RPCSTATUS
 InitSamrBindingDefault(
-    handle_t         *phSamrBinding,
-    PCSTR             pszHostname,
-    PIO_CREDS  pCreds
+    OUT handle_t  *phSamrBinding,
+    IN  PCSTR      pszHostname,
+    IN  PIO_CREDS  pCreds
     );
 
 
 RPCSTATUS
 InitSamrBindingFull(
-    handle_t *phSamrBinding,
-    PCSTR pszProtSeq,
-    PCSTR pszHostname,
-    PCSTR pszEndpoint,
-    PCSTR pszUuid,
-    PCSTR pszOptions,
-    PIO_CREDS pCreds
+    OUT handle_t  *phSamrBinding,
+    IN  PCSTR      pszProtSeq,
+    IN  PCSTR      pszHostname,
+    IN  PCSTR      pszEndpoint,
+    IN  PCSTR      pszUuid,
+    IN  PCSTR      pszOptions,
+    IN  PIO_CREDS  pCreds
     );
 
 
 RPCSTATUS
 FreeSamrBinding(
-    IN  handle_t *phSamrBinding
+    IN  handle_t *phBinding
     );
 
 

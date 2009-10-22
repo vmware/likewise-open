@@ -376,3 +376,26 @@ MU_TEST(client_server, parallel)
     pthread_mutex_destroy(&data.lock);
     pthread_cond_destroy(&data.event);
 }
+
+MU_TEST(client_server, bad_endpoint)
+{
+    LWMsgContext* context = NULL;
+    LWMsgProtocol* protocol = NULL;
+    LWMsgServer* server = NULL;
+
+    MU_EXPECT(MU_STATUS_EXCEPTION);
+
+    MU_TRY(lwmsg_context_new(NULL, &context));
+    lwmsg_context_set_log_function(context, lwmsg_test_log_function, NULL);
+
+    MU_TRY(lwmsg_protocol_new(context, &protocol));
+    MU_TRY(lwmsg_protocol_add_protocol_spec(protocol, counterprotocol_spec));
+
+    MU_TRY(lwmsg_server_new(context, protocol, &server));
+    MU_TRY(lwmsg_server_add_dispatch_spec(server, counter_dispatch));
+    MU_TRY(lwmsg_server_set_endpoint(server, LWMSG_CONNECTION_MODE_LOCAL, "/bogus/endpoint/", 0600));
+    MU_TRY(lwmsg_server_start(server));
+
+    MU_TRY(lwmsg_server_stop(server));
+    lwmsg_server_delete(server);
+}

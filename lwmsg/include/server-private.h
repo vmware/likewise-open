@@ -192,10 +192,6 @@ struct LWMsgServer
 
     /* Initial set of IO tasks */
     LWMsgRing io_tasks;
-    /* Number of defined endpoints */
-    unsigned int num_endpoints;
-    /* Number of endpoints on which we are actively listening */
-    unsigned int volatile num_running_endpoints;
 
     /* Total number of connected clients */
     size_t num_clients;
@@ -250,6 +246,7 @@ lwmsg_server_task_new(
 
 LWMsgStatus
 lwmsg_server_task_new_listen(
+    LWMsgServer* server,
     LWMsgServerMode mode,
     const char* endpoint,
     mode_t perms,

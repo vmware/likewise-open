@@ -734,7 +734,6 @@ SrvShareRegEndEnum(
     )
 {
     // TODO
-
     return STATUS_SUCCESS;
 }
 
@@ -744,7 +743,54 @@ SrvShareRegDelete(
     IN PWSTR  pwszShareName
     )
 {
-    return STATUS_NOT_IMPLEMENTED;
+    NTSTATUS ntStatus = 0;
+    HKEY hRootKey = NULL;
+    PWSTR pwszSharePath = NULL;
+    PWSTR pwszShareSecPath = NULL;
+
+    ntStatus = RegOpenKeyExA(
+            hRepository,
+            NULL,
+            LIKEWISE_ROOT_KEY,
+            0,
+            0,
+            &hRootKey);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvMbsToWc16s(pszSharePath, &pwszSharePath);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = RegDeleteKeyValue(hRepository,
+                                 hRootKey,
+                                 pwszSharePath,
+                                 pwszShareName);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvMbsToWc16s(pszShareSecPath, &pwszShareSecPath);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = RegDeleteKeyValue(hRepository,
+                                hRootKey,
+                                pwszShareSecPath,
+                                pwszShareName);
+    if (LW_ERROR_NO_SUCH_VALUENAME == ntStatus)
+    {
+        ntStatus = 0;
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+    if (hRootKey)
+    {
+        RegCloseKey(hRepository, hRootKey);
+    }
+    SRV_SAFE_FREE_MEMORY(pwszSharePath);
+    SRV_SAFE_FREE_MEMORY(pwszShareSecPath);
+
+    return ntStatus;
+
+error:
+    goto cleanup;
 }
 
 NTSTATUS

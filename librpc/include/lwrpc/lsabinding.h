@@ -42,29 +42,32 @@
 
 #define LSA_DEFAULT_PROT_SEQ   "ncacn_np"
 #define LSA_DEFAULT_ENDPOINT   "\\PIPE\\lsarpc"
+#define LSA_LOCAL_ENDPOINT     "/var/lib/likewise/rpc/lsass"
 
 
 RPCSTATUS
 InitLsaBindingDefault(
-    handle_t *binding,
-    const char *hostname,
-    PIO_CREDS creds
+    OUT handle_t  *phBinding,
+    IN  PCSTR      pszHostname,
+    IN  PIO_CREDS  pIoAccessToken
     );
+
 
 RPCSTATUS
 InitLsaBindingFull(
-    handle_t *binding,
-    const char *prot_seq,
-    const char *hostname,
-    const char *endpoint,
-    const char *uuid,
-    const char *options,
-    PIO_CREDS creds
+    OUT handle_t  *phBinding,
+    IN  PCSTR      pszProtSeq,
+    IN  PCSTR      pszHostname,
+    IN  PCSTR      pszEndpoint,
+    IN  PCSTR      pszUuid,
+    IN  PCSTR      pszOptions,
+    IN  PIO_CREDS  pIoAccessToken
     );
+
 
 RPCSTATUS
 FreeLsaBinding(
-    handle_t *binding
+    IN  handle_t *phBinding
     );
 
 #endif /* _LSA_BINDING_H_ */

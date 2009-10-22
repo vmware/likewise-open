@@ -107,13 +107,16 @@ handle_t CreateSamrBinding(handle_t *binding, const wchar16_t *host)
     char *hostname = NULL;
     PIO_CREDS creds = NULL;
 
-    if (binding == NULL || host == NULL) return NULL;
+    if (binding == NULL) return NULL;
 
-    hostname_size = wc16slen(host) + 1;
-    hostname = (char*) malloc(hostname_size * sizeof(char));
-    if (hostname == NULL) return NULL;
+    if (host)
+    {
+        hostname_size = wc16slen(host) + 1;
+        hostname = (char*) malloc(hostname_size * sizeof(char));
+        if (hostname == NULL) return NULL;
 
-    wc16stombs(hostname, host, hostname_size);
+        wc16stombs(hostname, host, hostname_size);
+    }
 
     if (LwIoGetThreadCreds(&creds) != STATUS_SUCCESS)
     {
@@ -189,8 +192,10 @@ NTSTATUS GetSamDomainName(wchar16_t **domname, const wchar16_t *hostname)
     uint32 i = 0;
     wchar16_t **dom_names = NULL;
 
-    if (domname == NULL || hostname == NULL) {
-        return STATUS_INVALID_PARAMETER;
+    if (domname == NULL)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        goto done;
     }
 
     samr_binding = CreateSamrBinding(&samr_binding, hostname);
@@ -252,8 +257,10 @@ NTSTATUS GetSamDomainSid(PSID* sid, const wchar16_t *hostname)
     wchar16_t *domname = NULL;
     PSID out_sid = NULL;
 
-    if (sid == NULL || hostname == NULL) {
-        return STATUS_INVALID_PARAMETER;
+    if (sid == NULL)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        goto done;
     }
 
     status = GetSamDomainName(&domname, hostname);

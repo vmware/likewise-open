@@ -49,23 +49,25 @@
 
 RPCSTATUS
 InitLsaBindingDefault(
-    OUT handle_t *phBinding,
-    IN  PCSTR pszHostname,
-    IN  PIO_CREDS pIoAccessToken
+    OUT handle_t  *phBinding,
+    IN  PCSTR      pszHostname,
+    IN  PIO_CREDS  pIoAccessToken
     )
 {
     RPCSTATUS rpcStatus = RPC_S_OK;
     PSTR pszProtSeq = (PSTR)LSA_DEFAULT_PROT_SEQ;
+    PSTR pszLpcProtSeq = (PSTR)"ncalrpc";
     PSTR pszEndpoint = (PSTR)LSA_DEFAULT_ENDPOINT;
+    PSTR pszLpcEndpoint = (PSTR)LSA_LOCAL_ENDPOINT;
     PSTR pszUuid = NULL;
     PSTR pszOptions = NULL;
     handle_t hBinding = NULL;
 
     rpcStatus = InitLsaBindingFull(
                     &hBinding,
-                    pszProtSeq,
+                    (pszHostname) ? pszProtSeq : pszLpcProtSeq,
                     pszHostname,
-                    pszEndpoint,
+                    (pszHostname) ? pszEndpoint : pszLpcEndpoint,
                     pszUuid,
                     pszOptions,
                     pIoAccessToken);
@@ -84,13 +86,13 @@ error:
 
 RPCSTATUS
 InitLsaBindingFull(
-    handle_t *phBinding,
-    PCSTR pszProtSeq,
-    PCSTR pszHostname,
-    PCSTR pszEndpoint,
-    PCSTR pszUuid,
-    PCSTR pszOptions,
-    PIO_CREDS IoAccessToken
+    OUT handle_t  *phBinding,
+    IN  PCSTR      pszProtSeq,
+    IN  PCSTR      pszHostname,
+    IN  PCSTR      pszEndpoint,
+    IN  PCSTR      pszUuid,
+    IN  PCSTR      pszOptions,
+    IN  PIO_CREDS  pIoAccessToken
     )
 {
     RPCSTATUS rpcStatus = RPC_S_OK;
@@ -102,10 +104,9 @@ InitLsaBindingFull(
     PBYTE pbOpts = NULL;
     PBYTE pbAddr = NULL;
     handle_t hBinding = NULL;
-    rpc_transport_info_handle_t Info = NULL;
+    rpc_transport_info_handle_t hInfo = NULL;
 
     BAIL_ON_INVALID_PTR_RPCSTATUS(phBinding, rpcStatus);
-    BAIL_ON_INVALID_PTR_RPCSTATUS(pszHostname, rpcStatus);
     BAIL_ON_INVALID_PTR_RPCSTATUS(pszProtSeq, rpcStatus);
 
     pbProtSeq = (PBYTE)strdup(pszProtSeq);
@@ -126,8 +127,10 @@ InitLsaBindingFull(
         BAIL_ON_NO_MEMORY_RPCSTATUS(pbOpts, rpcStatus);
     }
 
-    pbAddr = (PBYTE)strdup(pszHostname);
-    BAIL_ON_NO_MEMORY_RPCSTATUS(pbAddr, rpcStatus);
+    if (pszHostname) {
+        pbAddr = (PBYTE)strdup(pszHostname);
+        BAIL_ON_NO_MEMORY_RPCSTATUS(pbAddr, rpcStatus);
+    }
 
     rpc_string_binding_compose(
         pbUuid,
@@ -145,20 +148,23 @@ InitLsaBindingFull(
         &rpcStatus);
     BAIL_ON_RPC_STATUS(rpcStatus);
 
-    rpc_smb_transport_info_from_lwio_creds(
-        IoAccessToken,
-        FALSE,
-        &Info,
-        &rpcStatus);
-    BAIL_ON_RPC_STATUS(rpcStatus);
+    if (strcmp(pszProtSeq, "ncacn_np") == 0)
+    {
+        rpc_smb_transport_info_from_lwio_creds(
+            pIoAccessToken,
+            FALSE,
+            &hInfo,
+            &rpcStatus);
+        BAIL_ON_RPC_STATUS(rpcStatus);
 
-    rpc_binding_set_transport_info(
-        hBinding,
-        Info,
-        &rpcStatus);
-    BAIL_ON_RPC_STATUS(rpcStatus);
+        rpc_binding_set_transport_info(
+            hBinding,
+            hInfo,
+            &rpcStatus);
+        BAIL_ON_RPC_STATUS(rpcStatus);
 
-    Info = NULL;
+        hInfo = NULL;
+    }
 
     rpc_mgmt_set_com_timeout(hBinding, 6, &rpcStatus);
     BAIL_ON_RPC_STATUS(rpcStatus);
@@ -182,9 +188,9 @@ cleanup:
         rpcStatus = rpcStatus2;
     }
 
-    if (Info)
+    if (hInfo)
     {
-        rpc_smb_transport_info_free(Info);
+        rpc_smb_transport_info_free(hInfo);
     }
 
     return rpcStatus;
@@ -201,7 +207,7 @@ error:
 
 RPCSTATUS
 FreeLsaBinding(
-    handle_t *phBinding
+    IN  handle_t *phBinding
     )
 {
     RPCSTATUS rpcStatus = RPC_S_OK;

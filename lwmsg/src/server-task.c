@@ -206,8 +206,114 @@ error:
     return status;
 }
 
+static LWMsgStatus
+lwmsg_server_task_create_local_socket(
+    ServerTask* task
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    int sock = -1;
+    struct sockaddr_un sockaddr;
+
+    sock = socket(AF_UNIX, SOCK_STREAM, 0);
+
+    if (sock == -1)
+    {
+        BAIL_ON_ERROR(status = lwmsg_error_map_errno(errno));
+    }
+
+    BAIL_ON_ERROR(status = lwmsg_set_close_on_exec(sock));
+
+    sockaddr.sun_family = AF_UNIX;
+
+    if (strlen(task->info.listen.endpoint) > sizeof(sockaddr.sun_path))
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_PARAMETER);
+    }
+
+    strcpy(sockaddr.sun_path, task->info.listen.endpoint);
+    unlink(sockaddr.sun_path);
+
+    if (bind(sock, (struct sockaddr*) &sockaddr, sizeof(sockaddr)) == -1)
+    {
+        BAIL_ON_ERROR(status = lwmsg_error_map_errno(errno));
+    }
+
+    // ignore errors
+    chmod(sockaddr.sun_path, task->info.listen.perms);
+
+    task->fd = sock;
+    sock = -1;
+
+done:
+
+    return status;
+
+error:
+
+    if (sock != -1)
+    {
+        close(sock);
+    }
+
+    goto done;
+}
+
+static
+LWMsgStatus
+lwmsg_server_task_perform_listen(
+    LWMsgServer* server,
+    ServerTask* task
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    long opts = 0;
+
+    /* Create and bind socket if needed */
+    if (task->fd == -1)
+    {
+        BAIL_ON_ERROR(status = lwmsg_server_task_create_local_socket(task));
+    }
+
+    /* Get socket flags */
+    if ((opts = fcntl(task->fd, F_GETFL, 0)) < 0)
+    {
+        BAIL_ON_ERROR(status = lwmsg_error_map_errno(errno));
+    }
+
+    /* Set non-blocking flag */
+    opts |= O_NONBLOCK;
+
+    /* Set socket flags */
+    if (fcntl(task->fd, F_SETFL, opts) < 0)
+    {
+        BAIL_ON_ERROR(status = lwmsg_error_map_errno(errno));
+    }
+
+    if (listen(task->fd, server->max_backlog))
+    {
+        BAIL_ON_ERROR(status = lwmsg_error_map_errno(errno));
+    }
+
+    if (task->info.listen.endpoint)
+    {
+        LWMSG_LOG_INFO(server->context, "Listening on endpoint %s", task->info.listen.endpoint);
+    }
+    else
+    {
+        LWMSG_LOG_INFO(server->context, "Listening on fd %i", task->fd);
+    }
+
+    task->type = SERVER_TASK_ACCEPT;
+
+error:
+
+    return status;
+}
+
 LWMsgStatus
 lwmsg_server_task_new_listen(
+    LWMsgServer* server,
     LWMsgServerMode mode,
     const char* endpoint,
     mode_t perms,
@@ -233,6 +339,8 @@ lwmsg_server_task_new_listen(
     my_task->fd = fd;
     my_task->info.listen.mode = mode;
     my_task->info.listen.perms = perms;
+
+    BAIL_ON_ERROR(status = lwmsg_server_task_perform_listen(server, my_task));
 
     *task = my_task;
 
@@ -1097,133 +1205,6 @@ error:
     return status;
 }
 
-static LWMsgStatus
-lwmsg_server_task_create_local_socket(
-    LWMsgServer* server,
-    ServerTask* task
-    )
-{
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    int sock = -1;
-    struct sockaddr_un sockaddr;
-
-    sock = socket(AF_UNIX, SOCK_STREAM, 0);
-
-    if (sock == -1)
-    {
-        BAIL_ON_ERROR(status = lwmsg_error_map_errno(errno));
-    }
-
-    BAIL_ON_ERROR(status = lwmsg_set_close_on_exec(sock));
-
-    sockaddr.sun_family = AF_UNIX;
-
-    if (strlen(task->info.listen.endpoint) > sizeof(sockaddr.sun_path))
-    {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_PARAMETER);
-    }
-
-    strcpy(sockaddr.sun_path, task->info.listen.endpoint);
-    unlink(sockaddr.sun_path);
-
-    if (bind(sock, (struct sockaddr*) &sockaddr, sizeof(sockaddr)) == -1)
-    {
-        BAIL_ON_ERROR(status = lwmsg_error_map_errno(errno));
-    }
-
-    // ignore errors
-    chmod(sockaddr.sun_path, task->info.listen.perms);
-
-    task->fd = sock;
-    sock = -1;
-
-done:
-
-    return status;
-
-error:
-
-    if (sock != -1)
-    {
-        close(sock);
-    }
-
-    goto done;
-}
-
-static
-LWMsgStatus
-lwmsg_server_task_perform_listen(
-    LWMsgServer* server,
-    ServerTask** task,
-    LWMsgBool shutdown
-    )
-{
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    long opts = 0;
-
-    if (shutdown)
-    {
-        lwmsg_server_task_drop(server, task);
-    }
-    else
-    {
-        /* Create and bind socket if needed */
-        if ((*task)->fd == -1)
-        {
-            BAIL_ON_ERROR(status = lwmsg_server_task_create_local_socket(
-                              server,
-                              *task));
-        }
-
-        /* Get socket flags */
-        if ((opts = fcntl((*task)->fd, F_GETFL, 0)) < 0)
-        {
-            BAIL_ON_ERROR(status = lwmsg_error_map_errno(errno));
-        }
-
-        /* Set non-blocking flag */
-        opts |= O_NONBLOCK;
-
-        /* Set socket flags */
-        if (fcntl((*task)->fd, F_SETFL, opts) < 0)
-        {
-            BAIL_ON_ERROR(status = lwmsg_error_map_errno(errno));
-        }
-
-        if (listen((*task)->fd, server->max_backlog))
-        {
-            BAIL_ON_ERROR(status = lwmsg_error_map_errno(errno));
-        }
-
-        (*task)->type = SERVER_TASK_ACCEPT;
-
-        if ((*task)->info.listen.endpoint)
-        {
-            LWMSG_LOG_INFO(server->context, "Listening on endpoint %s", (*task)->info.listen.endpoint);
-        }
-        else
-        {
-            LWMSG_LOG_INFO(server->context, "Listening on fd %i", (*task)->fd);
-        }
-
-        /* lwmsg_server_startup() waits for all endpoints to be
-           ready before returning, so update the counter and wake
-           it if needed */
-        lwmsg_server_lock(server);
-        server->num_running_endpoints++;
-        if (server->num_running_endpoints == server->num_endpoints)
-        {
-            pthread_cond_signal(&server->event);
-        }
-        lwmsg_server_unlock(server);
-    }
-
-error:
-
-    return status;
-}
-
 LWMsgStatus
 lwmsg_server_task_perform(
     LWMsgServer* server,
@@ -1241,8 +1222,7 @@ lwmsg_server_task_perform(
     case SERVER_TASK_LISTEN:
         BAIL_ON_ERROR(status = lwmsg_server_task_perform_listen(
                           server,
-                          task,
-                          shutdown));
+                          *task));
         break;
     case SERVER_TASK_ACCEPT:
         BAIL_ON_ERROR(status = lwmsg_server_task_perform_accept(
