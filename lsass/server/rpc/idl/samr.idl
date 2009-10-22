@@ -142,7 +142,7 @@ cpp_quote("#endif")
 
     /* function 0x0c */
     NTSTATUS __SamrCreateUser(
-        [in] DOMAIN_HANDLE *hDomain,
+        [in] DOMAIN_HANDLE hDomain,
         [in,ref] UnicodeString *account_name,
         [in] uint32 access_mask,
         [out] ACCOUNT_HANDLE *hUser,

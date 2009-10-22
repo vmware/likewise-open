@@ -207,7 +207,7 @@ NTSTATUS _samr_Function0b(
 
 NTSTATUS __SamrCreateUser(
     /* [in] */ handle_t IDL_handle,
-    /* [in] */ DOMAIN_HANDLE *hDomain,
+    /* [in] */ DOMAIN_HANDLE hDomain,
     /* [in] */ UnicodeString *account_name,
     /* [in] */ uint32 access_mask,
     /* [out] */ ACCOUNT_HANDLE *hUser,
