@@ -51,6 +51,7 @@
 
 #include "macros.h"
 
+#include "lsadefs.h"
 #include "lsa_memory.h"
 #include "lsa_stubmemory.h"
 #include "lsa_h.h"
