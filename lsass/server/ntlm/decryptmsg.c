@@ -49,7 +49,7 @@
 
 DWORD
 NtlmServerDecryptMessage(
-    IN PNTLM_CONTEXT_HANDLE phContext,
+    IN NTLM_CONTEXT_HANDLE hContext,
     IN OUT PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo,
     OUT PBOOLEAN pbEncrypted
@@ -58,7 +58,7 @@ NtlmServerDecryptMessage(
     DWORD dwError = LW_ERROR_SUCCESS;
     PSecBuffer pData = NULL;
     PSecBuffer pToken = NULL;
-    PNTLM_CONTEXT pContext = *phContext;
+    PNTLM_CONTEXT pContext = hContext;
     PBYTE pBuffer = NULL;
     BOOLEAN bEncrypted = TRUE;
 

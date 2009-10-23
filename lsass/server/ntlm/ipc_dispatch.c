@@ -312,6 +312,59 @@ error:
     goto cleanup;
 }
 
+DWORD
+NtlmServerDuplicateBuffers(
+    IN const SecBufferDesc* pIn,
+    OUT PSecBufferDesc pOut
+    )
+{
+    DWORD dwError = LW_ERROR_SUCCESS;
+    DWORD nIndex = 0;
+
+    pOut->cBuffers = pIn->cBuffers;
+    dwError = LwAllocateMemory(
+        sizeof(pIn->pBuffers[0]) * pIn->cBuffers,
+        OUT_PPVOID(&pOut->pBuffers));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    for (nIndex= 0; nIndex < pIn->cBuffers; nIndex++)
+    {
+        pOut->pBuffers[nIndex].cbBuffer = pIn->pBuffers[nIndex].cbBuffer;
+        dwError = LwAllocateMemory(
+            pOut->pBuffers[nIndex].cbBuffer,
+            OUT_PPVOID(&pOut->pBuffers[nIndex].pvBuffer));
+        BAIL_ON_LSA_ERROR(dwError);
+
+        memcpy(pOut->pBuffers[nIndex].pvBuffer,
+                pIn->pBuffers[nIndex].pvBuffer,
+                pIn->pBuffers[nIndex].cbBuffer);
+        pOut->pBuffers[nIndex].BufferType = pIn->pBuffers[nIndex].BufferType;
+    }
+
+cleanup:
+    return dwError;
+error:
+    NtlmServerFreeBuffers(pOut);
+    goto cleanup;
+}
+
+void
+NtlmServerFreeBuffers(
+    IN PSecBufferDesc pBuffer
+    )
+{
+    DWORD nIndex = 0;
+
+    if (pBuffer != NULL && pBuffer->pBuffers != NULL)
+    {
+        for (nIndex = 0; nIndex < pBuffer->cBuffers; nIndex++)
+        {
+            LW_SAFE_FREE_MEMORY(pBuffer->pBuffers[nIndex].pvBuffer);
+        }
+        LW_SAFE_FREE_MEMORY(pBuffer->pBuffers);
+    }
+}
+
 LWMsgStatus
 NtlmSrvIpcDecryptMessage(
     LWMsgCall* pCall,
@@ -321,7 +374,7 @@ NtlmSrvIpcDecryptMessage(
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
-    PNTLM_IPC_DECRYPT_MSG_REQ pReq = pIn->data;
+    const PNTLM_IPC_DECRYPT_MSG_REQ pReq = pIn->data;
     PNTLM_IPC_DECRYPT_MSG_RESPONSE pNtlmResp = NULL;
     PNTLM_IPC_ERROR pError = NULL;
 
@@ -330,22 +383,25 @@ NtlmSrvIpcDecryptMessage(
         OUT_PPVOID(&pNtlmResp));
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = NtlmServerDuplicateBuffers(
+                pReq->pMessage,
+                &pNtlmResp->Message);
+    BAIL_ON_LSA_ERROR(dwError);
+
     dwError = NtlmServerDecryptMessage(
-        &pReq->hContext,
-        pReq->pMessage,
+        pReq->hContext,
+        &pNtlmResp->Message,
         pReq->MessageSeqNo,
         &pNtlmResp->bEncrypted);
 
     if (!dwError)
     {
-        memcpy(&(pNtlmResp->Message), pReq->pMessage, sizeof(SecBufferDesc));
-        pReq->pMessage = NULL;
-
         pOut->tag = NTLM_R_DECRYPT_MSG_SUCCESS;
         pOut->data = pNtlmResp;
     }
     else
     {
+        NtlmServerFreeBuffers(&pNtlmResp->Message);
         LW_SAFE_FREE_MEMORY(pNtlmResp);
 
         dwError = NtlmSrvIpcCreateError(dwError, &pError);

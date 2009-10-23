@@ -135,7 +135,7 @@ typedef struct __NTLM_IPC_ACQUIRE_CREDS_RESPONSE
 typedef struct __NTLM_IPC_DECRYPT_MSG_REQ
 {
     NTLM_CONTEXT_HANDLE hContext;
-    PSecBufferDesc pMessage;
+    const SecBufferDesc* pMessage;
     DWORD MessageSeqNo;
 } NTLM_IPC_DECRYPT_MSG_REQ, *PNTLM_IPC_DECRYPT_MSG_REQ;
 
@@ -317,6 +317,17 @@ NtlmSrvIpcAcquireCredentialsHandle(
     const LWMsgParams* pIn,
     LWMsgParams* pOut,
     PVOID pData
+    );
+
+DWORD
+NtlmServerDuplicateBuffers(
+    IN const SecBufferDesc* pIn,
+    OUT PSecBufferDesc pOut
+    );
+
+void
+NtlmServerFreeBuffers(
+    IN PSecBufferDesc pBuffer
     );
 
 LWMsgStatus
