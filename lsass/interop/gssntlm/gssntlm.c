@@ -1708,6 +1708,7 @@ ntlm_gss_import_name(
     PNTLM_GSS_NAME pResult = NULL;
     BOOLEAN bIsUserName = FALSE;
     BOOLEAN bIsHostService = FALSE;
+    BOOLEAN bIsKrbPrinc = FALSE;
 
     MinorStatus = LwAllocateMemory(
         sizeof(*pResult),
@@ -1726,6 +1727,12 @@ ntlm_gss_import_name(
             GSS_C_NT_HOSTBASED_SERVICE,
             &bIsHostService);
     BAIL_ON_LSA_ERROR(MinorStatus);
+    ntlm_gss_compare_oid(
+            &MinorStatus,
+            InputNameType,
+            (gss_OID)GSS_KRB5_NT_PRINCIPAL_NAME,
+            &bIsKrbPrinc);
+    BAIL_ON_LSA_ERROR(MinorStatus);
 
     if (bIsUserName)
     {
@@ -1734,6 +1741,10 @@ ntlm_gss_import_name(
     else if(bIsHostService)
     {
         pResult->NameType = GSS_C_NT_HOSTBASED_SERVICE;
+    }
+    else if(bIsKrbPrinc)
+    {
+        pResult->NameType = (gss_OID)GSS_KRB5_NT_PRINCIPAL_NAME;
     }
     else
     {
