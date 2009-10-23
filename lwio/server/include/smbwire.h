@@ -326,6 +326,7 @@ typedef USHORT SMB_INFO_LEVEL, *PSMB_INFO_LEVEL;
 #define SMB_FIND_FILE_UNIX                0x202
 #define SMB_SET_FILE_UNIX_HLINK           0x203
 #define SMB_QUERY_MAC_FS_INFO             0x301
+#define SMB_SET_FILE_RENAME_INFO          0xF203
 
 typedef UCHAR LWIO_LOCK_TYPE;
 

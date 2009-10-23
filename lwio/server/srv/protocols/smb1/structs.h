@@ -545,6 +545,9 @@ typedef struct _SRV_TRANS2_STATE_SMB_V1
     IO_FILE_HANDLE              hFile;
     IO_FILE_NAME                fileName;
 
+    IO_FILE_NAME                dirPath;
+    IO_FILE_HANDLE              hDir;
+
     PBYTE                       pData2;
     USHORT                      usBytesAllocated;
 
