@@ -210,7 +210,7 @@ namespace Likewise.LMC.Registry
         //    );
         //    }
         [DllImport(libadvapiPath, CharSet = CharSet.Unicode, SetLastError = true)]
-        public static extern int RegCreateKeyEx(
+        public static extern int RegCreateKeyExW(
             IntPtr hRegConnection,
             IntPtr hKey,           
             IntPtr pSubKey,

@@ -454,7 +454,7 @@ namespace Likewise.LMC.Registry
                     return iResult;
                 }
 
-                iResult = RegistryInterop.RegCreateKeyEx(hRegConnection,
+                iResult = RegistryInterop.RegCreateKeyExW(hRegConnection,
                                                 hKey,
                                                 pSubkey,
                                                 0,
