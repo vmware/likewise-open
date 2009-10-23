@@ -137,7 +137,7 @@
     <value>../Resources/navtriangle_hover.ico;System.Drawing.Icon, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="toCOMP_02" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>../Resources/toCOMP_02.gif;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>../Resources/toCOMP_02.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="GenericServer" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>../Resources/genericserver.ico;System.Drawing.Icon, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>

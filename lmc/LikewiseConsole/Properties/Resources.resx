@@ -258,7 +258,7 @@ If you have lost or forgotten the license key or believe this message to be in e
     <value>Error: Computer type is invalid.</value>
   </data>
   <data name="likewise" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\likewise.GIF;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\Resources\likewise.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="ADUC_Desc" xml:space="preserve">
     <value>It greatly simplifies user account management by allowing administrators to manage users and computers for all systems in their mixed network through a single identity management system.</value>
@@ -307,7 +307,7 @@ Please provide a valid computer name or IP address.</value>
 Please select a valid domain.</value>
   </data>
   <data name="small_logoGIF" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\small_logoGIF.gif;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\Resources\small_logoGIF.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="small_logoICON" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\small_logoICON.ico;System.Drawing.Icon, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
