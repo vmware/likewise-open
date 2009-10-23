@@ -119,8 +119,10 @@ handle_mic(OM_uint32 *, gss_buffer_t, int, spnego_gss_ctx_id_t,
 	   gss_buffer_t *, OM_uint32 *, send_token_flag *);
 
 static OM_uint32
-init_ctx_new(OM_uint32 *, gss_cred_id_t, gss_ctx_id_t *,
-	     gss_OID_set *, send_token_flag *);
+init_ctx_new(OM_uint32 *minor_status, gss_cred_id_t cred,
+	     gss_name_t target_name, OM_uint32 req_flags,
+	     OM_uint32 time_req, gss_ctx_id_t *ctx,
+	     gss_OID_set *mechSet, send_token_flag *tokflag);
 static OM_uint32
 init_ctx_nego(OM_uint32 *, spnego_gss_ctx_id_t, OM_uint32, gss_OID,
 	      gss_buffer_t *, gss_buffer_t *,
@@ -532,13 +534,19 @@ process_mic(OM_uint32 *minor_status, gss_buffer_t mic_in,
 static OM_uint32
 init_ctx_new(OM_uint32 *minor_status,
 	     gss_cred_id_t cred,
+	     gss_name_t target_name,
+	     OM_uint32 req_flags,
+	     OM_uint32 time_req,
 	     gss_ctx_id_t *ctx,
 	     gss_OID_set *mechSet,
 	     send_token_flag *tokflag)
 {
 	OM_uint32 ret, tmpmin;
+	gss_ctx_id_t tmpctx = {0};
+	gss_buffer_desc tmpoutput = GSS_C_EMPTY_BUFFER;
 	gss_cred_id_t creds = GSS_C_NO_CREDENTIAL;
 	spnego_gss_ctx_id_t sc = NULL;
+	size_t read_mech = 0, write_mech = 0;
 
 	/* determine negotiation mech set */
 	if (cred == GSS_C_NO_CREDENTIAL) {
@@ -555,6 +563,57 @@ init_ctx_new(OM_uint32 *minor_status,
 	}
 	if (ret != GSS_S_COMPLETE)
 		return ret;
+
+	/* So far the mech set is based on which credentials are passed in. Now
+	 * the set needs to be trimmed down with the parameters to
+	 * gss_init_sec_context, because some mechanisms are more picky than
+	 * others about those parameters.
+
+	 * This filtering will be done by actually calling gss_init_sec_context
+	 * once for each mechanism, and throwing away the results.
+	 */
+	write_mech = 0;
+	for (read_mech = 0; read_mech < (*mechSet)->count; read_mech++)
+	{
+		ret = gss_init_sec_context(&tmpmin,
+					   cred,
+					   &tmpctx,
+					   target_name,
+					   &(*mechSet)->elements[read_mech],
+					   req_flags,
+					   time_req,
+					   GSS_C_NO_CHANNEL_BINDINGS,
+					   GSS_C_NO_BUFFER,
+					   NULL,
+					   &tmpoutput,
+					   NULL,
+					   NULL);
+		if (HARD_ERROR(ret))
+		{
+			// This mechanism needs to be removed from the list.
+			free((*mechSet)->elements[read_mech].elements);
+		}
+		else
+		{
+			// This mech worked, so it stays in the list
+			memcpy(&(*mechSet)->elements[write_mech],
+				&(*mechSet)->elements[read_mech],
+				sizeof((*mechSet)->elements[write_mech]));
+				write_mech++;
+		}
+		gss_release_buffer(&tmpmin, &tmpoutput);
+		gss_delete_sec_context(&tmpmin, &tmpctx, GSS_C_NO_BUFFER);
+	}
+	// Fix the set size
+	(*mechSet)->count = write_mech;
+
+	if ((*mechSet)->count == 0)
+	{
+		*minor_status = ERR_SPNEGO_NO_MECHS_AVAILABLE;
+		map_errcode(minor_status);
+		ret = GSS_S_FAILURE;
+	    goto cleanup;
+	}
 
 	sc = create_spnego_ctx();
 	if (sc == NULL)
@@ -911,7 +970,8 @@ spnego_gss_init_sec_context(
 
 	if (*context_handle == GSS_C_NO_CONTEXT) {
 		ret = init_ctx_new(minor_status, claimant_cred_handle,
-				   context_handle, &mechSet, &send_token);
+				   target_name, req_flags, time_req, context_handle,
+				   &mechSet, &send_token);
 		if (ret != GSS_S_CONTINUE_NEEDED) {
 			goto cleanup;
 		}
