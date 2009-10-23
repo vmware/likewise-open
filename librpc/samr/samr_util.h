@@ -108,6 +108,10 @@
 #define OUT
 #endif
 
+
+#define SAMR_DEFAULT_SYSNAME   { '\\', '\\', '\0' };
+
+
 #define LIBRPC_LOCK_MUTEX(bInLock, pMutex)           \
     if (!bInLock) {                                  \
         int thr_err = pthread_mutex_lock(pMutex);    \
