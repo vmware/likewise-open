@@ -81,12 +81,6 @@
 #include "defs.h"
 #include "structs.h"
 #include "prototypes.h"
-#include "finder.h"
-#include "pipeinfo.h"
-#include "trans2qfi.h"
-#include "trans2qfsi.h"
-#include "trans2qpi.h"
-#include "trans2sfi.h"
 
 #include "externs.h"
 

@@ -116,6 +116,64 @@ SrvProcessEchoAndX(
     PSRV_EXEC_CONTEXT pExecContext
     );
 
+// finder.c
+
+NTSTATUS
+SrvFinderCreateRepository(
+    PHANDLE phFinderRepository
+    );
+
+NTSTATUS
+SrvFinderCreateSearchSpace(
+    PIO_CREATE_SECURITY_CONTEXT pIoSecurityContext,
+    HANDLE         hFinderRepository,
+    PWSTR          pwszFilesystemPath,
+    PWSTR          pwszSearchPattern,
+    USHORT         usSearchAttrs,
+    ULONG          ulSearchStorageType,
+    SMB_INFO_LEVEL infoLevel,
+    BOOLEAN        bUseLongFilenames,
+    PHANDLE        phFinder,
+    PUSHORT        pusSearchId
+    );
+
+NTSTATUS
+SrvFinderGetSearchSpace(
+    HANDLE  hFinderRepository,
+    USHORT  usSearchId,
+    PHANDLE phFinder
+    );
+
+NTSTATUS
+SrvFinderGetSearchResults(
+    HANDLE   hSearchSpace,
+    BOOLEAN  bReturnSingleEntry,
+    BOOLEAN  bRestartScan,
+    USHORT   usDesiredSearchCount,
+    USHORT   usMaxDataCount,
+    USHORT   usDataOffset,
+    PBYTE*   ppData,
+    PUSHORT  pusDataLen,
+    PUSHORT  pusSearchResultCount,
+    PBOOLEAN pbEndOfSearch
+    );
+
+VOID
+SrvFinderReleaseSearchSpace(
+    HANDLE hFinder
+    );
+
+NTSTATUS
+SrvFinderCloseSearchSpace(
+    HANDLE hFinderRepository,
+    USHORT usSearchId
+    );
+
+VOID
+SrvFinderCloseRepository(
+    HANDLE hFinderRepository
+    );
+
 // findfirst2.c
 
 NTSTATUS
@@ -239,6 +297,15 @@ SrvReleaseOplockStateAsync(
     PSRV_OPLOCK_STATE_SMB_V1 pOplockState
     );
 
+// pipeinfo.c
+
+NTSTATUS
+SrvMarshallPipeInfo(
+    PFILE_PIPE_INFORMATION       pPipeInfo,
+    PFILE_PIPE_LOCAL_INFORMATION pPipeLocalInfo,
+    PUSHORT                      pusDeviceState
+    );
+
 // read.c
 
 NTSTATUS
@@ -300,6 +367,104 @@ SrvPrepareTrans2StateAsync(
 VOID
 SrvReleaseTrans2StateAsync(
     PSRV_TRANS2_STATE_SMB_V1 pTrans2State
+    );
+
+// trans2qfi.h
+
+NTSTATUS
+SrvProcessTrans2QueryFileInformation(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+NTSTATUS
+SrvQueryFileBasicInfo(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+NTSTATUS
+SrvBuildQueryFileBasicInfoResponse(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+NTSTATUS
+SrvQueryFileStandardInfo(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+NTSTATUS
+SrvBuildQueryFileStandardInfoResponse(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+NTSTATUS
+SrvQueryFileEAInfo(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+NTSTATUS
+SrvBuildQueryFileEAInfoResponse(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+NTSTATUS
+SrvQueryFileStreamInfo(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+NTSTATUS
+SrvBuildQueryFileStreamInfoResponse(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+NTSTATUS
+SrvQueryFileAllInfo(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+NTSTATUS
+SrvBuildQueryFileAllInfoResponse(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+NTSTATUS
+SrvQueryFileNameInfo(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+NTSTATUS
+SrvBuildQueryFileNameInfoResponse(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+NTSTATUS
+SrvQueryFileAltNameInfo(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+NTSTATUS
+SrvBuildQueryFileAltNameInfoResponse(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+// trans2qfsi.h
+
+NTSTATUS
+SrvProcessTrans2QueryFilesystemInformation(
+    PSRV_EXEC_CONTEXT       pExecContext
+    );
+
+// trans2qpi.h
+
+NTSTATUS
+SrvProcessTrans2QueryPathInformation(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+// trans2sfi.h
+
+NTSTATUS
+SrvProcessTrans2SetFileInformation(
+    PSRV_EXEC_CONTEXT pExecContext
     );
 
 // tree.c
