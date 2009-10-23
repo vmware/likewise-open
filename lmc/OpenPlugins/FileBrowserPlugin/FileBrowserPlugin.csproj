@@ -35,23 +35,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Folders\FilesPage.cs">
+    <Compile Include="Folders\FilesDetailPage.cs">
       <SubType>UserControl</SubType>
     </Compile>
-    <Compile Include="Folders\FilesPage.Designer.cs">
-      <DependentUpon>FilesPage.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Folders\SessionPage.cs">
-      <SubType>UserControl</SubType>
-    </Compile>
-    <Compile Include="Folders\SessionPage.Designer.cs">
-      <DependentUpon>SessionPage.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Folders\SharesPage.cs">
-      <SubType>UserControl</SubType>
-    </Compile>
-    <Compile Include="Folders\SharesPage.Designer.cs">
-      <DependentUpon>SharesPage.cs</DependentUpon>
+    <Compile Include="Folders\FilesDetailPage.Designer.cs">
+      <DependentUpon>FilesDetailPage.cs</DependentUpon>
     </Compile>
     <Compile Include="Properties\Resources.Designer.cs">
       <DependentUpon>Resources.resx</DependentUpon>
@@ -61,7 +49,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="src\FileBrowserPlugIn.cs">
     </Compile>
-    <Compile Include="src\FileSharesPage.cs">
+    <Compile Include="src\FileBrowserPage.cs">
       <SubType>UserControl</SubType>
     </Compile>
     <Compile Include="src\NewShareFinishPage.cs">
@@ -108,22 +96,18 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Folders\FilesPage.resx">
-      <DependentUpon>FilesPage.cs</DependentUpon>
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Folders\SessionPage.resx">
-      <DependentUpon>SessionPage.cs</DependentUpon>
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Folders\SharesPage.resx">
-      <DependentUpon>SharesPage.cs</DependentUpon>
+    <EmbeddedResource Include="Folders\FilesDetailPage.resx">
+      <DependentUpon>FilesDetailPage.cs</DependentUpon>
       <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <SubType>Designer</SubType>
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\FileBrowserPage.resx">
+      <SubType>Designer</SubType>
+      <DependentUpon>FileBrowserPage.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="src\NewShareFinishPage.resx">
       <DependentUpon>NewShareFinishPage.cs</DependentUpon>

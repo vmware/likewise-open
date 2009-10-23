@@ -173,7 +173,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
             Hostinfo hn = ctx as Hostinfo;
 
             Logger.Log(String.Format("FileBrowserPlugIn.SetHost(hn: {0}\n)",
-            hn == null ? "<null>" : hn.ToString()), Logger.eventLogLogLevel);
+            hn == null ? "<null>" : hn.ToString()), Logger.FileBrowserLogLevel);
 
             bool deadTree = false;
 
@@ -225,6 +225,15 @@ namespace Likewise.LMC.Plugins.FileBrowser
         {
             Logger.Log("FileBrowserPlugIn.EnumChildren", Logger.FileBrowserLogLevel);
 
+            if (parentNode == _pluginNode)
+            {
+                BuildNodesToPlugin();
+            }
+
+            //
+            // Here is a place to break out the enumeration for each node and path
+            //
+
             return;
         }
 
@@ -263,33 +272,68 @@ namespace Likewise.LMC.Plugins.FileBrowser
                 }
                 if (_pluginNode == nodeClicked)
                 {
+                }
+                else if (nodeClicked.Name.Trim().Equals(Resources.Network))
+                {
                     fileBrowserContextMenu = new ContextMenu();
 
-                    MenuItem m_item = new MenuItem("Set Target Machine", new EventHandler(cm_OnConnect));
+                    MenuItem m_item = new MenuItem("Connect to network share...", new EventHandler(cm_OnConnect));
                     fileBrowserContextMenu.MenuItems.Add(0, m_item);
                 }
-                else if (nodeClicked.Name.Trim().Equals(Resources.FileShares))
+                else if (nodeClicked.Name.Trim().Equals(Resources.Computer))
                 {
-                    SharesPage sharesPage = fileBrowserPage as SharesPage;
-                    if (sharesPage != null)
+                    FilesDetailPage detailsPage = fileBrowserPage as FilesDetailPage;
+                    if (detailsPage != null)
                     {
-                        fileBrowserContextMenu = sharesPage.GetTreeContextMenu();
+                        fileBrowserContextMenu = detailsPage.GetTreeContextMenu();
                     }
                 }
-                else if (nodeClicked.Name.Trim().Equals(Resources.OpenSessions))
+                else if (nodeClicked.Name.Trim().Equals(Resources.Home))
                 {
-                    SessionPage sessionPage = fileBrowserPage as SessionPage;
-                    if (sessionPage != null)
+                    FilesDetailPage detailsPage = fileBrowserPage as FilesDetailPage;
+                    if (detailsPage != null)
                     {
-                        fileBrowserContextMenu = sessionPage.GetTreeContextMenu();
+                        fileBrowserContextMenu = detailsPage.GetTreeContextMenu();
                     }
                 }
-                else if (nodeClicked.Name.Trim().Equals(Resources.OpenFiles))
+                else if (nodeClicked.Name.Trim().Equals(Resources.Desktop))
                 {
-                    FilesPage filesPage = fileBrowserPage as FilesPage;
-                    if (filesPage != null)
+                    FilesDetailPage detailsPage = fileBrowserPage as FilesDetailPage;
+                    if (detailsPage != null)
                     {
-                        fileBrowserContextMenu = filesPage.GetTreeContextMenu();
+                        fileBrowserContextMenu = detailsPage.GetTreeContextMenu();
+                    }
+                }
+                else if (nodeClicked.Name.Trim().Equals(Resources.Documents))
+                {
+                    FilesDetailPage detailsPage = fileBrowserPage as FilesDetailPage;
+                    if (detailsPage != null)
+                    {
+                        fileBrowserContextMenu = detailsPage.GetTreeContextMenu();
+                    }
+                }
+                else if (nodeClicked.Name.Trim().Equals(Resources.Music))
+                {
+                    FilesDetailPage detailsPage = fileBrowserPage as FilesDetailPage;
+                    if (detailsPage != null)
+                    {
+                        fileBrowserContextMenu = detailsPage.GetTreeContextMenu();
+                    }
+                }
+                else if (nodeClicked.Name.Trim().Equals(Resources.Pictures))
+                {
+                    FilesDetailPage detailsPage = fileBrowserPage as FilesDetailPage;
+                    if (detailsPage != null)
+                    {
+                        fileBrowserContextMenu = detailsPage.GetTreeContextMenu();
+                    }
+                }
+                else if (nodeClicked.Name.Trim().Equals(Resources.Videos))
+                {
+                    FilesDetailPage detailsPage = fileBrowserPage as FilesDetailPage;
+                    if (detailsPage != null)
+                    {
+                        fileBrowserContextMenu = detailsPage.GetTreeContextMenu();
                     }
                 }
                 return fileBrowserContextMenu;
@@ -327,14 +371,30 @@ namespace Likewise.LMC.Plugins.FileBrowser
             if (_pluginNode != null)
             {
                 Icon ic = Resources.SharedFolder2;
-                LACTreeNode shNode = Manage.CreateIconNode(Resources.FileShares, ic, typeof(FileSharesPage), this);
-                _pluginNode.Nodes.Add(shNode);
 
-                LACTreeNode osNode = Manage.CreateIconNode(Resources.OpenSessions, ic, typeof(SessionPage), this);
-                _pluginNode.Nodes.Add(osNode);
+                LACTreeNode networkNode = Manage.CreateIconNode(Resources.Network, ic, typeof(FilesDetailPage), this);
+                _pluginNode.Nodes.Add(networkNode);
 
-                LACTreeNode ofNode = Manage.CreateIconNode(Resources.sOpenFiles, ic, typeof(FilesPage), this);
-                _pluginNode.Nodes.Add(ofNode);
+                LACTreeNode computerNode = Manage.CreateIconNode(Resources.Computer, ic, typeof(FilesDetailPage), this);
+                _pluginNode.Nodes.Add(computerNode);
+
+                LACTreeNode homeNode = Manage.CreateIconNode(Resources.Home, ic, typeof(FilesDetailPage), this);
+                computerNode.Nodes.Add(homeNode);
+
+                LACTreeNode deskNode = Manage.CreateIconNode(Resources.Desktop, ic, typeof(FilesDetailPage), this);
+                computerNode.Nodes.Add(deskNode);
+
+                LACTreeNode docNode = Manage.CreateIconNode(Resources.Documents, ic, typeof(FilesDetailPage), this);
+                computerNode.Nodes.Add(docNode);
+
+                LACTreeNode musicNode = Manage.CreateIconNode(Resources.Music, ic, typeof(FilesDetailPage), this);
+                computerNode.Nodes.Add(musicNode);
+
+                LACTreeNode pictNode = Manage.CreateIconNode(Resources.Pictures, ic, typeof(FilesDetailPage), this);
+                computerNode.Nodes.Add(pictNode);
+
+                LACTreeNode videoNode = Manage.CreateIconNode(Resources.Videos, ic, typeof(FilesDetailPage), this);
+                computerNode.Nodes.Add(videoNode);
             }
         }
 

@@ -68,6 +68,33 @@ namespace Likewise.LMC.Plugins.FileBrowser.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Computer.
+        /// </summary>
+        internal static string Computer {
+            get {
+                return ResourceManager.GetString("Computer", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Desktop.
+        /// </summary>
+        internal static string Desktop {
+            get {
+                return ResourceManager.GetString("Desktop", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Documents.
+        /// </summary>
+        internal static string Documents {
+            get {
+                return ResourceManager.GetString("Documents", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Unable to close the session {0}.
         ///Error: {1} .
         /// </summary>
@@ -141,6 +168,15 @@ namespace Likewise.LMC.Plugins.FileBrowser.Properties {
             }
         }
         
+        /// <summary>
+        ///   Looks up a localized string similar to Home.
+        /// </summary>
+        internal static string Home {
+            get {
+                return ResourceManager.GetString("Home", resourceCulture);
+            }
+        }
+
         internal static System.Drawing.Bitmap likewise_splash_screen {
             get {
                 object obj = ResourceManager.GetObject("likewise_splash_screen", resourceCulture);
@@ -148,6 +184,24 @@ namespace Likewise.LMC.Plugins.FileBrowser.Properties {
             }
         }
         
+        /// <summary>
+        ///   Looks up a localized string similar to Music.
+        /// </summary>
+        internal static string Music {
+            get {
+                return ResourceManager.GetString("Music", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Network.
+        /// </summary>
+        internal static string Network {
+            get {
+                return ResourceManager.GetString("Network", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Open Files.
         /// </summary>
@@ -166,6 +220,15 @@ namespace Likewise.LMC.Plugins.FileBrowser.Properties {
             }
         }
         
+        /// <summary>
+        ///   Looks up a localized string similar to Pictures.
+        /// </summary>
+        internal static string Pictures {
+            get {
+                return ResourceManager.GetString("Pictures", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Lets you manage File and Print shares..
         /// </summary>
@@ -265,6 +328,15 @@ namespace Likewise.LMC.Plugins.FileBrowser.Properties {
         internal static string sTitleTopLevelTab {
             get {
                 return ResourceManager.GetString("sTitleTopLevelTab", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Videos.
+        /// </summary>
+        internal static string Videos {
+            get {
+                return ResourceManager.GetString("Videos", resourceCulture);
             }
         }
     }
