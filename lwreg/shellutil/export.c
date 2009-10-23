@@ -603,7 +603,7 @@ ProcessSubKeys(
         dwError = LwMbsToWc16s(pszSubKeyName+1, &pSubKey);
         BAIL_ON_REG_ERROR(dwError);
 
-        dwError = RegOpenKeyEx(
+        dwError = RegOpenKeyExW(
             hReg,
             hKey,
             pSubKey,
