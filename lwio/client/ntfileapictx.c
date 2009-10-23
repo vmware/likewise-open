@@ -942,7 +942,8 @@ LwNtCtxReadDirectoryChangeFile(
     OUT PVOID Buffer,
     IN ULONG Length,
     IN BOOLEAN WatchTree,
-    IN FILE_NOTIFY_CHANGE NotifyFilter
+    IN FILE_NOTIFY_CHANGE NotifyFilter,
+    IN OPTIONAL PULONG MaxBufferSize
     )
 {
     NTSTATUS status = 0;
@@ -968,6 +969,7 @@ LwNtCtxReadDirectoryChangeFile(
     request.Length = Length;
     request.WatchTree = WatchTree;
     request.NotifyFilter = NotifyFilter;
+    request.MaxBufferSize = MaxBufferSize;
 
     status = NtpCtxCall(pCall,
                         requestType,

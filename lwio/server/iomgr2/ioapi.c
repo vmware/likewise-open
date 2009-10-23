@@ -748,7 +748,8 @@ IoReadDirectoryChangeFile(
     OUT PVOID Buffer,
     IN ULONG Length,
     IN BOOLEAN WatchTree,
-    IN FILE_NOTIFY_CHANGE NotifyFilter
+    IN FILE_NOTIFY_CHANGE NotifyFilter,
+    IN OPTIONAL PULONG MaxBufferSize
     )
 {
     NTSTATUS status = 0;
@@ -770,6 +771,7 @@ IoReadDirectoryChangeFile(
     pIrp->Args.ReadDirectoryChange.Length = Length;
     pIrp->Args.ReadDirectoryChange.WatchTree = WatchTree;
     pIrp->Args.ReadDirectoryChange.NotifyFilter = NotifyFilter;
+    pIrp->Args.ReadDirectoryChange.MaxBufferSize = MaxBufferSize;
 
     status = IopIrpDispatch(
                     pIrp,

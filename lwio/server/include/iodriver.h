@@ -92,13 +92,6 @@ typedef ULONG IO_LOCK_CONTROL;
 #define IO_LOCK_CONTROL_UNLOCK_ALL_BY_KEY 3
 #define IO_LOCK_CONTROL_UNLOCK_ALL        4
 
-typedef struct _IRP_ARGS_READ_DIRECTORY_CHANGE {
-    OUT PVOID Buffer;
-    IN ULONG Length;
-    IN BOOLEAN WatchTree;
-    IN FILE_NOTIFY_CHANGE NotifyFilter;
-} IRP_ARGS_READ_DIRECTORY_CHANGE, *PIRP_ARGS_READ_DIRECTORY_CHANGE;
-
 // "Storage" field is so we do not have to allocate
 // extra memory blocks for small optional parameters
 // that are provided via pointers.
@@ -157,6 +150,17 @@ typedef struct _IRP_ARGS_QUERY_DIRECTORY {
         IO_MATCH_FILE_SPEC FileSpec;
     } Storage;
 } IRP_ARGS_QUERY_DIRECTORY, *PIRP_ARGS_QUERY_DIRECTORY;
+
+typedef struct _IRP_ARGS_READ_DIRECTORY_CHANGE {
+    OUT PVOID Buffer;
+    IN ULONG Length;
+    IN BOOLEAN WatchTree;
+    IN FILE_NOTIFY_CHANGE NotifyFilter;
+    IN OPTIONAL PULONG MaxBufferSize;
+    struct {
+        ULONG MaxBufferSize;
+    } Storage;
+} IRP_ARGS_READ_DIRECTORY_CHANGE, *PIRP_ARGS_READ_DIRECTORY_CHANGE;
 
 typedef struct _IRP_ARGS_QUERY_SET_VOLUME_INFORMATION {
     IN OUT PVOID FsInformation;
