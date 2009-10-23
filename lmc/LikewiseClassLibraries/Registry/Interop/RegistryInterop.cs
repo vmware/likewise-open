@@ -230,7 +230,7 @@ namespace Likewise.LMC.Registry
         //)
         
         [DllImport(libadvapiPath, CharSet = CharSet.Unicode, SetLastError = true)]
-        public static extern int RegEnumRootKeys(
+        public static extern int RegEnumRootKeysA(
             IntPtr hRegConnection,
             out IntPtr pppszRootKeyNames,
             out int pdwNumRootKeys);

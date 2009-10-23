@@ -173,7 +173,7 @@ namespace Likewise.LMC.Registry
 
             Logger.Log("RegistryInteropWrapper.ApiRegEnumRootKeys(hRegConnection = " + hRegConnection.ToString(), Logger.RegistryViewerLoglevel);
 
-            iResult = RegistryInterop.RegEnumRootKeys(hRegConnection, out pRootKeyEnum, out pRootKeyEnumCount);            
+            iResult = RegistryInterop.RegEnumRootKeysA(hRegConnection, out pRootKeyEnum, out pRootKeyEnumCount);
 
             if (iResult != 0)
             {
