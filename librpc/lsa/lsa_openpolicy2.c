@@ -46,26 +46,29 @@
 
 #include "includes.h"
 
+
 NTSTATUS
 LsaOpenPolicy2(
     IN  handle_t       hBinding,
-    IN  PCWSTR         pwszSysname,
+    IN  PCWSTR         pwszSysName,
     IN  PVOID          attrib,
     IN  UINT32         AccessMask,
     OUT POLICY_HANDLE *phPolicy
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    WCHAR wszDefaultSysName[] = LSA_DEFAULT_SYSNAME;
     PWSTR pwszSystemName = NULL;
     POLICY_HANDLE hPolicy = NULL;
     SECURITY_QUALITY_OF_SERVICE SecQos = {0};
     ObjectAttribute ObjAttribute = {0};
 
     BAIL_ON_INVALID_PTR(hBinding, ntStatus);
-    BAIL_ON_INVALID_PTR(pwszSysname, ntStatus);
     BAIL_ON_INVALID_PTR(phPolicy, ntStatus);
 
-    ntStatus = RtlWC16StringDuplicate(&pwszSystemName, pwszSysname);
+    ntStatus = RtlWC16StringDuplicate(
+                        &pwszSystemName,
+                        (pwszSysName) ? pwszSysName : &(wszDefaultSysName[0]));
     BAIL_ON_NT_STATUS(ntStatus);
 
     /* ObjectAttribute argument is not used, so just
