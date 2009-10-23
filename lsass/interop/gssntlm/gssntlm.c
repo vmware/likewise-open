@@ -748,6 +748,8 @@ ntlm_gss_init_sec_context(
     NTLM_CRED_HANDLE CredHandle = NULL;
     TimeStamp Expiry = 0;
     DWORD dwNtlmFlags = NTLM_FLAG_NEGOTIATE_DEFAULT;
+    DWORD dwOutNtlmFlags = 0;
+    OM_uint32 RetFlags = 0;
 
     InputBuffer.cBuffers = 1;
     InputBuffer.pBuffers = &InputToken;
@@ -824,7 +826,7 @@ ntlm_gss_init_sec_context(
         0, // Reserved
         &hNewContext,
         &OutputBuffer,
-        pRetFlags,
+        &dwOutNtlmFlags,
         &tsExpiry
         );
 
@@ -837,6 +839,14 @@ ntlm_gss_init_sec_context(
         BAIL_ON_LSA_ERROR(MinorStatus);
     }
 
+    if (dwOutNtlmFlags & NTLM_FLAG_SEAL)
+    {
+        RetFlags |= GSS_C_CONF_FLAG;
+    }
+    if (dwOutNtlmFlags & NTLM_FLAG_SIGN)
+    {
+        RetFlags |= GSS_C_INTEG_FLAG;
+    }
 
 cleanup:
     *pMinorStatus = MinorStatus;
@@ -859,7 +869,7 @@ cleanup:
 
     if (pRetFlags)
     {
-        *pRetFlags = 0;
+        *pRetFlags = RetFlags;
     }
 
     if (pTimeRec)
