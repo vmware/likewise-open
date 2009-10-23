@@ -71,7 +71,7 @@ InitSamrBindingDefault(
                     pszUuid,
                     pszOptions,
                     pCreds);
-    BAIL_ON_RPCSTATUS_ERROR(rpcStatus);
+    BAIL_ON_RPC_STATUS(rpcStatus);
 
     *phSamrBinding = hSamrBinding;
 
@@ -140,12 +140,12 @@ InitSamrBindingFull(
                                options,
                                &binding_string,
                                &rpcStatus);
-    BAIL_ON_RPCSTATUS_ERROR(rpcStatus);
+    BAIL_ON_RPC_STATUS(rpcStatus);
 
     rpc_binding_from_string_binding(binding_string,
                                     &hSamrBinding,
                                     &rpcStatus);
-    BAIL_ON_RPCSTATUS_ERROR(rpcStatus);
+    BAIL_ON_RPC_STATUS(rpcStatus);
 
     if (strcmp(pszProtSeq, "ncacn_np") == 0)
     {
@@ -154,13 +154,13 @@ InitSamrBindingFull(
             FALSE,
             &hInfo,
             &rpcStatus);
-        BAIL_ON_RPCSTATUS_ERROR(rpcStatus);
+        BAIL_ON_RPC_STATUS(rpcStatus);
 
         rpc_binding_set_transport_info(
             hSamrBinding,
             hInfo,
             &rpcStatus);
-        BAIL_ON_RPCSTATUS_ERROR(rpcStatus);
+        BAIL_ON_RPC_STATUS(rpcStatus);
 
         hInfo = NULL;
     }
@@ -168,7 +168,7 @@ InitSamrBindingFull(
     rpc_mgmt_set_com_timeout(hSamrBinding,
                              6,
                              &rpcStatus);
-    BAIL_ON_RPCSTATUS_ERROR(rpcStatus);
+    BAIL_ON_RPC_STATUS(rpcStatus);
 
     *phSamrBinding = hSamrBinding;
 
@@ -217,7 +217,7 @@ FreeSamrBinding(
     /* Free the binding itself */
     if (phSamrBinding && *phSamrBinding) {
         rpc_binding_free(phSamrBinding, &rpcStatus);
-        BAIL_ON_RPCSTATUS_ERROR(rpcStatus);
+        BAIL_ON_RPC_STATUS(rpcStatus);
     }
 
 cleanup:
