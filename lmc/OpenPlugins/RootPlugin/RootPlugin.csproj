@@ -39,7 +39,9 @@
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
-      <DependentUpon>Resources.resx</DependentUpon>     
+      <DependentUpon>Resources.resx</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
     </Compile>
     <Compile Include="src\ConsolePage.cs">
       <SubType>UserControl</SubType>
@@ -53,18 +55,12 @@
     <EmbeddedResource Include="Properties\Resources.resx">
       <SubType>Designer</SubType>
       <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
     <EmbeddedResource Include="src\ConsolePage.resx">
       <DependentUpon>ConsolePage.cs</DependentUpon>
       <SubType>Designer</SubType>
     </EmbeddedResource>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Resources\ServicesIcon.ico" />
-    <None Include="Resources\Services_48.ico" />
-    <None Include="Resources\genericserver.ico" />
-    <None Include="Resources\manageserver.ico" />
-    <None Include="Resources\Admin_White.ico" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\LMConsoleUtils\LMConsoleUtils.csproj">
@@ -75,6 +71,9 @@
       <Project>{9F45E041-5B67-48B8-AD13-DD5C40F3364A}</Project>
       <Name>ServerControl_Open</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Resources\" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

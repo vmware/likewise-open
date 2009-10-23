@@ -43,8 +43,6 @@ public partial class ConsolePage : ServerControl.StandardPage
     {
         InitializeComponent();
         
-        Icon ic = new Icon(Properties.Resources.Admin_White, 48, 48);
-        picture.Image = ic.ToBitmap();
     }
     
     /// <summary>
