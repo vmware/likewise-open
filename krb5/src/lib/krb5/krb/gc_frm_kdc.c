@@ -1004,6 +1004,11 @@ krb5_get_cred_from_kdc_opt(krb5_context context, krb5_ccache ccache,
 
     DUMP_PRINC("gc_from_kdc: server as requested", supplied_server);
 
+    if (in_cred->second_ticket.length != 0 &&
+	(kdcopt & KDC_OPT_CNAME_IN_ADDL_TKT) == 0) {
+	kdcopt |= KDC_OPT_ENC_TKT_IN_SKEY;
+    }
+
     /*
      * Try requesting a service ticket from our local KDC with referrals
      * turned on.  If the first referral succeeds, follow a referral-only
@@ -1025,9 +1030,7 @@ krb5_get_cred_from_kdc_opt(krb5_context context, krb5_ccache ccache,
         retval = krb5_get_cred_via_tkt(context, tgtptr,
 				       KDC_OPT_CANONICALIZE | 
 				       FLAGS2OPTS(tgtptr->ticket_flags) |  
-				       kdcopt |
-				       (in_cred->second_ticket.length ?
-					KDC_OPT_ENC_TKT_IN_SKEY : 0),
+				       kdcopt,
 				       tgtptr->addresses, in_cred, out_cred);
 	if (retval) {
 	    DPRINTF(("gc_from_kdc: referral TGS-REQ request failed: <%s>\n",
@@ -1045,9 +1048,7 @@ krb5_get_cred_from_kdc_opt(krb5_context context, krb5_ccache ccache,
 		     "retrying without option.\n", referral_count + 1));
 	    retval = krb5_get_cred_via_tkt(context, tgtptr,
 					   FLAGS2OPTS(tgtptr->ticket_flags) |  
-					   kdcopt |
-					   (in_cred->second_ticket.length ?
-					    KDC_OPT_ENC_TKT_IN_SKEY : 0),
+					   kdcopt,
 					   tgtptr->addresses,
 					   in_cred, out_cred);
 	    /* Whether or not that succeeded, we're done. */
@@ -1087,9 +1088,7 @@ krb5_get_cred_from_kdc_opt(krb5_context context, krb5_ccache ccache,
 	    retval = krb5_get_cred_via_tkt(context, tgtptr,
 					   KDC_OPT_CANONICALIZE | 
 					   FLAGS2OPTS(tgtptr->ticket_flags) |  
-					   kdcopt |
-					   (in_cred->second_ticket.length ?
-					    KDC_OPT_ENC_TKT_IN_SKEY : 0),
+					   kdcopt,
 					   tgtptr->addresses,
 					   in_cred, out_cred);
 	    goto cleanup;
@@ -1253,9 +1252,7 @@ krb5_get_cred_from_kdc_opt(krb5_context context, krb5_ccache ccache,
     context->use_conf_ktypes = old_use_conf_ktypes;
     retval = krb5_get_cred_via_tkt(context, tgtptr,
 				   FLAGS2OPTS(tgtptr->ticket_flags) |
-				   kdcopt |
-				   (in_cred->second_ticket.length ?
-				    KDC_OPT_ENC_TKT_IN_SKEY : 0),
+				   kdcopt,
 				   tgtptr->addresses, in_cred, out_cred);
 
 cleanup:

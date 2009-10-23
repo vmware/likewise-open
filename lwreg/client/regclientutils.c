@@ -133,7 +133,7 @@ CreateKeys(
     dwError = LwMbsToWc16s(pszParentKey, &pKey);
     BAIL_ON_REG_ERROR(dwError);
 
-    dwError = RegCreateKeyEx(
+    dwError = RegCreateKeyExW(
         (HANDLE) hReg,
         pRootKey,
         pKey,
@@ -162,7 +162,7 @@ CreateKeys(
         dwError = LwMbsToWc16s(ppszSubKeys[iCount], &pKey);
         BAIL_ON_REG_ERROR(dwError);
 
-        dwError = RegCreateKeyEx(
+        dwError = RegCreateKeyExW(
             (HANDLE) hReg,
             pNewKey,
             pKey,

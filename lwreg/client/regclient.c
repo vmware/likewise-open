@@ -120,7 +120,54 @@ RegEnumRootKeysW(
 
 REG_API
 DWORD
-RegCreateKeyEx(
+RegCreateKeyExA(
+    IN HANDLE hRegConnection,
+    IN HKEY hKey,
+    IN PCSTR pszSubKey,
+    IN DWORD Reserved,
+    IN OPTIONAL PWSTR pClass,
+    IN DWORD dwOptions,
+    IN REGSAM samDesired,
+    IN OPTIONAL PSECURITY_ATTRIBUTES pSecurityAttributes,
+    OUT PHKEY phkResult,
+    OUT OPTIONAL PDWORD pdwDisposition
+    )
+{
+    DWORD dwError = 0;
+    PWSTR pwszSubKey = NULL;
+
+    if (pszSubKey)
+    {
+        dwError = LwMbsToWc16s(pszSubKey, &pwszSubKey);
+        BAIL_ON_REG_ERROR(dwError);
+    }
+
+    dwError = RegTransactCreateKeyExW(
+        hRegConnection,
+        hKey,
+        pwszSubKey,
+        Reserved,
+        pClass,
+        dwOptions,
+        samDesired,
+        pSecurityAttributes,
+        phkResult,
+        pdwDisposition
+        );
+    BAIL_ON_REG_ERROR(dwError);
+
+cleanup:
+    LW_SAFE_FREE_MEMORY(pwszSubKey);
+
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+REG_API
+DWORD
+RegCreateKeyExW(
     IN HANDLE hRegConnection,
     IN HKEY hKey,
     IN PCWSTR pSubKey,
@@ -133,7 +180,7 @@ RegCreateKeyEx(
     OUT OPTIONAL PDWORD pdwDisposition
     )
 {
-    return RegTransactCreateKeyEx(
+    return RegTransactCreateKeyExW(
         hRegConnection,
         hKey,
         pSubKey,

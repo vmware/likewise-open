@@ -410,7 +410,7 @@ LocalCfgReadRegistry(
     PSTR pszUmask = NULL;
     LOCAL_CONFIG StagingConfig;
 
-    LSA_CONFIG ConfigDescription[] =
+    LSA_CONFIG LpConfigDescription[] =
     {
         {
             "LoginShellTemplate",
@@ -438,15 +438,6 @@ LocalCfgReadRegistry(
             MAXDWORD,
             NULL,
             &pszUmask
-        },
-        {
-            "EnableEventlog",
-            TRUE,
-            LsaTypeBoolean,
-            0,
-            MAXDWORD,
-            NULL,
-            &StagingConfig.bEnableEventLog
         },
         {
             "HomeDirTemplate",
@@ -477,14 +468,35 @@ LocalCfgReadRegistry(
         }
     };
 
+    LSA_CONFIG LsaConfigDescription[] =
+    {
+        {
+            "EnableEventlog",
+            TRUE,
+            LsaTypeBoolean,
+            0,
+            MAXDWORD,
+            NULL,
+            &StagingConfig.bEnableEventLog
+        }
+    };
+
+
     dwError = LocalCfgInitialize(&StagingConfig);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaProcessConfig(
                 "Services\\lsass\\Parameters\\Providers\\Local",
                 "Policy\\Services\\lsass\\Parameters\\Providers\\Local",
-                ConfigDescription,
-                sizeof(ConfigDescription)/sizeof(ConfigDescription));
+                LpConfigDescription,
+                sizeof(LpConfigDescription)/sizeof(LpConfigDescription));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaProcessConfig(
+                "Services\\lsass\\Parameters",
+                "PolicyServices\\lsass\\Parameters",
+                LsaConfigDescription,
+                sizeof(LsaConfigDescription)/sizeof(LsaConfigDescription[0]));
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LocalCfgSetDefaultLoginShell(

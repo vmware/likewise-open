@@ -86,7 +86,7 @@ RegTransactOpenKeyExW(
     );
 
 DWORD
-RegTransactCreateKeyEx(
+RegTransactCreateKeyExW(
     HANDLE Handle,
     HKEY hKey,
     PCWSTR pSubKey,

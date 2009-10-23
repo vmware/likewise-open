@@ -231,7 +231,8 @@ LwNtCtxReadDirectoryChangeFile(
     OUT PVOID Buffer,
     IN ULONG Length,
     IN BOOLEAN WatchTree,
-    IN FILE_NOTIFY_CHANGE NotifyFilter
+    IN FILE_NOTIFY_CHANGE NotifyFilter,
+    IN OPTIONAL PULONG MaxBufferSize
     );
 
 NTSTATUS
@@ -528,7 +529,8 @@ LwNtReadDirectoryChangeFile(
     OUT PVOID Buffer,
     IN ULONG Length,
     IN BOOLEAN WatchTree,
-    IN FILE_NOTIFY_CHANGE NotifyFilter
+    IN FILE_NOTIFY_CHANGE NotifyFilter,
+    IN OPTIONAL PULONG MaxBufferSize
     );
 
 LW_NTSTATUS

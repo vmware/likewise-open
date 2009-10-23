@@ -746,7 +746,6 @@ error:
     goto cleanup;
 }
 
-
 DWORD
 LWNetCacheDbRegistryWriteValue(
     HANDLE hReg,
@@ -1034,7 +1033,7 @@ LWNetCacheDbWriteToRegistry(
     /* Create Services\netlogon\cachedb subkey */
     dwError = LwMbsToWc16s(pszCacheSubKey, &pwszNewCacheKey);
     BAIL_ON_LWNET_ERROR(dwError);
-    dwError = RegCreateKeyEx(
+    dwError = RegCreateKeyExW(
                   hReg,
                   pNetlogonKey,
                   pwszNewCacheKey,
@@ -1085,7 +1084,7 @@ LWNetCacheDbWriteToRegistry(
         BAIL_ON_LWNET_ERROR(dwError);
         LWNET_SAFE_FREE_MEMORY(pszNewCacheKey);
 
-        dwError = RegCreateKeyEx(
+        dwError = RegCreateKeyExW(
                       hReg,
                       pFullKey,
                       pwszNewCacheKey,

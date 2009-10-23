@@ -1039,6 +1039,7 @@ pointer_t       sm;
         if (status != rpc_s_ok)
         {
 		sm_p->cur_state = n_state;
+		call_rep->assoc->assoc_status = status;
 		return (status);
         }
     }

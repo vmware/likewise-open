@@ -105,7 +105,7 @@ ProcessImportedKeyName(
         dwError = LwMbsToWc16s(pszKeyToken, &pSubKey);
         BAIL_ON_REG_ERROR(dwError);
 
-        dwError = RegCreateKeyEx(
+        dwError = RegCreateKeyExW(
             (HANDLE) hReg,
             (HKEY) hCurrKey,
             pSubKey,

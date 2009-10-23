@@ -250,7 +250,7 @@ AD_ReadRegistry(
         "memory"
     };
 
-    LSA_CONFIG ConfigDescription[] =
+    LSA_CONFIG ADConfigDescription[] =
     {
         {
             "SpaceReplacement",
@@ -287,15 +287,6 @@ AD_ReadRegistry(
             MAXDWORD,
             NULL,
             &pszUnresolvedMemberList
-        },
-        {
-            "EnableEventlog",
-            TRUE,
-            LsaTypeBoolean,
-            0,
-            MAXDWORD,
-            NULL,
-            &StagingConfig.bEnableEventLog
         },
         {
             "LoginShellTemplate",
@@ -506,6 +497,19 @@ AD_ReadRegistry(
         }
     };
 
+    LSA_CONFIG LsaConfigDescription[] =
+    {
+        {
+            "EnableEventlog",
+            TRUE,
+            LsaTypeBoolean,
+            0,
+            MAXDWORD,
+            NULL,
+            &StagingConfig.bEnableEventLog
+        }
+    };
+
     dwError = AD_InitializeConfig(&StagingConfig);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -514,8 +518,15 @@ AD_ReadRegistry(
     dwError = LsaProcessConfig(
                 "Services\\lsass\\Parameters\\Providers\\ActiveDirectory",
                 "PolicyServices\\lsass\\Parameters\\Providers\\ActiveDirectory",
-                ConfigDescription,
-                sizeof(ConfigDescription)/sizeof(ConfigDescription[0]));
+                ADConfigDescription,
+                sizeof(ADConfigDescription)/sizeof(ADConfigDescription[0]));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaProcessConfig(
+                "Services\\lsass\\Parameters",
+                "PolicyServices\\lsass\\Parameters",
+                LsaConfigDescription,
+                sizeof(LsaConfigDescription)/sizeof(LsaConfigDescription[0]));
     BAIL_ON_LSA_ERROR(dwError);
 
     /* Special handling is used for some values. */

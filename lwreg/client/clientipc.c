@@ -239,7 +239,7 @@ error:
 }
 
 DWORD
-RegTransactCreateKeyEx(
+RegTransactCreateKeyExW(
     IN HANDLE hConnection,
     IN HKEY hKey,
     IN PCWSTR pSubKey,
