@@ -29,10 +29,21 @@
  */
 
 /*
- * Abstract: Lsa interface utility macros (rpc client library)
+ * Copyright (C) Likewise Software. All rights reserved.
  *
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ * Module Name:
+ *
+ *        macros.h
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Client Interface
+ *
+ *        Common private macros for rpc client library
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
+
 
 #ifndef _LIBRPC_MACROS_H_
 #define _LIBRPC_MACROS_H_

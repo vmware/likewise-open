@@ -405,7 +405,7 @@ typedef struct _GSS_MECH_CONFIG
         INT,
         gss_qop_t,
         PINT,
-        gss_iov_buffer_desc,
+        gss_iov_buffer_desc*,
         INT
         );
 
@@ -522,8 +522,8 @@ static GSS_MECH_CONFIG gNtlmMech =
     NULL, //ntlm_gssspi_mech_invoke,
     NULL, //ntlm_gss_wrap_aead,
     NULL, //ntlm_gss_unwrap_aead,
-    NULL, //ntlm_gss_wrap_iov,
-    NULL, //ntlm_gss_unwrap_iov,
+    ntlm_gss_wrap_iov,
+    ntlm_gss_unwrap_iov,
     NULL, //ntlm_gss_wrap_iov_length,
     NULL, //ntlm_gss_complete_auth_token,
     NULL, //ntlm_gss_inquire_context2
@@ -748,6 +748,8 @@ ntlm_gss_init_sec_context(
     NTLM_CRED_HANDLE CredHandle = NULL;
     TimeStamp Expiry = 0;
     DWORD dwNtlmFlags = NTLM_FLAG_NEGOTIATE_DEFAULT;
+    DWORD dwOutNtlmFlags = 0;
+    OM_uint32 RetFlags = 0;
 
     InputBuffer.cBuffers = 1;
     InputBuffer.pBuffers = &InputToken;
@@ -824,7 +826,7 @@ ntlm_gss_init_sec_context(
         0, // Reserved
         &hNewContext,
         &OutputBuffer,
-        pRetFlags,
+        &dwOutNtlmFlags,
         &tsExpiry
         );
 
@@ -837,6 +839,14 @@ ntlm_gss_init_sec_context(
         BAIL_ON_LSA_ERROR(MinorStatus);
     }
 
+    if (dwOutNtlmFlags & NTLM_FLAG_SEAL)
+    {
+        RetFlags |= GSS_C_CONF_FLAG;
+    }
+    if (dwOutNtlmFlags & NTLM_FLAG_SIGN)
+    {
+        RetFlags |= GSS_C_INTEG_FLAG;
+    }
 
 cleanup:
     *pMinorStatus = MinorStatus;
@@ -859,7 +869,7 @@ cleanup:
 
     if (pRetFlags)
     {
-        *pRetFlags = 0;
+        *pRetFlags = RetFlags;
     }
 
     if (pTimeRec)
@@ -1320,6 +1330,114 @@ error:
 }
 
 OM_uint32
+ntlm_gss_wrap_iov(
+    OM_uint32* pMinorStatus,
+    gss_ctx_id_t GssCtxtHandle,
+    INT nEncrypt,
+    gss_qop_t Qop,
+    PINT pEncrypted,
+    gss_iov_buffer_desc* pBuffers,
+    int cBuffers
+    )
+{
+    OM_uint32 MajorStatus = GSS_S_COMPLETE;
+    OM_uint32 MinorStatus = LW_ERROR_SUCCESS;
+    NTLM_CONTEXT_HANDLE ContextHandle = (NTLM_CONTEXT_HANDLE)GssCtxtHandle;
+    SecBufferDesc Message = {0};
+    SecBuffer NtlmBuffer[2];
+    SecPkgContext_Sizes Sizes = {0};
+    INT nEncrypted = 0;
+
+    Message.cBuffers = 2;
+    Message.pBuffers = NtlmBuffer;
+
+    memset(NtlmBuffer, 0, sizeof(SecBuffer) * Message.cBuffers);
+
+    if (Qop != GSS_C_QOP_DEFAULT)
+    {
+        MajorStatus = GSS_S_BAD_QOP;
+        BAIL_ON_LSA_ERROR(MajorStatus);
+    }
+
+    if (cBuffers != 2)
+    {
+        MinorStatus = LW_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(MinorStatus);
+    }
+
+    // Since every encrypted message gets a signature, we need to get the size
+    MinorStatus = NtlmClientQueryContextAttributes(
+        &ContextHandle,
+        SECPKG_ATTR_SIZES,
+        &Sizes
+        );
+    BAIL_ON_LSA_ERROR(MinorStatus);
+
+    if (GSS_IOV_BUFFER_TYPE(pBuffers[0].type) != GSS_IOV_BUFFER_TYPE_HEADER)
+    {
+        MinorStatus = LW_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(MinorStatus);
+    }
+
+    if (GSS_IOV_BUFFER_FLAGS(pBuffers[0].type) & GSS_IOV_BUFFER_FLAG_ALLOCATE)
+    {
+        pBuffers[0].buffer.length = Sizes.cbMaxSignature;
+        MinorStatus = LwAllocateMemory(
+            pBuffers[0].buffer.length,
+            OUT_PPVOID(&pBuffers[0].buffer.value));
+        BAIL_ON_LSA_ERROR(MinorStatus);
+
+        pBuffers[0].type |= GSS_IOV_BUFFER_FLAG_ALLOCATED;
+    }
+
+    NtlmBuffer[0].BufferType = SECBUFFER_TOKEN;
+    NtlmBuffer[0].cbBuffer = pBuffers[0].buffer.length;
+    NtlmBuffer[0].pvBuffer = pBuffers[0].buffer.value;
+
+    if (pBuffers[1].type != GSS_IOV_BUFFER_TYPE_DATA)
+    {
+        MinorStatus = LW_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(MinorStatus);
+    }
+
+    NtlmBuffer[1].BufferType = SECBUFFER_DATA;
+    NtlmBuffer[1].cbBuffer = pBuffers[1].buffer.length;
+    NtlmBuffer[1].pvBuffer = pBuffers[1].buffer.value;
+
+    MinorStatus = NtlmClientEncryptMessage(
+        &ContextHandle,
+        nEncrypt ? TRUE : FALSE,
+        &Message,
+        0
+        );
+    BAIL_ON_LSA_ERROR(MinorStatus);
+
+    if (nEncrypt)
+    {
+        nEncrypted = 1;
+    }
+
+cleanup:
+
+    if (pEncrypted)
+    {
+        *pEncrypted = nEncrypted;
+    }
+
+    *pMinorStatus = MinorStatus;
+    return MajorStatus;
+
+error:
+    nEncrypted = 0;
+
+    if (MajorStatus == GSS_S_COMPLETE)
+    {
+        MajorStatus = GSS_S_FAILURE;
+    }
+    goto cleanup;
+}
+
+OM_uint32
 ntlm_gss_unwrap(
     OM_uint32* pMinorStatus,
     gss_ctx_id_t GssCtxtHandle,
@@ -1422,6 +1540,80 @@ error:
 }
 
 OM_uint32
+ntlm_gss_unwrap_iov(
+    OM_uint32* pMinorStatus,
+    gss_ctx_id_t GssCtxtHandle,
+    PINT pEncrypted,
+    gss_qop_t* pQop,
+    gss_iov_buffer_desc* pBuffers,
+    int cBuffers
+    )
+{
+    OM_uint32 MajorStatus = GSS_S_COMPLETE;
+    OM_uint32 MinorStatus = LW_ERROR_SUCCESS;
+    NTLM_CONTEXT_HANDLE ContextHandle = (NTLM_CONTEXT_HANDLE)GssCtxtHandle;
+    SecBufferDesc Message;
+    SecBuffer NtlmBuffer[2];
+    BOOLEAN bEncrypted = FALSE;
+
+    Message.cBuffers = 2;
+    Message.pBuffers = NtlmBuffer;
+
+    memset(NtlmBuffer, 0, sizeof(SecBuffer) * Message.cBuffers);
+
+    if (cBuffers != 2)
+    {
+        MinorStatus = LW_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(MinorStatus);
+    }
+
+    if (pBuffers[0].type != GSS_IOV_BUFFER_TYPE_HEADER)
+    {
+        MinorStatus = LW_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(MinorStatus);
+    }
+
+    NtlmBuffer[0].BufferType = SECBUFFER_TOKEN;
+    NtlmBuffer[0].cbBuffer = pBuffers[0].buffer.length;
+    NtlmBuffer[0].pvBuffer = pBuffers[0].buffer.value;
+
+    if (pBuffers[1].type != GSS_IOV_BUFFER_TYPE_DATA)
+    {
+        MinorStatus = LW_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(MinorStatus);
+    }
+
+    NtlmBuffer[1].BufferType = SECBUFFER_DATA;
+    NtlmBuffer[1].cbBuffer = pBuffers[1].buffer.length;
+    NtlmBuffer[1].pvBuffer = pBuffers[1].buffer.value;
+
+    MinorStatus = NtlmClientDecryptMessage(
+        &ContextHandle,
+        &Message,
+        0,
+        &bEncrypted
+        );
+    BAIL_ON_LSA_ERROR(MinorStatus);
+
+cleanup:
+
+    if (pEncrypted)
+    {
+        *pEncrypted = bEncrypted;
+    }
+
+    *pMinorStatus = MinorStatus;
+    return MajorStatus;
+
+error:
+    if (MajorStatus == GSS_S_COMPLETE)
+    {
+        MajorStatus = GSS_S_FAILURE;
+    }
+    goto cleanup;
+}
+
+OM_uint32
 ntlm_gss_display_name(
     OM_uint32* pMinorStatus,
     gss_name_t pGssName,
@@ -1516,6 +1708,7 @@ ntlm_gss_import_name(
     PNTLM_GSS_NAME pResult = NULL;
     BOOLEAN bIsUserName = FALSE;
     BOOLEAN bIsHostService = FALSE;
+    BOOLEAN bIsKrbPrinc = FALSE;
 
     MinorStatus = LwAllocateMemory(
         sizeof(*pResult),
@@ -1534,6 +1727,12 @@ ntlm_gss_import_name(
             GSS_C_NT_HOSTBASED_SERVICE,
             &bIsHostService);
     BAIL_ON_LSA_ERROR(MinorStatus);
+    ntlm_gss_compare_oid(
+            &MinorStatus,
+            InputNameType,
+            (gss_OID)GSS_KRB5_NT_PRINCIPAL_NAME,
+            &bIsKrbPrinc);
+    BAIL_ON_LSA_ERROR(MinorStatus);
 
     if (bIsUserName)
     {
@@ -1542,6 +1741,10 @@ ntlm_gss_import_name(
     else if(bIsHostService)
     {
         pResult->NameType = GSS_C_NT_HOSTBASED_SERVICE;
+    }
+    else if(bIsKrbPrinc)
+    {
+        pResult->NameType = (gss_OID)GSS_KRB5_NT_PRINCIPAL_NAME;
     }
     else
     {

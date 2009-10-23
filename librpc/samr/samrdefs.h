@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software
+ * Copyright Likewise Software    2004-2008
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -28,33 +28,30 @@
  * license@likewisesoftware.com
  */
 
-#include <stdlib.h>
-#include <stddef.h>
-#include <iconv.h>
-#include <string.h>
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        samr_util.h
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Client Interface
+ *
+ *        Samr rpc client private definitions
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
+ */
 
-#include <lwio/lwio.h>
+#ifndef _SAMR_PRIV_DEFS_H_
+#define _SAMR_PRIV_DEFS_H_
 
-#include <DceSupport.h>
-#include <dce/rpc.h>
-#include <dce/smb.h>
-#include <wc16str.h>
-#include <lw/ntstatus.h>
 
-#include <lwrpc/types.h>
-#include <lwrpc/lsabinding.h>
-#include <lwrpc/lsadefs.h>
-#include <lwrpc/unicodestring.h>
-#include <lwrpc/allocate.h>
-#include <lwrpc/memptr.h>
-#include <lwrpc/sidhelper.h>
+#define SAMR_DEFAULT_SYSNAME   { '\\', '\\', '\0' };
 
-#include "macros.h"
 
-#include "lsadefs.h"
-#include "lsa_memory.h"
-#include "lsa_stubmemory.h"
-#include "lsa_h.h"
+#endif /* _SAMR_PRIV_DEFS_H_ */
 
 
 /*

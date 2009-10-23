@@ -526,6 +526,19 @@ PvfsIoCtlOpenFileInfo(
     IN OUT PULONG pOutputBufferLength
     );
 
+
+/* From notify.c */
+
+NTSTATUS
+PvfsReadDirectoryChange(
+    PPVFS_IRP_CONTEXT  pIrpContext
+    );
+
+VOID
+PvfsFreeWatchDirRecord(
+    PPVFS_DIR_WATCH_RECORD *ppWatchRecord
+    );
+
 #endif /* __PVFS_H__ */
 
 

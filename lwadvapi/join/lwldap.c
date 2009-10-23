@@ -472,7 +472,6 @@ LwLdapBindDirectory(
     DWORD dwError = LW_ERROR_SUCCESS;
     DWORD dwMajorStatus = 0;
     DWORD dwMinorStatus = 0;
-    krb5_error_code ret = 0;
 
     CtxtHandle GSSContext = {0};
     PCtxtHandle pGSSContext = &GSSContext;
@@ -492,14 +491,6 @@ LwLdapBindDirectory(
 
     gss_name_t targ_name = GSS_C_NO_NAME;
 
-    krb5_principal host_principal = NULL;
-    krb5_context ctx = NULL;
-
-    gss_OID_desc nt_host_oid_desc =
-        {10,"\052\206\110\206\367\022\001\002\002\002"};
-    gss_OID_desc krb5_oid_desc =
-        {9, "\x2a\x86\x48\x86\xf7\x12\x01\x02\x02" };
-
     input_desc.value = NULL;
     input_desc.length = 0;
 
@@ -509,18 +500,12 @@ LwLdapBindDirectory(
 
     pDirectory = (PLW_LDAP_DIRECTORY_CONTEXT)hDirectory;
 
-    ret = krb5_init_context(&ctx);
-    BAIL_ON_KRB_ERROR(ctx, ret);
-
-    ret = krb5_parse_name(ctx, pszTargetName, &host_principal);
-    BAIL_ON_KRB_ERROR(ctx, ret);
-
-    input_name.value = &host_principal;
-    input_name.length = sizeof(host_principal);
+    input_name.value = pszTargetName;
+    input_name.length = strlen(pszTargetName);
 
     dwMajorStatus = gss_import_name((OM_uint32 *)&dwMinorStatus,
                                     &input_name,
-                                    &nt_host_oid_desc,
+                                    (gss_OID)GSS_KRB5_NT_PRINCIPAL_NAME,
                                     &targ_name);
     display_status("gss_import_name", dwMajorStatus, dwMinorStatus);
     BAIL_ON_SEC_ERROR(dwMajorStatus);
@@ -535,7 +520,7 @@ LwLdapBindDirectory(
                                          NULL,
                                          pGSSContext,
                                          targ_name,
-                                         &krb5_oid_desc,
+                                         (gss_OID)gss_mech_krb5,
                                          GSS_C_REPLAY_FLAG | GSS_C_MUTUAL_FLAG,
                                          0,
                                          NULL,
@@ -609,14 +594,6 @@ error:
 						    
     if (*pGSSContext != GSS_C_NO_CONTEXT) {
         gss_delete_sec_context((OM_uint32*)&dwMinorStatus, pGSSContext, GSS_C_NO_BUFFER);
-    }
-
-    if (host_principal) {
-        krb5_free_principal(ctx, host_principal);
-    }
-
-    if (ctx) {
-        krb5_free_context(ctx);
     }
 
     LW_SAFE_FREE_STRING(pszTargetName);

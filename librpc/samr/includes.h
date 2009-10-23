@@ -29,10 +29,21 @@
  */
 
 /*
- * Abstract: Samr interface (rpc client library)
+ * Copyright (C) Likewise Software. All rights reserved.
  *
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ * Module Name:
+ *
+ *        includes.h
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Client Interface
+ *
+ *        Samr rpc client
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
+
 
 #include <stdlib.h>
 #include <stddef.h>
@@ -54,8 +65,9 @@
 #include <lwrpc/rid.h>
 #include <lwrpc/lsadefs.h>
 #include <lwrpc/samr.h>
+#include <macros.h>
 
-#include "samr_util.h"
+#include "samrdefs.h"
 #include "samr_memory.h"
 #include "samr_stubmemory.h"
 #include "samr_h.h"

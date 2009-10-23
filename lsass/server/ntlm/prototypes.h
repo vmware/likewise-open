@@ -81,7 +81,7 @@ NtlmGetNameInformation(
 
 DWORD
 NtlmServerDecryptMessage(
-    IN PNTLM_CONTEXT_HANDLE phContext,
+    IN NTLM_CONTEXT_HANDLE hContext,
     IN OUT PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo,
     OUT PBOOLEAN pbEncrypted

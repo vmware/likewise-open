@@ -23,6 +23,8 @@
 [HKEY_THIS_MACHINE\Services\lsass\Parameters\Providers\ActiveDirectory]
 "Id"="lsa-activedirectory-provider"
 "Path"="@providerdir@/liblsass_auth_provider_ad@MOD_EXT@"
+"EnableEventlog"=dword:00000000
+"LogNetworkConnectionEvents"=dword:00000001
 "LoginShellTemplate"="/bin/sh"
 "HomeDirPrefix"="@default_homedir_prefix@"
 "HomeDirTemplate"="%H/local/%D/%U"
@@ -30,8 +32,10 @@
 "CacheEntryExpiry"=dword:00003840
 "MachinePasswordLifespan"=dword:00278D00
 "SpaceReplacement"="^"
+"DomainSeparator"="\\"
 "AssumeDefaultDomain"=dword:00000000
 "SyncSystemTime"=dword:00000001
+"CachePurgeTimeout"=dword:00278D00
 "RequireMembershipOf"=""
 "CreateK5Login"=dword:00000001
 "CreateHomeDir"=dword:00000001

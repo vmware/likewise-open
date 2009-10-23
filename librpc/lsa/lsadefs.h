@@ -28,33 +28,31 @@
  * license@likewisesoftware.com
  */
 
-#include <stdlib.h>
-#include <stddef.h>
-#include <iconv.h>
-#include <string.h>
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        lsadefs.c
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Client Interface
+ *
+ *        Lsa rpc client private definitions
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
+ */
 
-#include <lwio/lwio.h>
 
-#include <DceSupport.h>
-#include <dce/rpc.h>
-#include <dce/smb.h>
-#include <wc16str.h>
-#include <lw/ntstatus.h>
+#ifndef _LSA_PRIV_DEFS_H_
+#define _LSA_PRIV_DEFS_H_
 
-#include <lwrpc/types.h>
-#include <lwrpc/lsabinding.h>
-#include <lwrpc/lsadefs.h>
-#include <lwrpc/unicodestring.h>
-#include <lwrpc/allocate.h>
-#include <lwrpc/memptr.h>
-#include <lwrpc/sidhelper.h>
 
-#include "macros.h"
+#define LSA_DEFAULT_SYSNAME   { '\\', '\\', '\0' };
 
-#include "lsadefs.h"
-#include "lsa_memory.h"
-#include "lsa_stubmemory.h"
-#include "lsa_h.h"
+
+#endif /* _LSA_PRIV_DEFS_H_ */
 
 
 /*

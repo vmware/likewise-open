@@ -46,38 +46,29 @@
 DWORD
 LWIGetGSSSecurityContextInfo(
     gss_ctx_id_t gss_ctx,
-    PSTR *pszClientName,
-    PSTR *pszServerName,
-    DWORD *dwSecFlags
+    PSTR *pszClientName
     )
 {
     DWORD dwError = EVT_ERROR_SUCCESS;
     int gss_rc = 0;
     OM_uint32 minor_status = 0;
     gss_name_t src = GSS_C_NO_NAME;
-    gss_name_t dst = GSS_C_NO_NAME;
-    OM_uint32 ctx_flags = 0;
-    int open_context = 0;
     gss_buffer_desc src_name = GSS_C_EMPTY_BUFFER;
-    gss_buffer_desc dst_name = GSS_C_EMPTY_BUFFER;
     gss_OID src_type = GSS_C_NULL_OID;
-    gss_OID dst_type = GSS_C_NULL_OID;
 
     PSTR pszClient = NULL;
-    PSTR pszServer = NULL;
-    DWORD dwFlags = 0;
 
     /* Fetch security context information to make it available
        on the server side (e.g. for security checks) */
     gss_rc = gss_inquire_context(&minor_status,
                                  gss_ctx,
                                  &src,
-                                 &dst,
                                  NULL,
                                  NULL,
-                                 &ctx_flags,
                                  NULL,
-                                 &open_context);
+                                 NULL,
+                                 NULL,
+                                 NULL);
     if (gss_rc == GSS_S_COMPLETE) {
 
         /*
@@ -94,55 +85,26 @@ LWIGetGSSSecurityContextInfo(
         dwError = EVTStrndup(src_name.value, src_name.length, &pszClient);
         BAIL_ON_EVT_ERROR(dwError);
 
-        /*
-         * Get called principal name 
-         */
-        gss_rc = gss_display_name(&minor_status, dst, &dst_name, &dst_type);
-        if (gss_rc != GSS_S_COMPLETE) {
-            /*
-             * TODO: error handling
-             */
-
-        }
-
-        dwError = EVTStrndup(dst_name.value, dst_name.length, &pszServer);
-        BAIL_ON_EVT_ERROR(dwError);
-
-        /*
-         * Get security context flags
-         */
-        dwFlags = (DWORD)ctx_flags;
-
     } else {
         /* error handling */
     }
 
     *pszClientName = pszClient;
-    *pszServerName = pszServer;
-    *dwSecFlags    = dwFlags;
 
 cleanup:
 
     gss_release_buffer(&minor_status, &src_name);
-    gss_release_buffer(&minor_status, &dst_name);
 
     if (src)
     {
         gss_release_name(&minor_status, &src);
-    }
-    if (dst)
-    {
-        gss_release_name(&minor_status, &dst);
     }
 
     return dwError;
 
 error:
     EVT_SAFE_FREE_STRING(pszClient);
-    EVT_SAFE_FREE_STRING(pszServer);
     *pszClientName = NULL;
-    *pszServerName = NULL;
-    *dwSecFlags    = 0;
 
     goto cleanup;
 }
@@ -157,7 +119,6 @@ LWICheckGSSSecurity(
     DWORD dwError = EVT_ERROR_SUCCESS;
     PSTR pszClientName = NULL;
     PSTR pszServerName = NULL;
-    DWORD dwFlags = 0;
 
     // We require LSASS in order to parse the configuration data.
     // If we were not able to do so earlier, try it again here.
@@ -171,8 +132,7 @@ LWICheckGSSSecurity(
     }
 
     dwError = LWIGetGSSSecurityContextInfo(gss_ctx,
-                                           &pszClientName, &pszServerName,
-                                           &dwFlags);
+                                           &pszClientName);
     BAIL_ON_EVT_ERROR(dwError);
 
     dwError = EVTAccessCheckData(

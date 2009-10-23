@@ -50,80 +50,72 @@
 
 #define LSA_PAM_LOGON_RIGHTS_DENIED_MESSAGE "Access denied"
 
-
-static
-LSA_PAM_CONFIG gStagingConfig;
-
-#if 0
-static const PCSTR gLogLevels[] =
-{
-    "disabled",
-    "always",
-    "error",
-    "warning",
-    "info",
-    "verbose",
-    "debug"
-};
-
-static
-LSA_CONFIG gConfigDescription[] =
-{
-    {   "LogLevel",
-        TRUE,
-        LsaTypeEnum,
-        PAM_LOG_LEVEL_DISABLED,
-        PAM_LOG_LEVEL_DEBUG,
-        gLogLevels,
-        &(gStagingConfig.dwLogLevel)
-    },
-    {
-        "DisplayMOTD",
-        TRUE,
-        LsaTypeBoolean,
-        0,
-        -1,
-        NULL,
-        &(gStagingConfig.bLsaPamDisplayMOTD)
-    },
-    {
-        "UserNotAllowedError",
-        TRUE,
-        LsaTypeString,
-        0,
-        -1,
-        NULL,
-        &(gStagingConfig.pszAccessDeniedMessage)
-    }
-};
-#endif
-
 DWORD
 LsaPamReadRegistry(
     PLSA_PAM_CONFIG* ppConfig
     )
 {
     DWORD dwError = 0;
+    LSA_PAM_CONFIG StagingConfig;
     PLSA_PAM_CONFIG pConfig = NULL;
+
+    const PCSTR LogLevels[] =
+    {
+        "disabled",
+        "always",
+        "error",
+        "warning",
+        "info",
+        "verbose",
+        "debug"
+    };
+
+    LSA_CONFIG ConfigDescription[] =
+    {
+        {   "LogLevel",
+            TRUE,
+            LsaTypeEnum,
+            PAM_LOG_LEVEL_DISABLED,
+            PAM_LOG_LEVEL_DEBUG,
+            LogLevels,
+            &(StagingConfig.dwLogLevel)
+        },
+        {
+            "DisplayMOTD",
+            TRUE,
+            LsaTypeBoolean,
+            0,
+            -1,
+            NULL,
+            &(StagingConfig.bLsaPamDisplayMOTD)
+        },
+        {
+            "UserNotAllowedError",
+            TRUE,
+            LsaTypeString,
+            0,
+            -1,
+            NULL,
+            &(StagingConfig.pszAccessDeniedMessage)
+        }
+    };
 
     dwError = LwAllocateMemory(sizeof(LSA_PAM_CONFIG), (PVOID*) &pConfig);
     BAIL_ON_LSA_ERROR(dwError);
 
-    memset(&gStagingConfig, 0, sizeof(LSA_PAM_CONFIG));
-    dwError = LsaPamInitializeConfig(&gStagingConfig);
+    memset(&StagingConfig, 0, sizeof(LSA_PAM_CONFIG));
+    dwError = LsaPamInitializeConfig(&StagingConfig);
     BAIL_ON_LSA_ERROR(dwError);
 
-#if 0
     dwError = LsaProcessConfig(
                 "Services\\lsass\\Parameters\\PAM",
                 "Policy\\Services\\lsass\\Parameters\\PAM",
-                gConfigDescription,
-                sizeof(gConfigDescription)/sizeof(gConfigDescription[0]));
+                ConfigDescription,
+                sizeof(ConfigDescription)/sizeof(ConfigDescription[0]));
     BAIL_ON_LSA_ERROR(dwError);
-#endif
 
-    *pConfig = gStagingConfig;
-    memset(&gStagingConfig, 0, sizeof(LSA_PAM_CONFIG));
+    *pConfig = StagingConfig;
+    memset(&StagingConfig, 0, sizeof(LSA_PAM_CONFIG));
 
     *ppConfig = pConfig;
 
@@ -139,7 +131,7 @@ error:
         LW_SAFE_FREE_MEMORY(pConfig);
     }
 
-    LsaPamFreeConfigContents(&gStagingConfig);
+    LsaPamFreeConfigContents(&StagingConfig);
 
     goto cleanup;
 }
