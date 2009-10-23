@@ -181,9 +181,9 @@ error:
 }
 
 DWORD
-RegTransactEnumRootKeys(
+RegTransactEnumRootKeysW(
     IN HANDLE hConnection,
-    OUT PSTR** pppszRootKeyNames,
+    OUT PWSTR** pppwszRootKeyNames,
     OUT PDWORD pdwNumRootKey
     )
 {
@@ -199,7 +199,7 @@ RegTransactEnumRootKeys(
     dwError = RegIpcAcquireCall(hConnection, &pCall);
     BAIL_ON_REG_ERROR(dwError);
 
-    in.tag = REG_Q_ENUM_ROOT_KEYS;
+    in.tag = REG_Q_ENUM_ROOT_KEYSW;
     in.data = NULL;
 
     dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
@@ -207,15 +207,15 @@ RegTransactEnumRootKeys(
 
     switch (out.tag)
     {
-        case REG_R_ENUM_ROOT_KEYS_SUCCESS:
+        case REG_R_ENUM_ROOT_KEYSW_SUCCESS:
             pEnumRootKeysResp = (PREG_IPC_ENUM_ROOTKEYS_RESPONSE)out.data;
-            *pppszRootKeyNames = pEnumRootKeysResp->ppszRootKeyNames;
-            pEnumRootKeysResp->ppszRootKeyNames = NULL;
+            *pppwszRootKeyNames = pEnumRootKeysResp->ppwszRootKeyNames;
+            pEnumRootKeysResp->ppwszRootKeyNames = NULL;
             *pdwNumRootKey = pEnumRootKeysResp->dwNumRootKeys;
             pEnumRootKeysResp->dwNumRootKeys = 0;
 
             break;
-        case REG_R_ENUM_ROOT_KEYS_FAILURE:
+        case REG_R_ENUM_ROOT_KEYSW_FAILURE:
             pError = (PREG_IPC_ERROR) out.data;
             dwError = pError->dwError;
             BAIL_ON_REG_ERROR(dwError);

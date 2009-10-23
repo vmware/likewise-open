@@ -60,6 +60,7 @@ SamrConnect5(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    WCHAR wszDefaultSysName[] = SAMR_DEFAULT_SYSNAME;
     PWSTR pwszSystemName = NULL;
     UINT32 SystemNameLen = 0;
     CONNECT_HANDLE hConn = NULL;
@@ -67,7 +68,6 @@ SamrConnect5(
     SamrConnectInfo Info;
 
     BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
-    BAIL_ON_INVALID_PTR(pwszSysName, ntStatus);
     BAIL_ON_INVALID_PTR(pInfoIn, ntStatus);
     BAIL_ON_INVALID_PTR(pLevelOut, ntStatus);
     BAIL_ON_INVALID_PTR(pInfoOut, ntStatus);
@@ -75,7 +75,8 @@ SamrConnect5(
 
     memset(&Info, 0, sizeof(Info));
 
-    pwszSystemName = wc16sdup(pwszSysName);
+    pwszSystemName = wc16sdup((pwszSysName) ?
+                              pwszSysName : &(wszDefaultSysName[0]));
     BAIL_ON_NULL_PTR(pwszSystemName, ntStatus);
 
     SystemNameLen = (UINT32) wc16slen(pwszSystemName) + 1;

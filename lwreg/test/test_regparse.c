@@ -41,6 +41,7 @@
  *          Adam Bernstein (abernstein@likewise.com)
  */
 #include <parse/includes.h>
+#include <shellutil/rsutils.h>
 #include <locale.h>
 
 
@@ -73,8 +74,7 @@ DWORD parseCallback(PREG_PARSE_ITEM pItem, HANDLE userContext)
         ctx->pfn_fprintf(outStream, "parseCallback: Value name  = (EMPTY)\n");
     }
 
-    RegLexBinaryTypeToString(pItem->type, tokenName, FALSE);
-    RegLexBinaryTypeToString(pItem->valueType, valueName, FALSE);
+    RegExportBinaryTypeToString(pItem->type, tokenName, FALSE);
     ctx->pfn_fprintf(outStream, "parseCallback: Value type   = %d (%s)\n",
            pItem->valueType, valueName);
     ctx->pfn_fprintf(outStream, "parseCallback: Data type   = %d (%s) - ", pItem->type, tokenName);

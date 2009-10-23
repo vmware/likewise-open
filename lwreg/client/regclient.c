@@ -50,14 +50,71 @@
 
 REG_API
 DWORD
-RegEnumRootKeys(
+RegEnumRootKeysA(
     IN HANDLE hRegConnection,
     OUT PSTR** pppszRootKeyNames,
     OUT PDWORD pdwNumRootKeys
     )
 {
-    return RegTransactEnumRootKeys(hRegConnection,
-                                   pppszRootKeyNames,
+    DWORD dwError = 0;
+    PWSTR* ppwszRootKeyNames = NULL;
+    PSTR* ppszRootKeyNames = NULL;
+    DWORD dwNumRootKeys = 0;
+    int iCount = 0;
+
+    dwError = RegTransactEnumRootKeysW(hRegConnection,
+                                       &ppwszRootKeyNames,
+                                       &dwNumRootKeys);
+    BAIL_ON_REG_ERROR(dwError);
+
+    if (!dwNumRootKeys)
+        goto cleanup;
+
+    dwError = LwAllocateMemory(sizeof(*ppszRootKeyNames)*dwNumRootKeys,
+                               (PVOID)&ppszRootKeyNames);
+    BAIL_ON_REG_ERROR(dwError);
+
+    for (iCount = 0; iCount < dwNumRootKeys; iCount++)
+    {
+        dwError = LwWc16sToMbs(ppwszRootKeyNames[iCount],
+                               &ppszRootKeyNames[iCount]);
+        BAIL_ON_REG_ERROR(dwError);
+    }
+
+cleanup:
+    *pppszRootKeyNames = ppszRootKeyNames;
+    *pdwNumRootKeys = dwNumRootKeys;
+
+    if (ppwszRootKeyNames)
+    {
+        for (iCount=0; iCount<dwNumRootKeys; iCount++)
+        {
+            LW_SAFE_FREE_MEMORY(ppwszRootKeyNames[iCount]);
+        }
+        ppwszRootKeyNames = NULL;
+    }
+
+    return dwError;
+
+error:
+    if (ppszRootKeyNames)
+    {
+        LwFreeStringArray(ppszRootKeyNames, dwNumRootKeys);
+    }
+
+    goto cleanup;
+}
+
+REG_API
+DWORD
+RegEnumRootKeysW(
+    IN HANDLE hRegConnection,
+    OUT PWSTR** pppwszRootKeyNames,
+    OUT PDWORD pdwNumRootKeys
+    )
+{
+    return RegTransactEnumRootKeysW(hRegConnection,
+                                    pppwszRootKeyNames,
                                    pdwNumRootKeys);
 }
 

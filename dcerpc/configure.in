@@ -18,6 +18,8 @@ case $target_cpu in
 	hppa2.0*) target_cpu="hppa2.0";;
 esac
 
+DCERPCD_SERVICE_TYPE="dword:00000001"
+
 # reduce linux* to linux-gnu for target_os
 # reduce hpux11.* to hpux11.11
 # reduce freebsd 6.x/7.x/8.x to 6.0
@@ -29,6 +31,7 @@ case $target_os in
      hpux11.*)
          echo "Detected HPUX system"
          target_os="hpux11.11"
+	 DCERPCD_SERVICE_TYPE="dword:00000004"
          ;;
      darwin8.*)
          echo "Detected Mac OS X 10.4 - Tiger system"
@@ -59,6 +62,7 @@ esac
 
 AC_SUBST(target_cpu)
 AC_SUBST(target_os)
+AC_SUBST(DCERPCD_SERVICE_TYPE)
 
 #AM_CONFIG_HEADER([include/config.h])
 

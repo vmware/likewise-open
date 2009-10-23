@@ -269,16 +269,15 @@ error:
     goto cleanup;
 }
 
-DWORD RegShellUtilImportCallback(PREG_PARSE_ITEM pItem, HANDLE userContext)
+DWORD RegShellUtilImportCallback(PREG_PARSE_ITEM pItem, HANDLE hReg)
 {
-    IMPORT_CONTEXT *ctx = (IMPORT_CONTEXT *) userContext;
     DWORD dwError = 0;
     HKEY pRootKey = NULL;
 
     if (pItem->type == REG_KEY)
     {
         dwError = ProcessImportedKeyName(
-                (HANDLE) ctx->hReg,
+                hReg,
                 &pRootKey,
                 (PCSTR)pItem->keyName);
         BAIL_ON_REG_ERROR(dwError);
@@ -286,7 +285,7 @@ DWORD RegShellUtilImportCallback(PREG_PARSE_ITEM pItem, HANDLE userContext)
     else
     {
         dwError = ProcessImportedValue(
-                 (HANDLE) ctx->hReg,
+                 hReg,
                  &pRootKey,
                  pItem);
         BAIL_ON_REG_ERROR(dwError);
@@ -294,7 +293,7 @@ DWORD RegShellUtilImportCallback(PREG_PARSE_ITEM pItem, HANDLE userContext)
 
     if (pRootKey)
     {
-        dwError = RegCloseKey(ctx->hReg,pRootKey);
+        dwError = RegCloseKey(hReg,pRootKey);
         BAIL_ON_REG_ERROR(dwError);
     }
 

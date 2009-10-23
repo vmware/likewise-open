@@ -56,15 +56,16 @@ SamrConnect2(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    WCHAR wszDefaultSysName[] = SAMR_DEFAULT_SYSNAME;
     UINT32 SystemNameLen = 0;
     PWSTR pwszSystemName = NULL;
     CONNECT_HANDLE hConn = NULL;
 
     BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
-    BAIL_ON_INVALID_PTR(pwszSysName, ntStatus);
     BAIL_ON_INVALID_PTR(phConn, ntStatus);
 
-    pwszSystemName = wc16sdup(pwszSysName);
+    pwszSystemName = wc16sdup((pwszSysName) ?
+                              pwszSysName : &(wszDefaultSysName[0]));
     BAIL_ON_NULL_PTR(pwszSystemName, ntStatus);
 
     SystemNameLen = (UINT32) wc16slen(pwszSystemName) + 1;

@@ -71,6 +71,18 @@ SrvSetEndOfFileInfo(
 
 static
 NTSTATUS
+SrvRenameFile(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
+SrvUnmarshalRenameInformation(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
 SrvBuildSetFileInfoResponse(
     PSRV_EXEC_CONTEXT pExecContext
     );
@@ -260,6 +272,12 @@ SrvSetFileInfoResponse(
 
             break;
 
+        case SMB_SET_FILE_RENAME_INFO :
+
+            ntStatus = SrvRenameFile(pExecContext);
+
+            break;
+
         case SMB_INFO_STANDARD :
         case SMB_INFO_QUERY_EA_SIZE :
         case SMB_SET_FILE_UNIX_BASIC :
@@ -434,6 +452,205 @@ SrvSetEndOfFileInfo(
     BAIL_ON_NT_STATUS(ntStatus);
 
     SrvReleaseTrans2StateAsync(pTrans2State); // completed synchronously
+
+error:
+
+    return ntStatus;
+}
+
+static
+NTSTATUS
+SrvRenameFile(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS                   ntStatus     = 0;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
+    PSRV_TRANS2_STATE_SMB_V1   pTrans2State = NULL;
+    BOOLEAN                    bTreeInLock  = FALSE;
+
+    pTrans2State = (PSRV_TRANS2_STATE_SMB_V1)pCtxSmb1->hState;
+
+    if (!pTrans2State->pData2)
+    {
+        ntStatus = SrvUnmarshalRenameInformation(pExecContext);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (!pTrans2State->hDir)
+    {
+        LWIO_LOCK_RWMUTEX_SHARED(   bTreeInLock,
+                                    &pCtxSmb1->pTree->pShareInfo->mutex);
+
+        ntStatus = SrvAllocateStringW(
+                        pCtxSmb1->pTree->pShareInfo->pwszPath,
+                        &pTrans2State->dirPath.FileName);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        LWIO_UNLOCK_RWMUTEX(bTreeInLock,
+                            &pCtxSmb1->pTree->pShareInfo->mutex);
+
+        SrvPrepareTrans2StateAsync(pTrans2State, pExecContext);
+
+        ntStatus = IoCreateFile(
+                                &pTrans2State->hDir,
+                                pTrans2State->pAcb,
+                                &pTrans2State->ioStatusBlock,
+                                pCtxSmb1->pSession->pIoSecurityContext,
+                                &pTrans2State->dirPath,
+                                pTrans2State->pSecurityDescriptor,
+                                pTrans2State->pSecurityQOS,
+                                GENERIC_READ,
+                                0,
+                                FILE_ATTRIBUTE_NORMAL,
+                                0,
+                                FILE_OPEN,
+                                FILE_DIRECTORY_FILE,
+                                NULL, /* EA Buffer */
+                                0,    /* EA Length */
+                                NULL  /* ECP List  */
+                                );
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        SrvReleaseTrans2StateAsync(pTrans2State); // completed synchronously
+    }
+
+
+    ((PFILE_RENAME_INFORMATION)pTrans2State->pData2)->RootDirectory =
+                                                            pTrans2State->hDir;
+
+    SrvPrepareTrans2StateAsync(pTrans2State, pExecContext);
+
+    ntStatus = IoSetInformationFile(
+                    pTrans2State->pFile->hFile,
+                    pTrans2State->pAcb,
+                    &pTrans2State->ioStatusBlock,
+                    (PFILE_RENAME_INFORMATION)pTrans2State->pData2,
+                    pTrans2State->usBytesAllocated,
+                    FileRenameInformation);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    SrvReleaseTrans2StateAsync(pTrans2State); // completed synchronously
+
+error:
+
+    LWIO_UNLOCK_RWMUTEX(bTreeInLock,
+                        &pCtxSmb1->pTree->pShareInfo->mutex);
+
+    return ntStatus;
+}
+
+static
+NTSTATUS
+SrvUnmarshalRenameInformation(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS                   ntStatus     = 0;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
+    PSRV_TRANS2_STATE_SMB_V1   pTrans2State = NULL;
+    ULONG                      ulBytesAvailable = 0;
+    ULONG                      ulOffset         = 0;
+    PWSTR                      pwszFileName     = NULL;
+    PBYTE                      pDataCursor      = NULL;
+    FILE_RENAME_INFORMATION    fileRenameInfo   = {0};
+
+    pTrans2State = (PSRV_TRANS2_STATE_SMB_V1)pCtxSmb1->hState;
+
+    pDataCursor = pTrans2State->pData;
+    ulOffset    = pTrans2State->pRequestHeader->dataOffset;
+    ulBytesAvailable = pTrans2State->pRequestHeader->dataCount;
+
+    if (ulBytesAvailable < sizeof(FILE_RENAME_INFORMATION))
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    fileRenameInfo.ReplaceIfExists = (*pDataCursor ? TRUE : FALSE);
+
+    pDataCursor++;
+    ulOffset++;
+    ulBytesAvailable--;
+
+    if (ulOffset % 4)
+    {
+        USHORT usAlign = 4 - (ulOffset % 4);
+
+        if (ulBytesAvailable < usAlign)
+        {
+            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        pDataCursor      += usAlign;
+        ulOffset         += usAlign;
+        ulBytesAvailable -= usAlign;
+    }
+
+    if (ulBytesAvailable < sizeof(ULONG))
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    // TODO: Figure out RootDirectory coming from the request
+    fileRenameInfo.RootDirectory = NULL;
+
+    pDataCursor      += sizeof(ULONG);
+    ulOffset         += sizeof(ULONG);
+    ulBytesAvailable -= sizeof(ULONG);
+
+    if (ulBytesAvailable < sizeof(ULONG))
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    fileRenameInfo.FileNameLength = *(PULONG)pDataCursor;
+
+    pDataCursor      += sizeof(ULONG);
+    ulOffset         += sizeof(ULONG);
+    ulBytesAvailable -= sizeof(ULONG);
+
+    if (ulOffset % 2)
+    {
+        if (ulBytesAvailable < 1)
+        {
+            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        pDataCursor++;
+        ulOffset++;
+        ulBytesAvailable--;
+    }
+
+    if (ulBytesAvailable < fileRenameInfo.FileNameLength)
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pwszFileName = (PWSTR)pDataCursor;
+
+    ntStatus = SrvAllocateMemory(
+                    sizeof(fileRenameInfo) + fileRenameInfo.FileNameLength,
+                    (PVOID*)&pTrans2State->pData2);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pTrans2State->usBytesAllocated =
+                    sizeof(fileRenameInfo) + fileRenameInfo.FileNameLength;
+
+    ((PFILE_RENAME_INFORMATION)pTrans2State->pData2)->ReplaceIfExists =
+                                        fileRenameInfo.ReplaceIfExists;
+    ((PFILE_RENAME_INFORMATION)pTrans2State->pData2)->FileNameLength =
+                                        fileRenameInfo.FileNameLength;
+    memcpy((PBYTE)((PFILE_RENAME_INFORMATION)pTrans2State->pData2)->FileName,
+           (PBYTE)pwszFileName,
+           fileRenameInfo.FileNameLength);
 
 error:
 

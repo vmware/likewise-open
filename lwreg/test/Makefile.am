@@ -37,6 +37,8 @@ test_regparse_SOURCES = \
 
 #test regparse
 test_regparse_LDADD =                           \
+    @top_builddir@/shellutil/librsutils.la \
+    @top_builddir@/client/libregclient.la \
     @top_builddir@/parse/libregparse.la
 
 test_regparse_LDFLAGS = -static
@@ -53,6 +55,8 @@ test_regdump_SOURCES = \
     test_regdump.c
 
 test_regdump_LDADD =                           \
+    @top_builddir@/shellutil/librsutils.la \
+    @top_builddir@/client/libregclient.la \
     @top_builddir@/parse/libregparse.la
 
 test_regdump_LDFLAGS = -static
@@ -83,6 +87,8 @@ test_tomulti_SOURCES = \
     test_tomulti.c
 
 test_tomulti_LDADD =                           \
+    @top_builddir@/shellutil/librsutils.la \
+    @top_builddir@/client/libregclient.la \
     @top_builddir@/parse/libregparse.la
 
 test_tomulti_LDFLAGS = -static

@@ -200,9 +200,9 @@ RegSrvIsValidKeyName(
     );
 
 DWORD
-RegSrvEnumRootKeys(
+RegSrvEnumRootKeysW(
     IN HANDLE Handle,
-    OUT PSTR** pppszRootKeys,
+    OUT PWSTR** pppszRootKeys,
     OUT PDWORD pdwNumRootKeys
     );
 

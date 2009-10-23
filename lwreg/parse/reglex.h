@@ -128,11 +128,6 @@ RegLexTokenToString(
     REGLEX_TOKEN token,
     PSTR tokenStr);
 
-DWORD RegLexBinaryTypeToString(
-    REGLEX_TOKEN token,
-    PSTR tokenStr,
-    BOOLEAN dumpFormat);
-
 DWORD
 RegLexGetLineNumber(
     PREGLEX_ITEM pLexHandle,

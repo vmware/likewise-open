@@ -326,6 +326,7 @@ typedef USHORT SMB_INFO_LEVEL, *PSMB_INFO_LEVEL;
 #define SMB_FIND_FILE_UNIX                0x202
 #define SMB_SET_FILE_UNIX_HLINK           0x203
 #define SMB_QUERY_MAC_FS_INFO             0x301
+#define SMB_SET_FILE_RENAME_INFO          0xF203
 
 typedef UCHAR LWIO_LOCK_TYPE;
 
@@ -1662,6 +1663,7 @@ typedef struct _SMB_NT_RENAME_REQUEST_HEADER
 typedef struct _SMB_NT_RENAME_RESPONSE_HEADER
 {
     USHORT usByteCount;
+    UCHAR  ucBuffer[1];
 } __attribute__((__packed__)) SMB_NT_RENAME_RESPONSE_HEADER,
                              *PSMB_NT_RENAME_RESPONSE_HEADER;
 
@@ -2217,6 +2219,25 @@ WireMarshallRenameResponse(
     ULONG   ulOffset,
     PSMB_RENAME_RESPONSE_HEADER* ppResponseHeader,
     PUSHORT pusPackageBytesUsed
+    );
+
+NTSTATUS
+WireUnmarshallNtRenameRequest(
+    PBYTE                          pParams,
+    ULONG                          ulBytesAvailable,
+    ULONG                          ulOffset,
+    PSMB_NT_RENAME_REQUEST_HEADER* ppRequestHeader,
+    PWSTR*                         ppwszOldName,
+    PWSTR*                         ppwszNewName
+    );
+
+NTSTATUS
+WireMarshallNtRenameResponse(
+    PBYTE                           pParams,
+    ULONG                           ulBytesAvailable,
+    ULONG                           ulOffset,
+    PSMB_NT_RENAME_RESPONSE_HEADER* ppResponseHeader,
+    PUSHORT                         pusPackageBytesUsed
     );
 
 NTSTATUS

@@ -41,6 +41,8 @@
  *          Adam Bernstein (abernstein@likewise.com)
  */
 #include <parse/includes.h>
+#include <shellutil/rsutils.h>
+
 
 int main(int argc, char *argv[])
 {

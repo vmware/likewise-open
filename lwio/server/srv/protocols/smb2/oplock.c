@@ -860,6 +860,8 @@ SrvBuildOplockExecContext_SMB_V2(
     // TODO: Fill in the persistent fid at a later time
     //
     pLockRequestHeader->fid.ullVolatileId = pOplockState->ullFid;
+    pLockRequestHeader->usLockCount = 1;
+    pLockRequestHeader->usLength = sizeof(SMB2_LOCK_REQUEST_HEADER);
 
     pLockRequestHeader->ulReserved = usOplockAction;
 

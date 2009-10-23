@@ -387,6 +387,16 @@ SrvFreeTrans2State(
         SrvFreeMemory(pTrans2State->fileName.FileName);
     }
 
+    if (pTrans2State->hDir)
+    {
+        IoCloseFile(pTrans2State->hDir);
+    }
+
+    if (pTrans2State->dirPath.FileName)
+    {
+        SrvFreeMemory(pTrans2State->dirPath.FileName);
+    }
+
     if (pTrans2State->pData2)
     {
         SrvFreeMemory(pTrans2State->pData2);

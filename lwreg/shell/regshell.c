@@ -40,7 +40,6 @@
  * Authors: Adam Bernstein (abernstein@likewise.com)
  */
 
-#include "rsutils.h"
 #include "regshell.h"
 #include <locale.h>
 #include "histedit.h"
@@ -117,7 +116,7 @@ RegShellListKeys(
         dwError = LwWc16sToMbs(ppSubKeys[i], &pszSubKey);
         BAIL_ON_REG_ERROR(dwError);
 
-#ifndef _DEBUG
+#ifndef _LW_DEBUG
         printf("[%s]\n", pszSubKey);
 #else
         printf("SubKey %d name is '%s'\n", i, pszSubKey);
@@ -294,16 +293,13 @@ RegShellImportFile(
     HANDLE hReg,
     PREGSHELL_CMD_ITEM rsItem)
 {
-    IMPORT_CONTEXT ctx = {0};
     HANDLE parseH = NULL;
     DWORD dwError = 0;
-
-    ctx.hReg = hReg;
 
     dwError = RegParseOpen(rsItem->args[0], NULL, NULL, &parseH);
     BAIL_ON_REG_ERROR(dwError);
 
-    RegParseInstallCallback(parseH, RegShellUtilImportCallback, &ctx, NULL);
+    RegParseInstallCallback(parseH, RegShellUtilImportCallback, hReg, NULL);
 
     dwError = RegParseRegistry(parseH);
     BAIL_ON_REG_ERROR(dwError);
@@ -402,7 +398,7 @@ RegShellListValues(
             dwError = LwWc16sToMbs(pValues[i].pValueName, &pszValueName);
             BAIL_ON_REG_ERROR(dwError);
 
-#ifdef _DEBUG
+#ifdef _LW_DEBUG
             printf("ListValues: value='%s\n", pszValueName);
             printf("ListValues: dataLen='%d'\n", pValues[i].dwDataLen);
 #endif
@@ -499,7 +495,7 @@ RegShellProcessCmd(
     dwError = RegShellCmdParse(pParseState, argc, argv, &rsItem);
     if (dwError == 0)
     {
-#ifdef _DEBUG
+#ifdef _LW_DEBUG
         RegShellDumpCmdItem(rsItem);
 #endif
         switch (rsItem->command)

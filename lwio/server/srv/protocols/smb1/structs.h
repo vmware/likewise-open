@@ -545,6 +545,9 @@ typedef struct _SRV_TRANS2_STATE_SMB_V1
     IO_FILE_HANDLE              hFile;
     IO_FILE_NAME                fileName;
 
+    IO_FILE_NAME                dirPath;
+    IO_FILE_HANDLE              hDir;
+
     PBYTE                       pData2;
     USHORT                      usBytesAllocated;
 
@@ -741,6 +744,47 @@ typedef struct _SRV_RENAME_STATE_SMB_V1
     ULONG                      ulDataLen;
 
 } SRV_RENAME_STATE_SMB_V1, *PSRV_RENAME_STATE_SMB_V1;
+
+typedef enum
+{
+    SRV_NT_RENAME_STAGE_SMB_V1_INITIAL = 0,
+    SRV_NT_RENAME_STAGE_SMB_V1_ATTEMPT_RENAME,
+    SRV_NT_RENAME_STAGE_SMB_V1_BUILD_RESPONSE,
+    SRV_NT_RENAME_STAGE_SMB_V1_DONE
+} SRV_NT_RENAME_STAGE_SMB_V1;
+
+typedef struct _SRV_NT_RENAME_STATE_SMB_V1
+{
+    LONG                       refCount;
+
+    pthread_mutex_t            mutex;
+    pthread_mutex_t*           pMutex;
+
+    SRV_NT_RENAME_STAGE_SMB_V1 stage;
+
+    IO_STATUS_BLOCK            ioStatusBlock;
+
+    IO_ASYNC_CONTROL_BLOCK     acb;
+    PIO_ASYNC_CONTROL_BLOCK    pAcb;
+
+    PSMB_NT_RENAME_REQUEST_HEADER pRequestHeader;  // Do not free
+    PWSTR                         pwszOldName;     // Do not free
+    PWSTR                         pwszNewName;     // Do not free
+
+    PVOID                      pSecurityDescriptor;
+    PVOID                      pSecurityQOS;
+
+    IO_FILE_NAME               oldName;
+    IO_FILE_NAME               newName;         // Do not free these contents
+    IO_FILE_NAME               dirPath;
+    IO_FILE_HANDLE             hFile;
+    IO_FILE_HANDLE             hDir;
+
+    PFILE_RENAME_INFORMATION   pFileRenameInfo; // Do not free
+    PBYTE                      pData;
+    ULONG                      ulDataLen;
+
+} SRV_NT_RENAME_STATE_SMB_V1, *PSRV_NT_RENAME_STATE_SMB_V1;
 
 typedef enum
 {

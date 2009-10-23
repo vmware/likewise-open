@@ -74,7 +74,8 @@ static PCSTR gLoaderTable[] =
 {
     [LW_SERVICE_TYPE_LEGACY_EXECUTABLE] = "executable",
     [LW_SERVICE_TYPE_EXECUTABLE] = "executable",
-    [LW_SERVICE_TYPE_DRIVER] = "driver"
+    [LW_SERVICE_TYPE_DRIVER] = "driver",
+    [LW_SERVICE_TYPE_STUB] = "stub"
 };
 
 DWORD

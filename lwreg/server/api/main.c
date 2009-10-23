@@ -43,14 +43,24 @@
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
- *          Marc Guy (mguy@likewisesoftware.com)
+ *          Wei Fu (wfu@likewise.com)
  */
 #include "api.h"
 
 
 static LWMsgDispatchSpec gMessageHandlers[] =
 {
-    LWMSG_DISPATCH_BLOCK(REG_Q_ENUM_ROOT_KEYS, RegSrvIpcEnumRootKeys),
+    LWMSG_DISPATCH_BLOCK(REG_Q_ENUM_ROOT_KEYSW, RegSrvIpcEnumRootKeysW),
+    LWMSG_DISPATCH_BLOCK(REG_Q_ENUM_VALUEA, RegSrvIpcEnumValueA),
+    LWMSG_DISPATCH_BLOCK(REG_Q_ENUM_VALUEW, RegSrvIpcEnumValueW),
+    LWMSG_DISPATCH_BLOCK(REG_Q_GET_VALUEA, RegSrvIpcGetValueA),
+    LWMSG_DISPATCH_BLOCK(REG_Q_GET_VALUEW, RegSrvIpcGetValueW),
+    LWMSG_DISPATCH_BLOCK(REG_Q_OPEN_KEYA_EX, RegSrvIpcOpenKeyExA),
+    LWMSG_DISPATCH_BLOCK(REG_Q_OPEN_KEYW_EX, RegSrvIpcOpenKeyExW),
+    LWMSG_DISPATCH_BLOCK(REG_Q_QUERY_VALUEA_EX, RegSrvIpcQueryValueExA),
+    LWMSG_DISPATCH_BLOCK(REG_Q_QUERY_VALUEW_EX, RegSrvIpcQueryValueExW),
+    LWMSG_DISPATCH_BLOCK(REG_Q_SET_VALUEA_EX, RegSrvIpcSetValueExA),
+    LWMSG_DISPATCH_BLOCK(REG_Q_SET_VALUEW_EX, RegSrvIpcSetValueExW),
     LWMSG_DISPATCH_BLOCK(REG_Q_CREATE_KEY_EX, RegSrvIpcCreateKeyEx),
     LWMSG_DISPATCH_BLOCK(REG_Q_CLOSE_KEY, RegSrvIpcCloseKey),
     LWMSG_DISPATCH_BLOCK(REG_Q_DELETE_KEY, RegSrvIpcDeleteKey),
@@ -58,18 +68,8 @@ static LWMsgDispatchSpec gMessageHandlers[] =
     LWMSG_DISPATCH_BLOCK(REG_Q_DELETE_TREE, RegSrvIpcDeleteTree),
     LWMSG_DISPATCH_BLOCK(REG_Q_DELETE_VALUE, RegSrvIpcDeleteValue),
     LWMSG_DISPATCH_BLOCK(REG_Q_ENUM_KEY_EX, RegSrvIpcEnumKeyEx),
-    LWMSG_DISPATCH_BLOCK(REG_Q_ENUM_VALUEA, RegSrvIpcEnumValueA),
-    LWMSG_DISPATCH_BLOCK(REG_Q_ENUM_VALUEW, RegSrvIpcEnumValueW),
-    LWMSG_DISPATCH_BLOCK(REG_Q_GET_VALUEA, RegSrvIpcGetValueA),
-    LWMSG_DISPATCH_BLOCK(REG_Q_GET_VALUEW, RegSrvIpcGetValueW),
-    LWMSG_DISPATCH_BLOCK(REG_Q_OPEN_KEYA_EX, RegSrvIpcOpenKeyExA),
-    LWMSG_DISPATCH_BLOCK(REG_Q_OPEN_KEYW_EX, RegSrvIpcOpenKeyExW),
     LWMSG_DISPATCH_BLOCK(REG_Q_QUERY_INFO_KEY, RegSrvIpcQueryInfoKey),
     LWMSG_DISPATCH_BLOCK(REG_Q_QUERY_MULTIPLE_VALUES, RegSrvIpcQueryMultipleValues),
-    LWMSG_DISPATCH_BLOCK(REG_Q_QUERY_VALUEA_EX, RegSrvIpcQueryValueExA),
-    LWMSG_DISPATCH_BLOCK(REG_Q_QUERY_VALUEW_EX, RegSrvIpcQueryValueExW),
-    LWMSG_DISPATCH_BLOCK(REG_Q_SET_VALUEA_EX, RegSrvIpcSetValueExA),
-    LWMSG_DISPATCH_BLOCK(REG_Q_SET_VALUEW_EX, RegSrvIpcSetValueExW),
     LWMSG_DISPATCH_END
 };
 

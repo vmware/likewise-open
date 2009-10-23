@@ -266,7 +266,7 @@ error:
 }
 
 LWMsgStatus
-RegSrvIpcEnumRootKeys(
+RegSrvIpcEnumRootKeysW(
     LWMsgCall* pCall,
     const LWMsgParams* pIn,
     LWMsgParams* pOut,
@@ -276,12 +276,13 @@ RegSrvIpcEnumRootKeys(
     DWORD dwError = 0;
     PREG_IPC_ENUM_ROOTKEYS_RESPONSE pRegResp = NULL;
     PREG_IPC_ERROR pError = NULL;
-    PSTR* ppszRootKeyNames = NULL;
-    DWORD dwNumRootKeys = 0;;
+    PWSTR* ppwszRootKeyNames = NULL;
+    DWORD dwNumRootKeys = 0;
+    int iCount = 0;
 
-    dwError = RegSrvEnumRootKeys(
+    dwError = RegSrvEnumRootKeysW(
         RegSrvIpcGetSessionData(pCall),
-        &ppszRootKeyNames,
+        &ppwszRootKeyNames,
         &dwNumRootKeys
         );
 
@@ -292,11 +293,11 @@ RegSrvIpcEnumRootKeys(
             OUT_PPVOID(&pRegResp));
         BAIL_ON_REG_ERROR(dwError);
 
-        pRegResp->ppszRootKeyNames = ppszRootKeyNames;
-        ppszRootKeyNames = NULL;
+        pRegResp->ppwszRootKeyNames = ppwszRootKeyNames;
+        ppwszRootKeyNames = NULL;
         pRegResp->dwNumRootKeys = dwNumRootKeys;
 
-        pOut->tag = REG_R_ENUM_ROOT_KEYS_SUCCESS;
+        pOut->tag = REG_R_ENUM_ROOT_KEYSW_SUCCESS;
         pOut->data = pRegResp;
     }
     else
@@ -304,14 +305,18 @@ RegSrvIpcEnumRootKeys(
         dwError = RegSrvIpcCreateError(dwError, &pError);
         BAIL_ON_REG_ERROR(dwError);
 
-        pOut->tag = REG_R_ENUM_ROOT_KEYS_FAILURE;
+        pOut->tag = REG_R_ENUM_ROOT_KEYSW_FAILURE;
         pOut->data = pError;
     }
 
 cleanup:
-    if (ppszRootKeyNames)
+    if (ppwszRootKeyNames)
     {
-        LwFreeStringArray(ppszRootKeyNames, dwNumRootKeys);
+        for (iCount=0; iCount<dwNumRootKeys; iCount++)
+        {
+            LW_SAFE_FREE_MEMORY(ppwszRootKeyNames[iCount]);
+        }
+        ppwszRootKeyNames = NULL;
     }
 
     return MAP_REG_ERROR_IPC(dwError);

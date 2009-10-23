@@ -327,6 +327,12 @@ SrvProtocolExecute_SMB_V1(
 
                 break;
 
+            case COM_NT_RENAME:
+
+                ntStatus = SrvProcessNtRename(pExecContext);
+
+                break;
+
             case COM_NT_TRANSACT:
 
                 ntStatus = SrvProcessNtTransact(pExecContext);

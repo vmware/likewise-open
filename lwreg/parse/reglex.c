@@ -101,68 +101,6 @@ RegLexClose(
 }
 
 
-DWORD RegLexBinaryTypeToString(
-    REGLEX_TOKEN token,
-    PSTR tokenStr,
-    BOOLEAN dumpFormat)
-{
-    DWORD dwError = 0;
-    static char *typeStrs[][2] = {
-        { "hex(0):", "REG_NONE" },
-        { "REG_SZ", "REG_SZ"},
-        { "hex(2):", "REG_EXPAND_SZ" },
-        { "hex:", "REG_BINARY" },
-        { "dword:", "REG_DWORD" },
-        { "dwordbe:", "REG_DWORD_BIG_ENDIAN" },
-        { "link:", "REG_LINK" },
-        { "hex(7):", "REG_MULTI_SZ" },
-        { "hex(8):", "REG_RESOURCE_LIST" },
-        { "hex(9):", "REG_FULL_RESOURCE_DESCRIPTOR" },
-        { "hex(a):", "REG_RESOURCE_REQUIREMENTS_LIST" },
-        { "hex(b):", "REG_QUADWORD" },
-        { "unknown12:", "REG_UNKNOWN12" },
-        { "unknown13:", "REG_UNKNOWN13" },
-        { "unknown14:", "REG_UNKNOWN14" },
-        { "unknown15:", "REG_UNKNOWN15" },
-        { "unknown16:", "REG_UNKNOWN16" },
-        { "unknown17:", "REG_UNKNOWN17" },
-        { "unknown18:", "REG_UNKNOWN18" },
-        { "unknown19:", "REG_UNKNOWN19" },
-        { "unknown20:", "REG_UNKNOWN20" },
-        { "REG_KEY", "REG_KEY" },
-        { "REG_KEY_DEFAULT", "REG_KEY_DEFAULT" },
-        { "REG_PLAIN_TEXT", "REG_PLAIN_TEXT" },
-        { "REG_UNKNOWN", "REG_UNKNOWN" },
-        { "sza:", "REG_STRING_ARRAY" }, /* Maps to REG_MULTI_SZ */
-    };
-
-    BAIL_ON_INVALID_POINTER(tokenStr);
-
-    if (token < ((sizeof(typeStrs)/sizeof(char *))/2))
-    {
-        if (dumpFormat)
-        {
-            strcpy(tokenStr, typeStrs[token][0]);
-        }
-        else
-        {
-            strcpy(tokenStr, typeStrs[token][1]);
-        }
-    }
-    else
-    {
-        sprintf(tokenStr, "ERROR: No Such Token %d", token);
-    }
-
-
-cleanup:
-    return dwError;
-
-error:
-    goto cleanup;
-}
-
-
 DWORD RegLexTokenToString(
     REGLEX_TOKEN token,
     PSTR tokenStr)
@@ -521,7 +459,6 @@ RegLexParseBackslash(
          * This processing in this case would be an escaped 'H', not
          * what is intended.
          */
-        RegLexAppendChar(lexHandle, inC);
         dwError = RegIOGetChar(ioHandle, &inC, &eof);
         if (!eof)
         {
@@ -869,7 +806,7 @@ RegLexParseDefaultState(
         {
             lexHandle->curToken.token = REGLEX_PLAIN_TEXT;
         }
-#ifdef _DEBUG
+#ifdef _LW_DEBUG
         if (lexHandle->state != REGLEX_STATE_IN_QUOTE &&
             lexHandle->state != REGLEX_STATE_IN_KEY &&
             lexHandle->state != REGLEX_STATE_BINHEX_STR)

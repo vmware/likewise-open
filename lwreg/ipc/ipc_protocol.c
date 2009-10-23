@@ -169,20 +169,19 @@ static LWMsgTypeSpec gRegCreateKeyExRespSpec[] =
 
 static LWMsgTypeSpec gRegEnumRootKeysRespSpec[] =
 {
-    //PSTR* ppszRootKeyNames;
+    //PWSTR* ppwszRootKeyNames;
     //DWORD dwNumRootKeys;
 
     LWMSG_STRUCT_BEGIN(REG_IPC_ENUM_ROOTKEYS_RESPONSE),
     LWMSG_MEMBER_UINT32(REG_IPC_ENUM_ROOTKEYS_RESPONSE, dwNumRootKeys),
-    LWMSG_MEMBER_POINTER_BEGIN(REG_IPC_ENUM_ROOTKEYS_RESPONSE, ppszRootKeyNames),
-    LWMSG_PSTR,
+    LWMSG_MEMBER_POINTER_BEGIN(REG_IPC_ENUM_ROOTKEYS_RESPONSE, ppwszRootKeyNames),
+    LWMSG_PWSTR,
     LWMSG_POINTER_END,
     LWMSG_ATTR_ZERO_TERMINATED,
     LWMSG_ATTR_LENGTH_MEMBER(REG_IPC_ENUM_ROOTKEYS_RESPONSE, dwNumRootKeys),
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END
 };
-
 
 /******************************************************************************/
 
@@ -765,9 +764,9 @@ static LWMsgTypeSpec gRegSetValueAExSpec[] =
 static LWMsgProtocolSpec gRegIPCSpec[] =
 {
     /*Key Operation APIS*/
-    LWMSG_MESSAGE(REG_Q_ENUM_ROOT_KEYS, NULL),
-    LWMSG_MESSAGE(REG_R_ENUM_ROOT_KEYS_SUCCESS, gRegEnumRootKeysRespSpec),
-    LWMSG_MESSAGE(REG_R_ENUM_ROOT_KEYS_FAILURE, gRegIPCErrorSpec),
+    LWMSG_MESSAGE(REG_Q_ENUM_ROOT_KEYSW, NULL),
+    LWMSG_MESSAGE(REG_R_ENUM_ROOT_KEYSW_SUCCESS, gRegEnumRootKeysRespSpec),
+    LWMSG_MESSAGE(REG_R_ENUM_ROOT_KEYSW_FAILURE, gRegIPCErrorSpec),
     LWMSG_MESSAGE(REG_Q_OPEN_KEYA_EX, gRegOpenKeyAExSpec),
     LWMSG_MESSAGE(REG_R_OPEN_KEYA_EX_SUCCESS, gRegOpenKeyExRespSpec),
     LWMSG_MESSAGE(REG_R_OPEN_KEYA_EX_FAILURE, gRegIPCErrorSpec),
