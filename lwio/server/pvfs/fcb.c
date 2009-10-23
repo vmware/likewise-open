@@ -128,6 +128,7 @@ PvfsFreeFCB(
 
         pthread_mutex_destroy(&pFcb->ControlBlock);
         pthread_mutex_destroy(&pFcb->mutexOplock);
+        pthread_mutex_destroy(&pFcb->mutexNotify);
         pthread_rwlock_destroy(&pFcb->rwCcbLock);
         pthread_rwlock_destroy(&pFcb->rwBrlLock);
 
@@ -136,6 +137,7 @@ PvfsFreeFCB(
         PvfsListDestroy(&pFcb->pOplockReadyOpsQueue);
         PvfsListDestroy(&pFcb->pOplockList);
         PvfsListDestroy(&pFcb->pCcbList);
+        PvfsListDestroy(&pFcb->pNotifyList);
 
         PVFS_FREE(&pFcb);
     }
@@ -180,6 +182,7 @@ PvfsAllocateFCB(
 
     pthread_mutex_init(&pFcb->ControlBlock, NULL);
     pthread_mutex_init(&pFcb->mutexOplock, NULL);
+    pthread_mutex_init(&pFcb->mutexNotify, NULL);
     pthread_rwlock_init(&pFcb->rwCcbLock, NULL);
     pthread_rwlock_init(&pFcb->rwBrlLock, NULL);
 
@@ -222,6 +225,14 @@ PvfsAllocateFCB(
                   &pFcb->pCcbList,
                   0,
                   (PPVFS_LIST_FREE_DATA_FN)PvfsFCBFreeCCB);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* List of CCBs */
+
+    ntError = PvfsListInit(
+                  &pFcb->pNotifyList,
+                  PVFS_FCB_MAX_PENDING_NOTIFY,
+                  (PPVFS_LIST_FREE_DATA_FN)PvfsFreeWatchDirRecord);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Miscellaneous */

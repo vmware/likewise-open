@@ -237,6 +237,7 @@ typedef struct _PVFS_OPLOCK_PENDING_OPERATION
 
 #define PVFS_FCB_MAX_PENDING_LOCKS       50
 #define PVFS_FCB_MAX_PENDING_OPERATIONS  50
+#define PVFS_FCB_MAX_PENDING_NOTIFY      50
 
 typedef struct _PVFS_FILE_ID
 {
@@ -286,6 +287,12 @@ struct _PVFS_FCB
     PPVFS_LIST pOplockPendingOpsQueue;
     PPVFS_LIST pOplockReadyOpsQueue;
     /* End mutexOplock */
+
+    /* Change Notify */
+    pthread_mutex_t mutexNotify;
+
+    PPVFS_LIST pNotifyList;
+    /* Change Notify */
 };
 
 typedef struct _PVFS_FCB_TABLE
@@ -430,6 +437,17 @@ typedef struct _PVFS_OPEN_FILE_INFO
 
 } PVFS_OPEN_FILE_INFO, *PPVFS_OPEN_FILE_INFO;
 
+
+typedef struct _PVFS_DIR_WATCH_RECORD
+{
+    LW_LIST_LINKS NotifyList;
+
+    PPVFS_IRP_CONTEXT pIrpContext;
+    PPVFS_CCB pCcb;
+    FILE_NOTIFY_CHANGE NotifyFilter;
+    BOOLEAN bWatchTree;
+
+} PVFS_DIR_WATCH_RECORD, *PPVFS_DIR_WATCH_RECORD;
 
 #endif    /* _PVFS_STRUCTS_H */
 
