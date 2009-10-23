@@ -1153,7 +1153,7 @@ PvfsScheduleCancelOplock(
     pWorkCtx = NULL;
 
 cleanup:
-    PVFS_FREE(&pWorkCtx);
+    PvfsFreeWorkContext(&pWorkCtx);
 
     return ntError;
 

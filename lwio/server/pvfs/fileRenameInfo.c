@@ -53,7 +53,6 @@ PvfsSetFileRenameInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     );
 
-
 /* File Globals */
 
 
@@ -208,6 +207,11 @@ PvfsSetFileRenameInfo(
 
     pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);
     ntError = STATUS_SUCCESS;
+
+    PvfsNotifyScheduleFullReport(
+        pCcb->pFcb,
+        FILE_ACTION_RENAMED_NEW_NAME,
+        pCcb->pszFilename);
 
 cleanup:
     RTL_FREE(&pszNewPathname);

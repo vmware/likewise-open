@@ -535,9 +535,17 @@ PvfsReadDirectoryChange(
     );
 
 VOID
-PvfsFreeWatchDirRecord(
-    PPVFS_DIR_WATCH_RECORD *ppWatchRecord
+PvfsFreeNotifyRecord(
+    PPVFS_NOTIFY_FILTER_RECORD *ppNotifyRecord
     );
+
+VOID
+PvfsNotifyScheduleFullReport(
+    PPVFS_FCB pFcb,
+    FILE_ACTION Action,
+    PCSTR pszFilename
+    );
+
 
 #endif /* __PVFS_H__ */
 
