@@ -154,7 +154,7 @@
             err = STATUS_INSUFFICIENT_RESOURCES;	\
             goto error;                             \
         }                                           \
-    } while(0);                                     \
+    } while(0)                                     \
 
 #define BAIL_ON_INVALID_PTR(ptr, err)                  \
     do {                                               \
@@ -162,7 +162,15 @@
             err = STATUS_INVALID_PARAMETER;            \
             goto error;                                \
         }                                              \
-    } while (0);
+    } while (0)
+
+#define BAIL_ON_ZERO_LENGTH(len, err)                  \
+    do {                                               \
+        if ((len) == 0) {                              \
+            err = STATUS_INVALID_PARAMETER;            \
+            goto error;                                \
+        }                                              \
+    } while (0)
 
 #define GOTO_CLEANUP_ON_SMB_ERROR(error) \
     _GOTO_CLEANUP_ON_NONZERO(error)
