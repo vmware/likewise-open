@@ -283,7 +283,7 @@ RegShellUtilAddKey(
         dwError = LwMbsToWc16s(pszToken, &pwszSubKey);
         BAIL_ON_REG_ERROR(dwError);
 
-        dwError = RegCreateKeyEx(
+        dwError = RegCreateKeyExW(
             hReg,
             pCurrentKey,
             pwszSubKey,

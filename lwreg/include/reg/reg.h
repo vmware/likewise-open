@@ -221,7 +221,21 @@ RegEnumRootKeysW(
     );
 
 DWORD
-RegCreateKeyEx(
+RegCreateKeyExA(
+    HANDLE hRegConnection,
+    HKEY hKey,
+    PCSTR pszSubKey,
+    DWORD Reserved,
+    PWSTR pClass,
+    DWORD dwOptions,
+    REGSAM samDesired,
+    PSECURITY_ATTRIBUTES pSecurityAttributes,
+    PHKEY phkResult,
+    PDWORD pdwDisposition
+    );
+
+DWORD
+RegCreateKeyExW(
     HANDLE hRegConnection,
     HKEY hKey,
     PCWSTR pSubKey,
@@ -464,6 +478,19 @@ RegEnumRootKeysA(
     OUT PDWORD pdwNumRootKeys
     );
 
+DWORD
+RegCreateKeyExA(
+    HANDLE hRegConnection,
+    HKEY hKey,
+    PCSTR pszSubKey,
+    DWORD Reserved,
+    PWSTR pClass,
+    DWORD dwOptions,
+    REGSAM samDesired,
+    PSECURITY_ATTRIBUTES pSecurityAttributes,
+    PHKEY phkResult,
+    PDWORD pdwDisposition
+    );
 
 #ifdef UNICODE
 #define RegEnumValue(hRegConnection, hKey, dwIndex, pValueName, pcchValueName, pReserved, pType, pData, pcbData) \
@@ -482,6 +509,8 @@ RegEnumRootKeysA(
     RegByteArrayToMultiStrsW(pInBuf, bufLen, pppszOutMultiSz)
 #define RegEnumRootKeys(hRegConnection, pppRootKeyNames, pdwNumRootKeys) \
     RegEnumRootKeysW(hRegConnection, pppwszRootKeyNames, pdwNumRootKeys)
+#define RegCreateKeyEx(hRegConnection, hKey, pszSubKey, Reserved, pClass, dwOptions, samDesired, pSecurityAttributes, phkResult, pdwDisposition) \
+    RegCreateKeyExW(hRegConnection, hKey, pwszSubKey, Reserved, pClass, dwOptions, samDesired, pSecurityAttributes, phkResult, pdwDisposition)
 
 #else
 #define RegEnumValue(hRegConnection, hKey, dwIndex, pValueName, pcchValueName, pReserved, pType, pData, pcbData) \
@@ -500,6 +529,8 @@ RegEnumRootKeysA(
     RegByteArrayToMultiStrsA(pInBuf, bufLen, pppszOutMultiSz)
 #define RegEnumRootKeys(hRegConnection, pppRootKeyNames, pdwNumRootKeys) \
     RegEnumRootKeysA(hRegConnection, pppszRootKeyNames, pdwNumRootKeys)
+#define RegCreateKeyEx(hRegConnection, hKey, pszSubKey, Reserved, pClass, dwOptions, samDesired, pSecurityAttributes, phkResult, pdwDisposition) \
+    RegCreateKeyExA(hRegConnection, hKey, pszSubKey, Reserved, pClass, dwOptions, samDesired, pSecurityAttributes, phkResult, pdwDisposition)
 #endif
 
 #endif /* __REG_H__ */
