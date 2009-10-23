@@ -47,6 +47,7 @@
 
 #include <gssapi/gssapi.h>
 #include <gssapi/gssapi_ext.h>
+#include <gssapi/gssapi_krb5.h>
 
 //******************************************************************************
 //
@@ -173,6 +174,17 @@ ntlm_gss_wrap(
     );
 
 OM_uint32
+ntlm_gss_wrap_iov(
+    OM_uint32* pMinorStatus,
+    gss_ctx_id_t GssCtxtHandle,
+    INT nEncrypt,
+    gss_qop_t Qop,
+    PINT pEncrypted,
+    gss_iov_buffer_desc* pBuffers,
+    int cBuffers
+    );
+
+OM_uint32
 ntlm_gss_unwrap(
     OM_uint32* pMinorStatus,
     gss_ctx_id_t GssCtxtHandle,
@@ -180,6 +192,16 @@ ntlm_gss_unwrap(
     gss_buffer_t OutMessage,
     PINT pEncrypted,
     gss_qop_t* pQop
+    );
+
+OM_uint32
+ntlm_gss_unwrap_iov(
+    OM_uint32* pMinorStatus,
+    gss_ctx_id_t GssCtxtHandle,
+    PINT pEncrypted,
+    gss_qop_t* pQop,
+    gss_iov_buffer_desc* pBuffers,
+    int cBuffers
     );
 
 OM_uint32
