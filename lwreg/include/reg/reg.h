@@ -207,9 +207,16 @@ RegGetErrorMessageForLoggingEvent(
 
 // Registry Client Side APIs
 DWORD
-RegEnumRootKeys(
+RegEnumRootKeysA(
     IN HANDLE hRegConnection,
     OUT PSTR** pppszRootKeyNames,
+    OUT PDWORD pdwNumRootKeys
+    );
+
+DWORD
+RegEnumRootKeysW(
+    IN HANDLE hRegConnection,
+    OUT PWSTR** pppszRootKeyNames,
     OUT PDWORD pdwNumRootKeys
     );
 
@@ -450,6 +457,14 @@ RegMultiStrsFree(
     PCHAR *pszMultiSz
     );
 
+DWORD
+RegEnumRootKeysA(
+    IN HANDLE hRegConnection,
+    OUT PSTR** pppszRootKeyNames,
+    OUT PDWORD pdwNumRootKeys
+    );
+
+
 #ifdef UNICODE
 #define RegEnumValue(hRegConnection, hKey, dwIndex, pValueName, pcchValueName, pReserved, pType, pData, pcbData) \
     RegEnumValueW(hRegConnection, hKey, dwIndex, pValueName, pcchValueName, pReserved, pType, pData, pcbData)
@@ -465,6 +480,8 @@ RegMultiStrsFree(
     RegMultiStrsToByteArrayW(ppszInMultiSz, outBuf, outBufLen)
 #define RegByteArrayToMultiStrs(pInBuf, bufLen, pppszOutMultiSz) \
     RegByteArrayToMultiStrsW(pInBuf, bufLen, pppszOutMultiSz)
+#define RegEnumRootKeys(hRegConnection, pppRootKeyNames, pdwNumRootKeys) \
+    RegEnumRootKeysW(hRegConnection, pppwszRootKeyNames, pdwNumRootKeys)
 
 #else
 #define RegEnumValue(hRegConnection, hKey, dwIndex, pValueName, pcchValueName, pReserved, pType, pData, pcbData) \
@@ -481,6 +498,8 @@ RegMultiStrsFree(
     RegMultiStrsToByteArrayA(ppszInMultiSz, outBuf, outBufLen)
 #define RegByteArrayToMultiStrs(pInBuf, bufLen, pppszOutMultiSz) \
     RegByteArrayToMultiStrsA(pInBuf, bufLen, pppszOutMultiSz)
+#define RegEnumRootKeys(hRegConnection, pppRootKeyNames, pdwNumRootKeys) \
+    RegEnumRootKeysA(hRegConnection, pppszRootKeyNames, pdwNumRootKeys)
 #endif
 
 #endif /* __REG_H__ */

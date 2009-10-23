@@ -488,7 +488,7 @@ RegShellUtilGetKeys(
 
     if (!pszRootKeyName)
     {
-        dwError = RegEnumRootKeys(
+        dwError = RegEnumRootKeysA(
                       hReg,
                       &ppszRootKeyNames,
                       &dwNumRootKeys);
@@ -498,7 +498,7 @@ RegShellUtilGetKeys(
         /*
          * Allocation of this array and conversion to unicode should not
          * be needed. This should be the type of data returned by
-         * RegEnumRootKeys(), and that array can be the return value of
+         * RegEnumRootKeysA(), and that array can be the return value of
          * this function.
          */
         dwError = LwAllocateMemory(

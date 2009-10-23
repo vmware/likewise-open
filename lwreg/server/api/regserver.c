@@ -85,38 +85,42 @@ RegSrvIsValidKeyName(
 }
 
 DWORD
-RegSrvEnumRootKeys(
+RegSrvEnumRootKeysW(
     IN HANDLE Handle,
-    OUT PSTR** pppszRootKeys,
+    OUT PWSTR** pppwszRootKeys,
     OUT PDWORD pdwNumRootKeys
     )
 {
     DWORD dwError = 0;
-    PSTR* ppszRootKeys = NULL;
+    PWSTR* ppwszRootKeys = NULL;
     int iCount = 0;
 
-    dwError = LwAllocateMemory(sizeof(*ppszRootKeys)*NUM_ROOTKEY, (PVOID)&ppszRootKeys);
+    dwError = LwAllocateMemory(sizeof(*ppwszRootKeys)*NUM_ROOTKEY, (PVOID)&ppwszRootKeys);
     BAIL_ON_REG_ERROR(dwError);
 
     for (iCount = 0; iCount< NUM_ROOTKEY; iCount++)
     {
-        dwError = LwAllocateString(ROOT_KEYS[iCount], &ppszRootKeys[iCount]);
+        dwError = LwMbsToWc16s(ROOT_KEYS[iCount], &ppwszRootKeys[iCount]);
         BAIL_ON_REG_ERROR(dwError);
     }
 
     *pdwNumRootKeys = NUM_ROOTKEY;
-    *pppszRootKeys = ppszRootKeys;
+    *pppwszRootKeys = ppwszRootKeys;
 
 cleanup:
     return dwError;
 
 error:
-    if (ppszRootKeys)
+    if (ppwszRootKeys)
     {
-        LwFreeStringArray(ppszRootKeys, NUM_ROOTKEY);
+        for (iCount=0; iCount<NUM_ROOTKEY; iCount++)
+        {
+            LW_SAFE_FREE_MEMORY(ppwszRootKeys[iCount]);
+        }
+        ppwszRootKeys = NULL;
     }
     *pdwNumRootKeys = 0;
-    *pppszRootKeys = NULL;
+    *pppwszRootKeys = NULL;
 
     goto cleanup;
 }

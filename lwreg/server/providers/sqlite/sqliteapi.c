@@ -43,7 +43,7 @@
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
- *          Marc Guy (mguy@likewisesoftware.com)
+ *          Wei Fu (wfu@likewise.com)
  */
 #include "includes.h"
 

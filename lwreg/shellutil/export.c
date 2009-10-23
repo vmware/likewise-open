@@ -684,7 +684,7 @@ ProcessRootKeys(
     DWORD dwNumSubKeys = 0;
 
 
-    dwError = RegEnumRootKeys(hReg,
+    dwError = RegEnumRootKeysA(hReg,
                               &ppszRootKeyNames,
                               &dwNumRootKeys);
     BAIL_ON_REG_ERROR(dwError);
