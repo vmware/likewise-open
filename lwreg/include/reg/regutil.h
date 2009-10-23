@@ -48,8 +48,8 @@
  *          Marc Guy (mguy@likewisesoftware.com)
  *          Adam Bernstein (abernstein@likewisesoftware.com)
  */
-#ifndef REGUTIL_H
-#define REGUTIL_H
+#ifndef __REGUTIL_H__
+#define __REGUTIL_H__
 
 #include <reg/reg.h>
 
@@ -67,64 +67,72 @@ DWORD
 RegUtilIsValidKey(
     IN HANDLE hReg,
     IN PSTR pszRootKeyName,
-    IN PSTR pszKey);
+    IN PSTR pszKey
+    );
 
 DWORD
 RegUtilAddKey(
     IN HANDLE hReg,
     IN PSTR pszRootKeyName,
-    IN PSTR pszDefaultKey,
-    IN PSTR pszKeyName);
+    IN OPTIONAL PSTR pszSubKeyPath,
+    IN PSTR pszKeyName
+    );
 
 DWORD
 RegUtilDeleteKey(
     IN HANDLE hReg,
     IN PSTR pszRootKeyName,
-    IN PSTR pszDefaultKey,
-    IN PSTR keyName);
+    IN OPTIONAL PSTR pszSubKeyPath,
+    IN PSTR pszKey
+    );
 
 DWORD
 RegUtilDeleteTree(
     IN HANDLE hReg,
     IN PSTR pszRootKeyName,
-    IN PSTR pszDefaultKey,
-    IN PSTR keyName);
+    IN OPTIONAL PSTR pszSubKeyPath,
+    IN PSTR pszKeyName
+    );
 
 DWORD
 RegUtilGetKeys(
     IN HANDLE hReg,
     IN PSTR pszRootKeyName,
-    IN PSTR pszDefaultKey,
-    IN PSTR keyName,
-    OUT WCHAR ***pppRetSubKeys,
-    OUT PDWORD pdwRetSubKeyCount);
+    IN OPTIONAL PSTR pszSubKeyPath,
+    IN PSTR pszKeyName,
+    OUT PWCHAR **pppSubKeys,
+    OUT PDWORD pdwSubKeyCount
+    );
 
 DWORD
 RegUtilSetValue(
     IN HANDLE hReg,
     IN PSTR pszRootKeyName,
-    IN PSTR pszDefaultKey,
-    IN PSTR keyName,
-    IN PSTR valueName,
-    IN REG_DATA_TYPE type,
-    IN PVOID data,
-    IN DWORD dataLen);
+    IN OPTIONAL PSTR pszSubKeyPath,
+    IN PSTR pszKeyName,
+    IN PSTR pszValueName,
+    IN REG_DATA_TYPE valueType,
+    IN PVOID pData,
+    IN DWORD dwDataLen
+    );
 
 DWORD
 RegUtilGetValues(
     IN HANDLE hReg,
     IN PSTR pszRootKeyName,
-    IN PSTR pszDefaultKey,
-    IN PSTR keyName,
+    IN OPTIONAL PSTR pszSubKeyPath,
+    IN PSTR pszKeyName,
     OUT PREGSHELL_UTIL_VALUE *valueArray,
-    OUT PDWORD pdwValueArrayLen);
+    OUT PDWORD pdwValueArrayLen
+    );
 
 DWORD
 RegUtilDeleteValue(
     IN HANDLE hReg,
     IN PSTR pszRootKeyName,
-    IN PSTR pszDefaultKey,
-    IN PSTR keyName,
-    IN PSTR valueName);
+    IN OPTIONAL PSTR pszSubKeyPath,
+    IN PSTR pszKeyName,
+    IN PSTR pszValueName
+    );
 
 #endif
