@@ -124,6 +124,11 @@ PvfsFreeFCB(
 {
     if (pFcb)
     {
+        if (pFcb->pParentFcb)
+        {
+            PvfsReleaseFCB(pFcb->pParentFcb);
+        }
+
         RtlCStringFree(&pFcb->pszFilename);
 
         pthread_mutex_destroy(&pFcb->ControlBlock);
@@ -238,7 +243,7 @@ PvfsAllocateFCB(
     /* Miscellaneous */
 
     pFcb->bDeleteOnClose = FALSE;
-
+    pFcb->pParentFcb = NULL;
 
     *ppFcb = pFcb;
     pFcb = NULL;
@@ -469,8 +474,15 @@ error:
     goto cleanup;
 }
 
-/*******************************************************
- ******************************************************/
+/***********************************************************************
+ **********************************************************************/
+
+static
+NTSTATUS
+PvfsFindParentFCB(
+    PPVFS_FCB *ppParentFcb,
+    PCSTR pszFilename
+    );
 
 NTSTATUS
 PvfsCreateFCB(
@@ -507,6 +519,11 @@ PvfsCreateFCB(
     ntError = RtlCStringDuplicate(&pFcb->pszFilename, pszFilename);
     BAIL_ON_NT_STATUS(ntError);
 
+    /* Lookup the parent FCB */
+
+    ntError = PvfsFindParentFCB(&pFcb->pParentFcb, pszFilename);
+    BAIL_ON_NT_STATUS(ntError);
+
     /* Add to the file handle table */
 
     ntError = PvfsAddFCB(pFcb);
@@ -528,6 +545,72 @@ error:
     }
     goto cleanup;
 }
+
+
+/***********************************************************************
+ **********************************************************************/
+
+static
+NTSTATUS
+PvfsFindParentFCB(
+    PPVFS_FCB *ppParentFcb,
+    PCSTR pszFilename
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PPVFS_FCB pFcb = NULL;
+    PSTR pszDirname = NULL;
+
+    if (LwRtlCStringIsEqual(pszFilename, "/", TRUE))
+    {
+        ntError = STATUS_SUCCESS;
+        *ppParentFcb = NULL;
+
+        goto cleanup;
+    }
+
+    ntError = PvfsFileDirname(&pszDirname, pszFilename);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = _PvfsFindFCB(&pFcb, pszDirname);
+    if (ntError != STATUS_SUCCESS)
+    {
+        ntError = PvfsAllocateFCB(&pFcb);
+        BAIL_ON_NT_STATUS(ntError);
+
+        pFcb->pszFilename = pszDirname;
+        pszDirname = NULL;
+
+        /* Lookup the parent FCB */
+
+        ntError = PvfsFindParentFCB(&pFcb->pParentFcb, pFcb->pszFilename);
+        BAIL_ON_NT_STATUS(ntError);
+
+        /* Add to the file handle table */
+
+        ntError = PvfsAddFCB(pFcb);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    *ppParentFcb = pFcb;
+    pFcb = NULL;
+
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+    if (pFcb)
+    {
+        PvfsReleaseFCB(pFcb);
+    }
+
+    LwRtlCStringFree(&pszDirname);
+
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
 
 /*******************************************************
  ******************************************************/

@@ -255,6 +255,7 @@ struct _PVFS_FCB
     pthread_mutex_t ControlBlock;   /* For ensuring atomic operations
                                        on an individual FCB */
     PSTR pszFilename;
+    PPVFS_FCB pParentFcb;
     PVFS_FILE_ID FileId;
     LONG64 LastWriteTime;          /* Saved mode time from SET_FILE_INFO */
     BOOLEAN bDeleteOnClose;
@@ -438,11 +439,20 @@ typedef struct _PVFS_OPEN_FILE_INFO
 } PVFS_OPEN_FILE_INFO, *PPVFS_OPEN_FILE_INFO;
 
 
+typedef struct _PVFS_DIR_WATCH_BUFFER
+{
+    PVOID pData;
+    ULONG Length;
+    ULONG Offset;
+
+} PVFS_DIR_WATCH_BUFFER, *PPVFS_DIR_WATCH_BUFFER;
+
 typedef struct _PVFS_DIR_WATCH_RECORD
 {
     LW_LIST_LINKS NotifyList;
 
     PPVFS_IRP_CONTEXT pIrpContext;
+    PVFS_DIR_WATCH_BUFFER pBuffer;
     PPVFS_CCB pCcb;
     FILE_NOTIFY_CHANGE NotifyFilter;
     BOOLEAN bWatchTree;
