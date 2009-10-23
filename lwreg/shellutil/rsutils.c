@@ -144,7 +144,7 @@ RegShellCanonicalizePath(
     {
         strcpy(pszNewPath, "\\");
     }
-#ifdef _DEBUG
+#ifdef _LW_DEBUG
     printf("CanonicalizePath: pszNewPath='%s'\n", pszNewPath);
 #endif
     if (ppszParentPath)
@@ -570,7 +570,7 @@ RegShellUtilGetKeys(
                   (LW_PVOID) &subKeys);
     BAIL_ON_REG_ERROR(dwError);
 
-#ifdef _DEBUG
+#ifdef _LW_DEBUG
     printf( "\nNumber of subkeys: %d\n", dwSubKeyCount);
 #endif
 

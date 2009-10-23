@@ -69,7 +69,7 @@
 #include "../parse/regiconv.h"
 #include "../parse/regparse.h"
 
-#ifdef _DEBUG
+#ifdef _LW_DEBUG
 #define d_printf(x) printf(x)
 #else
 #define d_printf(x)

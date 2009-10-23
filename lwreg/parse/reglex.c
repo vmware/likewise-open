@@ -806,7 +806,7 @@ RegLexParseDefaultState(
         {
             lexHandle->curToken.token = REGLEX_PLAIN_TEXT;
         }
-#ifdef _DEBUG
+#ifdef _LW_DEBUG
         if (lexHandle->state != REGLEX_STATE_IN_QUOTE &&
             lexHandle->state != REGLEX_STATE_IN_KEY &&
             lexHandle->state != REGLEX_STATE_BINHEX_STR)

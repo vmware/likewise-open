@@ -107,7 +107,7 @@
 
 
 #if 0
-#define _DEBUG
+#define _LW_DEBUG
 #endif
 #include "regshell.h"
 
@@ -1757,7 +1757,7 @@ RegShellCmdlineParseToArgv(
 
     *pdwNewArgc = dwArgc;
     *pszNewArgv = pszArgv;
-#ifdef _DEBUG
+#ifdef _LW_DEBUG
     if (pszArgv)
     {
         int i;

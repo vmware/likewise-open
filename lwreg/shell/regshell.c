@@ -116,7 +116,7 @@ RegShellListKeys(
         dwError = LwWc16sToMbs(ppSubKeys[i], &pszSubKey);
         BAIL_ON_REG_ERROR(dwError);
 
-#ifndef _DEBUG
+#ifndef _LW_DEBUG
         printf("[%s]\n", pszSubKey);
 #else
         printf("SubKey %d name is '%s'\n", i, pszSubKey);
@@ -398,7 +398,7 @@ RegShellListValues(
             dwError = LwWc16sToMbs(pValues[i].pValueName, &pszValueName);
             BAIL_ON_REG_ERROR(dwError);
 
-#ifdef _DEBUG
+#ifdef _LW_DEBUG
             printf("ListValues: value='%s\n", pszValueName);
             printf("ListValues: dataLen='%d'\n", pValues[i].dwDataLen);
 #endif
@@ -495,7 +495,7 @@ RegShellProcessCmd(
     dwError = RegShellCmdParse(pParseState, argc, argv, &rsItem);
     if (dwError == 0)
     {
-#ifdef _DEBUG
+#ifdef _LW_DEBUG
         RegShellDumpCmdItem(rsItem);
 #endif
         switch (rsItem->command)
