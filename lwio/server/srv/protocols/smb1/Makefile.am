@@ -20,6 +20,7 @@ libsrv_protocols_smb1_la_SOURCES = \
     lockx.c          \
     logoff.c         \
     negotiate.c      \
+    ntrename.c       \
     nttransact.c     \
     openx.c          \
     oplock.c         \

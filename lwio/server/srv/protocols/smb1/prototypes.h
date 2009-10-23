@@ -175,6 +175,13 @@ SrvProcessLogoffAndX(
     PSRV_EXEC_CONTEXT pExecContext
     );
 
+// ntrename.c
+
+NTSTATUS
+SrvProcessNtRename(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
 // nttransact.c
 
 NTSTATUS

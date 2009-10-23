@@ -27,6 +27,7 @@ liblwiosmbcommon_la_SOURCES = \
     wire_lockx.c         \
     wire_open.c          \
     wire_negotiate.c     \
+    wire_ntrename.c      \
     wire_nttransaction.c \
     packet.c             \
     wire_readx.c         \

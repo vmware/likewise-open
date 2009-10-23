@@ -1662,6 +1662,7 @@ typedef struct _SMB_NT_RENAME_REQUEST_HEADER
 typedef struct _SMB_NT_RENAME_RESPONSE_HEADER
 {
     USHORT usByteCount;
+    UCHAR  ucBuffer[1];
 } __attribute__((__packed__)) SMB_NT_RENAME_RESPONSE_HEADER,
                              *PSMB_NT_RENAME_RESPONSE_HEADER;
 
@@ -2217,6 +2218,25 @@ WireMarshallRenameResponse(
     ULONG   ulOffset,
     PSMB_RENAME_RESPONSE_HEADER* ppResponseHeader,
     PUSHORT pusPackageBytesUsed
+    );
+
+NTSTATUS
+WireUnmarshallNtRenameRequest(
+    PBYTE                          pParams,
+    ULONG                          ulBytesAvailable,
+    ULONG                          ulOffset,
+    PSMB_NT_RENAME_REQUEST_HEADER* ppRequestHeader,
+    PWSTR*                         ppwszOldName,
+    PWSTR*                         ppwszNewName
+    );
+
+NTSTATUS
+WireMarshallNtRenameResponse(
+    PBYTE                           pParams,
+    ULONG                           ulBytesAvailable,
+    ULONG                           ulOffset,
+    PSMB_NT_RENAME_RESPONSE_HEADER* ppResponseHeader,
+    PUSHORT                         pusPackageBytesUsed
     );
 
 NTSTATUS
