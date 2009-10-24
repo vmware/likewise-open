@@ -58,20 +58,15 @@ LsaSrvFreeAuthProvider(
     PLSA_AUTH_PROVIDER pProvider
     )
 {
-    if (pProvider) {
-
-        LW_SAFE_FREE_STRING(pProvider->pszProviderLibpath);
-
-        if (pProvider->pFnShutdown) {
-
-           pProvider->pFnShutdown(
-                       pProvider->pszName,
-                       pProvider->pFnTable
-                       );
-
+    if (pProvider)
+    {
+        if (pProvider->pFnTable && pProvider->pFnTable->pfnShutdownProvider)
+        {
+           pProvider->pFnTable->pfnShutdownProvider();
         }
 
-        if (pProvider->pLibHandle) {
+        if (pProvider->pLibHandle)
+        {
            dlclose(pProvider->pLibHandle);
         }
 
@@ -79,18 +74,6 @@ LsaSrvFreeAuthProvider(
         LW_SAFE_FREE_STRING(pProvider->pszProviderLibpath);
 
         LwFreeMemory(pProvider);
-    }
-}
-
-VOID
-LsaSrvFreeAuthProviderStack(
-    PLSA_STACK pProviderStack
-    )
-{
-    while (pProviderStack) {
-        PLSA_AUTH_PROVIDER pProvider =
-            (PLSA_AUTH_PROVIDER)LsaStackPop(&pProviderStack);
-        LsaSrvFreeAuthProvider(pProvider);
     }
 }
 
@@ -118,6 +101,7 @@ LsaSrvValidateProvider(
 {
     if (!pProvider ||
         !pProvider->pFnTable ||
+        !pProvider->pFnTable->pfnShutdownProvider ||
         !pProvider->pFnTable->pfnOpenHandle ||
         !pProvider->pFnTable->pfnCloseHandle ||
         !pProvider->pFnTable->pfnServicesDomain ||
@@ -162,13 +146,13 @@ LsaSrvValidateProvider(
 
 DWORD
 LsaSrvInitAuthProvider(
-    PLSA_AUTH_PROVIDER pProvider,
-    PLSA_STATIC_PROVIDER pStaticProviders
+    IN PLSA_AUTH_PROVIDER pProvider,
+    IN OPTIONAL PLSA_STATIC_PROVIDER pStaticProviders
     )
 {
     DWORD dwError = 0;
     PFNINITIALIZEPROVIDER pfnInitProvider = NULL;
-    PCSTR  pszError = NULL;
+    PCSTR pszError = NULL;
     PSTR pszProviderLibpath = NULL;
     int i = 0;
 
@@ -180,7 +164,6 @@ LsaSrvInitAuthProvider(
             if (!strcmp(pStaticProviders[i].pszId, pProvider->pszId))
             {
                 pfnInitProvider = pStaticProviders[i].pInitialize;
-                pProvider->pFnShutdown = pStaticProviders[i].pShutdown;
                 LSA_LOG_DEBUG("Provider %s loaded from static list", pProvider->pszId);
                 break;
             }
@@ -190,21 +173,23 @@ LsaSrvInitAuthProvider(
     if (!pfnInitProvider)
     {
         /* Try to load the provider dynamically */
-        if (LW_IS_NULL_OR_EMPTY_STR(pProvider->pszProviderLibpath)) {
-            dwError = ENOENT;
+        if (LW_IS_NULL_OR_EMPTY_STR(pProvider->pszProviderLibpath))
+        {
+            dwError = LW_ERROR_INVALID_AUTH_PROVIDER;
             BAIL_ON_LSA_ERROR(dwError);
         }
 
         pszProviderLibpath = pProvider->pszProviderLibpath;
 
         dlerror();
-
         pProvider->pLibHandle = dlopen(pszProviderLibpath, RTLD_NOW | RTLD_GLOBAL);
-        if (pProvider->pLibHandle == NULL) {
-            LSA_LOG_ERROR("Failed to open auth provider at path [%s]", pszProviderLibpath);
+        if (!pProvider->pLibHandle)
+        {
+            LSA_LOG_ERROR("Failed to open auth provider at path '%s'", pszProviderLibpath);
 
             pszError = dlerror();
-            if (!LW_IS_NULL_OR_EMPTY_STR(pszError)) {
+            if (!LW_IS_NULL_OR_EMPTY_STR(pszError))
+            {
                 LSA_LOG_ERROR("%s", pszError);
             }
 
@@ -216,27 +201,13 @@ LsaSrvInitAuthProvider(
         pfnInitProvider = (PFNINITIALIZEPROVIDER)dlsym(
             pProvider->pLibHandle,
             LSA_SYMBOL_NAME_INITIALIZE_PROVIDER);
-        if (pfnInitProvider == NULL) {
-            LSA_LOG_ERROR("Ignoring invalid auth provider at path [%s]", pszProviderLibpath);
+        if (!pfnInitProvider)
+        {
+            LSA_LOG_ERROR("Ignoring invalid auth provider at path '%s'", pszProviderLibpath);
 
             pszError = dlerror();
-            if (!LW_IS_NULL_OR_EMPTY_STR(pszError)) {
-                LSA_LOG_ERROR("%s", pszError);
-            }
-
-            dwError = LW_ERROR_INVALID_AUTH_PROVIDER;
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-
-        dlerror();
-        pProvider->pFnShutdown = (PFNSHUTDOWNPROVIDER)dlsym(
-            pProvider->pLibHandle,
-            LSA_SYMBOL_NAME_SHUTDOWN_PROVIDER);
-        if (pProvider->pFnShutdown == NULL) {
-            LSA_LOG_ERROR("Ignoring invalid auth provider at path [%s]", pszProviderLibpath);
-
-            pszError = dlerror();
-            if (!LW_IS_NULL_OR_EMPTY_STR(pszError)) {
+            if (!LW_IS_NULL_OR_EMPTY_STR(pszError))
+            {
                 LSA_LOG_ERROR("%s", pszError);
             }
 
@@ -264,7 +235,7 @@ error:
 
 DWORD
 LsaSrvInitAuthProviders(
-    PLSA_STATIC_PROVIDER pStaticProviders
+    IN OPTIONAL PLSA_STATIC_PROVIDER pStaticProviders
     )
 {
     DWORD dwError = 0;
@@ -286,10 +257,11 @@ LsaSrvInitAuthProviders(
 
         if (dwError)
         {
-            LSA_LOG_ERROR("Failed to load provider [%s] at [%s] [error code:%d]",
-                (pProvider->pszName ? pProvider->pszName : "<null>"),
-                (pProvider->pszProviderLibpath ? pProvider->pszProviderLibpath : "<null>"),
-                dwError);
+            LSA_LOG_ERROR("Failed to load provider '%s' from '%s' - error %u (%s)",
+                LSA_SAFE_LOG_STRING(pProvider->pszId),
+                LSA_SAFE_LOG_STRING(pProvider->pszProviderLibpath),
+                dwError,
+                LwWin32ErrorToName(dwError));
 
             LsaSrvFreeAuthProvider(pProvider);
             pProvider = NULL;

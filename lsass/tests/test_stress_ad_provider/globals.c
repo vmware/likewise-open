@@ -46,8 +46,8 @@
  */
 #include "includes.h"
 
-LSA_AUTH_PROVIDER  gAuthProvider = {0};
-PLSA_AUTH_PROVIDER gpAuthProvider = &gAuthProvider;
+TEST_AUTH_PROVIDER gAuthProvider = {0};
+PTEST_AUTH_PROVIDER gpAuthProvider = &gAuthProvider;
 
 LADS_STRESS_DATA gLADSStressData[LADS_SENTINEL];
 

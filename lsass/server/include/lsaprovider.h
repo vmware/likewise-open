@@ -49,6 +49,10 @@
 
 #include "lsautils.h"
 
+typedef DWORD (*PFNSHUTDOWNPROVIDER)(
+    VOID
+    );
+
 typedef DWORD (*PFNOPENHANDLE)(
                     uid_t peerUID,
                     gid_t peerGID,
@@ -288,8 +292,8 @@ typedef DWORD (*PFNGETGROUPMEMBERSHIPBYPROV)(
                 OUT PVOID   **pppMembershipInfo
                 );
 
-typedef struct __LSA_PROVIDER_FUNCTION_TABLE
-{
+typedef struct _LSA_PROVIDER_FUNCTION_TABLE {
+    PFNSHUTDOWNPROVIDER            pfnShutdownProvider;
     PFNOPENHANDLE                  pfnOpenHandle;
     PFNCLOSEHANDLE                 pfnCloseHandle;
     PFNSERVICESDOMAIN              pfnServicesDomain;
@@ -333,40 +337,16 @@ typedef struct __LSA_PROVIDER_FUNCTION_TABLE
 #define LSA_SYMBOL_NAME_INITIALIZE_PROVIDER "LsaInitializeProvider"
 
 typedef DWORD (*PFNINITIALIZEPROVIDER)(
-                    PSTR* ppszProviderName,
-                    PLSA_PROVIDER_FUNCTION_TABLE* ppFnTable
-                    );
+    OUT PCSTR* ppszProviderName,
+    OUT PLSA_PROVIDER_FUNCTION_TABLE* ppFnTable
+    );
 
-#define LSA_SYMBOL_NAME_SHUTDOWN_PROVIDER "LsaShutdownProvider"
-
-typedef DWORD (*PFNSHUTDOWNPROVIDER)(
-                    PSTR pszProviderName,
-                    PLSA_PROVIDER_FUNCTION_TABLE pFnTable
-                    );
-
-typedef struct _LSA_STATIC_PROVIDER
-{
+typedef struct _LSA_STATIC_PROVIDER {
     PCSTR pszId;
     PFNINITIALIZEPROVIDER pInitialize;
-    PFNSHUTDOWNPROVIDER pShutdown;
 } LSA_STATIC_PROVIDER, *PLSA_STATIC_PROVIDER;
 
-#ifdef ENABLE_STATIC_PROVIDERS
-#define LSA_INITIALIZE_PROVIDER(name) LsaInitializeProvider_##name
-#define LSA_SHUTDOWN_PROVIDER(name) LsaShutdownProvider_##name
-#else
-#define LSA_INITIALIZE_PROVIDER(name) LsaInitializeProvider
-#define LSA_SHUTDOWN_PROVIDER(name) LsaShutdownProvider
-#endif
-
-#define LSA_STATIC_PROVIDER_ENTRY(name, id) \
-    { #id, LSA_INITIALIZE_PROVIDER(name), LSA_SHUTDOWN_PROVIDER(name) }
-
-#define LSA_STATIC_PROVIDER_END \
-    { NULL, NULL, NULL }
-
 #endif /* __LSAPROVIDER_H__ */
-
 
 /*
 local variables:

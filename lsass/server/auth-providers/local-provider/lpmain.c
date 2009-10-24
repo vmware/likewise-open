@@ -48,10 +48,12 @@
 
 #include "includes.h"
 
+static
 DWORD
-LSA_INITIALIZE_PROVIDER(local)(
-    PSTR* ppszProviderName,
-    PLSA_PROVIDER_FUNCTION_TABLE* ppFunctionTable)
+LocalInitializeProvider(
+    OUT PCSTR* ppszProviderName,
+    OUT PLSA_PROVIDER_FUNCTION_TABLE* ppFunctionTable
+    )
 {
     DWORD dwError = 0;
     LOCAL_CONFIG config;
@@ -92,7 +94,7 @@ LSA_INITIALIZE_PROVIDER(local)(
         LocalEventLogServiceStart(dwError);
     }
 
-    *ppszProviderName = (PSTR)gpszLocalProviderName;
+    *ppszProviderName = gpszLocalProviderName;
     *ppFunctionTable = &gLocalProviderAPITable;
 
 cleanup:
@@ -1606,11 +1608,9 @@ error:
     goto cleanup;
 }
 
-
 DWORD
-LSA_SHUTDOWN_PROVIDER(local)(
-    PSTR pszProviderName,
-    PLSA_PROVIDER_FUNCTION_TABLE pFnTable
+LocalShutdownProvider(
+    VOID
     )
 {
     LW_SAFE_FREE_STRING(gLPGlobals.pszLocalDomain);
@@ -1619,6 +1619,14 @@ LSA_SHUTDOWN_PROVIDER(local)(
     return 0;
 }
 
+DWORD
+LsaInitializeProvider(
+    OUT PCSTR* ppszProviderName,
+    OUT PLSA_PROVIDER_FUNCTION_TABLE* ppFunctionTable
+    )
+{
+    return LocalInitializeProvider(ppszProviderName, ppFunctionTable);
+}
 
 /*
 local variables:

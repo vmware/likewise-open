@@ -470,73 +470,61 @@ error:
 DWORD
 LADSInitAuthProvider(
     PCSTR pszConfigFilePath,
-    PLSA_AUTH_PROVIDER pProvider
+    PTEST_AUTH_PROVIDER pProvider
     )
 {
     DWORD dwError = 0;
     PFNINITIALIZEPROVIDER pfnInitProvider = NULL;
-    PCSTR  pszError = NULL;
+    PCSTR pszError = NULL;
     PSTR pszProviderLibpath = NULL;
-    
-    if (LW_IS_NULL_OR_EMPTY_STR(pProvider->pszProviderLibpath)) {
-        dwError = ENOENT;
+
+    if (LW_IS_NULL_OR_EMPTY_STR(pProvider->pszProviderLibpath))
+    {
+        dwError = LW_ERROR_INVALID_AUTH_PROVIDER;
         BAIL_ON_LSA_ERROR(dwError);
     }
     
     pszProviderLibpath = pProvider->pszProviderLibpath;
     
     dlerror();
-        
     pProvider->pLibHandle = dlopen(pszProviderLibpath, RTLD_NOW | RTLD_GLOBAL);
-    if (pProvider->pLibHandle == NULL) {
-       LSA_LOG_ERROR("Failed to open auth provider at path [%s]", pszProviderLibpath);
+    if (!pProvider->pLibHandle)
+    {
+        LSA_LOG_ERROR("Failed to open auth provider at path '%s'", pszProviderLibpath);
 
-       pszError = dlerror();
-       if (!LW_IS_NULL_OR_EMPTY_STR(pszError)) {
-          LSA_LOG_ERROR("%s", pszError);
-       }
-            
-       dwError = LW_ERROR_INVALID_AUTH_PROVIDER;
-       BAIL_ON_LSA_ERROR(dwError);
+        pszError = dlerror();
+        if (!LW_IS_NULL_OR_EMPTY_STR(pszError))
+        {
+            LSA_LOG_ERROR("%s", pszError);
+        }
+
+        dwError = LW_ERROR_INVALID_AUTH_PROVIDER;
+        BAIL_ON_LSA_ERROR(dwError);
     }
-        
+
     dlerror();
     pfnInitProvider = (PFNINITIALIZEPROVIDER)dlsym(
-                                        pProvider->pLibHandle,
-                                        LSA_SYMBOL_NAME_INITIALIZE_PROVIDER);
-    if (pfnInitProvider == NULL) {
-       LSA_LOG_ERROR("Ignoring invalid auth provider at path [%s]", pszProviderLibpath);
-            
-       pszError = dlerror();
-       if (!LW_IS_NULL_OR_EMPTY_STR(pszError)) {
-          LSA_LOG_ERROR("%s", pszError);
-       }
-            
-       dwError = LW_ERROR_INVALID_AUTH_PROVIDER;
-       BAIL_ON_LSA_ERROR(dwError);
-    }
-        
-    dlerror();
-    pProvider->pFnShutdown = (PFNSHUTDOWNPROVIDER)dlsym(
-                                        pProvider->pLibHandle,
-                                        LSA_SYMBOL_NAME_SHUTDOWN_PROVIDER);
-    if (pProvider->pFnShutdown == NULL) {
-       LSA_LOG_ERROR("Ignoring invalid auth provider at path [%s]", pszProviderLibpath);
-            
-       pszError = dlerror();
-       if (!LW_IS_NULL_OR_EMPTY_STR(pszError)) {
-          LSA_LOG_ERROR("%s", pszError);
-       }
-            
-       dwError = LW_ERROR_INVALID_AUTH_PROVIDER;
-       BAIL_ON_LSA_ERROR(dwError);
+        pProvider->pLibHandle,
+        LSA_SYMBOL_NAME_INITIALIZE_PROVIDER);
+    if (!pfnInitProvider)
+    {
+        LSA_LOG_ERROR("Ignoring invalid auth provider at path '%s'", pszProviderLibpath);
+
+        pszError = dlerror();
+        if (!LW_IS_NULL_OR_EMPTY_STR(pszError))
+        {
+            LSA_LOG_ERROR("%s", pszError);
+        }
+
+        dwError = LW_ERROR_INVALID_AUTH_PROVIDER;
+        BAIL_ON_LSA_ERROR(dwError);
     }
         
     dwError = pfnInitProvider(
                     &pProvider->pszName,
                     &pProvider->pFnTable);
     BAIL_ON_LSA_ERROR(dwError);
-        
+
     dwError = LADSValidateProvider(pProvider);
     BAIL_ON_LSA_ERROR(dwError);
     
@@ -551,11 +539,12 @@ error:
 
 DWORD
 LADSValidateProvider(
-    PLSA_AUTH_PROVIDER pProvider
+    PTEST_AUTH_PROVIDER pProvider
     )
 {
     if (!pProvider ||
         !pProvider->pFnTable ||
+        !pProvider->pFnTable->pfnShutdownProvider ||
         !pProvider->pFnTable->pfnOpenHandle ||
         !pProvider->pFnTable->pfnCloseHandle ||
         !pProvider->pFnTable->pfnServicesDomain ||
@@ -715,22 +704,22 @@ LADSStopWorkers(
 
 DWORD
 LADSShutdownAuthProvider(
-    PLSA_AUTH_PROVIDER pProvider
+    PTEST_AUTH_PROVIDER pProvider
     )
 {
-    if (pProvider->pFnShutdown) {
-    
-        pProvider->pFnShutdown(
-               pProvider->pszName,
-               pProvider->pFnTable
-               );
-   
+    if (pProvider)
+    {
+        if (pProvider->pFnTable && pProvider->pFnTable->pfnShutdownProvider)
+        {
+            pProvider->pFnTable->pfnShutdownProvider();
+        }
+
+        if (pProvider->pLibHandle)
+        {
+            dlclose(pProvider->pLibHandle);
+        }
     }
 
-    if (pProvider->pLibHandle) {
-        dlclose(pProvider->pLibHandle);
-    }
-    
     return 0;
 }
 

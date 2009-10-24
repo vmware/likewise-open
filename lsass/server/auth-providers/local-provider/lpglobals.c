@@ -52,6 +52,7 @@ PCSTR gpszLocalProviderName = LOCAL_CFG_TAG_LOCAL_PROVIDER;
 
 LSA_PROVIDER_FUNCTION_TABLE gLocalProviderAPITable =
 {
+    .pfnShutdownProvider             = &LocalShutdownProvider,
     .pfnOpenHandle                   = &LocalOpenHandle,
     .pfnServicesDomain               = &LocalServicesDomain,
     .pfnCheckUserInList              = &LocalCheckUserInList,

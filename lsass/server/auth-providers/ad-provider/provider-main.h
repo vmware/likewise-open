@@ -51,16 +51,19 @@
 #ifndef __PROVIDER_MAIN_H__
 #define __PROVIDER_MAIN_H__
 
+#ifdef ENABLE_STATIC_PROVIDERS
+#define LsaInitializeProvider LsaInitializeProvider_ActiveDirectory
+#endif
+
 DWORD
 LsaInitializeProvider(
-    PSTR* ppszProviderName,
-    PLSA_PROVIDER_FUNCTION_TABLE* ppFunctionTable
+    OUT PCSTR* ppszProviderName,
+    OUT PLSA_PROVIDER_FUNCTION_TABLE* ppFunctionTable
     );
 
 DWORD
-LsaShutdownProvider(
-    PSTR pszProviderName,
-    PLSA_PROVIDER_FUNCTION_TABLE pFnTable
+AD_ShutdownProvider(
+    VOID
     );
 
 DWORD

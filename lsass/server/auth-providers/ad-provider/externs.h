@@ -75,7 +75,7 @@ extern pthread_rwlock_t gADGlobalDataLock;
            bInLock = FALSE;                                \
         }
 
-extern PSTR    gpszADProviderName;
+extern PCSTR gpszADProviderName;
 
 extern PAD_PROVIDER_DATA  gpADProviderData;
 

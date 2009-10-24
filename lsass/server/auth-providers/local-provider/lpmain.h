@@ -49,10 +49,19 @@
 #ifndef __LPMAIN_H__
 #define __LPMAIN_H__
 
+#ifdef ENABLE_STATIC_PROVIDERS
+#define LsaInitializeProvider LsaInitializeProvider_Local
+#endif
+
 DWORD
 LsaInitializeProvider(
-    PSTR*                         ppszProviderName,
-    PLSA_PROVIDER_FUNCTION_TABLE* ppFunctionTable
+    OUT PCSTR* ppszProviderName,
+    OUT PLSA_PROVIDER_FUNCTION_TABLE* ppFunctionTable
+    );
+
+DWORD
+LocalShutdownProvider(
+    VOID
     );
 
 DWORD
@@ -275,12 +284,6 @@ DWORD
 LocalCloseSession(
     HANDLE hProvider,
     PCSTR  pszLoginId
-    );
-
-DWORD
-LsaShutdownProvider(
-    PSTR pszProviderName,
-    PLSA_PROVIDER_FUNCTION_TABLE pFnTable
     );
 
 DWORD
