@@ -56,6 +56,11 @@
 #include "lsaclient.h"
 #include "lsaipc.h"
 
+#define LW_PRINTF_STRING(x) ((x) ? (x) : "<null>")
+// Why do we need YES/NO and TRUE/FALSE?
+#define LW_PRINTF_YES_NO(x) ((x) ? "YES" : "NO")
+#define LW_PRINTF_TRUE_FALSE(x) ((x) ? "TRUE" : "FALSE")
+
 static
 DWORD
 ParseArgs(
@@ -197,14 +202,14 @@ enum_users_main(
                 default:
 
                     fprintf(stderr,
-                            "Error: Invalid user info level [%d]\n",
+                            "Error: Invalid user info level %u\n",
                             dwUserInfoLevel);
                     break;
             }
         }
     } while (dwNumUsersFound);
 
-    fprintf(stdout, "TotalNumUsersFound:      %u\n", dwTotalUsersFound);
+    fprintf(stdout, "TotalNumUsersFound: %u\n", dwTotalUsersFound);
 
 cleanup:
 
@@ -244,7 +249,10 @@ error:
 
             if ((dwLen == dwErrorBufferSize) && !LW_IS_NULL_OR_EMPTY_STR(pszErrorBuffer))
             {
-                fprintf(stderr, "Failed to enumerate users.  %s\n", pszErrorBuffer);
+                fprintf(stderr, "Failed to enumerate users.  Error code %u (%s).\n"
+                        "%s\n",
+                        dwError, LW_PRINTF_STRING(LwWin32ErrorToName(dwError)),
+                        pszErrorBuffer);
                 bPrintOrigError = FALSE;
             }
         }
@@ -254,7 +262,8 @@ error:
 
     if (bPrintOrigError)
     {
-        fprintf(stderr, "Failed to enumerate users. Error code [%d]\n", dwError);
+        fprintf(stderr, "Failed to enumerate users.  Error code %u (%s).\n",
+                dwError, LW_PRINTF_STRING(LwWin32ErrorToName(dwError)));
     }
 
     goto cleanup;
@@ -389,21 +398,17 @@ PrintUserInfo_0(
 {
     fprintf(stdout, "User info (Level-0):\n");
     fprintf(stdout, "====================\n");
-    fprintf(stdout, "Name:              %s\n",
-            LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszName) ? "<null>" : pUserInfo->pszName);
+    fprintf(stdout, "Name:              %s\n", LW_PRINTF_STRING(pUserInfo->pszName));
     fprintf(stdout, "Uid:               %u\n", (unsigned int)pUserInfo->uid);
     fprintf(stdout, "Gid:               %u\n", (unsigned int)pUserInfo->gid);
-    fprintf(stdout, "Gecos:             %s\n",
-            LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszGecos) ? "<null>" : pUserInfo->pszGecos);
-    fprintf(stdout, "Shell:             %s\n",
-            LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszShell) ? "<null>" : pUserInfo->pszShell);
-    fprintf(stdout, "Home dir:          %s\n",
-            LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszHomedir) ? "<null>" : pUserInfo->pszHomedir);
+    fprintf(stdout, "Gecos:             %s\n", LW_PRINTF_STRING(pUserInfo->pszGecos));
+    fprintf(stdout, "Shell:             %s\n", LW_PRINTF_STRING(pUserInfo->pszShell));
+    fprintf(stdout, "Home dir:          %s\n", LW_PRINTF_STRING(pUserInfo->pszHomedir));
     if (bCheckUserInList)
     {
-        fprintf(stdout, "Logon restriction: %s\n", bAllowedLogon ? "NO" : "YES");
+        fprintf(stdout, "Logon restriction: %s\n", LW_PRINTF_YES_NO(bAllowedLogon));
     }
-    fprintf(stdout, "\n\n");
+    fprintf(stdout, "\n");
 }
 
 VOID
@@ -415,27 +420,22 @@ PrintUserInfo_1(
 {
     fprintf(stdout, "User info (Level-1):\n");
     fprintf(stdout, "====================\n");
-    fprintf(stdout, "Name:              %s\n",
-                LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszName) ? "<null>" : pUserInfo->pszName);
-    fprintf(stdout, "UPN:               %s\n",
-                    LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszUPN) ? "<null>" : pUserInfo->pszUPN);
-    fprintf(stdout, "Generated UPN:     %s\n", pUserInfo->bIsGeneratedUPN ? "YES" : "NO");
+    fprintf(stdout, "Name:              %s\n", LW_PRINTF_STRING(pUserInfo->pszName));
+    fprintf(stdout, "UPN:               %s\n", LW_PRINTF_STRING(pUserInfo->pszUPN));
+    fprintf(stdout, "Generated UPN:     %s\n", LW_PRINTF_YES_NO(pUserInfo->bIsGeneratedUPN));
     fprintf(stdout, "Uid:               %u\n", (unsigned int)pUserInfo->uid);
     fprintf(stdout, "Gid:               %u\n", (unsigned int)pUserInfo->gid);
-    fprintf(stdout, "Gecos:             %s\n",
-                LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszGecos) ? "<null>" : pUserInfo->pszGecos);
-    fprintf(stdout, "Shell:             %s\n",
-                LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszShell) ? "<null>" : pUserInfo->pszShell);
-    fprintf(stdout, "Home dir:          %s\n",
-                LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszHomedir) ? "<null>" : pUserInfo->pszHomedir);
+    fprintf(stdout, "Gecos:             %s\n", LW_PRINTF_STRING(pUserInfo->pszGecos));
+    fprintf(stdout, "Shell:             %s\n", LW_PRINTF_STRING(pUserInfo->pszShell));
+    fprintf(stdout, "Home dir:          %s\n", LW_PRINTF_STRING(pUserInfo->pszHomedir));
     fprintf(stdout, "LMHash length:     %d\n", pUserInfo->dwLMHashLen);
     fprintf(stdout, "NTHash length:     %d\n", pUserInfo->dwNTHashLen);
-    fprintf(stdout, "Local User:        %s\n", pUserInfo->bIsLocalUser ? "YES" : "NO");
+    fprintf(stdout, "Local User:        %s\n", LW_PRINTF_YES_NO(pUserInfo->bIsLocalUser));
     if (bCheckUserInList)
     {
-        fprintf(stdout, "Logon restriction: %s\n", bAllowedLogon ? "NO" : "YES");
+        fprintf(stdout, "Logon restriction: %s\n", LW_PRINTF_YES_NO(bAllowedLogon));
     }
-    fprintf(stdout, "\n\n");
+    fprintf(stdout, "\n");
 }
 
 VOID
@@ -447,43 +447,30 @@ PrintUserInfo_2(
 {
     fprintf(stdout, "User info (Level-2):\n");
     fprintf(stdout, "====================\n");
-    fprintf(stdout, "Name:                       %s\n",
-                LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszName) ? "<null>" : pUserInfo->pszName);
-    fprintf(stdout, "UPN:                        %s\n",
-                    LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszUPN) ? "<null>" : pUserInfo->pszUPN);
-    fprintf(stdout, "Generated UPN:              %s\n", pUserInfo->bIsGeneratedUPN ? "YES" : "NO");
-    fprintf(stdout, "Uid:                        %u\n", (unsigned int)pUserInfo->uid);
-    fprintf(stdout, "Gid:                        %u\n", (unsigned int)pUserInfo->gid);
-    fprintf(stdout, "Gecos:                      %s\n",
-                LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszGecos) ? "<null>" : pUserInfo->pszGecos);
-    fprintf(stdout, "Shell:                      %s\n",
-                LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszShell) ? "<null>" : pUserInfo->pszShell);
-    fprintf(stdout, "Home dir:                   %s\n",
-                LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszHomedir) ? "<null>" : pUserInfo->pszHomedir);
-    fprintf(stdout, "LMHash length:              %d\n", pUserInfo->dwLMHashLen);
-    fprintf(stdout, "NTHash length:              %d\n", pUserInfo->dwNTHashLen);
-    fprintf(stdout, "Local User:                 %s\n", pUserInfo->bIsLocalUser ? "YES" : "NO");
-    fprintf(stdout, "Account disabled:           %s\n",
-            pUserInfo->bAccountDisabled ? "TRUE" : "FALSE");
-    fprintf(stdout, "Account Expired:            %s\n",
-            pUserInfo->bAccountExpired ? "TRUE" : "FALSE");
-    fprintf(stdout, "Account Locked:             %s\n",
-            pUserInfo->bAccountLocked ? "TRUE" : "FALSE");
-    fprintf(stdout, "Password never expires:     %s\n",
-            pUserInfo->bPasswordNeverExpires ? "TRUE" : "FALSE");
-    fprintf(stdout, "Password Expired:           %s\n",
-            pUserInfo->bPasswordExpired ? "TRUE" : "FALSE");
-    fprintf(stdout, "Prompt for password change: %s\n",
-            pUserInfo->bPromptPasswordChange ? "YES" : "NO");
-    fprintf(stdout, "User can change password:   %s\n",
-            pUserInfo->bUserCanChangePassword ? "YES" : "NO");
-    fprintf(stdout, "Days till password expires: %d\n",
-            pUserInfo->dwDaysToPasswordExpiry);
+    fprintf(stdout, "Name:              %s\n", LW_PRINTF_STRING(pUserInfo->pszName));
+    fprintf(stdout, "UPN:               %s\n", LW_PRINTF_STRING(pUserInfo->pszUPN));
+    fprintf(stdout, "Generated UPN:     %s\n", LW_PRINTF_YES_NO(pUserInfo->bIsGeneratedUPN));
+    fprintf(stdout, "Uid:               %u\n", (unsigned int)pUserInfo->uid);
+    fprintf(stdout, "Gid:               %u\n", (unsigned int)pUserInfo->gid);
+    fprintf(stdout, "Gecos:             %s\n", LW_PRINTF_STRING(pUserInfo->pszGecos));
+    fprintf(stdout, "Shell:             %s\n", LW_PRINTF_STRING(pUserInfo->pszShell));
+    fprintf(stdout, "Home dir:          %s\n", LW_PRINTF_STRING(pUserInfo->pszHomedir));
+    fprintf(stdout, "LMHash length:     %d\n", pUserInfo->dwLMHashLen);
+    fprintf(stdout, "NTHash length:     %d\n", pUserInfo->dwNTHashLen);
+    fprintf(stdout, "Local User:        %s\n", LW_PRINTF_YES_NO(pUserInfo->bIsLocalUser));
+    fprintf(stdout, "Account disabled:           %s\n", LW_PRINTF_TRUE_FALSE(pUserInfo->bAccountDisabled));
+    fprintf(stdout, "Account Expired:            %s\n", LW_PRINTF_TRUE_FALSE(pUserInfo->bAccountExpired));
+    fprintf(stdout, "Account Locked:             %s\n", LW_PRINTF_TRUE_FALSE(pUserInfo->bAccountLocked));
+    fprintf(stdout, "Password never expires:     %s\n", LW_PRINTF_TRUE_FALSE(pUserInfo->bPasswordNeverExpires));
+    fprintf(stdout, "Password Expired:           %s\n", LW_PRINTF_TRUE_FALSE(pUserInfo->bPasswordExpired));
+    fprintf(stdout, "Prompt for password change: %s\n", LW_PRINTF_YES_NO(pUserInfo->bPromptPasswordChange));
+    fprintf(stdout, "User can change password:   %s\n", LW_PRINTF_YES_NO(pUserInfo->bUserCanChangePassword));
+    fprintf(stdout, "Days till password expires: %d\n", pUserInfo->dwDaysToPasswordExpiry);
     if (bCheckUserInList)
     {
-        fprintf(stdout, "Logon restriction: %s\n", bAllowedLogon ? "NO" : "YES");
+        fprintf(stdout, "Logon restriction: %s\n", LW_PRINTF_YES_NO(bAllowedLogon));
     }
-    fprintf(stdout, "\n\n");
+    fprintf(stdout, "\n");
 }
 
 DWORD

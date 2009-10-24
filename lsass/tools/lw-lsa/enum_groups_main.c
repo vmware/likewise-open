@@ -57,6 +57,8 @@
 #include "lsaclient.h"
 #include "lsaipc.h"
 
+#define LW_PRINTF_STRING(x) ((x) ? (x) : "<null>")
+
 static
 DWORD
 ParseArgs(
@@ -165,14 +167,14 @@ enum_groups_main(
                 default:
 
                     fprintf(stderr,
-                            "Error: Invalid Group info level [%d]\n",
+                            "Error: Invalid Group info level %u\n",
                             dwGroupInfoLevel);
                     break;
             }
         }
     } while (dwNumGroupsFound);
 
-    fprintf(stdout, "TotalNumGroupsFound:      %d\n", dwTotalGroupsFound);
+    fprintf(stdout, "TotalNumGroupsFound: %u\n", dwTotalGroupsFound);
 
 cleanup:
 
@@ -193,7 +195,6 @@ cleanup:
 
 error:
 
-
     dwError = MapErrorCode(dwError);
 
     dwErrorBufferSize = LwGetErrorString(dwError, NULL, 0);
@@ -213,7 +214,10 @@ error:
 
             if ((dwLen == dwErrorBufferSize) && !LW_IS_NULL_OR_EMPTY_STR(pszErrorBuffer))
             {
-                fprintf(stderr, "Failed to enumerate groups.  %s\n", pszErrorBuffer);
+                fprintf(stderr, "Failed to enumerate groups.  Error code %u (%s).\n"
+                        "%s\n",
+                        dwError, LW_PRINTF_STRING(LwWin32ErrorToName(dwError)),
+                        pszErrorBuffer);
                 bPrintOrigError = FALSE;
             }
         }
@@ -223,9 +227,9 @@ error:
 
     if (bPrintOrigError)
     {
-        fprintf(stderr, "Failed to enumerate groups. Error code [%d]\n", dwError);
+        fprintf(stderr, "Failed to enumerate groups.  Error code %u (%s).\n",
+                dwError, LW_PRINTF_STRING(LwWin32ErrorToName(dwError)));
     }
-
 
     goto cleanup;
 }
@@ -353,11 +357,10 @@ PrintGroupInfo_0(
 {
     fprintf(stdout, "Group info (Level-0):\n");
     fprintf(stdout, "====================\n");
-    fprintf(stdout, "Name:     %s\n",
-                LW_IS_NULL_OR_EMPTY_STR(pGroupInfo->pszName) ? "<null>" : pGroupInfo->pszName);
-    fprintf(stdout, "Gid:      %u\n", (unsigned int)pGroupInfo->gid);
-    fprintf(stdout, "SID:     %s\n",
-                    LW_IS_NULL_OR_EMPTY_STR(pGroupInfo->pszSid) ? "<null>" : pGroupInfo->pszSid);
+    fprintf(stdout, "Name: %s\n", LW_PRINTF_STRING(pGroupInfo->pszName));
+    fprintf(stdout, "Gid:  %u\n", (unsigned int)pGroupInfo->gid);
+    fprintf(stdout, "SID:  %s\n", LW_PRINTF_STRING(pGroupInfo->pszSid));
+    fprintf(stdout, "\n");
 }
 
 static
@@ -367,32 +370,24 @@ PrintGroupInfo_1(
     )
 {
     PSTR* ppszMembers = NULL;
-    DWORD iMember = 0;
 
     fprintf(stdout, "Group info (Level-1):\n");
     fprintf(stdout, "====================\n");
-    fprintf(stdout, "Name:     %s\n",
-            LW_IS_NULL_OR_EMPTY_STR(pGroupInfo->pszName) ? "<null>" : pGroupInfo->pszName);
-    fprintf(stdout, "Gid:      %u\n", (unsigned int)pGroupInfo->gid);
-    fprintf(stdout, "SID:     %s\n",
-                        LW_IS_NULL_OR_EMPTY_STR(pGroupInfo->pszSid) ? "<null>" : pGroupInfo->pszSid);
+    fprintf(stdout, "Name: %s\n", LW_PRINTF_STRING(pGroupInfo->pszName));
+    fprintf(stdout, "Gid:  %u\n", (unsigned int)pGroupInfo->gid);
+    fprintf(stdout, "SID:  %s\n", LW_PRINTF_STRING(pGroupInfo->pszSid));
     fprintf(stdout, "Members:\n");
 
     ppszMembers = pGroupInfo->ppszMembers;
-
-    if (ppszMembers){
-    while (!LW_IS_NULL_OR_EMPTY_STR(*ppszMembers)) {
-          if (iMember) {
-             fprintf(stdout, "\n%s", *ppszMembers);
-          } else {
-             fprintf(stdout, "%s", *ppszMembers);
-          }
-          iMember++;
-          ppszMembers++;
-       }
+    if (ppszMembers)
+    {
+        while (!LW_IS_NULL_OR_EMPTY_STR(*ppszMembers))
+        {
+            fprintf(stdout, "  %s\n", *ppszMembers);
+            ppszMembers++;
+        }
     }
     fprintf(stdout, "\n");
-    fprintf(stdout, "\n\n");
 }
 
 static
