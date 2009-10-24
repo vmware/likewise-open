@@ -358,7 +358,42 @@ SrvProcessOplockBreak_SMB_V2(
 
     if (pOplockState)
     {
+        UCHAR ucOplockLevel = SMB_OPLOCK_LEVEL_NONE;
+
         ntStatus = SrvAcknowledgeOplockBreak_SMB_V2(pOplockState, FALSE);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        switch (pRequestHeader->ucOplockLevel)
+        {
+            case SMB2_OPLOCK_LEVEL_BATCH:
+
+                    ucOplockLevel = SMB_OPLOCK_LEVEL_BATCH;
+
+                    break;
+
+            case SMB2_OPLOCK_LEVEL_I:
+
+                ucOplockLevel = SMB_OPLOCK_LEVEL_I;
+
+                break;
+
+            case SMB2_OPLOCK_LEVEL_II:
+
+                ucOplockLevel = SMB_OPLOCK_LEVEL_II;
+
+                break;
+
+            default:
+
+                ucOplockLevel = SMB2_OPLOCK_LEVEL_NONE;
+
+                break;
+        }
+
+        ntStatus = SrvBuildOplockBreakResponse_SMB_V2(
+                        pExecContext,
+                        pOplockState,
+                        ucOplockLevel);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
