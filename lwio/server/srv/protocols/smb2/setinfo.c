@@ -92,6 +92,12 @@ SrvSetFileBasicInfo_SMB_V2(
 
 static
 NTSTATUS
+SrvSetFileDispositionInfo_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
 SrvSetFileRenameInfo_SMB_V2(
     PSRV_EXEC_CONTEXT pExecContext
     );
@@ -471,13 +477,18 @@ SrvSetFileInfo_SMB_V2(
 
     switch (pSetInfoState->pRequestHeader->ucInfoClass)
     {
-        case SMB2_FILE_INFO_CLASS_DISPOSITION :
         case SMB2_FILE_INFO_CLASS_POSITION :
         case SMB2_FILE_INFO_CLASS_MODE :
         case SMB2_FILE_INFO_CLASS_EOF :
         case SMB2_FILE_INFO_CLASS_PIPE :
 
             ntStatus = STATUS_NOT_SUPPORTED;
+
+            break;
+
+        case SMB2_FILE_INFO_CLASS_DISPOSITION :
+
+            ntStatus = SrvSetFileDispositionInfo_SMB_V2(pExecContext);
 
             break;
 
@@ -524,7 +535,6 @@ SrvBuildSetFileInfoResponse_SMB_V2(
 
     switch (pSetInfoState->pRequestHeader->ucInfoClass)
     {
-        case SMB2_FILE_INFO_CLASS_DISPOSITION :
         case SMB2_FILE_INFO_CLASS_POSITION :
         case SMB2_FILE_INFO_CLASS_MODE :
         case SMB2_FILE_INFO_CLASS_EOF :
@@ -534,6 +544,7 @@ SrvBuildSetFileInfoResponse_SMB_V2(
 
             break;
 
+        case SMB2_FILE_INFO_CLASS_DISPOSITION :
         case SMB2_FILE_INFO_CLASS_RENAME :
         case SMB2_FILE_INFO_CLASS_BASIC :
         case SMB2_FILE_INFO_CLASS_ALLOCATION :
@@ -548,6 +559,44 @@ SrvBuildSetFileInfoResponse_SMB_V2(
 
             break;
     }
+
+    return ntStatus;
+}
+
+static
+NTSTATUS
+SrvSetFileDispositionInfo_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS                     ntStatus      = STATUS_SUCCESS;
+    PSRV_PROTOCOL_EXEC_CONTEXT   pCtxProtocol  = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V2     pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    PSRV_SET_INFO_STATE_SMB_V2   pSetInfoState = NULL;
+
+    pSetInfoState = (PSRV_SET_INFO_STATE_SMB_V2)pCtxSmb2->hState;
+
+    if (pSetInfoState->pRequestHeader->ulInputBufferLen <
+                    sizeof(FILE_DISPOSITION_INFORMATION))
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    SrvPrepareSetInfoStateAsync_SMB_V2(pSetInfoState, pExecContext);
+
+    ntStatus = IoSetInformationFile(
+                    pCtxSmb2->pFile->hFile,
+                    pSetInfoState->pAcb,
+                    &pSetInfoState->ioStatusBlock,
+                    (PFILE_DISPOSITION_INFORMATION)pSetInfoState->pData,
+                    sizeof(FILE_DISPOSITION_INFORMATION),
+                    FileDispositionInformation);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    SrvReleaseSetInfoStateAsync_SMB_V2(pSetInfoState); // completed sync
+
+error:
 
     return ntStatus;
 }
