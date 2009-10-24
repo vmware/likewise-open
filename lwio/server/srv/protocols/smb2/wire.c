@@ -1687,6 +1687,44 @@ error:
 }
 
 NTSTATUS
+SMB2UnmarshalOplockBreakRequest(
+    IN     PSRV_MESSAGE_SMB_V2        pSmbRequest,
+    IN OUT PSMB2_OPLOCK_BREAK_HEADER* ppRequestHeader
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PBYTE pDataCursor = pSmbRequest->pBuffer + pSmbRequest->ulHeaderSize;
+    ULONG ulBytesAvailable = pSmbRequest->ulMessageSize - pSmbRequest->ulHeaderSize;
+    PSMB2_OPLOCK_BREAK_HEADER pHeader = NULL; // Do not free
+
+    if (ulBytesAvailable < sizeof(SMB2_OPLOCK_BREAK_HEADER))
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pHeader = (PSMB2_OPLOCK_BREAK_HEADER)pDataCursor;
+
+    if (pHeader->usLength != sizeof(SMB2_OPLOCK_BREAK_HEADER))
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    *ppRequestHeader = pHeader;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppRequestHeader = NULL;
+
+    goto cleanup;
+}
+
+NTSTATUS
 SMB2MarshalFindResponse(
     IN OUT PBYTE                       pBuffer,
     IN     ULONG                       ulOffset,
