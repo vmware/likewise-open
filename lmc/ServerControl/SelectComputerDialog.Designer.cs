@@ -1,6 +1,6 @@
 namespace Likewise.LMC.ServerControl
 {
-    partial class SelectDomainDialog
+    partial class SelectComputerDialog
     {
         /// <summary>
         /// Required designer variable.
@@ -126,7 +126,7 @@ namespace Likewise.LMC.ServerControl
             this.label3.Size = new System.Drawing.Size(61, 13);
             this.label3.TabIndex = 5;
             this.label3.Text = "credentials.";
-            this.label3.Click += new System.EventHandler(this.label3_Click);
+
             //
             // linkLabel1
             //
@@ -138,7 +138,7 @@ namespace Likewise.LMC.ServerControl
             this.linkLabel1.TabStop = true;
             this.linkLabel1.Text = "alternate";
             //
-            // SelectDomainDialog
+            // SelectComputerDialog
             //
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
@@ -150,7 +150,7 @@ namespace Likewise.LMC.ServerControl
             this.Controls.Add(this.button1);
             this.Controls.Add(this.groupBox1);
             this.Controls.Add(this.label1);
-            this.Name = "SelectDomainDialog";
+            this.Name = "SelectComputerDialog";
             this.Text = "Select domain";
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();

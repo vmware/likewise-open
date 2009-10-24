@@ -8,9 +8,9 @@ using System.Windows.Forms;
 
 namespace Likewise.LMC.ServerControl
 {
-    public partial class SelectDomainDialog : Form
+    public partial class SelectComputerDialog : Form
     {
-        public SelectDomainDialog()
+        public SelectComputerDialog()
         {
             InitializeComponent();
         }
