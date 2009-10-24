@@ -840,6 +840,7 @@ typedef struct _SRV_GET_INFO_STATE_SMB_V2
 
     PBYTE                         pData2;
     ULONG                         ulDataLength;
+    ULONG                         ulActualDataLength;
 
     PBYTE                         pResponseBuffer;
     size_t                        sAllocatedSize;
