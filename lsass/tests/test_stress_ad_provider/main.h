@@ -88,12 +88,12 @@ LADSHandleSignals(
 DWORD
 LADSInitAuthProvider(
     PCSTR pszConfigFilePath,
-    PLSA_AUTH_PROVIDER pProvider
+    PTEST_AUTH_PROVIDER pProvider
     );
 
 DWORD
 LADSValidateProvider(
-    PLSA_AUTH_PROVIDER pProvider
+    PTEST_AUTH_PROVIDER pProvider
     );
 
 DWORD
@@ -108,7 +108,7 @@ LADSStopWorkers(
 
 DWORD
 LADSShutdownAuthProvider(
-    PLSA_AUTH_PROVIDER pProvider
+    PTEST_AUTH_PROVIDER pProvider
     );
 
 VOID

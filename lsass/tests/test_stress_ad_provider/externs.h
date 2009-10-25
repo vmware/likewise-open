@@ -48,8 +48,8 @@
 #ifndef __EXTERNS_H__
 #define __EXTERNS_H__
 
-extern LSA_AUTH_PROVIDER  gAuthProvider;
-extern PLSA_AUTH_PROVIDER gpAuthProvider;
+extern TEST_AUTH_PROVIDER gAuthProvider;
+extern PTEST_AUTH_PROVIDER gpAuthProvider;
 
 extern LADS_STRESS_DATA gLADSStressData[LADS_SENTINEL];
 

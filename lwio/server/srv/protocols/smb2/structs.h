@@ -610,6 +610,17 @@ typedef struct _SMB2_FILE_FULL_DIR_INFORMATION
 } __attribute__((__packed__)) SMB2_FILE_FULL_DIR_INFO_HEADER,
                              *PSMB2_FILE_FULL_DIR_INFO_HEADER;
 
+typedef struct _SMB2_FILE_RENAME_INFORMATION
+{
+    UCHAR     ucReplaceIfExists;
+    UCHAR     ucReserved[7];
+    ULONG64   ullRootDir;
+    ULONG     ulFileNameLength;
+    WCHAR     wszFileName[1];
+
+} __attribute__((__packed__)) SMB2_FILE_RENAME_INFO_HEADER,
+                             *PSMB2_FILE_RENAME_INFO_HEADER;
+
 typedef VOID (*PFN_SRV_MESSAGE_STATE_RELEASE_SMB_V2)(HANDLE hState);
 
 typedef struct _SRV_OPLOCK_INFO
@@ -829,6 +840,7 @@ typedef struct _SRV_GET_INFO_STATE_SMB_V2
 
     PBYTE                         pData2;
     ULONG                         ulDataLength;
+    ULONG                         ulActualDataLength;
 
     PBYTE                         pResponseBuffer;
     size_t                        sAllocatedSize;
@@ -860,6 +872,14 @@ typedef struct _SRV_SET_INFO_STATE_SMB_V2
 
     PSMB2_SET_INFO_REQUEST_HEADER pRequestHeader; // Do not free
     PBYTE                         pData;          // Do not free
+
+    PBYTE                         pSecurityDescriptor;
+    PBYTE                         pSecurityQOS;
+    IO_FILE_HANDLE                hDir;
+    IO_FILE_NAME                  dirPath;
+
+    PBYTE                         pData2;
+    ULONG                         ulData2Length;
 
     PLWIO_SRV_FILE_2              pFile;
 

@@ -52,7 +52,7 @@
 #include <lsa/lsa.h>
 
 #define LSA_CLIENT_PATH_FORMAT "/var/tmp/.lsaclient_%05ld"
-#define LSA_SERVER_FILENAME    ".lsasd"
+#define LSA_SERVER_FILENAME    ".lsassd"
 
 typedef enum __LSA_IPC_TAG
 {

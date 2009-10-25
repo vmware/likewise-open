@@ -218,10 +218,11 @@ AD_Activate(
     PLSA_AD_PROVIDER_STATE pState
     );
 
+static
 DWORD
-LSA_INITIALIZE_PROVIDER(ad)(
-    PSTR* ppszProviderName,
-    PLSA_PROVIDER_FUNCTION_TABLE* ppFunctionTable
+AD_InitializeProvider(
+    OUT PCSTR* ppszProviderName,
+    OUT PLSA_PROVIDER_FUNCTION_TABLE* ppFunctionTable
     )
 {
     DWORD dwError = 0;
@@ -298,8 +299,8 @@ LSA_INITIALIZE_PROVIDER(ad)(
     dwError = LwMapErrnoToLwError(pthread_detach(startThread));
     BAIL_ON_LSA_ERROR(dwError);
 
-    *ppFunctionTable = &gADProviderAPITable;
     *ppszProviderName = gpszADProviderName;
+    *ppFunctionTable = &gADProviderAPITable;
 
 cleanup:
 
@@ -355,9 +356,8 @@ LsaAdStartupThread(
 }
 
 DWORD
-LSA_SHUTDOWN_PROVIDER(ad)(
-    PSTR pszProviderName,
-    PLSA_PROVIDER_FUNCTION_TABLE pFnTable
+AD_ShutdownProvider(
+    VOID
     )
 {
     DWORD dwError = 0;
@@ -5537,9 +5537,14 @@ InitADCacheFunctionTable(
     }
 }
 
-
-
-
+DWORD
+LsaInitializeProvider(
+    OUT PCSTR* ppszProviderName,
+    OUT PLSA_PROVIDER_FUNCTION_TABLE* ppFunctionTable
+    )
+{
+    return AD_InitializeProvider(ppszProviderName, ppFunctionTable);
+}
 
 /*
 local variables:

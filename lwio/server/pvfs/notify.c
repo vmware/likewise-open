@@ -54,7 +54,7 @@
 
 static
 NTSTATUS
-PvfsDirAddWatchRecord(
+PvfsNotifyAddFilter(
     PPVFS_FCB pFcb,
     PPVFS_IRP_CONTEXT pIrpContext,
     PPVFS_CCB pCcb,
@@ -83,13 +83,13 @@ PvfsReadDirectoryChange(
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    ntError = PvfsAccessCheckFileHandle(pCcb,  FILE_LIST_DIRECTORY);
+    ntError = PvfsAccessCheckFileHandle(pCcb,  SYNCHRONIZE);
     BAIL_ON_NT_STATUS(ntError);
 
     BAIL_ON_INVALID_PTR(Args.Buffer, ntError);
     BAIL_ON_ZERO_LENGTH(Args.Length, ntError);
 
-    ntError = PvfsDirAddWatchRecord(
+    ntError = PvfsNotifyAddFilter(
                   pCcb->pFcb,
                   pIrpContext,
                   pCcb,
@@ -114,27 +114,27 @@ error:
  ****************************************************************************/
 
 VOID
-PvfsFreeWatchDirRecord(
-    PPVFS_DIR_WATCH_RECORD *ppWatchRecord
+PvfsFreeNotifyRecord(
+    PPVFS_NOTIFY_FILTER_RECORD *ppNotifyRecord
     )
 {
-    PPVFS_DIR_WATCH_RECORD pWatch = NULL;
+    PPVFS_NOTIFY_FILTER_RECORD pFilter = NULL;
 
-    if (ppWatchRecord && *ppWatchRecord)
+    if (ppNotifyRecord && *ppNotifyRecord)
     {
-        pWatch = *ppWatchRecord;
+        pFilter = *ppNotifyRecord;
 
-        if (pWatch->pIrpContext)
+        if (pFilter->pIrpContext)
         {
-            pWatch->pIrpContext->pIrp->IoStatusBlock.Status = STATUS_FILE_CLOSED;
+            pFilter->pIrpContext->pIrp->IoStatusBlock.Status = STATUS_FILE_CLOSED;
 
-            PvfsAsyncIrpComplete(pWatch->pIrpContext);
-            PvfsFreeIrpContext(&pWatch->pIrpContext);
+            PvfsAsyncIrpComplete(pFilter->pIrpContext);
+            PvfsFreeIrpContext(&pFilter->pIrpContext);
         }
 
-        if (pWatch->pCcb)
+        if (pFilter->pCcb)
         {
-            PvfsReleaseCCB(pWatch->pCcb);
+            PvfsReleaseCCB(pFilter->pCcb);
         }
     }
 
@@ -147,8 +147,8 @@ PvfsFreeWatchDirRecord(
 
 static
 NTSTATUS
-PvfsAllocateDirWatchRecord(
-    PPVFS_DIR_WATCH_RECORD *ppWatchRecord,
+PvfsNotifyAllocateFilter(
+    PPVFS_NOTIFY_FILTER_RECORD *ppNotifyRecord,
     PPVFS_IRP_CONTEXT pIrpContext,
     PPVFS_CCB pCcb,
     FILE_NOTIFY_CHANGE NotifyFilter,
@@ -157,7 +157,7 @@ PvfsAllocateDirWatchRecord(
 
 static
 NTSTATUS
-PvfsDirAddWatchRecord(
+PvfsNotifyAddFilter(
     PPVFS_FCB pFcb,
     PPVFS_IRP_CONTEXT pIrpContext,
     PPVFS_CCB pCcb,
@@ -166,13 +166,13 @@ PvfsDirAddWatchRecord(
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PPVFS_DIR_WATCH_RECORD pWatch = NULL;
+    PPVFS_NOTIFY_FILTER_RECORD pFilter = NULL;
     BOOLEAN bLocked = FALSE;
 
     BAIL_ON_INVALID_PTR(pFcb, ntError);
 
-    ntError = PvfsAllocateDirWatchRecord(
-                  &pWatch,
+    ntError = PvfsNotifyAllocateFilter(
+                  &pFilter,
                   pIrpContext,
                   pCcb,
                   NotifyFilter,
@@ -182,7 +182,7 @@ PvfsDirAddWatchRecord(
     LWIO_LOCK_MUTEX(bLocked, &pFcb->mutexNotify);
     ntError = PvfsListAddTail(
                   pFcb->pNotifyList,
-                  &pWatch->NotifyList);
+                  &pFilter->NotifyList);
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
@@ -191,10 +191,10 @@ cleanup:
     return ntError;
 
 error:
-    if (pWatch)
+    if (pFilter)
     {
-        pWatch->pIrpContext = NULL;
-        PvfsFreeWatchDirRecord(&pWatch);
+        pFilter->pIrpContext = NULL;
+        PvfsFreeNotifyRecord(&pFilter);
     }
 
     goto cleanup;
@@ -206,8 +206,8 @@ error:
 
 static
 NTSTATUS
-PvfsAllocateDirWatchRecord(
-    PPVFS_DIR_WATCH_RECORD *ppWatchRecord,
+PvfsNotifyAllocateFilter(
+    PPVFS_NOTIFY_FILTER_RECORD *ppNotifyRecord,
     PPVFS_IRP_CONTEXT pIrpContext,
     PPVFS_CCB pCcb,
     FILE_NOTIFY_CHANGE NotifyFilter,
@@ -215,18 +215,18 @@ PvfsAllocateDirWatchRecord(
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PPVFS_DIR_WATCH_RECORD pWatch = NULL;
+    PPVFS_NOTIFY_FILTER_RECORD pFilter = NULL;
 
-    ntError = PvfsAllocateMemory((PVOID*)pWatch, sizeof(*pWatch));
+    ntError = PvfsAllocateMemory((PVOID*)pFilter, sizeof(*pFilter));
     BAIL_ON_NT_STATUS(ntError);
 
-    pWatch->pIrpContext = pIrpContext;
-    pWatch->pCcb = PvfsReferenceCCB(pCcb);
-    pWatch->NotifyFilter = NotifyFilter;
-    pWatch->bWatchTree = bWatchTree;
+    pFilter->pIrpContext = pIrpContext;
+    pFilter->pCcb = PvfsReferenceCCB(pCcb);
+    pFilter->NotifyFilter = NotifyFilter;
+    pFilter->bWatchTree = bWatchTree;
 
-    *ppWatchRecord = pWatch;
-    pWatch  = NULL;
+    *ppNotifyRecord = pFilter;
+    pFilter  = NULL;
 
 cleanup:
     return ntError;
@@ -234,6 +234,119 @@ cleanup:
 error:
     goto cleanup;
 }
+
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static NTSTATUS
+PvfsNotifyFullReport(
+    PVOID pContext
+    );
+
+static VOID
+PvfsNotifyFullReportCtxFree(
+    PPVFS_NOTIFY_REPORT_RECORD *ppContext
+    );
+
+VOID
+PvfsNotifyScheduleFullReport(
+    PPVFS_FCB pFcb,
+    FILE_ACTION Action,
+    PCSTR pszFilename
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PPVFS_WORK_CONTEXT pWorkCtx = NULL;
+    PPVFS_NOTIFY_REPORT_RECORD pReport = NULL;
+
+    BAIL_ON_INVALID_PTR(pFcb, ntError);
+
+    ntError = PvfsAllocateMemory((PVOID*)&pReport, sizeof(*pReport));
+    BAIL_ON_NT_STATUS(ntError);
+
+    pReport->pFcb = PvfsReferenceFCB(pFcb);
+    pReport->Action = Action;
+
+    ntError = LwRtlCStringDuplicate(&pReport->pszFilename, pszFilename);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsCreateWorkContext(
+                  &pWorkCtx,
+                  FALSE,
+                  pReport,
+                  (PPVFS_WORK_CONTEXT_CALLBACK)PvfsNotifyFullReport,
+                  (PPVFS_WORK_CONTEXT_FREE_CTX)PvfsNotifyFullReportCtxFree);
+    BAIL_ON_NT_STATUS(ntError);
+
+    pReport = NULL;
+
+    ntError = PvfsAddWorkItem(gpPvfsInternalWorkQueue, (PVOID)pWorkCtx);
+    BAIL_ON_NT_STATUS(ntError);
+
+    pWorkCtx = NULL;
+
+cleanup:
+    PvfsNotifyFullReportCtxFree(&pReport);
+    PvfsFreeWorkContext(&pWorkCtx);
+
+    return;
+
+error:
+    goto cleanup;
+}
+
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static
+NTSTATUS
+PvfsNotifyFullReport(
+    PVOID pContext
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PPVFS_NOTIFY_REPORT_RECORD pReport = (PPVFS_NOTIFY_REPORT_RECORD)pContext;
+
+    BAIL_ON_INVALID_PTR(pReport, ntError);
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static
+VOID
+PvfsNotifyFullReportCtxFree(
+    PPVFS_NOTIFY_REPORT_RECORD *ppReport
+    )
+{
+    PPVFS_NOTIFY_REPORT_RECORD pReport = NULL;
+
+    if (ppReport && *ppReport)
+    {
+        pReport = (PPVFS_NOTIFY_REPORT_RECORD)*ppReport;
+
+        if (pReport->pFcb)
+        {
+            PvfsReleaseFCB(pReport->pFcb);
+        }
+
+        LwRtlCStringFree(&pReport->pszFilename);
+
+        PVFS_FREE(ppReport);
+    }
+
+    return;
+}
+
 
 
 

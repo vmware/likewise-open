@@ -327,6 +327,12 @@ SrvProtocolExecute_SMB_V2(
 
                 break;
 
+            case COM2_BREAK:
+
+                ntStatus = SrvProcessOplockBreak_SMB_V2(pExecContext);
+
+                break;
+
             default:
 
                 ntStatus = STATUS_NOT_SUPPORTED;

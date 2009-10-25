@@ -200,13 +200,13 @@ SrvProcessOplock_SMB_V2(
             {
                 case IO_OPLOCK_BROKEN_TO_NONE:
 
-                    ucOplockLevel = 0;
+                    ucOplockLevel = SMB_OPLOCK_LEVEL_NONE;
 
                     break;
 
                 case IO_OPLOCK_BROKEN_TO_LEVEL_2:
 
-                    ucOplockLevel = 1;
+                    ucOplockLevel = SMB_OPLOCK_LEVEL_II;
 
                     break;
 
@@ -285,6 +285,116 @@ SrvProcessOplock_SMB_V2(
 
             ntStatus = STATUS_INTERNAL_ERROR;
             BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+cleanup:
+
+    if (pFile)
+    {
+        SrvFile2Release(pFile);
+    }
+
+    if (pTree)
+    {
+        SrvTree2Release(pTree);
+    }
+
+    if (pSession)
+    {
+        SrvSession2Release(pSession);
+    }
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
+}
+
+NTSTATUS
+SrvProcessOplockBreak_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS                   ntStatus     = 0;
+    PLWIO_SRV_CONNECTION       pConnection  = pExecContext->pConnection;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2     = pCtxProtocol->pSmb2Context;
+    ULONG                      iMsg         = pCtxSmb2->iMsg;
+    PSRV_MESSAGE_SMB_V2        pSmbRequest  = &pCtxSmb2->pRequests[iMsg];
+    PSMB2_OPLOCK_BREAK_HEADER  pRequestHeader = NULL; // Do not free
+    PLWIO_SRV_SESSION_2        pSession      = NULL;
+    PLWIO_SRV_TREE_2           pTree         = NULL;
+    PLWIO_SRV_FILE_2           pFile         = NULL;
+    PSRV_OPLOCK_STATE_SMB_V2   pOplockState  = NULL;
+
+    ntStatus = SrvConnection2FindSession_SMB_V2(
+                            pCtxSmb2,
+                            pConnection,
+                            pSmbRequest->pHeader->ullSessionId,
+                            &pSession);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvSession2FindTree_SMB_V2(
+                    pCtxSmb2,
+                    pSession,
+                    pSmbRequest->pHeader->ulTid,
+                    &pTree);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMB2UnmarshalOplockBreakRequest(
+                    pSmbRequest,
+                    &pRequestHeader);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvTree2FindFile_SMB_V2(
+                    pCtxSmb2,
+                    pTree,
+                    &pRequestHeader->fid,
+                    &pFile);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pOplockState = (PSRV_OPLOCK_STATE_SMB_V2)pFile->hOplockState;
+
+    if (pOplockState)
+    {
+        UCHAR ucOplockLevel = SMB_OPLOCK_LEVEL_NONE;
+
+        ntStatus = SrvAcknowledgeOplockBreak_SMB_V2(pOplockState, FALSE);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        switch (pRequestHeader->ucOplockLevel)
+        {
+            case SMB2_OPLOCK_LEVEL_BATCH:
+
+                    ucOplockLevel = SMB_OPLOCK_LEVEL_BATCH;
+
+                    break;
+
+            case SMB2_OPLOCK_LEVEL_I:
+
+                ucOplockLevel = SMB_OPLOCK_LEVEL_I;
+
+                break;
+
+            case SMB2_OPLOCK_LEVEL_II:
+
+                ucOplockLevel = SMB_OPLOCK_LEVEL_II;
+
+                break;
+
+            default:
+
+                ucOplockLevel = SMB2_OPLOCK_LEVEL_NONE;
+
+                break;
+        }
+
+        ntStatus = SrvBuildOplockBreakResponse_SMB_V2(
+                        pExecContext,
+                        pOplockState,
+                        ucOplockLevel);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
 cleanup:

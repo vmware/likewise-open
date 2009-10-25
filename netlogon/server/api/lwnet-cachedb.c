@@ -453,15 +453,13 @@ error:
 
 
 DWORD
-LWNetCacheDbRegistryReadValues(
-    HANDLE hReg,
-    HKEY pKey,
-    PLWNET_CACHE_DB_ENTRY pEntry)
+LWNetCacheDbRegistryInitValueArray(
+    PLWNET_CACHE_DB_ENTRY pEntry,
+    PLWNET_CACHE_REGISTRY_VALUE *ppValueArray,
+    PDWORD pdwArrayEntries)
 {
-
     DWORD dwError = 0;
-    DWORD index = 0;
-
+    PLWNET_CACHE_REGISTRY_VALUE pValueArray = NULL;
     LWNET_CACHE_REGISTRY_VALUE valueArray[] =
     {
         {
@@ -552,7 +550,7 @@ LWNetCacheDbRegistryReadValues(
         {
             "DcInfo-DomainGUID",
             REG_BINARY,
-            pEntry->DcInfo.pucDomainGUID,
+            &pEntry->DcInfo.pucDomainGUID,
             LWNET_GUID_SIZE
         },
         {
@@ -599,9 +597,41 @@ LWNetCacheDbRegistryReadValues(
         },
     };
 
-    for (index=0;
-         index<sizeof(valueArray)/sizeof(LWNET_CACHE_REGISTRY_VALUE);
-         index++)
+    dwError = LwAllocateMemory(sizeof(valueArray), (PVOID) &pValueArray);
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    memcpy(pValueArray, valueArray, sizeof(valueArray));
+    *ppValueArray = pValueArray;
+    *pdwArrayEntries = sizeof(valueArray)/sizeof(LWNET_CACHE_REGISTRY_VALUE);
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+
+DWORD
+LWNetCacheDbRegistryReadValues(
+    HANDLE hReg,
+    HKEY pKey,
+    PLWNET_CACHE_DB_ENTRY pEntry)
+{
+
+    DWORD dwError = 0;
+    DWORD index = 0;
+    DWORD dwArrayEntries = 0;
+
+    PLWNET_CACHE_REGISTRY_VALUE valueArray = NULL;
+
+    dwError = LWNetCacheDbRegistryInitValueArray(
+                  pEntry,
+                  &valueArray,
+                  &dwArrayEntries);
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    for (index=0; index<dwArrayEntries; index++)
     {
         dwError = LWNetCacheDbRegistryReadValue(
                       hReg,
@@ -627,20 +657,12 @@ LWNetCacheDbReadFromRegistry(
     LWNET_CACHE_DB_HANDLE dbHandle
     )
 {
-    DWORD    dwError = 0;
-
+    DWORD dwError = 0;
     HANDLE hReg = NULL;
-    HKEY pRootKey = NULL;
-    HKEY pFullKey = NULL;
-    HKEY pNetLogonKey = NULL;
+    LW_WCHAR **ppSubKeys = NULL;
     DWORD dwSubKeyCount = 0;
     DWORD i = 0;
-    DWORD dwMaxSubKeyLen = 0;
-    DWORD dwSubKeyLen = 0;
-    PSTR pszRootKeyName = LIKEWISE_ROOT_KEY;
-    PSTR pszCacheSubKey =
-        LWNET_NETLOGON_REGISTRY_KEY "\\" LWNET_CACHE_REGISTRY_KEY;
-    PWSTR pwszSubKey = NULL;
+    HKEY pNetLogonKey = NULL;
     LWNET_CACHE_DB_ENTRY cacheEntry;
 
     memset(&cacheEntry, 0, sizeof(cacheEntry));
@@ -649,24 +671,10 @@ LWNetCacheDbReadFromRegistry(
     dwError = RegOpenServer(&hReg);
     BAIL_ON_LWNET_ERROR(dwError);
 
-    /* Open registry root key */
-    dwError = RegOpenKeyExA(
+    dwError = RegUtilIsValidKey(
                   hReg,
-                  NULL,
-                  pszRootKeyName,
-                  0,
-                  0,
-                  &pRootKey);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    /* Open Services\netlogon\cachedb key */
-    dwError = RegOpenKeyExA(
-                  hReg,
-                  pRootKey,
-                  pszCacheSubKey,
-                  0,
-                  0,
-                  &pFullKey);
+                  LIKEWISE_ROOT_KEY,
+                  LWNET_NETLOGON_REGISTRY_KEY "\\" LWNET_CACHE_REGISTRY_KEY);
 
     /* cachedb entry does not exist until netlogond is stopped, so this
      * is not an error when this entry is not found.
@@ -677,44 +685,20 @@ LWNetCacheDbReadFromRegistry(
         goto cleanup;
     }
 
-    dwError = RegQueryInfoKey(
+    dwError = RegUtilGetKeys(
                   hReg,
-                  pFullKey,
-                  NULL,
-                  NULL,
-                  NULL,
-                  &dwSubKeyCount,
-                  &dwMaxSubKeyLen,
-                  NULL,
-                  NULL,
-                  NULL,
-                  NULL,
-                  NULL,
-                  NULL);
+                  LIKEWISE_ROOT_KEY,
+                  LWNET_NETLOGON_REGISTRY_KEY,
+                  LWNET_CACHE_REGISTRY_KEY,
+                  &ppSubKeys,
+                  &dwSubKeyCount);
     BAIL_ON_LWNET_ERROR(dwError);
-    dwError = LwAllocateMemory(
-                  (dwMaxSubKeyLen+1) * sizeof(LW_WCHAR),
-                  (PVOID) &pwszSubKey);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    /* List every key entry under Services\netlogon\cachedb */
     for (i=0; i<dwSubKeyCount; i++)
     {
-        dwSubKeyLen = dwMaxSubKeyLen+1;
-        dwError = RegEnumKeyEx((HANDLE)hReg,
-                                pFullKey,
-                                i,
-                                pwszSubKey,
-                                &dwSubKeyLen,
-                                NULL,
-                                NULL,
-                                NULL,
-                                NULL);
-        BAIL_ON_LWNET_ERROR(dwError);
         dwError = RegOpenKeyExW(
                       hReg,
                       NULL,
-                      pwszSubKey,
+                      ppSubKeys[i],
                       0,
                       0,
                       &pNetLogonKey);
@@ -725,6 +709,8 @@ LWNetCacheDbReadFromRegistry(
                       pNetLogonKey,
                       &cacheEntry);
         BAIL_ON_LWNET_ERROR(dwError);
+        RegCloseKey(hReg, pNetLogonKey);
+        pNetLogonKey = NULL;
 
         dwError = LWNetCacheDbUpdate(
                       dbHandle,
@@ -737,19 +723,22 @@ LWNetCacheDbReadFromRegistry(
                       cacheEntry.LastBackoffToWritableDc,
                       &cacheEntry.DcInfo);
         BAIL_ON_LWNET_ERROR(dwError);
+        memset(&cacheEntry, 0, sizeof(cacheEntry));
     }
-
 cleanup:
+    RegCloseKey(hReg, pNetLogonKey);
+    RegCloseServer(hReg);
     return dwError;
 
 error:
     goto cleanup;
 }
 
+
 DWORD
 LWNetCacheDbRegistryWriteValue(
     HANDLE hReg,
-    HKEY pFullKey,
+    PSTR pszSubKey,
     PSTR pszValueName,
     DWORD dwType,
     PVOID pValue,
@@ -764,17 +753,18 @@ LWNetCacheDbRegistryWriteValue(
     switch (dwType)
     {
         case REG_SZ:
-            pszValue = (PSTR) pValue;
+            pszValue = *((PSTR *) pValue);
             if (pszValue)
             {
                 dwDataLen = strlen(pszValue);
+                pData = pszValue;
             }
             else
             {
                 pszValue = "";
                 dwDataLen = 0;
+                pData = (PVOID) pszValue;
             }
-            pData = (PVOID) pValue;
             break;
 
         case REG_DWORD:
@@ -797,11 +787,12 @@ LWNetCacheDbRegistryWriteValue(
             break;
     }
 
-    dwError = RegSetValueExA(
+    dwError = RegUtilSetValue(
                   hReg,
-                  pFullKey,
+                  LIKEWISE_ROOT_KEY,
+                  LWNET_NETLOGON_REGISTRY_KEY "\\" LWNET_CACHE_REGISTRY_KEY,
+                  pszSubKey,
                   pszValueName,
-                  0,
                   dwType,
                   pData,
                   dwDataLen);
@@ -818,157 +809,26 @@ error:
 DWORD
 LWNetCacheDbRegistryWriteValues(
     HANDLE hReg,
-    HKEY pKey,
+    PSTR pszSubKey,
     PLWNET_CACHE_DB_ENTRY pEntry)
 {
 
     DWORD dwError = 0;
     DWORD index = 0;
+    DWORD dwArrayEntries = 0;
+    PLWNET_CACHE_REGISTRY_VALUE valueArray = NULL;
 
-    LWNET_CACHE_REGISTRY_VALUE valueArray[] =
-    {
-        {
-            "DnsDomainName",
-            REG_SZ,
-            pEntry->pszDnsDomainName,
-            0
-        },
-        {
-            "SiteName",
-            REG_SZ,
-            pEntry->pszSiteName,
-            0
-        },
-        {
-            "QueryType",
-            REG_DWORD,
-            &pEntry->QueryType,
-            0
-        },
-        {
-            "LastDiscovered",
-            REG_BINARY,
-            &pEntry->LastDiscovered,
-            sizeof(pEntry->LastDiscovered)
-        },
-        {
-            "LastPinged",
-            REG_BINARY,
-            &pEntry->LastPinged,
-            sizeof(pEntry->LastPinged)
-        },
-        {
-            "IsBackoffToWritableDc",
-            REG_DWORD,
-            &pEntry->IsBackoffToWritableDc,
-            0
-        },
+    dwError = LWNetCacheDbRegistryInitValueArray(
+                  pEntry,
+                  &valueArray,
+                  &dwArrayEntries);
+    BAIL_ON_LWNET_ERROR(dwError);
 
-        {
-            "DcInfo-PingTime",
-            REG_DWORD,
-            &pEntry->DcInfo.dwPingTime,
-            0
-        },
-        {
-            "DcInfo-DomainControllerAddressType",
-            REG_DWORD,
-            &pEntry->DcInfo.dwDomainControllerAddressType,
-            0
-        },
-        {
-            "DcInfo-Flags",
-            REG_DWORD,
-            &pEntry->DcInfo.dwFlags,
-            0
-        },
-        {
-            "DcInfo-Version",
-            REG_DWORD,
-            &pEntry->DcInfo.dwVersion,
-            0
-        },
-        {
-            "DcInfo-LMToken",
-            REG_DWORD,
-            &pEntry->DcInfo.wLMToken,
-            sizeof(pEntry->DcInfo.wLMToken)
-        },
-        {
-            "DcInfo-NTToken",
-            REG_DWORD,
-            &pEntry->DcInfo.wNTToken,
-            sizeof(pEntry->DcInfo.wNTToken)
-        },
-        {
-            "DcInfo-DomainControllerName",
-            REG_SZ,
-            pEntry->DcInfo.pszDomainControllerName,
-            0
-        },
-        {
-            "DcInfo-DomainControllerAddress",
-            REG_SZ,
-            pEntry->DcInfo.pszDomainControllerAddress,
-            0
-        },
-        {
-            "DcInfo-DomainGUID",
-            REG_BINARY,
-            &pEntry->DcInfo.pucDomainGUID,
-            LWNET_GUID_SIZE
-        },
-        {
-            "DcInfo-NetBIOSDomainName",
-            REG_SZ,
-            pEntry->DcInfo.pszNetBIOSDomainName,
-            0
-        },
-        {
-            "DcInfo-FullyQualifiedDomainName",
-            REG_SZ,
-            pEntry->DcInfo.pszFullyQualifiedDomainName,
-            0
-        },
-        {
-            "DcInfo-DnsForestName",
-            REG_SZ,
-            pEntry->DcInfo.pszDnsForestName,
-            0
-        },
-        {
-            "DcInfo-DCSiteName",
-            REG_SZ,
-            pEntry->DcInfo.pszDCSiteName,
-            0
-        },
-        {
-            "DcInfo-ClientSiteName",
-            REG_SZ,
-            pEntry->DcInfo.pszClientSiteName,
-            0
-        },
-        {
-            "DcInfo-NetBIOSHostName",
-            REG_SZ,
-            pEntry->DcInfo.pszNetBIOSHostName,
-            0
-        },
-        {
-            "DcInfo-UserName",
-            REG_SZ,
-            pEntry->DcInfo.pszUserName,
-            0
-        },
-    };
-
-    for (index=0;
-         index<sizeof(valueArray)/sizeof(LWNET_CACHE_REGISTRY_VALUE);
-         index++)
+    for (index=0; index<dwArrayEntries; index++)
     {
         dwError = LWNetCacheDbRegistryWriteValue(
                       hReg,
-                      pKey,
+                      pszSubKey,
                       valueArray[index].pszValueName,
                       valueArray[index].dwType,
                       valueArray[index].pValue,
@@ -977,6 +837,7 @@ LWNetCacheDbRegistryWriteValues(
     }
 
 cleanup:
+    LWNET_SAFE_FREE_MEMORY(valueArray);
     return dwError;
 
 error:
@@ -992,60 +853,21 @@ LWNetCacheDbWriteToRegistry(
 {
     HANDLE hReg = NULL;
     HKEY pRootKey = NULL;
-    HKEY pFullKey = NULL;
-    HKEY pNextKey = NULL;
-    HKEY pNetlogonKey = NULL;
     DWORD dwError = 0;
-    DWORD dwNewCacheKeyLen = 0;
-    PVOID pData = NULL;
-    PSTR pszRootKeyName = LIKEWISE_ROOT_KEY;
-    PSTR pszNetlogonSubKey = LWNET_NETLOGON_REGISTRY_KEY;
-    PSTR pszCacheSubKey = LWNET_CACHE_REGISTRY_KEY;
     PSTR pszNewCacheKey = NULL;
+    PVOID pData = NULL;
     PLWNET_CACHE_DB_ENTRY pCacheDbEntry = NULL;
-
-    PWSTR pwszNewCacheKey = NULL;
 
     /* Open connection to registry */
     dwError = RegOpenServer(&hReg);
     BAIL_ON_LWNET_ERROR(dwError);
 
-    /* Open registry root key */
-    dwError = RegOpenKeyExA(
+    dwError = RegUtilAddKey(
                   hReg,
-                  NULL,
-                  pszRootKeyName,
-                  0,
-                  0,
-                  &pRootKey);
+                  LIKEWISE_ROOT_KEY,
+                  LWNET_NETLOGON_REGISTRY_KEY,
+                  LWNET_CACHE_REGISTRY_KEY);
     BAIL_ON_LWNET_ERROR(dwError);
-
-    /* Open Services\netlogon key */
-    dwError = RegOpenKeyExA(
-                  hReg,
-                  pRootKey,
-                  pszNetlogonSubKey,
-                  0,
-                  0,
-                  &pNetlogonKey);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    /* Create Services\netlogon\cachedb subkey */
-    dwError = LwMbsToWc16s(pszCacheSubKey, &pwszNewCacheKey);
-    BAIL_ON_LWNET_ERROR(dwError);
-    dwError = RegCreateKeyExW(
-                  hReg,
-                  pNetlogonKey,
-                  pwszNewCacheKey,
-                  0,
-                  NULL,
-                  0,
-                  0,
-                  NULL,
-                  &pFullKey,
-                  NULL);
-    BAIL_ON_LWNET_ERROR(dwError);
-    LWNET_SAFE_FREE_MEMORY(pwszNewCacheKey);
 
     /*
      * Create new keys for every cached entry, and fill in the values under
@@ -1056,67 +878,39 @@ LWNetCacheDbWriteToRegistry(
         /* Create new registry subkey for each cached entry */
         pCacheDbEntry = (PLWNET_CACHE_DB_ENTRY) pCacheList->pItem;
 
-        /* Sizeof DWORD + "-" separators + '\0' */
-        dwNewCacheKeyLen = 14;
-
-        if (pCacheDbEntry && pCacheDbEntry->pszDnsDomainName)
-        {
-            dwNewCacheKeyLen += strlen(pCacheDbEntry->pszDnsDomainName);
-        }
-        if (pCacheDbEntry && pCacheDbEntry->pszSiteName)
-        {
-            dwNewCacheKeyLen += strlen(pCacheDbEntry->pszSiteName);
-        }
-
-        dwError = LwAllocateMemory(
-                      dwNewCacheKeyLen*sizeof(CHAR),
-                      (PVOID) &pszNewCacheKey);
+        dwError = LwAllocateStringPrintf(
+                       &pszNewCacheKey,
+                      "%s%s%s-%d",
+                       pCacheDbEntry->pszDnsDomainName ?
+                           pCacheDbEntry->pszDnsDomainName : "",
+                       pCacheDbEntry->pszSiteName ? "-" : "",
+                       pCacheDbEntry->pszSiteName ?
+                           pCacheDbEntry->pszSiteName : "",
+                       (int) pCacheDbEntry->QueryType);
         BAIL_ON_LWNET_ERROR(dwError);
 
-        sprintf(pszNewCacheKey, "%s%s%s-%d",
-            pCacheDbEntry->pszDnsDomainName ?
-                pCacheDbEntry->pszDnsDomainName : "",
-            pCacheDbEntry->pszSiteName ? "-" : "",
-            pCacheDbEntry->pszSiteName ? pCacheDbEntry->pszSiteName : "",
-            (int) pCacheDbEntry->QueryType);
-
-        dwError = LwMbsToWc16s(pszNewCacheKey, &pwszNewCacheKey);
-        BAIL_ON_LWNET_ERROR(dwError);
-        LWNET_SAFE_FREE_MEMORY(pszNewCacheKey);
-
-        dwError = RegCreateKeyExW(
+        dwError = RegUtilAddKey(
                       hReg,
-                      pFullKey,
-                      pwszNewCacheKey,
-                      0,
-                      NULL,
-                      0,
-                      0,
-                      NULL,
-                      &pNextKey,
-                      NULL);
+                      LIKEWISE_ROOT_KEY,
+                      LWNET_NETLOGON_REGISTRY_KEY "\\" LWNET_CACHE_REGISTRY_KEY,
+                      pszNewCacheKey);
         BAIL_ON_LWNET_ERROR(dwError);
-        LWNET_SAFE_FREE_MEMORY(pwszNewCacheKey);
 
         /* Add to registry the current entries */
         dwError = LWNetCacheDbRegistryWriteValues(
                       hReg,
-                      pNextKey,
+                      pszNewCacheKey,
                       pCacheDbEntry);
         BAIL_ON_LWNET_ERROR(dwError);
-        RegCloseKey(hReg, pNextKey);
+        LWNET_SAFE_FREE_MEMORY(pszNewCacheKey);
 
         pCacheList = pCacheList->pNext;
     }
 
 cleanup:
-    RegCloseKey(hReg, pNetlogonKey);
-    RegCloseKey(hReg, pFullKey);
-    RegCloseKey(hReg, pNextKey);
     RegCloseKey(hReg, pRootKey);
     RegCloseServer(hReg);
     LWNET_SAFE_FREE_MEMORY(pData);
-    LWNET_SAFE_FREE_MEMORY(pwszNewCacheKey);
     LWNET_SAFE_FREE_MEMORY(pszNewCacheKey);
 
     return dwError;

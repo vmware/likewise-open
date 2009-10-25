@@ -57,24 +57,24 @@
 #include <dce/dcethread.h>
 
 #ifdef ENABLE_STATIC_PROVIDERS
-
-extern DWORD LSA_INITIALIZE_PROVIDER(ad)(PCSTR, PSTR*, PLSA_PROVIDER_FUNCTION_TABLE*);
-extern DWORD LSA_SHUTDOWN_PROVIDER(ad)(PSTR, PLSA_PROVIDER_FUNCTION_TABLE);
-extern DWORD LSA_INITIALIZE_PROVIDER(local)(PCSTR, PSTR*, PLSA_PROVIDER_FUNCTION_TABLE*);
-extern DWORD LSA_SHUTDOWN_PROVIDER(local)(PSTR, PLSA_PROVIDER_FUNCTION_TABLE);
+#ifdef ENABLE_AD
+extern DWORD LsaInitializeProvider_ActiveDirectory(PCSTR*, PLSA_PROVIDER_FUNCTION_TABLE*);
+#endif
+#ifdef ENABLE_LOCAL
+extern DWORD LsaInitializeProvider_Local(PSTR*, PLSA_PROVIDER_FUNCTION_TABLE*);
+#endif
 
 static LSA_STATIC_PROVIDER gStaticProviders[] =
 {
 #ifdef ENABLE_AD
-    LSA_STATIC_PROVIDER_ENTRY(ad, lsa-activedirectory-provider),
+    { "lsa-activedirectory-provider", LsaInitializeProvider_ActiveDirectory },
 #endif
 #ifdef ENABLE_LOCAL
-    LSA_STATIC_PROVIDER_ENTRY(local, lsa-local-provider),
+    { "lsa-local-provider", LsaInitializeProvider_Local },
 #endif
-    LSA_STATIC_PROVIDER_END
+    { 0 }
 };
-
-#endif
+#endif // ENABLE_STATIC_PROVIDERS
 
 #ifdef ENABLE_PIDFILE
 static

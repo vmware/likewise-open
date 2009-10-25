@@ -49,27 +49,18 @@
 #ifndef __AUTH_PROVIDER_P_H__
 #define __AUTH_PROVIDER_P_H__
 
-typedef struct __LSA_AUTH_PROVIDER
-{
+typedef struct _LSA_AUTH_PROVIDER {
     PSTR pszId;
     PSTR pszProviderLibpath;
-    PSTR pszName;
     PVOID pLibHandle;
-    PFNSHUTDOWNPROVIDER pFnShutdown;
+    PCSTR pszName;
     PLSA_PROVIDER_FUNCTION_TABLE pFnTable;
-    
-    struct __LSA_AUTH_PROVIDER *pNext;
-    
+    struct _LSA_AUTH_PROVIDER *pNext;
 } LSA_AUTH_PROVIDER, *PLSA_AUTH_PROVIDER;
 
 VOID
 LsaSrvFreeAuthProvider(
     PLSA_AUTH_PROVIDER pProvider
-    );
-
-VOID
-LsaSrvFreeAuthProviderStack(
-    PLSA_STACK pProviderStack
     );
 
 VOID
@@ -84,13 +75,13 @@ LsaSrvValidateProvider(
 
 DWORD
 LsaSrvInitAuthProvider(
-    PLSA_AUTH_PROVIDER pProvider,
-    PLSA_STATIC_PROVIDER pStaticProviders
+    IN PLSA_AUTH_PROVIDER pProvider,
+    IN OPTIONAL PLSA_STATIC_PROVIDER pStaticProviders
     );
 
 DWORD
 LsaSrvInitAuthProviders(
-    PLSA_STATIC_PROVIDER pStaticProviders
+    IN OPTIONAL PLSA_STATIC_PROVIDER pStaticProviders
     );
 
 DWORD

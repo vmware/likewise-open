@@ -92,13 +92,31 @@ SrvSetFileBasicInfo_SMB_V2(
 
 static
 NTSTATUS
+SrvSetFileDispositionInfo_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
+SrvSetFileRenameInfo_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
+SrvUnmarshalRenameHeader_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
 SrvSetFileAllocationInfo_SMB_V2(
     PSRV_EXEC_CONTEXT pExecContext
     );
 
 static
 NTSTATUS
-SrvBuildSetFileInfoCommonResponse_SMB_V2(
+SrvBuildSetInfoCommonResponse_SMB_V2(
     PSRV_EXEC_CONTEXT pExecContext
     );
 
@@ -117,6 +135,12 @@ SrvBuildSetFileSystemInfoResponse_SMB_V2(
 static
 NTSTATUS
 SrvSetSecurityInfo_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
+SrvSetSecurityDescriptor_SMB_V2(
     PSRV_EXEC_CONTEXT pExecContext
     );
 
@@ -459,14 +483,24 @@ SrvSetFileInfo_SMB_V2(
 
     switch (pSetInfoState->pRequestHeader->ucInfoClass)
     {
-        case SMB2_FILE_INFO_CLASS_RENAME :
-        case SMB2_FILE_INFO_CLASS_DISPOSITION :
         case SMB2_FILE_INFO_CLASS_POSITION :
         case SMB2_FILE_INFO_CLASS_MODE :
         case SMB2_FILE_INFO_CLASS_EOF :
         case SMB2_FILE_INFO_CLASS_PIPE :
 
             ntStatus = STATUS_NOT_SUPPORTED;
+
+            break;
+
+        case SMB2_FILE_INFO_CLASS_DISPOSITION :
+
+            ntStatus = SrvSetFileDispositionInfo_SMB_V2(pExecContext);
+
+            break;
+
+        case SMB2_FILE_INFO_CLASS_RENAME :
+
+            ntStatus = SrvSetFileRenameInfo_SMB_V2(pExecContext);
 
             break;
 
@@ -507,8 +541,6 @@ SrvBuildSetFileInfoResponse_SMB_V2(
 
     switch (pSetInfoState->pRequestHeader->ucInfoClass)
     {
-        case SMB2_FILE_INFO_CLASS_RENAME :
-        case SMB2_FILE_INFO_CLASS_DISPOSITION :
         case SMB2_FILE_INFO_CLASS_POSITION :
         case SMB2_FILE_INFO_CLASS_MODE :
         case SMB2_FILE_INFO_CLASS_EOF :
@@ -518,10 +550,12 @@ SrvBuildSetFileInfoResponse_SMB_V2(
 
             break;
 
+        case SMB2_FILE_INFO_CLASS_DISPOSITION :
+        case SMB2_FILE_INFO_CLASS_RENAME :
         case SMB2_FILE_INFO_CLASS_BASIC :
         case SMB2_FILE_INFO_CLASS_ALLOCATION :
 
-            ntStatus = SrvBuildSetFileInfoCommonResponse_SMB_V2(pExecContext);
+            ntStatus = SrvBuildSetInfoCommonResponse_SMB_V2(pExecContext);
 
             break;
 
@@ -531,6 +565,179 @@ SrvBuildSetFileInfoResponse_SMB_V2(
 
             break;
     }
+
+    return ntStatus;
+}
+
+static
+NTSTATUS
+SrvSetFileDispositionInfo_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS                     ntStatus      = STATUS_SUCCESS;
+    PSRV_PROTOCOL_EXEC_CONTEXT   pCtxProtocol  = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V2     pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    PSRV_SET_INFO_STATE_SMB_V2   pSetInfoState = NULL;
+
+    pSetInfoState = (PSRV_SET_INFO_STATE_SMB_V2)pCtxSmb2->hState;
+
+    if (pSetInfoState->pRequestHeader->ulInputBufferLen <
+                    sizeof(FILE_DISPOSITION_INFORMATION))
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    SrvPrepareSetInfoStateAsync_SMB_V2(pSetInfoState, pExecContext);
+
+    ntStatus = IoSetInformationFile(
+                    pCtxSmb2->pFile->hFile,
+                    pSetInfoState->pAcb,
+                    &pSetInfoState->ioStatusBlock,
+                    (PFILE_DISPOSITION_INFORMATION)pSetInfoState->pData,
+                    sizeof(FILE_DISPOSITION_INFORMATION),
+                    FileDispositionInformation);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    SrvReleaseSetInfoStateAsync_SMB_V2(pSetInfoState); // completed sync
+
+error:
+
+    return ntStatus;
+}
+
+static
+NTSTATUS
+SrvSetFileRenameInfo_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS                     ntStatus      = STATUS_SUCCESS;
+    PSRV_PROTOCOL_EXEC_CONTEXT   pCtxProtocol  = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V2     pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    PSRV_SET_INFO_STATE_SMB_V2   pSetInfoState = NULL;
+    BOOLEAN                      bTreeInLock   = FALSE;
+
+    pSetInfoState = (PSRV_SET_INFO_STATE_SMB_V2)pCtxSmb2->hState;
+
+    if (!pSetInfoState->pData2)
+    {
+        ntStatus = SrvUnmarshalRenameHeader_SMB_V2(pExecContext);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (!pSetInfoState->hDir)
+    {
+        LWIO_LOCK_RWMUTEX_SHARED(   bTreeInLock,
+                                    &pCtxSmb2->pTree->pShareInfo->mutex);
+
+        ntStatus = SrvAllocateStringW(
+                        pCtxSmb2->pTree->pShareInfo->pwszPath,
+                        &pSetInfoState->dirPath.FileName);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        LWIO_UNLOCK_RWMUTEX(bTreeInLock,
+                            &pCtxSmb2->pTree->pShareInfo->mutex);
+
+        SrvPrepareSetInfoStateAsync_SMB_V2(pSetInfoState, pExecContext);
+
+        ntStatus = IoCreateFile(
+                                &pSetInfoState->hDir,
+                                pSetInfoState->pAcb,
+                                &pSetInfoState->ioStatusBlock,
+                                pCtxSmb2->pSession->pIoSecurityContext,
+                                &pSetInfoState->dirPath,
+                                pSetInfoState->pSecurityDescriptor,
+                                pSetInfoState->pSecurityQOS,
+                                GENERIC_READ,
+                                0,
+                                FILE_ATTRIBUTE_NORMAL,
+                                0,
+                                FILE_OPEN,
+                                FILE_DIRECTORY_FILE,
+                                NULL, /* EA Buffer */
+                                0,    /* EA Length */
+                                NULL  /* ECP List  */
+                                );
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        SrvReleaseSetInfoStateAsync_SMB_V2(pSetInfoState); // completed sync
+    }
+
+    ((PFILE_RENAME_INFORMATION)pSetInfoState->pData2)->RootDirectory =
+		pSetInfoState->hDir;
+
+    SrvPrepareSetInfoStateAsync_SMB_V2(pSetInfoState, pExecContext);
+
+    ntStatus = IoSetInformationFile(
+                    pCtxSmb2->pFile->hFile,
+                    pSetInfoState->pAcb,
+                    &pSetInfoState->ioStatusBlock,
+                    (PFILE_RENAME_INFORMATION)pSetInfoState->pData2,
+                    pSetInfoState->ulData2Length,
+                    FileRenameInformation);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    SrvReleaseSetInfoStateAsync_SMB_V2(pSetInfoState); // completed sync
+
+error:
+
+    return ntStatus;
+}
+
+static
+NTSTATUS
+SrvUnmarshalRenameHeader_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS                   ntStatus      = STATUS_SUCCESS;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    PSRV_SET_INFO_STATE_SMB_V2 pSetInfoState = NULL;
+    PSMB2_FILE_RENAME_INFO_HEADER pRenameInfoHeader = NULL;
+    ULONG                         ulBytesAvailable = 0;
+
+    pSetInfoState = (PSRV_SET_INFO_STATE_SMB_V2)pCtxSmb2->hState;
+
+    if (pSetInfoState->pRequestHeader->ulInputBufferLen <
+                    sizeof(SMB2_FILE_RENAME_INFO_HEADER))
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pRenameInfoHeader = (PSMB2_FILE_RENAME_INFO_HEADER)pSetInfoState->pData;
+
+    ulBytesAvailable = pSetInfoState->pRequestHeader->ulInputBufferLen;
+    ulBytesAvailable -= sizeof(SMB2_FILE_RENAME_INFO_HEADER);
+    ulBytesAvailable += sizeof(wchar16_t);
+
+    if (ulBytesAvailable < pRenameInfoHeader->ulFileNameLength)
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pSetInfoState->ulData2Length =
+          sizeof(FILE_RENAME_INFORMATION) + pRenameInfoHeader->ulFileNameLength;
+
+    ntStatus = SrvAllocateMemory(
+                    pSetInfoState->ulData2Length,
+                    (PVOID*)&pSetInfoState->pData2);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ((PFILE_RENAME_INFORMATION)pSetInfoState->pData2)->ReplaceIfExists =
+                    pRenameInfoHeader->ucReplaceIfExists;
+    ((PFILE_RENAME_INFORMATION)pSetInfoState->pData2)->FileNameLength =
+                    pRenameInfoHeader->ulFileNameLength;
+
+    memcpy((PBYTE)((PFILE_RENAME_INFORMATION)pSetInfoState->pData2)->FileName,
+           (PBYTE)pRenameInfoHeader->wszFileName,
+           pRenameInfoHeader->ulFileNameLength);
+
+error:
 
     return ntStatus;
 }
@@ -613,7 +820,7 @@ error:
 
 static
 NTSTATUS
-SrvBuildSetFileInfoCommonResponse_SMB_V2(
+SrvBuildSetInfoCommonResponse_SMB_V2(
     PSRV_EXEC_CONTEXT pExecContext
     )
 {
@@ -710,7 +917,67 @@ SrvSetSecurityInfo_SMB_V2(
     PSRV_EXEC_CONTEXT pExecContext
     )
 {
-    return STATUS_NOT_SUPPORTED;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    PSRV_SET_INFO_STATE_SMB_V2 pSetInfoState = NULL;
+
+    pSetInfoState = (PSRV_SET_INFO_STATE_SMB_V2)pCtxSmb2->hState;
+
+    switch (pSetInfoState->pRequestHeader->ucInfoClass)
+    {
+        case SMB2_SEC_INFO_CLASS_BASIC:
+
+            ntStatus = SrvSetSecurityDescriptor_SMB_V2(pExecContext);
+
+            break;
+
+        default:
+
+            ntStatus = STATUS_INVALID_INFO_CLASS;
+
+            break;
+    }
+
+    return ntStatus;
+}
+
+static
+NTSTATUS
+SrvSetSecurityDescriptor_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS                     ntStatus      = STATUS_SUCCESS;
+    PSRV_PROTOCOL_EXEC_CONTEXT   pCtxProtocol  = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V2     pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    PSRV_SET_INFO_STATE_SMB_V2   pSetInfoState = NULL;
+
+    pSetInfoState = (PSRV_SET_INFO_STATE_SMB_V2)pCtxSmb2->hState;
+
+    if (!pSetInfoState->pRequestHeader->ulAdditionalInfo ||
+        !pSetInfoState->pRequestHeader->ulInputBufferLen)
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    SrvPrepareSetInfoStateAsync_SMB_V2(pSetInfoState, pExecContext);
+
+    ntStatus = IoSetSecurityFile(
+                    pSetInfoState->pFile->hFile,
+                    pSetInfoState->pAcb,
+                    &pSetInfoState->ioStatusBlock,
+                    pSetInfoState->pRequestHeader->ulAdditionalInfo,
+                    (PSECURITY_DESCRIPTOR_RELATIVE)pSetInfoState->pData,
+                    pSetInfoState->pRequestHeader->ulInputBufferLen);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    SrvReleaseSetInfoStateAsync_SMB_V2(pSetInfoState); // completed sync
+
+error:
+
+    return ntStatus;
 }
 
 static
@@ -719,7 +986,29 @@ SrvBuildSetSecurityInfoResponse_SMB_V2(
     PSRV_EXEC_CONTEXT pExecContext
     )
 {
-    return STATUS_NOT_SUPPORTED;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    PSRV_SET_INFO_STATE_SMB_V2 pSetInfoState = NULL;
+
+    pSetInfoState = (PSRV_SET_INFO_STATE_SMB_V2)pCtxSmb2->hState;
+
+    switch (pSetInfoState->pRequestHeader->ucInfoClass)
+    {
+        case SMB2_SEC_INFO_CLASS_BASIC:
+
+            ntStatus = SrvBuildSetInfoCommonResponse_SMB_V2(pExecContext);
+
+            break;
+
+        default:
+
+            ntStatus = STATUS_INVALID_INFO_CLASS;
+
+            break;
+    }
+
+    return ntStatus;
 }
 
 static
@@ -843,6 +1132,21 @@ SrvFreeSetInfoState_SMB_V2(
     if (pSetInfoState->pFile)
     {
         SrvFile2Release(pSetInfoState->pFile);
+    }
+
+    if (pSetInfoState->hDir)
+    {
+        IoCloseFile(pSetInfoState->hDir);
+    }
+
+    if (pSetInfoState->dirPath.FileName)
+    {
+        SrvFreeMemory(pSetInfoState->dirPath.FileName);
+    }
+
+    if (pSetInfoState->pData2)
+    {
+        SrvFreeMemory(pSetInfoState->pData2);
     }
 
     if (pSetInfoState->pMutex)

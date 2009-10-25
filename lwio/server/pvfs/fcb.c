@@ -237,7 +237,7 @@ PvfsAllocateFCB(
     ntError = PvfsListInit(
                   &pFcb->pNotifyList,
                   PVFS_FCB_MAX_PENDING_NOTIFY,
-                  (PPVFS_LIST_FREE_DATA_FN)PvfsFreeWatchDirRecord);
+                  (PPVFS_LIST_FREE_DATA_FN)PvfsFreeNotifyRecord);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Miscellaneous */

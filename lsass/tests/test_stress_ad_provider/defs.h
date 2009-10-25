@@ -63,18 +63,14 @@
 #define LADS_ATTR_NAME_SLEEP                 "sleep-msecs"
 #define LADS_ATTR_NAME_INFO_LEVEL            "info-level"
 
-typedef struct __LSA_AUTH_PROVIDER
-{
+typedef struct _TEST_AUTH_PROVIDER {
     PSTR pszId;
     PSTR pszProviderLibpath;
-    PSTR pszName;
     PVOID pLibHandle;
-    PFNSHUTDOWNPROVIDER pFnShutdown;
+    PCSTR pszName;
     PLSA_PROVIDER_FUNCTION_TABLE pFnTable;
-    
-    struct __LSA_AUTH_PROVIDER *pNext;
-    
-} LSA_AUTH_PROVIDER, *PLSA_AUTH_PROVIDER;
+    struct _TEST_AUTH_PROVIDER *pNext;
+} TEST_AUTH_PROVIDER, *PTEST_AUTH_PROVIDER;
 
 typedef enum
 {

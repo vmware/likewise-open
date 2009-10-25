@@ -79,16 +79,21 @@ wchar16_t *GetFromUnicodeString(UnicodeString *u)
 
 NTSTATUS CopyUnicodeString(UnicodeString *out, UnicodeString *in)
 {
+    uint16 size = 0;
+
     if (out == NULL || in == NULL) {
         return STATUS_INVALID_PARAMETER;
     }
 
     if (in->string != NULL) {
-        out->string = wc16sndup(in->string, in->size/2);
+        size = in->len + sizeof(in->string[0]);
+        out->string = malloc(size);
         if (out->string == NULL) return STATUS_NO_MEMORY;
+        memcpy(out->string, in->string, in->len);
+        out->string[in->len / sizeof(in->string[0])] = 0;
     }
 
-    out->size = in->size;
+    out->size = size;
     out->len  = in->len;
 
     return STATUS_SUCCESS;

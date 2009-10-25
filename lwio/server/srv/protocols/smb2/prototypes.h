@@ -154,6 +154,11 @@ SrvProcessOplock_SMB_V2(
     );
 
 NTSTATUS
+SrvProcessOplockBreak_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+NTSTATUS
 SrvAcknowledgeOplockBreak_SMB_V2(
     PSRV_OPLOCK_STATE_SMB_V2 pOplockState,
     BOOLEAN bFileIsClosed
@@ -480,6 +485,12 @@ SMB2UnmarshalFindRequest(
     PSRV_MESSAGE_SMB_V2        pSmbRequest,
     PSMB2_FIND_REQUEST_HEADER* ppRequestHeader,
     PUNICODE_STRING            pwszFilename
+    );
+
+NTSTATUS
+SMB2UnmarshalOplockBreakRequest(
+    IN     PSRV_MESSAGE_SMB_V2        pSmbRequest,
+    IN OUT PSMB2_OPLOCK_BREAK_HEADER* ppRequestHeader
     );
 
 NTSTATUS
