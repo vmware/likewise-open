@@ -367,6 +367,7 @@ PvfsReleaseFCB(
     NTSTATUS ntError = STATUS_SUCCESS;
     BOOLEAN bLocked = FALSE;
     BOOLEAN bFcbLocked = FALSE;
+    PVFS_STAT Stat = {0};
 
     /* Do housekeeping such as setting the last write time or
        honoring DeletOnClose when the CCB handle count reaches
@@ -378,15 +379,41 @@ PvfsReleaseFCB(
 
     if (PvfsListLength(pFcb->pCcbList) == 0)
     {
-        if (pFcb->LastWriteTime != 0) {
-            ntError = PvfsSetLastWriteTime(pFcb);
-            /* Don't fail */
-        }
-
-        if (pFcb->bDeleteOnClose)
+        ntError = PvfsSysStat(pFcb->pszFilename, &Stat);
+        if (ntError == STATUS_SUCCESS)
         {
-            ntError = PvfsExecuteDeleteOnClose(pFcb);
-            /* Don't fail */
+            if (pFcb->LastWriteTime != 0)
+            {
+
+                ntError = PvfsSetLastWriteTime(pFcb);
+                pFcb->LastWriteTime = 0;
+
+                if (ntError == STATUS_SUCCESS)
+                {
+                    PvfsNotifyScheduleFullReport(
+                        pFcb,
+                        FILE_NOTIFY_CHANGE_LAST_WRITE,
+                        FILE_ACTION_MODIFIED,
+                        pFcb->pszFilename);
+                }
+            }
+
+            if (pFcb->bDeleteOnClose)
+            {
+                ntError = PvfsExecuteDeleteOnClose(pFcb);
+                pFcb->bDeleteOnClose = FALSE;
+
+                if (ntError == STATUS_SUCCESS)
+                {
+                    PvfsNotifyScheduleFullReport(
+                        pFcb,
+                        S_ISDIR(Stat.s_mode) ?
+                            FILE_NOTIFY_CHANGE_DIR_NAME :
+                            FILE_NOTIFY_CHANGE_FILE_NAME,
+                        FILE_ACTION_REMOVED,
+                        pFcb->pszFilename);
+                }
+            }
         }
     }
 
