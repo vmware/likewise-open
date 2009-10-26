@@ -7,8 +7,8 @@
     <ProjectGuid>{FB091F6B-D872-4644-9037-94096D4A62DF}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>FileClientApi</RootNamespace>
-    <AssemblyName>FileClientApi</AssemblyName>
+    <RootNamespace>Likewise.LMC.FileClient</RootNamespace>
+    <AssemblyName>Likewise.LMC.FileClient</AssemblyName>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
