@@ -794,7 +794,7 @@ static EVT_CONFIG_TABLE gConfigDescription[] =
 {
     {
         "MaxDiskUsage",
-        FALSE,
+        TRUE,
         EVTTypeDword,
         0,
         -1,
@@ -803,7 +803,7 @@ static EVT_CONFIG_TABLE gConfigDescription[] =
     },
     {
         "MaxNumEvents",
-        FALSE,
+        TRUE,
         EVTTypeDword,
         0,
         -1,
@@ -812,7 +812,7 @@ static EVT_CONFIG_TABLE gConfigDescription[] =
     },
     {
         "MaxEventLifespan",
-        FALSE,
+        TRUE,
         EVTTypeDword,
         0,
         -1,
@@ -821,7 +821,7 @@ static EVT_CONFIG_TABLE gConfigDescription[] =
     },
     {
         "EventDbPurgeInterval",
-        FALSE,
+        TRUE,
         EVTTypeDword,
         0,
         -1,
@@ -830,7 +830,7 @@ static EVT_CONFIG_TABLE gConfigDescription[] =
     },
     {
         "RemoveEventsAsNeeded",
-        FALSE,
+        TRUE,
         EVTTypeBoolean,
         0,
         -1,
@@ -839,7 +839,7 @@ static EVT_CONFIG_TABLE gConfigDescription[] =
     },
     {
         "AllowReadTo",
-        FALSE,
+        TRUE,
         EVTTypeString,
         0,
         -1,
@@ -848,7 +848,7 @@ static EVT_CONFIG_TABLE gConfigDescription[] =
     },
     {
         "AllowWriteTo",
-        FALSE,
+        TRUE,
         EVTTypeString,
         0,
         -1,
@@ -857,7 +857,7 @@ static EVT_CONFIG_TABLE gConfigDescription[] =
     },
     {
         "AllowDeleteTo",
-        FALSE,
+        TRUE,
         EVTTypeString,
         0,
         -1,
@@ -865,6 +865,47 @@ static EVT_CONFIG_TABLE gConfigDescription[] =
         &gpszAllowDeleteTo
     }
 };
+
+VOID
+EVTLogConfigReload(
+    VOID
+    )
+{
+    DWORD dwError = 0;
+    PSTR pszDescription = NULL;
+
+    dwError = EVTAllocateStringPrintf(
+                 &pszDescription,
+                 "     Current config settings are...\r\n" \
+                 "     Max Disk Usage :           %d\r\n" \
+                 "     Max Number Of Events:      %d\r\n" \
+                 "     Max Event Lifespan:        %d\r\n" \
+                 "     Remove Events As Needed:   %s\r\n" \
+                 "     Allow Read   To :          %s\r\n" \
+                 "     Allow Write  To :          %s\r\n" \
+                 "     Allow Delete To :          %s\r\n",
+                 gServerInfo.dwMaxLogSize,
+                 gServerInfo.dwMaxRecords,
+                 gServerInfo.dwMaxAge,
+                 gServerInfo.bRemoveAsNeeded? "true" : "false",
+                 gpszAllowReadTo,
+                 gpszAllowWriteTo,
+                 gpszAllowDeleteTo);
+
+    BAIL_ON_EVT_ERROR(dwError);
+
+    EVT_LOG_INFO("%s", pszDescription);
+
+cleanup:
+
+    EVT_SAFE_FREE_STRING(pszDescription);
+
+    return;
+
+error:
+
+    goto cleanup;
+}
 
 static
 DWORD
@@ -891,6 +932,8 @@ EVTReadEventLogConfigSettings()
         EVTSetAllowData(gpszAllowWriteTo, &gServerInfo.pAllowWriteTo);
     if (gpszAllowDeleteTo)
         EVTSetAllowData(gpszAllowDeleteTo, &gServerInfo.pAllowDeleteTo);
+
+    EVTLogConfigReload();
 
 cleanup:
 
