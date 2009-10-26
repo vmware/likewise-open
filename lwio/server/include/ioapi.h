@@ -231,7 +231,8 @@ IoReadDirectoryChangeFile(
     OUT PVOID Buffer,
     IN ULONG Length,
     IN BOOLEAN WatchTree,
-    IN FILE_NOTIFY_CHANGE NotifyFilter
+    IN FILE_NOTIFY_CHANGE NotifyFilter,
+    IN OPTIONAL PULONG MaxBufferSize
     );
 
 NTSTATUS
