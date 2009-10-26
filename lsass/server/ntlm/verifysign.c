@@ -50,7 +50,7 @@
 DWORD
 NtlmServerVerifySignature(
     IN PNTLM_CONTEXT_HANDLE phContext,
-    IN PSecBufferDesc pMessage,
+    IN const SecBufferDesc* pMessage,
     IN DWORD MessageSeqNo,
     OUT PDWORD pQop
     )
@@ -58,10 +58,14 @@ NtlmServerVerifySignature(
     DWORD dwError = LW_ERROR_SUCCESS;
     PNTLM_CONTEXT pContext = *phContext;
     // The following pointers point into pMessage and will not be freed
-    PSecBuffer pToken = NULL;
-    PSecBuffer pData = NULL;
+    const SecBuffer* pToken = NULL;
+    const SecBuffer* pData = NULL;
 
-    NtlmGetSecBuffers(pMessage, &pToken, &pData, NULL);
+    NtlmGetSecBuffers(
+            (PSecBufferDesc)pMessage,
+            (PSecBuffer *)&pToken,
+            (PSecBuffer *)&pData,
+            NULL);
 
     // Do a full sanity check here
     if (!pToken ||
@@ -94,8 +98,8 @@ DWORD
 NtlmVerifySignature(
     IN PNTLM_CONTEXT pContext,
     IN RC4_KEY* pSignKey,
-    IN PSecBuffer pData,
-    IN PSecBuffer pToken
+    IN const SecBuffer* pData,
+    IN const SecBuffer* pToken
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;

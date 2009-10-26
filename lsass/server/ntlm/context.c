@@ -114,7 +114,7 @@ NtlmGetContextInfo(
 /******************************************************************************/
 DWORD
 NtlmCreateContext(
-    IN PNTLM_CRED_HANDLE pCredHandle,
+    IN NTLM_CRED_HANDLE hCred,
     OUT PNTLM_CONTEXT* ppNtlmContext
     )
 {
@@ -139,7 +139,7 @@ NtlmCreateContext(
     pContext->NtlmState = NtlmStateBlank;
     pContext->nRefCount = 1;
 
-    pContext->CredHandle = *pCredHandle;
+    pContext->CredHandle = hCred;
     NtlmReferenceCredential(pContext->CredHandle);
 
 cleanup:
@@ -187,9 +187,9 @@ NtlmFreeContext(
 /******************************************************************************/
 DWORD
 NtlmGetMessageFromSecBufferDesc(
-    IN PSecBufferDesc pSecBufferDesc,
+    IN const SecBufferDesc* pSecBufferDesc,
     OUT PDWORD pdwMessageSize,
-    OUT PVOID *ppMessage
+    OUT const VOID** ppMessage
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -485,7 +485,7 @@ error:
 /******************************************************************************/
 DWORD
 NtlmCreateChallengeMessage(
-    IN PNTLM_NEGOTIATE_MESSAGE pNegMsg,
+    IN const NTLM_NEGOTIATE_MESSAGE* pNegMsg,
     IN PCSTR pServerName,
     IN PCSTR pDomainName,
     IN PCSTR pDnsServerName,

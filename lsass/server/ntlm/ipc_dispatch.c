@@ -183,19 +183,25 @@ NtlmSrvIpcAcceptSecurityContext(
     PNTLM_IPC_ACCEPT_SEC_CTXT_REQ pReq = pIn->data;
     PNTLM_IPC_ACCEPT_SEC_CTXT_RESPONSE pNtlmResp = NULL;
     PNTLM_IPC_ERROR pError = NULL;
+    NTLM_CONTEXT_HANDLE hNewContext = NULL;
 
     dwError = LwAllocateMemory(sizeof(*pNtlmResp), OUT_PPVOID(&pNtlmResp));
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = NtlmServerDuplicateBuffers(
+                pReq->pOutput,
+                &pNtlmResp->Output);
+    BAIL_ON_LSA_ERROR(dwError);
+
     dwError = NtlmServerAcceptSecurityContext(
         NtlmSrvIpcGetSessionData(pCall),
-        &pReq->hCredential,
+        pReq->hCredential,
         &pReq->hContext,
         pReq->pInput,
         pReq->fContextReq,
         pReq->TargetDataRep,
-        &pReq->hNewContext,
-        pReq->pOutput,
+        &hNewContext,
+        &pNtlmResp->Output,
         &pNtlmResp->fContextAttr,
         &pNtlmResp->tsTimeStamp);
 
@@ -216,11 +222,8 @@ NtlmSrvIpcAcceptSecurityContext(
         pNtlmResp->dwStatus = dwError;
         dwError = LW_ERROR_SUCCESS;
 
-        pNtlmResp->hNewContext = pReq->hNewContext;
-        pReq->hNewContext = NULL;
-
-        memcpy(&pNtlmResp->Output, pReq->pOutput, sizeof(SecBufferDesc));
-        pReq->pOutput = NULL;
+        pNtlmResp->hNewContext = hNewContext;
+        hNewContext = NULL;
 
         dwError = NtlmSrvIpcRegisterHandle(
             pCall,
@@ -237,6 +240,7 @@ NtlmSrvIpcAcceptSecurityContext(
     }
     else
     {
+        NtlmServerFreeBuffers(&pNtlmResp->Output);
         LW_SAFE_FREE_MEMORY(pNtlmResp);
 
         dwError = NtlmSrvIpcCreateError(dwError, &pError);
@@ -467,22 +471,25 @@ NtlmSrvIpcEncryptMessage(
         OUT_PPVOID(&pNtlmResp));
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = NtlmServerDuplicateBuffers(
+                pReq->pMessage,
+                &pNtlmResp->Message);
+    BAIL_ON_LSA_ERROR(dwError);
+
     dwError = NtlmServerEncryptMessage(
         &pReq->hContext,
         pReq->bEncrypt,
-        pReq->pMessage,
+        &pNtlmResp->Message,
         pReq->MessageSeqNo);
 
     if (!dwError)
     {
-        memcpy(&(pNtlmResp->Message), pReq->pMessage, sizeof(SecBufferDesc));
-        LW_SAFE_FREE_MEMORY(pReq->pMessage);
-
         pOut->tag = NTLM_R_ENCRYPT_MSG_SUCCESS;
         pOut->data = pNtlmResp;
     }
     else
     {
+        NtlmServerFreeBuffers(&pNtlmResp->Message);
         LW_SAFE_FREE_MEMORY(pNtlmResp);
 
         dwError = NtlmSrvIpcCreateError(dwError, &pError);
@@ -631,24 +638,30 @@ NtlmSrvIpcInitializeSecurityContext(
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
-    PNTLM_IPC_INIT_SEC_CTXT_REQ pReq = pIn->data;
+    const NTLM_IPC_INIT_SEC_CTXT_REQ* pReq = pIn->data;
     PNTLM_IPC_INIT_SEC_CTXT_RESPONSE pNtlmResp = NULL;
     PNTLM_IPC_ERROR pError = NULL;
+    NTLM_CONTEXT_HANDLE hNewContext = NULL;
 
     dwError = LwAllocateMemory(sizeof(*pNtlmResp), OUT_PPVOID(&pNtlmResp));
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = NtlmServerDuplicateBuffers(
+                pReq->pOutput,
+                &pNtlmResp->Output);
+    BAIL_ON_LSA_ERROR(dwError);
+
     dwError = NtlmServerInitializeSecurityContext(
-        &pReq->hCredential,
-        &pReq->hContext,
+        pReq->hCredential,
+        pReq->hContext,
         pReq->pszTargetName,
         pReq->fContextReq,
         pReq->Reserved1,
         pReq->TargetDataRep,
         pReq->pInput,
         pReq->Reserved2,
-        &pReq->hNewContext,
-        pReq->pOutput,
+        &hNewContext,
+        &pNtlmResp->Output,
         &pNtlmResp->fContextAttr,
         &pNtlmResp->tsExpiry
         );
@@ -670,12 +683,8 @@ NtlmSrvIpcInitializeSecurityContext(
         pNtlmResp->dwStatus = dwError;
         dwError = LW_ERROR_SUCCESS;
 
-        pNtlmResp->hNewContext = pReq->hNewContext;
-        pReq->hNewContext = NULL;
-
-        memcpy(&(pNtlmResp->Output), pReq->pOutput, sizeof(SecBufferDesc));
-
-        LW_SAFE_FREE_MEMORY(pReq->pOutput);
+        pNtlmResp->hNewContext = hNewContext;
+        hNewContext = NULL;
 
         dwError = NtlmSrvIpcRegisterHandle(
             pCall,
@@ -692,6 +701,12 @@ NtlmSrvIpcInitializeSecurityContext(
     }
     else
     {
+        NtlmServerFreeBuffers(&pNtlmResp->Output);
+        LW_SAFE_FREE_MEMORY(pNtlmResp);
+
+        dwError = NtlmSrvIpcCreateError(dwError, &pError);
+        BAIL_ON_LSA_ERROR(dwError);
+
         LW_SAFE_FREE_MEMORY(pNtlmResp);
 
         dwError = NtlmSrvIpcCreateError(dwError, &pError);
@@ -725,22 +740,25 @@ NtlmSrvIpcMakeSignature(
         OUT_PPVOID(&pNtlmResp));
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = NtlmServerDuplicateBuffers(
+                pReq->pMessage,
+                &pNtlmResp->Message);
+    BAIL_ON_LSA_ERROR(dwError);
+
     dwError = NtlmServerMakeSignature(
         &pReq->hContext,
         pReq->dwQop,
-        pReq->pMessage,
+        &pNtlmResp->Message,
         pReq->MessageSeqNo);
 
     if (!dwError)
     {
-        memcpy(&(pNtlmResp->Message), pReq->pMessage, sizeof(SecBufferDesc));
-        pReq->pMessage = NULL;
-
         pOut->tag = NTLM_R_MAKE_SIGN_SUCCESS;
         pOut->data = pNtlmResp;
     }
     else
     {
+        NtlmServerFreeBuffers(&pNtlmResp->Message);
         LW_SAFE_FREE_MEMORY(pNtlmResp);
 
         dwError = NtlmSrvIpcCreateError(dwError, &pError);

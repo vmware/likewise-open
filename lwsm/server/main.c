@@ -261,7 +261,7 @@ LwSmDaemonize(
         BAIL_ON_ERROR(dwError);
     }
 
-    if (setsid() != 0)
+    if (setsid() < 0)
     {
         dwError = LwMapErrnoToLwError(errno);
         BAIL_ON_ERROR(dwError);
@@ -275,7 +275,7 @@ LwSmDaemonize(
 
     for (i = 0; i <= 2; i++)
     {
-        if (dup2(devNull, i) != 0)
+        if (dup2(devNull, i) < 0)
         {
             dwError = LwMapErrnoToLwError(errno);
             BAIL_ON_ERROR(dwError);

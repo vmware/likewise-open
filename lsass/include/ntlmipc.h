@@ -97,11 +97,11 @@ typedef struct __NTLM_IPC_ACCEPT_SEC_CTXT_REQ
 {
     NTLM_CRED_HANDLE hCredential;
     NTLM_CONTEXT_HANDLE hContext;
-    PSecBufferDesc pInput;
+    const SecBufferDesc* pInput;
     DWORD fContextReq;
     DWORD TargetDataRep;
     NTLM_CONTEXT_HANDLE hNewContext;
-    PSecBufferDesc pOutput;
+    const SecBufferDesc* pOutput;
 } NTLM_IPC_ACCEPT_SEC_CTXT_REQ, *PNTLM_IPC_ACCEPT_SEC_CTXT_REQ;
 
 typedef struct __NTLM_IPC_ACCEPT_SEC_CTXT_RESPONSE
@@ -160,7 +160,7 @@ typedef struct __NTLM_IPC_ENCRYPT_MSG_REQ
 {
     NTLM_CONTEXT_HANDLE hContext;
     BOOLEAN bEncrypt;
-    PSecBufferDesc pMessage;
+    const SecBufferDesc* pMessage;
     DWORD MessageSeqNo;
 } NTLM_IPC_ENCRYPT_MSG_REQ, *PNTLM_IPC_ENCRYPT_MSG_REQ;
 
@@ -216,10 +216,10 @@ typedef struct __NTLM_IPC_INIT_SEC_CTXT_REQ
     DWORD fContextReq;
     DWORD Reserved1;
     DWORD TargetDataRep;
-    PSecBufferDesc pInput;
+    const SecBufferDesc* pInput;
     DWORD Reserved2;
     NTLM_CONTEXT_HANDLE hNewContext;
-    PSecBufferDesc pOutput;
+    const SecBufferDesc* pOutput;
 } NTLM_IPC_INIT_SEC_CTXT_REQ, *PNTLM_IPC_INIT_SEC_CTXT_REQ;
 
 typedef struct __NTLM_IPC_INIT_SEC_CTXT_RESPONSE
@@ -237,7 +237,7 @@ typedef struct __NTLM_IPC_MAKE_SIGN_REQ
 {
     NTLM_CONTEXT_HANDLE hContext;
     DWORD dwQop;
-    PSecBufferDesc pMessage;
+    const SecBufferDesc* pMessage;
     DWORD MessageSeqNo;
 } NTLM_IPC_MAKE_SIGN_REQ, *PNTLM_IPC_MAKE_SIGN_REQ;
 
@@ -279,7 +279,7 @@ typedef struct __NTLM_IPC_QUERY_CTXT_RESPONSE
 typedef struct __NTLM_IPC_VERIFY_SIGN_REQ
 {
     NTLM_CONTEXT_HANDLE hContext;
-    PSecBufferDesc pMessage;
+    const SecBufferDesc* pMessage;
     DWORD MessageSeqNo;
 } NTLM_IPC_VERIFY_SIGN_REQ, *PNTLM_IPC_VERIFY_SIGN_REQ;
 
