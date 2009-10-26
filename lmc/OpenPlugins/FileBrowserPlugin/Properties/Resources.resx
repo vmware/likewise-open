@@ -216,4 +216,10 @@ Error: {1} </value>
   <data name="Videos" xml:space="preserve">
     <value>Videos</value>
   </data>
+  <data name="CDDVD" xml:space="preserve">
+    <value>CD/DVD Drive</value>
+  </data>
+  <data name="Devices" xml:space="preserve">
+    <value>Devices</value>
+  </data>
 </root>

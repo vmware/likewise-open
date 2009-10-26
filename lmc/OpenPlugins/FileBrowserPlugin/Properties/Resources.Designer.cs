@@ -66,7 +66,16 @@ namespace Likewise.LMC.Plugins.FileBrowser.Properties {
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized string similar to CD/DVD Drive.
+        /// </summary>
+        internal static string CDDVD {
+            get {
+                return ResourceManager.GetString("CDDVD", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Computer.
         /// </summary>
@@ -82,6 +91,15 @@ namespace Likewise.LMC.Plugins.FileBrowser.Properties {
         internal static string Desktop {
             get {
                 return ResourceManager.GetString("Desktop", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Devices.
+        /// </summary>
+        internal static string Devices {
+            get {
+                return ResourceManager.GetString("Devices", resourceCulture);
             }
         }
 

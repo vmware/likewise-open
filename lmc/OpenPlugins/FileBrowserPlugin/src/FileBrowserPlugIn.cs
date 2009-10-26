@@ -37,6 +37,7 @@ using Likewise.LMC.Plugins.FileBrowser.Properties;
 using Likewise.LMC.ServerControl;
 using Likewise.LMC.LMConsoleUtils;
 using Likewise.LMC.NETAPI;
+using Likewise.LMC.FileClient;
 using Likewise.LMC.AuthUtils;
 using Likewise.LMC.Plugins.FileBrowser;
 
@@ -161,14 +162,18 @@ namespace Likewise.LMC.Plugins.FileBrowser
             _extPlugins.Add(extPlugin);
         }
 
-        public void Initialize(IPlugInContainer container)
+        public void Initialize(
+            IPlugInContainer container
+            )
         {
             Logger.Log("FileBrowserPlugIn.Initialize", Logger.FileBrowserLogLevel);
 
             _container = container;
         }
 
-        public void SetContext(IContext ctx)
+        public void SetContext(
+            IContext ctx
+            )
         {
             Hostinfo hn = ctx as Hostinfo;
 
@@ -198,9 +203,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
                 _hn = new Hostinfo();
             }
 
-            ConnectToHost();
-
-            if (_pluginNode != null && _pluginNode.Nodes.Count == 0 && _hn.IsConnectionSuccess)
+            if (_pluginNode != null && _pluginNode.Nodes.Count == 0)
             {
                 BuildNodesToPlugin();
             }
@@ -211,30 +214,115 @@ namespace Likewise.LMC.Plugins.FileBrowser
             }
         }
 
-        public IContext GetContext()
+        public IContext GetContext(
+            )
         {
             return _hn;
         }
 
-        public LACTreeNode GetPlugInNode()
+        public LACTreeNode GetPlugInNode(
+            )
         {
             return GetFileBrowserNode();
         }
 
+        private List<NETRESOURCE> GetNetworkConnections(
+            )
+        {
+            NETRESOURCE NetResource = new NETRESOURCE();
+
+            NetResource.dwScope = ResourceScope.RESOURCE_CONNECTED;
+            NetResource.dwUsage = ResourceUsage.RESOURCEUSAGE_ALL;
+            NetResource.dwType = ResourceType.RESOURCETYPE_DISK;
+
+            return GetChildNetResources(ResourceScope.RESOURCE_CONNECTED,
+                                        ResourceType.RESOURCETYPE_DISK,
+                                        ResourceUsage.RESOURCEUSAGE_ALL,
+                                        NetResource);
+        }
+
+        private List<NETRESOURCE> GetChildNetResources(
+            ResourceScope dwScope,
+            ResourceType dwType,
+            ResourceUsage dwUsage,
+            NETRESOURCE NetResource
+            )
+        {
+            WinError error = WinError.NO_ERROR;
+            IntPtr handle = new IntPtr();
+            List<NETRESOURCE> nrList = new List<NETRESOURCE>();
+
+            error = FileClient.FileClient.BeginEnumNetResources(dwScope,
+                                                                dwType,
+                                                                dwUsage,
+                                                                NetResource,
+                                                                out handle);
+
+            if (error == WinError.NO_ERROR)
+            {
+                error = FileClient.FileClient.EnumNetResources(handle, out nrList);
+
+                FileClient.FileClient.EndEnumNetResources(handle);
+            }
+
+            return nrList;
+        }
+
         public void EnumChildren(LACTreeNode parentNode)
         {
-            Logger.Log("FileBrowserPlugIn.EnumChildren", Logger.FileBrowserLogLevel);
+            List<NETRESOURCE> NetResources = new List<NETRESOURCE>();
+            Icon iconNetShare = Resources.SharedFolder2;
+            Icon iconFolder = Resources.SharedFolder2;
+            Icon iconComputer = Resources.SharedFolder2;
+            Icon iconHome = Resources.SharedFolder2;
 
             if (parentNode == _pluginNode)
             {
                 BuildNodesToPlugin();
+                return;
             }
 
             //
             // Here is a place to break out the enumeration for each node and path
             //
+            if (parentNode.Name.Equals("Network"))
+            {
+                parentNode.Tag = null;
+                NetResources = GetNetworkConnections();
+            }
 
-            return;
+            if (parentNode.Name.Equals("Devices"))
+            {
+                return;
+            }
+
+            if (parentNode.Name.Equals("Computer"))
+            {
+                return;
+            }
+
+            NETRESOURCE NetResource = parentNode.Tag as NETRESOURCE;
+
+            if (NetResource != null)
+            {
+                NetResources = GetChildNetResources(ResourceScope.RESOURCE_GLOBALNET,
+                                                    ResourceType.RESOURCETYPE_ANY,
+                                                    ResourceUsage.RESOURCEUSAGE_ALL,
+                                                    NetResource);
+            }
+
+            foreach (NETRESOURCE nr in NetResources)
+            {
+                // Add a new node
+                string name = nr.pLocalName;
+
+                if (name == null)
+                    name = nr.pRemoteName;
+
+                LACTreeNode node = Manage.CreateIconNode(name, iconNetShare, typeof(FilesDetailPage), this);
+                node.Tag = nr;
+                parentNode.Nodes.Add(node);
+            }
         }
 
         public void SetCursor(System.Windows.Forms.Cursor cursor)
@@ -277,7 +365,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
                 {
                     fileBrowserContextMenu = new ContextMenu();
 
-                    MenuItem m_item = new MenuItem("Connect to network share...", new EventHandler(cm_OnConnect));
+                    MenuItem m_item = new MenuItem("Connect to share...", new EventHandler(cm_OnConnectToShare));
                     fileBrowserContextMenu.MenuItems.Add(0, m_item);
                 }
                 else if (nodeClicked.Name.Trim().Equals(Resources.Computer))
@@ -370,103 +458,135 @@ namespace Likewise.LMC.Plugins.FileBrowser
         {
             if (_pluginNode != null)
             {
-                Icon ic = Resources.SharedFolder2;
+                Icon iconNetShare = Resources.SharedFolder2;
+                Icon iconFolder = Resources.SharedFolder2;
+                Icon iconComputer = Resources.SharedFolder2;
+                Icon iconHome = Resources.SharedFolder2;
 
-                LACTreeNode networkNode = Manage.CreateIconNode(Resources.Network, ic, typeof(FilesDetailPage), this);
+                LACTreeNode devicesNode = Manage.CreateIconNode(Resources.Devices, iconComputer, typeof(FilesDetailPage), this);
+                _pluginNode.Nodes.Add(devicesNode);
+
+                LACTreeNode dvdNode = Manage.CreateIconNode(Resources.CDDVD, iconComputer, typeof(FilesDetailPage), this);
+                devicesNode.Nodes.Add(dvdNode);
+
+                LACTreeNode networkNode = Manage.CreateIconNode(Resources.Network, iconNetShare, typeof(FilesDetailPage), this);
                 _pluginNode.Nodes.Add(networkNode);
 
-                LACTreeNode computerNode = Manage.CreateIconNode(Resources.Computer, ic, typeof(FilesDetailPage), this);
+                LACTreeNode computerNode = Manage.CreateIconNode(Resources.Computer, iconComputer, typeof(FilesDetailPage), this);
                 _pluginNode.Nodes.Add(computerNode);
 
-                LACTreeNode homeNode = Manage.CreateIconNode(Resources.Home, ic, typeof(FilesDetailPage), this);
+                LACTreeNode homeNode = Manage.CreateIconNode(Resources.Home, iconHome, typeof(FilesDetailPage), this);
                 computerNode.Nodes.Add(homeNode);
 
-                LACTreeNode deskNode = Manage.CreateIconNode(Resources.Desktop, ic, typeof(FilesDetailPage), this);
+                LACTreeNode deskNode = Manage.CreateIconNode(Resources.Desktop, iconFolder, typeof(FilesDetailPage), this);
                 computerNode.Nodes.Add(deskNode);
 
-                LACTreeNode docNode = Manage.CreateIconNode(Resources.Documents, ic, typeof(FilesDetailPage), this);
+                LACTreeNode docNode = Manage.CreateIconNode(Resources.Documents, iconFolder, typeof(FilesDetailPage), this);
                 computerNode.Nodes.Add(docNode);
 
-                LACTreeNode musicNode = Manage.CreateIconNode(Resources.Music, ic, typeof(FilesDetailPage), this);
+                LACTreeNode musicNode = Manage.CreateIconNode(Resources.Music, iconFolder, typeof(FilesDetailPage), this);
                 computerNode.Nodes.Add(musicNode);
 
-                LACTreeNode pictNode = Manage.CreateIconNode(Resources.Pictures, ic, typeof(FilesDetailPage), this);
+                LACTreeNode pictNode = Manage.CreateIconNode(Resources.Pictures, iconFolder, typeof(FilesDetailPage), this);
                 computerNode.Nodes.Add(pictNode);
 
-                LACTreeNode videoNode = Manage.CreateIconNode(Resources.Videos, ic, typeof(FilesDetailPage), this);
+                LACTreeNode videoNode = Manage.CreateIconNode(Resources.Videos, iconFolder, typeof(FilesDetailPage), this);
                 computerNode.Nodes.Add(videoNode);
             }
         }
 
-        private void ConnectToHost()
+        private void cm_OnConnectToShare(object sender, EventArgs e)
         {
-            Logger.Log("FileBrowserPlugIn.ConnectToHost", Logger.FileBrowserLogLevel);
+            WinError error = WinError.ERROR_SUCCESS;
+            bool determinePath = true;
+            bool initialConnect = false;
+            string username = null;
+            string path = null;
 
-            if (_hn.creds.Invalidated)
+            while (true)
             {
-                _container.ShowError("File Browser PlugIn cannot connect to domain due to invalid credentials");
-                _hn.IsConnectionSuccess = false;
-                return;
-            }
-            if (!String.IsNullOrEmpty(_hn.hostName))
-            {
-                if (_currentHost != _hn.hostName)
+                if (determinePath)
                 {
-                    if (fileHandle != null)
+                    // Determine share path to connect to
+                    path = "\\\\curtis-pc\\New Music";
+                    determinePath = false;
+                    // If !useAlternateCreds enabled
+                    if (false)
                     {
-                        fileHandle.Dispose();
-                        fileHandle = null;
-                    }
-
-                    if (_pluginNode != null && !String.IsNullOrEmpty(_hn.hostName))
-                    {
-                        OpenHandle(_hn.hostName);
-                    }
-
-                    _currentHost = _hn.hostName;
-                }
-                _hn.IsConnectionSuccess = true;
-            }
-            else
-                _hn.IsConnectionSuccess = false;
-        }
-
-        private void cm_OnConnect(object sender, EventArgs e)
-        {
-            //check if we are joined to a domain -- if not, use simple bind
-            uint requestedFields = (uint)Hostinfo.FieldBitmaskBits.FQ_HOSTNAME;
-            //string domainFQDN = null;
-
-            if (_hn == null)
-            {
-                _hn = new Hostinfo();
-            }
-
-            //TODO: kerberize eventlog, so that creds are meaningful.
-            //for now, there's no reason to attempt single sign-on
-            requestedFields |= (uint)Hostinfo.FieldBitmaskBits.FORCE_USER_PROMPT;
-
-            if (_hn != null)
-            {
-                if (!_container.GetTargetMachineInfo(this, _hn, requestedFields))
-                {
-                    Logger.Log(
-                    "Could not find information about target machine",
-                    Logger.FileBrowserLogLevel);                   
-                }
-                else
-                {
-                    if (_pluginNode != null && !String.IsNullOrEmpty(_hn.hostName))
-                    {
-                        _pluginNode.sc.ShowControl(_pluginNode);
+                        initialConnect = true;
                     }
                     else
                     {
-                        Logger.ShowUserError("Unable to find the hostname that enterted");
-                        _hn.IsConnectionSuccess = false;
+                        error = WinError.ERROR_ACCESS_DENIED;
                     }
                 }
+
+                if (initialConnect)
+                {
+                    Application.UseWaitCursor = true;
+                    error = FileClient.FileClient.CreateConnection(path, null, null);
+                    Application.UseWaitCursor = false;
+                    initialConnect = false;
+                }
+
+                if (error == WinError.ERROR_SUCCESS)
+                {
+                    // Refresh Network connection list and exit
+                    break;
+                }
+
+                if (error == WinError.ERROR_BAD_NET_NAME)
+                {
+                    // Show share path connect dialog to allow the user to correct the bad path
+                    determinePath = true;
+                    continue;
+                }
+
+                if (error == WinError.ERROR_DOWNGRADE_DETECTED ||
+                    error == WinError.ERROR_ACCESS_DENIED ||
+                    error == WinError.ERROR_SESSION_CREDENTIAL_CONFLICT ||
+                    error == WinError.ERROR_BAD_USERNAME ||
+                    error == WinError.ERROR_INVALID_PASSWORD ||
+                    error == WinError.ERROR_LOGON_TYPE_NOT_GRANTED)
+                {
+                    // Prompt for updated user credentials to access share
+                    CredentialsDialog credDialog = new CredentialsDialog(username);
+
+                    if (credDialog.ShowDialog() == DialogResult.OK)
+                    {
+                        if (credDialog.UseDefaultUserCreds())
+                        {
+                            initialConnect = true;
+                            username = null;
+                            continue;
+                        }
+
+                        username = credDialog.GetUsername();
+
+                        Application.UseWaitCursor = true;
+                        error = FileClient.FileClient.CreateConnection(path,
+                                                                       username,
+                                                                       credDialog.GetPassword());
+                        Application.UseWaitCursor = false;
+                        continue;
+                    }
+                    else
+                    {
+                        // Cancel Connect To attempt
+                        break;
+                    }
+                }
+                else
+                {
+                    // Encounter unexpected error
+                    break;
+                }
             }
+        }
+
+        private void cm_OnDisconnectShare(object sender, EventArgs e)
+        {
+            //WinError error = DeleteConnection(name);
         }
 
         #endregion

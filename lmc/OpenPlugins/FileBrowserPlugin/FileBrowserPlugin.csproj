@@ -52,36 +52,6 @@
     <Compile Include="src\FileBrowserPage.cs">
       <SubType>UserControl</SubType>
     </Compile>
-    <Compile Include="src\NewShareFinishPage.cs">
-      <SubType>UserControl</SubType>
-    </Compile>
-    <Compile Include="src\NewShareFinishPage.designer.cs">
-      <DependentUpon>NewShareFinishPage.cs</DependentUpon>
-    </Compile>
-    <Compile Include="src\NewShareFolderSetUpPage.cs">
-      <SubType>UserControl</SubType>
-    </Compile>
-    <Compile Include="src\NewShareFolderSetUpPage.designer.cs">
-      <DependentUpon>NewShareFolderSetUpPage.cs</DependentUpon>
-    </Compile>
-    <Compile Include="src\NewSharePermissionsPage.cs">
-      <SubType>UserControl</SubType>
-    </Compile>
-    <Compile Include="src\NewSharePermissionsPage.designer.cs">
-      <DependentUpon>NewSharePermissionsPage.cs</DependentUpon>
-    </Compile>
-    <Compile Include="src\NewShareWelcomePage.cs">
-      <SubType>UserControl</SubType>
-    </Compile>
-    <Compile Include="src\NewShareWelcomePage.designer.cs">
-      <DependentUpon>NewShareWelcomePage.cs</DependentUpon>
-    </Compile>
-    <Compile Include="src\NewShareWizardDlg.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="src\NewShareWizardDlg.designer.cs">
-      <DependentUpon>NewShareWizardDlg.cs</DependentUpon>
-    </Compile>
     <Compile Include="src\ShareGeneralEditPage.cs">
       <SubType>UserControl</SubType>
     </Compile>
@@ -109,26 +79,6 @@
       <SubType>Designer</SubType>
       <DependentUpon>FileBrowserPage.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="src\NewShareFinishPage.resx">
-      <DependentUpon>NewShareFinishPage.cs</DependentUpon>
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
-    <EmbeddedResource Include="src\NewShareFolderSetUpPage.resx">
-      <DependentUpon>NewShareFolderSetUpPage.cs</DependentUpon>
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
-    <EmbeddedResource Include="src\NewSharePermissionsPage.resx">
-      <DependentUpon>NewSharePermissionsPage.cs</DependentUpon>
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
-    <EmbeddedResource Include="src\NewShareWelcomePage.resx">
-      <DependentUpon>NewShareWelcomePage.cs</DependentUpon>
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
-    <EmbeddedResource Include="src\NewShareWizardDlg.resx">
-      <DependentUpon>NewShareWizardDlg.cs</DependentUpon>
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
     <EmbeddedResource Include="src\ShareGeneralEditPage.resx">
       <DependentUpon>ShareGeneralEditPage.cs</DependentUpon>
       <SubType>Designer</SubType>
@@ -153,6 +103,10 @@
     <ProjectReference Include="..\..\AuthUtils\AuthUtils.csproj">
       <Project>{805A93D2-3B90-4A27-B319-73D86363470A}</Project>
       <Name>AuthUtils</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\LikewiseClassLibraries\FileClientApi\FileClientApi.csproj">
+      <Project>{FB091F6B-D872-4644-9037-94096D4A62DF}</Project>
+      <Name>FileClientApi</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\LikewiseClassLibraries\NetApi\NetApi.csproj">
       <Project>{978100A9-9BF2-49A9-8E2B-57DB61907526}</Project>
