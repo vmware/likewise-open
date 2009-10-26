@@ -421,6 +421,8 @@ PvfsCreateFileOpenOrOverwrite(
                   FALSE);
     BAIL_ON_NT_STATUS(ntError);
 
+    pCreateCtx->bFileExisted = TRUE;
+
     ntError = PvfsAccessCheckFile(
                   pCreateCtx->pCcb->pUserToken,
                   pCreateCtx->pszDiskFilename,
