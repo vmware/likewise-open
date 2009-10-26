@@ -542,6 +542,7 @@ PvfsFreeNotifyRecord(
 VOID
 PvfsNotifyScheduleFullReport(
     PPVFS_FCB pFcb,
+    FILE_NOTIFY_CHANGE Filter,
     FILE_ACTION Action,
     PCSTR pszFilename
     );

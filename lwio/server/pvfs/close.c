@@ -108,6 +108,31 @@ PvfsClose(
         ntError = PvfsSysClose(pCcb->fd);
     }
 
+    /* Technically, it would be more proper to do this in the utility
+       functions in PvfsFreeFCB, but we will end up with memory corruption
+       since the FCB is already well on it's way to be free'd.  Can't
+       schedule a work item using a free'd FCB */
+
+    if (pCcb->CreateOptions & FILE_DELETE_ON_CLOSE)
+    {
+        PvfsNotifyScheduleFullReport(
+            pCcb->pFcb,
+            PVFS_IS_DIR(pCcb) ?
+                FILE_NOTIFY_CHANGE_DIR_NAME :
+                FILE_NOTIFY_CHANGE_FILE_NAME,
+            FILE_ACTION_REMOVED,
+            pCcb->pszFilename);
+    }
+
+    if (pCcb->ChangeEvent != 0)
+    {
+        PvfsNotifyScheduleFullReport(
+            pCcb->pFcb,
+            pCcb->ChangeEvent,
+            FILE_ACTION_MODIFIED,
+            pCcb->pszFilename);
+    }
+
 cleanup:
     /* This is the final Release that will free the memory */
 

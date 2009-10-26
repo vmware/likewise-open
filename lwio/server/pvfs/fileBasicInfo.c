@@ -191,6 +191,8 @@ PvfsSetFileBasicInfo(
     IRP_ARGS_QUERY_SET_INFORMATION Args = pIrpContext->pIrp->Args.QuerySetInformation;
     LONG64 WriteTime = 0;
     LONG64 AccessTime = 0;
+    FILE_NOTIFY_CHANGE NotifyFilter = FILE_NOTIFY_CHANGE_LAST_WRITE |
+                                      FILE_NOTIFY_CHANGE_LAST_ACCESS;
 
     /* Sanity checks */
 
@@ -231,7 +233,7 @@ PvfsSetFileBasicInfo(
 
     /* Save for "sticky" WriteTime sematics */
 
-    if (WriteTime != 0 && pCcb->pFcb) {
+    if (WriteTime != 0) {
         pCcb->pFcb->LastWriteTime = WriteTime;
     }
 
@@ -244,11 +246,13 @@ PvfsSetFileBasicInfo(
         BAIL_ON_NT_STATUS(ntError);
 
         if (WriteTime == 0) {
+            NotifyFilter &= ~FILE_NOTIFY_CHANGE_LAST_WRITE;
             ntError = PvfsUnixToWinTime(&WriteTime, Stat.s_mtime);
             BAIL_ON_NT_STATUS(ntError);
         }
 
         if (AccessTime == 0) {
+            NotifyFilter &= ~FILE_NOTIFY_CHANGE_LAST_ACCESS;
             ntError = PvfsUnixToWinTime(&AccessTime, Stat.s_atime);
             BAIL_ON_NT_STATUS(ntError);
         }
@@ -264,6 +268,15 @@ PvfsSetFileBasicInfo(
 
     pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);
     ntError = STATUS_SUCCESS;
+
+    if (NotifyFilter != 0)
+    {
+        PvfsNotifyScheduleFullReport(
+            pCcb->pFcb,
+            NotifyFilter,
+            FILE_ACTION_MODIFIED,
+            pCcb->pFcb->pszFilename);
+    }
 
 cleanup:
     if (pCcb) {

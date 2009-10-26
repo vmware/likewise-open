@@ -111,6 +111,11 @@
         }                                       \
     } while (0)
 
+#define PVFS_ALIGN_MEMORY(bytes, n)               \
+    if ((bytes) % (n)) {                          \
+        bytes += (n) - ((bytes) % (n));           \
+    }
+
 #define PVFS_PTR_DIFF(old,new)  ((size_t)((new)-(old)))
 
 #define PVFS_IS_DIR(pCcb)       \

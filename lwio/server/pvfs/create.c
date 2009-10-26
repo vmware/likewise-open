@@ -205,14 +205,23 @@ PvfsCreateFileDoSysOpen(
         pCreateContext->pCcb->pFcb->bDeleteOnClose = TRUE;
     }
 
-    ntError = PvfsStoreCCB(pIrp->FileHandle, pCreateContext->pCcb);
-    BAIL_ON_NT_STATUS(ntError);
-    pCreateContext->pCcb = NULL;
-
     CreateResult = PvfsSetCreateResult(
                        Args.CreateDisposition,
                        pCreateContext->bFileExisted,
                        STATUS_SUCCESS);
+
+    if (CreateResult == FILE_CREATED)
+    {
+        PvfsNotifyScheduleFullReport(
+            pCreateContext->pCcb->pFcb,
+            FILE_NOTIFY_CHANGE_FILE_NAME,
+            FILE_ACTION_ADDED,
+            pCreateContext->pCcb->pszFilename);
+    }
+
+    ntError = PvfsStoreCCB(pIrp->FileHandle, pCreateContext->pCcb);
+    BAIL_ON_NT_STATUS(ntError);
+    pCreateContext->pCcb = NULL;
 
 cleanup:
     pIrp->IoStatusBlock.CreateResult = CreateResult;
