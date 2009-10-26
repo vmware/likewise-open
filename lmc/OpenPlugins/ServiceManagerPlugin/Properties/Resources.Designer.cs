@@ -80,6 +80,13 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin.Properties {
             }
         }
         
+        internal static System.Drawing.Icon agent_lgr {
+            get {
+                object obj = ResourceManager.GetObject("agent_lgr", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Service Control Manager.
         /// </summary>

@@ -36,6 +36,8 @@ using System.Data;
 using System.Text;
 using System.Windows.Forms;
 using Likewise.LMC.ServerControl;
+using Likewise.LMC.LMConsoleUtils;
+
 namespace Likewise.LMC.Plugins.ServiceManagerPlugin
 {
     public partial class ServicePropertiesDlg : MPContainer
@@ -75,10 +77,12 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
                            new MPMenuItem(page.PageID, "General", "General"),
                            MPMenu.POSITION_BEGINING);
 
-            page = new ServiceRecoveryPage(this._container, this._plugin, serviceName);
-            this.AddPage(page,
-                           new MPMenuItem(page.PageID, "Recovery", "Recovery"),
-                           MPMenu.POSITION_BEGINING);  
+            if (Configurations.currentPlatform == LikewiseTargetPlatform.Windows) {
+                page = new ServiceRecoveryPage(this._container, this._plugin, serviceName);
+                this.AddPage(page,
+                               new MPMenuItem(page.PageID, "Recovery", "Recovery"),
+                               MPMenu.POSITION_BEGINING);
+            }
 
             foreach (IDirectoryPropertiesPage ppage in this.GetPages())
             {

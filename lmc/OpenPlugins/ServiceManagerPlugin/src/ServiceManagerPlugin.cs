@@ -279,13 +279,14 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
         #endregion
 
         #region Private Methods
+
         private LACTreeNode GetServiceManagerNode()
         {
             Logger.Log("ServiceManagerPlugin.GetServiceManagerNode", Logger.ServiceManagerLoglevel);
 
             if (_pluginNode == null)
             {
-                Icon ic = CommonResources.GetIcon("agent_lgr");
+                Icon ic = Properties.Resources.agent_lgr;
                 _pluginNode = Manage.CreateIconNode(Properties.Resources.ServiceManager, ic, typeof(ServiceManagerEditorPage), this);
                 _pluginNode.ImageIndex = (int)Manage.ManageImageType.Generic;
                 _pluginNode.SelectedImageIndex = (int)Manage.ManageImageType.Generic;

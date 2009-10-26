@@ -167,7 +167,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
                                         break;
                                 }
 
-                                ListViewItem lvItem = new ListViewItem(new string[] { serviceInfo.pwszName, 
+                                ListViewItem lvItem = new ListViewItem(new string[] { name,
                                                 serviceInfo.pwszDescription, 
                                                 serviceState,
                                                 (serviceInfo.bAutostart)?"Automatic": "Manual", 
@@ -209,6 +209,11 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
                 Process.Start(psi);
                 return;
             }
+            else if (mi.Text.Trim().Equals("&Properties"))
+            {
+                ServicePropertiesDlg dlg = new ServicePropertiesDlg(base.container, this, plugin, serviceInfo.serviceName.Trim());
+                dlg.Show();
+            }
             else
             {
                 if (Configurations.currentPlatform == LikewiseTargetPlatform.Windows)
@@ -219,11 +224,6 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
                             ServiceManagerWindowsWrapper.WMIServiceRestart(hn.hostName, hn.creds.UserName, hn.creds.Password, serviceInfo.serviceName);
                             break;
 
-                        case "&Properties":
-                            ServicePropertiesDlg dlg = new ServicePropertiesDlg(base.container, this, plugin, serviceInfo.serviceName.Trim());
-                            dlg.Show();
-                            break;
-
                         default:
                             Do_WinServiceInvoke(mi.Text.Trim());
                             break;
@@ -231,30 +231,46 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
                 }
                 else
                 {
+                    int iRet = 0;
                     IntPtr pHandle = ServiceManagerInteropWrapper.ApiLwSmAcquireServiceHandle(mi.Tag as string);
                     switch (mi.Text.Trim())
                     {
-                        case "&Restart":                            
-                            if (pHandle != IntPtr.Zero) {
-                                ServiceManagerInteropWrapper.ApiLwSmRefreshService(pHandle);                                
+                        case "&Restart":
+                            if (pHandle != IntPtr.Zero)
+                            {
+                                iRet = ServiceManagerInteropWrapper.ApiLwSmRefreshService(pHandle);
+                                if (iRet == 0)
+                                    lvService.SelectedItems[0].SubItems[2].Text = "Running";
                             }
                             break;
 
                         case "&Start":
-                            if (pHandle != IntPtr.Zero)   {
-                                ServiceManagerInteropWrapper.ApiLwSmStartService(pHandle);                               
+                            if (pHandle != IntPtr.Zero)
+                            {
+                                iRet = ServiceManagerInteropWrapper.ApiLwSmStartService(pHandle);
+                                if (iRet == 0)
+                                    lvService.SelectedItems[0].SubItems[2].Text = "Running";
                             }
                             break;
 
-                        case "&Stop":                            
-                            if (pHandle != IntPtr.Zero)  {
-                                ServiceManagerInteropWrapper.ApiLwSmStopService(pHandle);                                
+                        case "&Stop":
+                            if (pHandle != IntPtr.Zero)
+                            {
+                                iRet = ServiceManagerInteropWrapper.ApiLwSmStopService(pHandle);
+                                if (iRet == 0)
+                                    lvService.SelectedItems[0].SubItems[2].Text = "Stopped";
                             }
-                            break;                        
+                            break;
 
                         default:
                             break;
                     }
+                    if (iRet == (int)41202) {
+                        container.ShowError("The service is unable to start.\nPlease check the all its dependencies are started");
+                    }
+                    else if (iRet !=0 )
+                        container.ShowError("Failed to start the specified service: error code:" + iRet);
+
                     ServiceManagerInteropWrapper.ApiLwSmReleaseServiceHandle(pHandle);
                 }
             }
@@ -272,6 +288,35 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
         public void Do_LogonUserHandleClose()
         {
 
+        }
+
+        private ServiceInfo GetUnixServiceInfo(string sservicename)
+        {
+            ServiceInfo serviceInfo = new ServiceInfo();
+            serviceInfo.serviceName = lvService.SelectedItems[0].SubItems[0].Text;
+
+            IntPtr pHandle = ServiceManagerInteropWrapper.ApiLwSmAcquireServiceHandle(serviceInfo.serviceName);
+            if (pHandle != IntPtr.Zero)
+            {
+                ServiceManagerApi.LW_SERVICE_STATUS serviceStatus = ServiceManagerInteropWrapper.ApiLwSmQueryServiceStatus(pHandle);
+                switch (serviceStatus.state)
+                {
+                    case ServiceManagerApi.LW_SERVICE_STATE.LW_SERVICE_STATE_RUNNING:
+                    case ServiceManagerApi.LW_SERVICE_STATE.LW_SERVICE_STATE_STARTING:
+                        serviceInfo.IsRunning = true;
+                        break;
+
+                    case ServiceManagerApi.LW_SERVICE_STATE.LW_SERVICE_STATE_STOPPED:
+                    case ServiceManagerApi.LW_SERVICE_STATE.LW_SERVICE_STATE_STOPPING:
+                    case ServiceManagerApi.LW_SERVICE_STATE.LW_SERVICE_STATE_PAUSED:
+                    case ServiceManagerApi.LW_SERVICE_STATE.LW_SERVICE_STATE_DEAD:
+                        serviceInfo.IsRunning = false;
+                        break;
+                }
+                ServiceManagerInteropWrapper.ApiLwSmReleaseServiceHandle(pHandle);
+            }
+
+            return serviceInfo;
         }
 
         private string GetServiceAction(string sServiceType)
@@ -338,13 +383,19 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
 
             MenuItem m_item = new MenuItem("&Start", new EventHandler(On_MenuClick));
             m_item.Tag = lvService.SelectedItems[0].Tag;
-            m_item.Enabled = serviceInfo == null ? false : (serviceInfo.IsDisabled) ? false : !serviceInfo.IsRunning;
+            if (Configurations.currentPlatform == LikewiseTargetPlatform.Windows)
+                m_item.Enabled = serviceInfo == null ? false : (serviceInfo.IsDisabled) ? false : !serviceInfo.IsRunning;
+            else
+                m_item.Enabled = serviceInfo == null ? false : !serviceInfo.IsRunning;
             cm.MenuItems.Add(0, m_item);
 
             m_item = new MenuItem("&Stop", new EventHandler(On_MenuClick));
             m_item.Tag = lvService.SelectedItems[0].Tag;
-            m_item.Enabled = serviceInfo == null ? false : (serviceInfo.IsDisabled) ? false :
-                                                                                      (serviceInfo.IsAcceptStop) ? serviceInfo.IsRunning : false;
+            if (Configurations.currentPlatform == LikewiseTargetPlatform.Windows)
+                m_item.Enabled = serviceInfo == null ? false : (serviceInfo.IsDisabled) ? false :
+                                                                                          (serviceInfo.IsAcceptStop) ? serviceInfo.IsRunning : false;
+            else
+                m_item.Enabled = serviceInfo == null ? false : serviceInfo.IsRunning;
             cm.MenuItems.Add(m_item);
 
             if (Configurations.currentPlatform == LikewiseTargetPlatform.Windows)
@@ -364,8 +415,11 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
 
             m_item = new MenuItem("&Restart", new EventHandler(On_MenuClick));
             m_item.Tag = lvService.SelectedItems[0].Tag;
-            m_item.Enabled = serviceInfo == null ? false : (serviceInfo.IsDisabled) ? false :
-                                                                                      serviceInfo.IsRunning ? true : false;
+            if (Configurations.currentPlatform == LikewiseTargetPlatform.Windows)
+                m_item.Enabled = serviceInfo == null ? false : (serviceInfo.IsDisabled) ? false :
+                                                                                          serviceInfo.IsRunning ? true : false;
+            else
+                m_item.Enabled = serviceInfo == null ? false : serviceInfo.IsRunning;
             cm.MenuItems.Add(m_item);
 
             m_item = new MenuItem("-");
@@ -416,13 +470,10 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
                     {
                         lvitem.Selected = true;
                     }
-                    if (lvitem.Tag is string)
+                    if (lvitem.Tag is string && Configurations.currentPlatform == LikewiseTargetPlatform.Windows)
                         serviceInfo = ServiceManagerWindowsWrapper.GetServiceStateInfo(hn.hostName, hn.creds.UserName, hn.creds.Password, lvitem.Tag as string);
                     else
-                    {
-                        serviceInfo = new ServiceInfo();
-                        serviceInfo.serviceName = lvitem.SubItems[0].Text;
-                    }
+                        serviceInfo = GetUnixServiceInfo(lvitem.SubItems[0].Text.Trim());
 
                     ContextMenu cm = GetTreeContextMenu();
                     if (cm != null)

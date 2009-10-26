@@ -40,6 +40,7 @@ using System.Management;
 
 using Likewise.LMC.ServerControl;
 using Likewise.LMC.Services;
+using Likewise.LMC.LMConsoleUtils;
 
 namespace Likewise.LMC.Plugins.ServiceManagerPlugin
 {
@@ -73,6 +74,20 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             this.ParentContainer.btnApply.Enabled = true;
             this.ParentContainer.DataChanged = true;
 
+            if (Configurations.currentPlatform == LikewiseTargetPlatform.Windows) {
+                GetWindowsServiceInfo();
+            }
+            else{
+                GetUnixServiceInfo();
+            }
+        }
+
+        #endregion
+
+        #region Helper functions
+
+        private void GetWindowsServiceInfo()
+        {
             foreach (ManagementObject mo in ServiceManagerWindowsWrapper.GetServiceCollection(_plugin.HostInfo.hostName, _plugin.HostInfo.creds.UserName, _plugin.HostInfo.creds.Password, serviceName))
             {
                 bool canPause = (bool)mo["AcceptPause"];
@@ -125,6 +140,75 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             }
         }
 
+        private void GetUnixServiceInfo()
+        {
+            txtStartParameters.Text = string.Empty;
+            IntPtr pHandle = ServiceManagerInteropWrapper.ApiLwSmAcquireServiceHandle(serviceName);
+            if (pHandle != IntPtr.Zero)
+            {
+                string sArgs = string.Empty;
+                ServiceManagerApi.LW_SERVICE_STATUS serviceStatus = ServiceManagerInteropWrapper.ApiLwSmQueryServiceStatus(pHandle);
+                ServiceManagerApi.LW_SERVICE_INFO serviceInfo = ServiceManagerInteropWrapper.ApiLwSmQueryServiceInfo(pHandle);
+
+                lblServiceNameValue.Text = serviceName;
+                txtDisplayName.Text = serviceInfo.pwszName;
+                txtDescription.Text = serviceInfo.pwszDescription;
+                txtPathToExecute.Text = serviceInfo.pwszPath;
+
+                foreach (string args in serviceInfo.ppwszArgs)
+                    txtStartParameters.Text += " " + args;
+
+                txtStartParameters.Text = txtStartParameters.Text.Trim();
+                btnPause.Visible = btnResume.Visible = false;
+
+                switch (serviceStatus.state)
+                {
+                    case ServiceManagerApi.LW_SERVICE_STATE.LW_SERVICE_STATE_DEAD:
+                        lblServiceStatusValue.Text = "Dead";
+                        break;
+
+                    case ServiceManagerApi.LW_SERVICE_STATE.LW_SERVICE_STATE_PAUSED:
+                        lblServiceStatusValue.Text = "Paused";
+                        break;
+
+                    case ServiceManagerApi.LW_SERVICE_STATE.LW_SERVICE_STATE_RUNNING:
+                        lblServiceStatusValue.Text = "Running";
+                        break;
+
+                    case ServiceManagerApi.LW_SERVICE_STATE.LW_SERVICE_STATE_STARTING:
+                        lblServiceStatusValue.Text = "Starting";
+                        break;
+
+                    case ServiceManagerApi.LW_SERVICE_STATE.LW_SERVICE_STATE_STOPPED:
+                        lblServiceStatusValue.Text = "Stopped";
+                        break;
+
+                    case ServiceManagerApi.LW_SERVICE_STATE.LW_SERVICE_STATE_STOPPING:
+                        lblServiceStatusValue.Text = "Stopping";
+                        break;
+                }
+
+                switch (serviceStatus.state)
+                {
+                    case ServiceManagerApi.LW_SERVICE_STATE.LW_SERVICE_STATE_RUNNING:
+                    case ServiceManagerApi.LW_SERVICE_STATE.LW_SERVICE_STATE_STARTING:
+                        btnStart.Enabled = false;
+                        btnStop.Enabled = true;
+                        break;
+
+
+                    case ServiceManagerApi.LW_SERVICE_STATE.LW_SERVICE_STATE_STOPPED:
+                    case ServiceManagerApi.LW_SERVICE_STATE.LW_SERVICE_STATE_STOPPING:
+                    case ServiceManagerApi.LW_SERVICE_STATE.LW_SERVICE_STATE_PAUSED:
+                    case ServiceManagerApi.LW_SERVICE_STATE.LW_SERVICE_STATE_DEAD:
+                        btnStart.Enabled = true;
+                        btnStop.Enabled = false;
+                        break;
+                }
+                ServiceManagerInteropWrapper.ApiLwSmReleaseServiceHandle(pHandle);
+            }
+        }
+
         #endregion
 
         #region Event Handlers
@@ -132,22 +216,41 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
         private void btnStart_Click(object sender, EventArgs e)
         {
             //Start Parameters are not implemented
-            ServiceController sc = new ServiceController(serviceName);
-            if (sc != null)
-            {
-                sc.Start();
-                sc.WaitForStatus(ServiceControllerStatus.Running);
+            if (Configurations.currentPlatform == LikewiseTargetPlatform.Windows) {
+                ServiceController sc = new ServiceController(serviceName);
+                if (sc != null)
+                {
+                    sc.Start();
+                    sc.WaitForStatus(ServiceControllerStatus.Running);
+                }
+            }
+            else {
+                IntPtr pHandle = ServiceManagerInteropWrapper.ApiLwSmAcquireServiceHandle(serviceName);
+                if (pHandle != IntPtr.Zero)
+                {
+                    ServiceManagerInteropWrapper.ApiLwSmStartService(pHandle);
+                    ServiceManagerInteropWrapper.ApiLwSmReleaseServiceHandle(pHandle);
+                }
             }
             SetData();
         }
 
         private void btnStop_Click(object sender, EventArgs e)
         {
-            ServiceController sc = new ServiceController(serviceName);
-            if (sc != null)
-            {
-                sc.Stop();
-                sc.WaitForStatus(ServiceControllerStatus.Stopped);
+            if (Configurations.currentPlatform == LikewiseTargetPlatform.Windows) {
+                ServiceController sc = new ServiceController(serviceName);
+                if (sc != null)
+                {
+                    sc.Stop();
+                    sc.WaitForStatus(ServiceControllerStatus.Stopped);
+                }
+            }
+            else {
+                IntPtr pHandle = ServiceManagerInteropWrapper.ApiLwSmAcquireServiceHandle(serviceName);
+                if (pHandle != IntPtr.Zero) {
+                    ServiceManagerInteropWrapper.ApiLwSmStopService(pHandle);
+                    ServiceManagerInteropWrapper.ApiLwSmReleaseServiceHandle(pHandle);
+                }
             }
             SetData();
         }
