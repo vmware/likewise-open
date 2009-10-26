@@ -233,6 +233,12 @@ PvfsSetFileAttributes(
 
     BAIL_ON_NT_STATUS(ntError);
 
+    PvfsNotifyScheduleFullReport(
+        pCcb->pFcb,
+        FILE_NOTIFY_CHANGE_ATTRIBUTES,
+        FILE_ACTION_MODIFIED,
+        pCcb->pszFilename);
+
 cleanup:
     return ntError;
 

@@ -210,18 +210,22 @@ PvfsSetFileRenameInfo(
 
     PvfsNotifyScheduleFullReport(
         pCcb->pFcb,
+        PVFS_IS_DIR(pCcb) ? FILE_NOTIFY_CHANGE_DIR_NAME : FILE_NOTIFY_CHANGE_FILE_NAME,
         FILE_ACTION_RENAMED_NEW_NAME,
         pCcb->pszFilename);
 
 cleanup:
-    RTL_FREE(&pszNewPathname);
-    RTL_FREE(&pszNewFileDirname);
-    RTL_FREE(&pszNewFileBasename);
+    LwRtlCStringFree(&pszNewPathname);
+    LwRtlCStringFree(&pszNewFileDirname);
+    LwRtlCStringFree(&pszNewFileBasename);
 
-    if (pCcb) {
+    if (pCcb)
+    {
         PvfsReleaseCCB(pCcb);
     }
-    if (pRootDirCcb) {
+
+    if (pRootDirCcb)
+    {
         PvfsReleaseCCB(pRootDirCcb);
     }
 

@@ -218,6 +218,17 @@ PvfsWriteFileWithContext(
     pIrp->IoStatusBlock.BytesTransferred = totalBytesWritten;
     ntError = STATUS_SUCCESS;
 
+    if (totalBytesWritten > 0)
+    {
+        pCcb->ChangeEvent |= FILE_NOTIFY_CHANGE_LAST_WRITE;
+
+        if ((Offset + totalBytesWritten) > pCcb->FileSize)
+        {
+            pCcb->FileSize = Offset + totalBytesWritten;
+            pCcb->ChangeEvent |= FILE_NOTIFY_CHANGE_SIZE;
+        }
+    }
+
 cleanup:
     LWIO_UNLOCK_MUTEX(bMutexLocked, &pCcb->FileMutex);
 

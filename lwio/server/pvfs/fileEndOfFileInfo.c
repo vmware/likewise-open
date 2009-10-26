@@ -228,6 +228,13 @@ PvfsSetEndOfFileWithContext(
     pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);
     ntError = STATUS_SUCCESS;
 
+    PvfsNotifyScheduleFullReport(
+        pCcb->pFcb,
+        FILE_NOTIFY_CHANGE_SIZE,
+        FILE_ACTION_MODIFIED,
+        pCcb->pszFilename);
+
+
 cleanup:
     return ntError;
 

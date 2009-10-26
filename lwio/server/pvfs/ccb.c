@@ -258,6 +258,7 @@ PvfsSaveFileDeviceInfo(
 
     pCcb->FileId.Device = Stat.s_dev;
     pCcb->FileId.Inode  = Stat.s_ino;
+    pCcb->FileSize = Stat.s_size;
 
     if ((pFcb->FileId.Device == 0) || (pFcb->FileId.Inode == 0))
     {

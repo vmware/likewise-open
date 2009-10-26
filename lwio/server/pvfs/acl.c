@@ -303,6 +303,13 @@ PvfsSetSecurityDescriptorFile(
 
     BAIL_ON_NT_STATUS(ntError);
 
+    PvfsNotifyScheduleFullReport(
+        pCcb->pFcb,
+        FILE_NOTIFY_CHANGE_SECURITY,
+        FILE_ACTION_MODIFIED,
+        pCcb->pszFilename);
+
+
 cleanup:
     PVFS_FREE(&pSDCur);
     PVFS_FREE(&pNewSecDesc);
