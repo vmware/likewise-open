@@ -392,7 +392,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
 
             if (_pluginNode == null)
             {
-                Icon ic = CommonResources.GetIcon("agent_lgr");//Properties.Resources.agent_lgr;
+                Icon ic = Properties.Resources.agent_lgr;
                 _pluginNode = Manage.CreateIconNode("Registry Editor", ic, typeof(RegistryEditorPage), this);
                 _pluginNode.ImageIndex = (int)Manage.ManageImageType.Generic;
                 _pluginNode.SelectedImageIndex = (int)Manage.ManageImageType.Generic;
