@@ -92,6 +92,10 @@ PvfsQueueCancelIrp(
         ntError = PvfsScheduleCancelLock(pIrpContext);
         break;
 
+    case PVFS_QUEUE_TYPE_NOTIFY:
+        ntError = PvfsScheduleCancelNotify(pIrpContext);
+        break;
+
     default:
         /* Should never be reachable */
         PVFS_ASSERT(FALSE);

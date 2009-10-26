@@ -118,6 +118,11 @@ ListOpenFiles(
     char *pszInfoLevel
     );
 
+NTSTATUS
+TestReadDirectoryChange(
+    char *pszFilename
+    );
+
 
 
 #endif /* _TEST_PVFS_PROTOTYPES_H_ */

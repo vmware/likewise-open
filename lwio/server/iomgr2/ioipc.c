@@ -735,6 +735,53 @@ cleanup:
 }
 
 LWMsgStatus
+IopIpcReadDirectoryChangeFile(
+    IN LWMsgCall* pCall,
+    IN const LWMsgParams* pIn,
+    OUT LWMsgParams* pOut,
+    IN void* pData
+    )
+{
+    NTSTATUS status = 0;
+    int EE = 0;
+    const LWMsgTag messageType = NT_IPC_MESSAGE_TYPE_READ_DIRECTORY_CHANGE_FILE;
+    const LWMsgTag replyType = NT_IPC_MESSAGE_TYPE_READ_DIRECTORY_CHANGE_FILE_RESULT;
+    PNT_IPC_MESSAGE_READ_DIRECTORY_CHANGE_FILE pMessage = (PNT_IPC_MESSAGE_READ_DIRECTORY_CHANGE_FILE) pIn->data;
+    PNT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT pReply = NULL;
+    IO_STATUS_BLOCK ioStatusBlock = { 0 };
+
+    assert(messageType == pIn->tag);
+
+    status = IO_ALLOCATE(&pReply, NT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT, sizeof(*pReply));
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    pOut->tag = replyType;
+    pOut->data = pReply;
+
+    if (pMessage->Length)
+    {
+        pReply->Status = IO_ALLOCATE(&pReply->Buffer, VOID, pMessage->Length);
+        GOTO_CLEANUP_ON_STATUS_EE(pReply->Status, EE);
+    }
+
+    pReply->Status = IoReadDirectoryChangeFile(
+                            pMessage->FileHandle,
+                            NULL,
+                            &ioStatusBlock,
+                            pReply->Buffer,
+                            pMessage->Length,
+                            pMessage->WatchTree,
+                            pMessage->NotifyFilter,
+                            pMessage->MaxBufferSize);
+    pReply->Status = ioStatusBlock.Status;
+    pReply->BytesTransferred = ioStatusBlock.BytesTransferred;
+
+cleanup:
+    LOG_LEAVE_IF_STATUS_EE(status, EE);
+    return NtIpcNtStatusToLWMsgStatus(status);
+}
+
+LWMsgStatus
 IopIpcQueryVolumeInformationFile(
     IN LWMsgCall* pCall,
     IN const LWMsgParams* pIn,
@@ -956,6 +1003,7 @@ LWMsgDispatchSpec gIopIpcDispatchSpec[] =
     LWMSG_DISPATCH_BLOCK(NT_IPC_MESSAGE_TYPE_QUERY_INFORMATION_FILE, IopIpcQueryInformationFile),
     LWMSG_DISPATCH_BLOCK(NT_IPC_MESSAGE_TYPE_SET_INFORMATION_FILE,   IopIpcSetInformationFile),
     LWMSG_DISPATCH_BLOCK(NT_IPC_MESSAGE_TYPE_QUERY_DIRECTORY_FILE,   IopIpcQueryDirectoryFile),
+    LWMSG_DISPATCH_BLOCK(NT_IPC_MESSAGE_TYPE_READ_DIRECTORY_CHANGE_FILE,   IopIpcReadDirectoryChangeFile),
     LWMSG_DISPATCH_BLOCK(NT_IPC_MESSAGE_TYPE_QUERY_VOLUME_INFORMATION_FILE,   IopIpcQueryVolumeInformationFile),
     LWMSG_DISPATCH_BLOCK(NT_IPC_MESSAGE_TYPE_LOCK_FILE,              IopIpcLockFile),
     LWMSG_DISPATCH_BLOCK(NT_IPC_MESSAGE_TYPE_UNLOCK_FILE,            IopIpcUnlockFile),
