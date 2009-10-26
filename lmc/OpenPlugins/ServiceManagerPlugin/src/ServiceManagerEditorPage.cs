@@ -236,29 +236,20 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
                     switch (mi.Text.Trim())
                     {
                         case "&Restart":
-                            if (pHandle != IntPtr.Zero)
-                            {
+                            if (pHandle != IntPtr.Zero) {
                                 iRet = ServiceManagerInteropWrapper.ApiLwSmRefreshService(pHandle);
-                                if (iRet == 0)
-                                    lvService.SelectedItems[0].SubItems[2].Text = "Running";
                             }
                             break;
 
                         case "&Start":
-                            if (pHandle != IntPtr.Zero)
-                            {
-                                iRet = ServiceManagerInteropWrapper.ApiLwSmStartService(pHandle);
-                                if (iRet == 0)
-                                    lvService.SelectedItems[0].SubItems[2].Text = "Running";
+                            if (pHandle != IntPtr.Zero) {
+                                StartAllServiceDependencies(pHandle, iRet);
                             }
                             break;
 
                         case "&Stop":
-                            if (pHandle != IntPtr.Zero)
-                            {
+                            if (pHandle != IntPtr.Zero) {
                                 iRet = ServiceManagerInteropWrapper.ApiLwSmStopService(pHandle);
-                                if (iRet == 0)
-                                    lvService.SelectedItems[0].SubItems[2].Text = "Stopped";
                             }
                             break;
 
@@ -272,6 +263,12 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
                         container.ShowError("Failed to start the specified service: error code:" + iRet);
 
                     ServiceManagerInteropWrapper.ApiLwSmReleaseServiceHandle(pHandle);
+
+                    if (iRet == 0) {
+                        treeNode.IsModified = true;
+                        treeNode.sc.ShowControl(treeNode);
+                        return;
+                    }
                 }
             }
         }
@@ -319,6 +316,47 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             return serviceInfo;
         }
 
+        private int StartAllServiceDependencies(IntPtr pHandle, ref int iReturn)
+        {
+            if (pHandle != null)
+            {
+                string[] serviceDependencies = null;
+
+                iReturn = ServiceManagerInteropWrapper.ApiLwSmQueryServiceDependencyClosure(pHandle, out serviceDependencies);
+                if (iReturn != 0)
+                    return;
+
+                if (serviceDependencies != null && serviceDependencies.Length != 0) {
+                    foreach (string service in serviceDependencies)
+                    {
+                        IntPtr pDHandle = ServiceManagerInteropWrapper.ApiLwSmAcquireServiceHandle(service);
+                        if (pDHandle != IntPtr.Zero)
+                        {
+                            string[] serviceInnerDependencies = null;
+                            iReturn = ServiceManagerInteropWrapper.ApiLwSmQueryServiceDependencyClosure(pDHandle, out serviceInnerDependencies);
+                            if (iReturn == 0)
+                            {
+                                if (serviceInnerDependencies == null)
+                                {
+                                    iReturn = ServiceManagerInteropWrapper.ApiLwSmStartService(pDHandle);
+                                    if (iReturn != 0)
+                                        return;
+                                }
+                                else
+                                    StartAllServiceDependencies(pDHandle, ref iReturn);
+                            }
+                            else
+                                return;
+                        }
+                    }
+                }
+                else {
+                    iReturn = ServiceManagerInteropWrapper.ApiLwSmStartService(pDHandle);
+                }
+            }
+        }
+
+
         private string GetServiceAction(string sServiceType)
         {
             string ServiceAction = string.Empty;
@@ -348,9 +386,9 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
                 default:
                     break;
             }
-
             return ServiceAction;
         }
+
 
         private void Do_WinServiceInvoke(string sServiceType)
         {

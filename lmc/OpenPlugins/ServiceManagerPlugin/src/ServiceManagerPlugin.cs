@@ -385,17 +385,8 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
                 {
                     if (_pluginNode != null && !String.IsNullOrEmpty(_hn.hostName) && _hn.IsConnectionSuccess)
                     {
-                        //if (Configurations.currentPlatform != LikewiseTargetPlatform.Windows && handle == null)
-                        //{
-                        //    _container.ShowError("Unable to open the service manager handle");
-                        //    _pluginNode.sc.ShowControl(_pluginNode);
-                        //}
-                        //else
-                        //{
-                            _pluginNode.Text = string.Format(Properties.Resources.ServiceManager + " on " + _hn.hostName);
-
-                            ((ServiceManagerEditorPage)_pluginNode.PluginPage).Refresh();
-                        //}
+                        _pluginNode.Text = string.Format(Properties.Resources.ServiceManager + " on " + _hn.hostName);
+                        ((ServiceManagerEditorPage)_pluginNode.PluginPage).Refresh();
                     }
                 }
             }
