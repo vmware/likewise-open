@@ -114,13 +114,6 @@ typedef struct _PVFS_IRP_CONTEXT PVFS_IRP_CONTEXT, *PPVFS_IRP_CONTEXT;
 typedef struct _PVFS_CCB_LIST_NODE PVFS_CCB_LIST_NODE, *PPVFS_CCB_LIST_NODE;
 typedef struct _PVFS_OPLOCK_RECORD PVFS_OPLOCK_RECORD, *PPVFS_OPLOCK_RECORD;
 
-struct _PVFS_CCB_LIST_NODE
-{
-    PPVFS_CCB_LIST_NODE pNext;
-    PPVFS_CCB_LIST_NODE pPrevious;
-    PPVFS_CCB           pCcb;
-};
-
 typedef DWORD PVFS_LOCK_FLAGS;
 
 #define PVFS_LOCK_EXCLUSIVE            0x00000001
@@ -361,6 +354,8 @@ struct _PVFS_CCB
     PVFS_OPLOCK_STATE OplockState;
     ULONG OplockBreakResult;
 
+    FILE_NOTIFY_CHANGE ChangeEvent;
+    LONG64 FileSize;
 };
 
 typedef enum
@@ -439,20 +434,22 @@ typedef struct _PVFS_OPEN_FILE_INFO
 } PVFS_OPEN_FILE_INFO, *PPVFS_OPEN_FILE_INFO;
 
 
-typedef struct _PVFS_DIR_WATCH_BUFFER
+typedef struct _PVFS_NOTIFY_FILTER_BUFFER
 {
     PVOID pData;
     ULONG Length;
     ULONG Offset;
+    PFILE_NOTIFY_INFORMATION pNotify;
+    NTSTATUS Status;
 
-} PVFS_DIR_WATCH_BUFFER, *PPVFS_DIR_WATCH_BUFFER;
+} PVFS_NOTIFY_FILTER_BUFFER, *PPVFS_NOTIFY_FILTER_BUFFER;
 
 typedef struct _PVFS_NOTIFY_FILTER_RECORD
 {
     LW_LIST_LINKS NotifyList;
 
     PPVFS_IRP_CONTEXT pIrpContext;
-    PVFS_DIR_WATCH_BUFFER pBuffer;
+    PVFS_NOTIFY_FILTER_BUFFER Buffer;
     PPVFS_CCB pCcb;
     FILE_NOTIFY_CHANGE NotifyFilter;
     BOOLEAN bWatchTree;
@@ -462,6 +459,7 @@ typedef struct _PVFS_NOTIFY_FILTER_RECORD
 typedef struct _PVFS_NOTIFY_REPORT_RECORD
 {
     PPVFS_FCB pFcb;
+    FILE_NOTIFY_CHANGE Filter;
     FILE_ACTION Action;
     PSTR pszFilename;
 

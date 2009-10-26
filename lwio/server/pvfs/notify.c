@@ -62,6 +62,37 @@ PvfsNotifyAddFilter(
     BOOLEAN bWatchTree
     );
 
+static
+NTSTATUS
+PvfsNotifyAddFilterBuffer(
+    PPVFS_FCB pFcb,
+    ULONG MaxBufferSize,
+    PPVFS_CCB pCcb,
+    FILE_NOTIFY_CHANGE NotifyFilter,
+    BOOLEAN bWatchTree
+    );
+
+static
+NTSTATUS
+PvfsNotifyReportBufferedChanges(
+    PPVFS_CCB pCcb,
+    PPVFS_FCB pFcb,
+    PPVFS_IRP_CONTEXT pIrpContext
+    );
+
+static
+NTSTATUS
+PvfsNotifyAllocateChangeBuffer(
+    PPVFS_NOTIFY_FILTER_BUFFER pBuffer,
+    ULONG Length
+    );
+
+static
+VOID
+PvfsNotifyFreeChangeBuffer(
+    PPVFS_NOTIFY_FILTER_BUFFER pBuffer
+    );
+
 NTSTATUS
 PvfsReadDirectoryChange(
     PPVFS_IRP_CONTEXT  pIrpContext
@@ -71,6 +102,7 @@ PvfsReadDirectoryChange(
     PIRP pIrp = pIrpContext->pIrp;
     IRP_ARGS_READ_DIRECTORY_CHANGE Args = pIrp->Args.ReadDirectoryChange;
     PPVFS_CCB pCcb = NULL;
+    PULONG pMaxBufferSize = Args.MaxBufferSize;
 
     /* Sanity checks */
 
@@ -89,12 +121,38 @@ PvfsReadDirectoryChange(
     BAIL_ON_INVALID_PTR(Args.Buffer, ntError);
     BAIL_ON_ZERO_LENGTH(Args.Length, ntError);
 
-    ntError = PvfsNotifyAddFilter(
-                  pCcb->pFcb,
-                  pIrpContext,
+    /* If we have something in the buffer, return that immediately.  Else
+       register a notificationf ilter */
+
+    ntError = PvfsNotifyReportBufferedChanges(
                   pCcb,
-                  Args.NotifyFilter,
-                  Args.WatchTree);
+                  pCcb->pFcb,
+                  pIrpContext);
+    if (ntError == STATUS_NOT_FOUND)
+    {
+        ntError = PvfsNotifyAddFilter(
+                      pCcb->pFcb,
+                      pIrpContext,
+                      pCcb,
+                      Args.NotifyFilter,
+                      Args.WatchTree);
+        if (ntError == STATUS_SUCCESS)
+        {
+            /* Don't fail here since we have already added the
+               Filter record */
+            if (pMaxBufferSize && (*pMaxBufferSize != 0))
+            {
+                ntError = PvfsNotifyAddFilterBuffer(
+                      pCcb->pFcb,
+                      *pMaxBufferSize,
+                      pCcb,
+                      Args.NotifyFilter,
+                      Args.WatchTree);
+            }
+
+            ntError = STATUS_PENDING;
+        }
+    }
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
@@ -108,6 +166,162 @@ cleanup:
 error:
     goto cleanup;
 }
+
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static
+VOID
+PvfsNotifyClearBufferedChanges(
+    PPVFS_NOTIFY_FILTER_BUFFER pBuffer
+    );
+
+
+static
+NTSTATUS
+PvfsNotifyReportBufferedChanges(
+    PPVFS_CCB pCcb,
+    PPVFS_FCB pFcb,
+    PPVFS_IRP_CONTEXT pIrpContext
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    FILE_NOTIFY_CHANGE Filter = pIrpContext->pIrp->Args.ReadDirectoryChange.NotifyFilter;
+    PVOID pBuffer = pIrpContext->pIrp->Args.ReadDirectoryChange.Buffer;
+    ULONG Length = pIrpContext->pIrp->Args.ReadDirectoryChange.Length;
+    PLW_LIST_LINKS pFilterLink = NULL;
+    PPVFS_NOTIFY_FILTER_RECORD pFilter = NULL;
+    BOOLEAN bLocked = FALSE;
+
+    LWIO_LOCK_MUTEX(bLocked, &pFcb->mutexNotify);
+
+    /* See if we have any changes to report immediately */
+
+    for (pFilterLink = PvfsListTraverse(pFcb->pNotifyList, NULL);
+         pFilterLink;
+         pFilterLink = PvfsListTraverse(pFcb->pNotifyList, pFilterLink))
+    {
+        pFilter = LW_STRUCT_FROM_FIELD(
+                      pFilterLink,
+                      PVFS_NOTIFY_FILTER_RECORD,
+                      NotifyList);
+
+        /* To return the buffered changes, we have to match the handle
+           and the filter */
+
+        if ((pFilter->NotifyFilter != Filter) || (pFilter->pCcb != pCcb))
+        {
+            continue;
+        }
+
+        /* We have a match to check to see if we have anything */
+
+        if ((pFilter->Buffer.Length == 0) ||
+            (pFilter->Buffer.Offset == 0))
+        {
+            ntError = STATUS_NOT_FOUND;
+            BAIL_ON_NT_STATUS(ntError);
+        }
+
+        /* We have changes....Do we have enough space?  Have we already
+           overflowed the buffer? */
+
+        ntError = pFilter->Buffer.Status;
+        BAIL_ON_NT_STATUS(ntError);
+
+        if (pFilter->Buffer.Offset > Length)
+        {
+            PvfsNotifyClearBufferedChanges(&pFilter->Buffer);
+
+            ntError = STATUS_NOTIFY_ENUM_DIR;
+            BAIL_ON_NT_STATUS(ntError);
+        }
+
+        memcpy(pBuffer, pFilter->Buffer.pData, pFilter->Buffer.Offset);
+        pIrpContext->pIrp->IoStatusBlock.BytesTransferred = pFilter->Buffer.Offset;
+
+        PvfsNotifyClearBufferedChanges(&pFilter->Buffer);
+    }
+
+    if (pFilterLink == NULL)
+    {
+        ntError = STATUS_NOT_FOUND;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+
+cleanup:
+    LWIO_UNLOCK_MUTEX(bLocked, &pFcb->mutexNotify);
+
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static
+VOID
+PvfsNotifyClearBufferedChanges(
+    PPVFS_NOTIFY_FILTER_BUFFER pBuffer
+    )
+{
+    memset(pBuffer->pData, 0x0, pBuffer->Length);
+
+    pBuffer->Status = STATUS_SUCCESS;
+    pBuffer->Offset = 0;
+    pBuffer->pNotify = NULL;
+}
+
+
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static
+NTSTATUS
+PvfsNotifyAllocateChangeBuffer(
+    PPVFS_NOTIFY_FILTER_BUFFER pBuffer,
+    ULONG Length
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+
+    ntError = PvfsAllocateMemory((PVOID*)&pBuffer->pData, Length);
+    BAIL_ON_NT_STATUS(ntError);
+
+    pBuffer->Length = Length;
+
+    pBuffer->Status = STATUS_SUCCESS;
+    pBuffer->Offset = 0;
+    pBuffer->pNotify = NULL;
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static
+VOID
+PvfsNotifyFreeChangeBuffer(
+    PPVFS_NOTIFY_FILTER_BUFFER pBuffer
+    )
+{
+    PVFS_FREE(&pBuffer->pData);
+
+    PVFS_ZERO_MEMORY(pBuffer);
+}
+
 
 
 /*****************************************************************************
@@ -131,6 +345,8 @@ PvfsFreeNotifyRecord(
             PvfsAsyncIrpComplete(pFilter->pIrpContext);
             PvfsFreeIrpContext(&pFilter->pIrpContext);
         }
+
+        PvfsNotifyFreeChangeBuffer(&pFilter->Buffer);
 
         if (pFilter->pCcb)
         {
@@ -177,6 +393,59 @@ PvfsNotifyAddFilter(
                   pCcb,
                   NotifyFilter,
                   bWatchTree);
+    BAIL_ON_NT_STATUS(ntError);
+
+    LWIO_LOCK_MUTEX(bLocked, &pFcb->mutexNotify);
+    ntError = PvfsListAddTail(
+                  pFcb->pNotifyList,
+                  &pFilter->NotifyList);
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    LWIO_UNLOCK_MUTEX(bLocked, &pFcb->mutexNotify);
+
+    return ntError;
+
+error:
+    if (pFilter)
+    {
+        pFilter->pIrpContext = NULL;
+        PvfsFreeNotifyRecord(&pFilter);
+    }
+
+    goto cleanup;
+}
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static
+NTSTATUS
+PvfsNotifyAddFilterBuffer(
+    PPVFS_FCB pFcb,
+    ULONG MaxBufferSize,
+    PPVFS_CCB pCcb,
+    FILE_NOTIFY_CHANGE NotifyFilter,
+    BOOLEAN bWatchTree
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PPVFS_NOTIFY_FILTER_RECORD pFilter = NULL;
+    BOOLEAN bLocked = FALSE;
+
+    BAIL_ON_INVALID_PTR(pFcb, ntError);
+
+    ntError = PvfsNotifyAllocateFilter(
+                  &pFilter,
+                  NULL,
+                  pCcb,
+                  NotifyFilter,
+                  bWatchTree);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsNotifyAllocateChangeBuffer(
+                  &pFilter->Buffer,
+                  MaxBufferSize);
     BAIL_ON_NT_STATUS(ntError);
 
     LWIO_LOCK_MUTEX(bLocked, &pFcb->mutexNotify);
@@ -252,6 +521,7 @@ PvfsNotifyFullReportCtxFree(
 VOID
 PvfsNotifyScheduleFullReport(
     PPVFS_FCB pFcb,
+    FILE_NOTIFY_CHANGE Filter,
     FILE_ACTION Action,
     PCSTR pszFilename
     )
@@ -266,6 +536,7 @@ PvfsNotifyScheduleFullReport(
     BAIL_ON_NT_STATUS(ntError);
 
     pReport->pFcb = PvfsReferenceFCB(pFcb);
+    pReport->Filter = Filter;
     pReport->Action = Action;
 
     ntError = LwRtlCStringDuplicate(&pReport->pszFilename, pszFilename);
@@ -284,13 +555,117 @@ PvfsNotifyScheduleFullReport(
     ntError = PvfsAddWorkItem(gpPvfsInternalWorkQueue, (PVOID)pWorkCtx);
     BAIL_ON_NT_STATUS(ntError);
 
-    pWorkCtx = NULL;
-
 cleanup:
+
+    return;
+
+error:
     PvfsNotifyFullReportCtxFree(&pReport);
     PvfsFreeWorkContext(&pWorkCtx);
 
-    return;
+    goto cleanup;
+}
+
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static
+NTSTATUS
+PvfsNotifyReportIrp(
+    PPVFS_IRP_CONTEXT pIrpContext,
+    FILE_ACTION Action,
+    PCSTR pszFilename
+    );
+
+static
+NTSTATUS
+PvfsNotifyReportBuffer(
+    PPVFS_NOTIFY_FILTER_BUFFER pFilterBuffer,
+    FILE_ACTION Action,
+    PCSTR pszFilename
+    );
+
+static
+NTSTATUS
+PvfsNotifyFullReport(
+    PVOID pContext
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PPVFS_NOTIFY_REPORT_RECORD pReport = (PPVFS_NOTIFY_REPORT_RECORD)pContext;
+    PPVFS_FCB pParentFcb = NULL;
+    BOOLEAN bLocked = FALSE;
+    PLW_LIST_LINKS pFilterRecord = NULL;
+    PPVFS_NOTIFY_FILTER_RECORD pFilter = NULL;
+
+    BAIL_ON_INVALID_PTR(pReport, ntError);
+
+    /* Simply walk up the ancestory and process the notify filter
+       record on top if there is a match */
+
+    for (pParentFcb = pReport->pFcb->pParentFcb;
+         pParentFcb;
+         pParentFcb = pParentFcb->pParentFcb)
+    {
+        LWIO_LOCK_MUTEX(bLocked, &pParentFcb->mutexNotify);
+
+        /* Get the head notify record on this FCB.  If there is
+           no registred notify request, then iterate to parent
+           and look again */
+
+        pFilterRecord = PvfsListTraverse(pParentFcb->pNotifyList, NULL);
+
+        if (!pFilterRecord)
+        {
+            LWIO_UNLOCK_MUTEX(bLocked, &pParentFcb->mutexNotify);
+            continue;
+        }
+
+        pFilter = LW_STRUCT_FROM_FIELD(
+                      pFilterRecord,
+                      PVFS_NOTIFY_FILTER_RECORD,
+                      NotifyList);
+
+        /* Match the filter and depth */
+
+        if ((pFilter->NotifyFilter & pReport->Filter) &&
+            ((pParentFcb == pReport->pFcb->pParentFcb) || pFilter->bWatchTree))
+        {
+            ntError = PvfsListRemoveItem(pParentFcb->pNotifyList, pFilterRecord);
+            BAIL_ON_NT_STATUS(ntError);
+
+            if (pFilter->pIrpContext)
+            {
+                ntError = PvfsNotifyReportIrp(
+                              pFilter->pIrpContext,
+                              pReport->Action,
+                              pReport->pszFilename);
+                pFilter->pIrpContext = NULL;
+            }
+            else if (pFilter->Buffer.Length != 0)
+            {
+                ntError = PvfsNotifyReportBuffer(
+                              &pFilter->Buffer,
+                              pReport->Action,
+                              pReport->pszFilename);
+            }
+            else
+            {
+                PVFS_ASSERT(FALSE);
+                ntError = LW_STATUS_ASSERTION_FAILURE;
+            }
+            BAIL_ON_NT_STATUS(ntError);
+        }
+
+        LWIO_UNLOCK_MUTEX(bLocked, &pParentFcb->mutexNotify);
+    }
+
+
+cleanup:
+    LWIO_UNLOCK_MUTEX(bLocked, &pParentFcb->mutexNotify);
+
+    return ntError;
 
 error:
     goto cleanup;
@@ -302,21 +677,123 @@ error:
 
 static
 NTSTATUS
-PvfsNotifyFullReport(
-    PVOID pContext
+PvfsNotifyReportIrp(
+    PPVFS_IRP_CONTEXT pIrpContext,
+    FILE_ACTION Action,
+    PCSTR pszFilename
     )
 {
-    NTSTATUS ntError = STATUS_SUCCESS;
-    PPVFS_NOTIFY_REPORT_RECORD pReport = (PPVFS_NOTIFY_REPORT_RECORD)pContext;
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PVOID pBuffer = pIrpContext->pIrp->Args.ReadDirectoryChange.Buffer;
+    ULONG Length = pIrpContext->pIrp->Args.ReadDirectoryChange.Length;
+    PFILE_NOTIFY_INFORMATION pNotifyInfo = NULL;
+    LONG FilenameBytes = 0;
+    PWSTR pwszFilename = NULL;
+    ULONG BytesNeeded = 0;
 
-    BAIL_ON_INVALID_PTR(pReport, ntError);
+    ntError = LwRtlWC16StringAllocateFromCString(&pwszFilename, pszFilename);
+    BAIL_ON_NT_STATUS(ntError);
+
+    FilenameBytes = LwRtlWC16StringNumChars(pwszFilename) + (1 * sizeof(WCHAR));
+
+    BytesNeeded = sizeof(*pNotifyInfo) + FilenameBytes;
+
+    if (Length < BytesNeeded)
+    {
+        memset(pBuffer, 0x0, Length);
+        ntError = STATUS_NOTIFY_ENUM_DIR;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    pNotifyInfo = (PFILE_NOTIFY_INFORMATION)pBuffer;
+
+    pNotifyInfo->NextEntryOffset = 0;
+    pNotifyInfo->Action = Action;
+    pNotifyInfo->FileNameLength = FilenameBytes;
+
+    memcpy(&pNotifyInfo->FileName, pwszFilename, FilenameBytes);
 
 cleanup:
+    pIrpContext->pIrp->IoStatusBlock.Status = ntError;
+
+    PvfsAsyncIrpComplete(pIrpContext);
+    PvfsFreeIrpContext(&pIrpContext);
+
+    LwRtlWC16StringFree(&pwszFilename);
+
     return ntError;
 
 error:
     goto cleanup;
 }
+
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static
+NTSTATUS
+PvfsNotifyReportBuffer(
+    PPVFS_NOTIFY_FILTER_BUFFER pFilterBuffer,
+    FILE_ACTION Action,
+    PCSTR pszFilename
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PVOID pBuffer = pFilterBuffer->pData + pFilterBuffer->Offset;
+    ULONG Length = pFilterBuffer->Length - pFilterBuffer->Offset;
+    PFILE_NOTIFY_INFORMATION pNotifyInfo = NULL;
+    LONG FilenameBytes = 0;
+    PWSTR pwszFilename = NULL;
+    ULONG BytesNeeded = 0;
+
+    /* Don't bother if we have already overflowed the buffer */
+
+    BAIL_ON_NT_STATUS(pFilterBuffer->Status);
+
+    ntError = LwRtlWC16StringAllocateFromCString(&pwszFilename, pszFilename);
+    BAIL_ON_NT_STATUS(ntError);
+
+    FilenameBytes = LwRtlWC16StringNumChars(pwszFilename) + (1 * sizeof(WCHAR));
+    BytesNeeded = sizeof(*pNotifyInfo) + FilenameBytes;
+    PVFS_ALIGN_MEMORY(BytesNeeded, 8);
+
+    if (Length < BytesNeeded)
+    {
+        memset(pFilterBuffer->pData, 0x0, pFilterBuffer->Length);
+        ntError = pFilterBuffer->Status = STATUS_NOTIFY_ENUM_DIR;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    pNotifyInfo = (PFILE_NOTIFY_INFORMATION)pBuffer;
+
+    pNotifyInfo->NextEntryOffset = 0;
+    pNotifyInfo->Action = Action;
+    pNotifyInfo->FileNameLength = FilenameBytes;
+
+    memcpy(&pNotifyInfo->FileName, pwszFilename, FilenameBytes);
+
+    if (pFilterBuffer->pNotify)
+    {
+        ULONG NextEntry = PVFS_PTR_DIFF(pFilterBuffer->pNotify, pNotifyInfo);
+
+        pFilterBuffer->pNotify->NextEntryOffset = NextEntry;
+    }
+
+    pFilterBuffer->pNotify = pNotifyInfo;
+    pFilterBuffer->Offset += BytesNeeded;
+
+
+cleanup:
+
+    LwRtlWC16StringFree(&pwszFilename);
+
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
 
 
 /*****************************************************************************
