@@ -337,8 +337,6 @@ PvfsExecuteDeleteOnClose(
 {
     NTSTATUS ntError = STATUS_SUCCESS;
 
-    /* Check for renames */
-
     ntError = PvfsValidatePath(pFcb->pszFilename, &pFcb->FileId);
     BAIL_ON_NT_STATUS(ntError);
 
@@ -360,22 +358,18 @@ PvfsReleaseFCB(
 {
     NTSTATUS ntError = STATUS_SUCCESS;
     BOOLEAN bLocked = FALSE;
+    BOOLEAN bFcbLocked = FALSE;
 
-    /* It is important to lock the FcbTable here so that
-       there is no window between the decrement and the remove.
-       Otherwise another open request could search and locate the
-       FCB in the tree and return free()'d memory
+    /* Do housekeeping such as setting the last write time or
+       honoring DeletOnClose when the CCB handle count reaches
+       0.  Not necessaril.y when the RefCount reaches 0.  We
+       may have a non-handle open in the FCB table for a
+       path component (see PvfsFindParentFCB()). */
 
-       Keep the FcbTable locked until any cleanup operations
-       (DeleteOnClose are SetLastWriteTime) are done.
-    */
+    LWIO_LOCK_RWMUTEX_SHARED(bFcbLocked, &pFcb->rwCcbLock);
 
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bLocked, &gFcbTable.rwLock);
-
-    if (InterlockedDecrement(&pFcb->RefCount) == 0)
+    if (PvfsListLength(pFcb->pCcbList) == 0)
     {
-        PvfsRemoveFCB(pFcb);
-
         if (pFcb->LastWriteTime != 0) {
             ntError = PvfsSetLastWriteTime(pFcb);
             /* Don't fail */
@@ -386,6 +380,21 @@ PvfsReleaseFCB(
             ntError = PvfsExecuteDeleteOnClose(pFcb);
             /* Don't fail */
         }
+    }
+
+    LWIO_UNLOCK_RWMUTEX(bFcbLocked, &pFcb->rwCcbLock);
+
+
+    /* It is important to lock the FcbTable here so that
+       there is no window between the decrement and the remove.
+       Otherwise another open request could search and locate the
+       FCB in the tree and return free()'d memory. */
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bLocked, &gFcbTable.rwLock);
+
+    if (InterlockedDecrement(&pFcb->RefCount) == 0)
+    {
+        PvfsRemoveFCB(pFcb);
 
         LWIO_UNLOCK_RWMUTEX(bLocked, &gFcbTable.rwLock);
 
