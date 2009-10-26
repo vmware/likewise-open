@@ -30,9 +30,9 @@ namespace Likewise.LMC.ServerControl
         {
             this.label1 = new System.Windows.Forms.Label();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
-            this.radioButton1 = new System.Windows.Forms.RadioButton();
-            this.radioButton2 = new System.Windows.Forms.RadioButton();
             this.textBox1 = new System.Windows.Forms.TextBox();
+            this.radioButton2 = new System.Windows.Forms.RadioButton();
+            this.radioButton1 = new System.Windows.Forms.RadioButton();
             this.button1 = new System.Windows.Forms.Button();
             this.button2 = new System.Windows.Forms.Button();
             this.label2 = new System.Windows.Forms.Label();
@@ -62,16 +62,12 @@ namespace Likewise.LMC.ServerControl
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Enter the computer\'s name:";
             //
-            // radioButton1
+            // textBox1
             //
-            this.radioButton1.AutoSize = true;
-            this.radioButton1.Location = new System.Drawing.Point(7, 31);
-            this.radioButton1.Name = "radioButton1";
-            this.radioButton1.Size = new System.Drawing.Size(98, 17);
-            this.radioButton1.TabIndex = 0;
-            this.radioButton1.TabStop = true;
-            this.radioButton1.Text = "Local computer";
-            this.radioButton1.UseVisualStyleBackColor = true;
+            this.textBox1.Location = new System.Drawing.Point(141, 63);
+            this.textBox1.Name = "textBox1";
+            this.textBox1.Size = new System.Drawing.Size(199, 20);
+            this.textBox1.TabIndex = 2;
             //
             // radioButton2
             //
@@ -84,12 +80,16 @@ namespace Likewise.LMC.ServerControl
             this.radioButton2.Text = "Remote computer";
             this.radioButton2.UseVisualStyleBackColor = true;
             //
-            // textBox1
+            // radioButton1
             //
-            this.textBox1.Location = new System.Drawing.Point(141, 63);
-            this.textBox1.Name = "textBox1";
-            this.textBox1.Size = new System.Drawing.Size(199, 20);
-            this.textBox1.TabIndex = 2;
+            this.radioButton1.AutoSize = true;
+            this.radioButton1.Location = new System.Drawing.Point(7, 31);
+            this.radioButton1.Name = "radioButton1";
+            this.radioButton1.Size = new System.Drawing.Size(98, 17);
+            this.radioButton1.TabIndex = 0;
+            this.radioButton1.TabStop = true;
+            this.radioButton1.Text = "Local computer";
+            this.radioButton1.UseVisualStyleBackColor = true;
             //
             // button1
             //
@@ -126,7 +126,6 @@ namespace Likewise.LMC.ServerControl
             this.label3.Size = new System.Drawing.Size(61, 13);
             this.label3.TabIndex = 5;
             this.label3.Text = "credentials.";
-
             //
             // linkLabel1
             //
@@ -151,7 +150,7 @@ namespace Likewise.LMC.ServerControl
             this.Controls.Add(this.groupBox1);
             this.Controls.Add(this.label1);
             this.Name = "SelectComputerDialog";
-            this.Text = "Select domain";
+            this.Text = "Select computer";
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();
             this.ResumeLayout(false);
