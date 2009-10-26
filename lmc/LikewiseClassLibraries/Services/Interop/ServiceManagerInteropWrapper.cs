@@ -43,7 +43,7 @@ namespace Likewise.LMC.Services
             string[] ServicesEnum = null;
             try
             {
-                Logger.Log("ServiceManagerInteropWrapper:ApiLwSmEnumerateServices()", Logger.ServiceManagerLoglevel);               
+                Logger.Log("ServiceManagerInteropWrapper:ApiLwSmEnumerateServices()", Logger.ServiceManagerLoglevel);
 
                 int iRet = ServiceManagerInterop.LwSmEnumerateServices(out ServicesEnum);
                 if (iRet != 0)
@@ -51,13 +51,23 @@ namespace Likewise.LMC.Services
                     Logger.Log("ServiceManagerInteropWrapper:ApiLwSmEnumerateServices returns" + iRet.ToString(), Logger.ServiceManagerLoglevel);
                     return null;
                 }
+                //if (ppArry != null && ppArry.Length != 0)
+                //{
+                //    int idx = 0;
+                //    ServicesEnum = new string[ppArry.Length];
+                //    foreach (IntPtr pService in ppArry)
+                //    {
+                //        Console.WriteLine(Marshal.PtrToStringAnsi(pService));
+                //        ServicesEnum[idx] = Marshal.PtrToStringAnsi(pService);
+                //    }
+                //}
                 Logger.Log("ServiceManagerInteropWrapper:ApiLwSmEnumerateServices is success", Logger.ServiceManagerLoglevel);
             }
             catch (Exception ex)
             {
                 Logger.LogException("ServiceManagerInteropWrapper:ApiLwSmEnumerateServices", ex);
             }
-            
+
             return ServicesEnum;
         }
 
