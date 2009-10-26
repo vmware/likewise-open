@@ -142,7 +142,9 @@ PvfsFreeFCB(
         PvfsListDestroy(&pFcb->pOplockReadyOpsQueue);
         PvfsListDestroy(&pFcb->pOplockList);
         PvfsListDestroy(&pFcb->pCcbList);
-        PvfsListDestroy(&pFcb->pNotifyList);
+        PvfsListDestroy(&pFcb->pNotifyListIrp);
+        PvfsListDestroy(&pFcb->pNotifyListBuffer);
+
 
         PVFS_FREE(&pFcb);
     }
@@ -232,10 +234,16 @@ PvfsAllocateFCB(
                   (PPVFS_LIST_FREE_DATA_FN)PvfsFCBFreeCCB);
     BAIL_ON_NT_STATUS(ntError);
 
-    /* List of CCBs */
+    /* List of Notify requests */
 
     ntError = PvfsListInit(
-                  &pFcb->pNotifyList,
+                  &pFcb->pNotifyListIrp,
+                  PVFS_FCB_MAX_PENDING_NOTIFY,
+                  (PPVFS_LIST_FREE_DATA_FN)PvfsFreeNotifyRecord);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsListInit(
+                  &pFcb->pNotifyListBuffer,
                   PVFS_FCB_MAX_PENDING_NOTIFY,
                   (PPVFS_LIST_FREE_DATA_FN)PvfsFreeNotifyRecord);
     BAIL_ON_NT_STATUS(ntError);

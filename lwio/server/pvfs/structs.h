@@ -285,7 +285,8 @@ struct _PVFS_FCB
     /* Change Notify */
     pthread_mutex_t mutexNotify;
 
-    PPVFS_LIST pNotifyList;
+    PPVFS_LIST pNotifyListIrp;
+    PPVFS_LIST pNotifyListBuffer;
     /* Change Notify */
 };
 
