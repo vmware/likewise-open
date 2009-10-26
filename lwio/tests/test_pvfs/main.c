@@ -80,6 +80,10 @@ main(
     {
         ntError = CatFileFromPvfs(argv[2]);
     }
+    else if (strcmp(argv[1], "--notify") == 0)
+    {
+        ntError = TestReadDirectoryChange(argv[2]);
+    }
     else if (strcmp(argv[1], "-O") == 0)
     {
         ntError = RequestOplock(argc-2, argv+2);
@@ -1200,6 +1204,80 @@ error:
     goto cleanup;
 }
 
+
+/***********************************************************************
+ **********************************************************************/
+
+#define NOTIFY_BUFFER_SIZE 1024
+
+NTSTATUS
+TestReadDirectoryChange(
+    char *pszFilename
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    IO_FILE_HANDLE hFile = NULL;
+    IO_STATUS_BLOCK StatusBlock = {0};
+    IO_FILE_NAME SrcFilename = {0};
+    BYTE pBuffer[NOTIFY_BUFFER_SIZE];
+    PFILE_NOTIFY_INFORMATION pChange = NULL;
+    PSTR pszNotifyFilename = NULL;
+
+    ntError = RtlWC16StringAllocateFromCString(&SrcFilename.FileName, pszFilename);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* Open the remote source file */
+
+    ntError = NtCreateFile(&hFile,
+                           NULL,
+                           &StatusBlock,
+                           &SrcFilename,
+                           NULL,
+                           NULL,
+                           FILE_GENERIC_READ,
+                           0,
+                           FILE_ATTRIBUTE_NORMAL,
+                           FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                           FILE_OPEN,
+                           FILE_DIRECTORY_FILE,
+                           NULL,
+                           0,
+                           NULL);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = NtReadDirectoryChangeFile(
+                  hFile,
+                  NULL,
+                  &StatusBlock,
+                  pBuffer,
+                  NOTIFY_BUFFER_SIZE,
+                  FILE_NOTIFY_CHANGE_NAME,
+                  TRUE,
+                  NULL);
+    BAIL_ON_NT_STATUS(ntError);
+
+    pChange = (PFILE_NOTIFY_INFORMATION)pBuffer;
+    ntError = LwRtlCStringAllocateFromWC16String(
+                  &pszNotifyFilename,
+                  pChange->FileName);
+
+    printf("%s (Action = %d)\n", pszNotifyFilename, pChange->Action);
+
+    ntError = NtCloseFile(hFile);
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    LwRtlCStringFree(&pszNotifyFilename);
+
+    return ntError;
+
+error:
+    if (hFile) {
+        NtCloseFile(hFile);
+    }
+
+    goto cleanup;
+}
 
 
 
