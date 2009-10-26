@@ -132,8 +132,8 @@ namespace Likewise.LMC.ServerControl
             this.HandleCreated += new System.EventHandler(this.handler_handleCreated);
             this.HandleDestroyed += new System.EventHandler(this.handler_handleDestroyed);
 
-            Icon ic = new Icon(Resources.GenericServer, 48, 48);
-            this.picture.Image = ic.ToBitmap();
+            //Icon ic = new Icon(Resources.GenericServer, 48, 48);
+            //this.picture.Image = ic.ToBitmap();
 
 #if !QUARTZ
             this.pbHelp.Image = (new Icon(SystemIcons.Question, 16, 16)).ToBitmap();
