@@ -67,13 +67,13 @@ DWORD
 RegUtilAddKey(
     IN HANDLE hReg,
     IN PSTR pszRootKeyName,
-    IN PSTR pszDefaultKey,
+    IN PSTR pszSubKeyPath,
     IN PSTR pszKeyName)
 {
     return RegShellUtilAddKey(
                hReg,
                pszRootKeyName,
-               pszDefaultKey,
+               pszSubKeyPath,
                pszKeyName);
 }
 
@@ -82,13 +82,13 @@ DWORD
 RegUtilDeleteKey(
     IN HANDLE hReg,
     IN PSTR pszRootKeyName,
-    IN PSTR pszDefaultKey,
+    IN PSTR pszSubKeyPath,
     IN PSTR keyName)
 {
     return RegShellUtilDeleteKey(
                hReg,
                pszRootKeyName,
-               pszDefaultKey,
+               pszSubKeyPath,
                keyName);
 }
 
@@ -97,13 +97,13 @@ DWORD
 RegUtilDeleteTree(
     IN HANDLE hReg,
     IN PSTR pszRootKeyName,
-    IN PSTR pszDefaultKey,
+    IN PSTR pszSubKeyPath,
     IN PSTR keyName)
 {
     return RegShellUtilDeleteTree(
                hReg,
                pszRootKeyName,
-               pszDefaultKey,
+               pszSubKeyPath,
                keyName);
 }
 
@@ -112,18 +112,18 @@ DWORD
 RegUtilGetKeys(
     IN HANDLE hReg,
     IN PSTR pszRootKeyName,
-    IN PSTR pszDefaultKey,
+    IN PSTR pszSubKeyPath,
     IN PSTR keyName,
-    OUT WCHAR ***pppRetSubKeys,
-    OUT PDWORD pdwRetSubKeyCount)
+    OUT PWSTR **pppSubKeys,
+    OUT PDWORD pdwSubKeyCount)
 {
     return RegShellUtilGetKeys(
                hReg,
                pszRootKeyName,
-               pszDefaultKey,
+               pszSubKeyPath,
                keyName,
-               pppRetSubKeys,
-               pdwRetSubKeyCount);
+               pppSubKeys,
+               pdwSubKeyCount);
 }
 
 
@@ -131,7 +131,7 @@ DWORD
 RegUtilSetValue(
     IN HANDLE hReg,
     IN PSTR pszRootKeyName,
-    IN PSTR pszDefaultKey,
+    IN PSTR pszSubKeyPath,
     IN PSTR keyName,
     IN PSTR valueName,
     IN REG_DATA_TYPE type,
@@ -141,7 +141,7 @@ RegUtilSetValue(
     return RegShellUtilSetValue(
                hReg,
                pszRootKeyName,
-               pszDefaultKey,
+               pszSubKeyPath,
                keyName,
                valueName,
                type,
@@ -154,7 +154,7 @@ DWORD
 RegUtilGetValues(
     IN HANDLE hReg,
     IN PSTR pszRootKeyName,
-    IN PSTR pszDefaultKey,
+    IN PSTR pszSubKeyPath,
     IN PSTR keyName,
     OUT PREGSHELL_UTIL_VALUE *valueArray,
     OUT PDWORD pdwValueArrayLen)
@@ -162,7 +162,7 @@ RegUtilGetValues(
     return RegShellUtilGetValues(
                hReg,
                pszRootKeyName,
-               pszDefaultKey,
+               pszSubKeyPath,
                keyName,
                valueArray,
                pdwValueArrayLen);
@@ -173,14 +173,14 @@ DWORD
 RegUtilDeleteValue(
     IN HANDLE hReg,
     IN PSTR pszRootKeyName,
-    IN PSTR pszDefaultKey,
+    IN PSTR pszSubKeyPath,
     IN PSTR keyName,
     IN PSTR valueName)
 {
     return RegShellUtilDeleteValue(
                hReg,
                pszRootKeyName,
-               pszDefaultKey,
+               pszSubKeyPath,
                keyName,
                valueName);
 }
