@@ -981,6 +981,9 @@ typedef struct _SRV_EXEC_CONTEXT_SMB_V2
     ULONG                                ulNumResponses;
     PSRV_MESSAGE_SMB_V2                  pResponses;
 
+    PBYTE                                pErrorMessage;
+    ULONG                                ulErrorMessageLength;
+
 } SRV_EXEC_CONTEXT_SMB_V2;
 
 typedef struct _SRV_RUNTIME_GLOBALS_SMB_V2

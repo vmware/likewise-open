@@ -363,9 +363,7 @@ SrvProtocolExecute_SMB_V2(
                 {
                     ntStatus = SrvBuildErrorResponse_SMB_V2(
                                     pExecContext,
-                                    ntStatus,
-                                    NULL,
-                                    0);
+                                    ntStatus);
                 }
                 break;
         }
@@ -425,6 +423,11 @@ SrvProtocolFreeContext_SMB_V2(
     if (pProtocolContext->pRequests)
     {
         SrvFreeMemory(pProtocolContext->pRequests);
+    }
+
+    if (pProtocolContext->pErrorMessage)
+    {
+        SrvFreeMemory(pProtocolContext->pErrorMessage);
     }
 
     SrvFreeMemory(pProtocolContext);
