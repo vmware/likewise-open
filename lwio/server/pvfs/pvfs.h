@@ -547,6 +547,11 @@ PvfsNotifyScheduleFullReport(
     PCSTR pszFilename
     );
 
+NTSTATUS
+PvfsScheduleCancelNotify(
+    PPVFS_IRP_CONTEXT pIrpContext
+    );
+
 
 #endif /* __PVFS_H__ */
 
