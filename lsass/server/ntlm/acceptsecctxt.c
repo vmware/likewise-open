@@ -51,9 +51,9 @@
 DWORD
 NtlmServerAcceptSecurityContext(
     IN HANDLE Handle,
-    IN PNTLM_CRED_HANDLE phCredential,
+    IN NTLM_CRED_HANDLE hCred,
     IN OUT PNTLM_CONTEXT_HANDLE phContext,
-    IN PSecBufferDesc pInput,
+    IN const SecBufferDesc* pInput,
     IN DWORD fContextReq,
     IN DWORD TargetDataRep,
     IN OUT PNTLM_CONTEXT_HANDLE phNewContext,
@@ -67,7 +67,7 @@ NtlmServerAcceptSecurityContext(
     PNTLM_CONTEXT pNtlmCtxtOut = NULL;
     PNTLM_CONTEXT pNtlmCtxtChlng = NULL;
     NTLM_CONTEXT_HANDLE ContextHandle = NULL;
-    PNTLM_NEGOTIATE_MESSAGE pNegMsg = NULL;
+    const NTLM_NEGOTIATE_MESSAGE* pNegMsg = NULL;
     PNTLM_RESPONSE_MESSAGE pRespMsg = NULL;
     DWORD dwMessageSize = 0;
     BYTE SessionKey[NTLM_SESSION_KEY_SIZE] = {0};
@@ -84,13 +84,13 @@ NtlmServerAcceptSecurityContext(
         dwError = NtlmGetMessageFromSecBufferDesc(
             pInput,
             &dwMessageSize,
-            (PVOID*)&pNegMsg
+            (const VOID**)&pNegMsg
             );
         BAIL_ON_LSA_ERROR(dwError);
 
         dwError = NtlmCreateChallengeContext(
             pNegMsg,
-            phCredential,
+            hCred,
             &pNtlmCtxtOut);
 
         BAIL_ON_LSA_ERROR(dwError);
@@ -111,7 +111,7 @@ NtlmServerAcceptSecurityContext(
         dwError = NtlmGetMessageFromSecBufferDesc(
             pInput,
             &dwMessageSize,
-            (PVOID*)&pRespMsg
+            (const VOID**)&pRespMsg
             );
         BAIL_ON_LSA_ERROR(dwError);
 
@@ -132,7 +132,7 @@ NtlmServerAcceptSecurityContext(
             pNtlmCtxtChlng->NegotiatedFlags,
             SessionKey,
             NTLM_SESSION_KEY_SIZE,
-            phCredential,
+            hCred,
             &pNtlmCtxtOut
             );
         BAIL_ON_LSA_ERROR(dwError);
@@ -159,8 +159,8 @@ error:
 
 DWORD
 NtlmCreateChallengeContext(
-    IN PNTLM_NEGOTIATE_MESSAGE pNtlmNegMsg,
-    IN PNTLM_CRED_HANDLE pCredHandle,
+    IN const NTLM_NEGOTIATE_MESSAGE* pNtlmNegMsg,
+    IN NTLM_CRED_HANDLE hCred,
     OUT PNTLM_CONTEXT *ppNtlmContext
     )
 {
@@ -175,7 +175,7 @@ NtlmCreateChallengeContext(
 
     *ppNtlmContext = NULL;
 
-    dwError = NtlmCreateContext(pCredHandle, &pNtlmContext);
+    dwError = NtlmCreateContext(hCred, &pNtlmContext);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = NtlmGetNameInformation(
@@ -229,7 +229,7 @@ NtlmCreateValidatedContext(
     IN DWORD NegotiatedFlags,
     IN PBYTE pSessionKey,
     IN DWORD dwSessionKeyLen,
-    IN PNTLM_CRED_HANDLE pCredHandle,
+    IN NTLM_CRED_HANDLE hCred,
     OUT PNTLM_CONTEXT *ppNtlmContext
     )
 {
@@ -238,7 +238,7 @@ NtlmCreateValidatedContext(
 
     *ppNtlmContext = NULL;
 
-    dwError = NtlmCreateContext(pCredHandle, &pNtlmContext);
+    dwError = NtlmCreateContext(hCred, &pNtlmContext);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LwAllocateMemory(dwMsgSize, OUT_PPVOID(&pNtlmContext->pMessage));
@@ -262,7 +262,6 @@ cleanup:
 error:
     if (pNtlmContext)
     {
-        NtlmReleaseCredential(pCredHandle);
         LW_SAFE_FREE_MEMORY(pNtlmContext);
     }
     goto cleanup;

@@ -48,9 +48,9 @@
 DWORD
 NtlmServerAcceptSecurityContext(
     IN HANDLE Handle,
-    IN PNTLM_CRED_HANDLE phCredential,
+    IN NTLM_CRED_HANDLE hCred,
     IN OUT PNTLM_CONTEXT_HANDLE phContext,
-    IN PSecBufferDesc pInput,
+    IN const SecBufferDesc* pInput,
     IN DWORD fContextReq,
     IN DWORD TargetDataRep,
     IN OUT PNTLM_CONTEXT_HANDLE phNewContext,
@@ -138,13 +138,13 @@ NtlmServerImportSecurityContext(
 
 DWORD
 NtlmServerInitializeSecurityContext(
-    IN OPTIONAL PNTLM_CRED_HANDLE phCredential,
-    IN OPTIONAL PNTLM_CONTEXT_HANDLE phContext,
+    IN OPTIONAL NTLM_CRED_HANDLE hCredential,
+    IN OPTIONAL const NTLM_CONTEXT_HANDLE hContext,
     IN OPTIONAL SEC_CHAR * pszTargetName,
     IN DWORD fContextReq,
     IN DWORD Reserved1,
     IN DWORD TargetDataRep,
-    IN OPTIONAL PSecBufferDesc pInput,
+    IN OPTIONAL const SecBufferDesc* pInput,
     IN DWORD Reserved2,
     IN OUT OPTIONAL PNTLM_CONTEXT_HANDLE phNewContext,
     IN OUT OPTIONAL PSecBufferDesc pOutput,
@@ -177,7 +177,7 @@ NtlmServerQueryContextAttributes(
 DWORD
 NtlmServerVerifySignature(
     IN PNTLM_CONTEXT_HANDLE phContext,
-    IN PSecBufferDesc pMessage,
+    IN const SecBufferDesc* pMessage,
     IN DWORD MessageSeqNo,
     OUT PDWORD pQop
     );
@@ -186,8 +186,8 @@ DWORD
 NtlmVerifySignature(
     IN PNTLM_CONTEXT pContext,
     IN RC4_KEY* pSignKey,
-    IN PSecBuffer pData,
-    IN PSecBuffer pToken
+    IN const SecBuffer* pData,
+    IN const SecBuffer* pToken
     );
 
 DWORD
@@ -232,7 +232,7 @@ NtlmGetContextInfo(
 
 DWORD
 NtlmCreateContext(
-    IN PNTLM_CRED_HANDLE pCredHandle,
+    IN NTLM_CRED_HANDLE hCred,
     OUT PNTLM_CONTEXT *ppNtlmContext
     );
 
@@ -294,9 +294,9 @@ NtlmFreeCredential(
 
 DWORD
 NtlmGetMessageFromSecBufferDesc(
-    IN PSecBufferDesc pSecBufferDesc,
+    IN const SecBufferDesc* pSecBufferDesc,
     OUT PDWORD pdwMessageSize,
-    OUT PVOID *ppMessage
+    OUT const VOID** ppMessage
     );
 
 DWORD
@@ -323,7 +323,7 @@ NtlmCreateNegotiateMessage(
 
 DWORD
 NtlmCreateChallengeMessage(
-    IN PNTLM_NEGOTIATE_MESSAGE pNegMsg,
+    IN const NTLM_NEGOTIATE_MESSAGE* pNegMsg,
     IN PCSTR pServerName,
     IN PCSTR pDomainName,
     IN PCSTR pDnsHostName,
@@ -432,7 +432,7 @@ NtlmBuildAnonymousResponse(
 
 DWORD
 NtlmCreateNegotiateContext(
-    IN PNTLM_CRED_HANDLE pCredHandle,
+    IN NTLM_CRED_HANDLE hCred,
     IN DWORD dwOptions,
     IN PCSTR pDomain,
     IN PCSTR pWorkstation,
@@ -442,15 +442,15 @@ NtlmCreateNegotiateContext(
 
 DWORD
 NtlmCreateChallengeContext(
-    IN PNTLM_NEGOTIATE_MESSAGE pNtlmNegMsg,
-    IN PNTLM_CRED_HANDLE pCredHandle,
+    IN const NTLM_NEGOTIATE_MESSAGE* pNtlmNegMsg,
+    IN NTLM_CRED_HANDLE hCred,
     OUT PNTLM_CONTEXT *ppNtlmContext
     );
 
 DWORD
 NtlmCreateResponseContext(
     IN PNTLM_CHALLENGE_MESSAGE pChlngMsg,
-    IN PNTLM_CRED_HANDLE pCredHandle,
+    IN NTLM_CRED_HANDLE hCred,
     IN OUT PNTLM_CONTEXT *ppNtlmContext
     );
 
@@ -467,7 +467,7 @@ NtlmCreateValidatedContext(
     IN DWORD NegotiatedFlags,
     IN PBYTE pSessionKey,
     IN DWORD dwSessionKeyLen,
-    IN PNTLM_CRED_HANDLE pCredHandle,
+    IN NTLM_CRED_HANDLE hCred,
     OUT PNTLM_CONTEXT *ppNtlmContext
     );
 

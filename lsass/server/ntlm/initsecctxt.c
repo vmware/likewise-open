@@ -49,13 +49,13 @@
 
 DWORD
 NtlmServerInitializeSecurityContext(
-    IN OPTIONAL PNTLM_CRED_HANDLE phCredential,
-    IN OPTIONAL PNTLM_CONTEXT_HANDLE phContext,
+    IN OPTIONAL NTLM_CRED_HANDLE hCredential,
+    IN OPTIONAL const NTLM_CONTEXT_HANDLE hContext,
     IN OPTIONAL SEC_CHAR* pszTargetName,
     IN DWORD fContextReq,
     IN DWORD Reserved1,
     IN DWORD TargetDataRep,
-    IN OPTIONAL PSecBufferDesc pInput,
+    IN OPTIONAL const SecBufferDesc* pInput,
     IN DWORD Reserved2,
     IN OUT OPTIONAL PNTLM_CONTEXT_HANDLE phNewContext,
     IN OUT OPTIONAL PSecBufferDesc pOutput,
@@ -70,9 +70,9 @@ NtlmServerInitializeSecurityContext(
     PNTLM_CHALLENGE_MESSAGE pMessage = NULL;
     DWORD dwMessageSize = 0;
 
-    if (phContext)
+    if (hContext)
     {
-        pNtlmContext = *phContext;
+        pNtlmContext = hContext;
     }
 
     if (!pNtlmContext)
@@ -87,7 +87,7 @@ NtlmServerInitializeSecurityContext(
 
         // If we start with a NULL context, create a negotiate message
         dwError = NtlmCreateNegotiateContext(
-            phCredential,
+            hCredential,
             fContextReq,
             pDomain,
             pWorkstation,
@@ -109,13 +109,13 @@ NtlmServerInitializeSecurityContext(
         dwError = NtlmGetMessageFromSecBufferDesc(
             pInput,
             &dwMessageSize,
-            (PVOID*)&pMessage
+            (const VOID**)&pMessage
             );
         BAIL_ON_LSA_ERROR(dwError);
 
         dwError = NtlmCreateResponseContext(
             pMessage,
-            phCredential,
+            hCredential,
             &pNtlmContext);
         BAIL_ON_LSA_ERROR(dwError);
 
@@ -139,9 +139,9 @@ error:
     // either way it is vital that the caller get a context they can actually
     // cleanup ONCE they've received ANY context from this function.
     //
-    // If phContext is NULL, that indicates this is the first time through this
+    // If hContext is NULL, that indicates this is the first time through this
     // call and we can safely release our context.
-    if ( pNtlmContext && !phContext)
+    if ( pNtlmContext && !hContext)
     {
         NtlmReleaseContext(&pNtlmContext);
 
@@ -153,7 +153,7 @@ error:
 
 DWORD
 NtlmCreateNegotiateContext(
-    IN PNTLM_CRED_HANDLE pCredHandle,
+    IN NTLM_CRED_HANDLE hCred,
     IN DWORD dwOptions,
     IN PCSTR pDomain,
     IN PCSTR pWorkstation,
@@ -168,7 +168,7 @@ NtlmCreateNegotiateContext(
 
     *ppNtlmContext = NULL;
 
-    dwError = NtlmCreateContext(pCredHandle, &pNtlmContext);
+    dwError = NtlmCreateContext(hCred, &pNtlmContext);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = NtlmCreateNegotiateMessage(
@@ -195,7 +195,6 @@ error:
 
     if (pNtlmContext)
     {
-        NtlmReleaseCredential(pCredHandle);
         LW_SAFE_FREE_MEMORY(pNtlmContext);
     }
     goto cleanup;
@@ -204,7 +203,7 @@ error:
 DWORD
 NtlmCreateResponseContext(
     IN PNTLM_CHALLENGE_MESSAGE pChlngMsg,
-    IN PNTLM_CRED_HANDLE pCredHandle,
+    IN NTLM_CRED_HANDLE hCred,
     IN OUT PNTLM_CONTEXT* ppNtlmContext
     )
 {
@@ -223,7 +222,7 @@ NtlmCreateResponseContext(
     *ppNtlmContext = NULL;
 
     NtlmGetCredentialInfo(
-        *pCredHandle,
+        hCred,
         &pUserNameTemp,
         &pPassword,
         NULL);
@@ -234,7 +233,7 @@ NtlmCreateResponseContext(
                         &pUserNameInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = NtlmCreateContext(pCredHandle, &pNtlmContext);
+    dwError = NtlmCreateContext(hCred, &pNtlmContext);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = NtlmCreateResponseMessage(
@@ -312,7 +311,6 @@ error:
 
     if (pNtlmContext)
     {
-        NtlmReleaseCredential(pCredHandle);
         LW_SAFE_FREE_MEMORY(pNtlmContext);
     }
 
