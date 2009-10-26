@@ -211,11 +211,21 @@ SrvProcessSetInfo_SMB_V2(
 // error.c
 
 NTSTATUS
+SrvSetErrorMessage_SMB_V2(
+    PSRV_EXEC_CONTEXT_SMB_V2 pSmb2Context,
+    PBYTE                    pErrorMessage,
+    ULONG                    ulErrorMessageLength
+    );
+
+VOID
+SrvFreeErrorMessage_SMB_V2(
+    PSRV_EXEC_CONTEXT_SMB_V2 pSmb2Context
+    );
+
+NTSTATUS
 SrvBuildErrorResponse_SMB_V2(
     PSRV_EXEC_CONTEXT    pExecContext,
-    NTSTATUS             errorStatus,
-    PBYTE                pMessage,
-    ULONG                ulMessageLength
+    NTSTATUS             errorStatus
     );
 
 // read.c

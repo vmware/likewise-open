@@ -50,11 +50,38 @@
 #include "includes.h"
 
 NTSTATUS
+SrvSetErrorMessage_SMB_V2(
+    PSRV_EXEC_CONTEXT_SMB_V2 pSmb2Context,
+    PBYTE                    pErrorMessage,
+    ULONG                    ulErrorMessageLength
+    )
+{
+    SrvFreeErrorMessage_SMB_V2(pSmb2Context);
+
+    pSmb2Context->pErrorMessage        = pErrorMessage;
+    pSmb2Context->ulErrorMessageLength = ulErrorMessageLength;
+
+    return STATUS_SUCCESS;
+}
+
+VOID
+SrvFreeErrorMessage_SMB_V2(
+    PSRV_EXEC_CONTEXT_SMB_V2 pSmb2Context
+    )
+{
+    if (pSmb2Context->pErrorMessage)
+    {
+        SrvFreeMemory(pSmb2Context->pErrorMessage);
+
+        pSmb2Context->pErrorMessage = NULL;
+        pSmb2Context->ulErrorMessageLength = 0;
+    }
+}
+
+NTSTATUS
 SrvBuildErrorResponse_SMB_V2(
     PSRV_EXEC_CONTEXT    pExecContext,
-    NTSTATUS             errorStatus,
-    PBYTE                pMessage,
-    ULONG                ulMessageLength
+    NTSTATUS             errorStatus
     )
 {
     NTSTATUS ntStatus = 0;
@@ -98,8 +125,8 @@ SrvBuildErrorResponse_SMB_V2(
                     pOutBuffer,
                     ulOffset,
                     ulBytesAvailable,
-                    pMessage,
-                    ulMessageLength,
+                    pCtxSmb2->pErrorMessage,
+                    pCtxSmb2->ulErrorMessageLength,
                     &ulBytesUsed);
     BAIL_ON_NT_STATUS(ntStatus);
 

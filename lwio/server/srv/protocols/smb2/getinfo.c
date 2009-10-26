@@ -1979,6 +1979,13 @@ SrvGetSecurityInfo_SMB_V2(
     {
         case SMB2_SEC_INFO_CLASS_BASIC:
 
+            if (pGetInfoState->pRequestHeader->ulOutputBufferLen >
+                        SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE)
+            {
+                ntStatus = STATUS_INVALID_PARAMETER;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+
             ntStatus = SrvExecuteQuerySecurityDescriptor_SMB_V2(pExecContext);
 
             break;
@@ -1989,6 +1996,8 @@ SrvGetSecurityInfo_SMB_V2(
 
             break;
     }
+
+error:
 
     return ntStatus;
 }
@@ -2004,6 +2013,7 @@ SrvExecuteQuerySecurityDescriptor_SMB_V2(
     PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
     PSRV_GET_INFO_STATE_SMB_V2 pGetInfoState = NULL;
     BOOLEAN                    bContinue     = TRUE;
+    PBYTE                      pErrorMessage = NULL;
 
     pGetInfoState = (PSRV_GET_INFO_STATE_SMB_V2)pCtxSmb2->hState;
 
@@ -2015,7 +2025,12 @@ SrvExecuteQuerySecurityDescriptor_SMB_V2(
         {
             case STATUS_BUFFER_TOO_SMALL:
 
-                if (!pGetInfoState->pData2)
+                if (pGetInfoState->ulDataLength >=
+                         pGetInfoState->pRequestHeader->ulOutputBufferLen)
+                {
+                    bContinue = FALSE;
+                }
+                else if (!pGetInfoState->pData2)
                 {
                     ULONG ulSecurityDescInitialLen = 256;
 
@@ -2103,9 +2118,65 @@ SrvExecuteQuerySecurityDescriptor_SMB_V2(
 
     } while (bContinue);
 
-error:
+cleanup:
+
+    if (pErrorMessage)
+    {
+        SrvFreeMemory(pErrorMessage);
+    }
 
     return ntStatus;
+
+error:
+
+    switch (ntStatus)
+    {
+        case STATUS_BUFFER_TOO_SMALL:
+
+            {
+                NTSTATUS ntStatus2 = STATUS_SUCCESS;
+                ULONG    ulLength  = 0xE0;
+
+                ntStatus2 = SrvAllocateMemory(
+                                sizeof(ULONG),
+                                (PVOID*)&pErrorMessage);
+                if (ntStatus2)
+                {
+                    LWIO_LOG_ERROR(
+                        "Failed to allocate buffer for error message "
+                        "[error:0x%08x]",
+                        ntStatus2);
+                }
+                else
+                {
+                    memcpy(pErrorMessage, (PBYTE)&ulLength, sizeof(ulLength));
+
+                    ntStatus2 = SrvSetErrorMessage_SMB_V2(
+                                    pCtxSmb2,
+                                    pErrorMessage,
+                                    sizeof(ulLength));
+                    if (ntStatus2 == STATUS_SUCCESS)
+                    {
+                        pErrorMessage = NULL;
+                    }
+                    else
+                    {
+                        LWIO_LOG_ERROR(
+                        "Failed to set error message in exec context "
+                        "[error:0x%08x]",
+                        ntStatus2);
+                    }
+                }
+            }
+
+            break;
+
+        default:
+
+            break;
+    }
+
+    goto cleanup;
 }
 
 static
