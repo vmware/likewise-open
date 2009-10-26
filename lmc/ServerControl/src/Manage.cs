@@ -1566,7 +1566,7 @@ namespace Likewise.LMC.ServerControl
                 }
 
                 //this won't overwrite existing values in hn.
-                //GetConnectedHostInfoFromIni(requestor, hn);
+                GetConnectedHostInfoFromIni(requestor, hn);
 
                 if (((uint)Hostinfo.FieldBitmaskBits.SHORT_HOSTNAME & fieldsRequested) > 0) { numFields++; }
                 if (((uint)Hostinfo.FieldBitmaskBits.FQ_HOSTNAME & fieldsRequested) > 0) { numFields++; }
