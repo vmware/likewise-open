@@ -454,6 +454,7 @@ error:
     {
         case STATUS_PENDING:
         case STATUS_FILE_IS_A_DIRECTORY:
+        case STATUS_SHARING_VIOLATION:
 
             break;
 
