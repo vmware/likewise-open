@@ -60,7 +60,9 @@ typedef struct _REG_DB_CONNECTION
     sqlite3_stmt *pstDeleteKey;
     sqlite3_stmt *pstDeleteKeyValue;
     sqlite3_stmt *pstQuerySubKeys;
+    sqlite3_stmt *pstQuerySubKeysCount;
     sqlite3_stmt *pstQueryValues;
+    sqlite3_stmt *pstQueryValuesCount;
     sqlite3_stmt *pstQueryKeyValue;
     sqlite3_stmt *pstQueryKeyValueWithType;
     sqlite3_stmt *pstQueryKeyValueWithWrongType;
@@ -82,114 +84,18 @@ RegDbUnpackRegEntryInfo(
     IN OUT PREG_ENTRY pResult
     );
 
-#if 0
-typedef struct _REG_DB_STORE_GROUP_MEMBERSHIP_CONTEXT
-{
-    IN PCSTR pszParentSid;
-    IN size_t sMemberCount;
-    IN PREG_GROUP_MEMBERSHIP* ppMembers;
-    IN PREG_DB_CONNECTION pConn;
-} REG_DB_STORE_GROUP_MEMBERSHIP_CONTEXT, *PREG_DB_STORE_GROUP_MEMBERSHIP_CONTEXT;
-
-typedef struct _REG_DB_STORE_USER_MEMBERSHIP_CONTEXT
-{
-    IN PCSTR pszChildSid;
-    IN size_t sMemberCount;
-    IN PREG_GROUP_MEMBERSHIP* ppMembers;
-    IN BOOLEAN bIsPacAuthoritative;
-    IN PREG_DB_CONNECTION pConn;
-} REG_DB_STORE_USER_MEMBERSHIP_CONTEXT, *PREG_DB_STORE_USER_MEMBERSHIP_CONTEXT;
-
 DWORD
-RegDbUnpackObjectInfo(
+RegDbUnpackSubKeysCountInfo(
     sqlite3_stmt *pstQuery,
     int *piColumnPos,
-    PREG_SECURITY_OBJECT pResult);
-
+    PDWORD pdwCount
+    );
 
 DWORD
-RegDbUnpackUserInfo(
+RegDbUnpackKeyValuesCountInfo(
     sqlite3_stmt *pstQuery,
     int *piColumnPos,
-    PREG_SECURITY_OBJECT pResult);
-
-
-DWORD
-RegDbUnpackGroupInfo(
-    sqlite3_stmt *pstQuery,
-    int *piColumnPos,
-    PREG_SECURITY_OBJECT pResult);
-
-
-DWORD
-RegDbQueryObject(
-    IN sqlite3_stmt* pstQuery,
-    OUT PREG_SECURITY_OBJECT* ppObject
+    PDWORD pdwCount
     );
-
-
-PCSTR
-RegDbGetObjectFieldList(
-    VOID
-    );
-
-
-DWORD
-RegDbFreePreparedStatements(
-    IN OUT PREG_DB_CONNECTION pConn
-    );
-
-
-DWORD
-RegDbCreateCacheTag(
-    IN PREG_DB_CONNECTION pConn,
-    IN time_t tLastUpdated,
-    OUT int64_t *pqwCacheId
-    );
-
-
-DWORD
-RegDbUpdateMembership(
-    IN sqlite3_stmt* pstQuery,
-    IN int64_t qwCacheId,
-    IN PCSTR pszParentSid,
-    IN PCSTR pszChildSid
-    );
-
-
-DWORD
-RegDbAddMembership(
-    IN PREG_DB_CONNECTION pConn,
-    IN time_t tLastUpdated,
-    IN int64_t qwCacheId,
-    IN PCSTR pszParentSid,
-    IN PCSTR pszChildSid,
-    IN BOOLEAN bIsInPac,
-    IN BOOLEAN bIsInPacOnly,
-    IN BOOLEAN bIsInLdap,
-    IN BOOLEAN bIsDomainPrimaryGroup
-    );
-
-
-DWORD
-RegDbStoreGroupMembershipCallback(
-    IN sqlite3 *pDb,
-    IN PVOID pContext,
-    OUT PSTR* ppszError
-    );
-
-
-DWORD
-RegDbStoreUserMembershipCallback(
-    IN sqlite3 *pDb,
-    IN PVOID pContext,
-    OUT PSTR* ppszError
-    );
-
-void
-InitializeDbCacheProvider(
-    PADCACHE_PROVIDER_FUNCTION_TABLE pCacheTable
-    );
-#endif
 
 #endif /* __SQLCACHE_P_H__ */

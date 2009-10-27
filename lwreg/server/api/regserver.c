@@ -743,7 +743,7 @@ error:
 
 /*Helper functions*/
 void
-RegSafeFreeKeyContext(
+RegSrvSafeFreeKeyContext(
     IN OUT PREG_KEY_CONTEXT* ppKeyResult
     )
 {
@@ -758,9 +758,9 @@ RegSafeFreeKeyContext(
 
         pKeyResult->bHasSubKeyInfo = FALSE;
 
-        LwFreeStringArray(pKeyResult->ppszSubKeyNames, pKeyResult->dwNumSubKeys);
-        LwFreeStringArray(pKeyResult->ppszValueNames, pKeyResult->dwNumValues);
-        LwFreeStringArray(pKeyResult->ppszValues, pKeyResult->dwNumValues);
+        LwFreeStringArray(pKeyResult->ppszSubKeyNames, pKeyResult->dwNumCacheSubKeys);
+        LwFreeStringArray(pKeyResult->ppszValueNames, pKeyResult->dwNumCacheValues);
+        LwFreeStringArray(pKeyResult->ppszValues, pKeyResult->dwNumCacheValues);
 
         LW_SAFE_FREE_MEMORY(pKeyResult->pTypes);
 
@@ -773,7 +773,6 @@ RegSafeFreeKeyContext(
         *ppKeyResult = NULL;
     }
 }
-
 
 DWORD
 RegSrvGetKeyRefCount(
@@ -1016,28 +1015,3 @@ RegSrvValueType(
 
     return type;
 }
-
-
-#if 0
-void
-RegSrvSafeInsertSubKey(
-    IN OUT PREG_KEY_CONTEXT pKeyResult
-    )
-{
-    BOOLEAN bInLock = FALSE;
-
-    ENTER_ACTIVE_KEY_CONTEXT_WRITER_LOCK(bInLock, pKeyResult->pActiveRegKeyContext_rwlock);
-
-    if (!pKeyResult)
-    {
-        goto cleanup;
-    }
-
-    pKeyResult->refCount++;
-
-cleanup:
-    LEAVE_ACTIVE_KEY_CONTEXT_WRITER_LOCK(bInLock, pKeyResult->pActiveRegKeyContext_rwlock);
-
-    return;
-}
-#endif

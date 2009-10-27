@@ -1031,8 +1031,6 @@ void DJNetInitialize(BOOLEAN bEnableDcerpcd, LWException **exc)
                     19, 9, &LW_EXC));
         LW_TRY(exc, DJManageDaemon("lwiod", TRUE,
                     20, 9, &LW_EXC));
-        LW_TRY(exc, DJManageDaemon("lsassd", TRUE,
-                    21, 9, &LW_EXC));
 
         if (bEnableDcerpcd)
         {
@@ -1058,6 +1056,9 @@ void DJNetInitialize(BOOLEAN bEnableDcerpcd, LWException **exc)
                 DJLogException(LOG_LEVEL_WARNING, innerExc);
             }
         }
+
+        LW_TRY(exc, DJManageDaemon("lsassd", TRUE,
+                    21, 9, &LW_EXC));
     }
 
 #if 0

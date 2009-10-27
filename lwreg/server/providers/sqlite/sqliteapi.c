@@ -301,6 +301,11 @@ SqliteQueryInfoKey(
     DWORD dwError = LW_ERROR_SUCCESS;
     PREG_KEY_CONTEXT pKey = (PREG_KEY_CONTEXT)hKey;
     PREG_KEY_CONTEXT pKeyResult = NULL;
+    size_t sNumSubKeys = 0;
+    size_t sNumValues = 0;
+    DWORD dwOffset = 0;
+    BOOLEAN bInLock = FALSE;
+
 
     BAIL_ON_INVALID_KEY(pKey);
 
@@ -309,43 +314,67 @@ SqliteQueryInfoKey(
                                     (PHKEY) &pKeyResult);
     BAIL_ON_REG_ERROR(dwError);
 
+    LWREG_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pKeyResult->mutex);
 
-    if (!RegSrvHasSubKeyInfo(pKeyResult))
+    dwError = SqliteCacheSubKeysInfo_inlock(pKeyResult);
+    BAIL_ON_REG_ERROR(dwError);
+
+    dwError = SqliteCacheKeyValuesInfo_inlock(pKeyResult);
+    BAIL_ON_REG_ERROR(dwError);
+
+    if (pKeyResult->dwNumSubKeys > pKeyResult->dwNumCacheSubKeys)
     {
-        dwError = SqliteFillInSubKeysInfo(pKeyResult);
-        BAIL_ON_REG_ERROR(dwError);
+        dwOffset = pKeyResult->dwNumCacheSubKeys;
+        do
+        {
+            dwError = SqliteUpdateSubKeysInfo_inlock(
+                              dwOffset,
+                              pKeyResult,
+                              &sNumSubKeys);
+            BAIL_ON_REG_ERROR(dwError);
+
+            dwOffset+= (DWORD)sNumSubKeys;
+        } while (sNumSubKeys);
     }
 
-    if (!RegSrvHasValueInfo(pKeyResult))
+    if (pKeyResult->dwNumValues > pKeyResult->dwNumCacheValues)
     {
-        dwError = SqliteFillinKeyValuesInfo(pKeyResult);
-        BAIL_ON_REG_ERROR(dwError);
+        dwOffset = pKeyResult->dwNumCacheValues;
+        do
+        {
+            dwError = SqliteUpdateValuesInfo_inlock(
+                              dwOffset,
+                              pKeyResult,
+                              &sNumValues);
+            BAIL_ON_REG_ERROR(dwError);
+
+            dwOffset+= (DWORD)sNumValues;
+        } while (sNumValues);
     }
 
     if (pcSubKeys)
     {
-        *pcSubKeys = RegSrvSubKeyNum(pKeyResult);
+        *pcSubKeys = pKeyResult->dwNumSubKeys;
     }
     if (pcMaxSubKeyLen)
     {
-        *pcMaxSubKeyLen = RegSrvSubKeyNameMaxLen(pKeyResult);
+        *pcMaxSubKeyLen = pKeyResult->sMaxSubKeyLen;
     }
-
     if (pcValues)
     {
-        *pcValues = RegSrvValueNum(pKeyResult);
+        *pcValues = pKeyResult->dwNumValues;
     }
     if (pcMaxValueNameLen)
     {
-        *pcMaxValueNameLen = RegSrvMaxValueNameLen(pKeyResult);
+        *pcMaxValueNameLen = pKeyResult-> sMaxValueNameLen;
     }
-
     if (pcMaxValueLen)
     {
-        *pcMaxValueLen = RegSrvMaxValueLen(pKeyResult);
+        *pcMaxValueLen = pKeyResult->sMaxValueLen;
     }
 
 cleanup:
+    LWREG_UNLOCK_RWMUTEX(bInLock, &pKeyResult->mutex);
     RegSrvReleaseKey(pKeyResult);
 
     return dwError;
@@ -394,6 +423,9 @@ SqliteEnumKeyEx(
     PREG_KEY_CONTEXT pKeyResult = NULL;
     size_t sSubKeyLen = 0;
     PWSTR pSubKeyName = NULL;
+    BOOLEAN bInLock = FALSE;
+    size_t sNumSubKeys = 0;
+    PREG_ENTRY* ppRegEntries = NULL;
 
 
     BAIL_ON_INVALID_KEY(pKey);
@@ -401,30 +433,55 @@ SqliteEnumKeyEx(
     BAIL_ON_INVALID_POINTER(pcName);
 
     dwError = SqliteOpenKeyInternal(pKey->pszKeyName,
-                                        NULL,
-                                       (PHKEY) &pKeyResult);
+                                    NULL,
+                                   (PHKEY) &pKeyResult);
     BAIL_ON_REG_ERROR(dwError);
+
+    LWREG_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pKeyResult->mutex);
 
     //Try to grab information from pKeyResults:
     //if subkey information is not yet available in pKeyResult, do it here
     //Otherwise, use this information
-    if (!RegSrvHasSubKeyInfo(pKeyResult))
-    {
-        dwError = SqliteFillInSubKeysInfo(pKeyResult);
-        BAIL_ON_REG_ERROR(dwError);
-    }
+    dwError = SqliteCacheSubKeysInfo_inlock(pKeyResult);
+    BAIL_ON_REG_ERROR(dwError);
 
-    if (dwIndex>= RegSrvSubKeyNum(pKeyResult))
+    if (dwIndex >= pKeyResult->dwNumSubKeys)
     {
         dwError = LW_ERROR_NO_MORE_ITEMS;
         BAIL_ON_REG_ERROR(dwError);
     }
 
-    dwError = LwMbsToWc16s(RegSrvSubKeyName(pKeyResult, dwIndex), &pSubKeyName);
-    BAIL_ON_REG_ERROR(dwError);
+    if (dwIndex < pKeyResult->dwNumCacheSubKeys)
+    {
+        dwError = LwMbsToWc16s(pKeyResult->ppszSubKeyNames[dwIndex], &pSubKeyName);
+        BAIL_ON_REG_ERROR(dwError);
 
-    dwError = LwWc16sLen((PCWSTR)pSubKeyName,&sSubKeyLen);
-    BAIL_ON_REG_ERROR(dwError);
+        dwError = LwWc16sLen((PCWSTR)pSubKeyName,&sSubKeyLen);
+        BAIL_ON_REG_ERROR(dwError);
+    }
+    else
+    {
+        dwError = RegDbQueryInfoKey(ghCacheConnection,
+                                    pKeyResult->pszKeyName,
+                                    QuerySubKeys,
+                                    1,
+                                    dwIndex,
+                                    &sNumSubKeys,
+                                    &ppRegEntries);
+        BAIL_ON_REG_ERROR(dwError);
+
+        if (sNumSubKeys != 1)
+        {
+            dwError = LW_ERROR_INTERNAL;
+            BAIL_ON_REG_ERROR(dwError);
+        }
+
+        dwError = LwMbsToWc16s(ppRegEntries[0]->pszKeyName, &pSubKeyName);
+        BAIL_ON_REG_ERROR(dwError);
+
+        dwError = LwWc16sLen((PCWSTR)pSubKeyName,&sSubKeyLen);
+        BAIL_ON_REG_ERROR(dwError);
+    }
 
     if (*pcName < sSubKeyLen+1)
     {
@@ -437,7 +494,10 @@ SqliteEnumKeyEx(
     *pcName = (DWORD)sSubKeyLen;
 
 cleanup:
+    LWREG_UNLOCK_RWMUTEX(bInLock, &pKeyResult->mutex);
+
     LW_SAFE_FREE_MEMORY(pSubKeyName);
+    RegCacheSafeFreeEntryList(sNumSubKeys,&ppRegEntries);
     RegSrvReleaseKey(pKeyResult);
 
     return dwError;
@@ -1099,8 +1159,12 @@ SqliteEnumValueA(
     PREG_KEY_CONTEXT pKey = (PREG_KEY_CONTEXT)hKey;
     // Do not free if it is an active key
     PREG_KEY_CONTEXT pKeyResult = NULL;
-    PCSTR pszValName = NULL;
     REG_DATA_TYPE valueType = REG_UNKNOWN;
+    BOOLEAN bInLock = FALSE;
+    size_t sNumValues = 0;
+    PREG_ENTRY* ppRegEntries = NULL;
+    PSTR pszValName = NULL;
+    PSTR pszValueContent = NULL;
 
 
     BAIL_ON_INVALID_KEY(pKey);
@@ -1112,22 +1176,59 @@ SqliteEnumValueA(
                                    (PHKEY) &pKeyResult);
     BAIL_ON_REG_ERROR(dwError);
 
+    LWREG_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pKeyResult->mutex);
+
     //Try to grab information from pKeyResults:
     //if subkey information is not yet available in pKeyResult, do it here
     //Otherwise, use this information
-    if (!RegSrvHasValueInfo(pKeyResult))
-    {
-        dwError = SqliteFillinKeyValuesInfo(pKeyResult);
-        BAIL_ON_REG_ERROR(dwError);
-    }
+    dwError = SqliteCacheKeyValuesInfo_inlock(pKeyResult);
+    BAIL_ON_REG_ERROR(dwError);
 
-    if (dwIndex>= RegSrvValueNum(pKeyResult))
+    if (dwIndex >= pKeyResult->dwNumValues)
     {
         dwError = LW_ERROR_NO_MORE_ITEMS;
         BAIL_ON_REG_ERROR(dwError);
     }
 
-    pszValName = RegSrvValueName(pKeyResult, dwIndex);
+    if (dwIndex >= pKeyResult->dwNumCacheValues)
+    {
+        dwError = RegDbQueryInfoKey(ghCacheConnection,
+                                    pKeyResult->pszKeyName,
+                                    QueryValues,
+                                    1,
+                                    dwIndex,
+                                    &sNumValues,
+                                    &ppRegEntries);
+        BAIL_ON_REG_ERROR(dwError);
+
+        if (sNumValues != 1)
+        {
+            dwError = LW_ERROR_INTERNAL;
+            BAIL_ON_REG_ERROR(dwError);
+        }
+
+        dwError = LwAllocateString(ppRegEntries[0]->pszValueName,
+                                   &pszValName);
+        BAIL_ON_REG_ERROR(dwError);
+
+        valueType = ppRegEntries[0]->type;
+
+        dwError = LwAllocateString(ppRegEntries[0]->pszValue,
+                                   &pszValueContent);
+        BAIL_ON_REG_ERROR(dwError);
+    }
+    else
+    {
+        dwError = LwAllocateString(pKeyResult->ppszValueNames[dwIndex],
+                                   &pszValName);
+        BAIL_ON_REG_ERROR(dwError);
+
+        valueType = pKeyResult->pTypes[dwIndex];
+
+        dwError = LwAllocateString(pKeyResult->ppszValues[dwIndex],
+                                   &pszValueContent);
+        BAIL_ON_REG_ERROR(dwError);
+    }
 
     if (*pcchValueName < strlen(pszValName)+1)
     {
@@ -1139,12 +1240,10 @@ SqliteEnumValueA(
 
     *pcchValueName = strlen(pszValName)+1;
 
-    valueType = RegSrvValueType(pKeyResult, dwIndex);
-
     if (pcbData)
     {
         dwError = GetValueAsBytes(valueType,
-                                  RegSrvValueContent(pKeyResult, dwIndex),
+                                  pszValueContent,
                                   TRUE,
                                   pData,
                                   pcbData);
@@ -1157,6 +1256,12 @@ SqliteEnumValueA(
     }
 
 cleanup:
+    LWREG_UNLOCK_RWMUTEX(bInLock, &pKeyResult->mutex);
+
+    LW_SAFE_FREE_STRING(pszValName);
+    LW_SAFE_FREE_STRING(pszValueContent);
+
+    RegCacheSafeFreeEntryList(sNumValues,&ppRegEntries);
     RegSrvReleaseKey(pKeyResult);
 
     return dwError;
@@ -1195,6 +1300,10 @@ SqliteEnumValueW(
     size_t sValueNameLen = 0;
     PWSTR pValName = NULL;
     REG_DATA_TYPE valueType = REG_UNKNOWN;
+    BOOLEAN bInLock = FALSE;
+    size_t sNumValues = 0;
+    PREG_ENTRY* ppRegEntries = NULL;
+    PSTR pszValueContent = NULL;
 
 
     BAIL_ON_INVALID_KEY(pKey);
@@ -1206,23 +1315,57 @@ SqliteEnumValueW(
                                    (PHKEY) &pKeyResult);
     BAIL_ON_REG_ERROR(dwError);
 
+    LWREG_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pKeyResult->mutex);
+
     //Try to grab information from pKeyResults:
     //if subkey information is not yet available in pKeyResult, do it here
     //Otherwise, use this information
-    if (!RegSrvHasValueInfo(pKeyResult))
-    {
-        dwError = SqliteFillinKeyValuesInfo(pKeyResult);
-        BAIL_ON_REG_ERROR(dwError);
-    }
+    dwError = SqliteCacheKeyValuesInfo_inlock(pKeyResult);
+    BAIL_ON_REG_ERROR(dwError);
 
-    if (dwIndex>= RegSrvValueNum(pKeyResult))
+    if (dwIndex >= pKeyResult->dwNumValues)
     {
         dwError = LW_ERROR_NO_MORE_ITEMS;
         BAIL_ON_REG_ERROR(dwError);
     }
 
-    dwError = LwMbsToWc16s(RegSrvValueName(pKeyResult, dwIndex), &pValName);
-    BAIL_ON_REG_ERROR(dwError);
+    if (dwIndex >= pKeyResult->dwNumCacheValues)
+    {
+        dwError = RegDbQueryInfoKey(ghCacheConnection,
+                                    pKeyResult->pszKeyName,
+                                    QueryValues,
+                                    1,
+                                    dwIndex,
+                                    &sNumValues,
+                                    &ppRegEntries);
+        BAIL_ON_REG_ERROR(dwError);
+
+        if (sNumValues != 1)
+        {
+            dwError = LW_ERROR_INTERNAL;
+            BAIL_ON_REG_ERROR(dwError);
+        }
+
+        dwError = LwMbsToWc16s(ppRegEntries[0]->pszValueName, &pValName);
+        BAIL_ON_REG_ERROR(dwError);
+
+        valueType = ppRegEntries[0]->type;
+
+        dwError = LwAllocateString(ppRegEntries[0]->pszValue,
+                                   &pszValueContent);
+        BAIL_ON_REG_ERROR(dwError);
+    }
+    else
+    {
+        dwError = LwMbsToWc16s(pKeyResult->ppszValueNames[dwIndex], &pValName);
+        BAIL_ON_REG_ERROR(dwError);
+
+        valueType = pKeyResult->pTypes[dwIndex];
+
+        dwError = LwAllocateString(pKeyResult->ppszValues[dwIndex],
+                                   &pszValueContent);
+        BAIL_ON_REG_ERROR(dwError);
+    }
 
     dwError = LwWc16sLen((PCWSTR)pValName,&sValueNameLen);
     BAIL_ON_REG_ERROR(dwError);
@@ -1237,12 +1380,10 @@ SqliteEnumValueW(
     pValueName[sValueNameLen] = (LW_WCHAR)'\0';
     *pcchValueName = (DWORD)sValueNameLen;
 
-    valueType = RegSrvValueType(pKeyResult, dwIndex);
-
     if (pcbData)
     {
         dwError = GetValueAsBytes(valueType,
-                                  RegSrvValueContent(pKeyResult, dwIndex),
+                                  pszValueContent,
                                   FALSE,
                                   pData,
                                   pcbData);
@@ -1255,6 +1396,11 @@ SqliteEnumValueW(
     }
 
 cleanup:
+    LWREG_UNLOCK_RWMUTEX(bInLock, &pKeyResult->mutex);
+
+    LW_SAFE_FREE_STRING(pszValueContent);
+
+    RegCacheSafeFreeEntryList(sNumValues,&ppRegEntries);
     RegSrvReleaseKey(pKeyResult);
 
     return dwError;
