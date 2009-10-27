@@ -6,6 +6,7 @@
   <dir name="Netapi"/>  
   <dir name="Registry"/>  
   <dir name="Services"/>  
-  <dir name="Eventlog"/>  
+  <dir name="Eventlog"/>
+  <dir name="FileClientApi"/>
   <!--dir name="LSAMgmt"/-->  
 </buildtool.dirs>
