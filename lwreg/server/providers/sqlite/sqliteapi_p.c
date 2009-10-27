@@ -114,7 +114,7 @@ cleanup:
     return dwError;
 
 error:
-    RegSafeFreeKeyContext(&pKeyResult);
+    RegSrvSafeFreeKeyContext(&pKeyResult);
     *phkResult = (HKEY)NULL;
 
     goto cleanup;
@@ -295,73 +295,6 @@ error:
 }
 
 DWORD
-SqliteFillInSubKeysInfo(
-    PREG_KEY_CONTEXT pKeyResult
-    )
-{
-    DWORD dwError = 0;
-    size_t sNumSubKeys = 0;
-    PREG_ENTRY* ppRegEntries = NULL;
-
-    dwError = RegDbQueryInfoKey(ghCacheConnection,
-                                pKeyResult->pszKeyName,
-                                QuerySubKeys,
-                                &sNumSubKeys,
-                                &ppRegEntries);
-    BAIL_ON_REG_ERROR(dwError);
-
-    if (sNumSubKeys && ppRegEntries)
-    {
-        dwError = RegCacheSafeRecordSubKeysInfo(
-                                sNumSubKeys,
-                                ppRegEntries,
-                                pKeyResult);
-        BAIL_ON_REG_ERROR(dwError);
-    }
-
-cleanup:
-    RegCacheSafeFreeEntryList(sNumSubKeys,&ppRegEntries);
-    return dwError;
-
-error:
-    goto cleanup;
-
-}
-
-DWORD
-SqliteFillinKeyValuesInfo(
-    PREG_KEY_CONTEXT pKeyResult
-    )
-{
-    DWORD dwError = 0;
-    size_t sNumValues = 0;
-    PREG_ENTRY* ppRegEntries = NULL;
-
-    dwError = RegDbQueryInfoKey(ghCacheConnection,
-                                pKeyResult->pszKeyName,
-                                QueryValues,
-                                &sNumValues,
-                                &ppRegEntries);
-    BAIL_ON_REG_ERROR(dwError);
-
-    if (sNumValues && ppRegEntries)
-    {
-        dwError = RegCacheSafeRecordValuesInfo(
-                                sNumValues,
-                                ppRegEntries,
-                                pKeyResult);
-        BAIL_ON_REG_ERROR(dwError);
-    }
-
-cleanup:
-    RegCacheSafeFreeEntryList(sNumValues,&ppRegEntries);
-    return dwError;
-
-error:
-    goto cleanup;
-}
-
-DWORD
 SqliteDbDeleteKeyInternal(
     IN PSTR pszKeyName
     )
@@ -376,11 +309,10 @@ SqliteDbDeleteKeyInternal(
     //Delete key from DB
     //Make sure this key does not have subkey before go ahead and delete it
     //Also need to delete the all of this subkey's values
-    dwError = RegDbQueryInfoKey(ghCacheConnection,
-                                pszKeyName,
-                                QuerySubKeys,
-                                &sSubkeyCount,
-                                NULL);
+    dwError = RegDbQueryInfoKeyCount(ghCacheConnection,
+                                     pszKeyName,
+                                     QuerySubKeys,
+                                     &sSubkeyCount);
     BAIL_ON_REG_ERROR(dwError);
 
     if (sSubkeyCount == 0)
@@ -684,7 +616,7 @@ RegSrvFreeHashEntry(
 {
     if (pEntry->pValue)
     {
-        RegSafeFreeKeyContext((PREG_KEY_CONTEXT*)&pEntry->pValue);
+        RegSrvSafeFreeKeyContext((PREG_KEY_CONTEXT*)&pEntry->pValue);
     }
 }
 
@@ -861,5 +793,325 @@ error:
         *pcbData = 0;
     }
 
+    goto cleanup;
+}
+
+// sqlite caching helper functions
+DWORD
+SqliteCacheSubKeysInfo_inlock(
+    PREG_KEY_CONTEXT pKeyResult
+    )
+{
+    DWORD dwError = 0;
+    size_t sNumSubKeys = 0;
+    size_t sNumCacheSubKeys = 0;
+    PREG_ENTRY* ppRegEntries = NULL;
+
+    if (pKeyResult->bHasSubKeyInfo)
+    {
+        goto cleanup;
+    }
+
+    dwError = RegDbQueryInfoKeyCount(ghCacheConnection,
+                                     pKeyResult->pszKeyName,
+                                     QuerySubKeys,
+                                     &sNumSubKeys);
+    BAIL_ON_REG_ERROR(dwError);
+
+    sNumCacheSubKeys = (sNumSubKeys > (size_t)dwDefaultCacheSize)
+                      ? dwDefaultCacheSize
+                      : sNumSubKeys;
+
+    dwError = RegDbQueryInfoKey(ghCacheConnection,
+                                pKeyResult->pszKeyName,
+                                QuerySubKeys,
+                                sNumCacheSubKeys,
+                                0,
+                                &sNumCacheSubKeys,
+                                &ppRegEntries);
+    BAIL_ON_REG_ERROR(dwError);
+
+    if (sNumCacheSubKeys && ppRegEntries)
+    {
+        dwError = RegCacheSafeRecordSubKeysInfo_inlock(
+                                sNumSubKeys,
+                                sNumCacheSubKeys,
+                                ppRegEntries,
+                                pKeyResult);
+        BAIL_ON_REG_ERROR(dwError);
+    }
+
+cleanup:
+    RegCacheSafeFreeEntryList(sNumCacheSubKeys,&ppRegEntries);
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+DWORD
+SqliteCacheSubKeysInfo(
+    IN OUT PREG_KEY_CONTEXT pKeyResult
+    )
+{
+    DWORD dwError = LW_ERROR_SUCCESS;
+    BOOLEAN bInLock = FALSE;
+
+    BAIL_ON_INVALID_POINTER(pKeyResult);
+
+    LWREG_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pKeyResult->mutex);
+
+    dwError = SqliteCacheSubKeysInfo_inlock(pKeyResult);
+    BAIL_ON_REG_ERROR(dwError);
+
+cleanup:
+    LWREG_UNLOCK_RWMUTEX(bInLock, &pKeyResult->mutex);
+
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+DWORD
+SqliteUpdateSubKeysInfo_inlock(
+    DWORD dwOffSet,
+    IN OUT PREG_KEY_CONTEXT pKeyResult,
+    OUT size_t* psNumSubKeys
+    )
+{
+    DWORD dwError = 0;
+    size_t sNumSubKeys = 0;
+    PREG_ENTRY* ppRegEntries = NULL;
+    int iCount = 0;
+    PWSTR pSubKey = NULL;
+    size_t sSubKeyLen = 0;
+
+    dwError = RegDbQueryInfoKey(ghCacheConnection,
+                                pKeyResult->pszKeyName,
+                                QuerySubKeys,
+                                dwDefaultCacheSize,
+                                dwOffSet,
+                                &sNumSubKeys,
+                                &ppRegEntries);
+    BAIL_ON_REG_ERROR(dwError);
+
+    for (iCount = 0; iCount < (int)sNumSubKeys; iCount++)
+    {
+        dwError = LwMbsToWc16s(ppRegEntries[iCount]->pszKeyName, &pSubKey);
+        BAIL_ON_REG_ERROR(dwError);
+
+        dwError = LwWc16sLen((PCWSTR)pSubKey,&sSubKeyLen);
+        BAIL_ON_REG_ERROR(dwError);
+
+        if (pKeyResult->sMaxSubKeyLen < sSubKeyLen)
+            pKeyResult->sMaxSubKeyLen = sSubKeyLen;
+
+        LW_SAFE_FREE_MEMORY(pSubKey);
+        sSubKeyLen = 0;
+    }
+
+cleanup:
+    *psNumSubKeys = sNumSubKeys;
+
+    RegCacheSafeFreeEntryList(sNumSubKeys, &ppRegEntries);
+    LW_SAFE_FREE_MEMORY(pSubKey);
+
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+DWORD
+SqliteUpdateSubKeysInfo(
+    DWORD dwOffSet,
+    IN OUT PREG_KEY_CONTEXT pKeyResult,
+    OUT size_t* psNumSubKeys
+    )
+{
+    DWORD dwError = LW_ERROR_SUCCESS;
+    BOOLEAN bInLock = FALSE;
+
+    BAIL_ON_INVALID_POINTER(pKeyResult);
+
+    LWREG_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pKeyResult->mutex);
+
+    dwError = SqliteUpdateSubKeysInfo_inlock(dwOffSet,
+                                           pKeyResult,
+                                           psNumSubKeys);
+    BAIL_ON_REG_ERROR(dwError);
+
+cleanup:
+    LWREG_UNLOCK_RWMUTEX(bInLock, &pKeyResult->mutex);
+
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+DWORD
+SqliteCacheKeyValuesInfo_inlock(
+    PREG_KEY_CONTEXT pKeyResult
+    )
+{
+    DWORD dwError = 0;
+    size_t sNumValues = 0;
+    size_t sNumCacheValues = 0;
+    PREG_ENTRY* ppRegEntries = NULL;
+
+    if (pKeyResult->bHasValueInfo)
+    {
+        goto cleanup;
+    }
+
+    dwError = RegDbQueryInfoKeyCount(ghCacheConnection,
+                                     pKeyResult->pszKeyName,
+                                     QueryValues,
+                                     &sNumValues);
+    BAIL_ON_REG_ERROR(dwError);
+
+    sNumCacheValues = (sNumValues > (size_t)dwDefaultCacheSize)
+                      ? dwDefaultCacheSize
+                      : sNumValues;
+
+    dwError = RegDbQueryInfoKey(ghCacheConnection,
+                                pKeyResult->pszKeyName,
+                                QueryValues,
+                                sNumCacheValues,
+                                0,
+                                &sNumCacheValues,
+                                &ppRegEntries);
+    BAIL_ON_REG_ERROR(dwError);
+
+    if (sNumCacheValues && ppRegEntries)
+    {
+        dwError = RegCacheSafeRecordValuesInfo_inlock(
+                                sNumValues,
+                                sNumCacheValues,
+                                ppRegEntries,
+                                pKeyResult);
+        BAIL_ON_REG_ERROR(dwError);
+    }
+
+cleanup:
+    RegCacheSafeFreeEntryList(sNumCacheValues, &ppRegEntries);
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+DWORD
+SqliteCacheKeyValuesInfo(
+    PREG_KEY_CONTEXT pKeyResult
+    )
+{
+    DWORD dwError = LW_ERROR_SUCCESS;
+    BOOLEAN bInLock = FALSE;
+
+    BAIL_ON_INVALID_POINTER(pKeyResult);
+
+    LWREG_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pKeyResult->mutex);
+
+    dwError = SqliteCacheKeyValuesInfo_inlock(pKeyResult);
+    BAIL_ON_REG_ERROR(dwError);
+
+cleanup:
+    LWREG_UNLOCK_RWMUTEX(bInLock, &pKeyResult->mutex);
+
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+DWORD
+SqliteUpdateValuesInfo_inlock(
+    DWORD dwOffSet,
+    IN OUT PREG_KEY_CONTEXT pKeyResult,
+    OUT size_t* psNumValues
+    )
+{
+    DWORD dwError = 0;
+    size_t sNumValues = 0;
+    PREG_ENTRY* ppRegEntries = NULL;
+    int iCount = 0;
+    PWSTR pValueName = NULL;
+    size_t sValueNameLen = 0;
+    DWORD dwValueLen = 0;
+
+    dwError = RegDbQueryInfoKey(ghCacheConnection,
+                                pKeyResult->pszKeyName,
+                                QueryValues,
+                                dwDefaultCacheSize,
+                                dwOffSet,
+                                &sNumValues,
+                                &ppRegEntries);
+    BAIL_ON_REG_ERROR(dwError);
+
+    for (iCount = 0; iCount < (int)sNumValues; iCount++)
+    {
+        dwError = LwMbsToWc16s(ppRegEntries[iCount]->pszValueName, &pValueName);
+        BAIL_ON_REG_ERROR(dwError);
+
+        dwError = LwWc16sLen((PCWSTR)pValueName,&sValueNameLen);
+        BAIL_ON_REG_ERROR(dwError);
+
+        dwError = GetValueAsBytes(ppRegEntries[iCount]->type,
+                                  (PCSTR)ppRegEntries[iCount]->pszValue,
+                                  FALSE,
+                                  NULL,
+                                  &dwValueLen);
+        BAIL_ON_REG_ERROR(dwError);
+
+        if (pKeyResult->sMaxValueNameLen < sValueNameLen)
+            pKeyResult->sMaxValueNameLen = sValueNameLen;
+
+        if (pKeyResult->sMaxValueLen < (size_t)dwValueLen)
+            pKeyResult->sMaxValueLen = (size_t)dwValueLen;
+
+        LW_SAFE_FREE_MEMORY(pValueName);
+        sValueNameLen = 0;
+        dwValueLen = 0;
+    }
+
+cleanup:
+    *psNumValues = sNumValues;
+    RegCacheSafeFreeEntryList(sNumValues, &ppRegEntries);
+    LW_SAFE_FREE_MEMORY(pValueName);
+
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+DWORD
+SqliteUpdateValuesInfo(
+    DWORD dwOffSet,
+    IN OUT PREG_KEY_CONTEXT pKeyResult,
+    OUT size_t* psNumValues
+    )
+{
+    DWORD dwError = LW_ERROR_SUCCESS;
+    BOOLEAN bInLock = FALSE;
+
+    BAIL_ON_INVALID_POINTER(pKeyResult);
+
+    LWREG_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pKeyResult->mutex);
+
+    dwError = SqliteUpdateValuesInfo_inlock(dwOffSet,
+                                     pKeyResult,
+                                     psNumValues);
+    BAIL_ON_REG_ERROR(dwError);
+
+cleanup:
+    LWREG_UNLOCK_RWMUTEX(bInLock, &pKeyResult->mutex);
+
+    return dwError;
+
+error:
     goto cleanup;
 }

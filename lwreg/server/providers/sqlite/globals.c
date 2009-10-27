@@ -50,6 +50,8 @@
 
 REG_DB_HANDLE ghCacheConnection = {0};
 
+const DWORD dwDefaultCacheSize = 1000;
+
 REGPROV_PROVIDER_FUNCTION_TABLE gRegSqliteProviderAPITable =
 {
         &SqliteCreateKeyEx,

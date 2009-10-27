@@ -53,5 +53,7 @@ extern REGPROV_PROVIDER_FUNCTION_TABLE gRegSqliteProviderAPITable;
 
 extern REG_SRV_API_KEYLOOKUP gActiveKeyList;
 
+extern const DWORD dwDefaultCacheSize;
+
 #endif /* __EXTERNS_H__ */
 

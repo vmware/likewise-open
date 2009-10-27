@@ -75,13 +75,51 @@ SqliteOpenKeyInternal(
     );
 
 DWORD
-SqliteFillInSubKeysInfo(
+SqliteCacheSubKeysInfo_inlock(
     PREG_KEY_CONTEXT pKeyResult
     );
 
 DWORD
-SqliteFillinKeyValuesInfo(
+SqliteCacheSubKeysInfo(
     PREG_KEY_CONTEXT pKeyResult
+    );
+
+DWORD
+SqliteUpdateSubKeysInfo_inlock(
+    DWORD dwOffSet,
+    IN OUT PREG_KEY_CONTEXT pKeyResult,
+    OUT size_t* psNumSubKeys
+    );
+
+DWORD
+SqliteUpdateSubKeysInfo(
+    DWORD dwOffSet,
+    IN OUT PREG_KEY_CONTEXT pKeyResult,
+    OUT size_t* psNumSubKeys
+    );
+
+DWORD
+SqliteCacheKeyValuesInfo_inlock(
+    PREG_KEY_CONTEXT pKeyResult
+    );
+
+DWORD
+SqliteCacheKeyValuesInfo(
+    PREG_KEY_CONTEXT pKeyResult
+    );
+
+DWORD
+SqliteUpdateValuesInfo_inlock(
+    DWORD dwOffSet,
+    IN OUT PREG_KEY_CONTEXT pKeyResult,
+    OUT size_t* psNumValues
+    );
+
+DWORD
+SqliteUpdateValuesInfo(
+    DWORD dwOffSet,
+    IN OUT PREG_KEY_CONTEXT pKeyResult,
+    OUT size_t* psNumValues
     );
 
 DWORD

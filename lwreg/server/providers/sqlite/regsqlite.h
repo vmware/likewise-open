@@ -131,8 +131,25 @@ RegCacheSafeFreeEntryList(
     );
 
 DWORD
+RegCacheSafeRecordSubKeysInfo_inlock(
+    IN size_t sCount,
+    IN size_t sCacheCount,
+    IN PREG_ENTRY* ppRegEntries,
+    IN OUT PREG_KEY_CONTEXT pKeyResult
+    );
+
+DWORD
 RegCacheSafeRecordSubKeysInfo(
     IN size_t sCount,
+    IN size_t sCacheCount,
+    IN PREG_ENTRY* ppRegEntries,
+    IN OUT PREG_KEY_CONTEXT pKeyResult
+    );
+
+DWORD
+RegCacheSafeRecordValuesInfo_inlock(
+    IN size_t sCount,
+    IN size_t sCacheCount,
     IN PREG_ENTRY* ppRegEntries,
     IN OUT PREG_KEY_CONTEXT pKeyResult
     );
@@ -140,6 +157,7 @@ RegCacheSafeRecordSubKeysInfo(
 DWORD
 RegCacheSafeRecordValuesInfo(
     IN size_t sCount,
+    IN size_t sCacheCount,
     IN PREG_ENTRY* ppRegEntries,
     IN OUT PREG_KEY_CONTEXT pKeyResult
     );
@@ -189,8 +207,18 @@ RegDbQueryInfoKey(
     IN REG_DB_HANDLE hDb,
     IN PCSTR pszKeyName,
     IN QueryKeyInfoOption queryType,
+    IN DWORD dwLimit,
+    IN DWORD dwOffset,
     OUT size_t* psCount,
     OUT OPTIONAL PREG_ENTRY** pppRegEntries
+    );
+
+DWORD
+RegDbQueryInfoKeyCount(
+    IN REG_DB_HANDLE hDb,
+    IN PCSTR pszKeyName,
+    IN QueryKeyInfoOption queryType,
+    OUT size_t* psSubKeyCount
     );
 
 DWORD

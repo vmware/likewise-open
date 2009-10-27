@@ -67,11 +67,13 @@ typedef struct __REG_KEY_CONTEXT
     PSTR pszParentKeyName;
 
     DWORD dwNumSubKeys;
+    DWORD dwNumCacheSubKeys;
     size_t sMaxSubKeyLen;
     PSTR* ppszSubKeyNames;
     BOOLEAN bHasSubKeyInfo;
 
     DWORD dwNumValues;
+    DWORD dwNumCacheValues;
     size_t sMaxValueNameLen;
     size_t sMaxValueLen;
     PREG_DATA_TYPE pTypes;
@@ -134,7 +136,7 @@ typedef struct __REG_KEY_CONTEXT
     }
 
 void
-RegSafeFreeKeyContext(
+RegSrvSafeFreeKeyContext(
     IN OUT PREG_KEY_CONTEXT* ppKeyResult
     );
 
@@ -531,11 +533,6 @@ REG_DATA_TYPE
 RegSrvValueType(
     IN PREG_KEY_CONTEXT pKeyResult,
     DWORD dwIndex
-    );
-
-VOID
-RegSrvFreeKeyContext(
-    PREG_KEY_CONTEXT pKey
     );
 
 #endif // __REGSERVER_H_
