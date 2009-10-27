@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<project>
+
+  <property name="nant.settings.currentframework" value="net-2.0"/>
+
+  <property name="local.output" value="System.DirectoryServices.dll" />
+  <property name="local.namespace" value="System.DirectoryServices" />
+
+  <target name="local.build">
+
+    <buildtool.assemblyinfo title="Mono/Quartz version of System.DirectoryServices" />
+    <buildtool.csc output="${local.output}" target="library" keyfile="sds.snk" noconfig="true">
+
+     
+      <sources>
+        <include name="${build.meta.current}/*.cs" />
+        <include name="*.cs" />
+        <include name="ActiveDirectory/**/*.cs" />
+        <include name="Misc/**/*.cs" />
+        <include name="Properties/**/*.cs" />        
+      </sources>
+
+      <references>       
+	<include name="${build.dist.os}/Likewise.LMC.LDAP.dll" />
+        <include name="System.dll" />
+        <include name="System.data.dll" />
+        <include name="System.drawing.dll" />
+        <include name="System.Windows.Forms.dll" />
+        <include name="System.Collections.Generic.dll" />
+        <include name="System.Configuration.Install.dll" />	
+      </references>
+
+      <resources dynamicprefix="true" prefix="${local.namespace}.Properties">
+        <include name="Properties/**/*.resx" />
+        <include name="*.resx" />
+	<include name="ActiveDirectory/**/*.resx" />
+      </resources>
+
+    </buildtool.csc>
+    
+    <buildtool.cscdist name="${local.output}"/>
+
+    <copy file="System.DirectoryServices.dll.config" todir="${build.dist.os}" />
+
+  </target>
+</project>

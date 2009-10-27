@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<project>
+
+  <target name="local.build">
+
+    <copy file="lacconsole" todir="${build.dist.os}" />
+    <copy file="lwigpmc.xml" todir="${build.dist.os}" />
+    <copy file="lwigpoe.xml" todir="${build.dist.os}" />
+
+  </target>
+
+</project>

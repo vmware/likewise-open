@@ -1,0 +1,10 @@
+<buildtool.dirs>
+  <dir name="RootPlugin"/>
+  <dir name="ADUCPlugin"/>
+  <dir name="LUGPlugin"/>
+  <dir name="EventlogPlugin"/>
+  <dir name="FileShareManagerPlugin"/>
+  <dir name="FileBrowserPlugin"/>
+  <dir name="RegistryViewerPlugin"/>
+  <dir name="ServiceManagerPlugin"/>
+</buildtool.dirs>

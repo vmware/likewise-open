@@ -1,0 +1,58 @@
+<?xml version="1.0"?>
+<project>
+
+  <property name="nant.settings.currentframework" if="${platform::is-win32()}" value="net-2.0"/>
+  <property name="nant.settings.currentframework" unless="${platform::is-win32()}" value="mono-2.0"/>
+
+  <property name="local.output" value="Likewise.LMC.Plugins.EventlogPlugin.dll" />
+  <property name="local.namespace" value="Likewise.LMC.Plugins.EventlogPlugin" />
+
+  <target name="local.build">
+
+    <buildtool.assemblyinfo title="Likewise Management Console - Event Log Viewer Plugin" />
+    <buildtool.csc output="${local.output}" target="library" define="QUARTZ" noconfig="true">
+
+      <nowarn>
+        <warning number="0169" />
+        <warning number="0219" />
+        <warning number="0414" />
+      </nowarn>
+
+      <sources>
+        <include name="${build.meta.current}/*.cs" />
+        <include name="src/*.cs" />
+        <include name="src/**/*.cs" />
+        <include name="Properties/*.cs" />
+        <include name="Properties/**/*.cs" />
+        <include name="*.cs" />
+      </sources>
+
+      <references>
+        <include name="System.dll" />
+        <include name="System.Data.dll" />
+        <include name="System.Drawing.dll" />
+        <include name="System.Windows.Forms.dll" />
+        <include name="System.Xml.dll" />        
+        <include name="${build.dist.os}/System.DirectoryServices.dll" />
+        <include name="${build.dist.os}/Likewise.LMC.LDAP.dll" />
+        <include name="${build.dist.os}/Likewise.LMC.LMConsoleUtils.dll" />
+        <include name="${build.dist.os}/Likewise.LMC.AuthUtils.dll" />
+        <include name="${build.dist.os}/Likewise.LMC.Netlogon.dll" />
+        <include name="${build.dist.os}/Likewise.LMC.Eventlog.dll" />
+        <include name="${build.dist.os}/Likewise.LMC.ServerControl.unix.dll" />        
+      </references>
+
+      <resources dynamicprefix="true" prefix="${local.namespace}">
+        <include name="Properties/*.resx"/>
+        <include name="Properties/**/*.resx" />
+        <include name="src/*.resx" />
+        <include name="src/**/*.resx" />
+        <include name="*.resx" />
+      </resources>
+
+    </buildtool.csc>
+
+    <buildtool.cscdist name="${local.output}"/>
+
+  </target>
+</project>

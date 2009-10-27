@@ -1,0 +1,71 @@
+﻿<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>8.0.50727</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{6844AA5B-95A3-4F50-A084-8316A02B6E58}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Likewise.LMC.Eventlog</RootNamespace>
+    <AssemblyName>Likewise.LMC.Eventlog</AssemblyName>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Interop\EventAPI.cs" />
+    <Compile Include="Interop\EventFilter.cs" />
+    <Compile Include="Interop\EventLog.cs" />
+    <Compile Include="Interop\EventlogAdapter.cs" />
+    <Compile Include="Interop\EventLogHandle.cs" />
+    <Compile Include="Interop\EventUtils.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\LMConsoleUtils\LMConsoleUtils.csproj">
+      <Project>{42B9FE52-8F39-4CAE-885F-9DB9B5DF0A70}</Project>
+      <Name>LMConsoleUtils</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Ldap\LDAP.csproj">
+      <Project>{A01CDE74-BC93-437B-A97A-883083EA4CC9}</Project>
+      <Name>LDAP</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Netlogon\Netlogon.csproj">
+      <Project>{BE8FEFB2-BC23-43AC-A6D4-80B43A6F0B0D}</Project>
+      <Name>Netlogon</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\System.DirectoryServices\System.DirectoryServices.csproj">
+      <Project>{52C1CE09-2AF3-4AF2-8E3A-0C2DC0EB2761}</Project>
+      <Name>System.DirectoryServices</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

@@ -1,0 +1,312 @@
+﻿<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>8.0.50727</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{9F45E041-5B67-48B8-AD13-DD5C40F3364A}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Likewise.LMC.ServerControl</RootNamespace>
+    <AssemblyName>Likewise.LMC.ServerControl.unix</AssemblyName>
+    <ApplicationIcon>
+    </ApplicationIcon>
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>quartz.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>TRACE;DEBUG;QUARTZ,LMC_OPEN</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <DocumentationFile>
+    </DocumentationFile>
+    <SignAssembly>true</SignAssembly>
+    <AssemblyKeyFile>D:\Work area\Likewise\Sapphire\src\windows\Quartz\quartz.snk</AssemblyKeyFile>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Design" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Security" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="src\About.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="src\About.Designer.cs">
+      <DependentUpon>About.cs</DependentUpon>
+    </Compile>
+    <Compile Include="src\Action.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="src\Action.designer.cs">
+      <DependentUpon>Action.cs</DependentUpon>
+    </Compile>
+    <Compile Include="src\ActionBox.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="src\ActionBox.designer.cs">
+      <DependentUpon>ActionBox.cs</DependentUpon>
+    </Compile>
+    <Compile Include="src\DbConnInfo.cs" />
+    <Compile Include="src\GPObjectInfo.cs" />
+    <Compile Include="src\KeyboardInfo.cs" />
+    <Compile Include="src\CommonResources.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="src\Hostinfo.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="src\LACTreeNode.cs">
+    </Compile>
+    <Compile Include="src\EditDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="src\EditDialog.Designer.cs">
+      <DependentUpon>EditDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="src\ListViewColumnSorter.cs" />
+    <Compile Include="src\LMCCustomView.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="src\LMCCustomView.designer.cs">
+      <DependentUpon>LMCCustomView.cs</DependentUpon>
+    </Compile>
+    <Compile Include="src\LWListView.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="src\LWTreeView.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="src\MPContainer.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="src\MPContainer.Designer.cs">
+      <DependentUpon>MPContainer.cs</DependentUpon>
+    </Compile>
+    <Compile Include="src\MPMenu.cs">
+    </Compile>
+    <Compile Include="src\MPMenuItem.cs" />
+    <Compile Include="src\MPPage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="src\MPPage.Designer.cs">
+      <DependentUpon>MPPage.cs</DependentUpon>
+    </Compile>
+    <Compile Include="src\Manage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="src\Manage.Designer.cs">
+      <DependentUpon>Manage.cs</DependentUpon>
+    </Compile>
+    <Compile Include="src\PlugInInterface.cs" />
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <Compile Include="src\ServerControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="src\ServerControl.Designer.cs">
+      <DependentUpon>ServerControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="src\StandardPage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="src\StandardPage.Designer.cs">
+      <DependentUpon>StandardPage.cs</DependentUpon>
+    </Compile>
+    <Compile Include="src\StringRequestDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="src\StringRequestDialog.Designer.cs">
+      <DependentUpon>StringRequestDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="src\WizardDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="src\WizardDialog.Designer.cs">
+      <DependentUpon>WizardDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="src\WizardPage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="src\WizardPage.Designer.cs">
+      <DependentUpon>WizardPage.cs</DependentUpon>
+    </Compile>
+    <Service Include="{94E38DFF-614B-4cbd-B67C-F211BB35CE8B}" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="src\About.resx">
+      <DependentUpon>About.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\Action.resx">
+      <DependentUpon>Action.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\ActionBox.resx">
+      <DependentUpon>ActionBox.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\EditDialog.resx">
+      <SubType>Designer</SubType>
+      <DependentUpon>EditDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\LMCCustomView.resx">
+      <DependentUpon>LMCCustomView.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\MPContainer.resx">
+      <SubType>Designer</SubType>
+      <DependentUpon>MPContainer.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\MPPage.resx">
+      <SubType>Designer</SubType>
+      <DependentUpon>MPPage.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\Manage.resx">
+      <SubType>Designer</SubType>
+      <DependentUpon>Manage.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <SubType>Designer</SubType>
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\ServerControl.resx">
+      <SubType>Designer</SubType>
+      <DependentUpon>ServerControl.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\StandardPage.resx">
+      <SubType>Designer</SubType>
+      <DependentUpon>StandardPage.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\StringRequestDialog.resx">
+      <DependentUpon>StringRequestDialog.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\WizardDialog.resx">
+      <DependentUpon>WizardDialog.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\WizardPage.resx">
+      <DependentUpon>WizardPage.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\centeris-arrow.gif" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\toCOMP_02.gif" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\keys.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\Help.bmp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\navtriangle.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\navtriangle_hover.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="quartz.snk" />
+    <None Include="Resources\manageserver.ico" />
+    <None Include="Resources\genericserver.ico" />
+    <None Include="Resources\RoleConfigure.ico" />
+    <Content Include="Resources\Admin.ico" />
+    <Content Include="Resources\Admin_White.ico" />
+    <Content Include="Resources\ADUC.ico" />
+    <Content Include="Resources\aduc_16.bmp" />
+    <Content Include="Resources\aduc_48.bmp" />
+    <None Include="Resources\agent-lgr.ico" />
+    <Content Include="Resources\BlockedOrganizationalUnit.ico" />
+    <Content Include="Resources\BlueArrows1.ico" />
+    <None Include="Resources\centeris.ico" />
+    <None Include="Resources\computer.ico" />
+    <None Include="Resources\Folder.ico" />
+    <None Include="Resources\Group_16.ico" />
+    <None Include="Resources\Group_24.ico" />
+    <None Include="Resources\Group_32.ico" />
+    <None Include="Resources\Group_48.ico" />
+    <Content Include="Resources\Cell_32.ico" />
+    <Content Include="Resources\Cell_48.ico" />
+    <Content Include="Resources\computer_16.bmp" />
+    <Content Include="Resources\computer_48.bmp" />
+    <Content Include="Resources\ConsoleSettings.xml" />
+    <Content Include="Resources\EventViewer_48.ico" />
+    <Content Include="Resources\EvenViewer_32.ico" />
+    <None Include="Resources\folder.png" />
+    <Content Include="Resources\FolderOpen_32.ico" />
+    <Content Include="Resources\FolderOpen_48.ico" />
+    <Content Include="Resources\folder_16.bmp" />
+    <Content Include="Resources\folder_32.bmp" />
+    <Content Include="Resources\GPMC.ico" />
+    <Content Include="Resources\group_16.bmp" />
+    <Content Include="Resources\Group_48.bmp" />
+    <Content Include="Resources\LocalGroup_32.ico" />
+    <Content Include="Resources\LocalGroup_48.ico" />
+    <None Include="Resources\Reports.ico" />
+    <Content Include="Resources\SharedFolder_32.ico" />
+    <Content Include="Resources\SharedFolder_48.ico" />
+    <Content Include="Resources\toolbarimage.bmp" />
+    <Content Include="Resources\user_16.bmp" />
+    <Content Include="Resources\user_48.bmp" />
+    <None Include="Resources\User_24.ico" />
+    <None Include="Resources\User_16.ico" />
+    <None Include="Resources\User.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\AuthUtils\AuthUtils.csproj">
+      <Project>{805A93D2-3B90-4A27-B319-73D86363470A}</Project>
+      <Name>AuthUtils</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\LikewiseClassLibraries\Netlogon\Netlogon.csproj">
+      <Project>{BE8FEFB2-BC23-43AC-A6D4-80B43A6F0B0D}</Project>
+      <Name>Netlogon</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\LMConsoleUtils\LMConsoleUtils.csproj">
+      <Project>{42B9FE52-8F39-4CAE-885F-9DB9B5DF0A70}</Project>
+      <Name>LMConsoleUtils</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+  <ProjectExtensions>
+    <MonoDevelop>
+      <Properties>
+        <Policies>
+          <DotNetNamingPolicy DirectoryNamespaceAssociation="None" ResourceNamePolicy="MSBuild" />
+        </Policies>
+      </Properties>
+    </MonoDevelop>
+    <VisualStudio />
+  </ProjectExtensions>
+</Project>

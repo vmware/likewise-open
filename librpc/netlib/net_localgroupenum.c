@@ -73,7 +73,6 @@ NetLocalGroupEnum(
     UnicodeString *desc = NULL;
     PIO_CREDS creds = NULL;
 
-    BAIL_ON_INVALID_PTR(hostname);
     BAIL_ON_INVALID_PTR(buffer);
     BAIL_ON_INVALID_PTR(out_entries);
     BAIL_ON_INVALID_PTR(out_total);
@@ -99,7 +98,7 @@ NetLocalGroupEnum(
 
         entries += dominfo->info2.num_aliases;
 
-        status = SamrQueryDomainInfo(samr_b, &hBtinDomain,
+        status = SamrQueryDomainInfo(samr_b, hBtinDomain,
                                      dominfo_level, &btin_dominfo);
         BAIL_ON_NTSTATUS_ERROR(status);
 

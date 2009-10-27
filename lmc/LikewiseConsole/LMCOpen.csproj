@@ -1,0 +1,302 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <ProjectType>Local</ProjectType>
+    <ProductVersion>8.0.50727</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{23788885-CB28-4D4E-9151-AFFB9A7870DF}</ProjectGuid>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <AssemblyKeyContainerName>
+    </AssemblyKeyContainerName>
+    <AssemblyName>LAC</AssemblyName>
+    <AssemblyOriginatorKeyFile>
+    </AssemblyOriginatorKeyFile>
+    <DefaultClientScript>JScript</DefaultClientScript>
+    <DefaultHTMLPageLayout>Grid</DefaultHTMLPageLayout>
+    <DefaultTargetSchema>IE50</DefaultTargetSchema>
+    <DelaySign>true</DelaySign>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Likewise.LMC</RootNamespace>
+    <RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
+    <FileUpgradeFlags>
+    </FileUpgradeFlags>
+    <UpgradeBackupLocation>
+    </UpgradeBackupLocation>
+    <ManifestCertificateThumbprint>1C3AB66B0E24716C2A5B5C8107566D6A7EA7733F</ManifestCertificateThumbprint>
+    <ManifestKeyFile>CESM_TemporaryKey.pfx</ManifestKeyFile>
+    <GenerateManifests>false</GenerateManifests>
+    <SignManifests>false</SignManifests>
+    <PublishUrl>\\srv1\public\mvellon2\Jade\</PublishUrl>
+    <Install>true</Install>
+    <InstallFrom>Unc</InstallFrom>
+    <UpdateEnabled>false</UpdateEnabled>
+    <UpdateMode>Foreground</UpdateMode>
+    <UpdateInterval>7</UpdateInterval>
+    <UpdateIntervalUnits>Days</UpdateIntervalUnits>
+    <UpdatePeriodically>false</UpdatePeriodically>
+    <UpdateRequired>false</UpdateRequired>
+    <MapFileExtensions>true</MapFileExtensions>
+    <CreateWebPageOnPublish>true</CreateWebPageOnPublish>
+    <WebPage>publish.htm</WebPage>
+    <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
+    <IsWebBootstrapper>false</IsWebBootstrapper>
+    <BootstrapperEnabled>true</BootstrapperEnabled>
+    <TargetZone>LocalIntranet</TargetZone>
+    <SignAssembly>false</SignAssembly>
+    <StartupObject>Likewise.LMC.LMCAppMain</StartupObject>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <OutputPath>bin\Debug\</OutputPath>
+    <BaseAddress>285212672</BaseAddress>
+    <ConfigurationOverrideFile>
+    </ConfigurationOverrideFile>
+    <DefineConstants>TRACE;DEBUG;QUARTZ,LMC_OPEN</DefineConstants>
+    <DocumentationFile>
+    </DocumentationFile>
+    <DebugSymbols>true</DebugSymbols>
+    <FileAlignment>4096</FileAlignment>
+    <Optimize>false</Optimize>
+    <RegisterForComInterop>false</RegisterForComInterop>
+    <RemoveIntegerChecks>false</RemoveIntegerChecks>
+    <WarningLevel>4</WarningLevel>
+    <DebugType>full</DebugType>
+    <ErrorReport>prompt</ErrorReport>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <OutputPath>bin\Release\</OutputPath>
+    <BaseAddress>285212672</BaseAddress>
+    <ConfigurationOverrideFile>
+    </ConfigurationOverrideFile>
+    <DefineConstants>TRACE</DefineConstants>
+    <DocumentationFile>
+    </DocumentationFile>
+    <FileAlignment>4096</FileAlignment>
+    <Optimize>true</Optimize>
+    <RegisterForComInterop>false</RegisterForComInterop>
+    <RemoveIntegerChecks>false</RemoveIntegerChecks>
+    <WarningLevel>4</WarningLevel>
+    <DebugType>none</DebugType>
+    <ErrorReport>prompt</ErrorReport>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Design" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <SubType>Designer</SubType>
+      <Generator>ResXFileCodeGenerator</Generator>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\AboutForm.resx">
+      <DependentUpon>AboutForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\AboutPluginForm.resx">
+      <DependentUpon>AboutPluginForm.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\AddRemovePluginDlg.resx">
+      <DependentUpon>AddRemovePluginDlg.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\AddPluginsDlg.resx">
+      <DependentUpon>AddPluginsDlg.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\LMCMainForm.resx">
+      <DependentUpon>LMCMainForm.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\ObjectSelectDlg.resx">
+      <DependentUpon>ObjectSelectDlg.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\ObjectSelectPage.resx">
+      <DependentUpon>ObjectSelectPage.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\ObjectsListPage.resx">
+      <DependentUpon>ObjectsListPage.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\PluginExtensionsPage.resx">
+      <DependentUpon>PluginExtensionsPage.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\PluginStandalonePage.resx">
+      <DependentUpon>PluginStandalonePage.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <Content Include="Resources\addserver.ico" />
+    <Content Include="Resources\ADUC_32.ico" />
+    <Content Include="Resources\agent.ico" />
+    <Content Include="Resources\back.ico" />
+    <Content Include="Resources\home.ico" />
+    <Content Include="Resources\Identity.ico" />
+    <Content Include="Resources\likewise.GIF" />
+    <None Include="Resources\likewiselogoV3.bmp" />
+    <Content Include="Resources\likewise_splash_screen.png" />
+    <Content Include="Resources\LWlogo.png" />
+    <None Include="Resources\LWlogo1.png" />
+    <Content Include="Resources\next.ico" />
+    <Content Include="Resources\OrganizationalUnit.ico" />
+    <Content Include="Resources\reload.ico" />
+    <Content Include="Resources\removeserver.ico" />
+    <Content Include="Resources\small_logo.gif" />
+    <None Include="Resources\small_logoICON.ico" />
+    <None Include="Resources\small_logoPNG.png" />
+    <None Include="Resources\small_logoGIF.gif" />
+    <EmbeddedResource Include="Resources\rgb_lw_ent.bmp" />
+    <EmbeddedResource Include="src\SplashControl.resx">
+      <DependentUpon>SplashControl.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <Compile Include="Properties\Resources.Designer.cs">
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <Compile Include="src\AboutForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="src\AddRemovePluginDlg.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="src\AddRemovePluginDlg.Designer.cs">
+      <DependentUpon>AddRemovePluginDlg.cs</DependentUpon>
+    </Compile>
+    <Compile Include="src\AddPluginsDlg.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="src\AddPluginsDlg.Designer.cs">
+      <DependentUpon>AddPluginsDlg.cs</DependentUpon>
+    </Compile>
+    <Compile Include="src\AboutPluginForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="src\AboutPluginForm.Designer.cs">
+      <DependentUpon>AboutPluginForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="src\AssemblyInfo.cs" />
+    <Compile Include="src\LMCAppMain.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="src\LMCMainForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="src\ObjectSelectDlg.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="src\ObjectSelectDlg.Designer.cs">
+      <DependentUpon>ObjectSelectDlg.cs</DependentUpon>
+    </Compile>
+    <Compile Include="src\ObjectSelectPage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="src\ObjectSelectPage.Designer.cs">
+      <DependentUpon>ObjectSelectPage.cs</DependentUpon>
+    </Compile>
+    <Compile Include="src\ObjectsListPage.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="src\ObjectsListPage.Designer.cs">
+      <DependentUpon>ObjectsListPage.cs</DependentUpon>
+    </Compile>
+    <Compile Include="src\ShowUsageException.cs" />
+    <Compile Include="src\PluginExtensionsPage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="src\PluginExtensionsPage.Designer.cs">
+      <DependentUpon>PluginExtensionsPage.cs</DependentUpon>
+    </Compile>
+    <Compile Include="src\PluginStandalonePage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="src\PluginStandalonePage.Designer.cs">
+      <DependentUpon>PluginStandalonePage.cs</DependentUpon>
+    </Compile>
+    <Compile Include="src\SplashControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <BootstrapperPackage Include="Microsoft.Net.Framework.2.0">
+      <Visible>False</Visible>
+    </BootstrapperPackage>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\AuthUtils\AuthUtils.csproj">
+      <Project>{805A93D2-3B90-4A27-B319-73D86363470A}</Project>
+      <Name>AuthUtils</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\LikewiseClassLibraries\Krb5\Krb5.csproj">
+      <Project>{D27214EF-85C2-46D7-94A7-45C3D26BEAC8}</Project>
+      <Name>Krb5</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\LikewiseClassLibraries\LDAP\LDAP.csproj">
+      <Project>{A01CDE74-BC93-437B-A97A-883083EA4CC9}</Project>
+      <Name>LDAP</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\LikewiseClassLibraries\Netlogon\Netlogon.csproj">
+      <Project>{BE8FEFB2-BC23-43AC-A6D4-80B43A6F0B0D}</Project>
+      <Name>Netlogon</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\LikewiseClassLibraries\Registry\Registry.csproj">
+      <Project>{2DF5A2F1-5A73-406F-A165-C34476BE5874}</Project>
+      <Name>Registry</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\LikewiseClassLibraries\System.DirectoryServices\System.DirectoryServices.csproj">
+      <Project>{52C1CE09-2AF3-4AF2-8E3A-0C2DC0EB2761}</Project>
+      <Name>System.DirectoryServices</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\LMConsoleUtils\LMConsoleUtils.csproj">
+      <Project>{42B9FE52-8F39-4CAE-885F-9DB9B5DF0A70}</Project>
+      <Name>LMConsoleUtils</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\OpenPlugins\ADUCPlugin\ADUCPlugin.csproj">
+      <Project>{09586E8E-91A1-4348-BD64-C85CE50F7D88}</Project>
+      <Name>ADUCPlugin</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\OpenPlugins\EventlogPlugin\EventlogPlugIn.csproj">
+      <Project>{542B16FB-6692-4765-B0DB-F3B12C537781}</Project>
+      <Name>EventlogPlugIn</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\OpenPlugins\FileBrowserPlugin\FileBrowserPlugin.csproj">
+      <Project>{DB67826F-BBA0-4091-9BF3-90246022D58A}</Project>
+      <Name>FileBrowserPlugin</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\OpenPlugins\FileShareManagerPlugin\FileShareManagerPlugin.csproj">
+      <Project>{8CEC50DA-6ED8-45C3-8EDF-845BD6CE48C8}</Project>
+      <Name>FileShareManagerPlugin</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\OpenPlugins\LUGPlugin\LUGPlugIn.csproj">
+      <Project>{86BDF985-DB4C-4214-9320-356221D150E5}</Project>
+      <Name>LUGPlugIn</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\OpenPlugins\RegistryViewerPlugin\RegistryViewerPlugin.csproj">
+      <Project>{821FD6B3-AE96-43C7-878A-05EE810E0A4F}</Project>
+      <Name>RegistryViewerPlugin</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\OpenPlugins\RootPlugin\RootPlugin.csproj">
+      <Project>{AD9DD3D8-1787-48F3-AECE-66C74E009265}</Project>
+      <Name>RootPlugin</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\OpenPlugins\ServiceManagerPlugin\ServiceManagerPlugin.csproj">
+      <Project>{4842EE9F-B8FF-4C52-9B84-01658A721D5A}</Project>
+      <Name>ServiceManagerPlugin</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\ServerControl\ServerControl_Open.csproj">
+      <Project>{9F45E041-5B67-48B8-AD13-DD5C40F3364A}</Project>
+      <Name>ServerControl_Open</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PreBuildEvent>
+    </PreBuildEvent>
+    <PostBuildEvent>
+    </PostBuildEvent>
+  </PropertyGroup>
+</Project>

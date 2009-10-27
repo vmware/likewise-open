@@ -1,0 +1,570 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
+  <data name="ManageServer" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>../Resources/manageserver.ico;System.Drawing.Icon, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="navtriangle" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>../Resources/navtriangle.ico;System.Drawing.Icon, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="RoleConfigure" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>../Resources/RoleConfigure.ico;System.Drawing.Icon, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="keys" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>../Resources/keys.ico;System.Drawing.Icon, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="Help" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>../Resources/Help.bmp;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="navtriangle_hover" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>../Resources/navtriangle_hover.ico;System.Drawing.Icon, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="toCOMP_02" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>../Resources/toCOMP_02.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="GenericServer" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>../Resources/genericserver.ico;System.Drawing.Icon, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="BlueArrows" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>../Resources/BlueArrows1.ico;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="Caption_Console" xml:space="preserve">
+    <value>Likewise Management Console</value>
+  </data>
+  <data name="Caption_Tasks" xml:space="preserve">
+    <value>Tasks</value>
+  </data>
+  <data name="Error_CannotEMail" xml:space="preserve">
+    <value>Unable to run your e-mail client.</value>
+  </data>
+  <data name="Error_CannotShowRegistrationPage" xml:space="preserve">
+    <value>Unable to show the registration web page.</value>
+  </data>
+  <data name="Error_CannotShowSupportPage" xml:space="preserve">
+    <value>Unable to show the support web page.</value>
+  </data>
+  <data name="Error_CannotStartInstaller" xml:space="preserve">
+    <value>Unable to start the agent installer: {0}</value>
+  </data>
+  <data name="Error_Credentials" xml:space="preserve">
+    <value>Likewise encountered an error while establishing a connection to {0}.
+
+The credentials you have provided do not have sufficient privileges to manage this machine.</value>
+  </data>
+  <data name="Error_Credentials2" xml:space="preserve">
+    <value>Likewise encountered an error while establishing a network session with {0}.
+Unknown username or incorrect password.</value>
+  </data>
+  <data name="Error_FailedToConnect" xml:space="preserve">
+    <value>Likewise encountered an error while establishing a network session with {0}.
+
+Unknown username, incorrect password or insufficient privileges.</value>
+  </data>
+  <data name="Error_FailedToConnect2" xml:space="preserve">
+    <value>Error connecting to machine.</value>
+  </data>
+  <data name="Error_FailedToConnect3" xml:space="preserve">
+    <value>Likewise encountered an error while establishing a network session with {0}.
+
+Error: {1}</value>
+  </data>
+  <data name="Error_InvalidComputerName" xml:space="preserve">
+    <value>Invalid computer name.</value>
+  </data>
+  <data name="Error_OldAgent" xml:space="preserve">
+    <value>The Likewise Agent on {0} needs to be updated.  It has version {1} and requires version {2} or greater.
+
+Please use the Install Agent button on top menu to update the agent.</value>
+  </data>
+  <data name="Error_OldClient" xml:space="preserve">
+    <value>The Likewise Agent on {0} is a newer version.  It has version {1}, and the Likewise client is version {2}.
+
+Please upgrade your Likewise client before trying to manage this server.</value>
+  </data>
+  <data name="Error_TooManySesssions" xml:space="preserve">
+    <value>Likewise encountered an error while establishing a network session with {0}.
+Multiple connections to a server or shared resource by the same user, using more than one user name, are not 
+allowed. Disconnect all previous connections to the server or shared resource and try again.</value>
+  </data>
+  <data name="InitialTabName" xml:space="preserve">
+    <value>System</value>
+    <comment>This is the name of the tab that CESM will initially display.</comment>
+  </data>
+  <data name="Label_ConnectingTo" xml:space="preserve">
+    <value>Connecting to {0}...</value>
+  </data>
+  <data name="Localhost" xml:space="preserve">
+    <value>localhost</value>
+  </data>
+  <data name="Error_InvalidComputerType" xml:space="preserve">
+    <value>Likewise cannot connect to {0}.</value>
+  </data>
+  <data name="Error_NoSamba" xml:space="preserve">
+    <value>The Likewise agent is installed on {0} but the Samba service is not running.
+
+Start this service on your Linux server by typing: "/etc/init.d/smb start" from a Linux command
+shell, while logged on as root. This error can also occur if the firewall on the Linux server does
+not allow communication with the necessary Samba ports (e.g. 445).</value>
+  </data>
+  <data name="Label_AddRemoveRoles" xml:space="preserve">
+    <value>Add/Remove Roles</value>
+  </data>
+  <data name="Label_Manage" xml:space="preserve">
+    <value>Manage</value>
+  </data>
+  <data name="Label_Security" xml:space="preserve">
+    <value>Security</value>
+  </data>
+  <data name="Label_System" xml:space="preserve">
+    <value>System</value>
+  </data>
+  <data name="Label_Utilities" xml:space="preserve">
+    <value>Utilities</value>
+  </data>
+  <data name="SplashScreen" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\SplashScreen.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="Connected_As" xml:space="preserve">
+    <value>Connected as: {0} \ {1}</value>
+  </data>
+  <data name="likewise" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\centeris.ico;System.Drawing.Icon, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="Admin" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\Admin.ico;System.Drawing.Icon, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="Admin_White" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\Admin_White.ico;System.Drawing.Icon, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="ConsoleSettings" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\ConsoleSettings.xml;System.String, mscorlib, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;utf-8</value>
+  </data>
+  <data name="Caption_Wait" xml:space="preserve">
+    <value>Likewise Management Console</value>
+  </data>
+  <data name="CancellingOperation" xml:space="preserve">
+    <value>Cancelling operation...</value>
+  </data>
+  <data name="CancellingReport" xml:space="preserve">
+    <value>Cancelling the report. Please wait ...</value>
+  </data>
+  <data name="Caption" xml:space="preserve">
+    <value>Likewise Console</value>
+  </data>
+  <data name="CaughtException" xml:space="preserve">
+    <value>Exception error: {0}</value>
+  </data>
+  <data name="ConfirmDelete" xml:space="preserve">
+    <value>Remove license: {0}?</value>
+  </data>
+  <data name="ConfirmImport" xml:space="preserve">
+    <value>Import {0} licenses ({1})?</value>
+  </data>
+  <data name="ConfirmRevoke" xml:space="preserve">
+    <value>Revoke license: {0}?</value>
+  </data>
+  <data name="ConnectingTo" xml:space="preserve">
+    <value>Connecting to {0}</value>
+  </data>
+  <data name="ControllerLogonFailure" xml:space="preserve">
+    <value>The report could not be completed due to the following error.
+Unable to login to the domain controller.</value>
+  </data>
+  <data name="CSVFilter" xml:space="preserve">
+    <value>|CSV files (*.csv)|*.csv</value>
+  </data>
+  <data name="DiagnosticsAndRepairTabTitle" xml:space="preserve">
+    <value>Diagnostics &amp; Migration</value>
+  </data>
+  <data name="Error_UnableToAssignLicense" xml:space="preserve">
+    <value>Unable to assign license: {0}</value>
+  </data>
+  <data name="Error_UnableToDeleteLicense" xml:space="preserve">
+    <value>Unable to delete license: {0}</value>
+  </data>
+  <data name="Error_UnableToRevokeLicense" xml:space="preserve">
+    <value>Unable to revoke license: {0}</value>
+  </data>
+  <data name="Error_Unauthorized" xml:space="preserve">
+    <value>You do not have sufficient priviliges to perform this operation.</value>
+  </data>
+  <data name="ErrorCaption" xml:space="preserve">
+    <value>Likewise Console</value>
+  </data>
+  <data name="ErrorComputerAlreadyHasAssignedLicense" xml:space="preserve">
+    <value>This computer already has a license assigned to it: {0}</value>
+  </data>
+  <data name="ErrorRunningMigration" xml:space="preserve">
+    <value>Unable to run migration tool: {0}</value>
+  </data>
+  <data name="GeneratingReportCaption" xml:space="preserve">
+    <value>Generating Report</value>
+  </data>
+  <data name="GeneratingReportMessage" xml:space="preserve">
+    <value>Report: {0}</value>
+  </data>
+  <data name="Good" xml:space="preserve">
+    <value>Good</value>
+  </data>
+  <data name="HomeDirectoryNotPerUser" xml:space="preserve">
+    <value>The default home directory does not contain %U. This may result in multiple users sharing a single home directory.</value>
+  </data>
+  <data name="HTMLFilter" xml:space="preserve">
+    <value>|HTML files (*.html)|*.html</value>
+  </data>
+  <data name="ImportDate" xml:space="preserve">
+    <value>Imported on {0}</value>
+  </data>
+  <data name="InfoPrompt" xml:space="preserve">
+    <value>Likewise Console</value>
+  </data>
+  <data name="InvalidComputer" xml:space="preserve">
+    <value>Invalid computer!</value>
+  </data>
+  <data name="InvalidHomeDirectory" xml:space="preserve">
+    <value>Invalid default home directory prefix</value>
+  </data>
+  <data name="InvalidLicense" xml:space="preserve">
+    <value>Invalid license!</value>
+  </data>
+  <data name="InvalidLicenseFile" xml:space="preserve">
+    <value>Invalid License File</value>
+  </data>
+  <data name="InvalidLoginShell" xml:space="preserve">
+    <value>Invalid login shell</value>
+  </data>
+  <data name="LicenseCountMismatch" xml:space="preserve">
+    <value>Only {0} out of {1} licenses were added. Some licenses might have already been present.</value>
+  </data>
+  <data name="LicenseTabTitle" xml:space="preserve">
+    <value>License Management</value>
+  </data>
+  <data name="LWEventLogTabTitle" xml:space="preserve">
+    <value>Event Log</value>
+  </data>
+  <data name="No" xml:space="preserve">
+    <value>No</value>
+  </data>
+  <data name="NonSchemaMode" xml:space="preserve">
+    <value>Non-Schema</value>
+  </data>
+  <data name="NoObjectsInFilter" xml:space="preserve">
+    <value>No {0} have been specified to show on the report.</value>
+  </data>
+  <data name="NoReportDomainsSelected" xml:space="preserve">
+    <value>You must select at least one domain to run a report.</value>
+  </data>
+  <data name="NotConsistent" xml:space="preserve">
+    <value>Not consistent!</value>
+  </data>
+  <data name="Note_OldDataPresent" xml:space="preserve">
+    <value>This domain contains data created with an older version of Likewise. Consult the documentation to learn how to upgrade this information to the form used by Likewise Enterprise 4.0.</value>
+  </data>
+  <data name="NotSameDomain" xml:space="preserve">
+    <value>A computer can only be assigned licenses from the domain to which it is joined. The computer "{0}" is not joined to domain {1}.</value>
+  </data>
+  <data name="NotSet" xml:space="preserve">
+    <value>Not set</value>
+  </data>
+  <data name="OrphanForm_CleanCompletedNoErrors" xml:space="preserve">
+    <value>The selected orphaned objects were deleted successfully.</value>
+  </data>
+  <data name="OrphanForm_CleanCompletedWithErrors" xml:space="preserve">
+    <value>Not all orphaned objects were deleted due to errors.</value>
+  </data>
+  <data name="OrphanForm_ConfirmCancel" xml:space="preserve">
+    <value>Are you sure you want to cancel the current operation?</value>
+  </data>
+  <data name="OrphanForm_ConfirmDelete" xml:space="preserve">
+    <value>Are you sure you want to delete {0} orphaned object(s)?</value>
+  </data>
+  <data name="OrphanForm_ScanCompleteNoErrors" xml:space="preserve">
+    <value>Scanning for orphaned objects completed successfully.</value>
+  </data>
+  <data name="OrphanForm_ScanCompleteWithErrors" xml:space="preserve">
+    <value>Scanning for orphaned objects completed with errors.</value>
+  </data>
+  <data name="ReportFailed" xml:space="preserve">
+    <value>The report could not be completed due to the following error.
+{0}</value>
+  </data>
+  <data name="ReportOutOfMemory" xml:space="preserve">
+    <value>The computer does not have enough memory to generate this report. Try reducing the scope of the report by adjusting the report parameters.</value>
+  </data>
+  <data name="ReportsTabTitle" xml:space="preserve">
+    <value>Reports</value>
+  </data>
+  <data name="ReportTitle_Header" xml:space="preserve">
+    <value>Likewise Report - {0}</value>
+  </data>
+  <data name="SampleReport" xml:space="preserve">
+    <value>Sample Report - {0}</value>
+  </data>
+  <data name="SampleReportXML" xml:space="preserve">
+    <value>&lt;report&gt;
+    &lt;date&gt;Todays date&lt;/date&gt;
+    &lt;domains&gt;
+        &lt;domain&gt;
+            &lt;name&gt;SAMPLE.DOMAIN.COM&lt;/name&gt;
+            &lt;shortDomainName&gt;SAMPLE&lt;/shortDomainName&gt;
+            &lt;enabled&gt;1&lt;/enabled&gt;
+            &lt;cells&gt;
+                &lt;cell&gt;
+                    &lt;name&gt;Sample Cell&lt;/name&gt;
+                    &lt;groups&gt;
+                        &lt;group&gt;
+                            &lt;name&gt;Sample Group&lt;/name&gt;
+                            &lt;accountName&gt;SAMPLE\Sample Group&lt;/accountName&gt;
+                            &lt;gecos&gt;This is just a sample group&lt;/gecos&gt;
+                            &lt;gid&gt;100000&lt;/gid&gt;
+                        &lt;/group&gt;
+                    &lt;/groups&gt;
+                    &lt;users&gt;
+                        &lt;user&gt;
+                            &lt;name&gt;Sample User&lt;/name&gt;
+                            &lt;gecos&gt;&lt;/gecos&gt;
+                            &lt;loginName&gt;unixsampleuser&lt;/loginName&gt;
+                            &lt;accountName&gt;SAMPLE\sampleuser&lt;/accountName&gt;
+                            &lt;loginShell&gt;/bin/bash&lt;/loginShell&gt;
+                            &lt;homeDir&gt;/home/SAMPLE.DOMAIN.COM/sampleuser&lt;/homeDir&gt;
+                            &lt;uid&gt;100000&lt;/uid&gt;
+                            &lt;gid&gt;100000&lt;/gid&gt;
+                            &lt;disabled&gt;0&lt;/disabled&gt;
+                        &lt;/user&gt;
+                    &lt;/users&gt;
+                    &lt;duplicates&gt;
+                        &lt;duplicateUIDs&gt;
+                            &lt;duplicateItem&gt;
+                                &lt;duplicatedValue&gt;100000&lt;/duplicatedValue&gt;
+                                &lt;duplicatingEntries&gt;Sample User,Another User&lt;/duplicatingEntries&gt;
+                            &lt;/duplicateItem&gt;
+                        &lt;/duplicateUIDs&gt;
+                    &lt;/duplicates&gt;
+                    &lt;computers&gt;
+                        &lt;computer&gt;
+                            &lt;name&gt;samplecomputer&lt;/name&gt;
+                            &lt;dnsname&gt;samplecomputer.sample.domain.com&lt;/dnsname&gt;
+                            &lt;disabled&gt;0&lt;/disabled&gt;
+                        &lt;/computer&gt;
+                    &lt;/computers&gt;
+                &lt;/cell&gt;
+            &lt;/cells&gt;
+            &lt;adgroups&gt;
+                &lt;adgroup&gt;
+                    &lt;accountName&gt;SAMPLE\Sample Group&lt;/accountName&gt;
+                    &lt;adusers&gt;
+                        &lt;aduser&gt;
+                            &lt;accountName&gt;SAMPLE\sampleuser&lt;/accountName&gt;
+                        &lt;/aduser&gt;
+                    &lt;/adusers&gt;
+                &lt;/adgroup&gt;
+            &lt;/adgroups&gt;
+        &lt;/domain&gt;
+    &lt;/domains&gt;
+&lt;/report&gt;</value>
+  </data>
+  <data name="SchemaMode" xml:space="preserve">
+    <value>Schema</value>
+  </data>
+  <data name="SelectDomains" xml:space="preserve">
+    <value>Please select one or more domains to scan</value>
+  </data>
+  <data name="ServerLicenseType" xml:space="preserve">
+    <value>Server</value>
+  </data>
+  <data name="ServerNotOperationalMessage" xml:space="preserve">
+    <value>The report could not be completed due to the following error.
+The domain controller cannot be contacted.</value>
+  </data>
+  <data name="SiteLicenseType" xml:space="preserve">
+    <value>{0}  (site license)</value>
+  </data>
+  <data name="StatusPage_Caption" xml:space="preserve">
+    <value>Status of {0}</value>
+  </data>
+  <data name="StatusPage_StoreDataInObjects" xml:space="preserve">
+    <value>AD objects</value>
+  </data>
+  <data name="StatusPage_StoreDataInPartition" xml:space="preserve">
+    <value>Shadow AD objects</value>
+  </data>
+  <data name="StatusTabTitle" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="TopTabTitle" xml:space="preserve">
+    <value>Likewise</value>
+  </data>
+  <data name="UnableToLoadLicenseFile" xml:space="preserve">
+    <value>Unable to load license file:
+
+{0}</value>
+  </data>
+  <data name="UnifiedMode" xml:space="preserve">
+    <value>Unified</value>
+  </data>
+  <data name="WaitCaption" xml:space="preserve">
+    <value>Likewise Console</value>
+  </data>
+  <data name="WaitMessage" xml:space="preserve">
+    <value>Importing licenses...</value>
+  </data>
+  <data name="WelcomeTabTitle" xml:space="preserve">
+    <value>Welcome</value>
+  </data>
+  <data name="WorkstationLicenseType" xml:space="preserve">
+    <value>Workstation</value>
+  </data>
+  <data name="WrongDomain" xml:space="preserve">
+    <value>Licenses are for a different domain ({0})</value>
+  </data>
+  <data name="XMLFilter" xml:space="preserve">
+    <value>XML files (*.xml)|*.xml</value>
+  </data>
+  <data name="Yes" xml:space="preserve">
+    <value>Yes</value>
+  </data>
+  <data name="agent_lgr" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\agent-lgr.ico;System.Drawing.Icon, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="folder" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\folder.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="Label_Version" xml:space="preserve">
+    <value>Likewise Version</value>
+  </data>
+  <data name="Reports" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\Reports.ico;System.Drawing.Icon, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="LAC_Help" xml:space="preserve">
+    <value>http://www.likewise.com/resources/documentation_library/manuals/lwe/likewise-enterprise-guide.html#id2926175</value>
+  </data>
+  <data name="LMC_CellManager_Help" xml:space="preserve">
+    <value>http://www.likewise.com/resources/documentation_library/manuals/lwe/likewise-enterprise-guide.html#id2829393</value>
+  </data>
+  <data name="LMC_GPMC_Help" xml:space="preserve">
+    <value>http://www.likewise.com/resources/documentation_library/manuals/lwe/likewise-enterprise-guide.html#id2895771</value>
+  </data>
+  <data name="LMC_GPOE_Help" xml:space="preserve">
+    <value>http://www.likewise.com/resources/documentation_library/manuals/lwe/likewise-enterprise-guide.html#id2895771</value>
+  </data>
+  <data name="LMC_Help" xml:space="preserve">
+    <value>http://www.likewise.com/resources/documentation_library/manuals/lwe/likewise-enterprise-guide.html#id2926175</value>
+  </data>
+</root>

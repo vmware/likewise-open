@@ -1,0 +1,318 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="KTAB_Desc" xml:space="preserve">
+    <value>Allows the user to manage the principal names and service keys stored in a local key table. Principal and key pairs listed in the keytab allow services running on a host to authenticate themselves to the Key Distribution Center (KDC)</value>
+  </data>
+  <data name="Caption_AddServer" xml:space="preserve">
+    <value>Add Server</value>
+  </data>
+  <data name="DefaultCompany" xml:space="preserve">
+    <value>** Evaluation Copy **</value>
+  </data>
+  <data name="Error_CannotShowReadme" xml:space="preserve">
+    <value>Unable to show the release notes file: {0}</value>
+  </data>
+  <data name="Error_InvalidAddress" xml:space="preserve">
+    <value>The address {0} is invalid. Please enter a valid IP address.</value>
+  </data>
+  <data name="Error_CannotVerify_License" xml:space="preserve">
+    <value>Could not verify software license.
+
+Likewise will now exit.</value>
+  </data>
+  <data name="Error_LicenseTermsExceeded" xml:space="preserve">
+    <value>More computers have been added to the favorites list than are allowed with your current license.
+
+{0} computers are allowed, but {1} are currently listed.
+
+To remove this message, please purchase a license for extra servers, or remove computers from the list of favorites.</value>
+  </data>
+  <data name="GPM_Desc" xml:space="preserve">
+    <value>Likewise Enterprise allows you to extend Active Directory group policies and security settings to non-Windows systems including - Linux, UNIX, and Mac. Now administrators can specify Cron policies on hundreds of machines without having to maintain them individually</value>
+  </data>
+  <data name="FilePrint_Desc" xml:space="preserve">
+    <value>File and Print Services in Likewise Software enable professionals to create advanced and cost-effective information networks that help maintain data availability and security, ease deployment and management, and integrate well with existing infrastructure.</value>
+  </data>
+  <data name="EventViewer_Desc" xml:space="preserve">
+    <value> Lets administrators and users view the event logs on a local or remote machine.</value>
+  </data>
+  <data name="HelpMsg" xml:space="preserve">
+    <value>Usage: lacconsole [--loglevel  (Silent,Panic,Error,Normal,Verbose,Debug)]
+		  [--plugin (aduc,cellmanager,eventviewer,gpmc,fileandprint,lsa,auth,kerberos,lug)]
+		  [--platform (linux,mac,windows)]
+	          [--help/--h/help]</value>
+  </data>
+  <data name="DefaultKey" xml:space="preserve">
+    <value>DDB79-0E233-D601E-2DC80-00300-010E9-8E1D704</value>
+  </data>
+  <data name="DefaultAvnetCompany" xml:space="preserve">
+    <value>** Evaluation Copy **</value>
+  </data>
+  <data name="GPOE_Desc" xml:space="preserve">
+    <value>Likewise Group Policy Object Editor will help users to Create, modify, and manage your Active Directory group policies from a Linux or Mac computer
+ 
+</value>
+  </data>
+  <data name="SaveSettingsMessage" xml:space="preserve">
+    <value>Do you want save LMC Console settings to {0}</value>
+  </data>
+  <data name="Label_Licensee" xml:space="preserve">
+    <value>Licensed to {0}</value>
+  </data>
+  <data name="LikewiseIConsole_Desc" xml:space="preserve">
+    <value>The Likewise Management Console allows you to view the status of your Active Directory domains, to run diagnostics and repair tools, and to manage your Likewise Enterprise licenses.</value>
+  </data>
+  <data name="Error_NoFavorites" xml:space="preserve">
+    <value>You have not added any computers to your favorites list.</value>
+  </data>
+  <data name="Caption_FavoritesExport" xml:space="preserve">
+    <value>Export Favorites</value>
+  </data>
+  <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
+  <data name="likewiselogoV3" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\likewiselogoV3.bmp;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="likewiselogoV31" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\likewiselogoV3.bmp;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="Error_WrongCompanyName" xml:space="preserve">
+    <value>The company name you entered does not correspond to the license key.  Please reenter the company name that you used to purchase the license key.
+
+If you have lost or forgotten the company name or believe this message to be in error, please contact support@likewisesoftware.com.</value>
+  </data>
+  <data name="DefaultAvnetKey" xml:space="preserve">
+    <value>D4879-02130-E6E19-2DC80-00100-010E9-8E1D704</value>
+  </data>
+  <data name="rgb_lw_ent1" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\rgb_lw_ent.bmp;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="Caption_FavoritesImport" xml:space="preserve">
+    <value>Import Favorites</value>
+  </data>
+  <data name="Error_FavoriteNotFound" xml:space="preserve">
+    <value>Error: Favorite [{0}] was not found in the favorite list.</value>
+  </data>
+  <data name="Usage" xml:space="preserve">
+    <value>Error: Unrecognized command line option [{0}]
+Usage: lacconsole [--loglevel  (Silent,Panic,Error,Normal,Verbose,Debug)]
+		  [--plugin (aduc,cellmanager,eventviewer,gpmc,fileandprint,lsa,auth,kerberos,lug)]
+		  [--platform (linux,mac,winodws)]
+	          [--help/--h/help]</value>
+  </data>
+  <data name="Caption_LicenseTermsExceeded" xml:space="preserve">
+    <value>License Terms Exceeded</value>
+  </data>
+  <data name="Error_InvalidComputerName" xml:space="preserve">
+    <value>Please enter a valid name or IP address for the computer you wish to manage.</value>
+  </data>
+  <data name="LWlogo" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\LWlogo1.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="Error_CannotFindInstaller" xml:space="preserve">
+    <value>The remote installer could not be found.\n\nPlease reinstall the product on this computer.</value>
+  </data>
+  <data name="Connected_as" xml:space="preserve">
+    <value>Connected as {0} @ {1}</value>
+  </data>
+  <data name="LUGDesc_Desc" xml:space="preserve">
+    <value>Use Local Users and Groups to create and manage users and groups that are stored locally on a computer. </value>
+  </data>
+  <data name="back" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\back.ico;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="Error_BadKey" xml:space="preserve">
+    <value>The license key you entered is not a valid license key.  Please reenter the license key.
+
+If you have lost or forgotten the license key or believe this message to be in error, please contact support@likewisesoftware.com.</value>
+  </data>
+  <data name="likewise_splash_screen" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\likewise_splash_screen.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="Error_InvalidExistingFavorite" xml:space="preserve">
+    <value>The existing favorite name is invalid.</value>
+  </data>
+  <data name="Warning_NoFavoritesFound" xml:space="preserve">
+    <value>No favorites found.</value>
+  </data>
+  <data name="Error_InvalidFavorite" xml:space="preserve">
+    <value>The new favorite name in invalid.</value>
+  </data>
+  <data name="Error_InvalidComputerType" xml:space="preserve">
+    <value>Error: Computer type is invalid.</value>
+  </data>
+  <data name="likewise" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\likewise.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="ADUC_Desc" xml:space="preserve">
+    <value>It greatly simplifies user account management by allowing administrators to manage users and computers for all systems in their mixed network through a single identity management system.</value>
+  </data>
+  <data name="reload" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\reload.ico;System.Drawing.Icon, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="Error_InvalidComputerName2" xml:space="preserve">
+    <value>Error: Computer name is invalid.</value>
+  </data>
+  <data name="LWIS_Desc" xml:space="preserve">
+    <value>The Likewise Identity Service, or LWIS, is a next-generation authentication engine for Linux, Unix, and Mac OS X. A highly reliable and industrial-strength application, LWIS gives non-Windows computers advanced capabilities.</value>
+  </data>
+  <data name="Error_AlreadyDefined" xml:space="preserve">
+    <value>The current selection has already been added to the favorites.</value>
+  </data>
+  <data name="next" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\next.ico;System.Drawing.Icon, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="Error_CannotResolve" xml:space="preserve">
+    <value>Failed to resolve the computer name [{0}] into an IP address.
+
+Please provide a valid computer name or IP address.</value>
+  </data>
+  <data name="addserver" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\addserver.ico;System.Drawing.Icon, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="Caption_LicenseError" xml:space="preserve">
+    <value>Likewise License Key Error</value>
+  </data>
+  <data name="Label_DaysRemaining" xml:space="preserve">
+    <value>({0} days remaining)</value>
+  </data>
+  <data name="CellManager_Desc" xml:space="preserve">
+    <value> Manages Likewise Enterprise Cells</value>
+  </data>
+  <data name="rgb_lw_ent" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\rgb_lw_ent.bmp;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="Label_Version" xml:space="preserve">
+    <value>Version {0}</value>
+  </data>
+  <data name="Error_InvalidDomainName" xml:space="preserve">
+    <value>An invalid domain name [{0}] was selected.
+
+Please select a valid domain.</value>
+  </data>
+  <data name="small_logoGIF" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\small_logoGIF.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="small_logoICON" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\small_logoICON.ico;System.Drawing.Icon, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="small_logoPNG" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\small_logoPNG.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+</root>

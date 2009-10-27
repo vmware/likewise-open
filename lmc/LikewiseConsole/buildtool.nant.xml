@@ -1,0 +1,69 @@
+<?xml version="1.0"?>
+<project>
+
+  <property name="nant.settings.currentframework" if="${platform::is-win32()}" value="net-2.0"/>
+  <property name="nant.settings.currentframework" unless="${platform::is-win32()}" value="mono-2.0"/>
+
+  <property name="local.output" value="Likewise.LMC.exe" />
+  <property name="local.namespace" value="Likewise.LMC" />
+
+  <target name="local.build">
+
+    <buildtool.assemblyinfo title="Likewise Management Console" />
+    <buildtool.csc output="${local.output}" target="winexe" win32icon="App.ico" noconfig="true" define="QUARTZ">
+
+      <nowarn>
+        <warning number="0169" />
+      </nowarn>
+
+      <sources>
+        <include name="${build.meta.current}/**/*.cs" />
+        <include name="src/*.cs" />
+        <include name="src/**/*.cs" />
+        <include name="Properties/*.cs" />
+        <include name="Properties/**/*.cs" />
+        <include name="*.cs" />
+      </sources>
+
+      <references>
+        <include name="${build.dist.os}/Likewise.LMC.LMConsoleUtils.dll" />
+        <include name="${build.dist.os}/Likewise.LMC.AuthUtils.dll" />
+        <include name="${build.dist.os}/Likewise.LMC.Netlogon.dll" />
+        <include name="${build.dist.os}/Likewise.LMC.ServerControl.unix.dll" />
+        <include name="${build.dist.os}/Likewise.LMC.Krb5.dll" />
+        <include name="${build.dist.os}/Likewise.LMC.LDAP.dll" />     
+        <include name="${build.dist.os}/Likewise.LMC.Plugins.RootPlugin.unix.dll" />       
+        <include name="${build.dist.os}/Likewise.LMC.Plugins.LUGPlugin.unix.dll" />       
+        <include name="${build.dist.os}/Likewise.LMC.Plugins.LSAMgmtPlugin.unix.dll" />       
+        <include name="${build.dist.os}/Likewise.LMC.Plugins.KerberosKeyTableMgmt.unix.dll" />       
+        <include name="${build.dist.os}/Likewise.LMC.Plugins.ADUCPlugin.dll" />      
+        <include name="${build.dist.os}/Likewise.LMC.Plugins.CellManagerPlugin.dll" />        
+        <include name="${build.dist.os}/Likewise.LMC.Plugins.FileAndPrint.dll" />       
+        <include name="${build.dist.os}/Likewise.LMC.Plugins.EventlogPlugin.dll" />       
+        <include name="${build.dist.os}/Likewise.LMC.Plugins.GPOEPlugin.dll" />       
+        <include name="${build.dist.os}/Likewise.LMC.Plugins.GPMCPlugin.dll" />       
+        <include name="${build.dist.os}/System.DirectoryServices.dll" />	   
+        <include name="${build.dist.os}/Microsoft.ManagementConsole.dll" />	   
+        <include name="${build.dist.os}/DSUtil.unix.dll" />	   
+        <include name="${build.dist.os}/LWUnifiedProvider.unix.dll" />	   
+        <include name="System.dll" />
+        <include name="System.Data.dll" />
+        <include name="System.Design.dll" />
+        <include name="System.Drawing.dll" />
+        <include name="System.Windows.Forms.dll" />
+        <include name="System.XML.dll" />
+      </references>
+
+      <resources dynamicprefix="true" prefix="${local.namespace}" >
+        <include name="Properties/*.resx" />
+        <include name="src/*.resx" />
+        <include name="src/**/*.resx" />
+        <include name="*.resx" />
+      </resources>
+
+    </buildtool.csc>
+
+    <buildtool.cscdist name="${local.output}"/>
+
+  </target>
+</project>
