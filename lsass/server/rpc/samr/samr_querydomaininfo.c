@@ -533,8 +533,13 @@ SamrSrvFillDomainInfo2(
     DomainInfo *pInfo
     )
 {
+    const wchar_t wszFilterFmt[] = L"%ws=%d AND %ws='%ws'";
+
     NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = 0;
+    PCONNECT_CONTEXT pConnCtx = NULL;
+    WCHAR wszAttrDn[] = DS_ATTR_DISTINGUISHED_NAME;
+    WCHAR wszAttrObjectClass[] = DS_ATTR_OBJECT_CLASS;
     WCHAR wszAttrComment[] = DS_ATTR_COMMENT;
     WCHAR wszAttrDomainName[] = DS_ATTR_DOMAIN;
     WCHAR wszAttrForceLogoffTime[] = DS_ATTR_FORCE_LOGOFF_TIME;
@@ -544,6 +549,23 @@ SamrSrvFillDomainInfo2(
     LONG64 llForceLogoffTime = 0;
     ULONG ulRole = 0;
     DomainInfo2 *pInfo2 = NULL;
+    PWSTR pwszBase = NULL;
+    DWORD dwScope = 0;
+    size_t dwDomainNameLen = 0;
+    DWORD dwObjectClass = 0;
+    DWORD dwFilterLen = DS_OBJECT_CLASS_UNKNOWN;
+    PWSTR pwszFilter = NULL;
+    PDIRECTORY_ENTRY pEntries = NULL;
+    DWORD dwNumEntries = 0;
+    DWORD dwNumUsers = 0;
+    DWORD dwNumAliases = 0;
+
+    PWSTR wszAttributes[] = {
+        wszAttrDn,
+        NULL
+    };
+
+    pConnCtx       = pDomCtx->pConnCtx;
 
     dwError = DirectoryGetEntryAttrValueByName(pEntry,
                                                wszAttrComment,
@@ -569,6 +591,77 @@ SamrSrvFillDomainInfo2(
                                                &ulRole);
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = LwWc16sLen(pwszDomainName, &dwDomainNameLen);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwFilterLen = ((sizeof(wszAttrObjectClass)/sizeof(WCHAR)) - 1) +
+                  10 +
+                  ((sizeof(wszAttrDomainName)/sizeof(WCHAR)) - 1) +
+                  dwDomainNameLen +
+                  (sizeof(wszFilterFmt)/sizeof(wszFilterFmt[0]));
+
+    dwError = LwAllocateMemory(sizeof(WCHAR) * dwFilterLen,
+                               OUT_PPVOID(&pwszFilter));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    /*
+     * Get the number of user accounts
+     */
+    dwObjectClass = DS_OBJECT_CLASS_USER;
+
+    sw16printfw(pwszFilter, dwFilterLen, wszFilterFmt,
+                wszAttrObjectClass,
+                dwObjectClass,
+                wszAttrDomainName,
+                pwszDomainName);
+
+    dwError = DirectorySearch(pConnCtx->hDirectory,
+                              pwszBase,
+                              dwScope,
+                              pwszFilter,
+                              wszAttributes,
+                              FALSE,
+                              &pEntries,
+                              &dwNumEntries);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwNumUsers = dwNumEntries;
+
+    if (pEntries)
+    {
+        DirectoryFreeEntries(pEntries, dwNumEntries);
+        pEntries = NULL;
+    }
+
+    /*
+     * Get the number of user accounts
+     */
+    dwObjectClass = DS_OBJECT_CLASS_LOCAL_GROUP;
+
+    sw16printfw(pwszFilter, dwFilterLen, wszFilterFmt,
+                wszAttrObjectClass,
+                dwObjectClass,
+                wszAttrDomainName,
+                pwszDomainName);
+
+    dwError = DirectorySearch(pConnCtx->hDirectory,
+                              pwszBase,
+                              dwScope,
+                              pwszFilter,
+                              wszAttributes,
+                              FALSE,
+                              &pEntries,
+                              &dwNumEntries);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwNumAliases = dwNumEntries;
+
+    if (pEntries)
+    {
+        DirectoryFreeEntries(pEntries, dwNumEntries);
+        pEntries = NULL;
+    }
+
     pInfo2 = &pInfo->info2;
 
     /* force_logoff_time */
@@ -576,7 +669,7 @@ SamrSrvFillDomainInfo2(
 
     /* comment */
     ntStatus = SamrSrvInitUnicodeString(&pInfo2->comment,
-                                      pwszComment);
+                                        pwszComment);
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     /* domain_name */
@@ -596,10 +689,28 @@ SamrSrvFillDomainInfo2(
 
     /* unknown2 */
     /* num_users */
-    /* num_groups */
+    pInfo2->num_users = dwNumUsers;
+
+    /* num_groups (domain member doesn't support domain groups) */
+    pInfo2->num_users = 0;
+
     /* num_aliases */
+    pInfo2->num_aliases = dwNumAliases;
 
 cleanup:
+    if (pEntries)
+    {
+        DirectoryFreeEntries(pEntries, dwNumEntries);
+    }
+
+    LW_SAFE_FREE_MEMORY(pwszFilter);
+
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
     return ntStatus;
 
 error:
