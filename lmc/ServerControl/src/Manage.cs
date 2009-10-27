@@ -1074,7 +1074,6 @@ namespace Likewise.LMC.ServerControl
                 File.Delete(sCredentialsFilePath);
                 File.Move(sPath, sCredentialsFilePath);
             }
-
         }
 
         /// <summary>
@@ -1082,7 +1081,7 @@ namespace Likewise.LMC.ServerControl
         /// </summary>
         /// <param name="requestor"></param>
         /// <param name="_hn"></param>
-        private void GetConnectedHostInfoFromIni(IPlugIn requestor, Hostinfo _hn)
+        public void GetConnectedHostInfoFromIni(IPlugIn requestor, Hostinfo _hn)
         {
             string sPlugInName = GetPlugInName(requestor);
 
@@ -2271,8 +2270,6 @@ namespace Likewise.LMC.ServerControl
         {
             return sLDAPPath;
         }
-
-
 
 
         /// <summary>
