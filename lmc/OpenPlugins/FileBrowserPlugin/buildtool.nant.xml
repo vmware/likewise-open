@@ -20,10 +20,13 @@
         <include name="${build.meta.current}/**/*.cs" />
         <include name="Folders/**/*.cs" />
         <include name="src/**/*.cs" />
+        <include name="src/*.cs" />
         <include name="Properties/**/*.cs" />
       </sources>
 
       <references>
+	<include name="${build.dist.os}/Likewise.LMC.FileClient.dll" />
+	<include name="${build.dist.os}/Likewise.LMC.LMCCredentials.dll" />
         <include name="${build.dist.os}/Likewise.LMC.LMConsoleUtils.dll" />
         <include name="${build.dist.os}/Likewise.LMC.AuthUtils.dll" />
         <include name="${build.dist.os}/Likewise.LMC.Netlogon.dll" />

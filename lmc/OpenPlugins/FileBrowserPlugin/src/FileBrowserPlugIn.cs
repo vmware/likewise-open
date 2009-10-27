@@ -40,6 +40,7 @@ using Likewise.LMC.NETAPI;
 using Likewise.LMC.FileClient;
 using Likewise.LMC.AuthUtils;
 using Likewise.LMC.Plugins.FileBrowser;
+using Likewise.LMC.LMCCredentials;
 
 namespace Likewise.LMC.Plugins.FileBrowser
 {
@@ -59,7 +60,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
 
         #region Class data
 
-        private string _currentHost = "";
+        //private string _currentHost = "";
         private IPlugInContainer _container;
         private Hostinfo _hn;
         private LACTreeNode _pluginNode;
@@ -511,14 +512,14 @@ namespace Likewise.LMC.Plugins.FileBrowser
                     path = "\\\\curtis-pc\\New Music";
                     determinePath = false;
                     // If !useAlternateCreds enabled
-                    if (false)
-                    {
-                        initialConnect = true;
-                    }
-                    else
-                    {
-                        error = WinError.ERROR_ACCESS_DENIED;
-                    }
+                    //if (false)
+                    //{
+                    //    initialConnect = true;
+                    //}
+                    //else
+                    //{
+                    //    error = WinError.ERROR_ACCESS_DENIED;
+                    //}
                 }
 
                 if (initialConnect)
