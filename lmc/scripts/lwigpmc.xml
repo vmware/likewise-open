@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LWIGPMCExtensions>
+  <Logging LogLevel="warning"/>
+  <Assembly RelativePath="LWIGPMCSnapIn.dll"/>
+  <MachineReport>
+    <ReportGroup DisplayRes="LWIGPOEUnixAndLinuxSettings">
+      <ReportGroup DisplayRes="LWITargetPlatfomFiltering">
+        <GPItem clientGUID="{E04493F3-5BE9-4e47-8B5B-9FC52FA2485D}"
+                itemGUID="{F81FFA93-7E08-4b49-A3D1-D5EBC93203EF}"
+                name="Global Linux and Unix Settings"
+                templateRes="tpl_globalLinuxUNIXSettings"/>
+      </ReportGroup>
+      <ReportGroup DisplayRes="LWILikewiseIdentitySettings">
+        <ReportGroup DisplayRes="LWILikewiseAgentSettings">
+          <GPItem clientGUID="{0EED766B-2404-46A6-A6B6-F8971164A920}"
+                  itemGUID="{804A1822-40E7-45B2-A549-EEB3EF545339}"
+                  name="lwiauthd settings"
+                  templateRes="tpl_lwisettings"/>
+        </ReportGroup>
+        <ReportGroup DisplayRes="LWIPamSettings">
+          <GPItem clientGUID="{0EED766B-2404-46A6-A6B6-F8971164A920}"
+                  itemGUID="{FAC763F0-9CC0-4ECE-8188-287D3E128AC3}"
+                  name="pam settings"
+                  templateRes="tpl_pamsettings"/>
+        </ReportGroup>
+        <ReportGroup DisplayRes="LWIGPAgentSettings">
+          <GPItem clientGUID="{0EED766B-2404-46A6-A6B6-F8971164A920}"
+                  itemGUID="{DEA51259-1884-4298-9D34-8AFBFA3F10A0}"
+                  name="gpagent settings"
+                  templateRes="tpl_GPAgentSettings"/>
+        </ReportGroup>
+        <ReportGroup DisplayRes="LWIEventLogSettings">
+          <GPItem clientGUID="{0EED766B-2404-46A6-A6B6-F8971164A920}"
+                  itemGUID="{B60BD7C6-9593-4a9a-B16C-CA3B1FEE45D7}"
+                  name="eventlog settings"
+                  templateRes="tpl_EventLogSettings"/>
+        </ReportGroup>
+        <ReportGroup DisplayRes="LWIEventFwdSettings">
+          <GPItem clientGUID="{0EED766B-2404-46A6-A6B6-F8971164A920}"
+                  itemGUID="{E12B76B6-1378-41a5-A218-24AC9C8E9F14}"
+                  name="eventfwd settings"
+                  templateRes="tpl_EventFwdSettings"/>
+        </ReportGroup>
+      </ReportGroup>
+      <ReportGroup DisplayRes="LWIDisplaySettings">
+        <ReportGroup DisplayRes="LWIGnomeDesktopSettings">
+          <GPItem clientGUID="{B078EE20-01A1-4fee-8DCC-032B758FA1F8}"             
+                  name="Gconf Configuration Settings"
+                  templateRes="tpl_gconf"/>
+        </ReportGroup>
+      </ReportGroup>
+      <ReportGroup DisplayRes="LWIMessages">
+        <ReportGroup DisplayRes="LWILoginPromptSettings">
+          <GPItem clientGUID="{9020E541-F49C-4ab8-88F3-55BE2D95B440}"
+                  itemGUID="{4BC2DDEB-8E7A-48ae-90CF-6D568231471A}"
+                  name="login prompt settings"
+                  templateRes="tpl_loginPrompt"/>
+        </ReportGroup>
+        <ReportGroup DisplayRes="LWIMotdSettings">
+          <GPItem clientGUID="{9A9F29C0-B1B1-467d-A255-0BD3D7AAAE59}"
+                  itemGUID="{051B4CD2-0AF3-485f-B437-6D46370CBD8D}"
+                  name="message of the day"
+                  templateRes="tpl_motd"/>
+        </ReportGroup>
+      </ReportGroup>
+      <ReportGroup DisplayRes="LWILoggingAndAutid">
+        <ReportGroup DisplayRes="LWISELinuxSettings">
+          <GPItem clientGUID="{0BCE95E2-5332-49dc-9878-D3F8B678734B}" 
+                  itemGUID="{151FD89A-18AA-45e4-9466-D84E35FD6083}"
+                  name="selinux settings"
+                  templateRes="tpl_selinux"/>
+        </ReportGroup>
+        <ReportGroup DisplayRes="LWIAppArmorSettings">
+          <GPItem clientGUID="{5554B0EB-ABE5-4654-A123-3B7818B2A48A}"
+                  itemGUID="{BB392F21-B75B-41af-BDFD-A3378EB51C98}"
+                  name="AppArmor settings"
+                  templateRes="tpl_appArmor"/>
+        </ReportGroup>
+        <ReportGroup DisplayRes="LWISysLogSettings">
+          <GPItem clientGUID="{0D18828D-E7DA-434c-A537-8AF8122E2602}"
+                  itemGUID="{B63633DC-749A-486c-90F2-41CAC01779CB}"
+                  name="SysLog Settings"
+                  templateRes="tpl_syslog"/>
+        </ReportGroup>
+        <ReportGroup DisplayRes="LWILogRotateSettings">
+          <GPItem clientGUID="{B1BBA22A-08FF-4826-9B4B-151C8A0BC1CA}"
+                  itemGUID="{98AAAFB1-F311-40e7-B58D-B93C0A21827F}"
+                  name="LogRotate Settings"
+                  templateRes="tpl_logRotate"/>
+        </ReportGroup>
+      </ReportGroup>
+      <ReportGroup DisplayRes="LWIFileSystem">
+        <ReportGroup DisplayRes="LWIFileSystemSettings">
+          <GPItem clientGUID="{AE472D6F-0615-4d12-BC70-8A381CA67D53}"
+                  itemGUID="{466BA033-CEEB-45fb-8ED4-4083B538AF76}"
+                  name="Files, Directories and Links"
+                  templateRes="tpl_lwifilesys"/>
+        </ReportGroup>
+        <ReportGroup DisplayRes="LWIAutoMountSettings">
+          <GPItem clientGUID="{9994B0EB-ABE5-4654-A123-3B7818B2A999}" 
+                  itemGUID="{12587328-5C0D-46bd-BE9B-BF264F6CA720}"
+                  name="automount settings"
+                  templateRes="tpl_automount"/>
+        </ReportGroup>
+        <ReportGroup DisplayRes="LWIFstabSettings">
+          <GPItem clientGUID="{36C20771-2724-4ee3-B1B0-36A396CDA5E3}"
+                  itemGUID="{EF31B0C1-5DF1-4455-9C71-C83E729EC70B}"
+                  name="fstab settings"
+                  templateRes="tpl_fstab"/>
+        </ReportGroup>
+      </ReportGroup>
+      <ReportGroup DisplayRes="LWITasks">
+        <ReportGroup DisplayRes="LWIScriptSettings">
+          <GPItem clientGUID="{DDFF8E72-5C29-4987-8FB3-DF7EB7CE8FC2}"
+                  itemGUID="{04CD09B3-E969-4803-B8BD-6E6B5A945E92}"
+                  name="script settings"
+                  templateRes="tpl_script"/>
+        </ReportGroup>
+        <ReportGroup DisplayRes="LWICrontabSettings">
+          <GPItem clientGUID="{B9CA8919-71D7-4aaa-9567-7225965F4A0E}"
+                  itemGUID="{C54AD223-08E6-4174-B1C5-01B6ED7AEC6F}"
+                  name="crontab settings"
+                  templateRes="tpl_cron"/>
+        </ReportGroup>
+      </ReportGroup>
+      <ReportGroup DisplayRes="LWISecuritySettings">
+        <ReportGroup DisplayRes="LWISUDOSettings">
+          <GPItem clientGUID="{20D139DE-D892-419f-96E5-0C3A997CB9C4}"
+                  itemGUID="{8F413F51-94F1-4945-B37F-A04BF4E7AC73}"
+                  name="sudo settings"
+                  templateRes="tpl_sudo"/>
+        </ReportGroup>
+      </ReportGroup>
+      <ReportGroup DisplayRes="LWINetworkSettings">
+        <ReportGroup DisplayRes="lwinetwork_nameDNS">
+          <GPItem clientGUID="{5FB45FF0-A68C-430b-8C6E-347B14AEB975}"
+                  itemGUID="{5E8BFB9F-8725-4399-AB83-590B3EEE7C12}"
+                  name="Network settings"
+                  templateRes="tpl_NetworkSettings"/>
+        </ReportGroup>
+      </ReportGroup>
+      <ReportGroup DisplayRes="LWIGPOEMacintoshSettings">
+        <ReportGroup DisplayRes="LWIMacSpecificSettings">
+          <ReportGroup DisplayRes="LWIMacSecuritySettings">
+            <GPItem clientGUID="{A36E3651-9910-4183-859B-2E077140FBCB}"
+                    itemGUID="{83857CE8-1FA8-43C6-AD07-00B807874087}"
+                    name="mac security settings"
+                    templateRes="tpl_macSecuritySettings"/>
+          </ReportGroup>
+          <ReportGroup DisplayRes="LWIMacFirewallSettings">
+            <GPItem clientGUID="{A36E3651-9910-4183-859B-2E077140FBCB}"
+                    itemGUID="{0B06B245-FE4C-4808-A100-D52F4D74B7CB}"
+                    name="mac firewall settings"
+                    templateRes="tpl_macFirewallSettings"/>
+          </ReportGroup>
+          <ReportGroup DisplayRes="LWIMacBluetoothSettings">
+            <GPItem clientGUID="{A36E3651-9910-4183-859B-2E077140FBCB}"
+                    itemGUID="{6642CE9C-B2F4-4bdb-9F07-890939B0FE86}"
+                    name="mac bluetooth settings"
+                    templateRes="tpl_macBluetoothSettings"/>
+          </ReportGroup>
+          <ReportGroup DisplayRes="LWIMacInternetNetworkSettings">
+            <GPItem clientGUID="{A36E3651-9910-4183-859B-2E077140FBCB}"
+                    itemGUID="{2B068E9E-5BC6-4fb7-B292-539B7A4D92A3}"
+                    name="mac internet and network settings"
+                    templateRes="tpl_macInternetNetworkSettings"/>
+          </ReportGroup>
+          <ReportGroup DisplayRes="LWIMacEnergySaverSettings">
+            <ReportGroup DisplayRes="LWIMacEnergySaverSleepSettings">
+              <GPItem clientGUID="{A36E3651-9910-4183-859B-2E077140FBCB}"
+                      itemGUID="{3BCB95AD-2DA2-438a-BD5C-4CA5BFBFDD88}"
+                      name="energysaversleep settings"
+                      templateRes="tpl_EnergySaverSleepSettings"/>
+            </ReportGroup>
+            <ReportGroup DisplayRes="LWIMacEnergySaverOptionsSettings">
+              <GPItem clientGUID="{A36E3651-9910-4183-859B-2E077140FBCB}"
+                        itemGUID="{5842C39F-D134-4a3c-ABD1-D6D269ADE954}"
+                        name="energysaveroption settings"
+                        templateRes="tpl_EnergySaverOptionSettings"/>
+            </ReportGroup>
+          </ReportGroup>
+        </ReportGroup>
+        <ReportGroup DisplayRes="LWIMacWorkgroupManagerSettings">
+          <GPItem clientGUID="{B9BF896E-F9EB-49b5-8E67-11E2EDAED06C}"
+                  itemGUID="{D6086B42-EBC0-4da5-8D77-CD154CE84A28}"
+                  name="Mac Workgroup Manager Computer Settings"
+                  templateRes="tpl_macworkgroupmanager"/>
+        </ReportGroup>
+        <ReportGroup DisplayRes="LWIMacLwedsPluginSettings">
+          <GPItem clientGUID="{9024A863-BA1E-4ad9-BF5E-C0C33BE3BFCF}"
+                  itemGUID="{C697619F-177A-47c2-9B22-5B84BAE78018}"
+                  name="Mac LWEDS Settings"
+                  templateRes="tpl_lwedsplugin_lwisettings"/>
+        </ReportGroup>
+      </ReportGroup>
+    </ReportGroup>
+  </MachineReport>
+  <UserReport>
+    <ReportGroup DisplayRes="LWIGPOEUnixAndLinuxSettings">
+      <ReportGroup DisplayRes="LWIUserTargetPlatfomFiltering">
+        <GPItem clientGUID="{38645510-0528-470b-8AA6-0BCF151D9B41}"
+                itemGUID="{EFE58EBA-B01E-4f39-A7BD-09E9528AD93C}"
+                name="Global Linux and Unix User Settings"
+                templateRes="tpl_globalLinuxUnixUserSettings"/>
+      </ReportGroup>
+      <ReportGroup DisplayRes="LWIGnomeDesktopSettings">
+        <GPItem clientGUID="{74533AFA-5A94-4fa5-9F88-B78667C1C0B5}"             
+                name="Gconf Configuration Settings"
+                templateRes="tpl_gconf"/>
+      </ReportGroup>
+      <ReportGroup DisplayRes="LWIGPOEMacintoshSettings">
+        <ReportGroup DisplayRes="LWIMacWorkgroupManagerUserSettings">
+          <GPItem clientGUID="{07E500C4-20FD-4829-8F38-B5FF63FA0493}"
+                  itemGUID="{1DB31D88-03FC-4660-823B-2B927733BC2C}"
+                  name="Mac Workgroup Manager User Settings"
+                  templateRes="tpl_macworkgroupmanagerUserSettings"/>
+        </ReportGroup>
+      </ReportGroup>
+    </ReportGroup>
+  </UserReport>
+</LWIGPMCExtensions>

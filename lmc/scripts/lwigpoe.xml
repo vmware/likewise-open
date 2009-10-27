@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LWIGPOEExtensions>
+  <Logging LogLevel="warning"/>
+  <ComputerNodes>
+    <Assembly RelativePath="LWIGPSnapIn.dll"/>
+    <ScopeNode NodeID="LWIGPOEUnixAndLinuxSettings" DisplayRes="LWIGPOEUnixAndLinuxSettings">
+      <ScopeNode NodeID="LWIGlobalLinuxUNIXSettingsNode"/>
+      <ScopeNode NodeID="LWISettingsNode"/>
+      <ScopeNode NodeID="LWIGConfNode"/>
+      <ScopeNode NodeID="LWIMessages" DisplayRes="LWIMessages">
+        <ScopeNode NodeID="LWILoginPromptNode"/>
+        <ScopeNode NodeID="LWIMotdNode"/>
+      </ScopeNode>
+      <ScopeNode NodeID="LWILoggingAndAutid" DisplayRes="LWILoggingAndAutid">
+        <ScopeNode NodeID="LWISelinuxNode"/>
+        <ScopeNode NodeID="LWIAppArmorNode"/>
+        <ScopeNode NodeID="LWISysLogNode"/>
+        <ScopeNode NodeID="LWILogRotateNode"/>
+      </ScopeNode>
+      <ScopeNode NodeID="LWIFileSystem" DisplayRes="LWIFileSystem">
+        <ScopeNode NodeID="LWIFileSystemSettingsNode"/>
+        <ScopeNode NodeID="LWIAutomountNode"/>
+        <ScopeNode NodeID="LWIFstabNode"/>
+      </ScopeNode>
+      <ScopeNode NodeID="LWITasks" DisplayRes="LWITasks">
+        <ScopeNode NodeID="LWIScriptNode"/>
+        <ScopeNode NodeID="LWICronNode"/>
+      </ScopeNode>
+      <ScopeNode NodeID="LWISecuritySettings" DisplayRes="LWISecuritySettings">
+        <ScopeNode NodeID="LWISudoNode"/>
+      </ScopeNode>
+      <ScopeNode NodeID="LWINetworkSettings" DisplayRes="LWINetworkSettings">
+      </ScopeNode>
+      <ScopeNode NodeID="LWIGPOEMacintoshSettings" DisplayRes="LWIGPOEMacintoshSettings">
+        <ScopeNode NodeID="LWIMacSpecificSettings" DisplayRes="LWIMacSpecificSettings"/>
+        <ScopeNode NodeID="LWIMacLwedsPluginSettings" DisplayRes="LWIMacLwedsPluginSettings"/>
+        <ScopeNode NodeID="LWIMacWorkgroupManagerSettings" DisplayRes="LWIMacWorkgroupManagerSettings"/>     
+      </ScopeNode>
+    </ScopeNode>
+  </ComputerNodes>
+  <UserNodes>
+    <Assembly RelativePath="LWIGPSnapIn.dll"/>
+    <ScopeNode NodeID="LWIGPOEUnixAndLinuxUserSettings" DisplayRes="LWIGPOEUnixAndLinuxUserSettings">
+      <ScopeNode NodeID="LWIUserTargetPlatforms"/>
+      <ScopeNode NodeID="LWIGConfNode"/>
+      <ScopeNode NodeID="LWIMacintoshUserSettings" DisplayRes="LWIMacintoshUserSettings">       
+        <ScopeNode NodeID="LWIMacWorkgroupManagerUserSettings" DisplayRes="LWIMacWorkgroupManagerUserSettings"/>
+      </ScopeNode>
+    </ScopeNode>
+  </UserNodes>
+</LWIGPOEExtensions>
+

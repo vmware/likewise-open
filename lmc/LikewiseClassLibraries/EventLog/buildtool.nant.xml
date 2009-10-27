@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<project>
+
+  <property name="nant.settings.currentframework" if="${platform::is-win32()}" value="net-2.0"/>
+  <property name="nant.settings.currentframework" unless="${platform::is-win32()}" value="mono-2.0"/>
+
+  <property name="local.output" value="Likewise.LMC.Eventlog.dll" />
+  <property name="local.namespace" value="Likewise.LMC.Eventlog" />
+
+  <target name="local.build">
+
+    <buildtool.assemblyinfo title="Likewise Management Console - Eventlog" />
+    <buildtool.csc output="${local.output}" target="library">
+
+      <nowarn>
+        <warning number="0169" />
+      </nowarn>
+
+      <sources>
+        <include name="${build.meta.current}/*.cs" />
+        <include name="Interop/**/*.cs" />
+        <include name="Properties/**/*.cs" />
+      </sources>
+
+      <references>
+        <include name="${build.dist.os}/Likewise.LMC.LMConsoleUtils.dll" />
+        <include name="${build.dist.os}/Likewise.LMC.Authutils.dll" />
+        <include name="${build.dist.os}/Likewise.LMC.Netlogon.dll" />
+        <include name="${build.dist.os}/Likewise.LMC.LDAP.dll" />
+        <include name="${build.dist.os}/System.DirectoryServices.dll" />
+        <include name="System.dll" />
+      </references>
+
+      <resources dynamicprefix="true" prefix="${local.namespace}" >
+        <include name="Properties/**/*.resx"/>
+        <include name="Interop/**/*.resx" />
+        <include name="Interop/*.resx" />
+        <include name="*.resx" />
+      </resources>
+
+    </buildtool.csc>
+
+    <buildtool.cscdist name="${local.output}"/>
+
+  </target>
+</project>

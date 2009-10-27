@@ -1,0 +1,782 @@
+﻿<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <ProjectType>Local</ProjectType>
+    <ProductVersion>8.0.50727</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{09586E8E-91A1-4348-BD64-C85CE50F7D88}</ProjectGuid>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ApplicationIcon>
+    </ApplicationIcon>
+    <AssemblyKeyContainerName>
+    </AssemblyKeyContainerName>
+    <AssemblyName>Likewise.LMC.Plugins.ADUCPlugin</AssemblyName>
+    <AssemblyOriginatorKeyFile>
+    </AssemblyOriginatorKeyFile>
+    <DefaultClientScript>JScript</DefaultClientScript>
+    <DefaultHTMLPageLayout>Grid</DefaultHTMLPageLayout>
+    <DefaultTargetSchema>IE50</DefaultTargetSchema>
+    <DelaySign>false</DelaySign>
+    <OutputType>Library</OutputType>
+    <RootNamespace>Likewise.LMC.Plugins.ADUCPlugin</RootNamespace>
+    <RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
+    <StartupObject>
+    </StartupObject>
+    <FileUpgradeFlags>
+    </FileUpgradeFlags>
+    <UpgradeBackupLocation>
+    </UpgradeBackupLocation>
+    <SignAssembly>true</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <OutputPath>bin\Debug\</OutputPath>
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+    <BaseAddress>285212672</BaseAddress>
+    <CheckForOverflowUnderflow>false</CheckForOverflowUnderflow>
+    <ConfigurationOverrideFile>
+    </ConfigurationOverrideFile>
+    <DefineConstants>DEBUG</DefineConstants>
+    <DocumentationFile>
+    </DocumentationFile>
+    <DebugSymbols>true</DebugSymbols>
+    <FileAlignment>4096</FileAlignment>
+    <NoStdLib>false</NoStdLib>
+    <NoWarn>
+    </NoWarn>
+    <Optimize>false</Optimize>
+    <RegisterForComInterop>false</RegisterForComInterop>
+    <RemoveIntegerChecks>false</RemoveIntegerChecks>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <WarningLevel>4</WarningLevel>
+    <DebugType>full</DebugType>
+    <ErrorReport>prompt</ErrorReport>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <OutputPath>bin\Release\</OutputPath>
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+    <BaseAddress>285212672</BaseAddress>
+    <CheckForOverflowUnderflow>false</CheckForOverflowUnderflow>
+    <ConfigurationOverrideFile>
+    </ConfigurationOverrideFile>
+    <DefineConstants>TRACE</DefineConstants>
+    <DocumentationFile>
+    </DocumentationFile>
+    <DebugSymbols>false</DebugSymbols>
+    <FileAlignment>4096</FileAlignment>
+    <NoStdLib>false</NoStdLib>
+    <NoWarn>
+    </NoWarn>
+    <Optimize>true</Optimize>
+    <RegisterForComInterop>false</RegisterForComInterop>
+    <RemoveIntegerChecks>false</RemoveIntegerChecks>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <WarningLevel>4</WarningLevel>
+    <DebugType>none</DebugType>
+    <ErrorReport>prompt</ErrorReport>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System">
+      <Name>System</Name>
+    </Reference>
+    <Reference Include="System.Data">
+      <Name>System.Data</Name>
+    </Reference>
+    <Reference Include="System.Drawing">
+      <Name>System.Drawing</Name>
+    </Reference>
+    <Reference Include="System.Windows.Forms">
+      <Name>System.Windows.Forms</Name>
+    </Reference>
+    <Reference Include="System.Xml">
+      <Name>System.XML</Name>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="account_editor_dialogs\ADAddtoGroupErrorEditor.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="account_editor_dialogs\ADAddtoGroupErrorEditor.Designer.cs">
+      <DependentUpon>ADAddtoGroupErrorEditor.cs</DependentUpon>
+    </Compile>
+    <Compile Include="account_editor_dialogs\ADComputerAddDlg.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="account_editor_dialogs\ADComputerAddDlg.Designer.cs">
+      <DependentUpon>ADComputerAddDlg.cs</DependentUpon>
+    </Compile>
+    <Compile Include="account_editor_dialogs\ADComputerPropertiesDlg.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="account_editor_dialogs\ADComputerPropertiesDlg.Designer.cs">
+      <DependentUpon>ADComputerPropertiesDlg.cs</DependentUpon>
+    </Compile>
+    <Compile Include="account_editor_dialogs\ADDeleteComputerConfirmDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="account_editor_dialogs\ADDeleteComputerConfirmDialog.Designer.cs">
+      <DependentUpon>ADDeleteComputerConfirmDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="account_editor_dialogs\AddUsertoGroup.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="account_editor_dialogs\AddUsertoGroup.Designer.cs">
+      <DependentUpon>AddUsertoGroup.cs</DependentUpon>
+    </Compile>
+    <Compile Include="account_editor_dialogs\ADGroupAddDlg.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="account_editor_dialogs\ADGroupAddDlg.designer.cs">
+      <DependentUpon>ADGroupAddDlg.cs</DependentUpon>
+    </Compile>
+    <Compile Include="account_editor_dialogs\ADGroupPropertiesDlg.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="account_editor_dialogs\ADGroupPropertiesDlg.Designer.cs">
+      <DependentUpon>ADGroupPropertiesDlg.cs</DependentUpon>
+    </Compile>
+    <Compile Include="account_editor_dialogs\ADObjectAddDlg.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="account_editor_dialogs\ADObjectAddDlg.Designer.cs">
+      <DependentUpon>ADObjectAddDlg.cs</DependentUpon>
+    </Compile>
+    <Compile Include="account_editor_dialogs\ADOUAddDlg.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="account_editor_dialogs\ADOUAddDlg.Designer.cs">
+      <DependentUpon>ADOUAddDlg.cs</DependentUpon>
+    </Compile>
+    <Compile Include="account_editor_dialogs\ADOUPropertiesDlg.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="account_editor_dialogs\ADOUPropertiesDlg.Designer.cs">
+      <DependentUpon>ADOUPropertiesDlg.cs</DependentUpon>
+    </Compile>
+    <Compile Include="account_editor_dialogs\ADRenameDlg.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="account_editor_dialogs\ADRenameDlg.Designer.cs">
+      <DependentUpon>ADRenameDlg.cs</DependentUpon>
+    </Compile>
+    <Compile Include="account_editor_dialogs\ADRenameUserDlg.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="account_editor_dialogs\ADRenameUserDlg.Designer.cs">
+      <DependentUpon>ADRenameUserDlg.cs</DependentUpon>
+    </Compile>
+    <Compile Include="account_editor_dialogs\ADUCDomain.cs" />
+    <Compile Include="account_editor_dialogs\ADUCPlugin.cs" />
+    <Compile Include="account_editor_dialogs\ADUserAddDlg.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="account_editor_dialogs\ADUserAddDlg.Designer.cs">
+      <DependentUpon>ADUserAddDlg.cs</DependentUpon>
+    </Compile>
+    <Compile Include="account_editor_dialogs\ADUserPropertiesDlg.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="account_editor_dialogs\ADUserPropertiesDlg.Designer.cs">
+      <DependentUpon>ADUserPropertiesDlg.cs</DependentUpon>
+    </Compile>
+    <Compile Include="account_editor_dialogs\DomainPropertiesDlg.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="account_editor_dialogs\DomainPropertiesDlg.Designer.cs">
+      <DependentUpon>DomainPropertiesDlg.cs</DependentUpon>
+    </Compile>
+    <Compile Include="account_editor_dialogs\GenericPropertiesDlg.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="account_editor_dialogs\GenericPropertiesDlg.Designer.cs">
+      <DependentUpon>GenericPropertiesDlg.cs</DependentUpon>
+    </Compile>
+    <Compile Include="pages\ADEditPage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="pages\ADEditPage.Designer.cs">
+      <DependentUpon>ADEditPage.cs</DependentUpon>
+    </Compile>
+    <Compile Include="pages\ADMoveObjectPage.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="pages\ADMoveObjectPage.Designer.cs">
+      <DependentUpon>ADMoveObjectPage.cs</DependentUpon>
+    </Compile>
+    <Compile Include="pages\ADUCPage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="pages\ADUCPage.Designer.cs">
+      <DependentUpon>ADUCPage.cs</DependentUpon>
+    </Compile>
+    <Compile Include="pages\ComputerAddFinishPage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="pages\ComputerAddFinishPage.designer.cs">
+      <DependentUpon>ComputerAddFinishPage.cs</DependentUpon>
+    </Compile>
+    <Compile Include="pages\ComputerAddHostServerPage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="pages\ComputerAddHostServerPage.designer.cs">
+      <DependentUpon>ComputerAddHostServerPage.cs</DependentUpon>
+    </Compile>
+    <Compile Include="pages\ComputerAddManagedPage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="pages\ComputerAddManagedPage.designer.cs">
+      <DependentUpon>ComputerAddManagedPage.cs</DependentUpon>
+    </Compile>
+    <Compile Include="pages\ComputerAddWelcomepage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="pages\ComputerAddWelcomepage.Designer.cs">
+      <DependentUpon>ComputerAddWelcomepage.cs</DependentUpon>
+    </Compile>
+    <Compile Include="pages\ComputerGeneralEditPage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="pages\ComputerGeneralEditPage.designer.cs">
+      <DependentUpon>ComputerGeneralEditPage.cs</DependentUpon>
+    </Compile>
+    <Compile Include="pages\ComputerMemOfPage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="pages\ComputerMemOfPage.designer.cs">
+      <DependentUpon>ComputerMemOfPage.cs</DependentUpon>
+    </Compile>
+    <Compile Include="pages\ContainerGeneralEditPage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="pages\ContainerGeneralEditPage.Designer.cs">
+      <DependentUpon>ContainerGeneralEditPage.cs</DependentUpon>
+    </Compile>
+    <Compile Include="pages\BuiltinGroupGeneralEditPage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="pages\BuiltinGroupGeneralEditPage.designer.cs">
+      <DependentUpon>BuiltinGroupGeneralEditPage.cs</DependentUpon>
+    </Compile>
+    <Compile Include="pages\ComputerOSEditPage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="pages\ComputerOSEditPage.designer.cs">
+      <DependentUpon>ComputerOSEditPage.cs</DependentUpon>
+    </Compile>
+    <Compile Include="pages\DomainGeneralEditPage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="pages\DomainGeneralEditPage.Designer.cs">
+      <DependentUpon>DomainGeneralEditPage.cs</DependentUpon>
+    </Compile>
+    <Compile Include="pages\GroupGeneralEditPage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="pages\GroupGeneralEditPage.designer.cs">
+      <DependentUpon>GroupGeneralEditPage.cs</DependentUpon>
+    </Compile>
+    <Compile Include="pages\GroupMembersPage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="pages\GroupMembersPage.Designer.cs">
+      <DependentUpon>GroupMembersPage.cs</DependentUpon>
+    </Compile>
+    <Compile Include="pages\GroupMemOfPage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="pages\GroupMemOfPage.Designer.cs">
+      <DependentUpon>GroupMemOfPage.cs</DependentUpon>
+    </Compile>
+    <Compile Include="pages\MemOfPages.cs" />
+    <Compile Include="pages\MultiItemsGeneralEditPage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="pages\MultiItemsGeneralEditPage.Designer.cs">
+      <DependentUpon>MultiItemsGeneralEditPage.cs</DependentUpon>
+    </Compile>
+    <Compile Include="pages\ObjectAddFinalPage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="pages\ObjectAddFinalPage.Designer.cs">
+      <DependentUpon>ObjectAddFinalPage.cs</DependentUpon>
+    </Compile>
+    <Compile Include="pages\ObjectAddSinglePage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="pages\ObjectAddSinglePage.Designer.cs">
+      <DependentUpon>ObjectAddSinglePage.cs</DependentUpon>
+    </Compile>
+    <Compile Include="pages\ObjectAddWelcomePage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="pages\ObjectAddWelcomePage.Designer.cs">
+      <DependentUpon>ObjectAddWelcomePage.cs</DependentUpon>
+    </Compile>
+    <Compile Include="pages\OUGeneralEditPage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="pages\OUGeneralEditPage.Designer.cs">
+      <DependentUpon>OUGeneralEditPage.cs</DependentUpon>
+    </Compile>
+    <Compile Include="pages\UserAccountPage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="pages\UserAccountPage.Designer.cs">
+      <DependentUpon>UserAccountPage.cs</DependentUpon>
+    </Compile>
+    <Compile Include="pages\UserAddFinishPage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="pages\UserAddFinishPage.Designer.cs">
+      <DependentUpon>UserAddFinishPage.cs</DependentUpon>
+    </Compile>
+    <Compile Include="pages\UserAddpasswordPage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="pages\UserAddpasswordPage.Designer.cs">
+      <DependentUpon>UserAddpasswordPage.cs</DependentUpon>
+    </Compile>
+    <Compile Include="pages\UserAddWelcomePage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="pages\UserAddWelcomePage.Designer.cs">
+      <DependentUpon>UserAddWelcomePage.cs</DependentUpon>
+    </Compile>
+    <Compile Include="pages\UserGeneralEditPage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="pages\UserGeneralEditPage.Designer.cs">
+      <DependentUpon>UserGeneralEditPage.cs</DependentUpon>
+    </Compile>
+    <Compile Include="pages\UserMemOfPage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="pages\UserMemOfPage.Designer.cs">
+      <DependentUpon>UserMemOfPage.cs</DependentUpon>
+    </Compile>
+    <Compile Include="pages\MultiItemsAddressEditPage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="pages\MultiItemsAddressEditPage.Designer.cs">
+      <DependentUpon>MultiItemsAddressEditPage.cs</DependentUpon>
+    </Compile>
+    <Compile Include="pages\UserMultiselectGeneralEditPage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="pages\UserMultiselectGeneralEditPage.Designer.cs">
+      <DependentUpon>UserMultiselectGeneralEditPage.cs</DependentUpon>
+    </Compile>
+    <Compile Include="pages\UserProfilePage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="pages\UserProfilePage.Designer.cs">
+      <DependentUpon>UserProfilePage.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Properties\Resources.Designer.cs">  
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <Compile Include="account_editor_dialogs\MultiItemPropertiesDlg.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="account_editor_dialogs\MultiItemPropertiesDlg.Designer.cs">
+      <DependentUpon>MultiItemPropertiesDlg.cs</DependentUpon>
+    </Compile>
+    <Compile Include="src\DirectoryNode.cs" />
+    <Compile Include="src\ObjectAddAttributesTab.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="src\ObjectAddAttributesTab.Designer.cs">
+      <DependentUpon>ObjectAddAttributesTab.cs</DependentUpon>
+    </Compile>
+    <Compile Include="src\ObjectAddMoreAttributesDlg.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="src\ObjectAddMoreAttributesDlg.Designer.cs">
+      <DependentUpon>ObjectAddMoreAttributesDlg.cs</DependentUpon>
+    </Compile>
+    <Compile Include="src\ADUCDirectoryNode.cs" />
+    <Compile Include="src\ResetPassword.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="src\ResetPassword.designer.cs">
+      <DependentUpon>ResetPassword.cs</DependentUpon>
+    </Compile>
+    <Compile Include="src\SecurityID.cs" />
+    <Compile Include="src\UserGroupUtils.cs" />
+    <Compile Include="value_editor_dialogs\BooleanAttributeEditor.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="value_editor_dialogs\BooleanAttributeEditor.Designer.cs">
+      <DependentUpon>BooleanAttributeEditor.cs</DependentUpon>
+    </Compile>
+    <Compile Include="value_editor_dialogs\LogOnWorkStationsEditor.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="value_editor_dialogs\IntegerAttributeEditor.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="value_editor_dialogs\IntegerAttributeEditor.designer.cs">
+      <DependentUpon>IntegerAttributeEditor.cs</DependentUpon>
+    </Compile>
+    <Compile Include="value_editor_dialogs\MultiValuedBooleanEditor.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="value_editor_dialogs\MultiValuedBooleanEditor.designer.cs">
+      <DependentUpon>MultiValuedBooleanEditor.cs</DependentUpon>
+    </Compile>
+    <Compile Include="value_editor_dialogs\MultiValuedOctetEditor.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="value_editor_dialogs\MultiValuedOctetEditor.designer.cs">
+      <DependentUpon>MultiValuedOctetEditor.cs</DependentUpon>
+    </Compile>
+    <Compile Include="value_editor_dialogs\MultiValuedStringEditor.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="value_editor_dialogs\MultiValuedStringEditor.designer.cs">
+      <DependentUpon>MultiValuedStringEditor.cs</DependentUpon>
+    </Compile>
+    <Compile Include="value_editor_dialogs\MultiValuedTimeEditor.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="value_editor_dialogs\MultiValuedTimeEditor.designer.cs">
+      <DependentUpon>MultiValuedTimeEditor.cs</DependentUpon>
+    </Compile>
+    <Compile Include="value_editor_dialogs\OctetStringAttributeEditor.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="value_editor_dialogs\OctetStringAttributeEditor.Designer.cs">
+      <DependentUpon>OctetStringAttributeEditor.cs</DependentUpon>
+    </Compile>
+    <Compile Include="value_editor_dialogs\OthersStringEditor.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="value_editor_dialogs\OthersStringEditor.designer.cs">
+      <DependentUpon>OthersStringEditor.cs</DependentUpon>
+    </Compile>
+    <Compile Include="value_editor_dialogs\StringAttributeEditor.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="value_editor_dialogs\StringAttributeEditor.Designer.cs">
+      <DependentUpon>StringAttributeEditor.cs</DependentUpon>
+    </Compile>
+    <Compile Include="value_editor_dialogs\TimeAttributeEditor.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="value_editor_dialogs\TimeAttributeEditor.Designer.cs">
+      <DependentUpon>TimeAttributeEditor.cs</DependentUpon>
+    </Compile>
+    <EmbeddedResource Include="account_editor_dialogs\ADAddtoGroupErrorEditor.resx">
+      <SubType>Designer</SubType>
+      <DependentUpon>ADAddtoGroupErrorEditor.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="account_editor_dialogs\ADComputerAddDlg.resx">
+      <DependentUpon>ADComputerAddDlg.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="account_editor_dialogs\ADComputerPropertiesDlg.resx">
+      <DependentUpon>ADComputerPropertiesDlg.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="account_editor_dialogs\ADDeleteComputerConfirmDialog.resx">
+      <DependentUpon>ADDeleteComputerConfirmDialog.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="account_editor_dialogs\AddUsertoGroup.resx">
+      <DependentUpon>AddUsertoGroup.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="account_editor_dialogs\ADGroupAddDlg.resx">
+      <DependentUpon>ADGroupAddDlg.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="account_editor_dialogs\ADGroupPropertiesDlg.resx">
+      <DependentUpon>ADGroupPropertiesDlg.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="account_editor_dialogs\ADObjectAddDlg.resx">
+      <SubType>Designer</SubType>
+      <DependentUpon>ADObjectAddDlg.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="account_editor_dialogs\ADOUAddDlg.resx">
+      <DependentUpon>ADOUAddDlg.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="account_editor_dialogs\ADOUPropertiesDlg.resx">
+      <DependentUpon>ADOUPropertiesDlg.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="account_editor_dialogs\ADRenameDlg.resx">
+      <DependentUpon>ADRenameDlg.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="account_editor_dialogs\ADRenameUserDlg.resx">
+      <SubType>Designer</SubType>
+      <DependentUpon>ADRenameUserDlg.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="account_editor_dialogs\ADUserPropertiesDlg.resx">
+      <DependentUpon>ADUserPropertiesDlg.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="account_editor_dialogs\DomainPropertiesDlg.resx">
+      <DependentUpon>DomainPropertiesDlg.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="account_editor_dialogs\GenericPropertiesDlg.resx">
+      <DependentUpon>GenericPropertiesDlg.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="pages\ADEditPage.resx">
+      <DependentUpon>ADEditPage.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="pages\ADMoveObjectPage.resx">
+      <DependentUpon>ADMoveObjectPage.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="pages\ADUCPage.resx">
+      <DependentUpon>ADUCPage.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="pages\ComputerAddFinishPage.resx">
+      <DependentUpon>ComputerAddFinishPage.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="pages\ComputerAddHostServerPage.resx">
+      <DependentUpon>ComputerAddHostServerPage.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="pages\ComputerAddManagedPage.resx">
+      <DependentUpon>ComputerAddManagedPage.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="pages\ComputerAddWelcomepage.resx">
+      <DependentUpon>ComputerAddWelcomepage.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="pages\ComputerGeneralEditPage.resx">
+      <DependentUpon>ComputerGeneralEditPage.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="pages\ComputerMemOfPage.resx">
+      <DependentUpon>ComputerMemOfPage.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="pages\ContainerGeneralEditPage.resx">
+      <DependentUpon>ContainerGeneralEditPage.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="pages\BuiltinGroupGeneralEditPage.resx">
+      <DependentUpon>BuiltinGroupGeneralEditPage.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="pages\ComputerOSEditPage.resx">
+      <DependentUpon>ComputerOSEditPage.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="pages\DomainGeneralEditPage.resx">
+      <DependentUpon>DomainGeneralEditPage.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="pages\GroupGeneralEditPage.resx">
+      <DependentUpon>GroupGeneralEditPage.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="pages\GroupMembersPage.resx">
+      <DependentUpon>GroupMembersPage.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="pages\GroupMemOfPage.resx">
+      <DependentUpon>GroupMemOfPage.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="pages\MultiItemsGeneralEditPage.resx">
+      <DependentUpon>MultiItemsGeneralEditPage.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="pages\ObjectAddFinalPage.resx">
+      <DependentUpon>ObjectAddFinalPage.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="pages\ObjectAddSinglePage.resx">
+      <DependentUpon>ObjectAddSinglePage.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="pages\ObjectAddWelcomePage.resx">
+      <DependentUpon>ObjectAddWelcomePage.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="pages\OUGeneralEditPage.resx">
+      <DependentUpon>OUGeneralEditPage.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="pages\UserAccountPage.resx">
+      <SubType>Designer</SubType>
+      <DependentUpon>UserAccountPage.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="pages\UserAddFinishPage.resx">
+      <DependentUpon>UserAddFinishPage.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="pages\UserAddpasswordPage.resx">
+      <DependentUpon>UserAddpasswordPage.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="pages\UserAddWelcomePage.resx">
+      <DependentUpon>UserAddWelcomePage.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="pages\UserGeneralEditPage.resx">
+      <DependentUpon>UserGeneralEditPage.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="pages\UserMemOfPage.resx">
+      <DependentUpon>UserMemOfPage.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="pages\MultiItemsAddressEditPage.resx">
+      <SubType>Designer</SubType>
+      <DependentUpon>MultiItemsAddressEditPage.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="pages\UserMultiselectGeneralEditPage.resx">
+      <DependentUpon>UserMultiselectGeneralEditPage.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="pages\UserProfilePage.resx">
+      <SubType>Designer</SubType>
+      <DependentUpon>UserProfilePage.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <SubType>Designer</SubType>
+      <Generator>ResXFileCodeGenerator</Generator>
+      </EmbeddedResource>
+    <EmbeddedResource Include="account_editor_dialogs\MultiItemPropertiesDlg.resx">
+      <DependentUpon>MultiItemPropertiesDlg.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\ObjectAddAttributesTab.resx">
+      <DependentUpon>ObjectAddAttributesTab.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\ObjectAddMoreAttributesDlg.resx">
+      <DependentUpon>ObjectAddMoreAttributesDlg.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\ResetPassword.resx">
+      <DependentUpon>ResetPassword.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="value_editor_dialogs\BooleanAttributeEditor.resx">
+      <DependentUpon>BooleanAttributeEditor.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="value_editor_dialogs\IntegerAttributeEditor.resx">
+      <DependentUpon>IntegerAttributeEditor.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="value_editor_dialogs\LogOnWorkStationsEditor.resx">
+      <SubType>Designer</SubType>
+      <DependentUpon>LogOnWorkStationsEditor.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="value_editor_dialogs\MultiValuedBooleanEditor.resx">
+      <DependentUpon>MultiValuedBooleanEditor.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="value_editor_dialogs\MultiValuedOctetEditor.resx">
+      <DependentUpon>MultiValuedOctetEditor.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="value_editor_dialogs\MultiValuedStringEditor.resx">
+      <DependentUpon>MultiValuedStringEditor.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="value_editor_dialogs\MultiValuedTimeEditor.resx">
+      <DependentUpon>MultiValuedTimeEditor.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="value_editor_dialogs\OctetStringAttributeEditor.resx">
+      <DependentUpon>OctetStringAttributeEditor.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="value_editor_dialogs\OthersStringEditor.resx">
+      <DependentUpon>OthersStringEditor.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="value_editor_dialogs\StringAttributeEditor.resx">
+      <DependentUpon>StringAttributeEditor.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="value_editor_dialogs\TimeAttributeEditor.resx">
+      <DependentUpon>TimeAttributeEditor.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Resources\ADUC.ico" />
+    <Content Include="Resources\aduc_16.bmp" />
+    <Content Include="Resources\ADUC_32.ico" />
+    <Content Include="Resources\aduc_48.bmp" />
+    <Content Include="Resources\ADUC_48.ico" />
+    <Content Include="Resources\ArrowRed_32.ico" />
+    <Content Include="Resources\computer_16.bmp" />
+    <Content Include="Resources\computer_48.bmp" />
+    <None Include="Resources\FolderOpen.ico" />
+    <Content Include="Resources\Computer_48.ico" />
+    <Content Include="Resources\OrganizationalUnit.ico" />
+    <Content Include="Resources\DisabledUser.ico" />
+    <Content Include="Resources\FolderNew.ico" />
+    <Content Include="Resources\folder_16.bmp" />
+    <Content Include="Resources\folder_32.bmp" />
+    <Content Include="Resources\group_16.bmp" />
+    <Content Include="Resources\Group_24.bmp" />
+    <Content Include="Resources\Group_48.bmp" />
+    <Content Include="Resources\user_16.bmp" />
+    <Content Include="Resources\user_48.bmp" />
+    <None Include="Resources\User_16.ico" />
+    <None Include="Resources\User.ico" />
+    <None Include="Resources\Group_48.ico" />
+    <None Include="Resources\Group_32.ico" />
+    <None Include="Resources\Group_24.ico" />
+    <None Include="Resources\Group_16.ico" />
+    <None Include="Resources\Folder.ico" />
+    <None Include="Resources\computer.ico" />
+    <None Include="Resources\User_24.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\AuthUtils\AuthUtils.csproj">
+      <Project>{805A93D2-3B90-4A27-B319-73D86363470A}</Project>
+      <Name>AuthUtils</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\LikewiseClassLibraries\LDAP\LDAP.csproj">
+      <Project>{A01CDE74-BC93-437B-A97A-883083EA4CC9}</Project>
+      <Name>LDAP</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\LikewiseClassLibraries\NetApi\NetApi.csproj">
+      <Project>{978100A9-9BF2-49A9-8E2B-57DB61907526}</Project>
+      <Name>NetApi</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\LikewiseClassLibraries\Netlogon\Netlogon.csproj">
+      <Project>{BE8FEFB2-BC23-43AC-A6D4-80B43A6F0B0D}</Project>
+      <Name>Netlogon</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\LikewiseClassLibraries\System.DirectoryServices\System.DirectoryServices.csproj">
+      <Project>{52C1CE09-2AF3-4AF2-8E3A-0C2DC0EB2761}</Project>
+      <Name>System.DirectoryServices</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\LMConsoleUtils\LMConsoleUtils.csproj">
+      <Project>{42B9FE52-8F39-4CAE-885F-9DB9B5DF0A70}</Project>
+      <Name>LMConsoleUtils</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\ServerControl\ServerControl_Open.csproj">
+      <Project>{9F45E041-5B67-48B8-AD13-DD5C40F3364A}</Project>
+      <Name>ServerControl_Open</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PreBuildEvent>
+    </PreBuildEvent>
+    <PostBuildEvent>
+    </PostBuildEvent>
+  </PropertyGroup>
+</Project>

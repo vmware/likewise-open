@@ -1,0 +1,194 @@
+﻿<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>8.0.50727</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{8CEC50DA-6ED8-45C3-8EDF-845BD6CE48C8}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Likewise.LMC.Plugins.FileShareManager</RootNamespace>
+    <AssemblyName>Likewise.LMC.Plugins.FileShareManager</AssemblyName>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Folders\FilesPage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Folders\FilesPage.Designer.cs">
+      <DependentUpon>FilesPage.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Folders\SessionPage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Folders\SessionPage.Designer.cs">
+      <DependentUpon>SessionPage.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Folders\SharesPage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Folders\SharesPage.Designer.cs">
+      <DependentUpon>SharesPage.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\Resources.Designer.cs">
+      <DependentUpon>Resources.resx</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="src\FileShareManagerPlugIn.cs">
+    </Compile>
+    <Compile Include="src\FileSharesPage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="src\NewShareFinishPage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="src\NewShareFinishPage.designer.cs">
+      <DependentUpon>NewShareFinishPage.cs</DependentUpon>
+    </Compile>
+    <Compile Include="src\NewShareFolderSetUpPage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="src\NewShareFolderSetUpPage.designer.cs">
+      <DependentUpon>NewShareFolderSetUpPage.cs</DependentUpon>
+    </Compile>
+    <Compile Include="src\NewSharePermissionsPage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="src\NewSharePermissionsPage.designer.cs">
+      <DependentUpon>NewSharePermissionsPage.cs</DependentUpon>
+    </Compile>
+    <Compile Include="src\NewShareWelcomePage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="src\NewShareWelcomePage.designer.cs">
+      <DependentUpon>NewShareWelcomePage.cs</DependentUpon>
+    </Compile>
+    <Compile Include="src\NewShareWizardDlg.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="src\NewShareWizardDlg.designer.cs">
+      <DependentUpon>NewShareWizardDlg.cs</DependentUpon>
+    </Compile>
+    <Compile Include="src\ShareGeneralEditPage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="src\ShareGeneralEditPage.designer.cs">
+      <DependentUpon>ShareGeneralEditPage.cs</DependentUpon>
+    </Compile>
+    <Compile Include="src\SharePropertiesDlg.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="src\SharePropertiesDlg.designer.cs">
+      <DependentUpon>SharePropertiesDlg.cs</DependentUpon>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Folders\FilesPage.resx">
+      <DependentUpon>FilesPage.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Folders\SessionPage.resx">
+      <DependentUpon>SessionPage.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Folders\SharesPage.resx">
+      <DependentUpon>SharesPage.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <SubType>Designer</SubType>
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\NewShareFinishPage.resx">
+      <DependentUpon>NewShareFinishPage.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\NewShareFolderSetUpPage.resx">
+      <DependentUpon>NewShareFolderSetUpPage.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\NewSharePermissionsPage.resx">
+      <DependentUpon>NewSharePermissionsPage.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\NewShareWelcomePage.resx">
+      <DependentUpon>NewShareWelcomePage.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\NewShareWizardDlg.resx">
+      <DependentUpon>NewShareWizardDlg.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\ShareGeneralEditPage.resx">
+      <DependentUpon>ShareGeneralEditPage.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\SharePropertiesDlg.resx">
+      <DependentUpon>SharePropertiesDlg.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\shared_folders.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\SharedFolder.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Resources\BlueArrows.ico" />
+    <None Include="Resources\likewise_splash_screen.png" />
+    <Content Include="Resources\SharedFolder2.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\AuthUtils\AuthUtils.csproj">
+      <Project>{805A93D2-3B90-4A27-B319-73D86363470A}</Project>
+      <Name>AuthUtils</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\LikewiseClassLibraries\NetApi\NetApi.csproj">
+      <Project>{978100A9-9BF2-49A9-8E2B-57DB61907526}</Project>
+      <Name>NetApi</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\LMConsoleUtils\LMConsoleUtils.csproj">
+      <Project>{42B9FE52-8F39-4CAE-885F-9DB9B5DF0A70}</Project>
+      <Name>LMConsoleUtils</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\ServerControl\ServerControl_Open.csproj">
+      <Project>{9F45E041-5B67-48B8-AD13-DD5C40F3364A}</Project>
+      <Name>ServerControl_Open</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<LMC_ConsoleFile ConsoleVersion="5.5" ProgramMode="Author">
+  <ConsoleFileID>{FC562630-0D97-11DD-BD0B-0800200C9A66}</ConsoleFileID>
+  <FrameState ShowMaximized="false" ShowStatusBar="true" ShowNavigationBar="true" ShowNavigationTree="true" ReadOnly="false">
+    <Rectangle Top="100" Bottom="867" Left="100" Right="1123"/>
+  </FrameState>
+  <State>
+  </State>
+  <Views>  
+  </Views>
+</LMC_ConsoleFile>

@@ -1,0 +1,407 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Caption_General" xml:space="preserve">
+    <value>General</value>
+  </data>
+  <data name="Caption_MemberOf" xml:space="preserve">
+    <value>Member Of</value>
+  </data>
+  <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
+  <data name="likewise" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\centeris.ico;System.Drawing.Icon, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Cl&amp;ose</value>
+  </data>
+  <data name="Closed" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\Closed.ico;System.Drawing.Icon, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="Create" xml:space="preserve">
+    <value>Cr&amp;eate</value>
+  </data>
+  <data name="Dashboard_48" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\Dashboard_48.ico;System.Drawing.Icon, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="DeleteGroupMessage" xml:space="preserve">
+    <value>You are about to DELETE a group. Once deleted, group members will no longer be able to authenticate or access resources controlled by the group. Are you sure you want to delete group {0}?</value>
+  </data>
+  <data name="DeleteUserMessage" xml:space="preserve">
+    <value>You are about to DELETE a user account. Once deleted, the user will no longer be able to authenticate or access resources. Are you sure you want to delete user {0}?</value>
+  </data>
+  <data name="DisabledUser_16" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\DisabledUser_16.ico;System.Drawing.Icon, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="DsPickerReturnInValidGroup" xml:space="preserve">
+    <value>Invalid Group</value>
+  </data>
+  <data name="ERROR_ACCESS_DENIED" xml:space="preserve">
+    <value>Access Denied</value>
+  </data>
+  <data name="Error_CannotRetrieveGroupInfo" xml:space="preserve">
+    <value>Error retrieving group information:
+
+{0}</value>
+  </data>
+  <data name="Error_CannotRetrieveUserInfo" xml:space="preserve">
+    <value>Error retrieving user information:
+
+{0}</value>
+  </data>
+  <data name="ERROR_INVALID_MEMBER" xml:space="preserve">
+    <value>One or more of the members cannot be added because their account type is invalid. No new members were added.</value>
+  </data>
+  <data name="ERROR_INVALID_PARAMETER" xml:space="preserve">
+    <value>Invalid Parameter</value>
+  </data>
+  <data name="ERROR_MEMBER_IN_ALIAS" xml:space="preserve">
+    <value>One or more of the members specified were already members of the local group. No new members were added.</value>
+  </data>
+  <data name="ERROR_MEMBER_NOT_IN_ALIAS" xml:space="preserve">
+    <value>One or more of the members specified were not members of the local group. No members were deleted.</value>
+  </data>
+  <data name="ERROR_NO_SUCH_ALIAS" xml:space="preserve">
+    <value>The specified local group does not exist.</value>
+  </data>
+  <data name="ERROR_NO_SUCH_MEMBER" xml:space="preserve">
+    <value>One or more of the members specified do not exist. Therefore, no new members were added.</value>
+  </data>
+  <data name="EventViewer_48" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\EventViewer_48.ico;System.Drawing.Icon, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="FilterAllGroups" xml:space="preserve">
+    <value>All Groups</value>
+  </data>
+  <data name="FilterAllUsers" xml:space="preserve">
+    <value>All Users</value>
+  </data>
+  <data name="FilterLocalGroups" xml:space="preserve">
+    <value>Local Groups</value>
+  </data>
+  <data name="FilterLocalUsers" xml:space="preserve">
+    <value>Local Users</value>
+  </data>
+  <data name="FilterSystemGroups" xml:space="preserve">
+    <value>System Groups</value>
+  </data>
+  <data name="FilterSystemUsers" xml:space="preserve">
+    <value>System Users</value>
+  </data>
+  <data name="Firewall" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\Firewall.ico;System.Drawing.Icon, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="FirewallOn" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\FirewallOn.ico;System.Drawing.Icon, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="GenericError" xml:space="preserve">
+    <value>An error occured while performing the operation.</value>
+  </data>
+  <data name="Label_General" xml:space="preserve">
+    <value>General</value>
+  </data>
+  <data name="Label_GroupsTab" xml:space="preserve">
+    <value>Groups</value>
+  </data>
+  <data name="Label_MemberOf" xml:space="preserve">
+    <value>Member Of</value>
+  </data>
+  <data name="Label_StatusTab" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="Label_UnixGroupsTab" xml:space="preserve">
+    <value>Unix Groups</value>
+  </data>
+  <data name="Label_UnixUsersTab" xml:space="preserve">
+    <value>Unix Users</value>
+  </data>
+  <data name="Label_UsersTab" xml:space="preserve">
+    <value>Users</value>
+  </data>
+  <data name="LocalGroup_16" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\LocalGroup_16.ico;System.Drawing.Icon, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="LocalGroup_24" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\LocalGroup_24.ico;System.Drawing.Icon, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="LocalGroup_32" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\LocalGroup_32.ico;System.Drawing.Icon, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="LocalGroup_48" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\LocalGroup_48.ico;System.Drawing.Icon, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="LocalGroups" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\LocalGroups.ico;System.Drawing.Icon, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="LocalGroups_new" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\LocalGroups_new.ico;System.Drawing.Icon, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="LocalUser" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\LocalUser.ico;System.Drawing.Icon, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="LocalUser_16" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\LocalUser_16.ico;System.Drawing.Icon, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="LocalUser_24" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\LocalUser_24.ico;System.Drawing.Icon, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="LocalUser_32" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\LocalUser_32.ico;System.Drawing.Icon, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="LocalUser_48" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\LocalUser_48.ico;System.Drawing.Icon, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="LocalUser_new" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\LocalUser_new.ico;System.Drawing.Icon, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="MaxLogSize64Multiples" xml:space="preserve">
+    <value>Maximum log file size must be in multiples of 64.</value>
+  </data>
+  <data name="NERR_BadPassword" xml:space="preserve">
+    <value>The password parameter is invalid.</value>
+  </data>
+  <data name="NERR_BufTooSmall" xml:space="preserve">
+    <value>The return buffer is too small.</value>
+  </data>
+  <data name="NERR_GroupExists" xml:space="preserve">
+    <value>The group already exists.</value>
+  </data>
+  <data name="NERR_GroupNotFound" xml:space="preserve">
+    <value>The local group specified by the groupname parameter does not exist.</value>
+  </data>
+  <data name="NERR_InvalidComputer" xml:space="preserve">
+    <value>This computer name is invalid.</value>
+  </data>
+  <data name="NERR_LastAdmin" xml:space="preserve">
+    <value>This operation is not allowed on the last administrative account.</value>
+  </data>
+  <data name="NERR_NotPrimary" xml:space="preserve">
+    <value>This operation is only allowed on the primary domain controller of the domain.</value>
+  </data>
+  <data name="NERR_PasswordTooShort" xml:space="preserve">
+    <value>The password does not meet the password policy requirements. Check the minimum password length, password complexity and password history requirements.</value>
+  </data>
+  <data name="NERR_SpeGroupOp" xml:space="preserve">
+    <value>This operation is not allowed on this special group.</value>
+  </data>
+  <data name="NERR_UserExists" xml:space="preserve">
+    <value>The user account already exists.</value>
+  </data>
+  <data name="NERR_UserNotFound" xml:space="preserve">
+    <value>The user name could not be found.</value>
+  </data>
+  <data name="NewGroupNameText" xml:space="preserve">
+    <value>&amp;Please provide new group name:</value>
+  </data>
+  <data name="open" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\open.ico;System.Drawing.Icon, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="PasswordValidator_NoMatch" xml:space="preserve">
+    <value>The password and confirmation need to exactly match.</value>
+  </data>
+  <data name="RenameGroupError" xml:space="preserve">
+    <value>Failed to rename group - </value>
+  </data>
+  <data name="RenameUserError" xml:space="preserve">
+    <value>Failed to rename user - </value>
+  </data>
+  <data name="sTitleEventsPage" xml:space="preserve">
+    <value>Log Viewer</value>
+  </data>
+  <data name="UERR_InvalidGroupName" xml:space="preserve">
+    <value>The group name is not valid.</value>
+  </data>
+  <data name="UERR_InvalidHomeDir" xml:space="preserve">
+    <value>The home directory is not valid.</value>
+  </data>
+  <data name="UERR_InvalidUserName" xml:space="preserve">
+    <value>The user name is not valid.</value>
+  </data>
+  <data name="UERR_JAXRPCERR" xml:space="preserve">
+    <value>JAXRPCSERVLET28: Missing port information</value>
+  </data>
+  <data name="UERR_JAXRPCMessage" xml:space="preserve">
+    <value>File size is too large.</value>
+  </data>
+  <data name="UERR_UsersHomeDirAlreadyExists" xml:space="preserve">
+    <value>Cannot move the home directory as the destination directory already exists.</value>
+  </data>
+  <data name="UERR_UsersHomeDirIsSubdirectoryException" xml:space="preserve">
+    <value>Cannot move the home directory to its own subdirectory.</value>
+  </data>
+  <data name="UERR_UsersInvalidGecosException" xml:space="preserve">
+    <value>Field contains invalid characters.</value>
+  </data>
+  <data name="UERR_UsersInvalidGroupidException" xml:space="preserve">
+    <value>The specified Group ID is not valid.</value>
+  </data>
+  <data name="UERR_UsersInvalidHomeDirException" xml:space="preserve">
+    <value>Please provide a valid path containing an existing parent directory.</value>
+  </data>
+  <data name="UERR_UsersInvalidUseridException" xml:space="preserve">
+    <value>The specified User ID is not valid.</value>
+  </data>
+  <data name="UERR_UsersNonUniqueGroupidException" xml:space="preserve">
+    <value>This Group ID is already used by another group.</value>
+  </data>
+  <data name="UERR_UsersNonUniqueUseridException" xml:space="preserve">
+    <value>This User ID is already used by another user.</value>
+  </data>
+  <data name="UERR_UsersUserExistsException" xml:space="preserve">
+    <value>The user {0} already exists.</value>
+  </data>
+  <data name="UERR_UsersUserLoggedOnException" xml:space="preserve">
+    <value>The user account {0} is currently in use.</value>
+  </data>
+  <data name="UGPickerGroupTitle" xml:space="preserve">
+    <value>Local Groups on {0}</value>
+  </data>
+  <data name="UGPickerUserTitle" xml:space="preserve">
+    <value>Local Users on {0}</value>
+  </data>
+  <data name="UGWARN_EnterName" xml:space="preserve">
+    <value>Enter group name.</value>
+  </data>
+  <data name="user" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\user.ico;System.Drawing.Icon, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="users" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\users.ico;System.Drawing.Icon, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="UWARN_AccessDenied" xml:space="preserve">
+    <value>Access denied, can not read: {0}</value>
+  </data>
+  <data name="UWARN_FilePath" xml:space="preserve">
+    <value>You must enter a valid path and log file name.  Example: \var\log\messages</value>
+  </data>
+  <data name="UWARN_GidOutOfRange" xml:space="preserve">
+    <value>The new Group ID is not within the expected id range between {0} and {1}. Do you wish to proceed?</value>
+  </data>
+  <data name="UWARN_SysGidOutOfRange" xml:space="preserve">
+    <value>The new Group ID is not within the expected system id range between {0} and {1}. Do you wish to proceed?</value>
+  </data>
+  <data name="UWARN_SysUidOutOfRange" xml:space="preserve">
+    <value>The new User ID is not within the expected system id range between {0} and {1}. Do you wish to proceed?</value>
+  </data>
+  <data name="UWARN_UidOutOfRange" xml:space="preserve">
+    <value>The new User ID is not within the expected id range between {0} and {1}. Do you wish to proceed?</value>
+  </data>
+  <data name="warning" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\warning.ico;System.Drawing.Icon, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+</root>

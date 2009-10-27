@@ -1,0 +1,55 @@
+<?xml version="1.0"?>
+<project>
+
+  <property name="nant.settings.currentframework" if="${platform::is-win32()}" value="net-2.0"/>
+  <property name="nant.settings.currentframework" unless="${platform::is-win32()}" value="mono-2.0"/>
+
+  <property name="local.output" value="Likewise.LMC.Plugins.FileShareManager.dll" />
+  <property name="local.namespace" value="Likewise.LMC.Plugins.FileShareManager" />
+
+  <target name="local.build">
+
+    <buildtool.assemblyinfo title="Likewise Management Console - File Share Manager Plugin" />
+    <buildtool.csc output="${local.output}" target="library">
+
+      <nowarn>
+        <warning number="0169" />
+      </nowarn>
+
+      <sources>
+        <include name="${build.meta.current}/**/*.cs" />
+        <include name="Folders/**/*.cs" />
+        <include name="src/**/*.cs" />
+        <include name="Properties/**/*.cs" />
+      </sources>
+
+      <references>
+        <include name="${build.dist.os}/Likewise.LMC.LMConsoleUtils.dll" />
+        <include name="${build.dist.os}/Likewise.LMC.AuthUtils.dll" />
+        <include name="${build.dist.os}/Likewise.LMC.Netlogon.dll" />
+        <include name="${build.dist.os}/Likewise.LMC.NETAPI.dll" />
+        <include name="${build.dist.os}/Likewise.LMC.ServerControl.unix.dll" />
+        <include name="System.dll" />
+        <include name="System.Data.dll" />
+        <include name="System.Drawing.dll" />
+        <include name="System.Windows.Forms.dll" />
+        <include name="System.Xml.dll" />
+      </references>
+
+      <resources dynamicprefix="true" prefix="${local.namespace}">
+        <include name="Properties/*.resx"/>
+        <include name="Properties/**/*.resx" />
+        <include name="Folders/*.resx"/>
+        <include name="Folders/**/*.resx" />
+        <include name="src/*.resx" />
+        <include name="src/**/*.resx" />
+        <include name="*.resx" />
+      </resources>
+
+
+    </buildtool.csc>
+
+    <buildtool.cscdist name="${local.output}"/>
+
+  </target>
+</project>

@@ -1,0 +1,74 @@
+<?xml version="1.0"?>
+<project>
+
+  <property name="nant.settings.currentframework" if="${platform::is-win32()}" value="net-2.0"/>
+  <property name="nant.settings.currentframework" unless="${platform::is-win32()}" value="mono-2.0"/>
+
+  <property name="local.output" value="Likewise.LMC.Plugins.OpenADUCPlugin.dll" />
+  <property name="local.namespace" value="Likewise.LMC.Plugins.ADUCPlugin" />
+
+  <target name="local.build">
+
+    <buildtool.assemblyinfo title="Likewise Management Console - ADUC Plugin" />
+    <buildtool.csc output="${local.output}" target="library" noconfig="true" define="QUARTZ">
+
+      <nowarn>
+        <warning number="0169" />
+      </nowarn>
+
+      <sources>
+        <include name="${build.meta.current}/*.cs" />
+        <include name="account_editor_dialogs/*.cs" />
+        <include name="account_editor_dialogs/**/*.cs" />
+	<include name="pages/*.cs" />
+        <include name="pages/**/*.cs" />
+	<include name="value_editor_dialogs/*.cs" />
+        <include name="value_editor_dialogs/**/*.cs" />
+	<include name="src/*.cs" />
+        <include name="src/**/*.cs" />
+        <include name="Properties/*.cs" />
+        <include name="Properties/**/*.cs" />
+        <include name="*.cs" />
+      </sources>
+
+      <references>
+        <include name="${build.dist.os}/Likewise.LMC.LMConsoleUtils.dll" />
+        <include name="${build.dist.os}/Likewise.LMC.Authutils.dll" />
+        <include name="${build.dist.os}/Likewise.LMC.Netlogon.dll" />
+        <include name="${build.dist.os}/Likewise.LMC.ServerControl.unix.dll" />
+        <include name="${build.dist.os}/Likewise.LMC.LDAP.dll" />
+        <include name="${build.dist.os}/Likewise.LMC.NETAPI.dll" />
+        <include name="${build.dist.os}/Likewise.LMC.Plugins.GPMCPlugin.dll"/>
+        <include name="${build.dist.os}/Likewise.LMC.Plugins.GPOEPlugin.dll" />
+        <include name="${build.dist.os}/Likewise.LMC.MMCPageUtils.dll" />
+        <include name="${build.dist.os}/System.DirectoryServices.dll" />
+        <include name="${build.dist.os}/Microsoft.ManagementConsole.dll" />
+        <include name="${build.dist.os}/Dsutil.unix.dll" />
+        <include name="${build.dist.os}/LWUnifiedProvider.unix.dll" />
+        <include name="System.dll" />
+        <include name="System.Data.dll" />
+        <include name="System.Drawing.dll" />
+        <include name="System.Windows.Forms.dll" />
+        <include name="System.Xml.dll" />
+      </references>
+
+      <resources dynamicprefix="true" prefix="${local.namespace}" >
+        <include name="Properties/*.resx"/>
+        <include name="Properties/**/*.resx" />
+        <include name="account_editor_dialogs/*.resx" />
+        <include name="account_editor_dialogs/**/*.resx" />
+        <include name="pages/*.resx" />
+        <include name="pages/**/*.resx" />
+        <include name="value_editor_dialogs/*.resx" />
+        <include name="value_editor_dialogs/**/*.resx" />
+        <include name="src/*.resx" />
+        <include name="src/**/*.resx" />
+        <include name="*.resx" />
+      </resources>
+
+    </buildtool.csc>
+
+    <buildtool.cscdist name="${local.output}"/>
+
+  </target>
+</project>

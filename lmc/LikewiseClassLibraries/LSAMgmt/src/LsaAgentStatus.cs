@@ -1,0 +1,156 @@
+/* Editor Settings: expandtabs and use 4 spaces for indentation
+ * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+ * -*- mode: c, c-basic-offset: 4 -*- */
+
+/*
+ * Copyright Likewise Software    2004-2008
+ * All rights reserved.
+ *
+ * This library is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation; either version 2.1 of the license, or (at
+ * your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
+ * General Public License for more details.  You should have received a copy
+ * of the GNU Lesser General Public License along with this program.  If
+ * not, see <http://www.gnu.org/licenses/>.
+ *
+ * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
+ * TERMS AS WELL.  IF YOU HAVE ENTERED INTO A SEPARATE LICENSE AGREEMENT
+ * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
+ * TERMS OF THAT SOFTWARE LICENSE AGREEMENT INSTEAD OF THE TERMS OF THE GNU
+ * LESSER GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
+ * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
+ * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
+ * license@likewisesoftware.com
+ */
+
+using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace Likewise.LMC.LSAMgmt
+{
+    class LsaAgentVersion
+    {
+        private UInt32 _major;
+        private UInt32 _minor;
+        private UInt32 _build;
+
+        public LsaAgentVersion()
+        {
+            _major = 0;
+            _minor = 0;
+            _build = 0;
+        }
+
+        public UInt32 MajorVersion
+        {
+            get
+            {
+                return _major;
+            }
+            set
+            {
+                _major = value;
+            }
+        }
+
+        public UInt32 MinorVersion
+        {
+            get
+            {
+                return _minor;
+            }
+            set
+            {
+                _minor = value;
+            }
+        }
+
+        public UInt32 BuildVersion
+        {
+            get
+            {
+                return _build;
+            }
+            set
+            {
+                _build = value;
+            }
+        }
+    }
+
+    public class LsaAgentStatus
+    {
+        private UInt32 _uptime;
+        private LsaAgentVersion _version;
+        private List<LsaAuthProviderStatus> _authProviders;
+
+        public LsaAgentStatus()
+        {
+            _uptime = 0;
+            _version = new LsaAgentVersion();
+            _authProviders = new List<LsaAuthProviderStatus>();
+        }
+
+        public UInt32 Uptime
+        {
+            get
+            {
+                return _uptime;
+            }
+            set
+            {
+                _uptime = value;
+            }
+        }
+
+        public UInt32 MajorVersion
+        {
+            get
+            {
+                return _version.MajorVersion;
+            }
+            set
+            {
+                _version.MajorVersion = value;
+            }
+        }
+
+        public UInt32 MinorVersion
+        {
+            get
+            {
+                return _version.MinorVersion;
+            }
+            set
+            {
+                _version.MinorVersion = value;
+            }
+        }
+
+        public UInt32 BuildVersion
+        {
+            get
+            {
+                return _version.BuildVersion;
+            }
+            set
+            {
+                _version.BuildVersion = value;
+            }
+        }
+
+        public List<LsaAuthProviderStatus> AuthProviderList
+        {
+            get
+            {
+                return _authProviders;
+            }
+        }
+    }
+}

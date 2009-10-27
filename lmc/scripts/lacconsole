@@ -1,0 +1,136 @@
+#!/bin/bash
+
+ID_PROG=id
+OS_TYPE=`uname -s`
+WHICH_MONO=`which mono 2>/dev/null`
+USR=/usr
+LWDIR=/opt/likewise
+LIB=lib
+LWLIB=`[ -d ${LWDIR}/lib64 ] && echo lib64 || echo lib`
+ASSEMBLY=Likewise.LMC.exe
+X11_DIR=/usr/X11
+OSX_IMAGE_IO=/System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/ImageIO.framework/Versions/A/Resources
+
+function setup_environment
+{
+
+    MONO_VERSION=`mono -V | grep version | sed s/^.*version\ // | sed s/\ .*//`
+    
+    case ${OS_TYPE} in 
+        FreeBSD)
+            USR=/opt
+	    ;;
+	Darwin)
+	    USR=/opt
+	    ;;
+        *)
+	    ;;
+    esac
+
+    export MONO_CONFIG=${LWDIR}/etc/mono.config
+    
+    if [ -n "${MONO_OVERRIDE}" ]; then
+	echo "Using mono out of alternate location \[${MONO_OVERRIDE}\]"
+	MONO_DIR=${MONO_OVERRIDE}
+    elif [ -d "/usr/local/lib/mono" ]; then
+	MONO_DIR="/usr/local"
+    elif [ -d "/Library/Frameworks/Mono.framework/Versions/${MONO_VERSION}" ]; then
+	MONO_DIR="/Library/Frameworks/Mono.framework/Versions/${MONO_VERSION}"
+    elif [ -d "/opt/mono-${MONO_VERSION}" ]; then
+	MONO_DIR="/opt/mono-${MONO_VERSION}"
+    elif [ -e "/usr/bin/mono" ]; then
+	MONO_DIR="/usr"
+    else
+	MONO_DIR=${USR}
+    fi
+
+    MONO=${MONO_DIR}/bin/mono   
+    
+    SUPPORTED_MONO=0
+
+    echo "Mono ${MONO_VERSION} found on this system."
+
+    case ${OS_TYPE}.${MONO_VERSION} in 
+	Darwin.${MONO_VERSION})
+	    SUPPORTED_MONO=1
+	    ;;
+        Darwin.*)
+#	    echo "Mono 1.9.1 is recommended for this system."
+	    ;;
+        *.1.2.5)
+	    SUPPORTED_MONO=1
+	    ;;
+	*.1.2.6)
+	    SUPPORTED_MONO=1
+	    ;;
+	*.${MONO_VERSION})
+	    SUPPORTED_MONO=1
+	    ;;
+	*.*)
+	    ;;
+    esac
+
+    if [ -d ${MONO_DIR}/etc/fonts ]; then
+        export FONTCONFIG_PATH=${MONO_DIR}/etc/fonts:${FONTCONFIG_PATH}
+    fi
+
+    MONO_LIBS=${MONO_DIR}/${LIB}:${MONO_DIR}/mono/${LIB}
+
+    case ${OS_TYPE} in 
+        FreeBSD)
+	    export LD_LIBRARY_PATH=${LWDIR}/${LWLIB}:${MONO_LIBS}
+	    ;;
+	Darwin)
+	    export DYLD_LIBRARY_PATH=${LWDIR}/${LWLIB}:${OSX_IMAGE_IO}:${MONO_LIBS}:${X11_DIR}/${LIB}
+	    ;;
+        *)
+	    export LD_LIBRARY_PATH=${LWDIR}/${LWLIB}:${MONO_LIBS}
+	    ;;
+    esac
+
+# For windows GUI look-and-feel
+    export MONO_THEME=win32  
+
+}
+
+function invoke_mono
+{
+
+    if [ ! -e "${MONO}" ]; then
+        WARNING="You do not appear to have Mono installed or the path is not configured.  Please add the mono binaries directory to your PATH environment variable."
+        if [ ! -x "/usr/bin/zenity" ]; then
+            echo ${WARNING}
+        else
+            zenity --error --title "Likewise Administrative Console" --text "${WARNING}" 
+	fi        
+        exit 1
+    fi
+    
+    if [ ! -x "${MONO}" ]; then
+        echo "Mono [PATH=${MONO}] is not executeable on this system."
+        exit 1
+    fi
+
+    ARG_ASSEMBLY="$1"
+    shift
+
+    if [ "$1" = "--mono-version" ]; then
+        shift
+        MONO_VERSION=`${MONO} --version 2>/dev/null | head -1 | perl -p -e '$_ =~ s/^.*version +([0-9.-]+).*/$1/'`
+        echo "Using mono version ${MONO_VERSION} at ${MONO}"
+    fi
+    umask 022
+    ${MONO} "${ARG_ASSEMBLY}" "$@"
+    exit $?
+}
+
+if [ -z "$DISPLAY" ]; then
+    echo "This application must be run from a graphical display."
+    exit 1
+fi
+
+
+setup_environment
+
+invoke_mono "${LWDIR}/bin/${ASSEMBLY}" "$@"
+

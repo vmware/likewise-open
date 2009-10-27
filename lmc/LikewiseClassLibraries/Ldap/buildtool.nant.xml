@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+<project>
+
+  <property name="nant.settings.currentframework" if="${platform::is-win32()}" value="net-2.0"/>
+  <property name="nant.settings.currentframework" unless="${platform::is-win32()}" value="mono-2.0"/>
+
+  <property name="local.output" value="Likewise.LMC.LDAP.dll" />
+  <property name="local.namespace" value="Likewise.LMC.LDAP" />
+
+  <target name="local.build">
+
+    <buildtool.assemblyinfo title="Likewise Management Console - LDAP" />
+    <buildtool.csc output="${local.output}" target="library" keyfile="ldp.snk" noconfig="true" unsafe="true">
+
+      <nowarn>
+        <warning number="0169" />
+      </nowarn>
+
+      <sources>
+        <include name="${build.meta.current}/*.cs" />
+        <include name="src/**/*.cs" />
+        <include name="Interop/**/*.cs" />
+        <include name="Properties/**/*.cs" />
+      </sources>
+
+      <references>
+        <include name="${build.dist.os}/Likewise.LMC.LMConsoleUtils.dll" />
+        <include name="${build.dist.os}/Likewise.LMC.Authutils.dll" />
+        <include name="System.dll" />
+      </references>
+
+      <resources dynamicprefix="true" prefix="${local.namespace}" >
+        <include name="Properties/**/*.resx"/>
+        <include name="src/**/*.resx" />
+        <include name="src/*.resx" />
+        <include name="*.resx" />
+      </resources>
+
+    </buildtool.csc>
+
+    <buildtool.cscdist name="${local.output}"/>
+
+  </target>
+</project>

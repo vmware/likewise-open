@@ -1,0 +1,173 @@
+﻿<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>8.0.50727</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{542B16FB-6692-4765-B0DB-F3B12C537781}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Likewise.LMC.Plugins.EventlogPlugin</RootNamespace>
+    <AssemblyName>Likewise.LMC.Plugins.EventlogPlugin</AssemblyName>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <SubType>Designer</SubType>
+      <Generator>ResXFileCodeGenerator</Generator>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\AddRemoveColumns.resx">
+      <SubType>Designer</SubType>
+      <DependentUpon>AddRemoveColumns.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\EventFilterControl.resx">
+      <DependentUpon>EventFilterControl.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\CustomizeView.resx">
+      <DependentUpon>CustomizeView.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\EventPropertiesDlg.resx">
+      <DependentUpon>EventPropertiesDlg.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\EventPropertiesPage.resx">
+      <DependentUpon>EventPropertiesPage.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\EventViewerControl.resx">
+      <DependentUpon>EventViewerControl.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\LogPropertiesDlg.resx">
+      <DependentUpon>LogPropertiesDlg.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\LogPropertiesPage.resx">
+      <DependentUpon>LogPropertiesPage.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <Compile Include="src\AddRemoveColumns.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="src\AddRemoveColumns.Designer.cs">
+      <DependentUpon>AddRemoveColumns.cs</DependentUpon>
+    </Compile>
+    <Compile Include="src\EventFilterControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="src\EventFilterControl.designer.cs">
+      <DependentUpon>EventFilterControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="src\CustomizeView.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="src\CustomizeView.designer.cs">
+      <DependentUpon>CustomizeView.cs</DependentUpon>
+    </Compile>
+    <Compile Include="src\EventlogPlugin.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="src\EventPropertiesDlg.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="src\EventPropertiesDlg.designer.cs">
+      <DependentUpon>EventPropertiesDlg.cs</DependentUpon>
+    </Compile>
+    <Compile Include="src\EventPropertiesPage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="src\EventPropertiesPage.designer.cs">
+      <DependentUpon>EventPropertiesPage.cs</DependentUpon>
+    </Compile>
+    <Compile Include="src\EventViewerControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="src\EventViewerControl.designer.cs">
+      <DependentUpon>EventViewerControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="src\LogPropertiesDlg.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="src\LogPropertiesDlg.designer.cs">
+      <DependentUpon>LogPropertiesDlg.cs</DependentUpon>
+    </Compile>
+    <Compile Include="src\LogPropertiesPage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="src\LogPropertiesPage.designer.cs">
+      <DependentUpon>LogPropertiesPage.cs</DependentUpon>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Resources\down.png" />
+    <Content Include="Resources\EventViewer_48.ico" />
+    <Content Include="Resources\up.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\AuthUtils\AuthUtils.csproj">
+      <Project>{805A93D2-3B90-4A27-B319-73D86363470A}</Project>
+      <Name>AuthUtils</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\LikewiseClassLibraries\EventLog\Eventlog.csproj">
+      <Project>{6844AA5B-95A3-4F50-A084-8316A02B6E58}</Project>
+      <Name>Eventlog</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\LikewiseClassLibraries\LDAP\LDAP.csproj">
+      <Project>{A01CDE74-BC93-437B-A97A-883083EA4CC9}</Project>
+      <Name>LDAP</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\LikewiseClassLibraries\Netlogon\Netlogon.csproj">
+      <Project>{BE8FEFB2-BC23-43AC-A6D4-80B43A6F0B0D}</Project>
+      <Name>Netlogon</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\LMConsoleUtils\LMConsoleUtils.csproj">
+      <Project>{42B9FE52-8F39-4CAE-885F-9DB9B5DF0A70}</Project>
+      <Name>LMConsoleUtils</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\ServerControl\ServerControl_Open.csproj">
+      <Project>{9F45E041-5B67-48B8-AD13-DD5C40F3364A}</Project>
+      <Name>ServerControl_Open</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

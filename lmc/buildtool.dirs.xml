@@ -1,0 +1,9 @@
+<buildtool.dirs>
+  <dir name="LMConsoleUtils"/>
+  <dir name="AuthUtils"/>
+  <dir name="LikewiseClassLibraries"/>   
+  <dir name="ServerControl"/>
+  <dir name="OpenPlugins"/>
+  <dir name="LikewiseConsole"/>
+  <dir name="scripts"/>
+</buildtool.dirs>

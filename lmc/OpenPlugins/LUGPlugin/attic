@@ -1,0 +1,63 @@
+using System;
+using System.Windows.Forms;
+using Likewise.LMC.Auth;
+using Likewise.LMC.ServerControl;
+
+namespace Likewise.LMC.Plugins.LUG
+{
+    public partial class SetPasswordDlg : EditDialog
+    {
+
+        public SetPasswordDlg(IPlugInContainer container, StandardPage parentPage) : base(container, parentPage)
+        {
+            InitializeComponent();
+            this.SetAllValueChangedHandlers(this);
+            this.DataChanged = true;
+        }
+        
+        public void SetData(String userName)
+        {
+            Text = String.Format(Text, userName);
+        }
+
+        #region override methods
+
+        protected override void ValueChangedHandler(object sender, EventArgs e)
+        {
+            base.ValueChangedHandler(sender, e);
+            bDataWasChanged = true;
+        }
+
+        protected override bool Apply(EditDialogAction actionCause)
+        {
+
+            try
+            {
+                string errStr = StringRequestDialog.PasswordValidate(tbConfirmPassword.Text, tbNewPassword.Text);
+
+                if (errStr != "")
+                {
+                    container.ShowError(errStr, MessageBoxButtons.OK);
+                    return false;
+                }
+
+                // Update password...
+                LUGPage lup = (LUGPage)this.ParentPage;
+                return lup.ChangePassword(tbNewPassword.Text);
+
+            }
+            catch (Exception e)
+            {
+                Logger.LogException("SetPasswordDlg.Apply", e);
+            }
+
+            return false;
+        }
+
+        #endregion
+
+
+
+    }
+}
+

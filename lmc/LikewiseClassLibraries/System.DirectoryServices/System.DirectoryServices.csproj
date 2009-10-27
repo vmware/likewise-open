@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>8.0.50727</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{52C1CE09-2AF3-4AF2-8E3A-0C2DC0EB2761}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>System.DirectoryServices</RootNamespace>
+    <AssemblyName>System.DirectoryServices</AssemblyName>
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>sds.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="ActiveDirectoryAccessRule.cs" />
+    <Compile Include="ActiveDirectoryRights.cs" />
+    <Compile Include="ActiveDirectorySecurity.cs" />
+    <Compile Include="ActiveDirectory\DirectoryContext.cs" />
+    <Compile Include="ActiveDirectory\DirectoryContextType.cs" />
+    <Compile Include="ActiveDirectory\Domain.cs" />
+    <Compile Include="ActiveDirectory\DomainCollection.cs" />
+    <Compile Include="ActiveDirectory\Forest.cs" />
+    <Compile Include="ActiveDirectory\GlobalCatalog.cs" />
+    <Compile Include="ActiveDirectory\GlobalCatalogCollection.cs" />
+    <Compile Include="ActiveDirectory\TrustDirection.cs" />
+    <Compile Include="ActiveDirectory\TrustRelationshipInformation.cs" />
+    <Compile Include="ActiveDirectory\TrustRelationshipInformationCollection.cs" />
+    <Compile Include="ActiveDirectory\TrustType.cs" />
+    <Compile Include="DirectoryEntries.cs" />
+    <Compile Include="DirectoryEntry.cs" />
+    <Compile Include="DirectorySearcher.cs" />
+    <Compile Include="DirectoryServicesCOMException.cs" />
+    <Compile Include="Misc\DsPicker.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Misc\DsPicker.Designer.cs">
+      <DependentUpon>DsPicker.cs</DependentUpon>
+    </Compile>
+    <Compile Include="IdentityReference.cs" />
+    <Compile Include="WaitForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="WaitForm.designer.cs">
+      <DependentUpon>WaitForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="PropertyCollection.cs" />
+    <Compile Include="PropertyValueCollection.cs" />
+    <Compile Include="SDSUtils.cs" />
+    <Compile Include="SearchResult.cs" />
+    <Compile Include="SearchResultCollection.cs" />
+    <Compile Include="SearchScope.cs" />
+    <Compile Include="SecurityIdentifier.cs" />
+    <Compile Include="WellKnownSidType.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="sds.snk" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Misc\DsPicker.resx">
+      <DependentUpon>DsPicker.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WaitForm.resx">
+      <DependentUpon>WaitForm.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Ldap\LDAP.csproj">
+      <Project>{A01CDE74-BC93-437B-A97A-883083EA4CC9}</Project>
+      <Name>LDAP</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>
