@@ -203,6 +203,18 @@ OM_uint32 *		time_rec;
      */
     union_cred = (gss_union_cred_t) claimant_cred_handle;
     input_cred_handle = gssint_get_mechanism_cred(union_cred, mech_type);
+
+    /*
+     * If the mechanism is SPNEGO, and a SPNEGO specific cred could not be
+     * found, then pass the entire cred list through. SPNEGO will send the
+     * right creds to the correct mechanism.
+     */
+    if (input_cred_handle == NULL &&
+        mech_type->length == 6 &&
+        !memcmp(mech_type->elements, "\x2b\x06\x01\x05\x05\x02", 6))
+    {
+        input_cred_handle = (gss_cred_id_t) union_cred;
+    }
     
     /*
      * now call the approprate underlying mechanism routine 
