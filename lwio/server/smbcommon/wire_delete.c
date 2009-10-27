@@ -159,7 +159,7 @@ WireMarshallDeleteResponse(
     pResponseHeader = (PSMB_DELETE_RESPONSE_HEADER)pParams;
     usPackageBytesUsed += sizeof(SMB_DELETE_RESPONSE_HEADER);
 
-    pResponseHeader->usByteCount = usPackageBytesUsed;
+    pResponseHeader->usByteCount = 0;
 
     *ppResponseHeader = pResponseHeader;
     *pusPackageBytesUsed = usPackageBytesUsed;

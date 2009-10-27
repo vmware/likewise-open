@@ -604,7 +604,7 @@ SrvBuildNTCreateResponse_inlock(
     ulBytesAvailable -= pSmbResponse->usHeaderSize;
     ulTotalBytesUsed += pSmbResponse->usHeaderSize;
 
-    *pSmbResponse->pWordCount = 26;
+    *pSmbResponse->pWordCount = 34;
 
     if (ulBytesAvailable < sizeof(CREATE_RESPONSE_HEADER))
     {

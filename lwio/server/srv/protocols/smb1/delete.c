@@ -534,7 +534,7 @@ SrvBuildDeleteResponse(
     ulBytesAvailable -= pSmbResponse->usHeaderSize;
     ulTotalBytesUsed += pSmbResponse->usHeaderSize;
 
-    *pSmbResponse->pWordCount = 1;
+    *pSmbResponse->pWordCount = 0;
 
     ntStatus = WireMarshallDeleteResponse(
                     pOutBuffer,
