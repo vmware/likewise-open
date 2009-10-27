@@ -230,5 +230,29 @@ namespace Likewise.LMC.Services
 
             return serviceInfo;
         }
+
+        public static int ApiLwSmQueryServiceDependencyClosure(IntPtr phServiceHandle, out string[] serviceDependencies)
+        {
+            serviceDependencies = null;
+            int iRet = 0;
+            try
+            {
+                Logger.Log("ServiceManagerInteropWrapper:ApiLwSmQueryServiceDependencyClosure()", Logger.ServiceManagerLoglevel);
+
+                iRet = ServiceManagerInterop.LwSmQueryServiceDependencyClosure(phServiceHandle, out serviceDependencies);
+                if (iRet != 0)
+                {
+                    serviceDependencies = null;
+                    Logger.Log("ServiceManagerInteropWrapper:ApiLwSmQueryServiceDependencyClosure returns" + iRet.ToString(), Logger.ServiceManagerLoglevel);
+                }
+                Logger.Log("ServiceManagerInteropWrapper:ApiLwSmQueryServiceDependencyClosure is success", Logger.ServiceManagerLoglevel);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException("ServiceManagerInteropWrapper:ApiLwSmQueryServiceDependencyClosure", ex);
+            }
+
+            return iRet;
+        }
     }
 }

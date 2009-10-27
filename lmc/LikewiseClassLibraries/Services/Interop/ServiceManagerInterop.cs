@@ -203,6 +203,16 @@ namespace Likewise.LMC.Services
         public static extern int LwSmQueryServiceInfo(
             IntPtr phHandle,
             out IntPtr ppInfo);
+
+        //DWORD
+        //LwSmQueryServiceDependencyClosure(
+        //    LW_SERVICE_HANDLE hHandle,
+        //    PWSTR** pppwszServiceList
+        //    )
+        [DllImport(advapiDllPath)]
+        public static extern int LwSmQueryServiceDependencyClosure(
+            IntPtr phHandle,
+            out string[] ppInfo);
     }
 
     class ServiceNameListMarshaler: ICustomMarshaler
