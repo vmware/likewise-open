@@ -243,7 +243,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
 
                         case "&Start":
                             if (pHandle != IntPtr.Zero) {
-                                StartAllServiceDependencies(pHandle, iRet);
+                                StartAllServiceDependencies(pHandle, ref iRet);
                             }
                             break;
 
@@ -324,7 +324,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
 
                 iReturn = ServiceManagerInteropWrapper.ApiLwSmQueryServiceDependencyClosure(pHandle, out serviceDependencies);
                 if (iReturn != 0)
-                    return;
+                    return iReturn;
 
                 if (serviceDependencies != null && serviceDependencies.Length != 0) {
                     foreach (string service in serviceDependencies)
@@ -340,20 +340,21 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
                                 {
                                     iReturn = ServiceManagerInteropWrapper.ApiLwSmStartService(pDHandle);
                                     if (iReturn != 0)
-                                        return;
+                                        return iReturn;
                                 }
                                 else
                                     StartAllServiceDependencies(pDHandle, ref iReturn);
                             }
                             else
-                                return;
+                                return iReturn;
                         }
                     }
                 }
                 else {
-                    iReturn = ServiceManagerInteropWrapper.ApiLwSmStartService(pDHandle);
+                    iReturn = ServiceManagerInteropWrapper.ApiLwSmStartService(pHandle);
                 }
             }
+            return iReturn;
         }
 
 
