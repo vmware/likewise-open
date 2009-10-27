@@ -112,7 +112,7 @@
       <Project>{978100A9-9BF2-49A9-8E2B-57DB61907526}</Project>
       <Name>NetApi</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\LMCCredentials\LMCCredentials.csproj">
+    <ProjectReference Include="..\..\LMCCredentialDlgs\LMCCredentials.csproj">
       <Project>{E34C3066-88C0-4414-A47D-6FCD806760FA}</Project>
       <Name>LMCCredentials</Name>
     </ProjectReference>
