@@ -401,6 +401,7 @@ LWNetCacheDbRegistryReadValue(
     DWORD dwError = 0;
     DWORD dwValue = 0;
     DWORD dwRetValueLen = 0;
+    PWORD pwValue = (PWORD) ppValue;
     PDWORD pdwValue = (PDWORD) ppValue;
     PBYTE *ppData = (PBYTE *) ppValue;
 
@@ -427,7 +428,14 @@ LWNetCacheDbRegistryReadValue(
                           &dwValue,
                           &dwRetValueLen);
             BAIL_ON_LWNET_ERROR(dwError);
-            *pdwValue = dwValue;
+            if (dwValueLen == sizeof(WORD))
+            {
+                *pwValue = dwValue;
+            }
+            else
+            {
+                *pdwValue = dwValue;
+            }
             break;
 
         case REG_BINARY:
