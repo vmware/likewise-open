@@ -1,11 +1,11 @@
 if ENABLE_STATIC_DRIVERS
 noinst_LTLIBRARIES = libnpfs.sys.la
 DRIVER_CFLAGS =
-DRIVER_LDLAGS =
+DRIVER_LDFLAGS =
 else
 lib_LTLIBRARIES = libnpfs.sys.la
 DRIVER_CFLAGS = -shared
-DRIVER_LDLAGS = -module -shared -avoid-version
+DRIVER_LDFLAGS = -module -shared -avoid-version
 endif
 
 libnpfs_sys_la_SOURCES = \
