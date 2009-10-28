@@ -384,6 +384,7 @@
 #define LW_ERROR_BEYOUND_MAX_VALUE_LEN                     40709
 #define LW_ERROR_NO_MORE_ITEMS                             40710
 #define LW_ERROR_INVALID_KEYNAME                           40711
+#define LW_ERROR_INVALID_VALUENAME                         40712
 
 /* Range 41201 - 41700 is reserved for service manager errors */
 #define LW_ERROR_INVALID_SERVICE_TRANSITION                41201
