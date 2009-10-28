@@ -776,12 +776,12 @@ GetValueAsBytes(
             BAIL_ON_REG_ERROR(dwError);
     }
 
+cleanup:
     if (pcbData)
     {
         *pcbData = cbData;
     }
 
-cleanup:
     LW_SAFE_FREE_MEMORY(pTempData);
     LW_SAFE_FREE_MEMORY(pOutData);
     LW_SAFE_FREE_MEMORY(pwcValue);

@@ -1340,9 +1340,12 @@ SqliteEnumValueA(
 
         valueType = ppRegEntries[0]->type;
 
-        dwError = LwAllocateString(ppRegEntries[0]->pszValue,
-                                   &pszValueContent);
-        BAIL_ON_REG_ERROR(dwError);
+        if (ppRegEntries[0]->pszValue)
+        {
+            dwError = LwAllocateString(ppRegEntries[0]->pszValue,
+                                       &pszValueContent);
+            BAIL_ON_REG_ERROR(dwError);
+        }
     }
     else
     {
@@ -1478,9 +1481,12 @@ SqliteEnumValueW(
 
         valueType = ppRegEntries[0]->type;
 
-        dwError = LwAllocateString(ppRegEntries[0]->pszValue,
-                                   &pszValueContent);
-        BAIL_ON_REG_ERROR(dwError);
+        if (ppRegEntries[0]->pszValue)
+        {
+            dwError = LwAllocateString(ppRegEntries[0]->pszValue,
+                                       &pszValueContent);
+            BAIL_ON_REG_ERROR(dwError);
+        }
     }
     else
     {
