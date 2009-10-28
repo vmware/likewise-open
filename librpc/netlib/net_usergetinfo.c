@@ -33,81 +33,92 @@
 
 NET_API_STATUS
 NetUserGetInfo(
-    const wchar16_t *hostname,
-    const wchar16_t *username,
-    uint32 level,
-    void **buffer
+    PCWSTR  pwszHostname,
+    PCWSTR  pwszUsername,
+    DWORD   dwLevel,
+    PVOID  *ppBuffer
     )
 {
-    const uint32 access_rights = USER_ACCESS_GET_NAME_ETC |
+    const DWORD dwAccessRights = USER_ACCESS_GET_NAME_ETC |
                                  USER_ACCESS_GET_LOCALE |
                                  USER_ACCESS_GET_LOGONINFO |
                                  USER_ACCESS_GET_ATTRIBUTES |
                                  USER_ACCESS_GET_GROUPS |
                                  USER_ACCESS_GET_GROUP_MEMBERSHIP;
-    const uint32 samr_level = 21;
-    const uint32 num = 1;
+    const DWORD dwSamrInfoLevel = 21;
+    const DWORD dwNum = 1;
     NTSTATUS status = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
-    NetConn *conn = NULL;
-    handle_t samr_b = NULL;
+    NetConn *pConn = NULL;
+    handle_t hSamrBinding = NULL;
     ACCOUNT_HANDLE hUser = NULL;
-    uint32 user_rid = 0;
-    UserInfo *info = NULL;
-    USER_INFO_20 *ninfo20 = NULL;
-    PIO_CREDS creds = NULL;
+    DWORD dwUserRid = 0;
+    UserInfo *pSamrUserInfo = NULL;
+    USER_INFO_20 *pNetUserInfo20 = NULL;
+    PIO_CREDS pCreds = NULL;
 
-    BAIL_ON_INVALID_PTR(hostname);
-    BAIL_ON_INVALID_PTR(username);
-    BAIL_ON_INVALID_PTR(buffer);
+    BAIL_ON_INVALID_PTR(pwszUsername);
+    BAIL_ON_INVALID_PTR(ppBuffer);
 
-    if (level != 20) {
+    if (dwLevel != 20)
+    {
         err = ERROR_INVALID_LEVEL;
         goto cleanup;
     }
 
-    status = LwIoGetThreadCreds(&creds);
+    status = LwIoGetThreadCreds(&pCreds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = NetConnectSamr(&conn, hostname, 0, 0, creds);
+    status = NetConnectSamr(&pConn,
+                            pwszHostname,
+                            0,
+                            0,
+                            pCreds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = NetOpenUser(conn, username, access_rights, &hUser,
-                         &user_rid);
+    status = NetOpenUser(pConn, pwszUsername, dwAccessRights, &hUser,
+                         &dwUserRid);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    samr_b = conn->samr.bind;
+    hSamrBinding = pConn->samr.bind;
 
-    status = SamrQueryUserInfo(samr_b, hUser, samr_level, &info);
+    status = SamrQueryUserInfo(hSamrBinding,
+                               hUser,
+                               dwSamrInfoLevel,
+                               &pSamrUserInfo);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = PullUserInfo20((void**)&ninfo20, &info->info21, num);
+    status = PullUserInfo20((void**)&pNetUserInfo20,
+                            &pSamrUserInfo->info21,
+                            dwNum);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = SamrClose(samr_b, hUser);
+    status = SamrClose(hSamrBinding, hUser);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    *buffer = ninfo20;
+    *ppBuffer = pNetUserInfo20;
 
 cleanup:
     if (err == ERROR_SUCCESS &&
-        status != STATUS_SUCCESS) {
+        status != STATUS_SUCCESS)
+    {
         err = NtStatusToWin32Error(status);
     }
 
     return err;
 
 error:
-    if (ninfo20) {
-        NetFreeMemory((void*)ninfo20);
-    }
-
-    if (creds)
+    if (pNetUserInfo20)
     {
-        LwIoDeleteCreds(creds);
+        NetFreeMemory((void*)pNetUserInfo20);
     }
 
-    *buffer = NULL;
+    if (pCreds)
+    {
+        LwIoDeleteCreds(pCreds);
+    }
+
+    *ppBuffer = NULL;
     goto cleanup;
 }
 

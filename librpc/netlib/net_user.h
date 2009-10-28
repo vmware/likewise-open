@@ -28,27 +28,43 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        net_user.h
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Client Interface
+ *
+ *        NetAPI user and alias (a.k.a. local group) open routines
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
+ */
+
 #ifndef _NET_USER_H_
 #define _NET_USER_H_
 
 
 NTSTATUS
 NetOpenUser(
-    NetConn *conn,
-    const wchar16_t *username,
-    uint32 access_mask,
+    NetConn        *pConn,
+    PCWSTR          pwszUsername,
+    DWORD           dwAccessMask,
     ACCOUNT_HANDLE *phUser,
-    uint32 *rid
+    PDWORD          pdwRid
     );
 
 
 NTSTATUS
 NetOpenAlias(
-    NetConn *conn,
-    const wchar16_t *aliasname,
-    uint32 access_mask,
+    NetConn        *pConn,
+    PCWSTR          pwszAliasname,
+    DWORD           dwAccessMask,
     ACCOUNT_HANDLE *phAlias,
-    uint32 *out_rid
+    PDWORD          pdwRid
     );
 
 
