@@ -253,6 +253,12 @@ PvfsCreateDirOpen(
                   &pCreateCtx->pFcb);
     BAIL_ON_NT_STATUS(ntError);
 
+    if (pCreateCtx->pFcb->bDeleteOnClose)
+    {
+        ntError = STATUS_DELETE_PENDING;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
     pCreateCtx->bFileExisted = TRUE;
 
     ntError = PvfsCreateDirDoSysOpen(pCreateCtx);
@@ -358,6 +364,12 @@ PvfsCreateDirOpenIf(
                   pCreateCtx->GrantedAccess,
                   &pCreateCtx->pFcb);
     BAIL_ON_NT_STATUS(ntError);
+
+    if (pCreateCtx->pFcb->bDeleteOnClose)
+    {
+        ntError = STATUS_DELETE_PENDING;
+        BAIL_ON_NT_STATUS(ntError);
+    }
 
     if (!pCreateCtx->bFileExisted)
     {

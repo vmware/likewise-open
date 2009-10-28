@@ -189,6 +189,12 @@ PvfsCreateFileSupersede(
                       &pCreateCtx->pFcb);
         BAIL_ON_NT_STATUS(ntError);
 
+        if (pCreateCtx->pFcb->bDeleteOnClose)
+        {
+            ntError = STATUS_DELETE_PENDING;
+            BAIL_ON_NT_STATUS(ntError);
+        }
+
         /* Finally remove the file */
 
         ntError = PvfsSysRemove(pCreateCtx->pszDiskFilename);
@@ -441,6 +447,12 @@ PvfsCreateFileOpenOrOverwrite(
                   pCreateCtx->GrantedAccess,
                   &pCreateCtx->pFcb);
     BAIL_ON_NT_STATUS(ntError);
+
+    if (pCreateCtx->pFcb->bDeleteOnClose)
+    {
+        ntError = STATUS_DELETE_PENDING;
+        BAIL_ON_NT_STATUS(ntError);
+    }
 
     if (Disposition == FILE_OVERWRITE) {
         pCreateCtx->SetPropertyFlags = PVFS_SET_PROP_OWNER|
