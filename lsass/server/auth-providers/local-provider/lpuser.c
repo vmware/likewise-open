@@ -2677,6 +2677,8 @@ cleanup:
 
     LW_SAFE_FREE_MEMORY(pwszPassword);
 
+    LW_SAFE_FREE_MEMORY(pwszUserDN);
+
     return dwError;
 
 error:
