@@ -23,9 +23,19 @@
  */
 
 /*
- * Abstract: NetUserAdd function (rpc client library)
+ * Copyright (C) Likewise Software. All rights reserved.
  *
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ * Module Name:
+ *
+ *        net_useradd.h
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Client Interface
+ *
+ *        NetUserAdd function
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
 
 
@@ -34,13 +44,13 @@
 
 NET_API_STATUS
 NetUserAdd(
-    const wchar16_t *hostname,
-    uint32 level,
-    void *buffer,
-    uint32 *parm_err
+    PCWSTR  pwszHostname,
+    DWORD   dwLevel,
+    PVOID   pBuffer,
+    PDWORD  pdwParmErr
     )
 {
-    const uint32 user_access = USER_ACCESS_GET_NAME_ETC |
+    const DWORD dwUserAccess = USER_ACCESS_GET_NAME_ETC |
                                USER_ACCESS_SET_LOC_COM |
                                USER_ACCESS_GET_LOCALE |
                                USER_ACCESS_GET_LOGONINFO |
@@ -50,92 +60,114 @@ NetUserAdd(
                                USER_ACCESS_CHANGE_GROUP_MEMBERSHIP |
                                USER_ACCESS_SET_ATTRIBUTES |
                                USER_ACCESS_SET_PASSWORD;
-    const uint32 dom_access = DOMAIN_ACCESS_CREATE_USER |
-                              DOMAIN_ACCESS_LOOKUP_INFO_1;
+
+    const DWORD dwDomainAccess = DOMAIN_ACCESS_CREATE_USER |
+                                 DOMAIN_ACCESS_LOOKUP_INFO_1;
 
     NTSTATUS status = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
-    NetConn *conn = NULL;
-    handle_t samr_b = NULL;
+    NetConn *pConn = NULL;
+    handle_t hSamrBinding = NULL;
     DOMAIN_HANDLE hDomain = NULL;
     ACCOUNT_HANDLE hUser = NULL;
-    wchar16_t *user_name = NULL;
-    uint32 rid = 0;
-    uint32 samr_infolevel = 0;
-    uint32 out_parm_err = 0;
-    USER_INFO_X *ninfo = NULL;
-    UserInfo *sinfo = NULL;
-    PIO_CREDS creds = NULL;
+    PWSTR pwszUsername = NULL;
+    DWORD dwRid = 0;
+    DWORD dwSamrInfoLevel = 0;
+    DWORD dwParmErr = 0;
+    PUSER_INFO_X pNetUserInfo = NULL;
+    UserInfo *pSamrUserInfo = NULL;
+    PIO_CREDS pCreds = NULL;
+    UserInfo PwInfo;
+    UserInfo26 *pUserInfo26 = NULL;
 
-    BAIL_ON_INVALID_PTR(buffer);
-    BAIL_ON_INVALID_PTR(parm_err);
+    memset((void*)&PwInfo, 0, sizeof(PwInfo));
 
-    status = PushUserInfoAdd(&sinfo, &samr_infolevel, buffer, level,
-                             &out_parm_err);
+    BAIL_ON_INVALID_PTR(pBuffer);
+
+    status = PushUserInfoAdd(&pSamrUserInfo,
+                             &dwSamrInfoLevel,
+                             pBuffer,
+                             dwLevel,
+                             &dwParmErr);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = LwIoGetThreadCreds(&creds);
+    status = LwIoGetThreadCreds(&pCreds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = NetConnectSamr(&conn, hostname, dom_access, 0, creds);
+    status = NetConnectSamr(&pConn,
+                            pwszHostname,
+                            dwDomainAccess,
+                            0,
+                            pCreds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    samr_b    = conn->samr.bind;
-    hDomain   = conn->samr.hDomain;
+    hSamrBinding  = pConn->samr.bind;
+    hDomain       = pConn->samr.hDomain;
 
-    ninfo     = (USER_INFO_X*)buffer;
-    user_name = ninfo->name;
+    pNetUserInfo  = (USER_INFO_X*)pBuffer;
+    pwszUsername  = pNetUserInfo->name;
 
-    status = SamrCreateUser(samr_b, hDomain, user_name, user_access,
-                            &hUser, &rid);
+    status = SamrCreateUser(hSamrBinding,
+                            hDomain,
+                            pwszUsername,
+                            dwUserAccess,
+                            &hUser,
+                            &dwRid);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     /* If there was password specified do an extra samr call to set it */
-    if (ninfo->password) {
-        UserInfo pwinfo;
-        UserInfo26 *info26 = NULL;
+    if (pNetUserInfo->password)
+    {
+        memset((void*)&PwInfo, 0, sizeof(PwInfo));
+        pUserInfo26 = &PwInfo.info26;
 
-	memset((void*)&pwinfo, 0, sizeof(pwinfo));
-	info26 = &pwinfo.info26;
+        pUserInfo26->password_len = wc16slen(pNetUserInfo->password);
 
-        memset((void*)&pwinfo, 0, sizeof(pwinfo));
-        info26 = &pwinfo.info26;
-
-        info26->password_len = wc16slen(ninfo->password);
-        status = EncPasswordEx(info26->password.data, ninfo->password,
-                               info26->password_len, conn);
+        status = EncPasswordEx(pUserInfo26->password.data,
+                               pNetUserInfo->password,
+                               pUserInfo26->password_len,
+                               pConn);
         BAIL_ON_NTSTATUS_ERROR(status);
 
-        status = SamrSetUserInfo(samr_b, hUser, 26, &pwinfo);
+        status = SamrSetUserInfo(hSamrBinding,
+                                 hUser,
+                                 26,
+                                 &PwInfo);
         BAIL_ON_NTSTATUS_ERROR(status);
     }
 
-    status = SamrSetUserInfo(samr_b, hUser, samr_infolevel, sinfo);
+    status = SamrSetUserInfo(hSamrBinding,
+                             hUser,
+                             dwSamrInfoLevel,
+                             pSamrUserInfo);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = SamrClose(samr_b, hUser);
+    status = SamrClose(hSamrBinding, hUser);
     BAIL_ON_NTSTATUS_ERROR(status);
 
 cleanup:
-    if (parm_err) {
-        *parm_err = out_parm_err;
+    if (pdwParmErr)
+    {
+        *pdwParmErr = dwParmErr;
     }
 
-    if (sinfo) {
-        NetFreeMemory((void*)sinfo);
+    if (pSamrUserInfo)
+    {
+        NetFreeMemory((void*)pSamrUserInfo);
     }
 
     if (err == ERROR_SUCCESS &&
-        status != STATUS_SUCCESS) {
+        status != STATUS_SUCCESS)
+    {
         err = NtStatusToWin32Error(status);
     }
 
     return err;
 
 error:
-    if (creds)
+    if (pCreds)
     {
-        LwIoDeleteCreds(creds);
+        LwIoDeleteCreds(pCreds);
     }
 
     goto cleanup;
