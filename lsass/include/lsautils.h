@@ -1105,6 +1105,12 @@ LsaModifyUser_SetGecos(
     );
 
 DWORD
+LsaModifyUser_SetPassword(
+    PLSA_USER_MOD_INFO pUserModInfo,
+    PCSTR pszPassword
+    );
+
+DWORD
 LsaModifyUser_SetNtPasswordHash(
     PLSA_USER_MOD_INFO pUserModInfo,
     PCSTR pszHash

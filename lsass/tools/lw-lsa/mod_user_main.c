@@ -113,6 +113,12 @@ BuildUserModInfo(
 
 static
 DWORD
+ReadPassword(
+    PSTR* ppszPassword
+    );
+
+static
+DWORD
 LsaModUserMain(
     int argc,
     char* argv[]
@@ -216,6 +222,7 @@ ParseArgs(
     PDLINKEDLIST pTaskList = NULL;
     PUSER_MOD_TASK pTask = NULL;
     PSTR    pszLoginId = NULL;
+    PSTR    pszPassword = NULL;
 
     do {
         pArg = argv[iArg++];
@@ -261,6 +268,28 @@ ParseArgs(
                     dwError = LwAllocateMemory(sizeof(USER_MOD_TASK), (PVOID*)&pTask);
                     BAIL_ON_LSA_ERROR(dwError);
                     pTask->taskType = UserModTask_ChangePasswordAtNextLogon;
+
+                    dwError = LsaDLinkedListAppend(&pTaskList, pTask);
+                    BAIL_ON_LSA_ERROR(dwError);
+
+                    pTask = NULL;
+                }
+                else if (!strcmp(pArg, "--set-password"))
+                {
+                    fprintf(stdout, "password: ");
+                    fflush(stdout);
+
+                    dwError = ReadPassword(&pszPassword);
+                    BAIL_ON_LSA_ERROR(dwError);
+
+                    fprintf(stdout, "\n");
+
+                    dwError = LwAllocateMemory(sizeof(USER_MOD_TASK), (PVOID*)&pTask);
+                    BAIL_ON_LSA_ERROR(dwError);
+
+                    pTask->taskType = UserModTask_SetPassword;
+                    pTask->pszData = pszPassword;
+                    pszPassword = NULL;
 
                     dwError = LsaDLinkedListAppend(&pTaskList, pTask);
                     BAIL_ON_LSA_ERROR(dwError);
@@ -535,6 +564,8 @@ ParseArgs(
 
 cleanup:
 
+    LW_SAFE_FREE_STRING (pszPassword);
+
     return dwError;
 
 error:
@@ -571,6 +602,7 @@ ValidateArgs(
     BOOLEAN bDisableUser = FALSE;
     BOOLEAN bSetChangePasswordAtNextLogon = FALSE;
     BOOLEAN bSetPasswordNeverExpires = FALSE;
+    BOOLEAN bSetPassword = FALSE;
     PSTR pszNtPasswordHash = NULL;
     PSTR pszLmPasswordHash = NULL;
 
@@ -610,6 +642,11 @@ ValidateArgs(
                    pszLmPasswordHash = pTask->pszData;
                    break;
                }
+               case UserModTask_SetPassword:
+               {
+                   bSetPassword = TRUE;
+                   break;
+               }
                default:
                    break;
            }
@@ -647,6 +684,18 @@ ValidateArgs(
           strlen(pszLmPasswordHash) == 0))
     {
         fprintf(stderr, "Error: LM password hash must be zero or 32 characters long.\n");
+        goto cleanup;
+    }
+
+    if (bSetPassword && pszNtPasswordHash)
+    {
+        fprintf(stderr, "Error: the password and NT password hash cannot be specified together.\n");
+        goto cleanup;
+    }
+
+    if (bSetPassword && pszLmPasswordHash)
+    {
+        fprintf(stderr, "Error: the password and LM password hash cannot be specified together.\n");
         goto cleanup;
     }
 
@@ -727,6 +776,7 @@ ShowUsage(
     fprintf(stdout, "{ --set-gecos gecos }\n");
     fprintf(stdout, "{ --set-account-expiry expiry-date (YYYY-MM-DD format) }\n");
     fprintf(stdout, "{ --set-primary-group gid }\n");
+    fprintf(stdout, "{ --set-password password }\n");
 
     fprintf(stdout, "\nNotes:\n");
     fprintf(stdout, "a) Set the expiry-date to 0 for an account that must never expire.\n");
@@ -932,6 +982,13 @@ BuildUserModInfo(
                 BAIL_ON_LSA_ERROR(dwError);
                 break;
             }
+            case UserModTask_SetPassword:
+            {
+                dwError = LsaModifyUser_SetPassword(pUserModInfo,
+                                                    pTask->pszData);
+                BAIL_ON_LSA_ERROR(dwError);
+                break;
+            }
         }
     }
 
@@ -976,6 +1033,70 @@ MapErrorCode(
     }
 
     return dwError2;
+}
+
+static
+DWORD
+ReadPassword(
+    PSTR* ppszPassword
+    )
+{
+    DWORD dwError = 0;
+    CHAR szBuf[129];
+    DWORD idx = 0;
+    struct termios old, new;
+    CHAR ch;
+
+    memset(szBuf, 0, sizeof(szBuf));
+
+    tcgetattr(0, &old);
+    memcpy(&new, &old, sizeof(struct termios));
+    new.c_lflag &= ~(ECHO);
+    tcsetattr(0, TCSANOW, &new);
+
+    while ( (idx < 128) ) {
+
+        if (read(0, &ch, 1)) {
+
+            if (ch != '\n') {
+
+                szBuf[idx++] = ch;
+
+            } else {
+
+                break;
+
+            }
+
+        } else {
+
+            dwError = LwMapErrnoToLwError(errno);
+            BAIL_ON_LSA_ERROR(dwError);
+
+        }
+    }
+
+    if (idx == 128) {
+        dwError = LwMapErrnoToLwError(ENOBUFS);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (idx > 0) {
+
+        dwError = LwAllocateString(szBuf, ppszPassword);
+        BAIL_ON_LSA_ERROR(dwError);
+
+    } else {
+
+        *ppszPassword = NULL;
+
+    }
+
+error:
+
+    tcsetattr(0, TCSANOW, &old);
+
+    return dwError;
 }
 
 int

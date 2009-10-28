@@ -636,6 +636,33 @@ error:
 }
 
 DWORD
+LsaModifyUser_SetPassword(
+    PLSA_USER_MOD_INFO pUserModInfo,
+    PCSTR pszPassword
+    )
+{
+    DWORD dwError = 0;
+
+    BAIL_ON_INVALID_POINTER(pUserModInfo);
+
+    if (!LW_IS_NULL_OR_EMPTY_STR(pszPassword))
+    {
+        dwError = LwAllocateString(
+                    pszPassword,
+                    &pUserModInfo->pszPassword);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pUserModInfo->actions.bSetPassword = TRUE;
+    }
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+DWORD
 LsaModifyUser_SetNtPasswordHash(
     PLSA_USER_MOD_INFO pUserModInfo,
     PCSTR pszHash
@@ -752,6 +779,7 @@ LsaFreeUserModInfo(
     LW_SAFE_FREE_STRING(pUserModInfo->pszHomedir);
     LW_SAFE_FREE_STRING(pUserModInfo->pszShell);
     LW_SAFE_FREE_STRING(pUserModInfo->pszGecos);
+    LW_SAFE_FREE_STRING(pUserModInfo->pszPassword);
 
     if (pUserModInfo->pNtPasswordHash) {
         LW_SAFE_FREE_MEMORY(pUserModInfo->pNtPasswordHash->pData);

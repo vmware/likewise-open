@@ -66,7 +66,8 @@ typedef enum
     UserModTask_SetPrimaryGroup,
     UserModTask_SetHomedir,
     UserModTask_SetShell,
-    UserModTask_SetGecos
+    UserModTask_SetGecos,
+    UserModTask_SetPassword
 } UserModificationTaskType;
 
 typedef struct __USER_MOD_TASK

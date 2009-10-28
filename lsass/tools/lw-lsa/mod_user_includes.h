@@ -47,6 +47,7 @@
 
 #include "config.h"
 #include "lsasystem.h"
+#include <termios.h>
 #include "lsadef.h"
 #include "lsa/lsa.h"
 #include "lwmem.h"
