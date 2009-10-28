@@ -59,6 +59,7 @@ LsaPamReadRegistry(
     LSA_PAM_CONFIG StagingConfig;
     PLSA_PAM_CONFIG pConfig = NULL;
 
+#if 0
     const PCSTR LogLevels[] =
     {
         "disabled",
@@ -99,6 +100,7 @@ LsaPamReadRegistry(
             &(StagingConfig.pszAccessDeniedMessage)
         }
     };
+#endif
 
     dwError = LwAllocateMemory(sizeof(LSA_PAM_CONFIG), (PVOID*) &pConfig);
     BAIL_ON_LSA_ERROR(dwError);
@@ -107,12 +109,14 @@ LsaPamReadRegistry(
     dwError = LsaPamInitializeConfig(&StagingConfig);
     BAIL_ON_LSA_ERROR(dwError);
 
+#if 0
     dwError = LsaProcessConfig(
                 "Services\\lsass\\Parameters\\PAM",
                 "Policy\\Services\\lsass\\Parameters\\PAM",
                 ConfigDescription,
                 sizeof(ConfigDescription)/sizeof(ConfigDescription[0]));
     BAIL_ON_LSA_ERROR(dwError);
+#endif
 
     *pConfig = StagingConfig;
     memset(&StagingConfig, 0, sizeof(LSA_PAM_CONFIG));

@@ -197,6 +197,8 @@ STLIBOBJS = \
 #	k5mech.o \
 #	pname_to_uid.o
 
+HDRS= $(ETHDRS)
+
 EHDRDIR=$(BUILDTOP)$(S)include$(S)gssapi
 EXPORTED_HEADERS= gssapi_krb5.h
 
@@ -204,7 +206,7 @@ EXPORTED_HEADERS= gssapi_krb5.h
 
 GSSAPI_KRB5_HDR=$(EHDRDIR)$(S)gssapi_krb5.h
 
-all-windows:: $(EHDRDIR) $(SRCS) $(HDRS)
+all-windows:: $(EHDRDIR) $(GSSAPI_KRB5_HDR) $(SRCS) $(HDRS)
 
 ##DOS##$(EHDRDIR):
 ##DOS##	mkdir $(EHDRDIR)
@@ -216,9 +218,7 @@ $(GSSAPI_KRB5_HDR): gssapi_krb5.h
 	@$(MK_EHDRDIR)
 	$(CP) gssapi_krb5.h "$@"
 
-HDRS= $(ETHDRS) $(GSSAPI_KRB5_HDR)
-
-all-unix:: $(SRCS) $(HDRS) includes
+all-unix:: $(SRCS) $(HDRS) $(GSSAPI_KRB5_HDR) includes
 all-unix:: all-libobjs
 
 error_map.h: $(SRCTOP)/util/gen-map.pl $(SRCTOP)/util/ktemplate.pm Makefile
