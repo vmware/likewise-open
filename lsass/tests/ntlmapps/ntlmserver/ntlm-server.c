@@ -997,39 +997,39 @@ PrintHexDump(
 
         for (i=0;i<count;i++)
         {
-            rgbLine[((int)cbLine)++] = rgbDigits[pBuffer[i] >> 4];
-            rgbLine[((int)cbLine)++] = rgbDigits[pBuffer[i] & 0x0f];
+            rgbLine[(int)(cbLine++)] = rgbDigits[pBuffer[i] >> 4];
+            rgbLine[(int)(cbLine++)] = rgbDigits[pBuffer[i] & 0x0f];
             if (i == 7)
             {
-                rgbLine[((int)cbLine)++] = ':';
+                rgbLine[(int)(cbLine++)] = ':';
             }
             else
             {
-                rgbLine[((int)cbLine)++] = ' ';
+                rgbLine[(int)(cbLine++)] = ' ';
             }
         }
         for (; i < 16; i++)
         {
-            rgbLine[((int)cbLine)++] = ' ';
-            rgbLine[((int)cbLine)++] = ' ';
-            rgbLine[((int)cbLine)++] = ' ';
+            rgbLine[(int)(cbLine++)] = ' ';
+            rgbLine[(int)(cbLine++)] = ' ';
+            rgbLine[(int)(cbLine++)] = ' ';
         }
 
-        rgbLine[((int)cbLine)++] = ' ';
+        rgbLine[(int)(cbLine++)] = ' ';
 
         for (i = 0; i < count; i++)
         {
             if (pBuffer[i] < 32 || pBuffer[i] > 126)
             {
-                rgbLine[((int)cbLine)++] = '.';
+                rgbLine[(int)(cbLine++)] = '.';
             }
             else
             {
-                rgbLine[((int)cbLine)++] = pBuffer[i];
+                rgbLine[(int)(cbLine++)] = pBuffer[i];
             }
         }
 
-        rgbLine[((int)cbLine)++] = 0;
+        rgbLine[(int)(cbLine++)] = 0;
         printf("%s\n", rgbLine);
     }
 
