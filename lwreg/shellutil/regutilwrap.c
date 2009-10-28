@@ -184,3 +184,27 @@ RegUtilDeleteValue(
                keyName,
                valueName);
 }
+
+
+DWORD
+RegUtilGetValue(
+    IN HANDLE hReg,
+    IN PSTR pszRootKeyName,
+    IN OPTIONAL PSTR pszDefaultKey,
+    IN PSTR pszKeyName,
+    IN PSTR pszValueName,
+    IN REG_DATA_TYPE regType,
+    OUT PVOID *ppValue,
+    OUT PDWORD pdwValueLen)
+{
+    return RegShellUtilGetValue(
+               hReg,
+               pszRootKeyName,
+               pszDefaultKey,
+               pszKeyName,
+               pszValueName,
+               regType,
+               ppValue,
+               pdwValueLen);
+}
+
