@@ -218,8 +218,8 @@ RdrTransactFindFirst2(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    memcpy(pResult, pReplyData, usReplyByteCount);
-    *pulResultLengthUsed = usReplyByteCount;
+    memcpy(pResult, pReplyData, usReplyDataCount);
+    *pulResultLengthUsed = usReplyDataCount;
 
 cleanup:
 

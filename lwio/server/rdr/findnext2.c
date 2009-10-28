@@ -207,8 +207,8 @@ RdrTransactFindNext2(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    memcpy(pResult, pReplyData, usReplyByteCount);
-    if (pulResultLengthUsed) *pulResultLengthUsed = usReplyByteCount;
+    memcpy(pResult, pReplyData, usReplyDataCount);
+    if (pulResultLengthUsed) *pulResultLengthUsed = usReplyDataCount;
     if (pusSearchCount) *pusSearchCount = SMB_LTOH16(pReplyParameters->usSearchCount);
     if (pusEndOfSearch) *pusEndOfSearch = SMB_LTOH16(pReplyParameters->usEndOfSearch);
     if (pusEaErrorOffset) *pusEaErrorOffset = SMB_LTOH16(pReplyParameters->usEaErrorOffset);
