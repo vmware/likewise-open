@@ -66,7 +66,7 @@ CopyUnixStatToPvfsStat(
     pPvfsStat->s_uid     = pSbuf->st_uid;
     pPvfsStat->s_gid     = pSbuf->st_gid;
     pPvfsStat->s_size    = pSbuf->st_size;
-    pPvfsStat->s_alloc   = pSbuf->st_blocks * pSbuf->st_blksize;
+    pPvfsStat->s_alloc   = pSbuf->st_blocks * 512;
     pPvfsStat->s_atime   = pSbuf->st_atime;
     pPvfsStat->s_ctime   = pSbuf->st_ctime;
     pPvfsStat->s_mtime   = pSbuf->st_mtime;
