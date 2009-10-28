@@ -276,7 +276,7 @@ ParseArgs(
                 }
                 else if (!strcmp(pArg, "--set-password"))
                 {
-                    fprintf(stdout, "password: ");
+                    fprintf(stdout, "New password: ");
                     fflush(stdout);
 
                     dwError = ReadPassword(&pszPassword);
