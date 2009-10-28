@@ -576,17 +576,33 @@ SrvGssInitNegotiate(
     gss_buffer_desc input_name = GSS_C_EMPTY_BUFFER;
     gss_buffer_desc input_desc = GSS_C_EMPTY_BUFFER;
     gss_buffer_desc output_desc = GSS_C_EMPTY_BUFFER;
+    gss_buffer_desc OidString = GSS_C_EMPTY_BUFFER;
     gss_name_t      target_name = GSS_C_NO_NAME;
+    gss_cred_id_t pServerCreds = NULL;
     PBYTE pSessionKey = NULL;
     ULONG ulSessionKeyLength = 0;
     ULONG ret_flags = 0;
     PSTR  pszCurrentCachePath = NULL;
     BOOLEAN bInLock = FALSE;
-
+    gss_OID_set DesiredMechs = {0};
+    PSTR pszGssNtlmOid = "1.3.6.1.4.1.311.2.2.10";
+    gss_OID NtlmOid = NULL;
     static gss_OID_desc gss_spnego_mech_oid_desc =
       {6, (void *)"\x2b\x06\x01\x05\x05\x02"};
 
     LWIO_LOCK_MUTEX(bInLock, pGssContext->pMutex);
+
+    ulMajorStatus = gss_create_empty_oid_set(&ulMinorStatus, &DesiredMechs);
+    BAIL_ON_SEC_ERROR(ulMajorStatus);
+
+    OidString.value  = pszGssNtlmOid;
+    OidString.length = LwRtlCStringNumChars(pszGssNtlmOid);
+
+    ulMajorStatus = gss_str_to_oid(&ulMinorStatus, &OidString, &NtlmOid);
+    BAIL_ON_SEC_ERROR(ulMajorStatus);
+
+    ulMajorStatus = gss_add_oid_set_member(&ulMinorStatus, NtlmOid, &DesiredMechs);
+    BAIL_ON_SEC_ERROR(ulMajorStatus);
 
     /* only do the Krb5 setup if we have a valid principal name */
 
@@ -599,6 +615,12 @@ SrvGssInitNegotiate(
                        pGssContext->pszCachePath,
                        &pszCurrentCachePath);
         BAIL_ON_NT_STATUS(ntStatus);
+
+        ulMajorStatus = gss_add_oid_set_member(
+                            &ulMinorStatus,
+                            (gss_OID)gss_mech_krb5,
+                            &DesiredMechs);
+        BAIL_ON_SEC_ERROR(ulMajorStatus);
     }
 
     input_name.value = pGssContext->pszMachinePrincipal;
@@ -612,9 +634,21 @@ SrvGssInitNegotiate(
     srv_display_status("gss_import_name", ulMajorStatus, ulMinorStatus);
     BAIL_ON_SEC_ERROR(ulMajorStatus);
 
+    ulMajorStatus = gss_acquire_cred(
+                        &ulMinorStatus,
+                        NULL,
+                        0,
+                        DesiredMechs,
+                        GSS_C_ACCEPT,
+                        &pServerCreds,
+                        NULL,
+                        NULL);
+    srv_display_status("gss_acquire_sec_context", ulMajorStatus, ulMinorStatus);
+    BAIL_ON_SEC_ERROR(ulMajorStatus);
+
     ulMajorStatus = gss_init_sec_context(
                             (OM_uint32 *)&ulMinorStatus,
-                            GSS_C_NO_CREDENTIAL,
+                            pServerCreds,
                             pGssNegotiate->pGssContext,
                             target_name,
                             &gss_spnego_mech_oid_desc,
@@ -673,8 +707,9 @@ cleanup:
     LWIO_UNLOCK_MUTEX(bInLock, pGssContext->pMutex);
 
     gss_release_buffer(&ulMinorStatus, &output_desc);
-
     gss_release_name(&ulMinorStatus, &target_name);
+    gss_release_oid_set(&ulMinorStatus, &DesiredMechs);
+
 
     if (pGssNegotiate->pGssContext &&
         (*pGssNegotiate->pGssContext != GSS_C_NO_CONTEXT))
