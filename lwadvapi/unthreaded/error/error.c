@@ -716,7 +716,11 @@ static struct
     },
     {
         LW_ERROR_INVALID_KEYNAME,
-        "The keyname cannot have '\\'"
+        "The registry keyname cannot have '\\'"
+    },
+    {
+        LW_ERROR_INVALID_VALUENAME,
+        "The registry valuename cannot be NULL"
     },
     {
         LW_ERROR_INVALID_SERVICE_TRANSITION,
