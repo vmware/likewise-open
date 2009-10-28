@@ -560,7 +560,7 @@ error:
 }
 
 DWORD
-RegTransactQueryInfoKey(
+RegTransactQueryInfoKeyW(
     IN HANDLE hConnection,
     IN HKEY hKey,
     OUT PWSTR pClass,
@@ -592,7 +592,7 @@ RegTransactQueryInfoKey(
     QueryInfoKeyReq.hKey = hKey;
     QueryInfoKeyReq.pcClass = pcClass;
 
-    in.tag = REG_Q_QUERY_INFO_KEY;
+    in.tag = REG_Q_QUERY_INFO_KEYW;
     in.data = &QueryInfoKeyReq;
 
     dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
@@ -600,7 +600,7 @@ RegTransactQueryInfoKey(
 
     switch (out.tag)
     {
-        case REG_R_QUERY_INFO_KEY_SUCCESS:
+        case REG_R_QUERY_INFO_KEYW_SUCCESS:
             pQueryInfoKeyResp = (PREG_IPC_QUERY_INFO_KEY_RESPONSE) out.data;
 
             if (pcSubKeys)
@@ -625,7 +625,96 @@ RegTransactQueryInfoKey(
             }
 
             break;
-        case REG_R_QUERY_INFO_KEY_FAILURE:
+        case REG_R_QUERY_INFO_KEYW_FAILURE:
+            pError = (PREG_IPC_ERROR) out.data;
+            dwError = pError->dwError;
+            BAIL_ON_REG_ERROR(dwError);
+            break;
+        default:
+            dwError = EINVAL;
+            BAIL_ON_REG_ERROR(dwError);
+    }
+
+cleanup:
+    if (pCall)
+    {
+        lwmsg_call_destroy_params(pCall, &out);
+        lwmsg_call_release(pCall);
+    }
+
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+DWORD
+RegTransactQueryInfoKeyA(
+    IN HANDLE hConnection,
+    IN HKEY hKey,
+    OUT PSTR pszClass,
+    IN OUT OPTIONAL PDWORD pcClass,
+    IN PDWORD pReserved,
+    OUT OPTIONAL PDWORD pcSubKeys,
+    OUT OPTIONAL PDWORD pcMaxSubKeyLen,
+    OUT OPTIONAL PDWORD pcMaxClassLen,
+    OUT OPTIONAL PDWORD pcValues,
+    OUT OPTIONAL PDWORD pcMaxValueNameLen,
+    OUT OPTIONAL PDWORD pcMaxValueLen,
+    OUT OPTIONAL PDWORD pcbSecurityDescriptor,
+    OUT OPTIONAL PFILETIME pftLastWriteTime
+    )
+{
+    DWORD dwError = 0;
+    REG_IPC_QUERY_INFO_KEY_REQ QueryInfoKeyReq;
+    // Do not free pError
+    PREG_IPC_ERROR pError = NULL;
+    PREG_IPC_QUERY_INFO_KEY_RESPONSE pQueryInfoKeyResp = NULL;
+
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* pCall = NULL;
+
+    dwError = RegIpcAcquireCall(hConnection, &pCall);
+    BAIL_ON_REG_ERROR(dwError);
+
+    QueryInfoKeyReq.hKey = hKey;
+    QueryInfoKeyReq.pcClass = pcClass;
+
+    in.tag = REG_Q_QUERY_INFO_KEYA;
+    in.data = &QueryInfoKeyReq;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
+    BAIL_ON_REG_ERROR(dwError);
+
+    switch (out.tag)
+    {
+        case REG_R_QUERY_INFO_KEYA_SUCCESS:
+            pQueryInfoKeyResp = (PREG_IPC_QUERY_INFO_KEY_RESPONSE) out.data;
+
+            if (pcSubKeys)
+            {
+                *pcSubKeys = pQueryInfoKeyResp->cSubKeys;
+            }
+            if (pcMaxSubKeyLen)
+            {
+                *pcMaxSubKeyLen = pQueryInfoKeyResp->cMaxSubKeyLen;
+            }
+            if (pcValues)
+            {
+                *pcValues = pQueryInfoKeyResp->cValues;
+            }
+            if (pcMaxValueNameLen)
+            {
+                *pcMaxValueNameLen = pQueryInfoKeyResp->cMaxValueNameLen;
+            }
+            if (pcMaxValueLen)
+            {
+                *pcMaxValueLen = pQueryInfoKeyResp->cMaxValueLen;
+            }
+
+            break;
+        case REG_R_QUERY_INFO_KEYA_FAILURE:
             pError = (PREG_IPC_ERROR) out.data;
             dwError = pError->dwError;
             BAIL_ON_REG_ERROR(dwError);

@@ -115,7 +115,24 @@ SqliteEnumKeyEx(
     );
 
 DWORD
-SqliteQueryInfoKey(
+SqliteQueryInfoKeyA(
+    IN HANDLE Handle,
+    IN HKEY hKey,
+    OUT PSTR pszClass, /*A pointer to a buffer that receives the user-defined class of the key. This parameter can be NULL.*/
+    IN OUT OPTIONAL PDWORD pcClass,
+    IN PDWORD pReserved,
+    OUT OPTIONAL PDWORD pcSubKeys,
+    OUT OPTIONAL PDWORD pcMaxSubKeyLen,
+    OUT OPTIONAL PDWORD pcMaxClassLen,
+    OUT OPTIONAL PDWORD pcValues,
+    OUT OPTIONAL PDWORD pcMaxValueNameLen,
+    OUT OPTIONAL PDWORD pcMaxValueLen,
+    OUT OPTIONAL PDWORD pcbSecurityDescriptor,
+    OUT OPTIONAL PFILETIME pftLastWriteTime/*implement this later*/
+    );
+
+DWORD
+SqliteQueryInfoKeyW(
     IN HANDLE Handle,
     IN HKEY hKey,
     OUT PWSTR pClass, /*A pointer to a buffer that receives the user-defined class of the key. This parameter can be NULL.*/

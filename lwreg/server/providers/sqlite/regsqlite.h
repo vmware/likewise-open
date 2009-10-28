@@ -135,7 +135,8 @@ RegCacheSafeRecordSubKeysInfo_inlock(
     IN size_t sCount,
     IN size_t sCacheCount,
     IN PREG_ENTRY* ppRegEntries,
-    IN OUT PREG_KEY_CONTEXT pKeyResult
+    IN OUT PREG_KEY_CONTEXT pKeyResult,
+    IN BOOLEAN bDoAnsi
     );
 
 DWORD
@@ -143,7 +144,8 @@ RegCacheSafeRecordSubKeysInfo(
     IN size_t sCount,
     IN size_t sCacheCount,
     IN PREG_ENTRY* ppRegEntries,
-    IN OUT PREG_KEY_CONTEXT pKeyResult
+    IN OUT PREG_KEY_CONTEXT pKeyResult,
+    IN BOOLEAN bDoAnsi
     );
 
 DWORD
@@ -151,7 +153,8 @@ RegCacheSafeRecordValuesInfo_inlock(
     IN size_t sCount,
     IN size_t sCacheCount,
     IN PREG_ENTRY* ppRegEntries,
-    IN OUT PREG_KEY_CONTEXT pKeyResult
+    IN OUT PREG_KEY_CONTEXT pKeyResult,
+    IN BOOLEAN bDoAnsi
     );
 
 DWORD
@@ -159,7 +162,8 @@ RegCacheSafeRecordValuesInfo(
     IN size_t sCount,
     IN size_t sCacheCount,
     IN PREG_ENTRY* ppRegEntries,
-    IN OUT PREG_KEY_CONTEXT pKeyResult
+    IN OUT PREG_KEY_CONTEXT pKeyResult,
+    IN BOOLEAN bDoAnsi
     );
 
 DWORD

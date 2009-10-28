@@ -446,7 +446,42 @@ RegOpenKeyExW(
 
 REG_API
 DWORD
-RegQueryInfoKey(
+RegQueryInfoKeyA(
+    IN HANDLE hRegConnection,
+    IN HKEY hKey,
+    OUT PSTR pszClass,
+    IN OUT OPTIONAL PDWORD pcClass,
+    IN PDWORD pReserved,
+    OUT OPTIONAL PDWORD pcSubKeys,
+    OUT OPTIONAL PDWORD pcMaxSubKeyLen,
+    OUT OPTIONAL PDWORD pcMaxClassLen,
+    OUT OPTIONAL PDWORD pcValues,
+    OUT OPTIONAL PDWORD pcMaxValueNameLen,
+    OUT OPTIONAL PDWORD pcMaxValueLen,
+    OUT OPTIONAL PDWORD pcbSecurityDescriptor,
+    OUT OPTIONAL PFILETIME pftLastWriteTime
+    )
+{
+    return RegTransactQueryInfoKeyA(
+        hRegConnection,
+        hKey,
+        pszClass,
+        pcClass,
+        pReserved,
+        pcSubKeys,
+        pcMaxSubKeyLen,
+        pcMaxClassLen,
+        pcValues,
+        pcMaxValueNameLen,
+        pcMaxValueLen,
+        pcbSecurityDescriptor,
+        pftLastWriteTime
+        );
+}
+
+REG_API
+DWORD
+RegQueryInfoKeyW(
     IN HANDLE hRegConnection,
     IN HKEY hKey,
     OUT PWSTR pClass,
@@ -462,7 +497,7 @@ RegQueryInfoKey(
     OUT OPTIONAL PFILETIME pftLastWriteTime
     )
 {
-    return RegTransactQueryInfoKey(
+    return RegTransactQueryInfoKeyW(
         hRegConnection,
         hKey,
         pClass,

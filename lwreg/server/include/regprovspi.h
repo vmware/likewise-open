@@ -193,7 +193,25 @@ DWORD
 
 typedef
 DWORD
-(*PFNRegSrvQueryInfoKey)(
+(*PFNRegSrvQueryInfoKeyA)(
+    HANDLE Handle,
+    HKEY hKey,
+    PSTR pClass,
+    PDWORD pcClass,
+    PDWORD pReserved,
+    PDWORD pcSubKeys,
+    PDWORD pcMaxSubKeyLen,
+    PDWORD pcMaxClassLen,
+    PDWORD pcValues,
+    PDWORD pcMaxValueNameLen,
+    PDWORD pcMaxValueLen,
+    PDWORD pcbSecurityDescriptor,
+    PFILETIME pftLastWriteTime
+    );
+
+typedef
+DWORD
+(*PFNRegSrvQueryInfoKeyW)(
     HANDLE Handle,
     HKEY hKey,
     PWSTR pClass,
@@ -208,6 +226,7 @@ DWORD
     PDWORD pcbSecurityDescriptor,
     PFILETIME pftLastWriteTime
     );
+
 typedef
 DWORD
 (*PFNRegSrvQueryMultipleValues)(
@@ -282,7 +301,8 @@ typedef struct __REGPROV_PROVIDER_FUNCTION_TABLE
     PFNRegSrvGetValueW           pfnRegSrvGetValueW;
     PFNRegSrvOpenKeyExA          pfnRegSrvOpenKeyExA;
     PFNRegSrvOpenKeyExW          pfnRegSrvOpenKeyExW;
-    PFNRegSrvQueryInfoKey        pfnRegSrvQueryInfoKey;
+    PFNRegSrvQueryInfoKeyA       pfnRegSrvQueryInfoKeyA;
+    PFNRegSrvQueryInfoKeyW       pfnRegSrvQueryInfoKeyW;
     PFNRegSrvQueryMultipleValues pfnRegSrvQueryMultipleValues;
     PFNRegSrvQueryValueExA       pfnRegSrvQueryValueExA;
     PFNRegSrvQueryValueExW       pfnRegSrvQueryValueExW;

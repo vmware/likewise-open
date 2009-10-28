@@ -68,17 +68,22 @@ typedef struct __REG_KEY_CONTEXT
 
     DWORD dwNumSubKeys;
     DWORD dwNumCacheSubKeys;
+    size_t sMaxSubKeyALen; //Ansi length
     size_t sMaxSubKeyLen;
     PSTR* ppszSubKeyNames;
+    BOOLEAN bHasSubKeyAInfo;
     BOOLEAN bHasSubKeyInfo;
 
     DWORD dwNumValues;
     DWORD dwNumCacheValues;
+    size_t sMaxValueNameALen; //Ansi length
     size_t sMaxValueNameLen;
+    size_t sMaxValueALen; //Ansi lenngth
     size_t sMaxValueLen;
     PREG_DATA_TYPE pTypes;
     PSTR* ppszValueNames;
     PSTR* ppszValues;
+    BOOLEAN bHasValueAInfo;
     BOOLEAN bHasValueInfo;
 
 } REG_KEY_CONTEXT, *PREG_KEY_CONTEXT;
@@ -340,7 +345,24 @@ RegSrvGetValueW(
     );
 
 LWMsgStatus
-RegSrvQueryInfoKey(
+RegSrvQueryInfoKeyA(
+    HANDLE Handle,
+    HKEY hKey,
+    PSTR pszClass,
+    PDWORD pcClass,
+    PDWORD pReserved,
+    PDWORD pcSubKeys,
+    PDWORD pcMaxSubKeyLen,
+    PDWORD pcMaxClassLen,
+    PDWORD pcValues,
+    PDWORD pcMaxValueNameLen,
+    PDWORD pcMaxValueLen,
+    PDWORD pcbSecurityDescriptor,
+    PFILETIME pftLastWriteTime
+    );
+
+LWMsgStatus
+RegSrvQueryInfoKeyW(
     HANDLE Handle,
     HKEY hKey,
     PWSTR pClass,
@@ -471,6 +493,11 @@ RegSrvSetHasSubKeyInfo(
     );
 
 BOOLEAN
+RegSrvHasSubKeyAInfo(
+    IN PREG_KEY_CONTEXT pKeyResult
+    );
+
+BOOLEAN
 RegSrvHasSubKeyInfo(
     IN PREG_KEY_CONTEXT pKeyResult
     );
@@ -495,6 +522,11 @@ void
 RegSrvSetHasValueInfo(
     IN BOOLEAN bHasValueInfo,
     IN OUT PREG_KEY_CONTEXT pKeyResult
+    );
+
+BOOLEAN
+RegSrvHasValueAInfo(
+    IN PREG_KEY_CONTEXT pKeyResult
     );
 
 BOOLEAN

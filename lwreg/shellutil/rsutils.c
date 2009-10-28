@@ -549,7 +549,7 @@ RegShellUtilGetKeys(
         pFullKey = pRootKey;
     }
 
-    dwError = RegQueryInfoKey(
+    dwError = RegQueryInfoKeyW(
         hReg,
         pFullKey,
         NULL,
@@ -786,7 +786,7 @@ RegShellUtilGetValues(
         LW_SAFE_FREE_MEMORY(pwszParentPath);
     }
 
-    dwError = RegQueryInfoKey(
+    dwError = RegQueryInfoKeyA(
                   hReg,
                   pFullKey,
                   NULL,
@@ -809,14 +809,16 @@ RegShellUtilGetValues(
      * Apparently the data size is not returned in bytes for REG_SZ
      * which is why this adjustment is needed.
      */
-    dwMaxValueLen = (dwMaxValueLen + 1) * sizeof(WCHAR);
+    dwMaxValueNameLen +=1;
+
     for (indx = 0; indx < dwValuesCount; indx++)
     {
         /*
          * TBD/adam
          * Add wide character NULL size here; bug in RegEnumValueA()?
          */
-        dwValueNameLen = dwMaxValueNameLen + sizeof(WCHAR);
+        dwValueNameLen = dwMaxValueNameLen;
+
         dwError = LwAllocateMemory(
                       dwValueNameLen,
                       (LW_PVOID) &pszValueName);

@@ -161,7 +161,15 @@ RegSrvIpcOpenKeyExW(
     );
 
 LWMsgStatus
-RegSrvIpcQueryInfoKey(
+RegSrvIpcQueryInfoKeyA(
+    LWMsgCall* pCall,
+    const LWMsgParams* pIn,
+    LWMsgParams* pOut,
+    void* data
+    );
+
+LWMsgStatus
+RegSrvIpcQueryInfoKeyW(
     LWMsgCall* pCall,
     const LWMsgParams* pIn,
     LWMsgParams* pOut,
