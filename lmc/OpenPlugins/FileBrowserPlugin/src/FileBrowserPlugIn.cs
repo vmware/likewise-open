@@ -60,11 +60,11 @@ namespace Likewise.LMC.Plugins.FileBrowser
 
         #region Class data
 
-        //private string _currentHost = "";
         private IPlugInContainer _container;
         private Hostinfo _hn;
         private LACTreeNode _pluginNode;
         public FileHandle fileHandle = null;
+        private string _disconnectShare = null;
 
         private List<IPlugIn> _extPlugins = null;
 
@@ -242,6 +242,23 @@ namespace Likewise.LMC.Plugins.FileBrowser
                                         NetResource);
         }
 
+        private List<NETRESOURCE> GetSharesForServer(
+            string serverName
+            )
+        {
+            NETRESOURCE NetResource = new NETRESOURCE();
+
+            NetResource.dwScope = ResourceScope.RESOURCE_GLOBALNET;
+            NetResource.dwUsage = ResourceUsage.RESOURCEUSAGE_CONNECTABLE;
+            NetResource.dwType = ResourceType.RESOURCETYPE_DISK;
+            NetResource.pRemoteName = serverName;
+
+            return GetChildNetResources(ResourceScope.RESOURCE_GLOBALNET,
+                                        ResourceType.RESOURCETYPE_DISK,
+                                        ResourceUsage.RESOURCEUSAGE_CONNECTABLE,
+                                        NetResource);
+        }
+
         private List<NETRESOURCE> GetChildNetResources(
             ResourceScope dwScope,
             ResourceType dwType,
@@ -269,13 +286,64 @@ namespace Likewise.LMC.Plugins.FileBrowser
             return nrList;
         }
 
+        private void AddShareNodes(
+            LACTreeNode parentNode,
+            List<NETRESOURCE> NetResources
+            )
+        {
+            foreach (NETRESOURCE NetResource in NetResources)
+            {
+                string name = NetResource.pLocalName;
+
+                if (name == null)
+                    name = NetResource.pRemoteName;
+
+                TreeNode[] found = parentNode.Nodes.Find(name, false);
+
+                if (found == null || found.Length == 0)
+                {
+                    LACTreeNode node = Manage.CreateIconNode(name,
+                                         Resources.SharedFolder2,
+                                         typeof(FilesDetailPage),
+                                         this);
+                    node.Tag = NetResource;
+                    parentNode.Nodes.Add(node);
+                }
+            }
+        }
+
+        private void AddFolderNode(
+            LACTreeNode parentNode,
+            NETRESOURCE NetResource
+            )
+        {
+            string name = NetResource.pLocalName;
+
+            if (name == null)
+                name = NetResource.pRemoteName;
+
+            LACTreeNode node = Manage.CreateIconNode(name,
+                                                     Resources.SharedFolder2,
+                                                     typeof(FilesDetailPage),
+                                                     this);
+            node.Tag = NetResource;
+            parentNode.Nodes.Add(node);
+        }
+
+        private void RefreshNetworkTreeNode()
+        {
+            TreeNode[] networkNode = this._pluginNode.Nodes.Find(Resources.Network, false);
+
+            if (networkNode != null && networkNode.Length > 0)
+            {
+                LACTreeNode network = networkNode[0] as LACTreeNode;
+                EnumChildren(network);
+            }
+        }
+
         public void EnumChildren(LACTreeNode parentNode)
         {
             List<NETRESOURCE> NetResources = new List<NETRESOURCE>();
-            Icon iconNetShare = Resources.SharedFolder2;
-            Icon iconFolder = Resources.SharedFolder2;
-            Icon iconComputer = Resources.SharedFolder2;
-            Icon iconHome = Resources.SharedFolder2;
 
             if (parentNode == _pluginNode)
             {
@@ -283,13 +351,13 @@ namespace Likewise.LMC.Plugins.FileBrowser
                 return;
             }
 
-            //
-            // Here is a place to break out the enumeration for each node and path
-            //
             if (parentNode.Name.Equals("Network"))
             {
-                parentNode.Tag = null;
-                NetResources = GetNetworkConnections();
+                //NetResources = GetNetworkConnections();
+                NetResources = GetSharesForServer("\\\\glenn-mac");
+                AddShareNodes(parentNode, NetResources);
+                //RefreshNetworkTreeNode();
+                return;
             }
 
             if (parentNode.Name.Equals("Devices"))
@@ -308,21 +376,18 @@ namespace Likewise.LMC.Plugins.FileBrowser
             {
                 NetResources = GetChildNetResources(ResourceScope.RESOURCE_GLOBALNET,
                                                     ResourceType.RESOURCETYPE_ANY,
-                                                    ResourceUsage.RESOURCEUSAGE_ALL,
+                                                    ResourceUsage.RESOURCEUSAGE_CONTAINER,
                                                     NetResource);
-            }
+                foreach (NETRESOURCE nr in NetResources)
+                {
+                    if ((nr.dwUsage & ResourceUsage.RESOURCEUSAGE_CONTAINER) ==
+                        ResourceUsage.RESOURCEUSAGE_CONTAINER)
+                    {
+                        AddFolderNode(parentNode, nr);
+                    }
 
-            foreach (NETRESOURCE nr in NetResources)
-            {
-                // Add a new node
-                string name = nr.pLocalName;
-
-                if (name == null)
-                    name = nr.pRemoteName;
-
-                LACTreeNode node = Manage.CreateIconNode(name, iconNetShare, typeof(FilesDetailPage), this);
-                node.Tag = nr;
-                parentNode.Nodes.Add(node);
+                    // Add contents to the list for the node.
+                }
             }
         }
 
@@ -338,7 +403,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
 
         public ContextMenu GetTreeContextMenu(LACTreeNode nodeClicked)
         {
-            Logger.Log("FileBrowserPlugIn.GetTreeContextMenu", Logger.FileBrowserLogLevel);
+            this._disconnectShare = null;
 
             if (nodeClicked == null)
             {
@@ -368,6 +433,14 @@ namespace Likewise.LMC.Plugins.FileBrowser
 
                     MenuItem m_item = new MenuItem("Connect to share...", new EventHandler(cm_OnConnectToShare));
                     fileBrowserContextMenu.MenuItems.Add(0, m_item);
+                }
+                else if (nodeClicked.Parent.Name.Trim().Equals(Resources.Network))
+                {
+                    fileBrowserContextMenu = new ContextMenu();
+
+                    MenuItem m_item = new MenuItem("Disconnect from share...", new EventHandler(cm_OnDisconnectShare));
+                    fileBrowserContextMenu.MenuItems.Add(0, m_item);
+                    this._disconnectShare = nodeClicked.Name;
                 }
                 else if (nodeClicked.Name.Trim().Equals(Resources.Computer))
                 {
@@ -501,6 +574,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
             WinError error = WinError.ERROR_SUCCESS;
             bool determinePath = true;
             bool initialConnect = false;
+            bool showPathError = false;
             string username = null;
             string path = null;
 
@@ -509,17 +583,27 @@ namespace Likewise.LMC.Plugins.FileBrowser
                 if (determinePath)
                 {
                     // Determine share path to connect to
-                    path = "\\\\curtis-pc\\New Music";
-                    determinePath = false;
-                    // If !useAlternateCreds enabled
-                    //if (false)
-                    //{
-                    //    initialConnect = true;
-                    //}
-                    //else
-                    //{
-                    //    error = WinError.ERROR_ACCESS_DENIED;
-                    //}
+                    ConnectToShareDialog connectDialog = new ConnectToShareDialog(path, showPathError);
+
+                    if (connectDialog.ShowDialog() == DialogResult.OK)
+                    {
+                        showPathError = false;
+                        determinePath = false;
+                        path = connectDialog.GetPath();
+
+                        if (connectDialog.UseAlternateUserCreds())
+                        {
+                            error = WinError.ERROR_ACCESS_DENIED;
+                        }
+                        else
+                        {
+                            initialConnect = true;
+                        }
+                    }
+                    else
+                    {
+                        break;
+                    }
                 }
 
                 if (initialConnect)
@@ -539,6 +623,8 @@ namespace Likewise.LMC.Plugins.FileBrowser
                 if (error == WinError.ERROR_BAD_NET_NAME)
                 {
                     // Show share path connect dialog to allow the user to correct the bad path
+                    //MessageBox.Show("The network path is unavailable", "File connection error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    showPathError = true;
                     determinePath = true;
                     continue;
                 }
@@ -551,7 +637,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
                     error == WinError.ERROR_LOGON_TYPE_NOT_GRANTED)
                 {
                     // Prompt for updated user credentials to access share
-                    CredentialsDialog credDialog = new CredentialsDialog(username);
+                    CredentialsDialog credDialog = new CredentialsDialog(username, this);
 
                     if (credDialog.ShowDialog() == DialogResult.OK)
                     {
@@ -583,53 +669,17 @@ namespace Likewise.LMC.Plugins.FileBrowser
                     break;
                 }
             }
+
+            RefreshNetworkTreeNode();
         }
 
         private void cm_OnDisconnectShare(object sender, EventArgs e)
         {
-            //WinError error = DeleteConnection(name);
-        }
+            string name = this._disconnectShare;
+            WinError error = FileClient.FileClient.DeleteConnection(name);
 
-        #endregion
-
-        #region eventlog API wrappers
-
-        public void OpenHandle(string hostname)
-        {
-            try
-            {
-                if (fileHandle == null)
-                {
-                    fileHandle = HandleAdapter.OpenHandle(hostname);
-                }
-            }
-            catch (Exception e)
-            {
-                Logger.LogException("EventViewerPlugin.OpenEventLog", e);
-                fileHandle = null;
-            }
-        }
-
-        public bool IsHandleBinded()
-        {
-            if (fileHandle == null)
-            {
-                return false;
-            }
-            else
-            {
-                return true;
-            }
-        }       
-
-        public void CloseEventLog()
-        {
-            if (fileHandle == null)
-            {
-                return;
-            }
-            fileHandle.Dispose();
-            fileHandle = null;
+            this._pluginNode.Nodes.Remove(this._pluginNode.Nodes.Find(name, true)[0]);
+            RefreshNetworkTreeNode();
         }
 
         #endregion

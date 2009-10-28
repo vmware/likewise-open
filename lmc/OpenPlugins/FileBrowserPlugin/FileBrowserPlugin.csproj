@@ -47,6 +47,12 @@
       <DesignTime>True</DesignTime>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="src\ConnectToShareDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="src\ConnectToShareDialog.Designer.cs">
+      <DependentUpon>ConnectToShareDialog.cs</DependentUpon>
+    </Compile>
     <Compile Include="src\FileBrowserPlugIn.cs">
     </Compile>
     <Compile Include="src\FileBrowserPage.cs">
@@ -74,6 +80,10 @@
       <SubType>Designer</SubType>
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\ConnectToShareDialog.resx">
+      <DependentUpon>ConnectToShareDialog.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="src\FileBrowserPage.resx">
       <SubType>Designer</SubType>

@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 
 namespace Likewise.LMC.FileClient
 {
+#region File Client error, type, and structure definitions
     public enum WinError
     {
         ERROR_SUCCESS = 0,
@@ -88,15 +89,43 @@ namespace Likewise.LMC.FileClient
         public ResourceType dwType = 0;
         public ResourceDisplayType dwDisplayType = 0;
         public ResourceUsage dwUsage = 0;
-        [MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPTStr)]
+        [MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPWStr)]
         public string pLocalName;
-        [MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPTStr)]
+        [MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPWStr)]
         public string pRemoteName;
-        [MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPTStr)]
+        [MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPWStr)]
         public string pComment;
-        [MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPTStr)]
+        [MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPWStr)]
         public string pProvider;
     };
+
+    //public const int MAX_PATH = 260;
+    //public const int MAX_ALTERNATE = 14;
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct FILETIME
+    {
+        public uint dwLowDateTime;
+        public uint dwHighDateTime;
+    };
+
+    [StructLayout(LayoutKind.Sequential, CharSet=CharSet.Unicode)]
+    public struct WIN32_FIND_DATA
+    {
+        public uint dwFileAttributes;
+        public FILETIME ftCreationTime;
+        public FILETIME ftLastAccessTime;
+        public FILETIME ftLastWriteTime;
+        public int nFileSizeHigh;
+        public int nFileSizeLow;
+        public int dwReserved0;
+        public int dwReserved1;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst=260)]
+        public string cFileName;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst=14)]
+        public string cAlternate;
+    };
+#endregion
 
     public class FileClient
     {
@@ -169,34 +198,7 @@ namespace Likewise.LMC.FileClient
         }
         #endregion
 
-        #region Local File Enumeration APIs
-
-        public const int MAX_PATH = 260;
-        public const int MAX_ALTERNATE = 14;
-
-        [StructLayout(LayoutKind.Sequential)]
-        public struct FILETIME
-        {
-            public uint dwLowDateTime;
-            public uint dwHighDateTime;
-        };
-
-        [StructLayout(LayoutKind.Sequential, CharSet=CharSet.Unicode)]
-        public struct WIN32_FIND_DATA
-        {
-            public uint dwFileAttributes;
-            public FILETIME ftCreationTime;
-            public FILETIME ftLastAccessTime;
-            public FILETIME ftLastWriteTime;
-            public int nFileSizeHigh;
-            public int nFileSizeLow;
-            public int dwReserved0;
-            public int dwReserved1;
-            [MarshalAs(UnmanagedType.ByValTStr, SizeConst=MAX_PATH)]
-            public string cFileName;
-            [MarshalAs(UnmanagedType.ByValTStr, SizeConst=MAX_ALTERNATE)]
-            public string cAlternate;
-        };
+        #region Local and Connected Share File Enumeration APIs
 
         [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
         private static extern IntPtr FindFirstFile(
@@ -222,10 +224,10 @@ namespace Likewise.LMC.FileClient
 
         #endregion
 
-        #region Remote File Enumeration APIs
+        #region Remote File Resource Enumeration APIs
 
-        [DllImport("mpr.dll")]
-        private static extern WinError WNetAddConnection2(
+        [DllImport("mpr.dll", CharSet = CharSet.Unicode)]
+        private static extern WinError WNetAddConnection2W(
             NETRESOURCE netResource,
             string password,
             string username,
@@ -246,11 +248,11 @@ namespace Likewise.LMC.FileClient
             netResource.dwUsage = ResourceUsage.RESOURCEUSAGE_ALL;
             netResource.pRemoteName = networkName;
 
-            return WNetAddConnection2(netResource, password, username, 0);
+            return WNetAddConnection2W(netResource, password, username, 0);
         }
 
-        [DllImport("mpr.dll")]
-        private static extern WinError WNetCancelConnection2(
+        [DllImport("mpr.dll", CharSet = CharSet.Unicode)]
+        private static extern WinError WNetCancelConnection2W(
             string name,
             int flags,
             bool force
@@ -260,11 +262,11 @@ namespace Likewise.LMC.FileClient
             string networkName
             )
         {
-            return WNetCancelConnection2(networkName, 0, true);
+            return WNetCancelConnection2W(networkName, 0, true);
         }
 
-        [DllImport("mpr.dll")]
-        private static extern WinError WNetOpenEnum(
+        [DllImport("mpr.dll", CharSet = CharSet.Unicode)]
+        private static extern WinError WNetOpenEnumW(
             ResourceScope dwScope,
             ResourceType dwType,
             ResourceUsage dwUsage,
@@ -282,7 +284,7 @@ namespace Likewise.LMC.FileClient
         {
             WinError error = WinError.NO_ERROR;
 
-            error = WNetOpenEnum(dwScope, dwType, dwUsage, pNetResource, out enumHandle);
+            error = WNetOpenEnumW(dwScope, dwType, dwUsage, pNetResource, out enumHandle);
 
             if (error == WinError.ERROR_EXTENDED_ERROR)
             {
