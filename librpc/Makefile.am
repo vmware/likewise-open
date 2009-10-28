@@ -3,6 +3,7 @@ SUBDIRS = \
     include    \
     alloc      \
     msrpc      \
+    mpr        \
     samr       \
     lsa        \
     netlogon   \
