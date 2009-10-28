@@ -76,42 +76,49 @@ SqliteOpenKeyInternal(
 
 DWORD
 SqliteCacheSubKeysInfo_inlock(
-    PREG_KEY_CONTEXT pKeyResult
+    IN OUT PREG_KEY_CONTEXT pKeyResult,
+    IN BOOLEAN bDoAnsi
     );
 
 DWORD
 SqliteCacheSubKeysInfo(
-    PREG_KEY_CONTEXT pKeyResult
+    IN OUT PREG_KEY_CONTEXT pKeyResult,
+    IN BOOLEAN bDoAnsi
     );
 
 DWORD
 SqliteUpdateSubKeysInfo_inlock(
-    DWORD dwOffSet,
+    IN DWORD dwOffSet,
     IN OUT PREG_KEY_CONTEXT pKeyResult,
+    IN BOOLEAN bDoAnsi,
     OUT size_t* psNumSubKeys
     );
 
 DWORD
 SqliteUpdateSubKeysInfo(
-    DWORD dwOffSet,
+    IN DWORD dwOffSet,
     IN OUT PREG_KEY_CONTEXT pKeyResult,
+    IN BOOLEAN bDoAnsi,
     OUT size_t* psNumSubKeys
     );
 
 DWORD
 SqliteCacheKeyValuesInfo_inlock(
-    PREG_KEY_CONTEXT pKeyResult
+    IN OUT PREG_KEY_CONTEXT pKeyResult,
+    IN BOOLEAN bDoAnsi
     );
 
 DWORD
 SqliteCacheKeyValuesInfo(
-    PREG_KEY_CONTEXT pKeyResult
+    IN OUT PREG_KEY_CONTEXT pKeyResult,
+    IN BOOLEAN bDoAnsi
     );
 
 DWORD
 SqliteUpdateValuesInfo_inlock(
     DWORD dwOffSet,
     IN OUT PREG_KEY_CONTEXT pKeyResult,
+    IN BOOLEAN bDoAnsi,
     OUT size_t* psNumValues
     );
 
@@ -119,6 +126,7 @@ DWORD
 SqliteUpdateValuesInfo(
     DWORD dwOffSet,
     IN OUT PREG_KEY_CONTEXT pKeyResult,
+    IN BOOLEAN bDoAnsi,
     OUT size_t* psNumValues
     );
 

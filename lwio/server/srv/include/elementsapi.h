@@ -92,6 +92,9 @@ typedef struct _LWIO_SRV_SEARCH_SPACE_2
     UCHAR                  ucInfoClass;
     UCHAR                  ucSearchFlags;
     ULONG                  ulFileIndex;
+    PWSTR                  pwszSearchPatternRaw;
+    PWSTR                  pwszSearchPatternRef;
+    ULONG                  ulSearchPatternLength;
     PWSTR                  pwszSearchPattern;
     PBYTE                  pFileInfo;
     PBYTE                  pFileInfoCursor;

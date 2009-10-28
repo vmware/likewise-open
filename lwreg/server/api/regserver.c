@@ -569,11 +569,56 @@ RegSrvEnumValueW(
 
 error:
     return dwError;
-
 }
 
 DWORD
-RegSrvQueryInfoKey(
+RegSrvQueryInfoKeyA(
+    HANDLE Handle,
+    HKEY hKey,
+    PSTR pszClass,
+    PDWORD pcClass,
+    PDWORD pReserved,
+    PDWORD pcSubKeys,
+    PDWORD pcMaxSubKeyLen,
+    PDWORD pcMaxClassLen,
+    PDWORD pcValues,
+    PDWORD pcMaxValueNameLen,
+    PDWORD pcMaxValueLen,
+    PDWORD pcbSecurityDescriptor,
+    PFILETIME pftLastWriteTime
+    )
+{
+    DWORD dwError = 0;
+
+    if (!RegSrvCheckAccessRight(Handle, REG_READ))
+    {
+        dwError = LW_ERROR_ACCESS_DENIED;
+        BAIL_ON_REG_ERROR(dwError);
+    }
+
+    dwError = gpRegProvider->pfnRegSrvQueryInfoKeyA(
+            Handle,
+            hKey,
+            pszClass,
+            pcClass,
+            pReserved,
+            pcSubKeys,
+            pcMaxSubKeyLen,
+            pcMaxClassLen,
+            pcValues,
+            pcMaxValueNameLen,
+            pcMaxValueLen,
+            pcbSecurityDescriptor,
+            pftLastWriteTime);
+    BAIL_ON_REG_ERROR(dwError);
+
+
+error:
+    return dwError;
+}
+
+DWORD
+RegSrvQueryInfoKeyW(
     HANDLE Handle,
     HKEY hKey,
     PWSTR pClass,
@@ -597,7 +642,7 @@ RegSrvQueryInfoKey(
         BAIL_ON_REG_ERROR(dwError);
     }
 
-    dwError = gpRegProvider->pfnRegSrvQueryInfoKey(
+    dwError = gpRegProvider->pfnRegSrvQueryInfoKeyW(
             Handle,
             hKey,
             pClass,
@@ -757,10 +802,18 @@ RegSrvSafeFreeKeyContext(
         LW_SAFE_FREE_STRING(pKeyResult->pszParentKeyName);
 
         pKeyResult->bHasSubKeyInfo = FALSE;
+        pKeyResult->bHasSubKeyAInfo = FALSE;
 
         LwFreeStringArray(pKeyResult->ppszSubKeyNames, pKeyResult->dwNumCacheSubKeys);
         LwFreeStringArray(pKeyResult->ppszValueNames, pKeyResult->dwNumCacheValues);
         LwFreeStringArray(pKeyResult->ppszValues, pKeyResult->dwNumCacheValues);
+
+        pKeyResult->ppszSubKeyNames = NULL;
+        pKeyResult->ppszValueNames = NULL;
+        pKeyResult->ppszValues = NULL;
+
+        pKeyResult->bHasValueInfo = FALSE;
+        pKeyResult->bHasValueAInfo = FALSE;
 
         LW_SAFE_FREE_MEMORY(pKeyResult->pTypes);
 
@@ -801,11 +854,29 @@ RegSrvSetHasSubKeyInfo(
 
     LWREG_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pKeyResult->mutex);
 
+    pKeyResult->bHasSubKeyAInfo = bHasSubKeyInfo;
     pKeyResult->bHasSubKeyInfo = bHasSubKeyInfo;
 
     LWREG_UNLOCK_RWMUTEX(bInLock, &pKeyResult->mutex);
 
     return;
+}
+
+BOOLEAN
+RegSrvHasSubKeyAInfo(
+    IN PREG_KEY_CONTEXT pKeyResult
+    )
+{
+    BOOLEAN bInLock = FALSE;
+    BOOLEAN bHasSubKeyInfo = FALSE;
+
+    LWREG_LOCK_RWMUTEX_SHARED(bInLock, &pKeyResult->mutex);
+
+    bHasSubKeyInfo = pKeyResult->bHasSubKeyAInfo;
+
+    LWREG_UNLOCK_RWMUTEX(bInLock, &pKeyResult->mutex);
+
+    return bHasSubKeyInfo;
 }
 
 BOOLEAN
@@ -888,10 +959,28 @@ RegSrvSetHasValueInfo(
     LWREG_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pKeyResult->mutex);
 
     pKeyResult->bHasValueInfo = bHasValueInfo;
+    pKeyResult->bHasValueAInfo = bHasValueInfo;
 
     LWREG_UNLOCK_RWMUTEX(bInLock, &pKeyResult->mutex);
 
     return;
+}
+
+BOOLEAN
+RegSrvHasValueAInfo(
+    IN PREG_KEY_CONTEXT pKeyResult
+    )
+{
+    BOOLEAN bInLock = FALSE;
+    BOOLEAN bHasValueInfo = FALSE;
+
+    LWREG_LOCK_RWMUTEX_SHARED(bInLock, &pKeyResult->mutex);
+
+    bHasValueInfo = pKeyResult->bHasValueAInfo;
+
+    LWREG_UNLOCK_RWMUTEX(bInLock, &pKeyResult->mutex);
+
+    return bHasValueInfo;
 }
 
 BOOLEAN

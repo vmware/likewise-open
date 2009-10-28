@@ -80,6 +80,8 @@ typedef struct _SRV_HOST_INFO
     PSTR  pszHostname;
     PSTR  pszDomain;
 
+    BOOLEAN bIsJoined;
+
 } SRV_HOST_INFO, *PSRV_HOST_INFO;
 
 NTSTATUS

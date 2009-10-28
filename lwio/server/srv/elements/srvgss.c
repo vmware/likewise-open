@@ -490,9 +490,7 @@ SrvGssNewContext(
     PSRV_KRB5_CONTEXT pContext = NULL;
     BOOLEAN  bInLock = FALSE;
 
-    ntStatus = SrvAllocateMemory(
-                    sizeof(SRV_KRB5_CONTEXT),
-                    (PVOID*)&pContext);
+    ntStatus = SrvAllocateMemory(sizeof(SRV_KRB5_CONTEXT), (PVOID*)&pContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pContext->refcount = 1;
@@ -502,30 +500,39 @@ SrvGssNewContext(
 
     LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pHostinfo->mutex);
 
-    ntStatus = SrvAllocateStringPrintf(
-                    &pContext->pszMachinePrincipal,
-                    "%s$@%s",
-                    pHostinfo->pszHostname,
-                    pHostinfo->pszDomain);
-    BAIL_ON_NT_STATUS(ntStatus);
+    if (pHostinfo->bIsJoined)
+    {
+        ntStatus = SrvAllocateStringPrintf(
+                       &pContext->pszMachinePrincipal,
+                       "%s$@%s",
+                       pHostinfo->pszHostname,
+                       pHostinfo->pszDomain);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pHostinfo->mutex);
+        LWIO_UNLOCK_RWMUTEX(bInLock, &pHostinfo->mutex);
 
-    SMBStrToUpper(pContext->pszMachinePrincipal);
+        SMBStrToUpper(pContext->pszMachinePrincipal);
 
-    ntStatus = SMBAllocateString(
-                    SRV_KRB5_CACHE_PATH,
-                    &pszCachePath);
-    BAIL_ON_NT_STATUS(ntStatus);
+        ntStatus = SMBAllocateString(SRV_KRB5_CACHE_PATH, &pszCachePath);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvGetTGTFromKeytab(
-                    pContext->pszMachinePrincipal,
-                    NULL,
-                    pszCachePath,
-                    &pContext->ticketExpiryTime);
-    BAIL_ON_NT_STATUS(ntStatus);
+        ntStatus = SrvGetTGTFromKeytab(
+                       pContext->pszMachinePrincipal,
+                       NULL,
+                       pszCachePath,
+                       &pContext->ticketExpiryTime);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-    pContext->pszCachePath = pszCachePath;
+        pContext->pszCachePath = pszCachePath;
+    }
+    else
+    {
+        ntStatus = SrvAllocateStringPrintf(
+                       &pContext->pszMachinePrincipal,
+                       "%s",
+                       pHostinfo->pszHostname);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
     *ppContext = pContext;
 
@@ -581,13 +588,18 @@ SrvGssInitNegotiate(
 
     LWIO_LOCK_MUTEX(bInLock, pGssContext->pMutex);
 
-    ntStatus = SrvGssRenew(pGssContext);
-    BAIL_ON_NT_STATUS(ntStatus);
+    /* only do the Krb5 setup if we have a valid principal name */
 
-    ntStatus = SrvSetDefaultKrb5CachePath(
-                    pGssContext->pszCachePath,
-                    &pszCurrentCachePath);
-    BAIL_ON_NT_STATUS(ntStatus);
+    if (!IsNullOrEmptyString(pGssContext->pszCachePath))
+    {
+        ntStatus = SrvGssRenew(pGssContext);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = SrvSetDefaultKrb5CachePath(
+                       pGssContext->pszCachePath,
+                       &pszCurrentCachePath);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
     input_name.value = pGssContext->pszMachinePrincipal;
     input_name.length = strlen(pGssContext->pszMachinePrincipal);
@@ -597,9 +609,7 @@ SrvGssInitNegotiate(
                         &input_name,
                         (gss_OID) gss_nt_krb5_name,
                         &target_name);
-
     srv_display_status("gss_import_name", ulMajorStatus, ulMinorStatus);
-
     BAIL_ON_SEC_ERROR(ulMajorStatus);
 
     ulMajorStatus = gss_init_sec_context(

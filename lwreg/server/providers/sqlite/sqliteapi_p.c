@@ -720,10 +720,11 @@ GetValueAsBytes(
                     dwError = LW_ERROR_INSUFFICIENT_BUFFER;
                     BAIL_ON_REG_ERROR(dwError);
                 }
-                cbData = strlen(pszValue)*sizeof(*pszValue);
+                //value data length needs including NULL-terminator
+                cbData = (strlen(pszValue)+1)*sizeof(*pszValue);
                 if (pData)
                 {
-                    memcpy(pData, pszValue, strlen(pszValue)*sizeof(*pszValue));
+                    memcpy(pData, pszValue, cbData);
                 }
             }
             else
@@ -734,7 +735,10 @@ GetValueAsBytes(
                 dwError = LwWc16sLen(pwcValue, (size_t*)&cbData);
                 BAIL_ON_REG_ERROR(dwError);
 
-                if(pData && cbData*sizeof(*pwcValue) > *pcbData)
+                //value data length needs including NULL-terminator and get the number of bytes
+                cbData = (cbData+1)*sizeof(*pwcValue);
+
+                if(pData && cbData > *pcbData)
                 {
                     dwError = LW_ERROR_INSUFFICIENT_BUFFER;
                     BAIL_ON_REG_ERROR(dwError);
@@ -742,10 +746,8 @@ GetValueAsBytes(
 
                 if (pData)
                 {
-                    memcpy(pData, pwcValue, cbData*sizeof(*pwcValue));
+                    memcpy(pData, pwcValue, cbData);
                 }
-
-                cbData = cbData*sizeof(*pwcValue);
             }
 
             break;
@@ -799,7 +801,8 @@ error:
 // sqlite caching helper functions
 DWORD
 SqliteCacheSubKeysInfo_inlock(
-    PREG_KEY_CONTEXT pKeyResult
+    IN OUT PREG_KEY_CONTEXT pKeyResult,
+    IN BOOLEAN bDoAnsi
     )
 {
     DWORD dwError = 0;
@@ -807,7 +810,7 @@ SqliteCacheSubKeysInfo_inlock(
     size_t sNumCacheSubKeys = 0;
     PREG_ENTRY* ppRegEntries = NULL;
 
-    if (pKeyResult->bHasSubKeyInfo)
+    if (bDoAnsi ? pKeyResult->bHasSubKeyAInfo : pKeyResult->bHasSubKeyInfo)
     {
         goto cleanup;
     }
@@ -837,7 +840,8 @@ SqliteCacheSubKeysInfo_inlock(
                                 sNumSubKeys,
                                 sNumCacheSubKeys,
                                 ppRegEntries,
-                                pKeyResult);
+                                pKeyResult,
+                                bDoAnsi);
         BAIL_ON_REG_ERROR(dwError);
     }
 
@@ -851,7 +855,8 @@ error:
 
 DWORD
 SqliteCacheSubKeysInfo(
-    IN OUT PREG_KEY_CONTEXT pKeyResult
+    IN OUT PREG_KEY_CONTEXT pKeyResult,
+    IN BOOLEAN bDoAnsi
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -861,7 +866,7 @@ SqliteCacheSubKeysInfo(
 
     LWREG_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pKeyResult->mutex);
 
-    dwError = SqliteCacheSubKeysInfo_inlock(pKeyResult);
+    dwError = SqliteCacheSubKeysInfo_inlock(pKeyResult, bDoAnsi);
     BAIL_ON_REG_ERROR(dwError);
 
 cleanup:
@@ -875,8 +880,9 @@ error:
 
 DWORD
 SqliteUpdateSubKeysInfo_inlock(
-    DWORD dwOffSet,
+    IN DWORD dwOffSet,
     IN OUT PREG_KEY_CONTEXT pKeyResult,
+    IN BOOLEAN bDoAnsi,
     OUT size_t* psNumSubKeys
     )
 {
@@ -898,14 +904,24 @@ SqliteUpdateSubKeysInfo_inlock(
 
     for (iCount = 0; iCount < (int)sNumSubKeys; iCount++)
     {
-        dwError = LwMbsToWc16s(ppRegEntries[iCount]->pszKeyName, &pSubKey);
-        BAIL_ON_REG_ERROR(dwError);
+        if (bDoAnsi)
+        {
+            sSubKeyLen = strlen(ppRegEntries[iCount]->pszKeyName);
 
-        dwError = LwWc16sLen((PCWSTR)pSubKey,&sSubKeyLen);
-        BAIL_ON_REG_ERROR(dwError);
+            if (pKeyResult->sMaxSubKeyALen < sSubKeyLen)
+                pKeyResult->sMaxSubKeyALen = sSubKeyLen;
+        }
+        else
+        {
+            dwError = LwMbsToWc16s(ppRegEntries[iCount]->pszKeyName, &pSubKey);
+            BAIL_ON_REG_ERROR(dwError);
 
-        if (pKeyResult->sMaxSubKeyLen < sSubKeyLen)
-            pKeyResult->sMaxSubKeyLen = sSubKeyLen;
+            dwError = LwWc16sLen((PCWSTR)pSubKey,&sSubKeyLen);
+            BAIL_ON_REG_ERROR(dwError);
+
+            if (pKeyResult->sMaxSubKeyLen < sSubKeyLen)
+                pKeyResult->sMaxSubKeyLen = sSubKeyLen;
+        }
 
         LW_SAFE_FREE_MEMORY(pSubKey);
         sSubKeyLen = 0;
@@ -925,8 +941,9 @@ error:
 
 DWORD
 SqliteUpdateSubKeysInfo(
-    DWORD dwOffSet,
+    IN DWORD dwOffSet,
     IN OUT PREG_KEY_CONTEXT pKeyResult,
+    IN BOOLEAN bDoAnsi,
     OUT size_t* psNumSubKeys
     )
 {
@@ -938,8 +955,9 @@ SqliteUpdateSubKeysInfo(
     LWREG_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pKeyResult->mutex);
 
     dwError = SqliteUpdateSubKeysInfo_inlock(dwOffSet,
-                                           pKeyResult,
-                                           psNumSubKeys);
+                                             pKeyResult,
+                                             bDoAnsi,
+                                             psNumSubKeys);
     BAIL_ON_REG_ERROR(dwError);
 
 cleanup:
@@ -953,7 +971,8 @@ error:
 
 DWORD
 SqliteCacheKeyValuesInfo_inlock(
-    PREG_KEY_CONTEXT pKeyResult
+    IN OUT PREG_KEY_CONTEXT pKeyResult,
+    IN BOOLEAN bDoAnsi
     )
 {
     DWORD dwError = 0;
@@ -961,7 +980,7 @@ SqliteCacheKeyValuesInfo_inlock(
     size_t sNumCacheValues = 0;
     PREG_ENTRY* ppRegEntries = NULL;
 
-    if (pKeyResult->bHasValueInfo)
+    if (bDoAnsi ? pKeyResult->bHasValueAInfo : pKeyResult->bHasValueInfo)
     {
         goto cleanup;
     }
@@ -991,7 +1010,8 @@ SqliteCacheKeyValuesInfo_inlock(
                                 sNumValues,
                                 sNumCacheValues,
                                 ppRegEntries,
-                                pKeyResult);
+                                pKeyResult,
+                                bDoAnsi);
         BAIL_ON_REG_ERROR(dwError);
     }
 
@@ -1005,7 +1025,8 @@ error:
 
 DWORD
 SqliteCacheKeyValuesInfo(
-    PREG_KEY_CONTEXT pKeyResult
+    IN OUT PREG_KEY_CONTEXT pKeyResult,
+    IN BOOLEAN bDoAnsi
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -1015,7 +1036,7 @@ SqliteCacheKeyValuesInfo(
 
     LWREG_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pKeyResult->mutex);
 
-    dwError = SqliteCacheKeyValuesInfo_inlock(pKeyResult);
+    dwError = SqliteCacheKeyValuesInfo_inlock(pKeyResult, bDoAnsi);
     BAIL_ON_REG_ERROR(dwError);
 
 cleanup:
@@ -1031,6 +1052,7 @@ DWORD
 SqliteUpdateValuesInfo_inlock(
     DWORD dwOffSet,
     IN OUT PREG_KEY_CONTEXT pKeyResult,
+    IN BOOLEAN bDoAnsi,
     OUT size_t* psNumValues
     )
 {
@@ -1053,24 +1075,42 @@ SqliteUpdateValuesInfo_inlock(
 
     for (iCount = 0; iCount < (int)sNumValues; iCount++)
     {
-        dwError = LwMbsToWc16s(ppRegEntries[iCount]->pszValueName, &pValueName);
-        BAIL_ON_REG_ERROR(dwError);
+        if (bDoAnsi)
+        {
+            sValueNameLen = strlen(ppRegEntries[iCount]->pszValueName);
 
-        dwError = LwWc16sLen((PCWSTR)pValueName,&sValueNameLen);
-        BAIL_ON_REG_ERROR(dwError);
+            if (pKeyResult->sMaxValueNameALen < sValueNameLen)
+                pKeyResult->sMaxValueNameALen = sValueNameLen;
+        }
+        else
+        {
+            dwError = LwMbsToWc16s(ppRegEntries[iCount]->pszValueName, &pValueName);
+            BAIL_ON_REG_ERROR(dwError);
+
+            dwError = LwWc16sLen((PCWSTR)pValueName,&sValueNameLen);
+            BAIL_ON_REG_ERROR(dwError);
+
+            if (pKeyResult->sMaxValueNameLen < sValueNameLen)
+                pKeyResult->sMaxValueNameLen = sValueNameLen;
+        }
 
         dwError = GetValueAsBytes(ppRegEntries[iCount]->type,
                                   (PCSTR)ppRegEntries[iCount]->pszValue,
-                                  FALSE,
+                                  bDoAnsi,
                                   NULL,
                                   &dwValueLen);
         BAIL_ON_REG_ERROR(dwError);
 
-        if (pKeyResult->sMaxValueNameLen < sValueNameLen)
-            pKeyResult->sMaxValueNameLen = sValueNameLen;
-
-        if (pKeyResult->sMaxValueLen < (size_t)dwValueLen)
-            pKeyResult->sMaxValueLen = (size_t)dwValueLen;
+        if (bDoAnsi)
+        {
+            if (pKeyResult->sMaxValueALen < (size_t)dwValueLen)
+                pKeyResult->sMaxValueALen = (size_t)dwValueLen;
+        }
+        else
+        {
+            if (pKeyResult->sMaxValueLen < (size_t)dwValueLen)
+                pKeyResult->sMaxValueLen = (size_t)dwValueLen;
+        }
 
         LW_SAFE_FREE_MEMORY(pValueName);
         sValueNameLen = 0;
@@ -1092,6 +1132,7 @@ DWORD
 SqliteUpdateValuesInfo(
     DWORD dwOffSet,
     IN OUT PREG_KEY_CONTEXT pKeyResult,
+    IN BOOLEAN bDoAnsi,
     OUT size_t* psNumValues
     )
 {
@@ -1104,6 +1145,7 @@ SqliteUpdateValuesInfo(
 
     dwError = SqliteUpdateValuesInfo_inlock(dwOffSet,
                                      pKeyResult,
+                                     bDoAnsi,
                                      psNumValues);
     BAIL_ON_REG_ERROR(dwError);
 

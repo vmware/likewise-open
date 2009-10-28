@@ -282,7 +282,7 @@ error:
 }
 
 DWORD
-SqliteQueryInfoKey(
+SqliteQueryInfoKeyW(
     IN HANDLE Handle,
     IN HKEY hKey,
     OUT PWSTR pClass, /*A pointer to a buffer that receives the user-defined class of the key. This parameter can be NULL.*/
@@ -316,10 +316,10 @@ SqliteQueryInfoKey(
 
     LWREG_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pKeyResult->mutex);
 
-    dwError = SqliteCacheSubKeysInfo_inlock(pKeyResult);
+    dwError = SqliteCacheSubKeysInfo_inlock(pKeyResult, FALSE);
     BAIL_ON_REG_ERROR(dwError);
 
-    dwError = SqliteCacheKeyValuesInfo_inlock(pKeyResult);
+    dwError = SqliteCacheKeyValuesInfo_inlock(pKeyResult, FALSE);
     BAIL_ON_REG_ERROR(dwError);
 
     if (pKeyResult->dwNumSubKeys > pKeyResult->dwNumCacheSubKeys)
@@ -330,6 +330,7 @@ SqliteQueryInfoKey(
             dwError = SqliteUpdateSubKeysInfo_inlock(
                               dwOffset,
                               pKeyResult,
+                              FALSE,
                               &sNumSubKeys);
             BAIL_ON_REG_ERROR(dwError);
 
@@ -345,6 +346,7 @@ SqliteQueryInfoKey(
             dwError = SqliteUpdateValuesInfo_inlock(
                               dwOffset,
                               pKeyResult,
+                              FALSE,
                               &sNumValues);
             BAIL_ON_REG_ERROR(dwError);
 
@@ -371,6 +373,131 @@ SqliteQueryInfoKey(
     if (pcMaxValueLen)
     {
         *pcMaxValueLen = pKeyResult->sMaxValueLen;
+    }
+
+cleanup:
+    LWREG_UNLOCK_RWMUTEX(bInLock, &pKeyResult->mutex);
+    RegSrvReleaseKey(pKeyResult);
+
+    return dwError;
+
+error:
+    if (pcSubKeys)
+    {
+        *pcSubKeys = 0;
+    }
+    if (pcMaxSubKeyLen)
+    {
+        *pcMaxSubKeyLen = 0;
+    }
+    if (pcValues)
+    {
+        *pcValues = 0;
+    }
+    if (pcMaxValueNameLen)
+    {
+        *pcMaxValueNameLen = 0;
+    }
+    if (pcMaxValueLen)
+    {
+        *pcMaxValueLen = 0;
+    }
+
+    goto cleanup;
+}
+
+DWORD
+SqliteQueryInfoKeyA(
+    IN HANDLE Handle,
+    IN HKEY hKey,
+    OUT PSTR pszClass, /*A pointer to a buffer that receives the user-defined class of the key. This parameter can be NULL.*/
+    IN OUT OPTIONAL PDWORD pcClass,
+    IN PDWORD pReserved,
+    OUT OPTIONAL PDWORD pcSubKeys,
+    OUT OPTIONAL PDWORD pcMaxSubKeyLen,
+    OUT OPTIONAL PDWORD pcMaxClassLen,
+    OUT OPTIONAL PDWORD pcValues,
+    OUT OPTIONAL PDWORD pcMaxValueNameLen,
+    OUT OPTIONAL PDWORD pcMaxValueLen,
+    OUT OPTIONAL PDWORD pcbSecurityDescriptor,
+    OUT OPTIONAL PFILETIME pftLastWriteTime/*implement this later*/
+    )
+{
+    DWORD dwError = LW_ERROR_SUCCESS;
+    PREG_KEY_CONTEXT pKey = (PREG_KEY_CONTEXT)hKey;
+    PREG_KEY_CONTEXT pKeyResult = NULL;
+    size_t sNumSubKeys = 0;
+    size_t sNumValues = 0;
+    DWORD dwOffset = 0;
+    BOOLEAN bInLock = FALSE;
+
+
+    BAIL_ON_INVALID_KEY(pKey);
+
+    dwError = SqliteOpenKeyInternal(pKey->pszKeyName,
+                                    NULL,
+                                    (PHKEY) &pKeyResult);
+    BAIL_ON_REG_ERROR(dwError);
+
+    LWREG_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pKeyResult->mutex);
+
+    dwError = SqliteCacheSubKeysInfo_inlock(pKeyResult, TRUE);
+    BAIL_ON_REG_ERROR(dwError);
+
+    dwError = SqliteCacheKeyValuesInfo_inlock(pKeyResult, TRUE);
+    BAIL_ON_REG_ERROR(dwError);
+
+    if (pKeyResult->dwNumSubKeys > pKeyResult->dwNumCacheSubKeys)
+    {
+        dwOffset = pKeyResult->dwNumCacheSubKeys;
+        do
+        {
+            dwError = SqliteUpdateSubKeysInfo_inlock(
+                              dwOffset,
+                              pKeyResult,
+                              TRUE,
+                              &sNumSubKeys);
+            BAIL_ON_REG_ERROR(dwError);
+
+            dwOffset+= (DWORD)sNumSubKeys;
+        } while (sNumSubKeys);
+    }
+
+    if (pKeyResult->dwNumValues > pKeyResult->dwNumCacheValues)
+    {
+        dwOffset = pKeyResult->dwNumCacheValues;
+        do
+        {
+            dwError = SqliteUpdateValuesInfo_inlock(
+                              dwOffset,
+                              pKeyResult,
+                              TRUE,
+                              &sNumValues);
+            BAIL_ON_REG_ERROR(dwError);
+
+            dwOffset+= (DWORD)sNumValues;
+        } while (sNumValues);
+    }
+
+    if (pcSubKeys)
+    {
+        *pcSubKeys = pKeyResult->dwNumSubKeys;
+    }
+    if (pcMaxSubKeyLen)
+    {
+        *pcMaxSubKeyLen = pKeyResult->sMaxSubKeyALen;
+    }
+    if (pcValues)
+    {
+        *pcValues = pKeyResult->dwNumValues;
+    }
+    if (pcMaxValueNameLen)
+    {
+        *pcMaxValueNameLen = pKeyResult->sMaxValueNameALen;
+    }
+    if (pcMaxValueLen)
+    {
+        *pcMaxValueLen = pKeyResult->sMaxValueALen;
     }
 
 cleanup:
@@ -442,7 +569,7 @@ SqliteEnumKeyEx(
     //Try to grab information from pKeyResults:
     //if subkey information is not yet available in pKeyResult, do it here
     //Otherwise, use this information
-    dwError = SqliteCacheSubKeysInfo_inlock(pKeyResult);
+    dwError = SqliteCacheSubKeysInfo_inlock(pKeyResult, FALSE);
     BAIL_ON_REG_ERROR(dwError);
 
     if (dwIndex >= pKeyResult->dwNumSubKeys)
@@ -1181,7 +1308,7 @@ SqliteEnumValueA(
     //Try to grab information from pKeyResults:
     //if subkey information is not yet available in pKeyResult, do it here
     //Otherwise, use this information
-    dwError = SqliteCacheKeyValuesInfo_inlock(pKeyResult);
+    dwError = SqliteCacheKeyValuesInfo_inlock(pKeyResult, TRUE);
     BAIL_ON_REG_ERROR(dwError);
 
     if (dwIndex >= pKeyResult->dwNumValues)
@@ -1238,7 +1365,7 @@ SqliteEnumValueA(
 
     memcpy(pszValueName, pszValName, strlen(pszValName)+1);
 
-    *pcchValueName = strlen(pszValName)+1;
+    *pcchValueName = strlen(pszValName);
 
     if (pcbData)
     {
@@ -1320,7 +1447,7 @@ SqliteEnumValueW(
     //Try to grab information from pKeyResults:
     //if subkey information is not yet available in pKeyResult, do it here
     //Otherwise, use this information
-    dwError = SqliteCacheKeyValuesInfo_inlock(pKeyResult);
+    dwError = SqliteCacheKeyValuesInfo_inlock(pKeyResult, FALSE);
     BAIL_ON_REG_ERROR(dwError);
 
     if (dwIndex >= pKeyResult->dwNumValues)
@@ -1481,7 +1608,7 @@ SqliteDeleteTreeInternal(
     PSTR pszSubKeyName = NULL;
     PWSTR pwszSubKey = NULL;
 
-    dwError = SqliteQueryInfoKey(Handle,
+    dwError = SqliteQueryInfoKeyW(Handle,
                                  hKey,
                                  NULL,
                                  NULL,

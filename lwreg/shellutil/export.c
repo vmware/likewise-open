@@ -484,7 +484,7 @@ ProcessExportedKeyInfo(
                           pPrevType);
     BAIL_ON_REG_ERROR(dwError);
 
-    dwError = RegQueryInfoKey(
+    dwError = RegQueryInfoKeyA(
         hReg,
         hKey,
         NULL,
@@ -612,7 +612,7 @@ ProcessSubKeys(
             &hSubKey);
         BAIL_ON_REG_ERROR(dwError);
 
-        dwError = RegQueryInfoKey(
+        dwError = RegQueryInfoKeyA(
             (HANDLE) hReg,
             hSubKey,
             NULL,
@@ -704,7 +704,7 @@ ProcessRootKeys(
                                  &hRootKey);
         BAIL_ON_REG_ERROR(dwError);
 
-        dwError = RegQueryInfoKey(
+        dwError = RegQueryInfoKeyA(
             (HANDLE) hReg,
             hRootKey,
             NULL,

@@ -1581,7 +1581,8 @@ RegCacheSafeRecordSubKeysInfo_inlock(
     IN size_t sCount,
     IN size_t sCacheCount,
     IN PREG_ENTRY* ppRegEntries,
-    IN OUT PREG_KEY_CONTEXT pKeyResult
+    IN OUT PREG_KEY_CONTEXT pKeyResult,
+    IN BOOLEAN bDoAnsi
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -1610,21 +1611,35 @@ RegCacheSafeRecordSubKeysInfo_inlock(
         dwError = LwAllocateString(ppRegEntries[iCount]->pszKeyName, &pKeyResult->ppszSubKeyNames[iCount]);
         BAIL_ON_REG_ERROR(dwError);
 
-        dwError = LwMbsToWc16s(ppRegEntries[iCount]->pszKeyName, &pSubKey);
-        BAIL_ON_REG_ERROR(dwError);
+        if (bDoAnsi)
+        {
+            sSubKeyLen = strlen(ppRegEntries[iCount]->pszKeyName);
 
-        dwError = LwWc16sLen((PCWSTR)pSubKey,&sSubKeyLen);
-        BAIL_ON_REG_ERROR(dwError);
+            if (pKeyResult->sMaxSubKeyALen < sSubKeyLen)
+                pKeyResult->sMaxSubKeyALen = sSubKeyLen;
+        }
+        else
+        {
+            dwError = LwMbsToWc16s(ppRegEntries[iCount]->pszKeyName, &pSubKey);
+            BAIL_ON_REG_ERROR(dwError);
 
-        if (pKeyResult->sMaxSubKeyLen < sSubKeyLen)
-            pKeyResult->sMaxSubKeyLen = sSubKeyLen;
+            dwError = LwWc16sLen((PCWSTR)pSubKey,&sSubKeyLen);
+            BAIL_ON_REG_ERROR(dwError);
+
+            if (pKeyResult->sMaxSubKeyLen < sSubKeyLen)
+                pKeyResult->sMaxSubKeyLen = sSubKeyLen;
+        }
 
         LW_SAFE_FREE_MEMORY(pSubKey);
         sSubKeyLen = 0;
     }
 
+    if (bDoAnsi)
+        pKeyResult->bHasSubKeyAInfo = TRUE;
+    else
+        pKeyResult->bHasSubKeyInfo = TRUE;
+
     pKeyResult->dwNumCacheSubKeys = sCacheCount;
-    pKeyResult->bHasSubKeyInfo = TRUE;
 
 cleanup:
     LW_SAFE_FREE_MEMORY(pSubKey);
@@ -1639,7 +1654,8 @@ RegCacheSafeRecordSubKeysInfo(
     IN size_t sCount,
     IN size_t sCacheCount,
     IN PREG_ENTRY* ppRegEntries,
-    IN OUT PREG_KEY_CONTEXT pKeyResult
+    IN OUT PREG_KEY_CONTEXT pKeyResult,
+    IN BOOLEAN bDoAnsi
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -1652,7 +1668,8 @@ RegCacheSafeRecordSubKeysInfo(
     dwError = RegCacheSafeRecordSubKeysInfo_inlock(sCount,
                                                    sCacheCount,
                                                    ppRegEntries,
-                                                   pKeyResult);
+                                                   pKeyResult,
+                                                   bDoAnsi);
     BAIL_ON_REG_ERROR(dwError);
 
 cleanup:
@@ -1669,7 +1686,8 @@ RegCacheSafeRecordValuesInfo_inlock(
     IN size_t sCount,
     IN size_t sCacheCount,
     IN PREG_ENTRY* ppRegEntries,
-    IN OUT PREG_KEY_CONTEXT pKeyResult
+    IN OUT PREG_KEY_CONTEXT pKeyResult,
+    IN BOOLEAN bDoAnsi
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -1708,24 +1726,42 @@ RegCacheSafeRecordValuesInfo_inlock(
 
         pKeyResult->pTypes[iCount] = ppRegEntries[iCount]->type;
 
-        dwError = LwMbsToWc16s(pKeyResult->ppszValueNames[iCount], &pValueName);
-        BAIL_ON_REG_ERROR(dwError);
+        if (bDoAnsi)
+        {
+            sValueNameLen = strlen(pKeyResult->ppszValueNames[iCount]);
 
-        dwError = LwWc16sLen((PCWSTR)pValueName,&sValueNameLen);
-        BAIL_ON_REG_ERROR(dwError);
+            if (pKeyResult->sMaxValueNameALen < sValueNameLen)
+                pKeyResult->sMaxValueNameALen = sValueNameLen;
+        }
+        else
+        {
+            dwError = LwMbsToWc16s(pKeyResult->ppszValueNames[iCount], &pValueName);
+            BAIL_ON_REG_ERROR(dwError);
+
+            dwError = LwWc16sLen((PCWSTR)pValueName,&sValueNameLen);
+            BAIL_ON_REG_ERROR(dwError);
+
+            if (pKeyResult->sMaxValueNameLen < sValueNameLen)
+                pKeyResult->sMaxValueNameLen = sValueNameLen;
+        }
 
         dwError = GetValueAsBytes(ppRegEntries[iCount]->type,
                                   (PCSTR)ppRegEntries[iCount]->pszValue,
-                                  FALSE,
+                                  bDoAnsi,
                                   NULL,
                                   &dwValueLen);
         BAIL_ON_REG_ERROR(dwError);
 
-        if (pKeyResult->sMaxValueNameLen < sValueNameLen)
-            pKeyResult->sMaxValueNameLen = sValueNameLen;
-
-        if (pKeyResult->sMaxValueLen < (size_t)dwValueLen)
-            pKeyResult->sMaxValueLen = (size_t)dwValueLen;
+        if (bDoAnsi)
+        {
+            if (pKeyResult->sMaxValueALen < (size_t)dwValueLen)
+                pKeyResult->sMaxValueALen = (size_t)dwValueLen;
+        }
+        else
+        {
+            if (pKeyResult->sMaxValueLen < (size_t)dwValueLen)
+                pKeyResult->sMaxValueLen = (size_t)dwValueLen;
+        }
 
         LW_SAFE_FREE_MEMORY(pValueName);
         sValueNameLen = 0;
@@ -1733,9 +1769,19 @@ RegCacheSafeRecordValuesInfo_inlock(
     }
 
     pKeyResult->dwNumCacheValues = sCacheCount;
-    pKeyResult->bHasValueInfo = TRUE;
+
+
+    if (bDoAnsi)
+    {
+        pKeyResult->bHasValueAInfo = TRUE;
+    }
+    else
+    {
+        pKeyResult->bHasValueInfo = TRUE;
+    }
 
 cleanup:
+    LW_SAFE_FREE_MEMORY(pValueName);
     return dwError;
 
 error:
@@ -1747,7 +1793,8 @@ RegCacheSafeRecordValuesInfo(
     IN size_t sCount,
     IN size_t sCacheCount,
     IN PREG_ENTRY* ppRegEntries,
-    IN OUT PREG_KEY_CONTEXT pKeyResult
+    IN OUT PREG_KEY_CONTEXT pKeyResult,
+    IN BOOLEAN bDoAnsi
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -1760,7 +1807,8 @@ RegCacheSafeRecordValuesInfo(
     dwError = RegCacheSafeRecordValuesInfo_inlock(sCount,
                                            sCacheCount,
                                            ppRegEntries,
-                                           pKeyResult);
+                                           pKeyResult,
+                                           bDoAnsi);
     BAIL_ON_REG_ERROR(dwError);
 
 cleanup:

@@ -164,12 +164,13 @@ SrvProcessFind_SMB_V2(
     UNICODE_STRING             wszFilename     = {0};
     PWSTR    pwszFilePath       = NULL;
     PWSTR    pwszFilesystemPath = NULL;
-    PWSTR    pwszSearchPattern = NULL;
     BOOLEAN  bInLock           = FALSE;
     BOOLEAN  bTreeInLock       = FALSE;
     PBYTE    pData             = NULL; // Do not free
     ULONG    ulMaxDataLength   = 0;
     ULONG    ulDataLength      = 0;
+    BOOLEAN  bReopenSearch     = FALSE;
+    BOOLEAN  bRestartScan      = FALSE;
     PBYTE pOutBuffer       = pSmbResponse->pBuffer;
     ULONG ulBytesAvailable = pSmbResponse->ulBytesAvailable;
     ULONG ulOffset         = 0;
@@ -206,8 +207,29 @@ SrvProcessFind_SMB_V2(
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pFile->mutex);
 
-    if (pFile->pSearchSpace &&
-        (pRequestHeader->ucSearchFlags & SMB2_SEARCH_FLAGS_REOPEN))
+    if (pFile->pSearchSpace)
+    {
+        if (pRequestHeader->ucSearchFlags & SMB2_SEARCH_FLAGS_REOPEN)
+        {
+            bReopenSearch = TRUE;
+        }
+        else if (pRequestHeader->ucSearchFlags & SMB2_SEARCH_FLAGS_RESTART_SCAN)
+        {
+            bRestartScan = TRUE;
+
+            if (wszFilename.Length &&
+                (pFile->searchSpace.ulSearchPatternLength == wszFilename.Length) &&
+                !memcmp((PBYTE)pFile->searchSpace.pwszSearchPatternRaw,
+                        (PBYTE)wszFilename.Buffer,
+                        wszFilename.Length))
+            {
+                // Search pattern has not changed
+                bReopenSearch = TRUE;
+            }
+        }
+    }
+
+    if (bReopenSearch)
     {
         IO_STATUS_BLOCK ioStatusBlock = {0};
 
@@ -247,6 +269,13 @@ SrvProcessFind_SMB_V2(
                 pFile->searchSpace.pwszSearchPattern = NULL;
             }
 
+            if (pFile->searchSpace.pwszSearchPatternRaw)
+            {
+                SrvFreeMemory(pFile->searchSpace.pwszSearchPatternRaw);
+                pFile->searchSpace.pwszSearchPatternRaw = NULL;
+                pFile->searchSpace.pwszSearchPatternRef = NULL;
+            }
+
             if (pFile->searchSpace.pFileInfo)
             {
                 SrvFreeMemory(pFile->searchSpace.pFileInfo);
@@ -258,12 +287,14 @@ SrvProcessFind_SMB_V2(
             pFile->pSearchSpace = NULL;
         }
     }
-
-    if (pFile->pSearchSpace &&
-        (pFile->searchSpace.ucInfoClass != pRequestHeader->ucInfoClass))
+    else if (bRestartScan)
     {
-        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
-        BAIL_ON_NT_STATUS(ntStatus);
+        if (pFile->pSearchSpace &&
+            (pFile->searchSpace.ucInfoClass != pRequestHeader->ucInfoClass))
+        {
+            pFile->searchSpace.pFileInfoCursor = NULL;
+            pFile->searchSpace.ucInfoClass = pRequestHeader->ucInfoClass;
+        }
     }
 
     if (!pFile->pSearchSpace)
@@ -281,16 +312,22 @@ SrvProcessFind_SMB_V2(
 
             ntStatus = SrvAllocateMemory(
                             wszFilename.Length + sizeof(wchar16_t),
-                            (PVOID*)&pwszSearchPattern);
+                            (PVOID*)&pFile->searchSpace.pwszSearchPatternRaw);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            memcpy((PBYTE)pwszSearchPattern,
+            memcpy((PBYTE)pFile->searchSpace.pwszSearchPatternRaw,
                    (PBYTE)wszFilename.Buffer,
                    wszFilename.Length);
 
-            if (pwszSearchPattern && *pwszSearchPattern == wszBackSlash[0])
+            pFile->searchSpace.ulSearchPatternLength = wszFilename.Length;
+
+            pFile->searchSpace.pwszSearchPatternRef =
+                            pFile->searchSpace.pwszSearchPatternRaw;
+
+            if (pFile->searchSpace.pwszSearchPatternRef &&
+                *pFile->searchSpace.pwszSearchPatternRef == wszBackSlash[0])
             {
-                pwszSearchPattern++;
+                pFile->searchSpace.pwszSearchPatternRef++;
             }
         }
 
@@ -306,7 +343,7 @@ SrvProcessFind_SMB_V2(
 
         ntStatus = SrvFinderBuildSearchPath(
                         pwszFilePath,
-                        pwszSearchPattern,
+                        pFile->searchSpace.pwszSearchPatternRef,
                         &pwszFilesystemPath,
                         &pFile->searchSpace.pwszSearchPattern);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -477,11 +514,6 @@ cleanup:
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pFile->mutex);
 
-    if (pwszSearchPattern)
-    {
-        SrvFreeMemory(pwszSearchPattern);
-    }
-
     if (pwszFilesystemPath)
     {
         SrvFreeMemory(pwszFilesystemPath);
@@ -618,6 +650,7 @@ SrvFindIdBothDirInformation(
                 else if (ntStatus == STATUS_NO_MORE_MATCHES)
                 {
                     bEndOfSearch = TRUE;
+                    pSearchSpace->pFileInfoCursor = NULL;
                     ntStatus = STATUS_SUCCESS;
 
                     break;

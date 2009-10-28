@@ -71,3 +71,58 @@ error:
 
     return status;
 }
+
+LW_NTSTATUS
+LwIoGetPid(
+    pid_t* pPid
+    )
+{
+    NTSTATUS status = 0;
+    LWMsgCall* pCall = NULL;
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    IO_CONTEXT context = {0};
+
+    status = LwIoAcquireContext(&context);
+    BAIL_ON_NT_STATUS(status);
+
+    status = LwIoContextAcquireCall(&context, &pCall);
+    BAIL_ON_NT_STATUS(status);
+
+    in.tag = LWIO_GET_PID;
+    in.data = NULL;
+
+    status = MAP_LWMSG_STATUS(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
+    BAIL_ON_NT_STATUS(status);
+
+    switch (out.tag)
+    {
+    case LWIO_GET_PID_SUCCESS:
+        *pPid = *((pid_t*) out.data);
+        break;
+    case LWIO_GET_PID_FAILED:
+        status = ((PLWIO_STATUS_REPLY) out.data)->dwError;
+        BAIL_ON_LWIO_ERROR(status);
+        break;
+    default:
+        status = STATUS_INTERNAL_ERROR;
+        BAIL_ON_LWIO_ERROR(status);
+        break;
+    }
+
+cleanup:
+
+    if (pCall)
+    {
+        lwmsg_call_destroy_params(pCall, &out);
+        lwmsg_call_release(pCall);
+    }
+
+    LwIoReleaseContext(&context);
+
+    return status;
+
+error:
+
+    goto cleanup;
+}

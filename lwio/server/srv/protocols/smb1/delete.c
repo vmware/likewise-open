@@ -454,6 +454,7 @@ error:
     {
         case STATUS_PENDING:
         case STATUS_FILE_IS_A_DIRECTORY:
+        case STATUS_SHARING_VIOLATION:
 
             break;
 
@@ -534,7 +535,7 @@ SrvBuildDeleteResponse(
     ulBytesAvailable -= pSmbResponse->usHeaderSize;
     ulTotalBytesUsed += pSmbResponse->usHeaderSize;
 
-    *pSmbResponse->pWordCount = 1;
+    *pSmbResponse->pWordCount = 0;
 
     ntStatus = WireMarshallDeleteResponse(
                     pOutBuffer,

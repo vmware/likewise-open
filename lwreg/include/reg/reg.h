@@ -367,7 +367,24 @@ RegOpenKeyExW(
     );
 
 DWORD
-RegQueryInfoKey(
+RegQueryInfoKeyA(
+    HANDLE hRegConnection,
+    HKEY hKey,
+    PSTR pszClass,
+    PDWORD pcClass,
+    PDWORD pReserved,
+    PDWORD pcSubKeys,
+    PDWORD pcMaxSubKeyLen,
+    PDWORD pcMaxClassLen,
+    PDWORD pcValues,
+    PDWORD pcMaxValueNameLen,
+    PDWORD pcMaxValueLen,
+    PDWORD pcbSecurityDescriptor,
+    PFILETIME pftLastWriteTime
+    );
+
+DWORD
+RegQueryInfoKeyW(
     HANDLE hRegConnection,
     HKEY hKey,
     PWSTR pClass,
@@ -492,6 +509,23 @@ RegCreateKeyExA(
     PDWORD pdwDisposition
     );
 
+DWORD
+RegQueryInfoKeyW(
+    HANDLE hRegConnection,
+    HKEY hKey,
+    PWSTR pClass,
+    PDWORD pcClass,
+    PDWORD pReserved,
+    PDWORD pcSubKeys,
+    PDWORD pcMaxSubKeyLen,
+    PDWORD pcMaxClassLen,
+    PDWORD pcValues,
+    PDWORD pcMaxValueNameLen,
+    PDWORD pcMaxValueLen,
+    PDWORD pcbSecurityDescriptor,
+    PFILETIME pftLastWriteTime
+    );
+
 #ifdef UNICODE
 #define RegEnumValue(hRegConnection, hKey, dwIndex, pValueName, pcchValueName, pReserved, pType, pData, pcbData) \
     RegEnumValueW(hRegConnection, hKey, dwIndex, pValueName, pcchValueName, pReserved, pType, pData, pcbData)
@@ -511,7 +545,8 @@ RegCreateKeyExA(
     RegEnumRootKeysW(hRegConnection, pppwszRootKeyNames, pdwNumRootKeys)
 #define RegCreateKeyEx(hRegConnection, hKey, pszSubKey, Reserved, pClass, dwOptions, samDesired, pSecurityAttributes, phkResult, pdwDisposition) \
     RegCreateKeyExW(hRegConnection, hKey, pwszSubKey, Reserved, pClass, dwOptions, samDesired, pSecurityAttributes, phkResult, pdwDisposition)
-
+#define RegQueryInfoKey(hRegConnection, hKey, pClass, pcClass, pReserved, pcSubKeys, pcMaxSubKeyLen, pcMaxClassLen, pcValues, pcMaxValueNameLen, pcMaxValueLen, pcbSecurityDescriptor, pftLastWriteTime) \
+    RegQueryInfoKeyW(hRegConnection, hKey, pClass, pcClass, pReserved, pcSubKeys, pcMaxSubKeyLen, pcMaxClassLen, pcValues, pcMaxValueNameLen, pcMaxValueLen, pcbSecurityDescriptor, pftLastWriteTime)
 #else
 #define RegEnumValue(hRegConnection, hKey, dwIndex, pValueName, pcchValueName, pReserved, pType, pData, pcbData) \
     RegEnumValueA(hRegConnection, hKey, dwIndex, pValueName, pcchValueName, pReserved, pType, pData, pcbData)
@@ -531,6 +566,8 @@ RegCreateKeyExA(
     RegEnumRootKeysA(hRegConnection, pppszRootKeyNames, pdwNumRootKeys)
 #define RegCreateKeyEx(hRegConnection, hKey, pszSubKey, Reserved, pClass, dwOptions, samDesired, pSecurityAttributes, phkResult, pdwDisposition) \
     RegCreateKeyExA(hRegConnection, hKey, pszSubKey, Reserved, pClass, dwOptions, samDesired, pSecurityAttributes, phkResult, pdwDisposition)
+#define RegQueryInfoKey(hRegConnection, hKey, pClass, pcClass, pReserved, pcSubKeys, pcMaxSubKeyLen, pcMaxClassLen, pcValues, pcMaxValueNameLen, pcMaxValueLen, pcbSecurityDescriptor, pftLastWriteTime) \
+    RegQueryInfoKeyA(hRegConnection, hKey, pszClass, pcClass, pReserved, pcSubKeys, pcMaxSubKeyLen, pcMaxClassLen, pcValues, pcMaxValueNameLen, pcMaxValueLen, pcbSecurityDescriptor, pftLastWriteTime)
 #endif
 
 #endif /* __REG_H__ */

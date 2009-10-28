@@ -138,6 +138,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FileClientApi", "..\Likewis
 		Release.AspNetCompiler.Debug = "False"
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LMCCredentials", "..\LMCCredentialDlgs\LMCCredentials.csproj", "{E34C3066-88C0-4414-A47D-6FCD806760FA}"
+	ProjectSection(WebsiteProperties) = preProject
+		Debug.AspNetCompiler.Debug = "True"
+		Release.AspNetCompiler.Debug = "False"
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -358,6 +364,16 @@ Global
 		{FB091F6B-D872-4644-9037-94096D4A62DF}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
 		{FB091F6B-D872-4644-9037-94096D4A62DF}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{FB091F6B-D872-4644-9037-94096D4A62DF}.Release|Win32.ActiveCfg = Release|Any CPU
+		{E34C3066-88C0-4414-A47D-6FCD806760FA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E34C3066-88C0-4414-A47D-6FCD806760FA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E34C3066-88C0-4414-A47D-6FCD806760FA}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{E34C3066-88C0-4414-A47D-6FCD806760FA}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{E34C3066-88C0-4414-A47D-6FCD806760FA}.Debug|Win32.ActiveCfg = Debug|Any CPU
+		{E34C3066-88C0-4414-A47D-6FCD806760FA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E34C3066-88C0-4414-A47D-6FCD806760FA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E34C3066-88C0-4414-A47D-6FCD806760FA}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{E34C3066-88C0-4414-A47D-6FCD806760FA}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{E34C3066-88C0-4414-A47D-6FCD806760FA}.Release|Win32.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -380,6 +396,7 @@ Global
 		{6844AA5B-95A3-4F50-A084-8316A02B6E58} = {2733908E-FB40-46D1-89A8-4D735853B7C9}
 		{D27214EF-85C2-46D7-94A7-45C3D26BEAC8} = {2733908E-FB40-46D1-89A8-4D735853B7C9}
 		{FB091F6B-D872-4644-9037-94096D4A62DF} = {2733908E-FB40-46D1-89A8-4D735853B7C9}
+		{E34C3066-88C0-4414-A47D-6FCD806760FA} = {2733908E-FB40-46D1-89A8-4D735853B7C9}
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
 		StartupItem = ..\LikewiseConsole\LMCOpen.csproj

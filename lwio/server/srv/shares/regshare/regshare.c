@@ -522,7 +522,7 @@ SrvShareRegBeginEnum(
             &hKey);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = RegQueryInfoKey(
+    ntStatus = RegQueryInfoKeyA(
         hRepository,
         hKey,
         NULL,
@@ -823,7 +823,7 @@ SrvShareRegGetCount(
             &hKey);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = RegQueryInfoKey(
+    ntStatus = RegQueryInfoKeyA(
         hRepository,
         hKey,
         NULL,

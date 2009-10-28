@@ -417,6 +417,7 @@ typedef struct __LSA_USER_MOD_INFO
         LW_BOOLEAN bSetPrimaryGroup;
         LW_BOOLEAN bSetNtPasswordHash;
         LW_BOOLEAN bSetLmPasswordHash;
+        LW_BOOLEAN bSetPassword;
     } actions;
 
     gid_t   gid;
@@ -426,6 +427,7 @@ typedef struct __LSA_USER_MOD_INFO
     LW_PSTR pszHomedir;
     LW_PSTR pszShell;
     LW_PSTR pszGecos;
+    LW_PSTR pszPassword;
     PLW_LSA_DATA_BLOB pNtPasswordHash;
     PLW_LSA_DATA_BLOB pLmPasswordHash;
 

@@ -96,11 +96,16 @@ LwSmDriverGetStatus(
     PWSTR pwszName = LwSmGetServiceObjectData(pObject);
 
     pStatus->home = LW_SERVICE_HOME_IO_MANAGER;
-    pStatus->pid = -1;
 
-    dwError = LwNtStatusToWin32Error(LwIoGetDriverStatus(
-                                         pwszName,
-                                         &driverStatus));
+    dwError = LwNtStatusToWin32Error(LwIoGetPid(&pStatus->pid));
+
+    if (!dwError)
+    {
+        dwError = LwNtStatusToWin32Error(LwIoGetDriverStatus(
+                                             pwszName,
+                                             &driverStatus));
+    }
+
     if (dwError)
     {
         pStatus->state = LW_SERVICE_STATE_STOPPED;

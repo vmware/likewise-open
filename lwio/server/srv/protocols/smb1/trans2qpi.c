@@ -272,6 +272,12 @@ SrvQueryPathInfo(
 
             break;
 
+        case SMB_QUERY_FILE_STREAM_INFO :
+
+            ntStatus = SrvQueryFileStreamInfo(pExecContext);
+
+            break;
+
         case SMB_QUERY_FILE_ALL_INFO :
 
             ntStatus = SrvQueryFileAllInfo(pExecContext);
@@ -295,7 +301,6 @@ SrvQueryPathInfo(
         case SMB_INFO_QUERY_EAS_FROM_LIST :
         case SMB_INFO_QUERY_ALL_EAS :
         case SMB_INFO_IS_NAME_VALID :
-        case SMB_QUERY_FILE_STREAM_INFO :
         case SMB_QUERY_FILE_COMPRESSION_INFO :
         case SMB_QUERY_FILE_UNIX_BASIC :
         case SMB_QUERY_FILE_UNIX_LINK :
@@ -347,6 +352,12 @@ SrvBuildQueryPathInfoResponse(
 
             break;
 
+        case SMB_QUERY_FILE_STREAM_INFO :
+
+            ntStatus = SrvBuildQueryFileStreamInfoResponse(pExecContext);
+
+            break;
+
         case SMB_QUERY_FILE_ALL_INFO :
 
             ntStatus = SrvBuildQueryFileAllInfoResponse(pExecContext);
@@ -370,7 +381,6 @@ SrvBuildQueryPathInfoResponse(
         case SMB_INFO_QUERY_EAS_FROM_LIST :
         case SMB_INFO_QUERY_ALL_EAS :
         case SMB_INFO_IS_NAME_VALID :
-        case SMB_QUERY_FILE_STREAM_INFO :
         case SMB_QUERY_FILE_COMPRESSION_INFO :
         case SMB_QUERY_FILE_UNIX_BASIC :
         case SMB_QUERY_FILE_UNIX_LINK :

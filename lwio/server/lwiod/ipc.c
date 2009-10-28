@@ -285,6 +285,39 @@ error:
     goto cleanup;
 }
 
+static
+LWMsgStatus
+LwIoDaemonIpcGetPid(
+    IN LWMsgCall* pCall,
+    IN const LWMsgParams* pIn,
+    OUT LWMsgParams* pOut,
+    IN void* pData
+    )
+{
+    DWORD dwError = 0;
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    pid_t* pPid = NULL;
+
+    dwError = SMBAllocateMemory(sizeof(*pPid), OUT_PPVOID(&pPid));
+    BAIL_ON_LWIO_ERROR(dwError);
+
+    *pPid = getpid();
+
+    pOut->tag = LWIO_GET_PID_SUCCESS;
+    pOut->data = pPid;
+    pPid = NULL;
+
+cleanup:
+
+    LWIO_SAFE_FREE_MEMORY(pPid);
+
+    return status;
+
+error:
+
+    goto cleanup;
+}
+
 static LWMsgDispatchSpec gLwIoDaemonIpcDispatchSpec[] =
 {
     LWMSG_DISPATCH_NONBLOCK(LWIO_REFRESH_CONFIG, LwIoDaemonIpcRefreshConfiguration),
@@ -293,6 +326,7 @@ static LWMsgDispatchSpec gLwIoDaemonIpcDispatchSpec[] =
     LWMSG_DISPATCH_NONBLOCK(LWIO_GET_DRIVER_STATUS, LwIoDaemonIpcGetDriverStatus),
     LWMSG_DISPATCH_NONBLOCK(LWIO_LOAD_DRIVER, LwIoDaemonIpcLoadDriver),
     LWMSG_DISPATCH_NONBLOCK(LWIO_UNLOAD_DRIVER, LwIoDaemonIpcUnloadDriver),
+    LWMSG_DISPATCH_NONBLOCK(LWIO_GET_PID, LwIoDaemonIpcGetPid),
     LWMSG_DISPATCH_END
 };
 

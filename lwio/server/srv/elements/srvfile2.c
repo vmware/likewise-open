@@ -290,6 +290,11 @@ SrvFile2Free(
         SrvFreeMemory(pFile->searchSpace.pwszSearchPattern);
     }
 
+    if (pFile->searchSpace.pwszSearchPatternRaw)
+    {
+        SrvFreeMemory(pFile->searchSpace.pwszSearchPatternRaw);
+    }
+
     if (pFile->searchSpace.pFileInfo)
     {
         SrvFreeMemory(pFile->searchSpace.pFileInfo);

@@ -121,6 +121,12 @@ static LWMsgTypeSpec gDriverStatusSpec[] =
     LWMSG_TYPE_END
 };
 
+static LWMsgTypeSpec gPidSpec[] =
+{
+    LWMSG_INT32(pid_t),
+    LWMSG_TYPE_END
+};
+
 static LWMsgProtocolSpec gLwIoDaemonProtocolSpec[] =
 {
     LWMSG_MESSAGE(LWIO_REFRESH_CONFIG,              NULL),
@@ -141,6 +147,9 @@ static LWMsgProtocolSpec gLwIoDaemonProtocolSpec[] =
     LWMSG_MESSAGE(LWIO_UNLOAD_DRIVER,               gDriverNameSpec),
     LWMSG_MESSAGE(LWIO_UNLOAD_DRIVER_SUCCESS,       gStatusReplySpec),
     LWMSG_MESSAGE(LWIO_UNLOAD_DRIVER_FAILED,        gStatusReplySpec),
+    LWMSG_MESSAGE(LWIO_GET_PID,                     NULL),
+    LWMSG_MESSAGE(LWIO_GET_PID_SUCCESS,             gPidSpec),
+    LWMSG_MESSAGE(LWIO_GET_PID_FAILED,              gStatusReplySpec),
     LWMSG_PROTOCOL_END
 };
 

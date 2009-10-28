@@ -1027,11 +1027,15 @@ SrvBuildQueryFileStreamInfoResponse(
 
     *pSmbResponse->pWordCount = 10 + setupCount;
 
-    ntStatus = SrvMarshallFileStreamInfo(
-                    pTrans2State->pData2,
-                    pTrans2State->usBytesAllocated,
-                    &pData,
-                    &usDataLen);
+    if (pTrans2State->ioStatusBlock.BytesTransferred > 0)
+    {
+        ntStatus = SrvMarshallFileStreamInfo(
+                        pTrans2State->pData2,
+                        pTrans2State->usBytesAllocated,
+                        &pData,
+                        &usDataLen);
+    }
+
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = WireMarshallTransaction2Response(
@@ -1096,6 +1100,8 @@ SrvMarshallFileStreamInfo(
     USHORT   usInfoCount = 0;
     USHORT   usOffset = 0;
     PFILE_STREAM_INFORMATION pFileStreamInfoCursor = NULL;
+    PSMB_FILE_STREAM_INFO_RESPONSE_HEADER pInfoHeaderPrev = NULL;
+    PSMB_FILE_STREAM_INFO_RESPONSE_HEADER pInfoHeaderCur = NULL;
 
     pFileStreamInfoCursor = (PFILE_STREAM_INFORMATION)pFileStreamInfo;
     while (pFileStreamInfoCursor && (usBytesAvailable > 0))
@@ -1103,8 +1109,12 @@ SrvMarshallFileStreamInfo(
         USHORT usInfoBytesRequired = 0;
 
         usInfoBytesRequired = sizeof(SMB_FILE_STREAM_INFO_RESPONSE_HEADER);
-        usInfoBytesRequired += wc16slen(pFileStreamInfoCursor->StreamName) * sizeof(wchar16_t);
-        usInfoBytesRequired += sizeof(wchar16_t);
+        usInfoBytesRequired += pFileStreamInfoCursor->StreamNameLength;
+
+        /* Null terminate all streams names but the last. */
+        if (pFileStreamInfoCursor->NextEntryOffset != 0) {
+            usInfoBytesRequired += sizeof(wchar16_t);
+        }
 
         if (usBytesAvailable < usInfoBytesRequired)
         {
@@ -1133,31 +1143,39 @@ SrvMarshallFileStreamInfo(
 
     pDataCursor = pData;
     pFileStreamInfoCursor = (PFILE_STREAM_INFORMATION)pFileStreamInfo;
+
     for (; iInfoCount < usInfoCount; iInfoCount++)
     {
-        PSMB_FILE_STREAM_INFO_RESPONSE_HEADER pInfoHeader = NULL;
-        USHORT usStreamNameLen = 0;
+        pInfoHeaderPrev = pInfoHeaderCur;
+        pInfoHeaderCur = (PSMB_FILE_STREAM_INFO_RESPONSE_HEADER)pDataCursor;
 
-        pInfoHeader = (PSMB_FILE_STREAM_INFO_RESPONSE_HEADER)pDataCursor;
+        /* Update next entry offset for previous entry. */
+        if (pInfoHeaderPrev != NULL) {
+            pInfoHeaderPrev->ulNextEntryOffset = usOffset;
+        }
 
-        pInfoHeader->ulNextEntryOffset = usOffset;
-        pInfoHeader->llStreamAllocationSize = pFileStreamInfoCursor->StreamAllocationSize;
-        pInfoHeader->llStreamSize = pFileStreamInfoCursor->StreamSize;
-        pInfoHeader->ulStreamNameLength = pFileStreamInfoCursor->StreamNameLength * sizeof(wchar16_t);
+        /* Reset the offset to 0 since it's relative. */
+        usOffset = 0;
+
+        /* Add the header info. */
+        pInfoHeaderCur->ulNextEntryOffset = 0;
+        pInfoHeaderCur->llStreamAllocationSize = pFileStreamInfoCursor->StreamAllocationSize;
+        pInfoHeaderCur->llStreamSize = pFileStreamInfoCursor->StreamSize;
+        pInfoHeaderCur->ulStreamNameLength = pFileStreamInfoCursor->StreamNameLength;
 
         pDataCursor += sizeof(SMB_FILE_STREAM_INFO_RESPONSE_HEADER);
         usOffset += sizeof(SMB_FILE_STREAM_INFO_RESPONSE_HEADER);
 
-        usStreamNameLen = wc16slen(pFileStreamInfoCursor->StreamName);
-        if (usStreamNameLen)
-        {
-            memcpy(pDataCursor, (PBYTE)pFileStreamInfoCursor->StreamName, usStreamNameLen * sizeof(wchar16_t));
-            pDataCursor += usStreamNameLen * sizeof(wchar16_t);
-            usOffset += usStreamNameLen * sizeof(wchar16_t);
-        }
+        memcpy(pDataCursor, pFileStreamInfoCursor->StreamName,
+               pFileStreamInfoCursor->StreamNameLength);
+        pDataCursor += pFileStreamInfoCursor->StreamNameLength;
+        usOffset += pFileStreamInfoCursor->StreamNameLength;
 
-        pDataCursor += sizeof(wchar16_t);
-        usOffset += sizeof(wchar16_t);
+        /* Null terminate all streams names but the last. */
+        if (pFileStreamInfoCursor->NextEntryOffset != 0) {
+            pDataCursor += sizeof(wchar16_t);
+            usOffset += sizeof(wchar16_t);
+        }
 
         pFileStreamInfoCursor = (PFILE_STREAM_INFORMATION)(((PBYTE)pFileStreamInfo) + pFileStreamInfoCursor->NextEntryOffset);
     }

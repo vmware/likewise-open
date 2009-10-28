@@ -107,7 +107,7 @@ LwSmRegistryEnumServices(
     dwError = RegOpenKeyExW(hReg, pRootKey, pwszParentPath, 0, 0, &pParentKey);
     BAIL_ON_ERROR(dwError);
 
-    dwError = RegQueryInfoKey(
+    dwError = RegQueryInfoKeyW(
         hReg,
         pParentKey,
         NULL,

@@ -2439,6 +2439,7 @@ LocalDirModifyUser(
     PLSA_GROUP_INFO_0 pGroupInfo_remove = NULL;
     PWSTR             pwszGroupDN_add   = NULL;
     PLSA_GROUP_INFO_0 pGroupInfo_add    = NULL;
+    PWSTR             pwszPassword      = NULL;
     OCTET_STRING NtHashBlob = {0};
     OCTET_STRING LmHashBlob = {0};
 
@@ -2641,6 +2642,20 @@ LocalDirModifyUser(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
+    if (pUserModInfo->actions.bSetPassword)
+    {
+        dwError = LsaMbsToWc16s(
+                        pUserModInfo->pszPassword ? pUserModInfo->pszPassword : "",
+                        &pwszPassword);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LocalDirSetPassword(
+                        hProvider,
+                        pwszUserDN,
+                        pwszPassword);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
 cleanup:
 
     if (pUserInfo)
@@ -2659,6 +2674,10 @@ cleanup:
     {
         LsaFreeGroupInfo(dwGroupInfoLevel, pGroupInfo_add);
     }
+
+    LW_SAFE_FREE_MEMORY(pwszPassword);
+
+    LW_SAFE_FREE_MEMORY(pwszUserDN);
 
     return dwError;
 

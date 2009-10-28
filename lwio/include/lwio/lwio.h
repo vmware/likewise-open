@@ -191,6 +191,11 @@ LwIoUnloadDriver(
     );
 
 LW_NTSTATUS
+LwIoGetPid(
+    pid_t* pPid
+    );
+
+LW_NTSTATUS
 LwIoCloseContext(
     LW_PIO_CONTEXT pContext
     );

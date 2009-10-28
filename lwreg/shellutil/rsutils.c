@@ -549,7 +549,7 @@ RegShellUtilGetKeys(
         pFullKey = pRootKey;
     }
 
-    dwError = RegQueryInfoKey(
+    dwError = RegQueryInfoKeyW(
         hReg,
         pFullKey,
         NULL,
@@ -675,7 +675,7 @@ RegShellUtilSetValue(
             break;
 
         case REG_SZ:
-            dwError = LwAllocateString(data, (LW_PVOID) &pData);
+            dwError = LwAllocateString(data ? data : "", (LW_PVOID) &pData);
             BAIL_ON_REG_ERROR(dwError);
 
             dwDataLen = strlen((PSTR) pData);
@@ -786,7 +786,7 @@ RegShellUtilGetValues(
         LW_SAFE_FREE_MEMORY(pwszParentPath);
     }
 
-    dwError = RegQueryInfoKey(
+    dwError = RegQueryInfoKeyA(
                   hReg,
                   pFullKey,
                   NULL,
@@ -809,14 +809,16 @@ RegShellUtilGetValues(
      * Apparently the data size is not returned in bytes for REG_SZ
      * which is why this adjustment is needed.
      */
-    dwMaxValueLen = (dwMaxValueLen + 1) * sizeof(WCHAR);
+    dwMaxValueNameLen +=1;
+
     for (indx = 0; indx < dwValuesCount; indx++)
     {
         /*
          * TBD/adam
          * Add wide character NULL size here; bug in RegEnumValueA()?
          */
-        dwValueNameLen = dwMaxValueNameLen + sizeof(WCHAR);
+        dwValueNameLen = dwMaxValueNameLen;
+
         dwError = LwAllocateMemory(
                       dwValueNameLen,
                       (LW_PVOID) &pszValueName);
@@ -914,6 +916,174 @@ cleanup:
     LW_SAFE_FREE_MEMORY(pSubKey);
     return dwError;
 
+error:
+    goto cleanup;
+}
+
+
+DWORD
+RegShellUtilAllocateMemory(
+    HANDLE hReg,
+    HKEY hKey,
+    REG_DATA_TYPE regType,
+    PSTR pszValueName,
+    PVOID *ppRetBuf,
+    PDWORD pdwRetBufLen)
+{
+    PBYTE pBuf = NULL;
+    DWORD dwError = 0;
+    DWORD dwValueLen = 0;
+
+    switch (regType)
+    {
+        case REG_SZ:
+        case REG_BINARY:
+            dwError = RegGetValueA(
+                          hReg,
+                          hKey,
+                          NULL,
+                          pszValueName,
+                          regType,
+                          NULL,
+                          NULL,
+                          &dwValueLen);
+            BAIL_ON_REG_ERROR(dwError);
+            break;
+
+        default:
+            break;
+    }
+    if (dwError == 0 && dwValueLen > 0)
+    {
+        dwError = LwAllocateMemory(
+                      (dwValueLen+1) * sizeof(CHAR),
+                      (PVOID) &pBuf);
+        BAIL_ON_REG_ERROR(dwError);
+    }
+
+    *ppRetBuf = (PVOID) pBuf;
+    *pdwRetBufLen = dwValueLen;
+
+cleanup:
+    return dwError;
+error:
+    goto cleanup;
+}
+
+
+DWORD
+RegShellUtilGetValue(
+    HANDLE hReg,
+    PSTR pszRootKeyName,
+    PSTR pszDefaultKey,
+    PSTR pszKeyName,
+    PSTR pszValueName,
+    REG_DATA_TYPE regType,
+    PVOID *ppValue,
+    PDWORD pdwValueLen)
+{
+    DWORD dwError = 0;
+    DWORD dwValueLen = 0;
+    PDWORD pdwValue = (PDWORD) ppValue;
+    PVOID pRetData = NULL;
+    PBYTE *ppData = (PBYTE *) ppValue;
+    PSTR *ppszValue = (PSTR *) ppValue;
+
+    HKEY hRootKey = NULL;
+    HKEY hDefaultKey = NULL;
+    HKEY hFullKeyName = NULL;
+
+    /* Open the root key */
+    dwError = RegOpenKeyExA(
+                      hReg,
+                      NULL,
+                      pszRootKeyName,
+                      0,
+                      0,
+                      &hRootKey);
+    BAIL_ON_REG_ERROR(dwError);
+
+    /* Open the default key */
+    dwError = RegOpenKeyExA(
+                      hReg,
+                      hRootKey,
+                      pszDefaultKey,
+                      0,
+                      0,
+                      &hDefaultKey);
+    BAIL_ON_REG_ERROR(dwError);
+
+    /* Open the sub key */
+    dwError = RegOpenKeyExA(
+                      hReg,
+                      hDefaultKey,
+                      pszKeyName,
+                      0,
+                      0,
+                      &hFullKeyName);
+    BAIL_ON_REG_ERROR(dwError);
+
+    dwError = RegShellUtilAllocateMemory(
+                  hReg,
+                  hFullKeyName,
+                  regType,
+                  pszValueName,
+                  &pRetData,
+                  &dwValueLen);
+
+    switch (regType)
+    {
+        case REG_SZ:
+            dwError = RegGetValueA(
+                          hReg,
+                          hFullKeyName,
+                          NULL,
+                          pszValueName,
+                          REG_SZ,
+                          NULL,
+                          pRetData,
+                          &dwValueLen);
+            BAIL_ON_REG_ERROR(dwError);
+            *ppszValue = pRetData;
+            *pdwValueLen = dwValueLen;
+            break;
+
+        case REG_DWORD:
+            dwValueLen = sizeof(DWORD);
+            dwError = RegGetValueA(
+                          hReg,
+                          hFullKeyName,
+                          NULL,
+                          pszValueName,
+                          REG_DWORD,
+                          NULL,
+                          pdwValue,
+                          &dwValueLen);
+            BAIL_ON_REG_ERROR(dwError);
+            *pdwValueLen = dwValueLen;
+            break;
+
+        case REG_BINARY:
+            dwError = RegGetValueA(
+                          hReg,
+                          hFullKeyName,
+                          NULL,
+                          pszValueName,
+                          REG_BINARY,
+                          NULL,
+                          pRetData,
+                          &dwValueLen);
+            *ppData = pRetData;
+            *pdwValueLen = dwValueLen;
+            BAIL_ON_REG_ERROR(dwError);
+            break;
+    }
+
+cleanup:
+    RegCloseKey(hReg, hFullKeyName);
+    RegCloseKey(hReg, hDefaultKey);
+    RegCloseKey(hReg, hRootKey);
+    return dwError;
 error:
     goto cleanup;
 }
