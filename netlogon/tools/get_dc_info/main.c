@@ -51,6 +51,8 @@
 #include "lwnet-utils.h"
 #include "lwerror.h"
 
+#define LW_PRINTF_STRING(x) ((x) ? (x) : "<null>")
+
 static
 void
 ShowUsage()
@@ -341,9 +343,27 @@ main(
 error:
     if (dwError)
     {
-        LwGetErrorString(dwError, szErrorBuf, 1024);
-        LWNET_LOG_ERROR("Error: [%s] [code=%u]", szErrorBuf, dwError);
+        DWORD dwLen = LwGetErrorString(dwError, szErrorBuf, 1024);
+
+        if (dwLen)
+        {
+            fprintf(
+                 stderr,
+                 "Failed communication with the LWNET Agent.  Error code %u (%s).\n%s\n",
+                 dwError,
+                 LW_PRINTF_STRING(LwWin32ErrorToName(dwError)),
+                 szErrorBuf);
+        }
+        else
+        {
+            fprintf(
+                 stderr,
+                 "Failed communication with the LWNET Agent.  Error code %u (%s).\n",
+                 dwError,
+                 LW_PRINTF_STRING(LwWin32ErrorToName(dwError)));
+        }
     }
+
     LWNET_SAFE_FREE_DC_INFO(pDCInfo);
     LWNET_SAFE_FREE_STRING(pszTargetFQDN);
     LWNET_SAFE_FREE_STRING(pszSiteName);

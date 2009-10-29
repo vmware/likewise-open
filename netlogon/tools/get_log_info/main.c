@@ -43,6 +43,7 @@
  * Authors: Danilo Almeida (dalmeida@likewise.com)
  */
 
+#include <lwnet-system.h>
 #include <lwnet.h>
 #include <lw/base.h>
 #include <lwerror.h>
@@ -62,6 +63,8 @@
 
 #define HAVE_MORE_ARGS(Argc, LastArgIndex, ArgsNeeded) \
     (((Argc) - (LastArgIndex)) > (ArgsNeeded))
+
+#define LW_PRINTF_STRING(x) ((x) ? (x) : "<null>")
 
 static
 VOID
@@ -217,7 +220,7 @@ PrintError(
         pszUseErrorPrefix = pszErrorPrefix;
         if (!pszUseErrorPrefix)
         {
-            pszUseErrorPrefix = "ERROR: ";
+            pszUseErrorPrefix = "Failed communication with the LWNET Agent";
         }
 
         size = LwGetErrorString(dwError, NULL, 0);
@@ -231,11 +234,20 @@ PrintError(
         }
         if (RtlCStringIsNullOrEmpty(pszErrorString))
         {
-            fprintf(stderr, "%s (error = %u)\n", pszUseErrorPrefix, dwError);
+            fprintf(stderr,
+                    "%s.  Error code %u (%s).\n",
+                    pszUseErrorPrefix,
+                    dwError,
+                    LW_PRINTF_STRING(LwWin32ErrorToName(dwError)));
         }
         else
         {
-            fprintf(stderr, "%s (error = %u - %s)\n", pszUseErrorPrefix, dwError, pszErrorString);
+            fprintf(stderr,
+                    "%s.  Error code %u (%s).\n%s\n",
+                    pszUseErrorPrefix,
+                    dwError,
+                    LW_PRINTF_STRING(LwWin32ErrorToName(dwError)),
+                    pszErrorString);
         }
     }
 }
@@ -261,7 +273,7 @@ main(
     ParseArgs(argc, argv);
 
     dwError = LWNetGetLogInfo(&LogLevel, &LogTarget, &pszLogPath);
-    MY_GOTO_CLEANUP_ON_ERROR(dwError, pszErrorPrefix, "Failed to get log info.");
+    MY_GOTO_CLEANUP_ON_ERROR(dwError, pszErrorPrefix, "Failed to get log info");
 
     PrintLogInfo("Current", LogLevel, LogTarget, pszLogPath);
 
