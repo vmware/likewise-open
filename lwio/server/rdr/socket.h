@@ -147,4 +147,9 @@ RdrSocketGetIgnoreServerSignatures(
     PSMB_SOCKET pSocket
     );
 
+VOID
+SMBSocketBeginSequence(
+    PSMB_SOCKET pSocket
+    );
+
 #endif /* __SOCKET_H__ */

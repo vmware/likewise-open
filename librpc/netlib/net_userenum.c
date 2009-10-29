@@ -28,67 +28,84 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        net_userenum.h
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Client Interface
+ *
+ *        NetUserEnum function
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
+ */
+
 #include "includes.h"
 
 
 NET_API_STATUS
 NetUserEnum(
-    const wchar16_t *hostname,
-    uint32 level, uint32 filter,
-    void **buffer,
-    uint32 maxlen,
-    uint32 *out_entries,
-    uint32 *out_total,
-    uint32 *out_resume
+    PCWSTR  pwszHostname,
+    DWORD   dwLevel,
+    DWORD   dwFilter,
+    PVOID  *ppBuffer,
+    DWORD   dwMaxLen,
+    PDWORD  pdwNumEntries,
+    PDWORD  pdwTotalEntries,
+    PDWORD  pdwResume
     )
 {
-    const uint32 dom_flags = DOMAIN_ACCESS_ENUM_ACCOUNTS |
-                             DOMAIN_ACCESS_OPEN_ACCOUNT;
-    const uint16 dominfo_level = 2;
-    const uint16 infolevel = 21;
+    const DWORD dwDomainFlags = DOMAIN_ACCESS_ENUM_ACCOUNTS |
+                                DOMAIN_ACCESS_OPEN_ACCOUNT;
+    const WORD wDomainInfoLevel = 2;
+    const WORD wInfoLevel = 21;
 
     NTSTATUS status = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
-    NetConn *conn = NULL;
-    handle_t samr_b = NULL;
+    NetConn *pConn = NULL;
+    handle_t hSamrBinding = NULL;
     DOMAIN_HANDLE hDomain = NULL;
     ACCOUNT_HANDLE hUser = NULL;
-    DomainInfo *dominfo = NULL;
-    uint32 num_entries = 0;
-    uint32 max_size = 0;
-    uint32 i = 0;
-    wchar16_t **usernames = NULL;
-    uint32 *userrids = NULL;
-    uint32 acct_flags = 0;
-    uint32 user_flags = 0;
-    void *ninfo = NULL;         /* "Net" user info */
-    UserInfo21 *sinfo = NULL;   /* "Samr" user info */
-    UserInfo *ui = NULL;
-    uint32 total = 0;
-    uint32 resume = 0;
-    PIO_CREDS creds = NULL;
+    DomainInfo *pDomainInfo = NULL;
+    DWORD dwNumEntries = 0;
+    DWORD dwMaxSize = 0;
+    DWORD i = 0;
+    PWSTR *ppwszUsernames = NULL;
+    PDWORD pdwUserRids = NULL;
+    DWORD dwAcctFlags = 0;
+    DWORD dwUserFlags = 0;
+    PVOID pNetUserInfo = NULL;
+    UserInfo21 *pSamrUserInfo21 = NULL;
+    UserInfo *pSamrUserInfo = NULL;
+    DWORD dwTotal = 0;
+    DWORD dwResume = 0;
+    PIO_CREDS pCreds = NULL;
 
-    BAIL_ON_INVALID_PTR(hostname);
-    BAIL_ON_INVALID_PTR(buffer);
-    BAIL_ON_INVALID_PTR(out_entries);
-    BAIL_ON_INVALID_PTR(out_total);
-    BAIL_ON_INVALID_PTR(out_resume);
+    BAIL_ON_INVALID_PTR(ppBuffer);
+    BAIL_ON_INVALID_PTR(pdwNumEntries);
+    BAIL_ON_INVALID_PTR(pdwTotalEntries);
+    BAIL_ON_INVALID_PTR(pdwResume);
 
-    switch (filter) {
+    switch (dwFilter)
+    {
     case FILTER_NORMAL_ACCOUNT:
-        acct_flags = ACB_NORMAL;
+        dwAcctFlags = ACB_NORMAL;
         break;
 
     case FILTER_WORKSTATION_TRUST_ACCOUNT:
-        acct_flags = ACB_WSTRUST;
+        dwAcctFlags = ACB_WSTRUST;
         break;
 
     case FILTER_SERVER_TRUST_ACCOUNT:
-        acct_flags = ACB_SVRTRUST;
+        dwAcctFlags = ACB_SVRTRUST;
         break;
 
     case FILTER_INTERDOMAIN_TRUST_ACCOUNT:
-        acct_flags = ACB_DOMTRUST;
+        dwAcctFlags = ACB_DOMTRUST;
         break;
 
     default:
@@ -96,134 +113,174 @@ NetUserEnum(
         goto error;
     }
 
-    if (!(level == 0 ||
-          level == 1 ||
-          level == 2 ||
-          level == 20)) {
+    if (!(dwLevel == 0 ||
+          dwLevel == 1 ||
+          dwLevel == 2 ||
+          dwLevel == 20))
+    {
         err = ERROR_INVALID_LEVEL;
         goto error;
     }
 
-    status = LwIoGetThreadCreds(&creds);
+    status = LwIoGetThreadCreds(&pCreds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    samr_b  = conn->samr.bind;
-    hDomain = conn->samr.hDomain;
-
-    status = NetConnectSamr(&conn, hostname, dom_flags, 0, creds);
+    status = NetConnectSamr(&pConn,
+                            pwszHostname,
+                            dwDomainFlags,
+                            0,
+                            pCreds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
+    hSamrBinding = pConn->samr.bind;
+    hDomain      = pConn->samr.hDomain;
 
-    samr_b  = conn->samr.bind;
-    hDomain = conn->samr.hDomain;
-
-    status = SamrQueryDomainInfo(samr_b, hDomain, dominfo_level, &dominfo);
+    status = SamrQueryDomainInfo(hSamrBinding,
+                                 hDomain,
+                                 wDomainInfoLevel,
+                                 &pDomainInfo);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    total    = dominfo->info2.num_users;
-    resume   = *out_resume;
-    max_size = maxlen;
+    dwTotal    = pDomainInfo->info2.num_users;
+    dwResume   = *pdwResume;
+    dwMaxSize  = dwMaxLen;
 
-    status = SamrEnumDomainUsers(samr_b, hDomain, &resume, acct_flags,
-                                 max_size, &usernames, &userrids,
-                                 &num_entries);
+    status = SamrEnumDomainUsers(hSamrBinding,
+                                 hDomain,
+                                 &dwResume,
+                                 dwAcctFlags,
+                                 dwMaxSize,
+                                 &ppwszUsernames,
+                                 &pdwUserRids,
+                                 &dwNumEntries);
     if (status != 0 &&
-        status != STATUS_MORE_ENTRIES) {
+        status != STATUS_MORE_ENTRIES)
+    {
         err = NtStatusToWin32Error(status);
         goto error;
     }
 
-    status = NetAllocateMemory((void**)&sinfo,
-                               sizeof(UserInfo) * num_entries,
+    status = NetAllocateMemory((void**)&pSamrUserInfo21,
+                               sizeof(UserInfo) * dwNumEntries,
                                NULL);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    for (i = 0; i < num_entries; i++) {
-        if (level != 0) {
-            /* full query user info of user accounts (one by one)
-               is necessary */
-            user_flags = USER_ACCESS_GET_NAME_ETC |
-                         USER_ACCESS_GET_ATTRIBUTES |
-                         USER_ACCESS_GET_LOCALE |
-                         USER_ACCESS_GET_LOGONINFO |
-                         USER_ACCESS_GET_GROUPS;
+    for (i = 0; i < dwNumEntries; i++)
+    {
+        if (dwLevel != 0)
+        {
+            /*
+             * Full query user info of user accounts (one by one)
+             * is necessary
+             */
+            dwUserFlags = USER_ACCESS_GET_NAME_ETC |
+                          USER_ACCESS_GET_ATTRIBUTES |
+                          USER_ACCESS_GET_LOCALE |
+                          USER_ACCESS_GET_LOGONINFO |
+                          USER_ACCESS_GET_GROUPS;
 
-            status = SamrOpenUser(samr_b, hDomain, user_flags, userrids[i],
+            status = SamrOpenUser(hSamrBinding,
+                                  hDomain,
+                                  dwUserFlags,
+                                  pdwUserRids[i],
                                   &hUser);
             BAIL_ON_NTSTATUS_ERROR(status);
 
-            status = SamrQueryUserInfo(samr_b, hUser, infolevel, &ui);
+            status = SamrQueryUserInfo(hSamrBinding,
+                                       hUser,
+                                       wInfoLevel,
+                                       &pSamrUserInfo);
             BAIL_ON_NTSTATUS_ERROR(status);
 
-            if (ui) {
-                memcpy(&(sinfo[i]), &ui->info21, sizeof(UserInfo21));
-                NetFreeMemory((void*)ui);
+            if (pSamrUserInfo)
+            {
+                memcpy(&(pSamrUserInfo21[i]),
+                       &pSamrUserInfo->info21,
+                       sizeof(UserInfo21));
+                NetFreeMemory((void*)pSamrUserInfo);
             }
 
-            status = SamrClose(samr_b, hUser);
+            status = SamrClose(hSamrBinding, hUser);
             BAIL_ON_NTSTATUS_ERROR(status);
         }
     }
 
-    switch (level) {
-    case 0: status = PullUserInfo0(&ninfo, usernames, num_entries);
-        break;
+    if (ppwszUsernames && dwNumEntries)
+    {
+        switch (dwLevel)
+        {
+        case 0: status = PullUserInfo0(&pNetUserInfo,
+                                       ppwszUsernames,
+                                       dwNumEntries);
+            break;
 
-    case 1: status = PullUserInfo1(&ninfo, sinfo, num_entries);
-        break;
+        case 1: status = PullUserInfo1(&pNetUserInfo,
+                                       pSamrUserInfo21,
+                                       dwNumEntries);
+            break;
 
-    case 2: status = PullUserInfo2(&ninfo, sinfo, num_entries);
-        break;
+        case 2: status = PullUserInfo2(&pNetUserInfo,
+                                       pSamrUserInfo21,
+                                       dwNumEntries);
+            break;
 
-    case 20: status = PullUserInfo20(&ninfo, sinfo, num_entries);
-        break;
+        case 20: status = PullUserInfo20(&pNetUserInfo,
+                                         pSamrUserInfo21,
+                                         dwNumEntries);
+            break;
+        }
+        BAIL_ON_NTSTATUS_ERROR(status);
     }
 
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    *buffer      = ninfo;
-    *out_resume  = resume;
-    *out_entries = num_entries;
-    *out_total   = total;
+    *ppBuffer        = pNetUserInfo;
+    *pdwResume       = dwResume;
+    *pdwNumEntries   = dwNumEntries;
+    *pdwTotalEntries = dwTotal;
 
 cleanup:
-    if (sinfo) {
-        NetFreeMemory((void*)sinfo);
+    if (pSamrUserInfo21)
+    {
+        NetFreeMemory((void*)pSamrUserInfo21);
     }
 
-    if (dominfo) {
-        SamrFreeMemory((void*)dominfo);
+    if (pDomainInfo)
+    {
+        SamrFreeMemory((void*)pDomainInfo);
     }
 
-    if (usernames) {
-        SamrFreeMemory((void*)usernames);
+    if (ppwszUsernames)
+    {
+        SamrFreeMemory((void*)ppwszUsernames);
     }
 
-    if (userrids) {
-        SamrFreeMemory((void*)userrids);
+    if (pdwUserRids)
+    {
+        SamrFreeMemory((void*)pdwUserRids);
     }
 
     if (err == ERROR_SUCCESS &&
-        status != STATUS_SUCCESS) {
+        status != STATUS_SUCCESS)
+    {
         err = NtStatusToWin32Error(status);
     }
 
     return err;
 
 error:
-    if (ninfo) {
-        NetFreeMemory((void*)ninfo);
-    }
-
-    if (creds)
+    if (pNetUserInfo)
     {
-        LwIoDeleteCreds(creds);
+        NetFreeMemory((void*)pNetUserInfo);
     }
 
-    *buffer  = NULL;
-    *out_resume  = 0;
-    *out_entries = 0;
-    *out_total   = 0;
+    if (pCreds)
+    {
+        LwIoDeleteCreds(pCreds);
+    }
+
+    *ppBuffer        = NULL;
+    *pdwResume       = 0;
+    *pdwNumEntries   = 0;
+    *pdwTotalEntries = 0;
 
     goto cleanup;
 }

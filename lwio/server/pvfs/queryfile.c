@@ -69,7 +69,7 @@ static struct _InfoLevelDispatchEntry InfoLevelDispatchTable[] = {
     { FileInternalInformation,          &PvfsFileInternalInfo },
     { FileModeInformation,              NULL },
     { FileNameInformation,              &PvfsFileNameInfo },
-    { FileNetworkOpenInformation,       NULL },
+    { FileNetworkOpenInformation,       &PvfsFileNetworkOpenInfo },
     { FilePipeInformation,              NULL },
     { FilePipeLocalInformation,         NULL },
     { FilePipeRemoteInformation,        NULL },

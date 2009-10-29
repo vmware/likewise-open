@@ -1,9 +1,9 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
- * Copyright Likewise Software
+ * Copyright Likewise Software    2004-2008
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -28,70 +28,65 @@
  * license@likewisesoftware.com
  */
 
-#ifndef __SMBKRB5_H__
-#define __SMBKRB5_H__
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        mpr.h
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Client Interface
+ *
+ *        Networking client functions
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
+ */
+
+#ifndef _MPR_H_
+#define _MPR_H_
+
+
+typedef struct _NETRESOURCE
+{
+    DWORD  dwScope;
+    DWORD  dwType;
+    DWORD  dwDisplayType;
+    DWORD  dwUsage;
+    PWSTR  pwszLocalName;
+    PWSTR  pwszRemoteName;
+    PWSTR  pwszComment;
+    PWSTR  pwszProvider;
+
+} NETRESOURCE, *PNETRESOURCE;
+
 
 DWORD
-SMBKrb5Init(
-    PCSTR pszHostname,
-    PCSTR pszDomain
+WNetAddConnection2(
+    IN PNETRESOURCE pResource,
+    IN PCWSTR       pwszPassword,
+    IN PCWSTR       pwszUsername,
+    IN DWORD        dwFlags
     );
+
 
 DWORD
-SMBKrb5SetDefaultCachePath(
-    PCSTR pszCachePath,
-    PSTR* ppszOrigCachePath
+WNetCancelConnection2(
+    IN PCWSTR pwszName,
+    IN DWORD  dwFlags,
+    IN BOOL   bForce
     );
 
-DWORD
-SMBGSSContextBuild(
-    PCSTR     pszServerName,
-    PCWSTR    pwszUser,
-    PCWSTR    pwszDomain,
-    PCWSTR    pwszPassword,
-    PHANDLE   phSMBGSSContext
-    );
 
-BOOLEAN
-SMBGSSContextNegotiateComplete(
-    HANDLE hSMBGSSContext
-    );
+#endif /* _MPR_H_ */
 
-DWORD
-SMBGSSContextNegotiate(
-    HANDLE hSMBGSSContext,
-    PBYTE  pSecurityInputBlob,
-    DWORD  dwSecurityInputBlobLength,
-    PBYTE* ppSecurityBlob,
-    PDWORD pdwSecurityBlobLength
-    );
 
-NTSTATUS
-SMBGSSContextGetSessionKey(
-    HANDLE hSMBGSSContext,
-    PBYTE* ppSessionKey,
-    PDWORD pdwSessionKeyLength
-    );
-
-VOID
-SMBGSSContextFree(
-    HANDLE hSMBGSSContext
-    );
-
-DWORD
-SMBKrb5Shutdown(
-    VOID
-    );
-
-NTSTATUS
-SMBCredTokenToKrb5CredCache(
-    PIO_CREDS pCredToken,
-    PSTR* ppszCachePath
-    );
-
-DWORD
-SMBKrb5DestroyCache(
-    PCSTR pszCachePath
-    );
-
-#endif /* __SMBKRB5_H__ */
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

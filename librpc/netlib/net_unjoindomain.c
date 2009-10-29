@@ -86,7 +86,7 @@ NET_API_STATUS NetUnjoinDomainLocal(const wchar16_t *machine,
     if (options & NETSETUP_ACCT_DELETE) {
         if (account && password)
         {
-            status = LwIoCreatePlainCredsW(account, password, &creds);
+            status = LwIoCreatePlainCredsW(account, domain, password, &creds);
             BAIL_ON_NTSTATUS_ERROR(status);
         }
         else

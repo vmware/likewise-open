@@ -43,6 +43,7 @@ LWMsgTypeSpec gSecurityTokenRepSpec[] =
     /* Union arm -- plain */
     LWMSG_MEMBER_STRUCT_BEGIN(union _LW_IO_CREDS_U, plain),
     LWMSG_MEMBER_PWSTR(struct _LW_IO_CREDS_PLAIN, pwszUsername),
+    LWMSG_MEMBER_PWSTR(struct _LW_IO_CREDS_PLAIN, pwszDomain),
     LWMSG_MEMBER_PWSTR(struct _LW_IO_CREDS_PLAIN, pwszPassword),
     LWMSG_ATTR_SENSITIVE,
     LWMSG_STRUCT_END,

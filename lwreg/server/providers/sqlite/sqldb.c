@@ -122,6 +122,12 @@ RegDbUnpackRegEntryInfo(
         &pResult->pszValue);
     BAIL_ON_REG_ERROR(dwError);
 
+    if (pResult->type != REG_KEY && !pResult->pszValueName)
+    {
+        dwError = LW_ERROR_INVALID_VALUENAME;
+        BAIL_ON_REG_ERROR(dwError);
+    }
+
 error:
     return dwError;
 }
@@ -743,12 +749,6 @@ RegDbCreateKey(
     dwError = LwAllocateString(pszKeyName, &pRegEntry->pszKeyName);
     BAIL_ON_REG_ERROR(dwError);
 
-    dwError = LwAllocateString("", &pRegEntry->pszValueName);
-    BAIL_ON_REG_ERROR(dwError);
-
-    dwError = LwAllocateString("", &pRegEntry->pszValue);
-    BAIL_ON_REG_ERROR(dwError);
-
     pRegEntry->type = REG_KEY;
     pRegEntry->version.qwDbId = -1;
 
@@ -756,15 +756,6 @@ RegDbCreateKey(
                  hDb,
                  1,
                  &pRegEntry);
-    BAIL_ON_REG_ERROR(dwError);
-
-    /*Create default key value*/
-    dwError = RegDbCreateKeyValue(hDb,
-                                  pszKeyName,
-                                  "@",
-                                  "",
-                                  REG_SZ,
-                                  NULL);
     BAIL_ON_REG_ERROR(dwError);
 
     *ppRegEntry = pRegEntry;
@@ -1721,8 +1712,12 @@ RegCacheSafeRecordValuesInfo_inlock(
                                    &pKeyResult->ppszValueNames[iCount]);
         BAIL_ON_REG_ERROR(dwError);
 
-        dwError = LwAllocateString(ppRegEntries[iCount]->pszValue, &pKeyResult->ppszValues[iCount]);
-        BAIL_ON_REG_ERROR(dwError);
+        if (ppRegEntries[iCount]->pszValue)
+        {
+            dwError = LwAllocateString(ppRegEntries[iCount]->pszValue,
+                                       &pKeyResult->ppszValues[iCount]);
+            BAIL_ON_REG_ERROR(dwError);
+        }
 
         pKeyResult->pTypes[iCount] = ppRegEntries[iCount]->type;
 

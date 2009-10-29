@@ -40,26 +40,32 @@ LwIoCredentialCacheToTgt(
 NTSTATUS
 LwIoCreatePlainCredsA(
     PCSTR pszUsername,
+    PCSTR pszDomain,
     PCSTR pszPassword,
     PIO_CREDS* ppCreds
     )
 {
     NTSTATUS Status = STATUS_SUCCESS;
     PWSTR pwszUsername = NULL;
+    PWSTR pwszDomain = NULL;
     PWSTR pwszPassword = NULL;
     
     Status = LwRtlWC16StringAllocateFromCString(&pwszUsername, pszUsername);
     BAIL_ON_NT_STATUS(Status);
 
+    Status = LwRtlWC16StringAllocateFromCString(&pwszDomain, pszDomain);
+    BAIL_ON_NT_STATUS(Status);
+
     Status = LwRtlWC16StringAllocateFromCString(&pwszPassword, pszPassword);
     BAIL_ON_NT_STATUS(Status);
 
-    Status = LwIoCreatePlainCredsW(pwszUsername, pwszPassword, ppCreds);
+    Status = LwIoCreatePlainCredsW(pwszUsername, pwszDomain, pwszPassword, ppCreds);
     BAIL_ON_NT_STATUS(Status);
 
 error:
     
     IO_SAFE_FREE_MEMORY(pwszUsername);
+    IO_SAFE_FREE_MEMORY(pwszDomain);
     IO_SAFE_FREE_MEMORY(pwszPassword);
 
     return Status;
@@ -68,6 +74,7 @@ error:
 NTSTATUS
 LwIoCreatePlainCredsW(
     PCWSTR pwszUsername,
+    PCWSTR pwszDomain,
     PCWSTR pwszPassword,
     PIO_CREDS* ppCreds
     )
@@ -84,6 +91,10 @@ LwIoCreatePlainCredsW(
         &pCreds->payload.plain.pwszUsername,
         pwszUsername);
     BAIL_ON_NT_STATUS(Status);
+
+   Status = RtlWC16StringDuplicate(
+        &pCreds->payload.plain.pwszDomain,
+        pwszDomain);
 
     Status = RtlWC16StringDuplicate(
         &pCreds->payload.plain.pwszPassword,
@@ -200,6 +211,10 @@ LwIoCopyCreds(
                 pCreds->payload.plain.pwszUsername);
             BAIL_ON_NT_STATUS(Status);
             Status = RtlWC16StringDuplicate(
+                &pCredsCopy->payload.plain.pwszDomain,
+                pCreds->payload.plain.pwszDomain);
+            BAIL_ON_NT_STATUS(Status);
+            Status = RtlWC16StringDuplicate(
                 &pCredsCopy->payload.plain.pwszPassword,
                 pCreds->payload.plain.pwszPassword);
             BAIL_ON_NT_STATUS(Status);
@@ -281,6 +296,7 @@ LwIoDeleteCreds(
         {
         case IO_CREDS_TYPE_PLAIN:
             IO_SAFE_FREE_MEMORY(pCreds->payload.plain.pwszUsername);
+            IO_SAFE_FREE_MEMORY(pCreds->payload.plain.pwszDomain);
             IO_SAFE_FREE_MEMORY(pCreds->payload.plain.pwszPassword);
             break;
         case IO_CREDS_TYPE_KRB5_CCACHE:

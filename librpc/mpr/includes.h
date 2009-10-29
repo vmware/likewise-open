@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software
@@ -28,70 +28,32 @@
  * license@likewisesoftware.com
  */
 
-#ifndef __SMBKRB5_H__
-#define __SMBKRB5_H__
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdarg.h>
+#include <string.h>
+#include <strings.h>
+#include <unistd.h>
+#include <wchar.h>
+#include <time.h>
+#include <pthread.h>
+#include <errno.h>
 
-DWORD
-SMBKrb5Init(
-    PCSTR pszHostname,
-    PCSTR pszDomain
-    );
+#include <wc16str.h>
+#include <wc16printf.h>
+#include <lw/ntstatus.h>
+#include <winerror.h>
+#include <winerror-conv.h>
+#include <lwio/lwio.h>
 
-DWORD
-SMBKrb5SetDefaultCachePath(
-    PCSTR pszCachePath,
-    PSTR* ppszOrigCachePath
-    );
+#include <lwrpc/mpr.h>
 
-DWORD
-SMBGSSContextBuild(
-    PCSTR     pszServerName,
-    PCWSTR    pwszUser,
-    PCWSTR    pwszDomain,
-    PCWSTR    pwszPassword,
-    PHANDLE   phSMBGSSContext
-    );
 
-BOOLEAN
-SMBGSSContextNegotiateComplete(
-    HANDLE hSMBGSSContext
-    );
-
-DWORD
-SMBGSSContextNegotiate(
-    HANDLE hSMBGSSContext,
-    PBYTE  pSecurityInputBlob,
-    DWORD  dwSecurityInputBlobLength,
-    PBYTE* ppSecurityBlob,
-    PDWORD pdwSecurityBlobLength
-    );
-
-NTSTATUS
-SMBGSSContextGetSessionKey(
-    HANDLE hSMBGSSContext,
-    PBYTE* ppSessionKey,
-    PDWORD pdwSessionKeyLength
-    );
-
-VOID
-SMBGSSContextFree(
-    HANDLE hSMBGSSContext
-    );
-
-DWORD
-SMBKrb5Shutdown(
-    VOID
-    );
-
-NTSTATUS
-SMBCredTokenToKrb5CredCache(
-    PIO_CREDS pCredToken,
-    PSTR* ppszCachePath
-    );
-
-DWORD
-SMBKrb5DestroyCache(
-    PCSTR pszCachePath
-    );
-
-#endif /* __SMBKRB5_H__ */
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

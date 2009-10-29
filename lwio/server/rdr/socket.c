@@ -381,6 +381,20 @@ SMBSocketGetNextSequence(
 }
 
 VOID
+SMBSocketBeginSequence(
+    PSMB_SOCKET pSocket
+    )
+{
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
+
+    pSocket->dwSequence = 2;
+
+    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
+}
+
+VOID
 SMBSocketUpdateLastActiveTime(
     PSMB_SOCKET pSocket
     )

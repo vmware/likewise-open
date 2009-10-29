@@ -92,10 +92,33 @@ RdrCreateFileEx(
     PWSTR  pwszFilename = NULL;
     PSMB_CLIENT_FILE_HANDLE pFile = NULL;
     PSTR   pszCachePath = NULL;
-    PSTR   pszPrincipal = NULL;
+    PWSTR  pwszUsername = NULL;
+    PWSTR  pwszDomain = NULL;
+    PWSTR  pwszPassword = NULL;
 
-    if (!pSecurityToken || pSecurityToken->type != IO_CREDS_TYPE_KRB5_TGT)
+    if (!pSecurityToken)
     {
+        ntStatus = STATUS_ACCESS_DENIED;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    switch (pSecurityToken->type)
+    {
+    case IO_CREDS_TYPE_KRB5_TGT:
+        pwszUsername = pSecurityToken->payload.krb5Tgt.pwszClientPrincipal;
+
+        ntStatus = SMBCredTokenToKrb5CredCache(pSecurityToken, &pszCachePath);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = SMBKrb5SetDefaultCachePath(pszCachePath, NULL);
+        BAIL_ON_NT_STATUS(ntStatus);
+        break;
+    case IO_CREDS_TYPE_PLAIN:
+        pwszUsername = pSecurityToken->payload.plain.pwszUsername;
+        pwszDomain = pSecurityToken->payload.plain.pwszDomain;
+        pwszPassword = pSecurityToken->payload.plain.pwszPassword;
+        break;
+    default:
         ntStatus = STATUS_ACCESS_DENIED;
         BAIL_ON_NT_STATUS(ntStatus);
     }
@@ -117,25 +140,12 @@ RdrCreateFileEx(
         &pszFilename);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBCredTokenToKrb5CredCache(
-        pSecurityToken,
-        &pszCachePath);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SMBWc16sToMbs(
-        pSecurityToken->payload.krb5Tgt.pwszClientPrincipal,
-        &pszPrincipal);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SMBKrb5SetDefaultCachePath(
-        pszCachePath,
-        NULL);
-    BAIL_ON_NT_STATUS(ntStatus);
-
     ntStatus = SMBSrvClientTreeOpen(
                     pszServer,
-                    pszPrincipal,
                     pszShare,
+                    pwszUsername,
+                    pwszDomain,
+                    pwszPassword,
                     pProcessInfo->Uid,
                     &pFile->pTree);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -168,7 +178,6 @@ cleanup:
     LWIO_SAFE_FREE_STRING(pszShare);
     LWIO_SAFE_FREE_STRING(pszFilename);
     LWIO_SAFE_FREE_MEMORY(pwszFilename);
-    LWIO_SAFE_FREE_MEMORY(pszPrincipal);
 
     if (pszCachePath)
     {
@@ -245,13 +254,6 @@ ParseSharePath(
                     sLen,
                     &pszServer);
     BAIL_ON_NT_STATUS(ntStatus);
-
-    // Don't allow IP address as a server name
-    if (inet_aton(pszServer, &ipAddr))
-    {
-        ntStatus = LWIO_ERROR_INVALID_PARAMETER;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
 
     pszIndex += sLen;
 

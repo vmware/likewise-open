@@ -81,7 +81,7 @@ function setup_environment
 	    export LD_LIBRARY_PATH=${LWDIR}/${LWLIB}:${MONO_LIBS}
 	    ;;
 	Darwin)
-	    export DYLD_LIBRARY_PATH=${LWDIR}/${LWLIB}:${OSX_IMAGE_IO}:${MONO_LIBS}:${X11_DIR}/${LIB}
+	    export DYLD_LIBRARY_PATH=/usr/lib:${LWDIR}/${LWLIB}:${OSX_IMAGE_IO}:${MONO_LIBS}:${X11_DIR}/${LIB}
 	    ;;
         *)
 	    export LD_LIBRARY_PATH=${LWDIR}/${LWLIB}:${MONO_LIBS}

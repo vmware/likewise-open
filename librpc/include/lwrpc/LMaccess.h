@@ -46,11 +46,14 @@
 // USER_INFO levels
 //
 
-typedef struct _USER_INFO_0 {
+typedef struct _USER_INFO_0
+{
     wchar16_t *usri0_name;
-} USER_INFO_0;
 
-typedef struct _USER_INFO_1 {
+} USER_INFO_0, *PUSER_INFO_0;
+
+typedef struct _USER_INFO_1
+{
     wchar16_t *usri1_name;
     wchar16_t *usri1_password;
     uint32 usri1_password_age;
@@ -59,9 +62,11 @@ typedef struct _USER_INFO_1 {
     wchar16_t *usri1_comment;
     uint32 usri1_flags;
     wchar16_t *usri1_script_path;
-} USER_INFO_1;
 
-typedef struct _USER_INFO_2 {
+} USER_INFO_1, *PUSER_INFO_1;
+
+typedef struct _USER_INFO_2
+{
     wchar16_t *usri2_name;
     wchar16_t *usri2_password;
     uint32 usri2_password_age;
@@ -86,9 +91,11 @@ typedef struct _USER_INFO_2 {
     wchar16_t *usri2_logon_server;
     uint32 usri2_country_code;
     uint32 usri2_code_page;
-} USER_INFO_2;
 
-typedef struct _USER_INFO_3 {
+} USER_INFO_2, *PUSER_INFO_2;
+
+typedef struct _USER_INFO_3
+{
     wchar16_t *usri3_name;
     wchar16_t *usri3_password;
     wchar16_t *usri3_password_age;
@@ -118,9 +125,11 @@ typedef struct _USER_INFO_3 {
     wchar16_t *usri3_profile;
     wchar16_t *usri3_home_dir_drive;
     uint32 usri3_password_expired;
-} USER_INFO_3;
 
-typedef struct _USER_INFO_4 {
+} USER_INFO_3, *PUSER_INFO_3;
+
+typedef struct _USER_INFO_4
+{
     wchar16_t *usri4_name;
     wchar16_t *usri4_password;
     wchar16_t *usri4_password_age;
@@ -150,16 +159,20 @@ typedef struct _USER_INFO_4 {
     wchar16_t *usri4_profile;
     wchar16_t *usri4_home_dir_drive;
     uint32 usri4_password_expired;
-} USER_INFO_4;
 
-typedef struct _USER_INFO_10 {
+} USER_INFO_4, *PUSER_INFO_4;
+
+typedef struct _USER_INFO_10
+{
     wchar16_t *usri10_name;
     wchar16_t *usri10_comment;
     wchar16_t *usri10_usr_comment;
     wchar16_t *usri10_full_name;
-} USER_INFO_10;
 
-typedef struct _USER_INFO_11 {
+} USER_INFO_10, *PUSER_INFO_10;
+
+typedef struct _USER_INFO_11
+{
     wchar16_t *usri11_name;
     wchar16_t *usri11_comment;
     wchar16_t *usri11_usr_comment;
@@ -180,38 +193,51 @@ typedef struct _USER_INFO_11 {
     uint32 usri11_units_per_week;
     uint8 *usri11_logon_hours;
     uint32 usri11_code_page;
-} USER_INFO_11;
 
-typedef struct _USER_INFO_20 {
+} USER_INFO_11, *PUSER_INFO_11;
+
+typedef struct _USER_INFO_20
+{
     wchar16_t *usri20_name;
     wchar16_t *usri20_full_name;
     wchar16_t *usri20_comment;
     uint32 usri20_flags;
     uint32 usri20_user_id;
-} USER_INFO_20;
 
-typedef struct _USER_INFO_23 {
+} USER_INFO_20, *PUSER_INFO_20;
+
+typedef struct _USER_INFO_23
+{
     wchar16_t *usri23_name;
     wchar16_t *usri23_full_name;
     wchar16_t *usri23_comment;
     PSID usri23_user_sid;
-} USER_INFO_23;
 
-typedef struct _USER_INFO_1003 {
+} USER_INFO_23, *PUSER_INFO_23;
+
+typedef struct _USER_INFO_1003
+{
     wchar16_t *usri1003_password;
-} USER_INFO_1003;
 
-typedef struct _USER_INFO_1007 {
+} USER_INFO_1003, *PUSER_INFO_1003;
+
+typedef struct _USER_INFO_1007
+{
     wchar16_t *usri1007_comment;
-} USER_INFO_1007;
 
-typedef struct _USER_INFO_1008 {
+} USER_INFO_1007, *PUSER_INFO_1007;
+
+typedef struct _USER_INFO_1008
+{
     uint32 usri1008_flags;
-} USER_INFO_1008;
 
-typedef struct _USER_INFO_1011 {
+} USER_INFO_1008, *PUSER_INFO_1008;
+
+typedef struct _USER_INFO_1011
+{
     wchar16_t *usri1011_full_name;
-} USER_INFO_1011;
+
+} USER_INFO_1011, *PUSER_INFO_1011;
 
 
 //

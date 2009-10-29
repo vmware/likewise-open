@@ -30,49 +30,76 @@
 
 #include "includes.h"
 
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        net_userdel.h
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Client Interface
+ *
+ *        NetUserDel function
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
+ */
+
 
 NET_API_STATUS
 NetUserDel(
-    const wchar16_t *hostname,
-    const wchar16_t *username
+    PCWSTR  pwszHostname,
+    PCWSTR  pwszUsername
     )
 {
-    const uint32 user_access = DELETE;
+    const DWORD dwUserAccess = DELETE;
 
     NTSTATUS status = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
-    NetConn *conn = NULL;
-    handle_t samr_b = NULL;
+    NetConn *pConn = NULL;
+    handle_t hSamrBinding = NULL;
     ACCOUNT_HANDLE hUser = NULL;
-    uint32 user_rid = 0;
-    PIO_CREDS creds = NULL;
+    DWORD dwUserRid = 0;
+    PIO_CREDS pCreds = NULL;
 
-    status = LwIoGetThreadCreds(&creds);
+    BAIL_ON_INVALID_PTR(pwszUsername);
+
+    status = LwIoGetThreadCreds(&pCreds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = NetConnectSamr(&conn, hostname, 0, 0, creds);
+    status = NetConnectSamr(&pConn,
+                            pwszHostname,
+                            0,
+                            0,
+                            pCreds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    samr_b = conn->samr.bind;
+    hSamrBinding = pConn->samr.bind;
 
-    status = NetOpenUser(conn, username, user_access, &hUser, &user_rid);
+    status = NetOpenUser(pConn,
+                         pwszUsername,
+                         dwUserAccess,
+                         &hUser,
+                         &dwUserRid);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = SamrDeleteUser(samr_b, hUser);
+    status = SamrDeleteUser(hSamrBinding, hUser);
     BAIL_ON_NTSTATUS_ERROR(status);
 
 cleanup:
     if (err == ERROR_SUCCESS &&
-        status != STATUS_SUCCESS) {
+        status != STATUS_SUCCESS)
+    {
         err = NtStatusToWin32Error(status);
     }
 
     return err;
 
 error:
-    if (creds)
+    if (pCreds)
     {
-        LwIoDeleteCreds(creds);
+        LwIoDeleteCreds(pCreds);
     }
 
     goto cleanup;

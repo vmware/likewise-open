@@ -28,66 +28,92 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        net_user.c
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Client Interface
+ *
+ *        NetAPI user and alias (a.k.a. local group) open routines
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
+ */
+
 #include "includes.h"
 
 
 NTSTATUS
 NetOpenUser(
-    NetConn *conn,
-    const wchar16_t *username,
-    uint32 access_mask,
+    NetConn        *pConn,
+    PCWSTR          pwszUsername,
+    DWORD           dwAccessMask,
     ACCOUNT_HANDLE *phUser,
-    uint32 *rid
+    PDWORD          pdwRid
     )
 {
-    const uint32 num_users = 1;
+    const DWORD dwNumUsers = 1;
 
     NTSTATUS status = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
-    handle_t samr_b = NULL;
+    handle_t hSamrBinding = NULL;
     DOMAIN_HANDLE hDomain = NULL;
     ACCOUNT_HANDLE hUser = NULL;
-    wchar16_t *usernames[1] = {0};
-    uint32 *rids = NULL;
-    uint32 *types = NULL;
+    PWSTR ppwszUsernames[1] = {0};
+    PDWORD pdwRids = NULL;
+    PDWORD pdwTypes = NULL;
 
-    BAIL_ON_INVALID_PTR(conn);
-    BAIL_ON_INVALID_PTR(username);
+    BAIL_ON_INVALID_PTR(pConn);
+    BAIL_ON_INVALID_PTR(pwszUsername);
     BAIL_ON_INVALID_PTR(phUser);
-    BAIL_ON_INVALID_PTR(rid);
+    BAIL_ON_INVALID_PTR(pdwRid);
 
-    samr_b   = conn->samr.bind;
-    hDomain  = conn->samr.hDomain;
+    hSamrBinding = pConn->samr.bind;
+    hDomain      = pConn->samr.hDomain;
 
-    usernames[0] = wc16sdup(username);
-    BAIL_ON_NO_MEMORY(usernames[0]);
+    ppwszUsernames[0] = wc16sdup(pwszUsername);
+    BAIL_ON_NO_MEMORY(ppwszUsernames[0]);
 
-    status = SamrLookupNames(samr_b, hDomain, num_users, usernames,
-                             &rids, &types, NULL);
+    status = SamrLookupNames(hSamrBinding,
+                             hDomain,
+                             dwNumUsers,
+                             ppwszUsernames,
+                             &pdwRids,
+                             &pdwTypes,
+                             NULL);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = SamrOpenUser(samr_b, hDomain, access_mask, rids[0],
+    status = SamrOpenUser(hSamrBinding,
+                          hDomain,
+                          dwAccessMask,
+                          pdwRids[0],
                           &hUser);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    *rid    = rids[0];
+    *pdwRid = pdwRids[0];
     *phUser = hUser;
 
 cleanup:
-    if (rids) {
-        SamrFreeMemory((void*)rids);
+    if (pdwRids)
+    {
+        SamrFreeMemory((void*)pdwRids);
     }
 
-    if (types) {
-        SamrFreeMemory((void*)types);
+    if (pdwTypes)
+    {
+        SamrFreeMemory((void*)pdwTypes);
     }
 
-    SAFE_FREE(usernames[0]);
+    SAFE_FREE(ppwszUsernames[0]);
 
     return status;
 
 error:
-    *rid    = 0;
+    *pdwRid = 0;
     *phUser = NULL;
 
     goto cleanup;
@@ -96,63 +122,74 @@ error:
 
 NTSTATUS
 NetOpenAlias(
-    NetConn *conn,
-    const wchar16_t *aliasname,
-    uint32 access_mask,
+    NetConn        *pConn,
+    PCWSTR          pwszAliasname,
+    DWORD           dwAccessMask,
     ACCOUNT_HANDLE *phAlias,
-    uint32 *rid
+    PDWORD          pdwRid
     )
 {
-    const uint32 num_aliases = 1;
+    const DWORD dwNumAliases = 1;
 
     NTSTATUS status = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
-    handle_t samr_b = NULL;
+    handle_t hSamrBinding = NULL;
     DOMAIN_HANDLE hDomains[2] = {0};
     DOMAIN_HANDLE hDomain = NULL;
     ACCOUNT_HANDLE hAlias = NULL;
-    wchar16_t *aliasnames[1] = {0};
-    uint32 *rids = NULL;
-    uint32 *types = NULL;
-    uint32 alias_rid = 0;
-    int i = 0;
+    PWSTR ppwszAliasnames[1] = {0};
+    PDWORD pdwRids = NULL;
+    PDWORD pdwTypes = NULL;
+    DWORD dwAliasRid = 0;
+    DWORD i = 0;
 
-    BAIL_ON_INVALID_PTR(conn);
-    BAIL_ON_INVALID_PTR(aliasname);
+    BAIL_ON_INVALID_PTR(pConn);
+    BAIL_ON_INVALID_PTR(pwszAliasname);
     BAIL_ON_INVALID_PTR(phAlias);
-    BAIL_ON_INVALID_PTR(rid);
+    BAIL_ON_INVALID_PTR(pdwRid);
 
-    samr_b       = conn->samr.bind;
-    hDomains[0]  = conn->samr.hDomain;
-    hDomains[1]  = conn->samr.hBtinDomain;
+    hSamrBinding = pConn->samr.bind;
+    hDomains[0]  = pConn->samr.hDomain;
+    hDomains[1]  = pConn->samr.hBtinDomain;
 
-    aliasnames[0] = wc16sdup(aliasname);
-    BAIL_ON_NO_MEMORY(aliasnames[0]);
+    ppwszAliasnames[0] = wc16sdup(pwszAliasname);
+    BAIL_ON_NO_MEMORY(ppwszAliasnames[0]);
 
     /*
      * Try to look for alias in host domain first, then in builtin
      */
     for (i = 0; i < sizeof(hDomains)/sizeof(hDomains[0]); i++)
     {
-        status = SamrLookupNames(samr_b, hDomains[i], num_aliases, aliasnames,
-                                 &rids, &types, NULL);
-
-        if (status == STATUS_SUCCESS) {
-            /* alias has been found in one of domain so pass the domain's
-               handle further down */
-            hDomain   = hDomains[i];
-            alias_rid = rids[0];
+        status = SamrLookupNames(hSamrBinding,
+                                 hDomains[i],
+                                 dwNumAliases,
+                                 ppwszAliasnames,
+                                 (PUINT32*)&pdwRids,
+                                 (PUINT32*)&pdwTypes,
+                                 NULL);
+        if (status == STATUS_SUCCESS)
+        {
+            /*
+             * Alias has been found in one of domains so pass
+             * that domain handle further down
+             */
+            hDomain    = hDomains[i];
+            dwAliasRid = pdwRids[0];
             break;
 
-        } else if (status == STATUS_NONE_MAPPED) {
-            if (rids) {
-                SamrFreeMemory((void*)rids);
-                rids = NULL;
+        }
+        else if (status == STATUS_NONE_MAPPED)
+        {
+            if (pdwRids)
+            {
+                SamrFreeMemory((void*)pdwRids);
+                pdwRids = NULL;
             }
 
-            if (types) {
-                SamrFreeMemory((void*)types);
-                types = NULL;
+            if (pdwTypes)
+            {
+                SamrFreeMemory((void*)pdwTypes);
+                pdwTypes = NULL;
             }
 
             continue;
@@ -165,28 +202,33 @@ NetOpenAlias(
     /* Allow to open alias only if a valid one has been found */
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = SamrOpenAlias(samr_b, hDomain, access_mask, alias_rid,
+    status = SamrOpenAlias(hSamrBinding,
+                           hDomain,
+                           dwAccessMask,
+                           dwAliasRid,
                            &hAlias);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    *rid     = alias_rid;
+    *pdwRid  = dwAliasRid;
     *phAlias = hAlias;
 
 cleanup:
-    SAFE_FREE(aliasnames[0]);
+    SAFE_FREE(ppwszAliasnames[0]);
 
-    if (rids) {
-        SamrFreeMemory((void*)rids);
+    if (pdwRids)
+    {
+        SamrFreeMemory((void*)pdwRids);
     }
 
-    if (types) {
-        SamrFreeMemory((void*)types);
+    if (pdwTypes)
+    {
+        SamrFreeMemory((void*)pdwTypes);
     }
 
     return status;
 
 error:
-    *rid     = 0;
+    *pdwRid  = 0;
     *phAlias = NULL;
 
     goto cleanup;

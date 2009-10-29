@@ -70,6 +70,12 @@ SrvQueryFileInformation_SMB_V2(
 
 static
 NTSTATUS
+SrvProcessCreateContexts_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
 SrvRequestCreateOplocks_SMB_V2(
     PSRV_EXEC_CONTEXT pExecContext
     );
@@ -115,6 +121,21 @@ static
 NTSTATUS
 SrvBuildCreateResponse_SMB_V2(
     PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
+SrvWriteCreateContext(
+    PBYTE                 pOutBuffer,
+    ULONG                 ulOffset,
+    ULONG                 ulBytesAvailable,
+    PBYTE                 pName,
+    USHORT                usNameSize,
+    PBYTE                 pData,
+    ULONG                 ulDataSize,
+    PULONG                pulAlignBytesUsed,
+    PULONG                pulCCBytesUsed,
+    PSMB2_CREATE_CONTEXT* ppCreateContext
     );
 
 NTSTATUS
@@ -224,7 +245,7 @@ SrvProcessCreate_SMB_V2(
                             pCreateState->pEcpList);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            SrvReleaseCreateStateAsync_SMB_V2(pCreateState); // completed synchronously
+            SrvReleaseCreateStateAsync_SMB_V2(pCreateState); // completed sync
 
             // intentional fall through
 
@@ -232,6 +253,9 @@ SrvProcessCreate_SMB_V2(
 
             ntStatus = pCreateState->ioStatusBlock.Status;
             BAIL_ON_NT_STATUS(ntStatus);
+
+            pCreateState->ulCreateAction =
+                            pCreateState->ioStatusBlock.CreateResult;
 
             ntStatus = SrvTree2CreateFile(
                             pCreateState->pTree,
@@ -258,6 +282,15 @@ SrvProcessCreate_SMB_V2(
             ntStatus = SrvQueryFileInformation_SMB_V2(pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
 
+            pCreateState->stage = SRV_CREATE_STAGE_SMB_V2_QUERY_CREATE_CONTEXTS;
+
+            // intentional fall through
+
+        case SRV_CREATE_STAGE_SMB_V2_QUERY_CREATE_CONTEXTS:
+
+            ntStatus = SrvProcessCreateContexts_SMB_V2(pExecContext);
+            BAIL_ON_NT_STATUS(ntStatus);
+
             pCreateState->stage = SRV_CREATE_STAGE_SMB_V2_REQUEST_OPLOCK;
 
             // intentional fall through
@@ -275,8 +308,6 @@ SrvProcessCreate_SMB_V2(
 
             ntStatus = pCreateState->ioStatusBlock.Status;
             BAIL_ON_NT_STATUS(ntStatus);
-
-            // TODO: Execute create contexts and add results
 
             ntStatus = SrvBuildCreateResponse_SMB_V2(pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
@@ -550,6 +581,50 @@ cleanup:
 error:
 
     goto cleanup;
+}
+
+static
+NTSTATUS
+SrvProcessCreateContexts_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS                    ntStatus = STATUS_SUCCESS;
+    PSRV_PROTOCOL_EXEC_CONTEXT  pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V2    pCtxSmb2     = pCtxProtocol->pSmb2Context;
+    PSRV_CREATE_STATE_SMB_V2    pCreateState = NULL;
+
+    pCreateState = (PSRV_CREATE_STATE_SMB_V2)pCtxSmb2->hState;
+
+    for (;
+         pCreateState->iContext < pCreateState->ulNumContexts;
+         pCreateState->iContext++)
+    {
+        PSRV_CREATE_CONTEXT pCreateContext =
+                        &pCreateState->pCreateContexts[pCreateState->iContext];
+
+        switch (pCreateContext->contextItemType)
+        {
+            case SMB2_CONTEXT_ITEM_TYPE_MAX_ACCESS:
+
+                // TODO: Find the real max access mask on the file
+                pCreateState->ulMaximalAccessMask = 0x1F01FF;
+
+                break;
+
+            case SMB2_CONTEXT_ITEM_TYPE_DURABLE_HANDLE:
+            case SMB2_CONTEXT_ITEM_TYPE_QUERY_DISK_ID:
+            case SMB2_CONTEXT_ITEM_TYPE_EXT_ATTRS:
+            case SMB2_CONTEXT_ITEM_TYPE_SHADOW_COPY:
+            default:
+
+                // TODO:
+
+                break;
+        }
+    }
+
+    return ntStatus;
 }
 
 static
@@ -888,6 +963,10 @@ SrvBuildCreateResponse_SMB_V2(
     PSRV_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
     PSRV_MESSAGE_SMB_V2        pSmbResponse  = &pCtxSmb2->pResponses[iMsg];
     PSRV_CREATE_STATE_SMB_V2   pCreateState  = NULL;
+    ULONG                      iContext      = 0;
+    ULONG                      ulCreateContextOffset = 0;
+    ULONG                      ulCreateContextLength = 0;
+    PSMB2_CREATE_CONTEXT       pPrevCreateContext    = NULL;
     PSMB2_CREATE_RESPONSE_HEADER pResponseHeader = NULL; // Do not free
     PBYTE pOutBuffer       = pSmbResponse->pBuffer;
     ULONG ulBytesAvailable = pSmbResponse->ulBytesAvailable;
@@ -962,8 +1041,7 @@ SrvBuildCreateResponse_SMB_V2(
     }
 
     pResponseHeader->fid.ullVolatileId = pCreateState->pFile->ullFid;
-    pResponseHeader->ulCreateAction    =
-                                pCreateState->ioStatusBlock.CreateResult;
+    pResponseHeader->ulCreateAction    = pCreateState->ulCreateAction;
     pResponseHeader->ullCreationTime   =
                                 pCreateState->pFileBasicInfo->CreationTime;
     pResponseHeader->ullLastAccessTime =
@@ -978,6 +1056,97 @@ SrvBuildCreateResponse_SMB_V2(
                                 pCreateState->pFileStdInfo->AllocationSize;
     pResponseHeader->ullEndOfFile      = pCreateState->pFileStdInfo->EndOfFile;
     pResponseHeader->usLength          = ulBytesUsed + 1;
+
+    // TODO:
+    iContext = pCreateState->ulNumContexts;
+
+    for (; iContext < pCreateState->ulNumContexts; iContext++)
+    {
+        PSMB2_CREATE_CONTEXT pCurCreateContext     = NULL;
+        ULONG                ulCCBytesUsed         = 0;
+        ULONG                ulAlignBytesUsed      = 0;
+        PSRV_CREATE_CONTEXT  pCreateContextRequest =
+                        &pCreateState->pCreateContexts[iContext];
+
+        switch (pCreateContextRequest->contextItemType)
+        {
+            case SMB2_CONTEXT_ITEM_TYPE_MAX_ACCESS:
+
+                {
+                    CHAR szName[] = SMB2_CONTEXT_NAME_MAX_ACCESS;
+                    SMB2_MAXIMAL_ACCESS_MASK_CREATE_CONTEXT maxAcCC = {0};
+
+                    maxAcCC.accessMask = pCreateState->ulMaximalAccessMask;
+
+                    ntStatus = SrvWriteCreateContext(
+                                    pOutBuffer,
+                                    ulOffset,
+                                    ulBytesAvailable,
+                                    (PBYTE)&szName[0],
+                                    strlen(szName),
+                                    (PBYTE)&maxAcCC,
+                                    sizeof(maxAcCC),
+                                    &ulAlignBytesUsed,
+                                    &ulCCBytesUsed,
+                                    &pCurCreateContext);
+                    BAIL_ON_NT_STATUS(ntStatus);
+                }
+
+                break;
+
+            case SMB2_CONTEXT_ITEM_TYPE_DURABLE_HANDLE:
+            case SMB2_CONTEXT_ITEM_TYPE_QUERY_DISK_ID:
+            case SMB2_CONTEXT_ITEM_TYPE_EXT_ATTRS:
+            case SMB2_CONTEXT_ITEM_TYPE_SHADOW_COPY:
+            default:
+
+                // TODO:
+
+                break;
+        }
+
+        if (pCurCreateContext)
+        {
+            if (!ulCreateContextOffset)
+            {
+                // First context
+                ulCreateContextOffset = ulOffset + ulAlignBytesUsed;
+            }
+
+            if (ulAlignBytesUsed)
+            {
+                pOutBuffer       += ulAlignBytesUsed;
+                ulBytesUsed       = ulAlignBytesUsed;
+                ulOffset         += ulAlignBytesUsed;
+                ulBytesAvailable -= ulAlignBytesUsed;
+                ulTotalBytesUsed += ulAlignBytesUsed;
+
+                if (pPrevCreateContext)
+                {
+                    pPrevCreateContext->ulNextContextOffset += ulAlignBytesUsed;
+                    ulCreateContextLength += ulAlignBytesUsed;
+                }
+            }
+
+            pOutBuffer       += ulCCBytesUsed;
+            ulBytesUsed       = ulCCBytesUsed;
+            ulOffset         += ulCCBytesUsed;
+            ulBytesAvailable -= ulCCBytesUsed;
+            ulTotalBytesUsed += ulCCBytesUsed;
+
+            ulCreateContextLength += ulCCBytesUsed;
+
+            pPrevCreateContext = pCurCreateContext;
+        }
+    }
+
+    pResponseHeader->ulCreateContextOffset = ulCreateContextOffset;
+    pResponseHeader->ulCreateContextLength = ulCreateContextLength;
+
+    if (pPrevCreateContext)
+    {
+        pPrevCreateContext->ulNextContextOffset = 0;
+    }
 
     pSmbResponse->ulMessageSize = ulTotalBytesUsed;
 
@@ -995,6 +1164,75 @@ error:
     }
 
     pSmbResponse->ulMessageSize = 0;
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvWriteCreateContext(
+    PBYTE                 pOutBuffer,
+    ULONG                 ulOffset,
+    ULONG                 ulBytesAvailable,
+    PBYTE                 pName,
+    USHORT                usNameSize,
+    PBYTE                 pData,
+    ULONG                 ulDataSize,
+    PULONG                pulAlignBytesUsed,
+    PULONG                pulCCBytesUsed,
+    PSMB2_CREATE_CONTEXT* ppCreateContext
+    )
+{
+    NTSTATUS             ntStatus          = STATUS_SUCCESS;
+    PBYTE                pDataCursor       = pOutBuffer;
+    ULONG                ulBytesAvailable1 = ulBytesAvailable;
+    ULONG                ulCCBytesUsed     = 0;
+    ULONG                ulAlignBytesUsed  = 0;
+    PSMB2_CREATE_CONTEXT pCreateContext    = NULL;
+
+    if (ulOffset % 4)
+    {
+        USHORT usAlign = 4 - (ulOffset % 4);
+
+        if (ulBytesAvailable1 < usAlign)
+        {
+            ntStatus = STATUS_INVALID_BUFFER_SIZE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        ulOffset          += usAlign;
+        ulAlignBytesUsed  += usAlign;
+        ulBytesAvailable1 -= usAlign;
+        pDataCursor       += usAlign;
+    }
+
+    ntStatus = SMB2MarshalCreateContext(
+                    pDataCursor,
+                    ulOffset,
+                    pName,
+                    usNameSize,
+                    pData,
+                    ulDataSize,
+                    ulBytesAvailable1,
+                    &ulCCBytesUsed,
+                    &pCreateContext);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pCreateContext->ulNextContextOffset = ulCCBytesUsed;
+
+    *pulAlignBytesUsed = ulAlignBytesUsed;
+    *pulCCBytesUsed    = ulCCBytesUsed;
+    *ppCreateContext   = pCreateContext;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *pulAlignBytesUsed = 0;
+    *pulCCBytesUsed    = 0;
+    *ppCreateContext   = NULL;
 
     goto cleanup;
 }

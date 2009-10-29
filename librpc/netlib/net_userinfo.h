@@ -28,99 +28,185 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        net_userinfo.h
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Client Interface
+ *
+ *        Samr rpc client private definitions
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
+ */
+
 #ifndef _NETUSERINFO_H_
 #define _NETUSERINFO_H_
 
 union user_info_id {
-    uint32  id;
-    PSID sid;
+    DWORD  dwId;
+    PSID   pSid;
 };
 
 
-typedef struct _USER_INFO_X {
-    wchar16_t *name;
-    wchar16_t *password;
-    uint32     password_age;
-    uint32     priv;
-    wchar16_t *home_dir;
-    wchar16_t *comment;
-    uint32     flags;
-    wchar16_t *script_path;
-    uint32     auth_flags;
-    wchar16_t *full_name;
-    wchar16_t *usr_comment;
-    wchar16_t *parms;
-    wchar16_t *workstations;
-    NtTime     last_logon;
-    NtTime     last_logoff;
-    NtTime     acct_expires;
-    uint32     max_storage;
-    uint32     units_per_week;
-    uint8     *logon_hours;
-    uint32     bad_pw_count;
-    uint32     num_logons;
-    wchar16_t *logon_server;
-    uint32     country_code;
-    uint32     code_page;
+typedef struct _USER_INFO_X
+{
+    PWSTR   name;
+    PWSTR   password;
+    DWORD   password_age;
+    DWORD   priv;
+    PWSTR   home_dir;
+    PWSTR   comment;
+    DWORD   flags;
+    PWSTR   script_path;
+    DWORD   auth_flags;
+    PWSTR   full_name;
+    PWSTR   usr_comment;
+    PWSTR   parms;
+    PWSTR   workstations;
+    NtTime  last_logon;
+    NtTime  last_logoff;
+    NtTime  acct_expires;
+    DWORD   max_storage;
+    DWORD   units_per_week;
+    USHORT *logon_hours;
+    DWORD   bad_pw_count;
+    DWORD   num_logons;
+    PWSTR   logon_server;
+    DWORD   country_code;
+    DWORD   code_page;
     union user_info_id user;
-    PSID       user_sid;
-    uint32     primary_group_id;
-    wchar16_t *profile;
-    wchar16_t *home_dir_drive;
-    uint32     password_expired;
-} USER_INFO_X;
+    PSID    user_sid;
+    DWORD   primary_group_id;
+    PWSTR   profile;
+    PWSTR   home_dir_drive;
+    DWORD   password_expired;
+
+} USER_INFO_X, *PUSER_INFO_X;
 
 
 typedef struct _USER_INFO_1X {
-    wchar16_t *name;
-    wchar16_t *comment;
-    wchar16_t *usr_comment;
-    wchar16_t *full_name;
-    uint32     priv;
-    uint32     auth_flags;
-    uint32     password_age;
-    wchar16_t *home_dir;
-    wchar16_t *parms;
-    uint32     last_logon;
-    uint32     last_logoff;
-    uint32     bad_pw_count;
-    uint32     num_logons;
-    wchar16_t *logon_server;
-    uint32     country_code;
-    wchar16_t *workstations;
-    uint32     max_storage;
-    uint32     units_per_week;
-    uint8     *logon_hours;
-    uint32     code_page;
-} USER_INFO_1X;
+    PWSTR   name;
+    PWSTR   comment;
+    PWSTR   usr_comment;
+    PWSTR   full_name;
+    DWORD   priv;
+    DWORD   auth_flags;
+    DWORD   password_age;
+    PWSTR   home_dir;
+    PWSTR   parms;
+    DWORD   last_logon;
+    DWORD   last_logoff;
+    DWORD   bad_pw_count;
+    DWORD   num_logons;
+    PWSTR   logon_server;
+    DWORD   country_code;
+    PWSTR   workstations;
+    DWORD   max_storage;
+    DWORD   units_per_week;
+    USHORT *logon_hours;
+    DWORD   code_page;
+} USER_INFO_1X, *PUSER_INFO_1X;
 
 
 typedef struct _USER_INFO_2X {
-    wchar16_t *name;
-    wchar16_t *full_name;
-    wchar16_t *comment;
+    PWSTR   name;
+    PWSTR   full_name;
+    PWSTR   comment;
     union user_info_id user;
-} USER_INFO_2X;
+} USER_INFO_2X, *PUSER_INFO_2X;
 
 
-NTSTATUS PullUserInfo0(void **buffer, wchar16_t **names, uint32 num);
-NTSTATUS PullUserInfo1(void **buffer, UserInfo21 *ui, uint32 num);
-NTSTATUS PullUserInfo2(void **buffer, UserInfo21 *ui, uint32 num);
-NTSTATUS PullUserInfo20(void **buffer, UserInfo21 *ui, uint32 num);
+NTSTATUS
+PullUserInfo0(
+    PVOID *ppBuffer,
+    PWSTR *ppwszNames,
+    DWORD  dwNum
+    );
 
-NTSTATUS PushUserInfoAdd(UserInfo **sinfo, uint32 *slevel, void *ninfo,
-                         uint32 nlevel, uint32 *parm_err);
+NTSTATUS
+PullUserInfo1(
+    PVOID      *ppBuffer,
+    UserInfo21 *pUserInfo,
+    DWORD       dwNum
+    );
 
-NTSTATUS EncPasswordEx(uint8 pwbuf[532], wchar16_t *password,
-                       uint32 password_len, NetConn *conn);
+NTSTATUS
+PullUserInfo2(
+    PVOID      *pBuffer,
+    UserInfo21 *pUserInfo,
+    DWORD       dwNum
+    );
 
-NTSTATUS PushUserInfo0(UserInfo **sinfo, uint32 *level, USER_INFO_0 *ninfo);
-NTSTATUS PushUserInfo20(UserInfo **sinfo, uint32 *level, USER_INFO_20 *ninfo);
-NTSTATUS PushUserInfo1003(UserInfo **sinfo, uint32 *level, USER_INFO_1003 *ninfo,
-                          NetConn *conn);
-NTSTATUS PushUserInfo1007(UserInfo **sinfo, uint32 *level, USER_INFO_1007 *ninfo);
-NTSTATUS PushUserInfo1008(UserInfo **sinfo, uint32 *level, USER_INFO_1008 *ninfo);
-NTSTATUS PushUserInfo1011(UserInfo **sinfo, uint32 *level, USER_INFO_1011 *ninfo);
+NTSTATUS
+PullUserInfo20(
+    PVOID      *ppBuffer,
+    UserInfo21 *pUserInfo,
+    DWORD       dwNum
+    );
+
+NTSTATUS
+PushUserInfoAdd(
+    UserInfo **ppSamrUserInfo,
+    PDWORD     pdwSamrInfoLevel,
+    PVOID      pNetUserInfo,
+    DWORD      dwNetInfoLevel,
+    PDWORD     pdwParmErr
+    );
+
+NTSTATUS
+EncPasswordEx(
+    BYTE     PwBuf[532],
+    PWSTR    pwszPassword,
+    DWORD    dwPasswordLen,
+    NetConn *pConn);
+
+NTSTATUS
+PushUserInfo0(
+    UserInfo     **ppSamrUserInfo,
+    PDWORD         pdwLevel,
+    PUSER_INFO_0   pNetUserInfo
+    );
+
+NTSTATUS
+PushUserInfo20(
+    UserInfo      **ppSamrUserInfo,
+    PDWORD          pdwLevel,
+    PUSER_INFO_20   pNetUserInfo
+    );
+
+NTSTATUS
+PushUserInfo1003(
+    UserInfo        **ppSamrUserInfo,
+    PDWORD            pdwLevel,
+    PUSER_INFO_1003   pNetUserInfo,
+    NetConn          *pCconn
+    );
+
+NTSTATUS
+PushUserInfo1007(
+    UserInfo        **ppSamrUserInfo,
+    PDWORD            pdwLevel,
+    PUSER_INFO_1007   pNetUserInfo
+    );
+
+NTSTATUS
+PushUserInfo1008(
+    UserInfo       **ppSamrUserInfo,
+    PDWORD           pdwLevel,
+    PUSER_INFO_1008  pNetUserInfo
+    );
+
+NTSTATUS
+PushUserInfo1011(
+    UserInfo       **ppSamrUserInfo,
+    PDWORD           pdwLevel,
+    PUSER_INFO_1011  pNetUserInfo
+    );
 
 #endif /* _NETUSERINFO_H_ */
 

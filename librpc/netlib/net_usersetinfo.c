@@ -33,84 +33,101 @@
 
 NET_API_STATUS
 NetUserSetInfo(
-    const wchar16_t *hostname,
-    const wchar16_t *username,
-    uint32 level,
-    void *buffer,
-    uint32 *parm_err
+    PCWSTR  pwszHostname,
+    PCWSTR  pwszUsername,
+    DWORD   dwLevel,
+    PVOID   pBuffer,
+    PDWORD  pdwParmErr
     )
 {
-    /* This is necessary to be able set account password.
+    /* This is necessary to be able to set account password.
        Otherwise we get access denied. Don't ask... */
-    const uint32 domain_access = DOMAIN_ACCESS_LOOKUP_INFO_1;
+    const DWORD dwDomainAccess = DOMAIN_ACCESS_LOOKUP_INFO_1;
 
-    const uint32 access_rights = USER_ACCESS_GET_NAME_ETC |
-                                 USER_ACCESS_GET_LOCALE |
-                                 USER_ACCESS_GET_LOGONINFO |
-                                 USER_ACCESS_GET_ATTRIBUTES |
-                                 USER_ACCESS_GET_GROUPS |
-                                 USER_ACCESS_GET_GROUP_MEMBERSHIP |
-                                 USER_ACCESS_SET_LOC_COM |
-                                 USER_ACCESS_SET_ATTRIBUTES |
-                                 USER_ACCESS_CHANGE_PASSWORD |
-                                 USER_ACCESS_SET_PASSWORD;
+    const uint32 dwUserAccess = USER_ACCESS_GET_NAME_ETC |
+                                USER_ACCESS_GET_LOCALE |
+                                USER_ACCESS_GET_LOGONINFO |
+                                USER_ACCESS_GET_ATTRIBUTES |
+                                USER_ACCESS_GET_GROUPS |
+                                USER_ACCESS_GET_GROUP_MEMBERSHIP |
+                                USER_ACCESS_SET_LOC_COM |
+                                USER_ACCESS_SET_ATTRIBUTES |
+                                USER_ACCESS_CHANGE_PASSWORD |
+                                USER_ACCESS_SET_PASSWORD;
 
     NTSTATUS status = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
-    NetConn *conn = NULL;
-    handle_t samr_b = NULL;
+    NetConn *pConn = NULL;
+    handle_t hSamrBinding = NULL;
     ACCOUNT_HANDLE hUser = NULL;
-    uint32 user_rid = 0;
-    UserInfo *info = NULL;
-    USER_INFO_0 *ninfo0 = NULL;
-    USER_INFO_1003 *ninfo1003 = NULL;
-    USER_INFO_1007 *ninfo1007 = NULL;
-    USER_INFO_1008 *ninfo1008 = NULL;
-    USER_INFO_1011 *ninfo1011 = NULL;
-    uint32 samr_level = 0;
-    PIO_CREDS creds = NULL;
+    DWORD dwUserRid = 0;
+    UserInfo *pSamrUserInfo = NULL;
+    USER_INFO_0 *pNetUserInfo0 = NULL;
+    USER_INFO_1003 *pNetUserInfo1003 = NULL;
+    USER_INFO_1007 *pNetUserInfo1007 = NULL;
+    USER_INFO_1008 *pNetUserInfo1008 = NULL;
+    USER_INFO_1011 *pNetUserInfo1011 = NULL;
+    DWORD dwSamrInfoLevel = 0;
+    PIO_CREDS pCreds = NULL;
 
-    memset(&info, 0, sizeof(info));
+    BAIL_ON_INVALID_PTR(pwszUsername);
+    BAIL_ON_INVALID_PTR(pBuffer);
 
-    BAIL_ON_INVALID_PTR(hostname);
-    BAIL_ON_INVALID_PTR(username);
-    BAIL_ON_INVALID_PTR(buffer);
-
-    status = LwIoGetThreadCreds(&creds);
+    status = LwIoGetThreadCreds(&pCreds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = NetConnectSamr(&conn, hostname, domain_access, 0, creds);
+    status = NetConnectSamr(&pConn,
+                            pwszHostname,
+                            dwDomainAccess,
+                            0,
+                            pCreds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    samr_b = conn->samr.bind;
+    hSamrBinding = pConn->samr.bind;
 
-    status = NetOpenUser(conn, username, access_rights, &hUser, &user_rid);
+    status = NetOpenUser(pConn,
+                         pwszUsername,
+                         dwUserAccess,
+                         &hUser,
+                         &dwUserRid);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    switch (level) {
+    switch (dwLevel)
+    {
     case 0:
-        ninfo0 = (USER_INFO_0*) buffer;
-        status = PushUserInfo0(&info, &samr_level, ninfo0);
+        pNetUserInfo0 = (USER_INFO_0*)pBuffer;
+        status = PushUserInfo0(&pSamrUserInfo,
+                               &dwSamrInfoLevel,
+                               pNetUserInfo0);
         break;
 
     case 1003:
-        ninfo1003 = (USER_INFO_1003*) buffer;
-        status = PushUserInfo1003(&info, &samr_level, ninfo1003, conn);
+        pNetUserInfo1003 = (USER_INFO_1003*) pBuffer;
+        status = PushUserInfo1003(&pSamrUserInfo,
+                                  &dwSamrInfoLevel,
+                                  pNetUserInfo1003,
+                                  pConn);
         break;
 
     case 1007:
-        ninfo1007 = (USER_INFO_1007*) buffer;
-        status = PushUserInfo1007(&info, &samr_level, ninfo1007);
+        pNetUserInfo1007 = (USER_INFO_1007*) pBuffer;
+        status = PushUserInfo1007(&pSamrUserInfo,
+                                  &dwSamrInfoLevel,
+                                  pNetUserInfo1007);
         break;
 
     case 1008:
-        ninfo1008 = (USER_INFO_1008*) buffer;
-        status = PushUserInfo1008(&info, &samr_level, ninfo1008);
+        pNetUserInfo1008 = (USER_INFO_1008*) pBuffer;
+        status = PushUserInfo1008(&pSamrUserInfo,
+                                  &dwSamrInfoLevel,
+                                  pNetUserInfo1008);
         break;
 
     case 1011:
-        ninfo1011 = (USER_INFO_1011*) buffer;
-        status = PushUserInfo1011(&info, &samr_level, ninfo1011);
+        pNetUserInfo1011 = (USER_INFO_1011*) pBuffer;
+        status = PushUserInfo1011(&pSamrUserInfo,
+                                  &dwSamrInfoLevel,
+                                  pNetUserInfo1011);
         break;
 
     case 1:
@@ -140,28 +157,33 @@ NetUserSetInfo(
     }
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = SamrSetUserInfo(samr_b, hUser, samr_level, info);
+    status = SamrSetUserInfo(hSamrBinding,
+                             hUser,
+                             dwSamrInfoLevel,
+                             pSamrUserInfo);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = SamrClose(samr_b, hUser);
+    status = SamrClose(hSamrBinding, hUser);
     BAIL_ON_NTSTATUS_ERROR(status);
 
 cleanup:
-    if (info) {
-        NetFreeMemory((void*)info);
+    if (pSamrUserInfo)
+    {
+        NetFreeMemory((void*)pSamrUserInfo);
     }
 
     if (err == ERROR_SUCCESS &&
-        status != STATUS_SUCCESS) {
+        status != STATUS_SUCCESS)
+    {
         err = NtStatusToWin32Error(status);
     }
 
     return err;
 
 error:
-    if (creds)
+    if (pCreds)
     {
-        LwIoDeleteCreds(creds);
+        LwIoDeleteCreds(pCreds);
     }
 
     goto cleanup;

@@ -46,12 +46,21 @@ typedef struct _IO_FUSE_CONTEXT
     PSTR pszDriver;
     PSTR pszServer;
     PSTR pszShare;
+    PSTR pszUsername;
+    PSTR pszDomain;
+    PSTR pszPassword;
+    PIO_CREDS pCreds;
     BOOL bHelp;
 } IO_FUSE_CONTEXT, *PIO_FUSE_CONTEXT;
 
 PIO_FUSE_CONTEXT
 LwIoFuseGetContext(
     void
+    );
+
+NTSTATUS
+LwIoFuseSetContextCreds(
+    PIO_FUSE_CONTEXT pContext
     );
 
 void

@@ -42,6 +42,9 @@ LwIoFuseRmdir(
     IO_FILE_NAME filename = {0};
 
     pFuseContext = LwIoFuseGetContext();
+
+    status = LwIoFuseSetContextCreds(pFuseContext);
+    BAIL_ON_NT_STATUS(status);
     
     status = LwIoFuseGetNtFilename(
         pFuseContext,

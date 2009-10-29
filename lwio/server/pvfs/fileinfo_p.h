@@ -113,6 +113,12 @@ PvfsFileNameInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     );
 
+NTSTATUS
+PvfsFileNetworkOpenInfo(
+    PVFS_INFO_TYPE Type,
+    PPVFS_IRP_CONTEXT pIrpContext
+    );
+
 
 /* QueryDirectoryInformation */
 

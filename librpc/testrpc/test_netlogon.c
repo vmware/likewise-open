@@ -115,7 +115,7 @@ handle_t TestOpenSchannel(handle_t netr_b,
     schnauth_info.machine_name = (unsigned char*) awc16stombs(computer);
     schnauth_info.sender_flags = rpc_schn_initiator_flags;
 
-    status = LwIoCreatePlainCredsW(user, pass, &auth);
+    status = LwIoCreatePlainCredsW(user, domain, pass, &auth);
     goto_if_ntstatus_not_success(status, error);
 
     status = LwIoSetThreadCreds(auth);
@@ -336,20 +336,6 @@ int TestNetlogonSamLogoff(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    if (username && password)
-    {
-        /* Set up access token */
-        PIO_CREDS hCreds = NULL;
-
-        status = LwIoCreatePlainCredsW(user, pass, &hCreds);
-        goto_if_ntstatus_not_success(status, done);
-
-        status = LwIoSetThreadCreds(hCreds);
-        goto_if_ntstatus_not_success(status, done);
-
-        LwIoDeleteCreds(hCreds);
-    }
-
     hostname_len = wc16slen(hostname);
 
     perr = fetch_value(options, optcount, "computer", pt_w16string, &computer,
@@ -392,6 +378,20 @@ int TestNetlogonSamLogoff(struct test *t, const wchar16_t *hostname,
     PARAM_INFO("password", pt_w16string, password);
     PARAM_INFO("logon_level", pt_int32, &logon_level);
     PARAM_INFO("validation_level", pt_int32, &validation_level);
+
+    if (username && password)
+    {
+        /* Set up access token */
+        PIO_CREDS hCreds = NULL;
+
+        status = LwIoCreatePlainCredsW(user, domain, pass, &hCreds);
+        goto_if_ntstatus_not_success(status, done);
+
+        status = LwIoSetThreadCreds(hCreds);
+        goto_if_ntstatus_not_success(status, done);
+
+        LwIoDeleteCreds(hCreds);
+    }
 
     netr_b = CreateNetlogonBinding(&netr_b, hostname);
     if (netr_b == NULL) goto cleanup;

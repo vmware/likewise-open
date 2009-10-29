@@ -105,6 +105,7 @@ typedef struct __SMB_GSS_SEC_CONTEXT
     PCtxtHandle               pGSSContext;
     gss_name_t                target_name;
     PSTR                      pszTargetName;
+    gss_cred_id_t             credHandle;
 } SMB_GSS_SEC_CONTEXT, *PSMB_GSS_SEC_CONTEXT;
 
 #endif

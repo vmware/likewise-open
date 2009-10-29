@@ -49,7 +49,9 @@ static
 NTSTATUS
 RdrAcquireEstablishedSession(
     IN OUT PSMB_SOCKET* ppSocket,
-    PCSTR pszPrincipal,
+    PCWSTR pwszUsername,
+    PCWSTR pwszDomain,
+    PCWSTR pwszPassword,
     uid_t uid,
     OUT PSMB_SESSION* ppSession
     );
@@ -65,8 +67,10 @@ RdrAcquireConnectedTree(
 NTSTATUS
 SMBSrvClientTreeOpen(
     PCSTR pszHostname,
-    PCSTR pszPrincipal,
     PCSTR pszSharename,
+    PCWSTR pwszUsername,
+    PCWSTR pwszDomain,
+    PCWSTR pwszPassword,
     uid_t uid,
     PSMB_TREE* ppTree
     )
@@ -83,7 +87,9 @@ SMBSrvClientTreeOpen(
 
     ntStatus = RdrAcquireEstablishedSession(
         &pSocket,
-        pszPrincipal,
+        pwszUsername,
+        pwszDomain,
+        pwszPassword,
         uid,
         &pSession);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -183,7 +189,9 @@ static
 NTSTATUS
 RdrAcquireEstablishedSession(
     PSMB_SOCKET* ppSocket,
-    PCSTR pszPrincipal,
+    PCWSTR pwszUsername,
+    PCWSTR pwszDomain,
+    PCWSTR pwszPassword,
     uid_t uid,
     OUT PSMB_SESSION* ppSession
     )
@@ -193,6 +201,10 @@ RdrAcquireEstablishedSession(
     BOOLEAN bInSessionLock = FALSE;
     BOOLEAN bInSocketLock = FALSE;
     BOOLEAN bSessionSetupInProgress = FALSE;
+    PSTR pszPrincipal = NULL;
+
+    ntStatus = LwRtlCStringAllocateFromWC16String(&pszPrincipal, pwszUsername);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBSrvClientSessionCreate(
         ppSocket,
@@ -218,6 +230,9 @@ RdrAcquireEstablishedSession(
 
         ntStatus = SessionSetup(
                     pSession->pSocket,
+                    pwszUsername,
+                    pwszDomain,
+                    pwszPassword,
                     &pSession->uid,
                     &pSession->pSessionKey,
                     &pSession->dwSessionKeyLength);

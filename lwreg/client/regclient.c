@@ -209,30 +209,105 @@ RegCloseKey(
 
 REG_API
 DWORD
-RegDeleteKey(
+RegDeleteKeyA(
+    IN HANDLE hRegConnection,
+    IN HKEY hKey,
+    IN PCSTR pszSubKey
+    )
+{
+    DWORD dwError = 0;
+    PWSTR pwszSubKey = NULL;
+
+    BAIL_ON_INVALID_STRING(pszSubKey);
+
+    dwError = LwMbsToWc16s(pszSubKey,
+                           &pwszSubKey);
+    BAIL_ON_REG_ERROR(dwError);
+
+    dwError = RegTransactDeleteKeyW(
+        hRegConnection,
+        hKey,
+        pwszSubKey);
+    BAIL_ON_REG_ERROR(dwError);
+
+cleanup:
+    LW_SAFE_FREE_MEMORY(pwszSubKey);
+
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+REG_API
+DWORD
+RegDeleteKeyW(
     IN HANDLE hRegConnection,
     IN HKEY hKey,
     IN PCWSTR pSubKey
     )
 {
-    return RegTransactDeleteKey(
+    return RegTransactDeleteKeyW(
         hRegConnection,
         hKey,
         pSubKey
         );
 }
 
+REG_API
+DWORD
+RegDeleteKeyValueA(
+    IN HANDLE hRegConnection,
+    IN HKEY hKey,
+    IN OPTIONAL PCSTR pszSubKey,
+    IN OPTIONAL PCSTR pszValueName
+    )
+{
+    DWORD dwError = 0;
+    PWSTR pwszSubKey = NULL;
+    PWSTR pwszValueName = NULL;
+
+    if (pszSubKey)
+    {
+        dwError = LwMbsToWc16s(pszSubKey,
+                               &pwszSubKey);
+        BAIL_ON_REG_ERROR(dwError);
+    }
+
+    if (pszValueName)
+    {
+        dwError = LwMbsToWc16s(pszValueName,
+                               &pwszValueName);
+        BAIL_ON_REG_ERROR(dwError);
+    }
+
+    dwError = RegTransactDeleteKeyValueW(
+                           hRegConnection,
+                           hKey,
+                           pwszSubKey,
+                           pwszValueName);
+    BAIL_ON_REG_ERROR(dwError);
+
+cleanup:
+    LW_SAFE_FREE_MEMORY(pwszSubKey);
+    LW_SAFE_FREE_MEMORY(pwszValueName);
+
+    return dwError;
+
+error:
+    goto cleanup;
+}
 
 REG_API
 DWORD
-RegDeleteKeyValue(
+RegDeleteKeyValueW(
     IN HANDLE hRegConnection,
     IN HKEY hKey,
     IN OPTIONAL PCWSTR pSubKey,
     IN OPTIONAL PCWSTR pValueName
     )
 {
-    return RegTransactDeleteKeyValue(
+    return RegTransactDeleteKeyValueW(
         hRegConnection,
         hKey,
         pSubKey,
