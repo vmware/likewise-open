@@ -79,7 +79,7 @@ NetLocalGroupChangeMembers(
 
     access_rights = access;
 
-    status = LwIoGetThreadCreds(&creds);
+    status = LwIoGetActiveCreds(NULL, &creds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     status = NetConnectSamr(&conn, hostname, access, btin_domain_access, creds);

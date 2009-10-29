@@ -74,7 +74,7 @@ NetLocalGroupAdd(
         goto cleanup;
     }
 
-    status = LwIoGetThreadCreds(&creds);
+    status = LwIoGetActiveCreds(NULL, &creds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     status = NetConnectSamr(&conn, hostname, dom_access, 0, creds);

@@ -49,7 +49,7 @@ NetGetDomainName(
     BAIL_ON_INVALID_PTR(hostname);
     BAIL_ON_INVALID_PTR(domname);
 
-    status = LwIoGetThreadCreds(&creds);
+    status = LwIoGetActiveCreds(NULL, &creds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     status = NetConnectSamr(&cn, hostname, conn_access, 0, creds);

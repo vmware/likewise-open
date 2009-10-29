@@ -49,7 +49,7 @@ CreateDsrBinding(
     if (hostname == NULL) return NULL;
     wc16stombs(hostname, host, hostname_size);
 
-    if (LwIoGetThreadCreds(&creds) != STATUS_SUCCESS)
+    if (LwIoGetActiveCreds(NULL, &creds) != STATUS_SUCCESS)
     {
         return NULL;
     }

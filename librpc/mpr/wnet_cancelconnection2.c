@@ -46,6 +46,12 @@
 
 #include "includes.h"
 
+extern
+DWORD
+ResourceToLwIoPathPrefix(
+    PCWSTR pwszRemote,
+    PWSTR* ppwszPath
+    );
 
 DWORD
 WNetCancelConnection2(
@@ -55,6 +61,17 @@ WNetCancelConnection2(
     )
 {
     DWORD dwError = ERROR_SUCCESS;
+    PWSTR pwszPath = NULL;
+
+    dwError = ResourceToLwIoPathPrefix(pwszName, &pwszPath);
+    BAIL_ON_WIN_ERROR(dwError);
+
+    dwError = LwNtStatusToWin32Error(LwIoSetPathCreds(pwszPath, NULL));
+    BAIL_ON_WIN_ERROR(dwError);
+
+error:
+
+    LW_SAFE_FREE_MEMORY(pwszPath);
 
     return dwError;
 }

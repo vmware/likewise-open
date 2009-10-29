@@ -44,7 +44,7 @@ handle_t CreateNetlogonBinding(handle_t *binding, const wchar16_t *host)
 
     if (binding == NULL || host == NULL) return NULL;
 
-    if (LwIoGetThreadCreds(&creds) != STATUS_SUCCESS) return NULL;
+    if (LwIoGetActiveCreds(NULL, &creds) != STATUS_SUCCESS) return NULL;
 
     hostname_size = wc16slen(host) + 1;
     hostname = (char*) malloc(hostname_size * sizeof(char));

@@ -118,7 +118,7 @@ handle_t CreateSamrBinding(handle_t *binding, const wchar16_t *host)
         wc16stombs(hostname, host, hostname_size);
     }
 
-    if (LwIoGetThreadCreds(&creds) != STATUS_SUCCESS)
+    if (LwIoGetActiveCreds(NULL, &creds) != STATUS_SUCCESS)
     {
         return NULL;
     }

@@ -50,7 +50,7 @@ NetLocalGroupDel(
     BAIL_ON_INVALID_PTR(hostname);
     BAIL_ON_INVALID_PTR(aliasname);
 
-    status = LwIoGetThreadCreds(&creds);
+    status = LwIoGetActiveCreds(NULL, &creds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     status = NetConnectSamr(&conn, hostname, 0, 0, creds);

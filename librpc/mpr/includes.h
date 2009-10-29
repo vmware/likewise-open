@@ -44,10 +44,11 @@
 #include <lw/ntstatus.h>
 #include <winerror.h>
 #include <winerror-conv.h>
+#include <lwstr.h>
+#include <lwmem.h>
 #include <lwio/lwio.h>
-
 #include <lwrpc/mpr.h>
-
+#include <macros.h>
 
 /*
 local variables:
