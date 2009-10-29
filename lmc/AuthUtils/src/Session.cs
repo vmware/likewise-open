@@ -41,28 +41,21 @@ namespace Likewise.LMC.AuthUtils
     public class WindowsSession
     {
         private const string mprDllPath = "mpr.dll";
-        private const string netAPIDllPath = "netapi32.dll";
       
-        //[DllImport(mprDllPath, SetLastError = true, CharSet = CharSet.Unicode)]
-        //public static extern int WNetAddConnection2(Session.NETRESOURCE netResource,
-        //[MarshalAs(UnmanagedType.LPWStr)] string password, [MarshalAs(UnmanagedType.LPWStr)] string username, int flags);
-
-        [DllImport(mprDllPath)]
-        public static extern int WNetAddConnection2(Session.NETRESOURCE netResource, string password, string username, int flags);
+        [DllImport(mprDllPath, SetLastError = true, CharSet = CharSet.Unicode)]
+        public static extern int WNetAddConnection2(
+            Session.NETRESOURCE netResource,
+            [MarshalAs(UnmanagedType.LPWStr)] string sPassword,
+            [MarshalAs(UnmanagedType.LPWStr)] string sUsername,
+            uint dwFlags
+			);
 
         [DllImport(mprDllPath, SetLastError = true, CharSet = CharSet.Unicode)]
-        public static extern int WNetCancelConnection2([MarshalAs(UnmanagedType.LPWStr)] string lpName, UInt16 dwFlags, bool bForce);
-
-        [DllImport(netAPIDllPath, CharSet = CharSet.Unicode)]
-        public extern static int NetUserEnum([MarshalAs(UnmanagedType.LPWStr)] 
-                                              string serverName,
-                                              int level,
-                                              int filter,
-                                              out IntPtr bufPtr,
-                                              int prefMaxLen,
-                                              out int entriesRead,
-                                              out int totalEntries,
-                                              ref int resumeHandle);
+        public static extern int WNetCancelConnection2(
+            [MarshalAs(UnmanagedType.LPWStr)] string sName,
+            uint dwFlags,
+            bool bForce
+			);
     }
 
     public class Session
@@ -95,16 +88,20 @@ namespace Likewise.LMC.AuthUtils
         }
         */
 
-        [StructLayout(LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
         public class NETRESOURCE
         {
             public int dwScope;
             public int dwType;
             public int dwDisplayType;
             public int dwUsage;
+            [MarshalAs(UnmanagedType.LPWStr)]
             public string LocalName;
+            [MarshalAs(UnmanagedType.LPWStr)]
             public string RemoteName;
+            [MarshalAs(UnmanagedType.LPWStr)]
             public string Comment;
+            [MarshalAs(UnmanagedType.LPWStr)]
             public string Provider;
         }
      
@@ -120,12 +117,20 @@ namespace Likewise.LMC.AuthUtils
             public int sesi1_user_flags;
         }
 
-        [DllImport(netAPIDllPath, SetLastError = true, CharSet = CharSet.Unicode)]
-        private static extern int WNetAddConnection2(NETRESOURCE netResource,
-           [MarshalAs(UnmanagedType.LPWStr)] string password, [MarshalAs(UnmanagedType.LPWStr)] string username, int flags);
+        [DllImport(mprDllPath, SetLastError = true, CharSet = CharSet.Unicode)]
+        private static extern int WNetAddConnection2(
+            NETRESOURCE netResource,
+            [MarshalAs(UnmanagedType.LPWStr)] string sPassword,
+            [MarshalAs(UnmanagedType.LPWStr)] string sUsername,
+            uint dwFlags
+            );
 
-        [DllImport(netAPIDllPath, SetLastError = true, CharSet = CharSet.Unicode)]
-        private static extern int WNetCancelConnection2([MarshalAs(UnmanagedType.LPWStr)] string lpName, UInt16 dwFlags, bool bForce);
+        [DllImport(mprDllPath, SetLastError = true, CharSet = CharSet.Unicode)]
+        private static extern int WNetCancelConnection2(
+            [MarshalAs(UnmanagedType.LPWStr)] string sName,
+            uint dwFlags,
+            bool bForce
+            );
 
         [DllImport(netAPIDllPath, SetLastError = true, CharSet = CharSet.Unicode)]
         private static extern int NetSessionDel(string sServer, string sUNCClient, string sUsername);
@@ -226,20 +231,24 @@ namespace Likewise.LMC.AuthUtils
 
             // set up a NETRESOURCE structure
             NETRESOURCE nr = new NETRESOURCE();
-            nr.dwScope = 0;
-            nr.dwType = 0;
+            nr.dwScope       = 0;
+            nr.dwType        = 0;
             nr.dwDisplayType = 0;
-            nr.dwUsage = 0;
-            nr.LocalName = null; 
-            nr.RemoteName = @"\\" + sServer + @"\IPC$";
-            nr.Comment = null; 
-            nr.Provider = null;
+            nr.dwUsage       = 0;
+            nr.LocalName     = null;
+            nr.RemoteName    = @"\\" + sServer + @"\IPC$";
+            nr.Comment       = null;
+            nr.Provider      = null;
 
             // try the operation. Throws exception if it fails.
             if (Configurations.currentPlatform == LikewiseTargetPlatform.Windows)
+            {
                 nErr = WindowsSession.WNetAddConnection2(nr, sPassword, sUsername, 0);
+            }
             else
+            {
                 nErr = WNetAddConnection2(nr, sPassword, sUsername, 0);          
+            }
 
             //HACK: WNetAddConnection2 appears to return 'access denied' even when it has just granted access!
             //this is a workaround with the side-effect that the user will never be warned when their password
