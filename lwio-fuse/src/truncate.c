@@ -46,9 +46,6 @@ LwIoFuseTruncate(
     endOfFileInfo.EndOfFile = (LONG64) size;
 
     pFuseContext = LwIoFuseGetContext();
-
-    status = LwIoFuseSetContextCreds(pFuseContext);
-    BAIL_ON_NT_STATUS(status);
     
     status = LwIoFuseGetNtFilename(
         pFuseContext,

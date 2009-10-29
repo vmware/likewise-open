@@ -62,8 +62,11 @@ show_help()
            "Options:\n"
            "\n"
            "    --driver name             Specify custom driver (default: rdr)\n"
-           "    --server host             Specify remote host\n"
-           "    --share  sharename        Specify share on remote host to mount\n"
+           "    --server host             Remote host\n"
+           "    --share  sharename        Share on remote host to mount\n"
+           "    --user   name             User to log in as\n"
+           "    --domain name             Domain of user\n"
+           "    --password password       Password for user\n"
            "\n");
 }
 
@@ -76,6 +79,7 @@ main(int argc,
     static PCSTR pszDriver = "rdr";
     PIO_FUSE_CONTEXT pFuseContext = NULL;
     struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
+    PWSTR pwszCredPrefix = NULL;
 
     status = RTL_ALLOCATE(&pFuseContext, IO_FUSE_CONTEXT, sizeof(*pFuseContext));
     BAIL_ON_NT_STATUS(status);
@@ -122,6 +126,12 @@ main(int argc,
             pFuseContext->pszPassword,
             &pFuseContext->pCreds);
         BAIL_ON_NT_STATUS(status);
+
+        status = LwRtlWC16StringAllocatePrintfW(&pwszCredPrefix, L"/%s/", pFuseContext->pszDriver);
+        BAIL_ON_NT_STATUS(status);
+
+        status = LwIoSetPathCreds(pwszCredPrefix, pFuseContext->pCreds);
+        BAIL_ON_NT_STATUS(status);
     }
   
     return fuse_main(args.argc, args.argv, LwIoFuseGetOperationsTable(), pFuseContext);
@@ -130,3 +140,4 @@ error:
 
     return 1;
 }
+
