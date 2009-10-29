@@ -34,14 +34,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Implementation\LwLugApi.cs" />
-    <Compile Include="Implementation\WinLugApi.cs" />
-    <Compile Include="Interop\LwLugApiInterop.cs" />
-    <Compile Include="Interop\WinLugApiInterop.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="src\FilesHandle.cs" />
-    <Compile Include="src\LugApiAdaptor.cs" />
-    <Compile Include="src\LugApiInterface.cs" />
+    <Compile Include="src\LUGAPI.cs" />
     <Compile Include="src\printapi.cs" />
     <Compile Include="src\SharesAPI.cs" />
   </ItemGroup>

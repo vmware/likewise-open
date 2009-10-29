@@ -4,12 +4,154 @@ using System.Text;
 using System.Runtime.InteropServices;
 using Likewise.LMC.LMConsoleUtils;
 using Likewise.LMC.AuthUtils;
-using Likewise.LMC.NETAPI;
 
-namespace Likewise.LMC.NETAPI.Implementation
+namespace Likewise.LMC.NETAPI
 {
-    public class WinLugApi : ILugApi
+    public class LUGAPI
     {
+        #region Net API Imports
+
+        private const string netAPIDllPath = "netapi32.dll";
+
+        [DllImport(netAPIDllPath)]
+        private extern static int NetUserDel(
+            [MarshalAs(UnmanagedType.LPWStr)]string serverName,
+            [MarshalAs(UnmanagedType.LPWStr)]string userName
+            );
+
+        [DllImport(netAPIDllPath)]
+        private extern static int NetUserGetLocalGroups(
+            [MarshalAs(UnmanagedType.LPWStr)]string serverName,
+            [MarshalAs(UnmanagedType.LPWStr)]string userName,
+            int level,
+            uint flags,
+            out IntPtr bufPtr,
+            int prefMaxLen,
+            out int entriesRead,
+            out int totalEntries
+            );
+
+        [DllImport(netAPIDllPath)]
+        private extern static int NetUserSetInfo(
+            [MarshalAs(UnmanagedType.LPWStr)]string serverName,
+            [MarshalAs(UnmanagedType.LPWStr)]string userName,
+            int level,
+            IntPtr buf,
+            IntPtr parmErr
+            );
+
+        [DllImport(netAPIDllPath)]
+        private extern static int NetUserGetInfo(
+            [MarshalAs(UnmanagedType.LPWStr)]string serverName,
+            [MarshalAs(UnmanagedType.LPWStr)]string userName,
+            int level,
+            out IntPtr buf
+            );
+
+        [DllImport(netAPIDllPath)]
+        private extern static int NetApiBufferFree(
+            IntPtr buffer
+            );
+
+        [DllImport(netAPIDllPath)]
+        private extern static int NetUserAdd(
+            [MarshalAs(UnmanagedType.LPWStr)]string serverName,
+            UInt32 level,
+            IntPtr userInfo,
+            IntPtr parmErr
+            );
+
+        [DllImport(netAPIDllPath, CharSet = CharSet.Unicode)]
+        private extern static int NetUserEnum(
+            [MarshalAs(UnmanagedType.LPWStr)]string serverName,
+            int level,
+            int filter,
+            out IntPtr bufPtr,
+            int prefMaxLen,
+            out int entriesRead,
+            out int totalEntries,
+            out int resumeHandle
+            );
+
+        [DllImport(netAPIDllPath)]
+        private extern static int NetLocalGroupAdd(
+            [MarshalAs(UnmanagedType.LPWStr)]string serverName,
+            UInt32 level,
+            IntPtr groupInfo,
+            IntPtr parmErr
+            );
+
+        [DllImport(netAPIDllPath)]
+        private extern static int NetLocalGroupDel(
+            [MarshalAs(UnmanagedType.LPWStr)]string serverName,
+            [MarshalAs(UnmanagedType.LPWStr)]string groupName
+            );
+
+        [DllImport(netAPIDllPath)]
+        private extern static int NetLocalGroupEnum(
+            [MarshalAs(UnmanagedType.LPWStr)]string serverName,
+            int level,
+            out IntPtr bufPtr,
+            int prefMaxLen,
+            out int entriesRead,
+            out int totalEntries,
+            ref int resumeHandle
+            );
+
+        [DllImport(netAPIDllPath)]
+        private extern static int NetLocalGroupAddMembers(
+            [MarshalAs(UnmanagedType.LPWStr)]string serverName,
+            [MarshalAs(UnmanagedType.LPWStr)]string groupName,
+            int level,
+            IntPtr buf,
+            int totalEntries
+            );
+
+        [DllImport(netAPIDllPath)]
+        private extern static int NetLocalGroupDelMembers(
+            [MarshalAs(UnmanagedType.LPWStr)]string serverName,
+            [MarshalAs(UnmanagedType.LPWStr)]string groupName,
+            int level,
+            IntPtr buf,
+            int totalEntries
+            );
+
+        [DllImport(netAPIDllPath)]
+        private extern static int NetLocalGroupSetInfo(
+            [MarshalAs(UnmanagedType.LPWStr)]string serverName,
+            [MarshalAs(UnmanagedType.LPWStr)]string groupName,
+            int level,
+            IntPtr buf,
+            IntPtr parmErr
+            );
+
+        [DllImport(netAPIDllPath)]
+        private extern static int NetLocalGroupGetInfo(
+            [MarshalAs(UnmanagedType.LPWStr)]string serverName,
+            [MarshalAs(UnmanagedType.LPWStr)]string groupName,
+            int level,
+            out IntPtr buf
+            );
+
+        [DllImport(netAPIDllPath)]
+        private extern static int NetLocalGroupGetMembers(
+            [MarshalAs(UnmanagedType.LPWStr)]string serverName,
+            [MarshalAs(UnmanagedType.LPWStr)]string localGroupName,
+            int level,
+            out IntPtr bufPtr,
+            int prefMaxLen,
+            out int entriesRead,
+            out int totalEntries,
+            IntPtr resumeHandle
+            );
+
+        // This doesn't exist in the windows netapi32.dll, but is needed for
+        // libnetapi.so
+        [DllImport(netAPIDllPath)]
+        private extern static int NetInitMemory();
+
+        #endregion
+
         #region Net API Helper Functions
 
         private static int apiNetUserEnum(
@@ -26,7 +168,7 @@ namespace Likewise.LMC.NETAPI.Implementation
             int ret;
             bufPtr = IntPtr.Zero;
 
-            ret = Interop.WinLugApi.NetUserEnum(
+            ret = NetUserEnum(
                 serverName,
                 level,
                 filter,
@@ -70,7 +212,7 @@ namespace Likewise.LMC.NETAPI.Implementation
             out int totalEntries,
             ref int resumeHandle)
         {
-            int ret = Interop.WinLugApi.NetLocalGroupEnum(
+            int ret = NetLocalGroupEnum(
                 serverName,
                 level,
                 out bufPtr,
@@ -101,7 +243,7 @@ namespace Likewise.LMC.NETAPI.Implementation
             IntPtr resumeHandle
             )
         {
-            int ret = Interop.WinLugApi.NetLocalGroupGetMembers(
+            int ret = NetLocalGroupGetMembers(
                 serverName,
                 localGroupName,
                 level,
@@ -126,7 +268,7 @@ namespace Likewise.LMC.NETAPI.Implementation
 
         #region Net API wrappers
 
-        public uint
+        public static uint
         NetAddGroup(
             CredentialEntry ce,
             string servername,
@@ -134,7 +276,7 @@ namespace Likewise.LMC.NETAPI.Implementation
             string description
             )
         {
-            uint result = LUGAPI.ERROR_FAILURE;
+            uint result = ERROR_FAILURE;
 
             if (!Session.EnsureNullSession(servername, ce))
             {
@@ -153,11 +295,11 @@ namespace Likewise.LMC.NETAPI.Implementation
             {
                 Marshal.StructureToPtr(lg1, bufptr, false);
 
-                result = (uint)Interop.WinLugApi.NetLocalGroupAdd(servername, 1, bufptr, bufptr_parm_err);
+                result = (uint)NetLocalGroupAdd(servername, 1, bufptr, bufptr_parm_err);
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                HandleNETAPIException("AddGroup", e);
+                result = ERROR_FAILURE;
             }
             finally
             {
@@ -169,7 +311,7 @@ namespace Likewise.LMC.NETAPI.Implementation
             return result;
         }
 
-        public uint
+        public static uint
         NetAddUser(
             CredentialEntry ce,
             string servername,
@@ -180,7 +322,7 @@ namespace Likewise.LMC.NETAPI.Implementation
             uint flags
             )
         {
-            uint result = LUGAPI.ERROR_FAILURE;
+            uint result = ERROR_FAILURE;
 
             // Ensure we have creds
             if (!Session.EnsureNullSession(servername, ce))
@@ -198,7 +340,7 @@ namespace Likewise.LMC.NETAPI.Implementation
             ui1.uiPriv = 1; // USER_PRIV_USER
             ui1.sHome_Dir = "";
             ui1.sComment = description;
-            ui1.uiFlags = flags | LUGAPI.UF_NORMAL_ACCOUNT;
+            ui1.uiFlags = flags | UF_NORMAL_ACCOUNT;
             ui1.sScript_Path = "";
 
             ui11.usri1011_full_name = fullname;
@@ -213,14 +355,14 @@ namespace Likewise.LMC.NETAPI.Implementation
                 Marshal.StructureToPtr(ui11, bufptr_1011, false);
                 Marshal.StructureToPtr(parm_err, bufptr_parm_err, false);
 
-                result = (uint)Interop.WinLugApi.NetUserAdd(servername, 1, bufptr_1, bufptr_parm_err);
+                result = (uint)NetUserAdd(servername, 1, bufptr_1, bufptr_parm_err);
 
                 if (result != 0)
                 {
                     return result;
                 }
 
-                result = (uint)Interop.WinLugApi.NetUserSetInfo(servername, username, 1011, bufptr_1011, bufptr_parm_err);
+                result = (uint)NetUserSetInfo(servername, username, 1011, bufptr_1011, bufptr_parm_err);
 
                 if (result != 0)
                 {
@@ -229,9 +371,9 @@ namespace Likewise.LMC.NETAPI.Implementation
 
                 result = (uint)NetAddGroupMember(ce, servername, null, username);
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                HandleNETAPIException("AddUser", e);
+                result = ERROR_FAILURE;
             }
             finally
             {
@@ -249,14 +391,14 @@ namespace Likewise.LMC.NETAPI.Implementation
                 }
                 catch (Exception)
                 {
-                    result = LUGAPI.ERROR_FAILURE;
+                    result = ERROR_FAILURE;
                 }
             }
             return result;
 
         }
 
-        public uint
+        public static uint
         NetChangePassword(
             CredentialEntry ce,
             string servername,
@@ -264,7 +406,7 @@ namespace Likewise.LMC.NETAPI.Implementation
             string password
             )
         {
-            uint result = LUGAPI.ERROR_FAILURE;
+            uint result = ERROR_FAILURE;
 
             // Ensure we have creds
             if (!Session.EnsureNullSession(servername, ce))
@@ -280,12 +422,11 @@ namespace Likewise.LMC.NETAPI.Implementation
             try
             {
                 Marshal.StructureToPtr(ui1003, bufptr, false);
-                result = (uint)Interop.WinLugApi.NetUserSetInfo(servername, username, 1003, bufptr, IntPtr.Zero);
+                result = (uint)NetUserSetInfo(servername, username, 1003, bufptr, IntPtr.Zero);
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                result = LUGAPI.ERROR_FAILURE;
-                HandleNETAPIException("ChangePassword", e);
+                result = ERROR_FAILURE;
             }
             finally
             {
@@ -296,7 +437,7 @@ namespace Likewise.LMC.NETAPI.Implementation
             return result;
         }
 
-        public bool
+        public static bool
         NetDeleteUser(
             CredentialEntry ce,
             string servername,
@@ -313,21 +454,26 @@ namespace Likewise.LMC.NETAPI.Implementation
 
             try
             {
-                if (Interop.WinLugApi.NetUserDel(servername, username) == 0)
+                if (!NetApiInitCalled)
+                {
+                    NetApiInitCalled = NetInitMemory(ce, servername);
+                }
+
+                if (NetUserDel(servername, username) == 0)
                 {
                     result = true;
                 }
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                HandleNETAPIException("DeleteUser", e);
+                result = false;
             }
 
             return result;
 
         }
 
-        public bool
+        public static bool
         NetDeleteGroup(
             CredentialEntry ce,
             string servername,
@@ -344,21 +490,26 @@ namespace Likewise.LMC.NETAPI.Implementation
 
             try
             {
-                if (Interop.WinLugApi.NetLocalGroupDel(servername, username) == 0)
+                if (!NetApiInitCalled)
+                {
+                    NetApiInitCalled = NetInitMemory(ce, servername);
+                }
+
+                if (NetLocalGroupDel(servername, username) == 0)
                 {
                     result = true;
                 }
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                HandleNETAPIException("DeleteGroup", e);
+                result = false;
             }
 
             return result;
 
         }
 
-        public uint
+        public static uint
         NetGetGroups(
             CredentialEntry ce,
             string servername,
@@ -366,7 +517,7 @@ namespace Likewise.LMC.NETAPI.Implementation
             out string[] groups
             )
         {
-            uint result = LUGAPI.ERROR_FAILURE;
+            uint result = ERROR_FAILURE;
             groups = null;
 
             // Ensure we have creds
@@ -382,8 +533,13 @@ namespace Likewise.LMC.NETAPI.Implementation
                 int entriesRead = 0;
                 int totalEntries = 0;
 
-                result = (uint)Interop.WinLugApi.NetUserGetLocalGroups(servername,
-                    username, 0, 0, out bufPtr, LUGAPI.MAX_PREFERRED_LENGTH, out entriesRead, out totalEntries);
+                if (!NetApiInitCalled)
+                {
+                    NetApiInitCalled = NetInitMemory(ce, servername);
+                }
+
+                result = (uint)NetUserGetLocalGroups(servername,
+                    username, 0, 0, out bufPtr, MAX_PREFERRED_LENGTH, out entriesRead, out totalEntries);
 
                 if (entriesRead > 0)
                 {
@@ -400,7 +556,7 @@ namespace Likewise.LMC.NETAPI.Implementation
 
                             if (!String.IsNullOrEmpty(groupsStruct.lgrui0_name))
                             {
-                                groups[i] = scrubString(groupsStruct.lgrui0_name, LUGAPI.NETAPI_MAX_GROUP_NAME_LENGTH);
+                                groups[i] = scrubString(groupsStruct.lgrui0_name, NETAPI_MAX_GROUP_NAME_LENGTH);
                             }
                             else
                             {
@@ -411,32 +567,32 @@ namespace Likewise.LMC.NETAPI.Implementation
                     }
                 }
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                HandleNETAPIException("GetGroups", e);
+                result = ERROR_FAILURE;
             }
             finally
             {
                 if (bufPtr != IntPtr.Zero)
                 {
-                    Interop.WinLugApi.NetApiBufferFree(bufPtr);
+                    NetApiBufferFree(bufPtr);
                 }
             }
 
             return result;
         }
 
-        public void
+        public static void
         NetEnumUsers(
             CredentialEntry ce,
             string servername,
             int resumeHandle,
-            out LUGAPI.LUGEnumStatus enumStatus
+            out LUGEnumStatus enumStatus
             )
         {
-            enumStatus = new LUGAPI.LUGEnumStatus();
+            enumStatus = new LUGEnumStatus();
             enumStatus.initializeToNull();
-            enumStatus.type = LUGAPI.LUGType.User;
+            enumStatus.type = LUGType.User;
 
             //Ensure we have creds
             if (!Session.EnsureNullSession(servername, ce))
@@ -453,12 +609,17 @@ namespace Likewise.LMC.NETAPI.Implementation
                 int totalEntries = 0;
                 int entriesRead = 0;
 
+                if (!NetApiInitCalled)
+                {
+                    NetApiInitCalled = NetInitMemory(ce, servername);
+                }
+
                 statusCode = apiNetUserEnum(
                     servername,
                     20,
                     2,
                     out bufPtr,
-                    LUGAPI.MAX_PREFERRED_LENGTH,
+                    MAX_PREFERRED_LENGTH,
                     ref entriesRead,
                     ref totalEntries,
                     ref localResumeHandle
@@ -480,7 +641,7 @@ namespace Likewise.LMC.NETAPI.Implementation
                         users[i] = (USER_INFO_20)Marshal.PtrToStructure(iter, typeof(USER_INFO_20));
                         iter = (IntPtr)((int)iter + Marshal.SizeOf(typeof(USER_INFO_20)));
 
-                        string[] userInfo ={"",(users[i].usri20_flags & LUGAPI.UF_ACCOUNTDISABLE) != 0 ? LUGAPI.Disabled : "",users[i].usri20_name,
+                        string[] userInfo ={"",(users[i].usri20_flags & UF_ACCOUNTDISABLE) != 0 ? DISABLED : "",users[i].usri20_name,
                                 users[i].usri20_full_name,users[i].usri20_comment };
 
 
@@ -493,32 +654,31 @@ namespace Likewise.LMC.NETAPI.Implementation
                     }
                 }
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                HandleNETAPIException("EnumUsers", e);
             }
             finally
             {
                 if (bufPtr != IntPtr.Zero)
                 {
-                    Interop.WinLugApi.NetApiBufferFree(bufPtr);
+                    NetApiBufferFree(bufPtr);
                 }
             }
 
             return;
         }
 
-        public void
+        public static void
         NetEnumGroups(
             CredentialEntry ce,
             string servername,
             int resumeHandle,
-            out LUGAPI.LUGEnumStatus enumStatus
+            out LUGEnumStatus enumStatus
             )
         {
-            enumStatus = new LUGAPI.LUGEnumStatus();
+            enumStatus = new LUGEnumStatus();
             enumStatus.initializeToNull();
-            enumStatus.type = LUGAPI.LUGType.Group;
+            enumStatus.type = LUGType.Group;
 
             IntPtr bufPtr = IntPtr.Zero;
 
@@ -530,11 +690,16 @@ namespace Likewise.LMC.NETAPI.Implementation
                 int totalEntries = 0;
                 int localResumeHandle = resumeHandle;
 
+                if (!NetApiInitCalled)
+                {
+                    NetApiInitCalled = NetInitMemory(ce, servername);
+                }
+
                 statusCode = apiNetLocalGroupEnum(
                     servername,
                     1,
                     out bufPtr,
-                    LUGAPI.MAX_PREFERRED_LENGTH,
+                    MAX_PREFERRED_LENGTH,
                     out entriesRead,
                     out totalEntries,
                     ref localResumeHandle
@@ -565,21 +730,21 @@ namespace Likewise.LMC.NETAPI.Implementation
                 {
                     enumStatus.moreEntries = true;
                 }
+
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                HandleNETAPIException("EnumGroups", e);
             }
             finally
             {
                 if (bufPtr != IntPtr.Zero)
                 {
-                    Interop.WinLugApi.NetApiBufferFree(bufPtr);
+                    NetApiBufferFree(bufPtr);
                 }
             }
         }
 
-        public uint
+        public static uint
         NetDeleteUserFromGroup(
             CredentialEntry ce,
             string servername,
@@ -588,7 +753,7 @@ namespace Likewise.LMC.NETAPI.Implementation
             )
         {
 
-            uint result = LUGAPI.ERROR_FAILURE;
+            uint result = ERROR_FAILURE;
 
             // Ensure we have creds
             if (!Session.EnsureNullSession(servername, ce))
@@ -602,17 +767,21 @@ namespace Likewise.LMC.NETAPI.Implementation
             IntPtr bufptr = Marshal.AllocHGlobal(Marshal.SizeOf(lgmi3));
             try
             {
+                if (!NetApiInitCalled)
+                {
+                    NetApiInitCalled = NetInitMemory(ce, servername);
+                }
+
                 Marshal.StructureToPtr(lgmi3, bufptr, false);
-                int ret = Interop.WinLugApi.NetLocalGroupDelMembers(servername, groupname, 3, bufptr, 1);
+                int ret = NetLocalGroupDelMembers(servername, groupname, 3, bufptr, 1);
                 if (ret == 0)
                 {
-                    result = LUGAPI.ERROR_SUCCESS;
+                    result = ERROR_SUCCESS;
                 }
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                HandleNETAPIException("DeleteUserFromGroup", e);
-                result = 0;
+                result = ERROR_FAILURE;
             }
             finally
             {
@@ -625,20 +794,19 @@ namespace Likewise.LMC.NETAPI.Implementation
         }
 
 
-        public uint
+        public static uint
         NetGetUserInfo(
             CredentialEntry ce,
             string servername,
             string username,
-            out LUGAPI.LUGInfo userInfo
-            // we need an out for userInfo which use to be an _arg (I believe)
+            out LUGInfo userInfo
             )
         {
             IntPtr bufPtr = IntPtr.Zero;
 
-            uint result = LUGAPI.ERROR_FAILURE;
+            uint result = ERROR_FAILURE;
 
-            userInfo = new LUGAPI.LUGInfo();
+            userInfo = new LUGInfo();
             userInfo.initializeToNull();
 
             userInfo.fullname = "";
@@ -653,7 +821,12 @@ namespace Likewise.LMC.NETAPI.Implementation
 
             try
             {
-                result = (uint)Interop.WinLugApi.NetUserGetInfo(servername, username, 20, out bufPtr);
+                if (!NetApiInitCalled)
+                {
+                    NetApiInitCalled = NetInitMemory(ce, servername);
+                }
+
+                result = (uint)NetUserGetInfo(servername, username, 20, out bufPtr);
 
                 USER_INFO_20 userinfo_20 = new USER_INFO_20();
                 userinfo_20 = (USER_INFO_20)Marshal.PtrToStructure(bufPtr, typeof(USER_INFO_20));
@@ -661,23 +834,22 @@ namespace Likewise.LMC.NETAPI.Implementation
                 userInfo.description = userinfo_20.usri20_comment;
                 userInfo.flags = userinfo_20.usri20_flags;
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                HandleNETAPIException("GetUserInfo", e);
+                result = ERROR_FAILURE;
             }
             finally
             {
                 if (bufPtr != IntPtr.Zero)
                 {
-                    Interop.WinLugApi.NetApiBufferFree(bufPtr);
+                    NetApiBufferFree(bufPtr);
                 }
             }
             return result;
-
         }
 
 
-        public bool
+        public static bool
         NetRenameUser(
             CredentialEntry ce,
             string servername,
@@ -701,13 +873,18 @@ namespace Likewise.LMC.NETAPI.Implementation
 
             try
             {
+                if (!NetApiInitCalled)
+                {
+                    NetApiInitCalled = NetInitMemory(ce, servername);
+                }
+
                 Marshal.StructureToPtr(usrinfo_0, bufptr, false);
 
-                result = !Convert.ToBoolean(Interop.WinLugApi.NetUserSetInfo(servername, oldusername, 0, bufptr, IntPtr.Zero));
+                result = !Convert.ToBoolean(NetUserSetInfo(servername, oldusername, 0, bufptr, IntPtr.Zero));
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                HandleNETAPIException("RenameUser", e);
+                result = false;
             }
             finally
             {
@@ -720,7 +897,7 @@ namespace Likewise.LMC.NETAPI.Implementation
         }
 
 
-        public bool
+        public static bool
         NetRenameGroup(
             CredentialEntry ce,
             string servername,
@@ -744,16 +921,21 @@ namespace Likewise.LMC.NETAPI.Implementation
 
             try
             {
+                if (!NetApiInitCalled)
+                {
+                    NetApiInitCalled = NetInitMemory(ce, servername);
+                }
+
                 Marshal.StructureToPtr(localgrouinfo_0, bufptr, false);
 
-                if (Interop.WinLugApi.NetLocalGroupSetInfo(servername, oldgroupname, 0, bufptr, IntPtr.Zero) == 0)
+                if (NetLocalGroupSetInfo(servername, oldgroupname, 0, bufptr, IntPtr.Zero) == 0)
                 {
                     result = true;
                 }
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                HandleNETAPIException("RenameGroup", e);
+                result = false;
             }
             finally
             {
@@ -766,7 +948,7 @@ namespace Likewise.LMC.NETAPI.Implementation
         }
 
 
-        public uint
+        public static uint
         NetEditUserFullName(
             CredentialEntry ce,
             string servername,
@@ -774,7 +956,7 @@ namespace Likewise.LMC.NETAPI.Implementation
             string fullname
             )
         {
-            uint result = LUGAPI.ERROR_FAILURE;
+            uint result = ERROR_FAILURE;
 
             // Ensure we have creds
             if (!Session.EnsureNullSession(servername, ce))
@@ -790,13 +972,18 @@ namespace Likewise.LMC.NETAPI.Implementation
 
             try
             {
+                if (!NetApiInitCalled)
+                {
+                    NetApiInitCalled = NetInitMemory(ce, servername);
+                }
+
                 Marshal.StructureToPtr(userinfo_1011, bufptr1011, false);
 
-                result = (uint)Interop.WinLugApi.NetUserSetInfo(servername, username, 1011, bufptr1011, IntPtr.Zero);
+                result = (uint)NetUserSetInfo(servername, username, 1011, bufptr1011, IntPtr.Zero);
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                HandleNETAPIException("EditUserFullName", e);
+                result = ERROR_FAILURE;
             }
             finally
             {
@@ -808,7 +995,7 @@ namespace Likewise.LMC.NETAPI.Implementation
         }
 
 
-        public uint
+        public static uint
         NetEditUserDescription(
             CredentialEntry ce,
             string servername,
@@ -816,7 +1003,7 @@ namespace Likewise.LMC.NETAPI.Implementation
             string description
             )
         {
-            uint result = LUGAPI.ERROR_FAILURE;
+            uint result = ERROR_FAILURE;
 
             // Ensure we have creds
             if (!Session.EnsureNullSession(servername, ce))
@@ -824,34 +1011,39 @@ namespace Likewise.LMC.NETAPI.Implementation
                 return result;
             }
 
-            LOCALGROUP_INFO_1 groupinfo_1 = new LOCALGROUP_INFO_1();
-            groupinfo_1.comment = description;
+            USER_INFO_1007 userinfo_1007 = new USER_INFO_1007();
+            userinfo_1007.usri1007_comment = description;
 
             IntPtr bufptr = IntPtr.Zero;
-            bufptr = Marshal.AllocHGlobal(Marshal.SizeOf(groupinfo_1));
+            bufptr = Marshal.AllocHGlobal(Marshal.SizeOf(userinfo_1007));
 
             try
             {
-                Marshal.StructureToPtr(groupinfo_1, bufptr, false);
+                Marshal.StructureToPtr(userinfo_1007, bufptr, false);
 
-                // groupname was a part of the NETAPIArguments struct and is not used here... clear it for now
-                //apiNetLocalGroupSetInfo(servername, groupname, 1, bufptr, IntPtr.Zero);
-                result = (uint)Interop.WinLugApi.NetLocalGroupSetInfo(servername, null, 1, bufptr, IntPtr.Zero);
+                if (!NetApiInitCalled)
+                {
+                    NetApiInitCalled = NetInitMemory(ce, servername);
+                }
+
+                result = (uint)NetUserSetInfo(servername, username, 1007, bufptr, IntPtr.Zero);
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                HandleNETAPIException("EditGroupComment", e);
+                result = ERROR_FAILURE;
             }
             finally
             {
-                Marshal.DestroyStructure(bufptr, groupinfo_1.GetType());
+                Marshal.DestroyStructure(bufptr, userinfo_1007.GetType());
                 Marshal.FreeHGlobal(bufptr);
             }
 
             return result;
         }
 
-        public uint
+
+
+        public static uint
         NetEditUserFlags(
             CredentialEntry ce,
             string servername,
@@ -859,7 +1051,7 @@ namespace Likewise.LMC.NETAPI.Implementation
             uint flags
             )
         {
-            uint result = LUGAPI.ERROR_FAILURE;
+            uint result = ERROR_FAILURE;
 
             // Ensure we have creds
             if (!Session.EnsureNullSession(servername, ce))
@@ -875,12 +1067,17 @@ namespace Likewise.LMC.NETAPI.Implementation
 
             try
             {
+                if (!NetApiInitCalled)
+                {
+                    NetApiInitCalled = NetInitMemory(ce, servername);
+                }
+
                 Marshal.StructureToPtr(userinfo_1008, bufptr1008, false);
-                result = (uint)Interop.WinLugApi.NetUserSetInfo(servername, username, 1008, bufptr1008, IntPtr.Zero);
+                result = (uint)NetUserSetInfo(servername, username, 1008, bufptr1008, IntPtr.Zero);
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                HandleNETAPIException("EditUserFlags", e);
+                result = ERROR_FAILURE;
             }
             finally
             {
@@ -891,15 +1088,16 @@ namespace Likewise.LMC.NETAPI.Implementation
             return result;
         }
 
-        public uint
+
+        public static uint
         NetGetGroupMembers(
             CredentialEntry ce,
             string servername,
             string groupname,
-            out string[] members
+            out string [] members
             )
         {
-            uint result = LUGAPI.ERROR_FAILURE;
+            uint result = ERROR_FAILURE;
 
             members = null;
 
@@ -924,8 +1122,13 @@ namespace Likewise.LMC.NETAPI.Implementation
                 Marshal.StructureToPtr(resumeHandle, resumeHandleStar, false);
                 Marshal.StructureToPtr(bufPtr, bufPtrStar, false);
 
+                if (!NetApiInitCalled)
+                {
+                    NetApiInitCalled = NetInitMemory(ce, servername);
+                }
+
                 result = (uint)apiNetLocalGroupGetMembers(servername, groupname, 3, out bufPtr,
-                    LUGAPI.MAX_PREFERRED_LENGTH, out entriesRead, out totalEntries, resumeHandleStar);
+                    MAX_PREFERRED_LENGTH, out entriesRead, out totalEntries, resumeHandleStar);
 
                 if (entriesRead > 0)
                 {
@@ -942,16 +1145,14 @@ namespace Likewise.LMC.NETAPI.Implementation
                         if (!String.IsNullOrEmpty(memberStruct.lgrmi3_domainandname))
                         {
                             members[i] = memberStruct.lgrmi3_domainandname;
-                            //scrubString(memberStruct.lgrmi3_domainandname,
-                            //NETAPI_MAX_DOMAIN_NAME_LENGTH + 1 + NETAPI_MAX_USER_NAME_LENGTH);
                         }
                         iter = (IntPtr)((int)iter + Marshal.SizeOf(typeof(LOCALGROUP_MEMBERS_INFO_3)));
                     }
                 }
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                HandleNETAPIException("GetGroupMembers", e);
+                result = ERROR_FAILURE;
             }
             finally
             {
@@ -988,7 +1189,7 @@ namespace Likewise.LMC.NETAPI.Implementation
 
         }
 
-        public uint
+        public static uint
         NetGetGroupInfo(
             CredentialEntry ce,
             string servername,
@@ -996,7 +1197,7 @@ namespace Likewise.LMC.NETAPI.Implementation
             out string description
             )
         {
-            uint result = LUGAPI.ERROR_FAILURE;
+            uint result = ERROR_FAILURE;
 
             description = null;
 
@@ -1009,7 +1210,12 @@ namespace Likewise.LMC.NETAPI.Implementation
             IntPtr bufPtr = IntPtr.Zero;
             try
             {
-                result = (uint)Interop.WinLugApi.NetLocalGroupGetInfo(servername, groupname, 1, out bufPtr);
+                if (!NetApiInitCalled)
+                {
+                    NetApiInitCalled = NetInitMemory(ce, servername);
+                }
+
+                result = (uint)NetLocalGroupGetInfo(servername, groupname, 1, out bufPtr);
 
                 if (bufPtr == IntPtr.Zero)
                 {
@@ -1020,22 +1226,23 @@ namespace Likewise.LMC.NETAPI.Implementation
                 localrounpinfo_1 = (LOCALGROUP_INFO_1)Marshal.PtrToStructure(bufPtr, typeof(LOCALGROUP_INFO_1));
                 description = localrounpinfo_1.comment;
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                HandleNETAPIException("GetGroupInfo", e);
+                result = ERROR_FAILURE;
             }
             finally
             {
                 if (bufPtr != IntPtr.Zero)
                 {
-                    Interop.WinLugApi.NetApiBufferFree(bufPtr);
+                    NetApiBufferFree(bufPtr);
                 }
             }
 
             return result;
         }
 
-        public uint
+
+        public static uint
         NetEditGroupDescription(
             CredentialEntry ce,
             string servername,
@@ -1043,7 +1250,7 @@ namespace Likewise.LMC.NETAPI.Implementation
             string description
             )
         {
-            uint result = LUGAPI.ERROR_FAILURE;
+            uint result = ERROR_FAILURE;
 
             // Ensure we have creds
             if (!Session.EnsureNullSession(servername, ce))
@@ -1051,35 +1258,39 @@ namespace Likewise.LMC.NETAPI.Implementation
                 return result;
             }
 
-            USER_INFO_1007 userinfo_1007 = new USER_INFO_1007();
-            userinfo_1007.usri1007_comment = description;
+            LOCALGROUP_INFO_1 groupinfo_1 = new LOCALGROUP_INFO_1();
+            groupinfo_1.comment = description;
 
-            IntPtr bufptr1007 = IntPtr.Zero;
-            bufptr1007 = Marshal.AllocHGlobal(Marshal.SizeOf(userinfo_1007));
+            IntPtr bufptr = IntPtr.Zero;
+            bufptr = Marshal.AllocHGlobal(Marshal.SizeOf(groupinfo_1));
 
             try
             {
-                Marshal.StructureToPtr(userinfo_1007, bufptr1007, false);
+                if (!NetApiInitCalled)
+                {
+                    NetApiInitCalled = NetInitMemory(ce, servername);
+                }
 
-                // username was a part of NETAPIArguments which is not set... clear it for now.
-                //apiNetUserSetInfo(servername, username, 1007, bufptr1007, IntPtr.Zero);
-                result = (uint)Interop.WinLugApi.NetUserSetInfo(servername, null, 1007, bufptr1007, IntPtr.Zero);
+                Marshal.StructureToPtr(groupinfo_1, bufptr, false);
+
+                result = (uint)NetLocalGroupSetInfo(servername, groupname, 1, bufptr, IntPtr.Zero);
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                HandleNETAPIException("EditUserComment", e);
+                result = ERROR_FAILURE;
             }
             finally
             {
-                Marshal.DestroyStructure(bufptr1007, userinfo_1007.GetType());
-                Marshal.FreeHGlobal(bufptr1007);
+                Marshal.DestroyStructure(bufptr, groupinfo_1.GetType());
+                Marshal.FreeHGlobal(bufptr);
             }
 
             return result;
 
         }
 
-        public uint
+
+        public static uint
         NetAddGroupMember(
             CredentialEntry ce,
             string servername,
@@ -1087,7 +1298,7 @@ namespace Likewise.LMC.NETAPI.Implementation
             string username
             )
         {
-            uint result = LUGAPI.ERROR_FAILURE;
+            uint result = ERROR_FAILURE;
 
             // Ensure we have creds
             if (!Session.EnsureNullSession(servername, ce))
@@ -1102,13 +1313,17 @@ namespace Likewise.LMC.NETAPI.Implementation
                 IntPtr bufptr = Marshal.AllocHGlobal(Marshal.SizeOf(lgmi3));
                 try
                 {
+                    if (!NetApiInitCalled)
+                    {
+                        NetApiInitCalled = NetInitMemory(ce, servername);
+                    }
+
                     Marshal.StructureToPtr(lgmi3, bufptr, false);
-                    result = (uint)Interop.WinLugApi.NetLocalGroupAddMembers(servername, groupname, 3, bufptr, 1);
+                    result = (uint)NetLocalGroupAddMembers(servername, groupname, 3, bufptr, 1);
                 }
-                catch (Exception e)
+                catch (Exception)
                 {
-                    result = 0;
-                    HandleNETAPIException("AddUserToGroup", e);
+                    result = ERROR_FAILURE;
                 }
                 finally
                 {
@@ -1119,7 +1334,7 @@ namespace Likewise.LMC.NETAPI.Implementation
                     }
                     catch (Exception)
                     {
-                        result = 0;
+                        result = ERROR_FAILURE;
                     }
                 }
             }
@@ -1128,7 +1343,8 @@ namespace Likewise.LMC.NETAPI.Implementation
 
         }
 
-        public uint
+
+        public static uint
         NetDeleteGroupMember(
             CredentialEntry ce,
             string servername,
@@ -1136,7 +1352,7 @@ namespace Likewise.LMC.NETAPI.Implementation
             string username
             )
         {
-            uint result = LUGAPI.ERROR_FAILURE;
+            uint result = ERROR_FAILURE;
 
             // Ensure we have creds
             if (!Session.EnsureNullSession(servername, ce))
@@ -1154,11 +1370,16 @@ namespace Likewise.LMC.NETAPI.Implementation
             {
                 Marshal.StructureToPtr(lgmi_3, bufptr, false);
 
-                result = (uint)Interop.WinLugApi.NetLocalGroupDelMembers(servername, groupname, 3, bufptr, 1);
+                if (!NetApiInitCalled)
+                {
+                    NetApiInitCalled = NetInitMemory(ce, servername);
+                }
+
+                result = (uint)NetLocalGroupDelMembers(servername, groupname, 3, bufptr, 1);
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                HandleNETAPIException("DeleteGroupMember", e);
+                result = ERROR_FAILURE;
             }
             finally
             {
@@ -1170,28 +1391,6 @@ namespace Likewise.LMC.NETAPI.Implementation
             }
 
             return result;
-        }
-
-        public uint
-        NetInitMemory()
-        {
-            // This method does nothing on windows
-            uint result = LUGAPI.ERROR_SUCCESS;
-            return result;
-        }
-
-        public bool
-        NetInitMemory(
-            CredentialEntry ce,
-            string servername
-            )
-        {
-            // Ensure we have creds
-            if (!Session.EnsureNullSession(servername, ce))
-            {
-                return false;
-            }
-            return true;
         }
 
         #endregion
@@ -1222,6 +1421,20 @@ namespace Likewise.LMC.NETAPI.Implementation
             }
 
             return true;
+        }
+
+        public static string flagDescription(uint flags)
+        {
+            return String.Format("Flags: {0}{1}{2}{3}{4}{5}{6}{7}{8}{9}{10}{11}{12}{13}{14}{15}\n",
+                                 ",\nUF_SCRIPT:\r\t\t\t\t", ((flags & UF_SCRIPT) != 0),
+                                 ",\nUF_ACCOUNTDISABLE:\r\t\t\t\t", ((flags & UF_ACCOUNTDISABLE) != 0),
+                                 ",\nUF_LOCKOUT:\r\t\t\t\t", ((flags & UF_LOCKOUT) != 0),
+                                 ",\nUF_PASSWD_NOTREQD:\r\t\t\t\t", ((flags & UF_PASSWD_NOTREQD) != 0),
+                                 ",\nUF_PASSWD_CANT_CHANGE:\r\t\t\t\t", ((flags & UF_PASSWD_CANT_CHANGE) != 0),
+                                 ",\nUF_NORMAL_ACCOUNT:\r\t\t\t\t", ((flags & UF_NORMAL_ACCOUNT) != 0),
+                                 ",\nUF_DONT_EXPIRE_PASSWD:\r\t\t\t\t", ((flags & UF_DONT_EXPIRE_PASSWD) != 0),
+                                 ",\nUF_PASSWORD_EXPIRED:\r\t\t\t\t", ((flags & UF_PASSWORD_EXPIRED) != 0));
+
         }
 
         private static string scrubString(
@@ -1266,31 +1479,93 @@ namespace Likewise.LMC.NETAPI.Implementation
 
         #endregion
 
-        private static void HandleNETAPIException(string methodName, Exception e)
+        public static bool
+        NetInitMemory(
+            CredentialEntry ce,
+            string servername
+            )
         {
-            if (e is NETAPIException)
+            bool result = false;
+
+            // Ensure we have creds
+            if (!Session.EnsureNullSession(servername, ce))
             {
-                NETAPIException netAPIEx = (NETAPIException)e;
-                //Logger.LogException(String.Format(
-                //    "{0} failed with NetAPI error code {1}", methodName, netAPIEx.errorCode), e);
+                return result;
             }
-            //else
-            //{
-            //    Logger.LogException(methodName, e);
-            //}
+
+            try
+            {
+                if (Configurations.currentPlatform == LikewiseTargetPlatform.Windows)
+                {
+                    result = true;
+                }
+                else
+                {
+                    if (NetInitMemory() == 0)
+                    {
+                        result = true;
+                    }
+                }
+            }
+            catch (Exception)
+            {
+            }
+
+            return result;
+
         }
 
-        public delegate void LUGEnumStatusDelegate(LUGAPI.LUGEnumStatus status);
+        const string USER = "UName";
+        const string FULL_NAME = "Full Name";
+        const string DESCRIPTION = "Description";
+        const string GROUP = "GName";
+        const string DISABLED = "Disabled";
 
-        public class NETAPIException : Exception
+        public delegate void LUGEnumStatusDelegate(LUGEnumStatus status);
+
+        public enum LUGType
         {
-            public int errorCode = 0;
+            Undefined,
+            Dummy,
+            User,
+            Group
+        }
 
-            public NETAPIException(string message, int error)
-                :
-            base(message)
+        public struct LUGEnumStatus
+        {
+            public List<string[]> entries;
+            public int totalEntries;
+            public int entriesRead;
+            public int resumeHandle;
+            public bool moreEntries;
+            public LUGType type;
+
+            public void initializeToNull()
             {
-                errorCode = error;
+                entries = null;
+                totalEntries = 0;
+                entriesRead = 0;
+                resumeHandle = 0;
+                moreEntries = false;
+                type = LUGType.Undefined;
+            }
+        }
+
+        public struct LUGInfo
+        {
+            public string username;
+            public string groupname;
+            public string fullname;
+            public string description;
+            public uint flags;
+
+            public void initializeToNull()
+            {
+                username = null;
+                groupname = null;
+                fullname = null;
+                description = null;
+                flags = 0;
             }
         }
 
@@ -1422,5 +1697,79 @@ namespace Likewise.LMC.NETAPI.Implementation
             [MarshalAs(UnmanagedType.LPWStr)]
             public string comment;
         }
+
+        #region Accessors
+
+        public static string UserColumn
+        {
+            get
+            {
+                return USER;
+            }
+        }
+
+        public static string GroupColumn
+        {
+            get
+            {
+                return GROUP;
+            }
+        }
+
+        public static string FullNameColumn
+        {
+            get
+            {
+                return FULL_NAME;
+            }
+        }
+
+        public static string DescriptionColumn
+        {
+            get
+            {
+                return DESCRIPTION;
+            }
+        }
+
+        public static string Disabled
+        {
+            get
+            {
+                return DISABLED;
+            }
+        }
+
+        #endregion
+
+        #region definitions
+
+        const int MAX_PREFERRED_LENGTH = -1;
+
+        // Flags used by UI.  These need to be keep in sync with plumb/samba/source/include.ads.h
+        public const uint UF_SCRIPT = 0x00000001;
+        public const uint UF_ACCOUNTDISABLE = 0x00000002;
+
+        public const uint UF_LOCKOUT = 0x00000010;
+        public const uint UF_PASSWD_NOTREQD = 0x00000020;
+        public const uint UF_PASSWD_CANT_CHANGE = 0x00000040;
+
+        public const uint UF_NORMAL_ACCOUNT = 0x00000200;
+
+        public const uint UF_DONT_EXPIRE_PASSWD = 0x00010000;
+
+        public const uint UF_PASSWORD_EXPIRED = 0x00800000;
+
+        public const int NETAPI_MAX_USER_NAME_LENGTH = 20;
+        public const int NETAPI_MAX_GROUP_NAME_LENGTH = 256;
+        public const int NETAPI_MAX_DOMAIN_NAME_LENGTH = 255;
+
+        // We should convert to using ErrorCodes.WIN32Enum.*value*
+        // values ASAP.  For now, just use these simple error codes.
+        private const int ERROR_SUCCESS = 0;
+        private const int ERROR_FAILURE = 1;
+
+        #endregion
     }
 }
+
