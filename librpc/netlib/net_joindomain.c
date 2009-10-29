@@ -285,7 +285,7 @@ NetJoinDomainLocalInternal(
 
     if (account && password)
     {
-        status = LwIoCreatePlainCredsW(account, password, &creds);
+        status = LwIoCreatePlainCredsW(account, domain, password, &creds);
         BAIL_ON_NTSTATUS_ERROR(status);
     }
     else
