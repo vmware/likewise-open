@@ -136,10 +136,10 @@ namespace Likewise.LMC.NETAPI.Implementation
         {
             uint result = LUGAPI.ERROR_FAILURE;
 
-			if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
-			{
-				return result;
-			}
+            if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
+            {
+                return result;
+            }
 
             if (!Session.EnsureNullSession(servername, ce))
             {
@@ -187,10 +187,10 @@ namespace Likewise.LMC.NETAPI.Implementation
         {
             uint result = LUGAPI.ERROR_FAILURE;
 
-			if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
-			{
-				return result;
-			}
+            if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
+            {
+                return result;
+            }
 
             // Ensure we have creds
             if (!Session.EnsureNullSession(servername, ce))
@@ -276,10 +276,10 @@ namespace Likewise.LMC.NETAPI.Implementation
         {
             uint result = LUGAPI.ERROR_FAILURE;
 
-			if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
-			{
-				return result;
-			}
+            if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
+            {
+                return result;
+            }
 
             // Ensure we have creds
             if (!Session.EnsureNullSession(servername, ce))
@@ -320,10 +320,10 @@ namespace Likewise.LMC.NETAPI.Implementation
         {
             bool result = false;
 
-			if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
-			{
-				return result;
-			}
+            if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
+            {
+                return result;
+            }
 
             // Ensure we have creds
             if (!Session.EnsureNullSession(servername, ce))
@@ -356,10 +356,10 @@ namespace Likewise.LMC.NETAPI.Implementation
         {
             bool result = false;
 
-			if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
-			{
-				return result;
-			}
+            if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
+            {
+                return result;
+            }
 
             // Ensure we have creds
             if (!Session.EnsureNullSession(servername, ce))
@@ -394,10 +394,10 @@ namespace Likewise.LMC.NETAPI.Implementation
             uint result = LUGAPI.ERROR_FAILURE;
             groups = null;
 
-			if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
-			{
-				return result;
-			}
+            if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
+            {
+                return result;
+            }
 
             // Ensure we have creds
             if (!Session.EnsureNullSession(servername, ce))
@@ -468,10 +468,10 @@ namespace Likewise.LMC.NETAPI.Implementation
             enumStatus.initializeToNull();
             enumStatus.type = LUGAPI.LUGType.User;
 
-			if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
-			{
-				return;
-			}
+            if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
+            {
+                return;
+            }
 
             //Ensure we have creds
             if (!Session.EnsureNullSession(servername, ce))
@@ -555,10 +555,10 @@ namespace Likewise.LMC.NETAPI.Implementation
             enumStatus.initializeToNull();
             enumStatus.type = LUGAPI.LUGType.Group;
 
-			if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
-			{
-				return;
-			}
+            if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
+            {
+                return;
+            }
 
             IntPtr bufPtr = IntPtr.Zero;
 
@@ -630,10 +630,10 @@ namespace Likewise.LMC.NETAPI.Implementation
 
             uint result = LUGAPI.ERROR_FAILURE;
 
-			if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
-			{
-				return result;
-			}
+            if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
+            {
+                return result;
+            }
 
             // Ensure we have creds
             if (!Session.EnsureNullSession(servername, ce))
@@ -690,10 +690,10 @@ namespace Likewise.LMC.NETAPI.Implementation
             userInfo.description = "";
             userInfo.flags = 0;
 
-			if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
-			{
-				return result;
-			}
+            if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
+            {
+                return result;
+            }
 
             // Ensure we have creds
             if (!Session.EnsureNullSession(servername, ce))
@@ -737,10 +737,10 @@ namespace Likewise.LMC.NETAPI.Implementation
         {
             bool result = false;
 
-			if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
-			{
-				return result;
-			}
+            if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
+            {
+                return result;
+            }
 
             // Ensure we have creds
             if (!Session.EnsureNullSession(servername, ce))
@@ -785,10 +785,10 @@ namespace Likewise.LMC.NETAPI.Implementation
         {
             bool result = false;
 
-			if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
-			{
-				return result;
-			}
+            if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
+            {
+                return result;
+            }
 
             // Ensure we have creds
             if (!Session.EnsureNullSession(servername, ce))
@@ -836,10 +836,10 @@ namespace Likewise.LMC.NETAPI.Implementation
         {
             uint result = LUGAPI.ERROR_FAILURE;
 
-			if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
-			{
-				return result;
-			}
+            if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
+            {
+                return result;
+            }
 
             // Ensure we have creds
             if (!Session.EnsureNullSession(servername, ce))
@@ -883,10 +883,10 @@ namespace Likewise.LMC.NETAPI.Implementation
         {
             uint result = LUGAPI.ERROR_FAILURE;
 
-			if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
-			{
-				return result;
-			}
+            if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
+            {
+                return result;
+            }
 
             // Ensure we have creds
             if (!Session.EnsureNullSession(servername, ce))
@@ -933,10 +933,10 @@ namespace Likewise.LMC.NETAPI.Implementation
         {
             uint result = LUGAPI.ERROR_FAILURE;
 
-			if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
-			{
-				return result;
-			}
+            if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
+            {
+                return result;
+            }
 
             // Ensure we have creds
             if (!Session.EnsureNullSession(servername, ce))
@@ -981,10 +981,10 @@ namespace Likewise.LMC.NETAPI.Implementation
 
             members = null;
 
-			if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
-			{
-				return result;
-			}
+            if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
+            {
+                return result;
+            }
 
             // Ensure we have creds
             if (!Session.EnsureNullSession(servername, ce))
@@ -1083,10 +1083,10 @@ namespace Likewise.LMC.NETAPI.Implementation
 
             description = null;
 
-			if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
-			{
-				return result;
-			}
+            if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
+            {
+                return result;
+            }
 
             // Ensure we have creds
             if (!Session.EnsureNullSession(servername, ce))
@@ -1134,10 +1134,10 @@ namespace Likewise.LMC.NETAPI.Implementation
         {
             uint result = LUGAPI.ERROR_FAILURE;
 
-			if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
-			{
-				return result;
-			}
+            if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
+            {
+                return result;
+            }
 
             // Ensure we have creds
             if (!Session.EnsureNullSession(servername, ce))
@@ -1184,10 +1184,10 @@ namespace Likewise.LMC.NETAPI.Implementation
         {
             uint result = LUGAPI.ERROR_FAILURE;
 
-			if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
-			{
-				return result;
-			}
+            if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
+            {
+                return result;
+            }
 
             // Ensure we have creds
             if (!Session.EnsureNullSession(servername, ce))
@@ -1239,10 +1239,10 @@ namespace Likewise.LMC.NETAPI.Implementation
         {
             uint result = LUGAPI.ERROR_FAILURE;
 
-			if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
-			{
-				return result;
-			}
+            if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
+            {
+                return result;
+            }
 
             // Ensure we have creds
             if (!Session.EnsureNullSession(servername, ce))
