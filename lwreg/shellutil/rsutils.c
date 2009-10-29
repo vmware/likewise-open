@@ -909,7 +909,7 @@ RegShellUtilDeleteValue(
     dwError = RegOpenKeyExA(hReg, NULL, pszRootKeyName, 0, 0, &pRootKey);
     BAIL_ON_REG_ERROR(dwError);
 
-    dwError = RegDeleteKeyValue(hReg, pRootKey, pSubKey, pValueName);
+    dwError = RegDeleteKeyValueW(hReg, pRootKey, pSubKey, pValueName);
     BAIL_ON_REG_ERROR(dwError);
 
 cleanup:

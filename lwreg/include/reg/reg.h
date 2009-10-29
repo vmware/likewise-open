@@ -257,24 +257,32 @@ RegCloseKey(
 
 DWORD
 RegDeleteKeyA(
-    HANDLE hRegConnection,
-    HKEY hKey,
-    PCSTR pszSubKey
+    IN HANDLE hRegConnection,
+    IN HKEY hKey,
+    IN PCSTR pszSubKey
     );
 
 DWORD
 RegDeleteKeyW(
-    HANDLE hRegConnection,
-    HKEY hKey,
-    PCWSTR pSubKey
+    IN HANDLE hRegConnection,
+    IN HKEY hKey,
+    IN PCWSTR pSubKey
     );
 
 DWORD
-RegDeleteKeyValue(
-    HANDLE hRegConnection,
-    HKEY hKey,
-    PCWSTR pSubKey,
-    PCWSTR pValueName
+RegDeleteKeyValueA(
+    IN HANDLE hRegConnection,
+    IN HKEY hKey,
+    IN OPTIONAL PCSTR pszSubKey,
+    IN OPTIONAL PCSTR pszValueName
+    );
+
+DWORD
+RegDeleteKeyValueW(
+    IN HANDLE hRegConnection,
+    IN HKEY hKey,
+    IN OPTIONAL PCWSTR pSubKey,
+    IN OPTIONAL PCWSTR pValueName
     );
 
 DWORD
@@ -534,6 +542,7 @@ RegQueryInfoKeyW(
     PFILETIME pftLastWriteTime
     );
 
+
 #ifdef UNICODE
 #define RegEnumValue(hRegConnection, hKey, dwIndex, pValueName, pcchValueName, pReserved, pType, pData, pcbData) \
     RegEnumValueW(hRegConnection, hKey, dwIndex, pValueName, pcchValueName, pReserved, pType, pData, pcbData)
@@ -557,6 +566,8 @@ RegQueryInfoKeyW(
     RegQueryInfoKeyW(hRegConnection, hKey, pClass, pcClass, pReserved, pcSubKeys, pcMaxSubKeyLen, pcMaxClassLen, pcValues, pcMaxValueNameLen, pcMaxValueLen, pcbSecurityDescriptor, pftLastWriteTime)
 #define RegDeleteKey(hRegConnection, hKey, pSubKey) \
     RegDeleteKeyW(hRegConnection, hKey, pwszSubKey)
+#define RegDeleteKeyValue(hRegConnection, hKey, pSubKey, pValueName) \
+    RegDeleteKeyValueW(hRegConnection, hKey, pwszSubKey, pwszValueName)
 #else
 #define RegEnumValue(hRegConnection, hKey, dwIndex, pValueName, pcchValueName, pReserved, pType, pData, pcbData) \
     RegEnumValueA(hRegConnection, hKey, dwIndex, pValueName, pcchValueName, pReserved, pType, pData, pcbData)
@@ -580,6 +591,8 @@ RegQueryInfoKeyW(
     RegQueryInfoKeyA(hRegConnection, hKey, pszClass, pcClass, pReserved, pcSubKeys, pcMaxSubKeyLen, pcMaxClassLen, pcValues, pcMaxValueNameLen, pcMaxValueLen, pcbSecurityDescriptor, pftLastWriteTime)
 #define RegDeleteKey(hRegConnection, hKey, pSubKey) \
     RegDeleteKeyA(hRegConnection, hKey, pszSubKey)
+#define RegDeleteKeyValue(hRegConnection, hKey, pSubKey, pValueName) \
+    RegDeleteKeyValueA(hRegConnection, hKey, pszSubKey, pszValueName)
 #endif
 
 #endif /* __REG_H__ */

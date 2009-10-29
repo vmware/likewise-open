@@ -160,7 +160,7 @@ RegTransactEnumKeyEx(
     );
 
 DWORD
-RegTransactDeleteKeyValue(
+RegTransactDeleteKeyValueW(
     HANDLE Handle,
     HKEY hKey,
     PCWSTR pSubKey,

@@ -1135,7 +1135,7 @@ error:
 }
 
 DWORD
-RegTransactDeleteKeyValue(
+RegTransactDeleteKeyValueW(
     IN HANDLE hConnection,
     IN HKEY hKey,
     IN OPTIONAL PCWSTR pSubKey,
