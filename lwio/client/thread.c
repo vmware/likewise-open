@@ -32,6 +32,8 @@
 
 static LWMsgClient* gpClient = NULL;
 static PIO_CREDS gpProcessCreds = NULL;
+static pthread_mutex_t gLock = PTHREAD_MUTEX_INITIALIZER;
+static LW_LIST_LINKS gPathCreds = {&gPathCreds, &gPathCreds};
 
 #if defined(__LWI_SOLARIS__) || defined (__LWI_AIX__)
 static pthread_once_t gOnceControl = {PTHREAD_ONCE_INIT};
@@ -41,6 +43,121 @@ static pthread_once_t gOnceControl = PTHREAD_ONCE_INIT;
 
 static pthread_key_t gStateKey;
 
+static
+NTSTATUS
+LwIoNormalizePath(
+    PWSTR pwszPath,
+    PWSTR* ppwszNormal
+    )
+{
+    NTSTATUS Status = STATUS_SUCCESS;
+    PWSTR pwszIn = NULL;
+    PWSTR pwszOut = NULL;
+    PWSTR pwszNormal = NULL;
+
+    Status = LwRtlWC16StringDuplicate(&pwszNormal, pwszPath);
+    BAIL_ON_NT_STATUS(Status);
+
+    for (pwszIn = pwszOut = pwszNormal; *pwszIn; pwszIn++)
+    {
+        switch (*pwszIn)
+        {
+        case '\\':
+        case '/':
+            *(pwszOut++) = '/';
+            while (pwszIn[1] == '\\' ||
+                   pwszIn[1] == '/')
+            {
+                pwszIn++;
+            }
+            break;
+        default:
+            *(pwszOut++) = *pwszIn;
+            break;
+        }
+    }
+
+    *pwszOut = '\0';
+
+    *ppwszNormal = pwszNormal;
+
+error:
+
+    return Status;
+}
+
+
+static
+NTSTATUS
+LwIoFindPathCreds(
+    PWSTR pwszPath,
+    BOOL bPrecise,
+    PIO_PATH_CREDS* ppCreds
+    )
+{
+    NTSTATUS Status = STATUS_SUCCESS;
+    PWSTR pwszNormal = NULL;
+    size_t pathLength = 0;
+    size_t prefixLength = 0;
+    PIO_PATH_CREDS pCreds = NULL;
+    PLW_LIST_LINKS pLink = NULL;
+
+    Status = LwIoNormalizePath(pwszPath, &pwszNormal);
+    BAIL_ON_NT_STATUS(Status);
+
+    pathLength = LwRtlWC16StringNumChars(pwszNormal);
+
+    while ((pLink = LwListTraverse(&gPathCreds, pLink)))
+    {
+        pCreds = LW_STRUCT_FROM_FIELD(pLink, IO_PATH_CREDS, link);
+
+        prefixLength = LwRtlWC16StringNumChars(pCreds->pwszPathPrefix);
+
+        if ((bPrecise && LwRtlWC16StringIsEqual(pwszNormal, pCreds->pwszPathPrefix, TRUE)) ||
+            (!bPrecise && !memcmp(
+                pwszNormal,
+                pCreds->pwszPathPrefix,
+                prefixLength < pathLength ? prefixLength : pathLength)))
+        {
+            goto cleanup;
+        }
+    }
+
+    pCreds = NULL;
+
+cleanup:
+
+    *ppCreds = pCreds;
+
+    RTL_FREE(&pwszNormal);
+
+    return Status;
+
+error:
+
+    goto cleanup;
+}
+
+static
+VOID
+LwIoDeletePathCreds(
+    PIO_PATH_CREDS pPathCreds
+    )
+{
+    if (pPathCreds)
+    {
+        if (pPathCreds->pwszPathPrefix)
+        {
+            LwRtlMemoryFree(pPathCreds->pwszPathPrefix);
+        }
+
+        if (pPathCreds->pCreds)
+        {
+            LwIoDeleteCreds(pPathCreds->pCreds);
+        }
+    }
+}
+
 static void
 LwIoThreadStateDestruct(
     void* pData
@@ -48,12 +165,15 @@ LwIoThreadStateDestruct(
 {
     PIO_THREAD_STATE pState = (PIO_THREAD_STATE) pData;
 
-    if (pState->pCreds)
+    if (pState)
     {
-        LwIoDeleteCreds(pState->pCreds);
-    }
+        if (pState->pCreds)
+        {
+            LwIoDeleteCreds(pState->pCreds);
+        }
 
-    LwIoFreeMemory(pState);
+        LwIoFreeMemory(pState);
+    }
 }
 
 static
@@ -243,12 +363,6 @@ LwIoGetThreadState(
         Status = LwIoAllocateMemory(sizeof(*pState), OUT_PPVOID(&pState));
         BAIL_ON_NT_STATUS(Status);
         
-        if (gpProcessCreds)
-        {
-            Status = LwIoCopyCreds(gpProcessCreds, &pState->pCreds);
-            BAIL_ON_NT_STATUS(Status);
-        }
-
         if (pthread_setspecific(gStateKey, pState))
         {
             Status = STATUS_INSUFFICIENT_RESOURCES;
@@ -310,23 +424,127 @@ error:
     return Status;
 }
 
+LW_NTSTATUS
+LwIoSetPathCreds(
+    LW_PWSTR pwszPathPrefix,
+    LW_PIO_CREDS pCreds
+    )
+{
+    LW_NTSTATUS Status = STATUS_SUCCESS;
+    PIO_PATH_CREDS pPathCreds = NULL;
+    PIO_CREDS pCredCopy = NULL;
+    BOOL bInLock = FALSE;
+
+    LWIO_LOCK_MUTEX(bInLock, &gLock);
+
+    Status = LwIoFindPathCreds(pwszPathPrefix, TRUE, &pPathCreds);
+    BAIL_ON_NT_STATUS(Status);
+
+    if (pPathCreds)
+    {
+        Status = LwIoCopyCreds(pCreds, &pCredCopy);
+        BAIL_ON_NT_STATUS(Status);
+
+        if (pPathCreds->pCreds)
+        {
+            LwIoDeleteCreds(pPathCreds->pCreds);
+        }
+
+        pPathCreds->pCreds = pCredCopy;
+        pCredCopy = NULL;
+        pPathCreds = NULL;
+    }
+    else if (pCreds)
+    {
+        Status = RTL_ALLOCATE(&pPathCreds, IO_PATH_CREDS, sizeof(IO_PATH_CREDS));
+        BAIL_ON_NT_STATUS(Status);
+
+        LwListInit(&pPathCreds->link);
+
+        Status = LwIoNormalizePath(pwszPathPrefix, &pPathCreds->pwszPathPrefix);
+        BAIL_ON_NT_STATUS(Status);
+
+        Status = LwIoCopyCreds(pCreds, &pPathCreds->pCreds);
+        BAIL_ON_NT_STATUS(Status);
+
+        LwListInsertBefore(&gPathCreds, &pPathCreds->link);
+        pPathCreds = NULL;
+    }
+
+cleanup:
+
+    LWIO_UNLOCK_MUTEX(bInLock, &gLock);
+
+    if (pCredCopy)
+    {
+        LwIoDeleteCreds(pCredCopy);
+    }
+
+    if (pPathCreds)
+    {
+        LwIoDeletePathCreds(pPathCreds);
+    }
+
+    return Status;
+
+error:
+
+    goto cleanup;
+}
+
+LW_NTSTATUS
+LwIoGetActiveCreds(
+    LW_PWSTR pwszPath,
+    LW_PIO_CREDS* ppToken
+    )
+{
+    NTSTATUS Status = STATUS_SUCCESS;
+    PIO_PATH_CREDS pPathCreds = NULL;
+    PIO_CREDS pCreds = NULL;
+    BOOL bInLock = FALSE;
+
+    Status = LwIoGetThreadCreds(&pCreds);
+    BAIL_ON_NT_STATUS(Status);
+
+    if (!pCreds && pwszPath)
+    {
+        LWIO_LOCK_MUTEX(bInLock, &gLock);
+
+        Status = LwIoFindPathCreds(pwszPath, FALSE, &pPathCreds);
+        BAIL_ON_NT_STATUS(Status);
+
+        if (pPathCreds)
+        {
+            Status = LwIoCopyCreds(pPathCreds->pCreds, &pCreds);
+            BAIL_ON_NT_STATUS(Status);
+        }
+    }
+
+    if (!pCreds && gpProcessCreds)
+    {
+        Status = LwIoCopyCreds(gpProcessCreds, &pCreds);
+        BAIL_ON_NT_STATUS(Status);
+    }
+
+    *ppToken = pCreds;
+
+error:
+
+    LWIO_UNLOCK_MUTEX(bInLock, &gLock);
+
+    return Status;
+}
+
 NTSTATUS
 LwIoAcquireContext(
     OUT PIO_CONTEXT pContext
     )
 {
     NTSTATUS Status = STATUS_SUCCESS;
-    PIO_THREAD_STATE pState = NULL;
 
     LwIoThreadInit();
 
-    Status = LwIoGetThreadState(&pState);
-    BAIL_ON_NT_STATUS(Status);
-
-    pContext->pCreds = pState->pCreds;
     pContext->pClient = gpClient;
-
-error:
 
     return Status;
 }

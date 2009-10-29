@@ -33,7 +33,6 @@
 
 struct __LW_IO_CONTEXT
 {
-    PIO_CREDS pCreds;
     LWMsgClient* pClient;
 };
 
@@ -41,5 +40,12 @@ typedef struct __LW_IO_THREAD_STATE
 {
     PIO_CREDS pCreds;
 } IO_THREAD_STATE, *PIO_THREAD_STATE;
+
+typedef struct IO_PATH_CREDS
+{
+    PWSTR pwszPathPrefix;
+    PIO_CREDS pCreds;
+    LW_LIST_LINKS link;
+} IO_PATH_CREDS, *PIO_PATH_CREDS;
 
 #endif /* __STRUCTS_H__ */

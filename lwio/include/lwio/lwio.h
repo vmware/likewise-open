@@ -264,6 +264,18 @@ LwIoGetThreadCreds(
     LW_PIO_CREDS* ppToken
     );
 
+LW_NTSTATUS
+LwIoSetPathCreds(
+    LW_PWSTR pwszPathPrefix,
+    LW_PIO_CREDS pCreds
+    );
+
+LW_NTSTATUS
+LwIoGetActiveCreds(
+    LW_PWSTR pwszPathPrefix,
+    LW_PIO_CREDS* ppToken
+    );
+
 #endif /* ! LW_NO_THREADS */
 
 #include <lwio/ntfileapi.h>
