@@ -3,7 +3,7 @@
 [HKEY_THIS_MACHINE\Services\lsass]
 "Description"="Likewise Security and Authentication Subsystem"
 "Path"="@SBINDIR@/lsassd"
-"Arguments"="lsassd --syslog"
+"Arguments"="@SBINDIR@/lsassd --syslog"
 "Dependencies"="netlogon lwio lwreg rdr npfs"
 "Type"=dword:00000001
 
