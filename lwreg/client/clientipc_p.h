@@ -106,7 +106,7 @@ RegTransactCloseKey(
     );
 
 DWORD
-RegTransactDeleteKey(
+RegTransactDeleteKeyW(
     HANDLE Handle,
     HKEY hKey,
     PCWSTR pSubKey

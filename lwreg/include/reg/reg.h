@@ -45,6 +45,7 @@
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *          Wei Fu (wfu@likewisesoftware.com)
  *          Marc Guy (mguy@likewisesoftware.com)
  */
 #ifndef __REG_H__
@@ -255,7 +256,14 @@ RegCloseKey(
     );
 
 DWORD
-RegDeleteKey(
+RegDeleteKeyA(
+    HANDLE hRegConnection,
+    HKEY hKey,
+    PCSTR pszSubKey
+    );
+
+DWORD
+RegDeleteKeyW(
     HANDLE hRegConnection,
     HKEY hKey,
     PCWSTR pSubKey
@@ -547,6 +555,8 @@ RegQueryInfoKeyW(
     RegCreateKeyExW(hRegConnection, hKey, pwszSubKey, Reserved, pClass, dwOptions, samDesired, pSecurityAttributes, phkResult, pdwDisposition)
 #define RegQueryInfoKey(hRegConnection, hKey, pClass, pcClass, pReserved, pcSubKeys, pcMaxSubKeyLen, pcMaxClassLen, pcValues, pcMaxValueNameLen, pcMaxValueLen, pcbSecurityDescriptor, pftLastWriteTime) \
     RegQueryInfoKeyW(hRegConnection, hKey, pClass, pcClass, pReserved, pcSubKeys, pcMaxSubKeyLen, pcMaxClassLen, pcValues, pcMaxValueNameLen, pcMaxValueLen, pcbSecurityDescriptor, pftLastWriteTime)
+#define RegDeleteKey(hRegConnection, hKey, pSubKey) \
+    RegDeleteKeyW(hRegConnection, hKey, pwszSubKey)
 #else
 #define RegEnumValue(hRegConnection, hKey, dwIndex, pValueName, pcchValueName, pReserved, pType, pData, pcbData) \
     RegEnumValueA(hRegConnection, hKey, dwIndex, pValueName, pcchValueName, pReserved, pType, pData, pcbData)
@@ -568,6 +578,8 @@ RegQueryInfoKeyW(
     RegCreateKeyExA(hRegConnection, hKey, pszSubKey, Reserved, pClass, dwOptions, samDesired, pSecurityAttributes, phkResult, pdwDisposition)
 #define RegQueryInfoKey(hRegConnection, hKey, pClass, pcClass, pReserved, pcSubKeys, pcMaxSubKeyLen, pcMaxClassLen, pcValues, pcMaxValueNameLen, pcMaxValueLen, pcbSecurityDescriptor, pftLastWriteTime) \
     RegQueryInfoKeyA(hRegConnection, hKey, pszClass, pcClass, pReserved, pcSubKeys, pcMaxSubKeyLen, pcMaxClassLen, pcValues, pcMaxValueNameLen, pcMaxValueLen, pcbSecurityDescriptor, pftLastWriteTime)
+#define RegDeleteKey(hRegConnection, hKey, pSubKey) \
+    RegDeleteKeyA(hRegConnection, hKey, pszSubKey)
 #endif
 
 #endif /* __REG_H__ */

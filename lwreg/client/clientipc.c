@@ -503,7 +503,7 @@ error:
 }
 
 DWORD
-RegTransactDeleteKey(
+RegTransactDeleteKeyW(
     IN HANDLE hConnection,
     IN HKEY hKey,
     IN PCWSTR pSubKey
