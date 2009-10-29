@@ -41,7 +41,6 @@ namespace Likewise.LMC.NETAPI.Implementation
             }
             else
             {
-                filter = 1;
                 ret = Interop.LwLugApi.NetUserEnum(
                     serverName,
                     level,
