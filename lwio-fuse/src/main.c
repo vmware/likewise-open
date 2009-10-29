@@ -43,6 +43,9 @@ static struct fuse_opt lwio_opts[] =
     LWIO_OPT_KEY("--driver %s", pszDriver, 0),
     LWIO_OPT_KEY("--server %s", pszServer, 0),
     LWIO_OPT_KEY("--share %s", pszShare, 0),
+    LWIO_OPT_KEY("--user %s", pszUsername, 0),
+    LWIO_OPT_KEY("--domain %s", pszDomain, 0),
+    LWIO_OPT_KEY("--password %s", pszPassword, 0),
     LWIO_OPT_KEY("-h", bHelp, 1),
     LWIO_OPT_KEY("--help", bHelp, 1),
     FUSE_OPT_END
@@ -110,6 +113,16 @@ main(int argc,
 
     pFuseContext->ownerUid = geteuid();
     pFuseContext->ownerGid = getegid();
+
+    if (pFuseContext->pszUsername)
+    {
+        status = LwIoCreatePlainCredsA(
+            pFuseContext->pszUsername,
+            pFuseContext->pszDomain,
+            pFuseContext->pszPassword,
+            &pFuseContext->pCreds);
+        BAIL_ON_NT_STATUS(status);
+    }
   
     return fuse_main(args.argc, args.argv, LwIoFuseGetOperationsTable(), pFuseContext);
 

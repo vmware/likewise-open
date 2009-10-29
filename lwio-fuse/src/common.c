@@ -129,6 +129,14 @@ LwIoFuseGetContext(
     return (PIO_FUSE_CONTEXT) pContext->private_data;
 }
 
+NTSTATUS
+LwIoFuseSetContextCreds(
+    PIO_FUSE_CONTEXT pContext
+    )
+{
+    return LwIoSetThreadCreds(pContext->pCreds);
+}
+
 void
 LwIoFuseGetCallerIdentity(
     uid_t *pUid,
@@ -511,6 +519,9 @@ LwIoFuseTranslateAbsoluteSecurityDescriptor(
     PACCESS_TOKEN pGroupToken = NULL;
     PACCESS_TOKEN pOtherToken = NULL;
     
+    pStatbuf->st_uid = (uid_t) 65534;
+    pStatbuf->st_gid = (gid_t) 65534;
+
     /* Translate owner/group sids to uid/gid */
     status = RtlAllocateCStringFromSid(
         &pszOwnerSidStr,
@@ -545,11 +556,11 @@ LwIoFuseTranslateAbsoluteSecurityDescriptor(
         status = LwIoGetUidForNtName(
             pszUserName,
             &pStatbuf->st_uid);
+        if (status == STATUS_GENERIC_NOT_MAPPED)
+        {
+            status = STATUS_SUCCESS;
+        }
         BAIL_ON_NT_STATUS(status);
-    }
-    else
-    {
-        pStatbuf->st_uid = (uid_t) 65534;
     }
 
     if (pszGroupName)
@@ -557,11 +568,11 @@ LwIoFuseTranslateAbsoluteSecurityDescriptor(
         status = LwIoGetGidForNtName(
             pszGroupName,
             &pStatbuf->st_gid);
+        if (status == STATUS_GENERIC_NOT_MAPPED)
+        {
+            status = STATUS_SUCCESS;
+        }
         BAIL_ON_NT_STATUS(status);
-    }
-    else
-    {
-        pStatbuf->st_gid = (gid_t) 65534;
     }
     
     /* Create access tokens for user/group/other */
@@ -748,8 +759,6 @@ cleanup:
 
 error:
 
-    *pUid = -1;
-
     goto cleanup;
 }
 
@@ -801,8 +810,6 @@ cleanup:
     return status;
 
 error:
-
-    *pGid = -1;
 
     goto cleanup;
 }

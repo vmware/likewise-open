@@ -44,6 +44,9 @@ LwIoFuseMkdir(
 
     pFuseContext = LwIoFuseGetContext();
     
+    status = LwIoFuseSetContextCreds(pFuseContext);
+    BAIL_ON_NT_STATUS(status);
+
     status = LwIoFuseGetNtFilename(
         pFuseContext,
         pszPath,
