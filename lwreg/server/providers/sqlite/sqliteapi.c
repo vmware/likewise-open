@@ -572,6 +572,11 @@ SqliteEnumKeyEx(
     dwError = SqliteCacheSubKeysInfo_inlock(pKeyResult, FALSE);
     BAIL_ON_REG_ERROR(dwError);
 
+    if (!pKeyResult->dwNumSubKeys)
+    {
+        goto cleanup;
+    }
+
     if (dwIndex >= pKeyResult->dwNumSubKeys)
     {
         dwError = LW_ERROR_NO_MORE_ITEMS;
@@ -669,7 +674,7 @@ SqliteSetValueExInternal(
 
     if (!pValueName)
     {
-        dwError = LwAllocateString("@", &pszValueName);
+        dwError = LwAllocateString("", &pszValueName);
         BAIL_ON_REG_ERROR(dwError);
     }
     else
@@ -928,7 +933,7 @@ SqliteGetValueInternal(
 
     if (!pValue)
     {
-        dwError = LwAllocateString("@", &pszValueName);
+        dwError = LwAllocateString("", &pszValueName);
         BAIL_ON_REG_ERROR(dwError);
     }
     else
@@ -1087,7 +1092,7 @@ SqliteDeleteKeyValue(
     }
     else
     {
-        dwError = LwAllocateString("@", &pszValueName);
+        dwError = LwAllocateString("", &pszValueName);
         BAIL_ON_REG_ERROR(dwError);
     }
 
@@ -1130,7 +1135,6 @@ SqliteDeleteValue(
 
     BAIL_ON_INVALID_KEY(pKey);
 
-
     if (pValueName)
     {
         dwError = LwWc16sToMbs(pValueName, &pszValueName);
@@ -1138,7 +1142,7 @@ SqliteDeleteValue(
     }
     else
     {
-        dwError = LwAllocateString("@", &pszValueName);
+        dwError = LwAllocateString("", &pszValueName);
         BAIL_ON_REG_ERROR(dwError);
     }
 
@@ -1159,108 +1163,6 @@ SqliteDeleteValue(
 
 cleanup:
     LW_SAFE_FREE_STRING(pszValueName);
-
-    return dwError;
-
-error:
-    goto cleanup;
-}
-
-DWORD
-SqliteQueryMultipleValues(
-    IN HANDLE Handle,
-    IN HKEY hKey,
-    IN OUT PVALENT pVal_list,
-    IN DWORD num_vals,
-    OUT OPTIONAL PWSTR pValue,
-    OUT OPTIONAL PDWORD pdwTotalsize
-    )
-{
-    DWORD dwError = 0;
-    PREG_KEY_CONTEXT pKey = (PREG_KEY_CONTEXT)hKey;
-    DWORD dwTotalSize = 0;
-    PREG_ENTRY* ppRegEntries = NULL;
-    PSTR pszValueName = NULL;
-    PWSTR pSingleValue = NULL;
-    size_t sValueLen = 0;
-    int iCount  = 0;
-    int iOffSet = 0;
-
-
-    BAIL_ON_INVALID_KEY(pKey);
-    BAIL_ON_INVALID_POINTER(pVal_list);
-
-    if (!num_vals)
-    {
-        goto cleanup;
-    }
-
-    dwError = LwAllocateMemory(sizeof(*ppRegEntries)*num_vals,(PVOID)&ppRegEntries);
-    BAIL_ON_REG_ERROR(dwError);
-
-    for (iCount = 0; iCount < num_vals; iCount++)
-    {
-        BAIL_ON_INVALID_POINTER(pVal_list[iCount].ve_valuename);
-
-        dwError = LwWc16sToMbs(pVal_list[iCount].ve_valuename, &pszValueName);
-        BAIL_ON_REG_ERROR(dwError);
-
-        dwError = RegDbGetKeyValue(ghCacheConnection,
-                                   pKey->pszKeyName,
-                                   pszValueName,
-                                   REG_UNKNOWN,
-                                   NULL,
-                                   &ppRegEntries[iCount]);
-        BAIL_ON_REG_ERROR(dwError);
-        LW_SAFE_FREE_STRING(pszValueName);
-
-        dwError = LwMbsToWc16s(ppRegEntries[iCount]->pszValue, &pSingleValue);
-        BAIL_ON_REG_ERROR(dwError);
-
-        dwError = LwWc16sLen((PCWSTR)pSingleValue,&sValueLen);
-        BAIL_ON_REG_ERROR(dwError);
-
-        /* record val length */
-        pVal_list[iCount].ve_valuelen = (DWORD)sValueLen;
-        dwTotalSize += (DWORD)sValueLen;
-
-        sValueLen = 0;
-        LW_SAFE_FREE_MEMORY(pSingleValue);
-    }
-
-    if (!pVal_list)
-        goto cleanup;
-
-    if (pdwTotalsize && *pdwTotalsize < dwTotalSize)
-    {
-        dwError = LW_ERROR_INSUFFICIENT_BUFFER;
-        BAIL_ON_REG_ERROR(dwError);
-    }
-
-    for (iCount = 0; iCount < num_vals; iCount++)
-    {
-        iOffSet = iCount == 0 ? 0 : (iOffSet + pVal_list[iCount-1].ve_valuelen);
-
-        /* value type*/
-        pVal_list[iCount].ve_type = ppRegEntries[iCount]->type;
-
-        dwError = LwMbsToWc16s(ppRegEntries[iCount]->pszValue, &pSingleValue);
-        BAIL_ON_REG_ERROR(dwError);
-
-        memcpy(pValue+iOffSet, pSingleValue, pVal_list[iCount].ve_valuelen*sizeof(*pSingleValue));
-
-        LW_SAFE_FREE_MEMORY(pSingleValue);
-    }
-
-cleanup:
-    if (pdwTotalsize)
-    {
-        *pdwTotalsize = dwTotalSize;
-    }
-
-    RegCacheSafeFreeEntryList(num_vals, &ppRegEntries);
-    LW_SAFE_FREE_STRING(pszValueName);
-    LW_SAFE_FREE_MEMORY(pSingleValue);
 
     return dwError;
 
@@ -1310,6 +1212,11 @@ SqliteEnumValueA(
     //Otherwise, use this information
     dwError = SqliteCacheKeyValuesInfo_inlock(pKeyResult, TRUE);
     BAIL_ON_REG_ERROR(dwError);
+
+    if (!pKeyResult->dwNumValues)
+    {
+        goto cleanup;
+    }
 
     if (dwIndex >= pKeyResult->dwNumValues)
     {
@@ -1452,6 +1359,11 @@ SqliteEnumValueW(
     //Otherwise, use this information
     dwError = SqliteCacheKeyValuesInfo_inlock(pKeyResult, FALSE);
     BAIL_ON_REG_ERROR(dwError);
+
+    if (!pKeyResult->dwNumValues)
+    {
+        goto cleanup;
+    }
 
     if (dwIndex >= pKeyResult->dwNumValues)
     {
@@ -1752,6 +1664,108 @@ cleanup:
     {
         SqliteCloseKey(hCurrKey);
     }
+
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+DWORD
+SqliteQueryMultipleValues(
+    IN HANDLE Handle,
+    IN HKEY hKey,
+    IN OUT PVALENT pVal_list,
+    IN DWORD num_vals,
+    OUT OPTIONAL PWSTR pValue,
+    OUT OPTIONAL PDWORD pdwTotalsize
+    )
+{
+    DWORD dwError = 0;
+    PREG_KEY_CONTEXT pKey = (PREG_KEY_CONTEXT)hKey;
+    DWORD dwTotalSize = 0;
+    PREG_ENTRY* ppRegEntries = NULL;
+    PSTR pszValueName = NULL;
+    PWSTR pSingleValue = NULL;
+    size_t sValueLen = 0;
+    int iCount  = 0;
+    int iOffSet = 0;
+
+
+    BAIL_ON_INVALID_KEY(pKey);
+    BAIL_ON_INVALID_POINTER(pVal_list);
+
+    if (!num_vals)
+    {
+        goto cleanup;
+    }
+
+    dwError = LwAllocateMemory(sizeof(*ppRegEntries)*num_vals,(PVOID)&ppRegEntries);
+    BAIL_ON_REG_ERROR(dwError);
+
+    for (iCount = 0; iCount < num_vals; iCount++)
+    {
+        BAIL_ON_INVALID_POINTER(pVal_list[iCount].ve_valuename);
+
+        dwError = LwWc16sToMbs(pVal_list[iCount].ve_valuename, &pszValueName);
+        BAIL_ON_REG_ERROR(dwError);
+
+        dwError = RegDbGetKeyValue(ghCacheConnection,
+                                   pKey->pszKeyName,
+                                   pszValueName,
+                                   REG_UNKNOWN,
+                                   NULL,
+                                   &ppRegEntries[iCount]);
+        BAIL_ON_REG_ERROR(dwError);
+        LW_SAFE_FREE_STRING(pszValueName);
+
+        dwError = LwMbsToWc16s(ppRegEntries[iCount]->pszValue, &pSingleValue);
+        BAIL_ON_REG_ERROR(dwError);
+
+        dwError = LwWc16sLen((PCWSTR)pSingleValue,&sValueLen);
+        BAIL_ON_REG_ERROR(dwError);
+
+        /* record val length */
+        pVal_list[iCount].ve_valuelen = (DWORD)sValueLen;
+        dwTotalSize += (DWORD)sValueLen;
+
+        sValueLen = 0;
+        LW_SAFE_FREE_MEMORY(pSingleValue);
+    }
+
+    if (!pVal_list)
+        goto cleanup;
+
+    if (pdwTotalsize && *pdwTotalsize < dwTotalSize)
+    {
+        dwError = LW_ERROR_INSUFFICIENT_BUFFER;
+        BAIL_ON_REG_ERROR(dwError);
+    }
+
+    for (iCount = 0; iCount < num_vals; iCount++)
+    {
+        iOffSet = iCount == 0 ? 0 : (iOffSet + pVal_list[iCount-1].ve_valuelen);
+
+        /* value type*/
+        pVal_list[iCount].ve_type = ppRegEntries[iCount]->type;
+
+        dwError = LwMbsToWc16s(ppRegEntries[iCount]->pszValue, &pSingleValue);
+        BAIL_ON_REG_ERROR(dwError);
+
+        memcpy(pValue+iOffSet, pSingleValue, pVal_list[iCount].ve_valuelen*sizeof(*pSingleValue));
+
+        LW_SAFE_FREE_MEMORY(pSingleValue);
+    }
+
+cleanup:
+    if (pdwTotalsize)
+    {
+        *pdwTotalsize = dwTotalSize;
+    }
+
+    RegCacheSafeFreeEntryList(num_vals, &ppRegEntries);
+    LW_SAFE_FREE_STRING(pszValueName);
+    LW_SAFE_FREE_MEMORY(pSingleValue);
 
     return dwError;
 

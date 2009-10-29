@@ -803,19 +803,20 @@ RegSrvSafeFreeKeyContext(
 
         pKeyResult->bHasSubKeyInfo = FALSE;
         pKeyResult->bHasSubKeyAInfo = FALSE;
-
         LwFreeStringArray(pKeyResult->ppszSubKeyNames, pKeyResult->dwNumCacheSubKeys);
-        LwFreeStringArray(pKeyResult->ppszValueNames, pKeyResult->dwNumCacheValues);
-        LwFreeStringArray(pKeyResult->ppszValues, pKeyResult->dwNumCacheValues);
-
         pKeyResult->ppszSubKeyNames = NULL;
-        pKeyResult->ppszValueNames = NULL;
-        pKeyResult->ppszValues = NULL;
+        pKeyResult->dwNumCacheSubKeys = 0;
+        pKeyResult->dwNumSubKeys = 0;
 
         pKeyResult->bHasValueInfo = FALSE;
         pKeyResult->bHasValueAInfo = FALSE;
-
+        LwFreeStringArray(pKeyResult->ppszValueNames, pKeyResult->dwNumCacheValues);
+        LwFreeStringArray(pKeyResult->ppszValues, pKeyResult->dwNumCacheValues);
         LW_SAFE_FREE_MEMORY(pKeyResult->pTypes);
+        pKeyResult->ppszValueNames = NULL;
+        pKeyResult->ppszValues = NULL;
+        pKeyResult->dwNumCacheValues = 0;
+        pKeyResult->dwNumValues = 0;
 
         if (pKeyResult->pMutex)
         {
@@ -845,8 +846,7 @@ RegSrvGetKeyRefCount(
 }
 
 void
-RegSrvSetHasSubKeyInfo(
-    IN BOOLEAN bHasSubKeyInfo,
+RegSrvResetSubKeyInfo(
     IN OUT PREG_KEY_CONTEXT pKeyResult
     )
 {
@@ -854,8 +854,14 @@ RegSrvSetHasSubKeyInfo(
 
     LWREG_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pKeyResult->mutex);
 
-    pKeyResult->bHasSubKeyAInfo = bHasSubKeyInfo;
-    pKeyResult->bHasSubKeyInfo = bHasSubKeyInfo;
+    pKeyResult->bHasSubKeyAInfo = FALSE;
+    pKeyResult->bHasSubKeyInfo = FALSE;
+
+    LwFreeStringArray(pKeyResult->ppszSubKeyNames, pKeyResult->dwNumCacheSubKeys);
+    pKeyResult->ppszSubKeyNames = NULL;
+
+    pKeyResult->dwNumCacheSubKeys = 0;
+    pKeyResult->dwNumSubKeys = 0;
 
     LWREG_UNLOCK_RWMUTEX(bInLock, &pKeyResult->mutex);
 
@@ -949,8 +955,7 @@ RegSrvSubKeyName(
 }
 
 void
-RegSrvSetHasValueInfo(
-    IN BOOLEAN bHasValueInfo,
+RegSrvResetValueInfo(
     IN OUT PREG_KEY_CONTEXT pKeyResult
     )
 {
@@ -958,8 +963,18 @@ RegSrvSetHasValueInfo(
 
     LWREG_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pKeyResult->mutex);
 
-    pKeyResult->bHasValueInfo = bHasValueInfo;
-    pKeyResult->bHasValueAInfo = bHasValueInfo;
+    pKeyResult->bHasValueInfo = FALSE;
+    pKeyResult->bHasValueAInfo = FALSE;
+
+    LwFreeStringArray(pKeyResult->ppszValueNames, pKeyResult->dwNumCacheValues);
+    LwFreeStringArray(pKeyResult->ppszValues, pKeyResult->dwNumCacheValues);
+    LW_SAFE_FREE_MEMORY(pKeyResult->pTypes);
+
+    pKeyResult->ppszValueNames = NULL;
+    pKeyResult->ppszValues = NULL;
+
+    pKeyResult->dwNumCacheValues = 0;
+    pKeyResult->dwNumValues = 0;
 
     LWREG_UNLOCK_RWMUTEX(bInLock, &pKeyResult->mutex);
 
