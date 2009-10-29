@@ -208,6 +208,9 @@ SrvProcessNTCreateAndX(
             ntStatus = pCreateState->ioStatusBlock.Status;
             BAIL_ON_NT_STATUS(ntStatus);
 
+            pCreateState->ulCreateAction =
+                            pCreateState->ioStatusBlock.CreateResult;
+
             ntStatus = SrvTreeCreateFile(
                             pCreateState->pTree,
                             pCreateState->pwszFilename,
@@ -621,7 +624,7 @@ SrvBuildNTCreateResponse_inlock(
 
     pResponseHeader->oplockLevel     = pCreateState->ucOplockLevel;
     pResponseHeader->fid             = pCreateState->pFile->fid;
-    pResponseHeader->createAction    = pCreateState->ioStatusBlock.CreateResult;
+    pResponseHeader->createAction    = pCreateState->ulCreateAction;
     pResponseHeader->creationTime    = pCreateState->fileBasicInfo.CreationTime;
     pResponseHeader->lastAccessTime  = pCreateState->fileBasicInfo.LastAccessTime;
     pResponseHeader->lastWriteTime   = pCreateState->fileBasicInfo.LastWriteTime;
