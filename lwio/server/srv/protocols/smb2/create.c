@@ -616,21 +616,13 @@ SrvProcessCreateContexts_SMB_V2(
             case SMB2_CONTEXT_ITEM_TYPE_QUERY_DISK_ID:
             case SMB2_CONTEXT_ITEM_TYPE_EXT_ATTRS:
             case SMB2_CONTEXT_ITEM_TYPE_SHADOW_COPY:
+            default:
 
                 // TODO:
 
                 break;
-
-            default:
-
-                ntStatus = STATUS_INVALID_PARAMETER;
-                BAIL_ON_NT_STATUS(ntStatus);
-
-                break;
         }
     }
-
-error:
 
     return ntStatus;
 }
