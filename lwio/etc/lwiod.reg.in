@@ -3,7 +3,7 @@
 [HKEY_THIS_MACHINE\Services\lwio]
 "Description"="Likewise IO Manager"
 "Path"="@SBINDIR@/lwiod"
-"Arguments"="lwiod --syslog"
+"Arguments"="@SBINDIR@/lwiod --syslog"
 "Dependencies"="lwreg"
 "Type"=dword:00000001
 
