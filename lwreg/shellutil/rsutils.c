@@ -445,7 +445,7 @@ RegShellUtilDeleteTree(
     dwError = LwMbsToWc16s(pszSubKey, &pwszSubKey);
     BAIL_ON_REG_ERROR(dwError);
 
-    dwError = RegDeleteTree(hReg, pCurrentKey, pwszSubKey);
+    dwError = RegDeleteTreeW(hReg, pCurrentKey, pwszSubKey);
     BAIL_ON_REG_ERROR(dwError);
 
 cleanup:
@@ -919,7 +919,6 @@ cleanup:
 error:
     goto cleanup;
 }
-
 
 DWORD
 RegShellUtilAllocateMemory(

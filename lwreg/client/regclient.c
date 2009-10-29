@@ -317,13 +317,45 @@ RegDeleteKeyValueW(
 
 REG_API
 DWORD
-RegDeleteTree(
+RegDeleteTreeA(
+    IN HANDLE hRegConnection,
+    IN HKEY hKey,
+    IN OPTIONAL PCSTR pszSubKey
+    )
+{
+    DWORD dwError = 0;
+    PWSTR pwszSubKey = NULL;
+
+    if (pszSubKey)
+    {
+        dwError = LwMbsToWc16s(pszSubKey,
+                               &pwszSubKey);
+        BAIL_ON_REG_ERROR(dwError);
+    }
+
+    dwError = RegTransactDeleteTreeW(
+                               hRegConnection,
+                               hKey,
+                               pwszSubKey);
+    BAIL_ON_REG_ERROR(dwError);
+
+cleanup:
+    LW_SAFE_FREE_MEMORY(pwszSubKey);
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+REG_API
+DWORD
+RegDeleteTreeW(
     IN HANDLE hRegConnection,
     IN HKEY hKey,
     IN OPTIONAL PCWSTR pSubKey
     )
 {
-    return RegTransactDeleteTree(
+    return RegTransactDeleteTreeW(
         hRegConnection,
         hKey,
         pSubKey
@@ -332,13 +364,45 @@ RegDeleteTree(
 
 REG_API
 DWORD
-RegDeleteValue(
+RegDeleteValueA(
+    IN HANDLE hRegConnection,
+    IN HKEY hKey,
+    IN PCSTR pszValueName
+    )
+{
+    DWORD dwError = 0;
+    PWSTR pwszValueName = NULL;
+
+    BAIL_ON_INVALID_STRING(pszValueName);
+
+    dwError = LwMbsToWc16s(pszValueName,
+                           &pwszValueName);
+    BAIL_ON_REG_ERROR(dwError);
+
+    dwError = RegTransactDeleteValueW(
+        hRegConnection,
+        hKey,
+        pwszValueName
+        );
+    BAIL_ON_REG_ERROR(dwError);
+
+cleanup:
+    LW_SAFE_FREE_MEMORY(pwszValueName);
+
+    return dwError;
+error:
+    goto cleanup;
+}
+
+REG_API
+DWORD
+RegDeleteValueW(
     IN HANDLE hRegConnection,
     IN HKEY hKey,
     IN PCWSTR pValueName
     )
 {
-    return RegTransactDeleteValue(
+    return RegTransactDeleteValueW(
         hRegConnection,
         hKey,
         pValueName

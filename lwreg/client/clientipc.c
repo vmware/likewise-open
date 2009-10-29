@@ -1193,7 +1193,7 @@ error:
 }
 
 DWORD
-RegTransactDeleteTree(
+RegTransactDeleteTreeW(
     IN HANDLE hConnection,
     IN HKEY hKey,
     IN OPTIONAL PCWSTR pSubKey
@@ -1249,7 +1249,7 @@ error:
 }
 
 DWORD
-RegTransactDeleteValue(
+RegTransactDeleteValueW(
     IN HANDLE hConnection,
     IN HKEY hKey,
     IN OPTIONAL PCWSTR pValueName
