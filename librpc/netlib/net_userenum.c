@@ -122,7 +122,7 @@ NetUserEnum(
         goto error;
     }
 
-    status = LwIoGetThreadCreds(&pCreds);
+    status = LwIoGetActiveCreds(NULL, &pCreds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     status = NetConnectSamr(&pConn,

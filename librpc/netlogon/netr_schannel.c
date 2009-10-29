@@ -103,7 +103,7 @@ NetrOpenSchannel(
     BAIL_ON_NULL_PTR(SchannelAuthInfo.domain_name, ntStatus);
     BAIL_ON_NULL_PTR(SchannelAuthInfo.machine_name, ntStatus);
 
-    ntStatus = LwIoGetThreadCreds(&pIoCreds);
+    ntStatus = LwIoGetActiveCreds(NULL, &pIoCreds);
     BAIL_ON_NT_STATUS(ntStatus);
 
     HostnameSize = wc16slen(pwszHostname) + 1;

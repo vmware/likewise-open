@@ -91,7 +91,7 @@ NET_API_STATUS NetUnjoinDomainLocal(const wchar16_t *machine,
         }
         else
         {
-            status = LwIoGetThreadCreds(&creds);
+            status = LwIoGetActiveCreds(NULL, &creds);
             BAIL_ON_NTSTATUS_ERROR(status);
         }
 

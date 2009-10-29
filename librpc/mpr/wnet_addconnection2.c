@@ -46,6 +46,120 @@
 
 #include "includes.h"
 
+extern
+DWORD
+ResourceToLwIoPathPrefix(
+    PCWSTR pwszRemote,
+    PWSTR* ppwszPath
+    );
+
+DWORD
+ResourceToLwIoPathPrefix(
+    PCWSTR pwszRemote,
+    PWSTR* ppwszPath
+    )
+{
+    DWORD dwError = ERROR_SUCCESS;
+    PSTR pszRemote = NULL;
+    PWSTR pwszPath = NULL;
+    PWSTR pwszIn = NULL;
+    PWSTR pwszOut = NULL;
+
+    dwError = LwWc16sToMbs(pwszRemote, &pszRemote);
+    BAIL_ON_WIN_ERROR(dwError);
+
+    pwszPath = asw16printfw(L"/rdr/%s/", pszRemote);
+    BAIL_ON_WIN_ERROR(dwError);
+
+    for (pwszIn = pwszOut = pwszPath; *pwszIn; pwszIn++)
+    {
+        switch (*pwszIn)
+        {
+        case '\\':
+        case '/':
+            *(pwszOut++) = '/';
+            while (pwszIn[1] == '\\' ||
+                   pwszIn[1] == '/')
+            {
+                pwszIn++;
+            }
+            break;
+        default:
+            *(pwszOut++) = *pwszIn;
+            break;
+        }
+    }
+
+    *pwszOut = '\0';
+
+    *ppwszPath = pwszPath;
+
+error:
+
+    LW_SAFE_FREE_MEMORY(pszRemote);
+
+    return dwError;
+}
+
+static
+DWORD
+CrackUsername(
+    PCWSTR pwszUsername,
+    PWSTR* ppwszUser,
+    PWSTR* ppwszDomain
+    )
+{
+    DWORD dwError = ERROR_SUCCESS;
+    PCWSTR pwszSlash = NULL;
+    PCWSTR pwszIndex = NULL;
+    PWSTR pwszUser = NULL;
+    PWSTR pwszDomain = NULL;
+
+    for (pwszIndex = pwszUsername; *pwszIndex; pwszIndex++)
+    {
+        if (*pwszIndex == '\\')
+        {
+            pwszSlash = pwszIndex;
+            break;
+        }
+    }
+
+    if (pwszSlash)
+    {
+        dwError = LwAllocateWc16String(&pwszDomain, pwszUsername);
+        BAIL_ON_WIN_ERROR(dwError);
+
+        pwszDomain[pwszSlash - pwszUsername] = '\0';
+
+        dwError = LwAllocateWc16String(&pwszUser, pwszSlash + 1);
+        BAIL_ON_WIN_ERROR(dwError);
+    }
+    else
+    {
+        dwError = LwAllocateWc16String(&pwszUser, pwszUsername);
+        BAIL_ON_WIN_ERROR(dwError);
+
+        dwError = LwMbsToWc16s("WORKGROUP", &pwszDomain);
+        BAIL_ON_WIN_ERROR(dwError);
+    }
+
+    *ppwszUser = pwszUser;
+    *ppwszDomain = pwszDomain;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    *ppwszUser = NULL;
+    *ppwszDomain = NULL;
+
+    LW_SAFE_FREE_MEMORY(pwszUser);
+    LW_SAFE_FREE_MEMORY(pwszDomain);
+
+    goto cleanup;
+}
 
 DWORD
 WNetAddConnection2(
@@ -56,6 +170,33 @@ WNetAddConnection2(
     )
 {
     DWORD dwError = ERROR_SUCCESS;
+    PWSTR pwszUser = NULL;
+    PWSTR pwszDomain = NULL;
+    PWSTR pwszPath = NULL;
+    PIO_CREDS pCreds = NULL;
+
+    dwError = ResourceToLwIoPathPrefix(pResource->pwszRemoteName, &pwszPath);
+    BAIL_ON_WIN_ERROR(dwError);
+
+    dwError = CrackUsername(pwszUsername, &pwszUser, &pwszDomain);
+    BAIL_ON_WIN_ERROR(dwError);
+
+    dwError = LwNtStatusToWin32Error(LwIoCreatePlainCredsW(pwszUser, pwszDomain, pwszPassword, &pCreds));
+    BAIL_ON_WIN_ERROR(dwError);
+
+    dwError = LwNtStatusToWin32Error(LwIoSetPathCreds(pwszPath, pCreds));
+    BAIL_ON_WIN_ERROR(dwError);
+
+error:
+
+    if (pCreds)
+    {
+        LwIoDeleteCreds(pCreds);
+    }
+
+    LW_SAFE_FREE_MEMORY(pwszUser);
+    LW_SAFE_FREE_MEMORY(pwszDomain);
+    LW_SAFE_FREE_MEMORY(pwszPath);
 
     return dwError;
 }

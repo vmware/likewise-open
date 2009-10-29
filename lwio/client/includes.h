@@ -65,6 +65,7 @@
 #include "ntipcmsg.h"
 #include "goto.h"
 #include "ntlogmacros.h"
+#include "lwlist.h"
 
 #include "structs.h"
 

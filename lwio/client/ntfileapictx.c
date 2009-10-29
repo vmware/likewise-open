@@ -261,12 +261,21 @@ LwNtCtxCreateFile(
     PVOID pReply = NULL;
     IO_FILE_HANDLE fileHandle = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
+    PIO_CREDS pActiveCreds = NULL;
     PIO_CREDS pResolvedSecurityToken = NULL;
 
     if (AsyncControlBlock)
     {
         status = STATUS_INVALID_PARAMETER;
         GOTO_CLEANUP_EE(EE);
+    }
+
+    if (!pSecurityToken)
+    {
+        status = LwIoGetActiveCreds(FileName->FileName, &pActiveCreds);
+        GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+        pSecurityToken = pActiveCreds;
     }
 
     status = LwIoResolveCreds(pSecurityToken, &pResolvedSecurityToken);
@@ -339,6 +348,11 @@ cleanup:
     if (pResolvedSecurityToken)
     {
         LwIoDeleteCreds(pResolvedSecurityToken);
+    }
+
+    if (pActiveCreds)
+    {
+        LwIoDeleteCreds(pActiveCreds);
     }
 
     if (status)

@@ -93,7 +93,6 @@ NtCreateNamedPipeFile(
     NTSTATUS status = 0;
     int EE = 0;
     IO_CONTEXT context = { 0 };
-    LW_PIO_CREDS pSecurityToken = NULL;
 
     *FileHandle = NULL;
     NtpInitializeIoStatusBlock(IoStatusBlock);
@@ -102,13 +101,9 @@ NtCreateNamedPipeFile(
     IoStatusBlock->Status = status;
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
-    status = LwIoGetThreadCreds(&pSecurityToken);
-    IoStatusBlock->Status = status;
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
     status = NtCtxCreateNamedPipeFile(
                     &context,
-                    pSecurityToken,
+                    NULL,
                     FileHandle,
                     AsyncControlBlock,
                     IoStatusBlock,
@@ -154,7 +149,6 @@ NtCreateFile(
     NTSTATUS status = 0;
     int EE = 0;
     IO_CONTEXT context = { 0 };
-    LW_PIO_CREDS pSecurityToken = NULL;
 
     *FileHandle = NULL;
     NtpInitializeIoStatusBlock(IoStatusBlock);
@@ -163,13 +157,9 @@ NtCreateFile(
     IoStatusBlock->Status = status;
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
-    status = LwIoGetThreadCreds(&pSecurityToken);
-    IoStatusBlock->Status = status;
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
     status = NtCtxCreateFile(
                     &context,
-                    pSecurityToken,
+                    NULL,
                     FileHandle,
                     AsyncControlBlock,
                     IoStatusBlock,

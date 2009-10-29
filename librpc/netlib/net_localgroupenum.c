@@ -78,7 +78,7 @@ NetLocalGroupEnum(
     BAIL_ON_INVALID_PTR(out_total);
     BAIL_ON_INVALID_PTR(out_resume);
 
-    status = LwIoGetThreadCreds(&creds);
+    status = LwIoGetActiveCreds(NULL, &creds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     status = NetConnectSamr(&conn, hostname, 0, 0, creds);

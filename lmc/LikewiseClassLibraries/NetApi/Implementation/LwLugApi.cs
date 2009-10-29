@@ -23,35 +23,19 @@ namespace Likewise.LMC.NETAPI.Implementation
             ref int resumeHandle
             )
         {
-            int ret;
+            int ret = 0;
             bufPtr = IntPtr.Zero;
 
-            if (Configurations.currentPlatform == LikewiseTargetPlatform.Windows)
-            {
-                ret = WindowsSession.NetUserEnum(
-                    serverName,
-                    level,
-                    filter,
-                    out bufPtr,
-                    prefMaxLen,
-                    out entriesRead,
-                    out totalEntries,
-                    ref resumeHandle
-                    );
-            }
-            else
-            {
-                ret = Interop.LwLugApi.NetUserEnum(
-                    serverName,
-                    level,
-                    filter,
-                    out bufPtr,
-                    prefMaxLen,
-                    out entriesRead,
-                    out totalEntries,
-                    out resumeHandle
-                    );
-            }
+            ret = Interop.LwLugApi.NetUserEnum(
+                serverName,
+                level,
+                filter,
+                out bufPtr,
+                prefMaxLen,
+                out entriesRead,
+                out totalEntries,
+                out resumeHandle
+                );
 
             //allow non-zero error code if indicates more data must be read.
             if (ret != (int)ErrorCodes.WIN32Enum.ERROR_MORE_DATA)
@@ -152,6 +136,11 @@ namespace Likewise.LMC.NETAPI.Implementation
         {
             uint result = LUGAPI.ERROR_FAILURE;
 
+            if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
+            {
+                return result;
+            }
+
             if (!Session.EnsureNullSession(servername, ce))
             {
                 return result;
@@ -197,6 +186,11 @@ namespace Likewise.LMC.NETAPI.Implementation
             )
         {
             uint result = LUGAPI.ERROR_FAILURE;
+
+            if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
+            {
+                return result;
+            }
 
             // Ensure we have creds
             if (!Session.EnsureNullSession(servername, ce))
@@ -282,6 +276,11 @@ namespace Likewise.LMC.NETAPI.Implementation
         {
             uint result = LUGAPI.ERROR_FAILURE;
 
+            if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
+            {
+                return result;
+            }
+
             // Ensure we have creds
             if (!Session.EnsureNullSession(servername, ce))
             {
@@ -321,6 +320,11 @@ namespace Likewise.LMC.NETAPI.Implementation
         {
             bool result = false;
 
+            if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
+            {
+                return result;
+            }
+
             // Ensure we have creds
             if (!Session.EnsureNullSession(servername, ce))
             {
@@ -329,11 +333,6 @@ namespace Likewise.LMC.NETAPI.Implementation
 
             try
             {
-                if (!NetApiInitCalled)
-                {
-                    NetApiInitCalled = NetInitMemory(ce, servername);
-                }
-
                 if (Interop.LwLugApi.NetUserDel(servername, username) == 0)
                 {
                     result = true;
@@ -357,6 +356,11 @@ namespace Likewise.LMC.NETAPI.Implementation
         {
             bool result = false;
 
+            if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
+            {
+                return result;
+            }
+
             // Ensure we have creds
             if (!Session.EnsureNullSession(servername, ce))
             {
@@ -365,11 +369,6 @@ namespace Likewise.LMC.NETAPI.Implementation
 
             try
             {
-                if (!NetApiInitCalled)
-                {
-                    NetApiInitCalled = NetInitMemory(ce, servername);
-                }
-
                 if (Interop.LwLugApi.NetLocalGroupDel(servername, username) == 0)
                 {
                     result = true;
@@ -395,6 +394,11 @@ namespace Likewise.LMC.NETAPI.Implementation
             uint result = LUGAPI.ERROR_FAILURE;
             groups = null;
 
+            if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
+            {
+                return result;
+            }
+
             // Ensure we have creds
             if (!Session.EnsureNullSession(servername, ce))
             {
@@ -407,11 +411,6 @@ namespace Likewise.LMC.NETAPI.Implementation
             {
                 int entriesRead = 0;
                 int totalEntries = 0;
-
-                if (!NetApiInitCalled)
-                {
-                    NetApiInitCalled = NetInitMemory(ce, servername);
-                }
 
                 result = (uint)Interop.LwLugApi.NetUserGetLocalGroups(servername,
                     username, 0, 0, out bufPtr, LUGAPI.MAX_PREFERRED_LENGTH, out entriesRead, out totalEntries);
@@ -469,6 +468,11 @@ namespace Likewise.LMC.NETAPI.Implementation
             enumStatus.initializeToNull();
             enumStatus.type = LUGAPI.LUGType.User;
 
+            if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
+            {
+                return;
+            }
+
             //Ensure we have creds
             if (!Session.EnsureNullSession(servername, ce))
             {
@@ -483,11 +487,6 @@ namespace Likewise.LMC.NETAPI.Implementation
                 int localResumeHandle = resumeHandle;
                 int totalEntries = 0;
                 int entriesRead = 0;
-
-                if (!NetApiInitCalled)
-                {
-                    NetApiInitCalled = NetInitMemory(ce, servername);
-                }
 
                 statusCode = apiNetUserEnum(
                     servername,
@@ -556,6 +555,11 @@ namespace Likewise.LMC.NETAPI.Implementation
             enumStatus.initializeToNull();
             enumStatus.type = LUGAPI.LUGType.Group;
 
+            if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
+            {
+                return;
+            }
+
             IntPtr bufPtr = IntPtr.Zero;
 
             try
@@ -565,11 +569,6 @@ namespace Likewise.LMC.NETAPI.Implementation
                 int entriesRead = 0;
                 int totalEntries = 0;
                 int localResumeHandle = resumeHandle;
-
-                if (!NetApiInitCalled)
-                {
-                    NetApiInitCalled = NetInitMemory(ce, servername);
-                }
 
                 statusCode = apiNetLocalGroupEnum(
                     servername,
@@ -631,6 +630,11 @@ namespace Likewise.LMC.NETAPI.Implementation
 
             uint result = LUGAPI.ERROR_FAILURE;
 
+            if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
+            {
+                return result;
+            }
+
             // Ensure we have creds
             if (!Session.EnsureNullSession(servername, ce))
             {
@@ -643,11 +647,6 @@ namespace Likewise.LMC.NETAPI.Implementation
             IntPtr bufptr = Marshal.AllocHGlobal(Marshal.SizeOf(lgmi3));
             try
             {
-                if (!NetApiInitCalled)
-                {
-                    NetApiInitCalled = NetInitMemory(ce, servername);
-                }
-
                 Marshal.StructureToPtr(lgmi3, bufptr, false);
                 int ret = Interop.LwLugApi.NetLocalGroupDelMembers(servername, groupname, 3, bufptr, 1);
                 if (ret == 0)
@@ -691,6 +690,11 @@ namespace Likewise.LMC.NETAPI.Implementation
             userInfo.description = "";
             userInfo.flags = 0;
 
+            if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
+            {
+                return result;
+            }
+
             // Ensure we have creds
             if (!Session.EnsureNullSession(servername, ce))
             {
@@ -699,11 +703,6 @@ namespace Likewise.LMC.NETAPI.Implementation
 
             try
             {
-                if (!NetApiInitCalled)
-                {
-                    NetApiInitCalled = NetInitMemory(ce, servername);
-                }
-
                 result = (uint)Interop.LwLugApi.NetUserGetInfo(servername, username, 20, out bufPtr);
 
                 USER_INFO_20 userinfo_20 = new USER_INFO_20();
@@ -738,6 +737,11 @@ namespace Likewise.LMC.NETAPI.Implementation
         {
             bool result = false;
 
+            if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
+            {
+                return result;
+            }
+
             // Ensure we have creds
             if (!Session.EnsureNullSession(servername, ce))
             {
@@ -752,11 +756,6 @@ namespace Likewise.LMC.NETAPI.Implementation
 
             try
             {
-                if (!NetApiInitCalled)
-                {
-                    NetApiInitCalled = NetInitMemory(ce, servername);
-                }
-
                 Marshal.StructureToPtr(usrinfo_0, bufptr, false);
 
                 result = !Convert.ToBoolean(Interop.LwLugApi.NetUserSetInfo(servername, oldusername, 0, bufptr, IntPtr.Zero));
@@ -786,6 +785,11 @@ namespace Likewise.LMC.NETAPI.Implementation
         {
             bool result = false;
 
+            if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
+            {
+                return result;
+            }
+
             // Ensure we have creds
             if (!Session.EnsureNullSession(servername, ce))
             {
@@ -800,11 +804,6 @@ namespace Likewise.LMC.NETAPI.Implementation
 
             try
             {
-                if (!NetApiInitCalled)
-                {
-                    NetApiInitCalled = NetInitMemory(ce, servername);
-                }
-
                 Marshal.StructureToPtr(localgrouinfo_0, bufptr, false);
 
                 if (Interop.LwLugApi.NetLocalGroupSetInfo(servername, oldgroupname, 0, bufptr, IntPtr.Zero) == 0)
@@ -837,6 +836,11 @@ namespace Likewise.LMC.NETAPI.Implementation
         {
             uint result = LUGAPI.ERROR_FAILURE;
 
+            if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
+            {
+                return result;
+            }
+
             // Ensure we have creds
             if (!Session.EnsureNullSession(servername, ce))
             {
@@ -851,11 +855,6 @@ namespace Likewise.LMC.NETAPI.Implementation
 
             try
             {
-                if (!NetApiInitCalled)
-                {
-                    NetApiInitCalled = NetInitMemory(ce, servername);
-                }
-
                 Marshal.StructureToPtr(userinfo_1011, bufptr1011, false);
 
                 result = (uint)Interop.LwLugApi.NetUserSetInfo(servername, username, 1011, bufptr1011, IntPtr.Zero);
@@ -884,6 +883,11 @@ namespace Likewise.LMC.NETAPI.Implementation
         {
             uint result = LUGAPI.ERROR_FAILURE;
 
+            if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
+            {
+                return result;
+            }
+
             // Ensure we have creds
             if (!Session.EnsureNullSession(servername, ce))
             {
@@ -899,11 +903,6 @@ namespace Likewise.LMC.NETAPI.Implementation
             try
             {
                 Marshal.StructureToPtr(groupinfo_1, bufptr, false);
-
-                if (!NetApiInitCalled)
-                {
-                    NetApiInitCalled = NetInitMemory(ce, servername);
-                }
 
                 // groupname was a part of the NETAPIArguments struct and is not used here... clear it for now
                 //apiNetLocalGroupSetInfo(servername, groupname, 1, bufptr, IntPtr.Zero);
@@ -934,6 +933,11 @@ namespace Likewise.LMC.NETAPI.Implementation
         {
             uint result = LUGAPI.ERROR_FAILURE;
 
+            if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
+            {
+                return result;
+            }
+
             // Ensure we have creds
             if (!Session.EnsureNullSession(servername, ce))
             {
@@ -948,11 +952,6 @@ namespace Likewise.LMC.NETAPI.Implementation
 
             try
             {
-                if (!NetApiInitCalled)
-                {
-                    NetApiInitCalled = NetInitMemory(ce, servername);
-                }
-
                 Marshal.StructureToPtr(userinfo_1008, bufptr1008, false);
                 result = (uint)Interop.LwLugApi.NetUserSetInfo(servername, username, 1008, bufptr1008, IntPtr.Zero);
             }
@@ -982,6 +981,11 @@ namespace Likewise.LMC.NETAPI.Implementation
 
             members = null;
 
+            if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
+            {
+                return result;
+            }
+
             // Ensure we have creds
             if (!Session.EnsureNullSession(servername, ce))
             {
@@ -1002,11 +1006,6 @@ namespace Likewise.LMC.NETAPI.Implementation
 
                 Marshal.StructureToPtr(resumeHandle, resumeHandleStar, false);
                 Marshal.StructureToPtr(bufPtr, bufPtrStar, false);
-
-                if (!NetApiInitCalled)
-                {
-                    NetApiInitCalled = NetInitMemory(ce, servername);
-                }
 
                 result = (uint)apiNetLocalGroupGetMembers(servername, groupname, 3, out bufPtr,
                     LUGAPI.MAX_PREFERRED_LENGTH, out entriesRead, out totalEntries, resumeHandleStar);
@@ -1084,6 +1083,11 @@ namespace Likewise.LMC.NETAPI.Implementation
 
             description = null;
 
+            if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
+            {
+                return result;
+            }
+
             // Ensure we have creds
             if (!Session.EnsureNullSession(servername, ce))
             {
@@ -1093,11 +1097,6 @@ namespace Likewise.LMC.NETAPI.Implementation
             IntPtr bufPtr = IntPtr.Zero;
             try
             {
-                if (!NetApiInitCalled)
-                {
-                    NetApiInitCalled = NetInitMemory(ce, servername);
-                }
-
                 result = (uint)Interop.LwLugApi.NetLocalGroupGetInfo(servername, groupname, 1, out bufPtr);
 
                 if (bufPtr == IntPtr.Zero)
@@ -1135,6 +1134,11 @@ namespace Likewise.LMC.NETAPI.Implementation
         {
             uint result = LUGAPI.ERROR_FAILURE;
 
+            if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
+            {
+                return result;
+            }
+
             // Ensure we have creds
             if (!Session.EnsureNullSession(servername, ce))
             {
@@ -1149,11 +1153,6 @@ namespace Likewise.LMC.NETAPI.Implementation
 
             try
             {
-                if (!NetApiInitCalled)
-                {
-                    NetApiInitCalled = NetInitMemory(ce, servername);
-                }
-
                 Marshal.StructureToPtr(userinfo_1007, bufptr1007, false);
 
                 // username was a part of NETAPIArguments which is not set... clear it for now.
@@ -1185,6 +1184,11 @@ namespace Likewise.LMC.NETAPI.Implementation
         {
             uint result = LUGAPI.ERROR_FAILURE;
 
+            if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
+            {
+                return result;
+            }
+
             // Ensure we have creds
             if (!Session.EnsureNullSession(servername, ce))
             {
@@ -1198,11 +1202,6 @@ namespace Likewise.LMC.NETAPI.Implementation
                 IntPtr bufptr = Marshal.AllocHGlobal(Marshal.SizeOf(lgmi3));
                 try
                 {
-                    if (!NetApiInitCalled)
-                    {
-                        NetApiInitCalled = NetInitMemory(ce, servername);
-                    }
-
                     Marshal.StructureToPtr(lgmi3, bufptr, false);
                     result = (uint)Interop.LwLugApi.NetLocalGroupAddMembers(servername, groupname, 3, bufptr, 1);
                 }
@@ -1240,6 +1239,11 @@ namespace Likewise.LMC.NETAPI.Implementation
         {
             uint result = LUGAPI.ERROR_FAILURE;
 
+            if (NetInitMemory() != LUGAPI.ERROR_SUCCESS)
+            {
+                return result;
+            }
+
             // Ensure we have creds
             if (!Session.EnsureNullSession(servername, ce))
             {
@@ -1255,11 +1259,6 @@ namespace Likewise.LMC.NETAPI.Implementation
             try
             {
                 Marshal.StructureToPtr(lgmi_3, bufptr, false);
-
-                if (!NetApiInitCalled)
-                {
-                    NetApiInitCalled = NetInitMemory(ce, servername);
-                }
 
                 result = (uint)Interop.LwLugApi.NetLocalGroupDelMembers(servername, groupname, 3, bufptr, 1);
             }
@@ -1279,20 +1278,47 @@ namespace Likewise.LMC.NETAPI.Implementation
             return result;
         }
 
+        public uint
+        NetInitMemory()
+        {
+            uint result = 0;
+
+            if (NetApiInitDone)
+            {
+                result = LUGAPI.ERROR_SUCCESS;
+            }
+            else
+            {
+                result = (uint)Interop.LwLugApi.NetInitMemory();
+                if (result != 0)
+                {
+                    NetApiInitDone = false;
+                }
+                else
+                {
+                    NetApiInitDone = true;
+                }
+            }
+
+            return result;
+        }
+
         public bool
         NetInitMemory(
             CredentialEntry ce,
             string servername
             )
         {
+            // Ensure we have creds
             if (!Session.EnsureNullSession(servername, ce))
             {
                 return false;
             }
-            return true;
+
+			return true;
         }
 
-        #endregion
+		#endregion
 
         #region Helper Functions
 
@@ -1392,17 +1418,17 @@ namespace Likewise.LMC.NETAPI.Implementation
             }
         }
 
-        public static bool bIsNetApiInitCalled = false;
+        public static bool bIsNetApiInitDone = false;
 
-        public static bool NetApiInitCalled
+        public static bool NetApiInitDone
         {
             set
             {
-                bIsNetApiInitCalled = value;
+                bIsNetApiInitDone = value;
             }
             get
             {
-                return bIsNetApiInitCalled;
+                return bIsNetApiInitDone;
             }
         }
 

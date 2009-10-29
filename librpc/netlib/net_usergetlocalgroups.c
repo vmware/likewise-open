@@ -77,7 +77,7 @@ NetUserGetLocalGroups(
     BAIL_ON_INVALID_PTR(username);
     BAIL_ON_INVALID_PTR(hostname);
 
-    status = LwIoGetThreadCreds(&creds);
+    status = LwIoGetActiveCreds(NULL, &creds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     status = NetConnectSamr(&conn, hostname, 0, builtin_dom_access, creds);

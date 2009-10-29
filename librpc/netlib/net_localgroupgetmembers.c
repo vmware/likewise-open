@@ -87,7 +87,7 @@ NetLocalGroupGetMembers(
     resume   = 0;
     num_sids = 0;
 
-    status = LwIoGetThreadCreds(&creds);
+    status = LwIoGetActiveCreds(NULL, &creds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     status = NetConnectSamr(&conn, hostname, 0, 0, creds);

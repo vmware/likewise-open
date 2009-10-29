@@ -3,7 +3,7 @@
 [HKEY_THIS_MACHINE\Services\netlogon]
 "Description"="Likewise Site Affinity Service"
 "Path"="@SBINDIR@/netlogond"
-"Arguments"="netlogond --syslog"
+"Arguments"="@SBINDIR@/netlogond --syslog"
 "Dependencies"="lwreg"
 "Type"=dword:00000001
 

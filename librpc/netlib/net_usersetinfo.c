@@ -73,7 +73,7 @@ NetUserSetInfo(
     BAIL_ON_INVALID_PTR(pwszUsername);
     BAIL_ON_INVALID_PTR(pBuffer);
 
-    status = LwIoGetThreadCreds(&pCreds);
+    status = LwIoGetActiveCreds(NULL, &pCreds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     status = NetConnectSamr(&pConn,

@@ -290,7 +290,7 @@ NetJoinDomainLocalInternal(
     }
     else
     {
-        status = LwIoGetThreadCreds(&creds);
+        status = LwIoGetActiveCreds(NULL, &creds);
         BAIL_ON_NTSTATUS_ERROR(status);
     }
 
