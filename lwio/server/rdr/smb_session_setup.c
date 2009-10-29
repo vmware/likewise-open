@@ -57,6 +57,9 @@ thereafter */
 NTSTATUS
 SessionSetup(
     IN OUT PSMB_SOCKET pSocket,
+    IN PCWSTR pwszUsername,
+    IN PCWSTR pwszDomain,
+    IN PCWSTR pwszPassword,
     OUT uint16_t* pUID,
     OUT PBYTE* ppSessionKey,
     OUT PDWORD pdwSessionKeyLength
@@ -79,9 +82,13 @@ SessionSetup(
 
     SMB_PACKET *pResponsePacket = NULL;
     PSESSION_SETUP_RESPONSE_HEADER pResponseHeader = NULL;
+    WORD wUid = 0;
 
     ntStatus = SMBGSSContextBuild(
                     (char *) pSocket->pszHostname,
+                    pwszUsername,
+                    pwszDomain,
+                    pwszPassword,
                     &hSMBGSSContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -116,7 +123,7 @@ SessionSetup(
                         0,
                         0xFFFF,
                         gRdrRuntime.SysPid,
-                        0,
+                        wUid,
                         0,
                         TRUE,
                         &packet);
@@ -206,6 +213,10 @@ SessionSetup(
         }
         BAIL_ON_NT_STATUS(ntStatus);
 
+        /* Extract uid to use for remaining session setup
+           requests */
+        wUid = pResponsePacket->pSMBHeader->uid;
+
         /* Work around issue seen with some Windows servers where
            signing is supported and required, but the server just
            reflects back our signature instead of signing properly.
@@ -259,9 +270,11 @@ SessionSetup(
         memcpy(pSocket->pSessionKey, pSessionKey, dwSessionKeyLength);
 
         pSocket->dwSessionKeyLength = dwSessionKeyLength;
+
+        SMBSocketBeginSequence(pSocket);
     }
 
-    *pUID = pResponsePacket->pSMBHeader->uid;
+    *pUID = wUid;
     *ppSessionKey = pSessionKey;
     *pdwSessionKeyLength = dwSessionKeyLength;
 

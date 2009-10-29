@@ -89,6 +89,7 @@ struct __LW_IO_CREDS
         struct _LW_IO_CREDS_PLAIN
         {
             PWSTR pwszUsername;
+            PWSTR pwszDomain;
             PWSTR pwszPassword;
         } plain;
         struct _LW_IO_CREDS_KRB5_CCACHE

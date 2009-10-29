@@ -203,6 +203,7 @@ LwIoCloseContext(
 LW_NTSTATUS
 LwIoCreatePlainCredsW(
     LW_PCWSTR pwszUsername,
+    LW_PCWSTR pwszDomain,
     LW_PCWSTR pwszPassword,
     LW_PIO_CREDS* ppCreds
     );
@@ -210,6 +211,7 @@ LwIoCreatePlainCredsW(
 LW_NTSTATUS
 LwIoCreatePlainCredsA(
     PCSTR pszUsername,
+    PCSTR pszDomain,
     PCSTR pszPassword,
     LW_PIO_CREDS* ppCreds
     );

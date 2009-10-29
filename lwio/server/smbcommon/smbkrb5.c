@@ -30,6 +30,23 @@
 
 #include "includes.h"
 
+typedef struct _SEC_WINNT_AUTH_IDENTITY
+{
+    PCHAR User;
+    DWORD UserLength;
+    PCHAR Domain;
+    DWORD DomainLength;
+    PCHAR Password;
+    DWORD PasswordLength;
+    DWORD Flags;
+} SEC_WINNT_AUTH_IDENTITY, *PSEC_WINNT_AUTH_IDENTITY;
+
+#define GSS_CRED_OPT_PW     "\x2b\x06\x01\x01"
+#define GSS_CRED_OPT_PW_LEN 4
+
+#define GSS_MECH_NTLM       "\x2b\x06\x01\x04\x01\x82\x37\x02\x02\x0a"
+#define GSS_MECH_NTLM_LEN   10
+
 static
 DWORD
 SMBGetServerCanonicalName(
@@ -142,6 +159,9 @@ error:
 DWORD
 SMBGSSContextBuild(
     PCSTR     pszServerName,
+    PCWSTR    pwszUsername,
+    PCWSTR    pwszDomain,
+    PCWSTR    pwszPassword,
     PHANDLE   phSMBGSSContext
     )
 {
@@ -150,8 +170,27 @@ SMBGSSContextBuild(
     DWORD dwMinorStatus = 0;
     PSMB_GSS_SEC_CONTEXT pContext = NULL;
     PSTR pszDomainName = NULL;
-
-    gss_buffer_desc input_name = {0};
+    PSTR pszUsername = NULL;
+    PSTR pszDomain = NULL;
+    PSTR pszPassword = NULL;
+    gss_buffer_desc usernameBuffer = {0};
+    gss_buffer_desc inputNameBuffer = {0};
+    gss_buffer_desc authDataBuffer = {0};
+    gss_name_t pUsername = NULL;
+    gss_OID_set_desc desiredMechs;
+    gss_OID_set actualMechs;
+    OM_uint32 timeRec = 0;
+    SEC_WINNT_AUTH_IDENTITY authData;
+    static gss_OID_desc gssCredOptionPasswordOidDesc =
+    {
+        .length = GSS_CRED_OPT_PW_LEN,
+        .elements = GSS_CRED_OPT_PW
+    };
+    static gss_OID_desc gssNtlmOidDesc =
+    {
+        .length = GSS_MECH_NTLM_LEN,
+        .elements = GSS_MECH_NTLM
+    };
 
     LWIO_LOG_DEBUG("Build GSS Context for server [%s]", SMB_SAFE_LOG_STRING(pszServerName));
 
@@ -174,18 +213,75 @@ SMBGSSContextBuild(
 
     pContext->state = SMB_GSS_SEC_CONTEXT_STATE_INITIAL;
 
-    input_name.value = pContext->pszTargetName;
-    input_name.length = strlen(pContext->pszTargetName) + 1;
+    inputNameBuffer.value = pContext->pszTargetName;
+    inputNameBuffer.length = strlen(pContext->pszTargetName) + 1;
 
     dwMajorStatus = gss_import_name(
                         (OM_uint32 *)&dwMinorStatus,
-                        &input_name,
+                        &inputNameBuffer,
                         (gss_OID) gss_nt_krb5_name,
                         &pContext->target_name);
 
     smb_display_status("gss_import_name", dwMajorStatus, dwMinorStatus);
 
     BAIL_ON_SEC_ERROR(dwMajorStatus);
+
+    if (pwszUsername && pwszPassword)
+    {
+        dwError = LwRtlCStringAllocateFromWC16String(&pszUsername, pwszUsername);
+        BAIL_ON_LWIO_ERROR(dwError);
+
+        usernameBuffer.value = pszUsername;
+        usernameBuffer.length = strlen(pszUsername);
+
+        dwMajorStatus = gss_import_name(
+            (OM_uint32 *)&dwMinorStatus,
+            &usernameBuffer,
+            GSS_C_NT_USER_NAME,
+            &pUsername);
+        BAIL_ON_SEC_ERROR(dwMajorStatus);
+
+        desiredMechs.count = 1;
+        desiredMechs.elements = (gss_OID) &gssNtlmOidDesc;
+
+        dwMajorStatus = gss_acquire_cred(
+            (OM_uint32 *)&dwMinorStatus,
+            pUsername,
+            0,
+            &desiredMechs,
+            GSS_C_INITIATE,
+            &pContext->credHandle,
+            &actualMechs,
+            &timeRec);
+        BAIL_ON_SEC_ERROR(dwMajorStatus);
+    }
+
+    if (pwszUsername && pwszPassword && pwszDomain)
+    {
+        dwError = LwRtlCStringAllocateFromWC16String(&pszDomain, pwszDomain);
+        BAIL_ON_LWIO_ERROR(dwError);
+
+        dwError = LwRtlCStringAllocateFromWC16String(&pszPassword, pwszPassword);
+        BAIL_ON_LWIO_ERROR(dwError);
+
+        authData.User = pszUsername;
+        authData.UserLength = strlen(pszUsername);
+        authData.Domain = pszDomain;
+        authData.DomainLength = strlen(pszDomain);
+        authData.Password = pszPassword;
+        authData.PasswordLength = strlen(pszPassword);
+        authData.Flags = 0;
+
+        authDataBuffer.value = &authData;
+        authDataBuffer.length = sizeof(authData);
+
+        dwMajorStatus = gssspi_set_cred_option(
+            (OM_uint32 *)&dwMinorStatus,
+            pContext->credHandle,
+            (gss_OID) &gssCredOptionPasswordOidDesc,
+            &authDataBuffer);
+        BAIL_ON_SEC_ERROR(dwMajorStatus);
+    }
 
     dwError = SMBAllocateMemory(
                     sizeof(CtxtHandle),
@@ -262,12 +358,12 @@ SMBGSSContextNegotiate(
 
     dwMajorStatus = gss_init_sec_context(
                         (OM_uint32 *)&dwMinorStatus,
-                        NULL,
+                        pContext->credHandle,
                         pContext->pGSSContext,
                         pContext->target_name,
                         &gss_spnego_mech_oid_desc,
                         GSS_C_REPLAY_FLAG | GSS_C_MUTUAL_FLAG |
-                        GSS_C_SEQUENCE_FLAG | GSS_C_CONF_FLAG |
+                        GSS_C_CONF_FLAG |
                         GSS_C_INTEG_FLAG,
                         0,
                         NULL,

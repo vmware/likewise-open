@@ -46,6 +46,9 @@ SMBKrb5SetDefaultCachePath(
 DWORD
 SMBGSSContextBuild(
     PCSTR     pszServerName,
+    PCWSTR    pwszUser,
+    PCWSTR    pwszDomain,
+    PCWSTR    pwszPassword,
     PHANDLE   phSMBGSSContext
     );
 
