@@ -233,6 +233,13 @@ typedef struct __SMB2_CREATE_RESPONSE_HEADER
 } __attribute__((__packed__)) SMB2_CREATE_RESPONSE_HEADER,
                              *PSMB2_CREATE_RESPONSE_HEADER;
 
+typedef struct __SMB2_MAXIMAL_ACCESS_MASK_CREATE_CONTEXT
+{
+    ULONG       ulQueryStatus;
+    ACCESS_MASK accessMask;
+} __attribute__((__packed__))  SMB2_MAXIMAL_ACCESS_MASK_CREATE_CONTEXT,
+                             *PSMB2_MAXIMAL_ACCESS_MASK_CREATE_CONTEXT;
+
 typedef struct __SMB2_CLOSE_REQUEST_HEADER
 {
     USHORT   usLength;
@@ -662,6 +669,7 @@ typedef enum
     SRV_CREATE_STAGE_SMB_V2_INITIAL = 0,
     SRV_CREATE_STAGE_SMB_V2_CREATE_FILE_COMPLETED,
     SRV_CREATE_STAGE_SMB_V2_ATTEMPT_QUERY_INFO,
+    SRV_CREATE_STAGE_SMB_V2_QUERY_CREATE_CONTEXTS,
     SRV_CREATE_STAGE_SMB_V2_QUERY_INFO_COMPLETED,
     SRV_CREATE_STAGE_SMB_V2_REQUEST_OPLOCK,
     SRV_CREATE_STAGE_SMB_V2_DONE
@@ -692,6 +700,7 @@ typedef struct _SRV_CREATE_STATE_SMB_V2
     IO_FILE_HANDLE               hFile;
 
     PSRV_CREATE_CONTEXT          pCreateContexts;
+    ULONG                        iContext;
     ULONG                        ulNumContexts;
 
     FILE_BASIC_INFORMATION       fileBasicInfo;
@@ -705,6 +714,10 @@ typedef struct _SRV_CREATE_STATE_SMB_V2
 
     FILE_PIPE_LOCAL_INFORMATION  filePipeLocalInfo;
     PFILE_PIPE_LOCAL_INFORMATION pFilePipeLocalInfo;
+
+    ACCESS_MASK                  ulMaximalAccessMask;
+
+    FILE_CREATE_RESULT           ulCreateAction;
 
     UCHAR                        ucOplockLevel;
 

@@ -899,6 +899,20 @@ SMB2UnmarshalCreateContexts(
                 pSrvCContext->contextItemType =
                                 SMB2_CONTEXT_ITEM_TYPE_QUERY_DISK_ID;
             }
+            else if (!strncmp(pSrvCContext->pszName,
+                            SMB2_CONTEXT_NAME_EXT_ATTRS,
+                            sizeof(SMB2_CONTEXT_NAME_EXT_ATTRS) - 1))
+            {
+                pSrvCContext->contextItemType =
+                                SMB2_CONTEXT_ITEM_TYPE_EXT_ATTRS;
+            }
+            else if (!strncmp(pSrvCContext->pszName,
+                            SMB2_CONTEXT_NAME_SHADOW_COPY,
+                            sizeof(SMB2_CONTEXT_NAME_SHADOW_COPY) - 1))
+            {
+                pSrvCContext->contextItemType =
+                                SMB2_CONTEXT_ITEM_TYPE_SHADOW_COPY;
+            }
         }
 
         pCContext = (PSMB2_CREATE_CONTEXT)((PBYTE)pCContext +
@@ -918,6 +932,118 @@ error:
     *pulNumContexts   = 0;
 
     SRV_SAFE_FREE_MEMORY(pCreateContexts);
+
+    goto cleanup;
+}
+
+NTSTATUS
+SMB2MarshalCreateContext(
+    IN OUT PBYTE                 pBuffer,
+    IN     ULONG                 ulOffset,
+    IN     PBYTE                 pName,
+    IN     USHORT                usNameSize,
+    IN     PBYTE                 pData,
+    IN     ULONG                 ulDataSize,
+    IN     ULONG                 ulBytesAvailable,
+    IN OUT PULONG                pulBytesUsed,
+    IN OUT PSMB2_CREATE_CONTEXT* ppCreateContext
+    )
+{
+    NTSTATUS ntStatus    = STATUS_SUCCESS;
+    PBYTE    pDataCursor = pBuffer;
+    ULONG    ulBytesUsed = 0;
+    ULONG    ulBytesAvailable1 = ulBytesAvailable;
+    USHORT   usOffset_struct = 0;
+    PSMB2_CREATE_CONTEXT pCreateContext = NULL;
+
+    if (ulOffset % 4)
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (ulBytesAvailable1 < sizeof(SMB2_CREATE_CONTEXT))
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pCreateContext = (PSMB2_CREATE_CONTEXT)pDataCursor;
+
+    ulOffset          += sizeof(SMB2_CREATE_CONTEXT);
+    ulBytesUsed       += sizeof(SMB2_CREATE_CONTEXT);
+    ulBytesAvailable1 -= sizeof(SMB2_CREATE_CONTEXT);
+    usOffset_struct   += sizeof(SMB2_CREATE_CONTEXT);
+    pDataCursor       += sizeof(SMB2_CREATE_CONTEXT);
+
+    if (ulBytesAvailable1 < usNameSize)
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pCreateContext->usNameOffset = usOffset_struct;
+    pCreateContext->usNameLength = usNameSize;
+    memcpy(pDataCursor, pName, usNameSize);
+
+    ulOffset          += usNameSize;
+    ulBytesUsed       += usNameSize;
+    ulBytesAvailable1 -= usNameSize;
+    usOffset_struct   += usNameSize;
+    pDataCursor       += usNameSize;
+
+    if (pData)
+    {
+        if (usOffset_struct % 8)
+        {
+            USHORT usAlign = 8 - (usOffset_struct % 8);
+
+            if (ulBytesAvailable1 < usAlign)
+            {
+                ntStatus = STATUS_INVALID_BUFFER_SIZE;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+
+            ulOffset          += usAlign;
+            ulBytesUsed       += usAlign;
+            ulBytesAvailable1 -= usAlign;
+            usOffset_struct   += usAlign;
+            pDataCursor       += usAlign;
+        }
+
+        if (ulBytesAvailable1 < ulDataSize)
+        {
+            ntStatus = STATUS_INVALID_BUFFER_SIZE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        pCreateContext->usDataOffset = usOffset_struct;
+        pCreateContext->ulDataLength = ulDataSize;
+        memcpy(pDataCursor, pData, ulDataSize);
+
+        // ulOffset          += ulDataSize;
+        ulBytesUsed       += ulDataSize;
+        // ulBytesAvailable1 -= ulDataSize;
+        // usOffset_struct   += ulDataSize;
+        // pDataCursor       += ulDataSize;
+    }
+
+    *pulBytesUsed    = ulBytesUsed;
+    *ppCreateContext = pCreateContext;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *pulBytesUsed    = 0;
+    *ppCreateContext = NULL;
+
+    if (ulBytesUsed)
+    {
+        memset(pBuffer, 0, ulBytesUsed);
+    }
 
     goto cleanup;
 }

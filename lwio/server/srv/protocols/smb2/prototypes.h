@@ -376,6 +376,19 @@ SMB2UnmarshalCreateRequest(
     );
 
 NTSTATUS
+SMB2MarshalCreateContext(
+    IN OUT PBYTE                 pBuffer,
+    IN     ULONG                 ulOffset,
+    IN     PBYTE                 pName,
+    IN     USHORT                usNameSize,
+    IN     PBYTE                 pData,
+    IN     ULONG                 ulDataSize,
+    IN     ULONG                 ulBytesAvailable,
+    IN OUT PULONG                pulBytesUsed,
+    IN OUT PSMB2_CREATE_CONTEXT* ppCreateContext
+    );
+
+NTSTATUS
 SMB2UnmarshalCloseRequest(
     PSRV_MESSAGE_SMB_V2 pSmbRequest,
     PSMB2_FID*          ppFid
