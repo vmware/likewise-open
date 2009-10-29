@@ -26,33 +26,16 @@ namespace Likewise.LMC.NETAPI.Implementation
             int ret;
             bufPtr = IntPtr.Zero;
 
-            if (Configurations.currentPlatform == LikewiseTargetPlatform.Windows)
-            {
-                ret = WindowsSession.NetUserEnum(
-                    serverName,
-                    level,
-                    filter,
-                    out bufPtr,
-                    prefMaxLen,
-                    out entriesRead,
-                    out totalEntries,
-                    ref resumeHandle
-                    );
-            }
-            else
-            {
-                filter = 1;
-                ret = Interop.WinLugApi.NetUserEnum(
-                    serverName,
-                    level,
-                    filter,
-                    out bufPtr,
-                    prefMaxLen,
-                    out entriesRead,
-                    out totalEntries,
-                    out resumeHandle
-                    );
-            }
+            ret = Interop.WinLugApi.NetUserEnum(
+                serverName,
+                level,
+                filter,
+                out bufPtr,
+                prefMaxLen,
+                out entriesRead,
+                out totalEntries,
+                out resumeHandle
+                );
 
             //allow non-zero error code if indicates more data must be read.
             if (ret != (int)ErrorCodes.WIN32Enum.ERROR_MORE_DATA)
@@ -330,11 +313,6 @@ namespace Likewise.LMC.NETAPI.Implementation
 
             try
             {
-                if (!NetApiInitCalled)
-                {
-                    NetApiInitCalled = NetInitMemory(ce, servername);
-                }
-
                 if (Interop.WinLugApi.NetUserDel(servername, username) == 0)
                 {
                     result = true;
@@ -366,11 +344,6 @@ namespace Likewise.LMC.NETAPI.Implementation
 
             try
             {
-                if (!NetApiInitCalled)
-                {
-                    NetApiInitCalled = NetInitMemory(ce, servername);
-                }
-
                 if (Interop.WinLugApi.NetLocalGroupDel(servername, username) == 0)
                 {
                     result = true;
@@ -408,11 +381,6 @@ namespace Likewise.LMC.NETAPI.Implementation
             {
                 int entriesRead = 0;
                 int totalEntries = 0;
-
-                if (!NetApiInitCalled)
-                {
-                    NetApiInitCalled = NetInitMemory(ce, servername);
-                }
 
                 result = (uint)Interop.WinLugApi.NetUserGetLocalGroups(servername,
                     username, 0, 0, out bufPtr, LUGAPI.MAX_PREFERRED_LENGTH, out entriesRead, out totalEntries);
@@ -484,11 +452,6 @@ namespace Likewise.LMC.NETAPI.Implementation
                 int localResumeHandle = resumeHandle;
                 int totalEntries = 0;
                 int entriesRead = 0;
-
-                if (!NetApiInitCalled)
-                {
-                    NetApiInitCalled = NetInitMemory(ce, servername);
-                }
 
                 statusCode = apiNetUserEnum(
                     servername,
@@ -567,11 +530,6 @@ namespace Likewise.LMC.NETAPI.Implementation
                 int totalEntries = 0;
                 int localResumeHandle = resumeHandle;
 
-                if (!NetApiInitCalled)
-                {
-                    NetApiInitCalled = NetInitMemory(ce, servername);
-                }
-
                 statusCode = apiNetLocalGroupEnum(
                     servername,
                     1,
@@ -644,11 +602,6 @@ namespace Likewise.LMC.NETAPI.Implementation
             IntPtr bufptr = Marshal.AllocHGlobal(Marshal.SizeOf(lgmi3));
             try
             {
-                if (!NetApiInitCalled)
-                {
-                    NetApiInitCalled = NetInitMemory(ce, servername);
-                }
-
                 Marshal.StructureToPtr(lgmi3, bufptr, false);
                 int ret = Interop.WinLugApi.NetLocalGroupDelMembers(servername, groupname, 3, bufptr, 1);
                 if (ret == 0)
@@ -700,11 +653,6 @@ namespace Likewise.LMC.NETAPI.Implementation
 
             try
             {
-                if (!NetApiInitCalled)
-                {
-                    NetApiInitCalled = NetInitMemory(ce, servername);
-                }
-
                 result = (uint)Interop.WinLugApi.NetUserGetInfo(servername, username, 20, out bufPtr);
 
                 USER_INFO_20 userinfo_20 = new USER_INFO_20();
@@ -753,11 +701,6 @@ namespace Likewise.LMC.NETAPI.Implementation
 
             try
             {
-                if (!NetApiInitCalled)
-                {
-                    NetApiInitCalled = NetInitMemory(ce, servername);
-                }
-
                 Marshal.StructureToPtr(usrinfo_0, bufptr, false);
 
                 result = !Convert.ToBoolean(Interop.WinLugApi.NetUserSetInfo(servername, oldusername, 0, bufptr, IntPtr.Zero));
@@ -801,11 +744,6 @@ namespace Likewise.LMC.NETAPI.Implementation
 
             try
             {
-                if (!NetApiInitCalled)
-                {
-                    NetApiInitCalled = NetInitMemory(ce, servername);
-                }
-
                 Marshal.StructureToPtr(localgrouinfo_0, bufptr, false);
 
                 if (Interop.WinLugApi.NetLocalGroupSetInfo(servername, oldgroupname, 0, bufptr, IntPtr.Zero) == 0)
@@ -852,11 +790,6 @@ namespace Likewise.LMC.NETAPI.Implementation
 
             try
             {
-                if (!NetApiInitCalled)
-                {
-                    NetApiInitCalled = NetInitMemory(ce, servername);
-                }
-
                 Marshal.StructureToPtr(userinfo_1011, bufptr1011, false);
 
                 result = (uint)Interop.WinLugApi.NetUserSetInfo(servername, username, 1011, bufptr1011, IntPtr.Zero);
@@ -901,11 +834,6 @@ namespace Likewise.LMC.NETAPI.Implementation
             {
                 Marshal.StructureToPtr(groupinfo_1, bufptr, false);
 
-                if (!NetApiInitCalled)
-                {
-                    NetApiInitCalled = NetInitMemory(ce, servername);
-                }
-
                 // groupname was a part of the NETAPIArguments struct and is not used here... clear it for now
                 //apiNetLocalGroupSetInfo(servername, groupname, 1, bufptr, IntPtr.Zero);
                 result = (uint)Interop.WinLugApi.NetLocalGroupSetInfo(servername, null, 1, bufptr, IntPtr.Zero);
@@ -947,11 +875,6 @@ namespace Likewise.LMC.NETAPI.Implementation
 
             try
             {
-                if (!NetApiInitCalled)
-                {
-                    NetApiInitCalled = NetInitMemory(ce, servername);
-                }
-
                 Marshal.StructureToPtr(userinfo_1008, bufptr1008, false);
                 result = (uint)Interop.WinLugApi.NetUserSetInfo(servername, username, 1008, bufptr1008, IntPtr.Zero);
             }
@@ -1000,11 +923,6 @@ namespace Likewise.LMC.NETAPI.Implementation
 
                 Marshal.StructureToPtr(resumeHandle, resumeHandleStar, false);
                 Marshal.StructureToPtr(bufPtr, bufPtrStar, false);
-
-                if (!NetApiInitCalled)
-                {
-                    NetApiInitCalled = NetInitMemory(ce, servername);
-                }
 
                 result = (uint)apiNetLocalGroupGetMembers(servername, groupname, 3, out bufPtr,
                     LUGAPI.MAX_PREFERRED_LENGTH, out entriesRead, out totalEntries, resumeHandleStar);
@@ -1091,11 +1009,6 @@ namespace Likewise.LMC.NETAPI.Implementation
             IntPtr bufPtr = IntPtr.Zero;
             try
             {
-                if (!NetApiInitCalled)
-                {
-                    NetApiInitCalled = NetInitMemory(ce, servername);
-                }
-
                 result = (uint)Interop.WinLugApi.NetLocalGroupGetInfo(servername, groupname, 1, out bufPtr);
 
                 if (bufPtr == IntPtr.Zero)
@@ -1146,11 +1059,6 @@ namespace Likewise.LMC.NETAPI.Implementation
 
             try
             {
-                if (!NetApiInitCalled)
-                {
-                    NetApiInitCalled = NetInitMemory(ce, servername);
-                }
-
                 Marshal.StructureToPtr(userinfo_1007, bufptr1007, false);
 
                 // username was a part of NETAPIArguments which is not set... clear it for now.
@@ -1194,11 +1102,6 @@ namespace Likewise.LMC.NETAPI.Implementation
                 IntPtr bufptr = Marshal.AllocHGlobal(Marshal.SizeOf(lgmi3));
                 try
                 {
-                    if (!NetApiInitCalled)
-                    {
-                        NetApiInitCalled = NetInitMemory(ce, servername);
-                    }
-
                     Marshal.StructureToPtr(lgmi3, bufptr, false);
                     result = (uint)Interop.WinLugApi.NetLocalGroupAddMembers(servername, groupname, 3, bufptr, 1);
                 }
@@ -1251,11 +1154,6 @@ namespace Likewise.LMC.NETAPI.Implementation
             {
                 Marshal.StructureToPtr(lgmi_3, bufptr, false);
 
-                if (!NetApiInitCalled)
-                {
-                    NetApiInitCalled = NetInitMemory(ce, servername);
-                }
-
                 result = (uint)Interop.WinLugApi.NetLocalGroupDelMembers(servername, groupname, 3, bufptr, 1);
             }
             catch (Exception e)
@@ -1271,6 +1169,14 @@ namespace Likewise.LMC.NETAPI.Implementation
                 }
             }
 
+            return result;
+        }
+
+        public uint
+        NetInitMemory()
+        {
+            // This method does nothing on windows
+            uint result = LUGAPI.ERROR_SUCCESS;
             return result;
         }
 

@@ -14,6 +14,9 @@ namespace Likewise.LMC.NETAPI.Interop
         private const string NETAPI_DLL_PATH = "libnetapi.so";
 
         [DllImport(NETAPI_DLL_PATH)]
+        public extern static int NetInitMemory();
+
+        [DllImport(NETAPI_DLL_PATH)]
         public extern static int NetUserDel(
             [MarshalAs(UnmanagedType.LPWStr)]string serverName,
             [MarshalAs(UnmanagedType.LPWStr)]string userName

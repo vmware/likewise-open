@@ -167,7 +167,11 @@ namespace Likewise.LMC.NETAPI
             string username
             );
 
-        bool
+        uint
+        NetInitMemory(
+            );
+
+		bool
         NetInitMemory(
             CredentialEntry ce,
             string servername

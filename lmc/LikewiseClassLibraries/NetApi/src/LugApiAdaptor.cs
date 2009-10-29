@@ -486,17 +486,23 @@ namespace Likewise.LMC.NETAPI
                 );
         }
 
+        public static uint
+        NetInitMemory()
+        {
+            return _lugApiImplementation.NetInitMemory();
+        }
+
         public static bool
         NetInitMemory(
             CredentialEntry ce,
             string servername
             )
-        {
+		{
             return _lugApiImplementation.NetInitMemory(
                 ce,
                 servername
                 );
-        }
+		}
     }
 }
 
