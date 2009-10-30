@@ -503,6 +503,10 @@ LsaUmpTriggerCheckUsersThread(
     IN LSA_UM_STATE_HANDLE Handle
     )
 {
+    if (!Handle)
+    {
+        return;
+    }
     LsaUmpAcquireMutex(Handle->CheckUsersThread.pMutex);
     Handle->CheckUsersThread.bTrigger = TRUE;
     pthread_cond_signal(Handle->CheckUsersThread.pCondition);

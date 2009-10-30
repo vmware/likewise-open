@@ -248,6 +248,7 @@ RegShellUtilAddKey(
     PSTR pszDefaultKey,
     PSTR pszKeyName)
 {
+    HANDLE hRegLocal = NULL;
     HKEY pNextKey = NULL;
     HKEY pRootKey = NULL;
     HKEY pCurrentKey = NULL; //key that to be performed more operations on
@@ -260,7 +261,12 @@ RegShellUtilAddKey(
 
     DWORD dwError = 0;
 
-    BAIL_ON_INVALID_HANDLE(hReg);
+    if (!hReg)
+    {
+        dwError = RegOpenServer(&hRegLocal);
+        BAIL_ON_REG_ERROR(dwError);
+        hReg = hRegLocal;
+    }
 
     if (!pszRootKeyName)
     {
@@ -311,6 +317,7 @@ RegShellUtilAddKey(
     }
 
 cleanup:
+    RegCloseServer(hRegLocal);
     if (pCurrentKey)
     {
         RegCloseKey(hReg, pCurrentKey);
@@ -330,6 +337,7 @@ RegShellUtilDeleteKey(
     PSTR pszDefaultKey,
     PSTR keyName)
 {
+    HANDLE hRegLocal = NULL;
     PWSTR pwszSubKey = NULL;
     HKEY pCurrentKey = NULL;
     DWORD dwError = 0;
@@ -338,7 +346,13 @@ RegShellUtilDeleteKey(
     PSTR pszSubKey = NULL;
     HKEY pRootKey = NULL;
 
-    BAIL_ON_INVALID_HANDLE(hReg);
+    if (!hReg)
+    {
+        dwError = RegOpenServer(&hRegLocal);
+        BAIL_ON_REG_ERROR(dwError);
+        hReg = hRegLocal;
+    }
+
 
     if (!pszRootKeyName)
     {
@@ -376,10 +390,11 @@ RegShellUtilDeleteKey(
     dwError = LwMbsToWc16s(pszSubKey, &pwszSubKey);
     BAIL_ON_REG_ERROR(dwError);
 
-    dwError = RegDeleteKeyW(hReg, pCurrentKey, pwszSubKey);
+    dwError = RegDeleteKey(hReg, pCurrentKey, pwszSubKey);
     BAIL_ON_REG_ERROR(dwError);
 
 cleanup:
+    RegCloseServer(hRegLocal);
     if (pCurrentKey)
     {
         RegCloseKey(hReg, pCurrentKey);
@@ -399,6 +414,7 @@ RegShellUtilDeleteTree(
     PSTR pszDefaultKey,
     PSTR keyName)
 {
+    HANDLE hRegLocal = NULL;
     PWSTR pwszSubKey = NULL;
     HKEY pCurrentKey = NULL;
     DWORD dwError = 0;
@@ -407,7 +423,13 @@ RegShellUtilDeleteTree(
     PSTR pszSubKey = NULL;
     HKEY pRootKey = NULL;
 
-    BAIL_ON_INVALID_HANDLE(hReg);
+    if (!hReg)
+    {
+        dwError = RegOpenServer(&hRegLocal);
+        BAIL_ON_REG_ERROR(dwError);
+        hReg = hRegLocal;
+    }
+
 
     if (!pszRootKeyName)
     {
@@ -449,6 +471,7 @@ RegShellUtilDeleteTree(
     BAIL_ON_REG_ERROR(dwError);
 
 cleanup:
+    RegCloseServer(hRegLocal);
     if (pCurrentKey)
     {
         RegCloseKey(hReg, pCurrentKey);
@@ -469,8 +492,8 @@ RegShellUtilGetKeys(
     LW_WCHAR ***pppRetSubKeys,
     PDWORD pdwRetSubKeyCount)
 {
+    HANDLE hRegLocal = NULL;
     HKEY pRootKey = NULL;
-
     DWORD dwError = 0;
     DWORD dwSubKeyCount = 0;
     DWORD dwValuesCount = 0;
@@ -484,7 +507,13 @@ RegShellUtilGetKeys(
     PSTR *ppszRootKeyNames = NULL;
     DWORD dwNumRootKeys = 0;
 
-    BAIL_ON_INVALID_HANDLE(hReg);
+    if (!hReg)
+    {
+        dwError = RegOpenServer(&hRegLocal);
+        BAIL_ON_REG_ERROR(dwError);
+        hReg = hRegLocal;
+    }
+
 
     if (!pszRootKeyName)
     {
@@ -597,6 +626,7 @@ RegShellUtilGetKeys(
     *pppRetSubKeys = subKeys;
     *pdwRetSubKeyCount = dwSubKeyCount;
 cleanup:
+    RegCloseServer(hRegLocal);
     if (pFullKey && pFullKey != pRootKey)
     {
         RegCloseKey(hReg, pFullKey);
@@ -624,6 +654,7 @@ RegShellUtilSetValue(
     LW_PVOID data,
     DWORD dataLen)
 {
+    HANDLE hRegLocal = NULL;
     DWORD dwError = 0;
     PBYTE pData = NULL;
     SSIZE_T dwDataLen = 0;
@@ -632,7 +663,13 @@ RegShellUtilSetValue(
     HKEY pRootKey = NULL;
     PSTR pszParentPath = NULL;
 
-    BAIL_ON_INVALID_HANDLE(hReg);
+    if (!hReg)
+    {
+        dwError = RegOpenServer(&hRegLocal);
+        BAIL_ON_REG_ERROR(dwError);
+        hReg = hRegLocal;
+    }
+
 
     if (!pszRootKeyName)
     {
@@ -714,6 +751,7 @@ RegShellUtilSetValue(
     }
 
 cleanup:
+    RegCloseServer(hRegLocal);
     LW_SAFE_FREE_MEMORY(pwszParentPath);
     if (pFullKey && pFullKey != pRootKey)
     {
@@ -736,7 +774,7 @@ RegShellUtilGetValues(
     PDWORD pdwValueArrayLen
     )
 {
-
+    HANDLE hRegLocal = NULL;
     DWORD dwError = 0;
     DWORD indx = 0;
     PSTR pszValueName = NULL;
@@ -754,7 +792,13 @@ RegShellUtilGetValues(
     DWORD dwMaxValueNameLen = 0;
     DWORD dwMaxValueLen = 0;
 
-    BAIL_ON_INVALID_HANDLE(hReg);
+    if (!hReg)
+    {
+        dwError = RegOpenServer(&hRegLocal);
+        BAIL_ON_REG_ERROR(dwError);
+        hReg = hRegLocal;
+    }
+
 
     if (!pszRootKeyName)
     {
@@ -853,6 +897,7 @@ RegShellUtilGetValues(
     *pdwValueArrayLen = indx;
 
 cleanup:
+    RegCloseServer(hRegLocal);
     if (pFullKey && pFullKey != pRootKey)
     {
         RegCloseKey(hReg, pFullKey);
@@ -881,12 +926,20 @@ RegShellUtilDeleteValue(
     PSTR keyName,
     PSTR valueName)
 {
-    HKEY pRootKey = NULL;
+    HANDLE hRegLocal = NULL;
+    HKEY hRootKey = NULL;
+    HKEY hDefaultKey = NULL;
     PWSTR pSubKey = NULL;
+    PWSTR pDefaultKey = NULL;
     PWSTR pValueName = NULL;
     DWORD dwError = 0;
 
-    BAIL_ON_INVALID_HANDLE(hReg);
+    if (!hReg)
+    {
+        dwError = RegOpenServer(&hRegLocal);
+        BAIL_ON_REG_ERROR(dwError);
+        hReg = hRegLocal;
+    }
 
     if (!pszRootKeyName)
     {
@@ -897,22 +950,40 @@ RegShellUtilDeleteValue(
         dwError = LwMbsToWc16s(keyName, &pSubKey);
         BAIL_ON_REG_ERROR(dwError);
     }
-    else if (pszDefaultKey)
+    if (pszDefaultKey)
     {
-        dwError = LwMbsToWc16s(pszDefaultKey, &pSubKey);
+        dwError = LwMbsToWc16s(pszDefaultKey, &pDefaultKey);
         BAIL_ON_REG_ERROR(dwError);
     }
 
     dwError = LwMbsToWc16s(valueName, &pValueName);
     BAIL_ON_REG_ERROR(dwError);
 
-    dwError = RegOpenKeyExA(hReg, NULL, pszRootKeyName, 0, 0, &pRootKey);
+    dwError = RegOpenKeyExA(hReg, NULL, pszRootKeyName, 0, 0, &hRootKey);
     BAIL_ON_REG_ERROR(dwError);
+    if (pszDefaultKey)
+    {
+        dwError = RegOpenKeyExA(hReg, hRootKey, pszDefaultKey, 0, 0, &hDefaultKey);
+    }
+    else
+    {
+        hDefaultKey = hRootKey;
+        hRootKey = NULL;
+    }
 
-    dwError = RegDeleteKeyValueW(hReg, pRootKey, pSubKey, pValueName);
+    dwError = RegDeleteKeyValueW(hReg, hDefaultKey, pSubKey, pValueName);
     BAIL_ON_REG_ERROR(dwError);
 
 cleanup:
+    if (hDefaultKey)
+    {
+        RegCloseKey(hReg, hDefaultKey);
+    }
+    if (hRootKey)
+    {
+        RegCloseKey(hReg, hRootKey);
+    }
+    RegCloseServer(hRegLocal);
     LW_SAFE_FREE_MEMORY(pSubKey);
     return dwError;
 
@@ -936,6 +1007,7 @@ RegShellUtilAllocateMemory(
     switch (regType)
     {
         case REG_SZ:
+        case REG_MULTI_SZ:
         case REG_BINARY:
             dwError = RegGetValueA(
                           hReg,
@@ -981,16 +1053,27 @@ RegShellUtilGetValue(
     PVOID *ppValue,
     PDWORD pdwValueLen)
 {
+    HANDLE hRegLocal = NULL;
     DWORD dwError = 0;
     DWORD dwValueLen = 0;
     PDWORD pdwValue = (PDWORD) ppValue;
+    DWORD dwIndex = 0;
     PVOID pRetData = NULL;
     PBYTE *ppData = (PBYTE *) ppValue;
     PSTR *ppszValue = (PSTR *) ppValue;
+    PSTR **pppszMultiValue = (PSTR **) ppValue;
+    PSTR *ppszMultiStrArray = NULL;
 
     HKEY hRootKey = NULL;
     HKEY hDefaultKey = NULL;
     HKEY hFullKeyName = NULL;
+
+    if (!hReg)
+    {
+        dwError = RegOpenServer(&hRegLocal);
+        BAIL_ON_REG_ERROR(dwError);
+        hReg = hRegLocal;
+    }
 
     /* Open the root key */
     dwError = RegOpenKeyExA(
@@ -1012,15 +1095,23 @@ RegShellUtilGetValue(
                       &hDefaultKey);
     BAIL_ON_REG_ERROR(dwError);
 
-    /* Open the sub key */
-    dwError = RegOpenKeyExA(
-                      hReg,
-                      hDefaultKey,
-                      pszKeyName,
-                      0,
-                      0,
-                      &hFullKeyName);
-    BAIL_ON_REG_ERROR(dwError);
+    if (pszKeyName)
+    {
+        /* Open the sub key */
+        dwError = RegOpenKeyExA(
+                          hReg,
+                          hDefaultKey,
+                          pszKeyName,
+                          0,
+                          0,
+                          &hFullKeyName);
+        BAIL_ON_REG_ERROR(dwError);
+    }
+    else
+    {
+        hFullKeyName = hDefaultKey;
+        hDefaultKey = NULL;
+    }
 
     dwError = RegShellUtilAllocateMemory(
                   hReg,
@@ -1072,15 +1163,45 @@ RegShellUtilGetValue(
                           NULL,
                           pRetData,
                           &dwValueLen);
+            BAIL_ON_REG_ERROR(dwError);
             *ppData = pRetData;
             *pdwValueLen = dwValueLen;
+            break;
+        case REG_MULTI_SZ:
+            dwError = RegGetValueA(
+                          hReg,
+                          hFullKeyName,
+                          NULL,
+                          pszValueName,
+                          REG_MULTI_SZ,
+                          NULL,
+                          pRetData,
+                          &dwValueLen);
             BAIL_ON_REG_ERROR(dwError);
+
+            dwError = RegByteArrayToMultiStrsA(
+                          pRetData,
+                          dwValueLen,
+                          &ppszMultiStrArray);
+            LW_SAFE_FREE_MEMORY(pRetData);
+            BAIL_ON_REG_ERROR(dwError);
+
+            /* Return number of entries in multi-string array, not byte count */
+            for (dwIndex=0; ppszMultiStrArray[dwIndex]; dwIndex++)
+                ;
+            *pdwValueLen = dwIndex;
+            *pppszMultiValue = ppszMultiStrArray;
+
             break;
     }
 
 cleanup:
+    RegCloseServer(hRegLocal);
     RegCloseKey(hReg, hFullKeyName);
-    RegCloseKey(hReg, hDefaultKey);
+    if (hDefaultKey)
+    {
+        RegCloseKey(hReg, hDefaultKey);
+    }
     RegCloseKey(hReg, hRootKey);
     return dwError;
 error:

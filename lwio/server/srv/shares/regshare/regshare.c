@@ -597,6 +597,9 @@ SrvShareRegEnum(
 
     if (!pResume->ulMaxIndex)
     {
+        *pppShareInfoList = NULL;
+        *pulNumSharesFound = 0;
+
         goto cleanup;
     }
 
@@ -702,18 +705,10 @@ SrvShareRegEnum(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-cleanup:
-    if (!ntStatus)
-    {
-        *pppShareInfoList = ppShareInfoList;
-        *pulNumSharesFound = ulNumSharesFound;
-    }
-    else
-    {
-        *pppShareInfoList = NULL;
-        *pulNumSharesFound = 0;
-    }
+    *pppShareInfoList = ppShareInfoList;
+    *pulNumSharesFound = ulNumSharesFound;
 
+cleanup:
     if (hRootKey)
     {
         RegCloseKey(hRepository, hRootKey);
@@ -732,6 +727,9 @@ cleanup:
     return ntStatus;
 
 error:
+    *pppShareInfoList = NULL;
+    *pulNumSharesFound = 0;
+
     if (ppShareInfoList)
     {
         SrvShareFreeInfoList(ppShareInfoList, ulNumSharesFound);
