@@ -641,7 +641,9 @@ SrvSvcStopSignalHandler()
 
     rpc_mgmt_stop_server_listening(NULL, (unsigned32*)&status);
 
-    if (pgSignalHandlerThread && !pthread_cancel(gSignalHandlerThread)) {
+    if (pgSignalHandlerThread)
+    {
+        pthread_kill(gSignalHandlerThread, SIGTERM);
         pthread_join(gSignalHandlerThread, NULL);
         pgSignalHandlerThread = NULL;
     }
@@ -821,7 +823,7 @@ SrvSvcHandleSignals(
                 rpc_mgmt_stop_server_listening(NULL, &status);
                 SrvSvcSetProcessShouldExit(TRUE);
 
-                break;
+                goto error;
             }
 
             case SIGPIPE:
