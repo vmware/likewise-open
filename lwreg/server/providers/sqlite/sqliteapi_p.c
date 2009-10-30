@@ -519,7 +519,7 @@ RegSrvResetParentKeySubKeyInfo(
     {
         // Todo: we can reflect activeKey to have the most current information,
         // For now, set the bHasSubKeyInfo to false to force it grab information from db
-        RegSrvSetHasSubKeyInfo(FALSE, pKeyResult);
+        RegSrvResetSubKeyInfo(pKeyResult);
     }
 
     RegSrvReleaseKey(pKeyResult);
@@ -538,7 +538,7 @@ RegSrvResetParentKeySubKeyInfo_inlock(
     {
         // Todo: we can reflect activeKey to have the most current information,
         // For now, set the bHasSubKeyInfo to false to force it grab information from db
-        RegSrvSetHasSubKeyInfo(FALSE, pKeyResult);
+        RegSrvResetSubKeyInfo(pKeyResult);
     }
 
     RegSrvReleaseKey_inlock(pKeyResult);
@@ -557,7 +557,7 @@ RegSrvResetKeyValueInfo(
     {
         // Todo: we can reflect activeKey to have the most current information,
         // For now, set the bHasSubKeyInfo to false to force it grab information from db
-        RegSrvSetHasValueInfo(FALSE, pKeyResult);
+        RegSrvResetValueInfo(pKeyResult);
     }
 
     RegSrvReleaseKey(pKeyResult);
@@ -576,7 +576,7 @@ RegSrvResetKeyValueInfo_inlock(
     {
         // Todo: we can reflect activeKey to have the most current information,
         // For now, set the bHasSubKeyInfo to false to force it grab information from db
-        RegSrvSetHasValueInfo(FALSE, pKeyResult);
+        RegSrvResetValueInfo(pKeyResult);
     }
 
     RegSrvReleaseKey_inlock(pKeyResult);
@@ -834,16 +834,13 @@ SqliteCacheSubKeysInfo_inlock(
                                 &ppRegEntries);
     BAIL_ON_REG_ERROR(dwError);
 
-    if (sNumCacheSubKeys && ppRegEntries)
-    {
-        dwError = RegCacheSafeRecordSubKeysInfo_inlock(
-                                sNumSubKeys,
-                                sNumCacheSubKeys,
-                                ppRegEntries,
-                                pKeyResult,
-                                bDoAnsi);
-        BAIL_ON_REG_ERROR(dwError);
-    }
+    dwError = RegCacheSafeRecordSubKeysInfo_inlock(
+                            sNumSubKeys,
+                            sNumCacheSubKeys,
+                            ppRegEntries,
+                            pKeyResult,
+                            bDoAnsi);
+    BAIL_ON_REG_ERROR(dwError);
 
 cleanup:
     RegCacheSafeFreeEntryList(sNumCacheSubKeys,&ppRegEntries);
@@ -927,6 +924,8 @@ SqliteUpdateSubKeysInfo_inlock(
         sSubKeyLen = 0;
     }
 
+    pKeyResult->dwNumSubKeys += sNumSubKeys;
+
 cleanup:
     *psNumSubKeys = sNumSubKeys;
 
@@ -1004,16 +1003,13 @@ SqliteCacheKeyValuesInfo_inlock(
                                 &ppRegEntries);
     BAIL_ON_REG_ERROR(dwError);
 
-    if (sNumCacheValues && ppRegEntries)
-    {
-        dwError = RegCacheSafeRecordValuesInfo_inlock(
-                                sNumValues,
-                                sNumCacheValues,
-                                ppRegEntries,
-                                pKeyResult,
-                                bDoAnsi);
-        BAIL_ON_REG_ERROR(dwError);
-    }
+    dwError = RegCacheSafeRecordValuesInfo_inlock(
+                            sNumValues,
+                            sNumCacheValues,
+                            ppRegEntries,
+                            pKeyResult,
+                            bDoAnsi);
+    BAIL_ON_REG_ERROR(dwError);
 
 cleanup:
     RegCacheSafeFreeEntryList(sNumCacheValues, &ppRegEntries);
@@ -1116,6 +1112,8 @@ SqliteUpdateValuesInfo_inlock(
         sValueNameLen = 0;
         dwValueLen = 0;
     }
+
+    pKeyResult->dwNumValues += sNumValues;
 
 cleanup:
     *psNumValues = sNumValues;

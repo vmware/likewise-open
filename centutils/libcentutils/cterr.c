@@ -192,6 +192,10 @@ CTMapSystemError(
         ceError = CENTERROR_INVALID_PARAMETER;
         break;
 
+    case ECONNREFUSED:
+        ceError = CENTERROR_CONNECTION_REFUSED;
+        break;
+
     default:
         ceError = CENTERROR_ERRNO(dwError);
         break;

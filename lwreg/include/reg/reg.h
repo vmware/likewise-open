@@ -286,14 +286,28 @@ RegDeleteKeyValueW(
     );
 
 DWORD
-RegDeleteTree(
+RegDeleteTreeA(
+    IN HANDLE hRegConnection,
+    IN HKEY hKey,
+    IN OPTIONAL PCSTR pszSubKey
+    );
+
+DWORD
+RegDeleteTreeW(
     HANDLE hRegConnection,
     HKEY hKey,
     PCWSTR pSubKey
     );
 
 DWORD
-RegDeleteValue(
+RegDeleteValueA(
+    IN HANDLE hRegConnection,
+    IN HKEY hKey,
+    IN PCSTR pszValueName
+    );
+
+DWORD
+RegDeleteValueW(
     IN HANDLE hRegConnection,
     IN HKEY hKey,
     IN PCWSTR pValueName
@@ -568,6 +582,10 @@ RegQueryInfoKeyW(
     RegDeleteKeyW(hRegConnection, hKey, pwszSubKey)
 #define RegDeleteKeyValue(hRegConnection, hKey, pSubKey, pValueName) \
     RegDeleteKeyValueW(hRegConnection, hKey, pwszSubKey, pwszValueName)
+#define RegDeleteTree(hRegConnection, hKey, pSubKey) \
+    RegDeleteTreeW(hRegConnection, hKey, pwszSubKey)
+#define RegDeleteValue(hRegConnection, hKey, pValueName) \
+    RegDeleteValueW(hRegConnection, hKey, pwszValueName)
 #else
 #define RegEnumValue(hRegConnection, hKey, dwIndex, pValueName, pcchValueName, pReserved, pType, pData, pcbData) \
     RegEnumValueA(hRegConnection, hKey, dwIndex, pValueName, pcchValueName, pReserved, pType, pData, pcbData)
@@ -593,6 +611,10 @@ RegQueryInfoKeyW(
     RegDeleteKeyA(hRegConnection, hKey, pszSubKey)
 #define RegDeleteKeyValue(hRegConnection, hKey, pSubKey, pValueName) \
     RegDeleteKeyValueA(hRegConnection, hKey, pszSubKey, pszValueName)
+#define RegDeleteTree(hRegConnection, hKey, pSubKey) \
+    RegDeleteTreeA(hRegConnection, hKey, pszSubKey)
+#define RegDeleteValue(hRegConnection, hKey, pValueName) \
+    RegDeleteValueA(hRegConnection, hKey, pszValueName)
 #endif
 
 #endif /* __REG_H__ */

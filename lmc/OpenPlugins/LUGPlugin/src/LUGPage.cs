@@ -53,7 +53,6 @@ public partial class LUGPage : StandardPage
     
     private ListViewColumnSorter lvwColumnSorter;
     private UInt32 PageSize = 50;
-    private UInt32 Uppercount = 50;
     private UInt32 nOffset = 0;
     public ListViewItem[] lvArr;
     

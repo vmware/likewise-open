@@ -49,6 +49,9 @@
 #include "lwnet-def.h"
 #include "lwnet.h"
 #include "lwnet-utils.h"
+#include "lwerror.h"
+
+#define LW_PRINTF_STRING(x) ((x) ? (x) : "<null>")
 
 static
 void
@@ -120,6 +123,7 @@ main(
     LWNET_UNIX_TIME_T dcTime = 0;
     time_t dcTimeCopy = 0;
     struct tm dcDateTime = { 0 };
+    CHAR  szErrorBuf[1024];
     
     dwError = ParseArgs(
                     argc,
@@ -151,15 +155,32 @@ main(
     
     printf("DC TIME: %s\n", szTime);
 
-cleanup:
+error:
+
+    if (dwError)
+    {
+        DWORD dwLen = LwGetErrorString(dwError, szErrorBuf, 1024);
+
+        if (dwLen)
+        {
+            fprintf(
+                stderr,
+                "Failed to query time on domain controller.  Error code %u (%s).\n%s\n",
+                dwError,
+                LW_PRINTF_STRING(LwWin32ErrorToName(dwError)),
+                szErrorBuf);
+        }
+        else
+        {
+            fprintf(
+                stderr,
+                "Failed to query time on domain controller.  Error code %u (%s).\n",
+                dwError,
+                LW_PRINTF_STRING(LwWin32ErrorToName(dwError)));
+        }
+    }
 
     LWNET_SAFE_FREE_STRING(pszTargetFQDN);
     
     return (dwError);
-
-error:
-
-    LWNET_LOG_ERROR("Failed to query time on domain controller. Error code [%d]\n", dwError);
-
-    goto cleanup;
 }

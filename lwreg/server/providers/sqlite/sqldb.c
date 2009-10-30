@@ -1583,8 +1583,6 @@ RegCacheSafeRecordSubKeysInfo_inlock(
 
     BAIL_ON_INVALID_POINTER(pKeyResult);
 
-    pKeyResult->dwNumSubKeys = (DWORD)sCount;
-
     //Remove previous subKey information if there is any
     LwFreeStringArray(pKeyResult->ppszSubKeyNames, pKeyResult->dwNumCacheSubKeys);
 
@@ -1625,14 +1623,18 @@ RegCacheSafeRecordSubKeysInfo_inlock(
         sSubKeyLen = 0;
     }
 
-    if (bDoAnsi)
-        pKeyResult->bHasSubKeyAInfo = TRUE;
-    else
-        pKeyResult->bHasSubKeyInfo = TRUE;
-
-    pKeyResult->dwNumCacheSubKeys = sCacheCount;
-
 cleanup:
+    pKeyResult->dwNumSubKeys = (DWORD)sCount;
+    pKeyResult->dwNumCacheSubKeys = sCacheCount;
+    if (bDoAnsi)
+    {
+        pKeyResult->bHasSubKeyAInfo = TRUE;
+    }
+    else
+    {
+        pKeyResult->bHasSubKeyInfo = TRUE;
+    }
+
     LW_SAFE_FREE_MEMORY(pSubKey);
     return dwError;
 
@@ -1689,10 +1691,15 @@ RegCacheSafeRecordValuesInfo_inlock(
 
     BAIL_ON_INVALID_POINTER(pKeyResult);
 
-    pKeyResult->dwNumValues = (DWORD)sCount;
-
     //Remove previous subKey information if there is any
     LwFreeStringArray(pKeyResult->ppszValueNames, pKeyResult->dwNumCacheValues);
+    LwFreeStringArray(pKeyResult->ppszValues, pKeyResult->dwNumCacheValues);
+    LW_SAFE_FREE_MEMORY(pKeyResult->pTypes);
+
+    if (!sCacheCount)
+    {
+        goto cleanup;
+    }
 
     dwError = LwAllocateMemory(sizeof(*(pKeyResult->ppszValueNames)) * sCacheCount,
                                (PVOID*)&pKeyResult->ppszValueNames);
@@ -1763,8 +1770,9 @@ RegCacheSafeRecordValuesInfo_inlock(
         dwValueLen = 0;
     }
 
+cleanup:
+    pKeyResult->dwNumValues = (DWORD)sCount;
     pKeyResult->dwNumCacheValues = sCacheCount;
-
 
     if (bDoAnsi)
     {
@@ -1775,7 +1783,6 @@ RegCacheSafeRecordValuesInfo_inlock(
         pKeyResult->bHasValueInfo = TRUE;
     }
 
-cleanup:
     LW_SAFE_FREE_MEMORY(pValueName);
     return dwError;
 

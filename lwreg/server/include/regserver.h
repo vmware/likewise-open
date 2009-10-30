@@ -487,8 +487,7 @@ RegSrvGetKeyRefCount(
     );
 
 void
-RegSrvSetHasSubKeyInfo(
-    IN BOOLEAN bHasSubKeyInfo,
+RegSrvResetSubKeyInfo(
     IN OUT PREG_KEY_CONTEXT pKeyResult
     );
 
@@ -519,8 +518,7 @@ RegSrvSubKeyName(
     );
 
 void
-RegSrvSetHasValueInfo(
-    IN BOOLEAN bHasValueInfo,
+RegSrvResetValueInfo(
     IN OUT PREG_KEY_CONTEXT pKeyResult
     );
 

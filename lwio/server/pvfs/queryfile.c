@@ -59,7 +59,7 @@ PvfsQuerySetInformationFile(
 
 static struct _InfoLevelDispatchEntry InfoLevelDispatchTable[] = {
     /* Query Levels */
-    { FileAccessInformation,            NULL },
+    { FileAccessInformation,            &PvfsFileAccessInfo },
     { FileAlignmentInformation,         NULL },
     { FileAllInformation,               &PvfsFileAllInfo },
     { FileAlternateNameInformation,     NULL },

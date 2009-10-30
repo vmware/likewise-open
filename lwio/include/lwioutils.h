@@ -361,6 +361,9 @@ extern PFN_LWIO_LOG_MESSAGE gpfnSMBLogger;
 #define LWIO_LOG_DEBUG(szFmt, ...) \
     _LWIO_LOG_IF(LWIO_LOG_LEVEL_DEBUG, szFmt, ## __VA_ARGS__)
 
+#define LWIO_LOG_TRACE(szFmt, ...) \
+    _LWIO_LOG_IF(LWIO_LOG_LEVEL_TRACE, szFmt, ## __VA_ARGS__)
+
 VOID
 LwIoAssertionFailed(
     IN PCSTR Expression,

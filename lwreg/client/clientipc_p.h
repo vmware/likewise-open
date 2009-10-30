@@ -161,21 +161,21 @@ RegTransactEnumKeyEx(
 
 DWORD
 RegTransactDeleteKeyValueW(
-    HANDLE Handle,
-    HKEY hKey,
-    PCWSTR pSubKey,
-    PCWSTR pValueName
+    IN HANDLE hConnection,
+    IN HKEY hKey,
+    IN OPTIONAL PCWSTR pSubKey,
+    IN OPTIONAL PCWSTR pValueName
     );
 
 DWORD
-RegTransactDeleteTree(
-    HANDLE Handle,
-    HKEY hKey,
-    PCWSTR pSubKey
+RegTransactDeleteTreeW(
+    IN HANDLE hConnection,
+    IN HKEY hKey,
+    IN OPTIONAL PCWSTR pSubKey
     );
 
 DWORD
-RegTransactDeleteValue(
+RegTransactDeleteValueW(
     IN HANDLE hConnection,
     IN HKEY hKey,
     IN OPTIONAL PCWSTR pValueName

@@ -595,6 +595,11 @@ SrvShareRegEnum(
     BYTE pSecData[MAX_VALUE_LENGTH] = {0};
     ULONG ulNumSharesFound = 0;
 
+    if (!pResume->ulMaxIndex)
+    {
+        goto cleanup;
+    }
+
     ntStatus = RegOpenKeyExA(
             hRepository,
             NULL,
@@ -697,10 +702,18 @@ SrvShareRegEnum(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    *pppShareInfoList = ppShareInfoList;
-    *pulNumSharesFound = ulNumSharesFound;
-
 cleanup:
+    if (!ntStatus)
+    {
+        *pppShareInfoList = ppShareInfoList;
+        *pulNumSharesFound = ulNumSharesFound;
+    }
+    else
+    {
+        *pppShareInfoList = NULL;
+        *pulNumSharesFound = 0;
+    }
+
     if (hRootKey)
     {
         RegCloseKey(hRepository, hRootKey);
@@ -760,7 +773,7 @@ SrvShareRegDelete(
     ntStatus = SrvMbsToWc16s(pszSharePath, &pwszSharePath);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = RegDeleteKeyValue(hRepository,
+    ntStatus = RegDeleteKeyValueW(hRepository,
                                  hRootKey,
                                  pwszSharePath,
                                  pwszShareName);
@@ -769,7 +782,7 @@ SrvShareRegDelete(
     ntStatus = SrvMbsToWc16s(pszShareSecPath, &pwszShareSecPath);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = RegDeleteKeyValue(hRepository,
+    ntStatus = RegDeleteKeyValueW(hRepository,
                                 hRootKey,
                                 pwszShareSecPath,
                                 pwszShareName);
