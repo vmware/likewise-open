@@ -46,6 +46,8 @@
 
 #include "del_group_del_group.h"
 
+#define LW_PRINTF_STRING(x) ((x) ? (x) : "<null>")
+
 static
 DWORD
 MapErrorCode(
@@ -88,7 +90,10 @@ ShowUsage(
     PCSTR pszProgramName
     )
 {
-    printf("Usage: %s [ --gid  id ] group\n", pszProgramName);
+    printf("Usage: %s <group>\n"
+           "   or: %s --gid  <id>\n",
+           pszProgramName,
+           pszProgramName);
 }
 
 static
@@ -170,7 +175,13 @@ ParseArgs(
 
     if (parseMode != PARSE_MODE_OPEN && parseMode != PARSE_MODE_DONE)
     {
-        ShowUsage(LsaGetProgramName(argv[0]));;
+        ShowUsage(LsaGetProgramName(argv[0]));
+        exit(1);
+    }
+
+    if (!pszGid && !pszGroup)
+    {
+        ShowUsage(LsaGetProgramName(argv[0]));
         exit(1);
     }
 
@@ -270,7 +281,11 @@ error:
 
             if ((dwLen == dwErrorBufferSize) && !LW_IS_NULL_OR_EMPTY_STR(pszErrorBuffer))
             {
-                fprintf(stderr, "Failed to delete group.  %s\n", pszErrorBuffer);
+                fprintf(stderr,
+                        "Failed to delete group.  Error code %u (%s).\n%s\n",
+                         dwError,
+                         LW_PRINTF_STRING(LwWin32ErrorToName(dwError)),
+                         pszErrorBuffer);
                 bPrintOrigError = FALSE;
             }
         }
@@ -280,7 +295,10 @@ error:
 
     if (bPrintOrigError)
     {
-        fprintf(stderr, "Failed to delete group. Error code [%d]\n", dwError);
+        fprintf(stderr,
+                "Failed to delete group.  Error code %u (%s).\n",
+                dwError,
+                LW_PRINTF_STRING(LwWin32ErrorToName(dwError)));
     }
 
     goto cleanup;
