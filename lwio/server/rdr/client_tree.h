@@ -31,11 +31,9 @@
 
 NTSTATUS
 SMBSrvClientTreeOpen(
-    PCSTR pszHostname,
+    PCWSTR pszHostname,
     PCSTR pszSharename,
-    PCWSTR pwszUsername,
-    PCWSTR pwszDomain,
-    PCWSTR pwszPassword,
+    PIO_CREDS pCreds,
     uid_t uid,
     PSMB_TREE* ppTree
     );

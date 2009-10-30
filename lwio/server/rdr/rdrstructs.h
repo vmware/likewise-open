@@ -84,7 +84,7 @@ typedef struct
                                             received */
 
     int fd;
-    PSTR pszHostname;           /* For hashing and for GSS */
+    PWSTR pwszHostname;         /* For hashing and for GSS */
     struct sockaddr address;    /* For hashing */
 
     uint32_t maxBufferSize;     /* Max transmit buffer size */

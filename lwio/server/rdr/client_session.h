@@ -32,7 +32,7 @@
 NTSTATUS
 SMBSrvClientSessionCreate(
     IN OUT PSMB_SOCKET* ppSocket,
-    IN PCSTR pszPrincipal,
+    PIO_CREDS pCreds,
     IN uid_t uid,
     OUT PSMB_SESSION* ppSession
     );

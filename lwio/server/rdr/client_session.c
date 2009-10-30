@@ -34,7 +34,7 @@
 NTSTATUS
 SMBSrvClientSessionCreate(
     IN OUT PSMB_SOCKET* ppSocket,
-    IN PCSTR pszPrincipal,
+    IN PIO_CREDS pCreds,
     uid_t uid,
     OUT PSMB_SESSION* ppSession
     )
@@ -43,17 +43,36 @@ SMBSrvClientSessionCreate(
     PSMB_SESSION pSession = NULL;
     BOOLEAN bInLock = FALSE;
     PSMB_SOCKET pSocket = *ppSocket;
-    struct _RDR_SESSION_KEY key;
+    struct _RDR_SESSION_KEY key = {0};
 
     LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
 
-    key.pszPrincipal = (PSTR) pszPrincipal;
+    switch (pCreds->type)
+    {
+    case IO_CREDS_TYPE_KRB5_TGT:
+        ntStatus = LwRtlCStringAllocateFromWC16String(
+            &key.pszPrincipal,
+            pCreds->payload.krb5Tgt.pwszClientPrincipal);
+        BAIL_ON_NT_STATUS(ntStatus);
+        break;
+    case IO_CREDS_TYPE_PLAIN:
+        ntStatus = LwRtlCStringAllocateFromWC16String(
+            &key.pszPrincipal,
+            pCreds->payload.krb5Tgt.pwszClientPrincipal);
+        BAIL_ON_NT_STATUS(ntStatus);
+        break;
+    default:
+        ntStatus = STATUS_ACCESS_DENIED;
+        BAIL_ON_NT_STATUS(ntStatus);
+        break;
+    }
+
     key.uid = uid;
 
     ntStatus = SMBHashGetValue(
-                    pSocket->pSessionHashByPrincipal,
-                    &key,
-                    OUT_PPVOID(&pSession));
+        pSocket->pSessionHashByPrincipal,
+        &key,
+        OUT_PPVOID(&pSession));
 
     if (!ntStatus)
     {
@@ -69,17 +88,17 @@ SMBSrvClientSessionCreate(
         pSession->pSocket = pSocket;
 
         ntStatus = SMBStrndup(
-            pszPrincipal,
-            strlen(pszPrincipal) + 1,
+            key.pszPrincipal,
+            strlen(key.pszPrincipal) + 1,
             &pSession->key.pszPrincipal);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        pSession->key.uid = uid;
+        pSession->key.uid = key.uid;
 
         ntStatus = SMBHashSetValue(
-                    pSocket->pSessionHashByPrincipal,
-                    &pSession->key,
-                    pSession);
+            pSocket->pSessionHashByPrincipal,
+            &pSession->key,
+            pSession);
         BAIL_ON_NT_STATUS(ntStatus);
 
         pSession->bParentLink = TRUE;
@@ -92,6 +111,8 @@ SMBSrvClientSessionCreate(
     *ppSession = pSession;
 
 cleanup:
+
+    LWIO_SAFE_FREE_STRING(key.pszPrincipal);
 
     return ntStatus;
 

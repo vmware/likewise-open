@@ -57,9 +57,7 @@ thereafter */
 NTSTATUS
 SessionSetup(
     IN OUT PSMB_SOCKET pSocket,
-    IN PCWSTR pwszUsername,
-    IN PCWSTR pwszDomain,
-    IN PCWSTR pwszPassword,
+    PIO_CREDS pCreds,
     OUT uint16_t* pUID,
     OUT PBYTE* ppSessionKey,
     OUT PDWORD pdwSessionKeyLength
@@ -85,27 +83,25 @@ SessionSetup(
     WORD wUid = 0;
 
     ntStatus = SMBGSSContextBuild(
-                    (char *) pSocket->pszHostname,
-                    pwszUsername,
-                    pwszDomain,
-                    pwszPassword,
-                    &hSMBGSSContext);
+        pSocket->pwszHostname,
+        pCreds,
+        &hSMBGSSContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBGSSContextNegotiate(
-                    hSMBGSSContext,
-                    pSocket->pSecurityBlob,
-                    pSocket->securityBlobLen,
-                    &pSecurityBlob2,
-                    &dwSecurityBlobLen2);
+        hSMBGSSContext,
+        pSocket->pSecurityBlob,
+        pSocket->securityBlobLen,
+        &pSecurityBlob2,
+        &dwSecurityBlobLen2);
     BAIL_ON_NT_STATUS(ntStatus);
 
     /* @todo: make initial length configurable */
     ntStatus = SMBPacketBufferAllocate(
-                    pSocket->hPacketAllocator,
-                    1024*64,
-                    &packet.pRawBuffer,
-                    &packet.bufferLen);
+        pSocket->hPacketAllocator,
+        1024*64,
+        &packet.pRawBuffer,
+        &packet.bufferLen);
     BAIL_ON_NT_STATUS(ntStatus);
 
     while (!SMBGSSContextNegotiateComplete(hSMBGSSContext))
@@ -217,20 +213,6 @@ SessionSetup(
            requests */
         wUid = pResponsePacket->pSMBHeader->uid;
 
-        /* Work around issue seen with some Windows servers where
-           signing is supported and required, but the server just
-           reflects back our signature instead of signing properly.
-           In this case, we no longer verify server signatures but
-           continue to sign our own packets */
-        if (packet.haveSignature &&
-            (!memcmp(pResponsePacket->pSMBHeader->extra.securitySignature,
-                     packet.pSMBHeader->extra.securitySignature,
-                     sizeof(packet.pSMBHeader->extra.securitySignature))))
-        {
-            LWIO_LOG_WARNING("Server is exhibiting signing bug; ignoring signatures from server");
-            RdrSocketSetIgnoreServerSignatures(pSocket, TRUE);
-        }
-
         ntStatus = UnmarshallSessionSetupResponse(
                         pResponsePacket->pParams,
                         pResponsePacket->bufferLen - pResponsePacket->bufferUsed,
@@ -251,7 +233,20 @@ SessionSetup(
                         &pSecurityBlob2,
                         &dwSecurityBlobLen2);
         BAIL_ON_NT_STATUS(ntStatus);
+    }
 
+    /* Work around issue seen with some Windows servers where
+       signing is supported and required, but the server just
+       reflects back our signature instead of signing properly.
+       In this case, we no longer verify server signatures but
+       continue to sign our own packets */
+    if (packet.haveSignature &&
+        (!memcmp(pResponsePacket->pSMBHeader->extra.securitySignature,
+                 packet.pSMBHeader->extra.securitySignature,
+                 sizeof(packet.pSMBHeader->extra.securitySignature))))
+    {
+        LWIO_LOG_WARNING("Server is exhibiting signing bug; ignoring signatures from server");
+        RdrSocketSetIgnoreServerSignatures(pSocket, TRUE);
     }
 
     ntStatus = SMBGSSContextGetSessionKey(

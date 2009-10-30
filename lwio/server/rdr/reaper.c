@@ -355,7 +355,7 @@ cleanup:
                     LWIO_LOG_VERBOSE("Socket %p is expired, reaping", pSocket);
                     SMBHashRemoveKey(
                         pRuntime->pSocketHashByName,
-                        pSocket->pszHostname
+                        pSocket->pwszHostname
                         );
                 }
                 else

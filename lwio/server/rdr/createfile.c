@@ -52,7 +52,7 @@ static
 NTSTATUS
 ParseSharePath(
     PCWSTR pwszPath,
-    PSTR*   ppszServer,
+    PWSTR*  ppwszServer,
     PSTR*   ppszShare,
     PSTR*   ppszFilename
     );
@@ -73,7 +73,7 @@ RdrTransactCreateFile(
 
 NTSTATUS
 RdrCreateFileEx(
-    PIO_CREDS pSecurityToken,
+    PIO_CREDS pCreds,
     PIO_SECURITY_CONTEXT_PROCESS_INFORMATION pProcessInfo,
     PCWSTR pwszPath,
     ACCESS_MASK desiredAccess,
@@ -86,7 +86,7 @@ RdrCreateFileEx(
     )
 {
     NTSTATUS ntStatus = 0;
-    PSTR   pszServer = NULL;
+    PWSTR  pwszServer = NULL;
     PSTR   pszShare = NULL;
     PSTR   pszFilename = NULL;
     PWSTR  pwszFilename = NULL;
@@ -96,27 +96,27 @@ RdrCreateFileEx(
     PWSTR  pwszDomain = NULL;
     PWSTR  pwszPassword = NULL;
 
-    if (!pSecurityToken)
+    if (!pCreds)
     {
         ntStatus = STATUS_ACCESS_DENIED;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    switch (pSecurityToken->type)
+    switch (pCreds->type)
     {
     case IO_CREDS_TYPE_KRB5_TGT:
-        pwszUsername = pSecurityToken->payload.krb5Tgt.pwszClientPrincipal;
+        pwszUsername = pCreds->payload.krb5Tgt.pwszClientPrincipal;
 
-        ntStatus = SMBCredTokenToKrb5CredCache(pSecurityToken, &pszCachePath);
+        ntStatus = SMBCredTokenToKrb5CredCache(pCreds, &pszCachePath);
         BAIL_ON_NT_STATUS(ntStatus);
 
         ntStatus = SMBKrb5SetDefaultCachePath(pszCachePath, NULL);
         BAIL_ON_NT_STATUS(ntStatus);
         break;
     case IO_CREDS_TYPE_PLAIN:
-        pwszUsername = pSecurityToken->payload.plain.pwszUsername;
-        pwszDomain = pSecurityToken->payload.plain.pwszDomain;
-        pwszPassword = pSecurityToken->payload.plain.pwszPassword;
+        pwszUsername = pCreds->payload.plain.pwszUsername;
+        pwszDomain = pCreds->payload.plain.pwszDomain;
+        pwszPassword = pCreds->payload.plain.pwszPassword;
         break;
     default:
         ntStatus = STATUS_ACCESS_DENIED;
@@ -135,19 +135,17 @@ RdrCreateFileEx(
 
     ntStatus = ParseSharePath(
         pwszPath,
-        &pszServer,
+        &pwszServer,
         &pszShare,
         &pszFilename);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBSrvClientTreeOpen(
-                    pszServer,
-                    pszShare,
-                    pwszUsername,
-                    pwszDomain,
-                    pwszPassword,
-                    pProcessInfo->Uid,
-                    &pFile->pTree);
+        pwszServer,
+        pszShare,
+        pCreds,
+        pProcessInfo->Uid,
+        &pFile->pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBMbsToWc16s(
@@ -174,7 +172,7 @@ RdrCreateFileEx(
 
 cleanup:
 
-    LWIO_SAFE_FREE_STRING(pszServer);
+    LWIO_SAFE_FREE_MEMORY(pwszServer);
     LWIO_SAFE_FREE_STRING(pszShare);
     LWIO_SAFE_FREE_STRING(pszFilename);
     LWIO_SAFE_FREE_MEMORY(pwszFilename);
@@ -203,7 +201,7 @@ static
 NTSTATUS
 ParseSharePath(
     PCWSTR pwszPath,
-    PSTR*   ppszServer,
+    PWSTR*  ppwszServer,
     PSTR*   ppszShare,
     PSTR*   ppszFilename
     )
@@ -316,12 +314,15 @@ ParseSharePath(
 
     pszFilename[1 + i] = '\0';
 
-    *ppszServer = pszServer;
+    ntStatus = LwRtlWC16StringAllocateFromCString(ppwszServer, pszServer);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     *ppszShare  = pszShare;
     *ppszFilename = pszFilename;
 
 cleanup:
 
+    LWIO_SAFE_FREE_STRING(pszServer);
     LWIO_SAFE_FREE_STRING(pszPath);
 
     return ntStatus;
@@ -332,7 +333,7 @@ error:
     LWIO_SAFE_FREE_STRING(pszShare);
     LWIO_SAFE_FREE_STRING(pszFilename);
 
-    *ppszServer = NULL;
+    *ppwszServer = NULL;
     *ppszShare = NULL;
     *ppszFilename = NULL;
 

@@ -362,6 +362,14 @@ SMBHashCaselessStringCompare(
 }
 
 int
+SMBHashCaselessWc16StringCompare(
+        PCVOID str1,
+        PCVOID str2)
+{
+    return !LwRtlWC16StringIsEqual(str1, str2, FALSE);
+}
+
+int
 SMBHashCompareUINT32(
     PCVOID key1,
     PCVOID key2
@@ -398,6 +406,27 @@ SMBHashCaselessString(
         result = (result << 3) | (result >> (sizeof(size_t)*8 - 3));
 
         lowerChar = tolower(*pos);
+        result += lowerChar;
+        pos++;
+    }
+
+    return result;
+}
+
+size_t
+SMBHashCaselessWc16String(
+        PCVOID str)
+{
+    size_t result = 0;
+    PCWSTR pos = (PCWSTR)str;
+    int lowerChar;
+
+    while (*pos != '\0')
+    {
+        // rotate result to the left 3 bits with wrap around
+        result = (result << 3) | (result >> (sizeof(size_t)*8 - 3));
+
+        lowerChar = *pos <= 255 ? tolower(*pos) : *pos;
         result += lowerChar;
         pos++;
     }

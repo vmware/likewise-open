@@ -976,6 +976,11 @@ SMBHashCaselessStringCompare(
         PCVOID str2);
 
 int
+SMBHashCaselessWc16StringCompare(
+        PCVOID str1,
+        PCVOID str2);
+
+int
 SMBHashCompareUINT32(
         PCVOID key1,
         PCVOID key2
@@ -983,7 +988,11 @@ SMBHashCompareUINT32(
 
 size_t
 SMBHashCaselessString(
-        PCVOID str);
+    PCVOID str);
+
+size_t
+SMBHashCaselessWc16String(
+    PCVOID str);
 
 DWORD
 SMBHandleManagerCreate(

@@ -33,7 +33,7 @@
 
 NTSTATUS
 SMBSocketCreate(
-    IN PCSTR pszHostname,
+    IN PCWSTR pwszHostname,
     IN BOOLEAN bUseSignedMessagesIfSupported,
     OUT PSMB_SOCKET* ppSocket
     );
