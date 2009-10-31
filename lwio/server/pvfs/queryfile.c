@@ -67,7 +67,7 @@ static struct _InfoLevelDispatchEntry InfoLevelDispatchTable[] = {
     { FileEaInformation,                &PvfsFileEaInfo },
     { FileFullEaInformation,            NULL },
     { FileInternalInformation,          &PvfsFileInternalInfo },
-    { FileModeInformation,              NULL },
+    { FileModeInformation,              &PvfsFileModeInfo },
     { FileNameInformation,              &PvfsFileNameInfo },
     { FileNetworkOpenInformation,       &PvfsFileNetworkOpenInfo },
     { FilePipeInformation,              NULL },
