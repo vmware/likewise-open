@@ -1228,7 +1228,7 @@ SrvQueryFileAllInfo(
                     if (!pTrans2State->usBytesAllocated)
                     {
                         usNewSize = pTrans2State->usBytesAllocated +
-                                        sizeof(FILE_STREAM_INFORMATION) +
+                                        sizeof(FILE_ALL_INFORMATION) +
                                         256 * sizeof(wchar16_t);
                     }
                     else
