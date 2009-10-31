@@ -349,6 +349,8 @@ SrvProtocolExecute_SMB_V2(
         {
             case STATUS_PENDING:
 
+                // TODO
+                if (0)
                 {
                     NTSTATUS ntStatus2 = STATUS_SUCCESS;
 
