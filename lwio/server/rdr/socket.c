@@ -112,7 +112,7 @@ RdrEaiToNtStatus(
 
 NTSTATUS
 SMBSocketCreate(
-    IN PCSTR pszHostname,
+    IN PCWSTR pwszHostname,
     IN BOOLEAN bUseSignedMessagesIfSupported,
     OUT PSMB_SOCKET* ppSocket
     )
@@ -146,10 +146,7 @@ SMBSocketCreate(
     pSocket->fd = -1;
 
     /* Hostname is trusted */
-    ntStatus = SMBStrndup(
-                    (char *) pszHostname,
-                    strlen((char *) pszHostname) + sizeof(NUL),
-                    (char **) &pSocket->pszHostname);
+    ntStatus = LwRtlWC16StringDuplicate(&pSocket->pwszHostname, pwszHostname);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pSocket->maxBufferSize = 0;
@@ -200,7 +197,7 @@ error:
         SMBHashSafeFree(&pSocket->pSessionHashByUID);
         SMBHashSafeFree(&pSocket->pSessionHashByPrincipal);
 
-        LWIO_SAFE_FREE_MEMORY(pSocket->pszHostname);
+        LWIO_SAFE_FREE_MEMORY(pSocket->pwszHostname);
 
         if (bDestroyCondition)
         {
@@ -575,9 +572,6 @@ SMBSocketReaderMain(
     BOOLEAN bInLock = FALSE;
     PSMB_PACKET pPacket = NULL;
 
-    LWIO_LOG_INFO("Spawning socket reader thread for [%s]",
-                 SMB_SAFE_LOG_STRING((char *) pSocket->pszHostname));
-
     /* Wait for thread to become ready */
     LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
 
@@ -842,13 +836,18 @@ SMBSocketConnect(
     struct addrinfo *ai = NULL;
     struct addrinfo *pCursor = NULL;
     struct addrinfo hints;
+    PSTR pszHostname = NULL;
 
     memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_family = PF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
 
+
+    ntStatus = LwRtlCStringAllocateFromWC16String(&pszHostname, pSocket->pwszHostname);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     ntStatus = RdrEaiToNtStatus(
-        getaddrinfo(pSocket->pszHostname, "445", &hints, &ai));
+        getaddrinfo(pszHostname, "445", &hints, &ai));
     BAIL_ON_NT_STATUS(ntStatus);
 
     for (pCursor = ai; pCursor; pCursor = pCursor->ai_next)
@@ -926,6 +925,8 @@ cleanup:
     {
         freeaddrinfo(ai);
     }
+
+    LWIO_SAFE_FREE_MEMORY(pszHostname);
 
     return ntStatus;
 
@@ -1035,7 +1036,7 @@ SMBSocketInvalidate_InLock(
     if (pSocket->bParentLink)
     {
         SMBHashRemoveKey(gRdrRuntime.pSocketHashByName,
-                         pSocket->pszHostname);
+                         pSocket->pwszHostname);
         pSocket->bParentLink = FALSE;
     }
     LWIO_UNLOCK_MUTEX(bInGlobalLock, &gRdrRuntime.socketHashLock);
@@ -1237,7 +1238,7 @@ SMBSocketRelease(
             if (pSocket->bParentLink)
             {
                 SMBHashRemoveKey(gRdrRuntime.pSocketHashByName,
-                                 pSocket->pszHostname);
+                                 pSocket->pwszHostname);
                 pSocket->bParentLink = FALSE;
             }
             LWIO_UNLOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
@@ -1335,7 +1336,7 @@ SMBSocketFree(
 
     pthread_cond_destroy(&pSocket->event);
 
-    LWIO_SAFE_FREE_MEMORY(pSocket->pszHostname);
+    LWIO_SAFE_FREE_MEMORY(pSocket->pwszHostname);
     LWIO_SAFE_FREE_MEMORY(pSocket->pSecurityBlob);
 
     /* @todo: assert that the session hashes are empty */

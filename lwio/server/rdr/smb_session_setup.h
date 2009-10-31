@@ -32,9 +32,7 @@
 NTSTATUS
 SessionSetup(
     IN OUT PSMB_SOCKET pSocket,
-    IN PCWSTR pwszUsername,
-    IN PCWSTR pwszDomain,
-    IN PCWSTR pwszPassword,
+    PIO_CREDS pCreds,
     OUT uint16_t* pUID,
     OUT PBYTE* ppSessionKey,
     OUT PDWORD pdwSessionKeyLength

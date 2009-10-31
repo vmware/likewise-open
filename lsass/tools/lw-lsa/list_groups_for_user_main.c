@@ -55,12 +55,14 @@
 #include "lsaclient.h"
 #include "lsaipc.h"
 
+#define LW_PRINTF_STRING(x) ((x) ? (x) : "<null>")
+
 static
 void
 ShowUsage()
 {
-    printf("Usage: lw-list-groups [options] <user name>\n"
-           "   or: lw-list-groups [options] --uid <uid>\n"
+    printf("Usage: lw-list-groups-for-user [options] <user name>\n"
+           "   or: lw-list-groups-for-user [options] --uid <uid>\n"
            "\n"
            "  where options are:\n"
            "\n"
@@ -86,6 +88,31 @@ IsAllDigits(
     }
 
     return bIsAllDigits;
+}
+
+DWORD
+MapErrorCode(
+    DWORD dwError
+    )
+{
+    DWORD dwError2 = dwError;
+
+    switch (dwError)
+    {
+        case ECONNREFUSED:
+        case ENETUNREACH:
+        case ETIMEDOUT:
+
+            dwError2 = LW_ERROR_LSA_SERVER_UNREACHABLE;
+
+            break;
+
+        default:
+
+            break;
+    }
+
+    return dwError2;
 }
 
 static
@@ -249,6 +276,8 @@ list_groups_for_user_main(
     PVOID* ppGroupInfoList = NULL;
     DWORD dwId = 0;
     BOOLEAN bShowSid = FALSE;
+    size_t dwErrorBufferSize = 0;
+    BOOLEAN bPrintOrigError = TRUE;
 
     ParseArgs(argc, argv, &pszUserName, &dwId, &bShowSid);
 
@@ -345,19 +374,73 @@ cleanup:
     return (dwError);
 
 error:
-    if (pszUserName)
+
+    dwError = MapErrorCode(dwError);
+
+    dwErrorBufferSize = LwGetErrorString(dwError, NULL, 0);
+
+    if (dwErrorBufferSize > 0)
     {
-        fprintf(stderr,
-                "Failed to find groups for user '%s'.  Error code: %d\n",
-                pszUserName,
-                dwError);
+        DWORD dwError2 = 0;
+        PSTR   pszErrorBuffer = NULL;
+
+        dwError2 = LwAllocateMemory(
+                    dwErrorBufferSize,
+                    (PVOID*)&pszErrorBuffer);
+
+        if (!dwError2)
+        {
+            DWORD dwLen = LwGetErrorString(dwError, pszErrorBuffer, dwErrorBufferSize);
+
+            if ((dwLen == dwErrorBufferSize) && !LW_IS_NULL_OR_EMPTY_STR(pszErrorBuffer))
+            {
+                if (pszUserName)
+                {
+                    fprintf(
+                        stderr,
+                        "Failed to find groups for user '%s'.  Error code %u (%s).\n%s\n",
+                        pszUserName,
+                        dwError,
+                        LW_PRINTF_STRING(LwWin32ErrorToName(dwError)),
+                        pszErrorBuffer);
+                }
+                else
+                {
+                    fprintf(
+                        stderr,
+                        "Failed to find groups for uid %u.  Error code %u (%s).\n%s\n",
+                        dwId,
+                        dwError,
+                        LW_PRINTF_STRING(LwWin32ErrorToName(dwError)),
+                        pszErrorBuffer);
+                }
+                bPrintOrigError = FALSE;
+            }
+        }
+
+        LW_SAFE_FREE_STRING(pszErrorBuffer);
     }
-    else
+
+    if (bPrintOrigError)
     {
-        fprintf(stderr,
-                "Failed to find groups for uid %u.  Error code: %d\n",
+        if (pszUserName)
+        {
+            fprintf(
+                stderr,
+                "Failed to find groups for user '%s'.  Error code %u (%s).\n",
+                pszUserName,
+                dwError,
+                LW_PRINTF_STRING(LwWin32ErrorToName(dwError)));
+        }
+        else
+        {
+            fprintf(
+                stderr,
+                "Failed to find groups for uid %u.  Error code %u (%s).\n",
                 dwId,
-                dwError);
+                dwError,
+                LW_PRINTF_STRING(LwWin32ErrorToName(dwError)));
+        }
     }
 
     goto cleanup;

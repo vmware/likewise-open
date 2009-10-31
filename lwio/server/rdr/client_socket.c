@@ -33,7 +33,7 @@
 static
 NTSTATUS
 _FindOrCreateSocket(
-    IN PCSTR pszHostname,
+    IN PCWSTR pwszHostname,
     OUT PSMB_SOCKET* ppSocket
     );
 
@@ -57,8 +57,8 @@ RdrSocketInit(
        parsed by the client.*/
     ntStatus = SMBHashCreate(
                     19,
-                    SMBHashCaselessStringCompare,
-                    SMBHashCaselessString,
+                    SMBHashCaselessWc16StringCompare,
+                    SMBHashCaselessWc16String,
                     NULL,
                     &gRdrRuntime.pSocketHashByName);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -73,11 +73,11 @@ error:
 /* The socket is returned with a reference */
 NTSTATUS
 SMBSrvClientSocketCreate(
-    IN PCSTR pszHostname,
+    IN PCWSTR pwszHostname,
     OUT PSMB_SOCKET* ppSocket
     )
 {
-    return _FindOrCreateSocket(pszHostname, ppSocket);
+    return _FindOrCreateSocket(pwszHostname, ppSocket);
 }
 
 
@@ -128,7 +128,7 @@ error:
 static
 NTSTATUS
 _FindOrCreateSocket(
-    IN PCSTR pszHostname,
+    IN PCWSTR pwszHostname,
     OUT PSMB_SOCKET* ppSocket
     )
 {
@@ -141,7 +141,7 @@ _FindOrCreateSocket(
 
     ntStatus = SMBHashGetValue(
         gRdrRuntime.pSocketHashByName,
-        pszHostname,
+        pwszHostname,
         (PVOID *) &pSocket);
 
     if (!ntStatus)
@@ -151,14 +151,14 @@ _FindOrCreateSocket(
     else
     {
         ntStatus = SMBSocketCreate(
-            pszHostname,
+            pwszHostname,
             gRdrRuntime.config.bSignMessagesIfSupported,
             &pSocket);
         BAIL_ON_NT_STATUS(ntStatus);
 
         ntStatus = SMBHashSetValue(
             gRdrRuntime.pSocketHashByName,
-            pSocket->pszHostname,
+            pSocket->pwszHostname,
             pSocket);
         BAIL_ON_NT_STATUS(ntStatus);
 

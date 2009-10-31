@@ -58,6 +58,8 @@
 #define YPMATCH_SAFE_LOG_STRING(x) \
     ( (x) ? (x) : "" )
 
+#define LW_PRINTF_STRING(x) ((x) ? (x) : "<null>")
+
 static
 DWORD
 ParseArgs(
@@ -280,7 +282,11 @@ error:
 
             if ((dwLen == dwErrorBufferSize) && !LW_IS_NULL_OR_EMPTY_STR(pszErrorBuffer))
             {
-                fprintf(stderr, "Failed to find key in map.  %s\n", pszErrorBuffer);
+                fprintf(stderr,
+                        "Failed to find key in map.  Error code %u (%s).\n%s\n",
+                        dwError,
+                        LW_PRINTF_STRING(LwWin32ErrorToName(dwError)),
+                        pszErrorBuffer);
                 bPrintOrigError = FALSE;
             }
         }
@@ -290,7 +296,10 @@ error:
 
     if (bPrintOrigError)
     {
-        fprintf(stderr, "Failed to find key in map. Error code [%d]\n", dwError);
+        fprintf(stderr,
+                "Failed to find key in map.  Error code %u (%s).\n",
+                dwError,
+                LW_PRINTF_STRING(LwWin32ErrorToName(dwError)));
     }
 
     dwError = 1;

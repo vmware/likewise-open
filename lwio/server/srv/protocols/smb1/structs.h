@@ -552,6 +552,7 @@ typedef struct _SRV_TRANS2_STATE_SMB_V1
 
     PBYTE                       pData2;
     USHORT                      usBytesAllocated;
+    USHORT                      usBytesUsed;
 
 } SRV_TRANS2_STATE_SMB_V1, *PSRV_TRANS2_STATE_SMB_V1;
 

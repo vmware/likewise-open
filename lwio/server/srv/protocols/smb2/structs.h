@@ -617,6 +617,32 @@ typedef struct _SMB2_FILE_FULL_DIR_INFORMATION
 } __attribute__((__packed__)) SMB2_FILE_FULL_DIR_INFO_HEADER,
                              *PSMB2_FILE_FULL_DIR_INFO_HEADER;
 
+typedef struct _SMB2_FILE_ALL_INFORMATION_HEADER
+{
+    LONG64          llCreationTime;       /* FileBasicInformation     */
+    LONG64          llLastAccessTime;
+    LONG64          llLastWriteTime;
+    LONG64          llChangeTime;
+    FILE_ATTRIBUTES ulFileAttributes;
+    ULONG           ulReserved;
+    LONG64          ullAllocationSize;    /* FileStandardInformation  */
+    LONG64          ullEndOfFile;
+    ULONG           ulNumberOfLinks;
+    UCHAR           ucDeletePending;
+    UCHAR           ucIsDirectory;
+    USHORT          usReserved;
+    ULONG64         ullIndexNumber;       /* FileInternalInformation  */
+    ULONG           ulEaSize;             /* FileEAInformation        */
+    ULONG           ulAccessMask;         /* FileAccessInformation    */
+    ULONG64         ullCurrentByteOffset; /* FilePositionInformation  */
+    ULONG           ulMode;               /* FileModeInformation      */
+    ULONG           ulAlignment;          /* FileAlignmentInformation */
+    ULONG           ulFilenameLength;     /* FileNameInformation      */
+    // WCHAR           wszFilename[1];
+
+} __attribute__((__packed__)) SMB2_FILE_ALL_INFORMATION_HEADER,
+                             *PSMB2_FILE_ALL_INFORMATION_HEADER;
+
 typedef struct _SMB2_FILE_RENAME_INFORMATION
 {
     UCHAR     ucReplaceIfExists;

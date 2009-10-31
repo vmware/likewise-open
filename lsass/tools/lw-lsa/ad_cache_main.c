@@ -61,6 +61,8 @@
 #define ACTION_ENUM_USERS    4
 #define ACTION_ENUM_GROUPS   5
 
+#define LW_PRINTF_STRING(x) ((x) ? (x) : "<null>")
+
 static
 PSTR
 GetProgramName(
@@ -292,7 +294,12 @@ error:
 
             if ((dwLen == dwErrorBufferSize) && !LW_IS_NULL_OR_EMPTY_STR(pszErrorBuffer))
             {
-                fprintf(stderr, "Failed to %s.  %s\n", pszOperation, pszErrorBuffer);
+                fprintf(stderr,
+                        "Failed to %s.  Error code %u (%s).\n%s\n",
+                        pszOperation,
+                        dwError,
+                        LW_PRINTF_STRING(LwWin32ErrorToName(dwError)),
+                        pszErrorBuffer);
                 bPrintOrigError = FALSE;
             }
         }
@@ -302,7 +309,11 @@ error:
 
     if (bPrintOrigError)
     {
-        fprintf(stderr, "Failed to %s. Error code [%d]\n", pszOperation, dwError);
+        fprintf(stderr,
+                "Failed to %s.  Error code %u (%s).\n",
+                pszOperation,
+                dwError,
+                LW_PRINTF_STRING(LwWin32ErrorToName(dwError)));
     }
 
     goto cleanup;

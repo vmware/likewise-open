@@ -46,6 +46,8 @@
 
 #include "add_group_add_group.h"
 
+#define LW_PRINTF_STRING(x) ((x) ? (x) : "<null>")
+
 static
 BOOLEAN
 IsUnsignedInteger(
@@ -88,8 +90,8 @@ ShowUsage(
     PCSTR pszProgramName
     )
 {
-    printf("Usage: %s [ --gid  id ]\n"
-           "          group\n", pszProgramName);
+    printf("Usage: %s [ --gid  <id> ]\n"
+           "          <group>\n", pszProgramName);
 }
 
 static
@@ -174,6 +176,12 @@ ParseArgs(
         exit(1);
     }
 
+    if (LW_IS_NULL_OR_EMPTY_STR(pszGroup)) {
+        fprintf(stderr, "Please specify a valid group name.\n");
+        ShowUsage(LsaGetProgramName(argv[0]));
+        exit(1);
+    }
+
     *ppszGid = pszGid;
     *ppszGroup = pszGroup;
 
@@ -243,12 +251,6 @@ AddGroup(
     PSTR pszError = NULL;
     DWORD dwGroupInfoLevel = 1;
     PLSA_GROUP_INFO_1 pGroupInfo = NULL;
-
-    if (LW_IS_NULL_OR_EMPTY_STR(pszGroup)) {
-        fprintf(stderr, "Please specify a valid group name.\n");
-        dwError = EINVAL;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
 
     dwError = BuildGroupInfo(
                     (LW_IS_NULL_OR_EMPTY_STR(pszGid) ? 0 : (gid_t)atoi(pszGid)),
@@ -360,7 +362,11 @@ error:
 
             if ((dwLen == dwErrorBufferSize) && !LW_IS_NULL_OR_EMPTY_STR(pszErrorBuffer))
             {
-                fprintf(stderr, "Failed to add group.  %s\n", pszErrorBuffer);
+                fprintf(stderr,
+                        "Failed to add group.  Error code %u (%s).\n%s\n",
+                        dwError,
+                        LW_PRINTF_STRING(LwWin32ErrorToName(dwError)),
+                        pszErrorBuffer);
                 bPrintOrigError = FALSE;
             }
         }
@@ -370,7 +376,10 @@ error:
 
     if (bPrintOrigError)
     {
-        fprintf(stderr, "Failed to add group. Error code [%d]\n", dwError);
+        fprintf(stderr,
+                "Failed to add group.  Error code %u (%s).\n",
+                dwError,
+                LW_PRINTF_STRING(LwWin32ErrorToName(dwError)));
     }
 
     goto cleanup;

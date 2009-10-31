@@ -51,6 +51,12 @@
 
 static
 NTSTATUS
+SrvBuildStatusPendingResponse_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
 SrvBuildExecContext_SMB_V2(
     PLWIO_SRV_CONNECTION      pConnection,
     PSMB_PACKET               pSmbRequest,
@@ -285,7 +291,6 @@ SrvProtocolExecute_SMB_V2(
 
             case COM2_LOCK:
 
-                // TODO:
                 if (pExecContext->bInternal)
                 {
                     ntStatus = SrvProcessOplock_SMB_V2(pExecContext);
@@ -343,6 +348,20 @@ SrvProtocolExecute_SMB_V2(
         switch (ntStatus)
         {
             case STATUS_PENDING:
+
+                // TODO
+                if (0)
+                {
+                    NTSTATUS ntStatus2 = STATUS_SUCCESS;
+
+                    ntStatus2 = SrvBuildStatusPendingResponse_SMB_V2(
+                                    pExecContext
+                                    );
+                    if (ntStatus2)
+                    {
+                        LWIO_LOG_ERROR("Failed to build status pending response [0x%08x]", ntStatus2);
+                    }
+                }
 
                 break;
 
@@ -431,6 +450,116 @@ SrvProtocolFreeContext_SMB_V2(
     }
 
     SrvFreeMemory(pProtocolContext);
+}
+
+static
+NTSTATUS
+SrvBuildStatusPendingResponse_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS                   ntStatus      = STATUS_SUCCESS;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    ULONG                      iMsg          = pCtxSmb2->iMsg;
+    PSRV_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
+    PSMB2_HEADER               pHeader       = NULL;
+    NTSTATUS                   errorStatus   = STATUS_PENDING;
+    PSMB_PACKET pSmbAuxResponse = NULL;
+    PBYTE pOutBuffer            = NULL;
+    ULONG ulOffset              = 0;
+    ULONG ulBytesAvailable      = 0;
+    ULONG ulBytesUsed           = 0;
+    ULONG ulTotalBytesUsed      = 0;
+    ULONG ulHeaderSize          = 0;
+
+    ntStatus = SMBPacketAllocate(
+                    pExecContext->pConnection->hPacketAllocator,
+                    &pSmbAuxResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMBPacketBufferAllocate(
+                    pExecContext->pConnection->hPacketAllocator,
+                    (64 * 1024) + 4096,
+                    &pSmbAuxResponse->pRawBuffer,
+                    &pSmbAuxResponse->bufferLen);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMB2InitPacket(pSmbAuxResponse, TRUE);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pOutBuffer = pSmbAuxResponse->pRawBuffer + sizeof(NETBIOS_HEADER);
+    ulBytesAvailable = pSmbAuxResponse->bufferLen - sizeof(NETBIOS_HEADER);
+
+    ntStatus = SMB2MarshalHeader(
+                pOutBuffer,
+                ulOffset,
+                ulBytesAvailable,
+                pSmbRequest->pHeader->command,
+                pSmbRequest->pHeader->usEpoch,
+                1, /* credits */
+                pSmbRequest->pHeader->ulPid,
+                pSmbRequest->pHeader->ullCommandSequence,
+                pSmbRequest->pHeader->ulTid,
+                pSmbRequest->pHeader->ullSessionId,
+                errorStatus,
+                TRUE,
+                pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
+                &pHeader,
+                &ulHeaderSize);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pOutBuffer       += ulHeaderSize;
+    ulOffset         += ulHeaderSize;
+    ulBytesAvailable -= ulHeaderSize;
+    ulTotalBytesUsed += ulHeaderSize;
+
+    pHeader->error = errorStatus;
+
+    ntStatus = SMB2MarshalError(
+                    pOutBuffer,
+                    ulOffset,
+                    ulBytesAvailable,
+                    pCtxSmb2->pErrorMessage,
+                    pCtxSmb2->ulErrorMessageLength,
+                    &ulBytesUsed);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    // pOutBuffer       += ulBytesUsed;
+    // ulOffset         += ulBytesUsed;
+    // ulBytesAvailable -= ulBytesUsed;
+    ulTotalBytesUsed += ulBytesUsed;
+
+    pSmbAuxResponse->bufferUsed += ulTotalBytesUsed;
+
+    ntStatus = SMB2MarshalFooter(pSmbAuxResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (pExecContext->pSmbAuxResponse)
+    {
+        SMBPacketRelease(
+                pExecContext->pConnection->hPacketAllocator,
+                pExecContext->pSmbAuxResponse);
+
+        pExecContext->pSmbAuxResponse = NULL;
+    }
+
+    pExecContext->pSmbAuxResponse = pSmbAuxResponse;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    if (pSmbAuxResponse)
+    {
+        SMBPacketRelease(
+            pExecContext->pConnection->hPacketAllocator,
+            pSmbAuxResponse);
+    }
+
+    goto cleanup;
 }
 
 static

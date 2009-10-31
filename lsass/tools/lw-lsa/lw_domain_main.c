@@ -47,6 +47,8 @@
 
 #include "includes.h"
 
+#define LW_PRINTF_STRING(x) ((x) ? (x) : "<null>")
+
 static
 DWORD
 ParseArgs(
@@ -167,7 +169,11 @@ error:
 
             if ((dwLen == dwErrorBufferSize) && !LW_IS_NULL_OR_EMPTY_STR(pszErrorBuffer))
             {
-                fprintf(stderr, "Failed to enumerate maps.  %s\n", pszErrorBuffer);
+                fprintf(stderr,
+                        "Failed to enumerate maps.  Error code %u (%s).\n%s",
+                        dwError,
+                        LW_PRINTF_STRING(LwWin32ErrorToName(dwError)),
+                        pszErrorBuffer);
                 bPrintOrigError = FALSE;
             }
         }
@@ -177,7 +183,10 @@ error:
 
     if (bPrintOrigError)
     {
-        fprintf(stderr, "Failed to enumerate maps. Error code [%d]\n", dwError);
+        fprintf(stderr,
+                "Failed to enumerate maps.  Error code %u (%s).\n",
+                dwError,
+                LW_PRINTF_STRING(LwWin32ErrorToName(dwError)));
     }
 
     dwError = 1;

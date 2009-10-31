@@ -46,6 +46,8 @@
 
 #include "add_user_add_user.h"
 
+#define LW_PRINTF_STRING(x) ((x) ? (x) : "<null>")
+
 static
 DWORD
 MapErrorCode(
@@ -224,6 +226,12 @@ ParseArgs(
         exit(1);
     }
 
+    if (LW_IS_NULL_OR_EMPTY_STR(pszLoginId)) {
+        fprintf(stderr, "Please specify a valid login id.\n");
+        ShowUsage(LsaGetProgramName(argv[0]));
+        exit(1);
+    }
+
     *ppszUid = pszUid;
     *ppszGroup = pszGroup;
     *ppszLoginId = pszLoginId;
@@ -371,12 +379,6 @@ AddUser(
     DWORD dwUserInfoLevel = 0;
     gid_t gid = 0;
 
-    if (LW_IS_NULL_OR_EMPTY_STR(pszLoginId)) {
-        fprintf(stderr, "Please specify a valid user name.\n");
-        dwError = EINVAL;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
     dwError = LsaOpenServer(&hLsaConnection);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -472,12 +474,6 @@ LsaAddUserMain(
        BAIL_ON_LSA_ERROR(dwError);
     }
 
-    if (LW_IS_NULL_OR_EMPTY_STR(pszLoginId)) {
-        fprintf(stderr, "Please specify a valid login id.\n");
-        dwError = EINVAL;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
     if (!pszHomedir) {
         char szBuf[PATH_MAX+1];
 
@@ -529,7 +525,11 @@ error:
 
             if ((dwLen == dwErrorBufferSize) && !LW_IS_NULL_OR_EMPTY_STR(pszErrorBuffer))
             {
-                fprintf(stderr, "Failed to add user.  %s\n", pszErrorBuffer);
+                fprintf(stderr,
+                        "Failed to add user.  Error code %u (%s).\n%s\n",
+                        dwError,
+                        LW_PRINTF_STRING(LwWin32ErrorToName(dwError)),
+                        pszErrorBuffer);
                 bPrintOrigError = FALSE;
             }
         }
@@ -539,7 +539,10 @@ error:
 
     if (bPrintOrigError)
     {
-        fprintf(stderr, "Failed to add user. Error code [%d]\n", dwError);
+        fprintf(stderr,
+                "Failed to add user.  Error code %u (%s).\n",
+                dwError,
+                LW_PRINTF_STRING(LwWin32ErrorToName(dwError)));
     }
 
     goto cleanup;

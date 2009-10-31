@@ -53,6 +53,8 @@
 #include "lsaipc.h"
 #include <lw/base.h>
 
+#define LW_PRINTF_STRING(x) ((x) ? (x) : "<null>")
+
 static
 DWORD
 ParseArgs(
@@ -60,6 +62,10 @@ ParseArgs(
     char *argv[],
     PSTR *ppszSid
     );
+
+static
+VOID
+ShowUsage();
 
 static
 DWORD
@@ -87,7 +93,6 @@ set_machine_sid_main(
     )
 {
     DWORD dwError = 0;
-    DWORD dwRetError = 0;
     PSTR pszMachineSid = NULL;
     size_t dwErrorBufferSize = 0;
     BOOLEAN bPrintOrigError = TRUE;
@@ -110,27 +115,35 @@ cleanup:
     return dwError;
 
 error:
-    dwRetError = MapErrorCode(dwError);
-    dwErrorBufferSize = LwGetErrorString(dwRetError, NULL, 0);
+
+    dwError = MapErrorCode(dwError);
+
+    dwErrorBufferSize = LwGetErrorString(dwError, NULL, 0);
+
     if (dwErrorBufferSize > 0)
     {
+        DWORD dwError2 = 0;
         PSTR  pszErrorBuffer = NULL;
 
-        dwError = LwAllocateMemory(
+        dwError2 = LwAllocateMemory(
                      dwErrorBufferSize,
                      (PVOID*)&pszErrorBuffer);
 
-        if (!dwError)
+        if (!dwError2)
         {
             DWORD dwLen = 0;
 
-            dwLen = LwGetErrorString(dwRetError,
+            dwLen = LwGetErrorString(dwError,
                                       pszErrorBuffer,
                                       dwErrorBufferSize);
             if ((dwLen == dwErrorBufferSize) &&
                 !LW_IS_NULL_OR_EMPTY_STR(pszErrorBuffer))
             {
-                fprintf(stderr, "Failed to modify SID.  %s\n", pszErrorBuffer);
+                fprintf(stderr,
+                        "Failed to modify SID.  Error code %u (%s).\n%s\n",
+                        dwError,
+                        LW_PRINTF_STRING(LwWin32ErrorToName(dwError)),
+                        pszErrorBuffer);
                 bPrintOrigError = FALSE;
             }
         }
@@ -140,10 +153,11 @@ error:
 
     if (bPrintOrigError)
     {
-        fprintf(stderr, "Failed to modify SID. Error code [%d]\n", dwRetError);
+        fprintf(stderr,
+                "Failed to modify SID.  Error code %u (%s).\n",
+                dwError,
+                LW_PRINTF_STRING(LwWin32ErrorToName(dwError)));
     }
-
-    dwError = dwRetError;
 
     goto cleanup;
 }
@@ -183,9 +197,17 @@ ParseArgs(
     DWORD dwError = 0;
     PSTR pszSid = NULL;
 
-    if (argc < 1) {
+    if (argc < 2) {
         dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LSA_ERROR(dwError);
+        ShowUsage();
+        exit(1);
+    }
+
+    if (strcmp(argv[1], "--help") == 0 ||
+        strcmp(argv[1], "-h") == 0)
+    {
+        ShowUsage();
+        exit(0);
     }
 
     dwError = LwAllocateString(argv[1], &pszSid);
@@ -204,6 +226,13 @@ error:
     *ppszSid = NULL;
 
     goto cleanup;
+}
+
+static
+void
+ShowUsage()
+{
+    printf("Usage: lw-set-machine-sid <SID>\n");
 }
 
 static

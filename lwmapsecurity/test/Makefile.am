@@ -1,4 +1,4 @@
-bin_PROGRAMS = lwmapsecurity-test
+noinst_PROGRAMS = lwmapsecurity-test
 
 lwmapsecurity_test_SOURCES = \
     lwmapsecurity-test.c
