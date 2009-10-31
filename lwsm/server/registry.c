@@ -422,7 +422,7 @@ cleanup:
 
 error:
 
-    *ppwszValues = NULL;
+    *pppwszValues = NULL;
 
     if (ppwszValues)
     {
