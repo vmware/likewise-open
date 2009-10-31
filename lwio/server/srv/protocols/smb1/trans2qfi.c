@@ -915,6 +915,9 @@ SrvQueryFileStreamInfo(
 
                             bContinue = FALSE;
 
+                            pTrans2State->usBytesUsed =
+                                pTrans2State->ioStatusBlock.BytesTransferred;
+
                             // intentional fall through
 
                         case STATUS_BUFFER_TOO_SMALL:
@@ -942,6 +945,9 @@ SrvQueryFileStreamInfo(
                 else
                 {
                     bContinue = FALSE;
+
+                    pTrans2State->usBytesUsed =
+                                pTrans2State->ioStatusBlock.BytesTransferred;
                 }
 
                 break;
@@ -1027,11 +1033,11 @@ SrvBuildQueryFileStreamInfoResponse(
 
     *pSmbResponse->pWordCount = 10 + setupCount;
 
-    if (pTrans2State->ioStatusBlock.BytesTransferred > 0)
+    if (pTrans2State->usBytesUsed > 0)
     {
         ntStatus = SrvMarshallFileStreamInfo(
                         pTrans2State->pData2,
-                        pTrans2State->usBytesAllocated,
+                        pTrans2State->usBytesUsed,
                         &pData,
                         &usDataLen);
     }
@@ -1128,7 +1134,9 @@ SrvMarshallFileStreamInfo(
 
         if (pFileStreamInfoCursor->NextEntryOffset)
         {
-            pFileStreamInfoCursor = (PFILE_STREAM_INFORMATION)(((PBYTE)pFileStreamInfo) + pFileStreamInfoCursor->NextEntryOffset);
+            pFileStreamInfoCursor =
+                (PFILE_STREAM_INFORMATION)(((PBYTE)pFileStreamInfo) +
+                                        pFileStreamInfoCursor->NextEntryOffset);
         }
         else
         {
@@ -1136,9 +1144,7 @@ SrvMarshallFileStreamInfo(
         }
     }
 
-    ntStatus = SrvAllocateMemory(
-                    usBytesRequired,
-                    (PVOID*)&pData);
+    ntStatus = SrvAllocateMemory(usBytesRequired, (PVOID*)&pData);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pDataCursor = pData;
@@ -1159,9 +1165,11 @@ SrvMarshallFileStreamInfo(
 
         /* Add the header info. */
         pInfoHeaderCur->ulNextEntryOffset = 0;
-        pInfoHeaderCur->llStreamAllocationSize = pFileStreamInfoCursor->StreamAllocationSize;
+        pInfoHeaderCur->llStreamAllocationSize =
+                            pFileStreamInfoCursor->StreamAllocationSize;
         pInfoHeaderCur->llStreamSize = pFileStreamInfoCursor->StreamSize;
-        pInfoHeaderCur->ulStreamNameLength = pFileStreamInfoCursor->StreamNameLength;
+        pInfoHeaderCur->ulStreamNameLength =
+                            pFileStreamInfoCursor->StreamNameLength;
 
         pDataCursor += sizeof(SMB_FILE_STREAM_INFO_RESPONSE_HEADER);
         usOffset += sizeof(SMB_FILE_STREAM_INFO_RESPONSE_HEADER);
@@ -1177,7 +1185,9 @@ SrvMarshallFileStreamInfo(
             usOffset += sizeof(wchar16_t);
         }
 
-        pFileStreamInfoCursor = (PFILE_STREAM_INFORMATION)(((PBYTE)pFileStreamInfo) + pFileStreamInfoCursor->NextEntryOffset);
+        pFileStreamInfoCursor =
+                        (PFILE_STREAM_INFORMATION)(((PBYTE)pFileStreamInfo) +
+                                        pFileStreamInfoCursor->NextEntryOffset);
     }
 
     *ppData = pData;
@@ -1199,7 +1209,6 @@ error:
 
     goto cleanup;
 }
-
 
 NTSTATUS
 SrvQueryFileAllInfo(
@@ -1262,6 +1271,9 @@ SrvQueryFileAllInfo(
 
                             bContinue = FALSE;
 
+                            pTrans2State->usBytesUsed =
+                                pTrans2State->ioStatusBlock.BytesTransferred;
+
                             // intentional fall through
 
                         case STATUS_BUFFER_TOO_SMALL:
@@ -1289,6 +1301,9 @@ SrvQueryFileAllInfo(
                 else
                 {
                     bContinue = FALSE;
+
+                    pTrans2State->usBytesUsed =
+                                pTrans2State->ioStatusBlock.BytesTransferred;
                 }
 
                 break;
@@ -1378,7 +1393,7 @@ SrvBuildQueryFileAllInfoResponse(
 
     ntStatus = SrvMarshallFileAllInfo(
                     pTrans2State->pData2,
-                    pTrans2State->usBytesAllocated,
+                    pTrans2State->usBytesUsed,
                     &pData,
                     &usDataLen);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -1550,6 +1565,9 @@ SrvQueryFileNameInfo(
 
                             bContinue = FALSE;
 
+                            pTrans2State->usBytesUsed =
+                                   pTrans2State->ioStatusBlock.BytesTransferred;
+
                             // intentional fall through
 
                         case STATUS_BUFFER_TOO_SMALL:
@@ -1577,6 +1595,9 @@ SrvQueryFileNameInfo(
                 else
                 {
                     bContinue = FALSE;
+
+                    pTrans2State->usBytesUsed =
+                           pTrans2State->ioStatusBlock.BytesTransferred;
                 }
 
                 break;
@@ -1666,7 +1687,7 @@ SrvBuildQueryFileNameInfoResponse(
 
     ntStatus = SrvMarshallFileNameInfo(
                     pTrans2State->pData2,
-                    pTrans2State->usBytesAllocated,
+                    pTrans2State->usBytesUsed,
                     &pData,
                     &usDataLen);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -1826,6 +1847,9 @@ SrvQueryFileAltNameInfo(
 
                             bContinue = FALSE;
 
+                            pTrans2State->usBytesUsed =
+                                pTrans2State->ioStatusBlock.BytesTransferred;
+
                             // intentional fall through
 
                         case STATUS_BUFFER_TOO_SMALL:
@@ -1853,6 +1877,9 @@ SrvQueryFileAltNameInfo(
                 else
                 {
                     bContinue = FALSE;
+
+                    pTrans2State->usBytesUsed =
+                        pTrans2State->ioStatusBlock.BytesTransferred;
                 }
 
                 break;
