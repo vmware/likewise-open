@@ -1040,9 +1040,8 @@ SrvBuildQueryFileStreamInfoResponse(
                         pTrans2State->usBytesUsed,
                         &pData,
                         &usDataLen);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
-
-    BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = WireMarshallTransaction2Response(
                     pOutBuffer,
