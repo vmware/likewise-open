@@ -1,6 +1,6 @@
 AM_CPPFLAGS = -I$(top_srcdir)/include
 
-bin_PROGRAMS = test_npclient2
+noinst_PROGRAMS = test_npclient2
 
 test_npclient2_SOURCES = main.c
 
