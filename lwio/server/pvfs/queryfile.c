@@ -87,7 +87,7 @@ static struct _InfoLevelDispatchEntry InfoLevelDispatchTable[] = {
 
     /* Query & Set Levels */
     { FileBasicInformation,             &PvfsFileBasicInfo },
-    { FilePositionInformation,          NULL }
+    { FilePositionInformation,          &PvfsFilePositionInfo }
 };
 
 
