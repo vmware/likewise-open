@@ -155,6 +155,28 @@ error:
 
             // Asynchronous processing
 
+            if (pContext->pSmbAuxResponse)
+            {
+                NTSTATUS ntStatus2 = STATUS_SUCCESS;
+
+                /* synchronous response */
+                ntStatus2 = SrvTransportSendResponse(
+                                pContext->pConnection,
+                                pContext->pSmbAuxResponse);
+                if (ntStatus2)
+                {
+                    LWIO_LOG_ERROR("Failed to send auxiliary response "
+                                   "[code:0x%08x",
+                                   ntStatus2);
+                }
+
+                SMBPacketRelease(
+                        pContext->pConnection->hPacketAllocator,
+                        pContext->pSmbAuxResponse);
+
+                pContext->pSmbAuxResponse = NULL;
+            }
+
             ntStatus = STATUS_SUCCESS;
 
             break;

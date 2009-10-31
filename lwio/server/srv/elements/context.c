@@ -138,6 +138,13 @@ SrvFreeExecContext(
             pContext->pSmbResponse);
     }
 
+    if (pContext->pSmbAuxResponse)
+    {
+        SMBPacketRelease(
+            pContext->pConnection->hPacketAllocator,
+            pContext->pSmbAuxResponse);
+    }
+
     if (pContext->pConnection)
     {
         SrvConnectionRelease(pContext->pConnection);

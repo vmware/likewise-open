@@ -426,6 +426,8 @@ typedef struct _SRV_EXEC_CONTEXT
     PSMB_PACKET                        pSmbResponse;
     ULONG                              ulNumDuplicates;
 
+    PSMB_PACKET                        pSmbAuxResponse;
+
     BOOLEAN                            bInternal;
 
 } SRV_EXEC_CONTEXT, *PSRV_EXEC_CONTEXT;
