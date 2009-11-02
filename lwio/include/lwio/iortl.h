@@ -106,4 +106,10 @@ IoRtlPathIsSeparator(
     IN WCHAR Character
     );
 
+NTSTATUS
+IoRtlPathUncToInternal(
+    PCWSTR pwszUncPath,
+    PWSTR* ppwszInternalPath
+    );
+
 #endif /* __IO_RTL_H__ */

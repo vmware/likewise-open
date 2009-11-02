@@ -266,14 +266,20 @@ LwIoGetThreadCreds(
 
 LW_NTSTATUS
 LwIoSetPathCreds(
-    LW_PWSTR pwszPathPrefix,
+    LW_PCWSTR pwszPathPrefix,
     LW_PIO_CREDS pCreds
     );
 
 LW_NTSTATUS
 LwIoGetActiveCreds(
-    LW_PWSTR pwszPathPrefix,
+    LW_PCWSTR pwszPathPrefix,
     LW_PIO_CREDS* ppToken
+    );
+
+LW_NTSTATUS
+LwIoUncPathToInternalPath(
+    LW_PCWSTR pwszUncPath,
+    LW_PWSTR* ppwszInternalPath
     );
 
 #endif /* ! LW_NO_THREADS */

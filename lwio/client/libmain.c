@@ -79,3 +79,12 @@ LwIoShutdown(
 
     return 0;
 }
+
+LW_NTSTATUS
+LwIoUncPathToInternalPath(
+    LW_PCWSTR pwszUncPath,
+    LW_PWSTR* ppwszInternalPath
+    )
+{
+    return IoRtlPathUncToInternal(pwszUncPath, ppwszInternalPath);
+}
