@@ -160,6 +160,7 @@ namespace Likewise.LMC.UtilityUIElements
             this.MaximizeBox = false;
             this.MinimizeBox = false;
             this.Name = "SelectDomainDialog";
+            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "Select Active Directory Domain";
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();

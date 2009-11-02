@@ -214,7 +214,7 @@ class LUGPlugIn: IPlugIn
         if (nodeClicked == _pluginNode)
         {
             cm = new ContextMenu();
-            MenuItem m_item = new MenuItem("Set Target Machine", new EventHandler(cm_OnConnect));
+            MenuItem m_item = new MenuItem("Connect to...", new EventHandler(cm_OnConnect));
             m_item.Tag = nodeClicked;
             cm.MenuItems.Add(m_item);
         }
