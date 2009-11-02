@@ -170,27 +170,17 @@ LwIoFuseGetNtFilename(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    PSTR pszFullPath = NULL;
 
     memset(pFilename, 0, sizeof(*pFilename));
 
-    status = LwRtlCStringAllocatePrintf(
-        &pszFullPath,
-        "/%s/%s/%s%s",
-        pFuseContext->pszDriver,
-        pFuseContext->pszServer,
-        pFuseContext->pszShare,
+    status = LwRtlWC16StringAllocatePrintfW(
+        &pFilename->FileName,
+        L"%ws/%s",
+        pFuseContext->pwszInternalPath,
         pszPath);
     BAIL_ON_NT_STATUS(status);
 
-    status = LwRtlWC16StringAllocateFromCString(
-        &pFilename->FileName,
-        pszFullPath);
-    BAIL_ON_NT_STATUS(status);
-
 cleanup:
-
-    RTL_FREE(&pszFullPath);
 
     return status;
 
@@ -211,24 +201,20 @@ LwIoFuseGetDriverRelativePath(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    PSTR pszRelativePath = NULL;
-    
-    status = LwRtlCStringAllocatePrintf(
-        &pszRelativePath,
-        "/%s/%s%s",
-        pFuseContext->pszServer,
-        pFuseContext->pszShare,
+    PWSTR pwszRelative = NULL;
+
+    for (pwszRelative = pFuseContext->pwszInternalPath + 1;
+         *pwszRelative && *pwszRelative != '/';
+         pwszRelative++);
+
+    status = LwRtlWC16StringAllocatePrintfW(
+        ppwszRelativePath,
+        L"%ws/%s",
+        pwszRelative,
         pszPath);
     BAIL_ON_NT_STATUS(status);
 
-    status = LwRtlWC16StringAllocateFromCString(
-        ppwszRelativePath,
-        pszRelativePath);
-    BAIL_ON_NT_STATUS(status);
-
 cleanup:
-
-    RTL_FREE(&pszRelativePath);
 
     return status;
 

@@ -43,9 +43,8 @@ typedef struct _IO_FUSE_CONTEXT
 {
     uid_t ownerUid;
     gid_t ownerGid;
-    PSTR pszDriver;
-    PSTR pszServer;
-    PSTR pszShare;
+    PSTR pszUncPath;
+    PWSTR pwszInternalPath;
     PSTR pszUsername;
     PSTR pszDomain;
     PSTR pszPassword;

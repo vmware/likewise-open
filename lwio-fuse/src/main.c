@@ -40,9 +40,7 @@ enum
 
 static struct fuse_opt lwio_opts[] =
 {
-    LWIO_OPT_KEY("--driver %s", pszDriver, 0),
-    LWIO_OPT_KEY("--server %s", pszServer, 0),
-    LWIO_OPT_KEY("--share %s", pszShare, 0),
+    LWIO_OPT_KEY("--path %s", pszUncPath, 0),
     LWIO_OPT_KEY("--user %s", pszUsername, 0),
     LWIO_OPT_KEY("--domain %s", pszDomain, 0),
     LWIO_OPT_KEY("--password %s", pszPassword, 0),
@@ -57,13 +55,11 @@ show_help()
 {
     printf("lwio-fuse-mount: mount lwio path onto filesystem\n"
            "\n"
-           "Usage: lwio-fuse-mount [--driver name] --server host --share sharename mount_path\n"
+           "Usage: lwio-fuse-mount --path unc_path mount_point\n"
            "\n"
            "Options:\n"
            "\n"
-           "    --driver name             Specify custom driver (default: rdr)\n"
-           "    --server host             Remote host\n"
-           "    --share  sharename        Share on remote host to mount\n"
+           "    --path unc_path           Specify UNC path\n"
            "    --user   name             User to log in as\n"
            "    --domain name             Domain of user\n"
            "    --password password       Password for user\n"
@@ -76,10 +72,14 @@ main(int argc,
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    static PCSTR pszDriver = "rdr";
     PIO_FUSE_CONTEXT pFuseContext = NULL;
     struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
-    PWSTR pwszCredPrefix = NULL;
+    PWSTR pwszUncPath = NULL;
+    const static WCHAR wszCredPrefix[] = {'/', 'r', 'd', 'r', '/'};
+    struct termios oldFlags, newFlags;
+    FILE* ttyIn = stdin;
+    FILE* ttyOut = stdout;
+    char szPassword[256] = {0};
 
     status = RTL_ALLOCATE(&pFuseContext, IO_FUSE_CONTEXT, sizeof(*pFuseContext));
     BAIL_ON_NT_STATUS(status);
@@ -95,31 +95,44 @@ main(int argc,
         return 0;
     }
 
-    if (!pFuseContext->pszDriver)
+    if (!pFuseContext->pszUncPath)
     {
-        status = LwRtlCStringDuplicate(
-            &pFuseContext->pszDriver,
-            pszDriver);
-        BAIL_ON_NT_STATUS(status);
+        printf("Error: No UNC path specified\n");
+        goto error;
     }
 
-    if (!pFuseContext->pszServer)
-    {
-        printf("Error: No server specified\n");
-        goto error;
-    }
-    
-    if (!pFuseContext->pszShare)
-    {
-        printf("Error: No share specified\n");
-        goto error;
-    }
+    status = LwRtlWC16StringAllocateFromCString(
+        &pwszUncPath,
+        pFuseContext->pszUncPath);
+    BAIL_ON_NT_STATUS(status);
+
+    status = LwIoUncPathToInternalPath(
+        pwszUncPath,
+        &pFuseContext->pwszInternalPath);
+    BAIL_ON_NT_STATUS(status);
 
     pFuseContext->ownerUid = geteuid();
     pFuseContext->ownerGid = getegid();
 
     if (pFuseContext->pszUsername)
     {
+        if (!pFuseContext->pszPassword)
+        {
+            tcgetattr(fileno(ttyIn), &oldFlags);
+            memcpy(&newFlags, &oldFlags, sizeof(newFlags));
+            newFlags.c_lflag &= ~(ECHO);
+            tcsetattr(fileno(ttyIn), TCSANOW, &newFlags);
+            fprintf(ttyOut, "Password for %s: ", pFuseContext->pszUsername);
+            fflush(ttyOut);
+            pFuseContext->pszPassword = fgets(szPassword, sizeof(szPassword), ttyIn);
+            if (szPassword[strlen(szPassword) - 1] == '\n')
+            {
+                szPassword[strlen(szPassword) - 1] = '\0';
+            }
+            fprintf(ttyOut, "\n");
+            tcsetattr(fileno(ttyIn), TCSANOW, &oldFlags);
+        }
+
         status = LwIoCreatePlainCredsA(
             pFuseContext->pszUsername,
             pFuseContext->pszDomain,
@@ -127,10 +140,7 @@ main(int argc,
             &pFuseContext->pCreds);
         BAIL_ON_NT_STATUS(status);
 
-        status = LwRtlWC16StringAllocatePrintfW(&pwszCredPrefix, L"/%s/", pFuseContext->pszDriver);
-        BAIL_ON_NT_STATUS(status);
-
-        status = LwIoSetPathCreds(pwszCredPrefix, pFuseContext->pCreds);
+        status = LwIoSetPathCreds(wszCredPrefix, pFuseContext->pCreds);
         BAIL_ON_NT_STATUS(status);
     }
   
