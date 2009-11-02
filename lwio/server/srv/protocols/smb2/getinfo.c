@@ -212,6 +212,30 @@ SrvMarshallFileStreamResponse(
 
 static
 NTSTATUS
+SrvGetFileFullEAInfo_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
+SrvBuildFileFullEAInfoResponse_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
+SrvMarshallFileFullEAResponse(
+    PBYTE  pOutBuffer,
+    ULONG  ulOffset,
+    ULONG  ulBytesAvailable,
+    PBYTE  pData,
+    ULONG  ulDataLength,
+    PULONG pulAlignBytes,
+    PULONG pulBytesUsed
+    );
+
+static
+NTSTATUS
 SrvGetFileSystemInfo_SMB_V2(
     PSRV_EXEC_CONTEXT pExecContext
     );
@@ -742,6 +766,11 @@ SrvBuildFileInfoResponse_SMB_V2(
             break;
 
         case SMB2_FILE_INFO_FULL_EA :
+
+            ntStatus = SrvBuildFileFullEAInfoResponse_SMB_V2(pExecContext);
+
+            break;
+
         case SMB2_FILE_INFO_CLASS_COMPRESSION :
 
             ntStatus = STATUS_NOT_SUPPORTED;
@@ -916,6 +945,11 @@ SrvGetFileInfo_SMB_V2(
             break;
 
         case SMB2_FILE_INFO_FULL_EA :
+
+            ntStatus = SrvGetFileFullEAInfo_SMB_V2(pExecContext);
+
+            break;
+
         case SMB2_FILE_INFO_CLASS_COMPRESSION :
 
             ntStatus = STATUS_NOT_SUPPORTED;
@@ -3104,7 +3138,7 @@ SrvMarshallFileStreamResponse(
             ulOffset1 += usAlign;
         }
 
-        ulInfoBytesRequired  = sizeof(SMB2_FILE_STREAM_INFORMATION_HEADER);
+        ulInfoBytesRequired += sizeof(SMB2_FILE_STREAM_INFORMATION_HEADER);
         ulInfoBytesRequired += pFileStreamInfoCursor->StreamNameLength;
 
         /* Null terminate all stream names but the last. */
@@ -3219,6 +3253,410 @@ error:
 
     goto cleanup;
 }
+
+static
+NTSTATUS
+SrvGetFileFullEAInfo_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS                    ntStatus = STATUS_SUCCESS;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    PSRV_GET_INFO_STATE_SMB_V2 pGetInfoState = NULL;
+    BOOLEAN                    bContinue    = TRUE;
+
+    pGetInfoState = (PSRV_GET_INFO_STATE_SMB_V2)pCtxSmb2->hState;
+
+    do
+    {
+        ntStatus = pGetInfoState->ioStatusBlock.Status;
+
+        switch (ntStatus)
+        {
+            case STATUS_BUFFER_TOO_SMALL:
+
+                {
+                    ULONG ulNewSize =  0;
+
+                    if (pGetInfoState->ulDataLength >=
+                             pGetInfoState->pRequestHeader->ulOutputBufferLen)
+                    {
+                        bContinue = FALSE;
+                    }
+                    else if (!pGetInfoState->ulDataLength)
+                    {
+                        ulNewSize = sizeof(FILE_FULL_EA_INFORMATION) +
+                                        256 * sizeof(wchar16_t);
+                    }
+                    else
+                    {
+                        ulNewSize = pGetInfoState->ulDataLength +
+                                        256 * sizeof(wchar16_t);
+                    }
+
+                    ntStatus = SMBReallocMemory(
+                                    pGetInfoState->pData2,
+                                    (PVOID*)&pGetInfoState->pData2,
+                                    ulNewSize);
+                    BAIL_ON_NT_STATUS(ntStatus);
+
+                    pGetInfoState->ulDataLength = ulNewSize;
+
+                    SrvPrepareGetInfoStateAsync_SMB_V2(
+                                    pGetInfoState,
+                                    pExecContext);
+
+                    ntStatus = IoQueryInformationFile(
+                                            pGetInfoState->pFile->hFile,
+                                            pGetInfoState->pAcb,
+                                            &pGetInfoState->ioStatusBlock,
+                                            pGetInfoState->pData2,
+                                            pGetInfoState->ulDataLength,
+                                            FileFullEaInformation);
+                    switch (ntStatus)
+                    {
+                        case STATUS_SUCCESS:
+
+                            bContinue = FALSE;
+
+                            pGetInfoState->ulActualDataLength =
+                                pGetInfoState->ioStatusBlock.BytesTransferred;
+
+                            // intentional fall through
+
+                        case STATUS_BUFFER_TOO_SMALL:
+
+                            // synchronous completion
+                            SrvReleaseGetInfoStateAsync_SMB_V2(pGetInfoState);
+
+                            break;
+
+                        default:
+
+                            BAIL_ON_NT_STATUS(ntStatus);
+                    }
+                }
+
+                break;
+
+            case STATUS_SUCCESS:
+
+                if (!pGetInfoState->pData2)
+                {
+                    pGetInfoState->ioStatusBlock.Status =
+                                            STATUS_BUFFER_TOO_SMALL;
+                }
+                else
+                {
+                    bContinue = FALSE;
+
+                    pGetInfoState->ulActualDataLength =
+                                pGetInfoState->ioStatusBlock.BytesTransferred;
+                }
+
+                break;
+
+            default:
+
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                break;
+        }
+
+    } while (bContinue);
+
+error:
+
+    return ntStatus;
+}
+
+static
+NTSTATUS
+SrvBuildFileFullEAInfoResponse_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS                    ntStatus = STATUS_SUCCESS;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    PSRV_GET_INFO_STATE_SMB_V2 pGetInfoState = NULL;
+    ULONG                      iMsg          = pCtxSmb2->iMsg;
+    PSRV_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
+    PSRV_MESSAGE_SMB_V2        pSmbResponse  = &pCtxSmb2->pResponses[iMsg];
+    PBYTE pOutBuffer       = pSmbResponse->pBuffer;
+    ULONG ulBytesAvailable = pSmbResponse->ulBytesAvailable;
+    ULONG ulOffset         = 0;
+    ULONG ulTotalBytesUsed = 0;
+    PFILE_FULL_EA_INFORMATION pFileFullEaInfo = NULL;
+    PSMB2_GET_INFO_RESPONSE_HEADER pGetInfoResponseHeader = NULL;
+
+    pGetInfoState = (PSRV_GET_INFO_STATE_SMB_V2)pCtxSmb2->hState;
+    pFileFullEaInfo = (PFILE_FULL_EA_INFORMATION)pGetInfoState->pData2;
+
+    ntStatus = SMB2MarshalHeader(
+                    pOutBuffer,
+                    ulOffset,
+                    ulBytesAvailable,
+                    COM2_GETINFO,
+                    pSmbRequest->pHeader->usEpoch,
+                    pSmbRequest->pHeader->usCredits,
+                    pSmbRequest->pHeader->ulPid,
+                    pSmbRequest->pHeader->ullCommandSequence,
+                    pCtxSmb2->pTree->ulTid,
+                    pCtxSmb2->pSession->ullUid,
+                    STATUS_SUCCESS,
+                    TRUE,
+                    pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
+                    &pSmbResponse->pHeader,
+                    &pSmbResponse->ulHeaderSize);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pOutBuffer       += pSmbResponse->ulHeaderSize;
+    ulOffset         += pSmbResponse->ulHeaderSize;
+    ulBytesAvailable -= pSmbResponse->ulHeaderSize;
+    ulTotalBytesUsed += pSmbResponse->ulHeaderSize;
+
+    if (ulBytesAvailable < sizeof(SMB2_GET_INFO_RESPONSE_HEADER))
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pGetInfoResponseHeader = (PSMB2_GET_INFO_RESPONSE_HEADER)pOutBuffer;
+
+    pOutBuffer       += sizeof(SMB2_GET_INFO_RESPONSE_HEADER);
+    ulOffset         += sizeof(SMB2_GET_INFO_RESPONSE_HEADER);
+    ulBytesAvailable -= sizeof(SMB2_GET_INFO_RESPONSE_HEADER);
+    ulTotalBytesUsed += sizeof(SMB2_GET_INFO_RESPONSE_HEADER);
+
+    pGetInfoResponseHeader->usLength = sizeof(SMB2_GET_INFO_RESPONSE_HEADER)+1;
+    pGetInfoResponseHeader->usOutBufferOffset = ulOffset;
+
+    if (pGetInfoState->ulActualDataLength)
+    {
+        ULONG ulAlignBytes = 0;
+
+        ntStatus = SrvMarshallFileFullEAResponse(
+                        pOutBuffer,
+                        ulOffset,
+                        ulBytesAvailable,
+                        pGetInfoState->pData2,
+                        pGetInfoState->ulActualDataLength,
+                        &ulAlignBytes,
+                        &pGetInfoResponseHeader->ulOutBufferLength);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pGetInfoResponseHeader->usOutBufferOffset += ulAlignBytes;
+    }
+    else
+    {
+        pGetInfoResponseHeader->ulOutBufferLength = 0;
+    }
+
+    // pOutBuffer       += pGetInfoResponseHeader->ulOutBufferLength;
+    // ulBytesAvailable -= pGetInfoResponseHeader->ulOutBufferLength;
+    ulTotalBytesUsed    += pGetInfoResponseHeader->ulOutBufferLength;
+
+    pSmbResponse->ulMessageSize = ulTotalBytesUsed;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    if (ulTotalBytesUsed)
+    {
+        pSmbResponse->pHeader = NULL;
+        pSmbResponse->ulHeaderSize = 0;
+        memset(pSmbResponse->pBuffer, 0, ulTotalBytesUsed);
+    }
+
+    pSmbResponse->ulMessageSize = 0;
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvMarshallFileFullEAResponse(
+    PBYTE  pOutBuffer,
+    ULONG  ulOffset,
+    ULONG  ulBytesAvailable,
+    PBYTE  pData,
+    ULONG  ulDataLength,
+    PULONG pulAlignBytes,
+    PULONG pulBytesUsed
+    )
+{
+    NTSTATUS ntStatus          = 0;
+    ULONG    ulBytesUsed       = 0;
+    ULONG    iInfoCount        = 0;
+    ULONG    ulInfoCount       = 0;
+    ULONG    ulOffset1         = 0;
+    ULONG    ulOffset2         = 0;
+    ULONG    ulBytesAvailable1 = 0;
+    ULONG    ulAlignBytes      = 0;
+    PFILE_FULL_EA_INFORMATION             pFileFullEAInfoCursor = NULL;
+    PSMB2_FILE_FULL_EA_INFORMATION_HEADER pInfoHeaderPrev       = NULL;
+    PSMB2_FILE_FULL_EA_INFORMATION_HEADER pInfoHeaderCur        = NULL;
+
+    if (ulOffset % 4)
+    {
+        USHORT usAlign = 4 - (ulOffset % 4);
+
+        if (ulBytesAvailable < usAlign)
+        {
+            ntStatus = STATUS_BUFFER_TOO_SMALL;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        ulAlignBytes       = usAlign;
+        ulOffset          += usAlign;
+        ulBytesUsed       += usAlign;
+        ulBytesAvailable  -= usAlign;
+    }
+
+    if (ulBytesAvailable < ulDataLength)
+    {
+        ntStatus = STATUS_BUFFER_TOO_SMALL;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    ulBytesAvailable1 = ulDataLength;
+    ulOffset1         = ulOffset;
+
+    pFileFullEAInfoCursor = (PFILE_FULL_EA_INFORMATION)pData;
+    while (pFileFullEAInfoCursor && (ulBytesAvailable1 > 0))
+    {
+        ULONG  ulInfoBytesRequired = 0;
+
+        if (ulOffset1 % 4)
+        {
+            USHORT usAlign = 4 - (ulOffset1 % 4);
+
+            ulInfoBytesRequired += usAlign;
+            ulOffset1           += usAlign;
+        }
+
+        ulInfoBytesRequired += sizeof(SMB2_FILE_FULL_EA_INFORMATION_HEADER);
+        ulInfoBytesRequired += pFileFullEAInfoCursor->EaNameLength;
+        ulInfoBytesRequired += pFileFullEAInfoCursor->EaValueLength;
+
+        ulOffset1 += ulInfoBytesRequired;
+
+        if (ulBytesAvailable1 < ulInfoBytesRequired)
+        {
+            break;
+        }
+
+        ulInfoCount++;
+
+        ulBytesAvailable1 -= ulInfoBytesRequired;
+
+        if (pFileFullEAInfoCursor->NextEntryOffset)
+        {
+            pFileFullEAInfoCursor =
+                (PFILE_FULL_EA_INFORMATION)(((PBYTE)pFileFullEAInfoCursor) +
+                                pFileFullEAInfoCursor->NextEntryOffset);
+        }
+        else
+        {
+            pFileFullEAInfoCursor = NULL;
+        }
+    }
+
+    pOutBuffer += ulAlignBytes;
+    ulOffset1   = ulOffset;
+    pFileFullEAInfoCursor = (PFILE_FULL_EA_INFORMATION)pData;
+
+    for (; iInfoCount < ulInfoCount; iInfoCount++)
+    {
+        if (ulOffset1 % 4)
+        {
+            USHORT usAlign = 4 - (ulOffset1 % 4);
+
+            pOutBuffer  += usAlign;
+            ulBytesUsed += usAlign;
+            ulOffset1   += usAlign;
+            ulOffset2   += usAlign;
+        }
+
+        pInfoHeaderPrev = pInfoHeaderCur;
+        pInfoHeaderCur = (PSMB2_FILE_FULL_EA_INFORMATION_HEADER)pOutBuffer;
+
+        /* Update next entry offset for previous entry. */
+        if (pInfoHeaderPrev != NULL)
+        {
+            pInfoHeaderPrev->ulNextEntryOffset = ulOffset2;
+        }
+
+        /* Reset the offset to 0 since it's relative. */
+        ulOffset2 = 0;
+
+        /* Add the header info. */
+        pInfoHeaderCur->ulNextEntryOffset = 0;
+        pInfoHeaderCur->ucFlags         = pFileFullEAInfoCursor->Flags;
+        pInfoHeaderCur->ucEaNameLength  = pFileFullEAInfoCursor->EaNameLength;
+        pInfoHeaderCur->usEaValueLength = pFileFullEAInfoCursor->EaValueLength;
+
+        pOutBuffer  += sizeof(SMB2_FILE_FULL_EA_INFORMATION_HEADER);
+        ulBytesUsed += sizeof(SMB2_FILE_FULL_EA_INFORMATION_HEADER);
+        ulOffset1   += sizeof(SMB2_FILE_FULL_EA_INFORMATION_HEADER);
+        ulOffset2   += sizeof(SMB2_FILE_FULL_EA_INFORMATION_HEADER);
+
+        // TODO: Find out if the EA Name Length can be zero
+        if (pFileFullEAInfoCursor->EaNameLength)
+        {
+            memcpy( pOutBuffer,
+                    &pFileFullEAInfoCursor->EaName[0],
+                    pFileFullEAInfoCursor->EaNameLength);
+
+            pOutBuffer  += pFileFullEAInfoCursor->EaNameLength;
+            ulBytesUsed += pFileFullEAInfoCursor->EaNameLength;
+            ulOffset1   += pFileFullEAInfoCursor->EaNameLength;
+            ulOffset2   += pFileFullEAInfoCursor->EaNameLength;
+        }
+
+        if (pFileFullEAInfoCursor->EaValueLength)
+        {
+            PBYTE pEaValue = (PBYTE)&pFileFullEAInfoCursor->EaName[0] +
+                                    pFileFullEAInfoCursor->EaNameLength;
+
+            memcpy(pOutBuffer, pEaValue, pFileFullEAInfoCursor->EaValueLength);
+
+            pOutBuffer  += pFileFullEAInfoCursor->EaValueLength;
+            ulBytesUsed += pFileFullEAInfoCursor->EaValueLength;
+            ulOffset1   += pFileFullEAInfoCursor->EaValueLength;
+            ulOffset2   += pFileFullEAInfoCursor->EaValueLength;
+        }
+
+        pFileFullEAInfoCursor =
+                    (PFILE_FULL_EA_INFORMATION)(((PBYTE)pFileFullEAInfoCursor) +
+                                    pFileFullEAInfoCursor->NextEntryOffset);
+    }
+
+    *pulAlignBytes = ulAlignBytes;
+    *pulBytesUsed  = ulBytesUsed;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *pulAlignBytes = 0;
+    *pulBytesUsed  = 0;
+
+    if (ulBytesUsed)
+    {
+        memset(pOutBuffer, 0, ulBytesUsed);
+    }
+
+    goto cleanup;
+}
+
 
 static
 NTSTATUS

@@ -663,6 +663,17 @@ typedef struct _SMB2_FILE_STREAM_INFORMATION_HEADER
 } __attribute__((__packed__)) SMB2_FILE_STREAM_INFORMATION_HEADER,
                              *PSMB2_FILE_STREAM_INFORMATION_HEADER;
 
+typedef struct _SMB2_FILE_FULL_EA_INFORMATION_HEADER
+{
+    ULONG  ulNextEntryOffset;
+    UCHAR  ucFlags;
+    UCHAR  ucEaNameLength;
+    USHORT usEaValueLength;
+    // CHAR   szEaName[1];
+    // PBYTE  pEaValue;
+} __attribute__((__packed__)) SMB2_FILE_FULL_EA_INFORMATION_HEADER,
+                             *PSMB2_FILE_FULL_EA_INFORMATION_HEADER;
+
 typedef VOID (*PFN_SRV_MESSAGE_STATE_RELEASE_SMB_V2)(HANDLE hState);
 
 typedef struct _SRV_OPLOCK_INFO
