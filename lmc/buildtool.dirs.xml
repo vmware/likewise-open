@@ -1,9 +1,8 @@
 <buildtool.dirs>
-  <dir name="LMConsoleUtils"/>
-  <dir name="AuthUtils"/>
+  <dir name="LMCUtilities"/>
   <dir name="LikewiseClassLibraries"/>
   <dir name="ServerControl"/>
-  <dir name="LMCCredentialDlgs"/>
+  <dir name="LMCUtilityUIElements"/>
   <dir name="OpenPlugins"/>
   <dir name="LikewiseConsole"/>
   <dir name="scripts"/>

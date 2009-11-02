@@ -372,7 +372,7 @@
       <DependentUpon>UserProfilePage.cs</DependentUpon>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Properties\Resources.Designer.cs">  
+    <Compile Include="Properties\Resources.Designer.cs">
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
     <Compile Include="account_editor_dialogs\MultiItemPropertiesDlg.cs">
@@ -649,7 +649,7 @@
     <EmbeddedResource Include="Properties\Resources.resx">
       <SubType>Designer</SubType>
       <Generator>ResXFileCodeGenerator</Generator>
-      </EmbeddedResource>
+    </EmbeddedResource>
     <EmbeddedResource Include="account_editor_dialogs\MultiItemPropertiesDlg.resx">
       <DependentUpon>MultiItemPropertiesDlg.cs</DependentUpon>
       <SubType>Designer</SubType>
@@ -743,10 +743,6 @@
     <None Include="Resources\User_24.ico" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\AuthUtils\AuthUtils.csproj">
-      <Project>{805A93D2-3B90-4A27-B319-73D86363470A}</Project>
-      <Name>AuthUtils</Name>
-    </ProjectReference>
     <ProjectReference Include="..\..\LikewiseClassLibraries\LDAP\LDAP.csproj">
       <Project>{A01CDE74-BC93-437B-A97A-883083EA4CC9}</Project>
       <Name>LDAP</Name>
@@ -763,9 +759,9 @@
       <Project>{52C1CE09-2AF3-4AF2-8E3A-0C2DC0EB2761}</Project>
       <Name>System.DirectoryServices</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\LMConsoleUtils\LMConsoleUtils.csproj">
-      <Project>{42B9FE52-8F39-4CAE-885F-9DB9B5DF0A70}</Project>
-      <Name>LMConsoleUtils</Name>
+    <ProjectReference Include="..\..\LMCUtilities\LMCUtilities.csproj">
+      <Project>{812CAFA6-B428-4565-A839-A2E1B68096E3}</Project>
+      <Name>LMCUtilities</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\ServerControl\ServerControl_Open.csproj">
       <Project>{9F45E041-5B67-48B8-AD13-DD5C40F3364A}</Project>

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
-using Likewise.LMC.AuthUtils;
+using Likewise.LMC.Utilities;
 
 namespace Likewise.LMC.Plugins.FileShareManager
 {

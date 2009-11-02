@@ -227,10 +227,6 @@
     </BootstrapperPackage>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\AuthUtils\AuthUtils.csproj">
-      <Project>{805A93D2-3B90-4A27-B319-73D86363470A}</Project>
-      <Name>AuthUtils</Name>
-    </ProjectReference>
     <ProjectReference Include="..\LikewiseClassLibraries\Krb5\Krb5.csproj">
       <Project>{D27214EF-85C2-46D7-94A7-45C3D26BEAC8}</Project>
       <Name>Krb5</Name>
@@ -251,9 +247,9 @@
       <Project>{52C1CE09-2AF3-4AF2-8E3A-0C2DC0EB2761}</Project>
       <Name>System.DirectoryServices</Name>
     </ProjectReference>
-    <ProjectReference Include="..\LMConsoleUtils\LMConsoleUtils.csproj">
-      <Project>{42B9FE52-8F39-4CAE-885F-9DB9B5DF0A70}</Project>
-      <Name>LMConsoleUtils</Name>
+    <ProjectReference Include="..\LMCUtilities\LMCUtilities.csproj">
+      <Project>{812CAFA6-B428-4565-A839-A2E1B68096E3}</Project>
+      <Name>LMCUtilities</Name>
     </ProjectReference>
     <ProjectReference Include="..\OpenPlugins\ADUCPlugin\ADUCPlugin.csproj">
       <Project>{09586E8E-91A1-4348-BD64-C85CE50F7D88}</Project>

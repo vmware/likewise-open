@@ -32,11 +32,11 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Windows.Forms;
-using Likewise.LMC.LMConsoleUtils;
+using Likewise.LMC.Utilities;
 using Likewise.LMC.LDAP.Interop;
 using Likewise.LMC.ServerControl;
 using Likewise.LMC.LDAP;
-using Likewise.LMC.AuthUtils;
+
 
 namespace Likewise.LMC.Plugins.ADUCPlugin
 {

@@ -30,7 +30,7 @@
 
 using System;
 using System.Runtime.InteropServices;
-using Likewise.LMC.LMConsoleUtils;
+using Likewise.LMC.Utilities;
 
 namespace Likewise.LMC.Eventlog
 {

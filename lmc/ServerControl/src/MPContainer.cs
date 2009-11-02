@@ -34,7 +34,7 @@ using System.Drawing;
 using System.Windows.Forms;
 using System.Collections.Generic;
 using Likewise.LMC.ServerControl.Properties;
-using Likewise.LMC.LMConsoleUtils;
+using Likewise.LMC.Utilities;
 using System.Threading;
 
 namespace Likewise.LMC.ServerControl

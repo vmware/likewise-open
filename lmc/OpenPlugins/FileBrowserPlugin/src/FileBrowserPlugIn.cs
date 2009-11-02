@@ -35,12 +35,12 @@ using System.Xml;
 using System.Collections.Generic;
 using Likewise.LMC.Plugins.FileBrowser.Properties;
 using Likewise.LMC.ServerControl;
-using Likewise.LMC.LMConsoleUtils;
+using Likewise.LMC.Utilities;
+using Likewise.LMC.UtilityUIElements;
 using Likewise.LMC.NETAPI;
 using Likewise.LMC.FileClient;
-using Likewise.LMC.AuthUtils;
 using Likewise.LMC.Plugins.FileBrowser;
-using Likewise.LMC.LMCCredentials;
+
 
 namespace Likewise.LMC.Plugins.FileBrowser
 {

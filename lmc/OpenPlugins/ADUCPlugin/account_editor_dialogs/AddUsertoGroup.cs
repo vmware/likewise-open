@@ -37,7 +37,7 @@ using System.Text;
 using System.Windows.Forms;
 using Likewise.LMC.ServerControl;
 using Likewise.LMC.Plugins.ADUCPlugin.Properties;
-using Likewise.LMC.LMConsoleUtils;
+using Likewise.LMC.Utilities;
 
 namespace Likewise.LMC.Plugins.ADUCPlugin
 {

@@ -31,12 +31,12 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
-using Likewise.LMC.LMConsoleUtils;
+using Likewise.LMC.Utilities;
 using System.Runtime.InteropServices;
 
 //Use the DebugMarshal for Debug builds, and the standard Marshal in release builds
 #if DEBUG
-using Marshal = Likewise.LMC.LMConsoleUtils.DebugMarshal;
+using Marshal = Likewise.LMC.Utilities.DebugMarshal;
 #endif
 
 namespace Likewise.LMC.Services

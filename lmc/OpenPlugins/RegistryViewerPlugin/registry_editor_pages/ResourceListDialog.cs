@@ -37,7 +37,7 @@ using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Forms;
-using Likewise.LMC.LMConsoleUtils;
+using Likewise.LMC.Utilities;
 using Likewise.LMC.Registry;
 
 namespace Likewise.LMC.Plugins.RegistryViewerPlugin

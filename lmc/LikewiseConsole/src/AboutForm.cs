@@ -34,7 +34,7 @@ using System.Diagnostics;
 using System.Windows.Forms;
 using Likewise.LMC.Properties;
 using Likewise.LMC.ServerControl;
-using Likewise.LMC.LMConsoleUtils;
+using Likewise.LMC.Utilities;
 
 namespace Likewise.LMC
 {

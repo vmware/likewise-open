@@ -32,7 +32,7 @@ using System;
 using System.Text;
 using Likewise.LMC.Netlogon.Interop;
 using System.Runtime.InteropServices;
-using Likewise.LMC.LMConsoleUtils;
+using Likewise.LMC.Utilities;
 using Likewise.LMC.Netlogon;
 
 namespace Likewise.LMC.Netlogon.Implementation

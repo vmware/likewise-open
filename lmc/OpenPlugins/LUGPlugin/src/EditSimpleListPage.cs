@@ -32,9 +32,8 @@ using System;
 using System.Collections;
 using System.Drawing;
 using System.Windows.Forms;
-using Likewise.LMC.LMConsoleUtils;
+using Likewise.LMC.Utilities;
 using Likewise.LMC.ServerControl;
-using Likewise.LMC.AuthUtils;
 
 namespace Likewise.LMC.Plugins.LUG
 {

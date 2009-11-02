@@ -31,7 +31,7 @@
 using System;
 using System.Runtime.InteropServices;
 using Microsoft.Win32;
-using Likewise.LMC.LMConsoleUtils;
+using Likewise.LMC.Utilities;
 using System.DirectoryServices;
 using Likewise.LMC.LDAP;
 using Likewise.LMC.LDAP.Interop;

@@ -33,8 +33,7 @@ using System.Security.Principal;
 using System.Net;
 using System.Diagnostics;
 using System.IO;
-using Likewise.LMC.LMConsoleUtils;
-using Likewise.LMC.AuthUtils;
+using Likewise.LMC.Utilities;
 using Likewise.LMC.ServerControl.Properties;
 
 namespace Likewise.LMC.ServerControl

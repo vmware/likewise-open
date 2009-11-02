@@ -36,9 +36,8 @@ using System.Data;
 using System.Text;
 using System.Windows.Forms;
 using Likewise.LMC.ServerControl;
-using Likewise.LMC.LMConsoleUtils;
+using Likewise.LMC.Utilities;
 using Likewise.LMC.NETAPI;
-using Likewise.LMC.AuthUtils;
 using Likewise.LMC.Plugins.FileBrowser;
 
 namespace Likewise.LMC.Plugins.FileBrowser

@@ -29,7 +29,7 @@
  */
 
 using Likewise.LMC.ServerControl;
-using Likewise.LMC.LMConsoleUtils;
+using Likewise.LMC.Utilities;
 
 namespace Likewise.LMC.Plugins.EventlogPlugin
 {

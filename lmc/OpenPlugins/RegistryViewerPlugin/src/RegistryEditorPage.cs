@@ -36,7 +36,7 @@ using System.Data;
 using System.Text;
 using System.Windows.Forms;
 using Likewise.LMC.ServerControl;
-using Likewise.LMC.LMConsoleUtils;
+using Likewise.LMC.Utilities;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -2239,6 +2239,6 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
 
     public interface IDirectoryPropertiesPage
     {
-        void SetData(Likewise.LMC.AuthUtils.CredentialEntry ce, string sharename, object Object);
+        void SetData(Likewise.LMC.Utilities.CredentialEntry ce, string sharename, object Object);
     }   
 }

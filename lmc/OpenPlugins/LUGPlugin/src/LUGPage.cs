@@ -32,15 +32,13 @@ using System;
 using System.Drawing;
 using System.Windows.Forms;
 using System.Collections.Generic;
-using Likewise.LMC.LMConsoleUtils;
+using Likewise.LMC.Utilities;
 using Likewise.LMC.Plugins.LUG.Properties;
 using Likewise.LMC.ServerControl;
 using System.Diagnostics;
 using System.Net;
 using Likewise.LMC.NETAPI;
 using Likewise.LMC.Netlogon;
-
-using Likewise.LMC.AuthUtils;
 using Likewise.LMC.Plugins.LUG.src;
 
 namespace Likewise.LMC.Plugins.LUG

@@ -33,7 +33,7 @@ using System.Collections;
 using System.Drawing;
 using System.Diagnostics;
 using System.Windows.Forms;
-using Likewise.LMC.LMConsoleUtils;
+using Likewise.LMC.Utilities;
 using Likewise.LMC.LDAP;
 using Likewise.LMC.LDAP.Interop;
 using Likewise.LMC.ServerControl;

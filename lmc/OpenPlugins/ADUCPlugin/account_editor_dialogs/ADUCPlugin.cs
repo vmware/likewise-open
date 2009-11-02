@@ -31,7 +31,7 @@
 using System.Windows.Forms;
 using System.Reflection;
 using Likewise.LMC.LDAP;
-using Likewise.LMC.LMConsoleUtils;
+using Likewise.LMC.Utilities;
 using Likewise.LMC.LDAP.Interop;
 using Likewise.LMC.Plugins.ADUCPlugin;
 using Likewise.LMC.Plugins.ADUCPlugin.Properties;

@@ -31,7 +31,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
-using Likewise.LMC.LMConsoleUtils;
+using Likewise.LMC.Utilities;
 using System.Runtime.InteropServices;
 
 namespace Likewise.LMC.Services

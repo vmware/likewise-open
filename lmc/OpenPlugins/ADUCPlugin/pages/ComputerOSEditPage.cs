@@ -37,10 +37,10 @@ using System.Text;
 using System.Windows.Forms;
 using Likewise.LMC.LDAP;
 using Likewise.LMC.LDAP.Interop;
-using Likewise.LMC.LMConsoleUtils;
+using Likewise.LMC.Utilities;
 using Likewise.LMC.ServerControl;
 using System.DirectoryServices;
-using Likewise.LMC.AuthUtils;
+
 
 namespace Likewise.LMC.Plugins.ADUCPlugin
 {

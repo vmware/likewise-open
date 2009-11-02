@@ -30,7 +30,7 @@
 
 using System;
 using System.Diagnostics;
-using Likewise.LMC.LMConsoleUtils;
+using Likewise.LMC.Utilities;
 
 namespace Likewise.LMC.Eventlog
 {

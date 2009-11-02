@@ -35,8 +35,7 @@
         <include name="System.Xml.dll" />
         <include name="${build.dist.os}/System.DirectoryServices.dll" />
         <include name="${build.dist.os}/Likewise.LMC.LDAP.dll" />  
-        <include name="${build.dist.os}/Likewise.LMC.LMConsoleUtils.dll" />
-        <include name="${build.dist.os}/Likewise.LMC.AuthUtils.dll" />
+        <include name="${build.dist.os}/Likewise.LMC.Utilities.dll" />
         <include name="${build.dist.os}/Likewise.LMC.Netlogon.dll" />
         <include name="${build.dist.os}/Likewise.LMC.ServerControl.unix.dll" />
         <include name="${build.dist.os}/Likewise.LMC.NETAPI.dll" />

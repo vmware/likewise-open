@@ -34,12 +34,12 @@ using System.Data;
 using System.Diagnostics;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
-using Likewise.LMC.LMConsoleUtils;
-using Likewise.LMC.AuthUtils;
+using Likewise.LMC.Utilities;
+
 
 //Use the DebugMarshal for Debug builds, and the standard Marshal in release builds
 #if DEBUG
-using Marshal = Likewise.LMC.LMConsoleUtils.DebugMarshal;
+using Marshal = Likewise.LMC.Utilities.DebugMarshal;
 #endif
 
 namespace Likewise.LMC.NETAPI

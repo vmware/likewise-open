@@ -38,7 +38,7 @@ using System.Windows.Forms;
 using System.Text.RegularExpressions;
 using System.IO;
 using Likewise.LMC.ServerControl;
-using Likewise.LMC.LMConsoleUtils;
+using Likewise.LMC.Utilities;
 using Likewise.LMC.Eventlog;
 
 

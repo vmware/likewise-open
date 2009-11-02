@@ -36,7 +36,7 @@ using System.Windows.Forms;
 using System.Collections.Generic;
 using System.IO;
 
-using Likewise.LMC.LMConsoleUtils;
+using Likewise.LMC.Utilities;
 using Likewise.LMC.Plugins.FileShareManager.Properties;
 using Likewise.LMC.NETAPI;
 using Likewise.LMC.ServerControl;

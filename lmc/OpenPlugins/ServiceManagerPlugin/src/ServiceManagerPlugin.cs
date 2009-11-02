@@ -36,9 +36,8 @@ using System.Xml;
 using System.Windows.Forms;
 using System.Diagnostics;
 using Likewise.LMC.ServerControl;
-using Likewise.LMC.LMConsoleUtils;
+using Likewise.LMC.Utilities;
 using Likewise.LMC.Services;
-using Likewise.LMC.AuthUtils;
 
 namespace Likewise.LMC.Plugins.ServiceManagerPlugin
 {

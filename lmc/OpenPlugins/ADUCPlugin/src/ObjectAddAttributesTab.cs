@@ -39,7 +39,7 @@ using System.Text.RegularExpressions;
 using SchemaType = Likewise.LMC.LDAP.SchemaType;
 using Likewise.LMC.LDAP;
 using Likewise.LMC.ServerControl;
-using Likewise.LMC.AuthUtils;
+using Likewise.LMC.Utilities;
 
 namespace Likewise.LMC.Plugins.ADUCPlugin
 {
