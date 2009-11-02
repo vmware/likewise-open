@@ -593,7 +593,62 @@ error:
 }
 
 LWMsgStatus
-RegSrvIpcEnumKeyEx(
+RegSrvIpcEnumKeyExA(
+    LWMsgCall* pCall,
+    const LWMsgParams* pIn,
+    LWMsgParams* pOut,
+    void* data
+    )
+{
+    DWORD dwError = 0;
+    PREG_IPC_ENUM_KEYA_EX_REQ pReq = pIn->data;
+    PREG_IPC_ENUM_KEYA_EX_RESPONSE pRegResp = NULL;
+    PREG_IPC_ERROR pError = NULL;
+
+    dwError = RegSrvEnumKeyExA(
+        RegSrvIpcGetSessionData(pCall),
+        pReq->hKey,
+        pReq->dwIndex,
+        pReq->pszName,
+        &pReq->cName,
+        NULL,
+        pReq->pszClass,
+        pReq->pcClass,
+        NULL
+        );
+    if (!dwError)
+    {
+        dwError = LwAllocateMemory(
+            sizeof(*pRegResp),
+            OUT_PPVOID(&pRegResp));
+        BAIL_ON_REG_ERROR(dwError);
+
+        pRegResp->pszName= pReq->pszName;
+        pRegResp->cName = pReq->cName;
+
+        pOut->tag = REG_R_ENUM_KEYA_EX_SUCCESS;
+        pOut->data = pRegResp;
+    }
+    else
+    {
+        dwError = RegSrvIpcCreateError(dwError, &pError);
+        BAIL_ON_REG_ERROR(dwError);
+
+        pOut->tag = REG_R_ENUM_KEYA_EX_FAILURE;
+        pOut->data = pError;
+    }
+
+    pReq->pszName = NULL;
+
+cleanup:
+    return MAP_REG_ERROR_IPC(dwError);
+
+error:
+    goto cleanup;
+}
+
+LWMsgStatus
+RegSrvIpcEnumKeyExW(
     LWMsgCall* pCall,
     const LWMsgParams* pIn,
     LWMsgParams* pOut,
@@ -605,7 +660,7 @@ RegSrvIpcEnumKeyEx(
     PREG_IPC_ENUM_KEY_EX_RESPONSE pRegResp = NULL;
     PREG_IPC_ERROR pError = NULL;
 
-    dwError = RegSrvEnumKeyEx(
+    dwError = RegSrvEnumKeyExW(
         RegSrvIpcGetSessionData(pCall),
         pReq->hKey,
         pReq->dwIndex,
@@ -626,7 +681,7 @@ RegSrvIpcEnumKeyEx(
         pRegResp->pName= pReq->pName;
         pRegResp->cName = pReq->cName;
 
-        pOut->tag = REG_R_ENUM_KEY_EX_SUCCESS;
+        pOut->tag = REG_R_ENUM_KEYW_EX_SUCCESS;
         pOut->data = pRegResp;
     }
     else
@@ -634,7 +689,7 @@ RegSrvIpcEnumKeyEx(
         dwError = RegSrvIpcCreateError(dwError, &pError);
         BAIL_ON_REG_ERROR(dwError);
 
-        pOut->tag = REG_R_ENUM_KEY_EX_FAILURE;
+        pOut->tag = REG_R_ENUM_KEYW_EX_FAILURE;
         pOut->data = pError;
     }
 

@@ -577,7 +577,7 @@ ProcessSubKeys(
     {
         dwSubKeyLen = MAX_KEY_LENGTH;
 
-        dwError = RegEnumKeyEx((HANDLE)hReg,
+        dwError = RegEnumKeyExW((HANDLE)hReg,
                                 hKey,
                                 iCount,
                                 subKey,

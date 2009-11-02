@@ -411,7 +411,34 @@ RegDeleteValueW(
 
 REG_API
 DWORD
-RegEnumKeyEx(
+RegEnumKeyExA(
+    IN HANDLE hRegConnection,
+    IN HKEY hKey,
+    IN DWORD dwIndex,
+    IN OUT PSTR pszName,
+    IN OUT PDWORD pcName,
+    IN PDWORD pReserved,
+    IN OUT PSTR pszClass,
+    IN OUT OPTIONAL PDWORD pcClass,
+    OUT OPTIONAL PFILETIME pftLastWriteTime
+    )
+{
+    return RegTransactEnumKeyExA(
+        hRegConnection,
+        hKey,
+        dwIndex,
+        pszName,
+        pcName,
+        pReserved,
+        pszClass,
+        pcClass,
+        pftLastWriteTime
+        );
+}
+
+REG_API
+DWORD
+RegEnumKeyExW(
     IN HANDLE hRegConnection,
     IN HKEY hKey,
     IN DWORD dwIndex,
@@ -423,7 +450,7 @@ RegEnumKeyEx(
     OUT OPTIONAL PFILETIME pftLastWriteTime
     )
 {
-    return RegTransactEnumKeyEx(
+    return RegTransactEnumKeyExW(
         hRegConnection,
         hKey,
         dwIndex,

@@ -102,7 +102,20 @@ SqliteDeleteKey(
     );
 
 DWORD
-SqliteEnumKeyEx(
+SqliteEnumKeyExA(
+    IN HANDLE Handle,
+    IN HKEY hKey,
+    IN DWORD dwIndex,
+    OUT PSTR pszName, /*buffer to hold keyName*/
+    IN OUT PDWORD pcName,/*When the function returns, the variable receives the number of characters stored in the buffer,not including the terminating null character.*/
+    IN PDWORD pReserved,
+    IN OUT PSTR pszClass,
+    IN OUT OPTIONAL PDWORD pcClass,
+    OUT PFILETIME pftLastWriteTime
+    );
+
+DWORD
+SqliteEnumKeyExW(
     IN HANDLE Handle,
     IN HKEY hKey,
     IN DWORD dwIndex,

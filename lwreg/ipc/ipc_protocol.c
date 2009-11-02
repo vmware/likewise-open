@@ -273,6 +273,51 @@ static LWMsgTypeSpec gRegDeleteValueSpec[] =
     LWMSG_TYPE_END
 };
 
+/**********************************************************************/
+
+static LWMsgTypeSpec gRegEnumKeyAExSpec[] =
+{
+    //HKEY hKey;
+    //DWORD dwIndex;
+    //PSTR pszName;
+    //DWORD cName;
+    //PSTR pszClass;
+    //PDWORD pcClass;
+
+    LWMSG_STRUCT_BEGIN(REG_IPC_ENUM_KEYA_EX_REQ),
+
+    LWMSG_MEMBER_HANDLE(REG_IPC_ENUM_KEYA_EX_REQ, hKey, HKEY),
+    LWMSG_ATTR_HANDLE_LOCAL_FOR_RECEIVER,
+
+    LWMSG_MEMBER_UINT32(REG_IPC_ENUM_KEYA_EX_REQ, dwIndex),
+
+    LWMSG_MEMBER_UINT32(REG_IPC_ENUM_KEYA_EX_REQ, cName),
+    LWMSG_MEMBER_PSTR(REG_IPC_ENUM_KEYA_EX_REQ, pszName),
+    LWMSG_ATTR_LENGTH_MEMBER(REG_IPC_ENUM_KEYA_EX_REQ, cName),
+
+
+    LWMSG_MEMBER_PSTR(REG_IPC_ENUM_KEYA_EX_REQ, pszClass),
+
+    LWMSG_MEMBER_POINTER(REG_IPC_ENUM_KEYA_EX_REQ, pcClass, LWMSG_UINT32(DWORD)),
+
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
+
+static LWMsgTypeSpec gRegEnumKeyAExRespSpec[] =
+{
+    //PSTR pszName;
+    //DWORD cName;
+
+    LWMSG_STRUCT_BEGIN(REG_IPC_ENUM_KEYA_EX_RESPONSE),
+
+    LWMSG_MEMBER_PSTR(REG_IPC_ENUM_KEYA_EX_RESPONSE, pszName),
+    LWMSG_MEMBER_UINT32(REG_IPC_ENUM_KEYA_EX_RESPONSE, cName),
+
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
+
 /******************************************************************************/
 
 static LWMsgTypeSpec gRegEnumKeyExSpec[] =
@@ -788,9 +833,12 @@ static LWMsgProtocolSpec gRegIPCSpec[] =
     LWMSG_MESSAGE(REG_Q_QUERY_INFO_KEYW, gRegQueryInfoKeySpec),
     LWMSG_MESSAGE(REG_R_QUERY_INFO_KEYW_SUCCESS, gRegQueryInfoKeyRespSpec),
     LWMSG_MESSAGE(REG_R_QUERY_INFO_KEYW_FAILURE, gRegIPCErrorSpec),
-    LWMSG_MESSAGE(REG_Q_ENUM_KEY_EX, gRegEnumKeyExSpec),
-    LWMSG_MESSAGE(REG_R_ENUM_KEY_EX_SUCCESS, gRegEnumKeyExRespSpec),
-    LWMSG_MESSAGE(REG_R_ENUM_KEY_EX_FAILURE, gRegIPCErrorSpec),
+    LWMSG_MESSAGE(REG_Q_ENUM_KEYA_EX, gRegEnumKeyAExSpec),
+    LWMSG_MESSAGE(REG_R_ENUM_KEYA_EX_SUCCESS, gRegEnumKeyAExRespSpec),
+    LWMSG_MESSAGE(REG_R_ENUM_KEYA_EX_FAILURE, gRegIPCErrorSpec),
+    LWMSG_MESSAGE(REG_Q_ENUM_KEYW_EX, gRegEnumKeyExSpec),
+    LWMSG_MESSAGE(REG_R_ENUM_KEYW_EX_SUCCESS, gRegEnumKeyExRespSpec),
+    LWMSG_MESSAGE(REG_R_ENUM_KEYW_EX_FAILURE, gRegIPCErrorSpec),
     /*Value Operation APIs*/
     LWMSG_MESSAGE(REG_Q_SET_VALUEA_EX, gRegSetValueAExSpec),
     LWMSG_MESSAGE(REG_R_SET_VALUEA_EX_SUCCESS, NULL),

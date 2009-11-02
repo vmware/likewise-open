@@ -282,16 +282,29 @@ RegSrvDeleteValue(
     );
 
 DWORD
-RegSrvEnumKeyEx(
-    HANDLE Handle,
-    HKEY hKey,
-    DWORD dwIndex,
-    PWSTR pName,
-    PDWORD pcName,
-    PDWORD pReserved,
-    PWSTR pClass,
-    PDWORD pcClass,
-    PFILETIME pftLastWriteTime
+RegSrvEnumKeyExA(
+    IN HANDLE Handle,
+    IN HKEY hKey,
+    IN DWORD dwIndex,
+    IN OUT PSTR pszName,
+    IN OUT PDWORD pcName,
+    IN PDWORD pReserved,
+    IN OUT PSTR pszClass,
+    IN OUT OPTIONAL PDWORD pcClass,
+    OUT OPTIONAL PFILETIME pftLastWriteTime
+    );
+
+DWORD
+RegSrvEnumKeyExW(
+    IN HANDLE Handle,
+    IN HKEY hKey,
+    IN DWORD dwIndex,
+    IN OUT PWSTR pName,
+    IN OUT PDWORD pcName,
+    IN PDWORD pReserved,
+    IN OUT PWSTR pClass,
+    IN OUT OPTIONAL PDWORD pcClass,
+    OUT OPTIONAL PFILETIME pftLastWriteTime
     );
 
 DWORD

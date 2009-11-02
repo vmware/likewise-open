@@ -242,7 +242,7 @@ ProcessImportedValue(
         0,
         pItem->type,
         pItem->value,
-        pItem->valueLen);
+        pItem->valueLen+1);
     BAIL_ON_REG_ERROR(dwError);
 
     *phRootKey = hRootKey;
