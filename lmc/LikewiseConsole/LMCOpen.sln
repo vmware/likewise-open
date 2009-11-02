@@ -1,11 +1,5 @@
 Microsoft Visual Studio Solution File, Format Version 9.00
 # Visual Studio 2005
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AuthUtils", "..\AuthUtils\AuthUtils.csproj", "{805A93D2-3B90-4A27-B319-73D86363470A}"
-	ProjectSection(WebsiteProperties) = preProject
-		Debug.AspNetCompiler.Debug = "True"
-		Release.AspNetCompiler.Debug = "False"
-	EndProjectSection
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventlogPlugIn", "..\OpenPlugins\EventlogPlugin\EventlogPlugIn.csproj", "{542B16FB-6692-4765-B0DB-F3B12C537781}"
 	ProjectSection(WebsiteProperties) = preProject
 		Debug.AspNetCompiler.Debug = "True"
@@ -102,12 +96,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServerControl_Open", "..\Se
 		Release.AspNetCompiler.Debug = "False"
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LMConsoleUtils", "..\LMConsoleUtils\LMConsoleUtils.csproj", "{42B9FE52-8F39-4CAE-885F-9DB9B5DF0A70}"
-	ProjectSection(WebsiteProperties) = preProject
-		Debug.AspNetCompiler.Debug = "True"
-		Release.AspNetCompiler.Debug = "False"
-	EndProjectSection
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "LikewiseClassLibraries", "LikewiseClassLibraries", "{2733908E-FB40-46D1-89A8-4D735853B7C9}"
 	ProjectSection(WebsiteProperties) = preProject
 		Debug.AspNetCompiler.Debug = "True"
@@ -166,16 +154,6 @@ Global
 		Release|Win32 = Release|Win32
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{805A93D2-3B90-4A27-B319-73D86363470A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{805A93D2-3B90-4A27-B319-73D86363470A}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{805A93D2-3B90-4A27-B319-73D86363470A}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
-		{805A93D2-3B90-4A27-B319-73D86363470A}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
-		{805A93D2-3B90-4A27-B319-73D86363470A}.Debug|Win32.ActiveCfg = Debug|Any CPU
-		{805A93D2-3B90-4A27-B319-73D86363470A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{805A93D2-3B90-4A27-B319-73D86363470A}.Release|Any CPU.Build.0 = Release|Any CPU
-		{805A93D2-3B90-4A27-B319-73D86363470A}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
-		{805A93D2-3B90-4A27-B319-73D86363470A}.Release|Mixed Platforms.Build.0 = Release|Any CPU
-		{805A93D2-3B90-4A27-B319-73D86363470A}.Release|Win32.ActiveCfg = Release|Any CPU
 		{542B16FB-6692-4765-B0DB-F3B12C537781}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{542B16FB-6692-4765-B0DB-F3B12C537781}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{542B16FB-6692-4765-B0DB-F3B12C537781}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
@@ -336,16 +314,6 @@ Global
 		{9F45E041-5B67-48B8-AD13-DD5C40F3364A}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
 		{9F45E041-5B67-48B8-AD13-DD5C40F3364A}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{9F45E041-5B67-48B8-AD13-DD5C40F3364A}.Release|Win32.ActiveCfg = Release|Any CPU
-		{42B9FE52-8F39-4CAE-885F-9DB9B5DF0A70}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{42B9FE52-8F39-4CAE-885F-9DB9B5DF0A70}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{42B9FE52-8F39-4CAE-885F-9DB9B5DF0A70}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
-		{42B9FE52-8F39-4CAE-885F-9DB9B5DF0A70}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
-		{42B9FE52-8F39-4CAE-885F-9DB9B5DF0A70}.Debug|Win32.ActiveCfg = Debug|Any CPU
-		{42B9FE52-8F39-4CAE-885F-9DB9B5DF0A70}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{42B9FE52-8F39-4CAE-885F-9DB9B5DF0A70}.Release|Any CPU.Build.0 = Release|Any CPU
-		{42B9FE52-8F39-4CAE-885F-9DB9B5DF0A70}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
-		{42B9FE52-8F39-4CAE-885F-9DB9B5DF0A70}.Release|Mixed Platforms.Build.0 = Release|Any CPU
-		{42B9FE52-8F39-4CAE-885F-9DB9B5DF0A70}.Release|Win32.ActiveCfg = Release|Any CPU
 		{DB67826F-BBA0-4091-9BF3-90246022D58A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{DB67826F-BBA0-4091-9BF3-90246022D58A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DB67826F-BBA0-4091-9BF3-90246022D58A}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
