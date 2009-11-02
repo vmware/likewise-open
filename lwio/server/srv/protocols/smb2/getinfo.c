@@ -236,6 +236,18 @@ SrvMarshallFileFullEAResponse(
 
 static
 NTSTATUS
+SrvGetFileCompressionInfo_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
+SrvBuildFileCompressionInfoResponse_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
 SrvGetFileSystemInfo_SMB_V2(
     PSRV_EXEC_CONTEXT pExecContext
     );
@@ -773,7 +785,7 @@ SrvBuildFileInfoResponse_SMB_V2(
 
         case SMB2_FILE_INFO_CLASS_COMPRESSION :
 
-            ntStatus = STATUS_NOT_SUPPORTED;
+            ntStatus = SrvBuildFileCompressionInfoResponse_SMB_V2(pExecContext);
 
             break;
 
@@ -952,7 +964,7 @@ SrvGetFileInfo_SMB_V2(
 
         case SMB2_FILE_INFO_CLASS_COMPRESSION :
 
-            ntStatus = STATUS_NOT_SUPPORTED;
+            ntStatus = SrvGetFileCompressionInfo_SMB_V2(pExecContext);
 
             break;
 
@@ -3657,6 +3669,158 @@ error:
     goto cleanup;
 }
 
+static
+NTSTATUS
+SrvGetFileCompressionInfo_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS                    ntStatus = STATUS_SUCCESS;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    PSRV_GET_INFO_STATE_SMB_V2 pGetInfoState = NULL;
+
+    pGetInfoState = (PSRV_GET_INFO_STATE_SMB_V2)pCtxSmb2->hState;
+
+    ntStatus = pGetInfoState->ioStatusBlock.Status;
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (!pGetInfoState->pData2)
+    {
+        ntStatus = SrvAllocateMemory(
+                        sizeof(FILE_COMPRESSION_INFORMATION),
+                        (PVOID*)&pGetInfoState->pData2);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pGetInfoState->ulDataLength = sizeof(FILE_COMPRESSION_INFORMATION);
+
+        SrvPrepareGetInfoStateAsync_SMB_V2(pGetInfoState, pExecContext);
+
+        ntStatus = IoQueryInformationFile(
+                        pCtxSmb2->pFile->hFile,
+                        pGetInfoState->pAcb,
+                        &pGetInfoState->ioStatusBlock,
+                        pGetInfoState->pData2,
+                        pGetInfoState->ulDataLength,
+                        FileCompressionInformation);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        SrvReleaseGetInfoStateAsync_SMB_V2(pGetInfoState);
+    }
+
+error:
+
+    return ntStatus;
+}
+
+static
+NTSTATUS
+SrvBuildFileCompressionInfoResponse_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS                    ntStatus = STATUS_SUCCESS;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    PSRV_GET_INFO_STATE_SMB_V2 pGetInfoState = NULL;
+    ULONG                      iMsg          = pCtxSmb2->iMsg;
+    PSRV_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
+    PSRV_MESSAGE_SMB_V2        pSmbResponse  = &pCtxSmb2->pResponses[iMsg];
+    PBYTE pOutBuffer       = pSmbResponse->pBuffer;
+    ULONG ulBytesAvailable = pSmbResponse->ulBytesAvailable;
+    ULONG ulOffset         = 0;
+    ULONG ulTotalBytesUsed = 0;
+    PFILE_COMPRESSION_INFORMATION pFileCompressionInfo = NULL;
+    PSMB2_GET_INFO_RESPONSE_HEADER pGetInfoResponseHeader = NULL;
+    PSMB2_FILE_COMPRESSION_INFORMATION_HEADER pFileCompressionInfoHeader = NULL;
+
+    pGetInfoState = (PSRV_GET_INFO_STATE_SMB_V2)pCtxSmb2->hState;
+    pFileCompressionInfo = (PFILE_COMPRESSION_INFORMATION)pGetInfoState->pData2;
+
+    ntStatus = SMB2MarshalHeader(
+                    pOutBuffer,
+                    ulOffset,
+                    ulBytesAvailable,
+                    COM2_GETINFO,
+                    pSmbRequest->pHeader->usEpoch,
+                    pSmbRequest->pHeader->usCredits,
+                    pSmbRequest->pHeader->ulPid,
+                    pSmbRequest->pHeader->ullCommandSequence,
+                    pCtxSmb2->pTree->ulTid,
+                    pCtxSmb2->pSession->ullUid,
+                    STATUS_SUCCESS,
+                    TRUE,
+                    pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
+                    &pSmbResponse->pHeader,
+                    &pSmbResponse->ulHeaderSize);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pOutBuffer       += pSmbResponse->ulHeaderSize;
+    ulOffset         += pSmbResponse->ulHeaderSize;
+    ulBytesAvailable -= pSmbResponse->ulHeaderSize;
+    ulTotalBytesUsed += pSmbResponse->ulHeaderSize;
+
+    if (ulBytesAvailable < sizeof(SMB2_GET_INFO_RESPONSE_HEADER))
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pGetInfoResponseHeader = (PSMB2_GET_INFO_RESPONSE_HEADER)pOutBuffer;
+
+    pOutBuffer       += sizeof(SMB2_GET_INFO_RESPONSE_HEADER);
+    ulOffset         += sizeof(SMB2_GET_INFO_RESPONSE_HEADER);
+    ulBytesAvailable -= sizeof(SMB2_GET_INFO_RESPONSE_HEADER);
+    ulTotalBytesUsed += sizeof(SMB2_GET_INFO_RESPONSE_HEADER);
+
+    pGetInfoResponseHeader->usLength = sizeof(SMB2_GET_INFO_RESPONSE_HEADER)+1;
+    pGetInfoResponseHeader->usOutBufferOffset = ulOffset;
+
+    pGetInfoResponseHeader->ulOutBufferLength =
+                    sizeof(SMB2_FILE_COMPRESSION_INFORMATION_HEADER);
+
+    if (ulBytesAvailable < pGetInfoResponseHeader->ulOutBufferLength)
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pFileCompressionInfoHeader =
+                    (PSMB2_FILE_COMPRESSION_INFORMATION_HEADER)pOutBuffer;
+    pFileCompressionInfoHeader->llCompressedFileSize =
+                    pFileCompressionInfo->CompressedFileSize;
+    pFileCompressionInfoHeader->ucChunkShift =
+                    pFileCompressionInfo->ChunkShift;
+    pFileCompressionInfoHeader->ucClusterShift =
+                    pFileCompressionInfo->ClusterShift;
+    pFileCompressionInfoHeader->ucCompressionUnitShift =
+                    pFileCompressionInfo->CompressionUnitShift;
+    pFileCompressionInfoHeader->usCompressionFormat =
+                    pFileCompressionInfo->CompressionFormat;
+
+    // pOutBuffer       += pGetInfoResponseHeader->ulOutBufferLength;
+    // ulBytesAvailable -= pGetInfoResponseHeader->ulOutBufferLength;
+    ulTotalBytesUsed    += pGetInfoResponseHeader->ulOutBufferLength;
+
+    pSmbResponse->ulMessageSize = ulTotalBytesUsed;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    if (ulTotalBytesUsed)
+    {
+        pSmbResponse->pHeader = NULL;
+        pSmbResponse->ulHeaderSize = 0;
+        memset(pSmbResponse->pBuffer, 0, ulTotalBytesUsed);
+    }
+
+    pSmbResponse->ulMessageSize = 0;
+
+    goto cleanup;
+}
 
 static
 NTSTATUS

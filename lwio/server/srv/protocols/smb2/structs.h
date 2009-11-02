@@ -674,6 +674,17 @@ typedef struct _SMB2_FILE_FULL_EA_INFORMATION_HEADER
 } __attribute__((__packed__)) SMB2_FILE_FULL_EA_INFORMATION_HEADER,
                              *PSMB2_FILE_FULL_EA_INFORMATION_HEADER;
 
+typedef struct _SMB2_FILE_COMPRESSION_INFORMATION_HEADER
+{
+    LONG64 llCompressedFileSize;
+    USHORT usCompressionFormat;
+    UCHAR  ucCompressionUnitShift;
+    UCHAR  ucChunkShift;
+    UCHAR  ucClusterShift;
+    UCHAR  ucReserved[3];
+} __attribute__((__packed__)) SMB2_FILE_COMPRESSION_INFORMATION_HEADER,
+                             *PSMB2_FILE_COMPRESSION_INFORMATION_HEADER;
+
 typedef VOID (*PFN_SRV_MESSAGE_STATE_RELEASE_SMB_V2)(HANDLE hState);
 
 typedef struct _SRV_OPLOCK_INFO
