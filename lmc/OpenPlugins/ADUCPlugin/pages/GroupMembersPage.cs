@@ -169,7 +169,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                     {
                         userlogonName = de.Properties["sAMAccountName"].Value as string;
                     }
-                    LUGAPI.NetAddGroupMember(_dirnode.hn.creds, _dirnode.LdapContext.DomainControllerName, "Administrators", userlogonName);
+                    LUGAPI.NetAddGroupMember(_dirnode.LdapContext.DomainControllerName, "Administrators", userlogonName);
                 }
 
                 ModifiedObjects.Remove(AdminGroupDN.ToLower());

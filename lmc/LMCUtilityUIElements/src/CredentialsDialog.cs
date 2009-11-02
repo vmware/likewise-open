@@ -79,19 +79,22 @@ namespace Likewise.LMC.UtilityUIElements
 
             if (okayToExit == true)
             {
-                if (!UseDefaultUserCreds())
+                if (UseDefaultUserCreds())
                 {
                     credentialsControl.Username = "";
                     credentialsControl.Password = "";
                 }
 
-                if (_plugin.GetContext() is Hostinfo)
+                if(_plugin != null)
                 {
-                    //Hostinfo _hn = _plugin.GetContext();
-                }
-                else
-                {
-                    _plugin.SetContext(_plugin.GetContext());
+                    if (_plugin.GetContext() is Hostinfo)
+                    {
+                        //Hostinfo _hn = _plugin.GetContext();
+                    }
+                    else
+                    {
+                        _plugin.SetContext(_plugin.GetContext());
+                    }
                 }
 
                 this.DialogResult = DialogResult.OK;

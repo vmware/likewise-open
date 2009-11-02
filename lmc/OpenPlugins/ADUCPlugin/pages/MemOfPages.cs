@@ -203,7 +203,7 @@ public class MemOfPages
                     if (newGroupname.Trim().ToLower().Equals(AdminGroupDN.Trim().ToLower()))
                     {
                         string userlogonName = OnApply_GetObjectRealmName(_dirnode);
-                        LUGAPI.NetAddGroupMember(_dirnode.hn.creds, _dirnode.LdapContext.DomainControllerName, "Administrators", userlogonName);
+                        LUGAPI.NetAddGroupMember(_dirnode.LdapContext.DomainControllerName, "Administrators", userlogonName);
                     }
                     else
                     {

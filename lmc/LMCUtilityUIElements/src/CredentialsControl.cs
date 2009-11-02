@@ -48,6 +48,8 @@ namespace Likewise.LMC.UtilityUIElements
         private void rbUseTheseCreds_CheckedChanged(object sender, EventArgs e)
         {
             groupBox.Enabled = rbUseTheseCreds.Checked;
+            tbUsername.Enabled = groupBox.Enabled;
+            tbPassword.Enabled = groupBox.Enabled;
         }
 
         private void tbUsername_TextChanged(object sender, EventArgs e)

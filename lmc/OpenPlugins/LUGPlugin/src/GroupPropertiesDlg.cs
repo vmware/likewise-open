@@ -124,77 +124,37 @@ public partial class GroupPropertiesDlg : MPContainer
     
     public string GetGroupDescription()
     {
-        hn = plugin.GetContext() as Hostinfo;
-        if (hn != null /*&& Hostinfo.HasCreds(hn)*/)
-        {
-            string description;
+        string description;
 
-            if (LUGAPI.NetGetGroupInfo(hn.creds, _servername, _group, out description) == 0)
-            {
-                return description;
-            }
-            else
-            {
-                return "";
-            }
-        }
-        else
+        if (LUGAPI.NetGetGroupInfo(_servername, _group, out description) == 0)
         {
-            return "";
+            return description;
         }
-        
+
+        return "";
     }
     
     public string[] GetUserList()
     {
-        hn = plugin.GetContext() as Hostinfo;
-        if (hn != null /*&& Hostinfo.HasCreds(hn)*/)
-        {
-            string[] members;
+        string[] members;
 
-            if (LUGAPI.NetGetGroupMembers(hn.creds, _servername, _group, out members) == 0)
-            {
-                return members;
-            }
-            else
-            {
-                return null;
-            }
-        }
-        else
+        if (LUGAPI.NetGetGroupMembers(_servername, _group, out members) == 0)
         {
-            return null;
+            return members;
         }
+
+        return null;
     }
     
     public bool AddUserToGroup(string user)
     {
-        hn = plugin.GetContext() as Hostinfo;
-        if (hn != null /*&& Hostinfo.HasCreds(hn)*/)
-        {
-            return !Convert.ToBoolean(LUGAPI.NetAddGroupMember(hn.creds, _servername, _group, user));
-        }
-        else
-        {
-            return false;
-        }
-        
+        return !Convert.ToBoolean(LUGAPI.NetAddGroupMember(_servername, _group, user));
     }
     
     public bool DeleteUserFromGroup(string user)
     {
-        hn = plugin.GetContext() as Hostinfo;
-        if (hn != null /*&& Hostinfo.HasCreds(hn)*/)
-        {
-            return !Convert.ToBoolean(LUGAPI.NetDeleteUserFromGroup(hn.creds, _servername, _group, user));
-        }
-        else
-        {
-            return false;
-        }
+        return !Convert.ToBoolean(LUGAPI.NetDeleteUserFromGroup(_servername, _group, user));
     }
-    
-    
     
     public void SetData(CredentialEntry ce, string servername, string group)
     {

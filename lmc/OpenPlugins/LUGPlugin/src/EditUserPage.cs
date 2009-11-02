@@ -69,7 +69,7 @@ public partial class EditUserPage : MPPage, IPropertiesPage
         {
             LUGAPI.LUGInfo userInfo;
 
-            if (LUGAPI.NetGetUserInfo(ce, _servername, _username, out userInfo) == 0)
+            if (LUGAPI.NetGetUserInfo(_servername, _username, out userInfo) == 0)
             {
                 GetUserInfoDelegate(userInfo);
             }

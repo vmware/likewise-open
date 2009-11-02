@@ -109,7 +109,6 @@ public partial class NewGroupDlg : EditDialog, IUIInitialize
             {
                 retVal = !Convert.ToBoolean(
                     LUGAPI.NetAddGroupMember(
-                        ce,
                         _hn.hostName,
                         this.GroupName,
                         lvMembers.Items[i].Text

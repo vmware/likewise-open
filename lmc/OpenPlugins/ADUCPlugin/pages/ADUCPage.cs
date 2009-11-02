@@ -2155,12 +2155,7 @@ public partial class ADUCPage : StandardPage
                         ADUCPlugin plugin = pi as ADUCPlugin;
                         Hostinfo hn = ctx as Hostinfo;
 
-                        if (!plugin.bIsNetInitCalled)
-                        {                            
-                            plugin.bIsNetInitCalled = LUGAPI.NetInitMemory(hn.creds, hn.domainControllerName);                            
-                        }
-                        CredentialEntry creds = new CredentialEntry(dirContext.UserName, dirContext.Password, dirContext.DomainName);
-                        retValue = !Convert.ToBoolean(LUGAPI.NetChangePassword(creds, hn.domainName, username, f.passwordinfo.password));
+                        retValue = !Convert.ToBoolean(LUGAPI.NetChangePassword(hn.domainName, username, f.passwordinfo.password));
                     }
                     catch (Exception)
                     {
@@ -2320,12 +2315,7 @@ public partial class ADUCPage : StandardPage
                         ADUCPlugin plugin = pi as ADUCPlugin;
                         Hostinfo hn = ctx as Hostinfo;
 
-                        if (!plugin.bIsNetInitCalled)
-                        {
-                            plugin.bIsNetInitCalled = LUGAPI.NetInitMemory(hn.creds, hn.domainControllerName);
-                        }
-
-                        bool retValue = !Convert.ToBoolean(LUGAPI.NetChangePassword(hn.creds, hn.domainName, computername, compResetpawd));
+                        bool retValue = !Convert.ToBoolean(LUGAPI.NetChangePassword(hn.domainName, computername, compResetpawd));
                         if (retValue)
                         {
                             string sMsg = string.Format(
@@ -2468,14 +2458,13 @@ public partial class ADUCPage : StandardPage
         if (sDN.Trim().ToLower().Equals(AdminGroupDN.Trim().ToLower()))
         {
             string userlogonName = string.Empty;
-            Hostinfo hn = ctx as Hostinfo;
             DirectoryEntry de = new DirectoryEntry(dirnode.DistinguishedName);
 
             if (de != null && de.Properties["userPrincipalName"].Value != null)
             {
                 userlogonName = de.Properties["userPrincipalName"].Value as string;
             }
-            LUGAPI.NetAddGroupMember(hn.creds, dirnode.LdapContext.DomainControllerName, "Administrators", userlogonName);
+            LUGAPI.NetAddGroupMember(dirnode.LdapContext.DomainControllerName, "Administrators", userlogonName);
         }
         else
         {
@@ -3375,11 +3364,7 @@ public partial class ADUCPage : StandardPage
                         ADUCPlugin plugin = pi as ADUCPlugin;
                         Hostinfo hn = ctx as Hostinfo;
 
-                        if (!plugin.bIsNetInitCalled)
-                        {
-                            plugin.bIsNetInitCalled = LUGAPI.NetInitMemory(hn.creds, hn.domainControllerName);
-                        }
-                        retValue = !Convert.ToBoolean(LUGAPI.NetChangePassword(hn.creds, hn.domainName, smamAccount, password));
+                        retValue = !Convert.ToBoolean(LUGAPI.NetChangePassword(hn.domainName, smamAccount, password));
                         Logger.Log(string.Format("hn.domainName is {0} : userName is {1} and password is {2}", hn.domainName, smamAccount, password));
                     }
                 }
