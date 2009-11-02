@@ -137,7 +137,7 @@ LwSmRegistryEnumServices(
             OUT_PPVOID(&ppwszNames[i]));
         BAIL_ON_ERROR(dwError);
 
-        dwError = RegEnumKeyEx(hReg, pParentKey, i, ppwszNames[i], &dwKeyLen, NULL, NULL, NULL, NULL);
+        dwError = RegEnumKeyExW(hReg, pParentKey, i, ppwszNames[i], &dwKeyLen, NULL, NULL, NULL, NULL);
         BAIL_ON_ERROR(dwError);
 
         pwszSlash = LwSmWc16sLastChar(ppwszNames[i], (WCHAR) '\\');
