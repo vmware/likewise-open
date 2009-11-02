@@ -698,6 +698,10 @@ LwMapSecurityCreateAccessTokenFromUidGid(
         TOKEN_DEFAULT_DACL tokenDefaultDacl = { 0 };
         TOKEN_UNIX tokenUnix = { 0 };
 
+        /* Force gid to be 0 to avoid deadlocking call back into
+           lsass when it runs with non-zero gid (Solaris, HP-UX) */
+        Gid = 0;
+
         status = LwMapSecurityGetSidFromId(Context, &userSid, TRUE, Uid);
         GOTO_CLEANUP_ON_STATUS(status);
 
