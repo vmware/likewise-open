@@ -187,7 +187,7 @@ public partial class UserPropertiesDlg : MPContainer
         {
             string [] groups;
 
-            if (LUGAPI.NetGetGroups(hn.creds, _servername, _username, out groups) == 0)
+            if (LUGAPI.NetGetGroups(_servername, _username, out groups) == 0)
             {
                 return groups;
             }
@@ -211,7 +211,7 @@ public partial class UserPropertiesDlg : MPContainer
 
         if (hn != null && hn.creds == null)
         {
-            return !Convert.ToBoolean(LUGAPI.NetAddGroupMember(hn.creds, _servername, group, _username));
+            return !Convert.ToBoolean(LUGAPI.NetAddGroupMember(_servername, group, _username));
         }
         else
         {
@@ -228,7 +228,7 @@ public partial class UserPropertiesDlg : MPContainer
 
         if (hn != null && hn.creds == null)
         {
-            return !Convert.ToBoolean(LUGAPI.NetDeleteUserFromGroup(hn.creds, _servername, group, _username));
+            return !Convert.ToBoolean(LUGAPI.NetDeleteUserFromGroup(_servername, group, _username));
         }
         else
         {

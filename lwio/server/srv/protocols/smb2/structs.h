@@ -654,6 +654,37 @@ typedef struct _SMB2_FILE_RENAME_INFORMATION
 } __attribute__((__packed__)) SMB2_FILE_RENAME_INFO_HEADER,
                              *PSMB2_FILE_RENAME_INFO_HEADER;
 
+typedef struct _SMB2_FILE_STREAM_INFORMATION_HEADER
+{
+    ULONG   ulNextEntryOffset;
+    ULONG   ulStreamNameLength;
+    ULONG64 ullStreamSize;
+    LONG64  llStreamAllocationSize;
+} __attribute__((__packed__)) SMB2_FILE_STREAM_INFORMATION_HEADER,
+                             *PSMB2_FILE_STREAM_INFORMATION_HEADER;
+
+typedef struct _SMB2_FILE_FULL_EA_INFORMATION_HEADER
+{
+    ULONG  ulNextEntryOffset;
+    UCHAR  ucFlags;
+    UCHAR  ucEaNameLength;
+    USHORT usEaValueLength;
+    // CHAR   szEaName[1];
+    // PBYTE  pEaValue;
+} __attribute__((__packed__)) SMB2_FILE_FULL_EA_INFORMATION_HEADER,
+                             *PSMB2_FILE_FULL_EA_INFORMATION_HEADER;
+
+typedef struct _SMB2_FILE_COMPRESSION_INFORMATION_HEADER
+{
+    LONG64 llCompressedFileSize;
+    USHORT usCompressionFormat;
+    UCHAR  ucCompressionUnitShift;
+    UCHAR  ucChunkShift;
+    UCHAR  ucClusterShift;
+    UCHAR  ucReserved[3];
+} __attribute__((__packed__)) SMB2_FILE_COMPRESSION_INFORMATION_HEADER,
+                             *PSMB2_FILE_COMPRESSION_INFORMATION_HEADER;
+
 typedef VOID (*PFN_SRV_MESSAGE_STATE_RELEASE_SMB_V2)(HANDLE hState);
 
 typedef struct _SRV_OPLOCK_INFO

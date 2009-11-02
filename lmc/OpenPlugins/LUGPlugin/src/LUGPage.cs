@@ -61,12 +61,12 @@ public partial class LUGPage : StandardPage
         Group
     }
 
-    public delegate void EnumLUG(CredentialEntry creds, string serverName, int resumeHandle, out LUGAPI.LUGEnumStatus enumStatus);
+    public delegate void EnumLUG(string serverName, int resumeHandle, out LUGAPI.LUGEnumStatus enumStatus);
 
-    public delegate bool DeleteLUG(CredentialEntry ce, string servername, string username);
+    public delegate bool DeleteLUG(string servername, string username);
 
-    public delegate bool RenameLUG(CredentialEntry ce, string servername, string oldname, string newname);
-    
+    public delegate bool RenameLUG(string servername, string oldname, string newname);
+
     private delegate void AddRangeDelegate(ListViewItem[] range);
     private delegate void ComboAddRangeDelegate(string[] range);
     
@@ -246,7 +246,7 @@ public partial class LUGPage : StandardPage
         
         try
         {
-            retValue = !Convert.ToBoolean(LUGAPI.NetChangePassword(hn.creds, hn.hostName, user, password));
+            retValue = !Convert.ToBoolean(LUGAPI.NetChangePassword(hn.hostName, user, password));
         }
         catch (Exception e)
         {
@@ -274,7 +274,7 @@ public partial class LUGPage : StandardPage
                 uint flags = 0;
 
                 LUGAPI.LUGInfo userInfo;
-                LUGAPI.NetGetUserInfo(hn.creds, hn.hostName, up.userName, out userInfo);
+                LUGAPI.NetGetUserInfo(hn.hostName, up.userName, out userInfo);
 
                 flags = userInfo.flags;
                 
@@ -307,17 +307,17 @@ public partial class LUGPage : StandardPage
                 
                 if (fullname != null && fullname != up.fullName)
                 {
-                    LUGAPI.NetEditUserFullName(hn.creds, hn.hostName, up.userName, up.fullName);
+                    LUGAPI.NetEditUserFullName(hn.hostName, up.userName, up.fullName);
                 }
                 
                 if (comment != null && comment != up.description)
                 {
-                    LUGAPI.NetEditUserDescription(hn.creds, hn.hostName, up.userName, up.description);
+                    LUGAPI.NetEditUserDescription(hn.hostName, up.userName, up.description);
                 }
                 
                 if (old_flags != flags)
                 {
-                    LUGAPI.NetEditUserFlags(hn.creds, hn.hostName, up.userName, flags);
+                    LUGAPI.NetEditUserFlags(hn.hostName, up.userName, flags);
                 }
                 
                 retValue = true;
@@ -337,7 +337,6 @@ public partial class LUGPage : StandardPage
                     string description;
 
                     LUGAPI.NetGetGroupInfo(
-                        hn.creds,
                         hn.hostName, 
                         gpDlg.GroupName,
                         out description
@@ -345,7 +344,7 @@ public partial class LUGPage : StandardPage
                     
                     if (description == null || description != gpDlg.Description)
                     {
-                        LUGAPI.NetEditGroupDescription(hn.creds, hn.hostName, gpDlg.GroupName, gpDlg.Description);
+                        LUGAPI.NetEditGroupDescription(hn.hostName, gpDlg.GroupName, gpDlg.Description);
                         Refresh();
                     }
                 }
@@ -387,8 +386,13 @@ public partial class LUGPage : StandardPage
                     
                     flags |= nu.NeverExpires ? LUGAPI.UF_DONT_EXPIRE_PASSWD : 0;
 
-                    if (!Convert.ToBoolean(LUGAPI.NetAddUser(hn.creds,
-                    hn.hostName, nu.User, nu.Password, nu.FullName, nu.Description, flags)))
+                    if (!Convert.ToBoolean(LUGAPI.NetAddUser(
+                        hn.hostName,
+                        nu.User,
+                        nu.Password,
+                        nu.FullName,
+                        nu.Description,
+                        flags)))
                     {
                         string[] row = new string[] { "", nu.IsDisabled ? "Disabled" : "", nu.User, nu.FullName, nu.Description };
                         InsertLUGToListView(row);
@@ -402,7 +406,10 @@ public partial class LUGPage : StandardPage
                 Hostinfo hn = ctx as Hostinfo;
                 if (ng != null)
                 {
-                    if (!Convert.ToBoolean(LUGAPI.NetAddGroup(hn.creds, hn.hostName, ng.GroupName, ng.Description)))
+                    if (!Convert.ToBoolean(LUGAPI.NetAddGroup(
+                        hn.hostName,
+                        ng.GroupName,
+                        ng.Description)))
                     {
                         string[] row = new string[] { "", ng.GroupName, ng.Description };
                         InsertLUGToListView(row);
@@ -488,10 +495,8 @@ public partial class LUGPage : StandardPage
                 {
                     //container.SetCursor(Cursors.WaitCursor);
 
-                    //enumLUG(hn.creds, hn.hostName, 0, enumLUGCallback);
-
                     LUGAPI.LUGEnumStatus enumStatus;
-                    enumLUG(hn.creds, hn.hostName, 0, out enumStatus);
+                    enumLUG(hn.hostName, 0, out enumStatus);
                     enumLUGCallback(enumStatus);
                 }
                 catch (AuthSessionException e)
@@ -615,14 +620,18 @@ public partial class LUGPage : StandardPage
                 {
                     if (enumStatus.type == LUGAPI.LUGType.User)
                     {
-                        //LUGAPI.NetEnumUsers(hn.creds, hn.hostName, enumStatus.resumeHandle, enumLUGCallback);
-                        LUGAPI.NetEnumUsers(hn.creds, hn.hostName, enumStatus.resumeHandle, out enumStatus);
+                        LUGAPI.NetEnumUsers(
+                            hn.hostName,
+                            enumStatus.resumeHandle,
+                            out enumStatus);
                         enumLUGCallback(enumStatus);
                     }
                     else if (enumStatus.type == LUGAPI.LUGType.Group)
                     {
-                        //LUGAPI.NetEnumGroups(hn.creds, hn.hostName, enumStatus.resumeHandle, enumLUGCallback);
-                        LUGAPI.NetEnumGroups(hn.creds, hn.hostName, enumStatus.resumeHandle, out enumStatus);
+                        LUGAPI.NetEnumGroups(
+                            hn.hostName,
+                            enumStatus.resumeHandle,
+                            out enumStatus);
                         enumLUGCallback(enumStatus);
                     }
                 }
@@ -878,7 +887,7 @@ public partial class LUGPage : StandardPage
         if (!String.IsNullOrEmpty(oldNameStr))
         {
             Hostinfo hn = ctx as Hostinfo;
-            this.renameLUG(hn.creds, hn.hostName, oldNameStr, newName);
+            this.renameLUG(hn.hostName, oldNameStr, newName);
             Refresh();
             return true;
         }
@@ -913,7 +922,7 @@ public partial class LUGPage : StandardPage
             if (dlgRes == DialogResult.Yes)
             {
                 Hostinfo hn = ctx as Hostinfo;
-                deleteLUG(hn.creds, hn.hostName, LUG);
+                deleteLUG(hn.hostName, LUG);
                 Refresh();
             }
         }
@@ -1212,7 +1221,7 @@ public partial class LUGPage : StandardPage
         //enumLUG(hn.creds, hn.hostName, 0, enumLUGCallback);
 
         LUGAPI.LUGEnumStatus enumStatus;
-        enumLUG(hn.creds, hn.hostName, 0, out enumStatus);
+        enumLUG(hn.hostName, 0, out enumStatus);
         enumLUGCallback(enumStatus);
     }
 }

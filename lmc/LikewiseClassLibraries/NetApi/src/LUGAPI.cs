@@ -270,18 +270,12 @@ namespace Likewise.LMC.NETAPI
 
         public static uint
         NetAddGroup(
-            CredentialEntry ce,
             string servername,
             string groupname,
             string description
             )
         {
             uint result = ERROR_FAILURE;
-
-            if (!Session.EnsureNullSession(servername, ce))
-            {
-                return result;
-            }
 
             LOCALGROUP_INFO_1 lg1 = new LOCALGROUP_INFO_1();
             lg1.name = groupname;
@@ -293,6 +287,11 @@ namespace Likewise.LMC.NETAPI
 
             try
             {
+                if (!NetApiInitCalled)
+                {
+                    NetApiInitCalled = NetApiInit();
+                }
+
                 Marshal.StructureToPtr(lg1, bufptr, false);
 
                 result = (uint)NetLocalGroupAdd(servername, 1, bufptr, bufptr_parm_err);
@@ -313,7 +312,6 @@ namespace Likewise.LMC.NETAPI
 
         public static uint
         NetAddUser(
-            CredentialEntry ce,
             string servername,
             string username,
             string password,
@@ -323,12 +321,6 @@ namespace Likewise.LMC.NETAPI
             )
         {
             uint result = ERROR_FAILURE;
-
-            // Ensure we have creds
-            if (!Session.EnsureNullSession(servername, ce))
-            {
-                return result;
-            }
 
             USER_INFO_1 ui1 = new USER_INFO_1();
             USER_INFO_1011 ui11 = new USER_INFO_1011();
@@ -351,6 +343,11 @@ namespace Likewise.LMC.NETAPI
 
             try
             {
+                if (!NetApiInitCalled)
+                {
+                    NetApiInitCalled = NetApiInit();
+                }
+
                 Marshal.StructureToPtr(ui1, bufptr_1, false);
                 Marshal.StructureToPtr(ui11, bufptr_1011, false);
                 Marshal.StructureToPtr(parm_err, bufptr_parm_err, false);
@@ -369,7 +366,7 @@ namespace Likewise.LMC.NETAPI
                     return result;
                 }
 
-                result = (uint)NetAddGroupMember(ce, servername, null, username);
+                result = (uint)NetAddGroupMember(servername, null, username);
             }
             catch (Exception)
             {
@@ -400,19 +397,12 @@ namespace Likewise.LMC.NETAPI
 
         public static uint
         NetChangePassword(
-            CredentialEntry ce,
             string servername,
             string username,
             string password
             )
         {
             uint result = ERROR_FAILURE;
-
-            // Ensure we have creds
-            if (!Session.EnsureNullSession(servername, ce))
-            {
-                return result;
-            }
 
             USER_INFO_1003 ui1003 = new USER_INFO_1003();
             ui1003.usri1003_password = password;
@@ -421,6 +411,11 @@ namespace Likewise.LMC.NETAPI
 
             try
             {
+                if (!NetApiInitCalled)
+                {
+                    NetApiInitCalled = NetApiInit();
+                }
+
                 Marshal.StructureToPtr(ui1003, bufptr, false);
                 result = (uint)NetUserSetInfo(servername, username, 1003, bufptr, IntPtr.Zero);
             }
@@ -439,24 +434,17 @@ namespace Likewise.LMC.NETAPI
 
         public static bool
         NetDeleteUser(
-            CredentialEntry ce,
             string servername,
             string username
             )
         {
             bool result = false;
 
-            // Ensure we have creds
-            if (!Session.EnsureNullSession(servername, ce))
-            {
-                return result;
-            }
-
             try
             {
                 if (!NetApiInitCalled)
                 {
-                    NetApiInitCalled = NetInitMemory(ce, servername);
+                    NetApiInitCalled = NetApiInit();
                 }
 
                 if (NetUserDel(servername, username) == 0)
@@ -475,24 +463,17 @@ namespace Likewise.LMC.NETAPI
 
         public static bool
         NetDeleteGroup(
-            CredentialEntry ce,
             string servername,
             string username
             )
         {
             bool result = false;
 
-            // Ensure we have creds
-            if (!Session.EnsureNullSession(servername, ce))
-            {
-                return result;
-            }
-
             try
             {
                 if (!NetApiInitCalled)
                 {
-                    NetApiInitCalled = NetInitMemory(ce, servername);
+                    NetApiInitCalled = NetApiInit();
                 }
 
                 if (NetLocalGroupDel(servername, username) == 0)
@@ -511,7 +492,6 @@ namespace Likewise.LMC.NETAPI
 
         public static uint
         NetGetGroups(
-            CredentialEntry ce,
             string servername,
             string username,
             out string[] groups
@@ -519,12 +499,6 @@ namespace Likewise.LMC.NETAPI
         {
             uint result = ERROR_FAILURE;
             groups = null;
-
-            // Ensure we have creds
-            if (!Session.EnsureNullSession(servername, ce))
-            {
-                return result;
-            }
 
             IntPtr bufPtr = new IntPtr(0);
 
@@ -535,7 +509,7 @@ namespace Likewise.LMC.NETAPI
 
                 if (!NetApiInitCalled)
                 {
-                    NetApiInitCalled = NetInitMemory(ce, servername);
+                    NetApiInitCalled = NetApiInit();
                 }
 
                 result = (uint)NetUserGetLocalGroups(servername,
@@ -584,7 +558,6 @@ namespace Likewise.LMC.NETAPI
 
         public static void
         NetEnumUsers(
-            CredentialEntry ce,
             string servername,
             int resumeHandle,
             out LUGEnumStatus enumStatus
@@ -593,12 +566,6 @@ namespace Likewise.LMC.NETAPI
             enumStatus = new LUGEnumStatus();
             enumStatus.initializeToNull();
             enumStatus.type = LUGType.User;
-
-            //Ensure we have creds
-            if (!Session.EnsureNullSession(servername, ce))
-            {
-                return;
-            }
 
             IntPtr bufPtr = IntPtr.Zero;
 
@@ -611,7 +578,7 @@ namespace Likewise.LMC.NETAPI
 
                 if (!NetApiInitCalled)
                 {
-                    NetApiInitCalled = NetInitMemory(ce, servername);
+                    NetApiInitCalled = NetApiInit();
                 }
 
                 statusCode = apiNetUserEnum(
@@ -670,7 +637,6 @@ namespace Likewise.LMC.NETAPI
 
         public static void
         NetEnumGroups(
-            CredentialEntry ce,
             string servername,
             int resumeHandle,
             out LUGEnumStatus enumStatus
@@ -692,7 +658,7 @@ namespace Likewise.LMC.NETAPI
 
                 if (!NetApiInitCalled)
                 {
-                    NetApiInitCalled = NetInitMemory(ce, servername);
+                    NetApiInitCalled = NetApiInit();
                 }
 
                 statusCode = apiNetLocalGroupEnum(
@@ -746,7 +712,6 @@ namespace Likewise.LMC.NETAPI
 
         public static uint
         NetDeleteUserFromGroup(
-            CredentialEntry ce,
             string servername,
             string groupname,
             string username
@@ -754,12 +719,6 @@ namespace Likewise.LMC.NETAPI
         {
 
             uint result = ERROR_FAILURE;
-
-            // Ensure we have creds
-            if (!Session.EnsureNullSession(servername, ce))
-            {
-                return result;
-            }
 
             LOCALGROUP_MEMBERS_INFO_3 lgmi3 = new LOCALGROUP_MEMBERS_INFO_3();
             lgmi3.lgrmi3_domainandname = username;
@@ -769,7 +728,7 @@ namespace Likewise.LMC.NETAPI
             {
                 if (!NetApiInitCalled)
                 {
-                    NetApiInitCalled = NetInitMemory(ce, servername);
+                    NetApiInitCalled = NetApiInit();
                 }
 
                 Marshal.StructureToPtr(lgmi3, bufptr, false);
@@ -796,7 +755,6 @@ namespace Likewise.LMC.NETAPI
 
         public static uint
         NetGetUserInfo(
-            CredentialEntry ce,
             string servername,
             string username,
             out LUGInfo userInfo
@@ -813,17 +771,11 @@ namespace Likewise.LMC.NETAPI
             userInfo.description = "";
             userInfo.flags = 0;
 
-            // Ensure we have creds
-            if (!Session.EnsureNullSession(servername, ce))
-            {
-                return result;
-            }
-
             try
             {
                 if (!NetApiInitCalled)
                 {
-                    NetApiInitCalled = NetInitMemory(ce, servername);
+                    NetApiInitCalled = NetApiInit();
                 }
 
                 result = (uint)NetUserGetInfo(servername, username, 20, out bufPtr);
@@ -851,19 +803,12 @@ namespace Likewise.LMC.NETAPI
 
         public static bool
         NetRenameUser(
-            CredentialEntry ce,
             string servername,
             string oldusername,
             string username
             )
         {
             bool result = false;
-
-            // Ensure we have creds
-            if (!Session.EnsureNullSession(servername, ce))
-            {
-                return result;
-            }
 
             USER_INFO_0 usrinfo_0 = new USER_INFO_0();
             usrinfo_0.usri0_name = username;
@@ -875,7 +820,7 @@ namespace Likewise.LMC.NETAPI
             {
                 if (!NetApiInitCalled)
                 {
-                    NetApiInitCalled = NetInitMemory(ce, servername);
+                    NetApiInitCalled = NetApiInit();
                 }
 
                 Marshal.StructureToPtr(usrinfo_0, bufptr, false);
@@ -899,19 +844,12 @@ namespace Likewise.LMC.NETAPI
 
         public static bool
         NetRenameGroup(
-            CredentialEntry ce,
             string servername,
             string oldgroupname,
             string groupname
             )
         {
             bool result = false;
-
-            // Ensure we have creds
-            if (!Session.EnsureNullSession(servername, ce))
-            {
-                return result;
-            }
 
             LOCALGROUP_INFO_0 localgrouinfo_0 = new LOCALGROUP_INFO_0();
             localgrouinfo_0.lgrpi0_name = groupname;
@@ -923,7 +861,7 @@ namespace Likewise.LMC.NETAPI
             {
                 if (!NetApiInitCalled)
                 {
-                    NetApiInitCalled = NetInitMemory(ce, servername);
+                    NetApiInitCalled = NetApiInit();
                 }
 
                 Marshal.StructureToPtr(localgrouinfo_0, bufptr, false);
@@ -950,19 +888,12 @@ namespace Likewise.LMC.NETAPI
 
         public static uint
         NetEditUserFullName(
-            CredentialEntry ce,
             string servername,
             string username,
             string fullname
             )
         {
             uint result = ERROR_FAILURE;
-
-            // Ensure we have creds
-            if (!Session.EnsureNullSession(servername, ce))
-            {
-                return result;
-            }
 
             USER_INFO_1011 userinfo_1011 = new USER_INFO_1011();
             userinfo_1011.usri1011_full_name = fullname;
@@ -974,7 +905,7 @@ namespace Likewise.LMC.NETAPI
             {
                 if (!NetApiInitCalled)
                 {
-                    NetApiInitCalled = NetInitMemory(ce, servername);
+                    NetApiInitCalled = NetApiInit();
                 }
 
                 Marshal.StructureToPtr(userinfo_1011, bufptr1011, false);
@@ -997,19 +928,12 @@ namespace Likewise.LMC.NETAPI
 
         public static uint
         NetEditUserDescription(
-            CredentialEntry ce,
             string servername,
             string username,
             string description
             )
         {
             uint result = ERROR_FAILURE;
-
-            // Ensure we have creds
-            if (!Session.EnsureNullSession(servername, ce))
-            {
-                return result;
-            }
 
             USER_INFO_1007 userinfo_1007 = new USER_INFO_1007();
             userinfo_1007.usri1007_comment = description;
@@ -1023,7 +947,7 @@ namespace Likewise.LMC.NETAPI
 
                 if (!NetApiInitCalled)
                 {
-                    NetApiInitCalled = NetInitMemory(ce, servername);
+                    NetApiInitCalled = NetApiInit();
                 }
 
                 result = (uint)NetUserSetInfo(servername, username, 1007, bufptr, IntPtr.Zero);
@@ -1045,19 +969,12 @@ namespace Likewise.LMC.NETAPI
 
         public static uint
         NetEditUserFlags(
-            CredentialEntry ce,
             string servername,
             string username,
             uint flags
             )
         {
             uint result = ERROR_FAILURE;
-
-            // Ensure we have creds
-            if (!Session.EnsureNullSession(servername, ce))
-            {
-                return result;
-            }
 
             USER_INFO_1008 userinfo_1008 = new USER_INFO_1008();
             userinfo_1008.usri1008_flags = flags;
@@ -1069,7 +986,7 @@ namespace Likewise.LMC.NETAPI
             {
                 if (!NetApiInitCalled)
                 {
-                    NetApiInitCalled = NetInitMemory(ce, servername);
+                    NetApiInitCalled = NetApiInit();
                 }
 
                 Marshal.StructureToPtr(userinfo_1008, bufptr1008, false);
@@ -1091,7 +1008,6 @@ namespace Likewise.LMC.NETAPI
 
         public static uint
         NetGetGroupMembers(
-            CredentialEntry ce,
             string servername,
             string groupname,
             out string [] members
@@ -1100,13 +1016,6 @@ namespace Likewise.LMC.NETAPI
             uint result = ERROR_FAILURE;
 
             members = null;
-
-            // Ensure we have creds
-            if (!Session.EnsureNullSession(servername, ce))
-            {
-                return result;
-            }
-
 
             IntPtr bufPtr = IntPtr.Zero;
             IntPtr bufPtrStar = Marshal.AllocHGlobal(Marshal.SizeOf(bufPtr));
@@ -1124,7 +1033,7 @@ namespace Likewise.LMC.NETAPI
 
                 if (!NetApiInitCalled)
                 {
-                    NetApiInitCalled = NetInitMemory(ce, servername);
+                    NetApiInitCalled = NetApiInit();
                 }
 
                 result = (uint)apiNetLocalGroupGetMembers(servername, groupname, 3, out bufPtr,
@@ -1191,7 +1100,6 @@ namespace Likewise.LMC.NETAPI
 
         public static uint
         NetGetGroupInfo(
-            CredentialEntry ce,
             string servername,
             string groupname,
             out string description
@@ -1201,18 +1109,12 @@ namespace Likewise.LMC.NETAPI
 
             description = null;
 
-            // Ensure we have creds
-            if (!Session.EnsureNullSession(servername, ce))
-            {
-                return result;
-            }
-
             IntPtr bufPtr = IntPtr.Zero;
             try
             {
                 if (!NetApiInitCalled)
                 {
-                    NetApiInitCalled = NetInitMemory(ce, servername);
+                    NetApiInitCalled = NetApiInit();
                 }
 
                 result = (uint)NetLocalGroupGetInfo(servername, groupname, 1, out bufPtr);
@@ -1244,19 +1146,12 @@ namespace Likewise.LMC.NETAPI
 
         public static uint
         NetEditGroupDescription(
-            CredentialEntry ce,
             string servername,
             string groupname,
             string description
             )
         {
             uint result = ERROR_FAILURE;
-
-            // Ensure we have creds
-            if (!Session.EnsureNullSession(servername, ce))
-            {
-                return result;
-            }
 
             LOCALGROUP_INFO_1 groupinfo_1 = new LOCALGROUP_INFO_1();
             groupinfo_1.comment = description;
@@ -1268,7 +1163,7 @@ namespace Likewise.LMC.NETAPI
             {
                 if (!NetApiInitCalled)
                 {
-                    NetApiInitCalled = NetInitMemory(ce, servername);
+                    NetApiInitCalled = NetApiInit();
                 }
 
                 Marshal.StructureToPtr(groupinfo_1, bufptr, false);
@@ -1292,7 +1187,6 @@ namespace Likewise.LMC.NETAPI
 
         public static uint
         NetAddGroupMember(
-            CredentialEntry ce,
             string servername,
             string groupname,
             string username
@@ -1300,42 +1194,34 @@ namespace Likewise.LMC.NETAPI
         {
             uint result = ERROR_FAILURE;
 
-            // Ensure we have creds
-            if (!Session.EnsureNullSession(servername, ce))
-            {
-                return result;
-            }
-            else
-            {
-                LOCALGROUP_MEMBERS_INFO_3 lgmi3 = new LOCALGROUP_MEMBERS_INFO_3();
-                lgmi3.lgrmi3_domainandname = username;
+            LOCALGROUP_MEMBERS_INFO_3 lgmi3 = new LOCALGROUP_MEMBERS_INFO_3();
+            lgmi3.lgrmi3_domainandname = username;
 
-                IntPtr bufptr = Marshal.AllocHGlobal(Marshal.SizeOf(lgmi3));
+            IntPtr bufptr = Marshal.AllocHGlobal(Marshal.SizeOf(lgmi3));
+            try
+            {
+                if (!NetApiInitCalled)
+                {
+                    NetApiInitCalled = NetApiInit();
+                }
+
+                Marshal.StructureToPtr(lgmi3, bufptr, false);
+                result = (uint)NetLocalGroupAddMembers(servername, groupname, 3, bufptr, 1);
+            }
+            catch (Exception)
+            {
+                result = ERROR_FAILURE;
+            }
+            finally
+            {
                 try
                 {
-                    if (!NetApiInitCalled)
-                    {
-                        NetApiInitCalled = NetInitMemory(ce, servername);
-                    }
-
-                    Marshal.StructureToPtr(lgmi3, bufptr, false);
-                    result = (uint)NetLocalGroupAddMembers(servername, groupname, 3, bufptr, 1);
+                    Marshal.DestroyStructure(bufptr, lgmi3.GetType());
+                    Marshal.FreeHGlobal(bufptr);
                 }
                 catch (Exception)
                 {
                     result = ERROR_FAILURE;
-                }
-                finally
-                {
-                    try
-                    {
-                        Marshal.DestroyStructure(bufptr, lgmi3.GetType());
-                        Marshal.FreeHGlobal(bufptr);
-                    }
-                    catch (Exception)
-                    {
-                        result = ERROR_FAILURE;
-                    }
                 }
             }
 
@@ -1346,19 +1232,12 @@ namespace Likewise.LMC.NETAPI
 
         public static uint
         NetDeleteGroupMember(
-            CredentialEntry ce,
             string servername,
             string groupname,
             string username
             )
         {
             uint result = ERROR_FAILURE;
-
-            // Ensure we have creds
-            if (!Session.EnsureNullSession(servername, ce))
-            {
-                return result;
-            }
 
             LOCALGROUP_MEMBERS_INFO_3 lgmi_3 = new LOCALGROUP_MEMBERS_INFO_3();
             lgmi_3.lgrmi3_domainandname = username;
@@ -1372,7 +1251,7 @@ namespace Likewise.LMC.NETAPI
 
                 if (!NetApiInitCalled)
                 {
-                    NetApiInitCalled = NetInitMemory(ce, servername);
+                    NetApiInitCalled = NetApiInit();
                 }
 
                 result = (uint)NetLocalGroupDelMembers(servername, groupname, 3, bufptr, 1);
@@ -1480,18 +1359,10 @@ namespace Likewise.LMC.NETAPI
         #endregion
 
         public static bool
-        NetInitMemory(
-            CredentialEntry ce,
-            string servername
+        NetApiInit(
             )
         {
             bool result = false;
-
-            // Ensure we have creds
-            if (!Session.EnsureNullSession(servername, ce))
-            {
-                return result;
-            }
 
             try
             {

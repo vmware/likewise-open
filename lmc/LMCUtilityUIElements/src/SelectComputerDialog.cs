@@ -66,11 +66,21 @@ namespace Likewise.LMC.UtilityUIElements
         {
             tbComputer.Enabled = rbRemoteComputer.Checked;
             btnOk.Enabled = false;
+
+            if (tbComputer.Enabled && tbComputer.TextLength != 0)
+            {
+                btnOk.Enabled = true;
+            }
         }
 
         private void tbComputer_TextChanged(object sender, EventArgs e)
         {
-            btnOk.Enabled = true;
+            btnOk.Enabled = false;
+
+            if (tbComputer.Enabled && tbComputer.TextLength != 0)
+            {
+                btnOk.Enabled = true;
+            }
         }
 
         private void btnOk_Click(object sender, EventArgs e)
@@ -99,7 +109,8 @@ namespace Likewise.LMC.UtilityUIElements
                 }
             }
 
-            Close();
+            this.DialogResult = DialogResult.OK;
+            this.Close();
         }
 
         private void btnCancel_Click(object sender, EventArgs e)

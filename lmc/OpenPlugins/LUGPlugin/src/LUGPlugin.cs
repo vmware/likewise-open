@@ -39,6 +39,7 @@ using System;
 using System.Xml;
 using System.Collections.Generic;
 using Likewise.LMC.Plugins.LUG.src;
+using Likewise.LMC.UtilityUIElements;
 
 namespace Likewise.LMC.Plugins.LUG
 {
@@ -256,45 +257,15 @@ class LUGPlugIn: IPlugIn
     #region context menus
     private void cm_OnConnect(object sender, EventArgs e)
     {
-        //check if we are joined to a domain -- if not, use manual credentails
-        uint requestedFields = (uint)Hostinfo.FieldBitmaskBits.FQDN;
-
-        if (_hn == null)
-        {
-            _hn = new Hostinfo();
-        }
-
         Logger.Log(String.Format(
-       "LUGPlugin.cm_OnConnect: _usingManualCreds: {0}, hn: {1}",
-       _usingManualCreds, _hn));
+        "LUGPlugin.cm_OnConnect: _usingManualCreds: {0}, hn: {1}",
+        _usingManualCreds, _hn));
 
-        //if (!String.IsNullOrEmpty(_hn.domainName))
-        //{
-        //    requestedFields = Hostinfo.FieldBitmaskBits.FORCE_USER_PROMPT;
-        //}
+        SelectComputerDialog selectDlg = new SelectComputerDialog();
 
-        if (!_usingManualCreds)
+        if(selectDlg.ShowDialog() == DialogResult.OK)
         {
-            requestedFields = (uint)Hostinfo.FieldBitmaskBits.FQ_HOSTNAME;
-            requestedFields |= (uint)Hostinfo.FieldBitmaskBits.FQDN;
-            requestedFields |= (uint)Hostinfo.FieldBitmaskBits.CREDS_USERNAME;
-            requestedFields |= (uint)Hostinfo.FieldBitmaskBits.CREDS_PASSWORD;
         }
-        if (!_container.GetTargetMachineInfo(this, _hn, requestedFields))
-        {
-            Logger.Log(
-            "Could not find information about target machine",
-            Logger.LogLevel.Error);           
-            if (requestedFields == (uint)Hostinfo.FieldBitmaskBits.FQDN)
-                cm_OnConnect(sender, e);
-        }
-        //else
-        //{
-        //    if (!_usingManualCreds && !_hn.IsConnectionSuccess)
-        //    {
-        //        _usingManualCreds = true;
-        //    }
-        //}
     }
     
     private void cm_OnCreateUser(object sender, EventArgs e)

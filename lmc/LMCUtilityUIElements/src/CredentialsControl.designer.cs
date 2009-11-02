@@ -69,6 +69,7 @@ namespace Likewise.LMC.UtilityUIElements
             //
             this.tbPassword.Location = new System.Drawing.Point(80, 47);
             this.tbPassword.Name = "tbPassword";
+            this.tbPassword.PasswordChar = '*';
             this.tbPassword.Size = new System.Drawing.Size(157, 20);
             this.tbPassword.TabIndex = 3;
             this.tbPassword.TextChanged += new System.EventHandler(this.tbPassword_TextChanged);

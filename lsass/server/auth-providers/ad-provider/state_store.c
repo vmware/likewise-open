@@ -1703,7 +1703,7 @@ ADState_ReadRegCellEntry(
     }
 
 cleanup:
-    for (i=0; i<dwValueLen; i++)
+    for (i=0; i<dwMultiCellListOrder; i++)
     {
         LW_SAFE_FREE_STRING(ppszMultiCellListOrder[i]);
     }

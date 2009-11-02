@@ -1737,9 +1737,8 @@ sign_db_authdata (krb5_context context,
 		  krb5_keyblock *server_key,
 		  krb5_timestamp authtime,
 		  krb5_authdata **tgs_authdata,
-		  krb5_authdata ***ret_authdata,
-		  krb5_db_entry *ad_entry,
-		  int *ad_nprincs)
+		  krb5_keyblock *session_key,
+		  krb5_authdata ***ret_authdata)
 {
     krb5_error_code code;
     kdb_sign_auth_data_req req;
@@ -1748,8 +1747,6 @@ sign_db_authdata (krb5_context context,
     krb5_data rep_data;
 
     *ret_authdata = NULL;
-    memset(ad_entry, 0, sizeof(*ad_entry));
-    *ad_nprincs = 0;
 
     memset(&req, 0, sizeof(req));
     memset(&rep, 0, sizeof(rep));
@@ -1763,9 +1760,7 @@ sign_db_authdata (krb5_context context,
     req.server_key		= server_key;
     req.authtime		= authtime;
     req.auth_data		= tgs_authdata;
-
-    rep.entry			= ad_entry;
-    rep.nprincs			= 0;
+    req.session_key		= session_key;
 
     req_data.data = (void *)&req;
     req_data.length = sizeof(req);
@@ -1779,7 +1774,6 @@ sign_db_authdata (krb5_context context,
 			  &rep_data);
 
     *ret_authdata = rep.auth_data;
-    *ad_nprincs = rep.nprincs;
 
     return code;
 }

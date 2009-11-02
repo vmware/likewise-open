@@ -174,6 +174,10 @@
       <Project>{812CAFA6-B428-4565-A839-A2E1B68096E3}</Project>
       <Name>LMCUtilities</Name>
     </ProjectReference>
+    <ProjectReference Include="..\..\LMCUtilityUIElements\LMCUtilityUIElements.csproj">
+      <Project>{283DC463-BE07-49E6-8B0A-E3F8EDA0A7CF}</Project>
+      <Name>LMCUtilityUIElements</Name>
+    </ProjectReference>
     <ProjectReference Include="..\..\ServerControl\ServerControl_Open.csproj">
       <Project>{9F45E041-5B67-48B8-AD13-DD5C40F3364A}</Project>
       <Name>ServerControl_Open</Name>
