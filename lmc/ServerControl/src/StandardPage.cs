@@ -33,8 +33,7 @@ using System.ComponentModel;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
-using Likewise.LMC.LMConsoleUtils;
-using Likewise.LMC.AuthUtils;
+using Likewise.LMC.Utilities;
 using Likewise.LMC.ServerControl.Properties;
 
 namespace Likewise.LMC.ServerControl

@@ -35,9 +35,8 @@ using System.Xml;
 using System.Collections.Generic;
 using Likewise.LMC.Plugins.FileShareManager.Properties;
 using Likewise.LMC.ServerControl;
-using Likewise.LMC.LMConsoleUtils;
+using Likewise.LMC.Utilities;
 using Likewise.LMC.NETAPI;
-using Likewise.LMC.AuthUtils;
 using Likewise.LMC.Plugins.FileShareManager;
 
 namespace Likewise.LMC.Plugins.FileShareManager

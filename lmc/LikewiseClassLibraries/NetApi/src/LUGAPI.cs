@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Runtime.InteropServices;
-using Likewise.LMC.LMConsoleUtils;
-using Likewise.LMC.AuthUtils;
+using Likewise.LMC.Utilities;
+
 
 namespace Likewise.LMC.NETAPI
 {

@@ -35,7 +35,7 @@ using System.Data;
 using System.Drawing;
 using System.Text;
 using System.Windows.Forms;
-using Likewise.LMC.LMConsoleUtils;
+using Likewise.LMC.Utilities;
 using System.Text.RegularExpressions;
 using Likewise.LMC.Registry;
 

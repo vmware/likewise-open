@@ -26,8 +26,7 @@
       </sources>
 
       <references>
-        <include name="${build.dist.os}/Likewise.LMC.LMConsoleUtils.dll" />
-        <include name="${build.dist.os}/Likewise.LMC.AuthUtils.dll" />
+        <include name="${build.dist.os}/Likewise.LMC.Utilities.dll" />
         <include name="${build.dist.os}/Likewise.LMC.Netlogon.dll" />
         <include name="${build.dist.os}/Likewise.LMC.ServerControl.unix.dll" />
         <include name="${build.dist.os}/Likewise.LMC.Krb5.dll" />

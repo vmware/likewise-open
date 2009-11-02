@@ -34,8 +34,7 @@ using System.Collections;
 using System.Drawing;
 using System.Diagnostics;
 using System.Windows.Forms;
-using Likewise.LMC.LMConsoleUtils;
-using Likewise.LMC.AuthUtils;
+using Likewise.LMC.Utilities;
 using Likewise.LMC.LDAP;
 using Likewise.LMC.LDAP.Interop;
 using Likewise.LMC.Plugins.ADUCPlugin.Properties;
@@ -232,8 +231,8 @@ public class ADUCDirectoryNode: DirectoryNode
             ADUCPlugin plugin = this.Plugin as ADUCPlugin;
             haveRetrievedChildren = true;
             this.IsModified = false;
-            if (ret == (int)Likewise.LMC.LMConsoleUtils.ErrorCodes.LDAPEnum.LDAP_SERVER_DOWN ||
-            ret == (int)Likewise.LMC.LMConsoleUtils.ErrorCodes.LDAPEnum.LDAP_CONNECT_ERROR ||
+            if (ret == (int)Likewise.LMC.Utilities.ErrorCodes.LDAPEnum.LDAP_SERVER_DOWN ||
+            ret == (int)Likewise.LMC.Utilities.ErrorCodes.LDAPEnum.LDAP_CONNECT_ERROR ||
             ret == -1)
             {
                 if (ret == -1)
@@ -445,8 +444,8 @@ public class ADUCDirectoryNode: DirectoryNode
             ADUCPlugin plugin = this.Plugin as ADUCPlugin;
             haveRetrievedChildren = true;
             this.IsModified = false;
-            if (ret == (int)Likewise.LMC.LMConsoleUtils.ErrorCodes.LDAPEnum.LDAP_SERVER_DOWN ||
-            ret == (int)Likewise.LMC.LMConsoleUtils.ErrorCodes.LDAPEnum.LDAP_CONNECT_ERROR ||
+            if (ret == (int)Likewise.LMC.Utilities.ErrorCodes.LDAPEnum.LDAP_SERVER_DOWN ||
+            ret == (int)Likewise.LMC.Utilities.ErrorCodes.LDAPEnum.LDAP_CONNECT_ERROR ||
             ret == -1)
             {
                 if (ret == -1)
@@ -648,8 +647,8 @@ public class ADUCDirectoryNode: DirectoryNode
             ADUCPlugin plugin = this.Plugin as ADUCPlugin;
             haveRetrievedChildren = true;
             this.IsModified = false;
-            if (ret == (int)Likewise.LMC.LMConsoleUtils.ErrorCodes.LDAPEnum.LDAP_SERVER_DOWN ||
-            ret == (int)Likewise.LMC.LMConsoleUtils.ErrorCodes.LDAPEnum.LDAP_CONNECT_ERROR ||
+            if (ret == (int)Likewise.LMC.Utilities.ErrorCodes.LDAPEnum.LDAP_SERVER_DOWN ||
+            ret == (int)Likewise.LMC.Utilities.ErrorCodes.LDAPEnum.LDAP_CONNECT_ERROR ||
             ret == -1)
             {
                 if (ret == -1)
@@ -734,8 +733,8 @@ public class ADUCDirectoryNode: DirectoryNode
             ADUCPlugin plugin = this.Plugin as ADUCPlugin;
             haveRetrievedChildren = true;
             this.IsModified = false;
-            if (ret == (int)Likewise.LMC.LMConsoleUtils.ErrorCodes.LDAPEnum.LDAP_SERVER_DOWN ||
-            ret == (int)Likewise.LMC.LMConsoleUtils.ErrorCodes.LDAPEnum.LDAP_CONNECT_ERROR ||
+            if (ret == (int)Likewise.LMC.Utilities.ErrorCodes.LDAPEnum.LDAP_SERVER_DOWN ||
+            ret == (int)Likewise.LMC.Utilities.ErrorCodes.LDAPEnum.LDAP_CONNECT_ERROR ||
             ret == -1)
             {
                 if (ret == -1)
@@ -867,8 +866,8 @@ public class ADUCDirectoryNode: DirectoryNode
             ADUCPlugin plugin = this.Plugin as ADUCPlugin;
             haveRetrievedChildren = true;
             this.IsModified = true;
-            if (ret == (int)Likewise.LMC.LMConsoleUtils.ErrorCodes.LDAPEnum.LDAP_SERVER_DOWN ||
-            ret == (int)Likewise.LMC.LMConsoleUtils.ErrorCodes.LDAPEnum.LDAP_CONNECT_ERROR ||
+            if (ret == (int)Likewise.LMC.Utilities.ErrorCodes.LDAPEnum.LDAP_SERVER_DOWN ||
+            ret == (int)Likewise.LMC.Utilities.ErrorCodes.LDAPEnum.LDAP_CONNECT_ERROR ||
             ret == -1)
             {
                 if (ret == -1)

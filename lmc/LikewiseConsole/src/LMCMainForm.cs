@@ -36,7 +36,7 @@ using System.Diagnostics;
 using System.Windows.Forms;
 using System.Collections.Generic;
 using System.Threading;
-using Likewise.LMC.LMConsoleUtils;
+using Likewise.LMC.Utilities;
 using Likewise.LMC.Properties;
 using Likewise.LMC.ServerControl;
 using System.IO;

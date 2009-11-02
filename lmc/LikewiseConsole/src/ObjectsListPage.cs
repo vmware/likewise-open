@@ -39,10 +39,10 @@ using System.DirectoryServices;
 using System.IO;
 using Likewise.LMC.LDAP;
 using Likewise.LMC.LDAP.Interop;
-using Likewise.LMC.LMConsoleUtils;
+using Likewise.LMC.Utilities;
 using Likewise.LMC.ServerControl;
 using Likewise.LMC.Krb5;
-using Likewise.LMC.AuthUtils;
+
 
 namespace Likewise.LMC
 {
@@ -117,8 +117,8 @@ namespace Likewise.LMC
 
             if (ldapEntries == null || ldapEntries.Count == 0)
             {
-                if (ret == (int)Likewise.LMC.LMConsoleUtils.ErrorCodes.LDAPEnum.LDAP_SERVER_DOWN ||
-                   ret == (int)Likewise.LMC.LMConsoleUtils.ErrorCodes.LDAPEnum.LDAP_CONNECT_ERROR ||
+                if (ret == (int)Likewise.LMC.Utilities.ErrorCodes.LDAPEnum.LDAP_SERVER_DOWN ||
+                   ret == (int)Likewise.LMC.Utilities.ErrorCodes.LDAPEnum.LDAP_CONNECT_ERROR ||
                    ret == -1)
                 {
                     if (ret == -1)
@@ -206,8 +206,8 @@ namespace Likewise.LMC
 
             if (ldapEntries == null || ldapEntries.Count == 0)
             {
-                if (ret == (int)Likewise.LMC.LMConsoleUtils.ErrorCodes.LDAPEnum.LDAP_SERVER_DOWN ||
-                   ret == (int)Likewise.LMC.LMConsoleUtils.ErrorCodes.LDAPEnum.LDAP_CONNECT_ERROR ||
+                if (ret == (int)Likewise.LMC.Utilities.ErrorCodes.LDAPEnum.LDAP_SERVER_DOWN ||
+                   ret == (int)Likewise.LMC.Utilities.ErrorCodes.LDAPEnum.LDAP_CONNECT_ERROR ||
                    ret == -1)
                 {
                     if (ret == -1)
@@ -467,7 +467,7 @@ namespace Likewise.LMC
                 
             else
             {
-                container.ShowMessage(LMConsoleUtils.ErrorCodes.LDAPString(ret));
+                container.ShowMessage(Utilities.ErrorCodes.LDAPString(ret));
             }
             return true;
         }

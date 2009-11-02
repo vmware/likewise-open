@@ -1,11 +1,5 @@
 Microsoft Visual Studio Solution File, Format Version 9.00
 # Visual Studio 2005
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AuthUtils", "..\AuthUtils\AuthUtils.csproj", "{805A93D2-3B90-4A27-B319-73D86363470A}"
-	ProjectSection(WebsiteProperties) = preProject
-		Debug.AspNetCompiler.Debug = "True"
-		Release.AspNetCompiler.Debug = "False"
-	EndProjectSection
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventlogPlugIn", "..\OpenPlugins\EventlogPlugin\EventlogPlugIn.csproj", "{542B16FB-6692-4765-B0DB-F3B12C537781}"
 	ProjectSection(WebsiteProperties) = preProject
 		Debug.AspNetCompiler.Debug = "True"
@@ -102,12 +96,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServerControl_Open", "..\Se
 		Release.AspNetCompiler.Debug = "False"
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LMConsoleUtils", "..\LMConsoleUtils\LMConsoleUtils.csproj", "{42B9FE52-8F39-4CAE-885F-9DB9B5DF0A70}"
-	ProjectSection(WebsiteProperties) = preProject
-		Debug.AspNetCompiler.Debug = "True"
-		Release.AspNetCompiler.Debug = "False"
-	EndProjectSection
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "LikewiseClassLibraries", "LikewiseClassLibraries", "{2733908E-FB40-46D1-89A8-4D735853B7C9}"
 	ProjectSection(WebsiteProperties) = preProject
 		Debug.AspNetCompiler.Debug = "True"
@@ -138,7 +126,19 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FileClientApi", "..\Likewis
 		Release.AspNetCompiler.Debug = "False"
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LMCCredentials", "..\LMCCredentialDlgs\LMCCredentials.csproj", "{E34C3066-88C0-4414-A47D-6FCD806760FA}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "LikewiseUtilities", "LikewiseUtilities", "{0C0F0C5C-03C3-427B-8B49-A73B90406AD6}"
+	ProjectSection(WebsiteProperties) = preProject
+		Debug.AspNetCompiler.Debug = "True"
+		Release.AspNetCompiler.Debug = "False"
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LMCUtilities", "..\LMCUtilities\LMCUtilities.csproj", "{812CAFA6-B428-4565-A839-A2E1B68096E3}"
+	ProjectSection(WebsiteProperties) = preProject
+		Debug.AspNetCompiler.Debug = "True"
+		Release.AspNetCompiler.Debug = "False"
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LMCUtilityUIElements", "..\LMCUtilityUIElements\LMCUtilityUIElements.csproj", "{283DC463-BE07-49E6-8B0A-E3F8EDA0A7CF}"
 	ProjectSection(WebsiteProperties) = preProject
 		Debug.AspNetCompiler.Debug = "True"
 		Release.AspNetCompiler.Debug = "False"
@@ -154,16 +154,6 @@ Global
 		Release|Win32 = Release|Win32
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{805A93D2-3B90-4A27-B319-73D86363470A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{805A93D2-3B90-4A27-B319-73D86363470A}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{805A93D2-3B90-4A27-B319-73D86363470A}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
-		{805A93D2-3B90-4A27-B319-73D86363470A}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
-		{805A93D2-3B90-4A27-B319-73D86363470A}.Debug|Win32.ActiveCfg = Debug|Any CPU
-		{805A93D2-3B90-4A27-B319-73D86363470A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{805A93D2-3B90-4A27-B319-73D86363470A}.Release|Any CPU.Build.0 = Release|Any CPU
-		{805A93D2-3B90-4A27-B319-73D86363470A}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
-		{805A93D2-3B90-4A27-B319-73D86363470A}.Release|Mixed Platforms.Build.0 = Release|Any CPU
-		{805A93D2-3B90-4A27-B319-73D86363470A}.Release|Win32.ActiveCfg = Release|Any CPU
 		{542B16FB-6692-4765-B0DB-F3B12C537781}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{542B16FB-6692-4765-B0DB-F3B12C537781}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{542B16FB-6692-4765-B0DB-F3B12C537781}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
@@ -324,16 +314,6 @@ Global
 		{9F45E041-5B67-48B8-AD13-DD5C40F3364A}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
 		{9F45E041-5B67-48B8-AD13-DD5C40F3364A}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{9F45E041-5B67-48B8-AD13-DD5C40F3364A}.Release|Win32.ActiveCfg = Release|Any CPU
-		{42B9FE52-8F39-4CAE-885F-9DB9B5DF0A70}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{42B9FE52-8F39-4CAE-885F-9DB9B5DF0A70}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{42B9FE52-8F39-4CAE-885F-9DB9B5DF0A70}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
-		{42B9FE52-8F39-4CAE-885F-9DB9B5DF0A70}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
-		{42B9FE52-8F39-4CAE-885F-9DB9B5DF0A70}.Debug|Win32.ActiveCfg = Debug|Any CPU
-		{42B9FE52-8F39-4CAE-885F-9DB9B5DF0A70}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{42B9FE52-8F39-4CAE-885F-9DB9B5DF0A70}.Release|Any CPU.Build.0 = Release|Any CPU
-		{42B9FE52-8F39-4CAE-885F-9DB9B5DF0A70}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
-		{42B9FE52-8F39-4CAE-885F-9DB9B5DF0A70}.Release|Mixed Platforms.Build.0 = Release|Any CPU
-		{42B9FE52-8F39-4CAE-885F-9DB9B5DF0A70}.Release|Win32.ActiveCfg = Release|Any CPU
 		{DB67826F-BBA0-4091-9BF3-90246022D58A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{DB67826F-BBA0-4091-9BF3-90246022D58A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DB67826F-BBA0-4091-9BF3-90246022D58A}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
@@ -364,16 +344,26 @@ Global
 		{FB091F6B-D872-4644-9037-94096D4A62DF}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
 		{FB091F6B-D872-4644-9037-94096D4A62DF}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{FB091F6B-D872-4644-9037-94096D4A62DF}.Release|Win32.ActiveCfg = Release|Any CPU
-		{E34C3066-88C0-4414-A47D-6FCD806760FA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{E34C3066-88C0-4414-A47D-6FCD806760FA}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E34C3066-88C0-4414-A47D-6FCD806760FA}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
-		{E34C3066-88C0-4414-A47D-6FCD806760FA}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
-		{E34C3066-88C0-4414-A47D-6FCD806760FA}.Debug|Win32.ActiveCfg = Debug|Any CPU
-		{E34C3066-88C0-4414-A47D-6FCD806760FA}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{E34C3066-88C0-4414-A47D-6FCD806760FA}.Release|Any CPU.Build.0 = Release|Any CPU
-		{E34C3066-88C0-4414-A47D-6FCD806760FA}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
-		{E34C3066-88C0-4414-A47D-6FCD806760FA}.Release|Mixed Platforms.Build.0 = Release|Any CPU
-		{E34C3066-88C0-4414-A47D-6FCD806760FA}.Release|Win32.ActiveCfg = Release|Any CPU
+		{812CAFA6-B428-4565-A839-A2E1B68096E3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{812CAFA6-B428-4565-A839-A2E1B68096E3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{812CAFA6-B428-4565-A839-A2E1B68096E3}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{812CAFA6-B428-4565-A839-A2E1B68096E3}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{812CAFA6-B428-4565-A839-A2E1B68096E3}.Debug|Win32.ActiveCfg = Debug|Any CPU
+		{812CAFA6-B428-4565-A839-A2E1B68096E3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{812CAFA6-B428-4565-A839-A2E1B68096E3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{812CAFA6-B428-4565-A839-A2E1B68096E3}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{812CAFA6-B428-4565-A839-A2E1B68096E3}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{812CAFA6-B428-4565-A839-A2E1B68096E3}.Release|Win32.ActiveCfg = Release|Any CPU
+		{283DC463-BE07-49E6-8B0A-E3F8EDA0A7CF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{283DC463-BE07-49E6-8B0A-E3F8EDA0A7CF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{283DC463-BE07-49E6-8B0A-E3F8EDA0A7CF}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{283DC463-BE07-49E6-8B0A-E3F8EDA0A7CF}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{283DC463-BE07-49E6-8B0A-E3F8EDA0A7CF}.Debug|Win32.ActiveCfg = Debug|Any CPU
+		{283DC463-BE07-49E6-8B0A-E3F8EDA0A7CF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{283DC463-BE07-49E6-8B0A-E3F8EDA0A7CF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{283DC463-BE07-49E6-8B0A-E3F8EDA0A7CF}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{283DC463-BE07-49E6-8B0A-E3F8EDA0A7CF}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{283DC463-BE07-49E6-8B0A-E3F8EDA0A7CF}.Release|Win32.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -396,7 +386,8 @@ Global
 		{6844AA5B-95A3-4F50-A084-8316A02B6E58} = {2733908E-FB40-46D1-89A8-4D735853B7C9}
 		{D27214EF-85C2-46D7-94A7-45C3D26BEAC8} = {2733908E-FB40-46D1-89A8-4D735853B7C9}
 		{FB091F6B-D872-4644-9037-94096D4A62DF} = {2733908E-FB40-46D1-89A8-4D735853B7C9}
-		{E34C3066-88C0-4414-A47D-6FCD806760FA} = {2733908E-FB40-46D1-89A8-4D735853B7C9}
+		{812CAFA6-B428-4565-A839-A2E1B68096E3} = {0C0F0C5C-03C3-427B-8B49-A73B90406AD6}
+		{283DC463-BE07-49E6-8B0A-E3F8EDA0A7CF} = {0C0F0C5C-03C3-427B-8B49-A73B90406AD6}
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
 		StartupItem = ..\LikewiseConsole\LMCOpen.csproj

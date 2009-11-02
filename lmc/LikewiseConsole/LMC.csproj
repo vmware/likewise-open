@@ -165,7 +165,6 @@
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="src\AddRemovePluginDlg.cs">
-      <SubType>Form</SubType>
     </Compile>
     <Compile Include="src\AddRemovePluginDlg.Designer.cs">
       <DependentUpon>AddRemovePluginDlg.cs</DependentUpon>
@@ -189,13 +188,11 @@
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="src\ObjectSelectDlg.cs">
-      <SubType>Form</SubType>
     </Compile>
     <Compile Include="src\ObjectSelectDlg.designer.cs">
       <DependentUpon>ObjectSelectDlg.cs</DependentUpon>
     </Compile>
     <Compile Include="src\ObjectSelectPage.cs">
-      <SubType>UserControl</SubType>
     </Compile>
     <Compile Include="src\ObjectSelectPage.Designer.cs">
       <DependentUpon>ObjectSelectPage.cs</DependentUpon>
@@ -208,13 +205,11 @@
     </Compile>
     <Compile Include="src\ShowUsageException.cs" />
     <Compile Include="src\PluginExtensionsPage.cs">
-      <SubType>UserControl</SubType>
     </Compile>
     <Compile Include="src\PluginExtensionsPage.Designer.cs">
       <DependentUpon>PluginExtensionsPage.cs</DependentUpon>
     </Compile>
     <Compile Include="src\PluginStandalonePage.cs">
-      <SubType>UserControl</SubType>
     </Compile>
     <Compile Include="src\PluginStandalonePage.Designer.cs">
       <DependentUpon>PluginStandalonePage.cs</DependentUpon>

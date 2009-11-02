@@ -31,8 +31,7 @@
 using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
-using Likewise.LMC.LMConsoleUtils;
-using Likewise.LMC.AuthUtils;
+using Likewise.LMC.Utilities;
 using Likewise.LMC.ServerControl;
 using Likewise.LMC.LDAP;
 using Likewise.LMC.LDAP.Interop;

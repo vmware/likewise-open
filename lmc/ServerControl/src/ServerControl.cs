@@ -35,7 +35,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Windows.Forms;
 using Likewise.LMC.ServerControl.Properties;
-using Likewise.LMC.LMConsoleUtils;
+using Likewise.LMC.Utilities;
 
 namespace Likewise.LMC.ServerControl
 {

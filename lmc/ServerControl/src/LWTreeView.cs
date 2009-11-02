@@ -33,8 +33,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
 using System.Threading;
-using Likewise.LMC.LMConsoleUtils;
-using Likewise.LMC.AuthUtils;
+using Likewise.LMC.Utilities;
 
 namespace Likewise.LMC.ServerControl
 {

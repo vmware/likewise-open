@@ -31,13 +31,13 @@
 using System;
 using System.Collections;
 using System.Windows.Forms;
-using Likewise.LMC.LMConsoleUtils;
+using Likewise.LMC.Utilities;
 using Likewise.LMC.ServerControl;
 using Likewise.LMC.NETAPI;
 using Likewise.LMC.LDAP;
 using System.DirectoryServices;
 using Likewise.LMC.Netlogon;
-using Likewise.LMC.AuthUtils;
+
 
 namespace Likewise.LMC.Plugins.LUG
 {

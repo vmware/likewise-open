@@ -38,7 +38,7 @@ using System.Windows.Forms;
 using System.IO;
 using System.Reflection;
 using Likewise.LMC.ServerControl;
-using Likewise.LMC.LMConsoleUtils;
+using Likewise.LMC.Utilities;
 #if QUARTZ
 #if LMC_ENTERPRISE
 using Likewise.LMC.Plugins.GPOEPlugin;

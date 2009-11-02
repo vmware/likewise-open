@@ -34,9 +34,8 @@ using System;
 using System.Xml;
 using System.Collections.Generic;
 using Likewise.LMC.ServerControl;
-using Likewise.LMC.LMConsoleUtils;
+using Likewise.LMC.Utilities;
 using Likewise.LMC.Registry;
-using Likewise.LMC.AuthUtils;
 
 using Microsoft.Win32;
 

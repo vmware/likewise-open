@@ -34,7 +34,7 @@ using System.Text;
 using Likewise.LMC.LDAP;
 using Likewise.LMC.ServerControl;
 using Likewise.LMC.Plugins.ADUCPlugin.Properties;
-using Likewise.LMC.LMConsoleUtils;
+using Likewise.LMC.Utilities;
 using System.Windows.Forms;
 using System.DirectoryServices;
 using System.Net;

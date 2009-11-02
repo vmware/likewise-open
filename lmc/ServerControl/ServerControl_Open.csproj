@@ -278,17 +278,13 @@
     <None Include="Resources\User.ico" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\AuthUtils\AuthUtils.csproj">
-      <Project>{805A93D2-3B90-4A27-B319-73D86363470A}</Project>
-      <Name>AuthUtils</Name>
-    </ProjectReference>
     <ProjectReference Include="..\LikewiseClassLibraries\Netlogon\Netlogon.csproj">
       <Project>{BE8FEFB2-BC23-43AC-A6D4-80B43A6F0B0D}</Project>
       <Name>Netlogon</Name>
     </ProjectReference>
-    <ProjectReference Include="..\LMConsoleUtils\LMConsoleUtils.csproj">
-      <Project>{42B9FE52-8F39-4CAE-885F-9DB9B5DF0A70}</Project>
-      <Name>LMConsoleUtils</Name>
+    <ProjectReference Include="..\LMCUtilities\LMCUtilities.csproj">
+      <Project>{812CAFA6-B428-4565-A839-A2E1B68096E3}</Project>
+      <Name>LMCUtilities</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />

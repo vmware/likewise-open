@@ -32,10 +32,9 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Windows.Forms;
-using Likewise.LMC.LMConsoleUtils;
+using Likewise.LMC.Utilities;
 using Likewise.LMC.LDAP.Interop;
 using Likewise.LMC.ServerControl;
-using Likewise.LMC.AuthUtils;
 using Likewise.LMC.LDAP;
 using System.Globalization;
 

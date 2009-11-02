@@ -32,7 +32,7 @@ using System;
 using System.Diagnostics;
 using System.Threading;
 using System.Windows.Forms;
-using Likewise.LMC.LMConsoleUtils;
+using Likewise.LMC.Utilities;
 using Likewise.LMC.Properties;
 using Likewise.LMC.ServerControl;
 using System.Net;
@@ -158,7 +158,7 @@ namespace Likewise.LMC
 
             //Only in the debug build, make sure all the unmanaged objects have been freed
 #if DEBUG
-            Likewise.LMC.LMConsoleUtils.DebugMarshal.CheckAllFreed();
+            Likewise.LMC.Utilities.DebugMarshal.CheckAllFreed();
 #endif
 
             return;

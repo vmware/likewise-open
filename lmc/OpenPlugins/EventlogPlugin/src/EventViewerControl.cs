@@ -34,7 +34,7 @@ using System.Drawing;
 using System.Collections.Generic;
 using System.Windows.Forms;
 using System.Diagnostics;
-using Likewise.LMC.LMConsoleUtils;
+using Likewise.LMC.Utilities;
 using Likewise.LMC.ServerControl;
 using Likewise.LMC.Netlogon;
 using Likewise.LMC.Eventlog;

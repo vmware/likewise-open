@@ -32,7 +32,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Diagnostics;
-using Likewise.LMC.LMConsoleUtils;
+using Likewise.LMC.Utilities;
 
 /*****
  * PSID_IDENTIFIER_AUTHORITY    - First 6 bytes

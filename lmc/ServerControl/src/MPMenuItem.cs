@@ -29,7 +29,7 @@
  */
 
 using System;
-using Likewise.LMC.LMConsoleUtils;
+using Likewise.LMC.Utilities;
 
 namespace Likewise.LMC.ServerControl
 {

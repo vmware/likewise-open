@@ -25,8 +25,7 @@
       </sources>
 
       <references>
-        <include name="${build.dist.os}/Likewise.LMC.LMConsoleUtils.dll" />
-        <include name="${build.dist.os}/Likewise.LMC.Authutils.dll" />
+        <include name="${build.dist.os}/Likewise.LMC.Utilities.dll" />
         <include name="System.dll" />
         <include name="System.Windows.Forms.dll" />
       </references>

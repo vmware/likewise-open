@@ -35,12 +35,12 @@ using System.Data;
 using System.Drawing;
 using System.Text;
 using System.Windows.Forms;
-using Likewise.LMC.LMConsoleUtils;
+using Likewise.LMC.Utilities;
 using Likewise.LMC.ServerControl;
 using Likewise.LMC.LDAP;
 using System.DirectoryServices;
 using Likewise.LMC.NETAPI;
-using Likewise.LMC.AuthUtils;
+
 
 namespace Likewise.LMC.Plugins.ADUCPlugin
 {

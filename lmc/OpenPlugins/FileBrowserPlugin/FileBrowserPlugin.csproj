@@ -110,10 +110,6 @@
     <Content Include="Resources\SharedFolder2.ico" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\AuthUtils\AuthUtils.csproj">
-      <Project>{805A93D2-3B90-4A27-B319-73D86363470A}</Project>
-      <Name>AuthUtils</Name>
-    </ProjectReference>
     <ProjectReference Include="..\..\LikewiseClassLibraries\FileClientApi\FileClientApi.csproj">
       <Project>{FB091F6B-D872-4644-9037-94096D4A62DF}</Project>
       <Name>FileClientApi</Name>
@@ -122,13 +118,13 @@
       <Project>{978100A9-9BF2-49A9-8E2B-57DB61907526}</Project>
       <Name>NetApi</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\LMCCredentialDlgs\LMCCredentials.csproj">
-      <Project>{E34C3066-88C0-4414-A47D-6FCD806760FA}</Project>
-      <Name>LMCCredentials</Name>
+    <ProjectReference Include="..\..\LMCUtilities\LMCUtilities.csproj">
+      <Project>{812CAFA6-B428-4565-A839-A2E1B68096E3}</Project>
+      <Name>LMCUtilities</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\LMConsoleUtils\LMConsoleUtils.csproj">
-      <Project>{42B9FE52-8F39-4CAE-885F-9DB9B5DF0A70}</Project>
-      <Name>LMConsoleUtils</Name>
+    <ProjectReference Include="..\..\LMCUtilityUIElements\LMCUtilityUIElements.csproj">
+      <Project>{283DC463-BE07-49E6-8B0A-E3F8EDA0A7CF}</Project>
+      <Name>LMCUtilityUIElements</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\ServerControl\ServerControl_Open.csproj">
       <Project>{9F45E041-5B67-48B8-AD13-DD5C40F3364A}</Project>

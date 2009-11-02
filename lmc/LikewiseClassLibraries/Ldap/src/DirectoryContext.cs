@@ -32,7 +32,7 @@ using System;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Collections.Generic;
-using Likewise.LMC.LMConsoleUtils;
+using Likewise.LMC.Utilities;
 using Likewise.LMC.LDAP.Interop;
 using System.Net;
 

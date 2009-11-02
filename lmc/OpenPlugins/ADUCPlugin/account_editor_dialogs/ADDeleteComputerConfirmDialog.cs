@@ -35,7 +35,7 @@ using System.Data;
 using System.Drawing;
 using System.Text;
 using System.Windows.Forms;
-using Likewise.LMC.LMConsoleUtils;
+using Likewise.LMC.Utilities;
 using Likewise.LMC.ServerControl;
 
 namespace Likewise.LMC.Plugins.ADUCPlugin

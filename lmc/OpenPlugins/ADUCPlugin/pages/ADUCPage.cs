@@ -33,7 +33,7 @@ using System.Drawing;
 using System.Windows.Forms;
 using System.Diagnostics;
 using System.Collections;
-using Likewise.LMC.LMConsoleUtils;
+using Likewise.LMC.Utilities;
 using Likewise.LMC.LDAP;
 using Likewise.LMC.Plugins.ADUCPlugin.Properties;
 using Likewise.LMC.ServerControl;
@@ -43,7 +43,7 @@ using Likewise.LMC.NETAPI;
 using System.Threading;
 using System.Text;
 using System.ComponentModel;
-using Likewise.LMC.AuthUtils;
+
 
 namespace Likewise.LMC.Plugins.ADUCPlugin
 {
@@ -1488,7 +1488,7 @@ public partial class ADUCPage : StandardPage
             false,
             out ldapEntries);
 
-            if (ret == (int)Likewise.LMC.LMConsoleUtils.ErrorCodes.LDAPEnum.LDAP_NO_SUCH_OBJECT)
+            if (ret == (int)Likewise.LMC.Utilities.ErrorCodes.LDAPEnum.LDAP_NO_SUCH_OBJECT)
             {
                 return;
             }
@@ -3943,8 +3943,8 @@ public partial class ADUCPage : StandardPage
         ,
         false,
         out message);
-        if (ret == (int)Likewise.LMC.LMConsoleUtils.ErrorCodes.LDAPEnum.LDAP_SERVER_DOWN ||
-        ret == (int)Likewise.LMC.LMConsoleUtils.ErrorCodes.LDAPEnum.LDAP_CONNECT_ERROR ||
+        if (ret == (int)Likewise.LMC.Utilities.ErrorCodes.LDAPEnum.LDAP_SERVER_DOWN ||
+        ret == (int)Likewise.LMC.Utilities.ErrorCodes.LDAPEnum.LDAP_CONNECT_ERROR ||
         ret == -1 || ret == 85)
         {
             if (ret == -1 || ret == 85)

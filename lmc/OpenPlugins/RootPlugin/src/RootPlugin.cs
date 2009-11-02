@@ -31,7 +31,7 @@
 using System;
 using System.Drawing;
 using Likewise.LMC.ServerControl;
-using Likewise.LMC.LMConsoleUtils;
+using Likewise.LMC.Utilities;
 using System.Windows.Forms;
 using System.Xml;
 

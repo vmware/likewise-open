@@ -31,14 +31,13 @@
 using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
-using Likewise.LMC.LMConsoleUtils;
 using Likewise.LMC.ServerControl;
 using Likewise.LMC.LDAP;
 using System.Collections;
 using Likewise.LMC.LDAP.Interop;
 using System.Reflection;
 using System.Threading;
-using Likewise.LMC.AuthUtils;
+using Likewise.LMC.Utilities;
 
 namespace Likewise.LMC.Plugins.ADUCPlugin
 {

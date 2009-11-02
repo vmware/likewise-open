@@ -30,7 +30,7 @@
 
 using System;
 using Likewise.LMC.LDAP.Interop;
-using Likewise.LMC.LMConsoleUtils;
+using Likewise.LMC.Utilities;
 using System.Runtime.InteropServices;
 using Likewise.LMC.LDAP;
 using System.Threading;
@@ -557,7 +557,7 @@ namespace Likewise.LMC.LDAP
 
                     ret = LdapAPI.ldap_search_s(_ld, basedn, scope, filter, attrs, attrsonly, out umldapMessage);
 
-                    if (ret != 0 && ret != (int)Likewise.LMC.LMConsoleUtils.ErrorCodes.LDAPEnum.LDAP_SIZELIMIT_EXCEEDED && ret != 1)
+                    if (ret != 0 && ret != (int)Likewise.LMC.Utilities.ErrorCodes.LDAPEnum.LDAP_SIZELIMIT_EXCEEDED && ret != 1)
                     {
                         Logger.Log(ErrorCodes.LDAPString(ret), Logger.ldapLogLevel);
                         ldapMessage = null;

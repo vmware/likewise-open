@@ -53,9 +53,9 @@
     <Compile Include="src\LSAMgmtWrapper.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\LMConsoleUtils\LMConsoleUtils.csproj">
-      <Project>{42B9FE52-8F39-4CAE-885F-9DB9B5DF0A70}</Project>
-      <Name>LMConsoleUtils</Name>
+    <ProjectReference Include="..\..\LMCUtilities\LMCUtilities.csproj">
+      <Project>{812CAFA6-B428-4565-A839-A2E1B68096E3}</Project>
+      <Name>LMCUtilities</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />

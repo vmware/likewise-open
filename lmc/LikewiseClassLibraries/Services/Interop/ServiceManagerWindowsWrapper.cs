@@ -32,7 +32,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Management;
-using Likewise.LMC.LMConsoleUtils;
+using Likewise.LMC.Utilities;
 using System.ServiceProcess;
 using System.Runtime.InteropServices;
 

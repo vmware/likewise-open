@@ -31,7 +31,7 @@
 using System;
 using System.Windows.Forms;
 using System.Xml;
-using Likewise.LMC.LMConsoleUtils;
+using Likewise.LMC.Utilities;
 using System.Net;
 #if !QUARTZ
 using Centeris.Likewise.Auth;

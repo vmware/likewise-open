@@ -40,7 +40,7 @@ using System.Management;
 
 using Likewise.LMC.ServerControl;
 using Likewise.LMC.Services;
-using Likewise.LMC.LMConsoleUtils;
+using Likewise.LMC.Utilities;
 
 namespace Likewise.LMC.Plugins.ServiceManagerPlugin
 {
