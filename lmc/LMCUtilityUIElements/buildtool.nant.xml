@@ -24,7 +24,6 @@
 
       <references>
 	<include name="${build.dist.os}/Likewise.LMC.Utilities.dll" />
-	<include name="${build.dist.os}/Likewise.LMC.ServerControl.unix.dll" />
         <include name="System.dll" />
         <include name="System.Data.dll" />
         <include name="System.Drawing.dll" />

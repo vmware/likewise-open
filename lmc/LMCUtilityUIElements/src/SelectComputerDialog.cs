@@ -5,7 +5,6 @@ using System.Data;
 using System.Drawing;
 using System.Text;
 using System.Windows.Forms;
-using Likewise.LMC.ServerControl;
 
 namespace Likewise.LMC.UtilityUIElements
 {
@@ -14,8 +13,7 @@ namespace Likewise.LMC.UtilityUIElements
         #region Class Data
 
         private string sUsername = "";
-        private CredentialsDialog credsDialog = null;
-        private Hostinfo _hn = null;
+        public CredentialsDialog credsDialog = null;
 
         #endregion
 
@@ -24,27 +22,19 @@ namespace Likewise.LMC.UtilityUIElements
         public SelectComputerDialog()
         {
             InitializeComponent();
-
-            _hn = new Hostinfo();
         }
 
         public SelectComputerDialog(string hostname, string username)
             : this()
         {
             if (String.IsNullOrEmpty(username))
-                rbLocalComputer.Enabled = true;
+                rbLocalComputer.Checked = true;
             else
+            {
                 this.sUsername = username;
-
-            this.tbComputer.Text = hostname;
-        }
-
-        public SelectComputerDialog(string hostname)
-            : this()
-        {
-            this.tbComputer.Text = hostname;
-            rbLocalComputer.Checked = true;
-            rbRemoteComputer.Checked = false;
+                this.tbComputer.Text = hostname;
+                rbRemoteComputer.Checked = true;
+            }
         }
 
         #endregion
@@ -85,25 +75,16 @@ namespace Likewise.LMC.UtilityUIElements
 
         private void btnOk_Click(object sender, EventArgs e)
         {
+            bool okayToExit = true;
+
             if (credsDialog != null)
             {
-                if (credsDialog.UseDefaultUserCreds() != true)
-                {
-                    _hn.creds.UserName = credsDialog.GetUsername();
-                    _hn.creds.Password = credsDialog.GetPassword();
+                if (credsDialog.UseDefaultUserCreds() != true) {
+                    okayToExit = !String.IsNullOrEmpty(credsDialog.GetUsername()) && !String.IsNullOrEmpty(credsDialog.GetPassword());
                 }
             }
 
-            if (rbLocalComputer.Checked)
-            {
-                _hn.hostName = System.Environment.MachineName;
-            }
-            else
-            {
-                _hn.hostName = tbComputer.Text;
-            }
-
-            if (!rbLocalComputer.Checked  && credsDialog != null && credsDialog.UseDefaultUserCreds() == true)
+            if (!rbLocalComputer.Checked && credsDialog != null && credsDialog.UseDefaultUserCreds() == true)
             {
                 MessageBox.Show(
                    "You have selected a remote host that requires credentials.\n Please click on 'alternate' to set the credentails",
@@ -113,8 +94,11 @@ namespace Likewise.LMC.UtilityUIElements
                 return;
             }
 
-            this.DialogResult = DialogResult.OK;
-            this.Close();
+            if (okayToExit == true)
+            {
+                this.DialogResult = DialogResult.OK;
+                this.Close();
+            }
         }
 
         private void btnCancel_Click(object sender, EventArgs e)
@@ -125,11 +109,35 @@ namespace Likewise.LMC.UtilityUIElements
 
         #endregion
 
-        #region Access Specifiers
+        #region Helper functions
 
-        public Hostinfo hostInfo
+        public string GetHostname()
         {
-            get { return _hn; }
+            if (rbLocalComputer.Checked) {
+                return System.Environment.MachineName;
+            }
+            else
+            {
+                return tbComputer.Text;
+            }
+        }
+
+        public string GetUsername()
+        {
+            return credsDialog.GetUsername();
+        }
+
+        public string GetPassword()
+        {
+            return credsDialog.GetPassword();
+        }
+
+        public bool UseDefaultUserCreds()
+        {
+            if (credsDialog != null)
+                return credsDialog.UseDefaultUserCreds();
+            else
+                return true;
         }
 
         #endregion

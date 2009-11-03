@@ -5,7 +5,7 @@ using System.Data;
 using System.Drawing;
 using System.Text;
 using System.Windows.Forms;
-using Likewise.LMC.ServerControl;
+
 
 namespace Likewise.LMC.UtilityUIElements
 {
@@ -13,9 +13,8 @@ namespace Likewise.LMC.UtilityUIElements
     {
         #region Class Data
 
-        private Hostinfo _hn = null;
-        private CredentialsDialog credsDialog = null;
         private string sUsername = "";
+        private CredentialsDialog credsDialog = null;
 
         #endregion
 
@@ -24,15 +23,6 @@ namespace Likewise.LMC.UtilityUIElements
         public SelectDomainDialog()
         {
             InitializeComponent();
-        }
-
-        public SelectDomainDialog(IPlugIn plugin, string domainname)
-            : this()
-        {
-            tbDomain.Text = domainname;
-            rbDefaultDomain.Checked = true;
-
-            _hn.domainName = domainname;
         }
 
         public SelectDomainDialog(string domain, string username)
@@ -45,27 +35,9 @@ namespace Likewise.LMC.UtilityUIElements
             }
             else
             {
+                sUsername = username;
                 tbDomain.Text = domain;
                 rbOtherDomain.Checked = true;
-            }
-        }
-
-        public SelectDomainDialog(LMCCredentials lmcCredentials)
-            : this()
-        {
-            if (lmcCredentials != null)
-            {
-                if (String.IsNullOrEmpty(lmcCredentials.Username))
-                {
-                    rbDefaultDomain.Checked = true;
-                    tbDomain.Text = "";
-                }
-                else
-                {
-                    sUsername = lmcCredentials.Username;
-                    tbDomain.Text = lmcCredentials.Domain;
-                    rbOtherDomain.Checked = true;
-                }
             }
         }
 
@@ -90,33 +62,39 @@ namespace Likewise.LMC.UtilityUIElements
             btnOk.Enabled = false;
         }
 
+        private void tbDomain_TextChanged(object sender, EventArgs e)
+        {
+            btnOk.Enabled = !String.IsNullOrEmpty(tbDomain.Text.Trim());
+
+        }
+
         private void btnOk_Click(object sender, EventArgs e)
         {
-            if (rbDefaultDomain.Checked) {
-                _hn.domainName = System.Environment.UserDomainName;
-            }
-            else
+            bool okayToExit = true;
+
+            if (credsDialog != null)
             {
-                if (credsDialog != null)
+                if (credsDialog.UseDefaultUserCreds() != true)
                 {
-                    if (!String.IsNullOrEmpty(credsDialog.CredentialsControl.Username))
-                    {
-                        _hn.domainName = tbDomain.Text;
-                        _hn.creds.UserName = credsDialog.GetUsername();
-                        _hn.creds.Password = credsDialog.GetPassword();
-                    }
-                    else
-                    {
-                        MessageBox.Show(
-                            "You have selected the Remost host that needs the credentials cache.\n Please click on 'alternate' to set the credentails",
-                            "Likewise Administrative Console",
-                            MessageBoxButtons.OK,
-                            MessageBoxIcon.Exclamation);
-                        return;
-                    }
+                    okayToExit = !String.IsNullOrEmpty(credsDialog.GetUsername()) && !String.IsNullOrEmpty(credsDialog.GetPassword());
                 }
             }
-            Close();
+
+            if (!rbDefaultDomain.Checked && credsDialog != null && credsDialog.UseDefaultUserCreds() == true)
+            {
+                MessageBox.Show(
+                   "You have selected a remote host that requires credentials.\n Please click on 'alternate' to set the credentails",
+                   "Likewise Administrative Console",
+                   MessageBoxButtons.OK,
+                   MessageBoxIcon.Exclamation);
+                return;
+            }
+
+            if (okayToExit == true)
+            {
+                this.DialogResult = DialogResult.OK;
+                this.Close();
+            }
         }
 
         private void btnCancel_Click(object sender, EventArgs e)
@@ -125,9 +103,35 @@ namespace Likewise.LMC.UtilityUIElements
             Close();
         }
 
-        private void tbDomain_TextChanged(object sender, EventArgs e)
+        #endregion
+
+        #region Helper functions
+
+        public string GetDomain()
         {
-            btnOk.Enabled = true;
+            if (rbDefaultDomain.Checked) {
+                return System.Environment.UserDomainName;
+            }
+            else
+                return tbDomain.Text.Trim();
+        }
+
+        public string GetUsername()
+        {
+            return credsDialog.GetUsername();
+        }
+
+        public string GetPassword()
+        {
+            return credsDialog.GetPassword();
+        }
+
+        public bool UseDefaultUserCreds()
+        {
+            if (credsDialog != null)
+                return credsDialog.UseDefaultUserCreds();
+            else
+                return true;
         }
 
         #endregion

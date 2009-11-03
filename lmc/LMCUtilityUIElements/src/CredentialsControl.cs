@@ -12,9 +12,7 @@ namespace Likewise.LMC.UtilityUIElements
     {
         #region ClassData
 
-        private string sUsername = string.Empty;
-        private string sPassword = string.Empty;
-        private bool bUseDefaultCreds = true;
+        public Credentials credentials = null;
 
         #endregion
 
@@ -25,10 +23,10 @@ namespace Likewise.LMC.UtilityUIElements
             InitializeComponent();
         }
 
-        public CredentialsControl(string username)
+        public CredentialsControl(string username, string password)
             : this()
         {
-            this.sUsername = username;
+            credentials = new Credentials(username, password);
         }
 
         #endregion
@@ -42,7 +40,7 @@ namespace Likewise.LMC.UtilityUIElements
             tbPassword.Enabled = false;
             tbPassword.Text = "";
 
-            bUseDefaultCreds = rbUseCurrentUserCreds.Checked;
+            credentials.UseDefaultUserCreds = rbUseCurrentUserCreds.Checked;
 
             CredentialsDialog credDlg = (CredentialsDialog)this.Parent;
             credDlg.OKBtn.Enabled = true;
@@ -57,7 +55,7 @@ namespace Likewise.LMC.UtilityUIElements
             CredentialsDialog credDlg = (CredentialsDialog)this.Parent;
 
             credDlg.OKBtn.Enabled = false;
-            if (tbUsername.Enabled == true && !string.IsNullOrEmpty(sUsername))
+            if (tbUsername.Enabled == true && !string.IsNullOrEmpty(credentials.Username))
             {
                 credDlg.OKBtn.Enabled = true;
             }
@@ -65,12 +63,12 @@ namespace Likewise.LMC.UtilityUIElements
 
         private void tbUsername_TextChanged(object sender, EventArgs e)
         {
-            sUsername = tbUsername.Text;
+            credentials.Username = tbUsername.Text;
             CredentialsDialog credDlg = (CredentialsDialog)this.Parent;
 
             credDlg.OKBtn.Enabled = false;
 
-            if (!string.IsNullOrEmpty(sUsername))
+            if (!string.IsNullOrEmpty(credentials.Username))
             {
                 credDlg.OKBtn.Enabled = true;
             }
@@ -78,12 +76,12 @@ namespace Likewise.LMC.UtilityUIElements
 
         private void tbPassword_TextChanged(object sender, EventArgs e)
         {
-            sPassword = tbPassword.Text;
+            credentials.Password = tbPassword.Text;
         }
 
         private void CredentialsControl_Load(object sender, EventArgs e)
         {
-            if (string.IsNullOrEmpty(sUsername))
+            if (string.IsNullOrEmpty(credentials.Username))
             {
                 this.rbUseCurrentUserCreds.Checked = true;
                 this.rbUseTheseCreds.Checked = false;
@@ -92,7 +90,7 @@ namespace Likewise.LMC.UtilityUIElements
             {
                 this.rbUseCurrentUserCreds.Checked = false;
                 this.rbUseTheseCreds.Checked = true;
-                this.tbUsername.Text = sUsername;
+                this.tbUsername.Text = credentials.Username;
                 this.tbPassword.Text = "";
             }
         }
@@ -104,30 +102,30 @@ namespace Likewise.LMC.UtilityUIElements
         public string Username
         {
             set {
-                sUsername = value;
+                credentials.Username = value;
             }
             get {
-                return sUsername;
+                return credentials.Username;
             }
         }
 
         public string Password
         {
             set {
-                sPassword = value;
+                credentials.Password = value;
             }
             get {
-                return sPassword;
+                return credentials.Password;
             }
         }
 
         public bool UseDefaultCreds
         {
             set {
-                bUseDefaultCreds = value;
+                credentials.UseDefaultUserCreds = value;
             }
             get {
-                return bUseDefaultCreds;
+                return credentials.UseDefaultUserCreds;
             }
         }
 

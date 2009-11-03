@@ -48,7 +48,6 @@
     <Compile Include="src\CredentialsDialog.designer.cs">
       <DependentUpon>CredentialsDialog.cs</DependentUpon>
     </Compile>
-    <Compile Include="src\LMCCredentials.cs" />
     <Compile Include="src\SelectComputerDialog.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -84,10 +83,6 @@
     <ProjectReference Include="..\LMCUtilities\LMCUtilities.csproj">
       <Project>{812CAFA6-B428-4565-A839-A2E1B68096E3}</Project>
       <Name>LMCUtilities</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\ServerControl\ServerControl_Open.csproj">
-      <Project>{9F45E041-5B67-48B8-AD13-DD5C40F3364A}</Project>
-      <Name>ServerControl_Open</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />

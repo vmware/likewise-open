@@ -5,15 +5,12 @@ using System.Data;
 using System.Drawing;
 using System.Text;
 using System.Windows.Forms;
-using Likewise.LMC.ServerControl;
 
 namespace Likewise.LMC.UtilityUIElements
 {
     public partial class CredentialsDialog : Form
     {
         #region Class Data
-
-        private IPlugIn _plugin = null;
 
         #endregion
 
@@ -24,19 +21,11 @@ namespace Likewise.LMC.UtilityUIElements
             InitializeComponent();
         }
 
-        public CredentialsDialog(string username, IPlugIn plugin)
-            : this()
-        {
-            credentialsControl.Username = username;
-            _plugin = plugin;
-        }
-
         public CredentialsDialog(string username)
             : this()
         {
             credentialsControl.Username = username;
         }
-
 
         #endregion
 
@@ -73,7 +62,7 @@ namespace Likewise.LMC.UtilityUIElements
 
             if (!UseDefaultUserCreds())
             {
-                if (GetUsername().Length == 0)
+                if (GetUsername().Length == 0 || GetPassword().Length == 0)
                     okayToExit = false;
             }
 
@@ -85,32 +74,8 @@ namespace Likewise.LMC.UtilityUIElements
                     credentialsControl.Password = "";
                 }
 
-                if(_plugin != null)
-                {
-                    if (_plugin.GetContext() is Hostinfo)
-                    {
-                        //Hostinfo _hn = _plugin.GetContext();
-                    }
-                    else
-                    {
-                        _plugin.SetContext(_plugin.GetContext());
-                    }
-                }
-
                 this.DialogResult = DialogResult.OK;
                 this.Close();
-            }
-        }
-
-        #endregion
-
-        #region Access Specifiers
-
-        public CredentialsControl CredentialsControl
-        {
-            get
-            {
-                return credentialsControl;
             }
         }
 

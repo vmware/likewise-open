@@ -46,7 +46,7 @@ public partial class GroupPropertiesDlg : MPContainer
     private EditSimpleListPage groupPropertiesPage;
     
     private IPlugIn plugin;
-    private Hostinfo hn = null;
+    //private Hostinfo hn = null;
     
     #endregion
     
