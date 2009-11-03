@@ -141,6 +141,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
             this.lvFilePage.View = System.Windows.Forms.View.Details;
             this.lvFilePage.MouseClick += new System.Windows.Forms.MouseEventHandler(this.lvFilePage_MouseClick);
             this.lvFilePage.SelectedIndexChanged += new System.EventHandler(this.lvFilePage_SelectedIndexChanged);
+            this.lvFilePage.DoubleClick += new System.EventHandler(this.lvFilePage_DoubleClick);
             this.lvFilePage.MouseUp += new System.Windows.Forms.MouseEventHandler(this.lvFilePage_MouseUp);
             this.lvFilePage.ColumnClick += new System.Windows.Forms.ColumnClickEventHandler(this.lvFilePage_ColumnClick);
             //
@@ -172,7 +173,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
             // contextMenuStrip
             //
             this.contextMenuStrip.Name = "contextMenuStrip";
-            this.contextMenuStrip.Size = new System.Drawing.Size(153, 26);
+            this.contextMenuStrip.Size = new System.Drawing.Size(61, 4);
             this.contextMenuStrip.ItemClicked += new System.Windows.Forms.ToolStripItemClickedEventHandler(this.contextMenuStrip_ItemClicked);
             //
             // FilesDetailPage

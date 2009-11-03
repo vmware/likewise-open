@@ -473,9 +473,13 @@ public class ADUCPlugin: IPlugIn
                     }
                 }
             }
+            else
+            {
+                break;
+            }
         }
     }
-    
+
     /// <summary>
     /// Method that creates and initializes the ADUC Rootnode
     /// </summary>

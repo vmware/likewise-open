@@ -607,7 +607,14 @@ namespace Likewise.LMC.LDAP
 
             try
             {
-                domainControllerEntry = Dns.GetHostEntry(DomainControllerName);             
+                if (DomainControllerName != null)
+                {
+                    domainControllerEntry = Dns.GetHostEntry(DomainControllerName);
+                }
+                else
+                {
+                    return null;
+                }
             }
             catch(Exception ex)
             {               
