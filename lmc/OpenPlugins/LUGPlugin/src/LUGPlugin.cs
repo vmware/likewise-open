@@ -214,7 +214,7 @@ class LUGPlugIn: IPlugIn
         if (nodeClicked == _pluginNode)
         {
             cm = new ContextMenu();
-            MenuItem m_item = new MenuItem("Set Target Machine", new EventHandler(cm_OnConnect));
+            MenuItem m_item = new MenuItem("Connect to...", new EventHandler(cm_OnConnect));
             m_item.Tag = nodeClicked;
             cm.MenuItems.Add(m_item);
         }
@@ -261,13 +261,27 @@ class LUGPlugIn: IPlugIn
         "LUGPlugin.cm_OnConnect: _usingManualCreds: {0}, hn: {1}",
         _usingManualCreds, _hn));
 
-        SelectComputerDialog selectDlg = new SelectComputerDialog();
+        SelectComputerDialog selectDlg = new SelectComputerDialog(_hn.hostName, _hn.creds.UserName);
 
         if(selectDlg.ShowDialog() == DialogResult.OK)
         {
+            Hostinfo hn = selectDlg.hostInfo;
+
+            _hn.hostName = hn.hostName;
+            _hn.creds.UserName = hn.creds.UserName;
+            _hn.creds.Password = hn.creds.Password;
+
+            if (LUGAPI.NetAddConnection(_hn.hostName, _hn.creds.UserName, _hn.creds.Password) != 0)
+            {
+                MessageBox.Show(
+                   "Unable to connect to system.",
+                   "Likewise Administrative Console",
+                   MessageBoxButtons.OK,
+                   MessageBoxIcon.Exclamation);
+            }
         }
     }
-    
+
     private void cm_OnCreateUser(object sender, EventArgs e)
     {
         MenuItem m_item = sender as MenuItem;

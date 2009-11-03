@@ -738,7 +738,80 @@ error:
 }
 
 DWORD
-RegTransactEnumKeyEx(
+RegTransactEnumKeyExA(
+    IN HANDLE hConnection,
+    IN HKEY hKey,
+    IN DWORD dwIndex,
+    IN OUT PSTR pszName,
+    IN OUT PDWORD pcName,
+    IN PDWORD pReserved,
+    IN OUT PSTR pszClass,
+    IN OUT OPTIONAL PDWORD pcClass,
+    OUT OPTIONAL PFILETIME pftLastWriteTime
+    )
+{
+    DWORD dwError = 0;
+
+    REG_IPC_ENUM_KEYA_EX_REQ EnumKeyExReq;
+    // Do not free pError
+    PREG_IPC_ERROR pError = NULL;
+    PREG_IPC_ENUM_KEYA_EX_RESPONSE pEnumKeyExResp = NULL;
+
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* pCall = NULL;
+
+    dwError = RegIpcAcquireCall(hConnection, &pCall);
+    BAIL_ON_REG_ERROR(dwError);
+
+    EnumKeyExReq.hKey = hKey;
+    EnumKeyExReq.dwIndex = dwIndex;
+    EnumKeyExReq.pszName = pszName;
+    EnumKeyExReq.cName = *pcName;
+    EnumKeyExReq.pszClass = pszClass;
+    EnumKeyExReq.pcClass = pcClass;
+
+    in.tag = REG_Q_ENUM_KEYA_EX;
+    in.data = &EnumKeyExReq;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
+    BAIL_ON_REG_ERROR(dwError);
+
+    switch (out.tag)
+    {
+        case REG_R_ENUM_KEYA_EX_SUCCESS:
+            pEnumKeyExResp = (PREG_IPC_ENUM_KEYA_EX_RESPONSE) out.data;
+
+            memcpy(pszName, pEnumKeyExResp->pszName, (pEnumKeyExResp->cName+1)*sizeof(*pszName));
+            *pcName = pEnumKeyExResp->cName;
+
+            break;
+
+        case REG_R_ENUM_KEYA_EX_FAILURE:
+            pError = (PREG_IPC_ERROR) out.data;
+            dwError = pError->dwError;
+            BAIL_ON_REG_ERROR(dwError);
+            break;
+        default:
+            dwError = EINVAL;
+            BAIL_ON_REG_ERROR(dwError);
+    }
+
+cleanup:
+    if (pCall)
+    {
+        lwmsg_call_destroy_params(pCall, &out);
+        lwmsg_call_release(pCall);
+    }
+
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+DWORD
+RegTransactEnumKeyExW(
     IN HANDLE hConnection,
     IN HKEY hKey,
     IN DWORD dwIndex,
@@ -771,7 +844,7 @@ RegTransactEnumKeyEx(
     EnumKeyExReq.pClass = pClass;
     EnumKeyExReq.pcClass = pcClass;
 
-    in.tag = REG_Q_ENUM_KEY_EX;
+    in.tag = REG_Q_ENUM_KEYW_EX;
     in.data = &EnumKeyExReq;
 
     dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
@@ -779,7 +852,7 @@ RegTransactEnumKeyEx(
 
     switch (out.tag)
     {
-        case REG_R_ENUM_KEY_EX_SUCCESS:
+        case REG_R_ENUM_KEYW_EX_SUCCESS:
             pEnumKeyExResp = (PREG_IPC_ENUM_KEY_EX_RESPONSE) out.data;
 
             memcpy(pName, pEnumKeyExResp->pName, (pEnumKeyExResp->cName+1)*sizeof(*pName));
@@ -787,7 +860,7 @@ RegTransactEnumKeyEx(
 
             break;
 
-        case REG_R_ENUM_KEY_EX_FAILURE:
+        case REG_R_ENUM_KEYW_EX_FAILURE:
             pError = (PREG_IPC_ERROR) out.data;
             dwError = pError->dwError;
             BAIL_ON_REG_ERROR(dwError);

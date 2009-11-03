@@ -40,6 +40,7 @@
  *        Likewise IO (LWIO) RTL Path Routines
  *
  * Authors: Danilo Almeida (dalmeida@likewise.com)
+ *          Brian Koropoff (bkoropoff@likewise.com)
  */
 
 #include "includes.h"
@@ -51,4 +52,72 @@ IoRtlPathIsSeparator(
     )
 {
     return (('/' == Character) || ('\\' == Character)) ? TRUE : FALSE;
+}
+
+NTSTATUS
+IoRtlPathUncToInternal(
+    PCWSTR pwszUncPath,
+    PWSTR* ppwszInternalPath
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PWSTR pwszCopy = NULL;
+    PWSTR pwszIn = NULL;
+    PWSTR pwszOut = NULL;
+    CHAR szCwd[PATH_MAX];
+
+    status = LwRtlWC16StringDuplicate(&pwszCopy, pwszUncPath);
+    BAIL_ON_NT_STATUS(status);
+
+    for(pwszIn = pwszOut = pwszCopy; *pwszIn; pwszIn++)
+    {
+        if (IoRtlPathIsSeparator(*pwszIn))
+        {
+            *(pwszOut++) = '/';
+            while (IoRtlPathIsSeparator(pwszIn[1]))
+            {
+                pwszIn++;
+            }
+        }
+        else
+        {
+            *(pwszOut++) = *pwszIn;
+        }
+    }
+
+    *pwszOut = '\0';
+
+    if (IoRtlPathIsSeparator(pwszUncPath[0]) && IoRtlPathIsSeparator(pwszUncPath[0]))
+    {
+        status = LwRtlWC16StringAllocatePrintfW(ppwszInternalPath, L"/rdr%ws", pwszCopy);
+        BAIL_ON_NT_STATUS(status);
+    }
+    else if (IoRtlPathIsSeparator(pwszUncPath[0]))
+    {
+        status = LwRtlWC16StringAllocatePrintfW(ppwszInternalPath, L"/pvfs%ws", pwszCopy);
+        BAIL_ON_NT_STATUS(status);
+    }
+    else
+    {
+        if (getcwd(szCwd, sizeof(szCwd)) == NULL)
+        {
+            status = STATUS_UNSUCCESSFUL;
+            BAIL_ON_NT_STATUS(status);
+        }
+
+        status = LwRtlWC16StringAllocatePrintfW(ppwszInternalPath, L"/pvfs%s/%ws", szCwd, pwszCopy);
+        BAIL_ON_NT_STATUS(status);
+    }
+
+cleanup:
+
+    RTL_FREE(&pwszCopy);
+
+    return status;
+
+error:
+
+    *ppwszInternalPath = NULL;
+
+    goto cleanup;
 }

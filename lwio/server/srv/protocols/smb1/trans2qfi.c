@@ -1134,7 +1134,7 @@ SrvMarshallFileStreamInfo(
         if (pFileStreamInfoCursor->NextEntryOffset)
         {
             pFileStreamInfoCursor =
-                (PFILE_STREAM_INFORMATION)(((PBYTE)pFileStreamInfo) +
+                (PFILE_STREAM_INFORMATION)(((PBYTE)pFileStreamInfoCursor) +
                                         pFileStreamInfoCursor->NextEntryOffset);
         }
         else
@@ -1185,8 +1185,8 @@ SrvMarshallFileStreamInfo(
         }
 
         pFileStreamInfoCursor =
-                        (PFILE_STREAM_INFORMATION)(((PBYTE)pFileStreamInfo) +
-                                        pFileStreamInfoCursor->NextEntryOffset);
+                    (PFILE_STREAM_INFORMATION)(((PBYTE)pFileStreamInfoCursor) +
+                                    pFileStreamInfoCursor->NextEntryOffset);
     }
 
     *ppData = pData;

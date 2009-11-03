@@ -504,8 +504,7 @@ RegShellUtilGetKeys(
     HKEY pFullKey = NULL;
     PSTR pszParentPath = NULL;
     PWSTR pwszSubKey = NULL;
-    PSTR *ppszRootKeyNames = NULL;
-    DWORD dwNumRootKeys = 0;
+    PSTR pszKeyName = NULL;
 
     if (!hReg)
     {
@@ -517,36 +516,9 @@ RegShellUtilGetKeys(
 
     if (!pszRootKeyName)
     {
-        dwError = RegEnumRootKeysA(
-                      hReg,
-                      &ppszRootKeyNames,
-                      &dwNumRootKeys);
-        BAIL_ON_REG_ERROR(dwError);
-
-#if 1
-        /*
-         * Allocation of this array and conversion to unicode should not
-         * be needed. This should be the type of data returned by
-         * RegEnumRootKeysA(), and that array can be the return value of
-         * this function.
-         */
-        dwError = LwAllocateMemory(
-                      sizeof(LW_WCHAR *)*dwNumRootKeys,
-                      (LW_PVOID) &subKeys);
-        BAIL_ON_REG_ERROR(dwError);
-        for (i=0; i<dwNumRootKeys; i++)
-        {
-            dwError = LwMbsToWc16s(
-                          ppszRootKeyNames[i],
-                          &subKeys[i]);
-            LW_SAFE_FREE_STRING(ppszRootKeyNames[i]);
-        }
-        LW_SAFE_FREE_MEMORY(ppszRootKeyNames);
-#endif
-
-        *pppRetSubKeys = subKeys;
-        *pdwRetSubKeyCount = dwNumRootKeys;
-        return dwError;
+        return RegEnumRootKeysW(hReg,
+                                pppRetSubKeys,
+                                pdwRetSubKeyCount);
     }
 
     dwError = RegShellCanonicalizePath(pszDefaultKey,
@@ -578,7 +550,7 @@ RegShellUtilGetKeys(
         pFullKey = pRootKey;
     }
 
-    dwError = RegQueryInfoKeyW(
+    dwError = RegQueryInfoKeyA(
         hReg,
         pFullKey,
         NULL,
@@ -606,31 +578,40 @@ RegShellUtilGetKeys(
     for (i = 0; i < dwSubKeyCount; i++)
     {
         dwSubKeyLen = dwMaxSubKeyLen+1;
-        dwError = LwAllocateMemory(
-                      dwSubKeyLen * sizeof(LW_WCHAR),
-                      (LW_PVOID) &subKeys[i]);
+
+        dwError = LwAllocateMemory(dwSubKeyLen*sizeof(*pszKeyName),
+                                   (PVOID)&pszKeyName);
         BAIL_ON_REG_ERROR(dwError);
 
-        dwError = RegEnumKeyEx((HANDLE)hReg,
+        dwError = RegEnumKeyExA((HANDLE)hReg,
                                 pFullKey,
                                 i,
-                                subKeys[i],
+                                pszKeyName,
                                 &dwSubKeyLen,
                                 NULL,
                                 NULL,
                                 NULL,
                                 NULL);
         BAIL_ON_REG_ERROR(dwError);
+
+        dwError = LwMbsToWc16s(pszKeyName, &subKeys[i]);
+        BAIL_ON_REG_ERROR(dwError);
+
+        LW_SAFE_FREE_STRING(pszKeyName);
+        pszKeyName = NULL;
     }
 
     *pppRetSubKeys = subKeys;
     *pdwRetSubKeyCount = dwSubKeyCount;
+
 cleanup:
     RegCloseServer(hRegLocal);
     if (pFullKey && pFullKey != pRootKey)
     {
         RegCloseKey(hReg, pFullKey);
     }
+    LW_SAFE_FREE_STRING(pszKeyName);
+
     return dwError;
 
 error:
@@ -642,7 +623,6 @@ error:
     goto cleanup;
 }
 
-
 DWORD
 RegShellUtilSetValue(
     HANDLE hReg,
@@ -652,7 +632,8 @@ RegShellUtilSetValue(
     PSTR valueName,
     REG_DATA_TYPE type,
     LW_PVOID data,
-    DWORD dataLen)
+    DWORD dataLen
+    )
 {
     HANDLE hRegLocal = NULL;
     DWORD dwError = 0;
@@ -715,7 +696,7 @@ RegShellUtilSetValue(
             dwError = LwAllocateString(data ? data : "", (LW_PVOID) &pData);
             BAIL_ON_REG_ERROR(dwError);
 
-            dwDataLen = strlen((PSTR) pData);
+            dwDataLen = strlen((PSTR) pData)+1;
             break;
 
         case REG_DWORD:
@@ -762,7 +743,6 @@ cleanup:
 error:
     goto cleanup;
 }
-
 
 DWORD
 RegShellUtilGetValues(

@@ -2866,6 +2866,9 @@ LsaDmpLdapOpen(
 
     if (bUseGc)
     {
+        dwError = LsaDmpMustFindDomain(Handle, pDomain->pszForestName, &pDomain);
+        BAIL_ON_LSA_ERROR(dwError);
+
         if (pDomain->pFreeGcConn != NULL)
         {
             pConn = pDomain->pFreeGcConn;

@@ -12,6 +12,7 @@ namespace Likewise.LMC.NETAPI
         #region Net API Imports
 
         private const string netAPIDllPath = "netapi32.dll";
+        private const string mprDllPath = "mpr.dll";
 
         [DllImport(netAPIDllPath)]
         private extern static int NetUserDel(
@@ -145,6 +146,21 @@ namespace Likewise.LMC.NETAPI
             IntPtr resumeHandle
             );
 
+        [DllImport(mprDllPath, SetLastError = true, CharSet = CharSet.Unicode)]
+        private static extern int WNetAddConnection2(
+            NETRESOURCE netResource,
+            [MarshalAs(UnmanagedType.LPWStr)] string sPassword,
+            [MarshalAs(UnmanagedType.LPWStr)] string sUsername,
+            uint dwFlags
+            );
+
+        [DllImport(mprDllPath, SetLastError = true, CharSet = CharSet.Unicode)]
+        private static extern int WNetCancelConnection2(
+            [MarshalAs(UnmanagedType.LPWStr)] string sName,
+            uint dwFlags,
+            bool bForce
+            );
+
         // This doesn't exist in the windows netapi32.dll, but is needed for
         // libnetapi.so
         [DllImport(netAPIDllPath)]
@@ -262,6 +278,75 @@ namespace Likewise.LMC.NETAPI
                 );
 
             return ret;
+        }
+
+        #endregion
+
+        #region MPR API wrappers
+
+        public static uint
+        NetAddConnection(
+            string sServer,
+            string sUsername,
+            string sPassword
+            )
+        {
+            uint result = ERROR_FAILURE;
+
+            // set up a NETRESOURCE structure
+            NETRESOURCE nr = new NETRESOURCE();
+            nr.dwScope = 0;
+            nr.dwType = 0;
+            nr.dwDisplayType = 0;
+            nr.dwUsage = 0;
+            nr.LocalName = null;
+            nr.RemoteName = @"\\" + sServer + @"\IPC$";
+            nr.Comment = null;
+            nr.Provider = null;
+
+            try
+            {
+                if (!NetApiInitCalled)
+                {
+                    NetApiInitCalled = NetApiInit();
+                }
+
+                result = (uint)WNetAddConnection2(nr, sPassword, sUsername, 0);
+            }
+            catch (Exception)
+            {
+            }
+            finally
+            {
+            }
+
+            return result;
+        }
+
+        public static uint
+        NetCancelConnection(
+            string sServer
+            )
+        {
+            uint result = ERROR_FAILURE;
+
+            try
+            {
+                if (!NetApiInitCalled)
+                {
+                    NetApiInitCalled = NetApiInit();
+                }
+
+                result = (uint)WNetCancelConnection2(@"\\" + sServer + @"\IPC$", 1, true);
+            }
+            catch (Exception)
+            {
+            }
+            finally
+            {
+            }
+
+            return result;
         }
 
         #endregion
@@ -1567,6 +1652,23 @@ namespace Likewise.LMC.NETAPI
             public string name;
             [MarshalAs(UnmanagedType.LPWStr)]
             public string comment;
+        }
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+        public class NETRESOURCE
+        {
+            public int dwScope;
+            public int dwType;
+            public int dwDisplayType;
+            public int dwUsage;
+            [MarshalAs(UnmanagedType.LPWStr)]
+            public string LocalName;
+            [MarshalAs(UnmanagedType.LPWStr)]
+            public string RemoteName;
+            [MarshalAs(UnmanagedType.LPWStr)]
+            public string Comment;
+            [MarshalAs(UnmanagedType.LPWStr)]
+            public string Provider;
         }
 
         #region Accessors

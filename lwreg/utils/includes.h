@@ -58,6 +58,7 @@
 #include <lwmem.h>
 #include <lwfile.h>
 #include <lwdef.h>
+#include <winerror-conv.h>
 
 #include <regdef.h>
 #include <regutils.h>

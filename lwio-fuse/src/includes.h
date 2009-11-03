@@ -35,6 +35,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <termios.h>
 
 #include <lw/base.h>
 #include <lwio/lwio.h>

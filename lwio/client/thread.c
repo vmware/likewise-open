@@ -46,7 +46,7 @@ static pthread_key_t gStateKey;
 static
 NTSTATUS
 LwIoNormalizePath(
-    PWSTR pwszPath,
+    PCWSTR pwszPath,
     PWSTR* ppwszNormal
     )
 {
@@ -90,7 +90,7 @@ error:
 static
 NTSTATUS
 LwIoFindPathCreds(
-    PWSTR pwszPath,
+    PCWSTR pwszPath,
     BOOL bPrecise,
     PIO_PATH_CREDS* ppCreds
     )
@@ -426,7 +426,7 @@ error:
 
 LW_NTSTATUS
 LwIoSetPathCreds(
-    LW_PWSTR pwszPathPrefix,
+    LW_PCWSTR pwszPathPrefix,
     LW_PIO_CREDS pCreds
     )
 {
@@ -494,7 +494,7 @@ error:
 
 LW_NTSTATUS
 LwIoGetActiveCreds(
-    LW_PWSTR pwszPath,
+    LW_PCWSTR pwszPath,
     LW_PIO_CREDS* ppToken
     )
 {

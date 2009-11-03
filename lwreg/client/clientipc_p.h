@@ -147,7 +147,20 @@ RegTransactQueryInfoKeyW(
     );
 
 DWORD
-RegTransactEnumKeyEx(
+RegTransactEnumKeyExA(
+    IN HANDLE hConnection,
+    IN HKEY hKey,
+    IN DWORD dwIndex,
+    IN OUT PSTR pszName,
+    IN OUT PDWORD pcName,
+    IN PDWORD pReserved,
+    IN OUT PSTR pszClass,
+    IN OUT OPTIONAL PDWORD pcClass,
+    OUT OPTIONAL PFILETIME pftLastWriteTime
+    );
+
+DWORD
+RegTransactEnumKeyExW(
     IN HANDLE hConnection,
     IN HKEY hKey,
     IN DWORD dwIndex,

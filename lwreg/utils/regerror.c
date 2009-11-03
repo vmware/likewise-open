@@ -49,6 +49,8 @@
 
 #include "includes.h"
 
+#define LW_PRINTF_STRING(x) ((x) ? (x) : "<null>")
+
 DWORD
 RegGetErrorMessageForLoggingEvent(
     DWORD dwErrCode,
@@ -129,11 +131,20 @@ RegPrintError(
         }
         if (LW_IS_NULL_OR_EMPTY_STR(pszErrorString))
         {
-            fprintf(stderr, "%s (error = %u)\n", pszUseErrorPrefix, dwError);
+            fprintf(stderr,
+                    "%s (error = %u - %s)\n",
+                     pszUseErrorPrefix,
+                     dwError,
+                     LW_PRINTF_STRING(LwWin32ErrorToName(dwError)));
         }
         else
         {
-            fprintf(stderr, "%s (error = %u - %s)\n", pszUseErrorPrefix, dwError, pszErrorString);
+            fprintf(stderr,
+                    "%s (error = %u - %s)\n%s\n",
+                    pszUseErrorPrefix,
+                    dwError,
+                    LW_PRINTF_STRING(LwWin32ErrorToName(dwError)),
+                    pszErrorString);
         }
     }
 }

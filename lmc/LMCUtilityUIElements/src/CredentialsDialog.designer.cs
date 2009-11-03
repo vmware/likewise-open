@@ -31,7 +31,7 @@ namespace Likewise.LMC.UtilityUIElements
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(CredentialsDialog));
             this.CancelBtn = new System.Windows.Forms.Button();
             this.OKBtn = new System.Windows.Forms.Button();
-            this.credentialsControl = new CredentialsControl();
+            this.credentialsControl = new Likewise.LMC.UtilityUIElements.CredentialsControl();
             this.SuspendLayout();
             //
             // CancelBtn
@@ -58,8 +58,11 @@ namespace Likewise.LMC.UtilityUIElements
             //
             this.credentialsControl.Location = new System.Drawing.Point(3, 3);
             this.credentialsControl.Name = "credentialsControl";
+            this.credentialsControl.Password = "";
             this.credentialsControl.Size = new System.Drawing.Size(332, 193);
             this.credentialsControl.TabIndex = 4;
+            this.credentialsControl.UseDefaultCreds = true;
+            this.credentialsControl.Username = "";
             //
             // CredentialsDialog
             //
@@ -71,6 +74,7 @@ namespace Likewise.LMC.UtilityUIElements
             this.Controls.Add(this.CancelBtn);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "CredentialsDialog";
+            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "Credentials Dialog";
             this.ResumeLayout(false);
 
@@ -79,7 +83,7 @@ namespace Likewise.LMC.UtilityUIElements
         #endregion
 
         private System.Windows.Forms.Button CancelBtn;
-        private System.Windows.Forms.Button OKBtn;
         private CredentialsControl credentialsControl;
+        public System.Windows.Forms.Button OKBtn;
     }
 }

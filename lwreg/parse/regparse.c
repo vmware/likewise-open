@@ -863,8 +863,6 @@ error:
     goto cleanup;
 }
 
-
-
 DWORD
 RegParseKey(
     PREGPARSE_HANDLE parseHandle,

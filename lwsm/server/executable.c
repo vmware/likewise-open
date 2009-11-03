@@ -85,27 +85,16 @@ LwSmExecutableThread(
 
 static
 DWORD
-LwSmExecutableStart(
-    PLW_SERVICE_OBJECT pObject
+LwSmForkProcess(
+    PSM_EXECUTABLE pExec
     )
 {
     DWORD dwError = 0;
-    PSM_EXECUTABLE pExec = LwSmGetServiceObjectData(pObject);
-    BOOLEAN bLocked = FALSE;
     pid_t pid = -1;
     struct timespec ts = {1, 0};
     int notifyPipe[2] = {-1, -1};
     char c = 0;
     int ret = 0;
-
-    LOCK(bLocked, &gProcTable.lock);
-
-    if (pExec->state != LW_SERVICE_STATE_STOPPED &&
-        pExec->state != LW_SERVICE_STATE_DEAD)
-    {
-        dwError = LW_ERROR_INVALID_SERVICE_TRANSITION;
-        BAIL_ON_ERROR(dwError);
-    }
 
     if (pExec->type == LW_SERVICE_TYPE_EXECUTABLE)
     {
@@ -136,13 +125,6 @@ LwSmExecutableStart(
     else
     {
         pExec->pid = pid;
-        pExec->state = LW_SERVICE_STATE_STARTING;
-        
-        LwSmNotifyServiceObjectStateChange(pObject, pExec->state);
-
-        /* Take an additional reference to the table entry
-           because our child monitoring thread will need it */
-        LwSmRetainServiceObject(pObject);
         
         if (pExec->type == LW_SERVICE_TYPE_EXECUTABLE)
         {
@@ -172,8 +154,6 @@ LwSmExecutableStart(
         }
 
         pExec->state = LW_SERVICE_STATE_RUNNING;
-
-        LwSmNotifyServiceObjectStateChange(pObject, pExec->state);
     }
 
 cleanup:
@@ -187,6 +167,51 @@ cleanup:
     {
         close(notifyPipe[1]);
     }
+
+    return dwError;
+
+error:
+
+    pExec->state = LW_SERVICE_STATE_DEAD;
+
+    LwSmNotifyServiceObjectStateChange(pExec->pObject, pExec->state);
+
+    goto cleanup;
+}
+
+static
+DWORD
+LwSmExecutableStart(
+    PLW_SERVICE_OBJECT pObject
+    )
+{
+    DWORD dwError = 0;
+    PSM_EXECUTABLE pExec = LwSmGetServiceObjectData(pObject);
+    BOOLEAN bLocked = FALSE;
+
+    LOCK(bLocked, &gProcTable.lock);
+
+    if (pExec->state != LW_SERVICE_STATE_STOPPED &&
+        pExec->state != LW_SERVICE_STATE_DEAD)
+    {
+        dwError = LW_ERROR_INVALID_SERVICE_TRANSITION;
+        BAIL_ON_ERROR(dwError);
+    }
+
+    pExec->pid = -1;
+    pExec->state = LW_SERVICE_STATE_STARTING;
+
+    LwSmNotifyServiceObjectStateChange(pObject, pExec->state);
+
+    /* Take an additional reference to the table entry
+       because our child monitoring thread will need it */
+    LwSmRetainServiceObject(pObject);
+
+    /* Wake up the process manager thread to start the program */
+    dwError = LwMapErrnoToLwError(pthread_kill(gProcTable.thread, SIGCHLD));
+    BAIL_ON_ERROR(dwError);
+
+cleanup:
 
     UNLOCK(bLocked, &gProcTable.lock);
 
@@ -467,7 +492,7 @@ LwSmExecutableThread(
         while ((pLink = SM_LINK_ITERATE(&gProcTable.execs, pLink)))
         {
             pExec = STRUCT_FROM_MEMBER(pLink, SM_EXECUTABLE, link);
-            
+
             if (pExec->pid != -1)
             {
                 pid = waitpid(pExec->pid, &status, WNOHANG);
@@ -488,6 +513,21 @@ LwSmExecutableThread(
                     
                     LwSmLinkRemove(&pExec->threadLink);
                     LwSmLinkInsertBefore(&changed, &pExec->threadLink);
+                }
+            }
+            else
+            {
+                switch (pExec->state)
+                {
+                case LW_SERVICE_STATE_STARTING:
+                    if (LwSmForkProcess(pExec) == 0)
+                    {
+                          LwSmLinkRemove(&pExec->threadLink);
+                          LwSmLinkInsertBefore(&changed, &pExec->threadLink);
+                    }
+                    break;
+                default:
+                    break;
                 }
             }
         }

@@ -105,7 +105,15 @@ RegSrvIpcDeleteValue(
     );
 
 LWMsgStatus
-RegSrvIpcEnumKeyEx(
+RegSrvIpcEnumKeyExA(
+    LWMsgCall* pCall,
+    const LWMsgParams* pIn,
+    LWMsgParams* pOut,
+    void* data
+    );
+
+LWMsgStatus
+RegSrvIpcEnumKeyExW(
     LWMsgCall* pCall,
     const LWMsgParams* pIn,
     LWMsgParams* pOut,

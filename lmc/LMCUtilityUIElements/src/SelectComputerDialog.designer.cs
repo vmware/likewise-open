@@ -98,7 +98,7 @@ namespace Likewise.LMC.UtilityUIElements
             //
             // btnOk
             //
-            this.btnOk.Enabled = false;
+            this.btnOk.Enabled = true;
             this.btnOk.Location = new System.Drawing.Point(194, 150);
             this.btnOk.Name = "btnOk";
             this.btnOk.Size = new System.Drawing.Size(75, 23);
@@ -162,6 +162,7 @@ namespace Likewise.LMC.UtilityUIElements
             this.MaximizeBox = false;
             this.MinimizeBox = false;
             this.Name = "SelectComputerDialog";
+            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "Select computer";
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();
