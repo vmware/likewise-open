@@ -104,7 +104,7 @@ public partial class FilesDetailPage : StandardPage
         else
         {
             this.lblCaption.Text = string.Format(this.lblCaption.Text, node.Path);
-            FileList = FileClient.FileClient.EnumFiles(node.Path);
+            FileList = FileClient.FileClient.EnumFiles(node.Path, false);
         }
 
         if (FileList == null || FileList.Count == 0)

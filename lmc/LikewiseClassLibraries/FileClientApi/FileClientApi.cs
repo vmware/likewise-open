@@ -262,7 +262,10 @@ namespace Likewise.LMC.FileClient
             ref SYSTEMTIME SystemTime
             );
 
-        public static List<FileItem> EnumFiles(string filepath)
+        public static List<FileItem> EnumFiles(
+            string filepath,
+            bool showHiddenFiles
+            )
         {
             List<FileItem> Files = new List<FileItem>();
             IntPtr INVALID_HANDLE_VALUE = new IntPtr(-1);
@@ -283,6 +286,20 @@ namespace Likewise.LMC.FileClient
 
                 file.FileName = pFindFileData.cFileName;
                 file.Alternate = pFindFileData.cAlternate;
+
+                if (String.Compare(file.FileName, ".") == 0 ||
+                    String.Compare(file.FileName, "..") == 0)
+                {
+                    success = FindNextFileW(handle, out pFindFileData);
+                    continue;
+                }
+
+                if (!showHiddenFiles &&
+                    file.FileName[0] == '.')
+                {
+                    success = FindNextFileW(handle, out pFindFileData);
+                    continue;
+                }
 
                 if ((pFindFileData.dwFileAttributes & FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY) == FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY)
                 {

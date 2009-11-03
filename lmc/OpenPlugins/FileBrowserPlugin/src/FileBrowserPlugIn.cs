@@ -236,7 +236,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
                 if (found == null || found.Length == 0)
                 {
                     FileBrowserNode node = new FileBrowserNode(NetResource.pRemoteName, Resources.SharedFolder2, typeof(FilesDetailPage), this);
-                    node.Tag = NetResource;
+                    node.FBNodeType = FileBrowserNode.FileBrowserNopeType.SHARE;
                     node.Path = NetResource.pRemoteName;
                     parentNode.Nodes.Add(node);
                 }
@@ -253,31 +253,25 @@ namespace Likewise.LMC.Plugins.FileBrowser
             if (found == null || found.Length == 0)
             {
                 FileBrowserNode node = new FileBrowserNode(NetResource.pRemoteName, Resources.SharedFolder2, typeof(FilesDetailPage), this);
-                node.Tag = NetResource;
+                node.FBNodeType = FileBrowserNode.FileBrowserNopeType.DIRECTORY;
                 node.Path = NetResource.pRemoteName;
                 parentNode.Nodes.Add(node);
             }
         }
 
         private void AddDirFolderNodes(
-            string parentPath,
+            FileBrowserNode parentNode,
             string folderName
             )
         {
-            TreeNode[] parent = this._pluginNode.Nodes.Find(parentPath, true);
+            TreeNode[] found = parentNode.Nodes.Find(folderName, false);
 
-            if (parent != null && parent.Length == 1)
+            if (found == null || found.Length == 0)
             {
-                FileBrowserNode parentnode = parent[0] as FileBrowserNode;
-                TreeNode[] found = parentnode.Nodes.Find(folderName, false);
-
-                if (found == null || found.Length == 0)
-                {
-                    FileBrowserNode node = new FileBrowserNode(folderName, Resources.SharedFolder2, typeof(FilesDetailPage), this);
-                    node.Tag = null;
-                    node.Path = parentnode.Path + "\\" + folderName;
-                    parentnode.Nodes.Add(node);
-                }
+                FileBrowserNode node = new FileBrowserNode(folderName, Resources.SharedFolder2, typeof(FilesDetailPage), this);
+                node.FBNodeType = FileBrowserNode.FileBrowserNopeType.DIRECTORY;
+                node.Path = parentNode.Path + "\\" + folderName;
+                parentNode.Nodes.Add(node);
             }
         }
 
@@ -294,64 +288,49 @@ namespace Likewise.LMC.Plugins.FileBrowser
         public void EnumChildren(LACTreeNode parentNode)
         {
             List<NETRESOURCE> NetResources = new List<NETRESOURCE>();
+            FileBrowserNode node = parentNode as FileBrowserNode;
 
-            if (parentNode == _pluginNode)
+            if (node == null)
             {
+                return;
+            }
+
+            if (node.FBNodeType == FileBrowserNode.FileBrowserNopeType.ROOT)
+            {
+                // Enumerate the child nodes of "File Browser" tree root
                 BuildNodesToPlugin();
                 return;
             }
 
-            if (parentNode.Name.Equals("Network"))
+            if (node.Name.Equals("Network"))
             {
+                // Enumerate the child nodes of the "Network" tree node
                 NetResources = GetNetworkConnections();
                 AddShareNodes(parentNode, NetResources);
                 return;
             }
 
-            if (parentNode.Name.Equals("Computer"))
+            if (node.Name.Equals("Computer"))
             {
                 return;
             }
 
-            NETRESOURCE NetResource = parentNode.Tag as NETRESOURCE;
-
-            if (NetResource != null)
+            if (node.FBNodeType == FileBrowserNode.FileBrowserNopeType.SHARE ||
+                node.FBNodeType == FileBrowserNode.FileBrowserNopeType.DIRECTORY)
             {
-                if (NetResource.dwDisplayType == ResourceDisplayType.RESOURCEDISPLAYTYPE_SHARE &&
-                    NetResource.dwScope == ResourceScope.RESOURCE_CONNECTED &&
-                    NetResource.dwType == ResourceType.RESOURCETYPE_DISK)
+                // Enum files and directories under share/directory path.
+                List<FileItem> FileList = FileClient.FileClient.EnumFiles(node.Path, false);
+
+                if (FileList == null || FileList.Count == 0)
                 {
-                    // Enum files and directories under net resource.
-                    List<FileItem> FileList = FileClient.FileClient.EnumFiles(NetResource.pRemoteName);
-
-                    if (FileList == null || FileList.Count == 0)
-                    {
-                        return;
-                    }
-
-                    foreach (FileItem File in FileList)
-                    {
-                        if (File.IsDirectory)
-                        {
-                            AddDirFolderNodes(NetResource.pRemoteName, File.FileName);
-                        }
-                    }
                     return;
                 }
 
-                if (NetResource.dwUsage == ResourceUsage.RESOURCEUSAGE_CONTAINER)
+                foreach (FileItem File in FileList)
                 {
-                    NetResources = GetChildNetResources(ResourceScope.RESOURCE_GLOBALNET,
-                                                        ResourceType.RESOURCETYPE_ANY,
-                                                        ResourceUsage.RESOURCEUSAGE_CONNECTABLE,
-                                                        NetResource);
-                    foreach (NETRESOURCE nr in NetResources)
+                    if (File.IsDirectory)
                     {
-                        if ((nr.dwUsage & ResourceUsage.RESOURCEUSAGE_CONTAINER) ==
-                            ResourceUsage.RESOURCEUSAGE_CONTAINER)
-                        {
-                            AddContainerNode(parentNode, nr);
-                        }
+                        AddDirFolderNodes(node, File.FileName);
                     }
                 }
             }
