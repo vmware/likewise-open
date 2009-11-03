@@ -53,22 +53,11 @@
     <Compile Include="src\ConnectToShareDialog.Designer.cs">
       <DependentUpon>ConnectToShareDialog.cs</DependentUpon>
     </Compile>
+    <Compile Include="src\FileBrowserNode.cs" />
     <Compile Include="src\FileBrowserPlugIn.cs">
     </Compile>
     <Compile Include="src\FileBrowserPage.cs">
       <SubType>UserControl</SubType>
-    </Compile>
-    <Compile Include="src\ShareGeneralEditPage.cs">
-      <SubType>UserControl</SubType>
-    </Compile>
-    <Compile Include="src\ShareGeneralEditPage.designer.cs">
-      <DependentUpon>ShareGeneralEditPage.cs</DependentUpon>
-    </Compile>
-    <Compile Include="src\SharePropertiesDlg.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="src\SharePropertiesDlg.designer.cs">
-      <DependentUpon>SharePropertiesDlg.cs</DependentUpon>
     </Compile>
   </ItemGroup>
   <ItemGroup>
@@ -88,14 +77,6 @@
     <EmbeddedResource Include="src\FileBrowserPage.resx">
       <SubType>Designer</SubType>
       <DependentUpon>FileBrowserPage.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="src\ShareGeneralEditPage.resx">
-      <DependentUpon>ShareGeneralEditPage.cs</DependentUpon>
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
-    <EmbeddedResource Include="src\SharePropertiesDlg.resx">
-      <DependentUpon>SharePropertiesDlg.cs</DependentUpon>
-      <SubType>Designer</SubType>
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
