@@ -14,7 +14,7 @@ namespace Likewise.LMC.UtilityUIElements
 
         private string sUsername = string.Empty;
         private string sPassword = string.Empty;
-        private bool bUseDefaultCreds = false;
+        private bool bUseDefaultCreds = true;
 
         #endregion
 
@@ -43,6 +43,9 @@ namespace Likewise.LMC.UtilityUIElements
             tbPassword.Text = "";
 
             bUseDefaultCreds = rbUseCurrentUserCreds.Checked;
+
+            CredentialsDialog credDlg = (CredentialsDialog)this.Parent;
+            credDlg.OKBtn.Enabled = true;
         }
 
         private void rbUseTheseCreds_CheckedChanged(object sender, EventArgs e)
@@ -50,11 +53,27 @@ namespace Likewise.LMC.UtilityUIElements
             groupBox.Enabled = rbUseTheseCreds.Checked;
             tbUsername.Enabled = groupBox.Enabled;
             tbPassword.Enabled = groupBox.Enabled;
+
+            CredentialsDialog credDlg = (CredentialsDialog)this.Parent;
+
+            credDlg.OKBtn.Enabled = false;
+            if (tbUsername.Enabled == true && !string.IsNullOrEmpty(sUsername))
+            {
+                credDlg.OKBtn.Enabled = true;
+            }
         }
 
         private void tbUsername_TextChanged(object sender, EventArgs e)
         {
             sUsername = tbUsername.Text;
+            CredentialsDialog credDlg = (CredentialsDialog)this.Parent;
+
+            credDlg.OKBtn.Enabled = false;
+
+            if (!string.IsNullOrEmpty(sUsername))
+            {
+                credDlg.OKBtn.Enabled = true;
+            }
         }
 
         private void tbPassword_TextChanged(object sender, EventArgs e)

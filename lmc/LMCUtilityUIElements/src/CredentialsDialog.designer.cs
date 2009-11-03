@@ -61,7 +61,7 @@ namespace Likewise.LMC.UtilityUIElements
             this.credentialsControl.Password = "";
             this.credentialsControl.Size = new System.Drawing.Size(332, 193);
             this.credentialsControl.TabIndex = 4;
-            this.credentialsControl.UseDefaultCreds = false;
+            this.credentialsControl.UseDefaultCreds = true;
             this.credentialsControl.Username = "";
             //
             // CredentialsDialog
@@ -83,7 +83,7 @@ namespace Likewise.LMC.UtilityUIElements
         #endregion
 
         private System.Windows.Forms.Button CancelBtn;
-        private System.Windows.Forms.Button OKBtn;
         private CredentialsControl credentialsControl;
+        public System.Windows.Forms.Button OKBtn;
     }
 }
