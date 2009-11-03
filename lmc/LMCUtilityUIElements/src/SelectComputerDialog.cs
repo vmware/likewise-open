@@ -85,28 +85,32 @@ namespace Likewise.LMC.UtilityUIElements
 
         private void btnOk_Click(object sender, EventArgs e)
         {
-            if (rbLocalComputer.Checked) {
+            if (credsDialog != null)
+            {
+                if (credsDialog.UseDefaultUserCreds() != true)
+                {
+                    _hn.creds.UserName = credsDialog.GetUsername();
+                    _hn.creds.Password = credsDialog.GetPassword();
+                }
+            }
+
+            if (rbLocalComputer.Checked)
+            {
                 _hn.hostName = System.Environment.MachineName;
             }
             else
             {
-                if (credsDialog != null) {
-                    if (!String.IsNullOrEmpty(credsDialog.CredentialsControl.Username))
-                    {
-                        _hn.hostName = tbComputer.Text;
-                        _hn.creds.UserName = credsDialog.GetUsername();
-                        _hn.creds.Password = credsDialog.GetPassword();
-                    }
-                    else
-                    {
-                        MessageBox.Show(
-                           "You have selected the Remost host that needs the credentials cache.\n Please click on 'alternate' to set the credentails",
-                           "Likewise Administrative Console",
-                           MessageBoxButtons.OK,
-                           MessageBoxIcon.Exclamation);
-                        return;
-                    }
-                }
+                _hn.hostName = tbComputer.Text;
+            }
+
+            if (!rbLocalComputer.Checked  && credsDialog != null && credsDialog.UseDefaultUserCreds() == true)
+            {
+                MessageBox.Show(
+                   "You have selected a remote host that requires credentials.\n Please click on 'alternate' to set the credentails",
+                   "Likewise Administrative Console",
+                   MessageBoxButtons.OK,
+                   MessageBoxIcon.Exclamation);
+                return;
             }
 
             this.DialogResult = DialogResult.OK;
