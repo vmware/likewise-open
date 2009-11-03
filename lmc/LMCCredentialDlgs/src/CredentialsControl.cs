@@ -6,13 +6,15 @@ using System.Data;
 using System.Text;
 using System.Windows.Forms;
 
-namespace Likewise.LMC.UtilityUIElements
+namespace Likewise.LMC.LMCCredentials
 {
     public partial class CredentialsControl : UserControl
     {
         #region ClassData
 
-        public Credentials credentials = null;
+        private string sUsername = string.Empty;
+        private string sPassword = string.Empty;
+        private bool bUseDefaultCreds = false;
 
         #endregion
 
@@ -23,10 +25,10 @@ namespace Likewise.LMC.UtilityUIElements
             InitializeComponent();
         }
 
-        public CredentialsControl(string username, string password)
+        public CredentialsControl(string username)
             : this()
         {
-            credentials = new Credentials(username, password);
+            this.sUsername = username;
         }
 
         #endregion
@@ -40,48 +42,27 @@ namespace Likewise.LMC.UtilityUIElements
             tbPassword.Enabled = false;
             tbPassword.Text = "";
 
-            credentials.UseDefaultUserCreds = rbUseCurrentUserCreds.Checked;
-
-            CredentialsDialog credDlg = (CredentialsDialog)this.Parent;
-            credDlg.OKBtn.Enabled = true;
+            bUseDefaultCreds = rbUseCurrentUserCreds.Checked;
         }
 
         private void rbUseTheseCreds_CheckedChanged(object sender, EventArgs e)
         {
             groupBox.Enabled = rbUseTheseCreds.Checked;
-            tbUsername.Enabled = groupBox.Enabled;
-            tbPassword.Enabled = groupBox.Enabled;
-
-            CredentialsDialog credDlg = (CredentialsDialog)this.Parent;
-
-            credDlg.OKBtn.Enabled = false;
-            if (tbUsername.Enabled == true && !string.IsNullOrEmpty(credentials.Username))
-            {
-                credDlg.OKBtn.Enabled = true;
-            }
         }
 
         private void tbUsername_TextChanged(object sender, EventArgs e)
         {
-            credentials.Username = tbUsername.Text;
-            CredentialsDialog credDlg = (CredentialsDialog)this.Parent;
-
-            credDlg.OKBtn.Enabled = false;
-
-            if (!string.IsNullOrEmpty(credentials.Username))
-            {
-                credDlg.OKBtn.Enabled = true;
-            }
+            sUsername = tbUsername.Text;
         }
 
         private void tbPassword_TextChanged(object sender, EventArgs e)
         {
-            credentials.Password = tbPassword.Text;
+            sPassword = tbPassword.Text;
         }
 
         private void CredentialsControl_Load(object sender, EventArgs e)
         {
-            if (string.IsNullOrEmpty(credentials.Username))
+            if (string.IsNullOrEmpty(sUsername))
             {
                 this.rbUseCurrentUserCreds.Checked = true;
                 this.rbUseTheseCreds.Checked = false;
@@ -90,7 +71,7 @@ namespace Likewise.LMC.UtilityUIElements
             {
                 this.rbUseCurrentUserCreds.Checked = false;
                 this.rbUseTheseCreds.Checked = true;
-                this.tbUsername.Text = credentials.Username;
+                this.tbUsername.Text = sUsername;
                 this.tbPassword.Text = "";
             }
         }
@@ -102,30 +83,30 @@ namespace Likewise.LMC.UtilityUIElements
         public string Username
         {
             set {
-                credentials.Username = value;
+                sUsername = value;
             }
             get {
-                return credentials.Username;
+                return sUsername;
             }
         }
 
         public string Password
         {
             set {
-                credentials.Password = value;
+                sPassword = value;
             }
             get {
-                return credentials.Password;
+                return sPassword;
             }
         }
 
         public bool UseDefaultCreds
         {
             set {
-                credentials.UseDefaultUserCreds = value;
+                bUseDefaultCreds = value;
             }
             get {
-                return credentials.UseDefaultUserCreds;
+                return bUseDefaultCreds;
             }
         }
 

@@ -10,7 +10,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
     {
 
         public FileBrowserPage()
-            : base(FileBrowserIPlugIn.PluginNodeType.SHARES)
+            : base()
         {
         }
 
@@ -20,15 +20,19 @@ namespace Likewise.LMC.Plugins.FileBrowser
             this.pnlHeader.SuspendLayout();
             this.SuspendLayout();
             //
+            // pnlActions
+            //
+            this.pnlActions.Size = new System.Drawing.Size(131, 338);
+            //
             // pnlHeader
             //
-            this.pnlHeader.Location = new System.Drawing.Point(8, 8);
-            this.pnlHeader.Size = new System.Drawing.Size(531, 59);
+            this.pnlHeader.Size = new System.Drawing.Size(687, 59);
             //
-            // FileSharesPage
+            // FileBrowserPage
             //
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
-            this.Name = "FileSharesPage";
+            this.Name = "FileBrowserPage";
+            this.Size = new System.Drawing.Size(687, 397);
             ((System.ComponentModel.ISupportInitialize)(this.picture)).EndInit();
             this.pnlHeader.ResumeLayout(false);
             this.pnlHeader.PerformLayout();
@@ -36,10 +40,11 @@ namespace Likewise.LMC.Plugins.FileBrowser
 
         }
     }
+
     public class FilesBrowserPluginPage : FilesDetailPage
     {
         public FilesBrowserPluginPage()
-            : base(FileBrowserIPlugIn.PluginNodeType.UNDEFINED)
+            : base()
         {
         }
     }

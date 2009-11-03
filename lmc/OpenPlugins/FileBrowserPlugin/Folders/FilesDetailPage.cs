@@ -39,17 +39,24 @@ using Likewise.LMC.Utilities;
 using Likewise.LMC.Plugins.FileBrowser.Properties;
 using Likewise.LMC.ServerControl;
 using Likewise.LMC.NETAPI;
+using Likewise.LMC.FileClient;
 
 namespace Likewise.LMC.Plugins.FileBrowser
 {
 public partial class FilesDetailPage : StandardPage
 {
     #region Class data
+
+    public static bool IsMultiselect = false;
     private ListViewColumnSorter lvwColumnSorter;
+    private FileBrowserNode[] ChildNodes = null;
+    public int Count = 0;
     private FileBrowserIPlugIn plugin;
+
     #endregion
 
     #region Constructor
+
     public FilesDetailPage()
     {
         InitializeComponent();
@@ -63,98 +70,76 @@ public partial class FilesDetailPage : StandardPage
         this.picture.Image = ic.ToBitmap();
     }
 
-    public FilesDetailPage(FileBrowserIPlugIn.PluginNodeType nodetype)
-    {
-        InitializeComponent();
-
-        // Create an instance of a ListView column sorter and assign it
-        // to the ListView control.
-        lvwColumnSorter = new ListViewColumnSorter();
-        this.lvFilePage.ListViewItemSorter = lvwColumnSorter;
-
-        Icon ic = new Icon(Resources.SharedFolder, 48, 48);
-        this.picture.Image = ic.ToBitmap();
-    }
     #endregion
 
     #region IPlugInPage Members
     public override void SetPlugInInfo(IPlugInContainer container, IPlugIn pi, LACTreeNode treeNode, LWTreeView lmctreeview, CServerControl sc)
     {
-        Hostinfo hn = ctx as Hostinfo;
-
         base.SetPlugInInfo(container, pi, treeNode, lmctreeview, sc);
         bEnableActionMenu = false;
         plugin = pi as FileBrowserIPlugIn;
-        hn = plugin.HostInfo;
 
         Refresh();
     }
 
     public override void Refresh()
     {
+        List<FileItem> FileList = null;
+
         base.Refresh();
-        Hostinfo hn = ctx as Hostinfo;
 
-        const int NUM_COLUMNS = 5;
-
-        //pixels to use to give a visible margin between columns
-        const int MARGIN = 10;
+        FileBrowserNode node = base.TreeNode as FileBrowserNode;
 
         if (lvFilePage.Items.Count != 0)
         {
             lvFilePage.Items.Clear();
         }
 
-        if (!String.IsNullOrEmpty(hn.hostName))
+        if (String.IsNullOrEmpty(node.Path))
         {
-            this.lblCaption.Text = string.Format(this.lblCaption.Text, hn.hostName);
-        }
-        Dictionary<int, string[]> FileList =null;
+            this.lblCaption.Text = node.Text;
 
-        if (Configurations.currentPlatform != LikewiseTargetPlatform.Windows)
-        {
-            if (plugin.fileHandle != null && plugin.fileHandle.Handle != null)
-                FileList = SharesAPI.EnumFiles(plugin.fileHandle.Handle, hn.creds, hn.hostName);
-            else
-            {
-                Logger.Log("FilesPage.Refresh: SharesAPI.Handle returned null", Logger.LogLevel.Error);
-                return;
-            }
+            // Show children of treenode (File Browser, Network, Computer, etc)
         }
         else
-            FileList = SharesAPI.EnumFiles(IntPtr.Zero, hn.creds, hn.hostName);
-
-        if (FileList == null)
         {
-            Logger.Log("FilesPage.Refresh: FileList == null", Logger.LogLevel.Error);
+            this.lblCaption.Text = string.Format(this.lblCaption.Text, node.Path);
+            FileList = FileClient.FileClient.EnumFiles(node.Path, false);
+        }
+
+        if (FileList == null || FileList.Count == 0)
+        {
             return;
         }
 
-        foreach (int i in FileList.Keys)
+        foreach (FileItem File in FileList)
         {
-            ListViewItem lvItem = new ListViewItem(FileList[i]);
+            string creation = "";
+            string modified = "";
+            string size = "";
+            string type = "Directory";
+
+            if (!File.IsDirectory)
+            {
+                if (File.CreationTime != new DateTime())
+                {
+                    creation = File.CreationTime.ToString();
+                }
+
+                if (File.LastWriteTime != new DateTime())
+                {
+                    modified = File.LastWriteTime.ToString();
+                }
+
+                size = File.FileSize.ToString() + " KB";
+                type = "File";
+            }
+
+            string[] file = { File.FileName, creation, modified, type, size };
+
+            ListViewItem lvItem = new ListViewItem(file);
             lvFilePage.Items.Add(lvItem);
         }
-
-        int minColumnWidth = (this.Width / NUM_COLUMNS) / 2;
-        foreach (ColumnHeader ch in lvFilePage.Columns)
-        {
-            if (ch.Index != 4)
-            {
-                if (ch.Width + MARGIN < minColumnWidth)
-                {
-                    ch.Width = minColumnWidth;
-                }
-                else
-                {
-                    ch.Width += MARGIN;
-                }
-            }
-        }
-
-        //HACK: make sure that rightmost column is always covers
-        //any remaining space on the right side of the list view
-        lvFilePage.Columns[NUM_COLUMNS - 2].Width = this.Width;
     }
     #endregion
 
@@ -194,7 +179,7 @@ public partial class FilesDetailPage : StandardPage
     private void On_MenuClick(object sender, EventArgs e)
     {
         MenuItem m = sender as MenuItem;
-
+/*
         if (m != null && m.Text.Trim().Equals("Disconnect &All Open Files"))
         {
             DialogResult dlg = MessageBox.Show(this, "Are you sure you wish to close all files?",
@@ -230,6 +215,7 @@ public partial class FilesDetailPage : StandardPage
                 treeNode.sc.ShowControl(treeNode);
             }
         }
+*/
 
         if (m != null && m.Text.Trim().Equals("&Refresh"))
         {
@@ -259,9 +245,10 @@ public partial class FilesDetailPage : StandardPage
             return;
         }
 
+/*
         // get the accessing machine and user name of the session to close
         ListViewItem Item = lvFilePage.SelectedItems[0];
-        string sFileId = (string)Item.SubItems[4].Text;
+        string sFileId = (string)Item.SubItems[0].Text;
 
         try
         {
@@ -280,10 +267,19 @@ public partial class FilesDetailPage : StandardPage
             string sMsg = string.Format(Resources.Error_UnableToCloseFile, ex.Message);
             container.ShowError(sMsg);
         }
+*/
     }
 
     private void lvFilePage_SelectedIndexChanged(object sender, EventArgs e)
     {
+        if (lvFilePage.SelectedItems.Count != 1)
+        {
+            return;
+        }
+
+        ListViewItem Item = lvFilePage.SelectedItems[0];
+
+        lblCaption.Text = Item.SubItems[0].Text;
     }
 
     private void lvFilePage_MouseUp(object sender, MouseEventArgs e)

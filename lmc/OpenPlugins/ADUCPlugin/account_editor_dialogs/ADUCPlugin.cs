@@ -37,6 +37,7 @@ using Likewise.LMC.Plugins.ADUCPlugin;
 using Likewise.LMC.Plugins.ADUCPlugin.Properties;
 using Likewise.LMC.ServerControl;
 using Likewise.LMC.Netlogon;
+using Likewise.LMC.UtilityUIElements;
 using System;
 using System.Collections.Generic;
 using System.Net;
@@ -434,38 +435,43 @@ public class ADUCPlugin: IPlugIn
     /// <param name="e"></param>
     private void cm_OnConnect(object sender, EventArgs e)
     {
-        //check if we are joined to a domain -- if not, use simple bind
-        uint requestedFields = (uint)Hostinfo.FieldBitmaskBits.FQDN;
-        
-        if (_hn == null)
-        {
-            _hn = new Hostinfo();
-        }
-        
-        Logger.Log(String.Format(
-        "ADUCPlugin.cm_OnConnect: usingSimpleBind: {0}, hn: {1}",
-        _usingSimpleBind, _hn));       
+        bool initialConnect = true;
 
-        if (_usingSimpleBind || _hn.IsConnectionSuccess)
+        while (true)
         {
-            requestedFields |= (uint)Hostinfo.FieldBitmaskBits.CREDS_NT4DOMAIN;
-            requestedFields |= (uint)Hostinfo.FieldBitmaskBits.CREDS_USERNAME;
-            requestedFields |= (uint)Hostinfo.FieldBitmaskBits.CREDS_PASSWORD;
-        }
-
-        if (!_container.GetTargetMachineInfo(this, _hn, requestedFields))
-        {
-            Logger.Log(
-            "Could not find information about target machine",
-            Logger.LogLevel.Error);
-            if (requestedFields == (uint)Hostinfo.FieldBitmaskBits.FQDN)
-                cm_OnConnect(sender, e);
-        }
-        else
-        {
-            if (!_usingSimpleBind && !_hn.IsConnectionSuccess)
+            SelectDomainDialog domainDlg = null;
+            if (initialConnect)
             {
-                _usingSimpleBind = true;
+                domainDlg = new SelectDomainDialog(_hn.domainName, _hn.creds.UserName);
+                if (domainDlg.ShowDialog() == DialogResult.OK)
+                {
+                    _hn.domainName = domainDlg.GetDomain();
+
+                    if (!domainDlg.UseDefaultUserCreds())
+                    {
+                        _hn.creds.UserName = domainDlg.GetUsername();
+                        _hn.creds.Password = domainDlg.GetPassword();
+                    }
+                }
+            }
+
+            if (!ConnectToDomain())
+            {
+                MessageBox.Show(
+                   "Unable to connect to domain.",
+                   CommonResources.GetString("Caption_Console"),
+                   MessageBoxButtons.OK,
+                   MessageBoxIcon.Exclamation);
+
+                if (!domainDlg.UseDefaultUserCreds())
+                {
+                    CredentialsDialog credsDialog = new CredentialsDialog(_hn.creds.UserName);
+                    if (credsDialog.ShowDialog() == DialogResult.OK)
+                    {
+                        initialConnect = false;
+                        continue;
+                    }
+                }
             }
         }
     }
@@ -537,8 +543,7 @@ public class ADUCPlugin: IPlugIn
                     }
                 }
             }
-        }   
-       
+        }
         
         _currentDomain = new ADUCDomain();
         _currentDomain.HostInfo = _hn;

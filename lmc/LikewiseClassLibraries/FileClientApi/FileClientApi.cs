@@ -63,7 +63,7 @@ namespace Likewise.LMC.FileClient
         RESOURCEUSAGE_NOLOCALDEVICE = 0x00000004,
         RESOURCEUSAGE_SIBLING = 0x00000008,
         RESOURCEUSAGE_ATTACHED = 0x00000010,
-        RESOURCEUSAGE_ALL = (RESOURCEUSAGE_CONNECTABLE | RESOURCEUSAGE_CONTAINER | RESOURCEUSAGE_ATTACHED),
+        RESOURCEUSAGE_ALL = (RESOURCEUSAGE_CONNECTABLE | RESOURCEUSAGE_CONTAINER | RESOURCEUSAGE_ATTACHED)
     };
 
     public enum ResourceDisplayType
@@ -99,32 +99,18 @@ namespace Likewise.LMC.FileClient
         public string pProvider;
     };
 
-    //public const int MAX_PATH = 260;
-    //public const int MAX_ALTERNATE = 14;
-
-    [StructLayout(LayoutKind.Sequential)]
-    public struct FILETIME
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    public class FileItem
     {
-        public uint dwLowDateTime;
-        public uint dwHighDateTime;
+        public bool IsDirectory = false;
+        public DateTime CreationTime = new DateTime();
+        public DateTime LastAccessTime = new DateTime();
+        public DateTime LastWriteTime = new DateTime();
+        public UInt64 FileSize = 0;
+        public string FileName = null;
+        public string Alternate = null;
     };
 
-    [StructLayout(LayoutKind.Sequential, CharSet=CharSet.Unicode)]
-    public struct WIN32_FIND_DATA
-    {
-        public uint dwFileAttributes;
-        public FILETIME ftCreationTime;
-        public FILETIME ftLastAccessTime;
-        public FILETIME ftLastWriteTime;
-        public int nFileSizeHigh;
-        public int nFileSizeLow;
-        public int dwReserved0;
-        public int dwReserved1;
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst=260)]
-        public string cFileName;
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst=14)]
-        public string cAlternate;
-    };
 #endregion
 
     public class FileClient
@@ -200,26 +186,174 @@ namespace Likewise.LMC.FileClient
 
         #region Local and Connected Share File Enumeration APIs
 
+        private const int MAX_PATH = 260;
+        private const int MAX_ALTERNATE = 14;
+
+        private enum FILE_ATTRIBUTE
+        {
+            FILE_ATTRIBUTE_ARCHIVE = 0x0020,
+            FILE_ATTRIBUTE_COMPRESSED = 0x0800,
+            FILE_ATTRIBUTE_DEVICE = 0x0040,
+            FILE_ATTRIBUTE_DIRECTORY = 0x0010,
+            FILE_ATTRIBUTE_ENCRYPTED = 0x4000,
+            FILE_ATTRIBUTE_HIDDEN = 0x0002,
+            FILE_ATTRIBUTE_NORMAL = 0x0080,
+            FILE_ATTRIBUTE_NOT_CONTENT_INDEXED = 0x2000,
+            FILE_ATTRIBUTE_OFFLINE = 0x1000,
+            FILE_ATTRIBUTE_READONLY = 0x0001,
+            FILE_ATTRIBUTE_REPARSE_POINT = 0x0400,
+            FILE_ATTRIBUTE_SPARSE_FILE = 0x0200,
+            FILE_ATTRIBUTE_SYSTEM = 0x0004,
+            FILE_ATTRIBUTE_TEMPORARY = 0x0100,
+            FILE_ATTRIBUTE_VIRTUAL = 0x10000
+        };
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct FILETIME
+        {
+            public uint dwLowDateTime;
+            public uint dwHighDateTime;
+        };
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+        private struct WIN32_FIND_DATA
+        {
+            public FILE_ATTRIBUTE dwFileAttributes;
+            public FILETIME ftCreationTime;
+            public FILETIME ftLastAccessTime;
+            public FILETIME ftLastWriteTime;
+            public UInt32 nFileSizeHigh;
+            public UInt32 nFileSizeLow;
+            public int dwReserved0;
+            public int dwReserved1;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = MAX_PATH)]
+            public string cFileName;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = MAX_ALTERNATE)]
+            public string cAlternate;
+        };
+
+        private struct SYSTEMTIME
+        {
+            public Int16 wYear;
+            public Int16 wMonth;
+            public Int16 wDayOfWeek;
+            public Int16 wDay;
+            public Int16 wHour;
+            public Int16 wMinute;
+            public Int16 wSecond;
+            public Int16 wMilliseconds;
+        };
+
         [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-        private static extern IntPtr FindFirstFile(
+        private static extern IntPtr FindFirstFileW(
             string lpFileName,
             out WIN32_FIND_DATA lpFindFileData
             );
 
         [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-        private static extern bool FindNextFile(
+        private static extern bool FindNextFileW(
             IntPtr hFindFile,
             out WIN32_FIND_DATA lpFindFileData
             );
 
-        public static IntPtr apiFindFirstFile(
-            string lpFileName,
-            out WIN32_FIND_DATA lpFindFileData
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern long FileTimeToSystemTime(
+            ref FILETIME FileTime,
+            ref SYSTEMTIME SystemTime
+            );
+
+        public static List<FileItem> EnumFiles(
+            string filepath,
+            bool showHiddenFiles
             )
         {
-            IntPtr handle = FindFirstFile(lpFileName, out lpFindFileData);
+            List<FileItem> Files = new List<FileItem>();
+            IntPtr INVALID_HANDLE_VALUE = new IntPtr(-1);
+            WIN32_FIND_DATA pFindFileData;
+            bool success = false;
+            string search = filepath + "\\*";
 
-            return handle;
+            IntPtr handle = FindFirstFileW(search, out pFindFileData);
+
+            if (handle != INVALID_HANDLE_VALUE)
+            {
+                success = true;
+            }
+
+            while (success)
+            {
+                FileItem file = new FileItem();
+
+                file.FileName = pFindFileData.cFileName;
+                file.Alternate = pFindFileData.cAlternate;
+
+                if (String.Compare(file.FileName, ".") == 0 ||
+                    String.Compare(file.FileName, "..") == 0)
+                {
+                    success = FindNextFileW(handle, out pFindFileData);
+                    continue;
+                }
+
+                if (!showHiddenFiles &&
+                    file.FileName[0] == '.')
+                {
+                    success = FindNextFileW(handle, out pFindFileData);
+                    continue;
+                }
+
+                if ((pFindFileData.dwFileAttributes & FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY) == FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY)
+                {
+                    file.IsDirectory = true;
+                }
+                else
+                {
+                    UInt64 size = ((UInt64)pFindFileData.nFileSizeLow + (UInt64)pFindFileData.nFileSizeHigh * 4294967296)/1024;
+                    UInt64 extra = ((UInt64)pFindFileData.nFileSizeLow + (UInt64)pFindFileData.nFileSizeHigh * 4294967296) % 1024;
+                    SYSTEMTIME created = new SYSTEMTIME();
+                    SYSTEMTIME modified = new SYSTEMTIME();
+                    SYSTEMTIME accessed = new SYSTEMTIME();
+                    DateTime Created = new DateTime();
+                    DateTime Modified = new DateTime();
+                    DateTime Accessed = new DateTime();
+
+                    if (size != 0 && extra != 0)
+                    {
+                        size++;
+                    }
+
+                    if (pFindFileData.ftCreationTime.dwHighDateTime != 0 &&
+                        pFindFileData.ftCreationTime.dwLowDateTime != 0)
+                    {
+                        FileTimeToSystemTime(ref pFindFileData.ftCreationTime, ref created);
+                        Created = new DateTime(created.wYear, created.wMonth, created.wDay, created.wHour, created.wMinute, created.wSecond).ToLocalTime();
+                    }
+
+                    if (pFindFileData.ftLastWriteTime.dwHighDateTime != 0 &&
+                        pFindFileData.ftLastWriteTime.dwLowDateTime != 0)
+                    {
+                        FileTimeToSystemTime(ref pFindFileData.ftLastWriteTime, ref modified);
+                        Modified = new DateTime(modified.wYear, modified.wMonth, modified.wDay, modified.wHour, modified.wMinute, modified.wSecond).ToLocalTime();
+                    }
+
+                    if (pFindFileData.ftLastAccessTime.dwHighDateTime != 0 &&
+                        pFindFileData.ftLastAccessTime.dwLowDateTime != 0)
+                    {
+                        FileTimeToSystemTime(ref pFindFileData.ftLastAccessTime, ref accessed);
+                        Accessed = new DateTime(accessed.wYear, accessed.wMonth, accessed.wDay, accessed.wHour, accessed.wMinute, accessed.wSecond).ToLocalTime();
+                    }
+
+                    file.CreationTime = Created;
+                    file.LastWriteTime = Modified;
+                    file.LastAccessTime = Accessed;
+                    file.FileSize = size;
+                }
+
+                Files.Add(file);
+
+                success = FindNextFileW(handle, out pFindFileData);
+            }
+
+            return Files;
         }
 
         #endregion

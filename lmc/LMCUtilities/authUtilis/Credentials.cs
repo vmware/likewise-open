@@ -10,10 +10,9 @@ namespace Likewise.LMC.UtilityUIElements
     {
         #region Class Data
 
-        private string sDomain = string.Empty;
         private string sUsername = string.Empty;
         private string sPassword = string.Empty;
-        private string sHostname = string.Empty;
+        private bool bUseDefaultCreds=false;
 
         #endregion
 
@@ -24,17 +23,14 @@ namespace Likewise.LMC.UtilityUIElements
             SetDefaultCredentails();
         }
 
-        public Credentials(string username, string password, string domain, string hostname)
+        public Credentials(string username, string password)
         {
-            if (String.IsNullOrEmpty(username) || String.IsNullOrEmpty(password) ||
-                String.IsNullOrEmpty(domain)) {
+            if (String.IsNullOrEmpty(username) || String.IsNullOrEmpty(password)) {
                 SetDefaultCredentails();
             }
             else {
                 this.sUsername = username;
                 this.sPassword = password;
-                this.sDomain = domain;
-                this.sHostname = hostname;
             }
         }
 
@@ -44,16 +40,9 @@ namespace Likewise.LMC.UtilityUIElements
 
         public void SetDefaultCredentails()
         {
-            if (String.IsNullOrEmpty(Domain) && !String.IsNullOrEmpty(System.Environment.UserDomainName)) {
-                Domain = System.Environment.UserDomainName;
-            }
-
             if (String.IsNullOrEmpty(Username) && !String.IsNullOrEmpty(System.Environment.UserName)) {
                 Username = System.Environment.UserName;
-            }
-
-            if (String.IsNullOrEmpty(Hostname) && !String.IsNullOrEmpty(System.Environment.MachineName)) {
-                Hostname = System.Environment.MachineName;
+                bUseDefaultCreds = true;
             }
         }
 
@@ -81,23 +70,13 @@ namespace Likewise.LMC.UtilityUIElements
             }
         }
 
-        public string Domain
+        public bool UseDefaultUserCreds
         {
-            set {
-                sDomain = value;
-            }
             get {
-                return sDomain;
+                return bUseDefaultCreds;
             }
-        }
-
-        public string Hostname
-        {
             set {
-                sHostname = value;
-            }
-            get {
-                return sHostname;
+                bUseDefaultCreds = value;
             }
         }
 

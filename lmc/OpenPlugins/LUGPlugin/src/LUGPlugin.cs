@@ -265,11 +265,13 @@ class LUGPlugIn: IPlugIn
 
         if(selectDlg.ShowDialog() == DialogResult.OK)
         {
-            Hostinfo hn = selectDlg.hostInfo;
+            _hn.hostName = selectDlg.GetHostname();
 
-            _hn.hostName = hn.hostName;
-            _hn.creds.UserName = hn.creds.UserName;
-            _hn.creds.Password = hn.creds.Password;
+            if (!selectDlg.UseDefaultUserCreds())
+            {
+                _hn.creds.UserName = selectDlg.GetUsername();
+                _hn.creds.Password = selectDlg.GetPassword();
+            }
 
             if (LUGAPI.NetAddConnection(_hn.hostName, _hn.creds.UserName, _hn.creds.Password) != 0)
             {

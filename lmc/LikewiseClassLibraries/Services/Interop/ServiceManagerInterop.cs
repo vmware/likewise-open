@@ -53,7 +53,7 @@ namespace Likewise.LMC.Services
 
     class ServiceManagerInterop
     {
-        private const string advapiDllPath = "liblwsm.so";
+        private const string advapiDllPath = "liblwsm.dll";
 
         public static IntPtr MarshalStringList(string[] values)
         {

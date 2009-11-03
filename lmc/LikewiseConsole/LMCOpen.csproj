@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <ProjectType>Local</ProjectType>
@@ -62,6 +62,11 @@
     <WarningLevel>4</WarningLevel>
     <DebugType>full</DebugType>
     <ErrorReport>prompt</ErrorReport>
+    <EnvironmentVariables>
+      <EnvironmentVariables>
+        <Variable name="LD_LIBRARY_PATH" value="/opt/likewise/lib:/opt/likewise/lib64" />
+      </EnvironmentVariables>
+    </EnvironmentVariables>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <OutputPath>bin\Release\</OutputPath>
@@ -231,7 +236,7 @@
       <Project>{D27214EF-85C2-46D7-94A7-45C3D26BEAC8}</Project>
       <Name>Krb5</Name>
     </ProjectReference>
-    <ProjectReference Include="..\LikewiseClassLibraries\LDAP\LDAP.csproj">
+    <ProjectReference Include="..\LikewiseClassLibraries\Ldap\LDAP.csproj">
       <Project>{A01CDE74-BC93-437B-A97A-883083EA4CC9}</Project>
       <Name>LDAP</Name>
     </ProjectReference>

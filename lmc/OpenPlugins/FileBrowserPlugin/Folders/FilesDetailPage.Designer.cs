@@ -66,10 +66,10 @@ namespace Likewise.LMC.Plugins.FileBrowser
             this.panel5 = new System.Windows.Forms.Panel();
             this.lvFilePage = new Likewise.LMC.ServerControl.LWListView();
             this.ObjectName = new System.Windows.Forms.ColumnHeader();
+            this.DateCreated = new System.Windows.Forms.ColumnHeader();
             this.DateModified = new System.Windows.Forms.ColumnHeader();
             this.Type = new System.Windows.Forms.ColumnHeader();
             this.FileSize = new System.Windows.Forms.ColumnHeader();
-            this.FileId = new System.Windows.Forms.ColumnHeader();
             ((System.ComponentModel.ISupportInitialize)(this.picture)).BeginInit();
             this.pnlHeader.SuspendLayout();
             this.SuspendLayout();
@@ -121,10 +121,10 @@ namespace Likewise.LMC.Plugins.FileBrowser
             this.lvFilePage.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.lvFilePage.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.ObjectName,
+            this.DateCreated,
             this.DateModified,
             this.Type,
-            this.FileSize,
-            this.FileId});
+            this.FileSize});
             this.lvFilePage.Dock = System.Windows.Forms.DockStyle.Fill;
             this.lvFilePage.FullRowSelect = true;
             this.lvFilePage.HideSelection = false;
@@ -144,27 +144,27 @@ namespace Likewise.LMC.Plugins.FileBrowser
             // ObjectName
             //
             this.ObjectName.Text = "Name";
-            this.ObjectName.Width = 160;
+            this.ObjectName.Width = 151;
+            //
+            // DateCreated
+            //
+            this.DateCreated.Text = "Data Created";
+            this.DateCreated.Width = 70;
             //
             // DateModified
             //
             this.DateModified.Text = "Date Modified";
-            this.DateModified.Width = 79;
+            this.DateModified.Width = 70;
             //
             // Type
             //
             this.Type.Text = "Type";
-            this.Type.Width = 80;
+            this.Type.Width = 35;
             //
             // FileSize
             //
             this.FileSize.Text = "Size";
-            this.FileSize.Width = 80;
-            //
-            // FileId
-            //
-            this.FileId.Text = "FileId";
-            this.FileId.Width = 0;
+            this.FileSize.Width = 35;
             //
             // FilesDetailPage
             //
@@ -201,6 +201,6 @@ namespace Likewise.LMC.Plugins.FileBrowser
         private System.Windows.Forms.ColumnHeader DateModified;
         private System.Windows.Forms.ColumnHeader Type;
         private System.Windows.Forms.ColumnHeader FileSize;
-        private System.Windows.Forms.ColumnHeader FileId;
+        private System.Windows.Forms.ColumnHeader DateCreated;
     }
 }

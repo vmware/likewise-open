@@ -4,11 +4,11 @@ using System.Text;
 using System.IO;
 using System.Windows.Forms;
 using Likewise.LMC.ServerControl;
-using Likewise.LMC.Utilities;
+using Likewise.LMC.LMConsoleUtils;
 
-namespace Likewise.LMC.UtilityUIElements
+namespace Likewise.LMC.LMCCredentials
 {
-    public class LMCCredentials : Credentials
+    public class LMCCredentials
     {
         #region Class Data
 
@@ -20,54 +20,25 @@ namespace Likewise.LMC.UtilityUIElements
 
         #region Constructors
 
-        /// <summary>
-        /// Use this constructor to set the default credentilas
-        /// </summary>
         public LMCCredentials()
-            : base()
         {
-
-        }
-
-        /// <summary>
-        /// Use this constructor to set the credentails given by the user. If username or domain is null then it will treat
-        /// it as using of default credentails
-        /// </summary>
-        /// <param name="username"></param>
-        /// <param name="password"></param>
-        /// <param name="domain"></param>
-        /// <param name="hostname"></param>
-        public LMCCredentials(string username, string password, string domain, string hostname)
-            : base(username, password, domain, hostname)
-        {
-
-        }
-
-        /// <summary>
-        /// Use this contructor when we want to read the credentails from .ini file and
-        /// use them as default credentilas for the dialog
-        /// </summary>
-        /// <param name="plugin"></param>
-        /// <param name="hn"></param>
-        public LMCCredentials(IPlugIn plugin, Hostinfo hn)
-            : base(hn.creds.UserName, hn.creds.Password, hn.creds.Domain, hn.hostName)
-        {
-            _plugin = plugin;
-            _hn = hn;
-
-            if (IsConnectSetBefore(plugin)) {
-                GetConnectedHostInfoFromIni(_plugin, _hn);
-
-                this.Domain = hn.domainName;
-                this.Hostname = hn.hostName;
-                this.Username = hn.creds.UserName;
-                this.Password = hn.creds.Password;
-            }
+            SetDefaultCredentails();
         }
 
         #endregion
 
         #region Public functions
+
+        public static void GetPluginCredentials(IPlugIn plugin, Hostinfo hn)
+        {
+            _plugin = plugin;
+            _hn = hn;
+
+            if (IsConnectSetBefore(plugin))
+                GetConnectedHostInfoFromIni(_plugin, _hn);
+            else
+                SetDefaultCredentails();
+        }
 
         private static bool IsConnectSetBefore(IPlugIn requestor)
         {
@@ -91,6 +62,24 @@ namespace Likewise.LMC.UtilityUIElements
             return IsSetBefore;
         }
 
+        public static void SetDefaultCredentails()
+        {
+            if (_hn == null)
+                _hn = new Hostinfo();
+
+            if (String.IsNullOrEmpty(_hn.creds.Domain) && !String.IsNullOrEmpty(System.Environment.UserDomainName)) {
+                _hn.creds.Domain = System.Environment.UserDomainName;
+            }
+
+            if (String.IsNullOrEmpty(_hn.creds.UserName) && !String.IsNullOrEmpty(System.Environment.UserName)) {
+                _hn.creds.UserName = System.Environment.UserName;
+            }
+
+            if (String.IsNullOrEmpty(_hn.hostName) && !String.IsNullOrEmpty(System.Environment.MachineName)) {
+                _hn.hostName = System.Environment.MachineName;
+                _hn.creds.MachineName = System.Environment.MachineName;
+            }
+        }
 
         /// <summary>
         /// Reads the target machine info for the current plugin from credentilas ini and assign to Hostinfo

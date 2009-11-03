@@ -475,7 +475,7 @@ namespace Likewise.LMC.NETAPI
                 IntPtr pBuf = IntPtr.Zero;
                 int param_err = 0;
 
-                Logger.Log(String.Format("NetShareDel(sHostname={0} ,sShareName={1}) called",
+                Logger.Log(String.Format("NetShareAdd(sHostname={0} ,sShareName={1}) called",
                    sHostname, sShareName), Logger.FileShareManagerLogLevel);
 
                 if (Configurations.currentPlatform == LikewiseTargetPlatform.Windows)
