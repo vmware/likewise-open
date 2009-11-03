@@ -60,6 +60,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
         /// </summary>
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
             this.panel1 = new System.Windows.Forms.Panel();
             this.panel3 = new System.Windows.Forms.Panel();
             this.panel4 = new System.Windows.Forms.Panel();
@@ -70,6 +71,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
             this.DateModified = new System.Windows.Forms.ColumnHeader();
             this.Type = new System.Windows.Forms.ColumnHeader();
             this.FileSize = new System.Windows.Forms.ColumnHeader();
+            this.contextMenuStrip = new System.Windows.Forms.ContextMenuStrip(this.components);
             ((System.ComponentModel.ISupportInitialize)(this.picture)).BeginInit();
             this.pnlHeader.SuspendLayout();
             this.SuspendLayout();
@@ -137,6 +139,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
             this.lvFilePage.TileSize = new System.Drawing.Size(48, 48);
             this.lvFilePage.UseCompatibleStateImageBehavior = false;
             this.lvFilePage.View = System.Windows.Forms.View.Details;
+            this.lvFilePage.MouseClick += new System.Windows.Forms.MouseEventHandler(this.lvFilePage_MouseClick);
             this.lvFilePage.SelectedIndexChanged += new System.EventHandler(this.lvFilePage_SelectedIndexChanged);
             this.lvFilePage.MouseUp += new System.Windows.Forms.MouseEventHandler(this.lvFilePage_MouseUp);
             this.lvFilePage.ColumnClick += new System.Windows.Forms.ColumnClickEventHandler(this.lvFilePage_ColumnClick);
@@ -165,6 +168,12 @@ namespace Likewise.LMC.Plugins.FileBrowser
             //
             this.FileSize.Text = "Size";
             this.FileSize.Width = 35;
+            //
+            // contextMenuStrip
+            //
+            this.contextMenuStrip.Name = "contextMenuStrip";
+            this.contextMenuStrip.Size = new System.Drawing.Size(153, 26);
+            this.contextMenuStrip.ItemClicked += new System.Windows.Forms.ToolStripItemClickedEventHandler(this.contextMenuStrip_ItemClicked);
             //
             // FilesDetailPage
             //
@@ -202,5 +211,6 @@ namespace Likewise.LMC.Plugins.FileBrowser
         private System.Windows.Forms.ColumnHeader Type;
         private System.Windows.Forms.ColumnHeader FileSize;
         private System.Windows.Forms.ColumnHeader DateCreated;
+        private System.Windows.Forms.ContextMenuStrip contextMenuStrip;
     }
 }

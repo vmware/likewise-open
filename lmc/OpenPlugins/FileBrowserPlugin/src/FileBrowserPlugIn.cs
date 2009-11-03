@@ -598,7 +598,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
                     error == WinError.ERROR_LOGON_TYPE_NOT_GRANTED)
                 {
                     // Prompt for updated user credentials to access share
-                    CredentialsDialog credDialog = new CredentialsDialog(username, this);
+                    CredentialsDialog credDialog = new CredentialsDialog(username);
 
                     if (credDialog.ShowDialog() == DialogResult.OK)
                     {

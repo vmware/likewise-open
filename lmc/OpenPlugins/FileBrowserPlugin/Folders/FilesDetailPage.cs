@@ -278,8 +278,22 @@ public partial class FilesDetailPage : StandardPage
         }
 
         ListViewItem Item = lvFilePage.SelectedItems[0];
-
         lblCaption.Text = Item.SubItems[0].Text;
+
+        TreeNode[] nodes = base.TreeNode.Nodes.Find(Item.Text, true);
+
+        if (nodes == null || nodes.Length == 0)
+        {
+            return;
+        }
+
+        LACTreeNode node = nodes[0] as LACTreeNode;
+
+        if (node != null)
+        {
+            node.EnsureVisible();
+            node.IsSelected = true;
+        }
     }
 
     private void lvFilePage_MouseUp(object sender, MouseEventArgs e)
@@ -325,6 +339,47 @@ public partial class FilesDetailPage : StandardPage
         this.lvFilePage.Sort();
     }
     #endregion
+
+    private void lvFilePage_MouseClick(object sender, MouseEventArgs e)
+    {
+        if (e.Button == MouseButtons.Right)
+        {
+            ListViewHitTestInfo hit = lvFilePage.HitTest(e.X, e.Y);
+
+            if (hit != null)
+            {
+                int count = lvFilePage.SelectedItems.Count;
+
+                while (count > 0)
+                {
+                    count--;
+                    lvFilePage.SelectedItems[count].Selected = false;
+                }
+
+                hit.Item.Selected = true;
+
+                contextMenuStrip.Items.Clear();
+                contextMenuStrip.Items.Add("Something");
+                Point pt = new Point(e.X, e.Y);
+                contextMenuStrip.Show(lvFilePage, pt);
+            }
+        }
+    }
+
+    private void contextMenuStrip_ItemClicked(object sender, ToolStripItemClickedEventArgs e)
+    {
+        int count = lvFilePage.SelectedItems.Count;
+
+        if (count != 1)
+        {
+            return;
+        }
+
+        ListViewItem item = lvFilePage.SelectedItems[0];
+
+        string  message = "What to do something to item: " + item.Text;
+        MessageBox.Show(message);
+    }
 }
 }
 
