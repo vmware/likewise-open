@@ -12,7 +12,7 @@ namespace Likewise.LMC.UtilityUIElements
     {
         #region ClassData
 
-        public Credentials credentials = null;
+        public Credentials credentials = new Credentials();
 
         #endregion
 
