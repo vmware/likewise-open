@@ -49,7 +49,6 @@ namespace Likewise.LMC.Plugins.FileBrowser
 
         public static bool IsMultiselect = false;
         private ListViewColumnSorter lvwColumnSorter;
-        private FileBrowserNode[] ChildNodes = null;
         public int Count = 0;
         private FileBrowserIPlugIn plugin;
 
@@ -415,10 +414,22 @@ namespace Likewise.LMC.Plugins.FileBrowser
 
             LACTreeNode node = nodes[0] as LACTreeNode;
 
+            plugin.EnumChildren(node);
+
             if (node != null)
             {
-                node.EnsureVisible();
-                node.IsSelected = true;
+                if (node.TreeView != null)
+                {
+                    parent.TreeView.SelectedNode = node;
+                    treeNode = node;
+
+                    if (node.Nodes.Count > 0)
+                    {
+                        node.Expand();
+                    }
+
+                    Refresh();
+                }
             }
         }
 
