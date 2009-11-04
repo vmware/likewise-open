@@ -259,8 +259,18 @@ IopRootParse(
 
     if (pFileName->RootFileHandle)
     {
-        // Relative path -- not yet supported.
-        status = STATUS_INVALID_PARAMETER;
+        // Relative path
+
+        if (pFileName->FileName &&
+            (!pFileName->FileName[0] || IoRtlPathIsSeparator(pFileName->FileName[0])))
+        {
+            status = STATUS_INVALID_PARAMETER;
+            GOTO_CLEANUP_EE(EE);
+        }
+
+        pDevice = pFileName->RootFileHandle->pDevice;
+
+        status = STATUS_SUCCESS;
         GOTO_CLEANUP_EE(EE);
     }
 
