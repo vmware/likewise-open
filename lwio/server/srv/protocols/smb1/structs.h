@@ -217,6 +217,7 @@ typedef struct _SRV_CREATE_STATE_SMB_V1
 
     PLWIO_SRV_TREE          pTree;
     PLWIO_SRV_FILE          pFile;
+    PLWIO_SRV_FILE          pRootDirectory;
     BOOLEAN                 bRemoveFileFromTree;
 
 } SRV_CREATE_STATE_SMB_V1, *PSRV_CREATE_STATE_SMB_V1;
