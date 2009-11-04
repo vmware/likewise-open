@@ -297,7 +297,7 @@ RegSrvIpcEnumRootKeysW(
         ppwszRootKeyNames = NULL;
         pRegResp->dwNumRootKeys = dwNumRootKeys;
 
-        pOut->tag = REG_R_ENUM_ROOT_KEYSW_SUCCESS;
+        pOut->tag = REG_R_ENUM_ROOT_KEYSW;
         pOut->data = pRegResp;
     }
     else
@@ -305,7 +305,7 @@ RegSrvIpcEnumRootKeysW(
         dwError = RegSrvIpcCreateError(dwError, &pError);
         BAIL_ON_REG_ERROR(dwError);
 
-        pOut->tag = REG_R_ENUM_ROOT_KEYSW_FAILURE;
+        pOut->tag = REG_R_ERROR;
         pOut->data = pError;
     }
 
@@ -371,7 +371,7 @@ RegSrvIpcCreateKeyEx(
                                       RegSrvIpcCloseHandle);
         BAIL_ON_REG_ERROR(dwError);
 
-        pOut->tag = REG_R_CREATE_KEY_EX_SUCCESS;
+        pOut->tag = REG_R_CREATE_KEY_EX;
         pOut->data = pRegResp;
 
         dwError = RegSrvIpcRetainHandle(pCall, pRegResp->hkResult);
@@ -382,7 +382,7 @@ RegSrvIpcCreateKeyEx(
         dwError = RegSrvIpcCreateError(dwError, &pError);
         BAIL_ON_REG_ERROR(dwError);
 
-        pOut->tag = REG_R_CREATE_KEY_EX_FAILURE;
+        pOut->tag = REG_R_ERROR;
         pOut->data = pError;
     }
 
@@ -433,7 +433,7 @@ RegSrvIpcOpenKeyExA(
                                       RegSrvIpcCloseHandle);
         BAIL_ON_REG_ERROR(dwError);
 
-        pOut->tag = REG_R_OPEN_KEYA_EX_SUCCESS;
+        pOut->tag = REG_R_OPEN_KEYA_EX;
         pOut->data = pRegResp;
 
         dwError = RegSrvIpcRetainHandle(pCall, pRegResp->hkResult);
@@ -444,7 +444,7 @@ RegSrvIpcOpenKeyExA(
         dwError = RegSrvIpcCreateError(dwError, &pError);
         BAIL_ON_REG_ERROR(dwError);
 
-        pOut->tag = REG_R_OPEN_KEYA_EX_FAILURE;
+        pOut->tag = REG_R_ERROR;
         pOut->data = pError;
     }
 
@@ -495,7 +495,7 @@ RegSrvIpcOpenKeyExW(
                                       RegSrvIpcCloseHandle);
         BAIL_ON_REG_ERROR(dwError);
 
-        pOut->tag = REG_R_OPEN_KEYW_EX_SUCCESS;
+        pOut->tag = REG_R_OPEN_KEYW_EX;
         pOut->data = pRegResp;
 
         dwError = RegSrvIpcRetainHandle(pCall, pRegResp->hkResult);
@@ -506,7 +506,7 @@ RegSrvIpcOpenKeyExW(
         dwError = RegSrvIpcCreateError(dwError, &pError);
         BAIL_ON_REG_ERROR(dwError);
 
-        pOut->tag = REG_R_OPEN_KEYW_EX_FAILURE;
+        pOut->tag = REG_R_ERROR;
         pOut->data = pError;
     }
 
@@ -534,7 +534,7 @@ RegSrvIpcCloseKey(
     dwError = RegSrvIpcUnregisterHandle(pCall, pReq->hKey);
     if (!dwError)
     {
-        pOut->tag = REG_R_CLOSE_KEY_SUCCESS;
+        pOut->tag = REG_R_CLOSE_KEY;
         pOut->data = NULL;
     }
     else
@@ -542,7 +542,7 @@ RegSrvIpcCloseKey(
         dwError = RegSrvIpcCreateError(dwError, &pError);
         BAIL_ON_REG_ERROR(dwError);
 
-        pOut->tag = REG_R_CLOSE_KEY_FAILURE;
+        pOut->tag = REG_R_ERROR;
         pOut->data = pError;
     }
 
@@ -573,7 +573,7 @@ RegSrvIpcDeleteKey(
 
     if (!dwError)
     {
-        pOut->tag = REG_R_DELETE_KEY_SUCCESS;
+        pOut->tag = REG_R_DELETE_KEY;
         pOut->data = NULL;
     }
     else
@@ -581,7 +581,7 @@ RegSrvIpcDeleteKey(
         dwError = RegSrvIpcCreateError(dwError, &pError);
         BAIL_ON_REG_ERROR(dwError);
 
-        pOut->tag = REG_R_DELETE_KEY_FAILURE;
+        pOut->tag = REG_R_ERROR;
         pOut->data = pError;
     }
 
@@ -626,7 +626,7 @@ RegSrvIpcEnumKeyExA(
         pRegResp->pszName= pReq->pszName;
         pRegResp->cName = pReq->cName;
 
-        pOut->tag = REG_R_ENUM_KEYA_EX_SUCCESS;
+        pOut->tag = REG_R_ENUM_KEYA_EX;
         pOut->data = pRegResp;
     }
     else
@@ -634,7 +634,7 @@ RegSrvIpcEnumKeyExA(
         dwError = RegSrvIpcCreateError(dwError, &pError);
         BAIL_ON_REG_ERROR(dwError);
 
-        pOut->tag = REG_R_ENUM_KEYA_EX_FAILURE;
+        pOut->tag = REG_R_ERROR;
         pOut->data = pError;
     }
 
@@ -681,7 +681,7 @@ RegSrvIpcEnumKeyExW(
         pRegResp->pName= pReq->pName;
         pRegResp->cName = pReq->cName;
 
-        pOut->tag = REG_R_ENUM_KEYW_EX_SUCCESS;
+        pOut->tag = REG_R_ENUM_KEYW_EX;
         pOut->data = pRegResp;
     }
     else
@@ -689,7 +689,7 @@ RegSrvIpcEnumKeyExW(
         dwError = RegSrvIpcCreateError(dwError, &pError);
         BAIL_ON_REG_ERROR(dwError);
 
-        pOut->tag = REG_R_ENUM_KEYW_EX_FAILURE;
+        pOut->tag = REG_R_ERROR;
         pOut->data = pError;
     }
 
@@ -746,7 +746,7 @@ RegSrvIpcQueryInfoKeyA(
         pRegResp->cMaxValueNameLen = dwMaxValueNameLen;
         pRegResp->cMaxValueLen = dwMaxValueLen;
 
-        pOut->tag = REG_R_QUERY_INFO_KEYA_SUCCESS;
+        pOut->tag = REG_R_QUERY_INFO_KEYA;
         pOut->data = pRegResp;
     }
     else
@@ -754,7 +754,7 @@ RegSrvIpcQueryInfoKeyA(
         dwError = RegSrvIpcCreateError(dwError, &pError);
         BAIL_ON_REG_ERROR(dwError);
 
-        pOut->tag = REG_R_QUERY_INFO_KEYA_FAILURE;
+        pOut->tag = REG_R_ERROR;
         pOut->data = pError;
     }
 
@@ -809,7 +809,7 @@ RegSrvIpcQueryInfoKeyW(
         pRegResp->cMaxValueNameLen = dwMaxValueNameLen;
         pRegResp->cMaxValueLen = dwMaxValueLen;
 
-        pOut->tag = REG_R_QUERY_INFO_KEYW_SUCCESS;
+        pOut->tag = REG_R_QUERY_INFO_KEYW;
         pOut->data = pRegResp;
     }
     else
@@ -817,7 +817,7 @@ RegSrvIpcQueryInfoKeyW(
         dwError = RegSrvIpcCreateError(dwError, &pError);
         BAIL_ON_REG_ERROR(dwError);
 
-        pOut->tag = REG_R_QUERY_INFO_KEYW_FAILURE;
+        pOut->tag = REG_R_ERROR;
         pOut->data = pError;
     }
 
@@ -864,7 +864,7 @@ RegSrvIpcGetValueA(
         pRegResp->pvData = pReq->pData;
         pRegResp->dwType = dwType;
 
-        pOut->tag = REG_R_GET_VALUEA_SUCCESS;
+        pOut->tag = REG_R_GET_VALUEA;
         pOut->data = pRegResp;
     }
     else
@@ -872,7 +872,7 @@ RegSrvIpcGetValueA(
         dwError = RegSrvIpcCreateError(dwError, &pError);
         BAIL_ON_REG_ERROR(dwError);
 
-        pOut->tag = REG_R_GET_VALUEA_FAILURE;
+        pOut->tag = REG_R_ERROR;
         pOut->data = pError;
     }
     pReq->pData = NULL;
@@ -920,7 +920,7 @@ RegSrvIpcGetValueW(
         pRegResp->pvData = pReq->pData;
         pRegResp->dwType = dwType;
 
-        pOut->tag = REG_R_GET_VALUEW_SUCCESS;
+        pOut->tag = REG_R_GET_VALUEW;
         pOut->data = pRegResp;
     }
     else
@@ -928,7 +928,7 @@ RegSrvIpcGetValueW(
         dwError = RegSrvIpcCreateError(dwError, &pError);
         BAIL_ON_REG_ERROR(dwError);
 
-        pOut->tag = REG_R_GET_VALUEW_FAILURE;
+        pOut->tag = REG_R_ERROR;
         pOut->data = pError;
     }
     pReq->pData = NULL;
@@ -975,7 +975,7 @@ RegSrvIpcQueryValueExA(
         pRegResp->pvData = pReq->pData;
         pRegResp->dwType = dwType;
 
-        pOut->tag = REG_R_QUERY_VALUEA_EX_SUCCESS;
+        pOut->tag = REG_R_QUERY_VALUEA_EX;
         pOut->data = pRegResp;
     }
     else
@@ -983,7 +983,7 @@ RegSrvIpcQueryValueExA(
         dwError = RegSrvIpcCreateError(dwError, &pError);
         BAIL_ON_REG_ERROR(dwError);
 
-        pOut->tag = REG_R_QUERY_VALUEA_EX_FAILURE;
+        pOut->tag = REG_R_ERROR;
         pOut->data = pError;
     }
     pReq->pData = NULL;
@@ -1030,7 +1030,7 @@ RegSrvIpcQueryValueExW(
         pRegResp->pvData = pReq->pData;
         pRegResp->dwType = dwType;
 
-        pOut->tag = REG_R_QUERY_VALUEW_EX_SUCCESS;
+        pOut->tag = REG_R_QUERY_VALUEW_EX;
         pOut->data = pRegResp;
     }
     else
@@ -1038,7 +1038,7 @@ RegSrvIpcQueryValueExW(
         dwError = RegSrvIpcCreateError(dwError, &pError);
         BAIL_ON_REG_ERROR(dwError);
 
-        pOut->tag = REG_R_QUERY_VALUEW_EX_FAILURE;
+        pOut->tag = REG_R_ERROR;
         pOut->data = pError;
     }
     pReq->pData = NULL;
@@ -1071,7 +1071,7 @@ RegSrvIpcDeleteKeyValue(
 
     if (!dwError)
     {
-        pOut->tag = REG_R_DELETE_KEY_VALUE_SUCCESS;
+        pOut->tag = REG_R_DELETE_KEY_VALUE;
         pOut->data = NULL;
     }
     else
@@ -1079,7 +1079,7 @@ RegSrvIpcDeleteKeyValue(
         dwError = RegSrvIpcCreateError(dwError, &pError);
         BAIL_ON_REG_ERROR(dwError);
 
-        pOut->tag = REG_R_DELETE_KEY_VALUE_FAILURE;
+        pOut->tag = REG_R_ERROR;
         pOut->data = pError;
     }
 
@@ -1109,7 +1109,7 @@ RegSrvIpcDeleteTree(
         );
     if (!dwError)
     {
-        pOut->tag = REG_R_DELETE_TREE_SUCCESS;
+        pOut->tag = REG_R_DELETE_TREE;
         pOut->data = NULL;
     }
     else
@@ -1117,7 +1117,7 @@ RegSrvIpcDeleteTree(
         dwError = RegSrvIpcCreateError(dwError, &pError);
         BAIL_ON_REG_ERROR(dwError);
 
-        pOut->tag = REG_R_DELETE_TREE_FAILURE;
+        pOut->tag = REG_R_ERROR;
         pOut->data = pError;
     }
 
@@ -1149,7 +1149,7 @@ RegSrvIpcDeleteValue(
 
     if (!dwError)
     {
-        pOut->tag = REG_R_DELETE_VALUE_SUCCESS;
+        pOut->tag = REG_R_DELETE_VALUE;
         pOut->data = NULL;
     }
     else
@@ -1157,7 +1157,7 @@ RegSrvIpcDeleteValue(
         dwError = RegSrvIpcCreateError(dwError, &pError);
         BAIL_ON_REG_ERROR(dwError);
 
-        pOut->tag = REG_R_DELETE_VALUE_FAILURE;
+        pOut->tag = REG_R_ERROR;
         pOut->data = pError;
     }
 
@@ -1206,7 +1206,7 @@ RegSrvIpcEnumValueA(
         pRegResp->cValue = pReq->cValue;
         pRegResp->type = type;
 
-        pOut->tag = REG_R_ENUM_VALUEA_SUCCESS;
+        pOut->tag = REG_R_ENUM_VALUEA;
         pOut->data = pRegResp;
     }
     else
@@ -1214,7 +1214,7 @@ RegSrvIpcEnumValueA(
         dwError = RegSrvIpcCreateError(dwError, &pError);
         BAIL_ON_REG_ERROR(dwError);
 
-        pOut->tag = REG_R_ENUM_VALUEA_FAILURE;
+        pOut->tag = REG_R_ERROR;
         pOut->data = pError;
     }
 
@@ -1266,7 +1266,7 @@ RegSrvIpcEnumValueW(
         pRegResp->cValue = pReq->cValue;
         pRegResp->type = type;
 
-        pOut->tag = REG_R_ENUM_VALUEW_SUCCESS;
+        pOut->tag = REG_R_ENUM_VALUEW;
         pOut->data = pRegResp;
     }
     else
@@ -1274,7 +1274,7 @@ RegSrvIpcEnumValueW(
         dwError = RegSrvIpcCreateError(dwError, &pError);
         BAIL_ON_REG_ERROR(dwError);
 
-        pOut->tag = REG_R_ENUM_VALUEW_FAILURE;
+        pOut->tag = REG_R_ERROR;
         pOut->data = pError;
     }
 
@@ -1323,7 +1323,7 @@ RegSrvIpcQueryMultipleValues(
         pReq->val_list = NULL;
         pReq->pValue = NULL;
 
-        pOut->tag = REG_R_QUERY_MULTIPLE_VALUES_SUCCESS;
+        pOut->tag = REG_R_QUERY_MULTIPLE_VALUES;
         pOut->data = pRegResp;
     }
     else
@@ -1331,7 +1331,7 @@ RegSrvIpcQueryMultipleValues(
         dwError = RegSrvIpcCreateError(dwError, &pError);
         BAIL_ON_REG_ERROR(dwError);
 
-        pOut->tag = REG_R_QUERY_MULTIPLE_VALUES_FAILURE;
+        pOut->tag = REG_R_ERROR;
         pOut->data = pError;
     }
 
@@ -1367,7 +1367,7 @@ RegSrvIpcSetValueExA(
 
     if (!dwError)
     {
-        pOut->tag = REG_R_SET_VALUEA_EX_SUCCESS;
+        pOut->tag = REG_R_SET_VALUEA_EX;
         pOut->data = NULL;
     }
     else
@@ -1375,7 +1375,7 @@ RegSrvIpcSetValueExA(
         dwError = RegSrvIpcCreateError(dwError, &pError);
         BAIL_ON_REG_ERROR(dwError);
 
-        pOut->tag = REG_R_SET_VALUEA_EX_FAILURE;
+        pOut->tag = REG_R_ERROR;
         pOut->data = pError;
     }
 
@@ -1410,7 +1410,7 @@ RegSrvIpcSetValueExW(
 
     if (!dwError)
     {
-        pOut->tag = REG_R_SET_VALUEW_EX_SUCCESS;
+        pOut->tag = REG_R_SET_VALUEW_EX;
         pOut->data = NULL;
     }
     else
@@ -1418,7 +1418,7 @@ RegSrvIpcSetValueExW(
         dwError = RegSrvIpcCreateError(dwError, &pError);
         BAIL_ON_REG_ERROR(dwError);
 
-        pOut->tag = REG_R_SET_VALUEW_EX_FAILURE;
+        pOut->tag = REG_R_ERROR;
         pOut->data = pError;
     }
 

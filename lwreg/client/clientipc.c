@@ -207,7 +207,7 @@ RegTransactEnumRootKeysW(
 
     switch (out.tag)
     {
-        case REG_R_ENUM_ROOT_KEYSW_SUCCESS:
+        case REG_R_ENUM_ROOT_KEYSW:
             pEnumRootKeysResp = (PREG_IPC_ENUM_ROOTKEYS_RESPONSE)out.data;
             *pppwszRootKeyNames = pEnumRootKeysResp->ppwszRootKeyNames;
             pEnumRootKeysResp->ppwszRootKeyNames = NULL;
@@ -215,7 +215,7 @@ RegTransactEnumRootKeysW(
             pEnumRootKeysResp->dwNumRootKeys = 0;
 
             break;
-        case REG_R_ENUM_ROOT_KEYSW_FAILURE:
+        case REG_R_ERROR:
             pError = (PREG_IPC_ERROR) out.data;
             dwError = pError->dwError;
             BAIL_ON_REG_ERROR(dwError);
@@ -280,7 +280,7 @@ RegTransactCreateKeyExW(
 
     switch (out.tag)
     {
-        case REG_R_CREATE_KEY_EX_SUCCESS:
+        case REG_R_CREATE_KEY_EX:
             pCreateKeyExResp = (PREG_IPC_CREATE_KEY_EX_RESPONSE)out.data;
             *phkResult = pCreateKeyExResp->hkResult;
             pCreateKeyExResp->hkResult = NULL;
@@ -291,7 +291,7 @@ RegTransactCreateKeyExW(
             }
 
             break;
-        case REG_R_CREATE_KEY_EX_FAILURE:
+        case REG_R_ERROR:
             pError = (PREG_IPC_ERROR) out.data;
             dwError = pError->dwError;
             BAIL_ON_REG_ERROR(dwError);
@@ -349,14 +349,14 @@ RegTransactOpenKeyExA(
 
     switch (out.tag)
     {
-        case REG_R_OPEN_KEYA_EX_SUCCESS:
+        case REG_R_OPEN_KEYA_EX:
             pOpenKeyExResp = (PREG_IPC_OPEN_KEY_EX_RESPONSE) out.data;
 
             *phkResult = pOpenKeyExResp->hkResult;
             pOpenKeyExResp->hkResult = NULL;
 
             break;
-        case REG_R_OPEN_KEYA_EX_FAILURE:
+        case REG_R_ERROR:
             pError = (PREG_IPC_ERROR) out.data;
             dwError = pError->dwError;
             BAIL_ON_REG_ERROR(dwError);
@@ -414,14 +414,14 @@ RegTransactOpenKeyExW(
 
     switch (out.tag)
     {
-        case REG_R_OPEN_KEYW_EX_SUCCESS:
+        case REG_R_OPEN_KEYW_EX:
             pOpenKeyExResp = (PREG_IPC_OPEN_KEY_EX_RESPONSE) out.data;
 
             *phkResult = pOpenKeyExResp->hkResult;
             pOpenKeyExResp->hkResult = NULL;
 
             break;
-        case REG_R_OPEN_KEYW_EX_FAILURE:
+        case REG_R_ERROR:
             pError = (PREG_IPC_ERROR) out.data;
             dwError = pError->dwError;
             BAIL_ON_REG_ERROR(dwError);
@@ -472,13 +472,13 @@ RegTransactCloseKey(
 
     switch (out.tag)
     {
-        case REG_R_CLOSE_KEY_SUCCESS:
+        case REG_R_CLOSE_KEY:
             dwError = RegIpcUnregisterHandle(pCall, hKey);
             BAIL_ON_REG_ERROR(dwError);
 
             break;
 
-        case REG_R_CLOSE_KEY_FAILURE:
+        case REG_R_ERROR:
             pError = (PREG_IPC_ERROR) out.data;
             dwError = pError->dwError;
             BAIL_ON_REG_ERROR(dwError);
@@ -532,10 +532,10 @@ RegTransactDeleteKeyW(
 
     switch (out.tag)
     {
-        case REG_R_DELETE_KEY_SUCCESS:
+        case REG_R_DELETE_KEY:
             break;
 
-        case REG_R_DELETE_KEY_FAILURE:
+        case REG_R_ERROR:
             pError = (PREG_IPC_ERROR) out.data;
             dwError = pError->dwError;
             BAIL_ON_REG_ERROR(dwError);
@@ -600,7 +600,7 @@ RegTransactQueryInfoKeyW(
 
     switch (out.tag)
     {
-        case REG_R_QUERY_INFO_KEYW_SUCCESS:
+        case REG_R_QUERY_INFO_KEYW:
             pQueryInfoKeyResp = (PREG_IPC_QUERY_INFO_KEY_RESPONSE) out.data;
 
             if (pcSubKeys)
@@ -625,7 +625,7 @@ RegTransactQueryInfoKeyW(
             }
 
             break;
-        case REG_R_QUERY_INFO_KEYW_FAILURE:
+        case REG_R_ERROR:
             pError = (PREG_IPC_ERROR) out.data;
             dwError = pError->dwError;
             BAIL_ON_REG_ERROR(dwError);
@@ -689,7 +689,7 @@ RegTransactQueryInfoKeyA(
 
     switch (out.tag)
     {
-        case REG_R_QUERY_INFO_KEYA_SUCCESS:
+        case REG_R_QUERY_INFO_KEYA:
             pQueryInfoKeyResp = (PREG_IPC_QUERY_INFO_KEY_RESPONSE) out.data;
 
             if (pcSubKeys)
@@ -714,7 +714,7 @@ RegTransactQueryInfoKeyA(
             }
 
             break;
-        case REG_R_QUERY_INFO_KEYA_FAILURE:
+        case REG_R_ERROR:
             pError = (PREG_IPC_ERROR) out.data;
             dwError = pError->dwError;
             BAIL_ON_REG_ERROR(dwError);
@@ -779,7 +779,7 @@ RegTransactEnumKeyExA(
 
     switch (out.tag)
     {
-        case REG_R_ENUM_KEYA_EX_SUCCESS:
+        case REG_R_ENUM_KEYA_EX:
             pEnumKeyExResp = (PREG_IPC_ENUM_KEYA_EX_RESPONSE) out.data;
 
             memcpy(pszName, pEnumKeyExResp->pszName, (pEnumKeyExResp->cName+1)*sizeof(*pszName));
@@ -787,7 +787,7 @@ RegTransactEnumKeyExA(
 
             break;
 
-        case REG_R_ENUM_KEYA_EX_FAILURE:
+        case REG_R_ERROR:
             pError = (PREG_IPC_ERROR) out.data;
             dwError = pError->dwError;
             BAIL_ON_REG_ERROR(dwError);
@@ -852,7 +852,7 @@ RegTransactEnumKeyExW(
 
     switch (out.tag)
     {
-        case REG_R_ENUM_KEYW_EX_SUCCESS:
+        case REG_R_ENUM_KEYW_EX:
             pEnumKeyExResp = (PREG_IPC_ENUM_KEY_EX_RESPONSE) out.data;
 
             memcpy(pName, pEnumKeyExResp->pName, (pEnumKeyExResp->cName+1)*sizeof(*pName));
@@ -860,7 +860,7 @@ RegTransactEnumKeyExW(
 
             break;
 
-        case REG_R_ENUM_KEYW_EX_FAILURE:
+        case REG_R_ERROR:
             pError = (PREG_IPC_ERROR) out.data;
             dwError = pError->dwError;
             BAIL_ON_REG_ERROR(dwError);
@@ -923,7 +923,7 @@ RegTransactGetValueA(
 
     switch (out.tag)
     {
-        case REG_R_GET_VALUEA_SUCCESS:
+        case REG_R_GET_VALUEA:
             pGetValueResp = (PREG_IPC_GET_VALUE_RESPONSE) out.data;
 
             if (pdwType)
@@ -943,7 +943,7 @@ RegTransactGetValueA(
 
             break;
 
-        case REG_R_GET_VALUEA_FAILURE:
+        case REG_R_ERROR:
             pError = (PREG_IPC_ERROR) out.data;
             dwError = pError->dwError;
             BAIL_ON_REG_ERROR(dwError);
@@ -1006,7 +1006,7 @@ RegTransactGetValueW(
 
     switch (out.tag)
     {
-        case REG_R_GET_VALUEW_SUCCESS:
+        case REG_R_GET_VALUEW:
             pGetValueResp = (PREG_IPC_GET_VALUE_RESPONSE) out.data;
 
             if (pdwType)
@@ -1026,7 +1026,7 @@ RegTransactGetValueW(
 
             break;
 
-        case REG_R_GET_VALUEW_FAILURE:
+        case REG_R_ERROR:
             pError = (PREG_IPC_ERROR) out.data;
             dwError = pError->dwError;
             BAIL_ON_REG_ERROR(dwError);
@@ -1087,7 +1087,7 @@ RegTransactQueryValueExA(
 
     switch (out.tag)
     {
-        case REG_R_QUERY_VALUEA_EX_SUCCESS:
+        case REG_R_QUERY_VALUEA_EX:
             pQueryValueResp = (PREG_IPC_GET_VALUE_RESPONSE) out.data;
 
             if (pType)
@@ -1105,7 +1105,7 @@ RegTransactQueryValueExA(
                 *pcbData = pQueryValueResp->cbData;
             }
             break;
-        case REG_R_QUERY_VALUEA_EX_FAILURE:
+        case REG_R_ERROR:
             pError = (PREG_IPC_ERROR) out.data;
             dwError = pError->dwError;
             BAIL_ON_REG_ERROR(dwError);
@@ -1166,7 +1166,7 @@ RegTransactQueryValueExW(
 
     switch (out.tag)
     {
-        case REG_R_QUERY_VALUEW_EX_SUCCESS:
+        case REG_R_QUERY_VALUEW_EX:
             pQueryValueResp = (PREG_IPC_GET_VALUE_RESPONSE) out.data;
 
             if (pType)
@@ -1184,7 +1184,7 @@ RegTransactQueryValueExW(
                 *pcbData = pQueryValueResp->cbData;
             }
             break;
-        case REG_R_QUERY_VALUEW_EX_FAILURE:
+        case REG_R_ERROR:
             pError = (PREG_IPC_ERROR) out.data;
             dwError = pError->dwError;
             BAIL_ON_REG_ERROR(dwError);
@@ -1239,10 +1239,10 @@ RegTransactDeleteKeyValueW(
 
     switch (out.tag)
     {
-        case REG_R_DELETE_KEY_VALUE_SUCCESS:
+        case REG_R_DELETE_KEY_VALUE:
             break;
 
-        case REG_R_DELETE_KEY_VALUE_FAILURE:
+        case REG_R_ERROR:
             pError = (PREG_IPC_ERROR) out.data;
             dwError = pError->dwError;
             BAIL_ON_REG_ERROR(dwError);
@@ -1295,10 +1295,10 @@ RegTransactDeleteTreeW(
 
     switch (out.tag)
     {
-        case REG_R_DELETE_TREE_SUCCESS:
+        case REG_R_DELETE_TREE:
             break;
 
-        case REG_R_DELETE_TREE_FAILURE:
+        case REG_R_ERROR:
             pError = (PREG_IPC_ERROR) out.data;
             dwError = pError->dwError;
             BAIL_ON_REG_ERROR(dwError);
@@ -1351,9 +1351,9 @@ RegTransactDeleteValueW(
 
     switch (out.tag)
     {
-        case REG_R_DELETE_VALUE_SUCCESS:
+        case REG_R_DELETE_VALUE:
             break;
-        case REG_R_DELETE_VALUE_FAILURE:
+        case REG_R_ERROR:
             pError = (PREG_IPC_ERROR) out.data;
             dwError = pError->dwError;
             BAIL_ON_REG_ERROR(dwError);
@@ -1418,7 +1418,7 @@ RegTransactEnumValueA(
 
     switch (out.tag)
     {
-        case REG_R_ENUM_VALUEA_SUCCESS:
+        case REG_R_ENUM_VALUEA:
             pEnumValueResp = (PREG_IPC_ENUM_VALUEA_RESPONSE) out.data;
 
             memcpy(pszValueName, pEnumValueResp->pszName, (pEnumValueResp->cName+1)*sizeof(*pszValueName));
@@ -1441,7 +1441,7 @@ RegTransactEnumValueA(
 
             break;
 
-        case REG_R_ENUM_VALUEA_FAILURE:
+        case REG_R_ERROR:
             pError = (PREG_IPC_ERROR) out.data;
             dwError = pError->dwError;
             BAIL_ON_REG_ERROR(dwError);
@@ -1506,7 +1506,7 @@ RegTransactEnumValueW(
 
     switch (out.tag)
     {
-        case REG_R_ENUM_VALUEW_SUCCESS:
+        case REG_R_ENUM_VALUEW:
             pEnumValueResp = (PREG_IPC_ENUM_VALUE_RESPONSE) out.data;
 
             memcpy(pValueName, pEnumValueResp->pName, (pEnumValueResp->cName+1)*sizeof(*pValueName));
@@ -1529,7 +1529,7 @@ RegTransactEnumValueW(
 
             break;
 
-        case REG_R_ENUM_VALUEW_FAILURE:
+        case REG_R_ERROR:
             pError = (PREG_IPC_ERROR) out.data;
             dwError = pError->dwError;
             BAIL_ON_REG_ERROR(dwError);
@@ -1597,7 +1597,7 @@ RegTransactQueryMultipleValues(
 
     switch (out.tag)
     {
-       case REG_R_QUERY_MULTIPLE_VALUES_SUCCESS:
+       case REG_R_QUERY_MULTIPLE_VALUES:
             pRegResp = (PREG_IPC_QUERY_MULTIPLE_VALUES_RESPONSE) out.data;
 
             if (pValueBuf)
@@ -1624,7 +1624,7 @@ RegTransactQueryMultipleValues(
 
             break;
 
-        case REG_R_QUERY_MULTIPLE_VALUES_FAILURE:
+        case REG_R_ERROR:
             pError = (PREG_IPC_ERROR) out.data;
             dwError = pError->dwError;
             BAIL_ON_REG_ERROR(dwError);
@@ -1684,10 +1684,10 @@ RegTransactSetKeyValue(
 
     switch (out.tag)
     {
-        case REG_R_SET_KEY_VALUE_SUCCESS:
+        case REG_R_SET_KEY_VALUE:
             break;
 
-        case REG_R_SET_KEY_VALUE_FAILURE:
+        case REG_R_ERROR:
             pError = (PREG_IPC_ERROR) out.data;
             dwError = pError->dwError;
             BAIL_ON_REG_ERROR(dwError);
@@ -1750,10 +1750,10 @@ RegTransactSetValueExA(
 
     switch (response.tag)
     {
-        case REG_R_SET_VALUEA_EX_SUCCESS:
+        case REG_R_SET_VALUEA_EX:
             break;
 
-        case REG_R_SET_VALUEA_EX_FAILURE:
+        case REG_R_ERROR:
             pError = (PREG_IPC_ERROR) response.object;
             dwError = pError->dwError;
             BAIL_ON_REG_ERROR(dwError);
@@ -1817,10 +1817,10 @@ RegTransactSetValueExW(
 
     switch (response.tag)
     {
-        case REG_R_SET_VALUEW_EX_SUCCESS:
+        case REG_R_SET_VALUEW_EX:
             break;
 
-        case REG_R_SET_VALUEW_EX_FAILURE:
+        case REG_R_ERROR:
             pError = (PREG_IPC_ERROR) response.object;
             dwError = pError->dwError;
             BAIL_ON_REG_ERROR(dwError);
