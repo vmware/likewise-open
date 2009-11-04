@@ -381,6 +381,11 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             // do nothing
         }
 
+        public bool PluginSelected()
+        {
+            return true;
+        }
+
         #endregion
 
         #region Private helper functions

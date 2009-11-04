@@ -174,7 +174,19 @@ namespace Likewise.LMC
                 Logger.Log(
                     "The selectedItem is " + selectedItem.SubItems[0].Text,
                     Logger.manageLogLevel);
-                LACTreeNode node = selectedItem.Tag as LACTreeNode;                
+
+                LACTreeNode node = selectedItem.Tag as LACTreeNode;
+
+                // Allow the plug-in to take itself out of the list if it wants
+                if (node.Plugin.PluginSelected() == false)
+                {
+                    Logger.Log(
+                        "The selectedItem is " + selectedItem.SubItems[0].Text + " opted out of selection",
+                        Logger.manageLogLevel);
+
+                    return;
+                }
+
                 node = new LACTreeNode(node.Name, node.image, node.t, node.Plugin);
 #if QUARTZ
                 #if LMC_ENTERPRISE

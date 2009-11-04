@@ -296,6 +296,11 @@ public class EventlogPlugin: IPlugIn
         // do nothing
     }
 
+    public bool PluginSelected()
+    {
+        return true;
+    }
+
     public void AddExtPlugin(IPlugIn extPlugin)
     {
         if (_extPlugins == null)

@@ -452,6 +452,11 @@ namespace Likewise.LMC.Plugins.FileBrowser
             // do nothing
         }
 
+        public bool PluginSelected()
+        {
+            return true;
+        }
+
         #endregion
 
         #region Private helper functions

@@ -393,7 +393,12 @@ public class ADUCPlugin: IPlugIn
     {
         _usingSimpleBind = !useSingleSignOn;
     }
-    
+
+    public bool PluginSelected()
+    {
+        return true;
+    }
+
     #endregion
     
     #region HelperFunctions

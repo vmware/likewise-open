@@ -132,7 +132,12 @@ public class RootPlugin: IPlugIn
     {
         // do nothing
     }
-    
+
+    public bool PluginSelected()
+    {
+        return true;
+    }
+
     #endregion
     
     #region Private helper functions
