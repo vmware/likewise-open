@@ -3147,7 +3147,6 @@ SrvMarshallFileStreamResponse(
             USHORT usAlign = 4 - (ulOffset1 % 4);
 
             ulInfoBytesRequired += usAlign;
-            ulOffset1 += usAlign;
         }
 
         ulInfoBytesRequired += sizeof(SMB2_FILE_STREAM_INFORMATION_HEADER);
@@ -3549,7 +3548,6 @@ SrvMarshallFileFullEAResponse(
             USHORT usAlign = 4 - (ulOffset1 % 4);
 
             ulInfoBytesRequired += usAlign;
-            ulOffset1           += usAlign;
         }
 
         ulInfoBytesRequired += sizeof(SMB2_FILE_FULL_EA_INFORMATION_HEADER);
