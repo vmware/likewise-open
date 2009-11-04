@@ -110,9 +110,9 @@ public class ADUCDomain
         string errorMessage = null;
 
         Logger.Log(String.Format("ADUCDomain: About to build directory context: {0}", _hn.ToString()));
-        
-        _adContext = DirectoryContext.CreateDirectoryContext(//_hn.domainControllerName,
-        _hn.domainName,
+
+        _adContext = DirectoryContext.CreateDirectoryContext(_hn.domainControllerName,
+        //_hn.domainName,
         rootDN,
         _hn.creds.UserName,
         _hn.creds.Password,

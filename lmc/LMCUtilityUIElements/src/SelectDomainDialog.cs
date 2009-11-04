@@ -5,7 +5,7 @@ using System.Data;
 using System.Drawing;
 using System.Text;
 using System.Windows.Forms;
-
+using Likewise.LMC.Netlogon;
 
 namespace Likewise.LMC.UtilityUIElements
 {
@@ -14,6 +14,8 @@ namespace Likewise.LMC.UtilityUIElements
         #region Class Data
 
         private string sUsername = "";
+        private string sDomain = "";
+        private string sDomainController = "";
         private CredentialsDialog credsDialog = null;
 
         #endregion
@@ -65,7 +67,6 @@ namespace Likewise.LMC.UtilityUIElements
         private void tbDomain_TextChanged(object sender, EventArgs e)
         {
             btnOk.Enabled = !String.IsNullOrEmpty(tbDomain.Text.Trim());
-
         }
 
         private void btnOk_Click(object sender, EventArgs e)
@@ -109,11 +110,23 @@ namespace Likewise.LMC.UtilityUIElements
 
         public string GetDomain()
         {
-            if (rbDefaultDomain.Checked) {
-                return System.Environment.UserDomainName;
+            if (rbDefaultDomain.Checked)
+            {
+                if (String.IsNullOrEmpty(sDomain))
+                    GetDCInfo();
+
+                return sDomain;
             }
             else
                 return tbDomain.Text.Trim();
+        }
+
+        public string GetDomainControllerName()
+        {
+            if (String.IsNullOrEmpty(sDomainController))
+                GetDCInfo();
+
+            return sDomainController;
         }
 
         public string GetUsername()
@@ -132,6 +145,22 @@ namespace Likewise.LMC.UtilityUIElements
                 return credsDialog.UseDefaultUserCreds();
             else
                 return true;
+        }
+
+        private void GetDCInfo()
+        {
+            CNetlogon.LWNET_DC_INFO DCInfo;
+
+            CNetlogon.GetCurrentDomain(out sDomain);
+            uint netlogonError = CNetlogon.GetDCName(sDomain, 0, out DCInfo);
+
+            if (netlogonError == 0 && !String.IsNullOrEmpty(DCInfo.DomainControllerName)) {
+                sDomainController = DCInfo.DomainControllerName;
+            }
+
+            if (netlogonError == 0 && !String.IsNullOrEmpty(DCInfo.FullyQualifiedDomainName)) {
+                sDomain = DCInfo.FullyQualifiedDomainName;
+            }
         }
 
         #endregion

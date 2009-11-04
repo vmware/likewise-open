@@ -3105,7 +3105,6 @@ SrvMarshallFileStreamResponse(
     ULONG    iInfoCount        = 0;
     ULONG    ulInfoCount       = 0;
     ULONG    ulOffset1         = 0;
-    ULONG    ulOffset2         = 0;
     ULONG    ulBytesAvailable1 = 0;
     ULONG    ulAlignBytes      = 0;
     PFILE_STREAM_INFORMATION             pFileStreamInfoCursor = NULL;
@@ -3135,19 +3134,11 @@ SrvMarshallFileStreamResponse(
     }
 
     ulBytesAvailable1 = ulDataLength;
-    ulOffset1         = ulOffset;
 
     pFileStreamInfoCursor = (PFILE_STREAM_INFORMATION)pData;
     while (pFileStreamInfoCursor && (ulBytesAvailable1 > 0))
     {
         ULONG  ulInfoBytesRequired = 0;
-
-        if (ulOffset1 % 4)
-        {
-            USHORT usAlign = 4 - (ulOffset1 % 4);
-
-            ulInfoBytesRequired += usAlign;
-        }
 
         ulInfoBytesRequired += sizeof(SMB2_FILE_STREAM_INFORMATION_HEADER);
         ulInfoBytesRequired += pFileStreamInfoCursor->StreamNameLength;
@@ -3156,9 +3147,12 @@ SrvMarshallFileStreamResponse(
         if (pFileStreamInfoCursor->NextEntryOffset != 0)
         {
             ulInfoBytesRequired += sizeof(wchar16_t);
-        }
 
-        ulOffset1 += ulInfoBytesRequired;
+            if (ulInfoBytesRequired % 8)
+            {
+                ulInfoBytesRequired += 8 - (ulInfoBytesRequired % 8);
+            }
+        }
 
         if (ulBytesAvailable1 < ulInfoBytesRequired)
         {
@@ -3182,32 +3176,21 @@ SrvMarshallFileStreamResponse(
     }
 
     pOutBuffer += ulAlignBytes;
-    ulOffset1   = ulOffset;
     pFileStreamInfoCursor = (PFILE_STREAM_INFORMATION)pData;
 
     for (; iInfoCount < ulInfoCount; iInfoCount++)
     {
-        if (ulOffset1 % 4)
-        {
-            USHORT usAlign = 4 - (ulOffset1 % 4);
-
-            pOutBuffer  += usAlign;
-            ulBytesUsed += usAlign;
-            ulOffset1   += usAlign;
-            ulOffset2   += usAlign;
-        }
-
         pInfoHeaderPrev = pInfoHeaderCur;
         pInfoHeaderCur = (PSMB2_FILE_STREAM_INFORMATION_HEADER)pOutBuffer;
 
         /* Update next entry offset for previous entry. */
         if (pInfoHeaderPrev != NULL)
         {
-            pInfoHeaderPrev->ulNextEntryOffset = ulOffset2;
+            pInfoHeaderPrev->ulNextEntryOffset = ulOffset1;
         }
 
         /* Reset the offset to 0 since it's relative. */
-        ulOffset2 = 0;
+        ulOffset1 = 0;
 
         /* Add the header info. */
         pInfoHeaderCur->ulNextEntryOffset = 0;
@@ -3220,7 +3203,6 @@ SrvMarshallFileStreamResponse(
         pOutBuffer  += sizeof(SMB2_FILE_STREAM_INFORMATION_HEADER);
         ulBytesUsed += sizeof(SMB2_FILE_STREAM_INFORMATION_HEADER);
         ulOffset1   += sizeof(SMB2_FILE_STREAM_INFORMATION_HEADER);
-        ulOffset2   += sizeof(SMB2_FILE_STREAM_INFORMATION_HEADER);
 
         memcpy( pOutBuffer,
                 pFileStreamInfoCursor->StreamName,
@@ -3229,7 +3211,6 @@ SrvMarshallFileStreamResponse(
         pOutBuffer  += pFileStreamInfoCursor->StreamNameLength;
         ulBytesUsed += pFileStreamInfoCursor->StreamNameLength;
         ulOffset1   += pFileStreamInfoCursor->StreamNameLength;
-        ulOffset2   += pFileStreamInfoCursor->StreamNameLength;
 
         /* Null terminate all streams names but the last. */
         if (pFileStreamInfoCursor->NextEntryOffset != 0)
@@ -3237,7 +3218,15 @@ SrvMarshallFileStreamResponse(
             pOutBuffer  += sizeof(wchar16_t);
             ulBytesUsed += sizeof(wchar16_t);
             ulOffset1   += sizeof(wchar16_t);
-            ulOffset2   += sizeof(wchar16_t);
+
+            if (ulOffset1 % 8)
+            {
+                USHORT usAlign = 8 - (ulOffset1 % 8);
+
+                pOutBuffer  += usAlign;
+                ulBytesUsed += usAlign;
+                ulOffset1   += usAlign;
+            }
         }
 
         pFileStreamInfoCursor =
@@ -3506,7 +3495,6 @@ SrvMarshallFileFullEAResponse(
     ULONG    iInfoCount        = 0;
     ULONG    ulInfoCount       = 0;
     ULONG    ulOffset1         = 0;
-    ULONG    ulOffset2         = 0;
     ULONG    ulBytesAvailable1 = 0;
     ULONG    ulAlignBytes      = 0;
     PFILE_FULL_EA_INFORMATION             pFileFullEAInfoCursor = NULL;
@@ -3536,25 +3524,23 @@ SrvMarshallFileFullEAResponse(
     }
 
     ulBytesAvailable1 = ulDataLength;
-    ulOffset1         = ulOffset;
 
     pFileFullEAInfoCursor = (PFILE_FULL_EA_INFORMATION)pData;
     while (pFileFullEAInfoCursor && (ulBytesAvailable1 > 0))
     {
         ULONG  ulInfoBytesRequired = 0;
 
-        if (ulOffset1 % 4)
-        {
-            USHORT usAlign = 4 - (ulOffset1 % 4);
-
-            ulInfoBytesRequired += usAlign;
-        }
-
         ulInfoBytesRequired += sizeof(SMB2_FILE_FULL_EA_INFORMATION_HEADER);
         ulInfoBytesRequired += pFileFullEAInfoCursor->EaNameLength;
         ulInfoBytesRequired += pFileFullEAInfoCursor->EaValueLength;
 
-        ulOffset1 += ulInfoBytesRequired;
+		if (pFileFullEAInfoCursor->NextEntryOffset)
+		{
+	    if (ulInfoBytesRequired % 8)
+		{
+		    ulInfoBytesRequired += 8 - (ulInfoBytesRequired % 8);
+		}
+		}
 
         if (ulBytesAvailable1 < ulInfoBytesRequired)
         {
@@ -3578,32 +3564,21 @@ SrvMarshallFileFullEAResponse(
     }
 
     pOutBuffer += ulAlignBytes;
-    ulOffset1   = ulOffset;
     pFileFullEAInfoCursor = (PFILE_FULL_EA_INFORMATION)pData;
 
     for (; iInfoCount < ulInfoCount; iInfoCount++)
     {
-        if (ulOffset1 % 4)
-        {
-            USHORT usAlign = 4 - (ulOffset1 % 4);
-
-            pOutBuffer  += usAlign;
-            ulBytesUsed += usAlign;
-            ulOffset1   += usAlign;
-            ulOffset2   += usAlign;
-        }
-
         pInfoHeaderPrev = pInfoHeaderCur;
         pInfoHeaderCur = (PSMB2_FILE_FULL_EA_INFORMATION_HEADER)pOutBuffer;
 
         /* Update next entry offset for previous entry. */
         if (pInfoHeaderPrev != NULL)
         {
-            pInfoHeaderPrev->ulNextEntryOffset = ulOffset2;
+            pInfoHeaderPrev->ulNextEntryOffset = ulOffset1;
         }
 
         /* Reset the offset to 0 since it's relative. */
-        ulOffset2 = 0;
+        ulOffset1 = 0;
 
         /* Add the header info. */
         pInfoHeaderCur->ulNextEntryOffset = 0;
@@ -3614,7 +3589,6 @@ SrvMarshallFileFullEAResponse(
         pOutBuffer  += sizeof(SMB2_FILE_FULL_EA_INFORMATION_HEADER);
         ulBytesUsed += sizeof(SMB2_FILE_FULL_EA_INFORMATION_HEADER);
         ulOffset1   += sizeof(SMB2_FILE_FULL_EA_INFORMATION_HEADER);
-        ulOffset2   += sizeof(SMB2_FILE_FULL_EA_INFORMATION_HEADER);
 
         // TODO: Find out if the EA Name Length can be zero
         if (pFileFullEAInfoCursor->EaNameLength)
@@ -3626,7 +3600,6 @@ SrvMarshallFileFullEAResponse(
             pOutBuffer  += pFileFullEAInfoCursor->EaNameLength;
             ulBytesUsed += pFileFullEAInfoCursor->EaNameLength;
             ulOffset1   += pFileFullEAInfoCursor->EaNameLength;
-            ulOffset2   += pFileFullEAInfoCursor->EaNameLength;
         }
 
         if (pFileFullEAInfoCursor->EaValueLength)
@@ -3639,7 +3612,15 @@ SrvMarshallFileFullEAResponse(
             pOutBuffer  += pFileFullEAInfoCursor->EaValueLength;
             ulBytesUsed += pFileFullEAInfoCursor->EaValueLength;
             ulOffset1   += pFileFullEAInfoCursor->EaValueLength;
-            ulOffset2   += pFileFullEAInfoCursor->EaValueLength;
+        }
+
+        if (ulOffset1 % 8)
+        {
+            USHORT usAlign = 8 - (ulOffset1 % 8);
+
+            pOutBuffer  += usAlign;
+            ulOffset1   += usAlign;
+            ulBytesUsed += usAlign;
         }
 
         pFileFullEAInfoCursor =

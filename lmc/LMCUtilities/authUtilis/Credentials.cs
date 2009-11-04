@@ -4,7 +4,7 @@ using System.Text;
 using System.IO;
 using System.Windows.Forms;
 
-namespace Likewise.LMC.UtilityUIElements
+namespace Likewise.LMC.Utilities
 {
     public class Credentials
     {
