@@ -451,6 +451,7 @@ public class ADUCPlugin: IPlugIn
                 if (domainDlg.ShowDialog() == DialogResult.OK)
                 {
                     _hn.domainName = domainDlg.GetDomain();
+                    _hn.domainControllerName = domainDlg.GetDomainControllerName();
 
                     if (!domainDlg.UseDefaultUserCreds())
                     {
@@ -458,16 +459,12 @@ public class ADUCPlugin: IPlugIn
                         _hn.creds.Password = domainDlg.GetPassword();
                     }
                 }
+                else
+                    break; // Connection dialog close on cancel
             }
 
             if (!ConnectToDomain())
             {
-                MessageBox.Show(
-                   "Unable to connect to domain.",
-                   CommonResources.GetString("Caption_Console"),
-                   MessageBoxButtons.OK,
-                   MessageBoxIcon.Exclamation);
-
                 if (!domainDlg.UseDefaultUserCreds())
                 {
                     CredentialsDialog credsDialog = new CredentialsDialog(_hn.creds.UserName);
@@ -476,6 +473,8 @@ public class ADUCPlugin: IPlugIn
                         initialConnect = false;
                         continue;
                     }
+                    else
+                        break; // Connection dialog close on cancel
                 }
             }
             else

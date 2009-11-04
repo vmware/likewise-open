@@ -33,17 +33,26 @@ namespace Likewise.LMC.UtilityUIElements
 
         public string GetUsername()
         {
-            return credentialsControl.Username;
+            if (credentialsControl != null)
+                return credentialsControl.Username;
+            else
+                return null;
         }
 
         public string GetPassword()
         {
-            return credentialsControl.Password;
+            if (credentialsControl != null)
+                return credentialsControl.Password;
+            else
+                return null;
         }
 
         public bool UseDefaultUserCreds()
         {
-            return credentialsControl.UseDefaultCreds;
+            if (credentialsControl != null)
+                return credentialsControl.UseDefaultCreds;
+            else
+                return true;
         }
 
         #endregion

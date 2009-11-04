@@ -57,6 +57,7 @@ public class ADUCDirectoryNode: DirectoryNode
 
     public bool _IsDisabled = false;
     public bool _IsDomainController = false;
+    public bool _hasChidren = true;
     
     public List<LdapEntry> ldapEntries = new List<LdapEntry>();
     
@@ -502,6 +503,17 @@ public class ADUCDirectoryNode: DirectoryNode
                 {
                     objectClass = values[values.Length - 1].stringData;
                 }
+
+                List<LdapEntry> childLdapEntries = null;
+                ret = dirContext.ListChildEntriesSynchronous
+                                (currentDN,
+                                LdapAPI.LDAPSCOPE.ONE_LEVEL,
+                                "(objectClass=*)",
+                                new string[] { null },
+                                false,
+                                out childLdapEntries);
+                if (childLdapEntries == null || childLdapEntries.Count == 0)
+                    _hasChidren = false;
                 
                 bool IsDisabled = false;
                 bool IsDc = false;
@@ -540,6 +552,7 @@ public class ADUCDirectoryNode: DirectoryNode
                 newNode.sc = this.sc;
                 newNode._IsDomainController = IsDc;
                 newNode.Text = newNode.Text.Substring(3);
+                newNode._hasChidren = _hasChidren;
                 
                 Logger.Log(String.Format("new Entry: {0}", currentDN), Logger.ldapLogLevel);
                 

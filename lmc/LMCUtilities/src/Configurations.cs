@@ -67,8 +67,8 @@ namespace Likewise.LMC.Utilities
 
         //Set the LIB_PATH if the LD_LIBRARY_PATH is empty.
         //Used when LAC rurring with IDEs Options: /opt/likewise/lib or /opt/likewise/lib64
-        private static string sLIB_LIBRARY_PATH = "/opt/likewise/lib";
-        private static string sLIB64_LIBRARY_PATH = "/opt/likewise/lib64";
+        //private static string sLIB_LIBRARY_PATH = "/opt/likewise/lib";
+        //private static string sLIB64_LIBRARY_PATH = "/opt/likewise/lib64";
 
         public static void verifyEnvironment()
         {
@@ -108,13 +108,13 @@ namespace Likewise.LMC.Utilities
                 }
             }
 
-            if (String.IsNullOrEmpty(sLIBRARY_PATH))
-            {
-                if (Directory.Exists(sLIB64_LIBRARY_PATH))
-                    sLIBRARY_PATH = sLIB64_LIBRARY_PATH;
-                else
-                    sLIBRARY_PATH = sLIB_LIBRARY_PATH;
-            }
+            //if (String.IsNullOrEmpty(sLIBRARY_PATH))
+            //{
+            //    if (Directory.Exists(sLIB64_LIBRARY_PATH))
+            //        sLIBRARY_PATH = sLIB64_LIBRARY_PATH;
+            //    else
+            //        sLIBRARY_PATH = sLIB_LIBRARY_PATH;
+            //}
 
             Logger.Log(separator);
 
