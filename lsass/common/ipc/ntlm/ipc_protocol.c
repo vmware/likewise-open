@@ -272,10 +272,6 @@ static LWMsgTypeSpec gNtlmAcceptSecCtxtSpec[] =
     LWMSG_MEMBER_HANDLE(NTLM_IPC_ACCEPT_SEC_CTXT_REQ, hNewContext, NTLM_CONTEXT_HANDLE),
     LWMSG_ATTR_HANDLE_LOCAL_FOR_RECEIVER,
 
-    LWMSG_MEMBER_POINTER_BEGIN(NTLM_IPC_ACCEPT_SEC_CTXT_REQ, pOutput),
-    LWMSG_TYPESPEC(gNtlmSecBufferDescSpec),
-    LWMSG_POINTER_END,
-
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END
 };
@@ -299,7 +295,7 @@ static LWMsgTypeSpec gNtlmAcceptSecCtxtRespSpec[] =
     LWMSG_MEMBER_TYPESPEC(
         NTLM_IPC_ACCEPT_SEC_CTXT_RESPONSE,
         Output,
-        gNtlmSecBufferDescSpec
+        gNtlmSecBufferSpec
         ),
 
     LWMSG_MEMBER_UINT32(NTLM_IPC_ACCEPT_SEC_CTXT_RESPONSE, fContextAttr),

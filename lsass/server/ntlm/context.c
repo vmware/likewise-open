@@ -279,6 +279,31 @@ error:
     goto cleanup;
 }
 
+DWORD
+NtlmCopyContextToSecBuffer(
+    IN PNTLM_CONTEXT pNtlmContext,
+    OUT PSecBuffer pSecBuffer
+    )
+{
+    DWORD dwError = LW_ERROR_SUCCESS;
+    PBYTE pBuffer = NULL;
+
+    pSecBuffer->BufferType = SECBUFFER_TOKEN;
+
+    pSecBuffer->cbBuffer = pNtlmContext->dwMessageSize;
+    dwError = LwAllocateMemory(pSecBuffer->cbBuffer, OUT_PPVOID(&pBuffer));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    memcpy(pBuffer, pNtlmContext->pMessage, pSecBuffer->cbBuffer);
+
+    pSecBuffer->pvBuffer = (PVOID)pBuffer;
+
+cleanup:
+    return dwError;
+error:
+    goto cleanup;
+}
+
 /******************************************************************************/
 DWORD
 NtlmGetRandomBuffer(

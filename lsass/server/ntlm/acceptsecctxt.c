@@ -53,11 +53,11 @@ NtlmServerAcceptSecurityContext(
     IN HANDLE Handle,
     IN NTLM_CRED_HANDLE hCred,
     IN OUT PNTLM_CONTEXT_HANDLE phContext,
-    IN const SecBufferDesc* pInput,
+    IN const SecBuffer* pInput,
     IN DWORD fContextReq,
     IN DWORD TargetDataRep,
     IN OUT PNTLM_CONTEXT_HANDLE phNewContext,
-    IN OUT PSecBufferDesc pOutput,
+    OUT PSecBuffer pOutput,
     OUT PDWORD  pfContextAttr,
     OUT PTimeStamp ptsTimeStamp
     )
@@ -81,12 +81,15 @@ NtlmServerAcceptSecurityContext(
 
     if (!pNtlmContext)
     {
-        dwError = NtlmGetMessageFromSecBufferDesc(
-            pInput,
-            &dwMessageSize,
-            (const VOID**)&pNegMsg
-            );
-        BAIL_ON_LSA_ERROR(dwError);
+        if (pInput->BufferType != SECBUFFER_TOKEN ||
+           pInput->cbBuffer == 0)
+        {
+            dwError = LW_ERROR_INVALID_PARAMETER;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        pNegMsg = pInput->pvBuffer;
+        dwMessageSize = pInput->cbBuffer;
 
         dwError = NtlmCreateChallengeContext(
             pNegMsg,
@@ -95,7 +98,7 @@ NtlmServerAcceptSecurityContext(
 
         BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = NtlmCopyContextToSecBufferDesc(pNtlmCtxtOut, pOutput);
+        dwError = NtlmCopyContextToSecBuffer(pNtlmCtxtOut, pOutput);
         BAIL_ON_LSA_ERROR(dwError);
 
         dwError = LW_WARNING_CONTINUE_NEEDED;
@@ -108,12 +111,15 @@ NtlmServerAcceptSecurityContext(
         pNtlmCtxtChlng = pNtlmContext;
 
         // In this case we need to grab the response message sent in
-        dwError = NtlmGetMessageFromSecBufferDesc(
-            pInput,
-            &dwMessageSize,
-            (const VOID**)&pRespMsg
-            );
-        BAIL_ON_LSA_ERROR(dwError);
+        if (pInput->BufferType != SECBUFFER_TOKEN ||
+           pInput->cbBuffer == 0)
+        {
+            dwError = LW_ERROR_INVALID_PARAMETER;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        pRespMsg = pInput->pvBuffer;
+        dwMessageSize = pInput->cbBuffer;
 
         dwError = NtlmValidateResponse(
             Handle,

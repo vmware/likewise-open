@@ -167,4 +167,11 @@ NtlmTransferSecBufferDesc(
     BOOLEAN bDeepCopy
     );
 
+DWORD
+NtlmTransferSecBufferToDesc(
+    OUT PSecBufferDesc pOut,
+    IN PSecBuffer pIn,
+    BOOLEAN bDeepCopy
+    );
+
 #endif // __PROTOTYPES_H__
