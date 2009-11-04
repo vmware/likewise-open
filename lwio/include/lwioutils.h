@@ -1213,13 +1213,6 @@ SMBValidateLogLevel(
     DWORD dwLogLevel
     );
 
-int
-SMBStrError(
-    int errnum,
-    char *pszBuf,
-    size_t buflen
-    );
-
 #endif /* __SMBUTILS_H__ */
 
 

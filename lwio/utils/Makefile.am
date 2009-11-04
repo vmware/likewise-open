@@ -20,7 +20,6 @@ liblwioutils_la_SOURCES = \
     lwiologinfo.c \
     path.c        \
     stack.c       \
-    strerror.c    \
     strings.c     \
     sysfuncs.c    \
     syslog.c      \
