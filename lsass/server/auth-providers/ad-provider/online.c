@@ -56,6 +56,16 @@
         goto error;                                       \
     }
 
+static
+DWORD
+AD_CheckExpiredMemberships(
+    IN size_t sCount,
+    IN PLSA_GROUP_MEMBERSHIP* ppMemberships,
+    IN BOOLEAN bCheckNullParentSid,
+    OUT PBOOLEAN pbHaveExpired,
+    OUT PBOOLEAN pbIsComplete
+    );
+
 DWORD
 AD_OnlineFindCellDN(
     IN PLSA_DM_LDAP_CONNECTION pConn,
@@ -886,29 +896,18 @@ AD_PacMembershipFilterWithLdap(
     size_t sLdapGroupCount = 0;
     PLSA_SECURITY_OBJECT* ppLdapGroups = NULL;
     LSA_HASH_TABLE* pMembershipHashTable = NULL;
-    time_t now = 0;
     size_t i = 0;
+    PLSA_GROUP_MEMBERSHIP* ppCacheMemberships = NULL;
+    size_t sCacheMembershipCount = 0;
+    size_t sCacheNonNullCount = 0;
+    BOOLEAN bGroupsMatch = TRUE;
+    BOOLEAN bExpired = FALSE;
+    BOOLEAN bIsComplete = FALSE;
 
     if (LSA_TRUST_DIRECTION_ONE_WAY == dwTrustDirection)
     {
         goto cleanup;
     }
-
-    dwError = ADLdap_GetUserGroupMembership(
-                    hProvider,
-                    pUserInfo,
-                    &iPrimaryGroupIndex,
-                    &sLdapGroupCount,
-                    &ppLdapGroups);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (sLdapGroupCount < 1)
-    {
-        goto cleanup;
-    }
-
-    dwError = LsaGetCurrentTimeSeconds(&now);
-    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaHashCreate(
                     dwMembershipCount,
@@ -929,6 +928,98 @@ AD_PacMembershipFilterWithLdap(
                                       ppMemberships[i]);
             BAIL_ON_LSA_ERROR(dwError);
         }
+    }
+
+    dwError = ADCacheGetGroupsForUser(
+                    gpLsaAdProviderState->hCacheConnection,
+                    pUserInfo->pszObjectSid,
+                    TRUE,
+                    &sCacheMembershipCount,
+                    &ppCacheMemberships);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = AD_CheckExpiredMemberships(
+                    sCacheMembershipCount,
+                    ppCacheMemberships,
+                    TRUE,
+                    &bExpired,
+                    &bIsComplete);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (bExpired || !bIsComplete)
+    {
+        bGroupsMatch = FALSE;
+    }
+
+    for (i = 0; bGroupsMatch && i < sCacheMembershipCount; i++)
+    {
+        PLSA_GROUP_MEMBERSHIP pMembership = NULL;
+
+        // Ignore the NULL entry
+        if (ppCacheMemberships[i]->pszParentSid)
+        {
+            sCacheNonNullCount++;
+            dwError = LsaHashGetValue(pMembershipHashTable,
+                                      ppCacheMemberships[i]->pszParentSid,
+                                      (PVOID*)&pMembership);
+            if (LW_ERROR_SUCCESS == dwError)
+            {
+                pMembership->bIsDomainPrimaryGroup =
+                    ppCacheMemberships[i]->bIsDomainPrimaryGroup;
+                pMembership->bIsInLdap = ppCacheMemberships[i]->bIsInLdap;
+            }
+            else if (dwError == ENOENT)
+            {
+                bGroupsMatch = FALSE;
+                LSA_LOG_VERBOSE(
+                        "The user group membership information for user %s\\%s does not match what is in the cache, because group '%s' is in the cache, but not in the pac. The group membership now needs to be compared against LDAP.",
+                        LSA_SAFE_LOG_STRING(pUserInfo->pszNetbiosDomainName),
+                        LSA_SAFE_LOG_STRING(pUserInfo->pszSamAccountName),
+                        LSA_SAFE_LOG_STRING(ppCacheMemberships[i]->pszParentSid));
+                dwError = LW_ERROR_SUCCESS;
+            }
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+    }
+    if (bGroupsMatch && sCacheNonNullCount != pMembershipHashTable->sCount)
+    {
+        LSA_LOG_VERBOSE(
+                "The user group membership information for user %s\\%s does not match what is in the cache, because the cache contains %d memberships, but the pac contains %d memberships. The group membership now needs to be compared against LDAP.",
+                LSA_SAFE_LOG_STRING(pUserInfo->pszNetbiosDomainName),
+                LSA_SAFE_LOG_STRING(pUserInfo->pszSamAccountName),
+                sCacheNonNullCount,
+                pMembershipHashTable->sCount);
+        bGroupsMatch = FALSE;
+    }
+
+    if (bGroupsMatch)
+    {
+        goto cleanup;
+    }
+
+    // Reset the membership flags obtained from the cache
+    for (i = 0; i < dwMembershipCount; i++)
+    {
+        // Ignore the NULL entry
+        if (ppMemberships[i]->pszParentSid)
+        {
+            ppMemberships[i]->bIsDomainPrimaryGroup = FALSE;
+            ppMemberships[i]->bIsInLdap = FALSE;
+        }
+    }
+
+    // Grab the membership information available in LDAP.
+    dwError = ADLdap_GetUserGroupMembership(
+                    hProvider,
+                    pUserInfo,
+                    &iPrimaryGroupIndex,
+                    &sLdapGroupCount,
+                    &ppLdapGroups);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (sLdapGroupCount < 1)
+    {
+        goto cleanup;
     }
 
     // For anything that we find via LDAP, make it expirable or primary.
@@ -958,6 +1049,7 @@ AD_PacMembershipFilterWithLdap(
     }
 
 cleanup:
+    ADCacheSafeFreeGroupMembershipList(sCacheMembershipCount, &ppCacheMemberships);
     ADCacheSafeFreeObjectList(sLdapGroupCount, &ppLdapGroups);
     LsaHashSafeFree(&pMembershipHashTable);
     return dwError;
