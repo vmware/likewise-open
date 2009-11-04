@@ -53,6 +53,8 @@
 #include "lwiodef.h"
 #include "lwioutils.h"
 
+#define LW_PRINTF_STRING(x) ((x) ? (x) : "<null>")
+
 VOID
 ParseArgs(
     int    argc,
@@ -75,8 +77,6 @@ main(
 {
     DWORD dwError = 0;
     PIO_CONTEXT pContext = NULL;
-    DWORD dwErrorBufferSize = 0;
-    BOOLEAN bPrintOrigError = TRUE;
 
     if (geteuid() != 0) {
         fprintf(stderr, "This program requires super-user privileges.\n");
@@ -107,35 +107,12 @@ error:
 
     dwError = MapErrorCode(dwError);
 
-    dwErrorBufferSize = SMBStrError(dwError, NULL, 0);
-
-    if (dwErrorBufferSize > 0)
-    {
-        DWORD dwError2 = 0;
-        PSTR   pszErrorBuffer = NULL;
-
-        dwError2 = SMBAllocateMemory(
-                    dwErrorBufferSize,
-                    (PVOID*)&pszErrorBuffer);
-
-        if (!dwError2)
-        {
-            DWORD dwLen = SMBStrError(dwError, pszErrorBuffer, dwErrorBufferSize);
-
-            if ((dwLen == dwErrorBufferSize) && !IsNullOrEmptyString(pszErrorBuffer))
-            {
-                fprintf(stderr, "Failed to query status from SMB service.  %s\n", pszErrorBuffer);
-                bPrintOrigError = FALSE;
-            }
-        }
-
-        LWIO_SAFE_FREE_STRING(pszErrorBuffer);
-    }
-
-    if (bPrintOrigError)
-    {
-        fprintf(stderr, "Failed to query status from SMB service. Error code [%d]\n", dwError);
-    }
+    fprintf(
+        stderr,
+        "Failed to query status from SMB service.  Error code %u (%s).\n%s\n",
+        dwError,
+        LW_PRINTF_STRING(LwNtStatusToSymbolicName(dwError)),
+        LW_PRINTF_STRING(LwNtStatusToDescription(dwError)));
 
     goto cleanup;
 }

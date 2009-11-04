@@ -739,7 +739,6 @@ SrvBuildCreateState(
 
     pCreateState->stage = SRV_CREATE_STAGE_SMB_V1_INITIAL;
 
-    // TODO: Handle root fids
     ntStatus = SrvAllocateMemory(
                     sizeof(IO_FILE_NAME),
                     (PVOID*)&pCreateState->pFilename);
@@ -747,15 +746,52 @@ SrvBuildCreateState(
 
     pCreateState->pTree = SrvTreeAcquire(pCtxSmb1->pTree);
 
-    LWIO_LOCK_RWMUTEX_SHARED(bTreeInLock, &pCtxSmb1->pTree->mutex);
+    if (pRequestHeader->rootDirectoryFid != 0)
+    {
+        wchar16_t wszFwdSlash[]  = {'/',  0};
+        wchar16_t wszBackSlash[] = {'\\', 0};
 
-    ntStatus = SrvBuildFilePath(
-                    pCtxSmb1->pTree->pShareInfo->pwszPath,
-                    pwszFilename,
-                    &pCreateState->pFilename->FileName);
-    BAIL_ON_NT_STATUS(ntStatus);
+        ntStatus = SrvTreeFindFile(
+                        pCreateState->pTree,
+                        pRequestHeader->rootDirectoryFid,
+                        &pCreateState->pRootDirectory);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-    LWIO_UNLOCK_RWMUTEX(bTreeInLock, &pCtxSmb1->pTree->mutex);
+        if (pwszFilename && *pwszFilename)
+        {
+            if ((*pwszFilename == wszFwdSlash[0]) ||
+                (*pwszFilename == wszBackSlash[0]))
+            {
+                ntStatus = STATUS_INVALID_PARAMETER;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+
+            LWIO_LOCK_RWMUTEX_SHARED(bTreeInLock, &pCtxSmb1->pTree->mutex);
+
+            ntStatus = SrvBuildFilePath(
+                            NULL, /* relative path */
+                            pwszFilename,
+                            &pCreateState->pFilename->FileName);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            LWIO_UNLOCK_RWMUTEX(bTreeInLock, &pCtxSmb1->pTree->mutex);
+        }
+
+        pCreateState->pFilename->RootFileHandle =
+                        pCreateState->pRootDirectory->hFile;
+    }
+    else
+    {
+        LWIO_LOCK_RWMUTEX_SHARED(bTreeInLock, &pCtxSmb1->pTree->mutex);
+
+        ntStatus = SrvBuildFilePath(
+                        pCtxSmb1->pTree->pShareInfo->pwszPath,
+                        pwszFilename,
+                        &pCreateState->pFilename->FileName);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        LWIO_UNLOCK_RWMUTEX(bTreeInLock, &pCtxSmb1->pTree->mutex);
+    }
 
     pCreateState->pwszFilename = pwszFilename;
 
@@ -933,6 +969,11 @@ SrvFreeCreateState(
     if (pCreateState->pFile)
     {
         SrvFileRelease(pCreateState->pFile);
+    }
+
+    if (pCreateState->pRootDirectory)
+    {
+        SrvFileRelease(pCreateState->pRootDirectory);
     }
 
     if (pCreateState->pTree)

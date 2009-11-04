@@ -3531,7 +3531,7 @@ SrvMarshallFileFullEAResponse(
         ULONG  ulInfoBytesRequired = 0;
 
         ulInfoBytesRequired += sizeof(SMB2_FILE_FULL_EA_INFORMATION_HEADER);
-        ulInfoBytesRequired += pFileFullEAInfoCursor->EaNameLength;
+        ulInfoBytesRequired += pFileFullEAInfoCursor->EaNameLength + 1;
         ulInfoBytesRequired += pFileFullEAInfoCursor->EaValueLength;
 
 		if (pFileFullEAInfoCursor->NextEntryOffset)
@@ -3590,17 +3590,16 @@ SrvMarshallFileFullEAResponse(
         ulBytesUsed += sizeof(SMB2_FILE_FULL_EA_INFORMATION_HEADER);
         ulOffset1   += sizeof(SMB2_FILE_FULL_EA_INFORMATION_HEADER);
 
-        // TODO: Find out if the EA Name Length can be zero
         if (pFileFullEAInfoCursor->EaNameLength)
         {
             memcpy( pOutBuffer,
                     &pFileFullEAInfoCursor->EaName[0],
                     pFileFullEAInfoCursor->EaNameLength);
-
-            pOutBuffer  += pFileFullEAInfoCursor->EaNameLength;
-            ulBytesUsed += pFileFullEAInfoCursor->EaNameLength;
-            ulOffset1   += pFileFullEAInfoCursor->EaNameLength;
         }
+
+        pOutBuffer  += pFileFullEAInfoCursor->EaNameLength + 1;
+        ulBytesUsed += pFileFullEAInfoCursor->EaNameLength + 1;
+        ulOffset1   += pFileFullEAInfoCursor->EaNameLength + 1;
 
         if (pFileFullEAInfoCursor->EaValueLength)
         {
