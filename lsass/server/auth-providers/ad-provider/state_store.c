@@ -93,6 +93,10 @@ typedef struct _ADSTATE_CONNECTION
         bInLock = FALSE;                            \
     }
 
+#if 1
+#define __LW_LSASS_USE_REGISTRY__
+#endif
+
 typedef struct _AD_FILEDB_PROVIDER_DATA
 {
     DWORD dwDirectoryMode;
@@ -167,6 +171,7 @@ LWMsgTypeSpec gADStateDomainTrustCacheSpec[] =
     LWMSG_TYPE_END
 };
 
+#ifndef __LW_LSASS_USE_REGISTRY__
 static
 DWORD
 ADState_ReadFromFile(
@@ -176,7 +181,6 @@ ADState_ReadFromFile(
     OUT OPTIONAL PDLINKEDLIST* ppDomainList
     );
 
-
 static
 DWORD
 ADState_UnmarshalDomainTrustData(
@@ -185,6 +189,7 @@ ADState_UnmarshalDomainTrustData(
     IN size_t DataSize,
     IN OUT PDLINKEDLIST * ppDomainList
     );
+#else
 
 static
 DWORD
@@ -192,6 +197,7 @@ ADState_ReadFromRegistry(
     OUT OPTIONAL PAD_PROVIDER_DATA* ppProviderData,
     OUT OPTIONAL PDLINKEDLIST* ppDomainList
     );
+#endif
 
 DWORD
 ADState_ReadRegProviderData(
@@ -208,6 +214,7 @@ ADState_ReadRegDomainEntry(
     PDLINKEDLIST *ppDomainList
     );
 
+#ifndef __LW_LSASS_USE_REGISTRY__
 static
 DWORD
 ADState_UnmarshalProviderData(
@@ -225,6 +232,7 @@ ADState_UnmarshalLinkedCellData(
     IN size_t DataSize,
     IN OUT PDLINKEDLIST * ppCellList
     );
+#endif
 
 static
 VOID
@@ -248,6 +256,7 @@ ADState_WriteToFile(
     IN PLSA_DM_ENUM_DOMAIN_INFO pDomainInfoAppend
     );
 
+#ifdef __LW_LSASS_USE_REGISTRY__
 static
 DWORD
 ADState_WriteToRegistry(
@@ -256,6 +265,7 @@ ADState_WriteToRegistry(
     IN OPTIONAL DWORD dwDomainInfoCount,
     IN PLSA_DM_ENUM_DOMAIN_INFO pDomainInfoAppend
     );
+#endif
 
 static
 DWORD
@@ -266,11 +276,13 @@ ADState_WriteProviderData(
     );
 
 
+#ifdef __LW_LSASS_USE_REGISTRY__
 static
 DWORD
 ADState_WriteRegProviderData(
     IN PAD_PROVIDER_DATA pProviderData
     );
+#endif
 
 DWORD
 ADState_WriteRegDomainEntry(
@@ -341,14 +353,6 @@ ADState_OpenDb(
 
     if (!bExists)
     {
-#if 1
-        dwError = ADState_WriteToRegistry(
-                      NULL,
-                      NULL,
-                      0,
-                      NULL);
-#endif
-
         dwError = ADState_WriteToFile(
                   pConn,
                   NULL,
@@ -415,19 +419,20 @@ ADState_EmptyDb(
 {
     DWORD dwError = 0;
 
-#if 1
+#ifdef __LW_LSASS_USE_REGISTRY__
     dwError = ADState_WriteToRegistry(
                   NULL,
                   NULL,
                   0,
                   NULL);
-#endif
+#else
     dwError = ADState_WriteToFile(
                   hDb,
                   NULL,
                   NULL,
                   0,
                   NULL);
+#endif
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
@@ -445,17 +450,19 @@ ADState_GetProviderData(
     OUT PAD_PROVIDER_DATA* ppResult
     )
 {
-#if 1
+#ifdef __LW_LSASS_USE_REGISTRY__
     DWORD dwError = 0;
-    PAD_PROVIDER_DATA pRegResult = NULL;
+
     dwError = ADState_ReadFromRegistry(
-                  &pRegResult,
+                  ppResult,
                   NULL);
-#endif
+    return dwError;
+#else
     return ADState_ReadFromFile(
                hDb,
                ppResult,
                NULL);
+#endif
 }
 
 DWORD
@@ -468,19 +475,20 @@ ADState_StoreProviderData(
 
     if (pProvider)
     {
-#if 1
+#ifdef __LW_LSASS_USE_REGISTRY__
         dwError = ADState_WriteToRegistry(
                       pProvider,
                       NULL,
                       0,
                       NULL);
-#endif
+#else
         dwError = ADState_WriteToFile(
                       hDb,
                       pProvider,
                       NULL,
                       0,
                       NULL);
+#endif
     }
 
     return dwError;
@@ -493,17 +501,16 @@ ADState_GetDomainTrustList(
     OUT PDLINKEDLIST* ppList
     )
 {
-#if 1
-    DWORD dwError = 0;
-    PAD_PROVIDER_DATA pRegResult = NULL;
-    dwError = ADState_ReadFromRegistry(
-                  &pRegResult,
-                  NULL);
-#endif
+#ifdef __LW_LSASS_USE_REGISTRY__
+    return ADState_ReadFromRegistry(
+               NULL,
+               ppList);
+#else
     return ADState_ReadFromFile(
                hDb,
                NULL,
                ppList);
+#endif
 }
 
 DWORD
@@ -516,19 +523,20 @@ ADState_AddDomainTrust(
 
     if (pDomainInfo)
     {
-#if 1
+#ifdef __LW_LSASS_USE_REGISTRY__
         dwError = ADState_WriteToRegistry(
                       NULL,
                       NULL,
                       0,
                       pDomainInfo);
-#endif
+#else
         dwError = ADState_WriteToFile(
                       hDb,
                       NULL,
                       NULL,
                       0,
                       pDomainInfo);
+#endif
     }
 
     return dwError;
@@ -545,25 +553,27 @@ ADState_StoreDomainTrustList(
 
     if (ppDomainInfo && dwDomainInfoCount)
     {
-#if 1
+#ifdef __LW_LSASS_USE_REGISTRY__
         dwError = ADState_WriteToRegistry(
                       NULL,
                       ppDomainInfo,
                       dwDomainInfoCount,
                       NULL);
-#endif
+#else
         dwError = ADState_WriteToFile(
                       hDb,
                       NULL,
                       ppDomainInfo,
                       dwDomainInfoCount,
                       NULL);
+#endif
     }
 
     return dwError;
 }
 
 
+#ifdef __LW_LSASS_USE_REGISTRY__
 static
 DWORD
 ADState_ReadFromRegistry(
@@ -608,6 +618,7 @@ ADState_ReadFromRegistry(
         goto cleanup;
 }
 
+#else
 
 static
 DWORD
@@ -974,7 +985,7 @@ error:
     goto cleanup;
 }
 
-/* yyy */
+
 static
 DWORD
 ADState_UnmarshalDomainTrustData(
@@ -1087,6 +1098,7 @@ error:
 
     goto cleanup;
 }
+#endif
 
 VOID
 ADState_FreeEnumDomainInfoList(
@@ -1143,6 +1155,7 @@ ADState_FreeEnumDomainInfo(
     }
 }
 
+#ifdef __LW_LSASS_USE_REGISTRY__
 static
 DWORD
 ADState_WriteToRegistry(
@@ -1155,8 +1168,32 @@ ADState_WriteToRegistry(
     DWORD dwError = 0;
     DWORD dwCount = 0;
     PDLINKEDLIST pCellList = NULL;
+    HANDLE hReg = NULL;
 
-    if (pProviderData)
+    /* Handle the ADState_EmptyDb case */
+    if (!pProviderData && !ppDomainInfo && !pDomainInfoAppend)
+    {
+        dwError = RegOpenServer(&hReg);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        /* Don't care if these fail, these keys may not exist */
+        dwError = RegUtilDeleteTree(
+                      hReg,
+                      LIKEWISE_ROOT_KEY,
+                      AD_PROVIDER_REGKEY,
+                      AD_PROVIDER_DATA_REGKEY);
+        dwError = RegUtilDeleteTree(
+                      hReg,
+                      LIKEWISE_ROOT_KEY,
+                      AD_PROVIDER_REGKEY,
+                      AD_DOMAIN_TRUST_REGKEY);
+        dwError = RegUtilDeleteTree(
+                      hReg,
+                      LIKEWISE_ROOT_KEY,
+                      AD_PROVIDER_REGKEY,
+                      AD_LINKEDCELL_REGKEY);
+    }
+    else if (pProviderData)
     {
         /* Don't care if this fails, value may not exist yet */
         dwError = RegUtilDeleteValue(
@@ -1200,11 +1237,13 @@ ADState_WriteToRegistry(
     }
 
 cleanup:
+    RegCloseServer(hReg);
     return dwError;
 error:
     goto cleanup;
 }
 
+#endif
 
 static
 DWORD
@@ -1409,9 +1448,6 @@ ADState_ReadRegProviderDataValue(
 {
     DWORD dwError = 0;
     PSTR pszValue = NULL;
-
-    dwError = RegOpenServer(&hReg);
-    BAIL_ON_LSA_ERROR(dwError);
 
     if (regType == REG_SZ)
     {
@@ -1716,7 +1752,6 @@ error:
 }
 
 
-/* zzz */
 DWORD
 ADState_ReadRegDomainEntry(
     PDLINKEDLIST *ppDomainList)
@@ -2264,6 +2299,7 @@ error:
 }
 
 
+#ifdef __LW_LSASS_USE_REGISTRY__
 static
 DWORD
 ADState_WriteRegProviderData(
@@ -2359,6 +2395,7 @@ cleanup:
 error:
     goto cleanup;
 }
+#endif
 
 
 static
