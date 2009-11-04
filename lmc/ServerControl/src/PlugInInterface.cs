@@ -59,6 +59,7 @@ namespace Likewise.LMC.ServerControl
         void SetSingleSignOn(bool useSingleSignOn);  
         ContextMenu GetTreeContextMenu(LACTreeNode nodeClicked);
         void AddExtPlugin(IPlugIn extPlugin);
+        bool PluginSelected();
 
         void SerializePluginInfo(LACTreeNode pluginNode, ref int Id, out XmlElement viewElement, XmlElement ViewsNode, TreeNode SelectedNode);
         void DeserializePluginInfo(XmlNode node, ref LACTreeNode pluginnode, string nodepath);

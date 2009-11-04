@@ -251,6 +251,11 @@ class LUGPlugIn: IPlugIn
 
         _extPlugins.Add(extPlugin);
     }
+
+    public bool PluginSelected()
+    {
+        return SelectComputer();
+    }
     
     #endregion
     
@@ -261,27 +266,7 @@ class LUGPlugIn: IPlugIn
         "LUGPlugin.cm_OnConnect: _usingManualCreds: {0}, hn: {1}",
         _usingManualCreds, _hn));
 
-        SelectComputerDialog selectDlg = new SelectComputerDialog(_hn.hostName, _hn.creds.UserName);
-
-        if(selectDlg.ShowDialog() == DialogResult.OK)
-        {
-            _hn.hostName = selectDlg.GetHostname();
-
-            if (!selectDlg.UseDefaultUserCreds())
-            {
-                _hn.creds.UserName = selectDlg.GetUsername();
-                _hn.creds.Password = selectDlg.GetPassword();
-            }
-
-            if (LUGAPI.NetAddConnection(_hn.hostName, _hn.creds.UserName, _hn.creds.Password) != 0)
-            {
-                MessageBox.Show(
-                   "Unable to connect to system.",
-                   "Likewise Administrative Console",
-                   MessageBoxButtons.OK,
-                   MessageBoxIcon.Exclamation);
-            }
-        }
+        SelectComputer();
     }
 
     private void cm_OnCreateUser(object sender, EventArgs e)
@@ -395,6 +380,56 @@ class LUGPlugIn: IPlugIn
 
         return _pluginNode;
     }
+
+    private bool SelectComputer()
+    {
+        Logger.Log(String.Format(
+        "LUGPlugin.SelectComputer: hn: {0}",
+        _hn));
+
+        SelectComputerDialog selectDlg = new SelectComputerDialog(
+            _hn.hostName,
+            _hn.creds.UserName);
+
+        if (selectDlg.ShowDialog() == DialogResult.OK)
+        {
+            int result = (int)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
+
+            _hn.hostName = selectDlg.GetHostname();
+
+            if (!selectDlg.UseDefaultUserCreds())
+            {
+                _hn.creds.UserName = selectDlg.GetUsername();
+                _hn.creds.Password = selectDlg.GetPassword();
+            }
+            else
+            {
+                _hn.creds.UserName = null;
+                _hn.creds.Password = null;
+            }
+
+            result = (int)LUGAPI.NetAddConnection(
+                _hn.hostName,
+                _hn.creds.UserName,
+                _hn.creds.Password);
+
+            if (result != (int)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+            {
+                MessageBox.Show(
+                   "Unable to connect to system:\n" + ErrorCodes.WIN32String(result),
+                   "Likewise Administrative Console",
+                   MessageBoxButtons.OK,
+                   MessageBoxIcon.Exclamation);
+
+                return false;
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
     #endregion
     
 }

@@ -64,6 +64,8 @@ static
 NTSTATUS
 SrvMarshallFileStreamInfo(
     PBYTE   pFileStreamInfo,
+    USHORT  usDataLength,
+    ULONG   ulOffset,
     USHORT  usBytesAvailable,
     PBYTE*  ppData,
     PUSHORT pusDataLen
@@ -878,7 +880,12 @@ SrvQueryFileStreamInfo(
                 {
                     USHORT usNewSize =  0;
 
-                    if (!pTrans2State->usBytesAllocated)
+                    if (pTrans2State->usBytesAllocated >
+                                    pTrans2State->pRequestHeader->maxDataCount)
+                    {
+                        bContinue = FALSE;
+                    }
+                    else if (!pTrans2State->usBytesAllocated)
                     {
                         usNewSize = pTrans2State->usBytesAllocated +
                                         sizeof(FILE_STREAM_INFORMATION) +
@@ -1038,6 +1045,8 @@ SrvBuildQueryFileStreamInfoResponse(
         ntStatus = SrvMarshallFileStreamInfo(
                         pTrans2State->pData2,
                         pTrans2State->usBytesUsed,
+                        ulOffset,
+                        pTrans2State->pRequestHeader->maxDataCount,
                         &pData,
                         &usDataLen);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -1092,6 +1101,8 @@ static
 NTSTATUS
 SrvMarshallFileStreamInfo(
     PBYTE   pFileStreamInfo,
+    USHORT  usDataLength,
+    ULONG   ulOffset,
     USHORT  usBytesAvailable,
     PBYTE*  ppData,
     PUSHORT pusDataLen
@@ -1100,6 +1111,8 @@ SrvMarshallFileStreamInfo(
     NTSTATUS ntStatus = 0;
     PBYTE    pData = NULL;
     PBYTE    pDataCursor = NULL;
+    USHORT   usBytesAvailable1 = usBytesAvailable;
+    ULONG    ulOffset1 = ulOffset;
     USHORT   usBytesRequired = 0;
     USHORT   iInfoCount = 0;
     USHORT   usInfoCount = 0;
@@ -1109,27 +1122,40 @@ SrvMarshallFileStreamInfo(
     PSMB_FILE_STREAM_INFO_RESPONSE_HEADER pInfoHeaderCur = NULL;
 
     pFileStreamInfoCursor = (PFILE_STREAM_INFORMATION)pFileStreamInfo;
-    while (pFileStreamInfoCursor && (usBytesAvailable > 0))
+    while (pFileStreamInfoCursor && (usBytesAvailable1 > 0))
     {
         USHORT usInfoBytesRequired = 0;
 
-        usInfoBytesRequired = sizeof(SMB_FILE_STREAM_INFO_RESPONSE_HEADER);
+        if (ulOffset1 % 4)
+        {
+            USHORT usAlign = 4 - (ulOffset1 % 4);
+
+            if (usBytesAvailable1 < usAlign)
+            {
+                usInfoBytesRequired += usAlign;
+            }
+        }
+
+        usInfoBytesRequired += sizeof(SMB_FILE_STREAM_INFO_RESPONSE_HEADER);
         usInfoBytesRequired += pFileStreamInfoCursor->StreamNameLength;
 
         /* Null terminate all streams names but the last. */
-        if (pFileStreamInfoCursor->NextEntryOffset != 0) {
+        if (pFileStreamInfoCursor->NextEntryOffset != 0)
+        {
             usInfoBytesRequired += sizeof(wchar16_t);
         }
 
-        if (usBytesAvailable < usInfoBytesRequired)
+        ulOffset1 += usInfoBytesRequired;
+
+        if (usBytesAvailable1 < usInfoBytesRequired)
         {
             break;
         }
 
         usInfoCount++;
 
-        usBytesAvailable -= usInfoBytesRequired;
-        usBytesRequired += usInfoBytesRequired;
+        usBytesAvailable1 -= usInfoBytesRequired;
+        usBytesRequired   += usInfoBytesRequired;
 
         if (pFileStreamInfoCursor->NextEntryOffset)
         {
@@ -1147,15 +1173,26 @@ SrvMarshallFileStreamInfo(
     BAIL_ON_NT_STATUS(ntStatus);
 
     pDataCursor = pData;
+    ulOffset1   = ulOffset;
     pFileStreamInfoCursor = (PFILE_STREAM_INFORMATION)pFileStreamInfo;
 
     for (; iInfoCount < usInfoCount; iInfoCount++)
     {
+        if (ulOffset1 % 4)
+        {
+            USHORT usAlign = 4 - (ulOffset1 % 4);
+
+            ulOffset1   += usAlign;
+            pDataCursor += usAlign;
+            usOffset    += usAlign;
+        }
+
         pInfoHeaderPrev = pInfoHeaderCur;
         pInfoHeaderCur = (PSMB_FILE_STREAM_INFO_RESPONSE_HEADER)pDataCursor;
 
         /* Update next entry offset for previous entry. */
-        if (pInfoHeaderPrev != NULL) {
+        if (pInfoHeaderPrev != NULL)
+        {
             pInfoHeaderPrev->ulNextEntryOffset = usOffset;
         }
 
@@ -1171,17 +1208,23 @@ SrvMarshallFileStreamInfo(
                             pFileStreamInfoCursor->StreamNameLength;
 
         pDataCursor += sizeof(SMB_FILE_STREAM_INFO_RESPONSE_HEADER);
-        usOffset += sizeof(SMB_FILE_STREAM_INFO_RESPONSE_HEADER);
+        usOffset    += sizeof(SMB_FILE_STREAM_INFO_RESPONSE_HEADER);
+        ulOffset1   += sizeof(SMB_FILE_STREAM_INFO_RESPONSE_HEADER);
 
-        memcpy(pDataCursor, pFileStreamInfoCursor->StreamName,
-               pFileStreamInfoCursor->StreamNameLength);
+        memcpy( pDataCursor,
+                pFileStreamInfoCursor->StreamName,
+                pFileStreamInfoCursor->StreamNameLength);
+
         pDataCursor += pFileStreamInfoCursor->StreamNameLength;
-        usOffset += pFileStreamInfoCursor->StreamNameLength;
+        usOffset    += pFileStreamInfoCursor->StreamNameLength;
+        ulOffset1   += pFileStreamInfoCursor->StreamNameLength;
 
         /* Null terminate all streams names but the last. */
-        if (pFileStreamInfoCursor->NextEntryOffset != 0) {
+        if (pFileStreamInfoCursor->NextEntryOffset != 0)
+        {
             pDataCursor += sizeof(wchar16_t);
-            usOffset += sizeof(wchar16_t);
+            usOffset    += sizeof(wchar16_t);
+            ulOffset1   += sizeof(wchar16_t);
         }
 
         pFileStreamInfoCursor =

@@ -393,7 +393,12 @@ public class ADUCPlugin: IPlugIn
     {
         _usingSimpleBind = !useSingleSignOn;
     }
-    
+
+    public bool PluginSelected()
+    {
+        return true;
+    }
+
     #endregion
     
     #region HelperFunctions
@@ -473,9 +478,13 @@ public class ADUCPlugin: IPlugIn
                     }
                 }
             }
+            else
+            {
+                break;
+            }
         }
     }
-    
+
     /// <summary>
     /// Method that creates and initializes the ADUC Rootnode
     /// </summary>

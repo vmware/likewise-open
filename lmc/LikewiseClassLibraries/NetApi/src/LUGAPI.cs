@@ -312,6 +312,16 @@ namespace Likewise.LMC.NETAPI
                 }
 
                 result = (uint)WNetAddConnection2(nr, sPassword, sUsername, 0);
+
+                // another session is preventing us from connecting... close it and
+                // retry
+                if (result == (uint)ErrorCodes.WIN32Enum.ERROR_SESSION_CREDENTIAL_CONFLICT)
+                {
+                    if (NetCancelConnection(sServer) == 0)
+                    {
+                        result = (uint)WNetAddConnection2(nr, sPassword, sUsername, 0);
+                    }
+                }
             }
             catch (Exception)
             {
