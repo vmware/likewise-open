@@ -1,4 +1,4 @@
-bin_PROGRAMS = lwio-tool
+noinst_PROGRAMS = lwio-tool
 
 lwio_tool_SOURCES = \
     lwparseargs.c \
