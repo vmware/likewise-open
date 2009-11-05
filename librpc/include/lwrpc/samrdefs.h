@@ -104,6 +104,8 @@
 #define ACB_PW_EXPIRED               0x00020000
 #define ACB_NO_AUTH_DATA_REQD        0x00080000
 
+#define SAMR_MAX_PREFERRED_SIZE      (0xffffffff)
+
 
 /*
  * User info structures
