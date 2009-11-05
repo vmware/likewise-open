@@ -551,6 +551,109 @@ error:
 }
 
 
+DWORD
+NetAllocBufferSid(
+    PVOID      *ppCursor,
+    PDWORD      pdwSpaceLeft,
+    PSID        pSourceSid,
+    DWORD       dwSourceSidLength,
+    PDWORD      pdwSize
+    )
+{
+    DWORD err = ERROR_SUCCESS;
+    NTSTATUS status = STATUS_SUCCESS;
+    PVOID pCursor = NULL;
+    DWORD dwSpaceLeft = 0;
+    DWORD dwSize = 0;
+    PVOID pSid = NULL;
+    PSID *ppDest = NULL;
+
+    if (ppCursor)
+    {
+        pCursor = *ppCursor;
+    }
+
+    if (pdwSpaceLeft)
+    {
+        dwSpaceLeft = *pdwSpaceLeft;
+    }
+
+    if (pSourceSid)
+    {
+        dwSize = RtlLengthRequiredSid(pSourceSid->SubAuthorityCount);
+
+    }
+    else if (dwSourceSidLength)
+    {
+        dwSize = dwSourceSidLength;
+    }
+    else
+    {
+        /* reserve max space if there's no clue about the size */
+        dwSize = RtlLengthRequiredSid(SID_MAX_SUB_AUTHORITIES);
+    }
+
+    if (pCursor)
+    {
+        if (dwSize > dwSpaceLeft)
+        {
+            err = ERROR_NOT_ENOUGH_MEMORY;
+            BAIL_ON_WINERR_ERROR(err);
+        }
+
+        pSid = (pCursor + dwSpaceLeft) - dwSize;
+
+        /* sanity check - the string and current buffer cursor
+           must not overlap */
+        if ((pCursor + sizeof(PSID)) > pSid)
+        {
+            err = ERROR_NOT_ENOUGH_MEMORY;
+            BAIL_ON_WINERR_ERROR(err);
+        }
+
+        if (pSourceSid)
+        {
+            status = RtlCopySid(dwSize,
+                                (PSID)pSid,
+                                pSourceSid);
+            BAIL_ON_NTSTATUS_ERROR(status);
+        }
+
+        /* recalculate size and space after copying the SID */
+        ppDest        = (PSID*)pCursor;
+        *ppDest       = (PSID)pSid;
+        dwSpaceLeft  -= dwSize;
+
+        /* recalculate size and space after setting the SID pointer */
+        pCursor      += sizeof(PSID);
+        dwSpaceLeft  -= sizeof(PSID);
+
+        *ppCursor     = pCursor;
+        *pdwSpaceLeft = dwSpaceLeft;
+    }
+
+    /* include size of the pointer */
+    dwSize += sizeof(PSID);
+
+    if (pdwSize)
+    {
+        *pdwSize += dwSize;
+    }
+
+cleanup:
+    if (err == ERROR_SUCCESS &&
+        status != STATUS_SUCCESS)
+    {
+        err = LwNtStatusToWin32Error(status);
+    }
+
+    return err;
+
+error:
+    goto cleanup;
+}
+
+
 /*
 local variables:
 mode: c

@@ -136,6 +136,16 @@ NetAllocBufferLogonHours(
     );
 
 
+DWORD
+NetAllocBufferSid(
+    PVOID      *ppCursor,
+    PDWORD      pdwSpaceLeft,
+    PSID        pSourceSid,
+    DWORD       dwSourceSidLength,
+    PDWORD      pdwSize
+    );
+
+
 #endif /* _NET_MEMORY_H_ */
 
 
