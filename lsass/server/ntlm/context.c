@@ -238,7 +238,6 @@ error:
     goto cleanup;
 }
 
-/******************************************************************************/
 DWORD
 NtlmCopyContextToSecBufferDesc(
     IN PNTLM_CONTEXT pNtlmContext,
@@ -516,6 +515,7 @@ NtlmCreateChallengeMessage(
     IN PCSTR pDnsServerName,
     IN PCSTR pDnsDomainName,
     IN PBYTE pOsVersion,
+    IN BYTE Challenge[NTLM_CHALLENGE_SIZE],
     OUT PDWORD pdwSize,
     OUT PNTLM_CHALLENGE_MESSAGE* ppChlngMsg
     )
@@ -713,12 +713,9 @@ NtlmCreateChallengeMessage(
         pMessage->Target.dwOffset = 0;
     }
 
-    dwError = NtlmGetRandomBuffer(
-        pMessage->Challenge,
-        NTLM_CHALLENGE_SIZE
-        );
-
-    BAIL_ON_LSA_ERROR(dwError);
+    memcpy(pMessage->Challenge,
+            Challenge,
+            NTLM_CHALLENGE_SIZE);
 
     // Main structure has been filled, now fill in optional data
     pBuffer = (PBYTE)pMessage + sizeof(NTLM_CHALLENGE_MESSAGE);

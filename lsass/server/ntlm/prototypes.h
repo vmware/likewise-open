@@ -334,7 +334,8 @@ NtlmCreateChallengeMessage(
     IN PCSTR pDomainName,
     IN PCSTR pDnsHostName,
     IN PCSTR pDnsDomainName,
-    IN PBYTE  pOsVersion,
+    IN PBYTE pOsVersion,
+    IN BYTE Challenge[NTLM_CHALLENGE_SIZE],
     OUT PDWORD pdwSize,
     OUT PNTLM_CHALLENGE_MESSAGE *ppChlngMsg
     );
@@ -450,7 +451,8 @@ DWORD
 NtlmCreateChallengeContext(
     IN const NTLM_NEGOTIATE_MESSAGE* pNtlmNegMsg,
     IN NTLM_CRED_HANDLE hCred,
-    OUT PNTLM_CONTEXT *ppNtlmContext
+    OUT PNTLM_CONTEXT *ppNtlmContext,
+    OUT PSecBuffer pOutput
     );
 
 DWORD

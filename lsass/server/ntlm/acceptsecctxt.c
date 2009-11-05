@@ -74,6 +74,8 @@ NtlmServerAcceptSecurityContext(
 
     ptsTimeStamp = 0;
 
+    pOutput->pvBuffer = NULL;
+
     if (phContext)
     {
         pNtlmContext = *phContext;
@@ -94,11 +96,8 @@ NtlmServerAcceptSecurityContext(
         dwError = NtlmCreateChallengeContext(
             pNegMsg,
             hCred,
-            &pNtlmCtxtOut);
-
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwError = NtlmCopyContextToSecBuffer(pNtlmCtxtOut, pOutput);
+            &pNtlmCtxtOut,
+            pOutput);
         BAIL_ON_LSA_ERROR(dwError);
 
         dwError = LW_WARNING_CONTINUE_NEEDED;
@@ -144,7 +143,6 @@ NtlmServerAcceptSecurityContext(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    //NtlmAddContext(pNtlmCtxtOut, &ContextHandle);
     ContextHandle = pNtlmCtxtOut;
 
 cleanup:
@@ -152,6 +150,9 @@ cleanup:
 
     return(dwError);
 error:
+    LW_SAFE_FREE_MEMORY(pOutput->pvBuffer);
+    pOutput->cbBuffer = 0;
+    pOutput->BufferType = 0;
     if (ContextHandle)
     {
         NtlmReleaseContext(&ContextHandle);
@@ -167,7 +168,8 @@ DWORD
 NtlmCreateChallengeContext(
     IN const NTLM_NEGOTIATE_MESSAGE* pNtlmNegMsg,
     IN NTLM_CRED_HANDLE hCred,
-    OUT PNTLM_CONTEXT *ppNtlmContext
+    OUT PNTLM_CONTEXT *ppNtlmContext,
+    OUT PSecBuffer pOutput
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -191,6 +193,12 @@ NtlmCreateChallengeContext(
         &pDnsDomainName);
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = NtlmGetRandomBuffer(
+        pNtlmContext->Challenge,
+        NTLM_CHALLENGE_SIZE
+        );
+    BAIL_ON_LSA_ERROR(dwError);
+
     dwError = NtlmCreateChallengeMessage(
         pNtlmNegMsg,
         pServerName,
@@ -198,6 +206,7 @@ NtlmCreateChallengeContext(
         pDnsServerName,
         pDnsDomainName,
         (PBYTE)&gW2KSpoof,
+        pNtlmContext->Challenge,
         &dwMessageSize,
         &pMessage
         );
@@ -205,8 +214,9 @@ NtlmCreateChallengeContext(
     BAIL_ON_LSA_ERROR(dwError);
 
     pNtlmContext->NegotiatedFlags = pMessage->NtlmFlags;
-    pNtlmContext->dwMessageSize = dwMessageSize;
-    pNtlmContext->pMessage = pMessage;
+    pOutput->cbBuffer = dwMessageSize;
+    pOutput->BufferType = SECBUFFER_TOKEN;
+    pOutput->pvBuffer = pMessage;
     pNtlmContext->NtlmState = NtlmStateChallenge;
 
 cleanup:
@@ -225,6 +235,9 @@ error:
         NtlmReleaseContext(&pNtlmContext);
         *ppNtlmContext = NULL;
     }
+    pOutput->cbBuffer = 0;
+    pOutput->BufferType = 0;
+    pOutput->pvBuffer = NULL;
     goto cleanup;
 }
 
@@ -310,10 +323,8 @@ NtlmValidateResponse(
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
-    PNTLM_CHALLENGE_MESSAGE pChlngMsg = NULL;
     LSA_AUTH_USER_PARAMS Params;
     PLSA_AUTH_USER_INFO pUserInfo = NULL;
-    PBYTE pChallengeBuffer = NULL;
     PBYTE pLMRespBuffer = NULL;
     PBYTE pNTRespBuffer = NULL;
     LW_LSA_DATA_BLOB Challenge;
@@ -335,13 +346,6 @@ NtlmValidateResponse(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    pChlngMsg = (PNTLM_CHALLENGE_MESSAGE)pChlngCtxt->pMessage;
-
-    dwError = LwAllocateMemory(
-        NTLM_CHALLENGE_SIZE,
-        OUT_PPVOID(&pChallengeBuffer));
-    BAIL_ON_LSA_ERROR(dwError);
-
     dwError = LwAllocateMemory(
         pRespMsg->LmResponse.usLength,
         OUT_PPVOID(&pLMRespBuffer));
@@ -359,26 +363,21 @@ NtlmValidateResponse(
 
     dwError = NtlmGetUserNameFromResponse(
         pRespMsg,
-        pChlngMsg->NtlmFlags & NTLM_FLAG_UNICODE,
+        pChlngCtxt->NegotiatedFlags & NTLM_FLAG_UNICODE,
         &pUserName);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = NtlmGetDomainNameFromResponse(
         pRespMsg,
-        pChlngMsg->NtlmFlags & NTLM_FLAG_UNICODE,
+        pChlngCtxt->NegotiatedFlags & NTLM_FLAG_UNICODE,
         &pDomainName);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = NtlmGetWorkstationFromResponse(
         pRespMsg,
-        pChlngMsg->NtlmFlags & NTLM_FLAG_UNICODE,
+        pChlngCtxt->NegotiatedFlags & NTLM_FLAG_UNICODE,
         &pWorkstation);
     BAIL_ON_LSA_ERROR(dwError);
-
-    memcpy(
-        pChallengeBuffer,
-        pChlngMsg->Challenge,
-        NTLM_CHALLENGE_SIZE);
 
     memcpy(
         pLMRespBuffer,
@@ -391,7 +390,7 @@ NtlmValidateResponse(
         pRespMsg->NtResponse.usLength);
 
     Challenge.dwLen = NTLM_CHALLENGE_SIZE;
-    Challenge.pData = pChallengeBuffer;
+    Challenge.pData = pChlngCtxt->Challenge;
 
     LMResp.dwLen = pRespMsg->LmResponse.usLength;
     LMResp.pData = pLMRespBuffer;
@@ -428,7 +427,6 @@ NtlmValidateResponse(
 
 cleanup:
 
-    LW_SAFE_FREE_MEMORY(pChallengeBuffer);
     LW_SAFE_FREE_MEMORY(pLMRespBuffer);
     LW_SAFE_FREE_MEMORY(pNTRespBuffer);
     LW_SAFE_FREE_STRING(pUserName);
