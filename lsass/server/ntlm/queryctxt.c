@@ -119,14 +119,15 @@ NtlmServerQueryCtxtNameAttribute(
 
     *ppNames = NULL;
 
-    dwError = LwAllocateMemory(sizeof(*pName), OUT_PPVOID(&pName));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if((*phContext)->NtlmState != NtlmStateResponse)
+    if (*phContext == NULL || (*phContext)->NtlmState != NtlmStateResponse)
     {
         dwError = LW_ERROR_INVALID_CONTEXT;
         BAIL_ON_LSA_ERROR(dwError);
     }
+
+
+    dwError = LwAllocateMemory(sizeof(*pName), OUT_PPVOID(&pName));
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LwStrDupOrNull(
         (*phContext)->pszClientUsername,
