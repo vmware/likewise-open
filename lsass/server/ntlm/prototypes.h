@@ -459,7 +459,8 @@ DWORD
 NtlmCreateResponseContext(
     IN PNTLM_CHALLENGE_MESSAGE pChlngMsg,
     IN NTLM_CRED_HANDLE hCred,
-    IN OUT PNTLM_CONTEXT *ppNtlmContext
+    IN OUT PNTLM_CONTEXT* ppNtlmContext,
+    OUT PSecBuffer pOutput
     );
 
 DWORD
