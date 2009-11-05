@@ -1177,17 +1177,17 @@ ADState_WriteToRegistry(
         BAIL_ON_LSA_ERROR(dwError);
 
         /* Don't care if these fail, these keys may not exist */
-        dwError = RegUtilDeleteTree(
+        RegUtilDeleteTree(
                       hReg,
                       LIKEWISE_ROOT_KEY,
                       AD_PROVIDER_REGKEY,
                       AD_PROVIDER_DATA_REGKEY);
-        dwError = RegUtilDeleteTree(
+        RegUtilDeleteTree(
                       hReg,
                       LIKEWISE_ROOT_KEY,
                       AD_PROVIDER_REGKEY,
                       AD_DOMAIN_TRUST_REGKEY);
-        dwError = RegUtilDeleteTree(
+        RegUtilDeleteTree(
                       hReg,
                       LIKEWISE_ROOT_KEY,
                       AD_PROVIDER_REGKEY,
