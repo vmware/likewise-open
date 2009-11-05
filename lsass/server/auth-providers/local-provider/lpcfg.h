@@ -112,6 +112,11 @@ LocalCfgMustCreateHomedir(
     );
 
 DWORD
+LocalCfgAcceptNTLMv1(
+    PBOOLEAN pbResult
+    );
+
+DWORD
 LocalCfgGetSkeletonDirs(
     PSTR* ppszSkelDirs
     );

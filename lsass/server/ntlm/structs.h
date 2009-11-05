@@ -122,6 +122,8 @@ typedef struct _NTLM_CONTEXT
     LONG nRefCount;
     BYTE SessionKey[NTLM_SESSION_KEY_SIZE];
     DWORD cbSessionKeyLen;
+    // With NTLM1 session security, these keys will all point to the same
+    // address. With NTLM2 session security, each key will be unique.
     RC4_KEY* pSignKey;
     RC4_KEY* pSealKey;
     RC4_KEY* pVerifyKey;
