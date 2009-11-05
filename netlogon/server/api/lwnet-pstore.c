@@ -54,22 +54,15 @@ LWNetSrvGetCurrentDomain(
     DWORD dwError = 0;
     HANDLE hStore = 0;
     PLWPS_PASSWORD_INFO pPassInfo = NULL; 
-    PSTR pszHostname = NULL;
     PSTR pszDomain = NULL;
-    
-    dwError = LWNetDnsGetHostInfo(
-                &pszHostname,
-                NULL);
-    BAIL_ON_LWNET_ERROR(dwError);
     
     dwError = LwpsOpenPasswordStore(
                 LWPS_PASSWORD_STORE_DEFAULT,
                 &hStore);
     BAIL_ON_LWNET_ERROR(dwError);
-    
-    dwError = LwpsGetPasswordByHostName(
+
+    dwError = LwpsGetPasswordByCurrentHostName(
                 hStore,
-                pszHostname,
                 &pPassInfo);
     if (dwError || pPassInfo == NULL || pPassInfo->pwszDnsDomainName == NULL) 
     {
@@ -91,7 +84,6 @@ LWNetSrvGetCurrentDomain(
     *ppszDomain = pszDomain;
         
 cleanup:
-    LWNET_SAFE_FREE_STRING(pszHostname);
     
     if (pPassInfo) {
         LwpsFreePasswordInfo(hStore, pPassInfo);
