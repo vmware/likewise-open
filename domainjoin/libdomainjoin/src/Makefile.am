@@ -59,7 +59,7 @@ if ENABLE_MINIMAL
 else
 libdomainjoin_la_SOURCES += \
        djsystemscripts.c \
-       djsecuser.c    \
+       aix/djsecuser.c    \
        djnsswitch.c    \
        djpamconf.c    \
        aix/djlogincfg.c   \
