@@ -28,6 +28,22 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        net_usergetinfo.c
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Client Interface
+ *
+ *        NetUserGetInfo function
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
+ */
+
 #include "includes.h"
 
 
@@ -39,14 +55,14 @@ NetUserGetInfo(
     PVOID  *ppBuffer
     )
 {
-    const DWORD dwAccessRights = USER_ACCESS_GET_NAME_ETC |
-                                 USER_ACCESS_GET_LOCALE |
-                                 USER_ACCESS_GET_LOGONINFO |
-                                 USER_ACCESS_GET_ATTRIBUTES |
-                                 USER_ACCESS_GET_GROUPS |
-                                 USER_ACCESS_GET_GROUP_MEMBERSHIP;
+    const DWORD dwUserAccessFlags = USER_ACCESS_GET_NAME_ETC |
+                                    USER_ACCESS_GET_LOCALE |
+                                    USER_ACCESS_GET_LOGONINFO |
+                                    USER_ACCESS_GET_ATTRIBUTES |
+                                    USER_ACCESS_GET_GROUPS |
+                                    USER_ACCESS_GET_GROUP_MEMBERSHIP;
     const DWORD dwSamrInfoLevel = 21;
-    const DWORD dwNum = 1;
+
     NTSTATUS status = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
     NetConn *pConn = NULL;
@@ -54,7 +70,9 @@ NetUserGetInfo(
     ACCOUNT_HANDLE hUser = NULL;
     DWORD dwUserRid = 0;
     UserInfo *pSamrUserInfo = NULL;
-    USER_INFO_20 *pNetUserInfo20 = NULL;
+    DWORD dwSize = 0;
+    DWORD dwSpaceAvailable = 0;
+    PVOID pBuffer = NULL;
     PIO_CREDS pCreds = NULL;
 
     BAIL_ON_INVALID_PTR(pwszUsername);
@@ -63,7 +81,7 @@ NetUserGetInfo(
     if (dwLevel != 20)
     {
         err = ERROR_INVALID_LEVEL;
-        goto cleanup;
+        BAIL_ON_WINERR_ERROR(err);
     }
 
     status = LwIoGetActiveCreds(NULL, &pCreds);
@@ -76,7 +94,10 @@ NetUserGetInfo(
                             pCreds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = NetOpenUser(pConn, pwszUsername, dwAccessRights, &hUser,
+    status = NetOpenUser(pConn,
+                         pwszUsername,
+                         dwUserAccessFlags,
+                         &hUser,
                          &dwUserRid);
     BAIL_ON_NTSTATUS_ERROR(status);
 
@@ -88,17 +109,44 @@ NetUserGetInfo(
                                &pSamrUserInfo);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = PullUserInfo20((void**)&pNetUserInfo20,
-                            &pSamrUserInfo->info21,
-                            dwNum);
+    err = NetAllocateUserInfo(NULL,
+                              NULL,
+                              dwLevel,
+                              pSamrUserInfo,
+                              &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    dwSpaceAvailable = dwSize;
+    dwSize           = 0;
+
+    status = NetAllocateMemory((void**)&pBuffer,
+                               dwSpaceAvailable,
+                               NULL);
     BAIL_ON_NTSTATUS_ERROR(status);
+
+    err = NetAllocateUserInfo(pBuffer,
+                              &dwSpaceAvailable,
+                              dwLevel,
+                              pSamrUserInfo,
+                              &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
 
     status = SamrClose(hSamrBinding, hUser);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    *ppBuffer = pNetUserInfo20;
+    *ppBuffer = pBuffer;
 
 cleanup:
+    if (pSamrUserInfo)
+    {
+        SamrFreeMemory(pSamrUserInfo);
+    }
+
+    if (pCreds)
+    {
+        LwIoDeleteCreds(pCreds);
+    }
+
     if (err == ERROR_SUCCESS &&
         status != STATUS_SUCCESS)
     {
@@ -108,14 +156,9 @@ cleanup:
     return err;
 
 error:
-    if (pNetUserInfo20)
+    if (pBuffer)
     {
-        NetFreeMemory((void*)pNetUserInfo20);
-    }
-
-    if (pCreds)
-    {
-        LwIoDeleteCreds(pCreds);
+        NetFreeMemory((void*)pBuffer);
     }
 
     *ppBuffer = NULL;
