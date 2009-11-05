@@ -116,6 +116,7 @@ typedef struct _NTLM_CONTEXT
 {
     NTLM_STATE NtlmState;
     BYTE Challenge[NTLM_CHALLENGE_SIZE];
+    PSTR pszClientUsername;
     DWORD dwMessageSize;
     PVOID pMessage;
     NTLM_CRED_HANDLE CredHandle;

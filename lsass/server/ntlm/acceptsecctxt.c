@@ -254,6 +254,8 @@ NtlmCreateValidatedContext(
 {
     DWORD dwError = LW_ERROR_SUCCESS;
     PNTLM_CONTEXT pNtlmContext = NULL;
+    SEC_CHAR* pUserName = NULL;
+    SEC_CHAR* pDomainName = NULL;
 
     *ppNtlmContext = NULL;
 
@@ -268,6 +270,25 @@ NtlmCreateValidatedContext(
 
     pNtlmContext->NegotiatedFlags = NegotiatedFlags;
 
+    dwError = NtlmGetUserNameFromResponse(
+        pNtlmRespMsg,
+        NegotiatedFlags & NTLM_FLAG_UNICODE,
+        &pUserName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = NtlmGetDomainNameFromResponse(
+        pNtlmRespMsg,
+        NegotiatedFlags & NTLM_FLAG_UNICODE,
+        &pDomainName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LwAllocateStringPrintf(
+        &pNtlmContext->pszClientUsername,
+        "%s\\%s",
+        pDomainName,
+        pUserName);
+    BAIL_ON_LSA_ERROR(dwError);
+
     memcpy(pNtlmContext->SessionKey, pSessionKey, NTLM_SESSION_KEY_SIZE);
     pNtlmContext->cbSessionKeyLen = dwSessionKeyLen;
 
@@ -275,13 +296,15 @@ NtlmCreateValidatedContext(
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
+    LW_SAFE_FREE_MEMORY(pUserName);
+    LW_SAFE_FREE_MEMORY(pDomainName);
     *ppNtlmContext = pNtlmContext;
     return dwError;
 
 error:
     if (pNtlmContext)
     {
-        LW_SAFE_FREE_MEMORY(pNtlmContext);
+        NtlmFreeContext(&pNtlmContext);
     }
     goto cleanup;
 }

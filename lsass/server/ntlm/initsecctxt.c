@@ -238,6 +238,11 @@ NtlmCreateResponseContext(
     dwError = NtlmCreateContext(hCred, &pNtlmContext);
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = LwAllocateString(
+                pUserNameTemp,
+                &pNtlmContext->pszClientUsername);
+    BAIL_ON_LSA_ERROR(dwError);
+
     dwError = NtlmCreateResponseMessage(
         pChlngMsg,
         pUserNameInfo->pszName,
@@ -313,7 +318,7 @@ error:
 
     if (pNtlmContext)
     {
-        LW_SAFE_FREE_MEMORY(pNtlmContext);
+        NtlmFreeContext(&pNtlmContext);
     }
 
     goto cleanup;

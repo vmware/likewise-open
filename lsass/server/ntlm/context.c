@@ -162,7 +162,6 @@ NtlmFreeContext(
 
     memset(pContext->pMessage, 0, pContext->dwMessageSize);
     LW_SAFE_FREE_MEMORY(pContext->pMessage);
-
     if (pContext->pSealKey && pContext->pSealKey != pContext->pSignKey)
     {
         LW_SAFE_FREE_MEMORY(pContext->pSealKey);
@@ -175,10 +174,8 @@ NtlmFreeContext(
     {
         LW_SAFE_FREE_MEMORY(pContext->pUnsealKey);
     }
-    if (pContext->pSignKey)
-    {
-        LW_SAFE_FREE_MEMORY(pContext->pSignKey);
-    }
+    LW_SAFE_FREE_MEMORY(pContext->pSignKey);
+    LW_SAFE_FREE_STRING(pContext->pszClientUsername);
 
     LW_SAFE_FREE_MEMORY(pContext);
     *ppContext = NULL;
