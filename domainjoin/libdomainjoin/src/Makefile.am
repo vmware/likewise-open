@@ -69,7 +69,6 @@ libdomainjoin_la_SOURCES += \
        djconfig_mac.c \
        djtimemgmt.c \
        djsshconf.c    \
-       djauthconf.c   \
        djddns.c
 
 if BUILD_MACCODE
