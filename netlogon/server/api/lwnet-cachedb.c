@@ -681,7 +681,7 @@ LWNetCacheDbReadFromRegistry(
 
     dwError = RegUtilIsValidKey(
                   hReg,
-                  LIKEWISE_ROOT_KEY,
+                  HKEY_THIS_MACHINE,
                   LWNET_NETLOGON_REGISTRY_KEY "\\" LWNET_CACHE_REGISTRY_KEY);
 
     /* cachedb entry does not exist until netlogond is stopped, so this
@@ -695,7 +695,7 @@ LWNetCacheDbReadFromRegistry(
 
     dwError = RegUtilGetKeys(
                   hReg,
-                  LIKEWISE_ROOT_KEY,
+                  HKEY_THIS_MACHINE,
                   LWNET_NETLOGON_REGISTRY_KEY,
                   LWNET_CACHE_REGISTRY_KEY,
                   &ppSubKeys,
@@ -797,7 +797,7 @@ LWNetCacheDbRegistryWriteValue(
 
     dwError = RegUtilSetValue(
                   hReg,
-                  LIKEWISE_ROOT_KEY,
+                  HKEY_THIS_MACHINE,
                   LWNET_NETLOGON_REGISTRY_KEY "\\" LWNET_CACHE_REGISTRY_KEY,
                   pszSubKey,
                   pszValueName,
@@ -872,7 +872,7 @@ LWNetCacheDbWriteToRegistry(
 
     dwError = RegUtilAddKey(
                   hReg,
-                  LIKEWISE_ROOT_KEY,
+                  HKEY_THIS_MACHINE,
                   LWNET_NETLOGON_REGISTRY_KEY,
                   LWNET_CACHE_REGISTRY_KEY);
     BAIL_ON_LWNET_ERROR(dwError);
@@ -899,7 +899,7 @@ LWNetCacheDbWriteToRegistry(
 
         dwError = RegUtilAddKey(
                       hReg,
-                      LIKEWISE_ROOT_KEY,
+                      HKEY_THIS_MACHINE,
                       LWNET_NETLOGON_REGISTRY_KEY "\\" LWNET_CACHE_REGISTRY_KEY,
                       pszNewCacheKey);
         BAIL_ON_LWNET_ERROR(dwError);
@@ -925,7 +925,7 @@ cleanup:
 
 error:
     LWNET_LOG_ERROR("Failed to save cache %s [%d]",
-                    LIKEWISE_ROOT_KEY "\\" LWNET_CACHE_REGISTRY_KEY,
+                    HKEY_THIS_MACHINE "\\" LWNET_CACHE_REGISTRY_KEY,
                     dwError);
 
     goto cleanup;
