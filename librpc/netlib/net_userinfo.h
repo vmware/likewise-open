@@ -68,8 +68,8 @@ typedef struct _USER_INFO_X
     PWSTR   usr_comment;
     PWSTR   parms;
     PWSTR   workstations;
-    NtTime  last_logon;
-    NtTime  last_logoff;
+    DWORD   last_logon;
+    DWORD   last_logoff;
     NtTime  acct_expires;
     DWORD   max_storage;
     DWORD   units_per_week;
@@ -119,6 +119,16 @@ typedef struct _USER_INFO_2X {
     PWSTR   comment;
     union user_info_id user;
 } USER_INFO_2X, *PUSER_INFO_2X;
+
+
+DWORD
+NetAllocateUserInfo(
+    PVOID   pInfoBuffer,
+    PDWORD  pdwSpaceLeft,
+    DWORD   dwLevel,
+    PVOID   pSource,
+    PDWORD  pdwSize
+    );
 
 
 NTSTATUS
