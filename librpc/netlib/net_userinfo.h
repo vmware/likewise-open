@@ -132,34 +132,6 @@ NetAllocateUserInfo(
 
 
 NTSTATUS
-PullUserInfo0(
-    PVOID *ppBuffer,
-    PWSTR *ppwszNames,
-    DWORD  dwNum
-    );
-
-NTSTATUS
-PullUserInfo1(
-    PVOID      *ppBuffer,
-    UserInfo21 *pUserInfo,
-    DWORD       dwNum
-    );
-
-NTSTATUS
-PullUserInfo2(
-    PVOID      *pBuffer,
-    UserInfo21 *pUserInfo,
-    DWORD       dwNum
-    );
-
-NTSTATUS
-PullUserInfo20(
-    PVOID      *ppBuffer,
-    UserInfo21 *pUserInfo,
-    DWORD       dwNum
-    );
-
-NTSTATUS
 PushUserInfoAdd(
     UserInfo **ppSamrUserInfo,
     PDWORD     pdwSamrInfoLevel,
