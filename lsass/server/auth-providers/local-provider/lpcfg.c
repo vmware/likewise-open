@@ -489,7 +489,7 @@ LocalCfgReadRegistry(
                 "Services\\lsass\\Parameters\\Providers\\Local",
                 "Policy\\Services\\lsass\\Parameters\\Providers\\Local",
                 LpConfigDescription,
-                sizeof(LpConfigDescription)/sizeof(LpConfigDescription));
+                sizeof(LpConfigDescription)/sizeof(LpConfigDescription[0]));
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaProcessConfig(
