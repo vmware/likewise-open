@@ -47,12 +47,20 @@ namespace Likewise.LMC.Plugins.FileBrowser
     {
         #region Class data
 
+        private enum OSTYPE
+        {
+            WINDOWS = 0,
+            LINUX = 1
+        };
+
         private IPlugInContainer _container;
         private Hostinfo _hn;
         private FileBrowserNode _pluginNode;
         private string _disconnectShare = null;
         List<IPlugIn> _extPlugins = null;
         string LocalDiskRoot = "C:";
+        List<string> RemoteShares = new List<string>();
+        OSTYPE _os = OSTYPE.LINUX;
 
         #endregion
 
@@ -180,23 +188,6 @@ namespace Likewise.LMC.Plugins.FileBrowser
                                         NetResource);
         }
 
-        private List<NETRESOURCE> GetSharesForServer(
-            string serverName
-            )
-        {
-            NETRESOURCE NetResource = new NETRESOURCE();
-
-            NetResource.dwScope = ResourceScope.RESOURCE_GLOBALNET;
-            NetResource.dwUsage = ResourceUsage.RESOURCEUSAGE_CONNECTABLE;
-            NetResource.dwType = ResourceType.RESOURCETYPE_DISK;
-            NetResource.pRemoteName = serverName;
-
-            return GetChildNetResources(ResourceScope.RESOURCE_GLOBALNET,
-                                        ResourceType.RESOURCETYPE_DISK,
-                                        ResourceUsage.RESOURCEUSAGE_CONNECTABLE,
-                                        NetResource);
-        }
-
         private List<NETRESOURCE> GetChildNetResources(
             ResourceScope dwScope,
             ResourceType dwType,
@@ -244,19 +235,23 @@ namespace Likewise.LMC.Plugins.FileBrowser
             }
         }
 
-        private void AddContainerNode(
+        private void AddShareNodes(
             LACTreeNode parentNode,
-            NETRESOURCE NetResource
+            List<string> Shares
             )
         {
-            TreeNode[] found = parentNode.Nodes.Find(NetResource.pRemoteName, false);
-
-            if (found == null || found.Length == 0)
+            foreach (string Share in Shares)
             {
-                FileBrowserNode node = new FileBrowserNode(NetResource.pRemoteName, Resources.Folder, typeof(FilesDetailPage), this);
-                node.FBNodeType = FileBrowserNode.FileBrowserNopeType.DIRECTORY;
-                node.Path = NetResource.pRemoteName;
-                parentNode.Nodes.Add(node);
+
+                TreeNode[] found = parentNode.Nodes.Find(Share, false);
+
+                if (found == null || found.Length == 0)
+                {
+                    FileBrowserNode node = new FileBrowserNode(Share, Resources.Share, typeof(FilesDetailPage), this);
+                    node.FBNodeType = FileBrowserNode.FileBrowserNopeType.SHARE;
+                    node.Path = Share;
+                    parentNode.Nodes.Add(node);
+                }
             }
         }
 
@@ -306,8 +301,15 @@ namespace Likewise.LMC.Plugins.FileBrowser
             if (node.Name.Equals("Network"))
             {
                 // Enumerate the child nodes of the "Network" tree node
-                NetResources = GetNetworkConnections();
-                AddShareNodes(parentNode, NetResources);
+                if (_os == OSTYPE.WINDOWS)
+                {
+                    NetResources = GetNetworkConnections();
+                    AddShareNodes(parentNode, NetResources);
+                }
+                else
+                {
+                    AddShareNodes(parentNode, RemoteShares);
+                }
                 return;
             }
 
@@ -587,7 +589,8 @@ namespace Likewise.LMC.Plugins.FileBrowser
 
                 if (error == WinError.ERROR_SUCCESS)
                 {
-                    // Refresh Network connection list and exit
+                    // Refresh RemoteShares list and exit
+                    RemoteShares.Add(path);
                     break;
                 }
 
@@ -648,6 +651,9 @@ namespace Likewise.LMC.Plugins.FileBrowser
         {
             string name = this._disconnectShare;
             WinError error = FileClient.FileClient.DeleteConnection(name);
+
+            // Update the RemoteShares list (for systems missing WNetEnumResource API
+            RemoteShares.Remove(name);
 
             this._pluginNode.Nodes.Remove(this._pluginNode.Nodes.Find(name, true)[0]);
             RefreshNetworkTreeNode();
