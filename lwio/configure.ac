@@ -305,7 +305,7 @@ AC_SUBST(SQLITE_LDFLAGS)
 AC_SUBST(SQLITE_LIBS)
 
 # share repository
-share_repository=sqlite
+share_repository=registry
 
 AC_ARG_WITH([share-repository],
         [AC_HELP_STRING([--with-share-repository=<type>], [use share repository <type>])],
