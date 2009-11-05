@@ -262,10 +262,6 @@ NtlmCreateValidatedContext(
     dwError = NtlmCreateContext(hCred, &pNtlmContext);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LwAllocateMemory(dwMsgSize, OUT_PPVOID(&pNtlmContext->pMessage));
-
-    pNtlmContext->dwMessageSize = dwMsgSize;
-    memcpy(pNtlmContext->pMessage, pNtlmRespMsg, dwMsgSize);
     pNtlmContext->NtlmState = NtlmStateResponse;
 
     pNtlmContext->NegotiatedFlags = NegotiatedFlags;

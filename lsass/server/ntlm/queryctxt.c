@@ -164,8 +164,6 @@ NtlmServerQueryCtxtSessionKeyAttribute(
         *phContext,
         &State,
         NULL,
-        NULL,
-        NULL,
         &pKey,
         NULL);
 

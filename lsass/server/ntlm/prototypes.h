@@ -224,8 +224,6 @@ NtlmGetContextInfo(
     IN NTLM_CONTEXT_HANDLE ContextHandle,
     OUT OPTIONAL PNTLM_STATE pNtlmState,
     OUT OPTIONAL PDWORD pNegotiatedFlags,
-    OUT OPTIONAL PVOID* ppMessage,
-    OUT OPTIONAL PDWORD pdwMessageSize,
     OUT OPTIONAL PBYTE* ppSessionKey,
     OUT OPTIONAL PNTLM_CRED_HANDLE pCredHandle
     );
@@ -297,18 +295,6 @@ NtlmGetMessageFromSecBufferDesc(
     IN const SecBufferDesc* pSecBufferDesc,
     OUT PDWORD pdwMessageSize,
     OUT const VOID** ppMessage
-    );
-
-DWORD
-NtlmCopyContextToSecBufferDesc(
-    IN PNTLM_CONTEXT pNtlmContext,
-    IN OUT PSecBufferDesc pSecBufferDesc
-    );
-
-DWORD
-NtlmCopyContextToSecBuffer(
-    IN PNTLM_CONTEXT pNtlmContext,
-    OUT PSecBuffer pSecBuffer
     );
 
 DWORD
@@ -444,7 +430,8 @@ NtlmCreateNegotiateContext(
     IN PCSTR pDomain,
     IN PCSTR pWorkstation,
     IN PBYTE pOsVersion,
-    OUT PNTLM_CONTEXT *ppNtlmContext
+    OUT PNTLM_CONTEXT* ppNtlmContext,
+    OUT PSecBuffer pOutput
     );
 
 DWORD

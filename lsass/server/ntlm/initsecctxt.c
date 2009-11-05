@@ -94,13 +94,8 @@ NtlmServerInitializeSecurityContext(
             pDomain,
             pWorkstation,
             (PBYTE)&gXpSpoof,  //for now add OS ver info... config later
-            &pNtlmContext
-            );
-        BAIL_ON_LSA_ERROR(dwError);
-
-        // copy message to the output parameter... this should be a deep copy since
-        // the caller will most likely delete it before cleaning up it's context.
-        dwError = NtlmCopyContextToSecBuffer(pNtlmContext, pOutput);
+            &pNtlmContext,
+            pOutput);
         BAIL_ON_LSA_ERROR(dwError);
 
         dwError = LW_WARNING_CONTINUE_NEEDED;
@@ -147,7 +142,6 @@ error:
     if ( pNtlmContext && !hContext)
     {
         NtlmReleaseContext(&pNtlmContext);
-
         phNewContext = NULL;
     }
 
@@ -161,7 +155,8 @@ NtlmCreateNegotiateContext(
     IN PCSTR pDomain,
     IN PCSTR pWorkstation,
     IN PBYTE pOsVersion,
-    OUT PNTLM_CONTEXT *ppNtlmContext
+    OUT PNTLM_CONTEXT* ppNtlmContext,
+    OUT PSecBuffer pOutput
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -183,8 +178,9 @@ NtlmCreateNegotiateContext(
         &pMessage);
     BAIL_ON_LSA_ERROR(dwError);
 
-    pNtlmContext->dwMessageSize = dwMessageSize;
-    pNtlmContext->pMessage = pMessage;
+    pOutput->cbBuffer = dwMessageSize;
+    pOutput->BufferType = SECBUFFER_TOKEN;
+    pOutput->pvBuffer = pMessage;
     pNtlmContext->NtlmState = NtlmStateNegotiate;
 
 cleanup:
@@ -194,11 +190,13 @@ cleanup:
     return dwError;
 
 error:
-    LW_SAFE_FREE_MEMORY(pNtlmContext->pMessage);
-
+    LW_SAFE_FREE_MEMORY(pMessage);
+    pOutput->cbBuffer = 0;
+    pOutput->BufferType = 0;
+    pOutput->pvBuffer = NULL;
     if (pNtlmContext)
     {
-        LW_SAFE_FREE_MEMORY(pNtlmContext);
+        NtlmFreeContext(&pNtlmContext);
     }
     goto cleanup;
 }
