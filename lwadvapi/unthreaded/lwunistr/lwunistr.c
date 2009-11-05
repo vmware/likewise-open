@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright (c) Likewise Software.  All rights Reserved.
@@ -166,6 +166,62 @@ error:
     goto cleanup;
 }
 
+
+DWORD
+LwWc16sCpy(
+    PWSTR  pwszOutputString,
+    PCWSTR pwszInputString
+    )
+{
+    DWORD dwError = 0;
+
+    if (!pwszInputString ||
+        !pwszOutputString)
+    {
+        dwError = LW_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LW_ERROR(dwError);
+    }
+
+    wc16scpy(pwszOutputString, pwszInputString);
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+
+DWORD
+LwWc16snCpy(
+    PWSTR  pwszOutputString,
+    PCWSTR pwszInputString,
+    DWORD  dwLen
+    )
+{
+    DWORD dwError = 0;
+    size_t sLen = (size_t)dwLen;
+
+    if (!pwszInputString ||
+        !pwszOutputString)
+    {
+        dwError = LW_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LW_ERROR(dwError);
+    }
+
+    if (sLen)
+    {
+        wc16sncpy(pwszOutputString, pwszInputString, sLen);
+    }
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+
 DWORD
 LwSW16printf(
     PWSTR*  ppwszStrOutput,
@@ -266,6 +322,7 @@ error:
     *ppwszOutputString = NULL;
     goto cleanup;
 }
+
 
 /*
 local variables:
