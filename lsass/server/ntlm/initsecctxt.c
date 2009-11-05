@@ -55,10 +55,10 @@ NtlmServerInitializeSecurityContext(
     IN DWORD fContextReq,
     IN DWORD Reserved1,
     IN DWORD TargetDataRep,
-    IN OPTIONAL const SecBufferDesc* pInput,
+    IN OPTIONAL const SecBuffer* pInput,
     IN DWORD Reserved2,
     IN OUT OPTIONAL PNTLM_CONTEXT_HANDLE phNewContext,
-    IN OUT OPTIONAL PSecBufferDesc pOutput,
+    OUT PSecBuffer pOutput,
     OUT PDWORD pfContextAttr,
     OUT OPTIONAL PTimeStamp ptsExpiry
     )
@@ -98,20 +98,22 @@ NtlmServerInitializeSecurityContext(
 
         // copy message to the output parameter... this should be a deep copy since
         // the caller will most likely delete it before cleaning up it's context.
-        dwError = NtlmCopyContextToSecBufferDesc(pNtlmContext, pOutput);
+        dwError = NtlmCopyContextToSecBuffer(pNtlmContext, pOutput);
         BAIL_ON_LSA_ERROR(dwError);
 
         dwError = LW_WARNING_CONTINUE_NEEDED;
     }
     else
     {
-        //... create a new response message
-        dwError = NtlmGetMessageFromSecBufferDesc(
-            pInput,
-            &dwMessageSize,
-            (const VOID**)&pMessage
-            );
-        BAIL_ON_LSA_ERROR(dwError);
+        if (pInput->BufferType != SECBUFFER_TOKEN ||
+           pInput->cbBuffer == 0)
+        {
+            dwError = LW_ERROR_INVALID_PARAMETER;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        pMessage = pInput->pvBuffer;
+        dwMessageSize = pInput->cbBuffer;
 
         dwError = NtlmCreateResponseContext(
             pMessage,
@@ -121,7 +123,7 @@ NtlmServerInitializeSecurityContext(
 
         // copy message to the output parameter... this should be a deep copy since
         // the caller will most likely delete it before cleaning up it's context.
-        dwError = NtlmCopyContextToSecBufferDesc(pNtlmContext, pOutput);
+        dwError = NtlmCopyContextToSecBuffer(pNtlmContext, pOutput);
         BAIL_ON_LSA_ERROR(dwError);
     }
 

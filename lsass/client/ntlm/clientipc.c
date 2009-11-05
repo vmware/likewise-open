@@ -175,11 +175,15 @@ NtlmTransactAcceptSecurityContext(
     {
         AcceptSecCtxtReq.hContext = *phContext;
     }
-    AcceptSecCtxtReq.pInput = pInput;
+    if (pInput->cBuffers != 1)
+    {
+        dwError = LW_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    AcceptSecCtxtReq.pInput = &pInput->pBuffers[0];
     AcceptSecCtxtReq.fContextReq = fContextReq;
     AcceptSecCtxtReq.TargetDataRep = TargetDataRep;
     AcceptSecCtxtReq.hNewContext = *phNewContext;
-    AcceptSecCtxtReq.pOutput = pOutput;
 
     In.tag = NTLM_Q_ACCEPT_SEC_CTXT;
     In.data = &AcceptSecCtxtReq;
@@ -193,7 +197,7 @@ NtlmTransactAcceptSecurityContext(
         case NTLM_R_ACCEPT_SEC_CTXT_SUCCESS:
             pResultList = (PNTLM_IPC_ACCEPT_SEC_CTXT_RESPONSE)Out.data;
 
-            dwError = NtlmTransferSecBufferDesc(pOutput,
+            dwError = NtlmTransferSecBufferToDesc(pOutput,
                     &pResultList->Output,
                     FALSE);
             BAIL_ON_LSA_ERROR(dwError);
@@ -765,13 +769,17 @@ NtlmTransactInitializeSecurityContext(
     InitSecCtxtReq.fContextReq = fContextReq;
     InitSecCtxtReq.Reserved1 = Reserved1;
     InitSecCtxtReq.TargetDataRep = TargetDataRep;
-    InitSecCtxtReq.pInput = pInput;
+    if (pInput->cBuffers != 1)
+    {
+        dwError = LW_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    InitSecCtxtReq.pInput = &pInput->pBuffers[0];
     InitSecCtxtReq.Reserved2 = Reserved2;
     if (phNewContext)
     {
         InitSecCtxtReq.hNewContext = *phNewContext;
     }
-    InitSecCtxtReq.pOutput = pOutput;
 
     In.tag = NTLM_Q_INIT_SEC_CTXT;
     In.data = &InitSecCtxtReq;
@@ -788,7 +796,7 @@ NtlmTransactInitializeSecurityContext(
             if (pOutput)
             {
 
-                dwError = NtlmTransferSecBufferDesc(
+                dwError = NtlmTransferSecBufferToDesc(
                     pOutput,
                     &pResultList->Output,
                     FALSE
@@ -1201,4 +1209,26 @@ cleanup:
 error:
     goto cleanup;
 
+}
+
+DWORD
+NtlmTransferSecBufferToDesc(
+    OUT PSecBufferDesc pOut,
+    IN PSecBuffer pIn,
+    BOOLEAN bDeepCopy
+    )
+{
+    SecBufferDesc desc;
+
+    if (pOut->cBuffers != 1)
+    {
+        return LW_ERROR_INVALID_PARAMETER;
+    }
+    desc.cBuffers = 1;
+    desc.pBuffers = pIn;
+
+    return NtlmTransferSecBufferDesc(
+                pOut,
+                &desc,
+                bDeepCopy);
 }

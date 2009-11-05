@@ -50,11 +50,11 @@ NtlmServerAcceptSecurityContext(
     IN HANDLE Handle,
     IN NTLM_CRED_HANDLE hCred,
     IN OUT PNTLM_CONTEXT_HANDLE phContext,
-    IN const SecBufferDesc* pInput,
+    IN const SecBuffer* pInput,
     IN DWORD fContextReq,
     IN DWORD TargetDataRep,
     IN OUT PNTLM_CONTEXT_HANDLE phNewContext,
-    IN OUT PSecBufferDesc pOutput,
+    OUT PSecBuffer pOutput,
     OUT PDWORD  pfContextAttr,
     OUT PTimeStamp ptsTimeStamp
     );
@@ -140,14 +140,14 @@ DWORD
 NtlmServerInitializeSecurityContext(
     IN OPTIONAL NTLM_CRED_HANDLE hCredential,
     IN OPTIONAL const NTLM_CONTEXT_HANDLE hContext,
-    IN OPTIONAL SEC_CHAR * pszTargetName,
+    IN OPTIONAL SEC_CHAR* pszTargetName,
     IN DWORD fContextReq,
     IN DWORD Reserved1,
     IN DWORD TargetDataRep,
-    IN OPTIONAL const SecBufferDesc* pInput,
+    IN OPTIONAL const SecBuffer* pInput,
     IN DWORD Reserved2,
     IN OUT OPTIONAL PNTLM_CONTEXT_HANDLE phNewContext,
-    IN OUT OPTIONAL PSecBufferDesc pOutput,
+    OUT PSecBuffer pOutput,
     OUT PDWORD pfContextAttr,
     OUT OPTIONAL PTimeStamp ptsExpiry
     );
@@ -303,6 +303,12 @@ DWORD
 NtlmCopyContextToSecBufferDesc(
     IN PNTLM_CONTEXT pNtlmContext,
     IN OUT PSecBufferDesc pSecBufferDesc
+    );
+
+DWORD
+NtlmCopyContextToSecBuffer(
+    IN PNTLM_CONTEXT pNtlmContext,
+    OUT PSecBuffer pSecBuffer
     );
 
 DWORD

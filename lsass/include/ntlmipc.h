@@ -97,17 +97,16 @@ typedef struct __NTLM_IPC_ACCEPT_SEC_CTXT_REQ
 {
     NTLM_CRED_HANDLE hCredential;
     NTLM_CONTEXT_HANDLE hContext;
-    const SecBufferDesc* pInput;
+    const SecBuffer* pInput;
     DWORD fContextReq;
     DWORD TargetDataRep;
     NTLM_CONTEXT_HANDLE hNewContext;
-    const SecBufferDesc* pOutput;
 } NTLM_IPC_ACCEPT_SEC_CTXT_REQ, *PNTLM_IPC_ACCEPT_SEC_CTXT_REQ;
 
 typedef struct __NTLM_IPC_ACCEPT_SEC_CTXT_RESPONSE
 {
     NTLM_CONTEXT_HANDLE hNewContext;
-    SecBufferDesc Output;
+    SecBuffer Output;
     DWORD  fContextAttr;
     TimeStamp tsTimeStamp;
     DWORD dwStatus;
@@ -216,16 +215,15 @@ typedef struct __NTLM_IPC_INIT_SEC_CTXT_REQ
     DWORD fContextReq;
     DWORD Reserved1;
     DWORD TargetDataRep;
-    const SecBufferDesc* pInput;
+    const SecBuffer* pInput;
     DWORD Reserved2;
     NTLM_CONTEXT_HANDLE hNewContext;
-    const SecBufferDesc* pOutput;
 } NTLM_IPC_INIT_SEC_CTXT_REQ, *PNTLM_IPC_INIT_SEC_CTXT_REQ;
 
 typedef struct __NTLM_IPC_INIT_SEC_CTXT_RESPONSE
 {
     NTLM_CONTEXT_HANDLE hNewContext;
-    SecBufferDesc Output;
+    SecBuffer Output;
     DWORD fContextAttr;
     TimeStamp tsExpiry;
     DWORD dwStatus;

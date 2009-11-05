@@ -188,11 +188,6 @@ NtlmSrvIpcAcceptSecurityContext(
     dwError = LwAllocateMemory(sizeof(*pNtlmResp), OUT_PPVOID(&pNtlmResp));
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = NtlmServerDuplicateBuffers(
-                pReq->pOutput,
-                &pNtlmResp->Output);
-    BAIL_ON_LSA_ERROR(dwError);
-
     dwError = NtlmServerAcceptSecurityContext(
         NtlmSrvIpcGetSessionData(pCall),
         pReq->hCredential,
@@ -240,7 +235,7 @@ NtlmSrvIpcAcceptSecurityContext(
     }
     else
     {
-        NtlmServerFreeBuffers(&pNtlmResp->Output);
+        LW_SAFE_FREE_MEMORY(pNtlmResp->Output.pvBuffer);
         LW_SAFE_FREE_MEMORY(pNtlmResp);
 
         dwError = NtlmSrvIpcCreateError(dwError, &pError);
@@ -646,11 +641,6 @@ NtlmSrvIpcInitializeSecurityContext(
     dwError = LwAllocateMemory(sizeof(*pNtlmResp), OUT_PPVOID(&pNtlmResp));
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = NtlmServerDuplicateBuffers(
-                pReq->pOutput,
-                &pNtlmResp->Output);
-    BAIL_ON_LSA_ERROR(dwError);
-
     dwError = NtlmServerInitializeSecurityContext(
         pReq->hCredential,
         pReq->hContext,
@@ -701,7 +691,7 @@ NtlmSrvIpcInitializeSecurityContext(
     }
     else
     {
-        NtlmServerFreeBuffers(&pNtlmResp->Output);
+        LW_SAFE_FREE_MEMORY(pNtlmResp->Output.pvBuffer);
         LW_SAFE_FREE_MEMORY(pNtlmResp);
 
         dwError = NtlmSrvIpcCreateError(dwError, &pError);
