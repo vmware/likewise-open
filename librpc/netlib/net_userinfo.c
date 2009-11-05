@@ -72,6 +72,16 @@ NetAllocateUserInfo3(
 
 static
 DWORD
+NetAllocateUserInfo4(
+    PVOID  *ppCursor,
+    PDWORD  pdwSpaceLeft,
+    PVOID   pSource,
+    PDWORD  pdwSize
+    );
+
+
+static
+DWORD
 NetAllocateUserInfo20(
     PVOID  *ppCursor,
     PDWORD  pdwSpaceLeft,
@@ -117,6 +127,13 @@ NetAllocateUserInfo(
 
     case 3:
         err = NetAllocateUserInfo3(&pCursor,
+                                   pdwSpaceLeft,
+                                   pSource,
+                                   pdwSize);
+        break;
+
+    case 4:
+        err = NetAllocateUserInfo4(&pCursor,
                                    pdwSpaceLeft,
                                    pSource,
                                    pdwSize);
@@ -586,6 +603,97 @@ error:
 
 static
 DWORD
+NetAllocateUserInfo4(
+    PVOID  *ppCursor,
+    PDWORD  pdwSpaceLeft,
+    PVOID   pSource,
+    PDWORD  pdwSize
+    )
+{
+    DWORD err = ERROR_SUCCESS;
+    PVOID pCursor = NULL;
+    DWORD dwSpaceLeft = 0;
+    DWORD dwSize = 0;
+    UserInfo21 *pSamrInfo21 = (UserInfo21*)pSource;
+
+    if (pdwSpaceLeft)
+    {
+        dwSpaceLeft = *pdwSpaceLeft;
+    }
+
+    if (pdwSize)
+    {
+        dwSize = *pdwSize;
+    }
+
+    if (ppCursor)
+    {
+        pCursor = *ppCursor;
+    }
+
+    err = NetAllocateUserInfo2(&pCursor,
+                               &dwSpaceLeft,
+                               pSource,
+                               &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* usri3_user_sid - it's copied outside this function,
+       so reserve max space */
+    err = NetAllocBufferSid(&pCursor,
+                            &dwSpaceLeft,
+                            NULL,
+                            0,
+                            &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* usri3_profile */
+    err = NetAllocBufferWC16StringFromUnicodeString(
+                                   &pCursor,
+                                   &dwSpaceLeft,
+                                   &pSamrInfo21->profile_path,
+                                   &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* usri3_home_dir_drive */
+    err = NetAllocBufferWC16StringFromUnicodeString(
+                                   &pCursor,
+                                   &dwSpaceLeft,
+                                   &pSamrInfo21->home_drive,
+                                   &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* usri3_password_expired */
+    err = NetAllocBufferDword(&pCursor,
+                              &dwSpaceLeft,
+                              pSamrInfo21->password_expired,
+                              &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    if (pdwSpaceLeft)
+    {
+        *pdwSpaceLeft = dwSpaceLeft;
+    }
+
+    if (pdwSize)
+    {
+        *pdwSize = dwSize;
+    }
+
+    if (ppCursor)
+    {
+        *ppCursor = pCursor;
+    }
+
+cleanup:
+    return err;
+
+error:
+    goto cleanup;
+}
+
+
+static
+DWORD
 NetAllocateUserInfo20(
     PVOID  *ppCursor,
     PDWORD  pdwSpaceLeft,
@@ -681,199 +789,6 @@ error:
  * push functions/macros transfer: net userinfo -> samr userinfo
  * pull functions/macros transfer: net userinfo <- samr userinfo
  */
-
-
-NTSTATUS
-PullUserInfo0(
-    void **buffer,
-    wchar16_t **names,
-    uint32 num
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
-    WINERR err = ERROR_SUCCESS;
-    USER_INFO_0 *info = NULL;
-    int i = 0;
-
-    BAIL_ON_INVALID_PTR(buffer);
-    BAIL_ON_INVALID_PTR(names);
-
-    status = NetAllocateMemory((void**)&info, sizeof(USER_INFO_1) * num,
-                               NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    for (i = 0; i < num; i++) {
-        if (names[i]) {
-            info[i].usri0_name = wc16sdup(names[i]);
-
-        } else {
-            info[i].usri0_name = wc16sdup(null_string);
-        }
-        BAIL_ON_NO_MEMORY(info[i].usri0_name);
-
-        status = NetAddDepMemory(info[i].usri0_name,
-                                 info);
-        BAIL_ON_NTSTATUS_ERROR(status);
-    }
-
-    *buffer = info;
-
-cleanup:
-    if (status == STATUS_SUCCESS &&
-        err != ERROR_SUCCESS) {
-        status = Win32ErrorToNtStatus(err);
-    }
-
-    return status;
-
-error:
-    if (info) {
-        NetFreeMemory((void*)info);
-    }
-
-    goto cleanup;
-}
-
-
-NTSTATUS
-PullUserInfo1(
-    void **buffer,
-    UserInfo21 *ui,
-    uint32 num
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
-    WINERR err = ERROR_SUCCESS;
-    USER_INFO_1 *info = NULL;
-    int i = 0;
-
-    BAIL_ON_INVALID_PTR(buffer);
-    BAIL_ON_INVALID_PTR(ui);
-
-    status = NetAllocateMemory((void**)&info, sizeof(USER_INFO_1) * num,
-                               NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    for (i = 0; i < num; i++) {
-        PULL_UNICODE_STRING(info[i].usri1_name, ui[i].account_name, info);
-        info[i].usri1_password = NULL;
-        /* info[i].usri1_password_age */
-        /* info[i].usri1_priv */
-        PULL_UNICODE_STRING(info[i].usri1_home_dir, ui[i].home_directory, info);
-        PULL_UNICODE_STRING(info[i].usri1_comment, ui[i].comment, info);
-        PULL_ACCOUNT_FLAGS(info[i].usri1_flags, ui[i].account_flags);
-        PULL_UNICODE_STRING(info[i].usri1_script_path, ui[i].logon_script, info);
-    }
-
-    *buffer = info;
-
-cleanup:
-    if (status == STATUS_SUCCESS &&
-        err != ERROR_SUCCESS) {
-        status = Win32ErrorToNtStatus(err);
-    }
-
-    return status;
-
-error:
-    if (info) {
-        NetFreeMemory((void*)info);
-    }
-
-    goto cleanup;
-}
-
-
-NTSTATUS PullUserInfo2(void **buffer, UserInfo21 *ui, uint32 num)
-{
-    NTSTATUS status = STATUS_SUCCESS;
-    WINERR err = ERROR_SUCCESS;
-    USER_INFO_2 *info = NULL;
-    int i = 0;
-
-    BAIL_ON_INVALID_PTR(buffer);
-    BAIL_ON_INVALID_PTR(ui);
-
-    status = NetAllocateMemory((void**)&info, sizeof(USER_INFO_2) * num,
-                               NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    for (i = 0; i < num; i++) {
-        PULL_UNICODE_STRING(info[i].usri2_name, ui[i].account_name, info);
-        info[i].usri2_password = NULL;
-        /* info[i].usri1_password_age */
-        /* info[i].usri1_priv */
-        PULL_UNICODE_STRING(info[i].usri2_home_dir, ui[i].home_directory, info);
-        PULL_UNICODE_STRING(info[i].usri2_comment, ui[i].comment, info);
-        PULL_ACCOUNT_FLAGS(info[i].usri2_flags, ui[i].account_flags);
-        PULL_UNICODE_STRING(info[i].usri2_script_path, ui[i].logon_script, info);
-
-        /* info[i].usri2_auth_flags */
-        PULL_UNICODE_STRING(info[i].usri2_full_name, ui[i].full_name, info);
-        /* info[i].usri2_usr_comment */
-        /* info[i].usri2_parms */
-        PULL_UNICODE_STRING(info[i].usri2_workstations, ui[i].workstations, info);
-        info[i].usri2_last_logon = ui[i].last_logon;
-        info[i].usri2_last_logoff = ui[i].last_logoff;
-        info[i].usri2_acct_expires = ui[i].account_expiry;
-        /* info[i].usri2_max_storage */
-        info[i].usri2_units_per_week = ui[i].logon_hours.units_per_week;
-        /* info[i].usri2_logon_hours */
-        info[i].usri2_bad_pw_count = ui[i].bad_password_count;
-        info[i].usri2_num_logons = ui[i].logon_count;
-        /* info[i].usri2_logon_server */
-        info[i].usri2_country_code = ui[i].country_code;
-        info[i].usri2_code_page = ui[i].code_page;
-    }
-
-    *buffer = info;
-
-cleanup:
-    return status;
-
-error:
-    if (info) {
-        NetFreeMemory((void*)info);
-    }
-
-    goto cleanup;
-}
-
-
-NTSTATUS PullUserInfo20(void **buffer, UserInfo21 *ui, uint32 num)
-{
-    NTSTATUS status = STATUS_SUCCESS;
-    WINERR err = ERROR_SUCCESS;
-    USER_INFO_20 *info = NULL;
-    int i = 0;
-
-    BAIL_ON_INVALID_PTR(buffer);
-    BAIL_ON_INVALID_PTR(ui);
-
-    status = NetAllocateMemory((void**)&info, sizeof(USER_INFO_20) * num,
-                               NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    for (i = 0; i < num; i++) {
-        PULL_UNICODE_STRING(info[i].usri20_name, ui[i].account_name, info);
-        PULL_UNICODE_STRING(info[i].usri20_full_name, ui[i].full_name, info);
-        PULL_UNICODE_STRING(info[i].usri20_comment, ui[i].comment, info);
-        PULL_ACCOUNT_FLAGS(info[i].usri20_flags, ui[i].account_flags);
-        info[i].usri20_user_id = ui[i].rid;
-    }
-
-    *buffer = info;
-
-cleanup:
-    return status;
-
-error:
-    if (info) {
-        NetFreeMemory((void*)info);
-    }
-
-    goto cleanup;
-}
 
 
 NTSTATUS EncPasswordEx(uint8 pwbuf[532], wchar16_t *password,
