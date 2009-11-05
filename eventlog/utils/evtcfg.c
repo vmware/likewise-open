@@ -163,7 +163,7 @@ EVTOpenConfig(
     dwError = RegOpenKeyExA(
             pReg->hConnection,
             NULL,
-            LIKEWISE_ROOT_KEY,
+            HKEY_THIS_MACHINE,
             0,
             0,
             &(pReg->hKey));
