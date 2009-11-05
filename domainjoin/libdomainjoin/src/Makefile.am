@@ -60,7 +60,6 @@ else
 libdomainjoin_la_SOURCES += \
        djsystemscripts.c \
        djsecuser.c    \
-       djfirewall.c    \
        djnsswitch.c    \
        djpamconf.c    \
        djlogincfg.c   \

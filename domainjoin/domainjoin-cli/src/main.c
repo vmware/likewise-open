@@ -707,8 +707,6 @@ void DoConfigure(int argc, char **argv, LWException **exc)
     else if(!strcmp(argv[0], "krb5"))
         LW_CLEANUP_CTERR(exc, DJModifyKrb5Conf(testPrefix,
             GetEnableBoolean(dwEnable), longDomain, shortDomain, NULL));
-    else if(!strcmp(argv[0], "firewall"))
-        LW_CLEANUP_CTERR(exc, DJConfigureFirewallForAuth(testPrefix, GetEnableBoolean(dwEnable)));
     else
     {
         LW_RAISE(exc, CENTERROR_DOMAINJOIN_SHOW_USAGE);
