@@ -8,8 +8,6 @@ LWDIR=/opt/likewise
 LIB=lib
 LWLIB=`[ -d ${LWDIR}/lib64 ] && echo lib64 || echo lib`
 ASSEMBLY=Likewise.LMC.exe
-X11_DIR=/usr/X11
-OSX_IMAGE_IO=/System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/ImageIO.framework/Versions/A/Resources
 
 function setup_environment
 {
@@ -27,8 +25,6 @@ function setup_environment
 	    ;;
     esac
 
-    export MONO_CONFIG=${LWDIR}/etc/mono.config
-    
     if [ -n "${MONO_OVERRIDE}" ]; then
 	echo "Using mono out of alternate location \[${MONO_OVERRIDE}\]"
 	MONO_DIR=${MONO_OVERRIDE}
@@ -55,7 +51,7 @@ function setup_environment
 	    SUPPORTED_MONO=1
 	    ;;
         Darwin.*)
-#	    echo "Mono 1.9.1 is recommended for this system."
+#	    echo "Mono 2.4.2 is recommended for this system."
 	    ;;
         *.1.2.5)
 	    SUPPORTED_MONO=1
@@ -70,18 +66,13 @@ function setup_environment
 	    ;;
     esac
 
-    if [ -d ${MONO_DIR}/etc/fonts ]; then
-        export FONTCONFIG_PATH=${MONO_DIR}/etc/fonts:${FONTCONFIG_PATH}
-    fi
-
-    MONO_LIBS=${MONO_DIR}/${LIB}:${MONO_DIR}/mono/${LIB}
 
     case ${OS_TYPE} in 
         FreeBSD)
 	    export LD_LIBRARY_PATH=${LWDIR}/${LWLIB}:${MONO_LIBS}
 	    ;;
 	Darwin)
-	    export DYLD_LIBRARY_PATH=/usr/lib:${LWDIR}/${LWLIB}:${OSX_IMAGE_IO}:${MONO_LIBS}:${X11_DIR}/${LIB}
+	    export DYLD_LIBRARY_PATH=/usr/lib:${LWDIR}/${LWLIB}:${MONO_LIBS}
 	    ;;
         *)
 	    export LD_LIBRARY_PATH=${LWDIR}/${LWLIB}:${MONO_LIBS}
@@ -90,7 +81,6 @@ function setup_environment
 
 # For windows GUI look-and-feel
     export MONO_THEME=win32  
-
 }
 
 function invoke_mono
