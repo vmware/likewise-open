@@ -29,7 +29,17 @@
  */
 
 /*
- * Abstract: NetApi memory (de)allocation routines (rpc client library)
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        net_memory.c
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Client Interface
+ *
+ *        NetAPI memory allocation functions.
  *
  * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
@@ -133,6 +143,411 @@ NetAddDepMemory(
     )
 {
     return MemPtrAddDependant((PtrList*)netapi_ptr_list, ptr, dep);
+}
+
+
+DWORD
+NetAllocBufferDword(
+    PVOID  *ppCursor,
+    PDWORD  pdwSpaceLeft,
+    DWORD   dwSource,
+    PDWORD  pdwSize
+    )
+{
+    DWORD err = ERROR_SUCCESS;
+    PVOID pCursor = NULL;
+    DWORD dwSpaceLeft = 0;
+    DWORD dwSize = 0;
+    PDWORD pdwDest = NULL;
+
+    if (ppCursor)
+    {
+        pCursor = *ppCursor;
+    }
+
+    if (pdwSpaceLeft)
+    {
+        dwSpaceLeft = *pdwSpaceLeft;
+    }
+
+    dwSize = sizeof(dwSource);
+
+    if (pCursor)
+    {
+        if (dwSize > dwSpaceLeft)
+        {
+            err = ERROR_NOT_ENOUGH_MEMORY;
+            BAIL_ON_WINERR_ERROR(err);
+        }
+
+        pdwDest   = (PDWORD)pCursor;
+        *pdwDest  = dwSource;
+
+        pCursor      += dwSize;
+        dwSpaceLeft  -= dwSize;
+        *ppCursor     = pCursor;
+        *pdwSpaceLeft = dwSpaceLeft;
+    }
+
+    if (pdwSize)
+    {
+        *pdwSize += dwSize;
+    }
+
+cleanup:
+    return err;
+
+error:
+    goto cleanup;
+}
+
+
+DWORD
+NetAllocBufferWinTimeFromNtTime(
+    PVOID  *ppCursor,
+    PDWORD  pdwSpaceLeft,
+    NtTime  Time,
+    PDWORD  pdwSize
+    )
+{
+    DWORD err = ERROR_SUCCESS;
+    DWORD dwTime = LwNtTimeToWinTime((ULONG64)Time);
+
+    err = NetAllocBufferDword(ppCursor,
+                              pdwSpaceLeft,
+                              dwTime,
+                              pdwSize);
+    return err;
+}
+
+
+#define SET_USER_FLAG(acb_flags, uf_flags)           \
+    if (dwAcbFlags & (acb_flags))                    \
+    {                                                \
+        dwUserFlags |= (uf_flags);                   \
+    }
+
+
+DWORD
+NetAllocBufferUserFlagsFromAcbFlags(
+    PVOID *ppCursor,
+    PDWORD pdwSpaceLeft,
+    DWORD  dwAcbFlags,
+    PDWORD pdwSize
+    )
+{
+    DWORD err = ERROR_SUCCESS;
+    DWORD dwUserFlags = 0;
+
+    /* ACB flags not covered:
+        - ACB_NO_AUTH_DATA_REQD
+        - ACB_MNS
+        - ACB_AUTOLOCK
+
+       UF flags not covered:
+        - UF_SCRIPT
+        - UF_LOCKOUT
+        - UF_PASSWD_CANT_CHANGE,
+        - UF_TRUSTED_TO_AUTHENTICATE_FOR_DELEGATION
+    */
+
+    SET_USER_FLAG(ACB_DISABLED, UF_ACCOUNTDISABLE);
+    SET_USER_FLAG(ACB_HOMDIRREQ, UF_HOMEDIR_REQUIRED);
+    SET_USER_FLAG(ACB_PWNOTREQ, UF_PASSWD_NOTREQD);
+    SET_USER_FLAG(ACB_TEMPDUP, UF_TEMP_DUPLICATE_ACCOUNT);
+    SET_USER_FLAG(ACB_NORMAL, UF_NORMAL_ACCOUNT);
+    SET_USER_FLAG(ACB_DOMTRUST, UF_INTERDOMAIN_TRUST_ACCOUNT);
+    SET_USER_FLAG(ACB_WSTRUST, UF_WORKSTATION_TRUST_ACCOUNT);
+    SET_USER_FLAG(ACB_SVRTRUST, UF_SERVER_TRUST_ACCOUNT);
+    SET_USER_FLAG(ACB_PWNOEXP, UF_DONT_EXPIRE_PASSWD);
+    SET_USER_FLAG(ACB_ENC_TXT_PWD_ALLOWED, UF_ENCRYPTED_TEXT_PASSWORD_ALLOWED);
+    SET_USER_FLAG(ACB_SMARTCARD_REQUIRED, UF_SMARTCARD_REQUIRED);
+    SET_USER_FLAG(ACB_TRUSTED_FOR_DELEGATION, UF_TRUSTED_FOR_DELEGATION);
+    SET_USER_FLAG(ACB_NOT_DELEGATED, UF_NOT_DELEGATED);
+    SET_USER_FLAG(ACB_USE_DES_KEY_ONLY, UF_USE_DES_KEY_ONLY);
+    SET_USER_FLAG(ACB_DONT_REQUIRE_PREAUTH, UF_DONT_REQUIRE_PREAUTH);
+    SET_USER_FLAG(ACB_PW_EXPIRED, UF_PASSWORD_EXPIRED);
+
+    err = NetAllocBufferDword(ppCursor,
+                              pdwSpaceLeft,
+                              dwUserFlags,
+                              pdwSize);
+    return err;
+}
+
+
+DWORD
+NetAllocBufferWC16String(
+    PVOID  *ppCursor,
+    PDWORD  pdwSpaceLeft,
+    PCWSTR  pwszSource,
+    PDWORD  pdwSize
+    )
+{
+    DWORD err = ERROR_SUCCESS;
+    PVOID pCursor = NULL;
+    DWORD dwSpaceLeft = 0;
+    DWORD dwSize = 0;
+    PWSTR *ppwszDest = NULL;
+    PVOID pStr = NULL;
+
+    if (ppCursor)
+    {
+        pCursor = *ppCursor;
+    }
+
+    if (pdwSpaceLeft)
+    {
+        dwSpaceLeft = *pdwSpaceLeft;
+    }
+
+    if (pwszSource)
+    {
+        err = LwWc16sLen(pwszSource, (size_t*)&dwSize);
+        BAIL_ON_WINERR_ERROR(err);
+
+        /* it's a 2-byte unicode string */
+        dwSize *= 2;
+
+        /* string termination */
+        dwSize += sizeof(WCHAR);
+    }
+
+    if (pCursor && pwszSource)
+    {
+        if (dwSize > dwSpaceLeft)
+        {
+            err = ERROR_NOT_ENOUGH_MEMORY;
+            BAIL_ON_WINERR_ERROR(err);
+        }
+
+        pStr = (pCursor + dwSpaceLeft) - dwSize;
+
+        /* sanity check - the string and current buffer cursor
+           must not overlap */
+        if ((pCursor + sizeof(PWSTR)) > pStr)
+        {
+            err = ERROR_NOT_ENOUGH_MEMORY;
+            BAIL_ON_WINERR_ERROR(err);
+        }
+
+        err = LwWc16snCpy((PWSTR)pStr, pwszSource, (dwSize / 2) - 1);
+        BAIL_ON_WINERR_ERROR(err);
+
+        /* recalculate size and space after copying the string */
+        ppwszDest     = (PWSTR*)pCursor;
+        *ppwszDest    = (PWSTR)pStr;
+        dwSpaceLeft  -= dwSize;
+
+        /* recalculate size and space after setting the string pointer */
+        pCursor      += sizeof(PWSTR);
+        dwSpaceLeft  -= sizeof(PWSTR);
+
+        *ppCursor     = pCursor;
+        *pdwSpaceLeft = dwSpaceLeft;
+    }
+    else if (pCursor)
+    {
+        pCursor      += sizeof(PWSTR);
+        dwSpaceLeft  -= sizeof(PWSTR);
+
+        *ppCursor     = pCursor;
+        *pdwSpaceLeft = dwSpaceLeft;
+    }
+
+    /* include size of the pointer */
+    dwSize += sizeof(PWSTR);
+
+    if (pdwSize)
+    {
+        *pdwSize += dwSize;
+    }
+
+cleanup:
+    return err;
+
+error:
+    goto cleanup;
+}
+
+
+DWORD
+NetAllocBufferWC16StringFromUnicodeString(
+    PVOID         *ppCursor,
+    PDWORD         pdwSpaceLeft,
+    UnicodeString *pSource,
+    PDWORD         pdwSize
+    )
+{
+    DWORD err = ERROR_SUCCESS;
+    PVOID pCursor = NULL;
+    DWORD dwSpaceLeft = 0;
+    DWORD dwSize = 0;
+    PWSTR *ppwszDest = NULL;
+    PVOID pStr = NULL;
+
+    if (ppCursor)
+    {
+        pCursor = *ppCursor;
+    }
+
+    if (pdwSpaceLeft)
+    {
+        dwSpaceLeft = *pdwSpaceLeft;
+    }
+
+    if (pSource)
+    {
+        dwSize += pSource->len + sizeof(WCHAR);
+    }
+
+    if (pCursor && pSource)
+    {
+        if (dwSize > dwSpaceLeft)
+        {
+            err = ERROR_NOT_ENOUGH_MEMORY;
+            BAIL_ON_WINERR_ERROR(err);
+        }
+
+        pStr = (pCursor + dwSpaceLeft) - dwSize;
+
+        /* sanity check - the string and current buffer cursor
+           must not overlap */
+        if ((pCursor + sizeof(PWSTR)) > pStr)
+        {
+            err = ERROR_NOT_ENOUGH_MEMORY;
+            BAIL_ON_WINERR_ERROR(err);
+        }
+
+        err = LwWc16snCpy((PWSTR)pStr,
+                          pSource->string,
+                          pSource->len / 2);
+        BAIL_ON_WINERR_ERROR(err);
+
+        /* recalculate size and space after copying the string */
+        ppwszDest     = (PWSTR*)pCursor;
+        *ppwszDest    = (PWSTR)pStr;
+        dwSpaceLeft  -= dwSize;
+
+        /* recalculate size and space after setting the string pointer */
+        pCursor      += sizeof(PWSTR);
+        dwSpaceLeft  -= sizeof(PWSTR);
+
+        *ppCursor     = pCursor;
+        *pdwSpaceLeft = dwSpaceLeft;
+    }
+    else if (pCursor)
+    {
+        pCursor      += sizeof(PWSTR);
+        dwSpaceLeft  -= sizeof(PWSTR);
+
+        *ppCursor     = pCursor;
+        *pdwSpaceLeft = dwSpaceLeft;
+    }
+
+    /* include size of the pointer */
+    dwSize  += sizeof(PWSTR);
+
+    if (pdwSize)
+    {
+        *pdwSize += dwSize;
+    }
+
+cleanup:
+    return err;
+
+error:
+    goto cleanup;
+}
+
+
+DWORD
+NetAllocBufferLogonHours(
+    PVOID      *ppCursor,
+    PDWORD      pdwSpaceLeft,
+    LogonHours *pHours,
+    PDWORD      pdwSize
+    )
+{
+    DWORD err = ERROR_SUCCESS;
+    PVOID pCursor = NULL;
+    DWORD dwSpaceLeft = 0;
+    DWORD dwSize = 0;
+    PBYTE *ppbDest = NULL;
+    PBYTE pbBytes = NULL;
+
+    if (ppCursor)
+    {
+        pCursor = *ppCursor;
+    }
+
+    if (pdwSpaceLeft)
+    {
+        dwSpaceLeft = *pdwSpaceLeft;
+    }
+
+    /*
+     * The actual value of pHours is ignored at the moment
+     */
+
+    /* Logon hours is a 21-byte bit string */
+    dwSize += sizeof(UINT8) * 21;
+
+    if (pCursor)
+    {
+        if (dwSize > dwSpaceLeft)
+        {
+            err = ERROR_NOT_ENOUGH_MEMORY;
+            BAIL_ON_WINERR_ERROR(err);
+        }
+
+        pbBytes = (pCursor + dwSpaceLeft) - dwSize;
+
+        /* sanity check - the string and current buffer cursor
+           must not overlap */
+        if ((pCursor + sizeof(PWSTR)) > (PVOID)pbBytes)
+        {
+            err = ERROR_NOT_ENOUGH_MEMORY;
+            BAIL_ON_WINERR_ERROR(err);
+        }
+
+        /* Allow all logon hours */
+        memset(pbBytes, 1, dwSize);
+
+        /* recalculate size and space after copying the string */
+        ppbDest       = (PBYTE*)pCursor;
+        *ppbDest      = (PBYTE)pbBytes;
+        dwSpaceLeft  -= dwSize;
+
+        /* recalculate size and space after setting the string pointer */
+        pCursor      += sizeof(PWSTR);
+        dwSpaceLeft  -= sizeof(PWSTR);
+
+        *ppCursor     = pCursor;
+        *pdwSpaceLeft = dwSpaceLeft;
+    }
+    else if (pCursor)
+    {
+        pCursor      += sizeof(PWSTR);
+        dwSpaceLeft  -= sizeof(PWSTR);
+
+        *ppCursor     = pCursor;
+        *pdwSpaceLeft = dwSpaceLeft;
+    }
+
+    /* include size of the pointer */
+    dwSize += sizeof(PBYTE);
+
+    if (pdwSize)
+    {
+        *pdwSize += dwSize;
+    }
+
+cleanup:
+    return err;
+
+error:
+    goto cleanup;
 }
 
 
