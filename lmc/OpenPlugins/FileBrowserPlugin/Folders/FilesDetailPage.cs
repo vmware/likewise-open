@@ -51,6 +51,9 @@ namespace Likewise.LMC.Plugins.FileBrowser
         private ListViewColumnSorter lvwColumnSorter;
         public int Count = 0;
         private FileBrowserIPlugIn plugin;
+        private Icon FolderIcon = new Icon(Resources.Folder, 32, 32);
+        private Icon FolderOpenIcon = new Icon(Resources.FolderOpen, 32, 32);
+        private Icon FileIcon = new Icon(Resources.Document, 32, 32);
 
         #endregion
 
@@ -65,8 +68,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
             lvwColumnSorter = new ListViewColumnSorter();
             this.lvFilePage.ListViewItemSorter = lvwColumnSorter;
 
-            Icon ic = new Icon(Resources.SharedFolder, 48, 48);
-            this.picture.Image = ic.ToBitmap();
+            this.picture.Image = FolderOpenIcon.ToBitmap();
         }
 
         #endregion
@@ -278,6 +280,16 @@ namespace Likewise.LMC.Plugins.FileBrowser
 
             ListViewItem Item = lvFilePage.SelectedItems[0];
             lblCaption.Text = Item.SubItems[0].Text;
+
+            if (Item.SubItems[3].Text == "Directory")
+            {
+                this.picture.Image = FolderOpenIcon.ToBitmap();
+            }
+
+            if (Item.SubItems[3].Text == "File")
+            {
+                this.picture.Image = FileIcon.ToBitmap();
+            }
         }
 
         private void lvFilePage_MouseUp(object sender, MouseEventArgs e)

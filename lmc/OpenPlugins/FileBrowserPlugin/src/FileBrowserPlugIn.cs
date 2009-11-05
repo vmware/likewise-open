@@ -52,6 +52,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
         private FileBrowserNode _pluginNode;
         private string _disconnectShare = null;
         List<IPlugIn> _extPlugins = null;
+        string LocalDiskRoot = "C:";
 
         #endregion
 
@@ -69,12 +70,12 @@ namespace Likewise.LMC.Plugins.FileBrowser
         {
             Logger.Log("FileBrowserPlugIn.GetName", Logger.FileBrowserLogLevel);
 
-            return Resources.sTitleTopLevelTab;
+            return Resources.String_TitleTopLevelTab;
         }
 
         public string GetDescription()
         {
-            return Resources.PluginDescription;
+            return Resources.String_PluginDescription;
         }
 
         public string GetPluginDllName()
@@ -235,7 +236,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
 
                 if (found == null || found.Length == 0)
                 {
-                    FileBrowserNode node = new FileBrowserNode(NetResource.pRemoteName, Resources.SharedFolder2, typeof(FilesDetailPage), this);
+                    FileBrowserNode node = new FileBrowserNode(NetResource.pRemoteName, Resources.Share, typeof(FilesDetailPage), this);
                     node.FBNodeType = FileBrowserNode.FileBrowserNopeType.SHARE;
                     node.Path = NetResource.pRemoteName;
                     parentNode.Nodes.Add(node);
@@ -252,7 +253,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
 
             if (found == null || found.Length == 0)
             {
-                FileBrowserNode node = new FileBrowserNode(NetResource.pRemoteName, Resources.SharedFolder2, typeof(FilesDetailPage), this);
+                FileBrowserNode node = new FileBrowserNode(NetResource.pRemoteName, Resources.Folder, typeof(FilesDetailPage), this);
                 node.FBNodeType = FileBrowserNode.FileBrowserNopeType.DIRECTORY;
                 node.Path = NetResource.pRemoteName;
                 parentNode.Nodes.Add(node);
@@ -268,7 +269,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
 
             if (found == null || found.Length == 0)
             {
-                FileBrowserNode node = new FileBrowserNode(folderName, Resources.SharedFolder2, typeof(FilesDetailPage), this);
+                FileBrowserNode node = new FileBrowserNode(folderName, Resources.Folder, typeof(FilesDetailPage), this);
                 node.FBNodeType = FileBrowserNode.FileBrowserNopeType.DIRECTORY;
                 node.Path = parentNode.Path + "\\" + folderName;
                 parentNode.Nodes.Add(node);
@@ -277,7 +278,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
 
         private void RefreshNetworkTreeNode()
         {
-            TreeNode[] networkNode = this._pluginNode.Nodes.Find(Resources.Network, false);
+            TreeNode[] networkNode = this._pluginNode.Nodes.Find(Resources.String_Network, false);
 
             if (networkNode != null && networkNode.Length > 0)
             {
@@ -372,14 +373,14 @@ namespace Likewise.LMC.Plugins.FileBrowser
                 if (_pluginNode == nodeClicked)
                 {
                 }
-                else if (nodeClicked.Name.Trim().Equals(Resources.Network))
+                else if (nodeClicked.Name.Trim().Equals(Resources.String_Network))
                 {
                     fileBrowserContextMenu = new ContextMenu();
 
                     MenuItem m_item = new MenuItem("Connect to share...", new EventHandler(cm_OnConnectToShare));
                     fileBrowserContextMenu.MenuItems.Add(0, m_item);
                 }
-                else if (nodeClicked.Parent.Name.Trim().Equals(Resources.Network))
+                else if (nodeClicked.Parent.Name.Trim().Equals(Resources.String_Network))
                 {
                     fileBrowserContextMenu = new ContextMenu();
 
@@ -387,7 +388,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
                     fileBrowserContextMenu.MenuItems.Add(0, m_item);
                     this._disconnectShare = nodeClicked.Name;
                 }
-                else if (nodeClicked.Name.Trim().Equals(Resources.Computer))
+                else if (nodeClicked.Name.Trim().Equals(Resources.String_Computer))
                 {
                     FilesDetailPage detailsPage = fileBrowserPage as FilesDetailPage;
                     if (detailsPage != null)
@@ -395,7 +396,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
                         fileBrowserContextMenu = detailsPage.GetTreeContextMenu();
                     }
                 }
-                else if (nodeClicked.Name.Trim().Equals(Resources.Home))
+                else if (nodeClicked.Name.Trim().Equals(Resources.String_Home))
                 {
                     FilesDetailPage detailsPage = fileBrowserPage as FilesDetailPage;
                     if (detailsPage != null)
@@ -403,7 +404,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
                         fileBrowserContextMenu = detailsPage.GetTreeContextMenu();
                     }
                 }
-                else if (nodeClicked.Name.Trim().Equals(Resources.Desktop))
+                else if (nodeClicked.Name.Trim().Equals(Resources.String_Desktop))
                 {
                     FilesDetailPage detailsPage = fileBrowserPage as FilesDetailPage;
                     if (detailsPage != null)
@@ -411,7 +412,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
                         fileBrowserContextMenu = detailsPage.GetTreeContextMenu();
                     }
                 }
-                else if (nodeClicked.Name.Trim().Equals(Resources.Documents))
+                else if (nodeClicked.Name.Trim().Equals(Resources.String_Documents))
                 {
                     FilesDetailPage detailsPage = fileBrowserPage as FilesDetailPage;
                     if (detailsPage != null)
@@ -419,7 +420,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
                         fileBrowserContextMenu = detailsPage.GetTreeContextMenu();
                     }
                 }
-                else if (nodeClicked.Name.Trim().Equals(Resources.Music))
+                else if (nodeClicked.Name.Trim().Equals(Resources.String_Music))
                 {
                     FilesDetailPage detailsPage = fileBrowserPage as FilesDetailPage;
                     if (detailsPage != null)
@@ -427,7 +428,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
                         fileBrowserContextMenu = detailsPage.GetTreeContextMenu();
                     }
                 }
-                else if (nodeClicked.Name.Trim().Equals(Resources.Pictures))
+                else if (nodeClicked.Name.Trim().Equals(Resources.String_Pictures))
                 {
                     FilesDetailPage detailsPage = fileBrowserPage as FilesDetailPage;
                     if (detailsPage != null)
@@ -435,7 +436,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
                         fileBrowserContextMenu = detailsPage.GetTreeContextMenu();
                     }
                 }
-                else if (nodeClicked.Name.Trim().Equals(Resources.Videos))
+                else if (nodeClicked.Name.Trim().Equals(Resources.String_Videos))
                 {
                     FilesDetailPage detailsPage = fileBrowserPage as FilesDetailPage;
                     if (detailsPage != null)
@@ -465,7 +466,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
         {
             if (_pluginNode == null)
             {
-                Icon ic = Resources.SharedFolder2;
+                Icon ic = Resources.Library;
                 _pluginNode = new FileBrowserNode("File Browser", ic, typeof(FilesBrowserPluginPage), this);
                 _pluginNode.ImageIndex = (int)Manage.ManageImageType.Generic;
                 _pluginNode.SelectedImageIndex = (int)Manage.ManageImageType.Generic;
@@ -481,56 +482,60 @@ namespace Likewise.LMC.Plugins.FileBrowser
         {
             if (_pluginNode != null)
             {
-                Icon iconNetShare = Resources.SharedFolder2;
-                Icon iconFolder = Resources.SharedFolder2;
-                Icon iconComputer = Resources.SharedFolder2;
-                Icon iconHome = Resources.SharedFolder2;
+                Icon iconNetShare = Resources.Share;
+                Icon iconFolder = Resources.Folder;
+                Icon iconComputer = Resources.Computer_48;
+                Icon iconHome = Resources.Home;
 
-                if (_pluginNode.Nodes.Find(Resources.Network, false).Length == 0)
+                if (_pluginNode.Nodes.Find(Resources.String_Network, false).Length == 0)
                 {
-                    FileBrowserNode networkNode = new FileBrowserNode(Resources.Network, iconNetShare, typeof(FilesDetailPage), this);
+                    FileBrowserNode networkNode = new FileBrowserNode(Resources.String_Network, iconNetShare, typeof(FilesDetailPage), this);
                     networkNode.FBNodeType = FileBrowserNode.FileBrowserNopeType.CATEGORY;
                     _pluginNode.Nodes.Add(networkNode);
                 }
 
-                if (_pluginNode.Nodes.Find(Resources.Computer, false).Length == 0)
+                if (_pluginNode.Nodes.Find(Resources.String_Computer, false).Length == 0)
                 {
-                    FileBrowserNode computerNode = new FileBrowserNode(Resources.Computer, iconComputer, typeof(FilesDetailPage), this);
-                    computerNode.Path = "/";
+                    FileBrowserNode computerNode = new FileBrowserNode(Resources.String_Computer, iconComputer, typeof(FilesDetailPage), this);
                     computerNode.FBNodeType = FileBrowserNode.FileBrowserNopeType.CATEGORY;
                     _pluginNode.Nodes.Add(computerNode);
 
+                    FileBrowserNode localDiskRootNode = new FileBrowserNode(LocalDiskRoot, iconFolder, typeof(FilesDetailPage), this);
+                    localDiskRootNode.Path = LocalDiskRoot;
+                    localDiskRootNode.FBNodeType = FileBrowserNode.FileBrowserNopeType.DIRECTORY;
+                    computerNode.Nodes.Add(localDiskRootNode);
+
                     /* Disabled for now - These could be suitable common local user paths that are worth browsing.
-                                        FileBrowserNode homeNode = new FileBrowserNode(Resources.Home, iconHome, typeof(FilesDetailPage), this);
-                                        computerNode.Path = "~/";
-                                        homeNode.FBNodeType = FileBrowserNode.FileBrowserNopeType.CATEGORY;
-                                        computerNode.Nodes.Add(homeNode);
+                    FileBrowserNode homeNode = new FileBrowserNode(Resources.String_Home, iconHome, typeof(FilesDetailPage), this);
+                    computerNode.Path = "~/";
+                    homeNode.FBNodeType = FileBrowserNode.FileBrowserNopeType.CATEGORY;
+                    computerNode.Nodes.Add(homeNode);
 
-                                        FileBrowserNode deskNode = new FileBrowserNode(Resources.Desktop, iconFolder, typeof(FilesDetailPage), this);
-                                        deskNode.Path = "~/Desktop/";
-                                        deskNode.FBNodeType = FileBrowserNode.FileBrowserNopeType.CATEGORY;
-                                        computerNode.Nodes.Add(deskNode);
+                    FileBrowserNode deskNode = new FileBrowserNode(Resources.String_Desktop, iconFolder, typeof(FilesDetailPage), this);
+                    deskNode.Path = "~/Desktop/";
+                    deskNode.FBNodeType = FileBrowserNode.FileBrowserNopeType.CATEGORY;
+                    computerNode.Nodes.Add(deskNode);
 
-                                        FileBrowserNode docNode = new FileBrowserNode(Resources.Documents, iconFolder, typeof(FilesDetailPage), this);
-                                        docNode.Path = "~/Documents/";
-                                        docNode.FBNodeType = FileBrowserNode.FileBrowserNopeType.CATEGORY;
-                                        computerNode.Nodes.Add(docNode);
+                    FileBrowserNode docNode = new FileBrowserNode(Resources.String_Documents, iconFolder, typeof(FilesDetailPage), this);
+                    docNode.Path = "~/Documents/";
+                    docNode.FBNodeType = FileBrowserNode.FileBrowserNopeType.CATEGORY;
+                    computerNode.Nodes.Add(docNode);
 
-                                        FileBrowserNode musicNode = new FileBrowserNode(Resources.Music, iconFolder, typeof(FilesDetailPage), this);
-                                        musicNode.Path = "~/Music/";
-                                        musicNode.FBNodeType = FileBrowserNode.FileBrowserNopeType.CATEGORY;
-                                        computerNode.Nodes.Add(musicNode);
+                    FileBrowserNode musicNode = new FileBrowserNode(Resources.String_Music, iconFolder, typeof(FilesDetailPage), this);
+                    musicNode.Path = "~/Music/";
+                    musicNode.FBNodeType = FileBrowserNode.FileBrowserNopeType.CATEGORY;
+                    computerNode.Nodes.Add(musicNode);
 
-                                        FileBrowserNode pictNode = new FileBrowserNode(Resources.Pictures, iconFolder, typeof(FilesDetailPage), this);
-                                        pictNode.Path = "~/Photos/";
-                                        pictNode.FBNodeType = FileBrowserNode.FileBrowserNopeType.CATEGORY;
-                                        computerNode.Nodes.Add(pictNode);
+                    FileBrowserNode pictNode = new FileBrowserNode(Resources.String_Pictures, iconFolder, typeof(FilesDetailPage), this);
+                    pictNode.Path = "~/Photos/";
+                    pictNode.FBNodeType = FileBrowserNode.FileBrowserNopeType.CATEGORY;
+                    computerNode.Nodes.Add(pictNode);
 
-                                        FileBrowserNode videoNode = new FileBrowserNode(Resources.Videos, iconFolder, typeof(FilesDetailPage), this);
-                                        videoNode.Path = "~/Movies/";
-                                        videoNode.FBNodeType = FileBrowserNode.FileBrowserNopeType.CATEGORY;
-                                        computerNode.Nodes.Add(videoNode);
-                    */
+                    FileBrowserNode videoNode = new FileBrowserNode(Resources.String_Videos, iconFolder, typeof(FilesDetailPage), this);
+                    videoNode.Path = "~/Movies/";
+                    videoNode.FBNodeType = FileBrowserNode.FileBrowserNopeType.CATEGORY;
+                    computerNode.Nodes.Add(videoNode);
+                  */
                 }
             }
         }

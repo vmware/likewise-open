@@ -59,302 +59,195 @@ namespace Likewise.LMC.Plugins.FileBrowser.Properties {
                 resourceCulture = value;
             }
         }
-        
-        internal static System.Drawing.Bitmap BlueArrows {
+
+        internal static System.Drawing.Icon Computer {
             get {
-                object obj = ResourceManager.GetObject("BlueArrows", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
+                object obj = ResourceManager.GetObject("Computer", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
+
+        internal static System.Drawing.Icon Computer_48 {
+            get {
+                object obj = ResourceManager.GetObject("Computer_48", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
+
+        internal static System.Drawing.Icon Document {
+            get {
+                object obj = ResourceManager.GetObject("Document", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
+
+        internal static System.Drawing.Icon Folder {
+            get {
+                object obj = ResourceManager.GetObject("Folder", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
+
+        internal static System.Drawing.Icon FolderOpen {
+            get {
+                object obj = ResourceManager.GetObject("FolderOpen", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
+
+        internal static System.Drawing.Icon Home {
+            get {
+                object obj = ResourceManager.GetObject("Home", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
+
+        internal static System.Drawing.Icon Library {
+            get {
+                object obj = ResourceManager.GetObject("Library", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
+
+        internal static System.Drawing.Icon Share {
+            get {
+                object obj = ResourceManager.GetObject("Share", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
             }
         }
 
         /// <summary>
         ///   Looks up a localized string similar to CD/DVD Drive.
         /// </summary>
-        internal static string CDDVD {
+        internal static string String_CDDVD {
             get {
-                return ResourceManager.GetString("CDDVD", resourceCulture);
+                return ResourceManager.GetString("String_CDDVD", resourceCulture);
             }
         }
 
         /// <summary>
         ///   Looks up a localized string similar to Computer.
         /// </summary>
-        internal static string Computer {
+        internal static string String_Computer {
             get {
-                return ResourceManager.GetString("Computer", resourceCulture);
+                return ResourceManager.GetString("String_Computer", resourceCulture);
             }
         }
 
         /// <summary>
         ///   Looks up a localized string similar to Desktop.
         /// </summary>
-        internal static string Desktop {
+        internal static string String_Desktop {
             get {
-                return ResourceManager.GetString("Desktop", resourceCulture);
+                return ResourceManager.GetString("String_Desktop", resourceCulture);
             }
         }
 
         /// <summary>
         ///   Looks up a localized string similar to Devices.
         /// </summary>
-        internal static string Devices {
+        internal static string String_Devices {
             get {
-                return ResourceManager.GetString("Devices", resourceCulture);
+                return ResourceManager.GetString("String_Devices", resourceCulture);
             }
         }
 
         /// <summary>
         ///   Looks up a localized string similar to Documents.
         /// </summary>
-        internal static string Documents {
+        internal static string String_Documents {
             get {
-                return ResourceManager.GetString("Documents", resourceCulture);
+                return ResourceManager.GetString("String_Documents", resourceCulture);
             }
         }
 
-        /// <summary>
-        ///   Looks up a localized string similar to Unable to close the session {0}.
-        ///Error: {1} .
-        /// </summary>
-        internal static string Error_DeleteSessionError {
-            get {
-                return ResourceManager.GetString("Error_DeleteSessionError", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Error: {0}.
-        /// </summary>
-        internal static string Error_PrintersError {
-            get {
-                return ResourceManager.GetString("Error_PrintersError", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Unable to close file:{0}.
-        /// </summary>
-        internal static string Error_UnableToCloseFile {
-            get {
-                return ResourceManager.GetString("Error_UnableToCloseFile", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Unable to close the file {0}.
-        ///Error: {1} .
-        /// </summary>
-        internal static string Error_UnableToCloseFileSelected {
-            get {
-                return ResourceManager.GetString("Error_UnableToCloseFileSelected", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Unable to delete printer the printer:{0}.
-        /// </summary>
-        internal static string Error_UnableToDelete {
-            get {
-                return ResourceManager.GetString("Error_UnableToDelete", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Unable to get the list of shared printers: {0}.
-        /// </summary>
-        internal static string Error_UnableToGetPrinterList {
-            get {
-                return ResourceManager.GetString("Error_UnableToGetPrinterList", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Unable to get the list of shared printers..
-        /// </summary>
-        internal static string Error_UnableToGetPrinterList2 {
-            get {
-                return ResourceManager.GetString("Error_UnableToGetPrinterList2", resourceCulture);
-            }
-        }
-        
         /// <summary>
         ///   Looks up a localized string similar to File Shares.
         /// </summary>
-        internal static string FileShares {
+        internal static string String_FileShares {
             get {
-                return ResourceManager.GetString("FileShares", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Home.
-        /// </summary>
-        internal static string Home {
-            get {
-                return ResourceManager.GetString("Home", resourceCulture);
+                return ResourceManager.GetString("String_FileShares", resourceCulture);
             }
         }
 
-        internal static System.Drawing.Bitmap likewise_splash_screen {
+        /// <summary>
+        ///   Looks up a localized string similar to Home.
+        /// </summary>
+        internal static string String_Home {
             get {
-                object obj = ResourceManager.GetObject("likewise_splash_screen", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
+                return ResourceManager.GetString("String_Home", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Music.
         /// </summary>
-        internal static string Music {
+        internal static string String_Music {
             get {
-                return ResourceManager.GetString("Music", resourceCulture);
+                return ResourceManager.GetString("String_Music", resourceCulture);
             }
         }
 
         /// <summary>
         ///   Looks up a localized string similar to Network.
         /// </summary>
-        internal static string Network {
+        internal static string String_Network {
             get {
-                return ResourceManager.GetString("Network", resourceCulture);
+                return ResourceManager.GetString("String_Network", resourceCulture);
             }
         }
 
         /// <summary>
         ///   Looks up a localized string similar to Open Files.
         /// </summary>
-        internal static string OpenFiles {
+        internal static string String_OpenFiles {
             get {
-                return ResourceManager.GetString("OpenFiles", resourceCulture);
+                return ResourceManager.GetString("String_OpenFiles", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Open Sessions.
         /// </summary>
-        internal static string OpenSessions {
+        internal static string String_OpenSessions {
             get {
-                return ResourceManager.GetString("OpenSessions", resourceCulture);
+                return ResourceManager.GetString("String_OpenSessions", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Pictures.
         /// </summary>
-        internal static string Pictures {
+        internal static string String_Pictures {
             get {
-                return ResourceManager.GetString("Pictures", resourceCulture);
+                return ResourceManager.GetString("String_Pictures", resourceCulture);
             }
         }
 
         /// <summary>
         ///   Looks up a localized string similar to Lets you manage File and Print shares..
         /// </summary>
-        internal static string PluginDescription {
+        internal static string String_PluginDescription {
             get {
-                return ResourceManager.GetString("PluginDescription", resourceCulture);
+                return ResourceManager.GetString("String_PluginDescription", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Delete shared printer:{0}?.
-        /// </summary>
-        internal static string Prompt_DeletePrinter {
-            get {
-                return ResourceManager.GetString("Prompt_DeletePrinter", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Are you sure you wish to stop sharing {0}?.
-        /// </summary>
-        internal static string Prompt_DeleteShare {
-            get {
-                return ResourceManager.GetString("Prompt_DeleteShare", resourceCulture);
-            }
-        }
-        
-        internal static System.Drawing.Bitmap shared_folders {
-            get {
-                object obj = ResourceManager.GetObject("shared_folders", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-        
-        internal static System.Drawing.Icon SharedFolder {
-            get {
-                object obj = ResourceManager.GetObject("SharedFolder", resourceCulture);
-                return ((System.Drawing.Icon)(obj));
-            }
-        }
-        
-        internal static System.Drawing.Icon SharedFolder2 {
-            get {
-                object obj = ResourceManager.GetObject("SharedFolder2", resourceCulture);
-                return ((System.Drawing.Icon)(obj));
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Shared Printers.
-        /// </summary>
-        internal static string SharedPrinters {
-            get {
-                return ResourceManager.GetString("SharedPrinters", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Open Files.
-        /// </summary>
-        internal static string sOpenFiles {
-            get {
-                return ResourceManager.GetString("sOpenFiles", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Printers.
-        /// </summary>
-        internal static string sPrinters {
-            get {
-                return ResourceManager.GetString("sPrinters", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Sessions.
-        /// </summary>
-        internal static string sSessions {
-            get {
-                return ResourceManager.GetString("sSessions", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Shares.
-        /// </summary>
-        internal static string sShares {
-            get {
-                return ResourceManager.GetString("sShares", resourceCulture);
-            }
-        }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to File Browser.
         /// </summary>
-        internal static string sTitleTopLevelTab {
+        internal static string String_TitleTopLevelTab {
             get {
-                return ResourceManager.GetString("sTitleTopLevelTab", resourceCulture);
+                return ResourceManager.GetString("String_TitleTopLevelTab", resourceCulture);
             }
         }
 
         /// <summary>
         ///   Looks up a localized string similar to Videos.
         /// </summary>
-        internal static string Videos {
+        internal static string String_Videos {
             get {
-                return ResourceManager.GetString("Videos", resourceCulture);
+                return ResourceManager.GetString("String_Videos", resourceCulture);
             }
         }
     }
