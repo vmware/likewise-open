@@ -211,7 +211,7 @@ RegShellIsValidKey(
 
     if (!pszRootKeyName)
     {
-        pszRootKeyName = LIKEWISE_ROOT_KEY;
+        pszRootKeyName = HKEY_THIS_MACHINE;
     }
     dwError = RegOpenKeyExA(hReg, NULL, pszRootKeyName, 0, 0, &pRootKey);
     BAIL_ON_REG_ERROR(dwError);
@@ -270,7 +270,7 @@ RegShellUtilAddKey(
 
     if (!pszRootKeyName)
     {
-        pszRootKeyName = LIKEWISE_ROOT_KEY;
+        pszRootKeyName = HKEY_THIS_MACHINE;
     }
     dwError = RegShellCanonicalizePath(pszDefaultKey,
                                        pszKeyName,
@@ -356,7 +356,7 @@ RegShellUtilDeleteKey(
 
     if (!pszRootKeyName)
     {
-        pszRootKeyName = LIKEWISE_ROOT_KEY;
+        pszRootKeyName = HKEY_THIS_MACHINE;
     }
     dwError = RegShellCanonicalizePath(pszDefaultKey,
                                        keyName,
@@ -433,7 +433,7 @@ RegShellUtilDeleteTree(
 
     if (!pszRootKeyName)
     {
-        pszRootKeyName = LIKEWISE_ROOT_KEY;
+        pszRootKeyName = HKEY_THIS_MACHINE;
     }
     dwError = RegShellCanonicalizePath(pszDefaultKey,
                                        keyName,
@@ -654,7 +654,7 @@ RegShellUtilSetValue(
 
     if (!pszRootKeyName)
     {
-        pszRootKeyName = LIKEWISE_ROOT_KEY;
+        pszRootKeyName = HKEY_THIS_MACHINE;
     }
     dwError = RegShellCanonicalizePath(pszDefaultKey,
                                        keyName,
@@ -923,7 +923,7 @@ RegShellUtilDeleteValue(
 
     if (!pszRootKeyName)
     {
-        pszRootKeyName = LIKEWISE_ROOT_KEY;
+        pszRootKeyName = HKEY_THIS_MACHINE;
     }
     if (keyName)
     {

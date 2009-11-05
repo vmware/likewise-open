@@ -824,14 +824,15 @@ error:
 /*Helper functions*/
 void
 RegSrvSafeFreeKeyContext(
-    IN OUT PREG_KEY_CONTEXT* ppKeyResult
+    IN PREG_KEY_CONTEXT pKeyResult
     )
 {
-    PREG_KEY_CONTEXT pKeyResult = NULL;
-
-    if (ppKeyResult != NULL && *ppKeyResult != NULL)
+    if (pKeyResult != NULL)
     {
-        pKeyResult = *ppKeyResult;
+        if (pKeyResult->pMutex)
+        {
+            pthread_rwlock_destroy(&pKeyResult->mutex);
+        }
 
         LW_SAFE_FREE_STRING(pKeyResult->pszKeyName);
         LW_SAFE_FREE_STRING(pKeyResult->pszParentKeyName);
@@ -839,27 +840,16 @@ RegSrvSafeFreeKeyContext(
         pKeyResult->bHasSubKeyInfo = FALSE;
         pKeyResult->bHasSubKeyAInfo = FALSE;
         LwFreeStringArray(pKeyResult->ppszSubKeyNames, pKeyResult->dwNumCacheSubKeys);
-        pKeyResult->ppszSubKeyNames = NULL;
-        pKeyResult->dwNumCacheSubKeys = 0;
-        pKeyResult->dwNumSubKeys = 0;
 
         pKeyResult->bHasValueInfo = FALSE;
         pKeyResult->bHasValueAInfo = FALSE;
         LwFreeStringArray(pKeyResult->ppszValueNames, pKeyResult->dwNumCacheValues);
         LwFreeStringArray(pKeyResult->ppszValues, pKeyResult->dwNumCacheValues);
         LW_SAFE_FREE_MEMORY(pKeyResult->pTypes);
-        pKeyResult->ppszValueNames = NULL;
-        pKeyResult->ppszValues = NULL;
-        pKeyResult->dwNumCacheValues = 0;
-        pKeyResult->dwNumValues = 0;
 
-        if (pKeyResult->pMutex)
-        {
-            pthread_rwlock_destroy(&pKeyResult->mutex);
-        }
+        memset(pKeyResult, 0, sizeof(*pKeyResult));
 
         LW_SAFE_FREE_MEMORY(pKeyResult);
-        *ppKeyResult = NULL;
     }
 }
 
