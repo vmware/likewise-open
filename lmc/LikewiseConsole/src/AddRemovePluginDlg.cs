@@ -176,6 +176,7 @@ namespace Likewise.LMC
                                 node.Tag = lacnode.Tag;                                
                             }
                             node.SetContext(lacnode.Plugin.GetContext());
+                            node.Plugin.SetContext(lacnode.Plugin.GetContext());
                             //node.Plugin.SetContext(rootnode.Plugin.GetContext());
                             rootnode.Nodes.Add(node);
                             rootnode.Plugin.AddExtPlugin(node.Plugin);
