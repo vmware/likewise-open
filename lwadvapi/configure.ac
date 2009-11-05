@@ -275,6 +275,7 @@ AC_CONFIG_FILES([Makefile
                  unthreaded/error/Makefile
                  unthreaded/file/Makefile
                  unthreaded/dscache/Makefile
+                 unthreaded/time/Makefile
                  join/Makefile])
 
 AC_OUTPUT
