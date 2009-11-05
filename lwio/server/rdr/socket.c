@@ -886,7 +886,7 @@ SMBSocketConnect(
     FD_ZERO(&fdset);
     FD_SET(fd, &fdset);
 
-    if (connect(fd, ai->ai_addr, ai->ai_addrlen) && errno != EINPROGRESS)
+    if (connect(fd, pCursor->ai_addr, pCursor->ai_addrlen) && errno != EINPROGRESS)
     {
         ntStatus = UnixErrnoToNtStatus(errno);
     }
@@ -913,7 +913,7 @@ SMBSocketConnect(
     pSocket->state = RDR_SOCKET_STATE_NEGOTIATING;
     pSocket->fd = fd;
     fd = -1;
-    memcpy(&pSocket->address, &ai->ai_addr, ai->ai_addrlen);
+    memcpy(&pSocket->address, &pCursor->ai_addr, pCursor->ai_addrlen);
 
     pthread_cond_broadcast(&pSocket->event);
 
