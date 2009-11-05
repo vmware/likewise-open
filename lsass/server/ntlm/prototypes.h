@@ -140,14 +140,14 @@ DWORD
 NtlmServerInitializeSecurityContext(
     IN OPTIONAL NTLM_CRED_HANDLE hCredential,
     IN OPTIONAL const NTLM_CONTEXT_HANDLE hContext,
-    IN OPTIONAL SEC_CHAR * pszTargetName,
+    IN OPTIONAL SEC_CHAR* pszTargetName,
     IN DWORD fContextReq,
     IN DWORD Reserved1,
     IN DWORD TargetDataRep,
-    IN OPTIONAL const SecBufferDesc* pInput,
+    IN OPTIONAL const SecBuffer* pInput,
     IN DWORD Reserved2,
     IN OUT OPTIONAL PNTLM_CONTEXT_HANDLE phNewContext,
-    IN OUT OPTIONAL PSecBufferDesc pOutput,
+    OUT PSecBuffer pOutput,
     OUT PDWORD pfContextAttr,
     OUT OPTIONAL PTimeStamp ptsExpiry
     );

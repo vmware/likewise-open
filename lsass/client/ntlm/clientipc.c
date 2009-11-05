@@ -769,13 +769,17 @@ NtlmTransactInitializeSecurityContext(
     InitSecCtxtReq.fContextReq = fContextReq;
     InitSecCtxtReq.Reserved1 = Reserved1;
     InitSecCtxtReq.TargetDataRep = TargetDataRep;
-    InitSecCtxtReq.pInput = pInput;
+    if (pInput->cBuffers != 1)
+    {
+        dwError = LW_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    InitSecCtxtReq.pInput = &pInput->pBuffers[0];
     InitSecCtxtReq.Reserved2 = Reserved2;
     if (phNewContext)
     {
         InitSecCtxtReq.hNewContext = *phNewContext;
     }
-    InitSecCtxtReq.pOutput = pOutput;
 
     In.tag = NTLM_Q_INIT_SEC_CTXT;
     In.data = &InitSecCtxtReq;
@@ -792,7 +796,7 @@ NtlmTransactInitializeSecurityContext(
             if (pOutput)
             {
 
-                dwError = NtlmTransferSecBufferDesc(
+                dwError = NtlmTransferSecBufferToDesc(
                     pOutput,
                     &pResultList->Output,
                     FALSE
