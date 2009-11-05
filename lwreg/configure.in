@@ -312,7 +312,11 @@ AC_SUBST(registryconfdir)
 AS_AC_EXPAND(CONFIGDIR, $registryconfdir)
 AC_DEFINE_UNQUOTED(CONFIGDIR, "$CONFIGDIR", [Config directory])
 
-registrycachedir="$localstatedir/lib/likewise"
+if test x"$localstatedir" = x"/var"; then
+    registrycachedir="$localstatedir/lib/likewise"
+else
+    registrycachedir="$localstatedir"
+fi
 AC_SUBST(registrycachedir)
 AS_AC_EXPAND(CACHEDIR, $registrycachedir)
 AC_DEFINE_UNQUOTED(CACHEDIR, "$CACHEDIR", [Cache directory])
