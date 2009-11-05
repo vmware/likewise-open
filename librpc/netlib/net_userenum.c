@@ -120,7 +120,7 @@ NetUserEnum(
 
     default:
         err = NtStatusToWin32Error(STATUS_INVALID_PARAMETER);
-        goto error;
+        BAIL_ON_WINERR_ERROR(err);
     }
 
     switch (dwLevel)
@@ -137,10 +137,13 @@ NetUserEnum(
     case 3: dwInfoLevelSize = sizeof(USER_INFO_3);
         break;
 
+    case 4: dwInfoLevelSize = sizeof(USER_INFO_4);
+        break;
+
     default:
         err = ERROR_INVALID_LEVEL;
+        BAIL_ON_WINERR_ERROR(err);
     }
-    BAIL_ON_WINERR_ERROR(err);
 
     dwResume = *pdwResume ;
 
@@ -257,6 +260,47 @@ NetUserEnum(
                                   pSourceBuffer,
                                   &dwSize);
         BAIL_ON_WINERR_ERROR(err);
+
+        /*
+         * Special case - level 4 and 23 include a user SID which can't
+         * be copied from samr user info level only. A domain SID from
+         * samr connection is required too.
+         */
+        if (dwLevel == 4 ||
+            dwLevel == 23)
+        {
+            PUSER_INFO_4 pBufferInfo4 = NULL;
+            PUSER_INFO_23 pBufferInfo23 = NULL;
+            UserInfo21 *pSamrUserInfo21 = ppSamrUserInfo21[i];
+            DWORD dwUserSidLength = 0;
+            PSID pUserSid = NULL;
+
+            switch (dwLevel)
+            {
+            case 4:
+                pBufferInfo4 = pBufferCursor;
+                pUserSid     = pBufferInfo4->usri4_user_sid;
+                break;
+
+            case 23:
+                pBufferInfo23 = pBufferCursor;
+                pUserSid      = pBufferInfo23->usri23_user_sid;
+                break;
+            }
+
+            dwUserSidLength = RtlLengthRequiredSid(
+                                   pConn->samr.dom_sid->SubAuthorityCount + 1);
+
+            status = RtlCopySid(dwUserSidLength,
+                                pUserSid,
+                                pConn->samr.dom_sid);
+            BAIL_ON_NTSTATUS_ERROR(status);
+
+            status = RtlAppendRidSid(dwUserSidLength,
+                                     pUserSid,
+                                     pSamrUserInfo21->rid);
+            BAIL_ON_NTSTATUS_ERROR(status);
+        }
     }
 
     *ppBuffer        = pBuffer;
