@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -57,8 +57,8 @@
 static CENTERROR GetXPathString(PCSTR file, PSTR *result, PCSTR expression)
 {
     xmlDocPtr xmlDoc = NULL;
-    xmlXPathContextPtr xpathCtx = NULL; 
-    xmlXPathObjectPtr xpathObj = NULL; 
+    xmlXPathContextPtr xpathCtx = NULL;
+    xmlXPathObjectPtr xpathObj = NULL;
     CENTERROR ceError = CENTERROR_SUCCESS;
     BOOLEAN bExists = FALSE;
 
@@ -550,7 +550,7 @@ DJPrepareServiceLaunchScript(
     BAIL_ON_CENTERIS_ERROR(ceError);
 
     sprintf(szBuf, SYSCONFDIR "/LaunchDaemons/%s.plist", pszName);
-    ceError = CTCheckFileExists(szBuf, &bFileExists);  
+    ceError = CTCheckFileExists(szBuf, &bFileExists);
     BAIL_ON_CENTERIS_ERROR(ceError);
 
     if (!bFileExists)

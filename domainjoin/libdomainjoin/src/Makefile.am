@@ -75,9 +75,9 @@ libdomainjoin_la_SOURCES += \
 
 if BUILD_MACCODE
 EXTRA_libdomainjoin_la_SOURCES = djdaemonmgr_nonmac.c
-libdomainjoin_la_SOURCES += djdaemonmgr_mac.c
+libdomainjoin_la_SOURCES += mac/djdaemonmgr_mac.c
 else
-EXTRA_libdomainjoin_la_SOURCES = djdaemonmgr_mac.c
+EXTRA_libdomainjoin_la_SOURCES = mac/djdaemonmgr_mac.c
 libdomainjoin_la_SOURCES += djdaemonmgr_nonmac.c
 endif
 
