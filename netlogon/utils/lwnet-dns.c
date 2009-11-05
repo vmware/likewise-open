@@ -484,10 +484,16 @@ LWNetDnsParseQueryResponse(
 error:
 cleanup:
 
+    if (dwError)
+    {
+        LWNET_SAFE_FREE_DNS_RECORD_LINKED_LIST(pAnswersList);
+        LWNET_SAFE_FREE_DNS_RECORD_LINKED_LIST(pAuthsList);
+        LWNET_SAFE_FREE_DNS_RECORD_LINKED_LIST(pAdditionalsList);
+    }
+
     if (ppAnswersList)
     {
        *ppAnswersList = pAnswersList;
-       pAnswersList = NULL;
     }
     else
     {
@@ -497,7 +503,6 @@ cleanup:
     if (ppAuthsList)
     {
        *ppAuthsList = pAuthsList;
-       pAuthsList = NULL;
     }
     else
     {
@@ -507,16 +512,11 @@ cleanup:
     if (ppAdditionalsList)
     {
        *ppAdditionalsList = pAdditionalsList;
-       pAdditionalsList = NULL;
     }
     else
     {
         LWNET_SAFE_FREE_DNS_RECORD_LINKED_LIST(pAdditionalsList);
     }
-
-    LWNET_SAFE_FREE_DNS_RECORD_LINKED_LIST(pAnswersList);
-    LWNET_SAFE_FREE_DNS_RECORD_LINKED_LIST(pAuthsList);
-    LWNET_SAFE_FREE_DNS_RECORD_LINKED_LIST(pAdditionalsList);
 
     return dwError;
 }
