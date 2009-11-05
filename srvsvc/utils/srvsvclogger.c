@@ -153,16 +153,13 @@ SrvSvcInitLoggingToFile(
 
         gSrvSvcLogInfo.data.logfile.logHandle = NULL;
 
-        if (gSrvSvcLogInfo.data.logfile.szLogPath[0] != '\0')
-        {
-             pLog = freopen(
-                        gSrvSvcLogInfo.data.logfile.szLogPath,
-                        "w",
-                        stderr);
-            if (gSrvSvcLogInfo.data.logfile.logHandle == NULL) {
-                dwError = errno;
-                BAIL_ON_SRVSVC_ERROR(dwError);
-            }
+        pLog = freopen(
+            gSrvSvcLogInfo.data.logfile.szLogPath,
+            "w",
+            stderr);
+        if (pLog == NULL) {
+            dwError = errno;
+            BAIL_ON_SRVSVC_ERROR(dwError);
         }
 
         gSrvSvcLogInfo.data.logfile.logHandle = pLog;
