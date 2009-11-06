@@ -330,7 +330,7 @@ typedef USHORT SMB_INFO_LEVEL, *PSMB_INFO_LEVEL;
 #define SMB_FIND_FILE_UNIX                0x202
 #define SMB_SET_FILE_UNIX_HLINK           0x203
 #define SMB_QUERY_MAC_FS_INFO             0x301
-#define SMB_SET_FILE_RENAME_INFO          0xF203
+#define SMB_SET_FILE_RENAME_INFO          0x3F2
 
 typedef UCHAR LWIO_LOCK_TYPE;
 
@@ -1424,6 +1424,16 @@ typedef struct {
     BOOLEAN bFileIsDeleted;
 } __attribute__((__packed__)) TRANS2_FILE_DISPOSITION_INFORMATION,
                              *PTRANS2_FILE_DISPOSITION_INFORMATION;
+
+typedef struct
+{
+    UCHAR  ucReplaceIfExists;
+    UCHAR  ucReserved[3];
+    ULONG  ulRootDir;
+    ULONG  ulFileNameLength;
+
+} __attribute__((__packed__)) SMB_FILE_RENAME_INFO_HEADER,
+                             *PSMB_FILE_RENAME_INFO_HEADER;
 
 typedef struct _SMB_NOTIFY_INFO_HEADER
 {

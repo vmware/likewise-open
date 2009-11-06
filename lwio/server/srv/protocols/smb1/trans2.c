@@ -367,6 +367,11 @@ SrvFreeTrans2State(
         SrvFileRelease(pTrans2State->pFile);
     }
 
+    if (pTrans2State->pRootDir)
+    {
+        SrvFileRelease(pTrans2State->pRootDir);
+    }
+
     if (pTrans2State->pTree)
     {
         SrvTreeRelease(pTrans2State->pTree);
