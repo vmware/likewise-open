@@ -676,7 +676,12 @@ SrvSetFileRenameInfo_SMB_V2(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    if (!pSetInfoState->hDir)
+    if (pSetInfoState->pRootDir)
+    {
+        ((PFILE_RENAME_INFORMATION)pSetInfoState->pData2)->RootDirectory =
+                                                pSetInfoState->pRootDir->hFile;
+    }
+    else if (!pSetInfoState->hDir)
     {
         LWIO_LOCK_RWMUTEX_SHARED(   bTreeInLock,
                                     &pCtxSmb2->pTree->pShareInfo->mutex);
@@ -714,8 +719,11 @@ SrvSetFileRenameInfo_SMB_V2(
         SrvReleaseSetInfoStateAsync_SMB_V2(pSetInfoState); // completed sync
     }
 
-    ((PFILE_RENAME_INFORMATION)pSetInfoState->pData2)->RootDirectory =
-		pSetInfoState->hDir;
+    if (!pSetInfoState->pRootDir)
+    {
+        ((PFILE_RENAME_INFORMATION)pSetInfoState->pData2)->RootDirectory =
+                                                pSetInfoState->hDir;
+    }
 
     SrvPrepareSetInfoStateAsync_SMB_V2(pSetInfoState, pExecContext);
 
@@ -732,6 +740,8 @@ SrvSetFileRenameInfo_SMB_V2(
 
 error:
 
+    LWIO_UNLOCK_RWMUTEX(bTreeInLock, &pCtxSmb2->pTree->pShareInfo->mutex);
+
     return ntStatus;
 }
 
@@ -745,8 +755,11 @@ SrvUnmarshalRenameHeader_SMB_V2(
     PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
     PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
     PSRV_SET_INFO_STATE_SMB_V2 pSetInfoState = NULL;
+    BOOLEAN                    bTreeInLock   = FALSE;
     PSMB2_FILE_RENAME_INFO_HEADER pRenameInfoHeader = NULL;
-    ULONG                         ulBytesAvailable = 0;
+    ULONG                         ulBytesAvailable  = 0;
+    wchar16_t                     wszFwdSlash[]     = {'/',  0};
+    wchar16_t                     wszBackSlash[]    = {'\\', 0};
 
     pSetInfoState = (PSRV_SET_INFO_STATE_SMB_V2)pCtxSmb2->hState;
 
@@ -769,6 +782,27 @@ SrvUnmarshalRenameHeader_SMB_V2(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
+    if (pRenameInfoHeader->ullRootDir)
+    {
+        LWIO_LOCK_RWMUTEX_SHARED(bTreeInLock, &pCtxSmb2->pTree->mutex);
+
+        ntStatus = SrvTree2FindFile(
+                        pCtxSmb2->pTree,
+                        pRenameInfoHeader->ullRootDir,
+                        &pSetInfoState->pRootDir);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        LWIO_UNLOCK_RWMUTEX(bTreeInLock, &pCtxSmb2->pTree->mutex);
+    }
+
+    if (!pRenameInfoHeader->wszFileName[0] ||
+        (pRenameInfoHeader->wszFileName[0] == wszFwdSlash[0]) ||
+        (pRenameInfoHeader->wszFileName[0] == wszBackSlash[0]))
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
     pSetInfoState->ulData2Length =
           sizeof(FILE_RENAME_INFORMATION) + pRenameInfoHeader->ulFileNameLength;
 
@@ -787,6 +821,8 @@ SrvUnmarshalRenameHeader_SMB_V2(
            pRenameInfoHeader->ulFileNameLength);
 
 error:
+
+    LWIO_UNLOCK_RWMUTEX(bTreeInLock, &pCtxSmb2->pTree->mutex);
 
     return ntStatus;
 }
@@ -1181,6 +1217,11 @@ SrvFreeSetInfoState_SMB_V2(
     if (pSetInfoState->pFile)
     {
         SrvFile2Release(pSetInfoState->pFile);
+    }
+
+    if (pSetInfoState->pRootDir)
+    {
+        SrvFile2Release(pSetInfoState->pRootDir);
     }
 
     if (pSetInfoState->hDir)
