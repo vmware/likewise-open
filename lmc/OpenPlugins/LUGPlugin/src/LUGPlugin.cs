@@ -401,27 +401,23 @@ class LUGPlugIn: IPlugIn
             {
                 _hn.creds.UserName = selectDlg.GetUsername();
                 _hn.creds.Password = selectDlg.GetPassword();
-            }
-            else
-            {
-                _hn.creds.UserName = null;
-                _hn.creds.Password = null;
-            }
 
-            result = (int)LUGAPI.NetAddConnection(
-                _hn.hostName,
-                _hn.creds.UserName,
-                _hn.creds.Password);
+                // Only add a connection if we are not using default creds.
+                result = (int)LUGAPI.NetAddConnection(
+                    _hn.hostName,
+                    _hn.creds.UserName,
+                    _hn.creds.Password);
 
-            if (result != (int)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
-            {
-                MessageBox.Show(
-                   "Unable to connect to system:\n" + ErrorCodes.WIN32String(result),
-                   "Likewise Administrative Console",
-                   MessageBoxButtons.OK,
-                   MessageBoxIcon.Exclamation);
+                if (result != (int)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                {
+                    MessageBox.Show(
+                       "Unable to connect to system:\n" + ErrorCodes.WIN32String(result),
+                       "Likewise Administrative Console",
+                       MessageBoxButtons.OK,
+                       MessageBoxIcon.Exclamation);
 
-                return false;
+                    return false;
+                }
             }
 
             return true;
