@@ -520,7 +520,8 @@ SrvRenameFile(
 
         SrvReleaseTrans2StateAsync(pTrans2State); // completed synchronously
     }
-    else
+
+    if (!pTrans2State->pRootDir)
     {
         ((PFILE_RENAME_INFORMATION)pTrans2State->pData2)->RootDirectory =
                                                             pTrans2State->hDir;
