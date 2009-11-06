@@ -97,7 +97,7 @@ typedef struct __LOCAL_CONFIG
     BOOLEAN   bCreateHomedir;
     DWORD     dwHomedirUMask;
     PSTR      pszSkelDirs;
-
+    BOOLEAN   bAcceptNTLMv1;
 } LOCAL_CONFIG, *PLOCAL_CONFIG;
 
 typedef struct _LOCAL_PROVIDER_GLOBALS

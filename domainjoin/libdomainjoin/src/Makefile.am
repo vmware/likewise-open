@@ -59,25 +59,23 @@ if ENABLE_MINIMAL
 else
 libdomainjoin_la_SOURCES += \
        djsystemscripts.c \
-       djsecuser.c    \
-       djfirewall.c    \
+       aix/djsecuser.c    \
        djnsswitch.c    \
        djpamconf.c    \
-       djlogincfg.c   \
-       djmethodcfg.c  \
+       aix/djlogincfg.c   \
+       aix/djmethodcfg.c  \
        djdaemonmgr.c \
-       djaixparser.c \
-       djconfig_mac.c \
+       aix/djaixparser.c \
+       mac/djconfig_mac.c \
        djtimemgmt.c \
        djsshconf.c    \
-       djauthconf.c   \
        djddns.c
 
 if BUILD_MACCODE
 EXTRA_libdomainjoin_la_SOURCES = djdaemonmgr_nonmac.c
-libdomainjoin_la_SOURCES += djdaemonmgr_mac.c
+libdomainjoin_la_SOURCES += mac/djdaemonmgr_mac.c
 else
-EXTRA_libdomainjoin_la_SOURCES = djdaemonmgr_mac.c
+EXTRA_libdomainjoin_la_SOURCES = mac/djdaemonmgr_mac.c
 libdomainjoin_la_SOURCES += djdaemonmgr_nonmac.c
 endif
 

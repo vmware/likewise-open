@@ -225,7 +225,7 @@ SrvShareRegFindByName(
     ntStatus = RegOpenKeyExA(
             hRepository,
             NULL,
-            LIKEWISE_ROOT_KEY,
+            HKEY_THIS_MACHINE,
             0,
             0,
             &hRootKey);
@@ -374,7 +374,7 @@ SrvShareRegAdd(
     ntStatus = RegOpenKeyExA(
             hRepository,
             NULL,
-            LIKEWISE_ROOT_KEY,
+            HKEY_THIS_MACHINE,
             0,
             0,
             &hRootKey);
@@ -506,7 +506,7 @@ SrvShareRegBeginEnum(
     ntStatus = RegOpenKeyExA(
             hRepository,
             NULL,
-            LIKEWISE_ROOT_KEY,
+            HKEY_THIS_MACHINE,
             0,
             0,
             &hRootKey);
@@ -606,7 +606,7 @@ SrvShareRegEnum(
     ntStatus = RegOpenKeyExA(
             hRepository,
             NULL,
-            LIKEWISE_ROOT_KEY,
+            HKEY_THIS_MACHINE,
             0,
             0,
             &hRootKey);
@@ -762,7 +762,7 @@ SrvShareRegDelete(
     ntStatus = RegOpenKeyExA(
             hRepository,
             NULL,
-            LIKEWISE_ROOT_KEY,
+            HKEY_THIS_MACHINE,
             0,
             0,
             &hRootKey);
@@ -818,7 +818,7 @@ SrvShareRegGetCount(
     ntStatus = RegOpenKeyExA(
             hRepository,
             NULL,
-            LIKEWISE_ROOT_KEY,
+            HKEY_THIS_MACHINE,
             0,
             0,
             &hRootKey);

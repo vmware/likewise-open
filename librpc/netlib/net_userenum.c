@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        net_userenum.h
+ *        net_userenum.c
  *
  * Abstract:
  *
@@ -53,15 +53,20 @@ NetUserEnum(
     DWORD   dwLevel,
     DWORD   dwFilter,
     PVOID  *ppBuffer,
-    DWORD   dwMaxLen,
+    DWORD   dwMaxBufferSize,
     PDWORD  pdwNumEntries,
     PDWORD  pdwTotalEntries,
     PDWORD  pdwResume
     )
 {
-    const DWORD dwDomainFlags = DOMAIN_ACCESS_ENUM_ACCOUNTS |
-                                DOMAIN_ACCESS_OPEN_ACCOUNT;
-    const WORD wDomainInfoLevel = 2;
+    const DWORD dwUserAccessFlags = USER_ACCESS_GET_NAME_ETC |
+                                    USER_ACCESS_GET_ATTRIBUTES |
+                                    USER_ACCESS_GET_LOCALE |
+                                    USER_ACCESS_GET_LOGONINFO |
+                                    USER_ACCESS_GET_GROUPS;
+
+    const DWORD dwDomainAccessFlags = DOMAIN_ACCESS_ENUM_ACCOUNTS |
+                                      DOMAIN_ACCESS_OPEN_ACCOUNT;
     const WORD wInfoLevel = 21;
 
     NTSTATUS status = STATUS_SUCCESS;
@@ -70,20 +75,25 @@ NetUserEnum(
     handle_t hSamrBinding = NULL;
     DOMAIN_HANDLE hDomain = NULL;
     ACCOUNT_HANDLE hUser = NULL;
-    DomainInfo *pDomainInfo = NULL;
     DWORD dwNumEntries = 0;
-    DWORD dwMaxSize = 0;
+    DWORD dwSamrMaxSize = SAMR_MAX_PREFERRED_SIZE;
+    DWORD dwSamrResume = 0;
     DWORD i = 0;
     PWSTR *ppwszUsernames = NULL;
     PDWORD pdwUserRids = NULL;
     DWORD dwAcctFlags = 0;
-    DWORD dwUserFlags = 0;
-    PVOID pNetUserInfo = NULL;
-    UserInfo21 *pSamrUserInfo21 = NULL;
+    UserInfo21 **ppSamrUserInfo21 = NULL;
     UserInfo *pSamrUserInfo = NULL;
-    DWORD dwTotal = 0;
+    PVOID pSourceBuffer = NULL;
+    DWORD dwInfoLevelSize = 0;
+    DWORD dwTotalNumEntries = 0;
     DWORD dwResume = 0;
     PIO_CREDS pCreds = NULL;
+    PVOID pBuffer = NULL;
+    PVOID pBufferCursor = NULL;
+    DWORD dwTotalSize = 0;
+    DWORD dwSize = 0;
+    DWORD dwSpaceAvailable = 0;
 
     BAIL_ON_INVALID_PTR(ppBuffer);
     BAIL_ON_INVALID_PTR(pdwNumEntries);
@@ -110,24 +120,39 @@ NetUserEnum(
 
     default:
         err = NtStatusToWin32Error(STATUS_INVALID_PARAMETER);
-        goto error;
+        BAIL_ON_WINERR_ERROR(err);
     }
 
-    if (!(dwLevel == 0 ||
-          dwLevel == 1 ||
-          dwLevel == 2 ||
-          dwLevel == 20))
+    switch (dwLevel)
     {
+    case 0: dwInfoLevelSize = sizeof(USER_INFO_0);
+        break;
+
+    case 1: dwInfoLevelSize = sizeof(USER_INFO_1);
+        break;
+
+    case 2: dwInfoLevelSize = sizeof(USER_INFO_2);
+        break;
+
+    case 3: dwInfoLevelSize = sizeof(USER_INFO_3);
+        break;
+
+    case 4: dwInfoLevelSize = sizeof(USER_INFO_4);
+        break;
+
+    default:
         err = ERROR_INVALID_LEVEL;
-        goto error;
+        BAIL_ON_WINERR_ERROR(err);
     }
+
+    dwResume = *pdwResume ;
 
     status = LwIoGetActiveCreds(NULL, &pCreds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     status = NetConnectSamr(&pConn,
                             pwszHostname,
-                            dwDomainFlags,
+                            dwDomainAccessFlags,
                             0,
                             pCreds);
     BAIL_ON_NTSTATUS_ERROR(status);
@@ -135,54 +160,35 @@ NetUserEnum(
     hSamrBinding = pConn->samr.bind;
     hDomain      = pConn->samr.hDomain;
 
-    status = SamrQueryDomainInfo(hSamrBinding,
-                                 hDomain,
-                                 wDomainInfoLevel,
-                                 &pDomainInfo);
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    dwTotal    = pDomainInfo->info2.num_users;
-    dwResume   = *pdwResume;
-    dwMaxSize  = dwMaxLen;
-
     status = SamrEnumDomainUsers(hSamrBinding,
                                  hDomain,
-                                 &dwResume,
+                                 &dwSamrResume,
                                  dwAcctFlags,
-                                 dwMaxSize,
+                                 dwSamrMaxSize,
                                  &ppwszUsernames,
                                  &pdwUserRids,
-                                 &dwNumEntries);
-    if (status != 0 &&
-        status != STATUS_MORE_ENTRIES)
-    {
-        err = NtStatusToWin32Error(status);
-        goto error;
-    }
+                                 &dwTotalNumEntries);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = NetAllocateMemory((void**)&pSamrUserInfo21,
-                               sizeof(UserInfo) * dwNumEntries,
+    status = NetAllocateMemory((void**)&ppSamrUserInfo21,
+                               sizeof(UserInfo*) * dwTotalNumEntries,
                                NULL);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    for (i = 0; i < dwNumEntries; i++)
-    {
-        if (dwLevel != 0)
-        {
-            /*
-             * Full query user info of user accounts (one by one)
-             * is necessary
-             */
-            dwUserFlags = USER_ACCESS_GET_NAME_ETC |
-                          USER_ACCESS_GET_ATTRIBUTES |
-                          USER_ACCESS_GET_LOCALE |
-                          USER_ACCESS_GET_LOGONINFO |
-                          USER_ACCESS_GET_GROUPS;
+    dwNumEntries = dwTotalNumEntries;
 
+    for (i = 0; i < dwTotalNumEntries; i++)
+    {
+        if (dwLevel == 0)
+        {
+            pSourceBuffer = ppwszUsernames[i];
+        }
+        else
+        {
             status = SamrOpenUser(hSamrBinding,
                                   hDomain,
-                                  dwUserFlags,
-                                  pdwUserRids[i],
+                                  dwUserAccessFlags,
+                                  pdwUserRids[i + dwResume],
                                   &hUser);
             BAIL_ON_NTSTATUS_ERROR(status);
 
@@ -192,60 +198,128 @@ NetUserEnum(
                                        &pSamrUserInfo);
             BAIL_ON_NTSTATUS_ERROR(status);
 
-            if (pSamrUserInfo)
-            {
-                memcpy(&(pSamrUserInfo21[i]),
-                       &pSamrUserInfo->info21,
-                       sizeof(UserInfo21));
-                NetFreeMemory((void*)pSamrUserInfo);
-            }
+            ppSamrUserInfo21[i] = &pSamrUserInfo->info21;
+            pSourceBuffer       = &pSamrUserInfo->info21;
 
             status = SamrClose(hSamrBinding, hUser);
             BAIL_ON_NTSTATUS_ERROR(status);
         }
-    }
 
-    if (ppwszUsernames && dwNumEntries)
-    {
-        switch (dwLevel)
+        dwSize = 0;
+        err = NetAllocateUserInfo(NULL,
+                                  NULL,
+                                  dwLevel,
+                                  pSourceBuffer,
+                                  &dwSize);
+        BAIL_ON_WINERR_ERROR(err);
+
+        dwTotalSize += dwSize;
+
+        if (dwTotalSize > dwMaxBufferSize)
         {
-        case 0: status = PullUserInfo0(&pNetUserInfo,
-                                       ppwszUsernames,
-                                       dwNumEntries);
-            break;
-
-        case 1: status = PullUserInfo1(&pNetUserInfo,
-                                       pSamrUserInfo21,
-                                       dwNumEntries);
-            break;
-
-        case 2: status = PullUserInfo2(&pNetUserInfo,
-                                       pSamrUserInfo21,
-                                       dwNumEntries);
-            break;
-
-        case 20: status = PullUserInfo20(&pNetUserInfo,
-                                         pSamrUserInfo21,
-                                         dwNumEntries);
+            dwNumEntries  = i;
+            dwTotalSize  -= dwSize;
             break;
         }
+    }
+
+    if (dwTotalNumEntries > 0 && dwNumEntries == 0)
+    {
+        err = ERROR_NOT_ENOUGH_MEMORY;
+        BAIL_ON_WINERR_ERROR(err);
+    }
+
+    if (dwTotalSize)
+    {
+        status = NetAllocateMemory((void**)&pBuffer,
+                                   dwTotalSize,
+                                   NULL);
         BAIL_ON_NTSTATUS_ERROR(status);
     }
 
-    *ppBuffer        = pNetUserInfo;
-    *pdwResume       = dwResume;
-    *pdwNumEntries   = dwNumEntries;
-    *pdwTotalEntries = dwTotal;
+    dwSize           = 0;
+    pBufferCursor    = pBuffer;
+    dwSpaceAvailable = dwTotalSize;
 
-cleanup:
-    if (pSamrUserInfo21)
+    for (i = 0; i < dwNumEntries; i++)
     {
-        NetFreeMemory((void*)pSamrUserInfo21);
+        if (dwLevel == 0)
+        {
+            pSourceBuffer = ppwszUsernames[i];
+        }
+        else
+        {
+            pSourceBuffer = ppSamrUserInfo21[i];
+        }
+
+        pBufferCursor = pBuffer + (i * dwInfoLevelSize);
+
+        err = NetAllocateUserInfo(pBufferCursor,
+                                  &dwSpaceAvailable,
+                                  dwLevel,
+                                  pSourceBuffer,
+                                  &dwSize);
+        BAIL_ON_WINERR_ERROR(err);
+
+        /*
+         * Special case - level 4 and 23 include a user SID which can't
+         * be copied from samr user info level only. A domain SID from
+         * samr connection is required too.
+         */
+        if (dwLevel == 4 ||
+            dwLevel == 23)
+        {
+            PUSER_INFO_4 pBufferInfo4 = NULL;
+            PUSER_INFO_23 pBufferInfo23 = NULL;
+            UserInfo21 *pSamrUserInfo21 = ppSamrUserInfo21[i];
+            DWORD dwUserSidLength = 0;
+            PSID pUserSid = NULL;
+
+            switch (dwLevel)
+            {
+            case 4:
+                pBufferInfo4 = pBufferCursor;
+                pUserSid     = pBufferInfo4->usri4_user_sid;
+                break;
+
+            case 23:
+                pBufferInfo23 = pBufferCursor;
+                pUserSid      = pBufferInfo23->usri23_user_sid;
+                break;
+            }
+
+            dwUserSidLength = RtlLengthRequiredSid(
+                                   pConn->samr.dom_sid->SubAuthorityCount + 1);
+
+            status = RtlCopySid(dwUserSidLength,
+                                pUserSid,
+                                pConn->samr.dom_sid);
+            BAIL_ON_NTSTATUS_ERROR(status);
+
+            status = RtlAppendRidSid(dwUserSidLength,
+                                     pUserSid,
+                                     pSamrUserInfo21->rid);
+            BAIL_ON_NTSTATUS_ERROR(status);
+        }
     }
 
-    if (pDomainInfo)
+    *ppBuffer        = pBuffer;
+    *pdwResume       = dwResume + dwNumEntries;
+    *pdwNumEntries   = dwNumEntries;
+    *pdwTotalEntries = dwTotalNumEntries;
+
+cleanup:
+    for (i = 0; i < dwNumEntries; i++)
     {
-        SamrFreeMemory((void*)pDomainInfo);
+        if (ppSamrUserInfo21[i])
+        {
+            SamrFreeMemory((void*)ppSamrUserInfo21[i]);
+        }
+    }
+
+    if (ppSamrUserInfo21)
+    {
+        NetFreeMemory((void*)ppSamrUserInfo21);
     }
 
     if (ppwszUsernames)
@@ -258,6 +332,11 @@ cleanup:
         SamrFreeMemory((void*)pdwUserRids);
     }
 
+    if (pCreds)
+    {
+        LwIoDeleteCreds(pCreds);
+    }
+
     if (err == ERROR_SUCCESS &&
         status != STATUS_SUCCESS)
     {
@@ -267,14 +346,9 @@ cleanup:
     return err;
 
 error:
-    if (pNetUserInfo)
+    if (pBuffer)
     {
-        NetFreeMemory((void*)pNetUserInfo);
-    }
-
-    if (pCreds)
-    {
-        LwIoDeleteCreds(pCreds);
+        NetFreeMemory((void*)pBuffer);
     }
 
     *ppBuffer        = NULL;

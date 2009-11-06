@@ -29,10 +29,21 @@
  */
 
 /*
- * Abstract: NetApi memory (de)allocation routines (rpc client library)
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        net_memory.c
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Client Interface
+ *
+ *        NetAPI memory allocation functions.
  *
  * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
+
 
 #ifndef _NET_MEMORY_H_
 #define _NET_MEMORY_H_
@@ -68,6 +79,70 @@ NTSTATUS
 NetAddDepMemory(
     void *ptr,
     void *dep
+    );
+
+
+DWORD
+NetAllocBufferDword(
+    PVOID  *ppCursor,
+    PDWORD  pdwSpaceLeft,
+    DWORD   dwSource,
+    PDWORD  pdwSize
+    );
+
+
+DWORD
+NetAllocBufferWinTimeFromNtTime(
+    PVOID  *ppCursor,
+    PDWORD  pdwSpaceLeft,
+    NtTime  Time,
+    PDWORD  pdwSize
+    );
+
+
+DWORD
+NetAllocBufferUserFlagsFromAcbFlags(
+    PVOID *ppCursor,
+    PDWORD pdwSpaceLeft,
+    DWORD  dwAcbFlags,
+    PDWORD pdwSize
+    );
+
+
+DWORD
+NetAllocBufferWC16String(
+    PVOID  *ppCursor,
+    PDWORD  pdwSpaceLeft,
+    PCWSTR  pwszSource,
+    PDWORD  pdwSize
+    );
+
+
+DWORD
+NetAllocBufferWC16StringFromUnicodeString(
+    PVOID         *ppCursor,
+    PDWORD         pdwSpaceLeft,
+    UnicodeString *pSource,
+    PDWORD         pdwSize
+    );
+
+
+DWORD
+NetAllocBufferLogonHours(
+    PVOID      *ppCursor,
+    PDWORD      pdwSpaceLeft,
+    LogonHours *pHours,
+    PDWORD      pdwSize
+    );
+
+
+DWORD
+NetAllocBufferSid(
+    PVOID      *ppCursor,
+    PDWORD      pdwSpaceLeft,
+    PSID        pSourceSid,
+    DWORD       dwSourceSidLength,
+    PDWORD      pdwSize
     );
 
 

@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -28,6 +28,27 @@
  * license@likewisesoftware.com
  */
 
-#include "domainjoin.h"
+
+#include "config.h"
+#include <errno.h>
+#include <stdlib.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <ctype.h>
+#include <time.h>
+
+#include <lw/base.h>
+#include <winerror.h>
+#include <bail.h>
+#include <lwdef.h>
+#include <lwtime.h>
 
 
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -56,7 +56,7 @@ DJFindStanza(const DynamicArray *lines, PCSTR name)
 ssize_t DJFindLine(const DynamicArray *lines, const char *stanza, const char *name)
 {
     ssize_t i = DJFindStanza(lines, stanza);
-    
+
     if(i == -1)
         return -1;
 
@@ -71,7 +71,7 @@ ssize_t DJFindLine(const DynamicArray *lines, const char *stanza, const char *na
         if(strncmp(line, name, strlen(name)))
             continue;
         line += strlen(name);
-       
+
         while (*line != '\0' && isspace(*line))
             line++;
 
@@ -92,7 +92,7 @@ CENTERROR DJGetOptionValue(const DynamicArray *lines, PCSTR stanza, PCSTR name, 
     PSTR _value = NULL;
 
     *value = NULL;
-    
+
     if(i == -1)
         GCE(ceError = CENTERROR_CFG_VALUE_NOT_FOUND);
 
@@ -103,7 +103,7 @@ CENTERROR DJGetOptionValue(const DynamicArray *lines, PCSTR stanza, PCSTR name, 
         line++;
 
     line += strlen(name);
-   
+
     while (*line != '\0' && isspace(*line))
         line++;
 

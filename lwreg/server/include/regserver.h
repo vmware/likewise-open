@@ -142,7 +142,7 @@ typedef struct __REG_KEY_CONTEXT
 
 void
 RegSrvSafeFreeKeyContext(
-    IN OUT PREG_KEY_CONTEXT* ppKeyResult
+    IN PREG_KEY_CONTEXT pKeyResult
     );
 
 void

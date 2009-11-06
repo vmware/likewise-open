@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright (c) Likewise Software.  All rights Reserved.
@@ -45,9 +45,14 @@
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
 
+#ifndef _LWTIME_H_
+#define _LWTIME_H_
+
+
 #define LW_SECONDS_IN_HOUR   (60 * LW_SECONDS_IN_MINUTE)
 #define LW_SECONDS_IN_DAY    (24 * LW_SECONDS_IN_HOUR)
 #define LW_SECONDS_IN_MINUTE (60)
+
 
 DWORD
 LwParseDateString(
@@ -55,12 +60,45 @@ LwParseDateString(
     PDWORD pdwTimeInterval
     );
 
+
 DWORD
 LwSetSystemTime(
     time_t ttCurTime
     );
 
+
 DWORD
 LwGetCurrentTimeSeconds(
     OUT time_t* pTime
     );
+
+
+DWORD
+LwGetNtTime(
+    OUT PULONG64 pntTime
+    );
+
+
+ULONG64
+LwWinTimeToNtTime(
+    IN DWORD winTime
+    );
+
+
+DWORD
+LwNtTimeToWinTime(
+    IN ULONG64 ntTime
+    );
+
+
+#endif /* _LWTIME_H_ */
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

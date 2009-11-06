@@ -245,13 +245,13 @@ namespace Likewise.LMC.FileClient
         };
 
         [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-        private static extern IntPtr FindFirstFileW(
+        private static extern IntPtr FindFirstFile(
             string lpFileName,
             out WIN32_FIND_DATA lpFindFileData
             );
 
         [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-        private static extern bool FindNextFileW(
+        private static extern bool FindNextFile(
             IntPtr hFindFile,
             out WIN32_FIND_DATA lpFindFileData
             );
@@ -273,7 +273,7 @@ namespace Likewise.LMC.FileClient
             bool success = false;
             string search = filepath + "\\*";
 
-            IntPtr handle = FindFirstFileW(search, out pFindFileData);
+            IntPtr handle = FindFirstFile(search, out pFindFileData);
 
             if (handle != INVALID_HANDLE_VALUE)
             {
@@ -290,14 +290,14 @@ namespace Likewise.LMC.FileClient
                 if (String.Compare(file.FileName, ".") == 0 ||
                     String.Compare(file.FileName, "..") == 0)
                 {
-                    success = FindNextFileW(handle, out pFindFileData);
+                    success = FindNextFile(handle, out pFindFileData);
                     continue;
                 }
 
                 if (!showHiddenFiles &&
                     file.FileName[0] == '.')
                 {
-                    success = FindNextFileW(handle, out pFindFileData);
+                    success = FindNextFile(handle, out pFindFileData);
                     continue;
                 }
 
@@ -305,52 +305,50 @@ namespace Likewise.LMC.FileClient
                 {
                     file.IsDirectory = true;
                 }
-                else
+
+                UInt64 size = ((UInt64)pFindFileData.nFileSizeLow + (UInt64)pFindFileData.nFileSizeHigh * 4294967296)/1024;
+                UInt64 extra = ((UInt64)pFindFileData.nFileSizeLow + (UInt64)pFindFileData.nFileSizeHigh * 4294967296) % 1024;
+                SYSTEMTIME created = new SYSTEMTIME();
+                SYSTEMTIME modified = new SYSTEMTIME();
+                SYSTEMTIME accessed = new SYSTEMTIME();
+                DateTime Created = new DateTime();
+                DateTime Modified = new DateTime();
+                DateTime Accessed = new DateTime();
+
+                if (size != 0 && extra != 0)
                 {
-                    UInt64 size = ((UInt64)pFindFileData.nFileSizeLow + (UInt64)pFindFileData.nFileSizeHigh * 4294967296)/1024;
-                    UInt64 extra = ((UInt64)pFindFileData.nFileSizeLow + (UInt64)pFindFileData.nFileSizeHigh * 4294967296) % 1024;
-                    SYSTEMTIME created = new SYSTEMTIME();
-                    SYSTEMTIME modified = new SYSTEMTIME();
-                    SYSTEMTIME accessed = new SYSTEMTIME();
-                    DateTime Created = new DateTime();
-                    DateTime Modified = new DateTime();
-                    DateTime Accessed = new DateTime();
-
-                    if (size != 0 && extra != 0)
-                    {
-                        size++;
-                    }
-
-                    if (pFindFileData.ftCreationTime.dwHighDateTime != 0 &&
-                        pFindFileData.ftCreationTime.dwLowDateTime != 0)
-                    {
-                        FileTimeToSystemTime(ref pFindFileData.ftCreationTime, ref created);
-                        Created = new DateTime(created.wYear, created.wMonth, created.wDay, created.wHour, created.wMinute, created.wSecond).ToLocalTime();
-                    }
-
-                    if (pFindFileData.ftLastWriteTime.dwHighDateTime != 0 &&
-                        pFindFileData.ftLastWriteTime.dwLowDateTime != 0)
-                    {
-                        FileTimeToSystemTime(ref pFindFileData.ftLastWriteTime, ref modified);
-                        Modified = new DateTime(modified.wYear, modified.wMonth, modified.wDay, modified.wHour, modified.wMinute, modified.wSecond).ToLocalTime();
-                    }
-
-                    if (pFindFileData.ftLastAccessTime.dwHighDateTime != 0 &&
-                        pFindFileData.ftLastAccessTime.dwLowDateTime != 0)
-                    {
-                        FileTimeToSystemTime(ref pFindFileData.ftLastAccessTime, ref accessed);
-                        Accessed = new DateTime(accessed.wYear, accessed.wMonth, accessed.wDay, accessed.wHour, accessed.wMinute, accessed.wSecond).ToLocalTime();
-                    }
-
-                    file.CreationTime = Created;
-                    file.LastWriteTime = Modified;
-                    file.LastAccessTime = Accessed;
-                    file.FileSize = size;
+                    size++;
                 }
+
+                if (pFindFileData.ftCreationTime.dwHighDateTime != 0 &&
+                    pFindFileData.ftCreationTime.dwLowDateTime != 0)
+                {
+                    FileTimeToSystemTime(ref pFindFileData.ftCreationTime, ref created);
+                    Created = new DateTime(created.wYear, created.wMonth, created.wDay, created.wHour, created.wMinute, created.wSecond).ToLocalTime();
+                }
+
+                if (pFindFileData.ftLastWriteTime.dwHighDateTime != 0 &&
+                    pFindFileData.ftLastWriteTime.dwLowDateTime != 0)
+                {
+                    FileTimeToSystemTime(ref pFindFileData.ftLastWriteTime, ref modified);
+                    Modified = new DateTime(modified.wYear, modified.wMonth, modified.wDay, modified.wHour, modified.wMinute, modified.wSecond).ToLocalTime();
+                }
+
+                if (pFindFileData.ftLastAccessTime.dwHighDateTime != 0 &&
+                    pFindFileData.ftLastAccessTime.dwLowDateTime != 0)
+                {
+                    FileTimeToSystemTime(ref pFindFileData.ftLastAccessTime, ref accessed);
+                    Accessed = new DateTime(accessed.wYear, accessed.wMonth, accessed.wDay, accessed.wHour, accessed.wMinute, accessed.wSecond).ToLocalTime();
+                }
+
+                file.CreationTime = Created;
+                file.LastWriteTime = Modified;
+                file.LastAccessTime = Accessed;
+                file.FileSize = size;
 
                 Files.Add(file);
 
-                success = FindNextFileW(handle, out pFindFileData);
+                success = FindNextFile(handle, out pFindFileData);
             }
 
             return Files;
@@ -361,7 +359,7 @@ namespace Likewise.LMC.FileClient
         #region Remote File Resource Enumeration APIs
 
         [DllImport("mpr.dll", CharSet = CharSet.Unicode)]
-        private static extern WinError WNetAddConnection2W(
+        private static extern WinError WNetAddConnection2(
             NETRESOURCE netResource,
             string password,
             string username,
@@ -382,11 +380,11 @@ namespace Likewise.LMC.FileClient
             netResource.dwUsage = ResourceUsage.RESOURCEUSAGE_ALL;
             netResource.pRemoteName = networkName;
 
-            return WNetAddConnection2W(netResource, password, username, 0);
+            return WNetAddConnection2(netResource, password, username, 0);
         }
 
         [DllImport("mpr.dll", CharSet = CharSet.Unicode)]
-        private static extern WinError WNetCancelConnection2W(
+        private static extern WinError WNetCancelConnection2(
             string name,
             int flags,
             bool force
@@ -396,11 +394,11 @@ namespace Likewise.LMC.FileClient
             string networkName
             )
         {
-            return WNetCancelConnection2W(networkName, 0, true);
+            return WNetCancelConnection2(networkName, 0, true);
         }
 
         [DllImport("mpr.dll", CharSet = CharSet.Unicode)]
-        private static extern WinError WNetOpenEnumW(
+        private static extern WinError WNetOpenEnum(
             ResourceScope dwScope,
             ResourceType dwType,
             ResourceUsage dwUsage,
@@ -418,7 +416,7 @@ namespace Likewise.LMC.FileClient
         {
             WinError error = WinError.NO_ERROR;
 
-            error = WNetOpenEnumW(dwScope, dwType, dwUsage, pNetResource, out enumHandle);
+            error = WNetOpenEnum(dwScope, dwType, dwUsage, pNetResource, out enumHandle);
 
             if (error == WinError.ERROR_EXTENDED_ERROR)
             {

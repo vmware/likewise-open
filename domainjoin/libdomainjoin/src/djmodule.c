@@ -65,7 +65,6 @@ const JoinModule *stopList[] = {
 const JoinModule *startList[] = {
     &DJDaemonStopModule,
     &DJSetHostname,
-    &DJFirewall,
     &DJKeytabModule,
     &DJDoJoinModule,
     &DJKrb5Module,
@@ -100,7 +99,6 @@ const JoinModule *stopList[] = {
     &DJKrb5Module,
     &DJDoJoinModule,
     &DJKeytabModule,
-    &DJFirewall,
     &DJSetHostname,
     NULL };
 #endif

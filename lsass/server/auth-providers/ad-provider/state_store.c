@@ -1177,19 +1177,19 @@ ADState_WriteToRegistry(
         BAIL_ON_LSA_ERROR(dwError);
 
         /* Don't care if these fail, these keys may not exist */
-        dwError = RegUtilDeleteTree(
+        RegUtilDeleteTree(
                       hReg,
-                      LIKEWISE_ROOT_KEY,
+                      HKEY_THIS_MACHINE,
                       AD_PROVIDER_REGKEY,
                       AD_PROVIDER_DATA_REGKEY);
-        dwError = RegUtilDeleteTree(
+        RegUtilDeleteTree(
                       hReg,
-                      LIKEWISE_ROOT_KEY,
+                      HKEY_THIS_MACHINE,
                       AD_PROVIDER_REGKEY,
                       AD_DOMAIN_TRUST_REGKEY);
-        dwError = RegUtilDeleteTree(
+        RegUtilDeleteTree(
                       hReg,
-                      LIKEWISE_ROOT_KEY,
+                      HKEY_THIS_MACHINE,
                       AD_PROVIDER_REGKEY,
                       AD_LINKEDCELL_REGKEY);
     }
@@ -1198,7 +1198,7 @@ ADState_WriteToRegistry(
         /* Don't care if this fails, value may not exist yet */
         dwError = RegUtilDeleteValue(
                       NULL,
-                      LIKEWISE_ROOT_KEY,
+                      HKEY_THIS_MACHINE,
                       AD_PROVIDER_REGKEY,
                       AD_LINKEDCELL_REGKEY,
                       "CellList");
@@ -1453,7 +1453,7 @@ ADState_ReadRegProviderDataValue(
     {
         dwError = RegUtilGetValue(
                       hReg,
-                      LIKEWISE_ROOT_KEY,
+                      HKEY_THIS_MACHINE,
                       pszFullKeyPath,
                       pszSubKey,
                       pszValueName,
@@ -1467,7 +1467,7 @@ ADState_ReadRegProviderDataValue(
     {
         dwError = RegUtilGetValue(
                       hReg,
-                      LIKEWISE_ROOT_KEY,
+                      HKEY_THIS_MACHINE,
                       pszFullKeyPath,
                       pszSubKey,
                       pszValueName,
@@ -1540,7 +1540,7 @@ ADState_WriteRegProviderDataValue(
 
     dwError = RegUtilSetValue(
                   hReg,
-                  LIKEWISE_ROOT_KEY,
+                  HKEY_THIS_MACHINE,
                   pszFullKeyPath,
                   pszSubKey,
                   pszValueName,
@@ -1576,7 +1576,7 @@ ADState_ReadRegProviderData(
 
     dwError = RegUtilIsValidKey(
                   hReg,
-                  LIKEWISE_ROOT_KEY,
+                  HKEY_THIS_MACHINE,
                   AD_PROVIDER_REGKEY "\\" AD_PROVIDER_DATA_REGKEY);
     if (dwError)
     {
@@ -1677,7 +1677,7 @@ ADState_ReadRegCellEntry(
 
     dwError = RegUtilIsValidKey(
                   hReg,
-                  LIKEWISE_ROOT_KEY,
+                  HKEY_THIS_MACHINE,
                   AD_PROVIDER_REGKEY "\\" AD_LINKEDCELL_REGKEY);
     if (dwError)
     {
@@ -1688,7 +1688,7 @@ ADState_ReadRegCellEntry(
     /* Ordered list of cells saved in REG_MULTI_SZ value */
     dwError = RegUtilGetValue(
                   hReg,
-                  LIKEWISE_ROOT_KEY,
+                  HKEY_THIS_MACHINE,
                   AD_PROVIDER_REGKEY,
                   AD_LINKEDCELL_REGKEY,
                   "CellList",
@@ -1701,7 +1701,7 @@ ADState_ReadRegCellEntry(
     {
         dwError = RegUtilGetValue(
                       hReg,
-                      LIKEWISE_ROOT_KEY,
+                      HKEY_THIS_MACHINE,
                       AD_PROVIDER_REGKEY "\\" AD_LINKEDCELL_REGKEY,
                       ppszMultiCellListOrder[i],
                       "CellDN",
@@ -1712,7 +1712,7 @@ ADState_ReadRegCellEntry(
 
         dwError = RegUtilGetValue(
                       hReg,
-                      LIKEWISE_ROOT_KEY,
+                      HKEY_THIS_MACHINE,
                       AD_PROVIDER_REGKEY "\\" AD_LINKEDCELL_REGKEY,
                       ppszMultiCellListOrder[i],
                       "Domain",
@@ -1722,7 +1722,7 @@ ADState_ReadRegCellEntry(
         BAIL_ON_LSA_ERROR(dwError);
         dwError = RegUtilGetValue(
                       hReg,
-                      LIKEWISE_ROOT_KEY,
+                      HKEY_THIS_MACHINE,
                       AD_PROVIDER_REGKEY "\\" AD_LINKEDCELL_REGKEY,
                       ppszMultiCellListOrder[i],
                       "IsForestCell",
@@ -1777,7 +1777,7 @@ ADState_ReadRegDomainEntry(
 
     dwError = RegUtilIsValidKey(
                   hReg,
-                  LIKEWISE_ROOT_KEY,
+                  HKEY_THIS_MACHINE,
                   AD_PROVIDER_REGKEY "\\" AD_DOMAIN_TRUST_REGKEY);
     if (dwError)
     {
@@ -1787,7 +1787,7 @@ ADState_ReadRegDomainEntry(
 
     dwError = RegUtilGetKeys(
                   hReg,
-                  LIKEWISE_ROOT_KEY,
+                  HKEY_THIS_MACHINE,
                   AD_PROVIDER_REGKEY,
                   AD_DOMAIN_TRUST_REGKEY,
                   &ppwszSubKeys,
@@ -1815,7 +1815,7 @@ ADState_ReadRegDomainEntry(
 
         dwError = RegUtilGetValue(
                       hReg,
-                      LIKEWISE_ROOT_KEY,
+                      HKEY_THIS_MACHINE,
                       AD_PROVIDER_REGKEY "\\" AD_DOMAIN_TRUST_REGKEY,
                       pszSubKeyPtr,
                       "DNSDomainName",
@@ -1826,7 +1826,7 @@ ADState_ReadRegDomainEntry(
 
         dwError = RegUtilGetValue(
                       hReg,
-                      LIKEWISE_ROOT_KEY,
+                      HKEY_THIS_MACHINE,
                       AD_PROVIDER_REGKEY "\\" AD_DOMAIN_TRUST_REGKEY,
                       pszSubKeyPtr,
                       "NetBiosDomainName",
@@ -1837,7 +1837,7 @@ ADState_ReadRegDomainEntry(
 
         dwError = RegUtilGetValue(
                       hReg,
-                      LIKEWISE_ROOT_KEY,
+                      HKEY_THIS_MACHINE,
                       AD_PROVIDER_REGKEY "\\" AD_DOMAIN_TRUST_REGKEY,
                       pszSubKeyPtr,
                       "SID",
@@ -1852,7 +1852,7 @@ ADState_ReadRegDomainEntry(
 
         dwError = RegUtilGetValue(
                       hReg,
-                      LIKEWISE_ROOT_KEY,
+                      HKEY_THIS_MACHINE,
                       AD_PROVIDER_REGKEY "\\" AD_DOMAIN_TRUST_REGKEY,
                       pszSubKeyPtr,
                       "GUID",
@@ -1879,7 +1879,7 @@ ADState_ReadRegDomainEntry(
 
         dwError = RegUtilGetValue(
                       hReg,
-                      LIKEWISE_ROOT_KEY,
+                      HKEY_THIS_MACHINE,
                       AD_PROVIDER_REGKEY "\\" AD_DOMAIN_TRUST_REGKEY,
                       pszSubKeyPtr,
                       "TrusteeDomainName",
@@ -1890,7 +1890,7 @@ ADState_ReadRegDomainEntry(
 
         dwError = RegUtilGetValue(
                       hReg,
-                      LIKEWISE_ROOT_KEY,
+                      HKEY_THIS_MACHINE,
                       AD_PROVIDER_REGKEY "\\" AD_DOMAIN_TRUST_REGKEY,
                       pszSubKeyPtr,
                       "TrustFlags",
@@ -1901,7 +1901,7 @@ ADState_ReadRegDomainEntry(
 
         dwError = RegUtilGetValue(
                       hReg,
-                      LIKEWISE_ROOT_KEY,
+                      HKEY_THIS_MACHINE,
                       AD_PROVIDER_REGKEY "\\" AD_DOMAIN_TRUST_REGKEY,
                       pszSubKeyPtr,
                       "TrustType",
@@ -1912,7 +1912,7 @@ ADState_ReadRegDomainEntry(
 
         dwError = RegUtilGetValue(
                       hReg,
-                      LIKEWISE_ROOT_KEY,
+                      HKEY_THIS_MACHINE,
                       AD_PROVIDER_REGKEY "\\" AD_DOMAIN_TRUST_REGKEY,
                       pszSubKeyPtr,
                       "TrustAttributes",
@@ -1923,7 +1923,7 @@ ADState_ReadRegDomainEntry(
 
         dwError = RegUtilGetValue(
                       hReg,
-                      LIKEWISE_ROOT_KEY,
+                      HKEY_THIS_MACHINE,
                       AD_PROVIDER_REGKEY "\\" AD_DOMAIN_TRUST_REGKEY,
                       pszSubKeyPtr,
                       "TrustDirection",
@@ -1934,7 +1934,7 @@ ADState_ReadRegDomainEntry(
 
         dwError = RegUtilGetValue(
                       hReg,
-                      LIKEWISE_ROOT_KEY,
+                      HKEY_THIS_MACHINE,
                       AD_PROVIDER_REGKEY "\\" AD_DOMAIN_TRUST_REGKEY,
                       pszSubKeyPtr,
                       "TrustMode",
@@ -1945,7 +1945,7 @@ ADState_ReadRegDomainEntry(
 
         dwError = RegUtilGetValue(
                       hReg,
-                      LIKEWISE_ROOT_KEY,
+                      HKEY_THIS_MACHINE,
                       AD_PROVIDER_REGKEY "\\" AD_DOMAIN_TRUST_REGKEY,
                       pszSubKeyPtr,
                       "ForestName",
@@ -1956,7 +1956,7 @@ ADState_ReadRegDomainEntry(
 
         dwError = RegUtilGetValue(
                       hReg,
-                      LIKEWISE_ROOT_KEY,
+                      HKEY_THIS_MACHINE,
                       AD_PROVIDER_REGKEY "\\" AD_DOMAIN_TRUST_REGKEY,
                       pszSubKeyPtr,
                       "ClientSiteName",
@@ -1967,7 +1967,7 @@ ADState_ReadRegDomainEntry(
 
         dwError = RegUtilGetValue(
                       hReg,
-                      LIKEWISE_ROOT_KEY,
+                      HKEY_THIS_MACHINE,
                       AD_PROVIDER_REGKEY "\\" AD_DOMAIN_TRUST_REGKEY,
                       pszSubKeyPtr,
                       "Flags",
@@ -2010,7 +2010,7 @@ ADState_WriteRegDomainEntry(
     /* Add top level AD DomainTrust data registry key */
     dwError = RegUtilAddKey(
                   hReg,
-                  LIKEWISE_ROOT_KEY,
+                  HKEY_THIS_MACHINE,
                   AD_PROVIDER_REGKEY,
                   AD_DOMAIN_TRUST_REGKEY);
     BAIL_ON_LSA_ERROR(dwError);
@@ -2018,7 +2018,7 @@ ADState_WriteRegDomainEntry(
     /* Add top level AD DomainTrust data registry key */
     dwError = RegUtilAddKey(
                   hReg,
-                  LIKEWISE_ROOT_KEY,
+                  HKEY_THIS_MACHINE,
                   AD_PROVIDER_REGKEY "\\" AD_DOMAIN_TRUST_REGKEY,
                   pDomainInfoEntry->pszNetbiosDomainName);
     BAIL_ON_LSA_ERROR(dwError);
@@ -2026,7 +2026,7 @@ ADState_WriteRegDomainEntry(
     /* Write DomainTrust data entries to registry */
     dwError = RegUtilSetValue(
                   hReg,
-                  LIKEWISE_ROOT_KEY,
+                  HKEY_THIS_MACHINE,
                   AD_PROVIDER_REGKEY "\\" AD_DOMAIN_TRUST_REGKEY,
                   pDomainInfoEntry->pszNetbiosDomainName,
                   "DNSDomainName",
@@ -2038,7 +2038,7 @@ ADState_WriteRegDomainEntry(
 
     dwError = RegUtilSetValue(
                   hReg,
-                  LIKEWISE_ROOT_KEY,
+                  HKEY_THIS_MACHINE,
                   AD_PROVIDER_REGKEY "\\" AD_DOMAIN_TRUST_REGKEY,
                   pDomainInfoEntry->pszNetbiosDomainName,
                   "NetBiosDomainName",
@@ -2057,7 +2057,7 @@ ADState_WriteRegDomainEntry(
     }
     dwError = RegUtilSetValue(
                   hReg,
-                  LIKEWISE_ROOT_KEY,
+                  HKEY_THIS_MACHINE,
                   AD_PROVIDER_REGKEY "\\" AD_DOMAIN_TRUST_REGKEY,
                   pDomainInfoEntry->pszNetbiosDomainName,
                   "SID",
@@ -2074,7 +2074,7 @@ ADState_WriteRegDomainEntry(
     }
     dwError = RegUtilSetValue(
                   hReg,
-                  LIKEWISE_ROOT_KEY,
+                  HKEY_THIS_MACHINE,
                   AD_PROVIDER_REGKEY "\\" AD_DOMAIN_TRUST_REGKEY,
                   pDomainInfoEntry->pszNetbiosDomainName,
                   "GUID",
@@ -2085,7 +2085,7 @@ ADState_WriteRegDomainEntry(
 
     dwError = RegUtilSetValue(
                   hReg,
-                  LIKEWISE_ROOT_KEY,
+                  HKEY_THIS_MACHINE,
                   AD_PROVIDER_REGKEY "\\" AD_DOMAIN_TRUST_REGKEY,
                   pDomainInfoEntry->pszNetbiosDomainName,
                   "TrusteeDomainName",
@@ -2097,7 +2097,7 @@ ADState_WriteRegDomainEntry(
 
     dwError = RegUtilSetValue(
                   hReg,
-                  LIKEWISE_ROOT_KEY,
+                  HKEY_THIS_MACHINE,
                   AD_PROVIDER_REGKEY "\\" AD_DOMAIN_TRUST_REGKEY,
                   pDomainInfoEntry->pszNetbiosDomainName,
                   "TrustFlags",
@@ -2108,7 +2108,7 @@ ADState_WriteRegDomainEntry(
 
     dwError = RegUtilSetValue(
                   hReg,
-                  LIKEWISE_ROOT_KEY,
+                  HKEY_THIS_MACHINE,
                   AD_PROVIDER_REGKEY "\\" AD_DOMAIN_TRUST_REGKEY,
                   pDomainInfoEntry->pszNetbiosDomainName,
                   "TrustType",
@@ -2119,7 +2119,7 @@ ADState_WriteRegDomainEntry(
 
     dwError = RegUtilSetValue(
                   hReg,
-                  LIKEWISE_ROOT_KEY,
+                  HKEY_THIS_MACHINE,
                   AD_PROVIDER_REGKEY "\\" AD_DOMAIN_TRUST_REGKEY,
                   pDomainInfoEntry->pszNetbiosDomainName,
                   "TrustAttributes",
@@ -2130,7 +2130,7 @@ ADState_WriteRegDomainEntry(
 
     dwError = RegUtilSetValue(
                   hReg,
-                  LIKEWISE_ROOT_KEY,
+                  HKEY_THIS_MACHINE,
                   AD_PROVIDER_REGKEY "\\" AD_DOMAIN_TRUST_REGKEY,
                   pDomainInfoEntry->pszNetbiosDomainName,
                   "TrustDirection",
@@ -2141,7 +2141,7 @@ ADState_WriteRegDomainEntry(
 
     dwError = RegUtilSetValue(
                   hReg,
-                  LIKEWISE_ROOT_KEY,
+                  HKEY_THIS_MACHINE,
                   AD_PROVIDER_REGKEY "\\" AD_DOMAIN_TRUST_REGKEY,
                   pDomainInfoEntry->pszNetbiosDomainName,
                   "TrustMode",
@@ -2152,7 +2152,7 @@ ADState_WriteRegDomainEntry(
 
     dwError = RegUtilSetValue(
                   hReg,
-                  LIKEWISE_ROOT_KEY,
+                  HKEY_THIS_MACHINE,
                   AD_PROVIDER_REGKEY "\\" AD_DOMAIN_TRUST_REGKEY,
                   pDomainInfoEntry->pszNetbiosDomainName,
                   "ForestName",
@@ -2164,7 +2164,7 @@ ADState_WriteRegDomainEntry(
 
     dwError = RegUtilSetValue(
                   hReg,
-                  LIKEWISE_ROOT_KEY,
+                  HKEY_THIS_MACHINE,
                   AD_PROVIDER_REGKEY "\\" AD_DOMAIN_TRUST_REGKEY,
                   pDomainInfoEntry->pszNetbiosDomainName,
                   "ClientSiteName",
@@ -2176,7 +2176,7 @@ ADState_WriteRegDomainEntry(
 
     dwError = RegUtilSetValue(
                   hReg,
-                  LIKEWISE_ROOT_KEY,
+                  HKEY_THIS_MACHINE,
                   AD_PROVIDER_REGKEY "\\" AD_DOMAIN_TRUST_REGKEY,
                   pDomainInfoEntry->pszNetbiosDomainName,
                   "Flags",
@@ -2213,7 +2213,7 @@ ADState_WriteRegCellEntry(
     /* Add top level AD CellEntry data registry key */
     dwError = RegUtilAddKey(
                   hReg,
-                  LIKEWISE_ROOT_KEY,
+                  HKEY_THIS_MACHINE,
                   AD_PROVIDER_REGKEY,
                   AD_LINKEDCELL_REGKEY);
     BAIL_ON_LSA_ERROR(dwError);
@@ -2221,14 +2221,14 @@ ADState_WriteRegCellEntry(
     /* Add cell-specific key entry */
     dwError = RegUtilAddKey(
                   hReg,
-                  LIKEWISE_ROOT_KEY,
+                  HKEY_THIS_MACHINE,
                   AD_PROVIDER_REGKEY "\\" AD_LINKEDCELL_REGKEY,
                   pCellEntry->pszCellDN);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = RegUtilGetValue(
                   hReg,
-                  LIKEWISE_ROOT_KEY,
+                  HKEY_THIS_MACHINE,
                   AD_PROVIDER_REGKEY,
                   AD_LINKEDCELL_REGKEY,
                   "CellList",
@@ -2246,7 +2246,7 @@ ADState_WriteRegCellEntry(
 
     dwError = RegUtilSetValue(
                   hReg,
-                  LIKEWISE_ROOT_KEY,
+                  HKEY_THIS_MACHINE,
                   AD_PROVIDER_REGKEY,
                   AD_LINKEDCELL_REGKEY,
                   "CellList",
@@ -2258,7 +2258,7 @@ ADState_WriteRegCellEntry(
     /* Write cell data entries to registry */
     dwError = RegUtilSetValue(
                   hReg,
-                  LIKEWISE_ROOT_KEY,
+                  HKEY_THIS_MACHINE,
                   AD_PROVIDER_REGKEY "\\" AD_LINKEDCELL_REGKEY,
                   pCellEntry->pszCellDN,
                   "CellDN",
@@ -2268,7 +2268,7 @@ ADState_WriteRegCellEntry(
     BAIL_ON_LSA_ERROR(dwError);
     dwError = RegUtilSetValue(
                   hReg,
-                  LIKEWISE_ROOT_KEY,
+                  HKEY_THIS_MACHINE,
                   AD_PROVIDER_REGKEY "\\" AD_LINKEDCELL_REGKEY,
                   pCellEntry->pszCellDN,
                   "Domain",
@@ -2280,7 +2280,7 @@ ADState_WriteRegCellEntry(
     dwBooleanValue = pCellEntry->bIsForestCell;
     dwError = RegUtilSetValue(
                   hReg,
-                  LIKEWISE_ROOT_KEY,
+                  HKEY_THIS_MACHINE,
                   AD_PROVIDER_REGKEY "\\" AD_LINKEDCELL_REGKEY,
                   pCellEntry->pszCellDN,
                   "IsForestCell",
@@ -2316,7 +2316,7 @@ ADState_WriteRegProviderData(
     /* Add top level AD provider provider data registry key */
     dwError = RegUtilAddKey(
                   hReg,
-                  LIKEWISE_ROOT_KEY,
+                  HKEY_THIS_MACHINE,
                   AD_PROVIDER_REGKEY,
                   AD_PROVIDER_DATA_REGKEY);
     BAIL_ON_LSA_ERROR(dwError);

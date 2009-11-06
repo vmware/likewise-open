@@ -459,10 +459,17 @@ namespace Likewise.LMC.ServerControl.Properties {
             }
         }
         
-        internal static System.Drawing.Bitmap folder {
+        internal static System.Drawing.Icon Folder {
             get {
-                object obj = ResourceManager.GetObject("folder", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
+                object obj = ResourceManager.GetObject("Folder", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
+
+        internal static System.Drawing.Icon FolderOpen {
+            get {
+                object obj = ResourceManager.GetObject("FolderOpen", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
             }
         }
         
@@ -507,6 +514,13 @@ namespace Likewise.LMC.ServerControl.Properties {
             }
         }
         
+        internal static System.Drawing.Icon Home {
+            get {
+                object obj = ResourceManager.GetObject("Home", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to The default home directory does not contain %U. This may result in multiple users sharing a single home directory..
         /// </summary>
@@ -676,6 +690,13 @@ namespace Likewise.LMC.ServerControl.Properties {
             }
         }
         
+        internal static System.Drawing.Icon Library {
+            get {
+                object obj = ResourceManager.GetObject("Library", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Only {0} out of {1} licenses were added. Some licenses might have already been present..
         /// </summary>
@@ -1022,6 +1043,13 @@ namespace Likewise.LMC.ServerControl.Properties {
             }
         }
         
+        internal static System.Drawing.Icon Share {
+            get {
+                object obj = ResourceManager.GetObject("Share", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to {0}  (site license).
         /// </summary>

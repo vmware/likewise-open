@@ -224,8 +224,6 @@ NtlmGetContextInfo(
     IN NTLM_CONTEXT_HANDLE ContextHandle,
     OUT OPTIONAL PNTLM_STATE pNtlmState,
     OUT OPTIONAL PDWORD pNegotiatedFlags,
-    OUT OPTIONAL PVOID* ppMessage,
-    OUT OPTIONAL PDWORD pdwMessageSize,
     OUT OPTIONAL PBYTE* ppSessionKey,
     OUT OPTIONAL PNTLM_CRED_HANDLE pCredHandle
     );
@@ -300,18 +298,6 @@ NtlmGetMessageFromSecBufferDesc(
     );
 
 DWORD
-NtlmCopyContextToSecBufferDesc(
-    IN PNTLM_CONTEXT pNtlmContext,
-    IN OUT PSecBufferDesc pSecBufferDesc
-    );
-
-DWORD
-NtlmCopyContextToSecBuffer(
-    IN PNTLM_CONTEXT pNtlmContext,
-    OUT PSecBuffer pSecBuffer
-    );
-
-DWORD
 NtlmGetRandomBuffer(
     PBYTE pBuffer,
     DWORD dwLen
@@ -334,7 +320,8 @@ NtlmCreateChallengeMessage(
     IN PCSTR pDomainName,
     IN PCSTR pDnsHostName,
     IN PCSTR pDnsDomainName,
-    IN PBYTE  pOsVersion,
+    IN PBYTE pOsVersion,
+    IN BYTE Challenge[NTLM_CHALLENGE_SIZE],
     OUT PDWORD pdwSize,
     OUT PNTLM_CHALLENGE_MESSAGE *ppChlngMsg
     );
@@ -443,21 +430,24 @@ NtlmCreateNegotiateContext(
     IN PCSTR pDomain,
     IN PCSTR pWorkstation,
     IN PBYTE pOsVersion,
-    OUT PNTLM_CONTEXT *ppNtlmContext
+    OUT PNTLM_CONTEXT* ppNtlmContext,
+    OUT PSecBuffer pOutput
     );
 
 DWORD
 NtlmCreateChallengeContext(
     IN const NTLM_NEGOTIATE_MESSAGE* pNtlmNegMsg,
     IN NTLM_CRED_HANDLE hCred,
-    OUT PNTLM_CONTEXT *ppNtlmContext
+    OUT PNTLM_CONTEXT *ppNtlmContext,
+    OUT PSecBuffer pOutput
     );
 
 DWORD
 NtlmCreateResponseContext(
     IN PNTLM_CHALLENGE_MESSAGE pChlngMsg,
     IN NTLM_CRED_HANDLE hCred,
-    IN OUT PNTLM_CONTEXT *ppNtlmContext
+    IN OUT PNTLM_CONTEXT* ppNtlmContext,
+    OUT PSecBuffer pOutput
     );
 
 DWORD

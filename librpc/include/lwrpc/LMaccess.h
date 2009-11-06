@@ -109,9 +109,9 @@ typedef struct _USER_INFO_3
     wchar16_t *usri3_usr_comment;
     wchar16_t *usri3_parms;
     wchar16_t *usri3_workstations;
-    NtTime usri3_last_logon;
-    NtTime usri3_last_logoff;
-    NtTime usri3_acct_expires;
+    uint32 usri3_last_logon;
+    uint32 usri3_last_logoff;
+    uint32 usri3_acct_expires;
     uint32 usri3_max_storage;
     uint32 usri3_units_per_week;
     uint8 *usri3_logon_hours;
@@ -143,9 +143,9 @@ typedef struct _USER_INFO_4
     wchar16_t *usri4_usr_comment;
     wchar16_t *usri4_parms;
     wchar16_t *usri4_workstations;
-    NtTime usri4_last_logon;
-    NtTime usri4_last_logoff;
-    NtTime usri4_acct_expires;
+    uint32 usri4_last_logon;
+    uint32 usri4_last_logoff;
+    uint32 usri4_acct_expires;
     uint32 usri4_max_storage;
     uint32 usri4_units_per_week;
     uint8 *usri4_logon_hours;

@@ -114,7 +114,7 @@ cleanup:
     return dwError;
 
 error:
-    RegSrvSafeFreeKeyContext(&pKeyResult);
+    RegSrvSafeFreeKeyContext(pKeyResult);
     *phkResult = (HKEY)NULL;
 
     goto cleanup;
@@ -358,10 +358,6 @@ SqliteDeleteActiveKey(
     pFoundKey = RegSrvLocateActiveKey_inlock(pszKeyName);
     if (pFoundKey)
     {
-        /*if (RegSrvGetKeyRefCount(pFoundKey) == 1)
-        {
-            RegSrvDeleteActiveKey_inlock(pszKeyName);
-        }*/
         dwError = LW_ERROR_KEY_IS_ACTIVE;
         BAIL_ON_REG_ERROR(dwError);
     }
@@ -616,7 +612,7 @@ RegSrvFreeHashEntry(
 {
     if (pEntry->pValue)
     {
-        RegSrvSafeFreeKeyContext((PREG_KEY_CONTEXT*)&pEntry->pValue);
+        RegSrvSafeFreeKeyContext((PREG_KEY_CONTEXT)pEntry->pValue);
     }
 }
 

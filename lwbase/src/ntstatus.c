@@ -68,7 +68,7 @@ LwNtStatusToSymbolicName(
 {
     PTABLE_ENTRY pEntry = LwNtLookupCode(code);
 
-    if (pEntry)
+    if (pEntry && pEntry->pszSymbolicName)
     {
         return pEntry->pszSymbolicName;
     }

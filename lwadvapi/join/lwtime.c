@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright (c) Likewise Software.  All rights Reserved.
@@ -286,3 +286,38 @@ error:
     *pTime = 0;
     goto cleanup;
 }
+
+
+DWORD
+LwGetNtTime(
+    PULONG64 pullTime
+    )
+{
+    DWORD dwError = ERROR_SUCCESS;
+    ULONG64 ullTime = 0;
+    time_t t = 0;
+
+    dwError = LwGetCurrentTimeSeconds(&t);
+    BAIL_ON_LW_ERROR(dwError);
+
+    ullTime = LwWinTimeToNtTime((DWORD)t);
+
+    *pullTime = ullTime;
+
+cleanup:
+    return dwError;
+
+error:
+    *pullTime = 0;
+    goto cleanup;
+}
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

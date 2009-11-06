@@ -54,6 +54,7 @@
 #define LOCAL_CFG_DEFAULT_HOMEDIR_PREFIX          "@default_homedir_prefix@"
 #define LOCAL_CFG_DEFAULT_HOMEDIR_TEMPLATE        "%H/%U"
 #define LOCAL_CFG_DEFAULT_SKELETON_DIRS           "@default_skeldirs@"
+#define LOCAL_CFG_DEFAULT_ACCEPT_NTLMV1           TRUE
 #define LOCAL_CFG_DEFAULT_CREATE_HOMEDIR          TRUE
 #define LOCAL_CFG_DEFAULT_HOMEDIR_UMASK           022
 #define LOCAL_CFG_MAX_GROUP_NESTING_LEVEL_DEFAULT (5)

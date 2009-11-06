@@ -245,7 +245,20 @@ LwWc16snToMbs(
 DWORD
 LwWc16sLen(
     PCWSTR  pwszInput,
-    size_t* psLen
+    size_t  *psLen
+    );
+
+DWORD
+LwWc16sCpy(
+    PWSTR   pwszOutput,
+    PCWSTR  pwszInput
+    );
+
+DWORD
+LwWc16snCpy(
+    PWSTR   pwszOutput,
+    PCWSTR  pwszInput,
+    DWORD   dwLen
     );
 
 DWORD

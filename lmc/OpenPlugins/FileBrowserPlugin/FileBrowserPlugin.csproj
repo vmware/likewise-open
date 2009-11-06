@@ -80,17 +80,6 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resources\shared_folders.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Resources\SharedFolder.ico" />
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="Resources\BlueArrows.ico" />
-    <None Include="Resources\likewise_splash_screen.png" />
-    <Content Include="Resources\SharedFolder2.ico" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\..\LikewiseClassLibraries\FileClientApi\FileClientApi.csproj">
       <Project>{FB091F6B-D872-4644-9037-94096D4A62DF}</Project>
       <Name>FileClientApi</Name>
@@ -111,6 +100,30 @@
       <Project>{9F45E041-5B67-48B8-AD13-DD5C40F3364A}</Project>
       <Name>ServerControl_Open</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\Folder.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\FolderOpen.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\Share.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\Computer_48.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\Computer.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\Library.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\Home.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\Document.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

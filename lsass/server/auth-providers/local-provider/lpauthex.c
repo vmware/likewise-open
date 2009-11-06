@@ -95,6 +95,7 @@ LocalAuthenticateUserExInternal(
     PLSA_USER_INFO_2 pUserInfo2 = NULL;
     PLSA_AUTH_USER_INFO pUserInfo = NULL;
     BOOLEAN bUsingNTLMv2 = FALSE;
+    BOOLEAN bAcceptNTLMv1 = TRUE;
     PLSA_DATA_BLOB pSessionKey = NULL;
 
     BAIL_ON_INVALID_POINTER(pUserParams->pszAccountName);
@@ -134,11 +135,20 @@ LocalAuthenticateUserExInternal(
     dwError = LocalCheckAccountFlags(pUserInfo2);
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = LocalCfgAcceptNTLMv1(&bAcceptNTLMv1);
+    BAIL_ON_LSA_ERROR(dwError);
+
     /* generate the responses and compare */
 
     if (LsaDataBlobLength(pUserParams->pass.chap.pNT_resp) == 24)
     {
         bUsingNTLMv2 = FALSE;
+
+        if (!bAcceptNTLMv1)
+        {
+            dwError = ERROR_INVALID_LOGON_TYPE;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
 
         dwError = AuthenticateNTLMv1(pUserParams,
                                      pUserInfo2,

@@ -55,6 +55,8 @@
 #include <lw/ntstatus.h>
 #include <winerror.h>
 #include <winerror-conv.h>
+#include <lwstr.h>
+#include <lwtime.h>
 #include <openssl/md5.h>
 #include <openssl/rc4.h>
 #include <ldap.h>

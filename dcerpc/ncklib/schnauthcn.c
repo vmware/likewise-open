@@ -1433,7 +1433,7 @@ unsigned32                      *st;
     input_token.base = (uint8*)(pdu) + RPC_CN_PKT_SIZEOF_RESP_HDR;
     input_token.len  = pdu_len - (RPC_CN_PKT_SIZEOF_RESP_HDR +
 				  RPC_CN_PKT_SIZEOF_COM_AUTH_TLR +
-				  RPC_CN_PKT_SIZEOF_SCHNAUTH_TLR);
+				  RPC_CN_PKT_AUTH_LEN((rpc_cn_packet_p_t) pdu));
 
     output_token.base = NULL;
     output_token.len  = 0;

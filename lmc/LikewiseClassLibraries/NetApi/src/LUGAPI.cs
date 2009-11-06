@@ -148,7 +148,7 @@ namespace Likewise.LMC.NETAPI
 
         [DllImport(mprDllPath, SetLastError = true, CharSet = CharSet.Unicode)]
         private static extern int WNetAddConnection2(
-            NETRESOURCE netResource,
+            IntPtr netResource,
             [MarshalAs(UnmanagedType.LPWStr)] string sPassword,
             [MarshalAs(UnmanagedType.LPWStr)] string sUsername,
             uint dwFlags
@@ -304,6 +304,8 @@ namespace Likewise.LMC.NETAPI
             nr.Comment = null;
             nr.Provider = null;
 
+            IntPtr bufptr = Marshal.AllocHGlobal(Marshal.SizeOf(nr));
+
             try
             {
                 if (!NetApiInitCalled)
@@ -311,7 +313,9 @@ namespace Likewise.LMC.NETAPI
                     NetApiInitCalled = NetApiInit();
                 }
 
-                result = (uint)WNetAddConnection2(nr, sPassword, sUsername, 0);
+                Marshal.StructureToPtr(nr, bufptr, false);
+
+                result = (uint)WNetAddConnection2(bufptr, sPassword, sUsername, 0);
 
                 // another session is preventing us from connecting... close it and
                 // retry
@@ -319,7 +323,7 @@ namespace Likewise.LMC.NETAPI
                 {
                     if (NetCancelConnection(sServer) == 0)
                     {
-                        result = (uint)WNetAddConnection2(nr, sPassword, sUsername, 0);
+                        result = (uint)WNetAddConnection2(bufptr, sPassword, sUsername, 0);
                     }
                 }
             }
@@ -328,6 +332,8 @@ namespace Likewise.LMC.NETAPI
             }
             finally
             {
+                Marshal.DestroyStructure(bufptr, nr.GetType());
+                Marshal.FreeHGlobal(bufptr);
             }
 
             return result;
@@ -1665,7 +1671,7 @@ namespace Likewise.LMC.NETAPI
         }
 
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-        public class NETRESOURCE
+        private struct NETRESOURCE
         {
             public int dwScope;
             public int dwType;

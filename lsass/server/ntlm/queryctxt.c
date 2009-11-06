@@ -114,58 +114,29 @@ NtlmServerQueryCtxtNameAttribute(
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
-    PVOID pMessage = NULL;
-    NTLM_STATE State = NtlmStateBlank;
-    DWORD dwNegFlags = 0;
-    SEC_CHAR* pUserName = NULL;
-    SEC_CHAR* pDomainName = NULL;
     SEC_CHAR* pFullName = NULL;
     PSecPkgContext_Names pName = NULL;
 
     *ppNames = NULL;
 
-    dwError = LwAllocateMemory(sizeof(*pName), OUT_PPVOID(&pName));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    NtlmGetContextInfo(
-        *phContext,
-        &State,
-        &dwNegFlags,
-        &pMessage,
-        NULL,
-        NULL,
-        NULL);
-
-    if(State != NtlmStateResponse)
+    if (*phContext == NULL || (*phContext)->NtlmState != NtlmStateResponse)
     {
         dwError = LW_ERROR_INVALID_CONTEXT;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = NtlmGetUserNameFromResponse(
-        pMessage,
-        dwNegFlags & NTLM_FLAG_UNICODE,
-        &pUserName);
+
+    dwError = LwAllocateMemory(sizeof(*pName), OUT_PPVOID(&pName));
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = NtlmGetDomainNameFromResponse(
-        pMessage,
-        dwNegFlags & NTLM_FLAG_UNICODE,
-        &pDomainName);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LwAllocateStringPrintf(
-        &pFullName,
-        "%s\\%s",
-        pDomainName,
-        pUserName);
+    dwError = LwStrDupOrNull(
+        (*phContext)->pszClientUsername,
+        &pFullName);
     BAIL_ON_LSA_ERROR(dwError);
 
     pName->pUserName = pFullName;
 
 cleanup:
-    LW_SAFE_FREE_MEMORY(pUserName);
-    LW_SAFE_FREE_MEMORY(pDomainName);
     *ppNames = pName;
     return dwError;
 error:
@@ -193,8 +164,6 @@ NtlmServerQueryCtxtSessionKeyAttribute(
     NtlmGetContextInfo(
         *phContext,
         &State,
-        NULL,
-        NULL,
         NULL,
         &pKey,
         NULL);

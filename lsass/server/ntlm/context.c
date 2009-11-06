@@ -72,8 +72,6 @@ NtlmGetContextInfo(
     IN NTLM_CONTEXT_HANDLE ContextHandle,
     OUT OPTIONAL PNTLM_STATE pNtlmState,
     OUT OPTIONAL PDWORD pNegotiatedFlags,
-    OUT OPTIONAL PVOID* ppMessage,
-    OUT OPTIONAL PDWORD pdwMessageSize,
     OUT OPTIONAL PBYTE* ppSessionKey,
     OUT OPTIONAL PNTLM_CRED_HANDLE pCredHandle
     )
@@ -88,16 +86,6 @@ NtlmGetContextInfo(
     if (pNegotiatedFlags)
     {
         *pNegotiatedFlags = pContext->NegotiatedFlags;
-    }
-
-    if (ppMessage)
-    {
-        *ppMessage = pContext->pMessage;
-    }
-
-    if (pdwMessageSize)
-    {
-        *pdwMessageSize = pContext->dwMessageSize;
     }
 
     if (ppSessionKey)
@@ -160,9 +148,6 @@ NtlmFreeContext(
 
     NtlmReleaseCredential(&pContext->CredHandle);
 
-    memset(pContext->pMessage, 0, pContext->dwMessageSize);
-    LW_SAFE_FREE_MEMORY(pContext->pMessage);
-
     if (pContext->pSealKey && pContext->pSealKey != pContext->pSignKey)
     {
         LW_SAFE_FREE_MEMORY(pContext->pSealKey);
@@ -175,10 +160,8 @@ NtlmFreeContext(
     {
         LW_SAFE_FREE_MEMORY(pContext->pUnsealKey);
     }
-    if (pContext->pSignKey)
-    {
-        LW_SAFE_FREE_MEMORY(pContext->pSignKey);
-    }
+    LW_SAFE_FREE_MEMORY(pContext->pSignKey);
+    LW_SAFE_FREE_STRING(pContext->pszClientUsername);
 
     LW_SAFE_FREE_MEMORY(pContext);
     *ppContext = NULL;
@@ -235,72 +218,6 @@ cleanup:
 error:
     dwMessageSize = 0;
     pMessage = NULL;
-    goto cleanup;
-}
-
-/******************************************************************************/
-DWORD
-NtlmCopyContextToSecBufferDesc(
-    IN PNTLM_CONTEXT pNtlmContext,
-    IN OUT PSecBufferDesc pSecBufferDesc
-    )
-{
-    DWORD dwError = LW_ERROR_SUCCESS;
-    PSecBuffer pSecBuffer = NULL;
-    PBYTE pBuffer = NULL;
-
-    // We want to make sure that sec buffer desc we write to only contain 1
-    // buffer and that buffer is of type SECBUFFER_TOKEN
-    if (!pSecBufferDesc || 1 != pSecBufferDesc->cBuffers)
-    {
-        dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    pSecBuffer = pSecBufferDesc->pBuffers;
-
-    if (pSecBuffer->BufferType != SECBUFFER_TOKEN)
-    {
-        dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    pSecBuffer->cbBuffer = pNtlmContext->dwMessageSize;
-    dwError = LwAllocateMemory(pSecBuffer->cbBuffer, OUT_PPVOID(&pBuffer));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    memcpy(pBuffer, pNtlmContext->pMessage, pSecBuffer->cbBuffer);
-
-    pSecBuffer->pvBuffer = (PVOID)pBuffer;
-
-cleanup:
-    return dwError;
-error:
-    goto cleanup;
-}
-
-DWORD
-NtlmCopyContextToSecBuffer(
-    IN PNTLM_CONTEXT pNtlmContext,
-    OUT PSecBuffer pSecBuffer
-    )
-{
-    DWORD dwError = LW_ERROR_SUCCESS;
-    PBYTE pBuffer = NULL;
-
-    pSecBuffer->BufferType = SECBUFFER_TOKEN;
-
-    pSecBuffer->cbBuffer = pNtlmContext->dwMessageSize;
-    dwError = LwAllocateMemory(pSecBuffer->cbBuffer, OUT_PPVOID(&pBuffer));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    memcpy(pBuffer, pNtlmContext->pMessage, pSecBuffer->cbBuffer);
-
-    pSecBuffer->pvBuffer = (PVOID)pBuffer;
-
-cleanup:
-    return dwError;
-error:
     goto cleanup;
 }
 
@@ -516,6 +433,7 @@ NtlmCreateChallengeMessage(
     IN PCSTR pDnsServerName,
     IN PCSTR pDnsDomainName,
     IN PBYTE pOsVersion,
+    IN BYTE Challenge[NTLM_CHALLENGE_SIZE],
     OUT PDWORD pdwSize,
     OUT PNTLM_CHALLENGE_MESSAGE* ppChlngMsg
     )
@@ -713,12 +631,9 @@ NtlmCreateChallengeMessage(
         pMessage->Target.dwOffset = 0;
     }
 
-    dwError = NtlmGetRandomBuffer(
-        pMessage->Challenge,
-        NTLM_CHALLENGE_SIZE
-        );
-
-    BAIL_ON_LSA_ERROR(dwError);
+    memcpy(pMessage->Challenge,
+            Challenge,
+            NTLM_CHALLENGE_SIZE);
 
     // Main structure has been filled, now fill in optional data
     pBuffer = (PBYTE)pMessage + sizeof(NTLM_CHALLENGE_MESSAGE);

@@ -77,14 +77,14 @@ ProcessImportedKeyName(
     pszKeyToken = strtok_r (pszKeyNameCopy, pszDelim, &pszStrTokSav);
     if (!LW_IS_NULL_OR_EMPTY_STR(pszKeyToken))
     {
-        if (!strcmp(pszKeyToken, LIKEWISE_ROOT_KEY))
+        if (!strcmp(pszKeyToken, HKEY_THIS_MACHINE))
         {
             if (!hRootKey)
             {
                 dwError = RegOpenKeyExA(
                            hReg,
                            NULL,
-                           LIKEWISE_ROOT_KEY,
+                           HKEY_THIS_MACHINE,
                            0,
                            0,
                            &hRootKey);
@@ -195,11 +195,11 @@ ProcessImportedValue(
         pszKeyToken = pszKeyName;
     }
 
-    if (!strcmp(pszKeyToken, LIKEWISE_ROOT_KEY))
+    if (!strcmp(pszKeyToken, HKEY_THIS_MACHINE))
     {
         if (!hRootKey)
         {
-            dwError = RegOpenKeyExA(hReg, NULL, LIKEWISE_ROOT_KEY, 0, 0, &hRootKey);
+            dwError = RegOpenKeyExA(hReg, NULL, HKEY_THIS_MACHINE, 0, 0, &hRootKey);
             BAIL_ON_REG_ERROR(dwError);
         }
 

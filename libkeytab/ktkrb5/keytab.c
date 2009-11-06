@@ -126,6 +126,7 @@ error:
 
     KT_SAFE_FREE_STRING(pszDefName);
     KT_SAFE_FREE_STRING(pszKtName);
+    KT_SAFE_FREE_STRING(pszDefName);
 
     return dwError;
 }

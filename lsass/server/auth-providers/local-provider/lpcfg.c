@@ -105,6 +105,7 @@ LocalCfgInitialize(
     BAIL_ON_LSA_ERROR(dwError);
 
     pConfig->bCreateHomedir = LOCAL_CFG_DEFAULT_CREATE_HOMEDIR;
+    pConfig->bAcceptNTLMv1 = LOCAL_CFG_DEFAULT_ACCEPT_NTLMV1;
     pConfig->dwHomedirUMask = LOCAL_CFG_DEFAULT_HOMEDIR_UMASK;
 
     dwError = LwAllocateString(
@@ -346,6 +347,22 @@ LocalCfgMustCreateHomedir(
 }
 
 DWORD
+LocalCfgAcceptNTLMv1(
+    PBOOLEAN pbResult
+    )
+{
+    BOOLEAN bInLock = FALSE;
+
+    LOCAL_LOCK_MUTEX(bInLock, &gLPGlobals.mutex);
+
+    *pbResult = gLPGlobals.cfg.bAcceptNTLMv1;
+
+    LOCAL_UNLOCK_MUTEX(bInLock, &gLPGlobals.mutex);
+
+    return 0;
+}
+
+DWORD
 LocalCfgGetSkeletonDirs(
     PSTR* ppszSkelDirs
     )
@@ -465,7 +482,16 @@ LocalCfgReadRegistry(
             MAXDWORD,
             NULL,
             &StagingConfig.pszSkelDirs
-        }
+        },
+        {
+            "AcceptNTLMv1",
+            TRUE,
+            LsaTypeBoolean,
+            0,
+            MAXDWORD,
+            NULL,
+            &StagingConfig.bAcceptNTLMv1
+        },
     };
 
     LSA_CONFIG LsaConfigDescription[] =
@@ -489,7 +515,7 @@ LocalCfgReadRegistry(
                 "Services\\lsass\\Parameters\\Providers\\Local",
                 "Policy\\Services\\lsass\\Parameters\\Providers\\Local",
                 LpConfigDescription,
-                sizeof(LpConfigDescription)/sizeof(LpConfigDescription));
+                sizeof(LpConfigDescription)/sizeof(LpConfigDescription[0]));
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaProcessConfig(

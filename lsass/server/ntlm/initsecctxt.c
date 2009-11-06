@@ -70,6 +70,8 @@ NtlmServerInitializeSecurityContext(
     PNTLM_CHALLENGE_MESSAGE pMessage = NULL;
     DWORD dwMessageSize = 0;
 
+    pOutput->pvBuffer = NULL;
+
     if (hContext)
     {
         pNtlmContext = hContext;
@@ -92,13 +94,8 @@ NtlmServerInitializeSecurityContext(
             pDomain,
             pWorkstation,
             (PBYTE)&gXpSpoof,  //for now add OS ver info... config later
-            &pNtlmContext
-            );
-        BAIL_ON_LSA_ERROR(dwError);
-
-        // copy message to the output parameter... this should be a deep copy since
-        // the caller will most likely delete it before cleaning up it's context.
-        dwError = NtlmCopyContextToSecBuffer(pNtlmContext, pOutput);
+            &pNtlmContext,
+            pOutput);
         BAIL_ON_LSA_ERROR(dwError);
 
         dwError = LW_WARNING_CONTINUE_NEEDED;
@@ -118,12 +115,8 @@ NtlmServerInitializeSecurityContext(
         dwError = NtlmCreateResponseContext(
             pMessage,
             hCredential,
-            &pNtlmContext);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        // copy message to the output parameter... this should be a deep copy since
-        // the caller will most likely delete it before cleaning up it's context.
-        dwError = NtlmCopyContextToSecBuffer(pNtlmContext, pOutput);
+            &pNtlmContext,
+            pOutput);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -135,6 +128,9 @@ cleanup:
     LW_SAFE_FREE_STRING(pDomain);
     return dwError;
 error:
+    LW_SAFE_FREE_MEMORY(pOutput->pvBuffer);
+    pOutput->cbBuffer = 0;
+    pOutput->BufferType = 0;
     // If this function has already succeed once, we MUST make sure phNewContext
     // is set so the caller can cleanup whatever context is remaining.  It
     // could be the original negotiate context or a new response context but
@@ -146,7 +142,6 @@ error:
     if ( pNtlmContext && !hContext)
     {
         NtlmReleaseContext(&pNtlmContext);
-
         phNewContext = NULL;
     }
 
@@ -160,7 +155,8 @@ NtlmCreateNegotiateContext(
     IN PCSTR pDomain,
     IN PCSTR pWorkstation,
     IN PBYTE pOsVersion,
-    OUT PNTLM_CONTEXT *ppNtlmContext
+    OUT PNTLM_CONTEXT* ppNtlmContext,
+    OUT PSecBuffer pOutput
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -182,8 +178,9 @@ NtlmCreateNegotiateContext(
         &pMessage);
     BAIL_ON_LSA_ERROR(dwError);
 
-    pNtlmContext->dwMessageSize = dwMessageSize;
-    pNtlmContext->pMessage = pMessage;
+    pOutput->cbBuffer = dwMessageSize;
+    pOutput->BufferType = SECBUFFER_TOKEN;
+    pOutput->pvBuffer = pMessage;
     pNtlmContext->NtlmState = NtlmStateNegotiate;
 
 cleanup:
@@ -193,11 +190,13 @@ cleanup:
     return dwError;
 
 error:
-    LW_SAFE_FREE_MEMORY(pNtlmContext->pMessage);
-
+    LW_SAFE_FREE_MEMORY(pMessage);
+    pOutput->cbBuffer = 0;
+    pOutput->BufferType = 0;
+    pOutput->pvBuffer = NULL;
     if (pNtlmContext)
     {
-        LW_SAFE_FREE_MEMORY(pNtlmContext);
+        NtlmFreeContext(&pNtlmContext);
     }
     goto cleanup;
 }
@@ -206,7 +205,8 @@ DWORD
 NtlmCreateResponseContext(
     IN PNTLM_CHALLENGE_MESSAGE pChlngMsg,
     IN NTLM_CRED_HANDLE hCred,
-    IN OUT PNTLM_CONTEXT* ppNtlmContext
+    IN OUT PNTLM_CONTEXT* ppNtlmContext,
+    OUT PSecBuffer pOutput
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -220,6 +220,7 @@ NtlmCreateResponseContext(
     BYTE LanManagerSessionKey[NTLM_SESSION_KEY_SIZE] = {0};
     BYTE SecondaryKey[NTLM_SESSION_KEY_SIZE] = {0};
     PLSA_LOGIN_NAME_INFO pUserNameInfo = NULL;
+    DWORD dwMessageSize = 0;
 
     *ppNtlmContext = NULL;
 
@@ -238,6 +239,11 @@ NtlmCreateResponseContext(
     dwError = NtlmCreateContext(hCred, &pNtlmContext);
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = LwAllocateString(
+                pUserNameTemp,
+                &pNtlmContext->pszClientUsername);
+    BAIL_ON_LSA_ERROR(dwError);
+
     dwError = NtlmCreateResponseMessage(
         pChlngMsg,
         pUserNameInfo->pszName,
@@ -246,7 +252,7 @@ NtlmCreateResponseContext(
         (PBYTE)&gXpSpoof,
         NTLM_RESPONSE_TYPE_NTLM,
         NTLM_RESPONSE_TYPE_LM,
-        &pNtlmContext->dwMessageSize,
+        &dwMessageSize,
         &pMessage,
         LmUserSessionKey,
         NtlmUserSessionKey
@@ -294,7 +300,9 @@ NtlmCreateResponseContext(
     memcpy(pNtlmContext->SessionKey, pMasterKey, NTLM_SESSION_KEY_SIZE);
 
     pNtlmContext->NegotiatedFlags = pChlngMsg->NtlmFlags;
-    pNtlmContext->pMessage = pMessage;
+    pOutput->cbBuffer = dwMessageSize;
+    pOutput->BufferType = SECBUFFER_TOKEN;
+    pOutput->pvBuffer = pMessage;
     pNtlmContext->NtlmState = NtlmStateResponse;
 
     NtlmInitializeKeys(pNtlmContext);
@@ -310,11 +318,13 @@ cleanup:
     return dwError;
 error:
     LW_SAFE_FREE_MEMORY(pMessage);
-
     if (pNtlmContext)
     {
-        LW_SAFE_FREE_MEMORY(pNtlmContext);
+        NtlmFreeContext(&pNtlmContext);
     }
+    pOutput->cbBuffer = 0;
+    pOutput->BufferType = 0;
+    pOutput->pvBuffer = NULL;
 
     goto cleanup;
 }

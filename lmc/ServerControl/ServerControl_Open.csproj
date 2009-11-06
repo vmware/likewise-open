@@ -245,7 +245,6 @@
     <Content Include="Resources\BlueArrows1.ico" />
     <None Include="Resources\centeris.ico" />
     <None Include="Resources\computer.ico" />
-    <None Include="Resources\Folder.ico" />
     <None Include="Resources\Group_16.ico" />
     <None Include="Resources\Group_24.ico" />
     <None Include="Resources\Group_32.ico" />
@@ -258,6 +257,8 @@
     <Content Include="Resources\EventViewer_48.ico" />
     <Content Include="Resources\EvenViewer_32.ico" />
     <None Include="Resources\folder.png" />
+    <None Include="Resources\Folder.ico" />
+    <None Include="Resources\FolderOpen.ico" />
     <Content Include="Resources\FolderOpen_32.ico" />
     <Content Include="Resources\FolderOpen_48.ico" />
     <Content Include="Resources\folder_16.bmp" />
@@ -265,9 +266,12 @@
     <Content Include="Resources\GPMC.ico" />
     <Content Include="Resources\group_16.bmp" />
     <Content Include="Resources\Group_48.bmp" />
+    <None Include="Resources\Home.ico" />
+    <None Include="Resources\Library.ico" />
     <Content Include="Resources\LocalGroup_32.ico" />
     <Content Include="Resources\LocalGroup_48.ico" />
     <None Include="Resources\Reports.ico" />
+    <None Include="Resources\Share.ico" />
     <Content Include="Resources\SharedFolder_32.ico" />
     <Content Include="Resources\SharedFolder_48.ico" />
     <Content Include="Resources\toolbarimage.bmp" />
