@@ -32,6 +32,16 @@
 #define _GROUP_INFO_H_
 
 
+DWORD
+NetAllocateLocalGroupInfo(
+    PVOID   pInfoBuffer,
+    PDWORD  pdwSpaceLeft,
+    DWORD   dwLevel,
+    PVOID   pSource,
+    PDWORD  pdwSize
+    );
+
+
 NTSTATUS
 PullLocalGroupInfo0(
     void **buffer,
