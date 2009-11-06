@@ -836,6 +836,7 @@ typedef struct _SRV_NTTRANSACT_STATE_SMB_V1
     USHORT                         usActualResponseLen;
 
     PSMB_SECURITY_INFORMATION_HEADER pSecurityRequestHeader;
+    PSMB_NOTIFY_CHANGE_HEADER        pNotifyChangeHeader;
 
 } SRV_NTTRANSACT_STATE_SMB_V1, *PSRV_NTTRANSACT_STATE_SMB_V1;
 
