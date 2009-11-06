@@ -64,11 +64,10 @@ LsaNssMapErrorCode(
     {
         case LW_ERROR_NO_SUCH_USER:
         case LW_ERROR_NO_SUCH_GROUP:
+        case ECONNREFUSED:
             {
                 ret = NSS_STATUS_NOTFOUND;
-                if (pErrno) {
-                    *pErrno = ENOENT;
-                }
+                // Don't set errno if we can't find the user (or lsass)
                 break;
             }
         case LW_ERROR_INSUFFICIENT_BUFFER:
