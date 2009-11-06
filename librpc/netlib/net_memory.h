@@ -83,11 +83,38 @@ NetAddDepMemory(
 
 
 DWORD
+NetAllocBufferByte(
+    PVOID  *ppCursor,
+    PDWORD  pdwSpaceLeft,
+    BYTE    ubSource,
+    PDWORD  pdwSize
+    );
+
+
+DWORD
+NetAllocBufferWord(
+    PVOID  *ppCursor,
+    PDWORD  pdwSpaceLeft,
+    WORD    wSource,
+    PDWORD  pdwSize
+    );
+
+
+DWORD
 NetAllocBufferDword(
     PVOID  *ppCursor,
     PDWORD  pdwSpaceLeft,
     DWORD   dwSource,
     PDWORD  pdwSize
+    );
+
+
+DWORD
+NetAllocBufferUlong64(
+    PVOID   *ppCursor,
+    PDWORD   pdwSpaceLeft,
+    ULONG64  ullSource,
+    PDWORD   pdwSize
     );
 
 
@@ -101,10 +128,28 @@ NetAllocBufferWinTimeFromNtTime(
 
 
 DWORD
+NetAllocBufferNtTimeFromWinTime(
+    PVOID  *ppCursor,
+    PDWORD  pdwSpaceLeft,
+    DWORD   dwTime,
+    PDWORD  pdwSize
+    );
+
+
+DWORD
 NetAllocBufferUserFlagsFromAcbFlags(
     PVOID *ppCursor,
     PDWORD pdwSpaceLeft,
     DWORD  dwAcbFlags,
+    PDWORD pdwSize
+    );
+
+
+DWORD
+NetAllocBufferAcbFlagsFromUserFlags(
+    PVOID *ppCursor,
+    PDWORD pdwSpaceLeft,
+    DWORD  dwUserFlags,
     PDWORD pdwSize
     );
 
@@ -128,10 +173,28 @@ NetAllocBufferWC16StringFromUnicodeString(
 
 
 DWORD
+NetAllocBufferUnicodeStringFromWC16String(
+    PVOID  *ppCursor,
+    PDWORD  pdwSpaceLeft,
+    PCWSTR  pwszSource,
+    PDWORD  pdwSize
+    );
+
+
+DWORD
 NetAllocBufferLogonHours(
     PVOID      *ppCursor,
     PDWORD      pdwSpaceLeft,
     LogonHours *pHours,
+    PDWORD      pdwSize
+    );
+
+
+DWORD
+NetAllocBufferSamrLogonHoursFromNetLogonHours(
+    PVOID      *ppCursor,
+    PDWORD      pdwSpaceLeft,
+    PDWORD      pdwHours,
     PDWORD      pdwSize
     );
 
@@ -142,6 +205,16 @@ NetAllocBufferSid(
     PDWORD      pdwSpaceLeft,
     PSID        pSourceSid,
     DWORD       dwSourceSidLength,
+    PDWORD      pdwSize
+    );
+
+
+DWORD
+NetAllocBufferByteBlob(
+    PVOID      *ppCursor,
+    PDWORD      pdwSpaceLeft,
+    PBYTE       pbBlob,
+    DWORD       dwBlobSize,
     PDWORD      pdwSize
     );
 
