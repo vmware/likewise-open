@@ -183,17 +183,20 @@ WireUnmarshallNtTransactionSetupData(
     ulNumBytesAvailable -= sizeof(USHORT);
     ulOffset += sizeof(USHORT);
 
-    ntStatus = WireUnmarshallNtTransactionParameterData(
-        pDataCursor,
-        ulNumBytesAvailable,
-        ulOffset,
-        ulParameterOffset,
-        ulDataOffset,
-        &pParameters,
-        parameterLen,
-        &pData,
-        dataLen);
-    BAIL_ON_NT_STATUS(ntStatus);
+    if (parameterLen || dataLen)
+    {
+        ntStatus = WireUnmarshallNtTransactionParameterData(
+            pDataCursor,
+            ulNumBytesAvailable,
+            ulOffset,
+            ulParameterOffset,
+            ulDataOffset,
+            &pParameters,
+            parameterLen,
+            &pData,
+            dataLen);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
     *ppSetup = pSetup;
     *ppParameters = pParameters;
