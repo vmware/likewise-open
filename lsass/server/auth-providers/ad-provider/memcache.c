@@ -1306,10 +1306,13 @@ MemCacheRemoveObjectByHashKey(
     pObject = (PLSA_SECURITY_OBJECT)pListEntry->pItem;
 
     //Remove it from all indexes
-    dwError = LsaHashRemoveKey(
-                    pConn->pDNToSecurityObject,
-                    pObject->pszDN);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (!LW_IS_NULL_OR_EMPTY_STR(pObject->pszDN))
+    {
+        dwError = LsaHashRemoveKey(
+                        pConn->pDNToSecurityObject,
+                        pObject->pszDN);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     dwError = LwAllocateStringPrintf(
                     &pszKey,
@@ -1403,11 +1406,14 @@ MemCacheClearExistingObjectKeys(
     DWORD dwError = 0;
     PSTR pszKey = NULL;
 
-    dwError = MemCacheRemoveObjectByHashKey(
-                    pConn,
-                    pConn->pDNToSecurityObject,
-                    pObject->pszDN);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (!LW_IS_NULL_OR_EMPTY_STR(pObject->pszDN))
+    {
+        dwError = MemCacheRemoveObjectByHashKey(
+                        pConn,
+                        pConn->pDNToSecurityObject,
+                        pObject->pszDN);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     dwError = LwAllocateStringPrintf(
                     &pszKey,
