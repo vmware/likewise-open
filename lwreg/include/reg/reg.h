@@ -136,6 +136,8 @@ typedef DWORD REG_DATA_TYPE_FLAGS;
 
 #define HKEY_THIS_MACHINE "HKEY_THIS_MACHINE"
 
+#define HKEY_THIS_MACHINE_W {'H','K','E','Y','_','T','H','I','S','_','M','A','C','H','I','N','E',0}
+
 #define MAX_KEY_LENGTH 255
 #define MAX_VALUE_LENGTH 1024
 
