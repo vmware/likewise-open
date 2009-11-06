@@ -217,8 +217,8 @@ SetMachinePassword(
 	if (new) {
 		/* set account password */
 		info25 = &pwinfo.info25;
-		status = EncPasswordEx(info25->password.data, password,
-                               password_len, conn);
+		status = NetEncPasswordEx(info25->password.data, password,
+                                  password_len, conn);
         BAIL_ON_NTSTATUS_ERROR(status);
 
         full_name = &info25->info.full_name;
@@ -237,7 +237,7 @@ SetMachinePassword(
 	} else {
 		/* set account password */
 		info26 = &pwinfo.info26;
-		status = EncPasswordEx(info26->password.data, password,
+		status = NetEncPasswordEx(info26->password.data, password,
                                password_len, conn);
         BAIL_ON_NTSTATUS_ERROR(status);
 
