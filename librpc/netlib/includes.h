@@ -29,9 +29,19 @@
  */
 
 /*
- * Abstract: Network Management API, aka LanMan API (rpc client library)
+ * Copyright (C) Likewise Software. All rights reserved.
  *
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ * Module Name:
+ *
+ *        net_localgroupgetinfo.c
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Client Interface
+ *
+ *        Network Management API, aka LanMan API (rpc client library)
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
 
 #include <stdio.h>
@@ -55,6 +65,7 @@
 #include <lw/ntstatus.h>
 #include <winerror.h>
 #include <winerror-conv.h>
+#include <lwmem.h>
 #include <lwstr.h>
 #include <lwtime.h>
 #include <openssl/md5.h>
