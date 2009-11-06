@@ -560,8 +560,6 @@ SrvUnmarshalRenameInformation(
     PSRV_TRANS2_STATE_SMB_V1   pTrans2State = NULL;
     ULONG                      ulBytesAvailable  = 0;
     ULONG                      ulOffset          = 0;
-    wchar16_t                  wszFwdSlash[]     = {'/',  0};
-    wchar16_t                  wszBackSlash[]    = {'\\', 0};
     PWSTR                      pwszFilename      = NULL;
     PBYTE                      pDataCursor       = NULL;
     BOOLEAN                    bTreeInLock       = FALSE;
@@ -624,15 +622,6 @@ SrvUnmarshalRenameInformation(
     }
 
     pwszFilename = (PWSTR)pDataCursor;
-
-    if (!pwszFilename  ||
-        !*pwszFilename ||
-        (*pwszFilename == wszFwdSlash[0]) ||
-        (*pwszFilename == wszBackSlash[0]))
-    {
-        ntStatus = STATUS_INVALID_PARAMETER;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
 
     pTrans2State->usBytesAllocated =
             sizeof(FILE_RENAME_INFORMATION) + pFileRenameInfo->ulFileNameLength;
