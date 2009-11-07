@@ -821,14 +821,14 @@ NtlmCreateResponseMessage(
     IN DWORD dwNtRespType,
     IN DWORD dwLmRespType,
     OUT PDWORD pdwSize,
-    OUT PNTLM_RESPONSE_MESSAGE* ppRespMsg,
+    OUT PNTLM_RESPONSE_MESSAGE_V1* ppRespMsg,
     OUT PBYTE pLmUserSessionKey,
     OUT PBYTE pNtlmUserSessionKey
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
     DWORD dwSize = 0;
-    PNTLM_RESPONSE_MESSAGE pMessage = NULL;
+    PNTLM_RESPONSE_MESSAGE_V3 pMessage = NULL;
     DWORD dwNtMsgSize = 0;
     DWORD dwLmMsgSize = 0;
     DWORD dwAuthTrgtNameSize = 0;
@@ -837,7 +837,6 @@ NtlmCreateResponseMessage(
     CHAR pWorkstation[HOST_NAME_MAX];
     // The following pointers point into pMessage and will not be freed on error
     PBYTE pTrav = NULL;
-    PNTLM_SEC_BUFFER pSessionKey = NULL;
     PBYTE pBuffer = NULL;
 
     // sanity checks
@@ -857,7 +856,7 @@ NtlmCreateResponseMessage(
     *ppRespMsg = NULL;
     *pdwSize = 0;
 
-    dwSize += sizeof(NTLM_RESPONSE_MESSAGE);
+    dwSize += sizeof(*pMessage);
 
     dwAuthTrgtNameSize = strlen(pDomainName);
     dwUserNameSize = strlen(pUserName);
@@ -893,18 +892,6 @@ NtlmCreateResponseMessage(
 
     dwSize += dwLmMsgSize;
 
-    // we're just going to send an empty session key for now... we may support
-    // this option later
-    dwSize += sizeof(NTLM_SEC_BUFFER);
-
-    // we're going to send our flags as well
-    dwSize += sizeof(pChlngMsg->NtlmFlags);
-
-    if (pOsVersion)
-    {
-        dwSize += NTLM_WIN_SPOOF_SIZE;
-    }
-
     dwError = LwAllocateMemory(dwSize, OUT_PPVOID(&pMessage));
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -932,31 +919,22 @@ NtlmCreateResponseMessage(
     pMessage->Workstation.usLength = dwWorkstationSize;
     pMessage->Workstation.usMaxLength = pMessage->Workstation.usLength;
 
-    // We've filled in the main structure, now add optional data at the end
-    pBuffer = (PBYTE)pMessage + sizeof(NTLM_RESPONSE_MESSAGE);
-
-    pSessionKey = (PNTLM_SEC_BUFFER)pBuffer;
-
-    pSessionKey->usLength = 0;
+    pMessage->SessionKey.usLength = 0;
     if (pChlngMsg->NtlmFlags & NTLM_FLAG_KEY_EXCH)
     {
         // we won't fill this in until after we return from this function, but
         // we'll save space to fill in later
-        pSessionKey->usLength = NTLM_SESSION_KEY_SIZE;
+        pMessage->SessionKey.usLength = NTLM_SESSION_KEY_SIZE;
     }
-    pSessionKey->usMaxLength = pSessionKey->usLength;
+    pMessage->SessionKey.usMaxLength = pMessage->SessionKey.usLength;
 
-    pBuffer += sizeof(NTLM_SEC_BUFFER);
+    pMessage->Flags = pChlngMsg->NtlmFlags;
 
-    memcpy(pBuffer, &(pChlngMsg->NtlmFlags), sizeof(pChlngMsg->NtlmFlags));
+    memcpy(&pMessage->Version, pOsVersion, NTLM_WIN_SPOOF_SIZE);
 
-    pBuffer += sizeof(pChlngMsg->NtlmFlags);
-
-    if (pOsVersion)
-    {
-        memcpy(pBuffer, pOsVersion, NTLM_WIN_SPOOF_SIZE);
-        pBuffer += NTLM_WIN_SPOOF_SIZE;
-    }
+    // We've filled in the main structure, now add the data for the sec buffers
+    // at the end.
+    pBuffer = (PBYTE)pMessage + sizeof(*pMessage);
 
     pMessage->LmResponse.dwOffset = pBuffer - (PBYTE)pMessage;
 
@@ -1029,14 +1007,15 @@ NtlmCreateResponseMessage(
         pTrav++;
     }
 
-    pSessionKey->dwOffset = pBuffer - (PBYTE)pMessage;
+    pMessage->SessionKey.usLength = 0;
+    pMessage->SessionKey.dwOffset = pBuffer - (PBYTE)pMessage;
 
     // This is only a partial validation since we may be adding a session key
     // to this message.
-    LW_ASSERT(pBuffer + pSessionKey->usLength == (PBYTE)pMessage + dwSize);
+    LW_ASSERT(pBuffer + pMessage->SessionKey.usLength == (PBYTE)pMessage + dwSize);
 
 cleanup:
-    *ppRespMsg = pMessage;
+    *ppRespMsg = &pMessage->V1;
     *pdwSize = dwSize;
     return dwError;
 error:
@@ -1050,7 +1029,7 @@ VOID
 NtlmStoreSecondaryKey(
     IN PBYTE pMasterKey,
     IN PBYTE pSecondaryKey,
-    IN OUT PNTLM_RESPONSE_MESSAGE pMessage
+    IN OUT PNTLM_RESPONSE_MESSAGE_V1 pMessage
     )
 {
     PNTLM_SEC_BUFFER pSecBuffer = NULL;
@@ -1565,6 +1544,7 @@ NtlmCreateNtlmV2Blob(
 
 cleanup:
     *ppBlob = pOriginal;
+    *pdwSize = dwBlobSize;
     return dwError;
 error:
     LW_SAFE_FREE_MEMORY(pOriginal);
@@ -1604,7 +1584,7 @@ NtlmBuildAnonymousResponse(
 /******************************************************************************/
 DWORD
 NtlmGetUserNameFromResponse(
-    IN PNTLM_RESPONSE_MESSAGE pRespMsg,
+    IN PNTLM_RESPONSE_MESSAGE_V1 pRespMsg,
     IN BOOLEAN bUnicode,
     OUT PSTR* ppUserName
     )
@@ -1828,7 +1808,7 @@ error:
 /******************************************************************************/
 VOID
 NtlmGenerateLanManagerSessionKey(
-    IN PNTLM_RESPONSE_MESSAGE pMessage,
+    IN PNTLM_RESPONSE_MESSAGE_V1 pMessage,
     IN PBYTE pLmUserSessionKey,
     OUT PBYTE pLanManagerSessionKey
     )

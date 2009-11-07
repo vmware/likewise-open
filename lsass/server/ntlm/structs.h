@@ -71,7 +71,15 @@ typedef struct _NTLM_CHALLENGE_MESSAGE
     // Optional Data
 } NTLM_CHALLENGE_MESSAGE, *PNTLM_CHALLENGE_MESSAGE;
 
-typedef struct _NTLM_RESPONSE_MESSAGE
+typedef struct _NTLM_OS_VERSION
+{
+    BYTE MajorVersion;
+    BYTE MinorVersion;
+    WORD BuildNumber;
+    DWORD Unknown; // Must be 0x0000000F
+} NTLM_OS_VERSION, *PNTLM_OS_VERSION;
+
+typedef struct _NTLM_RESPONSE_MESSAGE_V1
 {
     UCHAR NtlmSignature[NTLM_NETWORK_SIGNATURE_SIZE];
     DWORD MessageType;
@@ -80,11 +88,58 @@ typedef struct _NTLM_RESPONSE_MESSAGE
     NTLM_SEC_BUFFER AuthTargetName;
     NTLM_SEC_BUFFER UserName;
     NTLM_SEC_BUFFER Workstation;
-    // Optional Session Key NTLM_SEC_BUFFER
-    // Optional Flags 4 bytes
-    // Optional OS Version 8 bytes
     // Optional Data
-} NTLM_RESPONSE_MESSAGE, *PNTLM_RESPONSE_MESSAGE;
+} NTLM_RESPONSE_MESSAGE_V1, *PNTLM_RESPONSE_MESSAGE_V1;
+
+typedef struct _NTLM_RESPONSE_MESSAGE_V2
+{
+    union
+    {
+        NTLM_RESPONSE_MESSAGE_V1 V1;
+        struct
+        {
+            UCHAR NtlmSignature[NTLM_NETWORK_SIGNATURE_SIZE];
+            DWORD MessageType;
+            NTLM_SEC_BUFFER LmResponse;
+            NTLM_SEC_BUFFER NtResponse;
+            NTLM_SEC_BUFFER AuthTargetName;
+            NTLM_SEC_BUFFER UserName;
+            NTLM_SEC_BUFFER Workstation;
+        };
+    };
+    NTLM_SEC_BUFFER SessionKey;
+    DWORD Flags;
+    // Optional Data
+} NTLM_RESPONSE_MESSAGE_V2, *PNTLM_RESPONSE_MESSAGE_V2;
+
+typedef struct _NTLM_RESPONSE_MESSAGE_V3
+{
+    union
+    {
+        NTLM_RESPONSE_MESSAGE_V2 V2;
+        struct
+        {
+            union
+            {
+                NTLM_RESPONSE_MESSAGE_V1 V1;
+                struct
+                {
+                    UCHAR NtlmSignature[NTLM_NETWORK_SIGNATURE_SIZE];
+                    DWORD MessageType;
+                    NTLM_SEC_BUFFER LmResponse;
+                    NTLM_SEC_BUFFER NtResponse;
+                    NTLM_SEC_BUFFER AuthTargetName;
+                    NTLM_SEC_BUFFER UserName;
+                    NTLM_SEC_BUFFER Workstation;
+                };
+            };
+            NTLM_SEC_BUFFER SessionKey;
+            DWORD Flags;
+        };
+    };
+    NTLM_OS_VERSION Version;
+    // Optional Data
+} NTLM_RESPONSE_MESSAGE_V3, *PNTLM_RESPONSE_MESSAGE_V3;
 
 typedef struct _NTLM_BLOB
 {
@@ -137,5 +192,12 @@ typedef struct _NTLM_CREDENTIALS
     DWORD dwCredDirection;
     LONG nRefCount;
 } NTLM_CREDENTIALS, *PNTLM_CREDENTIALS;
+
+typedef struct _NTLM_CONFIG
+{
+    BOOLEAN bSendNTLMv2;
+    BOOLEAN bSupportUnicode;
+    BOOLEAN bNegotiateKey;
+} NTLM_CONFIG, *PNTLM_CONFIG;
 
 #endif /* __STRUCTS_H__ */

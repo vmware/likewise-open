@@ -205,12 +205,12 @@ DWORD
 NtlmCreateResponseContext(
     IN PNTLM_CHALLENGE_MESSAGE pChlngMsg,
     IN NTLM_CRED_HANDLE hCred,
-    IN OUT PNTLM_CONTEXT* ppNtlmContext,
+    OUT PNTLM_CONTEXT* ppNtlmContext,
     OUT PSecBuffer pOutput
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
-    PNTLM_RESPONSE_MESSAGE pMessage = NULL;
+    PNTLM_RESPONSE_MESSAGE_V1 pMessage = NULL;
     PCSTR pUserNameTemp = NULL;
     PCSTR pPassword = NULL;
     PNTLM_CONTEXT pNtlmContext = NULL;
@@ -221,8 +221,12 @@ NtlmCreateResponseContext(
     BYTE SecondaryKey[NTLM_SESSION_KEY_SIZE] = {0};
     PLSA_LOGIN_NAME_INFO pUserNameInfo = NULL;
     DWORD dwMessageSize = 0;
+    NTLM_CONFIG config;
 
     *ppNtlmContext = NULL;
+
+    dwError = NtlmReadRegistry(&config);
+    BAIL_ON_LSA_ERROR(dwError);
 
     NtlmGetCredentialInfo(
         hCred,
@@ -250,8 +254,10 @@ NtlmCreateResponseContext(
         pUserNameInfo->pszDomainNetBiosName,
         pPassword,
         (PBYTE)&gXpSpoof,
-        NTLM_RESPONSE_TYPE_NTLM,
-        NTLM_RESPONSE_TYPE_LM,
+        config.bSendNTLMv2 ?
+            NTLM_RESPONSE_TYPE_NTLMv2 : NTLM_RESPONSE_TYPE_NTLM,
+        config.bSendNTLMv2 ?
+            NTLM_RESPONSE_TYPE_LM : NTLM_RESPONSE_TYPE_LM,
         &dwMessageSize,
         &pMessage,
         LmUserSessionKey,

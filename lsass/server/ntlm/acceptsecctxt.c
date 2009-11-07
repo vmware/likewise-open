@@ -68,7 +68,7 @@ NtlmServerAcceptSecurityContext(
     PNTLM_CONTEXT pNtlmCtxtChlng = NULL;
     NTLM_CONTEXT_HANDLE ContextHandle = NULL;
     const NTLM_NEGOTIATE_MESSAGE* pNegMsg = NULL;
-    PNTLM_RESPONSE_MESSAGE pRespMsg = NULL;
+    PNTLM_RESPONSE_MESSAGE_V1 pRespMsg = NULL;
     DWORD dwMessageSize = 0;
     BYTE SessionKey[NTLM_SESSION_KEY_SIZE] = {0};
 
@@ -243,7 +243,7 @@ error:
 
 DWORD
 NtlmCreateValidatedContext(
-    IN PNTLM_RESPONSE_MESSAGE pNtlmRespMsg,
+    IN PNTLM_RESPONSE_MESSAGE_V1 pNtlmRespMsg,
     IN DWORD dwMsgSize,
     IN DWORD NegotiatedFlags,
     IN PBYTE pSessionKey,
@@ -335,7 +335,7 @@ error:
 DWORD
 NtlmValidateResponse(
     IN HANDLE Handle,
-    IN PNTLM_RESPONSE_MESSAGE pRespMsg,
+    IN PNTLM_RESPONSE_MESSAGE_V1 pRespMsg,
     IN DWORD dwRespMsgSize,
     IN PNTLM_CONTEXT pChlngCtxt,
     OUT BYTE pSessionKey[NTLM_SESSION_KEY_SIZE]
@@ -460,7 +460,7 @@ error:
 /******************************************************************************/
 DWORD
 NtlmGetDomainNameFromResponse(
-    IN PNTLM_RESPONSE_MESSAGE pRespMsg,
+    IN PNTLM_RESPONSE_MESSAGE_V1 pRespMsg,
     IN BOOLEAN bUnicode,
     OUT PSTR* ppDomainName
     )
@@ -508,7 +508,7 @@ error:
 /******************************************************************************/
 DWORD
 NtlmGetWorkstationFromResponse(
-    IN PNTLM_RESPONSE_MESSAGE pRespMsg,
+    IN PNTLM_RESPONSE_MESSAGE_V1 pRespMsg,
     IN BOOLEAN bUnicode,
     OUT PSTR* ppWorkstation
     )
