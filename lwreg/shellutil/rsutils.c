@@ -390,7 +390,7 @@ RegShellUtilDeleteKey(
     dwError = LwMbsToWc16s(pszSubKey, &pwszSubKey);
     BAIL_ON_REG_ERROR(dwError);
 
-    dwError = RegDeleteKey(hReg, pCurrentKey, pwszSubKey);
+    dwError = RegDeleteKeyW(hReg, pCurrentKey, pwszSubKey);
     BAIL_ON_REG_ERROR(dwError);
 
 cleanup:
