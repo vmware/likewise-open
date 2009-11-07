@@ -15,6 +15,7 @@ namespace Likewise.LMC.FileClient
         ERROR_ACCESS_DENIED = 5,
         ERROR_INVALID_HANDLE = 6,
         ERROR_NOT_ENOUGH_MEMORY = 8,
+        ERROR_SHARING_VIOLATION = 32,
         ERROR_BAD_DEV_TYPE = 66,
         ERROR_BAD_NET_NAME = 67,
         ERROR_FILE_EXISTS = 80,

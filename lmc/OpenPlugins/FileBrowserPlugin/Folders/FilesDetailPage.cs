@@ -156,6 +156,22 @@ namespace Likewise.LMC.Plugins.FileBrowser
 
         #region File operations
 
+        private void ShowFileProperties(
+            ListViewItem item
+            )
+        {
+            string message = "Need to show properties for file: " + item.Text;
+            MessageBox.Show(message);
+        }
+
+        private void ShowDirectoryProperties(
+            ListViewItem item
+            )
+        {
+            string message = "Need to show properties for directory: " + item.Text;
+            MessageBox.Show(message);
+        }
+
         private void DoFileDelete(
             ListViewItem item
             )
@@ -338,20 +354,6 @@ namespace Likewise.LMC.Plugins.FileBrowser
             }
         }
 
-        private void DoNewFolder(
-            )
-        {
-            FileBrowserNode node = base.TreeNode as FileBrowserNode;
-            string name = node.Path + "\\New Folder";
-        }
-
-        private void DoNewTextFile(
-            )
-        {
-            FileBrowserNode node = base.TreeNode as FileBrowserNode;
-            string name = node.Path + "\\TextFile.txt";
-        }
-
         #endregion
 
         #region Helper functions
@@ -472,33 +474,19 @@ namespace Likewise.LMC.Plugins.FileBrowser
 
                     hit.Item.Selected = true;
 
-                    if (hit.Item.SubItems[3].Text == "Directory")
+                    if (hit.Item.SubItems[3].Text == "Directory" ||
+                        hit.Item.SubItems[3].Text == "File")
                     {
                         contextMenuStrip.Items.Clear();
-                        contextMenuStrip.Items.Add("Delete directory");
-                        contextMenuStrip.Items.Add("Move directory");
-                        contextMenuStrip.Items.Add("Copy directory");
-                    }
-                    else if (hit.Item.SubItems[3].Text == "File")
-                    {
-                        contextMenuStrip.Items.Clear();
-                        contextMenuStrip.Items.Add("Delete file");
-                        contextMenuStrip.Items.Add("Move file");
-                        contextMenuStrip.Items.Add("Copy file");
+                        contextMenuStrip.Items.Add("Properties");
+                        contextMenuStrip.Items.Add("Delete");
+                        contextMenuStrip.Items.Add("Move");
+                        contextMenuStrip.Items.Add("Copy");
                     }
                     else
                     {
                         return;
                     }
-
-                    Point pt = new Point(e.X, e.Y);
-                    contextMenuStrip.Show(lvFilePage, pt);
-                }
-                else
-                {
-                    contextMenuStrip.Items.Clear();
-                    contextMenuStrip.Items.Add("New folder");
-                    contextMenuStrip.Items.Add("New text file");
 
                     Point pt = new Point(e.X, e.Y);
                     contextMenuStrip.Show(lvFilePage, pt);
@@ -514,6 +502,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
             FileBrowserNode node = base.TreeNode as FileBrowserNode;
             int count = lvFilePage.SelectedItems.Count;
             string option = e.ClickedItem.Text;
+            FileBrowserNode.FileBrowserNopeType fbtype = FileBrowserNode.FileBrowserNopeType.UNKNOWN;
 
             if (node == null)
             {
@@ -528,39 +517,64 @@ namespace Likewise.LMC.Plugins.FileBrowser
             }
 
             ListViewItem item = lvFilePage.SelectedItems[0];
+            if (item.SubItems[3].Text == "Directory")
+            {
+                fbtype = FileBrowserNode.FileBrowserNopeType.DIRECTORY;
+            }
+
+            if (item.SubItems[3].Text == "File")
+            {
+                fbtype = FileBrowserNode.FileBrowserNopeType.FILE;
+            }
 
             switch (option)
             {
-                case "Delete file":
-                    DoFileDelete(item);
+                case "Properties":
+                    if (fbtype == FileBrowserNode.FileBrowserNopeType.DIRECTORY)
+                    {
+                        ShowDirectoryProperties(item);
+                    }
+
+                    if (fbtype == FileBrowserNode.FileBrowserNopeType.FILE)
+                    {
+                        ShowFileProperties(item);
+                    }
                     break;
 
-                case "Delete directory":
-                    DoDirectoryDelete(item);
+                case "Delete":
+                    if (fbtype == FileBrowserNode.FileBrowserNopeType.DIRECTORY)
+                    {
+                        DoDirectoryDelete(item);
+                    }
+
+                    if (fbtype == FileBrowserNode.FileBrowserNopeType.FILE)
+                    {
+                        DoFileDelete(item);
+                    }
                     break;
 
-                case "Move file":
-                    DoFileMove(item);
+                case "Move":
+                    if (fbtype == FileBrowserNode.FileBrowserNopeType.DIRECTORY)
+                    {
+                        DoDirectoryMove(item);
+                    }
+
+                    if (fbtype == FileBrowserNode.FileBrowserNopeType.FILE)
+                    {
+                        DoFileMove(item);
+                    }
                     break;
 
-                case "Move directory":
-                    DoDirectoryMove(item);
-                    break;
+                case "Copy":
+                    if (fbtype == FileBrowserNode.FileBrowserNopeType.DIRECTORY)
+                    {
+                        DoDirectoryCopy(item);
+                    }
 
-                case "Copy file":
-                    DoFileCopy(item);
-                    break;
-
-                case "Copy directory":
-                    DoDirectoryCopy(item);
-                    break;
-
-                case "New folder":
-                    DoNewFolder();
-                    break;
-
-                case "New text file":
-                    DoNewTextFile();
+                    if (fbtype == FileBrowserNode.FileBrowserNopeType.FILE)
+                    {
+                        DoFileCopy(item);
+                    }
                     break;
 
                 default:
