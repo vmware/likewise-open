@@ -654,12 +654,14 @@ CENTERROR CTReadToken(const char **pos, CTParseToken *store, const char *include
         (*pos)++;
     }
     white_start = *pos;
-    while(strchr(includeSeparators, **pos) != NULL)
+    while (**pos != '\0' && strchr(includeSeparators, **pos) != NULL)
     {
         (*pos)++;
     }
     white_end = *pos;
-    while(white_start > token_start && strchr(trimBack, *white_start) != NULL)
+    while (white_start > token_start &&
+            white_start[-1] != '\0' &&
+            strchr(trimBack, white_start[-1]) != NULL)
     {
         white_start--;
     }
