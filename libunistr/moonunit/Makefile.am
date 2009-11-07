@@ -2,7 +2,8 @@ AM_CFLAGS = -fPIC -Werror -Wall
 AM_CPPFLAGS = -I$(top_srcdir)/include
 
 TEST_SOURCES = test-printf.c \
-	       test-convert.c
+	       test-convert.c \
+               test-compare.c
 
 lib_LTLIBRARIES =
 
