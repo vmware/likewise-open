@@ -572,62 +572,91 @@ RegQueryInfoKeyW(
 
 
 #ifdef UNICODE
+
 #define RegEnumValue(hRegConnection, hKey, dwIndex, pValueName, pcchValueName, pReserved, pType, pData, pcbData) \
     RegEnumValueW(hRegConnection, hKey, dwIndex, pValueName, pcchValueName, pReserved, pType, pData, pcbData)
+
 #define RegGetValue(hRegConnection, hKey, pSubKey, pValue, Flags, pdwType, pvData, pcbData) \
     RegGetValueW(hRegConnection, hKey, pSubKey, pValue, Flags, pdwType, pvData, pcbData)
+
 #define RegQueryValueEx(hRegConnection, hKey, pValueName, pReserved, pType, pData, pcbData) \
     RegQueryValueExW(hRegConnection, hKey, pValueName, pReserved, pType, pData, pcbData)
+
 #define RegSetValueEx(hRegConnection, hKey, pValueName, Reserved, dwType, pData, cbData) \
     RegSetValueExW(hRegConnection, hKey, pValueName, Reserved, dwType, pData, cbData)
-#define RegOpenKeyEx(hRegConnection, hKey, pSubKey, ulOptions, samDesired, phkResult) \
+
+#define RegOpenKeyEx(hRegConnection, hKey, pwszSubKey, ulOptions, samDesired, phkResult) \
     RegOpenKeyExW(hRegConnection, hKey, pwszSubKey, ulOptions, samDesired, phkResult)
+
 #define RegMultiStrsToByteArray(ppszInMultiSz, outBuf, outBufLen) \
     RegMultiStrsToByteArrayW(ppszInMultiSz, outBuf, outBufLen)
+
 #define RegByteArrayToMultiStrs(pInBuf, bufLen, pppszOutMultiSz) \
     RegByteArrayToMultiStrsW(pInBuf, bufLen, pppszOutMultiSz)
-#define RegEnumRootKeys(hRegConnection, pppRootKeyNames, pdwNumRootKeys) \
+
+#define RegEnumRootKeys(hRegConnection, pppwszRootKeyNames, pdwNumRootKeys) \
     RegEnumRootKeysW(hRegConnection, pppwszRootKeyNames, pdwNumRootKeys)
-#define RegCreateKeyEx(hRegConnection, hKey, pszSubKey, Reserved, pClass, dwOptions, samDesired, pSecurityAttributes, phkResult, pdwDisposition) \
+
+#define RegCreateKeyEx(hRegConnection, hKey, pwszSubKey, Reserved, pClass, dwOptions, samDesired, pSecurityAttributes, phkResult, pdwDisposition) \
     RegCreateKeyExW(hRegConnection, hKey, pwszSubKey, Reserved, pClass, dwOptions, samDesired, pSecurityAttributes, phkResult, pdwDisposition)
+
 #define RegQueryInfoKey(hRegConnection, hKey, pClass, pcClass, pReserved, pcSubKeys, pcMaxSubKeyLen, pcMaxClassLen, pcValues, pcMaxValueNameLen, pcMaxValueLen, pcbSecurityDescriptor, pftLastWriteTime) \
     RegQueryInfoKeyW(hRegConnection, hKey, pClass, pcClass, pReserved, pcSubKeys, pcMaxSubKeyLen, pcMaxClassLen, pcValues, pcMaxValueNameLen, pcMaxValueLen, pcbSecurityDescriptor, pftLastWriteTime)
-#define RegDeleteKey(hRegConnection, hKey, pSubKey) \
+
+#define RegDeleteKey(hRegConnection, hKey, pwszSubKey) \
     RegDeleteKeyW(hRegConnection, hKey, pwszSubKey)
-#define RegDeleteKeyValue(hRegConnection, hKey, pSubKey, pValueName) \
+
+#define RegDeleteKeyValue(hRegConnection, hKey, pwszSubKey, pwszValueName) \
     RegDeleteKeyValueW(hRegConnection, hKey, pwszSubKey, pwszValueName)
-#define RegDeleteTree(hRegConnection, hKey, pSubKey) \
+
+#define RegDeleteTree(hRegConnection, hKey, pwszSubKey) \
     RegDeleteTreeW(hRegConnection, hKey, pwszSubKey)
-#define RegDeleteValue(hRegConnection, hKey, pValueName) \
+
+#define RegDeleteValue(hRegConnection, hKey, pwszValueName) \
     RegDeleteValueW(hRegConnection, hKey, pwszValueName)
+
 #else
+
 #define RegEnumValue(hRegConnection, hKey, dwIndex, pValueName, pcchValueName, pReserved, pType, pData, pcbData) \
     RegEnumValueA(hRegConnection, hKey, dwIndex, pValueName, pcchValueName, pReserved, pType, pData, pcbData)
+
 #define RegGetValue(hRegConnection, hKey, pSubKey, pValue, Flags, pdwType, pvData, pcbData) \
     RegGetValueA(hRegConnection, hKey, pSubKey, pValue, Flags, pdwType, pvData, pcbData)
+
 #define RegQueryValueEx(hRegConnection, hKey, pValueName, pReserved, pType, pData, pcbData) \
     RegQueryValueExA(hRegConnection, hKey, pValueName, pReserved, pType, pData, pcbData)
+
 #define RegSetValueEx(hRegConnection, hKey, pValueName, Reserved, dwType, pData, cbData) \
     RegSetValueExA(hRegConnection, hKey, pValueName, Reserved, dwType, pData, cbData)
-#define RegOpenKeyEx(hRegConnection, hKey, pSubKey, ulOptions, samDesired, phkResult) \
+
+#define RegOpenKeyEx(hRegConnection, hKey, pszSubKey, ulOptions, samDesired, phkResult) \
     RegOpenKeyExA(hRegConnection, hKey, pszSubKey, ulOptions, samDesired, phkResult)
+
 #define RegMultiStrsToByteArray(ppszInMultiSz, outBuf, outBufLen) \
     RegMultiStrsToByteArrayA(ppszInMultiSz, outBuf, outBufLen)
+
 #define RegByteArrayToMultiStrs(pInBuf, bufLen, pppszOutMultiSz) \
     RegByteArrayToMultiStrsA(pInBuf, bufLen, pppszOutMultiSz)
+
 #define RegEnumRootKeys(hRegConnection, pppRootKeyNames, pdwNumRootKeys) \
     RegEnumRootKeysA(hRegConnection, pppszRootKeyNames, pdwNumRootKeys)
+
 #define RegCreateKeyEx(hRegConnection, hKey, pszSubKey, Reserved, pClass, dwOptions, samDesired, pSecurityAttributes, phkResult, pdwDisposition) \
     RegCreateKeyExA(hRegConnection, hKey, pszSubKey, Reserved, pClass, dwOptions, samDesired, pSecurityAttributes, phkResult, pdwDisposition)
+
 #define RegQueryInfoKey(hRegConnection, hKey, pClass, pcClass, pReserved, pcSubKeys, pcMaxSubKeyLen, pcMaxClassLen, pcValues, pcMaxValueNameLen, pcMaxValueLen, pcbSecurityDescriptor, pftLastWriteTime) \
     RegQueryInfoKeyA(hRegConnection, hKey, pszClass, pcClass, pReserved, pcSubKeys, pcMaxSubKeyLen, pcMaxClassLen, pcValues, pcMaxValueNameLen, pcMaxValueLen, pcbSecurityDescriptor, pftLastWriteTime)
-#define RegDeleteKey(hRegConnection, hKey, pSubKey) \
+
+#define RegDeleteKey(hRegConnection, hKey, pszSubKey) \
     RegDeleteKeyA(hRegConnection, hKey, pszSubKey)
-#define RegDeleteKeyValue(hRegConnection, hKey, pSubKey, pValueName) \
+
+#define RegDeleteKeyValue(hRegConnection, hKey, pszSubKey, pszValueName) \
     RegDeleteKeyValueA(hRegConnection, hKey, pszSubKey, pszValueName)
-#define RegDeleteTree(hRegConnection, hKey, pSubKey) \
+
+#define RegDeleteTree(hRegConnection, hKey, pszSubKey) \
     RegDeleteTreeA(hRegConnection, hKey, pszSubKey)
-#define RegDeleteValue(hRegConnection, hKey, pValueName) \
+
+#define RegDeleteValue(hRegConnection, hKey, pszValueName) \
     RegDeleteValueA(hRegConnection, hKey, pszValueName)
 #endif
 
