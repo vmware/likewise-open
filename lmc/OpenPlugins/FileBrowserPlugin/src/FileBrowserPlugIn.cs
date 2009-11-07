@@ -47,7 +47,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
     {
         #region Class data
 
-        private enum OSTYPE
+        public enum OSTYPE
         {
             WINDOWS = 0,
             LINUX = 1
@@ -60,9 +60,24 @@ namespace Likewise.LMC.Plugins.FileBrowser
         List<IPlugIn> _extPlugins = null;
         string LocalDiskRoot = "C:";
         List<string> RemoteShares = new List<string>();
-        OSTYPE _os = OSTYPE.LINUX;
+        OSTYPE _os = OSTYPE.WINDOWS;
 
         #endregion
+
+        public OSTYPE GetOsType()
+        {
+            return _os;
+        }
+
+        public List<string> GetActiveShares()
+        {
+            return RemoteShares;
+        }
+
+        public string GetLocalDiskRoot()
+        {
+            return LocalDiskRoot;
+        }
 
         #region IPlugIn Members
 
