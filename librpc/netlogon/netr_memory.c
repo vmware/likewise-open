@@ -260,7 +260,6 @@ NetrInitIdentityInfo(
     size_t NbtWorkstationLen = 0;
 
     BAIL_ON_INVALID_PTR(pIdentity, ntStatus);
-    BAIL_ON_INVALID_PTR(pwszDomain, ntStatus);
     BAIL_ON_INVALID_PTR(pwszAccount, ntStatus);
     BAIL_ON_INVALID_PTR(pwszWorkstation, ntStatus);
 
@@ -280,9 +279,17 @@ NetrInitIdentityInfo(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = InitUnicodeString(&pIdentity->domain_name,
-                                 pwszDomain);
-    BAIL_ON_NT_STATUS(ntStatus);
+    /* The domain is NULL when the user passes in a UPN */
+    if (pwszDomain)
+    {
+        ntStatus = InitUnicodeString(&pIdentity->domain_name, pwszDomain);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+    else
+    {
+        ntStatus = InitEmptyUnicodeString(&pIdentity->domain_name);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
     if (pIdentity->domain_name.string) {
         ntStatus = NetrAddDepMemory((void*)pIdentity->domain_name.string,
@@ -463,7 +470,7 @@ NetrAllocateLogonInfoNet(
     NetrNetworkInfo *pNetworkInfo = NULL;
 
     BAIL_ON_INVALID_PTR(ppOut, ntStatus);
-    BAIL_ON_INVALID_PTR(pwszDomain, ntStatus);
+    /* domain can be NULL */
     BAIL_ON_INVALID_PTR(pwszAccount, ntStatus);
     BAIL_ON_INVALID_PTR(pwszWorkstation, ntStatus);
     BAIL_ON_INVALID_PTR(pChallenge, ntStatus);

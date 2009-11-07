@@ -57,6 +57,18 @@ NTSTATUS InitUnicodeStringEx(UnicodeStringEx *u, const wchar16_t *s)
 	return STATUS_SUCCESS;
 }
 
+NTSTATUS InitEmptyUnicodeString(UnicodeString *u)
+{
+    if (u == NULL) {
+        return STATUS_INVALID_PARAMETER;
+    }
+
+    u->string = NULL;
+    u->len  = 0;
+    u->size = 0;
+
+    return STATUS_SUCCESS;
+}
 
 wchar16_t *GetFromUnicodeStringEx(UnicodeStringEx *u)
 {
