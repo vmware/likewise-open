@@ -85,8 +85,8 @@ LwiGetMachineInformationA(
     PSTR pszHostDnsDomain = NULL;
     PSTR pszDomainName = NULL;
     PSTR pszDnsDomainName = NULL;
-    time_t LastChangeTime;
-    DWORD dwSchannelType;
+    time_t LastChangeTime = 0;
+    DWORD dwSchannelType = 0;
 
     // Examine secrets.tdb
     dwError = LwiTdbOpen(pszSecretsPath, &pTdb);
