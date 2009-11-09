@@ -568,7 +568,7 @@ ADCacheDuplicateObject(
                     &pDest->pszSamAccountName);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LwAllocateString(
+    dwError = LwStrDupOrNull(
                     pSrc->pszDN,
                     &pDest->pszDN);
     BAIL_ON_LSA_ERROR(dwError);

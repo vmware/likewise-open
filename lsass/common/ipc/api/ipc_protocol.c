@@ -1178,6 +1178,7 @@ LsaMapLwmsgStatus(
         return EINTR;
     case LWMSG_STATUS_FILE_NOT_FOUND:
         return ENOENT;
+    case LWMSG_STATUS_TIMEOUT:
     case LWMSG_STATUS_CONNECTION_REFUSED:
         return ECONNREFUSED;
     case LWMSG_STATUS_PEER_RESET:

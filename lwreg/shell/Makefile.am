@@ -7,9 +7,6 @@ regshell_SOURCES = \
     cmdparse.c \
     regshell.c
 
-regshell_LDFLAGS = -static
-
-
 regshell_LDADD = \
         @top_builddir@/shellutil/librsutils.la \
         @top_builddir@/utils/libregutils.la \

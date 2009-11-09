@@ -86,6 +86,24 @@ SrvBuildIOCTLResponse(
 
 static
 NTSTATUS
+SrvProcessNotifyChange(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
+SrvExecuteChangeNotify(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
+SrvBuildChangeNotifyResponse(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
 SrvBuildNTTransactState(
     PNT_TRANSACTION_REQUEST_HEADER pRequestHeader,
     PUSHORT                        pusBytecount,
@@ -221,8 +239,13 @@ SrvProcessNtTransact(
 
             break;
 
-        case SMB_SUB_COMMAND_NT_TRANSACT_CREATE :
         case SMB_SUB_COMMAND_NT_TRANSACT_NOTIFY_CHANGE :
+
+            ntStatus = SrvProcessNotifyChange(pExecContext);
+
+            break;
+
+        case SMB_SUB_COMMAND_NT_TRANSACT_CREATE :
         case SMB_SUB_COMMAND_NT_TRANSACT_RENAME :
 
             ntStatus = STATUS_NOT_SUPPORTED;
@@ -1184,6 +1207,90 @@ error:
     goto cleanup;
 }
 
+static
+NTSTATUS
+SrvProcessNotifyChange(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS                     ntStatus     = STATUS_SUCCESS;
+    PSRV_PROTOCOL_EXEC_CONTEXT   pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1     pCtxSmb1     = pCtxProtocol->pSmb1Context;
+    PSRV_NTTRANSACT_STATE_SMB_V1 pNTTransactState = NULL;
+
+    pNTTransactState = (PSRV_NTTRANSACT_STATE_SMB_V1)pCtxSmb1->hState;
+
+    switch (pNTTransactState->stage)
+    {
+        case SRV_NTTRANSACT_STAGE_SMB_V1_INITIAL:
+
+            if (!pNTTransactState->pRequestHeader->ulMaxParameterCount ||
+                (sizeof(SMB_NOTIFY_CHANGE_HEADER) !=
+                    pNTTransactState->pRequestHeader->ucSetupCount * sizeof(USHORT)))
+            {
+                ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+
+            pNTTransactState->pNotifyChangeHeader =
+                (PSMB_NOTIFY_CHANGE_HEADER)(PBYTE)pNTTransactState->pSetup;
+
+            ntStatus = SrvTreeFindFile_SMB_V1(
+                            pCtxSmb1,
+                            pNTTransactState->pTree,
+                            pNTTransactState->pNotifyChangeHeader->usFid,
+                            &pNTTransactState->pFile);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            pNTTransactState->stage = SRV_NTTRANSACT_STAGE_SMB_V1_ATTEMPT_IO;
+
+            // intentional fall through
+
+        case SRV_NTTRANSACT_STAGE_SMB_V1_ATTEMPT_IO:
+
+            ntStatus = SrvExecuteChangeNotify(pExecContext);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            pNTTransactState->stage = SRV_NTTRANSACT_STAGE_SMB_V1_BUILD_RESPONSE;
+
+            // intentional fall through
+
+        case SRV_NTTRANSACT_STAGE_SMB_V1_BUILD_RESPONSE:
+
+            ntStatus = SrvBuildChangeNotifyResponse(pExecContext);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            pNTTransactState->stage = SRV_NTTRANSACT_STAGE_SMB_V1_DONE;
+
+            // intentional fall through
+
+        case SRV_NTTRANSACT_STAGE_SMB_V1_DONE:
+
+            break;
+    }
+
+error:
+
+    return ntStatus;
+}
+
+static
+NTSTATUS
+SrvExecuteChangeNotify(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    return STATUS_NOT_IMPLEMENTED;
+}
+
+static
+NTSTATUS
+SrvBuildChangeNotifyResponse(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    return STATUS_NOT_IMPLEMENTED;
+}
 
 static
 NTSTATUS

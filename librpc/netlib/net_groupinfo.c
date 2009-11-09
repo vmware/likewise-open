@@ -30,10 +30,197 @@
 
 #include "includes.h"
 
+static
+DWORD
+NetAllocateLocalGroupInfo0(
+    PVOID  *ppCursor,
+    PDWORD  pdwSpaceLeft,
+    PVOID   pSource,
+    PDWORD  pdwSize
+    );
+
+
+static
+DWORD
+NetAllocateLocalGroupInfo1(
+    PVOID  *ppCursor,
+    PDWORD  pdwSpaceLeft,
+    PVOID   pSource,
+    PDWORD  pdwSize
+    );
+
+
 /*
  * push functions/macros transfer: net userinfo -> samr userinfo
  * pull functions/macros transfer: net userinfo <- samr userinfo
  */
+
+
+DWORD
+NetAllocateLocalGroupInfo(
+    PVOID   pInfoBuffer,
+    PDWORD  pdwSpaceLeft,
+    DWORD   dwLevel,
+    PVOID   pSource,
+    PDWORD  pdwSize
+    )
+{
+    DWORD err = ERROR_SUCCESS;
+    PVOID pCursor = pInfoBuffer;
+
+    switch (dwLevel)
+    {
+    case 0:
+        err = NetAllocateLocalGroupInfo0(&pCursor,
+                                         pdwSpaceLeft,
+                                         pSource,
+                                         pdwSize);
+        break;
+
+    case 1:
+        err = NetAllocateLocalGroupInfo1(&pCursor,
+                                         pdwSpaceLeft,
+                                         pSource,
+                                         pdwSize);
+        break;
+
+    default:
+        err = ERROR_INVALID_LEVEL;
+        break;
+    }
+    BAIL_ON_WINERR_ERROR(err);
+
+cleanup:
+    return err;
+
+error:
+    goto cleanup;
+}
+
+
+static
+DWORD
+NetAllocateLocalGroupInfo0(
+    PVOID  *ppCursor,
+    PDWORD  pdwSpaceLeft,
+    PVOID   pSource,
+    PDWORD  pdwSize
+    )
+{
+    DWORD err = ERROR_SUCCESS;
+    PVOID pCursor = NULL;
+    DWORD dwSpaceLeft = 0;
+    DWORD dwSize = 0;
+    PWSTR pwszName = (PWSTR)pSource;
+
+    if (pdwSpaceLeft)
+    {
+        dwSpaceLeft = *pdwSpaceLeft;
+    }
+
+    if (pdwSize)
+    {
+        dwSize = *pdwSize;
+    }
+
+    if (ppCursor)
+    {
+        pCursor = *ppCursor;
+    }
+
+    /* lgrpi0_name */
+    err = NetAllocBufferWC16String(&pCursor,
+                                   &dwSpaceLeft,
+                                   pwszName,
+                                   &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    if (pdwSpaceLeft)
+    {
+        *pdwSpaceLeft = dwSpaceLeft;
+    }
+
+    if (pdwSize)
+    {
+        *pdwSize = dwSize;
+    }
+
+cleanup:
+    return err;
+
+error:
+    goto cleanup;
+}
+
+
+static
+DWORD
+NetAllocateLocalGroupInfo1(
+    PVOID  *ppCursor,
+    PDWORD  pdwSpaceLeft,
+    PVOID   pSource,
+    PDWORD  pdwSize
+    )
+{
+    DWORD err = ERROR_SUCCESS;
+    PVOID pCursor = NULL;
+    DWORD dwSpaceLeft = 0;
+    DWORD dwSize = 0;
+    AliasInfo *pInfo = (AliasInfo*)pSource;
+    AliasInfoAll *pInfoAll = &pInfo->all;
+
+    if (pdwSpaceLeft)
+    {
+        dwSpaceLeft = *pdwSpaceLeft;
+    }
+
+    if (pdwSize)
+    {
+        dwSize = *pdwSize;
+    }
+
+    if (ppCursor)
+    {
+        pCursor = *ppCursor;
+    }
+
+    /* lgrpi1_name */
+    err = NetAllocBufferWC16StringFromUnicodeString(
+                                   &pCursor,
+                                   &dwSpaceLeft,
+                                   &pInfoAll->name,
+                                   &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* lgrpi1_comment */
+    err = NetAllocBufferWC16StringFromUnicodeString(
+                                   &pCursor,
+                                   &dwSpaceLeft,
+                                   &pInfoAll->description,
+                                   &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    if (pdwSpaceLeft)
+    {
+        *pdwSpaceLeft = dwSpaceLeft;
+    }
+
+    if (pdwSize)
+    {
+        *pdwSize = dwSize;
+    }
+
+    if (ppCursor)
+    {
+        *ppCursor = pCursor;
+    }
+
+cleanup:
+    return err;
+
+error:
+    goto cleanup;
+}
 
 
 NTSTATUS

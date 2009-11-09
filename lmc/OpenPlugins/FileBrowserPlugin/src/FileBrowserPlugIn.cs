@@ -47,7 +47,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
     {
         #region Class data
 
-        private enum OSTYPE
+        public enum OSTYPE
         {
             WINDOWS = 0,
             LINUX = 1
@@ -56,13 +56,28 @@ namespace Likewise.LMC.Plugins.FileBrowser
         private IPlugInContainer _container;
         private Hostinfo _hn;
         private FileBrowserNode _pluginNode;
-        private string _disconnectShare = null;
+        private LACTreeNode _currentNode = null;
         List<IPlugIn> _extPlugins = null;
         string LocalDiskRoot = "C:";
         List<string> RemoteShares = new List<string>();
-        OSTYPE _os = OSTYPE.LINUX;
+        OSTYPE _os = OSTYPE.WINDOWS;
 
         #endregion
+
+        public OSTYPE GetOsType()
+        {
+            return _os;
+        }
+
+        public List<string> GetActiveShares()
+        {
+            return RemoteShares;
+        }
+
+        public string GetLocalDiskRoot()
+        {
+            return LocalDiskRoot;
+        }
 
         #region IPlugIn Members
 
@@ -351,103 +366,65 @@ namespace Likewise.LMC.Plugins.FileBrowser
 
         public ContextMenu GetTreeContextMenu(LACTreeNode nodeClicked)
         {
-            this._disconnectShare = null;
+            FileBrowserNode node = nodeClicked as FileBrowserNode;
+            ContextMenu fileBrowserContextMenu = null;
+            MenuItem menuItem = null;
+            StandardPage fileBrowserPage = (StandardPage)nodeClicked.PluginPage;
 
-            if (nodeClicked == null)
+            _currentNode = nodeClicked;
+
+            if (fileBrowserPage == null)
             {
-                return null;
+                Type type = nodeClicked.NodeType;
+                object o = Activator.CreateInstance(type);
+                if (o is IPlugInPage)
+                {
+                    ((IPlugInPage)o).SetPlugInInfo(_container, nodeClicked.Plugin, nodeClicked, (LWTreeView)nodeClicked.TreeView, nodeClicked.sc);
+                }
             }
-            else
+
+            if (node == null)
             {
-                ContextMenu fileBrowserContextMenu = null;
-
-                StandardPage fileBrowserPage = (StandardPage)nodeClicked.PluginPage;
-
-                if (fileBrowserPage == null)
-                {
-                    Type type = nodeClicked.NodeType;
-                    object o = Activator.CreateInstance(type);
-                    if (o is IPlugInPage)
-                    {
-                        ((IPlugInPage)o).SetPlugInInfo(_container, nodeClicked.Plugin, nodeClicked, (LWTreeView)nodeClicked.TreeView, nodeClicked.sc);
-                    }
-                }
-                if (_pluginNode == nodeClicked)
-                {
-                }
-                else if (nodeClicked.Name.Trim().Equals(Resources.String_Network))
-                {
-                    fileBrowserContextMenu = new ContextMenu();
-
-                    MenuItem m_item = new MenuItem("Connect to share...", new EventHandler(cm_OnConnectToShare));
-                    fileBrowserContextMenu.MenuItems.Add(0, m_item);
-                }
-                else if (nodeClicked.Parent.Name.Trim().Equals(Resources.String_Network))
-                {
-                    fileBrowserContextMenu = new ContextMenu();
-
-                    MenuItem m_item = new MenuItem("Disconnect from share...", new EventHandler(cm_OnDisconnectShare));
-                    fileBrowserContextMenu.MenuItems.Add(0, m_item);
-                    this._disconnectShare = nodeClicked.Name;
-                }
-                else if (nodeClicked.Name.Trim().Equals(Resources.String_Computer))
-                {
-                    FilesDetailPage detailsPage = fileBrowserPage as FilesDetailPage;
-                    if (detailsPage != null)
-                    {
-                        fileBrowserContextMenu = detailsPage.GetTreeContextMenu();
-                    }
-                }
-                else if (nodeClicked.Name.Trim().Equals(Resources.String_Home))
-                {
-                    FilesDetailPage detailsPage = fileBrowserPage as FilesDetailPage;
-                    if (detailsPage != null)
-                    {
-                        fileBrowserContextMenu = detailsPage.GetTreeContextMenu();
-                    }
-                }
-                else if (nodeClicked.Name.Trim().Equals(Resources.String_Desktop))
-                {
-                    FilesDetailPage detailsPage = fileBrowserPage as FilesDetailPage;
-                    if (detailsPage != null)
-                    {
-                        fileBrowserContextMenu = detailsPage.GetTreeContextMenu();
-                    }
-                }
-                else if (nodeClicked.Name.Trim().Equals(Resources.String_Documents))
-                {
-                    FilesDetailPage detailsPage = fileBrowserPage as FilesDetailPage;
-                    if (detailsPage != null)
-                    {
-                        fileBrowserContextMenu = detailsPage.GetTreeContextMenu();
-                    }
-                }
-                else if (nodeClicked.Name.Trim().Equals(Resources.String_Music))
-                {
-                    FilesDetailPage detailsPage = fileBrowserPage as FilesDetailPage;
-                    if (detailsPage != null)
-                    {
-                        fileBrowserContextMenu = detailsPage.GetTreeContextMenu();
-                    }
-                }
-                else if (nodeClicked.Name.Trim().Equals(Resources.String_Pictures))
-                {
-                    FilesDetailPage detailsPage = fileBrowserPage as FilesDetailPage;
-                    if (detailsPage != null)
-                    {
-                        fileBrowserContextMenu = detailsPage.GetTreeContextMenu();
-                    }
-                }
-                else if (nodeClicked.Name.Trim().Equals(Resources.String_Videos))
-                {
-                    FilesDetailPage detailsPage = fileBrowserPage as FilesDetailPage;
-                    if (detailsPage != null)
-                    {
-                        fileBrowserContextMenu = detailsPage.GetTreeContextMenu();
-                    }
-                }
                 return fileBrowserContextMenu;
             }
+
+            if (node.FBNodeType == FileBrowserNode.FileBrowserNopeType.ROOT)
+            {
+                return fileBrowserContextMenu;
+            }
+
+            fileBrowserContextMenu = new ContextMenu();
+            menuItem = new MenuItem("Expand", cm_OnExpand);
+            fileBrowserContextMenu.MenuItems.Add(0, menuItem);
+
+            if (node.Name.Equals(Resources.String_Network))
+            {
+                menuItem = new MenuItem("Connect share", new EventHandler(cm_OnConnectToShare));
+                fileBrowserContextMenu.MenuItems.Add(menuItem);
+            }
+            else if (node.Parent.Name.Equals(Resources.String_Network))
+            {
+                menuItem = new MenuItem("Disconnect share", new EventHandler(cm_OnDisconnectShare));
+                fileBrowserContextMenu.MenuItems.Add(menuItem);
+            }
+
+            if (node.FBNodeType == FileBrowserNode.FileBrowserNopeType.SHARE ||
+                node.FBNodeType == FileBrowserNode.FileBrowserNopeType.DIRECTORY)
+            {
+                menuItem = new MenuItem("Copy", new EventHandler(cm_OnCopy));
+                fileBrowserContextMenu.MenuItems.Add(menuItem);
+            }
+
+            if (node.FBNodeType == FileBrowserNode.FileBrowserNopeType.DIRECTORY)
+            {
+                menuItem = new MenuItem("Move", new EventHandler(cm_OnMove));
+                fileBrowserContextMenu.MenuItems.Add(menuItem);
+
+                menuItem = new MenuItem("Rename", new EventHandler(cm_OnRename));
+                fileBrowserContextMenu.MenuItems.Add(menuItem);
+            }
+
+            return fileBrowserContextMenu;
         }
 
         public void SetSingleSignOn(bool useSingleSignOn)
@@ -649,14 +626,95 @@ namespace Likewise.LMC.Plugins.FileBrowser
 
         private void cm_OnDisconnectShare(object sender, EventArgs e)
         {
-            string name = this._disconnectShare;
-            WinError error = FileClient.FileClient.DeleteConnection(name);
+            string name = null;
 
-            // Update the RemoteShares list (for systems missing WNetEnumResource API
-            RemoteShares.Remove(name);
+            if (_currentNode != null)
+            {
+                name = _currentNode.Name;
 
-            this._pluginNode.Nodes.Remove(this._pluginNode.Nodes.Find(name, true)[0]);
-            RefreshNetworkTreeNode();
+                WinError error = FileClient.FileClient.DeleteConnection(name);
+
+                // Update the RemoteShares list (for systems missing WNetEnumResource API
+                RemoteShares.Remove(name);
+
+                this._pluginNode.Nodes.Remove(this._pluginNode.Nodes.Find(name, true)[0]);
+                RefreshNetworkTreeNode();
+            }
+        }
+
+        private void cm_OnExpand(object sender, EventArgs e)
+        {
+            if (_currentNode != null)
+            {
+                EnumChildren(_currentNode);
+                _currentNode.Expand();
+            }
+        }
+
+        private void cm_OnCopy(object sender, EventArgs e)
+        {
+            if (_currentNode != null)
+            {
+                FileBrowserNode node = _currentNode as FileBrowserNode;
+                string destination = "";
+
+                // Determine destingation to copy to
+                SelectDestinationDialog destinationDialog = new SelectDestinationDialog(node.Path, SelectDestinationDialog.SELECT_DESTINATION_OPERATION.COPY_DIRECTORY, this);
+
+                if (destinationDialog.ShowDialog() == DialogResult.OK)
+                {
+                    destination = destinationDialog.GetPath() + "\\" + node.Name;
+
+                    WinError error = FileClient.FileClient.apiCopyDirectory(node.Path, destination, true);
+
+                    if (error == WinError.ERROR_FILE_EXISTS)
+                    {
+                        destination = destinationDialog.GetPath() + "\\Copy of " + node.Name;
+                        error = FileClient.FileClient.apiCopyDirectory(node.Path, destination, true);
+                    }
+
+                    if (error != WinError.NO_ERROR)
+                    {
+                        string message = "Copy directory operation failed. Error: " + error.ToString();
+                        MessageBox.Show(message, "Could not copy directory", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
+            }
+        }
+
+        private void cm_OnMove(object sender, EventArgs e)
+        {
+            if (_currentNode != null)
+            {
+                FileBrowserNode node = _currentNode as FileBrowserNode;
+                string destination = "";
+
+                // Determine destingation to copy to
+                SelectDestinationDialog destinationDialog = new SelectDestinationDialog(node.Path, SelectDestinationDialog.SELECT_DESTINATION_OPERATION.MOVE_DIRECTORY, this);
+
+                if (destinationDialog.ShowDialog() == DialogResult.OK)
+                {
+                    destination = destinationDialog.GetPath() + "\\" + node.Name;
+
+                    WinError error = FileClient.FileClient.apiMoveDirectory(node.Path, destination);
+
+                    if (error == WinError.ERROR_FILE_EXISTS)
+                    {
+                        destination = destinationDialog.GetPath() + "\\Copy of " + node.Name;
+                        error = FileClient.FileClient.apiMoveDirectory(node.Path, destination);
+                    }
+
+                    if (error != WinError.NO_ERROR)
+                    {
+                        string message = "Move directory operation failed. Error: " + error.ToString();
+                        MessageBox.Show(message, "Could not move directory", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
+            }
+        }
+
+        private void cm_OnRename(object sender, EventArgs e)
+        {
         }
 
         #endregion

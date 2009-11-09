@@ -952,6 +952,7 @@ typedef struct _SRV_SET_INFO_STATE_SMB_V2
     ULONG                         ulData2Length;
 
     PLWIO_SRV_FILE_2              pFile;
+    PLWIO_SRV_FILE_2              pRootDir;
 
 } SRV_SET_INFO_STATE_SMB_V2, *PSRV_SET_INFO_STATE_SMB_V2;
 

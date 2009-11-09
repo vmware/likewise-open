@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,68 +28,75 @@
  * license@likewisesoftware.com
  */
 
-#ifndef _GROUP_INFO_H_
-#define _GROUP_INFO_H_
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        cfg.c
+ *
+ * Abstract:
+ *
+ *        NTLM Security registry settings
+ *
+ * Authors: Kyle Stemen <kstemen@likewise.com>
+ *
+ */
 
+#include "ntlmsrvapi.h"
 
 DWORD
-NetAllocateLocalGroupInfo(
-    PVOID   pInfoBuffer,
-    PDWORD  pdwSpaceLeft,
-    DWORD   dwLevel,
-    PVOID   pSource,
-    PDWORD  pdwSize
-    );
+NtlmReadRegistry(
+    OUT PNTLM_CONFIG pConfig
+    )
+{
+    DWORD dwError = LW_ERROR_SUCCESS;
 
+    pConfig->bSendNTLMv2 = FALSE;
+    pConfig->bSupportUnicode = TRUE;
+    pConfig->bNegotiateKey = TRUE;
 
-NTSTATUS
-PullLocalGroupInfo0(
-    void **buffer,
-    AliasInfo *ai,
-    int num
-    );
+    LSA_CONFIG configItems[] =
+    {
+        {
+            "SendNTLMv2",
+            TRUE,
+            LsaTypeBoolean,
+            0,
+            MAXDWORD,
+            NULL,
+            &pConfig->bSendNTLMv2
+        },
+        {
+            "SupportUnicode",
+            TRUE,
+            LsaTypeBoolean,
+            0,
+            MAXDWORD,
+            NULL,
+            &pConfig->bSupportUnicode
+        },
+        {
+            "NegotiateKey",
+            TRUE,
+            LsaTypeBoolean,
+            0,
+            MAXDWORD,
+            NULL,
+            &pConfig->bNegotiateKey
+        },
+    };
 
+    dwError = LsaProcessConfig(
+                "Services\\lsass\\Parameters\\NTLM",
+                "Policy\\Services\\lsass\\Parameters\\NTLM",
+                configItems,
+                sizeof(configItems)/sizeof(configItems[0]));
+    BAIL_ON_LSA_ERROR(dwError);
 
-NTSTATUS
-PullLocalGroupInfo1(
-    void **buffer,
-    AliasInfo *ai,
-    int num
-    );
+cleanup:
+    return dwError;
 
-
-NTSTATUS
-PushLocalGroupInfo0(
-    AliasInfo **sinfo,
-    uint32 *slevel,
-    LOCALGROUP_INFO_0 *ninfo
-    );
-
-
-NTSTATUS
-PushLocalGroupInfo1(
-    AliasInfo **sinfo,
-    uint32 *slevel,
-    LOCALGROUP_INFO_1 *ninfo
-    );
-
-
-NTSTATUS
-PushLocalGroupInfo1002(
-    AliasInfo **sinfo,
-    uint32 *slevel,
-    LOCALGROUP_INFO_1002 *ninfo
-    );
-
-
-#endif /* _GROUP_INFO_H_ */
-
-
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/
+error:
+    goto cleanup;
+}

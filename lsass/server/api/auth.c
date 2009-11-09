@@ -161,6 +161,7 @@ LsaSrvAuthenticateUserEx(
     BOOLEAN bInLock = FALSE;
     PLSA_AUTH_PROVIDER pProvider = NULL;
     HANDLE hProvider = (HANDLE)NULL;
+    PLSA_LOGIN_NAME_INFO pLoginInfo = NULL;
 
     BAIL_ON_INVALID_POINTER(pUserParams);
     BAIL_ON_INVALID_POINTER(ppUserInfo);
@@ -205,6 +206,18 @@ LsaSrvAuthenticateUserEx(
 	    dwError = LW_ERROR_INVALID_PARAMETER;
 	    goto cleanup;
 	    break;
+    }
+
+    /* Fix up the name.  This allows us to handle a UPN */
+    dwError = LsaCrackDomainQualifiedName(pUserParams->pszAccountName,
+                                          NULL,
+                                          &pLoginInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (pLoginInfo->nameType == NameType_UPN)
+    {
+        /* If they gave us a UPN, our domain MUST be NULL */
+        LW_SAFE_FREE_STRING(pUserParams->pszDomain);
     }
 
     /* Do the NTLM authentication */
@@ -268,6 +281,11 @@ cleanup:
     }
 
     LEAVE_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
+
+    if (pLoginInfo)
+    {
+        LsaFreeNameInfo(pLoginInfo);
+    }
 
     if (!dwError)
     {

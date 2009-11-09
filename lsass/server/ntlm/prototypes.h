@@ -336,7 +336,7 @@ NtlmCreateResponseMessage(
     IN DWORD dwNtRespType,
     IN DWORD dwLmRespType,
     OUT PDWORD pdwSize,
-    OUT PNTLM_RESPONSE_MESSAGE *ppRespMsg,
+    OUT PNTLM_RESPONSE_MESSAGE_V1 *ppRespMsg,
     OUT PBYTE pLmUserSessionKey,
     OUT PBYTE pNtlmUserSessionKey
     );
@@ -345,7 +345,7 @@ VOID
 NtlmStoreSecondaryKey(
     IN PBYTE pMasterKey,
     IN PBYTE pSecondaryKey,
-    IN OUT PNTLM_RESPONSE_MESSAGE pMessage
+    IN OUT PNTLM_RESPONSE_MESSAGE_V1 pMessage
     );
 
 VOID
@@ -446,7 +446,7 @@ DWORD
 NtlmCreateResponseContext(
     IN PNTLM_CHALLENGE_MESSAGE pChlngMsg,
     IN NTLM_CRED_HANDLE hCred,
-    IN OUT PNTLM_CONTEXT* ppNtlmContext,
+    OUT PNTLM_CONTEXT* ppNtlmContext,
     OUT PSecBuffer pOutput
     );
 
@@ -458,7 +458,7 @@ NtlmFixUserName(
 
 DWORD
 NtlmCreateValidatedContext(
-    IN PNTLM_RESPONSE_MESSAGE pNtlmRespMsg,
+    IN PNTLM_RESPONSE_MESSAGE_V1 pNtlmRespMsg,
     IN DWORD dwMsgSize,
     IN DWORD NegotiatedFlags,
     IN PBYTE pSessionKey,
@@ -475,7 +475,7 @@ NtlmInitializeKeys(
 DWORD
 NtlmValidateResponse(
     IN HANDLE Handle,
-    IN PNTLM_RESPONSE_MESSAGE pRespMsg,
+    IN PNTLM_RESPONSE_MESSAGE_V1 pRespMsg,
     IN DWORD dwRespMsgSize,
     IN PNTLM_CONTEXT pChlngCtxt,
     OUT BYTE pSessionKey[NTLM_SESSION_KEY_SIZE]
@@ -483,21 +483,21 @@ NtlmValidateResponse(
 
 DWORD
 NtlmGetUserNameFromResponse(
-    IN PNTLM_RESPONSE_MESSAGE pRespMsg,
+    IN PNTLM_RESPONSE_MESSAGE_V1 pRespMsg,
     IN BOOLEAN bUnicode,
     OUT PSTR* ppUserName
     );
 
 DWORD
 NtlmGetDomainNameFromResponse(
-    IN PNTLM_RESPONSE_MESSAGE pRespMsg,
+    IN PNTLM_RESPONSE_MESSAGE_V1 pRespMsg,
     IN BOOLEAN bUnicode,
     OUT PSTR* ppDomainName
     );
 
 DWORD
 NtlmGetWorkstationFromResponse(
-    IN PNTLM_RESPONSE_MESSAGE pRespMsg,
+    IN PNTLM_RESPONSE_MESSAGE_V1 pRespMsg,
     IN BOOLEAN bUnicode,
     OUT PSTR* ppWorkstation
     );
@@ -531,7 +531,7 @@ NtlmCreateNtlmV2Hash(
 
 VOID
 NtlmGenerateLanManagerSessionKey(
-    IN PNTLM_RESPONSE_MESSAGE pMessage,
+    IN PNTLM_RESPONSE_MESSAGE_V1 pMessage,
     IN PBYTE pLmUserSessionKey,
     OUT PBYTE pLanManagerSessionKey
     );
@@ -567,6 +567,11 @@ NtlmGetSecBuffers(
     PSecBuffer* ppToken,
     PSecBuffer* ppData,
     PSecBuffer* ppPadding
+    );
+
+DWORD
+NtlmReadRegistry(
+    OUT PNTLM_CONFIG pConfig
     );
 
 #endif /* __NTLM_PROTOTYPES_H__ */

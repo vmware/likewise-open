@@ -131,6 +131,17 @@ NetAllocateUserInfo(
     );
 
 
+DWORD
+NetAllocateSamrUserInfo(
+    PVOID   pInfoBuffer,
+    PDWORD  pdwSamrLevel,
+    PDWORD  pdwSpaceLeft,
+    DWORD   dwLevel,
+    PVOID   pSource,
+    PDWORD  pdwSize
+    );
+
+
 NTSTATUS
 PushUserInfoAdd(
     UserInfo **ppSamrUserInfo,
@@ -140,12 +151,15 @@ PushUserInfoAdd(
     PDWORD     pdwParmErr
     );
 
+
 NTSTATUS
-EncPasswordEx(
-    BYTE     PwBuf[532],
+NetEncPasswordEx(
+    BYTE     PasswordBuffer[532],
     PWSTR    pwszPassword,
     DWORD    dwPasswordLen,
-    NetConn *pConn);
+    NetConn *pConn
+    );
+
 
 NTSTATUS
 PushUserInfo0(

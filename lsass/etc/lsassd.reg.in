@@ -12,6 +12,9 @@
 "LogNetworkConnectionEvents"=dword:00000001
 "LogLevel"="error"
 
+[HKEY_THIS_MACHINE\Services\lsass\Parameters\NTLM]
+"SendNTLMv2"=dword:00000000
+
 [HKEY_THIS_MACHINE\Services\lsass\Parameters\PAM]
 "LogLevel"="error"
 "DisplayMotd"=dword:00000000

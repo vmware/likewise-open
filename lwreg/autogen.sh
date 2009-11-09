@@ -1,2 +1,3 @@
 #!/bin/sh
-autoreconf -fi
+autoreconf -fi || exit $?
+cd libedit && autoreconf -fi && cd $ROOT || exit $?

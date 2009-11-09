@@ -123,7 +123,7 @@ NetUserAdd(
 
         pUserInfo26->password_len = wc16slen(pNetUserInfo->password);
 
-        status = EncPasswordEx(pUserInfo26->password.data,
+        status = NetEncPasswordEx(pUserInfo26->password.data,
                                pNetUserInfo->password,
                                pUserInfo26->password_len,
                                pConn);

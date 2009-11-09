@@ -11,6 +11,7 @@ full_subdirs=         \
     logging_r         \
     parse             \
     server            \
+    libedit           \
     shellutil         \
     test              \
     shell

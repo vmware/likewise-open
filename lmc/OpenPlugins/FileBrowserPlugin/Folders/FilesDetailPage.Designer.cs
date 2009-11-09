@@ -186,6 +186,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
             this.Controls.Add(this.panel1);
             this.HelpKeyword = "likewise.chm::/Centeris_Likewise_Console/File_and_Print/Open_Files_Subtab.htm";
             this.Name = "FilesDetailPage";
+            this.MouseClick += new System.Windows.Forms.MouseEventHandler(this.lvFilePage_MouseClick);
             this.Controls.SetChildIndex(this.pnlHeader, 0);
             this.Controls.SetChildIndex(this.pnlActions, 0);
             this.Controls.SetChildIndex(this.panel1, 0);

@@ -58,7 +58,7 @@
       <arg value="/PDB:${build.meta.current}/${local.output}.pdb" />
     </link>
     <exec program="mt.exe">
-        <arg line="-manifest libunistr.dll.manifest -outputresource:${build.meta.current}/${local.output}.dll;2" />
+        <arg line='-manifest libunistr.dll.manifest -outputresource:"${build.meta.current}/${local.output}.dll;2"' />
     </exec>
     <copy todir="${build.dist.os}">
       <fileset basedir="${build.meta.current}">

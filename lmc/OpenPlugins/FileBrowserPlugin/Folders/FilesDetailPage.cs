@@ -59,7 +59,8 @@ namespace Likewise.LMC.Plugins.FileBrowser
 
         #region Constructor
 
-        public FilesDetailPage()
+        public FilesDetailPage(
+            )
         {
             InitializeComponent();
 
@@ -74,7 +75,14 @@ namespace Likewise.LMC.Plugins.FileBrowser
         #endregion
 
         #region IPlugInPage Members
-        public override void SetPlugInInfo(IPlugInContainer container, IPlugIn pi, LACTreeNode treeNode, LWTreeView lmctreeview, CServerControl sc)
+
+        public override void SetPlugInInfo(
+            IPlugInContainer container,
+            IPlugIn pi,
+            LACTreeNode treeNode,
+            LWTreeView lmctreeview,
+            CServerControl sc
+            )
         {
             base.SetPlugInInfo(container, pi, treeNode, lmctreeview, sc);
             bEnableActionMenu = false;
@@ -83,7 +91,8 @@ namespace Likewise.LMC.Plugins.FileBrowser
             Refresh();
         }
 
-        public override void Refresh()
+        public override void Refresh(
+            )
         {
             List<FileItem> FileList = null;
 
@@ -122,156 +131,259 @@ namespace Likewise.LMC.Plugins.FileBrowser
 
                 if (!File.IsDirectory)
                 {
-                    if (File.CreationTime != new DateTime())
-                    {
-                        creation = File.CreationTime.ToString();
-                    }
-
-                    if (File.LastWriteTime != new DateTime())
-                    {
-                        modified = File.LastWriteTime.ToString();
-                    }
-
-                    size = File.FileSize.ToString() + " KB";
                     type = "File";
                 }
 
+                if (File.CreationTime != new DateTime())
+                {
+                    creation = File.CreationTime.ToString();
+                }
+
+                if (File.LastWriteTime != new DateTime())
+                {
+                    modified = File.LastWriteTime.ToString();
+                }
+
+                size = File.FileSize.ToString() + " KB";
                 string[] file = { File.FileName, creation, modified, type, size };
 
                 ListViewItem lvItem = new ListViewItem(file);
                 lvFilePage.Items.Add(lvItem);
             }
         }
+
+        #endregion
+
+        #region File operations
+
+        private void ShowFileProperties(
+            ListViewItem item
+            )
+        {
+            string message = "Need to show properties for file: " + item.Text;
+            MessageBox.Show(message);
+        }
+
+        private void ShowDirectoryProperties(
+            ListViewItem item
+            )
+        {
+            string message = "Need to show properties for directory: " + item.Text;
+            MessageBox.Show(message);
+        }
+
+        private void DoFileDelete(
+            ListViewItem item
+            )
+        {
+            FileBrowserNode node = base.TreeNode as FileBrowserNode;
+            DialogResult result = MessageBox.Show("Are you sure that you want to delete the file called: " + item.Text + "?",
+                                      "File Browser",
+                                      MessageBoxButtons.YesNo);
+
+            if (result == DialogResult.Yes)
+            {
+                string path = node.Path + "\\" + item.Text;
+                WinError error = FileClient.FileClient.apiDeleteFile(path);
+
+                if (error == WinError.NO_ERROR)
+                {
+                    lvFilePage.BeginUpdate();
+                    lvFilePage.Items.Remove(item);
+                    lvFilePage.EndUpdate();
+                    Refresh();
+                }
+            }
+        }
+
+        private void DoDirectoryDelete(
+            ListViewItem item
+            )
+        {
+            FileBrowserNode node = base.TreeNode as FileBrowserNode;
+            DialogResult result = MessageBox.Show("Are you sure that you want to delete the directory called: " + item.Text + "?",
+                                      "File Browser",
+                                      MessageBoxButtons.YesNo);
+
+            if (result == DialogResult.Yes)
+            {
+                string path = node.Path + "\\" + item.Text;
+                WinError error = FileClient.FileClient.apiRemoveDirectory(path);
+
+                if (error == WinError.NO_ERROR)
+                {
+                    lvFilePage.BeginUpdate();
+                    lvFilePage.Items.Remove(item);
+                    lvFilePage.EndUpdate();
+                    Refresh();
+                }
+            }
+        }
+
+        private void DoFileMove(
+            ListViewItem item
+            )
+        {
+            FileBrowserNode node = base.TreeNode as FileBrowserNode;
+            string destination = "";
+
+            // Determine destingation to move to
+            SelectDestinationDialog destinationDialog = new SelectDestinationDialog(node.Path, SelectDestinationDialog.SELECT_DESTINATION_OPERATION.MOVE_FILE, plugin);
+
+            if (destinationDialog.ShowDialog() == DialogResult.OK)
+            {
+                destination = destinationDialog.GetPath() + "\\" + item.Text;
+
+                string path = node.Path + "\\" + item.Text;
+                WinError error = FileClient.FileClient.apiMoveFile(path, destination);
+
+                if (error == WinError.NO_ERROR)
+                {
+                    lvFilePage.BeginUpdate();
+                    lvFilePage.Items.Remove(item);
+                    lvFilePage.EndUpdate();
+                    Refresh();
+                }
+                else
+                {
+                    string message = "Move file operation failed. Error: " + error.ToString();
+                    MessageBox.Show(message, "Could not move file", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        private void DoDirectoryMove(
+            ListViewItem item
+            )
+        {
+            FileBrowserNode node = base.TreeNode as FileBrowserNode;
+            string destination = "";
+
+            // Determine destingation to move to
+            SelectDestinationDialog destinationDialog = new SelectDestinationDialog(node.Path, SelectDestinationDialog.SELECT_DESTINATION_OPERATION.MOVE_DIRECTORY, plugin);
+
+            if (destinationDialog.ShowDialog() == DialogResult.OK)
+            {
+                destination = destinationDialog.GetPath() + "\\" + item.Text;
+
+                string path = node.Path + "\\" + item.Text;
+                WinError error = FileClient.FileClient.apiMoveDirectory(path, destination);
+
+                if (error == WinError.NO_ERROR)
+                {
+                    lvFilePage.BeginUpdate();
+                    lvFilePage.Items.Remove(item);
+                    lvFilePage.EndUpdate();
+                    Refresh();
+                }
+                else
+                {
+                    string message = "Move directory operation failed. Error: " + error.ToString();
+                    MessageBox.Show(message, "Could not move directory", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        private void DoFileCopy(
+            ListViewItem item
+            )
+        {
+            FileBrowserNode node = base.TreeNode as FileBrowserNode;
+            string destination = "";
+
+            // Determine destingation to copy to
+            SelectDestinationDialog destinationDialog = new SelectDestinationDialog(node.Path, SelectDestinationDialog.SELECT_DESTINATION_OPERATION.COPY_FILE, plugin);
+
+            if (destinationDialog.ShowDialog() == DialogResult.OK)
+            {
+                destination = destinationDialog.GetPath() + "\\" + item.Text;
+
+                string path = node.Path + "\\" + item.Text;
+                WinError error = FileClient.FileClient.apiCopyFile(path, destination, true);
+
+                if (error == WinError.ERROR_FILE_EXISTS)
+                {
+                    destination = destinationDialog.GetPath() + "\\Copy of " + item.Text;
+                    error = FileClient.FileClient.apiCopyFile(path, destination, true);
+                }
+
+                if (error == WinError.NO_ERROR)
+                {
+                    Refresh();
+                }
+                else
+                {
+                    string message = "Copy file operation failed. Error: " + error.ToString();
+                    MessageBox.Show(message, "Could not copy file", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        private void DoDirectoryCopy(
+            ListViewItem item
+            )
+        {
+            FileBrowserNode node = base.TreeNode as FileBrowserNode;
+            string destination = "";
+
+            // Determine destingation to copy to
+            SelectDestinationDialog destinationDialog = new SelectDestinationDialog(node.Path, SelectDestinationDialog.SELECT_DESTINATION_OPERATION.COPY_DIRECTORY, plugin);
+
+            if (destinationDialog.ShowDialog() == DialogResult.OK)
+            {
+                destination = destinationDialog.GetPath() + "\\" + item.Text;
+
+                string path = node.Path + "\\" + item.Text;
+                WinError error = FileClient.FileClient.apiCopyDirectory(path, destination, true);
+
+                if (error == WinError.ERROR_FILE_EXISTS)
+                {
+                    destination = destinationDialog.GetPath() + "\\Copy of " + item.Text;
+                    error = FileClient.FileClient.apiCopyDirectory(path, destination, true);
+                }
+
+                if (error == WinError.NO_ERROR)
+                {
+                    Refresh();
+                }
+                else
+                {
+                    string message = "Copy directory operation failed. Error: " + error.ToString();
+                    MessageBox.Show(message, "Could not copy directory", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
         #endregion
 
         #region Helper functions
 
-        public ContextMenu GetTreeContextMenu()
+        public ContextMenu GetTreeContextMenu(
+            )
         {
             ContextMenu cm = new ContextMenu();
 
-            MenuItem m_Item = new MenuItem("Disconnect &All Open Files", new EventHandler(On_MenuClick));
-            cm.MenuItems.Add(m_Item);
-
-            m_Item = new MenuItem("-");
-            cm.MenuItems.Add(m_Item);
-
-            m_Item = new MenuItem("All Tas&ks", new EventHandler(On_MenuClick));
-
-            MenuItem innerM_Item = new MenuItem("Disconnect &All Open Files", new EventHandler(On_MenuClick));
-            m_Item.MenuItems.Add(innerM_Item);
-            cm.MenuItems.Add(m_Item);
-
-            m_Item = new MenuItem("-");
-            cm.MenuItems.Add(m_Item);
-
-            m_Item = new MenuItem("&Refresh", new EventHandler(On_MenuClick));
-            cm.MenuItems.Add(m_Item);
-
-            m_Item = new MenuItem("-");
-            cm.MenuItems.Add(m_Item);
-
-            m_Item = new MenuItem("&Help", new EventHandler(On_MenuClick));
-            cm.MenuItems.Add(m_Item);
+            // Not used
 
             return cm;
         }
 
-        private void On_MenuClick(object sender, EventArgs e)
+        private void On_MenuClick(
+            object sender,
+            EventArgs e
+            )
         {
-            MenuItem m = sender as MenuItem;
-    /*
-            if (m != null && m.Text.Trim().Equals("Disconnect &All Open Files"))
-            {
-                DialogResult dlg = MessageBox.Show(this, "Are you sure you wish to close all files?",
-                                 CommonResources.GetString("Caption_Console"),
-                                 MessageBoxButtons.YesNo, MessageBoxIcon.None,
-                                 MessageBoxDefaultButton.Button1);
-
-                if (dlg == DialogResult.OK)
-                {
-                    Hostinfo hn = ctx as Hostinfo;
-
-                    foreach (ListViewItem Item in lvFilePage.Items)
-                    {
-                        string sFileId = (string)Item.SubItems[4].Text;
-
-                        try
-                        {
-                            int nFileId = int.Parse(sFileId);
-
-                            if (plugin.fileHandle != null)
-                                SharesAPI.CloseFile(IntPtr.Zero, hn.creds, hn.hostName, nFileId);
-                            else
-                                SharesAPI.CloseFile(plugin.fileHandle.Handle, hn.creds, hn.hostName, nFileId);
-                        }
-                        catch (Exception ex)
-                        {
-                            string sMsg = string.Format(Resources.Error_UnableToCloseFile, ex.Message);
-                            container.ShowError(sMsg);
-                            break;
-                        }
-                    }
-                    //Just do refresh once the files got closed on the treenode.
-                    treeNode.sc.ShowControl(treeNode);
-                }
-            }
-    */
-
-            if (m != null && m.Text.Trim().Equals("&Refresh"))
-            {
-                treeNode.sc.ShowControl(treeNode);
-                return;
-            }
-
-            if (m != null && m.Text.Trim().Equals("&Help"))
-            {
-                ProcessStartInfo psi = new ProcessStartInfo();
-                psi.UseShellExecute = true;
-                psi.FileName = CommonResources.GetString("LAC_Help");
-                psi.Verb = "open";
-                psi.WindowStyle = ProcessWindowStyle.Normal;
-                Process.Start(psi);
-                return;
-            }
+            // Not used
         }
 
         #endregion
 
         #region Event handlers
-        private void acClose_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
-        {
-            if (lvFilePage.SelectedItems.Count != 1)
-            {
-                return;
-            }
 
-    /*
-            // get the accessing machine and user name of the session to close
-            ListViewItem Item = lvFilePage.SelectedItems[0];
-            string sFileId = (string)Item.SubItems[0].Text;
-
-            try
-            {
-                int nFileId = int.Parse(sFileId);
-                Hostinfo hn = ctx as Hostinfo;
-
-                if (plugin.fileHandle != null)
-                    SharesAPI.CloseFile(IntPtr.Zero, hn.creds, hn.hostName, nFileId);
-                else
-                    SharesAPI.CloseFile(plugin.fileHandle.Handle, hn.creds, hn.hostName, nFileId);
-
-                Refresh();
-            }
-            catch (Exception ex)
-            {
-                string sMsg = string.Format(Resources.Error_UnableToCloseFile, ex.Message);
-                container.ShowError(sMsg);
-            }
-    */
-        }
-
-        private void lvFilePage_SelectedIndexChanged(object sender, EventArgs e)
+        private void lvFilePage_SelectedIndexChanged(
+            object sender,
+            EventArgs e
+            )
         {
             if (lvFilePage.SelectedItems.Count != 1)
             {
@@ -292,7 +404,10 @@ namespace Likewise.LMC.Plugins.FileBrowser
             }
         }
 
-        private void lvFilePage_MouseUp(object sender, MouseEventArgs e)
+        private void lvFilePage_MouseUp(
+            object sender,
+            MouseEventArgs e
+            )
         {
             ListView lvSender = sender as ListView;
             if (lvSender != null && e.Button == MouseButtons.Right && lvFilePage.SelectedItems.Count == 1)
@@ -309,7 +424,10 @@ namespace Likewise.LMC.Plugins.FileBrowser
             }
         }
 
-        private void lvFilePage_ColumnClick(object sender, ColumnClickEventArgs e)
+        private void lvFilePage_ColumnClick(
+            object sender,
+            ColumnClickEventArgs e
+            )
         {
             // Determine if clicked column is already the column that is being sorted.
             if (e.Column == lvwColumnSorter.SortColumn)
@@ -335,7 +453,10 @@ namespace Likewise.LMC.Plugins.FileBrowser
             this.lvFilePage.Sort();
         }
 
-        private void lvFilePage_MouseClick(object sender, MouseEventArgs e)
+        private void lvFilePage_MouseClick(
+            object sender,
+            MouseEventArgs e
+            )
         {
             if (e.Button == MouseButtons.Right)
             {
@@ -353,19 +474,14 @@ namespace Likewise.LMC.Plugins.FileBrowser
 
                     hit.Item.Selected = true;
 
-                    if (hit.Item.SubItems[3].Text == "Directory")
+                    if (hit.Item.SubItems[3].Text == "Directory" ||
+                        hit.Item.SubItems[3].Text == "File")
                     {
                         contextMenuStrip.Items.Clear();
-                        contextMenuStrip.Items.Add("Delete directory");
-                        contextMenuStrip.Items.Add("Move directory");
-                        contextMenuStrip.Items.Add("Copy directory");
-                    }
-                    else if (hit.Item.SubItems[3].Text == "File")
-                    {
-                        contextMenuStrip.Items.Clear();
-                        contextMenuStrip.Items.Add("Delete file");
-                        contextMenuStrip.Items.Add("Move file");
-                        contextMenuStrip.Items.Add("Copy file");
+                        contextMenuStrip.Items.Add("Properties");
+                        contextMenuStrip.Items.Add("Delete");
+                        contextMenuStrip.Items.Add("Move");
+                        contextMenuStrip.Items.Add("Copy");
                     }
                     else
                     {
@@ -378,11 +494,15 @@ namespace Likewise.LMC.Plugins.FileBrowser
             }
         }
 
-        private void contextMenuStrip_ItemClicked(object sender, ToolStripItemClickedEventArgs e)
+        private void contextMenuStrip_ItemClicked(
+            object sender,
+            ToolStripItemClickedEventArgs e
+            )
         {
             FileBrowserNode node = base.TreeNode as FileBrowserNode;
             int count = lvFilePage.SelectedItems.Count;
             string option = e.ClickedItem.Text;
+            FileBrowserNode.FileBrowserNopeType fbtype = FileBrowserNode.FileBrowserNopeType.UNKNOWN;
 
             if (node == null)
             {
@@ -397,12 +517,75 @@ namespace Likewise.LMC.Plugins.FileBrowser
             }
 
             ListViewItem item = lvFilePage.SelectedItems[0];
+            if (item.SubItems[3].Text == "Directory")
+            {
+                fbtype = FileBrowserNode.FileBrowserNopeType.DIRECTORY;
+            }
 
-            string  message = "Want to " + option + ":  " + item.Text;
-            MessageBox.Show(message);
+            if (item.SubItems[3].Text == "File")
+            {
+                fbtype = FileBrowserNode.FileBrowserNopeType.FILE;
+            }
+
+            switch (option)
+            {
+                case "Properties":
+                    if (fbtype == FileBrowserNode.FileBrowserNopeType.DIRECTORY)
+                    {
+                        ShowDirectoryProperties(item);
+                    }
+
+                    if (fbtype == FileBrowserNode.FileBrowserNopeType.FILE)
+                    {
+                        ShowFileProperties(item);
+                    }
+                    break;
+
+                case "Delete":
+                    if (fbtype == FileBrowserNode.FileBrowserNopeType.DIRECTORY)
+                    {
+                        DoDirectoryDelete(item);
+                    }
+
+                    if (fbtype == FileBrowserNode.FileBrowserNopeType.FILE)
+                    {
+                        DoFileDelete(item);
+                    }
+                    break;
+
+                case "Move":
+                    if (fbtype == FileBrowserNode.FileBrowserNopeType.DIRECTORY)
+                    {
+                        DoDirectoryMove(item);
+                    }
+
+                    if (fbtype == FileBrowserNode.FileBrowserNopeType.FILE)
+                    {
+                        DoFileMove(item);
+                    }
+                    break;
+
+                case "Copy":
+                    if (fbtype == FileBrowserNode.FileBrowserNopeType.DIRECTORY)
+                    {
+                        DoDirectoryCopy(item);
+                    }
+
+                    if (fbtype == FileBrowserNode.FileBrowserNopeType.FILE)
+                    {
+                        DoFileCopy(item);
+                    }
+                    break;
+
+                default:
+                    break;
+            }
         }
 
-        private void lvFilePage_DoubleClick(object sender, EventArgs e)
+        private void lvFilePage_DoubleClick(
+            object sender,
+            EventArgs
+            e)
         {
             FileBrowserNode parent = base.TreeNode as FileBrowserNode;
             int count = lvFilePage.SelectedItems.Count;

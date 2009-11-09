@@ -65,11 +65,13 @@ NetUserGetInfo(
 
     NTSTATUS status = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
+    PWSTR pwszNameCopy = NULL;
     NetConn *pConn = NULL;
     handle_t hSamrBinding = NULL;
     ACCOUNT_HANDLE hUser = NULL;
     DWORD dwUserRid = 0;
     UserInfo *pSamrUserInfo = NULL;
+    PVOID pSourceBuffer = NULL;
     DWORD dwSize = 0;
     DWORD dwSpaceAvailable = 0;
     PVOID pBuffer = NULL;
@@ -78,7 +80,15 @@ NetUserGetInfo(
     BAIL_ON_INVALID_PTR(pwszUsername);
     BAIL_ON_INVALID_PTR(ppBuffer);
 
-    if (dwLevel != 20)
+    if (!(dwLevel == 0 ||
+          dwLevel == 1 ||
+          dwLevel == 2 ||
+          dwLevel == 3 ||
+          dwLevel == 4 ||
+          dwLevel == 10 ||
+          dwLevel == 11 ||
+          dwLevel == 20 ||
+          dwLevel == 23))
     {
         err = ERROR_INVALID_LEVEL;
         BAIL_ON_WINERR_ERROR(err);
@@ -103,16 +113,29 @@ NetUserGetInfo(
 
     hSamrBinding = pConn->samr.bind;
 
-    status = SamrQueryUserInfo(hSamrBinding,
-                               hUser,
-                               dwSamrInfoLevel,
-                               &pSamrUserInfo);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    if (dwLevel == 0)
+    {
+        err = LwAllocateWc16String(&pwszNameCopy,
+                                   pwszUsername);
+        BAIL_ON_WINERR_ERROR(err);
+
+        pSourceBuffer = pwszNameCopy;
+    }
+    else
+    {
+        status = SamrQueryUserInfo(hSamrBinding,
+                                   hUser,
+                                   dwSamrInfoLevel,
+                                   &pSamrUserInfo);
+        BAIL_ON_NTSTATUS_ERROR(status);
+
+        pSourceBuffer = &pSamrUserInfo->info21;
+    }
 
     err = NetAllocateUserInfo(NULL,
                               NULL,
                               dwLevel,
-                              pSamrUserInfo,
+                              pSourceBuffer,
                               &dwSize);
     BAIL_ON_WINERR_ERROR(err);
 
@@ -127,7 +150,7 @@ NetUserGetInfo(
     err = NetAllocateUserInfo(pBuffer,
                               &dwSpaceAvailable,
                               dwLevel,
-                              pSamrUserInfo,
+                              pSourceBuffer,
                               &dwSize);
     BAIL_ON_WINERR_ERROR(err);
 
@@ -141,6 +164,8 @@ cleanup:
     {
         SamrFreeMemory(pSamrUserInfo);
     }
+
+    LW_SAFE_FREE_MEMORY(pwszNameCopy);
 
     if (pCreds)
     {

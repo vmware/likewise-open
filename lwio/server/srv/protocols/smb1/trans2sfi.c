@@ -478,7 +478,12 @@ SrvRenameFile(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    if (!pTrans2State->hDir)
+    if (pTrans2State->pRootDir)
+    {
+        ((PFILE_RENAME_INFORMATION)pTrans2State->pData2)->RootDirectory =
+                                                  pTrans2State->pRootDir->hFile;
+    }
+    else if (!pTrans2State->hDir)
     {
         LWIO_LOCK_RWMUTEX_SHARED(   bTreeInLock,
                                     &pCtxSmb1->pTree->pShareInfo->mutex);
@@ -516,9 +521,11 @@ SrvRenameFile(
         SrvReleaseTrans2StateAsync(pTrans2State); // completed synchronously
     }
 
-
-    ((PFILE_RENAME_INFORMATION)pTrans2State->pData2)->RootDirectory =
+    if (!pTrans2State->pRootDir)
+    {
+        ((PFILE_RENAME_INFORMATION)pTrans2State->pData2)->RootDirectory =
                                                             pTrans2State->hDir;
+    }
 
     SrvPrepareTrans2StateAsync(pTrans2State, pExecContext);
 
@@ -551,11 +558,12 @@ SrvUnmarshalRenameInformation(
     PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
     PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
     PSRV_TRANS2_STATE_SMB_V1   pTrans2State = NULL;
-    ULONG                      ulBytesAvailable = 0;
-    ULONG                      ulOffset         = 0;
-    PWSTR                      pwszFileName     = NULL;
-    PBYTE                      pDataCursor      = NULL;
-    FILE_RENAME_INFORMATION    fileRenameInfo   = {0};
+    ULONG                      ulBytesAvailable  = 0;
+    ULONG                      ulOffset          = 0;
+    PWSTR                      pwszFilename      = NULL;
+    PBYTE                      pDataCursor       = NULL;
+    BOOLEAN                    bTreeInLock       = FALSE;
+    PSMB_FILE_RENAME_INFO_HEADER pFileRenameInfo = NULL;
 
     pTrans2State = (PSRV_TRANS2_STATE_SMB_V1)pCtxSmb1->hState;
 
@@ -563,57 +571,16 @@ SrvUnmarshalRenameInformation(
     ulOffset    = pTrans2State->pRequestHeader->dataOffset;
     ulBytesAvailable = pTrans2State->pRequestHeader->dataCount;
 
-    if (ulBytesAvailable < sizeof(FILE_RENAME_INFORMATION))
+    if (ulBytesAvailable < sizeof(SMB_FILE_RENAME_INFO_HEADER))
     {
         ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    fileRenameInfo.ReplaceIfExists = (*pDataCursor ? TRUE : FALSE);
-
-    pDataCursor++;
-    ulOffset++;
-    ulBytesAvailable--;
-
-    if (ulOffset % 4)
-    {
-        USHORT usAlign = 4 - (ulOffset % 4);
-
-        if (ulBytesAvailable < usAlign)
-        {
-            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
-            BAIL_ON_NT_STATUS(ntStatus);
-        }
-
-        pDataCursor      += usAlign;
-        ulOffset         += usAlign;
-        ulBytesAvailable -= usAlign;
-    }
-
-    if (ulBytesAvailable < sizeof(ULONG))
-    {
-        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    // TODO: Figure out RootDirectory coming from the request
-    fileRenameInfo.RootDirectory = NULL;
-
-    pDataCursor      += sizeof(ULONG);
-    ulOffset         += sizeof(ULONG);
-    ulBytesAvailable -= sizeof(ULONG);
-
-    if (ulBytesAvailable < sizeof(ULONG))
-    {
-        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    fileRenameInfo.FileNameLength = *(PULONG)pDataCursor;
-
-    pDataCursor      += sizeof(ULONG);
-    ulOffset         += sizeof(ULONG);
-    ulBytesAvailable -= sizeof(ULONG);
+    pFileRenameInfo   = (PSMB_FILE_RENAME_INFO_HEADER)pDataCursor;
+    pDataCursor      += sizeof(SMB_FILE_RENAME_INFO_HEADER);
+    ulBytesAvailable -= sizeof(SMB_FILE_RENAME_INFO_HEADER);
+    ulOffset         += sizeof(SMB_FILE_RENAME_INFO_HEADER);
 
     if (ulOffset % 2)
     {
@@ -628,33 +595,61 @@ SrvUnmarshalRenameInformation(
         ulBytesAvailable--;
     }
 
-    if (ulBytesAvailable < fileRenameInfo.FileNameLength)
+    if (!pFileRenameInfo->ulFileNameLength ||
+        (ulBytesAvailable < pFileRenameInfo->ulFileNameLength))
     {
         ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    pwszFileName = (PWSTR)pDataCursor;
+    if (pFileRenameInfo->ulRootDir)
+    {
+        if (pFileRenameInfo->ulRootDir >= UINT16_MAX)
+        {
+            ntStatus = STATUS_INVALID_PARAMETER;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        LWIO_LOCK_RWMUTEX_SHARED(bTreeInLock, &pCtxSmb1->pTree->mutex);
+
+        ntStatus = SrvTreeFindFile(
+                        pCtxSmb1->pTree,
+                        (USHORT)pFileRenameInfo->ulRootDir,
+                        &pTrans2State->pRootDir);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        LWIO_UNLOCK_RWMUTEX(bTreeInLock, &pCtxSmb1->pTree->mutex);
+    }
+
+    pwszFilename = (PWSTR)pDataCursor;
+
+    pTrans2State->usBytesAllocated =
+            sizeof(FILE_RENAME_INFORMATION) + pFileRenameInfo->ulFileNameLength;
 
     ntStatus = SrvAllocateMemory(
-                    sizeof(fileRenameInfo) + fileRenameInfo.FileNameLength,
+                    pTrans2State->usBytesAllocated,
                     (PVOID*)&pTrans2State->pData2);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pTrans2State->usBytesAllocated =
-                    sizeof(fileRenameInfo) + fileRenameInfo.FileNameLength;
-
     ((PFILE_RENAME_INFORMATION)pTrans2State->pData2)->ReplaceIfExists =
-                                        fileRenameInfo.ReplaceIfExists;
+                            pFileRenameInfo->ucReplaceIfExists ? TRUE : FALSE;
+
     ((PFILE_RENAME_INFORMATION)pTrans2State->pData2)->FileNameLength =
-                                        fileRenameInfo.FileNameLength;
+                            pFileRenameInfo->ulFileNameLength;
+
     memcpy((PBYTE)((PFILE_RENAME_INFORMATION)pTrans2State->pData2)->FileName,
-           (PBYTE)pwszFileName,
-           fileRenameInfo.FileNameLength);
+           (PBYTE)pwszFilename,
+           pFileRenameInfo->ulFileNameLength);
+
+cleanup:
+
+    LWIO_UNLOCK_RWMUTEX(bTreeInLock, &pCtxSmb1->pTree->mutex);
+
+    return ntStatus;
 
 error:
 
-    return ntStatus;
+    goto cleanup;
 }
 
 static

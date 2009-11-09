@@ -8,35 +8,39 @@ namespace Likewise.LMC.FileClient
 #region File Client error, type, and structure definitions
     public enum WinError
     {
-        ERROR_SUCCESS = 0,
-        ERROR_ACCESS_DENIED = 5,
-        ERROR_ALREADY_ASSIGNED = 85,
-        ERROR_BAD_DEV_TYPE = 66,
-        ERROR_BAD_DEVICE = 1200,
-        ERROR_BAD_NET_NAME = 67,
-        ERROR_BAD_PROFILE = 1206,
-        ERROR_BAD_PROVIDER = 1204,
-        ERROR_BAD_USERNAME = 2202,
-        ERROR_BUSY = 170,
-        ERROR_CANCELLED = 1223,
-        ERROR_CANNOT_OPEN_PROFILE = 1205,
-        ERROR_DEVICE_ALREADY_REMEMBERED = 1202,
-        ERROR_EXTENDED_ERROR = 1208,
-        ERROR_INVALID_ADDRESS = 487,
-        ERROR_INVALID_PARAMETER = 87,
-        ERROR_INVALID_PASSWORD = 86,
-        ERROR_LOGON_FAILURE = 1326,
-        ERROR_NO_NET_OR_BAD_PATH = 1203,
-        ERROR_NO_NETWORK = 1222,
-        ERROR_DOWNGRADE_DETECTED = 1265,
-        ERROR_SESSION_CREDENTIAL_CONFLICT = 1219,
-        ERROR_LOGON_TYPE_NOT_GRANTED = 1385,
         NO_ERROR = 0,
-        ERROR_NO_MORE_ITEMS = 259,
-        ERROR_MORE_DATA = 234,
+        ERROR_SUCCESS = 0,
+        ERROR_FILE_NOT_FOUND = 2,
+        ERROR_PATH_NOT_FOUND = 3,
+        ERROR_ACCESS_DENIED = 5,
         ERROR_INVALID_HANDLE = 6,
+        ERROR_NOT_ENOUGH_MEMORY = 8,
+        ERROR_SHARING_VIOLATION = 32,
+        ERROR_BAD_DEV_TYPE = 66,
+        ERROR_BAD_NET_NAME = 67,
+        ERROR_FILE_EXISTS = 80,
+        ERROR_ALREADY_ASSIGNED = 85,
+        ERROR_INVALID_PASSWORD = 86,
+        ERROR_INVALID_PARAMETER = 87,
+        ERROR_BUSY = 170,
+        ERROR_MORE_DATA = 234,
+        ERROR_NO_MORE_ITEMS = 259,
+        ERROR_INVALID_ADDRESS = 487,
         ERROR_NO_TOKEN = 1008,
-        ERROR_NOT_ENOUGH_MEMORY = 8
+        ERROR_BAD_DEVICE = 1200,
+        ERROR_DEVICE_ALREADY_REMEMBERED = 1202,
+        ERROR_NO_NET_OR_BAD_PATH = 1203,
+        ERROR_BAD_PROVIDER = 1204,
+        ERROR_CANNOT_OPEN_PROFILE = 1205,
+        ERROR_BAD_PROFILE = 1206,
+        ERROR_EXTENDED_ERROR = 1208,
+        ERROR_SESSION_CREDENTIAL_CONFLICT = 1219,
+        ERROR_NO_NETWORK = 1222,
+        ERROR_CANCELLED = 1223,
+        ERROR_DOWNGRADE_DETECTED = 1265,
+        ERROR_LOGON_FAILURE = 1326,
+        ERROR_LOGON_TYPE_NOT_GRANTED = 1385,
+        ERROR_BAD_USERNAME = 2202
     };
 
     public enum ResourceScope
@@ -124,18 +128,35 @@ namespace Likewise.LMC.FileClient
             bool bFailIfExists
             );
 
-        public static int apiCopyFile(
+        public static WinError apiCopyFile(
             string lpExistingFileName,
             string lpNewFileName,
             bool bFailIfExists
             )
         {
             bool copied = CopyFile(lpExistingFileName, lpNewFileName, bFailIfExists);
-            int error = 0;
+            WinError error = 0;
 
             if (!copied)
             {
-                error = Marshal.GetLastWin32Error();
+                error = (WinError)Marshal.GetLastWin32Error();
+            }
+
+            return error;
+        }
+
+        public static WinError apiCopyDirectory(
+               string lpExistingDirectoryName,
+               string lpNewDirectoryName,
+               bool bFailIfExists
+            )
+        {
+            bool copied = CopyFile(lpExistingDirectoryName, lpNewDirectoryName, bFailIfExists);
+            WinError error = 0;
+
+            if (!copied)
+            {
+                error = (WinError)Marshal.GetLastWin32Error();
             }
 
             return error;
@@ -146,16 +167,16 @@ namespace Likewise.LMC.FileClient
             string lpFileName
             );
 
-        public static int apiDeleteFile(
+        public static WinError apiDeleteFile(
             string lpFileName
             )
         {
             bool deleted = DeleteFile(lpFileName);
-            int error = 0;
+            WinError error = 0;
 
             if (!deleted)
             {
-                error = Marshal.GetLastWin32Error();
+                error = (WinError)Marshal.GetLastWin32Error();
             }
 
             return error;
@@ -167,21 +188,58 @@ namespace Likewise.LMC.FileClient
             string lpNewFileName
             );
 
-        public static int apiMoveFile(
+        public static WinError apiMoveFile(
             string lpExistingFileName,
             string lpNewFileName
             )
         {
             bool moved = MoveFile(lpExistingFileName, lpNewFileName);
-            int error = 0;
+            WinError error = 0;
 
             if (!moved)
             {
-                error = Marshal.GetLastWin32Error();
+                error = (WinError)Marshal.GetLastWin32Error();
             }
 
             return error;
         }
+
+        public static WinError apiMoveDirectory(
+            string lpExistingDirectoryName,
+            string lpNewDirectoryName
+            )
+        {
+            bool moved = MoveFile(lpExistingDirectoryName, lpNewDirectoryName);
+            WinError error = 0;
+
+            if (!moved)
+            {
+                error = (WinError)Marshal.GetLastWin32Error();
+            }
+
+            return error;
+        }
+
+        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+        private static extern bool RemoveDirectory(
+            string lpDirectoryName
+            );
+
+        public static WinError apiRemoveDirectory(
+            string lpDirectoryName
+            )
+        {
+            bool deleted = DeleteFile(lpDirectoryName);
+            WinError error = 0;
+
+            if (!deleted)
+            {
+                error = (WinError)Marshal.GetLastWin32Error();
+            }
+
+            return error;
+        }
+
         #endregion
 
         #region Local and Connected Share File Enumeration APIs

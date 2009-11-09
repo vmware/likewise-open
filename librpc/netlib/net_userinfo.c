@@ -28,6 +28,22 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        net_userinfo.c
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Client Interface
+ *
+ *        NetAPI user info buffer handling functions
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
+ */
+
 #include "includes.h"
 
 static
@@ -82,7 +98,47 @@ NetAllocateUserInfo4(
 
 static
 DWORD
+NetAllocateUserInfo10(
+    PVOID  *ppCursor,
+    PDWORD  pdwSpaceLeft,
+    PVOID   pSource,
+    PDWORD  pdwSize
+    );
+
+
+static
+DWORD
+NetAllocateUserInfo11(
+    PVOID  *ppCursor,
+    PDWORD  pdwSpaceLeft,
+    PVOID   pSource,
+    PDWORD  pdwSize
+    );
+
+
+static
+DWORD
 NetAllocateUserInfo20(
+    PVOID  *ppCursor,
+    PDWORD  pdwSpaceLeft,
+    PVOID   pSource,
+    PDWORD  pdwSize
+    );
+
+
+static
+DWORD
+NetAllocateUserInfo23(
+    PVOID  *ppCursor,
+    PDWORD  pdwSpaceLeft,
+    PVOID   pSource,
+    PDWORD  pdwSize
+    );
+
+
+static
+DWORD
+NetAllocateSamrUserInfoFromUserInfo1(
     PVOID  *ppCursor,
     PDWORD  pdwSpaceLeft,
     PVOID   pSource,
@@ -139,8 +195,29 @@ NetAllocateUserInfo(
                                    pdwSize);
         break;
 
+    case 10:
+        err = NetAllocateUserInfo10(&pCursor,
+                                    pdwSpaceLeft,
+                                    pSource,
+                                    pdwSize);
+        break;
+
+    case 11:
+        err = NetAllocateUserInfo11(&pCursor,
+                                    pdwSpaceLeft,
+                                    pSource,
+                                    pdwSize);
+        break;
+
     case 20:
         err = NetAllocateUserInfo20(&pCursor,
+                                    pdwSpaceLeft,
+                                    pSource,
+                                    pdwSize);
+        break;
+
+    case 23:
+        err = NetAllocateUserInfo23(&pCursor,
                                     pdwSpaceLeft,
                                     pSource,
                                     pdwSize);
@@ -274,7 +351,7 @@ NetAllocateUserInfo1(
                               &dwSize);
     BAIL_ON_WINERR_ERROR(err);
 
-    /* usri1_priv: SKIP (it is set outside this function */
+    /* usri1_priv: SKIP (it is set outside this function) */
     err = NetAllocBufferDword(&pCursor,
                               &dwSpaceLeft,
                               0,
@@ -694,6 +771,271 @@ error:
 
 static
 DWORD
+NetAllocateUserInfo10(
+    PVOID  *ppCursor,
+    PDWORD  pdwSpaceLeft,
+    PVOID   pSource,
+    PDWORD  pdwSize
+    )
+{
+    DWORD err = ERROR_SUCCESS;
+    PVOID pCursor = NULL;
+    DWORD dwSpaceLeft = 0;
+    DWORD dwSize = 0;
+    UserInfo21 *pSamrInfo21 = (UserInfo21*)pSource;
+
+    if (pdwSpaceLeft)
+    {
+        dwSpaceLeft = *pdwSpaceLeft;
+    }
+
+    if (pdwSize)
+    {
+        dwSize = *pdwSize;
+    }
+
+    if (ppCursor)
+    {
+        pCursor = *ppCursor;
+    }
+
+    /* usri10_name */
+    err = NetAllocBufferWC16StringFromUnicodeString(
+                                   &pCursor,
+                                   &dwSpaceLeft,
+                                   &pSamrInfo21->account_name,
+                                   &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* usri10_comment */
+    err = NetAllocBufferWC16StringFromUnicodeString(
+                                   &pCursor,
+                                   &dwSpaceLeft,
+                                   &pSamrInfo21->comment,
+                                   &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* usri10_usr_comment: SKIP */
+    err = NetAllocBufferWC16StringFromUnicodeString(
+                                   &pCursor,
+                                   &dwSpaceLeft,
+                                   NULL,
+                                   &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* usri10_full_name */
+    err = NetAllocBufferWC16StringFromUnicodeString(
+                                   &pCursor,
+                                   &dwSpaceLeft,
+                                   &pSamrInfo21->full_name,
+                                   &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    if (pdwSpaceLeft)
+    {
+        *pdwSpaceLeft = dwSpaceLeft;
+    }
+
+    if (pdwSize)
+    {
+        *pdwSize = dwSize;
+    }
+
+    if (ppCursor)
+    {
+        *ppCursor = pCursor;
+    }
+
+cleanup:
+    return err;
+
+error:
+    goto cleanup;
+}
+
+
+static
+DWORD
+NetAllocateUserInfo11(
+    PVOID  *ppCursor,
+    PDWORD  pdwSpaceLeft,
+    PVOID   pSource,
+    PDWORD  pdwSize
+    )
+{
+    DWORD err = ERROR_SUCCESS;
+    PVOID pCursor = NULL;
+    DWORD dwSpaceLeft = 0;
+    DWORD dwSize = 0;
+    UserInfo21 *pSamrInfo21 = (UserInfo21*)pSource;
+    NtTime CurrentTime = 0;
+    NtTime PasswordAge = 0;
+
+    if (pdwSpaceLeft)
+    {
+        dwSpaceLeft = *pdwSpaceLeft;
+    }
+
+    if (pdwSize)
+    {
+        dwSize = *pdwSize;
+    }
+
+    if (ppCursor)
+    {
+        pCursor = *ppCursor;
+    }
+
+    err = NetAllocateUserInfo10(&pCursor,
+                                &dwSpaceLeft,
+                                pSource,
+                                &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* usri11_priv: SKIP (it is set outside this function) */
+    err = NetAllocBufferDword(&pCursor,
+                              &dwSpaceLeft,
+                              0,
+                              &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* usri11_auth_flags: SKIP */
+    err = NetAllocBufferDword(&pCursor,
+                              &dwSpaceLeft,
+                              0,
+                              &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* usri11_password_age */
+    err = LwGetNtTime((PULONG64)&CurrentTime);
+    BAIL_ON_WINERR_ERROR(err);
+
+    PasswordAge = CurrentTime - pSamrInfo21->last_password_change;
+    err = NetAllocBufferDword(&pCursor,
+                              &dwSpaceLeft,
+                              0,
+                              &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* usri11_home_dir */
+    err = NetAllocBufferWC16StringFromUnicodeString(
+                                   &pCursor,
+                                   &dwSpaceLeft,
+                                   &pSamrInfo21->home_directory,
+                                   &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* usri11_parms */
+    err = NetAllocBufferWC16StringFromUnicodeString(
+                                   &pCursor,
+                                   &dwSpaceLeft,
+                                   &pSamrInfo21->parameters,
+                                   &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* usri11_last_logon */
+    err = NetAllocBufferDword(&pCursor,
+                              &dwSpaceLeft,
+                              0,
+                              &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* usri11_last_logoff */
+    err = NetAllocBufferDword(&pCursor,
+                              &dwSpaceLeft,
+                              0,
+                              &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* usri11_bad_pw_count */
+    err = NetAllocBufferDword(&pCursor,
+                              &dwSpaceLeft,
+                              pSamrInfo21->bad_password_count,
+                              &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* usri11_num_logons */
+    err = NetAllocBufferDword(&pCursor,
+                              &dwSpaceLeft,
+                              pSamrInfo21->logon_count,
+                              &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* usri11_logon_server */
+    err = NetAllocBufferWC16StringFromUnicodeString(
+                                   &pCursor,
+                                   &dwSpaceLeft,
+                                   NULL,
+                                   &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* usri11_country_code */
+    err = NetAllocBufferDword(&pCursor,
+                              &dwSpaceLeft,
+                              pSamrInfo21->country_code,
+                              &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* usri11_workstations */
+    err = NetAllocBufferWC16StringFromUnicodeString(
+                                   &pCursor,
+                                   &dwSpaceLeft,
+                                   &pSamrInfo21->workstations,
+                                   &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* usri11_max_storage: SKIP */
+    err = NetAllocBufferDword(&pCursor,
+                              &dwSpaceLeft,
+                              0,
+                              &dwSize);
+
+    /* usri11_units_per_week: SKIP */
+    err = NetAllocBufferDword(&pCursor,
+                              &dwSpaceLeft,
+                              0,
+                              &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* usri11_logon_hours: SKIP */
+    err = NetAllocBufferLogonHours(&pCursor,
+                                   &dwSpaceLeft,
+                                   NULL,
+                                   &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* usri11_code_page */
+    err = NetAllocBufferDword(&pCursor,
+                              &dwSpaceLeft,
+                              pSamrInfo21->code_page,
+                              &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    if (pdwSpaceLeft)
+    {
+        *pdwSpaceLeft = dwSpaceLeft;
+    }
+
+    if (pdwSize)
+    {
+        *pdwSize = dwSize;
+    }
+
+    if (ppCursor)
+    {
+        *ppCursor = pCursor;
+    }
+
+cleanup:
+    return err;
+
+error:
+    goto cleanup;
+}
+
+
+static
+DWORD
 NetAllocateUserInfo20(
     PVOID  *ppCursor,
     PDWORD  pdwSpaceLeft,
@@ -785,44 +1127,511 @@ error:
 }
 
 
-/*
- * push functions/macros transfer: net userinfo -> samr userinfo
- * pull functions/macros transfer: net userinfo <- samr userinfo
- */
+static
+DWORD
+NetAllocateUserInfo23(
+    PVOID  *ppCursor,
+    PDWORD  pdwSpaceLeft,
+    PVOID   pSource,
+    PDWORD  pdwSize
+    )
+{
+    DWORD err = ERROR_SUCCESS;
+    PVOID pCursor = NULL;
+    DWORD dwSpaceLeft = 0;
+    DWORD dwSize = 0;
+    UserInfo21 *pSamrInfo21 = (UserInfo21*)pSource;
+
+    if (pdwSpaceLeft)
+    {
+        dwSpaceLeft = *pdwSpaceLeft;
+    }
+
+    if (pdwSize)
+    {
+        dwSize = *pdwSize;
+    }
+
+    if (ppCursor)
+    {
+        pCursor = *ppCursor;
+    }
+
+    /* usri23_name */
+    err = NetAllocBufferWC16StringFromUnicodeString(
+                                   &pCursor,
+                                   &dwSpaceLeft,
+                                   &pSamrInfo21->account_name,
+                                   &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* usri23_full_name */
+    err = NetAllocBufferWC16StringFromUnicodeString(
+                                   &pCursor,
+                                   &dwSpaceLeft,
+                                   &pSamrInfo21->full_name,
+                                   &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* usri23_comment */
+    err = NetAllocBufferWC16StringFromUnicodeString(
+                                   &pCursor,
+                                   &dwSpaceLeft,
+                                   &pSamrInfo21->comment,
+                                   &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* usri20_user_id */
+    err = NetAllocBufferDword(&pCursor,
+                              &dwSpaceLeft,
+                              pSamrInfo21->rid,
+                              &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* usri23_user_sid - it's copied outside this function,
+       so reserve max space */
+    err = NetAllocBufferSid(&pCursor,
+                            &dwSpaceLeft,
+                            NULL,
+                            0,
+                            &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
 
 
-NTSTATUS EncPasswordEx(uint8 pwbuf[532], wchar16_t *password,
-                       uint32 password_len, NetConn *conn)
+    if (pdwSpaceLeft)
+    {
+        *pdwSpaceLeft = dwSpaceLeft;
+    }
+
+    if (pdwSize)
+    {
+        *pdwSize = dwSize;
+    }
+
+    if (ppCursor)
+    {
+        *ppCursor = pCursor;
+    }
+
+cleanup:
+    return err;
+
+error:
+    goto cleanup;
+
+}
+
+
+NTSTATUS
+NetEncPasswordEx(
+    BYTE     PasswordBuffer[532],
+    PWSTR    pwszPassword,
+    DWORD    dwPasswordLen,
+    NetConn *pConn
+    )
 {
     NTSTATUS status = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
     MD5_CTX ctx;
     RC4_KEY rc4_key;
-    uint8 initval[16], digested_sess_key[16];
+    BYTE InitValue[16];
+    BYTE DigestedSessKey[16];
 
-    BAIL_ON_INVALID_PTR(pwbuf);
-    BAIL_ON_INVALID_PTR(password);
-    BAIL_ON_INVALID_PTR(conn);
+    BAIL_ON_INVALID_PTR(PasswordBuffer);
+    BAIL_ON_INVALID_PTR(pwszPassword);
+    BAIL_ON_INVALID_PTR(pConn);
 
     memset(&ctx, 0, sizeof(ctx));
-    memset(initval, 0, sizeof(initval));
-    memset(digested_sess_key, 0, sizeof(digested_sess_key));
+    memset(InitValue, 0, sizeof(InitValue));
+    memset(DigestedSessKey, 0, sizeof(DigestedSessKey));
 
-    EncodePassBufferW16(pwbuf, password);
+    EncodePassBufferW16(PasswordBuffer, pwszPassword);
 
-    get_random_buffer((unsigned char*)initval, sizeof(initval));
+    get_random_buffer((unsigned char*)InitValue, sizeof(InitValue));
 
     MD5_Init(&ctx);
-    MD5_Update(&ctx, initval, 16);
-    MD5_Update(&ctx, conn->sess_key, conn->sess_key_len);
-    MD5_Final(digested_sess_key, &ctx);
+    MD5_Update(&ctx, InitValue, 16);
+    MD5_Update(&ctx, pConn->sess_key, pConn->sess_key_len);
+    MD5_Final(DigestedSessKey, &ctx);
 
-    RC4_set_key(&rc4_key, 16, (unsigned char*)digested_sess_key);
-    RC4(&rc4_key, 516, (unsigned char*)pwbuf, (unsigned char*)pwbuf);
-    memcpy((void*)&pwbuf[516], initval, 16);
+    RC4_set_key(&rc4_key, 16, (unsigned char*)DigestedSessKey);
+    RC4(&rc4_key, 516, (PBYTE)PasswordBuffer, (PBYTE)PasswordBuffer);
+    memcpy((PVOID)&PasswordBuffer[516], InitValue, 16);
 
 cleanup:
     return status;
+
+error:
+    goto cleanup;
+}
+
+
+DWORD
+NetAllocateSamrUserInfo(
+    PVOID   pInfoBuffer,
+    PDWORD  pdwSamrLevel,
+    PDWORD  pdwSpaceLeft,
+    DWORD   dwLevel,
+    PVOID   pSource,
+    PDWORD  pdwSize
+    )
+{
+    DWORD err = ERROR_SUCCESS;
+    PVOID pCursor = pInfoBuffer;
+    DWORD dwSamrLevel = 0;
+
+    if (pdwSamrLevel)
+    {
+        dwSamrLevel = *pdwSamrLevel;
+    }
+
+    switch (dwLevel)
+    {
+    case 1:
+        err = NetAllocateSamrUserInfoFromUserInfo1(&pCursor,
+                                                   pdwSpaceLeft,
+                                                   pSource,
+                                                   pdwSize);
+        dwSamrLevel = 21;
+        break;
+
+    default:
+        err = ERROR_INVALID_LEVEL;
+        break;
+    }
+    BAIL_ON_WINERR_ERROR(err);
+
+    if (pdwSamrLevel)
+    {
+        *pdwSamrLevel = dwSamrLevel;
+    }
+
+cleanup:
+    return err;
+
+error:
+    goto cleanup;
+}
+
+
+static
+DWORD
+NetAllocateSamrUserInfoFromUserInfo1(
+    PVOID  *ppCursor,
+    PDWORD  pdwSpaceLeft,
+    PVOID   pSource,
+    PDWORD  pdwSize
+    )
+{
+    DWORD err = ERROR_SUCCESS;
+    UserInfo21 *pSamrUserInfo21 = NULL;
+    PVOID pCursor = NULL;
+    DWORD dwSpaceLeft = 0;
+    DWORD dwSize = 0;
+    PUSER_INFO_1 pUserInfo1 = (PUSER_INFO_1)pSource;
+    DWORD dwFieldsPresent = 0;
+
+    if (pdwSpaceLeft)
+    {
+        dwSpaceLeft = *pdwSpaceLeft;
+    }
+
+    if (pdwSize)
+    {
+        dwSize = *pdwSize;
+    }
+
+    if (ppCursor)
+    {
+        pCursor         = *ppCursor;
+        pSamrUserInfo21 = *ppCursor;
+    }
+
+    /* last_logon: SKIP */
+    err = NetAllocBufferUlong64(&pCursor,
+                                &dwSpaceLeft,
+                                0,
+                                &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* last_logoff: SKIP */
+    err = NetAllocBufferUlong64(&pCursor,
+                                &dwSpaceLeft,
+                                0,
+                                &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* last_password_change: SKIP */
+    err = NetAllocBufferUlong64(&pCursor,
+                                &dwSpaceLeft,
+                                0,
+                                &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* account_expiry: SKIP */
+    err = NetAllocBufferUlong64(&pCursor,
+                                &dwSpaceLeft,
+                                0,
+                                &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* allow_password_change: SKIP */
+    err = NetAllocBufferUlong64(&pCursor,
+                                &dwSpaceLeft,
+                                0,
+                                &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* force_password_change: SKIP */
+    err = NetAllocBufferUlong64(&pCursor,
+                                &dwSpaceLeft,
+                                0,
+                                &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* account_name */
+    err = NetAllocBufferUnicodeStringFromWC16String(
+                                   &pCursor,
+                                   &dwSpaceLeft,
+                                   pUserInfo1->usri1_name,
+                                   &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    dwFieldsPresent |= SAMR_FIELD_ACCOUNT_NAME;
+
+    /* full_name: SKIP */
+    err = NetAllocBufferUnicodeStringFromWC16String(
+                                   &pCursor,
+                                   &dwSpaceLeft,
+                                   NULL,
+                                   &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* home_directory */
+    err = NetAllocBufferUnicodeStringFromWC16String(
+                                   &pCursor,
+                                   &dwSpaceLeft,
+                                   pUserInfo1->usri1_home_dir,
+                                   &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    dwFieldsPresent |= SAMR_FIELD_HOME_DIRECTORY;
+
+    /* home_drive: SKIP */
+    err = NetAllocBufferUnicodeStringFromWC16String(
+                                   &pCursor,
+                                   &dwSpaceLeft,
+                                   NULL,
+                                   &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* logon_script */
+    err = NetAllocBufferUnicodeStringFromWC16String(
+                                   &pCursor,
+                                   &dwSpaceLeft,
+                                   pUserInfo1->usri1_script_path,
+                                   &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    dwFieldsPresent |= SAMR_FIELD_LOGON_SCRIPT;
+
+    /* profile_path: SKIP */
+    err = NetAllocBufferUnicodeStringFromWC16String(
+                                   &pCursor,
+                                   &dwSpaceLeft,
+                                   NULL,
+                                   &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* description: SKIP */
+    err = NetAllocBufferUnicodeStringFromWC16String(
+                                   &pCursor,
+                                   &dwSpaceLeft,
+                                   NULL,
+                                   &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* workstations: SKIP */
+    err = NetAllocBufferUnicodeStringFromWC16String(
+                                   &pCursor,
+                                   &dwSpaceLeft,
+                                   NULL,
+                                   &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* comment */
+    err = NetAllocBufferUnicodeStringFromWC16String(
+                                   &pCursor,
+                                   &dwSpaceLeft,
+                                   pUserInfo1->usri1_comment,
+                                   &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    dwFieldsPresent |= SAMR_FIELD_COMMENT;
+
+    /* parameters: SKIP */
+    err = NetAllocBufferUnicodeStringFromWC16String(
+                                   &pCursor,
+                                   &dwSpaceLeft,
+                                   NULL,
+                                   &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* unknown1: SKIP */
+    err = NetAllocBufferUnicodeStringFromWC16String(
+                                   &pCursor,
+                                   &dwSpaceLeft,
+                                   NULL,
+                                   &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* unknown2: SKIP */
+    err = NetAllocBufferUnicodeStringFromWC16String(
+                                   &pCursor,
+                                   &dwSpaceLeft,
+                                   NULL,
+                                   &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* unknown3: SKIP */
+    err = NetAllocBufferUnicodeStringFromWC16String(
+                                   &pCursor,
+                                   &dwSpaceLeft,
+                                   NULL,
+                                   &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* buf_count: SKIP */
+    err = NetAllocBufferDword(&pCursor,
+                              &dwSpaceLeft,
+                              0,
+                              &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* buffer: SKIP */
+    err = NetAllocBufferByteBlob(&pCursor,
+                                 &dwSpaceLeft,
+                                 NULL,
+                                 0,
+                                 &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* rid: SKIP */
+    err = NetAllocBufferDword(&pCursor,
+                              &dwSpaceLeft,
+                              0,
+                              &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* primary_gid: SKIP */
+    err = NetAllocBufferDword(&pCursor,
+                              &dwSpaceLeft,
+                              0,
+                              &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* account_flags (make sure the normal user account flag is set */
+    err = NetAllocBufferAcbFlagsFromUserFlags(
+                                   &pCursor,
+                                   &dwSpaceLeft,
+                                   pUserInfo1->usri1_flags | ACB_NORMAL,
+                                   &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    dwFieldsPresent |= SAMR_FIELD_ACCT_FLAGS;
+
+    /* fields_present: SKIP (this field is set at the end) */
+    err = NetAllocBufferDword(&pCursor,
+                              &dwSpaceLeft,
+                              0,
+                              &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* logon_hours: SKIP */
+    err = NetAllocBufferSamrLogonHoursFromNetLogonHours(
+                                       &pCursor,
+                                       &dwSpaceLeft,
+                                       NULL,
+                                       &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* bad_password_count: SKIP */
+    err = NetAllocBufferWord(&pCursor,
+                             &dwSpaceLeft,
+                             0,
+                             &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* logon_count: SKIP */
+    err = NetAllocBufferWord(&pCursor,
+                              &dwSpaceLeft,
+                              0,
+                              &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* country_code: SKIP */
+    err = NetAllocBufferWord(&pCursor,
+                              &dwSpaceLeft,
+                              0,
+                              &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* code_page: SKIP */
+    err = NetAllocBufferWord(&pCursor,
+                             &dwSpaceLeft,
+                             0,
+                             &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* nt_password_set: SKIP */
+    err = NetAllocBufferByte(&pCursor,
+                             &dwSpaceLeft,
+                             0,
+                             &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* lm_password_set: SKIP */
+    err = NetAllocBufferByte(&pCursor,
+                             &dwSpaceLeft,
+                             0,
+                              &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* password_expired: SKIP */
+    err = NetAllocBufferByte(&pCursor,
+                             &dwSpaceLeft,
+                             0,
+                             &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    /* unknown4: SKIP */
+    err = NetAllocBufferByte(&pCursor,
+                             &dwSpaceLeft,
+                             0,
+                             &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    if (pSamrUserInfo21)
+    {
+        /*
+         * Set fields present field according to results
+         * of conversion to samr user info fields
+         */
+        pSamrUserInfo21->fields_present = dwFieldsPresent;
+    }
+
+    if (pdwSpaceLeft)
+    {
+        *pdwSpaceLeft = dwSpaceLeft;
+    }
+
+    if (pdwSize)
+    {
+        *pdwSize = dwSize;
+    }
+
+cleanup:
+    return err;
 
 error:
     goto cleanup;
@@ -1012,7 +1821,7 @@ NTSTATUS PushUserInfo1003(UserInfo **sinfo, uint32 *slevel, USER_INFO_1003 *ninf
     BAIL_ON_NO_MEMORY(password);
 
     password_len = wc16slen(password);
-    status = EncPasswordEx(info25->password.data, password, password_len, conn);
+    status = NetEncPasswordEx(info25->password.data, password, password_len, conn);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     info25->info.fields_present = SAMR_FIELD_PASSWORD;

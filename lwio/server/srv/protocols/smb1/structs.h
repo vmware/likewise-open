@@ -544,6 +544,7 @@ typedef struct _SRV_TRANS2_STATE_SMB_V1
     PLWIO_SRV_SESSION           pSession;
     PLWIO_SRV_TREE              pTree;
     PLWIO_SRV_FILE              pFile;
+    PLWIO_SRV_FILE              pRootDir;
 
     IO_FILE_HANDLE              hFile;
     IO_FILE_NAME                fileName;
@@ -835,6 +836,7 @@ typedef struct _SRV_NTTRANSACT_STATE_SMB_V1
     USHORT                         usActualResponseLen;
 
     PSMB_SECURITY_INFORMATION_HEADER pSecurityRequestHeader;
+    PSMB_NOTIFY_CHANGE_HEADER        pNotifyChangeHeader;
 
 } SRV_NTTRANSACT_STATE_SMB_V1, *PSRV_NTTRANSACT_STATE_SMB_V1;
 

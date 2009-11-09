@@ -47,6 +47,10 @@ InitUnicodeString(
     const wchar16_t *s
     );
 
+NTSTATUS
+InitEmptyUnicodeString(
+    UnicodeString *u
+    );
 
 wchar16_t*
 GetFromUnicodeString(
@@ -119,7 +123,6 @@ FreeUnicodeStringExArray(
     UnicodeStringEx *ua,
     size_t count
     );
-
 
 #endif /* _UNICODESTRING_H_ */
 

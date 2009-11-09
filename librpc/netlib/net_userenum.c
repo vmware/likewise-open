@@ -140,12 +140,17 @@ NetUserEnum(
     case 4: dwInfoLevelSize = sizeof(USER_INFO_4);
         break;
 
+    case 20: dwInfoLevelSize = sizeof(USER_INFO_20);
+        break;
+
+    case 23: dwInfoLevelSize = sizeof(USER_INFO_23);
+
     default:
         err = ERROR_INVALID_LEVEL;
         BAIL_ON_WINERR_ERROR(err);
     }
 
-    dwResume = *pdwResume ;
+    dwResume = *pdwResume;
 
     status = LwIoGetActiveCreds(NULL, &pCreds);
     BAIL_ON_NTSTATUS_ERROR(status);
@@ -174,8 +179,6 @@ NetUserEnum(
                                sizeof(UserInfo*) * dwTotalNumEntries,
                                NULL);
     BAIL_ON_NTSTATUS_ERROR(status);
-
-    dwNumEntries = dwTotalNumEntries;
 
     for (i = 0; i < dwTotalNumEntries; i++)
     {
@@ -214,11 +217,12 @@ NetUserEnum(
         BAIL_ON_WINERR_ERROR(err);
 
         dwTotalSize += dwSize;
+        dwNumEntries++;
 
         if (dwTotalSize > dwMaxBufferSize)
         {
-            dwNumEntries  = i;
-            dwTotalSize  -= dwSize;
+            dwTotalSize -= dwSize;
+            dwNumEntries--;
             break;
         }
     }
@@ -301,6 +305,11 @@ NetUserEnum(
                                      pSamrUserInfo21->rid);
             BAIL_ON_NTSTATUS_ERROR(status);
         }
+    }
+
+    if (dwResume + dwNumEntries < dwTotalNumEntries)
+    {
+        err = ERROR_MORE_DATA;
     }
 
     *ppBuffer        = pBuffer;
