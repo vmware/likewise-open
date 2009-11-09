@@ -284,6 +284,20 @@ LwAllocateWc16String(
     );
 
 
+DWORD
+LwAllocateUnicodeStringFromWc16String(
+    PUNICODE_STRING  pOutputString,
+    PCWSTR           pwszInputString
+    );
+
+
+DWORD
+LwAllocateWc16StringFromUnicodeString(
+    PWSTR            *ppOutputString,
+    PUNICODE_STRING   pInputString
+    );
+
+
 #endif
 
 
