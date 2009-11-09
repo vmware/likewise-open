@@ -72,7 +72,8 @@ libsamr_la_CFLAGS = \
     $(LIBUNISTR_INCLUDES)   \
     $(LWBASE_INCLUDES)      \
     $(LWADVAPI_INCLUDES)    \
-    $(NETLOGON_INCLUDES)
+    $(NETLOGON_INCLUDES)    \
+    $(LWMAPSECURITY_INCLUDES)
 
 libsamr_la_LIBADD = \
     $(DCERPC_LIBS)                        \
@@ -81,6 +82,7 @@ libsamr_la_LIBADD = \
     $(LWBASE_LIBS)                        \
     $(LWADVAPI_LIBS)                      \
     $(NETLOGON_LIBS)                      \
+    $(LWMAPSECURITY_LIBS)                 \
     $(top_builddir)/server/api/liblsaserverapi.la  \
     $(top_builddir)/server/store/dsapi/libdsapi.la \
     $(top_builddir)/common/liblsacommon.la
