@@ -529,7 +529,7 @@ NetAllocBufferWC16String(
     DWORD err = ERROR_SUCCESS;
     PVOID pCursor = NULL;
     DWORD dwSpaceLeft = 0;
-    DWORD dwSize = 0;
+    size_t dwSize = 0;
     PWSTR *ppwszDest = NULL;
     PVOID pStr = NULL;
 
@@ -545,7 +545,7 @@ NetAllocBufferWC16String(
 
     if (pwszSource)
     {
-        err = LwWc16sLen(pwszSource, (size_t*)&dwSize);
+        err = LwWc16sLen(pwszSource, &dwSize);
         BAIL_ON_WINERR_ERROR(err);
 
         /* it's a 2-byte unicode string */
@@ -758,6 +758,8 @@ NetAllocBufferUnicodeStringFromWC16String(
                                  &dwSize);
         BAIL_ON_WINERR_ERROR(err);
 
+        ALIGN_PTR_IN_BUFFER(UnicodeString, size, pCursor, dwSize, dwSpaceLeft);
+
         /* the string itself */
         err = NetAllocBufferWC16String(&pCursor,
                                        &dwSpaceLeft,
@@ -775,6 +777,8 @@ NetAllocBufferUnicodeStringFromWC16String(
 
         /* size of the string */
         dwSize += dwStrSize;
+
+        ALIGN_PTR_IN_BUFFER(UnicodeString, size, pCursor, dwSize, dwSpaceLeft);
 
         /* size of the string pointer */
         dwSize += sizeof(PWSTR);

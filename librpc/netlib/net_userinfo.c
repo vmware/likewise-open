@@ -1729,6 +1729,8 @@ NetAllocateSamrUserInfo21FromUserInfo1(
                               &dwSize);
     BAIL_ON_WINERR_ERROR(err);
 
+    ALIGN_PTR_IN_BUFFER(UserInfo21, buf_count, pCursor, dwSize, dwSpaceLeft);
+
     /* buffer: SKIP */
     err = NetAllocBufferByteBlob(&pCursor,
                                  &dwSpaceLeft,
@@ -2057,6 +2059,8 @@ NetAllocateSamrUserInfo21FromUserInfo2(
                               0,
                               &dwSize);
     BAIL_ON_WINERR_ERROR(err);
+
+    ALIGN_PTR_IN_BUFFER(UserInfo21, buf_count, pCursor, dwSize, dwSpaceLeft);
 
     /* buffer: SKIP */
     err = NetAllocBufferByteBlob(&pCursor,
@@ -2387,6 +2391,8 @@ NetAllocateSamrUserInfo21FromUserInfo3(
                               &dwSize);
     BAIL_ON_WINERR_ERROR(err);
 
+    ALIGN_PTR_IN_BUFFER(UserInfo21, buf_count, pCursor, dwSize, dwSpaceLeft);
+
     /* buffer: SKIP */
     err = NetAllocBufferByteBlob(&pCursor,
                                  &dwSpaceLeft,
@@ -2715,6 +2721,8 @@ NetAllocateSamrUserInfo21FromUserInfo4(
                               0,
                               &dwSize);
     BAIL_ON_WINERR_ERROR(err);
+
+    ALIGN_PTR_IN_BUFFER(UserInfo21, buf_count, pCursor, dwSize, dwSpaceLeft);
 
     /* buffer: SKIP */
     err = NetAllocBufferByteBlob(&pCursor,

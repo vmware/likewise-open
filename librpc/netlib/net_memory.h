@@ -49,6 +49,22 @@
 #define _NET_MEMORY_H_
 
 
+#define ALIGN_PTR_IN_BUFFER(type, field, cursor, size, left)         \
+    {                                                                \
+        DWORD dwFieldOffset = ((size_t)(&(((type*)(0))->field)));    \
+        DWORD dwFieldSize   = sizeof((((type*)(0))->field));         \
+        DWORD dwAlign = (dwFieldOffset + dwFieldSize)                \
+                         % sizeof(long int);                         \
+        if (cursor)                                                  \
+        {                                                            \
+            (cursor) += dwAlign;                                     \
+            left -= dwAlign;                                         \
+        }                                                            \
+                                                                     \
+        size += dwAlign;                                             \
+    }
+
+
 NTSTATUS
 NetInitMemory(
     void
