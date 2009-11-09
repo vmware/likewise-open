@@ -48,6 +48,69 @@
 
 
 NTSTATUS
+SamrSrvCreateAccessToken(
+    IN  handle_t       hBinding,
+    OUT PACCESS_TOKEN *ppToken
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    RPCSTATUS rpcStatus = 0;
+    rpc_transport_info_handle_t hTransportInfo = NULL;
+    PSTR pszPrincipalName = NULL;
+    PBYTE pbSessionKey = NULL;
+    USHORT usSessionKeyLen = 0;
+    PLW_MAP_SECURITY_CONTEXT *pSecCtx = NULL;
+    PACCESS_TOKEN pToken = NULL;
+
+    rpc_binding_inq_transport_info(hBinding,
+                                   &hTransportInfo,
+                                   &rpcStatus);
+    if (rpcStatus)
+    {
+        ntStatus = LwRpcStatusToNtStatus(rpcStatus);
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
+
+    rpc_smb_transport_info_inq_peer_principal_name(
+                                   hTransportInfo,
+                                   (unsigned char**)&pszPrincipalName);
+
+    rpc_smb_transport_info_inq_session_key(hTransportInfo,
+                                   (unsigned char**)&pbSessionKey,
+                                   (unsigned16*)&usSessionKeyLen);
+
+    ntStatus = LwMapSecurityCreateContext(&pSecCtx);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    ntStatus = LwMapSecurityCreateAccessTokenFromAnsiStringUsername(
+                                   pSecCtx,
+                                   &pToken,
+                                   pszPrincipalName);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    *ppToken = pToken;
+
+cleanup:
+    if (pSecCtx)
+    {
+        LwMapSecurityFreeContext(&pSecCtx);
+    }
+
+    return ntStatus;
+
+error:
+    if (pToken)
+    {
+        RtlReleaseAccessToken(pToken);
+    }
+
+    *ppToken = NULL;
+
+    goto cleanup;
+}
+
+
+NTSTATUS
 SamrSrvGetSystemCreds(
     LW_PIO_CREDS *ppCreds
     )
