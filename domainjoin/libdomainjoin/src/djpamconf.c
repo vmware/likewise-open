@@ -2307,6 +2307,10 @@ static void PamLwidentityEnable(const char *testPrefix, const DistroInfo *distro
                 goto cleanup;
             if(!strcmp(normalizedService, "passwd"))
                 goto cleanup;
+            if(!strcmp(normalizedService, "chpasswd"))
+                goto cleanup;
+            if(!strcmp(normalizedService, "newusers"))
+                goto cleanup;
             if(!strcmp(normalizedService, "rsh"))
                 goto cleanup;
             if(!strcmp(normalizedService, "shadow"))
