@@ -60,7 +60,6 @@ NetLocalGroupGetInfo(
 
     NTSTATUS status = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
-    PWSTR pwszNameCopy = NULL;
     NetConn *pConn = NULL;
     handle_t hSamrBinding = NULL;
     ACCOUNT_HANDLE hAlias = NULL;
@@ -100,30 +99,19 @@ NetLocalGroupGetInfo(
                           &dwAliasRid);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    if (dwLevel == 0)
-    {
-        err = LwAllocateWc16String(&pwszNameCopy,
-                                   pwszAliasname);
-        BAIL_ON_WINERR_ERROR(err);
+    status = SamrQueryAliasInfo(hSamrBinding,
+                                hAlias,
+                                wInfoLevel,
+                                &pInfo);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
-        pSourceBuffer = pwszNameCopy;
-    }
-    else
-    {
-        status = SamrQueryAliasInfo(hSamrBinding,
-                                    hAlias,
-                                    wInfoLevel,
-                                    &pInfo);
-        BAIL_ON_NTSTATUS_ERROR(status);
+    pSourceBuffer = &pInfo->all;
 
-        pSourceBuffer = &pInfo->all;
-    }
-
-    err = NetAllocateUserInfo(NULL,
-                              NULL,
-                              dwLevel,
-                              pSourceBuffer,
-                              &dwSize);
+    err = NetAllocateLocalGroupInfo(NULL,
+                                    NULL,
+                                    dwLevel,
+                                    pSourceBuffer,
+                                    &dwSize);
     BAIL_ON_WINERR_ERROR(err);
 
     dwSpaceAvailable = dwSize;
@@ -134,11 +122,11 @@ NetLocalGroupGetInfo(
                                NULL);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    err = NetAllocateUserInfo(pBuffer,
-                              &dwSpaceAvailable,
-                              dwLevel,
-                              pSourceBuffer,
-                              &dwSize);
+    err = NetAllocateLocalGroupInfo(pBuffer,
+                                    &dwSpaceAvailable,
+                                    dwLevel,
+                                    pSourceBuffer,
+                                    &dwSize);
     BAIL_ON_WINERR_ERROR(err);
 
     status = SamrClose(hSamrBinding, hAlias);
@@ -151,8 +139,6 @@ cleanup:
     {
         SamrFreeMemory((void*)pInfo);
     }
-
-    LW_SAFE_FREE_MEMORY(pwszNameCopy);
 
     if (pCreds)
     {

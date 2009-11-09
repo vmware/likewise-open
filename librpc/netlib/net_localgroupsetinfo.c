@@ -28,74 +28,154 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        net_localgroupsetinfo.c
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Client Interface
+ *
+ *        NetLocalGroupSetInfo function
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
+ */
+
 #include "includes.h"
 
 
 NET_API_STATUS
 NetLocalGroupSetInfo(
-    const wchar16_t *hostname,
-    const wchar16_t *aliasname,
-    uint32 level,
-    void *buffer,
-    uint32 *parm_err
+    PCWSTR  pwszHostname,
+    PCWSTR  pwszAliasname,
+    DWORD   dwLevel,
+    PVOID   pBuffer,
+    PDWORD  pdwParmErr
     )
 {
-    const uint32 alias_access = ALIAS_ACCESS_SET_INFO;
+    const DWORD dwAliasAccessRights = ALIAS_ACCESS_SET_INFO;
 
     NTSTATUS status = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
-    NetConn *conn = NULL;
-    handle_t samr_b = NULL;
+    NetConn *pConn = NULL;
+    handle_t hSamrBinding = NULL;
     ACCOUNT_HANDLE hAlias = NULL;
-    uint32 alias_rid = 0;
-    AliasInfo *info = NULL;
-    uint32 slevel = 0;
-    PIO_CREDS creds = NULL;
+    PLOCALGROUP_INFO_0 pInfo0 = NULL;
+    PLOCALGROUP_INFO_1 pInfo1 = NULL;
+    PLOCALGROUP_INFO_1002 pInfo1002 = NULL;
+    PWSTR pwszComment = NULL;
+    PWSTR pwszNewAliasname = NULL;
+    DWORD dwAliasRid = 0;
+    DWORD dwSamrInfoLevel = 0;
+    AliasInfo InfoName;
+    AliasInfo InfoDescription;
+    PIO_CREDS pCreds = NULL;
 
-    BAIL_ON_INVALID_PTR(hostname);
-    BAIL_ON_INVALID_PTR(aliasname);
-    BAIL_ON_INVALID_PTR(buffer);
+    memset(&InfoName, 0, sizeof(InfoName));
+    memset(&InfoDescription, 0, sizeof(InfoDescription));
 
-    status = LwIoGetActiveCreds(NULL, &creds);
+    BAIL_ON_INVALID_PTR(pwszAliasname);
+    BAIL_ON_INVALID_PTR(pBuffer);
+
+    status = LwIoGetActiveCreds(NULL, &pCreds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = NetConnectSamr(&conn, hostname, 0, 0, creds);
+    status = NetConnectSamr(&pConn,
+                            pwszHostname,
+                            0,
+                            0,
+                            pCreds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    samr_b = conn->samr.bind;
+    hSamrBinding = pConn->samr.bind;
 
-    status = NetOpenAlias(conn, aliasname, alias_access, &hAlias,
-                          &alias_rid);
+    status = NetOpenAlias(pConn,
+                          pwszAliasname,
+                          dwAliasAccessRights,
+                          &hAlias,
+                          &dwAliasRid);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    switch (level) {
+    switch (dwLevel)
+    {
     case 0:
-        status = PushLocalGroupInfo0(&info, &slevel, buffer);
+        pInfo0 = (PLOCALGROUP_INFO_0)pBuffer;
+
+        err = LwAllocateWc16String(&pwszNewAliasname,
+                                   pInfo0->lgrpi0_name);
+        BAIL_ON_WINERR_ERROR(err);
         break;
 
     case 1:
-        status = PushLocalGroupInfo1(&info, &slevel, buffer);
+        pInfo1 = (PLOCALGROUP_INFO_1)pBuffer;
+
+        /* lgrpi1_name is ignored in NetLocalGroupSetInfo */
+
+        err = LwAllocateWc16String(&pwszComment,
+                                   pInfo1->lgrpi1_comment);
+        BAIL_ON_WINERR_ERROR(err);
         break;
 
     case 1002:
-        status = PushLocalGroupInfo1002(&info, &slevel, buffer);
+        pInfo1002 = (PLOCALGROUP_INFO_1002)pBuffer;
+
+        err = LwAllocateWc16String(&pwszComment,
+                                   pInfo1002->lgrpi1002_comment);
+        BAIL_ON_WINERR_ERROR(err);
         break;
 
     default:
         err = ERROR_INVALID_LEVEL;
-        goto error;
+        BAIL_ON_WINERR_ERROR(err);
     }
-    BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = SamrSetAliasInfo(samr_b, hAlias, slevel, info);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    if (pwszNewAliasname)
+    {
+        dwSamrInfoLevel = ALIAS_INFO_NAME;
 
-    status = SamrClose(samr_b, hAlias);
+        err = LwAllocateUnicodeStringFromWc16String(
+                                  (PUNICODE_STRING)&InfoName.name,
+                                  pwszNewAliasname);
+
+        status = SamrSetAliasInfo(hSamrBinding,
+                                  hAlias,
+                                  dwSamrInfoLevel,
+                                  &InfoName);
+        BAIL_ON_NTSTATUS_ERROR(status);
+    }
+
+    if (pwszComment)
+    {
+        dwSamrInfoLevel = ALIAS_INFO_DESCRIPTION;
+
+        err = LwAllocateUnicodeStringFromWc16String(
+                                  (PUNICODE_STRING)&InfoDescription.description,
+                                  pwszComment);
+
+        status = SamrSetAliasInfo(hSamrBinding,
+                                  hAlias,
+                                  dwSamrInfoLevel,
+                                  &InfoDescription);
+        BAIL_ON_NTSTATUS_ERROR(status);
+    }
+
+    status = SamrClose(hSamrBinding, hAlias);
     BAIL_ON_NTSTATUS_ERROR(status);
 
 cleanup:
-    if (info) {
-        NetFreeMemory((void*)info);
+    /* FreeUnicodeString is NULL-proof */
+    FreeUnicodeString(&InfoName.name);
+    FreeUnicodeString(&InfoDescription.description);
+
+    LW_SAFE_FREE_MEMORY(pwszNewAliasname);
+    LW_SAFE_FREE_MEMORY(pwszComment);
+
+    if (pCreds)
+    {
+        LwIoDeleteCreds(pCreds);
     }
 
     if (err == ERROR_SUCCESS &&
@@ -106,11 +186,6 @@ cleanup:
     return err;
 
 error:
-    if (creds)
-    {
-        LwIoDeleteCreds(creds);
-    }
-
     goto cleanup;
 }
 
