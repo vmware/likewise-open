@@ -219,6 +219,16 @@ NetAllocBufferByteBlob(
     );
 
 
+DWORD
+NetAllocBufferFixedBlob(
+    PVOID      *ppCursor,
+    PDWORD      pdwSpaceLeft,
+    PBYTE       pbBlob,
+    DWORD       dwBlobSize,
+    PDWORD      pdwSize
+    );
+
+
 #endif /* _NET_MEMORY_H_ */
 
 

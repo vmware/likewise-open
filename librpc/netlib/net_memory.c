@@ -1158,6 +1158,78 @@ error:
 }
 
 
+DWORD
+NetAllocBufferFixedBlob(
+    PVOID      *ppCursor,
+    PDWORD      pdwSpaceLeft,
+    PBYTE       pbBlob,
+    DWORD       dwBlobSize,
+    PDWORD      pdwSize
+    )
+{
+    DWORD err = ERROR_SUCCESS;
+    PVOID pCursor = NULL;
+    DWORD dwSpaceLeft = 0;
+    DWORD dwSize = 0;
+
+    if (ppCursor)
+    {
+        pCursor = *ppCursor;
+    }
+
+    if (pdwSpaceLeft)
+    {
+        dwSpaceLeft = *pdwSpaceLeft;
+    }
+
+    /*
+     * The actual value of pHours is ignored at the moment
+     */
+
+    dwSize += dwBlobSize;
+
+    if (pCursor && pbBlob)
+    {
+        if (dwSize > dwSpaceLeft)
+        {
+            err = ERROR_NOT_ENOUGH_MEMORY;
+            BAIL_ON_WINERR_ERROR(err);
+        }
+
+        /* copy the blob */
+        memcpy(pCursor, pbBlob, dwSize);
+
+        /* recalculate size and space after copying the blob */
+        dwSpaceLeft  -= dwSize;
+
+        /* recalculate cursor and space after setting the blob pointer */
+        pCursor      += dwSize;
+
+        *ppCursor     = pCursor;
+        *pdwSpaceLeft = dwSpaceLeft;
+    }
+    else if (pCursor)
+    {
+        pCursor      += dwSize;
+        dwSpaceLeft  -= dwSize;
+
+        *ppCursor     = pCursor;
+        *pdwSpaceLeft = dwSpaceLeft;
+    }
+
+    if (pdwSize)
+    {
+        *pdwSize += dwSize;
+    }
+
+cleanup:
+    return err;
+
+error:
+    goto cleanup;
+}
+
+
 /*
 local variables:
 mode: c
