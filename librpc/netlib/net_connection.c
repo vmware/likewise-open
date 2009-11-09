@@ -198,16 +198,16 @@ FindNetConn(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    WINERR err = ERROR_SUCCESS;
     int locked = 0;
     NetConn *c = NULL;
-
-    BAIL_ON_INVALID_PTR(name);
 
     CONN_LIST_LOCK(conn_list);
 
     c = conn_list->conn;
-    while (c && wc16scmp(c->hostname, name)) {
+    while (c &&
+           (c->hostname != name ||
+            (name != NULL && wc16scmp(c->hostname, name))))
+    {
         c = c->next;
     }
 
@@ -243,7 +243,6 @@ NetConnectSamr(
                                   DOMAIN_ACCESS_LOOKUP_INFO_2;
     const uint32 size = 128;
     const char *builtin = "BUILTIN";
-    const char *localhost = "127.0.0.1";
 
     NTSTATUS status = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
@@ -266,7 +265,6 @@ NetConnectSamr(
     char *host = NULL;
     wchar16_t **dom_names = NULL;
     wchar16_t *dom_name = NULL;
-    wchar16_t localhost_addr[10];
     rpc_transport_info_handle_t trans_info = NULL;
     unsigned char *sess_key = NULL;
     unsigned16 sess_key_len = 0;
@@ -277,14 +275,6 @@ NetConnectSamr(
     BAIL_ON_NTSTATUS_ERROR(status);
 
     cnlist = conn_list;
-
-    /* check if requested connection is a localhost connection */
-    if (hostname == NULL) {
-        size_t addr_size = sizeof(localhost_addr)/sizeof(wchar16_t);
-        memset(localhost_addr, 0, addr_size);
-        mbstowc16s(localhost_addr, localhost, addr_size);
-        hostname = (wchar16_t*)localhost_addr;
-    }
 
     /* look for existing connection and check if it already has
        required access rights */
@@ -312,11 +302,21 @@ NetConnectSamr(
         cn->samr.bind == NULL) {
         conn_access = conn_flags;
 
-        host = awc16stombs(hostname);
-        BAIL_ON_NO_MEMORY(host);
+        if (hostname)
+        {
+            /* remote host */
+            host = awc16stombs(hostname);
+            BAIL_ON_NO_MEMORY(host);
+        }
+        else
+        {
+            /* local host (ncalrpc) */
+            host = NULL;
+        }
 
         rpcstatus = InitSamrBindingDefault(&samr_b, host, creds);
         if (rpcstatus != 0) {
+            status = STATUS_UNSUCCESSFUL;
             BAIL_ON_NTSTATUS_ERROR(STATUS_UNSUCCESSFUL);
         }
 
@@ -336,12 +336,17 @@ NetConnectSamr(
             BAIL_ON_NTSTATUS_ERROR(STATUS_CONNECTION_INVALID);
         }
 
-        rpc_smb_transport_info_inq_session_key(trans_info, &sess_key,
-                                               &sess_key_len);
-        if (sess_key_len > 0)
+        /* Check if there's transport info (there may be none) and copy
+           the session key */
+        if (trans_info)
         {
-            memcpy((void*)cn->sess_key, sess_key, sizeof(cn->sess_key));
-            cn->sess_key_len = (uint32)sess_key_len;
+            rpc_smb_transport_info_inq_session_key(trans_info, &sess_key,
+                                                   &sess_key_len);
+            if (sess_key_len > 0)
+            {
+                memcpy((void*)cn->sess_key, sess_key, sizeof(cn->sess_key));
+                cn->sess_key_len = (uint32)sess_key_len;
+            }
         }
 
     } else {
@@ -473,7 +478,9 @@ domain_name_found:
     }
 
     /* set the host name if it's completely new connection */
-    if (cn->hostname == NULL) {
+    if (hostname &&
+        cn->hostname == NULL)
+    {
         cn->hostname = wc16sdup(hostname);
         BAIL_ON_NO_MEMORY(cn->hostname);
 
@@ -608,7 +615,9 @@ NetConnectLsa(
     }
 
     /* set the host name if it's completely new connection */
-    if (cn->hostname == NULL) {
+    if (hostname &&
+        cn->hostname == NULL)
+    {
         cn->hostname = wc16sdup(hostname);
         BAIL_ON_NO_MEMORY(cn->hostname);
 

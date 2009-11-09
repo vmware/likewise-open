@@ -70,29 +70,60 @@ NetUserAdd(
     handle_t hSamrBinding = NULL;
     DOMAIN_HANDLE hDomain = NULL;
     ACCOUNT_HANDLE hUser = NULL;
+    DWORD dwSamrInfoLevel = 0;
+    DWORD dwSamrPasswordInfoLevel = 0;
+    DWORD dwParmErr = 0;
+    UserInfo *pSamrUserInfo = NULL;
+    UserInfo *pSamrPasswordUserInfo = NULL;
+    DWORD dwSize = 0;
+    DWORD dwSpaceLeft = 0;
+    PIO_CREDS pCreds = NULL;
     PWSTR pwszUsername = NULL;
     DWORD dwRid = 0;
-    DWORD dwSamrInfoLevel = 0;
-    DWORD dwParmErr = 0;
-    PUSER_INFO_X pNetUserInfo = NULL;
-    UserInfo *pSamrUserInfo = NULL;
-    PIO_CREDS pCreds = NULL;
-    UserInfo PwInfo;
-    UserInfo26 *pUserInfo26 = NULL;
-
-    memset((void*)&PwInfo, 0, sizeof(PwInfo));
+    BOOL bPasswordSet = FALSE;
 
     BAIL_ON_INVALID_PTR(pBuffer);
 
-    status = PushUserInfoAdd(&pSamrUserInfo,
-                             &dwSamrInfoLevel,
-                             pBuffer,
-                             dwLevel,
-                             &dwParmErr);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    if (!(dwLevel == 1 ||
+          dwLevel == 2 ||
+          dwLevel == 3 ||
+          dwLevel == 4))
+    {
+        err = ERROR_INVALID_LEVEL;
+        BAIL_ON_WINERR_ERROR(err);
+    }
 
     status = LwIoGetActiveCreds(NULL, &pCreds);
     BAIL_ON_NTSTATUS_ERROR(status);
+
+    err = NetAllocateSamrUserInfo(NULL,
+                                  &dwSamrInfoLevel,
+                                  NULL,
+                                  dwLevel,
+                                  pBuffer,
+                                  pConn,
+                                  &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    dwSpaceLeft = dwSize;
+    dwSize      = 0;
+
+    if (dwSpaceLeft)
+    {
+        status = NetAllocateMemory((void**)&pSamrUserInfo,
+                                   dwSpaceLeft,
+                                   NULL);
+        BAIL_ON_NTSTATUS_ERROR(status);
+    }
+
+    err = NetAllocateSamrUserInfo(&pSamrUserInfo->info21,
+                                  &dwSamrInfoLevel,
+                                  &dwSpaceLeft,
+                                  dwLevel,
+                                  pBuffer,
+                                  pConn,
+                                  &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
 
     status = NetConnectSamr(&pConn,
                             pwszHostname,
@@ -104,8 +135,10 @@ NetUserAdd(
     hSamrBinding  = pConn->samr.bind;
     hDomain       = pConn->samr.hDomain;
 
-    pNetUserInfo  = (USER_INFO_X*)pBuffer;
-    pwszUsername  = pNetUserInfo->name;
+    err = LwAllocateWc16StringFromUnicodeString(
+                         &pwszUsername,
+                         (PUNICODE_STRING)&pSamrUserInfo->info21.account_name);
+    BAIL_ON_WINERR_ERROR(err);
 
     status = SamrCreateUser(hSamrBinding,
                             hDomain,
@@ -115,25 +148,65 @@ NetUserAdd(
                             &dwRid);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    /* If there was password specified do an extra samr call to set it */
-    if (pNetUserInfo->password)
+    /*
+     * Check if there's password to be set (if it's NULL
+     * the function returns ERROR_INVALID_PASSWORD)
+     */
+
+    dwSamrPasswordInfoLevel = 26;
+    dwSize                  = 0;
+
+    err = NetAllocateSamrUserInfo(NULL,
+                                  &dwSamrPasswordInfoLevel,
+                                  NULL,
+                                  dwLevel,
+                                  pBuffer,
+                                  pConn,
+                                  &dwSize);
+    if (err == ERROR_SUCCESS)
     {
-        memset((void*)&PwInfo, 0, sizeof(PwInfo));
-        pUserInfo26 = &PwInfo.info26;
+        dwSpaceLeft = dwSize;
+        dwSize      = 0;
 
-        pUserInfo26->password_len = wc16slen(pNetUserInfo->password);
+        if (dwSpaceLeft)
+        {
+            status = NetAllocateMemory((void**)&pSamrPasswordUserInfo,
+                                       dwSpaceLeft,
+                                       NULL);
+            BAIL_ON_NTSTATUS_ERROR(status);
+        }
 
-        status = NetEncPasswordEx(pUserInfo26->password.data,
-                               pNetUserInfo->password,
-                               pUserInfo26->password_len,
-                               pConn);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        err = NetAllocateSamrUserInfo(&pSamrPasswordUserInfo->info26,
+                                      &dwSamrPasswordInfoLevel,
+                                      &dwSpaceLeft,
+                                      dwLevel,
+                                      pBuffer,
+                                      pConn,
+                                      &dwSize);
+        BAIL_ON_WINERR_ERROR(err);
 
         status = SamrSetUserInfo(hSamrBinding,
                                  hUser,
-                                 26,
-                                 &PwInfo);
+                                 dwSamrPasswordInfoLevel,
+                                 pSamrPasswordUserInfo);
         BAIL_ON_NTSTATUS_ERROR(status);
+
+        bPasswordSet = TRUE;
+
+    }
+    else if (err != ERROR_INVALID_PASSWORD)
+    {
+        BAIL_ON_WINERR_ERROR(err);
+    }
+
+    /*
+     * Disable the account only if was no password
+     */
+
+    if (!bPasswordSet &&
+        dwSamrInfoLevel == 21)
+    {
+        pSamrUserInfo->info21.account_flags |= ACB_DISABLED;
     }
 
     status = SamrSetUserInfo(hSamrBinding,
@@ -156,6 +229,18 @@ cleanup:
         NetFreeMemory((void*)pSamrUserInfo);
     }
 
+    if (pSamrPasswordUserInfo)
+    {
+        NetFreeMemory((void*)pSamrUserInfo);
+    }
+
+    LW_SAFE_FREE_MEMORY(pwszUsername);
+
+    if (pCreds)
+    {
+        LwIoDeleteCreds(pCreds);
+    }
+
     if (err == ERROR_SUCCESS &&
         status != STATUS_SUCCESS)
     {
@@ -165,11 +250,6 @@ cleanup:
     return err;
 
 error:
-    if (pCreds)
-    {
-        LwIoDeleteCreds(pCreds);
-    }
-
     goto cleanup;
 }
 

@@ -28,6 +28,23 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        net_useradd.h
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Client Interface
+ *
+ *        NetUserAdd function
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
+ */
+
+
 #include "includes.h"
 
 
@@ -44,16 +61,16 @@ NetUserSetInfo(
        Otherwise we get access denied. Don't ask... */
     const DWORD dwDomainAccess = DOMAIN_ACCESS_LOOKUP_INFO_1;
 
-    const uint32 dwUserAccess = USER_ACCESS_GET_NAME_ETC |
-                                USER_ACCESS_GET_LOCALE |
-                                USER_ACCESS_GET_LOGONINFO |
-                                USER_ACCESS_GET_ATTRIBUTES |
-                                USER_ACCESS_GET_GROUPS |
-                                USER_ACCESS_GET_GROUP_MEMBERSHIP |
-                                USER_ACCESS_SET_LOC_COM |
-                                USER_ACCESS_SET_ATTRIBUTES |
-                                USER_ACCESS_CHANGE_PASSWORD |
-                                USER_ACCESS_SET_PASSWORD;
+    const DWORD dwUserAccess = USER_ACCESS_GET_NAME_ETC |
+                               USER_ACCESS_GET_LOCALE |
+                               USER_ACCESS_GET_LOGONINFO |
+                               USER_ACCESS_GET_ATTRIBUTES |
+                               USER_ACCESS_GET_GROUPS |
+                               USER_ACCESS_GET_GROUP_MEMBERSHIP |
+                               USER_ACCESS_SET_LOC_COM |
+                               USER_ACCESS_SET_ATTRIBUTES |
+                               USER_ACCESS_CHANGE_PASSWORD |
+                               USER_ACCESS_SET_PASSWORD;
 
     NTSTATUS status = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
@@ -61,20 +78,59 @@ NetUserSetInfo(
     handle_t hSamrBinding = NULL;
     ACCOUNT_HANDLE hUser = NULL;
     DWORD dwUserRid = 0;
-    UserInfo *pSamrUserInfo = NULL;
-    USER_INFO_0 *pNetUserInfo0 = NULL;
-    USER_INFO_1003 *pNetUserInfo1003 = NULL;
-    USER_INFO_1007 *pNetUserInfo1007 = NULL;
-    USER_INFO_1008 *pNetUserInfo1008 = NULL;
-    USER_INFO_1011 *pNetUserInfo1011 = NULL;
     DWORD dwSamrInfoLevel = 0;
+    DWORD dwSamrPasswordInfoLevel = 0;
+    UserInfo *pSamrUserInfo = NULL;
+    UserInfo *pSamrPasswordUserInfo = NULL;
+    DWORD dwSize = 0;
+    DWORD dwSpaceLeft = 0;
     PIO_CREDS pCreds = NULL;
+
+    if (!(dwLevel == 0 ||
+          dwLevel == 1 ||
+          dwLevel == 2 ||
+          dwLevel == 3 ||
+          dwLevel == 4))
+    {
+        err = ERROR_INVALID_LEVEL;
+        BAIL_ON_WINERR_ERROR(err);
+    }
+
 
     BAIL_ON_INVALID_PTR(pwszUsername);
     BAIL_ON_INVALID_PTR(pBuffer);
 
     status = LwIoGetActiveCreds(NULL, &pCreds);
     BAIL_ON_NTSTATUS_ERROR(status);
+
+    err = NetAllocateSamrUserInfo(NULL,
+                                  &dwSamrInfoLevel,
+                                  NULL,
+                                  dwLevel,
+                                  pBuffer,
+                                  pConn,
+                                  &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    dwSpaceLeft = dwSize;
+    dwSize      = 0;
+
+    if (dwSpaceLeft)
+    {
+        status = NetAllocateMemory((void**)&pSamrUserInfo,
+                                   dwSpaceLeft,
+                                   NULL);
+        BAIL_ON_NTSTATUS_ERROR(status);
+    }
+
+    err = NetAllocateSamrUserInfo(&pSamrUserInfo->info21,
+                                  &dwSamrInfoLevel,
+                                  &dwSpaceLeft,
+                                  dwLevel,
+                                  pBuffer,
+                                  pConn,
+                                  &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
 
     status = NetConnectSamr(&pConn,
                             pwszHostname,
@@ -92,70 +148,55 @@ NetUserSetInfo(
                          &dwUserRid);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    switch (dwLevel)
+    /*
+     * Check if there's password to be set (if it's NULL
+     * the function returns ERROR_INVALID_PASSWORD)
+     */
+
+    dwSamrPasswordInfoLevel = 26;
+    dwSize                  = 0;
+
+    err = NetAllocateSamrUserInfo(NULL,
+                                  &dwSamrPasswordInfoLevel,
+                                  NULL,
+                                  dwLevel,
+                                  pBuffer,
+                                  pConn,
+                                  &dwSize);
+    if (err == ERROR_SUCCESS)
     {
-    case 0:
-        pNetUserInfo0 = (USER_INFO_0*)pBuffer;
-        status = PushUserInfo0(&pSamrUserInfo,
-                               &dwSamrInfoLevel,
-                               pNetUserInfo0);
-        break;
+        dwSpaceLeft = dwSize;
+        dwSize      = 0;
 
-    case 1003:
-        pNetUserInfo1003 = (USER_INFO_1003*) pBuffer;
-        status = PushUserInfo1003(&pSamrUserInfo,
-                                  &dwSamrInfoLevel,
-                                  pNetUserInfo1003,
-                                  pConn);
-        break;
+        if (dwSpaceLeft)
+        {
+            status = NetAllocateMemory((void**)&pSamrPasswordUserInfo,
+                                       dwSpaceLeft,
+                                       NULL);
+            BAIL_ON_NTSTATUS_ERROR(status);
+        }
 
-    case 1007:
-        pNetUserInfo1007 = (USER_INFO_1007*) pBuffer;
-        status = PushUserInfo1007(&pSamrUserInfo,
-                                  &dwSamrInfoLevel,
-                                  pNetUserInfo1007);
-        break;
+        err = NetAllocateSamrUserInfo(&pSamrPasswordUserInfo->info26,
+                                      &dwSamrPasswordInfoLevel,
+                                      &dwSpaceLeft,
+                                      dwLevel,
+                                      pBuffer,
+                                      pConn,
+                                      &dwSize);
+        BAIL_ON_WINERR_ERROR(err);
 
-    case 1008:
-        pNetUserInfo1008 = (USER_INFO_1008*) pBuffer;
-        status = PushUserInfo1008(&pSamrUserInfo,
-                                  &dwSamrInfoLevel,
-                                  pNetUserInfo1008);
-        break;
-
-    case 1011:
-        pNetUserInfo1011 = (USER_INFO_1011*) pBuffer;
-        status = PushUserInfo1011(&pSamrUserInfo,
-                                  &dwSamrInfoLevel,
-                                  pNetUserInfo1011);
-        break;
-
-    case 1:
-    case 2:
-    case 3:
-    case 4:
-    case 21:
-    case 22:
-    case 1005:
-    case 1006:
-    case 1009:
-    case 1010:
-    case 1012:
-    case 1014:
-    case 1017:
-    case 1020:
-    case 1024:
-    case 1051:
-    case 1052:
-    case 1053:
-        status = STATUS_NOT_IMPLEMENTED;
-        break;
-
-    default:
-        status = STATUS_INVALID_LEVEL;
-        break;
+        status = SamrSetUserInfo(hSamrBinding,
+                                 hUser,
+                                 dwSamrPasswordInfoLevel,
+                                 pSamrPasswordUserInfo);
+        BAIL_ON_NTSTATUS_ERROR(status);
     }
-    BAIL_ON_NTSTATUS_ERROR(status);
+    else if (err != ERROR_INVALID_PASSWORD &&
+             /* Info level 0 doesn't support changing password */
+             dwLevel != 0)
+    {
+        BAIL_ON_WINERR_ERROR(err);
+    }
 
     status = SamrSetUserInfo(hSamrBinding,
                              hUser,
@@ -172,20 +213,20 @@ cleanup:
         NetFreeMemory((void*)pSamrUserInfo);
     }
 
-    if (err == ERROR_SUCCESS &&
-        status != STATUS_SUCCESS)
-    {
-        err = NtStatusToWin32Error(status);
-    }
-
-    return err;
-
-error:
     if (pCreds)
     {
         LwIoDeleteCreds(pCreds);
     }
 
+    if (err == ERROR_SUCCESS &&
+        status != STATUS_SUCCESS)
+    {
+        err = LwNtStatusToWin32Error(status);
+    }
+
+    return err;
+
+error:
     goto cleanup;
 }
 

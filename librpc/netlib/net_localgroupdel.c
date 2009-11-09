@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software
@@ -28,57 +28,80 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        net_localgroupdel.c
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Client Interface
+ *
+ *        NetLocalGroupDel function
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
+ */
+
 #include "includes.h"
 
 
 NET_API_STATUS
 NetLocalGroupDel(
-    const wchar16_t *hostname,
-    const wchar16_t *aliasname
+    PCWSTR  pwszHostname,
+    PCWSTR  pwszAliasname
     )
 {
-    const uint32 alias_access = DELETE;
+    const DWORD dwAliasAccessRights = DELETE;
 
     NTSTATUS status = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
-    NetConn *conn = NULL;
-    handle_t samr_b = NULL;
+    NetConn *pConn = NULL;
+    handle_t hSamrBinding = NULL;
     ACCOUNT_HANDLE hAlias = NULL;
-    uint32 alias_rid = 0;
-    PIO_CREDS creds = NULL;
+    DWORD dwAliasRid = 0;
+    PIO_CREDS pCreds = NULL;
 
-    BAIL_ON_INVALID_PTR(hostname);
-    BAIL_ON_INVALID_PTR(aliasname);
+    BAIL_ON_INVALID_PTR(pwszAliasname);
 
-    status = LwIoGetActiveCreds(NULL, &creds);
+    status = LwIoGetActiveCreds(NULL, &pCreds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = NetConnectSamr(&conn, hostname, 0, 0, creds);
+    status = NetConnectSamr(&pConn,
+                            pwszHostname,
+                            0,
+                            0,
+                            pCreds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = NetOpenAlias(conn, aliasname, alias_access, &hAlias,
-                          &alias_rid);
+    status = NetOpenAlias(pConn,
+                          pwszAliasname,
+                          dwAliasAccessRights,
+                          &hAlias,
+                          &dwAliasRid);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    samr_b = conn->samr.bind;
+    hSamrBinding = pConn->samr.bind;
 
-    status = SamrDeleteDomAlias(samr_b, hAlias);
+    status = SamrDeleteDomAlias(hSamrBinding, hAlias);
     BAIL_ON_NTSTATUS_ERROR(status);
 
 cleanup:
+    if (pCreds)
+    {
+        LwIoDeleteCreds(pCreds);
+    }
+
     if (err == ERROR_SUCCESS &&
-        status != STATUS_SUCCESS) {
+        status != STATUS_SUCCESS)
+    {
         err = NtStatusToWin32Error(status);
     }
 
     return err;
 
 error:
-    if (creds)
-    {
-        LwIoDeleteCreds(creds);
-    }
-
     goto cleanup;
 }
 

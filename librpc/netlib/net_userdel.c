@@ -88,6 +88,11 @@ NetUserDel(
     BAIL_ON_NTSTATUS_ERROR(status);
 
 cleanup:
+    if (pCreds)
+    {
+        LwIoDeleteCreds(pCreds);
+    }
+
     if (err == ERROR_SUCCESS &&
         status != STATUS_SUCCESS)
     {
@@ -97,11 +102,6 @@ cleanup:
     return err;
 
 error:
-    if (pCreds)
-    {
-        LwIoDeleteCreds(pCreds);
-    }
-
     goto cleanup;
 }
 

@@ -29,10 +29,21 @@
  */
 
 /*
- * Abstract: NetAPI declarations (rpc client library)
+ * Copyright (C) Likewise Software. All rights reserved.
  *
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ * Module Name:
+ *
+ *        LMaccess.h
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Client Interface
+ *
+ *        Network Management API, aka LanMan API (rpc client library)
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
+
 
 
 #ifndef _LM_ACCESS_H_
@@ -48,194 +59,194 @@
 
 typedef struct _USER_INFO_0
 {
-    wchar16_t *usri0_name;
+    PWSTR  usri0_name;
 
 } USER_INFO_0, *PUSER_INFO_0;
 
 typedef struct _USER_INFO_1
 {
-    wchar16_t *usri1_name;
-    wchar16_t *usri1_password;
-    uint32 usri1_password_age;
-    uint32 usri1_priv;
-    wchar16_t *usri1_home_dir;
-    wchar16_t *usri1_comment;
-    uint32 usri1_flags;
-    wchar16_t *usri1_script_path;
+    PWSTR  usri1_name;
+    PWSTR  usri1_password;
+    DWORD  usri1_password_age;
+    DWORD  usri1_priv;
+    PWSTR  usri1_home_dir;
+    PWSTR  usri1_comment;
+    DWORD  usri1_flags;
+    PWSTR  usri1_script_path;
 
 } USER_INFO_1, *PUSER_INFO_1;
 
 typedef struct _USER_INFO_2
 {
-    wchar16_t *usri2_name;
-    wchar16_t *usri2_password;
-    uint32 usri2_password_age;
-    uint32 usri2_priv;
-    wchar16_t *usri2_home_dir;
-    wchar16_t *usri2_comment;
-    uint32 usri2_flags;
-    wchar16_t *usri2_script_path;
-    uint32 usri2_auth_flags;
-    wchar16_t *usri2_full_name;
-    wchar16_t *usri2_usr_comment;
-    wchar16_t *usri2_parms;
-    wchar16_t *usri2_workstations;
-    uint32 usri2_last_logon;
-    uint32 usri2_last_logoff;
-    uint32 usri2_acct_expires;
-    uint32 usri2_max_storage;
-    uint32 usri2_units_per_week;
-    uint8 *usri2_logon_hours;
-    uint32 usri2_bad_pw_count;
-    uint32 usri2_num_logons;
-    wchar16_t *usri2_logon_server;
-    uint32 usri2_country_code;
-    uint32 usri2_code_page;
+    PWSTR  usri2_name;
+    PWSTR  usri2_password;
+    DWORD  usri2_password_age;
+    DWORD  usri2_priv;
+    PWSTR  usri2_home_dir;
+    PWSTR  usri2_comment;
+    DWORD  usri2_flags;
+    PWSTR  usri2_script_path;
+    DWORD  usri2_auth_flags;
+    PWSTR  usri2_full_name;
+    PWSTR  usri2_usr_comment;
+    PWSTR  usri2_parms;
+    PWSTR  usri2_workstations;
+    DWORD  usri2_last_logon;
+    DWORD  usri2_last_logoff;
+    DWORD  usri2_acct_expires;
+    DWORD  usri2_max_storage;
+    DWORD  usri2_units_per_week;
+    PBYTE  usri2_logon_hours;
+    DWORD  usri2_bad_pw_count;
+    DWORD  usri2_num_logons;
+    PWSTR  usri2_logon_server;
+    DWORD  usri2_country_code;
+    DWORD  usri2_code_page;
 
 } USER_INFO_2, *PUSER_INFO_2;
 
 typedef struct _USER_INFO_3
 {
-    wchar16_t *usri3_name;
-    wchar16_t *usri3_password;
-    wchar16_t *usri3_password_age;
-    uint32 usri3_priv;
-    wchar16_t *usri3_home_dir;
-    wchar16_t *usri3_comment;
-    uint32 usri3_flags;
-    wchar16_t *usri3_script_path;
-    uint32 usri3_auth_flags;
-    wchar16_t *usri3_full_name;
-    wchar16_t *usri3_usr_comment;
-    wchar16_t *usri3_parms;
-    wchar16_t *usri3_workstations;
-    uint32 usri3_last_logon;
-    uint32 usri3_last_logoff;
-    uint32 usri3_acct_expires;
-    uint32 usri3_max_storage;
-    uint32 usri3_units_per_week;
-    uint8 *usri3_logon_hours;
-    uint32 usri3_bad_pw_count;
-    uint32 usri3_num_logons;
-    wchar16_t *usri3_logon_server;
-    uint32 usri3_country_code;
-    uint32 usri3_code_page;
-    uint32 usri3_user_id;
-    uint32 usri3_primary_group_id;
-    wchar16_t *usri3_profile;
-    wchar16_t *usri3_home_dir_drive;
-    uint32 usri3_password_expired;
+    PWSTR  usri3_name;
+    PWSTR  usri3_password;
+    PWSTR  usri3_password_age;
+    DWORD  usri3_priv;
+    PWSTR  usri3_home_dir;
+    PWSTR  usri3_comment;
+    DWORD  usri3_flags;
+    PWSTR  usri3_script_path;
+    DWORD  usri3_auth_flags;
+    PWSTR  usri3_full_name;
+    PWSTR  usri3_usr_comment;
+    PWSTR  usri3_parms;
+    PWSTR  usri3_workstations;
+    DWORD  usri3_last_logon;
+    DWORD  usri3_last_logoff;
+    DWORD  usri3_acct_expires;
+    DWORD  usri3_max_storage;
+    DWORD  usri3_units_per_week;
+    PBYTE  usri3_logon_hours;
+    DWORD  usri3_bad_pw_count;
+    DWORD  usri3_num_logons;
+    PWSTR  usri3_logon_server;
+    DWORD  usri3_country_code;
+    DWORD  usri3_code_page;
+    DWORD  usri3_user_id;
+    DWORD  usri3_primary_group_id;
+    PWSTR  usri3_profile;
+    PWSTR  usri3_home_dir_drive;
+    DWORD  usri3_password_expired;
 
 } USER_INFO_3, *PUSER_INFO_3;
 
 typedef struct _USER_INFO_4
 {
-    wchar16_t *usri4_name;
-    wchar16_t *usri4_password;
-    wchar16_t *usri4_password_age;
-    uint32 usri4_priv;
-    wchar16_t *usri4_home_dir;
-    wchar16_t *usri4_comment;
-    uint32 usri4_flags;
-    wchar16_t *usri4_script_path;
-    uint32 usri4_auth_flags;
-    wchar16_t *usri4_full_name;
-    wchar16_t *usri4_usr_comment;
-    wchar16_t *usri4_parms;
-    wchar16_t *usri4_workstations;
-    uint32 usri4_last_logon;
-    uint32 usri4_last_logoff;
-    uint32 usri4_acct_expires;
-    uint32 usri4_max_storage;
-    uint32 usri4_units_per_week;
-    uint8 *usri4_logon_hours;
-    uint32 usri4_bad_pw_count;
-    uint32 usri4_num_logons;
-    wchar16_t *usri4_logon_server;
-    uint32 usri4_country_code;
-    uint32 usri4_code_page;
-    PSID usri4_user_sid;
-    uint32 usri4_primary_group_id;
-    wchar16_t *usri4_profile;
-    wchar16_t *usri4_home_dir_drive;
-    uint32 usri4_password_expired;
+    PWSTR  usri4_name;
+    PWSTR  usri4_password;
+    PWSTR  usri4_password_age;
+    DWORD  usri4_priv;
+    PWSTR  usri4_home_dir;
+    PWSTR  usri4_comment;
+    DWORD  usri4_flags;
+    PWSTR  usri4_script_path;
+    DWORD  usri4_auth_flags;
+    PWSTR  usri4_full_name;
+    PWSTR  usri4_usr_comment;
+    PWSTR  usri4_parms;
+    PWSTR  usri4_workstations;
+    DWORD  usri4_last_logon;
+    DWORD  usri4_last_logoff;
+    DWORD  usri4_acct_expires;
+    DWORD  usri4_max_storage;
+    DWORD  usri4_units_per_week;
+    PBYTE  usri4_logon_hours;
+    DWORD  usri4_bad_pw_count;
+    DWORD  usri4_num_logons;
+    PWSTR  usri4_logon_server;
+    DWORD  usri4_country_code;
+    DWORD  usri4_code_page;
+    PSID   usri4_user_sid;
+    DWORD  usri4_primary_group_id;
+    PWSTR  usri4_profile;
+    PWSTR  usri4_home_dir_drive;
+    DWORD  usri4_password_expired;
 
 } USER_INFO_4, *PUSER_INFO_4;
 
 typedef struct _USER_INFO_10
 {
-    wchar16_t *usri10_name;
-    wchar16_t *usri10_comment;
-    wchar16_t *usri10_usr_comment;
-    wchar16_t *usri10_full_name;
+    PWSTR  usri10_name;
+    PWSTR  usri10_comment;
+    PWSTR  usri10_usr_comment;
+    PWSTR  usri10_full_name;
 
 } USER_INFO_10, *PUSER_INFO_10;
 
 typedef struct _USER_INFO_11
 {
-    wchar16_t *usri11_name;
-    wchar16_t *usri11_comment;
-    wchar16_t *usri11_usr_comment;
-    wchar16_t *usri11_full_name;
-    uint32 usri11_priv;
-    uint32 usri11_auth_flags;
-    uint32 usri11_password_age;
-    wchar16_t *usri11_home_dir;
-    wchar16_t *usri11_parms;
-    uint32 usri11_last_logon;
-    uint32 usri11_last_logoff;
-    uint32 usri11_bad_pw_count;
-    uint32 usri11_num_logons;
-    wchar16_t *usri11_logon_server;
-    uint32 usri11_country_code;
-    wchar16_t *usri11_workstations;
-    uint32 usri11_max_storage;
-    uint32 usri11_units_per_week;
-    uint8 *usri11_logon_hours;
-    uint32 usri11_code_page;
+    PWSTR  usri11_name;
+    PWSTR  usri11_comment;
+    PWSTR  usri11_usr_comment;
+    PWSTR  usri11_full_name;
+    DWORD  usri11_priv;
+    DWORD  usri11_auth_flags;
+    DWORD  usri11_password_age;
+    PWSTR  usri11_home_dir;
+    PWSTR  usri11_parms;
+    DWORD  usri11_last_logon;
+    DWORD  usri11_last_logoff;
+    DWORD  usri11_bad_pw_count;
+    DWORD  usri11_num_logons;
+    PWSTR  usri11_logon_server;
+    DWORD  usri11_country_code;
+    PWSTR  usri11_workstations;
+    DWORD  usri11_max_storage;
+    DWORD  usri11_units_per_week;
+    PBYTE  usri11_logon_hours;
+    DWORD  usri11_code_page;
 
 } USER_INFO_11, *PUSER_INFO_11;
 
 typedef struct _USER_INFO_20
 {
-    wchar16_t *usri20_name;
-    wchar16_t *usri20_full_name;
-    wchar16_t *usri20_comment;
-    uint32 usri20_flags;
-    uint32 usri20_user_id;
+    PWSTR  usri20_name;
+    PWSTR  usri20_full_name;
+    PWSTR  usri20_comment;
+    DWORD  usri20_flags;
+    DWORD  usri20_user_id;
 
 } USER_INFO_20, *PUSER_INFO_20;
 
 typedef struct _USER_INFO_23
 {
-    wchar16_t *usri23_name;
-    wchar16_t *usri23_full_name;
-    wchar16_t *usri23_comment;
-    PSID usri23_user_sid;
+    PWSTR  usri23_name;
+    PWSTR  usri23_full_name;
+    PWSTR  usri23_comment;
+    PSID   usri23_user_sid;
 
 } USER_INFO_23, *PUSER_INFO_23;
 
 typedef struct _USER_INFO_1003
 {
-    wchar16_t *usri1003_password;
+    PWSTR  usri1003_password;
 
 } USER_INFO_1003, *PUSER_INFO_1003;
 
 typedef struct _USER_INFO_1007
 {
-    wchar16_t *usri1007_comment;
+    PWSTR  usri1007_comment;
 
 } USER_INFO_1007, *PUSER_INFO_1007;
 
 typedef struct _USER_INFO_1008
 {
-    uint32 usri1008_flags;
+    DWORD  usri1008_flags;
 
 } USER_INFO_1008, *PUSER_INFO_1008;
 
 typedef struct _USER_INFO_1011
 {
-    wchar16_t *usri1011_full_name;
+    PWSTR  usri1011_full_name;
 
 } USER_INFO_1011, *PUSER_INFO_1011;
 
@@ -244,35 +255,47 @@ typedef struct _USER_INFO_1011
 // LOCALGROUP_USERS_INFO levels
 //
 
-typedef struct _LOCALGROUP_USERS_INFO_0 {
-    wchar16_t *lgrui0_name;
-} LOCALGROUP_USERS_INFO_0;
+typedef struct _LOCALGROUP_USERS_INFO_0
+{
+    PWSTR  lgrui0_name;
+
+} LOCALGROUP_USERS_INFO_0, *PLOCALGROUP_USERS_INFO_0;
 
 
 //
 // LOCALGROUP_INFO levels
 //
 
-typedef struct _LOCALGROUP_INFO_0 {
-    wchar16_t *lgrpi0_name;
-} LOCALGROUP_INFO_0;
+typedef struct _LOCALGROUP_INFO_0
+{
+    PWSTR  lgrpi0_name;
 
-typedef struct _LOCALGROUP_INFO_1 {
-    wchar16_t *lgrpi1_name;
-    wchar16_t *lgrpi1_comment;
-} LOCALGROUP_INFO_1;
+} LOCALGROUP_INFO_0, *PLOCALGROUP_INFO_0;
 
-typedef struct _LOCALGROUP_INFO_1002 {
-    wchar16_t *lgrpi1002_comment;
-} LOCALGROUP_INFO_1002;
+typedef struct _LOCALGROUP_INFO_1
+{
+    PWSTR  lgrpi1_name;
+    PWSTR  lgrpi1_comment;
 
-typedef struct _LOCALGROUP_MEMBERS_INFO_0 {
-    PSID lgrmi0_sid;
-} LOCALGROUP_MEMBERS_INFO_0;
+} LOCALGROUP_INFO_1, *PLOCALGROUP_INFO_1;
 
-typedef struct _LOCALGROUP_MEMBERS_INFO_3 {
-    wchar16_t *lgrmi3_domainandname;
-} LOCALGROUP_MEMBERS_INFO_3;
+typedef struct _LOCALGROUP_INFO_1002
+{
+    PWSTR  lgrpi1002_comment;
+
+} LOCALGROUP_INFO_1002, *PLOCALGROUP_INFO_1002;
+
+typedef struct _LOCALGROUP_MEMBERS_INFO_0
+{
+    PSID   lgrmi0_sid;
+
+} LOCALGROUP_MEMBERS_INFO_0, *PLOCALGROUP_MEMBERS_INFO_0;
+
+typedef struct _LOCALGROUP_MEMBERS_INFO_3
+{
+    PWSTR  lgrmi3_domainandname;
+
+} LOCALGROUP_MEMBERS_INFO_3, *PLOCALGROUP_MEMBERS_INFO_3;
 
 
 typedef WINERR NET_API_STATUS;
@@ -280,148 +303,164 @@ typedef WINERR NET_API_STATUS;
 
 NET_API_STATUS
 NetUserEnum(
-    const wchar16_t *hostname,
-    uint32 level,
-    uint32 filter,
-    void **bufptr,
-    uint32 maxlen,
-    uint32 *entries,
-    uint32 *total,
-    uint32 *resume
+    PCWSTR  pwszHostname,
+    DWORD   dwLevel,
+    DWORD   dwFilter,
+    PVOID  *ppBuffer,
+    DWORD   dwMaxBufferSize,
+    PDWORD  pdwNumEntries,
+    PDWORD  pdwTotalNumEntries,
+    PDWORD  pdwResume
     );
+
 
 NET_API_STATUS
 NetUserAdd(
-    const wchar16_t *hostname,
-    uint32 level,
-    void *bufptr,
-    uint32 *parm_err
+    PCWSTR  pwszHostname,
+    DWORD   dwLevel,
+    PVOID   pBuffer,
+    PDWORD  pdwParmErr
     );
+
 
 NET_API_STATUS
 NetUserDel(
-    const wchar16_t *hostname,
-    const wchar16_t *username
+    PCWSTR  pwszHostname,
+    PCWSTR  pwszUsername
     );
+
 
 NET_API_STATUS
 NetUserGetInfo(
-    const wchar16_t *hostname,
-    const wchar16_t *username,
-    uint32 level,
-    void **bufptr
+    PCWSTR  pwszHostname,
+    PCWSTR  pwszUsername,
+    DWORD   dwLevel,
+    PVOID  *ppBuffer
     );
+
 
 NET_API_STATUS
 NetUserSetInfo(
-    const wchar16_t *servername,
-    const wchar16_t *username,
-    uint32 level,
-    void *bufptr,
-    uint32 *parm_err
+    PCWSTR  pwszHostname,
+    PCWSTR  pwszUsername,
+    DWORD   dwLevel,
+    PVOID   pBuffer,
+    PDWORD  pdwParmErr
     );
+
 
 NET_API_STATUS
 NetUserGetLocalGroups(
-    const wchar16_t *servername,
-    const wchar16_t *username,
-    uint32 level,
-    uint32 flags,
-    void **bufptr,
-    uint32 prefmaxlen,
-    uint32 *entriesread,
-    uint32 *totalentries
+    PCWSTR  pwszHostname,
+    PCWSTR  pwszUsername,
+    DWORD   dwLevel,
+    DWORD   dwFlags,
+    PVOID  *ppBuffer,
+    DWORD   dwMaxBufferSize,
+    PDWORD  pdwNumEntries,
+    PDWORD  pdwTotalNumEntries
     );
+
 
 NET_API_STATUS
 NetLocalGroupAdd(
-    const wchar16_t *servername,
-    uint32 level,
-    void *bufptr,
-    uint32 *parm_err
+    PCWSTR  pwszHostname,
+    DWORD   dwLevel,
+    PVOID   pBuffer,
+    PDWORD  pdwParmErr
     );
+
 
 NET_API_STATUS
 NetLocalGroupDel(
-    const wchar16_t *servername,
-    const wchar16_t *groupname
+    PCWSTR  pwszHostname,
+    PCWSTR  pwszGroupname
     );
+
 
 NET_API_STATUS
 NetLocalGroupEnum(
-    const wchar16_t *servername,
-    uint32 level,
-    void **bufptr,
-    uint32 prefmaxlen,
-    uint32 *entriesread,
-    uint32 *totalentries,
-    uint32 *resumehandle
+    PCWSTR  pwszHostname,
+    DWORD   dwLevel,
+    PVOID  *ppBuffer,
+    DWORD   dwBufferMaxSize,
+    PDWORD  pdwNumEntries,
+    PDWORD  pdwTotalNumEntries,
+    PDWORD  pdwResume
     );
+
 
 NET_API_STATUS
 NetLocalGroupSetInfo(
-    const wchar16_t *servername,
-    const wchar16_t *groupname,
-    uint32 level,
-    void *bufptr,
-    uint32 *parm_err
+    PCWSTR  pwszHostname,
+    PCWSTR  pwszGroupname,
+    DWORD   dwLevel,
+    PVOID   pBuffer,
+    PDWORD  pdwParmErr
     );
+
 
 NET_API_STATUS
 NetLocalGroupGetInfo(
-    const wchar16_t *servername,
-    const wchar16_t *groupname,
-    uint32 level,
-    void **bufptr
+    PCWSTR  pwszHostname,
+    PCWSTR  pwszGroupname,
+    DWORD   dwLevel,
+    PVOID  *ppBuffer
     );
+
 
 NET_API_STATUS
 NetLocalGroupAddMembers(
-    const wchar16_t *servername,
-    const wchar16_t *groupname,
-    uint32 level,
-    void *bufptr,
-    uint32 totalentries
+    PCWSTR  pwszHostname,
+    PCWSTR  pwszGroupname,
+    DWORD   dwLevel,
+    PVOID   pBuffer,
+    DWORD   dwNumEntries
     );
+
 
 NET_API_STATUS
 NetLocalGroupDelMembers(
-    const wchar16_t *servername,
-    const wchar16_t *groupname,
-    uint32 level,
-    void *bufptr,
-    uint32 totalentries
+    PCWSTR  pwszHostname,
+    PCWSTR  pwszGroupname,
+    DWORD   dwLevel,
+    PVOID   pBuffer,
+    DWORD   dwNumEntries
     );
+
 
 NET_API_STATUS
 NetLocalGroupGetMembers(
-    const wchar16_t *servername,
-    const wchar16_t *localgroupname,
-    uint32 level,
-    void **bufptr,
-    uint32 prefmaxlen,
-    uint32 *entriesread,
-    uint32 *totalentries,
-    uint32 *resumehandle
+    PCWSTR  pwszHostname,
+    PCWSTR  pwszLocalGroupName,
+    DWORD   dwLevel,
+    PVOID  *ppBuffer,
+    DWORD   dwMaxBufferSize,
+    PDWORD  pdwNumEntries,
+    PDWORD  pdwTotalNumEntries,
+    PDWORD  pdwResume
     );
+
 
 NET_API_STATUS
 NetApiBufferFree(
-    void *bufptr
+    PVOID   pBuffer
     );
+
 
 NET_API_STATUS
 NetUserChangePassword(
-    const wchar16_t *domain,
-    const wchar16_t *username,
-    const wchar16_t *oldpassword,
-    const wchar16_t *newpassword
+    PCWSTR  pwszDomain,
+    PCWSTR  pwszUsername,
+    PCWSTR  pwszOldPassword,
+    PCWSTR  pwszNewPassword
     );
+
 
 NET_API_STATUS
 NetGetDomainName(
-    const wchar16_t *hostname,
-    wchar16_t **domname
+    PCWSTR  pwszHostname,
+    PWSTR  *ppwszDomainName
     );
 
 

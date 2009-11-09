@@ -398,7 +398,7 @@ error:
         pIrpContext->pIrp->IoStatusBlock.CreateResult =
             PvfsSetCreateResult(
                 Args.CreateDisposition,
-                pCreateCtx->bFileExisted,
+                pCreateCtx ? pCreateCtx->bFileExisted : FALSE,
                 ntError);
     }
 
@@ -515,7 +515,7 @@ error:
         pIrpContext->pIrp->IoStatusBlock.CreateResult =
             PvfsSetCreateResult(
                 Args.CreateDisposition,
-                pCreateCtx->bFileExisted,
+                pCreateCtx ? pCreateCtx->bFileExisted : FALSE,
                 ntError);
     }
 
@@ -677,7 +677,7 @@ error:
         pIrpContext->pIrp->IoStatusBlock.CreateResult =
             PvfsSetCreateResult(
                 Args.CreateDisposition,
-                pCreateCtx->bFileExisted,
+                pCreateCtx ? pCreateCtx->bFileExisted : FALSE,
                 ntError);
     }
 
