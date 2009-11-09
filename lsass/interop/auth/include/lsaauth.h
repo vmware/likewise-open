@@ -61,35 +61,51 @@
  * Use macro just like any other cast e.g.: (PAM_GET_ITEM_TYPE)
  */
 #if defined(__LWI_AIX__) || defined(__LWI_HP_UX__)
+
 #define PAM_GET_ITEM_TYPE             void**
 #define PAM_GET_DATA_TYPE             void**
 #define PPCHAR_ARG_CAST               char**
 #define PAM_MESSAGE_MSG_TYPE          char*
 #define PAM_CONV_2ND_ARG_TYPE         struct pam_message**
+
 #elif defined(__LWI_SOLARIS__)
+
 #define PAM_GET_ITEM_TYPE             void**
 #define PAM_GET_DATA_TYPE             const void**
 #define PPCHAR_ARG_CAST               char**
 #define PAM_MESSAGE_MSG_TYPE          char*
 #define PAM_CONV_2ND_ARG_TYPE         struct pam_message**
+
 #elif defined(__LWI_FREEBSD__)
+
 #define PAM_GET_ITEM_TYPE             const void**
+
+#if defined(PAM_GET_DATA_TAKES_CONST_DATA_ARG)
 #define PAM_GET_DATA_TYPE             const void**
-#define PPCHAR_ARG_CAST               const char**
-#define PAM_MESSAGE_MSG_TYPE          char*
-#define PAM_CONV_2ND_ARG_TYPE         const struct pam_message**
-#elif defined(__LWI_DARWIN_X64__)
-#define PAM_GET_ITEM_TYPE             const void**
-#define PAM_GET_DATA_TYPE             const void**
-#define PPCHAR_ARG_CAST               const char**
-#define PAM_MESSAGE_MSG_TYPE          char*
-#define PAM_CONV_2ND_ARG_TYPE         const struct pam_message**
 #else
+#define PAM_GET_DATA_TYPE             void**
+#endif
+
+#define PPCHAR_ARG_CAST               const char**
+#define PAM_MESSAGE_MSG_TYPE          char*
+#define PAM_CONV_2ND_ARG_TYPE         const struct pam_message**
+
+#elif defined(__LWI_DARWIN_X64__)
+
+#define PAM_GET_ITEM_TYPE             const void**
+#define PAM_GET_DATA_TYPE             const void**
+#define PPCHAR_ARG_CAST               const char**
+#define PAM_MESSAGE_MSG_TYPE          char*
+#define PAM_CONV_2ND_ARG_TYPE         const struct pam_message**
+
+#else
+
 #define PAM_GET_ITEM_TYPE             const void**
 #define PAM_GET_DATA_TYPE             const void**
 #define PPCHAR_ARG_CAST               const char**
 #define PAM_MESSAGE_MSG_TYPE          const char*
 #define PAM_CONV_2ND_ARG_TYPE         const struct pam_message**
+
 #endif
 
 extern DWORD gdwLogLevel;

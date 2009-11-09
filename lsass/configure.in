@@ -1027,6 +1027,33 @@ AC_DEFINE([GETSOCKNAME_TAKES_SOCKLEN_T], [], [Define if getsockname takes sockle
 AC_MSG_RESULT([no])
 ])
 
+case "$host_os:$host_cpu" in
+
+    freebsd*:*)
+
+        AC_MSG_CHECKING([if pam_get_data takes const void** as last argument])
+        AC_TRY_COMPILE([
+        #include <sys/types.h>
+        #include <security/pam_appl.h>
+        ],
+        [
+            const pam_handle_t * pamh = NULL;
+            const char * module_data_name = NULL;
+            const void * data = NULL;
+            pam_get_data(pamh, module_data_name, &data);
+        ], [
+        AC_MSG_RESULT([yes])
+        AC_DEFINE([PAM_GET_DATA_TAKES_CONST_DATA_ARG],
+                  [],
+            [Define if pam_get_data takes const void** as its third argument])],
+            [AC_MSG_RESULT([no])])
+
+        ;;
+
+    *)
+        ;;
+esac
+
 AC_MSG_CHECKING([if struct msghdr has msg_control])
 AC_TRY_COMPILE([
 #include <sys/types.h>

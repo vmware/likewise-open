@@ -296,7 +296,13 @@ eventlogregdir="$sysconfdir"
 AC_SUBST(eventlogregdir)
 AS_AC_EXPAND(CONFIGDIR, $eventlogconfdir)
 AC_DEFINE_UNQUOTED(CONFIGDIR, "$CONFIGDIR", [Config directory])
-eventlogcachedir="$localstatedir/lib/likewise"
+
+
+if test x"$localstatedir" = x"/var"; then
+    eventlogcachedir="$localstatedir/lib/likewise"
+else
+    eventlogcachedir="$localstatedir"
+fi
 AC_SUBST(eventlogcachedir)
 AS_AC_EXPAND(CACHEDIR, $eventlogcachedir)
 AC_DEFINE_UNQUOTED(CACHEDIR, "$CACHEDIR", [Cache directory])
