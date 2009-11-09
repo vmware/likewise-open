@@ -393,6 +393,9 @@ SrvBuildOpenState(
     {
         case 0x00: /* compatibility mode */
 
+            ntStatus = STATUS_INVALID_PARAMETER;
+            BAIL_ON_NT_STATUS(ntStatus);
+
             break;
 
         case 0x10: /* deny read/write/execute (exclusive) */
