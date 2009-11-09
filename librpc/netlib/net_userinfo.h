@@ -133,12 +133,13 @@ NetAllocateUserInfo(
 
 DWORD
 NetAllocateSamrUserInfo(
-    PVOID   pInfoBuffer,
-    PDWORD  pdwSamrLevel,
-    PDWORD  pdwSpaceLeft,
-    DWORD   dwLevel,
-    PVOID   pSource,
-    PDWORD  pdwSize
+    PVOID    pInfoBuffer,
+    PDWORD   pdwSamrLevel,
+    PDWORD   pdwSpaceLeft,
+    DWORD    dwLevel,
+    PVOID    pSource,
+    NetConn *pConn,
+    PDWORD   pdwSize
     );
 
 
