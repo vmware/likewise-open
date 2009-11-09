@@ -333,7 +333,12 @@ srvsvcconfdir="$sysconfdir"
 AC_SUBST(srvsvcconfdir)
 AS_AC_EXPAND(CONFIGDIR, $srvsvcconfdir)
 AC_DEFINE_UNQUOTED(CONFIGDIR, "$CONFIGDIR", [Config directory])
-srvsvccachedir="$localstatedir/lib/likewise"
+
+if test x"$localstatedir" = x"/var"; then
+    srvsvccachedir="$localstatedir/lib/likewise"
+else
+    srvsvccachedir="$localstatedir"
+fi
 AC_SUBST(srvsvccachedir)
 AS_AC_EXPAND(CACHEDIR, $srvsvccachedir)
 AC_DEFINE_UNQUOTED(CACHEDIR, "$CACHEDIR", [Cache directory])
