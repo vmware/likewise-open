@@ -1513,6 +1513,17 @@ error:
     return status;
 }
 
+static
+ConnectionPacket*
+lwmsg_connection_fragment_get_packet(
+    ConnectionFragment* fragment
+    )
+{
+    ConnectionPacket* packet = (ConnectionPacket*) fragment->data;
+
+    return packet;
+}
+
 LWMsgStatus
 lwmsg_connection_finish_recv_message(
     LWMsgAssoc* assoc
@@ -1534,7 +1545,7 @@ lwmsg_connection_finish_recv_message(
     /* Keep reading packets until we get the final fragment */
     while (!(last_frag = lwmsg_connection_buffer_get_last_fragment(recvbuffer)) ||
            !lwmsg_connection_fragment_is_complete(last_frag) ||
-           !(((ConnectionPacket*) last_frag->data)->flags & CONNECTION_PACKET_FLAG_LAST_FRAGMENT))
+           !(lwmsg_connection_fragment_get_packet(last_frag)->flags & CONNECTION_PACKET_FLAG_LAST_FRAGMENT))
     {
         /* If there is no fragment in the recv buffer or the last fragment in the buffer
            is complete add a new fragment to the buffer to recv into */
