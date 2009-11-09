@@ -492,21 +492,6 @@ error_status_t  *status;
     sprintf((char *) dname, "%s%s", rpcd_c_database_name_prefix1,
             rpcd_c_database_name_prefix2);
 
-    /*
-     * Ensure permissions on endpoint directory
-     */
-    if (chmod((char *) dname, S_IRUSR | S_IWUSR | S_IXUSR) < 0)
-    {
-        printf("(rpcd) could not change permissions "
-	    "on ept database directory [%s]\n", dname);
-	*status = ept_s_cant_access;
-
-	free(fname);
-	free(dname);
-
-        return;
-    }
-
     if (stat((char *) dname, &statbuf) &&
 	errno == ENOENT) {
 	printf("(rpcd) ept database directory [%s] doesn't exist\n", dname);
@@ -1184,6 +1169,15 @@ int main(int argc, char *argv[])
 
     register_ifs(&status);
     if (! STATUS_OK(&status)) exit(1);
+
+    /*
+     * Ensure permissions on /var/rpc directory
+     */
+    if (chmod("/var/rpc", S_IRUSR | S_IWUSR | S_IXUSR) != 0)
+    {
+        printf("(rpcd) could not change permissions on /var/rpc directory...\n");
+        exit(1);
+    }
 
     /*
      * Register lcalrpc endpoint as a baseline to ensure local services can talk to us
