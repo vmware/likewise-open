@@ -28,90 +28,61 @@
  * license@likewisesoftware.com
  */
 
-#ifndef __WINERR_CONV_H__
-#define __WINERR_CONV_H__
+#include <stdlib.h>
+#include <errno.h>
 
-#include <lw/base.h>
-
-
-DWORD
-LwNtStatusToWin32Error(
-    NTSTATUS ntStatus
-    );
+#include <lw/ntstatus.h>
+#include <lw/winerror.h>
+#include <lw/errno.h>
+#include <lwerror.h>
+#include <ldaperror-table.h>
 
 
-int
-LwNtStatusToErrno(
-    NTSTATUS ntStatus
-    );
+const struct lderr_winerr*
+find_lderr(
+    int lderr
+    )
+{
+    unsigned int i;
 
+    for (i = 0; ldaperr_winerr_map[i].pszLderrStr; i++)
+    {
+        if (ldaperr_winerr_map[i].lderr == lderr)
+        {
+            return &ldaperr_winerr_map[i];
+        }
+    }
 
-NTSTATUS
-LwErrnoToNtStatus(
-    int uerror
-    );
-
-
-DWORD
-LwErrnoToWin32Error(
-    int uerror
-    );
-
-
-int
-LwWin32ErrorToErrno(
-    DWORD winerr
-    );
-
-
-NTSTATUS
-LwWin32ErrorToNtStatus(
-    DWORD winerr
-    );
-
-
-PCSTR
-LwNtStatusToName(
-    NTSTATUS ntStatus
-    );
-
-
-PCSTR
-LwWin32ErrorToName(
-   int err
-   );
-
-
-int
-LwErrnoToLdapErr(
-   int uerror
-   );
-
+    return NULL;
+}
 
 DWORD
 LwLdapErrToWin32Error(
-   int lderr
-   );
+    int lderr
+    )
+{
+    const struct lderr_winerr *e = find_lderr(lderr);
+    return (e) ? e->winerr : -1;
+}
 
+int
+LwErrnoToLdapErr(
+    int uerror
+    )
+{
+    unsigned int i = 0;
+    DWORD dwError = LwErrnoToWin32Error(uerror);
 
-#ifndef LW_STRICT_NAMESPACE
+    for (i = 0; ldaperr_winerr_map[i].pszLderrStr; i++)
+    {
+        if (ldaperr_winerr_map[i].winerr == dwError)
+        {
+            return ldaperr_winerr_map[i].lderr;
+        }
+    }
 
-#define NtStatusToWin32Error             LwNtStatusToWin32Error
-#define NtStatusToErrno                  LwNtStatusToErrno
-#define ErrnoToNtStatus                  LwErrnoToNtStatus
-#define ErrnoToWin32Error                LwErrnoToWin32Error
-#define Win32ErrorToErrno                LwWin32ErrorToErrno
-#define Win32ErrorToNtStatus             LwWin32ErrorToNtStatus
-#define NtStatusToName                   LwNtStatusToName
-#define Win32ErrorToName                 LwWin32ErrorToName
-#define ErrnoToLdapErr                   LwErrnoToLdapErr
-#define LdapErrToWin32Error              LwLdapErrToWin32Error
-
-#endif /* LW_STRICT_NAMESPACE */
-
-
-#endif /* __WINERR_CONV_H__ */
-
+    return -1;
+}
 
 /*
 local variables:

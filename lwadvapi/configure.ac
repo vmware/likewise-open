@@ -132,6 +132,13 @@ AC_ARG_WITH([lwbase-libs],
         ])
 
 
+LWBASE_LIBS="-llwbase"
+LWBASE_NOTHR_LIBS="-llwbase_nothr"
+
+AC_SUBST(LWBASE_INCLUDES)
+AC_SUBST(LWBASE_LDFLAGS)
+AC_SUBST(LWBASE_LIBS)
+
 # pstore
 
 AC_ARG_WITH([pstore],

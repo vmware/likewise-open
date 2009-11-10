@@ -32,7 +32,8 @@
 
 #include <lw/types.h>
 #include <lw/attrs.h>
-#include <winerror.h>
+#include <lw/winerror.h>
+#include <lw/ntstatus.h>
 
 #include <lwmsg/status.h>
 
