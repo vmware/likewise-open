@@ -44,8 +44,8 @@
 #include <signal.h>
 #include <unistd.h>
 
+#include <lw/winerror.h>
 #include <lwerror.h>
-#include <winerror-conv.h>
 #include <lwmem.h>
 #include <lwstr.h>
 #include <lwmsg/lwmsg.h>
