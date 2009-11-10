@@ -3,7 +3,7 @@
 #include "srvsvcsys.h"
 
 #include <lw/ntstatus.h>
-#include <winerror.h>
+#include <lw/winerror.h>
 #include <lwmem.h>
 #include <lwstr.h>
 #include <wc16str.h>

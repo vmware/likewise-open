@@ -89,7 +89,7 @@ extern int verbose_mode;
 #define FAILED() printf("[\033[31;1mFAILED\033[0m] %s test: ", active_test)
 
 #define netapi_fail(err) {                                    \
-        const char *name = Win32ErrorToName(err);             \
+        const char *name = Win32ErrorToSymbolicName(err);             \
         if (name) {                                           \
             printf("NetApi error: %s (0x%08x)\n", name, err); \
         } else {                                              \
@@ -298,7 +298,7 @@ extern int verbose_mode;
                                                                    \
         netapi_call;                                               \
         printf("= Returned status:\n=   %s (0x%08x)\n",            \
-               Win32ErrorToName(err), err);                        \
+               Win32ErrorToSymbolicName(err), err);                        \
     } while (0)
 
 

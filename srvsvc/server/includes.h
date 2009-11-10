@@ -39,9 +39,9 @@
 #include <config.h>
 #include <srvsvcsys.h>
 
-#include <winerror.h>
-#include <wc16str.h>
+#include <lw/winerror.h>
 #include <lw/ntstatus.h>
+#include <wc16str.h>
 #include <lwmem.h>
 #include <lwstr.h>
 #include <lwerror.h>

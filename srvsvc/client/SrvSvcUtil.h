@@ -31,7 +31,7 @@
 #ifndef _SRVSVC_UTIL_H_
 #define _SRVSVC_UTIL_H_
 
-#include <winerror.h>
+#include <lw/winerror.h>
 #include <lw/ntstatus.h>
 
 #include <lwrpc/types.h>

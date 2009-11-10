@@ -34,11 +34,11 @@
 #include <string.h>
 #include <unistd.h>
 
-#include <winerror.h>
 #include <dce/dce_error.h>
 #include <wc16str.h>
 #include <lwio/lwio.h>
 #include <lw/ntstatus.h>
+#include <lw/winerror.h>
 
 #include <srvsvc/types.h>
 
