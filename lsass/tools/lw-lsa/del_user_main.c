@@ -54,6 +54,8 @@
 #include "lsaclient.h"
 #include "lsaipc.h"
 
+#define LW_PRINTF_STRING(x) ((x) ? (x) : "<null>")
+
 static
 DWORD
 LsaDelUserMain(
@@ -175,8 +177,12 @@ error:
 
             if ((dwLen == dwErrorBufferSize) && !LW_IS_NULL_OR_EMPTY_STR(pszErrorBuffer))
             {
-                fprintf(stderr, "Failed to delete user.  %s\n", pszErrorBuffer);
-                bPrintOrigError = FALSE;
+                fprintf(stderr,
+                        "Failed to delete user.  Error code %u (%s).\n%s\n",
+                        dwError,
+                        LW_PRINTF_STRING(LwWin32ErrorToName(dwError)),
+                        pszErrorBuffer);
+                        bPrintOrigError = FALSE;
             }
         }
 
@@ -185,7 +191,10 @@ error:
 
     if (bPrintOrigError)
     {
-        fprintf(stderr, "Failed to delete user. Error code [%d]\n", dwError);
+        fprintf(stderr,
+                "Failed to delete user.  Error code %u (%s).\n",
+                dwError,
+                LW_PRINTF_STRING(LwWin32ErrorToName(dwError)));
     }
 
     goto cleanup;
@@ -221,7 +230,7 @@ ShowUsage(
     PCSTR pszProgramName
     )
 {
-    fprintf(stdout, "Usage: %s ( user login id | uid )\n", pszProgramName);
+    fprintf(stdout, "Usage: %s ( <user login id> | <uid> )\n", pszProgramName);
 }
 
 static
