@@ -49,7 +49,7 @@
 #include <wc16str.h>
 #include <wc16printf.h>
 #include <lw/base.h>
-#include <winerror.h>
+#include <lw/winerror.h>
 #include <lwrpc/allocate.h>
 #include <lwrpc/unicodestring.h>
 #include <lwrpc/rid.h>

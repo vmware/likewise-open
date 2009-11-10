@@ -37,7 +37,8 @@
 #include "lsa/lsa.h"
 #include "eventlog.h"
 
-#include "lwmem.h"
+#include <lw/winerror.h>
+#include <lwmem.h>
 #include <lwstr.h>
 #include <lwkrb5.h>
 #include "lsakrb5smb.h"
@@ -52,8 +53,9 @@
 #include "lsaldap.h"
 
 #include <lwps/lwps.h>
+#include <lw/winerror.h>
 #include <lwnet.h>
-#include <winerror-conv.h>
+
 
 #include <lwrpc/LM.h>
 #include <lwrpc/lsa.h>

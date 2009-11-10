@@ -113,7 +113,7 @@ LsaNtStatusToLsaError(
         case STATUS_INVALID_SID:
             return LW_ERROR_INVALID_SID;
         default:
-            return LwNtStatusToUnixErrno(Status);
+            return LwNtStatusToErrno(Status);
     }
 }
 

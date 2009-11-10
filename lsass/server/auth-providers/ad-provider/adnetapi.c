@@ -457,7 +457,7 @@ AD_NetLookupObjectSidsByNames(
     bChangedToken = TRUE;
 
 	status = LwIoGetThreadCreds(&pCreds);
-	dwError = LwNtStatusToUnixErrno(status);
+	dwError = LwNtStatusToErrno(status);
     BAIL_ON_LSA_ERROR(dwError);
 
     rpcStatus = InitLsaBindingDefault(&lsa_binding, pszHostname, pCreds);
@@ -801,7 +801,7 @@ AD_NetLookupObjectNamesBySids(
     bChangedToken = TRUE;
 
     status = LwIoGetThreadCreds(&pCreds);
-    dwError = LwNtStatusToUnixErrno(status);
+    dwError = LwNtStatusToErrno(status);
     BAIL_ON_LSA_ERROR(dwError);
 
     rpcStatus = InitLsaBindingDefault(&lsa_binding, pszHostname, pCreds);
@@ -1110,7 +1110,7 @@ AD_DsEnumerateDomainTrusts(
     bChangedToken = TRUE;
 
     status = LwIoGetThreadCreds(&pCreds);
-    dwError = LwNtStatusToUnixErrno(status);
+    dwError = LwNtStatusToErrno(status);
     BAIL_ON_LSA_ERROR(dwError);
 
     status = InitNetlogonBindingDefault(&netr_b,
@@ -1226,7 +1226,7 @@ AD_DsGetDcName(
     bChangedToken = TRUE;
 
     status = LwIoGetThreadCreds(&pCreds);
-    dwError = LwNtStatusToUnixErrno(status);
+    dwError = LwNtStatusToErrno(status);
     BAIL_ON_LSA_ERROR(dwError);
 
     status = InitNetlogonBindingDefault(&netr_b,
@@ -1618,7 +1618,7 @@ AD_NetlogonAuthenticationUserEx(
         bChangedToken = TRUE;
 
         status = LwIoGetThreadCreds(&pCreds);
-        dwError = LwNtStatusToUnixErrno(status);
+        dwError = LwNtStatusToErrno(status);
         BAIL_ON_LSA_ERROR(dwError);
 
         status = InitNetlogonBindingDefault(&netr_b,(const char*)pszDomainController, pCreds, FALSE);

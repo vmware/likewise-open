@@ -45,18 +45,20 @@
  *
  */
 
-#include "config.h"
+#include <config.h>
 
-#include "lsasystem.h"
+#include <lsasystem.h>
 
-#include "lsa/lsa.h"
+#include <lsa/lsa.h>
+
+#include <lw/errno.h>
+#include <lwmem.h>
+#include <lwstr.h>
+#include <reg/reg.h>
 
 #include "lsadef.h"
-#include "lwmem.h"
-#include "lwstr.h"
 #include "lwsecurityidentifier.h"
 #include "lsautils.h"
-#include "reg/reg.h"
 
 #include "lsalogger_p.h"
 #include "lsahash_p.h"
@@ -69,4 +71,3 @@
 #include "lsasecurityidentifier_p.h"
 #include "lsaartefactinfo_p.h"
 #include "externs.h"
-
