@@ -604,7 +604,7 @@ init_ctx_new(OM_uint32 *minor_status,
 		else
 		{
 			// This mech worked, so it stays in the list
-			memcpy(&(*mechSet)->elements[write_mech],
+			memmove(&(*mechSet)->elements[write_mech],
 				&(*mechSet)->elements[read_mech],
 				sizeof((*mechSet)->elements[write_mech]));
 				write_mech++;
