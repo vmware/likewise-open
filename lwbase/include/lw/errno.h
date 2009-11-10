@@ -40,22 +40,34 @@
 #define __LW_ERRNO_H__
 
 #include <errno.h>
-#include <lw/ntstatus.h>
+#include <lw/types.h>
 #include <lw/attrs.h>
 
 LW_NTSTATUS
-LwUnixErrnoToNtStatus(
-    LW_IN int code
+LwErrnoToNtStatus(
+    LW_IN int Code
+    );
+
+LW_WINERROR
+LwErrnoToWin32Error(
+    LW_IN int Code
     );
 
 LW_PCSTR
-LwUnixErrnoToSymbolicName(
-    LW_IN int code
+LwErrnoToName(
+    LW_IN int Code
+    );
+
+LW_PCSTR
+LwErrnoToDescription(
+    LW_IN int Code
     );
 
 #ifndef LW_STRICT_NAMESPACE
-#define UnixErrnoToNtStatus(code)       LwUnixErrnoToNtStatus(code)
-#define UnixErrnoToSymbolicName(code)   LwUnixErrnoToSymbolicName(code)
+#define ErrnoToNtStatus(Code)       LwErrnoToNtStatus(Code)
+#define ErrnoToWin32Error(Code)     LwErrnoToWin32Error(Code)
+#define ErrnoToName(Code)           LwErrnoToName(Code)
+#define ErrnoToDescription(Code)    LwErrnoToDescription(Code)
 #endif
 
 #endif

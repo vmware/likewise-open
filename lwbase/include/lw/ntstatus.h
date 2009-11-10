@@ -75,8 +75,6 @@
 // STATUS_PENDING.
 //
 
-typedef LW_LONG LW_NTSTATUS, *LW_PNTSTATUS;
-
 // Determine whether this is a failure code.  Only warning and
 // error codes are considered failure.
 #define LW_NT_SUCCESS(status) \
@@ -1165,9 +1163,6 @@ typedef LW_LONG LW_NTSTATUS, *LW_PNTSTATUS;
 
 #ifndef LW_STRICT_NAMESPACE
 
-typedef LW_NTSTATUS NTSTATUS;
-typedef LW_PNTSTATUS PNTSTATUS;
-
 #define NT_SUCCESS(status) LW_NT_SUCCESS(status)
 #define NT_SUCCESS_OR_NOT(status) LW_NT_SUCCESS_OR_NOT(status)
 
@@ -2118,26 +2113,33 @@ typedef LW_PNTSTATUS PNTSTATUS;
 #ifndef _DCE_IDL_
 #include <lw/attrs.h>
 
+int
+LwNtStatusToErrno(
+    LW_IN LW_NTSTATUS NtStatus
+    );
+
+LW_WINERROR
+LwNtStatusToWin32Error(
+    LW_IN LW_NTSTATUS NtStatus
+    );
+
 LW_PCSTR
-LwNtStatusToSymbolicName(
-    LW_IN LW_NTSTATUS code
+LwNtStatusToName(
+    LW_IN LW_NTSTATUS NtStatus
     );
 
 LW_PCSTR
 LwNtStatusToDescription(
-    LW_IN LW_NTSTATUS code
-    );
-
-int
-LwNtStatusToUnixErrno(
-    LW_IN LW_NTSTATUS code
+    LW_IN LW_NTSTATUS NtStatus
     );
 
 #ifndef LW_STRICT_NAMESPACE
-#define NtStatusToSymbolicName(code) LwNtStatusToSymbolicName(code)
-#define NtStatusToDescription(code)  LwNtStatusToDescription(code)
-#define NtStatusToUnixErrno(code)    LwNtStatusToUnixErrno(code)
+#define NtStatusToErrno(NtStatus)        LwNtStatusToErrno(NtStatus)
+#define NtStatusToWin32Error(NtStatus)   LwNtStatusToWin32Error(NtStatus)
+#define NtStatusToName(NtStatus)         LwNtStatusToName(NtStatus)
+#define NtStatusToDescription(NtStatus)  LwNtStatusToDescription(NtStatus)
 #endif /* LW_STRICT_NAMESPACE */
-#endif
+
+#endif /* _DCE_IDL_ */
 
 #endif

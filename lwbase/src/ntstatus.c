@@ -49,7 +49,7 @@ typedef struct _TABLE_ENTRY
 static
 PTABLE_ENTRY
 LwNtLookupCode(
-    IN NTSTATUS code
+    IN NTSTATUS NtStatus
     );
 
 #define NTSTATUS_CODE(code, err, desc) { code, err, #code, desc },
@@ -61,12 +61,12 @@ TABLE_ENTRY LwNtStatusCodeTable[] =
 };
 #undef NTSTATUS_CODE
 
-PCSTR
-LwNtStatusToSymbolicName(
-    IN NTSTATUS code
+LW_PCSTR
+LwNtStatusToName(
+    LW_IN LW_NTSTATUS NtStatus
     )
 {
-    PTABLE_ENTRY pEntry = LwNtLookupCode(code);
+    PTABLE_ENTRY pEntry = LwNtLookupCode(NtStatus);
 
     if (pEntry && pEntry->pszSymbolicName)
     {
@@ -78,12 +78,12 @@ LwNtStatusToSymbolicName(
     }
 }
 
-PCSTR
+LW_PCSTR
 LwNtStatusToDescription(
-    IN NTSTATUS code
+    IN NTSTATUS NtStatus
     )
 {
-    PTABLE_ENTRY pEntry = LwNtLookupCode(code);
+    PTABLE_ENTRY pEntry = LwNtLookupCode(NtStatus);
 
     if (pEntry)
     {
@@ -103,11 +103,11 @@ LwNtStatusToDescription(
 }
 
 int
-LwNtStatusToUnixErrno(
-    IN NTSTATUS code
+LwNtStatusToErrno(
+    IN NTSTATUS NtStatus
     )
 {
-    PTABLE_ENTRY pEntry = LwNtLookupCode(code);
+    PTABLE_ENTRY pEntry = LwNtLookupCode(NtStatus);
 
     if (pEntry)
     {
@@ -122,14 +122,14 @@ LwNtStatusToUnixErrno(
 static
 PTABLE_ENTRY
 LwNtLookupCode(
-    IN NTSTATUS code
+    IN NTSTATUS NtStatus
     )
 {
     ULONG index;
 
     for (index = 0; index < sizeof(LwNtStatusCodeTable) / sizeof(*LwNtStatusCodeTable); index++)
     {
-        if (LwNtStatusCodeTable[index].code == code)
+        if (LwNtStatusCodeTable[index].code == NtStatus)
         {
             return &LwNtStatusCodeTable[index];
         }
