@@ -27,18 +27,17 @@ function setup_build_vars
     PREFIXDIR="/opt/${PRODUCTNAME}"
     LIBEXECDIR="${PREFIXDIR}/bin"
     LOCALSTATEDIR="/var/lib/${PRODUCTNAME}"
-    SCRIPTDIR=""
     STAGE_DIR="${BUILD_ROOT}/staging"
     STAGE_COMP_DIR="${STAGE_DIR}/components"
     STAGE_INSTALL_DIR="${STAGE_DIR}/install-root"
     SYSCONFDIR="/etc/${PRODUCTNAME}"
 
-    for _variable in PREFIXDIR SYSCONFDIR INITDIR LOCALSTATEDIR LIBEXECDIR SCRIPTDIR STAGE_INSTALL_DIR; do
+    for _variable in PREFIXDIR SYSCONFDIR INITDIR LOCALSTATEDIR LIBEXECDIR STAGE_INSTALL_DIR; do
         eval "if [ -n \"\${BUILD_${_variable}}\" ]; then export ${_variable}=\${BUILD_${_variable}}; fi"
         eval "if [ -n \"\${BUILD_${_upcomp}_${_variable}}\" ]; then export ${_variable}=\${BUILD_${_upcomp}_${_variable}}; fi"
-    if [ -n "${BUILD_VERBOSE}" ]; then
-        eval "echo ${_variable}=\${${_variable}}"
-    fi
+        if [ -n "${BUILD_VERBOSE}" ]; then
+            eval "echo ${_variable}=\${${_variable}}"
+        fi
     done
 }
 

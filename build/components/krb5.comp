@@ -79,7 +79,9 @@ function component_install
 
     ${MAKE} DESTDIR=${INSTALL_ROOT} install
 
-    /bin/mv ${INSTALL_PREFIX_DIR}/sbin/ktutil ${INSTALL_PREFIX_DIR}/bin/
+    if [ -f ${INSTALL_PREFIX_DIR}/sbin/ktutil ]; then
+        /bin/mv ${INSTALL_PREFIX_DIR}/sbin/ktutil ${INSTALL_PREFIX_DIR}/bin/
+    fi
 
     /bin/rm -rf ${INSTALL_PREFIX_DIR}/{sbin,share,var}
 
