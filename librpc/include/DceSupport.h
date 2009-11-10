@@ -32,7 +32,7 @@
 #define __DCE_SUPPORT_H__
 
 #include <dce/dcethread.h>
-#include <winerror.h>
+#include <lw/winerror.h>
 #define TRY DCETHREAD_TRY
 #define CATCH(x) DCETHREAD_CATCH(x)
 #define CATCH_ALL DCETHREAD_CATCH_ALL(THIS_CATCH)

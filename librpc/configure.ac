@@ -164,16 +164,27 @@ AC_ARG_WITH([lwadvapi-libs],
 		LWADVAPI_LDFLAGS="-L$withval"
         ])
 
+LWADVAPI_LIBS="-llwadvapi"
+LWADVAPI_NOTHR_LIBS="-llwadvapi_nothr"
+
+AC_SUBST(LWADVAPI_INCLUDES)
+AC_SUBST(LWADVAPI_LDFLAGS)
+AC_SUBST(LWADVAPI_LIBS)
+AC_SUBST(LWADVAPI_NOTHR_LIBS)
+
 
 AC_CHECK_HEADER([lw/base.h],,[AC_MSG_ERROR([Could not find lwbase headers])])
+AC_CHECK_HEADER([lw/winerror.h],,[AC_MSG_ERROR([Could not find lwbase headers])])
+AC_CHECK_HEADER([lw/ntstatus.h],,[AC_MSG_ERROR([Could not find lwbase headers])])
 AC_CHECK_LIB([lwbase], [LwInterlockedIncrement], [LWBASE_LIBS="-llwbase"], [AC_MSG_ERROR([Could not find liblwbase])], [$LWBASE_LDFLAGS])
+AC_CHECK_LIB([lwbase], [LwNtStatusToWin32Error], [LWBASE_LIBS="-llwbase_nothr"], [AC_MSG_ERROR([Could not find liblwbase])], [$LWBASE_LDFLAGS])
+
 
 AC_SUBST(LWBASE_INCLUDES)
 AC_SUBST(LWBASE_LDFLAGS)
 AC_SUBST(LWBASE_LIBS)
 
-AC_CHECK_HEADER([winerror.h],,[AC_MSG_ERROR([Could not find lwadvapi headers])])
-AC_CHECK_LIB([lwadvapi_nothr], [LwNtStatusToWin32Error], [LWADVAPI_LIBS="-llwadvapi_nothr -llwadvapi"], [AC_MSG_ERROR([Could not find liblwadvapi])], [$LWADVAPI_LDFLAGS])
+AC_CHECK_HEADER([lwerror.h],,[AC_MSG_ERROR([Could not find lwadvapi headers])])
 
 AC_SUBST(LWADVAPI_INCLUDES)
 AC_SUBST(LWADVAPI_LDFLAGS)

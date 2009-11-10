@@ -42,7 +42,7 @@ libnetapi_la_CPPFLAGS = $(AM_CPPFLAGS) @LWBASE_INCLUDES@
 libnetapi_la_LIBADD = \
 	-lunistr -lldap_r -lktkrb5 -llwioclient -lcrypto \
 	$(LWBASE_LIBS) \
-        $(LWADVAPI_LIBS) \
+    $(LWADVAPI_LIBS) \
 	$(top_builddir)/alloc/liballoc.la \
 	$(top_builddir)/samr/libsamr.la \
 	$(top_builddir)/lsa/liblsa.la \

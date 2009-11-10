@@ -13,7 +13,7 @@
 #include <wc16str.h>
 #include <lw/base.h>
 #include <lw/ntstatus.h>
-#include <winerror.h>
+#include <lw/winerror.h>
 #include <lwio/lwio.h>
 #include <lwps/lwps.h>
 #include <lwnet.h>
