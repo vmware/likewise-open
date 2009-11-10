@@ -29,7 +29,7 @@
  */
 
 #include "lwrpcrt.h"
-#include <winerror.h>
+#include <lw/winerror.h>
 #include <stdlib.h>
 #include <wc16str.h>
 #include <errno.h>
