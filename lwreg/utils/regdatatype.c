@@ -192,7 +192,6 @@ RegByteArrayToMultiStrsW(
                                (LW_PVOID) &ppszOutMultiSz);
     BAIL_ON_REG_ERROR(dwError);
 
-    /* Loop through multistring again to convert to UTF8 */
     count = 0;
     pwszInString = (PWSTR) pInBuf;
     do
