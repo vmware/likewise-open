@@ -82,7 +82,7 @@ SamrSrvCreateAccessToken(
     ntStatus = LwMapSecurityCreateContext(&pSecCtx);
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
-    ntStatus = LwMapSecurityCreateAccessTokenFromAnsiStringUsername(
+    ntStatus = LwMapSecurityCreateAccessTokenFromCStringUsername(
                                    pSecCtx,
                                    &pToken,
                                    pszPrincipalName);
