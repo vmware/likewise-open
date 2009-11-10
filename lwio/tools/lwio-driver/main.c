@@ -121,7 +121,7 @@ Load(
 
     if (status)
     {
-        printf("Could not load driver: %s\n", LwNtStatusToSymbolicName(status));
+        printf("Could not load driver: %s\n", LwNtStatusToName(status));
     }
     else
     {
@@ -157,7 +157,7 @@ Unload(
 
     if (status)
     {
-        printf("Could not unload driver: %s\n", LwNtStatusToSymbolicName(status));
+        printf("Could not unload driver: %s\n", LwNtStatusToName(status));
     }
     else
     {

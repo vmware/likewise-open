@@ -51,7 +51,7 @@
 
 #if defined(__LWI_DARWIN__)
 #define UNIX_TO_NTSTATUS(Error) \
-   ((Error) ? LwUnixErrnoToNtStatus(Error) : STATUS_SUCCESS)
+   ((Error) ? LwErrnoToNtStatus(Error) : STATUS_SUCCESS)
 
 NTSTATUS
 SMBSemaphoreInit(

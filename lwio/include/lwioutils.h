@@ -144,7 +144,7 @@
        LWIO_LOG_DEBUG("Error at %s:%d [status: %s = 0x%08X (%d)]", \
                      __FILE__,                     \
                      __LINE__,                     \
-                     LwNtStatusToSymbolicName(ntStatus), \
+                     LwNtStatusToName(ntStatus), \
                      ntStatus, ntStatus);          \
        goto error;                                 \
     }

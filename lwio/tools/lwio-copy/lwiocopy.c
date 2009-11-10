@@ -305,7 +305,7 @@ LwioCopyFileFromLocalToLocal(
 
         if ((dwBytesRead = read(hSrcFile, szBuf, sizeof(szBuf))) == -1)
         {
-            status = LwUnixErrnoToNtStatus(errno);
+            status = LwErrnoToNtStatus(errno);
             BAIL_ON_NT_STATUS(status);
         }
 
@@ -316,7 +316,7 @@ LwioCopyFileFromLocalToLocal(
 
         if ((dwWrote = write(hDestFile, szBuf, dwBytesRead)) == -1)
         {
-            status = LwUnixErrnoToNtStatus(errno);
+            status = LwErrnoToNtStatus(errno);
             BAIL_ON_NT_STATUS(status);
         }
 
@@ -470,7 +470,7 @@ LwioCopyFileFromRemote(
 
         if ((dwWrote = write(hLocalFile, szBuff, dwRead)) == -1)
         {
-            status = LwUnixErrnoToNtStatus(errno);
+            status = LwErrnoToNtStatus(errno);
             BAIL_ON_NT_STATUS(status);
         }
 
@@ -797,7 +797,7 @@ LwioCopyFileToRemote(
 
         if ((dwBytesRead = read(hLocalFile, szBuf, sizeof(szBuf))) == -1)
         {
-            status = LwUnixErrnoToNtStatus(errno);
+            status = LwErrnoToNtStatus(errno);
             BAIL_ON_NT_STATUS(status);
         }
 
@@ -851,7 +851,7 @@ LwioCopyDirFromLocalToLocal(
 
     if ((pDir = opendir(pszSourcePath)) == NULL)
     {
-        status = LwUnixErrnoToNtStatus(errno);
+        status = LwErrnoToNtStatus(errno);
         BAIL_ON_NT_STATUS(status);
     }
 
@@ -880,7 +880,7 @@ LwioCopyDirFromLocalToLocal(
 
         if (stat(pszLocalPath, &statbuf) < 0)
         {
-            status = LwUnixErrnoToNtStatus(errno);
+            status = LwErrnoToNtStatus(errno);
             BAIL_ON_NT_STATUS(status);
         }
 
@@ -910,7 +910,7 @@ LwioCopyDirFromLocalToLocal(
     if(closedir(pDir) < 0)
     {
         pDir = NULL;
-        status = LwUnixErrnoToNtStatus(status);
+        status = LwErrnoToNtStatus(status);
         BAIL_ON_NT_STATUS(status);
     }
 
@@ -950,7 +950,7 @@ LwioCopyDirToRemote(
 
     if ((pDir = opendir(pszSourcePath)) == NULL)
     {
-        status = LwUnixErrnoToNtStatus(errno);
+        status = LwErrnoToNtStatus(errno);
         BAIL_ON_NT_STATUS(status);
     }
 
@@ -983,7 +983,7 @@ LwioCopyDirToRemote(
 
         if (stat(pszLocalPath, &statbuf) < 0)
         {
-            status = LwUnixErrnoToNtStatus(errno);
+            status = LwErrnoToNtStatus(errno);
             BAIL_ON_NT_STATUS(status);
         }
 
@@ -1013,7 +1013,7 @@ LwioCopyDirToRemote(
     if(closedir(pDir) < 0)
     {
         pDir = NULL;
-        status = LwUnixErrnoToNtStatus(status);
+        status = LwErrnoToNtStatus(status);
         BAIL_ON_NT_STATUS(status);
     }
 

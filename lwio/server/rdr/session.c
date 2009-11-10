@@ -95,7 +95,7 @@ SMBSessionCreate(
     ntStatus = time((time_t*) &pSession->lastActiveTime);
     if (ntStatus == -1)
     {
-        ntStatus = UnixErrnoToNtStatus(errno);
+        ntStatus = ErrnoToNtStatus(errno);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 

@@ -230,7 +230,7 @@ SrvProdConsTimedDequeue(
                 }
             }
 
-            ntStatus = LwUnixErrnoToNtStatus(unixErrorCode);
+            ntStatus = LwErrnoToNtStatus(unixErrorCode);
 
             /* Don't use BAIL_ON_XXX() here to reduce unnecessary noise */
             if (ntStatus != STATUS_SUCCESS)

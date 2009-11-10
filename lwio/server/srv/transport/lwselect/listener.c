@@ -206,20 +206,20 @@ SrvListenerMain(
     sockFd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockFd < 0)
     {
-        ntStatus = LwUnixErrnoToNtStatus(errno);
+        ntStatus = LwErrnoToNtStatus(errno);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
     if (setsockopt(sockFd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) < 0)
     {
-        ntStatus = LwUnixErrnoToNtStatus(errno);
+        ntStatus = LwErrnoToNtStatus(errno);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
 #ifdef TCP_NODELAY
     if (setsockopt(sockFd, IPPROTO_TCP, TCP_NODELAY, &on, sizeof(on)) < 0)
     {
-        ntStatus = LwUnixErrnoToNtStatus(errno);
+        ntStatus = LwErrnoToNtStatus(errno);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 #endif
@@ -231,13 +231,13 @@ SrvListenerMain(
 
     if (bind(sockFd, (const struct sockaddr*)&servaddr, sizeof(servaddr)) < 0)
     {
-        ntStatus = LwUnixErrnoToNtStatus(errno);
+        ntStatus = LwErrnoToNtStatus(errno);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
     if (listen(sockFd, SMB_LISTEN_Q) < 0)
     {
-        ntStatus = LwUnixErrnoToNtStatus(errno);
+        ntStatus = LwErrnoToNtStatus(errno);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -274,7 +274,7 @@ SrvListenerMain(
             }
             else
             {
-                ntStatus = LwUnixErrnoToNtStatus(errno);
+                ntStatus = LwErrnoToNtStatus(errno);
                 BAIL_ON_NT_STATUS(ntStatus);
             }
         }
@@ -463,7 +463,7 @@ SrvFakeClientConnection(
     sockFd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockFd < 0)
     {
-        ntStatus = LwUnixErrnoToNtStatus(errno);
+        ntStatus = LwErrnoToNtStatus(errno);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -472,13 +472,13 @@ SrvFakeClientConnection(
     servaddr.sin_port = htons(SMB_SERVER_PORT);
     if (inet_pton(AF_INET, pszLocalIPAddress, &servaddr.sin_addr) < 0)
     {
-        ntStatus = LwUnixErrnoToNtStatus(errno);
+        ntStatus = LwErrnoToNtStatus(errno);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
     if (connect(sockFd, (struct sockaddr*)&servaddr, sizeof(servaddr)) < 0)
     {
-        ntStatus = LwUnixErrnoToNtStatus(errno);
+        ntStatus = LwErrnoToNtStatus(errno);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -512,7 +512,7 @@ SMBSrvGetLocalIPAddress(
     pHost = gethostbyname("localhost");
     if (!pHost)
     {
-        ntStatus = LwUnixErrnoToNtStatus(h_errno);
+        ntStatus = LwErrnoToNtStatus(h_errno);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 

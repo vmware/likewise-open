@@ -132,7 +132,7 @@ main(
 
     if (atexit(LwIoExitHandler) < 0)
     {
-        ntStatus = LwUnixErrnoToNtStatus(errno);
+        ntStatus = LwErrnoToNtStatus(errno);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -708,14 +708,14 @@ GetPassword(
         }
         else
         {
-            ntStatus = LwUnixErrnoToNtStatus(errno);
+            ntStatus = LwErrnoToNtStatus(errno);
             BAIL_ON_NT_STATUS(ntStatus);
         }
     }
 
     if (idx == 128)
     {
-        ntStatus = LwUnixErrnoToNtStatus(ENOBUFS);
+        ntStatus = LwErrnoToNtStatus(ENOBUFS);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 

@@ -131,7 +131,7 @@ cleanup:
     {
         printf("Final NTSTATUS was %s (%s)\n",
                NtStatusToDescription(ntError),
-               NtStatusToSymbolicName(ntError));
+               NtStatusToName(ntError));
     }
 
     return ntError == STATUS_SUCCESS;

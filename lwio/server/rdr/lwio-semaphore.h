@@ -79,7 +79,7 @@ SMBSemaphoreDestroy(
     IN OUT PLSMB_SEMAPHORE pSemaphore
     );
 #else  /* __LWI_DARWIN__ */
-#define _SMB_SEMAPHORE_SYSCALL(x) ((((x) < 0) && errno) ? LwUnixErrnoToNtStatus(errno) : 0)
+#define _SMB_SEMAPHORE_SYSCALL(x) ((((x) < 0) && errno) ? LwErrnoToNtStatus(errno) : 0)
 
 #define SMBSemaphoreInit(pSemaphore, Count) _SMB_SEMAPHORE_SYSCALL(sem_init(pSemaphore, 0, Count))
 #define SMBSemaphoreWait(pSemaphore) _SMB_SEMAPHORE_SYSCALL(sem_wait(pSemaphore))

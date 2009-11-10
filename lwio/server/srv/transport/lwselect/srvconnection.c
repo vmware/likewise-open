@@ -365,7 +365,7 @@ SrvConnectionWriteMessage(
                 continue;
             }
 
-            ntStatus = LwUnixErrnoToNtStatus(unixErrno);
+            ntStatus = LwErrnoToNtStatus(unixErrno);
             BAIL_ON_NT_STATUS(ntStatus);
         }
 
@@ -412,7 +412,7 @@ SrvConnectionReadMessage(
         {
             if ((errno != EAGAIN) && (errno != EINTR))
             {
-                ntStatus = LwUnixErrnoToNtStatus(errno);
+                ntStatus = LwErrnoToNtStatus(errno);
                 BAIL_ON_NT_STATUS(ntStatus);
             }
         }

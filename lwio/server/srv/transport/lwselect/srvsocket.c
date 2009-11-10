@@ -12,7 +12,7 @@ SrvSocketCreate(
 
     if (fcntl(fd, F_SETFL, O_NONBLOCK) < 0)
     {
-        ntStatus = LwUnixErrnoToNtStatus(errno);
+        ntStatus = LwErrnoToNtStatus(errno);
     }
     BAIL_ON_NT_STATUS(ntStatus);
 
