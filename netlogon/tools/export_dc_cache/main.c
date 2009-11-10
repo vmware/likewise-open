@@ -50,6 +50,7 @@
 #include "lwnet.h"
 #include "lwnet-server.h"
 #include "lwnet-cachedb.h"
+#include "lwerror.h"
 
 #define TABLOC_PING     0
 #define TABLOC_DC_FQDN  11
@@ -59,6 +60,8 @@
 #define TABLOC_KDC      91
 #define TABLOC_PDC      97
 #define TABLOC_BORDER   " | " 
+
+#define LW_PRINTF_STRING(x) ((x) ? (x) : "<null>")
 
 typedef enum {
     DISPLAY_MODE_CSV = 0,
@@ -340,6 +343,7 @@ main(
     PLWNET_CACHE_DB_ENTRY pEntries = NULL;
     DWORD dwCount = 0;
     DWORD i = 0;
+    CHAR szErrorBuf[1024];
 
     ParseArgs(argc, argv, &pszTargetFQDN, &mode);
     BAIL_ON_LWNET_ERROR(dwError);
@@ -377,7 +381,23 @@ error:
     LWNetCacheDbClose(&dbHandle);
     if (dwError)
     {
-        LWNET_LOG_ERROR("Failed to read entries from cache [%d]\n", dwError);
+        DWORD dwLen = LwGetErrorString(dwError, szErrorBuf, 1024);
+
+        if (dwLen)
+        {
+            fprintf(stderr,
+                    "Failed to read entries from cache.  Error code %u (%s).\n%s\n",
+                    dwError,
+                    LW_PRINTF_STRING(LwWin32ErrorToName(dwError)),
+                    szErrorBuf);
+        }
+        else
+        {
+            fprintf(stderr,
+                    "Failed to read entries from cache.  Error code %u (%s).\n",
+                    dwError,
+                    LW_PRINTF_STRING(LwWin32ErrorToName(dwError)));
+        }
     }
     return dwError;
 }

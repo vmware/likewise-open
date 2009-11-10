@@ -49,6 +49,9 @@
 #include "lwnet-def.h"
 #include "lwnet.h"
 #include "lwnet-utils.h"
+#include "lwerror.h"
+
+#define LW_PRINTF_STRING(x) ((x) ? (x) : "<null>")
 
 static
 void
@@ -115,6 +118,7 @@ main(
     )
 {
     DWORD dwError = 0;
+    CHAR szErrorBuf[1024];
 
     PSTR pszDomainFQDN = NULL;
     
@@ -132,15 +136,32 @@ main(
 
     safePrintString("Current Domain", pszDomainFQDN);
     
-    cleanup:
+error:
 
-        LWNET_SAFE_FREE_STRING(pszDomainFQDN);
-        return (dwError);
+    if (dwError)
+    {
+        DWORD dwLen = LwGetErrorString(dwError, szErrorBuf, 1024);
 
-    error:
+        if (dwLen)
+        {
+            fprintf(
+                 stderr,
+                 "Failed communication with the LWNET Agent.  Error code %u (%s).\n%s\n",
+                 dwError,
+                 LW_PRINTF_STRING(LwWin32ErrorToName(dwError)),
+                 szErrorBuf);
+        }
+        else
+        {
+            fprintf(
+                 stderr,
+                 "Failed communication with the LWNET Agent.  Error code %u (%s).\n",
+                 dwError,
+                 LW_PRINTF_STRING(LwWin32ErrorToName(dwError)));
+        }
+    }
 
-        LWNET_LOG_ERROR("Failed communication with the LWNET Agent. Error code [%d]\n", dwError);
+    LWNET_SAFE_FREE_STRING(pszDomainFQDN);
 
-        goto cleanup;
-
+    return (dwError);
 }
