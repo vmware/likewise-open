@@ -109,7 +109,7 @@ typedef struct _USER_INFO_3
 {
     PWSTR  usri3_name;
     PWSTR  usri3_password;
-    PWSTR  usri3_password_age;
+    DWORD  usri3_password_age;
     DWORD  usri3_priv;
     PWSTR  usri3_home_dir;
     PWSTR  usri3_comment;
@@ -143,7 +143,7 @@ typedef struct _USER_INFO_4
 {
     PWSTR  usri4_name;
     PWSTR  usri4_password;
-    PWSTR  usri4_password_age;
+    DWORD  usri4_password_age;
     DWORD  usri4_priv;
     PWSTR  usri4_home_dir;
     PWSTR  usri4_comment;

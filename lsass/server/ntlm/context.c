@@ -831,6 +831,8 @@ NtlmCreateResponseMessage(
     PNTLM_RESPONSE_MESSAGE_V3 pMessage = NULL;
     DWORD dwNtMsgSize = 0;
     DWORD dwLmMsgSize = 0;
+    PBYTE pNtMsg = NULL;
+    PBYTE pLmMsg = NULL;
     DWORD dwAuthTrgtNameSize = 0;
     DWORD dwUserNameSize = 0;
     DWORD dwWorkstationSize = 0;
@@ -873,23 +875,29 @@ NtlmCreateResponseMessage(
     dwSize += dwUserNameSize;
     dwSize += dwWorkstationSize;
 
-    // calculate the response size...
-    dwError = NtlmCalculateResponseSize(
+    dwError = NtlmBuildResponse(
         pChlngMsg,
+        pUserName,
+        pPassword,
+        dwLmRespType,
+        &dwLmMsgSize,
+        pLmUserSessionKey,
+        &pLmMsg
+        );
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = NtlmBuildResponse(
+        pChlngMsg,
+        pUserName,
+        pPassword,
         dwNtRespType,
-        &dwNtMsgSize
+        &dwNtMsgSize,
+        pNtlmUserSessionKey,
+        &pNtMsg
         );
     BAIL_ON_LSA_ERROR(dwError);
 
     dwSize += dwNtMsgSize;
-
-    dwError = NtlmCalculateResponseSize(
-        pChlngMsg,
-        dwLmRespType,
-        &dwLmMsgSize
-        );
-    BAIL_ON_LSA_ERROR(dwError);
-
     dwSize += dwLmMsgSize;
 
     dwError = LwAllocateMemory(dwSize, OUT_PPVOID(&pMessage));
@@ -937,34 +945,12 @@ NtlmCreateResponseMessage(
     pBuffer = (PBYTE)pMessage + sizeof(*pMessage);
 
     pMessage->LmResponse.dwOffset = pBuffer - (PBYTE)pMessage;
-
-    dwError = NtlmBuildResponse(
-        pChlngMsg,
-        pUserName,
-        pPassword,
-        dwLmRespType,
-        dwLmMsgSize,
-        pLmUserSessionKey,
-        pBuffer
-        );
-
-    BAIL_ON_LSA_ERROR(dwError);
+    memcpy(pBuffer, pLmMsg, dwLmMsgSize);
 
     pBuffer += pMessage->LmResponse.usLength;
 
     pMessage->NtResponse.dwOffset = pBuffer - (PBYTE)pMessage;
-
-    dwError = NtlmBuildResponse(
-        pChlngMsg,
-        pUserName,
-        pPassword,
-        dwNtRespType,
-        dwNtMsgSize,
-        pNtlmUserSessionKey,
-        pBuffer
-        );
-
-    BAIL_ON_LSA_ERROR(dwError);
+    memcpy(pBuffer, pNtMsg, dwNtMsgSize);
 
     pBuffer += pMessage->NtResponse.usLength;
 
@@ -1015,6 +1001,8 @@ NtlmCreateResponseMessage(
     LW_ASSERT(pBuffer + pMessage->SessionKey.usLength == (PBYTE)pMessage + dwSize);
 
 cleanup:
+    LW_SAFE_FREE_MEMORY(pNtMsg);
+    LW_SAFE_FREE_MEMORY(pLmMsg);
     *ppRespMsg = &pMessage->V1;
     *pdwSize = dwSize;
     return dwError;
@@ -1150,9 +1138,9 @@ NtlmBuildResponse(
     IN PCSTR pUserName,
     IN PCSTR pPassword,
     IN DWORD dwResponseType,
-    IN DWORD dwBufferSize,
+    OUT PDWORD pdwBufferSize,
     OUT PBYTE pUserSessionKey,
-    OUT PBYTE pBuffer
+    OUT PBYTE* ppBuffer
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -1166,46 +1154,39 @@ NtlmBuildResponse(
     switch (dwResponseType)
     {
     case NTLM_RESPONSE_TYPE_LM:
-        {
-            NtlmBuildLmResponse(
-                pChlngMsg,
-                pPassword,
-                dwBufferSize,
-                pUserSessionKey,
-                pBuffer
-                );
-        }
+        dwError = NtlmBuildLmResponse(
+            pChlngMsg,
+            pPassword,
+            pdwBufferSize,
+            pUserSessionKey,
+            ppBuffer
+            );
+        BAIL_ON_LSA_ERROR(dwError);
         break;
     case NTLM_RESPONSE_TYPE_LMv2:
-        {
-            dwError = NtlmBuildLmV2Response();
-            BAIL_ON_LSA_ERROR(dwError);
-        }
+        dwError = NtlmBuildLmV2Response();
+        BAIL_ON_LSA_ERROR(dwError);
         break;
     case NTLM_RESPONSE_TYPE_NTLM:
-        {
-            dwError = NtlmBuildNtlmResponse(
-                pChlngMsg,
-                pPassword,
-                dwBufferSize,
-                pUserSessionKey,
-                pBuffer
-                );
-            BAIL_ON_LSA_ERROR(dwError);
-        }
+        dwError = NtlmBuildNtlmResponse(
+            pChlngMsg,
+            pPassword,
+            pdwBufferSize,
+            pUserSessionKey,
+            ppBuffer
+            );
+        BAIL_ON_LSA_ERROR(dwError);
         break;
     case NTLM_RESPONSE_TYPE_NTLMv2:
-        {
-            dwError = NtlmBuildNtlmV2Response(
-                pChlngMsg,
-                pUserName,
-                pPassword,
-                dwBufferSize,
-                pUserSessionKey,
-                pBuffer
-                );
-            BAIL_ON_LSA_ERROR(dwError);
-        }
+        dwError = NtlmBuildNtlmV2Response(
+            pChlngMsg,
+            pUserName,
+            pPassword,
+            pdwBufferSize,
+            pUserSessionKey,
+            ppBuffer
+            );
+        BAIL_ON_LSA_ERROR(dwError);
         break;
     case NTLM_RESPONSE_TYPE_NTLM2:
         {
@@ -1233,15 +1214,16 @@ error:
 }
 
 /******************************************************************************/
-VOID
+DWORD
 NtlmBuildLmResponse(
     IN PNTLM_CHALLENGE_MESSAGE pChlngMsg,
     IN PCSTR pPassword,
-    IN DWORD dwResponseSize,
+    OUT PDWORD pdwResponseSize,
     OUT PBYTE pUserSessionKey,
-    OUT PBYTE pResponse
+    OUT PBYTE* ppResponse
     )
 {
+    DWORD dwError = 0;
     DWORD dwIndex = 0;
     DWORD dwPasswordLen = 0;
     BYTE LmHash[NTLM_HASH_SIZE] = {0};
@@ -1249,10 +1231,14 @@ NtlmBuildLmResponse(
     ULONG64 ulKey2 = 0;
     ULONG64 ulKey3 = 0;
     DES_key_schedule DesKeySchedule;
+    PBYTE pResponse = NULL;
 
     memset(&DesKeySchedule, 0, sizeof(DES_key_schedule));
 
-    memset(pResponse, 0, NTLM_RESPONSE_SIZE_NTLM);
+    dwError = LwAllocateMemory(NTLM_RESPONSE_SIZE_LM, OUT_PPVOID(&pResponse));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    memset(pResponse, 0, NTLM_RESPONSE_SIZE_LM);
     memset(pUserSessionKey, 0, NTLM_SESSION_KEY_SIZE);
 
     dwPasswordLen = strlen(pPassword);
@@ -1323,6 +1309,19 @@ NtlmBuildLmResponse(
         &DesKeySchedule,
         DES_ENCRYPT
         );
+
+    *pdwResponseSize = NTLM_RESPONSE_SIZE_LM;
+    *ppResponse = pResponse;
+
+cleanup:
+
+    return dwError;
+
+error:
+    *pdwResponseSize = 0;
+    *ppResponse = NULL;
+    LW_SAFE_FREE_MEMORY(pResponse);
+    goto cleanup;
 }
 
 /******************************************************************************/
@@ -1330,9 +1329,9 @@ DWORD
 NtlmBuildNtlmResponse(
     IN PNTLM_CHALLENGE_MESSAGE pChlngMsg,
     IN PCSTR pPassword,
-    IN DWORD dwResponseSize,
+    OUT PDWORD pdwResponseSize,
     OUT PBYTE pUserSessionKey,
-    OUT PBYTE pResponse
+    OUT PBYTE* ppResponse
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -1341,8 +1340,12 @@ NtlmBuildNtlmResponse(
     ULONG64 ulKey2 = 0;
     ULONG64 ulKey3 = 0;
     DES_key_schedule DesKeySchedule;
+    PBYTE pResponse = NULL;
 
     memset(&DesKeySchedule, 0, sizeof(DES_key_schedule));
+
+    dwError = LwAllocateMemory(NTLM_RESPONSE_SIZE_LM, OUT_PPVOID(&pResponse));
+    BAIL_ON_LSA_ERROR(dwError);
 
     memset(pResponse, 0, NTLM_RESPONSE_SIZE_NTLM);
     memset(pUserSessionKey, 0, NTLM_SESSION_KEY_SIZE);
@@ -1385,11 +1388,17 @@ NtlmBuildNtlmResponse(
         DES_ENCRYPT
         );
 
+    *pdwResponseSize = NTLM_RESPONSE_SIZE_LM;
+    *ppResponse = pResponse;
+
 cleanup:
     return dwError;
+
 error:
-    memset(pResponse, 0, NTLM_RESPONSE_SIZE_NTLM);
     memset(pUserSessionKey, 0, NTLM_SESSION_KEY_SIZE);
+    *pdwResponseSize = 0;
+    *ppResponse = NULL;
+    LW_SAFE_FREE_MEMORY(pResponse);
     goto cleanup;
 }
 
@@ -1399,20 +1408,19 @@ NtlmBuildNtlmV2Response(
     IN PNTLM_CHALLENGE_MESSAGE pChlngMsg,
     IN PCSTR pUserName,
     IN PCSTR pPassword,
-    IN DWORD dwResponseSize,
+    OUT PDWORD pdwResponseSize,
     OUT PBYTE pUserSessionKey,
-    OUT PBYTE pResponse
+    OUT PBYTE* ppResponse
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
     BYTE NtlmHashV1[MD4_DIGEST_LENGTH] = {0};
     BYTE NtlmHashV2[MD4_DIGEST_LENGTH] = {0};
-    PBYTE pBlob = NULL;
-    DWORD dwBlobSize = 0;
     PSTR pTarget = NULL;
     DWORD dwKeyLen = NTLM_HASH_SIZE;
+    PBYTE pResponse = NULL;
+    DWORD dwResponseSize = 0;
 
-    memset(pResponse, 0, dwResponseSize);
     memset(pUserSessionKey, 0, NTLM_SESSION_KEY_SIZE);
 
     dwError = NtlmCreateNtlmV1Hash(pPassword, NtlmHashV1);
@@ -1424,12 +1432,8 @@ NtlmBuildNtlmV2Response(
     dwError = NtlmCreateNtlmV2Hash(pUserName, pTarget, NtlmHashV1, NtlmHashV2);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = NtlmCreateNtlmV2Blob(pChlngMsg, NtlmHashV2, &dwBlobSize, &pBlob);
+    dwError = NtlmCreateNtlmV2Blob(pChlngMsg, NtlmHashV2, &dwResponseSize, &pResponse);
     BAIL_ON_LSA_ERROR(dwError);
-
-    LW_ASSERT(dwResponseSize == dwBlobSize);
-
-    memcpy(pResponse, pBlob, dwResponseSize);
 
     // Generate the session key which is just the first 16 bytes of the response
     // HMAC md5 encrypted using the NTLMv2 hash as the key
@@ -1442,13 +1446,17 @@ NtlmBuildNtlmV2Response(
         pUserSessionKey,
         &dwKeyLen);
 
+    *pdwResponseSize = dwResponseSize;
+    *ppResponse = pResponse;
+
 cleanup:
     LW_SAFE_FREE_MEMORY(pTarget);
-    LW_SAFE_FREE_MEMORY(pBlob);
 
     return dwError;
 error:
-    memset(pResponse, 0, NTLM_RESPONSE_SIZE_NTLM);
+    *pdwResponseSize = 0;
+    *ppResponse = NULL;
+    LW_SAFE_FREE_MEMORY(pResponse);
     memset(pUserSessionKey, 0, NTLM_SESSION_KEY_SIZE);
     goto cleanup;
 }
@@ -1627,85 +1635,6 @@ cleanup:
 error:
     LW_SAFE_FREE_STRING(pName);
     goto cleanup;
-}
-
-/******************************************************************************/
-DWORD
-NtlmCalculateResponseSize(
-    IN PNTLM_CHALLENGE_MESSAGE  pChlngMsg,
-    IN DWORD                    dwResponseType,
-    OUT PDWORD                  pdwSize
-    )
-{
-    DWORD dwError = LW_ERROR_SUCCESS;
-    DWORD dwSize = 0;
-
-    if (!pChlngMsg)
-    {
-        dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    *pdwSize = 0;
-
-    switch (dwResponseType)
-    {
-    case NTLM_RESPONSE_TYPE_LM:
-    case NTLM_RESPONSE_TYPE_LMv2:
-    case NTLM_RESPONSE_TYPE_NTLM2:
-    case NTLM_RESPONSE_TYPE_NTLM:
-        {
-            // All 4 of these messages are the same size as an NTLM message
-            dwSize = NTLM_RESPONSE_SIZE_NTLM;
-        }
-        break;
-    case NTLM_RESPONSE_TYPE_ANONYMOUS:
-        {
-            dwSize = NTLM_RESPONSE_SIZE_ANONYMOUS;
-        }
-        break;
-    case NTLM_RESPONSE_TYPE_NTLMv2:
-        {
-            // This is the only one that needs to be calculated out
-            NtlmCalculateNtlmV2ResponseSize(pChlngMsg, &dwSize);
-        }
-        break;
-    default:
-        {
-            dwError = LW_ERROR_INVALID_PARAMETER;
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-    }
-
-cleanup:
-    *pdwSize = dwSize;
-    return dwError;
-error:
-    dwSize = 0;
-    goto cleanup;
-}
-
-/******************************************************************************/
-VOID
-NtlmCalculateNtlmV2ResponseSize(
-    IN PNTLM_CHALLENGE_MESSAGE pChlngMsg,
-    OUT PDWORD pdwSize
-    )
-{
-    // The following pointers point into pChlngMsg and will not be freed
-    PNTLM_SEC_BUFFER pTargetInfo = NULL;
-
-    pTargetInfo =
-        (PNTLM_SEC_BUFFER)
-            ((PBYTE)pChlngMsg +
-            sizeof(NTLM_CHALLENGE_MESSAGE) +
-            NTLM_LOCAL_CONTEXT_SIZE);
-
-    *pdwSize =
-        NTLM_HASH_SIZE +
-        sizeof(NTLM_BLOB) +
-        pTargetInfo->usLength +
-        NTLM_BLOB_TRAILER_SIZE;
 }
 
 /******************************************************************************/

@@ -455,6 +455,9 @@ NetAllocateUserInfo1(
                                    &dwSize);
     BAIL_ON_WINERR_ERROR(err);
 
+    ALIGN_PTR_IN_BUFFER(USER_INFO_1, usri1_flags,
+                        pCursor, dwSize, dwSpaceLeft);
+
     /* usri1_script_path */
     err = NetAllocBufferWC16StringFromUnicodeString(
                                    &pCursor,
@@ -529,6 +532,9 @@ NetAllocateUserInfo2(
                               &dwSize);
     BAIL_ON_WINERR_ERROR(err);
 
+    ALIGN_PTR_IN_BUFFER(USER_INFO_2, usri2_auth_flags,
+                        pCursor, dwSize, dwSpaceLeft);
+
     /* usri2_full_name */
     err = NetAllocBufferWC16StringFromUnicodeString(
                                    &pCursor,
@@ -596,6 +602,9 @@ NetAllocateUserInfo2(
                               &dwSize);
     BAIL_ON_WINERR_ERROR(err);
 
+    ALIGN_PTR_IN_BUFFER(USER_INFO_2, usri2_units_per_week,
+                        pCursor, dwSize, dwSpaceLeft);
+
     /* usri2_logon_hours: SKIP */
     err = NetAllocBufferLogonHours(&pCursor,
                                    &dwSpaceLeft,
@@ -616,6 +625,9 @@ NetAllocateUserInfo2(
                               pSamrInfo21->logon_count,
                               &dwSize);
     BAIL_ON_WINERR_ERROR(err);
+
+    ALIGN_PTR_IN_BUFFER(USER_INFO_2, usri2_num_logons,
+                        pCursor, dwSize, dwSpaceLeft);
 
     /* usri2_logon_server */
     err = NetAllocBufferWC16StringFromUnicodeString(
@@ -705,6 +717,9 @@ NetAllocateUserInfo3(
                               &dwSize);
     BAIL_ON_WINERR_ERROR(err);
 
+    ALIGN_PTR_IN_BUFFER(USER_INFO_3, usri3_user_id,
+                        pCursor, dwSize, dwSpaceLeft);
+
     /* usri3_profile */
     err = NetAllocBufferWC16StringFromUnicodeString(
                                    &pCursor,
@@ -786,6 +801,9 @@ NetAllocateUserInfo4(
                                pSource,
                                &dwSize);
     BAIL_ON_WINERR_ERROR(err);
+
+    ALIGN_PTR_IN_BUFFER(USER_INFO_4, usri4_code_page,
+                        pCursor, dwSize, dwSpaceLeft);
 
     /* usri3_user_sid - it's copied outside this function,
        so reserve max space */
@@ -990,6 +1008,9 @@ NetAllocateUserInfo11(
                               &dwSize);
     BAIL_ON_WINERR_ERROR(err);
 
+    ALIGN_PTR_IN_BUFFER(USER_INFO_11, usri11_password_age,
+                        pCursor, dwSize, dwSpaceLeft);
+
     /* usri11_home_dir */
     err = NetAllocBufferWC16StringFromUnicodeString(
                                    &pCursor,
@@ -1034,6 +1055,9 @@ NetAllocateUserInfo11(
                               &dwSize);
     BAIL_ON_WINERR_ERROR(err);
 
+    ALIGN_PTR_IN_BUFFER(USER_INFO_11, usri11_num_logons,
+                        pCursor, dwSize, dwSpaceLeft);
+
     /* usri11_logon_server */
     err = NetAllocBufferWC16StringFromUnicodeString(
                                    &pCursor,
@@ -1048,6 +1072,9 @@ NetAllocateUserInfo11(
                               pSamrInfo21->country_code,
                               &dwSize);
     BAIL_ON_WINERR_ERROR(err);
+
+    ALIGN_PTR_IN_BUFFER(USER_INFO_11, usri11_country_code,
+                        pCursor, dwSize, dwSpaceLeft);
 
     /* usri11_workstations */
     err = NetAllocBufferWC16StringFromUnicodeString(
@@ -1069,6 +1096,9 @@ NetAllocateUserInfo11(
                               0,
                               &dwSize);
     BAIL_ON_WINERR_ERROR(err);
+
+    ALIGN_PTR_IN_BUFFER(USER_INFO_11, usri11_units_per_week,
+                        pCursor, dwSize, dwSpaceLeft);
 
     /* usri11_logon_hours: SKIP */
     err = NetAllocBufferLogonHours(&pCursor,
@@ -1252,13 +1282,6 @@ NetAllocateUserInfo23(
                                    &dwSpaceLeft,
                                    &pSamrInfo21->comment,
                                    &dwSize);
-    BAIL_ON_WINERR_ERROR(err);
-
-    /* usri20_user_id */
-    err = NetAllocBufferDword(&pCursor,
-                              &dwSpaceLeft,
-                              pSamrInfo21->rid,
-                              &dwSize);
     BAIL_ON_WINERR_ERROR(err);
 
     /* usri23_user_sid - it's copied outside this function,

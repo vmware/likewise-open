@@ -72,13 +72,17 @@ NetLocalGroupEnum(
     DWORD dwSamrResume = 0;
     PWSTR *ppwszDomainAliases = NULL;
     PDWORD pdwDomainRids = NULL;
+    DWORD dwNumDomainEntries = 0;
     DWORD dwTotalNumDomainEntries = 0;
     PWSTR *ppwszBtinDomainAliases = NULL;
     PDWORD pdwBtinDomainRids = NULL;
+    DWORD dwNumBtinDomainEntries = 0;
     DWORD dwTotalNumBtinDomainEntries = 0;
     DWORD dwTotalNumEntries = 0;
     DWORD dwNumEntries = 0;
     DWORD i = 0;
+    PDWORD pdwRids = NULL;
+    PWSTR *ppwszAliases = NULL;
     ACCOUNT_HANDLE hAlias = NULL;
     AliasInfo *pSamrAliasInfo = NULL;
     AliasInfoAll **ppAliasInfo = NULL;
@@ -125,62 +129,193 @@ NetLocalGroupEnum(
     hDomain      = pConn->samr.hDomain;
     hBtinDomain  = pConn->samr.hBtinDomain;
 
-    status = SamrEnumDomainAliases(hSamrBinding,
-                                   hDomain,
-                                   &dwSamrResume,
-                                   dwAccountFlags,
-                                   &ppwszDomainAliases,
-                                   &pdwDomainRids,
-                                   &dwTotalNumDomainEntries);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    do
+    {
+        status = SamrEnumDomainAliases(hSamrBinding,
+                                       hDomain,
+                                       &dwSamrResume,
+                                       dwAccountFlags,
+                                       &ppwszDomainAliases,
+                                       &pdwDomainRids,
+                                       &dwNumDomainEntries);
+        if (status != STATUS_SUCCESS &&
+            status != STATUS_MORE_ENTRIES)
+        {
+            BAIL_ON_NTSTATUS_ERROR(status);
+        }
+
+        if (ppwszDomainAliases)
+        {
+            SamrFreeMemory(ppwszDomainAliases);
+            ppwszDomainAliases = NULL;
+        }
+
+        if (pdwDomainRids)
+        {
+            SamrFreeMemory(pdwDomainRids);
+            pdwDomainRids = NULL;
+        }
+
+        dwTotalNumDomainEntries += dwNumDomainEntries;
+        dwNumDomainEntries       = 0;
+    }
+    while (status == STATUS_MORE_ENTRIES);
 
     dwSamrResume = 0;
 
-    status = SamrEnumDomainAliases(hSamrBinding,
-                                   hBtinDomain,
-                                   &dwSamrResume,
-                                   dwAccountFlags,
-                                   &ppwszBtinDomainAliases,
-                                   &pdwBtinDomainRids,
-                                   &dwTotalNumBtinDomainEntries);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    do
+    {
+        status = SamrEnumDomainAliases(hSamrBinding,
+                                       hBtinDomain,
+                                       &dwSamrResume,
+                                       dwAccountFlags,
+                                       &ppwszBtinDomainAliases,
+                                       &pdwBtinDomainRids,
+                                       &dwNumBtinDomainEntries);
+        if (status != STATUS_SUCCESS &&
+            status != STATUS_MORE_ENTRIES)
+        {
+            BAIL_ON_NTSTATUS_ERROR(status);
+        }
+
+        if (ppwszBtinDomainAliases)
+        {
+            SamrFreeMemory(ppwszBtinDomainAliases);
+            ppwszBtinDomainAliases = NULL;
+        }
+
+        if (pdwBtinDomainRids)
+        {
+            SamrFreeMemory(pdwBtinDomainRids);
+            pdwBtinDomainRids = NULL;
+        }
+
+        dwTotalNumBtinDomainEntries += dwNumBtinDomainEntries;
+        dwNumBtinDomainEntries       = 0;
+    }
+    while (status == STATUS_MORE_ENTRIES);
 
     dwTotalNumEntries = dwTotalNumDomainEntries + dwTotalNumBtinDomainEntries;
+
+    status = NetAllocateMemory((void**)&pdwRids,
+                               sizeof(pdwRids[0]) * dwTotalNumEntries,
+                               NULL);
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    status = NetAllocateMemory((void**)&ppwszAliases,
+                               sizeof(ppwszAliases[0]) * dwTotalNumEntries,
+                               NULL);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     status = NetAllocateMemory((void**)&ppAliasInfo,
                                sizeof(ppAliasInfo[0]) * dwTotalNumEntries,
                                NULL);
     BAIL_ON_NTSTATUS_ERROR(status);
 
+    dwTotalNumDomainEntries     = 0;
+    dwTotalNumBtinDomainEntries = 0;
+    dwSamrResume                = 0;
+
+    do
+    {
+        status = SamrEnumDomainAliases(hSamrBinding,
+                                       hDomain,
+                                       &dwSamrResume,
+                                       dwAccountFlags,
+                                       &ppwszDomainAliases,
+                                       &pdwDomainRids,
+                                       &dwNumDomainEntries);
+        if (status != STATUS_SUCCESS &&
+            status != STATUS_MORE_ENTRIES)
+        {
+            BAIL_ON_NTSTATUS_ERROR(status);
+        }
+
+        for (i = 0; i < dwNumDomainEntries; i++)
+        {
+            err = LwAllocateWc16String(&ppwszAliases[dwTotalNumDomainEntries + i],
+                                       ppwszDomainAliases[i]);
+            BAIL_ON_WINERR_ERROR(err);
+
+            pdwRids[dwTotalNumDomainEntries + i] = pdwDomainRids[i];
+        }
+
+        dwTotalNumDomainEntries += dwNumDomainEntries;
+        dwNumDomainEntries       = 0;
+
+        if (ppwszDomainAliases)
+        {
+            SamrFreeMemory(ppwszDomainAliases);
+            ppwszDomainAliases = NULL;
+        }
+
+        if (pdwDomainRids)
+        {
+            SamrFreeMemory(pdwDomainRids);
+            pdwDomainRids = NULL;
+        }
+
+    }
+    while (status == STATUS_MORE_ENTRIES);
+
+    dwSamrResume = 0;
+
+    do
+    {
+        status = SamrEnumDomainAliases(hSamrBinding,
+                                       hBtinDomain,
+                                       &dwSamrResume,
+                                       dwAccountFlags,
+                                       &ppwszBtinDomainAliases,
+                                       &pdwBtinDomainRids,
+                                       &dwNumBtinDomainEntries);
+        if (status != STATUS_SUCCESS &&
+            status != STATUS_MORE_ENTRIES)
+        {
+            BAIL_ON_NTSTATUS_ERROR(status);
+        }
+
+        for (i = 0; i < dwNumBtinDomainEntries; i++)
+        {
+            err = LwAllocateWc16String(&ppwszAliases[dwTotalNumDomainEntries +
+                                                     dwTotalNumBtinDomainEntries + i],
+                                       ppwszBtinDomainAliases[i]);
+            BAIL_ON_WINERR_ERROR(err);
+
+            pdwRids[dwTotalNumDomainEntries +
+                    dwTotalNumBtinDomainEntries + i] = pdwBtinDomainRids[i];
+        }
+
+        dwTotalNumBtinDomainEntries += dwNumBtinDomainEntries;
+        dwNumBtinDomainEntries       = 0;
+
+        if (ppwszBtinDomainAliases)
+        {
+            SamrFreeMemory(ppwszBtinDomainAliases);
+            ppwszBtinDomainAliases = NULL;
+        }
+
+        if (pdwBtinDomainRids)
+        {
+            SamrFreeMemory(pdwBtinDomainRids);
+            pdwBtinDomainRids = NULL;
+        }
+    }
+    while (status == STATUS_MORE_ENTRIES);
+
     for (i = dwResume; i < dwTotalNumEntries; i++)
     {
         if (dwLevel == 0)
         {
-            if (i < dwTotalNumDomainEntries)
-            {
-                pSourceBuffer = ppwszDomainAliases[i];
-            }
-            else
-            {
-                pSourceBuffer = ppwszBtinDomainAliases[
-                                             i - dwTotalNumDomainEntries];
-            }
+            pSourceBuffer = ppwszAliases[i];
         }
         else
         {
             DOMAIN_HANDLE hDom = NULL;
             DWORD dwRid = 0;
 
-            if (i < dwTotalNumDomainEntries)
-            {
-                hDom  = hDomain;
-                dwRid = pdwDomainRids[i];
-            }
-            else
-            {
-                hDom  = hBtinDomain;
-                dwRid = pdwBtinDomainRids[i - dwTotalNumDomainEntries];
-            }
+            hDom  = (i < dwTotalNumDomainEntries) ? hDomain : hBtinDomain;
+            dwRid = pdwRids[i];
 
             status = SamrOpenAlias(hSamrBinding,
                                    hDom,
@@ -243,15 +378,7 @@ NetLocalGroupEnum(
     {
         if (dwLevel == 0)
         {
-            if (i + dwResume < dwTotalNumDomainEntries)
-            {
-                pSourceBuffer = ppwszDomainAliases[i + dwResume];
-            }
-            else
-            {
-                pSourceBuffer = ppwszBtinDomainAliases[
-                                     (i + dwResume) - dwTotalNumDomainEntries];
-            }
+            pSourceBuffer = ppwszAliases[dwResume + i];
         }
         else
         {
@@ -280,16 +407,31 @@ NetLocalGroupEnum(
     *pdwResume          = dwResume + dwNumEntries;
 
 cleanup:
-    for (i = 0; i < dwNumEntries; i++)
+    if (pdwRids)
     {
-        if (ppAliasInfo[i])
+        NetFreeMemory(pdwRids);
+    }
+
+    if (ppwszAliases)
+    {
+        for (i = 0; i < dwTotalNumEntries; i++)
         {
-            SamrFreeMemory((void*)ppAliasInfo[i]);
+            LW_SAFE_FREE_MEMORY(ppwszAliases[i]);
         }
+
+        NetFreeMemory(ppwszAliases);
     }
 
     if (ppAliasInfo)
     {
+        for (i = 0; i < dwNumEntries; i++)
+        {
+            if (ppAliasInfo[i])
+            {
+                SamrFreeMemory((void*)ppAliasInfo[i]);
+            }
+        }
+
         NetFreeMemory(ppAliasInfo);
     }
 
@@ -319,7 +461,8 @@ cleanup:
     }
 
     if (err == ERROR_SUCCESS &&
-        status != STATUS_SUCCESS) {
+        status != STATUS_SUCCESS)
+    {
         err = NtStatusToWin32Error(status);
     }
 

@@ -367,27 +367,27 @@ NtlmBuildResponse(
     IN PCSTR pUserName,
     IN PCSTR pPassword,
     IN DWORD dwResponseType,
-    IN DWORD dwBufferSize,
+    OUT PDWORD pdwBufferSize,
     OUT PBYTE pUserSessionKey,
-    OUT PBYTE pBuffer
+    OUT PBYTE* ppBuffer
     );
 
-VOID
+DWORD
 NtlmBuildLmResponse(
     IN PNTLM_CHALLENGE_MESSAGE pChlngMsg,
     IN PCSTR pPassword,
-    IN DWORD dwResponseSize,
+    OUT PDWORD pdwResponseSize,
     OUT PBYTE pUserSessionKey,
-    OUT PBYTE pResponse
+    OUT PBYTE* ppResponse
     );
 
 DWORD
 NtlmBuildNtlmResponse(
     IN PNTLM_CHALLENGE_MESSAGE pChlngMsg,
     IN PCSTR pPassword,
-    IN DWORD dwResponseSize,
+    OUT PDWORD pdwResponseSize,
     OUT PBYTE pUserSessionKey,
-    OUT PBYTE pResponse
+    OUT PBYTE* ppResponse
     );
 
 DWORD
@@ -395,9 +395,9 @@ NtlmBuildNtlmV2Response(
     IN PNTLM_CHALLENGE_MESSAGE pChlngMsg,
     IN PCSTR pUserName,
     IN PCSTR pPassword,
-    IN DWORD dwResponseSize,
+    OUT PDWORD pdwResponseSize,
     OUT PBYTE pUserSessionKey,
-    OUT PBYTE pResponse
+    OUT PBYTE* ppResponse
     );
 
 DWORD
@@ -500,19 +500,6 @@ NtlmGetWorkstationFromResponse(
     IN PNTLM_RESPONSE_MESSAGE_V1 pRespMsg,
     IN BOOLEAN bUnicode,
     OUT PSTR* ppWorkstation
-    );
-
-DWORD
-NtlmCalculateResponseSize(
-    IN PNTLM_CHALLENGE_MESSAGE pChlngMsg,
-    IN DWORD dwResponseType,
-    OUT PDWORD pdwSize
-    );
-
-VOID
-NtlmCalculateNtlmV2ResponseSize(
-    IN PNTLM_CHALLENGE_MESSAGE pChlngMsg,
-    OUT PDWORD pdwSize
     );
 
 DWORD
