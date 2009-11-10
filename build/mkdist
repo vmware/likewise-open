@@ -33,7 +33,7 @@ cd $BUILD_ROOT/..
 
 find ${TARGET} -name "*.sh" | xargs chmod u+x
 (cd ${TARGET} && \
-    for f in `find . -name autogen.sh`; \
+    for f in `find . -name autogen.sh | grep -v "packaging/scripts"`; \
     do \
         echo "Running autogen.sh in `dirname $f`..."; \
 	(cd `dirname $f` && ./autogen.sh); \
