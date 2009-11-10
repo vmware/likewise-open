@@ -21,7 +21,7 @@
 "UserNotAllowedError"="Access denied"
 
 [HKEY_THIS_MACHINE\Services\lsass\Parameters\Providers]
-"Load"="ActiveDirectory,Local"
+"Load"="Local,ActiveDirectory"
 
 [HKEY_THIS_MACHINE\Services\lsass\Parameters\Providers\ActiveDirectory]
 "Id"="lsa-activedirectory-provider"
