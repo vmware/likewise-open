@@ -461,7 +461,7 @@ SrvExecuteLockRequest(
     {
         SrvReleaseLockStateAsync(pLockState);
 
-        ntStatus = STATUS_IO_TIMEOUT;
+        ntStatus = STATUS_FILE_LOCK_CONFLICT;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
