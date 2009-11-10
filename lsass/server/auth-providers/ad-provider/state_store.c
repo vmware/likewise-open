@@ -894,6 +894,7 @@ ADState_UnmarshalDomainTrustData(
     pListEntry->dwTrustType = pDomainInfo->dwTrustType;
     pListEntry->dwTrustAttributes = pDomainInfo->dwTrustAttributes;
     pListEntry->dwTrustDirection = pDomainInfo->dwTrustDirection;
+    pListEntry->dwTrustMode = pDomainInfo->dwTrustMode;
 
     dwError = LwStrDupOrNull(
                   pDomainInfo->pszForestName,
@@ -1325,6 +1326,7 @@ ADState_WriteDomainEntry(
     FileDbData.dwTrustType = pDomainInfoEntry->dwTrustType;
     FileDbData.dwTrustAttributes = pDomainInfoEntry->dwTrustAttributes;
     FileDbData.dwTrustDirection = pDomainInfoEntry->dwTrustDirection;
+    FileDbData.dwTrustMode = pDomainInfoEntry->dwTrustMode;
     FileDbData.pszForestName = pDomainInfoEntry->pszForestName;
     FileDbData.pszClientSiteName = pDomainInfoEntry->pszClientSiteName;
     FileDbData.Flags = pDomainInfoEntry->Flags;
