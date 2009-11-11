@@ -213,6 +213,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                     }
                     else if (treeNode.IsModified)
                     {
+					Console.WriteLine("I am here to close");
                         RegistryInteropWrapper.ApiRegCloseKey(plugin.handle.Handle, KeyInfo.pKey);
                         RegistryInteropWrapper.ApiRegOpenKeyExA(plugin.handle.Handle,
                                                            KeyInfo.pRootKey,
@@ -306,7 +307,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
         private void EnumChildNodes(List<RegistryEnumKeyInfo> keys,
                                     List<RegistryValueInfo> values)
         {
-            Do_CloseRegKeyHandles(treeNode);            
+            //Do_CloseRegKeyHandles(treeNode);
             treeNode.IsModified = false;
 
             Dictionary<string, LACTreeNode> nodesAdded = new Dictionary<string, LACTreeNode>();
@@ -1950,25 +1951,31 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
         private void Do_CloseRegKeyHandles(LACTreeNode node)
         {
             foreach (LACTreeNode lnode in node.Nodes)
-            { 
+            {
                 if (lnode.Nodes.Count == 0)
-                {                    
-                    RegistryEnumKeyInfo keyInfo = lnode.Tag as RegistryEnumKeyInfo;
-                    if (keyInfo.pKey != IntPtr.Zero)
-                        RegistryInteropWrapper.ApiRegCloseKey(
-                                    plugin.handle.Handle,
-                                    keyInfo.pKey);                    
-                }
-                else
                 {
-                    Do_CloseRegKeyHandles(lnode);
-                    
+					Console.WriteLine("I am closing1 "+lnode.Text);
                     RegistryEnumKeyInfo keyInfo = lnode.Tag as RegistryEnumKeyInfo;
                     if (keyInfo.pKey != IntPtr.Zero)
                         RegistryInteropWrapper.ApiRegCloseKey(
                                     plugin.handle.Handle,
                                     keyInfo.pKey);
+					keyInfo.pKey=IntPtr.Zero;
                 }
+                else
+                {
+                    Do_CloseRegKeyHandles(lnode);
+
+					Console.WriteLine("I am closing2 "+lnode.Text);
+
+                    RegistryEnumKeyInfo keyInfo = lnode.Tag as RegistryEnumKeyInfo;
+                    if (keyInfo.pKey != IntPtr.Zero)
+                        RegistryInteropWrapper.ApiRegCloseKey(
+                                    plugin.handle.Handle,
+                                    keyInfo.pKey);
+					keyInfo.pKey=IntPtr.Zero;
+                }
+
             }
         }       
 
