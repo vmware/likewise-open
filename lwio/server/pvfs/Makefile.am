@@ -42,6 +42,7 @@ libpvfs_sys_la_SOURCES = \
     locking.c \
     acl.c \
     acl_xattr.c \
+    acl_posix.c \
     attrib.c \
     attrib_xattr.c \
     util_security.c \

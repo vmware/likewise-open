@@ -66,6 +66,8 @@ PPVFS_FCB gpPvfsDeviceFcb = NULL;
 
 PVFS_FCB_TABLE gFcbTable;
 
+PLW_MAP_SECURITY_CONTEXT gpPvfsLwMapSecurityCtx = NULL;
+
 
 /*
 local variables:
