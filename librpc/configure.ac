@@ -177,7 +177,7 @@ AC_CHECK_HEADER([lw/base.h],,[AC_MSG_ERROR([Could not find lwbase headers])])
 AC_CHECK_HEADER([lw/winerror.h],,[AC_MSG_ERROR([Could not find lwbase headers])])
 AC_CHECK_HEADER([lw/ntstatus.h],,[AC_MSG_ERROR([Could not find lwbase headers])])
 AC_CHECK_LIB([lwbase], [LwInterlockedIncrement], [LWBASE_LIBS="-llwbase"], [AC_MSG_ERROR([Could not find liblwbase])], [$LWBASE_LDFLAGS])
-AC_CHECK_LIB([lwbase], [LwNtStatusToWin32Error], [LWBASE_LIBS="-llwbase_nothr"], [AC_MSG_ERROR([Could not find liblwbase])], [$LWBASE_LDFLAGS])
+AC_CHECK_LIB([lwbase_nothr], [LwNtStatusToWin32Error], [LWBASE_LIBS="-llwbase_nothr"], [AC_MSG_ERROR([Could not find liblwbase])], [$LWBASE_LDFLAGS])
 
 
 AC_SUBST(LWBASE_INCLUDES)
