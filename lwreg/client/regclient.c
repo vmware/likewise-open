@@ -423,17 +423,69 @@ RegEnumKeyExA(
     OUT OPTIONAL PFILETIME pftLastWriteTime
     )
 {
-    return RegTransactEnumKeyExA(
+    DWORD dwError = 0;
+    PWSTR pwszName = NULL;
+    PSTR pszKeyName = NULL;
+    PWSTR pwszClass = NULL;
+
+    if (*pcName == 0)
+    {
+		dwError = LW_ERROR_INSUFFICIENT_BUFFER;
+		BAIL_ON_REG_ERROR(dwError);
+    }
+
+    dwError = LwAllocateMemory(*pcName*sizeof(WCHAR), (LW_PVOID*)&pwszName);
+    BAIL_ON_REG_ERROR(dwError);
+
+    if (pcClass)
+    {
+        if (*pcClass == 0)
+        {
+		dwError = LW_ERROR_INSUFFICIENT_BUFFER;
+		BAIL_ON_REG_ERROR(dwError);
+        }
+
+	dwError = LwAllocateMemory(*pcClass*sizeof(WCHAR), (LW_PVOID*)&pwszName);
+        BAIL_ON_REG_ERROR(dwError);
+
+        dwError = LwAllocateMemory(*pcClass*sizeof(WCHAR), (LW_PVOID*)&pwszClass);
+        BAIL_ON_REG_ERROR(dwError);
+    }
+
+	dwError = RegTransactEnumKeyExW(
         hRegConnection,
         hKey,
         dwIndex,
-        pszName,
+        pwszName,
         pcName,
         pReserved,
-        pszClass,
+        pwszClass,
         pcClass,
         pftLastWriteTime
         );
+	BAIL_ON_REG_ERROR(dwError);
+
+	dwError = LwWc16sToMbs((PCWSTR)pwszName, &pszKeyName);
+	BAIL_ON_REG_ERROR(dwError);
+
+	if (*pcName < strlen(pszKeyName))
+	{
+		dwError = LW_ERROR_INSUFFICIENT_BUFFER;
+		BAIL_ON_REG_ERROR(dwError);
+	}
+
+	memcpy((PBYTE)pszName, (PBYTE)pszKeyName, strlen(pszKeyName));
+	*pcName = strlen(pszKeyName);
+
+cleanup:
+    LW_SAFE_FREE_MEMORY(pwszName);
+    LW_SAFE_FREE_MEMORY(pwszClass);
+    LW_SAFE_FREE_STRING(pszKeyName);
+
+    return dwError;
+
+error:
+    goto cleanup;
 }
 
 REG_API

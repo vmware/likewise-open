@@ -69,8 +69,6 @@ typedef enum __REG_IPC_TAG
     REG_R_DELETE_TREE,
     REG_Q_DELETE_VALUE,
     REG_R_DELETE_VALUE,
-    REG_Q_ENUM_KEYA_EX,
-    REG_R_ENUM_KEYA_EX,
     REG_Q_ENUM_KEYW_EX,
     REG_R_ENUM_KEYW_EX,
     REG_Q_QUERY_MULTIPLE_VALUES,
@@ -206,38 +204,6 @@ typedef struct __REG_IPC_DELETE_VALUE_REQ
 } REG_IPC_DELETE_VALUE_REQ, *PREG_IPC_DELETE_VALUE_REQ;
 
 // NO RESPONSE
-
-/******************************************************************************/
-
-// IN HKEY hKey,
-// IN DWORD dwIndex,
-// OUT PSTR pszName,
-// IN OUT PDWORD pcName,
-// IN PDWORD pReserved,
-// IN OUT PSTR pszClass,
-// IN OUT OPTIONAL PDWORD pcClass,
-// OUT OPTIONAL PFILETIME pftLastWriteTime
-
-typedef struct __REG_IPC_ENUM_KEYA_EX_REQ
-{
-    HKEY hKey;
-    DWORD dwIndex;
-    PSTR pszName;
-    DWORD cName;
-    PSTR pszClass;
-    PDWORD pcClass;
-} REG_IPC_ENUM_KEYA_EX_REQ, *PREG_IPC_ENUM_KEYA_EX_REQ;
-
-typedef struct __REG_IPC_ENUM_KEYA_EX_RESPONSE
-{
-    PSTR pszName;
-    DWORD cName;
-    //PWSTR pClass;
-    //PDWORD pcClass;
-    //PFILETIME pftLastWriteTime;
-} REG_IPC_ENUM_KEYA_EX_RESPONSE, *PREG_IPC_ENUM_KEYA_EX_RESPONSE;
-
-/******************************************************************************/
 
 /******************************************************************************/
 

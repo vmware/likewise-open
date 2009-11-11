@@ -103,20 +103,6 @@ DWORD
 
 typedef
 DWORD
-(*PFNRegSrvEnumKeyExA)(
-    HANDLE Handle,
-    HKEY hKey,
-    DWORD dwIndex,
-    PSTR pszName,
-    PDWORD pcName,
-    PDWORD pReserved,
-    PSTR pszClass,
-    PDWORD pcClass,
-    PFILETIME pftLastWriteTime
-    );
-
-typedef
-DWORD
 (*PFNRegSrvEnumKeyExW)(
     HANDLE Handle,
     HKEY hKey,
@@ -285,7 +271,6 @@ typedef struct __REGPROV_PROVIDER_FUNCTION_TABLE
     PFNRegSrvDeleteKeyValue      pfnRegSrvDeleteKeyValue;
     PFNRegSrvDeleteValue         pfnRegSrvDeleteValue;
     PFNRegSrvDeleteTree          pfnRegSrvDeleteTree;
-    PFNRegSrvEnumKeyExA          pfnRegSrvEnumKeyExA;
     PFNRegSrvEnumKeyExW          pfnRegSrvEnumKeyExW;
     PFNRegSrvEnumValueA          pfnRegSrvEnumValueA;
     PFNRegSrvEnumValueW          pfnRegSrvEnumValueW;

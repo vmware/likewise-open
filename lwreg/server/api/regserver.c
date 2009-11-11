@@ -283,43 +283,6 @@ error:
 }
 
 DWORD
-RegSrvEnumKeyExA(
-    IN HANDLE Handle,
-    IN HKEY hKey,
-    IN DWORD dwIndex,
-    IN OUT PSTR pszName,
-    IN OUT PDWORD pcName,
-    IN PDWORD pReserved,
-    IN OUT PSTR pszClass,
-    IN OUT OPTIONAL PDWORD pcClass,
-    OUT OPTIONAL PFILETIME pftLastWriteTime
-    )
-{
-    DWORD dwError = 0;
-
-    if (!RegSrvCheckAccessRight(Handle, REG_READ))
-    {
-        dwError = LW_ERROR_ACCESS_DENIED;
-        BAIL_ON_REG_ERROR(dwError);
-    }
-
-    dwError = gpRegProvider->pfnRegSrvEnumKeyExA(
-            Handle,
-            hKey,
-            dwIndex,
-            pszName,
-            pcName,
-            pReserved,
-            pszClass,
-            pcClass,
-            pftLastWriteTime);
-    BAIL_ON_REG_ERROR(dwError);
-
-error:
-    return dwError;
-}
-
-DWORD
 RegSrvEnumKeyExW(
     IN HANDLE Handle,
     IN HKEY hKey,
