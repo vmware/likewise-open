@@ -29,7 +29,7 @@
  *
  * Module Name:
  *
- *        globals.c
+ *        defs.h
  *
  * Abstract:
  *
@@ -37,29 +37,36 @@
  *
  *        Share Repository based on Registry
  *
- *        Global Variables
+ *        Defines
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
  *
  */
 
-#include "includes.h"
+#define REG_KEY_PATH_SRV_SHARES_A \
+                "services\\lwio\\parameters\\drivers\\srv\\shares"
 
-SRV_SHARE_REG_GLOBALS gShareRepository_registry =
-{
-    .mutex                  = PTHREAD_MUTEX_INITIALIZER,
+#define REG_KEY_PATH_SRV_SHARES_W \
+          {'s','e','r','v','i','c','e','s','\\',         \
+           'l','w','i','o','\\',                         \
+           'p','a','r','a','m','e','t','e','r','s','\\', \
+           'd','r','i','v','e','r','s','\\',             \
+           's','r','v','\\',                             \
+           's','h','a','r','e','s',0}
 
-    .fnTable =
-        {
-            .pfnShareRepositoryOpen       = &SrvShareRegOpen,
-            .pfnShareRepositoryFindByName = &SrvShareRegFindByName,
-            .pfnShareRepositoryAdd        = &SrvShareRegAdd,
-            .pfnShareRepositoryBeginEnum  = &SrvShareRegBeginEnum,
-            .pfnShareRepositoryEnum       = &SrvShareRegEnum,
-            .pfnShareRepositoryEndEnum    = &SrvShareRegEndEnum,
-            .pfnShareRepositoryDelete     = &SrvShareRegDelete,
-            .pfnShareRepositoryClose      = &SrvShareRegClose
-        }
-};
+#define REG_KEY_PATH_SRV_SHARES_SECURITY_A \
+                "services\\lwio\\parameters\\drivers\\srv\\shares\\security"
 
+#define REG_KEY_PATH_SRV_SHARES_SECURITY_W \
+          {'s','e','r','v','i','c','e','s','\\',         \
+           'l','w','i','o','\\',                         \
+           'p','a','r','a','m','e','t','e','r','s','\\', \
+           'd','r','i','v','e','r','s','\\',             \
+           's','r','v','\\',                             \
+           's','h','a','r','e','s','\\',                 \
+           's','e','c','u','r','i','t','y',0}
 
+#define REG_KEY_NAME_PREFIX_W    {'N','a','m','e','=',0}
+#define REG_KEY_COMMENT_PREFIX_W {'C','o','m','m','e','n','t','=',0}
+#define REG_KEY_PATH_PREFIX_W    {'P','a','t','h','=',0}
+#define REG_KEY_SERVICE_PREFIX_W {'S','e','r','v','i','c','e','=',0}

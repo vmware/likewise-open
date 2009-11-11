@@ -158,7 +158,7 @@ error:
 }
 
 NTSTATUS
-SrvShareMapServiceStringToId(
+SrvShareMapServiceStringToIdA(
     IN     PCSTR          pszService,
     IN OUT SHARE_SERVICE* pService
     )
@@ -187,6 +187,63 @@ SrvShareMapServiceStringToId(
         service = SHARE_SERVICE_PRINTER;
     }
     else if (!strcmp(pszService, LWIO_SRV_SHARE_STRING_ID_ANY_A))
+    {
+        service = SHARE_SERVICE_ANY;
+    }
+    else
+    {
+        ntStatus = STATUS_NOT_FOUND;
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *pService = service;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *pService = SHARE_SERVICE_UNKNOWN;
+
+    goto cleanup;
+}
+
+NTSTATUS
+SrvShareMapServiceStringToIdW(
+    IN     PWSTR          pwszService,
+    IN OUT SHARE_SERVICE* pService
+    )
+{
+    NTSTATUS      ntStatus  = STATUS_SUCCESS;
+    wchar16_t     wszIpc[]  = LWIO_SRV_SHARE_STRING_ID_IPC_W;
+    wchar16_t     wszDisk[] = LWIO_SRV_SHARE_STRING_ID_DISK_W;
+    wchar16_t     wszComm[] = LWIO_SRV_SHARE_STRING_ID_COMM_W;
+    wchar16_t     wszPtr[]  = LWIO_SRV_SHARE_STRING_ID_PRINTER_W;
+    wchar16_t     wszAny[]  = LWIO_SRV_SHARE_STRING_ID_ANY_W;
+    SHARE_SERVICE service   = SHARE_SERVICE_UNKNOWN;
+
+    if (IsNullOrEmptyString(pwszService))
+    {
+        ntStatus = STATUS_NOT_FOUND;
+    }
+    else if (!wc16scmp(pwszService, &wszIpc[0]))
+    {
+        service = SHARE_SERVICE_NAMED_PIPE;
+    }
+    else if (!wc16scmp(pwszService, &wszDisk[0]))
+    {
+        service = SHARE_SERVICE_DISK_SHARE;
+    }
+    else if (!wc16scmp(pwszService, &wszComm[0]))
+    {
+        service = SHARE_SERVICE_COMM_DEVICE;
+    }
+    else if (!wc16scmp(pwszService, &wszPtr[0]))
+    {
+        service = SHARE_SERVICE_PRINTER;
+    }
+    else if (!wc16scmp(pwszService, &wszAny[0]))
     {
         service = SHARE_SERVICE_ANY;
     }

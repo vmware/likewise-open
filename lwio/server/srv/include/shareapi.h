@@ -136,8 +136,14 @@ SrvShareMapIdToServiceStringA(
     );
 
 NTSTATUS
-SrvShareMapServiceStringToId(
+SrvShareMapServiceStringToIdA(
     IN     PCSTR          pszService,
+    IN OUT SHARE_SERVICE* pService
+    );
+
+NTSTATUS
+SrvShareMapServiceStringToIdW(
+    IN     PWSTR          pwszService,
     IN OUT SHARE_SERVICE* pService
     );
 
