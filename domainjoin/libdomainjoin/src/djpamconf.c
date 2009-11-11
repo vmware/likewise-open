@@ -1502,7 +1502,7 @@ static BOOLEAN PamModuleDenies( const char * phase, const char * module)
 
 /* returns true if the pam module will always return an error code for a domain user (assuming that a local account by the same name doesn't exist)
  */
-static BOOLEAN PamModuleAlwaysDeniesDomainLogins( const char * phase, const char * module, DistroInfo *distro)
+static BOOLEAN PamModuleAlwaysDeniesDomainLogins( const char * phase, const char * module, const DistroInfo *distro)
 {
     char buffer[256];
     NormalizeModuleName( buffer, module, sizeof(buffer));
@@ -3189,7 +3189,7 @@ ConfigurePamForADLogin(
 
     PSTR ppszArgs[5];
     DWORD nArgs = 0;
-    long status = 0;
+    LONG  status = 0;
     PPROCINFO pProcInfo = NULL;
     BOOLEAN enable = !IsNullOrEmptyString(pszShortDomainName);
     BOOLEAN restartDtLogin;
