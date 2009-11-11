@@ -89,8 +89,6 @@ typedef enum __REG_IPC_TAG
     REG_R_GET_VALUEA,
     REG_Q_GET_VALUEW,
     REG_R_GET_VALUEW,
-    REG_Q_OPEN_KEYA_EX,
-    REG_R_OPEN_KEYA_EX,
     REG_Q_OPEN_KEYW_EX,
     REG_R_OPEN_KEYW_EX,
     REG_Q_QUERY_VALUEA_EX,
@@ -363,15 +361,6 @@ typedef struct __REG_IPC_GET_VALUE_RESPONSE
 // RESERVED DWORD ulOptions,
 // IN REGSAM samDesired,
 // OUT HKEY hkResult
-
-typedef struct __REG_IPC_OPEN_KEYA_EX_REQ
-{
-    HKEY hKey;
-    PCSTR pszSubKey;
-    REGSAM samDesired;
-} REG_IPC_OPEN_KEYA_EX_REQ, *PREG_IPC_OPEN_KEYA_EX_REQ;
-
-
 typedef struct __REG_IPC_OPEN_KEY_EX_REQ
 {
     HKEY hKey;

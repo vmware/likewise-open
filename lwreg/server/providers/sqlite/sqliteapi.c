@@ -138,42 +138,6 @@ error:
 }
 
 DWORD
-SqliteOpenKeyExA(
-    IN HANDLE Handle,
-    IN HKEY hKey,
-    IN OPTIONAL PCSTR pszSubKey,
-    IN DWORD ulOptions,
-    IN REGSAM samDesired,
-    OUT PHKEY phkResult
-    )
-{
-    DWORD dwError = 0;
-    PWSTR pwszSubKey = NULL;
-
-    if (pszSubKey)
-    {
-        dwError = LwMbsToWc16s(pszSubKey,
-                               &pwszSubKey);
-        BAIL_ON_REG_ERROR(dwError);
-    }
-
-    dwError = SqliteOpenKeyExW(Handle,
-                               hKey,
-                               pwszSubKey,
-                               ulOptions,
-                               samDesired,
-                               phkResult);
-    BAIL_ON_REG_ERROR(dwError);
-
-cleanup:
-    LW_SAFE_FREE_MEMORY(pwszSubKey);
-    return dwError;
-
-error:
-    goto cleanup;
-}
-
-DWORD
 SqliteOpenKeyExW(
     IN HANDLE Handle,
     IN HKEY hKey,

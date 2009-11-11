@@ -66,16 +66,6 @@ RegTransactEnumRootKeysW(
     );
 
 DWORD
-RegTransactOpenKeyExA(
-    HANDLE Handle,
-    HKEY hKey,
-    PCSTR pszSubKey,
-    DWORD ulOptions,
-    REGSAM samDesired,
-    PHKEY phkResult
-    );
-
-DWORD
 RegTransactOpenKeyExW(
     HANDLE Handle,
     HKEY hKey,

@@ -579,14 +579,32 @@ RegOpenKeyExA(
     OUT PHKEY phkResult
     )
 {
-    return RegTransactOpenKeyExA(
+    DWORD dwError = 0;
+    PWSTR pwszSubKey = NULL;
+
+    if (pszSubKey)
+    {
+        dwError = LwMbsToWc16s(pszSubKey,
+                               &pwszSubKey);
+        BAIL_ON_REG_ERROR(dwError);
+    }
+
+	dwError = RegTransactOpenKeyExW(
         hRegConnection,
         hKey,
-        pszSubKey,
+        pwszSubKey,
         ulOptions,
         samDesired,
-        phkResult
-        );
+        phkResult);
+	BAIL_ON_REG_ERROR(dwError);
+
+cleanup:
+    LW_SAFE_FREE_MEMORY(pwszSubKey);
+
+    return dwError;
+
+error:
+    goto cleanup;
 }
 
 REG_API

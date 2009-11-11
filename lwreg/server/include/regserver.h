@@ -228,16 +228,6 @@ RegSrvCreateKeyEx(
     );
 
 DWORD
-RegSrvOpenKeyExA(
-    IN HANDLE Handle,
-    IN HKEY hKey,
-    IN OPTIONAL PCSTR pszSubKey,
-    IN DWORD ulOptions,
-    IN REGSAM samDesired,
-    OUT PHKEY phkResult
-    );
-
-DWORD
 RegSrvOpenKeyExW(
     IN HANDLE Handle,
     IN HKEY hKey,

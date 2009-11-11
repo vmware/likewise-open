@@ -198,38 +198,6 @@ error:
     return dwError;
 }
 
-DWORD
-RegSrvOpenKeyExA(
-    IN HANDLE Handle,
-    IN HKEY hKey,
-    IN OPTIONAL PCSTR pszSubKey,
-    IN DWORD ulOptions,
-    IN REGSAM samDesired,
-    OUT PHKEY phkResult
-    )
-{
-    DWORD dwError = 0;
-
-    if (!RegSrvCheckAccessRight(Handle, REG_READ))
-    {
-        dwError = LW_ERROR_ACCESS_DENIED;
-        BAIL_ON_REG_ERROR(dwError);
-    }
-
-    dwError = gpRegProvider->pfnRegSrvOpenKeyExA(
-                                 Handle,
-                                 hKey,
-                                 pszSubKey,
-                                 ulOptions,
-                                 samDesired,
-                                 phkResult);
-    BAIL_ON_REG_ERROR(dwError);
-
-
-error:
-    return dwError;
-}
-
 VOID
 RegSrvCloseKey(
     HKEY hKey
