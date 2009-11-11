@@ -55,11 +55,13 @@ typedef struct _USER_CONTEXT
 
 DWORD parseCallback(PREG_PARSE_ITEM pItem, HANDLE userContext)
 {
+    DWORD dwError = 0;
     CHAR tokenName[128];
     CHAR valueName[128];
     USER_CONTEXT *ctx = (USER_CONTEXT *) userContext;
     FILE *outStream = stdout;
-    PCHAR *outMultiSz = NULL;
+    PWSTR *outMultiSz = NULL;
+    PSTR   pszString = NULL;
     DWORD count = 0;
 
     ctx->pfn_fprintf(outStream, "parseCallback: Line number = %d\n", pItem->lineNumber);
@@ -92,9 +94,22 @@ DWORD parseCallback(PREG_PARSE_ITEM pItem, HANDLE userContext)
             printf("\n");
             for (count=0; outMultiSz[count]; count++)
             {
-                printf("outMultiSz[%d] = '%s'\n", count, outMultiSz[count]);
+                if (pszString)
+                {
+                    LwFreeMemory(pszString);
+                    pszString = NULL;
+                }
+
+                dwError = LwWc16sToMbs(outMultiSz[count], &pszString);
+                BAIL_ON_REG_ERROR(dwError);
+
+                printf("outMultiSz[%d] = '%s'\n", count, pszString);
             }
-            RegMultiStrsFree(outMultiSz);
+            if (outMultiSz)
+            {
+                RegFreeMultiStrsW(outMultiSz);
+                outMultiSz = NULL;
+            }
 
             break;
 
@@ -120,7 +135,19 @@ DWORD parseCallback(PREG_PARSE_ITEM pItem, HANDLE userContext)
     }
     ctx->pfn_fprintf(outStream, "parseCallback: >>>\n\n");
 
-    return 0;
+error:
+
+    if (pszString)
+    {
+        LwFreeMemory(pszString);
+    }
+    if (outMultiSz)
+    {
+        RegFreeMultiStrsW(outMultiSz);
+        outMultiSz = NULL;
+    }
+
+    return dwError;
 }
 
 

@@ -501,35 +501,61 @@ RegSetValueExW(
 /* registry multi-str data type conversion functions */
 DWORD
 RegMultiStrsToByteArrayW(
-    PSTR* ppszInMultiSz,
-    PBYTE *outBuf,
-    SSIZE_T *outBufLen
+    PWSTR*   ppwszInMultiSz,
+    PBYTE*   ppOutBuf,
+    SSIZE_T* pOutBufLen
     );
 
 DWORD
 RegMultiStrsToByteArrayA(
-    PSTR* ppszInMultiSz,
-    PBYTE *outBuf,
-    SSIZE_T *outBufLen
+    PSTR*    ppszInMultiSz,
+    PBYTE*   ppOutBuf,
+    SSIZE_T* pOutBufLen
     );
 
 DWORD
 RegByteArrayToMultiStrsW(
-    PBYTE pInBuf,
+    PBYTE   pInBuf,
     SSIZE_T bufLen,
-    PSTR **pppszOutMultiSz
+    PWSTR** pppwszStrings
     );
 
 DWORD
 RegByteArrayToMultiStrsA(
-    PBYTE pInBuf,
+    PBYTE   pInBuf,
     SSIZE_T bufLen,
-    PSTR **pppszOutMultiSz
+    PSTR**  pppszStrings
+    );
+
+DWORD
+RegConvertByteStreamA2W(
+    const PBYTE pData,
+    DWORD       cbData,
+    PBYTE*      ppOutData,
+    PDWORD      pcbOutDataLen
+    );
+
+DWORD
+RegConvertByteStreamW2A(
+    const PBYTE pData,
+    DWORD       cbData,
+    PBYTE*      ppOutData,
+    PDWORD      pcbOutDataLen
     );
 
 void
-RegMultiStrsFree(
-    PCHAR *pszMultiSz
+RegFreeMultiStrsA(
+    PSTR* ppszStrings
+    );
+
+void
+RegFreeMultiStrsW(
+    PWSTR* ppwszStrings
+    );
+
+VOID
+RegFreeMemory(
+    PVOID pMemory
     );
 
 DWORD

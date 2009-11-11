@@ -625,17 +625,21 @@ GetValueAsBytes(
     IN OUT OPTIONAL PDWORD pcbData
     )
 {
-    DWORD dwError = 0;
-    PBYTE pTempData = NULL;
-    DWORD dwValue = 0;
-    DWORD cbData = 0;
-    PWSTR pwcValue = NULL;
-    PSTR* ppszOutMultiSz = NULL;
-    PBYTE pOutData = NULL;
+    DWORD   dwError = 0;
+    PBYTE   pTempData = NULL;
+    PBYTE   pTempData1 = NULL;
+    DWORD   dwValue = 0;
+    DWORD   cbData = 0;
+    DWORD   cbData1 = 0;
+    PWSTR   pwcValue = NULL;
+    PWSTR*  ppwszOutMultiSz = NULL;
+    PBYTE   pOutData = NULL;
     SSIZE_T cOutDataLen = 0;
 
     if (LW_IS_NULL_OR_EMPTY_STR(pszValue))
-        goto cleanup;
+	{
+        goto done;
+    }
 
     switch (type)
     {
@@ -664,17 +668,25 @@ GetValueAsBytes(
             dwError = LwHexStrToByteArray(
                            pszValue,
                            NULL,
-                           &pTempData,
-                           &cbData);
+                           &pTempData1,
+                           &cbData1);
             BAIL_ON_REG_ERROR(dwError);
 
             if (bDoAnsi)
             {
-                if(pData && cbData > *pcbData)
+                dwError = RegConvertByteStreamW2A(
+                                pTempData1,
+                                cbData1,
+                                &pTempData,
+                                &cbData);
+                BAIL_ON_REG_ERROR(dwError);
+
+                if (pData && cbData > *pcbData)
                 {
                     dwError = LW_ERROR_INSUFFICIENT_BUFFER;
                     BAIL_ON_REG_ERROR(dwError);
                 }
+
                 if (pData)
                 {
                     memcpy(pData, pTempData, cbData);
@@ -682,13 +694,13 @@ GetValueAsBytes(
             }
             else
             {
-                dwError = RegByteArrayToMultiStrsA(pTempData,
+                dwError = RegByteArrayToMultiStrsW(pTempData,
                                                    cbData,
-                                                   &ppszOutMultiSz);
+                                                   &ppwszOutMultiSz);
                 BAIL_ON_REG_ERROR(dwError);
 
                 dwError = RegMultiStrsToByteArrayW(
-                                            ppszOutMultiSz,
+                                            ppwszOutMultiSz,
                                             &pOutData,
                                             &cOutDataLen);
                 BAIL_ON_REG_ERROR(dwError);
@@ -772,20 +784,28 @@ GetValueAsBytes(
             BAIL_ON_REG_ERROR(dwError);
     }
 
-cleanup:
+done:
+
     if (pcbData)
     {
         *pcbData = cbData;
     }
 
+cleanup:
+
     LW_SAFE_FREE_MEMORY(pTempData);
+    LW_SAFE_FREE_MEMORY(pTempData1);
     LW_SAFE_FREE_MEMORY(pOutData);
     LW_SAFE_FREE_MEMORY(pwcValue);
-    RegMultiStrsFree(ppszOutMultiSz);
+    if (ppwszOutMultiSz)
+    {
+        RegFreeMultiStrsW(ppwszOutMultiSz);
+    }
 
     return dwError;
 
 error:
+
     if (pcbData)
     {
         *pcbData = 0;
