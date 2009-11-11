@@ -15,7 +15,7 @@ __COMP_LIST="krb5 openldap libunistr lwbase \
     sqlite libtdb pstore \
     lwadvapi lwreg netlogon lwio lwsm libkeytab libgss \
     dcerpc lwrpcrt librpc eventlog lsass \
-    lwdns domainjoin srvsvc \
+    lwdns domainjoin srvsvc lwupgrade \
 "
 
 function LikewiseOpenVersion
