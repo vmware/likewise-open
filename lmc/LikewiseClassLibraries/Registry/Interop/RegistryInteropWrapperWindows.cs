@@ -314,10 +314,10 @@ namespace Likewise.LMC.Registry
 
         #region Win32.Registry Wrapper implementation
 
-        public static void Win32RegOpenRemoteBaseKey(HKEY hKeyType, string sHostname, out RegistryKey Key)
+        public static void Win32RegOpenRemoteBaseKey(HKEY hKeyType, out RegistryKey Key)
         {
             RegistryKey hKey = null;
-            sHostname = string.Concat(@"\\", sHostname);
+            string sHostname = string.Concat(@"\\", System.Environment.MachineName);
             sHostName = sHostname;
 
             if (Configurations.currentPlatform == LikewiseTargetPlatform.Windows)
