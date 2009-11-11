@@ -88,7 +88,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
 
         private void GetWindowsServiceInfo()
         {
-            foreach (ManagementObject mo in ServiceManagerWindowsWrapper.GetServiceCollection(_plugin.HostInfo.hostName, _plugin.HostInfo.creds.UserName, _plugin.HostInfo.creds.Password, serviceName))
+            foreach (ManagementObject mo in ServiceManagerWindowsWrapper.GetServiceCollection(serviceName))
             {
                 bool canPause = (bool)mo["AcceptPause"];
                 string status = mo["State"].ToString();

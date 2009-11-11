@@ -45,24 +45,15 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
     {
         #region Class Data
 
-        private string _currentHost = "";
         private IPlugInContainer _container;
-        private Hostinfo _hn;
         private LACTreeNode _pluginNode;
         private List<IPlugIn> _extPlugins = null;
         public ServiceManagerHandle handle;
+        public bool IsConnectionSuccess = false;
 
         #endregion
 
         #region IPlugIn Members
-
-        public Hostinfo HostInfo
-        {
-            get
-            {
-                return _hn;
-            }
-        }
 
         public string GetName()
         {
@@ -94,7 +85,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
 
                 Manage.InitSerializePluginInfo(pluginNode, this, ref Id, out viewElement, ViewsNode, SelectedNode);
 
-                Manage.CreateAppendHostInfoElement(_hn, ref viewElement, out HostInfoElement);
+                Manage.CreateAppendHostInfoElement(null, ref viewElement, out HostInfoElement);
 
                 if (pluginNode != null && pluginNode.Nodes.Count != 0)
                 {
@@ -119,6 +110,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
         {
             try
             {
+                Hostinfo _hn = GetContext() as Hostinfo;
                 Manage.DeserializeHostInfo(node, ref pluginNode, nodepath, ref _hn, false);
                 pluginNode.Text = this.GetName();
                 pluginNode.Name = this.GetName();
@@ -148,19 +140,10 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
 
         public void SetContext(IContext ctx)
         {
-            Hostinfo hn = ctx as Hostinfo;
-
-            Logger.Log(String.Format("ServiceManagerPlugin.SetHost(hn: {0}\n)",
-            hn == null ? "<null>" : hn.ToString()), Logger.ServiceManagerLoglevel);
-
             bool deadTree = false;
 
             if (_pluginNode != null &&
-                _pluginNode.Nodes != null &&
-                _hn != null &&
-                hn != null &&
-                hn.hostName !=
-                _hn.hostName)
+                _pluginNode.Nodes != null)
             {
                 foreach (TreeNode node in _pluginNode.Nodes)
                 {
@@ -169,18 +152,11 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
                 deadTree = true;
             }
 
-            _hn = hn;
-
-            if (HostInfo == null)
-            {
-                _hn = new Hostinfo();
-            }
-
-            ConnectToHost();         
+            ConnectToHost();
 
             if (deadTree && _pluginNode != null)
             {
-                _pluginNode.SetContext(_hn);
+                _pluginNode.SetContext(null);
             }
         }
 
@@ -191,7 +167,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
 
         public IContext GetContext()
         {
-            return _hn;
+            return null;
         }
 
         public LACTreeNode GetPlugInNode()
@@ -215,7 +191,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
                 _container.SetCursor(cursor);
             }
         }
-        
+
         public ContextMenu GetTreeContextMenu(LACTreeNode nodeClicked)
         {
             Logger.Log("ServiceManagerPlugin.GetTreeContextMenu", Logger.ServiceManagerLoglevel);
@@ -242,14 +218,8 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             ServiceManagerEditorPage editorPage = nodeClicked.PluginPage as ServiceManagerEditorPage;
             contextMenu = new ContextMenu();
 
-            m_item = new MenuItem("Set Target Machine", new EventHandler(cm_OnConnect));
-            m_item.Tag = _pluginNode;
-            contextMenu.MenuItems.Add(0, m_item);
-
-            m_item = new MenuItem("-");
-            contextMenu.MenuItems.Add(m_item);
-
             m_item = new MenuItem("&Export List...", new EventHandler(editorPage.On_MenuClick));
+            m_item.Enabled = false;
             m_item.Tag = _pluginNode;
             contextMenu.MenuItems.Add(m_item);
 
@@ -258,7 +228,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
 
             m_item = new MenuItem("&Refresh", new EventHandler(editorPage.On_MenuClick));
             m_item.Tag = _pluginNode;
-            contextMenu.MenuItems.Add(m_item);           
+            contextMenu.MenuItems.Add(m_item);
 
             m_item = new MenuItem("-");
             contextMenu.MenuItems.Add(m_item);
@@ -300,105 +270,55 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
 
             return _pluginNode;
         }
-       
+
         private void ConnectToHost()
         {
             Logger.Log("ServiceManagerPlugin.ConnectToHost", Logger.ServiceManagerLoglevel);
 
-            if (_hn.creds.Invalidated)
+            string hostName = System.Environment.MachineName;
+
+            if (!String.IsNullOrEmpty(hostName))
             {
-                _container.ShowError("ServiceManagerPlugin cannot connect to computer due to invalid credentials");
-                _hn.IsConnectionSuccess = false;
-                return;
-            }
-            if (!String.IsNullOrEmpty(_hn.hostName))
-            {
-                if (_currentHost != _hn.hostName)
+                if (_pluginNode != null && !String.IsNullOrEmpty(hostName))
                 {
-                    if (handle != null)
+                    if (Configurations.currentPlatform == LikewiseTargetPlatform.Windows &&
+                        ServiceManagerWindowsWrapper.phSCManager == IntPtr.Zero)
                     {
-                        handle.Dispose();
-                        handle = null;
-                    }
-                    if (_pluginNode != null && !String.IsNullOrEmpty(_hn.hostName))
-                    {
-                        Session.EnsureNullSession(_hn.hostName, _hn.creds);
-                        if (Configurations.currentPlatform == LikewiseTargetPlatform.Windows &&
-                            ServiceManagerWindowsWrapper.phSCManager == IntPtr.Zero)
+                        IsConnectionSuccess = Do_LogonSCManager();
+                        if (IsConnectionSuccess)
                         {
-                            _hn.IsConnectionSuccess = ((ServiceManagerEditorPage)_pluginNode.PluginPage).Do_LogonSCManager(_hn);
-                            if (!_hn.IsConnectionSuccess)
+                            if (_pluginNode.PluginPage == null)
                             {
-                                _container.ShowError("Unable to access the Services for the speficied user authentication");
-                                return;
+                                Type type = _pluginNode.NodeType;
+
+                                object o = Activator.CreateInstance(type);
+                                if (o is IPlugInPage) {
+                                    ((IPlugInPage)o).SetPlugInInfo(_container, _pluginNode.Plugin, _pluginNode, (LWTreeView)_pluginNode.TreeView, _pluginNode.sc);
+                                }
                             }
+                            else
+                                ((ServiceManagerEditorPage)_pluginNode.PluginPage).Refresh();
                         }
-                        else
+                        if (!IsConnectionSuccess)
                         {
-                            _hn.IsConnectionSuccess = OpenHandle();
-                            if (!_hn.IsConnectionSuccess)
-                            {
-                                Logger.ShowUserError("Unable to get Service Manager handle");
-                                return;
-                            }
+                            _container.ShowError("Unable to access the Services for the speficied user authentication");
+                            return;
                         }
-                        if (handle != null)
-                            _pluginNode.Nodes.Clear();
                     }
-                    _currentHost = _hn.hostName;
-                }
-                _hn.IsConnectionSuccess = true;
-            }
-            else
-                _hn.IsConnectionSuccess = false;
-        }
-
-        private void cm_OnConnect(object sender, EventArgs e)
-        {
-            //check if we are joined to a domain -- if not, use simple bind
-            uint requestedFields = (uint)Hostinfo.FieldBitmaskBits.FQ_HOSTNAME;
-            //string domainFQDN = null;
-
-            if (_hn == null)
-            {
-                _hn = new Hostinfo();
-            }
-
-            if (Configurations.currentPlatform == LikewiseTargetPlatform.Windows)
-            {
-                //kerberize service manager, so that creds are meaningful.
-                //for now, there's no reason to attempt single sign-on
-                requestedFields |= (uint)Hostinfo.FieldBitmaskBits.FORCE_USER_PROMPT;
-                requestedFields |= (uint)Hostinfo.FieldBitmaskBits.CREDS_USERNAME;
-                requestedFields |= (uint)Hostinfo.FieldBitmaskBits.CREDS_PASSWORD;                
-            }
-
-            if (_hn != null)
-            {
-                if (!_container.GetTargetMachineInfo(this, _hn, requestedFields))
-                {
-                    Logger.Log(
-                    "Could not find information about target machine",
-                    Logger.RegistryViewerLoglevel);
-                    if (requestedFields == (uint)Hostinfo.FieldBitmaskBits.FQDN)
-                        cm_OnConnect(sender, e);
-                    if (handle != null && handle.Handle != IntPtr.Zero)
-                        _hn.IsConnectionSuccess = true;
-                }
-                else
-                {
-                    if (_pluginNode != null && !String.IsNullOrEmpty(_hn.hostName) && _hn.IsConnectionSuccess)
-                    {
-                        _pluginNode.Text = string.Format(Properties.Resources.ServiceManager + " on " + _hn.hostName);
-                        ((ServiceManagerEditorPage)_pluginNode.PluginPage).Refresh();
+                    else {
+                        IsConnectionSuccess = true;
                     }
                 }
             }
         }
 
-        public bool OpenHandle()
+        public bool Do_LogonSCManager()
         {
-            return true;
+            int iRet = ServiceManagerWindowsWrapper.ApiOpnSCManager();
+            if (iRet == 0)
+                return true;
+
+            return false;
         }
 
         #endregion
