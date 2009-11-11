@@ -694,8 +694,8 @@ GetValueAsBytes(
             }
             else
             {
-                dwError = RegByteArrayToMultiStrsW(pTempData,
-                                                   cbData,
+                dwError = RegByteArrayToMultiStrsW(pTempData1,
+                                                   cbData1,
                                                    &ppwszOutMultiSz);
                 BAIL_ON_REG_ERROR(dwError);
 
