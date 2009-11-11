@@ -55,30 +55,21 @@ namespace Likewise.LMC.Services
         public static IntPtr phSCManager = IntPtr.Zero;
         public static IntPtr phService = IntPtr.Zero;
 
-        public static Dictionary<string, string[]> EnumManagementServices(string sHostname, string sUsername, string sPassword)
+        public static Dictionary<string, string[]> EnumManagementServices()
         {
-            Logger.Log(string.Format("ServiceManagerWindowsWrapper.EnumManagementServices(sHostname={0})", sHostname), Logger.ServiceManagerLoglevel);
+            string sHostname = System.Environment.MachineName;
 
             string QueryString = "SELECT * FROM Win32_Service";
             string[] serviceInfo = null;
             Dictionary<string, string[]> services = new Dictionary<string, string[]>();
             ManagementScope managementScope = null;
 
+            Logger.Log(string.Format("ServiceManagerWindowsWrapper.EnumManagementServices(sHostname={0})", sHostname), Logger.ServiceManagerLoglevel);
+
             try
             {
-                if (!sHostname.Trim().Equals(System.Environment.MachineName, StringComparison.InvariantCultureIgnoreCase))
-                {
-                    //Connect to the remote computer
-                    ConnectionOptions co = new ConnectionOptions();
-                    co.Username = sUsername;
-                    co.Password = sPassword;
-
-                    //Point to machine
-                    managementScope = new ManagementScope("\\\\" + sHostname + "\\root\\cimv2", co);
-                }
-                else
-                    //Point to machine
-                    managementScope = new ManagementScope("\\\\" + sHostname + "\\root\\cimv2", new ConnectionOptions());
+                //Point to machine
+                managementScope = new ManagementScope("\\\\" + sHostname + "\\root\\cimv2", new ConnectionOptions());
 
                 //Query remote computer across the connection
                 ObjectQuery objectQuery = new ObjectQuery(QueryString);
@@ -122,7 +113,7 @@ namespace Likewise.LMC.Services
             return services;
         }
 
-        public static ManagementObjectCollection GetServiceCollection(string sHostName, string sUserName, string sPassword, string sServiceName)
+        public static ManagementObjectCollection GetServiceCollection(string sServiceName)
         {
             Logger.Log(string.Format("ServiceManagerWindowsWrapper.GetServiceCollection(sServiceName={0})", sServiceName), Logger.ServiceManagerLoglevel);
 
@@ -132,19 +123,8 @@ namespace Likewise.LMC.Services
 
             try
             {
-                if (!sHostName.Trim().Equals(System.Environment.MachineName, StringComparison.InvariantCultureIgnoreCase))
-                {
-                    //Connect to the remote computer
-                    ConnectionOptions co = new ConnectionOptions();
-                    co.Username = sUserName;
-                    co.Password = sPassword;
-
-                    //Point to machine
-                    managementScope = new ManagementScope("\\\\" + sHostName + "\\root\\cimv2", co);
-                }
-                else
-                    //Point to machine
-                    managementScope = new ManagementScope("\\\\" + sHostName + "\\root\\cimv2", new ConnectionOptions());
+                //Point to machine
+                managementScope = new ManagementScope("\\\\" + System.Environment.MachineName + "\\root\\cimv2", new ConnectionOptions());
 
                 //Query remote computer across the connection
                 ObjectQuery objectQuery = new ObjectQuery(QueryString);
@@ -160,14 +140,14 @@ namespace Likewise.LMC.Services
             return queryCollection;
         }
 
-        public static ServiceInfo GetServiceStateInfo(string sHostName, string sUserName, string sPassword, string sServiceName)
+        public static ServiceInfo GetServiceStateInfo(string sServiceName)
         {
             Logger.Log(string.Format("ServiceManagerWindowsWrapper.GetServiceStateInfo(sServiceName={0})", sServiceName), Logger.ServiceManagerLoglevel);
             ServiceInfo serviceInfo = new ServiceInfo();
 
             try
             {
-                ManagementObjectCollection queryCollection = GetServiceCollection(sHostName, sUserName, sPassword, sServiceName);
+                ManagementObjectCollection queryCollection = GetServiceCollection(sServiceName);
 
                 if (queryCollection != null)
                 {
@@ -191,7 +171,7 @@ namespace Likewise.LMC.Services
             return serviceInfo;
         }
 
-        public static bool InvokeWMIServiceMethod(string sHostName, string sUserName, string sPassword, string serviceAction, string sServiceName)
+        public static bool InvokeWMIServiceMethod(string serviceAction, string sServiceName)
         {
             bool bInvokeMethodStatus = false;
 
@@ -203,7 +183,7 @@ namespace Likewise.LMC.Services
                 observer.ObjectReady += new ObjectReadyEventHandler(completionHandlerObj.Done);
 
                 //get specific service object
-                ManagementObjectCollection queryCollection = GetServiceCollection(sHostName, sUserName, sPassword, sServiceName);
+                ManagementObjectCollection queryCollection = GetServiceCollection(sServiceName);
 
                 foreach (ManagementObject mo in queryCollection)
                 {
@@ -239,7 +219,7 @@ namespace Likewise.LMC.Services
             return bInvokeMethodStatus;
         }
 
-        public static void WMIServiceRestart(string sHostName, string sUserName, string sPassword, string sServiceName)
+        public static void WMIServiceRestart(string sServiceName)
         {
             try
             {
@@ -260,8 +240,10 @@ namespace Likewise.LMC.Services
 
         #region ADVAPI Wrapper implementations
 
-        public static int ApiOpnSCManager(string sHostname)
+        public static int ApiOpnSCManager()
         {
+            string sHostname = System.Environment.MachineName;
+
             Logger.Log(string.Format("ServiceManagerWindowsWrapper.ApiOpnSCManager(sHostname={0})", sHostname), Logger.ServiceManagerLoglevel);
 
             try
@@ -286,14 +268,14 @@ namespace Likewise.LMC.Services
             return phSCManager != IntPtr.Zero ? 0 : -1;
         }
 
-        public static IntPtr ApiOpenService(string sHostname, string sServicename, uint dwDesiredAccess)
+        public static IntPtr ApiOpenService(string sServicename, uint dwDesiredAccess)
         {
             try
             {
                 if (phSCManager == IntPtr.Zero)
-                    ApiOpnSCManager(sHostname);
+                    ApiOpnSCManager();
 
-                Logger.Log(string.Format("ServiceManagerWindowsWrapper.ApiOpenService(sHostname={0}, sServicename={1})", sHostname, sServicename), Logger.ServiceManagerLoglevel);
+                Logger.Log(string.Format("ServiceManagerWindowsWrapper.ApiOpenService(sHostname={0}, sServicename={1})", System.Environment.MachineName, sServicename), Logger.ServiceManagerLoglevel);
 
                 if (phService != IntPtr.Zero)
                     ApiCloseServiceHandle(phService);
@@ -342,17 +324,16 @@ namespace Likewise.LMC.Services
         }
 
         public static ServiceManagerApi.SERVICE_FAILURE_ACTIONS ApiQueryServiceConfig2(
-                                            string sHostname,
-                                            string sServicename)                                           
+                                                                string sServicename)
         {
             UInt32 dwBytesNeeded;
             //UInt32 INFINITE = 0xFFFFFFFF;
             ServiceManagerApi.SERVICE_FAILURE_ACTIONS failureActions = new ServiceManagerApi.SERVICE_FAILURE_ACTIONS();
             try
             {
-                ApiOpenService(sHostname, sServicename, ServiceManagerInteropWindows.SERVICE_QUERY_CONFIG);
+                ApiOpenService(sServicename, ServiceManagerInteropWindows.SERVICE_QUERY_CONFIG);
 
-                Logger.Log(string.Format("ServiceManagerWindowsWrapper.ApiQueryServiceConfig2(sHostname={0}, sServicename={1})", sHostname, sServicename), Logger.ServiceManagerLoglevel);
+                Logger.Log(string.Format("ServiceManagerWindowsWrapper.ApiQueryServiceConfig2(sHostname={0})", sServicename), Logger.ServiceManagerLoglevel);
 
                 bool bSuccess = ServiceManagerInteropWindows.QueryServiceConfig2(phService,
                                                     ServiceManagerInteropWindows.SERVICE_CONFIG_FAILURE_ACTIONS,
@@ -381,14 +362,12 @@ namespace Likewise.LMC.Services
             return failureActions;
         }
 
-        public static bool ApiChangeServiceConfig2(
-                                           string sHostname,
-                                           string sServicename,
+        public static bool ApiChangeServiceConfig2(string sServicename,
                                            ServiceManagerApi.SERVICE_FAILURE_ACTIONS failureActions)
         {
             try
             {
-                ApiOpenService(sHostname, sServicename, ServiceManagerInteropWindows.SERVICE_CHANGE_CONFIG);
+                ApiOpenService(sServicename, ServiceManagerInteropWindows.SERVICE_CHANGE_CONFIG);
 
                 IntPtr lpInfo = Marshal.AllocHGlobal(Marshal.SizeOf(failureActions));
                 if (lpInfo == IntPtr.Zero)
