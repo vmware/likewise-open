@@ -413,12 +413,12 @@ namespace Likewise.LMC.Registry
         //    REGSAM samDesired,
         //    PHKEY phkResult
         //    );
-        [DllImport(libadvapiPath, CharSet = CharSet.Unicode, SetLastError = true)]
+        [DllImport(libadvapiPath, CharSet = CharSet.Ansi, SetLastError = true)]
         public static extern int RegOpenKeyExA(
             IntPtr hRegConnection,
             IntPtr hKey,            
-            [MarshalAs(UnmanagedType.LPStr)] StringBuilder pSubKey,
-            ulong ulOptions,
+            [MarshalAs(UnmanagedType.LPStr)] string pSubKey,
+            uint ulOptions,
             RegistryApi.RegSAM samDesired,            
             out IntPtr phkResult);
 
