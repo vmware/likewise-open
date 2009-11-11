@@ -97,15 +97,14 @@ const char* gLwpsErrorMessages[] =
     //  LWPS_ERROR_INVALID_SID                                    : 16405
     "The security identifier is invalid",
     //  LWPS_ERROR_INVALID_ACCOUNT                                : 16406
-    "The user or machine account is invalid"
+    "The user or machine account is invalid",
     //  LWPS_ERROR_INVALID_HANDLE                                 : 16407
-    "The handle does not represent a currently open database instance"
+    "The handle does not represent a currently open database instance",
     //  LWPS_ERROR_DB_RECORD_NOT_FOUND                            : 16408
     "The requested database record was not found",
     //  LWPS_ERROR_INVALID_MESSAGE                                : 16409
     "The Inter Process message is invalid"
 };
-
 
 BOOLEAN
 LwpsIsLwpsError(
@@ -167,7 +166,7 @@ LwpsMapLwpsErrorToString(
     if ((dwError >= LWPS_ERROR_INVALID_CACHE_PATH) &&
         (dwError < LWPS_ERROR_SENTINEL))
     {
-        DWORD dwErrorOffset = dwError - 0x8000;
+        DWORD dwErrorOffset = dwError - 0x4000;
         
         if (dwErrorOffset < dwNMessages)
         {

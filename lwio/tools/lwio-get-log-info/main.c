@@ -53,6 +53,8 @@
 #include "lwiodef.h"
 #include "lwioutils.h"
 
+#define LW_PRINTF_STRING(x) ((x) ? (x) : "<null>")
+
 DWORD
 ParseArgs(
     int    argc,
@@ -81,8 +83,6 @@ main(
     DWORD dwError = 0;
     PLWIO_LOG_INFO pLogInfo = NULL;
     PIO_CONTEXT pContext = NULL;
-    size_t dwErrorBufferSize = 0;
-    BOOLEAN bPrintOrigError = TRUE;
 
     dwError = ParseArgs(argc, argv);
     BAIL_ON_LWIO_ERROR(dwError);
@@ -121,35 +121,12 @@ error:
 
     dwError = MapErrorCode(dwError);
 
-    dwErrorBufferSize = SMBStrError(dwError, NULL, 0);
-
-    if (dwErrorBufferSize > 0)
-    {
-        DWORD dwError2 = 0;
-        PSTR   pszErrorBuffer = NULL;
-
-        dwError2 = SMBAllocateMemory(
-                    dwErrorBufferSize,
-                    (PVOID*)&pszErrorBuffer);
-
-        if (!dwError2)
-        {
-            DWORD dwLen = SMBStrError(dwError, pszErrorBuffer, dwErrorBufferSize);
-
-            if ((dwLen == dwErrorBufferSize) && !IsNullOrEmptyString(pszErrorBuffer))
-            {
-                fprintf(stderr, "Failed to get LWIO log setting information.  %s\n", pszErrorBuffer);
-                bPrintOrigError = FALSE;
-            }
-        }
-
-        LWIO_SAFE_FREE_STRING(pszErrorBuffer);
-    }
-
-    if (bPrintOrigError)
-    {
-        fprintf(stderr, "Failed to get LWIO log setting information. Error code [%d]\n", dwError);
-    }
+    fprintf(
+        stderr,
+        "Failed to get LWIO log setting information.  Error code %u (%s).\n%s\n",
+        dwError,
+        LW_PRINTF_STRING(LwNtStatusToSymbolicName(dwError)),
+        LW_PRINTF_STRING(LwNtStatusToDescription(dwError)));
 
     goto cleanup;
 }

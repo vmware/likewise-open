@@ -234,7 +234,7 @@ lwmsg_local_token_from_socket_peer(
 #elif defined(HAVE_GETPEEREID) && HAVE_DECL_GETPEEREID
     if (getpeereid(fd, &uid, &gid))
     {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
+        BAIL_ON_ERROR(status = lwmsg_error_map_errno(errno));
     }
 #elif HAVE_DECL_SO_PEERCRED
     struct ucred creds;
@@ -242,7 +242,7 @@ lwmsg_local_token_from_socket_peer(
 
     if (getsockopt(fd, SOL_SOCKET, SO_PEERCRED, &creds, &creds_len))
     {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
+        BAIL_ON_ERROR(status = lwmsg_error_map_errno(errno));
     }
 
     uid = creds.uid;

@@ -49,6 +49,8 @@
 
 #include "mod_user_includes.h"
 
+#define LW_PRINTF_STRING(x) ((x) ? (x) : "<null>")
+
 static
 DWORD
 MapErrorCode(
@@ -170,7 +172,11 @@ LsaModUserMain(
 
              if ((dwLen == dwErrorBufferSize) && !LW_IS_NULL_OR_EMPTY_STR(pszErrorBuffer))
              {
-                 fprintf(stderr, "Failed to modify user.  %s\n", pszErrorBuffer);
+                 fprintf(stderr,
+                         "Failed to modify user.  Error code %u (%s).\n%s\n",
+                         dwError,
+                         LW_PRINTF_STRING(LwWin32ErrorToName(dwError)),
+                         pszErrorBuffer);
                  bPrintOrigError = FALSE;
              }
          }
@@ -180,7 +186,10 @@ LsaModUserMain(
 
      if (bPrintOrigError)
      {
-         fprintf(stderr, "Failed to modify user. Error code [%d]\n", dwError);
+         fprintf(stderr,
+                 "Failed to modify user.  Error code %u (%s).\n",
+                 dwError,
+                 LW_PRINTF_STRING(LwWin32ErrorToName(dwError)));
      }
 
      goto cleanup;
@@ -436,8 +445,8 @@ ParseArgs(
     }
 
     if (!ValidateArgs(pszLoginId, pTaskList)) {
-       dwError = LW_ERROR_INVALID_PARAMETER;
-       BAIL_ON_LSA_ERROR(dwError);
+        ShowUsage(GetProgramName(argv[0]));
+        exit(1);
     }
 
     *ppszLoginId = pszLoginId;
@@ -461,8 +470,6 @@ error:
     }
 
     LW_SAFE_FREE_STRING(pszLoginId);
-
-    ShowUsage(GetProgramName(argv[0]));
 
     goto cleanup;
 }

@@ -218,8 +218,9 @@ lwmsg_server_io_loop(
 
         if (res < 0)
         {
+            status = lwmsg_error_map_errno(errno);
             LWMSG_LOG_ERROR(server->context, "Unexpected system error in select(): %i\n", errno);
-            BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
+            BAIL_ON_ERROR(status);
         }
 
         /* Unblock tasks that select() indicates are ready */
@@ -258,7 +259,7 @@ lwmsg_server_io_loop(
 
                 if (res != 1)
                 {
-                    BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
+                    BAIL_ON_ERROR(status = lwmsg_error_map_errno(errno));
                 }
             }
         }

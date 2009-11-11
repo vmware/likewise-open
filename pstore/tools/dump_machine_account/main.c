@@ -53,7 +53,6 @@
 #include "lwps-def.h"
 #include "lwps/lwps.h"
 
-
 /***************************************************
  */
 
@@ -163,8 +162,8 @@ main(
     PSTR  pszHostDnsDomain = NULL;
     PLWPS_PASSWORD_INFO pMachineAcctInfo = NULL;
     HANDLE hPasswordStore = (HANDLE)NULL;
-
-    lwps_init_logging_to_file(LOG_LEVEL_VERBOSE, TRUE, "");
+    size_t dwErrorBufferSize = 0;
+    BOOLEAN bPrintOrigError = TRUE;
 
     dwError = ParseArgs(argc, argv, &pszReqDomainName);
     BAIL_ON_LWPS_ERROR(dwError);
@@ -265,13 +264,43 @@ cleanup:
        LwpsClosePasswordStore(hPasswordStore);
     }
 
-    lwps_close_log();
-
     return (dwError);
 
 error:
 
-    fprintf(stderr, "Failed to read from database.\n");
+    dwErrorBufferSize = LwpsGetErrorString(dwError, NULL, 0);
+
+    if (dwErrorBufferSize > 0)
+    {
+        DWORD dwError2 = 0;
+        PSTR   pszErrorBuffer = NULL;
+
+        dwError2 = LwpsAllocateMemory(
+                    dwErrorBufferSize,
+                    (PVOID*)&pszErrorBuffer);
+
+        if (!dwError2)
+        {
+            DWORD dwLen = LwpsGetErrorString(dwError, pszErrorBuffer, dwErrorBufferSize);
+
+            if ((dwLen == dwErrorBufferSize) && !IsNullOrEmptyString(pszErrorBuffer))
+            {
+                fprintf(stderr,
+                        "Failed to read from database.  Error code %u.\n%s\n",
+                        dwError, pszErrorBuffer);
+                bPrintOrigError = FALSE;
+            }
+        }
+
+        LWPS_SAFE_FREE_STRING(pszErrorBuffer);
+    }
+
+    if (bPrintOrigError)
+    {
+        fprintf(stderr,
+                "Failed to read from database.  Error code %u.\n",
+                dwError);
+    }
 
     goto cleanup;
 }
