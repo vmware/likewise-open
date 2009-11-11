@@ -1454,6 +1454,7 @@ krb5_get_init_creds(krb5_context context,
 		    err_reply->client->realm.length == 0) {
 		    ret = KRB5KDC_ERR_WRONG_REALM;
 		    krb5_free_error(context, err_reply);
+                    err_reply = NULL;
 		    goto cleanup;
 		}
 		/* Rewrite request.client with realm from error reply */
@@ -1485,6 +1486,7 @@ krb5_get_init_creds(krb5_context context,
 		    ret = (krb5_error_code) err_reply->error
 		          + ERROR_TABLE_BASE_krb5;
 		    krb5_free_error(context, err_reply);
+                    err_reply = NULL;
 		    goto cleanup;
 		}
 	    }
@@ -1619,6 +1621,10 @@ cleanup:
 	default:
 	    break;
 	}
+    }
+    if (err_reply)
+    {
+        krb5_free_error(context, err_reply);
     }
     krb5_preauth_request_context_fini(context);
 	krb5_free_keyblock(context, strengthen_key);
