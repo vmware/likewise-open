@@ -634,7 +634,6 @@ GetValueAsBytes(
     PWSTR   pwcValue = NULL;
     PWSTR*  ppwszOutMultiSz = NULL;
     PBYTE   pOutData = NULL;
-    SSIZE_T cOutDataLen = 0;
 
     if (LW_IS_NULL_OR_EMPTY_STR(pszValue))
 	{
