@@ -389,40 +389,6 @@ error:
 }
 
 DWORD
-RegSrvSetValueExA(
-    IN HANDLE Handle,
-    IN HKEY hKey,
-    IN OPTIONAL PCSTR pszValueName,
-    IN DWORD Reserved,
-    IN DWORD dwType,
-    IN const BYTE *pData,
-    DWORD cbData
-    )
-{
-    DWORD dwError = 0;
-
-    if (!RegSrvCheckAccessRight(Handle, REG_WRITE))
-    {
-        dwError = LW_ERROR_ACCESS_DENIED;
-        BAIL_ON_REG_ERROR(dwError);
-    }
-
-    dwError = gpRegProvider->pfnRegSrvSetValueExA(
-            Handle,
-            hKey,
-            pszValueName,
-            Reserved,
-            dwType,
-            pData,
-            cbData);
-    BAIL_ON_REG_ERROR(dwError);
-
-
-error:
-    return dwError;
-}
-
-DWORD
 RegSrvSetValueExW(
     IN HANDLE Handle,
     IN HKEY hKey,

@@ -1344,49 +1344,6 @@ error:
 }
 
 LWMsgStatus
-RegSrvIpcSetValueExA(
-    LWMsgCall* pCall,
-    const LWMsgParams* pIn,
-    LWMsgParams* pOut,
-    void* data
-    )
-{
-    DWORD dwError = 0;
-    PREG_IPC_SET_VALUEA_EX_REQ pReq = pIn->data;
-    PREG_IPC_ERROR pError = NULL;
-
-    dwError = RegSrvSetValueExA(
-        RegSrvIpcGetSessionData(pCall),
-        pReq->hKey,
-        pReq->pszValueName,
-        0,
-        pReq->dwType,
-        pReq->pData,
-        pReq->cbData
-        );
-
-    if (!dwError)
-    {
-        pOut->tag = REG_R_SET_VALUEA_EX;
-        pOut->data = NULL;
-    }
-    else
-    {
-        dwError = RegSrvIpcCreateError(dwError, &pError);
-        BAIL_ON_REG_ERROR(dwError);
-
-        pOut->tag = REG_R_ERROR;
-        pOut->data = pError;
-    }
-
-cleanup:
-    return MAP_REG_ERROR_IPC(dwError);
-
-error:
-    goto cleanup;
-}
-
-LWMsgStatus
 RegSrvIpcSetValueExW(
     LWMsgCall* pCall,
     const LWMsgParams* pIn,

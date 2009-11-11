@@ -73,7 +73,6 @@ REGPROV_PROVIDER_FUNCTION_TABLE gRegSqliteProviderAPITable =
         &SqliteQueryMultipleValues,
         &SqliteQueryValueExA,
         &SqliteQueryValueExW,
-        &SqliteSetValueExA,
         &SqliteSetValueExW,
 };
 

@@ -288,17 +288,6 @@ RegTransactSetKeyValue(
     );
 
 DWORD
-RegTransactSetValueExA(
-    IN HANDLE hConnection,
-    IN HKEY hKey,
-    IN OPTIONAL PCSTR pszValueName,
-    IN DWORD Reserved,
-    IN DWORD dwType,
-    IN OPTIONAL const BYTE *pData,
-    IN DWORD cbData
-    );
-
-DWORD
 RegTransactSetValueExW(
     HANDLE Handle,
     HKEY hKey,

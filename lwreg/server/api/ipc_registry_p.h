@@ -209,14 +209,6 @@ RegSrvIpcQueryValueExW(
     );
 
 LWMsgStatus
-RegSrvIpcSetValueExA(
-    LWMsgCall* pCall,
-    const LWMsgParams* pIn,
-    LWMsgParams* pOut,
-    void* data
-    );
-
-LWMsgStatus
 RegSrvIpcSetValueExW(
     LWMsgCall* pCall,
     const LWMsgParams* pIn,

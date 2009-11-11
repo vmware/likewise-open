@@ -742,12 +742,10 @@ error:
     goto cleanup;
 }
 
-static
 DWORD
-SqliteSetValueExInternal(
+SqliteSetValueExW(
     IN HANDLE Handle,
     IN HKEY hKey,
-    IN BOOLEAN bDoAnsi,
     IN OPTIONAL PCWSTR pValueName,
     IN DWORD Reserved,
     IN DWORD dwType,
@@ -763,8 +761,6 @@ SqliteSetValueExInternal(
     DWORD   dwValue = 0;
     BOOLEAN bIsWrongType = TRUE;
     PWSTR*  ppwszOutMultiSz = NULL;
-    PBYTE   pOutData = NULL;
-    DWORD   cOutDataLen = 0;
 
     BAIL_ON_INVALID_KEY(pKey);
 
@@ -797,56 +793,19 @@ SqliteSetValueExInternal(
             break;
 
         case REG_MULTI_SZ:
-            if (bDoAnsi)
-            {
-                dwError = RegConvertByteStreamA2W(
-                                (const PBYTE)pData,
-                                cbData,
-                                &pOutData,
-                                &cOutDataLen);
-                BAIL_ON_REG_ERROR(dwError);
-
-                dwError = LwByteArrayToHexStr(
-                                pOutData,
-                                cOutDataLen,
-                                &pszValue);
-                BAIL_ON_REG_ERROR(dwError);
-            }
-            else
-            {
-                dwError = LwByteArrayToHexStr((PBYTE)pData,
-                                              cbData,
-                                              &pszValue);
-                BAIL_ON_REG_ERROR(dwError);
-            }
-
-            break;
-
-
         case REG_SZ:
-            if (pData[cbData-1] != '\0')
+
+            if (pData[cbData-1] != '\0' || pData[cbData-2] != '\0' )
             {
                 dwError = LW_ERROR_INVALID_PARAMETER;
                 BAIL_ON_REG_ERROR(dwError);
             }
 
-            if (bDoAnsi)
-            {
-                dwError = LwAllocateMemory(sizeof(*pszValue)*cbData, (PVOID)&pszValue);
-                BAIL_ON_REG_ERROR(dwError);
+			dwError = LwByteArrayToHexStr((PBYTE)pData,
+										  cbData,
+										  &pszValue);
+			BAIL_ON_REG_ERROR(dwError);
 
-                memcpy(pszValue, pData, cbData*sizeof(*pData));
-            }
-            else
-            {
-                dwError = LwAllocateMemory(cbData, (PVOID)&pwcValue);
-                BAIL_ON_REG_ERROR(dwError);
-
-                memcpy(pwcValue, pData, cbData*sizeof(*pData));
-
-                dwError = LwWc16sToMbs(pwcValue, &pszValue);
-                BAIL_ON_REG_ERROR(dwError);
-            }
             break;
 
         case REG_DWORD:
@@ -896,7 +855,6 @@ cleanup:
     LW_SAFE_FREE_STRING(pszValueName);
     LW_SAFE_FREE_STRING(pszValue);
     LW_SAFE_FREE_MEMORY(pwcValue);
-    LW_SAFE_FREE_MEMORY(pOutData);
     if (ppwszOutMultiSz)
     {
         RegFreeMultiStrsW(ppwszOutMultiSz);
@@ -906,66 +864,6 @@ cleanup:
 
 error:
     goto cleanup;
-}
-
-DWORD
-SqliteSetValueExA(
-    IN HANDLE Handle,
-    IN HKEY hKey,
-    IN OPTIONAL PCSTR pszValueName,
-    IN DWORD Reserved,
-    IN DWORD dwType,
-    IN const BYTE *pData,
-    DWORD cbData
-    )
-{
-    DWORD dwError = 0;
-    PWSTR pValueName = NULL;
-
-    if (pszValueName)
-    {
-        dwError = LwMbsToWc16s(pszValueName, &pValueName);
-        BAIL_ON_REG_ERROR(dwError);
-    }
-
-    dwError = SqliteSetValueExInternal(Handle,
-                                       hKey,
-                                       TRUE,
-                                       pValueName,
-                                       Reserved,
-                                       dwType,
-                                       pData,
-                                       cbData);
-    BAIL_ON_REG_ERROR(dwError);
-
-cleanup:
-    LW_SAFE_FREE_MEMORY(pValueName);
-
-    return dwError;
-
-error:
-    goto cleanup;
-}
-
-DWORD
-SqliteSetValueExW(
-    IN HANDLE Handle,
-    IN HKEY hKey,
-    IN OPTIONAL PCWSTR pValueName,
-    IN DWORD Reserved,
-    IN DWORD dwType,
-    IN const BYTE *pData,
-    DWORD cbData
-    )
-{
-    return SqliteSetValueExInternal(Handle,
-                                    hKey,
-                                    FALSE,
-                                    pValueName,
-                                    Reserved,
-                                    dwType,
-                                    pData,
-                                    cbData);
 }
 
 static

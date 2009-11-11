@@ -162,17 +162,6 @@ SqliteQueryInfoKeyW(
     );
 
 DWORD
-SqliteSetValueExA(
-    IN HANDLE Handle,
-    IN HKEY hKey,
-    IN OPTIONAL PCSTR pszValueName,
-    IN DWORD Reserved,
-    IN DWORD dwType,
-    IN const BYTE *pData,
-    DWORD cbData
-    );
-
-DWORD
 SqliteSetValueExW(
     IN HANDLE Handle,
     IN HKEY hKey,

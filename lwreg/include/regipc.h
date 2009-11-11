@@ -97,8 +97,6 @@ typedef enum __REG_IPC_TAG
     REG_R_QUERY_VALUEA_EX,
     REG_Q_QUERY_VALUEW_EX,
     REG_R_QUERY_VALUEW_EX,
-    REG_Q_SET_VALUEA_EX,
-    REG_R_SET_VALUEA_EX,
     REG_Q_SET_VALUEW_EX,
     REG_R_SET_VALUEW_EX,
 } REG_IPC_TAG;
@@ -503,16 +501,6 @@ typedef struct __REG_IPC_SET_KEY_VALUE_REQ
 // IN DWORD dwType,
 // IN OPTIONAL const BYTE *pData,
 // IN DWORD cbData
-
-typedef struct __REG_IPC_SET_VALUEA_EX_REQ
-{
-    HKEY hKey;
-    PCSTR pszValueName;
-    DWORD dwType;
-    const BYTE *pData;
-    DWORD cbData;
-} REG_IPC_SET_VALUEA_EX_REQ, *PREG_IPC_SET_VALUEA_EX_REQ;
-
 typedef struct __REG_IPC_SET_VALUE_EX_REQ
 {
     HKEY hKey;
