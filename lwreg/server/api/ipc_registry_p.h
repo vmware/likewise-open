@@ -153,14 +153,6 @@ RegSrvIpcGetValueW(
     );
 
 LWMsgStatus
-RegSrvIpcOpenKeyExA(
-    LWMsgCall* pCall,
-    const LWMsgParams* pIn,
-    LWMsgParams* pOut,
-    void* data
-    );
-
-LWMsgStatus
 RegSrvIpcOpenKeyExW(
     LWMsgCall* pCall,
     const LWMsgParams* pIn,
@@ -202,14 +194,6 @@ RegSrvIpcQueryValueExA(
 
 LWMsgStatus
 RegSrvIpcQueryValueExW(
-    LWMsgCall* pCall,
-    const LWMsgParams* pIn,
-    LWMsgParams* pOut,
-    void* data
-    );
-
-LWMsgStatus
-RegSrvIpcSetValueExA(
     LWMsgCall* pCall,
     const LWMsgParams* pIn,
     LWMsgParams* pOut,

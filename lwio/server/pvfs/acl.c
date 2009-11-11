@@ -46,44 +46,6 @@
 
 #include "pvfs.h"
 
-/* Forward declarations */
-
-static NTSTATUS
-CreateDefaultSecDescFile(
-    IN OUT PSECURITY_DESCRIPTOR_RELATIVE pSecDesc,
-    IN OUT PULONG pSecDescLen
-    );
-
-static NTSTATUS
-CreateDefaultSecDescDir(
-    IN OUT PSECURITY_DESCRIPTOR_RELATIVE pSecDesc,
-    IN OUT PULONG pSecDescLen
-    );
-
-static NTSTATUS
-CreateDefaultSecDesc(
-    IN OUT PSECURITY_DESCRIPTOR_RELATIVE pSecDescRelative,
-    IN OUT PULONG pSecDescLen,
-    BOOLEAN bIsDirectory
-    );
-
-static NTSTATUS
-BuildDefaultDaclFile(
-    PACL *ppDacl
-    );
-
-static NTSTATUS
-BuildDefaultDaclDirectory(
-    PACL *ppDacl
-    );
-
-
-/* File Globals */
-
-
-
-/* Code */
-
 /****************************************************************
  ***************************************************************/
 
@@ -98,7 +60,9 @@ PvfsGetSecurityDescriptorFile(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PSECURITY_DESCRIPTOR_RELATIVE pFullSecDesc = NULL;
     ULONG FullSecDescLen = 0;
+#ifdef HAVE_EA_SUPPORT
     BOOLEAN bNoStoredSecDesc = FALSE;
+#endif
 
     FullSecDescLen = 1024;
     do
@@ -111,26 +75,17 @@ PvfsGetSecurityDescriptorFile(
            round if there is nothing there */
 
         if (!bNoStoredSecDesc) {
-            ntError = PvfsGetSecurityDescriptorFileXattr(pCcb,
-                                                         pFullSecDesc,
-                                                         &FullSecDescLen);
+            ntError = PvfsGetSecurityDescriptorFileXattr(
+                          pCcb,
+                          pFullSecDesc,
+                          &FullSecDescLen);
         }
 #else
-        ntError = STATUS_NOT_SUPPORTED;
+        ntError = PvfsGetSecurityDescriptorPosix(
+                      pCcb,
+                      pFullSecDesc,
+                      &FullSecDescLen);
 #endif
-
-        /* Fallback to generating a default secdesc */
-
-        if (!NT_SUCCESS(ntError) && (ntError != STATUS_BUFFER_TOO_SMALL))
-        {
-            bNoStoredSecDesc = TRUE;
-
-            if (pCcb->CreateOptions & FILE_DIRECTORY_FILE) {
-                ntError = CreateDefaultSecDescDir(pFullSecDesc, &FullSecDescLen);
-            } else {
-                ntError = CreateDefaultSecDescFile(pFullSecDesc, &FullSecDescLen);
-            }
-        }
 
         if (ntError == STATUS_BUFFER_TOO_SMALL) {
             FullSecDescLen *= 2;
@@ -169,8 +124,9 @@ PvfsGetSecurityDescriptorFilename(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PSECURITY_DESCRIPTOR_RELATIVE pFullSecDesc = NULL;
     ULONG FullSecDescLen = 0;
+#ifdef HAVE_EA_SUPPORT
     BOOLEAN bNoStoredSecDesc = FALSE;
-    PVFS_STAT Stat = {0};
+#endif
 
     FullSecDescLen = 1024;
     do
@@ -188,24 +144,11 @@ PvfsGetSecurityDescriptorFilename(
                                                              &FullSecDescLen);
         }
 #else
-        ntError = STATUS_NOT_SUPPORTED;
+        ntError = PvfsGetSecurityDescriptorFilenamePosix(
+                      pszFilename,
+                      pFullSecDesc,
+                      &FullSecDescLen);
 #endif
-
-        /* Fallback to generating a default secdesc */
-
-        if (!NT_SUCCESS(ntError) && (ntError != STATUS_BUFFER_TOO_SMALL))
-        {
-            bNoStoredSecDesc = TRUE;
-
-            ntError = PvfsSysStat(pszFilename, &Stat);
-            BAIL_ON_NT_STATUS(ntError);
-
-            if (S_ISDIR(Stat.s_mode)) {
-                ntError = CreateDefaultSecDescDir(pFullSecDesc, &FullSecDescLen);
-            } else {
-                ntError = CreateDefaultSecDescFile(pFullSecDesc, &FullSecDescLen);
-            }
-        }
 
         if (ntError == STATUS_BUFFER_TOO_SMALL) {
             FullSecDescLen *= 2;
@@ -266,10 +209,11 @@ PvfsSetSecurityDescriptorFile(
         ntError = PvfsReallocateMemory((PVOID*)&pSDCur, SDCurLen);
         BAIL_ON_NT_STATUS(ntError);
 
-        ntError = PvfsGetSecurityDescriptorFile(pCcb,
-                                                SecInfoAll,
-                                                pSDCur,
-                                                &SDCurLen);
+        ntError = PvfsGetSecurityDescriptorFile(
+                      pCcb,
+                      SecInfoAll,
+                      pSDCur,
+                      &SDCurLen);
         if (ntError == STATUS_BUFFER_TOO_SMALL) {
             SDCurLen *= 2;
         }
@@ -283,22 +227,27 @@ PvfsSetSecurityDescriptorFile(
     ntError = PvfsAllocateMemory((PVOID*)&pNewSecDesc, NewSecDescLen);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = RtlSetSecurityDescriptorInfo(SecInfo,
-                                           pSecDesc,
-                                           pSDCur,
-                                           pNewSecDesc,
-                                           &NewSecDescLen,
-                                           &gPvfsFileGenericMapping);
+    ntError = RtlSetSecurityDescriptorInfo(
+                  SecInfo,
+                  pSecDesc,
+                  pSDCur,
+                  pNewSecDesc,
+                  &NewSecDescLen,
+                  &gPvfsFileGenericMapping);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Save the combined SD */
 
 #ifdef HAVE_EA_SUPPORT
-    ntError = PvfsSetSecurityDescriptorFileXattr(pCcb,
-                                                 pNewSecDesc,
-                                                 NewSecDescLen);
+    ntError = PvfsSetSecurityDescriptorFileXattr(
+                  pCcb,
+                  pNewSecDesc,
+                  NewSecDescLen);
 #else
-    ntError = STATUS_SUCCESS;
+    ntError = PvfsSetSecurityDescriptorPosix(
+                  pCcb,
+                  pNewSecDesc,
+                  NewSecDescLen);
 #endif
 
     BAIL_ON_NT_STATUS(ntError);
@@ -367,33 +316,7 @@ PvfsFreeAbsoluteSecurityDescriptor(
 /****************************************************************
  ***************************************************************/
 
-static NTSTATUS
-CreateDefaultSecDescFile(
-    IN OUT PSECURITY_DESCRIPTOR_RELATIVE pSecDesc,
-    IN OUT PULONG pSecDescLen
-    )
-{
-    return CreateDefaultSecDesc(pSecDesc,
-                                pSecDescLen,
-                                FALSE /* not a directory */);
-}
-
-/****************************************************************
- ***************************************************************/
-
-static NTSTATUS
-CreateDefaultSecDescDir(
-    IN OUT PSECURITY_DESCRIPTOR_RELATIVE pSecDesc,
-    IN OUT PULONG pSecDescLen
-    )
-{
-    return CreateDefaultSecDesc(pSecDesc,
-                                pSecDescLen,
-                                TRUE /* is a directory */);
-}
-
-/****************************************************************
- ***************************************************************/
+#if 0  /* UNUSED but useful to cut-n-paste */
 
 static NTSTATUS
 CreateDefaultSecDesc(
@@ -657,6 +580,9 @@ cleanup:
 error:
     goto cleanup;
 }
+
+
+#endif   /* UNUSED */
 
 
 /*

@@ -66,16 +66,6 @@ RegTransactEnumRootKeysW(
     );
 
 DWORD
-RegTransactOpenKeyExA(
-    HANDLE Handle,
-    HKEY hKey,
-    PCSTR pszSubKey,
-    DWORD ulOptions,
-    REGSAM samDesired,
-    PHKEY phkResult
-    );
-
-DWORD
 RegTransactOpenKeyExW(
     HANDLE Handle,
     HKEY hKey,
@@ -284,17 +274,6 @@ RegTransactSetKeyValue(
     IN OPTIONAL PCWSTR lpValueName,
     IN DWORD dwType,
     IN OPTIONAL PCVOID lpData,
-    IN DWORD cbData
-    );
-
-DWORD
-RegTransactSetValueExA(
-    IN HANDLE hConnection,
-    IN HKEY hKey,
-    IN OPTIONAL PCSTR pszValueName,
-    IN DWORD Reserved,
-    IN DWORD dwType,
-    IN OPTIONAL const BYTE *pData,
     IN DWORD cbData
     );
 

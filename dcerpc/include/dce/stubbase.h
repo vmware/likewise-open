@@ -689,6 +689,7 @@ typedef void *rpc_ss_threads_dest_arg_t;
 #define RPC_SS_THREADS_X_CANCELLED dcethread_interrupt_e
 
 #define RPC_SS_THREADS_CANCEL_STATE_T int
+#define RPC_SS_THREADS_CANCEL_STATE_T_INITIALIZER 0
 
 #define RPC_SS_THREADS_DISABLE_ASYNC(state) state=dcethread_enableasync_throw(0)
 
@@ -752,6 +753,7 @@ typedef cma_t_address rpc_ss_threads_dest_arg_t;
 #define RPC_SS_THREADS_X_CANCELLED cma_e_alerted
 
 #define RPC_SS_THREADS_CANCEL_STATE_T cma_t_alert_state
+#define RPC_SS_THREADS_CANCEL_STATE_T_INITIALIZER {0}
 
 #define RPC_SS_THREADS_DISABLE_ASYNC(state) cma_alert_disable_asynch(&state)
 

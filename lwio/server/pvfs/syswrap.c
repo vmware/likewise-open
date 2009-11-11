@@ -624,6 +624,29 @@ error:
  *********************************************************/
 
 NTSTATUS
+PvfsSysFchmod(
+    PPVFS_CCB pCcb,
+    mode_t Mode
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    int unixerr = 0;
+
+    if (fchmod(pCcb->fd, Mode) == -1) {
+        PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
+    }
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+/**********************************************************
+ *********************************************************/
+
+NTSTATUS
 PvfsSysRename(
     PCSTR pszOldname,
     PCSTR pszNewname

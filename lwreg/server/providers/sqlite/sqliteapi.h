@@ -70,16 +70,6 @@ SqliteCreateKeyEx(
     );
 
 DWORD
-SqliteOpenKeyExA(
-    IN HANDLE Handle,
-    IN HKEY hKey,
-    IN OPTIONAL PCSTR pszSubKey,
-    IN DWORD ulOptions,
-    IN REGSAM samDesired,
-    OUT PHKEY phkResult
-    );
-
-DWORD
 SqliteOpenKeyExW(
     IN HANDLE Handle,
     IN HKEY hKey,
@@ -159,17 +149,6 @@ SqliteQueryInfoKeyW(
     OUT OPTIONAL PDWORD pcMaxValueLen,
     OUT OPTIONAL PDWORD pcbSecurityDescriptor,
     OUT OPTIONAL PFILETIME pftLastWriteTime/*implement this later*/
-    );
-
-DWORD
-SqliteSetValueExA(
-    IN HANDLE Handle,
-    IN HKEY hKey,
-    IN OPTIONAL PCSTR pszValueName,
-    IN DWORD Reserved,
-    IN DWORD dwType,
-    IN const BYTE *pData,
-    DWORD cbData
     );
 
 DWORD

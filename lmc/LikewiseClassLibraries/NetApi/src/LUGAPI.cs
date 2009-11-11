@@ -4,7 +4,6 @@ using System.Text;
 using System.Runtime.InteropServices;
 using Likewise.LMC.Utilities;
 
-
 namespace Likewise.LMC.NETAPI
 {
     public class LUGAPI
@@ -170,7 +169,7 @@ namespace Likewise.LMC.NETAPI
 
         #region Net API Helper Functions
 
-        private static int apiNetUserEnum(
+        private static uint apiNetUserEnum(
             string serverName,
             int level,
             int filter,
@@ -181,10 +180,10 @@ namespace Likewise.LMC.NETAPI
             ref int resumeHandle
             )
         {
-            int ret;
+            uint result;
             bufPtr = IntPtr.Zero;
 
-            ret = NetUserEnum(
+            result = (uint)NetUserEnum(
                 serverName,
                 level,
                 filter,
@@ -196,9 +195,9 @@ namespace Likewise.LMC.NETAPI
                 );
 
             //allow non-zero error code if indicates more data must be read.
-            if (ret != (int)ErrorCodes.WIN32Enum.ERROR_MORE_DATA)
+            if (result != (uint)ErrorCodes.WIN32Enum.ERROR_MORE_DATA)
             {
-                return ret;
+                return result;
             }
 
             //HACK: the following code should NOT be necessary.
@@ -216,10 +215,10 @@ namespace Likewise.LMC.NETAPI
                 ref totalEntries
                 );
 
-            return ret;
+            return result;
         }
 
-        private static int apiNetLocalGroupEnum(
+        private static uint apiNetLocalGroupEnum(
             string serverName,
             int level,
             out IntPtr bufPtr,
@@ -228,7 +227,7 @@ namespace Likewise.LMC.NETAPI
             out int totalEntries,
             ref int resumeHandle)
         {
-            int ret = NetLocalGroupEnum(
+            uint result = (uint)NetLocalGroupEnum(
                 serverName,
                 level,
                 out bufPtr,
@@ -245,10 +244,10 @@ namespace Likewise.LMC.NETAPI
                 ref totalEntries
                 );
 
-            return ret;
+            return result;
         }
 
-        private static int apiNetLocalGroupGetMembers(
+        private static uint apiNetLocalGroupGetMembers(
             string serverName,
             string localGroupName,
             int level,
@@ -259,7 +258,7 @@ namespace Likewise.LMC.NETAPI
             IntPtr resumeHandle
             )
         {
-            int ret = NetLocalGroupGetMembers(
+            uint result = (uint)NetLocalGroupGetMembers(
                 serverName,
                 localGroupName,
                 level,
@@ -277,7 +276,7 @@ namespace Likewise.LMC.NETAPI
                 ref totalEntries
                 );
 
-            return ret;
+            return result;
         }
 
         #endregion
@@ -291,7 +290,7 @@ namespace Likewise.LMC.NETAPI
             string sPassword
             )
         {
-            uint result = ERROR_FAILURE;
+            uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
 
             // set up a NETRESOURCE structure
             NETRESOURCE nr = new NETRESOURCE();
@@ -310,12 +309,22 @@ namespace Likewise.LMC.NETAPI
             {
                 if (!NetApiInitCalled)
                 {
-                    NetApiInitCalled = NetApiInit();
+                    result = NetApiInit();
+                    if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                    {
+                        return result;
+                    }
+
+                    NetApiInitCalled = true;
                 }
 
                 Marshal.StructureToPtr(nr, bufptr, false);
 
-                result = (uint)WNetAddConnection2(bufptr, sPassword, sUsername, 0);
+                result = (uint)WNetAddConnection2(
+                    bufptr,
+                    sPassword,
+                    sUsername,
+                    0);
 
                 // another session is preventing us from connecting... close it and
                 // retry
@@ -323,12 +332,17 @@ namespace Likewise.LMC.NETAPI
                 {
                     if (NetCancelConnection(sServer) == 0)
                     {
-                        result = (uint)WNetAddConnection2(bufptr, sPassword, sUsername, 0);
+                        result = (uint)WNetAddConnection2(
+                            bufptr,
+                            sPassword,
+                            sUsername,
+                            0);
                     }
                 }
             }
             catch (Exception)
             {
+                result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
             }
             finally
             {
@@ -344,19 +358,29 @@ namespace Likewise.LMC.NETAPI
             string sServer
             )
         {
-            uint result = ERROR_FAILURE;
+            uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
 
             try
             {
                 if (!NetApiInitCalled)
                 {
-                    NetApiInitCalled = NetApiInit();
+                    result = NetApiInit();
+                    if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                    {
+                        return result;
+                    }
+
+                    NetApiInitCalled = true;
                 }
 
-                result = (uint)WNetCancelConnection2(@"\\" + sServer + @"\IPC$", 1, true);
+                result = (uint)WNetCancelConnection2(
+                    @"\\" + sServer + @"\IPC$",
+                    1,
+                    true);
             }
             catch (Exception)
             {
+                result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
             }
             finally
             {
@@ -376,7 +400,7 @@ namespace Likewise.LMC.NETAPI
             string description
             )
         {
-            uint result = ERROR_FAILURE;
+            uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
 
             LOCALGROUP_INFO_1 lg1 = new LOCALGROUP_INFO_1();
             lg1.name = groupname;
@@ -390,7 +414,13 @@ namespace Likewise.LMC.NETAPI
             {
                 if (!NetApiInitCalled)
                 {
-                    NetApiInitCalled = NetApiInit();
+                    result = NetApiInit();
+                    if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                    {
+                        return result;
+                    }
+
+                    NetApiInitCalled = true;
                 }
 
                 Marshal.StructureToPtr(lg1, bufptr, false);
@@ -399,7 +429,7 @@ namespace Likewise.LMC.NETAPI
             }
             catch (Exception)
             {
-                result = ERROR_FAILURE;
+                result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
             }
             finally
             {
@@ -421,7 +451,7 @@ namespace Likewise.LMC.NETAPI
             uint flags
             )
         {
-            uint result = ERROR_FAILURE;
+            uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
 
             USER_INFO_1 ui1 = new USER_INFO_1();
             USER_INFO_1011 ui11 = new USER_INFO_1011();
@@ -446,7 +476,13 @@ namespace Likewise.LMC.NETAPI
             {
                 if (!NetApiInitCalled)
                 {
-                    NetApiInitCalled = NetApiInit();
+                    result = NetApiInit();
+                    if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                    {
+                        return result;
+                    }
+
+                    NetApiInitCalled = true;
                 }
 
                 Marshal.StructureToPtr(ui1, bufptr_1, false);
@@ -471,7 +507,7 @@ namespace Likewise.LMC.NETAPI
             }
             catch (Exception)
             {
-                result = ERROR_FAILURE;
+                result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
             }
             finally
             {
@@ -489,7 +525,7 @@ namespace Likewise.LMC.NETAPI
                 }
                 catch (Exception)
                 {
-                    result = ERROR_FAILURE;
+                    result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
                 }
             }
             return result;
@@ -503,7 +539,7 @@ namespace Likewise.LMC.NETAPI
             string password
             )
         {
-            uint result = ERROR_FAILURE;
+            uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
 
             USER_INFO_1003 ui1003 = new USER_INFO_1003();
             ui1003.usri1003_password = password;
@@ -514,7 +550,13 @@ namespace Likewise.LMC.NETAPI
             {
                 if (!NetApiInitCalled)
                 {
-                    NetApiInitCalled = NetApiInit();
+                    result = NetApiInit();
+                    if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                    {
+                        return result;
+                    }
+
+                    NetApiInitCalled = true;
                 }
 
                 Marshal.StructureToPtr(ui1003, bufptr, false);
@@ -522,7 +564,7 @@ namespace Likewise.LMC.NETAPI
             }
             catch (Exception)
             {
-                result = ERROR_FAILURE;
+                result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
             }
             finally
             {
@@ -533,58 +575,65 @@ namespace Likewise.LMC.NETAPI
             return result;
         }
 
-        public static bool
+        public static uint
         NetDeleteUser(
             string servername,
             string username
             )
         {
-            bool result = false;
+            uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
 
             try
             {
                 if (!NetApiInitCalled)
                 {
-                    NetApiInitCalled = NetApiInit();
+                    result = NetApiInit();
+                    if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                    {
+                        return result;
+                    }
+
+                    NetApiInitCalled = true;
                 }
 
-                if (NetUserDel(servername, username) == 0)
-                {
-                    result = true;
-                }
+                result = (uint)NetUserDel(servername, username);
+
             }
             catch (Exception)
             {
-                result = false;
+                result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
             }
 
             return result;
 
         }
 
-        public static bool
+        public static uint
         NetDeleteGroup(
             string servername,
             string username
             )
         {
-            bool result = false;
+            uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
 
             try
             {
                 if (!NetApiInitCalled)
                 {
-                    NetApiInitCalled = NetApiInit();
+                    result = NetApiInit();
+                    if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                    {
+                        return result;
+                    }
+
+                    NetApiInitCalled = true;
                 }
 
-                if (NetLocalGroupDel(servername, username) == 0)
-                {
-                    result = true;
-                }
+                result = (uint)NetLocalGroupDel(servername, username);
             }
             catch (Exception)
             {
-                result = false;
+                result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
             }
 
             return result;
@@ -598,7 +647,7 @@ namespace Likewise.LMC.NETAPI
             out string[] groups
             )
         {
-            uint result = ERROR_FAILURE;
+            uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
             groups = null;
 
             IntPtr bufPtr = new IntPtr(0);
@@ -610,7 +659,13 @@ namespace Likewise.LMC.NETAPI
 
                 if (!NetApiInitCalled)
                 {
-                    NetApiInitCalled = NetApiInit();
+                    result = NetApiInit();
+                    if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                    {
+                        return result;
+                    }
+
+                    NetApiInitCalled = true;
                 }
 
                 result = (uint)NetUserGetLocalGroups(servername,
@@ -637,14 +692,14 @@ namespace Likewise.LMC.NETAPI
                             {
                             }
 
-                            iter = (IntPtr)((int)iter + Marshal.SizeOf(typeof(LOCALGROUP_USERS_INFO_0)));
+                            iter = (IntPtr)((long)iter + Marshal.SizeOf(typeof(LOCALGROUP_USERS_INFO_0)));
                         }
                     }
                 }
             }
             catch (Exception)
             {
-                result = ERROR_FAILURE;
+                result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
             }
             finally
             {
@@ -657,13 +712,15 @@ namespace Likewise.LMC.NETAPI
             return result;
         }
 
-        public static void
+        public static uint
         NetEnumUsers(
             string servername,
             int resumeHandle,
             out LUGEnumStatus enumStatus
             )
         {
+            uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
+
             enumStatus = new LUGEnumStatus();
             enumStatus.initializeToNull();
             enumStatus.type = LUGType.User;
@@ -672,17 +729,22 @@ namespace Likewise.LMC.NETAPI
 
             try
             {
-                int statusCode = 0;
                 int localResumeHandle = resumeHandle;
                 int totalEntries = 0;
                 int entriesRead = 0;
 
                 if (!NetApiInitCalled)
                 {
-                    NetApiInitCalled = NetApiInit();
+                    result = NetApiInit();
+                    if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                    {
+                        return result;
+                    }
+
+                    NetApiInitCalled = true;
                 }
 
-                statusCode = apiNetUserEnum(
+                result = apiNetUserEnum(
                     servername,
                     20,
                     2,
@@ -692,6 +754,11 @@ namespace Likewise.LMC.NETAPI
                     ref totalEntries,
                     ref localResumeHandle
                     );
+
+                if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                {
+                    return result;
+                }
 
                 enumStatus.entriesRead = entriesRead;
                 enumStatus.totalEntries = totalEntries;
@@ -707,7 +774,7 @@ namespace Likewise.LMC.NETAPI
                     for (int i = 0; i < entriesRead; i++)
                     {
                         users[i] = (USER_INFO_20)Marshal.PtrToStructure(iter, typeof(USER_INFO_20));
-                        iter = (IntPtr)((int)iter + Marshal.SizeOf(typeof(USER_INFO_20)));
+                        iter = (IntPtr)((long)iter + Marshal.SizeOf(typeof(USER_INFO_20)));
 
                         string[] userInfo ={"",(users[i].usri20_flags & UF_ACCOUNTDISABLE) != 0 ? DISABLED : "",users[i].usri20_name,
                                 users[i].usri20_full_name,users[i].usri20_comment };
@@ -716,7 +783,7 @@ namespace Likewise.LMC.NETAPI
 
                         enumStatus.entries.Add(userInfo);
                     }
-                    if (statusCode == (int)ErrorCodes.WIN32Enum.ERROR_MORE_DATA)
+                    if (result == (int)ErrorCodes.WIN32Enum.ERROR_MORE_DATA)
                     {
                         enumStatus.moreEntries = true;
                     }
@@ -724,6 +791,7 @@ namespace Likewise.LMC.NETAPI
             }
             catch (Exception)
             {
+                result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
             }
             finally
             {
@@ -733,16 +801,18 @@ namespace Likewise.LMC.NETAPI
                 }
             }
 
-            return;
+            return result;
         }
 
-        public static void
+        public static uint
         NetEnumGroups(
             string servername,
             int resumeHandle,
             out LUGEnumStatus enumStatus
             )
         {
+            uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
+
             enumStatus = new LUGEnumStatus();
             enumStatus.initializeToNull();
             enumStatus.type = LUGType.Group;
@@ -751,18 +821,22 @@ namespace Likewise.LMC.NETAPI
 
             try
             {
-
-                int statusCode = 0;
                 int entriesRead = 0;
                 int totalEntries = 0;
                 int localResumeHandle = resumeHandle;
 
                 if (!NetApiInitCalled)
                 {
-                    NetApiInitCalled = NetApiInit();
+                    result = NetApiInit();
+                    if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                    {
+                        return result;
+                    }
+
+                    NetApiInitCalled = true;
                 }
 
-                statusCode = apiNetLocalGroupEnum(
+                result = apiNetLocalGroupEnum(
                     servername,
                     1,
                     out bufPtr,
@@ -771,6 +845,11 @@ namespace Likewise.LMC.NETAPI
                     out totalEntries,
                     ref localResumeHandle
                     );
+
+                if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                {
+                    return result;
+                }
 
                 enumStatus.entriesRead = entriesRead;
                 enumStatus.totalEntries = totalEntries;
@@ -787,13 +866,13 @@ namespace Likewise.LMC.NETAPI
                     for (int i = 0; i < entriesRead; i++)
                     {
                         group[i] = (LOCALGROUP_INFO_1)Marshal.PtrToStructure(iter, typeof(LOCALGROUP_INFO_1));
-                        iter = (IntPtr)((int)iter + Marshal.SizeOf(typeof(LOCALGROUP_INFO_1)));
+                        iter = (IntPtr)((long)iter + Marshal.SizeOf(typeof(LOCALGROUP_INFO_1)));
 
                         string[] groupInfo ={ "", group[i].name, group[i].comment };
                         enumStatus.entries.Add(groupInfo);
                     }
                 }
-                if (statusCode == (int)ErrorCodes.WIN32Enum.ERROR_MORE_DATA)
+                if (result == (int)ErrorCodes.WIN32Enum.ERROR_MORE_DATA)
                 {
                     enumStatus.moreEntries = true;
                 }
@@ -801,6 +880,7 @@ namespace Likewise.LMC.NETAPI
             }
             catch (Exception)
             {
+                result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
             }
             finally
             {
@@ -809,6 +889,8 @@ namespace Likewise.LMC.NETAPI
                     NetApiBufferFree(bufPtr);
                 }
             }
+
+            return result;
         }
 
         public static uint
@@ -819,7 +901,7 @@ namespace Likewise.LMC.NETAPI
             )
         {
 
-            uint result = ERROR_FAILURE;
+            uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
 
             LOCALGROUP_MEMBERS_INFO_3 lgmi3 = new LOCALGROUP_MEMBERS_INFO_3();
             lgmi3.lgrmi3_domainandname = username;
@@ -829,19 +911,21 @@ namespace Likewise.LMC.NETAPI
             {
                 if (!NetApiInitCalled)
                 {
-                    NetApiInitCalled = NetApiInit();
+                    result = NetApiInit();
+                    if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                    {
+                        return result;
+                    }
+
+                    NetApiInitCalled = true;
                 }
 
                 Marshal.StructureToPtr(lgmi3, bufptr, false);
-                int ret = NetLocalGroupDelMembers(servername, groupname, 3, bufptr, 1);
-                if (ret == 0)
-                {
-                    result = ERROR_SUCCESS;
-                }
+                result = (uint)NetLocalGroupDelMembers(servername, groupname, 3, bufptr, 1);
             }
             catch (Exception)
             {
-                result = ERROR_FAILURE;
+                result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
             }
             finally
             {
@@ -850,7 +934,6 @@ namespace Likewise.LMC.NETAPI
             }
 
             return result;
-
         }
 
 
@@ -863,7 +946,7 @@ namespace Likewise.LMC.NETAPI
         {
             IntPtr bufPtr = IntPtr.Zero;
 
-            uint result = ERROR_FAILURE;
+            uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
 
             userInfo = new LUGInfo();
             userInfo.initializeToNull();
@@ -876,10 +959,21 @@ namespace Likewise.LMC.NETAPI
             {
                 if (!NetApiInitCalled)
                 {
-                    NetApiInitCalled = NetApiInit();
+                    result = NetApiInit();
+                    if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                    {
+                        return result;
+                    }
+
+                    NetApiInitCalled = true;
                 }
 
                 result = (uint)NetUserGetInfo(servername, username, 20, out bufPtr);
+
+                if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                {
+                    return result;
+                }
 
                 USER_INFO_20 userinfo_20 = new USER_INFO_20();
                 userinfo_20 = (USER_INFO_20)Marshal.PtrToStructure(bufPtr, typeof(USER_INFO_20));
@@ -889,7 +983,7 @@ namespace Likewise.LMC.NETAPI
             }
             catch (Exception)
             {
-                result = ERROR_FAILURE;
+                result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
             }
             finally
             {
@@ -902,14 +996,14 @@ namespace Likewise.LMC.NETAPI
         }
 
 
-        public static bool
+        public static uint
         NetRenameUser(
             string servername,
             string oldusername,
             string username
             )
         {
-            bool result = false;
+            uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
 
             USER_INFO_0 usrinfo_0 = new USER_INFO_0();
             usrinfo_0.usri0_name = username;
@@ -921,16 +1015,22 @@ namespace Likewise.LMC.NETAPI
             {
                 if (!NetApiInitCalled)
                 {
-                    NetApiInitCalled = NetApiInit();
+                    result = NetApiInit();
+                    if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                    {
+                        return result;
+                    }
+
+                    NetApiInitCalled = true;
                 }
 
                 Marshal.StructureToPtr(usrinfo_0, bufptr, false);
 
-                result = !Convert.ToBoolean(NetUserSetInfo(servername, oldusername, 0, bufptr, IntPtr.Zero));
+                result = (uint)NetUserSetInfo(servername, oldusername, 0, bufptr, IntPtr.Zero);
             }
             catch (Exception)
             {
-                result = false;
+                result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
             }
             finally
             {
@@ -943,47 +1043,58 @@ namespace Likewise.LMC.NETAPI
         }
 
 
-        public static bool
+        public static uint
         NetRenameGroup(
             string servername,
             string oldgroupname,
             string groupname
             )
         {
-            bool result = false;
+            uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
 
             LOCALGROUP_INFO_0 localgrouinfo_0 = new LOCALGROUP_INFO_0();
             localgrouinfo_0.lgrpi0_name = groupname;
 
             IntPtr bufptr = IntPtr.Zero;
-            bufptr = Marshal.AllocHGlobal(Marshal.SizeOf(localgrouinfo_0));
+            bufptr = Marshal.AllocHGlobal(
+                Marshal.SizeOf(localgrouinfo_0));
 
             try
             {
                 if (!NetApiInitCalled)
                 {
-                    NetApiInitCalled = NetApiInit();
+                    result = NetApiInit();
+                    if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                    {
+                        return result;
+                    }
+
+                    NetApiInitCalled = true;
                 }
 
                 Marshal.StructureToPtr(localgrouinfo_0, bufptr, false);
 
-                if (NetLocalGroupSetInfo(servername, oldgroupname, 0, bufptr, IntPtr.Zero) == 0)
-                {
-                    result = true;
-                }
+                result = (uint)NetLocalGroupSetInfo(
+                    servername,
+                    oldgroupname,
+                    0,
+                    bufptr,
+                    IntPtr.Zero);
             }
             catch (Exception)
             {
-                result = false;
+                result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
             }
             finally
             {
-                Marshal.DestroyStructure(bufptr, localgrouinfo_0.GetType());
+                Marshal.DestroyStructure(
+                    bufptr,
+                    localgrouinfo_0.GetType());
+
                 Marshal.FreeHGlobal(bufptr);
             }
 
             return result;
-
         }
 
 
@@ -994,7 +1105,7 @@ namespace Likewise.LMC.NETAPI
             string fullname
             )
         {
-            uint result = ERROR_FAILURE;
+            uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
 
             USER_INFO_1011 userinfo_1011 = new USER_INFO_1011();
             userinfo_1011.usri1011_full_name = fullname;
@@ -1006,7 +1117,13 @@ namespace Likewise.LMC.NETAPI
             {
                 if (!NetApiInitCalled)
                 {
-                    NetApiInitCalled = NetApiInit();
+                    result = NetApiInit();
+                    if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                    {
+                        return result;
+                    }
+
+                    NetApiInitCalled = true;
                 }
 
                 Marshal.StructureToPtr(userinfo_1011, bufptr1011, false);
@@ -1015,7 +1132,7 @@ namespace Likewise.LMC.NETAPI
             }
             catch (Exception)
             {
-                result = ERROR_FAILURE;
+                result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
             }
             finally
             {
@@ -1034,7 +1151,7 @@ namespace Likewise.LMC.NETAPI
             string description
             )
         {
-            uint result = ERROR_FAILURE;
+            uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
 
             USER_INFO_1007 userinfo_1007 = new USER_INFO_1007();
             userinfo_1007.usri1007_comment = description;
@@ -1048,14 +1165,20 @@ namespace Likewise.LMC.NETAPI
 
                 if (!NetApiInitCalled)
                 {
-                    NetApiInitCalled = NetApiInit();
+                    result = NetApiInit();
+                    if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                    {
+                        return result;
+                    }
+
+                    NetApiInitCalled = true;
                 }
 
                 result = (uint)NetUserSetInfo(servername, username, 1007, bufptr, IntPtr.Zero);
             }
             catch (Exception)
             {
-                result = ERROR_FAILURE;
+                result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
             }
             finally
             {
@@ -1075,7 +1198,7 @@ namespace Likewise.LMC.NETAPI
             uint flags
             )
         {
-            uint result = ERROR_FAILURE;
+            uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
 
             USER_INFO_1008 userinfo_1008 = new USER_INFO_1008();
             userinfo_1008.usri1008_flags = flags;
@@ -1087,7 +1210,13 @@ namespace Likewise.LMC.NETAPI
             {
                 if (!NetApiInitCalled)
                 {
-                    NetApiInitCalled = NetApiInit();
+                    result = NetApiInit();
+                    if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                    {
+                        return result;
+                    }
+
+                    NetApiInitCalled = true;
                 }
 
                 Marshal.StructureToPtr(userinfo_1008, bufptr1008, false);
@@ -1095,7 +1224,7 @@ namespace Likewise.LMC.NETAPI
             }
             catch (Exception)
             {
-                result = ERROR_FAILURE;
+                result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
             }
             finally
             {
@@ -1114,7 +1243,7 @@ namespace Likewise.LMC.NETAPI
             out string [] members
             )
         {
-            uint result = ERROR_FAILURE;
+            uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
 
             members = null;
 
@@ -1129,16 +1258,41 @@ namespace Likewise.LMC.NETAPI
                 int entriesRead = 0;
                 int totalEntries = 0;
 
-                Marshal.StructureToPtr(resumeHandle, resumeHandleStar, false);
-                Marshal.StructureToPtr(bufPtr, bufPtrStar, false);
+                Marshal.StructureToPtr(
+                    resumeHandle,
+                    resumeHandleStar,
+                    false);
+
+                Marshal.StructureToPtr(
+                    bufPtr,
+                    bufPtrStar,
+                    false);
 
                 if (!NetApiInitCalled)
                 {
-                    NetApiInitCalled = NetApiInit();
+                    result = NetApiInit();
+                    if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                    {
+                        return result;
+                    }
+
+                    NetApiInitCalled = true;
                 }
 
-                result = (uint)apiNetLocalGroupGetMembers(servername, groupname, 3, out bufPtr,
-                    MAX_PREFERRED_LENGTH, out entriesRead, out totalEntries, resumeHandleStar);
+                result = (uint)apiNetLocalGroupGetMembers(
+                    servername,
+                    groupname,
+                    3,
+                    out bufPtr,
+                    MAX_PREFERRED_LENGTH,
+                    out entriesRead,
+                    out totalEntries,
+                    resumeHandleStar);
+
+                if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                {
+                    return result;
+                }
 
                 if (entriesRead > 0)
                 {
@@ -1156,13 +1310,13 @@ namespace Likewise.LMC.NETAPI
                         {
                             members[i] = memberStruct.lgrmi3_domainandname;
                         }
-                        iter = (IntPtr)((int)iter + Marshal.SizeOf(typeof(LOCALGROUP_MEMBERS_INFO_3)));
+                        iter = (IntPtr)((long)iter + Marshal.SizeOf(typeof(LOCALGROUP_MEMBERS_INFO_3)));
                     }
                 }
             }
             catch (Exception)
             {
-                result = ERROR_FAILURE;
+                result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
             }
             finally
             {
@@ -1206,7 +1360,7 @@ namespace Likewise.LMC.NETAPI
             out string description
             )
         {
-            uint result = ERROR_FAILURE;
+            uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
 
             description = null;
 
@@ -1215,7 +1369,13 @@ namespace Likewise.LMC.NETAPI
             {
                 if (!NetApiInitCalled)
                 {
-                    NetApiInitCalled = NetApiInit();
+                    result = NetApiInit();
+                    if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                    {
+                        return result;
+                    }
+
+                    NetApiInitCalled = true;
                 }
 
                 result = (uint)NetLocalGroupGetInfo(servername, groupname, 1, out bufPtr);
@@ -1231,7 +1391,7 @@ namespace Likewise.LMC.NETAPI
             }
             catch (Exception)
             {
-                result = ERROR_FAILURE;
+                result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
             }
             finally
             {
@@ -1252,7 +1412,7 @@ namespace Likewise.LMC.NETAPI
             string description
             )
         {
-            uint result = ERROR_FAILURE;
+            uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
 
             LOCALGROUP_INFO_1 groupinfo_1 = new LOCALGROUP_INFO_1();
             groupinfo_1.comment = description;
@@ -1264,7 +1424,13 @@ namespace Likewise.LMC.NETAPI
             {
                 if (!NetApiInitCalled)
                 {
-                    NetApiInitCalled = NetApiInit();
+                    result = NetApiInit();
+                    if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                    {
+                        return result;
+                    }
+
+                    NetApiInitCalled = true;
                 }
 
                 Marshal.StructureToPtr(groupinfo_1, bufptr, false);
@@ -1273,7 +1439,7 @@ namespace Likewise.LMC.NETAPI
             }
             catch (Exception)
             {
-                result = ERROR_FAILURE;
+                result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
             }
             finally
             {
@@ -1293,7 +1459,7 @@ namespace Likewise.LMC.NETAPI
             string username
             )
         {
-            uint result = ERROR_FAILURE;
+            uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
 
             LOCALGROUP_MEMBERS_INFO_3 lgmi3 = new LOCALGROUP_MEMBERS_INFO_3();
             lgmi3.lgrmi3_domainandname = username;
@@ -1303,7 +1469,13 @@ namespace Likewise.LMC.NETAPI
             {
                 if (!NetApiInitCalled)
                 {
-                    NetApiInitCalled = NetApiInit();
+                    result = NetApiInit();
+                    if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                    {
+                        return result;
+                    }
+
+                    NetApiInitCalled = true;
                 }
 
                 Marshal.StructureToPtr(lgmi3, bufptr, false);
@@ -1311,7 +1483,7 @@ namespace Likewise.LMC.NETAPI
             }
             catch (Exception)
             {
-                result = ERROR_FAILURE;
+                result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
             }
             finally
             {
@@ -1322,7 +1494,7 @@ namespace Likewise.LMC.NETAPI
                 }
                 catch (Exception)
                 {
-                    result = ERROR_FAILURE;
+                    result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
                 }
             }
 
@@ -1338,7 +1510,7 @@ namespace Likewise.LMC.NETAPI
             string username
             )
         {
-            uint result = ERROR_FAILURE;
+            uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
 
             LOCALGROUP_MEMBERS_INFO_3 lgmi_3 = new LOCALGROUP_MEMBERS_INFO_3();
             lgmi_3.lgrmi3_domainandname = username;
@@ -1352,14 +1524,20 @@ namespace Likewise.LMC.NETAPI
 
                 if (!NetApiInitCalled)
                 {
-                    NetApiInitCalled = NetApiInit();
+                    result = NetApiInit();
+                    if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                    {
+                        return result;
+                    }
+
+                    NetApiInitCalled = true;
                 }
 
                 result = (uint)NetLocalGroupDelMembers(servername, groupname, 3, bufptr, 1);
             }
             catch (Exception)
             {
-                result = ERROR_FAILURE;
+                result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
             }
             finally
             {
@@ -1459,28 +1637,22 @@ namespace Likewise.LMC.NETAPI
 
         #endregion
 
-        public static bool
+        public static uint
         NetApiInit(
             )
         {
-            bool result = false;
+            uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
 
             try
             {
-                if (Configurations.currentPlatform == LikewiseTargetPlatform.Windows)
+                if (Configurations.currentPlatform != LikewiseTargetPlatform.Windows)
                 {
-                    result = true;
-                }
-                else
-                {
-                    if (NetInitMemory() == 0)
-                    {
-                        result = true;
-                    }
+                    result = (uint)NetInitMemory();
                 }
             }
             catch (Exception)
             {
+                result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
             }
 
             return result;
@@ -1752,11 +1924,6 @@ namespace Likewise.LMC.NETAPI
         public const int NETAPI_MAX_USER_NAME_LENGTH = 20;
         public const int NETAPI_MAX_GROUP_NAME_LENGTH = 256;
         public const int NETAPI_MAX_DOMAIN_NAME_LENGTH = 255;
-
-        // We should convert to using ErrorCodes.WIN32Enum.*value*
-        // values ASAP.  For now, just use these simple error codes.
-        private const int ERROR_SUCCESS = 0;
-        private const int ERROR_FAILURE = 1;
 
         #endregion
     }

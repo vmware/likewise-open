@@ -697,13 +697,15 @@ ntlm_gss_release_cred(
     MinorStatus = NtlmClientFreeCredentialsHandle(
         &pCreds->CredHandle
         );
-    BAIL_ON_LSA_ERROR(MinorStatus);
+    // Ignore this error until all the data is freed. Be careful not to
+    // overwrite MinorStatus.
 
     LW_SAFE_FREE_MEMORY(pCreds->pszUserName);
 
     LW_SAFE_FREE_MEMORY(pCreds);
 
     *pCredHandle = NULL;
+    BAIL_ON_LSA_ERROR(MinorStatus);
 
 cleanup:
     if (pMinorStatus)

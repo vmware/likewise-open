@@ -396,68 +396,6 @@ error:
 }
 
 LWMsgStatus
-RegSrvIpcOpenKeyExA(
-    LWMsgCall* pCall,
-    const LWMsgParams* pIn,
-    LWMsgParams* pOut,
-    void* data
-    )
-{
-    DWORD dwError = 0;
-    PREG_IPC_OPEN_KEYA_EX_REQ pReq = pIn->data;
-    PREG_IPC_OPEN_KEY_EX_RESPONSE pRegResp = NULL;
-    PREG_IPC_ERROR pError = NULL;
-    HKEY hkResult = NULL;
-
-    dwError = RegSrvOpenKeyExA(
-        RegSrvIpcGetSessionData(pCall),
-        pReq->hKey,
-        pReq->pszSubKey,
-        0,
-        pReq->samDesired,
-        &hkResult
-        );
-
-    if (!dwError)
-    {
-        dwError = LwAllocateMemory(sizeof(*pRegResp), OUT_PPVOID(&pRegResp));
-        BAIL_ON_REG_ERROR(dwError);
-
-        pRegResp->hkResult = hkResult;
-        hkResult = NULL;
-
-        dwError = RegSrvIpcRegisterHandle(
-                                      pCall,
-                                      "HKEY",
-                                      (PVOID)pRegResp->hkResult,
-                                      RegSrvIpcCloseHandle);
-        BAIL_ON_REG_ERROR(dwError);
-
-        pOut->tag = REG_R_OPEN_KEYA_EX;
-        pOut->data = pRegResp;
-
-        dwError = RegSrvIpcRetainHandle(pCall, pRegResp->hkResult);
-        BAIL_ON_REG_ERROR(dwError);
-    }
-    else
-    {
-        dwError = RegSrvIpcCreateError(dwError, &pError);
-        BAIL_ON_REG_ERROR(dwError);
-
-        pOut->tag = REG_R_ERROR;
-        pOut->data = pError;
-    }
-
-cleanup:
-    RegSrvIpcCloseHandle((PVOID)hkResult);
-
-    return MAP_REG_ERROR_IPC(dwError);
-
-error:
-    goto cleanup;
-}
-
-LWMsgStatus
 RegSrvIpcOpenKeyExW(
     LWMsgCall* pCall,
     const LWMsgParams* pIn,
@@ -1337,49 +1275,6 @@ RegSrvIpcQueryMultipleValues(
 
 cleanup:
 
-    return MAP_REG_ERROR_IPC(dwError);
-
-error:
-    goto cleanup;
-}
-
-LWMsgStatus
-RegSrvIpcSetValueExA(
-    LWMsgCall* pCall,
-    const LWMsgParams* pIn,
-    LWMsgParams* pOut,
-    void* data
-    )
-{
-    DWORD dwError = 0;
-    PREG_IPC_SET_VALUEA_EX_REQ pReq = pIn->data;
-    PREG_IPC_ERROR pError = NULL;
-
-    dwError = RegSrvSetValueExA(
-        RegSrvIpcGetSessionData(pCall),
-        pReq->hKey,
-        pReq->pszValueName,
-        0,
-        pReq->dwType,
-        pReq->pData,
-        pReq->cbData
-        );
-
-    if (!dwError)
-    {
-        pOut->tag = REG_R_SET_VALUEA_EX;
-        pOut->data = NULL;
-    }
-    else
-    {
-        dwError = RegSrvIpcCreateError(dwError, &pError);
-        BAIL_ON_REG_ERROR(dwError);
-
-        pOut->tag = REG_R_ERROR;
-        pOut->data = pError;
-    }
-
-cleanup:
     return MAP_REG_ERROR_IPC(dwError);
 
 error:

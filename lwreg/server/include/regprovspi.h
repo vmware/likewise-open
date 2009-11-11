@@ -185,17 +185,6 @@ DWORD
 
 typedef
 DWORD
-(*PFNRegSrvOpenKeyExA)(
-    HANDLE Handle,
-    HKEY hKey,
-    PCSTR pszSubKey,
-    DWORD ulOptions,
-    REGSAM samDesired,
-    PHKEY phkResult
-    );
-
-typedef
-DWORD
 (*PFNRegSrvOpenKeyExW)(
     HANDLE Handle,
     HKEY hKey,
@@ -278,18 +267,6 @@ DWORD
 
 typedef
 DWORD
-(*PFNRegSrvSetValueExA)(
-    HANDLE Handle,
-    HKEY hKey,
-    PCSTR pszValueName,
-    DWORD Reserved,
-    DWORD dwType,
-    const BYTE *pData,
-    DWORD cbData
-    );
-
-typedef
-DWORD
 (*PFNRegSrvSetValueExW)(
     HANDLE Handle,
     HKEY hKey,
@@ -314,14 +291,12 @@ typedef struct __REGPROV_PROVIDER_FUNCTION_TABLE
     PFNRegSrvEnumValueW          pfnRegSrvEnumValueW;
     PFNRegSrvGetValueA           pfnRegSrvGetValueA;
     PFNRegSrvGetValueW           pfnRegSrvGetValueW;
-    PFNRegSrvOpenKeyExA          pfnRegSrvOpenKeyExA;
     PFNRegSrvOpenKeyExW          pfnRegSrvOpenKeyExW;
     PFNRegSrvQueryInfoKeyA       pfnRegSrvQueryInfoKeyA;
     PFNRegSrvQueryInfoKeyW       pfnRegSrvQueryInfoKeyW;
     PFNRegSrvQueryMultipleValues pfnRegSrvQueryMultipleValues;
     PFNRegSrvQueryValueExA       pfnRegSrvQueryValueExA;
     PFNRegSrvQueryValueExW       pfnRegSrvQueryValueExW;
-    PFNRegSrvSetValueExA         pfnRegSrvSetValueExA;
     PFNRegSrvSetValueExW         pfnRegSrvSetValueExW;
 } REGPROV_PROVIDER_FUNCTION_TABLE, *PREGPROV_PROVIDER_FUNCTION_TABLE;
 

@@ -182,6 +182,8 @@ ProcessImportedValue(
     HKEY hRootKey = NULL;
     HKEY hSubKey = NULL;
     PSTR pszKeyName = NULL;
+    PBYTE pData = NULL;
+    DWORD cbData = 0;
 
     BAIL_ON_INVALID_HANDLE(hReg);
 
@@ -235,14 +237,21 @@ ProcessImportedValue(
         hKey = hCurrRootKey;
     }
 
+    cbData = pItem->type == REG_SZ ? pItem->valueLen+1 : pItem->valueLen;
+
+    dwError = LwAllocateMemory(cbData, (LW_PVOID*)&pData);
+    BAIL_ON_REG_ERROR(dwError);
+
+    memcpy(pData, (PBYTE)pItem->value, cbData);
+
     dwError = RegSetValueExA(
         hReg,
         hKey,
         pItem->valueName,
         0,
         pItem->type,
-        pItem->value,
-        pItem->valueLen+1);
+        pData,
+        cbData);
     BAIL_ON_REG_ERROR(dwError);
 
     *phRootKey = hRootKey;
@@ -250,6 +259,7 @@ ProcessImportedValue(
 cleanup:
     LW_SAFE_FREE_MEMORY(pSubKey);
     LW_SAFE_FREE_STRING(pszKeyName);
+    LW_SAFE_FREE_MEMORY(pData);
 
     if (hSubKey)
     {

@@ -77,6 +77,30 @@ PvfsFreeAbsoluteSecurityDescriptor(
     );
 
 
+/* From acl_posix.c */
+
+NTSTATUS
+PvfsGetSecurityDescriptorPosix(
+    IN PPVFS_CCB pCcb,
+    IN OUT PSECURITY_DESCRIPTOR_RELATIVE pSecDesc,
+    IN OUT PULONG pSecDescLen
+    );
+
+NTSTATUS
+PvfsGetSecurityDescriptorFilenamePosix(
+    IN PCSTR pszFilename,
+    IN OUT PSECURITY_DESCRIPTOR_RELATIVE pSecDesc,
+    IN OUT PULONG pSecDescLen
+    );
+
+NTSTATUS
+PvfsSetSecurityDescriptorPosix(
+    IN PPVFS_CCB pCcb,
+    IN PSECURITY_DESCRIPTOR_RELATIVE pSecDescRelative,
+    IN ULONG SecDescLen
+    );
+
+
 #ifdef HAVE_EA_SUPPORT
 
 /* From acl_xattr.c */

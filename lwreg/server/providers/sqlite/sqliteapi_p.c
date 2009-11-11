@@ -711,32 +711,34 @@ GetValueAsBytes(
 
         case REG_SZ:
 
+            dwError = LwHexStrToByteArray(
+                           pszValue,
+                           NULL,
+                           &pTempData1,
+                           &cbData1);
+            BAIL_ON_REG_ERROR(dwError);
+
             if (bDoAnsi)
             {
-                if(pData && strlen(pszValue) > *pcbData)
+		dwError = LwWc16sToMbs((PCWSTR)pTempData1, (PSTR*)&pTempData);
+                BAIL_ON_REG_ERROR(dwError);
+
+		if(pData && strlen((PCSTR)pTempData) > *pcbData)
                 {
                     dwError = LW_ERROR_INSUFFICIENT_BUFFER;
                     BAIL_ON_REG_ERROR(dwError);
                 }
                 //value data length needs including NULL-terminator
-                cbData = (strlen(pszValue)+1)*sizeof(*pszValue);
+                cbData = strlen((PCSTR)pTempData)+1;
+
                 if (pData)
                 {
-                    memcpy(pData, pszValue, cbData);
+                    memcpy(pData, pTempData, cbData);
                 }
             }
             else
             {
-                dwError = LwMbsToWc16s(pszValue, &pwcValue);
-                BAIL_ON_REG_ERROR(dwError);
-
-                dwError = LwWc16sLen(pwcValue, (size_t*)&cbData);
-                BAIL_ON_REG_ERROR(dwError);
-
-                //value data length needs including NULL-terminator and get the number of bytes
-                cbData = (cbData+1)*sizeof(*pwcValue);
-
-                if(pData && cbData > *pcbData)
+                if(pData && (DWORD)cbData1 > *pcbData)
                 {
                     dwError = LW_ERROR_INSUFFICIENT_BUFFER;
                     BAIL_ON_REG_ERROR(dwError);
@@ -744,8 +746,10 @@ GetValueAsBytes(
 
                 if (pData)
                 {
-                    memcpy(pData, pwcValue, cbData);
+                    memcpy(pData, pTempData1, cbData1);
                 }
+
+                cbData = cbData1;
             }
 
             break;

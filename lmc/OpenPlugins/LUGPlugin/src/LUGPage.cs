@@ -61,11 +61,11 @@ public partial class LUGPage : StandardPage
         Group
     }
 
-    public delegate void EnumLUG(string serverName, int resumeHandle, out LUGAPI.LUGEnumStatus enumStatus);
+    public delegate uint EnumLUG(string serverName, int resumeHandle, out LUGAPI.LUGEnumStatus enumStatus);
 
-    public delegate bool DeleteLUG(string servername, string username);
+    public delegate uint DeleteLUG(string servername, string username);
 
-    public delegate bool RenameLUG(string servername, string oldname, string newname);
+    public delegate uint RenameLUG(string servername, string oldname, string newname);
 
     private delegate void AddRangeDelegate(ListViewItem[] range);
     private delegate void ComboAddRangeDelegate(string[] range);

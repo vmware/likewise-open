@@ -198,38 +198,6 @@ error:
     return dwError;
 }
 
-DWORD
-RegSrvOpenKeyExA(
-    IN HANDLE Handle,
-    IN HKEY hKey,
-    IN OPTIONAL PCSTR pszSubKey,
-    IN DWORD ulOptions,
-    IN REGSAM samDesired,
-    OUT PHKEY phkResult
-    )
-{
-    DWORD dwError = 0;
-
-    if (!RegSrvCheckAccessRight(Handle, REG_READ))
-    {
-        dwError = LW_ERROR_ACCESS_DENIED;
-        BAIL_ON_REG_ERROR(dwError);
-    }
-
-    dwError = gpRegProvider->pfnRegSrvOpenKeyExA(
-                                 Handle,
-                                 hKey,
-                                 pszSubKey,
-                                 ulOptions,
-                                 samDesired,
-                                 phkResult);
-    BAIL_ON_REG_ERROR(dwError);
-
-
-error:
-    return dwError;
-}
-
 VOID
 RegSrvCloseKey(
     HKEY hKey
@@ -383,40 +351,6 @@ RegSrvEnumKeyExW(
             pcClass,
             pftLastWriteTime);
     BAIL_ON_REG_ERROR(dwError);
-
-error:
-    return dwError;
-}
-
-DWORD
-RegSrvSetValueExA(
-    IN HANDLE Handle,
-    IN HKEY hKey,
-    IN OPTIONAL PCSTR pszValueName,
-    IN DWORD Reserved,
-    IN DWORD dwType,
-    IN const BYTE *pData,
-    DWORD cbData
-    )
-{
-    DWORD dwError = 0;
-
-    if (!RegSrvCheckAccessRight(Handle, REG_WRITE))
-    {
-        dwError = LW_ERROR_ACCESS_DENIED;
-        BAIL_ON_REG_ERROR(dwError);
-    }
-
-    dwError = gpRegProvider->pfnRegSrvSetValueExA(
-            Handle,
-            hKey,
-            pszValueName,
-            Reserved,
-            dwType,
-            pData,
-            cbData);
-    BAIL_ON_REG_ERROR(dwError);
-
 
 error:
     return dwError;

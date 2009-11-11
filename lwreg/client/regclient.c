@@ -579,14 +579,32 @@ RegOpenKeyExA(
     OUT PHKEY phkResult
     )
 {
-    return RegTransactOpenKeyExA(
+    DWORD dwError = 0;
+    PWSTR pwszSubKey = NULL;
+
+    if (pszSubKey)
+    {
+        dwError = LwMbsToWc16s(pszSubKey,
+                               &pwszSubKey);
+        BAIL_ON_REG_ERROR(dwError);
+    }
+
+	dwError = RegTransactOpenKeyExW(
         hRegConnection,
         hKey,
-        pszSubKey,
+        pwszSubKey,
         ulOptions,
         samDesired,
-        phkResult
-        );
+        phkResult);
+	BAIL_ON_REG_ERROR(dwError);
+
+cleanup:
+    LW_SAFE_FREE_MEMORY(pwszSubKey);
+
+    return dwError;
+
+error:
+    goto cleanup;
 }
 
 REG_API
@@ -759,15 +777,59 @@ RegSetValueExA(
     IN DWORD cbData
     )
 {
-    return RegTransactSetValueExA(
-        hRegConnection,
-        hKey,
-        pszValueName,
-        Reserved,
-        dwType,
-        pData,
-        cbData
-        );
+    DWORD dwError = 0;
+    PWSTR pwszValueName = NULL;
+    PBYTE   pOutData = NULL;
+    DWORD   cbOutDataLen = 0;
+    BOOLEAN bIsStrType = FALSE;
+
+    if (pszValueName)
+    {
+        dwError = LwMbsToWc16s(pszValueName,
+                               &pwszValueName);
+        BAIL_ON_REG_ERROR(dwError);
+    }
+
+    if (pData)
+    {
+	if (REG_MULTI_SZ == dwType)
+	{
+		dwError = RegConvertByteStreamA2W((PBYTE)pData,
+				                          cbData,
+				                          &pOutData,
+				                          &cbOutDataLen);
+		BAIL_ON_REG_ERROR(dwError);
+
+		bIsStrType = TRUE;
+	}
+	else if (REG_SZ == dwType)
+	{
+		dwError = LwMbsToWc16s((PCSTR)pData, (PWSTR*)&pOutData);
+		BAIL_ON_REG_ERROR(dwError);
+
+		cbOutDataLen = cbData*sizeof(WCHAR);
+
+		bIsStrType = TRUE;
+	}
+    }
+
+    dwError = RegTransactSetValueExW(
+            hRegConnection,
+            hKey,
+            pwszValueName,
+            Reserved,
+            dwType,
+            bIsStrType ? pOutData : pData,
+            bIsStrType ? cbOutDataLen : cbData);
+    BAIL_ON_REG_ERROR(dwError);
+
+cleanup:
+    LW_SAFE_FREE_MEMORY(pwszValueName);
+    LW_SAFE_FREE_MEMORY(pOutData);
+
+    return dwError;
+error:
+    goto cleanup;
 }
 
 REG_API

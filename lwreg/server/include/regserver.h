@@ -228,16 +228,6 @@ RegSrvCreateKeyEx(
     );
 
 DWORD
-RegSrvOpenKeyExA(
-    IN HANDLE Handle,
-    IN HKEY hKey,
-    IN OPTIONAL PCSTR pszSubKey,
-    IN DWORD ulOptions,
-    IN REGSAM samDesired,
-    OUT PHKEY phkResult
-    );
-
-DWORD
 RegSrvOpenKeyExW(
     IN HANDLE Handle,
     IN HKEY hKey,
@@ -421,17 +411,6 @@ RegSrvQueryValueExW(
     OUT PDWORD pType,
     OUT PBYTE pData,
     IN OUT PDWORD pcbData
-    );
-
-DWORD
-RegSrvSetValueExA(
-    IN HANDLE Handle,
-    IN HKEY hKey,
-    IN OPTIONAL PCSTR pszValueName,
-    IN DWORD Reserved,
-    IN DWORD dwType,
-    IN const BYTE *pData,
-    DWORD cbData
     );
 
 DWORD
