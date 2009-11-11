@@ -173,6 +173,12 @@ PvfsSysChown(
     );
 
 NTSTATUS
+PvfsSysFchmod(
+    PPVFS_CCB pCcb,
+    mode_t Mode
+    );
+
+NTSTATUS
 PvfsSysRename(
     PCSTR pszOldname,
     PCSTR pszNewname

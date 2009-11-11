@@ -299,6 +299,43 @@ error:
 }
 
 
+/***********************************************************************
+ **********************************************************************/
+
+static
+NTSTATUS
+PvfsSecuritySidMapToId(
+    OUT PULONG pId,
+    OUT PBOOLEAN pbIsUser,
+    IN  PSID pSid
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+
+    BAIL_ON_INVALID_PTR(pId, ntError);
+    BAIL_ON_INVALID_PTR(pbIsUser, ntError);
+
+    if (!gpPvfsLwMapSecurityCtx)
+    {
+        ntError = PvfsSecurityInitMapSecurityCtx(&gpPvfsLwMapSecurityCtx);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    ntError = LwMapSecurityGetIdFromSid(
+                  gpPvfsLwMapSecurityCtx,
+                  pbIsUser,
+                  pId,
+                  pSid);
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+
 
 /***********************************************************************
  **********************************************************************/
@@ -306,11 +343,11 @@ error:
 static
 VOID
 PvfsSecurityAccessMapFromPosix(
-    IN PACCESS_MASK pAccess,
-    PPVFS_STAT pStat,
-    mode_t Read,
-    mode_t Write,
-    mode_t Execute
+    IN OUT PACCESS_MASK pAccess,
+    IN     mode_t Mode,
+    IN     mode_t Read,
+    IN     mode_t Write,
+    IN     mode_t Execute
     );
 
 static
@@ -359,10 +396,11 @@ PvfsSecurityAclGetDacl(
     AccessMask = 0;
     PvfsSecurityAccessMapFromPosix(
         &AccessMask,
-        pStat,
+        pStat->s_mode,
         S_IRUSR,
         S_IWUSR,
         S_IXUSR);
+    AccessMask |= WRITE_DAC;
     ntError = RtlAddAccessAllowedAceEx(
                   pDacl,
                   ACL_REVISION,
@@ -374,10 +412,11 @@ PvfsSecurityAclGetDacl(
     AccessMask = 0;
     PvfsSecurityAccessMapFromPosix(
         &AccessMask,
-        pStat,
+        pStat->s_mode,
         S_IRGRP,
         S_IWGRP,
         S_IXGRP);
+    AccessMask |= (pStat->s_mode & S_ISGID) ? WRITE_DAC : 0;
     ntError = RtlAddAccessAllowedAceEx(
                   pDacl,
                   ACL_REVISION,
@@ -389,7 +428,7 @@ PvfsSecurityAclGetDacl(
     AccessMask = 0;
     PvfsSecurityAccessMapFromPosix(
         &AccessMask,
-        pStat,
+        pStat->s_mode,
         S_IROTH,
         S_IWOTH,
         S_IXOTH);
@@ -426,26 +465,26 @@ error:
 static
 VOID
 PvfsSecurityAccessMapFromPosix(
-    IN PACCESS_MASK pAccess,
-    PPVFS_STAT pStat,
-    mode_t Read,
-    mode_t Write,
-    mode_t Execute
+    IN OUT PACCESS_MASK pAccess,
+    IN     mode_t Mode,
+    IN     mode_t Read,
+    IN     mode_t Write,
+    IN     mode_t Execute
     )
 {
-    ACCESS_MASK Access = 0;
+    ACCESS_MASK Access = *pAccess;
 
-    if (pStat->s_mode & Read)
+    if (Mode & Read)
     {
         Access |= FILE_GENERIC_READ;
     }
 
-    if (pStat->s_mode & Write)
+    if (Mode & Write)
     {
         Access |= (FILE_GENERIC_WRITE|DELETE);
     }
 
-    if (pStat->s_mode & Execute)
+    if (Mode & Execute)
     {
         Access |= FILE_GENERIC_EXECUTE;
     }
@@ -455,43 +494,538 @@ PvfsSecurityAccessMapFromPosix(
     return;
 }
 
+/***********************************************************************
+ **********************************************************************/
+
+static
+VOID
+PvfsSecurityAccessMapToPosix(
+    IN OUT mode_t *pMode,
+    IN     ACCESS_MASK Access,
+    IN     mode_t Read,
+    IN     mode_t Write,
+    IN     mode_t Execute
+    )
+{
+    mode_t Mode = *pMode;
+
+    if (Access & FILE_READ_DATA)
+    {
+        Mode |= Read;
+    }
+
+    if (Access & FILE_WRITE_DATA)
+    {
+        Mode |= Write;
+    }
+
+    if (Access & FILE_EXECUTE)
+    {
+        Mode |= Execute;
+    }
+
+    *pMode = Mode;
+
+    return;
+}
+
 
 /***********************************************************************
  **********************************************************************/
 
-#if 0   // FIX ME - Needs to be finished
+static
+NTSTATUS
+PvfsSecurityAclSelfRelativeToAbsoluteSD(
+    PSECURITY_DESCRIPTOR_ABSOLUTE *ppAbsolute,
+    PSECURITY_DESCRIPTOR_RELATIVE pRelative
+    );
 
 static
 NTSTATUS
-PvfsSecurityAclMapToPosix(
-    IN OUT PPVFS_STAT pStat,
-    IN     PSECURITY_DESCRIPTOR_RELATIVE pSecDescRelative,
-    IN     PULONG pSecDescLen
+PvfsSecurityPosixSetOwner(
+    PPVFS_CCB pCcb,
+    PPVFS_STAT pStat,
+    PSECURITY_DESCRIPTOR_ABSOLUTE pSecDesc
     );
+
+static
+NTSTATUS
+PvfsSecurityPosixSetGroup(
+    PPVFS_CCB pCcb,
+    PPVFS_STAT pStat,
+    PSECURITY_DESCRIPTOR_ABSOLUTE pSecDesc
+    );
+
+static
+NTSTATUS
+PvfsSecurityPosixSetDacl(
+    PPVFS_CCB pCcb,
+    PPVFS_STAT pStat,
+    PSECURITY_DESCRIPTOR_ABSOLUTE pSecDesc
+    );
+
+static
+NTSTATUS
+PvfsSecurityPosixSetSacl(
+    PPVFS_CCB pCcb,
+    PPVFS_STAT pStat,
+    PSECURITY_DESCRIPTOR_ABSOLUTE pSecDesc
+    );
+
 
 NTSTATUS
 PvfsSetSecurityDescriptorPosix(
     IN PPVFS_CCB pCcb,
-    IN PSECURITY_DESCRIPTOR_RELATIVE pSecDesc,
+    IN PSECURITY_DESCRIPTOR_RELATIVE pSecDescRelative,
     IN ULONG SecDescLen
     )
 {
-    return STATUS_NOT_IMPLEMENTED;
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PSECURITY_DESCRIPTOR_ABSOLUTE pSecDescAbs = NULL;
+    PVFS_STAT Stat = {0};
+
+    ntError = PvfsSysFstat(pCcb->fd, &Stat);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsSecurityAclSelfRelativeToAbsoluteSD(
+                  &pSecDescAbs,
+                  pSecDescRelative);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* The first two are sanity checks mainly and make no changes */
+
+    ntError = PvfsSecurityPosixSetOwner(
+                  pCcb,
+                  &Stat,
+                  pSecDescAbs);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsSecurityPosixSetSacl(
+                  pCcb,
+                  &Stat,
+                  pSecDescAbs);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* These can actually change the file/directory permissions */
+
+    ntError = PvfsSecurityPosixSetGroup(
+                  pCcb,
+                  &Stat,
+                  pSecDescAbs);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsSecurityPosixSetDacl(
+                  pCcb,
+                  &Stat,
+                  pSecDescAbs);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* Change group - User must be a member of that group */
+
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
 }
 
+
+/***********************************************************************
+ **********************************************************************/
 
 static
 NTSTATUS
-PvfsSecurityAclMapToPosix(
-    IN OUT PPVFS_STAT pStat,
-    IN     PSECURITY_DESCRIPTOR_RELATIVE pSecDescRelative,
-    IN     PULONG pSecDescLen
+PvfsSecurityAclSelfRelativeToAbsoluteSD(
+    PSECURITY_DESCRIPTOR_ABSOLUTE *ppAbsolute,
+    PSECURITY_DESCRIPTOR_RELATIVE pRelative
     )
 {
-    return STATUS_NOT_IMPLEMENTED;
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PSECURITY_DESCRIPTOR_ABSOLUTE pAbsolute = NULL;
+    PSID pOwnerSid = NULL;
+    PSID pGroupSid = NULL;
+    PACL pDacl = NULL;
+    PACL pSacl = NULL;
+    ULONG SecDescAbsSize = 0;
+    ULONG OwnerSize = 0;
+    ULONG GroupSize = 0;
+    ULONG DaclSize = 0;
+    ULONG SaclSize = 0;
+
+    /* Get the necessary sizes */
+
+    ntError = RtlSelfRelativeToAbsoluteSD(
+                 pRelative,
+                 pAbsolute,
+                 &SecDescAbsSize,
+                 pDacl,
+                 &DaclSize,
+                 pSacl,
+                 &SaclSize,
+                 pOwnerSid,
+                 &OwnerSize,
+                 pGroupSid,
+                 &GroupSize);
+    if (ntError != STATUS_BUFFER_TOO_SMALL)
+    {
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    ntError = LW_RTL_ALLOCATE(
+                  &pAbsolute,
+                  VOID,
+                  SECURITY_DESCRIPTOR_ABSOLUTE_MIN_SIZE);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = RtlCreateSecurityDescriptorAbsolute(
+                  pAbsolute,
+                  SECURITY_DESCRIPTOR_REVISION);
+    BAIL_ON_NT_STATUS(ntError);
+
+    if (DaclSize)
+    {
+        ntError = LW_RTL_ALLOCATE(&pDacl, VOID, DaclSize);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    if (SaclSize)
+    {
+        ntError = LW_RTL_ALLOCATE(&pSacl, VOID, SaclSize);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    if (OwnerSize)
+    {
+        ntError = LW_RTL_ALLOCATE(&pOwnerSid, VOID, OwnerSize);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    if (GroupSize)
+    {
+        ntError = LW_RTL_ALLOCATE(&pGroupSid, VOID, GroupSize);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    /* Once more with feeling...This one should succeed. */
+
+    ntError = RtlSelfRelativeToAbsoluteSD(
+                 pRelative,
+                 pAbsolute,
+                 &SecDescAbsSize,
+                 pDacl,
+                 &DaclSize,
+                 pSacl,
+                 &SaclSize,
+                 pOwnerSid,
+                 &OwnerSize,
+                 pGroupSid,
+                 &GroupSize);
+    BAIL_ON_NT_STATUS(ntError);
+
+    *ppAbsolute = pAbsolute;
+    pAbsolute = NULL;
+
+cleanup:
+    return ntError;
+
+error:
+    LW_RTL_FREE(&pOwnerSid);
+    LW_RTL_FREE(&pGroupSid);
+    LW_RTL_FREE(&pDacl);
+    LW_RTL_FREE(&pSacl);
+    LW_RTL_FREE(&pAbsolute);
+
+    goto cleanup;
 }
 
-#endif
+
+/***********************************************************************
+ **********************************************************************/
+
+static
+NTSTATUS
+PvfsSecurityPosixSetOwner(
+    PPVFS_CCB pCcb,
+    PPVFS_STAT pStat,
+    PSECURITY_DESCRIPTOR_ABSOLUTE pSecDesc
+    )
+{
+    NTSTATUS ntError = STATUS_ACCESS_DENIED;
+    PSID pOwner = NULL;
+    BOOLEAN bDefaulted = FALSE;
+    BOOLEAN bIsUserSid = FALSE;
+    ULONG Id = 0;
+
+    BAIL_ON_INVALID_PTR(pSecDesc, ntError);
+
+    ntError = RtlGetOwnerSecurityDescriptor(pSecDesc, &pOwner, &bDefaulted);
+    BAIL_ON_NT_STATUS(ntError);
+
+    if (pOwner)
+    {
+        ntError = PvfsSecuritySidMapToId(&Id, &bIsUserSid, pOwner);
+        BAIL_ON_NT_STATUS(ntError);
+
+        /* Owner SID has to be a user and has to match current owner.
+           I don't support changing owner rights or take ownership
+           permission here */
+
+        if (!bIsUserSid || (Id != pStat->s_uid))
+        {
+            ntError = STATUS_ACCESS_DENIED;
+            BAIL_ON_NT_STATUS(ntError);
+        }
+    }
+
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+
+/***********************************************************************
+ **********************************************************************/
+
+static
+NTSTATUS
+PvfsSecurityPosixSetGroup(
+    PPVFS_CCB pCcb,
+    PPVFS_STAT pStat,
+    PSECURITY_DESCRIPTOR_ABSOLUTE pSecDesc
+    )
+{
+    NTSTATUS ntError = STATUS_ACCESS_DENIED;
+    PSID pGroup = NULL;
+    BOOLEAN bDefaulted = FALSE;
+    BOOLEAN bIsUserSid = FALSE;
+    ULONG Id = 0;
+
+    BAIL_ON_INVALID_PTR(pSecDesc, ntError);
+
+    ntError = RtlGetGroupSecurityDescriptor(pSecDesc, &pGroup, &bDefaulted);
+    BAIL_ON_NT_STATUS(ntError);
+
+    if (pGroup == NULL)
+    {
+        ntError = STATUS_SUCCESS;
+        goto cleanup;
+    }
+
+    ntError = PvfsSecuritySidMapToId(&Id, &bIsUserSid, pGroup);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* Has to be a valid group.
+       TODO - Allow group ownership changes if the user is a member of
+       that group. */
+
+    if (bIsUserSid)
+    {
+        ntError = STATUS_ACCESS_DENIED;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+
+/***********************************************************************
+ **********************************************************************/
+
+static
+NTSTATUS
+PvfsSecurityPosixSetDacl(
+    PPVFS_CCB pCcb,
+    PPVFS_STAT pStat,
+    PSECURITY_DESCRIPTOR_ABSOLUTE pSecDesc
+    )
+{
+    NTSTATUS ntError = STATUS_ACCESS_DENIED;
+    PACL pDacl = NULL;
+    BOOLEAN bPresent = FALSE;
+    PVOID pAce = NULL;
+    ULONG AceIndex = 0;
+    mode_t Mode = 0;
+    UCHAR InheritFlags = (OBJECT_INHERIT_ACE|
+                          CONTAINER_INHERIT_ACE|
+                          INHERIT_ONLY_ACE);
+    BOOLEAN bDefaulted = FALSE;
+    BOOLEAN bIsUserSid = FALSE;
+    ULONG Id = 0;
+    PSID pEveryoneSid = NULL;
+
+    BAIL_ON_INVALID_PTR(pSecDesc, ntError);
+
+    ntError = RtlGetDaclSecurityDescriptor(
+                  pSecDesc,
+                  &bPresent,
+                  &pDacl,
+                  &bDefaulted);
+    BAIL_ON_NT_STATUS(ntError);
+
+    if (!bPresent || !pDacl)
+    {
+        ntError = STATUS_SUCCESS;
+        goto cleanup;
+    }
+
+    /* Set up the Everyone SID so we can check for it in the ACL */
+
+    ntError = RtlAllocateSidFromCString(&pEveryoneSid, "S-1-1-0");
+    BAIL_ON_NT_STATUS(ntError);
+
+    for (ntError = RtlGetAce(pDacl, AceIndex, &pAce);
+         (ntError == STATUS_SUCCESS) && pAce;
+         ntError = RtlGetAce(pDacl, AceIndex++, &pAce))
+    {
+        PACE_HEADER pAceHeader = (PACE_HEADER)pAce;
+        PACCESS_ALLOWED_ACE pAllowedAce = NULL;
+        PSID pSid = NULL;
+
+        if (pAceHeader->AceType != ACCESS_ALLOWED_ACE_TYPE)
+        {
+            ntError = STATUS_ACCESS_DENIED;
+            BAIL_ON_NT_STATUS(ntError);
+        }
+
+        /* Ignore directory inheritance for now */
+
+        if (pAceHeader->AceFlags & InheritFlags)
+        {
+            ntError = STATUS_ACCESS_DENIED;
+            BAIL_ON_NT_STATUS(ntError);
+        }
+
+        pAllowedAce = (PACCESS_ALLOWED_ACE)pAce;
+        pSid = (PSID)&pAllowedAce->SidStart;
+
+        /* First check for "Everyone" */
+
+        if (RtlEqualSid(pSid, pEveryoneSid))
+        {
+            PvfsSecurityAccessMapToPosix(
+                &Mode,
+                pAllowedAce->Mask,
+                S_IROTH,
+                S_IWOTH,
+                S_IXOTH);
+
+            continue;
+        }
+
+        /* Deal with User/Group SIDs */
+
+        ntError = PvfsSecuritySidMapToId(&Id, &bIsUserSid, pSid);
+        BAIL_ON_NT_STATUS(ntError);
+
+        if (bIsUserSid)
+        {
+            if (Id != pStat->s_uid)
+            {
+                ntError = STATUS_INVALID_ACL;
+                BAIL_ON_NT_STATUS(ntError);
+            }
+
+            PvfsSecurityAccessMapToPosix(
+                &Mode,
+                pAllowedAce->Mask,
+                S_IRUSR,
+                S_IWUSR,
+                S_IXUSR);
+        }
+        else
+        {
+            /* Group SID */
+            if (Id != pStat->s_gid)
+            {
+                ntError = STATUS_INVALID_ACL;
+                BAIL_ON_NT_STATUS(ntError);
+            }
+
+            PvfsSecurityAccessMapToPosix(
+                &Mode,
+                pAllowedAce->Mask,
+                S_IRGRP,
+                S_IWGRP,
+                S_IXGRP);
+
+            if (pAllowedAce->Mask & WRITE_DAC)
+            {
+                Mode |= S_ISGID;
+            }
+
+        }
+    }
+
+    if (Mode == 0)
+    {
+        ntError = STATUS_INVALID_ACL;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    ntError = PvfsSysFchmod(pCcb, Mode);
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    LW_RTL_FREE(&pEveryoneSid);
+
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+
+/***********************************************************************
+ **********************************************************************/
+
+static
+NTSTATUS
+PvfsSecurityPosixSetSacl(
+    PPVFS_CCB pCcb,
+    PPVFS_STAT pStat,
+    PSECURITY_DESCRIPTOR_ABSOLUTE pSecDesc
+    )
+{
+    NTSTATUS ntError = STATUS_ACCESS_DENIED;
+    PACL pSacl = NULL;
+    BOOLEAN bPresent = FALSE;
+    BOOLEAN bDefaulted = FALSE;
+
+    BAIL_ON_INVALID_PTR(pSecDesc, ntError);
+
+    ntError = RtlGetSaclSecurityDescriptor(
+                  pSecDesc,
+                  &bPresent,
+                  &pSacl,
+                  &bDefaulted);
+    BAIL_ON_NT_STATUS(ntError);
+
+    if (bPresent || pSacl)
+    {
+        ntError = STATUS_PRIVILEGE_NOT_HELD;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
 
 
 

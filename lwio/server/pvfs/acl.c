@@ -209,10 +209,11 @@ PvfsSetSecurityDescriptorFile(
         ntError = PvfsReallocateMemory((PVOID*)&pSDCur, SDCurLen);
         BAIL_ON_NT_STATUS(ntError);
 
-        ntError = PvfsGetSecurityDescriptorFile(pCcb,
-                                                SecInfoAll,
-                                                pSDCur,
-                                                &SDCurLen);
+        ntError = PvfsGetSecurityDescriptorFile(
+                      pCcb,
+                      SecInfoAll,
+                      pSDCur,
+                      &SDCurLen);
         if (ntError == STATUS_BUFFER_TOO_SMALL) {
             SDCurLen *= 2;
         }
@@ -226,22 +227,27 @@ PvfsSetSecurityDescriptorFile(
     ntError = PvfsAllocateMemory((PVOID*)&pNewSecDesc, NewSecDescLen);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = RtlSetSecurityDescriptorInfo(SecInfo,
-                                           pSecDesc,
-                                           pSDCur,
-                                           pNewSecDesc,
-                                           &NewSecDescLen,
-                                           &gPvfsFileGenericMapping);
+    ntError = RtlSetSecurityDescriptorInfo(
+                  SecInfo,
+                  pSecDesc,
+                  pSDCur,
+                  pNewSecDesc,
+                  &NewSecDescLen,
+                  &gPvfsFileGenericMapping);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Save the combined SD */
 
 #ifdef HAVE_EA_SUPPORT
-    ntError = PvfsSetSecurityDescriptorFileXattr(pCcb,
-                                                 pNewSecDesc,
-                                                 NewSecDescLen);
+    ntError = PvfsSetSecurityDescriptorFileXattr(
+                  pCcb,
+                  pNewSecDesc,
+                  NewSecDescLen);
 #else
-    ntError = STATUS_SUCCESS;
+    ntError = PvfsSetSecurityDescriptorPosix(
+                  pCcb,
+                  pNewSecDesc,
+                  NewSecDescLen);
 #endif
 
     BAIL_ON_NT_STATUS(ntError);

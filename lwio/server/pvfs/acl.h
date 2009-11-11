@@ -93,6 +93,13 @@ PvfsGetSecurityDescriptorFilenamePosix(
     IN OUT PULONG pSecDescLen
     );
 
+NTSTATUS
+PvfsSetSecurityDescriptorPosix(
+    IN PPVFS_CCB pCcb,
+    IN PSECURITY_DESCRIPTOR_RELATIVE pSecDescRelative,
+    IN ULONG SecDescLen
+    );
+
 
 #ifdef HAVE_EA_SUPPORT
 
