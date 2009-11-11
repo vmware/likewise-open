@@ -32,7 +32,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <winerror.h>
+#include <lw/winerror.h>
 #include <dce/dce_error.h>
 #include <wc16str.h>
 
@@ -42,7 +42,7 @@
 #include "TestSrvSvc.h"
 #include "Params.h"
 
-static const char *Win32ErrorToName(NET_API_STATUS err)
+static const char *Win32ErrorToSymbolicName(NET_API_STATUS err)
 {
     static char buf[64];
 

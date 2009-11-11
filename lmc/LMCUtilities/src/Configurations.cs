@@ -108,20 +108,11 @@ namespace Likewise.LMC.Utilities
                 }
             }
 
-            //if (String.IsNullOrEmpty(sLIBRARY_PATH))
-            //{
-            //    if (Directory.Exists(sLIB64_LIBRARY_PATH))
-            //        sLIBRARY_PATH = sLIB64_LIBRARY_PATH;
-            //    else
-            //        sLIBRARY_PATH = sLIB_LIBRARY_PATH;
-            //}
-
             Logger.Log(separator);
 
             verifyLibraryExists("libsrvsvc");
             verifyLibraryExists("libnetapi");
             verifyLibraryExists("libldap");
-            //verifyLibraryExists("liblwmgmtclient");
 
             Logger.Log(separator, Logger.manageLogLevel);
         }

@@ -48,7 +48,7 @@
 #ifndef __LWNET_DEF_H__
 #define __LWNET_DEF_H__
 
-#include <winerror.h>
+#include <lw/winerror.h>
 
 #ifndef WIN32
 #define PATH_SEPARATOR_STR "/"

@@ -209,6 +209,8 @@ cleanup:
 
     LwIoShutdown();
 
+    NtlmClientIpcShutdown();
+
     LSA_LOG_INFO("LSA Service exiting...");
 
     LsaSrvSetProcessExitCode(dwError);

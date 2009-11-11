@@ -48,7 +48,6 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
 
         private ListViewColumnSorter lvwColumnSorter;
         private ServiceManagerPlugin plugin = null;
-        private Hostinfo hn;
         private ServiceInfo serviceInfo = null;
 
         #endregion
@@ -77,23 +76,23 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             bEnableActionMenu = false;
             ShowHeaderPane(true);
 
-            if (ctx != null)
-                hn = ctx as Hostinfo;           
-
             Refresh();
         }
 
         public override void Refresh()
         {
             base.Refresh();
-            hn = plugin.HostInfo;
+
+            if (plugin == null)
+                plugin = pi as ServiceManagerPlugin;
+
             this.lblCaption.Text = plugin.GetPlugInNode().Text;
 
-            if (hn != null && hn.IsConnectionSuccess)
+            if (plugin.IsConnectionSuccess)
             {
                 if (Configurations.currentPlatform == LikewiseTargetPlatform.Windows)
                 {
-                    if (!Do_LogonSCManager(hn))
+                    if (!plugin.Do_LogonSCManager())
                     {
                         Logger.Log("Service Control Manager.Refresh(): Failed to authenticate the specified user");
                         return;
@@ -115,7 +114,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             {
                 if (Configurations.currentPlatform == LikewiseTargetPlatform.Windows)
                 {
-                    Dictionary<string, string[]> services = ServiceManagerWindowsWrapper.EnumManagementServices(hn.hostName, hn.creds.UserName, hn.creds.Password);
+                    Dictionary<string, string[]> services = ServiceManagerWindowsWrapper.EnumManagementServices();
                     if (services != null && services.Count != 0)
                     {
                         foreach (string name in services.Keys)
@@ -221,7 +220,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
                     switch (mi.Text.Trim())
                     {
                         case "&Restart":
-                            ServiceManagerWindowsWrapper.WMIServiceRestart(hn.hostName, hn.creds.UserName, hn.creds.Password, serviceInfo.serviceName);
+                            ServiceManagerWindowsWrapper.WMIServiceRestart(serviceInfo.serviceName);
                             break;
 
                         default:
@@ -271,20 +270,6 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
                     }
                 }
             }
-        }
-
-        public bool Do_LogonSCManager(Hostinfo hn)
-        {
-            int iRet = ServiceManagerWindowsWrapper.ApiOpnSCManager(hn.hostName);
-            if (iRet == 0)
-                return true;
-
-            return false;
-        }
-
-        public void Do_LogonUserHandleClose()
-        {
-
         }
 
         private ServiceInfo GetUnixServiceInfo(string sservicename)
@@ -395,7 +380,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
         {
             string ServiceAction = GetServiceAction(sServiceType);
 
-            if (ServiceManagerWindowsWrapper.InvokeWMIServiceMethod(hn.hostName, hn.creds.UserName, hn.creds.Password, ServiceAction, serviceInfo.serviceName))
+            if (ServiceManagerWindowsWrapper.InvokeWMIServiceMethod(ServiceAction, serviceInfo.serviceName))
             {
                 if (ServiceAction == "StartService" || (ServiceAction == "ResumeService"))
                     lvService.SelectedItems[0].SubItems[2].Text = "Started";
@@ -510,7 +495,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
                         lvitem.Selected = true;
                     }
                     if (lvitem.Tag is string && Configurations.currentPlatform == LikewiseTargetPlatform.Windows)
-                        serviceInfo = ServiceManagerWindowsWrapper.GetServiceStateInfo(hn.hostName, hn.creds.UserName, hn.creds.Password, lvitem.Tag as string);
+                        serviceInfo = ServiceManagerWindowsWrapper.GetServiceStateInfo(lvitem.Tag as string);
                     else
                         serviceInfo = GetUnixServiceInfo(lvitem.SubItems[0].Text.Trim());
 

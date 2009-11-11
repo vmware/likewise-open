@@ -271,7 +271,7 @@ LwRtlpGetCurrentUnixTime(
         if (gettimeofday(&now, NULL) < 0)
         {
             int error = errno;
-            status = LwUnixErrnoToNtStatus(error);
+            status = LwErrnoToNtStatus(error);
             LWIO_ASSERT(status);
             GOTO_CLEANUP_ON_STATUS(status);
         }
@@ -405,13 +405,13 @@ LwRtlInitializeEvent(
     pEvent->Private.Flags = 0;
 
     error = pthread_mutex_init(&pEvent->Private.Mutex, NULL);
-    status = LwUnixErrnoToNtStatus(error);
+    status = LwErrnoToNtStatus(error);
     GOTO_CLEANUP_ON_STATUS(status);
 
     SetFlag(pEvent->Private.Flags, _LW_RTL_EVENT_FLAG_MUTEX_INITIALIZED);
 
     error = pthread_cond_init(&pEvent->Private.Condition, NULL);
-    status = LwUnixErrnoToNtStatus(error);
+    status = LwErrnoToNtStatus(error);
     GOTO_CLEANUP_ON_STATUS(status);
 
     SetFlag(pEvent->Private.Flags, _LW_RTL_EVENT_FLAG_COND_INITIALIZED);
@@ -625,13 +625,13 @@ LwRtlInitializeMutex(
     if (IsRecursive)
     {
         error = pthread_mutexattr_init(&mutexAttr);
-        status = LwUnixErrnoToNtStatus(error);
+        status = LwErrnoToNtStatus(error);
         GOTO_CLEANUP_ON_STATUS(status);
 
         isMutexAttrInitialized = TRUE;
 
         error = pthread_mutexattr_settype(&mutexAttr, PTHREAD_MUTEX_RECURSIVE);
-        status = LwUnixErrnoToNtStatus(error);
+        status = LwErrnoToNtStatus(error);
         GOTO_CLEANUP_ON_STATUS(status);
 
         useMutexAttr = &mutexAttr;
@@ -640,13 +640,13 @@ LwRtlInitializeMutex(
     else
     {
         error = pthread_mutexattr_init(&mutexAttr);
-        status = LwUnixErrnoToNtStatus(error);
+        status = LwErrnoToNtStatus(error);
         GOTO_CLEANUP_ON_STATUS(status);
 
         isMutexAttrInitialized = TRUE;
 
         error = pthread_mutexattr_settype(&mutexAttr, PTHREAD_MUTEX_ERRORCHECK);
-        status = LwUnixErrnoToNtStatus(error);
+        status = LwErrnoToNtStatus(error);
         GOTO_CLEANUP_ON_STATUS(status);
 
         useMutexAttr = &mutexAttr;
@@ -654,7 +654,7 @@ LwRtlInitializeMutex(
 #endif
 
     error = pthread_mutex_init(&pMutex->Private.Mutex, useMutexAttr);
-    status = LwUnixErrnoToNtStatus(error);
+    status = LwErrnoToNtStatus(error);
     GOTO_CLEANUP_ON_STATUS(status);
 
     SetFlag(pMutex->Private.Flags, _LW_RTL_MUTEX_FLAG_INITIALIZED);
@@ -745,7 +745,7 @@ LwRtlInitializeConditionVariable(
     pConditionVariable->Private.Flags = 0;
 
     error = pthread_cond_init(&pConditionVariable->Private.Condition, NULL);
-    status = LwUnixErrnoToNtStatus(error);
+    status = LwErrnoToNtStatus(error);
     GOTO_CLEANUP_ON_STATUS(status);
 
     SetFlag(pConditionVariable->Private.Flags, _LW_RTL_CONDITION_VARIABLE_FLAG_INITIALIZED);
@@ -852,7 +852,7 @@ LwRtlCreateThread(
     GOTO_CLEANUP_ON_STATUS(status);
 
     error = pthread_create(&pThread->Private.Thread, NULL, ThreadRoutine, ThreadContext);
-    status = LwUnixErrnoToNtStatus(error);
+    status = LwErrnoToNtStatus(error);
 
     // cannot fail after here
 
@@ -915,14 +915,14 @@ LwRtlThreadsCreateThreadEx(
         GOTO_CLEANUP_ON_STATUS(status);
 
         error = pthread_attr_setdetachstate(&threadAttr, PTHREAD_CREATE_DETACHED);
-        status = LwUnixErrnoToNtStatus(error);
+        status = LwErrnoToNtStatus(error);
         GOTO_CLEANUP_ON_STATUS(status);
 
         pThreadAttr = &threadAttr;
     }
 
     error = pthread_create(pThread, pThreadAttr, ThreadRoutine, ThreadContext);
-    status = LwUnixErrnoToNtStatus(error);
+    status = LwErrnoToNtStatus(error);
     GOTO_CLEANUP_ON_STATUS(status);
 
     if (bStartDetached)
@@ -987,7 +987,7 @@ LwRtlThreadsCreateOrInitializeMutex(
         error = pthread_mutexattr_init(&mutexAttrStorage);
         if (error)
         {
-            status = LwUnixErrnoToNtStatus(error);
+            status = LwErrnoToNtStatus(error);
             GOTO_CLEANUP_ON_STATUS(status);
         }
 
@@ -999,7 +999,7 @@ LwRtlThreadsCreateOrInitializeMutex(
                 error = pthread_mutexattr_settype(mutexAttr, PTHREAD_MUTEX_RECURSIVE);
                 if (error)
                 {
-                    status = LwUnixErrnoToNtStatus(error);
+                    status = LwErrnoToNtStatus(error);
                     GOTO_CLEANUP_ON_STATUS(status);
                 }
                 GOTO_CLEANUP_ON_STATUS(status);
@@ -1022,7 +1022,7 @@ LwRtlThreadsCreateOrInitializeMutex(
     error = pthread_mutex_init(useMutex, mutexAttr);
     if (error)
     {
-        status = LwUnixErrnoToNtStatus(error);
+        status = LwErrnoToNtStatus(error);
         GOTO_CLEANUP_ON_STATUS(status);
     }
 
@@ -1126,7 +1126,7 @@ LwRtlThreadsCreateCond(
     GOTO_CLEANUP_ON_STATUS(status);
 
     error = pthread_cond_init(pCond, NULL);
-    status = LwUnixErrnoToNtStatus(error);
+    status = LwErrnoToNtStatus(error);
     GOTO_CLEANUP_ON_STATUS(status);
 
 cleanup:

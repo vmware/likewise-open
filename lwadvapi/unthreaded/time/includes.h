@@ -38,7 +38,7 @@
 #include <time.h>
 
 #include <lw/base.h>
-#include <winerror.h>
+#include <lw/winerror.h>
 #include <bail.h>
 #include <lwdef.h>
 #include <lwtime.h>

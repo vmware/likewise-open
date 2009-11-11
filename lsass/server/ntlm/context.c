@@ -810,6 +810,34 @@ error:
     goto cleanup;
 }
 
+VOID
+NtlmCopyStringToSecBuffer(
+    IN PCSTR pszInput,
+    IN DWORD dwFlags,
+    IN PBYTE pBufferStart,
+    IN OUT PBYTE* ppBufferPos,
+    OUT PNTLM_SEC_BUFFER pSec
+    )
+{
+    DWORD dwLen = 0;
+
+    if (dwFlags & NTLM_FLAG_UNICODE)
+    {
+        dwLen = mbstrlen(pszInput) * sizeof(WCHAR);
+        mbstowc16s((WCHAR*)*ppBufferPos, pszInput, dwLen/sizeof(WCHAR));
+    }
+    else
+    {
+        dwLen = strlen(pszInput);
+        memcpy(*ppBufferPos, pszInput, dwLen);
+    }
+
+    pSec->usLength = dwLen;
+    pSec->usMaxLength = dwLen;
+    pSec->dwOffset = *ppBufferPos - pBufferStart;
+    *ppBufferPos += dwLen;
+}
+
 /******************************************************************************/
 DWORD
 NtlmCreateResponseMessage(
@@ -838,7 +866,6 @@ NtlmCreateResponseMessage(
     DWORD dwWorkstationSize = 0;
     CHAR pWorkstation[HOST_NAME_MAX];
     // The following pointers point into pMessage and will not be freed on error
-    PBYTE pTrav = NULL;
     PBYTE pBuffer = NULL;
 
     // sanity checks
@@ -918,15 +945,6 @@ NtlmCreateResponseMessage(
     pMessage->NtResponse.usLength = dwNtMsgSize;
     pMessage->NtResponse.usMaxLength = pMessage->NtResponse.usLength;
 
-    pMessage->AuthTargetName.usLength = dwAuthTrgtNameSize;
-    pMessage->AuthTargetName.usMaxLength = pMessage->AuthTargetName.usLength;
-
-    pMessage->UserName.usLength = dwUserNameSize;
-    pMessage->UserName.usMaxLength = pMessage->UserName.usLength;
-
-    pMessage->Workstation.usLength = dwWorkstationSize;
-    pMessage->Workstation.usMaxLength = pMessage->Workstation.usLength;
-
     pMessage->SessionKey.usLength = 0;
     if (pChlngMsg->NtlmFlags & NTLM_FLAG_KEY_EXCH)
     {
@@ -954,44 +972,24 @@ NtlmCreateResponseMessage(
 
     pBuffer += pMessage->NtResponse.usLength;
 
-    pMessage->AuthTargetName.dwOffset = pBuffer - (PBYTE)pMessage;
-    pTrav = (PBYTE)pDomainName;
-    while (*pTrav)
-    {
-        *pBuffer = *pTrav;
-        pBuffer++;
-        if (pChlngMsg->NtlmFlags & NTLM_FLAG_UNICODE)
-        {
-            pBuffer++;
-        }
-        pTrav++;
-    }
-
-    pMessage->UserName.dwOffset = pBuffer - (PBYTE)pMessage;
-    pTrav = (PBYTE)pUserName;
-    while (*pTrav)
-    {
-        *pBuffer = *pTrav;
-        pBuffer++;
-        if (pChlngMsg->NtlmFlags & NTLM_FLAG_UNICODE)
-        {
-            pBuffer++;
-        }
-        pTrav++;
-    }
-
-    pMessage->Workstation.dwOffset = pBuffer - (PBYTE)pMessage;
-    pTrav = (PBYTE)pWorkstation;
-    while (*pTrav)
-    {
-        *pBuffer = *pTrav;
-        pBuffer++;
-        if (pChlngMsg->NtlmFlags & NTLM_FLAG_UNICODE)
-        {
-            pBuffer++;
-        }
-        pTrav++;
-    }
+    NtlmCopyStringToSecBuffer(
+        pDomainName,
+        pChlngMsg->NtlmFlags,
+        (PBYTE)pMessage,
+        &pBuffer,
+        &pMessage->AuthTargetName);
+    NtlmCopyStringToSecBuffer(
+        pUserName,
+        pChlngMsg->NtlmFlags,
+        (PBYTE)pMessage,
+        &pBuffer,
+        &pMessage->UserName);
+    NtlmCopyStringToSecBuffer(
+        pWorkstation,
+        pChlngMsg->NtlmFlags,
+        (PBYTE)pMessage,
+        &pBuffer,
+        &pMessage->Workstation);
 
     pMessage->SessionKey.usLength = 0;
     pMessage->SessionKey.dwOffset = pBuffer - (PBYTE)pMessage;
@@ -1510,7 +1508,7 @@ NtlmCreateNtlmV2Blob(
 
     // the beginning of the blob will contain the final hash value, so push
     // the blob pointer up by that amount
-    pNtlmBlob = (PNTLM_BLOB)pOriginal + NTLM_HASH_SIZE;
+    pNtlmBlob = (PNTLM_BLOB)((PBYTE)pOriginal + NTLM_HASH_SIZE);
 
     memcpy(
         pNtlmBlob->NtlmBlobSignature,

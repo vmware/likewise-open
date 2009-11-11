@@ -51,9 +51,9 @@
 #include "lsaipc.h"
 #include "lsalist.h"
 #include <lw/ntstatus.h>
+#include <lw/winerror.h>
 #include <lw/security-types.h>
 #include <reg/reg.h>
-#include <winerror-conv.h>
 
 #ifndef LW_ENDIAN_SWAP16
 

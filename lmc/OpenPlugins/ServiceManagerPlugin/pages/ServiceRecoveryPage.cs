@@ -97,7 +97,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
 
             cbFirstfailure.SelectedItem = cbSecondFailure.SelectedItem = cbSubsquentFailure.SelectedItem = sFailureMsgs[0];
 
-            failureActions = ServiceManagerWindowsWrapper.ApiQueryServiceConfig2(_plugin.HostInfo.hostName, serviceName);
+            failureActions = ServiceManagerWindowsWrapper.ApiQueryServiceConfig2(serviceName);
             ServiceManagerApi.SC_ACTION[] actions = new ServiceManagerApi.SC_ACTION[failureActions.cActions];
             int offset = 0;
             for (int i = 0; i < failureActions.cActions; i++)
@@ -246,7 +246,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
 
         private void btnComputerOptions_Click(object sender, EventArgs e)
         {
-            ServicesComputerOptionsPage CompOptions = new ServicesComputerOptionsPage(_plugin.HostInfo.hostName, serviceName);
+            ServicesComputerOptionsPage CompOptions = new ServicesComputerOptionsPage(serviceName);
             CompOptions.sRestartMunites = failureActions.dwResetPeriod;
             CompOptions.sRebootMsg = failureActions.lpRebootMsg;
             if (CompOptions.ShowDialog(this) == DialogResult.OK)
@@ -302,7 +302,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             }
 
             if (ServiceManagerWindowsWrapper.ApiChangeServiceConfig2(
-                            _plugin.HostInfo.hostName, serviceName, failureActionUpdate))
+                                            serviceName, failureActionUpdate))
             {
                 Logger.Log("ServiceRecoveryPage:OnApply():ApiChangeServiceConfig2()");
                 return false;

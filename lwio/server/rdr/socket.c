@@ -466,7 +466,7 @@ SMBSocketSend(
 
     if (writtenLen < 0)
     {
-        ntStatus = LwUnixErrnoToNtStatus(errno);
+        ntStatus = LwErrnoToNtStatus(errno);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -595,7 +595,7 @@ SMBSocketReaderMain(
         ret = select(fd + 1, &fdset, NULL, &fdset, NULL);
         if (ret == -1)
         {
-            ntStatus = UnixErrnoToNtStatus(errno);
+            ntStatus = ErrnoToNtStatus(errno);
         }
         else if (ret != 1)
         {
@@ -862,7 +862,7 @@ SMBSocketConnect(
                 continue;
             }
 #endif
-            ntStatus = UnixErrnoToNtStatus(errno);
+            ntStatus = ErrnoToNtStatus(errno);
             BAIL_ON_NT_STATUS(ntStatus);
         }
         else
@@ -879,7 +879,7 @@ SMBSocketConnect(
 
     if (fcntl(fd, F_SETFL, O_NONBLOCK) < 0)
     {
-        ntStatus = UnixErrnoToNtStatus(errno);
+        ntStatus = ErrnoToNtStatus(errno);
     }
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -888,7 +888,7 @@ SMBSocketConnect(
 
     if (connect(fd, pCursor->ai_addr, pCursor->ai_addrlen) && errno != EINPROGRESS)
     {
-        ntStatus = UnixErrnoToNtStatus(errno);
+        ntStatus = ErrnoToNtStatus(errno);
     }
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -899,7 +899,7 @@ SMBSocketConnect(
     }
     else if (ret == -1)
     {
-        ntStatus = UnixErrnoToNtStatus(errno);
+        ntStatus = ErrnoToNtStatus(errno);
     }
     else if (ret != 1)
     {
@@ -972,7 +972,7 @@ SMBSocketRead(
         }
         else if (ret == -1)
         {
-            ntStatus = UnixErrnoToNtStatus(errno);
+            ntStatus = ErrnoToNtStatus(errno);
         }
         else if (ret != 1)
         {
@@ -983,7 +983,7 @@ SMBSocketRead(
         nRead = read(pSocket->fd, buffer + totalRead, len - totalRead);
         if(nRead < 0)
         {
-            ntStatus = UnixErrnoToNtStatus(errno);
+            ntStatus = ErrnoToNtStatus(errno);
         }
         else if (nRead == 0)
         {

@@ -755,16 +755,16 @@ SqliteSetValueExInternal(
     DWORD cbData
     )
 {
-    DWORD dwError = 0;
+    DWORD   dwError = 0;
     PREG_KEY_CONTEXT pKey = (PREG_KEY_CONTEXT)hKey;
-    PSTR pszValueName = NULL;
-    PSTR pszValue = NULL;
-    PWSTR pwcValue = NULL;
-    DWORD dwValue = 0;
+    PSTR    pszValueName = NULL;
+    PSTR    pszValue = NULL;
+    PWSTR   pwcValue = NULL;
+    DWORD   dwValue = 0;
     BOOLEAN bIsWrongType = TRUE;
-    PSTR* ppszOutMultiSz = NULL;
-    PBYTE pOutData = NULL;
-    SSIZE_T cOutDataLen = 0;
+    PWSTR*  ppwszOutMultiSz = NULL;
+    PBYTE   pOutData = NULL;
+    DWORD   cOutDataLen = 0;
 
     BAIL_ON_INVALID_KEY(pKey);
 
@@ -796,30 +796,26 @@ SqliteSetValueExInternal(
 
             break;
 
-        // Internally store reg_multi_sz as ansi
         case REG_MULTI_SZ:
             if (bDoAnsi)
             {
-                dwError = LwByteArrayToHexStr((UCHAR*)pData,
-                                              cbData,
-                                              &pszValue);
+                dwError = RegConvertByteStreamA2W(
+                                (const PBYTE)pData,
+                                cbData,
+                                &pOutData,
+                                &cOutDataLen);
+                BAIL_ON_REG_ERROR(dwError);
+
+                dwError = LwByteArrayToHexStr(
+                                pOutData,
+                                cOutDataLen,
+                                &pszValue);
                 BAIL_ON_REG_ERROR(dwError);
             }
             else
             {
-                dwError = RegByteArrayToMultiStrsW((UCHAR*)pData,
-                                                   cbData,
-                                                   &ppszOutMultiSz);
-                BAIL_ON_REG_ERROR(dwError);
-
-                dwError = RegMultiStrsToByteArrayA(
-                                            ppszOutMultiSz,
-                                            &pOutData,
-                                            &cOutDataLen);
-                BAIL_ON_REG_ERROR(dwError);
-
-                dwError = LwByteArrayToHexStr((UCHAR*)pOutData,
-                                              cOutDataLen,
+                dwError = LwByteArrayToHexStr((PBYTE)pData,
+                                              cbData,
                                               &pszValue);
                 BAIL_ON_REG_ERROR(dwError);
             }
@@ -901,7 +897,10 @@ cleanup:
     LW_SAFE_FREE_STRING(pszValue);
     LW_SAFE_FREE_MEMORY(pwcValue);
     LW_SAFE_FREE_MEMORY(pOutData);
-    RegMultiStrsFree(ppszOutMultiSz);
+    if (ppwszOutMultiSz)
+    {
+        RegFreeMultiStrsW(ppwszOutMultiSz);
+    }
 
     return dwError;
 

@@ -112,7 +112,7 @@
 #endif
 
 #include <uuid/uuid.h>
-#include <winerror-conv.h>
+#include <lw/winerror.h>
 
 /*
 local variables:

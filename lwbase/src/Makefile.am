@@ -5,6 +5,7 @@ AM_LDFLAGS = $(LWBASE_LDFLAGS)
 lib_LTLIBRARIES = liblwbase_nothr.la liblwbase.la
 
 liblwbase_nothr_la_SOURCES = \
+	error-conv.c \
 	errno.c \
 	ntstatus.c \
 	dscache.c \

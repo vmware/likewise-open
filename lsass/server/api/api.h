@@ -53,7 +53,7 @@
 
 #include <dce/rpc.h>
 #include <dce/dcethread.h>
-#include <winerror.h>
+#include <lw/winerror.h>
 #include <lw/ntstatus.h>
 #include <lw/base.h>
 #include <reg/reg.h>

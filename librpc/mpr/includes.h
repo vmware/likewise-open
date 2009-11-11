@@ -42,8 +42,7 @@
 #include <wc16str.h>
 #include <wc16printf.h>
 #include <lw/ntstatus.h>
-#include <winerror.h>
-#include <winerror-conv.h>
+#include <lw/winerror.h>
 #include <lwstr.h>
 #include <lwmem.h>
 #include <lwio/lwio.h>

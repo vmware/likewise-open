@@ -313,6 +313,15 @@ NtlmCreateNegotiateMessage(
     OUT PNTLM_NEGOTIATE_MESSAGE *ppNegMsg
     );
 
+VOID
+NtlmCopyStringToSecBuffer(
+    IN PCSTR pszInput,
+    IN DWORD dwFlags,
+    IN PBYTE pBufferStart,
+    IN OUT PBYTE* ppBufferPos,
+    OUT PNTLM_SEC_BUFFER pSec
+    );
+
 DWORD
 NtlmCreateChallengeMessage(
     IN const NTLM_NEGOTIATE_MESSAGE* pNegMsg,

@@ -54,7 +54,6 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
         private ListViewColumnSorter lvwColumnSorter;
         private RegistryViewerPlugin.NodeType nodeType;
         private RegistryViewerPlugin plugin;
-        private IntPtr phToken = IntPtr.Zero;
 
         //Set columns to Listview as per the node type
         private int numColumns = 0;
@@ -95,16 +94,11 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
 
         public override void SetPlugInInfo(IPlugInContainer container, IPlugIn pi, LACTreeNode treeNode, LWTreeView lmctreeview, CServerControl sc)
         {
-            Hostinfo hn;
-            if (ctx != null)
-                hn = ctx as Hostinfo;         
-
             base.SetPlugInInfo(container, pi, treeNode, lmctreeview, sc);
             bEnableActionMenu = false;
             ShowHeaderPane(true);
 
             plugin = pi as RegistryViewerPlugin;
-            hn = plugin.HostInfo;
 
             SetListviewColumns();
 
@@ -114,18 +108,16 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
         public override void Refresh()
         {
             base.Refresh();
-
-            Hostinfo hn = ctx as Hostinfo;
             HKEY hKey = HKEY.HEKY_CURRENT_USER;
             IntPtr pRootKey = IntPtr.Zero;
             RegistryKey sSubKey = null;
             RegistryEnumKeyInfo KeyInfo = null;
 
-            if (hn != null && hn.IsConnectionSuccess)
+            if (plugin.IsConnectionSuccess)
             {
                 if (Configurations.currentPlatform == LikewiseTargetPlatform.Windows)
                 {
-                    if (!Do_LogonUserSet(hn))
+                    if (!plugin.Do_LogonUserSet())
                     {
                         Logger.Log("RegistryEditorPage.Refresh(): Failed to authenticate the specified user");
                         return;
@@ -151,7 +143,6 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                     plugin.RegRootKeySelected = treeNode.Text.Trim();
                     RegistryInteropWrapperWindows.Win32RegOpenRemoteBaseKey(
                                                         hKey,
-                                                        hn.hostName,
                                                         out sSubKey);
                     break;
 
@@ -160,7 +151,6 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                     hKey = HKEY.HEKY_CURRENT_USER;
                     plugin.RegRootKeySelected = treeNode.Text.Trim();
                     RegistryInteropWrapperWindows.Win32RegOpenRemoteBaseKey(hKey,
-                                                        hn.hostName,
                                                         out sSubKey);
                     break;
 
@@ -169,7 +159,6 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                     hKey = HKEY.HKEY_LOCAL_MACHINE;
                     plugin.RegRootKeySelected = treeNode.Text.Trim();
                     RegistryInteropWrapperWindows.Win32RegOpenRemoteBaseKey(hKey,
-                                                        hn.hostName,
                                                         out sSubKey);
                     break;
 
@@ -178,7 +167,6 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                     hKey = HKEY.HKEY_USERS;
                     plugin.RegRootKeySelected = treeNode.Text.Trim();
                     RegistryInteropWrapperWindows.Win32RegOpenRemoteBaseKey(hKey,
-                                                        hn.hostName,
                                                         out sSubKey);
                     break;
 
@@ -187,7 +175,6 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                     hKey = HKEY.HKEY_CLASSES_ROOT;
                     plugin.RegRootKeySelected = treeNode.Text.Trim();
                     RegistryInteropWrapperWindows.Win32RegOpenRemoteBaseKey(hKey,
-                                                        hn.hostName,
                                                         out sSubKey);
                     break;
 
@@ -268,7 +255,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             if (Configurations.currentPlatform == LikewiseTargetPlatform.Windows)
             {
                 EnumChildNodes(sSubKey, hKey);
-                Do_LogonUserHandleClose();
+                plugin.Do_LogonUserHandleClose();
             }
             else
             {
@@ -321,7 +308,13 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
         {
             Do_CloseRegKeyHandles(treeNode);            
             treeNode.IsModified = false;
-            treeNode.Nodes.Clear();
+
+            Dictionary<string, LACTreeNode> nodesAdded = new Dictionary<string, LACTreeNode>();
+            Dictionary<string, LACTreeNode> nodesToAdd = new Dictionary<string, LACTreeNode>();
+
+            foreach (LACTreeNode n in treeNode.Nodes)
+                nodesAdded.Add(n.Text.Trim(), n);
+
 
             if (keys != null && keys.Count != 0)
             {
@@ -337,7 +330,8 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                                       plugin);
                     node.sc = treeNode.sc;
                     node.Tag = key;
-                    treeNode.Nodes.Add(node);
+                    if (!nodesAdded.ContainsKey(key.sKeyname.Trim()))
+                        nodesToAdd.Add(key.sKeyname.Trim(), node);
                 }
             }
 
@@ -368,53 +362,69 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                 }
             }
 
+            LACTreeNode[] nodestoAddedRe = new LACTreeNode[nodesToAdd.Count];
+            int idx = 0;
+            if (nodesToAdd != null && nodesToAdd.Count != 0)
+            {
+                foreach (string key in nodesToAdd.Keys)
+                {
+                    nodestoAddedRe[idx] = nodesToAdd[key];
+                    idx++;
+                }
+            }
+
+            if (nodestoAddedRe != null && nodestoAddedRe.Length != 0)
+                treeNode.Nodes.AddRange(nodestoAddedRe);
+
             lvRegistryPage.Sorting = SortOrder.None;
         }
 
         private void EnumChildNodes(RegistryKey sSubKey, HKEY hKey)
         {
             Array sSubKeys = null;
-            Array sValues = null;           
+            Array sValues = null;
+            Dictionary<string, LACTreeNode> nodesAdded = new Dictionary<string, LACTreeNode>();
+            Dictionary<string, LACTreeNode> nodesToAdd = new Dictionary<string, LACTreeNode>();
+
+            foreach (LACTreeNode n in treeNode.Nodes)
+                nodesAdded.Add(n.Text.Trim(), n);
 
             if (Configurations.currentPlatform == LikewiseTargetPlatform.Windows)
             {
                 if (sSubKey != null)
                 {
-                    treeNode.Nodes.Clear();
-
                     if (nodeType != RegistryViewerPlugin.NodeType.HKEY_SUBKEY)
                     {
                         SubKeyInfo subKeyInfo = new SubKeyInfo();
                         subKeyInfo.sKey = sSubKey.Name;
                         subKeyInfo.hKey = hKey;
-                        subKeyInfo.sSubKey = sSubKey;                        
+                        subKeyInfo.sSubKey = sSubKey;
                         treeNode.Tag = subKeyInfo;
-                    }                    
-                    if (treeNode.IsModified || treeNode.Nodes.Count == 0)
+                    }
+                    RegistryInteropWrapperWindows.Win32RegSubKeyList(sSubKey, out sSubKeys);
+
+                    if (sSubKeys != null && sSubKeys.Length != 0)
                     {
-                        RegistryInteropWrapperWindows.Win32RegSubKeyList(sSubKey, out sSubKeys);
-
-                        if (sSubKeys != null && sSubKeys.Length != 0)
+                        foreach (string key in sSubKeys)
                         {
-                            foreach (string key in sSubKeys)
-                            {
-                                RegistryKey subKey = RegistryInteropWrapperWindows.Win32RegOpenRemoteSubKey(sSubKey, key);
+                            RegistryKey subKey = RegistryInteropWrapperWindows.Win32RegOpenRemoteSubKey(sSubKey, key);
 
-                                Icon ic = Properties.Resources.Reports;
-                                LACTreeNode node = Manage.CreateIconNode(key,
-                                                  ic,
-                                                  typeof(RegistryViewerKeyPage),
-                                                  plugin);
-                                node.sc = plugin.GetPlugInNode().sc;
+                            Icon ic = Properties.Resources.Reports;
+                            LACTreeNode node = Manage.CreateIconNode(key,
+                                              ic,
+                                              typeof(RegistryViewerKeyPage),
+                                              plugin);
+                            node.sc = plugin.GetPlugInNode().sc;
 
-                                SubKeyInfo subKeyInfo = new SubKeyInfo();
-                                subKeyInfo.sKey = key;
-                                subKeyInfo.hKey = hKey;
-                                subKeyInfo.sSubKey = subKey;                               
+                            SubKeyInfo subKeyInfo = new SubKeyInfo();
+                            subKeyInfo.sKey = key;
+                            subKeyInfo.hKey = hKey;
+                            subKeyInfo.sSubKey = subKey;
 
-                                node.Tag = subKeyInfo;
-                                treeNode.Nodes.Add(node);
-                            }
+                            node.Tag = subKeyInfo;
+
+                            if (!nodesAdded.ContainsKey(key.Trim()))
+                                nodesToAdd.Add(key, node);
                         }
                     }
 
@@ -440,13 +450,13 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                             RegistryInteropWrapperWindows.Win32RegValueKind(sSubKey, value, valueInfo);
                             valueInfo.hKey = hKey;
                             valueInfo.sParentKey = sSubKey;
-                            valueInfo.sValue = value;                          
+                            valueInfo.sValue = value;
                             valueInfo.IsDefaultValue = false;
 
                             if (String.IsNullOrEmpty(value))
                             {
                                 valueInfo.IsDefaultValue = true;
-                                lvItem = new ListViewItem(new string[] { "(Default)", GetRegValueStringType(valueInfo.RegDataType), valueInfo.sData });                               
+                                lvItem = new ListViewItem(new string[] { "(Default)", GetRegValueStringType(valueInfo.RegDataType), valueInfo.sData });
                                 lvRegistryPage.Items.RemoveAt(0);
                             }
                             else
@@ -458,32 +468,20 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                     }
                 }
             }
-        }
 
-        public bool Do_LogonUserSet(Hostinfo hn)
-        {
-            bool bIsSuccess = false;            
-            phToken = IntPtr.Zero;
-
-            if (hn != null)
+            LACTreeNode[] nodestoAddedRe = new LACTreeNode[nodesToAdd.Count];
+            int idx = 0;
+            if (nodesToAdd != null && nodesToAdd.Count != 0)
             {
-                bIsSuccess = RegistryInteropWrapperWindows.RegLogonUser(
-                                        out phToken,
-                                        hn.creds.UserName,
-                                        hn.domainName,
-                                        hn.creds.Password);
+                foreach (string key in nodesToAdd.Keys) {
+                    nodestoAddedRe[idx] = nodesToAdd[key];
+                    idx++;
+                }
             }
 
-            return bIsSuccess;
+            if (nodestoAddedRe != null && nodestoAddedRe.Length != 0)
+                treeNode.Nodes.AddRange(nodestoAddedRe);
         }
-
-        public void Do_LogonUserHandleClose()
-        {
-            if (phToken != null && phToken != IntPtr.Zero)
-            {
-                RegistryInteropWrapperWindows.HandleClose(phToken);
-            }
-        }     
 
         private void AutoResize()
         {
@@ -521,12 +519,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             {
                 lvRegistryPage.Columns.Clear();
             }
-
-            Hostinfo hn = ctx as Hostinfo;
-            if (hn != null && (!String.IsNullOrEmpty(hn.hostName)))
-            {
-                this.lblCaption.Text = string.Concat(this.lblCaption.Text, " on ", hn.hostName);
-            }
+            this.lblCaption.Text = string.Concat(this.lblCaption.Text, " on ", System.Environment.MachineName);
 
             switch (nodeType)
             {
@@ -665,7 +658,8 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                 {
                     //Refresh
                     case "&Refresh":
-                        Do_CloseRegKeyHandles(treeNode);
+                        if (Configurations.currentPlatform != LikewiseTargetPlatform.Windows)
+                            Do_CloseRegKeyHandles(treeNode);
                         treeNode.IsModified = true;
                         treeNode.sc.ShowControl(treeNode);
                         return;
@@ -1299,9 +1293,8 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             {
                 string _fileName = string.Empty;
                 string _fullPath = string.Empty;
-                Hostinfo hn = ctx as Hostinfo;
 
-                if (hn == null || !hn.IsConnectionSuccess)
+                if (plugin.IsConnectionSuccess)
                 {
                     container.ShowMessage(string.Format("Registry plugin has not connected to any machine. " +
                                                         "Please connect to the host and try again"),
@@ -1487,7 +1480,6 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                                             break;
                                     }
                                     RegistryInteropWrapperWindows.Win32RegOpenRemoteBaseKey(hKey,
-                                          hn.hostName,
                                           out sSubKey);
                                 }
                                 else

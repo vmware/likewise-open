@@ -1232,3 +1232,18 @@ NtlmTransferSecBufferToDesc(
                 &desc,
                 bDeepCopy);
 }
+
+VOID
+NtlmClientIpcShutdown()
+{
+    if (gpProtocol)
+    {
+        lwmsg_protocol_delete(gpProtocol);
+        gpProtocol = 0;
+    }
+    if (gpClient)
+    {
+        lwmsg_client_delete(gpClient);
+        gpClient = NULL;
+    }
+}

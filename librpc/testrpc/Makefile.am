@@ -21,8 +21,10 @@ testrpc_CPPFLAGS = \
     $(LWADVAPI_INCLUDES)
 
 testrpc_CFLAGS = -g $(INCLUDES) -D_GNU_SOURCE -DLIBRPC_BUILD $(AM_CFLAGS)
-testrpc_LDFLAGS = $(PSTORE_LDFLAGS) $(KEYTAB_LDFLAGS) -rpath ${libdir}
+testrpc_LDFLAGS = $(LWBASE_LDFLAGS) $(LWADVAPI_LDFLAGS) \
+                  $(PSTORE_LDFLAGS) $(KEYTAB_LDFLAGS) -rpath ${libdir}
 testrpc_LDADD = \
     $(liballoc_builddir)/liballoc.la \
     $(libnetapi_builddir)/libnetapi.la \
-    $(LWBASE_LIBS)
+    $(LWBASE_LIBS) \
+    $(LWADVAPI_LIBS)

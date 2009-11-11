@@ -135,6 +135,9 @@ typedef LW_UINT32          LW_BOOL, *LW_PBOOL;
 typedef LW_UINT16          LW_WORD, *LW_PWORD;
 typedef LW_UINT32          LW_DWORD, *LW_PDWORD;
 
+typedef LW_DWORD LW_WINERROR, *LW_PWINERROR;
+typedef LW_LONG  LW_NTSTATUS, *LW_PNTSTATUS;
+
 #ifdef UNICODE
 typedef LW_WCHAR           LW_TCHAR;
 #else
@@ -286,6 +289,11 @@ typedef LW_PWORD    PWORD;
 typedef LW_DWORD    DWORD;
 typedef LW_PDWORD   PDWORD;
 
+typedef LW_WINERROR  WINERROR;
+typedef LW_PWINERROR PWINERROR;
+typedef LW_NTSTATUS  NTSTATUS;
+typedef LW_PNTSTATUS PNTSTATUS;
+
 typedef LW_TCHAR    TCHAR;
 
 #ifndef TRUE
@@ -423,6 +431,6 @@ typedef LW_PANSI_STRING PANSI_STRING;
 #define RtlIsDecimalDigit(Character) LwRtlIsDecimalDigit(Character)
 #define RtlDecimalDigitValue(Character) LwRtlDecimalDigitValue(Character)
 
-#endif /* LW_STRICT_NAMESPAE */
+#endif /* LW_STRICT_NAMESPACE */
 
 #endif

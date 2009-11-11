@@ -58,7 +58,7 @@
 #include <lwnet.h>
 
 #include <lw/ntstatus.h>
-#include <winerror.h>
+#include <lw/winerror.h>
 
 #include <iodriver.h>
 #include <ioapi.h>

@@ -74,6 +74,7 @@
 #include <lwdef.h>
 #include <lwmem.h>
 #include <lwstr.h>
+#include <wc16str.h>
 
 #include "defines.h"
 #include "structs.h"

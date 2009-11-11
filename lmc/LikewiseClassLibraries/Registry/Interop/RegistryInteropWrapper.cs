@@ -204,7 +204,7 @@ namespace Likewise.LMC.Registry
                 Logger.Log(string.Format("RegistryInteropWrapper.RegOpenKeyExA(hRegConnection={0}, hKey={1} sSubkey={2}),  is called ",
                           hRegConnection.ToInt32().ToString(), hKey.ToInt32().ToString(), sKeyname, Logger.RegistryViewerLoglevel));
 
-                StringBuilder sbKeyname = new StringBuilder(MAX_KEY_LENGTH);
+                StringBuilder sbKeyname = new StringBuilder();
                 sbKeyname.Append(sKeyname);
 
                 iResult = RegistryInterop.RegOpenKeyExA(hRegConnection,

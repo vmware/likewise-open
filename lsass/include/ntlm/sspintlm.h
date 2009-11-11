@@ -394,6 +394,13 @@ NtlmFreeContextBuffer(
     IN PVOID pBuffer
     );
 
+// The NTLM client IPC functions automatically initialize global state once.
+// This function may optionally be called once when the program is about to
+// exit to free the global state. If the state is freed, it will not be
+// reallocated in future NTLM calls.
+VOID
+NtlmClientIpcShutdown();
+
 #endif // __SSPINTLM_H__
 
 /*

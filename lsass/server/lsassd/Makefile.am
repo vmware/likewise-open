@@ -20,12 +20,13 @@ MAIN_LDFLAGS = \
 	@DS_FRAMEWORK_LDFLAGS@
 
 MAIN_LIBS = \
-    @top_builddir@/server/api/liblsaserverapi.la \
-    @top_builddir@/server/ntlm/libntlmserver.la \
+    $(top_builddir)/server/api/liblsaserverapi.la \
+    $(top_builddir)/server/ntlm/libntlmserver.la \
 	$(ADDITIONAL_LIBS) \
-    @SOCKET_LIBS@ \
-    @NETLOGON_LIBS@ \
-    @LWIO_LIBS@
+    $(SOCKET_LIBS) \
+    $(NETLOGON_LIBS) \
+    $(LWIO_LIBS) \
+    $(top_builddir)/client/ntlm/liblsaclient_ntlm.la
 
 if ENABLE_STATIC_PROVIDERS
 if ENABLE_AD

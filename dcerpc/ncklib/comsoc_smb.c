@@ -418,7 +418,7 @@ rpc__smb_socket_create(
     dcethread_mutex_init_throw(&sock->lock, NULL);
     dcethread_cond_init_throw(&sock->event, NULL);
 
-    err = LwNtStatusToUnixErrno(LwIoOpenContextShared(&sock->context));
+    err = LwNtStatusToErrno(LwIoOpenContextShared(&sock->context));
     if (err)
     {
         goto error;
@@ -577,7 +577,7 @@ rpc__smb_socket_construct(
     {
         if (smb_info->creds)
         {
-            serr = NtStatusToUnixErrno(LwIoCopyCreds(smb_info->creds, &smb_sock->info.creds));
+            serr = NtStatusToErrno(LwIoCopyCreds(smb_info->creds, &smb_sock->info.creds));
             if (serr)
             {
                 goto error;
@@ -671,7 +671,7 @@ rpc__smb_socket_connect(
         goto error;
     }
 
-    serr = NtStatusToUnixErrno(
+    serr = NtStatusToErrno(
         LwRtlCStringAllocatePrintf(
             &smbpath,
             "\\rdr\\%s\\IPC$\\%s",
@@ -682,7 +682,7 @@ rpc__smb_socket_connect(
         goto error;
     }
 
-    serr = NtStatusToUnixErrno(
+    serr = NtStatusToErrno(
         LwRtlWC16StringAllocateFromCString(
             &filename.FileName,
             smbpath));
@@ -691,7 +691,7 @@ rpc__smb_socket_connect(
         goto error;
     }
 
-    serr = NtStatusToUnixErrno(
+    serr = NtStatusToErrno(
         NtCtxCreateFile(
             smb->context,                            /* IO context */
             smb->info.creds,                         /* Security token */
@@ -716,7 +716,7 @@ rpc__smb_socket_connect(
         goto error;
     }
 
-    serr = NtStatusToUnixErrno(
+    serr = NtStatusToErrno(
         LwIoCtxGetSessionKey(
             smb->context,
             smb->np,
@@ -841,7 +841,7 @@ rpc__smb_socket_accept(
     memcpy(&npsmb->peeraddr, &smb->localaddr, sizeof(npsmb->peeraddr));
 
     /* Query for client address */
-    serr = NtStatusToUnixErrno(
+    serr = NtStatusToErrno(
         LwIoCtxGetPeerAddress(
             npsmb->context,
             npsmb->np,
@@ -863,7 +863,7 @@ rpc__smb_socket_accept(
         memcpy(addr, &npsmb->peeraddr, sizeof(npsmb->peeraddr));
     }
 
-     serr = NtStatusToUnixErrno(
+     serr = NtStatusToErrno(
         LwIoCtxGetPeerPrincipalName(
             npsmb->context,
             npsmb->np,
@@ -874,7 +874,7 @@ rpc__smb_socket_accept(
     }
 
 
-    serr = NtStatusToUnixErrno(
+    serr = NtStatusToErrno(
         LwIoCtxGetSessionKey(
             npsmb->context,
             npsmb->np,
@@ -943,7 +943,7 @@ rpc__smb_socket_listen_thread(void* data)
         goto error;
     }
 
-    serr = NtStatusToUnixErrno(
+    serr = NtStatusToErrno(
         LwRtlCStringAllocatePrintf(
             &smbpath,
             "\\npfs\\%s",
@@ -953,7 +953,7 @@ rpc__smb_socket_listen_thread(void* data)
         goto error;
     }
 
-    serr = NtStatusToUnixErrno(
+    serr = NtStatusToErrno(
         LwRtlWC16StringAllocateFromCString(
             &filename.FileName,
             smbpath));
@@ -966,7 +966,7 @@ rpc__smb_socket_listen_thread(void* data)
     {
         SMB_SOCKET_UNLOCK(smb);
 
-        serr = NtStatusToUnixErrno(
+        serr = NtStatusToErrno(
             LwNtCtxCreateNamedPipeFile(
                 smb->context,                            /* IO context */
                 NULL,                                    /* Security token */
@@ -994,7 +994,7 @@ rpc__smb_socket_listen_thread(void* data)
             goto error;
         }
 
-        serr = NtStatusToUnixErrno(
+        serr = NtStatusToErrno(
             LwIoCtxConnectNamedPipe(
                 smb->context,
                 smb->np));
@@ -1114,7 +1114,7 @@ rpc__smb_socket_do_send(
 
     do
     {
-        serr = NtStatusToUnixErrno(
+        serr = NtStatusToErrno(
             NtCtxWriteFile(
                 smb->context,                          /* IO context */
                 smb->np,                               /* File handle */
@@ -1190,7 +1190,7 @@ rpc__smb_socket_do_recv(
         }
         else
         {
-            serr = NtStatusToUnixErrno(status);
+            serr = NtStatusToErrno(status);
             bytes_read = io_status.BytesTransferred;
             smb->recvbuffer.end_cursor += bytes_read;
         }
@@ -1594,7 +1594,7 @@ rpc__smb_socket_inq_transport_info(
 
     if (smb->info.creds)
     {
-        serr = NtStatusToUnixErrno(LwIoCopyCreds(smb->info.creds, &smb_info->creds));
+        serr = NtStatusToErrno(LwIoCopyCreds(smb->info.creds, &smb_info->creds));
         if (serr)
         {
             goto error;

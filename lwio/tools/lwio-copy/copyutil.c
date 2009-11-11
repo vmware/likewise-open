@@ -125,7 +125,7 @@ LwioLocalOpenFile(
 
     if ((fd = open(pszFileName, dwMode, dwPerms)) == -1)
     {
-        status = LwUnixErrnoToNtStatus(errno);
+        status = LwErrnoToNtStatus(errno);
         BAIL_ON_NT_STATUS(status);
     }
 
@@ -200,7 +200,7 @@ LwioLocalCreateDirInternal(
         {
             if (mkdir(pszPath, S_IRWXU) != 0)
             {
-                status = LwUnixErrnoToNtStatus(errno);
+                status = LwErrnoToNtStatus(errno);
                 BAIL_ON_NT_STATUS(status);
             }
             bDirCreated = TRUE;
@@ -277,7 +277,7 @@ LwioLocalChangePermissions(
             {
                 continue;
             }
-            status = LwUnixErrnoToNtStatus(errno);
+            status = LwErrnoToNtStatus(errno);
             BAIL_ON_NT_STATUS(status);
         }
         else
@@ -317,7 +317,7 @@ LwioLocalCheckDirExists(
                 *pbDirExists = FALSE;
                 break;
             }
-            status = LwUnixErrnoToNtStatus(errno);
+            status = LwErrnoToNtStatus(errno);
             BAIL_ON_NT_STATUS(status);
         }
 
@@ -345,7 +345,7 @@ LwioLocalRemoveDir(
 
     if ((pDir = opendir(pszPath)) == NULL)
     {
-        status = LwUnixErrnoToNtStatus(errno);
+        status = LwErrnoToNtStatus(errno);
         BAIL_ON_NT_STATUS(status);
     }
 
@@ -362,7 +362,7 @@ LwioLocalRemoveDir(
 
         if (stat(szBuf, &statbuf) < 0)
         {
-            status = LwUnixErrnoToNtStatus(errno);
+            status = LwErrnoToNtStatus(errno);
             BAIL_ON_NT_STATUS(status);
         }
 
@@ -373,7 +373,7 @@ LwioLocalRemoveDir(
 
             if (rmdir(szBuf) < 0)
             {
-                status = LwUnixErrnoToNtStatus(status);
+                status = LwErrnoToNtStatus(status);
                 BAIL_ON_NT_STATUS(status);
             }
         }
@@ -388,7 +388,7 @@ LwioLocalRemoveDir(
     if(closedir(pDir) < 0)
     {
         pDir = NULL;
-        status = LwUnixErrnoToNtStatus(status);
+        status = LwErrnoToNtStatus(status);
         BAIL_ON_NT_STATUS(status);
     }
 
@@ -396,7 +396,7 @@ LwioLocalRemoveDir(
 
     if (rmdir(pszPath) < 0)
     {
-        status = LwUnixErrnoToNtStatus(status);
+        status = LwErrnoToNtStatus(status);
         BAIL_ON_NT_STATUS(status);
     }
 
@@ -425,7 +425,7 @@ LwioLocalRemoveFile(
             {
                 continue;
             }
-            status = LwUnixErrnoToNtStatus(errno);
+            status = LwErrnoToNtStatus(errno);
             BAIL_ON_NT_STATUS(status);
         }
         else
@@ -466,7 +466,7 @@ LwioCheckLocalFileExists(
                 break;
             }
 
-            status = LwUnixErrnoToNtStatus(errno);
+            status = LwErrnoToNtStatus(errno);
             BAIL_ON_NT_STATUS(status);
 
         }
@@ -515,7 +515,7 @@ LwioCheckLocalDirectoryExists(
                 break;
             }
 
-            status = LwUnixErrnoToNtStatus(errno);
+            status = LwErrnoToNtStatus(errno);
             BAIL_ON_NT_STATUS(status);
 
         }
@@ -550,7 +550,7 @@ LwioGetLocalFileOwnerAndPerms(
 
     if (stat(pszSrcPath, &statbuf) < 0)
     {
-        status = LwUnixErrnoToNtStatus(errno);
+        status = LwErrnoToNtStatus(errno);
         BAIL_ON_NT_STATUS(status);
     }
 
@@ -602,7 +602,7 @@ LwioChangeLocalFileOwner(
             {
                 continue;
             }
-            status = LwUnixErrnoToNtStatus(errno);
+            status = LwErrnoToNtStatus(errno);
             BAIL_ON_NT_STATUS(status);
         }
         else
@@ -633,7 +633,7 @@ LwioChangeLocalFilePerms(
             {
                 continue;
             }
-            status = LwUnixErrnoToNtStatus(errno);
+            status = LwErrnoToNtStatus(errno);
             BAIL_ON_NT_STATUS(status);
         }
         else

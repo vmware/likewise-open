@@ -61,7 +61,7 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include <pwd.h>
-#include <winerror.h>
+#include <lw/winerror.h>
 #include <dlfcn.h>
 #include <dce/rpcexc.h>
 

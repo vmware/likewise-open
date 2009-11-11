@@ -1,9 +1,4 @@
-/* Editor Settings: expandtabs and use 4 spaces for indentation
- * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
-
-/*
- * Copyright Likewise Software    2004-2008
+/*Copyright Likewise Software    2004-2008
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -28,15 +23,7 @@
  * license@likewisesoftware.com
  */
 
-#include <stdlib.h>
-#include <errno.h>
-
-#include <lw/ntstatus.h>
-#include <winerror.h>
-#include <lwerror.h>
-#include <winerror-conv.h>
-#include <ldaperror-table.h>
-
+#include "includes.h"
 
 #define STATUS_CODE(status, werror, errno, desc)             \
     {status, werror, errno, #status, #werror, #errno, desc },
@@ -44,17 +31,17 @@
 
 struct table_entry
 {
-    NTSTATUS ntStatus;
-    DWORD    werror;
-    int      uerror;
-    PCSTR    pszStatusName;
-    PCSTR    pszWinerrName;
-    PCSTR    pszErrnoName;
-    PCSTR    pszDescription;
+    NTSTATUS    ntStatus;
+    WINERROR    werror;
+    int         uerror;
+    PCSTR       pszStatusName;
+    PCSTR       pszWinerrName;
+    PCSTR       pszUnixErrnoName;
+    PCSTR       pszDescription;
 
 } status_table[] =
 {
-#include <winerror-table.h>
+#include "error-table.h"
     {-1, 0, 0}
 };
 
@@ -69,7 +56,7 @@ match_status(
     void *data
     )
 {
-    return e->ntStatus == *((NTSTATUS*) data);
+    return e->ntStatus == *((LW_NTSTATUS*) data);
 }
 
 
@@ -79,7 +66,7 @@ match_werror(
     void *data
     )
 {
-    return e->werror == *((int*) data);
+    return e->werror == *((LW_WINERROR*) data);
 }
 
 
@@ -110,117 +97,40 @@ find(
     return NULL;
 }
 
-
-DWORD
+/* Converting NT status errors */
+LW_WINERROR
 LwNtStatusToWin32Error(
-    NTSTATUS ntStatus
+    LW_NTSTATUS ntStatus
     )
 {
     struct table_entry *e = find(match_status, &ntStatus);
     return e ? e->werror : -1;
 }
 
-
-int
-LwNtStatusToErrno(
-    NTSTATUS ntStatus
-    )
-{
-    struct table_entry *e = find(match_status, &ntStatus);
-    return e ? e->uerror : -1;
-}
-
-
-NTSTATUS
-LwErrnoToNtStatus(
-    int uerror
-    )
-{
-    struct table_entry *e = find(match_uerror, &uerror);
-    return (e) ? e->ntStatus : (NTSTATUS)-1;
-}
-
-
-DWORD
+/* Converting Unix errors */
+LW_WINERROR
 LwErrnoToWin32Error(
     int uerror
     )
 {
     struct table_entry *e = find(match_uerror, &uerror);
-    return e ? e->werror : -1;
+    return e ? e->werror : (LW_WINERROR)-1;
 }
 
-
-PCSTR
-LwNtStatusToName(
-    NTSTATUS ntStatus
+LW_PCSTR
+LwErrnoToDescription(
+    int uerror
     )
 {
-    struct table_entry *e = find(match_status, &ntStatus);
-    return (e) ? e->pszStatusName : NULL;
-}
-
-
-PCSTR
-LwNtStatusToDesc(
-    NTSTATUS ntStatus
-    )
-{
-    struct table_entry *e = find(match_status, &ntStatus);
+    struct table_entry *e = find(match_werror, &uerror);
     return (e) ? e->pszDescription : NULL;
 }
 
 
-const struct lderr_winerr*
-find_lderr(
-    int lderr
-    )
-{
-    unsigned int i;
-
-    for (i = 0; ldaperr_winerr_map[i].pszLderrStr; i++)
-    {
-        if (ldaperr_winerr_map[i].lderr == lderr)
-        {
-            return &ldaperr_winerr_map[i];
-        }
-    }
-
-    return NULL;
-}
-
-
-DWORD
-LwLdapErrToWin32Error(
-    int lderr
-    )
-{
-    const struct lderr_winerr *e = find_lderr(lderr);
-    return (e) ? e->winerr : -1;
-}
-
-int
-LwErrnoToLdapErr(
-    int uerror
-    )
-{
-    unsigned int i = 0;
-    DWORD dwError = ErrnoToWin32Error(uerror);
-
-    for (i = 0; ldaperr_winerr_map[i].pszLderrStr; i++)
-    {
-        if (ldaperr_winerr_map[i].winerr == dwError)
-        {
-            return ldaperr_winerr_map[i].lderr;
-        }
-    }
-
-    return -1;
-}
-
+/*Converting WinErrors */
 int
 LwWin32ErrorToErrno(
-    DWORD winerr
+    LW_WINERROR winerr
     )
 {
     struct table_entry *e = find(match_werror, &winerr);
@@ -229,33 +139,30 @@ LwWin32ErrorToErrno(
 
 NTSTATUS
 LwWin32ErrorToNtStatus(
-    DWORD winerr
+    LW_WINERROR winerr
     )
 {
     struct table_entry *e = find(match_werror, &winerr);
     return (e) ? e->ntStatus : (NTSTATUS)-1;
 }
 
-
 PCSTR
 LwWin32ErrorToName(
-    int winerr
+    LW_WINERROR winerr
     )
 {
     struct table_entry *e = find(match_werror, &winerr);
     return (e) ? e->pszWinerrName : NULL;
 }
 
-
 PCSTR
-LwWin32ErrorToDesc(
-    DWORD winerr
+LwWin32ErrorToDescription(
+    LW_WINERROR winerr
     )
 {
     struct table_entry *e = find(match_werror, &winerr);
     return (e) ? e->pszDescription : NULL;
 }
-
 
 /*
 local variables:
@@ -265,3 +172,4 @@ indent-tabs-mode: nil
 tab-width: 4
 end:
 */
+

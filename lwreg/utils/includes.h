@@ -53,12 +53,12 @@
 #include <reg/reg.h>
 
 #include <lw/base.h>
+#include <lw/winerror.h>
 #include <lwerror.h>
 #include <lwstr.h>
 #include <lwmem.h>
 #include <lwfile.h>
 #include <lwdef.h>
-#include <winerror-conv.h>
 
 #include <regdef.h>
 #include <regutils.h>

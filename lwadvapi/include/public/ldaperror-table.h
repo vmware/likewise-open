@@ -32,7 +32,7 @@
 #define _LDAPERROR_TABLE_H_
 
 #include <ldap.h>
-#include <winerror.h>
+#include <lw/winerror.h>
 
 
 struct lderr_winerr {
@@ -114,7 +114,6 @@ static const struct lderr_winerr ldaperr_winerr_map[] = {
 #undef LDERR
 
 #endif /* _LDAPERROR_TABLE_H_ */
-
 
 /*
 local variables:

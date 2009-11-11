@@ -29,7 +29,7 @@
  */
 
 #include <lw/ntstatus.h>
-#include <winerror.h>
+#include <lw/winerror.h>
 
 
 /*

@@ -203,3 +203,11 @@ RegFreeStringBufferContents(
     pBuffer->sLen = 0;
     pBuffer->sCapacity = 0;
 }
+
+VOID
+RegFreeMemory(
+    PVOID pMemory
+    )
+{
+    LwFreeMemory(pMemory);
+}

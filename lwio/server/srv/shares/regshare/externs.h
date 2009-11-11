@@ -49,9 +49,6 @@
 #ifndef __LWREGSHARE_EXTERNS_H__
 #define __LWREGSHARE_EXTERNS_H__
 
-extern PCSTR pszSharePath;
-extern PCSTR pszShareSecPath;
-
 extern SRV_SHARE_REG_GLOBALS gShareRepository_registry;
 
 #endif /* __LWREGSHARE_EXTERNS_H__ */

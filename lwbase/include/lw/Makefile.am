@@ -4,6 +4,7 @@ lwinclude_HEADERS = \
 	dscache.h \
 	errno.h \
 	ntstatus.h \
+	winerror.h \
 	rpcstatus.h \
 	types.h \
 	attrs.h \

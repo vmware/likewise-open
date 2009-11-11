@@ -194,7 +194,7 @@ NtlmGetNameInformation(
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
-    CHAR FullDomainName[HOST_NAME_MAX];
+    CHAR FullDomainName[HOST_NAME_MAX + 1];
     PCHAR pSymbol = NULL;
     PSTR pServerName = NULL;
     PSTR pDomainName = NULL;
@@ -216,11 +216,16 @@ NtlmGetNameInformation(
     if (pHost)
     {
         dwHostSize = strlen((PSTR)pHost->h_name);
+        if (dwHostSize > HOST_NAME_MAX)
+        {
+            dwHostSize = HOST_NAME_MAX;
+        }
 
         memcpy(
             FullDomainName,
             (PSTR)pHost->h_name,
-            HOST_NAME_MAX < dwHostSize ? HOST_NAME_MAX : dwHostSize);
+            dwHostSize);
+        FullDomainName[dwHostSize] = 0;
     }
 
     // This is a horrible fall back, but it's all we've got

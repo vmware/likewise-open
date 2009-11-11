@@ -54,11 +54,11 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
 
         #region COnstructors
 
-        public ServicesComputerOptionsPage(string hostname, string servicename)
+        public ServicesComputerOptionsPage(string servicename)
         {
             InitializeComponent();
 
-            this._hostname = hostname;
+            this._hostname = System.Environment.MachineName;
             this._servicename = servicename;
         }
 

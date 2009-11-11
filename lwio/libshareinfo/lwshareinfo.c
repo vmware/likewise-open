@@ -255,7 +255,7 @@ LwShareInfoGetMarshalContext(
     err = pthread_once(&gShareMarshalContextControl, LwShareInfoInitMarshalContext);
     if (err)
     {
-        Status = LwUnixErrnoToNtStatus(err);
+        Status = LwErrnoToNtStatus(err);
         BAIL_ON_NT_STATUS(Status);
     }
 

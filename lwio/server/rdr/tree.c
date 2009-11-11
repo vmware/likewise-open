@@ -109,7 +109,7 @@ SMBTreeCreate(
        changes, such as made by ntpd */
     if (time((time_t*) &pTree->lastActiveTime) == (time_t)-1)
     {
-        ntStatus = UnixErrnoToNtStatus(errno);
+        ntStatus = ErrnoToNtStatus(errno);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 

@@ -64,9 +64,10 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
 
         private string _currentHost = "";
         private IPlugInContainer _container;
-        private Hostinfo _hn;
         private LACTreeNode _pluginNode;
         public RegServerHandle handle = null;
+        public bool IsConnectionSuccess = false;
+        private IntPtr phToken = IntPtr.Zero;
 
         private List<IPlugIn> _extPlugins = null;
 
@@ -81,14 +82,6 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
         #endregion
 
         #region IPlugIn Members
-
-        public Hostinfo HostInfo
-        {
-            get
-            {
-                return _hn;
-            }
-        }             
 
         public string GetName()
         {
@@ -120,7 +113,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
 
                 Manage.InitSerializePluginInfo(pluginNode, this, ref Id, out viewElement, ViewsNode, SelectedNode);
 
-                Manage.CreateAppendHostInfoElement(_hn, ref viewElement, out HostInfoElement);
+                Manage.CreateAppendHostInfoElement(null, ref viewElement, out HostInfoElement);
 
                 if (pluginNode != null && pluginNode.Nodes.Count != 0)
                 {
@@ -145,7 +138,8 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
         {
             try
             {
-                Manage.DeserializeHostInfo(node, ref pluginNode, nodepath, ref _hn, false);
+                Hostinfo hn = GetContext() as Hostinfo;
+                Manage.DeserializeHostInfo(node, ref pluginNode, nodepath, ref hn, false);
                 pluginNode.Text = this.GetName();
                 pluginNode.Name = this.GetName();
             }
@@ -174,19 +168,10 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
 
         public void SetContext(IContext ctx)
         {
-            Hostinfo hn = ctx as Hostinfo;
-
-            Logger.Log(String.Format("RegistryViewerPlugin.SetHost(hn: {0}\n)",
-            hn == null ? "<null>" : hn.ToString()), Logger.RegistryViewerLoglevel);
-
             bool deadTree = false;
 
             if (_pluginNode != null &&
-                _pluginNode.Nodes != null &&
-                _hn != null &&
-                hn != null &&
-                hn.hostName !=
-                _hn.hostName)
+                _pluginNode.Nodes != null)
             {
                 foreach (TreeNode node in _pluginNode.Nodes)
                 {
@@ -195,23 +180,16 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                 deadTree = true;
             }
 
-            _hn = hn;
-
-            if (HostInfo == null)
-            {
-                _hn = new Hostinfo();
-            }
-
             ConnectToHost();
 
-            if (_pluginNode != null && _pluginNode.Nodes.Count == 0 && _hn.IsConnectionSuccess)
+            if (_pluginNode != null && _pluginNode.Nodes.Count == 0 && IsConnectionSuccess)
             {
                 BuildNodesToPlugin();
             }
 
             if (deadTree && _pluginNode != null)
             {
-                _pluginNode.SetContext(_hn);
+                _pluginNode.SetContext(null);
             }
         }
 
@@ -222,7 +200,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
 
         public IContext GetContext()
         {
-            return _hn;
+            return null;
         }
 
         public LACTreeNode GetPlugInNode()
@@ -275,13 +253,6 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
 
             if (_pluginNode == nodeClicked)
             {
-                m_item = new MenuItem("Set Target Machine", new EventHandler(cm_OnConnect));
-                m_item.Tag = _pluginNode;
-                contextMenu.MenuItems.Add(0, m_item);
-
-                m_item = new MenuItem("-");
-                contextMenu.MenuItems.Add(m_item);
-
                 m_item = new MenuItem("&Import...", new EventHandler(editorPage.On_MenuClick));                
                 m_item.Tag = _pluginNode;
                 contextMenu.MenuItems.Add(m_item);
@@ -407,6 +378,25 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             return _pluginNode;
         }
 
+        public bool Do_LogonUserSet()
+        {
+            phToken = IntPtr.Zero;
+
+            return RegistryInteropWrapperWindows.RegLogonUser(
+                                    out phToken,
+                                    System.Environment.UserName,
+                                    System.Environment.UserDomainName,
+                                    "");
+        }
+
+        public void Do_LogonUserHandleClose()
+        {
+            if (phToken != null && phToken != IntPtr.Zero)
+            {
+                RegistryInteropWrapperWindows.HandleClose(phToken);
+            }
+        }
+
         private void BuildNodesToPlugin()
         {
             if (_pluginNode != null)
@@ -478,112 +468,49 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                         _pluginNode.Nodes.Add(likewiseNode);
                     }
                 }
-
-                if (String.IsNullOrEmpty(_hn.hostName))
-                    _pluginNode.Text = string.Format(string.Concat(Properties.Resources.RegistryViewer));
-                else
-                    _pluginNode.Text = string.Format(string.Concat(Properties.Resources.RegistryViewer, " on {0}"), _hn.hostName);
+                _pluginNode.Text = string.Format(string.Concat(Properties.Resources.RegistryViewer, " on {0}"), System.Environment.MachineName);
             }
         }
 
         private void ConnectToHost()
         {
+            IsConnectionSuccess = false;
+            _currentHost = System.Environment.MachineName;
+
             Logger.Log("RegistryViewerPlugin.ConnectToHost", Logger.RegistryViewerLoglevel);
 
-            if (_hn.creds.Invalidated)
+            if (!String.IsNullOrEmpty(_currentHost))
             {
-                _container.ShowError("RegistryViewerPlugin cannot connect to domain due to invalid credentials");
-                _hn.IsConnectionSuccess = false;
-                return;
-            }
-            if (!String.IsNullOrEmpty(_hn.hostName))
-            {
-                if (_currentHost != _hn.hostName)
+                if (handle != null)
                 {
+                    handle.Dispose();
+                    handle = null;
+                }
+                if (_pluginNode != null && !String.IsNullOrEmpty(_currentHost))
+                {
+                    if (Configurations.currentPlatform == LikewiseTargetPlatform.Windows)
+                    {
+                        IsConnectionSuccess = Do_LogonUserSet();
+                        if (!IsConnectionSuccess)
+                        {
+                            _container.ShowError("Unable to access the Registry for the speficied user authentication");
+                            return;
+                        }
+                        else {
+                            Do_LogonUserHandleClose();
+                        }
+                    }
+                    else
+                    {
+                        IsConnectionSuccess = OpenHandle();
+                        if (!IsConnectionSuccess)
+                        {
+                            Logger.ShowUserError("Unable to get registry handle");
+                            return;
+                        }
+                    }
                     if (handle != null)
-                    {
-                        handle.Dispose();
-                        handle = null;
-                    }
-                    if (_pluginNode != null && !String.IsNullOrEmpty(_hn.hostName))
-                    {
-                        Session.EnsureNullSession(_hn.hostName, _hn.creds);
-                        if (Configurations.currentPlatform == LikewiseTargetPlatform.Windows)
-                        {
-                            _hn.IsConnectionSuccess = ((RegistryEditorPage)_pluginNode.PluginPage).Do_LogonUserSet(_hn);
-                            if (!_hn.IsConnectionSuccess)
-                            {
-                                _container.ShowError("Unable to access the Registry for the speficied user authentication");
-                                return;
-                            }
-                            else
-                            {
-                                ((RegistryEditorPage)_pluginNode.PluginPage).Do_LogonUserHandleClose();
-                            }
-                        }
-                        else
-                        {
-                            _hn.IsConnectionSuccess = OpenHandle();
-                            if (!_hn.IsConnectionSuccess)
-                            {
-                                Logger.ShowUserError("Unable to get registry handle");
-                                return;
-                            }
-                        }
-                        if (handle != null)
-                            _pluginNode.Nodes.Clear();
-                    }
-                    _currentHost = _hn.hostName;
-                }
-                _hn.IsConnectionSuccess = true;   
-            }
-            else
-                _hn.IsConnectionSuccess = false;
-        }
-
-        private void cm_OnConnect(object sender, EventArgs e)
-        {
-            //check if we are joined to a domain -- if not, use simple bind
-            uint requestedFields = (uint)Hostinfo.FieldBitmaskBits.FQ_HOSTNAME;
-            //string domainFQDN = null;
-
-            if (_hn == null)
-            {
-                _hn = new Hostinfo();
-            }
-
-            if (Configurations.currentPlatform == LikewiseTargetPlatform.Windows)
-            {
-                //TODO: kerberize eventlog, so that creds are meaningful.
-                //for now, there's no reason to attempt single sign-on
-                requestedFields |= (uint)Hostinfo.FieldBitmaskBits.FORCE_USER_PROMPT;
-                requestedFields |= (uint)Hostinfo.FieldBitmaskBits.CREDS_USERNAME;
-                requestedFields |= (uint)Hostinfo.FieldBitmaskBits.CREDS_PASSWORD;
-                requestedFields |= (uint)Hostinfo.FieldBitmaskBits.FQDN;
-            }
-
-            if (_hn != null)
-            {
-                if (!_container.GetTargetMachineInfo(this, _hn, requestedFields))
-                {
-                    Logger.Log(
-                    "Could not find information about target machine",
-                    Logger.RegistryViewerLoglevel);
-                    if (requestedFields == (uint)Hostinfo.FieldBitmaskBits.FQDN)
-                        cm_OnConnect(sender, e);
-                    if (handle != null && handle.Handle != IntPtr.Zero)
-                        _hn.IsConnectionSuccess = true;
-                }
-                else
-                {
-                    if (_pluginNode != null && !String.IsNullOrEmpty(_hn.hostName) && _hn.IsConnectionSuccess)
-                    {
-                        if (Configurations.currentPlatform != LikewiseTargetPlatform.Windows && handle == null)
-                        {
-                            _container.ShowError("Unable to open the registry handle");
-                            _pluginNode.sc.ShowControl(_pluginNode);
-                        }
-                    }
+                        _pluginNode.Nodes.Clear();
                 }
             }
         }

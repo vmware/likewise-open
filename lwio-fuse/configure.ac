@@ -23,7 +23,7 @@ AC_PROG_LIBTOOL
 
 # Checks for libraries.
 AC_CHECK_LIB(lwioclient, LwIoOpenContextShared, [LIB_LWIOCLIENT="-llwioclient"], [AC_MSG_ERROR([liblwioclient not found])])
-AC_CHECK_LIB(lwbase, LwNtStatusToUnixErrno, [LIB_LWBASE="-llwbase"], [AC_MSG_ERROR([liblwbase not found])])
+AC_CHECK_LIB(lwbase, LwNtStatusToErrno, [LIB_LWBASE="-llwbase"], [AC_MSG_ERROR([liblwbase not found])])
 AC_CHECK_LIB(lsaclient, LsaOpenServer, [LIB_LSACLIENT="-llsaclient"], [AC_MSG_ERROR([liblsaclient not found])])
 AC_CHECK_LIB(fuse, fuse_new, [LIB_FUSE="-lfuse"], [AC_MSG_ERROR([libfuse not found])])
 

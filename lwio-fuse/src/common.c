@@ -475,7 +475,7 @@ LwIoFuseMapNtStatus(
     NTSTATUS status
     )
 {
-    int err = LwNtStatusToUnixErrno(status);
+    int err = LwNtStatusToErrno(status);
 
     if (err < 0)
     {

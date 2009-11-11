@@ -119,7 +119,7 @@ SrvSocketReaderInit(
 
     if (pipe(pReader->context.fd) < 0)
     {
-        ntStatus = LwUnixErrnoToNtStatus(errno);
+        ntStatus = LwErrnoToNtStatus(errno);
     }
 
     ntStatus = pthread_create(
@@ -266,7 +266,7 @@ SrvSocketReaderMain(
                 continue;
             }
 
-            ntStatus = LwUnixErrnoToNtStatus(errno);
+            ntStatus = LwErrnoToNtStatus(errno);
         }
         else if (ret == 0)
         {
@@ -680,7 +680,7 @@ SrvSocketReaderInterrupt(
 
     if (write(pReader->context.fd[1], "I", 1) != 1)
     {
-        ntStatus = LwUnixErrnoToNtStatus(errno);
+        ntStatus = LwErrnoToNtStatus(errno);
     }
 
     return ntStatus;

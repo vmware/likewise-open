@@ -199,7 +199,7 @@ SrvTimerMain(
                     break;
                 }
 
-                status = LwUnixErrnoToNtStatus(errCode);
+                status = LwErrnoToNtStatus(errCode);
                 BAIL_ON_NT_STATUS(status);
 
             } while (bRetryWait && !SrvTimerMustStop_inlock(pContext));
@@ -230,7 +230,7 @@ SrvTimerMain(
                 break;
             }
 
-            status = LwUnixErrnoToNtStatus(errCode);
+            status = LwErrnoToNtStatus(errCode);
             BAIL_ON_NT_STATUS(status);
 
         } while (bRetryWait && !SrvTimerMustStop_inlock(pContext));

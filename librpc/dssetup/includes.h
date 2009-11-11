@@ -46,8 +46,7 @@
 #include <dce/smb.h>
 #include <wc16str.h>
 #include <lw/ntstatus.h>
-#include <winerror.h>
-#include <winerror-conv.h>
+#include <lw/winerror.h>
 
 #include <lwrpc/types.h>
 #include <lwrpc/dssetup.h>

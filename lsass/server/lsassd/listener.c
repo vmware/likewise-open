@@ -391,6 +391,16 @@ error:
         lwmsg_server_delete(gpServer);
         gpServer = NULL;
     }
+    if (gpProtocol)
+    {
+        lwmsg_protocol_delete(gpProtocol);
+        gpProtocol = NULL;
+    }
+    if (gpContext)
+    {
+        lwmsg_context_delete(gpContext);
+        gpContext = NULL;
+    }
 
     return dwError;
 }
@@ -414,6 +424,16 @@ error:
     {
         lwmsg_server_delete(gpNtlmServer);
         gpNtlmServer = NULL;
+    }
+    if (gpNtlmProtocol)
+    {
+        lwmsg_protocol_delete(gpNtlmProtocol);
+        gpNtlmProtocol = NULL;
+    }
+    if (gpNtlmContext)
+    {
+        lwmsg_context_delete(gpNtlmContext);
+        gpNtlmContext = NULL;
     }
 
     return dwError;

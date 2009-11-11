@@ -111,7 +111,7 @@ error:
         stderr,
         "Failed to query status from SMB service.  Error code %u (%s).\n%s\n",
         dwError,
-        LW_PRINTF_STRING(LwNtStatusToSymbolicName(dwError)),
+        LW_PRINTF_STRING(LwNtStatusToName(dwError)),
         LW_PRINTF_STRING(LwNtStatusToDescription(dwError)));
 
     goto cleanup;

@@ -155,7 +155,7 @@ main(int argc,
                             );
         BAIL_ON_NT_STATUS(ntStatus);
 
-        ntStatus = LwUnixErrnoToNtStatus(pthread_create(pThread, NULL, (void *)&ServerPipeThread, &FileHandles[i]));
+        ntStatus = LwErrnoToNtStatus(pthread_create(pThread, NULL, (void *)&ServerPipeThread, &FileHandles[i]));
         BAIL_ON_NT_STATUS(ntStatus);
 
         nActiveConnections++;
@@ -372,7 +372,7 @@ HandleSignals(
 
     if (sigaction(SIGINT, &action, NULL) != 0)
     {
-        ntStatus = LwUnixErrnoToNtStatus(errno);
+        ntStatus = LwErrnoToNtStatus(errno);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -380,7 +380,7 @@ HandleSignals(
     sigemptyset(&catch_signal_mask);
     sigaddset(&catch_signal_mask, SIGINT);
 
-    ntStatus = LwUnixErrnoToNtStatus(pthread_sigmask(SIG_UNBLOCK, &catch_signal_mask, NULL));
+    ntStatus = LwErrnoToNtStatus(pthread_sigmask(SIG_UNBLOCK, &catch_signal_mask, NULL));
     BAIL_ON_NT_STATUS(ntStatus);
 
     while (!bDone)
@@ -425,7 +425,7 @@ BlockSignals(
 
     GetBlockedSignals(&blockedSignals);
 
-    return LwUnixErrnoToNtStatus(pthread_sigmask(SIG_BLOCK, &blockedSignals, NULL));
+    return LwErrnoToNtStatus(pthread_sigmask(SIG_BLOCK, &blockedSignals, NULL));
 }
 
 static

@@ -1,3 +1,46 @@
+/*Copyright (c) Likewise Software.  All rights Reserved.
+ *
+ * This library is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation; either version 2.1 of the license, or (at
+ * your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
+ * General Public License for more details.  You should have received a copy
+ * of the GNU Lesser General Public License along with this program.  If
+ * not, see <http://www.gnu.org/licenses/>.
+ *
+ * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
+ * TERMS AS WELL.  IF YOU HAVE ENTERED INTO A SEPARATE LICENSE AGREEMENT
+ * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
+ * TERMS OF THAT SOFTWARE LICENSE AGREEMENT INSTEAD OF THE TERMS OF THE GNU
+ * LESSER GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
+ * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
+ * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
+ * license@likewisesoftware.com
+ */
+
+/*
+ * Module Name:
+ *
+ *        winerror.h
+ *
+ * Abstract:
+ *
+ *        Winerror codes
+ *
+ * Authors: Wei Fu (wfu@likewise.com)
+ *
+ */
+
+#ifndef __LWBASE_WINERROR_H__
+#define __LWBASE_WINERROR_H__
+
+#include <lw/types.h>
+
+
 #if !defined(__COMPAT_WINERROR_H__)
 #define __COMPAT_WINERROR_H__
 
@@ -2772,3 +2815,39 @@
 #define RPC_S_UNKNOWN_STATUS_CODE	RPC_S_INTERNAL_ERROR
 
 #endif /* __COMPAT_WINERROR_H__ */
+
+#ifndef _DCE_IDL_
+#include <lw/attrs.h>
+
+
+int
+LwWin32ErrorToErrno(
+    LW_WINERROR WinError
+    );
+
+LW_NTSTATUS
+LwWin32ErrorToNtStatus(
+    LW_WINERROR WinError
+    );
+
+LW_PCSTR
+LwWin32ErrorToName(
+    LW_WINERROR WinError
+    );
+
+LW_PCSTR
+LwWin32ErrorToDescription(
+    LW_WINERROR WinError
+    );
+
+#ifndef LW_STRICT_NAMESPACE
+#define Win32ErrorToErrno(WinError)          LwWin32ErrorToErrno(WinError)
+#define Win32ErrorToNtStatus(WinError)       LwWin32ErrorToNtStatus(WinError)
+#define Win32ErrorToName(WinError)           LwWin32ErrorToName(WinError)
+#define Win32ErrorToDescription(WinError)    LwWin32ErrorToDescription(WinError)
+#endif /* LW_STRICT_NAMESPACE */
+
+#endif /*_DCE_IDL*/
+
+#endif /* __LWBASE_WINERROR_H__*/
+
