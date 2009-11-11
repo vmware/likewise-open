@@ -212,7 +212,14 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             {
                 ServicePropertiesDlg dlg = new ServicePropertiesDlg(base.container, this, plugin, serviceInfo.serviceName.Trim());
                 dlg.Show();
-            }
+
+				if(dlg.commit)
+				{
+					treeNode.IsModified = true;
+		            treeNode.sc.ShowControl(treeNode);
+		            return;
+				}
+			}
             else
             {
                 if (Configurations.currentPlatform == LikewiseTargetPlatform.Windows)

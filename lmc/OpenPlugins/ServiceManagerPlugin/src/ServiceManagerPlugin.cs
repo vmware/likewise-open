@@ -308,8 +308,10 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
                     else {
                         IsConnectionSuccess = true;
                     }
+					_pluginNode.Text = string.Concat(Properties.Resources.ServiceManager, " on ", hostName);
                 }
             }
+
         }
 
         public bool Do_LogonSCManager()

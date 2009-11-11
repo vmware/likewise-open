@@ -232,6 +232,8 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
                     ServiceManagerInteropWrapper.ApiLwSmReleaseServiceHandle(pHandle);
                 }
             }
+
+			((ServicePropertiesDlg)this.Parent).commit = true;
             SetData();
         }
 
@@ -252,6 +254,8 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
                     ServiceManagerInteropWrapper.ApiLwSmReleaseServiceHandle(pHandle);
                 }
             }
+
+			((ServicePropertiesDlg)this.Parent).commit = true;
             SetData();
         }
 
@@ -263,6 +267,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
                 sc.Pause();
                 sc.WaitForStatus(ServiceControllerStatus.Paused);
             }
+			((ServicePropertiesDlg)this.Parent).commit = true;
             SetData();
         }
 
@@ -274,6 +279,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
                 sc.Continue();
                 sc.WaitForStatus(ServiceControllerStatus.Running);
             }
+			((ServicePropertiesDlg)this.Parent).commit = true;
             SetData();
         }        
 

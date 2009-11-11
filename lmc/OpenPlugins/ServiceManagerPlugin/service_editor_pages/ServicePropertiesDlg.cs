@@ -46,6 +46,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
 
         private ServiceManagerPlugin _plugin;
         private IPlugInContainer _container;
+		public bool commit = false;
 
         #endregion
 
@@ -112,6 +113,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
                 }
             }
 
+			commit = true;
             return true;
         }
 
