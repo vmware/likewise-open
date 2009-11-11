@@ -551,7 +551,7 @@ lwmsg_server_task_perform_accept(
                     (*task)->blocked = LWMSG_TRUE;
                     goto done;
                 default:
-                    BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
+                    BAIL_ON_ERROR(status = lwmsg_error_map_errno(errno));
                 }
             }
 
@@ -1101,7 +1101,7 @@ lwmsg_server_task_create_local_socket(
 
     if (sock == -1)
     {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
+        BAIL_ON_ERROR(status = lwmsg_error_map_errno(errno));
     }
 
     sockaddr.sun_family = AF_UNIX;
@@ -1116,7 +1116,7 @@ lwmsg_server_task_create_local_socket(
 
     if (bind(sock, (struct sockaddr*) &sockaddr, sizeof(sockaddr)) == -1)
     {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
+        BAIL_ON_ERROR(status = lwmsg_error_map_errno(errno));
     }
 
     // ignore errors
@@ -1167,7 +1167,7 @@ lwmsg_server_task_perform_listen(
         /* Get socket flags */
         if ((opts = fcntl((*task)->fd, F_GETFL, 0)) < 0)
         {
-            BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
+            BAIL_ON_ERROR(status = lwmsg_error_map_errno(errno));
         }
 
         /* Set non-blocking flag */
@@ -1176,12 +1176,12 @@ lwmsg_server_task_perform_listen(
         /* Set socket flags */
         if (fcntl((*task)->fd, F_SETFL, opts) < 0)
         {
-            BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
+            BAIL_ON_ERROR(status = lwmsg_error_map_errno(errno));
         }
 
         if (listen((*task)->fd, server->max_backlog))
         {
-            BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
+            BAIL_ON_ERROR(status = lwmsg_error_map_errno(errno));
         }
 
         (*task)->type = SERVER_TASK_ACCEPT;

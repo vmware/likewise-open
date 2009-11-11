@@ -80,7 +80,6 @@ lwmsg_server_new(
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     LWMsgServer* server = NULL;
-    int err = 0;
 
     server = calloc(1, sizeof(*server));
 
@@ -93,32 +92,11 @@ lwmsg_server_new(
 
     server->context = context;
 
-    err = pthread_mutex_init(&server->lock, NULL);
-    if (err)
-    {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
-    }
-    err = pthread_mutex_init(&server->io.lock, NULL);
-    if (err)
-    {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
-    }
-    err = pthread_mutex_init(&server->dispatch.lock, NULL);
-    if (err)
-    {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
-    }
-
-    err = pthread_cond_init(&server->event, NULL);
-    if (err)
-    {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
-    }
-    err = pthread_cond_init(&server->dispatch.event, NULL);
-    if (err)
-    {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
-    }
+    BAIL_ON_ERROR(status = lwmsg_error_map_errno(pthread_mutex_init(&server->lock, NULL)));
+    BAIL_ON_ERROR(status = lwmsg_error_map_errno(pthread_mutex_init(&server->io.lock, NULL)));
+    BAIL_ON_ERROR(status = lwmsg_error_map_errno(pthread_mutex_init(&server->dispatch.lock, NULL)));
+    BAIL_ON_ERROR(status = lwmsg_error_map_errno(pthread_cond_init(&server->event, NULL)));
+    BAIL_ON_ERROR(status = lwmsg_error_map_errno(pthread_cond_init(&server->dispatch.event, NULL)));
 
     lwmsg_ring_init(&server->io_tasks);
     lwmsg_ring_init(&server->dispatch.calls);
@@ -458,14 +436,12 @@ lwmsg_server_init_dispatch_thread(
 
     dispatch_thread->server = server;
 
-    if (pthread_create(
-            &dispatch_thread->thread,
-            NULL,
-            lwmsg_server_dispatch_thread,
-            dispatch_thread))
-    {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
-    }
+    BAIL_ON_ERROR(status = lwmsg_error_map_errno(
+                      pthread_create(
+                          &dispatch_thread->thread,
+                          NULL,
+                          lwmsg_server_dispatch_thread,
+                          dispatch_thread)));
 
 done:
 
@@ -489,26 +465,21 @@ lwmsg_server_init_io_thread(
 
     io_thread->server = server;
     lwmsg_ring_init((LWMsgRing*) &io_thread->tasks);
-    if (pthread_mutex_init(&io_thread->lock, NULL))
-    {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
-    }
+    BAIL_ON_ERROR(status = lwmsg_error_map_errno(pthread_mutex_init(&io_thread->lock, NULL)));
     lock_init = LWMSG_TRUE;
 
     if (pipe(io_thread->event))
     {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
+        BAIL_ON_ERROR(status = lwmsg_error_map_errno(errno));
     }
     event_init = LWMSG_TRUE;
 
-    if (pthread_create(
-            &io_thread->thread,
-            NULL,
-            lwmsg_server_io_thread,
-            io_thread))
-    {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
-    }
+    BAIL_ON_ERROR(status = lwmsg_error_map_errno(
+                      pthread_create(
+                          &io_thread->thread,
+                          NULL,
+                          lwmsg_server_io_thread,
+                          io_thread)));
 
 done:
 

@@ -157,8 +157,8 @@ lwmsg_connection_recvmsg(
             status = LWMSG_STATUS_EOF;
             break;
         default:
+            status = lwmsg_error_map_errno(errno);
             LWMSG_LOG_ERROR(context, "Unexpected system error from recvmsg(): %i", errno);
-            status = LWMSG_STATUS_SYSTEM;
             break;
         }
         BAIL_ON_ERROR(status);
@@ -283,8 +283,8 @@ lwmsg_connection_sendmsg(
             status = LWMSG_STATUS_EOF;
             break;
         default:
+            status = lwmsg_error_map_errno(errno);
             LWMSG_LOG_ERROR(context, "Unexpected system error from sendmsg(): %i", errno);
-            status = LWMSG_STATUS_SYSTEM;
             break;
         }
         BAIL_ON_ERROR(status);
@@ -967,8 +967,7 @@ lwmsg_connection_begin_connect_local(
     /* Set socket flags */
     if (fcntl(priv->fd, F_SETFL, opts) < 0)
     {
-        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_SYSTEM,
-                          "Could not set socket flags: %s", strerror(errno));
+        BAIL_ON_ERROR(status = lwmsg_error_raise_errno(&assoc->context.error, errno));
     }
 
     sockaddr.sun_family = AF_UNIX;
@@ -997,7 +996,7 @@ lwmsg_connection_begin_connect_local(
             status = LWMSG_STATUS_CONNECTION_REFUSED;
             break;
         default:
-            status = LWMSG_STATUS_SYSTEM;
+            status = lwmsg_error_map_errno(errno);
             break;
         }
         BAIL_ON_ERROR(status);
@@ -1104,7 +1103,7 @@ lwmsg_connection_finish_connect(
         status = LWMSG_STATUS_CONNECTION_REFUSED;
         break;
     default:
-        status = LWMSG_STATUS_SYSTEM;
+        status = lwmsg_error_map_errno(err);
         break;
     }
 
