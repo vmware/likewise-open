@@ -694,18 +694,7 @@ GetValueAsBytes(
             }
             else
             {
-                dwError = RegByteArrayToMultiStrsW(pTempData1,
-                                                   cbData1,
-                                                   &ppwszOutMultiSz);
-                BAIL_ON_REG_ERROR(dwError);
-
-                dwError = RegMultiStrsToByteArrayW(
-                                            ppwszOutMultiSz,
-                                            &pOutData,
-                                            &cOutDataLen);
-                BAIL_ON_REG_ERROR(dwError);
-
-                if(pData && (DWORD)cOutDataLen > *pcbData)
+                if(pData && (DWORD)cbData1 > *pcbData)
                 {
                     dwError = LW_ERROR_INSUFFICIENT_BUFFER;
                     BAIL_ON_REG_ERROR(dwError);
@@ -713,8 +702,10 @@ GetValueAsBytes(
 
                 if (pData)
                 {
-                    memcpy(pData, pOutData, cOutDataLen);
+                    memcpy(pData, pTempData1, cbData1);
                 }
+
+                cbData = cbData1;
             }
 
             break;
