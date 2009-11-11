@@ -1,4 +1,5 @@
-﻿<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
@@ -42,8 +43,6 @@
     <Compile Include="authUtilis\Credentials.cs" />
     <Compile Include="ErrorCodes.Designer.cs">
       <DependentUpon>ErrorCodes.resx</DependentUpon>
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="src\Configurations.cs" />
@@ -51,16 +50,14 @@
     <Compile Include="src\Logger.cs" />
     <Compile Include="src\Process.cs" />
     <Compile Include="authUtilis\Session.cs" />
-    <Compile Include="src\SMBClient.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="quartz.snk" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="ErrorCodes.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>ErrorCodes.Designer.cs</LastGenOutput>
       <SubType>Designer</SubType>
+      <Generator>ResXFileCodeGenerator</Generator>
     </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
