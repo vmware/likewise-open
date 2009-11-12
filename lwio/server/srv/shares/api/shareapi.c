@@ -322,7 +322,11 @@ SrvShareAdd(
         pShareInfo->pSecDesc     = NULL;
         pShareInfo->ulSecDescLen = 0;
     }
-    // pShareInfo->service     = ulShareType;
+
+    ntStatus = SrvShareMapServiceStringToIdW(
+                    pwszShareType,
+                    &pShareInfo->service);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     pShareInfo->bMarkedForDeletion = FALSE;
 
