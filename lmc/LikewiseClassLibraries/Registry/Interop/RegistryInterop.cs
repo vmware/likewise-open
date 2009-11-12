@@ -315,7 +315,7 @@ namespace Likewise.LMC.Registry
             uint dwIndex,             
             [MarshalAs(UnmanagedType.LPWStr)] StringBuilder pName,
             out uint pcName,
-            ulong pReserved,
+            uint pReserved,
             [MarshalAs(UnmanagedType.LPWStr)] ref string pClass,
             ref long pcClass,
             out RegistryApi.FILETIME pftLastWriteTime);
