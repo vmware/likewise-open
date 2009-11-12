@@ -178,7 +178,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
             //
             // FilesDetailPage
             //
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Controls.Add(this.lvFilePage);
             this.Controls.Add(this.panel5);
             this.Controls.Add(this.panel4);

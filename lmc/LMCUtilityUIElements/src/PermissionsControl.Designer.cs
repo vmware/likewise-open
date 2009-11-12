@@ -154,10 +154,9 @@ namespace Likewise.LMC.UtilityUIElements
             this.btnAdd.Text = "Add...";
             this.btnAdd.UseVisualStyleBackColor = true;
             //
-            // SecuritySettingsControl
+            // PermissionsControl
             //
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Controls.Add(this.btnAdd);
             this.Controls.Add(this.tbPermissionsFor);
             this.Controls.Add(this.lvPermissions);
@@ -167,7 +166,7 @@ namespace Likewise.LMC.UtilityUIElements
             this.Controls.Add(this.btnRemove);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.lvGroupOrUserNames);
-            this.Name = "SecuritySettingsControl";
+            this.Name = "PermissionsControl";
             this.Size = new System.Drawing.Size(375, 385);
             this.ResumeLayout(false);
             this.PerformLayout();

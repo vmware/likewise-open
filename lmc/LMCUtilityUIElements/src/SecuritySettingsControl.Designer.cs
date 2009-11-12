@@ -38,11 +38,11 @@ namespace Likewise.LMC.UtilityUIElements
             this.label3 = new System.Windows.Forms.Label();
             this.lblObjectName = new System.Windows.Forms.Label();
             this.lvPermissions = new System.Windows.Forms.ListView();
-            this.tbPermissionsFor = new System.Windows.Forms.TextBox();
-            this.textBox1 = new System.Windows.Forms.TextBox();
             this.Permission = new System.Windows.Forms.ColumnHeader();
             this.Allow = new System.Windows.Forms.ColumnHeader();
             this.Deny = new System.Windows.Forms.ColumnHeader();
+            this.tbPermissionsFor = new System.Windows.Forms.TextBox();
+            this.textBox1 = new System.Windows.Forms.TextBox();
             this.SuspendLayout();
             //
             // lvGroupOrUserNames
@@ -132,6 +132,18 @@ namespace Likewise.LMC.UtilityUIElements
             this.lvPermissions.UseCompatibleStateImageBehavior = false;
             this.lvPermissions.View = System.Windows.Forms.View.List;
             //
+            // Permission
+            //
+            this.Permission.Text = "";
+            //
+            // Allow
+            //
+            this.Allow.Text = "";
+            //
+            // Deny
+            //
+            this.Deny.Text = "";
+            //
             // tbPermissionsFor
             //
             this.tbPermissionsFor.BackColor = System.Drawing.SystemColors.Control;
@@ -154,22 +166,9 @@ namespace Likewise.LMC.UtilityUIElements
             this.textBox1.TabIndex = 11;
             this.textBox1.Text = "For special permissions or advanced settings click Advanced.";
             //
-            // Permission
-            //
-            this.Permission.Text = "";
-            //
-            // Allow
-            //
-            this.Allow.Text = "";
-            //
-            // Deny
-            //
-            this.Deny.Text = "";
-            //
             // SecuritySettingsControl
             //
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Controls.Add(this.textBox1);
             this.Controls.Add(this.tbPermissionsFor);
             this.Controls.Add(this.lvPermissions);
