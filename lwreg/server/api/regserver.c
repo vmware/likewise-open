@@ -283,43 +283,6 @@ error:
 }
 
 DWORD
-RegSrvEnumKeyExA(
-    IN HANDLE Handle,
-    IN HKEY hKey,
-    IN DWORD dwIndex,
-    IN OUT PSTR pszName,
-    IN OUT PDWORD pcName,
-    IN PDWORD pReserved,
-    IN OUT PSTR pszClass,
-    IN OUT OPTIONAL PDWORD pcClass,
-    OUT OPTIONAL PFILETIME pftLastWriteTime
-    )
-{
-    DWORD dwError = 0;
-
-    if (!RegSrvCheckAccessRight(Handle, REG_READ))
-    {
-        dwError = LW_ERROR_ACCESS_DENIED;
-        BAIL_ON_REG_ERROR(dwError);
-    }
-
-    dwError = gpRegProvider->pfnRegSrvEnumKeyExA(
-            Handle,
-            hKey,
-            dwIndex,
-            pszName,
-            pcName,
-            pReserved,
-            pszClass,
-            pcClass,
-            pftLastWriteTime);
-    BAIL_ON_REG_ERROR(dwError);
-
-error:
-    return dwError;
-}
-
-DWORD
 RegSrvEnumKeyExW(
     IN HANDLE Handle,
     IN HKEY hKey,
@@ -391,43 +354,6 @@ error:
 }
 
 DWORD
-RegSrvGetValueA(
-    IN HANDLE Handle,
-    IN HKEY hKey,
-    IN OPTIONAL PCSTR pszSubKey,
-    IN OPTIONAL PCSTR pszValue,
-    IN OPTIONAL REG_DATA_TYPE_FLAGS Flags,
-    OUT PDWORD pdwType,
-    OUT PBYTE pData,
-    IN OUT PDWORD pcbData
-    )
-{
-    DWORD dwError = 0;
-
-    if (!RegSrvCheckAccessRight(Handle, REG_READ))
-    {
-        dwError = LW_ERROR_ACCESS_DENIED;
-        BAIL_ON_REG_ERROR(dwError);
-    }
-
-    dwError = gpRegProvider->pfnRegSrvGetValueA(
-            Handle,
-            hKey,
-            pszSubKey,
-            pszValue,
-            Flags,
-            pdwType,
-            pData,
-            pcbData);
-    BAIL_ON_REG_ERROR(dwError);
-
-
-error:
-    return dwError;
-
-}
-
-DWORD
 RegSrvGetValueW(
     IN HANDLE Handle,
     IN HKEY hKey,
@@ -461,45 +387,6 @@ RegSrvGetValueW(
 
 error:
     return dwError;
-}
-
-DWORD
-RegSrvEnumValueA(
-    IN HANDLE Handle,
-    IN HKEY hKey,
-    IN DWORD dwIndex,
-    OUT PSTR pszValueName, /*buffer hold valueName*/
-    IN OUT PDWORD pcchValueName, /*input - buffer pValueName length*/
-    IN PDWORD pReserved,
-    OUT OPTIONAL PDWORD pType,
-    OUT OPTIONAL PBYTE pData,/*buffer hold value content*/
-    IN OUT OPTIONAL PDWORD pcbData /*input - buffer pData length*/
-    )
-{
-    DWORD dwError = 0;
-
-    if (!RegSrvCheckAccessRight(Handle, REG_READ))
-    {
-        dwError = LW_ERROR_ACCESS_DENIED;
-        BAIL_ON_REG_ERROR(dwError);
-    }
-
-    dwError = gpRegProvider->pfnRegSrvEnumValueA(
-            Handle,
-            hKey,
-            dwIndex,
-            pszValueName,
-            pcchValueName,
-            pReserved,
-            pType,
-            pData,
-            pcbData);
-    BAIL_ON_REG_ERROR(dwError);
-
-
-error:
-    return dwError;
-
 }
 
 DWORD
@@ -658,73 +545,6 @@ RegSrvQueryMultipleValues(
             pValue,
             pdwTotalsize);
     BAIL_ON_REG_ERROR(dwError);
-
-error:
-    return dwError;
-}
-
-DWORD
-RegSrvQueryValueExA(
-    IN HANDLE Handle,
-    IN HKEY hKey,
-    IN PCSTR pszValueName,
-    IN PDWORD pReserved,
-    OUT PDWORD pType,
-    OUT PBYTE pData,
-    IN OUT PDWORD pcbData
-    )
-{
-    DWORD dwError = 0;
-
-    if (!RegSrvCheckAccessRight(Handle, REG_READ))
-    {
-        dwError = LW_ERROR_ACCESS_DENIED;
-        BAIL_ON_REG_ERROR(dwError);
-    }
-
-    dwError = gpRegProvider->pfnRegSrvQueryValueExA(
-            Handle,
-            hKey,
-            pszValueName,
-            pReserved,
-            pType,
-            pData,
-            pcbData);
-    BAIL_ON_REG_ERROR(dwError);
-
-error:
-    return dwError;
-}
-
-DWORD
-RegSrvQueryValueExW(
-    IN HANDLE Handle,
-    IN HKEY hKey,
-    IN PCWSTR pValueName,
-    IN PDWORD pReserved,
-    OUT PDWORD pType,
-    OUT PBYTE pData,
-    IN OUT PDWORD pcbData
-    )
-{
-    DWORD dwError = 0;
-
-    if (!RegSrvCheckAccessRight(Handle, REG_READ))
-    {
-        dwError = LW_ERROR_ACCESS_DENIED;
-        BAIL_ON_REG_ERROR(dwError);
-    }
-
-    dwError = gpRegProvider->pfnRegSrvQueryValueExW(
-            Handle,
-            hKey,
-            pValueName,
-            pReserved,
-            pType,
-            pData,
-            pcbData);
-    BAIL_ON_REG_ERROR(dwError);
-
 
 error:
     return dwError;

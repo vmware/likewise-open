@@ -197,26 +197,26 @@ namespace Likewise.LMC.Registry
         public static int ApiRegOpenKeyExA(IntPtr hRegConnection, IntPtr hKey, string sKeyname, out IntPtr phkResult)
         {
             int iResult = 0;
-            phkResult = IntPtr.Zero;
+			IntPtr phResult;
 
             try
             {
                 Logger.Log(string.Format("RegistryInteropWrapper.RegOpenKeyExA(hRegConnection={0}, hKey={1} sSubkey={2}),  is called ",
                           hRegConnection.ToInt32().ToString(), hKey.ToInt32().ToString(), sKeyname, Logger.RegistryViewerLoglevel));
 
-                StringBuilder sbKeyname = new StringBuilder();
-                sbKeyname.Append(sKeyname);
-
                 iResult = RegistryInterop.RegOpenKeyExA(hRegConnection,
                                                 hKey,
-                                                sbKeyname,
+                                                sKeyname,
                                                 0,
                                                 RegistryApi.RegSAM.AllAccess,
-                                                out phkResult);
+                                                out phResult);
                 if (iResult != 0)
                 {
                     Logger.Log(string.Format("RegistryInteropWrapper.RegOpenKeyExA is returns ret={0}", iResult), Logger.RegistryViewerLoglevel);
+					 phkResult = IntPtr.Zero;
                 }
+
+				phkResult = phResult;
 
                 Logger.Log(string.Format("RegistryInterop.RegOpenKeyExA() is returns iResult={0}, \n" +
                                 "out phkResult={1}", iResult.ToString(), phkResult.ToInt32().ToString()), Logger.RegistryViewerLoglevel);
@@ -224,6 +224,7 @@ namespace Likewise.LMC.Registry
             catch (Exception ex)
             {
                 Logger.LogException("RegistryInteropWrapper.RegOpenKeyExA", ex);
+				phkResult = IntPtr.Zero;
             }
 
             return iResult;

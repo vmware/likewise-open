@@ -292,7 +292,8 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
                                 Type type = _pluginNode.NodeType;
 
                                 object o = Activator.CreateInstance(type);
-                                if (o is IPlugInPage) {
+                                if (o is IPlugInPage)
+                                {
                                     ((IPlugInPage)o).SetPlugInInfo(_container, _pluginNode.Plugin, _pluginNode, (LWTreeView)_pluginNode.TreeView, _pluginNode.sc);
                                 }
                             }
@@ -305,9 +306,11 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
                             return;
                         }
                     }
-                    else {
+                    else
+                    {
                         IsConnectionSuccess = true;
                     }
+                    _pluginNode.Text = string.Concat(Properties.Resources.ServiceManager, " on ", hostName);
                 }
             }
         }

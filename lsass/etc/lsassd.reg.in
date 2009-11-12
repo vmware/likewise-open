@@ -52,7 +52,7 @@
 "DomainManagerCheckDomainOnlineInterval"=dword:0000012C
 "DomainManagerUnknownDomainCacheTimeout"=dword:00000E10
 "CacheType"="sqlite"
-"MemoryCacheSizeCap"=dword:00002710
+"MemoryCacheSizeCap"=dword:00000000
 
 [HKEY_THIS_MACHINE\Services\lsass\Parameters\Providers\Local]
 "Id"="lsa-local-provider"

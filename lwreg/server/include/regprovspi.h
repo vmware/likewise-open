@@ -103,20 +103,6 @@ DWORD
 
 typedef
 DWORD
-(*PFNRegSrvEnumKeyExA)(
-    HANDLE Handle,
-    HKEY hKey,
-    DWORD dwIndex,
-    PSTR pszName,
-    PDWORD pcName,
-    PDWORD pReserved,
-    PSTR pszClass,
-    PDWORD pcClass,
-    PFILETIME pftLastWriteTime
-    );
-
-typedef
-DWORD
 (*PFNRegSrvEnumKeyExW)(
     HANDLE Handle,
     HKEY hKey,
@@ -131,20 +117,6 @@ DWORD
 
 typedef
 DWORD
-(*PFNRegSrvEnumValueA)(
-    HANDLE Handle,
-    HKEY hKey,
-    DWORD dwIndex,
-    PSTR pszValueName,
-    PDWORD pcchValueName,
-    PDWORD pReserved,
-    PDWORD pType,
-    PBYTE pData,
-    PDWORD pcbData
-    );
-
-typedef
-DWORD
 (*PFNRegSrvEnumValueW)(
     HANDLE Handle,
     HKEY hKey,
@@ -154,19 +126,6 @@ DWORD
     PDWORD pReserved,
     PDWORD pType,
     PBYTE pData,
-    PDWORD pcbData
-    );
-
-typedef
-DWORD
-(*PFNRegSrvGetValueA)(
-    HANDLE Handle,
-    HKEY hKey,
-    PCSTR pszSubKey,
-    PCSTR pszValue,
-    REG_DATA_TYPE_FLAGS Flags,
-    PDWORD pdwType,
-    PBYTE pvData,
     PDWORD pcbData
     );
 
@@ -243,30 +202,6 @@ DWORD
 
 typedef
 DWORD
-(*PFNRegSrvQueryValueExA)(
-    HANDLE Handle,
-    HKEY hKey,
-    PCSTR pszValueName,
-    PDWORD pReserved,
-    PDWORD pType,
-    PBYTE pData,
-    PDWORD pcbData
-    );
-
-typedef
-DWORD
-(*PFNRegSrvQueryValueExW)(
-    HANDLE Handle,
-    HKEY hKey,
-    PCWSTR pValueName,
-    PDWORD pReserved,
-    PDWORD pType,
-    PBYTE pData,
-    PDWORD pcbData
-    );
-
-typedef
-DWORD
 (*PFNRegSrvSetValueExW)(
     HANDLE Handle,
     HKEY hKey,
@@ -285,18 +220,13 @@ typedef struct __REGPROV_PROVIDER_FUNCTION_TABLE
     PFNRegSrvDeleteKeyValue      pfnRegSrvDeleteKeyValue;
     PFNRegSrvDeleteValue         pfnRegSrvDeleteValue;
     PFNRegSrvDeleteTree          pfnRegSrvDeleteTree;
-    PFNRegSrvEnumKeyExA          pfnRegSrvEnumKeyExA;
     PFNRegSrvEnumKeyExW          pfnRegSrvEnumKeyExW;
-    PFNRegSrvEnumValueA          pfnRegSrvEnumValueA;
     PFNRegSrvEnumValueW          pfnRegSrvEnumValueW;
-    PFNRegSrvGetValueA           pfnRegSrvGetValueA;
     PFNRegSrvGetValueW           pfnRegSrvGetValueW;
     PFNRegSrvOpenKeyExW          pfnRegSrvOpenKeyExW;
     PFNRegSrvQueryInfoKeyA       pfnRegSrvQueryInfoKeyA;
     PFNRegSrvQueryInfoKeyW       pfnRegSrvQueryInfoKeyW;
     PFNRegSrvQueryMultipleValues pfnRegSrvQueryMultipleValues;
-    PFNRegSrvQueryValueExA       pfnRegSrvQueryValueExA;
-    PFNRegSrvQueryValueExW       pfnRegSrvQueryValueExW;
     PFNRegSrvSetValueExW         pfnRegSrvSetValueExW;
 } REGPROV_PROVIDER_FUNCTION_TABLE, *PREGPROV_PROVIDER_FUNCTION_TABLE;
 

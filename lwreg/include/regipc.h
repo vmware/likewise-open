@@ -69,8 +69,6 @@ typedef enum __REG_IPC_TAG
     REG_R_DELETE_TREE,
     REG_Q_DELETE_VALUE,
     REG_R_DELETE_VALUE,
-    REG_Q_ENUM_KEYA_EX,
-    REG_R_ENUM_KEYA_EX,
     REG_Q_ENUM_KEYW_EX,
     REG_R_ENUM_KEYW_EX,
     REG_Q_QUERY_MULTIPLE_VALUES,
@@ -81,20 +79,12 @@ typedef enum __REG_IPC_TAG
     REG_R_QUERY_INFO_KEYW,
     REG_Q_SET_KEY_VALUE,
     REG_R_SET_KEY_VALUE,
-    REG_Q_ENUM_VALUEA,
-    REG_R_ENUM_VALUEA,
     REG_Q_ENUM_VALUEW,
     REG_R_ENUM_VALUEW,
-    REG_Q_GET_VALUEA,
-    REG_R_GET_VALUEA,
     REG_Q_GET_VALUEW,
     REG_R_GET_VALUEW,
     REG_Q_OPEN_KEYW_EX,
     REG_R_OPEN_KEYW_EX,
-    REG_Q_QUERY_VALUEA_EX,
-    REG_R_QUERY_VALUEA_EX,
-    REG_Q_QUERY_VALUEW_EX,
-    REG_R_QUERY_VALUEW_EX,
     REG_Q_SET_VALUEW_EX,
     REG_R_SET_VALUEW_EX,
 } REG_IPC_TAG;
@@ -211,38 +201,6 @@ typedef struct __REG_IPC_DELETE_VALUE_REQ
 
 // IN HKEY hKey,
 // IN DWORD dwIndex,
-// OUT PSTR pszName,
-// IN OUT PDWORD pcName,
-// IN PDWORD pReserved,
-// IN OUT PSTR pszClass,
-// IN OUT OPTIONAL PDWORD pcClass,
-// OUT OPTIONAL PFILETIME pftLastWriteTime
-
-typedef struct __REG_IPC_ENUM_KEYA_EX_REQ
-{
-    HKEY hKey;
-    DWORD dwIndex;
-    PSTR pszName;
-    DWORD cName;
-    PSTR pszClass;
-    PDWORD pcClass;
-} REG_IPC_ENUM_KEYA_EX_REQ, *PREG_IPC_ENUM_KEYA_EX_REQ;
-
-typedef struct __REG_IPC_ENUM_KEYA_EX_RESPONSE
-{
-    PSTR pszName;
-    DWORD cName;
-    //PWSTR pClass;
-    //PDWORD pcClass;
-    //PFILETIME pftLastWriteTime;
-} REG_IPC_ENUM_KEYA_EX_RESPONSE, *PREG_IPC_ENUM_KEYA_EX_RESPONSE;
-
-/******************************************************************************/
-
-/******************************************************************************/
-
-// IN HKEY hKey,
-// IN DWORD dwIndex,
 // OUT PWSTR pName,
 // IN OUT PDWORD pcName,
 // IN PDWORD pReserved,
@@ -271,17 +229,6 @@ typedef struct __REG_IPC_ENUM_KEY_EX_RESPONSE
 
 /******************************************************************************/
 
-
-typedef struct __REG_IPC_ENUM_VALUEA_REQ
-{
-    HKEY hKey;
-    DWORD dwIndex;
-    PSTR pszName;
-    DWORD cName;
-    PBYTE pValue;
-    DWORD cValue;
-} REG_IPC_ENUM_VALUEA_REQ, *PREG_IPC_ENUM_VALUEA_REQ;
-
 typedef struct __REG_IPC_ENUM_VALUE_REQ
 {
     HKEY hKey;
@@ -291,18 +238,6 @@ typedef struct __REG_IPC_ENUM_VALUE_REQ
     PBYTE pValue;
     DWORD cValue;
 } REG_IPC_ENUM_VALUE_REQ, *PREG_IPC_ENUM_VALUE_REQ;
-
-typedef struct __REG_IPC_ENUM_VALUEA_RESPONSE
-{
-    PSTR pszName;
-    DWORD cName;
-    PBYTE pValue;
-    DWORD cValue;
-    REG_DATA_TYPE type;
-    //PWSTR pClass;
-    //PDWORD pcClass;
-    //PFILETIME pftLastWriteTime;
-} REG_IPC_ENUM_VALUEA_RESPONSE, *PREG_IPC_ENUM_VALUEA_RESPONSE;
 
 typedef struct __REG_IPC_ENUM_VALUE_RESPONSE
 {
@@ -326,16 +261,6 @@ typedef struct __REG_IPC_ENUM_VALUE_RESPONSE
 // OUT OPTIONAL PDWORD pdwType,
 // OUT OPTIONAL PVOID pvData,
 // IN OUT OPTIONAL PDWORD pcbData
-
-typedef struct __REG_IPC_GET_VALUEA_REQ
-{
-    HKEY hKey;
-    PCSTR pszSubKey;
-    PCSTR pszValue;
-    REG_DATA_TYPE_FLAGS Flags;
-    PBYTE pData;
-    DWORD cbData;
-} REG_IPC_GET_VALUEA_REQ, *PREG_IPC_GET_VALUEA_REQ;
 
 typedef struct __REG_IPC_GET_VALUE_REQ
 {

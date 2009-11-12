@@ -65,6 +65,7 @@
     <EnvironmentVariables>
       <EnvironmentVariables>
         <Variable name="LD_LIBRARY_PATH" value="/opt/likewise/lib:/opt/likewise/lib64" />
+        <Variable name="DYLD_LIBRARY_PATH" value="/opt/likewise/lib:/opt/likewise/lib64:/usr/bin" />
       </EnvironmentVariables>
     </EnvironmentVariables>
   </PropertyGroup>
@@ -287,6 +288,10 @@
     <ProjectReference Include="..\ServerControl\ServerControl_Open.csproj">
       <Project>{9F45E041-5B67-48B8-AD13-DD5C40F3364A}</Project>
       <Name>ServerControl_Open</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\OpenPlugins\ServiceManagerPlugin\ServiceManagerPlugin.csproj">
+      <Project>{4842EE9F-B8FF-4C52-9B84-01658A721D5A}</Project>
+      <Name>ServiceManagerPlugin</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />

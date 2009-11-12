@@ -306,8 +306,12 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
         private void EnumChildNodes(List<RegistryEnumKeyInfo> keys,
                                     List<RegistryValueInfo> values)
         {
-            Do_CloseRegKeyHandles(treeNode);            
-            treeNode.IsModified = false;
+			if(treeNode.IsModified)
+			{
+				Do_CloseRegKeyHandles(treeNode);
+				treeNode.Nodes.Clear();
+		treeNode.IsModified = false;
+			}
 
             Dictionary<string, LACTreeNode> nodesAdded = new Dictionary<string, LACTreeNode>();
             Dictionary<string, LACTreeNode> nodesToAdd = new Dictionary<string, LACTreeNode>();
@@ -659,7 +663,10 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                     //Refresh
                     case "&Refresh":
                         if (Configurations.currentPlatform != LikewiseTargetPlatform.Windows)
+                        {
                             Do_CloseRegKeyHandles(treeNode);
+                            treeNode.Nodes.Clear();
+                        }
                         treeNode.IsModified = true;
                         treeNode.sc.ShowControl(treeNode);
                         return;
@@ -719,6 +726,17 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                             if (regKeyInfo != null) Do_DeleteKey(regKeyInfo, node);
                             else if (regValueInfo != null) Do_DeleteKeyValue(regValueInfo);
                         }
+					    if(treeNode.Parent != null)
+						{
+							LACTreeNode parent = treeNode.Parent as LACTreeNode;
+							parent.IsModified = true;
+							treeNode.sc.ShowControl(parent);
+						}
+						else
+						{
+	                        treeNode.IsModified = true;
+	                        treeNode.sc.ShowControl(treeNode);
+						}
                         break;
 
                     //Rename                   
@@ -733,6 +751,17 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                             if (regKeyInfo != null) Do_RenameKey(regKeyInfo, node);
                             else if (regValueInfo != null) Do_RenameKeyValue(regValueInfo, treeNode);
                         }
+                        if(treeNode.Parent != null)
+						{
+							LACTreeNode parent = treeNode.Parent as LACTreeNode;
+							parent.IsModified = true;
+							treeNode.sc.ShowControl(parent);
+						}
+						else
+						{
+	                        treeNode.IsModified = true;
+	                        treeNode.sc.ShowControl(treeNode);
+						}
                         break;
 
                     //Key
@@ -1229,7 +1258,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                         IntPtr phkResult = IntPtr.Zero;
                         RegistryInteropWrapper.ApiRegCreateKeyEx(plugin.handle.Handle, keyInfo.pRootKey, Marshal.StringToHGlobalUni(renameDlg.KeyName), out phkResult);
 
-                        Do_CloseRegKeyHandles(node);
+						Do_CloseRegKeyHandles(node);
                         // Move the old key values & subkeys to new key
                         Do_MoveSubKeys(keyInfo, phkResult);
 
@@ -1950,25 +1979,28 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
         private void Do_CloseRegKeyHandles(LACTreeNode node)
         {
             foreach (LACTreeNode lnode in node.Nodes)
-            { 
+            {
                 if (lnode.Nodes.Count == 0)
-                {                    
-                    RegistryEnumKeyInfo keyInfo = lnode.Tag as RegistryEnumKeyInfo;
-                    if (keyInfo.pKey != IntPtr.Zero)
-                        RegistryInteropWrapper.ApiRegCloseKey(
-                                    plugin.handle.Handle,
-                                    keyInfo.pKey);                    
-                }
-                else
                 {
-                    Do_CloseRegKeyHandles(lnode);
-                    
                     RegistryEnumKeyInfo keyInfo = lnode.Tag as RegistryEnumKeyInfo;
                     if (keyInfo.pKey != IntPtr.Zero)
                         RegistryInteropWrapper.ApiRegCloseKey(
                                     plugin.handle.Handle,
                                     keyInfo.pKey);
+					keyInfo.pKey=IntPtr.Zero;
                 }
+                else
+                {
+                    Do_CloseRegKeyHandles(lnode);
+
+                    RegistryEnumKeyInfo keyInfo = lnode.Tag as RegistryEnumKeyInfo;
+                    if (keyInfo.pKey != IntPtr.Zero)
+                        RegistryInteropWrapper.ApiRegCloseKey(
+                                    plugin.handle.Handle,
+                                    keyInfo.pKey);
+					keyInfo.pKey=IntPtr.Zero;
+                }
+
             }
         }       
 

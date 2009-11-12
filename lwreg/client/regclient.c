@@ -423,17 +423,69 @@ RegEnumKeyExA(
     OUT OPTIONAL PFILETIME pftLastWriteTime
     )
 {
-    return RegTransactEnumKeyExA(
+    DWORD dwError = 0;
+    PWSTR pwszName = NULL;
+    PSTR pszKeyName = NULL;
+    PWSTR pwszClass = NULL;
+
+    if (*pcName == 0)
+    {
+		dwError = LW_ERROR_INSUFFICIENT_BUFFER;
+		BAIL_ON_REG_ERROR(dwError);
+    }
+
+    dwError = LwAllocateMemory(*pcName*sizeof(WCHAR), (LW_PVOID*)&pwszName);
+    BAIL_ON_REG_ERROR(dwError);
+
+    if (pcClass)
+    {
+        if (*pcClass == 0)
+        {
+		dwError = LW_ERROR_INSUFFICIENT_BUFFER;
+		BAIL_ON_REG_ERROR(dwError);
+        }
+
+	dwError = LwAllocateMemory(*pcClass*sizeof(WCHAR), (LW_PVOID*)&pwszName);
+        BAIL_ON_REG_ERROR(dwError);
+
+        dwError = LwAllocateMemory(*pcClass*sizeof(WCHAR), (LW_PVOID*)&pwszClass);
+        BAIL_ON_REG_ERROR(dwError);
+    }
+
+	dwError = RegTransactEnumKeyExW(
         hRegConnection,
         hKey,
         dwIndex,
-        pszName,
+        pwszName,
         pcName,
         pReserved,
-        pszClass,
+        pwszClass,
         pcClass,
         pftLastWriteTime
         );
+	BAIL_ON_REG_ERROR(dwError);
+
+	dwError = LwWc16sToMbs((PCWSTR)pwszName, &pszKeyName);
+	BAIL_ON_REG_ERROR(dwError);
+
+	if (*pcName < strlen(pszKeyName))
+	{
+		dwError = LW_ERROR_INSUFFICIENT_BUFFER;
+		BAIL_ON_REG_ERROR(dwError);
+	}
+
+	memcpy((PBYTE)pszName, (PBYTE)pszKeyName, strlen(pszKeyName));
+	*pcName = strlen(pszKeyName);
+
+cleanup:
+    LW_SAFE_FREE_MEMORY(pwszName);
+    LW_SAFE_FREE_MEMORY(pwszClass);
+    LW_SAFE_FREE_STRING(pszKeyName);
+
+    return dwError;
+
+error:
+    goto cleanup;
 }
 
 REG_API
@@ -473,22 +525,135 @@ RegEnumValueA(
     OUT PSTR pszValueName,
     IN OUT PDWORD pcchValueName,
     IN PDWORD pReserved,
-    OUT OPTIONAL PDWORD pType,
+    OUT OPTIONAL PDWORD pdwType,
     OUT OPTIONAL PBYTE pData,
     IN OUT OPTIONAL PDWORD pcbData
     )
 {
-    return RegTransactEnumValueA(
-        hRegConnection,
-        hKey,
-        dwIndex,
-        pszValueName,
-        pcchValueName,
-        pReserved,
-        pType,
-        pData,
-        pcbData
-        );
+    DWORD dwError = 0;
+    DWORD dwType = REG_UNKNOWN;
+    PWSTR pwszValueName = NULL;
+    PSTR pszTempValueName = NULL;
+    PVOID pTempData = NULL;
+    DWORD cTempData = 0;
+    PBYTE pValue = NULL;
+
+    if (*pcchValueName == 0)
+    {
+		dwError = LW_ERROR_INSUFFICIENT_BUFFER;
+		BAIL_ON_REG_ERROR(dwError);
+    }
+
+    if (pData && !pcbData)
+    {
+	dwError = LW_ERROR_INVALID_PARAMETER;
+	BAIL_ON_REG_ERROR(dwError);
+    }
+
+    dwError = LwAllocateMemory(*pcchValueName*sizeof(WCHAR), (LW_PVOID*)&pwszValueName);
+    BAIL_ON_REG_ERROR(dwError);
+
+    if (pData && pcbData)
+    {
+	cTempData = (*pcbData)*sizeof(WCHAR);
+
+	if (cTempData > MAX_VALUE_LENGTH)
+	{
+		cTempData = MAX_VALUE_LENGTH;
+	}
+
+		dwError = LwAllocateMemory(cTempData*sizeof(WCHAR), &pTempData);
+		BAIL_ON_REG_ERROR(dwError);
+    }
+
+	dwError = RegTransactEnumValueW(
+	        hRegConnection,
+	        hKey,
+	        dwIndex,
+	        pwszValueName,
+	        pcchValueName,
+	        pReserved,
+	        &dwType,
+	        pTempData,
+	        &cTempData);
+	BAIL_ON_REG_ERROR(dwError);
+
+	if (!pTempData)
+	{
+		goto done;
+	}
+
+	if (REG_SZ == dwType)
+	{
+		dwError = LwWc16sToMbs((PCWSTR)pTempData, (PSTR*)&pValue);
+		BAIL_ON_REG_ERROR(dwError);
+
+		cTempData = strlen((PSTR)pValue) + 1;
+	}
+	else if (REG_MULTI_SZ == dwType)
+	{
+		dwError = RegConvertByteStreamW2A((PBYTE)pTempData,
+				                           cTempData,
+				                           &pValue,
+				                           &cTempData);
+		BAIL_ON_REG_ERROR(dwError);
+	}
+	else
+	{
+		dwError = LwAllocateMemory(cTempData, (LW_PVOID*)&pValue);
+		BAIL_ON_REG_ERROR(dwError);
+
+		memcpy(pValue, pTempData, cTempData);
+	}
+
+    if (pData)
+    {
+	memcpy(pData, pValue, cTempData);
+    }
+
+done:
+    dwError = LwWc16sToMbs((PCWSTR)pwszValueName, &pszTempValueName);
+    BAIL_ON_REG_ERROR(dwError);
+
+    if (*pcchValueName < strlen(pszTempValueName))
+    {
+	    dwError = LW_ERROR_INSUFFICIENT_BUFFER;
+	    BAIL_ON_REG_ERROR(dwError);
+    }
+
+    memcpy((PBYTE)pszValueName, (PBYTE)pszTempValueName, strlen(pszTempValueName));
+    *pcchValueName = strlen(pszTempValueName);
+
+    if (pdwType)
+    {
+        *pdwType = dwType;
+    }
+
+    if (pcbData)
+    {
+	*pcbData = cTempData;
+    }
+
+cleanup:
+    LW_SAFE_FREE_MEMORY(pwszValueName);
+    LW_SAFE_FREE_MEMORY(pTempData);
+    LW_SAFE_FREE_MEMORY(pValue);
+    LW_SAFE_FREE_STRING(pszTempValueName);
+
+    return dwError;
+
+error:
+    if (pdwType)
+    {
+        *pdwType = REG_UNKNOWN;
+    }
+    if (pcbData)
+    {
+	    *pcbData = 0;
+    }
+    *pcchValueName = 0;
+
+    goto cleanup;
 }
 
 REG_API
@@ -523,24 +688,128 @@ DWORD
 RegGetValueA(
     IN HANDLE hRegConnection,
     IN HKEY hKey,
-    IN OPTIONAL PCSTR pSubKey,
-    IN OPTIONAL PCSTR pValue,
+    IN OPTIONAL PCSTR pszSubKey,
+    IN OPTIONAL PCSTR pszValueName,
     IN OPTIONAL REG_DATA_TYPE_FLAGS Flags,
     OUT OPTIONAL PDWORD pdwType,
     OUT OPTIONAL PVOID pvData,
     IN OUT OPTIONAL PDWORD pcbData
     )
 {
-    return RegTransactGetValueA(
+    DWORD dwError = 0;
+    DWORD dwType = REG_UNKNOWN;
+    PWSTR pwszSubKey = NULL;
+    PWSTR pwszValueName = NULL;
+    PVOID pTempData = NULL;
+    DWORD cTempData = 0;
+    PBYTE pValue = NULL;
+
+    if (pvData && !pcbData)
+    {
+	dwError = LW_ERROR_INVALID_PARAMETER;
+	BAIL_ON_REG_ERROR(dwError);
+    }
+
+    if (pszSubKey)
+    {
+	dwError = LwMbsToWc16s(pszSubKey, &pwszSubKey);
+	BAIL_ON_REG_ERROR(dwError);
+    }
+
+    if (pszValueName)
+    {
+	dwError = LwMbsToWc16s(pszValueName, &pwszValueName);
+	BAIL_ON_REG_ERROR(dwError);
+    }
+
+    if (pvData && pcbData)
+    {
+	cTempData = (*pcbData)*sizeof(WCHAR);
+
+	if (cTempData > MAX_VALUE_LENGTH)
+	{
+		cTempData = MAX_VALUE_LENGTH;
+	}
+
+		dwError = LwAllocateMemory(cTempData*sizeof(WCHAR), &pTempData);
+		BAIL_ON_REG_ERROR(dwError);
+    }
+
+	dwError = RegTransactGetValueW(
         hRegConnection,
         hKey,
-        pSubKey,
-        pValue,
+        pwszSubKey,
+        pwszValueName,
         Flags,
-        pdwType,
-        pvData,
-        pcbData
-        );
+        &dwType,
+        pTempData,
+        &cTempData);
+	BAIL_ON_REG_ERROR(dwError);
+
+	if (!pTempData)
+	{
+		goto done;
+	}
+
+	if (REG_SZ == dwType)
+	{
+		dwError = LwWc16sToMbs((PCWSTR)pTempData, (PSTR*)&pValue);
+		BAIL_ON_REG_ERROR(dwError);
+
+		cTempData = strlen((PSTR)pValue) + 1;
+	}
+	else if (REG_MULTI_SZ == dwType)
+	{
+		dwError = RegConvertByteStreamW2A((PBYTE)pTempData,
+				                           cTempData,
+				                           &pValue,
+				                           &cTempData);
+		BAIL_ON_REG_ERROR(dwError);
+	}
+	else
+	{
+		dwError = LwAllocateMemory(cTempData, (LW_PVOID*)&pValue);
+		BAIL_ON_REG_ERROR(dwError);
+
+		memcpy(pValue, pTempData, cTempData);
+	}
+
+    if (pvData)
+    {
+	memcpy(pvData, pValue, cTempData);
+    }
+
+done:
+    if (pdwType)
+    {
+        *pdwType = dwType;
+    }
+
+    if (pcbData)
+    {
+	*pcbData = cTempData;
+    }
+
+cleanup:
+    LW_SAFE_FREE_MEMORY(pwszSubKey);
+    LW_SAFE_FREE_MEMORY(pwszValueName);
+    LW_SAFE_FREE_MEMORY(pTempData);
+    LW_SAFE_FREE_MEMORY(pValue);
+
+    return dwError;
+
+error:
+    if (pdwType)
+    {
+        *pdwType = REG_UNKNOWN;
+    }
+
+    if (pcbData)
+    {
+	    *pcbData = 0;
+    }
+
+    goto cleanup;
 }
 
 REG_API
@@ -731,15 +1000,14 @@ RegQueryValueExA(
     IN OUT OPTIONAL PDWORD pcbData
     )
 {
-    return RegTransactQueryValueExA(
-        hRegConnection,
-        hKey,
-        pszValueName,
-        pReserved,
-        pType,
-        pData,
-        pcbData
-        );
+	return RegGetValueA(hRegConnection,
+			            hKey,
+			            NULL,
+			            pszValueName,
+			            RRF_RT_REG_NONE,
+			            pType,
+			            pData,
+			            pcbData);
 }
 
 REG_API
@@ -754,15 +1022,14 @@ RegQueryValueExW(
     IN OUT OPTIONAL PDWORD pcbData
     )
 {
-    return RegTransactQueryValueExW(
-        hRegConnection,
-        hKey,
-        pValueName,
-        pReserved,
-        pType,
-        pData,
-        pcbData
-        );
+	return RegGetValueW(hRegConnection,
+			            hKey,
+			            NULL,
+			            pValueName,
+			            RRF_RT_REG_NONE,
+			            pType,
+			            pData,
+			            pcbData);
 }
 
 REG_API

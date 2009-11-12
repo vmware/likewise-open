@@ -98,14 +98,6 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
                         return;
                     }
                 }
-                else
-                {
-                    if (plugin != null && (plugin.handle == null || plugin.handle.Handle == IntPtr.Zero))
-                    {
-                        Logger.Log("Failed to get the Registry handle");
-                        //return;
-                    }
-                }
             }
             else
                 return;
@@ -212,6 +204,13 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             {
                 ServicePropertiesDlg dlg = new ServicePropertiesDlg(base.container, this, plugin, serviceInfo.serviceName.Trim());
                 dlg.Show();
+
+                if (dlg.commit)
+                {
+                    treeNode.IsModified = true;
+                    treeNode.sc.ShowControl(treeNode);
+                    return;
+                }
             }
             else
             {
@@ -235,19 +234,22 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
                     switch (mi.Text.Trim())
                     {
                         case "&Restart":
-                            if (pHandle != IntPtr.Zero) {
+                            if (pHandle != IntPtr.Zero)
+                            {
                                 iRet = ServiceManagerInteropWrapper.ApiLwSmRefreshService(pHandle);
                             }
                             break;
 
                         case "&Start":
-                            if (pHandle != IntPtr.Zero) {
+                            if (pHandle != IntPtr.Zero)
+                            {
                                 StartAllServiceDependencies(pHandle, ref iRet);
                             }
                             break;
 
                         case "&Stop":
-                            if (pHandle != IntPtr.Zero) {
+                            if (pHandle != IntPtr.Zero)
+                            {
                                 iRet = ServiceManagerInteropWrapper.ApiLwSmStopService(pHandle);
                             }
                             break;
@@ -255,15 +257,17 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
                         default:
                             break;
                     }
-                    if (iRet == (int)41202) {
+                    if (iRet == (int)41202)
+                    {
                         container.ShowError("The service is unable to start.\nPlease check the all its dependencies are started");
                     }
-                    else if (iRet !=0 )
+                    else if (iRet != 0)
                         container.ShowError("Failed to start the specified service: error code:" + iRet);
 
                     ServiceManagerInteropWrapper.ApiLwSmReleaseServiceHandle(pHandle);
 
-                    if (iRet == 0) {
+                    if (iRet == 0)
+                    {
                         treeNode.IsModified = true;
                         treeNode.sc.ShowControl(treeNode);
                         return;

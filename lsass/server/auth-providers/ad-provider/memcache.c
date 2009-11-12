@@ -3054,9 +3054,16 @@ MemCacheStoreGroupsForUser(
 
     while ((pEntry = LsaHashNext(&iterator)) != NULL)
     {
+        PMEM_GROUP_MEMBERSHIP pMember = (PMEM_GROUP_MEMBERSHIP)pEntry->pValue;
+
+        if (pMember->membership.bIsInPac && !pMember->membership.bIsInLdap)
+        {
+            pMember->membership.bIsInPacOnly = TRUE;
+        }
+
         dwError = MemCacheAddMembership(
                     pConn,
-                    (PMEM_GROUP_MEMBERSHIP)pEntry->pValue);
+                    pMember);
         BAIL_ON_LSA_ERROR(dwError);
 
         pEntry->pValue = NULL;

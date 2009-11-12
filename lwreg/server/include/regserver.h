@@ -272,19 +272,6 @@ RegSrvDeleteValue(
     );
 
 DWORD
-RegSrvEnumKeyExA(
-    IN HANDLE Handle,
-    IN HKEY hKey,
-    IN DWORD dwIndex,
-    IN OUT PSTR pszName,
-    IN OUT PDWORD pcName,
-    IN PDWORD pReserved,
-    IN OUT PSTR pszClass,
-    IN OUT OPTIONAL PDWORD pcClass,
-    OUT OPTIONAL PFILETIME pftLastWriteTime
-    );
-
-DWORD
 RegSrvEnumKeyExW(
     IN HANDLE Handle,
     IN HKEY hKey,
@@ -298,19 +285,6 @@ RegSrvEnumKeyExW(
     );
 
 DWORD
-RegSrvEnumValueA(
-    IN HANDLE Handle,
-    IN HKEY hKey,
-    IN DWORD dwIndex,
-    OUT PSTR pszValueName, /*buffer hold valueName*/
-    IN OUT PDWORD pcchValueName, /*input - buffer pValueName length*/
-    IN PDWORD pReserved,
-    OUT OPTIONAL PDWORD pType,
-    OUT OPTIONAL PBYTE pData,/*buffer hold value content*/
-    IN OUT OPTIONAL PDWORD pcbData /*input - buffer pData length*/
-    );
-
-DWORD
 RegSrvEnumValueW(
     IN HANDLE Handle,
     IN HKEY hKey,
@@ -321,18 +295,6 @@ RegSrvEnumValueW(
     OUT OPTIONAL PDWORD pType,
     OUT OPTIONAL PBYTE pData,/*buffer hold value content*/
     IN OUT OPTIONAL PDWORD pcbData /*input - buffer pData length*/
-    );
-
-DWORD
-RegSrvGetValueA(
-    IN HANDLE Handle,
-    IN HKEY hKey,
-    IN OPTIONAL PCSTR pszSubKey,
-    IN OPTIONAL PCSTR pszValue,
-    IN OPTIONAL REG_DATA_TYPE_FLAGS Flags,
-    OUT PDWORD pdwType,
-    OUT PBYTE pData,
-    IN OUT PDWORD pcbData
     );
 
 DWORD
@@ -389,28 +351,6 @@ RegSrvQueryMultipleValues(
     IN DWORD num_vals,
     OUT OPTIONAL PWSTR pValue,
     OUT OPTIONAL PDWORD pdwTotalsize
-    );
-
-DWORD
-RegSrvQueryValueExA(
-    IN HANDLE Handle,
-    IN HKEY hKey,
-    IN PCSTR pszValueName,
-    IN PDWORD pReserved,
-    OUT PDWORD pType,
-    OUT PBYTE pData,
-    IN OUT PDWORD pcbData
-    );
-
-DWORD
-RegSrvQueryValueExW(
-    IN HANDLE Handle,
-    IN HKEY hKey,
-    IN PCWSTR pValueName,
-    IN PDWORD pReserved,
-    OUT PDWORD pType,
-    OUT PBYTE pData,
-    IN OUT PDWORD pcbData
     );
 
 DWORD

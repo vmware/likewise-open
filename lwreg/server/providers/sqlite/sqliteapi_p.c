@@ -635,6 +635,12 @@ GetValueAsBytes(
     PWSTR*  ppwszOutMultiSz = NULL;
     PBYTE   pOutData = NULL;
 
+    if (pData && !pcbData)
+    {
+	dwError = LW_ERROR_INVALID_PARAMETER;
+	BAIL_ON_REG_ERROR(dwError);
+    }
+
     if (LW_IS_NULL_OR_EMPTY_STR(pszValue))
 	{
         goto done;

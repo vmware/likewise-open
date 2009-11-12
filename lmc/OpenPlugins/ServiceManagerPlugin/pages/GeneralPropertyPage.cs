@@ -50,20 +50,22 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
 
         private string serviceName;
         private ServiceManagerPlugin _plugin = null;
+        private ServicePropertiesDlg _parentDlg = null;
 
         #endregion               
 
         #region Construtcors
 
-        public GeneralPropertyPage(IPlugInContainer container, ServiceManagerPlugin plugin, string serviceName)
+        public GeneralPropertyPage(ServicePropertiesDlg parentDlg, IPlugInContainer container, ServiceManagerPlugin plugin, string serviceName)
         {
             InitializeComponent();
 
-            this.pageID = "GeneralPropertyPage";            
+            this.pageID = "GeneralPropertyPage";
             SetPageTitle("General");
             this.serviceName = serviceName;
             this._plugin = plugin;
-        }     
+            this._parentDlg = parentDlg;
+        }
 
         #endregion
 
@@ -232,6 +234,8 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
                     ServiceManagerInteropWrapper.ApiLwSmReleaseServiceHandle(pHandle);
                 }
             }
+
+            _parentDlg.commit = true;
             SetData();
         }
 
@@ -252,6 +256,8 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
                     ServiceManagerInteropWrapper.ApiLwSmReleaseServiceHandle(pHandle);
                 }
             }
+
+			 _parentDlg.commit = true;
             SetData();
         }
 
@@ -263,6 +269,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
                 sc.Pause();
                 sc.WaitForStatus(ServiceControllerStatus.Paused);
             }
+			 _parentDlg.commit = true;
             SetData();
         }
 
@@ -274,8 +281,9 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
                 sc.Continue();
                 sc.WaitForStatus(ServiceControllerStatus.Running);
             }
+			 _parentDlg.commit = true;
             SetData();
-        }        
+        }
 
         private void txtStartParameters_TextChanged(object sender, EventArgs e)
         {
