@@ -98,14 +98,6 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
                         return;
                     }
                 }
-                else
-                {
-                    if (plugin != null && (plugin.handle == null || plugin.handle.Handle == IntPtr.Zero))
-                    {
-                        Logger.Log("Failed to get the Registry handle");
-                        return;
-                    }
-                }
             }
             else
                 return;
