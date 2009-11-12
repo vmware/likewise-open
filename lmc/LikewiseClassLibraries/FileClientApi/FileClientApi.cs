@@ -303,13 +303,13 @@ namespace Likewise.LMC.FileClient
         };
 
         [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-        private static extern IntPtr FindFirstFile(
+        private static extern IntPtr FindFirstFileW(
             string lpFileName,
             out WIN32_FIND_DATA lpFindFileData
             );
 
         [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-        private static extern bool FindNextFile(
+        private static extern bool FindNextFileW(
             IntPtr hFindFile,
             out WIN32_FIND_DATA lpFindFileData
             );
@@ -331,7 +331,7 @@ namespace Likewise.LMC.FileClient
             bool success = false;
             string search = filepath + "\\*";
 
-            IntPtr handle = FindFirstFile(search, out pFindFileData);
+            IntPtr handle = FindFirstFileW(search, out pFindFileData);
 
             if (handle != INVALID_HANDLE_VALUE)
             {
@@ -348,14 +348,14 @@ namespace Likewise.LMC.FileClient
                 if (String.Compare(file.FileName, ".") == 0 ||
                     String.Compare(file.FileName, "..") == 0)
                 {
-                    success = FindNextFile(handle, out pFindFileData);
+                    success = FindNextFileW(handle, out pFindFileData);
                     continue;
                 }
 
                 if (!showHiddenFiles &&
                     file.FileName[0] == '.')
                 {
-                    success = FindNextFile(handle, out pFindFileData);
+                    success = FindNextFileW(handle, out pFindFileData);
                     continue;
                 }
 
@@ -406,7 +406,7 @@ namespace Likewise.LMC.FileClient
 
                 Files.Add(file);
 
-                success = FindNextFile(handle, out pFindFileData);
+                success = FindNextFileW(handle, out pFindFileData);
             }
 
             return Files;
