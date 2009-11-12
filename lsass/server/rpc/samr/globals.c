@@ -51,6 +51,9 @@ rpc_binding_vector_p_t gpSamrSrvBinding = NULL;
 
 SAMR_SRV_CONFIG gSamrSrvConfig;
 
+/* samr server security descriptor */
+PSECURITY_DESCRIPTOR_ABSOLUTE gpSamrSecDesc = NULL;
+
 
 /*
 local variables:
