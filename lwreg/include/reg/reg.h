@@ -322,7 +322,7 @@ RegEnumKeyExA(
     IN OUT PSTR pszName,
     IN OUT PDWORD pcName,
     IN PDWORD pReserved,
-    IN OUT PSTR pszClass,
+    IN OUT OPTIONAL PSTR pszClass,
     IN OUT OPTIONAL PDWORD pcClass,
     OUT OPTIONAL PFILETIME pftLastWriteTime
     );
@@ -342,15 +342,15 @@ RegEnumKeyExW(
 
 DWORD
 RegEnumValueA(
-    HANDLE hRegConnection,
-    HKEY hKey,
-    DWORD dwIndex,
-    PSTR pszValueName,
-    PDWORD pcchValueName,
-    PDWORD pReserved,
-    PDWORD pType,
-    PBYTE pData,
-    PDWORD pcbData
+    IN HANDLE hRegConnection,
+    IN HKEY hKey,
+    IN DWORD dwIndex,
+    OUT PSTR pszValueName,
+    IN OUT PDWORD pcchValueName,
+    IN OPTIONAL PDWORD pReserved,
+    OUT OPTIONAL PDWORD pdwType,
+    OUT OPTIONAL PBYTE pData,
+    IN OUT OPTIONAL PDWORD pcbData
     );
 
 DWORD

@@ -310,23 +310,6 @@ RegSrvGetValueW(
     );
 
 LWMsgStatus
-RegSrvQueryInfoKeyA(
-    HANDLE Handle,
-    HKEY hKey,
-    PSTR pszClass,
-    PDWORD pcClass,
-    PDWORD pReserved,
-    PDWORD pcSubKeys,
-    PDWORD pcMaxSubKeyLen,
-    PDWORD pcMaxClassLen,
-    PDWORD pcValues,
-    PDWORD pcMaxValueNameLen,
-    PDWORD pcMaxValueLen,
-    PDWORD pcbSecurityDescriptor,
-    PFILETIME pftLastWriteTime
-    );
-
-LWMsgStatus
 RegSrvQueryInfoKeyW(
     HANDLE Handle,
     HKEY hKey,

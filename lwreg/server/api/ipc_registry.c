@@ -586,69 +586,6 @@ error:
 }
 
 LWMsgStatus
-RegSrvIpcQueryInfoKeyA(
-    LWMsgCall* pCall,
-    const LWMsgParams* pIn,
-    LWMsgParams* pOut,
-    void* data
-    )
-{
-    DWORD dwError = 0;
-    PREG_IPC_QUERY_INFO_KEY_REQ pReq = pIn->data;
-    PREG_IPC_QUERY_INFO_KEY_RESPONSE pRegResp = NULL;
-    PREG_IPC_ERROR pError = NULL;
-    DWORD dwSubKeyCount = 0;
-    DWORD dwMaxKeyLength = 0;
-    DWORD dwValueCount = 0;
-    DWORD dwMaxValueNameLen = 0;
-    DWORD dwMaxValueLen = 0;
-
-    dwError = RegSrvQueryInfoKeyA(
-        RegSrvIpcGetSessionData(pCall),
-        pReq->hKey,
-        NULL,
-        pReq->pcClass,
-        NULL,
-        &dwSubKeyCount,
-        &dwMaxKeyLength,
-        NULL,
-        &dwValueCount,
-        &dwMaxValueNameLen,
-        &dwMaxValueLen,
-        NULL,
-        NULL
-        );
-    if (!dwError)
-    {
-        dwError = LwAllocateMemory(sizeof(*pRegResp), OUT_PPVOID(&pRegResp));
-        BAIL_ON_REG_ERROR(dwError);
-
-        pRegResp->cSubKeys = dwSubKeyCount;
-        pRegResp->cMaxSubKeyLen = dwMaxKeyLength;
-        pRegResp->cValues = dwValueCount;
-        pRegResp->cMaxValueNameLen = dwMaxValueNameLen;
-        pRegResp->cMaxValueLen = dwMaxValueLen;
-
-        pOut->tag = REG_R_QUERY_INFO_KEYA;
-        pOut->data = pRegResp;
-    }
-    else
-    {
-        dwError = RegSrvIpcCreateError(dwError, &pError);
-        BAIL_ON_REG_ERROR(dwError);
-
-        pOut->tag = REG_R_ERROR;
-        pOut->data = pError;
-    }
-
-cleanup:
-    return MAP_REG_ERROR_IPC(dwError);
-
-error:
-    goto cleanup;
-}
-
-LWMsgStatus
 RegSrvIpcQueryInfoKeyW(
     LWMsgCall* pCall,
     const LWMsgParams* pIn,
