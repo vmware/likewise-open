@@ -73,7 +73,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
         {
             MPPage page = null;
 
-            page = new GeneralPropertyPage(this._container, this._plugin, serviceName);
+            page = new GeneralPropertyPage(this, this._container, this._plugin, serviceName);
             this.AddPage(page,
                            new MPMenuItem(page.PageID, "General", "General"),
                            MPMenu.POSITION_BEGINING);

@@ -50,20 +50,22 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
 
         private string serviceName;
         private ServiceManagerPlugin _plugin = null;
+        private ServicePropertiesDlg _parentDlg = null;
 
         #endregion               
 
         #region Construtcors
 
-        public GeneralPropertyPage(IPlugInContainer container, ServiceManagerPlugin plugin, string serviceName)
+        public GeneralPropertyPage(ServicePropertiesDlg parentDlg, IPlugInContainer container, ServiceManagerPlugin plugin, string serviceName)
         {
             InitializeComponent();
 
-            this.pageID = "GeneralPropertyPage";            
+            this.pageID = "GeneralPropertyPage";
             SetPageTitle("General");
             this.serviceName = serviceName;
             this._plugin = plugin;
-        }     
+            this._parentDlg = parentDlg;
+        }
 
         #endregion
 
@@ -233,7 +235,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
                 }
             }
 
-			((ServicePropertiesDlg)this.Parent).commit = true;
+            _parentDlg.commit = true;
             SetData();
         }
 
