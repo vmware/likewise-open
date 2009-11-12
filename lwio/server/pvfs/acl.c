@@ -158,11 +158,6 @@ PvfsGetSecurityDescriptorFilename(
                                                              pFullSecDesc,
                                                              &FullSecDescLen);
         }
-#else
-        ntError = PvfsGetSecurityDescriptorFilenamePosix(
-                      pszFilename,
-                      pFullSecDesc,
-                      &FullSecDescLen);
 #endif
 
         /* EA security descriptor support not available or present for
