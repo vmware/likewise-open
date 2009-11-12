@@ -150,8 +150,6 @@ namespace Likewise.LMC.Plugins.LUG
             this.lvMembers.Location = new System.Drawing.Point(17, 118);
             this.lvMembers.MultiSelect = false;
             this.lvMembers.Name = "lvMembers";
-
-            this.lvMembers.Scrollable = Configurations.useListScrolling;
             this.lvMembers.ShowGroups = false;
             this.lvMembers.Size = new System.Drawing.Size(350, 219);
             this.lvMembers.Sorting = System.Windows.Forms.SortOrder.Ascending;
@@ -192,7 +190,7 @@ namespace Likewise.LMC.Plugins.LUG
             // 
             // EditSimpleListPage
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Name = "EditSimpleListPage";
             this.Size = new System.Drawing.Size(386, 380);
             this.pnlData.ResumeLayout(false);

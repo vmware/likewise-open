@@ -64,6 +64,18 @@ namespace Likewise.LMC.Plugins.LUG
             ((System.ComponentModel.ISupportInitialize)(this.errorProvider)).BeginInit();
             this.SuspendLayout();
             // 
+            // btnApply
+            //
+            this.btnApply.Location = new System.Drawing.Point(306, 6);
+            //
+            // btnOK
+            //
+            this.btnOK.Location = new System.Drawing.Point(146, 6);
+            //
+            // btnCancel
+            //
+            this.btnCancel.Location = new System.Drawing.Point(227, 6);
+            //
             // errorProvider
             // 
             this.errorProvider.BlinkStyle = System.Windows.Forms.ErrorBlinkStyle.NeverBlink;
@@ -71,7 +83,7 @@ namespace Likewise.LMC.Plugins.LUG
             // 
             // GroupPropertiesDlg
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.ClientSize = new System.Drawing.Size(390, 440);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));

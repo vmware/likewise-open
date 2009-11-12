@@ -63,7 +63,7 @@ namespace Likewise.LMC.Plugins.LUG
             // 
             // UserPropertiesDlg
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.BackColor = System.Drawing.SystemColors.MenuBar;
             this.ClientSize = new System.Drawing.Size(621, 533);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;

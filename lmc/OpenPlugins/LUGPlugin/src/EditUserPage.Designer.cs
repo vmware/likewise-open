@@ -212,6 +212,7 @@ namespace Likewise.LMC.Plugins.LUG
             // 
             // EditUserPage
             // 
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Name = "EditUserPage";
             this.Size = new System.Drawing.Size(386, 380);
             this.pnlData.ResumeLayout(false);

@@ -95,9 +95,21 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="src\DummyLUGPage.resx">
+      <SubType>Designer</SubType>
+      <DependentUpon>DummyLUGPage.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="src\EditSimpleListPage.resx">
       <DependentUpon>EditSimpleListPage.cs</DependentUpon>
       <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\LocalGroupPage.resx">
+      <SubType>Designer</SubType>
+      <DependentUpon>LocalGroupPage.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\LocalUsersPage.resx">
+      <SubType>Designer</SubType>
+      <DependentUpon>LocalUsersPage.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="src\LUGPage.resx">
       <DependentUpon>LUGPage.cs</DependentUpon>
