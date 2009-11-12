@@ -59,16 +59,15 @@ PvfsGetSecurityDescriptorFile(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PSECURITY_DESCRIPTOR_RELATIVE pFullSecDesc = NULL;
-    ULONG FullSecDescLen = 0;
-#ifdef HAVE_EA_SUPPORT
+    ULONG FullSecDescLen = 1024;
     BOOLEAN bNoStoredSecDesc = FALSE;
-#endif
 
-    FullSecDescLen = 1024;
     do
     {
         ntError = PvfsReallocateMemory((PVOID*)&pFullSecDesc, FullSecDescLen);
         BAIL_ON_NT_STATUS(ntError);
+
+        ntError = STATUS_RESOURCE_DATA_NOT_FOUND;
 
 #ifdef HAVE_EA_SUPPORT
         /* Try to get from EA but short circuit future attempts this go
@@ -80,24 +79,41 @@ PvfsGetSecurityDescriptorFile(
                           pFullSecDesc,
                           &FullSecDescLen);
         }
-#else
-        ntError = PvfsGetSecurityDescriptorPosix(
-                      pCcb,
-                      pFullSecDesc,
-                      &FullSecDescLen);
 #endif
 
-        if (ntError == STATUS_BUFFER_TOO_SMALL) {
+        /* EA security descriptor support not available or present for
+           this object */
+
+        if (ntError == STATUS_RESOURCE_DATA_NOT_FOUND)
+        {
+            bNoStoredSecDesc = TRUE;
+            ntError = PvfsGetSecurityDescriptorPosix(
+                          pCcb,
+                          pFullSecDesc,
+                          &FullSecDescLen);
+        }
+
+        /* Need more space, else fail */
+
+        if (ntError == STATUS_BUFFER_TOO_SMALL)
+        {
             FullSecDescLen *= 2;
         }
+        else
+        {
+            BAIL_ON_NT_STATUS(ntError);
+        }
+
+
     } while ((ntError != STATUS_SUCCESS) &&
              (FullSecDescLen <= SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE));
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = RtlQuerySecurityDescriptorInfo(SecInfo,
-                                             pSecDesc,
-                                             pSecDescLen,
-                                             pFullSecDesc);
+    ntError = RtlQuerySecurityDescriptorInfo(
+                  SecInfo,
+                  pSecDesc,
+                  pSecDescLen,
+                  pFullSecDesc);
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
@@ -123,16 +139,15 @@ PvfsGetSecurityDescriptorFilename(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PSECURITY_DESCRIPTOR_RELATIVE pFullSecDesc = NULL;
-    ULONG FullSecDescLen = 0;
-#ifdef HAVE_EA_SUPPORT
+    ULONG FullSecDescLen = 1024;
     BOOLEAN bNoStoredSecDesc = FALSE;
-#endif
 
-    FullSecDescLen = 1024;
     do
     {
         ntError = PvfsReallocateMemory((PVOID*)&pFullSecDesc, FullSecDescLen);
         BAIL_ON_NT_STATUS(ntError);
+
+        ntError = STATUS_RESOURCE_DATA_NOT_FOUND;
 
 #ifdef HAVE_EA_SUPPORT
         /* Try to get from EA but short circuit future attempts this go
@@ -150,17 +165,38 @@ PvfsGetSecurityDescriptorFilename(
                       &FullSecDescLen);
 #endif
 
-        if (ntError == STATUS_BUFFER_TOO_SMALL) {
+        /* EA security descriptor support not available or present for
+           this object */
+
+        if (ntError == STATUS_RESOURCE_DATA_NOT_FOUND)
+        {
+            bNoStoredSecDesc = TRUE;
+            ntError = PvfsGetSecurityDescriptorFilenamePosix(
+                          pszFilename,
+                          pFullSecDesc,
+                          &FullSecDescLen);
+        }
+
+        /* Need more space, else fail */
+
+        if (ntError == STATUS_BUFFER_TOO_SMALL)
+        {
             FullSecDescLen *= 2;
         }
+        else
+        {
+            BAIL_ON_NT_STATUS(ntError);
+        }
+
     } while ((ntError != STATUS_SUCCESS) &&
              (FullSecDescLen <= SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE));
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = RtlQuerySecurityDescriptorInfo(SecInfo,
-                                             pSecDesc,
-                                             pSecDescLen,
-                                             pFullSecDesc);
+    ntError = RtlQuerySecurityDescriptorInfo(
+                  SecInfo,
+                  pSecDesc,
+                  pSecDescLen,
+                  pFullSecDesc);
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
@@ -186,13 +222,13 @@ PvfsSetSecurityDescriptorFile(
 {
     NTSTATUS ntError = STATUS_ACCESS_DENIED;
     PSECURITY_DESCRIPTOR_RELATIVE pSDCur = NULL;
-    ULONG SDCurLen = 0;
+    ULONG SDCurLen = 1024;
     PSECURITY_DESCRIPTOR_RELATIVE pNewSecDesc = NULL;
     ULONG NewSecDescLen = 0;
-    SECURITY_INFORMATION SecInfoAll = OWNER_SECURITY_INFORMATION |
-                                      GROUP_SECURITY_INFORMATION |
-                                      DACL_SECURITY_INFORMATION |
-                                      SACL_SECURITY_INFORMATION;
+    SECURITY_INFORMATION SecInfoAll = (OWNER_SECURITY_INFORMATION |
+                                       GROUP_SECURITY_INFORMATION |
+                                       DACL_SECURITY_INFORMATION |
+                                       SACL_SECURITY_INFORMATION);
 
     /* Sanity checks */
 
@@ -203,7 +239,6 @@ PvfsSetSecurityDescriptorFile(
 
     /* Retrieve the existing SD and merge with the incoming one */
 
-    SDCurLen = 1024;
     do
     {
         ntError = PvfsReallocateMemory((PVOID*)&pSDCur, SDCurLen);
