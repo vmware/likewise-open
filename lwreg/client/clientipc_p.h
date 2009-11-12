@@ -211,25 +211,13 @@ RegTransactEnumValueW(
     );
 
 DWORD
-RegTransactGetValueA(
-    IN HANDLE hConnection,
-    IN HKEY hKey,
-    IN OPTIONAL PCSTR pszSubKey,
-    IN OPTIONAL PCSTR pszValue,
-    IN OPTIONAL REG_DATA_TYPE_FLAGS Flags,
-    OUT OPTIONAL PDWORD pdwType,
-    OUT OPTIONAL PVOID pvData,
-    IN OUT OPTIONAL PDWORD pcbData
-    );
-
-DWORD
 RegTransactGetValueW(
     IN HANDLE hConnection,
     IN HKEY hKey,
     IN OPTIONAL PCWSTR pSubKey,
     IN OPTIONAL PCWSTR pValue,
     IN OPTIONAL REG_DATA_TYPE_FLAGS Flags,
-    OUT OPTIONAL PDWORD pdwType,
+    OUT PDWORD pdwType,
     OUT OPTIONAL PVOID pvData,
     IN OUT OPTIONAL PDWORD pcbData
     );
@@ -242,28 +230,6 @@ RegTransactQueryMultipleValues(
     DWORD num_vals,
     PWSTR pValueBuf,
     PDWORD dwTotsize
-    );
-
-DWORD
-RegTransactQueryValueExA(
-    IN HANDLE hConnection,
-    IN HKEY hKey,
-    IN OPTIONAL PCSTR pszValueName,
-    IN PDWORD pReserved,
-    OUT OPTIONAL PDWORD pType,
-    OUT OPTIONAL PBYTE pData,
-    IN OUT OPTIONAL PDWORD pcbData
-    );
-
-DWORD
-RegTransactQueryValueExW(
-    HANDLE Handle,
-    HKEY hKey,
-    PCWSTR pValueName,
-    PDWORD pReserved,
-    PDWORD pType,
-    PBYTE pData,
-    PDWORD pcbData
     );
 
 DWORD

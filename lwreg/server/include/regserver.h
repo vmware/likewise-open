@@ -311,18 +311,6 @@ RegSrvEnumValueW(
     );
 
 DWORD
-RegSrvGetValueA(
-    IN HANDLE Handle,
-    IN HKEY hKey,
-    IN OPTIONAL PCSTR pszSubKey,
-    IN OPTIONAL PCSTR pszValue,
-    IN OPTIONAL REG_DATA_TYPE_FLAGS Flags,
-    OUT PDWORD pdwType,
-    OUT PBYTE pData,
-    IN OUT PDWORD pcbData
-    );
-
-DWORD
 RegSrvGetValueW(
     IN HANDLE Handle,
     IN HKEY hKey,
@@ -376,28 +364,6 @@ RegSrvQueryMultipleValues(
     IN DWORD num_vals,
     OUT OPTIONAL PWSTR pValue,
     OUT OPTIONAL PDWORD pdwTotalsize
-    );
-
-DWORD
-RegSrvQueryValueExA(
-    IN HANDLE Handle,
-    IN HKEY hKey,
-    IN PCSTR pszValueName,
-    IN PDWORD pReserved,
-    OUT PDWORD pType,
-    OUT PBYTE pData,
-    IN OUT PDWORD pcbData
-    );
-
-DWORD
-RegSrvQueryValueExW(
-    IN HANDLE Handle,
-    IN HKEY hKey,
-    IN PCWSTR pValueName,
-    IN PDWORD pReserved,
-    OUT PDWORD pType,
-    OUT PBYTE pData,
-    IN OUT PDWORD pcbData
     );
 
 DWORD

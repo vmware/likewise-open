@@ -129,14 +129,6 @@ RegSrvIpcEnumValueW(
     );
 
 LWMsgStatus
-RegSrvIpcGetValueA(
-    LWMsgCall* pCall,
-    const LWMsgParams* pIn,
-    LWMsgParams* pOut,
-    void* data
-    );
-
-LWMsgStatus
 RegSrvIpcGetValueW(
     LWMsgCall* pCall,
     const LWMsgParams* pIn,
@@ -170,22 +162,6 @@ RegSrvIpcQueryInfoKeyW(
 
 LWMsgStatus
 RegSrvIpcQueryMultipleValues(
-    LWMsgCall* pCall,
-    const LWMsgParams* pIn,
-    LWMsgParams* pOut,
-    void* data
-    );
-
-LWMsgStatus
-RegSrvIpcQueryValueExA(
-    LWMsgCall* pCall,
-    const LWMsgParams* pIn,
-    LWMsgParams* pOut,
-    void* data
-    );
-
-LWMsgStatus
-RegSrvIpcQueryValueExW(
     LWMsgCall* pCall,
     const LWMsgParams* pIn,
     LWMsgParams* pOut,

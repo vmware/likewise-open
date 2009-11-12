@@ -370,8 +370,8 @@ DWORD
 RegGetValueA(
     IN HANDLE hRegConnection,
     IN HKEY hKey,
-    IN OPTIONAL PCSTR pszSubKey,
-    IN OPTIONAL PCSTR pszValue,
+    IN OPTIONAL PCSTR pSubKey,
+    IN OPTIONAL PCSTR pszValueName,
     IN OPTIONAL REG_DATA_TYPE_FLAGS Flags,
     OUT OPTIONAL PDWORD pdwType,
     OUT OPTIONAL PVOID pvData,

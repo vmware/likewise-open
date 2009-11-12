@@ -63,15 +63,12 @@ REGPROV_PROVIDER_FUNCTION_TABLE gRegSqliteProviderAPITable =
         &SqliteEnumKeyEx,
         &SqliteEnumValueA,
         &SqliteEnumValueW,
-        &SqliteGetValueA,
-        &SqliteGetValueW,
+        &SqliteGetValue,
         &SqliteOpenKeyEx,
         &SqliteQueryInfoKeyA,
         &SqliteQueryInfoKeyW,
         &SqliteQueryMultipleValues,
-        &SqliteQueryValueExA,
-        &SqliteQueryValueExW,
-        &SqliteSetValueExW,
+        &SqliteSetValueEx,
 };
 
 REG_SRV_API_KEYLOOKUP gActiveKeyList =

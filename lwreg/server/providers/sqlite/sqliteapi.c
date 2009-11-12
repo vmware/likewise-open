@@ -605,7 +605,7 @@ error:
 }
 
 DWORD
-SqliteSetValueExW(
+SqliteSetValueEx(
     IN HANDLE Handle,
     IN HKEY hKey,
     IN OPTIONAL PCWSTR pValueName,
@@ -758,16 +758,14 @@ GetRegDataType(
     return dataType;
 }
 
-static
 DWORD
-SqliteGetValueInternal(
+SqliteGetValue(
     IN HANDLE Handle,
     IN HKEY hKey,
-    IN BOOLEAN bDoAnsi,
     IN OPTIONAL PCWSTR pSubKey,
     IN OPTIONAL PCWSTR pValue,
     IN OPTIONAL REG_DATA_TYPE_FLAGS Flags,
-    OUT OPTIONAL PDWORD pdwType,
+    OUT PDWORD pdwType,
     OUT OPTIONAL PBYTE pData,
     IN OUT OPTIONAL PDWORD pcbData
     )
@@ -821,15 +819,12 @@ SqliteGetValueInternal(
 
     dwError = GetValueAsBytes(pRegEntry->type,
                               (PCSTR)pRegEntry->pszValue,
-                              bDoAnsi,
+                              FALSE,
                               pData,
                               pcbData);
     BAIL_ON_REG_ERROR(dwError);
 
-    if (pdwType)
-    {
-        *pdwType = (DWORD)pRegEntry->type;
-    }
+    *pdwType = (DWORD)pRegEntry->type;
 
 cleanup:
     LW_SAFE_FREE_STRING(pszKeyWithSubKeyName);
@@ -840,84 +835,9 @@ cleanup:
     return dwError;
 
 error:
-    if (pdwType)
-    {
-        *pdwType = 0;
-    }
+   *pdwType = 0;
 
     goto cleanup;
-}
-
-DWORD
-SqliteGetValueA(
-    IN HANDLE Handle,
-    IN HKEY hKey,
-    IN OPTIONAL PCSTR pszSubKey,
-    IN OPTIONAL PCSTR pszValue,
-    IN OPTIONAL REG_DATA_TYPE_FLAGS Flags,
-    OUT OPTIONAL PDWORD pdwType,
-    OUT OPTIONAL PBYTE pData,
-    IN OUT OPTIONAL PDWORD pcbData
-    )
-{
-    DWORD dwError = 0;
-    PWSTR pSubKey = NULL;
-    PWSTR pValue = NULL;
-
-    if (pszSubKey)
-    {
-        dwError = LwMbsToWc16s(pszSubKey, &pSubKey);
-        BAIL_ON_REG_ERROR(dwError);
-    }
-
-    if (pszValue)
-    {
-        dwError = LwMbsToWc16s(pszValue, &pValue);
-        BAIL_ON_REG_ERROR(dwError);
-    }
-
-    dwError = SqliteGetValueInternal(Handle,
-                                     hKey,
-                                     TRUE,
-                                     pSubKey,
-                                     pValue,
-                                     Flags,
-                                     pdwType,
-                                     pData,
-                                     pcbData);
-    BAIL_ON_REG_ERROR(dwError);
-
-cleanup:
-    LW_SAFE_FREE_MEMORY(pSubKey);
-    LW_SAFE_FREE_MEMORY(pValue);
-
-    return dwError;
-
-error:
-    goto cleanup;
-}
-
-DWORD
-SqliteGetValueW(
-    IN HANDLE Handle,
-    IN HKEY hKey,
-    IN OPTIONAL PCWSTR pSubKey,
-    IN OPTIONAL PCWSTR pValue,
-    IN OPTIONAL REG_DATA_TYPE_FLAGS Flags,
-    OUT OPTIONAL PDWORD pdwType,
-    OUT OPTIONAL PBYTE pData,
-    IN OUT OPTIONAL PDWORD pcbData
-    )
-{
-    return SqliteGetValueInternal(Handle,
-                                  hKey,
-                                  FALSE,
-                                  pSubKey,
-                                  pValue,
-                                  Flags,
-                                  pdwType,
-                                  pData,
-                                  pcbData);
 }
 
 DWORD
@@ -1329,50 +1249,6 @@ error:
     goto cleanup;
 
     return dwError;
-}
-
-DWORD
-SqliteQueryValueExA(
-    IN HANDLE Handle,
-    IN HKEY hKey,
-    IN PCSTR pszValueName,
-    IN PDWORD pReserved,
-    OUT PDWORD pType,
-    OUT OPTIONAL PBYTE pData,
-    IN OUT OPTIONAL PDWORD pcbData
-    )
-{
-    return SqliteGetValueA(
-             Handle,
-             hKey,
-             NULL,
-             pszValueName,
-             RRF_RT_REG_NONE,
-             pType,
-             pData,
-             pcbData);
-}
-
-DWORD
-SqliteQueryValueExW(
-    IN HANDLE Handle,
-    IN HKEY hKey,
-    IN PCWSTR pValueName,
-    IN PDWORD pReserved,
-    OUT PDWORD pType,
-    OUT OPTIONAL PBYTE pData,
-    IN OUT OPTIONAL PDWORD pcbData
-    )
-{
-    return SqliteGetValueW(
-             Handle,
-             hKey,
-             NULL,
-             pValueName,
-             RRF_RT_REG_NONE,
-             pType,
-             pData,
-             pcbData);
 }
 
 /*delete all subkeys and values of hKey*/

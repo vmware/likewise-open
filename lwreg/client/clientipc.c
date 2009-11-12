@@ -746,96 +746,13 @@ error:
 }
 
 DWORD
-RegTransactGetValueA(
-    IN HANDLE hConnection,
-    IN HKEY hKey,
-    IN OPTIONAL PCSTR pszSubKey,
-    IN OPTIONAL PCSTR pszValue,
-    IN OPTIONAL REG_DATA_TYPE_FLAGS Flags,
-    OUT OPTIONAL PDWORD pdwType,
-    OUT OPTIONAL PVOID pvData,
-    IN OUT OPTIONAL PDWORD pcbData
-    )
-{
-    DWORD dwError = 0;
-    REG_IPC_GET_VALUEA_REQ GetValueReq;
-    PREG_IPC_GET_VALUE_RESPONSE pGetValueResp = NULL;
-    // Do not free pError
-    PREG_IPC_ERROR pError = NULL;
-
-    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
-    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
-    LWMsgCall* pCall = NULL;
-
-    dwError = RegIpcAcquireCall(hConnection, &pCall);
-    BAIL_ON_REG_ERROR(dwError);
-
-    GetValueReq.hKey = hKey;
-    GetValueReq.pszSubKey = pszSubKey;
-    GetValueReq.pszValue = pszValue;
-    GetValueReq.Flags = Flags;
-    GetValueReq.pData = pvData;
-    GetValueReq.cbData = *pcbData;
-
-    in.tag = REG_Q_GET_VALUEA;
-    in.data = &GetValueReq;
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
-    BAIL_ON_REG_ERROR(dwError);
-
-    switch (out.tag)
-    {
-        case REG_R_GET_VALUEA:
-            pGetValueResp = (PREG_IPC_GET_VALUE_RESPONSE) out.data;
-
-            if (pdwType)
-            {
-                *pdwType = pGetValueResp->dwType;
-            }
-
-            if (pvData)
-            {
-                memcpy(pvData, pGetValueResp->pvData, pGetValueResp->cbData);
-            }
-
-            if (pcbData)
-            {
-                *pcbData = pGetValueResp->cbData;
-            }
-
-            break;
-
-        case REG_R_ERROR:
-            pError = (PREG_IPC_ERROR) out.data;
-            dwError = pError->dwError;
-            BAIL_ON_REG_ERROR(dwError);
-            break;
-        default:
-            dwError = EINVAL;
-            BAIL_ON_REG_ERROR(dwError);
-    }
-
-cleanup:
-    if (pCall)
-    {
-        lwmsg_call_destroy_params(pCall, &out);
-        lwmsg_call_release(pCall);
-    }
-
-    return dwError;
-
-error:
-    goto cleanup;
-}
-
-DWORD
 RegTransactGetValueW(
     IN HANDLE hConnection,
     IN HKEY hKey,
     IN OPTIONAL PCWSTR pSubKey,
     IN OPTIONAL PCWSTR pValue,
     IN OPTIONAL REG_DATA_TYPE_FLAGS Flags,
-    OUT OPTIONAL PDWORD pdwType,
+    OUT PDWORD pdwType,
     OUT OPTIONAL PVOID pvData,
     IN OUT OPTIONAL PDWORD pcbData
     )
@@ -871,10 +788,7 @@ RegTransactGetValueW(
         case REG_R_GET_VALUEW:
             pGetValueResp = (PREG_IPC_GET_VALUE_RESPONSE) out.data;
 
-            if (pdwType)
-            {
-                *pdwType = pGetValueResp->dwType;
-            }
+            *pdwType = pGetValueResp->dwType;
 
             if (pvData)
             {
@@ -888,164 +802,6 @@ RegTransactGetValueW(
 
             break;
 
-        case REG_R_ERROR:
-            pError = (PREG_IPC_ERROR) out.data;
-            dwError = pError->dwError;
-            BAIL_ON_REG_ERROR(dwError);
-            break;
-        default:
-            dwError = EINVAL;
-            BAIL_ON_REG_ERROR(dwError);
-    }
-
-cleanup:
-    if (pCall)
-    {
-        lwmsg_call_destroy_params(pCall, &out);
-        lwmsg_call_release(pCall);
-    }
-
-    return dwError;
-
-error:
-    goto cleanup;
-}
-
-DWORD
-RegTransactQueryValueExA(
-    IN HANDLE hConnection,
-    IN HKEY hKey,
-    IN OPTIONAL PCSTR pszValueName,
-    IN PDWORD pReserved,
-    OUT OPTIONAL PDWORD pType,
-    OUT OPTIONAL PBYTE pData,
-    IN OUT OPTIONAL PDWORD pcbData
-    )
-{
-    DWORD dwError = 0;
-    REG_IPC_GET_VALUEA_REQ QueryValueExReq;
-    PREG_IPC_GET_VALUE_RESPONSE pQueryValueResp = NULL;
-    // Do not free pError
-    PREG_IPC_ERROR pError = NULL;
-
-    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
-    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
-    LWMsgCall* pCall = NULL;
-
-    dwError = RegIpcAcquireCall(hConnection, &pCall);
-    BAIL_ON_REG_ERROR(dwError);
-
-    QueryValueExReq.hKey = hKey;
-    QueryValueExReq.pszValue = pszValueName;
-    QueryValueExReq.pData = pData;
-    QueryValueExReq.cbData = *pcbData;
-
-
-    in.tag = REG_Q_QUERY_VALUEA_EX;
-    in.data = &QueryValueExReq;
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
-    BAIL_ON_REG_ERROR(dwError);
-
-    switch (out.tag)
-    {
-        case REG_R_QUERY_VALUEA_EX:
-            pQueryValueResp = (PREG_IPC_GET_VALUE_RESPONSE) out.data;
-
-            if (pType)
-            {
-                *pType = pQueryValueResp->dwType;
-            }
-
-            if (pData)
-            {
-                memcpy(pData, pQueryValueResp->pvData, pQueryValueResp->cbData);
-            }
-
-            if (pcbData)
-            {
-                *pcbData = pQueryValueResp->cbData;
-            }
-            break;
-        case REG_R_ERROR:
-            pError = (PREG_IPC_ERROR) out.data;
-            dwError = pError->dwError;
-            BAIL_ON_REG_ERROR(dwError);
-            break;
-        default:
-            dwError = EINVAL;
-            BAIL_ON_REG_ERROR(dwError);
-    }
-
-cleanup:
-    if (pCall)
-    {
-        lwmsg_call_destroy_params(pCall, &out);
-        lwmsg_call_release(pCall);
-    }
-
-    return dwError;
-
-error:
-    goto cleanup;
-}
-
-DWORD
-RegTransactQueryValueExW(
-    IN HANDLE hConnection,
-    IN HKEY hKey,
-    IN OPTIONAL PCWSTR pValueName,
-    IN PDWORD pReserved,
-    OUT OPTIONAL PDWORD pType,
-    OUT OPTIONAL PBYTE pData,
-    IN OUT OPTIONAL PDWORD pcbData
-    )
-{
-    DWORD dwError = 0;
-    REG_IPC_GET_VALUE_REQ QueryValueExReq;
-    PREG_IPC_GET_VALUE_RESPONSE pQueryValueResp = NULL;
-    // Do not free pError
-    PREG_IPC_ERROR pError = NULL;
-
-    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
-    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
-    LWMsgCall* pCall = NULL;
-
-    dwError = RegIpcAcquireCall(hConnection, &pCall);
-    BAIL_ON_REG_ERROR(dwError);
-
-    QueryValueExReq.hKey = hKey;
-    QueryValueExReq.pValue = pValueName;
-    QueryValueExReq.pData = pData;
-    QueryValueExReq.cbData = *pcbData;
-
-
-    in.tag = REG_Q_QUERY_VALUEW_EX;
-    in.data = &QueryValueExReq;
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
-    BAIL_ON_REG_ERROR(dwError);
-
-    switch (out.tag)
-    {
-        case REG_R_QUERY_VALUEW_EX:
-            pQueryValueResp = (PREG_IPC_GET_VALUE_RESPONSE) out.data;
-
-            if (pType)
-            {
-                *pType = pQueryValueResp->dwType;
-            }
-
-            if (pData)
-            {
-                memcpy(pData, pQueryValueResp->pvData, pQueryValueResp->cbData);
-            }
-
-            if (pcbData)
-            {
-                *pcbData = pQueryValueResp->cbData;
-            }
-            break;
         case REG_R_ERROR:
             pError = (PREG_IPC_ERROR) out.data;
             dwError = pError->dwError;

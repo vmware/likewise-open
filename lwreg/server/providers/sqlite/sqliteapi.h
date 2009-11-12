@@ -105,6 +105,51 @@ SqliteEnumKeyEx(
     );
 
 DWORD
+SqliteSetValueEx(
+    IN HANDLE Handle,
+    IN HKEY hKey,
+    IN OPTIONAL PCWSTR pValueName,
+    IN DWORD Reserved,
+    IN DWORD dwType,
+    IN const BYTE *pData,
+    DWORD cbData
+    );
+
+DWORD
+SqliteDeleteKeyValue(
+    IN HANDLE Handle,
+    IN HKEY hKey,
+    IN OPTIONAL PCWSTR pSubKey,
+    IN OPTIONAL PCWSTR pValueName
+    );
+
+DWORD
+SqliteDeleteValue(
+    IN HANDLE Handle,
+    IN HKEY hKey,
+    IN OPTIONAL PCWSTR pValueName
+    );
+
+DWORD
+SqliteDeleteTree(
+    HANDLE Handle,
+    HKEY hKey,
+    PCWSTR pSubKey
+    );
+
+DWORD
+SqliteGetValue(
+    IN HANDLE Handle,
+    IN HKEY hKey,
+    IN OPTIONAL PCWSTR pSubKey,
+    IN OPTIONAL PCWSTR pValue,
+    IN OPTIONAL REG_DATA_TYPE_FLAGS Flags,
+    OUT PDWORD pdwType,
+    OUT OPTIONAL PBYTE pData,
+    IN OUT OPTIONAL PDWORD pcbData
+    );
+
+DWORD
 SqliteQueryInfoKeyA(
     IN HANDLE Handle,
     IN HKEY hKey,
@@ -139,49 +184,6 @@ SqliteQueryInfoKeyW(
     );
 
 DWORD
-SqliteSetValueExW(
-    IN HANDLE Handle,
-    IN HKEY hKey,
-    IN OPTIONAL PCWSTR pValueName,
-    IN DWORD Reserved,
-    IN DWORD dwType,
-    IN const BYTE *pData,
-    DWORD cbData
-    );
-
-DWORD
-SqliteGetValueA(
-    IN HANDLE Handle,
-    IN HKEY hKey,
-    IN OPTIONAL PCSTR pszSubKey,
-    IN OPTIONAL PCSTR pszValue,
-    IN OPTIONAL REG_DATA_TYPE_FLAGS Flags,
-    OUT OPTIONAL PDWORD pdwType,
-    OUT OPTIONAL PBYTE pData,
-    IN OUT OPTIONAL PDWORD pcbData
-    );
-
-DWORD
-SqliteGetValueW(
-    IN HANDLE Handle,
-    IN HKEY hKey,
-    IN OPTIONAL PCWSTR pSubKey,
-    IN OPTIONAL PCWSTR pValue,
-    IN OPTIONAL REG_DATA_TYPE_FLAGS Flags,
-    OUT OPTIONAL PDWORD pdwType,
-    OUT OPTIONAL PBYTE pData,
-    IN OUT OPTIONAL PDWORD pcbData
-    );
-
-DWORD
-SqliteDeleteKeyValue(
-    IN HANDLE Handle,
-    IN HKEY hKey,
-    IN OPTIONAL PCWSTR pSubKey,
-    IN OPTIONAL PCWSTR pValueName
-    );
-
-DWORD
 SqliteQueryMultipleValues(
     IN HANDLE Handle,
     IN HKEY hKey,
@@ -189,13 +191,6 @@ SqliteQueryMultipleValues(
     IN DWORD num_vals,
     OUT PWSTR pValue,
     OUT PDWORD pdwTotalsize
-    );
-
-DWORD
-SqliteDeleteValue(
-    IN HANDLE Handle,
-    IN HKEY hKey,
-    IN OPTIONAL PCWSTR pValueName
     );
 
 DWORD
@@ -222,35 +217,6 @@ SqliteEnumValueW(
     OUT OPTIONAL PDWORD pType,
     OUT OPTIONAL PBYTE pData,/*buffer hold value content*/
     IN OUT OPTIONAL PDWORD pcbData /*input - buffer pData length*/
-    );
-
-DWORD
-SqliteQueryValueExA(
-    IN HANDLE Handle,
-    IN HKEY hKey,
-    IN PCSTR pszValueName,
-    IN PDWORD pReserved,
-    OUT PDWORD pType,
-    OUT OPTIONAL PBYTE pData,
-    IN OUT OPTIONAL PDWORD pcbData
-    );
-
-DWORD
-SqliteQueryValueExW(
-    IN HANDLE Handle,
-    IN HKEY hKey,
-    IN PCWSTR pValueName,
-    IN PDWORD pReserved,
-    OUT PDWORD pType,
-    OUT OPTIONAL PBYTE pData,
-    IN OUT OPTIONAL PDWORD pcbData
-    );
-
-DWORD
-SqliteDeleteTree(
-    HANDLE Handle,
-    HKEY hKey,
-    PCWSTR pSubKey
     );
 
 #endif /* SQLITEAPI_H_ */
