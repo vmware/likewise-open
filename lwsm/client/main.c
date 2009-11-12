@@ -379,7 +379,7 @@ error:
 
 static
 DWORD
-LwSmStart(
+LwSmStartOnly(
     int argc,
     char** pArgv
     )
@@ -421,7 +421,7 @@ error:
 
 static
 DWORD
-LwSmStartAll(
+LwSmStart(
     int argc,
     char** pArgv
     )
@@ -509,7 +509,7 @@ error:
 
 static
 DWORD
-LwSmStop(
+LwSmStopOnly(
     int argc,
     char** pArgv
     )
@@ -550,7 +550,7 @@ error:
 
 static
 DWORD
-LwSmStopAll(
+LwSmStop(
     int argc,
     char** pArgv
     )
@@ -638,7 +638,7 @@ error:
 
 static
 DWORD
-LwSmRestartAll(
+LwSmRestart(
     int argc,
     char** pArgv
     )
@@ -983,7 +983,7 @@ LwSmProxy(
     dwError = LwSmConfigureSignals();
     BAIL_ON_ERROR(dwError);
 
-    dwError = LwSmStartAll(argc, pArgv);
+    dwError = LwSmStart(argc, pArgv);
     BAIL_ON_ERROR(dwError);
 
     dwError = LwMbsToWc16s(pArgv[1], &pwszServiceName);
@@ -1013,7 +1013,7 @@ LwSmProxy(
     switch (sig)
     {
     case SIGTERM:
-        dwError = LwSmStopAll(argc, pArgv);
+        dwError = LwSmStop(argc, pArgv);
         BAIL_ON_ERROR(dwError);
         break;
     default:
@@ -1048,11 +1048,11 @@ LwSmUsage(
     printf("Usage: %s [ options ... ] <command> ...\n\n", pArgv[0]);
     printf("Commands:\n"
            "    list                       List all known services and their status\n"
-           "    start <service>            Start a service\n"
-           "    start-all <service>        Start a service and all dependencies\n"
-           "    stop <service>             Stop a service\n"
-           "    stop-all <service>         Stop a service and all reverse dependencies\n"
-           "    restart-all <service>      Restart a service and all running reverse dependencies\n"
+           "    start-only <service>       Start a service\n"
+           "    start <service>            Start a service and all dependencies\n"
+           "    stop-only <service>        Stop a service\n"
+           "    stop <service>             Stop a service and all running dependents\n"
+           "    restart <service>          Restart a service and all running dependents\n"
            "    refresh <service>          Refresh service's configuration\n"
            "    proxy <service>            Act as a proxy process for a service\n"
            "    info <service>             Get information about a service\n"
@@ -1094,24 +1094,24 @@ main(
             dwError = LwSmList(argc-i, pArgv+i);
             goto error;
         }
+        else if (!strcmp(pArgv[i], "start-only"))
+        {
+            dwError = LwSmStartOnly(argc-i, pArgv+i);
+            goto error;
+        }
         else if (!strcmp(pArgv[i], "start"))
         {
             dwError = LwSmStart(argc-i, pArgv+i);
             goto error;
         }
-        else if (!strcmp(pArgv[i], "start-all"))
+        else if (!strcmp(pArgv[i], "stop-only"))
         {
-            dwError = LwSmStartAll(argc-i, pArgv+i);
+            dwError = LwSmStopOnly(argc-i, pArgv+i);
             goto error;
         }
         else if (!strcmp(pArgv[i], "stop"))
         {
             dwError = LwSmStop(argc-i, pArgv+i);
-            goto error;
-        }
-        else if (!strcmp(pArgv[i], "stop-all"))
-        {
-            dwError = LwSmStopAll(argc-i, pArgv+i);
             goto error;
         }
         else if (!strcmp(pArgv[i], "info"))
@@ -1129,9 +1129,9 @@ main(
             dwError = LwSmRefresh(argc-i, pArgv+i);
             goto error;
         }
-        else if (!strcmp(pArgv[i], "restart-all"))
+        else if (!strcmp(pArgv[i], "restart"))
         {
-            dwError = LwSmRestartAll(argc-i, pArgv+i);
+            dwError = LwSmRestart(argc-i, pArgv+i);
             goto error;
         }
         else if (!strcmp(pArgv[i], "proxy"))
