@@ -233,6 +233,24 @@ SrvProcessLogoffAndX(
     PSRV_EXEC_CONTEXT pExecContext
     );
 
+// notify.c
+
+NTSTATUS
+SrvBuildNotifyState(
+    PLWIO_SRV_CONNECTION             pConnection,
+    PLWIO_SRV_SESSION                pSession,
+    PLWIO_SRV_TREE                   pTree,
+    PLWIO_SRV_FILE                   pFile,
+    USHORT                           usMid,
+    ULONG                            ulPid,
+    PSRV_CHANGE_NOTIFY_STATE_SMB_V1* ppNotifyState
+    );
+
+VOID
+SrvReleaseNotifyState(
+    PSRV_CHANGE_NOTIFY_STATE_SMB_V1 pNotifyState
+    );
+
 // ntrename.c
 
 NTSTATUS

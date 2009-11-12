@@ -19,6 +19,7 @@ libsrv_protocols_smb1_la_SOURCES = \
     libmain.c        \
     lockx.c          \
     logoff.c         \
+    notify.c         \
     negotiate.c      \
     ntrename.c       \
     nttransact.c     \
