@@ -67,7 +67,7 @@ SamrSrvLookupRids(
     DWORD dwSidLen = 0;
     PSID pSid = NULL;
     PWSTR pwszSid = NULL;
-    DWORD dwSidStrLen = 0;
+    size_t sSidStrLen = 0;
     PWSTR pwszBase = NULL;
     DWORD dwScope = 0;
     DWORD dwFilterLen = 0;
@@ -122,11 +122,11 @@ SamrSrvLookupRids(
                                               pSid);
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
-        dwError = LwWc16sLen(pwszSid, &dwSidStrLen);
+        dwError = LwWc16sLen(pwszSid, &sSidStrLen);
         BAIL_ON_LSA_ERROR(dwError);
 
         dwFilterLen = ((sizeof(wszAttrObjectSid)/sizeof(WCHAR)) - 1) +
-                      dwSidStrLen +
+                      sSidStrLen +
                       (sizeof(wszFilterFmt)/sizeof(wszFilterFmt[0]));
 
         dwError = LwAllocateMemory(sizeof(WCHAR) * dwFilterLen,

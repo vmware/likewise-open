@@ -551,7 +551,7 @@ SamrSrvFillDomainInfo2(
     DomainInfo2 *pInfo2 = NULL;
     PWSTR pwszBase = NULL;
     DWORD dwScope = 0;
-    size_t dwDomainNameLen = 0;
+    size_t sDomainNameLen = 0;
     DWORD dwObjectClass = 0;
     DWORD dwFilterLen = DS_OBJECT_CLASS_UNKNOWN;
     PWSTR pwszFilter = NULL;
@@ -591,13 +591,13 @@ SamrSrvFillDomainInfo2(
                                                &ulRole);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LwWc16sLen(pwszDomainName, &dwDomainNameLen);
+    dwError = LwWc16sLen(pwszDomainName, &sDomainNameLen);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwFilterLen = ((sizeof(wszAttrObjectClass)/sizeof(WCHAR)) - 1) +
                   10 +
                   ((sizeof(wszAttrDomainName)/sizeof(WCHAR)) - 1) +
-                  dwDomainNameLen +
+                  sDomainNameLen +
                   (sizeof(wszFilterFmt)/sizeof(wszFilterFmt[0]));
 
     dwError = LwAllocateMemory(sizeof(WCHAR) * dwFilterLen,
