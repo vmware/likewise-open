@@ -194,20 +194,7 @@ SqliteQueryMultipleValues(
     );
 
 DWORD
-SqliteEnumValueA(
-    IN HANDLE Handle,
-    IN HKEY hKey,
-    IN DWORD dwIndex,
-    OUT PSTR pszValueName, /*buffer hold valueName*/
-    IN OUT PDWORD pcchValueName, /*input - buffer pValueName length*/
-    IN PDWORD pReserved,
-    OUT OPTIONAL PDWORD pType,
-    OUT OPTIONAL PBYTE pData,/*buffer hold value content*/
-    IN OUT OPTIONAL PDWORD pcbData /*input - buffer pData length*/
-    );
-
-DWORD
-SqliteEnumValueW(
+SqliteEnumValue(
     IN HANDLE Handle,
     IN HKEY hKey,
     IN DWORD dwIndex,

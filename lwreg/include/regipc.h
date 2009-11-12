@@ -79,8 +79,6 @@ typedef enum __REG_IPC_TAG
     REG_R_QUERY_INFO_KEYW,
     REG_Q_SET_KEY_VALUE,
     REG_R_SET_KEY_VALUE,
-    REG_Q_ENUM_VALUEA,
-    REG_R_ENUM_VALUEA,
     REG_Q_ENUM_VALUEW,
     REG_R_ENUM_VALUEW,
     REG_Q_GET_VALUEW,
@@ -231,17 +229,6 @@ typedef struct __REG_IPC_ENUM_KEY_EX_RESPONSE
 
 /******************************************************************************/
 
-
-typedef struct __REG_IPC_ENUM_VALUEA_REQ
-{
-    HKEY hKey;
-    DWORD dwIndex;
-    PSTR pszName;
-    DWORD cName;
-    PBYTE pValue;
-    DWORD cValue;
-} REG_IPC_ENUM_VALUEA_REQ, *PREG_IPC_ENUM_VALUEA_REQ;
-
 typedef struct __REG_IPC_ENUM_VALUE_REQ
 {
     HKEY hKey;
@@ -251,18 +238,6 @@ typedef struct __REG_IPC_ENUM_VALUE_REQ
     PBYTE pValue;
     DWORD cValue;
 } REG_IPC_ENUM_VALUE_REQ, *PREG_IPC_ENUM_VALUE_REQ;
-
-typedef struct __REG_IPC_ENUM_VALUEA_RESPONSE
-{
-    PSTR pszName;
-    DWORD cName;
-    PBYTE pValue;
-    DWORD cValue;
-    REG_DATA_TYPE type;
-    //PWSTR pClass;
-    //PDWORD pcClass;
-    //PFILETIME pftLastWriteTime;
-} REG_IPC_ENUM_VALUEA_RESPONSE, *PREG_IPC_ENUM_VALUEA_RESPONSE;
 
 typedef struct __REG_IPC_ENUM_VALUE_RESPONSE
 {

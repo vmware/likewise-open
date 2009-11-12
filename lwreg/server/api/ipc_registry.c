@@ -886,66 +886,6 @@ error:
 }
 
 LWMsgStatus
-RegSrvIpcEnumValueA(
-    LWMsgCall* pCall,
-    const LWMsgParams* pIn,
-    LWMsgParams* pOut,
-    void* data
-    )
-{
-    DWORD dwError = 0;
-    PREG_IPC_ENUM_VALUEA_REQ pReq = pIn->data;
-    PREG_IPC_ENUM_VALUEA_RESPONSE pRegResp = NULL;
-    PREG_IPC_ERROR pError = NULL;
-    REG_DATA_TYPE type = REG_UNKNOWN;
-
-    dwError = RegSrvEnumValueA(
-        RegSrvIpcGetSessionData(pCall),
-        pReq->hKey,
-        pReq->dwIndex,
-        pReq->pszName,
-        &pReq->cName,
-        NULL,
-        &type,
-        pReq->pValue,
-        &pReq->cValue);
-
-    if (!dwError)
-    {
-        dwError = LwAllocateMemory(
-            sizeof(*pRegResp),
-            OUT_PPVOID(&pRegResp));
-        BAIL_ON_REG_ERROR(dwError);
-
-        pRegResp->pszName= pReq->pszName;
-        pRegResp->cName = pReq->cName;
-        pRegResp->pValue = pReq->pValue;
-        pRegResp->cValue = pReq->cValue;
-        pRegResp->type = type;
-
-        pOut->tag = REG_R_ENUM_VALUEA;
-        pOut->data = pRegResp;
-    }
-    else
-    {
-        dwError = RegSrvIpcCreateError(dwError, &pError);
-        BAIL_ON_REG_ERROR(dwError);
-
-        pOut->tag = REG_R_ERROR;
-        pOut->data = pError;
-    }
-
-    pReq->pszName = NULL;
-    pReq->pValue = NULL;
-
-cleanup:
-    return MAP_REG_ERROR_IPC(dwError);
-
-error:
-    goto cleanup;
-}
-
-LWMsgStatus
 RegSrvIpcEnumValueW(
     LWMsgCall* pCall,
     const LWMsgParams* pIn,

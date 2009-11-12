@@ -390,45 +390,6 @@ error:
 }
 
 DWORD
-RegSrvEnumValueA(
-    IN HANDLE Handle,
-    IN HKEY hKey,
-    IN DWORD dwIndex,
-    OUT PSTR pszValueName, /*buffer hold valueName*/
-    IN OUT PDWORD pcchValueName, /*input - buffer pValueName length*/
-    IN PDWORD pReserved,
-    OUT OPTIONAL PDWORD pType,
-    OUT OPTIONAL PBYTE pData,/*buffer hold value content*/
-    IN OUT OPTIONAL PDWORD pcbData /*input - buffer pData length*/
-    )
-{
-    DWORD dwError = 0;
-
-    if (!RegSrvCheckAccessRight(Handle, REG_READ))
-    {
-        dwError = LW_ERROR_ACCESS_DENIED;
-        BAIL_ON_REG_ERROR(dwError);
-    }
-
-    dwError = gpRegProvider->pfnRegSrvEnumValueA(
-            Handle,
-            hKey,
-            dwIndex,
-            pszValueName,
-            pcchValueName,
-            pReserved,
-            pType,
-            pData,
-            pcbData);
-    BAIL_ON_REG_ERROR(dwError);
-
-
-error:
-    return dwError;
-
-}
-
-DWORD
 RegSrvEnumValueW(
     IN HANDLE Handle,
     IN HKEY hKey,

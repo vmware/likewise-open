@@ -113,14 +113,6 @@ RegSrvIpcEnumKeyExW(
     );
 
 LWMsgStatus
-RegSrvIpcEnumValueA(
-    LWMsgCall* pCall,
-    const LWMsgParams* pIn,
-    LWMsgParams* pOut,
-    void* data
-    );
-
-LWMsgStatus
 RegSrvIpcEnumValueW(
     LWMsgCall* pCall,
     const LWMsgParams* pIn,
