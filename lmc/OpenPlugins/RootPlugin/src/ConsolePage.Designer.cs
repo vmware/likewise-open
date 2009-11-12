@@ -66,6 +66,7 @@ namespace Likewise.LMC.Plugins.Root
             this.Lagreimagelist = new System.Windows.Forms.ImageList(this.components);
             this.smallimagelist = new System.Windows.Forms.ImageList(this.components);
             ((System.ComponentModel.ISupportInitialize)(this.picture)).BeginInit();
+            this.pnlHeader.SuspendLayout();
             this.SuspendLayout();
             // 
             // panel1
@@ -118,18 +119,21 @@ namespace Likewise.LMC.Plugins.Root
             // 
             // ConsolePage
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Controls.Add(this.panel4);
             this.Controls.Add(this.panel5);
             this.Controls.Add(this.panel3);
             this.Controls.Add(this.panel1);
             this.Name = "ConsolePage";
+            this.Controls.SetChildIndex(this.pnlHeader, 0);
             this.Controls.SetChildIndex(this.pnlActions, 0);
             this.Controls.SetChildIndex(this.panel1, 0);
             this.Controls.SetChildIndex(this.panel3, 0);
             this.Controls.SetChildIndex(this.panel5, 0);
             this.Controls.SetChildIndex(this.panel4, 0);
             ((System.ComponentModel.ISupportInitialize)(this.picture)).EndInit();
+            this.pnlHeader.ResumeLayout(false);
+            this.pnlHeader.PerformLayout();
             this.ResumeLayout(false);
 
         }

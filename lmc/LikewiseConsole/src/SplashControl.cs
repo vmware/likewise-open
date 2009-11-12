@@ -134,6 +134,7 @@ namespace Likewise.LMC
             // 
             // SplashControl
             // 
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Controls.Add(this.panel1);
             this.Name = "SplashControl";
             this.Size = new System.Drawing.Size(500, 300);

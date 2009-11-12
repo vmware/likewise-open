@@ -72,16 +72,13 @@ namespace Likewise.LMC.ServerControl
             // 
             // MPPage
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.BackColor = System.Drawing.Color.Transparent;
             this.Controls.Add(this.pnlData);
             this.ForeColor = System.Drawing.SystemColors.ControlText;
             this.Name = "MPPage";
             this.Size = new System.Drawing.Size(624, 510);
             this.ResumeLayout(false);
-
-
 
         }
 
