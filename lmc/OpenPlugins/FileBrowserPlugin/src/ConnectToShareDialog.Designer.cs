@@ -38,10 +38,10 @@ namespace Likewise.LMC.Plugins.FileBrowser
             //
             // CancelBtn
             //
-            this.CancelBtn.Location = new System.Drawing.Point(358, 235);
+            this.CancelBtn.Location = new System.Drawing.Point(259, 131);
             this.CancelBtn.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.CancelBtn.Name = "CancelBtn";
-            this.CancelBtn.Size = new System.Drawing.Size(112, 35);
+            this.CancelBtn.Size = new System.Drawing.Size(75, 23);
             this.CancelBtn.TabIndex = 4;
             this.CancelBtn.Text = "&Cancel";
             this.CancelBtn.UseVisualStyleBackColor = true;
@@ -49,10 +49,10 @@ namespace Likewise.LMC.Plugins.FileBrowser
             //
             // OKBtn
             //
-            this.OKBtn.Location = new System.Drawing.Point(237, 235);
+            this.OKBtn.Location = new System.Drawing.Point(176, 131);
             this.OKBtn.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.OKBtn.Name = "OKBtn";
-            this.OKBtn.Size = new System.Drawing.Size(112, 35);
+            this.OKBtn.Size = new System.Drawing.Size(75, 23);
             this.OKBtn.TabIndex = 3;
             this.OKBtn.Text = "&OK";
             this.OKBtn.UseVisualStyleBackColor = true;
@@ -60,20 +60,20 @@ namespace Likewise.LMC.Plugins.FileBrowser
             //
             // tbPath
             //
-            this.tbPath.Location = new System.Drawing.Point(42, 78);
+            this.tbPath.Location = new System.Drawing.Point(16, 39);
             this.tbPath.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.tbPath.Name = "tbPath";
-            this.tbPath.Size = new System.Drawing.Size(427, 26);
+            this.tbPath.Size = new System.Drawing.Size(318, 20);
             this.tbPath.TabIndex = 1;
             this.tbPath.TextChanged += new System.EventHandler(this.tbPath_TextChanged);
             //
             // cbUseAlternateCreds
             //
             this.cbUseAlternateCreds.AutoSize = true;
-            this.cbUseAlternateCreds.Location = new System.Drawing.Point(42, 160);
+            this.cbUseAlternateCreds.Location = new System.Drawing.Point(16, 93);
             this.cbUseAlternateCreds.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.cbUseAlternateCreds.Name = "cbUseAlternateCreds";
-            this.cbUseAlternateCreds.Size = new System.Drawing.Size(247, 24);
+            this.cbUseAlternateCreds.Size = new System.Drawing.Size(166, 17);
             this.cbUseAlternateCreds.TabIndex = 2;
             this.cbUseAlternateCreds.Text = "Use alternate user credentials";
             this.cbUseAlternateCreds.UseVisualStyleBackColor = true;
@@ -81,10 +81,10 @@ namespace Likewise.LMC.Plugins.FileBrowser
             // label1
             //
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(38, 42);
+            this.label1.Location = new System.Drawing.Point(13, 21);
             this.label1.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(236, 20);
+            this.label1.Size = new System.Drawing.Size(159, 13);
             this.label1.TabIndex = 5;
             this.label1.Text = "Enter path to file server location:";
             //
@@ -92,17 +92,17 @@ namespace Likewise.LMC.Plugins.FileBrowser
             //
             this.lblErrorMessage.AutoSize = true;
             this.lblErrorMessage.ForeColor = System.Drawing.Color.DarkRed;
-            this.lblErrorMessage.Location = new System.Drawing.Point(114, 114);
+            this.lblErrorMessage.Location = new System.Drawing.Point(77, 64);
             this.lblErrorMessage.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.lblErrorMessage.Name = "lblErrorMessage";
-            this.lblErrorMessage.Size = new System.Drawing.Size(261, 20);
+            this.lblErrorMessage.Size = new System.Drawing.Size(178, 13);
             this.lblErrorMessage.TabIndex = 6;
             this.lblErrorMessage.Text = "Network resource path not available";
             //
             // ConnectToShareDialog
             //
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
-            this.ClientSize = new System.Drawing.Size(502, 289);
+            this.ClientSize = new System.Drawing.Size(349, 168);
             this.Controls.Add(this.lblErrorMessage);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.tbPath);
