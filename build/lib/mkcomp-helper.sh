@@ -145,7 +145,7 @@ function libtool_rewrite_staging
 {
     if [ ! -z "${BUILD_DESTROY_LAS}" ]; then
         local _la_files=`find ${STAGE_INSTALL_DIR} -name "*.la"`
-        [ -n "${_files}" ]¦& /bin/rm -f ${_files}
+        [ -n "${_la_files}" ] && /bin/rm -f ${_la_files}
         return
     fi
 
