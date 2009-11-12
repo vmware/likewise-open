@@ -157,7 +157,6 @@ typedef struct _SRV_TREE_CONNECT_STATE_SMB_V1
     PSTR                           pszService2;
     PBYTE                          pVolumeInfo;
     USHORT                         usBytesAllocated;
-    PIO_CREATE_SECURITY_CONTEXT    pIoSecContext;
     PWSTR                          pwszNativeFileSystem;
     ULONG                          ulMaximalShareAccessMask;
     ULONG                          ulGuestMaximalShareAccessMask;
