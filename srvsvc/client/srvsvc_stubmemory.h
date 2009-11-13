@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -28,39 +28,13 @@
  * license@likewisesoftware.com
  */
 
-#ifndef _SRVSVC_MEMORY_H_
-#define _SRVSVC_MEMORY_H_
-
-NET_API_STATUS SrvSvcAllocateMemory(void **ptr, size_t len, void *dep);
-
-NET_API_STATUS SrvSvcAddDepMemory(void *ptr, void *dep);
-
-NET_API_STATUS SrvSvcCopyNetConnCtr(uint32 level, srvsvc_NetConnCtr *ctr,
-                                    uint32 *entriesread, uint8 **bufptr);
-
-NET_API_STATUS SrvSvcCopyNetFileCtr(uint32 level, srvsvc_NetFileCtr *ctr,
-                                    uint32 *entriesread, uint8 **bufptr);
-
-NET_API_STATUS SrvSvcCopyNetFileInfo(uint32 level, srvsvc_NetFileInfo *info,
-                                     uint8 **bufptr);
-
-NET_API_STATUS SrvSvcCopyNetSessCtr(uint32 level, srvsvc_NetSessCtr *ctr,
-                                    uint32 *entriesread, uint8 **bufptr);
-
-NET_API_STATUS SrvSvcCopyNetShareCtr(uint32 level, srvsvc_NetShareCtr *ctr,
-                                     uint32 *entriesread, uint8 **bufptr);
-
-NET_API_STATUS SrvSvcCopyNetShareInfo(uint32 level, srvsvc_NetShareInfo *info,
-                                      uint8 **bufptr);
-
-NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
-                                    uint8 **bufptr);
-
-NET_API_STATUS SrvSvcCopyTIME_OF_DAY_INFO(PTIME_OF_DAY_INFO info,
-                                          uint8 **bufptr);
-
-#endif /* _SRVSVC_MEMORY_H_ */
-
+void SrvSvcClearNetConnCtr(uint32 level, srvsvc_NetConnCtr *ctr);
+void SrvSvcClearNetFileCtr(uint32 level, srvsvc_NetFileCtr *ctr);
+void SrvSvcClearNetFileInfo(uint32 level, srvsvc_NetFileInfo *info);
+void SrvSvcClearNetSessCtr(uint32 level, srvsvc_NetSessCtr *ctr);
+void SrvSvcClearNetShareCtr(uint32 level, srvsvc_NetShareCtr *ctr);
+void SrvSvcClearNetShareInfo(uint32 level, srvsvc_NetShareInfo *info);
+void SrvSvcClearNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info);
 
 /*
 local variables:
