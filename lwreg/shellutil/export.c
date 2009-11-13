@@ -155,7 +155,7 @@ RegExportEntry(
         case REG_SZ:
             dwError = RegExportString(valueType,
                                       valueName,
-                                      (PCHAR) value,
+                                      value,
                                       dumpString,
                                       dumpStringLen);
             break;
@@ -250,34 +250,46 @@ error:
 DWORD RegExportString(
     REG_DATA_TYPE valueType,
     PSTR valueName,
-    PCHAR value,
+    PSTR value,
     PSTR *dumpString,
-    PDWORD dumpStringLen)
+    PDWORD retDumpStringLen)
 {
     DWORD bufLen = 0;
     PSTR dumpBuf = NULL;
+    PSTR valueEscName = NULL;
     DWORD dwError = 0;
+    DWORD dumpStringLen = 0;
+    DWORD dwEscapeStringLen = 0;
 
     BAIL_ON_INVALID_POINTER(valueName);
     BAIL_ON_INVALID_POINTER(dumpString);
-    BAIL_ON_INVALID_POINTER(dumpStringLen);
+    BAIL_ON_INVALID_POINTER(retDumpStringLen);
 
     /*
      */
-    bufLen = strlen(valueName) + strlen(value) + 8;
+    dwError = RegShellUtilEscapeString(
+                  value,
+                  &valueEscName,
+                  &dwEscapeStringLen);
+    BAIL_ON_REG_ERROR(dwError);
+
+    bufLen = strlen(valueName) + dwEscapeStringLen + 8;
     dwError = LwAllocateMemory(bufLen, (LW_PVOID) &dumpBuf);
     BAIL_ON_REG_ERROR(dwError);
+
     if (valueType == REG_KEY_DEFAULT)
     {
-        *dumpStringLen = sprintf(dumpBuf, "@=\"%s\"",
-                             (PCHAR) value);
+        dumpStringLen = sprintf(dumpBuf, "@=\"%s\"",
+                            valueEscName);
     }
     else
     {
-        *dumpStringLen = sprintf(dumpBuf, "\"%s\"=\"%s\"",
-                             valueName,
-                             (PCHAR) value);
+        dumpStringLen = sprintf(dumpBuf, "\"%s\"=\"%s\"",
+                            valueName,
+                            valueEscName);
     }
+    LW_SAFE_FREE_MEMORY(valueEscName);
+    *retDumpStringLen = dumpStringLen;
     *dumpString = dumpBuf;
 
 cleanup:
