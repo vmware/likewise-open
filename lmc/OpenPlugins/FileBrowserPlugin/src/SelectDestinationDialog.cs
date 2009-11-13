@@ -8,6 +8,7 @@ using System.Windows.Forms;
 using Likewise.LMC.FileClient;
 using Likewise.LMC.Plugins.FileBrowser.Properties;
 using Likewise.LMC.Plugins.FileBrowser;
+using Likewise.LMC.Utilities;
 
 namespace Likewise.LMC.Plugins.FileBrowser
 {
@@ -15,7 +16,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
     {
         private string path = null;
         private List<string> _activeShares = new List<string>();
-        private FileBrowserIPlugIn.OSTYPE _os = FileBrowserIPlugIn.OSTYPE.LINUX;
+        private LikewiseTargetPlatform platform = Configurations.currentPlatform;
         private string _localDiskRoot = null;
 
         public enum SELECT_DESTINATION_OPERATION
@@ -40,7 +41,6 @@ namespace Likewise.LMC.Plugins.FileBrowser
             string operation = "Copy file";
             Icon ic = Resources.Library;
 
-            _os = fbPlugin.GetOsType();
             _activeShares = fbPlugin.GetActiveShares();
             _localDiskRoot = fbPlugin.GetLocalDiskRoot();
 
@@ -208,7 +208,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
             if (node.Name.Equals("Network"))
             {
                 // Enumerate the child nodes of the "Network" tree node
-                if (_os == FileBrowserIPlugIn.OSTYPE.WINDOWS)
+                if (platform == LikewiseTargetPlatform.Windows)
                 {
                     NetResources = GetNetworkConnections();
                     AddShareNodes(parentNode, NetResources);
