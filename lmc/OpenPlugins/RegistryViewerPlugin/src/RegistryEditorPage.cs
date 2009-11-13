@@ -678,9 +678,11 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
 		                    }
 							else  if (regValueInfo != null)
 		                    {
+								RegistryEnumKeyInfo valueKeyInfo = treeNode.Tag as RegistryEnumKeyInfo;
+
 		                        RegistryInteropWrapper.ApiRegOpenKeyExW(plugin.handle.Handle,
 	                                               plugin.pRootHandle,
-	                                               regValueInfo.sKeyname,
+	                                               valueKeyInfo.sKeyname,
 	                                               out regValueInfo.pParentKey);
 							}
 						}
