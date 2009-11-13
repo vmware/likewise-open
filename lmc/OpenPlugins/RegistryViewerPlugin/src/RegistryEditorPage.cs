@@ -1343,6 +1343,11 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                                         valueInfo.pValueName,
                                         (uint)valueInfo.pType,
                                         pData);
+				if(ret==(int)40158 && container != null )
+				{
+					container.ShowError(this, "Access denied");
+				}
+
                 bSuccess = (ret == 0);
             }
 
