@@ -222,7 +222,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
                 catch (Exception e)
                 {
                     Logger.LogException("EventViewerControl.SetPlugInInfo", e);
-                    container.ShowError("Unable to open the event log; eventlog server may disabled");                    
+                    container.ShowError("Unable to open the event log; eventlog server may be disabled");
                 }
             }
             else if (memberType == EventViewerNodeType.PLUGIN &&
