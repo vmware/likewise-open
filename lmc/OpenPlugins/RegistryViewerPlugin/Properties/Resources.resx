@@ -142,6 +142,9 @@
   <data name="HKEY_LOCAL_MACHINE" xml:space="preserve">
     <value>HKEY_LOCAL_MACHINE</value>
   </data>
+  <data name="HKEY_THIS_MACHINE" xml:space="preserve">
+    <value>HKEY_THIS_MACHINE</value>
+  </data>
   <data name="HKEY_USERS" xml:space="preserve">
     <value>HKEY_USERS</value>
   </data>
