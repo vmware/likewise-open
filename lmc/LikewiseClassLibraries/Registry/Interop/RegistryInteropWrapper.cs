@@ -292,9 +292,7 @@ namespace Likewise.LMC.Registry
 
                     KeyInfo.maxKeyLength = 0;
                     KeyInfo.nameSize = pcName;
-					Console.WriteLine(pNameBuf.ToString());
                     KeyInfo.sKeyname = pNameBuf.ToString().Substring(pNameBuf.ToString().IndexOf(@"\") + 1);
-					Console.WriteLine(KeyInfo.sKeyname);
                     KeyInfo.OrigKey = pNameBuf.ToString();
                     KeyInfo.sClassName = classname;
                     KeyInfo.filetime = lastWriteTime;
@@ -903,6 +901,40 @@ namespace Likewise.LMC.Registry
             return iResult;
         }
 
+		public static int GetRegGetValueW(IntPtr  hRegConnection,
+		                             RegistryValueInfo valueinfo)
+		{
+			int iResult = -1;
+
+            try
+                {
+	                Logger.Log(string.Format("RegistryInteropWrapper.GetRegGetValueW(hRegConnection={0}, skeyname={1}, sValuename={2}),  is called ",
+	                    hRegConnection.ToInt32().ToString(), valueinfo.sKeyname, valueinfo.pValueName), Logger.RegistryViewerLoglevel);
+
+					uint dwValueLen = (uint)MAX_VALUE_LENGTH;
+					byte[] pData = new byte[MAX_VALUE_LENGTH];
+					ulong dwType = RegistryApi.REG_UNKNOWN;
+
+					RegistryInterop.RegGetValueW(hRegConnection,
+		                             valueinfo.pParentKey,
+						 null,
+						 valueinfo.pValueName,
+						 GetTypeFlags(valueinfo.pType),
+						 out dwType,
+						 pData,
+						 ref dwValueLen);
+
+				valueinfo.bDataBuf = pData;
+			}
+			catch (Exception ex)
+            {
+                Logger.LogException("RegistryInteropWrapper.GetRegGetValueW", ex);
+            }
+
+            return iResult;
+		}
+
+
 
         #endregion
 
@@ -938,8 +970,13 @@ namespace Likewise.LMC.Registry
                             foreach (string tempString in sDataArry)
                             {
                                 if (!string.IsNullOrEmpty(tempString))
-                                    sBuilder = sBuilder.AppendLine(tempString);
+								{
+                                    sBuilder = sBuilder.Append(tempString);
+									sBuilder = sBuilder.Append('\0');
+								}
                             }
+							sBuilder = sBuilder.Append('\0');
+							sBuilder = sBuilder.Append('\0');
                             pData = encoder.GetBytes(sBuilder.ToString());
                         }
                         else
@@ -994,11 +1031,11 @@ namespace Likewise.LMC.Registry
                         ValueInfo.bDataBuf = new UnicodeEncoding().GetString(pData).ToString().Split(new char[] { '\0' })[0];
                         break;
 
-                    case (ulong)RegistryApi.REG_MULTI_SZ:                        
-                        string[] sTempArry = new UnicodeEncoding().GetString(pData).Split('\n');
+                    case (ulong)RegistryApi.REG_MULTI_SZ:
+                        string[] sTempArry = new UnicodeEncoding().GetString(pData).Split('\0');
                         foreach (string sValue in sTempArry)
                         {
-                            sbTemp.Append(sValue + " ");                            
+                            sbTemp.Append(sValue + " ");
                         }
                         ValueInfo.bDataBuf = sbTemp.ToString();
                         break;

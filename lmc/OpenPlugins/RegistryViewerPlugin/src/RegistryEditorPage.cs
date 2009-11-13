@@ -1148,8 +1148,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
 	                    {
 	                        if (!string.IsNullOrEmpty(renameDlg.KeyName))
 	                        {
-	                            RegistryInteropWrapper.ApiRegGetValue(plugin.handle.Handle,
-	                                             regValueInfo, out regValueInfo.bDataBuf);
+	                            RegistryInteropWrapper.GetRegGetValueW(plugin.handle.Handle, regValueInfo);
 
 	                            RegistryInteropWrapper.ApiRegDeleteValue(plugin.handle.Handle,
 	                                            regValueInfo.pParentKey,
@@ -1890,8 +1889,9 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                 {
                     foreach (RegistryValueInfo value in values)
                     {
-                        RegistryInteropWrapper.ApiRegGetValue(plugin.handle.Handle,
-                                            value, out value.bDataBuf);
+						value.pParentKey = oldKey.pKey;
+
+                        RegistryInteropWrapper.GetRegGetValueW(plugin.handle.Handle, value);
 
                         RegistryInteropWrapper.ApiRegSetValueEx(
                                         plugin.handle.Handle,
@@ -1921,14 +1921,14 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                         RegistryInteropWrapper.ApiRegCreateKeyEx(
                                         plugin.handle.Handle,
                                         newKey,
-                                        Marshal.StringToHGlobalUni(key.sKeyname),
+                                        Marshal.StringToHGlobalUni(key.sKeyname.LastIndexOf(@"\") < 0 ? key.sKeyname : key.sKeyname.Substring(key.sKeyname.LastIndexOf(@"\")+1)),
                                         out phkResult);
 
                         if (key.pKey == IntPtr.Zero)
-                        {                           
+                        {
                             RegistryInteropWrapper.ApiRegOpenKeyExW(
                                                   plugin.handle.Handle,
-                                                  key.pRootKey,
+                                                  plugin.pRootHandle,
                                                   key.sKeyname,
                                                   out key.pKey);
                         }
