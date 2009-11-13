@@ -393,10 +393,13 @@ SrvBuildReadAndXResponse(
         pReadState->ulBytesToRead = pReadState->ullBytesToRead;
         pReadState->ulKey = pSmbRequest->pHeader->pid;
 
-        ntStatus = SrvAllocateMemory(
-                        pReadState->ulBytesToRead,
-                        (PVOID*)&pReadState->pData);
-        BAIL_ON_NT_STATUS(ntStatus);
+        if (pReadState->ulBytesToRead > 0)
+        {
+            ntStatus = SrvAllocateMemory(
+                pReadState->ulBytesToRead,
+                (PVOID*)&pReadState->pData);
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
 
         SrvPrepareReadStateAsync(pReadState, pExecContext);
 
