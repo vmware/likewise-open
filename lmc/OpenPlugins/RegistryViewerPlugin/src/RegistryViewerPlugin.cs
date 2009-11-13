@@ -68,6 +68,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
         public RegServerHandle handle = null;
         public bool IsConnectionSuccess = false;
         private IntPtr phToken = IntPtr.Zero;
+		public IntPtr pRootHandle;
 
         private List<IPlugIn> _extPlugins = null;
 

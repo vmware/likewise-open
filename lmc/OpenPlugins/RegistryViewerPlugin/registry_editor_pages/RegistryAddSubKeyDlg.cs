@@ -58,6 +58,10 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             {
                 return sKeyName;
             }
+			set
+			{
+				sKeyName = value;
+			}
         }
 
         #endregion
