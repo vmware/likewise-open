@@ -151,23 +151,34 @@ public partial class UserPropertiesDlg : MPContainer
     {
         // EditUserPage
         editUserPage = new EditUserPage();
-        this.AddPage(editUserPage,
-        new MPMenuItem(editUserPage.PageID, Resources.Caption_General, Resources.Caption_General),
-        MPMenu.POSITION_END
-        );
+        this.AddPage(
+            editUserPage,
+            new MPMenuItem(editUserPage.PageID,
+                Resources.Caption_General,
+                Resources.Caption_General),
+            MPMenu.POSITION_END);
         
         
-        userMemberOf =
-        new EditSimpleListPage(Resources.Caption_MemberOf, _username,
-        Resources.LocalGroup_32,
-        "User", "Is a member of the following groups: ", "Group",
-        GetUserDescription, GetGroupList, AddUserToGroup, DeleteUserFromGroup,
-        (EditDialog) this);
+        userMemberOf = new EditSimpleListPage(
+            Resources.Caption_MemberOf,
+            _username,
+            Resources.LocalGroup_32,
+            "User",
+            "Is a member of the following groups: ",
+            "Group",
+            GetUserDescription,
+            GetGroupList,
+            AddUserToGroup,
+            DeleteUserFromGroup,
+            (EditDialog) this);
         
-        this.AddPage(userMemberOf,
-        new MPMenuItem(userMemberOf.PageID, Resources.Caption_MemberOf, Resources.Caption_MemberOf),
-        MPMenu.POSITION_END
-        );
+        this.AddPage(
+            userMemberOf,
+            new MPMenuItem(
+                userMemberOf.PageID,
+                Resources.Caption_MemberOf,
+                Resources.Caption_MemberOf),
+            MPMenu.POSITION_END);
     }
     
     
@@ -179,63 +190,65 @@ public partial class UserPropertiesDlg : MPContainer
     public string[] GetGroupList()
     {
         if (ParentPage == null)
-            return null;
-
-        Hostinfo hn = ParentPage.GetContext() as Hostinfo;
-
-        if (hn != null && hn.creds == null)
-        {
-            string [] groups;
-
-            if (LUGAPI.NetGetGroups(_servername, _username, out groups) == 0)
-            {
-                return groups;
-            }
-            else
-            {
-                return null;
-            }
-        }
-        else
         {
             return null;
         }
+
+        string [] groups;
+
+        uint result = LUGAPI.NetGetGroups(
+            _servername,
+            _username,
+            out groups);
+
+        if ( result == (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+        {
+            return groups;
+        }
+
+        return null;
     }
-    
+
     public bool AddUserToGroup(string group)
     {
         if (ParentPage == null)
-            return false;
-
-        Hostinfo hn = ParentPage.GetContext() as Hostinfo;
-
-        if (hn != null && hn.creds == null)
-        {
-            return !Convert.ToBoolean(LUGAPI.NetAddGroupMember(_servername, group, _username));
-        }
-        else
         {
             return false;
         }
+
+        uint result = LUGAPI.NetAddGroupMember(
+            _servername,
+            group,
+            _username);
+
+        if (result == (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+        {
+            return true;
+        }
+
+        return false;
     }
-    
+
     public bool DeleteUserFromGroup(string group)
     {
         if (ParentPage == null)
-            return false;
-
-        Hostinfo hn = ParentPage.GetContext() as Hostinfo;
-
-        if (hn != null && hn.creds == null)
-        {
-            return !Convert.ToBoolean(LUGAPI.NetDeleteUserFromGroup(_servername, group, _username));
-        }
-        else
         {
             return false;
         }
-    }    
-    
+
+        uint result = LUGAPI.NetDeleteUserFromGroup(
+            _servername,
+            group,
+            _username);
+
+        if (result == (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+        {
+            return true;
+        }
+
+        return false;
+    }
+
     public void SetData(CredentialEntry ce, string servername, string username)
     {
         
