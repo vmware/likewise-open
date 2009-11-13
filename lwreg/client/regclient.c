@@ -975,6 +975,11 @@ RegQueryInfoKeyA(
 		}
 	}
 
+	if (pcValues)
+	{
+		*pcValues = cValues;
+	}
+
 	if (pcMaxValueLen)
 	{
 		*pcMaxValueLen = cMaxValueLen;
@@ -986,6 +991,16 @@ cleanup:
     return dwError;
 
 error:
+    if (pcValues)
+    {
+	    *pcValues = 0;
+    }
+
+    if (pcMaxValueLen)
+    {
+	    *pcMaxValueLen = 0;
+    }
+
     goto cleanup;
 }
 
