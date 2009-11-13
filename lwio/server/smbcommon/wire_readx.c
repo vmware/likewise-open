@@ -155,7 +155,8 @@ WireMarshallReadResponseDataEx(
     if (ulBytesToWrite)
     {
         ulAlignment = (ulOffset % 2);
-        if (ulAlignment)
+        /* Windows returns unaligned results past 0x1000 bytes */
+        if (ulAlignment && ulBytesToWrite <= 0x1000)
         {
             if (ulBytesAvailable < ulAlignment)
             {
