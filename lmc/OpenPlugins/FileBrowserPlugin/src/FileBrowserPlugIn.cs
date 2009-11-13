@@ -125,6 +125,11 @@ namespace Likewise.LMC.Plugins.FileBrowser
         {
             Logger.Log("FileBrowserPlugIn.Initialize", Logger.FileBrowserLogLevel);
 
+            if (platform == LikewiseTargetPlatform.Windows)
+            {
+                FileClient.FileClient.SetWindowsPlatform();
+            }
+
             _container = container;
         }
 

@@ -19,6 +19,7 @@
       <sources>
         <include name="${build.meta.current}/*.cs" />
         <include name="src/**/*.cs" />
+        <include name="Interop/**/*.cs" />
         <include name="Properties/**/*.cs" />
         <include name="*.cs" />
       </sources>
