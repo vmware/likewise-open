@@ -38,7 +38,7 @@
 
 #include <srvsvc/srvsvc.h>
 
-#include "../client/SrvSvcUtil.h"
+#include "../client/srvsvc_util.h"
 #include "TestSrvSvc.h"
 #include "Params.h"
 
