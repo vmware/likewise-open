@@ -65,20 +65,8 @@ namespace Likewise.LMC.ServerControl
             ((System.ComponentModel.ISupportInitialize)(this.errorProvider)).BeginInit();
             this.SuspendLayout();
             //
-            // btnApply
-            //
-            this.btnApply.Location = new System.Drawing.Point(537, 6);
-            //
-            // btnOK
-            //
-            this.btnOK.Location = new System.Drawing.Point(377, 6);
-            //
-            // btnCancel
-            //
-            this.btnCancel.Location = new System.Drawing.Point(458, 6);
-            // 
             // tabControl
-            // 
+            //
             this.tabControl.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tabControl.Location = new System.Drawing.Point(3, 3);
             this.tabControl.Name = "tabControl";
