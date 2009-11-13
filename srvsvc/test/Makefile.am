@@ -1,8 +1,11 @@
 AM_CPPFLAGS = -I$(top_srcdir)/include
 
-noinst_PROGRAMS=testsrvsvc
+noinst_PROGRAMS = testsrvsvc
 
-testsrvsvc_SOURCES=TestSrvSvc.c Params.c SrvSvc.c
+testsrvsvc_SOURCES = \
+    test.c           \
+    params.c         \
+    test_srvsvc.c
 
 SRVSVC_INCLUDES= \
     -I$(SRVSVC_INCDIR) -I$(top_srcdir) \

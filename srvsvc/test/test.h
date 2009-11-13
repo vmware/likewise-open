@@ -35,7 +35,7 @@
 #include <lwio/lwio.h>
 #include <wc16str.h>
 #include <wc16printf.h>
-#include "Params.h"
+#include "params.h"
 
 struct test;
 
