@@ -32,9 +32,11 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Management;
-using Likewise.LMC.Utilities;
 using System.ServiceProcess;
+using System.Windows.Forms;
 using System.Runtime.InteropServices;
+
+using Likewise.LMC.Utilities;
 
 namespace Likewise.LMC.Services
 {
@@ -234,6 +236,72 @@ namespace Likewise.LMC.Services
             {
                 Logger.LogException("ServiceManagerWindowsWrapper.WMIServiceRestart()", ex);
             }
+        }
+
+        public static TreeNode[] WMIGetDependentServices(string sServicename)
+        {
+            Logger.Log("ServiceManagerWindowsWrapper.WMIGetDependentServices() is called");
+
+            TreeNode[] services = null;
+            try
+            {
+                ServiceController sc = new ServiceController(sServicename, System.Environment.MachineName);
+                if (sc != null)
+                {
+                    ServiceController[] dependentServies = sc.DependentServices;
+                    if (dependentServies != null && dependentServies.Length != 0)
+                    {
+                        int idx = 0;
+                        services = new TreeNode[dependentServies.Length];
+                        foreach (ServiceController service in dependentServies)
+                        {
+                            TreeNode node = new TreeNode(service.DisplayName);
+                            node.Tag = sc.ServiceName;
+                            services[idx] = node;
+                            idx++;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException("ServiceManagerWindowsWrapper.WMIGetDependentServices()", ex);
+            }
+
+            return services;
+        }
+
+        public static TreeNode[] WMIGetDependencyServices(string sServicename)
+        {
+            Logger.Log("ServiceManagerWindowsWrapper.WMIGetDependsOnServices() is called");
+
+            TreeNode[] services = null;
+            try
+            {
+                ServiceController sc = new ServiceController(sServicename, System.Environment.MachineName);
+                if (sc != null)
+                {
+                    ServiceController[] dependsOnServies = sc.ServicesDependedOn;
+                    if (dependsOnServies != null && dependsOnServies.Length != 0)
+                    {
+                        int idx = 0;
+                        services = new TreeNode[dependsOnServies.Length];
+                        foreach (ServiceController service in dependsOnServies)
+                        {
+                            TreeNode node = new TreeNode(service.DisplayName);
+                            node.Tag = service.ServiceName;
+                            services[idx] = node;
+                            idx++;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException("ServiceManagerWindowsWrapper.WMIGetDependsOnServices()", ex);
+            }
+
+            return services;
         }
 
         #endregion
