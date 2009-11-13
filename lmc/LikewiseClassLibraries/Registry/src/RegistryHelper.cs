@@ -392,7 +392,7 @@ namespace Likewise.LMC.Registry
 
         public static void GetValueData(RegistryValueInfo valueInfo, string sData)
         {
-            ASCIIEncoding encoder = new ASCIIEncoding();
+            UnicodeEncoding encoder = new UnicodeEncoding();
             string[] splits = sData.Split(':');
 
             try
@@ -557,8 +557,8 @@ namespace Likewise.LMC.Registry
                     break;
 
                 case (ulong)RegistryApi.REG_EXPAND_SZ:
-                    string sTemp = new ASCIIEncoding().GetString(valueInfo.bDataBuf as byte[]);
-                    byte[] eByts = new ASCIIEncoding().GetBytes(sTemp + "\n");
+                    string sTemp = new UnicodeEncoding().GetString(valueInfo.bDataBuf as byte[]);
+                    byte[] eByts = new UnicodeEncoding().GetBytes(sTemp + "\n");
                     List<byte> bytList = new List<byte>();
                     foreach (byte byt in eByts)
                     {
@@ -576,7 +576,7 @@ namespace Likewise.LMC.Registry
                     break;
 
                 case (ulong)RegistryApi.REG_MULTI_SZ:
-                    string[] sArry = new ASCIIEncoding().GetString(valueInfo.bDataBuf as byte[]).Split('\n');
+                    string[] sArry = new UnicodeEncoding().GetString(valueInfo.bDataBuf as byte[]).Split('\n');
                     StringBuilder sTempArry = new StringBuilder();
                     List<byte> mBytList = new List<byte>();
                     foreach (string value in sArry)
@@ -584,7 +584,7 @@ namespace Likewise.LMC.Registry
                         sTempArry.Append(value);
                         sTempArry.Append("\r\n");
                     }
-                    byte[] mByts = new ASCIIEncoding().GetBytes(sTempArry.ToString());
+                    byte[] mByts = new UnicodeEncoding().GetBytes(sTempArry.ToString());
                     foreach (byte byt in mByts)
                     {
                         if (byt == 10 || byt == 13)
@@ -606,7 +606,7 @@ namespace Likewise.LMC.Registry
 
                 case (ulong)RegistryApi.REG_PLAIN_TEXT:
                 case (ulong)RegistryApi.REG_SZ:
-                    sData = new ASCIIEncoding().GetString(valueInfo.bDataBuf as byte[]);
+                    sData = new UnicodeEncoding().GetString(valueInfo.bDataBuf as byte[]);
                     sData = string.Concat("\"", sData, "\"");
                     break;
 
