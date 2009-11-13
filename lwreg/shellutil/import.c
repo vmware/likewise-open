@@ -164,7 +164,8 @@ DWORD
 ProcessImportedValue(
     HANDLE hReg,
     PHKEY phRootKey,
-    PREG_PARSE_ITEM pItem
+    PREG_PARSE_ITEM pItem,
+    REGSHELL_UTIL_IMPORT_MODE eMode
     )
 {
     DWORD dwError = 0;
@@ -179,11 +180,13 @@ ProcessImportedValue(
     HKEY hKey = NULL;
     //Do not close
     HKEY hCurrRootKey = NULL;
-    HKEY hRootKey = NULL;
+    HKEY hRootKey = phRootKey ? *phRootKey : NULL;
     HKEY hSubKey = NULL;
     PSTR pszKeyName = NULL;
     PBYTE pData = NULL;
     DWORD cbData = 0;
+    DWORD dwDataType = 0;
+    BOOLEAN bSetValue = TRUE;
 
     BAIL_ON_INVALID_HANDLE(hReg);
 
@@ -201,7 +204,13 @@ ProcessImportedValue(
     {
         if (!hRootKey)
         {
-            dwError = RegOpenKeyExA(hReg, NULL, HKEY_THIS_MACHINE, 0, 0, &hRootKey);
+            dwError = RegOpenKeyExA(
+                          hReg,
+                          NULL,
+                          HKEY_THIS_MACHINE,
+                          0,
+                          0,
+                          &hRootKey);
             BAIL_ON_REG_ERROR(dwError);
         }
 
@@ -244,15 +253,42 @@ ProcessImportedValue(
 
     memcpy(pData, (PBYTE)pItem->value, cbData);
 
-    dwError = RegSetValueExA(
-        hReg,
-        hKey,
-        pItem->valueName,
-        0,
-        pItem->type,
-        pData,
-        cbData);
-    BAIL_ON_REG_ERROR(dwError);
+    if (eMode == REGSHELL_UTIL_IMPORT_UPGRADE)
+    {
+        dwError = RegGetValueA(
+                      hReg,
+                      hKey,
+                      NULL,
+                      pItem->valueName,
+                      0,
+                      &dwDataType,
+                      NULL,
+                      NULL);
+        if (dwError == 0)
+        {
+            bSetValue = FALSE;
+        }
+        else
+        {
+            printf("[%s%s]\n",
+                   HKEY_THIS_MACHINE,
+                   pszSubKeyName ? pszSubKeyName : "");
+            printf("    '%s' Merged.\n", pItem->valueName);
+        }
+    }
+
+    if (bSetValue)
+    {
+        dwError = RegSetValueExA(
+            hReg,
+            hKey,
+            pItem->valueName,
+            0,
+            pItem->type,
+            pData,
+            cbData);
+        BAIL_ON_REG_ERROR(dwError);
+    }
 
     *phRootKey = hRootKey;
 
@@ -279,15 +315,20 @@ error:
     goto cleanup;
 }
 
-DWORD RegShellUtilImportCallback(PREG_PARSE_ITEM pItem, HANDLE hReg)
+
+DWORD RegShellUtilImportCallback(
+          PREG_PARSE_ITEM pItem,
+          HANDLE hUserCtx)
 {
     DWORD dwError = 0;
     HKEY pRootKey = NULL;
+    PREGSHELL_UTIL_IMPORT_CONTEXT pImportCtx =
+        (PREGSHELL_UTIL_IMPORT_CONTEXT ) hUserCtx;
 
     if (pItem->type == REG_KEY)
     {
         dwError = ProcessImportedKeyName(
-                hReg,
+                pImportCtx->hReg,
                 &pRootKey,
                 (PCSTR)pItem->keyName);
         BAIL_ON_REG_ERROR(dwError);
@@ -295,15 +336,16 @@ DWORD RegShellUtilImportCallback(PREG_PARSE_ITEM pItem, HANDLE hReg)
     else
     {
         dwError = ProcessImportedValue(
-                 hReg,
+                 pImportCtx->hReg,
                  &pRootKey,
-                 pItem);
+                 pItem,
+                 pImportCtx->eImportMode);
         BAIL_ON_REG_ERROR(dwError);
     }
 
     if (pRootKey)
     {
-        dwError = RegCloseKey(hReg,pRootKey);
+        dwError = RegCloseKey(pImportCtx->hReg, pRootKey);
         BAIL_ON_REG_ERROR(dwError);
     }
 
