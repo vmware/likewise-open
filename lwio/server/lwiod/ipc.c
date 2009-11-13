@@ -46,14 +46,13 @@ LwIoDaemonIpcRefreshConfiguration(
     DWORD dwError = 0;
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     PLWIO_STATUS_REPLY pStatusResponse = NULL;
-    PCSTR pszConfigPath = SMB_CONFIG_FILE_PATH;
 
     dwError = SMBAllocateMemory(
                     sizeof(LWIO_STATUS_REPLY),
                     (PVOID*)&pStatusResponse);
     BAIL_ON_LWIO_ERROR(dwError);
 
-    dwError = LwioSrvRefreshConfig(pszConfigPath);
+    dwError = LwioSrvRefreshConfig();
 
     /* Transmit refresh error to client but do not fail out of dispatch loop */
     if (dwError)

@@ -68,7 +68,7 @@ SamrSrvQuerySecurity(
     DWORD dwScope = 0;
     WCHAR wszAttrDn[] = DS_ATTR_DISTINGUISHED_NAME;
     WCHAR wszAttrSecDesc[] = DS_DIR_ATTR_SECURITY_DESCRIPTOR;
-    DWORD dwDnLen = 0;
+    size_t sDnLen = 0;
     DWORD dwFilterLen = 0;
     PWSTR pwszFilter = NULL;
     PDIRECTORY_ENTRY pEntries = NULL;
@@ -103,11 +103,11 @@ SamrSrvQuerySecurity(
     }
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
-    dwError = LwWc16sLen(pwszDn, &dwDnLen);
+    dwError = LwWc16sLen(pwszDn, &sDnLen);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwFilterLen = ((sizeof(wszAttrDn)/sizeof(wszAttrDn[0])) - 1) +
-                  dwDnLen +
+                  sDnLen +
                   (sizeof(wszFilterFmt)/sizeof(wszFilterFmt[0]));
 
     dwError = LwAllocateMemory(sizeof(WCHAR) * dwFilterLen,

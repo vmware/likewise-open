@@ -263,6 +263,80 @@ LsaReadConfigString(
 
 cleanup:
 
+    LW_SAFE_FREE_STRING(pszValue);
+
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+DWORD
+LsaReadConfigMultiString(
+    PLSA_CONFIG_REG pReg,
+    PCSTR   pszName,
+    BOOLEAN bUsePolicy,
+    PSTR    *ppszValue
+    )
+{
+    DWORD dwError = 0;
+
+    BOOLEAN bGotValue = FALSE;
+    PSTR pszValue = NULL;
+    char szValue[MAX_VALUE_LENGTH];
+    DWORD dwType;
+    DWORD dwSize;
+
+    if ( bUsePolicy )
+    {
+        dwSize = sizeof(szValue);
+        memset(szValue, 0, dwSize);
+        dwError = RegGetValueA(
+                    pReg->hConnection,
+                    pReg->hKey,
+                    pReg->pszPolicyKey,
+                    pszName,
+                    RRF_RT_REG_MULTI_SZ,
+                    &dwType,
+                    szValue,
+                    &dwSize);
+        if (!dwError)
+            bGotValue = TRUE;
+    }
+
+    if (!bGotValue )
+    {
+        dwSize = sizeof(szValue);
+        memset(szValue, 0, dwSize);
+        dwError = RegGetValueA(
+                    pReg->hConnection,
+                    pReg->hKey,
+                    pReg->pszConfigKey,
+                    pszName,
+                    RRF_RT_REG_MULTI_SZ,
+                    &dwType,
+                    szValue,
+                    &dwSize);
+        if (!dwError)
+            bGotValue = TRUE;
+    }
+
+    if (bGotValue)
+    {
+        dwError = LwAllocateMemory(dwSize, (PVOID)&pszValue);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        memcpy(pszValue, szValue, dwSize);
+
+        LW_SAFE_FREE_MEMORY(*ppszValue);
+        *ppszValue = pszValue;
+        pszValue = NULL;
+    }
+
+    dwError = 0;
+
+cleanup:
+
     LW_SAFE_FREE_MEMORY(pszValue);
 
     return dwError;

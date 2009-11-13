@@ -34,6 +34,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="FileClientApi.cs" />
+    <Compile Include="Interop\FileClientInteropWindows.cs" />
+    <Compile Include="Interop\FileClientInteropLikewise.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />

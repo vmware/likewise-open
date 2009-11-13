@@ -442,7 +442,7 @@ namespace Likewise.LMC
             // 
             // LMCMainForm
             // 
-            this.AutoScaleBaseSize = new System.Drawing.Size(5, 13);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.BackColor = System.Drawing.SystemColors.MenuBar;
             this.ClientSize = new System.Drawing.Size(792, 562);
             this.Controls.Add(this.sc);

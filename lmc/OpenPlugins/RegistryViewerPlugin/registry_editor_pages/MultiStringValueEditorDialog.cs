@@ -133,7 +133,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             else
             {
                 RegistryInteropWrapper.ApiRegGetValue(plugin.handle.Handle, regValueInfo, out sDataBuf);
-                sDataBuf = new ASCIIEncoding().GetString(sDataBuf as byte[]).Split('\n');
+                sDataBuf = new UnicodeEncoding().GetString(sDataBuf as byte[]).Split('\n');
             }
 
             string[] sStringdata = sDataBuf as string[];

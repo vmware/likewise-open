@@ -318,6 +318,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
                 if (serviceDependencies != null && serviceDependencies.Length != 0) {
                     foreach (string service in serviceDependencies)
                     {
+						Logger.Log("Dependency list " +service);
                         IntPtr pDHandle = ServiceManagerInteropWrapper.ApiLwSmAcquireServiceHandle(service);
                         if (pDHandle != IntPtr.Zero)
                         {

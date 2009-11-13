@@ -90,11 +90,10 @@ namespace Likewise.LMC.ServerControl
             // StringRequestDialog
             // 
             this.AcceptButton = this.okButton;
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.BackColor = System.Drawing.SystemColors.MenuBar;
             this.CancelButton = this.cancelButton;
-            this.ClientSize = new System.Drawing.Size(359, 137);
+            this.ClientSize = new System.Drawing.Size(359, 139);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MaximizeBox = false;

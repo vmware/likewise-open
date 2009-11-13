@@ -115,18 +115,79 @@ namespace Likewise.LMC.FileClient
         public string Alternate = null;
     };
 
+    public enum FILE_ATTRIBUTE
+    {
+        FILE_ATTRIBUTE_ARCHIVE = 0x0020,
+        FILE_ATTRIBUTE_COMPRESSED = 0x0800,
+        FILE_ATTRIBUTE_DEVICE = 0x0040,
+        FILE_ATTRIBUTE_DIRECTORY = 0x0010,
+        FILE_ATTRIBUTE_ENCRYPTED = 0x4000,
+        FILE_ATTRIBUTE_HIDDEN = 0x0002,
+        FILE_ATTRIBUTE_NORMAL = 0x0080,
+        FILE_ATTRIBUTE_NOT_CONTENT_INDEXED = 0x2000,
+        FILE_ATTRIBUTE_OFFLINE = 0x1000,
+        FILE_ATTRIBUTE_READONLY = 0x0001,
+        FILE_ATTRIBUTE_REPARSE_POINT = 0x0400,
+        FILE_ATTRIBUTE_SPARSE_FILE = 0x0200,
+        FILE_ATTRIBUTE_SYSTEM = 0x0004,
+        FILE_ATTRIBUTE_TEMPORARY = 0x0100,
+        FILE_ATTRIBUTE_VIRTUAL = 0x10000
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct FILETIME
+    {
+        public uint dwLowDateTime;
+        public uint dwHighDateTime;
+    };
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    public struct WIN32_FIND_DATA
+    {
+        public FILE_ATTRIBUTE dwFileAttributes;
+        public FILETIME ftCreationTime;
+        public FILETIME ftLastAccessTime;
+        public FILETIME ftLastWriteTime;
+        public UInt32 nFileSizeHigh;
+        public UInt32 nFileSizeLow;
+        public int dwReserved0;
+        public int dwReserved1;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)] // public const int MAX_PATH = 260;
+        public string cFileName;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 14)] // public const int MAX_ALTERNATE = 14;
+        public string cAlternate;
+    };
+
+    public struct SYSTEMTIME
+    {
+        public Int16 wYear;
+        public Int16 wMonth;
+        public Int16 wDayOfWeek;
+        public Int16 wDay;
+        public Int16 wHour;
+        public Int16 wMinute;
+        public Int16 wSecond;
+        public Int16 wMilliseconds;
+    };
+
 #endregion
 
     public class FileClient
     {
-        #region Copy/Delete/Move File APIs
+        protected static bool useWindowsDlls = false;
 
-        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-        private static extern bool CopyFile(
-            string lpExistingFileName,
-            string lpNewFileName,
-            bool bFailIfExists
-            );
+        public FileClient(
+            )
+        {
+        }
+
+        public static void SetWindowsPlatform(
+            )
+        {
+            useWindowsDlls = true;
+        }
+
+        #region Copy/Delete/Move File APIs
 
         public static WinError apiCopyFile(
             string lpExistingFileName,
@@ -134,8 +195,17 @@ namespace Likewise.LMC.FileClient
             bool bFailIfExists
             )
         {
-            bool copied = CopyFile(lpExistingFileName, lpNewFileName, bFailIfExists);
+            bool copied = false;
             WinError error = 0;
+
+            if (useWindowsDlls)
+            {
+                copied = InteropWindows.CopyFile(lpExistingFileName, lpNewFileName, bFailIfExists);
+            }
+            else
+            {
+                copied = InteropLikewise.CopyFile(lpExistingFileName, lpNewFileName, bFailIfExists);
+            }
 
             if (!copied)
             {
@@ -151,8 +221,17 @@ namespace Likewise.LMC.FileClient
                bool bFailIfExists
             )
         {
-            bool copied = CopyFile(lpExistingDirectoryName, lpNewDirectoryName, bFailIfExists);
+            bool copied = false;
             WinError error = 0;
+
+            if (useWindowsDlls)
+            {
+                copied = InteropWindows.CopyFile(lpExistingDirectoryName, lpNewDirectoryName, bFailIfExists);
+            }
+            else
+            {
+                copied = InteropLikewise.CopyFile(lpExistingDirectoryName, lpNewDirectoryName, bFailIfExists);
+            }
 
             if (!copied)
             {
@@ -162,17 +241,21 @@ namespace Likewise.LMC.FileClient
             return error;
         }
 
-        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-        private static extern bool DeleteFile(
-            string lpFileName
-            );
-
         public static WinError apiDeleteFile(
             string lpFileName
             )
         {
-            bool deleted = DeleteFile(lpFileName);
+            bool deleted = false;
             WinError error = 0;
+
+            if (useWindowsDlls)
+            {
+                deleted = InteropWindows.DeleteFile(lpFileName);
+            }
+            else
+            {
+                deleted = InteropLikewise.DeleteFile(lpFileName);
+            }
 
             if (!deleted)
             {
@@ -182,19 +265,22 @@ namespace Likewise.LMC.FileClient
             return error;
         }
 
-        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-        private static extern bool MoveFile(
-            string lpExistingFileName,
-            string lpNewFileName
-            );
-
         public static WinError apiMoveFile(
             string lpExistingFileName,
             string lpNewFileName
             )
         {
-            bool moved = MoveFile(lpExistingFileName, lpNewFileName);
+            bool moved = false;
             WinError error = 0;
+
+            if (useWindowsDlls)
+            {
+                moved = InteropWindows.MoveFile(lpExistingFileName, lpNewFileName);
+            }
+            else
+            {
+                moved = InteropLikewise.MoveFile(lpExistingFileName, lpNewFileName);
+            }
 
             if (!moved)
             {
@@ -209,8 +295,17 @@ namespace Likewise.LMC.FileClient
             string lpNewDirectoryName
             )
         {
-            bool moved = MoveFile(lpExistingDirectoryName, lpNewDirectoryName);
+            bool moved = false;
             WinError error = 0;
+
+            if (useWindowsDlls)
+            {
+                moved = InteropWindows.MoveFile(lpExistingDirectoryName, lpNewDirectoryName);
+            }
+            else
+            {
+                moved = InteropLikewise.MoveFile(lpExistingDirectoryName, lpNewDirectoryName);
+            }
 
             if (!moved)
             {
@@ -220,17 +315,21 @@ namespace Likewise.LMC.FileClient
             return error;
         }
 
-        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-        private static extern bool RemoveDirectory(
-            string lpDirectoryName
-            );
-
         public static WinError apiRemoveDirectory(
             string lpDirectoryName
             )
         {
-            bool deleted = DeleteFile(lpDirectoryName);
+            bool deleted = false;
             WinError error = 0;
+
+            if (useWindowsDlls)
+            {
+                deleted = InteropWindows.DeleteFile(lpDirectoryName);
+            }
+            else
+            {
+                deleted = InteropLikewise.DeleteFile(lpDirectoryName);
+            }
 
             if (!deleted)
             {
@@ -244,82 +343,6 @@ namespace Likewise.LMC.FileClient
 
         #region Local and Connected Share File Enumeration APIs
 
-        private const int MAX_PATH = 260;
-        private const int MAX_ALTERNATE = 14;
-
-        private enum FILE_ATTRIBUTE
-        {
-            FILE_ATTRIBUTE_ARCHIVE = 0x0020,
-            FILE_ATTRIBUTE_COMPRESSED = 0x0800,
-            FILE_ATTRIBUTE_DEVICE = 0x0040,
-            FILE_ATTRIBUTE_DIRECTORY = 0x0010,
-            FILE_ATTRIBUTE_ENCRYPTED = 0x4000,
-            FILE_ATTRIBUTE_HIDDEN = 0x0002,
-            FILE_ATTRIBUTE_NORMAL = 0x0080,
-            FILE_ATTRIBUTE_NOT_CONTENT_INDEXED = 0x2000,
-            FILE_ATTRIBUTE_OFFLINE = 0x1000,
-            FILE_ATTRIBUTE_READONLY = 0x0001,
-            FILE_ATTRIBUTE_REPARSE_POINT = 0x0400,
-            FILE_ATTRIBUTE_SPARSE_FILE = 0x0200,
-            FILE_ATTRIBUTE_SYSTEM = 0x0004,
-            FILE_ATTRIBUTE_TEMPORARY = 0x0100,
-            FILE_ATTRIBUTE_VIRTUAL = 0x10000
-        };
-
-        [StructLayout(LayoutKind.Sequential)]
-        private struct FILETIME
-        {
-            public uint dwLowDateTime;
-            public uint dwHighDateTime;
-        };
-
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-        private struct WIN32_FIND_DATA
-        {
-            public FILE_ATTRIBUTE dwFileAttributes;
-            public FILETIME ftCreationTime;
-            public FILETIME ftLastAccessTime;
-            public FILETIME ftLastWriteTime;
-            public UInt32 nFileSizeHigh;
-            public UInt32 nFileSizeLow;
-            public int dwReserved0;
-            public int dwReserved1;
-            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = MAX_PATH)]
-            public string cFileName;
-            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = MAX_ALTERNATE)]
-            public string cAlternate;
-        };
-
-        private struct SYSTEMTIME
-        {
-            public Int16 wYear;
-            public Int16 wMonth;
-            public Int16 wDayOfWeek;
-            public Int16 wDay;
-            public Int16 wHour;
-            public Int16 wMinute;
-            public Int16 wSecond;
-            public Int16 wMilliseconds;
-        };
-
-        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-        private static extern IntPtr FindFirstFileW(
-            string lpFileName,
-            out WIN32_FIND_DATA lpFindFileData
-            );
-
-        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-        private static extern bool FindNextFileW(
-            IntPtr hFindFile,
-            out WIN32_FIND_DATA lpFindFileData
-            );
-
-        [DllImport("kernel32.dll", SetLastError = true)]
-        private static extern long FileTimeToSystemTime(
-            ref FILETIME FileTime,
-            ref SYSTEMTIME SystemTime
-            );
-
         public static List<FileItem> EnumFiles(
             string filepath,
             bool showHiddenFiles
@@ -331,7 +354,16 @@ namespace Likewise.LMC.FileClient
             bool success = false;
             string search = filepath + "\\*";
 
-            IntPtr handle = FindFirstFileW(search, out pFindFileData);
+            IntPtr handle = INVALID_HANDLE_VALUE;
+
+            if (useWindowsDlls)
+            {
+                handle = InteropWindows.FindFirstFileW(search, out pFindFileData);
+            }
+            else
+            {
+                handle = InteropLikewise.FindFirstFileW(search, out pFindFileData);
+            }
 
             if (handle != INVALID_HANDLE_VALUE)
             {
@@ -348,14 +380,28 @@ namespace Likewise.LMC.FileClient
                 if (String.Compare(file.FileName, ".") == 0 ||
                     String.Compare(file.FileName, "..") == 0)
                 {
-                    success = FindNextFileW(handle, out pFindFileData);
+                    if (useWindowsDlls)
+                    {
+                        success = InteropWindows.FindNextFileW(handle, out pFindFileData);
+                    }
+                    else
+                    {
+                        success = InteropLikewise.FindNextFileW(handle, out pFindFileData);
+                    }
                     continue;
                 }
 
                 if (!showHiddenFiles &&
                     file.FileName[0] == '.')
                 {
-                    success = FindNextFileW(handle, out pFindFileData);
+                    if (useWindowsDlls)
+                    {
+                        success = InteropWindows.FindNextFileW(handle, out pFindFileData);
+                    }
+                    else
+                    {
+                        success = InteropLikewise.FindNextFileW(handle, out pFindFileData);
+                    }
                     continue;
                 }
 
@@ -381,21 +427,42 @@ namespace Likewise.LMC.FileClient
                 if (pFindFileData.ftCreationTime.dwHighDateTime != 0 &&
                     pFindFileData.ftCreationTime.dwLowDateTime != 0)
                 {
-                    FileTimeToSystemTime(ref pFindFileData.ftCreationTime, ref created);
+                    if (useWindowsDlls)
+                    {
+                        InteropWindows.FileTimeToSystemTime(ref pFindFileData.ftCreationTime, ref created);
+                    }
+                    else
+                    {
+                        InteropLikewise.FileTimeToSystemTime(ref pFindFileData.ftCreationTime, ref created);
+                    }
                     Created = new DateTime(created.wYear, created.wMonth, created.wDay, created.wHour, created.wMinute, created.wSecond).ToLocalTime();
                 }
 
                 if (pFindFileData.ftLastWriteTime.dwHighDateTime != 0 &&
                     pFindFileData.ftLastWriteTime.dwLowDateTime != 0)
                 {
-                    FileTimeToSystemTime(ref pFindFileData.ftLastWriteTime, ref modified);
+                    if (useWindowsDlls)
+                    {
+                        InteropWindows.FileTimeToSystemTime(ref pFindFileData.ftLastWriteTime, ref modified);
+                    }
+                    else
+                    {
+                        InteropLikewise.FileTimeToSystemTime(ref pFindFileData.ftLastWriteTime, ref modified);
+                    }
                     Modified = new DateTime(modified.wYear, modified.wMonth, modified.wDay, modified.wHour, modified.wMinute, modified.wSecond).ToLocalTime();
                 }
 
                 if (pFindFileData.ftLastAccessTime.dwHighDateTime != 0 &&
                     pFindFileData.ftLastAccessTime.dwLowDateTime != 0)
                 {
-                    FileTimeToSystemTime(ref pFindFileData.ftLastAccessTime, ref accessed);
+                    if (useWindowsDlls)
+                    {
+                        InteropWindows.FileTimeToSystemTime(ref pFindFileData.ftLastAccessTime, ref accessed);
+                    }
+                    else
+                    {
+                        InteropLikewise.FileTimeToSystemTime(ref pFindFileData.ftLastAccessTime, ref accessed);
+                    }
                     Accessed = new DateTime(accessed.wYear, accessed.wMonth, accessed.wDay, accessed.wHour, accessed.wMinute, accessed.wSecond).ToLocalTime();
                 }
 
@@ -406,7 +473,14 @@ namespace Likewise.LMC.FileClient
 
                 Files.Add(file);
 
-                success = FindNextFileW(handle, out pFindFileData);
+                if (useWindowsDlls)
+                {
+                    success = InteropWindows.FindNextFileW(handle, out pFindFileData);
+                }
+                else
+                {
+                    success = InteropLikewise.FindNextFileW(handle, out pFindFileData);
+                }
             }
 
             return Files;
@@ -416,20 +490,13 @@ namespace Likewise.LMC.FileClient
 
         #region Remote File Resource Enumeration APIs
 
-        [DllImport("mpr.dll", CharSet = CharSet.Unicode)]
-        private static extern WinError WNetAddConnection2(
-            NETRESOURCE netResource,
-            string password,
-            string username,
-            int flags
-            );
-
         public static WinError CreateConnection(
             string networkName,
             string username,
             string password
             )
         {
+            WinError error = WinError.ERROR_SUCCESS;
             NETRESOURCE netResource = new NETRESOURCE();
 
             netResource.dwScope = ResourceScope.RESOURCE_GLOBALNET;
@@ -438,31 +505,35 @@ namespace Likewise.LMC.FileClient
             netResource.dwUsage = ResourceUsage.RESOURCEUSAGE_ALL;
             netResource.pRemoteName = networkName;
 
-            return WNetAddConnection2(netResource, password, username, 0);
-        }
+            if (useWindowsDlls)
+            {
+                error = InteropWindows.WNetAddConnection2(netResource, password, username, 0);
+            }
+            else
+            {
+                error = InteropLikewise.WNetAddConnection2(netResource, password, username, 0);
+            }
 
-        [DllImport("mpr.dll", CharSet = CharSet.Unicode)]
-        private static extern WinError WNetCancelConnection2(
-            string name,
-            int flags,
-            bool force
-            );
+            return error;
+        }
 
         public static WinError DeleteConnection(
             string networkName
             )
         {
-            return WNetCancelConnection2(networkName, 0, true);
-        }
+            WinError error = WinError.ERROR_SUCCESS;
 
-        [DllImport("mpr.dll", CharSet = CharSet.Unicode)]
-        private static extern WinError WNetOpenEnum(
-            ResourceScope dwScope,
-            ResourceType dwType,
-            ResourceUsage dwUsage,
-            NETRESOURCE pNetResource,
-            out IntPtr phEnum
-            );
+            if (useWindowsDlls)
+            {
+                error = InteropWindows.WNetCancelConnection2(networkName, 0, true);
+            }
+            else
+            {
+                error = InteropLikewise.WNetCancelConnection2(networkName, 0, true);
+            }
+
+            return error;
+        }
 
         public static WinError BeginEnumNetResources(
             ResourceScope dwScope,
@@ -472,9 +543,17 @@ namespace Likewise.LMC.FileClient
             out IntPtr enumHandle
             )
         {
-            WinError error = WinError.NO_ERROR;
+            WinError error = WinError.ERROR_SUCCESS;
 
-            error = WNetOpenEnum(dwScope, dwType, dwUsage, pNetResource, out enumHandle);
+            if (useWindowsDlls)
+            {
+                error = InteropWindows.WNetOpenEnum(dwScope, dwType, dwUsage, pNetResource, out enumHandle);
+            }
+            else
+            {
+                error = WinError.ERROR_INVALID_PARAMETER;
+                enumHandle = new IntPtr(0);
+            }
 
             if (error == WinError.ERROR_EXTENDED_ERROR)
             {
@@ -484,20 +563,12 @@ namespace Likewise.LMC.FileClient
             return error;
         }
 
-        [DllImport("mpr.dll", CharSet = CharSet.Auto)]
-        private static extern WinError WNetEnumResource(
-            IntPtr hEnum,
-            ref int pcCount,
-            IntPtr pBuffer,
-            ref int pBufferSize
-            );
-
         public static WinError EnumNetResources(
             IntPtr enumHandle,
             out List<NETRESOURCE> NetResources
             )
         {
-            WinError error = WinError.NO_ERROR;
+            WinError error = WinError.ERROR_SUCCESS;
             List<NETRESOURCE> nrList = new List<NETRESOURCE>();
             int cEntries = -1;
             int bufferSize = 16384;
@@ -509,7 +580,15 @@ namespace Likewise.LMC.FileClient
                 cEntries = -1;
                 bufferSize = 16384;
 
-                error = WNetEnumResource(enumHandle, ref cEntries, ptrBuffer, ref bufferSize);
+                if (useWindowsDlls)
+                {
+                    error = InteropWindows.WNetEnumResource(enumHandle, ref cEntries, ptrBuffer, ref bufferSize);
+                }
+                else
+                {
+                    error = WinError.ERROR_INVALID_PARAMETER;
+                }
+
                 if ((error != WinError.NO_ERROR) || (cEntries < 1))
                 {
                     if (error == WinError.ERROR_NO_MORE_ITEMS)
@@ -535,16 +614,20 @@ namespace Likewise.LMC.FileClient
             return error;
         }
 
-        [DllImport("mpr.dll")]
-        private static extern WinError WNetCloseEnum(IntPtr hEnum);
-
         public static WinError EndEnumNetResources(
             IntPtr enumHandle
             )
         {
-            WinError error = WinError.NO_ERROR;
+            WinError error = WinError.ERROR_SUCCESS;
 
-            error = WNetCloseEnum(enumHandle);
+            if (useWindowsDlls)
+            {
+                error = InteropWindows.WNetCloseEnum(enumHandle);
+            }
+            else
+            {
+                error = WinError.ERROR_INVALID_PARAMETER;
+            }
 
             if (error == WinError.ERROR_EXTENDED_ERROR)
             {

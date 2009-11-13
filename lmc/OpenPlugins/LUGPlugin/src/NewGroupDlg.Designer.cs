@@ -72,12 +72,21 @@ namespace Likewise.LMC.Plugins.LUG
             this.tbDescription = new System.Windows.Forms.TextBox();
             this.lvMembers = new Likewise.LMC.ServerControl.LWListView();
             ((System.ComponentModel.ISupportInitialize)(this.errorProvider)).BeginInit();
-            this.SuspendLayout();           
+            this.SuspendLayout();
+            //
+            // btnApply
+            //
+            this.btnApply.Location = new System.Drawing.Point(298, 6);
             // 
             // btnOK
             // 
-            this.btnOK.Enabled = false;            
-            this.btnOK.Click += new System.EventHandler(this.btnOK_Click);            
+            this.btnOK.Enabled = false;
+            this.btnOK.Location = new System.Drawing.Point(138, 6);
+            this.btnOK.Click += new System.EventHandler(this.btnOK_Click);
+            //
+            // btnCancel
+            //
+            this.btnCancel.Location = new System.Drawing.Point(219, 6);
             // 
             // errorProvider
             // 
@@ -164,7 +173,7 @@ namespace Likewise.LMC.Plugins.LUG
             // 
             // NewGroupDlg
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.ClientSize = new System.Drawing.Size(376, 352);
             this.Controls.Add(this.tbDescription);
             this.Controls.Add(this.lvMembers);

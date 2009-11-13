@@ -63,7 +63,19 @@ namespace Likewise.LMC.ServerControl
             this.tabControl = new System.Windows.Forms.TabControl();
             this.errorProvider = new System.Windows.Forms.ErrorProvider(this.components);
             ((System.ComponentModel.ISupportInitialize)(this.errorProvider)).BeginInit();
-            this.SuspendLayout();          
+            this.SuspendLayout();
+            //
+            // btnApply
+            //
+            this.btnApply.Location = new System.Drawing.Point(537, 6);
+            //
+            // btnOK
+            //
+            this.btnOK.Location = new System.Drawing.Point(377, 6);
+            //
+            // btnCancel
+            //
+            this.btnCancel.Location = new System.Drawing.Point(458, 6);
             // 
             // tabControl
             // 
@@ -81,8 +93,7 @@ namespace Likewise.LMC.ServerControl
             // 
             // MPContainer
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.ClientSize = new System.Drawing.Size(621, 533);
             this.Controls.Add(this.tabControl);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));

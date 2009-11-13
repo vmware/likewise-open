@@ -140,8 +140,7 @@ namespace Likewise.LMC
             // 
             // ObjectSelectPage
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 13F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Controls.Add(this.label2);
             this.Controls.Add(this.lblGPO);
             this.Controls.Add(this.btnBrowse);

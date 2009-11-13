@@ -1187,3 +1187,96 @@ cleanup:
 error:
     goto cleanup;
 }
+
+
+DWORD
+RegShellUtilEscapeString(
+    PSTR pszValue,
+    PSTR *ppszRetValue,
+    PDWORD pdwEscapeValueLen)
+{
+    DWORD i = 0;
+    DWORD dwError = 0;
+    DWORD dwLen = 0;
+    DWORD dwEscapeValueLen = 0;
+    PSTR pszRetValue = NULL;
+
+    BAIL_ON_INVALID_POINTER(pszValue);
+    BAIL_ON_INVALID_POINTER(ppszRetValue);
+    BAIL_ON_INVALID_POINTER(pdwEscapeValueLen);
+
+    /* Count number of \ found in string to escape */
+    for (i=0; pszValue[i]; i++)
+    {
+        if (pszValue[i] == '\\' || pszValue[i] == '\n' ||
+            pszValue[i] == '\r' || pszValue[i] == '"' ||
+            pszValue[i] == '\t' || pszValue[i] == '\a' ||
+            pszValue[i] == '\v' || pszValue[i] == '\f')
+        {
+            dwEscapeValueLen++;
+        }
+        dwEscapeValueLen++;
+    }
+    dwEscapeValueLen++;
+    dwError = LwAllocateMemory(
+                  sizeof(*pszRetValue) * dwEscapeValueLen,
+                  (PVOID) &pszRetValue);
+    BAIL_ON_REG_ERROR(dwError);
+
+    for (i=0; pszValue[i]; i++)
+    {
+        if (pszValue[i] == '\n')
+        {
+            pszRetValue[dwLen++] = '\\';
+            pszRetValue[dwLen++] = 'n';
+        }
+        if (pszValue[i] == '\r')
+        {
+            pszRetValue[dwLen++] = '\\';
+            pszRetValue[dwLen++] = 'r';
+        }
+        else if (pszValue[i] == '"')
+        {
+            pszRetValue[dwLen++] = '\\';
+            pszRetValue[dwLen++] = '"';
+        }
+        else if (pszValue[i] == '\t')
+        {
+            pszRetValue[dwLen++] = '\\';
+            pszRetValue[dwLen++] = 't';
+        }
+        else if (pszValue[i] == '\a')
+        {
+            pszRetValue[dwLen++] = '\\';
+            pszRetValue[dwLen++] = 'a';
+        }
+        else if (pszValue[i] == '\v')
+        {
+            pszRetValue[dwLen++] = '\\';
+            pszRetValue[dwLen++] = 'v';
+        }
+        else if (pszValue[i] == '\f')
+        {
+            pszRetValue[dwLen++] = '\\';
+            pszRetValue[dwLen++] = 'f';
+        }
+        else if (pszValue[i] == '\\')
+        {
+            pszRetValue[dwLen++] = '\\';
+            pszRetValue[dwLen++] = '\\';
+        }
+        else
+        {
+            pszRetValue[dwLen++] = pszValue[i];
+        }
+    }
+    pszRetValue[dwLen] = '\0';
+    *ppszRetValue = pszRetValue;
+    *pdwEscapeValueLen = dwLen;
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}

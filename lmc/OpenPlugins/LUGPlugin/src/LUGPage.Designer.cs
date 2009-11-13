@@ -135,10 +135,10 @@ namespace Likewise.LMC.Plugins.LUG
             this.statusImageList.Images.SetKeyName(0, "LocalUser_16.ico");
             this.statusImageList.Images.SetKeyName(1, "DisabledUser_16.ico");
             this.statusImageList.Images.SetKeyName(2, "LocalGroup_16.ico");
-            // 
+            //
             // LUGPage
-            // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+            //
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.BackgroundImageLayout = System.Windows.Forms.ImageLayout.None;
             this.Controls.Add(this.lvLUGBETA);
             this.HelpKeyword = "likewise.chm::/Centeris_Likewise_Console/Security/Users/About_Users.htm";

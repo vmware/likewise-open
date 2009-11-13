@@ -76,7 +76,19 @@ namespace Likewise.LMC.Plugins.LUG
             this.cbIsDisabled = new System.Windows.Forms.CheckBox();
             this.errorProvider = new System.Windows.Forms.ErrorProvider(this.components);
             ((System.ComponentModel.ISupportInitialize)(this.errorProvider)).BeginInit();
-            this.SuspendLayout();            
+            this.SuspendLayout();
+            //
+            // btnApply
+            //
+            this.btnApply.Location = new System.Drawing.Point(309, 6);
+            //
+            // btnOK
+            //
+            this.btnOK.Location = new System.Drawing.Point(149, 6);
+            //
+            // btnCancel
+            //
+            this.btnCancel.Location = new System.Drawing.Point(230, 6);
             // 
             // lbUserName
             // 
@@ -206,7 +218,7 @@ namespace Likewise.LMC.Plugins.LUG
             // 
             // NewUserDlg
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.ClientSize = new System.Drawing.Size(387, 338);
             this.Controls.Add(this.label3);
             this.Controls.Add(this.tbConfirmPassword);

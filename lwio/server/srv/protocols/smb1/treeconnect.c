@@ -666,16 +666,6 @@ SrvGetNativeFilesystem(
         LWIO_UNLOCK_RWMUTEX(bInLock, &pTConState->pShareInfo->mutex);
     }
 
-    if (!pTConState->pIoSecContext)
-    {
-        ntStatus = IoSecurityCreateSecurityContextFromUidGid(
-                        &pTConState->pIoSecContext,
-                        0,
-                        0,
-                        NULL);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
     if (!pTConState->hFile)
     {
         SrvPrepareTreeConnectStateAsync(pTConState, pExecContext);
@@ -684,7 +674,7 @@ SrvGetNativeFilesystem(
                         &pTConState->hFile,
                         pTConState->pAcb,
                         &pTConState->ioStatusBlock,
-                        pTConState->pIoSecContext,
+                        pTConState->pSession->pIoSecurityContext,
                         &pTConState->fileName,
                         pTConState->pSecurityDescriptor,
                         pTConState->pSecurityQOS,
@@ -867,11 +857,6 @@ SrvFreeTreeConnectState(
     if (pTConState->pVolumeInfo)
     {
         SrvFreeMemory(pTConState->pVolumeInfo);
-    }
-
-    if (pTConState->pIoSecContext)
-    {
-        IoSecurityDereferenceSecurityContext(&pTConState->pIoSecContext);
     }
 
     if (pTConState->bRemoveTreeFromSession)

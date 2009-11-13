@@ -98,7 +98,6 @@ namespace Likewise.LMC.UtilityUIElements
             //
             // btnOk
             //
-            this.btnOk.Enabled = true;
             this.btnOk.Location = new System.Drawing.Point(194, 150);
             this.btnOk.Name = "btnOk";
             this.btnOk.Size = new System.Drawing.Size(75, 23);
@@ -148,8 +147,7 @@ namespace Likewise.LMC.UtilityUIElements
             //
             // SelectComputerDialog
             //
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.ClientSize = new System.Drawing.Size(365, 183);
             this.Controls.Add(this.linkCreds);
             this.Controls.Add(this.label3);

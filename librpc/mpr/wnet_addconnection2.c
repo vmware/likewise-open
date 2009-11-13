@@ -161,6 +161,62 @@ error:
     goto cleanup;
 }
 
+static
+DWORD
+TestConnection(
+    IN PCWSTR pwszPath
+    )
+{
+    DWORD dwError = 0;
+    PIO_CREDS pThreadCreds = NULL;
+    IO_FILE_HANDLE hFile = NULL;
+    IO_STATUS_BLOCK ioStatus = {0};
+    IO_FILE_NAME filename = {0};
+
+    /* Save current thread-local credentials */
+    dwError = LwNtStatusToWin32Error(LwIoGetThreadCreds(&pThreadCreds));
+    BAIL_ON_WIN_ERROR(dwError);
+
+    /* Disable thread-local credentials so we use path-based creds */
+    dwError = LwNtStatusToWin32Error(LwIoSetThreadCreds(NULL));
+    BAIL_ON_WIN_ERROR(dwError);
+
+    filename.FileName = (PWSTR) pwszPath;
+
+    dwError = LwNtStatusToWin32Error(NtCreateFile(
+        &hFile,                                  /* Created handle */
+        NULL,                                    /* Async control block */
+        &ioStatus,                               /* Status block */
+        &filename,                               /* Filename */
+        NULL,                                    /* Security descriptor */
+        NULL,                                    /* Security QOS */
+        GENERIC_READ,                            /* Access mode */
+        0,                                       /* Allocation size */
+        0,                                       /* File attributes */
+        FILE_SHARE_READ | FILE_SHARE_WRITE,      /* Sharing mode */
+        FILE_OPEN,                               /* Create disposition */
+        FILE_DIRECTORY_FILE,                     /* Create options */
+        NULL,                                    /* EA buffer */
+        0,                                       /* EA buffer length */
+        NULL));                                  /* ECP List */
+    BAIL_ON_WIN_ERROR(dwError);
+
+error:
+
+    if (pThreadCreds)
+    {
+        LwIoSetThreadCreds(pThreadCreds);
+        LwIoDeleteCreds(pThreadCreds);
+    }
+
+    if (hFile)
+    {
+        NtCloseFile(hFile);
+    }
+
+    return dwError;
+}
+
 DWORD
 WNetAddConnection2(
     IN PNETRESOURCE pResource,
@@ -178,13 +234,19 @@ WNetAddConnection2(
     dwError = ResourceToLwIoPathPrefix(pResource->pwszRemoteName, &pwszPath);
     BAIL_ON_WIN_ERROR(dwError);
 
-    dwError = CrackUsername(pwszUsername, &pwszUser, &pwszDomain);
-    BAIL_ON_WIN_ERROR(dwError);
+    if (pwszUsername && pwszPassword)
+    {
+        dwError = CrackUsername(pwszUsername, &pwszUser, &pwszDomain);
+        BAIL_ON_WIN_ERROR(dwError);
 
-    dwError = LwNtStatusToWin32Error(LwIoCreatePlainCredsW(pwszUser, pwszDomain, pwszPassword, &pCreds));
-    BAIL_ON_WIN_ERROR(dwError);
+        dwError = LwNtStatusToWin32Error(LwIoCreatePlainCredsW(pwszUser, pwszDomain, pwszPassword, &pCreds));
+        BAIL_ON_WIN_ERROR(dwError);
+    }
 
     dwError = LwNtStatusToWin32Error(LwIoSetPathCreds(pwszPath, pCreds));
+    BAIL_ON_WIN_ERROR(dwError);
+
+    dwError = TestConnection(pwszPath);
     BAIL_ON_WIN_ERROR(dwError);
 
 error:

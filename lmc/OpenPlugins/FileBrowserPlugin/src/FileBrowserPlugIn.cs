@@ -47,12 +47,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
     {
         #region Class data
 
-        public enum OSTYPE
-        {
-            WINDOWS = 0,
-            LINUX = 1
-        };
-
+        private LikewiseTargetPlatform platform = Configurations.currentPlatform;
         private IPlugInContainer _container;
         private Hostinfo _hn;
         private FileBrowserNode _pluginNode;
@@ -60,14 +55,8 @@ namespace Likewise.LMC.Plugins.FileBrowser
         List<IPlugIn> _extPlugins = null;
         string LocalDiskRoot = "C:";
         List<string> RemoteShares = new List<string>();
-        OSTYPE _os = OSTYPE.WINDOWS;
 
         #endregion
-
-        public OSTYPE GetOsType()
-        {
-            return _os;
-        }
 
         public List<string> GetActiveShares()
         {
@@ -135,6 +124,11 @@ namespace Likewise.LMC.Plugins.FileBrowser
             )
         {
             Logger.Log("FileBrowserPlugIn.Initialize", Logger.FileBrowserLogLevel);
+
+            if (platform == LikewiseTargetPlatform.Windows)
+            {
+                FileClient.FileClient.SetWindowsPlatform();
+            }
 
             _container = container;
         }
@@ -316,7 +310,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
             if (node.Name.Equals("Network"))
             {
                 // Enumerate the child nodes of the "Network" tree node
-                if (_os == OSTYPE.WINDOWS)
+                if (platform == LikewiseTargetPlatform.Windows)
                 {
                     NetResources = GetNetworkConnections();
                     AddShareNodes(parentNode, NetResources);

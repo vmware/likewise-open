@@ -30,7 +30,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
             //
             // FileBrowserPage
             //
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Name = "FileBrowserPage";
             this.Size = new System.Drawing.Size(687, 397);
             ((System.ComponentModel.ISupportInitialize)(this.picture)).EndInit();

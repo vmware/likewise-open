@@ -123,12 +123,10 @@ public partial class NewUserDlg : EditDialog
             
             if (lugPg.AddLUG(this))
             {
-                
                 Close();
             }
             else
             {
-                Parent.Refresh();
                 container.ShowError(
                 "Likewise Administrative Console encountered an error when trying to add a new user.",
                 MessageBoxButtons.OK);

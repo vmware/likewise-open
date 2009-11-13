@@ -49,5 +49,6 @@ extern rpc_binding_vector_p_t gpSamrSrvBinding;
 
 extern SAMR_SRV_CONFIG gSamrSrvConfig;
 
+extern PSECURITY_DESCRIPTOR_ABSOLUTE gpSamrSecDesc;
 
 #endif /* _EXTERNS_H_ */

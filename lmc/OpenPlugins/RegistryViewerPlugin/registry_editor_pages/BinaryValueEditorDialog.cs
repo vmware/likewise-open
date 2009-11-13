@@ -220,7 +220,10 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                         case (ulong)RegistryApi.REG_SZ:
                         case (ulong)RegistryApi.REG_PLAIN_TEXT:
                         case (ulong)RegistryApi.REG_EXPAND_SZ:
-                            ParseStringData(new ASCIIEncoding().GetString(data as byte[]));
+							if(Configurations.currentPlatform == LikewiseTargetPlatform.Windows)
+				ParseStringData(new ASCIIEncoding().GetString(data as byte[]));
+							else
+								ParseStringData(new UnicodeEncoding().GetString(data as byte[]));
                             break;
 
                         case (ulong)RegistryApi.REG_MULTI_SZ:
@@ -261,7 +264,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             if (Configurations.currentPlatform == LikewiseTargetPlatform.Windows)
                 sTempStrings = data as string[];
             else
-                sTempStrings = new ASCIIEncoding().GetString(data as byte[]).Split('\n');
+                sTempStrings = new UnicodeEncoding().GetString(data as byte[]).Split('\n');
 
             StringBuilder sBuilder = new StringBuilder();
             foreach (string tempString in sTempStrings)
@@ -280,7 +283,6 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
         private void ParseDWordData(object data)
         {
             string stringData = string.Empty;
-            ASCIIEncoding encoder = new ASCIIEncoding();
             
             Logger.Log("BinaryValueEditorDialog.ParseDWordData - Given string - " + stringData, Logger.RegistryViewerLoglevel);
 
@@ -310,7 +312,6 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
         private void ParseQWordData(object data)
         {
             string stringData = string.Empty;
-            ASCIIEncoding encoder = new ASCIIEncoding();
 
             Logger.Log("BinaryValueEditorDialog.ParseDWordData - Given string - " + stringData, Logger.RegistryViewerLoglevel);
 
@@ -341,10 +342,12 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
         {
             string stringData = string.Empty;
             byte[] sBinarydata = null;
-            ASCIIEncoding encoder = new ASCIIEncoding();
 
             stringData = data.ToString();
-            sBinarydata = encoder.GetBytes(stringData);
+			if(Configurations.currentPlatform == LikewiseTargetPlatform.Windows)
+		sBinarydata = new ASCIIEncoding().GetBytes(stringData);
+			else
+				sBinarydata = new UnicodeEncoding().GetBytes(stringData);
 
             Logger.Log("BinaryValueEditorDialog.ParseDWordData - Given string - " + stringData, Logger.RegistryViewerLoglevel);
 
@@ -433,7 +436,6 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             int index = 0;
             int dataLength;
             byte[] byts;
-            ASCIIEncoding encoder = new ASCIIEncoding();
 
             try
             {
@@ -494,9 +496,9 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                     byte[] tempSBytes = new byte[index];
                     Array.Copy(byts, tempSBytes, index);
                     if (ValueInfo != null)
-                        ValueInfo.sData = encoder.GetString(tempSBytes);
+                        ValueInfo.sData = new ASCIIEncoding().GetString(tempSBytes);
                     else
-                        regValueInfo.bDataBuf = encoder.GetString(tempSBytes);
+                        regValueInfo.bDataBuf = new UnicodeEncoding().GetString(tempSBytes);
                 }
                 else if ((dwRegDataType == (ulong)LWRegistryValueKind.REG_MULTI_SZ) ||
                      (dwRegDataType == (ulong)RegistryApi.REG_MULTI_SZ))
@@ -517,10 +519,10 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                     Array.Resize<byte>(ref byts, index);
 
                     if (ValueInfo != null)
-                        ValueInfo.sDataBuf = encoder.GetString(byts).Split(new char[] { '\0' }, StringSplitOptions.RemoveEmptyEntries);
+                        ValueInfo.sDataBuf = new ASCIIEncoding().GetString(byts).Split(new char[] { '\0' }, StringSplitOptions.RemoveEmptyEntries);
                     else
                     {
-                        regValueInfo.bDataBuf = encoder.GetString(byts).Split(new char[] { '\0' }, StringSplitOptions.RemoveEmptyEntries);
+                        regValueInfo.bDataBuf = new UnicodeEncoding().GetString(byts).Split(new char[] { '\0' }, StringSplitOptions.RemoveEmptyEntries);
                     }
                 }
                 else if ((dwRegDataType == (ulong)LWRegistryValueKind.REG_DWORD) ||
@@ -598,11 +600,11 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
 
                     if (ValueInfo != null)
                     {
-                        ValueInfo.sDataBuf = (long)UInt64.Parse(encoder.GetString(byts), System.Globalization.NumberStyles.HexNumber);
+                        ValueInfo.sDataBuf = (long)UInt64.Parse(new ASCIIEncoding().GetString(byts), System.Globalization.NumberStyles.HexNumber);
                     }
                     else
                     {
-                        regValueInfo.bDataBuf = (long)UInt64.Parse(encoder.GetString(byts), System.Globalization.NumberStyles.HexNumber);
+                        regValueInfo.bDataBuf = (long)UInt64.Parse(new UnicodeEncoding().GetString(byts), System.Globalization.NumberStyles.HexNumber);
                     }
                 }
                 else

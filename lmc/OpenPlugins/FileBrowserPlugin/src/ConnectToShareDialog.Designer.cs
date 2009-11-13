@@ -38,7 +38,8 @@ namespace Likewise.LMC.Plugins.FileBrowser
             //
             // CancelBtn
             //
-            this.CancelBtn.Location = new System.Drawing.Point(239, 153);
+            this.CancelBtn.Location = new System.Drawing.Point(259, 131);
+            this.CancelBtn.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.CancelBtn.Name = "CancelBtn";
             this.CancelBtn.Size = new System.Drawing.Size(75, 23);
             this.CancelBtn.TabIndex = 4;
@@ -48,7 +49,8 @@ namespace Likewise.LMC.Plugins.FileBrowser
             //
             // OKBtn
             //
-            this.OKBtn.Location = new System.Drawing.Point(158, 153);
+            this.OKBtn.Location = new System.Drawing.Point(176, 131);
+            this.OKBtn.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.OKBtn.Name = "OKBtn";
             this.OKBtn.Size = new System.Drawing.Size(75, 23);
             this.OKBtn.TabIndex = 3;
@@ -58,16 +60,18 @@ namespace Likewise.LMC.Plugins.FileBrowser
             //
             // tbPath
             //
-            this.tbPath.Location = new System.Drawing.Point(28, 51);
+            this.tbPath.Location = new System.Drawing.Point(16, 39);
+            this.tbPath.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.tbPath.Name = "tbPath";
-            this.tbPath.Size = new System.Drawing.Size(286, 20);
+            this.tbPath.Size = new System.Drawing.Size(318, 20);
             this.tbPath.TabIndex = 1;
             this.tbPath.TextChanged += new System.EventHandler(this.tbPath_TextChanged);
             //
             // cbUseAlternateCreds
             //
             this.cbUseAlternateCreds.AutoSize = true;
-            this.cbUseAlternateCreds.Location = new System.Drawing.Point(28, 104);
+            this.cbUseAlternateCreds.Location = new System.Drawing.Point(16, 93);
+            this.cbUseAlternateCreds.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.cbUseAlternateCreds.Name = "cbUseAlternateCreds";
             this.cbUseAlternateCreds.Size = new System.Drawing.Size(166, 17);
             this.cbUseAlternateCreds.TabIndex = 2;
@@ -77,7 +81,8 @@ namespace Likewise.LMC.Plugins.FileBrowser
             // label1
             //
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(25, 27);
+            this.label1.Location = new System.Drawing.Point(13, 21);
+            this.label1.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(159, 13);
             this.label1.TabIndex = 5;
@@ -87,7 +92,8 @@ namespace Likewise.LMC.Plugins.FileBrowser
             //
             this.lblErrorMessage.AutoSize = true;
             this.lblErrorMessage.ForeColor = System.Drawing.Color.DarkRed;
-            this.lblErrorMessage.Location = new System.Drawing.Point(76, 74);
+            this.lblErrorMessage.Location = new System.Drawing.Point(77, 64);
+            this.lblErrorMessage.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.lblErrorMessage.Name = "lblErrorMessage";
             this.lblErrorMessage.Size = new System.Drawing.Size(178, 13);
             this.lblErrorMessage.TabIndex = 6;
@@ -95,15 +101,15 @@ namespace Likewise.LMC.Plugins.FileBrowser
             //
             // ConnectToShareDialog
             //
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(335, 188);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
+            this.ClientSize = new System.Drawing.Size(349, 168);
             this.Controls.Add(this.lblErrorMessage);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.tbPath);
             this.Controls.Add(this.cbUseAlternateCreds);
             this.Controls.Add(this.OKBtn);
             this.Controls.Add(this.CancelBtn);
+            this.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.Name = "ConnectToShareDialog";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Connect to remote file share";

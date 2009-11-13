@@ -131,6 +131,12 @@ RegShellUtilExport(
     DWORD dwNumSubKeys
     );
 
+DWORD
+RegShellUtilEscapeString(
+    PSTR pszValue,
+    PSTR *ppszRetValue,
+    PDWORD pdwEscapeValueLen);
+
 DWORD RegExportBinaryTypeToString(
     REG_DATA_TYPE token,
     PSTR tokenStr,
@@ -185,5 +191,6 @@ RegExportPlainText(
     PCHAR value,
     PSTR *dumpString,
     PDWORD dumpStringLen);
+
 
 #endif

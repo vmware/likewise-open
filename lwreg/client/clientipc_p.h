@@ -103,23 +103,6 @@ RegTransactDeleteKeyW(
     );
 
 DWORD
-RegTransactQueryInfoKeyA(
-    HANDLE Handle,
-    HKEY hKey,
-    PSTR pszClass,
-    PDWORD pcClass,
-    PDWORD pReserved,
-    PDWORD pcSubKeys,
-    PDWORD pcMaxSubKeyLen,
-    PDWORD pcMaxClassLen,
-    PDWORD pcValues,
-    PDWORD pcMaxValueNameLen,
-    PDWORD pcMaxValueLen,
-    PDWORD pcbSecurityDescriptor,
-    PFILETIME pftLastWriteTime
-    );
-
-DWORD
 RegTransactQueryInfoKeyW(
     HANDLE Handle,
     HKEY hKey,

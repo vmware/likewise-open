@@ -617,13 +617,11 @@ SrvLockExpiredCB(
     PVOID              pUserData
     )
 {
-    NTSTATUS ntStatus = STATUS_SUCCESS;
     PSRV_EXEC_CONTEXT pExecContext = (PSRV_EXEC_CONTEXT)pUserData;
     PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
     PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
     PSRV_LOCK_STATE_SMB_V1     pLockState   = NULL;
     BOOLEAN bInLock = FALSE;
-    BOOLEAN bEnqueueRequest = FALSE;
 
     pLockState = (PSRV_LOCK_STATE_SMB_V1)pCtxSmb1->hState;
 
@@ -632,38 +630,16 @@ SrvLockExpiredCB(
     if (!pLockState->bCompleted)
     {
         pLockState->bExpired = TRUE;
-        bEnqueueRequest = TRUE;
 
-        SrvReleaseLockStateAsync(pLockState); // cancel a pending async request
+        if (pLockState->pAcb && pLockState->pAcb->AsyncCancelContext)
+        {
+            IoCancelAsyncCancelContext(pLockState->pAcb->AsyncCancelContext);
+        }
     }
 
     LWIO_UNLOCK_MUTEX(bInLock, &pLockState->mutex);
 
-    if (bEnqueueRequest)
-    {
-        ntStatus = SrvProdConsEnqueue(
-                        gProtocolGlobals_SMB_V1.pWorkQueue,
-                        pExecContext);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        pExecContext = NULL;
-    }
-
-cleanup:
-
-    if (pExecContext)
-    {
-        SrvReleaseExecContext(pExecContext);
-    }
-
-    return;
-
-error:
-
-    LWIO_LOG_ERROR("Failed to enqueue execution context [status:0x%x]",
-                   ntStatus);
-
-    goto cleanup;
+    SrvReleaseExecContext(pExecContext);
 }
 
 static

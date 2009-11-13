@@ -228,9 +228,9 @@ namespace Likewise.LMC.Registry
         //    OUT PSTR** pppszRootKeyNames,
         //    OUT PDWORD pdwNumRootKeys
         //)
-        
+
         [DllImport(libadvapiPath, CharSet = CharSet.Unicode, SetLastError = true)]
-        public static extern int RegEnumRootKeysA(
+        public static extern int RegEnumRootKeysW(
             IntPtr hRegConnection,
             out IntPtr pppszRootKeyNames,
             out int pdwNumRootKeys);
@@ -333,11 +333,11 @@ namespace Likewise.LMC.Registry
         //   PDWORD pcbData
         //   );
         [DllImport(libadvapiPath, CharSet = CharSet.Unicode, SetLastError = true)]
-        public static extern int RegEnumValueA(
+        public static extern int RegEnumValueW(
             IntPtr hRegConnection,
             IntPtr hKey,
             uint dwIndex,
-            [MarshalAs(UnmanagedType.LPStr)] StringBuilder pValueName,                      
+            [MarshalAs(UnmanagedType.LPWStr)] StringBuilder pValueName,
             ref uint pcchValueName,
             int pReserved,
             out ulong pType,
@@ -356,7 +356,7 @@ namespace Likewise.LMC.Registry
         //    PDWORD pcbData
         //    );
         [DllImport(libadvapiPath, CharSet = CharSet.Unicode, SetLastError = true)]
-        public static extern int RegGetValueA(
+        public static extern int RegGetValueW(
             IntPtr hRegConnection,
             IntPtr hKey,
             [MarshalAs(UnmanagedType.LPWStr)] string pSubKey,
@@ -376,7 +376,7 @@ namespace Likewise.LMC.Registry
         //    IN OUT OPTIONAL PDWORD dwTotsize
         //    )
         [DllImport(libadvapiPath, CharSet = CharSet.Unicode, SetLastError = true)]
-        public static extern int RegQueryMultipleValues(
+        public static extern int RegQueryMultipleValuesW(
             IntPtr hRegConnection,
             IntPtr hKey,
             IntPtr val_list,
@@ -395,7 +395,7 @@ namespace Likewise.LMC.Registry
         //    PDWORD pcbData
         //    );
         [DllImport(libadvapiPath, CharSet = CharSet.Unicode, SetLastError = true)]
-        public static extern int RegQueryValueExA(
+        public static extern int RegQueryValueExW(
             IntPtr hRegConnection,
             IntPtr hKey,
             [MarshalAs(UnmanagedType.LPWStr)] string pValueName,
@@ -413,13 +413,13 @@ namespace Likewise.LMC.Registry
         //    REGSAM samDesired,
         //    PHKEY phkResult
         //    );
-        [DllImport(libadvapiPath, CharSet = CharSet.Ansi, SetLastError = true)]
-        public static extern int RegOpenKeyExA(
+        [DllImport(libadvapiPath, CharSet = CharSet.Unicode, SetLastError = true)]
+        public static extern int RegOpenKeyExW(
             IntPtr hRegConnection,
-            IntPtr hKey,            
-            [MarshalAs(UnmanagedType.LPStr)] string pSubKey,
+            IntPtr hKey,
+            [MarshalAs(UnmanagedType.LPWStr)] string pSubKey,
             uint ulOptions,
-            RegistryApi.RegSAM samDesired,            
+            RegistryApi.RegSAM samDesired,
             out IntPtr phkResult);
 
         //DWORD
@@ -465,10 +465,10 @@ namespace Likewise.LMC.Registry
         //    DWORD cbData
         //    );
         [DllImport(libadvapiPath, CharSet = CharSet.Unicode, SetLastError = true)]
-        public static extern int RegSetValueExA(
+        public static extern int RegSetValueExW(
             IntPtr hRegConnection,
             IntPtr hKey,            
-            [MarshalAs(UnmanagedType.LPStr)] string pValueName,            
+            [MarshalAs(UnmanagedType.LPWStr)] string pValueName,
             int pReserved,
             uint dwType,
             byte[] pData,

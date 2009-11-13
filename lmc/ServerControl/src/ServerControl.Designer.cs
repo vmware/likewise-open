@@ -58,16 +58,17 @@ namespace Likewise.LMC.ServerControl
         /// </summary>
         private void InitializeComponent()
         {
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(CServerControl));
             this.SuspendLayout();
             // 
-            // ServerControl
+            // CServerControl
             // 
-            resources.ApplyResources(this, "$this");
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.BackColor = System.Drawing.SystemColors.Window;
+            this.BackgroundImageLayout = System.Windows.Forms.ImageLayout.None;
             this.DoubleBuffered = true;
-            this.Name = "ServerControl";
+            this.Margin = new System.Windows.Forms.Padding(2);
+            this.Name = "CServerControl";
+            this.Size = new System.Drawing.Size(388, 336);
             this.ResumeLayout(false);
 
         }

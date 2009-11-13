@@ -366,10 +366,12 @@ RegShellListValues(
     PSTR pszValueName = NULL;
     PBYTE pData = NULL;
     PSTR *ppszMultiStrArray = NULL;
+    PSTR pszEscapedValue = NULL;
     DWORD dwValueNameLenMax = 0;
     DWORD dwValueNameLen = 0;
     DWORD dwValue = 0;
     DWORD dwValuesListed = 0;
+    DWORD dwEscapedValueLen = 0;
 
     dwError = RegShellUtilGetValues(
                   pParseState->hReg,
@@ -416,8 +418,14 @@ RegShellListValues(
             switch (pValues[i].type)
             {
                 case REG_SZ:
+                    dwError = RegShellUtilEscapeString(
+                                  pValues[i].pData,
+                                  &pszEscapedValue,
+                                  &dwEscapedValueLen);
+                    BAIL_ON_REG_ERROR(dwError);
                     printf("REG_SZ          \"%s\"\n",
-                           (PSTR) pValues[i].pData);
+                           pszEscapedValue);
+                    LW_SAFE_FREE_MEMORY(pszEscapedValue);
                     break;
 
                 case REG_DWORD:
@@ -442,12 +450,18 @@ RegShellListValues(
                          ppszMultiStrArray[dwMultiIndex];
                          dwMultiIndex++)
                     {
+                        dwError = RegShellUtilEscapeString(
+                                      ppszMultiStrArray[dwMultiIndex],
+                                      &pszEscapedValue,
+                                      &dwEscapedValueLen);
+                        BAIL_ON_REG_ERROR(dwError);
                         printf("%*sREG_MULTI_SZ[%d] \"%s\"\n",
                                dwMultiIndex == 0 ? 0 :
                                    dwValueNameLenMax + 2,
                                    "",
                                dwMultiIndex,
-                               ppszMultiStrArray[dwMultiIndex]);
+                               pszEscapedValue);
+                        LW_SAFE_FREE_MEMORY(pszEscapedValue);
 
                     }
                     break;
@@ -459,6 +473,7 @@ RegShellListValues(
         }
     }
 cleanup:
+    LW_SAFE_FREE_MEMORY(pszEscapedValue);
     if (pdwValuesListed)
     {
         *pdwValuesListed = dwValuesListed;

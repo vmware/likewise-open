@@ -428,52 +428,6 @@ error:
 }
 
 DWORD
-RegSrvQueryInfoKeyA(
-    HANDLE Handle,
-    HKEY hKey,
-    PSTR pszClass,
-    PDWORD pcClass,
-    PDWORD pReserved,
-    PDWORD pcSubKeys,
-    PDWORD pcMaxSubKeyLen,
-    PDWORD pcMaxClassLen,
-    PDWORD pcValues,
-    PDWORD pcMaxValueNameLen,
-    PDWORD pcMaxValueLen,
-    PDWORD pcbSecurityDescriptor,
-    PFILETIME pftLastWriteTime
-    )
-{
-    DWORD dwError = 0;
-
-    if (!RegSrvCheckAccessRight(Handle, REG_READ))
-    {
-        dwError = LW_ERROR_ACCESS_DENIED;
-        BAIL_ON_REG_ERROR(dwError);
-    }
-
-    dwError = gpRegProvider->pfnRegSrvQueryInfoKeyA(
-            Handle,
-            hKey,
-            pszClass,
-            pcClass,
-            pReserved,
-            pcSubKeys,
-            pcMaxSubKeyLen,
-            pcMaxClassLen,
-            pcValues,
-            pcMaxValueNameLen,
-            pcMaxValueLen,
-            pcbSecurityDescriptor,
-            pftLastWriteTime);
-    BAIL_ON_REG_ERROR(dwError);
-
-
-error:
-    return dwError;
-}
-
-DWORD
 RegSrvQueryInfoKeyW(
     HANDLE Handle,
     HKEY hKey,

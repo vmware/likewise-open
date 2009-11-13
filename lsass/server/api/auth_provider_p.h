@@ -58,68 +58,14 @@ typedef struct _LSA_AUTH_PROVIDER {
     struct _LSA_AUTH_PROVIDER *pNext;
 } LSA_AUTH_PROVIDER, *PLSA_AUTH_PROVIDER;
 
-VOID
-LsaSrvFreeAuthProvider(
-    PLSA_AUTH_PROVIDER pProvider
-    );
-
-VOID
-LsaSrvFreeAuthProviderList(
-    PLSA_AUTH_PROVIDER pProviderList
-    );
-
-DWORD
-LsaSrvValidateProvider(
-    PLSA_AUTH_PROVIDER pProvider
-    );
-
-DWORD
-LsaSrvInitAuthProvider(
-    IN PLSA_AUTH_PROVIDER pProvider,
-    IN OPTIONAL PLSA_STATIC_PROVIDER pStaticProviders
-    );
-
 DWORD
 LsaSrvInitAuthProviders(
     IN OPTIONAL PLSA_STATIC_PROVIDER pStaticProviders
     );
 
-DWORD
-LsaCfgFreeAuthProviderInStack(
-    PVOID pItem,
-    PVOID pUserData
-    );
-
 VOID
 LsaSrvFreeAuthProviders(
     VOID
-    );
-
-DWORD
-LsaSrvIsLocalDomain(
-    PCSTR pszDomain,
-    PBOOLEAN pbLocalDomain
-    );
-
-DWORD
-LsaSrvCrackName(
-    PCSTR pszId,
-    PSTR* ppszDomain,
-    PSTR* ppszName
-    );
-
-DWORD
-LsaSrvCrackUserName(
-    PCSTR pszLoginId,
-    PSTR* ppszDomain,
-    PSTR* ppszUserName
-    );
-
-DWORD
-LsaSrvCrackGroupName(
-    PCSTR pszGroup,
-    PSTR* ppszDomain,
-    PSTR* ppszGroupName
     );
 
 DWORD

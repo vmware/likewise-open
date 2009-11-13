@@ -1204,6 +1204,14 @@ LsaReadConfigString(
     );
 
 DWORD
+LsaReadConfigMultiString(
+    PLSA_CONFIG_REG pReg,
+    PCSTR   pszName,
+    BOOLEAN bUsePolicy,
+    PSTR    *ppszValue
+    );
+
+DWORD
 LsaReadConfigDword(
     PLSA_CONFIG_REG pReg,
     PCSTR pszName,

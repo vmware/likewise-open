@@ -49,10 +49,10 @@
 PSTR gpszPVFSProviderName = "Posix Virtual File System";
 
 GENERIC_MAPPING gPvfsFileGenericMapping = {
-    FILE_GENERIC_READ,
-    FILE_GENERIC_WRITE,
-    FILE_GENERIC_EXECUTE,
-    FILE_ALL_ACCESS
+    .GenericRead    = FILE_GENERIC_READ,
+    .GenericWrite   = FILE_GENERIC_WRITE,
+    .GenericExecute = FILE_GENERIC_EXECUTE,
+    .GenericAll     = FILE_ALL_ACCESS
 };
 
 PPVFS_WORK_QUEUE gpPvfsIoWorkQueue = NULL;

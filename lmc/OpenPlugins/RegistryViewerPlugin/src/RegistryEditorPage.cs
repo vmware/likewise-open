@@ -183,47 +183,38 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                     hKey = HKEY.HKEY_LIKEWISE;
                     KeyInfo = treeNode.Tag as RegistryEnumKeyInfo;
 
-                    if (KeyInfo != null && KeyInfo.pRootKey != IntPtr.Zero)
-                        RegistryInteropWrapper.ApiRegCloseKey(plugin.handle.Handle, KeyInfo.pRootKey);                          
+					if(plugin.pRootHandle != IntPtr.Zero)
+						RegistryInteropWrapper.ApiRegCloseKey(plugin.handle.Handle, plugin.pRootHandle);
 
-                    RegistryInteropWrapper.ApiRegOpenKeyExA(plugin.handle.Handle,
+                    RegistryInteropWrapper.ApiRegOpenKeyExW(plugin.handle.Handle,
                                                             IntPtr.Zero,
                                                             plugin.RegRootKeySelected,
-                                                            out pRootKey);                    
+                                                            out pRootKey);
 
+					plugin.pRootHandle = pRootKey;
                     KeyInfo = new RegistryEnumKeyInfo();
                     KeyInfo.pRootKey = pRootKey;
-                    KeyInfo.pKey = pRootKey;
                     KeyInfo.sKeyname = plugin.RegRootKeySelected;
                     treeNode.Tag = KeyInfo;
                     KeyInfo.OrigKey = plugin.RegRootKeySelected;
+
                     break;
 
                 case RegistryViewerPlugin.NodeType.HKEY_LIKEWISE_SUBKEY:
                     hKey = HKEY.HKEY_LIKEWISE_SUBKEY;
                     KeyInfo = treeNode.Tag as RegistryEnumKeyInfo;
-                    if (KeyInfo != null && KeyInfo.pKey == IntPtr.Zero)
+                    if (KeyInfo != null)
                     {
-                        RegistryInteropWrapper.ApiRegOpenKeyExA(plugin.handle.Handle,
-                                                            KeyInfo.pRootKey,
+                        RegistryInteropWrapper.ApiRegOpenKeyExW(plugin.handle.Handle,
+                                                            plugin.pRootHandle,
                                                             KeyInfo.sKeyname,
                                                             out pRootKey);
-                        KeyInfo.pKey = pRootKey;
                         treeNode.Tag = KeyInfo;
                     }
-                    else if (treeNode.IsModified)
-                    {
-                        RegistryInteropWrapper.ApiRegCloseKey(plugin.handle.Handle, KeyInfo.pKey);
-                        RegistryInteropWrapper.ApiRegOpenKeyExA(plugin.handle.Handle,
-                                                           KeyInfo.pRootKey,
-                                                           KeyInfo.sKeyname,
-                                                           out pRootKey);
-                        KeyInfo.pKey = pRootKey;
-                        treeNode.Tag = KeyInfo;
-                    }
-                    else
-                        pRootKey = KeyInfo.pKey;
-
+					else
+					{
+						MessageBox.Show("Invalid key ");
+					}
                     break;
 
                 case RegistryViewerPlugin.NodeType.HKEY_SUBKEY:
@@ -260,6 +251,9 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             else
             {
                 Do_RegEnumKeys(pRootKey, KeyInfo);
+
+				if(nodeType != RegistryViewerPlugin.NodeType.HKEY_LIKEWISE && pRootKey != IntPtr.Zero)
+					RegistryInteropWrapper.ApiRegCloseKey(plugin.handle.Handle, pRootKey);
             }
         }
 
@@ -301,14 +295,13 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             }
 
             EnumChildNodes(keys, values);
-        }
+		}
 
         private void EnumChildNodes(List<RegistryEnumKeyInfo> keys,
                                     List<RegistryValueInfo> values)
         {
 			if(treeNode.IsModified)
 			{
-				Do_CloseRegKeyHandles(treeNode);
 				treeNode.Nodes.Clear();
 		treeNode.IsModified = false;
 			}
@@ -316,9 +309,13 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             Dictionary<string, LACTreeNode> nodesAdded = new Dictionary<string, LACTreeNode>();
             Dictionary<string, LACTreeNode> nodesToAdd = new Dictionary<string, LACTreeNode>();
 
-            foreach (LACTreeNode n in treeNode.Nodes)
-                nodesAdded.Add(n.Text.Trim(), n);
-
+            foreach (LACTreeNode n in treeNode.Nodes) {
+				RegistryEnumKeyInfo keyInfo = n.Tag as RegistryEnumKeyInfo;
+				if(keyInfo != null)
+				{
+			nodesAdded.Add(keyInfo.sKeyname, n);
+				}
+			}
 
             if (keys != null && keys.Count != 0)
             {
@@ -327,15 +324,18 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                     if (key == null)
                         continue;
 
-                    Icon ic = Properties.Resources.Reports;
-                    LACTreeNode node = Manage.CreateIconNode(key.sKeyname,
+					string keyname = key.sKeyname.LastIndexOf(@"\") <0 ?  key.sKeyname : key.sKeyname.Substring(key.sKeyname.LastIndexOf(@"\")+1).Trim();
+
+					Icon ic = Properties.Resources.Reports;
+                    LACTreeNode node = Manage.CreateIconNode(keyname,
                                       ic,
                                       typeof(RegistryViewerLikewiseSubKeyPage),
                                       plugin);
+
                     node.sc = treeNode.sc;
                     node.Tag = key;
-                    if (!nodesAdded.ContainsKey(key.sKeyname.Trim()))
-                        nodesToAdd.Add(key.sKeyname.Trim(), node);
+                    if (!nodesAdded.ContainsKey(key.sKeyname))
+                        nodesToAdd.Add(key.sKeyname, node);
                 }
             }
 
@@ -639,49 +639,66 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
 
             if (mi != null)
             {
-                if (Configurations.currentPlatform == LikewiseTargetPlatform.Windows)
-                {
-                    keyInfo = node == null ? null : node.Tag as SubKeyInfo;
-                    valueInfo = node == null ? mi.Tag as SubKeyValueInfo : null;
-                }
-                else
-                {
-                    regKeyInfo = node == null ? null : node.Tag as RegistryEnumKeyInfo;                   
-                    regValueInfo = node == null ? mi.Tag as RegistryValueInfo : null;
+				if(mi.Text.Trim().Equals("&Refresh"))
+				{
+					 treeNode.IsModified = true;
+                     treeNode.sc.ShowControl(treeNode);
+                     return;
+				}
+				else if(mi.Text.Trim().Equals("&Refresh"))
+				{
+                     ProcessStartInfo psi = new ProcessStartInfo();
+                     psi.UseShellExecute = true;
+                     psi.FileName = CommonResources.GetString("LAC_Help");
+                     psi.Verb = "open";
+                     psi.WindowStyle = ProcessWindowStyle.Normal;
+                     Process.Start(psi);
+                     return;
+				}
+				else
+				{
+	                if (Configurations.currentPlatform == LikewiseTargetPlatform.Windows)
+	                {
+	                    keyInfo = node == null ? null : node.Tag as SubKeyInfo;
+	                    valueInfo = node == null ? mi.Tag as SubKeyValueInfo : null;
+	                }
+	                else
+					{
+		                regKeyInfo = node == null ? null : node.Tag as RegistryEnumKeyInfo;
+		                regValueInfo = node == null ? mi.Tag as RegistryValueInfo : null;
 
-                    if (regKeyInfo != null && regKeyInfo.pKey == IntPtr.Zero)
-                    {
-                        RegistryInteropWrapper.ApiRegOpenKeyExA(plugin.handle.Handle,
-                                                            regKeyInfo.pRootKey,
-                                                            regKeyInfo.sKeyname,
-                                                            out regKeyInfo.pKey);
-                    }
-                }
+						if(nodeType != RegistryViewerPlugin.NodeType.HKEY_LIKEWISE)
+						{
+			                if (regKeyInfo != null)
+			                {
+			                    RegistryInteropWrapper.ApiRegOpenKeyExW(plugin.handle.Handle,
+			                                           plugin.pRootHandle,
+			                                           regKeyInfo.sKeyname,
+			                                           out regKeyInfo.pKey);
+		                    }
+							else  if (regValueInfo != null)
+		                    {
+								RegistryEnumKeyInfo valueKeyInfo = treeNode.Tag as RegistryEnumKeyInfo;
+
+		                        RegistryInteropWrapper.ApiRegOpenKeyExW(plugin.handle.Handle,
+	                                               plugin.pRootHandle,
+	                                               valueKeyInfo.sKeyname,
+	                                               out regValueInfo.pParentKey);
+							}
+						}
+						else
+						{
+							if(regKeyInfo != null)
+								regKeyInfo.pKey = plugin.pRootHandle;
+							else if(regValueInfo != null)
+								regValueInfo.pParentKey = plugin.pRootHandle;
+						}
+					}
+				}
 
                 switch (mi.Text.Trim())
                 {
-                    //Refresh
-                    case "&Refresh":
-                        if (Configurations.currentPlatform != LikewiseTargetPlatform.Windows)
-                        {
-                            Do_CloseRegKeyHandles(treeNode);
-                            treeNode.Nodes.Clear();
-                        }
-                        treeNode.IsModified = true;
-                        treeNode.sc.ShowControl(treeNode);
-                        return;
-
-                    //Help
-                    case "&Help":
-                        ProcessStartInfo psi = new ProcessStartInfo();
-                        psi.UseShellExecute = true;
-                        psi.FileName = CommonResources.GetString("LAC_Help");
-                        psi.Verb = "open";
-                        psi.WindowStyle = ProcessWindowStyle.Normal;
-                        Process.Start(psi);
-                        return;
-
-                    //Modify
+					//Modify
                     case "Modify":
                         if (Configurations.currentPlatform == LikewiseTargetPlatform.Windows)
                         {
@@ -726,20 +743,9 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                             if (regKeyInfo != null) Do_DeleteKey(regKeyInfo, node);
                             else if (regValueInfo != null) Do_DeleteKeyValue(regValueInfo);
                         }
-					    if(treeNode.Parent != null)
-						{
-							LACTreeNode parent = treeNode.Parent as LACTreeNode;
-							parent.IsModified = true;
-							treeNode.sc.ShowControl(parent);
-						}
-						else
-						{
-	                        treeNode.IsModified = true;
-	                        treeNode.sc.ShowControl(treeNode);
-						}
-                        break;
+						break;
 
-                    //Rename                   
+                    //Rename
                     case "&Rename":
                         if (Configurations.currentPlatform == LikewiseTargetPlatform.Windows)
                         {
@@ -751,18 +757,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                             if (regKeyInfo != null) Do_RenameKey(regKeyInfo, node);
                             else if (regValueInfo != null) Do_RenameKeyValue(regValueInfo, treeNode);
                         }
-                        if(treeNode.Parent != null)
-						{
-							LACTreeNode parent = treeNode.Parent as LACTreeNode;
-							parent.IsModified = true;
-							treeNode.sc.ShowControl(parent);
-						}
-						else
-						{
-	                        treeNode.IsModified = true;
-	                        treeNode.sc.ShowControl(treeNode);
-						}
-                        break;
+						break;
 
                     //Key
                     case "Key":
@@ -1111,12 +1106,16 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                     int ret = RegistryInteropWrapper.ApiRegDeleteValue(plugin.handle.Handle, regValueInfo.pParentKey, regValueInfo.pValueName);
                     if (ret == 0)
                     {
-                        regValueInfo.pParentKey = IntPtr.Zero;
+                       if(!regValueInfo.sKeyname.Trim().Equals(Properties.Resources.HKEY_THIS_MACHINE))
+					RegistryInteropWrapper.ApiRegCloseKey(plugin.handle.Handle, regValueInfo.pParentKey);
+
                         treeNode.IsModified = true;
                         treeNode.sc.ShowControl(treeNode);
                     }
                 }
             }
+
+
         }
 
         private void Do_RenameKeyValue(object ValueInfo, LACTreeNode node)
@@ -1140,31 +1139,38 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                 }
                 else
                 {
-                    RegistryValueInfo regValueInfo = ValueInfo as RegistryValueInfo;                   
-                    RegistryAddSubKeyDlg renameDlg = new RegistryAddSubKeyDlg(regValueInfo.pValueName, false, regValueInfo.pParentKey);
-                    if (renameDlg.ShowDialog(this) == DialogResult.OK)
-                    {
-                        if (!string.IsNullOrEmpty(renameDlg.KeyName))
-                        {
-                            RegistryInteropWrapper.ApiRegGetValue(plugin.handle.Handle,
-                                             regValueInfo, out regValueInfo.bDataBuf);
+                    RegistryValueInfo regValueInfo = ValueInfo as RegistryValueInfo;
 
-                            RegistryInteropWrapper.ApiRegDeleteValue(plugin.handle.Handle,
-                                            regValueInfo.pParentKey,
-                                            regValueInfo.pValueName);
+					try{
 
-                            regValueInfo.pValueName = renameDlg.KeyName;
-                            RegistryInteropWrapper.ApiRegSetValueEx(plugin.handle.Handle,
-                                            regValueInfo.pParentKey,
-                                            regValueInfo.pValueName,
-                                            (uint)regValueInfo.pType,
-                                            regValueInfo.bDataBuf as byte[]);
-                        }
-                    }
+	                    RegistryAddSubKeyDlg renameDlg = new RegistryAddSubKeyDlg(regValueInfo.pValueName, false, regValueInfo.pParentKey);
+	                    if (renameDlg.ShowDialog(this) == DialogResult.OK)
+	                    {
+	                        if (!string.IsNullOrEmpty(renameDlg.KeyName))
+	                        {
+	                            RegistryInteropWrapper.ApiRegGetValue(plugin.handle.Handle,
+	                                             regValueInfo, out regValueInfo.bDataBuf);
+
+	                            RegistryInteropWrapper.ApiRegDeleteValue(plugin.handle.Handle,
+	                                            regValueInfo.pParentKey,
+	                                            regValueInfo.pValueName);
+
+	                            regValueInfo.pValueName = renameDlg.KeyName;
+	                            RegistryInteropWrapper.ApiRegSetValueEx(plugin.handle.Handle,
+	                                            regValueInfo.pParentKey,
+	                                            regValueInfo.pValueName,
+	                                            (uint)regValueInfo.pType,
+	                                            regValueInfo.bDataBuf as byte[]);
+	                        }
+						}
+					}catch{}
+
+                    if (!regValueInfo.sKeyname.Trim().Equals(Properties.Resources.HKEY_THIS_MACHINE))
+				RegistryInteropWrapper.ApiRegCloseKey(plugin.handle.Handle, regValueInfo.pParentKey);
                 }
 
-                node.IsModified = true;
-                node.sc.ShowControl(node);
+                treeNode.IsModified = true;
+				treeNode.sc.ShowControl(treeNode);
             }
             catch (Exception ex)
             {
@@ -1178,7 +1184,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                                              MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation, MessageBoxDefaultButton.Button1);
             if (dlg == DialogResult.Yes)
             {
-
+				// For windows support
                 if (KeyInfo != null && KeyInfo is SubKeyInfo)
                 {
                     SubKeyInfo keyInfo = KeyInfo as SubKeyInfo;
@@ -1190,23 +1196,37 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                     else
                         RegistryInteropWrapperWindows.Win32DeleteSubKey(parentKey, keyInfo.sKey);
                 }
+				//for linux support
                 else if (KeyInfo != null && KeyInfo is RegistryEnumKeyInfo)
                 {
                     RegistryEnumKeyInfo keyInfo = KeyInfo as RegistryEnumKeyInfo;
 
-                    Do_CloseRegKeyHandles(node);
+					string keyname = keyInfo.sKeyname.LastIndexOf(@"\") < 0 ? keyInfo.sKeyname : keyInfo.sKeyname.Substring(keyInfo.sKeyname.LastIndexOf(@"\")+1);
 
-                    if (keyInfo.sSubKeyCount != 0)
-                    {
-                        //Commenting this line since there is no support for the RegDeleteTree Api in linux side
-                        RegistryInteropWrapper.ApiRegDeleteTree(plugin.handle.Handle, keyInfo.pRootKey, keyInfo.pKey, keyInfo.sKeyname);
-                        //Do_DeleteTree(keyInfo);                       
-                        //RegistryInteropWrapper.ApiRegDeleteKey(plugin.handle.Handle, keyInfo.pRootKey, keyInfo.pKey, keyInfo.sKeyname);
+					RegistryEnumKeyInfo parentKeyinfo = node.Parent.Tag as RegistryEnumKeyInfo;
+					if(parentKeyinfo != null)
+					{
+                        if (!parentKeyinfo.sKeyname.Trim().Equals(Properties.Resources.HKEY_THIS_MACHINE))
+						{
+							RegistryInteropWrapper.ApiRegOpenKeyExW(plugin.handle.Handle,
+							                                        plugin.pRootHandle,
+							                                        parentKeyinfo.sKeyname,
+							                                        out keyInfo.pRootKey);
+						}
+						else
+						{
+							keyInfo.pRootKey = plugin.pRootHandle;
+						}
+
+					}
+                    if (keyInfo.sSubKeyCount != 0) {
+                        RegistryInteropWrapper.ApiRegDeleteTree(plugin.handle.Handle, keyInfo.pRootKey, keyInfo.pKey, keyname);
                     }
-                    else                 
-                        RegistryInteropWrapper.ApiRegDeleteKey(plugin.handle.Handle, keyInfo.pRootKey, keyInfo.pKey, keyInfo.sKeyname);
+                    else
+                        RegistryInteropWrapper.ApiRegDeleteKey(plugin.handle.Handle, keyInfo.pRootKey, keyInfo.pKey, keyname);
 
-                    keyInfo.pKey = IntPtr.Zero;
+                    if (!parentKeyinfo.sKeyname.Trim().Equals(Properties.Resources.HKEY_THIS_MACHINE))
+			RegistryInteropWrapper.ApiRegCloseKey(plugin.handle.Handle, keyInfo.pRootKey);
                 }
 
                 LACTreeNode parentNode = node.Parent as LACTreeNode;
@@ -1254,30 +1274,47 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                 {
                     if (!string.IsNullOrEmpty(renameDlg.KeyName))
                     {
+						//get the parent key handle
+						RegistryEnumKeyInfo parentKeyinfo = node.Parent.Tag as RegistryEnumKeyInfo;
+						if(parentKeyinfo != null)
+						{
+                            if (!parentKeyinfo.sKeyname.Trim().Equals(Properties.Resources.HKEY_THIS_MACHINE))
+							{
+								RegistryInteropWrapper.ApiRegOpenKeyExW(plugin.handle.Handle,
+								                                        plugin.pRootHandle,
+								                                        parentKeyinfo.sKeyname,
+								                                        out keyInfo.pRootKey);
+							}
+							else
+							{
+								keyInfo.pRootKey = plugin.pRootHandle;
+							}
+						}
+
+						renameDlg.KeyName = renameDlg.KeyName.LastIndexOf(@"\") < 0 ? renameDlg.KeyName : renameDlg.KeyName.Substring(renameDlg.KeyName.LastIndexOf(@"\")+1);
+
                         // Create a key with the new Name
                         IntPtr phkResult = IntPtr.Zero;
                         RegistryInteropWrapper.ApiRegCreateKeyEx(plugin.handle.Handle, keyInfo.pRootKey, Marshal.StringToHGlobalUni(renameDlg.KeyName), out phkResult);
 
-						Do_CloseRegKeyHandles(node);
                         // Move the old key values & subkeys to new key
                         Do_MoveSubKeys(keyInfo, phkResult);
 
                         if (phkResult != IntPtr.Zero)
                             RegistryInteropWrapper.ApiRegCloseKey(plugin.handle.Handle, phkResult);
 
+						keyInfo.sKeyname = keyInfo.sKeyname.LastIndexOf(@"\") < 0 ? keyInfo.sKeyname : keyInfo.sKeyname.Substring(keyInfo.sKeyname.LastIndexOf(@"\")+1);
+
                         // Delete oldKey
-                        if (keyInfo.sSubKeyCount > 0)
-                        {
-                            //Commenting this line since there is no support for the RegDeleteTree Api in linux side
+                        if (keyInfo.sSubKeyCount > 0) {
                             RegistryInteropWrapper.ApiRegDeleteTree(plugin.handle.Handle, keyInfo.pRootKey, keyInfo.pKey, keyInfo.sKeyname);
-                            //Do_DeleteTree(keyInfo);
-                            //RegistryInteropWrapper.ApiRegDeleteKey(plugin.handle.Handle, keyInfo.pRootKey, keyInfo.pKey, keyInfo.sKeyname);
                         }
                         else
                             RegistryInteropWrapper.ApiRegDeleteKey(plugin.handle.Handle, keyInfo.pRootKey, keyInfo.pKey, keyInfo.sKeyname);
 
-                        keyInfo.pKey = IntPtr.Zero;
-                    }
+                        if (!parentKeyinfo.sKeyname.Trim().Equals(Properties.Resources.HKEY_THIS_MACHINE))
+				RegistryInteropWrapper.ApiRegCloseKey(plugin.handle.Handle, keyInfo.pRootKey);
+					}
                 }
             }
 
@@ -1528,21 +1565,21 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                                         if (rootKeyInfo.pKey != IntPtr.Zero)
                                             pRootKey = rootKeyInfo.pKey;
                                         else
-                                            RegistryInteropWrapper.ApiRegOpenKeyExA(plugin.handle.Handle,
+                                            RegistryInteropWrapper.ApiRegOpenKeyExW(plugin.handle.Handle,
                                                                                     IntPtr.Zero,
                                                                                     plugin.RegRootKeySelected,
                                                                                     out pRootKey);                                       
                                     }
                                     else
                                     {
-                                        RegistryInteropWrapper.ApiRegOpenKeyExA(plugin.handle.Handle,
+                                        RegistryInteropWrapper.ApiRegOpenKeyExW(plugin.handle.Handle,
                                                                                 IntPtr.Zero,
                                                                                 plugin.RegRootKeySelected,
                                                                                 out pRootKey);
                                     }
                                     //Create the keys under Likewise_Import
                                     if (!sKeyName.Trim().ToUpper().Equals(plugin.RegRootKeySelected))
-                                        RegistryInteropWrapper.ApiRegOpenKeyExA(plugin.handle.Handle, pRootKey,
+                                        RegistryInteropWrapper.ApiRegOpenKeyExW(plugin.handle.Handle, pRootKey,
                                             sKeyName, out pRootKey);
                                 }
                             }
@@ -1553,7 +1590,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                             else if (pRootKey != IntPtr.Zero)
                             {
                                 IntPtr pSubKey = IntPtr.Zero;
-                                RegistryInteropWrapper.ApiRegOpenKeyExA(plugin.handle.Handle, pRootKey, sKeyName, out pSubKey);
+                                RegistryInteropWrapper.ApiRegOpenKeyExW(plugin.handle.Handle, pRootKey, sKeyName, out pSubKey);
                                 RegistryInteropWrapper.ApiRegCloseKey(plugin.handle.Handle, pRootKey);
                                 pRootKey = pSubKey;
                             }
@@ -1682,7 +1719,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                     if (keyInfo.sKeyname.Trim().ToUpper().Equals(Properties.Resources.HKEY_LIKEWISE))
                     {
                         if (keyInfo.pKey == IntPtr.Zero)
-                            RegistryInteropWrapper.ApiRegOpenKeyExA(plugin.handle.Handle,
+                            RegistryInteropWrapper.ApiRegOpenKeyExW(plugin.handle.Handle,
                                                                     IntPtr.Zero,
                                                                     keyInfo.OrigKey,
                                                                     out keyInfo.pKey);
@@ -1690,7 +1727,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                     else
                     {
                         if (keyInfo.pKey == IntPtr.Zero)
-                            RegistryInteropWrapper.ApiRegOpenKeyExA(plugin.handle.Handle,
+                            RegistryInteropWrapper.ApiRegOpenKeyExW(plugin.handle.Handle,
                                                                          keyInfo.pRootKey,
                                                                          keyInfo.sKeyname,
                                                                          out keyInfo.pKey);
@@ -1889,7 +1926,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
 
                         if (key.pKey == IntPtr.Zero)
                         {                           
-                            RegistryInteropWrapper.ApiRegOpenKeyExA(
+                            RegistryInteropWrapper.ApiRegOpenKeyExW(
                                                   plugin.handle.Handle,
                                                   key.pRootKey,
                                                   key.sKeyname,
@@ -1949,7 +1986,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                         {
                             if (key.pKey == IntPtr.Zero)
                             {
-                                RegistryInteropWrapper.ApiRegOpenKeyExA(
+                                RegistryInteropWrapper.ApiRegOpenKeyExW(
                                                     plugin.handle.Handle,
                                                     key.pRootKey,
                                                     key.sKeyname,
@@ -2023,7 +2060,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                         {
                             if (key.pKey == IntPtr.Zero)
                             {
-                                RegistryInteropWrapper.ApiRegOpenKeyExA(
+                                RegistryInteropWrapper.ApiRegOpenKeyExW(
                                                     plugin.handle.Handle,
                                                     key.pRootKey,
                                                     key.sKeyname,
@@ -2063,7 +2100,10 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                     {
                         if (phkResult != IntPtr.Zero)
                             RegistryInteropWrapper.ApiRegCloseKey(plugin.handle.Handle, phkResult);
-                      
+
+                        if (!keyInfo.sKeyname.Trim().Equals(Properties.Resources.HKEY_THIS_MACHINE))
+							RegistryInteropWrapper.ApiRegCloseKey(plugin.handle.Handle, keyInfo.pKey);
+
                         node.IsModified = true;
                         node.sc.ShowControl(node);
                     }

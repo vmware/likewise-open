@@ -76,7 +76,7 @@ namespace Likewise.LMC.Services
             IntPtr phServiceHandle = IntPtr.Zero;
             try
             {
-                Logger.Log("ServiceManagerInteropWrapper:ApiLwSmAcquireServiceHandle()", Logger.ServiceManagerLoglevel);
+                Logger.Log(string.Format("ServiceManagerInteropWrapper:ApiLwSmAcquireServiceHandle(Servicename = {0})", sServiceName), Logger.ServiceManagerLoglevel);
 
                 int iRet = ServiceManagerInterop.LwSmAcquireServiceHandle(sServiceName, out phServiceHandle);
                 if (iRet != 0)

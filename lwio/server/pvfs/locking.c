@@ -249,6 +249,10 @@ PvfsAddPendingLock(
                   &pPendingLock->LockList);
     BAIL_ON_NT_STATUS(ntError);
 
+    if (!pIrpCtx->pFcb)
+    {
+        pIrpCtx->pFcb = PvfsReferenceFCB(pCcb->pFcb);
+    }
     pIrpCtx->QueueType = PVFS_QUEUE_TYPE_PENDING_LOCK;
 
     if (!pIrpCtx->bIsPended)

@@ -418,7 +418,7 @@ RegEnumKeyExA(
     IN OUT PSTR pszName,
     IN OUT PDWORD pcName,
     IN PDWORD pReserved,
-    IN OUT PSTR pszClass,
+    IN OUT OPTIONAL PSTR pszClass,
     IN OUT OPTIONAL PDWORD pcClass,
     OUT OPTIONAL PFILETIME pftLastWriteTime
     )
@@ -524,7 +524,7 @@ RegEnumValueA(
     IN DWORD dwIndex,
     OUT PSTR pszValueName,
     IN OUT PDWORD pcchValueName,
-    IN PDWORD pReserved,
+    IN OPTIONAL PDWORD pReserved,
     OUT OPTIONAL PDWORD pdwType,
     OUT OPTIONAL PBYTE pData,
     IN OUT OPTIONAL PDWORD pcbData
@@ -902,7 +902,7 @@ DWORD
 RegQueryInfoKeyA(
     IN HANDLE hRegConnection,
     IN HKEY hKey,
-    OUT PSTR pszClass,
+    OUT OPTIONAL PSTR pszClass,
     IN OUT OPTIONAL PDWORD pcClass,
     IN PDWORD pReserved,
     OUT OPTIONAL PDWORD pcSubKeys,
@@ -915,21 +915,93 @@ RegQueryInfoKeyA(
     OUT OPTIONAL PFILETIME pftLastWriteTime
     )
 {
-    return RegTransactQueryInfoKeyA(
+    DWORD dwError = 0;
+    PWSTR pwszClass = NULL;
+    DWORD dwIndex = 0;
+    DWORD cValues = 0;
+    DWORD cbData = 0;
+    DWORD cMaxValueLen = 0;
+    CHAR valueName[MAX_KEY_LENGTH] = {0};
+    DWORD cValueName = MAX_KEY_LENGTH;
+
+    if (pcClass)
+    {
+        if (*pcClass == 0)
+        {
+		dwError = LW_ERROR_INSUFFICIENT_BUFFER;
+		BAIL_ON_REG_ERROR(dwError);
+        }
+
+        dwError = LwAllocateMemory(*pcClass*sizeof(WCHAR), (LW_PVOID*)&pwszClass);
+        BAIL_ON_REG_ERROR(dwError);
+    }
+
+	dwError = RegQueryInfoKeyW(
         hRegConnection,
         hKey,
-        pszClass,
+        pwszClass,
         pcClass,
         pReserved,
         pcSubKeys,
         pcMaxSubKeyLen,
         pcMaxClassLen,
-        pcValues,
+        &cValues,
         pcMaxValueNameLen,
-        pcMaxValueLen,
+        NULL,
         pcbSecurityDescriptor,
-        pftLastWriteTime
-        );
+        pftLastWriteTime);
+	BAIL_ON_REG_ERROR(dwError);
+
+	for (; dwIndex < cValues; dwIndex++)
+	{
+		memset(valueName, 0, MAX_KEY_LENGTH);
+		cValueName = MAX_KEY_LENGTH;
+		cbData = 0;
+
+		dwError = RegEnumValueA(hRegConnection,
+				                hKey,
+				                dwIndex,
+				                valueName,
+				                &cValueName,
+				                NULL,
+				                NULL,
+		                        NULL,
+		                        &cbData);
+		BAIL_ON_REG_ERROR(dwError);
+
+		if (cMaxValueLen < cbData)
+		{
+			cMaxValueLen = cbData;
+		}
+	}
+
+	if (pcValues)
+	{
+		*pcValues = cValues;
+	}
+
+	if (pcMaxValueLen)
+	{
+		*pcMaxValueLen = cMaxValueLen;
+	}
+
+cleanup:
+    LW_SAFE_FREE_MEMORY(pwszClass);
+
+    return dwError;
+
+error:
+    if (pcValues)
+    {
+	    *pcValues = 0;
+    }
+
+    if (pcMaxValueLen)
+    {
+	    *pcMaxValueLen = 0;
+    }
+
+    goto cleanup;
 }
 
 REG_API

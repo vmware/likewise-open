@@ -40,6 +40,7 @@ LwioSrvSetupInitialConfig(
 
 DWORD
 LwioSrvRefreshConfig(
+    VOID
     );
 
 VOID

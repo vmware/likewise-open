@@ -117,6 +117,28 @@ typedef struct _SRV_OPLOCK_STATE_SMB_V1
 
 } SRV_OPLOCK_STATE_SMB_V1, *PSRV_OPLOCK_STATE_SMB_V1;
 
+typedef struct _SRV_CHANGE_NOTIFY_STATE_SMB_V1
+{
+    LONG                    refCount;
+
+    pthread_mutex_t         mutex;
+    pthread_mutex_t*        pMutex;
+
+    IO_STATUS_BLOCK         ioStatusBlock;
+
+    IO_ASYNC_CONTROL_BLOCK  acb;
+    PIO_ASYNC_CONTROL_BLOCK pAcb;
+
+    PLWIO_SRV_CONNECTION    pConnection;
+
+    USHORT                  usUid;
+    USHORT                  usTid;
+    USHORT                  usFid;
+    ULONG                   ulPid;
+    USHORT                  usMid;
+
+} SRV_CHANGE_NOTIFY_STATE_SMB_V1, *PSRV_CHANGE_NOTIFY_STATE_SMB_V1;
+
 typedef enum
 {
     SRV_TREE_CONNECT_STAGE_SMB_V1_INITIAL = 0,
@@ -157,7 +179,6 @@ typedef struct _SRV_TREE_CONNECT_STATE_SMB_V1
     PSTR                           pszService2;
     PBYTE                          pVolumeInfo;
     USHORT                         usBytesAllocated;
-    PIO_CREATE_SECURITY_CONTEXT    pIoSecContext;
     PWSTR                          pwszNativeFileSystem;
     ULONG                          ulMaximalShareAccessMask;
     ULONG                          ulGuestMaximalShareAccessMask;

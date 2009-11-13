@@ -137,8 +137,8 @@ SamrSrvCreateAccount(
     PSTR pszShell = NULL;
     PWSTR pwszHomedirPath = NULL;
     DWORD dwAccountDnLen = 0;
-    DWORD dwCommonNameLen = 0;
-    DWORD dwParentDnLen = 0;
+    size_t sCommonNameLen = 0;
+    size_t sParentDnLen = 0;
     DWORD i = 0;
     UnicodeString AccountName = {0};
     Ids Rids = {0};
@@ -205,14 +205,14 @@ SamrSrvCreateAccount(
     SamrSrvFreeUnicodeString(&AccountName);
 
 
-    dwError = LwWc16sLen(pwszAccountName, &dwCommonNameLen);
+    dwError = LwWc16sLen(pwszAccountName, &sCommonNameLen);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LwWc16sLen(pwszParentDn, &dwParentDnLen);
+    dwError = LwWc16sLen(pwszParentDn, &sParentDnLen);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwAccountDnLen = dwCommonNameLen +
-                     dwParentDnLen +
+    dwAccountDnLen = sCommonNameLen +
+                     sParentDnLen +
                      (sizeof(wszAccountDnFmt)/sizeof(wszAccountDnFmt[0]));
 
     dwError = LwAllocateMemory(sizeof(WCHAR) * dwAccountDnLen,
@@ -349,16 +349,16 @@ SamrSrvBuildHomedirPath(
     NTSTATUS ntStatus = STATUS_SUCCESS;
     PSTR pszHomedirTemplate = NULL;
     PWSTR pwszHomedirTemplate = NULL;
-    DWORD dwHomedirTemplate = 0;
+    size_t sHomedirTemplateLen = 0;
     PWSTR pwszTemplateCursor = NULL;
     PSTR pszHomedirPrefix = NULL;
     PWSTR pwszHomedirPrefix = NULL;
-    DWORD dwHomedirPrefixLen = 0;
+    size_t sHomedirPrefixLen = 0;
     PSTR pszHostName = NULL;
     PWSTR pwszHostName = NULL;
-    DWORD dwHostNameLen = 0;
-    DWORD dwSamAccountNameLen = 0;
-    DWORD dwDomainNameLen = 0;
+    size_t sHostNameLen = 0;
+    size_t sSamAccountNameLen = 0;
+    size_t sDomainNameLen = 0;
     BOOLEAN bNeedLower = FALSE;
     BOOLEAN bNeedUpper = FALSE;
     PWSTR pwszHomedirPath = NULL;
@@ -377,7 +377,7 @@ SamrSrvBuildHomedirPath(
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LwWc16sLen(pwszHomedirTemplate,
-                         &dwHomedirTemplate);
+                         &sHomedirTemplateLen);
     BAIL_ON_LSA_ERROR(dwError);
 
     if (strstr(pszHomedirTemplate, "%H"))
@@ -392,7 +392,7 @@ SamrSrvBuildHomedirPath(
             BAIL_ON_LSA_ERROR(dwError);
 
             dwError = LwWc16sLen(pwszHomedirPrefix,
-                                 &dwHomedirPrefixLen);
+                                 &sHomedirPrefixLen);
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
@@ -409,24 +409,24 @@ SamrSrvBuildHomedirPath(
             BAIL_ON_LSA_ERROR(dwError);
 
             dwError = LwWc16sLen(pwszHostName,
-                                 &dwHostNameLen);
+                                 &sHostNameLen);
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
 
     dwError = LwWc16sLen(pwszSamAccountName,
-                         &dwSamAccountNameLen);
+                         &sSamAccountNameLen);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LwWc16sLen(pwszDomainName,
-                         &dwDomainNameLen);
+                         &sDomainNameLen);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwHomedirPathLenAllowed = (dwHomedirTemplate +
-                               dwHomedirPrefixLen +
-                               dwHostNameLen +
-                               dwSamAccountNameLen +
-                               dwDomainNameLen +
+    dwHomedirPathLenAllowed = (sHomedirTemplateLen +
+                               sHomedirPrefixLen +
+                               sHostNameLen +
+                               sSamAccountNameLen +
+                               sDomainNameLen +
                                1);
 
     dwError = LwAllocateMemory(sizeof(WCHAR) * dwHomedirPathLenAllowed,
@@ -445,7 +445,7 @@ SamrSrvBuildHomedirPath(
             {
             case (WCHAR)('D'):
                 pwszInsert = pwszDomainName;
-                dwInsertLen = dwDomainNameLen;
+                dwInsertLen = sDomainNameLen;
 
                 dwError = LwWc16sToUpper(pwszInsert);
                 BAIL_ON_LSA_ERROR(dwError);
@@ -453,7 +453,7 @@ SamrSrvBuildHomedirPath(
 
             case (WCHAR)('U'):
                 pwszInsert = pwszSamAccountName;
-                dwInsertLen = dwSamAccountNameLen;
+                dwInsertLen = sSamAccountNameLen;
 
                 dwError = LwWc16sToLower(pwszInsert);
                 BAIL_ON_LSA_ERROR(dwError);
@@ -461,12 +461,12 @@ SamrSrvBuildHomedirPath(
 
             case (WCHAR)('H'):
                 pwszInsert = pwszHomedirPrefix;
-                dwInsertLen = dwHomedirPrefixLen;
+                dwInsertLen = sHomedirPrefixLen;
                 break;
 
             case (WCHAR)('L'):
                 pwszInsert = pwszHostName;
-                dwInsertLen = dwHostNameLen;
+                dwInsertLen = sHostNameLen;
 
             default:
                 dwError = LW_ERROR_INVALID_HOMEDIR_TEMPLATE;
