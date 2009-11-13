@@ -212,6 +212,7 @@ namespace Likewise.LMC.Services
         [DllImport(advapiDllPath)]
         public static extern int LwSmQueryServiceDependencyClosure(
             IntPtr phHandle,
+		    [MarshalAs(UnmanagedType.CustomMarshaler, MarshalTypeRef = typeof(ServiceNameListMarshaler))]
             out string[] ppInfo);
     }
 
