@@ -122,18 +122,18 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             // 
             // lblDisplayName
             // 
-            this.lblDisplayName.Location = new System.Drawing.Point(13, 46);
+            this.lblDisplayName.Location = new System.Drawing.Point(13, 44);
             this.lblDisplayName.Name = "lblDisplayName";
-            this.lblDisplayName.Size = new System.Drawing.Size(100, 23);
+            this.lblDisplayName.Size = new System.Drawing.Size(81, 23);
             this.lblDisplayName.TabIndex = 2;
             this.lblDisplayName.Text = "Display name:";
             this.lblDisplayName.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // txtDisplayName
             // 
-            this.txtDisplayName.Location = new System.Drawing.Point(123, 45);
+            this.txtDisplayName.Location = new System.Drawing.Point(103, 45);
             this.txtDisplayName.Name = "txtDisplayName";
-            this.txtDisplayName.Size = new System.Drawing.Size(270, 20);
+            this.txtDisplayName.Size = new System.Drawing.Size(293, 20);
             this.txtDisplayName.TabIndex = 3;
             this.txtDisplayName.TextChanged += new System.EventHandler(this.txtDisplayName_TextChanged);
             // 
@@ -141,18 +141,18 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             // 
             this.lblDescription.Location = new System.Drawing.Point(13, 74);
             this.lblDescription.Name = "lblDescription";
-            this.lblDescription.Size = new System.Drawing.Size(100, 23);
+            this.lblDescription.Size = new System.Drawing.Size(81, 23);
             this.lblDescription.TabIndex = 4;
             this.lblDescription.Text = "Description:";
             this.lblDescription.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // txtDescription
             // 
-            this.txtDescription.Location = new System.Drawing.Point(123, 76);
+            this.txtDescription.Location = new System.Drawing.Point(103, 76);
             this.txtDescription.Multiline = true;
             this.txtDescription.Name = "txtDescription";
             this.txtDescription.ScrollBars = System.Windows.Forms.ScrollBars.Both;
-            this.txtDescription.Size = new System.Drawing.Size(270, 41);
+            this.txtDescription.Size = new System.Drawing.Size(293, 41);
             this.txtDescription.TabIndex = 5;
             // 
             // lblPath
@@ -176,7 +176,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             // 
             this.lblStartupType.Location = new System.Drawing.Point(13, 183);
             this.lblStartupType.Name = "lblStartupType";
-            this.lblStartupType.Size = new System.Drawing.Size(100, 23);
+            this.lblStartupType.Size = new System.Drawing.Size(81, 23);
             this.lblStartupType.TabIndex = 8;
             this.lblStartupType.Text = "Startup Type";
             this.lblStartupType.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -189,9 +189,9 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             "Automatic",
             "Manual",
             "Disabled"});
-            this.cmbStartupType.Location = new System.Drawing.Point(123, 183);
+            this.cmbStartupType.Location = new System.Drawing.Point(100, 183);
             this.cmbStartupType.Name = "cmbStartupType";
-            this.cmbStartupType.Size = new System.Drawing.Size(270, 21);
+            this.cmbStartupType.Size = new System.Drawing.Size(293, 21);
             this.cmbStartupType.TabIndex = 9;
             // 
             // lblServiceStatusValue
@@ -204,7 +204,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             // 
             // lblServiceStatus
             // 
-            this.lblServiceStatus.Location = new System.Drawing.Point(15, 222);
+            this.lblServiceStatus.Location = new System.Drawing.Point(13, 222);
             this.lblServiceStatus.Name = "lblServiceStatus";
             this.lblServiceStatus.Size = new System.Drawing.Size(100, 23);
             this.lblServiceStatus.TabIndex = 10;
@@ -214,7 +214,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             // btnStart
             // 
             this.btnStart.Enabled = false;
-            this.btnStart.Location = new System.Drawing.Point(16, 253);
+            this.btnStart.Location = new System.Drawing.Point(16, 255);
             this.btnStart.Name = "btnStart";
             this.btnStart.Size = new System.Drawing.Size(75, 23);
             this.btnStart.TabIndex = 12;
@@ -225,7 +225,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             // btnStop
             // 
             this.btnStop.Enabled = false;
-            this.btnStop.Location = new System.Drawing.Point(104, 253);
+            this.btnStop.Location = new System.Drawing.Point(100, 254);
             this.btnStop.Name = "btnStop";
             this.btnStop.Size = new System.Drawing.Size(75, 23);
             this.btnStop.TabIndex = 13;
@@ -236,7 +236,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             // btnPause
             // 
             this.btnPause.Enabled = false;
-            this.btnPause.Location = new System.Drawing.Point(195, 253);
+            this.btnPause.Location = new System.Drawing.Point(184, 254);
             this.btnPause.Name = "btnPause";
             this.btnPause.Size = new System.Drawing.Size(75, 23);
             this.btnPause.TabIndex = 14;
@@ -247,7 +247,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             // btnResume
             // 
             this.btnResume.Enabled = false;
-            this.btnResume.Location = new System.Drawing.Point(285, 253);
+            this.btnResume.Location = new System.Drawing.Point(273, 253);
             this.btnResume.Name = "btnResume";
             this.btnResume.Size = new System.Drawing.Size(75, 23);
             this.btnResume.TabIndex = 15;
@@ -267,18 +267,18 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             // 
             // lblStartParameters
             // 
-            this.lblStartParameters.Location = new System.Drawing.Point(16, 330);
+            this.lblStartParameters.Location = new System.Drawing.Point(14, 330);
             this.lblStartParameters.Name = "lblStartParameters";
-            this.lblStartParameters.Size = new System.Drawing.Size(100, 23);
+            this.lblStartParameters.Size = new System.Drawing.Size(99, 23);
             this.lblStartParameters.TabIndex = 17;
             this.lblStartParameters.Text = "Start Parameters";
             this.lblStartParameters.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // txtStartParameters
             // 
-            this.txtStartParameters.Location = new System.Drawing.Point(138, 332);
+            this.txtStartParameters.Location = new System.Drawing.Point(119, 332);
             this.txtStartParameters.Name = "txtStartParameters";
-            this.txtStartParameters.Size = new System.Drawing.Size(258, 20);
+            this.txtStartParameters.Size = new System.Drawing.Size(274, 20);
             this.txtStartParameters.TabIndex = 18;
             this.txtStartParameters.TextChanged += new System.EventHandler(this.txtStartParameters_TextChanged);
             // 

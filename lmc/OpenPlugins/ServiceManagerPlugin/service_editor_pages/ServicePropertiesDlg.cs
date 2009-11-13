@@ -78,12 +78,18 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
                            new MPMenuItem(page.PageID, "General", "General"),
                            MPMenu.POSITION_BEGINING);
 
-            if (Configurations.currentPlatform == LikewiseTargetPlatform.Windows) {
+            if (Configurations.currentPlatform == LikewiseTargetPlatform.Windows)
+            {
                 page = new ServiceRecoveryPage(this._container, this._plugin, serviceName);
                 this.AddPage(page,
                                new MPMenuItem(page.PageID, "Recovery", "Recovery"),
                                MPMenu.POSITION_BEGINING);
             }
+
+            page = new DependenciesPage(this._container, serviceName);
+            this.AddPage(page,
+                           new MPMenuItem(page.PageID, "Dependencies", "Dependencies"),
+                           MPMenu.POSITION_END);
 
             foreach (IDirectoryPropertiesPage ppage in this.GetPages())
             {
@@ -104,10 +110,24 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             {
                 if (ppage != null && ppage is ServiceRecoveryPage)
                 {
-                    ServiceRecoveryPage recoveryPage = (ServiceRecoveryPage)ppage;
+                    GeneralPropertyPage generalPage = ppage as GeneralPropertyPage;
+                    if (generalPage != null)
+                    {
+                        if (!generalPage.OnApply())
+                            return false;
+                    }
+
+                    ServiceRecoveryPage recoveryPage = ppage as ServiceRecoveryPage;
                     if (recoveryPage != null)
                     {
                         if (!recoveryPage.OnApply())
+                            return false;
+                    }
+
+                    DependenciesPage dependencyPage = ppage as DependenciesPage;
+                    if (dependencyPage != null)
+                    {
+                        if (!dependencyPage.OnApply())
                             return false;
                     }
                 }

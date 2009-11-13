@@ -59,18 +59,17 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(ServicePropertiesDlg));
             this.errorProvider = new System.Windows.Forms.ErrorProvider(this.components);
             ((System.ComponentModel.ISupportInitialize)(this.errorProvider)).BeginInit();
             this.SuspendLayout();
             // 
             // btnOK
-            //           
+            //
             this.btnOK.Click += new System.EventHandler(this.btnOK_Click);
             // 
             // btnCancel
-            //            
-            this.btnCancel.Click += new System.EventHandler(this.btnCancel_Click);
+            //
+            this.btnCancel.Click += new System.EventHandler(this.btnOK_Click);
             // 
             // errorProvider
             // 
@@ -88,9 +87,11 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             this.Text = "{0} Properties";
             ((System.ComponentModel.ISupportInitialize)(this.errorProvider)).EndInit();
             this.ResumeLayout(false);
+
         }
 
         #endregion
+
         private System.Windows.Forms.ErrorProvider errorProvider;
     }
 }

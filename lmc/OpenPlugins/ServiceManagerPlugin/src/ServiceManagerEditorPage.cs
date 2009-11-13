@@ -162,7 +162,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
                                                 serviceInfo.pwszDescription, 
                                                 serviceState,
                                                 (serviceInfo.bAutostart)?"Automatic": "Manual", 
-                                                serviceInfo.pwszPath });
+                                                "root" });
                                 lvItem.Tag = name;
                                 lvService.Items.Add(lvItem);
 

@@ -84,6 +84,12 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             }
         }
 
+        public bool OnApply()
+        {
+            //return true always since the general page does event works
+            return true;
+        }
+
         #endregion
 
         #region Helper functions

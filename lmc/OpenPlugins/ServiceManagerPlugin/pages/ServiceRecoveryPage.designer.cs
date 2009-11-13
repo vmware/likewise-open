@@ -100,7 +100,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             this.pnlData.Controls.Add(this.label3);
             this.pnlData.Controls.Add(this.label2);
             this.pnlData.Controls.Add(this.label1);
-            this.pnlData.Size = new System.Drawing.Size(419, 380);
+            this.pnlData.Size = new System.Drawing.Size(406, 371);
             // 
             // label1
             // 
@@ -144,7 +144,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             this.cbFirstfailure.FormattingEnabled = true;
             this.cbFirstfailure.Location = new System.Drawing.Point(141, 40);
             this.cbFirstfailure.Name = "cbFirstfailure";
-            this.cbFirstfailure.Size = new System.Drawing.Size(269, 21);
+            this.cbFirstfailure.Size = new System.Drawing.Size(255, 21);
             this.cbFirstfailure.TabIndex = 4;
             this.cbFirstfailure.SelectedIndexChanged += new System.EventHandler(this.cbFirstfailure_SelectedIndexChanged);
             // 
@@ -154,7 +154,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             this.cbSecondFailure.FormattingEnabled = true;
             this.cbSecondFailure.Location = new System.Drawing.Point(140, 70);
             this.cbSecondFailure.Name = "cbSecondFailure";
-            this.cbSecondFailure.Size = new System.Drawing.Size(270, 21);
+            this.cbSecondFailure.Size = new System.Drawing.Size(257, 21);
             this.cbSecondFailure.TabIndex = 5;
             this.cbSecondFailure.SelectedIndexChanged += new System.EventHandler(this.cbFirstfailure_SelectedIndexChanged);
             // 
@@ -164,7 +164,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             this.cbSubsquentFailure.FormattingEnabled = true;
             this.cbSubsquentFailure.Location = new System.Drawing.Point(141, 102);
             this.cbSubsquentFailure.Name = "cbSubsquentFailure";
-            this.cbSubsquentFailure.Size = new System.Drawing.Size(269, 21);
+            this.cbSubsquentFailure.Size = new System.Drawing.Size(256, 21);
             this.cbSubsquentFailure.TabIndex = 6;
             this.cbSubsquentFailure.SelectedIndexChanged += new System.EventHandler(this.cbFirstfailure_SelectedIndexChanged);
             // 
@@ -201,7 +201,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             this.pnlResetDays.Controls.Add(this.label5);
             this.pnlResetDays.Location = new System.Drawing.Point(7, 131);
             this.pnlResetDays.Name = "pnlResetDays";
-            this.pnlResetDays.Size = new System.Drawing.Size(403, 26);
+            this.pnlResetDays.Size = new System.Drawing.Size(390, 26);
             this.pnlResetDays.TabIndex = 12;
             // 
             // pnlResetMinutes
@@ -212,7 +212,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             this.pnlResetMinutes.Enabled = false;
             this.pnlResetMinutes.Location = new System.Drawing.Point(6, 167);
             this.pnlResetMinutes.Name = "pnlResetMinutes";
-            this.pnlResetMinutes.Size = new System.Drawing.Size(404, 25);
+            this.pnlResetMinutes.Size = new System.Drawing.Size(391, 25);
             this.pnlResetMinutes.TabIndex = 13;
             // 
             // label8
@@ -252,14 +252,14 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             // 
             // txtProgram
             // 
-            this.txtProgram.Location = new System.Drawing.Point(10, 35);
+            this.txtProgram.Location = new System.Drawing.Point(10, 34);
             this.txtProgram.Name = "txtProgram";
-            this.txtProgram.Size = new System.Drawing.Size(281, 20);
+            this.txtProgram.Size = new System.Drawing.Size(274, 20);
             this.txtProgram.TabIndex = 1;
             // 
             // btnBrowse
             // 
-            this.btnBrowse.Location = new System.Drawing.Point(300, 31);
+            this.btnBrowse.Location = new System.Drawing.Point(292, 31);
             this.btnBrowse.Name = "btnBrowse";
             this.btnBrowse.Size = new System.Drawing.Size(90, 23);
             this.btnBrowse.TabIndex = 2;
@@ -304,7 +304,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             this.groupBoxRunProgram.Enabled = false;
             this.groupBoxRunProgram.Location = new System.Drawing.Point(10, 199);
             this.groupBoxRunProgram.Name = "groupBoxRunProgram";
-            this.groupBoxRunProgram.Size = new System.Drawing.Size(402, 127);
+            this.groupBoxRunProgram.Size = new System.Drawing.Size(389, 127);
             this.groupBoxRunProgram.TabIndex = 14;
             this.groupBoxRunProgram.TabStop = false;
             this.groupBoxRunProgram.Text = "Run Program";
@@ -312,7 +312,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             // btnComputerOptions
             // 
             this.btnComputerOptions.Enabled = false;
-            this.btnComputerOptions.Location = new System.Drawing.Point(246, 338);
+            this.btnComputerOptions.Location = new System.Drawing.Point(235, 338);
             this.btnComputerOptions.Name = "btnComputerOptions";
             this.btnComputerOptions.Size = new System.Drawing.Size(164, 23);
             this.btnComputerOptions.TabIndex = 15;
@@ -325,7 +325,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.Name = "ServiceRecoveryPage";
-            this.Size = new System.Drawing.Size(419, 380);
+            this.Size = new System.Drawing.Size(406, 371);
             this.pnlData.ResumeLayout(false);
             this.pnlData.PerformLayout();
             this.pnlResetDays.ResumeLayout(false);
