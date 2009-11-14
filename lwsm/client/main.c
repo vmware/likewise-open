@@ -1155,7 +1155,7 @@ error:
     {
         memset(szErrorMessage, 0, sizeof(szErrorMessage));
         LwGetErrorString(dwError, szErrorMessage, sizeof(szErrorMessage) - 1);
-        pszErrorName = LwWin32ErrorToName(dwError);
+        pszErrorName = LwWin32ExtErrorToName(dwError);
 
         if (!gState.bQuiet)
         {
