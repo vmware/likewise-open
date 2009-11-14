@@ -37,6 +37,69 @@
 #include <lwerror.h>
 #include <ldaperror-table.h>
 
+#define STATUS_CODE(status, werror, errno, desc)             \
+    {status, werror, errno, #status, #werror, #errno, desc },
+#define __ERROR_XMACRO__
+
+struct table_entry
+{
+    NTSTATUS    ntStatus;
+    WINERROR    werror;
+    int         uerror;
+    PCSTR       pszStatusName;
+    PCSTR       pszWinerrName;
+    PCSTR       pszUnixErrnoName;
+    PCSTR       pszDescription;
+
+} status_table_exterror[] =
+{
+#include <lwerror-table.h>
+    {-1, 0, 0}
+};
+
+#undef STATUS_CODE
+#undef __ERROR_XMACRO__
+
+typedef int (*predicate) (struct table_entry* e, void* data);
+
+static
+PCSTR
+LwErrorToName(
+    LW_WINERROR winerr
+    );
+
+static
+PCSTR
+LwErrorToDescription(
+    LW_WINERROR winerr
+    );
+
+static int
+match_werror(
+    struct table_entry* e,
+    void *data
+    )
+{
+    return e->werror == *((LW_WINERROR*) data);
+}
+
+static struct table_entry*
+find(
+    predicate pred,
+    void* data
+    )
+{
+    unsigned int i;
+
+    for (i = 0; i < sizeof(status_table_exterror)/sizeof(status_table_exterror[0]); i++)
+    {
+        if (pred(&status_table_exterror[i], data))
+            return &status_table_exterror[i];
+    }
+
+    return NULL;
+}
+
 
 const struct lderr_winerr*
 find_lderr(
@@ -82,6 +145,57 @@ LwErrnoToLdapErr(
     }
 
     return -1;
+}
+
+PCSTR
+LwWin32ExtErrorToName(
+    LW_WINERROR winerr
+    )
+{
+	PCSTR pszError = LwWin32ErrorToName(winerr);
+
+	if (!pszError)
+	{
+		pszError = LwErrorToName(winerr);
+	}
+
+	return pszError;
+}
+
+PCSTR
+LwWin32ExtErrorToDescription(
+    LW_WINERROR winerr
+    )
+{
+	PCSTR pszError = LwWin32ErrorToDescription(winerr);
+
+	if (!pszError)
+	{
+		pszError = LwErrorToDescription(winerr);
+	}
+
+	return pszError;
+}
+
+
+static
+PCSTR
+LwErrorToName(
+    LW_WINERROR winerr
+    )
+{
+    struct table_entry *e = find(match_werror, &winerr);
+    return (e) ? e->pszWinerrName : NULL;
+}
+
+static
+PCSTR
+LwErrorToDescription(
+    LW_WINERROR winerr
+    )
+{
+    struct table_entry *e = find(match_werror, &winerr);
+    return (e) ? e->pszDescription : NULL;
 }
 
 /*

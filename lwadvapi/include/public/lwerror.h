@@ -421,4 +421,14 @@ LwMapLwmsgStatusToLwError(
     LW_IN LWMsgStatus status
     );
 
+LW_PCSTR
+LwWin32ExtErrorToName(
+    LW_WINERROR winerr
+    );
+
+LW_PCSTR
+LwWin32ExtErrorToDescription(
+    LW_WINERROR winerr
+    );
+
 #endif /* __LW_ERROR_H__ */
