@@ -351,7 +351,7 @@ error:
                  stderr,
                  "Failed communication with the LWNET Agent.  Error code %u (%s).\n%s\n",
                  dwError,
-                 LW_PRINTF_STRING(LwWin32ErrorToName(dwError)),
+                 LW_PRINTF_STRING(LwWin32ExtErrorToName(dwError)),
                  szErrorBuf);
         }
         else
@@ -360,7 +360,7 @@ error:
                  stderr,
                  "Failed communication with the LWNET Agent.  Error code %u (%s).\n",
                  dwError,
-                 LW_PRINTF_STRING(LwWin32ErrorToName(dwError)));
+                 LW_PRINTF_STRING(LwWin32ExtErrorToName(dwError)));
         }
     }
 
