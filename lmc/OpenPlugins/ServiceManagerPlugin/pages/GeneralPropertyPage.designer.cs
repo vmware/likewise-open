@@ -130,9 +130,10 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             this.lblDisplayName.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // txtDisplayName
-            // 
+            //
             this.txtDisplayName.Location = new System.Drawing.Point(103, 45);
             this.txtDisplayName.Name = "txtDisplayName";
+            this.txtDisplayName.ReadOnly = true;
             this.txtDisplayName.Size = new System.Drawing.Size(293, 20);
             this.txtDisplayName.TabIndex = 3;
             this.txtDisplayName.TextChanged += new System.EventHandler(this.txtDisplayName_TextChanged);
@@ -151,6 +152,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             this.txtDescription.Location = new System.Drawing.Point(103, 76);
             this.txtDescription.Multiline = true;
             this.txtDescription.Name = "txtDescription";
+            this.txtDescription.ReadOnly = true;
             this.txtDescription.ScrollBars = System.Windows.Forms.ScrollBars.Both;
             this.txtDescription.Size = new System.Drawing.Size(293, 41);
             this.txtDescription.TabIndex = 5;
@@ -168,6 +170,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             // 
             this.txtPathToExecute.Location = new System.Drawing.Point(16, 146);
             this.txtPathToExecute.Name = "txtPathToExecute";
+            this.txtPathToExecute.ReadOnly = true;
             this.txtPathToExecute.ScrollBars = System.Windows.Forms.ScrollBars.Both;
             this.txtPathToExecute.Size = new System.Drawing.Size(377, 20);
             this.txtPathToExecute.TabIndex = 7;
@@ -275,9 +278,10 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             this.lblStartParameters.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // txtStartParameters
-            // 
+            //
             this.txtStartParameters.Location = new System.Drawing.Point(119, 332);
             this.txtStartParameters.Name = "txtStartParameters";
+            this.txtStartParameters.ReadOnly = true;
             this.txtStartParameters.Size = new System.Drawing.Size(274, 20);
             this.txtStartParameters.TabIndex = 18;
             this.txtStartParameters.TextChanged += new System.EventHandler(this.txtStartParameters_TextChanged);

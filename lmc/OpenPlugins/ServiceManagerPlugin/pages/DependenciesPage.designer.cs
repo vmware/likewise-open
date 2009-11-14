@@ -80,7 +80,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             this.treeViewDependencies.Enabled = false;
             this.treeViewDependencies.Location = new System.Drawing.Point(11, 94);
             this.treeViewDependencies.Name = "treeViewDependencies";
-            this.treeViewDependencies.Size = new System.Drawing.Size(382, 109);
+            this.treeViewDependencies.Size = new System.Drawing.Size(382, 111);
             this.treeViewDependencies.TabIndex = 3;
             this.treeViewDependencies.AfterSelect += new System.Windows.Forms.TreeViewEventHandler(this.treeViewDependencies_AfterSelect);
             this.treeViewDependencies.AfterExpand += new System.Windows.Forms.TreeViewEventHandler(this.treeViewDependencies_AfterSelect);
