@@ -102,7 +102,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
                 TreeNode[] servicelist = new TreeNode[serviceInfo.ppwszDependencies.Length];
                 for (int idx = 0; idx < serviceInfo.ppwszDependencies.Length; idx++)
                 {
-                    TreeNode tn = new TreeNode(serviceInfo.pwszName);
+                    TreeNode tn = new TreeNode(serviceInfo.ppwszDependencies[idx]);
                     tn.Tag = serviceInfo.pwszName;
                     servicelist[idx] = tn;
                 }
@@ -132,9 +132,10 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
                             {
                                 if (serviceName.Equals(service, StringComparison.InvariantCultureIgnoreCase))
                                 {
-                                    TreeNode tn = new TreeNode(service);
-                                    tn.Tag = service;
+                                    TreeNode tn = new TreeNode(name);
+                                    tn.Tag = name;
                                     dependentservices.Add(tn);
+									break;
                                 }
                             }
                         }

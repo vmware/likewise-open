@@ -214,6 +214,18 @@ namespace Likewise.LMC.Services
             IntPtr phHandle,
 		    [MarshalAs(UnmanagedType.CustomMarshaler, MarshalTypeRef = typeof(ServiceNameListMarshaler))]
             out string[] ppInfo);
+
+		//DWORD
+		//LwSmQueryServiceReverseDependencyClosure(
+		//    LW_SERVICE_HANDLE hHandle,
+		//    PWSTR** pppwszServiceList
+		//    );
+		[DllImport(advapiDllPath)]
+        public static extern int LwSmQueryServiceReverseDependencyClosure(
+            IntPtr phHandle,
+		    [MarshalAs(UnmanagedType.CustomMarshaler, MarshalTypeRef = typeof(ServiceNameListMarshaler))]
+            out string[] pppwszServiceList);
+
     }
 
     class ServiceNameListMarshaler: ICustomMarshaler
