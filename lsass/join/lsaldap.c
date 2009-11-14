@@ -162,7 +162,7 @@ LsaLdapOpenDirectoryWithReaffinity(
                       bNeedGc ? "forest" : "domain",
                       pszDnsDomainOrForestName,
                       dwError,
-                      LwWin32ErrorToName(dwError));
+                      LwWin32ExtErrorToName(dwError));
 
         if (dwBlackListCount < MAX_SERVERS_TO_TRY)
         {

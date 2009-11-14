@@ -220,7 +220,7 @@ error:
                     stderr,
                     "Failed to manage trace flags.  Error code %u (%s).\n%s\n",
                     dwError,
-                    LW_PRINTF_STRING(LwWin32ErrorToName(dwError)),
+                    LW_PRINTF_STRING(LwWin32ExtErrorToName(dwError)),
                     pszErrorBuffer);
                 bPrintOrigError = FALSE;
             }
@@ -235,7 +235,7 @@ error:
             stderr,
             "Failed to manage trace flags.  Error code %u (%s).\n",
             dwError,
-            LW_PRINTF_STRING(LwWin32ErrorToName(dwError)));
+            LW_PRINTF_STRING(LwWin32ExtErrorToName(dwError)));
     }
 
     goto cleanup;

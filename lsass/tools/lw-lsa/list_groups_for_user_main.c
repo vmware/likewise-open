@@ -401,7 +401,7 @@ error:
                         "Failed to find groups for user '%s'.  Error code %u (%s).\n%s\n",
                         pszUserName,
                         dwError,
-                        LW_PRINTF_STRING(LwWin32ErrorToName(dwError)),
+                        LW_PRINTF_STRING(LwWin32ExtErrorToName(dwError)),
                         pszErrorBuffer);
                 }
                 else
@@ -411,7 +411,7 @@ error:
                         "Failed to find groups for uid %u.  Error code %u (%s).\n%s\n",
                         dwId,
                         dwError,
-                        LW_PRINTF_STRING(LwWin32ErrorToName(dwError)),
+                        LW_PRINTF_STRING(LwWin32ExtErrorToName(dwError)),
                         pszErrorBuffer);
                 }
                 bPrintOrigError = FALSE;
@@ -430,7 +430,7 @@ error:
                 "Failed to find groups for user '%s'.  Error code %u (%s).\n",
                 pszUserName,
                 dwError,
-                LW_PRINTF_STRING(LwWin32ErrorToName(dwError)));
+                LW_PRINTF_STRING(LwWin32ExtErrorToName(dwError)));
         }
         else
         {
@@ -439,7 +439,7 @@ error:
                 "Failed to find groups for uid %u.  Error code %u (%s).\n",
                 dwId,
                 dwError,
-                LW_PRINTF_STRING(LwWin32ErrorToName(dwError)));
+                LW_PRINTF_STRING(LwWin32ExtErrorToName(dwError)));
         }
     }
 

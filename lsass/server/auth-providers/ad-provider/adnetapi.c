@@ -410,7 +410,7 @@ error:
             LSA_SAFE_LOG_STRING(pszObjectName),
             LSA_SAFE_LOG_STRING(pszHostname),
             dwError,
-            LwWin32ErrorToName(dwError));
+            LwWin32ExtErrorToName(dwError));
     dwError = LW_ERROR_NO_SUCH_OBJECT;
 
     goto cleanup;
@@ -750,7 +750,7 @@ error:
             LSA_SAFE_LOG_STRING(pszObjectSid),
             LSA_SAFE_LOG_STRING(pszHostname),
             dwError,
-            LwWin32ErrorToName(dwError));
+            LwWin32ExtErrorToName(dwError));
 
     dwError = LW_ERROR_NO_SUCH_OBJECT;
 

@@ -298,7 +298,7 @@ error:
                         "Failed to %s.  Error code %u (%s).\n%s\n",
                         pszOperation,
                         dwError,
-                        LW_PRINTF_STRING(LwWin32ErrorToName(dwError)),
+                        LW_PRINTF_STRING(LwWin32ExtErrorToName(dwError)),
                         pszErrorBuffer);
                 bPrintOrigError = FALSE;
             }
@@ -313,7 +313,7 @@ error:
                 "Failed to %s.  Error code %u (%s).\n",
                 pszOperation,
                 dwError,
-                LW_PRINTF_STRING(LwWin32ErrorToName(dwError)));
+                LW_PRINTF_STRING(LwWin32ExtErrorToName(dwError)));
     }
 
     goto cleanup;

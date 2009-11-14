@@ -172,7 +172,7 @@ error:
                 fprintf(stderr,
                         "Failed to enumerate maps.  Error code %u (%s).\n%s",
                         dwError,
-                        LW_PRINTF_STRING(LwWin32ErrorToName(dwError)),
+                        LW_PRINTF_STRING(LwWin32ExtErrorToName(dwError)),
                         pszErrorBuffer);
                 bPrintOrigError = FALSE;
             }
@@ -186,7 +186,7 @@ error:
         fprintf(stderr,
                 "Failed to enumerate maps.  Error code %u (%s).\n",
                 dwError,
-                LW_PRINTF_STRING(LwWin32ErrorToName(dwError)));
+                LW_PRINTF_STRING(LwWin32ExtErrorToName(dwError)));
     }
 
     dwError = 1;
