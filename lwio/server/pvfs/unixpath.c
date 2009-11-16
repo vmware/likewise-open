@@ -102,7 +102,7 @@ PvfsWC16CanonicalPathName(
     /* Strip trailing slashes */
 
     Length = RtlCStringNumChars(pszPath);
-    for (i=Length-1; i>=0; i--)
+    for (i=Length-1; i>0; i--)
     {
         /* break out at first non slash */
         if (pszPath[i] != '/') {
