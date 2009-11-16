@@ -1227,6 +1227,12 @@ SrvProcessNotifyChange(
     PSRV_CHANGE_NOTIFY_STATE_SMB_V1 pNotifyState      = NULL;
     BOOLEAN                         bUnregisterNotify = FALSE;
 
+    if (TRUE)
+    {
+        ntStatus = STATUS_NOT_IMPLEMENTED;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
     pNTTransactState = (PSRV_NTTRANSACT_STATE_SMB_V1)pCtxSmb1->hState;
 
     switch (pNTTransactState->stage)
