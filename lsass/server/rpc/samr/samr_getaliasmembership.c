@@ -84,7 +84,7 @@ NTSTATUS SamrSrvGetAliasMembership(
     HANDLE hDirectory = NULL;
     DWORD dwScope = 0;
     PWSTR pwszBase = NULL;
-    DWORD dwSidStrLen = 0;
+    size_t sSidStrLen = 0;
     DWORD dwFilterLen = 0;
     PWSTR pwszFilter = NULL;
     WCHAR wszAttrObjectSid[] = DS_ATTR_OBJECT_SID;
@@ -121,11 +121,11 @@ NTSTATUS SamrSrvGetAliasMembership(
                                               pSids->sids[i].sid);
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
-        dwError = LwWc16sLen(pwszSid, &dwSidStrLen);
+        dwError = LwWc16sLen(pwszSid, &sSidStrLen);
         BAIL_ON_LSA_ERROR(dwError);
 
         dwFilterLen = ((sizeof(wszAttrObjectSid)/sizeof(WCHAR)) - 1) +
-                      dwSidStrLen +
+                      sSidStrLen +
                       (sizeof(wszFilterFmt)/sizeof(wszFilterFmt[0]));
 
         dwError = LwAllocateMemory(sizeof(WCHAR) * dwFilterLen,

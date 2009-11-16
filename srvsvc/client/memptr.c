@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -28,16 +28,7 @@
  * license@likewisesoftware.com
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <string.h>
-
-#include <pthread.h>
-
-#include "SrvSvcUtil.h"
-
-#include <memptr.h>
+#include "includes.h"
 
 /*
  * Locking macros
@@ -99,7 +90,7 @@ static NTSTATUS MemPtrNodeAppend(PtrList *list, PtrNode *node)
     node->next = NULL;
 
 done:
-    PTR_LIST_UNLOCK(list); 
+    PTR_LIST_UNLOCK(list);
     return status;
 
 error:
@@ -266,7 +257,7 @@ NTSTATUS MemPtrFree(PtrList *list, void *ptr)
     while (node) {
         if (node->dep == ptr || node->ptr == ptr) {
             PtrNode *rmnode = NULL;
-            
+
             /* Move to the next node before removing the current one */
             rmnode = node;
             node   = node->next;

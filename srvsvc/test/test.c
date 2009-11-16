@@ -42,8 +42,8 @@
 
 #include <srvsvc/types.h>
 
-#include "Params.h"
-#include "TestSrvSvc.h"
+#include "params.h"
+#include "test.h"
 
 void AddTest(struct test *ft, const char *name, test_fn function)
 {
@@ -325,7 +325,7 @@ int main(int argc, char *argv[])
         runtest = runtest->next;
     }
     printf("\n");
-    
+
 
 done:
     FreeTests(tests);

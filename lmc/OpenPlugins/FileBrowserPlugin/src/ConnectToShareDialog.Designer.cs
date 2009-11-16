@@ -60,7 +60,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
             //
             // tbPath
             //
-            this.tbPath.Location = new System.Drawing.Point(16, 39);
+            this.tbPath.Location = new System.Drawing.Point(16, 40);
             this.tbPath.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.tbPath.Name = "tbPath";
             this.tbPath.Size = new System.Drawing.Size(318, 20);
@@ -81,7 +81,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
             // label1
             //
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(13, 21);
+            this.label1.Location = new System.Drawing.Point(13, 18);
             this.label1.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(159, 13);
@@ -92,7 +92,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
             //
             this.lblErrorMessage.AutoSize = true;
             this.lblErrorMessage.ForeColor = System.Drawing.Color.DarkRed;
-            this.lblErrorMessage.Location = new System.Drawing.Point(77, 64);
+            this.lblErrorMessage.Location = new System.Drawing.Point(77, 67);
             this.lblErrorMessage.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.lblErrorMessage.Name = "lblErrorMessage";
             this.lblErrorMessage.Size = new System.Drawing.Size(178, 13);

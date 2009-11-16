@@ -38,9 +38,9 @@
 
 #include <srvsvc/srvsvc.h>
 
-#include "../client/SrvSvcUtil.h"
-#include "TestSrvSvc.h"
-#include "Params.h"
+#include "../client/srvsvc_util.h"
+#include "test.h"
+#include "params.h"
 
 static const char *Win32ErrorToSymbolicName(NET_API_STATUS err)
 {
@@ -111,7 +111,7 @@ handle_t CreateSrvSvcBinding(handle_t *binding, const wchar16_t *host)
     if (status != RPC_S_OK) {
         int result;
         unsigned char errmsg[dce_c_error_string_len];
-	
+
         dce_error_inq_text(status, errmsg, &result);
         if (result == 0) {
             printf("Error: %s\n", errmsg);

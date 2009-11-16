@@ -38,7 +38,7 @@
 
 #include <srvsvc/types.h>
 
-#include "Params.h"
+#include "params.h"
 
 
 #if !defined(HAVE_STRNDUP)

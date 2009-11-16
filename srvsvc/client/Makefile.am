@@ -5,24 +5,24 @@ lib_LTLIBRARIES = libsrvsvc_cs.la libsrvsvc.la
 idl_srcdir = $(top_srcdir)/idl
 include_srcdir = $(top_srcdir)/include
 
-libsrvsvc_la_SOURCES = \
-    SrvSvcBinding.c  \
-    SrvSvcNetConnectionEnum.c \
-    SrvSvcNetFileEnum.c \
-    SrvSvcNetFileGetInfo.c \
-    SrvSvcNetFileClose.c \
-    SrvSvcNetSessionEnum.c \
-    SrvSvcNetShareAdd.c \
-    SrvSvcNetShareEnum.c \
-    SrvSvcNetShareGetInfo.c \
-    SrvSvcNetShareSetInfo.c \
-    SrvSvcNetShareDel.c \
-    SrvSvcNetServerGetInfo.c \
-    SrvSvcNetServerSetInfo.c \
-    SrvSvcNetRemoteTOD.c \
-    SrvSvcMemory.c \
-    SrvSvcStubMemory.c \
-    MemPtr.c \
+libsrvsvc_la_SOURCES =        \
+    srvsvc_binding.c          \
+    netr_connectionenum.c     \
+    netr_fileenum.c           \
+    netr_filegetinfo.c        \
+    netr_fileclose.c          \
+    netr_sessionenum.c        \
+    netr_shareadd.c           \
+    netr_shareenum.c          \
+    netr_sharegetinfo.c       \
+    netr_sharesetinfo.c       \
+    netr_sharedel.c           \
+    netr_servergetinfo.c      \
+    netr_serversetinfo.c      \
+    netr_remotetod.c          \
+    srvsvc_memory.c           \
+    srvsvc_stubmemory.c       \
+    memptr.c                  \
     globals.c
 
 libsrvsvc_cs_la_SOURCES = srvsvc_cstub.c

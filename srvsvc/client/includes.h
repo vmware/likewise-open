@@ -56,10 +56,10 @@
 
 #include "srvsvc_h.h"
 
-#include "SrvSvcUtil.h"
+#include "srvsvc_util.h"
 #include "externs.h"
-#include "SrvSvcMemory.h"
-#include "SrvSvcStubMemory.h"
+#include "srvsvc_memory.h"
+#include "srvsvc_stubmemory.h"
 
 
 /*
