@@ -57,10 +57,10 @@ public class ADUCDirectoryNode: DirectoryNode
 
     public bool _IsDisabled = false;
     public bool _IsDomainController = false;
-    public bool _hasChidren = true;
-    
+    public bool _hasChidren = false;
+
     public List<LdapEntry> ldapEntries = new List<LdapEntry>();
-    
+
     #endregion
     
     #region constructors
@@ -413,18 +413,13 @@ public class ADUCDirectoryNode: DirectoryNode
     {
         Logger.Log("DirectoryNode.ListChildren() called", Logger.ldapLogLevel);
         int ret = -1;
-        
-        if (haveRetrievedChildren && !this.IsModified)
-        {
-            return null;
-        }
 
         string[] attrList = new string[]
         {
             "dummy", 
             "objectClass", 
-            "distinguishedName", 
-            "userAccountControl", 
+            "distinguishedName",
+            "userAccountControl",
             null
         };
 
@@ -435,12 +430,9 @@ public class ADUCDirectoryNode: DirectoryNode
         attrList,
         false,
         out ldapEntries);
-        
+
         if (ldapEntries == null || ldapEntries.Count == 0)
         {
-            //haveRetrievedChildren = true;
-            //return;
-            
             //clears the domian level node, if the ldap connection timed out or disconnected
             ADUCPlugin plugin = this.Plugin as ADUCPlugin;
             haveRetrievedChildren = true;
@@ -457,46 +449,24 @@ public class ADUCDirectoryNode: DirectoryNode
                 plugin._pluginNode.Nodes.Clear();
                 this.sc.ShowControl(plugin._pluginNode);
             }
-            else
-            {
-                Nodes.Clear();
-            }
-            
+
             return null;
         }
-        
+
         DateTime timer = Logger.StartTimer();
-        
-        //The following is optimized for speed, taking into account that in Mono,
-        //Nodes.Add() and Nodes.AddRange() both take a long time to complete.
-        //Nodes.AddRange() does not offer much time savings over Nodes.Add()
-        //Therefore, make two hashtables holding the new and old contents of the DN.
-        //Determine which have been added, and which have been deleted, to minimize the number of calls
-        //to Nodes.Add() and Nodes.Remove();
-        Hashtable oldEntries = new Hashtable();
-        Hashtable newEntries = new Hashtable();
 
         List<ADUCDirectoryNode> nodesToAdd = new List<ADUCDirectoryNode>();
         int nodesAdded = 0;
-        
-        foreach (TreeNode node in Nodes)
-        {
-            ADUCDirectoryNode dNode = (ADUCDirectoryNode)node;
-            if (dNode != null && !String.IsNullOrEmpty(dNode.distinguishedName) &&
-            !oldEntries.ContainsKey(dNode.distinguishedName))
-            {
-                oldEntries.Add(dNode.distinguishedName, dNode);
-            }
-            
-        }
-        
+
         foreach (LdapEntry ldapNextEntry in ldapEntries)
         {
             string currentDN = ldapNextEntry.GetDN();
-            
+
             if (!String.IsNullOrEmpty(currentDN))
             {
-                
+                bool IsDisabled = false;
+                bool IsDc = false;
+
                 LdapValue[] values = ldapNextEntry.GetAttributeValues("objectClass", dirContext);
                 string objectClass = "";
                 if (values != null && values.Length > 0)
@@ -504,19 +474,6 @@ public class ADUCDirectoryNode: DirectoryNode
                     objectClass = values[values.Length - 1].stringData;
                 }
 
-                List<LdapEntry> childLdapEntries = null;
-                ret = dirContext.ListChildEntriesSynchronous
-                                (currentDN,
-                                LdapAPI.LDAPSCOPE.ONE_LEVEL,
-                                "(objectClass=*)",
-                                new string[] { null },
-                                false,
-                                out childLdapEntries);
-                if (childLdapEntries == null || childLdapEntries.Count == 0)
-                    _hasChidren = false;
-                
-                bool IsDisabled = false;
-                bool IsDc = false;
                 if (objectClass.Equals("user", StringComparison.InvariantCultureIgnoreCase)
                 || objectClass.Equals("computer", StringComparison.InvariantCultureIgnoreCase))
                 {
@@ -526,12 +483,12 @@ public class ADUCDirectoryNode: DirectoryNode
                     {
                         userCtrlVal = Convert.ToInt32(values[0].stringData);
                     }
-                    if (userCtrlVal.Equals(8224)||userCtrlVal.Equals(8202)||userCtrlVal.Equals(532480))
+                    if (userCtrlVal.Equals(8224) || userCtrlVal.Equals(8202) || userCtrlVal.Equals(532480))
                     {
                         IsDc = true;
                     }
                     string userCtrlBinStr = UserGroupUtils.DecimalToBase(userCtrlVal, 2);
-                    
+
                     //Determine whether this user is enabled or disabled
                     //examine the second to last position from the right (0=Active, 1=Inactive)
                     if (userCtrlBinStr.Length >= 2)
@@ -546,63 +503,21 @@ public class ADUCDirectoryNode: DirectoryNode
                         }
                     }
                 }
-                
+
                 ADUCDirectoryNode newNode = new ADUCDirectoryNode(currentDN, dirContext, objectClass,
                 Resources.Group_16, NodeType, Plugin, IsDisabled);
                 newNode.sc = this.sc;
                 newNode._IsDomainController = IsDc;
                 newNode.Text = newNode.Text.Substring(3);
-                newNode._hasChidren = _hasChidren;
-                
+
                 Logger.Log(String.Format("new Entry: {0}", currentDN), Logger.ldapLogLevel);
-                
-                newEntries.Add(currentDN, newNode);
-                
-                if (oldEntries.ContainsKey(currentDN))
-                {
-                    ADUCDirectoryNode oldNode = (ADUCDirectoryNode)oldEntries[currentDN];
-                    
-                    if ((oldNode != null && oldNode.ObjectClass != objectClass)
-                    ||
-                    (oldNode != null && oldNode.IsDisabled != IsDisabled))
-                    {
-                        oldEntries.Remove(currentDN);
-                        oldEntries.Add(currentDN, newNode);
-                        Nodes.Remove(oldNode);
-                        nodesToAdd.Add(newNode);
-                        nodesAdded++;
-                    }
-                    
-                }
-                else
-                {
-                    Logger.Log(String.Format("scheduling addition of new Entry: {0}", currentDN), Logger.ldapLogLevel);
-                    nodesToAdd.Add(newNode);
-                    nodesAdded++;
-                }
-                
+                Logger.Log(String.Format("scheduling addition of new Entry: {0}", currentDN), Logger.ldapLogLevel);
+
+                nodesToAdd.Add(newNode);
+                nodesAdded++;
             }
         }
-        
-        foreach (Object o in oldEntries.Keys)
-        {
-            string oldNodeKey = (string)o;
-            
-            Logger.Log(String.Format("old Entry: {0}", oldNodeKey));
-            
-            if (!String.IsNullOrEmpty(oldNodeKey) && !newEntries.ContainsKey(oldNodeKey))
-            {
-                ADUCDirectoryNode oldNode = (ADUCDirectoryNode)oldEntries[oldNodeKey];
-                
-                if (oldNode != null)
-                {
-                    Logger.Log(String.Format("removing old Entry: {0}", oldNodeKey), Logger.ldapLogLevel);
-                    
-                    Nodes.Remove(oldNode);
-                }
-            }
-        }
-        
+
         ADUCDirectoryNode[] nodesToAddRecast = new ADUCDirectoryNode[nodesAdded];
 
         try
@@ -622,7 +537,8 @@ public class ADUCDirectoryNode: DirectoryNode
         }
         Logger.TimerMsg(ref timer, String.Format("DirectoryNode.ListChildren(): Entry Processing({0})", distinguishedName));
         this.IsModified = false;
-        haveRetrievedChildren = true;        
+        haveRetrievedChildren = true;
+
         return nodesToAddRecast;
     }
     
@@ -844,41 +760,46 @@ public class ADUCDirectoryNode: DirectoryNode
         }
         haveRetrievedChildren = true;
     }
-    
-    
+
     /// <summary>
-    /// Getting added the selected node that are of type ObjectClass="container"
-    /// and ObjectClass="organizationalUnit"
+    /// List the all children for the selected distinguished name
+    /// Adds the all children to the node
     /// </summary>
-    public void ListContainerChildren()
+    public ADUCDirectoryNode[] ListContainerChildren(ADUCDirectoryNode dnode)
     {
+        Logger.Log("DirectoryNode.ListChildren() called", Logger.ldapLogLevel);
         int ret = -1;
+
         if (haveRetrievedChildren && !this.IsModified)
         {
-            return;
+            return null;
         }
-        
-        string[] attrs = { "objectClass", "distinguishedName", null };
-        
-        DateTime start = DateTime.Now;
-        
+
+        string[] attrList = new string[]
+        {
+            "dummy",
+            "objectClass",
+            "distinguishedName",
+            "userAccountControl",
+            null
+        };
+
+        string ObjectClassFilters = "(|(objectClass=container)(objectClass=organizationalUnit)(objectClass=infrastructureUpdate)(objectClass=builtinDomain)(objectClass=LostAndFound))";
+
         ret = dirContext.ListChildEntriesSynchronous
         (distinguishedName,
         LdapAPI.LDAPSCOPE.ONE_LEVEL,
-        "(objectClass=*)",
-        attrs,
+        ObjectClassFilters,
+        attrList,
         false,
         out ldapEntries);
-        
+
         if (ldapEntries == null || ldapEntries.Count == 0)
         {
-            //haveRetrievedChildren = true;
-            //return;
-            
             //clears the domian level node, if the ldap connection timed out or disconnected
             ADUCPlugin plugin = this.Plugin as ADUCPlugin;
             haveRetrievedChildren = true;
-            this.IsModified = true;
+            this.IsModified = false;
             if (ret == (int)Likewise.LMC.Utilities.ErrorCodes.LDAPEnum.LDAP_SERVER_DOWN ||
             ret == (int)Likewise.LMC.Utilities.ErrorCodes.LDAPEnum.LDAP_CONNECT_ERROR ||
             ret == -1)
@@ -895,42 +816,124 @@ public class ADUCDirectoryNode: DirectoryNode
             {
                 Nodes.Clear();
             }
-            
-            return;
+
+            return null;
         }
-        
+
+        DateTime timer = Logger.StartTimer();
+
+        //The following is optimized for speed, taking into account that in Mono,
+        //Nodes.Add() and Nodes.AddRange() both take a long time to complete.
+        //Nodes.AddRange() does not offer much time savings over Nodes.Add()
+        //Therefore, make two hashtables holding the new and old contents of the DN.
+        //Determine which have been added, and which have been deleted, to minimize the number of calls
+        //to Nodes.Add() and Nodes.Remove();
+        Hashtable oldEntries = new Hashtable();
+        Hashtable newEntries = new Hashtable();
+
+        List<ADUCDirectoryNode> nodesToAdd = new List<ADUCDirectoryNode>();
+        int nodesAdded = 0;
+
+        foreach (TreeNode node in Nodes)
+        {
+            ADUCDirectoryNode dNode = (ADUCDirectoryNode)node;
+            if (dNode != null && !String.IsNullOrEmpty(dNode.distinguishedName) &&
+            !oldEntries.ContainsKey(dNode.distinguishedName))
+            {
+                oldEntries.Add(dNode.distinguishedName, dNode);
+            }
+
+        }
+
         foreach (LdapEntry ldapNextEntry in ldapEntries)
         {
-            string s = ldapNextEntry.GetDN();
-            string objectClass = "";
-            
-            LdapValue[] values = ldapNextEntry.GetAttributeValues("objectClass", dirContext);
-            if (values != null && values.Length > 0)
+            string currentDN = ldapNextEntry.GetDN();
+
+            if (!String.IsNullOrEmpty(currentDN))
             {
-                //use the most specific object Class, which will be listed last.
-                objectClass = values[values.Length - 1].stringData;
-                
-                Logger.Log("Start--", Logger.ldapLogLevel);
-                for (int i = 0; i < values.Length; i++)
+                LdapValue[] values = ldapNextEntry.GetAttributeValues("objectClass", dirContext);
+                string objectClass = "";
+                if (values != null && values.Length > 0)
                 {
-                    Logger.Log("objectclass is " + values[i], Logger.ldapLogLevel);
+                    objectClass = values[values.Length - 1].stringData;
                 }
-                Logger.Log("End--", Logger.ldapLogLevel);
-            }
-            
-            if (objectClass.Equals("container", StringComparison.InvariantCultureIgnoreCase) ||
-                objectClass.Equals("organizationalUnit", StringComparison.InvariantCultureIgnoreCase) ||
-                objectClass.Equals("serviceConnectionPoint", StringComparison.InvariantCultureIgnoreCase))
-            {                
-                ADUCDirectoryNode dtn = new ADUCDirectoryNode(s, dirContext, objectClass,
-                Resources.Group_16, NodeType, Plugin, false);
-                dtn.sc = this.sc;
-                Nodes.Add(dtn);
+
+                ADUCDirectoryNode newNode = new ADUCDirectoryNode(currentDN, dirContext, objectClass,
+                Resources.Group_16, NodeType, Plugin, IsDisabled);
+                newNode.sc = this.sc;
+                newNode.Text = newNode.Text.Substring(3);
+
+                Logger.Log(String.Format("new Entry: {0}", currentDN), Logger.ldapLogLevel);
+
+                newEntries.Add(currentDN, newNode);
+
+                if (oldEntries.ContainsKey(currentDN))
+                {
+                    ADUCDirectoryNode oldNode = (ADUCDirectoryNode)oldEntries[currentDN];
+
+                    if ((oldNode != null && oldNode.ObjectClass != objectClass)
+                    ||
+                    (oldNode != null && oldNode.IsDisabled != IsDisabled))
+                    {
+                        oldEntries.Remove(currentDN);
+                        oldEntries.Add(currentDN, newNode);
+                        Nodes.Remove(oldNode);
+                        nodesToAdd.Add(newNode);
+                        nodesAdded++;
+                    }
+                }
+                else
+                {
+                    Logger.Log(String.Format("scheduling addition of new Entry: {0}", currentDN), Logger.ldapLogLevel);
+                    nodesToAdd.Add(newNode);
+                    nodesAdded++;
+                }
             }
         }
+
+        foreach (Object o in oldEntries.Keys)
+        {
+            string oldNodeKey = (string)o;
+
+            Logger.Log(String.Format("old Entry: {0}", oldNodeKey));
+
+            if (!String.IsNullOrEmpty(oldNodeKey) && !newEntries.ContainsKey(oldNodeKey))
+            {
+                ADUCDirectoryNode oldNode = (ADUCDirectoryNode)oldEntries[oldNodeKey];
+
+                if (oldNode != null)
+                {
+                    Logger.Log(String.Format("removing old Entry: {0}", oldNodeKey), Logger.ldapLogLevel);
+
+                    Nodes.Remove(oldNode);
+                }
+            }
+        }
+
+        ADUCDirectoryNode[] nodesToAddRecast = new ADUCDirectoryNode[nodesAdded];
+
+        try
+        {
+            nodesToAdd.Sort(delegate(ADUCDirectoryNode d1, ADUCDirectoryNode d2)
+            {
+                return d1.Text.CompareTo(d2.Text);
+            }
+            );
+            for (int i = 0; i < nodesAdded; i++)
+            {
+                nodesToAddRecast[i] = nodesToAdd[i];
+            }
+        }
+        catch (Exception)
+        {
+        }
+        Logger.TimerMsg(ref timer, String.Format("DirectoryNode.ListChildren(): Entry Processing({0})", distinguishedName));
+        this.IsModified = false;
         haveRetrievedChildren = true;
+
+        return nodesToAddRecast;
     }
-    
+
     /// <summary>
     /// Refreshes the listview with all children for the selected node
     /// </summary>
