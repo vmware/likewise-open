@@ -388,7 +388,7 @@ error:
             fprintf(stderr,
                     "Failed to read entries from cache.  Error code %u (%s).\n%s\n",
                     dwError,
-                    LW_PRINTF_STRING(LwWin32ErrorToName(dwError)),
+                    LW_PRINTF_STRING(LwWin32ExtErrorToName(dwError)),
                     szErrorBuf);
         }
         else
@@ -396,7 +396,7 @@ error:
             fprintf(stderr,
                     "Failed to read entries from cache.  Error code %u (%s).\n",
                     dwError,
-                    LW_PRINTF_STRING(LwWin32ErrorToName(dwError)));
+                    LW_PRINTF_STRING(LwWin32ExtErrorToName(dwError)));
         }
     }
     return dwError;

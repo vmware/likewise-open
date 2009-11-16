@@ -305,7 +305,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
                                             serviceName, failureActionUpdate))
             {
                 Logger.Log("ServiceRecoveryPage:OnApply():ApiChangeServiceConfig2()");
-                return false;
+                //return false;
             }
 
             if (lpsaActions != IntPtr.Zero)

@@ -143,7 +143,7 @@ error:
                     stderr,
                     "Failed to get LSASS log setting information.  Error code %u (%s).\n%s\n",
                     dwError,
-                    LW_PRINTF_STRING(LwWin32ErrorToName(dwError)),
+                    LW_PRINTF_STRING(LwWin32ExtErrorToName(dwError)),
                     pszErrorBuffer);
                 bPrintOrigError = FALSE;
             }
@@ -158,7 +158,7 @@ error:
             stderr,
             "Failed to get LSASS log setting information.  Error code %u (%s).\n",
             dwError,
-            LW_PRINTF_STRING(LwWin32ErrorToName(dwError)));
+            LW_PRINTF_STRING(LwWin32ExtErrorToName(dwError)));
     }
 
     goto cleanup;

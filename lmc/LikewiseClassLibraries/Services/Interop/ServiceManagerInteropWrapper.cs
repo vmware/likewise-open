@@ -254,5 +254,122 @@ namespace Likewise.LMC.Services
 
             return iRet;
         }
+
+		 public static int ApiLwSmQueryServiceReverseDependencyClosure(IntPtr phServiceHandle, out string[] serviceDependencies)
+        {
+            serviceDependencies = null;
+            int iRet = 0;
+            try
+            {
+                Logger.Log("ServiceManagerInteropWrapper:ApiLwSmQueryServiceReverseDependencyClosure()", Logger.ServiceManagerLoglevel);
+
+                iRet = ServiceManagerInterop.LwSmQueryServiceReverseDependencyClosure(phServiceHandle, out serviceDependencies);
+                if (iRet != 0)
+                {
+                    serviceDependencies = null;
+                    Logger.Log("ServiceManagerInteropWrapper:ApiLwSmQueryServiceReverseDependencyClosure returns" + iRet.ToString(), Logger.ServiceManagerLoglevel);
+                }
+                Logger.Log("ServiceManagerInteropWrapper:ApiLwSmQueryServiceReverseDependencyClosure is success", Logger.ServiceManagerLoglevel);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException("ServiceManagerInteropWrapper:ApiLwSmQueryServiceReverseDependencyClosure", ex);
+            }
+
+            return iRet;
+        }
+
+
+		public static int StartAllServiceDependencies(IntPtr pHandle, ref int iReturn)
+        {
+			try
+			{
+	            if (pHandle != IntPtr.Zero)
+	            {
+	                ServiceManagerApi.LW_SERVICE_INFO serviceInfo = ServiceManagerInteropWrapper.ApiLwSmQueryServiceInfo(pHandle);
+					ServiceManagerApi.LW_SERVICE_STATUS serviceStatus = ServiceManagerInteropWrapper.ApiLwSmQueryServiceStatus(pHandle);
+
+					if(serviceStatus.state == ServiceManagerApi.LW_SERVICE_STATE.LW_SERVICE_STATE_RUNNING)
+					{
+						Logger.Log("Dependency servcie: "+ serviceInfo.pwszName + " running");
+						return iReturn;
+					}
+
+	                if (serviceInfo.ppwszDependencies != null && serviceInfo.ppwszDependencies.Length != 0) {
+	                    foreach (string service in serviceInfo.ppwszDependencies)
+	                    {
+							Logger.Log("Dependency servcie: "+ service);
+
+	                        IntPtr pDHandle = ServiceManagerInteropWrapper.ApiLwSmAcquireServiceHandle(service);
+	                        if (pDHandle != IntPtr.Zero)
+	                        {
+	                            ServiceManagerApi.LW_SERVICE_INFO InnerServiceInfo = ServiceManagerInteropWrapper.ApiLwSmQueryServiceInfo(pDHandle);
+								ServiceManagerApi.LW_SERVICE_STATUS Status = ServiceManagerInteropWrapper.ApiLwSmQueryServiceStatus(pDHandle);
+
+	                            if (InnerServiceInfo.ppwszDependencies == null || InnerServiceInfo.ppwszDependencies.Length == 0)
+								{
+									if(Status.state != ServiceManagerApi.LW_SERVICE_STATE.LW_SERVICE_STATE_RUNNING)
+									{
+						iReturn = ServiceManagerInteropWrapper.ApiLwSmStartService(pDHandle);
+						if (iReturn != 0)
+		                                    return iReturn;
+									}
+									else
+										Logger.Log("Dependency servcie: "+ service + " running");
+	                            }
+					else
+								{
+					StartAllServiceDependencies(pDHandle, ref iReturn);
+									iReturn = ServiceManagerInteropWrapper.ApiLwSmStartService(pDHandle);
+								}
+								ServiceManagerInteropWrapper.ApiLwSmReleaseServiceHandle(pDHandle);
+	                        }
+	                    }
+	                    iReturn = ServiceManagerInteropWrapper.ApiLwSmStartService(pHandle);
+					}
+	                else
+					{
+						if(serviceStatus.state != ServiceManagerApi.LW_SERVICE_STATE.LW_SERVICE_STATE_RUNNING)
+						{
+				iReturn = ServiceManagerInteropWrapper.ApiLwSmStartService(pHandle);
+						}
+	                }
+				}
+			}
+			catch (Exception ex)
+            {
+                Logger.LogException("ServiceManagerInteropWrapper:StartAllServiceDependencies", ex);
+            }
+
+            return iReturn;
+        }
+
+		public static int StopServiceRecursive(IntPtr pHandle)
+		{
+			int iRet = 0;
+			try
+			{
+				iRet = ServiceManagerInteropWrapper.ApiLwSmStopService(pHandle);
+				if(iRet == (int)41205)
+				{
+					string[] servicelist = null;
+					iRet = ApiLwSmQueryServiceReverseDependencyClosure(pHandle, out servicelist);
+					if(servicelist != null  && servicelist.Length !=0)
+					{
+						foreach(string service in servicelist)
+						{
+							IntPtr pDHandle = ServiceManagerInteropWrapper.ApiLwSmAcquireServiceHandle(service);
+							StopServiceRecursive(pDHandle);
+						}
+					}
+				}
+			}
+			catch (Exception ex)
+            {
+                Logger.LogException("ServiceManagerInteropWrapper:StartAllServiceDependencies", ex);
+            }
+
+			return iRet;
+		}
     }
 }

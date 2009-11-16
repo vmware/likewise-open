@@ -103,6 +103,7 @@ namespace Likewise.LMC.Plugins.LUG
             this.cbIsDisabled.TabIndex = 22;
             this.cbIsDisabled.Text = "Account is disa&bled";
             this.cbIsDisabled.UseVisualStyleBackColor = true;
+            this.cbIsDisabled.CheckedChanged += new System.EventHandler(this.cbIsDisabled_CheckedChanged);
             // 
             // cbNeverExpires
             // 
@@ -158,6 +159,7 @@ namespace Likewise.LMC.Plugins.LUG
             this.tbDescription.Name = "tbDescription";
             this.tbDescription.Size = new System.Drawing.Size(270, 20);
             this.tbDescription.TabIndex = 18;
+            this.tbDescription.TextChanged += new System.EventHandler(this.tbDescription_TextChanged);
             // 
             // tbFullName
             // 
@@ -165,6 +167,7 @@ namespace Likewise.LMC.Plugins.LUG
             this.tbFullName.Name = "tbFullName";
             this.tbFullName.Size = new System.Drawing.Size(270, 20);
             this.tbFullName.TabIndex = 16;
+            this.tbFullName.TextChanged += new System.EventHandler(this.tbFullName_TextChanged);
             // 
             // cbAccountLockedOut
             // 
@@ -175,6 +178,7 @@ namespace Likewise.LMC.Plugins.LUG
             this.cbAccountLockedOut.TabIndex = 23;
             this.cbAccountLockedOut.Text = "Account is &locked out";
             this.cbAccountLockedOut.UseVisualStyleBackColor = true;
+            this.cbAccountLockedOut.CheckedChanged += new System.EventHandler(this.cbAccountLockedOut_CheckedChanged);
             // 
             // gbSeparator
             // 

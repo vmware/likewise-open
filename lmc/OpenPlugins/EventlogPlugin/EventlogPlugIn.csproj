@@ -145,6 +145,10 @@
       <Project>{A01CDE74-BC93-437B-A97A-883083EA4CC9}</Project>
       <Name>LDAP</Name>
     </ProjectReference>
+    <ProjectReference Include="..\..\LikewiseClassLibraries\NetApi\NetApi.csproj">
+      <Project>{978100A9-9BF2-49A9-8E2B-57DB61907526}</Project>
+      <Name>NetApi</Name>
+    </ProjectReference>
     <ProjectReference Include="..\..\LikewiseClassLibraries\Netlogon\Netlogon.csproj">
       <Project>{BE8FEFB2-BC23-43AC-A6D4-80B43A6F0B0D}</Project>
       <Name>Netlogon</Name>
@@ -152,6 +156,10 @@
     <ProjectReference Include="..\..\LMCUtilities\LMCUtilities.csproj">
       <Project>{812CAFA6-B428-4565-A839-A2E1B68096E3}</Project>
       <Name>LMCUtilities</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\LMCUtilityUIElements\LMCUtilityUIElements.csproj">
+      <Project>{283DC463-BE07-49E6-8B0A-E3F8EDA0A7CF}</Project>
+      <Name>LMCUtilityUIElements</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\ServerControl\ServerControl_Open.csproj">
       <Project>{9F45E041-5B67-48B8-AD13-DD5C40F3364A}</Project>

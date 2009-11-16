@@ -162,7 +162,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
                                                 serviceInfo.pwszDescription, 
                                                 serviceState,
                                                 (serviceInfo.bAutostart)?"Automatic": "Manual", 
-                                                serviceInfo.pwszPath });
+                                                "root" });
                                 lvItem.Tag = name;
                                 lvService.Items.Add(lvItem);
 
@@ -203,7 +203,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             else if (mi.Text.Trim().Equals("&Properties"))
             {
                 ServicePropertiesDlg dlg = new ServicePropertiesDlg(base.container, this, plugin, serviceInfo.serviceName.Trim());
-                dlg.Show();
+                dlg.ShowDialog();
 
                 if (dlg.commit)
                 {
@@ -243,14 +243,14 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
                         case "&Start":
                             if (pHandle != IntPtr.Zero)
                             {
-                                StartAllServiceDependencies(pHandle, ref iRet);
+                                ServiceManagerInteropWrapper.StartAllServiceDependencies(pHandle, ref iRet);
                             }
                             break;
 
                         case "&Stop":
                             if (pHandle != IntPtr.Zero)
                             {
-                                iRet = ServiceManagerInteropWrapper.ApiLwSmStopService(pHandle);
+                                iRet = ServiceManagerInteropWrapper.StopServiceRecursive(pHandle);
                             }
                             break;
 
@@ -303,48 +303,6 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             }
 
             return serviceInfo;
-        }
-
-        private int StartAllServiceDependencies(IntPtr pHandle, ref int iReturn)
-        {
-            if (pHandle != null)
-            {
-                string[] serviceDependencies = null;
-
-                iReturn = ServiceManagerInteropWrapper.ApiLwSmQueryServiceDependencyClosure(pHandle, out serviceDependencies);
-                if (iReturn != 0)
-                    return iReturn;
-
-                if (serviceDependencies != null && serviceDependencies.Length != 0) {
-                    foreach (string service in serviceDependencies)
-                    {
-						Logger.Log("Dependency list " +service);
-                        IntPtr pDHandle = ServiceManagerInteropWrapper.ApiLwSmAcquireServiceHandle(service);
-                        if (pDHandle != IntPtr.Zero)
-                        {
-                            string[] serviceInnerDependencies = null;
-                            iReturn = ServiceManagerInteropWrapper.ApiLwSmQueryServiceDependencyClosure(pDHandle, out serviceInnerDependencies);
-                            if (iReturn == 0)
-                            {
-                                if (serviceInnerDependencies == null)
-                                {
-                                    iReturn = ServiceManagerInteropWrapper.ApiLwSmStartService(pDHandle);
-                                    if (iReturn != 0)
-                                        return iReturn;
-                                }
-                                else
-                                    StartAllServiceDependencies(pDHandle, ref iReturn);
-                            }
-                            else
-                                return iReturn;
-                        }
-                    }
-                }
-                else {
-                    iReturn = ServiceManagerInteropWrapper.ApiLwSmStartService(pHandle);
-                }
-            }
-            return iReturn;
         }
 
 

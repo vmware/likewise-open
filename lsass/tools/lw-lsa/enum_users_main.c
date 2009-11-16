@@ -251,7 +251,7 @@ error:
             {
                 fprintf(stderr, "Failed to enumerate users.  Error code %u (%s).\n"
                         "%s\n",
-                        dwError, LW_PRINTF_STRING(LwWin32ErrorToName(dwError)),
+                        dwError, LW_PRINTF_STRING(LwWin32ExtErrorToName(dwError)),
                         pszErrorBuffer);
                 bPrintOrigError = FALSE;
             }
@@ -263,7 +263,7 @@ error:
     if (bPrintOrigError)
     {
         fprintf(stderr, "Failed to enumerate users.  Error code %u (%s).\n",
-                dwError, LW_PRINTF_STRING(LwWin32ErrorToName(dwError)));
+                dwError, LW_PRINTF_STRING(LwWin32ExtErrorToName(dwError)));
     }
 
     goto cleanup;

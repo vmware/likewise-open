@@ -219,6 +219,16 @@ NetAllocateSamrUserInfo26FromPassword(
     );
 
 
+static
+DWORD
+NetAllocateSamrUserInfo8FromUserInfo1011(
+    PVOID  *ppCursor,
+    PDWORD  pdwSpaceLeft,
+    PVOID   pSource,
+    PDWORD  pdwSize
+    );
+
+
 DWORD
 NetAllocateUserInfo(
     PVOID   pInfoBuffer,
@@ -1469,6 +1479,15 @@ NetAllocateSamrUserInfo(
                                          pSource,
                                          pdwSize);
             dwSamrLevel = 21;
+            break;
+
+        case 1011:
+            err = NetAllocateSamrUserInfo8FromUserInfo1011(
+                                         &pCursor,
+                                         pdwSpaceLeft,
+                                         pSource,
+                                         pdwSize);
+            dwSamrLevel = 8;
             break;
 
         default:
@@ -3144,6 +3163,63 @@ error:
     *slevel = 0;
     goto cleanup;
 }
+
+
+static
+DWORD
+NetAllocateSamrUserInfo8FromUserInfo1011(
+    PVOID  *ppCursor,
+    PDWORD  pdwSpaceLeft,
+    PVOID   pSource,
+    PDWORD  pdwSize
+    )
+{
+    DWORD err = ERROR_SUCCESS;
+    PVOID pCursor = NULL;
+    DWORD dwSpaceLeft = 0;
+    DWORD dwSize = 0;
+    PUSER_INFO_1011 pUserInfo1011 = (PUSER_INFO_1011)pSource;
+
+    if (pdwSpaceLeft)
+    {
+        dwSpaceLeft = *pdwSpaceLeft;
+    }
+
+    if (pdwSize)
+    {
+        dwSize = *pdwSize;
+    }
+
+    if (ppCursor)
+    {
+        pCursor = *ppCursor;
+    }
+
+    /* full_name */
+    err = NetAllocBufferUnicodeStringFromWC16String(
+                                   &pCursor,
+                                   &dwSpaceLeft,
+                                   pUserInfo1011->usri1011_full_name,
+                                   &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    if (pdwSpaceLeft)
+    {
+        *pdwSpaceLeft = dwSpaceLeft;
+    }
+
+    if (pdwSize)
+    {
+        *pdwSize = dwSize;
+    }
+
+cleanup:
+    return err;
+
+error:
+    goto cleanup;
+}
+
 
 
 NTSTATUS PushUserInfo1(UserInfo **sinfo, uint32 *slevel, USER_INFO_1 *ninfo)

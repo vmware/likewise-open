@@ -238,7 +238,7 @@ PrintError(
                     "%s.  Error code %u (%s).\n",
                     pszUseErrorPrefix,
                     dwError,
-                    LW_PRINTF_STRING(LwWin32ErrorToName(dwError)));
+                    LW_PRINTF_STRING(LwWin32ExtErrorToName(dwError)));
         }
         else
         {
@@ -246,7 +246,7 @@ PrintError(
                     "%s.  Error code %u (%s).\n%s\n",
                     pszUseErrorPrefix,
                     dwError,
-                    LW_PRINTF_STRING(LwWin32ErrorToName(dwError)),
+                    LW_PRINTF_STRING(LwWin32ExtErrorToName(dwError)),
                     pszErrorString);
         }
     }

@@ -194,7 +194,13 @@ NetUserAdd(
         bPasswordSet = TRUE;
 
     }
-    else if (err != ERROR_INVALID_PASSWORD)
+    else if (err == ERROR_INVALID_PASSWORD)
+    {
+        /* This error only means we're not going to try
+           set the password */
+        err = ERROR_SUCCESS;
+    }
+    else
     {
         BAIL_ON_WINERR_ERROR(err);
     }

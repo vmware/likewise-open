@@ -171,8 +171,14 @@ SrvProcessWriteAndX(
                 ((LONG64)pWriteState->pRequestHeader->offset);
 
             pWriteState->llDataLength =
-                (((LONG64)pWriteState->pRequestHeader->dataLengthHigh) << 32) |
+                (((LONG64)pWriteState->pRequestHeader->dataLengthHigh) << 16) |
                 ((LONG64)pWriteState->pRequestHeader->dataLength);
+
+            if (pWriteState->llDataLength > UINT32_MAX)
+            {
+                ntStatus = STATUS_INVALID_PARAMETER;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
 
             pWriteState->ulKey = pSmbRequest->pHeader->pid;
 

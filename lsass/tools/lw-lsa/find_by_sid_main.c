@@ -233,7 +233,7 @@ error:
                 fprintf(stderr,
                         "Failed to locate SID.  Error code %u (%s).\n%s\n",
                         dwError,
-                        LW_PRINTF_STRING(LwWin32ErrorToName(dwError)),
+                        LW_PRINTF_STRING(LwWin32ExtErrorToName(dwError)),
                         pszErrorBuffer);
                 bPrintOrigError = FALSE;
             }
@@ -247,7 +247,7 @@ error:
         fprintf(stderr,
                 "Failed to locate SID.  Error code %u (%s).\n",
                 dwError,
-                LW_PRINTF_STRING(LwWin32ErrorToName(dwError)));
+                LW_PRINTF_STRING(LwWin32ExtErrorToName(dwError)));
     }
 
     goto cleanup;

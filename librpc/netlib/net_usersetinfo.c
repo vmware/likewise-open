@@ -90,7 +90,8 @@ NetUserSetInfo(
           dwLevel == 1 ||
           dwLevel == 2 ||
           dwLevel == 3 ||
-          dwLevel == 4))
+          dwLevel == 4 ||
+          dwLevel == 1011))
     {
         err = ERROR_INVALID_LEVEL;
         BAIL_ON_WINERR_ERROR(err);
@@ -191,9 +192,16 @@ NetUserSetInfo(
                                  pSamrPasswordUserInfo);
         BAIL_ON_NTSTATUS_ERROR(status);
     }
-    else if (err != ERROR_INVALID_PASSWORD &&
-             /* Info level 0 doesn't support changing password */
-             dwLevel != 0)
+    else if (err == ERROR_INVALID_PASSWORD ||
+             dwLevel == 0 ||
+             dwLevel == 1011)
+    {
+        /* This error only means we're not going to try
+           set the password. Either it's set to NULL or called
+           infolevel is one of: 0, 1011 */
+        err = ERROR_SUCCESS;
+    }
+    else
     {
         BAIL_ON_WINERR_ERROR(err);
     }

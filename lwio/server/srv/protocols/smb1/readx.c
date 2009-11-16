@@ -218,7 +218,7 @@ SrvProcessReadAndX(
             }
 
             pReadState->ullBytesToRead =
-                (((ULONG64)pReadState->pRequestHeader_WC_12->maxCountHigh) << 32)|
+                (((ULONG64)pReadState->pRequestHeader_WC_12->maxCountHigh) << 16)|
                 ((ULONG64)pReadState->pRequestHeader_WC_12->maxCount);
 
             pReadState->bPagedIo = usFlags2 & FLAG2_PAGING_IO ? TRUE : FALSE;
@@ -390,13 +390,21 @@ SrvBuildReadAndXResponse(
         // Allow for alignment bytes
         pReadState->ulDataOffset += pReadState->ulDataOffset % 2;
 
+        if (pReadState->ullBytesToRead > UINT32_MAX) {
+            ntStatus = STATUS_INVALID_PARAMETER;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
         pReadState->ulBytesToRead = pReadState->ullBytesToRead;
         pReadState->ulKey = pSmbRequest->pHeader->pid;
 
-        ntStatus = SrvAllocateMemory(
-                        pReadState->ulBytesToRead,
-                        (PVOID*)&pReadState->pData);
-        BAIL_ON_NT_STATUS(ntStatus);
+        if (pReadState->ulBytesToRead > 0)
+        {
+            ntStatus = SrvAllocateMemory(
+                pReadState->ulBytesToRead,
+                (PVOID*)&pReadState->pData);
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
 
         SrvPrepareReadStateAsync(pReadState, pExecContext);
 

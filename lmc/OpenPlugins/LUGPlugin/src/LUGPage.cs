@@ -263,14 +263,11 @@ public partial class LUGPage : StandardPage
         
         try
         {
-            string comment = "";
-            
             if (memberType == LUGAPI.LUGType.User)
             {
                 UserProperties up = ((UserPropertiesDlg)o).userProperties;
                 Hostinfo hn = ctx as Hostinfo;
                 
-                string fullname = "";
                 uint flags = 0;
 
                 LUGAPI.LUGInfo userInfo;
@@ -305,12 +302,12 @@ public partial class LUGPage : StandardPage
                 Logger.Log(String.Format("LUGPage.EditLUG(user) new_flags: {0}",
                 LUGAPI.flagDescription(flags)), Logger.netAPILogLevel);
                 
-                if (fullname != null && fullname != up.fullName)
+                if (userInfo.fullname != up.fullName)
                 {
                     LUGAPI.NetEditUserFullName(hn.hostName, up.userName, up.fullName);
                 }
                 
-                if (comment != null && comment != up.description)
+                if (userInfo.description != up.description)
                 {
                     LUGAPI.NetEditUserDescription(hn.hostName, up.userName, up.description);
                 }

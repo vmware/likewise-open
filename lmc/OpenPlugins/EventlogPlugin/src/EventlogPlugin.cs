@@ -30,8 +30,10 @@
 
 using System.Windows.Forms;
 using Likewise.LMC.Utilities;
+using Likewise.LMC.UtilityUIElements;
 using Likewise.LMC.ServerControl;
 using Likewise.LMC.Netlogon;
+using Likewise.LMC.NETAPI;
 using System;
 using System.Drawing;
 using System.Xml;
@@ -169,8 +171,6 @@ public class EventlogPlugin: IPlugIn
             _hn = new Hostinfo();
         }
 
-        ConnectToDomain();
-
         if (_pluginNode != null && _pluginNode.Nodes.Count == 0 && _hn.IsConnectionSuccess)
         {
             BuildLogNodes();
@@ -298,7 +298,7 @@ public class EventlogPlugin: IPlugIn
 
     public bool PluginSelected()
     {
-        return true;
+        return SelectComputer();
     }
 
     public void AddExtPlugin(IPlugIn extPlugin)
@@ -424,7 +424,7 @@ public class EventlogPlugin: IPlugIn
 
                     if (eventLogHandle == null)
                     {
-                        _container.ShowError("Unable to open the event log; eventlog server may disabled");                        
+                        _container.ShowError("Unable to open the event log; eventlog server may be disabled");
                         _pluginNode.sc.ShowControl(_pluginNode);
                     }                                  
                 }
@@ -531,7 +531,7 @@ public class EventlogPlugin: IPlugIn
                     _hn.IsConnectionSuccess = OpenEventLog(_hn.hostName);
                     if (!_hn.IsConnectionSuccess)
                     {
-                        Logger.ShowUserError("Unable to open the event log; eventlog server may disabled");
+                        Logger.ShowUserError("Unable to open the event log; eventlog server may be disabled");
                         return;
                     }
 
@@ -546,6 +546,55 @@ public class EventlogPlugin: IPlugIn
         {
             _hn.IsConnectionSuccess = false;            
         }
+    }
+
+    private bool SelectComputer()
+    {
+        Logger.Log(String.Format(
+        "LUGPlugin.SelectComputer: hn: {0}",
+        _hn));
+
+        SelectComputerDialog selectDlg = new SelectComputerDialog(
+            _hn.hostName,
+            _hn.creds.UserName);
+
+        if (selectDlg.ShowDialog() == DialogResult.OK)
+        {
+            int result = (int)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
+
+            _hn.hostName = selectDlg.GetHostname();
+
+            if (!selectDlg.UseDefaultUserCreds())
+            {
+                _hn.creds.UserName = selectDlg.GetUsername();
+                _hn.creds.Password = selectDlg.GetPassword();
+
+                // Only add a connection if we are not using default creds.
+                result = (int)LUGAPI.NetAddConnection(
+                    _hn.hostName,
+                    _hn.creds.UserName,
+                    _hn.creds.Password);
+
+                if (result != (int)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                {
+                    MessageBox.Show(
+                       "Unable to connect to system:\n" + ErrorCodes.WIN32String(result),
+                       "Likewise Administrative Console",
+                       MessageBoxButtons.OK,
+                       MessageBoxIcon.Exclamation);
+
+                    return false;
+                }
+            }
+
+            // This function is going to set _hn.IsConnectionSuccess... return
+            // that value for this selection.
+            ConnectToDomain();
+
+            return _hn.IsConnectionSuccess;
+        }
+
+        return false;
     }
     
     #endregion
@@ -581,4 +630,5 @@ public interface IDirectoryPropertiesPage
 }
 
 #endregion
+
 }

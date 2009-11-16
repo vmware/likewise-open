@@ -270,7 +270,7 @@ LsaSrvInitAuthProviders(
                 LSA_SAFE_LOG_STRING(pProvider->pszId),
                 LSA_SAFE_LOG_STRING(pProvider->pszProviderLibpath),
                 dwError,
-                LwWin32ErrorToName(dwError));
+                LwWin32ExtErrorToName(dwError));
 
             LsaSrvFreeAuthProvider(pProvider);
             pProvider = NULL;

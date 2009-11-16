@@ -87,7 +87,7 @@ IoRtlPathUncToInternal(
 
     *pwszOut = '\0';
 
-    if (IoRtlPathIsSeparator(pwszUncPath[0]) && IoRtlPathIsSeparator(pwszUncPath[0]))
+    if (IoRtlPathIsSeparator(pwszUncPath[0]) && IoRtlPathIsSeparator(pwszUncPath[1]))
     {
         status = LwRtlWC16StringAllocatePrintfW(ppwszInternalPath, L"/rdr%ws", pwszCopy);
         BAIL_ON_NT_STATUS(status);

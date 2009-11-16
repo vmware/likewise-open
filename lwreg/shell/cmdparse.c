@@ -146,6 +146,7 @@ static REGSHELL_CMD_ID shellCmds[] = {
     { "quit", REGSHELL_CMD_QUIT               },
     { "import", REGSHELL_CMD_IMPORT           },
     { "export", REGSHELL_CMD_EXPORT           },
+    { "upgrade", REGSHELL_CMD_UPGRADE         },
 };
 
 
@@ -1002,6 +1003,7 @@ RegShellCmdParse(
 
         case REGSHELL_CMD_IMPORT:
         case REGSHELL_CMD_EXPORT:
+        case REGSHELL_CMD_UPGRADE:
         case REGSHELL_CMD_SET_HIVE:
             if (argc != 3)
             {
@@ -1334,6 +1336,12 @@ RegShellCmdlineParseToArgv(
                     state = REGSHELL_CMDLINE_STATE_IMPORT;
                 }
                 else if (cmdEnum == REGSHELL_CMD_EXPORT)
+                {
+                    dwAllocSize = 4;
+                    dwArgc = 2;
+                    state = REGSHELL_CMDLINE_STATE_IMPORT;
+                }
+                else if (cmdEnum == REGSHELL_CMD_UPGRADE)
                 {
                     dwAllocSize = 4;
                     dwArgc = 2;
@@ -1823,6 +1831,7 @@ RegShellUsage(
         "       set_hive HIVE_NAME\n"
         "       import file.reg\n"
         "       export file.reg\n"
+        "       upgrade file.reg\n"
         "       exit | quit | ^D\n"
         "\n"
         "         Type: REG_SZ | REG_DWORD | REG_BINARY | REG_MULTI_SZ\n"

@@ -135,7 +135,7 @@ RegPrintError(
                     "%s (error = %u - %s)\n",
                      pszUseErrorPrefix,
                      dwError,
-                     LW_PRINTF_STRING(LwWin32ErrorToName(dwError)));
+                     LW_PRINTF_STRING(LwWin32ExtErrorToName(dwError)));
         }
         else
         {
@@ -143,7 +143,7 @@ RegPrintError(
                     "%s (error = %u - %s)\n%s\n",
                     pszUseErrorPrefix,
                     dwError,
-                    LW_PRINTF_STRING(LwWin32ErrorToName(dwError)),
+                    LW_PRINTF_STRING(LwWin32ExtErrorToName(dwError)),
                     pszErrorString);
         }
     }

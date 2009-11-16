@@ -291,15 +291,25 @@ error:
 DWORD
 RegShellImportFile(
     HANDLE hReg,
-    PREGSHELL_CMD_ITEM rsItem)
+    PREGSHELL_CMD_ITEM rsItem,
+    REGSHELL_UTIL_IMPORT_MODE eMode)
 {
     HANDLE parseH = NULL;
     DWORD dwError = 0;
+    REGSHELL_UTIL_IMPORT_CONTEXT importCtx = {0};
 
     dwError = RegParseOpen(rsItem->args[0], NULL, NULL, &parseH);
     BAIL_ON_REG_ERROR(dwError);
 
-    RegParseInstallCallback(parseH, RegShellUtilImportCallback, hReg, NULL);
+    importCtx.hReg = hReg;
+    importCtx.eImportMode = eMode;
+
+    dwError = RegParseInstallCallback(
+                  parseH,
+                  RegShellUtilImportCallback,
+                  &importCtx,
+                  NULL);
+    BAIL_ON_REG_ERROR(dwError);
 
     dwError = RegParseRegistry(parseH);
     BAIL_ON_REG_ERROR(dwError);
@@ -312,6 +322,7 @@ cleanup:
 error:
     goto cleanup;
 }
+
 
 DWORD
 RegShellExportFile(
@@ -778,7 +789,18 @@ RegShellProcessCmd(
                 break;
 
             case REGSHELL_CMD_IMPORT:
-                dwError = RegShellImportFile(pParseState->hReg, rsItem);
+                dwError = RegShellImportFile(
+                              pParseState->hReg,
+                              rsItem,
+                              REGSHELL_UTIL_IMPORT_OVERWRITE);
+                BAIL_ON_REG_ERROR(dwError);
+                break;
+
+            case REGSHELL_CMD_UPGRADE:
+                dwError = RegShellImportFile(
+                              pParseState->hReg,
+                              rsItem,
+                              REGSHELL_UTIL_IMPORT_UPGRADE);
                 BAIL_ON_REG_ERROR(dwError);
                 break;
 

@@ -30,6 +30,20 @@ typedef struct _REGSHELL_UTIL_VALUE
 } REGSHELL_UTIL_VALUE, *PREGSHELL_UTIL_VALUE;
 
 
+typedef enum _REGSHELL_UTIL_IMPORT_MODE
+{
+    REGSHELL_UTIL_IMPORT_OVERWRITE = 0,
+    REGSHELL_UTIL_IMPORT_UPGRADE,
+} REGSHELL_UTIL_IMPORT_MODE;
+
+typedef struct _REGSHELL_UTIL_IMPORT_CONTEXT
+{
+    HANDLE hReg;
+    REGSHELL_UTIL_IMPORT_MODE eImportMode;
+} REGSHELL_UTIL_IMPORT_CONTEXT, *PREGSHELL_UTIL_IMPORT_CONTEXT;
+
+
+
 DWORD
 RegShellCanonicalizePath(
     PSTR pszInDefaultKey,
@@ -115,8 +129,8 @@ RegShellUtilGetValue(
     PDWORD pdwValueLen);
 
 DWORD RegShellUtilImportCallback(
-    PREG_PARSE_ITEM pItem,
-    HANDLE userContext);
+          PREG_PARSE_ITEM pItem,
+          HANDLE hUserCtx);
 
 DWORD RegShellUtilImportDebugCallback(
     PREG_PARSE_ITEM pItem,

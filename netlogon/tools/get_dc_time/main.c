@@ -167,7 +167,7 @@ error:
                 stderr,
                 "Failed to query time on domain controller.  Error code %u (%s).\n%s\n",
                 dwError,
-                LW_PRINTF_STRING(LwWin32ErrorToName(dwError)),
+                LW_PRINTF_STRING(LwWin32ExtErrorToName(dwError)),
                 szErrorBuf);
         }
         else
@@ -176,7 +176,7 @@ error:
                 stderr,
                 "Failed to query time on domain controller.  Error code %u (%s).\n",
                 dwError,
-                LW_PRINTF_STRING(LwWin32ErrorToName(dwError)));
+                LW_PRINTF_STRING(LwWin32ExtErrorToName(dwError)));
         }
     }
 

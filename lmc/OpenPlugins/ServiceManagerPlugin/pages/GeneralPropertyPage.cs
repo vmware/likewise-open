@@ -84,6 +84,12 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             }
         }
 
+        public bool OnApply()
+        {
+            //return true always since the general page does event works
+            return true;
+        }
+
         #endregion
 
         #region Helper functions
@@ -230,8 +236,9 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
                 IntPtr pHandle = ServiceManagerInteropWrapper.ApiLwSmAcquireServiceHandle(serviceName);
                 if (pHandle != IntPtr.Zero)
                 {
-                    ServiceManagerInteropWrapper.ApiLwSmStartService(pHandle);
-                    ServiceManagerInteropWrapper.ApiLwSmReleaseServiceHandle(pHandle);
+					int iRet = 0;
+                    ServiceManagerInteropWrapper.StartAllServiceDependencies(pHandle, ref iRet);
+					ServiceManagerInteropWrapper.ApiLwSmReleaseServiceHandle(pHandle);
                 }
             }
 
@@ -252,7 +259,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             else {
                 IntPtr pHandle = ServiceManagerInteropWrapper.ApiLwSmAcquireServiceHandle(serviceName);
                 if (pHandle != IntPtr.Zero) {
-                    ServiceManagerInteropWrapper.ApiLwSmStopService(pHandle);
+			ServiceManagerInteropWrapper.StopServiceRecursive(pHandle);
                     ServiceManagerInteropWrapper.ApiLwSmReleaseServiceHandle(pHandle);
                 }
             }

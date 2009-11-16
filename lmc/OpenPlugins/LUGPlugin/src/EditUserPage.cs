@@ -142,6 +142,9 @@ public partial class EditUserPage : MPPage, IPropertiesPage
         {
             cbMustChange.Enabled = false;
         }
+
+        UserPropertiesDlg upDlg = (UserPropertiesDlg)this.ParentContainer;
+        upDlg.bDataWasChanged = true;
     }
     
     private void cbMustChange_CheckedChanged(object sender, EventArgs e)
@@ -158,6 +161,9 @@ public partial class EditUserPage : MPPage, IPropertiesPage
             cbNeverExpires.Enabled = true;
             cbCannotChange.Enabled = true;
         }
+
+        UserPropertiesDlg upDlg = (UserPropertiesDlg)this.ParentContainer;
+        upDlg.bDataWasChanged = true;
     }
     
     private void cbNeverExpirers_CheckedChanged(object sender, EventArgs e)
@@ -170,10 +176,36 @@ public partial class EditUserPage : MPPage, IPropertiesPage
         {
             cbMustChange.Enabled = false;
         }
+
+        UserPropertiesDlg upDlg = (UserPropertiesDlg)this.ParentContainer;
+        upDlg.bDataWasChanged = true;
     }
     
+    private void cbIsDisabled_CheckedChanged(object sender, EventArgs e)
+    {
+        UserPropertiesDlg upDlg = (UserPropertiesDlg)this.ParentContainer;
+        upDlg.bDataWasChanged = true;
+    }
+
+    private void cbAccountLockedOut_CheckedChanged(object sender, EventArgs e)
+    {
+        UserPropertiesDlg upDlg = (UserPropertiesDlg)this.ParentContainer;
+        upDlg.bDataWasChanged = true;
+    }
+
+    private void tbDescription_TextChanged(object sender, EventArgs e)
+    {
+        UserPropertiesDlg upDlg = (UserPropertiesDlg)this.ParentContainer;
+        upDlg.bDataWasChanged = true;
+    }
+
+    private void tbFullName_TextChanged(object sender, EventArgs e)
+    {
+        UserPropertiesDlg upDlg = (UserPropertiesDlg)this.ParentContainer;
+        upDlg.bDataWasChanged = true;
+    }
+
     #endregion
-    
 }
 }
 
