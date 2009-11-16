@@ -77,30 +77,32 @@
 
 #define BAIL_ON_NULL_PTR(p, status)              \
     if ((p) == NULL) {                           \
-        status = STATUS_INSUFFICIENT_RESOURCES;  \
+        status = ERROR_OUTOFMEMORY;              \
         goto error;                              \
     }
 
 #define BAIL_ON_INVALID_PTR(p, status)           \
     if ((p) == NULL) {                           \
-        status = STATUS_INVALID_PARAMETER;       \
+        status = ERROR_INVALID_PARAMETER;        \
         goto error;                              \
     }
 
-#define DCERPC_CALL(status, fn_call)             \
-    do {                                         \
-        dcethread_exc *dceexc;                   \
-                                                 \
-        DCETHREAD_TRY                            \
-        {                                        \
-            dceexc = NULL;                       \
-            (status) = fn_call;                  \
-        }                                        \
-        DCETHREAD_CATCH_ALL(dceexc)              \
-        {                                        \
-            status = LwRpcStatusToNtStatus(dceexc->match.value); \
-        }                                        \
-        DCETHREAD_ENDTRY;                        \
+#define DCERPC_CALL(status, fn_call)                               \
+    do {                                                           \
+        NTSTATUS ntStatus = STATUS_SUCCESS;                        \
+        dcethread_exc *dceexc;                                     \
+                                                                   \
+        DCETHREAD_TRY                                              \
+        {                                                          \
+            dceexc = NULL;                                         \
+            (status) = fn_call;                                    \
+        }                                                          \
+        DCETHREAD_CATCH_ALL(dceexc)                                \
+        {                                                          \
+            ntStatus = LwRpcStatusToNtStatus(dceexc->match.value); \
+            (status) = LwNtStatusToWin32Error(ntStatus);           \
+        }                                                          \
+        DCETHREAD_ENDTRY;                                          \
     } while (0);
 
 
@@ -157,6 +159,7 @@
         bInLock = FALSE;                             \
     }
 
+#define SAFE_FREE(ptr)  do { if (ptr) free(ptr); (ptr) = NULL; } while (0)
 
 
 #endif /* _SRVSVC_MACROS_H_ */
