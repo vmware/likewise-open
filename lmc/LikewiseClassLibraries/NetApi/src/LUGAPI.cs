@@ -292,6 +292,16 @@ namespace Likewise.LMC.NETAPI
         {
             uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
 
+            if (String.IsNullOrEmpty(sUsername))
+            {
+                sUsername = null;
+            }
+
+            if (String.IsNullOrEmpty(sPassword))
+            {
+                sPassword = null;
+            }
+
             // set up a NETRESOURCE structure
             NETRESOURCE nr = new NETRESOURCE();
             nr.dwScope = 0;
@@ -402,6 +412,21 @@ namespace Likewise.LMC.NETAPI
         {
             uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
 
+            if (String.IsNullOrEmpty(servername))
+            {
+                servername = null;
+            }
+
+            if (String.IsNullOrEmpty(groupname))
+            {
+                groupname = null;
+            }
+
+            if (String.IsNullOrEmpty(description))
+            {
+                description = null;
+            }
+
             LOCALGROUP_INFO_1 lg1 = new LOCALGROUP_INFO_1();
             lg1.name = groupname;
             lg1.comment = description;
@@ -452,6 +477,27 @@ namespace Likewise.LMC.NETAPI
             )
         {
             uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
+
+            if (String.IsNullOrEmpty(servername))
+            {
+                servername = null;
+            }
+            if (String.IsNullOrEmpty(username))
+            {
+                username = null;
+            }
+            if (String.IsNullOrEmpty(password))
+            {
+                password = null;
+            }
+            if (String.IsNullOrEmpty(fullname))
+            {
+                fullname = null;
+            }
+            if (String.IsNullOrEmpty(description))
+            {
+                description = null;
+            }
 
             USER_INFO_1 ui1 = new USER_INFO_1();
             USER_INFO_1011 ui11 = new USER_INFO_1011();
@@ -541,6 +587,19 @@ namespace Likewise.LMC.NETAPI
         {
             uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
 
+            if (String.IsNullOrEmpty(servername))
+            {
+                servername = null;
+            }
+            if (String.IsNullOrEmpty(username))
+            {
+                username = null;
+            }
+            if (String.IsNullOrEmpty(password))
+            {
+                password = null;
+            }
+
             USER_INFO_1003 ui1003 = new USER_INFO_1003();
             ui1003.usri1003_password = password;
 
@@ -583,6 +642,15 @@ namespace Likewise.LMC.NETAPI
         {
             uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
 
+            if (String.IsNullOrEmpty(servername))
+            {
+                servername = null;
+            }
+            if (String.IsNullOrEmpty(username))
+            {
+                username = null;
+            }
+
             try
             {
                 if (!NetApiInitCalled)
@@ -616,6 +684,15 @@ namespace Likewise.LMC.NETAPI
         {
             uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
 
+            if (String.IsNullOrEmpty(servername))
+            {
+                servername = null;
+            }
+            if (String.IsNullOrEmpty(username))
+            {
+                username = null;
+            }
+
             try
             {
                 if (!NetApiInitCalled)
@@ -648,6 +725,16 @@ namespace Likewise.LMC.NETAPI
             )
         {
             uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
+
+            if (String.IsNullOrEmpty(servername))
+            {
+                servername = null;
+            }
+            if (String.IsNullOrEmpty(username))
+            {
+                username = null;
+            }
+
             groups = null;
 
             IntPtr bufPtr = new IntPtr(0);
@@ -720,6 +807,11 @@ namespace Likewise.LMC.NETAPI
             )
         {
             uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
+
+            if (String.IsNullOrEmpty(servername))
+            {
+                servername = null;
+            }
 
             enumStatus = new LUGEnumStatus();
             enumStatus.initializeToNull();
@@ -813,6 +905,11 @@ namespace Likewise.LMC.NETAPI
         {
             uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
 
+            if (String.IsNullOrEmpty(servername))
+            {
+                servername = null;
+            }
+
             enumStatus = new LUGEnumStatus();
             enumStatus.initializeToNull();
             enumStatus.type = LUGType.Group;
@@ -903,6 +1000,19 @@ namespace Likewise.LMC.NETAPI
 
             uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
 
+            if (String.IsNullOrEmpty(servername))
+            {
+                servername = null;
+            }
+            if (String.IsNullOrEmpty(groupname))
+            {
+                groupname = null;
+            }
+            if (String.IsNullOrEmpty(username))
+            {
+                username = null;
+            }
+
             LOCALGROUP_MEMBERS_INFO_3 lgmi3 = new LOCALGROUP_MEMBERS_INFO_3();
             lgmi3.lgrmi3_domainandname = username;
 
@@ -945,6 +1055,15 @@ namespace Likewise.LMC.NETAPI
             )
         {
             IntPtr bufPtr = IntPtr.Zero;
+
+            if (String.IsNullOrEmpty(servername))
+            {
+                servername = null;
+            }
+            if (String.IsNullOrEmpty(username))
+            {
+                username = null;
+            }
 
             uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
 
@@ -1005,6 +1124,19 @@ namespace Likewise.LMC.NETAPI
         {
             uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
 
+            if (String.IsNullOrEmpty(servername))
+            {
+                 servername = null;
+            }
+            if (String.IsNullOrEmpty(oldusername))
+            {
+                 oldusername = null;
+            }
+            if (String.IsNullOrEmpty(username))
+            {
+                 username = null;
+            }
+
             USER_INFO_0 usrinfo_0 = new USER_INFO_0();
             usrinfo_0.usri0_name = username;
 
@@ -1051,6 +1183,19 @@ namespace Likewise.LMC.NETAPI
             )
         {
             uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
+
+            if (String.IsNullOrEmpty(servername))
+            {
+                servername = null;
+            }
+            if (String.IsNullOrEmpty(oldgroupname))
+            {
+                oldgroupname = null;
+            }
+            if (String.IsNullOrEmpty(groupname))
+            {
+                groupname = null;
+            }
 
             LOCALGROUP_INFO_0 localgrouinfo_0 = new LOCALGROUP_INFO_0();
             localgrouinfo_0.lgrpi0_name = groupname;
@@ -1107,6 +1252,19 @@ namespace Likewise.LMC.NETAPI
         {
             uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
 
+            if (String.IsNullOrEmpty(servername))
+            {
+                servername = null;
+            }
+            if (String.IsNullOrEmpty(username))
+            {
+                username = null;
+            }
+            if (String.IsNullOrEmpty(fullname))
+            {
+                fullname = null;
+            }
+
             USER_INFO_1011 userinfo_1011 = new USER_INFO_1011();
             userinfo_1011.usri1011_full_name = fullname;
 
@@ -1152,6 +1310,19 @@ namespace Likewise.LMC.NETAPI
             )
         {
             uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
+
+            if (String.IsNullOrEmpty(servername))
+            {
+                servername = null;
+            }
+            if (String.IsNullOrEmpty(username))
+            {
+                username = null;
+            }
+            if (String.IsNullOrEmpty(description))
+            {
+                description = null;
+            }
 
             USER_INFO_1007 userinfo_1007 = new USER_INFO_1007();
             userinfo_1007.usri1007_comment = description;
@@ -1200,6 +1371,15 @@ namespace Likewise.LMC.NETAPI
         {
             uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
 
+            if (String.IsNullOrEmpty(servername))
+            {
+                servername = null;
+            }
+            if (String.IsNullOrEmpty(username))
+            {
+                username = null;
+            }
+
             USER_INFO_1008 userinfo_1008 = new USER_INFO_1008();
             userinfo_1008.usri1008_flags = flags;
 
@@ -1244,6 +1424,15 @@ namespace Likewise.LMC.NETAPI
             )
         {
             uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
+
+            if (String.IsNullOrEmpty(servername))
+            {
+                servername = null;
+            }
+            if (String.IsNullOrEmpty(groupname))
+            {
+                groupname = null;
+            }
 
             members = null;
 
@@ -1362,6 +1551,15 @@ namespace Likewise.LMC.NETAPI
         {
             uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
 
+            if (String.IsNullOrEmpty(servername))
+            {
+                servername = null;
+            }
+            if (String.IsNullOrEmpty(groupname))
+            {
+                groupname = null;
+            }
+
             description = null;
 
             IntPtr bufPtr = IntPtr.Zero;
@@ -1414,6 +1612,19 @@ namespace Likewise.LMC.NETAPI
         {
             uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
 
+            if (String.IsNullOrEmpty(servername))
+            {
+                servername = null;
+            }
+            if (String.IsNullOrEmpty(groupname))
+            {
+                groupname = null;
+            }
+            if (String.IsNullOrEmpty(description))
+            {
+                description = null;
+            }
+
             LOCALGROUP_INFO_1 groupinfo_1 = new LOCALGROUP_INFO_1();
             groupinfo_1.comment = description;
 
@@ -1460,6 +1671,19 @@ namespace Likewise.LMC.NETAPI
             )
         {
             uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
+
+            if (String.IsNullOrEmpty(servername))
+            {
+                servername = null;
+            }
+            if (String.IsNullOrEmpty(groupname))
+            {
+                groupname = null;
+            }
+            if (String.IsNullOrEmpty(username))
+            {
+                username = null;
+            }
 
             LOCALGROUP_MEMBERS_INFO_3 lgmi3 = new LOCALGROUP_MEMBERS_INFO_3();
             lgmi3.lgrmi3_domainandname = username;
@@ -1511,6 +1735,19 @@ namespace Likewise.LMC.NETAPI
             )
         {
             uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
+
+            if (String.IsNullOrEmpty(servername))
+            {
+                servername = null;
+            }
+            if (String.IsNullOrEmpty(groupname))
+            {
+                groupname = null;
+            }
+            if (String.IsNullOrEmpty(username))
+            {
+                username = null;
+            }
 
             LOCALGROUP_MEMBERS_INFO_3 lgmi_3 = new LOCALGROUP_MEMBERS_INFO_3();
             lgmi_3.lgrmi3_domainandname = username;
