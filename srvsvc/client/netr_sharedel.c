@@ -31,42 +31,64 @@
 #include "includes.h"
 
 
-NET_API_STATUS NetShareDel(
-    handle_t b,
-    const wchar16_t *servername,
-    const wchar16_t *netname,
-    uint32 reserved
+NET_API_STATUS
+NetrShareDel(
+    IN  handle_t hBinding,
+    IN  PCWSTR   pwszServername,
+    IN  PCWSTR   pwszSharename,
+    IN  DWORD    dwReserved
     )
 {
-    NET_API_STATUS status = ERROR_SUCCESS;
-    wchar16_t *srv_name = NULL;
-    wchar16_t *net_name = NULL;
+    NET_API_STATUS err = ERROR_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PWSTR pwszServer = NULL;
+    PWSTR pwszName = NULL;
 
-    goto_if_invalid_param_err(b, done);
-    goto_if_invalid_param_err(netname, done);
+    BAIL_ON_INVALID_PTR(hBinding, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszSharename, ntStatus);
 
-    if (servername) {
-        srv_name = wc16sdup(servername);
-        if (srv_name == NULL) {
-            status = SRVSVC_ERROR_OUT_OF_MEMORY;
-            goto done;
-        }
+    if (pwszServername)
+    {
+        err = LwAllocateWc16String(&pwszServer,
+                                   pwszServername);
+        BAIL_ON_WIN_ERROR(err);
     }
 
-    net_name = wc16sdup(netname);
-    if (net_name == NULL) {
-        status = SRVSVC_ERROR_OUT_OF_MEMORY;
-        goto done;
+    err = LwAllocateWc16String(&pwszName,
+                               pwszSharename);
+    BAIL_ON_WIN_ERROR(err);
+
+    DCERPC_CALL(err,
+                _NetrShareDel(hBinding,
+                              pwszServer,
+                              pwszName,
+                              dwReserved));
+
+cleanup:
+    SAFE_FREE(pwszServer);
+    SAFE_FREE(pwszName);
+
+    if (err == ERROR_SUCCESS &&
+        ntStatus != STATUS_SUCCESS)
+    {
+        err = LwNtStatusToWin32Error(ntStatus);
     }
 
-    DCERPC_CALL(_NetrShareDel(b, srv_name, net_name, reserved));
+    return err;
 
-done:
-    SAFE_FREE(srv_name);
-    SAFE_FREE(net_name);
-
-    return status;
+error:
+    goto cleanup;
 }
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
 
 
 /*
