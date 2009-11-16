@@ -247,7 +247,8 @@ SrvSvcNetShareEnum(
     *total_entries = pEnumParamsOut->dwNumEntries;
 
 cleanup:
-    if (hFile) {
+    if (hFile)
+    {
         NtCloseFile(hFile);
     }
 
@@ -256,6 +257,12 @@ cleanup:
     LW_SAFE_FREE_MEMORY(pEnumParamsOut);
     LW_SAFE_FREE_MEMORY(pszSmbPath);
     LW_SAFE_FREE_MEMORY(filename.FileName);
+
+    if (dwError == ERROR_SUCCESS &&
+        ntStatus != STATUS_SUCCESS)
+    {
+        dwError = LwNtStatusToWin32Error(ntStatus);
+    }
 
     return dwError;
 
