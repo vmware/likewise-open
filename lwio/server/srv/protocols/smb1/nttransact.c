@@ -209,9 +209,9 @@ SrvProcessNtTransact(
                         &pNTTransactState->pSession);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        ntStatus = SrvSessionFindTree_SMB_V1(
+        ntStatus = SrvConnectionFindTree_SMB_V1(
                         pCtxSmb1,
-                        pNTTransactState->pSession,
+                        pNTTransactState->pSession->pConnection,
                         pSmbRequest->pHeader->tid,
                         &pNTTransactState->pTree);
         BAIL_ON_NT_STATUS(ntStatus);

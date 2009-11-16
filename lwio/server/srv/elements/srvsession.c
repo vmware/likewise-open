@@ -57,19 +57,6 @@ SrvSessionAcquireTreeId_inlock(
    );
 
 static
-int
-SrvSessionTreeCompare(
-    PVOID pKey1,
-    PVOID pKey2
-    );
-
-static
-VOID
-SrvSessionTreeRelease(
-    PVOID pTree
-    );
-
-static
 VOID
 SrvSessionFree(
     PLWIO_SRV_SESSION pSession
@@ -77,6 +64,7 @@ SrvSessionFree(
 
 NTSTATUS
 SrvSessionCreate(
+    PLWIO_SRV_CONNECTION pConnection,
     USHORT            uid,
     PLWIO_SRV_SESSION* ppSession
     )
@@ -100,12 +88,10 @@ SrvSessionCreate(
 
     LWIO_LOG_DEBUG("Associating session [object:0x%x][uid:%u]", pSession, uid);
 
-    ntStatus = LwRtlRBTreeCreate(
-                    &SrvSessionTreeCompare,
-                    NULL,
-                    &SrvSessionTreeRelease,
-                    &pSession->pTreeCollection);
-    BAIL_ON_NT_STATUS(ntStatus);
+    // No ref counts since the connection will always be valid as long
+    // as the session is open
+
+    pSession->pConnection = pConnection;
 
     ntStatus = SrvFinderCreateRepository(
                     &pSession->hFinderRepository);
@@ -129,82 +115,6 @@ error:
     goto cleanup;
 }
 
-NTSTATUS
-SrvSessionFindTree(
-    PLWIO_SRV_SESSION pSession,
-    USHORT           tid,
-    PLWIO_SRV_TREE*   ppTree
-    )
-{
-    NTSTATUS ntStatus = 0;
-    BOOLEAN bInLock = FALSE;
-    PLWIO_SRV_TREE pTree = NULL;
-
-    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pSession->mutex);
-
-    pTree = pSession->lruTree[tid % SRV_LRU_CAPACITY];
-
-    if (!pTree || (pTree->tid != tid))
-    {
-        ntStatus = LwRtlRBTreeFind(
-                        pSession->pTreeCollection,
-                        &tid,
-                        (PVOID*)&pTree);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        pSession->lruTree[tid % SRV_LRU_CAPACITY] = pTree;
-    }
-
-    InterlockedIncrement(&pTree->refcount);
-
-    *ppTree = pTree;
-
-cleanup:
-
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pSession->mutex);
-
-    return ntStatus;
-
-error:
-
-    *ppTree = NULL;
-
-    goto cleanup;
-}
-
-NTSTATUS
-SrvSessionRemoveTree(
-    PLWIO_SRV_SESSION pSession,
-    USHORT           tid
-    )
-{
-    NTSTATUS ntStatus = 0;
-    BOOLEAN bInLock = FALSE;
-    PLWIO_SRV_TREE pTree = NULL;
-
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pSession->mutex);
-
-    pTree = pSession->lruTree[ tid % SRV_LRU_CAPACITY ];
-    if (pTree && (pTree->tid == tid))
-    {
-        pSession->lruTree[ tid % SRV_LRU_CAPACITY ] = NULL;
-    }
-
-    ntStatus = LwRtlRBTreeRemove(
-                    pSession->pTreeCollection,
-                    &tid);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-cleanup:
-
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pSession->mutex);
-
-    return ntStatus;
-
-error:
-
-    goto cleanup;
-}
 
 NTSTATUS
 SrvSessionCreateTree(
@@ -216,9 +126,9 @@ SrvSessionCreateTree(
     NTSTATUS ntStatus = 0;
     PLWIO_SRV_TREE pTree = NULL;
     BOOLEAN bInLock = FALSE;
-    USHORT  tid = 0;
+    USHORT tid = 0;
 
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pSession->mutex);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pSession->pConnection->rwLockTree);
 
     ntStatus = SrvSessionAcquireTreeId_inlock(
                     pSession,
@@ -231,19 +141,23 @@ SrvSessionCreateTree(
                     &pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    pTree->uid = pSession->uid;
+
     ntStatus = LwRtlRBTreeAdd(
-                    pSession->pTreeCollection,
+                    pSession->pConnection->pTreeCollection,
                     &pTree->tid,
                     pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
     InterlockedIncrement(&pTree->refcount);
 
+    // FIXME!!!! Save the TID here
+
     *ppTree = pTree;
 
 cleanup:
 
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pSession->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pSession->pConnection->rwLockTree);
 
     return ntStatus;
 
@@ -333,7 +247,7 @@ SrvSessionAcquireTreeId_inlock(
         }
 
         ntStatus = LwRtlRBTreeFind(
-                        pSession->pTreeCollection,
+                        pSession->pConnection->pTreeCollection,
                         &candidateTid,
                         (PVOID*)&pTree);
         if (ntStatus == STATUS_NOT_FOUND)
@@ -374,42 +288,6 @@ error:
 }
 
 static
-int
-SrvSessionTreeCompare(
-    PVOID pKey1,
-    PVOID pKey2
-    )
-{
-    PUSHORT pTid1 = (PUSHORT)pKey1;
-    PUSHORT pTid2 = (PUSHORT)pKey2;
-
-    assert (pTid1 != NULL);
-    assert (pTid2 != NULL);
-
-    if (*pTid1 > *pTid2)
-    {
-        return 1;
-    }
-    else if (*pTid1 < *pTid2)
-    {
-        return -1;
-    }
-    else
-    {
-        return 0;
-    }
-}
-
-static
-VOID
-SrvSessionTreeRelease(
-    PVOID pTree
-    )
-{
-    SrvTreeRelease((PLWIO_SRV_TREE)pTree);
-}
-
-static
 VOID
 SrvSessionFree(
     PLWIO_SRV_SESSION pSession
@@ -423,11 +301,6 @@ SrvSessionFree(
     {
         pthread_rwlock_destroy(&pSession->mutex);
         pSession->pMutex = NULL;
-    }
-
-    if (pSession->pTreeCollection)
-    {
-        LwRtlRBTreeFree(pSession->pTreeCollection);
     }
 
     if (pSession->hFinderRepository)

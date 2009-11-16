@@ -225,6 +225,8 @@ SrvTreeCreateFile(
 
     InterlockedIncrement(&pFile->refcount);
 
+    // FIXME!!! Save the FID here
+
     *ppFile = pFile;
 
 cleanup:

@@ -112,3 +112,69 @@ error:
 
     goto cleanup;
 }
+
+
+
+NTSTATUS
+SrvConnectionFindTree_SMB_V1(
+    PSRV_EXEC_CONTEXT_SMB_V1 pSmb1Context,
+    PLWIO_SRV_CONNECTION     pConnection,
+    USHORT                   usTid,
+    PLWIO_SRV_TREE*          ppTree
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PLWIO_SRV_TREE pTree = NULL;
+
+    if (usTid)
+    {
+        if (pSmb1Context->pTree)
+        {
+            if (pSmb1Context->pTree->tid != usTid)
+            {
+                ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+            else
+            {
+                pTree = SrvTreeAcquire(pSmb1Context->pTree);
+            }
+        }
+        else
+        {
+            ntStatus = SrvConnectionFindTree(
+                            pConnection,
+                            usTid,
+                            &pTree);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            pSmb1Context->pTree = SrvTreeAcquire(pTree);
+        }
+    }
+    else if (pSmb1Context->pTree)
+    {
+        pTree = SrvTreeAcquire(pSmb1Context->pTree);
+    }
+    else
+    {
+        ntStatus = STATUS_BAD_NETWORK_NAME;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    *ppTree = pTree;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppTree = NULL;
+
+    if (pTree)
+    {
+        SrvTreeRelease(pTree);
+    }
+
+    goto cleanup;
+}

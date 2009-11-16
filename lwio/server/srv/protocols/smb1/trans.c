@@ -331,9 +331,9 @@ SrvProcessSetNamedPipeHandleState(
                                 &pTransState->pSession);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            ntStatus = SrvSessionFindTree_SMB_V1(
+            ntStatus = SrvConnectionFindTree_SMB_V1(
                             pCtxSmb1,
-                            pTransState->pSession,
+                            pTransState->pSession->pConnection,
                             pSmbRequest->pHeader->tid,
                             &pTransState->pTree);
             BAIL_ON_NT_STATUS(ntStatus);
@@ -549,9 +549,9 @@ SrvProcessGetNamedPipeHandleState(
                             &pTransState->pSession);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            ntStatus = SrvSessionFindTree_SMB_V1(
+            ntStatus = SrvConnectionFindTree_SMB_V1(
                             pCtxSmb1,
-                            pTransState->pSession,
+                            pTransState->pSession->pConnection,
                             pSmbRequest->pHeader->tid,
                             &pTransState->pTree);
             BAIL_ON_NT_STATUS(ntStatus);
@@ -789,9 +789,9 @@ SrvProcessGetNamedPipeInfo(
                             &pTransState->pSession);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            ntStatus = SrvSessionFindTree_SMB_V1(
+            ntStatus = SrvConnectionFindTree_SMB_V1(
                             pCtxSmb1,
-                            pTransState->pSession,
+                            pTransState->pSession->pConnection,
                             pSmbRequest->pHeader->tid,
                             &pTransState->pTree);
             BAIL_ON_NT_STATUS(ntStatus);
@@ -1040,9 +1040,9 @@ SrvProcessTransactNamedPipe(
                             &pTransState->pSession);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            ntStatus = SrvSessionFindTree_SMB_V1(
+            ntStatus = SrvConnectionFindTree_SMB_V1(
                             pCtxSmb1,
-                            pTransState->pSession,
+                            pTransState->pSession->pConnection,
                             pSmbRequest->pHeader->tid,
                             &pTransState->pTree);
             BAIL_ON_NT_STATUS(ntStatus);

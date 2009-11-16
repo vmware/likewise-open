@@ -29,7 +29,6 @@ libsrv_protocols_smb1_la_SOURCES = \
     read.c           \
     readx.c          \
     rename.c         \
-    session.c        \
     sessionsetup.c   \
     trans2.c         \
     trans2qfi.c      \

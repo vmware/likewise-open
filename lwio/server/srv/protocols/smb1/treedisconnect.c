@@ -48,15 +48,28 @@ SrvProcessTreeDisconnectAndX(
     ULONG ulTotalBytesUsed     = 0;
     PTREE_DISCONNECT_RESPONSE_HEADER pResponseHeader = NULL; // Do not free
     PLWIO_SRV_SESSION                pSession = NULL;
+    PLWIO_SRV_TREE                   pTree = NULL;
 
-    ntStatus = SrvConnectionFindSession_SMB_V1(
+    ntStatus = SrvConnectionFindTree_SMB_V1(
                     pCtxSmb1,
                     pConnection,
-                    pSmbRequest->pHeader->uid,
-                    &pSession);
+                    pSmbRequest->pHeader->tid,
+                    &pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvSessionRemoveTree(pSession, pSmbRequest->pHeader->tid);
+    // Verify that the uid in the header matches the uid in the tree struct
+
+    if (pSmbRequest->pHeader->uid != pTree->uid)
+    {
+        // No idea what the error should be here
+        ntStatus = STATUS_INVALID_HANDLE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    SrvTreeRelease(pTree);
+    pTree = NULL;
+
+    ntStatus = SrvConnectionRemoveTree(pConnection, pSmbRequest->pHeader->tid);
     BAIL_ON_NT_STATUS(ntStatus);
 
     if (!pSmbResponse->ulSerialNum)
@@ -70,7 +83,7 @@ SrvProcessTreeDisconnectAndX(
                         TRUE,
                         pSmbRequest->pHeader->tid,
                         SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
-                        pSession->uid,
+                        pSmbRequest->pHeader->uid,
                         pSmbRequest->pHeader->mid,
                         pConnection->serverProperties.bRequireSecuritySignatures,
                         &pSmbResponse->pHeader,
@@ -134,7 +147,23 @@ error:
 
     pSmbResponse->ulMessageSize = 0;
 
+    if (pTree)
+    {
+        SrvTreeRelease(pTree);
+    }
+
     goto cleanup;
 }
 
 
+
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

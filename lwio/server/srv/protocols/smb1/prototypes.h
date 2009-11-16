@@ -81,6 +81,15 @@ SrvConnectionFindSession_SMB_V1(
     PLWIO_SRV_SESSION*       ppSession
     );
 
+NTSTATUS
+SrvConnectionFindTree_SMB_V1(
+    PSRV_EXEC_CONTEXT_SMB_V1 pSmb1Context,
+    PLWIO_SRV_CONNECTION     pConnection,
+    USHORT                   usTid,
+    PLWIO_SRV_TREE*          ppTree
+    );
+
+
 // createdir.c
 
 NTSTATUS
@@ -345,16 +354,6 @@ SrvProcessRename(
     PSRV_EXEC_CONTEXT pExecContext
     );
 
-// session.c
-
-NTSTATUS
-SrvSessionFindTree_SMB_V1(
-    PSRV_EXEC_CONTEXT_SMB_V1 pSmb1Context,
-    PLWIO_SRV_SESSION        pSession,
-    USHORT                   usTid,
-    PLWIO_SRV_TREE*          ppTree
-    );
-
 // sessionsetup.c
 
 NTSTATUS
@@ -597,3 +596,14 @@ SrvProcessWriteAndX(
     );
 
 #endif /* __PROTOTYPES_H__ */
+
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
