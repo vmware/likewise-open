@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        connection.c
+ *        session.c
  *
  * Abstract:
  *
@@ -41,7 +41,7 @@
  *
  *        Protocols API - SMBV1
  *
- *        Connection
+ *        Session
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
  *
@@ -50,52 +50,52 @@
 #include "includes.h"
 
 NTSTATUS
-SrvConnectionFindSession_SMB_V1(
+SrvSessionFindTree_SMB_V1(
     PSRV_EXEC_CONTEXT_SMB_V1 pSmb1Context,
-    PLWIO_SRV_CONNECTION     pConnection,
-    USHORT                   usUid,
-    PLWIO_SRV_SESSION*       ppSession
+    PLWIO_SRV_SESSION        pSession,
+    USHORT                   usTid,
+    PLWIO_SRV_TREE*          ppTree
     )
 {
-    NTSTATUS          ntStatus = STATUS_SUCCESS;
-    PLWIO_SRV_SESSION pSession = NULL;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PLWIO_SRV_TREE pTree = NULL;
 
-    if (usUid)
+    if (usTid)
     {
-        if (pSmb1Context->pSession)
+        if (pSmb1Context->pTree)
         {
-            if (pSmb1Context->pSession->uid != usUid)
+            if (pSmb1Context->pTree->tid != usTid)
             {
                 ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
                 BAIL_ON_NT_STATUS(ntStatus);
             }
             else
             {
-                pSession = SrvSessionAcquire(pSmb1Context->pSession);
+                pTree = SrvTreeAcquire(pSmb1Context->pTree);
             }
         }
         else
         {
-            ntStatus = SrvConnectionFindSession(
-                            pConnection,
-                            usUid,
-                            &pSession);
+            ntStatus = SrvSessionFindTree(
+                            pSession,
+                            usTid,
+                            &pTree);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            pSmb1Context->pSession = SrvSessionAcquire(pSession);
+            pSmb1Context->pTree = SrvTreeAcquire(pTree);
         }
     }
-    else if (pSmb1Context->pSession)
+    else if (pSmb1Context->pTree)
     {
-        pSession = SrvSessionAcquire(pSmb1Context->pSession);
+        pTree = SrvTreeAcquire(pSmb1Context->pTree);
     }
     else
     {
-        ntStatus = STATUS_NO_SUCH_LOGON_SESSION;
+        ntStatus = STATUS_BAD_NETWORK_NAME;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    *ppSession = pSession;
+    *ppTree = pTree;
 
 cleanup:
 
@@ -103,11 +103,11 @@ cleanup:
 
 error:
 
-    *ppSession = NULL;
+    *ppTree = NULL;
 
-    if (pSession)
+    if (pTree)
     {
-        SrvSessionRelease(pSession);
+        SrvTreeRelease(pTree);
     }
 
     goto cleanup;

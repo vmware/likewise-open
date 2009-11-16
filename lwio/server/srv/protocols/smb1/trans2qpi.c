@@ -85,9 +85,9 @@ SrvProcessTrans2QueryPathInformation(
                             &pTrans2State->pSession);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            ntStatus = SrvConnectionFindTree_SMB_V1(
+            ntStatus = SrvSessionFindTree_SMB_V1(
                             pCtxSmb1,
-                            pTrans2State->pSession->pConnection,
+                            pTrans2State->pSession,
                             pSmbRequest->pHeader->tid,
                             &pTrans2State->pTree);
             BAIL_ON_NT_STATUS(ntStatus);

@@ -161,9 +161,9 @@ SrvProcessDelete(
                             &pDeleteState->pSession);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            ntStatus = SrvConnectionFindTree_SMB_V1(
+            ntStatus = SrvSessionFindTree_SMB_V1(
                             pCtxSmb1,
-                            pDeleteState->pSession->pConnection,
+                            pDeleteState->pSession,
                             pSmbRequest->pHeader->tid,
                             &pDeleteState->pTree);
             BAIL_ON_NT_STATUS(ntStatus);

@@ -161,8 +161,8 @@ SrvProcessTreeConnectAndX(
         {
             NTSTATUS ntStatus2 = 0;
 
-            ntStatus2 = SrvConnectionRemoveTree(
-                            pConnection,
+            ntStatus2 = SrvSessionRemoveTree(
+                            pSession,
                             pSmbRequest->pHeader->tid);
             if (ntStatus2)
             {
@@ -863,8 +863,8 @@ SrvFreeTreeConnectState(
     {
         NTSTATUS ntStatus2 = 0;
 
-        ntStatus2 = SrvConnectionRemoveTree(
-                        pTConState->pSession->pConnection,
+        ntStatus2 = SrvSessionRemoveTree(
+                        pTConState->pSession,
                         pTConState->pTree->tid);
         if (ntStatus2)
         {

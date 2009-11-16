@@ -133,9 +133,6 @@ typedef struct _LWIO_SRV_FILE_2
 
 } LWIO_SRV_FILE_2, *PLWIO_SRV_FILE_2;
 
-typedef struct _LWIO_SRV_CONNECTION LWIO_SRV_CONNECTION, *PLWIO_SRV_CONNECTION;
-typedef struct _LWIO_SRV_SESSION LWIO_SRV_SESSION, *PLWIO_SRV_SESSION;
-
 typedef struct _LWIO_SRV_TREE
 {
     LONG              refcount;
@@ -144,9 +141,8 @@ typedef struct _LWIO_SRV_TREE
     pthread_rwlock_t* pMutex;
 
     USHORT            tid;
-    USHORT            uid;
 
-    PSRV_SHARE_INFO    pShareInfo;
+    PSRV_SHARE_INFO   pShareInfo;
 
     PLWIO_SRV_FILE    lruFile[SRV_LRU_CAPACITY];
 
@@ -175,7 +171,7 @@ typedef struct _LWIO_SRV_TREE_2
 
 } LWIO_SRV_TREE_2, *PLWIO_SRV_TREE_2;
 
-struct _LWIO_SRV_SESSION
+typedef struct _LWIO_SRV_SESSION
 {
     LONG              refcount;
 
@@ -184,6 +180,10 @@ struct _LWIO_SRV_SESSION
 
     USHORT            uid;
 
+    PLWIO_SRV_TREE    lruTree[SRV_LRU_CAPACITY];
+
+    PLWRTL_RB_TREE    pTreeCollection;
+
     HANDLE            hFinderRepository;
 
     USHORT            nextAvailableTid;
@@ -191,9 +191,8 @@ struct _LWIO_SRV_SESSION
     PSTR              pszClientPrincipalName;
 
     PIO_CREATE_SECURITY_CONTEXT   pIoSecurityContext;
-    PLWIO_SRV_CONNECTION pConnection;
 
-};
+} LWIO_SRV_SESSION, *PLWIO_SRV_SESSION;
 
 typedef struct _LWIO_SRV_SESSION_2
 {
@@ -257,15 +256,12 @@ typedef struct _SRV_CLIENT_PROPERITES
 
 typedef VOID (*PFN_LWIO_SRV_FREE_SOCKET_HANDLE)(HANDLE hSocket);
 
-struct _LWIO_SRV_CONNECTION
+typedef struct _LWIO_SRV_CONNECTION
 {
     LONG                refCount;
 
     pthread_rwlock_t     mutex;
     pthread_rwlock_t*    pMutex;
-
-    pthread_rwlock_t     rwLockTree;
-    pthread_rwlock_t*    prwLockTree;
 
     LWIO_SRV_CONN_STATE  state;
 
@@ -315,9 +311,7 @@ struct _LWIO_SRV_CONNECTION
 
     PLWRTL_RB_TREE      pSessionCollection;
 
-    PLWIO_SRV_TREE      lruTree[SRV_LRU_CAPACITY];
-    PLWRTL_RB_TREE      pTreeCollection;
-};
+} LWIO_SRV_CONNECTION, *PLWIO_SRV_CONNECTION;
 
 typedef struct _SRV_FINDER_REPOSITORY
 {
@@ -596,12 +590,6 @@ SrvConnectionRemoveSession(
     );
 
 NTSTATUS
-SrvConnectionRemoveTree(
-    PLWIO_SRV_CONNECTION pConnection,
-    USHORT               tid
-    );
-
-NTSTATUS
 SrvConnection2RemoveSession(
     PLWIO_SRV_CONNECTION pConnection,
     ULONG64              ullUid
@@ -619,17 +607,22 @@ SrvConnectionSetState(
     );
 
 NTSTATUS
-SrvConnectionFindTree(
-    PLWIO_SRV_CONNECTION pConnection,
-    USHORT               tid,
-    PLWIO_SRV_TREE*      ppTree
+SrvSessionCreate(
+    USHORT            uid,
+    PLWIO_SRV_SESSION* ppSession
     );
 
 NTSTATUS
-SrvSessionCreate(
-    PLWIO_SRV_CONNECTION pConnection,
-    USHORT            uid,
-    PLWIO_SRV_SESSION* ppSession
+SrvSessionFindTree(
+    PLWIO_SRV_SESSION pSession,
+    USHORT           tid,
+    PLWIO_SRV_TREE*   ppTree
+    );
+
+NTSTATUS
+SrvSessionRemoveTree(
+    PLWIO_SRV_SESSION pSession,
+    USHORT           tid
     );
 
 NTSTATUS
@@ -977,13 +970,3 @@ SrvElementsShutdown(
     );
 
 #endif /* __ELEMENTSAPI_H__ */
-
-
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/
