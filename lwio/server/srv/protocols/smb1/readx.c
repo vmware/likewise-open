@@ -217,7 +217,8 @@ SrvProcessReadAndX(
                     break;
             }
 
-            if (pReadState->pRequestHeader_WC_12->maxCountHigh != (uint32_t)-1)
+            if (pReadState->pRequestHeader_WC_12->maxCountHigh &&
+                (pReadState->pRequestHeader_WC_12->maxCountHigh != UINT32_MAX))
             {
                 pReadState->ullBytesToRead =
                     ((ULONG64)pReadState->pRequestHeader_WC_12->maxCountHigh) << 16;

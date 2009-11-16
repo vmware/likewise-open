@@ -93,13 +93,17 @@ SrvProcessNotifyChange(
 static
 NTSTATUS
 SrvExecuteChangeNotify(
-    PSRV_EXEC_CONTEXT pExecContext
+    PSRV_EXEC_CONTEXT               pExecContext,
+    PSRV_CHANGE_NOTIFY_STATE_SMB_V1 pNotifyState
     );
 
 static
 NTSTATUS
-SrvBuildChangeNotifyResponse(
-    PSRV_EXEC_CONTEXT pExecContext
+SrvMarshalChangeNotifyResponse(
+    PBYTE  pNotifyResponse,
+    ULONG  ulNotifyResponseLength,
+    PBYTE* ppBuffer,
+    PULONG pulParameterLength
     );
 
 static
@@ -113,6 +117,7 @@ SrvBuildNTTransactState(
     PSRV_NTTRANSACT_STATE_SMB_V1*  ppNTTransactState
     );
 
+static
 VOID
 SrvPrepareNTTransactStateAsync(
     PSRV_NTTRANSACT_STATE_SMB_V1 pNTTransactState,
@@ -1216,7 +1221,11 @@ SrvProcessNotifyChange(
     NTSTATUS                     ntStatus     = STATUS_SUCCESS;
     PSRV_PROTOCOL_EXEC_CONTEXT   pCtxProtocol = pExecContext->pProtocolContext;
     PSRV_EXEC_CONTEXT_SMB_V1     pCtxSmb1     = pCtxProtocol->pSmb1Context;
-    PSRV_NTTRANSACT_STATE_SMB_V1 pNTTransactState = NULL;
+    ULONG                        iMsg         = pCtxSmb1->iMsg;
+    PSRV_MESSAGE_SMB_V1          pSmbRequest  = &pCtxSmb1->pRequests[iMsg];
+    PSRV_NTTRANSACT_STATE_SMB_V1    pNTTransactState  = NULL;
+    PSRV_CHANGE_NOTIFY_STATE_SMB_V1 pNotifyState      = NULL;
+    BOOLEAN                         bUnregisterNotify = FALSE;
 
     pNTTransactState = (PSRV_NTTRANSACT_STATE_SMB_V1)pCtxSmb1->hState;
 
@@ -1242,13 +1251,30 @@ SrvProcessNotifyChange(
                             &pNTTransactState->pFile);
             BAIL_ON_NT_STATUS(ntStatus);
 
+            ntStatus = SrvBuildNotifyState(
+                            pExecContext->pConnection,
+                            pCtxSmb1->pSession,
+                            pCtxSmb1->pTree,
+                            pCtxSmb1->pFile,
+                            pSmbRequest->pHeader->mid,
+                            SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
+                            pSmbRequest->ulSerialNum,
+                            pNTTransactState->pNotifyChangeHeader->ulCompletionFilter,
+                            pNTTransactState->pNotifyChangeHeader->bWatchTree,
+                            pNTTransactState->pRequestHeader->ulMaxParameterCount,
+                            &pNotifyState);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            // TODO: Register with file handle
+            //       bUnregisterNotify = TRUE;
+
             pNTTransactState->stage = SRV_NTTRANSACT_STAGE_SMB_V1_ATTEMPT_IO;
 
             // intentional fall through
 
         case SRV_NTTRANSACT_STAGE_SMB_V1_ATTEMPT_IO:
 
-            ntStatus = SrvExecuteChangeNotify(pExecContext);
+            ntStatus = SrvExecuteChangeNotify(pExecContext, pNotifyState);
             BAIL_ON_NT_STATUS(ntStatus);
 
             pNTTransactState->stage = SRV_NTTRANSACT_STAGE_SMB_V1_BUILD_RESPONSE;
@@ -1257,7 +1283,7 @@ SrvProcessNotifyChange(
 
         case SRV_NTTRANSACT_STAGE_SMB_V1_BUILD_RESPONSE:
 
-            ntStatus = SrvBuildChangeNotifyResponse(pExecContext);
+            ntStatus = SrvBuildChangeNotifyResponse(pExecContext, pNotifyState);
             BAIL_ON_NT_STATUS(ntStatus);
 
             pNTTransactState->stage = SRV_NTTRANSACT_STAGE_SMB_V1_DONE;
@@ -1269,27 +1295,344 @@ SrvProcessNotifyChange(
             break;
     }
 
-error:
+cleanup:
+
+    if (pNotifyState)
+    {
+        SrvReleaseNotifyState(pNotifyState);
+    }
+
+    if (bUnregisterNotify)
+    {
+        // TODO: Un-register from file handle
+    }
 
     return ntStatus;
+
+error:
+
+    if (ntStatus == STATUS_PENDING)
+    {
+        bUnregisterNotify = FALSE;
+    }
+
+    goto cleanup;
 }
 
 static
 NTSTATUS
 SrvExecuteChangeNotify(
-    PSRV_EXEC_CONTEXT pExecContext
+    PSRV_EXEC_CONTEXT               pExecContext,
+    PSRV_CHANGE_NOTIFY_STATE_SMB_V1 pNotifyState
     )
 {
-    return STATUS_NOT_IMPLEMENTED;
+    NTSTATUS                   ntStatus     = STATUS_SUCCESS;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
+
+    SrvPrepareNotifyStateAsync(pNotifyState);
+
+    ntStatus = IoReadDirectoryChangeFile(
+                    pCtxSmb1->pFile->hFile,
+                    pNotifyState->pAcb,
+                    &pNotifyState->ioStatusBlock,
+                    pNotifyState->pBuffer,
+                    pNotifyState->ulBufferLength,
+                    pNotifyState->bWatchTree,
+                    pNotifyState->ulCompletionFilter,
+                    &pNotifyState->ulMaxBufferSize);
+
+    if (ntStatus == STATUS_NOT_SUPPORTED)
+    {
+        //
+        // The file system driver does not have support
+        // to keep accumulating file change notifications
+        //
+        ntStatus = IoReadDirectoryChangeFile(
+                        pCtxSmb1->pFile->hFile,
+                        pNotifyState->pAcb,
+                        &pNotifyState->ioStatusBlock,
+                        pNotifyState->pBuffer,
+                        pNotifyState->ulBufferLength,
+                        pNotifyState->bWatchTree,
+                        pNotifyState->ulCompletionFilter,
+                        NULL);
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    SrvReleaseNotifyStateAsync(pNotifyState); // Completed synchronously
+
+    pNotifyState->ulBytesUsed = pNotifyState->ioStatusBlock.BytesTransferred;
+
+error:
+
+    return ntStatus;
+}
+
+NTSTATUS
+SrvBuildChangeNotifyResponse(
+    PSRV_EXEC_CONTEXT               pExecContext,
+    PSRV_CHANGE_NOTIFY_STATE_SMB_V1 pNotifyState
+    )
+{
+    NTSTATUS                     ntStatus     = STATUS_SUCCESS;
+    PLWIO_SRV_CONNECTION         pConnection  = pExecContext->pConnection;
+    PSRV_PROTOCOL_EXEC_CONTEXT   pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1     pCtxSmb1     = pCtxProtocol->pSmb1Context;
+    PSRV_NTTRANSACT_STATE_SMB_V1 pNTTransactState    = NULL;
+    ULONG                        iMsg         = pCtxSmb1->iMsg;
+    PSRV_MESSAGE_SMB_V1          pSmbResponse = &pCtxSmb1->pResponses[iMsg];
+    PUSHORT                      pSetup       = NULL;
+    PBYTE                        pParams      = NULL;
+    PBYTE                        pData        = NULL;
+    PBYTE pOutBuffer           = pSmbResponse->pBuffer;
+    ULONG ulBytesAvailable     = pSmbResponse->ulBytesAvailable;
+    ULONG ulOffset             = 0;
+    ULONG ulPackageBytesUsed   = 0;
+    ULONG ulTotalBytesUsed     = 0;
+    UCHAR ucResponseSetupCount = 0;
+    ULONG ulDataLength         = 0;
+    ULONG ulDataOffset         = 0;
+    ULONG ulParameterOffset    = 0;
+    ULONG ulParameterLength    = 0;
+
+    pNTTransactState = (PSRV_NTTRANSACT_STATE_SMB_V1)pCtxSmb1->hState;
+
+    if (!pSmbResponse->ulSerialNum)
+    {
+        ntStatus = SrvMarshalHeader_SMB_V1(
+                        pOutBuffer,
+                        ulOffset,
+                        ulBytesAvailable,
+                        COM_NT_TRANSACT,
+                        STATUS_SUCCESS,
+                        TRUE,
+                        pNotifyState->usTid,
+                        pNotifyState->ulPid,
+                        pNotifyState->usUid,
+                        pNotifyState->usMid,
+                        pConnection->serverProperties.bRequireSecuritySignatures,
+                        &pSmbResponse->pHeader,
+                        &pSmbResponse->pWordCount,
+                        &pSmbResponse->pAndXHeader,
+                        &pSmbResponse->usHeaderSize);
+    }
+    else
+    {
+        ntStatus = SrvMarshalHeaderAndX_SMB_V1(
+                        pOutBuffer,
+                        ulOffset,
+                        ulBytesAvailable,
+                        COM_NT_TRANSACT,
+                        &pSmbResponse->pWordCount,
+                        &pSmbResponse->pAndXHeader,
+                        &pSmbResponse->usHeaderSize);
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pOutBuffer       += pSmbResponse->usHeaderSize;
+    ulOffset         += pSmbResponse->usHeaderSize;
+    ulBytesAvailable -= pSmbResponse->usHeaderSize;
+    ulTotalBytesUsed += pSmbResponse->usHeaderSize;
+
+    *pSmbResponse->pWordCount = 18 + ucResponseSetupCount;
+
+    ntStatus = SrvMarshalChangeNotifyResponse(
+                    pNotifyState->pBuffer,
+                    pNotifyState->ulBytesUsed,
+                    &pParams,
+                    &ulParameterLength);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = WireMarshallNtTransactionResponse(
+                    pOutBuffer,
+                    ulBytesAvailable,
+                    ulOffset,
+                    pSetup,
+                    ucResponseSetupCount,
+                    pParams,
+                    ulParameterLength,
+                    pData,
+                    ulDataLength,
+                    &ulDataOffset,
+                    &ulParameterOffset,
+                    &ulPackageBytesUsed);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    // pOutBuffer       += ulPackageBytesUsed;
+    // ulOffset         += ulPackageBytesUsed;
+    // ulBytesAvailable -= ulPackageBytesUsed;
+    ulTotalBytesUsed += ulPackageBytesUsed;
+
+    pSmbResponse->ulMessageSize = ulTotalBytesUsed;
+
+cleanup:
+
+    if (pParams)
+    {
+        SrvFreeMemory(pParams);
+    }
+
+    return ntStatus;
+
+error:
+
+    if (ulTotalBytesUsed)
+    {
+        pSmbResponse->pHeader = NULL;
+        pSmbResponse->pAndXHeader = NULL;
+        memset(pSmbResponse->pBuffer, 0, ulTotalBytesUsed);
+    }
+
+    pSmbResponse->ulMessageSize = 0;
+
+    goto cleanup;
 }
 
 static
 NTSTATUS
-SrvBuildChangeNotifyResponse(
-    PSRV_EXEC_CONTEXT pExecContext
+SrvMarshalChangeNotifyResponse(
+    PBYTE  pNotifyResponse,
+    ULONG  ulNotifyResponseLength,
+    PBYTE* ppBuffer,
+    PULONG pulBufferLength
     )
 {
-    return STATUS_NOT_IMPLEMENTED;
+    NTSTATUS ntStatus         = STATUS_SUCCESS;
+    PBYTE    pBuffer          = NULL;
+    ULONG    ulBufferLength   = 0;
+    ULONG    ulOffset         = 0;
+    ULONG    ulNumRecords     = 0;
+    ULONG    iRecord          = 0;
+    ULONG    ulBytesAvailable = ulNotifyResponseLength;
+    PBYTE    pDataCursor      = NULL;
+    PFILE_NOTIFY_INFORMATION pNotifyCursor = NULL;
+    PFILE_NOTIFY_INFORMATION pPrevHeader   = NULL;
+    PFILE_NOTIFY_INFORMATION pCurHeader    = NULL;
+
+    pNotifyCursor = (PFILE_NOTIFY_INFORMATION)pNotifyResponse;
+
+    while (pNotifyCursor && (ulBytesAvailable > 0))
+    {
+        ULONG ulInfoBytesRequired = 0;
+
+        if (pNotifyCursor->NextEntryOffset != 0)
+        {
+            if (ulBufferLength % 4)
+            {
+                USHORT usAlignment = (4 - (ulBufferLength % 4));
+
+                ulInfoBytesRequired += usAlignment;
+            }
+        }
+
+        ulInfoBytesRequired  = sizeof(SMB_NOTIFY_CHANGE_HEADER);
+        ulOffset            += sizeof(SMB_NOTIFY_CHANGE_HEADER);
+
+        if (!pNotifyCursor->FileNameLength)
+        {
+            ulInfoBytesRequired += sizeof(wchar16_t);
+        }
+        else
+        {
+            ulInfoBytesRequired += pNotifyCursor->FileNameLength;
+        }
+
+        ulNumRecords++;
+
+        ulBytesAvailable -= ulInfoBytesRequired;
+        ulBufferLength   += ulInfoBytesRequired;
+
+        if (pNotifyCursor->NextEntryOffset)
+        {
+            pNotifyCursor =
+                (PFILE_NOTIFY_INFORMATION)(((PBYTE)pNotifyCursor) +
+                                            pNotifyCursor->NextEntryOffset);
+        }
+        else
+        {
+            pNotifyCursor = NULL;
+        }
+    }
+
+    if (ulBufferLength)
+    {
+        ntStatus = SrvAllocateMemory(ulBufferLength, (PVOID*)&pBuffer);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pNotifyCursor = (PFILE_NOTIFY_INFORMATION)pNotifyResponse;
+    pDataCursor   = pBuffer;
+
+    for (; iRecord < ulNumRecords++; iRecord++)
+    {
+        pPrevHeader = pCurHeader;
+        pCurHeader = (PFILE_NOTIFY_INFORMATION)pDataCursor;
+
+        /* Update next entry offset for previous entry. */
+        if (pPrevHeader != NULL)
+        {
+            pPrevHeader->NextEntryOffset = ulOffset;
+        }
+
+        ulOffset = 0;
+
+        pCurHeader->NextEntryOffset = 0;
+        pCurHeader->Action = pNotifyCursor->Action;
+        pCurHeader->FileNameLength = pNotifyCursor->FileNameLength;
+
+        pDataCursor += sizeof(SMB_NOTIFY_CHANGE_HEADER);
+        ulOffset    += sizeof(SMB_NOTIFY_CHANGE_HEADER);
+
+        if (pNotifyCursor->FileNameLength)
+        {
+            memcpy( pDataCursor,
+                    (PBYTE)pNotifyCursor->FileName,
+                    pNotifyCursor->FileNameLength);
+
+            pDataCursor += pNotifyCursor->FileNameLength;
+            ulOffset    += pNotifyCursor->FileNameLength;
+        }
+        else
+        {
+            pDataCursor += sizeof(wchar16_t);
+            ulOffset    += sizeof(wchar16_t);
+        }
+
+        if (pNotifyCursor->NextEntryOffset != 0)
+        {
+            if (ulOffset % 4)
+            {
+                USHORT usAlign = 4 - (ulOffset % 4);
+
+                pDataCursor += usAlign;
+                ulOffset    += usAlign;
+            }
+        }
+
+        pNotifyCursor =
+                    (PFILE_NOTIFY_INFORMATION)(((PBYTE)pNotifyCursor) +
+                                    pNotifyCursor->NextEntryOffset);
+    }
+
+    *ppBuffer        = pBuffer;
+    *pulBufferLength = ulBufferLength;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppBuffer        = NULL;
+    *pulBufferLength = 0;
+
+    if (pBuffer)
+    {
+        SrvFreeMemory(pBuffer);
+    }
+
+    goto cleanup;
 }
 
 static
@@ -1342,6 +1685,7 @@ error:
     goto cleanup;
 }
 
+static
 VOID
 SrvPrepareNTTransactStateAsync(
     PSRV_NTTRANSACT_STATE_SMB_V1 pNTTransactState,
