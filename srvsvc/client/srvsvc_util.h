@@ -67,21 +67,9 @@
         goto lbl;                            \
     }
 
-#define goto_if_rpcstatus_not_success(s, lbl) \
-    if ((s) != RPC_S_OK) {                    \
-        rpcstatus = (s);                      \
-        goto lbl;                             \
-    }
-
 #define goto_if_no_memory_ntstatus(p, lbl)   \
     if ((p) == NULL) {                       \
         status = STATUS_NO_MEMORY;           \
-        goto lbl;                            \
-    }
-
-#define goto_if_no_memory_rpcstatus(p, lbl)  \
-    if ((p) == NULL) {                       \
-        rpcstatus = RPC_S_OUT_OF_MEMORY;     \
         goto lbl;                            \
     }
 
@@ -96,34 +84,6 @@
         status = ERROR_INVALID_PARAMETER;   \
         goto lbl;                            \
     }
-
-#define goto_if_invalid_param_rpcstatus(p, lbl) \
-    if ((p) == NULL) {                          \
-        rpcstatus = RPC_S_INVALID_ARG;          \
-        goto lbl;                               \
-    }
-
-
-#define DCERPC_CALL(fn_call)                     \
-    do {                                         \
-        dcethread_exc *dceexc;                   \
-                                                 \
-        DCETHREAD_TRY                            \
-        {                                        \
-            dceexc = NULL;                       \
-            status = fn_call;                    \
-        }                                        \
-        DCETHREAD_CATCH_ALL(dceexc)              \
-        {                                        \
-            /* TODO:                             \
-               Implement DCE/RPC exc -> NTSTATUS \
-               mapping logic as soon as we have  \
-               more information about it */      \
-            status = dceexc->match.value;        \
-        }                                        \
-        DCETHREAD_ENDTRY;                        \
-    } while (0);
-
 
 #endif /* _SRVSVC_UTIL_H_ */
 
