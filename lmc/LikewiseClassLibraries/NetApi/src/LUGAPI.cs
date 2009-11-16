@@ -848,7 +848,8 @@ namespace Likewise.LMC.NETAPI
                     ref localResumeHandle
                     );
 
-                if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS &&
+                    result != (uint)ErrorCodes.WIN32Enum.ERROR_MORE_DATA)
                 {
                     return result;
                 }
