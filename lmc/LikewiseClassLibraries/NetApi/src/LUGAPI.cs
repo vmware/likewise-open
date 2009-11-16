@@ -542,14 +542,15 @@ namespace Likewise.LMC.NETAPI
                     return result;
                 }
 
-                result = (uint)NetUserSetInfo(servername, username, 1011, bufptr_1011, bufptr_parm_err);
-
-                if (result != 0)
+                if (fullname != null)
                 {
-                    return result;
-                }
+                    result = (uint)NetUserSetInfo(servername, username, 1011, bufptr_1011, bufptr_parm_err);
 
-                result = (uint)NetAddGroupMember(servername, null, username);
+                    if (result != 0)
+                    {
+                        return result;
+                    }
+                }
             }
             catch (Exception)
             {

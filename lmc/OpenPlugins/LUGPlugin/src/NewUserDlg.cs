@@ -120,12 +120,8 @@ public partial class NewUserDlg : EditDialog
                 Logger.Log("NewUserDlg.Apply  localParent == null", Logger.LogLevel.Error);
                 return false;
             }
-            
-            if (lugPg.AddLUG(this))
-            {
-                Close();
-            }
-            else
+
+            if (!lugPg.AddLUG(this))
             {
                 container.ShowError(
                 "Likewise Administrative Console encountered an error when trying to add a new user.",
