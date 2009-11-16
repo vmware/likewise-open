@@ -48,7 +48,8 @@ NET_API_STATUS NetServerGetInfo(
     memset(&info, 0, sizeof(info));
     *bufptr = NULL;
 
-    DCERPC_CALL(_NetrServerGetInfo(b, (wchar16_t *)servername,
+    DCERPC_CALL(status,
+                _NetrServerGetInfo(b, (wchar16_t *)servername,
                                    level, &info));
 
     memerr = SrvSvcCopyNetSrvInfo(level, &info, bufptr);

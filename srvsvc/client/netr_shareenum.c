@@ -84,7 +84,8 @@ NET_API_STATUS NetShareEnum(
         break;
     }
 
-    DCERPC_CALL(_NetrShareEnum(b, (wchar16_t *)servername,
+    DCERPC_CALL(status,
+                _NetrShareEnum(b, (wchar16_t *)servername,
                                &l, &ctr,
                                prefmaxlen, totalentries,
                                resume_handle));

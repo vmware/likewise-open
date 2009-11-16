@@ -86,7 +86,8 @@ NET_API_STATUS NetSessionEnum(
         break;
     }
 
-    DCERPC_CALL(_NetrSessionEnum(b,
+    DCERPC_CALL(status,
+                _NetrSessionEnum(b,
                                  (wchar16_t *)servername,
                                  (wchar16_t *)unc_client_name,
                                  (wchar16_t *)username,

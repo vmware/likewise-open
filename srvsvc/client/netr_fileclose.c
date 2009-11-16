@@ -41,7 +41,8 @@ NET_API_STATUS NetFileClose(
 
     goto_if_invalid_param_err(b, done);
 
-    DCERPC_CALL(_NetrFileClose(b, (wchar16_t *)servername, fileid));
+    DCERPC_CALL(status,
+                _NetrFileClose(b, (wchar16_t *)servername, fileid));
 
 done:
     return status;

@@ -44,7 +44,8 @@ NET_API_STATUS NetRemoteTOD(
     goto_if_invalid_param_err(b, done);
     goto_if_invalid_param_err(bufptr, done);
 
-    DCERPC_CALL(_NetrRemoteTOD(b, (wchar16_t *)servername, &info));
+    DCERPC_CALL(status,
+                _NetrRemoteTOD(b, (wchar16_t *)servername, &info));
 
     memerr = SrvSvcCopyTIME_OF_DAY_INFO(info, bufptr);
     goto_if_err_not_success(memerr, done);

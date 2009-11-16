@@ -49,7 +49,8 @@ NET_API_STATUS NetFileGetInfo(
     memset(&info, 0, sizeof(info));
     *bufptr = NULL;
 
-    DCERPC_CALL(_NetrFileGetInfo(b, (wchar16_t *)servername,
+    DCERPC_CALL(status,
+                _NetrFileGetInfo(b, (wchar16_t *)servername,
                                  fileid, level, &info));
 
     memerr = SrvSvcCopyNetFileInfo(level, &info, bufptr);

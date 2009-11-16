@@ -225,7 +225,8 @@ NET_API_STATUS NetServerSetInfo(
         break;
     }
 
-    DCERPC_CALL(_NetrServerSetInfo(b, (wchar16_t *)servername,
+    DCERPC_CALL(status,
+                _NetrServerSetInfo(b, (wchar16_t *)servername,
                                    level, info, parm_err));
 
 done:

@@ -116,7 +116,8 @@ NET_API_STATUS NetShareSetInfo(
         break;
     }
 
-    DCERPC_CALL(_NetrShareSetInfo(b,
+    DCERPC_CALL(status,
+                _NetrShareSetInfo(b,
                                   (wchar16_t *)servername,
                                   (wchar16_t *)netname,
                                   level, info, parm_err));

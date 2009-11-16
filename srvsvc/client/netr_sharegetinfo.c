@@ -50,7 +50,8 @@ NET_API_STATUS NetShareGetInfo(
     memset(&info, 0, sizeof(info));
     *bufptr = NULL;
 
-    DCERPC_CALL(_NetrShareGetInfo(b,
+    DCERPC_CALL(status,
+                _NetrShareGetInfo(b,
                                   (wchar16_t *)servername,
                                   (wchar16_t *)netname,
                                   level, &info));

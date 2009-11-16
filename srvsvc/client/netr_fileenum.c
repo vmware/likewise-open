@@ -71,7 +71,8 @@ NET_API_STATUS NetFileEnum(
         break;
     }
 
-    DCERPC_CALL(_NetrFileEnum(b,
+    DCERPC_CALL(status,
+                _NetrFileEnum(b,
                               (wchar16_t *)servername,
                               (wchar16_t *)basepath,
                               (wchar16_t *)username,

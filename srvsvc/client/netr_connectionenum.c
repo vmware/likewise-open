@@ -69,7 +69,8 @@ NET_API_STATUS NetConnectionEnum(
         break;
     }
 
-    DCERPC_CALL(_NetrConnectionEnum(b,
+    DCERPC_CALL(status,
+                _NetrConnectionEnum(b,
                                     (wchar16_t *)servername,
                                     (wchar16_t *)qualifier,
                                     &l, &ctr,
