@@ -53,6 +53,7 @@
 
 #include <srvsvc/srvsvc.h>
 #include <memptr.h>
+#include <macros.h>
 
 #include "srvsvc_h.h"
 
