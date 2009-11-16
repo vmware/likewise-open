@@ -217,9 +217,14 @@ SrvProcessReadAndX(
                     break;
             }
 
-            pReadState->ullBytesToRead =
-                (((ULONG64)pReadState->pRequestHeader_WC_12->maxCountHigh) << 16)|
-                ((ULONG64)pReadState->pRequestHeader_WC_12->maxCount);
+            if (pReadState->pRequestHeader_WC_12->maxCountHigh != (uint32_t)-1)
+            {
+                pReadState->ullBytesToRead =
+                    ((ULONG64)pReadState->pRequestHeader_WC_12->maxCountHigh) << 16;
+            }
+
+            pReadState->ullBytesToRead |=
+                (ULONG64)pReadState->pRequestHeader_WC_12->maxCount;
 
             pReadState->bPagedIo = usFlags2 & FLAG2_PAGING_IO ? TRUE : FALSE;
             pReadState->stage = SRV_READ_STAGE_SMB_V1_ATTEMPT_READ;
