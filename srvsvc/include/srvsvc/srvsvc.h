@@ -266,12 +266,21 @@ NetSessionEnum(
 
 
 NET_API_STATUS
+NetrShareAdd(
+    IN  handle_t hBinding,
+    IN  PCWSTR   pwszServername,
+    IN  DWORD    dwLevel,
+    IN  PVOID    pBuffer,
+    OUT PDWORD   pdwParmErr
+    );
+
+
+NET_API_STATUS
 NetShareAdd(
-    handle_t b,
-    const wchar16_t *servername,
-    uint32 level,
-    uint8 *bufptr,
-    uint32 *parm_err
+    IN  PCWSTR  pwszServername,
+    IN  DWORD   dwLevel,
+    IN  PVOID   pBuffer,
+    OUT PDWORD  pdwParmErr
     );
 
 
@@ -310,11 +319,19 @@ NetShareSetInfo(
 
 
 NET_API_STATUS
+NetrShareDel(
+    IN  handle_t hBinding,
+    IN  PCWSTR   pwszServername,
+    IN  PCWSTR   pwszSharename,
+    IN  DWORD    dwReserved
+    );
+
+
+NET_API_STATUS
 NetShareDel(
-    handle_t b,
-    const wchar16_t *servername,
-    const wchar16_t *netname,
-    uint32 reserved
+    IN  PCWSTR  pwszServername,
+    IN  PCWSTR  pwszSharename,
+    IN  DWORD   dwReserved
     );
 
 
