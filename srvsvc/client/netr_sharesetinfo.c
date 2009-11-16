@@ -47,8 +47,8 @@ NET_API_STATUS NetShareSetInfo(
     SHARE_INFO_1501_I info1501;
     uint8 *sdbuf = NULL;
 
-    goto_if_invalid_param_err(b, done);
-    goto_if_invalid_param_err(netname, done);
+    BAIL_ON_INVALID_PTR(b, status);
+    BAIL_ON_INVALID_PTR(netname, status);
 
     memset(&info, 0, sizeof(info));
     memset(&info502, 0, sizeof(info502));
@@ -70,7 +70,7 @@ NET_API_STATUS NetShareSetInfo(
                 (!buf502->shi502_security_descriptor && buf502->shi502_reserved))
             {
                 status = ERROR_INVALID_PARAMETER;
-                goto done;
+                BAIL_ON_WIN_ERROR(status);
             }
 
             info502.shi502_netname             = buf502->shi502_netname;
@@ -105,7 +105,7 @@ NET_API_STATUS NetShareSetInfo(
                 (!buf1501->shi1501_security_descriptor && buf1501->shi1501_reserved))
             {
                 status = ERROR_INVALID_PARAMETER;
-                goto done;
+                BAIL_ON_WIN_ERROR(status);
             }
 
             info1501.shi1501_reserved            = buf1501->shi1501_reserved;
@@ -121,10 +121,14 @@ NET_API_STATUS NetShareSetInfo(
                                   (wchar16_t *)servername,
                                   (wchar16_t *)netname,
                                   level, info, parm_err));
+    BAIL_ON_WIN_ERROR(status);
 
-done:
+cleanup:
     SAFE_FREE(sdbuf);
     return status;
+
+error:
+    goto cleanup;
 }
 
 

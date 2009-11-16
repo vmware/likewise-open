@@ -36,8 +36,6 @@
 
 #include <lwrpc/types.h>
 
-#define SAFE_FREE(ptr)  do { if (ptr) free(ptr); (ptr) = NULL; } while (0)
-
 #define NTSTATUS_CODE(status) ((NTSTATUS)(0xc0000000 | (status)))
 
 #define ERROR_SUCCESS 0
@@ -55,35 +53,36 @@
 
 #define NERR_BASE 2100
 
-#define goto_if_ntstatus_not_success(s, lbl) \
-    if ((s) != STATUS_SUCCESS) {             \
-        status = (s);                        \
-        goto lbl;                            \
+#define goto_if_ntstatus_not_success(s, lbl)   \
+    if ((s) != STATUS_SUCCESS) {               \
+        status = (s);                          \
+        goto lbl;                              \
     }
 
-#define goto_if_err_not_success(e, lbl)      \
-    if ((e) != ERROR_SUCCESS) {              \
-        status= (e);                         \
-        goto lbl;                            \
+#define goto_if_err_not_success(e, lbl)        \
+    if ((e) != ERROR_SUCCESS) {                \
+        status= (e);                           \
+        goto lbl;                              \
     }
 
-#define goto_if_no_memory_ntstatus(p, lbl)   \
-    if ((p) == NULL) {                       \
-        status = STATUS_NO_MEMORY;           \
-        goto lbl;                            \
+#define goto_if_no_memory_ntstatus(p, lbl)     \
+    if ((p) == NULL) {                         \
+        status = STATUS_NO_MEMORY;             \
+        goto lbl;                              \
     }
 
 #define goto_if_invalid_param_ntstatus(p, lbl) \
-    if ((p) == NULL) {                       \
-        status = STATUS_INVALID_PARAMETER;   \
-        goto lbl;                            \
+    if ((p) == NULL) {                         \
+        status = STATUS_INVALID_PARAMETER;     \
+        goto lbl;                              \
     }
 
-#define goto_if_invalid_param_err(p, lbl) \
-    if ((p) == NULL) {                       \
-        status = ERROR_INVALID_PARAMETER;   \
-        goto lbl;                            \
+#define goto_if_invalid_param_err(p, lbl)      \
+    if ((p) == NULL) {                         \
+        status = ERROR_INVALID_PARAMETER;      \
+        goto lbl;                              \
     }
+
 
 #endif /* _SRVSVC_UTIL_H_ */
 

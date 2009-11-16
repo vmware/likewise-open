@@ -52,10 +52,10 @@ NET_API_STATUS NetShareEnum(
     srvsvc_NetShareCtr502 ctr502;
     uint32 l = level;
 
-    goto_if_invalid_param_err(b, done);
-    goto_if_invalid_param_err(bufptr, done);
-    goto_if_invalid_param_err(entriesread, done);
-    goto_if_invalid_param_err(totalentries, done);
+    BAIL_ON_INVALID_PTR(b, status);
+    BAIL_ON_INVALID_PTR(bufptr, status);
+    BAIL_ON_INVALID_PTR(entriesread, status);
+    BAIL_ON_INVALID_PTR(totalentries, status);
 
     memset(&ctr, 0, sizeof(ctr));
     memset(&ctr0, 0, sizeof(ctr0));
@@ -63,6 +63,7 @@ NET_API_STATUS NetShareEnum(
     memset(&ctr2, 0, sizeof(ctr2));
     memset(&ctr501, 0, sizeof(ctr501));
     memset(&ctr502, 0, sizeof(ctr502));
+
     *entriesread = 0;
     *bufptr = NULL;
 
@@ -92,13 +93,13 @@ NET_API_STATUS NetShareEnum(
 
     if (l != level) {
         status = ERROR_BAD_NET_RESP;
-        goto done;
+        BAIL_ON_WIN_ERROR(status);
     }
 
     memerr = SrvSvcCopyNetShareCtr(l, &ctr, entriesread, bufptr);
-    goto_if_err_not_success(memerr, done);
+    BAIL_ON_WIN_ERROR(status);
 
-done:
+cleanup:
     switch (level) {
     case 0:
         if (ctr.ctr0 == &ctr0) {
@@ -128,6 +129,9 @@ done:
     }
     SrvSvcClearNetShareCtr(l, &ctr);
     return status;
+
+error:
+    goto cleanup;
 }
 
 

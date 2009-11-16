@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -30,6 +30,7 @@
 
 #include "includes.h"
 
+
 NET_API_STATUS NetConnectionEnum(
     handle_t b,
     const wchar16_t *servername,
@@ -49,10 +50,10 @@ NET_API_STATUS NetConnectionEnum(
     srvsvc_NetConnCtr1 ctr1;
     uint32 l = level;
 
-    goto_if_invalid_param_err(b, done);
-    goto_if_invalid_param_err(bufptr, done);
-    goto_if_invalid_param_err(entriesread, done);
-    goto_if_invalid_param_err(totalentries, done);
+    BAIL_ON_INVALID_PTR(b, status);
+    BAIL_ON_INVALID_PTR(bufptr, status);
+    BAIL_ON_INVALID_PTR(entriesread, status);
+    BAIL_ON_INVALID_PTR(totalentries, status);
 
     memset(&ctr, 0, sizeof(ctr));
     memset(&ctr0, 0, sizeof(ctr0));
@@ -79,13 +80,13 @@ NET_API_STATUS NetConnectionEnum(
 
     if (l != level) {
         status = ERROR_BAD_NET_RESP;
-        goto done;
+        BAIL_ON_WIN_ERROR(status);
     }
 
     memerr = SrvSvcCopyNetConnCtr(l, &ctr, entriesread, bufptr);
-    goto_if_err_not_success(memerr, done);
+    BAIL_ON_WIN_ERROR(memerr);
 
-done:
+cleanup:
     switch (level) {
     case 0:
         if (ctr.ctr0 == &ctr0) {
@@ -99,7 +100,11 @@ done:
         break;
     }
     SrvSvcClearNetConnCtr(l, &ctr);
+
     return status;
+
+error:
+    goto cleanup;
 }
 
 /*

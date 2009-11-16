@@ -57,7 +57,6 @@
 
 #include "srvsvc_h.h"
 
-#include "srvsvc_util.h"
 #include "externs.h"
 #include "srvsvc_memory.h"
 #include "srvsvc_stubmemory.h"
