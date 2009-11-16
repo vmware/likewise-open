@@ -81,6 +81,7 @@ PvfsRead(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PIRP pIrp = pIrpContext->pIrp;
     PVOID pBuffer = pIrp->Args.ReadWrite.Buffer;
+    ULONG BufferLength = pIrp->Args.ReadWrite.Length;
     PPVFS_CCB pCcb = NULL;
     PPVFS_PENDING_READ pReadCtx = NULL;
 
@@ -89,7 +90,10 @@ PvfsRead(
     ntError =  PvfsAcquireCCB(pIrp->FileHandle, &pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
-    BAIL_ON_INVALID_PTR(pBuffer, ntError);
+    if (BufferLength > 0)
+    {
+        BAIL_ON_INVALID_PTR(pBuffer, ntError);
+    }
 
     if (PVFS_IS_DIR(pCcb)) {
         ntError = STATUS_FILE_IS_A_DIRECTORY;
