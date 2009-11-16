@@ -29,9 +29,19 @@
  */
 
 /*
- * Abstract: SrvSvc interface binding (srvsvc component)
+ * Copyright (C) Likewise Software. All rights reserved.
  *
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ * Module Name:
+ *
+ *        srvsvc_binding.c
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Client Interface
+ *
+ *        DCE/RPC binding functions
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
 
 #include "includes.h"
@@ -39,30 +49,37 @@
 
 RPCSTATUS
 InitSrvSvcBindingDefault(
-    handle_t         *phSrvSvcBinding,
-    PCSTR             pszHostname,
-    PIO_CREDS  pCreds
+    OUT handle_t  *phBinding,
+    IN  PCSTR      pszHostname,
+    IN  PIO_CREDS  pCreds
     )
 {
-    RPCSTATUS rpcstatus = RPC_S_OK;
-    char *prot_seq = (char*)SRVSVC_DEFAULT_PROT_SEQ;
-    char *endpoint = (char*)SRVSVC_DEFAULT_ENDPOINT;
-    char *uuid = NULL;
-    char *options = NULL;
-    handle_t hSrvSvcBinding = NULL;
+    RPCSTATUS rpcStatus = RPC_S_OK;
+    PSTR pszProtSeq = (PSTR)SRVSVC_DEFAULT_PROT_SEQ;
+    PSTR pszLpcProtSeq = (PSTR)"ncalrpc";
+    PSTR pszEndpoint = (PSTR)SRVSVC_DEFAULT_ENDPOINT;
+    PSTR pszLpcEndpoint = (PSTR)SRVSVC_LOCAL_ENDPOINT;
+    PSTR pszUuid = NULL;
+    PSTR pszOptions = NULL;
+    handle_t hBinding = NULL;
 
-    rpcstatus = InitSrvSvcBindingFull(&hSrvSvcBinding,
-                                      prot_seq, pszHostname, endpoint,
-                                      uuid, options, pCreds);
-    goto_if_rpcstatus_not_success(rpcstatus, error);
+    rpcStatus = InitSrvSvcBindingFull(
+                    &hBinding,
+                    (pszHostname) ? pszProtSeq : pszLpcProtSeq,
+                    pszHostname,
+                    (pszHostname) ? pszEndpoint : pszLpcEndpoint,
+                    pszUuid,
+                    pszOptions,
+                    pCreds);
+    BAIL_ON_RPC_STATUS(rpcStatus);
 
-    *phSrvSvcBinding = hSrvSvcBinding;
+    *phBinding = hBinding;
 
 cleanup:
-    return rpcstatus;
+    return rpcStatus;
 
 error:
-    *phSrvSvcBinding = NULL;
+    *phBinding = NULL;
 
     goto cleanup;
 }
@@ -70,101 +87,117 @@ error:
 
 RPCSTATUS
 InitSrvSvcBindingFull(
-    handle_t *phSrvSvcBinding,
-    const char *prot_seq,
-    const char *hostname,
-    const char *endpoint,
-    const char *uuid,
-    const char *options,
-    PIO_CREDS pCreds
+    OUT handle_t *phBinding,
+    IN  PCSTR     pszProtSeq,
+    IN  PCSTR     pszHostname,
+    IN  PCSTR     pszEndpoint,
+    IN  PCSTR     pszUuid,
+    IN  PCSTR     pszOptions,
+    IN  PIO_CREDS pCreds
     )
 {
-    RPCSTATUS rpcstatus = RPC_S_OK;
-    RPCSTATUS st = RPC_S_OK;
-    unsigned char *binding_string = NULL;
-    unsigned char *ps   = NULL;
-    unsigned char *ep   = NULL;
-    unsigned char *u    = NULL;
-    unsigned char *opts = NULL;
-    unsigned char *addr = NULL;
-    handle_t hSrvSvcBinding = NULL;
-    rpc_transport_info_handle_t info;
+    RPCSTATUS rpcStatus = RPC_S_OK;
+    RPCSTATUS rpcStatus2 = RPC_S_OK;
+    PBYTE pbBindingString = NULL;
+    PBYTE pbProtSeq = NULL;
+    PBYTE pbEndpoint= NULL;
+    PBYTE pbUuid = NULL;
+    PBYTE pbOpts = NULL;
+    PBYTE pbAddr = NULL;
+    handle_t hBinding = NULL;
+    rpc_transport_info_handle_t hInfo = NULL;
 
-    goto_if_invalid_param_rpcstatus(phSrvSvcBinding, cleanup);
-    goto_if_invalid_param_rpcstatus(hostname, cleanup);
-    goto_if_invalid_param_rpcstatus(prot_seq, cleanup);
+    BAIL_ON_INVALID_PTR_RPCSTATUS(phBinding, rpcStatus);
+    BAIL_ON_INVALID_PTR_RPCSTATUS(pszProtSeq, rpcStatus);
 
-    ps = (unsigned char*) strdup(prot_seq);
-    goto_if_no_memory_rpcstatus(ps, error);
+    pbProtSeq = (PBYTE) strdup(pszProtSeq);
+    BAIL_ON_NO_MEMORY_RPCSTATUS(pbProtSeq, rpcStatus);
 
-    if (endpoint != NULL) {
-        ep = (unsigned char*) strdup(endpoint);
-        goto_if_no_memory_rpcstatus(ep, error);
+    if (pszEndpoint != NULL) {
+        pbEndpoint = (PBYTE) strdup(pszEndpoint);
+        BAIL_ON_NO_MEMORY_RPCSTATUS(pbEndpoint, rpcStatus);
     }
 
-    if (uuid != NULL) {
-        u = (unsigned char*) strdup(uuid);
-        goto_if_no_memory_rpcstatus(u, error);
+    if (pszUuid != NULL) {
+        pbUuid = (PBYTE) strdup(pszUuid);
+        BAIL_ON_NO_MEMORY_RPCSTATUS(pbUuid, rpcStatus);
     }
 
-    if (options != NULL) {
-        opts = (unsigned char*) strdup(options);
-        goto_if_no_memory_rpcstatus(opts, error);
+    if (pszOptions != NULL) {
+        pbOpts = (PBYTE) strdup(pszOptions);
+        BAIL_ON_NO_MEMORY_RPCSTATUS(pbOpts, rpcStatus);
     }
 
-    addr = (unsigned char*) strdup(hostname);
-    goto_if_no_memory_rpcstatus(addr, error);
+    if (pszHostname) {
+        pbAddr = (PBYTE) strdup(pszHostname);
+        BAIL_ON_NO_MEMORY_RPCSTATUS(pbAddr, rpcStatus);
+    }
 
-    rpc_string_binding_compose(u, ps, addr, ep, opts, &binding_string,
-                               &rpcstatus);
-    goto_if_rpcstatus_not_success(rpcstatus, error);
+    rpc_string_binding_compose(
+        pbUuid,
+        pbProtSeq,
+        pbAddr,
+        pbEndpoint,
+        pbOpts,
+        &pbBindingString,
+        &rpcStatus);
+    BAIL_ON_RPC_STATUS(rpcStatus);
 
-    rpc_binding_from_string_binding(binding_string, &hSrvSvcBinding,
-                                    &rpcstatus);
-    goto_if_rpcstatus_not_success(rpcstatus, error);
+    rpc_binding_from_string_binding(
+        pbBindingString,
+        &hBinding,
+        &rpcStatus);
+    BAIL_ON_RPC_STATUS(rpcStatus);
 
-    rpc_smb_transport_info_from_lwio_creds(pCreds,
-                                           FALSE,
-                                           &info,
-                                           &rpcstatus);
-    goto_if_rpcstatus_not_success(rpcstatus, error);
+    if (strcmp(pszProtSeq, "ncacn_np") == 0)
+    {
+        rpc_smb_transport_info_from_lwio_creds(
+            pCreds,
+            FALSE,
+            &hInfo,
+            &rpcStatus);
+        BAIL_ON_RPC_STATUS(rpcStatus);
 
-    rpc_binding_set_transport_info(hSrvSvcBinding,
-                                   info,
-                                   &rpcstatus);
-    goto_if_rpcstatus_not_success(rpcstatus, error);
+        rpc_binding_set_transport_info(
+            hBinding,
+            hInfo,
+            &rpcStatus);
+        BAIL_ON_RPC_STATUS(rpcStatus);
 
-	info = NULL;
+        hInfo = NULL;
+    }
 
-    rpc_ep_resolve_binding(hSrvSvcBinding, srvsvc_v3_0_c_ifspec, &rpcstatus);
-    goto_if_rpcstatus_not_success(rpcstatus, error);
-
-    *phSrvSvcBinding = hSrvSvcBinding;
+    *phBinding = hBinding;
 
 cleanup:
-    SAFE_FREE(ps);
-    SAFE_FREE(ep);
-    SAFE_FREE(u);
-    SAFE_FREE(opts);
-    SAFE_FREE(addr);
+    SAFE_FREE(pbProtSeq);
+    SAFE_FREE(pbEndpoint);
+    SAFE_FREE(pbUuid);
+    SAFE_FREE(pbOpts);
+    SAFE_FREE(pbAddr);
 
-    if (binding_string) {
-        rpc_string_free(&binding_string, &st);
+    if (pbBindingString)
+    {
+        rpc_string_free(&pbBindingString, &rpcStatus2);
     }
 
-    if (rpcstatus == RPC_S_OK &&
-        st != RPC_S_OK) {
-        rpcstatus = st;
+    if ((rpcStatus == RPC_S_OK) && (rpcStatus2 != RPC_S_OK))
+    {
+        rpcStatus = rpcStatus2;
     }
 
-    return rpcstatus;
+    if (hInfo)
+    {
+        rpc_smb_transport_info_free(hInfo);
+    }
+
+    return rpcStatus;
 
 error:
-    if (hSrvSvcBinding) {
-        rpc_binding_free(&hSrvSvcBinding, &st);
+    if (hBinding)
+    {
+        rpc_binding_free(&hBinding, &rpcStatus2);
     }
-
-    *phSrvSvcBinding = NULL;
 
     goto cleanup;
 }
@@ -172,19 +205,23 @@ error:
 
 RPCSTATUS
 FreeSrvSvcBinding(
-    handle_t *binding
+    handle_t *phBinding
     )
 {
-    RPCSTATUS rpcstatus = RPC_S_OK;
+    RPCSTATUS rpcStatus = RPC_S_OK;
 
     /* Free the binding itself */
-    if (binding && *binding) {
-	    rpc_binding_free(binding, &rpcstatus);
-        goto_if_rpcstatus_not_success(rpcstatus, done);
+    if (phBinding && *phBinding)
+    {
+	    rpc_binding_free(phBinding, &rpcStatus);
+        BAIL_ON_RPC_STATUS(rpcStatus);
     }
 
-done:
-    return rpcstatus;
+cleanup:
+    return rpcStatus;
+
+error:
+    goto cleanup;
 }
 
 

@@ -53,31 +53,32 @@
 
 #define SRVSVC_DEFAULT_PROT_SEQ   "ncacn_np"
 #define SRVSVC_DEFAULT_ENDPOINT   "\\pipe\\srvsvc"
+#define SRVSVC_LOCAL_ENDPOINT     "/var/lib/likewise/rpc/srvsvc"
 
 
 RPCSTATUS
 InitSrvSvcBindingDefault(
-    handle_t         *phSrvSvcBinding,
-    PCSTR             pszHostname,
-    PIO_CREDS  pCreds
+    OUT handle_t  *phBinding,
+    IN  PCSTR      pszHostname,
+    IN  PIO_CREDS  pCreds
     );
 
 
 RPCSTATUS
 InitSrvSvcBindingFull(
-    handle_t *binding,
-    const char *prot_seq,
-    const char *hostname,
-    const char *endpoint,
-    const char *uuid,
-    const char *options,
-    PIO_CREDS pCreds
+    OUT handle_t *phBinding,
+    IN  PCSTR     pszProtSeq,
+    IN  PCSTR     pszHostname,
+    IN  PCSTR     pszEndpoint,
+    IN  PCSTR     pszUuid,
+    IN  PCSTR     pszOptions,
+    IN  PIO_CREDS pCreds
     );
 
 
 RPCSTATUS
 FreeSrvSvcBinding(
-    handle_t *binding
+    handle_t *phBinding
     );
 
 
