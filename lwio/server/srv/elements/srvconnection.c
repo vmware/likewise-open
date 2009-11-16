@@ -343,6 +343,10 @@ cleanup:
     return ntStatus;
 
 error:
+    if (ntStatus == STATUS_NOT_FOUND)
+    {
+        ntStatus = STATUS_INVALID_HANDLE;
+    }
 
     *ppSession = NULL;
 
@@ -385,6 +389,10 @@ cleanup:
     return ntStatus;
 
 error:
+    if (ntStatus == STATUS_NOT_FOUND)
+    {
+        ntStatus = STATUS_INVALID_HANDLE;
+    }
 
     *ppSession = NULL;
 
