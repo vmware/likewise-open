@@ -20,6 +20,8 @@ libsrvsvc_la_SOURCES =        \
     netr_servergetinfo.c      \
     netr_serversetinfo.c      \
     netr_remotetod.c          \
+    net_shareadd.c            \
+    net_sharedel.c            \
     srvsvc_memory.c           \
     srvsvc_stubmemory.c       \
     memptr.c                  \
