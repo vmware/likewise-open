@@ -243,7 +243,21 @@ SrvBuildNotifyState(
     PLWIO_SRV_FILE                   pFile,
     USHORT                           usMid,
     ULONG                            ulPid,
+    ULONG                            ulRequestSequence,
+    ULONG                            ulCompletionFilter,
+    BOOLEAN                          bWatchTree,
+    ULONG                            ulMaxBufferSize,
     PSRV_CHANGE_NOTIFY_STATE_SMB_V1* ppNotifyState
+    );
+
+VOID
+SrvPrepareNotifyStateAsync(
+    PSRV_CHANGE_NOTIFY_STATE_SMB_V1 pNotifyState
+    );
+
+VOID
+SrvReleaseNotifyStateAsync(
+    PSRV_CHANGE_NOTIFY_STATE_SMB_V1 pNotifyState
     );
 
 VOID
@@ -263,6 +277,12 @@ SrvProcessNtRename(
 NTSTATUS
 SrvProcessNtTransact(
     PSRV_EXEC_CONTEXT pExecContext
+    );
+
+NTSTATUS
+SrvBuildChangeNotifyResponse(
+    PSRV_EXEC_CONTEXT               pExecContext,
+    PSRV_CHANGE_NOTIFY_STATE_SMB_V1 pNotifyState
     );
 
 // openx.c

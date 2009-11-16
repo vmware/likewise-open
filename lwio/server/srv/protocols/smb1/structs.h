@@ -129,6 +129,9 @@ typedef struct _SRV_CHANGE_NOTIFY_STATE_SMB_V1
     IO_ASYNC_CONTROL_BLOCK  acb;
     PIO_ASYNC_CONTROL_BLOCK pAcb;
 
+    ULONG                   ulCompletionFilter;
+    BOOLEAN                 bWatchTree;
+
     PLWIO_SRV_CONNECTION    pConnection;
 
     USHORT                  usUid;
@@ -136,6 +139,14 @@ typedef struct _SRV_CHANGE_NOTIFY_STATE_SMB_V1
     USHORT                  usFid;
     ULONG                   ulPid;
     USHORT                  usMid;
+
+    ULONG                   ulRequestSequence;
+
+    PBYTE                   pBuffer;
+    ULONG                   ulBufferLength;
+    ULONG                   ulBytesUsed;
+
+    ULONG                   ulMaxBufferSize;
 
 } SRV_CHANGE_NOTIFY_STATE_SMB_V1, *PSRV_CHANGE_NOTIFY_STATE_SMB_V1;
 
