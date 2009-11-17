@@ -719,6 +719,8 @@ SrvBuildNotifyExecContext(
                     &pExecContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    pSmbRequest->sequence = pNotifyState->ulRequestSequence;
+
     pBuffer = pSmbRequest->pRawBuffer;
     ulBytesAvailable = pSmbRequest->bufferLen;
 
