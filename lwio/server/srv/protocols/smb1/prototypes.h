@@ -339,9 +339,8 @@ SrvProcessNtTransact(
     );
 
 NTSTATUS
-SrvBuildChangeNotifyResponse(
-    PSRV_EXEC_CONTEXT               pExecContext,
-    PSRV_CHANGE_NOTIFY_STATE_SMB_V1 pNotifyState
+SrvProcessNtTransactInternal(
+    PSRV_EXEC_CONTEXT pExecContext
     );
 
 // openx.c

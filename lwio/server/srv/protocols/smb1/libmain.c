@@ -343,7 +343,14 @@ SrvProtocolExecute_SMB_V1(
 
             case COM_NT_TRANSACT:
 
-                ntStatus = SrvProcessNtTransact(pExecContext);
+                if (pExecContext->bInternal)
+                {
+                    ntStatus = SrvProcessNtTransactInternal(pExecContext);
+                }
+                else
+                {
+                    ntStatus = SrvProcessNtTransact(pExecContext);
+                }
 
                 break;
 
