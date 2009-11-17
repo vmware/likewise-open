@@ -563,6 +563,16 @@ SrvNotifyStateBuild(
 
     pNotifyState->ulMaxBufferSize   = ulMaxBufferSize;
 
+    if (ulMaxBufferSize)
+    {
+        ntStatus = SrvAllocateMemory(
+                        ulMaxBufferSize,
+                        (PVOID*)&pNotifyState->pBuffer);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pNotifyState->ulBufferLength = ulMaxBufferSize;
+
     *ppNotifyState = pNotifyState;
 
 cleanup:
