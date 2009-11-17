@@ -11,7 +11,7 @@ test_regio_LDFLAGS = -static
 
 test_regio_CPPFLAGS = \
     $(AM_CPPFLAGS)      \
-    @LWADVAPI_INCLUDES@   \
+    @LWBASE_INCLUDES@   \
     @LWMSG_INCLUDES@ \
     -I@top_srcdir@ \
     -I@top_srcdir@/server/include
@@ -26,7 +26,7 @@ test_reglex_LDADD =                           \
 test_reglex_LDFLAGS = -static
 test_reglex_CPPFLAGS = \
     $(AM_CPPFLAGS)       \
-    @LWADVAPI_INCLUDES@   \
+    @LWBASE_INCLUDES@   \
     @LWMSG_INCLUDES@ \
     -I@top_srcdir@ \
     -I@top_srcdir@/server/include
@@ -45,7 +45,7 @@ test_regparse_LDFLAGS = -static
 test_regparse_CPPFLAGS = \
     $(AM_CPPFLAGS)       \
     -I@top_srcdir@/server/include \
-    @LWADVAPI_INCLUDES@   \
+    @LWBASE_INCLUDES@   \
     @LWMSG_INCLUDES@ \
     -I@top_srcdir@ \
     -I@top_srcdir@/server/include
@@ -62,7 +62,7 @@ test_regdump_LDADD =                           \
 test_regdump_LDFLAGS = -static
 test_regdump_CPPFLAGS = \
     $(AM_CPPFLAGS)       \
-    @LWADVAPI_INCLUDES@   \
+    @LWBASE_INCLUDES@   \
     @LWMSG_INCLUDES@ \
     -I@top_srcdir@ \
     -I@top_srcdir@/server/include
@@ -77,7 +77,7 @@ test_regiconv_LDADD =                           \
 test_regiconv_LDFLAGS = -static
 test_regiconv_CPPFLAGS = \
     $(AM_CPPFLAGS)       \
-    @LWADVAPI_INCLUDES@   \
+    @LWBASE_INCLUDES@   \
     @LWMSG_INCLUDES@ \
     -I@top_srcdir@ \
     -I@top_srcdir@/server/include
@@ -94,7 +94,7 @@ test_tomulti_LDADD =                           \
 test_tomulti_LDFLAGS = -static
 test_tomulti_CPPFLAGS = \
     $(AM_CPPFLAGS)       \
-    @LWADVAPI_INCLUDES@   \
+    @LWBASE_INCLUDES@   \
     @LWMSG_INCLUDES@ \
     -I@top_srcdir@ \
     -I@top_srcdir@/server/include

@@ -55,11 +55,9 @@ RegHashCreate(
     )
 {
     REG_HASH_TABLE *pResult = NULL;
-    DWORD dwError = LW_ERROR_SUCCESS;
+    DWORD dwError = LWREG_ERROR_SUCCESS;
 
-    dwError = LwAllocateMemory(
-                    sizeof(*pResult),
-                    (PVOID*)&pResult);
+    dwError = LW_RTL_ALLOCATE((PVOID*)&pResult, REG_HASH_TABLE, sizeof(*pResult));
     BAIL_ON_REG_ERROR(dwError);
 
     pResult->sTableSize = sTableSize;
@@ -69,9 +67,8 @@ RegHashCreate(
     pResult->fnFree = fnFree;
     pResult->fnCopy = fnCopy;
 
-    dwError = LwAllocateMemory(
-                    sizeof(*pResult->ppEntries) * sTableSize,
-                    (PVOID*)&pResult->ppEntries);
+    dwError = LW_RTL_ALLOCATE((PVOID*)&pResult->ppEntries, REG_HASH_ENTRY,
+		                  sizeof(*pResult->ppEntries) * sTableSize);
     BAIL_ON_REG_ERROR(dwError);
 
     *ppResult = pResult;
@@ -112,7 +109,7 @@ RegHashRemoveAll(
             }
             pResult->ppEntries[sBucket] = pEntry->pNext;
             pResult->sCount--;
-            LW_SAFE_FREE_MEMORY(pEntry);
+            LWREG_SAFE_FREE_MEMORY(pEntry);
         }
     }
 }
@@ -125,8 +122,8 @@ RegHashSafeFree(
     if (*ppResult != NULL)
     {
         RegHashRemoveAll(*ppResult);
-        LW_SAFE_FREE_MEMORY((*ppResult)->ppEntries);
-        LW_SAFE_FREE_MEMORY(*ppResult);
+        LWREG_SAFE_FREE_MEMORY((*ppResult)->ppEntries);
+        LWREG_SAFE_FREE_MEMORY(*ppResult);
     }
 }
 
@@ -137,7 +134,7 @@ RegHashSetValue(
     PVOID  pValue
     )
 {
-    DWORD dwError = LW_ERROR_SUCCESS;
+    DWORD dwError = LWREG_ERROR_SUCCESS;
     size_t sBucket = pTable->fnHash(pKey) % pTable->sTableSize;
     REG_HASH_ENTRY **ppExamine = &pTable->ppEntries[sBucket];
     REG_HASH_ENTRY *pNewEntry = NULL;
@@ -162,10 +159,9 @@ RegHashSetValue(
     }
 
     //The key isn't in the table yet.
-    dwError = LwAllocateMemory(
-                    sizeof(*pNewEntry),
-                    (PVOID*)&pNewEntry);
+    dwError = LW_RTL_ALLOCATE(&pNewEntry, REG_HASH_ENTRY, sizeof(*pNewEntry));
     BAIL_ON_REG_ERROR(dwError);
+
     pNewEntry->pKey = pKey;
     pNewEntry->pValue = pValue;
 
@@ -176,7 +172,7 @@ cleanup:
     return dwError;
 
 error:
-    LW_SAFE_FREE_MEMORY(pNewEntry);
+    LWREG_SAFE_FREE_MEMORY(pNewEntry);
     goto cleanup;
 }
 
@@ -188,7 +184,7 @@ RegHashGetValue(
     PVOID* ppValue //Optional
     )
 {
-    DWORD dwError = LW_ERROR_SUCCESS;
+    DWORD dwError = LWREG_ERROR_SUCCESS;
     size_t sBucket = 0;
     REG_HASH_ENTRY *pExamine = NULL;
 
@@ -227,7 +223,7 @@ RegHashExists(
     )
 {
     DWORD dwError = RegHashGetValue(pTable, pKey, NULL);
-    return (LW_ERROR_SUCCESS == dwError) ? TRUE : FALSE;
+    return (LWREG_ERROR_SUCCESS == dwError) ? TRUE : FALSE;
 }
 
 DWORD
@@ -236,7 +232,7 @@ RegHashCopy(
     OUT REG_HASH_TABLE **ppResult
     )
 {
-    DWORD             dwError = LW_ERROR_SUCCESS;
+    DWORD             dwError = LWREG_ERROR_SUCCESS;
     REG_HASH_ITERATOR iterator;
     REG_HASH_ENTRY    EntryCopy;
     REG_HASH_ENTRY    *pEntry = NULL;
@@ -302,15 +298,14 @@ RegHashResize(
     size_t sTableSize
     )
 {
-    DWORD dwError = LW_ERROR_SUCCESS;
+    DWORD dwError = LWREG_ERROR_SUCCESS;
     REG_HASH_ENTRY **ppEntries;
     REG_HASH_ITERATOR iterator;
     REG_HASH_ENTRY *pEntry = NULL;
     size_t sBucket;
 
-    dwError = LwAllocateMemory(
-                    sizeof(*ppEntries) * sTableSize,
-                    (PVOID*)&ppEntries);
+    dwError = LW_RTL_ALLOCATE((PVOID*)&ppEntries, REG_HASH_ENTRY,
+		                  sizeof(*ppEntries) * sTableSize);
     BAIL_ON_REG_ERROR(dwError);
 
     RegHashGetIterator(pTable, &iterator);
@@ -322,7 +317,7 @@ RegHashResize(
         ppEntries[sBucket] = pEntry;
     }
 
-    LW_SAFE_FREE_MEMORY(pTable->ppEntries);
+    LWREG_SAFE_FREE_MEMORY(pTable->ppEntries);
     pTable->ppEntries = ppEntries;
     pTable->sTableSize = sTableSize;
 
@@ -330,7 +325,7 @@ cleanup:
     return dwError;
 
 error:
-    LW_SAFE_FREE_MEMORY(ppEntries);
+    LWREG_SAFE_FREE_MEMORY(ppEntries);
 
     goto cleanup;
 }
@@ -391,7 +386,7 @@ RegHashRemoveKey(
     PVOID  pKey
     )
 {
-    DWORD dwError = LW_ERROR_SUCCESS;
+    DWORD dwError = LWREG_ERROR_SUCCESS;
     size_t sBucket = pTable->fnHash(pKey) % pTable->sTableSize;
     REG_HASH_ENTRY **ppExamine = &pTable->ppEntries[sBucket];
     REG_HASH_ENTRY *pDelete;
@@ -410,7 +405,7 @@ RegHashRemoveKey(
             //Remove it from the list
             pTable->sCount--;
             *ppExamine = pDelete->pNext;
-            LW_SAFE_FREE_MEMORY(pDelete);
+            LWREG_SAFE_FREE_MEMORY(pDelete);
             goto cleanup;
         }
 
@@ -482,7 +477,7 @@ RegHashFreeStringKey(
 {
     if (pEntry->pKey)
     {
-        LwFreeString(pEntry->pKey);
+	RegFreeString(pEntry->pKey);
     }
 }
 

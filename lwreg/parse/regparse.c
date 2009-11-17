@@ -175,7 +175,7 @@ RegParseReAllocateData(
     if (parseHandle->binaryDataLen >= parseHandle->binaryDataAllocLen)
     {
         newValueSize = parseHandle->binaryDataAllocLen * 2;
-        dwError = LwReallocMemory(
+        dwError = RegReallocMemory(
                       parseHandle->binaryData,
                       &pNewMemory,
                       newValueSize);
@@ -820,11 +820,10 @@ RegParseKeyValue(
         {
             if (parseHandle->registryEntry.valueName)
             {
-                LwFreeMemory(parseHandle->registryEntry.valueName);
+                LwRtlMemoryFree(parseHandle->registryEntry.valueName);
                 parseHandle->registryEntry.valueName = NULL;
             }
-            dwError = LwAllocateString(
-                          pszAttr, &parseHandle->registryEntry.valueName);
+            dwError = LwRtlCStringDuplicate(&parseHandle->registryEntry.valueName, pszAttr);
             BAIL_ON_INVALID_POINTER(parseHandle->registryEntry.valueName);
         }
     }
@@ -881,7 +880,7 @@ RegParseKey(
             /* Empty subkey, with no value, free any previous value */
             if (parseHandle->registryEntry.valueName)
             {
-                LwFreeMemory(parseHandle->registryEntry.valueName);
+                LwRtlMemoryFree(parseHandle->registryEntry.valueName);
                 parseHandle->registryEntry.valueName = NULL;
             }
             parseHandle->dataType = REGLEX_REG_KEY;
@@ -890,10 +889,10 @@ RegParseKey(
             {
                 if (parseHandle->registryEntry.keyName)
                 {
-                    LwFreeMemory(parseHandle->registryEntry.keyName);
+                    LwRtlMemoryFree(parseHandle->registryEntry.keyName);
                 }
-                dwError = LwAllocateString(
-                              pszAttr, &parseHandle->registryEntry.keyName);
+                dwError = LwRtlCStringDuplicate(
+				&parseHandle->registryEntry.keyName, pszAttr);
                 BAIL_ON_INVALID_POINTER(parseHandle->registryEntry.keyName);
             }
             if (parseHandle->parseCallback.entries > 0)
@@ -981,13 +980,11 @@ RegParseOpen(
     dwError = RegLexOpen(&lexHandle);
     BAIL_ON_REG_ERROR(dwError);
 
-    dwError = LwAllocateMemory(sizeof(REGPARSE_HANDLE),
-                                (LW_PVOID) &newHandle);
+    dwError = LW_RTL_ALLOCATE((PVOID*)&newHandle, REGPARSE_HANDLE, sizeof(*newHandle));
     BAIL_ON_INVALID_POINTER(newHandle);
 
-    dwError = LwAllocateMemory(REGPARSE_BUFSIZ,
-                                &binaryData);
-    BAIL_ON_INVALID_POINTER(newHandle);
+    dwError = LW_RTL_ALLOCATE((PVOID*)&binaryData, VOID, REGPARSE_BUFSIZ);
+    BAIL_ON_REG_ERROR(dwError);
 
     newHandle->ioHandle = ioHandle;
     newHandle->lexHandle = lexHandle;
@@ -1024,16 +1021,16 @@ RegParseClose(
 
         if (pParseHandle->registryEntry.keyName)
         {
-            LwFreeMemory(pParseHandle->registryEntry.keyName);
+            LwRtlMemoryFree(pParseHandle->registryEntry.keyName);
         }
 
         if (pParseHandle->binaryData)
         {
-            LwFreeMemory(pParseHandle->binaryData);
+            LwRtlMemoryFree(pParseHandle->binaryData);
         }
         RegLexClose(pParseHandle->lexHandle);
         RegIOClose(pParseHandle->ioHandle);
-        LwFreeMemory(pParseHandle);
+        LwRtlMemoryFree(pParseHandle);
     }
 }
 

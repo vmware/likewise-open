@@ -13,7 +13,7 @@ regshell_LDADD = \
         @top_builddir@/parse/libregparse.la \
         @top_builddir@/client/libregclient.la \
         @top_builddir@/libedit/src/libedit.la \
-        @LWADVAPI_NOTHR_LIBS@ \
+        @LWBASE_NOTHR_LIBS@ \
         @LWMSG_NOTHR_LIBS@
 
 regshell_CPPFLAGS = \

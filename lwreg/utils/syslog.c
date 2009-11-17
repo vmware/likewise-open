@@ -62,17 +62,15 @@ RegOpenSyslog(
     DWORD dwError = 0;
     PREG_SYS_LOG pSyslog = NULL;
 
-    dwError = LwAllocateMemory(
-                sizeof(REG_SYS_LOG),
-                (PVOID*)&pSyslog);
+    dwError = LW_RTL_ALLOCATE((PVOID*)&pSyslog, REG_SYS_LOG, sizeof(*pSyslog));
     if (dwError)
     {
         goto error;
     }
 
-    dwError = LwAllocateString(
-                  (IsNullOrEmptyString(pszIdentifier) ? "registry" : pszIdentifier),
-                  &pSyslog->pszIdentifier);
+    dwError = LwRtlCStringDuplicate(
+                  &pSyslog->pszIdentifier,
+                  (IsNullOrEmptyString(pszIdentifier) ? "registry" : pszIdentifier));
     if (dwError)
     {
         goto error;
@@ -227,8 +225,8 @@ RegFreeSysLogInfo(
         closelog();
     }
 
-    LW_SAFE_FREE_STRING(pSysLog->pszIdentifier);
+    LWREG_SAFE_FREE_STRING(pSysLog->pszIdentifier);
 
-    LwFreeMemory(pSysLog);
+    LwRtlMemoryFree(pSysLog);
 }
 

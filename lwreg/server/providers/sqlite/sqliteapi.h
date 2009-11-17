@@ -167,16 +167,6 @@ SqliteQueryInfoKey(
     );
 
 DWORD
-SqliteQueryMultipleValues(
-    IN HANDLE Handle,
-    IN HKEY hKey,
-    IN OUT PVALENT pVal_list,
-    IN DWORD num_vals,
-    OUT PWSTR pValue,
-    OUT PDWORD pdwTotalsize
-    );
-
-DWORD
 SqliteEnumValue(
     IN HANDLE Handle,
     IN HKEY hKey,
@@ -187,6 +177,17 @@ SqliteEnumValue(
     OUT OPTIONAL PDWORD pType,
     OUT OPTIONAL PBYTE pData,/*buffer hold value content*/
     IN OUT OPTIONAL PDWORD pcbData /*input - buffer pData length*/
+    );
+
+/* Obsolete API */
+DWORD
+SqliteQueryMultipleValues(
+    IN HANDLE Handle,
+    IN HKEY hKey,
+    IN OUT PVALENT pVal_list,
+    IN DWORD num_vals,
+    OUT PWSTR pValue,
+    OUT PDWORD pdwTotalsize
     );
 
 #endif /* SQLITEAPI_H_ */

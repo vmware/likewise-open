@@ -98,7 +98,7 @@ DWORD parseCallback(PREG_PARSE_ITEM pItem, HANDLE userContext)
 
     if (dumpString)
     {
-        LwFreeMemory(dumpString);
+	LwRtlMemoryFree(dumpString);
         dumpString = NULL;
     }
     return 0;

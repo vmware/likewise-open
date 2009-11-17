@@ -39,9 +39,8 @@
  *
  * Abstract:
  *
- *        Registry
+ *        Registry Data Definition
  *
- *        Public Client API
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
@@ -160,16 +159,6 @@ typedef struct _SECURITY_ATTRIBUTES {
 }SECURITY_ATTRIBUTES, *PSECURITY_ATTRIBUTES;
 
 DWORD
-RegOpenServer(
-    PHANDLE phConnection
-    );
-
-VOID
-RegCloseServer(
-    HANDLE hConnection
-    );
-
-DWORD
 RegBuildLogInfo(
     RegLogLevel    maxAllowedLogLevel,
     RegLogTarget   logTarget,
@@ -206,343 +195,6 @@ RegGetErrorMessageForLoggingEvent(
     LW_PSTR* ppszErrorMsg
     );
 
-
-// Registry Client Side APIs
-DWORD
-RegEnumRootKeysA(
-    IN HANDLE hRegConnection,
-    OUT PSTR** pppszRootKeyNames,
-    OUT PDWORD pdwNumRootKeys
-    );
-
-DWORD
-RegEnumRootKeysW(
-    IN HANDLE hRegConnection,
-    OUT PWSTR** pppszRootKeyNames,
-    OUT PDWORD pdwNumRootKeys
-    );
-
-DWORD
-RegCreateKeyExA(
-    HANDLE hRegConnection,
-    HKEY hKey,
-    PCSTR pszSubKey,
-    DWORD Reserved,
-    PWSTR pClass,
-    DWORD dwOptions,
-    REGSAM samDesired,
-    PSECURITY_ATTRIBUTES pSecurityAttributes,
-    PHKEY phkResult,
-    PDWORD pdwDisposition
-    );
-
-DWORD
-RegCreateKeyExW(
-    HANDLE hRegConnection,
-    HKEY hKey,
-    PCWSTR pSubKey,
-    DWORD Reserved,
-    PWSTR pClass,
-    DWORD dwOptions,
-    REGSAM samDesired,
-    PSECURITY_ATTRIBUTES pSecurityAttributes,
-    PHKEY phkResult,
-    PDWORD pdwDisposition
-    );
-
-DWORD
-RegCloseKey(
-    HANDLE hRegConnection,
-    HKEY hKey
-    );
-
-DWORD
-RegDeleteKeyA(
-    IN HANDLE hRegConnection,
-    IN HKEY hKey,
-    IN PCSTR pszSubKey
-    );
-
-DWORD
-RegDeleteKeyW(
-    IN HANDLE hRegConnection,
-    IN HKEY hKey,
-    IN PCWSTR pSubKey
-    );
-
-DWORD
-RegDeleteKeyValueA(
-    IN HANDLE hRegConnection,
-    IN HKEY hKey,
-    IN OPTIONAL PCSTR pszSubKey,
-    IN OPTIONAL PCSTR pszValueName
-    );
-
-DWORD
-RegDeleteKeyValueW(
-    IN HANDLE hRegConnection,
-    IN HKEY hKey,
-    IN OPTIONAL PCWSTR pSubKey,
-    IN OPTIONAL PCWSTR pValueName
-    );
-
-DWORD
-RegDeleteTreeA(
-    IN HANDLE hRegConnection,
-    IN HKEY hKey,
-    IN OPTIONAL PCSTR pszSubKey
-    );
-
-DWORD
-RegDeleteTreeW(
-    HANDLE hRegConnection,
-    HKEY hKey,
-    PCWSTR pSubKey
-    );
-
-DWORD
-RegDeleteValueA(
-    IN HANDLE hRegConnection,
-    IN HKEY hKey,
-    IN PCSTR pszValueName
-    );
-
-DWORD
-RegDeleteValueW(
-    IN HANDLE hRegConnection,
-    IN HKEY hKey,
-    IN PCWSTR pValueName
-    );
-
-DWORD
-RegEnumKeyExA(
-    IN HANDLE hRegConnection,
-    IN HKEY hKey,
-    IN DWORD dwIndex,
-    IN OUT PSTR pszName,
-    IN OUT PDWORD pcName,
-    IN PDWORD pReserved,
-    IN OUT OPTIONAL PSTR pszClass,
-    IN OUT OPTIONAL PDWORD pcClass,
-    OUT OPTIONAL PFILETIME pftLastWriteTime
-    );
-
-DWORD
-RegEnumKeyExW(
-    IN HANDLE hRegConnection,
-    IN HKEY hKey,
-    IN DWORD dwIndex,
-    IN OUT PWSTR pName,
-    IN OUT PDWORD pcName,
-    IN PDWORD pReserved,
-    IN OUT PWSTR pClass,
-    IN OUT OPTIONAL PDWORD pcClass,
-    OUT OPTIONAL PFILETIME pftLastWriteTime
-    );
-
-DWORD
-RegEnumValueA(
-    IN HANDLE hRegConnection,
-    IN HKEY hKey,
-    IN DWORD dwIndex,
-    OUT PSTR pszValueName,
-    IN OUT PDWORD pcchValueName,
-    IN OPTIONAL PDWORD pReserved,
-    OUT OPTIONAL PDWORD pdwType,
-    OUT OPTIONAL PBYTE pData,
-    IN OUT OPTIONAL PDWORD pcbData
-    );
-
-DWORD
-RegEnumValueW(
-    HANDLE hRegConnection,
-    HKEY hKey,
-    DWORD dwIndex,
-    PWSTR pValueName,
-    PDWORD pcchValueName,
-    PDWORD pReserved,
-    PDWORD pType,
-    PBYTE pData,
-    PDWORD pcbData
-    );
-
-DWORD
-RegGetValueA(
-    IN HANDLE hRegConnection,
-    IN HKEY hKey,
-    IN OPTIONAL PCSTR pSubKey,
-    IN OPTIONAL PCSTR pszValueName,
-    IN OPTIONAL REG_DATA_TYPE_FLAGS Flags,
-    OUT OPTIONAL PDWORD pdwType,
-    OUT OPTIONAL PVOID pvData,
-    IN OUT OPTIONAL PDWORD pcbData
-    );
-
-DWORD
-RegGetValueW(
-    IN HANDLE hRegConnection,
-    IN HKEY hKey,
-    IN OPTIONAL PCWSTR pSubKey,
-    IN OPTIONAL PCWSTR pValue,
-    IN OPTIONAL REG_DATA_TYPE_FLAGS Flags,
-    OUT OPTIONAL PDWORD pdwType,
-    OUT OPTIONAL PVOID pvData,
-    IN OUT OPTIONAL PDWORD pcbData
-    );
-
-DWORD
-RegOpenKeyExA(
-    HANDLE hRegConnection,
-    HKEY hKey,
-    PCSTR pszSubKey,
-    DWORD ulOptions,
-    REGSAM samDesired,
-    PHKEY phkResult
-    );
-
-DWORD
-RegOpenKeyExW(
-    HANDLE hRegConnection,
-    HKEY hKey,
-    PCWSTR pwszSubKey,
-    DWORD ulOptions,
-    REGSAM samDesired,
-    PHKEY phkResult
-    );
-
-DWORD
-RegQueryInfoKeyA(
-    HANDLE hRegConnection,
-    HKEY hKey,
-    PSTR pszClass,
-    PDWORD pcClass,
-    PDWORD pReserved,
-    PDWORD pcSubKeys,
-    PDWORD pcMaxSubKeyLen,
-    PDWORD pcMaxClassLen,
-    PDWORD pcValues,
-    PDWORD pcMaxValueNameLen,
-    PDWORD pcMaxValueLen,
-    PDWORD pcbSecurityDescriptor,
-    PFILETIME pftLastWriteTime
-    );
-
-DWORD
-RegQueryInfoKeyW(
-    HANDLE hRegConnection,
-    HKEY hKey,
-    PWSTR pClass,
-    PDWORD pcClass,
-    PDWORD pReserved,
-    PDWORD pcSubKeys,
-    PDWORD pcMaxSubKeyLen,
-    PDWORD pcMaxClassLen,
-    PDWORD pcValues,
-    PDWORD pcMaxValueNameLen,
-    PDWORD pcMaxValueLen,
-    PDWORD pcbSecurityDescriptor,
-    PFILETIME pftLastWriteTime
-    );
-
-DWORD
-RegQueryMultipleValues(
-    HANDLE hRegConnection,
-    HKEY hKey,
-    PVALENT val_list,
-    DWORD num_vals,
-    PWSTR pValueBuf,
-    PDWORD dwTotsize
-    );
-
-DWORD
-RegQueryValueExA(
-    HANDLE hRegConnection,
-    HKEY hKey,
-    PCSTR pszValueName,
-    PDWORD pReserved,
-    PDWORD pType,
-    PBYTE pData,
-    PDWORD pcbData
-    );
-
-DWORD
-RegQueryValueExW(
-    HANDLE hRegConnection,
-    HKEY hKey,
-    PCWSTR pValueName,
-    PDWORD pReserved,
-    PDWORD pType,
-    PBYTE pData,
-    PDWORD pcbData
-    );
-
-DWORD
-RegSetValueExA(
-    IN HANDLE hRegConnection,
-    IN HKEY hKey,
-    IN OPTIONAL PCSTR pszValueName,
-    IN DWORD Reserved,
-    IN DWORD dwType,
-    IN OPTIONAL const BYTE *pData,
-    IN DWORD cbData
-    );
-
-DWORD
-RegSetValueExW(
-    HANDLE hRegConnection,
-    HKEY hKey,
-    PCWSTR pValueName,
-    DWORD Reserved,
-    DWORD dwType,
-    const BYTE *pData,
-    DWORD cbData
-    );
-
-/* registry multi-str data type conversion functions */
-DWORD
-RegMultiStrsToByteArrayW(
-    PWSTR*   ppwszInMultiSz,
-    PBYTE*   ppOutBuf,
-    SSIZE_T* pOutBufLen
-    );
-
-DWORD
-RegMultiStrsToByteArrayA(
-    PSTR*    ppszInMultiSz,
-    PBYTE*   ppOutBuf,
-    SSIZE_T* pOutBufLen
-    );
-
-DWORD
-RegByteArrayToMultiStrsW(
-    PBYTE   pInBuf,
-    SSIZE_T bufLen,
-    PWSTR** pppwszStrings
-    );
-
-DWORD
-RegByteArrayToMultiStrsA(
-    PBYTE   pInBuf,
-    SSIZE_T bufLen,
-    PSTR**  pppszStrings
-    );
-
-DWORD
-RegConvertByteStreamA2W(
-    const PBYTE pData,
-    DWORD       cbData,
-    PBYTE*      ppOutData,
-    PDWORD      pcbOutDataLen
-    );
-
-DWORD
-RegConvertByteStreamW2A(
-    const PBYTE pData,
-    DWORD       cbData,
-    PBYTE*      ppOutData,
-    PDWORD      pcbOutDataLen
-    );
-
 void
 RegFreeMultiStrsA(
     PSTR* ppszStrings
@@ -558,135 +210,42 @@ RegFreeMemory(
     PVOID pMemory
     );
 
-DWORD
-RegEnumRootKeysA(
-    IN HANDLE hRegConnection,
-    OUT PSTR** pppszRootKeyNames,
-    OUT PDWORD pdwNumRootKeys
-    );
-
-DWORD
-RegCreateKeyExA(
-    HANDLE hRegConnection,
-    HKEY hKey,
-    PCSTR pszSubKey,
-    DWORD Reserved,
-    PWSTR pClass,
-    DWORD dwOptions,
-    REGSAM samDesired,
-    PSECURITY_ATTRIBUTES pSecurityAttributes,
-    PHKEY phkResult,
-    PDWORD pdwDisposition
-    );
-
-DWORD
-RegQueryInfoKeyW(
-    HANDLE hRegConnection,
-    HKEY hKey,
-    PWSTR pClass,
-    PDWORD pcClass,
-    PDWORD pReserved,
-    PDWORD pcSubKeys,
-    PDWORD pcMaxSubKeyLen,
-    PDWORD pcMaxClassLen,
-    PDWORD pcValues,
-    PDWORD pcMaxValueNameLen,
-    PDWORD pcMaxValueLen,
-    PDWORD pcbSecurityDescriptor,
-    PFILETIME pftLastWriteTime
-    );
-
-
-#ifdef UNICODE
-
-#define RegEnumValue(hRegConnection, hKey, dwIndex, pValueName, pcchValueName, pReserved, pType, pData, pcbData) \
-    RegEnumValueW(hRegConnection, hKey, dwIndex, pValueName, pcchValueName, pReserved, pType, pData, pcbData)
-
-#define RegGetValue(hRegConnection, hKey, pSubKey, pValue, Flags, pdwType, pvData, pcbData) \
-    RegGetValueW(hRegConnection, hKey, pSubKey, pValue, Flags, pdwType, pvData, pcbData)
-
-#define RegQueryValueEx(hRegConnection, hKey, pValueName, pReserved, pType, pData, pcbData) \
-    RegQueryValueExW(hRegConnection, hKey, pValueName, pReserved, pType, pData, pcbData)
-
-#define RegSetValueEx(hRegConnection, hKey, pValueName, Reserved, dwType, pData, cbData) \
-    RegSetValueExW(hRegConnection, hKey, pValueName, Reserved, dwType, pData, cbData)
-
-#define RegOpenKeyEx(hRegConnection, hKey, pwszSubKey, ulOptions, samDesired, phkResult) \
-    RegOpenKeyExW(hRegConnection, hKey, pwszSubKey, ulOptions, samDesired, phkResult)
-
-#define RegMultiStrsToByteArray(ppszInMultiSz, outBuf, outBufLen) \
-    RegMultiStrsToByteArrayW(ppszInMultiSz, outBuf, outBufLen)
-
-#define RegByteArrayToMultiStrs(pInBuf, bufLen, pppszOutMultiSz) \
-    RegByteArrayToMultiStrsW(pInBuf, bufLen, pppszOutMultiSz)
-
-#define RegEnumRootKeys(hRegConnection, pppwszRootKeyNames, pdwNumRootKeys) \
-    RegEnumRootKeysW(hRegConnection, pppwszRootKeyNames, pdwNumRootKeys)
-
-#define RegCreateKeyEx(hRegConnection, hKey, pwszSubKey, Reserved, pClass, dwOptions, samDesired, pSecurityAttributes, phkResult, pdwDisposition) \
-    RegCreateKeyExW(hRegConnection, hKey, pwszSubKey, Reserved, pClass, dwOptions, samDesired, pSecurityAttributes, phkResult, pdwDisposition)
-
-#define RegQueryInfoKey(hRegConnection, hKey, pClass, pcClass, pReserved, pcSubKeys, pcMaxSubKeyLen, pcMaxClassLen, pcValues, pcMaxValueNameLen, pcMaxValueLen, pcbSecurityDescriptor, pftLastWriteTime) \
-    RegQueryInfoKeyW(hRegConnection, hKey, pClass, pcClass, pReserved, pcSubKeys, pcMaxSubKeyLen, pcMaxClassLen, pcValues, pcMaxValueNameLen, pcMaxValueLen, pcbSecurityDescriptor, pftLastWriteTime)
-
-#define RegDeleteKey(hRegConnection, hKey, pwszSubKey) \
-    RegDeleteKeyW(hRegConnection, hKey, pwszSubKey)
-
-#define RegDeleteKeyValue(hRegConnection, hKey, pwszSubKey, pwszValueName) \
-    RegDeleteKeyValueW(hRegConnection, hKey, pwszSubKey, pwszValueName)
-
-#define RegDeleteTree(hRegConnection, hKey, pwszSubKey) \
-    RegDeleteTreeW(hRegConnection, hKey, pwszSubKey)
-
-#define RegDeleteValue(hRegConnection, hKey, pwszValueName) \
-    RegDeleteValueW(hRegConnection, hKey, pwszValueName)
-
-#else
-
-#define RegEnumValue(hRegConnection, hKey, dwIndex, pValueName, pcchValueName, pReserved, pType, pData, pcbData) \
-    RegEnumValueA(hRegConnection, hKey, dwIndex, pValueName, pcchValueName, pReserved, pType, pData, pcbData)
-
-#define RegGetValue(hRegConnection, hKey, pSubKey, pValue, Flags, pdwType, pvData, pcbData) \
-    RegGetValueA(hRegConnection, hKey, pSubKey, pValue, Flags, pdwType, pvData, pcbData)
-
-#define RegQueryValueEx(hRegConnection, hKey, pValueName, pReserved, pType, pData, pcbData) \
-    RegQueryValueExA(hRegConnection, hKey, pValueName, pReserved, pType, pData, pcbData)
-
-#define RegSetValueEx(hRegConnection, hKey, pValueName, Reserved, dwType, pData, cbData) \
-    RegSetValueExA(hRegConnection, hKey, pValueName, Reserved, dwType, pData, cbData)
-
-#define RegOpenKeyEx(hRegConnection, hKey, pszSubKey, ulOptions, samDesired, phkResult) \
-    RegOpenKeyExA(hRegConnection, hKey, pszSubKey, ulOptions, samDesired, phkResult)
-
-#define RegMultiStrsToByteArray(ppszInMultiSz, outBuf, outBufLen) \
-    RegMultiStrsToByteArrayA(ppszInMultiSz, outBuf, outBufLen)
-
-#define RegByteArrayToMultiStrs(pInBuf, bufLen, pppszOutMultiSz) \
-    RegByteArrayToMultiStrsA(pInBuf, bufLen, pppszOutMultiSz)
-
-#define RegEnumRootKeys(hRegConnection, pppRootKeyNames, pdwNumRootKeys) \
-    RegEnumRootKeysA(hRegConnection, pppszRootKeyNames, pdwNumRootKeys)
-
-#define RegCreateKeyEx(hRegConnection, hKey, pszSubKey, Reserved, pClass, dwOptions, samDesired, pSecurityAttributes, phkResult, pdwDisposition) \
-    RegCreateKeyExA(hRegConnection, hKey, pszSubKey, Reserved, pClass, dwOptions, samDesired, pSecurityAttributes, phkResult, pdwDisposition)
-
-#define RegQueryInfoKey(hRegConnection, hKey, pClass, pcClass, pReserved, pcSubKeys, pcMaxSubKeyLen, pcMaxClassLen, pcValues, pcMaxValueNameLen, pcMaxValueLen, pcbSecurityDescriptor, pftLastWriteTime) \
-    RegQueryInfoKeyA(hRegConnection, hKey, pszClass, pcClass, pReserved, pcSubKeys, pcMaxSubKeyLen, pcMaxClassLen, pcValues, pcMaxValueNameLen, pcMaxValueLen, pcbSecurityDescriptor, pftLastWriteTime)
-
-#define RegDeleteKey(hRegConnection, hKey, pszSubKey) \
-    RegDeleteKeyA(hRegConnection, hKey, pszSubKey)
-
-#define RegDeleteKeyValue(hRegConnection, hKey, pszSubKey, pszValueName) \
-    RegDeleteKeyValueA(hRegConnection, hKey, pszSubKey, pszValueName)
-
-#define RegDeleteTree(hRegConnection, hKey, pszSubKey) \
-    RegDeleteTreeA(hRegConnection, hKey, pszSubKey)
-
-#define RegDeleteValue(hRegConnection, hKey, pszValueName) \
-    RegDeleteValueA(hRegConnection, hKey, pszValueName)
-#endif
-
 #endif /* __REG_H__ */
+
+
+
+#define LWREG_ERROR_SUCCESS                   0
+
+#define LWREG_ERROR_INVALID_CACHE_PATH                        40001
+#define LWREG_ERROR_INVALID_PREFIX_PATH                       40003
+#define LWREG_ERROR_INSUFFICIENT_BUFFER                       40004
+#define LWREG_ERROR_OUT_OF_MEMORY                             40005
+#define LWREG_ERROR_INVALID_MESSAGE                           40006
+#define LWREG_ERROR_DATA_ERROR                                40009
+#define LWREG_ERROR_NOT_IMPLEMENTED                           40010
+#define LWREG_ERROR_REGEX_COMPILE_FAILED                      40013
+#define LWREG_ERROR_INVALID_LOG_LEVEL                         40112
+#define LWREG_ERROR_INTERNAL                                  40016
+#define LWREG_ERROR_NOT_HANDLED                               40017
+#define LWREG_ERROR_INVALID_PARAMETER                         40041
+#define LWREG_ERROR_UNEXPECTED_TOKEN                          40062
+#define LWREG_ERROR_ACCESS_DENIED                             40158
+#define LWREG_ERROR_UNKNOWN                                   40188
+
+
+#define LWREG_ERROR_NO_SUCH_KEY                               40700
+#define LWREG_ERROR_KEY_IS_ACTIVE                             40701
+#define LWREG_ERROR_DUPLICATE_KEYVALUENAME                    40702
+#define LWREG_ERROR_FAILED_DELETE_HAS_SUBKEY                  40703
+#define LWREG_ERROR_NO_SUCH_VALUENAME                         40704
+#define LWREG_ERROR_UNKNOWN_DATA_TYPE                         40705
+#define LWREG_ERROR_BEYOUND_MAX_VALUE_LEN                     40706
+#define LWREG_ERROR_NO_MORE_KEYS                              40707
+#define LWREG_ERROR_NO_MORE_VALUES                            40708
+#define LWREG_ERROR_INVALID_KEYNAME                           40709
+#define LWREG_ERROR_INVALID_VALUENAME                         40710
+#define LWREG_ERROR_DUPLICATE_KEYNAME                         40711
+#define LWREG_ERROR_INVALID_CONTEXT                           40713
 
 
 /*

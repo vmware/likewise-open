@@ -92,7 +92,7 @@ RegSqliteReadInt64(
     PCSTR name,
     int64_t *pqwResult)
 {
-    DWORD dwError = LW_ERROR_SUCCESS;
+    DWORD dwError = LWREG_ERROR_SUCCESS;
     //Do not free
     PSTR pszEndPtr = NULL;
     //Do not free
@@ -102,7 +102,7 @@ RegSqliteReadInt64(
     // Extra internal error checking
     if (strcmp(sqlite3_column_name(pstQuery, *piColumnPos), name))
     {
-        dwError = LW_ERROR_DATA_ERROR;
+        dwError = LWREG_ERROR_DATA_ERROR;
         BAIL_ON_REG_ERROR(dwError);
     }
 #endif
@@ -110,7 +110,7 @@ RegSqliteReadInt64(
     *pqwResult = strtoll(pszColumnValue, &pszEndPtr, 10);
     if (pszEndPtr == NULL || pszEndPtr == pszColumnValue || *pszEndPtr != '\0')
     {
-        dwError = LW_ERROR_DATA_ERROR;
+        dwError = LWREG_ERROR_DATA_ERROR;
         BAIL_ON_REG_ERROR(dwError);
     }
 
@@ -127,7 +127,7 @@ RegSqliteReadString(
     PCSTR name,
     PSTR *ppszResult)
 {
-    DWORD dwError = LW_ERROR_SUCCESS;
+    DWORD dwError = LWREG_ERROR_SUCCESS;
     //Do not free
     PCSTR pszColumnValue = (PCSTR)sqlite3_column_text(pstQuery, *piColumnPos);
 
@@ -135,12 +135,12 @@ RegSqliteReadString(
     // Extra internal error checking
     if (strcmp(sqlite3_column_name(pstQuery, *piColumnPos), name))
     {
-        dwError = LW_ERROR_DATA_ERROR;
+        dwError = LWREG_ERROR_DATA_ERROR;
         BAIL_ON_REG_ERROR(dwError);
     }
 #endif
 
-    dwError = LwStrDupOrNull(
+    dwError = RegStrDupOrNull(
             pszColumnValue,
             ppszResult);
     BAIL_ON_REG_ERROR(dwError);
@@ -165,7 +165,7 @@ RegSqliteReadWcString(
     PWSTR *ppszResult
     )
 {
-    DWORD dwError = LW_ERROR_SUCCESS;
+    DWORD dwError = LWREG_ERROR_SUCCESS;
     //Do not free
     PCWSTR pszColumnValue = (PCWSTR)sqlite3_column_text16(pstQuery, *piColumnPos);
 
@@ -173,7 +173,7 @@ RegSqliteReadWcString(
     // Extra internal error checking
     if (strcmp(sqlite3_column_name(pstQuery, *piColumnPos), name))
     {
-        dwError = LW_ERROR_DATA_ERROR;
+        dwError = LWREG_ERROR_DATA_ERROR;
         BAIL_ON_REG_ERROR(dwError);
     }
 #endif
@@ -202,7 +202,7 @@ RegSqliteReadTimeT(
     PCSTR name,
     time_t *pResult)
 {
-    DWORD dwError = LW_ERROR_SUCCESS;
+    DWORD dwError = LWREG_ERROR_SUCCESS;
     uint64_t qwTemp;
 
     dwError = RegSqliteReadUInt64(
@@ -225,7 +225,7 @@ RegSqliteReadUInt64(
     PCSTR name,
     uint64_t *pqwResult)
 {
-    DWORD dwError = LW_ERROR_SUCCESS;
+    DWORD dwError = LWREG_ERROR_SUCCESS;
     //Do not free
     PSTR pszEndPtr = NULL;
     //Do not free
@@ -235,7 +235,7 @@ RegSqliteReadUInt64(
     // Extra internal error checking
     if (strcmp(sqlite3_column_name(pstQuery, *piColumnPos), name))
     {
-        dwError = LW_ERROR_DATA_ERROR;
+        dwError = LWREG_ERROR_DATA_ERROR;
         BAIL_ON_REG_ERROR(dwError);
     }
 #endif
@@ -244,7 +244,7 @@ RegSqliteReadUInt64(
     *pqwResult = strtoull(pszColumnValue, &pszEndPtr, 10);
     if (pszEndPtr == NULL || pszEndPtr == pszColumnValue || *pszEndPtr != '\0')
     {
-        dwError = LW_ERROR_DATA_ERROR;
+        dwError = LWREG_ERROR_DATA_ERROR;
         BAIL_ON_REG_ERROR(dwError);
     }
 
@@ -261,7 +261,7 @@ RegSqliteReadUInt32(
     PCSTR name,
     DWORD *pdwResult)
 {
-    DWORD dwError = LW_ERROR_SUCCESS;
+    DWORD dwError = LWREG_ERROR_SUCCESS;
     uint64_t qwTemp;
     int iColumnPos = *piColumnPos;
 
@@ -293,7 +293,7 @@ RegSqliteReadBoolean(
     PCSTR name,
     BOOLEAN *pbResult)
 {
-    DWORD dwError = LW_ERROR_SUCCESS;
+    DWORD dwError = LWREG_ERROR_SUCCESS;
     DWORD dwTemp;
 
     dwError = RegSqliteReadUInt32(
@@ -318,7 +318,7 @@ RegSqliteReadStringInPlace(
     //Includes NULL
     IN size_t sMaxSize)
 {
-    DWORD dwError = LW_ERROR_SUCCESS;
+    DWORD dwError = LWREG_ERROR_SUCCESS;
     //Do not free
     PCSTR pszColumnValue = (PCSTR)sqlite3_column_text(pstQuery, *piColumnPos);
     size_t sRequiredSize = 0;
@@ -327,7 +327,7 @@ RegSqliteReadStringInPlace(
     // Extra internal error checking
     if (strcmp(sqlite3_column_name(pstQuery, *piColumnPos), name))
     {
-        dwError = LW_ERROR_DATA_ERROR;
+        dwError = LWREG_ERROR_DATA_ERROR;
         BAIL_ON_REG_ERROR(dwError);
     }
 #endif
@@ -359,7 +359,7 @@ RegSqliteReadSid(
     IN PCSTR name,
     OUT PSID* ppSid)
 {
-    DWORD dwError = LW_ERROR_SUCCESS;
+    DWORD dwError = LWREG_ERROR_SUCCESS;
     PSTR pszSid = NULL;
     PSID pSid = NULL;
     int iColumnPos = *piColumnPos;
@@ -398,7 +398,7 @@ RegSqliteReadGuid(
     IN PCSTR name,
     OUT uuid_t** ppGuid)
 {
-    DWORD dwError = LW_ERROR_SUCCESS;
+    DWORD dwError = LWREG_ERROR_SUCCESS;
     PSTR pszGuid = NULL;
     uuid_t *pGuid = NULL;
     int iColumnPos = *piColumnPos;
@@ -472,7 +472,7 @@ RegSqliteExecCallbackWithRetry(
     )
 {
     PSTR pszError = NULL;
-    DWORD dwError = LW_ERROR_SUCCESS;
+    DWORD dwError = LWREG_ERROR_SUCCESS;
     DWORD dwRetry;
     BOOLEAN bInLock = FALSE;
 

@@ -1,7 +1,7 @@
 lib_LTLIBRARIES = libregserver_provider_sqlite.la
 
 PROVIDER_CPPFLAGS = @SQLITE_INCLUDES@
-PROVIDER_LIBADD = @SQLITE_LIBS@
+PROVIDER_LIBS = @SQLITE_LIBS@
 PROVIDER_LDFLAGS = @SQLITE_LDFLAGS@
 
 libregserver_provider_sqlite_la_SOURCES = \
@@ -11,20 +11,19 @@ libregserver_provider_sqlite_la_SOURCES = \
     regsqlite.c    \
     globals.c           
 
-libregserver_provider_sqlite_la_CPPFLAGS =        \
+libregserver_provider_sqlite_la_CPPFLAGS = \
     -DLW_ENABLE_THREADS=1         \
     $(AM_CPPFLAGS)                \
     -I@top_srcdir@/server/include \
-    @LWADVAPI_INCLUDES@ \
+    @LWBASE_INCLUDES@ \
     $(PROVIDER_CPPFLAGS)          
 
 libregserver_provider_sqlite_la_LIBADD = \
+    $(PROVIDER_LIBS) \
     @PTHREAD_LIBS@    \
     @UUID_LIBS@ \
-    @LWADVAPI_LIBS@ \
-    @LWBASE_LIBS@ \
-    $(PROVIDER_LIBADD)
+    @LWBASE_NOTHR_LIBS@
 
 libregserver_provider_sqlite_la_LDFLAGS = \
-    @LWADVAPI_LDFLAGS@ \
+    @LWBASE_LDFLAGS@ \
     $(PROVIDER_LDFLAGS)

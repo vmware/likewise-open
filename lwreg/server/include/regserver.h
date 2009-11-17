@@ -92,7 +92,7 @@ typedef struct __REG_KEY_CONTEXT
     if (!bInLock) { \
        int thr_err = pthread_mutex_lock(mutex); \
        if (thr_err) { \
-           LW_LOG_ERROR("Failed to lock mutex. Aborting program"); \
+           LWREG_LOG_ERROR("Failed to lock mutex. Aborting program"); \
            abort(); \
        } \
        bInLock = TRUE; \
@@ -102,7 +102,7 @@ typedef struct __REG_KEY_CONTEXT
     if (bInLock) { \
        int thr_err = pthread_mutex_unlock(mutex); \
        if (thr_err) { \
-           LW_LOG_ERROR("Failed to unlock mutex. Aborting program"); \
+           LWREG_LOG_ERROR("Failed to unlock mutex. Aborting program"); \
            abort(); \
        } \
        bInLock = FALSE; \
@@ -113,7 +113,7 @@ typedef struct __REG_KEY_CONTEXT
     if (!bInLock) { \
        int thr_err = pthread_rwlock_rdlock(mutex); \
        if (thr_err) { \
-           LW_LOG_ERROR("Failed to acquire shared lock on rw mutex. Aborting program"); \
+           LWREG_LOG_ERROR("Failed to acquire shared lock on rw mutex. Aborting program"); \
            abort(); \
        } \
        bInLock = TRUE; \
@@ -124,7 +124,7 @@ typedef struct __REG_KEY_CONTEXT
     if (!bInLock) { \
        int thr_err = pthread_rwlock_wrlock(mutex); \
        if (thr_err) { \
-           LW_LOG_ERROR("Failed to acquire exclusive lock on rw mutex. Aborting program"); \
+           LWREG_LOG_ERROR("Failed to acquire exclusive lock on rw mutex. Aborting program"); \
            abort(); \
        } \
        bInLock = TRUE; \
@@ -134,7 +134,7 @@ typedef struct __REG_KEY_CONTEXT
     if (bInLock) { \
        int thr_err = pthread_rwlock_unlock(mutex); \
        if (thr_err) { \
-           LW_LOG_ERROR("Failed to unlock rw mutex. Aborting program"); \
+           LWREG_LOG_ERROR("Failed to unlock rw mutex. Aborting program"); \
            abort(); \
        } \
        bInLock = FALSE; \

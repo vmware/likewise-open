@@ -10,10 +10,10 @@ libregserverapi_la_CPPFLAGS =        \
 	-DLW_ENABLE_THREADS=1         \
 	$(AM_CPPFLAGS)                \
 	-I@top_srcdir@/server/include \
-	@LWADVAPI_INCLUDES@ \
+	@LWBASE_INCLUDES@ \
 	@REG_BACKEND_DEFINES@
 
-libregserverapi_la_LDFLAGS = @LWADVAPI_LDFLAGS@
+libregserverapi_la_LDFLAGS = @LWBASE_LDFLAGS@
 
 if USE_SQLITE_BACKEND
 
@@ -32,6 +32,6 @@ endif
 libregserverapi_la_LIBADD = \
     $(BACKEND_LIB) \
     @LWBASE_LIBS@ \
+    @LWBASE_NOTHR_LIBS@ \
     @UUID_LIBS@ \
-    @PTHREAD_LIBS@ \
-    @LWADVAPI_NOTHR_LIBS@ 
+    @PTHREAD_LIBS@

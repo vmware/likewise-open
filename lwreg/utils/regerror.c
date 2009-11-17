@@ -51,6 +51,193 @@
 
 #define LW_PRINTF_STRING(x) ((x) ? (x) : "<null>")
 
+static
+PCSTR
+RegWin32ExtErrorToName(
+    LW_WINERROR winerr
+    );
+
+#define STATUS_CODE(status, werror, errno, desc)             \
+    {status, werror, errno, #status, #werror, #errno, desc },
+#define __ERROR_XMACRO__
+
+struct table_entry
+{
+    NTSTATUS    ntStatus;
+    WINERROR    werror;
+    int         uerror;
+    PCSTR       pszStatusName;
+    PCSTR       pszWinerrName;
+    PCSTR       pszUnixErrnoName;
+    PCSTR       pszDescription;
+
+} status_table_regerror[] =
+{
+#include <lwregerror-table.h>
+    {-1, 0, 0}
+};
+
+#undef STATUS_CODE
+#undef __ERROR_XMACRO__
+
+typedef int (*predicate) (struct table_entry* e, void* data);
+
+static
+PCSTR
+RegErrorToName(
+    LW_WINERROR winerr
+    );
+
+static int
+match_werror(
+    struct table_entry* e,
+    void *data
+    )
+{
+    return e->werror == *((LW_WINERROR*) data);
+}
+
+static struct table_entry*
+find(
+    predicate pred,
+    void* data
+    )
+{
+    unsigned int i;
+
+    for (i = 0; i < sizeof(status_table_regerror)/sizeof(status_table_regerror[0]); i++)
+    {
+        if (pred(&status_table_regerror[i], data))
+            return &status_table_regerror[i];
+    }
+
+    return NULL;
+}
+
+
+static struct
+{
+    DWORD dwError;
+    PCSTR pszMessage;
+} gLwRegErrorMap[] =
+{
+    {
+        LWREG_ERROR_SUCCESS,
+        "No error"
+    },
+    {
+        LWREG_ERROR_INSUFFICIENT_BUFFER,
+        "The provided buffer is insufficient"
+    },
+    {
+        LWREG_ERROR_OUT_OF_MEMORY,
+        "Out of memory"
+    },
+    {
+        LWREG_ERROR_NOT_IMPLEMENTED,
+        "The requested feature has not been implemented yet"
+    },
+    {
+        LWREG_ERROR_REGEX_COMPILE_FAILED,
+        "Failed to compile regular expression"
+    },
+    {
+        LWREG_ERROR_INTERNAL,
+        "Internal error"
+    },
+    {
+        LWREG_ERROR_INVALID_PARAMETER,
+        "Invalid parameter"
+    },
+    {
+        LWREG_ERROR_INVALID_MESSAGE,
+        "The Inter Process message is invalid"
+    },
+    {
+        LWREG_ERROR_NO_SUCH_KEY,
+        "The specified key cannot be found in registry"
+    },
+    {
+        LWREG_ERROR_KEY_IS_ACTIVE,
+        "The key is still actively in use"
+    },
+    {
+        LWREG_ERROR_DUPLICATE_KEYVALUENAME,
+        "Duplicate key/value name is not allowed in registry"
+    },
+    {
+        LWREG_ERROR_FAILED_DELETE_HAS_SUBKEY,
+        "Cannot delete key because it still has subkeys (If you want to delete the key, please use delete_tree.)"
+    },
+    {
+        LWREG_ERROR_NO_SUCH_VALUENAME,
+        "The Key has no such value name"
+    },
+    {
+        LWREG_ERROR_UNKNOWN_DATA_TYPE,
+        "Unsupported registry data type"
+    },
+    {
+        LWREG_ERROR_BEYOUND_MAX_VALUE_LEN,
+        "Value length is beyond maximum allowed value length"
+    },
+    {
+        LWREG_ERROR_NO_MORE_KEYS,
+        "No more keys to enumerate"
+    },
+    {
+        LWREG_ERROR_NO_MORE_VALUES,
+        "No more values to enumerate"
+    },
+    {
+        LWREG_ERROR_INVALID_KEYNAME,
+        "The registry keyname cannot have '\\'"
+    },
+    {
+        LWREG_ERROR_INVALID_VALUENAME,
+        "The registry valuename cannot be NULL"
+    },
+    {
+        LWREG_ERROR_ACCESS_DENIED,
+        "Incorrect access attempt"
+    }
+};
+
+size_t
+LwRegGetErrorString(
+    DWORD  dwError,
+    PSTR   pszBuffer,
+    size_t stBufSize
+    )
+{
+    size_t sErrIndex = 0;
+    size_t sRequiredLen = 0;
+
+    if (pszBuffer && stBufSize) {
+       memset(pszBuffer, 0, stBufSize);
+    }
+
+    for (sErrIndex = 0; sErrIndex < sizeof(gLwRegErrorMap)/sizeof(gLwRegErrorMap[0]); sErrIndex++)
+    {
+        if (gLwRegErrorMap[sErrIndex].dwError == dwError)
+        {
+            sRequiredLen = strlen(gLwRegErrorMap[sErrIndex].pszMessage) + 1;
+            if (stBufSize >= sRequiredLen)
+            {
+                strcpy(pszBuffer, gLwRegErrorMap[sErrIndex].pszMessage);
+            }
+            return sRequiredLen;
+        }
+    }
+
+    sRequiredLen = strlen("Unknown error") + 1;
+    if (stBufSize >= sRequiredLen)
+    {
+        strcpy(pszBuffer, "Unknown error");
+    }
+    return sRequiredLen;
+}
+
 DWORD
 RegGetErrorMessageForLoggingEvent(
     DWORD dwErrCode,
@@ -63,21 +250,20 @@ RegGetErrorMessageForLoggingEvent(
     PSTR  pszErrorMsg = NULL;
     PSTR  pszErrorBuffer = NULL;
 
-    dwErrorBufferSize = LwGetErrorString(dwErrCode, NULL, 0);
+    dwErrorBufferSize = LwRegGetErrorString(dwErrCode, NULL, 0);
 
     if (!dwErrorBufferSize)
         goto cleanup;
 
-    dwError = LwAllocateMemory(
-                dwErrorBufferSize,
-                (PVOID*)&pszErrorBuffer);
+    dwError = LW_RTL_ALLOCATE((PVOID*)&pszErrorBuffer, CHAR,
+		                  sizeof(*pszErrorBuffer) * dwErrorBufferSize);
     BAIL_ON_REG_ERROR(dwError);
 
-    dwLen = LwGetErrorString(dwErrCode, pszErrorBuffer, dwErrorBufferSize);
+    dwLen = LwRegGetErrorString(dwErrCode, pszErrorBuffer, dwErrorBufferSize);
 
     if ((dwLen == dwErrorBufferSize) && !IsNullOrEmptyString(pszErrorBuffer))
     {
-        dwError = LwAllocateStringPrintf(
+        dwError = LwRtlCStringAllocatePrintf(
                      &pszErrorMsg,
                      "Error: %s [error code: %d]",
                      pszErrorBuffer,
@@ -89,13 +275,13 @@ RegGetErrorMessageForLoggingEvent(
 
 cleanup:
 
-    LW_SAFE_FREE_STRING(pszErrorBuffer);
+    LWREG_SAFE_FREE_STRING(pszErrorBuffer);
 
     return dwError;
 
 error:
 
-    LW_SAFE_FREE_STRING(pszErrorMsg);
+    LWREG_SAFE_FREE_STRING(pszErrorMsg);
 
     *ppszErrorMsg = NULL;
 
@@ -120,13 +306,13 @@ RegPrintError(
             pszUseErrorPrefix = "REGISTRY ERROR: ";
         }
 
-        size = LwGetErrorString(dwError, NULL, 0);
+        size = LwRegGetErrorString(dwError, NULL, 0);
         if (size)
         {
             pszErrorString = malloc(size);
             if (pszErrorString)
             {
-                LwGetErrorString(dwError, pszErrorString, size);
+		LwRegGetErrorString(dwError, pszErrorString, size);
             }
         }
         if (LW_IS_NULL_OR_EMPTY_STR(pszErrorString))
@@ -135,7 +321,7 @@ RegPrintError(
                     "%s (error = %u - %s)\n",
                      pszUseErrorPrefix,
                      dwError,
-                     LW_PRINTF_STRING(LwWin32ExtErrorToName(dwError)));
+                     LW_PRINTF_STRING(RegWin32ExtErrorToName(dwError)));
         }
         else
         {
@@ -143,8 +329,68 @@ RegPrintError(
                     "%s (error = %u - %s)\n%s\n",
                     pszUseErrorPrefix,
                     dwError,
-                    LW_PRINTF_STRING(LwWin32ExtErrorToName(dwError)),
+                    LW_PRINTF_STRING(RegWin32ExtErrorToName(dwError)),
                     pszErrorString);
         }
     }
 }
+
+DWORD
+RegMapErrnoToLwRegError(
+    DWORD dwErrno
+    )
+{
+    switch(dwErrno)
+    {
+        case 0:
+            return LWREG_ERROR_SUCCESS;
+        case EPERM:
+            return ERROR_ACCESS_DENIED;
+        case ENOENT:
+            return ERROR_FILE_NOT_FOUND;
+        case ENOMEM:
+            return LWREG_ERROR_OUT_OF_MEMORY;
+        case EACCES:
+            return LWREG_ERROR_ACCESS_DENIED;
+        case EINVAL:
+            return LWREG_ERROR_INVALID_PARAMETER;
+        default:
+            REG_LOG_ERROR("Unable to map errno %d", dwErrno);
+            return LWREG_ERROR_UNKNOWN;
+    }
+}
+
+DWORD
+RegNtStatusToWin32Error(
+    NTSTATUS ntStatus
+    )
+{
+	return (DWORD)ntStatus;
+}
+
+static
+PCSTR
+RegErrorToName(
+    LW_WINERROR winerr
+    )
+{
+    struct table_entry *e = find(match_werror, &winerr);
+    return (e) ? e->pszWinerrName : NULL;
+}
+
+static
+PCSTR
+RegWin32ExtErrorToName(
+    LW_WINERROR winerr
+    )
+{
+	PCSTR pszError = LwWin32ErrorToName(winerr);
+
+	if (!pszError)
+	{
+		pszError = RegErrorToName(winerr);
+	}
+
+	return pszError;
+}
+

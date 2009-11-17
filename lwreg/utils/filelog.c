@@ -62,21 +62,19 @@ RegOpenFileLog(
 
     if (IsNullOrEmptyString(pszFilePath))
     {
-        dwError = LW_ERROR_INVALID_PARAMETER;
+        dwError = LWREG_ERROR_INVALID_PARAMETER;
         goto error;
     }
 
-    dwError = LwAllocateMemory(
-                    sizeof(REG_FILE_LOG),
-                    (PVOID*)&pFileLog);
+    dwError = LW_RTL_ALLOCATE((PVOID*)&pFileLog, REG_FILE_LOG, sizeof(*pFileLog));
     if (dwError)
     {
         goto error;
     }
 
-    dwError = LwAllocateString(
-                    pszFilePath,
-                    &pFileLog->pszFilePath);
+    dwError = LwRtlCStringDuplicate(
+                    &pFileLog->pszFilePath,
+                    pszFilePath);
     if (dwError)
     {
         goto error;
@@ -131,21 +129,19 @@ RegGetFileLogInfo(
     if ((gRegLogTarget != REG_LOG_TARGET_FILE) ||
         IsNullOrEmptyString(pFileLog->pszFilePath))
     {
-        dwError = LW_ERROR_INTERNAL;
+        dwError = LWREG_ERROR_INTERNAL;
         BAIL_ON_REG_ERROR(dwError);
     }
 
-    dwError = LwAllocateMemory(
-                    sizeof(REG_LOG_INFO),
-                    (PVOID*)&pLogInfo);
+    dwError = LW_RTL_ALLOCATE((PVOID*)&pLogInfo, REG_LOG_INFO, sizeof(*pLogInfo));
     BAIL_ON_REG_ERROR(dwError);
 
     pLogInfo->logTarget = REG_LOG_TARGET_FILE;
     pLogInfo->maxAllowedLogLevel = gRegMaxLogLevel;
 
-    dwError = LwAllocateString(
-                    pFileLog->pszFilePath,
-                    &pLogInfo->pszPath);
+    dwError = LwRtlCStringDuplicate(
+                    &pLogInfo->pszPath,
+                    pFileLog->pszFilePath);
     BAIL_ON_REG_ERROR(dwError);
 
     *ppLogInfo = pLogInfo;
@@ -267,7 +263,7 @@ RegFreeFileLogInfo(
         fclose(pFileLog->fp);
     }
 
-    LW_SAFE_FREE_STRING(pFileLog->pszFilePath);
+    LW_RTL_FREE(&pFileLog->pszFilePath);
 
-    LwFreeMemory(pFileLog);
+    LwRtlMemoryFree(pFileLog);
 }

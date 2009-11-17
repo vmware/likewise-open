@@ -89,7 +89,7 @@ RegInitLogging(
 
             if (IsNullOrEmptyString(pszPath))
             {
-                dwError = LW_ERROR_INVALID_PARAMETER;
+                dwError = LWREG_ERROR_INVALID_PARAMETER;
                 BAIL_ON_REG_ERROR(dwError);
             }
 
@@ -103,7 +103,7 @@ RegInitLogging(
 
         default:
 
-            dwError = LW_ERROR_INVALID_PARAMETER;
+            dwError = LWREG_ERROR_INVALID_PARAMETER;
             BAIL_ON_REG_ERROR(dwError);
     }
 
@@ -137,9 +137,7 @@ RegLogGetInfo(
         case REG_LOG_TARGET_CONSOLE:
         case REG_LOG_TARGET_SYSLOG:
 
-            dwError = LwAllocateMemory(
-                            sizeof(REG_LOG_INFO),
-                            (PVOID*)&pLogInfo);
+            dwError = LW_RTL_ALLOCATE((PVOID*)&pLogInfo, REG_LOG_INFO, sizeof(*pLogInfo));
             BAIL_ON_REG_ERROR(dwError);
 
             pLogInfo->logTarget = gRegLogTarget;
@@ -157,7 +155,7 @@ RegLogGetInfo(
             break;
 
         default:
-            dwError = LW_ERROR_INVALID_PARAMETER;
+            dwError = LWREG_ERROR_INVALID_PARAMETER;
             BAIL_ON_REG_ERROR(dwError);
     }
 
@@ -259,7 +257,7 @@ RegSetupLogging(
 	if ((hLog == (HANDLE)NULL) ||
 		!pfnLogger)
 	{
-		dwError = LW_ERROR_INVALID_PARAMETER;
+		dwError = LWREG_ERROR_INVALID_PARAMETER;
 		goto error;
 	}
 
@@ -318,7 +316,7 @@ RegValidateLogLevel(
             dwError = 0;
             break;
         default:
-            dwError = LW_ERROR_INVALID_LOG_LEVEL;
+            dwError = LWREG_ERROR_INVALID_LOG_LEVEL;
             break;
     }
 

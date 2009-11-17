@@ -447,7 +447,7 @@ RegGetCurrentDirectoryPath(
         BAIL_ON_REG_ERROR(dwError);
     }
 
-    dwError = LwAllocateString(szBuf, &pszPath);
+    dwError = LwRtlCStringDuplicate(&pszPath, szBuf);
     BAIL_ON_REG_ERROR(dwError);
 
     *ppszPath = pszPath;
@@ -456,9 +456,7 @@ RegGetCurrentDirectoryPath(
 
 error:
 
-    if (pszPath) {
-        LwFreeString(pszPath);
-    }
+    LWREG_SAFE_FREE_STRING(pszPath);
 
     return dwError;
 }
@@ -484,8 +482,7 @@ RegCreateDirectoryRecursive(
 
     if (pszToken != NULL) {
 
-        dwError = LwAllocateMemory(strlen(pszCurDirPath)+strlen(pszToken)+2,
-                                   (PVOID*)&pszDirPath);
+        dwError = LW_RTL_ALLOCATE((PVOID*)&pszDirPath, CHAR, strlen(pszCurDirPath)+strlen(pszToken)+2);
         BAIL_ON_REG_ERROR(dwError);
 
         sprintf(pszDirPath,
@@ -524,7 +521,7 @@ RegCreateDirectoryRecursive(
         BAIL_ON_REG_ERROR(dwError);
     }
     if (pszDirPath) {
-        LwFreeMemory(pszDirPath);
+        LwRtlMemoryFree(pszDirPath);
     }
 
     return dwError;
@@ -536,7 +533,7 @@ error:
     }
 
     if (pszDirPath) {
-        LwFreeMemory(pszDirPath);
+        LwRtlMemoryFree(pszDirPath);
     }
 
     return dwError;
@@ -571,7 +568,7 @@ RegCreateDirectory(
     dwError = RegGetCurrentDirectoryPath(&pszCurDirPath);
     BAIL_ON_REG_ERROR(dwError);
 
-    dwError = LwAllocateString(pszPath, &pszTmpPath);
+    dwError = LwRtlCStringDuplicate(&pszTmpPath, pszPath);
     BAIL_ON_REG_ERROR(dwError);
 
     if (*pszPath == '/') {
@@ -594,12 +591,12 @@ error:
 
         RegChangeDirectory(pszCurDirPath);
 
-        LwFreeMemory(pszCurDirPath);
+        LwRtlMemoryFree(pszCurDirPath);
 
     }
 
     if (pszTmpPath) {
-        LwFreeMemory(pszTmpPath);
+        LwRtlMemoryFree(pszTmpPath);
     }
 
     return dwError;
@@ -626,14 +623,13 @@ RegGetDirectoryFromPath(
 
     if (pszLastSlash == NULL)
     {
-        dwError = LwAllocateString(
-                        ".",
-                        &pszDir);
+        dwError = LwRtlCStringDuplicate(
+                        &pszDir, ".");
         BAIL_ON_REG_ERROR(dwError);
     }
     else
     {
-        dwError = LwStrndup(
+        dwError = RegStrndup(
                         pszPath,
                         pszLastSlash - pszPath,
                         &pszDir);
@@ -648,7 +644,7 @@ cleanup:
 
 error:
 
-    LW_SAFE_FREE_STRING(pszDir);
+    LWREG_SAFE_FREE_STRING(pszDir);
     *ppszDir = NULL;
     goto cleanup;
 }
@@ -702,8 +698,7 @@ RegCopyFileWithPerms(
         BAIL_ON_REG_ERROR(dwError);
     }
 
-    dwError = LwAllocateMemory(strlen(pszDstPath)+strlen(pszTmpSuffix)+2,
-                               (PVOID*)&pszTmpPath);
+    dwError = LW_RTL_ALLOCATE((PVOID*)&pszTmpPath, CHAR, strlen(pszDstPath)+strlen(pszTmpSuffix)+2);
     BAIL_ON_REG_ERROR(dwError);
 
     strcpy(pszTmpPath, pszDstPath);
@@ -770,7 +765,7 @@ error:
         RegRemoveFile(pszTmpPath);
     }
 
-    LW_SAFE_FREE_STRING (pszTmpPath);
+    LWREG_SAFE_FREE_STRING(pszTmpPath);
 
     return dwError;
 }
@@ -884,9 +879,9 @@ RegGetSymlinkTarget(
        break;
     }
 
-    dwError = LwAllocateString(
-                    szBuf,
-                    &pszTargetPath);
+    dwError = LwRtlCStringDuplicate(
+                    &pszTargetPath,
+                    szBuf);
     BAIL_ON_REG_ERROR(dwError);
 
     *ppszTargetPath = pszTargetPath;
@@ -899,7 +894,7 @@ error:
 
     *ppszTargetPath = NULL;
 
-    LW_SAFE_FREE_STRING(pszTargetPath);
+    LWREG_SAFE_FREE_STRING(pszTargetPath);
 
     goto cleanup;
 }
@@ -1011,7 +1006,7 @@ cleanup:
         closedir(pDir);
     }
 
-    LW_SAFE_FREE_STRING(pszTargetPath);
+    LWREG_SAFE_FREE_STRING(pszTargetPath);
 
     return dwError;
 
@@ -1059,12 +1054,12 @@ RegGetMatchingFilePathsInFolder(
     }
 
     if (regcomp(&rx, pszFileNameRegExp, REG_EXTENDED) != 0) {
-        dwError = LW_ERROR_REGEX_COMPILE_FAILED;
+        dwError = LWREG_ERROR_REGEX_COMPILE_FAILED;
         BAIL_ON_REG_ERROR(dwError);
     }
     rxAllocated = TRUE;
 
-    dwError = LwAllocateMemory(sizeof(regmatch_t), (PVOID*)&pResult);
+    dwError = LW_RTL_ALLOCATE((PVOID*)&pResult, regmatch_t, sizeof(*pResult));
     BAIL_ON_REG_ERROR(dwError);
 
     pDir = opendir(pszDirPath);
@@ -1109,10 +1104,10 @@ RegGetMatchingFilePathsInFolder(
             (regexec(&rx, pDirEntry->d_name, nMatch, pResult, 0) == 0)) {
             dwNPaths++;
 
-            dwError = LwAllocateMemory(sizeof(PATHNODE), (PVOID*)&pPathNode);
+            dwError = LW_RTL_ALLOCATE((PVOID*)&pPathNode, PATHNODE, sizeof(*pPathNode));
             BAIL_ON_REG_ERROR(dwError);
 
-            dwError = LwAllocateString(szBuf, &pPathNode->pszPath);
+            dwError = LwRtlCStringDuplicate(&pPathNode->pszPath, szBuf);
             BAIL_ON_REG_ERROR(dwError);
 
             pPathNode->pNext = pPathList;
@@ -1122,8 +1117,8 @@ RegGetMatchingFilePathsInFolder(
     }
 
     if (pPathList) {
-        dwError = LwAllocateMemory(sizeof(PSTR)*dwNPaths,
-                                    (PVOID*)&ppszHostFilePaths);
+
+        dwError = LW_RTL_ALLOCATE((PVOID*)&ppszHostFilePaths, PSTR, sizeof(*ppszHostFilePaths)*dwNPaths);
         BAIL_ON_REG_ERROR(dwError);
         /*
          *  The linked list is in reverse.
@@ -1145,22 +1140,22 @@ RegGetMatchingFilePathsInFolder(
 cleanup:
 
     if (pPathNode) {
-        LW_SAFE_FREE_STRING(pPathNode->pszPath);
-        LwFreeMemory(pPathNode);
+	LWREG_SAFE_FREE_STRING(pPathNode->pszPath);
+        LwRtlMemoryFree(pPathNode);
     }
 
     while(pPathList) {
         pPathNode = pPathList;
         pPathList = pPathList->pNext;
-        LW_SAFE_FREE_STRING(pPathNode->pszPath);
-        LwFreeMemory(pPathNode);
+        LWREG_SAFE_FREE_STRING(pPathNode->pszPath);
+        LwRtlMemoryFree(pPathNode);
     }
 
     if (rxAllocated) {
         regfree(&rx);
     }
 
-    LW_SAFE_FREE_MEMORY(pResult);
+    LWREG_SAFE_FREE_MEMORY(pResult);
 
     if (pDir) {
         closedir(pDir);
@@ -1171,7 +1166,7 @@ cleanup:
 error:
 
     if (ppszHostFilePaths) {
-       LwFreeStringArray(ppszHostFilePaths, dwNPaths);
+	RegFreeStringArray(ppszHostFilePaths, dwNPaths);
     }
 
     goto cleanup;
