@@ -103,10 +103,9 @@ namespace Likewise.LMC.Plugins.LUG
             this.cbIsDisabled.TabIndex = 22;
             this.cbIsDisabled.Text = "Account is disa&bled";
             this.cbIsDisabled.UseVisualStyleBackColor = true;
-            this.cbIsDisabled.CheckedChanged += new System.EventHandler(this.cbIsDisabled_CheckedChanged);
-            // 
+            //
             // cbNeverExpires
-            // 
+            //
             this.cbNeverExpires.Location = new System.Drawing.Point(17, 182);
             this.cbNeverExpires.Name = "cbNeverExpires";
             this.cbNeverExpires.Size = new System.Drawing.Size(300, 17);
@@ -159,18 +158,16 @@ namespace Likewise.LMC.Plugins.LUG
             this.tbDescription.Name = "tbDescription";
             this.tbDescription.Size = new System.Drawing.Size(270, 20);
             this.tbDescription.TabIndex = 18;
-            this.tbDescription.TextChanged += new System.EventHandler(this.tbDescription_TextChanged);
-            // 
+            //
             // tbFullName
-            // 
+            //
             this.tbFullName.Location = new System.Drawing.Point(98, 64);
             this.tbFullName.Name = "tbFullName";
             this.tbFullName.Size = new System.Drawing.Size(270, 20);
             this.tbFullName.TabIndex = 16;
-            this.tbFullName.TextChanged += new System.EventHandler(this.tbFullName_TextChanged);
-            // 
+            //
             // cbAccountLockedOut
-            // 
+            //
             this.cbAccountLockedOut.Enabled = false;
             this.cbAccountLockedOut.Location = new System.Drawing.Point(17, 228);
             this.cbAccountLockedOut.Name = "cbAccountLockedOut";
@@ -178,10 +175,9 @@ namespace Likewise.LMC.Plugins.LUG
             this.cbAccountLockedOut.TabIndex = 23;
             this.cbAccountLockedOut.Text = "Account is &locked out";
             this.cbAccountLockedOut.UseVisualStyleBackColor = true;
-            this.cbAccountLockedOut.CheckedChanged += new System.EventHandler(this.cbAccountLockedOut_CheckedChanged);
-            // 
+            //
             // gbSeparator
-            // 
+            //
             this.gbSeparator.BackColor = System.Drawing.Color.Black;
             this.gbSeparator.Location = new System.Drawing.Point(17, 50);
             this.gbSeparator.Margin = new System.Windows.Forms.Padding(1);
