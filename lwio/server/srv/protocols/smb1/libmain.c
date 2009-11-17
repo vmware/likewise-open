@@ -245,6 +245,12 @@ SrvProtocolExecute_SMB_V1(
 
                 break;
 
+            case COM_NT_CANCEL:
+
+                ntStatus = SrvProcessNTCancel(pExecContext);
+
+                break;
+
             case COM_LW_OPLOCK:
 
                 ntStatus = SrvProcessOplock(pExecContext);

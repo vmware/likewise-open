@@ -317,6 +317,13 @@ SrvNotifyStateRelease(
     PSRV_CHANGE_NOTIFY_STATE_SMB_V1 pNotifyState
     );
 
+// ntcancel.c
+
+NTSTATUS
+SrvProcessNTCancel(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
 // ntrename.c
 
 NTSTATUS
