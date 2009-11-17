@@ -105,7 +105,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.groupBox1.Name = "groupBox1";
             this.groupBox1.Size = new System.Drawing.Size(361, 2);
             this.groupBox1.TabIndex = 23;
-            this.groupBox1.TabStop = false; 
+            this.groupBox1.TabStop = false;
             // 
             // lbldisplayprop
             // 
@@ -256,8 +256,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             // 
             // UserMultiselectGeneralEditPage
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.BackColor = System.Drawing.Color.Transparent;
             this.Controls.Add(this.txtFax);
             this.Controls.Add(this.chkFax);
@@ -269,14 +268,14 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.Controls.Add(this.chkOffice);
             this.Controls.Add(this.chkDescription);
             this.Controls.Add(this.lbldisplay);
-            this.Controls.Add(this.lbldisplayprop);            
+            this.Controls.Add(this.lbldisplayprop);
             this.Controls.Add(this.groupBox1);
             this.Controls.Add(this.pictureBox1);
             this.Name = "UserMultiselectGeneralEditPage";
             this.Size = new System.Drawing.Size(385, 371);
             this.Controls.SetChildIndex(this.pnlData, 0);
             this.Controls.SetChildIndex(this.pictureBox1, 0);
-            this.Controls.SetChildIndex(this.groupBox1, 0);            
+            this.Controls.SetChildIndex(this.groupBox1, 0);
             this.Controls.SetChildIndex(this.lbldisplayprop, 0);
             this.Controls.SetChildIndex(this.lbldisplay, 0);
             this.Controls.SetChildIndex(this.chkDescription, 0);

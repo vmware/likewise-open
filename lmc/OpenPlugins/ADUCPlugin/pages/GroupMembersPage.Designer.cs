@@ -173,8 +173,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             // 
             // GroupMembersPage
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Name = "GroupMembersPage";
             this.Size = new System.Drawing.Size(370, 364);
             this.pnlData.ResumeLayout(false);

@@ -155,11 +155,11 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.txtUserGroup.ReadOnly = true;
             this.txtUserGroup.Size = new System.Drawing.Size(254, 21);
             this.txtUserGroup.TabIndex = 37;
-			this.txtUserGroup.Text = "Default: Domain Admins";
+            this.txtUserGroup.Text = "Default: Domain Admins";
             // 
             // btnChange
             // 
-			this.btnChange.Enabled = false;
+            this.btnChange.Enabled = false;
             this.btnChange.Location = new System.Drawing.Point(309, 212);
             this.btnChange.Name = "btnChange";
             this.btnChange.Size = new System.Drawing.Size(60, 22);
@@ -198,8 +198,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             // 
             // ComputerAddWelcomepage
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 13F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Controls.Add(this.txtcreatein);
             this.Controls.Add(this.cbBackupComputer);
             this.Controls.Add(this.cbWindowsComputer);

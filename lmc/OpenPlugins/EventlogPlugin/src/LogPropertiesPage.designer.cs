@@ -117,8 +117,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             // 
             // LogPropertiesPage
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Name = "LogPropertiesPage";
             this.Size = new System.Drawing.Size(409, 442);
             this.Load += new System.EventHandler(this.LogPropertiesPage_Load);

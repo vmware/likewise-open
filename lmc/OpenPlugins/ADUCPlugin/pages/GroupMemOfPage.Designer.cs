@@ -66,12 +66,12 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.MemoflistView = new Likewise.LMC.ServerControl.LWListView();
             this.Namecolumn = new System.Windows.Forms.ColumnHeader();
             this.ACFolerColumn = new System.Windows.Forms.ColumnHeader();
+            this.LargeImageList = new System.Windows.Forms.ImageList(this.components);
             this.smallImageList = new System.Windows.Forms.ImageList(this.components);
             this.Addbutton = new System.Windows.Forms.Button();
             this.RemoveButton = new System.Windows.Forms.Button();
             this.DomainUserlabel = new System.Windows.Forms.Label();
             this.setGrouplabel = new System.Windows.Forms.Label();
-            this.LargeImageList = new System.Windows.Forms.ImageList(this.components);
             this.pnlData.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -83,12 +83,12 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.pnlData.Controls.Add(this.Addbutton);
             this.pnlData.Controls.Add(this.MemoflistView);
             this.pnlData.Controls.Add(this.MemOflabel);
-            this.pnlData.Size = new System.Drawing.Size(386, 411);
+            this.pnlData.Size = new System.Drawing.Size(371, 426);
             // 
             // MemOflabel
             // 
             this.MemOflabel.AutoSize = true;
-            this.MemOflabel.Location = new System.Drawing.Point(18, 18);
+            this.MemOflabel.Location = new System.Drawing.Point(7, 18);
             this.MemOflabel.Name = "MemOflabel";
             this.MemOflabel.Size = new System.Drawing.Size(60, 13);
             this.MemOflabel.TabIndex = 0;
@@ -102,17 +102,14 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.MemoflistView.FullRowSelect = true;
             this.MemoflistView.HideSelection = false;
             this.MemoflistView.LargeImageList = this.LargeImageList;
-            this.MemoflistView.Location = new System.Drawing.Point(24, 45);
+            this.MemoflistView.Location = new System.Drawing.Point(9, 37);
             this.MemoflistView.Name = "MemoflistView";
             this.MemoflistView.ShowGroups = false;
-            this.MemoflistView.Size = new System.Drawing.Size(339, 168);
+            this.MemoflistView.Size = new System.Drawing.Size(352, 251);
             this.MemoflistView.SmallImageList = this.smallImageList;
             this.MemoflistView.TabIndex = 0;
             this.MemoflistView.UseCompatibleStateImageBehavior = false;
             this.MemoflistView.View = System.Windows.Forms.View.Details;
-            this.MemoflistView.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.MemoflistView_MouseDoubleClick);
-            this.MemoflistView.SelectedIndexChanged += new System.EventHandler(this.MemoflistView_SelectedIndexChanged);
-            this.MemoflistView.ColumnClick += new System.Windows.Forms.ColumnClickEventHandler(this.MemoflistView_ColumnClick);
             // 
             // Namecolumn
             // 
@@ -124,6 +121,20 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.ACFolerColumn.Text = "Active Directory Folder";
             this.ACFolerColumn.Width = 274;
             // 
+            // LargeImageList
+            //
+            this.LargeImageList.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("LargeImageList.ImageStream")));
+            this.LargeImageList.TransparentColor = System.Drawing.Color.Transparent;
+            this.LargeImageList.Images.SetKeyName(0, "computer_48.bmp");
+            this.LargeImageList.Images.SetKeyName(1, "Group_48.bmp");
+            this.LargeImageList.Images.SetKeyName(2, "user_48.bmp");
+            this.LargeImageList.Images.SetKeyName(3, "Folder.ico");
+            this.LargeImageList.Images.SetKeyName(4, "aduc_48.bmp");
+            this.LargeImageList.Images.SetKeyName(5, "Admin.ico");
+            this.LargeImageList.Images.SetKeyName(6, "ADUC.ico");
+            this.LargeImageList.Images.SetKeyName(7, "DisabledUser.ico");
+            this.LargeImageList.Images.SetKeyName(8, "DisabledComp.ico");
+            //
             // smallImageList
             // 
             this.smallImageList.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("smallImageList.ImageStream")));
@@ -140,24 +151,22 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             // 
             // Addbutton
             // 
-            this.Addbutton.Location = new System.Drawing.Point(21, 231);
+            this.Addbutton.Location = new System.Drawing.Point(10, 391);
             this.Addbutton.Name = "Addbutton";
             this.Addbutton.Size = new System.Drawing.Size(75, 23);
             this.Addbutton.TabIndex = 2;
             this.Addbutton.Text = "A&dd...";
             this.Addbutton.UseVisualStyleBackColor = true;
-            this.Addbutton.Click += new System.EventHandler(this.Addbutton_Click);
             // 
             // RemoveButton
             // 
             this.RemoveButton.Enabled = false;
-            this.RemoveButton.Location = new System.Drawing.Point(110, 231);
+            this.RemoveButton.Location = new System.Drawing.Point(99, 391);
             this.RemoveButton.Name = "RemoveButton";
             this.RemoveButton.Size = new System.Drawing.Size(75, 23);
             this.RemoveButton.TabIndex = 3;
             this.RemoveButton.Text = "&Remove";
             this.RemoveButton.UseVisualStyleBackColor = true;
-            this.RemoveButton.Click += new System.EventHandler(this.RemoveButton_Click);
             // 
             // DomainUserlabel
             // 
@@ -169,31 +178,15 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             // 
             // setGrouplabel
             // 
-            this.setGrouplabel.Location = new System.Drawing.Point(22, 275);
+            this.setGrouplabel.Location = new System.Drawing.Point(14, 303);
             this.setGrouplabel.Name = "setGrouplabel";
-            this.setGrouplabel.Size = new System.Drawing.Size(341, 74);
+            this.setGrouplabel.Size = new System.Drawing.Size(347, 74);
             this.setGrouplabel.TabIndex = 8;
-            // 
-            // LargeImageList
-            // 
-            this.LargeImageList.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("LargeImageList.ImageStream")));
-            this.LargeImageList.TransparentColor = System.Drawing.Color.Transparent;
-            this.LargeImageList.Images.SetKeyName(0, "computer_48.bmp");
-            this.LargeImageList.Images.SetKeyName(1, "Group_48.bmp");
-            this.LargeImageList.Images.SetKeyName(2, "user_48.bmp");
-            this.LargeImageList.Images.SetKeyName(3, "Folder.ico");
-            this.LargeImageList.Images.SetKeyName(4, "aduc_48.bmp");
-            this.LargeImageList.Images.SetKeyName(5, "Admin.ico");
-            this.LargeImageList.Images.SetKeyName(6, "ADUC.ico");
-            this.LargeImageList.Images.SetKeyName(7, "DisabledUser.ico");
-            this.LargeImageList.Images.SetKeyName(8, "DisabledComp.ico");
             // 
             // GroupMemOfPage
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.Name = "GroupMemOfPage";
-            this.Size = new System.Drawing.Size(386, 411);
+            this.Size = new System.Drawing.Size(371, 426);
             this.pnlData.ResumeLayout(false);
             this.pnlData.PerformLayout();
             this.ResumeLayout(false);

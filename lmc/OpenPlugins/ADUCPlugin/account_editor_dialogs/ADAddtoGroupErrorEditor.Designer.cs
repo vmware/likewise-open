@@ -109,6 +109,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             // ADAddtoGroupErrorEditor
             // 
             this.AcceptButton = this.btnOk;
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.ClientSize = new System.Drawing.Size(405, 293);
             this.Controls.Add(this.btnOk);
             this.Controls.Add(this.listView);

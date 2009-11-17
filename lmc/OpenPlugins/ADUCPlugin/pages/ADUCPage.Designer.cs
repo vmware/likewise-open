@@ -72,6 +72,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.timer = new System.Windows.Forms.Timer(this.components);
             this.lblNoitemstodisplay = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.picture)).BeginInit();
+            this.pnlHeader.SuspendLayout();
             this.SuspendLayout();
             // 
             // lvChildNodes
@@ -142,7 +143,6 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.aducImageList.Images.SetKeyName(9, "folderopen.ico");
             this.aducImageList.Images.SetKeyName(10, "EventViewer_48.ico");
             this.aducImageList.Images.SetKeyName(11, "Cell.ico");
-         
             // 
             // lblNoitemstodisplay
             // 
@@ -156,14 +156,17 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             // 
             // ADUCPage
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Controls.Add(this.lblNoitemstodisplay);
             this.Controls.Add(this.lvChildNodes);
             this.Name = "ADUCPage";
+            this.Controls.SetChildIndex(this.pnlHeader, 0);
             this.Controls.SetChildIndex(this.pnlActions, 0);
             this.Controls.SetChildIndex(this.lvChildNodes, 0);
             this.Controls.SetChildIndex(this.lblNoitemstodisplay, 0);
             ((System.ComponentModel.ISupportInitialize)(this.picture)).EndInit();
+            this.pnlHeader.ResumeLayout(false);
+            this.pnlHeader.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
 

@@ -106,8 +106,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             // ADRenameDlg
             // 
             this.AcceptButton = this.btnOK;
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.CancelButton = this.btkcancel;
             this.ClientSize = new System.Drawing.Size(354, 103);
             this.Controls.Add(this.btkcancel);

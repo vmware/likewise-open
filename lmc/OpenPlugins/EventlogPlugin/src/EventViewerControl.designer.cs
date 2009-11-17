@@ -77,6 +77,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             this.lvEvents = new Likewise.LMC.ServerControl.LWListView();
             this.exportLogsaveFileDialog = new System.Windows.Forms.SaveFileDialog();
             ((System.ComponentModel.ISupportInitialize)(this.picture)).BeginInit();
+            this.pnlHeader.SuspendLayout();
             this.panel1.SuspendLayout();
             this.contextMenuStrip.SuspendLayout();
             this.SuspendLayout();
@@ -91,6 +92,14 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             this.lblCaption.AutoSize = false;
             this.lblCaption.Size = new System.Drawing.Size(470, 23);
             // 
+            // pnlActions
+            //
+            this.pnlActions.Size = new System.Drawing.Size(131, 238);
+            //
+            // pnlHeader
+            //
+            this.pnlHeader.Size = new System.Drawing.Size(538, 59);
+            //
             // panel1
             // 
             this.panel1.Controls.Add(this.lblFiltered);
@@ -204,7 +213,6 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             this.lvEvents.Location = new System.Drawing.Point(139, 94);
             this.lvEvents.MultiSelect = false;
             this.lvEvents.Name = "lvEvents";
-            this.lvEvents.Scrollable = Configurations.useListScrolling;
             this.lvEvents.ShowItemToolTips = true;
             this.lvEvents.Size = new System.Drawing.Size(391, 193);
             this.lvEvents.SmallImageList = this.imageList;
@@ -224,7 +232,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             // 
             // EventViewerControl
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Controls.Add(this.lvEvents);
             this.Controls.Add(this.panel5);
             this.Controls.Add(this.panel4);
@@ -233,16 +241,21 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             this.HelpKeyword = "likewise.chm::/Centeris_Likewise_Console/Utilities/Event_Viewer.htm";
             this.Name = "EventViewerControl";
             this.Size = new System.Drawing.Size(538, 297);
+            this.Controls.SetChildIndex(this.pnlHeader, 0);
+            this.Controls.SetChildIndex(this.pnlActions, 0);
             this.Controls.SetChildIndex(this.panel1, 0);
             this.Controls.SetChildIndex(this.panel3, 0);
             this.Controls.SetChildIndex(this.panel4, 0);
             this.Controls.SetChildIndex(this.panel5, 0);
             this.Controls.SetChildIndex(this.lvEvents, 0);
             ((System.ComponentModel.ISupportInitialize)(this.picture)).EndInit();
+            this.pnlHeader.ResumeLayout(false);
+            this.pnlHeader.PerformLayout();
             this.panel1.ResumeLayout(false);
             this.panel1.PerformLayout();
             this.contextMenuStrip.ResumeLayout(false);
             this.ResumeLayout(false);
+
         }
 
         #endregion

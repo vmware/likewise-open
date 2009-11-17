@@ -75,15 +75,6 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             this.lblCaption.Size = new System.Drawing.Size(151, 23);
             this.lblCaption.Text = "Registry editor";
             // 
-            // pnlActions
-            // 
-            this.pnlActions.Location = new System.Drawing.Point(0, 59);
-            this.pnlActions.Size = new System.Drawing.Size(131, 251);
-            // 
-            // pnlHeader
-            // 
-            this.pnlHeader.Dock = System.Windows.Forms.DockStyle.Top;
-            // 
             // panel1
             // 
             this.panel1.Dock = System.Windows.Forms.DockStyle.Top;
@@ -161,7 +152,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             // 
             // RegistryEditorPage
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Controls.Add(this.lvRegistryPage);
             this.Controls.Add(this.panel5);
             this.Controls.Add(this.panel4);

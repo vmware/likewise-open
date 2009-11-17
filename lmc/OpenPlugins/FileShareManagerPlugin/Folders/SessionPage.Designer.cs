@@ -72,7 +72,7 @@ namespace Likewise.LMC.Plugins.FileShareManager
             this.TimeIdle = new System.Windows.Forms.ColumnHeader();
             this.IsGuest = new System.Windows.Forms.ColumnHeader();
             ((System.ComponentModel.ISupportInitialize)(this.picture)).BeginInit();
-            this.pnlActions.SuspendLayout();
+            this.pnlHeader.SuspendLayout();
             this.SuspendLayout();
             // 
             // lblCaption
@@ -80,6 +80,11 @@ namespace Likewise.LMC.Plugins.FileShareManager
             this.lblCaption.Size = new System.Drawing.Size(168, 23);
             this.lblCaption.Text = "Sessions on {0}";
             // 
+            // pnlActions
+            //
+            this.pnlActions.Location = new System.Drawing.Point(8, 67);
+            this.pnlActions.Size = new System.Drawing.Size(131, 235);
+            //
             // panel1
             // 
             this.panel1.Dock = System.Windows.Forms.DockStyle.Top;
@@ -175,7 +180,7 @@ namespace Likewise.LMC.Plugins.FileShareManager
             // 
             // SessionPage
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Controls.Add(this.lvSessionPage);
             this.Controls.Add(this.panel5);
             this.Controls.Add(this.panel4);
@@ -183,6 +188,7 @@ namespace Likewise.LMC.Plugins.FileShareManager
             this.Controls.Add(this.panel1);
             this.HelpKeyword = "likewise.chm::/Centeris_Likewise_Console/File_and_Print/Sessions_Subtab.htm";
             this.Name = "SessionPage";
+            this.Controls.SetChildIndex(this.pnlHeader, 0);
             this.Controls.SetChildIndex(this.panel1, 0);
             this.Controls.SetChildIndex(this.panel3, 0);
             this.Controls.SetChildIndex(this.panel4, 0);
@@ -190,8 +196,8 @@ namespace Likewise.LMC.Plugins.FileShareManager
             this.Controls.SetChildIndex(this.pnlActions, 0);
             this.Controls.SetChildIndex(this.lvSessionPage, 0);
             ((System.ComponentModel.ISupportInitialize)(this.picture)).EndInit();
-            this.pnlActions.ResumeLayout(false);
-            this.pnlActions.PerformLayout();
+            this.pnlHeader.ResumeLayout(false);
+            this.pnlHeader.PerformLayout();
             this.ResumeLayout(false);
 
         }

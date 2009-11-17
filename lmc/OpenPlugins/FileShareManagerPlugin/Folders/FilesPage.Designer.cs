@@ -71,6 +71,7 @@ namespace Likewise.LMC.Plugins.FileShareManager
             this.OpenMode = new System.Windows.Forms.ColumnHeader();
             this.FileId = new System.Windows.Forms.ColumnHeader();
             ((System.ComponentModel.ISupportInitialize)(this.picture)).BeginInit();
+            this.pnlHeader.SuspendLayout();
             this.SuspendLayout();
             // 
             // lblCaption
@@ -167,7 +168,7 @@ namespace Likewise.LMC.Plugins.FileShareManager
             // 
             // FilesPage
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Controls.Add(this.lvFilePage);
             this.Controls.Add(this.panel5);
             this.Controls.Add(this.panel4);
@@ -175,6 +176,7 @@ namespace Likewise.LMC.Plugins.FileShareManager
             this.Controls.Add(this.panel1);
             this.HelpKeyword = "likewise.chm::/Centeris_Likewise_Console/File_and_Print/Open_Files_Subtab.htm";
             this.Name = "FilesPage";
+            this.Controls.SetChildIndex(this.pnlHeader, 0);
             this.Controls.SetChildIndex(this.pnlActions, 0);
             this.Controls.SetChildIndex(this.panel1, 0);
             this.Controls.SetChildIndex(this.panel3, 0);
@@ -182,6 +184,8 @@ namespace Likewise.LMC.Plugins.FileShareManager
             this.Controls.SetChildIndex(this.panel5, 0);
             this.Controls.SetChildIndex(this.lvFilePage, 0);
             ((System.ComponentModel.ISupportInitialize)(this.picture)).EndInit();
+            this.pnlHeader.ResumeLayout(false);
+            this.pnlHeader.PerformLayout();
             this.ResumeLayout(false);
 
         }

@@ -62,9 +62,8 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             // 
             // ADComputerAddDlg
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 13F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(497, 367);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
+            this.ClientSize = new System.Drawing.Size(495, 358);
             this.Name = "ADComputerAddDlg";
             this.Text = "ADComputerWizardForm";
             this.ResumeLayout(false);

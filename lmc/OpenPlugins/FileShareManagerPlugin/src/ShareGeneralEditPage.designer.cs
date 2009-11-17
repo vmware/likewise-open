@@ -208,8 +208,7 @@ namespace Likewise.LMC.Plugins.FileShareManager
             // 
             // ShareGeneralEditPage
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Name = "ShareGeneralEditPage";
             this.Size = new System.Drawing.Size(375, 385);
             this.pnlData.ResumeLayout(false);

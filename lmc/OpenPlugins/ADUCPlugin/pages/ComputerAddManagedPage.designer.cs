@@ -137,8 +137,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             // 
             // ComputerAddManagedPage
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 13F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Controls.Add(this.txtCreatein);
             this.Controls.Add(this.textBoxGUID);
             this.Controls.Add(this.label3);

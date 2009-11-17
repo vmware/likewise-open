@@ -149,8 +149,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             // 
             // ComputerAddFinishPage
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 13F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Controls.Add(this.txtCreatein);
             this.Controls.Add(this.pictureBox1);
             this.Controls.Add(this.groupBox4);

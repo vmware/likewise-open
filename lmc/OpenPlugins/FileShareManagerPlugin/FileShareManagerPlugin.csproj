@@ -125,6 +125,10 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+    <EmbeddedResource Include="src\FileSharesPage.resx">
+      <SubType>Designer</SubType>
+      <DependentUpon>FileSharesPage.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="src\NewShareFinishPage.resx">
       <DependentUpon>NewShareFinishPage.cs</DependentUpon>
       <SubType>Designer</SubType>

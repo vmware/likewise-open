@@ -319,11 +319,10 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             this.btnComputerOptions.Text = "&Restart Computer Options...";
             this.btnComputerOptions.UseVisualStyleBackColor = true;
             this.btnComputerOptions.Click += new System.EventHandler(this.btnComputerOptions_Click);
-            // 
+            //
             // ServiceRecoveryPage
-            // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            //
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Name = "ServiceRecoveryPage";
             this.Size = new System.Drawing.Size(406, 371);
             this.pnlData.ResumeLayout(false);
