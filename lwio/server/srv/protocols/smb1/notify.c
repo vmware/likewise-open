@@ -774,10 +774,11 @@ SrvBuildNotifyExecContext(
 
     *pWordCount = 18 + ucSetupCount;
 
-    ntStatus = WireMarshallNtTransactionResponse(
+    ntStatus = WireMarshallNtTransactionRequest(
                     pBuffer,
                     ulBytesAvailable,
                     ulOffset,
+                    SMB_SUB_COMMAND_NT_TRANSACT_NOTIFY_CHANGE,
                     pSetup,
                     ucSetupCount,
                     pParams,
