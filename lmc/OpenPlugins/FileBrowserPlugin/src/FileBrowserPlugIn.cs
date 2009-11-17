@@ -53,7 +53,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
         private FileBrowserNode _pluginNode;
         private LACTreeNode _currentNode = null;
         List<IPlugIn> _extPlugins = null;
-        string LocalDiskRoot = "C:";
+        string LocalDiskRoot = "/";
         List<string> RemoteShares = new List<string>();
 
         #endregion
@@ -128,6 +128,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
             if (platform == LikewiseTargetPlatform.Windows)
             {
                 FileClient.FileClient.SetWindowsPlatform();
+				LocalDiskRoot = "C:";
             }
 
             _container = container;
