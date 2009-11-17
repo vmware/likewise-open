@@ -823,6 +823,88 @@ CallNetShareAdd(
 }
 
 
+static
+BOOL
+CallNetShareEnum(
+    PCWSTR pwszServername,
+    DWORD  dwLevel
+    )
+{
+    BOOL ret = TRUE;
+    NET_API_STATUS err = ERROR_SUCCESS;
+    PVOID pBuffer = NULL;
+    DWORD dwMaxLen = (DWORD)(-1);
+    DWORD dwNumEntries = 0;
+    DWORD dwLastTotal = 0;
+    DWORD dwCalculatedTotal = 0;
+    DWORD dwTotal = 0;
+    DWORD dwResume = 0;
+
+    while (dwMaxLen > 10)
+    {
+        dwCalculatedTotal = 0;
+        dwLastTotal       = (DWORD)-1;
+
+        do
+        {
+            err = NetShareEnum(pwszServername,
+                               dwLevel,
+                               &pBuffer,
+                               dwMaxLen,
+                               &dwNumEntries,
+                               &dwTotal,
+                               &dwResume);
+            if (err != ERROR_SUCCESS &&
+                err != ERROR_MORE_DATA &&
+                err != ERROR_NOT_ENOUGH_MEMORY)
+            {
+                ret = FALSE;
+                goto done;
+            }
+
+            if (pBuffer)
+            {
+                SrvSvcFreeMemory(pBuffer);
+                pBuffer = NULL;
+            }
+
+            dwLastTotal        = dwTotal;
+            dwCalculatedTotal += dwNumEntries;
+        }
+        while (err == ERROR_MORE_DATA);
+
+        if (dwMaxLen > 65536)
+        {
+            dwMaxLen /= 256;
+        }
+        else if (dwMaxLen <= 65536 && dwMaxLen > 512)
+        {
+            dwMaxLen /= 4;
+        }
+        else if (dwMaxLen <= 512)
+        {
+            dwMaxLen /= 2;
+        }
+        else if (dwMaxLen < 32)
+        {
+            dwMaxLen = 0;
+        }
+
+        dwNumEntries = 0;
+        dwTotal      = 0;
+        dwResume     = 0;
+    }
+
+done:
+    if (pBuffer)
+    {
+        SrvSvcFreeMemory(pBuffer);
+    }
+
+    return ret;
+}
+
+
 int
 TestNetShareAdd(
     struct test *t,
@@ -918,99 +1000,61 @@ done:
             ret);
 }
 
-int TestNetShareEnum(struct test *t, const wchar16_t *hostname,
-                     const wchar16_t *user, const wchar16_t *pass,
-                     struct parameter *options, int optcount)
+int
+TestNetShareEnum(
+    struct test *t,
+    const wchar16_t *hostname,
+    const wchar16_t *user,
+    const wchar16_t *pass,
+    struct parameter *options,
+    int optcount
+    )
 {
-    const uint32 levels[5] = { 0, 1, 2, 501, 502 };
+    const DWORD dwDefaultLevel = (DWORD)(-1);
 
-    NET_API_STATUS err = ERROR_SUCCESS;
-    handle_t srvsvc_binding;
-    uint8 *bufptr = NULL;
-    uint32 entriesread = 0;
-    uint32 totalentries = 0;
-    uint32 resume_handle = 0;
-    uint32 i;
-    uint32 level = 0;
+    BOOL ret = TRUE;
+    enum param_err perr = perr_success;
+    DWORD i = 0;
+    DWORD dwSelectedLevels[] = { 0 };
+    DWORD dwAvailableLevels[] = { 0, 1, 2, 501, 502 };
+    DWORD dwLevel = 0;
+    PDWORD pdwLevels = NULL;
+    DWORD dwNumLevels = 0;
 
     TESTINFO(t, hostname, user, pass);
 
+    perr = fetch_value(options, optcount, "level", pt_uint32,
+                       &dwLevel, &dwDefaultLevel);
+    if (!perr_is_ok(perr)) perr_fail(perr);
+
     SET_SESSION_CREDS(hCreds);
 
-    srvsvc_binding = CreateSrvSvcBinding(&srvsvc_binding, hostname);
-    if (srvsvc_binding == NULL) goto done;
-
-    INPUT_ARG_PTR(srvsvc_binding);
-    INPUT_ARG_WSTR(hostname);
-
-    for (i=0; i < 5; i++) {
-
-        bufptr = NULL;
-        entriesread = 0;
-        totalentries = 0;
-        resume_handle = 0;
-        level = levels[i];
-
-        CALL_NETAPI(err = NetShareEnum(srvsvc_binding,
-                                       hostname,/*servername*/
-                                       level,/*level*/
-                                       &bufptr,/*bufptr*/
-                                       -1,/*prefmaxlen*/
-                                       &entriesread,/*entriesread*/
-                                       &totalentries,/*totalentries*/
-                                       &resume_handle /*resume_handle*/
-                                       ));
-
-        while (totalentries) {
-            totalentries--;
-
-            RESULT_UINT(level);
-
-            switch (level) {
-            case 0:
-                RESULT_WSTR(((PSHARE_INFO_0)bufptr)[totalentries].shi0_netname);
-                break;
-
-            case 1:
-                RESULT_WSTR(((PSHARE_INFO_1)bufptr)[totalentries].shi1_netname);
-                RESULT_UINT(((PSHARE_INFO_1)bufptr)[totalentries].shi1_type);
-                RESULT_WSTR(((PSHARE_INFO_1)bufptr)[totalentries].shi1_remark);
-                break;
-
-            case 2:
-                RESULT_WSTR(((PSHARE_INFO_2)bufptr)[totalentries].shi2_netname);
-                RESULT_UINT(((PSHARE_INFO_2)bufptr)[totalentries].shi2_type);
-                RESULT_WSTR(((PSHARE_INFO_2)bufptr)[totalentries].shi2_remark);
-                RESULT_WSTR(((PSHARE_INFO_2)bufptr)[totalentries].shi2_path);
-                break;
-
-            case 501:
-                RESULT_WSTR(((PSHARE_INFO_501)bufptr)[totalentries].shi501_netname);
-                RESULT_UINT(((PSHARE_INFO_501)bufptr)[totalentries].shi501_type);
-                RESULT_WSTR(((PSHARE_INFO_501)bufptr)[totalentries].shi501_remark);
-                RESULT_WSTR(((PSHARE_INFO_501)bufptr)[totalentries].shi501_netname);
-                break;
-
-            case 502:
-                RESULT_WSTR(((PSHARE_INFO_502)bufptr)[totalentries].shi502_netname);
-                RESULT_UINT(((PSHARE_INFO_502)bufptr)[totalentries].shi502_type);
-                RESULT_WSTR(((PSHARE_INFO_502)bufptr)[totalentries].shi502_remark);
-                RESULT_WSTR(((PSHARE_INFO_502)bufptr)[totalentries].shi502_path);
-                break;
-            }
-        }
+    if (dwLevel == (DWORD)(-1))
+    {
+        pdwLevels   = dwAvailableLevels;
+        dwNumLevels = sizeof(dwAvailableLevels)/sizeof(dwAvailableLevels[0]);
+    }
+    else
+    {
+        dwSelectedLevels[0] = dwLevel;
+        pdwLevels   = dwSelectedLevels;
+        dwNumLevels = sizeof(dwSelectedLevels)/sizeof(dwSelectedLevels[0]);
     }
 
-    FreeSrvSvcBinding(&srvsvc_binding);
+    for (i= 0; i < dwNumLevels; i++)
+    {
+        dwLevel = pdwLevels[i];
 
+        ret &= CallNetShareEnum(hostname,
+                                dwLevel);
+    }
+
+done:
     RELEASE_SESSION_CREDS;
 
     SrvSvcDestroyMemory();
-    return TRUE;
 
-done:
-    SrvSvcDestroyMemory();
-    return FALSE;
+    return ret;
 }
 
 
