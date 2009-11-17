@@ -119,14 +119,14 @@ RegShellUtilDeleteValue(
 
 DWORD
 RegShellUtilGetValue(
-    HANDLE hReg,
-    PSTR pszRootKeyName,
-    OPTIONAL PSTR pszDefaultKey,
-    PSTR pszKeyName,
-    PSTR pszValueName,
-    REG_DATA_TYPE regType,
-    PVOID *ppValue,
-    PDWORD pdwValueLen);
+    IN OPTIONAL HANDLE hReg,
+    IN OPTIONAL PSTR pszRootKeyName,
+    IN OPTIONAL PSTR pszDefaultKey,
+    IN OPTIONAL PSTR pszKeyName,
+    IN PSTR pszValueName,
+    OUT OPTIONAL PREG_DATA_TYPE pRegType,
+    OUT OPTIONAL PVOID *ppValue,
+    OUT OPTIONAL PDWORD pdwValueLen);
 
 DWORD RegShellUtilImportCallback(
           PREG_PARSE_ITEM pItem,

@@ -1031,7 +1031,7 @@ RegShellUtilGetValue(
     PSTR pszDefaultKey,
     PSTR pszKeyName,
     PSTR pszValueName,
-    REG_DATA_TYPE regType,
+    PREG_DATA_TYPE pRegType,
     PVOID *ppValue,
     PDWORD pdwValueLen)
 {
@@ -1040,6 +1040,7 @@ RegShellUtilGetValue(
     DWORD dwValueLen = 0;
     PDWORD pdwValue = (PDWORD) ppValue;
     DWORD dwIndex = 0;
+    DWORD dwDataType = 0;
     PVOID pRetData = NULL;
     PBYTE *ppData = (PBYTE *) ppValue;
     PSTR *ppszValue = (PSTR *) ppValue;
@@ -1057,6 +1058,11 @@ RegShellUtilGetValue(
         hReg = hRegLocal;
     }
 
+    if (!pszRootKeyName)
+    {
+        pszRootKeyName = HKEY_THIS_MACHINE;
+    }
+
     /* Open the root key */
     dwError = RegOpenKeyExA(
                       hReg,
@@ -1067,17 +1073,25 @@ RegShellUtilGetValue(
                       &hRootKey);
     BAIL_ON_REG_ERROR(dwError);
 
-    /* Open the default key */
-    dwError = RegOpenKeyExA(
-                      hReg,
-                      hRootKey,
-                      pszDefaultKey,
-                      0,
-                      0,
-                      &hDefaultKey);
-    BAIL_ON_REG_ERROR(dwError);
+    if (pszDefaultKey && *pszDefaultKey)
+    {
+        /* Open the default key */
+        dwError = RegOpenKeyExA(
+                          hReg,
+                          hRootKey,
+                          pszDefaultKey,
+                          0,
+                          0,
+                          &hDefaultKey);
+        BAIL_ON_REG_ERROR(dwError);
+    }
+    else
+    {
+        hDefaultKey = hRootKey;
+        hRootKey = NULL;
+    }
 
-    if (pszKeyName)
+    if (pszKeyName && *pszKeyName)
     {
         /* Open the sub key */
         dwError = RegOpenKeyExA(
@@ -1095,15 +1109,32 @@ RegShellUtilGetValue(
         hDefaultKey = NULL;
     }
 
+    /* Get the type for the valueName data */
+    dwError = RegGetValueA(
+                  hReg,
+                  hFullKeyName,
+                  NULL,
+                  pszValueName,
+                  0,
+                  &dwDataType,
+                  NULL,
+                  NULL);
+    BAIL_ON_REG_ERROR(dwError);
+    if (pRegType)
+    {
+        *pRegType = dwDataType;
+    }
+
     dwError = RegShellUtilAllocateMemory(
                   hReg,
                   hFullKeyName,
-                  regType,
+                  dwDataType,
                   pszValueName,
                   &pRetData,
                   &dwValueLen);
+    BAIL_ON_REG_ERROR(dwError);
 
-    switch (regType)
+    switch (dwDataType)
     {
         case REG_SZ:
             dwError = RegGetValueA(
@@ -1116,8 +1147,14 @@ RegShellUtilGetValue(
                           pRetData,
                           &dwValueLen);
             BAIL_ON_REG_ERROR(dwError);
-            *ppszValue = pRetData;
-            *pdwValueLen = dwValueLen;
+            if (ppszValue)
+            {
+                *ppszValue = pRetData;
+            }
+            if (pdwValueLen)
+            {
+                *pdwValueLen = dwValueLen;
+            }
             break;
 
         case REG_DWORD:
@@ -1132,7 +1169,10 @@ RegShellUtilGetValue(
                           pdwValue,
                           &dwValueLen);
             BAIL_ON_REG_ERROR(dwError);
-            *pdwValueLen = dwValueLen;
+            if (pdwValueLen)
+            {
+                *pdwValueLen = dwValueLen;
+            }
             break;
 
         case REG_BINARY:
@@ -1146,10 +1186,21 @@ RegShellUtilGetValue(
                           pRetData,
                           &dwValueLen);
             BAIL_ON_REG_ERROR(dwError);
-            *ppData = pRetData;
-            *pdwValueLen = dwValueLen;
+            if (ppData)
+            {
+                *ppData = pRetData;
+            }
+            if (pdwValueLen)
+            {
+                *pdwValueLen = dwValueLen;
+            }
             break;
+
         case REG_MULTI_SZ:
+            if (!pppszMultiValue)
+            {
+                goto cleanup;
+            }
             dwError = RegGetValueA(
                           hReg,
                           hFullKeyName,
@@ -1179,7 +1230,10 @@ RegShellUtilGetValue(
 
 cleanup:
     RegCloseServer(hRegLocal);
-    RegCloseKey(hReg, hFullKeyName);
+    if (hFullKeyName)
+    {
+        RegCloseKey(hReg, hFullKeyName);
+    }
     if (hDefaultKey)
     {
         RegCloseKey(hReg, hDefaultKey);
