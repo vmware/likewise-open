@@ -362,7 +362,7 @@ namespace Likewise.LMC.FileClient
             }
             else
             {
-                handle = InteropLikewise.FindFirstFileW(search, out pFindFileData);
+                handle = InteropLikewise.FindFirstFile(search, out pFindFileData);
             }
 
             if (handle != INVALID_HANDLE_VALUE)
@@ -386,7 +386,7 @@ namespace Likewise.LMC.FileClient
                     }
                     else
                     {
-                        success = InteropLikewise.FindNextFileW(handle, out pFindFileData);
+                        success = InteropLikewise.FindNextFile(handle, out pFindFileData);
                     }
                     continue;
                 }
@@ -400,7 +400,7 @@ namespace Likewise.LMC.FileClient
                     }
                     else
                     {
-                        success = InteropLikewise.FindNextFileW(handle, out pFindFileData);
+                        success = InteropLikewise.FindNextFile(handle, out pFindFileData);
                     }
                     continue;
                 }
@@ -479,7 +479,7 @@ namespace Likewise.LMC.FileClient
                 }
                 else
                 {
-                    success = InteropLikewise.FindNextFileW(handle, out pFindFileData);
+                    success = InteropLikewise.FindNextFile(handle, out pFindFileData);
                 }
             }
 
