@@ -43,6 +43,7 @@
 #include <lsa/ad.h>
 #include <lwnet.h>
 #include <eventlog.h>
+#include "reg/reg.h"
 
 #define DOMAINJOIN_EVENT_CATEGORY   "Domain join"
 
@@ -245,6 +246,54 @@ cleanup:
 
 static
 CENTERROR
+DeletePolicyTreeFromRegistry()
+{
+    CENTERROR ceError = CENTERROR_SUCCESS;
+    HANDLE hReg = (HANDLE)NULL;
+    HKEY pRootKey = NULL;
+
+    ceError = RegOpenServer(&hReg);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    ceError = RegOpenKeyExA(
+                hReg,
+                NULL,
+                HKEY_THIS_MACHINE,
+                0,
+                0,
+                &pRootKey);
+    if (ceError)
+    {
+        DJ_LOG_ERROR( "Failed to open registry root key %s",HKEY_THIS_MACHINE);
+        goto error;
+    }
+
+    ceError = RegDeleteTreeA(
+                hReg,
+                pRootKey,
+                "Policy");
+    if (ceError)
+    {
+        DJ_LOG_ERROR( "Failed to delete 'Policy' key from registry");
+        ceError = CENTERROR_SUCCESS;
+    }
+
+cleanup:
+
+    RegCloseKey(hReg, pRootKey);
+    pRootKey = NULL;
+
+    RegCloseServer(hReg);
+    hReg = NULL;
+
+    return(ceError);
+error:
+    goto cleanup;
+
+}
+
+static
+CENTERROR
 RemoveCacheFiles()
 {
     CENTERROR ceError = CENTERROR_SUCCESS;
@@ -322,16 +371,8 @@ RemoveCacheFiles()
         BAIL_ON_CENTERIS_ERROR(ceError);
     }
 
-    /* /etc/likewise/lsassd.conf */
-    ceError = CTCheckFileExists("/etc/likewise/lsassd.conf.lwidentity.orig", &bFileExists);
+    ceError = DeletePolicyTreeFromRegistry();
     BAIL_ON_CENTERIS_ERROR(ceError);
-
-    if (bFileExists)
-    {
-        DJ_LOG_VERBOSE("Restoring /etc/likewise/lsassd.conf.lwidentity.orig file to /etc/likewise/lsassd.conf");
-        ceError = CTMoveFile("/etc/likewise/lsassd.conf.lwidentity.orig", "/etc/likewise/lsassd.conf");
-        BAIL_ON_CENTERIS_ERROR(ceError);
-    }
 
     /* /etc/krb5.conf */
     ceError = CTCheckFileExists("/etc/krb5.conf.lwidentity-gp.orig", &bFileExists);
@@ -343,40 +384,6 @@ RemoveCacheFiles()
         ceError = CTMoveFile("/etc/krb5.conf.lwidentity-gp.orig", "/etc/krb5.conf");
         BAIL_ON_CENTERIS_ERROR(ceError);
     }
-
-    /* /etc/likewise/lwedsplugin.conf */
-    ceError = CTCheckFileExists("/etc/likewise/lwedsplugin.conf.lwidentity.orig", &bFileExists);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    if (bFileExists)
-    {
-        DJ_LOG_VERBOSE("Restoring /etc/likewise/lwedsplugin.conf.lwidentity.orig file to /etc/likewise/lwedsplugin.conf");
-        ceError = CTMoveFile("/etc/likewise/lwedsplugin.conf.lwidentity.orig", "/etc/likewise/lwedsplugin.conf");
-        BAIL_ON_CENTERIS_ERROR(ceError);
-    }
-
-    /* /etc/likewise/grouppolicy-settings.conf */
-    ceError = CTCheckFileExists("/etc/likewise/grouppolicy-settings.conf.lwidentity.orig", &bFileExists);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    if (bFileExists)
-    {
-        DJ_LOG_VERBOSE("Restoring /etc/likewise/grouppolicy-settings.conf.lwidentity.orig file to /etc/likewise/grouppolicy-settings.conf");
-        ceError = CTMoveFile("/etc/likewise/grouppolicy-settings.conf.lwidentity.orig", "/etc/likewise/grouppolicy-settings.conf");
-        BAIL_ON_CENTERIS_ERROR(ceError);
-    }
-
-    /* /etc/likewise/eventlogd.conf */
-    ceError = CTCheckFileExists("/etc/likewise/eventlogd.conf.lwidentity.orig", &bFileExists);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    if (bFileExists)
-    {
-        DJ_LOG_VERBOSE("Restoring /etc/likewise/eventlogd.conf.lwidentity.orig file to /etc/likewise/eventlogd.conf");
-        ceError = CTMoveFile("/etc/likewise/eventlogd.conf.lwidentity.orig", "/etc/likewise/eventlogd.conf");
-        BAIL_ON_CENTERIS_ERROR(ceError);
-    }
-
 
     /* /etc/sudoers */
     ceError = CTAllocateString( "/usr/local/etc:/usr/etc:/etc:/opt/sudo/etc:/opt/csw/etc",
@@ -550,7 +557,6 @@ RemoveCacheFiles()
     }
     else
     {
-
         ceError = CTCheckFileExists("/etc/auto_master.lwidentity.orig", &bFileExists);
         BAIL_ON_CENTERIS_ERROR(ceError);
 
