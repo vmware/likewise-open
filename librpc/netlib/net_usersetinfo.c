@@ -91,6 +91,8 @@ NetUserSetInfo(
           dwLevel == 2 ||
           dwLevel == 3 ||
           dwLevel == 4 ||
+          dwLevel == 1003 ||
+          dwLevel == 1007 ||
           dwLevel == 1008 ||
           dwLevel == 1011))
     {
@@ -123,16 +125,16 @@ NetUserSetInfo(
                                    dwSpaceLeft,
                                    NULL);
         BAIL_ON_NTSTATUS_ERROR(status);
-    }
 
-    err = NetAllocateSamrUserInfo(&pSamrUserInfo->info21,
-                                  &dwSamrInfoLevel,
-                                  &dwSpaceLeft,
-                                  dwLevel,
-                                  pBuffer,
-                                  pConn,
-                                  &dwSize);
-    BAIL_ON_WINERR_ERROR(err);
+        err = NetAllocateSamrUserInfo(&pSamrUserInfo->info21,
+                                      &dwSamrInfoLevel,
+                                      &dwSpaceLeft,
+                                      dwLevel,
+                                      pBuffer,
+                                      pConn,
+                                      &dwSize);
+        BAIL_ON_WINERR_ERROR(err);
+    }
 
     status = NetConnectSamr(&pConn,
                             pwszHostname,
@@ -193,13 +195,14 @@ NetUserSetInfo(
                                  pSamrPasswordUserInfo);
         BAIL_ON_NTSTATUS_ERROR(status);
     }
-    else if (err == ERROR_INVALID_PASSWORD ||
-             dwLevel == 0 ||
-             dwLevel == 1011)
+    else if (err == ERROR_INVALID_LEVEL ||
+             (err == ERROR_INVALID_PASSWORD &&
+              dwLevel != 1003))
     {
         /* This error only means we're not going to try
-           set the password. Either it's set to NULL or called
-           infolevel is one of: 0, 1011 */
+           set the password.
+           Either it's set to NULL in infolevel where it's optional
+           or called infolevel doesn't support setting password */
         err = ERROR_SUCCESS;
     }
     else
@@ -207,11 +210,14 @@ NetUserSetInfo(
         BAIL_ON_WINERR_ERROR(err);
     }
 
-    status = SamrSetUserInfo(hSamrBinding,
-                             hUser,
-                             dwSamrInfoLevel,
-                             pSamrUserInfo);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    if (dwSamrInfoLevel)
+    {
+        status = SamrSetUserInfo(hSamrBinding,
+                                 hUser,
+                                 dwSamrInfoLevel,
+                                 pSamrUserInfo);
+        BAIL_ON_NTSTATUS_ERROR(status);
+    }
 
     status = SamrClose(hSamrBinding, hUser);
     BAIL_ON_NTSTATUS_ERROR(status);
