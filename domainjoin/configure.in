@@ -236,6 +236,34 @@ AC_SUBST(EVENTLOG_INCLUDES)
 AC_SUBST(EVENTLOG_LDFLAGS)
 AC_SUBST(EVENTLOG_LIBS)
 
+# lwreg
+
+AC_ARG_WITH([lwreg],
+        [AC_HELP_STRING([--with-lwreg=<dir>], [use lwreg located in prefix <dir>])],
+        [
+		LWREG_INCLUDES="-I$withval/include"
+        LWREG_LDFLAGS="-L$withval/lib"
+        ])
+
+AC_ARG_WITH([lwreg-includes],
+        [AC_HELP_STRING([--with-lwreg-includes=<dir>], [use lwreg includes located in <dir>])],
+        [
+		LWREG_INCLUDES="-I$withval"
+        ])
+
+AC_ARG_WITH([lwreg-libs],
+        [AC_HELP_STRING([--with-lwreg-libs=<dir>], [use lwreg libs located in <dir>])],
+        [
+		LWREG_LDFLAGS="-L$withval"
+        ])
+
+LWREG_LIBS=-lregclient
+
+AC_CHECK_HEADER([reg/reg.h],,[AC_MSG_ERROR([Could not find lwreg headers])])
+AC_SUBST(LWREG_INCLUDES)
+AC_SUBST(LWREG_LDFLAGS)
+AC_SUBST(LWREG_LIBS)
+
 # lsass
 
 AC_ARG_WITH([lsass],
