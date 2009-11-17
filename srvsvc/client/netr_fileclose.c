@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -39,12 +39,16 @@ NET_API_STATUS NetFileClose(
 {
     NET_API_STATUS status = ERROR_SUCCESS;
 
-    goto_if_invalid_param_err(b, done);
+    BAIL_ON_INVALID_PTR(b, status);
 
-    DCERPC_CALL(_NetrFileClose(b, (wchar16_t *)servername, fileid));
+    DCERPC_CALL(status,
+                _NetrFileClose(b, (wchar16_t *)servername, fileid));
 
-done:
+cleanup:
     return status;
+
+error:
+    goto cleanup;
 }
 
 

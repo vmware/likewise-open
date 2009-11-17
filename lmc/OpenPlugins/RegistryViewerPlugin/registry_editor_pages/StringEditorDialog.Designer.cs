@@ -109,9 +109,9 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             // StringEditorDialog
             // 
             this.AcceptButton = this.btnOk;
-            resources.ApplyResources(this, "$this");
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.CancelButton = this.btnCancel;
+            resources.ApplyResources(this, "$this");
             this.Controls.Add(this.txtValueData);
             this.Controls.Add(this.btnCancel);
             this.Controls.Add(this.btnOk);

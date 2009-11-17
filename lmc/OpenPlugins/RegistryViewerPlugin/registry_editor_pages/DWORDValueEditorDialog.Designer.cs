@@ -169,8 +169,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             // DWORDValueEditorDialog
             // 
             this.AcceptButton = this.btnOk;
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.CancelButton = this.btnCancel;
             this.ClientSize = new System.Drawing.Size(301, 180);
             this.Controls.Add(this.groupBox1);

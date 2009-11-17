@@ -125,13 +125,12 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             this.richTextBoxValueData.ScrollBars = System.Windows.Forms.RichTextBoxScrollBars.ForcedVertical;
             this.richTextBoxValueData.Size = new System.Drawing.Size(299, 178);
             this.richTextBoxValueData.TabIndex = 9;
-            this.richTextBoxValueData.Text = "";           
+            this.richTextBoxValueData.Text = "";
             // 
             // MultiStringValueEditorDialog
             // 
             this.AcceptButton = this.btnOk;
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.CancelButton = this.btnCancel;
             this.ClientSize = new System.Drawing.Size(314, 286);
             this.Controls.Add(this.richTextBoxValueData);

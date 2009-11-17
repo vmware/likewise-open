@@ -106,8 +106,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             // AddUsertoGroup
             // 
             this.AcceptButton = this.Okbtn;
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.CancelButton = this.CancelBtn;
             this.ClientSize = new System.Drawing.Size(351, 362);
             this.Controls.Add(this.CancelBtn);

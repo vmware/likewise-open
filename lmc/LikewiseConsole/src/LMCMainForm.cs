@@ -308,7 +308,7 @@ namespace Likewise.LMC
             // statusBar1
             // 
             this.statusBar1.ImeMode = System.Windows.Forms.ImeMode.NoControl;
-            this.statusBar1.Location = new System.Drawing.Point(0, 539);
+            this.statusBar1.Location = new System.Drawing.Point(0, 543);
             this.statusBar1.Name = "statusBar1";
             this.statusBar1.Panels.AddRange(new System.Windows.Forms.StatusBarPanel[] {
             this.statusBarPanel1,
@@ -365,7 +365,7 @@ namespace Likewise.LMC
             this.pivotPanel.Dock = System.Windows.Forms.DockStyle.Left;
             this.pivotPanel.Location = new System.Drawing.Point(0, 0);
             this.pivotPanel.Name = "pivotPanel";
-            this.pivotPanel.Size = new System.Drawing.Size(231, 539);
+            this.pivotPanel.Size = new System.Drawing.Size(231, 543);
             this.pivotPanel.TabIndex = 0;
             // 
             // navTree
@@ -375,7 +375,7 @@ namespace Likewise.LMC
             this.navTree.HideSelection = false;
             this.navTree.Location = new System.Drawing.Point(0, 16);
             this.navTree.Name = "navTree";
-            this.navTree.Size = new System.Drawing.Size(231, 523);
+            this.navTree.Size = new System.Drawing.Size(231, 527);
             this.navTree.TabIndex = 0;
             this.navTree.AfterCollapse += new System.Windows.Forms.TreeViewEventHandler(this.treeView1_AfterCollapse);
             this.navTree.AfterSelect += new System.Windows.Forms.TreeViewEventHandler(this.treeView1_AfterSelect);
@@ -405,7 +405,7 @@ namespace Likewise.LMC
             this.splitter1.ImeMode = System.Windows.Forms.ImeMode.NoControl;
             this.splitter1.Location = new System.Drawing.Point(231, 0);
             this.splitter1.Name = "splitter1";
-            this.splitter1.Size = new System.Drawing.Size(8, 539);
+            this.splitter1.Size = new System.Drawing.Size(8, 543);
             this.splitter1.TabIndex = 2;
             this.splitter1.TabStop = false;
             this.splitter1.SplitterMoved += new System.Windows.Forms.SplitterEventHandler(this.splitter1_SplitterMoved);
@@ -437,14 +437,14 @@ namespace Likewise.LMC
             this.sc.Location = new System.Drawing.Point(239, 0);
             this.sc.Margin = new System.Windows.Forms.Padding(2);
             this.sc.Name = "sc";
-            this.sc.Size = new System.Drawing.Size(553, 539);
+            this.sc.Size = new System.Drawing.Size(553, 543);
             this.sc.TabIndex = 1;
-            // 
+            //
             // LMCMainForm
-            // 
+            //
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.BackColor = System.Drawing.SystemColors.MenuBar;
-            this.ClientSize = new System.Drawing.Size(792, 562);
+            this.ClientSize = new System.Drawing.Size(792, 566);
             this.Controls.Add(this.sc);
             this.Controls.Add(this.splitter1);
             this.Controls.Add(this.pivotPanel);

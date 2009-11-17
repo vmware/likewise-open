@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -36,69 +36,86 @@
 NET_API_STATUS SrvSvcInitMemory(void)
 {
     NET_API_STATUS status = ERROR_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     int locked = 0;
 
     GLOBAL_DATA_LOCK(locked);
 
     if (!bSrvSvcInitialised) {
-        NTSTATUS ntstatus = STATUS_SUCCESS;
-        ntstatus = MemPtrListInit((PtrList**)&srvsvc_ptr_list);
-        status = NtStatusToWin32(ntstatus);
-        goto_if_err_not_success(status, done);
+        ntStatus = MemPtrListInit((PtrList**)&srvsvc_ptr_list);
+        BAIL_ON_NT_STATUS(ntStatus);
 
         bSrvSvcInitialised = 1;
     }
-done:
+
+cleanup:
     GLOBAL_DATA_UNLOCK(locked);
 
+    if (status == ERROR_SUCCESS &&
+        ntStatus != STATUS_SUCCESS)
+    {
+        status = LwNtStatusToWin32Error(ntStatus);
+    }
+
     return status;
+
+error:
+    goto cleanup;
 }
 
 
 NET_API_STATUS SrvSvcDestroyMemory(void)
 {
     NET_API_STATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     int locked = 0;
 
     GLOBAL_DATA_LOCK(locked);
 
     if (bSrvSvcInitialised && srvsvc_ptr_list) {
-        NTSTATUS ntstatus = STATUS_SUCCESS;
-        ntstatus = MemPtrListDestroy((PtrList**)&srvsvc_ptr_list);
-        status = NtStatusToWin32(ntstatus);
-        goto_if_err_not_success(status, done);
+        ntStatus = MemPtrListDestroy((PtrList**)&srvsvc_ptr_list);
+        BAIL_ON_NT_STATUS(ntStatus);
 
         bSrvSvcInitialised = 0;
     }
 
-done:
+cleanup:
     GLOBAL_DATA_UNLOCK(locked);
 
+    if (status == ERROR_SUCCESS &&
+        ntStatus != STATUS_SUCCESS)
+    {
+        status = LwNtStatusToWin32Error(ntStatus);
+    }
+
     return status;
+
+error:
+    goto cleanup;
 }
 
 
 NET_API_STATUS SrvSvcAllocateMemory(void **out, size_t size, void *dep)
 {
-    NTSTATUS ntstatus = STATUS_SUCCESS;
-    ntstatus = MemPtrAllocate((PtrList*)srvsvc_ptr_list, out, size, dep);
-    return NtStatusToWin32(ntstatus);
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    ntStatus = MemPtrAllocate((PtrList*)srvsvc_ptr_list, out, size, dep);
+    return LwNtStatusToWin32Error(ntStatus);
 }
 
 
 NET_API_STATUS SrvSvcFreeMemory(void *ptr)
 {
-    NTSTATUS ntstatus = STATUS_SUCCESS;
-    ntstatus = MemPtrFree((PtrList*)srvsvc_ptr_list, ptr);
-    return NtStatusToWin32(ntstatus);
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    ntStatus = MemPtrFree((PtrList*)srvsvc_ptr_list, ptr);
+    return LwNtStatusToWin32Error(ntStatus);
 }
 
 
 NET_API_STATUS SrvSvcAddDepMemory(void *ptr, void *dep)
 {
-    NTSTATUS ntstatus = STATUS_SUCCESS;
-    ntstatus = MemPtrAddDependant((PtrList*)srvsvc_ptr_list, ptr, dep);
-    return NtStatusToWin32(ntstatus);
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    ntStatus = MemPtrAddDependant((PtrList*)srvsvc_ptr_list, ptr, dep);
+    return LwNtStatusToWin32Error(ntStatus);
 }
 
 #define DUP_WC16S(ptr, str) do { \
@@ -106,10 +123,10 @@ NET_API_STATUS SrvSvcAddDepMemory(void *ptr, void *dep)
         str = wc16sdup(str); \
         if (!(str)) { \
             status = ERROR_NOT_ENOUGH_MEMORY; \
-            goto_if_err_not_success(status, error); \
+            BAIL_ON_WIN_ERROR(status);  \
         } \
         status = SrvSvcAddDepMemory((void *)str, ptr); \
-        goto_if_err_not_success(status, error); \
+        BAIL_ON_WIN_ERROR(status); \
     } \
 } while (0)
 
@@ -121,12 +138,12 @@ NET_API_STATUS SrvSvcCopyNetConnCtr(uint32 level, srvsvc_NetConnCtr *ctr,
     int count = 0;
     void *ptr = NULL;
 
-    goto_if_invalid_param_err(entriesread, cleanup);
-    goto_if_invalid_param_err(bufptr, cleanup);
+    BAIL_ON_INVALID_PTR(entriesread, status);
+    BAIL_ON_INVALID_PTR(bufptr, status);
+    BAIL_ON_INVALID_PTR(ctr, status);
+
     *entriesread = 0;
     *bufptr = NULL;
-
-    goto_if_invalid_param_err(ctr, cleanup);
 
     switch (level) {
     case 0:
@@ -138,7 +155,7 @@ NET_API_STATUS SrvSvcCopyNetConnCtr(uint32 level, srvsvc_NetConnCtr *ctr,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(CONNECTION_INFO_0) * count,
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a0 = (PCONNECTION_INFO_0)ptr;
 
@@ -156,7 +173,7 @@ NET_API_STATUS SrvSvcCopyNetConnCtr(uint32 level, srvsvc_NetConnCtr *ctr,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(CONNECTION_INFO_1) * count,
                                           NULL);
-            goto_if_ntstatus_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1 = (PCONNECTION_INFO_1)ptr;
 
@@ -171,14 +188,17 @@ NET_API_STATUS SrvSvcCopyNetConnCtr(uint32 level, srvsvc_NetConnCtr *ctr,
 
     *entriesread = count;
     *bufptr = (uint8 *)ptr;
+
 cleanup:
     return status;
+
 error:
     if (ptr) {
         SrvSvcFreeMemory(ptr);
     }
     goto cleanup;
 }
+
 
 NET_API_STATUS SrvSvcCopyNetFileCtr(uint32 level, srvsvc_NetFileCtr *ctr,
                                     uint32 *entriesread, uint8 **bufptr)
@@ -188,12 +208,12 @@ NET_API_STATUS SrvSvcCopyNetFileCtr(uint32 level, srvsvc_NetFileCtr *ctr,
     int count = 0;
     void *ptr = NULL;
 
-    goto_if_invalid_param_err(entriesread, cleanup);
-    goto_if_invalid_param_err(bufptr, cleanup);
+    BAIL_ON_INVALID_PTR(entriesread, status);
+    BAIL_ON_INVALID_PTR(bufptr, status);
+    BAIL_ON_INVALID_PTR(ctr, status);
+
     *entriesread = 0;
     *bufptr = NULL;
-
-    goto_if_invalid_param_err(ctr, cleanup);
 
     switch (level) {
     case 2:
@@ -205,7 +225,7 @@ NET_API_STATUS SrvSvcCopyNetFileCtr(uint32 level, srvsvc_NetFileCtr *ctr,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(FILE_INFO_2) * count,
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a2 = (PFILE_INFO_2)ptr;
 
@@ -223,7 +243,7 @@ NET_API_STATUS SrvSvcCopyNetFileCtr(uint32 level, srvsvc_NetFileCtr *ctr,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(FILE_INFO_3) * count,
                                           NULL);
-            goto_if_ntstatus_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a3 = (PFILE_INFO_3)ptr;
 
@@ -238,8 +258,10 @@ NET_API_STATUS SrvSvcCopyNetFileCtr(uint32 level, srvsvc_NetFileCtr *ctr,
 
     *entriesread = count;
     *bufptr = (uint8 *)ptr;
+
 cleanup:
     return status;
+
 error:
     if (ptr) {
         SrvSvcFreeMemory(ptr);
@@ -253,10 +275,10 @@ NET_API_STATUS SrvSvcCopyNetFileInfo(uint32 level, srvsvc_NetFileInfo *info,
     NET_API_STATUS status = ERROR_SUCCESS;
     void *ptr = NULL;
 
-    goto_if_invalid_param_err(bufptr, cleanup);
-    *bufptr = NULL;
+    BAIL_ON_INVALID_PTR(bufptr, status);
+    BAIL_ON_INVALID_PTR(info, status);
 
-    goto_if_invalid_param_err(info, cleanup);
+    *bufptr = NULL;
 
     switch (level) {
     case 2:
@@ -266,7 +288,7 @@ NET_API_STATUS SrvSvcCopyNetFileInfo(uint32 level, srvsvc_NetFileInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(FILE_INFO_2),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a2 = (PFILE_INFO_2)ptr;
 
@@ -280,7 +302,7 @@ NET_API_STATUS SrvSvcCopyNetFileInfo(uint32 level, srvsvc_NetFileInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(FILE_INFO_3),
                                           NULL);
-            goto_if_ntstatus_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a3 = (PFILE_INFO_3)ptr;
 
@@ -292,8 +314,10 @@ NET_API_STATUS SrvSvcCopyNetFileInfo(uint32 level, srvsvc_NetFileInfo *info,
     }
 
     *bufptr = (uint8 *)ptr;
+
 cleanup:
     return status;
+
 error:
     if (ptr) {
         SrvSvcFreeMemory(ptr);
@@ -309,12 +333,12 @@ NET_API_STATUS SrvSvcCopyNetSessCtr(uint32 level, srvsvc_NetSessCtr *ctr,
     int count = 0;
     void *ptr = NULL;
 
-    goto_if_invalid_param_err(entriesread, cleanup);
-    goto_if_invalid_param_err(bufptr, cleanup);
+    BAIL_ON_INVALID_PTR(entriesread, status);
+    BAIL_ON_INVALID_PTR(bufptr, status);
+    BAIL_ON_INVALID_PTR(ctr, status);
+
     *entriesread = 0;
     *bufptr = NULL;
-
-    goto_if_invalid_param_err(ctr, cleanup);
 
     switch (level) {
     case 0:
@@ -326,7 +350,7 @@ NET_API_STATUS SrvSvcCopyNetSessCtr(uint32 level, srvsvc_NetSessCtr *ctr,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SESSION_INFO_0) * count,
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a0 = (PSESSION_INFO_0)ptr;
 
@@ -345,7 +369,7 @@ NET_API_STATUS SrvSvcCopyNetSessCtr(uint32 level, srvsvc_NetSessCtr *ctr,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SESSION_INFO_1) * count,
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1 = (PSESSION_INFO_1)ptr;
 
@@ -365,7 +389,7 @@ NET_API_STATUS SrvSvcCopyNetSessCtr(uint32 level, srvsvc_NetSessCtr *ctr,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SESSION_INFO_2) * count,
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a2 = (PSESSION_INFO_2)ptr;
 
@@ -386,7 +410,7 @@ NET_API_STATUS SrvSvcCopyNetSessCtr(uint32 level, srvsvc_NetSessCtr *ctr,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SESSION_INFO_10) * count,
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a10 = (PSESSION_INFO_10)ptr;
 
@@ -406,7 +430,7 @@ NET_API_STATUS SrvSvcCopyNetSessCtr(uint32 level, srvsvc_NetSessCtr *ctr,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SESSION_INFO_502) * count,
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a502 = (PSESSION_INFO_502)ptr;
 
@@ -423,8 +447,10 @@ NET_API_STATUS SrvSvcCopyNetSessCtr(uint32 level, srvsvc_NetSessCtr *ctr,
 
     *entriesread = count;
     *bufptr = (uint8 *)ptr;
+
 cleanup:
     return status;
+
 error:
     if (ptr) {
         SrvSvcFreeMemory(ptr);
@@ -438,9 +464,11 @@ void *SrvSvcSecDescAllocFn(void *dep, size_t len)
     void *ptr = NULL;
 
     status = SrvSvcAllocateMemory(&ptr, len, dep);
-    goto_if_err_not_success(status, error);
+    BAIL_ON_WIN_ERROR(status);
 
+cleanup:
     return ptr;
+
 error:
     return NULL;
 }
@@ -453,12 +481,12 @@ NET_API_STATUS SrvSvcCopyNetShareCtr(uint32 level, srvsvc_NetShareCtr *ctr,
     int count = 0;
     void *ptr = NULL;
 
-    goto_if_invalid_param_err(entriesread, cleanup);
-    goto_if_invalid_param_err(bufptr, cleanup);
+    BAIL_ON_INVALID_PTR(entriesread, status);
+    BAIL_ON_INVALID_PTR(bufptr, status);
+    BAIL_ON_INVALID_PTR(ctr, status);
+
     *entriesread = 0;
     *bufptr = NULL;
-
-    goto_if_invalid_param_err(ctr, cleanup);
 
     switch (level) {
     case 0:
@@ -470,7 +498,7 @@ NET_API_STATUS SrvSvcCopyNetShareCtr(uint32 level, srvsvc_NetShareCtr *ctr,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SHARE_INFO_0) * count,
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a0 = (PSHARE_INFO_0)ptr;
 
@@ -489,7 +517,7 @@ NET_API_STATUS SrvSvcCopyNetShareCtr(uint32 level, srvsvc_NetShareCtr *ctr,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SHARE_INFO_1) * count,
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1 = (PSHARE_INFO_1)ptr;
 
@@ -509,7 +537,7 @@ NET_API_STATUS SrvSvcCopyNetShareCtr(uint32 level, srvsvc_NetShareCtr *ctr,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SHARE_INFO_2) * count,
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a2 = (PSHARE_INFO_2)ptr;
 
@@ -531,7 +559,7 @@ NET_API_STATUS SrvSvcCopyNetShareCtr(uint32 level, srvsvc_NetShareCtr *ctr,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SHARE_INFO_501) * count,
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a501 = (PSHARE_INFO_501)ptr;
 
@@ -551,7 +579,7 @@ NET_API_STATUS SrvSvcCopyNetShareCtr(uint32 level, srvsvc_NetShareCtr *ctr,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SHARE_INFO_502) * count,
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a502 = (PSHARE_INFO_502)ptr;
 
@@ -575,7 +603,7 @@ NET_API_STATUS SrvSvcCopyNetShareCtr(uint32 level, srvsvc_NetShareCtr *ctr,
                      status = SrvSvcAllocateMemory(OUT_PPVOID(&a502[i].shi502_security_descriptor),
                                                    e->shi502_reserved,
                                                    a502);
-                     goto_if_err_not_success(status, cleanup);
+                     BAIL_ON_WIN_ERROR(status);
                  }
 
                  DUP_WC16S(a502, a502[i].shi502_netname);
@@ -604,10 +632,10 @@ NET_API_STATUS SrvSvcCopyNetShareInfo(uint32 level, srvsvc_NetShareInfo *info,
     NET_API_STATUS status = ERROR_SUCCESS;
     void *ptr = NULL;
 
-    goto_if_invalid_param_err(bufptr, cleanup);
+    BAIL_ON_INVALID_PTR(bufptr, status);
     *bufptr = NULL;
 
-    goto_if_invalid_param_err(info, cleanup);
+    BAIL_ON_INVALID_PTR(info, status);
 
     switch (level) {
     case 0:
@@ -617,7 +645,7 @@ NET_API_STATUS SrvSvcCopyNetShareInfo(uint32 level, srvsvc_NetShareInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SHARE_INFO_0),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a0 = (PSHARE_INFO_0)ptr;
 
@@ -632,7 +660,7 @@ NET_API_STATUS SrvSvcCopyNetShareInfo(uint32 level, srvsvc_NetShareInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SHARE_INFO_1),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1 = (PSHARE_INFO_1)ptr;
 
@@ -648,7 +676,7 @@ NET_API_STATUS SrvSvcCopyNetShareInfo(uint32 level, srvsvc_NetShareInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SHARE_INFO_2),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a2 = (PSHARE_INFO_2)ptr;
 
@@ -666,7 +694,7 @@ NET_API_STATUS SrvSvcCopyNetShareInfo(uint32 level, srvsvc_NetShareInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SHARE_INFO_501),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a501 = (PSHARE_INFO_501)ptr;
 
@@ -683,7 +711,7 @@ NET_API_STATUS SrvSvcCopyNetShareInfo(uint32 level, srvsvc_NetShareInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SHARE_INFO_502),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a502 = (PSHARE_INFO_502)ptr;
 
@@ -704,7 +732,7 @@ NET_API_STATUS SrvSvcCopyNetShareInfo(uint32 level, srvsvc_NetShareInfo *info,
                 status = SrvSvcAllocateMemory(OUT_PPVOID(&a502->shi502_security_descriptor),
                                               e->shi502_reserved,
                                               a502);
-                goto_if_err_not_success(status, cleanup);
+                BAIL_ON_WIN_ERROR(status);
             }
 
             DUP_WC16S(a502, a502->shi502_netname);
@@ -731,10 +759,10 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
     NET_API_STATUS status = ERROR_SUCCESS;
     void *ptr = NULL;
 
-    goto_if_invalid_param_err(bufptr, cleanup);
+    BAIL_ON_INVALID_PTR(bufptr, status);
     *bufptr = NULL;
 
-    goto_if_invalid_param_err(info, cleanup);
+    BAIL_ON_INVALID_PTR(info, status);
 
     switch (level) {
     case 100:
@@ -744,7 +772,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_100),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a100 = (PSERVER_INFO_100)ptr;
 
@@ -759,7 +787,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_101),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a101 = (PSERVER_INFO_101)ptr;
 
@@ -775,7 +803,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_102),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a102 = (PSERVER_INFO_102)ptr;
 
@@ -792,7 +820,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_402),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a402 = (PSERVER_INFO_402)ptr;
 
@@ -809,7 +837,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_403),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a403 = (PSERVER_INFO_403)ptr;
 
@@ -827,7 +855,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_502),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a502 = (PSERVER_INFO_502)ptr;
 
@@ -841,7 +869,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_503),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a503 = (PSERVER_INFO_503)ptr;
 
@@ -856,7 +884,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_599),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a599 = (PSERVER_INFO_599)ptr;
 
@@ -871,7 +899,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_1005),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1005 = (PSERVER_INFO_1005)ptr;
 
@@ -886,7 +914,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_1010),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1010 = (PSERVER_INFO_1010)ptr;
 
@@ -900,7 +928,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_1016),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1016 = (PSERVER_INFO_1016)ptr;
 
@@ -914,7 +942,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_1017),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1017 = (PSERVER_INFO_1017)ptr;
 
@@ -928,7 +956,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_1018),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1018 = (PSERVER_INFO_1018)ptr;
 
@@ -942,7 +970,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_1107),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1107 = (PSERVER_INFO_1107)ptr;
 
@@ -956,7 +984,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_1501),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1501 = (PSERVER_INFO_1501)ptr;
 
@@ -970,7 +998,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_1502),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1502 = (PSERVER_INFO_1502)ptr;
 
@@ -984,7 +1012,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_1503),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1503 = (PSERVER_INFO_1503)ptr;
 
@@ -998,7 +1026,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_1506),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1506 = (PSERVER_INFO_1506)ptr;
 
@@ -1012,7 +1040,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_1509),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1509 = (PSERVER_INFO_1509)ptr;
 
@@ -1026,7 +1054,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_1510),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1510 = (PSERVER_INFO_1510)ptr;
 
@@ -1040,7 +1068,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_1511),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1511 = (PSERVER_INFO_1511)ptr;
 
@@ -1054,7 +1082,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_1512),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1512 = (PSERVER_INFO_1512)ptr;
 
@@ -1068,7 +1096,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_1513),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1513 = (PSERVER_INFO_1513)ptr;
 
@@ -1082,7 +1110,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_1514),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1514 = (PSERVER_INFO_1514)ptr;
 
@@ -1096,7 +1124,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_1515),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1515 = (PSERVER_INFO_1515)ptr;
 
@@ -1110,7 +1138,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_1516),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1516 = (PSERVER_INFO_1516)ptr;
 
@@ -1124,7 +1152,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_1518),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1518 = (PSERVER_INFO_1518)ptr;
 
@@ -1138,7 +1166,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_1520),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1520 = (PSERVER_INFO_1520)ptr;
 
@@ -1152,7 +1180,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_1521),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1521 = (PSERVER_INFO_1521)ptr;
 
@@ -1166,7 +1194,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_1522),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1522 = (PSERVER_INFO_1522)ptr;
 
@@ -1180,7 +1208,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_1523),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1523 = (PSERVER_INFO_1523)ptr;
 
@@ -1194,7 +1222,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_1524),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1524 = (PSERVER_INFO_1524)ptr;
 
@@ -1208,7 +1236,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_1525),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1525 = (PSERVER_INFO_1525)ptr;
 
@@ -1222,7 +1250,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_1528),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1528 = (PSERVER_INFO_1528)ptr;
 
@@ -1236,7 +1264,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_1529),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1529 = (PSERVER_INFO_1529)ptr;
 
@@ -1250,7 +1278,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_1530),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1530 = (PSERVER_INFO_1530)ptr;
 
@@ -1264,7 +1292,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_1533),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1533 = (PSERVER_INFO_1533)ptr;
 
@@ -1278,7 +1306,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_1534),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1534 = (PSERVER_INFO_1534)ptr;
 
@@ -1292,7 +1320,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_1535),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1535 = (PSERVER_INFO_1535)ptr;
 
@@ -1306,7 +1334,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_1536),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1536 = (PSERVER_INFO_1536)ptr;
 
@@ -1320,7 +1348,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_1537),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1537 = (PSERVER_INFO_1537)ptr;
 
@@ -1334,7 +1362,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_1538),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1538 = (PSERVER_INFO_1538)ptr;
 
@@ -1348,7 +1376,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_1539),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1539 = (PSERVER_INFO_1539)ptr;
 
@@ -1362,7 +1390,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_1540),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1540 = (PSERVER_INFO_1540)ptr;
 
@@ -1376,7 +1404,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_1541),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1541 = (PSERVER_INFO_1541)ptr;
 
@@ -1390,7 +1418,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_1542),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1542 = (PSERVER_INFO_1542)ptr;
 
@@ -1404,7 +1432,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_1543),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1543 = (PSERVER_INFO_1543)ptr;
 
@@ -1418,7 +1446,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_1544),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1544 = (PSERVER_INFO_1544)ptr;
 
@@ -1432,7 +1460,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_1545),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1545 = (PSERVER_INFO_1545)ptr;
 
@@ -1446,7 +1474,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_1546),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1546 = (PSERVER_INFO_1546)ptr;
 
@@ -1460,7 +1488,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_1547),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1547 = (PSERVER_INFO_1547)ptr;
 
@@ -1474,7 +1502,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_1548),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1548 = (PSERVER_INFO_1548)ptr;
 
@@ -1488,7 +1516,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_1549),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1549 = (PSERVER_INFO_1549)ptr;
 
@@ -1502,7 +1530,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_1550),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1550 = (PSERVER_INFO_1550)ptr;
 
@@ -1516,7 +1544,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_1552),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1552 = (PSERVER_INFO_1552)ptr;
 
@@ -1530,7 +1558,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_1553),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1553 = (PSERVER_INFO_1553)ptr;
 
@@ -1544,7 +1572,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_1554),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1554 = (PSERVER_INFO_1554)ptr;
 
@@ -1558,7 +1586,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_1555),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1555 = (PSERVER_INFO_1555)ptr;
 
@@ -1572,7 +1600,7 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(SERVER_INFO_1556),
                                           NULL);
-            goto_if_err_not_success(status, cleanup);
+            BAIL_ON_WIN_ERROR(status);
 
             a1556 = (PSERVER_INFO_1556)ptr;
 
@@ -1582,8 +1610,10 @@ NET_API_STATUS SrvSvcCopyNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info,
     }
 
     *bufptr = (uint8 *)ptr;
+
 cleanup:
     return status;
+
 error:
     if (ptr) {
         SrvSvcFreeMemory(ptr);
@@ -1597,8 +1627,7 @@ NET_API_STATUS SrvSvcCopyTIME_OF_DAY_INFO(PTIME_OF_DAY_INFO info,
     NET_API_STATUS status = ERROR_SUCCESS;
     void *ptr = NULL;
 
-    goto_if_invalid_param_err(bufptr, cleanup);
-    *bufptr = NULL;
+    BAIL_ON_INVALID_PTR(bufptr, status);
 
     if (info) {
         PTIME_OF_DAY_INFO a;
@@ -1606,7 +1635,7 @@ NET_API_STATUS SrvSvcCopyTIME_OF_DAY_INFO(PTIME_OF_DAY_INFO info,
         status = SrvSvcAllocateMemory(&ptr,
                                       sizeof(TIME_OF_DAY_INFO),
                                       NULL);
-        goto_if_err_not_success(status, cleanup);
+        BAIL_ON_WIN_ERROR(status);
 
         a = (PTIME_OF_DAY_INFO)ptr;
 
@@ -1614,8 +1643,14 @@ NET_API_STATUS SrvSvcCopyTIME_OF_DAY_INFO(PTIME_OF_DAY_INFO info,
     }
 
     *bufptr = (uint8 *)ptr;
+
 cleanup:
     return status;
+
+error:
+    *bufptr = NULL;
+
+    goto cleanup;
 }
 
 /*

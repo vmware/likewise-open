@@ -186,10 +186,9 @@ namespace System.DirectoryServices.Misc
             // DsPicker
             // 
             this.AcceptButton = this.Okbtn;
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.CancelButton = this.CancelBtn;
-            this.ClientSize = new System.Drawing.Size(476, 300);
+            this.ClientSize = new System.Drawing.Size(472, 296);
             this.ControlBox = false;
             this.Controls.Add(this.lvUserToGroup);
             this.Controls.Add(this.label2);
@@ -204,7 +203,7 @@ namespace System.DirectoryServices.Misc
             this.Name = "DsPicker";
             this.ShowIcon = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
-            this.Text = "DsPicker";            
+            this.Text = "DsPicker";
             this.ResumeLayout(false);
             this.PerformLayout();
 

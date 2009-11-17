@@ -206,8 +206,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             // 
             // UserProfilePage
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Name = "UserProfilePage";
             this.Size = new System.Drawing.Size(391, 418);
             this.pnlData.ResumeLayout(false);

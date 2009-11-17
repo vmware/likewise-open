@@ -132,7 +132,6 @@ namespace Likewise.LMC
         /// </summary>
         private void InitializeComponent()
         {
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(AboutForm));
             this.button1 = new System.Windows.Forms.Button();
             this.label1 = new System.Windows.Forms.Label();
             this.labelVersion = new System.Windows.Forms.Label();
@@ -149,7 +148,6 @@ namespace Likewise.LMC
             this.button1.Size = new System.Drawing.Size(75, 23);
             this.button1.TabIndex = 0;
             this.button1.Text = "OK";
-            this.button1.Click += new System.EventHandler(this.button1_Click);
             // 
             // label1
             // 
@@ -178,7 +176,6 @@ namespace Likewise.LMC
             this.linkLabel1.TabIndex = 6;
             this.linkLabel1.TabStop = true;
             this.linkLabel1.Text = "www.likewise.com";
-            this.linkLabel1.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLabel1_LinkClicked);
             // 
             // splashControl1
             // 
@@ -189,24 +186,9 @@ namespace Likewise.LMC
             // 
             // AboutForm
             // 
-            this.AcceptButton = this.button1;
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
-            this.CancelButton = this.button1;
-            this.ClientSize = new System.Drawing.Size(494, 368);
-            this.Controls.Add(this.linkLabel1);
-            this.Controls.Add(this.splashControl1);
-            this.Controls.Add(this.labelVersion);
-            this.Controls.Add(this.button1);
-            this.Controls.Add(this.label1);
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
-            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
-            this.MaximizeBox = false;
-            this.MaximumSize = new System.Drawing.Size(500, 400);
-            this.MinimizeBox = false;
-            this.MinimumSize = new System.Drawing.Size(500, 376);
+            this.ClientSize = new System.Drawing.Size(292, 266);
             this.Name = "AboutForm";
-            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
-            this.Text = "AboutForm";
             this.ResumeLayout(false);
 
         }

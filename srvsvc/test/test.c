@@ -28,22 +28,8 @@
  * license@likewisesoftware.com
  */
 
-#include <config.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
+#include "includes.h"
 
-#include <dce/dce_error.h>
-#include <wc16str.h>
-#include <lwio/lwio.h>
-#include <lw/ntstatus.h>
-#include <lw/winerror.h>
-
-#include <srvsvc/types.h>
-
-#include "params.h"
-#include "test.h"
 
 void AddTest(struct test *ft, const char *name, test_fn function)
 {
@@ -129,13 +115,14 @@ void display_usage()
 }
 
 
-UserCreds *pCreds = NULL;
+NET_CREDS_HANDLE hCreds = NULL;
 
 extern char *optarg;
 int verbose_mode;
 
 int main(int argc, char *argv[])
 {
+    DWORD dwError = ERROR_SUCCESS;
     int i, opt, ret;
     char *testname = NULL;
     char *host = NULL;
@@ -227,6 +214,7 @@ int main(int argc, char *argv[])
         goto done;
     }
 
+#if 0
     pCreds = malloc(sizeof(UserCreds));
     if (pCreds == NULL) {
         printf("Failed to allocate UserCreds\n");
@@ -296,6 +284,29 @@ int main(int argc, char *argv[])
     }
 
     pCreds->use_kerberos = krb5_auth;
+#endif
+
+    if (user && pass) {
+        dwError = NetCreateNtlmCredentialsA(user,
+                                            pass,
+                                            dom,
+                                            0,
+                                            &hCreds);
+        if (dwError) {
+            printf("Failed to create NTLM credentials\n");
+            goto done;
+        }
+    }
+
+    if (princ && cache) {
+        dwError = NetCreateKrb5CredentialsA(princ,
+                                            cache,
+                                            &hCreds);
+        if (dwError) {
+            printf("Failed to create KRB5 credentials\n");
+            goto done;
+        }
+    }
 
     params = get_optional_params(optional_args, &params_len);
     if ((params != NULL && params_len == 0) ||
@@ -330,36 +341,9 @@ int main(int argc, char *argv[])
 done:
     FreeTests(tests);
 
-    if (hostname) {
+    if (hostname)
+    {
         free(hostname);
-    }
-
-    if (pCreds->username) {
-        free(pCreds->username);
-    }
-
-    if (pCreds->password) {
-        free(pCreds->password);
-    }
-
-    if (pCreds->domain) {
-        free(pCreds->domain);
-    }
-
-    if (pCreds->workstation) {
-        free(pCreds->workstation);
-    }
-
-    if (pCreds->principal) {
-        free(pCreds->principal);
-    }
-
-    if (pCreds->ccache) {
-        free(pCreds->ccache);
-    }
-
-    if (pCreds) {
-        free(pCreds);
     }
 
     return 0;

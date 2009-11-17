@@ -11,6 +11,23 @@ namespace Likewise.LMC.Plugins.FileShareManager
             : base(FileShareManagerIPlugIn.PluginNodeType.SHARES)
         {
         }
+
+        private void InitializeComponent()
+        {
+            ((System.ComponentModel.ISupportInitialize)(this.picture)).BeginInit();
+            this.pnlHeader.SuspendLayout();
+            this.SuspendLayout();
+            //
+            // FileSharesPage
+            //
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
+            this.Name = "FileSharesPage";
+            ((System.ComponentModel.ISupportInitialize)(this.picture)).EndInit();
+            this.pnlHeader.ResumeLayout(false);
+            this.pnlHeader.PerformLayout();
+            this.ResumeLayout(false);
+
+        }
     }
     public class FilesBrowserPluginPage : SharesPage
     {

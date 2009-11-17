@@ -51,14 +51,15 @@ NET_API_STATUS NetFileEnum(
     srvsvc_NetFileCtr3 ctr3;
     uint32 l = level;
 
-    goto_if_invalid_param_err(b, done);
-    goto_if_invalid_param_err(bufptr, done);
-    goto_if_invalid_param_err(entriesread, done);
-    goto_if_invalid_param_err(totalentries, done);
+    BAIL_ON_INVALID_PTR(b, status);
+    BAIL_ON_INVALID_PTR(bufptr, status);
+    BAIL_ON_INVALID_PTR(entriesread, status);
+    BAIL_ON_INVALID_PTR(totalentries, status);
 
     memset(&ctr, 0, sizeof(ctr));
     memset(&ctr2, 0, sizeof(ctr2));
     memset(&ctr3, 0, sizeof(ctr3));
+
     *entriesread = 0;
     *bufptr = NULL;
 
@@ -71,7 +72,8 @@ NET_API_STATUS NetFileEnum(
         break;
     }
 
-    DCERPC_CALL(_NetrFileEnum(b,
+    DCERPC_CALL(status,
+                _NetrFileEnum(b,
                               (wchar16_t *)servername,
                               (wchar16_t *)basepath,
                               (wchar16_t *)username,
@@ -81,13 +83,13 @@ NET_API_STATUS NetFileEnum(
 
     if (l != level) {
         status = ERROR_BAD_NET_RESP;
-        goto done;
+        BAIL_ON_WIN_ERROR(status);
     }
 
     memerr = SrvSvcCopyNetFileCtr(l, &ctr, entriesread, bufptr);
-    goto_if_err_not_success(memerr, done);
+    BAIL_ON_WIN_ERROR(memerr);
 
-done:
+cleanup:
     switch (level) {
     case 2:
         if (ctr.ctr2 == &ctr2) {
@@ -101,7 +103,11 @@ done:
         break;
     }
     SrvSvcClearNetFileCtr(l, &ctr);
+
     return status;
+
+error:
+    goto cleanup;
 }
 
 

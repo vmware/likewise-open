@@ -62,6 +62,7 @@ public partial class ADEditPage : MPPage, IDirectoryPropertiesPage
 
     private string[] objectClasses = null;
     private List<string> MandatoryAttributes = null;
+    private delegate void AddRangeDelegate(ListViewItem[] range);
     
     #endregion
     
@@ -398,10 +399,28 @@ public partial class ADEditPage : MPPage, IDirectoryPropertiesPage
                 i++;
             }
             
-            lvAttrs.Items.AddRange(lvItemArr);
+            //lvAttrs.Items.AddRange(lvItemArr);
+            AddRangeDelegate d = ThreadSafeAddRange;
+            this.Invoke(d, new object[]
+            {
+                lvItemArr
+            }
+            );
         }
         lvwColumnSorter.Order = SortOrder.Ascending;
         this.lvAttrs.Sort();
+    }
+
+    /// <summary>
+    /// Adding the Array of listview items through the AddRange function call
+    /// </summary>
+    /// <param name="range"></param>
+    private void ThreadSafeAddRange(ListViewItem[] range)
+    {
+        if (range != null && range.Length > 0)
+        {
+            this.lvAttrs.Items.AddRange(range);
+        }
     }
     
     /// <summary>

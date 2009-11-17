@@ -221,6 +221,26 @@ NetAllocateSamrUserInfo26FromPassword(
 
 static
 DWORD
+NetAllocateSamrUserInfo13FromUserInfo1007(
+    PVOID  *ppCursor,
+    PDWORD  pdwSpaceLeft,
+    PVOID   pSource,
+    PDWORD  pdwSize
+    );
+
+
+static
+DWORD
+NetAllocateSamrUserInfo16FromUserInfo1008(
+    PVOID  *ppCursor,
+    PDWORD  pdwSpaceLeft,
+    PVOID   pSource,
+    PDWORD  pdwSize
+    );
+
+
+static
+DWORD
 NetAllocateSamrUserInfo8FromUserInfo1011(
     PVOID  *ppCursor,
     PDWORD  pdwSpaceLeft,
@@ -1479,6 +1499,24 @@ NetAllocateSamrUserInfo(
                                          pSource,
                                          pdwSize);
             dwSamrLevel = 21;
+            break;
+
+        case 1007:
+            err = NetAllocateSamrUserInfo13FromUserInfo1007(
+                                         &pCursor,
+                                         pdwSpaceLeft,
+                                         pSource,
+                                         pdwSize);
+            dwSamrLevel = 13;
+            break;
+
+        case 1008:
+            err = NetAllocateSamrUserInfo16FromUserInfo1008(
+                                         &pCursor,
+                                         pdwSpaceLeft,
+                                         pSource,
+                                         pdwSize);
+            dwSamrLevel = 16;
             break;
 
         case 1011:
@@ -3220,6 +3258,119 @@ error:
     goto cleanup;
 }
 
+
+static
+DWORD
+NetAllocateSamrUserInfo13FromUserInfo1007(
+    PVOID  *ppCursor,
+    PDWORD  pdwSpaceLeft,
+    PVOID   pSource,
+    PDWORD  pdwSize
+    )
+{
+    DWORD err = ERROR_SUCCESS;
+    PVOID pCursor = NULL;
+    DWORD dwSpaceLeft = 0;
+    DWORD dwSize = 0;
+    PUSER_INFO_1007 pUserInfo1007 = (PUSER_INFO_1007)pSource;
+
+    if (pdwSpaceLeft)
+    {
+        dwSpaceLeft = *pdwSpaceLeft;
+    }
+
+    if (pdwSize)
+    {
+        dwSize = *pdwSize;
+    }
+
+    if (ppCursor)
+    {
+        pCursor = *ppCursor;
+    }
+
+    /* description */
+    err = NetAllocBufferUnicodeStringFromWC16String(
+                                   &pCursor,
+                                   &dwSpaceLeft,
+                                   pUserInfo1007->usri1007_comment,
+                                   &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    if (pdwSpaceLeft)
+    {
+        *pdwSpaceLeft = dwSpaceLeft;
+    }
+
+    if (pdwSize)
+    {
+        *pdwSize = dwSize;
+    }
+
+cleanup:
+    return err;
+
+error:
+    goto cleanup;
+}
+
+
+
+static
+DWORD
+NetAllocateSamrUserInfo16FromUserInfo1008(
+    PVOID  *ppCursor,
+    PDWORD  pdwSpaceLeft,
+    PVOID   pSource,
+    PDWORD  pdwSize
+    )
+{
+    DWORD err = ERROR_SUCCESS;
+    PVOID pCursor = NULL;
+    DWORD dwSpaceLeft = 0;
+    DWORD dwSize = 0;
+    PUSER_INFO_1008 pUserInfo1008 = (PUSER_INFO_1008)pSource;
+
+    if (pdwSpaceLeft)
+    {
+        dwSpaceLeft = *pdwSpaceLeft;
+    }
+
+    if (pdwSize)
+    {
+        dwSize = *pdwSize;
+    }
+
+    if (ppCursor)
+    {
+        pCursor = *ppCursor;
+    }
+
+    /* account_flags (make sure the normal user account flag is set */
+    err = NetAllocBufferAcbFlagsFromUserFlags(
+                                   &pCursor,
+                                   &dwSpaceLeft,
+                                   pUserInfo1008->usri1008_flags,
+                                   &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+
+    if (pdwSpaceLeft)
+    {
+        *pdwSpaceLeft = dwSpaceLeft;
+    }
+
+    if (pdwSize)
+    {
+        *pdwSize = dwSize;
+    }
+
+cleanup:
+    return err;
+
+error:
+    goto cleanup;
+}
 
 
 NTSTATUS PushUserInfo1(UserInfo **sinfo, uint32 *slevel, USER_INFO_1 *ninfo)

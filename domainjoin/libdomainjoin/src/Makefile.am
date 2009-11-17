@@ -8,7 +8,9 @@ ADDITIONAL_CFLAGS =
 ADDITIONAL_LIBS = \
 	$(LWDNS_LIBS)   \
 	@EVENTLOG_LDFLAGS@ \
-	@EVENTLOG_LIBS@
+	@EVENTLOG_LIBS@\
+	@LWREG_LDFLAGS@\
+	@LWREG_LIBS@
 endif
 
 AM_CFLAGS = $(CPPFLAGS) -Wall -Werror-implicit-function-declaration
@@ -20,6 +22,7 @@ AM_CFLAGS += -I$(top_srcdir)/include  \
           @NETLOGON_INCLUDE@     \
           @LWDNS_INCLUDE@        \
           @EVENTLOG_INCLUDES@     \
+          @LWREG_INCLUDES@     \
           $(LSASS_INCLUDES)     \
           $(LWI_OS_FLAGS)        \
           $(ADDITIONAL_CFLAGS)

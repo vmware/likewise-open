@@ -63,21 +63,17 @@ namespace Likewise.LMC.Plugins.LUG
             this.errorProvider = new System.Windows.Forms.ErrorProvider(this.components);
             ((System.ComponentModel.ISupportInitialize)(this.errorProvider)).BeginInit();
             this.SuspendLayout();
-            // 
-            // btnApply
-            //
-            this.btnApply.Location = new System.Drawing.Point(306, 6);
             //
             // btnOK
             //
-            this.btnOK.Location = new System.Drawing.Point(146, 6);
+            this.btnOK.Click += new System.EventHandler(this.btnOK_Click);
             //
             // btnCancel
             //
-            this.btnCancel.Location = new System.Drawing.Point(227, 6);
+            this.btnCancel.Click += new System.EventHandler(this.btnCancel_Click);
             //
             // errorProvider
-            // 
+            //
             this.errorProvider.BlinkStyle = System.Windows.Forms.ErrorBlinkStyle.NeverBlink;
             this.errorProvider.ContainerControl = this;
             // 

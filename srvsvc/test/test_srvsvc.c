@@ -28,19 +28,8 @@
  * license@likewisesoftware.com
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include "includes.h"
 
-#include <lw/winerror.h>
-#include <dce/dce_error.h>
-#include <wc16str.h>
-
-#include <srvsvc/srvsvc.h>
-
-#include "../client/srvsvc_util.h"
-#include "test.h"
-#include "params.h"
 
 static const char *Win32ErrorToSymbolicName(NET_API_STATUS err)
 {
@@ -132,6 +121,31 @@ handle_t CreateSrvSvcBinding(handle_t *binding, const wchar16_t *host)
 }
 
 
+static
+NET_API_STATUS
+CleanupShare(
+    PCWSTR pwszHostname,
+    PCWSTR pwszSharename
+    )
+{
+    NET_API_STATUS err = ERROR_SUCCESS;
+    handle_t hSrvsvc = NULL;
+
+    CreateSrvSvcBinding(&hSrvsvc, pwszHostname);
+
+    err = NetrShareDel(hSrvsvc,
+                       pwszHostname,
+                       pwszSharename,
+                       0);
+    if (err == NERR_NetNameNotFound)
+    {
+        err = ERROR_SUCCESS;
+    }
+
+    return err;
+}
+
+
 int TestNetConnectionEnum(struct test *t, const wchar16_t *hostname,
                       const wchar16_t *user, const wchar16_t *pass,
                       struct parameter *options, int optcount)
@@ -145,7 +159,7 @@ int TestNetConnectionEnum(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     srvsvc_binding = CreateSrvSvcBinding(&srvsvc_binding, hostname);
     if (srvsvc_binding == NULL) goto done;
@@ -304,7 +318,7 @@ int TestNetFileEnum(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     srvsvc_binding = CreateSrvSvcBinding(&srvsvc_binding, hostname);
     if (srvsvc_binding == NULL) goto done;
@@ -490,7 +504,7 @@ int TestNetFileGetInfo(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     srvsvc_binding = CreateSrvSvcBinding(&srvsvc_binding, hostname);
     if (srvsvc_binding == NULL) goto done;
@@ -617,7 +631,7 @@ int TestNetFileClose(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     srvsvc_binding = CreateSrvSvcBinding(&srvsvc_binding, hostname);
     if (srvsvc_binding == NULL) goto done;
@@ -660,7 +674,7 @@ int TestNetSessionEnum(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     srvsvc_binding = CreateSrvSvcBinding(&srvsvc_binding, hostname);
     if (srvsvc_binding == NULL) goto done;
@@ -763,138 +777,145 @@ done:
 }
 
 
-int TestNetShareAdd(struct test *t, const wchar16_t *hostname,
-                    const wchar16_t *user, const wchar16_t *pass,
-                    struct parameter *options, int optcount)
+static
+BOOL
+CallNetShareAdd(
+    PCWSTR pwszHostname,
+    DWORD  dwLevel,
+    PWSTR  pwszShareName,
+    DWORD  dwType,
+    PWSTR  pwszComment,
+    PWSTR  pwszPath
+    )
 {
-    const uint32 def_infolevel = 0;
-    const uint32 def_type = 0;
-    const char *def_sharename = "TEST";
-    const char *def_path = "/tmp";
-    const char *def_comment = "";
-
+    BOOL ret = TRUE;
     NET_API_STATUS err = ERROR_SUCCESS;
-    handle_t srvsvc_binding;
-    enum param_err perr = perr_success;
-    SHARE_INFO_0 info0;
-    SHARE_INFO_1 info1;
-    SHARE_INFO_2 info2;
-    SHARE_INFO_501 info501;
-    SHARE_INFO_502 info502;
-    PSHARE_INFO_502 shi502_enum;
-    PSHARE_INFO_502 ginfo502 = NULL;
-    uint8 *bufptr = NULL;
-    uint32 parm_err = 0;
-    uint32 entriesread = 0;
-    uint32 totalentries = 0;
-    uint32 i;
-    uint32 infolevel = 0;
-    wchar16_t *sharename = NULL;
-    uint32 type = 0;
-    wchar16_t *path = NULL;
-    wchar16_t *comment = NULL;
+    PVOID pBuffer = NULL;
+    SHARE_INFO_0 Info0 = {0};
+    SHARE_INFO_2 Info2 = {0};
+    DWORD dwParmErr = 0;
 
-    TESTINFO(t, hostname, user, pass);
-
-    perr = fetch_value(options, optcount, "infolevel", pt_uint32, &infolevel,
-                       &def_infolevel);
-    if (!perr_is_ok(perr)) perr_fail(perr);
-
-    perr = fetch_value(options, optcount, "sharename", pt_w16string,
-                       &sharename, &def_sharename);
-    if (!perr_is_ok(perr)) perr_fail(perr);
-
-    perr = fetch_value(options, optcount, "path", pt_w16string,
-                       &path, &def_path);
-    if (!perr_is_ok(perr)) perr_fail(perr);
-
-    perr = fetch_value(options, optcount, "comment", pt_w16string,
-                       &comment, &def_comment);
-    if (!perr_is_ok(perr)) perr_fail(perr);
-
-    perr = fetch_value(options, optcount, "type", pt_uint32, &type,
-                       &def_type);
-    if (!perr_is_ok(perr)) perr_fail(perr);
-
-    SET_SESSION_CREDS(pCreds);
-
-    srvsvc_binding = CreateSrvSvcBinding(&srvsvc_binding, hostname);
-    if (srvsvc_binding == NULL) goto done;
-
-    INPUT_ARG_PTR(srvsvc_binding);
-    INPUT_ARG_WSTR(hostname);
-    INPUT_ARG_WSTR(sharename);
-    INPUT_ARG_UINT(infolevel);
-    INPUT_ARG_UINT(type);
-    INPUT_ARG_WSTR(path);
-    INPUT_ARG_WSTR(comment);
-
-    switch (infolevel) {
+    switch (dwLevel)
+    {
     case 0:
-        memset((void*)&info0, 0, sizeof(info0));
-        info0.shi0_netname = sharename;
+        Info0.shi0_netname = pwszShareName;
 
-        bufptr = (uint8*)&info0;
+        pBuffer = &Info0;
         break;
-
-    case 1:
-        memset((void*)&info1, 0, sizeof(info1));
-        info1.shi1_netname = sharename;
-        info1.shi1_type = type;
-        info1.shi1_remark = comment;
-
-        bufptr = (uint8*)&info1;
-       break;
 
     case 2:
-        memset((void*)&info2, 0, sizeof(info2));
-        info2.shi2_netname = sharename;
-        info2.shi2_type = type;
-        info2.shi2_remark = comment;
-        info2.shi2_path = path;
+        Info2.shi2_netname = pwszShareName;
+        Info2.shi2_type    = dwType;
+        Info2.shi2_remark  = pwszComment;
+        Info2.shi2_path    = pwszPath;
 
-        bufptr = (uint8*)&info2;
-        break;
-
-    case 501:
-        memset((void*)&info501, 0, sizeof(info501));
-        info501.shi501_netname = sharename;
-        info501.shi501_type = type;
-        info501.shi501_remark = comment;
-
-        bufptr = (uint8*)&info501;
-        break;
-
-    case 502:
-        memset((void*)&info502, 0, sizeof(info502));
-        info502.shi502_netname = sharename;
-        info502.shi502_type = type;
-        info502.shi502_remark = comment;
-        info502.shi502_path = path;
-
-        bufptr = (uint8*)&info502;
+        pBuffer = &Info2;
         break;
     }
 
-    parm_err = 0;
-    CALL_NETAPI(err = NetShareAdd(srvsvc_binding,
-                                  hostname,/*servername*/
-                                  infolevel,/*level*/
-                                  bufptr,/*bufptr*/
-                                  NULL/*parm_err*/
-                                  ));
+    err = NetShareAdd(pwszHostname,
+                      dwLevel,
+                      pBuffer,
+                      &dwParmErr);
+    ret = (err == ERROR_SUCCESS);
 
-    FreeSrvSvcBinding(&srvsvc_binding);
+    return ret;
+}
 
+
+int
+TestNetShareAdd(
+    struct test *t,
+    const wchar16_t *hostname,
+    const wchar16_t *user,
+    const wchar16_t *pass,
+    struct parameter *options,
+    int optcount
+    )
+{
+    const DWORD dwDefaultLevel = (DWORD)(-1);
+    const DWORD dwDefaultType = 0;
+    const PSTR pszDefaultName = "TEST";
+    const PSTR pszDefaultPath = "/tmp";
+    const PSTR pszDefaultComment = "Test Comment";
+
+    NET_API_STATUS err = ERROR_SUCCESS;
+    NTSTATUS status = STATUS_SUCCESS;
+    BOOL ret = TRUE;
+    enum param_err perr = perr_success;
+    DWORD dwSelectedLevels[] = { 0 };
+    DWORD dwAvailableLevels[] = { 2 };
+    DWORD dwLevel = 0;
+    PDWORD pdwLevels = NULL;
+    DWORD dwNumLevels = 0;
+    PWSTR pwszSharename = NULL;
+    DWORD dwType = 0;
+    PWSTR pwszPath = NULL;
+    PWSTR pwszComment = NULL;
+    DWORD i = 0;
+
+    TESTINFO(t, hostname, user, pass);
+
+    perr = fetch_value(options, optcount, "level", pt_uint32,
+                       &dwLevel, &dwDefaultLevel);
+    if (!perr_is_ok(perr)) perr_fail(perr);
+
+    perr = fetch_value(options, optcount, "sharename", pt_w16string,
+                       &pwszSharename, &pszDefaultName);
+    if (!perr_is_ok(perr)) perr_fail(perr);
+
+    perr = fetch_value(options, optcount, "path", pt_w16string,
+                       &pwszPath, &pszDefaultPath);
+    if (!perr_is_ok(perr)) perr_fail(perr);
+
+    perr = fetch_value(options, optcount, "comment", pt_w16string,
+                       &pwszComment, &pszDefaultComment);
+    if (!perr_is_ok(perr)) perr_fail(perr);
+
+    perr = fetch_value(options, optcount, "type", pt_uint32,
+                       &dwType, &dwDefaultType);
+    if (!perr_is_ok(perr)) perr_fail(perr);
+
+    SET_SESSION_CREDS(hCreds);
+
+    if (dwLevel == (DWORD)(-1))
+    {
+        pdwLevels   = dwAvailableLevels;
+        dwNumLevels = sizeof(dwAvailableLevels)/sizeof(dwAvailableLevels[0]);
+    }
+    else
+    {
+        dwSelectedLevels[0] = dwLevel;
+        pdwLevels   = dwSelectedLevels;
+        dwNumLevels = sizeof(dwSelectedLevels)/sizeof(dwSelectedLevels[0]);
+    }
+
+    for (i = 0; i < dwNumLevels; i++)
+    {
+        dwLevel = pdwLevels[i];
+
+        err = CleanupShare(hostname, pwszSharename);
+        if (err != 0) netapi_fail(err);
+
+        ret &= CallNetShareAdd(hostname,
+                               dwLevel,
+                               pwszSharename,
+                               dwType,
+                               pwszComment,
+                               pwszPath);
+    }
+
+    err = CleanupShare(hostname, pwszSharename);
+    if (err != 0) netapi_fail(err);
+
+done:
     RELEASE_SESSION_CREDS;
 
     SrvSvcDestroyMemory();
 
-    return TRUE;
-
-done:
-    SrvSvcDestroyMemory();
-    return FALSE;
+    return (err == ERROR_SUCCESS &&
+            status == STATUS_SUCCESS &&
+            ret);
 }
 
 int TestNetShareEnum(struct test *t, const wchar16_t *hostname,
@@ -914,7 +935,7 @@ int TestNetShareEnum(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     srvsvc_binding = CreateSrvSvcBinding(&srvsvc_binding, hostname);
     if (srvsvc_binding == NULL) goto done;
@@ -1013,7 +1034,7 @@ int TestNetShareGetInfo(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     perr = fetch_value(options, optcount, "infolevel", pt_uint32, &infolevel,
                        &def_infolevel);
@@ -1142,7 +1163,7 @@ int TestNetShareSetInfo(struct test *t, const wchar16_t *hostname,
                        &def_type);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     srvsvc_binding = CreateSrvSvcBinding(&srvsvc_binding, hostname);
     if (srvsvc_binding == NULL) goto done;
@@ -1241,7 +1262,7 @@ int TestNetShareDel(struct test *t, const wchar16_t *hostname,
                        &sharename, &def_sharename);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     srvsvc_binding = CreateSrvSvcBinding(&srvsvc_binding, hostname);
     if (srvsvc_binding == NULL) goto done;
@@ -1250,7 +1271,7 @@ int TestNetShareDel(struct test *t, const wchar16_t *hostname,
     INPUT_ARG_WSTR(hostname);
     INPUT_ARG_WSTR(sharename);
 
-    CALL_NETAPI(err = NetShareDel(srvsvc_binding,
+    CALL_NETAPI(err = NetrShareDel(srvsvc_binding,
                                   hostname,/*servername*/
                                   sharename,/*netname*/
                                   0/*reserved*/
@@ -1280,7 +1301,7 @@ int TestNetServerGetInfo(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     srvsvc_binding = CreateSrvSvcBinding(&srvsvc_binding, hostname);
     if (srvsvc_binding == NULL) goto done;
@@ -1402,7 +1423,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     srvsvc_binding = CreateSrvSvcBinding(&srvsvc_binding, hostname);
     if (srvsvc_binding == NULL) goto done;
@@ -2244,7 +2265,7 @@ int TestNetRemoteTOD(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(pCreds);
+    SET_SESSION_CREDS(hCreds);
 
     srvsvc_binding = CreateSrvSvcBinding(&srvsvc_binding, hostname);
     if (srvsvc_binding == NULL) goto done;

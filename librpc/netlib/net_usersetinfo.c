@@ -91,6 +91,7 @@ NetUserSetInfo(
           dwLevel == 2 ||
           dwLevel == 3 ||
           dwLevel == 4 ||
+          dwLevel == 1008 ||
           dwLevel == 1011))
     {
         err = ERROR_INVALID_LEVEL;

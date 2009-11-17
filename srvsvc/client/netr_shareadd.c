@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -31,76 +31,68 @@
 #include "includes.h"
 
 
-NET_API_STATUS NetShareAdd(
-    handle_t b,
-    const wchar16_t *servername,
-    uint32 level,
-    uint8 *bufptr,
-    uint32 *parm_err
+NET_API_STATUS
+NetrShareAdd(
+    IN  handle_t hBinding,
+    IN  PCWSTR   pwszServername,
+    IN  DWORD    dwLevel,
+    IN  PVOID    pBuffer,
+    OUT PDWORD   pdwParmErr
     )
 {
-    NET_API_STATUS status = ERROR_SUCCESS;
-    srvsvc_NetShareInfo info;
-    PSHARE_INFO_502 buf502 = NULL;
-    SHARE_INFO_502_I info502;
-    uint8 *sdbuf = NULL;
+    NET_API_STATUS err = ERROR_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    srvsvc_NetShareInfo Info;
+    DWORD dwParmErr = 0;
+    PWSTR pwszServer = NULL;
 
-    goto_if_invalid_param_err(b, done);
+    BAIL_ON_INVALID_PTR(hBinding, ntStatus);
 
-    memset(&info, 0, sizeof(info));
-    memset(&info502, 0, sizeof(info502));
+    if (pwszServername)
+    {
+        err = LwAllocateWc16String(&pwszServer, pwszServername);
+        BAIL_ON_WIN_ERROR(err);
+    }
 
-    switch (level) {
-    case 0:
-        info.info0 = (PSHARE_INFO_0)bufptr;
-        break;
+    memset(&Info, 0, sizeof(Info));
 
-    case 1:
-        info.info1 = (PSHARE_INFO_1)bufptr;
-        break;
-
+    switch (dwLevel) {
     case 2:
-        info.info2 = (PSHARE_INFO_2)bufptr;
-        break;
-
-    case 501:
-        info.info501 = (PSHARE_INFO_501)bufptr;
+        Info.info2 = (PSHARE_INFO_2)pBuffer;
         break;
 
     case 502:
-        buf502 = (PSHARE_INFO_502)bufptr;
-
-        if (buf502)
-        {
-            if ((buf502->shi502_security_descriptor && !buf502->shi502_reserved) ||
-                (!buf502->shi502_security_descriptor && buf502->shi502_reserved))
-            {
-                status = ERROR_INVALID_PARAMETER;
-                goto done;
-            }
-
-            info502.shi502_netname             = buf502->shi502_netname;
-            info502.shi502_type                = buf502->shi502_type;
-            info502.shi502_remark              = buf502->shi502_remark;
-            info502.shi502_permissions         = buf502->shi502_permissions;
-            info502.shi502_max_uses            = buf502->shi502_max_uses;
-            info502.shi502_current_uses        = buf502->shi502_current_uses;
-            info502.shi502_path                = buf502->shi502_path;
-            info502.shi502_password            = buf502->shi502_password;
-            info502.shi502_reserved            = buf502->shi502_reserved;
-            info502.shi502_security_descriptor = buf502->shi502_security_descriptor;
-
-            info.info502 = &info502;
-        }
+        /* No support for level 502 yet */
+    default:
+        err = ERROR_INVALID_LEVEL;
+        BAIL_ON_WIN_ERROR(err);
         break;
     }
 
-    DCERPC_CALL(_NetrShareAdd(b, (wchar16_t *)servername,
-                              level, info, parm_err));
+    DCERPC_CALL(err, _NetrShareAdd(hBinding,
+                                   pwszServer,
+                                   dwLevel,
+                                   Info,
+                                   &dwParmErr));
 
-done:
-    SAFE_FREE(sdbuf);
-    return status;
+    if (pdwParmErr)
+    {
+        *pdwParmErr = dwParmErr;
+    }
+
+cleanup:
+    SAFE_FREE(pwszServer);
+
+    if (err == ERROR_SUCCESS &&
+        ntStatus != STATUS_SUCCESS)
+    {
+        err = LwNtStatusToWin32Error(ntStatus);
+    }
+
+    return err;
+
+error:
+    goto cleanup;
 }
 
 

@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -41,7 +41,7 @@ NET_API_STATUS NetServerSetInfo(
     NET_API_STATUS status = ERROR_SUCCESS;
     srvsvc_NetSrvInfo info;
 
-    goto_if_invalid_param_err(b, done);
+    BAIL_ON_INVALID_PTR(b, status);
 
     memset(&info, 0, sizeof(info));
 
@@ -225,11 +225,15 @@ NET_API_STATUS NetServerSetInfo(
         break;
     }
 
-    DCERPC_CALL(_NetrServerSetInfo(b, (wchar16_t *)servername,
+    DCERPC_CALL(status,
+                _NetrServerSetInfo(b, (wchar16_t *)servername,
                                    level, info, parm_err));
 
-done:
+cleanup:
     return status;
+
+error:
+    goto cleanup;
 }
 
 

@@ -227,8 +227,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             // 
             // ComputerMemOfPage
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Name = "ComputerMemOfPage";
             this.Size = new System.Drawing.Size(386, 411);
             this.pnlData.ResumeLayout(false);

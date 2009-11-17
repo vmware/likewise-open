@@ -86,24 +86,13 @@ namespace Likewise.LMC.ServerControl
             this.groupBox1.Size = new System.Drawing.Size(200, 100);
             this.groupBox1.TabIndex = 0;
             this.groupBox1.TabStop = false;
-            // 
+            //
             // StringRequestDialog
-            // 
-            this.AcceptButton = this.okButton;
+            //
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
-            this.BackColor = System.Drawing.SystemColors.MenuBar;
-            this.CancelButton = this.cancelButton;
-            this.ClientSize = new System.Drawing.Size(359, 139);
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
+            this.ClientSize = new System.Drawing.Size(292, 266);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
-            this.MaximizeBox = false;
-            this.MinimizeBox = false;
-            this.MinimumSize = new System.Drawing.Size(316, 167);
             this.Name = "StringRequestDialog";
-            this.SizeGripStyle = System.Windows.Forms.SizeGripStyle.Show;
-            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
-            this.Text = "Caption";
-            this.TopMost = true;
             this.ResumeLayout(false);
 
         }

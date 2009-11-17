@@ -41,17 +41,21 @@ NET_API_STATUS NetRemoteTOD(
     NET_API_STATUS memerr = ERROR_SUCCESS;
     PTIME_OF_DAY_INFO info = NULL;
 
-    goto_if_invalid_param_err(b, done);
-    goto_if_invalid_param_err(bufptr, done);
+    BAIL_ON_INVALID_PTR(b, status);
+    BAIL_ON_INVALID_PTR(bufptr, status);
 
-    DCERPC_CALL(_NetrRemoteTOD(b, (wchar16_t *)servername, &info));
+    DCERPC_CALL(status,
+                _NetrRemoteTOD(b, (wchar16_t *)servername, &info));
 
     memerr = SrvSvcCopyTIME_OF_DAY_INFO(info, bufptr);
-    goto_if_err_not_success(memerr, done);
+    BAIL_ON_WIN_ERROR(memerr);
 
-done:
+cleanup:
     SAFE_FREE(info);
     return status;
+
+error:
+    goto cleanup;
 }
 
 

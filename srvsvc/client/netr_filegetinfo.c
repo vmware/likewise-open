@@ -43,21 +43,25 @@ NET_API_STATUS NetFileGetInfo(
     NET_API_STATUS memerr = ERROR_SUCCESS;
     srvsvc_NetFileInfo info;
 
-    goto_if_invalid_param_err(b, done);
-    goto_if_invalid_param_err(bufptr, done);
+    BAIL_ON_INVALID_PTR(b, status);
+    BAIL_ON_INVALID_PTR(bufptr, status);
 
     memset(&info, 0, sizeof(info));
     *bufptr = NULL;
 
-    DCERPC_CALL(_NetrFileGetInfo(b, (wchar16_t *)servername,
+    DCERPC_CALL(status,
+                _NetrFileGetInfo(b, (wchar16_t *)servername,
                                  fileid, level, &info));
 
     memerr = SrvSvcCopyNetFileInfo(level, &info, bufptr);
-    goto_if_err_not_success(memerr, done);
+    BAIL_ON_WIN_ERROR(memerr);
 
-done:
+cleanup:
     SrvSvcClearNetFileInfo(level, &info);
     return status;
+
+error:
+    goto cleanup;
 }
 
 

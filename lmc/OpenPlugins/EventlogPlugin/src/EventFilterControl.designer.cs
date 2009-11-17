@@ -409,8 +409,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             // 
             // EventFilterControl
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Name = "EventFilterControl";
             this.Size = new System.Drawing.Size(365, 426);
             this.pnlData.ResumeLayout(false);

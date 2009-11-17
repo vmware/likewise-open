@@ -120,8 +120,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             // ResourceListDialog
             // 
             this.AcceptButton = this.btnDisplay;
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.CancelButton = this.btnOK;
             this.ClientSize = new System.Drawing.Size(239, 190);
             this.Controls.Add(this.btnDisplay);

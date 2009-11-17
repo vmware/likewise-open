@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -66,11 +66,12 @@
 static NTSTATUS MemPtrNodeAppend(PtrList *list, PtrNode *node)
 {
     NTSTATUS status = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
     PtrNode *last = NULL;
     int locked = 0;
 
-    goto_if_invalid_param_ntstatus(list, done);
-    goto_if_invalid_param_ntstatus(node, done);
+    BAIL_ON_INVALID_PTR(list, dwError);
+    BAIL_ON_INVALID_PTR(node, dwError);
 
     PTR_LIST_LOCK(list);
 
@@ -89,30 +90,38 @@ static NTSTATUS MemPtrNodeAppend(PtrList *list, PtrNode *node)
 
     node->next = NULL;
 
-done:
+cleanup:
     PTR_LIST_UNLOCK(list);
+
+    if (status == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        status = LwWin32ErrorToNtStatus(dwError);
+    }
+
     return status;
 
 error:
-    goto done;
+    goto cleanup;
 }
 
 
 static NTSTATUS MemPtrNodeRemove(PtrList *list, PtrNode *node)
 {
     NTSTATUS status = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
     PtrNode *prev = NULL;
     int locked = 0;
 
-    goto_if_invalid_param_ntstatus(list, done);
-    goto_if_invalid_param_ntstatus(node, done);
+    BAIL_ON_INVALID_PTR(list, dwError);
+    BAIL_ON_INVALID_PTR(node, dwError);
 
     PTR_LIST_LOCK(list);
 
     /* Simple case - this happens to be the first node */
     if (node == list->p) {
         list->p = node->next;
-        goto done;
+        goto cleanup;
     }
 
     /* Find node that is previous to the requested one */
@@ -122,30 +131,38 @@ static NTSTATUS MemPtrNodeRemove(PtrList *list, PtrNode *node)
     }
 
     if (prev == NULL) {
-        status = STATUS_INVALID_PARAMETER;
-        goto error;
+        dwError = ERROR_INVALID_PARAMETER;
+        BAIL_ON_WIN_ERROR(dwError);
     }
 
     prev->next = node->next;
 
-done:
+cleanup:
     PTR_LIST_UNLOCK(list);
+
+    if (status == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        status = LwWin32ErrorToNtStatus(dwError);
+    }
+
     return status;
 
 error:
-    goto done;
+    goto cleanup;
 }
 
 
 NTSTATUS MemPtrListInit(PtrList **out)
 {
     NTSTATUS status = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
     PtrList *list = NULL;
 
-    goto_if_invalid_param_ntstatus(out, done);
+    BAIL_ON_INVALID_PTR(out, status);
 
     list = (PtrList*) malloc(sizeof(PtrList));
-    goto_if_no_memory_ntstatus(list, error);
+    BAIL_ON_NULL_PTR(list, dwError);
 
     list->p = NULL;
 
@@ -155,24 +172,31 @@ NTSTATUS MemPtrListInit(PtrList **out)
 
     *out = list;
 
-done:
+cleanup:
+    if (status == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        status = LwWin32ErrorToNtStatus(dwError);
+    }
+
     return status;
 
 error:
     SAFE_FREE(list);
     *out = NULL;
-    goto done;
+    goto cleanup;
 }
 
 
 NTSTATUS MemPtrListDestroy(PtrList **out)
 {
     NTSTATUS status = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
     PtrList *list = NULL;
     PtrNode *node = NULL;
     int ret = 0;
 
-    goto_if_invalid_param_ntstatus(out, done);
+    BAIL_ON_INVALID_PTR(out, dwError);
 
     list = *out;
 
@@ -194,21 +218,31 @@ NTSTATUS MemPtrListDestroy(PtrList **out)
     SAFE_FREE(list);
     *out = NULL;
 
-done:
+cleanup:
+    if (status == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        status = LwWin32ErrorToNtStatus(dwError);
+    }
+
     return status;
+
+error:
+    goto cleanup;
 }
 
 
 NTSTATUS MemPtrAllocate(PtrList *list, void **out, size_t size, void *dep)
 {
     NTSTATUS status = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
     PtrNode *node = NULL;
 
-    goto_if_invalid_param_ntstatus(out, done);
+    BAIL_ON_INVALID_PTR(out, dwError);
 
     /* Allocate new node */
     node = (PtrNode*) malloc(sizeof(PtrNode));
-    goto_if_no_memory_ntstatus(node, done);
+    BAIL_ON_NULL_PTR(node, dwError);
 
     node->ptr  = NULL;
     node->dep  = dep;
@@ -218,22 +252,27 @@ NTSTATUS MemPtrAllocate(PtrList *list, void **out, size_t size, void *dep)
     {
         /* Allocate the actual memory */
         node->ptr = malloc(node->size);
-        goto_if_no_memory_ntstatus(node->ptr, error);
+        BAIL_ON_NULL_PTR(node->ptr, dwError);
 
         /* ... and initialise it to zero */
         memset(node->ptr, 0, node->size);
     }
 
     status = MemPtrNodeAppend(list, node);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NT_STATUS(status);
 
     *out = node->ptr;
 
-done:
+cleanup:
+    if (status == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        status = LwWin32ErrorToNtStatus(dwError);
+    }
+
     return status;
 
 error:
-
     if (node && node->ptr) {
         SAFE_FREE(node->ptr);
     }
@@ -241,16 +280,17 @@ error:
     SAFE_FREE(node);
     *out = NULL;
 
-    goto done;
+    goto cleanup;
 }
 
 
 NTSTATUS MemPtrFree(PtrList *list, void *ptr)
 {
     NTSTATUS status = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
     PtrNode *node = NULL;
 
-    goto_if_invalid_param_ntstatus(ptr, done);
+    BAIL_ON_INVALID_PTR(ptr, dwError);
 
     /* Free the pointer and all pointer (nodes) depending on it */
     node = list->p;
@@ -263,7 +303,7 @@ NTSTATUS MemPtrFree(PtrList *list, void *ptr)
             node   = node->next;
 
             status = MemPtrNodeRemove(list, rmnode);
-            goto_if_ntstatus_not_success(status, done);
+            BAIL_ON_NT_STATUS(status);
 
             free(rmnode->ptr);
             free(rmnode);
@@ -273,37 +313,47 @@ NTSTATUS MemPtrFree(PtrList *list, void *ptr)
         node = node->next;
     }
 
-done:
+cleanup:
     return status;
+
+error:
+    goto cleanup;
 }
 
 
 NTSTATUS MemPtrAddDependant(PtrList *list, void *ptr, void *dep)
 {
     NTSTATUS status = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
     PtrNode *node = NULL;
 
-    goto_if_invalid_param_ntstatus(ptr, done);
+    BAIL_ON_INVALID_PTR(ptr, dwError);
 
     /* Allocate new node */
     node = (PtrNode*) malloc(sizeof(PtrNode));
-    goto_if_no_memory_ntstatus(node, done);
+    BAIL_ON_NULL_PTR(node, dwError);
 
     node->ptr  = ptr;
     node->dep  = dep;
     node->size = 0;    /* size is unknown when adding dependency */
 
     status = MemPtrNodeAppend(list, node);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NT_STATUS(status);
 
-done:
+cleanup:
+    if (status == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        status = LwWin32ErrorToNtStatus(dwError);
+    }
+
     return status;
 
 error:
     /* Only the node should be freed here. node->ptr should
        be left intact */
     SAFE_FREE(node);
-    goto done;
+    goto cleanup;
 }
 
 

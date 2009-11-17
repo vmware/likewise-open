@@ -63,6 +63,7 @@ public partial class ADUCPage : StandardPage
     private ADUCDirectoryNode[] ChildNodes = null;
     public int Count = 0;
     public static string ADObjectType = string.Empty;
+    ADUCPlugin plugin = null;
        
     #endregion
     
@@ -93,56 +94,20 @@ public partial class ADUCPage : StandardPage
     /// <param name="lmctreeview"></param>
     public override void SetPlugInInfo(IPlugInContainer ccontainer, IPlugIn pi, LACTreeNode treeNode, LWTreeView lmctreeview, CServerControl sc)
     {
-        
+
         base.SetPlugInInfo(ccontainer, pi, treeNode, lmctreeview, sc);
         bEnableActionMenu = false;
         ADUCDirectoryNode node = treeNode as ADUCDirectoryNode;
-        
-        ADUCPlugin plugin = pi as ADUCPlugin;
-        
+
+        plugin = pi as ADUCPlugin;
+
         plugin.aducPagelvChildNodes = lvChildNodes;
-        
+
         ctx = (IContext)plugin.HostInfo;
-        
-            /*
-            if (plugin.currentDomain != null && plugin.currentDomain.adContext != null)
-            {
-                plugin.currentDomain.adContext.lmctreeView = lmctreeview;
-                plugin.currentDomain.adContext.lvChildNodes = lvChildNodes;
-            }
-            */
-        
+
         if (node != null)
         {
             SetCaption(node.DistinguishedName);
-            
-            if (!node.haveRetrievedChildren || node.IsModified)
-            {
-                if (Configurations.useWaitForm)
-                {                   
-                    try
-                    {
-                        backgroundWorker.RunWorkerAsync(node);
-                        
-                        if (ChildNodes != null)
-                        {
-                            node.Nodes.AddRange(ChildNodes);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.LogException("ADUCPage.SetPluginInfo", ex);
-                    }
-                }
-                else
-                {
-                    ChildNodes = node.ListChildren(node);
-                    if (ChildNodes != null)
-                    {
-                        node.Nodes.AddRange(ChildNodes);
-                    }
-                }
-            }            
             RefreshlvChildNodes(node);
         }
         else
@@ -331,44 +296,22 @@ public partial class ADUCPage : StandardPage
                             ADUCDirectoryNode dirnode = lvItem.Tag as ADUCDirectoryNode;
                             if (dirnode != null)
                             {
-                                if (Configurations.useWaitForm)
-                                {
-                                    try
-                                    {
-                                        if (!dirnode.haveRetrievedChildren || dirnode.IsModified)
-                                        { 
-                                            ChildNodes = dirnode.ListChildren(dirnode);
-                                        }
-                                        if (ChildNodes != null)
-                                        {
-                                            dirnode.Nodes.AddRange(ChildNodes);
-                                        }                                        
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        Logger.LogException("ADUCPage.MouseDoubleClick", ex);
-                                    }
-                                }
-                                else
-                                {
-                                    ChildNodes = dirnode.ListChildren(dirnode);
-                                    if (ChildNodes != null)
-                                    {
-                                        dirnode.Nodes.AddRange(ChildNodes);
-                                    }
-                                }                                
-                               
                                 if (treeNode.TreeView == null)
                                 {
                                     return;
                                 }
-                                treeNode.TreeView.SelectedNode = dirnode;
-                                treeNode = dirnode;
-                                
-                                if (dirnode.Nodes.Count > 0)
+                                ADUCDirectoryNode[] childNodes = dirnode.ListChildren(dirnode);
+                                if (childNodes != null && childNodes.Length != 0)
                                 {
-                                    dirnode.Expand();
-                                    Refresh();
+                                    foreach(ADUCDirectoryNode dn in treeNode.Nodes)
+                                    {
+                                        if (dn.Name.Equals(dirnode.Name, StringComparison.InvariantCultureIgnoreCase))
+                                        {
+                                            dn.IsModified = true;
+                                            treeNode.TreeView.SelectedNode = dn;
+                                            treeNode.sc.ShowControl(treeNode.TreeView.SelectedNode as LACTreeNode);
+                                        }
+                                    }
                                 }
                                 else
                                 {
@@ -1655,13 +1598,6 @@ public partial class ADUCPage : StandardPage
                             bAcountDisable = true;
                         } 
 
-                        //ADUserAddDlg f;
-                        //ADUCPlugin plugin = dirnode.Plugin as ADUCPlugin;
-                        //if (plugin != null)
-                        //    f = new ADUserAddDlg(base.container, this, sText, plugin.HostInfo.domainName, bAcountDisable, bNeverExpiresPwd, bMustChangePwd, copyfrom);
-                        //else
-                        //    f = new ADUserAddDlg(base.container, this, sText, null, bAcountDisable, bNeverExpiresPwd, bMustChangePwd, copyfrom);
-
                         ADUserAddDlg f = new ADUserAddDlg(base.container, this, sText, dirnode.Parent as ADUCDirectoryNode, bAcountDisable, bNeverExpiresPwd, bMustChangePwd, bUserCannotChange, copyfrom);
 
                         f.ShowDialog(this);
@@ -2846,35 +2782,55 @@ public partial class ADUCPage : StandardPage
     /// <param name="dn"></param>
     private void RefreshlvChildNodes(LACTreeNode dn)
     {
-
-        lvChildNodes.Items.Clear();
-
         ListViewItem[] lviArr = new ListViewItem[dn.Nodes.Count];
-        int i = 0;
+        ADUCDirectoryNode dnode = dn as ADUCDirectoryNode;
 
-        foreach (TreeNode tn in dn.Nodes)
+        if (dnode != null)
         {
-            ADUCDirectoryNode dtn = tn as ADUCDirectoryNode;
-            if (dtn != null)
+            if (!dnode.haveRetrievedChildren || dnode.IsModified)
             {
-                string[] values;
-
-                if (dtn.DistinguishedName.Equals(dtn.LdapContext.RootDN, StringComparison.InvariantCultureIgnoreCase))
+                ChildNodes = dnode.ListContainerChildren(dnode);
+                if (ChildNodes != null)
                 {
-                    values = new string[] { dtn.LdapContext.DomainName, dtn.ObjectClass, dtn.DistinguishedName };
+                    dnode.Nodes.AddRange(ChildNodes);
                 }
-                else
-                {
-                    string[] parts = dtn.DistinguishedName.Split(',');
-                    values = new string[] { parts.Length > 0 ? parts[0].Substring(3) : "", dtn.ObjectClass, dtn.DistinguishedName };
-                }
-
-                lviArr[i] = new ListViewItem(values);
-                lviArr[i].Tag = dtn;
-                lviArr[i].ImageIndex = (int)ADUCDirectoryNode.GetNodeType(dtn);
-                i++;
             }
-            else
+
+            int i = 0;
+            lvChildNodes.Items.Clear();
+            ChildNodes = dnode.ListChildren(dnode);
+            if (ChildNodes != null && ChildNodes.Length != 0)
+            {
+                lviArr = new ListViewItem[ChildNodes.Length];
+                foreach (ADUCDirectoryNode dtn in ChildNodes)
+                {
+                    if (dtn != null)
+                    {
+                        string[] values;
+
+                        if (dtn.DistinguishedName.Equals(dtn.LdapContext.RootDN, StringComparison.InvariantCultureIgnoreCase))
+                        {
+                            values = new string[] { dtn.LdapContext.DomainName, dtn.ObjectClass, dtn.DistinguishedName };
+                        }
+                        else
+                        {
+                            string[] parts = dtn.DistinguishedName.Split(',');
+                            values = new string[] { parts.Length > 0 ? parts[0].Substring(3) : "", dtn.ObjectClass, dtn.DistinguishedName };
+                        }
+
+                        lviArr[i] = new ListViewItem(values);
+                        lviArr[i].Tag = dtn;
+                        lviArr[i].ImageIndex = (int)ADUCDirectoryNode.GetNodeType(dtn);
+                        i++;
+                    }
+                }
+            }
+        }
+        else
+        {
+            int i = 0;
+            lvChildNodes.Items.Clear();
+            foreach (TreeNode tn in dn.Nodes)
             {
                 lviArr[i] = new ListViewItem(tn.Text);
                 lviArr[i].Tag = tn;
@@ -2882,7 +2838,7 @@ public partial class ADUCPage : StandardPage
                 i++;
             }
         }
-        if (dn.Nodes.Count == 0)
+        if (ChildNodes == null || ChildNodes.Length == 0)
         {
             lblNoitemstodisplay.Visible = true;
         }

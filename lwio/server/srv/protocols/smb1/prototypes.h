@@ -236,18 +236,70 @@ SrvProcessLogoffAndX(
 // notify.c
 
 NTSTATUS
-SrvBuildNotifyState(
-    PLWIO_SRV_CONNECTION             pConnection,
-    PLWIO_SRV_SESSION                pSession,
-    PLWIO_SRV_TREE                   pTree,
-    PLWIO_SRV_FILE                   pFile,
-    USHORT                           usMid,
-    ULONG                            ulPid,
-    ULONG                            ulRequestSequence,
-    ULONG                            ulCompletionFilter,
-    BOOLEAN                          bWatchTree,
-    ULONG                            ulMaxBufferSize,
-    PSRV_CHANGE_NOTIFY_STATE_SMB_V1* ppNotifyState
+SrvNotifyRepositoryInit(
+    VOID
+    );
+
+NTSTATUS
+SrvNotifyCreateRepository(
+    USHORT                             usTid,
+    PSRV_TREE_NOTIFY_STATE_REPOSITORY* ppRepository
+    );
+
+NTSTATUS
+SrvNotifyRepositoryCreateState(
+    PSRV_TREE_NOTIFY_STATE_REPOSITORY pRepository,
+    PLWIO_SRV_CONNECTION              pConnection,
+    PLWIO_SRV_SESSION                 pSession,
+    PLWIO_SRV_TREE                    pTree,
+    PLWIO_SRV_FILE                    pFile,
+    USHORT                            usMid,
+    ULONG                             ulPid,
+    ULONG                             ulRequestSequence,
+    ULONG                             ulCompletionFilter,
+    BOOLEAN                           bWatchTree,
+    ULONG                             ulMaxBufferSize,
+    PSRV_CHANGE_NOTIFY_STATE_SMB_V1*  ppNotifyState
+    );
+
+NTSTATUS
+SrvNotifyRepositoryFindState(
+    PSRV_TREE_NOTIFY_STATE_REPOSITORY pRepository,
+    ULONG                             ulPid,
+    USHORT                            usMid,
+    PSRV_CHANGE_NOTIFY_STATE_SMB_V1*  ppNotifyState
+    );
+
+NTSTATUS
+SrvNotifyRepositoryRemoveState(
+    PSRV_TREE_NOTIFY_STATE_REPOSITORY pRepository,
+    ULONG                             ulPid,
+    USHORT                            usMid
+    );
+
+VOID
+SrvNotifyRepositoryRelease(
+    PSRV_TREE_NOTIFY_STATE_REPOSITORY pNotifyRepository
+    );
+
+NTSTATUS
+SrvNotifyRemoveRepository(
+    USHORT usTid
+    );
+
+VOID
+SrvNotifyRepositoryShutdown(
+    VOID
+    );
+
+NTSTATUS
+SrvInitNotifyStateCollection(
+    VOID
+    );
+
+NTSTATUS
+SrvShutdownNotifyStateCollection(
+    VOID
     );
 
 VOID
@@ -261,8 +313,15 @@ SrvReleaseNotifyStateAsync(
     );
 
 VOID
-SrvReleaseNotifyState(
+SrvNotifyStateRelease(
     PSRV_CHANGE_NOTIFY_STATE_SMB_V1 pNotifyState
+    );
+
+// ntcancel.c
+
+NTSTATUS
+SrvProcessNTCancel(
+    PSRV_EXEC_CONTEXT pExecContext
     );
 
 // ntrename.c

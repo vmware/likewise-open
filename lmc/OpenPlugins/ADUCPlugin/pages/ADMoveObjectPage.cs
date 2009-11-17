@@ -97,7 +97,9 @@ public partial class ADMoveObjectPage : Form
             if (rootNode != null)
             {
                 treeView1.Nodes.Add(rootNode);
-                rootNode.ListContainerChildren();
+                ADUCDirectoryNode[] childNodes = rootNode.ListContainerChildren(rootNode);
+                if (childNodes != null)
+                    rootNode.Nodes.AddRange(childNodes);
                 treeView1.ExpandAll();
             }
         }
@@ -161,9 +163,11 @@ public partial class ADMoveObjectPage : Form
             if (node is ADUCDirectoryNode)
             {
                 ADUCDirectoryNode dirnode = node as ADUCDirectoryNode;
-                
-                dirnode.ListContainerChildren();
-                dirnode.Collapse();
+
+                ADUCDirectoryNode[] childNodes = dirnode.ListContainerChildren(dirnode);
+                if (childNodes != null)
+                    dirnode.Nodes.AddRange(childNodes);
+
                 dirnode.Expand();
                 moveInfo.newParentDn = dirnode.DistinguishedName;
             }
@@ -190,8 +194,10 @@ public partial class ADMoveObjectPage : Form
                     if (dirnode != null)
                     {
                         // dirnode.ListChildren();
-                        dirnode.ListContainerChildren();
-                        dirnode.Collapse();
+                        ADUCDirectoryNode[] childNodes = dirnode.ListContainerChildren(dirnode);
+                        if (childNodes != null)
+                            dirnode.Nodes.AddRange(childNodes);
+
                         dirnode.Expand();
                         moveInfo.newParentDn = dirnode.DistinguishedName;
                         moveInfo.newParentDirnode = dirnode;

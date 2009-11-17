@@ -37,13 +37,13 @@ namespace Likewise.LMC.FileClient
         #region Local and Connected Share File Enumeration APIs
 
         [DllImport("liblwfileclient.so", SetLastError = true, CharSet = CharSet.Unicode)]
-        public static extern IntPtr FindFirstFileW(
+        public static extern IntPtr FindFirstFile(
             string lpFileName,
             out WIN32_FIND_DATA lpFindFileData
             );
 
         [DllImport("liblwfileclient.so", SetLastError = true, CharSet = CharSet.Unicode)]
-        public static extern bool FindNextFileW(
+        public static extern bool FindNextFile(
             IntPtr hFindFile,
             out WIN32_FIND_DATA lpFindFileData
             );

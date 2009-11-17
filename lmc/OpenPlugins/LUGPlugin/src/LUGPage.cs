@@ -51,7 +51,6 @@ public partial class LUGPage : StandardPage
     
     private ListViewColumnSorter lvwColumnSorter;
     private UInt32 PageSize = 50;
-    private UInt32 nOffset = 0;
     public ListViewItem[] lvArr;
     
     public enum LUGStatusIcon
@@ -576,23 +575,12 @@ public partial class LUGPage : StandardPage
         }
         if (enumStatus.entries != null && enumStatus.entries.Count > 0)
         {
-            if (Convert.ToInt32(enumStatus.entries.Count - nOffset) > PageSize)
+            lvArr = new ListViewItem[Convert.ToInt32(enumStatus.entries.Count)];
+
+            for (int i = 0; i < enumStatus.entries.Count; i++)
             {
-                lvArr = new ListViewItem[PageSize];
-            }
-            else
-            {
-                lvArr = new ListViewItem[Convert.ToInt32(enumStatus.entries.Count - nOffset)];
-            }
-            
-            for (int i = 0, offset =Convert.ToInt32(nOffset); i < PageSize ; i++, offset++)
-            {
-                if (offset == Convert.ToInt32(enumStatus.entries.Count))
-                {
-                    break;
-                }
-                lvArr[i] = new ListViewItem(enumStatus.entries[offset]);
-                if (enumStatus.entries[offset][1] == LUGAPI.Disabled)
+                lvArr[i] = new ListViewItem(enumStatus.entries[i]);
+                if (enumStatus.entries[i][1] == LUGAPI.Disabled)
                 {
                     lvArr[i].ImageIndex = (int)imageLUGDisabled;
                 }

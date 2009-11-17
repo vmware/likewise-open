@@ -28,61 +28,65 @@
  * license@likewisesoftware.com
  */
 
-/*
- * Copyright (C) Likewise Software. All rights reserved.
- *
- * Module Name:
- *
- *        srvsvcbinding.h
- *
- * Abstract:
- *
- *        Likewise Server Service (srvsvc) RPC client and server
- *
- *        DCE/RPC binding functions
- *
- * Authors: Rafal Szczesniak (rafal@likewise.com)
- */
+#include "includes.h"
 
 
-#ifndef _SRVSVC_BINDING_H_
-#define _SRVSVC_BINDING_H_
+NET_API_STATUS
+NetShareDel(
+    IN  PCWSTR  pwszServername,
+    IN  PCWSTR  pwszSharename,
+    IN  DWORD   dwReserved
+    )
+{
+    NET_API_STATUS err = ERROR_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    RPCSTATUS rpcStatus = RPC_S_OK;
+    handle_t hBinding = NULL;
+    PSTR pszServername = NULL;
+    PIO_CREDS pCreds = NULL;
 
-#include <lwrpc/types.h>
-#include <lwio/lwio.h>
+    BAIL_ON_INVALID_PTR(pwszSharename, ntStatus);
 
-#define SRVSVC_DEFAULT_PROT_SEQ   "ncacn_np"
-#define SRVSVC_DEFAULT_ENDPOINT   "\\pipe\\srvsvc"
-#define SRVSVC_LOCAL_ENDPOINT     "/var/lib/likewise/rpc/srvsvc"
+    err = LwWc16sToMbs(pwszServername, &pszServername);
+    BAIL_ON_WIN_ERROR(err);
 
+    ntStatus = LwIoGetActiveCreds(NULL, &pCreds);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-RPCSTATUS
-InitSrvSvcBindingDefault(
-    OUT handle_t  *phBinding,
-    IN  PCSTR      pszHostname,
-    IN  PIO_CREDS  pCreds
-    );
+    rpcStatus = InitSrvSvcBindingDefault(&hBinding,
+					 pszServername,
+					 pCreds);
+    if (rpcStatus)
+    {
+        ntStatus = LwRpcStatusToNtStatus(rpcStatus);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
+    err = NetrShareDel(hBinding,
+                       pwszServername,
+                       pwszSharename,
+		       dwReserved);
+    BAIL_ON_WIN_ERROR(err);
 
-RPCSTATUS
-InitSrvSvcBindingFull(
-    OUT handle_t *phBinding,
-    IN  PCSTR     pszProtSeq,
-    IN  PCSTR     pszHostname,
-    IN  PCSTR     pszEndpoint,
-    IN  PCSTR     pszUuid,
-    IN  PCSTR     pszOptions,
-    IN  PIO_CREDS pCreds
-    );
+cleanup:
+    if (hBinding)
+    {
+        FreeSrvSvcBinding(&hBinding);
+    }
 
+    SAFE_FREE(pszServername);
 
-RPCSTATUS
-FreeSrvSvcBinding(
-    handle_t *phBinding
-    );
+    if (err == ERROR_SUCCESS &&
+        ntStatus != STATUS_SUCCESS)
+    {
+        err = LwNtStatusToWin32Error(ntStatus);
+    }
 
+    return err;
 
-#endif /* _SRVSVC_BINDING_H_ */
+error:
+    goto cleanup;
+}
 
 
 /*

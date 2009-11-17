@@ -133,8 +133,7 @@ namespace Likewise.LMC.Plugins.FileShareManager
             // 
             // NewShareWelcomePage
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 13F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.BackColor = System.Drawing.SystemColors.Window;
             this.Controls.Add(this.label4);
             this.Controls.Add(this.FirewallLinklabel);

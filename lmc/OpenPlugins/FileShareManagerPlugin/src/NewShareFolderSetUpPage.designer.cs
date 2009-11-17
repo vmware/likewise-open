@@ -193,8 +193,7 @@ namespace Likewise.LMC.Plugins.FileShareManager
             // 
             // NewShareFolderSetUpPage
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 13F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Controls.Add(this.buttonBrowse);
             this.Controls.Add(this.textBoxShareDesc);
             this.Controls.Add(this.textBoxSharename);

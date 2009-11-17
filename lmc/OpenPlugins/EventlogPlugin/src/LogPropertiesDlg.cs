@@ -189,7 +189,12 @@ public partial class LogPropertiesDlg : MPContainer
         }
         this.Close();
     }
-    
+
+    private void btnCancel_Click(object sender, EventArgs e)
+    {
+        Close();
+    }
+
     #endregion
 }
 }

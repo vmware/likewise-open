@@ -167,6 +167,10 @@ cleanup:
     return ntStatus;
 
 error:
+    if (ntStatus == STATUS_NOT_FOUND)
+    {
+        ntStatus = STATUS_INVALID_HANDLE;
+    }
 
     *ppTree = NULL;
 

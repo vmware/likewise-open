@@ -70,9 +70,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.cbAccLocked = new System.Windows.Forms.CheckBox();
             this.ListUserOptions = new System.Windows.Forms.CheckedListBox();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.dateTimePicker = new System.Windows.Forms.DateTimePicker();
             this.rbEndOf = new System.Windows.Forms.RadioButton();
             this.rbNever = new System.Windows.Forms.RadioButton();
-            this.dateTimePicker = new System.Windows.Forms.DateTimePicker();
             this.pnlData.SuspendLayout();
             this.groupBox1.SuspendLayout();
             this.SuspendLayout();
@@ -213,6 +213,15 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Account expires";
             // 
+            // dateTimePicker
+            //
+            this.dateTimePicker.Enabled = false;
+            this.dateTimePicker.Location = new System.Drawing.Point(101, 37);
+            this.dateTimePicker.Name = "dateTimePicker";
+            this.dateTimePicker.Size = new System.Drawing.Size(232, 20);
+            this.dateTimePicker.TabIndex = 2;
+            this.dateTimePicker.ValueChanged += new System.EventHandler(this.dateTimePicker_ValueChanged);
+            //
             // rbEndOf
             // 
             this.rbEndOf.AutoSize = true;
@@ -237,19 +246,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.rbNever.UseVisualStyleBackColor = true;
             this.rbNever.CheckedChanged += new System.EventHandler(this.rbNever_CheckedChanged);
             // 
-            // dateTimePicker
-            // 
-            this.dateTimePicker.Enabled = false;
-            this.dateTimePicker.Location = new System.Drawing.Point(101, 37);
-            this.dateTimePicker.Name = "dateTimePicker";
-            this.dateTimePicker.Size = new System.Drawing.Size(232, 20);
-            this.dateTimePicker.TabIndex = 2;
-            this.dateTimePicker.ValueChanged += new System.EventHandler(this.dateTimePicker_ValueChanged);            
-            // 
             // UserAccountPage
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Name = "UserAccountPage";
             this.Size = new System.Drawing.Size(374, 444);
             this.pnlData.ResumeLayout(false);
