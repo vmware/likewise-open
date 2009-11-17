@@ -44,6 +44,7 @@
  */
 
 #include "ntlmsrvapi.h"
+#include "lsasrvutils.h"
 
 DWORD
 NtlmReadRegistry(

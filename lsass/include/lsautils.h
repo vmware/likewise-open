@@ -516,39 +516,6 @@ typedef struct __LSA_CACHE
     DWORD dwNumCollisions;
 } LSA_CACHE, *PLSA_CACHE;
 
-#define BAIL_ON_NON_LWREG_ERROR(dwError) \
-        if (!(40700 <= dwError && dwError <= 41200)) {  \
-           BAIL_ON_LSA_ERROR(dwError);            \
-        }
-
-typedef struct _LSA_CONFIG_REG
-{
-    HANDLE  hConnection;
-    HKEY    hKey;
-    PSTR    pszConfigKey;
-    PSTR    pszPolicyKey;
-} LSA_CONFIG_REG, *PLSA_CONFIG_REG;
-
-typedef enum
-{
-    LsaTypeString,
-    LsaTypeDword,
-    LsaTypeBoolean,
-    LsaTypeChar,
-    LsaTypeEnum
-} LSA_CONFIG_TYPE;
-
-typedef struct __LSA_CONFIG
-{
-    PCSTR   pszName;
-    BOOLEAN bUsePolicy;
-    LSA_CONFIG_TYPE Type;
-    DWORD dwMin;
-    DWORD dwMax;
-    const PCSTR *ppszEnumNames;
-    PVOID pValue;
-} LSA_CONFIG, *PLSA_CONFIG;
-
 
 #if !defined(HAVE_STRTOLL)
 
@@ -1173,71 +1140,6 @@ LsaFreeIpcGroupInfoList(
 void
 LsaFreeIpcNssArtefactInfoList(
     PLSA_NSS_ARTEFACT_INFO_LIST pNssArtefactIpcInfoList
-    );
-
-DWORD
-LsaProcessConfig(
-    PCSTR pszConfigKey,
-    PCSTR pszPolicyKey,
-    PLSA_CONFIG pConfig,
-    DWORD dwConfigEntries
-    );
-
-DWORD
-LsaOpenConfig(
-    PCSTR pszConfigKey,
-    PCSTR pszPolicyKey,
-    PLSA_CONFIG_REG *ppReg
-    );
-
-VOID
-LsaCloseConfig(
-    PLSA_CONFIG_REG pReg
-    );
-
-DWORD
-LsaReadConfigString(
-    PLSA_CONFIG_REG pReg,
-    PCSTR   pszName,
-    BOOLEAN bUsePolicy,
-    PSTR    *ppszValue
-    );
-
-DWORD
-LsaReadConfigMultiString(
-    PLSA_CONFIG_REG pReg,
-    PCSTR   pszName,
-    BOOLEAN bUsePolicy,
-    PSTR    *ppszValue
-    );
-
-DWORD
-LsaReadConfigDword(
-    PLSA_CONFIG_REG pReg,
-    PCSTR pszName,
-    BOOLEAN bUsePolicy,
-    DWORD   dwMin,
-    DWORD   dwMax,
-    PDWORD pdwValue
-    );
-
-DWORD
-LsaReadConfigBoolean(
-    PLSA_CONFIG_REG pReg,
-    PCSTR pszName,
-    BOOLEAN bUsePolicy,
-    PBOOLEAN pbValue
-    );
-
-DWORD
-LsaReadConfigEnum(
-    PLSA_CONFIG_REG pReg,
-    PCSTR pszName,
-    BOOLEAN bUsePolicy,
-    DWORD dwMin,
-    DWORD dwMax,
-    const PCSTR *ppszEnumNames,
-    PDWORD pdwValue
     );
 
 DWORD

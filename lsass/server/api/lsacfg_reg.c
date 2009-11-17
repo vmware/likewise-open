@@ -40,7 +40,7 @@
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
  */
-#include "includes.h"
+#include "api.h"
 
 DWORD
 LsaProcessConfig(

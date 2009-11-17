@@ -11,7 +11,6 @@ liblsautils_la_SOURCES =       \
        fileutils.c             \
        globals.c               \
        lsacache.c              \
-       lsacfg_reg.c            \
        lsadns.c                \
        lsaerror.c              \
        lsagroupinfo.c          \
@@ -42,13 +41,11 @@ liblsautils_la_SOURCES =       \
 liblsautils_la_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
 	$(LWBASE_INCLUDES) \
-	$(LWADVAPI_INCLUDES) \
-	$(LWREG_INCLUDES)
+	$(LWADVAPI_INCLUDES)
 
 liblsautils_la_LIBADD = \
 	$(RESOLV_LIBS) \
 	$(NSL_LIBS) \
 	$(LWBASE_NOTHR_LIBS) \
 	$(LWADVAPI_NOTHR_LIBS) \
-	$(LWMSG_NOTHR_LIBS) \
-	$(LWREG_LIBS)
+	$(LWMSG_NOTHR_LIBS)
