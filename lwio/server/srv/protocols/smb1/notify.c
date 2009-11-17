@@ -388,11 +388,12 @@ SrvNotifyRepositoryBuild(
 
     pRepository->usTid = usTid;
 
-    return LwRtlRBTreeCreate(
+    ntStatus = LwRtlRBTreeCreate(
                     &SrvNotifyStateCompare,
                     NULL,
                     &SrvNotifyStateReleaseHandle,
                     &pRepository->pNotifyStateCollection);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     *ppRepository = pRepository;
 
