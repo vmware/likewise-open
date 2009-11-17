@@ -1504,6 +1504,8 @@ SrvProcessChangeNotifyCompletion(
                             pSmbRequest->pHeader->error,
                             pSmbResponse);
 
+            break;
+
         case STATUS_SUCCESS:
 
             ntStatus = SrvBuildChangeNotifyResponse(pExecContext, pNotifyState);
