@@ -839,8 +839,9 @@ CallNetShareEnum(
     DWORD dwCalculatedTotal = 0;
     DWORD dwTotal = 0;
     DWORD dwResume = 0;
+    DWORD dwLastResume = 0;
 
-    while (dwMaxLen > 10)
+    while (dwMaxLen > 40)
     {
         dwCalculatedTotal = 0;
         dwLastTotal       = (DWORD)-1;
@@ -870,6 +871,17 @@ CallNetShareEnum(
 
             dwLastTotal        = dwTotal;
             dwCalculatedTotal += dwNumEntries;
+
+            /* This is a workaround for a bug in windows server.
+               It doesn't set resume handle to the next entry index
+               even if very small buffer is allowed and ERROR_MORE_DATA
+               is returned */
+            if (err == ERROR_MORE_DATA &&
+                dwResume == 0)
+            {
+                dwLastResume += dwNumEntries;
+                dwResume      = dwLastResume;
+            }
         }
         while (err == ERROR_MORE_DATA);
 
@@ -893,6 +905,7 @@ CallNetShareEnum(
         dwNumEntries = 0;
         dwTotal      = 0;
         dwResume     = 0;
+        dwLastResume = 0;
     }
 
 done:
