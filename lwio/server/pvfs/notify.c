@@ -115,7 +115,12 @@ PvfsReadDirectoryChange(
                       pMaxBufferSize);
         if (ntError == STATUS_SUCCESS)
         {
-            pIrpContext->QueueType = PVFS_QUEUE_TYPE_OPLOCK;
+            pIrpContext->QueueType = PVFS_QUEUE_TYPE_NOTIFY;
+
+            if (!pIrpContext->pFcb)
+            {
+                pIrpContext->pFcb = PvfsReferenceFCB(pCcb->pFcb);
+            }
 
             PvfsIrpMarkPending(pIrpContext, PvfsQueueCancelIrp, pIrpContext);
 
