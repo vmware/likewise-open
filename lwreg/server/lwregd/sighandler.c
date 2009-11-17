@@ -63,7 +63,7 @@ RegSrvIgnoreSIGHUP(
     VOID
     )
 {
-    DWORD dwError = LWREG_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
 
     // Instead of ignoring the signal by passing SIG_IGN, we install a nop
     // signal handler. This way if we later decide to catch it with sigwait,
@@ -304,7 +304,7 @@ error:
         RegRemoveFile(szClientPath);
     }
 
-    LWREG_SAFE_FREE_STRING(pszCachePath);
+    LW_SAFE_FREE_STRING(pszCachePath);
 }
 
 

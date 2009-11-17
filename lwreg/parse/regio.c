@@ -160,13 +160,14 @@ RegIOBufferOpen(
     DWORD dwError = 0;
     PREGIO_BUFFER_HANDLE ioHandle = NULL;
 
-    dwError = LW_RTL_ALLOCATE((PVOID*)&ioHandle, REGIO_BUFFER_HANDLE, sizeof(*ioHandle));
-    BAIL_ON_REG_ERROR(dwError);
+    dwError = LwAllocateMemory(sizeof(REGIO_BUFFER_HANDLE),
+                                (LW_PVOID) &ioHandle);
+    BAIL_ON_INVALID_HANDLE(ioHandle);
 
     ioHandle->ioBufLen = REGIO_BUFSIZ;
     ioHandle->ioCursor = -1;
-
-    dwError = LW_RTL_ALLOCATE((PVOID*)&ioHandle->ioBuf, VOID, ioHandle->ioBufLen);
+    dwError = LwAllocateMemory(ioHandle->ioBufLen,
+                                (LW_PVOID) &ioHandle->ioBuf);
     BAIL_ON_INVALID_POINTER(ioHandle->ioBuf);
 
     ioHandle->pfn_RegIOClose = RegIOBufferClose;
@@ -254,8 +255,9 @@ RegIOOpen(
     PREGIO_HANDLE ioHandle;
     DWORD inChar = 0;
 
-    dwError = LW_RTL_ALLOCATE((PVOID*)&ioHandle, REGIO_HANDLE, sizeof(*ioHandle));
-    BAIL_ON_REG_ERROR(dwError);
+    dwError = LwAllocateMemory(sizeof(REGIO_HANDLE),
+                                (LW_PVOID) &ioHandle);
+    BAIL_ON_INVALID_HANDLE(ioHandle);
 
     ioHandle->fp = fopen(pszRegFile, "rb");
     BAIL_ON_INVALID_HANDLE(ioHandle->fp);
@@ -274,7 +276,8 @@ RegIOOpen(
 
     ioHandle->ioBufLen = REGIO_BUFSIZ;
     ioHandle->ioCursor = -1;
-    dwError = LW_RTL_ALLOCATE((PVOID*)&ioHandle->ioBuf, VOID, ioHandle->ioBufLen);
+    dwError = LwAllocateMemory(ioHandle->ioBufLen,
+                                (LW_PVOID) &ioHandle->ioBuf);
     BAIL_ON_INVALID_POINTER(ioHandle->ioBuf);
 
     dwError = RegIconvConvertOpen(&ioHandle->pivHandle,
@@ -312,9 +315,9 @@ RegIOBufferClose(
 
     if (ioHandle->ioBuf)
     {
-        LwRtlMemoryFree(ioHandle->ioBuf);
+        LwFreeMemory(ioHandle->ioBuf);
     }
-    LwRtlMemoryFree(ioHandle);
+    LwFreeMemory(ioHandle);
 
 cleanup:
     return dwError;
@@ -458,7 +461,7 @@ RegIOBufferGetPrevChar(
     }
     else
     {
-        dwError = LWREG_ERROR_NOT_HANDLED;
+        dwError = LW_ERROR_NOT_HANDLED;
     }
 
 cleanup:
@@ -491,7 +494,7 @@ RegIOBufferUnGetChar(
     else if (ioHandle->ioBufLen > 0)
     {
         ioHandle->ioCursor = 0;
-        dwError = LWREG_ERROR_NOT_HANDLED;
+        dwError = LW_ERROR_NOT_HANDLED;
     }
 
 cleanup:
@@ -518,10 +521,10 @@ RegIOFileClose(
     }
     if (ioHandle->ioBuf)
     {
-        LwRtlMemoryFree(ioHandle->ioBuf);
+        LwFreeMemory(ioHandle->ioBuf);
     }
     RegIconvConvertClose(ioHandle->pivHandle);
-    LwRtlMemoryFree(ioHandle);
+    LwFreeMemory(ioHandle);
 
 
 cleanup:
@@ -763,7 +766,7 @@ RegIOFileGetPrevChar(
     }
     else
     {
-        dwError = LWREG_ERROR_NOT_HANDLED;
+        dwError = LW_ERROR_NOT_HANDLED;
     }
 
 cleanup:
@@ -795,7 +798,7 @@ RegIOFileUnGetChar(
     else if (ioHandle->ioBufLen > 0)
     {
         ioHandle->ioCursor = 0;
-        dwError = LWREG_ERROR_NOT_HANDLED;
+        dwError = LW_ERROR_NOT_HANDLED;
     }
 
 

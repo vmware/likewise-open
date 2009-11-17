@@ -76,7 +76,8 @@ RegOpenServer(
 
     BAIL_ON_INVALID_POINTER(phConnection);
 
-    dwError = LW_RTL_ALLOCATE((PVOID*)&pContext, REG_CLIENT_CONNECTION_CONTEXT, sizeof(*pContext));
+    dwError = LwAllocateMemory(sizeof(REG_CLIENT_CONNECTION_CONTEXT),
+                              (PVOID*)&pContext);
     BAIL_ON_REG_ERROR(dwError);
 
     dwError = MAP_LWMSG_ERROR(lwmsg_protocol_new(NULL, &pContext->pProtocol));
@@ -126,7 +127,7 @@ error:
             lwmsg_protocol_delete(pContext->pProtocol);
         }
 
-        LwRtlMemoryFree(pContext);
+        LwFreeMemory(pContext);
     }
 
     if (phConnection)
@@ -159,7 +160,7 @@ RegCloseServer(
         lwmsg_protocol_delete(pContext->pProtocol);
     }
 
-    LwRtlMemoryFree(pContext);
+    LwFreeMemory(pContext);
 }
 
 DWORD

@@ -62,7 +62,7 @@ RegSrvIpcCheckPermissions(
     if (strcmp(lwmsg_security_token_get_type(token), "local"))
     {
         REG_LOG_WARNING("Unsupported authentication type");
-        dwError = LWREG_ERROR_NOT_HANDLED;
+        dwError = LW_ERROR_NOT_HANDLED;
         BAIL_ON_REG_ERROR(dwError);
     }
 
@@ -205,7 +205,9 @@ RegSrvOpenServer(
     DWORD dwError = 0;
     PREG_SRV_API_STATE pServerState = NULL;
 
-    dwError = LW_RTL_ALLOCATE((PVOID*)&pServerState, REG_SRV_API_STATE, sizeof(*pServerState));
+    dwError = LwAllocateMemory(
+                    sizeof(*pServerState),
+                    (PVOID*)&pServerState);
     BAIL_ON_REG_ERROR(dwError);
 
     pServerState->peerUID = peerUID;
@@ -240,7 +242,7 @@ RegSrvCloseServer(
        //RegSrvCloseEventLog(pServerState->hEventLog);
     }
 
-    LwRtlMemoryFree(pServerState);
+    LwFreeMemory(pServerState);
 }
 
 DWORD
@@ -252,7 +254,7 @@ RegSrvIpcCreateError(
     DWORD dwError = 0;
     PREG_IPC_ERROR pError = NULL;
 
-    dwError = LW_RTL_ALLOCATE((PVOID*)&pError, REG_IPC_ERROR, sizeof(*pError));
+    dwError = LwAllocateMemory(sizeof(*pError), (void**) (void*) &pError);
     BAIL_ON_REG_ERROR(dwError);
 
     pError->dwError = dwErrorCode;
@@ -286,7 +288,9 @@ RegSrvIpcEnumRootKeysW(
 
     if (!dwError)
     {
-        dwError = LW_RTL_ALLOCATE((PVOID*)&pRegResp, REG_IPC_ENUM_ROOTKEYS_RESPONSE, sizeof(*pRegResp));
+        dwError = LwAllocateMemory(
+            sizeof(*pRegResp),
+            OUT_PPVOID(&pRegResp));
         BAIL_ON_REG_ERROR(dwError);
 
         pRegResp->ppwszRootKeyNames = ppwszRootKeyNames;
@@ -310,7 +314,7 @@ cleanup:
     {
         for (iCount=0; iCount<dwNumRootKeys; iCount++)
         {
-		LWREG_SAFE_FREE_MEMORY(ppwszRootKeyNames[iCount]);
+            LW_SAFE_FREE_MEMORY(ppwszRootKeyNames[iCount]);
         }
         ppwszRootKeyNames = NULL;
     }
@@ -351,7 +355,9 @@ RegSrvIpcCreateKeyEx(
 
     if (!dwError)
     {
-        dwError = LW_RTL_ALLOCATE((PVOID*)&pRegResp, REG_IPC_CREATE_KEY_EX_RESPONSE, sizeof(*pRegResp));
+        dwError = LwAllocateMemory(
+            sizeof(*pRegResp),
+            OUT_PPVOID(&pRegResp));
         BAIL_ON_REG_ERROR(dwError);
 
         pRegResp->dwDisposition= dwDisposition;
@@ -414,7 +420,7 @@ RegSrvIpcOpenKeyExW(
 
     if (!dwError)
     {
-        dwError = LW_RTL_ALLOCATE((PVOID*)&pRegResp, REG_IPC_OPEN_KEY_EX_RESPONSE, sizeof(*pRegResp));
+        dwError = LwAllocateMemory(sizeof(*pRegResp), OUT_PPVOID(&pRegResp));
         BAIL_ON_REG_ERROR(dwError);
 
         pRegResp->hkResult = hkResult;
@@ -550,7 +556,9 @@ RegSrvIpcEnumKeyExW(
         );
     if (!dwError)
     {
-        dwError = LW_RTL_ALLOCATE((PVOID*)&pRegResp, REG_IPC_ENUM_KEY_EX_RESPONSE, sizeof(*pRegResp));
+        dwError = LwAllocateMemory(
+            sizeof(*pRegResp),
+            OUT_PPVOID(&pRegResp));
         BAIL_ON_REG_ERROR(dwError);
 
         pRegResp->pName= pReq->pName;
@@ -612,7 +620,7 @@ RegSrvIpcQueryInfoKeyW(
         );
     if (!dwError)
     {
-        dwError = LW_RTL_ALLOCATE((PVOID*)&pRegResp, REG_IPC_QUERY_INFO_KEY_RESPONSE, sizeof(*pRegResp));
+        dwError = LwAllocateMemory(sizeof(*pRegResp), OUT_PPVOID(&pRegResp));
         BAIL_ON_REG_ERROR(dwError);
 
         pRegResp->cSubKeys = dwSubKeyCount;
@@ -667,7 +675,9 @@ RegSrvIpcGetValueW(
 
     if (!dwError)
     {
-        dwError = LW_RTL_ALLOCATE((PVOID*)&pRegResp, REG_IPC_GET_VALUE_RESPONSE, sizeof(*pRegResp));
+        dwError = LwAllocateMemory(
+            sizeof(*pRegResp),
+            OUT_PPVOID(&pRegResp));
         BAIL_ON_REG_ERROR(dwError);
 
         pRegResp->cbData = pReq->cbData;
@@ -839,7 +849,9 @@ RegSrvIpcEnumValueW(
 
     if (!dwError)
     {
-        dwError = LW_RTL_ALLOCATE((PVOID*)&pRegResp, REG_IPC_ENUM_VALUE_RESPONSE, sizeof(*pRegResp));
+        dwError = LwAllocateMemory(
+            sizeof(*pRegResp),
+            OUT_PPVOID(&pRegResp));
         BAIL_ON_REG_ERROR(dwError);
 
         pRegResp->pName= pReq->pName;
@@ -894,7 +906,7 @@ RegSrvIpcQueryMultipleValues(
 
     if (!dwError)
     {
-        dwError = LW_RTL_ALLOCATE((PVOID*)&pRegResp, REG_IPC_QUERY_MULTIPLE_VALUES_RESPONSE, sizeof(*pRegResp));
+        dwError = LwAllocateMemory(sizeof(*pRegResp), OUT_PPVOID(&pRegResp));
         BAIL_ON_REG_ERROR(dwError);
 
         pRegResp->dwTotalsize = pReq->dwTotalsize;

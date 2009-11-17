@@ -115,7 +115,7 @@ main(
         if (ret < 0)
         {
             REG_LOG_ERROR("Could not notify service manager: %s (%i)", strerror(errno), errno);
-            dwError = RegMapErrnoToLwRegError(errno);
+            dwError = LwMapErrnoToLwError(errno);
             BAIL_ON_REG_ERROR(dwError);
         }
 
@@ -245,7 +245,7 @@ RegSrvParseArgs(
             {
                 strcpy(pRegServerInfo->szLogFilePath, pArg);
 
-                RegStripWhitespace(pRegServerInfo->szLogFilePath, TRUE, TRUE);
+                LwStripWhitespace(pRegServerInfo->szLogFilePath, TRUE, TRUE);
 
                 if (!strcmp(pRegServerInfo->szLogFilePath, "."))
                 {
@@ -308,7 +308,7 @@ RegSrvParseArgs(
         {
             REG_LOG_ERROR("%s", "Error: Cannot log to console when executing as a daemon");
 
-            dwError = LWREG_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_REG_ERROR(dwError);
         }
     }
@@ -406,7 +406,7 @@ RegSrvExitHandler(
 
 error:
 
-    LWREG_SAFE_FREE_STRING(pszCachePath);
+    LW_SAFE_FREE_STRING(pszCachePath);
 
     if (fp != NULL)
     {
@@ -464,7 +464,7 @@ RegInitCacheFolders(
 
 cleanup:
 
-    LWREG_SAFE_FREE_STRING(pszCachePath);
+    LW_SAFE_FREE_STRING(pszCachePath);
 
     return dwError;
 
@@ -606,11 +606,11 @@ RegSrvGetCachePath(
 
     if (IsNullOrEmptyString(gpServerInfo->szCachePath))
     {
-        dwError = LWREG_ERROR_INVALID_CACHE_PATH;
+        dwError = LW_ERROR_INVALID_CACHE_PATH;
         BAIL_ON_REG_ERROR(dwError);
     }
 
-    dwError = LwRtlCStringDuplicate(&pszPath, gpServerInfo->szCachePath);
+    dwError = LwAllocateString(gpServerInfo->szCachePath, &pszPath);
     BAIL_ON_REG_ERROR(dwError);
 
     *ppszPath = pszPath;
@@ -623,7 +623,7 @@ RegSrvGetCachePath(
 
  error:
 
-    LWREG_SAFE_FREE_STRING(pszPath);
+    LW_SAFE_FREE_STRING(pszPath);
 
     *ppszPath = NULL;
 
@@ -643,11 +643,11 @@ RegSrvGetPrefixPath(
 
     if (IsNullOrEmptyString(gpServerInfo->szPrefixPath))
     {
-        dwError = LWREG_ERROR_INVALID_PREFIX_PATH;
+        dwError = LW_ERROR_INVALID_PREFIX_PATH;
         BAIL_ON_REG_ERROR(dwError);
     }
 
-    dwError = LwRtlCStringDuplicate(&pszPath, gpServerInfo->szPrefixPath);
+    dwError = LwAllocateString(gpServerInfo->szPrefixPath, &pszPath);
     BAIL_ON_REG_ERROR(dwError);
 
     *ppszPath = pszPath;
@@ -660,7 +660,7 @@ RegSrvGetPrefixPath(
 
  error:
 
-    LWREG_SAFE_FREE_STRING(pszPath);
+    LW_SAFE_FREE_STRING(pszPath);
 
     *ppszPath = NULL;
 
@@ -849,7 +849,7 @@ RegSrvLogProcessStartedEvent(
 
 cleanup:
 
-    LWREG_SAFE_FREE_STRING(pszDescription);
+    LW_SAFE_FREE_STRING(pszDescription);
 
     return;
 
@@ -902,8 +902,8 @@ RegSrvLogProcessStoppedEvent(
 
 cleanup:
 
-    LWREG_SAFE_FREE_STRING(pszDescription);
-    LWREG_SAFE_FREE_STRING(pszData);
+    LW_SAFE_FREE_STRING(pszDescription);
+    LW_SAFE_FREE_STRING(pszData);
 
     return;
 
@@ -944,8 +944,8 @@ RegSrvLogProcessFailureEvent(
 
 cleanup:
 
-    LWREG_SAFE_FREE_STRING(pszDescription);
-    LWREG_SAFE_FREE_STRING(pszData);
+    LW_SAFE_FREE_STRING(pszDescription);
+    LW_SAFE_FREE_STRING(pszData);
 
     return;
 

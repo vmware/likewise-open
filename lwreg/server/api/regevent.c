@@ -346,7 +346,7 @@ RegSrvLogUserIDConflictEvent(
     PSTR pszUserIDConflictDescription = NULL;
     PSTR pszData = NULL;
 
-    dwError = LwRtlCStringAllocatePrintf(
+    dwError = LwAllocateStringPrintf(
                  &pszUserIDConflictDescription,
                  "Likewise account provisioning conflict.\r\n\r\n" \
                  "     Authentication provider: %s\r\n\r\n" \
@@ -390,7 +390,7 @@ RegSrvLogUserAliasConflictEvent(
     PSTR pszUserAliasConflictDescription = NULL;
     PSTR pszData = NULL;
 
-    dwError = LwRtlCStringAllocatePrintf(
+    dwError = LwAllocateStringPrintf(
                  &pszUserAliasConflictDescription,
                  "Likewise account provisioning conflict.\r\n\r\n" \
                  "     Authentication provider: %s\r\n\r\n" \
@@ -435,7 +435,7 @@ RegSrvLogDuplicateObjectFoundEvent(
     PSTR pszObjectDuplicateDescription = NULL;
     PSTR pszData = NULL;
 
-    dwError = LwRtlCStringAllocatePrintf(
+    dwError = LwAllocateStringPrintf(
                  &pszObjectDuplicateDescription,
                  "Likewise account provisioning conflict\r\n\r\n" \
                  "     Authentication provider: %s\r\n\r\n" \

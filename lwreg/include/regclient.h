@@ -49,20 +49,17 @@
 #ifndef __REGCLIENT_H__
 #define __REGCLIENT_H__
 
-#include <regsystem.h>
+#include "regsystem.h"
 
-#include <reg/reg.h>
+#include "reg/reg.h"
 
+#include "regdef.h"
 
-#include <regdef.h>
-
-#include <lw/base.h>
 #include <lw/types.h>
-#include <lw/ntstatus.h>
-#include <lw/rtlstring.h>
-#include <lw/rtlmemory.h>
-
 #include <lwmsg/lwmsg.h>
+#include <lwstr.h>
+#include <lwmem.h>
+#include <lwerror.h>
 
 #include "regipc.h"
 

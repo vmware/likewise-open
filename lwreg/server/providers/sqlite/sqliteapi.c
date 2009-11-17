@@ -53,7 +53,7 @@ SqliteProvider_Initialize(
     const PSTR* ppszRootKeyNames
     )
 {
-    DWORD dwError = LWREG_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     int iCount = 0;
 
     dwError = RegDbOpen(REG_CACHE,
@@ -155,7 +155,7 @@ SqliteOpenKeyEx(
     {
         if (LW_IS_NULL_OR_EMPTY_STR(pKey->pszKeyName))
         {
-            dwError = LWREG_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_REG_ERROR(dwError);
         }
 
@@ -168,16 +168,16 @@ SqliteOpenKeyEx(
     {
         if (!pwszSubKey)
         {
-            dwError = LWREG_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_REG_ERROR(dwError);
         }
 
-	dwError = LwRtlCStringAllocateFromWC16String(&pszRootKeyName, pwszSubKey);
+        dwError =  LwWc16sToMbs(pwszSubKey, &pszRootKeyName);
         BAIL_ON_REG_ERROR(dwError);
 
         if (LW_IS_NULL_OR_EMPTY_STR(pszRootKeyName))
         {
-            dwError = LWREG_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_REG_ERROR(dwError);
         }
 
@@ -186,7 +186,7 @@ SqliteOpenKeyEx(
     }
 
 cleanup:
-    LWREG_SAFE_FREE_STRING(pszRootKeyName);
+    LW_SAFE_FREE_STRING(pszRootKeyName);
 
     return dwError;
 
@@ -218,10 +218,10 @@ SqliteDeleteKey(
     BAIL_ON_INVALID_KEY(pKey);
     BAIL_ON_INVALID_POINTER(pSubKey);
 
-	dwError = LwRtlCStringAllocateFromWC16String(&pszSubKey, pSubKey);
+    dwError = LwWc16sToMbs(pSubKey, &pszSubKey);
     BAIL_ON_REG_ERROR(dwError);
 
-    dwError = LwRtlCStringAllocatePrintf(
+    dwError = LwAllocateStringPrintf(
                    &pszKeyName,
                    "%s\\%s",
                    pKey->pszKeyName,
@@ -235,9 +235,9 @@ SqliteDeleteKey(
     BAIL_ON_REG_ERROR(dwError);
 
 cleanup:
-    LWREG_SAFE_FREE_STRING(pszSubKey);
-    LWREG_SAFE_FREE_STRING(pszKeyName);
-    LWREG_SAFE_FREE_STRING(pszParentKeyName);
+    LW_SAFE_FREE_STRING(pszSubKey);
+    LW_SAFE_FREE_STRING(pszKeyName);
+    LW_SAFE_FREE_STRING(pszParentKeyName);
 
     return dwError;
 
@@ -262,7 +262,7 @@ SqliteQueryInfoKey(
     OUT OPTIONAL PFILETIME pftLastWriteTime/*implement this later*/
     )
 {
-    DWORD dwError = LWREG_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PREG_KEY_CONTEXT pKey = (PREG_KEY_CONTEXT)hKey;
     PREG_KEY_CONTEXT pKeyResult = NULL;
     size_t sNumSubKeys = 0;
@@ -418,20 +418,17 @@ SqliteEnumKeyEx(
 
     if (dwIndex >= pKeyResult->dwNumSubKeys)
     {
-        dwError = LWREG_ERROR_NO_MORE_KEYS;
+        dwError = LW_ERROR_NO_MORE_ITEMS;
         BAIL_ON_REG_ERROR(dwError);
     }
 
     if (dwIndex < pKeyResult->dwNumCacheSubKeys)
     {
-	dwError = LwRtlWC16StringAllocateFromCString(&pSubKeyName,
-			                                     pKeyResult->ppszSubKeyNames[dwIndex]);
-	BAIL_ON_REG_ERROR(dwError);
+        dwError = LwMbsToWc16s(pKeyResult->ppszSubKeyNames[dwIndex], &pSubKeyName);
+        BAIL_ON_REG_ERROR(dwError);
 
-        if (pSubKeyName)
-        {
-		sSubKeyLen = RtlWC16StringNumChars(pSubKeyName);
-        }
+        dwError = LwWc16sLen((PCWSTR)pSubKeyName,&sSubKeyLen);
+        BAIL_ON_REG_ERROR(dwError);
     }
     else
     {
@@ -446,23 +443,20 @@ SqliteEnumKeyEx(
 
         if (sNumSubKeys != 1)
         {
-            dwError = LWREG_ERROR_INTERNAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_REG_ERROR(dwError);
         }
 
-	dwError = LwRtlWC16StringAllocateFromCString(&pSubKeyName,
-			                                     ppRegEntries[0]->pszKeyName);
-	BAIL_ON_REG_ERROR(dwError);
+        dwError = LwMbsToWc16s(ppRegEntries[0]->pszKeyName, &pSubKeyName);
+        BAIL_ON_REG_ERROR(dwError);
 
-        if (pSubKeyName)
-        {
-		sSubKeyLen = RtlWC16StringNumChars(pSubKeyName);
-        }
+        dwError = LwWc16sLen((PCWSTR)pSubKeyName,&sSubKeyLen);
+        BAIL_ON_REG_ERROR(dwError);
     }
 
     if (*pcName < sSubKeyLen+1)
     {
-        dwError = LWREG_ERROR_INSUFFICIENT_BUFFER;
+        dwError = LW_ERROR_INSUFFICIENT_BUFFER;
         BAIL_ON_REG_ERROR(dwError);
     }
 
@@ -473,7 +467,7 @@ SqliteEnumKeyEx(
 cleanup:
     LWREG_UNLOCK_RWMUTEX(bInLock, &pKeyResult->mutex);
 
-    LWREG_SAFE_FREE_MEMORY(pSubKeyName);
+    LW_SAFE_FREE_MEMORY(pSubKeyName);
     RegCacheSafeFreeEntryList(sNumSubKeys,&ppRegEntries);
     RegSrvReleaseKey(pKeyResult);
 
@@ -509,25 +503,26 @@ SqliteSetValueEx(
 
     if (MAX_VALUE_LENGTH < cbData)
     {
-        dwError = LWREG_ERROR_BEYOUND_MAX_VALUE_LEN;
+        dwError = LW_ERROR_BEYOUND_MAX_VALUE_LEN;
         BAIL_ON_REG_ERROR(dwError);
     }
 
     if (!pValueName)
     {
-        dwError = LwRtlCStringDuplicate(&pszValueName, "");
+        dwError = LwAllocateString("", &pszValueName);
         BAIL_ON_REG_ERROR(dwError);
     }
     else
     {
-	dwError = LwRtlCStringAllocateFromWC16String(&pszValueName, pValueName);
+        dwError = LwWc16sToMbs(pValueName,
+                               &pszValueName);
         BAIL_ON_REG_ERROR(dwError);
     }
 
     switch (dwType)
     {
         case REG_BINARY:
-            dwError = RegByteArrayToHexStr((UCHAR*)pData,
+            dwError = LwByteArrayToHexStr((UCHAR*)pData,
                                           cbData,
                                           &pszValue);
             BAIL_ON_REG_ERROR(dwError);
@@ -539,11 +534,11 @@ SqliteSetValueEx(
 
             if (pData[cbData-1] != '\0' || pData[cbData-2] != '\0' )
             {
-                dwError = LWREG_ERROR_INVALID_PARAMETER;
+                dwError = LW_ERROR_INVALID_PARAMETER;
                 BAIL_ON_REG_ERROR(dwError);
             }
 
-			dwError = RegByteArrayToHexStr((PBYTE)pData,
+			dwError = LwByteArrayToHexStr((PBYTE)pData,
 										  cbData,
 										  &pszValue);
 			BAIL_ON_REG_ERROR(dwError);
@@ -554,7 +549,7 @@ SqliteSetValueEx(
             dwValue = *(DWORD*)&pData[0];
 
             /* Maximum size for a 4 byte integer converted to a string */
-            dwError = LW_RTL_ALLOCATE((PVOID*)&pszValue, UCHAR, sizeof(UCHAR) * sizeof(DWORD));
+            dwError = LwAllocateMemory(sizeof(UCHAR) * 12, (PVOID)&pszValue);
             BAIL_ON_REG_ERROR(dwError);
 
             sprintf(pszValue, "%d", dwValue);
@@ -562,7 +557,7 @@ SqliteSetValueEx(
             break;
 
         default:
-            dwError = LWREG_ERROR_UNKNOWN_DATA_TYPE;
+            dwError = LW_ERROR_UNKNOWN_DATA_TYPE;
             BAIL_ON_REG_ERROR(dwError);
     }
 
@@ -574,10 +569,10 @@ SqliteSetValueEx(
                                NULL);
     if (!dwError)
     {
-        dwError = LWREG_ERROR_DUPLICATE_KEYVALUENAME;
+        dwError = LW_ERROR_DUPLICATE_KEYVALUENAME;
         BAIL_ON_REG_ERROR(dwError);
     }
-    else if (LWREG_ERROR_NO_SUCH_VALUENAME == dwError)
+    else if (LW_ERROR_NO_SUCH_VALUENAME == dwError)
     {
         dwError = 0;
     }
@@ -594,9 +589,9 @@ SqliteSetValueEx(
     RegSrvResetKeyValueInfo(pKey->pszKeyName);
 
 cleanup:
-    LWREG_SAFE_FREE_STRING(pszValueName);
-    LWREG_SAFE_FREE_STRING(pszValue);
-    LWREG_SAFE_FREE_MEMORY(pwcValue);
+    LW_SAFE_FREE_STRING(pszValueName);
+    LW_SAFE_FREE_STRING(pszValue);
+    LW_SAFE_FREE_MEMORY(pwcValue);
     if (ppwszOutMultiSz)
     {
         RegFreeMultiStrsW(ppwszOutMultiSz);
@@ -665,10 +660,10 @@ SqliteGetValue(
 
     if (pSubKey != NULL)
     {
-	dwError = LwRtlCStringAllocateFromWC16String(&pszSubKey, pSubKey);
+        dwError = LwWc16sToMbs(pSubKey, &pszSubKey);
         BAIL_ON_REG_ERROR(dwError);
 
-        dwError = LwRtlCStringAllocatePrintf(
+        dwError = LwAllocateStringPrintf(
                        &pszKeyWithSubKeyName,
                        "%s\\%s",
                        pKey->pszKeyName,
@@ -679,12 +674,13 @@ SqliteGetValue(
 
     if (!pValue)
     {
-        dwError = LwRtlCStringDuplicate(&pszValueName, "");
+        dwError = LwAllocateString("", &pszValueName);
         BAIL_ON_REG_ERROR(dwError);
     }
     else
     {
-	dwError = LwRtlCStringAllocateFromWC16String(&pszValueName, pValue);
+        dwError = LwWc16sToMbs(pValue,
+                               &pszValueName);
         BAIL_ON_REG_ERROR(dwError);
     }
 
@@ -706,9 +702,9 @@ SqliteGetValue(
     *pdwType = (DWORD)pRegEntry->type;
 
 cleanup:
-    LWREG_SAFE_FREE_STRING(pszKeyWithSubKeyName);
-    LWREG_SAFE_FREE_STRING(pszSubKey);
-    LWREG_SAFE_FREE_STRING(pszValueName);
+    LW_SAFE_FREE_STRING(pszKeyWithSubKeyName);
+    LW_SAFE_FREE_STRING(pszSubKey);
+    LW_SAFE_FREE_STRING(pszValueName);
     RegCacheSafeFreeEntry(&pRegEntry);
 
     return dwError;
@@ -739,10 +735,10 @@ SqliteDeleteKeyValue(
 
     if (pSubKey)
     {
-	dwError = LwRtlCStringAllocateFromWC16String(&pszSubKey, pSubKey);
+        dwError = LwWc16sToMbs(pSubKey, &pszSubKey);
         BAIL_ON_REG_ERROR(dwError);
 
-        dwError = LwRtlCStringAllocatePrintf(
+        dwError = LwAllocateStringPrintf(
                        &pszKeyNameWithSubKey,
                        "%s\\%s",
                        pKey->pszKeyName,
@@ -754,12 +750,12 @@ SqliteDeleteKeyValue(
 
     if (pValueName)
     {
-	dwError = LwRtlCStringAllocateFromWC16String(&pszValueName, pValueName);
+        dwError = LwWc16sToMbs(pValueName, &pszValueName);
         BAIL_ON_REG_ERROR(dwError);
     }
     else
     {
-        dwError = LwRtlCStringDuplicate(&pszValueName, "");
+        dwError = LwAllocateString("", &pszValueName);
         BAIL_ON_REG_ERROR(dwError);
     }
 
@@ -779,9 +775,9 @@ SqliteDeleteKeyValue(
     RegSrvResetKeyValueInfo(pszKeyName);
 
 cleanup:
-    LWREG_SAFE_FREE_STRING(pszSubKey);
-    LWREG_SAFE_FREE_STRING(pszKeyNameWithSubKey);
-    LWREG_SAFE_FREE_STRING(pszValueName);
+    LW_SAFE_FREE_STRING(pszSubKey);
+    LW_SAFE_FREE_STRING(pszKeyNameWithSubKey);
+    LW_SAFE_FREE_STRING(pszValueName);
 
     return dwError;
 
@@ -804,12 +800,12 @@ SqliteDeleteValue(
 
     if (pValueName)
     {
-	dwError = LwRtlCStringAllocateFromWC16String(&pszValueName, pValueName);
+        dwError = LwWc16sToMbs(pValueName, &pszValueName);
         BAIL_ON_REG_ERROR(dwError);
     }
     else
     {
-	dwError = LwRtlCStringDuplicate(&pszValueName, "");
+        dwError = LwAllocateString("", &pszValueName);
         BAIL_ON_REG_ERROR(dwError);
     }
 
@@ -829,7 +825,7 @@ SqliteDeleteValue(
     RegSrvResetKeyValueInfo(pKey->pszKeyName);
 
 cleanup:
-    LWREG_SAFE_FREE_STRING(pszValueName);
+    LW_SAFE_FREE_STRING(pszValueName);
 
     return dwError;
 
@@ -888,7 +884,7 @@ SqliteEnumValue(
 
     if (dwIndex >= pKeyResult->dwNumValues)
     {
-        dwError = LWREG_ERROR_NO_MORE_VALUES;
+        dwError = LW_ERROR_NO_MORE_ITEMS;
         BAIL_ON_REG_ERROR(dwError);
     }
 
@@ -905,44 +901,40 @@ SqliteEnumValue(
 
         if (sNumValues != 1)
         {
-            dwError = LWREG_ERROR_INTERNAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_REG_ERROR(dwError);
         }
 
-	dwError = LwRtlWC16StringAllocateFromCString(&pValName,
-			                                     ppRegEntries[0]->pszValueName);
-	BAIL_ON_REG_ERROR(dwError);
+        dwError = LwMbsToWc16s(ppRegEntries[0]->pszValueName, &pValName);
+        BAIL_ON_REG_ERROR(dwError);
 
         valueType = ppRegEntries[0]->type;
 
         if (ppRegEntries[0]->pszValue)
         {
-            dwError = LwRtlCStringDuplicate(&pszValueContent,
-			                        ppRegEntries[0]->pszValue);
+            dwError = LwAllocateString(ppRegEntries[0]->pszValue,
+                                       &pszValueContent);
             BAIL_ON_REG_ERROR(dwError);
         }
     }
     else
     {
-	dwError = LwRtlWC16StringAllocateFromCString(&pValName,
-			                                     pKeyResult->ppszValueNames[dwIndex]);
-	BAIL_ON_REG_ERROR(dwError);
+        dwError = LwMbsToWc16s(pKeyResult->ppszValueNames[dwIndex], &pValName);
+        BAIL_ON_REG_ERROR(dwError);
 
         valueType = pKeyResult->pTypes[dwIndex];
 
-        dwError = LwRtlCStringDuplicate(&pszValueContent,
-			                        pKeyResult->ppszValues[dwIndex]);
+        dwError = LwAllocateString(pKeyResult->ppszValues[dwIndex],
+                                   &pszValueContent);
         BAIL_ON_REG_ERROR(dwError);
     }
 
-    if (pValName)
-    {
-	sValueNameLen = RtlWC16StringNumChars(pValName);
-    }
+    dwError = LwWc16sLen((PCWSTR)pValName,&sValueNameLen);
+    BAIL_ON_REG_ERROR(dwError);
 
     if (*pcchValueName < sValueNameLen+1)
     {
-        dwError = LWREG_ERROR_INSUFFICIENT_BUFFER;
+        dwError = LW_ERROR_INSUFFICIENT_BUFFER;
         BAIL_ON_REG_ERROR(dwError);
     }
 
@@ -968,7 +960,7 @@ SqliteEnumValue(
 cleanup:
     LWREG_UNLOCK_RWMUTEX(bInLock, &pKeyResult->mutex);
 
-    LWREG_SAFE_FREE_STRING(pszValueContent);
+    LW_SAFE_FREE_STRING(pszValueContent);
 
     RegCacheSafeFreeEntryList(sNumValues,&ppRegEntries);
     RegSrvReleaseKey(pKeyResult);
@@ -1024,7 +1016,7 @@ SqliteDeleteTreeInternal(
 
     if (dwSubKeyCount)
     {
-        dwError = LW_RTL_ALLOCATE((PVOID*)&ppszSubKey, PSTR, sizeof(*ppszSubKey) * dwSubKeyCount);
+        dwError = LwAllocateMemory(sizeof(*ppszSubKey)*dwSubKeyCount, (PVOID)&ppszSubKey);
         BAIL_ON_REG_ERROR(dwError);
     }
 
@@ -1044,7 +1036,7 @@ SqliteDeleteTreeInternal(
                                   NULL);
         BAIL_ON_REG_ERROR(dwError);
 
-	dwError = LwRtlCStringAllocateFromWC16String(&ppszSubKey[iCount], psubKeyName);
+        dwError = LwWc16sToMbs(psubKeyName, &ppszSubKey[iCount]);
         BAIL_ON_REG_ERROR(dwError);
     }
 
@@ -1054,13 +1046,12 @@ SqliteDeleteTreeInternal(
 
         if (LW_IS_NULL_OR_EMPTY_STR(pszSubKeyName))
         {
-            dwError = LWREG_ERROR_INTERNAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_REG_ERROR(dwError);
         }
 
-	dwError = LwRtlWC16StringAllocateFromCString(&pwszSubKey,
-			                                     pszSubKeyName+1);
-	BAIL_ON_REG_ERROR(dwError);
+        dwError = LwMbsToWc16s(pszSubKeyName+1, &pwszSubKey);
+        BAIL_ON_REG_ERROR(dwError);
 
         dwError = SqliteOpenKeyEx(Handle,
                                   hKey,
@@ -1082,7 +1073,7 @@ SqliteDeleteTreeInternal(
         dwError = SqliteDeleteKey(Handle, hKey, pwszSubKey);
         BAIL_ON_REG_ERROR(dwError);
 
-        LWREG_SAFE_FREE_MEMORY(pwszSubKey);
+        LW_SAFE_FREE_MEMORY(pwszSubKey);
         hCurrKey = NULL;
     }
 
@@ -1091,8 +1082,8 @@ cleanup:
     {
         SqliteCloseKey(hCurrKey);
     }
-    RegFreeStringArray(ppszSubKey, dwSubKeyCount);
-    LWREG_SAFE_FREE_MEMORY(pwszSubKey);
+    LwFreeStringArray(ppszSubKey, dwSubKeyCount);
+    LW_SAFE_FREE_MEMORY(pwszSubKey);
 
     return dwError;
 
@@ -1182,14 +1173,14 @@ SqliteQueryMultipleValues(
         goto cleanup;
     }
 
-    dwError = LW_RTL_ALLOCATE((PVOID*)&ppRegEntries, REG_ENTRY, sizeof(*ppRegEntries) * num_vals);
+    dwError = LwAllocateMemory(sizeof(*ppRegEntries)*num_vals,(PVOID)&ppRegEntries);
     BAIL_ON_REG_ERROR(dwError);
 
     for (iCount = 0; iCount < num_vals; iCount++)
     {
         BAIL_ON_INVALID_POINTER(pVal_list[iCount].ve_valuename);
 
-	dwError = LwRtlCStringAllocateFromWC16String(&pszValueName, pVal_list[iCount].ve_valuename);
+        dwError = LwWc16sToMbs(pVal_list[iCount].ve_valuename, &pszValueName);
         BAIL_ON_REG_ERROR(dwError);
 
         dwError = RegDbGetKeyValue(ghCacheConnection,
@@ -1199,23 +1190,20 @@ SqliteQueryMultipleValues(
                                    NULL,
                                    &ppRegEntries[iCount]);
         BAIL_ON_REG_ERROR(dwError);
-        LWREG_SAFE_FREE_STRING(pszValueName);
+        LW_SAFE_FREE_STRING(pszValueName);
 
-	dwError = LwRtlWC16StringAllocateFromCString(&pSingleValue,
-			                                     ppRegEntries[iCount]->pszValue);
-	BAIL_ON_REG_ERROR(dwError);
+        dwError = LwMbsToWc16s(ppRegEntries[iCount]->pszValue, &pSingleValue);
+        BAIL_ON_REG_ERROR(dwError);
 
-        if (pSingleValue)
-        {
-		sValueLen = RtlWC16StringNumChars(pSingleValue);
-        }
+        dwError = LwWc16sLen((PCWSTR)pSingleValue,&sValueLen);
+        BAIL_ON_REG_ERROR(dwError);
 
         /* record val length */
         pVal_list[iCount].ve_valuelen = (DWORD)sValueLen;
         dwTotalSize += (DWORD)sValueLen;
 
         sValueLen = 0;
-        LWREG_SAFE_FREE_MEMORY(pSingleValue);
+        LW_SAFE_FREE_MEMORY(pSingleValue);
     }
 
     if (!pVal_list)
@@ -1223,7 +1211,7 @@ SqliteQueryMultipleValues(
 
     if (pdwTotalsize && *pdwTotalsize < dwTotalSize)
     {
-        dwError = LWREG_ERROR_INSUFFICIENT_BUFFER;
+        dwError = LW_ERROR_INSUFFICIENT_BUFFER;
         BAIL_ON_REG_ERROR(dwError);
     }
 
@@ -1234,13 +1222,12 @@ SqliteQueryMultipleValues(
         /* value type*/
         pVal_list[iCount].ve_type = ppRegEntries[iCount]->type;
 
-	dwError = LwRtlWC16StringAllocateFromCString(&pSingleValue,
-			                                     ppRegEntries[iCount]->pszValue);
-	BAIL_ON_REG_ERROR(dwError);
+        dwError = LwMbsToWc16s(ppRegEntries[iCount]->pszValue, &pSingleValue);
+        BAIL_ON_REG_ERROR(dwError);
 
         memcpy(pValue+iOffSet, pSingleValue, pVal_list[iCount].ve_valuelen*sizeof(*pSingleValue));
 
-        LWREG_SAFE_FREE_MEMORY(pSingleValue);
+        LW_SAFE_FREE_MEMORY(pSingleValue);
     }
 
 cleanup:
@@ -1250,8 +1237,8 @@ cleanup:
     }
 
     RegCacheSafeFreeEntryList(num_vals, &ppRegEntries);
-    LWREG_SAFE_FREE_STRING(pszValueName);
-    LWREG_SAFE_FREE_MEMORY(pSingleValue);
+    LW_SAFE_FREE_STRING(pszValueName);
+    LW_SAFE_FREE_MEMORY(pSingleValue);
 
     return dwError;
 

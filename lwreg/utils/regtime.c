@@ -109,7 +109,7 @@ RegParseDateString(
                 break;
 
             default:
-                dwError = LWREG_ERROR_INVALID_PARAMETER;
+                dwError = LW_ERROR_INVALID_PARAMETER;
                 BAIL_ON_LSA_ERROR(dwError);
                 break;
         }

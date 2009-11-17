@@ -49,8 +49,8 @@ RegLexOpen(
     DWORD dwError = 0;
     DWORD indx = 0;
     PREGLEX_ITEM pLexHandle;
-
-    dwError = LW_RTL_ALLOCATE((PVOID*)&pLexHandle, REGLEX_ITEM, sizeof(*pLexHandle));
+    dwError = LwAllocateMemory(sizeof(REGLEX_ITEM),
+                                (LW_PVOID) &pLexHandle);
     BAIL_ON_REG_ERROR(dwError);
 
     memset(pLexHandle, 0, sizeof(REGLEX_ITEM));
@@ -93,10 +93,10 @@ RegLexClose(
     {
         if (pLexHandle->curToken.pszValue)
         {
-            LwRtlMemoryFree(pLexHandle->curToken.pszValue);
+            LwFreeMemory(pLexHandle->curToken.pszValue);
             pLexHandle->curToken.pszValue = NULL;
         }
-        LwRtlMemoryFree(pLexHandle);
+        LwFreeMemory(pLexHandle);
     }
 }
 
@@ -197,7 +197,7 @@ DWORD RegLexAppendChar(
     if (lexHandle->curToken.valueCursor >= lexHandle->curToken.valueSize)
     {
         newValueSize = lexHandle->curToken.valueSize * 2;
-        dwError = RegReallocMemory(
+        dwError = LwReallocMemory(
                       lexHandle->curToken.pszValue,
                       &pNewMemory,
                       newValueSize + 1); /* Extra byte for string termination */
@@ -285,7 +285,7 @@ RegLexParseOpenBracket(
         if (lexHandle->state == REGLEX_STATE_IN_KEY)
         {
             /* This is a problem, can't have [ then another [ */
-            dwError = LWREG_ERROR_UNEXPECTED_TOKEN;
+            dwError = LW_ERROR_UNEXPECTED_TOKEN;
         }
         else
         {
@@ -316,7 +316,7 @@ RegLexParseCloseBracket(
         if (lexHandle->state != REGLEX_STATE_IN_KEY)
         {
             /* This is a problem, can't have ] without a previous [ */
-            dwError = LWREG_ERROR_UNEXPECTED_TOKEN;
+            dwError = LW_ERROR_UNEXPECTED_TOKEN;
         }
         else
         {
@@ -401,7 +401,7 @@ RegLexParseComma(
         else
         {
             /* Syntax error: Hex pair is only 2 characters */
-            dwError = LWREG_ERROR_UNEXPECTED_TOKEN;
+            dwError = LW_ERROR_UNEXPECTED_TOKEN;
         }
     }
     else
@@ -664,7 +664,7 @@ RegLexParseNewline(
     {
         /* Don't care about "\\n sequence */
         dwError = RegIOGetPrevChar(ioHandle, &prevC);
-        if (dwError == LWREG_ERROR_SUCCESS && prevC == '\\')
+        if (dwError == LW_ERROR_SUCCESS && prevC == '\\')
         {
             return dwError;
         }
@@ -690,7 +690,7 @@ RegLexParseNewline(
         }
         else
         {
-            dwError = LWREG_ERROR_UNEXPECTED_TOKEN;
+            dwError = LW_ERROR_UNEXPECTED_TOKEN;
             return dwError;
         }
     }
@@ -786,7 +786,7 @@ RegLexParseDefaultState(
 
         if (!isxdigit((int)inC))
         {
-            dwError = LWREG_ERROR_UNEXPECTED_TOKEN;
+            dwError = LW_ERROR_UNEXPECTED_TOKEN;
             return dwError;
         }
         if (lexHandle->curToken.valueCursor == 2)
@@ -830,7 +830,7 @@ RegLexUnGetToken(PREGLEX_ITEM lexHandle)
     {
         if (lexHandle->prevToken.pszValue)
         {
-            LwRtlMemoryFree(lexHandle->prevToken.pszValue);
+            LwFreeMemory(lexHandle->prevToken.pszValue);
             lexHandle->prevToken.pszValue = NULL;
         }
     }
@@ -912,9 +912,9 @@ RegLexGetToken(
 
     if (!lexHandle->curToken.pszValue)
     {   /* Extra byte for string termination */
-        dwError = LW_RTL_ALLOCATE((PVOID*)&lexHandle->curToken.pszValue, CHAR, REGLEX_DEFAULT_SZ_LEN + 1);
+        dwError = LwAllocateMemory(REGLEX_DEFAULT_SZ_LEN + 1,
+                                    (LW_PVOID) &lexHandle->curToken.pszValue);
         BAIL_ON_REG_ERROR(dwError);
-
         lexHandle->curToken.valueCursor = 0;
         lexHandle->curToken.valueSize = REGLEX_DEFAULT_SZ_LEN;
     }
@@ -935,7 +935,7 @@ RegLexGetToken(
             {
                 if (lexHandle->state == REGLEX_STATE_IN_QUOTE)
                 {
-                    dwError = LWREG_ERROR_INVALID_CONTEXT;
+                    dwError = LW_ERROR_INVALID_CONTEXT;
                 }
                 *pEof = eof;
             }
@@ -953,7 +953,7 @@ RegLexGetToken(
             break;
         }
     }
-    while (dwError == LWREG_ERROR_SUCCESS);
+    while (dwError == LW_ERROR_SUCCESS);
 
 cleanup:
     return dwError;

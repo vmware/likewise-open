@@ -51,7 +51,7 @@
 #ifndef __REGUTIL_H__
 #define __REGUTIL_H__
 
-#include <reg/lwreg.h>
+#include <reg/reg.h>
 
 
 typedef struct _REGSHELL_UTIL_VALUE

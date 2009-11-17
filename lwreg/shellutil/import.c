@@ -45,7 +45,7 @@
 #include "rsutils.h"
 #include <../parse/includes.h>
 #include <regclient.h>
-#include <reg/lwreg.h>
+#include <reg/reg.h>
 
 
 static
@@ -71,7 +71,7 @@ ProcessImportedKeyName(
     BOOLEAN bIsRootKey = TRUE;
 
 
-    dwError = LwRtlCStringDuplicate(&pszKeyNameCopy, pszKeyName);
+    dwError = LwAllocateString(pszKeyName, &pszKeyNameCopy);
     BAIL_ON_REG_ERROR(dwError);
 
     pszKeyToken = strtok_r (pszKeyNameCopy, pszDelim, &pszStrTokSav);
@@ -102,9 +102,8 @@ ProcessImportedKeyName(
     pszKeyToken = strtok_r (NULL, pszDelim, &pszStrTokSav);
     while (!LW_IS_NULL_OR_EMPTY_STR(pszKeyToken))
     {
-	dwError = LwRtlWC16StringAllocateFromCString(&pSubKey,
-			                                     pszKeyToken);
-	BAIL_ON_REG_ERROR(dwError);
+        dwError = LwMbsToWc16s(pszKeyToken, &pSubKey);
+        BAIL_ON_REG_ERROR(dwError);
 
         dwError = RegCreateKeyExW(
             (HANDLE) hReg,
@@ -120,7 +119,7 @@ ProcessImportedKeyName(
             );
         BAIL_ON_REG_ERROR(dwError);
 
-        LWREG_SAFE_FREE_MEMORY(pSubKey);
+        LW_SAFE_FREE_MEMORY(pSubKey);
 
         if (hCurrKey && !bIsRootKey)
         {
@@ -137,10 +136,10 @@ ProcessImportedKeyName(
     *phRootKey = hRootKey;
 
 cleanup:
-    LWREG_SAFE_FREE_STRING(pszCurrKeyName);
-    LWREG_SAFE_FREE_STRING(pszPrevKeyName);
-    LWREG_SAFE_FREE_MEMORY(pSubKey);
-    LWREG_SAFE_FREE_STRING(pszKeyNameCopy);
+    LW_SAFE_FREE_STRING(pszCurrKeyName);
+    LW_SAFE_FREE_STRING(pszPrevKeyName);
+    LW_SAFE_FREE_MEMORY(pSubKey);
+    LW_SAFE_FREE_STRING(pszKeyNameCopy);
 
     if (pNewKey)
     {
@@ -191,7 +190,7 @@ ProcessImportedValue(
 
     BAIL_ON_INVALID_HANDLE(hReg);
 
-    dwError = LwRtlCStringDuplicate(&pszKeyName, (PCSTR)pItem->keyName);
+    dwError = LwAllocateString((PCSTR)pItem->keyName, &pszKeyName);
     BAIL_ON_REG_ERROR(dwError);
 
     pszKeyToken = strtok_r (pszKeyName, pszDelim, &pszStrTokSav);
@@ -228,9 +227,8 @@ ProcessImportedValue(
     if (pszSubKeyName && !LW_IS_NULL_OR_EMPTY_STR(pszSubKeyName+1))
     {
         //Open the subkey
-	dwError = LwRtlWC16StringAllocateFromCString(&pSubKey,
-			                                     pszSubKeyName+1);
-	BAIL_ON_REG_ERROR(dwError);
+        dwError = LwMbsToWc16s(pszSubKeyName+1, &pSubKey);
+        BAIL_ON_REG_ERROR(dwError);
 
         dwError = RegOpenKeyExW(
             hReg,
@@ -250,7 +248,7 @@ ProcessImportedValue(
 
     cbData = pItem->type == REG_SZ ? pItem->valueLen+1 : pItem->valueLen;
 
-    dwError = LW_RTL_ALLOCATE((PVOID*)&pData, BYTE, sizeof(*pData) * cbData);
+    dwError = LwAllocateMemory(cbData, (LW_PVOID*)&pData);
     BAIL_ON_REG_ERROR(dwError);
 
     memcpy(pData, (PBYTE)pItem->value, cbData);
@@ -295,9 +293,9 @@ ProcessImportedValue(
     *phRootKey = hRootKey;
 
 cleanup:
-    LWREG_SAFE_FREE_MEMORY(pSubKey);
-    LWREG_SAFE_FREE_STRING(pszKeyName);
-    LWREG_SAFE_FREE_MEMORY(pData);
+    LW_SAFE_FREE_MEMORY(pSubKey);
+    LW_SAFE_FREE_STRING(pszKeyName);
+    LW_SAFE_FREE_MEMORY(pData);
 
     if (hSubKey)
     {

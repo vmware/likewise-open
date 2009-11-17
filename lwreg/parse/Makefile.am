@@ -9,12 +9,12 @@ libregparse_la_SOURCES = \
 libregparse_la_CPPFLAGS = \
     $(AM_CPPFLAGS)        \
     -I@top_srcdir@/server/include \
-    @LWBASE_INCLUDES@   \
+    @LWADVAPI_INCLUDES@   \
     @LWMSG_INCLUDES@
 
 libregparse_la_LIBADD = \
         @top_builddir@/utils/libregutils.la \
-        @LWBASE_NOTHR_LIBS@ \
+        @LWADVAPI_NOTHR_LIBS@ \
         @LWMSG_NOTHR_LIBS@
 
-libregparse_la_LDFLAGS = @LWBASE_LDFLAGS@
+libregparse_la_LDFLAGS = @LWADVAPI_LDFLAGS@

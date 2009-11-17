@@ -44,7 +44,7 @@
 #include "rsutils.h"
 #include <../parse/includes.h>
 #include <regclient.h>
-#include <reg/lwreg.h>
+#include <reg/reg.h>
 
 
 DWORD RegExportBinaryTypeToString(
@@ -190,8 +190,7 @@ RegExportDword(
      *  14: *  ""=1234ABCD\r\n\0
      */
     bufLen = strlen(valueName) + 20;
-
-    dwError = LW_RTL_ALLOCATE((PVOID*)&dumpBuf, CHAR, sizeof(*dumpBuf) * bufLen);
+    dwError = LwAllocateMemory(bufLen, (LW_PVOID) &dumpBuf);
     BAIL_ON_REG_ERROR(dwError);
 
     if (valueType == REG_KEY_DEFAULT)
@@ -235,10 +234,8 @@ RegExportRegKey(
      *  5:  []\r\n\0
      */
     bufLen = strlen(keyName) + 5;
-
-    dwError = LW_RTL_ALLOCATE((PVOID*)&dumpBuf, CHAR, sizeof(*dumpBuf) * bufLen);
+    dwError = LwAllocateMemory(bufLen, (LW_PVOID) &dumpBuf);
     BAIL_ON_REG_ERROR(dwError);
-
     *dumpStringLen = sprintf(dumpBuf, "[%s]", keyName);
     *dumpString = dumpBuf;
 
@@ -277,8 +274,7 @@ DWORD RegExportString(
     BAIL_ON_REG_ERROR(dwError);
 
     bufLen = strlen(valueName) + dwEscapeStringLen + 8;
-
-    dwError = LW_RTL_ALLOCATE((PVOID*)&dumpBuf, CHAR, sizeof(*dumpBuf) * bufLen);
+    dwError = LwAllocateMemory(bufLen, (LW_PVOID) &dumpBuf);
     BAIL_ON_REG_ERROR(dwError);
 
     if (valueType == REG_KEY_DEFAULT)
@@ -292,7 +288,7 @@ DWORD RegExportString(
                             valueName,
                             valueEscName);
     }
-    LWREG_SAFE_FREE_MEMORY(valueEscName);
+    LW_SAFE_FREE_MEMORY(valueEscName);
     *retDumpStringLen = dumpStringLen;
     *dumpString = dumpBuf;
 
@@ -318,10 +314,8 @@ RegExportPlainText(
     BAIL_ON_INVALID_POINTER(dumpStringLen);
 
     bufLen = strlen(value) + 8;
-
-    dwError = LW_RTL_ALLOCATE((PVOID*)&dumpBuf, CHAR, sizeof(*dumpBuf) * bufLen);
+    dwError = LwAllocateMemory(bufLen, (LW_PVOID) &dumpBuf);
     BAIL_ON_REG_ERROR(dwError);
-
     *dumpStringLen = sprintf(dumpBuf, "%s", (PCHAR) value);
     *dumpString = dumpBuf;
 
@@ -363,7 +357,7 @@ RegExportBinaryData(
     formatLines = valueLen / 25 + 1;
     bufLen += valueLen * 3 + (formatLines * 5) + 1;
 
-    dwError = LW_RTL_ALLOCATE((PVOID*)&dumpBuf, CHAR, sizeof(*dumpBuf) * bufLen);
+    dwError = LwAllocateMemory(bufLen, (LW_PVOID) &dumpBuf);
     BAIL_ON_REG_ERROR(dwError);
 
     /* Format binary prefix */
@@ -465,7 +459,7 @@ PrintToRegFile(
 
    if (dumpString)
    {
-	   LwRtlMemoryFree(dumpString);
+       LwFreeMemory(dumpString);
        dumpString = NULL;
    }
 
@@ -606,7 +600,8 @@ ProcessSubKeys(
                                 NULL);
         BAIL_ON_REG_ERROR(dwError);
 
-	dwError = LwRtlCStringAllocateFromWC16String(&pszSubKey, subKey);
+        dwError = LwWc16sToMbs(subKey,
+                               &pszSubKey);
         BAIL_ON_REG_ERROR(dwError);
 
         pszSubKeyName = strrchr(pszSubKey, c);
@@ -617,9 +612,8 @@ ProcessSubKeys(
         }
 
         //Open the subkey
-	dwError = LwRtlWC16StringAllocateFromCString(&pSubKey,
-			                                     pszSubKeyName+1);
-	BAIL_ON_REG_ERROR(dwError);
+        dwError = LwMbsToWc16s(pszSubKeyName+1, &pSubKey);
+        BAIL_ON_REG_ERROR(dwError);
 
         dwError = RegOpenKeyExW(
             hReg,
@@ -662,10 +656,10 @@ ProcessSubKeys(
             hSubKey = NULL;
         }
 
-        LWREG_SAFE_FREE_STRING(pszSubKey);
+        LW_SAFE_FREE_STRING(pszSubKey);
         memset(subKey, 0 , dwSubKeyLen);
         dwNumSubSubKeys = 0;
-        LWREG_SAFE_FREE_MEMORY(pSubKey);
+        LW_SAFE_FREE_MEMORY(pSubKey);
     }
 
 cleanup:
@@ -675,10 +669,10 @@ cleanup:
         hSubKey = NULL;
     }
 
-    LWREG_SAFE_FREE_STRING(pszSubKey);
+    LW_SAFE_FREE_STRING(pszSubKey);
     memset(subKey, 0 , dwSubKeyLen);
     dwNumSubKeys = 0;
-    LWREG_SAFE_FREE_MEMORY(pSubKey);
+    LW_SAFE_FREE_MEMORY(pSubKey);
 
     return dwError;
 
@@ -756,7 +750,7 @@ ProcessRootKeys(
     }
 
 cleanup:
-    RegFreeStringArray(ppszRootKeyNames, dwNumRootKeys);
+    LwFreeStringArray(ppszRootKeyNames, dwNumRootKeys);
     if (hRootKey)
     {
        RegCloseKey((HANDLE) hReg, hRootKey);
@@ -808,7 +802,7 @@ RegShellUtilExport(
     }
     else if (hKey == NULL && dwNumSubKeys != 0)
     {
-        dwError = LWREG_ERROR_INTERNAL;
+        dwError = LW_ERROR_INTERNAL;
         BAIL_ON_REG_ERROR(dwError);
     }
 

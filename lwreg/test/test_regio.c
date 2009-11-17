@@ -119,12 +119,12 @@ int main(int argc, char *argv[])
     }
 
     dwError = RegIOGetChar(ioH, &inC, &eof);
-    if (eof || dwError != LWREG_ERROR_SUCCESS)
+    if (eof || dwError != LW_ERROR_SUCCESS)
     {
         fprintf(stderr, "RegIOGetChar: failed %d\n", dwError);
     }
     dwError = RegIOUnGetChar(ioH, NULL);
-    if (dwError != LWREG_ERROR_SUCCESS)
+    if (dwError != LW_ERROR_SUCCESS)
     {
         printf("RegIOUnGetChar: 1 UnGetChar failed!\n");
     }

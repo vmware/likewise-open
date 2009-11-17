@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        sqldb_create.h
+ *        sqlcache_create.h
  *
  * Abstract:
  *
@@ -43,7 +43,6 @@
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Kyle Stemen (kstemen@likewisesoftware.com)
- *          Wei Fu (wfu@likewise.com)
  */
 #ifndef __SQLCACHE_CREATE_H__
 #define __SQLCACHE_CREATE_H__

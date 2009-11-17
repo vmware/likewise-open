@@ -9,10 +9,12 @@ librsutils_la_SOURCES = \
 librsutils_la_CPPFLAGS = \
     $(AM_CPPFLAGS)          \
     -I@top_srcdir@/server/include \
-    @LWBASE_INCLUDES@   \
+    @LWADVAPI_INCLUDES@   \
     @LWMSG_INCLUDES@
 
 librsutils_la_LIBADD = \
         @top_builddir@/utils/libregutils.la \
-        @LWBASE_NOTHR_LIBS@ \
+        @LWADVAPI_NOTHR_LIBS@ \
         @LWMSG_NOTHR_LIBS@
+
+librsutils_la_LDFLAGS = @LWADVAPI_LDFLAGS@

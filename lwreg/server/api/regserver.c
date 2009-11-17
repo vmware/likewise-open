@@ -95,13 +95,13 @@ RegSrvEnumRootKeysW(
     PWSTR* ppwszRootKeys = NULL;
     int iCount = 0;
 
-    dwError = LW_RTL_ALLOCATE((PVOID*)&ppwszRootKeys, PWSTR, sizeof(*ppwszRootKeys));
+    dwError = LwAllocateMemory(sizeof(*ppwszRootKeys)*NUM_ROOTKEY, (PVOID)&ppwszRootKeys);
     BAIL_ON_REG_ERROR(dwError);
 
     for (iCount = 0; iCount< NUM_ROOTKEY; iCount++)
     {
-	dwError = LwRtlWC16StringAllocateFromCString(&ppwszRootKeys[iCount], ROOT_KEYS[iCount]);
-	BAIL_ON_REG_ERROR(dwError);
+        dwError = LwMbsToWc16s(ROOT_KEYS[iCount], &ppwszRootKeys[iCount]);
+        BAIL_ON_REG_ERROR(dwError);
     }
 
     *pdwNumRootKeys = NUM_ROOTKEY;
@@ -115,7 +115,7 @@ error:
     {
         for (iCount=0; iCount<NUM_ROOTKEY; iCount++)
         {
-            LWREG_SAFE_FREE_MEMORY(ppwszRootKeys[iCount]);
+            LW_SAFE_FREE_MEMORY(ppwszRootKeys[iCount]);
         }
         ppwszRootKeys = NULL;
     }
@@ -143,7 +143,7 @@ RegSrvCreateKeyEx(
 
     if (!RegSrvCheckAccessRight(Handle, REG_WRITE))
     {
-        dwError = LWREG_ERROR_ACCESS_DENIED;
+        dwError = LW_ERROR_ACCESS_DENIED;
         BAIL_ON_REG_ERROR(dwError);
     }
 
@@ -180,7 +180,7 @@ RegSrvOpenKeyExW(
 
     if (!RegSrvCheckAccessRight(Handle, REG_READ))
     {
-        dwError = LWREG_ERROR_ACCESS_DENIED;
+        dwError = LW_ERROR_ACCESS_DENIED;
         BAIL_ON_REG_ERROR(dwError);
     }
 
@@ -217,7 +217,7 @@ RegSrvDeleteKey(
 
     if (!RegSrvCheckAccessRight(Handle, REG_WRITE))
     {
-        dwError = LWREG_ERROR_ACCESS_DENIED;
+        dwError = LW_ERROR_ACCESS_DENIED;
         BAIL_ON_REG_ERROR(dwError);
     }
 
@@ -243,7 +243,7 @@ RegSrvDeleteKeyValue(
 
     if (!RegSrvCheckAccessRight(Handle, REG_WRITE))
     {
-        dwError = LWREG_ERROR_ACCESS_DENIED;
+        dwError = LW_ERROR_ACCESS_DENIED;
         BAIL_ON_REG_ERROR(dwError);
     }
 
@@ -269,7 +269,7 @@ RegSrvDeleteValue(
 
     if (!RegSrvCheckAccessRight(Handle, REG_WRITE))
     {
-        dwError = LWREG_ERROR_ACCESS_DENIED;
+        dwError = LW_ERROR_ACCESS_DENIED;
         BAIL_ON_REG_ERROR(dwError);
     }
 
@@ -299,7 +299,7 @@ RegSrvEnumKeyExW(
 
     if (!RegSrvCheckAccessRight(Handle, REG_READ))
     {
-        dwError = LWREG_ERROR_ACCESS_DENIED;
+        dwError = LW_ERROR_ACCESS_DENIED;
         BAIL_ON_REG_ERROR(dwError);
     }
 
@@ -334,7 +334,7 @@ RegSrvSetValueExW(
 
     if (!RegSrvCheckAccessRight(Handle, REG_WRITE))
     {
-        dwError = LWREG_ERROR_ACCESS_DENIED;
+        dwError = LW_ERROR_ACCESS_DENIED;
         BAIL_ON_REG_ERROR(dwError);
     }
 
@@ -369,7 +369,7 @@ RegSrvGetValueW(
 
     if (!RegSrvCheckAccessRight(Handle, REG_READ))
     {
-        dwError = LWREG_ERROR_ACCESS_DENIED;
+        dwError = LW_ERROR_ACCESS_DENIED;
         BAIL_ON_REG_ERROR(dwError);
     }
 
@@ -406,7 +406,7 @@ RegSrvEnumValueW(
 
     if (!RegSrvCheckAccessRight(Handle, REG_READ))
     {
-        dwError = LWREG_ERROR_ACCESS_DENIED;
+        dwError = LW_ERROR_ACCESS_DENIED;
         BAIL_ON_REG_ERROR(dwError);
     }
 
@@ -448,7 +448,7 @@ RegSrvQueryInfoKeyW(
 
     if (!RegSrvCheckAccessRight(Handle, REG_READ))
     {
-        dwError = LWREG_ERROR_ACCESS_DENIED;
+        dwError = LW_ERROR_ACCESS_DENIED;
         BAIL_ON_REG_ERROR(dwError);
     }
 
@@ -487,7 +487,7 @@ RegSrvQueryMultipleValues(
 
     if (!RegSrvCheckAccessRight(Handle, REG_READ))
     {
-        dwError = LWREG_ERROR_ACCESS_DENIED;
+        dwError = LW_ERROR_ACCESS_DENIED;
         BAIL_ON_REG_ERROR(dwError);
     }
 
@@ -515,7 +515,7 @@ RegSrvDeleteTree(
 
     if (!RegSrvCheckAccessRight(Handle, REG_WRITE))
     {
-        dwError = LWREG_ERROR_ACCESS_DENIED;
+        dwError = LW_ERROR_ACCESS_DENIED;
         BAIL_ON_REG_ERROR(dwError);
     }
 
@@ -542,22 +542,22 @@ RegSrvSafeFreeKeyContext(
             pthread_rwlock_destroy(&pKeyResult->mutex);
         }
 
-        LWREG_SAFE_FREE_STRING(pKeyResult->pszKeyName);
-        LWREG_SAFE_FREE_STRING(pKeyResult->pszParentKeyName);
+        LW_SAFE_FREE_STRING(pKeyResult->pszKeyName);
+        LW_SAFE_FREE_STRING(pKeyResult->pszParentKeyName);
 
         pKeyResult->bHasSubKeyInfo = FALSE;
         pKeyResult->bHasSubKeyAInfo = FALSE;
-        RegFreeStringArray(pKeyResult->ppszSubKeyNames, pKeyResult->dwNumCacheSubKeys);
+        LwFreeStringArray(pKeyResult->ppszSubKeyNames, pKeyResult->dwNumCacheSubKeys);
 
         pKeyResult->bHasValueInfo = FALSE;
         pKeyResult->bHasValueAInfo = FALSE;
-        RegFreeStringArray(pKeyResult->ppszValueNames, pKeyResult->dwNumCacheValues);
-        RegFreeStringArray(pKeyResult->ppszValues, pKeyResult->dwNumCacheValues);
-        LWREG_SAFE_FREE_MEMORY(pKeyResult->pTypes);
+        LwFreeStringArray(pKeyResult->ppszValueNames, pKeyResult->dwNumCacheValues);
+        LwFreeStringArray(pKeyResult->ppszValues, pKeyResult->dwNumCacheValues);
+        LW_SAFE_FREE_MEMORY(pKeyResult->pTypes);
 
         memset(pKeyResult, 0, sizeof(*pKeyResult));
 
-        LWREG_SAFE_FREE_MEMORY(pKeyResult);
+        LW_SAFE_FREE_MEMORY(pKeyResult);
     }
 }
 
@@ -590,7 +590,7 @@ RegSrvResetSubKeyInfo(
     pKeyResult->bHasSubKeyAInfo = FALSE;
     pKeyResult->bHasSubKeyInfo = FALSE;
 
-    RegFreeStringArray(pKeyResult->ppszSubKeyNames, pKeyResult->dwNumCacheSubKeys);
+    LwFreeStringArray(pKeyResult->ppszSubKeyNames, pKeyResult->dwNumCacheSubKeys);
     pKeyResult->ppszSubKeyNames = NULL;
 
     pKeyResult->dwNumCacheSubKeys = 0;
@@ -699,9 +699,9 @@ RegSrvResetValueInfo(
     pKeyResult->bHasValueInfo = FALSE;
     pKeyResult->bHasValueAInfo = FALSE;
 
-    RegFreeStringArray(pKeyResult->ppszValueNames, pKeyResult->dwNumCacheValues);
-    RegFreeStringArray(pKeyResult->ppszValues, pKeyResult->dwNumCacheValues);
-    LWREG_SAFE_FREE_MEMORY(pKeyResult->pTypes);
+    LwFreeStringArray(pKeyResult->ppszValueNames, pKeyResult->dwNumCacheValues);
+    LwFreeStringArray(pKeyResult->ppszValues, pKeyResult->dwNumCacheValues);
+    LW_SAFE_FREE_MEMORY(pKeyResult->pTypes);
 
     pKeyResult->ppszValueNames = NULL;
     pKeyResult->ppszValues = NULL;

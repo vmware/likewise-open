@@ -20,7 +20,9 @@ noinst_HEADERS = \
     externs.h       \
     includes.h
 
-libregutils_la_CPPFLAGS = $(AM_CPPFLAGS) @LWBASE_INCLUDES@ \
+libregutils_la_CPPFLAGS = $(AM_CPPFLAGS) @LWBASE_INCLUDES@ @LWADVAPI_INCLUDES@ \
                           -I@top_srcdir@/server/include
 libregutils_la_LDFLAGS = @LWBASE_LDFLAGS@ \
-libregutils_la_LIBADD = @LWBASE_NOTHR_LIBS@
+                         @LWADVAPI_LDFLAGS@
+libregutils_la_LIBADD = @LWBASE_NOTHR_LIBS@ \
+                        @LWADVAPI_NOTHR_LIBS@

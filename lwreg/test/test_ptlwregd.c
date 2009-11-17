@@ -87,7 +87,7 @@ ThreadTestAddKey(
                pszKeyNamePrefix);
         for (dwKeyNum=0; dwKeyNum<dwRange; dwKeyNum++)
         {
-            dwError = LwRtlCStringAllocatePrintf(
+            dwError = LwAllocateStringPrintf(
                       &pszKeyName,
                       "%s-%d",
                       pszKeyNamePrefix,
@@ -102,7 +102,7 @@ ThreadTestAddKey(
                    pszKeyPath,
                    pszKeyName);
 
-            dwError = LwRtlCStringAllocatePrintf(
+            dwError = LwAllocateStringPrintf(
                       &pszSubKeyPath,
                       "%s\\%s",
                       pszKeyPath,
@@ -120,8 +120,8 @@ ThreadTestAddKey(
     }
 
 cleanup:
-    LWREG_SAFE_FREE_STRING(pszKeyName);
-    LWREG_SAFE_FREE_STRING(pszSubKeyPath);
+    LW_SAFE_FREE_STRING(pszKeyName);
+    LW_SAFE_FREE_STRING(pszSubKeyPath);
     return dwError;
 
 error:
@@ -156,7 +156,7 @@ ThreadTestGetKeys(
                pszKeyNamePrefix);
         for (dwKeyNum=0; dwKeyNum<dwRange; dwKeyNum++)
         {
-            dwError = LwRtlCStringAllocatePrintf(
+            dwError = LwAllocateStringPrintf(
                       &pszKeyName,
                       "%s-%d",
                       pszKeyNamePrefix,
@@ -177,10 +177,10 @@ ThreadTestGetKeys(
 cleanup:
     for (i = 0; i < dwRetSubKeyCount; i++)
     {
-        LWREG_SAFE_FREE_MEMORY(ppSubKeys[i]);
+        LW_SAFE_FREE_MEMORY(ppSubKeys[i]);
     }
-    LWREG_SAFE_FREE_MEMORY(ppSubKeys);
-    LWREG_SAFE_FREE_STRING(pszKeyName);
+    LW_SAFE_FREE_MEMORY(ppSubKeys);
+    LW_SAFE_FREE_STRING(pszKeyName);
 
     return dwError;
 
@@ -217,7 +217,7 @@ ThreadTestGetValues(
                pszKeyNamePrefix);
         for (dwKeyNum=0; dwKeyNum<dwRange; dwKeyNum++)
         {
-            dwError = LwRtlCStringAllocatePrintf(
+            dwError = LwAllocateStringPrintf(
                       &pszKeyName,
                       "%s-%d",
                       pszKeyNamePrefix,
@@ -238,11 +238,11 @@ ThreadTestGetValues(
 cleanup:
     for (i=0; i<dwValueArrayLen; i++)
     {
-        LWREG_SAFE_FREE_MEMORY(valueArray[i].pValueName);
-        LWREG_SAFE_FREE_MEMORY(valueArray[i].pData);
+        LW_SAFE_FREE_MEMORY(valueArray[i].pValueName);
+        LW_SAFE_FREE_MEMORY(valueArray[i].pData);
     }
-    LWREG_SAFE_FREE_MEMORY(valueArray);
-    LWREG_SAFE_FREE_STRING(pszKeyName);
+    LW_SAFE_FREE_MEMORY(valueArray);
+    LW_SAFE_FREE_STRING(pszKeyName);
 
     return dwError;
 
@@ -276,14 +276,14 @@ ThreadTestDeleteKey(
                pszKeyNamePrefix);
         for (dwKeyNum=0; dwKeyNum<dwRange; dwKeyNum++)
         {
-            dwError = LwRtlCStringAllocatePrintf(
+            dwError = LwAllocateStringPrintf(
                       &pszKeyName,
                       "%s-%d",
                       pszKeyNamePrefix,
                       dwKeyNum);
             BAIL_ON_REG_ERROR(dwError);
 
-            dwError = LwRtlCStringAllocatePrintf(
+            dwError = LwAllocateStringPrintf(
                       &pszSubKeyPath,
                       "%s\\%s",
                       pszKeyPath,
@@ -309,14 +309,14 @@ ThreadTestDeleteKey(
     }
 
 cleanup:
-    LWREG_SAFE_FREE_STRING(pszKeyName);
-    LWREG_SAFE_FREE_STRING(pszSubKeyPath);
+    LW_SAFE_FREE_STRING(pszKeyName);
+    LW_SAFE_FREE_STRING(pszSubKeyPath);
     return dwError;
 
 error:
-    if (dwError == LWREG_ERROR_FAILED_DELETE_HAS_SUBKEY ||
-        dwError == LWREG_ERROR_KEY_IS_ACTIVE ||
-        dwError == LWREG_ERROR_NO_SUCH_KEY)
+    if (dwError == LW_ERROR_FAILED_DELETE_HAS_SUBKEY ||
+        dwError == LW_ERROR_KEY_IS_ACTIVE ||
+        dwError == LW_ERROR_NO_SUCH_KEY)
     {
         dwError = 0;
     }
@@ -432,9 +432,9 @@ ThreadTestPtFree(
     BAIL_ON_INVALID_HANDLE(pCtx);
 
     RegCloseServer(pCtx->hReg);
-    LwRtlMemoryFree(pCtx->pszKeyNamePrefix);
-    LwRtlMemoryFree(pCtx->pszKeyPath);
-    LwRtlMemoryFree(pCtx);
+    LwFreeMemory(pCtx->pszKeyNamePrefix);
+    LwFreeMemory(pCtx->pszKeyPath);
+    LwFreeMemory(pCtx);
 cleanup:
     return dwError;
 
@@ -456,16 +456,17 @@ ThreadTestPtInit(
     DWORD dwError = 0;
     HANDLE hReg = NULL;
 
-    dwError = LW_RTL_ALLOCATE((PVOID*)&pCtx, PTLWREGD_CONTEXT, sizeof(*pCtx));
+    dwError = LwAllocateMemory(sizeof(PTLWREGD_CONTEXT), (LW_PVOID) &pCtx);
     BAIL_ON_REG_ERROR(dwError);
 
     dwError = RegOpenServer(&hReg);
     BAIL_ON_REG_ERROR(dwError);
 
-    dwError = LwRtlCStringDuplicate(&pCtx->pszKeyPath, pszKeyPath);
+    dwError = LwAllocateString(pszKeyPath, &pCtx->pszKeyPath);
     BAIL_ON_REG_ERROR(dwError);
 
-    dwError = LW_RTL_ALLOCATE((PVOID*)&pCtx->pszKeyNamePrefix, CHAR, strlen(pszKeyNamePrefix) + 11);
+    dwError = LwAllocateMemory(strlen(pszKeyNamePrefix) + 11,
+                               (LW_PVOID) &pCtx->pszKeyNamePrefix);
     BAIL_ON_REG_ERROR(dwError);
 
     sprintf(pCtx->pszKeyNamePrefix, "%s%d", pszKeyNamePrefix, dwKeyNameSuffix);

@@ -74,7 +74,7 @@ runLexInput(
         count++;
 
         dwError = RegLexGetToken(ioH, pLexH, &token, &eof);
-        if (dwError == LWREG_ERROR_SUCCESS && !eof)
+        if (dwError == LW_ERROR_SUCCESS && !eof)
         {
             RegLexTokenToString(token, pszTokenStr);
             RegLexGetLineNumber(pLexH, &lineNum);
@@ -87,11 +87,11 @@ runLexInput(
             }
         }
     }
-    while (!eof && dwError == LWREG_ERROR_SUCCESS);
+    while (!eof && dwError == LW_ERROR_SUCCESS);
 
     if (!eof)
     {
-        if (dwError == LWREG_ERROR_UNEXPECTED_TOKEN)
+        if (dwError == LW_ERROR_UNEXPECTED_TOKEN)
         {
             RegLexGetLineNumber(pLexH, &lineNum);
             printf("ERROR: Syntax error! line=%d\n", lineNum);

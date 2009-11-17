@@ -56,7 +56,7 @@ RegDLinkedListPrepend(
     DWORD dwError = 0;
     PDLINKEDLIST pList = NULL;
 
-    dwError = LW_RTL_ALLOCATE((PVOID*)&pList, DLINKEDLIST, sizeof(*pList));
+    dwError = LwAllocateMemory(sizeof(DLINKEDLIST), (PVOID*)&pList);
     BAIL_ON_REG_ERROR(dwError);
 
     pList->pItem = pItem;
@@ -76,7 +76,7 @@ cleanup:
 error:
 
     if (pList) {
-        LwRtlMemoryFree(pList);
+        LwFreeMemory(pList);
     }
 
     goto cleanup;
@@ -91,7 +91,7 @@ RegDLinkedListAppend(
     DWORD dwError = 0;
     PDLINKEDLIST pList = NULL;
 
-    dwError = LW_RTL_ALLOCATE((PVOID*)&pList, DLINKEDLIST, sizeof(*pList));
+    dwError = LwAllocateMemory(sizeof(DLINKEDLIST), (PVOID*)&pList);
     BAIL_ON_REG_ERROR(dwError);
 
     pList->pItem = pItem;
@@ -116,7 +116,7 @@ cleanup:
 error:
 
     if (pList) {
-        LwRtlMemoryFree(pList);
+        LwFreeMemory(pList);
     }
 
     goto cleanup;
@@ -156,7 +156,7 @@ RegDLinkedListDelete(
           *ppList = pCandidate->pNext;
        }
        pCandidate->pItem = NULL;
-       LwRtlMemoryFree(pCandidate);
+       LwFreeMemory(pCandidate);
     }
 
     return bFound;
@@ -184,6 +184,6 @@ RegDLinkedListFree(
     {
         PDLINKEDLIST pTmp = pList;
         pList = pList->pNext;
-        LwRtlMemoryFree(pTmp);
+        LwFreeMemory(pTmp);
     }
 }

@@ -164,7 +164,7 @@ RegShellCmdEnumToString(
     else
     {
         sprintf(cmdString, "Invalid Command: %d", cmdEnum);
-        dwError = LWREG_ERROR_INVALID_CONTEXT;
+        dwError = LW_ERROR_INVALID_CONTEXT;
     }
     return dwError;
 }
@@ -178,7 +178,7 @@ RegShellCmdStringToEnum(
 
 
     DWORD i = 0;
-    DWORD dwError = LWREG_ERROR_INVALID_CONTEXT;
+    DWORD dwError = LW_ERROR_INVALID_CONTEXT;
     REGSHELL_CMD_E cmd = REGSHELL_CMD_NONE;
 
     BAIL_ON_INVALID_POINTER(pCmdEnum);
@@ -215,7 +215,9 @@ RegShellCmdParseCommand(
     BAIL_ON_INVALID_POINTER(argv);
     BAIL_ON_INVALID_POINTER(pCmdItem);
 
-    dwError = LW_RTL_ALLOCATE((PVOID*)&pNewCmdItem, REGSHELL_CMD_ITEM, sizeof(*pNewCmdItem));
+
+    dwError = LwAllocateMemory(sizeof(REGSHELL_CMD_ITEM),
+                               (LW_PVOID) &pNewCmdItem);
     BAIL_ON_REG_ERROR(dwError);
 
     pNewCmdItem->command = cmd;
@@ -236,15 +238,15 @@ RegShellCmdParseFree(
     DWORD dwError = 0;
     BAIL_ON_INVALID_POINTER(pCmdItem);
 
-    LWREG_SAFE_FREE_MEMORY(pCmdItem->keyName);
+    LW_SAFE_FREE_MEMORY(pCmdItem->keyName);
     pCmdItem->keyName = NULL;
 
-    LWREG_SAFE_FREE_MEMORY(pCmdItem->valueName);
+    LW_SAFE_FREE_MEMORY(pCmdItem->valueName);
     pCmdItem->valueName = NULL;
 
-    LWREG_SAFE_FREE_MEMORY(pCmdItem->binaryValue);
+    LW_SAFE_FREE_MEMORY(pCmdItem->binaryValue);
     pCmdItem->binaryValue = NULL;
-    LWREG_SAFE_FREE_MEMORY(pCmdItem);
+    LW_SAFE_FREE_MEMORY(pCmdItem);
 
 cleanup:
     return dwError;
@@ -263,7 +265,7 @@ RegShellCmdParseKeyName(
     PREGSHELL_CMD_ITEM *pRetCmdItem)
 {
     DWORD dwError = 0;
-    DWORD dwRootKeyError = LWREG_ERROR_NO_SUCH_KEY;
+    DWORD dwRootKeyError = LW_ERROR_NO_SUCH_KEY;
     DWORD keyNameLen = 0;
     DWORD dwOffset = 0;
     PCHAR pszKeyName = NULL;
@@ -280,7 +282,7 @@ RegShellCmdParseKeyName(
     {
         dwOffset++;
     }
-    dwError = LwRtlCStringDuplicate(&pszTmpKey, &pszKeyName[dwOffset]);
+    dwError = LwAllocateString(&pszKeyName[dwOffset], &pszTmpKey);
     BAIL_ON_REG_ERROR(dwError);
     pszBackslash = strchr(pszTmpKey, '\\');
     if (pszBackslash)
@@ -312,7 +314,7 @@ RegShellCmdParseKeyName(
     keyNameLen = strlen(pszKeyName);
     if (pszKeyName[0] == '[' && pszKeyName[keyNameLen-1] == ']')
     {
-        dwError = LwRtlCStringDuplicate(&pCmdItem->keyName, pszKeyName);
+        dwError = LwAllocateString(pszKeyName, &pCmdItem->keyName);
         BAIL_ON_REG_ERROR(dwError);
         /*
          * Copy only the stuff between the [ ] delimiters. The copied string is
@@ -323,9 +325,10 @@ RegShellCmdParseKeyName(
     }
     else
     {
-        dwError = LW_RTL_ALLOCATE((PVOID*)&pCmdItem->keyName, CHAR, sizeof(CHAR)*(keyNameLen + 2));
+        dwError = LwAllocateMemory(
+                      sizeof(CHAR)*(keyNameLen + 2),
+                      (LW_PVOID) &pCmdItem->keyName);
         BAIL_ON_REG_ERROR(dwError);
-
         strcat(pCmdItem->keyName, "\\");
         strcat(pCmdItem->keyName, pszKeyName);
     }
@@ -461,7 +464,8 @@ RegShellImportBinaryString(
     BAIL_ON_INVALID_POINTER(ppBinaryValue);
     BAIL_ON_INVALID_POINTER(pBinaryValueLen);
 
-    dwError = LW_RTL_ALLOCATE((PVOID*)&binaryValue, UCHAR, sizeof(UCHAR) * strlen(pszHexString) / 2);
+    dwError = LwAllocateMemory(sizeof(UCHAR) * strlen(pszHexString) / 2,
+                               (LW_PVOID) &binaryValue);
     BAIL_ON_REG_ERROR(dwError);
 
     dwError = RegShellHexStringExtentLen(
@@ -637,7 +641,7 @@ RegShellImportBinaryString(
                 printf("RegShellImportBinaryString: ERROR: "
                        "invalid character '%c'\n", *cursor);
                 state = REGSHELL_HEX_STOP;
-                dwError = LWREG_ERROR_INVALID_CONTEXT;
+                dwError = LW_ERROR_INVALID_CONTEXT;
                 BAIL_ON_REG_ERROR(dwError);
                 break;
 
@@ -658,7 +662,7 @@ cleanup:
 error:
     if (binaryValue)
     {
-        LwRtlMemoryFree(binaryValue);
+        LwFreeMemory(binaryValue);
     }
     goto cleanup;
 }
@@ -714,7 +718,7 @@ RegShellCmdParseValueName(
     /* format: add_value [[subkeyname]] value_name */
     if (pCmdItem->command == REGSHELL_CMD_DELETE_VALUE)
     {
-        dwError = LwRtlCStringDuplicate(&pCmdItem->valueName, pszValue);
+        dwError = LwAllocateString(pszValue, &pCmdItem->valueName);
         BAIL_ON_REG_ERROR(dwError);
         *pRetCmdItem = pCmdItem;
         return 0;
@@ -723,12 +727,12 @@ RegShellCmdParseValueName(
     argCount = argc - argIndx;
     if (argCount < 0)
     {
-        dwError = LWREG_ERROR_INVALID_CONTEXT;
+        dwError = LW_ERROR_INVALID_CONTEXT;
         goto error;
     }
     BAIL_ON_REG_ERROR(dwError);
 
-    dwError = LwRtlCStringDuplicate(&pCmdItem->valueName, pszValue);
+    dwError = LwAllocateString(pszValue, &pCmdItem->valueName);
     BAIL_ON_REG_ERROR(dwError);
 
     dwError = RegShellParseStringType(
@@ -743,7 +747,7 @@ RegShellCmdParseValueName(
         case REG_DWORD:
             if (argCount != 1)
             {
-                dwError = LWREG_ERROR_INVALID_CONTEXT;
+                dwError = LW_ERROR_INVALID_CONTEXT;
                 goto error;
             }
             break;
@@ -751,7 +755,7 @@ RegShellCmdParseValueName(
         case REG_SZ:
             if (argCount > 1)
             {
-                dwError = LWREG_ERROR_INVALID_CONTEXT;
+                dwError = LW_ERROR_INVALID_CONTEXT;
                 goto error;
             }
             break;
@@ -761,12 +765,13 @@ RegShellCmdParseValueName(
 
     if (argCount > 0)
     {
-        dwError = LW_RTL_ALLOCATE((PVOID*)&pCmdItem->args, PCHAR, sizeof(*pCmdItem->args) * (argCount + 1));
+        dwError = LwAllocateMemory(sizeof(PCHAR) * (argCount + 1),
+                                   (LW_PVOID) &pCmdItem->args);
         BAIL_ON_REG_ERROR(dwError);
 
         for (i=0; i<argCount; i++)
         {
-            dwError = LwRtlCStringDuplicate(&pCmdItem->args[i], argv[i+argIndx]);
+            dwError = LwAllocateString(argv[i+argIndx], &pCmdItem->args[i]);
             BAIL_ON_REG_ERROR(dwError);
         }
         pCmdItem->args[i] = NULL;
@@ -775,7 +780,7 @@ RegShellCmdParseValueName(
 
     if (pCmdItem->binaryValue)
     {
-        LwRtlMemoryFree(pCmdItem->binaryValue);
+        LwFreeMemory(pCmdItem->binaryValue);
         pCmdItem->binaryValue = NULL;
     }
 
@@ -791,7 +796,7 @@ RegShellCmdParseValueName(
 
             if (binaryValueLen > sizeof(DWORD))
             {
-                dwError = LWREG_ERROR_INVALID_CONTEXT;
+                dwError = LW_ERROR_INVALID_CONTEXT;
                 goto error;
             }
             if (binaryValueLen < sizeof(DWORD))
@@ -804,9 +809,9 @@ RegShellCmdParseValueName(
             dwValue = LW_BTOH32(dwValue);
             memcpy(binaryValue, &dwValue, sizeof(DWORD));
 
-            dwError = LW_RTL_ALLOCATE((PVOID*)&pCmdItem->binaryValue, DWORD, sizeof(DWORD));
+            dwError = LwAllocateMemory(sizeof(DWORD),
+                                       (LW_PVOID) &pCmdItem->binaryValue);
             BAIL_ON_REG_ERROR(dwError);
-
             pCmdItem->binaryValue = binaryValue;
             pCmdItem->binaryValueLen = sizeof(DWORD);
             break;
@@ -823,7 +828,7 @@ RegShellCmdParseValueName(
             break;
 
         case REG_SZ:
-            dwError = LwRtlCStringDuplicate(&pszString, pCmdItem->args[0]);
+            dwError = LwAllocateString(pCmdItem->args[0], &pszString);
             pCmdItem->binaryValue = (PUCHAR) pszString;
             pCmdItem->binaryValueLen = strlen(pszString);
             BAIL_ON_REG_ERROR(dwError);
@@ -953,7 +958,7 @@ RegShellCmdParse(
 
     if (argc < 2)
     {
-        dwError = LWREG_ERROR_INVALID_CONTEXT;
+        dwError = LW_ERROR_INVALID_CONTEXT;
         goto error;
     }
     pszCommand = argv[1];
@@ -968,7 +973,7 @@ RegShellCmdParse(
         case REGSHELL_CMD_PWD:
             if (argc > 2)
             {
-                dwError = LWREG_ERROR_INVALID_CONTEXT;
+                dwError = LW_ERROR_INVALID_CONTEXT;
                 goto error;
             }
             else
@@ -1002,16 +1007,17 @@ RegShellCmdParse(
         case REGSHELL_CMD_SET_HIVE:
             if (argc != 3)
             {
-                dwError = LWREG_ERROR_INVALID_CONTEXT;
+                dwError = LW_ERROR_INVALID_CONTEXT;
                 goto error;
             }
             dwError = RegShellCmdParseCommand(cmd, argc, argv, &pCmdItem);
             BAIL_ON_REG_ERROR(dwError);
 
-            dwError = LW_RTL_ALLOCATE((PVOID*)&pCmdItem->args, PSTR, sizeof(PSTR) * 2);
+            dwError = LwAllocateMemory(sizeof(PSTR) * 2,
+                                       (LW_PVOID) &pCmdItem->args);
             BAIL_ON_REG_ERROR(dwError);
 
-            dwError = LwRtlCStringDuplicate((LW_PVOID) &pCmdItem->args[0], argv[2]);
+            dwError = LwAllocateString(argv[2], (LW_PVOID) &pCmdItem->args[0]);
             BAIL_ON_REG_ERROR(dwError);
             pCmdItem->argsCount = 1;
             break;
@@ -1026,7 +1032,7 @@ RegShellCmdParse(
         case REGSHELL_CMD_DELETE_TREE:
             if (argc != 3)
             {
-                dwError = LWREG_ERROR_INVALID_CONTEXT;
+                dwError = LW_ERROR_INVALID_CONTEXT;
                 goto error;
             }
             dwError = RegShellCmdParseKeyName(
@@ -1040,7 +1046,7 @@ RegShellCmdParse(
         case REGSHELL_CMD_DELETE_VALUE:
             if (argc > 4)
             {
-                dwError = LWREG_ERROR_INVALID_CONTEXT;
+                dwError = LW_ERROR_INVALID_CONTEXT;
                 goto error;
             }
             dwError = RegShellCmdParseValueName(
@@ -1058,7 +1064,7 @@ RegShellCmdParse(
         case REGSHELL_CMD_SET_VALUE:
             if (argc < 5)
             {
-                dwError = LWREG_ERROR_INVALID_CONTEXT;
+                dwError = LW_ERROR_INVALID_CONTEXT;
                 goto error;
             }
             dwError = RegShellCmdParseValueName(
@@ -1070,7 +1076,7 @@ RegShellCmdParse(
             break;
 
         default:
-            dwError = LWREG_ERROR_INVALID_CONTEXT;
+            dwError = LW_ERROR_INVALID_CONTEXT;
             break;
     }
 
@@ -1090,9 +1096,8 @@ RegShellAllocKey(
 {
     DWORD dwError;
 
-    dwError = LW_RTL_ALLOCATE((PVOID*)pszNewKey,PSTR, strlen(pszKeyName) + 3);
+    dwError = LwAllocateMemory(strlen(pszKeyName) + 3, (LW_PVOID) pszNewKey);
     BAIL_ON_REG_ERROR(dwError);
-
     strcpy(*pszNewKey, "[");
     strcat(*pszNewKey, pszKeyName);
     strcat(*pszNewKey, "]");
@@ -1196,7 +1201,7 @@ RegShellCmdlineParseToArgv(
                 else
                 {
                     /* Syntax error */
-                    dwError = LWREG_ERROR_INVALID_CONTEXT;
+                    dwError = LW_ERROR_INVALID_CONTEXT;
                 }
                 break;
 
@@ -1208,7 +1213,7 @@ RegShellCmdlineParseToArgv(
                     if (dwError)
                     {
                         /* Syntax error */
-                        dwError = LWREG_ERROR_INVALID_CONTEXT;
+                        dwError = LW_ERROR_INVALID_CONTEXT;
                         break;
                     }
                 }
@@ -1344,16 +1349,16 @@ RegShellCmdlineParseToArgv(
                 }
                 else
                 {
-                    dwError = LWREG_ERROR_INVALID_CONTEXT;
+                    dwError = LW_ERROR_INVALID_CONTEXT;
                     break;
                 }
 
-                dwError = LW_RTL_ALLOCATE((PVOID*)&pszArgv, PSTR, sizeof(*pszArgv) * dwAllocSize);
+                dwError = LwAllocateMemory(sizeof(PSTR) * dwAllocSize,
+                                          (LW_PVOID) &pszArgv);
                 BAIL_ON_REG_ERROR(dwError);
-
-                dwError = LwRtlCStringDuplicate(&pszArgv[0], "regshell");
+                dwError = LwAllocateString("regshell", &pszArgv[0]);
                 BAIL_ON_REG_ERROR(dwError);
-                dwError = LwRtlCStringDuplicate(&pszArgv[1], pszAttr);
+                dwError = LwAllocateString(pszAttr, &pszArgv[1]);
                 BAIL_ON_REG_ERROR(dwError);
                 break;
 
@@ -1377,7 +1382,7 @@ RegShellCmdlineParseToArgv(
                     }
                     else
                     {
-                        dwError = LWREG_ERROR_INVALID_CONTEXT;
+                        dwError = LW_ERROR_INVALID_CONTEXT;
                     }
                 }
                 else
@@ -1405,7 +1410,7 @@ RegShellCmdlineParseToArgv(
                 stop = eof;
                 if (!eof)
                 {
-                    dwError = LWREG_ERROR_INVALID_CONTEXT;
+                    dwError = LW_ERROR_INVALID_CONTEXT;
                 }
                 break;
 
@@ -1417,7 +1422,7 @@ RegShellCmdlineParseToArgv(
                 BAIL_ON_REG_ERROR(dwError);
                 if (eof)
                 {
-                    dwError = LWREG_ERROR_INVALID_CONTEXT;
+                    dwError = LW_ERROR_INVALID_CONTEXT;
                     stop = eof;
                 }
                 else
@@ -1429,7 +1434,7 @@ RegShellCmdlineParseToArgv(
                     }
                     else
                     {
-                        dwError = LWREG_ERROR_INVALID_CONTEXT;
+                        dwError = LW_ERROR_INVALID_CONTEXT;
                     }
                 }
                 break;
@@ -1452,7 +1457,7 @@ RegShellCmdlineParseToArgv(
                 stop = eof;
                 if (!eof)
                 {
-                    dwError = LWREG_ERROR_INVALID_CONTEXT;
+                    dwError = LW_ERROR_INVALID_CONTEXT;
                 }
                 break;
 
@@ -1464,7 +1469,7 @@ RegShellCmdlineParseToArgv(
                 BAIL_ON_REG_ERROR(dwError);
                 if (eof)
                 {
-                    dwError = LWREG_ERROR_INVALID_CONTEXT;
+                    dwError = LW_ERROR_INVALID_CONTEXT;
                     stop = eof;
                 }
                 else
@@ -1476,7 +1481,7 @@ RegShellCmdlineParseToArgv(
                     }
                     else
                     {
-                        dwError = LWREG_ERROR_INVALID_CONTEXT;
+                        dwError = LW_ERROR_INVALID_CONTEXT;
                     }
                 }
                 break;
@@ -1496,7 +1501,7 @@ RegShellCmdlineParseToArgv(
                 stop = eof;
                 if (!eof)
                 {
-                    dwError = LWREG_ERROR_INVALID_CONTEXT;
+                    dwError = LW_ERROR_INVALID_CONTEXT;
                 }
                 break;
 
@@ -1508,7 +1513,7 @@ RegShellCmdlineParseToArgv(
                 BAIL_ON_REG_ERROR(dwError);
                 if (eof)
                 {
-                    dwError = LWREG_ERROR_INVALID_CONTEXT;
+                    dwError = LW_ERROR_INVALID_CONTEXT;
                 }
                 else if (token == REGLEX_REG_KEY)
                 {
@@ -1522,7 +1527,7 @@ RegShellCmdlineParseToArgv(
                 }
                 else
                 {
-                    dwError = LWREG_ERROR_INVALID_CONTEXT;
+                    dwError = LW_ERROR_INVALID_CONTEXT;
                 }
                 break;
 
@@ -1530,10 +1535,10 @@ RegShellCmdlineParseToArgv(
                     RegLexGetAttribute(pParseState->lexHandle,
                                        &attrSize,
                                        &pszAttr);
-
-                    dwError = LW_RTL_ALLOCATE((PVOID*)&pszArgv[dwArgc], CHAR, sizeof(*pszArgv[dwArgc]) * (strlen(pszAttr)+3));
+                    dwError = LwAllocateMemory(
+                                  sizeof(CHAR) * (strlen(pszAttr)+3),
+                                  (LW_PVOID) &pszArgv[dwArgc]);
                     BAIL_ON_REG_ERROR(dwError);
-
                     strcpy(pszArgv[dwArgc], "[");
                     strcat(pszArgv[dwArgc], pszAttr);
                     strcat(pszArgv[dwArgc], "]");
@@ -1545,7 +1550,7 @@ RegShellCmdlineParseToArgv(
                     BAIL_ON_REG_ERROR(dwError);
                     if (eof)
                     {
-                        dwError = LWREG_ERROR_INVALID_CONTEXT;
+                        dwError = LW_ERROR_INVALID_CONTEXT;
                     }
                     else if (token == REGLEX_REG_SZ ||
                              token == REGLEX_PLAIN_TEXT ||
@@ -1555,7 +1560,7 @@ RegShellCmdlineParseToArgv(
                     }
                     else
                     {
-                        dwError = LWREG_ERROR_INVALID_CONTEXT;
+                        dwError = LW_ERROR_INVALID_CONTEXT;
                     }
 
                     break;
@@ -1564,7 +1569,7 @@ RegShellCmdlineParseToArgv(
                     RegLexGetAttribute(pParseState->lexHandle,
                                        &attrSize,
                                        &pszAttr);
-                    dwError = LwRtlCStringDuplicate(&pszArgv[dwArgc++], pszAttr);
+                    dwError = LwAllocateString(pszAttr, &pszArgv[dwArgc++]);
                     BAIL_ON_REG_ERROR(dwError);
 
                     dwError = RegLexGetToken(pParseState->ioHandle,
@@ -1580,7 +1585,7 @@ RegShellCmdlineParseToArgv(
                     }
                     else if (eof)
                     {
-                        dwError = LWREG_ERROR_INVALID_CONTEXT;
+                        dwError = LW_ERROR_INVALID_CONTEXT;
                     }
                     else if (token == REGLEX_REG_SZ ||
                              token == REGLEX_PLAIN_TEXT ||
@@ -1592,7 +1597,7 @@ RegShellCmdlineParseToArgv(
                     }
                     else
                     {
-                        dwError = LWREG_ERROR_INVALID_CONTEXT;
+                        dwError = LW_ERROR_INVALID_CONTEXT;
                     }
                     break;
 
@@ -1606,10 +1611,10 @@ RegShellCmdlineParseToArgv(
                                   NULL);
                     if (valueType == REG_UNKNOWN)
                     {
-                        dwError = LWREG_ERROR_INVALID_CONTEXT;
+                        dwError = LW_ERROR_INVALID_CONTEXT;
                         BAIL_ON_REG_ERROR(dwError);
                     }
-                    dwError = LwRtlCStringDuplicate(&pszArgv[dwArgc++], pszAttr);
+                    dwError = LwAllocateString(pszAttr, &pszArgv[dwArgc++]);
                     BAIL_ON_REG_ERROR(dwError);
 
                     state = REGSHELL_CMDLINE_STATE_ADDVALUE_VALUE;
@@ -1639,7 +1644,7 @@ RegShellCmdlineParseToArgv(
                     {
                         if (dwArgc <= 4)
                         {
-                            dwError = LWREG_ERROR_INVALID_CONTEXT;
+                            dwError = LW_ERROR_INVALID_CONTEXT;
                         }
                         else
                         {
@@ -1652,12 +1657,12 @@ RegShellCmdlineParseToArgv(
                         RegLexGetAttribute(pParseState->lexHandle,
                                            &attrSize,
                                            &pszAttr);
-                        dwError = LwRtlCStringDuplicate(&pszArgv[dwArgc++], pszAttr);
+                        dwError = LwAllocateString(pszAttr, &pszArgv[dwArgc++]);
                         BAIL_ON_REG_ERROR(dwError);
                         if (dwArgc >= dwAllocSize)
                         {
                             dwAllocSize *= 2;
-                            dwError = RegReallocMemory(
+                            dwError = LwReallocMemory(
                                           pszArgv,
                                           (LW_PVOID) &pszArgvRealloc,
                                           dwAllocSize * sizeof(PSTR *));
@@ -1667,9 +1672,9 @@ RegShellCmdlineParseToArgv(
                     }
                     else if (valueType == REG_BINARY || valueType == REG_DWORD)
                     {
-                        dwError = LwRtlCStringDuplicate(
-                                      &pszArgv[dwArgc],
-                                      &pszBinaryData[dwBinaryDataOffset]);
+                        dwError = LwAllocateString(
+                                      &pszBinaryData[dwBinaryDataOffset],
+                                      &pszArgv[dwArgc]);
                         BAIL_ON_REG_ERROR(dwError);
                         dwLen = strlen(pszArgv[dwArgc]);
                         if (dwLen>1 && pszArgv[dwArgc][dwLen-1] == '\n')
@@ -1688,7 +1693,7 @@ RegShellCmdlineParseToArgv(
                     }
                     else
                     {
-                            dwError = LWREG_ERROR_INVALID_CONTEXT;
+                            dwError = LW_ERROR_INVALID_CONTEXT;
                     }
                     break;
 
@@ -1700,7 +1705,7 @@ RegShellCmdlineParseToArgv(
                     BAIL_ON_REG_ERROR(dwError);
                     if (!eof)
                     {
-                        dwError = LWREG_ERROR_INVALID_CONTEXT;
+                        dwError = LW_ERROR_INVALID_CONTEXT;
                     }
                     else
                     {
@@ -1716,7 +1721,7 @@ RegShellCmdlineParseToArgv(
                     BAIL_ON_REG_ERROR(dwError);
                     if (eof)
                     {
-                        dwError = LWREG_ERROR_INVALID_CONTEXT;
+                        dwError = LW_ERROR_INVALID_CONTEXT;
                     }
                     else
                     {
@@ -1728,8 +1733,8 @@ RegShellCmdlineParseToArgv(
                     RegLexGetAttribute(pParseState->lexHandle,
                                        &attrSize,
                                        &pszAttr);
-                    dwError = LwRtlCStringDuplicate((LW_PVOID) &pszArgv[dwArgc++],
-				                        pszAttr);
+                    dwError = LwAllocateString(pszAttr,
+                                               (LW_PVOID) &pszArgv[dwArgc++]);
                     BAIL_ON_REG_ERROR(dwError);
 
                     state = REGSHELL_CMDLINE_STATE_IMPORT_STOP;
@@ -1743,7 +1748,7 @@ RegShellCmdlineParseToArgv(
                     BAIL_ON_REG_ERROR(dwError);
                     if (!eof)
                     {
-                        dwError = LWREG_ERROR_INVALID_CONTEXT;
+                        dwError = LW_ERROR_INVALID_CONTEXT;
                     }
                     else
                     {
@@ -1756,7 +1761,7 @@ RegShellCmdlineParseToArgv(
                 break;
         }
     }
-    while (!stop && dwError == LWREG_ERROR_SUCCESS);
+    while (!stop && dwError == LW_ERROR_SUCCESS);
 
     *pdwNewArgc = dwArgc;
     *pszNewArgv = pszArgv;
@@ -1796,9 +1801,9 @@ RegShellCmdlineParseFree(
 
     for (i=0; i<dwArgc; i++)
     {
-        LwRtlMemoryFree(pszArgv[i]);
+        LwFreeMemory(pszArgv[i]);
     }
-    LwRtlMemoryFree(pszArgv);
+    LwFreeMemory(pszArgv);
 
 cleanup:
     return dwError;

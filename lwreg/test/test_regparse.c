@@ -96,11 +96,11 @@ DWORD parseCallback(PREG_PARSE_ITEM pItem, HANDLE userContext)
             {
                 if (pszString)
                 {
-			LwRtlMemoryFree(pszString);
+                    LwFreeMemory(pszString);
                     pszString = NULL;
                 }
 
-		dwError = LwRtlCStringAllocateFromWC16String(&pszString, outMultiSz[count]);
+                dwError = LwWc16sToMbs(outMultiSz[count], &pszString);
                 BAIL_ON_REG_ERROR(dwError);
 
                 printf("outMultiSz[%d] = '%s'\n", count, pszString);
@@ -139,7 +139,7 @@ error:
 
     if (pszString)
     {
-	LwRtlMemoryFree(pszString);
+        LwFreeMemory(pszString);
     }
     if (outMultiSz)
     {

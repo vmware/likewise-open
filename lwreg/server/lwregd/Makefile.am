@@ -10,7 +10,7 @@ lwregd_CPPFLAGS =                 \
     -DLW_ENABLE_THREADS=1         \
     $(AM_CPPFLAGS)                \
     -I@top_srcdir@/server/include \
-    @LWBASE_INCLUDES@
+    @LWADVAPI_INCLUDES@
 
 lwregd_LDADD =                             \
     @top_builddir@/server/api/libregserverapi.la \

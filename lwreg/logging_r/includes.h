@@ -52,10 +52,13 @@
 
 #include <reg/reg.h>
 
+
 #include <lw/base.h>
-#include <lw/ntstatus.h>
-#include <lw/rtlstring.h>
-#include <lw/rtlmemory.h>
+#include <lwerror.h>
+#include <lwstr.h>
+#include <lwmem.h>
+#include <lwfile.h>
+#include <lwdef.h>
 
 #include <regdef.h>
 #include <regutils.h>

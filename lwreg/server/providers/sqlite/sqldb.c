@@ -65,7 +65,7 @@ RegDbUnpackCacheInfo(
     PREG_ENTRY_VERSION_INFO pResult
     )
 {
-    DWORD dwError = LWREG_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
 
     dwError = RegSqliteReadInt64(
         pstQuery,
@@ -92,7 +92,7 @@ RegDbUnpackRegEntryInfo(
     IN OUT PREG_ENTRY pResult
     )
 {
-    DWORD dwError = LWREG_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
 
     dwError = RegSqliteReadString(
         pstQuery,
@@ -124,7 +124,7 @@ RegDbUnpackRegEntryInfo(
 
     if (pResult->type != REG_KEY && !pResult->pszValueName)
     {
-        dwError = LWREG_ERROR_INVALID_VALUENAME;
+        dwError = LW_ERROR_INVALID_VALUENAME;
         BAIL_ON_REG_ERROR(dwError);
     }
 
@@ -139,7 +139,7 @@ RegDbUnpackSubKeysCountInfo(
     PDWORD pdwCount
     )
 {
-    DWORD dwError = LWREG_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
 
     dwError = RegSqliteReadUInt32(
         pstQuery,
@@ -159,7 +159,7 @@ RegDbUnpackKeyValuesCountInfo(
     PDWORD pdwCount
     )
 {
-    DWORD dwError = LWREG_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
 
     dwError = RegSqliteReadUInt32(
         pstQuery,
@@ -216,7 +216,9 @@ RegDbOpen(
                     &pszDbDir);
     BAIL_ON_REG_ERROR(dwError);
 
-    dwError = LW_RTL_ALLOCATE((PVOID*)&pConn, REG_DB_CONNECTION, sizeof(*pConn));
+    dwError = LwAllocateMemory(
+                    sizeof(REG_DB_CONNECTION),
+                    (PVOID*)&pConn);
     BAIL_ON_REG_ERROR(dwError);
 
     dwError = pthread_rwlock_init(&pConn->lock, NULL);
@@ -423,7 +425,7 @@ cleanup:
     {
         sqlite3_free(pszError);
     }
-    LWREG_SAFE_FREE_STRING(pszDbDir);
+    LW_SAFE_FREE_STRING(pszDbDir);
 
     return dwError;
 
@@ -439,7 +441,7 @@ error:
         {
             sqlite3_close(pConn->pDb);
         }
-        LWREG_SAFE_FREE_MEMORY(pConn);
+        LW_SAFE_FREE_MEMORY(pConn);
     }
     *phDb = (HANDLE)NULL;
 
@@ -454,7 +456,7 @@ RegDbStoreKeyObjectEntries(
     )
 {
     PREG_DB_CONNECTION pConn = (PREG_DB_CONNECTION)hDb;
-    DWORD dwError = LWREG_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     size_t sIndex = 0;
     //Free with sqlite3_free
     char *pszError = NULL;
@@ -524,7 +526,7 @@ RegDbStoreKeyObjectEntries(
 
         if (pszNewStatement == NULL)
         {
-            dwError = LWREG_ERROR_OUT_OF_MEMORY;
+            dwError = LW_ERROR_OUT_OF_MEMORY;
             BAIL_ON_REG_ERROR(dwError);
         }
 
@@ -566,7 +568,7 @@ RegDbStoreObjectEntries(
     )
 {
     PREG_DB_CONNECTION pConn = (PREG_DB_CONNECTION)hDb;
-    DWORD dwError = LWREG_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     size_t sIndex = 0;
     //Free with sqlite3_free
     char *pszError = NULL;
@@ -610,7 +612,7 @@ RegDbStoreObjectEntries(
 
             if (pszNewStatement == NULL)
             {
-                dwError = LWREG_ERROR_OUT_OF_MEMORY;
+                dwError = LW_ERROR_OUT_OF_MEMORY;
                 BAIL_ON_REG_ERROR(dwError);
             }
 
@@ -695,7 +697,7 @@ RegDbStoreObjectEntries(
 
         if (pszNewStatement == NULL)
         {
-            dwError = LWREG_ERROR_OUT_OF_MEMORY;
+            dwError = LW_ERROR_OUT_OF_MEMORY;
             BAIL_ON_REG_ERROR(dwError);
         }
 
@@ -741,10 +743,10 @@ RegDbCreateKey(
     PREG_ENTRY pRegEntryDefaultValue = NULL;
 
     /*Create key*/
-    dwError = LW_RTL_ALLOCATE((PVOID*)&pRegEntry, REG_ENTRY, sizeof(*pRegEntry));
+    dwError = LwAllocateMemory(sizeof(*pRegEntry), (PVOID*)&pRegEntry);
     BAIL_ON_REG_ERROR(dwError);
 
-    dwError = LwRtlCStringDuplicate(&pRegEntry->pszKeyName, pszKeyName);
+    dwError = LwAllocateString(pszKeyName, &pRegEntry->pszKeyName);
     BAIL_ON_REG_ERROR(dwError);
 
     pRegEntry->type = REG_KEY;
@@ -783,18 +785,18 @@ RegDbCreateKeyValue(
     DWORD dwError = 0;
     PREG_ENTRY pRegEntry = NULL;
 
-    dwError = LW_RTL_ALLOCATE((PVOID*)&pRegEntry, REG_ENTRY, sizeof(*pRegEntry));
+    dwError = LwAllocateMemory(sizeof(REG_ENTRY), (PVOID*)&pRegEntry);
     BAIL_ON_REG_ERROR(dwError);
 
-    dwError = LwRtlCStringDuplicate(&pRegEntry->pszKeyName, pszKeyName);
+    dwError = LwAllocateString(pszKeyName, &pRegEntry->pszKeyName);
     BAIL_ON_REG_ERROR(dwError);
 
-    dwError = LwRtlCStringDuplicate(&pRegEntry->pszValueName, pszValueName);
+    dwError = LwAllocateString(pszValueName, &pRegEntry->pszValueName);
     BAIL_ON_REG_ERROR(dwError);
 
     if (pszValue)
     {
-        dwError = LwRtlCStringDuplicate(&pRegEntry->pszValue, pszValue);
+        dwError = LwAllocateString(pszValue, &pRegEntry->pszValue);
         BAIL_ON_REG_ERROR(dwError);
     }
 
@@ -837,7 +839,7 @@ RegDbGetKeyValue(
     OUT OPTIONAL PREG_ENTRY* ppRegEntry
     )
 {
-    DWORD dwError = LWREG_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PREG_DB_CONNECTION pConn = (PREG_DB_CONNECTION)hDb;
     BOOLEAN bInLock = FALSE;
     // do not free
@@ -890,18 +892,20 @@ RegDbGetKeyValue(
         nGotColumns = sqlite3_column_count(pstQuery);
         if (nGotColumns != nExpectedCols)
         {
-            dwError = LWREG_ERROR_DATA_ERROR;
+            dwError = LW_ERROR_DATA_ERROR;
             BAIL_ON_REG_ERROR(dwError);
         }
 
         if (sResultCount >= 1)
         {
             //Duplicate key value records are found
-            dwError = LWREG_ERROR_DUPLICATE_KEYVALUENAME;
+            dwError = LW_ERROR_DUPLICATE_KEYVALUENAME;
             BAIL_ON_REG_ERROR(dwError);
         }
 
-        dwError = LW_RTL_ALLOCATE((PVOID*)&pRegEntry, REG_ENTRY, sizeof(*pRegEntry));
+        dwError = LwAllocateMemory(
+                        sizeof(*pRegEntry),
+                        (PVOID*)&pRegEntry);
         BAIL_ON_REG_ERROR(dwError);
 
         iColumnPos = 0;
@@ -922,7 +926,7 @@ RegDbGetKeyValue(
     if (dwError == SQLITE_DONE)
     {
         // No more results found
-        dwError = LWREG_ERROR_SUCCESS;
+        dwError = LW_ERROR_SUCCESS;
     }
     BAIL_ON_SQLITE3_ERROR_DB(dwError, pConn->pDb);
 
@@ -931,7 +935,7 @@ RegDbGetKeyValue(
 
     if (!sResultCount)
     {
-        dwError = LWREG_ERROR_NO_SUCH_VALUENAME;
+        dwError = LW_ERROR_NO_SUCH_VALUENAME;
         BAIL_ON_REG_ERROR(dwError);
     }
 
@@ -968,7 +972,7 @@ RegDbOpenKey(
     OUT OPTIONAL PREG_ENTRY* ppRegEntry
     )
 {
-    DWORD dwError = LWREG_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PREG_DB_CONNECTION pConn = (PREG_DB_CONNECTION)hDb;
     BOOLEAN bInLock = FALSE;
     // do not free
@@ -990,18 +994,20 @@ RegDbOpenKey(
         nGotColumns = sqlite3_column_count(pstQuery);
         if (nGotColumns != nExpectedCols)
         {
-            dwError = LWREG_ERROR_DATA_ERROR;
+            dwError = LW_ERROR_DATA_ERROR;
             BAIL_ON_REG_ERROR(dwError);
         }
 
         if (sResultCount >= 1)
         {
             //Duplicate keys are found
-            dwError = LWREG_ERROR_DUPLICATE_KEYNAME;
+            dwError = LW_ERROR_DUPLICATE_KEYNAME;
             BAIL_ON_REG_ERROR(dwError);
         }
 
-        dwError = LW_RTL_ALLOCATE((PVOID*)&pRegEntry, REG_ENTRY, sizeof(*pRegEntry));
+        dwError = LwAllocateMemory(
+                        sizeof(*pRegEntry),
+                        (PVOID*)&pRegEntry);
         BAIL_ON_REG_ERROR(dwError);
 
         iColumnPos = 0;
@@ -1022,7 +1028,7 @@ RegDbOpenKey(
     if (dwError == SQLITE_DONE)
     {
         // No more results found
-        dwError = LWREG_ERROR_SUCCESS;
+        dwError = LW_ERROR_SUCCESS;
     }
     BAIL_ON_SQLITE3_ERROR_DB(dwError, pConn->pDb);
 
@@ -1031,7 +1037,7 @@ RegDbOpenKey(
 
     if (!sResultCount)
     {
-        dwError = LWREG_ERROR_NO_SUCH_KEY;
+        dwError = LW_ERROR_NO_SUCH_KEY;
         BAIL_ON_REG_ERROR(dwError);
     }
 
@@ -1067,7 +1073,7 @@ RegDbDeleteKey(
     IN PCSTR pszKeyName
     )
 {
-    DWORD dwError = LWREG_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     BOOLEAN bInLock = FALSE;
     PREG_DB_CONNECTION pConn = (PREG_DB_CONNECTION)hDb;
     // Do not free
@@ -1081,7 +1087,7 @@ RegDbDeleteKey(
     dwError = (DWORD)sqlite3_step(pstQuery);
     if (dwError == SQLITE_DONE)
     {
-        dwError = LWREG_ERROR_SUCCESS;
+        dwError = LW_ERROR_SUCCESS;
     }
     BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
 
@@ -1112,7 +1118,7 @@ RegDbQueryInfoKeyCount(
     OUT size_t* psCount
     )
 {
-    DWORD dwError = LWREG_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PREG_DB_CONNECTION pConn = (PREG_DB_CONNECTION)hDb;
     BOOLEAN bInLock = FALSE;
     // do not free
@@ -1136,7 +1142,7 @@ RegDbQueryInfoKeyCount(
             break;
 
         default:
-            dwError = LWREG_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_REG_ERROR(dwError);
     }
 
@@ -1148,13 +1154,13 @@ RegDbQueryInfoKeyCount(
         nGotColumns = sqlite3_column_count(pstQuery);
         if (nGotColumns != nExpectedCols)
         {
-            dwError = LWREG_ERROR_DATA_ERROR;
+            dwError = LW_ERROR_DATA_ERROR;
             BAIL_ON_REG_ERROR(dwError);
         }
 
         if (sResultCount >= 1)
         {
-            dwError = LWREG_ERROR_INTERNAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_REG_ERROR(dwError);
         }
 
@@ -1179,7 +1185,7 @@ RegDbQueryInfoKeyCount(
                 break;
 
             default:
-                dwError = LWREG_ERROR_INVALID_PARAMETER;
+                dwError = LW_ERROR_INVALID_PARAMETER;
                 BAIL_ON_REG_ERROR(dwError);
         }
 
@@ -1189,7 +1195,7 @@ RegDbQueryInfoKeyCount(
     if (dwError == SQLITE_DONE)
     {
         // No more results found
-        dwError = LWREG_ERROR_SUCCESS;
+        dwError = LW_ERROR_SUCCESS;
     }
     BAIL_ON_SQLITE3_ERROR_DB(dwError, pConn->pDb);
 
@@ -1198,7 +1204,7 @@ RegDbQueryInfoKeyCount(
 
     if (!sResultCount)
     {
-        dwError = LWREG_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_REG_ERROR(dwError);
     }
 
@@ -1231,7 +1237,7 @@ RegDbQueryInfoKey(
     OUT OPTIONAL PREG_ENTRY** pppRegEntries
     )
 {
-    DWORD dwError = LWREG_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PREG_DB_CONNECTION pConn = (PREG_DB_CONNECTION)hDb;
     BOOLEAN bInLock = FALSE;
     // do not free
@@ -1257,7 +1263,7 @@ RegDbQueryInfoKey(
             break;
 
         default:
-            dwError = LWREG_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_REG_ERROR(dwError);
     }
 
@@ -1275,7 +1281,7 @@ RegDbQueryInfoKey(
         nGotColumns = sqlite3_column_count(pstQuery);
         if (nGotColumns != nExpectedCols)
         {
-            dwError = LWREG_ERROR_DATA_ERROR;
+            dwError = LW_ERROR_DATA_ERROR;
             BAIL_ON_REG_ERROR(dwError);
         }
 
@@ -1283,14 +1289,16 @@ RegDbQueryInfoKey(
         {
             sResultCapacity *= 2;
             sResultCapacity += 10;
-            dwError = RegReallocMemory(
+            dwError = LwReallocMemory(
                             ppRegEntries,
                             (PVOID*)&ppRegEntries,
                             sizeof(PREG_ENTRY) * sResultCapacity);
             BAIL_ON_REG_ERROR(dwError);
         }
 
-        dwError = LW_RTL_ALLOCATE((PVOID*)&pRegEntry, REG_ENTRY, sizeof(*pRegEntry));
+        dwError = LwAllocateMemory(
+                        sizeof(*pRegEntry),
+                        (PVOID*)&pRegEntry);
         BAIL_ON_REG_ERROR(dwError);
 
         iColumnPos = 0;
@@ -1313,7 +1321,7 @@ RegDbQueryInfoKey(
     if (dwError == SQLITE_DONE)
     {
         // No more results found
-        dwError = LWREG_ERROR_SUCCESS;
+        dwError = LW_ERROR_SUCCESS;
     }
     BAIL_ON_SQLITE3_ERROR_DB(dwError, pConn->pDb);
 
@@ -1361,7 +1369,7 @@ RegDbDeleteKeyValue(
     IN PCSTR pszValueName
     )
 {
-    DWORD dwError = LWREG_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     BOOLEAN bInLock = FALSE;
     PREG_DB_CONNECTION pConn = (PREG_DB_CONNECTION)hDb;
     // Do not free
@@ -1378,7 +1386,7 @@ RegDbDeleteKeyValue(
     dwError = (DWORD)sqlite3_step(pstQuery);
     if (dwError == SQLITE_DONE)
     {
-        dwError = LWREG_ERROR_SUCCESS;
+        dwError = LW_ERROR_SUCCESS;
     }
     BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
 
@@ -1408,7 +1416,7 @@ RegDbFreePreparedStatements(
     )
 {
     int i;
-    DWORD dwError = LWREG_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     sqlite3_stmt * * const pppstFreeList[] = {
         &pConn->pstDeleteKey,
         &pConn->pstDeleteKeyValue,
@@ -1445,7 +1453,7 @@ RegDbSafeClose(
 {
     // This function cannot return an error, only log errors that occur
     // along the way
-    DWORD dwError = LWREG_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PREG_DB_CONNECTION pConn = NULL;
 
     if (phDb == NULL)
@@ -1461,10 +1469,10 @@ RegDbSafeClose(
     }
 
     dwError = RegDbFreePreparedStatements(pConn);
-    if (dwError != LWREG_ERROR_SUCCESS)
+    if (dwError != LW_ERROR_SUCCESS)
     {
         REG_LOG_ERROR("Error freeing prepared statements [%d]", dwError);
-        dwError = LWREG_ERROR_SUCCESS;
+        dwError = LW_ERROR_SUCCESS;
     }
 
     if (pConn->pDb != NULL)
@@ -1474,12 +1482,12 @@ RegDbSafeClose(
     }
 
     dwError = pthread_rwlock_destroy(&pConn->lock);
-    if (dwError != LWREG_ERROR_SUCCESS)
+    if (dwError != LW_ERROR_SUCCESS)
     {
         REG_LOG_ERROR("Error destroying lock [%d]", dwError);
-        dwError = LWREG_ERROR_SUCCESS;
+        dwError = LW_ERROR_SUCCESS;
     }
-    LWREG_SAFE_FREE_MEMORY(pConn);
+    LW_SAFE_FREE_MEMORY(pConn);
 
     *phDb = (HANDLE)0;
 
@@ -1492,7 +1500,7 @@ RegDbEmptyCache(
     IN REG_DB_HANDLE hDb
     )
 {
-    DWORD dwError = LWREG_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PREG_DB_CONNECTION pConn = (PREG_DB_CONNECTION)hDb;
     PCSTR pszEmptyCache =
         "begin;\n"
@@ -1536,7 +1544,7 @@ RegCacheSafeFreeEntryList(
         {
             RegCacheSafeFreeEntry(&(*pppEntries)[iEntry]);
         }
-        LWREG_SAFE_FREE_MEMORY(*pppEntries);
+        LW_SAFE_FREE_MEMORY(*pppEntries);
     }
 }
 
@@ -1550,11 +1558,11 @@ RegCacheSafeFreeEntry(
     {
         pEntry = *ppEntry;
 
-        LWREG_SAFE_FREE_STRING(pEntry->pszKeyName);
-        LWREG_SAFE_FREE_STRING(pEntry->pszValueName);
-        LWREG_SAFE_FREE_STRING(pEntry->pszValue);
+        LW_SAFE_FREE_STRING(pEntry->pszKeyName);
+        LW_SAFE_FREE_STRING(pEntry->pszValueName);
+        LW_SAFE_FREE_STRING(pEntry->pszValue);
 
-        LWREG_SAFE_FREE_MEMORY(pEntry);
+        LW_SAFE_FREE_MEMORY(pEntry);
         *ppEntry = NULL;
     }
 }
@@ -1568,7 +1576,7 @@ RegCacheSafeRecordSubKeysInfo_inlock(
     IN BOOLEAN bDoAnsi
     )
 {
-    DWORD dwError = LWREG_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     int iCount = 0;
     size_t sSubKeyLen = 0;
     PWSTR pSubKey = NULL;
@@ -1576,19 +1584,20 @@ RegCacheSafeRecordSubKeysInfo_inlock(
     BAIL_ON_INVALID_POINTER(pKeyResult);
 
     //Remove previous subKey information if there is any
-    RegFreeStringArray(pKeyResult->ppszSubKeyNames, pKeyResult->dwNumCacheSubKeys);
+    LwFreeStringArray(pKeyResult->ppszSubKeyNames, pKeyResult->dwNumCacheSubKeys);
 
     if (!sCacheCount)
     {
         goto cleanup;
     }
 
-    dwError = LW_RTL_ALLOCATE((PVOID*)&pKeyResult->ppszSubKeyNames, PSTR, sizeof(*(pKeyResult->ppszSubKeyNames)) * sCacheCount);
+    dwError = LwAllocateMemory(sizeof(*(pKeyResult->ppszSubKeyNames)) * sCacheCount,
+                               (PVOID*)&pKeyResult->ppszSubKeyNames);
     BAIL_ON_REG_ERROR(dwError);
 
     for (iCount = 0; iCount < (DWORD)sCacheCount; iCount++)
     {
-        dwError = LwRtlCStringDuplicate(&pKeyResult->ppszSubKeyNames[iCount], ppRegEntries[iCount]->pszKeyName);
+        dwError = LwAllocateString(ppRegEntries[iCount]->pszKeyName, &pKeyResult->ppszSubKeyNames[iCount]);
         BAIL_ON_REG_ERROR(dwError);
 
         if (bDoAnsi)
@@ -1600,19 +1609,17 @@ RegCacheSafeRecordSubKeysInfo_inlock(
         }
         else
         {
-		dwError = LwRtlWC16StringAllocateFromCString(&pSubKey, ppRegEntries[iCount]->pszKeyName);
-		BAIL_ON_REG_ERROR(dwError);
+            dwError = LwMbsToWc16s(ppRegEntries[iCount]->pszKeyName, &pSubKey);
+            BAIL_ON_REG_ERROR(dwError);
 
-            if (pSubKey)
-            {
-		sSubKeyLen = RtlWC16StringNumChars(pSubKey);
-            }
+            dwError = LwWc16sLen((PCWSTR)pSubKey,&sSubKeyLen);
+            BAIL_ON_REG_ERROR(dwError);
 
             if (pKeyResult->sMaxSubKeyLen < sSubKeyLen)
                 pKeyResult->sMaxSubKeyLen = sSubKeyLen;
         }
 
-        LWREG_SAFE_FREE_MEMORY(pSubKey);
+        LW_SAFE_FREE_MEMORY(pSubKey);
         sSubKeyLen = 0;
     }
 
@@ -1628,7 +1635,7 @@ cleanup:
         pKeyResult->bHasSubKeyInfo = TRUE;
     }
 
-    LWREG_SAFE_FREE_MEMORY(pSubKey);
+    LW_SAFE_FREE_MEMORY(pSubKey);
     return dwError;
 
 error:
@@ -1644,7 +1651,7 @@ RegCacheSafeRecordSubKeysInfo(
     IN BOOLEAN bDoAnsi
     )
 {
-    DWORD dwError = LWREG_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     BOOLEAN bInLock = FALSE;
 
     BAIL_ON_INVALID_POINTER(pKeyResult);
@@ -1676,7 +1683,7 @@ RegCacheSafeRecordValuesInfo_inlock(
     IN BOOLEAN bDoAnsi
     )
 {
-    DWORD dwError = LWREG_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     int iCount = 0;
     size_t sValueNameLen = 0;
     PWSTR pValueName = NULL;
@@ -1685,37 +1692,37 @@ RegCacheSafeRecordValuesInfo_inlock(
     BAIL_ON_INVALID_POINTER(pKeyResult);
 
     //Remove previous subKey information if there is any
-    RegFreeStringArray(pKeyResult->ppszValueNames, pKeyResult->dwNumCacheValues);
-    RegFreeStringArray(pKeyResult->ppszValues, pKeyResult->dwNumCacheValues);
-    LWREG_SAFE_FREE_MEMORY(pKeyResult->pTypes);
+    LwFreeStringArray(pKeyResult->ppszValueNames, pKeyResult->dwNumCacheValues);
+    LwFreeStringArray(pKeyResult->ppszValues, pKeyResult->dwNumCacheValues);
+    LW_SAFE_FREE_MEMORY(pKeyResult->pTypes);
 
     if (!sCacheCount)
     {
         goto cleanup;
     }
 
-    dwError = LW_RTL_ALLOCATE((PVOID*)&pKeyResult->ppszValueNames, PSTR,
-		                  sizeof(*(pKeyResult->ppszValueNames))* sCacheCount);
+    dwError = LwAllocateMemory(sizeof(*(pKeyResult->ppszValueNames)) * sCacheCount,
+                               (PVOID*)&pKeyResult->ppszValueNames);
     BAIL_ON_REG_ERROR(dwError);
 
-    dwError = LW_RTL_ALLOCATE((PVOID*)&pKeyResult->ppszValues, PSTR,
-		                  sizeof(*(pKeyResult->ppszValues))* sCacheCount);
+    dwError = LwAllocateMemory(sizeof(*(pKeyResult->ppszValues)) * sCacheCount,
+                               (PVOID*)&pKeyResult->ppszValues);
     BAIL_ON_REG_ERROR(dwError);
 
-    dwError = LW_RTL_ALLOCATE((PVOID*)&pKeyResult->pTypes, REG_DATA_TYPE,
-		                  sizeof(*(pKeyResult->pTypes))* sCacheCount);
+    dwError = LwAllocateMemory(sizeof(*(pKeyResult->pTypes)) * sCacheCount,
+                               (PVOID*)&pKeyResult->pTypes);
     BAIL_ON_REG_ERROR(dwError);
 
     for (iCount = 0; iCount < (DWORD)sCacheCount; iCount++)
     {
-        dwError = LwRtlCStringDuplicate(&pKeyResult->ppszValueNames[iCount],
-			                        ppRegEntries[iCount]->pszValueName);
+        dwError = LwAllocateString(ppRegEntries[iCount]->pszValueName,
+                                   &pKeyResult->ppszValueNames[iCount]);
         BAIL_ON_REG_ERROR(dwError);
 
         if (ppRegEntries[iCount]->pszValue)
         {
-            dwError = LwRtlCStringDuplicate(&pKeyResult->ppszValues[iCount],
-			                        ppRegEntries[iCount]->pszValue);
+            dwError = LwAllocateString(ppRegEntries[iCount]->pszValue,
+                                       &pKeyResult->ppszValues[iCount]);
             BAIL_ON_REG_ERROR(dwError);
         }
 
@@ -1730,14 +1737,11 @@ RegCacheSafeRecordValuesInfo_inlock(
         }
         else
         {
-		dwError = LwRtlWC16StringAllocateFromCString(&pValueName,
-				                                     pKeyResult->ppszValueNames[iCount]);
-		BAIL_ON_REG_ERROR(dwError);
+            dwError = LwMbsToWc16s(pKeyResult->ppszValueNames[iCount], &pValueName);
+            BAIL_ON_REG_ERROR(dwError);
 
-            if (pValueName)
-            {
-		sValueNameLen = RtlWC16StringNumChars(pValueName);
-            }
+            dwError = LwWc16sLen((PCWSTR)pValueName,&sValueNameLen);
+            BAIL_ON_REG_ERROR(dwError);
 
             if (pKeyResult->sMaxValueNameLen < sValueNameLen)
                 pKeyResult->sMaxValueNameLen = sValueNameLen;
@@ -1761,7 +1765,7 @@ RegCacheSafeRecordValuesInfo_inlock(
                 pKeyResult->sMaxValueLen = (size_t)dwValueLen;
         }
 
-        LWREG_SAFE_FREE_MEMORY(pValueName);
+        LW_SAFE_FREE_MEMORY(pValueName);
         sValueNameLen = 0;
         dwValueLen = 0;
     }
@@ -1779,7 +1783,7 @@ cleanup:
         pKeyResult->bHasValueInfo = TRUE;
     }
 
-    LWREG_SAFE_FREE_MEMORY(pValueName);
+    LW_SAFE_FREE_MEMORY(pValueName);
     return dwError;
 
 error:
@@ -1795,7 +1799,7 @@ RegCacheSafeRecordValuesInfo(
     IN BOOLEAN bDoAnsi
     )
 {
-    DWORD dwError = LWREG_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     BOOLEAN bInLock = FALSE;
 
     BAIL_ON_INVALID_POINTER(pKeyResult);

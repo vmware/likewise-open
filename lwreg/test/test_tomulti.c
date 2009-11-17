@@ -67,9 +67,8 @@ int main(int argc, char *argv[])
 
     if (argc > 1)
     {
-        dwError = LW_RTL_ALLOCATE((PVOID*)&argcList, PCHAR, sizeof(PCHAR) * argc);
+        dwError = LwAllocateMemory(sizeof(PCHAR) * argc, (LW_VOID *) &argcList);
         BAIL_ON_REG_ERROR(dwError);
-
         for (count=1; count < argc; count++)
         {
             argcList[count-1] = argv[count];
