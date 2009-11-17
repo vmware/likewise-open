@@ -246,7 +246,14 @@ SrvProcessNtTransact(
 
         case SMB_SUB_COMMAND_NT_TRANSACT_NOTIFY_CHANGE :
 
-            ntStatus = SrvProcessNotifyChange(pExecContext);
+            if (TRUE)
+            {
+                ntStatus = STATUS_NOT_IMPLEMENTED;
+            }
+            else
+            {
+                ntStatus = SrvProcessNotifyChange(pExecContext);
+            }
 
             break;
 
@@ -1223,15 +1230,9 @@ SrvProcessNotifyChange(
     PSRV_EXEC_CONTEXT_SMB_V1     pCtxSmb1     = pCtxProtocol->pSmb1Context;
     ULONG                        iMsg         = pCtxSmb1->iMsg;
     PSRV_MESSAGE_SMB_V1          pSmbRequest  = &pCtxSmb1->pRequests[iMsg];
-    PSRV_NTTRANSACT_STATE_SMB_V1    pNTTransactState  = NULL;
-    PSRV_CHANGE_NOTIFY_STATE_SMB_V1 pNotifyState      = NULL;
-    BOOLEAN                         bUnregisterNotify = FALSE;
-
-    if (TRUE)
-    {
-        ntStatus = STATUS_NOT_IMPLEMENTED;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
+    PSRV_NTTRANSACT_STATE_SMB_V1      pNTTransactState  = NULL;
+    PSRV_CHANGE_NOTIFY_STATE_SMB_V1   pNotifyState      = NULL;
+    PSRV_TREE_NOTIFY_STATE_REPOSITORY pNotifyRepository = NULL;
 
     pNTTransactState = (PSRV_NTTRANSACT_STATE_SMB_V1)pCtxSmb1->hState;
 
@@ -1257,7 +1258,13 @@ SrvProcessNotifyChange(
                             &pNTTransactState->pFile);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            ntStatus = SrvBuildNotifyState(
+            ntStatus = SrvNotifyCreateRepository(
+                            pCtxSmb1->pTree->tid,
+                            &pNotifyRepository);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            ntStatus = SrvNotifyRepositoryCreateState(
+                            pNotifyRepository,
                             pExecContext->pConnection,
                             pCtxSmb1->pSession,
                             pCtxSmb1->pTree,
@@ -1270,9 +1277,6 @@ SrvProcessNotifyChange(
                             pNTTransactState->pRequestHeader->ulMaxParameterCount,
                             &pNotifyState);
             BAIL_ON_NT_STATUS(ntStatus);
-
-            // TODO: Register with file handle
-            //       bUnregisterNotify = TRUE;
 
             pNTTransactState->stage = SRV_NTTRANSACT_STAGE_SMB_V1_ATTEMPT_IO;
 
@@ -1305,22 +1309,19 @@ cleanup:
 
     if (pNotifyState)
     {
-        SrvReleaseNotifyState(pNotifyState);
+        SrvNotifyStateRelease(pNotifyState);
     }
 
-    if (bUnregisterNotify)
+    if (pNotifyRepository)
     {
-        // TODO: Un-register from file handle
+        SrvNotifyRepositoryRelease(pNotifyRepository);
     }
 
     return ntStatus;
 
 error:
 
-    if (ntStatus == STATUS_PENDING)
-    {
-        bUnregisterNotify = FALSE;
-    }
+    // TODO: If not STATUS_PENDING, un-register notify state
 
     goto cleanup;
 }
