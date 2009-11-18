@@ -50,7 +50,6 @@ public partial class LUGPage : StandardPage
     #region class data
     
     private ListViewColumnSorter lvwColumnSorter;
-    private UInt32 PageSize = 50;
     public ListViewItem[] lvArr;
     
     public enum LUGStatusIcon
@@ -224,30 +223,30 @@ public partial class LUGPage : StandardPage
     
     #region member functions
     
-    public bool ChangePassword(string password)
+    public uint ChangePassword(string password)
     {
         Logger.Log(String.Format("LUGPage.ChangePassowrd({0}) called", password), Logger.netAPILogLevel);
         
         if (lvLUGBETA.SelectedItems.Count != 1)
         {
-            return false;
+            return (uint)ErrorCodes.WIN32Enum.ERROR_INVALID_INDEX;
         }
         
-        bool retValue = true;
+        uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
         ListViewItem item = lvLUGBETA.SelectedItems[0];
         string user = item.SubItems[2].Text;
         Hostinfo hn = ctx as Hostinfo;
         
         try
         {
-            retValue = !Convert.ToBoolean(LUGAPI.NetChangePassword(hn.hostName, user, password));
+            result = LUGAPI.NetChangePassword(hn.hostName, user, password);
         }
         catch (Exception e)
         {
-            retValue = false;
+            result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
             Logger.LogException("LUGPage.ChangePassword", e);
         }
-        return retValue;
+        return result;
     }
     
     public bool EditLUG(object o)
@@ -734,15 +733,19 @@ public partial class LUGPage : StandardPage
         string errorMessage = null;
         if (Hostinfo.ValidatePassword(password[0], password[1], out errorMessage))
         {
-            return this.ChangePassword(password[0]);
+            uint result = this.ChangePassword(password[0]);
+
+            if (result == (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+            {
+                return true;
+            }
+
+            errorMessage = ErrorCodes.WIN32String((int)result);
         }
-        else
-        {
-            Logger.ShowUserError(errorMessage);
-            Logger.Log("LUGPage.SetPasswordDelegate() error: " + errorMessage);
-            return false;
-        }
-        
+
+        Logger.ShowUserError(errorMessage);
+        Logger.Log("LUGPage.SetPasswordDelegate() error: " + errorMessage);
+        return false;
     }
     
     public void CreateDlg()

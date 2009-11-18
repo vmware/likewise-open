@@ -267,6 +267,8 @@ class LUGPlugIn: IPlugIn
         _usingManualCreds, _hn));
 
         SelectComputer();
+
+        this._pluginNode.sc.Refresh();
     }
 
     private void cm_OnCreateUser(object sender, EventArgs e)
