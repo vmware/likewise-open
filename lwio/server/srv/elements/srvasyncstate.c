@@ -76,6 +76,7 @@ SrvAsyncStateCreate(
     pthread_rwlock_init(&pAsyncState->mutex, NULL);
     pAsyncState->pMutex = &pAsyncState->mutex;
 
+    pAsyncState->ullAsyncId        = ullAsyncId;
     pAsyncState->hAsyncState       = hAsyncState;
     pAsyncState->pfnFreeAsyncState = pfnFreeAsyncState;
 
@@ -122,6 +123,11 @@ SrvAsyncStateFree(
     if (pAsyncState->hAsyncState && pAsyncState->pfnFreeAsyncState)
     {
         pAsyncState->pfnFreeAsyncState(pAsyncState->hAsyncState);
+    }
+
+    if (pAsyncState->pMutex)
+    {
+        pthread_rwlock_destroy(&pAsyncState->mutex);
     }
 
     SrvFreeMemory(pAsyncState);
