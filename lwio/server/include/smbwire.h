@@ -2008,6 +2008,23 @@ WireMarshallNtTransactionResponse(
     );
 
 NTSTATUS
+WireMarshallNtTransactionRequest(
+    PBYTE   pBuffer,
+    ULONG   ulNumBytesAvailable,
+    ULONG   ulOffset,
+    USHORT  usFunction,
+    PUSHORT pSetup,
+    UCHAR   ucSetupCount,
+    PBYTE   pParams,
+    ULONG   ulParamLength,
+    PBYTE   pData,
+    ULONG   ulDataLen,
+    PULONG  pulDataOffset,
+    PULONG  pulParameterOffset,
+    PULONG  pulNumPackageBytesUsed
+    );
+
+NTSTATUS
 WireUnmarshallWriteAndXRequest(
     const PBYTE            pParams,
     ULONG                  ulBytesAvailable,

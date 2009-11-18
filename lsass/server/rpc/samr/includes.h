@@ -67,6 +67,8 @@
 #include <lsautils.h>
 #include <lsaunistr.h>
 #include <lsarpcsrv.h>
+#include <lsasrvutils.h>
+#include <lsautils.h>
 #include <rpcctl-register.h>
 #include <directory.h>
 

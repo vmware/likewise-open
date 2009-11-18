@@ -99,6 +99,19 @@ SrvExecuteChangeNotify(
 
 static
 NTSTATUS
+SrvProcessChangeNotifyCompletion(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
+SrvBuildChangeNotifyResponse(
+    PSRV_EXEC_CONTEXT               pExecContext,
+    PSRV_CHANGE_NOTIFY_STATE_SMB_V1 pNotifyState
+    );
+
+static
+NTSTATUS
 SrvMarshalChangeNotifyResponse(
     PBYTE  pNotifyResponse,
     ULONG  ulNotifyResponseLength,
@@ -305,6 +318,58 @@ error:
     }
 
     goto cleanup;
+}
+
+NTSTATUS
+SrvProcessNtTransactInternal(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS                   ntStatus     = 0;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
+    ULONG                      iMsg         = pCtxSmb1->iMsg;
+    PSRV_MESSAGE_SMB_V1        pSmbRequest  = &pCtxSmb1->pRequests[iMsg];
+    PBYTE pBuffer          = pSmbRequest->pBuffer + pSmbRequest->usHeaderSize;
+    ULONG ulOffset         = pSmbRequest->usHeaderSize;
+    ULONG ulBytesAvailable = pSmbRequest->ulMessageSize - pSmbRequest->usHeaderSize;
+    PNT_TRANSACTION_REQUEST_HEADER pRequestHeader = NULL; // Do not free
+    PUSHORT                        pusBytecount   = NULL; // Do not free
+    PUSHORT                        pSetup         = NULL; // Do not free
+    PBYTE                          pParameters    = NULL; // Do not free
+    PBYTE                          pData          = NULL; // Do not free
+
+    ntStatus = WireUnmarshallNtTransactionRequest(
+                    pBuffer,
+                    ulBytesAvailable,
+                    ulOffset,
+                    &pRequestHeader,
+                    &pSetup,
+                    &pusBytecount,
+                    &pParameters,
+                    &pData);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    switch (pRequestHeader->usFunction)
+    {
+        case SMB_SUB_COMMAND_NT_TRANSACT_NOTIFY_CHANGE :
+
+            ntStatus = SrvProcessChangeNotifyCompletion(pExecContext);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            break;
+
+        default:
+
+            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            break;
+    }
+
+error:
+
+    return ntStatus;
 }
 
 static
@@ -1231,8 +1296,9 @@ SrvProcessNotifyChange(
     ULONG                        iMsg         = pCtxSmb1->iMsg;
     PSRV_MESSAGE_SMB_V1          pSmbRequest  = &pCtxSmb1->pRequests[iMsg];
     PSRV_NTTRANSACT_STATE_SMB_V1      pNTTransactState  = NULL;
+    PLWIO_ASYNC_STATE                 pAsyncState       = NULL;
     PSRV_CHANGE_NOTIFY_STATE_SMB_V1   pNotifyState      = NULL;
-    PSRV_TREE_NOTIFY_STATE_REPOSITORY pNotifyRepository = NULL;
+    BOOLEAN                           bUnregisterAsync  = FALSE;
 
     pNTTransactState = (PSRV_NTTRANSACT_STATE_SMB_V1)pCtxSmb1->hState;
 
@@ -1258,13 +1324,7 @@ SrvProcessNotifyChange(
                             &pNTTransactState->pFile);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            ntStatus = SrvNotifyCreateRepository(
-                            pCtxSmb1->pTree->tid,
-                            &pNotifyRepository);
-            BAIL_ON_NT_STATUS(ntStatus);
-
-            ntStatus = SrvNotifyRepositoryCreateState(
-                            pNotifyRepository,
+            ntStatus = SrvNotifyCreateState(
                             pExecContext->pConnection,
                             pCtxSmb1->pSession,
                             pCtxSmb1->pTree,
@@ -1277,6 +1337,20 @@ SrvProcessNotifyChange(
                             pNTTransactState->pRequestHeader->ulMaxParameterCount,
                             &pNotifyState);
             BAIL_ON_NT_STATUS(ntStatus);
+
+            ntStatus = SrvAsyncStateCreate(
+                            pNotifyState->ullNotifyId,
+                            pNotifyState,
+                            &SrvNotifyStateReleaseHandle,
+                            &pAsyncState);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            SrvNotifyStateAcquire(pNotifyState);
+
+            ntStatus = SrvTreeAddAsyncState(pCtxSmb1->pTree, pAsyncState);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            bUnregisterAsync = TRUE;
 
             pNTTransactState->stage = SRV_NTTRANSACT_STAGE_SMB_V1_ATTEMPT_IO;
 
@@ -1309,19 +1383,27 @@ cleanup:
 
     if (pNotifyState)
     {
+        if (bUnregisterAsync)
+        {
+            SrvTreeRemoveAsyncState(pCtxSmb1->pTree, pNotifyState->ullNotifyId);
+        }
+
         SrvNotifyStateRelease(pNotifyState);
     }
 
-    if (pNotifyRepository)
+    if (pAsyncState)
     {
-        SrvNotifyRepositoryRelease(pNotifyRepository);
+        SrvAsyncStateRelease(pAsyncState);
     }
 
     return ntStatus;
 
 error:
 
-    // TODO: If not STATUS_PENDING, un-register notify state
+    if (ntStatus == STATUS_PENDING)
+    {
+        bUnregisterAsync = FALSE;
+    }
 
     goto cleanup;
 }
@@ -1376,6 +1458,110 @@ error:
     return ntStatus;
 }
 
+static
+NTSTATUS
+SrvProcessChangeNotifyCompletion(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS                   ntStatus     = STATUS_SUCCESS;
+    PLWIO_SRV_CONNECTION       pConnection  = pExecContext->pConnection;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
+    ULONG                      iMsg         = pCtxSmb1->iMsg;
+    PSRV_MESSAGE_SMB_V1        pSmbRequest  = &pCtxSmb1->pRequests[iMsg];
+    PSRV_MESSAGE_SMB_V1        pSmbResponse = &pCtxSmb1->pResponses[iMsg];
+    PLWIO_SRV_SESSION          pSession     = NULL;
+    PLWIO_SRV_TREE             pTree        = NULL;
+    BOOLEAN                    bInLock      = FALSE;
+    PLWIO_ASYNC_STATE          pAsyncState  = NULL;
+    ULONG64                    ullNotifyId  = 0LL;
+    PSRV_CHANGE_NOTIFY_STATE_SMB_V1 pNotifyState = NULL;
+
+    ntStatus = SrvConnectionFindSession_SMB_V1(
+                    pCtxSmb1,
+                    pConnection,
+                    pSmbRequest->pHeader->uid,
+                    &pSession);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvSessionFindTree_SMB_V1(
+                    pCtxSmb1,
+                    pSession,
+                    pSmbRequest->pHeader->tid,
+                    &pTree);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ullNotifyId = SrvNotifyGetId(
+                    SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
+                    pSmbRequest->pHeader->mid);
+
+    ntStatus = SrvTreeFindAsyncState(pTree, ullNotifyId, &pAsyncState);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvTreeRemoveAsyncState(pTree, ullNotifyId);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pNotifyState = (PSRV_CHANGE_NOTIFY_STATE_SMB_V1)pAsyncState->hAsyncState;
+
+    LWIO_LOCK_MUTEX(bInLock, &pNotifyState->mutex);
+
+    switch (pSmbRequest->pHeader->error)
+    {
+        case STATUS_CANCELLED:
+
+            ntStatus = SrvBuildErrorResponse_SMB_V1(
+                            pConnection,
+                            pSmbRequest->pHeader,
+                            pSmbRequest->pHeader->error,
+                            pSmbResponse);
+
+            break;
+
+        case STATUS_SUCCESS:
+
+            ntStatus = SrvBuildChangeNotifyResponse(pExecContext, pNotifyState);
+
+            break;
+
+        default:
+
+            ntStatus = STATUS_INTERNAL_ERROR;
+
+            break;
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
+    if (pNotifyState)
+    {
+        LWIO_UNLOCK_MUTEX(bInLock, &pNotifyState->mutex);
+    }
+
+    if (pAsyncState)
+    {
+        SrvAsyncStateRelease(pAsyncState);
+    }
+
+    if (pTree)
+    {
+        SrvTreeRelease(pTree);
+    }
+
+    if (pSession)
+    {
+        SrvSessionRelease(pSession);
+    }
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
+}
+
+static
 NTSTATUS
 SrvBuildChangeNotifyResponse(
     PSRV_EXEC_CONTEXT               pExecContext,

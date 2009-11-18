@@ -289,8 +289,18 @@ main(
 
                 DWORD startID = 0;
                 DWORD endID = 0;
+                int   nRead = 0;
 
-                sscanf(argCopy, "%d-%d", &startID, &endID);
+                nRead = sscanf(argCopy, "%d-%d", &startID, &endID);
+                if ((nRead == 0) || (nRead == EOF))
+                {
+                    printf("Error: An invalid event record range [%s] "
+                           "was specified.\n",
+                           argCopy);
+
+                    dwError = EVT_ERROR_INVALID_PARAMETER;
+                    BAIL_ON_EVT_ERROR(dwError);
+                }
 
                 if (startID > 0) {
                     dwError = EVTAllocateMemory(256, (PVOID*)(&sqlFilterChar));

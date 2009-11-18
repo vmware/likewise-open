@@ -285,15 +285,27 @@ NetShareAdd(
 
 
 NET_API_STATUS
+NetrShareEnum(
+    IN  handle_t hBinding,
+    IN  PCWSTR   pwszServername,
+    IN  DWORD    dwLevel,
+    OUT PVOID   *ppBuffer,
+    IN  DWORD    dwMaxLen,
+    OUT PDWORD   pdwNumEntries,
+    OUT PDWORD   pdwTotalEntries,
+    OUT PDWORD   pdwResume
+    );
+
+
+NET_API_STATUS
 NetShareEnum(
-    handle_t b,
-    const wchar16_t *servername,
-    uint32 level,
-    uint8 **bufptr,
-    uint32 prefmaxlen,
-    uint32 *entriesread,
-    uint32 *totalentries,
-    uint32 *resume_handle
+    IN  PCWSTR   pwszServername,
+    IN  DWORD    dwLevel,
+    OUT PVOID   *ppBuffer,
+    IN  DWORD    dwMaxLen,
+    OUT PDWORD   pdwNumEntries,
+    OUT PDWORD   pdwTotalEntries,
+    OUT PDWORD   pdwResume
     );
 
 

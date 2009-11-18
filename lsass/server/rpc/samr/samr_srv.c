@@ -248,8 +248,8 @@ SamrSrvDestroyServerSecurityDescriptor(
     NTSTATUS ntStatus = STATUS_SUCCESS;
     PSECURITY_DESCRIPTOR_ABSOLUTE pSecDesc = NULL;
     PACL pDacl = NULL;
-    BOOL bDaclPresent = FALSE;
-    BOOL bDaclDefaulted = FALSE;
+    BOOLEAN bDaclPresent = FALSE;
+    BOOLEAN bDaclDefaulted = FALSE;
 
     BAIL_ON_INVALID_PTR(ppSecDesc);
 

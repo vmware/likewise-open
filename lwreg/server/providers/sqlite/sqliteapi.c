@@ -519,6 +519,28 @@ SqliteSetValueEx(
         BAIL_ON_REG_ERROR(dwError);
     }
 
+    dwError = RegDbGetKeyValue(ghCacheConnection,
+                               pKey->pszKeyName,
+                               pszValueName,
+                               (REG_DATA_TYPE)dwType,
+                               &bIsWrongType,
+                               NULL);
+    if (!dwError)
+    {
+        dwError = LW_ERROR_DUPLICATE_KEYVALUENAME;
+        BAIL_ON_REG_ERROR(dwError);
+    }
+    else if (LW_ERROR_NO_SUCH_VALUENAME == dwError)
+    {
+        dwError = 0;
+    }
+    BAIL_ON_REG_ERROR(dwError);
+
+    if (!cbData)
+    {
+	goto done;
+    }
+
     switch (dwType)
     {
         case REG_BINARY:
@@ -531,6 +553,11 @@ SqliteSetValueEx(
 
         case REG_MULTI_SZ:
         case REG_SZ:
+		if (cbData == 1)
+		{
+                dwError = LW_ERROR_INTERNAL;
+                BAIL_ON_REG_ERROR(dwError);
+		}
 
             if (pData[cbData-1] != '\0' || pData[cbData-2] != '\0' )
             {
@@ -561,23 +588,7 @@ SqliteSetValueEx(
             BAIL_ON_REG_ERROR(dwError);
     }
 
-    dwError = RegDbGetKeyValue(ghCacheConnection,
-                               pKey->pszKeyName,
-                               pszValueName,
-                               (REG_DATA_TYPE)dwType,
-                               &bIsWrongType,
-                               NULL);
-    if (!dwError)
-    {
-        dwError = LW_ERROR_DUPLICATE_KEYVALUENAME;
-        BAIL_ON_REG_ERROR(dwError);
-    }
-    else if (LW_ERROR_NO_SUCH_VALUENAME == dwError)
-    {
-        dwError = 0;
-    }
-    BAIL_ON_REG_ERROR(dwError);
-
+done:
     dwError = RegDbCreateKeyValue(ghCacheConnection,
                                   pKey->pszKeyName,
                                   pszValueName,

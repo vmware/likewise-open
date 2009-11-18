@@ -30,6 +30,7 @@ liblsaserverapi_la_SOURCES = \
        ipc_dispatch.c  \
        ipc_error.c     \
        ipc_state.c     \
+       lsacfg_reg.c    \
        lsaevent.c      \
        lsatime.c       \
        loginfo.c       \

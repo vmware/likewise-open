@@ -67,8 +67,6 @@ SrvProtocolInit_SMB_V1(
 
     gProtocolGlobals_SMB_V1.pWorkQueue = pWorkQueue;
 
-    SrvNotifyRepositoryInit();
-
     LWIO_UNLOCK_MUTEX(bInLock, &gProtocolGlobals_SMB_V1.mutex);
 
     return status;
@@ -343,7 +341,14 @@ SrvProtocolExecute_SMB_V1(
 
             case COM_NT_TRANSACT:
 
-                ntStatus = SrvProcessNtTransact(pExecContext);
+                if (pExecContext->bInternal)
+                {
+                    ntStatus = SrvProcessNtTransactInternal(pExecContext);
+                }
+                else
+                {
+                    ntStatus = SrvProcessNtTransact(pExecContext);
+                }
 
                 break;
 
@@ -825,8 +830,6 @@ SrvProtocolShutdown_SMB_V1(
     BOOLEAN bInLock = FALSE;
 
     LWIO_LOCK_MUTEX(bInLock, &gProtocolGlobals_SMB_V1.mutex);
-
-    SrvNotifyRepositoryShutdown();
 
     gProtocolGlobals_SMB_V1.pWorkQueue = NULL;
 

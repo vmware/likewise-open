@@ -182,7 +182,7 @@ namespace Likewise.LMC.Plugins.LUG
             // lbSubjectListRelationship
             // 
             this.lbSubjectListRelationship.AutoSize = true;
-            this.lbSubjectListRelationship.Location = new System.Drawing.Point(14, 100);
+            this.lbSubjectListRelationship.Location = new System.Drawing.Point(14, 94);
             this.lbSubjectListRelationship.Name = "lbSubjectListRelationship";
             this.lbSubjectListRelationship.Size = new System.Drawing.Size(21, 13);
             this.lbSubjectListRelationship.TabIndex = 4;

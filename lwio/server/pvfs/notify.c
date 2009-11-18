@@ -115,7 +115,12 @@ PvfsReadDirectoryChange(
                       pMaxBufferSize);
         if (ntError == STATUS_SUCCESS)
         {
-            pIrpContext->QueueType = PVFS_QUEUE_TYPE_OPLOCK;
+            pIrpContext->QueueType = PVFS_QUEUE_TYPE_NOTIFY;
+
+            if (!pIrpContext->pFcb)
+            {
+                pIrpContext->pFcb = PvfsReferenceFCB(pCcb->pFcb);
+            }
 
             PvfsIrpMarkPending(pIrpContext, PvfsQueueCancelIrp, pIrpContext);
 
@@ -937,7 +942,7 @@ PvfsNotifyCleanIrpList(
         /* Can only be one IrpContext match so we are done */
     }
 
-    LWIO_UNLOCK_MUTEX(bFcbLocked, &pFcb->mutexOplock);
+    LWIO_UNLOCK_MUTEX(bFcbLocked, &pFcb->mutexNotify);
 
     if (pFcb)
     {

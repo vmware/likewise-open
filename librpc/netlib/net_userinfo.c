@@ -1443,6 +1443,8 @@ NetAllocateSamrUserInfo(
                                          pSource,
                                          pConn,
                                          pdwSize);
+            break;
+
         default:
             err = ERROR_INVALID_LEVEL;
             break;
@@ -1499,6 +1501,12 @@ NetAllocateSamrUserInfo(
                                          pSource,
                                          pdwSize);
             dwSamrLevel = 21;
+            break;
+
+        case 1003:
+            /* This infolevel sets password and is handled
+               in "requested" part */
+            dwSamrLevel = 0;
             break;
 
         case 1007:

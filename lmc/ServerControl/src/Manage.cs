@@ -679,6 +679,25 @@ namespace Likewise.LMC.ServerControl
             // should be a control
             if (o is Control)
             {
+                // if supports the necessary interface, let it know who
+                // is responsible for it. Note: this may cause the page
+                // to do data access that can be slow, so let's do it
+                // before we display the page
+                if (o is IPlugInPage)
+                {
+                    ((IPlugInPage)o).SetPlugInInfo(this, piArg, node, _LWTreeView, sc);
+
+                    ((IPlugInPage)o).SetContext(node.GetContext());
+
+                    ((IPlugInPage)o).ShowActionPane(_bShowActionPane);
+
+                }
+
+                if (o is StandardPage)
+                {
+                    ((StandardPage)o).SetViewStyle(currentViewStyle);
+                }
+
                 Control c = (Control)o;
 
                 // close the current control
@@ -705,28 +724,6 @@ namespace Likewise.LMC.ServerControl
                 c.Dock = DockStyle.Fill;
                 SuspendLayout();
                 pnlBody.Controls.Add(c);
-
-                // This code has been moved so that the controls are actually there
-                // to fill with data.  The low priority threads that were originally
-                // used could fail to fill the data if they returned too quickly and
-                // the handle was not created yet.  If this takes too much time, we
-                // should break the functions up into a "Get" and "Set" style so that
-                // the data can be retrieved first and then set here.
-                if (o is IPlugInPage)
-                {
-                    ((IPlugInPage)o).SetPlugInInfo(this, piArg, node, _LWTreeView, sc);
-
-                    ((IPlugInPage)o).SetContext(node.GetContext());
-
-                    ((IPlugInPage)o).ShowActionPane(_bShowActionPane);
-
-                }
-
-                if (o is StandardPage)
-                {
-                    ((StandardPage)o).SetViewStyle(currentViewStyle);
-                }
-
                 ResumeLayout();
                 c.Show();
                 c.Select();

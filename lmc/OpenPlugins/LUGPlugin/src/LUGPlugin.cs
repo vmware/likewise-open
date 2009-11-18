@@ -408,6 +408,12 @@ class LUGPlugIn: IPlugIn
                     _hn.creds.UserName,
                     _hn.creds.Password);
 
+                if (Configurations.currentPlatform != LikewiseTargetPlatform.Windows &&
+                    result == (int)ErrorCodes.WIN32Enum.ERROR_FILE_NOT_FOUND)
+                {
+                    result = (int)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
+                }
+
                 if (result != (int)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
                 {
                     MessageBox.Show(

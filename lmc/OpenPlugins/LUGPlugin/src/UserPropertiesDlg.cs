@@ -100,8 +100,8 @@ public partial class UserPropertiesDlg : MPContainer
     
     protected override void ValueChangedHandler(object sender, EventArgs e)
     {
-        base.ValueChangedHandler(sender, e);
         bDataWasChanged = true;
+        base.ValueChangedHandler(sender, e);
     }
     
     #endregion

@@ -317,6 +317,10 @@ namespace Likewise.LMC.ServerControl
             {
                 ((DataGridView)ctrl).Click += new EventHandler(ValueChangedHandler);
             }
+            else if (ctrl.GetType().Equals(typeof(CheckBox)))
+            {
+                ((CheckBox)ctrl).Click += new EventHandler(ValueChangedHandler);
+            }
             else
             {
                 // last resort .. see if the object implements the DataModifiedNotify interface

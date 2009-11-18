@@ -235,20 +235,14 @@ SrvProcessLogoffAndX(
 
 // notify.c
 
-NTSTATUS
-SrvNotifyRepositoryInit(
-    VOID
+ULONG64
+SrvNotifyGetId(
+    ULONG  ulPid,
+    USHORT usMid
     );
 
 NTSTATUS
-SrvNotifyCreateRepository(
-    USHORT                             usTid,
-    PSRV_TREE_NOTIFY_STATE_REPOSITORY* ppRepository
-    );
-
-NTSTATUS
-SrvNotifyRepositoryCreateState(
-    PSRV_TREE_NOTIFY_STATE_REPOSITORY pRepository,
+SrvNotifyCreateState(
     PLWIO_SRV_CONNECTION              pConnection,
     PLWIO_SRV_SESSION                 pSession,
     PLWIO_SRV_TREE                    pTree,
@@ -262,46 +256,6 @@ SrvNotifyRepositoryCreateState(
     PSRV_CHANGE_NOTIFY_STATE_SMB_V1*  ppNotifyState
     );
 
-NTSTATUS
-SrvNotifyRepositoryFindState(
-    PSRV_TREE_NOTIFY_STATE_REPOSITORY pRepository,
-    ULONG                             ulPid,
-    USHORT                            usMid,
-    PSRV_CHANGE_NOTIFY_STATE_SMB_V1*  ppNotifyState
-    );
-
-NTSTATUS
-SrvNotifyRepositoryRemoveState(
-    PSRV_TREE_NOTIFY_STATE_REPOSITORY pRepository,
-    ULONG                             ulPid,
-    USHORT                            usMid
-    );
-
-VOID
-SrvNotifyRepositoryRelease(
-    PSRV_TREE_NOTIFY_STATE_REPOSITORY pNotifyRepository
-    );
-
-NTSTATUS
-SrvNotifyRemoveRepository(
-    USHORT usTid
-    );
-
-VOID
-SrvNotifyRepositoryShutdown(
-    VOID
-    );
-
-NTSTATUS
-SrvInitNotifyStateCollection(
-    VOID
-    );
-
-NTSTATUS
-SrvShutdownNotifyStateCollection(
-    VOID
-    );
-
 VOID
 SrvPrepareNotifyStateAsync(
     PSRV_CHANGE_NOTIFY_STATE_SMB_V1 pNotifyState
@@ -310,6 +264,16 @@ SrvPrepareNotifyStateAsync(
 VOID
 SrvReleaseNotifyStateAsync(
     PSRV_CHANGE_NOTIFY_STATE_SMB_V1 pNotifyState
+    );
+
+PSRV_CHANGE_NOTIFY_STATE_SMB_V1
+SrvNotifyStateAcquire(
+    PSRV_CHANGE_NOTIFY_STATE_SMB_V1 pNotifyState
+    );
+
+VOID
+SrvNotifyStateReleaseHandle(
+    HANDLE hNotifyState
     );
 
 VOID
@@ -339,9 +303,8 @@ SrvProcessNtTransact(
     );
 
 NTSTATUS
-SrvBuildChangeNotifyResponse(
-    PSRV_EXEC_CONTEXT               pExecContext,
-    PSRV_CHANGE_NOTIFY_STATE_SMB_V1 pNotifyState
+SrvProcessNtTransactInternal(
+    PSRV_EXEC_CONTEXT pExecContext
     );
 
 // openx.c

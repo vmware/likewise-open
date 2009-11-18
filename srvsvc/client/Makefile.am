@@ -22,6 +22,7 @@ libsrvsvc_la_SOURCES =        \
     netr_remotetod.c          \
     net_shareadd.c            \
     net_sharedel.c            \
+    net_shareenum.c           \
     srvsvc_memory.c           \
     srvsvc_stubmemory.c       \
     memptr.c                  \

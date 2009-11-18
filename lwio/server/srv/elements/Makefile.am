@@ -4,6 +4,7 @@ libsrvelements_la_SOURCES = \
     context.c       \
     globals.c       \
     libmain.c       \
+    srvasyncstate.c \
     srvconnection.c \
     srvfile.c       \
     srvfile2.c      \

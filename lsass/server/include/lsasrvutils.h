@@ -127,9 +127,36 @@
 #define LSASS_EVENT_WARNING_NETWORK_DOMAIN_OFFLINE_TRANSITION        1701
 
 
+typedef struct _LSA_CONFIG_REG
+{
+    HANDLE  hConnection;
+    HKEY    hKey;
+    PSTR    pszConfigKey;
+    PSTR    pszPolicyKey;
+} LSA_CONFIG_REG, *PLSA_CONFIG_REG;
+
+typedef enum
+{
+    LsaTypeString,
+    LsaTypeDword,
+    LsaTypeBoolean,
+    LsaTypeChar,
+    LsaTypeEnum
+} LSA_CONFIG_TYPE;
+
+typedef struct __LSA_CONFIG
+{
+    PCSTR   pszName;
+    BOOLEAN bUsePolicy;
+    LSA_CONFIG_TYPE Type;
+    DWORD dwMin;
+    DWORD dwMax;
+    const PCSTR *ppszEnumNames;
+    PVOID pValue;
+} LSA_CONFIG, *PLSA_CONFIG;
 
 
-	
+
 //Convert to seconds string of form ##s, ##m, ##h, or ##d
 //where s,m,h,d = seconds, minutes, hours, days.
 DWORD
@@ -258,6 +285,71 @@ LsaSrvCloseEventLog(
 DWORD
 LsaSrvFlushSystemCache(
     VOID
+    );
+
+DWORD
+LsaProcessConfig(
+    PCSTR pszConfigKey,
+    PCSTR pszPolicyKey,
+    PLSA_CONFIG pConfig,
+    DWORD dwConfigEntries
+    );
+
+DWORD
+LsaOpenConfig(
+    PCSTR pszConfigKey,
+    PCSTR pszPolicyKey,
+    PLSA_CONFIG_REG *ppReg
+    );
+
+VOID
+LsaCloseConfig(
+    PLSA_CONFIG_REG pReg
+    );
+
+DWORD
+LsaReadConfigString(
+    PLSA_CONFIG_REG pReg,
+    PCSTR   pszName,
+    BOOLEAN bUsePolicy,
+    PSTR    *ppszValue
+    );
+
+DWORD
+LsaReadConfigMultiString(
+    PLSA_CONFIG_REG pReg,
+    PCSTR   pszName,
+    BOOLEAN bUsePolicy,
+    PSTR    *ppszValue
+    );
+
+DWORD
+LsaReadConfigDword(
+    PLSA_CONFIG_REG pReg,
+    PCSTR pszName,
+    BOOLEAN bUsePolicy,
+    DWORD   dwMin,
+    DWORD   dwMax,
+    PDWORD pdwValue
+    );
+
+DWORD
+LsaReadConfigBoolean(
+    PLSA_CONFIG_REG pReg,
+    PCSTR pszName,
+    BOOLEAN bUsePolicy,
+    PBOOLEAN pbValue
+    );
+
+DWORD
+LsaReadConfigEnum(
+    PLSA_CONFIG_REG pReg,
+    PCSTR pszName,
+    BOOLEAN bUsePolicy,
+    DWORD dwMin,
+    DWORD dwMax,
+    const PCSTR *ppszEnumNames,
+    PDWORD pdwValue
     );
 
 #endif /* __LSASRVUTILS_H__ */

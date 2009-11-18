@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software
+ * Copyright Likewise Software    2004-2008
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -28,49 +28,73 @@
  * license@likewisesoftware.com
  */
 
-/*
- * Abstract: DsSetup interface (rpc server library)
- *
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
- */
+#include "includes.h"
 
-#include <config.h>
-#include <stdlib.h>
-#include <stdarg.h>
-#include <string.h>
-#ifdef HAVE_STRINGS_H
-#include <strings.h>
-#endif
-#include <unistd.h>
-#include <pthread.h>
 
-#include <dce/rpc.h>
-#include <dce/dcethread.h>
-#include <wc16str.h>
-#include <lw/base.h>
-#include <lw/winerror.h>
-#include <lwrpc/allocate.h>
-#include <lwrpc/lsa.h>
-#include <lwrpc/dssetup.h>
-#include <lwio/lwio.h>
-#include <lwnet.h>
-#include <lwps/lwps.h>
+NET_API_STATUS
+NetShareEnum(
+    IN  PCWSTR   pwszServername,
+    IN  DWORD    dwLevel,
+    OUT PVOID   *ppBuffer,
+    IN  DWORD    dwMaxLen,
+    OUT PDWORD   pdwNumEntries,
+    OUT PDWORD   pdwTotalEntries,
+    OUT PDWORD   pdwResume
+    )
+{
+    NET_API_STATUS err = ERROR_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    RPCSTATUS rpcStatus = RPC_S_OK;
+    handle_t hBinding = NULL;
+    PSTR pszServername = NULL;
+    PIO_CREDS pCreds = NULL;
 
-#include <lsa/lsa.h>
-#include <lsaunistr.h>
-#include <lsarpcsrv.h>
-#include <lsasrvutils.h>
-#include <rpcctl-register.h>
-#include <directory.h>
+    BAIL_ON_INVALID_PTR(ppBuffer, err);
+    BAIL_ON_INVALID_PTR(pdwNumEntries, err);
+    BAIL_ON_INVALID_PTR(pdwTotalEntries, err);
 
-#include "dssetup_cfg.h"
-#include "dssetup_srv.h"
-#include "dsrdefs.h"
-#include "dsr_memory.h"
-#include "dssetup.h"
-#include "dssetup_h.h"
+    err = LwWc16sToMbs(pwszServername, &pszServername);
+    BAIL_ON_WIN_ERROR(err);
 
-#include "externs.h"
+    ntStatus = LwIoGetActiveCreds(NULL, &pCreds);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    rpcStatus = InitSrvSvcBindingDefault(&hBinding,
+					 pszServername,
+					 pCreds);
+    if (rpcStatus)
+    {
+        ntStatus = LwRpcStatusToNtStatus(rpcStatus);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    err = NetrShareEnum(hBinding,
+			pwszServername,
+			dwLevel,
+			ppBuffer,
+			dwMaxLen,
+			pdwNumEntries,
+			pdwTotalEntries,
+			pdwResume);
+    BAIL_ON_WIN_ERROR(err);
+
+cleanup:
+    if (hBinding)
+    {
+        FreeSrvSvcBinding(&hBinding);
+    }
+
+    if (err == ERROR_SUCCESS &&
+        ntStatus != STATUS_SUCCESS)
+    {
+        err = LwNtStatusToWin32Error(ntStatus);
+    }
+
+    return err;
+
+error:
+    goto cleanup;
+}
 
 
 /*

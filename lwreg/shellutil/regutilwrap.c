@@ -203,7 +203,7 @@ RegUtilGetValue(
                pszDefaultKey,
                pszKeyName,
                pszValueName,
-               regType,
+               NULL,
                ppValue,
                pdwValueLen);
 }

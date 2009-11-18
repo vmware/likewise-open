@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -31,31 +31,36 @@
 #include "includes.h"
 
 
-NET_API_STATUS NetShareEnum(
-    handle_t b,
-    const wchar16_t *servername,
-    uint32 level,
-    uint8 **bufptr,
-    uint32 prefmaxlen,
-    uint32 *entriesread,
-    uint32 *totalentries,
-    uint32 *resume_handle
+NET_API_STATUS
+NetrShareEnum(
+    IN  handle_t hBinding,
+    IN  PCWSTR   pwszServername,
+    IN  DWORD    dwLevel,
+    OUT PVOID   *ppBuffer,
+    IN  DWORD    dwMaxLen,
+    OUT PDWORD   pdwNumEntries,
+    OUT PDWORD   pdwTotalEntries,
+    OUT PDWORD   pdwResume
     )
 {
     NET_API_STATUS status = ERROR_SUCCESS;
-    NET_API_STATUS memerr = ERROR_SUCCESS;
+    NET_API_STATUS EnumStatus = ERROR_SUCCESS;
     srvsvc_NetShareCtr ctr;
     srvsvc_NetShareCtr0 ctr0;
     srvsvc_NetShareCtr1 ctr1;
     srvsvc_NetShareCtr2 ctr2;
     srvsvc_NetShareCtr501 ctr501;
     srvsvc_NetShareCtr502 ctr502;
-    uint32 l = level;
+    PWSTR pwszServer = NULL;
+    PVOID pBuffer = NULL;
+    DWORD dwNumEntries = 0;
+    DWORD dwTotalEntries = 0;
+    DWORD dwReturnedLevel = dwLevel;
 
-    BAIL_ON_INVALID_PTR(b, status);
-    BAIL_ON_INVALID_PTR(bufptr, status);
-    BAIL_ON_INVALID_PTR(entriesread, status);
-    BAIL_ON_INVALID_PTR(totalentries, status);
+    BAIL_ON_INVALID_PTR(hBinding, status);
+    BAIL_ON_INVALID_PTR(ppBuffer, status);
+    BAIL_ON_INVALID_PTR(pdwNumEntries, status);
+    BAIL_ON_INVALID_PTR(pdwTotalEntries, status);
 
     memset(&ctr, 0, sizeof(ctr));
     memset(&ctr0, 0, sizeof(ctr0));
@@ -64,73 +69,85 @@ NET_API_STATUS NetShareEnum(
     memset(&ctr501, 0, sizeof(ctr501));
     memset(&ctr502, 0, sizeof(ctr502));
 
-    *entriesread = 0;
-    *bufptr = NULL;
+    if (pwszServername)
+    {
+        status = LwAllocateWc16String(&pwszServer,
+                                      pwszServername);
+        BAIL_ON_WIN_ERROR(status);
+    }
 
-    switch (level) {
+    switch (dwLevel) {
     case 0:
         ctr.ctr0 = &ctr0;
         break;
+
     case 1:
         ctr.ctr1 = &ctr1;
         break;
+
     case 2:
         ctr.ctr2 = &ctr2;
         break;
+
     case 501:
         ctr.ctr501 = &ctr501;
         break;
+
     case 502:
         ctr.ctr502 = &ctr502;
         break;
     }
 
     DCERPC_CALL(status,
-                _NetrShareEnum(b, (wchar16_t *)servername,
-                               &l, &ctr,
-                               prefmaxlen, totalentries,
-                               resume_handle));
+                _NetrShareEnum(hBinding,
+                               pwszServer,
+                               &dwReturnedLevel,
+                               &ctr,
+                               dwMaxLen,
+                               &dwTotalEntries,
+                               pdwResume));
 
-    if (l != level) {
+    /* Preserve returned status code */
+    EnumStatus = status;
+
+    if (dwReturnedLevel != dwLevel)
+    {
         status = ERROR_BAD_NET_RESP;
+    }
+
+    if (status != ERROR_SUCCESS &&
+        status != ERROR_MORE_DATA)
+    {
         BAIL_ON_WIN_ERROR(status);
     }
 
-    memerr = SrvSvcCopyNetShareCtr(l, &ctr, entriesread, bufptr);
+    status = SrvSvcCopyNetShareCtr(dwLevel,
+                                   &ctr,
+                                   &dwNumEntries,
+                                   &pBuffer);
     BAIL_ON_WIN_ERROR(status);
 
+    *pdwNumEntries   = dwNumEntries;
+    *pdwTotalEntries = dwTotalEntries;
+    *ppBuffer        = pBuffer;
+
 cleanup:
-    switch (level) {
-    case 0:
-        if (ctr.ctr0 == &ctr0) {
-            ctr.ctr0 = NULL;
-        }
-        break;
-    case 1:
-        if (ctr.ctr1 == &ctr1) {
-            ctr.ctr1 = NULL;
-        }
-        break;
-    case 2:
-        if (ctr.ctr2 == &ctr2) {
-            ctr.ctr2 = NULL;
-        }
-        break;
-    case 501:
-        if (ctr.ctr501 == &ctr501) {
-            ctr.ctr501 = NULL;
-        }
-        break;
-    case 502:
-        if (ctr.ctr502 == &ctr502) {
-            ctr.ctr502 = NULL;
-        }
-        break;
+    SrvSvcClearNetShareCtr(dwLevel, &ctr);
+
+    if (status == ERROR_SUCCESS &&
+        EnumStatus != ERROR_SUCCESS)
+    {
+        status = EnumStatus;
     }
-    SrvSvcClearNetShareCtr(l, &ctr);
+
     return status;
 
 error:
+    *pdwNumEntries   = 0;
+    *pdwTotalEntries = 0;
+    *pdwResume       = 0;
+    *ppBuffer        = NULL;
+
     goto cleanup;
 }
 

@@ -997,8 +997,6 @@ typedef struct _SRV_RUNTIME_GLOBALS_SMB_V1
 
     ULONG                 ulOplockTimeout;
 
-    PLWRTL_RB_TREE        pTreeNotifyStateCollection;
-
 } SRV_RUNTIME_GLOBALS_SMB_V1, *PSRV_RUNTIME_GLOBALS_SMB_V1;
 
 #endif /* __STRUCTS_H__ */

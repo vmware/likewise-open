@@ -149,16 +149,15 @@ WireUnmarshallNtTransactionSetupData(
 {
     NTSTATUS ntStatus = 0;
     PBYTE pDataCursor = pBuffer;
-    USHORT  usSetupLen = 0;
     PUSHORT pSetup = NULL;
     PBYTE   pParameters = NULL;
     PBYTE   pData = NULL;
     PUSHORT pByteCount = NULL;
 
-    usSetupLen = (ucSetupLen * sizeof(USHORT));
-
-    if (usSetupLen)
+    if (ucSetupLen)
     {
+        USHORT  usSetupLen = (ucSetupLen * sizeof(USHORT));
+
         if (ulNumBytesAvailable < usSetupLen)
         {
             ntStatus = STATUS_INVALID_BUFFER_SIZE;
@@ -171,13 +170,13 @@ WireUnmarshallNtTransactionSetupData(
         ulOffset += usSetupLen;
     }
 
-    pByteCount = (PUSHORT) pDataCursor;
-
     if (ulNumBytesAvailable < sizeof(USHORT))
     {
         ntStatus = STATUS_INVALID_BUFFER_SIZE;
         BAIL_ON_NT_STATUS(ntStatus);
     }
+
+    pByteCount = (PUSHORT) pDataCursor;
 
     pDataCursor += sizeof(USHORT);
     ulNumBytesAvailable -= sizeof(USHORT);
@@ -389,7 +388,7 @@ WireMarshallNtTransactionResponse(
             BAIL_ON_NT_STATUS(ntStatus);
         }
 
-        memcpy(pDataCursor, pSetup, usSetupLen);
+        memcpy(pDataCursor, (PBYTE)pSetup, usSetupLen);
 
         pDataCursor += usSetupLen;
         ulOffset += usSetupLen;
@@ -408,6 +407,7 @@ WireMarshallNtTransactionResponse(
     pDataCursor += sizeof(USHORT);
     ulNumBytesAvailable -= sizeof(USHORT);
     ulOffset += sizeof(USHORT);
+    usNumBytesUsed += sizeof(USHORT);
     ulNumPackageBytesUsed += sizeof(USHORT);
 
     if (ulOffset % 4)
@@ -489,6 +489,172 @@ WireMarshallNtTransactionResponse(
 
     *pulDataOffset = pResponseHeader->ulDataOffset;
     *pulParameterOffset = pResponseHeader->ulParameterOffset;
+    *pulNumPackageBytesUsed = ulNumPackageBytesUsed;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *pulDataOffset = 0;
+    *pulParameterOffset = 0;
+    *pulNumPackageBytesUsed = 0;
+
+    goto cleanup;
+}
+
+NTSTATUS
+WireMarshallNtTransactionRequest(
+    PBYTE   pBuffer,
+    ULONG   ulNumBytesAvailable,
+    ULONG   ulOffset,
+    USHORT  usFunction,
+    PUSHORT pSetup,
+    UCHAR   ucSetupCount,
+    PBYTE   pParams,
+    ULONG   ulParamLength,
+    PBYTE   pData,
+    ULONG   ulDataLen,
+    PULONG  pulDataOffset,
+    PULONG  pulParameterOffset,
+    PULONG  pulNumPackageBytesUsed
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PNT_TRANSACTION_REQUEST_HEADER pRequestHeader = NULL;
+    PUSHORT  pByteCount = NULL;
+    ULONG    ulNumPackageBytesUsed = 0;
+    USHORT   usNumBytesUsed = 0;
+    PBYTE    pDataCursor = pBuffer;
+
+    if (ulNumBytesAvailable < sizeof(NT_TRANSACTION_REQUEST_HEADER))
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pRequestHeader = (PNT_TRANSACTION_REQUEST_HEADER)pDataCursor;
+
+    pDataCursor += sizeof(NT_TRANSACTION_REQUEST_HEADER);
+    ulOffset += sizeof(NT_TRANSACTION_REQUEST_HEADER);
+    ulNumBytesAvailable -= sizeof(NT_TRANSACTION_REQUEST_HEADER);
+    ulNumPackageBytesUsed += sizeof(NT_TRANSACTION_REQUEST_HEADER);
+
+    pRequestHeader->usFunction   = usFunction;
+    pRequestHeader->ucSetupCount = ucSetupCount;
+
+    if (ucSetupCount)
+    {
+        USHORT usSetupLen = ucSetupCount * sizeof(USHORT);
+
+        if (ulNumBytesAvailable < usSetupLen)
+        {
+            ntStatus = STATUS_INVALID_BUFFER_SIZE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        memcpy(pDataCursor, (PBYTE)pSetup, usSetupLen);
+
+        pDataCursor += usSetupLen;
+        ulOffset += usSetupLen;
+        ulNumBytesAvailable -= usSetupLen;
+        ulNumPackageBytesUsed += usSetupLen;
+    }
+
+    if (ulNumBytesAvailable < sizeof(USHORT))
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pByteCount = (PUSHORT)pDataCursor;
+
+    pDataCursor += sizeof(USHORT);
+    ulNumBytesAvailable -= sizeof(USHORT);
+    ulOffset += sizeof(USHORT);
+    usNumBytesUsed += sizeof(USHORT);
+    ulNumPackageBytesUsed += sizeof(USHORT);
+
+    if (ulOffset % 4)
+    {
+        USHORT usAlignment = 4 - (ulOffset % 4);
+        if (ulNumBytesAvailable < usAlignment)
+        {
+            ntStatus = STATUS_INVALID_BUFFER_SIZE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        pDataCursor += usAlignment;
+        ulNumBytesAvailable -= usAlignment;
+        ulOffset += usAlignment;
+        usNumBytesUsed += usAlignment;
+        ulNumPackageBytesUsed += usAlignment;
+    }
+
+    pRequestHeader->ulParameterCount = ulParamLength;
+    pRequestHeader->ulTotalParameterCount = ulParamLength;
+    pRequestHeader->ulParameterOffset = ulOffset;
+
+    if (pParams)
+    {
+        if (ulNumBytesAvailable < ulParamLength)
+        {
+            ntStatus = STATUS_INVALID_BUFFER_SIZE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        memcpy(pDataCursor, pParams, ulParamLength);
+
+        pDataCursor += ulParamLength;
+
+        ulNumBytesAvailable -= ulParamLength;
+        ulOffset += ulParamLength;
+        usNumBytesUsed += ulParamLength;
+        ulNumPackageBytesUsed += ulParamLength;
+    }
+
+    if (ulOffset % 4)
+    {
+        USHORT usAlignment = 4 - (ulOffset % 4);
+        if (ulNumBytesAvailable < usAlignment)
+        {
+            ntStatus = STATUS_INVALID_BUFFER_SIZE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        pDataCursor += usAlignment;
+        ulNumBytesAvailable -= usAlignment;
+        ulOffset += usAlignment;
+        usNumBytesUsed += usAlignment;
+        ulNumPackageBytesUsed += usAlignment;
+    }
+
+    pRequestHeader->ulDataCount = ulDataLen;
+    pRequestHeader->ulTotalDataCount = ulDataLen;
+    pRequestHeader->ulDataOffset = ulOffset;
+
+    if (pData)
+    {
+        if (ulNumBytesAvailable < ulDataLen)
+        {
+            ntStatus = STATUS_INVALID_BUFFER_SIZE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        memcpy(pDataCursor, pData, ulDataLen);
+
+        pDataCursor += ulDataLen;
+        ulNumBytesAvailable -= ulDataLen;
+        ulOffset += ulDataLen;
+        usNumBytesUsed += ulDataLen;
+        ulNumPackageBytesUsed += ulDataLen;
+    }
+
+    *pByteCount = usNumBytesUsed;
+
+    *pulDataOffset = pRequestHeader->ulDataOffset;
+    *pulParameterOffset = pRequestHeader->ulParameterOffset;
     *pulNumPackageBytesUsed = ulNumPackageBytesUsed;
 
 cleanup:
