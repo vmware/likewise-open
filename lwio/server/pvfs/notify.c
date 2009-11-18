@@ -942,7 +942,7 @@ PvfsNotifyCleanIrpList(
         /* Can only be one IrpContext match so we are done */
     }
 
-    LWIO_UNLOCK_MUTEX(bFcbLocked, &pFcb->mutexOplock);
+    LWIO_UNLOCK_MUTEX(bFcbLocked, &pFcb->mutexNotify);
 
     if (pFcb)
     {
