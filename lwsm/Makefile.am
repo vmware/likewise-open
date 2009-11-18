@@ -71,6 +71,7 @@ server_lwsmd_SOURCES = \
 	server/dispatch.c \
 	server/registry.c \
 	server/bootstrap.c \
+	server/logger.c \
 	server/main.c
 server_lwsmd_LDADD = \
 	$(top_builddir)/common/liblwsmcommon.la \

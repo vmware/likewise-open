@@ -53,6 +53,7 @@
 #include <dirent.h>
 #include <dlfcn.h>
 #include <stdio.h>
+#include <syslog.h>
 #include <lw/winerror.h>
 #include <lwerror.h>
 #include <lwmem.h>
@@ -60,6 +61,7 @@
 #include <reg/reg.h>
 #include <lwmsg/lwmsg.h>
 #include <lwio/lwio.h>
+#include <wc16printf.h>
 
 #include "server.h"
 
