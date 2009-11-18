@@ -1823,6 +1823,10 @@ ADState_ReadRegDomainEntry(
                       (PVOID) &pListEntry->pszDnsDomainName,
                       &dwValueLen);
         BAIL_ON_LSA_ERROR(dwError);
+        if (!*pListEntry->pszDnsDomainName)
+        {
+            LW_SAFE_FREE_STRING(pListEntry->pszDnsDomainName);
+        }
 
         dwError = RegUtilGetValue(
                       hReg,
@@ -1834,6 +1838,10 @@ ADState_ReadRegDomainEntry(
                       (PVOID) &pListEntry->pszNetbiosDomainName,
                       &dwValueLen);
         BAIL_ON_LSA_ERROR(dwError);
+        if (!*pListEntry->pszNetbiosDomainName)
+        {
+            LW_SAFE_FREE_STRING(pListEntry->pszNetbiosDomainName);
+        }
 
         dwError = RegUtilGetValue(
                       hReg,
@@ -1887,6 +1895,10 @@ ADState_ReadRegDomainEntry(
                       (PVOID) &pListEntry->pszTrusteeDnsDomainName,
                       &dwValueLen);
         BAIL_ON_LSA_ERROR(dwError);
+        if (!*pListEntry->pszTrusteeDnsDomainName)
+        {
+            LW_SAFE_FREE_STRING(pListEntry->pszTrusteeDnsDomainName);
+        }
 
         dwError = RegUtilGetValue(
                       hReg,
@@ -1953,6 +1965,10 @@ ADState_ReadRegDomainEntry(
                       (PVOID) &pListEntry->pszForestName,
                       &dwValueLen);
         BAIL_ON_LSA_ERROR(dwError);
+        if (!*pListEntry->pszForestName)
+        {
+            LW_SAFE_FREE_STRING(pListEntry->pszForestName);
+        }
 
         dwError = RegUtilGetValue(
                       hReg,
@@ -1964,6 +1980,10 @@ ADState_ReadRegDomainEntry(
                       (PVOID) &pListEntry->pszClientSiteName,
                       &dwValueLen);
         BAIL_ON_LSA_ERROR(dwError);
+        if (!*pListEntry->pszClientSiteName)
+        {
+            LW_SAFE_FREE_STRING(pListEntry->pszClientSiteName);
+        }
 
         dwError = RegUtilGetValue(
                       hReg,
