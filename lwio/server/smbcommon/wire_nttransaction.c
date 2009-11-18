@@ -407,7 +407,6 @@ WireMarshallNtTransactionResponse(
     pDataCursor += sizeof(USHORT);
     ulNumBytesAvailable -= sizeof(USHORT);
     ulOffset += sizeof(USHORT);
-    usNumBytesUsed += sizeof(USHORT);
     ulNumPackageBytesUsed += sizeof(USHORT);
 
     if (ulOffset % 4)
