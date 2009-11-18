@@ -50,7 +50,7 @@
  * cd "[KeyName]"
  * delete_key "[KeyName]"
  * delete_tree "[KeyName]"
- * set_value ["[KeyName]"] "ValueName" type "Value" ["Value2"] ["Value3"] [...]
+ * set_value ["[KeyName]"] "ValueName" "Value" ["Value2"] ["Value3"] [...]
  * add_value ["[KeyName]"] "ValueName" type "Value" ["Value2"] ["Value3"] [...]
  *
  * Note: "KeyName" format is [HKEY_THIS_MACHINE/Subkey1/SubKey2]. ["[KeyName]"]
@@ -205,16 +205,12 @@ error:
 DWORD
 RegShellCmdParseCommand(
     REGSHELL_CMD_E cmd,
-    DWORD argc,
-    PCHAR *argv,
     PREGSHELL_CMD_ITEM *pCmdItem)
 {
     DWORD dwError = 0;
     PREGSHELL_CMD_ITEM pNewCmdItem = NULL;
 
-    BAIL_ON_INVALID_POINTER(argv);
     BAIL_ON_INVALID_POINTER(pCmdItem);
-
 
     dwError = LwAllocateMemory(sizeof(REGSHELL_CMD_ITEM),
                                (LW_PVOID) &pNewCmdItem);
@@ -260,24 +256,18 @@ DWORD
 RegShellCmdParseKeyName(
     PREGSHELL_PARSE_STATE pParseState,
     REGSHELL_CMD_E cmd,
-    DWORD argc,
-    PCHAR *argv,
+    PSTR pszKeyName,
     PREGSHELL_CMD_ITEM *pRetCmdItem)
 {
     DWORD dwError = 0;
     DWORD dwRootKeyError = LW_ERROR_NO_SUCH_KEY;
     DWORD keyNameLen = 0;
     DWORD dwOffset = 0;
-    PCHAR pszKeyName = NULL;
     PSTR pszBackslash = NULL;
     PSTR pszTmpKey = NULL;
     PREGSHELL_CMD_ITEM pCmdItem = NULL;
     HKEY hRootKey = NULL;
 
-
-    BAIL_ON_INVALID_POINTER(argv);
-    BAIL_ON_INVALID_POINTER(pRetCmdItem);
-    pszKeyName = argv[2];
     if (pszKeyName[0] == '[')
     {
         dwOffset++;
@@ -306,8 +296,6 @@ RegShellCmdParseKeyName(
 
     dwError = RegShellCmdParseCommand(
                   cmd,
-                  argc,
-                  argv,
                   &pCmdItem);
     BAIL_ON_REG_ERROR(dwError);
 
@@ -340,9 +328,21 @@ RegShellCmdParseKeyName(
     }
     if (dwRootKeyError == 0)
     {
-        pParseState->pszFullKeyPath = pCmdItem->keyName;
+        if (pCmdItem->keyName[0] == '\\')
+        {
+            dwError = LwAllocateString(pCmdItem->keyName + 1,
+                                       &pParseState->pszFullKeyPath);
+            BAIL_ON_REG_ERROR(dwError);
+        }
+        else
+        {
+            pParseState->pszFullKeyPath = pCmdItem->keyName;
+        }
     }
-    *pRetCmdItem = pCmdItem;
+    if (pRetCmdItem)
+    {
+        *pRetCmdItem = pCmdItem;
+    }
 
 cleanup:
     return dwError;
@@ -699,8 +699,7 @@ RegShellCmdParseValueName(
         dwError = RegShellCmdParseKeyName(
                       pParseState,
                       cmd,
-                      argc,
-                      argv,
+                      argv[2],
                       &pCmdItem);
         argIndx = 3;
     }
@@ -708,8 +707,6 @@ RegShellCmdParseValueName(
     {
         dwError = RegShellCmdParseCommand(
                       cmd,
-                      argc,
-                      argv,
                       &pCmdItem);
     }
 
@@ -723,7 +720,23 @@ RegShellCmdParseValueName(
         *pRetCmdItem = pCmdItem;
         return 0;
     }
-    pszType = argv[argIndx++];
+    if (pCmdItem->command != REGSHELL_CMD_SET_VALUE)
+    {
+        pszType = argv[argIndx++];
+    }
+    else
+    {
+        dwError = RegShellUtilGetValue(
+                      pParseState->hReg,
+                      RegShellGetRootKey(pParseState),
+                      RegShellGetDefaultKey(pParseState),
+                      NULL,
+                      pszValue,
+                      &pCmdItem->type,
+                      NULL,
+                      NULL);
+        BAIL_ON_REG_ERROR(dwError);
+    }
     argCount = argc - argIndx;
     if (argCount < 0)
     {
@@ -735,11 +748,14 @@ RegShellCmdParseValueName(
     dwError = LwAllocateString(pszValue, &pCmdItem->valueName);
     BAIL_ON_REG_ERROR(dwError);
 
-    dwError = RegShellParseStringType(
-                  pszType,
-                  &pCmdItem->type,
-                  &pCmdItem->backendType);
-    BAIL_ON_REG_ERROR(dwError);
+    if (pszType)
+    {
+        dwError = RegShellParseStringType(
+                      pszType,
+                      &pCmdItem->type,
+                      &pCmdItem->backendType);
+        BAIL_ON_REG_ERROR(dwError);
+    }
 
     switch (pCmdItem->type)
     {
@@ -978,7 +994,7 @@ RegShellCmdParse(
             }
             else
             {
-                dwError = RegShellCmdParseCommand(cmd, argc, argv, &pCmdItem);
+                dwError = RegShellCmdParseCommand(cmd, &pCmdItem);
             }
             break;
         case REGSHELL_CMD_LIST_KEYS:
@@ -991,13 +1007,12 @@ RegShellCmdParse(
                 dwError = RegShellCmdParseKeyName(
                               pParseState,
                               cmd,
-                              argc,
-                              argv,
+                              argv[2],
                               &pCmdItem);
             }
             else
             {
-                dwError = RegShellCmdParseCommand(cmd, argc, argv, &pCmdItem);
+                dwError = RegShellCmdParseCommand(cmd, &pCmdItem);
             }
             break;
 
@@ -1010,7 +1025,7 @@ RegShellCmdParse(
                 dwError = LW_ERROR_INVALID_CONTEXT;
                 goto error;
             }
-            dwError = RegShellCmdParseCommand(cmd, argc, argv, &pCmdItem);
+            dwError = RegShellCmdParseCommand(cmd, &pCmdItem);
             BAIL_ON_REG_ERROR(dwError);
 
             dwError = LwAllocateMemory(sizeof(PSTR) * 2,
@@ -1038,8 +1053,7 @@ RegShellCmdParse(
             dwError = RegShellCmdParseKeyName(
                           pParseState,
                           cmd,
-                          argc,
-                          argv,
+                          argv[2],
                           &pCmdItem);
             break;
 
@@ -1061,8 +1075,13 @@ RegShellCmdParse(
         *   add_value "ValueName" type "Value" ["Value2"] ["Value3"] [...]
         */
         case REGSHELL_CMD_ADD_VALUE:
-        case REGSHELL_CMD_SET_VALUE:
             if (argc < 5)
+            {
+                dwError = LW_ERROR_INVALID_CONTEXT;
+                goto error;
+            }
+        case REGSHELL_CMD_SET_VALUE:
+            if (argc < 4)
             {
                 dwError = LW_ERROR_INVALID_CONTEXT;
                 goto error;
@@ -1177,6 +1196,9 @@ RegShellCmdlineParseToArgv(
     PSTR pszBinaryData = NULL;
     DWORD dwBinaryDataOffset = 0;
     DWORD dwLen = 0;
+    PVOID pValue = NULL;
+    DWORD dwValueLen = 0;
+    PSTR pszKeyName = NULL;
 
     BAIL_ON_INVALID_HANDLE(pParseState->ioHandle);
     BAIL_ON_INVALID_HANDLE(pParseState->lexHandle);
@@ -1535,14 +1557,12 @@ RegShellCmdlineParseToArgv(
                     RegLexGetAttribute(pParseState->lexHandle,
                                        &attrSize,
                                        &pszAttr);
-                    dwError = LwAllocateMemory(
-                                  sizeof(CHAR) * (strlen(pszAttr)+3),
-                                  (LW_PVOID) &pszArgv[dwArgc]);
+                    dwError = RegShellCmdParseKeyName(
+                                  pParseState,
+                                  cmdEnum,
+                                  pszAttr,
+                                  NULL);
                     BAIL_ON_REG_ERROR(dwError);
-                    strcpy(pszArgv[dwArgc], "[");
-                    strcat(pszArgv[dwArgc], pszAttr);
-                    strcat(pszArgv[dwArgc], "]");
-                    dwArgc++;
                     dwError = RegLexGetToken(pParseState->ioHandle,
                                              pParseState->lexHandle,
                                              &token,
@@ -1571,6 +1591,23 @@ RegShellCmdlineParseToArgv(
                                        &pszAttr);
                     dwError = LwAllocateString(pszAttr, &pszArgv[dwArgc++]);
                     BAIL_ON_REG_ERROR(dwError);
+
+                    if (cmdEnum == REGSHELL_CMD_SET_VALUE)
+                    {
+                        dwError = RegShellUtilGetValue(
+                                      NULL,
+                                      RegShellGetRootKey(pParseState),
+                                      RegShellGetDefaultKey(pParseState),
+                                      pszKeyName,
+                                      pszArgv[2],
+                                      &valueType,
+                                      &pValue,
+                                      &dwValueLen);
+                        BAIL_ON_REG_ERROR(dwError);
+
+                        state = REGSHELL_CMDLINE_STATE_ADDVALUE_VALUE;
+                        break;
+                    }
 
                     dwError = RegLexGetToken(pParseState->ioHandle,
                                              pParseState->lexHandle,
@@ -1642,7 +1679,8 @@ RegShellCmdlineParseToArgv(
                     BAIL_ON_REG_ERROR(dwError);
                     if (eof)
                     {
-                        if (dwArgc <= 4)
+                        if ((cmdEnum==REGSHELL_CMD_SET_VALUE && dwArgc<=3) ||
+                            (cmdEnum== REGSHELL_CMD_ADD_VALUE && dwArgc<=4))
                         {
                             dwError = LW_ERROR_INVALID_CONTEXT;
                         }
@@ -1778,6 +1816,7 @@ RegShellCmdlineParseToArgv(
 #endif
 
 cleanup:
+    LW_SAFE_FREE_STRING(pszKeyName);
     if (dwError)
     {
         RegLexResetToken(pParseState->lexHandle);
@@ -1825,7 +1864,7 @@ RegShellUsage(
         "       cd [KeyName]\n"
         "       pwd\n"
         "       add_value [[KeyName]] \"ValueName\" Type \"Value\" [\"Value2\"] [...]\n"
-        "       set_value [[KeyName]] \"ValueName\" Type \"Value\" [\"Value2\"] [...]\n"
+        "       set_value [[KeyName]] \"ValueName\" \"Value\" [\"Value2\"] [...]\n"
         "       list_values [[keyName]]\n"
         "       delete_value [[KeyName]] \"ValueName\"\n"
         "       set_hive HIVE_NAME\n"

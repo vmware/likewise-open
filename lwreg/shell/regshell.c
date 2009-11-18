@@ -237,8 +237,26 @@ RegShellSetValue(
     LW_PVOID data = NULL;
     DWORD dataLen = 0;
     DWORD dwError = 0;
+    DWORD type = 0;
 
-    switch (rsItem->type)
+    if (rsItem->command == REGSHELL_CMD_SET_VALUE)
+    {
+        dwError = RegShellUtilGetValue(
+                      pParseState->hReg,
+                      RegShellGetRootKey(pParseState),
+                      RegShellGetDefaultKey(pParseState),
+                      NULL,
+                      rsItem->valueName,
+                      &type,
+                      NULL,
+                      NULL);
+    }
+    else
+    {
+        type = rsItem->type;
+    }
+
+    switch (type)
     {
         case REG_MULTI_SZ:
             data = rsItem->args;
@@ -260,7 +278,7 @@ RegShellSetValue(
                   RegShellGetDefaultKey(pParseState),
                   rsItem->keyName,
                   rsItem->valueName,
-                  rsItem->type,
+                  type,
                   data,
                   dataLen);
     return dwError;
