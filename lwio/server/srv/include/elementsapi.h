@@ -60,6 +60,21 @@ typedef UCHAR SMB_OPLOCK_LEVEL;
 #define SMB_OPLOCK_LEVEL_II    0x03
 
 typedef VOID (*PFN_LWIO_SRV_FREE_OPLOCK_STATE)(HANDLE hOplockState);
+typedef VOID (*PFN_LWIO_SRV_FREE_ASYNC_STATE)(HANDLE hAsyncState);
+
+typedef struct _LWIO_ASYNC_STATE
+{
+    pthread_rwlock_t               mutex;
+    pthread_rwlock_t*              pMutex;
+
+    LONG                           refcount;
+
+    ULONG64                        ullAsyncId;
+
+    HANDLE                         hAsyncState;
+    PFN_LWIO_SRV_FREE_ASYNC_STATE  pfnFreeAsyncState;
+
+} LWIO_ASYNC_STATE, *PLWIO_ASYNC_STATE;
 
 typedef struct _LWIO_SRV_FILE
 {
@@ -147,6 +162,8 @@ typedef struct _LWIO_SRV_TREE
     PLWIO_SRV_FILE    lruFile[SRV_LRU_CAPACITY];
 
     PLWRTL_RB_TREE    pFileCollection;
+
+    PLWRTL_RB_TREE    pAsyncStateCollection;
 
     USHORT            nextAvailableFid;
 
@@ -513,6 +530,24 @@ SrvGssNegHints(
     );
 
 NTSTATUS
+SrvAsyncStateCreate(
+    ULONG64                       ullAsyncId,
+    HANDLE                        hAsyncState,
+    PFN_LWIO_SRV_FREE_ASYNC_STATE pfnFreeAsyncState,
+    PLWIO_ASYNC_STATE*            ppAsyncState
+    );
+
+PLWIO_ASYNC_STATE
+SrvAsyncStateAcquire(
+    PLWIO_ASYNC_STATE pAsyncState
+    );
+
+VOID
+SrvAsyncStateRelease(
+    PLWIO_ASYNC_STATE pAsyncState
+    );
+
+NTSTATUS
 SrvConnectionCreate(
     HANDLE                          hSocket,
     HANDLE                          hPacketAllocator,
@@ -723,6 +758,25 @@ NTSTATUS
 SrvTreeRemoveFile(
     PLWIO_SRV_TREE pTree,
     USHORT        fid
+    );
+
+NTSTATUS
+SrvTreeAddAsyncState(
+    PLWIO_SRV_TREE    pTree,
+    PLWIO_ASYNC_STATE pAsyncState
+    );
+
+NTSTATUS
+SrvTreeFindAsyncState(
+    PLWIO_SRV_TREE     pTree,
+    ULONG64            ullAsyncId,
+    PLWIO_ASYNC_STATE* ppAsyncState
+    );
+
+NTSTATUS
+SrvTreeRemoveAsyncState(
+    PLWIO_SRV_TREE pTree,
+    ULONG64        ullAsyncId
     );
 
 BOOLEAN

@@ -75,6 +75,19 @@ SrvTreeFree(
     PLWIO_SRV_TREE pTree
     );
 
+static
+int
+SrvTreeAsyncStateCompare(
+    PVOID pKey1,
+    PVOID pKey2
+    );
+
+static
+VOID
+SrvTreeAsyncStateRelease(
+    PVOID pAsyncState
+    );
+
 NTSTATUS
 SrvTreeCreate(
     USHORT          tid,
@@ -109,6 +122,13 @@ SrvTreeCreate(
                     NULL,
                     &SrvTreeFileRelease,
                     &pTree->pFileCollection);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = LwRtlRBTreeCreate(
+                    &SrvTreeAsyncStateCompare,
+                    NULL,
+                    &SrvTreeAsyncStateRelease,
+                    &pTree->pAsyncStateCollection);
     BAIL_ON_NT_STATUS(ntStatus);
 
     *ppTree = pTree;
@@ -279,6 +299,109 @@ error:
     goto cleanup;
 }
 
+NTSTATUS
+SrvTreeAddAsyncState(
+    PLWIO_SRV_TREE    pTree,
+    PLWIO_ASYNC_STATE pAsyncState
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    BOOLEAN  bInLock  = FALSE;
+    PLWIO_ASYNC_STATE pAsyncState1 = NULL;
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pTree->mutex);
+
+    ntStatus = LwRtlRBTreeFind(
+                    pTree->pAsyncStateCollection,
+                    &pAsyncState->ullAsyncId,
+                    (PVOID*)&pAsyncState1);
+    switch (ntStatus)
+    {
+        case STATUS_NOT_FOUND:
+
+            ntStatus = LwRtlRBTreeAdd(
+                            pTree->pAsyncStateCollection,
+                            &pAsyncState->ullAsyncId,
+                            pAsyncState);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            SrvAsyncStateAcquire(pAsyncState);
+
+            break;
+
+        case STATUS_SUCCESS:
+
+            ntStatus = STATUS_DUPLICATE_OBJECTID;
+
+            break;
+
+        default:
+
+            ;
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
+
+error:
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pTree->mutex);
+
+    return ntStatus;
+}
+
+NTSTATUS
+SrvTreeFindAsyncState(
+    PLWIO_SRV_TREE     pTree,
+    ULONG64            ullAsyncId,
+    PLWIO_ASYNC_STATE* ppAsyncState
+    )
+{
+    NTSTATUS          ntStatus = STATUS_SUCCESS;
+    PLWIO_ASYNC_STATE pAsyncState = NULL;
+    BOOLEAN           bInLock     = FALSE;
+
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pTree->mutex);
+
+    ntStatus = LwRtlRBTreeFind(
+                    pTree->pAsyncStateCollection,
+                    &ullAsyncId,
+                    (PVOID*)&pAsyncState);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *ppAsyncState = SrvAsyncStateAcquire(pAsyncState);
+
+cleanup:
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pTree->mutex);
+
+    return ntStatus;
+
+error:
+
+    *ppAsyncState = NULL;
+
+    goto cleanup;
+}
+
+NTSTATUS
+SrvTreeRemoveAsyncState(
+    PLWIO_SRV_TREE pTree,
+    ULONG64        ullAsyncId
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    BOOLEAN  bInLock  = FALSE;
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pTree->mutex);
+
+    ntStatus = LwRtlRBTreeRemove(
+                    pTree->pAsyncStateCollection,
+                    &ullAsyncId);
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pTree->mutex);
+
+    return ntStatus;
+}
+
 BOOLEAN
 SrvTreeIsNamedPipe(
     PLWIO_SRV_TREE pTree
@@ -438,12 +561,50 @@ SrvTreeFree(
         LwRtlRBTreeFree(pTree->pFileCollection);
     }
 
+    if (pTree->pAsyncStateCollection)
+    {
+        LwRtlRBTreeFree(pTree->pAsyncStateCollection);
+    }
+
     if (pTree->pShareInfo)
     {
         SrvShareReleaseInfo(pTree->pShareInfo);
     }
 
     SrvFreeMemory(pTree);
+}
+
+static
+int
+SrvTreeAsyncStateCompare(
+    PVOID pKey1,
+    PVOID pKey2
+    )
+{
+    PULONG64 pAsyncId1 = (PULONG64)pKey1;
+    PULONG64 pAsyncId2 = (PULONG64)pKey2;
+
+    if (*pAsyncId1 > *pAsyncId2)
+    {
+        return 1;
+    }
+    else if (*pAsyncId1 < *pAsyncId2)
+    {
+        return -1;
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+static
+VOID
+SrvTreeAsyncStateRelease(
+    PVOID pAsyncState
+    )
+{
+    SrvAsyncStateRelease((PLWIO_ASYNC_STATE)pAsyncState);
 }
 
 
