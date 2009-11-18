@@ -39,13 +39,13 @@ namespace Likewise.LMC.FileClient
         [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
         public static extern IntPtr FindFirstFileW(
             string lpFileName,
-            out WIN32_FIND_DATA lpFindFileData
+            ref WIN32_FIND_DATA FindFileData
             );
 
         [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
         public static extern bool FindNextFileW(
             IntPtr hFindFile,
-            out WIN32_FIND_DATA lpFindFileData
+            ref WIN32_FIND_DATA FindFileData
             );
 
         [DllImport("kernel32.dll", SetLastError = true)]

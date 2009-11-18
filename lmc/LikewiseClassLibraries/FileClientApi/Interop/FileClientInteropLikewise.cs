@@ -39,13 +39,13 @@ namespace Likewise.LMC.FileClient
         [DllImport("liblwfileclient.so", SetLastError = true, CharSet = CharSet.Unicode)]
         public static extern IntPtr FindFirstFile(
             string lpFileName,
-            out WIN32_FIND_DATA lpFindFileData
+            ref LIKEWISE_FIND_DATA FindFileData
             );
 
         [DllImport("liblwfileclient.so", SetLastError = true, CharSet = CharSet.Unicode)]
         public static extern bool FindNextFile(
             IntPtr hFindFile,
-            out WIN32_FIND_DATA lpFindFileData
+            ref LIKEWISE_FIND_DATA FindFileData
             );
 
         [DllImport("liblwfileclient.so", SetLastError = true)]

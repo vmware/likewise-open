@@ -16,8 +16,8 @@ namespace Likewise.LMC.Plugins.FileBrowser
     {
         private string path = null;
         private List<string> _activeShares = new List<string>();
-        private LikewiseTargetPlatform platform = Configurations.currentPlatform;
-        private string _localDiskRoot = null;
+        private LikewiseTargetPlatform _platform = Configurations.currentPlatform;
+		private string _pathSeparator = "/";
 
         public enum SELECT_DESTINATION_OPERATION
         {
@@ -42,7 +42,10 @@ namespace Likewise.LMC.Plugins.FileBrowser
             Icon ic = Resources.Library;
 
             _activeShares = fbPlugin.GetActiveShares();
-            _localDiskRoot = fbPlugin.GetLocalDiskRoot();
+			if(_platform == LikewiseTargetPlatform.Windows)
+			{
+				_pathSeparator = "\\";
+			}
 
             if (op == SELECT_DESTINATION_OPERATION.COPY_DIRECTORY)
                 operation = "Copy directory";
@@ -181,7 +184,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
             {
                 FileBrowserNode node = new FileBrowserNode(folderName, Resources.Folder, null, null);
                 node.FBNodeType = FileBrowserNode.FileBrowserNopeType.DIRECTORY;
-                node.Path = parentNode.Path + "\\" + folderName;
+				node.Path = parentNode.Path + _pathSeparator + folderName;
                 parentNode.Nodes.Add(node);
             }
         }
@@ -208,7 +211,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
             if (node.Name.Equals("Network"))
             {
                 // Enumerate the child nodes of the "Network" tree node
-                if (platform == LikewiseTargetPlatform.Windows)
+                if (_platform == LikewiseTargetPlatform.Windows)
                 {
                     NetResources = GetNetworkConnections();
                     AddShareNodes(parentNode, NetResources);
@@ -271,8 +274,8 @@ namespace Likewise.LMC.Plugins.FileBrowser
                     computerNode.FBNodeType = FileBrowserNode.FileBrowserNopeType.CATEGORY;
                     tvDestinationTree.Nodes.Add(computerNode);
 
-                    FileBrowserNode localDiskRootNode = new FileBrowserNode(_localDiskRoot, iconFolder, null, null);
-                    localDiskRootNode.Path = _localDiskRoot;
+                    FileBrowserNode localDiskRootNode = new FileBrowserNode("[HD]", iconFolder, null, null);
+                    localDiskRootNode.Path = "";
                     localDiskRootNode.FBNodeType = FileBrowserNode.FileBrowserNopeType.DIRECTORY;
                     computerNode.Nodes.Add(localDiskRootNode);
 
