@@ -1518,6 +1518,7 @@ SrvProcessChangeNotifyCompletion(
 
             break;
 
+        case STATUS_NOTIFY_ENUM_DIR:
         case STATUS_SUCCESS:
 
             ntStatus = SrvBuildChangeNotifyResponse(pExecContext, pNotifyState);
@@ -1630,12 +1631,16 @@ SrvBuildChangeNotifyResponse(
 
     *pSmbResponse->pWordCount = 18 + ucResponseSetupCount;
 
-    ntStatus = SrvMarshalChangeNotifyResponse(
-                    pNotifyState->pBuffer,
-                    pNotifyState->ulBytesUsed,
-                    &pParams,
-                    &ulParameterLength);
-    BAIL_ON_NT_STATUS(ntStatus);
+    if ((pNotifyState->ioStatusBlock.Status == STATUS_SUCCESS) &&
+        pNotifyState->ulBytesUsed > 0)
+    {
+        ntStatus = SrvMarshalChangeNotifyResponse(
+                        pNotifyState->pBuffer,
+                        pNotifyState->ulBytesUsed,
+                        &pParams,
+                        &ulParameterLength);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
     ntStatus = WireMarshallNtTransactionResponse(
                     pOutBuffer,
