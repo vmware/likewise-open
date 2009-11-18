@@ -785,10 +785,12 @@ RegShellProcessCmd(
                 break;
 
             case REGSHELL_CMD_PWD:
-                if (pParseState->pszDefaultKey)
+                if (RegShellGetRootKey(pParseState))
                 {
-                    printf("'%s'\n\n",
-                            pParseState->pszDefaultKey);
+                    printf("[%s\\%s]\n\n",
+                            RegShellGetRootKey(pParseState),
+                            RegShellGetDefaultKey(pParseState) ?
+                                RegShellGetDefaultKey(pParseState) : "");
                 }
                 else
                 {
