@@ -1296,8 +1296,9 @@ SrvProcessNotifyChange(
     ULONG                        iMsg         = pCtxSmb1->iMsg;
     PSRV_MESSAGE_SMB_V1          pSmbRequest  = &pCtxSmb1->pRequests[iMsg];
     PSRV_NTTRANSACT_STATE_SMB_V1      pNTTransactState  = NULL;
+    PLWIO_ASYNC_STATE                 pAsyncState       = NULL;
     PSRV_CHANGE_NOTIFY_STATE_SMB_V1   pNotifyState      = NULL;
-    PSRV_TREE_NOTIFY_STATE_REPOSITORY pNotifyRepository = NULL;
+    BOOLEAN                           bUnregisterAsync  = FALSE;
 
     pNTTransactState = (PSRV_NTTRANSACT_STATE_SMB_V1)pCtxSmb1->hState;
 
@@ -1323,13 +1324,7 @@ SrvProcessNotifyChange(
                             &pNTTransactState->pFile);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            ntStatus = SrvNotifyCreateRepository(
-                            pCtxSmb1->pTree->tid,
-                            &pNotifyRepository);
-            BAIL_ON_NT_STATUS(ntStatus);
-
-            ntStatus = SrvNotifyRepositoryCreateState(
-                            pNotifyRepository,
+            ntStatus = SrvNotifyCreateState(
                             pExecContext->pConnection,
                             pCtxSmb1->pSession,
                             pCtxSmb1->pTree,
@@ -1342,6 +1337,20 @@ SrvProcessNotifyChange(
                             pNTTransactState->pRequestHeader->ulMaxParameterCount,
                             &pNotifyState);
             BAIL_ON_NT_STATUS(ntStatus);
+
+            ntStatus = SrvAsyncStateCreate(
+                            pNotifyState->ullNotifyId,
+                            pNotifyState,
+                            &SrvNotifyStateReleaseHandle,
+                            &pAsyncState);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            SrvNotifyStateAcquire(pNotifyState);
+
+            ntStatus = SrvTreeAddAsyncState(pCtxSmb1->pTree, pAsyncState);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            bUnregisterAsync = TRUE;
 
             pNTTransactState->stage = SRV_NTTRANSACT_STAGE_SMB_V1_ATTEMPT_IO;
 
@@ -1374,19 +1383,27 @@ cleanup:
 
     if (pNotifyState)
     {
+        if (bUnregisterAsync)
+        {
+            SrvTreeRemoveAsyncState(pCtxSmb1->pTree, pNotifyState->ullNotifyId);
+        }
+
         SrvNotifyStateRelease(pNotifyState);
     }
 
-    if (pNotifyRepository)
+    if (pAsyncState)
     {
-        SrvNotifyRepositoryRelease(pNotifyRepository);
+        SrvAsyncStateRelease(pAsyncState);
     }
 
     return ntStatus;
 
 error:
 
-    // TODO: If not STATUS_PENDING, un-register notify state
+    if (ntStatus == STATUS_PENDING)
+    {
+        bUnregisterAsync = FALSE;
+    }
 
     goto cleanup;
 }
@@ -1457,8 +1474,9 @@ SrvProcessChangeNotifyCompletion(
     PLWIO_SRV_SESSION          pSession     = NULL;
     PLWIO_SRV_TREE             pTree        = NULL;
     BOOLEAN                    bInLock      = FALSE;
-    PSRV_TREE_NOTIFY_STATE_REPOSITORY pNotifyRepository = NULL;
-    PSRV_CHANGE_NOTIFY_STATE_SMB_V1   pNotifyState      = NULL;
+    PLWIO_ASYNC_STATE          pAsyncState  = NULL;
+    ULONG64                    ullNotifyId  = 0LL;
+    PSRV_CHANGE_NOTIFY_STATE_SMB_V1 pNotifyState = NULL;
 
     ntStatus = SrvConnectionFindSession_SMB_V1(
                     pCtxSmb1,
@@ -1474,23 +1492,17 @@ SrvProcessChangeNotifyCompletion(
                     &pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvNotifyCreateRepository(
-                    pSmbRequest->pHeader->tid,
-                    &pNotifyRepository);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SrvNotifyRepositoryFindState(
-                    pNotifyRepository,
-                    SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
-                    pSmbRequest->pHeader->mid,
-                    &pNotifyState);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SrvNotifyRepositoryRemoveState(
-                    pNotifyRepository,
+    ullNotifyId = SrvNotifyGetId(
                     SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
                     pSmbRequest->pHeader->mid);
+
+    ntStatus = SrvTreeFindAsyncState(pTree, ullNotifyId, &pAsyncState);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvTreeRemoveAsyncState(pTree, ullNotifyId);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pNotifyState = (PSRV_CHANGE_NOTIFY_STATE_SMB_V1)pAsyncState->hAsyncState;
 
     LWIO_LOCK_MUTEX(bInLock, &pNotifyState->mutex);
 
@@ -1525,13 +1537,11 @@ cleanup:
     if (pNotifyState)
     {
         LWIO_UNLOCK_MUTEX(bInLock, &pNotifyState->mutex);
-
-        SrvNotifyStateRelease(pNotifyState);
     }
 
-    if (pNotifyRepository)
+    if (pAsyncState)
     {
-        SrvNotifyRepositoryRelease(pNotifyRepository);
+        SrvAsyncStateRelease(pAsyncState);
     }
 
     if (pTree)

@@ -50,68 +50,6 @@
 #include "includes.h"
 
 static
-NTSTATUS
-SrvNotifyRepositoryBuild(
-    USHORT                             usTid,
-    PSRV_TREE_NOTIFY_STATE_REPOSITORY* ppRepository
-    );
-
-static
-int
-SrvNotifyStateCompare(
-    PVOID pKey1,
-    PVOID pKey2
-    );
-
-static
-int
-SrvNotifyRepositoryCompare(
-    PVOID pKey1,
-    PVOID pKey2
-    );
-
-static
-VOID
-SrvNotifyStateReleaseHandle(
-    PVOID pNotifyState
-    );
-
-static
-VOID
-SrvNotifyRepositoryReleaseHandle(
-    PVOID pNotifyRepository
-    );
-
-static
-NTSTATUS
-SrvNotifyStateBuild(
-    PLWIO_SRV_CONNECTION             pConnection,
-    PLWIO_SRV_SESSION                pSession,
-    PLWIO_SRV_TREE                   pTree,
-    PLWIO_SRV_FILE                   pFile,
-    USHORT                           usMid,
-    ULONG                            ulPid,
-    ULONG                            ulRequestSequence,
-    ULONG                            ulCompletionFilter,
-    BOOLEAN                          bWatchTree,
-    ULONG                            ulMaxBufferSize,
-    PSRV_CHANGE_NOTIFY_STATE_SMB_V1* ppNotifyState
-    );
-
-static
-ULONG64
-SrvNotifyChangeGetId(
-    ULONG  ulPid,
-    USHORT usMid
-    );
-
-static
-VOID
-SrvNotifyRepositoryFree(
-    PSRV_TREE_NOTIFY_STATE_REPOSITORY pNotifyRepository
-    );
-
-static
 VOID
 SrvNotifyAsyncCB(
     PVOID pContext
@@ -119,7 +57,7 @@ SrvNotifyAsyncCB(
 
 static
 NTSTATUS
-SrvBuildNotifyExecContext(
+SrvNotifyBuildExecContext(
     PSRV_CHANGE_NOTIFY_STATE_SMB_V1 pNotifyState,
     PSRV_EXEC_CONTEXT*              ppExecContext
     );
@@ -131,394 +69,7 @@ SrvNotifyStateFree(
     );
 
 NTSTATUS
-SrvNotifyRepositoryInit(
-    VOID
-    )
-{
-    return LwRtlRBTreeCreate(
-                    &SrvNotifyRepositoryCompare,
-                    NULL,
-                    &SrvNotifyRepositoryReleaseHandle,
-                    &gProtocolGlobals_SMB_V1.pTreeNotifyStateCollection);
-}
-
-NTSTATUS
-SrvNotifyCreateRepository(
-    USHORT                             usTid,
-    PSRV_TREE_NOTIFY_STATE_REPOSITORY* ppRepository
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    BOOLEAN  bInLock  = FALSE;
-    PSRV_TREE_NOTIFY_STATE_REPOSITORY pRepository = NULL;
-
-    LWIO_LOCK_MUTEX(bInLock, &gProtocolGlobals_SMB_V1.mutex);
-
-    ntStatus = LwRtlRBTreeFind(
-                        gProtocolGlobals_SMB_V1.pTreeNotifyStateCollection,
-                        &usTid,
-                        (PVOID*)&pRepository);
-    if (ntStatus == STATUS_NOT_FOUND)
-    {
-        ntStatus = SrvNotifyRepositoryBuild(
-                        usTid,
-                        &pRepository);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        ntStatus = LwRtlRBTreeAdd(
-                        gProtocolGlobals_SMB_V1.pTreeNotifyStateCollection,
-                        &pRepository->usTid,
-                        pRepository);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    InterlockedIncrement(&pRepository->refCount);
-
-    *ppRepository = pRepository;
-
-cleanup:
-
-    LWIO_UNLOCK_MUTEX(bInLock, &gProtocolGlobals_SMB_V1.mutex);
-
-    return ntStatus;
-
-error:
-
-    *ppRepository = pRepository;
-
-    if (pRepository)
-    {
-        SrvNotifyRepositoryRelease(pRepository);
-    }
-
-    goto cleanup;
-}
-
-NTSTATUS
-SrvNotifyRepositoryCreateState(
-    PSRV_TREE_NOTIFY_STATE_REPOSITORY pRepository,
-    PLWIO_SRV_CONNECTION              pConnection,
-    PLWIO_SRV_SESSION                 pSession,
-    PLWIO_SRV_TREE                    pTree,
-    PLWIO_SRV_FILE                    pFile,
-    USHORT                            usMid,
-    ULONG                             ulPid,
-    ULONG                             ulRequestSequence,
-    ULONG                             ulCompletionFilter,
-    BOOLEAN                           bWatchTree,
-    ULONG                             ulMaxBufferSize,
-    PSRV_CHANGE_NOTIFY_STATE_SMB_V1*  ppNotifyState
-    )
-{
-    NTSTATUS ntStatus    = STATUS_SUCCESS;
-    BOOLEAN  bInLock     = FALSE;
-    ULONG64  ullNotifyId = 0;
-    PSRV_CHANGE_NOTIFY_STATE_SMB_V1 pNotifyState = NULL;
-
-    ullNotifyId = SrvNotifyChangeGetId(ulPid, usMid);
-
-    LWIO_LOCK_MUTEX(bInLock, &pRepository->mutex);
-
-    ntStatus = LwRtlRBTreeFind(
-                    pRepository->pNotifyStateCollection,
-                    (PVOID)&ullNotifyId,
-                    (PVOID*)&pNotifyState);
-    if (ntStatus == STATUS_SUCCESS)
-    {
-        ntStatus = STATUS_OBJECT_NAME_COLLISION;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    ntStatus = SrvNotifyStateBuild(
-                    pConnection,
-                    pSession,
-                    pTree,
-                    pFile,
-                    usMid,
-                    ulPid,
-                    ulRequestSequence,
-                    ulCompletionFilter,
-                    bWatchTree,
-                    ulMaxBufferSize,
-                    &pNotifyState);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = LwRtlRBTreeAdd(
-                    pRepository->pNotifyStateCollection,
-                    &pNotifyState->ullNotifyId,
-                    pNotifyState);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    InterlockedIncrement(&pNotifyState->refCount);
-
-    *ppNotifyState = pNotifyState;
-
-cleanup:
-
-    LWIO_UNLOCK_MUTEX(bInLock, &pRepository->mutex);
-
-    return ntStatus;
-
-error:
-
-    *ppNotifyState = NULL;
-
-    if (pNotifyState)
-    {
-        SrvNotifyStateRelease(pNotifyState);
-    }
-
-    goto cleanup;
-}
-
-NTSTATUS
-SrvNotifyRepositoryFindState(
-    PSRV_TREE_NOTIFY_STATE_REPOSITORY pRepository,
-    ULONG                             ulPid,
-    USHORT                            usMid,
-    PSRV_CHANGE_NOTIFY_STATE_SMB_V1*  ppNotifyState
-    )
-{
-    NTSTATUS ntStatus    = STATUS_SUCCESS;
-    BOOLEAN  bInLock     = FALSE;
-    ULONG64  ullNotifyId = 0;
-    PSRV_CHANGE_NOTIFY_STATE_SMB_V1 pNotifyState = NULL;
-
-    ullNotifyId = SrvNotifyChangeGetId(ulPid, usMid);
-
-    LWIO_LOCK_MUTEX(bInLock, &pRepository->mutex);
-
-    ntStatus = LwRtlRBTreeFind(
-                    pRepository->pNotifyStateCollection,
-                    &ullNotifyId,
-                    (PVOID*)&pNotifyState);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    InterlockedIncrement(&pNotifyState->refCount);
-
-    *ppNotifyState = pNotifyState;
-
-cleanup:
-
-    LWIO_UNLOCK_MUTEX(bInLock, &pRepository->mutex);
-
-    return ntStatus;
-
-error:
-
-    *ppNotifyState = NULL;
-
-    goto cleanup;
-}
-
-NTSTATUS
-SrvNotifyRepositoryRemoveState(
-    PSRV_TREE_NOTIFY_STATE_REPOSITORY pRepository,
-    ULONG                             ulPid,
-    USHORT                            usMid
-    )
-{
-    NTSTATUS ntStatus    = STATUS_SUCCESS;
-    BOOLEAN  bInLock     = FALSE;
-    ULONG64  ullNotifyId = 0;
-
-    ullNotifyId = SrvNotifyChangeGetId(ulPid, usMid);
-
-    LWIO_LOCK_MUTEX(bInLock, &pRepository->mutex);
-
-    ntStatus = LwRtlRBTreeRemove(
-                    pRepository->pNotifyStateCollection,
-                    &ullNotifyId);
-
-    LWIO_UNLOCK_MUTEX(bInLock, &pRepository->mutex);
-
-    return ntStatus;
-}
-
-NTSTATUS
-SrvNotifyRemoveRepository(
-    USHORT usTid
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    BOOLEAN  bInLock  = FALSE;
-
-    LWIO_LOCK_MUTEX(bInLock, &gProtocolGlobals_SMB_V1.mutex);
-
-    ntStatus = LwRtlRBTreeRemove(
-                    gProtocolGlobals_SMB_V1.pTreeNotifyStateCollection,
-                    &usTid);
-
-    LWIO_UNLOCK_MUTEX(bInLock, &gProtocolGlobals_SMB_V1.mutex);
-
-    return ntStatus;
-}
-
-VOID
-SrvNotifyRepositoryShutdown(
-    VOID
-    )
-{
-    if (gProtocolGlobals_SMB_V1.pTreeNotifyStateCollection)
-    {
-        LwRtlRBTreeFree(gProtocolGlobals_SMB_V1.pTreeNotifyStateCollection);
-    }
-}
-
-static
-NTSTATUS
-SrvNotifyRepositoryBuild(
-    USHORT                             usTid,
-    PSRV_TREE_NOTIFY_STATE_REPOSITORY* ppRepository
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSRV_TREE_NOTIFY_STATE_REPOSITORY pRepository = NULL;
-
-    ntStatus = SrvAllocateMemory(
-                    sizeof(SRV_TREE_NOTIFY_STATE_REPOSITORY),
-                    (PVOID*)&pRepository);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pRepository->refCount = 1;
-
-    pthread_mutex_init(&pRepository->mutex, NULL);
-    pRepository->pMutex = &pRepository->mutex;
-
-    pRepository->usTid = usTid;
-
-    ntStatus = LwRtlRBTreeCreate(
-                    &SrvNotifyStateCompare,
-                    NULL,
-                    &SrvNotifyStateReleaseHandle,
-                    &pRepository->pNotifyStateCollection);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    *ppRepository = pRepository;
-
-cleanup:
-
-    return ntStatus;
-
-error:
-
-    *ppRepository = NULL;
-
-    if (pRepository)
-    {
-        SrvNotifyRepositoryFree(pRepository);
-    }
-
-    goto cleanup;
-}
-
-static
-int
-SrvNotifyStateCompare(
-    PVOID pKey1,
-    PVOID pKey2
-    )
-{
-    PULONG64 pNotifyId1 = (PULONG64)pKey1;
-    PULONG64 pNotifyId2 = (PULONG64)pKey2;
-
-    assert (pNotifyId1 != NULL);
-    assert (pNotifyId2 != NULL);
-
-    if (*pNotifyId1 > *pNotifyId2)
-    {
-        return 1;
-    }
-    else if (*pNotifyId1 < *pNotifyId2)
-    {
-        return -1;
-    }
-    else
-    {
-        return 0;
-    }
-}
-
-static
-int
-SrvNotifyRepositoryCompare(
-    PVOID pKey1,
-    PVOID pKey2
-    )
-{
-    PUSHORT pTid1 = (PUSHORT)pKey1;
-    PUSHORT pTid2 = (PUSHORT)pKey2;
-
-    assert (pTid1 != NULL);
-    assert (pTid2 != NULL);
-
-    if (*pTid1 > *pTid2)
-    {
-        return 1;
-    }
-    else if (*pTid1 < *pTid2)
-    {
-        return -1;
-    }
-    else
-    {
-        return 0;
-    }
-}
-
-static
-VOID
-SrvNotifyStateReleaseHandle(
-    PVOID pNotifyState
-    )
-{
-    SrvNotifyStateRelease((PSRV_CHANGE_NOTIFY_STATE_SMB_V1)pNotifyState);
-}
-
-static
-VOID
-SrvNotifyRepositoryReleaseHandle(
-    PVOID pNotifyRepository
-    )
-{
-    SrvNotifyRepositoryRelease(
-                    (PSRV_TREE_NOTIFY_STATE_REPOSITORY)pNotifyRepository);
-}
-
-VOID
-SrvNotifyRepositoryRelease(
-    PSRV_TREE_NOTIFY_STATE_REPOSITORY pNotifyRepository
-    )
-{
-    if (InterlockedDecrement(&pNotifyRepository->refCount) == 0)
-    {
-        SrvNotifyRepositoryFree(pNotifyRepository);
-    }
-}
-
-static
-VOID
-SrvNotifyRepositoryFree(
-    PSRV_TREE_NOTIFY_STATE_REPOSITORY pNotifyRepository
-    )
-{
-    if (pNotifyRepository->pNotifyStateCollection)
-    {
-        LwRtlRBTreeFree(pNotifyRepository->pNotifyStateCollection);
-    }
-
-    if (pNotifyRepository->pMutex)
-    {
-        pthread_mutex_destroy(&pNotifyRepository->mutex);
-    }
-
-    SrvFreeMemory(pNotifyRepository);
-}
-
-static
-NTSTATUS
-SrvNotifyStateBuild(
+SrvNotifyCreateState(
     PLWIO_SRV_CONNECTION             pConnection,
     PLWIO_SRV_SESSION                pSession,
     PLWIO_SRV_TREE                   pTree,
@@ -545,7 +96,7 @@ SrvNotifyStateBuild(
     pthread_mutex_init(&pNotifyState->mutex, NULL);
     pNotifyState->pMutex = &pNotifyState->mutex;
 
-    pNotifyState->ullNotifyId = SrvNotifyChangeGetId(ulPid, usMid);
+    pNotifyState->ullNotifyId = SrvNotifyGetId(ulPid, usMid);
 
     pNotifyState->pConnection = pConnection;
     InterlockedIncrement(&pNotifyState->refCount);
@@ -591,9 +142,8 @@ error:
     goto cleanup;
 }
 
-static
 ULONG64
-SrvNotifyChangeGetId(
+SrvNotifyGetId(
     ULONG  ulPid,
     USHORT usMid
     )
@@ -640,7 +190,7 @@ SrvNotifyAsyncCB(
 
     LWIO_UNLOCK_MUTEX(bInLock, &pNotifyState->mutex);
 
-    ntStatus = SrvBuildNotifyExecContext(
+    ntStatus = SrvNotifyBuildExecContext(
                     pNotifyState,
                     &pExecContext);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -681,7 +231,7 @@ error:
 
 static
 NTSTATUS
-SrvBuildNotifyExecContext(
+SrvNotifyBuildExecContext(
     PSRV_CHANGE_NOTIFY_STATE_SMB_V1 pNotifyState,
     PSRV_EXEC_CONTEXT*              ppExecContext
     )
@@ -849,6 +399,24 @@ SrvReleaseNotifyStateAsync(
 
         pNotifyState->pAcb = NULL;
     }
+}
+
+PSRV_CHANGE_NOTIFY_STATE_SMB_V1
+SrvNotifyStateAcquire(
+    PSRV_CHANGE_NOTIFY_STATE_SMB_V1 pNotifyState
+    )
+{
+    InterlockedIncrement(&pNotifyState->refCount);
+
+    return pNotifyState;
+}
+
+VOID
+SrvNotifyStateReleaseHandle(
+    HANDLE hNotifyState
+    )
+{
+    return SrvNotifyStateRelease((PSRV_CHANGE_NOTIFY_STATE_SMB_V1)hNotifyState);
 }
 
 VOID
