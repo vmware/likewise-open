@@ -287,32 +287,39 @@ ParseSharePath(
     sLen = strspn(pszIndex, "\\/");
     if (!sLen)
     {
-        ntStatus = LWIO_ERROR_INVALID_PARAMETER;
+        SMBAllocateMemory(
+            strlen("\\") + 1,
+            (PVOID*)&pszFilename);
         BAIL_ON_NT_STATUS(ntStatus);
+
+        pszFilename[0] = '\\';
+        pszFilename[1] = '\0';
     }
-
-    pszIndex += sLen;
-
-    SMBAllocateMemory(
-        strlen(pszIndex) + 2,
-        (PVOID*)&pszFilename);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pszFilename[0] = '\\';
-
-    for (i = 0; pszIndex[i]; i++)
+    else
     {
-        switch (pszIndex[i])
-        {
-        case '/':
-            pszFilename[1 + i] = '\\';
-            break;
-        default:
-            pszFilename[1 + i] = pszIndex[i];
-        }
-    }
+        pszIndex += sLen;
 
-    pszFilename[1 + i] = '\0';
+        SMBAllocateMemory(
+            strlen(pszIndex) + 2,
+            (PVOID*)&pszFilename);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pszFilename[0] = '\\';
+
+        for (i = 0; pszIndex[i]; i++)
+        {
+            switch (pszIndex[i])
+            {
+            case '/':
+                pszFilename[1 + i] = '\\';
+                break;
+            default:
+                pszFilename[1 + i] = pszIndex[i];
+            }
+        }
+
+        pszFilename[1 + i] = '\0';
+    }
 
     ntStatus = LwRtlWC16StringAllocateFromCString(ppwszServer, pszServer);
     BAIL_ON_NT_STATUS(ntStatus);
