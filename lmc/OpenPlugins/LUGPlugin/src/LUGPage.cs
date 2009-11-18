@@ -66,14 +66,9 @@ public partial class LUGPage : StandardPage
 
     public delegate uint RenameLUG(string servername, string oldname, string newname);
 
-    private delegate void AddRangeDelegate(ListViewItem[] range);
-    private delegate void ComboAddRangeDelegate(string[] range);
-    
-    private delegate void AutoResizeDelegate();
-    
     private LUGAPI.LUGType memberType = LUGAPI.LUGType.Undefined;
     private string memberTypeString = "";
-    
+
     private EnumLUG enumLUG = null;
     private DeleteLUG deleteLUG = null;
     private RenameLUG renameLUG = null;
