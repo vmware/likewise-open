@@ -566,13 +566,11 @@ public partial class LUGPage : StandardPage
             hn.creds.MachineName = hn.hostName;
         }                
     }
-    
+
     private void enumLUGCallback(LUGAPI.LUGEnumStatus enumStatus)
     {
-        if (!validHandle)
-        {
-            return;
-        }
+        Hostinfo hn = ctx as Hostinfo;
+
         if (enumStatus.entries != null && enumStatus.entries.Count > 0)
         {
             lvArr = new ListViewItem[Convert.ToInt32(enumStatus.entries.Count)];
@@ -589,16 +587,11 @@ public partial class LUGPage : StandardPage
                     lvArr[i].ImageIndex = (int)imageLUG;
                 }
             }
-            AddRangeDelegate d = ThreadSafeAddRange;
-            this.Invoke(d, new object[]
-            {
-                lvArr
-            }
-            );
+
+            this.lvLUGBETA.Items.AddRange(lvArr);
+
+            this.AutoResizePage();
             
-            AutoResizeDelegate d2 = ThreadSafeAutoResize;
-            Hostinfo hn = ctx as Hostinfo;
-            this.Invoke(d2);
             if (enumStatus.moreEntries)
             {
                 try
@@ -633,19 +626,6 @@ public partial class LUGPage : StandardPage
         }
     }
 
-    private void ThreadSafeAddRange(ListViewItem[] range)
-    {
-        if (range != null && range.Length > 0)
-        {
-            this.lvLUGBETA.Items.AddRange(range);
-        }
-    }
-    
-    private void ThreadSafeAutoResize()
-    {
-        this.AutoResizePage();
-    }
-    
     private void InsertLUGToListView(string[] LUG)
     {
         if (LUG != null)
