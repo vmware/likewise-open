@@ -45,6 +45,7 @@
 
 #define IO_FSCTL_OPLOCK_REQUEST             0x00000100
 #define IO_FSCTL_OPLOCK_BREAK_ACK           0x00000101
+#define IO_FSCTL_SET_SPARSE                 0x000900c4
 
 
 /* Oplock Request Input Buffer */
