@@ -1038,6 +1038,155 @@ error:
 
 static
 DWORD
+LwSmFindServiceWithPid(
+    pid_t pid,
+    PLW_SERVICE_HANDLE phHandle
+    )
+{
+    DWORD dwError = 0;
+    PWSTR* ppwszServiceNames = NULL;
+    DWORD i = 0;
+    PLW_SERVICE_INFO pInfo = NULL;
+    LW_SERVICE_HANDLE hHandle = NULL;
+    LW_SERVICE_STATUS status = {0};
+
+    dwError = LwSmEnumerateServices(&ppwszServiceNames);
+    BAIL_ON_ERROR(dwError);
+
+    for (i = 0; ppwszServiceNames[i]; i++)
+    {
+        dwError = LwSmAcquireServiceHandle(ppwszServiceNames[i], &hHandle);
+        BAIL_ON_ERROR(dwError);
+
+        dwError = LwSmQueryServiceStatus(hHandle, &status);
+        BAIL_ON_ERROR(dwError);
+
+        dwError = LwSmQueryServiceInfo(hHandle, &pInfo);
+        BAIL_ON_ERROR(dwError);
+
+        if (status.pid == pid &&
+            (pInfo->type == LW_SERVICE_TYPE_EXECUTABLE ||
+             pInfo->type == LW_SERVICE_TYPE_LEGACY_EXECUTABLE))
+        {
+            *phHandle = hHandle;
+            hHandle = NULL;
+            goto cleanup;
+        }
+
+        LwSmReleaseServiceHandle(hHandle);
+        LwSmFreeServiceInfo(pInfo);
+    }
+
+    dwError = LW_ERROR_INVALID_PARAMETER;
+    BAIL_ON_ERROR(dwError);
+
+cleanup:
+
+    if (hHandle)
+    {
+        LwSmReleaseServiceHandle(hHandle);
+    }
+
+    if (ppwszServiceNames)
+    {
+        LwSmFreeServiceNameList(ppwszServiceNames);
+    }
+
+    if (pInfo)
+    {
+        LwSmFreeServiceInfo(pInfo);
+    }
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+static
+DWORD
+LwSmGdb(
+    int argc,
+    char** pArgv
+    )
+{
+    DWORD dwError = 0;
+    PWSTR pwszServiceName = NULL;
+    LW_SERVICE_HANDLE hHandle = NULL;
+    LW_SERVICE_STATUS status = {0};
+    PLW_SERVICE_INFO pInfo = NULL;
+    PSTR pszExecutablePath = NULL;
+    PSTR pszPid = NULL;
+
+    dwError = LwMbsToWc16s(pArgv[1], &pwszServiceName);
+    BAIL_ON_ERROR(dwError);
+
+    dwError = LwSmAcquireServiceHandle(pwszServiceName, &hHandle);
+    BAIL_ON_ERROR(dwError);
+
+    dwError = LwSmQueryServiceStatus(hHandle, &status);
+    BAIL_ON_ERROR(dwError);
+
+    if (status.state != LW_SERVICE_STATE_RUNNING)
+    {
+        printf("Service is not running\n");
+        dwError = LW_ERROR_INVALID_PARAMETER;
+        BAIL_ON_ERROR(dwError);
+    }
+
+    dwError = LwSmQueryServiceInfo(hHandle, &pInfo);
+    BAIL_ON_ERROR(dwError);
+
+    if (pInfo->type != LW_SERVICE_TYPE_EXECUTABLE &&
+        pInfo->type != LW_SERVICE_TYPE_LEGACY_EXECUTABLE)
+    {
+        LwSmReleaseServiceHandle(hHandle);
+        LwSmFreeServiceInfo(pInfo);
+
+        dwError = LwSmFindServiceWithPid(status.pid, &hHandle);
+        BAIL_ON_ERROR(dwError);
+
+        dwError = LwSmQueryServiceInfo(hHandle, &pInfo);
+        if (dwError == LW_ERROR_INVALID_PARAMETER)
+        {
+            printf("Service type is not supported\n");
+        }
+        BAIL_ON_ERROR(dwError);
+    }
+
+    dwError = LwWc16sToMbs(pInfo->pwszPath, &pszExecutablePath);
+    BAIL_ON_ERROR(dwError);
+
+    dwError = LwAllocateStringPrintf(&pszPid, "%lu", (unsigned long) status.pid);
+    BAIL_ON_ERROR(dwError);
+
+    if (execlp("gdb", "gdb", pszExecutablePath, pszPid, NULL) < 0)
+    {
+        dwError = LwMapErrnoToLwError(errno);
+        BAIL_ON_ERROR(dwError);
+    }
+
+error:
+
+    LW_SAFE_FREE_MEMORY(pszPid);
+    LW_SAFE_FREE_MEMORY(pszExecutablePath);
+
+    if (pInfo)
+    {
+        LwSmFreeServiceInfo(pInfo);
+    }
+
+    if (hHandle)
+    {
+        LwSmReleaseServiceHandle(hHandle);
+    }
+
+    return dwError;
+}
+
+static
+DWORD
 LwSmUsage(
     int argc,
     char** pArgv
@@ -1137,6 +1286,11 @@ main(
         else if (!strcmp(pArgv[i], "proxy"))
         {
             dwError = LwSmProxy(argc-i, pArgv+i);
+            goto error;
+        }
+        else if (!strcmp(pArgv[i], "gdb"))
+        {
+            dwError = LwSmGdb(argc-i, pArgv+i);
             goto error;
         }
         else
