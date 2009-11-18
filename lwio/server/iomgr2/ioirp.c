@@ -263,7 +263,8 @@ IopIrpCompleteInternal(
 
     IopFileObjectRemoveDispatched(pIrp->FileHandle, pIrp->Type);
 
-    LWIO_ASSERT(NT_SUCCESS_OR_NOT(pIrp->IoStatusBlock.Status));
+    // FIXME: fix the macro
+    // LWIO_ASSERT(NT_SUCCESS_OR_NOT(pIrp->IoStatusBlock.Status));
 
     if (STATUS_SUCCESS == pIrp->IoStatusBlock.Status)
     {
