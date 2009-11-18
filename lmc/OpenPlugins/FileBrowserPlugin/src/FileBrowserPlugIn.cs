@@ -128,7 +128,6 @@ namespace Likewise.LMC.Plugins.FileBrowser
             if (platform == LikewiseTargetPlatform.Windows)
             {
                 FileClient.FileClient.SetWindowsPlatform();
-				LocalDiskRoot = "C:";
             }
 
             _container = container;
@@ -474,7 +473,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
                     computerNode.FBNodeType = FileBrowserNode.FileBrowserNopeType.CATEGORY;
                     _pluginNode.Nodes.Add(computerNode);
 
-                    FileBrowserNode localDiskRootNode = new FileBrowserNode(LocalDiskRoot, iconFolder, typeof(FilesDetailPage), this);
+                    FileBrowserNode localDiskRootNode = new FileBrowserNode(LocalDiskRoot+" [HD]", iconFolder, typeof(FilesDetailPage), this);
                     localDiskRootNode.Path = LocalDiskRoot;
                     localDiskRootNode.FBNodeType = FileBrowserNode.FileBrowserNopeType.DIRECTORY;
                     computerNode.Nodes.Add(localDiskRootNode);

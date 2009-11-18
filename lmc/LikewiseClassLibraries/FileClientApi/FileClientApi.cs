@@ -352,7 +352,7 @@ namespace Likewise.LMC.FileClient
             IntPtr INVALID_HANDLE_VALUE = new IntPtr(-1);
             WIN32_FIND_DATA pFindFileData;
             bool success = false;
-            string search = filepath + "\\*";
+            string search = filepath + "*";
 
             IntPtr handle = INVALID_HANDLE_VALUE;
 
