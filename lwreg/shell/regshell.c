@@ -42,6 +42,7 @@
 
 #include "regshell.h"
 #include <locale.h>
+#include <pwd.h>
 #include "histedit.h"
 
 #define REGSHELL_ESC_CHAR '|'
@@ -1565,6 +1566,9 @@ RegShellProcessInteractiveEditLine(
     DWORD dwEventNum = 0;
     BOOLEAN bHistFirst = FALSE;
     const char *hist_str = NULL;
+    PSTR pszHistoryFileDir = NULL;
+    PSTR pszHistoryFileName = NULL;
+    struct passwd *userPwdEntry = NULL;
 
     hist = history_init();
     history(hist, &ev, H_SETSIZE, 100);
@@ -1590,8 +1594,26 @@ RegShellProcessInteractiveEditLine(
     /* Setup history context, and load previous history file */
     el_set(el, EL_HIST, history, hist);
 
+    /* Build fully qualified path for history file */
+    userPwdEntry = getpwuid(getuid());
+    if (userPwdEntry)
+    {
+        pszHistoryFileDir = userPwdEntry->pw_dir;
+    }
+    if (!pszHistoryFileDir)
+    {
+        pszHistoryFileDir = "/tmp";
+    }
+
+    dwError = LwAllocateMemory(
+                  strlen(pszHistoryFileDir) + sizeof("/.regshell_history"),
+                  (PVOID) &pszHistoryFileName);
+    BAIL_ON_REG_ERROR(dwError);
+    strcpy(pszHistoryFileName, pszHistoryFileDir);
+    strcat(pszHistoryFileName, "/.regshell_history");
+
     /* Retrieve this from user's home directory */
-    history(hist, &ev, H_LOAD, ".regshell_history");
+    history(hist, &ev, H_LOAD, pszHistoryFileName);
 
     /*
      * Bind j, k in vi command mode to previous and next line, instead
@@ -1787,9 +1809,10 @@ RegShellProcessInteractiveEditLine(
     }
 
     /* Save current regshell history */
-    history(hist, &ev, H_SAVE, ".regshell_history");
+    history(hist, &ev, H_SAVE, pszHistoryFileName);
 
 cleanup:
+    LW_SAFE_FREE_STRING(pszHistoryFileName);
     el_end(el);
     history_end(hist);
     return dwError;
