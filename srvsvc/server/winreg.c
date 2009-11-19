@@ -269,6 +269,10 @@ _RegOpenKey(
 
         *handle = (REGISTRY_HANDLE)h;
     }
+    else
+    {
+        *handle = NULL;
+    }
 
 cleanup:
     LW_SAFE_FREE_STRING(pszKeyName);
