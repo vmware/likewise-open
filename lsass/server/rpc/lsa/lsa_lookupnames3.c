@@ -252,7 +252,7 @@ LsaSrvLookupNames3(
         dwCount = 0;
 
         ntStatus = SamrLookupNames(pPolCtx->hSamrBinding,
-                                   &pDomain->hDomain,
+                                   pDomain->hDomain,
                                    LocalAccounts.dwCount,
                                    LocalAccounts.ppwszNames,
                                    &dwRids,
@@ -322,7 +322,7 @@ LsaSrvLookupNames3(
         dwCount = 0;
 
         ntStatus = SamrLookupNames(pPolCtx->hSamrBinding,
-                                   &pDomain->hDomain,
+                                   pDomain->hDomain,
                                    BuiltinAccounts.dwCount,
                                    BuiltinAccounts.ppwszNames,
                                    &dwRids,
@@ -417,7 +417,7 @@ LsaSrvLookupNames3(
         }
 
         ntStatus = SamrLookupNames(pPolCtx->hSamrBinding,
-                                   &pLocalDomain->hDomain,
+                                   pLocalDomain->hDomain,
                                    OtherAccounts.dwCount,
                                    OtherAccounts.ppwszNames,
                                    &dwLocalRids,
@@ -427,7 +427,7 @@ LsaSrvLookupNames3(
             ntStatus == STATUS_NONE_MAPPED)
         {
             ntStatus = SamrLookupNames(pPolCtx->hSamrBinding,
-                                       &pBuiltinDomain->hDomain,
+                                       pBuiltinDomain->hDomain,
                                        OtherAccounts.dwCount,
                                        OtherAccounts.ppwszNames,
                                        &dwBuiltinRids,

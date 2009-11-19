@@ -269,7 +269,7 @@ LsaSrvLookupSids2(
         }
 
         ntStatus = SamrLookupRids(pPolCtx->hSamrBinding,
-                                  &pLocalDomain->hDomain,
+                                  pLocalDomain->hDomain,
                                   LocalAccounts.dwCount,
                                   pdwLocalRids,
                                   &ppwszLocalNames,
@@ -361,7 +361,7 @@ LsaSrvLookupSids2(
         }
 
         ntStatus = SamrLookupRids(pPolCtx->hSamrBinding,
-                                  &pBuiltinDomain->hDomain,
+                                  pBuiltinDomain->hDomain,
                                   BuiltinAccounts.dwCount,
                                   pdwBuiltinRids,
                                   &ppwszBuiltinNames,
