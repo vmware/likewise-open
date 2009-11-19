@@ -116,6 +116,81 @@ LwSmTypeToString(
 }
 
 static
+PCSTR
+LwSmLogLevelToString(
+    LW_SM_LOG_LEVEL level
+    )
+{
+    switch (level)
+    {
+    case LW_SM_LOG_LEVEL_ALWAYS:
+        return "ALWAYS";
+    case LW_SM_LOG_LEVEL_ERROR:
+        return "ERROR";
+    case LW_SM_LOG_LEVEL_WARNING:
+        return "WARNING";
+    case LW_SM_LOG_LEVEL_INFO:
+        return "INFO";
+    case LW_SM_LOG_LEVEL_VERBOSE:
+        return "VERBOSE";
+    case LW_SM_LOG_LEVEL_DEBUG:
+        return "DEBUG";
+    case LW_SM_LOG_LEVEL_TRACE:
+        return "TRACE";
+    default:
+        return "UNKNOWN";
+    }
+}
+
+static
+DWORD
+LwSmLogLevelNameToLogLevel(
+    PCSTR pszName,
+    PLW_SM_LOG_LEVEL pLevel
+    )
+{
+    DWORD dwError = 0;
+
+    if (!strcasecmp(pszName, "always"))
+    {
+        *pLevel = LW_SM_LOG_LEVEL_ALWAYS;
+    }
+    else if (!strcasecmp(pszName, "error"))
+    {
+        *pLevel = LW_SM_LOG_LEVEL_ERROR;
+    }
+    else if (!strcasecmp(pszName, "warning"))
+    {
+        *pLevel = LW_SM_LOG_LEVEL_WARNING;
+    }
+    else if (!strcasecmp(pszName, "info"))
+    {
+        *pLevel = LW_SM_LOG_LEVEL_INFO;
+    }
+    else if (!strcasecmp(pszName, "verbose"))
+    {
+        *pLevel = LW_SM_LOG_LEVEL_VERBOSE;
+    }
+    else if (!strcasecmp(pszName, "debug"))
+    {
+        *pLevel = LW_SM_LOG_LEVEL_DEBUG;
+    }
+    else if (!strcasecmp(pszName, "trace"))
+    {
+        *pLevel = LW_SM_LOG_LEVEL_TRACE;
+    }
+    else
+    {
+        dwError = LW_ERROR_INVALID_PARAMETER;
+        BAIL_ON_ERROR(dwError);
+    }
+
+error:
+
+    return dwError;
+}
+
+static
 VOID
 LwSmHandleSigint(
     int sig
@@ -1187,6 +1262,145 @@ error:
 
 static
 DWORD
+LwSmSetLog(
+    int argc,
+    char** pArgv
+    )
+{
+    DWORD dwError = 0;
+    LW_SM_LOGGER_TYPE type;
+    PSTR pszTarget = NULL;
+
+    if (argc < 2)
+    {
+        dwError = LW_ERROR_INVALID_PARAMETER;
+        BAIL_ON_ERROR(dwError);
+    }
+
+    if (!strcasecmp(pArgv[1], "none"))
+    {
+        type = LW_SM_LOGGER_NONE;
+    }
+    else if (!strcasecmp(pArgv[1], "file"))
+    {
+        if (argc < 3)
+        {
+            dwError = LW_ERROR_INVALID_PARAMETER;
+            BAIL_ON_ERROR(dwError);
+        }
+        type = LW_SM_LOGGER_FILE;
+        pszTarget = pArgv[2];
+    }
+    else if (!strcasecmp(pArgv[1], "syslog"))
+    {
+        type = LW_SM_LOGGER_SYSLOG;
+        pszTarget = NULL;
+    }
+
+    dwError = LwSmSetLogInfo(type, pszTarget);
+    BAIL_ON_ERROR(dwError);
+
+error:
+
+    return dwError;
+}
+
+static
+DWORD
+LwSmGetLog(
+    int argc,
+    char** pArgv
+    )
+{
+    DWORD dwError = 0;
+    LW_SM_LOGGER_TYPE type;
+    PSTR pszTarget = NULL;
+    PCSTR pszLoggerName = NULL;
+
+    dwError = LwSmGetLogInfo(&type, &pszTarget);
+    BAIL_ON_ERROR(dwError);
+
+    switch (type)
+    {
+    case LW_SM_LOGGER_NONE:
+        pszLoggerName = "none";
+        break;
+    case LW_SM_LOGGER_FILE:
+        pszLoggerName = "file";
+        break;
+    case LW_SM_LOGGER_SYSLOG:
+        pszLoggerName = "syslog";
+        break;
+    }
+
+    if (pszTarget)
+    {
+        printf("%s: %s\n", pszLoggerName, pszTarget);
+    }
+    else
+    {
+        printf("%s\n", pszLoggerName);
+    }
+
+error:
+
+    if (pszTarget)
+    {
+        LwSmFreeLogTarget(pszTarget);
+    }
+
+    return dwError;
+}
+
+static
+DWORD
+LwSmCmdSetLogLevel(
+    int argc,
+    char** pArgv
+    )
+{
+    DWORD dwError = 0;
+    LW_SM_LOG_LEVEL level;
+
+    if (argc < 2)
+    {
+        dwError = LW_ERROR_INVALID_PARAMETER;
+        BAIL_ON_ERROR(dwError);
+    }
+
+    dwError = LwSmLogLevelNameToLogLevel(pArgv[1], &level);
+    BAIL_ON_ERROR(dwError);
+
+    dwError = LwSmSetLogLevel(level);
+    BAIL_ON_ERROR(dwError);
+
+error:
+
+    return dwError;
+}
+
+static
+DWORD
+LwSmCmdGetLogLevel(
+    int argc,
+    char** pArgv
+    )
+{
+    DWORD dwError = 0;
+    LW_SM_LOG_LEVEL level;
+
+    dwError = LwSmGetLogLevel(&level);
+    BAIL_ON_ERROR(dwError);
+
+    printf("%s\n", LwSmLogLevelToString(level));
+
+error:
+
+    return dwError;
+}
+
+static
+DWORD
 LwSmUsage(
     int argc,
     char** pArgv
@@ -1195,7 +1409,7 @@ LwSmUsage(
     DWORD dwError = 0;
 
     printf("Usage: %s [ options ... ] <command> ...\n\n", pArgv[0]);
-    printf("Commands:\n"
+    printf("Service commands:\n"
            "    list                       List all known services and their status\n"
            "    start-only <service>       Start a service\n"
            "    start <service>            Start a service and all dependencies\n"
@@ -1205,7 +1419,24 @@ LwSmUsage(
            "    refresh <service>          Refresh service's configuration\n"
            "    proxy <service>            Act as a proxy process for a service\n"
            "    info <service>             Get information about a service\n"
-           "    status <service>           Get the status of a service\n\n");
+           "    status <service>           Get the status of a service\n"
+           "    gdb <service>              Attach gdb to the specified running service\n\n");
+    printf("Maintenance commands:\n"
+           "    set-log <type> [<target>]  Set logging destination\n"
+           "                               Valid types:\n"
+           "                                   file (target is filename)\n"
+           "                                   syslog\n"
+           "    get-log                    Show current logging destination\n"
+           "    set-log-level <level>      Sets log level\n"
+           "                               Valid levels:\n"
+           "                                   always\n"
+           "                                   error\n"
+           "                                   warning\n"
+           "                                   info\n"
+           "                                   verbose\n"
+           "                                   debug\n"
+           "                                   trace\n"
+           "    get-log-level              Show current log level\n\n");
     printf("Options:\n"
            "    -q, --quiet                Suppress console output\n"
            "    -h, --help                 Show usage information\n\n");
@@ -1291,6 +1522,26 @@ main(
         else if (!strcmp(pArgv[i], "gdb"))
         {
             dwError = LwSmGdb(argc-i, pArgv+i);
+            goto error;
+        }
+        else if (!strcmp(pArgv[i], "set-log"))
+        {
+            dwError = LwSmSetLog(argc-i, pArgv+i);
+            goto error;
+        }
+        else if (!strcmp(pArgv[i], "get-log"))
+        {
+            dwError = LwSmGetLog(argc-i, pArgv+i);
+            goto error;
+        }
+        else if (!strcmp(pArgv[i], "set-log-level"))
+        {
+            dwError = LwSmCmdSetLogLevel(argc-i, pArgv+i);
+            goto error;
+        }
+        else if (!strcmp(pArgv[i], "get-log-level"))
+        {
+            dwError = LwSmCmdGetLogLevel(argc-i, pArgv+i);
             goto error;
         }
         else

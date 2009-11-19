@@ -214,6 +214,24 @@ typedef struct _LW_SERVICE_STATUS
     pid_t pid;
 } LW_SERVICE_STATUS, *PLW_SERVICE_STATUS;
 
+typedef enum _LW_SM_LOG_LEVEL
+{
+    LW_SM_LOG_LEVEL_ALWAYS,
+    LW_SM_LOG_LEVEL_ERROR,
+    LW_SM_LOG_LEVEL_WARNING,
+    LW_SM_LOG_LEVEL_INFO,
+    LW_SM_LOG_LEVEL_VERBOSE,
+    LW_SM_LOG_LEVEL_DEBUG,
+    LW_SM_LOG_LEVEL_TRACE
+} LW_SM_LOG_LEVEL, *PLW_SM_LOG_LEVEL;
+
+typedef enum _LW_SM_LOGGER_TYPE
+{
+    LW_SM_LOGGER_NONE,
+    LW_SM_LOGGER_FILE,
+    LW_SM_LOGGER_SYSLOG
+} LW_SM_LOGGER_TYPE, *PLW_SM_LOGGER_TYPE;
+
 /**
  * @brief Acquire service handle
  *
@@ -480,6 +498,33 @@ LwSmQueryServiceReverseDependencyClosure(
 VOID
 LwSmFreeServiceInfo(
     PLW_SERVICE_INFO pInfo
+    );
+
+DWORD
+LwSmSetLogInfo(
+    LW_SM_LOGGER_TYPE type,
+    PCSTR pszTarget
+    );
+
+DWORD
+LwSmGetLogInfo(
+    PLW_SM_LOGGER_TYPE pType,
+    PSTR* ppszTarget
+    );
+
+DWORD
+LwSmGetLogLevel(
+    PLW_SM_LOG_LEVEL pLevel
+    );
+
+DWORD
+LwSmSetLogLevel(
+    LW_SM_LOG_LEVEL level
+    );
+
+VOID
+LwSmFreeLogTarget(
+    PSTR pszTarget
     );
 
 /*@}*/

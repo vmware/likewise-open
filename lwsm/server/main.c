@@ -45,7 +45,7 @@ static struct
     LWMsgServer* pIpcServer;
     BOOLEAN bStartAsDaemon;
     int notifyPipe[2];
-    SM_LOG_LEVEL logLevel;
+    LW_SM_LOG_LEVEL logLevel;
     PCSTR pszLogFilePath;
     BOOLEAN bSyslog;
 } gState = 
@@ -55,7 +55,7 @@ static struct
     .pIpcServer = NULL,
     .bStartAsDaemon = FALSE,
     .notifyPipe = {-1, -1},
-    .logLevel = SM_LOG_LEVEL_WARNING,
+    .logLevel = LW_SM_LOG_LEVEL_WARNING,
     .pszLogFilePath = NULL,
     .bSyslog = FALSE
 };
@@ -218,12 +218,12 @@ LwSmParseArguments(
         {
             gState.bStartAsDaemon = TRUE;
             gState.bSyslog = TRUE;
-            gState.logLevel = SM_LOG_LEVEL_INFO;
+            gState.logLevel = LW_SM_LOG_LEVEL_INFO;
         }
         else if (!strcmp(ppszArgv[i], "--syslog"))
         {
             gState.bSyslog = TRUE;
-            gState.logLevel = SM_LOG_LEVEL_INFO;
+            gState.logLevel = LW_SM_LOG_LEVEL_INFO;
         }
         else if (!strcmp(ppszArgv[i], "--log-level"))
         {
@@ -570,6 +570,63 @@ error:
 }
 
 static
+LWMsgBool
+LwSmLogIpc (
+    LWMsgLogLevel level,
+    const char* pszMessage,
+    const char* pszFilename,
+    unsigned int line,
+    void* pData
+    )
+{
+    LW_SM_LOG_LEVEL smLevel;
+    LWMsgBool result;
+
+    switch (level)
+    {
+    case LWMSG_LOGLEVEL_ERROR:
+        smLevel = LW_SM_LOG_LEVEL_ERROR;
+        break;
+    case LWMSG_LOGLEVEL_WARNING:
+        smLevel = LW_SM_LOG_LEVEL_WARNING;
+        break;
+    case LWMSG_LOGLEVEL_INFO:
+        smLevel = LW_SM_LOG_LEVEL_INFO;
+        break;
+    case LWMSG_LOGLEVEL_VERBOSE:
+        smLevel = LW_SM_LOG_LEVEL_VERBOSE;
+        break;
+    case LWMSG_LOGLEVEL_DEBUG:
+        smLevel = LW_SM_LOG_LEVEL_DEBUG;
+        break;
+    case LWMSG_LOGLEVEL_TRACE:
+    default:
+        smLevel = LW_SM_LOG_LEVEL_TRACE;
+        break;
+    }
+
+    if (LwSmGetMaxLogLevel() >= level)
+    {
+        if (pszMessage)
+        {
+            LwSmLogMessage(
+                smLevel,
+                __FUNCTION__,
+                pszFilename,
+                line,
+                pszMessage);
+        }
+        result = LWMSG_TRUE;
+    }
+    else
+    {
+        result = LWMSG_FALSE;
+    }
+
+    return result;
+}
+
+static
 DWORD
 LwSmStartIpcServer(
     VOID
@@ -577,9 +634,15 @@ LwSmStartIpcServer(
 {
     DWORD dwError = 0;
 
-    SM_LOG_VERBOSE("Starting IPC server");
+    dwError = MAP_LWMSG_STATUS(lwmsg_context_new(NULL, &gState.pIpcContext));
+    BAIL_ON_ERROR(dwError);
 
-    dwError = MAP_LWMSG_STATUS(lwmsg_protocol_new(NULL, &gState.pIpcProtocol));
+    lwmsg_context_set_log_function(
+        gState.pIpcContext,
+        LwSmLogIpc,
+        NULL);
+
+    dwError = MAP_LWMSG_STATUS(lwmsg_protocol_new(gState.pIpcContext, &gState.pIpcProtocol));
     BAIL_ON_ERROR(dwError);
 
     dwError = MAP_LWMSG_STATUS(lwmsg_protocol_add_protocol_spec(
@@ -588,7 +651,7 @@ LwSmStartIpcServer(
     BAIL_ON_ERROR(dwError);
 
     dwError = MAP_LWMSG_STATUS(lwmsg_server_new(
-                                   NULL,
+                                   gState.pIpcContext,
                                    gState.pIpcProtocol,
                                    &gState.pIpcServer));
     BAIL_ON_ERROR(dwError);

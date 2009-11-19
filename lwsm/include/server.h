@@ -130,19 +130,10 @@ typedef struct _SM_BOOTSTRAP_SERVICE
     CHAR const * const ppszArgs[];
 } SM_BOOTSTRAP_SERVICE, *PSM_BOOTSTRAP_SERVICE;
 
-typedef enum _SM_LOG_LEVEL
-{
-    SM_LOG_LEVEL_ALWAYS,
-    SM_LOG_LEVEL_ERROR,
-    SM_LOG_LEVEL_WARNING,
-    SM_LOG_LEVEL_INFO,
-    SM_LOG_LEVEL_VERBOSE,
-    SM_LOG_LEVEL_DEBUG,
-    SM_LOG_LEVEL_TRACE
-} SM_LOG_LEVEL, *PSM_LOG_LEVEL;
-
 typedef struct _SM_LOGGER
 {
+    LW_SM_LOGGER_TYPE type;
+
     DWORD
     (*pfnOpen) (
         PVOID pData
@@ -150,7 +141,7 @@ typedef struct _SM_LOGGER
 
     DWORD
     (*pfnLog) (
-        SM_LOG_LEVEL level,
+        LW_SM_LOG_LEVEL level,
         PCSTR pszFunctionName,
         PCSTR pszSourceFile,
         DWORD dwLineNumber,
@@ -160,6 +151,12 @@ typedef struct _SM_LOGGER
 
     VOID
     (*pfnClose) (
+        PVOID pData
+        );
+
+    DWORD
+    (*pfnGetTargetName) (
+        PSTR* ppszTargetName,
         PVOID pData
         );
 } SM_LOGGER, *PSM_LOGGER;
@@ -332,7 +329,7 @@ LwSmLoaderGetVtbl(
 
 DWORD
 LwSmLogMessage(
-    SM_LOG_LEVEL level,
+    LW_SM_LOG_LEVEL level,
     PCSTR pszFunctionName,
     PCSTR pszSourceFile,
     DWORD dwLineNumber,
@@ -341,7 +338,7 @@ LwSmLogMessage(
 
 DWORD
 LwSmLogPrintf(
-    SM_LOG_LEVEL level,
+    LW_SM_LOG_LEVEL level,
     PCSTR pszFunctionName,
     PCSTR pszSourceFile,
     DWORD dwLineNumber,
@@ -357,7 +354,12 @@ LwSmSetLogger(
 
 VOID
 LwSmSetMaxLogLevel(
-    SM_LOG_LEVEL level
+    LW_SM_LOG_LEVEL level
+    );
+
+LW_SM_LOG_LEVEL
+LwSmGetMaxLogLevel(
+    VOID
     );
 
 DWORD
@@ -378,17 +380,23 @@ LwSmSetLoggerToSyslog(
 DWORD
 LwSmLogLevelNameToLogLevel(
     PCSTR pszName,
-    PSM_LOG_LEVEL pLevel
+    PLW_SM_LOG_LEVEL pLevel
+    );
+
+DWORD
+LwSmSrvGetLogInfo(
+    LW_SM_LOGGER_TYPE* pType,
+    PSTR* ppszTargetName
     );
 
 #define SM_LOG(level, ...) LwSmLogPrintf((level), __func__, __FILE__, __LINE__, __VA_ARGS__)
-#define SM_LOG_ALWAYS(...) SM_LOG(SM_LOG_LEVEL_ALWAYS, __VA_ARGS__)
-#define SM_LOG_ERROR(...) SM_LOG(SM_LOG_LEVEL_ERROR, __VA_ARGS__)
-#define SM_LOG_WARNING(...) SM_LOG(SM_LOG_LEVEL_WARNING, __VA_ARGS__)
-#define SM_LOG_INFO(...) SM_LOG(SM_LOG_LEVEL_INFO, __VA_ARGS__)
-#define SM_LOG_VERBOSE(...) SM_LOG(SM_LOG_LEVEL_VERBOSE, __VA_ARGS__)
-#define SM_LOG_DEBUG(...) SM_LOG(SM_LOG_LEVEL_DEBUG, __VA_ARGS__)
-#define SM_LOG_TRACE(...) SM_LOG(SM_LOG_LEVEL_TRACE, __VA_ARGS__)
+#define SM_LOG_ALWAYS(...) SM_LOG(LW_SM_LOG_LEVEL_ALWAYS, __VA_ARGS__)
+#define SM_LOG_ERROR(...) SM_LOG(LW_SM_LOG_LEVEL_ERROR, __VA_ARGS__)
+#define SM_LOG_WARNING(...) SM_LOG(LW_SM_LOG_LEVEL_WARNING, __VA_ARGS__)
+#define SM_LOG_INFO(...) SM_LOG(LW_SM_LOG_LEVEL_INFO, __VA_ARGS__)
+#define SM_LOG_VERBOSE(...) SM_LOG(LW_SM_LOG_LEVEL_VERBOSE, __VA_ARGS__)
+#define SM_LOG_DEBUG(...) SM_LOG(LW_SM_LOG_LEVEL_DEBUG, __VA_ARGS__)
+#define SM_LOG_TRACE(...) SM_LOG(LW_SM_LOG_LEVEL_TRACE, __VA_ARGS__)
 
 extern SM_LOADER_CALLS gTableCalls;
 
