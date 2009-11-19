@@ -393,6 +393,7 @@ LwSmTableStartEntry(
     BOOLEAN bLocked = FALSE;
     LW_SERVICE_STATUS status = {.state = LW_SERVICE_STATE_DEAD};
     DWORD dwAttempts = 0;
+    PSTR pszServiceName = NULL;
 
     LOCK(bLocked, pEntry->pLock);
 
@@ -422,6 +423,13 @@ LwSmTableStartEntry(
         case LW_SERVICE_STATE_DEAD:
             if (dwAttempts == 0)
             {
+                LW_SAFE_FREE_MEMORY(pszServiceName);
+
+                dwError = LwWc16sToMbs(pEntry->pInfo->pwszName, &pszServiceName);
+                BAIL_ON_ERROR(dwError);
+
+                SM_LOG_INFO("Starting service: %s", pszServiceName);
+
                 dwError = pEntry->pVtbl->pfnStart(&pEntry->object);
                 BAIL_ON_ERROR(dwError);
                 dwAttempts++;
@@ -445,6 +453,8 @@ LwSmTableStartEntry(
     }
 
 cleanup:
+
+    LW_SAFE_FREE_MEMORY(pszServiceName);
 
     UNLOCK(bLocked, pEntry->pLock);
 
@@ -554,6 +564,7 @@ LwSmTableStopEntry(
     BOOLEAN bLocked = FALSE;
     LW_SERVICE_STATUS status = {.state = LW_SERVICE_STATE_RUNNING};
     DWORD dwAttempts = 0;
+    PSTR pszServiceName = NULL;
 
     LOCK(bLocked, pEntry->pLock);
 
@@ -582,6 +593,13 @@ LwSmTableStopEntry(
                to the stop state when requested */
             if (dwAttempts == 0)
             {
+                LW_SAFE_FREE_MEMORY(pszServiceName);
+
+                dwError = LwWc16sToMbs(pEntry->pInfo->pwszName, &pszServiceName);
+                BAIL_ON_ERROR(dwError);
+
+                SM_LOG_INFO("Stopping service: %s", pszServiceName);
+
                 dwError = pEntry->pVtbl->pfnStop(&pEntry->object);
                 BAIL_ON_ERROR(dwError);
                 dwAttempts++;
@@ -614,6 +632,8 @@ LwSmTableStopEntry(
     }
 
 cleanup:
+
+    LW_SAFE_FREE_MEMORY(pszServiceName);
 
     UNLOCK(bLocked, pEntry->pLock);
 

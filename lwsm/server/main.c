@@ -99,6 +99,12 @@ LwSmStartIpcServer(
 
 static
 DWORD
+LwSmStopIpcServer(
+    VOID
+    );
+
+static
+DWORD
 LwSmPopulateTable(
     VOID
     );
@@ -179,6 +185,10 @@ main(
 
     /* Loop waiting for signals */
     dwError = LwSmWaitSignals();
+    BAIL_ON_ERROR(dwError);
+
+    /* Stop IPC server */
+    dwError = LwSmStopIpcServer();
     BAIL_ON_ERROR(dwError);
 
     /* Shut down all running services as we exit */
@@ -519,6 +529,7 @@ LwSmWaitSignals(
         switch (sig)
         {
         case SIGTERM:
+            SM_LOG_ALWAYS("Shutting down on SIGTERM");
             goto cleanup;
         case SIGHUP:
             dwError = LwSmPopulateTable();
@@ -682,6 +693,44 @@ error:
 
 static
 DWORD
+LwSmStopIpcServer(
+    VOID
+    )
+{
+    DWORD dwError = 0;
+
+    if (gState.pIpcServer)
+    {
+        dwError = MAP_LWMSG_STATUS(lwmsg_server_stop(gState.pIpcServer));
+        BAIL_ON_ERROR(dwError);
+    }
+
+cleanup:
+
+    if (gState.pIpcServer)
+    {
+        lwmsg_server_delete(gState.pIpcServer);
+    }
+
+    if (gState.pIpcProtocol)
+    {
+        lwmsg_protocol_delete(gState.pIpcProtocol);
+    }
+
+    if (gState.pIpcContext)
+    {
+        lwmsg_context_delete(gState.pIpcContext);
+    }
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+static
+DWORD
 LwSmPopulateTable(
     VOID
     )
@@ -777,6 +826,8 @@ LwSmShutdownServices(
     PWSTR* ppwszServiceNames = NULL;
     size_t i = 0;
     PSM_TABLE_ENTRY pEntry = NULL;
+
+    SM_LOG_INFO("Shutting down running services");
 
     dwError = LwSmTableEnumerateEntries(&ppwszServiceNames);
     BAIL_ON_ERROR(dwError);

@@ -115,9 +115,7 @@ typedef struct _SM_TABLE
 /* API handle */
 struct _LW_SERVICE_HANDLE
 {
-    /* Name of the server for use in logging */
-    PSTR pszName;
-    /* Pointer to table entry */
+     /* Pointer to table entry */
     PSM_TABLE_ENTRY pEntry;
 };
 
