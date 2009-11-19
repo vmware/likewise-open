@@ -52,6 +52,7 @@ UnquoteString(
     )
 {
     DWORD dwError = 0;
+    int   nRead   = 0;
     PSTR pszOutput = pszInput;
 
     while (pszInput && *pszInput != 0)
@@ -77,7 +78,7 @@ UnquoteString(
                     pszInput += 2;
                     break;
                 case 'x':
-                    sscanf(pszInput + 2, "%2hhX", pszOutput);
+                    nRead = sscanf(pszInput + 2, "%2hhX", pszOutput);
                     pszInput += 4;
                     break;
                 default:
