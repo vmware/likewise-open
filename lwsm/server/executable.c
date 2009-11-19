@@ -174,8 +174,6 @@ error:
 
     pExec->state = LW_SERVICE_STATE_DEAD;
 
-    LwSmNotifyServiceObjectStateChange(pExec->pObject, pExec->state);
-
     goto cleanup;
 }
 

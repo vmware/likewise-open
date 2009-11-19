@@ -693,12 +693,9 @@ RegShellUtilSetValue(
             break;
 
         case REG_SZ:
-            if (data)
-            {
-                dwError = LwAllocateString(data, (LW_PVOID) &pData);
-                BAIL_ON_REG_ERROR(dwError);
-                dwDataLen = strlen((PSTR) pData)+1;
-            }
+            dwError = LwAllocateString(data?data:"", (LW_PVOID) &pData);
+            BAIL_ON_REG_ERROR(dwError);
+            dwDataLen = strlen((PSTR) pData)+1;
             break;
 
         case REG_DWORD:

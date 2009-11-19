@@ -45,13 +45,19 @@ static struct
     LWMsgServer* pIpcServer;
     BOOLEAN bStartAsDaemon;
     int notifyPipe[2];
+    SM_LOG_LEVEL logLevel;
+    PCSTR pszLogFilePath;
+    BOOLEAN bSyslog;
 } gState = 
 {
     .pIpcContext = NULL,
     .pIpcProtocol = NULL,
     .pIpcServer = NULL,
     .bStartAsDaemon = FALSE,
-    .notifyPipe = {-1, -1}
+    .notifyPipe = {-1, -1},
+    .logLevel = SM_LOG_LEVEL_WARNING,
+    .pszLogFilePath = NULL,
+    .bSyslog = FALSE
 };
 
 static
@@ -77,6 +83,12 @@ static
 DWORD
 LwSmWaitSignals(
     VOID
+    );
+
+static
+DWORD
+LwSmConfigureLogging(
+    PCSTR pszProgramName
     );
 
 static
@@ -133,6 +145,10 @@ main(
         BAIL_ON_ERROR(dwError);
     }
 
+    /* Set up logging */
+    dwError = LwSmConfigureLogging(ppszArgv[0]);
+    BAIL_ON_ERROR(dwError);
+
     /* Initialize the service loader subsystem */
     dwError = LwSmLoaderInitialize(&gTableCalls);
     BAIL_ON_ERROR(dwError);
@@ -169,6 +185,10 @@ main(
     dwError = LwSmShutdownServices();
     BAIL_ON_ERROR(dwError);
 
+    /* Shut down logging */
+    dwError = LwSmSetLogger(NULL, NULL);
+    BAIL_ON_ERROR(dwError);
+
 error:
 
     /* If we are starting as a daemon and have not
@@ -197,8 +217,40 @@ LwSmParseArguments(
         if (!strcmp(ppszArgv[i], "--start-as-daemon"))
         {
             gState.bStartAsDaemon = TRUE;
+            gState.bSyslog = TRUE;
+            gState.logLevel = SM_LOG_LEVEL_INFO;
+        }
+        else if (!strcmp(ppszArgv[i], "--syslog"))
+        {
+            gState.bSyslog = TRUE;
+            gState.logLevel = SM_LOG_LEVEL_INFO;
+        }
+        else if (!strcmp(ppszArgv[i], "--log-level"))
+        {
+            if (++i >= argc)
+            {
+                dwError = LW_ERROR_INVALID_PARAMETER;
+                BAIL_ON_ERROR(dwError);
+            }
+
+            dwError = LwSmLogLevelNameToLogLevel(
+                ppszArgv[i],
+                &gState.logLevel);
+            BAIL_ON_ERROR(dwError);
+        }
+        else if (!strcmp(ppszArgv[i], "--log-file"))
+        {
+            if (++i >= argc)
+            {
+                dwError = LW_ERROR_INVALID_PARAMETER;
+                BAIL_ON_ERROR(dwError);
+            }
+
+            gState.pszLogFilePath = ppszArgv[i];
         }
     }
+
+error:
 
     return dwError;
 }
@@ -488,11 +540,44 @@ error:
 
 static
 DWORD
+LwSmConfigureLogging(
+    PCSTR pszProgramName
+    )
+{
+    DWORD dwError = 0;
+
+    LwSmSetMaxLogLevel(gState.logLevel);
+
+    if (gState.pszLogFilePath)
+    {
+        dwError = LwSmSetLoggerToPath(gState.pszLogFilePath);
+        BAIL_ON_ERROR(dwError);
+    }
+    else if (gState.bSyslog)
+    {
+        dwError = LwSmSetLoggerToSyslog(pszProgramName);
+        BAIL_ON_ERROR(dwError);
+    }
+    else
+    {
+        dwError = LwSmSetLoggerToFile(stderr);
+        BAIL_ON_ERROR(dwError);
+    }
+
+error:
+
+    return dwError;
+}
+
+static
+DWORD
 LwSmStartIpcServer(
     VOID
     )
 {
     DWORD dwError = 0;
+
+    SM_LOG_VERBOSE("Starting IPC server");
 
     dwError = MAP_LWMSG_STATUS(lwmsg_protocol_new(NULL, &gState.pIpcProtocol));
     BAIL_ON_ERROR(dwError);
@@ -545,6 +630,8 @@ LwSmPopulateTable(
     PLW_SERVICE_INFO pInfo = NULL;
     PSM_TABLE_ENTRY pEntry = NULL;
     size_t i = 0;
+
+    SM_LOG_VERBOSE("Populating service table");
 
     dwError = RegOpenServer(&hReg);
     BAIL_ON_ERROR(dwError);

@@ -145,6 +145,14 @@ typedef struct _REGSHELL_REG_TYPE_ENTRY
 } REGSHELL_REG_TYPE_ENTRY, *PREGSHELL_REG_TYPE_ENTRY;
 
 
+PSTR
+RegShellGetRootKey(
+    PREGSHELL_PARSE_STATE pParseState);
+
+PSTR
+RegShellGetDefaultKey(
+    PREGSHELL_PARSE_STATE pParseState);
+
 DWORD
 RegShellCmdEnumToString(
     REGSHELL_CMD_E cmdEnum,

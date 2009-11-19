@@ -53,7 +53,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
         private FileBrowserNode _pluginNode;
         private LACTreeNode _currentNode = null;
         List<IPlugIn> _extPlugins = null;
-        string LocalDiskRoot = "/";
+		string PathSeparator = "/";
         List<string> RemoteShares = new List<string>();
 
         #endregion
@@ -61,11 +61,6 @@ namespace Likewise.LMC.Plugins.FileBrowser
         public List<string> GetActiveShares()
         {
             return RemoteShares;
-        }
-
-        public string GetLocalDiskRoot()
-        {
-            return LocalDiskRoot;
         }
 
         #region IPlugIn Members
@@ -128,6 +123,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
             if (platform == LikewiseTargetPlatform.Windows)
             {
                 FileClient.FileClient.SetWindowsPlatform();
+				PathSeparator = "\\";
             }
 
             _container = container;
@@ -275,7 +271,15 @@ namespace Likewise.LMC.Plugins.FileBrowser
             {
                 FileBrowserNode node = new FileBrowserNode(folderName, Resources.Folder, typeof(FilesDetailPage), this);
                 node.FBNodeType = FileBrowserNode.FileBrowserNopeType.DIRECTORY;
-                node.Path = parentNode.Path + "\\" + folderName;
+
+				if (parentNode.Path.Equals("/"))
+				{
+                     node.Path = parentNode.Path + folderName;
+				}
+				else
+				{
+					node.Path = parentNode.Path + PathSeparator + folderName;
+				}
                 parentNode.Nodes.Add(node);
             }
         }
@@ -473,8 +477,8 @@ namespace Likewise.LMC.Plugins.FileBrowser
                     computerNode.FBNodeType = FileBrowserNode.FileBrowserNopeType.CATEGORY;
                     _pluginNode.Nodes.Add(computerNode);
 
-                    FileBrowserNode localDiskRootNode = new FileBrowserNode(LocalDiskRoot+" [HD]", iconFolder, typeof(FilesDetailPage), this);
-                    localDiskRootNode.Path = LocalDiskRoot;
+                    FileBrowserNode localDiskRootNode = new FileBrowserNode("[HD]", iconFolder, typeof(FilesDetailPage), this);
+                    localDiskRootNode.Path = "";
                     localDiskRootNode.FBNodeType = FileBrowserNode.FileBrowserNopeType.DIRECTORY;
                     computerNode.Nodes.Add(localDiskRootNode);
 
@@ -554,6 +558,8 @@ namespace Likewise.LMC.Plugins.FileBrowser
                 {
                     Application.UseWaitCursor = true;
                     error = FileClient.FileClient.CreateConnection(path, null, null);
+					string connectResult = "FileBrowserPlugin CreateConnection result: " + error.ToString();
+					Logger.Log(connectResult, Logger.FileBrowserLogLevel);
                     Application.UseWaitCursor = false;
                     initialConnect = false;
                 }

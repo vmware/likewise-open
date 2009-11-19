@@ -32,7 +32,7 @@
 
 static
 NTSTATUS
-SrvUnmarshallQueryPathInfoParams(
+SrvUnmarshallSetPathInfoParams(
     PBYTE            pParams,
     USHORT           ulBytesAvailable,
     PSMB_INFO_LEVEL* ppSmbInfoLevel,
@@ -40,7 +40,7 @@ SrvUnmarshallQueryPathInfoParams(
     );
 
 NTSTATUS
-SrvProcessTrans2QueryPathInformation(
+SrvProcessTrans2SetPathInformation(
     PSRV_EXEC_CONTEXT pExecContext
     )
 {
@@ -59,7 +59,7 @@ SrvProcessTrans2QueryPathInformation(
     {
         case SRV_TRANS2_STAGE_SMB_V1_INITIAL:
 
-            ntStatus = SrvUnmarshallQueryPathInfoParams(
+            ntStatus = SrvUnmarshallSetPathInfoParams(
                             pTrans2State->pParameters,
                             pTrans2State->pRequestHeader->parameterCount,
                             &pTrans2State->pSmbInfoLevel,
@@ -129,7 +129,18 @@ SrvProcessTrans2QueryPathInformation(
 
         case SRV_TRANS2_STAGE_SMB_V1_ATTEMPT_IO:
 
-            ntStatus = SrvQueryInfo(pExecContext);
+            pTrans2State->stage = SRV_TRANS2_STAGE_SMB_V1_IO_COMPLETE;
+
+            ntStatus = SrvSetInfo(pExecContext);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            pTrans2State->stage = SRV_TRANS2_STAGE_SMB_V1_BUILD_RESPONSE;
+
+            // intentional fall through
+
+        case SRV_TRANS2_STAGE_SMB_V1_IO_COMPLETE:
+
+            ntStatus = pTrans2State->ioStatusBlock.Status;
             BAIL_ON_NT_STATUS(ntStatus);
 
             pTrans2State->stage = SRV_TRANS2_STAGE_SMB_V1_BUILD_RESPONSE;
@@ -138,7 +149,7 @@ SrvProcessTrans2QueryPathInformation(
 
         case SRV_TRANS2_STAGE_SMB_V1_BUILD_RESPONSE:
 
-            ntStatus = SrvBuildQueryInfoResponse(pExecContext);
+            ntStatus = SrvBuildSetInfoResponse(pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
 
             pTrans2State->stage = SRV_TRANS2_STAGE_SMB_V1_DONE;
@@ -170,7 +181,7 @@ error:
 
 static
 NTSTATUS
-SrvUnmarshallQueryPathInfoParams(
+SrvUnmarshallSetPathInfoParams(
     PBYTE            pParams,
     USHORT           ulBytesAvailable,
     PSMB_INFO_LEVEL* ppSmbInfoLevel,

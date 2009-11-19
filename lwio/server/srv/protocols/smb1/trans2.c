@@ -126,6 +126,12 @@ SrvProcessTransaction2(
 
             break;
 
+        case SMB_SUB_COMMAND_TRANS2_SET_PATH_INFORMATION :
+
+            ntStatus = SrvProcessTrans2SetPathInformation(pExecContext);
+
+            break;
+
         case SMB_SUB_COMMAND_TRANS2_QUERY_FILE_INFORMATION :
 
             ntStatus = SrvProcessTrans2QueryFileInformation(pExecContext);
@@ -147,7 +153,6 @@ SrvProcessTransaction2(
         case SMB_SUB_COMMAND_TRANS2_SESSION_SETUP :
         case SMB_SUB_COMMAND_TRANS2_GET_DFS_REFERRAL :
         case SMB_SUB_COMMAND_TRANS2_REPORT_DFS_INCONSISTENCY :
-        case SMB_SUB_COMMAND_TRANS2_SET_PATH_INFORMATION :
 
             ntStatus = STATUS_NOT_SUPPORTED;
 

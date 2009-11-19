@@ -93,6 +93,7 @@ public partial class NewUserDlg : EditDialog
     #region EventHandlers
     protected override bool Apply(EditDialogAction actionCause)
     {
+        uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
         string errorMessage = null;
         try
         {
@@ -121,10 +122,12 @@ public partial class NewUserDlg : EditDialog
                 return false;
             }
 
-            if (!lugPg.AddLUG(this))
+            result = lugPg.AddLUG(this);
+
+            if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
             {
                 container.ShowError(
-                "Likewise Administrative Console encountered an error when trying to add a new user.",
+                "Likewise Administrative Console encountered an error when trying to add a new user.  " + ErrorCodes.WIN32String((int)result),
                 MessageBoxButtons.OK);
                 return false;
             }

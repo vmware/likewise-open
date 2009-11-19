@@ -229,8 +229,17 @@ LsaDelGroupMain(
 
     if (!LW_IS_NULL_OR_EMPTY_STR(pszGid))
     {
-        gid_t gid = 0;
-        sscanf(pszGid, "%u", (unsigned int*)&gid);
+        int   nRead = 0;
+        gid_t gid   = 0;
+
+        nRead = sscanf(pszGid, "%u", (unsigned int*)&gid);
+        if ((nRead == EOF) || (nRead == 0))
+        {
+            fprintf(stderr, "An invalid group id [%s] was specified.", pszGid);
+
+            dwError = LW_ERROR_INVALID_PARAMETER;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
 
         dwError = LsaDeleteGroupById(
                         hLsaConnection,

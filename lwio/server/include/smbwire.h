@@ -330,7 +330,16 @@ typedef USHORT SMB_INFO_LEVEL, *PSMB_INFO_LEVEL;
 #define SMB_FIND_FILE_UNIX                0x202
 #define SMB_SET_FILE_UNIX_HLINK           0x203
 #define SMB_QUERY_MAC_FS_INFO             0x301
+#define SMB_QUERY_FILE_BASIC_INFO_ALIAS   0x3EC /* alias for 0x101 */
+#define SMB_SET_FILE_BASIC_INFO_ALIAS     0x3EC /* alias for 0x101 */
+#define SMB_QUERY_FILE_STANDARD_INFO_ALIAS 0x3ED /* alias for 0x102 */
+#define SMB_QUERY_FILE_EA_INFO_ALIAS      0x3EF /* alias for 0x103 */
+#define SMB_QUERY_FILE_NAME_INFO_ALIAS    0x3F1 /* alias for 0x104 */
 #define SMB_SET_FILE_RENAME_INFO          0x3F2
+#define SMB_QUERY_FILE_ALL_INFO_ALIAS     0x3FA /* alias 0x107 */
+#define SMB_QUERY_FILE_ALT_NAME_INFO_ALIAS 0x3FD /* alias for 0x108 */
+#define SMB_QUERY_FILE_STREAM_INFO_ALIAS  0x3FE /* alias for 0x109 */
+#define SMB_QUERY_FILE_COMPRESSION_INFO_ALIAS 0x404 /* alias for 0x10B */
 
 typedef UCHAR LWIO_LOCK_TYPE;
 

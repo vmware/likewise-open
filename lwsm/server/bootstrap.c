@@ -69,9 +69,13 @@ LwSmBootstrap(
     size_t j = 0;
     size_t len = 0;
 
+    SM_LOG_VERBOSE("Bootstrapping");
+
     for (i = 0; gBootstrapServices[i]; i++)
     {
         pService = gBootstrapServices[i];
+
+        SM_LOG_INFO("Starting bootstrap service: %s", pService->pszName);
 
         dwError = LwAllocateMemory(sizeof(*pInfo), OUT_PPVOID(&pInfo));
         BAIL_ON_ERROR(dwError);
@@ -109,6 +113,11 @@ LwSmBootstrap(
         BAIL_ON_ERROR(dwError);
 
         dwError = LwSmTableStartEntry(pEntry);
+        if (dwError)
+        {
+            SM_LOG_ERROR("Could not start bootstrap service: %s",
+                         LwWin32ExtErrorToName(dwError));
+        }
         BAIL_ON_ERROR(dwError);
 
         LwSmTableReleaseEntry(pEntry);
@@ -117,6 +126,8 @@ LwSmBootstrap(
         LwSmCommonFreeServiceInfo(pInfo);
         pInfo = NULL;
     }
+
+    SM_LOG_VERBOSE("Bootstrapped");
 
 cleanup:
 
