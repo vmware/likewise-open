@@ -98,6 +98,7 @@
 #include "net_info.h"
 #include "net_userinfo.h"
 #include "net_groupinfo.h"
+#include "net_memberinfo.h"
 #include "net_getdcname.h"
 #include "ldaputil.h"
 #include "joinlocal.h"
