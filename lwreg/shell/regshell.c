@@ -1474,7 +1474,7 @@ pfnRegShellPromptCallback(EditLine *el)
     EDITLINE_CLIENT_DATA *cldata = NULL;
 
     el_get(el, EL_CLIENTDATA, (void *) &cldata);
-    snprintf(promptBuf, sizeof(promptBuf), "\r%s%s%s%s ",
+    snprintf(promptBuf, sizeof(promptBuf), "%s%s%s%s ",
              cldata->pParseState->pszDefaultRootKeyName ?
                  cldata->pParseState->pszDefaultRootKeyName : "",
              cldata->pParseState->pszDefaultKey ? "\\" : "",
