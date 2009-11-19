@@ -166,21 +166,26 @@ class LUGPlugIn: IPlugIn
         }
 
         if (_pluginNode != null &&
-        (!String.IsNullOrEmpty(hn.hostName)))// && Hostinfo.HasCreds(hn)))
-        //!(_usingManualCreds && !Hostinfo.HasCreds(_hn)))
+           (!String.IsNullOrEmpty(hn.hostName)))
         {
-            hn.IsConnectionSuccess =
-            Session.EnsureNullSession(hn.hostName, hn.creds);
+            uint result = LUGAPI.NetAddConnection(
+                _hn.hostName,
+                _hn.creds.UserName,
+                _hn.creds.Password);
+
+            if (Configurations.currentPlatform != LikewiseTargetPlatform.Windows &&
+                result == (uint)ErrorCodes.WIN32Enum.ERROR_FILE_NOT_FOUND)
+            {
+                result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
+            }
+
+            hn.IsConnectionSuccess = false;
+            if (result == (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+            {
+                hn.IsConnectionSuccess = true;
+            }
 
             _pluginNode.SetContext(_hn);
-
-            hn.IsConnectionSuccess = true;
-
-            if (!hn.IsConnectionSuccess)
-            {
-                _container.ShowError(String.Format("Unable to connect with {0}", hn.hostName));
-                _usingManualCreds = true;
-            }
         }
     }
     

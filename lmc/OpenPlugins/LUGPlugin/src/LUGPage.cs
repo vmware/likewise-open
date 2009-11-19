@@ -192,10 +192,6 @@ public partial class LUGPage : StandardPage
     {
         Hostinfo hn = ctx as Hostinfo;
 
-        if (Hostinfo.HasCreds(hn))
-        {
-            Session.EnsureNullSession(hn.hostName, hn.creds);
-        }
         base.SetContext(hn);
     }
     
