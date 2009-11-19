@@ -84,7 +84,7 @@ AC_CHECK_LIB(lwioclient, LwIoGetDriverStatus, [LIB_LWIOCLIENT="-llwioclient"], [
 AC_CHECK_LIB(dl, dlopen, [LIB_DL="-ldl"], [LIB_DL=""])
 
 # Checks for header files.
-AC_CHECK_HEADERS([lwmsg/lwmsg.h lwdef.h lwerror.h lw/base.h pthread.h])
+AC_CHECK_HEADERS([lwmsg/lwmsg.h lwdef.h lwerror.h lw/base.h pthread.h strings.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
