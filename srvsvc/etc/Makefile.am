@@ -1,3 +1,1 @@
-srvsvcconf_DATA = srvsvcd.conf
-
-sysconf_DATA = srvsvcd.reg
+srvsvcreg_DATA = srvsvcd.reg

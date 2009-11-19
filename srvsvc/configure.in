@@ -334,6 +334,9 @@ AC_SUBST(srvsvcconfdir)
 AS_AC_EXPAND(CONFIGDIR, $srvsvcconfdir)
 AC_DEFINE_UNQUOTED(CONFIGDIR, "$CONFIGDIR", [Config directory])
 
+srvsvcregdir="$sysconfdir"
+AC_SUBST(srvsvcregdir)
+
 if test x"$localstatedir" = x"/var"; then
     srvsvccachedir="$localstatedir/lib/likewise"
 else
@@ -428,7 +431,6 @@ AC_CHECK_TYPES([wchar16_t], [], [], [AC_INCLUDES_DEFAULT
 AC_CONFIG_FILES([Makefile
                  include/Makefile
                  etc/Makefile
-                 etc/srvsvcd.conf
 		 etc/srvsvcd.reg
                  utils/Makefile
                  client/Makefile
