@@ -239,20 +239,28 @@ RegShellSetValue(
     DWORD dwError = 0;
     DWORD type = 0;
 
+    dwError = RegShellUtilGetValue(
+                  pParseState->hReg,
+                  RegShellGetRootKey(pParseState),
+                  RegShellGetDefaultKey(pParseState),
+                  NULL,
+                  rsItem->valueName,
+                  &type,
+                  NULL,
+                  NULL);
     if (rsItem->command == REGSHELL_CMD_SET_VALUE)
     {
-        dwError = RegShellUtilGetValue(
-                      pParseState->hReg,
-                      RegShellGetRootKey(pParseState),
-                      RegShellGetDefaultKey(pParseState),
-                      NULL,
-                      rsItem->valueName,
-                      &type,
-                      NULL,
-                      NULL);
+        BAIL_ON_REG_ERROR(dwError);
     }
     else
     {
+        /* Don't allow addition of existing value */
+        if (dwError == 0)
+        {
+            dwError = LW_ERROR_DUPLICATE_KEYVALUENAME;
+            BAIL_ON_REG_ERROR(dwError);
+
+        }
         type = rsItem->type;
     }
 
@@ -281,7 +289,11 @@ RegShellSetValue(
                   type,
                   data,
                   dataLen);
+cleanup:
     return dwError;
+
+error:
+    goto cleanup;
 }
 
 DWORD
