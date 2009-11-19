@@ -39,18 +39,6 @@ SrvUnmarshallQueryPathInfoParams(
     PWSTR*           ppwszFilename
     );
 
-static
-NTSTATUS
-SrvQueryPathInfo(
-    PSRV_EXEC_CONTEXT pExecContext
-    );
-
-static
-NTSTATUS
-SrvBuildQueryPathInfoResponse(
-    PSRV_EXEC_CONTEXT pExecContext
-    );
-
 NTSTATUS
 SrvProcessTrans2QueryPathInformation(
     PSRV_EXEC_CONTEXT pExecContext
@@ -141,7 +129,7 @@ SrvProcessTrans2QueryPathInformation(
 
         case SRV_TRANS2_STAGE_SMB_V1_ATTEMPT_IO:
 
-            ntStatus = SrvQueryPathInfo(pExecContext);
+            ntStatus = SrvQueryInfo(pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
 
             pTrans2State->stage = SRV_TRANS2_STAGE_SMB_V1_BUILD_RESPONSE;
@@ -150,7 +138,7 @@ SrvProcessTrans2QueryPathInformation(
 
         case SRV_TRANS2_STAGE_SMB_V1_BUILD_RESPONSE:
 
-            ntStatus = SrvBuildQueryPathInfoResponse(pExecContext);
+            ntStatus = SrvBuildQueryInfoResponse(pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
 
             pTrans2State->stage = SRV_TRANS2_STAGE_SMB_V1_DONE;
@@ -238,166 +226,3 @@ error:
 
     goto cleanup;
 }
-
-static
-NTSTATUS
-SrvQueryPathInfo(
-    PSRV_EXEC_CONTEXT pExecContext
-    )
-{
-    NTSTATUS                   ntStatus     = 0;
-    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
-    PSRV_TRANS2_STATE_SMB_V1   pTrans2State = NULL;
-
-    pTrans2State = (PSRV_TRANS2_STATE_SMB_V1)pCtxSmb1->hState;
-
-    switch (*pTrans2State->pSmbInfoLevel)
-    {
-        case SMB_QUERY_FILE_BASIC_INFO :
-
-            ntStatus = SrvQueryFileBasicInfo(pExecContext);
-
-            break;
-
-        case SMB_QUERY_FILE_STANDARD_INFO :
-
-            ntStatus = SrvQueryFileStandardInfo(pExecContext);
-
-            break;
-
-        case SMB_QUERY_FILE_EA_INFO :
-
-            ntStatus = SrvQueryFileEAInfo(pExecContext);
-
-            break;
-
-        case SMB_QUERY_FILE_STREAM_INFO :
-
-            ntStatus = SrvQueryFileStreamInfo(pExecContext);
-
-            break;
-
-        case SMB_QUERY_FILE_ALL_INFO :
-
-            ntStatus = SrvQueryFileAllInfo(pExecContext);
-
-            break;
-
-        case SMB_QUERY_FILE_NAME_INFO :
-
-            ntStatus = SrvQueryFileNameInfo(pExecContext);
-
-            break;
-
-        case SMB_QUERY_FILE_ALT_NAME_INFO :
-
-            ntStatus = SrvQueryFileAltNameInfo(pExecContext);
-
-            break;
-
-        case SMB_INFO_STANDARD :
-        case SMB_INFO_QUERY_EA_SIZE :
-        case SMB_INFO_QUERY_EAS_FROM_LIST :
-        case SMB_INFO_QUERY_ALL_EAS :
-        case SMB_INFO_IS_NAME_VALID :
-        case SMB_QUERY_FILE_COMPRESSION_INFO :
-        case SMB_QUERY_FILE_UNIX_BASIC :
-        case SMB_QUERY_FILE_UNIX_LINK :
-
-            ntStatus = STATUS_NOT_SUPPORTED;
-
-            break;
-
-        default:
-
-            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
-
-            break;
-    }
-
-    return ntStatus;
-}
-
-static
-NTSTATUS
-SrvBuildQueryPathInfoResponse(
-    PSRV_EXEC_CONTEXT pExecContext
-    )
-{
-    NTSTATUS                   ntStatus     = STATUS_SUCCESS;
-    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
-    PSRV_TRANS2_STATE_SMB_V1   pTrans2State = NULL;
-
-    pTrans2State = (PSRV_TRANS2_STATE_SMB_V1)pCtxSmb1->hState;
-
-    switch (*pTrans2State->pSmbInfoLevel)
-    {
-        case SMB_QUERY_FILE_BASIC_INFO :
-
-            ntStatus = SrvBuildQueryFileBasicInfoResponse(pExecContext);
-
-            break;
-
-        case SMB_QUERY_FILE_STANDARD_INFO :
-
-            ntStatus = SrvBuildQueryFileStandardInfoResponse(pExecContext);
-
-            break;
-
-        case SMB_QUERY_FILE_EA_INFO :
-
-            ntStatus = SrvBuildQueryFileEAInfoResponse(pExecContext);
-
-            break;
-
-        case SMB_QUERY_FILE_STREAM_INFO :
-
-            ntStatus = SrvBuildQueryFileStreamInfoResponse(pExecContext);
-
-            break;
-
-        case SMB_QUERY_FILE_ALL_INFO :
-
-            ntStatus = SrvBuildQueryFileAllInfoResponse(pExecContext);
-
-            break;
-
-        case SMB_QUERY_FILE_NAME_INFO :
-
-            ntStatus = SrvBuildQueryFileNameInfoResponse(pExecContext);
-
-            break;
-
-        case SMB_QUERY_FILE_ALT_NAME_INFO :
-
-            ntStatus = SrvBuildQueryFileAltNameInfoResponse(pExecContext);
-
-            break;
-
-        case SMB_INFO_STANDARD :
-        case SMB_INFO_QUERY_EA_SIZE :
-        case SMB_INFO_QUERY_EAS_FROM_LIST :
-        case SMB_INFO_QUERY_ALL_EAS :
-        case SMB_INFO_IS_NAME_VALID :
-        case SMB_QUERY_FILE_COMPRESSION_INFO :
-        case SMB_QUERY_FILE_UNIX_BASIC :
-        case SMB_QUERY_FILE_UNIX_LINK :
-
-            ntStatus = STATUS_NOT_SUPPORTED;
-
-            break;
-
-        default:
-
-            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
-
-            break;
-    }
-
-    return ntStatus;
-}
-
-
-

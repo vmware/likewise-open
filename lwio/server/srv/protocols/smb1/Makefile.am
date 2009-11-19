@@ -35,6 +35,7 @@ libsrv_protocols_smb1_la_SOURCES = \
     trans2.c         \
     trans2qfi.c      \
     trans2qfsi.c     \
+    trans2qi.c       \
     trans2qpi.c      \
     trans2sfi.c      \
     trans.c          \

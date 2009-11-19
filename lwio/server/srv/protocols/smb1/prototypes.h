@@ -429,80 +429,22 @@ SrvReleaseTrans2StateAsync(
     PSRV_TRANS2_STATE_SMB_V1 pTrans2State
     );
 
+// trans2qi.h
+
+NTSTATUS
+SrvQueryInfo(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+NTSTATUS
+SrvBuildQueryInfoResponse(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
 // trans2qfi.h
 
 NTSTATUS
 SrvProcessTrans2QueryFileInformation(
-    PSRV_EXEC_CONTEXT pExecContext
-    );
-
-NTSTATUS
-SrvQueryFileBasicInfo(
-    PSRV_EXEC_CONTEXT pExecContext
-    );
-
-NTSTATUS
-SrvBuildQueryFileBasicInfoResponse(
-    PSRV_EXEC_CONTEXT pExecContext
-    );
-
-NTSTATUS
-SrvQueryFileStandardInfo(
-    PSRV_EXEC_CONTEXT pExecContext
-    );
-
-NTSTATUS
-SrvBuildQueryFileStandardInfoResponse(
-    PSRV_EXEC_CONTEXT pExecContext
-    );
-
-NTSTATUS
-SrvQueryFileEAInfo(
-    PSRV_EXEC_CONTEXT pExecContext
-    );
-
-NTSTATUS
-SrvBuildQueryFileEAInfoResponse(
-    PSRV_EXEC_CONTEXT pExecContext
-    );
-
-NTSTATUS
-SrvQueryFileStreamInfo(
-    PSRV_EXEC_CONTEXT pExecContext
-    );
-
-NTSTATUS
-SrvBuildQueryFileStreamInfoResponse(
-    PSRV_EXEC_CONTEXT pExecContext
-    );
-
-NTSTATUS
-SrvQueryFileAllInfo(
-    PSRV_EXEC_CONTEXT pExecContext
-    );
-
-NTSTATUS
-SrvBuildQueryFileAllInfoResponse(
-    PSRV_EXEC_CONTEXT pExecContext
-    );
-
-NTSTATUS
-SrvQueryFileNameInfo(
-    PSRV_EXEC_CONTEXT pExecContext
-    );
-
-NTSTATUS
-SrvBuildQueryFileNameInfoResponse(
-    PSRV_EXEC_CONTEXT pExecContext
-    );
-
-NTSTATUS
-SrvQueryFileAltNameInfo(
-    PSRV_EXEC_CONTEXT pExecContext
-    );
-
-NTSTATUS
-SrvBuildQueryFileAltNameInfoResponse(
     PSRV_EXEC_CONTEXT pExecContext
     );
 
