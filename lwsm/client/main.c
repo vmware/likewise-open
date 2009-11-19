@@ -1268,7 +1268,7 @@ LwSmSetLog(
     )
 {
     DWORD dwError = 0;
-    LW_SM_LOGGER_TYPE type;
+    LW_SM_LOGGER_TYPE type = 0;
     PSTR pszTarget = NULL;
 
     if (argc < 2)
@@ -1295,6 +1295,11 @@ LwSmSetLog(
     {
         type = LW_SM_LOGGER_SYSLOG;
         pszTarget = NULL;
+    }
+    else
+    {
+        dwError = LW_ERROR_INVALID_PARAMETER;
+        BAIL_ON_ERROR(dwError);
     }
 
     dwError = LwSmSetLogInfo(type, pszTarget);
