@@ -65,14 +65,14 @@ typedef struct _REGSHELL_UTIL_VALUE
 
 DWORD
 RegUtilIsValidKey(
-    IN HANDLE hReg,
+    IN OPTIONAL HANDLE hReg,
     IN PSTR pszRootKeyName,
     IN PSTR pszKey
     );
 
 DWORD
 RegUtilAddKey(
-    IN HANDLE hReg,
+    IN OPTIONAL HANDLE hReg,
     IN PSTR pszRootKeyName,
     IN OPTIONAL PSTR pszSubKeyPath,
     IN PSTR pszKeyName
@@ -80,7 +80,7 @@ RegUtilAddKey(
 
 DWORD
 RegUtilDeleteKey(
-    IN HANDLE hReg,
+    IN OPTIONAL HANDLE hReg,
     IN PSTR pszRootKeyName,
     IN OPTIONAL PSTR pszSubKeyPath,
     IN PSTR pszKey
@@ -88,7 +88,7 @@ RegUtilDeleteKey(
 
 DWORD
 RegUtilDeleteTree(
-    IN HANDLE hReg,
+    IN OPTIONAL HANDLE hReg,
     IN PSTR pszRootKeyName,
     IN OPTIONAL PSTR pszSubKeyPath,
     IN PSTR pszKeyName
@@ -96,7 +96,7 @@ RegUtilDeleteTree(
 
 DWORD
 RegUtilGetKeys(
-    IN HANDLE hReg,
+    IN OPTIONAL HANDLE hReg,
     IN PSTR pszRootKeyName,
     IN OPTIONAL PSTR pszSubKeyPath,
     IN PSTR pszKeyName,
@@ -106,7 +106,7 @@ RegUtilGetKeys(
 
 DWORD
 RegUtilSetValue(
-    IN HANDLE hReg,
+    IN OPTIONAL HANDLE hReg,
     IN PSTR pszRootKeyName,
     IN OPTIONAL PSTR pszSubKeyPath,
     IN PSTR pszKeyName,
@@ -118,7 +118,7 @@ RegUtilSetValue(
 
 DWORD
 RegUtilGetValues(
-    IN HANDLE hReg,
+    IN OPTIONAL HANDLE hReg,
     IN PSTR pszRootKeyName,
     IN OPTIONAL PSTR pszSubKeyPath,
     IN PSTR pszKeyName,
@@ -128,7 +128,7 @@ RegUtilGetValues(
 
 DWORD
 RegUtilDeleteValue(
-    IN HANDLE hReg,
+    IN OPTIONAL HANDLE hReg,
     IN PSTR pszRootKeyName,
     IN OPTIONAL PSTR pszSubKeyPath,
     IN PSTR pszKeyName,
@@ -137,14 +137,14 @@ RegUtilDeleteValue(
 
 DWORD
 RegUtilGetValue(
-    IN HANDLE hReg,
+    IN OPTIONAL HANDLE hReg,
     IN PSTR pszRootKeyName,
     IN OPTIONAL PSTR pszDefaultKey,
     IN PSTR pszKeyName,
     IN PSTR pszValueName,
-    IN REG_DATA_TYPE regType,
-    OUT PVOID *ppValue,
-    OUT PDWORD pdwValueLen
+    OUT OPTIONAL PREG_DATA_TYPE pRegType,
+    OUT OPTIONAL PVOID *ppValue,
+    OUT OPTIONAL PDWORD pdwValueLen
     );
 
 #endif
