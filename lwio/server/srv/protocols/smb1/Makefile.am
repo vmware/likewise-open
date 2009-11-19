@@ -38,6 +38,7 @@ libsrv_protocols_smb1_la_SOURCES = \
     trans2qi.c       \
     trans2qpi.c      \
     trans2sfi.c      \
+    trans2si.c       \
     trans.c          \
     tree.c           \
     treeconnect.c    \
