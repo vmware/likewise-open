@@ -149,11 +149,11 @@ public partial class NewGroupDlg : EditDialog, IUIInitialize
         bool bRet = true;
         try
         {
-            bRet = localParent.AddLUG(this);
-            if (!bRet)
+            uint result = localParent.AddLUG(this);
+            if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
             {
                 container.ShowError(
-                "Likewise Administrative Console encountered an error when trying to add a new group.",
+                "Likewise Administrative Console encountered an error when trying to add a new group.  " + ErrorCodes.WIN32String((int)result),
                 MessageBoxButtons.OK);
                 bDataWasChanged = true;
                 return false;

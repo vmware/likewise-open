@@ -349,9 +349,9 @@ public partial class LUGPage : StandardPage
         return retValue;
     }
     
-    public bool AddLUG(object o)
+    public uint AddLUG(object o)
     {
-        bool retValue = false;
+        uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
         
         try
         {
@@ -373,20 +373,22 @@ public partial class LUGPage : StandardPage
                     flags |= nu.CannotChange ? LUGAPI.UF_PASSWD_CANT_CHANGE : 0;
                     
                     flags |= nu.IsDisabled ? LUGAPI.UF_ACCOUNTDISABLE : 0;
-                    
+
                     flags |= nu.NeverExpires ? LUGAPI.UF_DONT_EXPIRE_PASSWD : 0;
 
-                    if (!Convert.ToBoolean(LUGAPI.NetAddUser(
+                    result = LUGAPI.NetAddUser(
                         hn.hostName,
                         nu.User,
                         nu.Password,
                         nu.FullName,
                         nu.Description,
-                        flags)))
+                        flags);
+
+                    if (result == (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
                     {
                         string[] row = new string[] { "", nu.IsDisabled ? "Disabled" : "", nu.User, nu.FullName, nu.Description };
                         InsertLUGToListView(row);
-                        return true;
+                        return result;
                     }
                 }
             }
@@ -396,25 +398,27 @@ public partial class LUGPage : StandardPage
                 Hostinfo hn = ctx as Hostinfo;
                 if (ng != null)
                 {
-                    if (!Convert.ToBoolean(LUGAPI.NetAddGroup(
+                    result = LUGAPI.NetAddGroup(
                         hn.hostName,
                         ng.GroupName,
-                        ng.Description)))
+                        ng.Description);
+
+                    if (result == (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
                     {
                         string[] row = new string[] { "", ng.GroupName, ng.Description };
                         InsertLUGToListView(row);
-                        return true;
+                        return result;
                     }
                 }
             }
         }
         catch (Exception)
         {
-            retValue = false;
+            result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
         }
-        return retValue;
+        return result;
     }
-    
+
     public string GetDomain()
     {
         Hostinfo hn = ctx as Hostinfo;
