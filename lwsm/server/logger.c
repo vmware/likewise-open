@@ -369,7 +369,7 @@ LwSmLogFileOpen (
 
     if (pContext->fd < 0)
     {
-        fd = open(pContext->pszPath, O_WRONLY | O_CREAT | O_APPEND);
+        fd = open(pContext->pszPath, O_WRONLY | O_CREAT | O_APPEND, 0600);
         if (fd < 0)
         {
             dwError = LwMapErrnoToLwError(errno);
