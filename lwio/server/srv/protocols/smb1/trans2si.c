@@ -257,7 +257,8 @@ SrvSetBasicInfo(
     SrvPrepareTrans2StateAsync(pTrans2State, pExecContext);
 
     ntStatus = IoSetInformationFile(
-                    pTrans2State->pFile->hFile,
+                    (pTrans2State->pFile ? pTrans2State->pFile->hFile :
+                                           pTrans2State->hFile),
                     pTrans2State->pAcb,
                     &pTrans2State->ioStatusBlock,
                     pFileBasicInfo,
@@ -297,7 +298,8 @@ SrvSetDispositionInfo(
     SrvPrepareTrans2StateAsync(pTrans2State, pExecContext);
 
     ntStatus = IoSetInformationFile(
-                    pTrans2State->pFile->hFile,
+                    (pTrans2State->pFile ? pTrans2State->pFile->hFile :
+                                           pTrans2State->hFile),
                     pTrans2State->pAcb,
                     &pTrans2State->ioStatusBlock,
                     pFileDispositionInfo,
@@ -337,7 +339,8 @@ SrvSetAllocationInfo(
     SrvPrepareTrans2StateAsync(pTrans2State, pExecContext);
 
     ntStatus = IoSetInformationFile(
-                    pTrans2State->pFile->hFile,
+                    (pTrans2State->pFile ? pTrans2State->pFile->hFile :
+                                           pTrans2State->hFile),
                     pTrans2State->pAcb,
                     &pTrans2State->ioStatusBlock,
                     pFileAllocationInfo,
@@ -377,7 +380,8 @@ SrvSetEndOfFileInfo(
     SrvPrepareTrans2StateAsync(pTrans2State, pExecContext);
 
     ntStatus = IoSetInformationFile(
-                    pTrans2State->pFile->hFile,
+                    (pTrans2State->pFile ? pTrans2State->pFile->hFile :
+                                           pTrans2State->hFile),
                     pTrans2State->pAcb,
                     &pTrans2State->ioStatusBlock,
                     pFileEofInfo,
@@ -464,7 +468,8 @@ SrvRenameFile(
     SrvPrepareTrans2StateAsync(pTrans2State, pExecContext);
 
     ntStatus = IoSetInformationFile(
-                    pTrans2State->pFile->hFile,
+                    (pTrans2State->pFile ? pTrans2State->pFile->hFile :
+                                           pTrans2State->hFile),
                     pTrans2State->pAcb,
                     &pTrans2State->ioStatusBlock,
                     (PFILE_RENAME_INFORMATION)pTrans2State->pData2,

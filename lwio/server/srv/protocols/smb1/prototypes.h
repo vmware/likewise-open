@@ -480,6 +480,13 @@ SrvProcessTrans2SetFileInformation(
     PSRV_EXEC_CONTEXT pExecContext
     );
 
+// trans2spi.h
+
+NTSTATUS
+SrvProcessTrans2SetPathInformation(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
 // tree.c
 
 NTSTATUS
