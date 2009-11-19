@@ -81,6 +81,7 @@ SrvSetInfo(
     switch (*pTrans2State->pSmbInfoLevel)
     {
         case SMB_SET_FILE_BASIC_INFO :
+        case SMB_SET_FILE_BASIC_INFO_ALIAS :
 
             ntStatus = SrvSetBasicInfo(pExecContext);
 

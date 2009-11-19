@@ -245,42 +245,49 @@ SrvBuildQueryInfoResponse(
     switch (*pTrans2State->pSmbInfoLevel)
     {
         case SMB_QUERY_FILE_BASIC_INFO :
+        case SMB_QUERY_FILE_BASIC_INFO_ALIAS :
 
             ntStatus = SrvBuildQueryBasicInfoResponse(pExecContext);
 
             break;
 
         case SMB_QUERY_FILE_STANDARD_INFO :
+        case SMB_QUERY_FILE_STANDARD_INFO_ALIAS :
 
             ntStatus = SrvBuildQueryStandardInfoResponse(pExecContext);
 
             break;
 
         case SMB_QUERY_FILE_EA_INFO :
+        case SMB_QUERY_FILE_EA_INFO_ALIAS :
 
             ntStatus = SrvBuildQueryEAInfoResponse(pExecContext);
 
             break;
 
         case SMB_QUERY_FILE_STREAM_INFO :
+        case SMB_QUERY_FILE_STREAM_INFO_ALIAS :
 
             ntStatus = SrvBuildQueryStreamInfoResponse(pExecContext);
 
             break;
 
         case SMB_QUERY_FILE_ALL_INFO :
+        case SMB_QUERY_FILE_ALL_INFO_ALIAS :
 
             ntStatus = SrvBuildQueryAllInfoResponse(pExecContext);
 
             break;
 
         case SMB_QUERY_FILE_NAME_INFO :
+        case SMB_QUERY_FILE_NAME_INFO_ALIAS :
 
             ntStatus = SrvBuildQueryNameInfoResponse(pExecContext);
 
             break;
 
         case SMB_QUERY_FILE_ALT_NAME_INFO :
+        case SMB_QUERY_FILE_ALT_NAME_INFO_ALIAS :
 
             ntStatus = SrvBuildQueryAltNameInfoResponse(pExecContext);
 
