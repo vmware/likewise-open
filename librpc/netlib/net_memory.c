@@ -1234,6 +1234,147 @@ error:
 }
 
 
+DWORD
+NetAllocBufferNT4Name(
+    PVOID   *ppCursor,
+    PDWORD   pdwSpaceLeft,
+    PWSTR    pwszDomainName,
+    PWSTR    pwszAccountName,
+    PDWORD   pdwSize
+    )
+{
+    DWORD err = ERROR_SUCCESS;
+    NTSTATUS status = STATUS_SUCCESS;
+    PVOID pCursor = NULL;
+    DWORD dwSpaceLeft = 0;
+    DWORD dwSize = 0;
+    size_t sDomainNameLen = 0;
+    size_t sAccountNameLen = 0;
+    PWSTR *ppwszDest = NULL;
+    PVOID pNT4Name = NULL;
+
+    if (ppCursor)
+    {
+        pCursor = *ppCursor;
+    }
+
+    if (pdwSpaceLeft)
+    {
+        dwSpaceLeft = *pdwSpaceLeft;
+    }
+
+    err = LwWc16sLen(pwszDomainName, &sDomainNameLen);
+    if (err != ERROR_SUCCESS &&
+        err != ERROR_INVALID_PARAMETER)
+    {
+        BAIL_ON_WINERR_ERROR(err);
+    }
+
+    err = LwWc16sLen(pwszAccountName, &sAccountNameLen);
+    if (err != ERROR_SUCCESS &&
+        err != ERROR_INVALID_PARAMETER)
+    {
+        BAIL_ON_WINERR_ERROR(err);
+    }
+
+    /* +2 because extra space is needed for the separator ('\')
+       and NULL termination */
+    dwSize = sizeof(WCHAR) * (sDomainNameLen + sAccountNameLen + 2);
+
+    if (pCursor)
+    {
+        if (dwSize > dwSpaceLeft)
+        {
+            err = ERROR_NOT_ENOUGH_MEMORY;
+            BAIL_ON_WINERR_ERROR(err);
+        }
+
+        pNT4Name = (pCursor + dwSpaceLeft) - dwSize;
+
+        /* sanity check - the string and current buffer cursor
+           must not overlap */
+        if ((pCursor + sizeof(PWSTR)) > pNT4Name)
+        {
+            err = ERROR_NOT_ENOUGH_MEMORY;
+            BAIL_ON_WINERR_ERROR(err);
+        }
+
+        if (pwszDomainName && pwszAccountName)
+        {
+            if (sw16printfw((PWSTR)pNT4Name,
+                            dwSize / sizeof(WCHAR),
+                            L"%ws\\%ws",
+                            pwszDomainName,
+                            pwszAccountName) < 0)
+            {
+                err = LwErrnoToWin32Error(errno);
+                BAIL_ON_WINERR_ERROR(err);
+            }
+        }
+        else if (pwszDomainName)
+        {
+            if (sw16printfw((PWSTR)pNT4Name,
+                            dwSize / sizeof(WCHAR),
+                            L"%ws\\",
+                            pwszDomainName) < 0)
+            {
+                err = LwErrnoToWin32Error(errno);
+                BAIL_ON_WINERR_ERROR(err);
+            }
+        }
+        else if (pwszAccountName)
+        {
+            if (sw16printfw((PWSTR)pNT4Name,
+                            dwSize / sizeof(WCHAR),
+                            L"\\%ws",
+                            pwszAccountName) < 0)
+            {
+                err = LwErrnoToWin32Error(errno);
+                BAIL_ON_WINERR_ERROR(err);
+            }
+        }
+        else
+        {
+            ((PWSTR)pNT4Name)[0] = '\\';
+        }
+
+        /* recalculate size and space after copying the SID */
+        ppwszDest     = (PWSTR*)pCursor;
+        *ppwszDest    = (PWSTR)pNT4Name;
+        dwSpaceLeft  -= dwSize;
+
+        /* recalculate size and space after setting the SID pointer */
+        pCursor      += sizeof(PWSTR);
+        dwSpaceLeft  -= sizeof(PWSTR);
+
+        *ppCursor     = pCursor;
+        *pdwSpaceLeft = dwSpaceLeft;
+    }
+
+    /* include size of the pointer */
+    dwSize += sizeof(PWSTR);
+
+    if (pdwSize)
+    {
+        *pdwSize += dwSize;
+    }
+
+cleanup:
+    if (err == ERROR_SUCCESS &&
+        status != STATUS_SUCCESS)
+    {
+        err = LwNtStatusToWin32Error(status);
+    }
+
+    return err;
+
+error:
+    goto cleanup;
+}
+
+
+
+
 /*
 local variables:
 mode: c

@@ -245,6 +245,16 @@ NetAllocBufferFixedBlob(
     );
 
 
+DWORD
+NetAllocBufferNT4Name(
+    PVOID   *ppCursor,
+    PDWORD   pdwSpaceLeft,
+    PWSTR    pwszDomainName,
+    PWSTR    pwszAccountName,
+    PDWORD   pdwSize
+    );
+
+
 #endif /* _NET_MEMORY_H_ */
 
 
