@@ -1457,7 +1457,7 @@ ADState_ReadRegProviderDataValue(
                       pszFullKeyPath,
                       pszSubKey,
                       pszValueName,
-                      regType,
+                      NULL,
                       (PVOID) &pszValue,
                       pdwValueLen);
         memcpy(pValue, pszValue, *pdwValueLen);
@@ -1471,7 +1471,7 @@ ADState_ReadRegProviderDataValue(
                       pszFullKeyPath,
                       pszSubKey,
                       pszValueName,
-                      regType,
+                      NULL,
                       pValue,
                       pdwValueLen);
     }
@@ -1692,7 +1692,7 @@ ADState_ReadRegCellEntry(
                   AD_PROVIDER_REGKEY,
                   AD_LINKEDCELL_REGKEY,
                   "CellList",
-                  REG_MULTI_SZ,
+                  NULL,
                   (PVOID) &ppszMultiCellListOrder,
                   &dwMultiCellListOrder);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1705,7 +1705,7 @@ ADState_ReadRegCellEntry(
                       AD_PROVIDER_REGKEY "\\" AD_LINKEDCELL_REGKEY,
                       ppszMultiCellListOrder[i],
                       "CellDN",
-                      REG_SZ,
+                      NULL,
                       (PVOID) &pListEntry->pszCellDN,
                       &dwValueLen);
         BAIL_ON_LSA_ERROR(dwError);
@@ -1716,7 +1716,7 @@ ADState_ReadRegCellEntry(
                       AD_PROVIDER_REGKEY "\\" AD_LINKEDCELL_REGKEY,
                       ppszMultiCellListOrder[i],
                       "Domain",
-                      REG_SZ,
+                      NULL,
                       (PVOID) &pListEntry->pszDomain,
                       &dwValueLen);
         BAIL_ON_LSA_ERROR(dwError);
@@ -1726,7 +1726,7 @@ ADState_ReadRegCellEntry(
                       AD_PROVIDER_REGKEY "\\" AD_LINKEDCELL_REGKEY,
                       ppszMultiCellListOrder[i],
                       "IsForestCell",
-                      REG_DWORD,
+                      NULL,
                       (PVOID) &dwIsForestCell,
                       &dwValueLen);
         BAIL_ON_LSA_ERROR(dwError);
@@ -1819,7 +1819,7 @@ ADState_ReadRegDomainEntry(
                       AD_PROVIDER_REGKEY "\\" AD_DOMAIN_TRUST_REGKEY,
                       pszSubKeyPtr,
                       "DNSDomainName",
-                      REG_SZ,
+                      NULL,
                       (PVOID) &pListEntry->pszDnsDomainName,
                       &dwValueLen);
         BAIL_ON_LSA_ERROR(dwError);
@@ -1834,7 +1834,7 @@ ADState_ReadRegDomainEntry(
                       AD_PROVIDER_REGKEY "\\" AD_DOMAIN_TRUST_REGKEY,
                       pszSubKeyPtr,
                       "NetBiosDomainName",
-                      REG_SZ,
+                      NULL,
                       (PVOID) &pListEntry->pszNetbiosDomainName,
                       &dwValueLen);
         BAIL_ON_LSA_ERROR(dwError);
@@ -1849,7 +1849,7 @@ ADState_ReadRegDomainEntry(
                       AD_PROVIDER_REGKEY "\\" AD_DOMAIN_TRUST_REGKEY,
                       pszSubKeyPtr,
                       "SID",
-                      REG_SZ,
+                      NULL,
                       (PVOID) &pszSID,
                       &dwValueLen);
         BAIL_ON_LSA_ERROR(dwError);
@@ -1864,7 +1864,7 @@ ADState_ReadRegDomainEntry(
                       AD_PROVIDER_REGKEY "\\" AD_DOMAIN_TRUST_REGKEY,
                       pszSubKeyPtr,
                       "GUID",
-                      REG_SZ,
+                      NULL,
                       (PVOID) &pszGUID,
                       &dwValueLen);
         BAIL_ON_LSA_ERROR(dwError);
@@ -1891,7 +1891,7 @@ ADState_ReadRegDomainEntry(
                       AD_PROVIDER_REGKEY "\\" AD_DOMAIN_TRUST_REGKEY,
                       pszSubKeyPtr,
                       "TrusteeDomainName",
-                      REG_SZ,
+                      NULL,
                       (PVOID) &pListEntry->pszTrusteeDnsDomainName,
                       &dwValueLen);
         BAIL_ON_LSA_ERROR(dwError);
@@ -1906,7 +1906,7 @@ ADState_ReadRegDomainEntry(
                       AD_PROVIDER_REGKEY "\\" AD_DOMAIN_TRUST_REGKEY,
                       pszSubKeyPtr,
                       "TrustFlags",
-                      REG_DWORD,
+                      NULL,
                       (PVOID) &pListEntry->dwTrustFlags,
                       &dwValueLen);
         BAIL_ON_LSA_ERROR(dwError);
@@ -1917,7 +1917,7 @@ ADState_ReadRegDomainEntry(
                       AD_PROVIDER_REGKEY "\\" AD_DOMAIN_TRUST_REGKEY,
                       pszSubKeyPtr,
                       "TrustType",
-                      REG_DWORD,
+                      NULL,
                       (PVOID) &pListEntry->dwTrustType,
                       &dwValueLen);
         BAIL_ON_LSA_ERROR(dwError);
@@ -1928,7 +1928,7 @@ ADState_ReadRegDomainEntry(
                       AD_PROVIDER_REGKEY "\\" AD_DOMAIN_TRUST_REGKEY,
                       pszSubKeyPtr,
                       "TrustAttributes",
-                      REG_DWORD,
+                      NULL,
                       (PVOID) &pListEntry->dwTrustAttributes,
                       &dwValueLen);
         BAIL_ON_LSA_ERROR(dwError);
@@ -1939,7 +1939,7 @@ ADState_ReadRegDomainEntry(
                       AD_PROVIDER_REGKEY "\\" AD_DOMAIN_TRUST_REGKEY,
                       pszSubKeyPtr,
                       "TrustDirection",
-                      REG_DWORD,
+                      NULL,
                       (PVOID) &pListEntry->dwTrustDirection,
                       &dwValueLen);
         BAIL_ON_LSA_ERROR(dwError);
@@ -1950,7 +1950,7 @@ ADState_ReadRegDomainEntry(
                       AD_PROVIDER_REGKEY "\\" AD_DOMAIN_TRUST_REGKEY,
                       pszSubKeyPtr,
                       "TrustMode",
-                      REG_DWORD,
+                      NULL,
                       (PVOID) &pListEntry->dwTrustMode,
                       &dwValueLen);
         BAIL_ON_LSA_ERROR(dwError);
@@ -1961,7 +1961,7 @@ ADState_ReadRegDomainEntry(
                       AD_PROVIDER_REGKEY "\\" AD_DOMAIN_TRUST_REGKEY,
                       pszSubKeyPtr,
                       "ForestName",
-                      REG_SZ,
+                      NULL,
                       (PVOID) &pListEntry->pszForestName,
                       &dwValueLen);
         BAIL_ON_LSA_ERROR(dwError);
@@ -1976,7 +1976,7 @@ ADState_ReadRegDomainEntry(
                       AD_PROVIDER_REGKEY "\\" AD_DOMAIN_TRUST_REGKEY,
                       pszSubKeyPtr,
                       "ClientSiteName",
-                      REG_SZ,
+                      NULL,
                       (PVOID) &pListEntry->pszClientSiteName,
                       &dwValueLen);
         BAIL_ON_LSA_ERROR(dwError);
@@ -1991,7 +1991,7 @@ ADState_ReadRegDomainEntry(
                       AD_PROVIDER_REGKEY "\\" AD_DOMAIN_TRUST_REGKEY,
                       pszSubKeyPtr,
                       "Flags",
-                      REG_DWORD,
+                      NULL,
                       (PVOID) &pListEntry->Flags,
                       &dwValueLen);
         BAIL_ON_LSA_ERROR(dwError);
@@ -2252,7 +2252,7 @@ ADState_WriteRegCellEntry(
                   AD_PROVIDER_REGKEY,
                   AD_LINKEDCELL_REGKEY,
                   "CellList",
-                  REG_MULTI_SZ,
+                  NULL,
                   (PVOID) &ppszMultiCellListOrder,
                   &dwValueLen);
     dwError = LwReallocMemory(

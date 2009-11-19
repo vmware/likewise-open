@@ -42,6 +42,7 @@
 
 #include "regshell.h"
 #include <locale.h>
+#include <pwd.h>
 #include "histedit.h"
 
 #define REGSHELL_ESC_CHAR '|'
@@ -239,20 +240,28 @@ RegShellSetValue(
     DWORD dwError = 0;
     DWORD type = 0;
 
+    dwError = RegShellUtilGetValue(
+                  pParseState->hReg,
+                  RegShellGetRootKey(pParseState),
+                  RegShellGetDefaultKey(pParseState),
+                  NULL,
+                  rsItem->valueName,
+                  &type,
+                  NULL,
+                  NULL);
     if (rsItem->command == REGSHELL_CMD_SET_VALUE)
     {
-        dwError = RegShellUtilGetValue(
-                      pParseState->hReg,
-                      RegShellGetRootKey(pParseState),
-                      RegShellGetDefaultKey(pParseState),
-                      NULL,
-                      rsItem->valueName,
-                      &type,
-                      NULL,
-                      NULL);
+        BAIL_ON_REG_ERROR(dwError);
     }
     else
     {
+        /* Don't allow addition of existing value */
+        if (dwError == 0)
+        {
+            dwError = LW_ERROR_DUPLICATE_KEYVALUENAME;
+            BAIL_ON_REG_ERROR(dwError);
+
+        }
         type = rsItem->type;
     }
 
@@ -281,7 +290,11 @@ RegShellSetValue(
                   type,
                   data,
                   dataLen);
+cleanup:
     return dwError;
+
+error:
+    goto cleanup;
 }
 
 DWORD
@@ -1461,7 +1474,7 @@ pfnRegShellPromptCallback(EditLine *el)
     EDITLINE_CLIENT_DATA *cldata = NULL;
 
     el_get(el, EL_CLIENTDATA, (void *) &cldata);
-    snprintf(promptBuf, sizeof(promptBuf), "\r%s%s%s%s ",
+    snprintf(promptBuf, sizeof(promptBuf), "%s%s%s%s ",
              cldata->pParseState->pszDefaultRootKeyName ?
                  cldata->pParseState->pszDefaultRootKeyName : "",
              cldata->pParseState->pszDefaultKey ? "\\" : "",
@@ -1553,6 +1566,9 @@ RegShellProcessInteractiveEditLine(
     DWORD dwEventNum = 0;
     BOOLEAN bHistFirst = FALSE;
     const char *hist_str = NULL;
+    PSTR pszHistoryFileDir = NULL;
+    PSTR pszHistoryFileName = NULL;
+    struct passwd *userPwdEntry = NULL;
 
     hist = history_init();
     history(hist, &ev, H_SETSIZE, 100);
@@ -1578,8 +1594,26 @@ RegShellProcessInteractiveEditLine(
     /* Setup history context, and load previous history file */
     el_set(el, EL_HIST, history, hist);
 
+    /* Build fully qualified path for history file */
+    userPwdEntry = getpwuid(getuid());
+    if (userPwdEntry)
+    {
+        pszHistoryFileDir = userPwdEntry->pw_dir;
+    }
+    if (!pszHistoryFileDir)
+    {
+        pszHistoryFileDir = "/tmp";
+    }
+
+    dwError = LwAllocateMemory(
+                  strlen(pszHistoryFileDir) + sizeof("/.regshell_history"),
+                  (PVOID) &pszHistoryFileName);
+    BAIL_ON_REG_ERROR(dwError);
+    strcpy(pszHistoryFileName, pszHistoryFileDir);
+    strcat(pszHistoryFileName, "/.regshell_history");
+
     /* Retrieve this from user's home directory */
-    history(hist, &ev, H_LOAD, ".regshell_history");
+    history(hist, &ev, H_LOAD, pszHistoryFileName);
 
     /*
      * Bind j, k in vi command mode to previous and next line, instead
@@ -1775,9 +1809,10 @@ RegShellProcessInteractiveEditLine(
     }
 
     /* Save current regshell history */
-    history(hist, &ev, H_SAVE, ".regshell_history");
+    history(hist, &ev, H_SAVE, pszHistoryFileName);
 
 cleanup:
+    LW_SAFE_FREE_STRING(pszHistoryFileName);
     el_end(el);
     history_end(hist);
     return dwError;

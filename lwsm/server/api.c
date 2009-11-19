@@ -47,10 +47,6 @@ LwSmSrvAcquireServiceHandle(
     DWORD dwError = 0;
     PSM_TABLE_ENTRY pEntry = NULL;
     LW_SERVICE_HANDLE hHandle = NULL;
-    PLW_SERVICE_INFO pInfo = NULL;
-    BOOLEAN bLocked = FALSE;
-
-    UNLOCK(bLocked, hHandle->pEntry->pLock);
 
     dwError = LwSmTableGetEntry(pwszName, &pEntry);
     BAIL_ON_ERROR(dwError);
@@ -58,29 +54,15 @@ LwSmSrvAcquireServiceHandle(
     dwError = LwAllocateMemory(sizeof(*hHandle), OUT_PPVOID(&hHandle));
     BAIL_ON_ERROR(dwError);
 
-    LOCK(bLocked, pEntry->pLock);
-
-    dwError = LwWc16sToMbs(pEntry->pInfo->pwszName, &hHandle->pszName);
-    BAIL_ON_ERROR(dwError);
-
     hHandle->pEntry = pEntry;
     *phHandle = hHandle;
     
 cleanup:
-
-    UNLOCK(bLocked, hHandle->pEntry->pLock);
-
-    if (pInfo)
-    {
-        LwSmCommonFreeServiceInfo(pInfo);
-    }
     
     return dwError;
     
 error:
     
-    UNLOCK(bLocked, pEntry->pLock);
-
     *phHandle = NULL;
     
     if (pEntry)
@@ -97,7 +79,6 @@ LwSmSrvReleaseHandle(
     )
 {
     LwSmTableReleaseEntry(hHandle->pEntry);
-    LW_SAFE_FREE_MEMORY(hHandle->pszName);
 
     LwFreeMemory(hHandle);
 
@@ -109,7 +90,6 @@ LwSmSrvStartService(
     LW_SERVICE_HANDLE hHandle
     )
 {
-    SM_LOG_INFO("Starting service: %s", hHandle->pszName);
     return LwSmTableStartEntry(hHandle->pEntry);
 }
 
@@ -118,7 +98,6 @@ LwSmSrvStopService(
     LW_SERVICE_HANDLE hHandle
     )
 {
-    SM_LOG_INFO("Stopping service: %s", hHandle->pszName);
     return LwSmTableStopEntry(hHandle->pEntry);
 }
 

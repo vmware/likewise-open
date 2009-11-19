@@ -69,13 +69,9 @@ LwSmBootstrap(
     size_t j = 0;
     size_t len = 0;
 
-    SM_LOG_VERBOSE("Bootstrapping");
-
     for (i = 0; gBootstrapServices[i]; i++)
     {
         pService = gBootstrapServices[i];
-
-        SM_LOG_INFO("Starting bootstrap service: %s", pService->pszName);
 
         dwError = LwAllocateMemory(sizeof(*pInfo), OUT_PPVOID(&pInfo));
         BAIL_ON_ERROR(dwError);
@@ -126,8 +122,6 @@ LwSmBootstrap(
         LwSmCommonFreeServiceInfo(pInfo);
         pInfo = NULL;
     }
-
-    SM_LOG_VERBOSE("Bootstrapped");
 
 cleanup:
 

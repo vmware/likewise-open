@@ -6,14 +6,15 @@ libnetapi_la_SOURCES = \
 	globals.c \
 	net_connection.c              \
 	net_memory.c                  \
+	net_userinfo.c                \
+	net_groupinfo.c               \
+	net_memberinfo.c              \
         net_userenum.c                \
 	net_useradd.c                 \
-	net_userinfo.c                \
 	net_userdel.c                 \
 	net_user.c                    \
 	net_usergetinfo.c             \
 	net_usersetinfo.c             \
-	net_groupinfo.c               \
 	net_usergetlocalgroups.c      \
 	net_localgroupenum.c          \
 	net_localgroupadd.c           \

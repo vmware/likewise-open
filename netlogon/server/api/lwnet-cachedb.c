@@ -734,8 +734,14 @@ LWNetCacheDbReadFromRegistry(
         memset(&cacheEntry, 0, sizeof(cacheEntry));
     }
 cleanup:
-    RegCloseKey(hReg, pNetLogonKey);
-    RegCloseServer(hReg);
+    if (hReg)
+    {
+        if (pNetLogonKey)
+        {
+            RegCloseKey(hReg, pNetLogonKey);
+        }
+        RegCloseServer(hReg);
+    }
     return dwError;
 
 error:

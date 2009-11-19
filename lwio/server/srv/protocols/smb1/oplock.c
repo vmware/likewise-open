@@ -698,7 +698,8 @@ SrvOplockAsyncCB(
 
     LWIO_LOCK_MUTEX(bInLock, &pOplockState->mutex);
 
-    if (pOplockState->pAcb->AsyncCancelContext)
+    if (pOplockState->pAcb &&
+        pOplockState->pAcb->AsyncCancelContext)
     {
         IoDereferenceAsyncCancelContext(
                 &pOplockState->pAcb->AsyncCancelContext);

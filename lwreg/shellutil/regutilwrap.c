@@ -52,7 +52,7 @@
 
 DWORD
 RegUtilIsValidKey(
-    IN HANDLE hReg,
+    IN OPTIONAL HANDLE hReg,
     IN PSTR pszRootKeyName,
     IN PSTR pszKey)
 {
@@ -65,7 +65,7 @@ RegUtilIsValidKey(
 
 DWORD
 RegUtilAddKey(
-    IN HANDLE hReg,
+    IN OPTIONAL HANDLE hReg,
     IN PSTR pszRootKeyName,
     IN PSTR pszSubKeyPath,
     IN PSTR pszKeyName)
@@ -80,7 +80,7 @@ RegUtilAddKey(
 
 DWORD
 RegUtilDeleteKey(
-    IN HANDLE hReg,
+    IN OPTIONAL HANDLE hReg,
     IN PSTR pszRootKeyName,
     IN PSTR pszSubKeyPath,
     IN PSTR keyName)
@@ -95,7 +95,7 @@ RegUtilDeleteKey(
 
 DWORD
 RegUtilDeleteTree(
-    IN HANDLE hReg,
+    IN OPTIONAL HANDLE hReg,
     IN PSTR pszRootKeyName,
     IN PSTR pszSubKeyPath,
     IN PSTR keyName)
@@ -110,7 +110,7 @@ RegUtilDeleteTree(
 
 DWORD
 RegUtilGetKeys(
-    IN HANDLE hReg,
+    IN OPTIONAL HANDLE hReg,
     IN PSTR pszRootKeyName,
     IN PSTR pszSubKeyPath,
     IN PSTR keyName,
@@ -129,7 +129,7 @@ RegUtilGetKeys(
 
 DWORD
 RegUtilSetValue(
-    IN HANDLE hReg,
+    IN OPTIONAL HANDLE hReg,
     IN PSTR pszRootKeyName,
     IN PSTR pszSubKeyPath,
     IN PSTR keyName,
@@ -152,7 +152,7 @@ RegUtilSetValue(
 
 DWORD
 RegUtilGetValues(
-    IN HANDLE hReg,
+    IN OPTIONAL HANDLE hReg,
     IN PSTR pszRootKeyName,
     IN PSTR pszSubKeyPath,
     IN PSTR keyName,
@@ -171,7 +171,7 @@ RegUtilGetValues(
 
 DWORD
 RegUtilDeleteValue(
-    IN HANDLE hReg,
+    IN OPTIONAL HANDLE hReg,
     IN PSTR pszRootKeyName,
     IN PSTR pszSubKeyPath,
     IN PSTR keyName,
@@ -188,14 +188,14 @@ RegUtilDeleteValue(
 
 DWORD
 RegUtilGetValue(
-    IN HANDLE hReg,
+    IN OPTIONAL HANDLE hReg,
     IN PSTR pszRootKeyName,
     IN OPTIONAL PSTR pszDefaultKey,
     IN PSTR pszKeyName,
     IN PSTR pszValueName,
-    IN REG_DATA_TYPE regType,
-    OUT PVOID *ppValue,
-    OUT PDWORD pdwValueLen)
+    OUT OPTIONAL PREG_DATA_TYPE pRegType,
+    OUT OPTIONAL PVOID *ppValue,
+    OUT OPTIONAL PDWORD pdwValueLen)
 {
     return RegShellUtilGetValue(
                hReg,
@@ -203,7 +203,7 @@ RegUtilGetValue(
                pszDefaultKey,
                pszKeyName,
                pszValueName,
-               NULL,
+               pRegType,
                ppValue,
                pdwValueLen);
 }

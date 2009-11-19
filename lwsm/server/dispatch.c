@@ -597,6 +597,170 @@ error:
 }
 
 static
+LWMsgStatus
+LwSmDispatchSetLogInfo(
+    LWMsgCall* pCall,
+    LWMsgParams* pIn,
+    LWMsgParams* pOut,
+    PVOID pData
+    )
+{
+    DWORD dwError = 0;
+    PSM_IPC_LOG_INFO pReq = pIn->data;
+    uid_t uid = 0;
+
+    dwError = LwSmGetCallUid(pCall, &uid);
+    BAIL_ON_ERROR(dwError);
+
+    if (uid == 0)
+    {
+        switch (pReq->type)
+        {
+        case LW_SM_LOGGER_NONE:
+            dwError = LwSmSetLogger(NULL, NULL);
+            break;
+        case LW_SM_LOGGER_FILE:
+            dwError = LwSmSetLoggerToPath(pReq->pszTarget);
+            break;
+        case LW_SM_LOGGER_SYSLOG:
+            dwError = LwSmSetLoggerToSyslog("lwsmd");
+            break;
+        }
+    }
+    else
+    {
+        dwError = LW_ERROR_ACCESS_DENIED;
+    }
+
+    if (dwError)
+    {
+        dwError = LwSmSetError(pOut, dwError);
+        BAIL_ON_ERROR(dwError);
+    }
+    else
+    {
+        pOut->tag = SM_IPC_SET_LOG_INFO_RES;
+        pOut->data = NULL;
+    }
+
+cleanup:
+
+    return LwSmMapLwError(dwError);
+
+error:
+
+    goto cleanup;
+}
+
+static
+LWMsgStatus
+LwSmDispatchGetLogInfo(
+    LWMsgCall* pCall,
+    LWMsgParams* pIn,
+    LWMsgParams* pOut,
+    PVOID pData
+    )
+{
+    DWORD dwError = 0;
+    PSM_IPC_LOG_INFO pRes = NULL;
+
+    dwError = LwAllocateMemory(sizeof(*pRes), OUT_PPVOID(&pRes));
+    BAIL_ON_ERROR(dwError);
+
+    dwError = LwSmSrvGetLogInfo(&pRes->type, &pRes->pszTarget);
+    BAIL_ON_ERROR(dwError);
+
+    pOut->tag = SM_IPC_GET_LOG_INFO_RES;
+    pOut->data = pRes;
+
+cleanup:
+
+    return LwSmMapLwError(dwError);
+
+error:
+
+    LW_SAFE_FREE_MEMORY(pRes);
+
+    goto cleanup;
+}
+
+static
+LWMsgStatus
+LwSmDispatchSetLogLevel(
+    LWMsgCall* pCall,
+    LWMsgParams* pIn,
+    LWMsgParams* pOut,
+    PVOID pData
+    )
+{
+    DWORD dwError = 0;
+    PLW_SM_LOG_LEVEL pReq = pIn->data;
+    uid_t uid = 0;
+
+    dwError = LwSmGetCallUid(pCall, &uid);
+    BAIL_ON_ERROR(dwError);
+
+    if (uid == 0)
+    {
+        LwSmSetMaxLogLevel(*pReq);
+    }
+    else
+    {
+        dwError = LW_ERROR_ACCESS_DENIED;
+    }
+
+    if (dwError)
+    {
+        dwError = LwSmSetError(pOut, dwError);
+        BAIL_ON_ERROR(dwError);
+    }
+    else
+    {
+        pOut->tag = SM_IPC_SET_LOG_LEVEL_RES;
+        pOut->data = NULL;
+    }
+
+cleanup:
+
+    return LwSmMapLwError(dwError);
+
+error:
+
+    goto cleanup;
+}
+
+static
+LWMsgStatus
+LwSmDispatchGetLogLevel(
+    LWMsgCall* pCall,
+    LWMsgParams* pIn,
+    LWMsgParams* pOut,
+    PVOID pData
+    )
+{
+    DWORD dwError = 0;
+    PLW_SM_LOG_LEVEL pRes = NULL;
+
+    dwError = LwAllocateMemory(sizeof(*pRes), OUT_PPVOID(&pRes));
+    BAIL_ON_ERROR(dwError);
+
+    *pRes = LwSmGetMaxLogLevel();
+
+    pOut->tag = SM_IPC_GET_LOG_LEVEL_RES;
+    pOut->data = pRes;
+
+cleanup:
+
+    return LwSmMapLwError(dwError);
+
+error:
+
+    LW_SAFE_FREE_MEMORY(pRes);
+
+    goto cleanup;
+}
+
+static
 LWMsgDispatchSpec gDispatchSpec[] =
 {
     LWMSG_DISPATCH_BLOCK(SM_IPC_ACQUIRE_SERVICE_HANDLE_REQ, LwSmDispatchAcquireServiceHandle),
@@ -607,7 +771,11 @@ LWMsgDispatchSpec gDispatchSpec[] =
     LWMSG_DISPATCH_BLOCK(SM_IPC_REFRESH_SERVICE_REQ, LwSmDispatchRefreshService),
     LWMSG_DISPATCH_BLOCK(SM_IPC_QUERY_SERVICE_STATUS_REQ, LwSmDispatchGetServiceStatus),
     LWMSG_DISPATCH_BLOCK(SM_IPC_QUERY_SERVICE_INFO_REQ, LwSmDispatchGetServiceInfo),
-    LWMSG_DISPATCH_BLOCK(SM_IPC_WAIT_SERVICE_REQ, LwSmDispatchWaitService),
+    LWMSG_DISPATCH_NONBLOCK(SM_IPC_WAIT_SERVICE_REQ, LwSmDispatchWaitService),
+    LWMSG_DISPATCH_NONBLOCK(SM_IPC_SET_LOG_INFO_REQ, LwSmDispatchSetLogInfo),
+    LWMSG_DISPATCH_NONBLOCK(SM_IPC_GET_LOG_INFO_REQ, LwSmDispatchGetLogInfo),
+    LWMSG_DISPATCH_NONBLOCK(SM_IPC_SET_LOG_LEVEL_REQ, LwSmDispatchSetLogLevel),
+    LWMSG_DISPATCH_NONBLOCK(SM_IPC_GET_LOG_LEVEL_REQ, LwSmDispatchGetLogLevel),
     LWMSG_DISPATCH_END
 };
 

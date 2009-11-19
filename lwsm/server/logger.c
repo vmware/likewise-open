@@ -41,29 +41,29 @@
 static pthread_mutex_t gLogLock = PTHREAD_MUTEX_INITIALIZER;
 static PSM_LOGGER gpLogger = NULL;
 static PVOID gpLoggerData = NULL;
-static SM_LOG_LEVEL gMaxLevel = SM_LOG_LEVEL_ALWAYS;
+static LW_SM_LOG_LEVEL gMaxLevel = LW_SM_LOG_LEVEL_ALWAYS;
 
 static
 PCSTR
 LwSmLogLevelToString(
-    SM_LOG_LEVEL level
+    LW_SM_LOG_LEVEL level
     )
 {
     switch (level)
     {
-    case SM_LOG_LEVEL_ALWAYS:
+    case LW_SM_LOG_LEVEL_ALWAYS:
         return "ALWAYS";
-    case SM_LOG_LEVEL_ERROR:
+    case LW_SM_LOG_LEVEL_ERROR:
         return "ERROR";
-    case SM_LOG_LEVEL_WARNING:
+    case LW_SM_LOG_LEVEL_WARNING:
         return "WARNING";
-    case SM_LOG_LEVEL_INFO:
+    case LW_SM_LOG_LEVEL_INFO:
         return "INFO";
-    case SM_LOG_LEVEL_VERBOSE:
+    case LW_SM_LOG_LEVEL_VERBOSE:
         return "VERBOSE";
-    case SM_LOG_LEVEL_DEBUG:
+    case LW_SM_LOG_LEVEL_DEBUG:
         return "DEBUG";
-    case SM_LOG_LEVEL_TRACE:
+    case LW_SM_LOG_LEVEL_TRACE:
         return "TRACE";
     default:
         return "UNKNOWN";
@@ -91,38 +91,38 @@ LwSmBasename(
 DWORD
 LwSmLogLevelNameToLogLevel(
     PCSTR pszName,
-    PSM_LOG_LEVEL pLevel
+    PLW_SM_LOG_LEVEL pLevel
     )
 {
     DWORD dwError = 0;
 
     if (!strcasecmp(pszName, "always"))
     {
-        *pLevel = SM_LOG_LEVEL_ALWAYS;
+        *pLevel = LW_SM_LOG_LEVEL_ALWAYS;
     }
     else if (!strcasecmp(pszName, "error"))
     {
-        *pLevel = SM_LOG_LEVEL_ERROR;
+        *pLevel = LW_SM_LOG_LEVEL_ERROR;
     }
     else if (!strcasecmp(pszName, "warning"))
     {
-        *pLevel = SM_LOG_LEVEL_WARNING;
+        *pLevel = LW_SM_LOG_LEVEL_WARNING;
     }
     else if (!strcasecmp(pszName, "info"))
     {
-        *pLevel = SM_LOG_LEVEL_INFO;
+        *pLevel = LW_SM_LOG_LEVEL_INFO;
     }
     else if (!strcasecmp(pszName, "verbose"))
     {
-        *pLevel = SM_LOG_LEVEL_VERBOSE;
+        *pLevel = LW_SM_LOG_LEVEL_VERBOSE;
     }
     else if (!strcasecmp(pszName, "debug"))
     {
-        *pLevel = SM_LOG_LEVEL_DEBUG;
+        *pLevel = LW_SM_LOG_LEVEL_DEBUG;
     }
     else if (!strcasecmp(pszName, "trace"))
     {
-        *pLevel = SM_LOG_LEVEL_TRACE;
+        *pLevel = LW_SM_LOG_LEVEL_TRACE;
     }
     else
     {
@@ -138,7 +138,7 @@ error:
 static
 DWORD
 LwSmLogMessageInLock(
-    SM_LOG_LEVEL level,
+    LW_SM_LOG_LEVEL level,
     PCSTR pszFunctionName,
     PCSTR pszSourceFile,
     DWORD dwLineNumber,
@@ -171,7 +171,7 @@ error:
 
 DWORD
 LwSmLogMessage(
-    SM_LOG_LEVEL level,
+    LW_SM_LOG_LEVEL level,
     PCSTR pszFunctionName,
     PCSTR pszSourceFile,
     DWORD dwLineNumber,
@@ -221,7 +221,7 @@ LwSmSetLogger(
         if (pLogger)
         {
             LwSmLogMessageInLock(
-                SM_LOG_LEVEL_ALWAYS,
+                LW_SM_LOG_LEVEL_ALWAYS,
                 __FUNCTION__,
                 __FILE__,
                 __LINE__,
@@ -230,7 +230,7 @@ LwSmSetLogger(
         else
         {
             LwSmLogMessageInLock(
-                SM_LOG_LEVEL_ALWAYS,
+                LW_SM_LOG_LEVEL_ALWAYS,
                 __FUNCTION__,
                 __FILE__,
                 __LINE__,
@@ -250,7 +250,7 @@ LwSmSetLogger(
         gpLoggerData = pData;
 
         LwSmLogMessageInLock(
-            SM_LOG_LEVEL_ALWAYS,
+            LW_SM_LOG_LEVEL_ALWAYS,
             __FUNCTION__,
             __FILE__,
             __LINE__,
@@ -270,7 +270,7 @@ error:
 
 DWORD
 LwSmLogPrintf(
-    SM_LOG_LEVEL level,
+    LW_SM_LOG_LEVEL level,
     PCSTR pszFunctionName,
     PCSTR pszSourceFile,
     DWORD dwLineNumber,
@@ -319,7 +319,7 @@ error:
 
 VOID
 LwSmSetMaxLogLevel(
-    SM_LOG_LEVEL level
+    LW_SM_LOG_LEVEL level
     )
 {
     BOOLEAN bLocked = FALSE;
@@ -331,6 +331,23 @@ LwSmSetMaxLogLevel(
     UNLOCK(bLocked, &gLogLock);
 
     SM_LOG_ALWAYS("Log level changed to %s", LwSmLogLevelToString(level));
+}
+
+LW_SM_LOG_LEVEL
+LwSmGetMaxLogLevel(
+    VOID
+    )
+{
+    BOOLEAN bLocked = FALSE;
+    LW_SM_LOG_LEVEL level;
+
+    LOCK(bLocked, &gLogLock);
+
+    level = gMaxLevel;
+
+    UNLOCK(bLocked, &gLogLock);
+
+    return level;
 }
 
 typedef struct _SM_FILE_LOG_CONTEXT
@@ -352,7 +369,7 @@ LwSmLogFileOpen (
 
     if (pContext->fd < 0)
     {
-        fd = open(pContext->pszPath, O_WRONLY);
+        fd = open(pContext->pszPath, O_WRONLY | O_CREAT | O_APPEND, 0600);
         if (fd < 0)
         {
             dwError = LwMapErrnoToLwError(errno);
@@ -382,7 +399,7 @@ error:
 static
 DWORD
 LwSmLogFileLog (
-    SM_LOG_LEVEL level,
+    LW_SM_LOG_LEVEL level,
     PCSTR pszFunctionName,
     PCSTR pszSourceFile,
     DWORD dwLineNumber,
@@ -395,19 +412,19 @@ LwSmLogFileLog (
 
     switch (gMaxLevel)
     {
-    case SM_LOG_LEVEL_ALWAYS:
-    case SM_LOG_LEVEL_ERROR:
-    case SM_LOG_LEVEL_WARNING:
-    case SM_LOG_LEVEL_INFO:
-    case SM_LOG_LEVEL_VERBOSE:
+    case LW_SM_LOG_LEVEL_ALWAYS:
+    case LW_SM_LOG_LEVEL_ERROR:
+    case LW_SM_LOG_LEVEL_WARNING:
+    case LW_SM_LOG_LEVEL_INFO:
+    case LW_SM_LOG_LEVEL_VERBOSE:
         fprintf(
             pContext->file,
             "%s: %s\n",
             LwSmLogLevelToString(level),
             pszMessage);
         break;
-    case SM_LOG_LEVEL_DEBUG:
-    case SM_LOG_LEVEL_TRACE:
+    case LW_SM_LOG_LEVEL_DEBUG:
+    case LW_SM_LOG_LEVEL_TRACE:
         fprintf(
             pContext->file,
             "%s:%s():%s:%i: %s\n",
@@ -417,6 +434,8 @@ LwSmLogFileLog (
             (int) dwLineNumber,
             pszMessage);
     }
+
+    fflush(pContext->file);
 
     return dwError;
 }
@@ -442,11 +461,51 @@ LwSmLogFileClose(
     LW_SAFE_FREE_MEMORY(pContext);
 }
 
+static
+DWORD
+LwSmLogFileGetTargetName (
+    PSTR* ppszTargetName,
+    PVOID pData
+    )
+{
+    DWORD dwError = 0;
+    PSM_FILE_LOG_CONTEXT pContext = pData;
+
+    if (pContext->pszPath)
+    {
+        dwError = LwAllocateString(
+            pContext->pszPath,
+            ppszTargetName);
+        BAIL_ON_ERROR(dwError);
+    }
+    else if (pContext->file)
+    {
+        dwError = LwAllocateStringPrintf(
+            ppszTargetName,
+            "fd %i",
+            fileno(pContext->file));
+        BAIL_ON_ERROR(dwError);
+    }
+    else
+    {
+        dwError = LwAllocateString(
+            "none",
+            ppszTargetName);
+        BAIL_ON_ERROR(dwError);
+    }
+
+error:
+
+    return dwError;
+}
+
 static SM_LOGGER gFileLogger =
 {
+    .type = LW_SM_LOGGER_FILE,
     .pfnOpen = LwSmLogFileOpen,
     .pfnLog = LwSmLogFileLog,
-    .pfnClose = LwSmLogFileClose
+    .pfnClose = LwSmLogFileClose,
+    .pfnGetTargetName = LwSmLogFileGetTargetName
 };
 
 static
@@ -466,22 +525,22 @@ LwSmSyslogOpen (
 static
 int
 LwSmLogLevelToPriority(
-    SM_LOG_LEVEL level
+    LW_SM_LOG_LEVEL level
     )
 {
     switch (level)
     {
-    case SM_LOG_LEVEL_ALWAYS:
+    case LW_SM_LOG_LEVEL_ALWAYS:
         return LOG_NOTICE;
-    case SM_LOG_LEVEL_ERROR:
+    case LW_SM_LOG_LEVEL_ERROR:
         return LOG_ERR;
-    case SM_LOG_LEVEL_WARNING:
+    case LW_SM_LOG_LEVEL_WARNING:
         return LOG_WARNING;
-    case SM_LOG_LEVEL_INFO:
+    case LW_SM_LOG_LEVEL_INFO:
         return LOG_INFO;
-    case SM_LOG_LEVEL_VERBOSE:
-    case SM_LOG_LEVEL_DEBUG:
-    case SM_LOG_LEVEL_TRACE:
+    case LW_SM_LOG_LEVEL_VERBOSE:
+    case LW_SM_LOG_LEVEL_DEBUG:
+    case LW_SM_LOG_LEVEL_TRACE:
         return LOG_DEBUG;
     default:
         return LOG_ERR;
@@ -491,7 +550,7 @@ LwSmLogLevelToPriority(
 static
 DWORD
 LwSmSyslogLog (
-    SM_LOG_LEVEL level,
+    LW_SM_LOG_LEVEL level,
     PCSTR pszFunctionName,
     PCSTR pszSourceFile,
     DWORD dwLineNumber,
@@ -503,18 +562,18 @@ LwSmSyslogLog (
 
     switch (gMaxLevel)
     {
-    case SM_LOG_LEVEL_ALWAYS:
-    case SM_LOG_LEVEL_ERROR:
-    case SM_LOG_LEVEL_WARNING:
-    case SM_LOG_LEVEL_INFO:
-    case SM_LOG_LEVEL_VERBOSE:
+    case LW_SM_LOG_LEVEL_ALWAYS:
+    case LW_SM_LOG_LEVEL_ERROR:
+    case LW_SM_LOG_LEVEL_WARNING:
+    case LW_SM_LOG_LEVEL_INFO:
+    case LW_SM_LOG_LEVEL_VERBOSE:
         syslog(
             LwSmLogLevelToPriority(level) | LOG_DAEMON,
             "%s\n",
             pszMessage);
         break;
-    case SM_LOG_LEVEL_DEBUG:
-    case SM_LOG_LEVEL_TRACE:
+    case LW_SM_LOG_LEVEL_DEBUG:
+    case LW_SM_LOG_LEVEL_TRACE:
         syslog(
             LwSmLogLevelToPriority(level) | LOG_DAEMON,
             "%s():%s:%i: %s\n",
@@ -536,11 +595,32 @@ LwSmSyslogClose(
     closelog();
 }
 
+static
+DWORD
+LwSmSyslogGetTargetName (
+    PSTR* ppszTargetName,
+    PVOID pData
+    )
+{
+    DWORD dwError = 0;
+
+    dwError = LwAllocateString(
+        "LOG_DAEMON",
+        ppszTargetName);
+    BAIL_ON_ERROR(dwError);
+
+error:
+
+    return dwError;
+}
+
 static SM_LOGGER gSyslogLogger =
 {
+    .type = LW_SM_LOGGER_SYSLOG,
     .pfnOpen = LwSmSyslogOpen,
     .pfnLog = LwSmSyslogLog,
-    .pfnClose = LwSmSyslogClose
+    .pfnClose = LwSmSyslogClose,
+    .pfnGetTargetName = LwSmSyslogGetTargetName
 };
 
 DWORD
@@ -585,6 +665,8 @@ LwSmSetLoggerToPath(
     dwError = LwAllocateMemory(sizeof(*pContext), OUT_PPVOID(&pContext));
     BAIL_ON_ERROR(dwError);
 
+    pContext->fd = -1;
+
     dwError = LwAllocateString(pszPath, &pContext->pszPath);
     BAIL_ON_ERROR(dwError);
 
@@ -613,3 +695,36 @@ LwSmSetLoggerToSyslog(
     return LwSmSetLogger(&gSyslogLogger, (PVOID) pszProgramName);
 }
 
+DWORD
+LwSmSrvGetLogInfo(
+    LW_SM_LOGGER_TYPE* pType,
+    PSTR* ppszTargetName
+    )
+{
+    DWORD dwError = 0;
+    BOOLEAN bLocked = FALSE;
+
+    LOCK(bLocked, &gLogLock);
+
+    if (!gpLogger)
+    {
+        *pType = LW_SM_LOGGER_NONE;
+        *ppszTargetName = NULL;
+    }
+    else
+    {
+        *pType = gpLogger->type;
+        dwError = gpLogger->pfnGetTargetName(ppszTargetName, gpLoggerData);
+        BAIL_ON_ERROR(dwError);
+    }
+
+cleanup:
+
+    UNLOCK(bLocked, &gLogLock);
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
