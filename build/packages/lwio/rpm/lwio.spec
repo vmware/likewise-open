@@ -40,6 +40,7 @@ rsync -a __PKG_POPULATE_DIR/ ${RPM_BUILD_ROOT}/
 %files
 %defattr(-,root,root)
 %{INIT_DIR}/*
+%config /etc/likewise/lwiod.reg
 %{PrefixDir}/sbin/*
 %{PrefixDir}/bin/*
 

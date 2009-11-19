@@ -47,6 +47,8 @@ rsync -a __PKG_POPULATE_DIR/ ${RPM_BUILD_ROOT}/
 %{_sysconfdir}/init.d/*
 %config(noreplace) /etc/likewise/pstore.conf
 %config /etc/likewise/likewise-krb5-ad.conf
+%config /etc/likewise/gss/mech
+%config /etc/likewise/lsassd.reg
 %{PrefixDir}/sbin/*
 %{PrefixDir}/bin/*
 %endif

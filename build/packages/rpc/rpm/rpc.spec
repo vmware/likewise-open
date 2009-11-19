@@ -34,6 +34,7 @@ rsync -a __PKG_POPULATE_DIR/ ${RPM_BUILD_ROOT}/
 %defattr(-,root,root)
 %{PrefixDir}/*
 %{_sysconfdir}/init.d/*
+%config /etc/likewise/dcerpcd.reg
 %dir /var/lib/likewise/rpc
 
 %if ! %{Compat32}

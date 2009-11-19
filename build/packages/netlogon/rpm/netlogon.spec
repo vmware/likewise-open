@@ -39,6 +39,7 @@ rsync -a __PKG_POPULATE_DIR/ ${RPM_BUILD_ROOT}/
 %defattr(-,root,root)
 %{INIT_DIR}/*
 # %config %{_sysconfdir}/likewise/likewise-krb5-ad.conf
+%config /etc/likewise/netlogond.reg
 %{PrefixDir}/sbin/*
 %{PrefixDir}/bin/*
 %{PrefixDir}/%{_lib}/*
