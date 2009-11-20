@@ -43,6 +43,9 @@
 #include <pthread.h>
 #include <signal.h>
 #include <unistd.h>
+#ifdef HAVE_STRINGS_H
+   #include <strings.h>
+#endif
 
 #include <lw/winerror.h>
 #include <lwerror.h>
