@@ -1302,7 +1302,6 @@ pfnRegShellCompleteCallback(
                 else
                 {
                     putchar('\a');
-                    el_set(el, EL_REFRESH);
                 }
             }
             else
@@ -1310,13 +1309,13 @@ pfnRegShellCompleteCallback(
                 /*
                  * No input provided, display all keys at this level
                  */
+                putchar('\a');
                 for (i=0; i<dwMatchArgsLen; i++)
                 {
                     printf("%s\t", ppMatchArgs[i]);
                 }
                 printf("\n");
             }
-            el_set(el, EL_REFRESH);
 
         }
         else if (dwMatchArgsLen == 1 ||
@@ -1371,7 +1370,6 @@ pfnRegShellCompleteCallback(
                 {
                     printf("Oops: 3 el_insertstr failed\n");
                 }
-                el_set(el, EL_REFRESH);
             }
 
             LW_SAFE_FREE_STRING(cldata->pParseState->pszDefaultKeyCompletion);
@@ -1420,7 +1418,7 @@ pfnRegShellCompleteCallback(
         }
         else
         {
-            printf("\n");
+            printf("\a\n");
             for (i=0; i<dwSubKeyLen; i++)
             {
                 dwError = LwWc16sToMbs(ppSubKeys[i], &pszSubKey);
