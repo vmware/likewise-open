@@ -141,6 +141,7 @@ DWORD
 LWNetSrvGetDCNameDiscover(
     IN PCSTR pszDnsDomainName,
     IN OPTIONAL PCSTR pszSiteName,
+    IN OPTIONAL PCSTR pszPrimaryDomain,
     IN DWORD dwDsFlags,
     IN DWORD dwBlackListCount,
     IN PSTR* ppszAddressBlackList,
