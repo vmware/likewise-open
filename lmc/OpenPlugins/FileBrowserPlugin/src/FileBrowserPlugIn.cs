@@ -662,13 +662,13 @@ namespace Likewise.LMC.Plugins.FileBrowser
 
                 if (destinationDialog.ShowDialog() == DialogResult.OK)
                 {
-                    destination = destinationDialog.GetPath() + "\\" + node.Name;
+                    destination = destinationDialog.GetPath() + PathSeparator + node.Name;
 
                     WinError error = FileClient.FileClient.apiCopyDirectory(node.Path, destination, true);
 
                     if (error == WinError.ERROR_FILE_EXISTS)
                     {
-                        destination = destinationDialog.GetPath() + "\\Copy of " + node.Name;
+                        destination = destinationDialog.GetPath() + PathSeparator + "Copy of " + node.Name;
                         error = FileClient.FileClient.apiCopyDirectory(node.Path, destination, true);
                     }
 
@@ -693,13 +693,13 @@ namespace Likewise.LMC.Plugins.FileBrowser
 
                 if (destinationDialog.ShowDialog() == DialogResult.OK)
                 {
-                    destination = destinationDialog.GetPath() + "\\" + node.Name;
+                    destination = destinationDialog.GetPath() + PathSeparator + node.Name;
 
                     WinError error = FileClient.FileClient.apiMoveDirectory(node.Path, destination);
 
                     if (error == WinError.ERROR_FILE_EXISTS)
                     {
-                        destination = destinationDialog.GetPath() + "\\Copy of " + node.Name;
+                        destination = destinationDialog.GetPath() + PathSeparator + "Copy of " + node.Name;
                         error = FileClient.FileClient.apiMoveDirectory(node.Path, destination);
                     }
 
@@ -714,6 +714,27 @@ namespace Likewise.LMC.Plugins.FileBrowser
 
         private void cm_OnRename(object sender, EventArgs e)
         {
+            if (_currentNode != null)
+            {
+                FileBrowserNode node = _currentNode as FileBrowserNode;
+                string newName = "";
+
+                // Determine destingation to copy to
+                SelectDestinationDialog destinationDialog = new SelectDestinationDialog(node.Name, SelectDestinationDialog.SELECT_DESTINATION_OPERATION.MOVE_DIRECTORY, this);
+
+                if (destinationDialog.ShowDialog() == DialogResult.OK)
+                {
+                    newName = destinationDialog.GetPath();
+
+                    WinError error = FileClient.FileClient.apiRename(node.Path, newName);
+
+                    if (error != WinError.NO_ERROR)
+                    {
+                        string message = "Rename directory operation failed. Error: " + error.ToString();
+                        MessageBox.Show(message, "Could not rename directory", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
+            }
         }
 
         #endregion

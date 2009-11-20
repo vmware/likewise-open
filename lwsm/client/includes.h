@@ -39,10 +39,14 @@
 #ifndef __LWSM_INCLUDES_H__
 #define __LWSM_INCLUDES_H__
 
+#include "config.h"
 #include <stdio.h>
 #include <pthread.h>
 #include <signal.h>
 #include <unistd.h>
+#ifdef HAVE_STRINGS_H
+   #include <strings.h>
+#endif
 
 #include <lw/winerror.h>
 #include <lwerror.h>
@@ -50,7 +54,6 @@
 #include <lwstr.h>
 #include <lwmsg/lwmsg.h>
 
-#include "config.h"
 #include "client.h"
 
 #endif

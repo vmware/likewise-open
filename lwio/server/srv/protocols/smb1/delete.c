@@ -372,12 +372,6 @@ SrvDeleteFiles(
                             &pDeleteState->fileName.FileName);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            if (pDeleteState->pResult->FileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-            {
-                ntStatus = STATUS_FILE_IS_A_DIRECTORY;
-                BAIL_ON_NT_STATUS(ntStatus);
-            }
-
             SrvPrepareDeleteStateAsync(pDeleteState, pExecContext);
 
             pDeleteState->bPendingCreate = TRUE;

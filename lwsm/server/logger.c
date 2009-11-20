@@ -409,6 +409,12 @@ LwSmLogFileLog (
 {
     DWORD dwError = 0;
     PSM_FILE_LOG_CONTEXT pContext = pData;
+    time_t currentTime = time(NULL);
+    struct tm tmp = {0};
+    char timeBuf[128];
+
+    localtime_r(&currentTime, &tmp);
+    strftime(timeBuf, sizeof(timeBuf), "%Y%m%d%H%M%S", &tmp);
 
     switch (gMaxLevel)
     {
@@ -419,7 +425,8 @@ LwSmLogFileLog (
     case LW_SM_LOG_LEVEL_VERBOSE:
         fprintf(
             pContext->file,
-            "%s: %s\n",
+            "%s:%s: %s\n",
+            timeBuf,
             LwSmLogLevelToString(level),
             pszMessage);
         break;
@@ -427,7 +434,8 @@ LwSmLogFileLog (
     case LW_SM_LOG_LEVEL_TRACE:
         fprintf(
             pContext->file,
-            "%s:%s():%s:%i: %s\n",
+            "%s:%s:%s():%s:%i: %s\n",
+            timeBuf,
             LwSmLogLevelToString(level),
             pszFunctionName,
             LwSmBasename(pszSourceFile),

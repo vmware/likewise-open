@@ -575,8 +575,7 @@ SrvBuildGetInfoState_SMB_V2(
 
     pGetInfoState->pRequestHeader = pRequestHeader;
 
-    pGetInfoState->pConnection = pConnection;
-    InterlockedIncrement(&pConnection->refCount);
+    pGetInfoState->pConnection = SrvConnectionAcquire(pConnection);
 
     pGetInfoState->pFile = SrvFile2Acquire(pFile);
 

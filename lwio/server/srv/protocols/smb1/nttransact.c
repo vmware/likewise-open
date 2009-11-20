@@ -259,14 +259,7 @@ SrvProcessNtTransact(
 
         case SMB_SUB_COMMAND_NT_TRANSACT_NOTIFY_CHANGE :
 
-            if (TRUE)
-            {
-                ntStatus = STATUS_NOT_IMPLEMENTED;
-            }
-            else
-            {
-                ntStatus = SrvProcessNotifyChange(pExecContext);
-            }
+            ntStatus = SrvProcessNotifyChange(pExecContext);
 
             break;
 
@@ -1331,7 +1324,7 @@ SrvProcessNotifyChange(
                             pCtxSmb1->pFile,
                             pSmbRequest->pHeader->mid,
                             SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
-                            pSmbRequest->ulSerialNum,
+                            pExecContext->pSmbRequest->sequence,
                             pNTTransactState->pNotifyChangeHeader->ulCompletionFilter,
                             pNTTransactState->pNotifyChangeHeader->bWatchTree,
                             pNTTransactState->pRequestHeader->ulMaxParameterCount,

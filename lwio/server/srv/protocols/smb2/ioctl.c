@@ -285,8 +285,7 @@ SrvBuildIOCTLState_SMB_V2(
     pthread_mutex_init(&pIOCTLState->mutex, NULL);
     pIOCTLState->pMutex = &pIOCTLState->mutex;
 
-    pIOCTLState->pConnection = pConnection;
-    InterlockedIncrement(&pConnection->refCount);
+    pIOCTLState->pConnection = SrvConnectionAcquire(pConnection);
 
     pIOCTLState->pFile = SrvFile2Acquire(pFile);
 

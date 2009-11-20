@@ -72,6 +72,7 @@
 #include <lwsecurityidentifier.h>
 #include <lsautils.h>
 #include <lwdef.h>
+#include <lwkrb5.h>
 #include <lwmem.h>
 #include <lwstr.h>
 #include <wc16str.h>

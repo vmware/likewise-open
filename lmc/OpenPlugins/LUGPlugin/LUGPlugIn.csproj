@@ -36,6 +36,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="src\ChangePasswordDlg.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="src\ChangePasswordDlg.Designer.cs">
+      <DependentUpon>ChangePasswordDlg.cs</DependentUpon>
+    </Compile>
     <Compile Include="src\DummyLUGPage.cs">
       <SubType>UserControl</SubType>
     </Compile>
@@ -95,6 +101,10 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="src\ChangePasswordDlg.resx">
+      <SubType>Designer</SubType>
+      <DependentUpon>ChangePasswordDlg.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="src\DummyLUGPage.resx">
       <SubType>Designer</SubType>
       <DependentUpon>DummyLUGPage.cs</DependentUpon>

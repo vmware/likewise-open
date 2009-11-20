@@ -112,8 +112,7 @@ SrvBuildOplockState_SMB_V2(
     pthread_mutex_init(&pOplockState->mutex, NULL);
     pOplockState->pMutex = &pOplockState->mutex;
 
-    pOplockState->pConnection = pConnection;
-    InterlockedIncrement(&pConnection->refCount);
+    pOplockState->pConnection = SrvConnectionAcquire(pConnection);
 
     pOplockState->ullUid = pSession->ullUid;
 
