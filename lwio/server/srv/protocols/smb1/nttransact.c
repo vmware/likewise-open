@@ -1331,7 +1331,7 @@ SrvProcessNotifyChange(
                             pCtxSmb1->pFile,
                             pSmbRequest->pHeader->mid,
                             SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
-                            pSmbRequest->ulSerialNum,
+                            pExecContext->pSmbRequest->sequence,
                             pNTTransactState->pNotifyChangeHeader->ulCompletionFilter,
                             pNTTransactState->pNotifyChangeHeader->bWatchTree,
                             pNTTransactState->pRequestHeader->ulMaxParameterCount,
