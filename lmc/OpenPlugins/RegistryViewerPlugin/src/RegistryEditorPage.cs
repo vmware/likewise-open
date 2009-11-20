@@ -152,6 +152,10 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                     plugin.RegRootKeySelected = treeNode.Text.Trim();
                     RegistryInteropWrapperWindows.Win32RegOpenRemoteBaseKey(hKey,
                                                         out sSubKey);
+
+                    RegistryInteropWrapperWindows.ApiRegGetKeySecurity(
+                                RegistryInteropWrapperWindows.GetRegistryHive(HKEY.HEKY_CURRENT_USER),
+                                @"HKEY_CURRENT_USER\TestKey");
                     break;
 
                 case RegistryViewerPlugin.NodeType.HKEY_LOCAL_MACHINE:
@@ -667,8 +671,8 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
 		                regKeyInfo = node == null ? null : node.Tag as RegistryEnumKeyInfo;
 		                regValueInfo = node == null ? mi.Tag as RegistryValueInfo : null;
 
-						if(nodeType != RegistryViewerPlugin.NodeType.HKEY_LIKEWISE)
-						{
+                        if (!node.Text.Trim().Equals(Properties.Resources.HKEY_THIS_MACHINE, StringComparison.InvariantCultureIgnoreCase))
+                        {
 			                if (regKeyInfo != null)
 			                {
 			                    RegistryInteropWrapper.ApiRegOpenKeyExW(plugin.handle.Handle,
@@ -2203,8 +2207,19 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                     if (lvItem.Tag != null && lvItem.Tag is RegistryValueInfo)
                     {
                         RegistryValueInfo regValueInfo = lvItem.Tag as RegistryValueInfo;
+
                         if (regValueInfo != null)
                         {
+                            if (!treeNode.Text.Trim().Equals(Properties.Resources.HKEY_THIS_MACHINE, StringComparison.InvariantCultureIgnoreCase))
+                            {
+                                RegistryInteropWrapper.ApiRegOpenKeyExW(plugin.handle.Handle,
+                                                   plugin.pRootHandle,
+                                                   regValueInfo.sKeyname,
+                                                   out regValueInfo.pParentKey);
+                            }
+                            else {
+                                regValueInfo.pParentKey = plugin.pRootHandle;
+                            }
                             DoEditorWork(regValueInfo, false, (ulong)regValueInfo.pType);
                         }
                     }
