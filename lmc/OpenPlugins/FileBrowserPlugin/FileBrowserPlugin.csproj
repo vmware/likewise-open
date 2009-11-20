@@ -1,4 +1,5 @@
-﻿<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
@@ -43,8 +44,6 @@
     </Compile>
     <Compile Include="Properties\Resources.Designer.cs">
       <DependentUpon>Resources.resx</DependentUpon>
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="src\ConnectToShareDialog.cs">
@@ -66,8 +65,7 @@
       <DependentUpon>SelectDestinationDialog.cs</DependentUpon>
     </Compile>
     <Compile Include="src\FileBrowserNode.cs" />
-    <Compile Include="src\FileBrowserPlugIn.cs">
-    </Compile>
+    <Compile Include="src\FileBrowserPlugIn.cs" />
     <Compile Include="src\FileBrowserPage.cs">
       <SubType>UserControl</SubType>
     </Compile>
@@ -80,23 +78,22 @@
     <EmbeddedResource Include="Properties\Resources.resx">
       <SubType>Designer</SubType>
       <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
     <EmbeddedResource Include="src\ConnectToShareDialog.resx">
       <DependentUpon>ConnectToShareDialog.cs</DependentUpon>
       <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="src\PropertiesDialog.resx">
-      <SubType>Designer</SubType>
       <DependentUpon>PropertiesDialog.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="src\SelectDestinationDialog.resx">
       <DependentUpon>SelectDestinationDialog.cs</DependentUpon>
       <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="src\FileBrowserPage.resx">
-      <SubType>Designer</SubType>
       <DependentUpon>FileBrowserPage.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
@@ -123,26 +120,12 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Folder.ico" />
-  </ItemGroup>
-  <ItemGroup>
     <None Include="Resources\FolderOpen.ico" />
-  </ItemGroup>
-  <ItemGroup>
     <None Include="Resources\Share.ico" />
-  </ItemGroup>
-  <ItemGroup>
     <None Include="Resources\Computer_48.ico" />
-  </ItemGroup>
-  <ItemGroup>
     <None Include="Resources\Computer.ico" />
-  </ItemGroup>
-  <ItemGroup>
     <None Include="Resources\Library.ico" />
-  </ItemGroup>
-  <ItemGroup>
     <None Include="Resources\Home.ico" />
-  </ItemGroup>
-  <ItemGroup>
     <None Include="Resources\Document.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
@@ -153,4 +136,13 @@
   <Target Name="AfterBuild">
   </Target>
   -->
+  <ProjectExtensions>
+    <MonoDevelop>
+      <Properties>
+        <Policies>
+          <TextStylePolicy FileWidth="120" TabWidth="4" TabsToSpaces="True" NoTabsAfterNonTabs="True" RemoveTrailingWhitespace="False" EolMarker="Native" />
+        </Policies>
+      </Properties>
+    </MonoDevelop>
+  </ProjectExtensions>
 </Project>
