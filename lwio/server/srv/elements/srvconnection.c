@@ -598,6 +598,16 @@ error:
     goto cleanup;
 }
 
+PLWIO_SRV_CONNECTION
+SrvConnectionAcquire(
+    PLWIO_SRV_CONNECTION pConnection
+    )
+{
+    InterlockedIncrement(&pConnection->refCount);
+
+    return pConnection;
+}
+
 VOID
 SrvConnectionRelease(
     PLWIO_SRV_CONNECTION pConnection

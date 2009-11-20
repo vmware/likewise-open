@@ -613,6 +613,11 @@ SrvConnectionIsInvalid(
     PLWIO_SRV_CONNECTION pConnection
     );
 
+PLWIO_SRV_CONNECTION
+SrvConnectionAcquire(
+    PLWIO_SRV_CONNECTION pConnection
+    );
+
 VOID
 SrvConnectionRelease(
     PLWIO_SRV_CONNECTION pConnection

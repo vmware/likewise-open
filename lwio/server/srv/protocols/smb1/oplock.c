@@ -112,8 +112,7 @@ SrvBuildOplockState(
     pthread_mutex_init(&pOplockState->mutex, NULL);
     pOplockState->pMutex = &pOplockState->mutex;
 
-    pOplockState->pConnection = pConnection;
-    InterlockedIncrement(&pConnection->refCount);
+    pOplockState->pConnection = SrvConnectionAcquire(pConnection);
 
     pOplockState->usUid = pSession->uid;
     pOplockState->usTid = pTree->tid;
