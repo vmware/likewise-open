@@ -31,8 +31,9 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
-using Likewise.LMC.Utilities;
 using System.Runtime.InteropServices;
+using Likewise.LMC.SecurityDesriptor;
+using Likewise.LMC.Utilities;
 
 //Use the DebugMarshal for Debug builds, and the standard Marshal in release builds
 #if DEBUG
@@ -247,5 +248,19 @@ namespace Likewise.LMC.Registry
 
         [DllImport("kernel32.dll", CharSet = CharSet.Auto)]
         public extern static bool CloseHandle(IntPtr handle);
+
+        /*LONG WINAPI RegGetKeySecurity(
+          __in       HKEY hKey,
+          __in       SECURITY_INFORMATION SecurityInformation,
+          __out_opt  PSECURITY_DESCRIPTOR pSecurityDescriptor,
+          __inout    LPDWORD lpcbSecurityDescriptor
+        );*/
+        [DllImport("advapi32", CharSet = CharSet.Auto, SetLastError = true)]
+        public static extern uint RegGetKeySecurity(
+            IntPtr hKey,
+            SecurityDescriptorApi.SECURITY_INFORMATION SecurityInformation,
+            ref IntPtr pSecurityDescriptor,
+            ref ulong lpcbSecurityDescriptor);
+
     }    
 }

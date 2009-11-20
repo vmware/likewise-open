@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -51,6 +51,10 @@
     <ProjectReference Include="..\..\LMCUtilities\LMCUtilities.csproj">
       <Project>{812CAFA6-B428-4565-A839-A2E1B68096E3}</Project>
       <Name>LMCUtilities</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\SecurityDescriptor\SecurityDescriptor.csproj">
+      <Project>{FD7DA096-AE24-469F-8358-51E5B25327F4}</Project>
+      <Name>SecurityDescriptor</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

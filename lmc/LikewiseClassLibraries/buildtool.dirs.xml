@@ -3,9 +3,10 @@
   <dir name="Ldap"/>
   <dir name="System.DirectoryServices" />
   <dir name="Netlogon"/>
-  <dir name="Netapi"/>  
-  <dir name="Registry"/>  
-  <dir name="Services"/>  
+  <dir name="Netapi"/>
+  <dir name="SecurityDescriptor"/>
+  <dir name="Registry"/>
+  <dir name="Services"/>
   <dir name="Eventlog"/>
   <dir name="FileClientApi"/>
   <!--dir name="LSAMgmt"/-->  

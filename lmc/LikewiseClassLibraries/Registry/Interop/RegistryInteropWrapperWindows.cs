@@ -31,12 +31,14 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
-using Likewise.LMC.Utilities;
 using System.Runtime.InteropServices;
-
 using System.Security.Principal;
 using System.Security.Permissions;
+
 using Microsoft.Win32;
+
+using Likewise.LMC.Utilities;
+using Likewise.LMC.SecurityDesriptor;
 
 namespace Likewise.LMC.Registry
 {
@@ -308,6 +310,56 @@ namespace Likewise.LMC.Registry
             }
 
             return ret;
+        }
+
+        public static uint ApiRegGetKeySecurity(RegistryHive hive, string _sObjectname)
+        {
+            uint iRet = 0;
+
+            Logger.Log(string.Format("RegistryInteropWrapperWindows.ApiRegGetKeySecurity(_sObjectname = {0})", _sObjectname), Logger.LogLevel.Verbose);
+
+            IntPtr hKey = (IntPtr)0, phSubKey = (IntPtr)0;
+            IntPtr pSecurityDescriptor = IntPtr.Zero;
+            ulong lpcbSecurityDescriptor = 0;
+
+            if ((RegistryInteropWindows.RegConnectRegistry(RegistryInteropWrapperWindows.sHostName, hive, out hKey)) == 0)
+            {
+                try
+                {
+                    if ((RegistryInteropWindows.RegOpenKey(hKey, _sObjectname, out phSubKey)) == 0)
+                    {
+                        iRet = RegistryInteropWindows.RegGetKeySecurity(phSubKey,
+                                                     SecurityDescriptorApi.SECURITY_INFORMATION.OWNER_SECURITY_INFORMATION |
+                                                     SecurityDescriptorApi.SECURITY_INFORMATION.GROUP_SECURITY_INFORMATION |
+                                                     SecurityDescriptorApi.SECURITY_INFORMATION.DACL_SECURITY_INFORMATION |
+                                                     SecurityDescriptorApi.SECURITY_INFORMATION.SACL_SECURITY_INFORMATION,
+                                                     ref pSecurityDescriptor,
+                                                     ref lpcbSecurityDescriptor);
+
+                        if (iRet != 0)
+                        {
+                            Logger.Log(string.Format("RegistryInteropWrapperWindows.ApiRegGetKeySecurity returns error code; " + iRet), Logger.LogLevel.Verbose);
+                            return iRet;
+                        }
+                    }
+                }
+                finally
+                {
+                    if ((int)phSubKey > 0)
+                    {
+                        // Attempt to dispose of key
+                        RegistryInteropWindows.RegCloseKey(phSubKey);
+                    }
+
+                    if ((int)hKey > 0)
+                    {
+                        // Attempt to dispose of hive
+                        RegistryInteropWindows.RegCloseKey(hKey);
+                    }
+                }
+            }
+
+            return iRet;
         }
 
         #endregion
