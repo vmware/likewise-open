@@ -173,11 +173,6 @@ error:
     	*pdwGoodUntilTime = 0;
     }
 
-    if (KRB5_KDC_UNREACH == ret)
-    {
-        dwError = LW_ERROR_DOMAIN_IS_OFFLINE;
-    }
-
     goto cleanup;
 }
 

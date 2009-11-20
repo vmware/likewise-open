@@ -891,6 +891,7 @@ LwTranslateKrb5Error(
 {
     DWORD dwError = LW_ERROR_SUCCESS;
     PCSTR pszKrb5Error = NULL;
+    unsigned int i = 0;
 
     if (ctx)
     {
@@ -914,33 +915,23 @@ LwTranslateKrb5Error(
 
     switch (krbError)
     {
-        case KRB5KDC_ERR_KEY_EXP:
-            dwError = LW_ERROR_PASSWORD_EXPIRED;
-            break;
-        case KRB5_LIBOS_BADPWDMATCH:
-            dwError = LW_ERROR_PASSWORD_MISMATCH;
-            break;
-        case KRB5KRB_AP_ERR_SKEW:
-            dwError = LW_ERROR_CLOCK_SKEW;
-            break;
-        case KRB5KDC_ERR_CLIENT_REVOKED:
-            // The account could also be locked out
-            dwError = LW_ERROR_ACCOUNT_DISABLED;
-            break;
         case ENOENT:
             dwError = LW_ERROR_KRB5_NO_KEYS_FOUND;
             break;
-        case KRB5KDC_ERR_PREAUTH_FAILED:
-            dwError = LW_ERROR_PASSWORD_MISMATCH;
-            break;
-        case KRB5KDC_ERR_C_PRINCIPAL_UNKNOWN:
-            dwError = LW_ERROR_INVALID_ACCOUNT;            
-            break;
-        case KRB5KDC_ERR_S_PRINCIPAL_UNKNOWN:
-            dwError = LW_ERROR_KRB5_S_PRINCIPAL_UNKNOWN;
-            break;            
         default:
-            dwError = LW_ERROR_KRB5_CALL_FAILED;
+            for (i = 0; krb5err_lwerr_map[i].pszKrb5errStr; i++)
+            {
+                if (krb5err_lwerr_map[i].krb5err == krbError)
+                {
+                    dwError = krb5err_lwerr_map[i].lwerr;
+                    break;
+                }
+            }
+
+            if (!dwError)
+            {
+                dwError = LW_ERROR_KRB5_CALL_FAILED;
+            }
             break;
     }
 
@@ -1371,7 +1362,6 @@ LwSetupUserLoginSession(
     BOOLEAN bInLock = FALSE;
     PCSTR pszTempCacheName = NULL;
     PSTR pszTempCachePath = NULL;
-    PSTR pszUnreachableRealm = NULL;
     char* pchLogonInfo = NULL;
     size_t sLogonInfo = 0;
 
@@ -1419,20 +1409,6 @@ LwSetupUserLoginSession(
         pTgsCreds = NULL;
     }
 
-    if (KRB5_KDC_UNREACH == ret)
-    {
-        // ISSUE-2008/09/22-dalmeida -- I think that we do not
-        // necessarily know the domain here because there
-        // may be been some traversal issue in a trust scenario.
-        // It may be ok to just transition the user's domain offline since
-        // logons from that domain will have problems.
-        // Figuring out how to solve this issue so that we
-        // can transition the proper domain offline is left as
-        // a future enhancement.  One way would be to save off realm from
-        // the error message (see krb5_sendto_kdc).  However, that
-        // would be dependent of the version of Kerberos being used.
-        pszUnreachableRealm = NULL;
-    }
     BAIL_ON_KRB_ERROR(ctx, ret);
 
     //No need to store the tgs in the cc. Kerberos does that automatically
@@ -1591,7 +1567,6 @@ LwSetupUserLoginSession(
     *psLogonInfo = sLogonInfo;
 
 cleanup:
-    LW_SAFE_FREE_STRING(pszUnreachableRealm);
     if (ctx)
     {
         // This function skips fields which are NULL
@@ -1636,11 +1611,6 @@ cleanup:
     return dwError;
 
 error:
-    if ((LW_ERROR_KRB5_CALL_FAILED == dwError) &&
-        (KRB5_KDC_UNREACH == ret))
-    {
-        dwError = LW_ERROR_DOMAIN_IS_OFFLINE;
-    }
 
     LW_SAFE_FREE_MEMORY(pchLogonInfo);
     *ppchLogonInfo = NULL;
