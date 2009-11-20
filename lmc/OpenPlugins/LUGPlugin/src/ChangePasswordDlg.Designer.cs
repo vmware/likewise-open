@@ -67,6 +67,7 @@ namespace Likewise.LMC.Plugins.LUG
             //
             // btnCancel
             //
+            this.btnCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this.btnCancel.Location = new System.Drawing.Point(255, 131);
             this.btnCancel.Name = "btnCancel";
             this.btnCancel.Size = new System.Drawing.Size(75, 23);
@@ -97,7 +98,9 @@ namespace Likewise.LMC.Plugins.LUG
             //
             // ChangePasswordDlg
             //
+            this.AcceptButton = this.btnOK;
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
+            this.CancelButton = this.btnCancel;
             this.ClientSize = new System.Drawing.Size(342, 166);
             this.Controls.Add(this.confirmPassword);
             this.Controls.Add(this.newPassword);
