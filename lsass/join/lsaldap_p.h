@@ -53,6 +53,7 @@
 DWORD
 LsaLdapOpenDirectoryWithReaffinity(
     IN PCSTR pszDnsDomainOrForestName,
+    IN PCSTR pszPrimaryDomain,
     IN DWORD dwFlags,
     IN BOOLEAN bNeedGc,
     OUT PHANDLE phDirectory
