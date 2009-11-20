@@ -240,6 +240,7 @@ KtKrb5AddKey(
     krb5_keytab_entry entry = {0};
     krb5_keytab_entry *entries = NULL;
     krb5_kvno kvno = 0;
+    krb5_octet search_kvno = 0;
     krb5_data password = {0}, salt = {0};
     krb5_keyblock key = {0};
     krb5_encrypt_block key_encrypted = {0};
@@ -278,10 +279,12 @@ KtKrb5AddKey(
     /* Handle other errors */
     BAIL_ON_KT_ERROR(dwError);
 
-    /* Find the latest version of this key and remove old ones
+    /* Find the latest version of this key and remove old ones.
+     * Key versions are stored as a single byte.
      */
+    search_kvno = (krb5_octet)(kvno - 1);
     for (i = 0; i < count; i++) {
-        if ((kvno - 1) == entries[i].vno) {
+        if (search_kvno == entries[i].vno) {
            /* Don't remove the ones with just one version older */
            continue;
         }
