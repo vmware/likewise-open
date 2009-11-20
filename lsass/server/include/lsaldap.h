@@ -50,6 +50,7 @@
 DWORD
 LsaLdapOpenDirectoryDomain(
     IN PCSTR pszDnsDomainName,
+    IN PCSTR pszPrimaryDomain,
     IN DWORD dwFlags,
     OUT PHANDLE phDirectory
     );
@@ -57,6 +58,7 @@ LsaLdapOpenDirectoryDomain(
 DWORD
 LsaLdapOpenDirectoryGc(
     IN PCSTR pszDnsForestName,
+    IN PCSTR pszPrimaryDomain,
     IN DWORD dwFlags,
     OUT PHANDLE phDirectory
     );

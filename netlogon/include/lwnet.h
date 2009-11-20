@@ -205,6 +205,19 @@ LWNetGetDCName(
 
 LWNET_API
 LW_DWORD
+LWNetGetDCNameExt(
+    LW_PCSTR pszServerFQDN,
+    LW_PCSTR pszDomainFQDN,
+    LW_PCSTR pszSiteName,
+    LW_PCSTR pszPrimaryDomain,
+    LW_DWORD dwFlags,
+    LW_IN LW_DWORD dwBlackListCount,
+    LW_IN LW_OPTIONAL LW_PSTR* ppszAddressBlackList,
+    PLWNET_DC_INFO* ppDCInfo
+    );
+
+LWNET_API
+LW_DWORD
 LWNetGetDCNameWithBlacklist(
     LW_IN LW_PCSTR pszServerFQDN,
     LW_IN LW_PCSTR pszDomainFQDN,

@@ -37,7 +37,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
             //
             // CancelBtn
             //
-            this.CancelBtn.Location = new System.Drawing.Point(253, 350);
+            this.CancelBtn.Location = new System.Drawing.Point(247, 350);
             this.CancelBtn.Name = "CancelBtn";
             this.CancelBtn.Size = new System.Drawing.Size(75, 23);
             this.CancelBtn.TabIndex = 4;
@@ -47,7 +47,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
             //
             // OKBtn
             //
-            this.OKBtn.Location = new System.Drawing.Point(172, 350);
+            this.OKBtn.Location = new System.Drawing.Point(166, 350);
             this.OKBtn.Name = "OKBtn";
             this.OKBtn.Size = new System.Drawing.Size(75, 23);
             this.OKBtn.TabIndex = 3;
@@ -57,15 +57,15 @@ namespace Likewise.LMC.Plugins.FileBrowser
             //
             // tbPath
             //
-            this.tbPath.Location = new System.Drawing.Point(15, 39);
+            this.tbPath.Location = new System.Drawing.Point(21, 39);
             this.tbPath.Name = "tbPath";
-            this.tbPath.Size = new System.Drawing.Size(313, 20);
+            this.tbPath.Size = new System.Drawing.Size(301, 20);
             this.tbPath.TabIndex = 1;
             //
             // label1
             //
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(12, 18);
+            this.label1.Location = new System.Drawing.Point(18, 18);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(113, 13);
             this.label1.TabIndex = 5;
@@ -73,9 +73,9 @@ namespace Likewise.LMC.Plugins.FileBrowser
             //
             // tvDestinationTree
             //
-            this.tvDestinationTree.Location = new System.Drawing.Point(12, 82);
+            this.tvDestinationTree.Location = new System.Drawing.Point(21, 82);
             this.tvDestinationTree.Name = "tvDestinationTree";
-            this.tvDestinationTree.Size = new System.Drawing.Size(316, 247);
+            this.tvDestinationTree.Size = new System.Drawing.Size(301, 247);
             this.tvDestinationTree.TabIndex = 6;
             this.tvDestinationTree.AfterSelect += new System.Windows.Forms.TreeViewEventHandler(this.lwDestinationTree_AfterSelect);
             //

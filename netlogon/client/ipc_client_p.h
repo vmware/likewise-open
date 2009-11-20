@@ -80,6 +80,7 @@ LWNetTransactGetDCName(
     PCSTR pszServerFQDN,
     PCSTR pszDomainFQDN,
     PCSTR pszSiteName,
+    PCSTR pszPrimaryDomain,
     DWORD dwFlags,
     DWORD dwBlackListCount,
     PSTR* ppszAddressBlackList,

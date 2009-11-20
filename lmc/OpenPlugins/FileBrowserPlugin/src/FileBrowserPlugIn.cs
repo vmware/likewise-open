@@ -558,8 +558,6 @@ namespace Likewise.LMC.Plugins.FileBrowser
                 {
                     Application.UseWaitCursor = true;
                     error = FileClient.FileClient.CreateConnection(path, null, null);
-					string connectResult = "FileBrowserPlugin CreateConnection result: " + error.ToString();
-					Logger.Log(connectResult, Logger.FileBrowserLogLevel);
                     Application.UseWaitCursor = false;
                     initialConnect = false;
                 }
@@ -622,6 +620,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
             }
 
             RefreshNetworkTreeNode();
+            Application.UseWaitCursor = false;
         }
 
         private void cm_OnDisconnectShare(object sender, EventArgs e)

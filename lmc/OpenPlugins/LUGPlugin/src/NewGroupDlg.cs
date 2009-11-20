@@ -216,27 +216,32 @@ public partial class NewGroupDlg : EditDialog, IUIInitialize
     {
         try
         {
-            //StringRequestDialog strDlg = new StringRequestDialog(
-            //AddMember,
-            //"Include users in new group",
-            //"",
-            //new string[]
-            //{
-            //    "User: "
-            //}
-            //,
-            //new string[]
-            //{
-            //    "e.g. myUserAcct"
-            //}
-            //,
-            //new string[]
-            //{
-            //    ""
-            //}
-            //,
-            //null);
-            //strDlg.ShowDialog();
+            StringRequestDialog strDlg = new StringRequestDialog(
+            AddMember,
+            "Include users in new group",
+            "",
+            new string[]
+            {
+                "User: "
+            }
+            ,
+            new string[]
+            {
+                "e.g. myUserAcct"
+            }
+            ,
+            new string[]
+            {
+                ""
+            }
+            ,
+            null);
+            strDlg.ShowDialog();
+
+            //string[] members = new string[] { string.Concat(System.Environment.UserDomainName, @"\", TokensDN[0].Substring(3)) };
+            //AddMember(members, null);
+
+            /*
             string Domain = string.Empty;
             if (this._hn.domainName == null)
             {
@@ -326,6 +331,7 @@ public partial class NewGroupDlg : EditDialog, IUIInitialize
                     }
                 }
             }
+            */
         }
         catch (Exception exp)
         {

@@ -40,10 +40,10 @@ namespace Likewise.LMC.Plugins.FileBrowser.src
             this.tabSelector.Controls.Add(this.tabPage1);
             this.tabSelector.Controls.Add(this.tabPage2);
             this.tabSelector.Controls.Add(this.tabPage3);
-            this.tabSelector.Location = new System.Drawing.Point(9, 5);
+            this.tabSelector.Location = new System.Drawing.Point(12, 5);
             this.tabSelector.Name = "tabSelector";
             this.tabSelector.SelectedIndex = 0;
-            this.tabSelector.Size = new System.Drawing.Size(398, 415);
+            this.tabSelector.Size = new System.Drawing.Size(391, 408);
             this.tabSelector.TabIndex = 0;
             //
             // tabPage1
@@ -51,7 +51,7 @@ namespace Likewise.LMC.Plugins.FileBrowser.src
             this.tabPage1.Location = new System.Drawing.Point(4, 22);
             this.tabPage1.Name = "tabPage1";
             this.tabPage1.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage1.Size = new System.Drawing.Size(390, 389);
+            this.tabPage1.Size = new System.Drawing.Size(383, 382);
             this.tabPage1.TabIndex = 0;
             this.tabPage1.Text = "General";
             this.tabPage1.UseVisualStyleBackColor = true;

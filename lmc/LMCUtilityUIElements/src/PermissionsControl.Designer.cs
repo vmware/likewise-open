@@ -40,8 +40,8 @@ namespace Likewise.LMC.UtilityUIElements
             this.Permission = new System.Windows.Forms.ColumnHeader();
             this.Allow = new System.Windows.Forms.ColumnHeader();
             this.Deny = new System.Windows.Forms.ColumnHeader();
-            this.tbPermissionsFor = new System.Windows.Forms.TextBox();
             this.btnAdd = new System.Windows.Forms.Button();
+            this.label4 = new System.Windows.Forms.Label();
             this.SuspendLayout();
             //
             // lvGroupOrUserNames
@@ -49,9 +49,9 @@ namespace Likewise.LMC.UtilityUIElements
             this.lvGroupOrUserNames.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.chIcon,
             this.chName});
-            this.lvGroupOrUserNames.Location = new System.Drawing.Point(15, 58);
+            this.lvGroupOrUserNames.Location = new System.Drawing.Point(9, 48);
             this.lvGroupOrUserNames.Name = "lvGroupOrUserNames";
-            this.lvGroupOrUserNames.Size = new System.Drawing.Size(345, 100);
+            this.lvGroupOrUserNames.Size = new System.Drawing.Size(345, 115);
             this.lvGroupOrUserNames.TabIndex = 1;
             this.lvGroupOrUserNames.UseCompatibleStateImageBehavior = false;
             this.lvGroupOrUserNames.View = System.Windows.Forms.View.List;
@@ -67,7 +67,7 @@ namespace Likewise.LMC.UtilityUIElements
             // label1
             //
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(12, 41);
+            this.label1.Location = new System.Drawing.Point(6, 28);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(108, 13);
             this.label1.TabIndex = 2;
@@ -75,7 +75,7 @@ namespace Likewise.LMC.UtilityUIElements
             //
             // btnRemove
             //
-            this.btnRemove.Location = new System.Drawing.Point(285, 164);
+            this.btnRemove.Location = new System.Drawing.Point(278, 170);
             this.btnRemove.Name = "btnRemove";
             this.btnRemove.Size = new System.Drawing.Size(75, 23);
             this.btnRemove.TabIndex = 3;
@@ -85,7 +85,7 @@ namespace Likewise.LMC.UtilityUIElements
             // label2
             //
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(12, 169);
+            this.label2.Location = new System.Drawing.Point(6, 176);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(168, 13);
             this.label2.TabIndex = 5;
@@ -94,7 +94,7 @@ namespace Likewise.LMC.UtilityUIElements
             // label3
             //
             this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(12, 15);
+            this.label3.Location = new System.Drawing.Point(6, 9);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(70, 13);
             this.label3.TabIndex = 6;
@@ -103,7 +103,7 @@ namespace Likewise.LMC.UtilityUIElements
             // lblObjectName
             //
             this.lblObjectName.AutoSize = true;
-            this.lblObjectName.Location = new System.Drawing.Point(88, 15);
+            this.lblObjectName.Location = new System.Drawing.Point(82, 9);
             this.lblObjectName.Name = "lblObjectName";
             this.lblObjectName.Size = new System.Drawing.Size(158, 13);
             this.lblObjectName.TabIndex = 7;
@@ -115,7 +115,7 @@ namespace Likewise.LMC.UtilityUIElements
             this.Permission,
             this.Allow,
             this.Deny});
-            this.lvPermissions.Location = new System.Drawing.Point(15, 228);
+            this.lvPermissions.Location = new System.Drawing.Point(9, 222);
             this.lvPermissions.Name = "lvPermissions";
             this.lvPermissions.Size = new System.Drawing.Size(345, 141);
             this.lvPermissions.TabIndex = 8;
@@ -134,31 +134,29 @@ namespace Likewise.LMC.UtilityUIElements
             //
             this.Deny.Text = "";
             //
-            // tbPermissionsFor
-            //
-            this.tbPermissionsFor.BackColor = System.Drawing.SystemColors.Control;
-            this.tbPermissionsFor.BorderStyle = System.Windows.Forms.BorderStyle.None;
-            this.tbPermissionsFor.Location = new System.Drawing.Point(15, 190);
-            this.tbPermissionsFor.Multiline = true;
-            this.tbPermissionsFor.Name = "tbPermissionsFor";
-            this.tbPermissionsFor.Size = new System.Drawing.Size(252, 32);
-            this.tbPermissionsFor.TabIndex = 10;
-            this.tbPermissionsFor.Text = "Permissions for Selected Object with Security Settings";
-            //
             // btnAdd
             //
-            this.btnAdd.Location = new System.Drawing.Point(204, 164);
+            this.btnAdd.Location = new System.Drawing.Point(197, 170);
             this.btnAdd.Name = "btnAdd";
             this.btnAdd.Size = new System.Drawing.Size(75, 23);
             this.btnAdd.TabIndex = 12;
             this.btnAdd.Text = "Add...";
             this.btnAdd.UseVisualStyleBackColor = true;
             //
+            // label4
+            //
+            this.label4.AutoSize = true;
+            this.label4.Location = new System.Drawing.Point(8, 203);
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(97, 13);
+            this.label4.TabIndex = 13;
+            this.label4.Text = "Permissions for {0}.";
+            //
             // PermissionsControl
             //
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
+            this.Controls.Add(this.label4);
             this.Controls.Add(this.btnAdd);
-            this.Controls.Add(this.tbPermissionsFor);
             this.Controls.Add(this.lvPermissions);
             this.Controls.Add(this.lblObjectName);
             this.Controls.Add(this.label3);
@@ -167,7 +165,8 @@ namespace Likewise.LMC.UtilityUIElements
             this.Controls.Add(this.label1);
             this.Controls.Add(this.lvGroupOrUserNames);
             this.Name = "PermissionsControl";
-            this.Size = new System.Drawing.Size(375, 385);
+            this.Size = new System.Drawing.Size(363, 370);
+            this.Load += new System.EventHandler(this.PermissionsControl_Load);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -184,11 +183,11 @@ namespace Likewise.LMC.UtilityUIElements
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.Label lblObjectName;
         private System.Windows.Forms.ListView lvPermissions;
-        private System.Windows.Forms.TextBox tbPermissionsFor;
         private System.Windows.Forms.ColumnHeader Permission;
         private System.Windows.Forms.ColumnHeader Allow;
         private System.Windows.Forms.ColumnHeader Deny;
         private System.Windows.Forms.Button btnAdd;
+        private System.Windows.Forms.Label label4;
 
     }
 }

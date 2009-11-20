@@ -50,7 +50,7 @@ namespace Likewise.LMC.FileClient
 
         [DllImport("liblwfileclient.so", SetLastError = true)]
         public static extern long FileTimeToSystemTime(
-            ref FILETIME FileTime,
+            ref UInt64 FileTime,
             ref SYSTEMTIME SystemTime
             );
 

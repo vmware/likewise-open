@@ -144,6 +144,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LMCUtilityUIElements", "..\
 		Release.AspNetCompiler.Debug = "False"
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SecurityDescriptor", "..\LikewiseClassLibraries\SecurityDescriptor\SecurityDescriptor.csproj", "{FD7DA096-AE24-469F-8358-51E5B25327F4}"
+	ProjectSection(WebsiteProperties) = preProject
+		Debug.AspNetCompiler.Debug = "True"
+		Release.AspNetCompiler.Debug = "False"
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -364,6 +370,16 @@ Global
 		{283DC463-BE07-49E6-8B0A-E3F8EDA0A7CF}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
 		{283DC463-BE07-49E6-8B0A-E3F8EDA0A7CF}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{283DC463-BE07-49E6-8B0A-E3F8EDA0A7CF}.Release|Win32.ActiveCfg = Release|Any CPU
+		{FD7DA096-AE24-469F-8358-51E5B25327F4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FD7DA096-AE24-469F-8358-51E5B25327F4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FD7DA096-AE24-469F-8358-51E5B25327F4}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{FD7DA096-AE24-469F-8358-51E5B25327F4}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{FD7DA096-AE24-469F-8358-51E5B25327F4}.Debug|Win32.ActiveCfg = Debug|Any CPU
+		{FD7DA096-AE24-469F-8358-51E5B25327F4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FD7DA096-AE24-469F-8358-51E5B25327F4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FD7DA096-AE24-469F-8358-51E5B25327F4}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{FD7DA096-AE24-469F-8358-51E5B25327F4}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{FD7DA096-AE24-469F-8358-51E5B25327F4}.Release|Win32.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -386,6 +402,7 @@ Global
 		{6844AA5B-95A3-4F50-A084-8316A02B6E58} = {2733908E-FB40-46D1-89A8-4D735853B7C9}
 		{D27214EF-85C2-46D7-94A7-45C3D26BEAC8} = {2733908E-FB40-46D1-89A8-4D735853B7C9}
 		{FB091F6B-D872-4644-9037-94096D4A62DF} = {2733908E-FB40-46D1-89A8-4D735853B7C9}
+		{FD7DA096-AE24-469F-8358-51E5B25327F4} = {2733908E-FB40-46D1-89A8-4D735853B7C9}
 		{812CAFA6-B428-4565-A839-A2E1B68096E3} = {0C0F0C5C-03C3-427B-8B49-A73B90406AD6}
 		{283DC463-BE07-49E6-8B0A-E3F8EDA0A7CF} = {0C0F0C5C-03C3-427B-8B49-A73B90406AD6}
 	EndGlobalSection

@@ -162,9 +162,9 @@ namespace Likewise.LMC.FileClient
     public struct LIKEWISE_FIND_DATA
     {
         public FILE_ATTRIBUTE dwFileAttributes;
-        public FILETIME ftCreationTime;
-        public FILETIME ftLastAccessTime;
-        public FILETIME ftLastWriteTime;
+        public UInt64 time_tCreationTime;
+        public UInt64 time_tLastAccessTime;
+        public UInt64 time_tLastWriteTime;
         public UInt32 nFileSizeHigh;
         public UInt32 nFileSizeLow;
         public UInt32 dwReserved0;
@@ -474,22 +474,20 @@ namespace Likewise.LMC.FileClient
 
                 if (useWindowsDlls)
                 {
-					if (WinFindFileData.ftCreationTime.dwHighDateTime != 0 &&
+                    if (WinFindFileData.ftCreationTime.dwHighDateTime != 0 &&
                         WinFindFileData.ftCreationTime.dwLowDateTime != 0)
 				    {
                         InteropWindows.FileTimeToSystemTime(ref WinFindFileData.ftCreationTime, ref created);
-					}
+                    }
                 }
                 else
                 {
-					if (LwFindFileData.ftCreationTime.dwHighDateTime != 0 &&
-                        LwFindFileData.ftCreationTime.dwLowDateTime != 0)
-				    {
-                        //InteropLikewise.FileTimeToSystemTime(ref LwFindFileData.ftCreationTime, ref created);
-					}
+                    if (LwFindFileData.time_tCreationTime != 0)
+                    {
+                        InteropLikewise.FileTimeToSystemTime(ref LwFindFileData.time_tCreationTime, ref created);
+                    }
                 }
-                //Created = new DateTime(created.wYear, created.wMonth, created.wDay, created.wHour, created.wMinute, created.wSecond).ToLocalTime();
-
+                Created = new DateTime(created.wYear, created.wMonth, created.wDay, created.wHour, created.wMinute, created.wSecond).ToLocalTime();
 
                 if (useWindowsDlls)
                 {
@@ -498,17 +496,15 @@ namespace Likewise.LMC.FileClient
                     {
                         InteropWindows.FileTimeToSystemTime(ref WinFindFileData.ftLastWriteTime, ref modified);
                     }
-				}
+                }
                 else
                 {
-                    if (LwFindFileData.ftLastWriteTime.dwHighDateTime != 0 &&
-                        LwFindFileData.ftLastWriteTime.dwLowDateTime != 0)
+                    if (LwFindFileData.time_tLastWriteTime != 0)
                     {
-                        //InteropLikewise.FileTimeToSystemTime(ref LwFindFileData.ftLastWriteTime, ref modified);
+                        InteropLikewise.FileTimeToSystemTime(ref LwFindFileData.time_tLastWriteTime, ref modified);
                     }
-				}
-                //Modified = new DateTime(modified.wYear, modified.wMonth, modified.wDay, modified.wHour, modified.wMinute, modified.wSecond).ToLocalTime();
-
+                }
+                Modified = new DateTime(modified.wYear, modified.wMonth, modified.wDay, modified.wHour, modified.wMinute, modified.wSecond).ToLocalTime();
 
                 if (useWindowsDlls)
                 {
@@ -516,17 +512,16 @@ namespace Likewise.LMC.FileClient
                         WinFindFileData.ftLastAccessTime.dwLowDateTime != 0)
                     {
                         InteropWindows.FileTimeToSystemTime(ref WinFindFileData.ftLastAccessTime, ref accessed);
-					}
+                    }
                 }
                 else
                 {
-                    if (LwFindFileData.ftLastAccessTime.dwHighDateTime != 0 &&
-                        LwFindFileData.ftLastAccessTime.dwLowDateTime != 0)
+                    if (LwFindFileData.time_tLastAccessTime != 0)
                     {
-                        //InteropLikewise.FileTimeToSystemTime(ref LwFindFileData.ftLastAccessTime, ref accessed);
+                        InteropLikewise.FileTimeToSystemTime(ref LwFindFileData.time_tLastAccessTime, ref accessed);
                     }
-				}
-                //Accessed = new DateTime(accessed.wYear, accessed.wMonth, accessed.wDay, accessed.wHour, accessed.wMinute, accessed.wSecond).ToLocalTime();
+                }
+                Accessed = new DateTime(accessed.wYear, accessed.wMonth, accessed.wDay, accessed.wHour, accessed.wMinute, accessed.wSecond).ToLocalTime();
 
                 file.CreationTime = Created;
                 file.LastWriteTime = Modified;

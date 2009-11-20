@@ -237,6 +237,12 @@ LsaDmpIsDomainOffline(
     );
 
 DWORD
+LsaDmpGetPrimaryDomainName(
+    IN LSA_DM_STATE_HANDLE Handle,
+    OUT PSTR* ppszPrimaryDomain
+    );
+
+DWORD
 LsaDmpDetectTransitionOnline(
     IN LSA_DM_STATE_HANDLE Handle,
     IN OPTIONAL PCSTR pszDomainName

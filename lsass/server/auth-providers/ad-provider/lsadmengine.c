@@ -457,12 +457,18 @@ LsaDmEnginepDiscoverTrustsInternal(
                                                       pszDnsPrimaryForestName,
                                                       pszDnsPrimaryForestName,
                                                       &pTrustedForestRootList);
-        if (LW_ERROR_DOMAIN_IS_OFFLINE == dwError)
+        switch (dwError)
         {
-            // If we cannot enumerate our forest's trusts, ignore it.
+        case LW_ERROR_DOMAIN_IS_OFFLINE:
+        case ERROR_ACCESS_DENIED:
+            /* If we can't enumerate our forest's trusts because the forest root
+               domain is offline or we do not have permission to enumerate
+               its trusts, ignore the error and continue */
             dwError = 0;
+            break;
+        default:
+            BAIL_ON_LSA_ERROR(dwError);
         }
-        BAIL_ON_LSA_ERROR(dwError);
     }
 
     if (pTrustedForestRootList)
@@ -476,13 +482,19 @@ LsaDmEnginepDiscoverTrustsInternal(
                                                           pszDnsForestName,
                                                           pszDnsForestName,
                                                           NULL);
-            if (LW_ERROR_DOMAIN_IS_OFFLINE == dwError)
+            switch (dwError)
             {
-                // If we cannot enumerate a trusted forest's trusts,
-                // ignore it.
+            case LW_ERROR_DOMAIN_IS_OFFLINE:
+            case ERROR_ACCESS_DENIED:
+                /* If we can't enumerate the trusts of one of our forest's
+                   trusts because the trusted domain is offline or we do
+                   or we do not have permission to enumerate its trusts,
+                   ignore the error and continue */
                 dwError = 0;
+                break;
+            default:
+                BAIL_ON_LSA_ERROR(dwError);
             }
-            BAIL_ON_LSA_ERROR(dwError);
         }
     }
 

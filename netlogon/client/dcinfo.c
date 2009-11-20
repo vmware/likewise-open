@@ -50,11 +50,14 @@
 
 LWNET_API
 DWORD
-LWNetGetDCName(
+LWNetGetDCNameExt(
     PCSTR pszServerFQDN,
     PCSTR pszDomainFQDN,
     PCSTR pszSiteName,
+    PCSTR pszPrimaryDomain,
     DWORD dwFlags,
+    DWORD dwBlackListCount,
+    PSTR* ppszAddressBlackList,
     PLWNET_DC_INFO* ppDCInfo
     )
 {
@@ -122,9 +125,10 @@ LWNetGetDCName(
         pszServerFQDN,
         pszDomainFQDN,
         pszSiteName,
+        pszPrimaryDomain,
         dwFlagsLocal,
-        0,
-        NULL,
+        dwBlackListCount,
+        ppszAddressBlackList,
         &pDCInfo);
     BAIL_ON_LWNET_ERROR(dwError);
     
@@ -158,6 +162,27 @@ error:
 
 LWNET_API
 DWORD
+LWNetGetDCName(
+    PCSTR pszServerFQDN,
+    PCSTR pszDomainFQDN,
+    PCSTR pszSiteName,
+    DWORD dwFlags,
+    PLWNET_DC_INFO* ppDCInfo
+    )
+{
+    return LWNetGetDCNameExt(
+        pszServerFQDN,
+        pszDomainFQDN,
+        pszSiteName,
+        NULL,
+        dwFlags,
+        0,
+        NULL,
+        ppDCInfo);
+}
+
+LWNET_API
+DWORD
 LWNetGetDCNameWithBlacklist(
     PCSTR pszServerFQDN,
     PCSTR pszDomainFQDN,
@@ -168,51 +193,15 @@ LWNetGetDCNameWithBlacklist(
     PLWNET_DC_INFO* ppDCInfo
     )
 {
-    DWORD dwError = 0;
-    PLWNET_DC_INFO pDCInfo = NULL;
-    HANDLE hServer = 0;
-
-    dwError = LWNetOpenServer(
-                    &hServer);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    dwError = LWNetTransactGetDCName(
-                    hServer,
-                    pszServerFQDN,
-                    pszDomainFQDN,
-                    pszSiteName,
-                    dwFlags,
-                    dwBlackListCount,
-                    ppszAddressBlackList,
-                    &pDCInfo);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    *ppDCInfo = pDCInfo;
-
-cleanup:
-
-    if (hServer)
-    {
-        DWORD dwErrorLocal = 0;
-        dwErrorLocal = LWNetCloseServer(hServer);
-        if(!dwError)
-        {
-            dwError = dwErrorLocal;
-        }
-    }
-
-    return dwError;
-
-error:
-
-    if (pDCInfo)
-    {
-        LWNetFreeDCInfo(pDCInfo);
-    }
-
-    *ppDCInfo = NULL;
-
-    goto cleanup;
+    return LWNetGetDCNameExt(
+        pszServerFQDN,
+        pszDomainFQDN,
+        pszSiteName,
+        NULL,
+        dwFlags,
+        dwBlackListCount,
+        ppszAddressBlackList,
+        ppDCInfo);
 }
 
 LWNET_API
