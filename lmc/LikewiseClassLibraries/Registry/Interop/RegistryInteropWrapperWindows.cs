@@ -321,8 +321,9 @@ namespace Likewise.LMC.Registry
 
             IntPtr hKey = (IntPtr)0, phSubKey = (IntPtr)0;
             IntPtr pSecurityDescriptor = IntPtr.Zero;
-            ulong lpcbSecurityDescriptor = 0;
             IntPtr pProcessHandle = IntPtr.Zero; IntPtr pTokenHandle = IntPtr.Zero;
+            SecurityDescriptorApi.SECURITY_DESCRIPTOR securityDescriptor = new SecurityDescriptorApi.SECURITY_DESCRIPTOR();
+            ulong lpcbSecurityDescriptor = 0;
 
             if ((RegistryInteropWindows.RegConnectRegistry(RegistryInteropWrapperWindows.sHostName, hive, out hKey)) == 0)
             {
@@ -344,30 +345,28 @@ namespace Likewise.LMC.Registry
                     tpStruct.Privileges[0].Attributes = SecurityDescriptorApi.SE_PRIVILEGE_ENABLED;
 
                     pProcessHandle = Process.GetCurrentProcess().Handle;
-                    pTokenHandle = IntPtr.Zero;
 
                     SecurityDescriptorApi.OpenProcessToken(pProcessHandle, SecurityDescriptorApi.TOKEN_ALL_ACCESS, out pTokenHandle);
 
                     bool b = SecurityDescriptorApi.AdjustTokenPrivileges(pTokenHandle, false, ref tpStruct, (uint)Marshal.SizeOf(tpStruct), IntPtr.Zero, IntPtr.Zero);
 
-                    _sObjectname = "TestKey";
                     if ((RegistryInteropWindows.RegOpenKeyEx(hKey, _sObjectname, 0, (uint)(SecurityDescriptorApi.ACCESS_MASK.READ_CONTROL | SecurityDescriptorApi.ACCESS_MASK.WRITE_DAC), out phSubKey)) == 0)
                     {
                         iRet = RegistryInteropWindows.RegGetKeySecurity(phSubKey,
                                                      SecurityDescriptorApi.SECURITY_INFORMATION.OWNER_SECURITY_INFORMATION |
                                                      SecurityDescriptorApi.SECURITY_INFORMATION.GROUP_SECURITY_INFORMATION |
-                                                     SecurityDescriptorApi.SECURITY_INFORMATION.DACL_SECURITY_INFORMATION |
-                                                     SecurityDescriptorApi.SECURITY_INFORMATION.SACL_SECURITY_INFORMATION,
+                                                     SecurityDescriptorApi.SECURITY_INFORMATION.DACL_SECURITY_INFORMATION,
                                                      ref pSecurityDescriptor,
                                                      ref lpcbSecurityDescriptor);
 
                         iRet = RegistryInteropWindows.RegGetKeySecurity(phSubKey,
                                                    SecurityDescriptorApi.SECURITY_INFORMATION.OWNER_SECURITY_INFORMATION |
                                                    SecurityDescriptorApi.SECURITY_INFORMATION.GROUP_SECURITY_INFORMATION |
-                                                   SecurityDescriptorApi.SECURITY_INFORMATION.DACL_SECURITY_INFORMATION |
-                                                   SecurityDescriptorApi.SECURITY_INFORMATION.SACL_SECURITY_INFORMATION,
+                                                   SecurityDescriptorApi.SECURITY_INFORMATION.DACL_SECURITY_INFORMATION,
                                                    ref pSecurityDescriptor,
                                                    ref lpcbSecurityDescriptor);
+
+                        Marshal.PtrToStructure(pSecurityDescriptor, securityDescriptor);
 
                         if (iRet != 0)
                         {
@@ -393,9 +392,6 @@ namespace Likewise.LMC.Registry
 
                     if (pTokenHandle != IntPtr.Zero)
                         SecurityDescriptorApi.CloseHandle(pTokenHandle);
-
-                    if (pProcessHandle != IntPtr.Zero)
-                        SecurityDescriptorApi.CloseHandle(pProcessHandle);
                 }
             }
 
