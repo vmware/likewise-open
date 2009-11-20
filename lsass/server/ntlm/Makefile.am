@@ -41,4 +41,5 @@ libntlmserver_la_LIBADD = \
     $(LWMSG_NOTHR_LIBS) \
     $(CRYPTO_LIBS) \
     $(KRB5_LIBS) \
+    $(LWADVAPI_LIBS) \
     $(SOCKET_LIBS)

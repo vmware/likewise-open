@@ -113,12 +113,7 @@ NtlmCrc32(
             pBuffer[i] ^= 0xFF;
         }
     }
-
-    if(KrbError)
-    {
-        dwError = LW_ERROR_KRB5_CALL_FAILED;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
+    BAIL_ON_KRB_ERROR(NULL, KrbError);
 
     LW_ASSERT(Output.length == 4);
 
