@@ -73,8 +73,7 @@ SrvBuildExecContext(
 
     pContext->refCount = 1;
 
-    pContext->pConnection = pConnection;
-    InterlockedIncrement(&pConnection->refCount);
+    pContext->pConnection = SrvConnectionAcquire(pConnection);
 
     pContext->pSmbRequest = pSmbRequest;
     InterlockedIncrement(&pSmbRequest->refCount);
