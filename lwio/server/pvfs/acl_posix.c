@@ -344,6 +344,7 @@ static
 VOID
 PvfsSecurityAccessMapFromPosix(
     IN OUT PACCESS_MASK pAccess,
+    IN     BOOLEAN bIsDirectory,
     IN     mode_t Mode,
     IN     mode_t Read,
     IN     mode_t Write,
@@ -365,6 +366,7 @@ PvfsSecurityAclGetDacl(
     DWORD dwSidCount = 0;
     PACL pDacl = NULL;
     ACCESS_MASK AccessMask = 0;
+    BOOLEAN bIsDir = S_ISDIR(pStat->s_mode);
 
     /* Build SIDs */
 
@@ -396,6 +398,7 @@ PvfsSecurityAclGetDacl(
     AccessMask = 0;
     PvfsSecurityAccessMapFromPosix(
         &AccessMask,
+        bIsDir,
         pStat->s_mode,
         S_IRUSR,
         S_IWUSR,
@@ -412,6 +415,7 @@ PvfsSecurityAclGetDacl(
     AccessMask = 0;
     PvfsSecurityAccessMapFromPosix(
         &AccessMask,
+        bIsDir,
         pStat->s_mode,
         S_IRGRP,
         S_IWGRP,
@@ -428,6 +432,7 @@ PvfsSecurityAclGetDacl(
     AccessMask = 0;
     PvfsSecurityAccessMapFromPosix(
         &AccessMask,
+        bIsDir,
         pStat->s_mode,
         S_IROTH,
         S_IWOTH,
@@ -466,6 +471,7 @@ static
 VOID
 PvfsSecurityAccessMapFromPosix(
     IN OUT PACCESS_MASK pAccess,
+    IN     BOOLEAN bIsDirectory,
     IN     mode_t Mode,
     IN     mode_t Read,
     IN     mode_t Write,
@@ -477,16 +483,32 @@ PvfsSecurityAccessMapFromPosix(
     if (Mode & Read)
     {
         Access |= FILE_GENERIC_READ;
+
+        if (bIsDirectory)
+        {
+            Access |= FILE_LIST_DIRECTORY;
+        }
     }
+
 
     if (Mode & Write)
     {
         Access |= (FILE_GENERIC_WRITE|DELETE);
+
+        if (bIsDirectory)
+        {
+            Access |= (FILE_DELETE_CHILD|FILE_ADD_SUBDIRECTORY);
+        }
     }
 
     if (Mode & Execute)
     {
         Access |= FILE_GENERIC_EXECUTE;
+
+        if (bIsDirectory)
+        {
+            Access |= FILE_TRAVERSE;
+        }
     }
 
     *pAccess = Access;
