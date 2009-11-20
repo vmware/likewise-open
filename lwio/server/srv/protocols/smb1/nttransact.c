@@ -259,14 +259,7 @@ SrvProcessNtTransact(
 
         case SMB_SUB_COMMAND_NT_TRANSACT_NOTIFY_CHANGE :
 
-            if (TRUE)
-            {
-                ntStatus = STATUS_NOT_IMPLEMENTED;
-            }
-            else
-            {
-                ntStatus = SrvProcessNotifyChange(pExecContext);
-            }
+            ntStatus = SrvProcessNotifyChange(pExecContext);
 
             break;
 
