@@ -99,7 +99,7 @@ SrvNotifyCreateState(
     pNotifyState->ullNotifyId = SrvNotifyGetId(ulPid, usMid);
 
     pNotifyState->pConnection = pConnection;
-    InterlockedIncrement(&pNotifyState->refCount);
+    InterlockedIncrement(&pConnection->refCount);
 
     pNotifyState->ulCompletionFilter = ulCompletionFilter;
     pNotifyState->bWatchTree         = bWatchTree;
