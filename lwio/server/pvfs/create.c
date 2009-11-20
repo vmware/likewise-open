@@ -205,6 +205,9 @@ PvfsCreateFileDoSysOpen(
         pCreateContext->pCcb->pFcb->bDeleteOnClose = TRUE;
     }
 
+    ntError = PvfsStoreCCB(pIrp->FileHandle, pCreateContext->pCcb);
+    BAIL_ON_NT_STATUS(ntError);
+
     CreateResult = PvfsSetCreateResult(
                        Args.CreateDisposition,
                        pCreateContext->bFileExisted,
@@ -219,8 +222,9 @@ PvfsCreateFileDoSysOpen(
             pCreateContext->pCcb->pszFilename);
     }
 
-    ntError = PvfsStoreCCB(pIrp->FileHandle, pCreateContext->pCcb);
-    BAIL_ON_NT_STATUS(ntError);
+    /* The CCB has been handled off to the FileHandle so make sure
+       we don't think we still own it */
+
     pCreateContext->pCcb = NULL;
 
 cleanup:
@@ -353,12 +357,25 @@ PvfsCreateDirDoSysOpen(
 
     ntError = PvfsStoreCCB(pIrp->FileHandle, pCreateContext->pCcb);
     BAIL_ON_NT_STATUS(ntError);
-    pCreateContext->pCcb = NULL;
 
     CreateResult = PvfsSetCreateResult(
                        Args.CreateDisposition,
                        pCreateContext->bFileExisted,
                        STATUS_SUCCESS);
+
+    if (CreateResult == FILE_CREATED)
+    {
+        PvfsNotifyScheduleFullReport(
+            pCreateContext->pCcb->pFcb,
+            FILE_NOTIFY_CHANGE_FILE_NAME,
+            FILE_ACTION_ADDED,
+            pCreateContext->pCcb->pszFilename);
+    }
+
+    /* The CCB has been handled off to the FileHandle so make sure
+       we don't think we still own it */
+
+    pCreateContext->pCcb = NULL;
 
 cleanup:
     pIrp->IoStatusBlock.CreateResult = CreateResult;

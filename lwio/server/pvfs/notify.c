@@ -91,7 +91,7 @@ PvfsReadDirectoryChange(
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    ntError = PvfsAccessCheckFileHandle(pCcb,  SYNCHRONIZE);
+    ntError = PvfsAccessCheckFileHandle(pCcb, FILE_LIST_DIRECTORY);
     BAIL_ON_NT_STATUS(ntError);
 
     BAIL_ON_INVALID_PTR(Args.Buffer, ntError);

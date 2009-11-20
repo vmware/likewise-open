@@ -111,7 +111,10 @@ PvfsQueryFilePositionInfo(
 
     BAIL_ON_INVALID_PTR(Args.FileInformation, ntError);
 
-    /* No access checked needed for this call */
+    ntError = PvfsAccessCheckAnyFileHandle(
+                  pCcb,
+                  (FILE_READ_DATA|FILE_WRITE_DATA));
+    BAIL_ON_NT_STATUS(ntError);
 
     if (Args.Length < sizeof(*pFileInfo))
     {
