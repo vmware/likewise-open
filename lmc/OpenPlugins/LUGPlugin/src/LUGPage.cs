@@ -219,36 +219,9 @@ public partial class LUGPage : StandardPage
     
     #region member functions
     
-    public uint ChangePassword(string password)
-    {
-        Logger.Log(String.Format("LUGPage.ChangePassowrd({0}) called", password), Logger.netAPILogLevel);
-        
-        if (lvLUGBETA.SelectedItems.Count != 1)
-        {
-            return (uint)ErrorCodes.WIN32Enum.ERROR_INVALID_INDEX;
-        }
-        
-        uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
-        ListViewItem item = lvLUGBETA.SelectedItems[0];
-        string user = item.SubItems[2].Text;
-        Hostinfo hn = ctx as Hostinfo;
-        
-        try
-        {
-            result = LUGAPI.NetChangePassword(hn.hostName, user, password);
-        }
-        catch (Exception e)
-        {
-            result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
-            Logger.LogException("LUGPage.ChangePassword", e);
-        }
-        return result;
-    }
-    
     public bool EditLUG(object o)
     {
         bool retValue = false;
-        
         
         try
         {
@@ -518,48 +491,6 @@ public partial class LUGPage : StandardPage
             
         }
     }
-    
-    // <summary>
-    // This method queries the indicated server and sets up various data in the Hostinfo structure.
-    // It also establishes a set of working credentials for the machine
-    // </summary>
-    // <returns>FALSE if unable to manage the machine</returns>
-    private void GetMachineInfo()
-    {
-        Hostinfo hn = ctx as Hostinfo;
-        Logger.Log(String.Format(
-        "GetMachineInfo called for LUG Plugin.  hn: {0}",
-        !Hostinfo.HasCreds(hn) ? "empty" : hn.hostName),
-        Logger.manageLogLevel);
-        
-        Hostinfo defaultHostInfo = null;
-        
-        //if Hostinfo is empty, attempt to retrieve details using kerberos
-        if (!Hostinfo.HasCreds(hn))
-        {
-            defaultHostInfo = new Hostinfo();
-        }
-        else
-        {
-            defaultHostInfo = hn.Clone();
-        }        
-        
-        //check if we are joined to a domain -- if not, use simple bind
-        uint requestedFields = (uint)Hostinfo.FieldBitmaskBits.FQ_HOSTNAME;
-        
-        if (!this.container.GetTargetMachineInfo(this.pi, defaultHostInfo, requestedFields))
-        {
-            Logger.Log(
-            "Could find information about target machine",
-            Logger.netAPILogLevel);
-            hn = null;
-        }
-        
-        if (hn.creds != null && String.IsNullOrEmpty(hn.creds.MachineName))
-        {
-            hn.creds.MachineName = hn.hostName;
-        }                
-    }
 
     private void enumLUGCallback(LUGAPI.LUGEnumStatus enumStatus)
     {
@@ -702,52 +633,19 @@ public partial class LUGPage : StandardPage
         {
             return;
         }
-        
+
+        ChangePasswordDlg cpDlg = new ChangePasswordDlg();
+
         ListViewItem item = lvLUGBETA.SelectedItems[0];
         string user = item.SubItems[2].Text;
-        
-        try
-        {
-            string caption = "Set New Password";
-            string[] hints = { "", "" };
-            string[] descriptions = { "New Password:", "Confirm Password:" };
-            StringRequestDialog dlg = new StringRequestDialog(
-            SetPasswordDelegate,
-            caption, caption,
-            descriptions,
-            hints,
-            new string[] { "", "" },
-            null);
-            dlg.SetSecurityStatus(0, true);
-            dlg.SetSecurityStatus(1, true);
-            dlg.ShowDialog();
-        }
-        catch (Exception e)
-        {
-            Logger.LogException("LUGPage.SetPasswordDlg", e);
-        }
+        Hostinfo hn = ctx as Hostinfo;
+
+        cpDlg.UserName = user;
+        cpDlg.HostName = hn.hostName;
+
+        cpDlg.ShowDialog();
     }
-    
-    private bool SetPasswordDelegate(string[] password, Object context)
-    {
-        string errorMessage = null;
-        if (Hostinfo.ValidatePassword(password[0], password[1], out errorMessage))
-        {
-            uint result = this.ChangePassword(password[0]);
 
-            if (result == (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
-            {
-                return true;
-            }
-
-            errorMessage = ErrorCodes.WIN32String((int)result);
-        }
-
-        Logger.ShowUserError(errorMessage);
-        Logger.Log("LUGPage.SetPasswordDelegate() error: " + errorMessage);
-        return false;
-    }
-    
     public void CreateDlg()
     {
         Logger.Log("LUGPage.CreateDlg() called", Logger.netAPILogLevel);
