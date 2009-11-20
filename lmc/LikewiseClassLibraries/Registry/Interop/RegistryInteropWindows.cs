@@ -140,11 +140,11 @@ namespace Likewise.LMC.Registry
        
         [DllImport(advapiDllPath, EntryPoint = "RegOpenKeyEx", CharSet = CharSet.Unicode, SetLastError = true)]
         public static extern int RegOpenKeyEx(
-            long hKey, //Intptr
+            IntPtr hKey, //Intptr
             string subKey,
             int options,
-            int sam,
-            out UIntPtr phkResult);
+            uint sam,
+            out IntPtr phkResult);
 
         [DllImport(advapiDllPath, EntryPoint = "RegQueryInfoKey", CallingConvention = CallingConvention.Winapi, SetLastError = true, CharSet = CharSet.Unicode)]        
         public extern static int RegQueryInfoKey(
