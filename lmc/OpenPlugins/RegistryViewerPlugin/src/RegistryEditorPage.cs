@@ -153,9 +153,9 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                     RegistryInteropWrapperWindows.Win32RegOpenRemoteBaseKey(hKey,
                                                         out sSubKey);
 
-                    RegistryInteropWrapperWindows.ApiRegGetKeySecurity(
-                                RegistryInteropWrapperWindows.GetRegistryHive(HKEY.HEKY_CURRENT_USER),
-                                @"HKEY_CURRENT_USER\TestKey");
+                    //RegistryInteropWrapperWindows.ApiRegGetKeySecurity(
+                    //            RegistryInteropWrapperWindows.GetRegistryHive(HKEY.HEKY_CURRENT_USER),
+                    //            "TestKey");
                     break;
 
                 case RegistryViewerPlugin.NodeType.HKEY_LOCAL_MACHINE:
