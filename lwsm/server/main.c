@@ -434,6 +434,7 @@ LwSmConfigureSignals(
         SIGTERM,
         SIGCHLD,
         SIGHUP,
+        SIGPIPE,
         -1
     };
     int i = 0;
