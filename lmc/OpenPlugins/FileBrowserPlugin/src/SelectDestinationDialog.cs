@@ -55,7 +55,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
                 operation = "Move directory";
 
             this.tbPath.Text = path;
-            this.Name = operation;
+            this.Text = operation;
 
             BuildTopNodes();
             EnumChildren((FileBrowserNode)tvDestinationTree.Nodes.Find("Network", false)[0]);
