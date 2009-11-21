@@ -1048,10 +1048,8 @@ lwmsg_peer_task_rundown(
             {
                 lwmsg_peer_call_delete(call);
             }
-            else if (!(call->state & PEER_CALL_CANCELLED))
+            else if (!(call->state & PEER_CALL_COMPLETED))
             {
-                call->state |= PEER_CALL_CANCELLED;
-                did_work = LWMSG_TRUE;
                 if (call->is_outgoing)
                 {
                     if (task->status)
@@ -1063,11 +1061,12 @@ lwmsg_peer_task_rundown(
                         cancel.status = LWMSG_STATUS_CANCELLED;
                     }
                     lwmsg_peer_call_complete_outgoing(call, &cancel);
-                    call->state |= PEER_CALL_COMPLETED;
+                    did_work = LWMSG_TRUE;
                 }
-                else
+                else if (!(call->state & PEER_CALL_CANCELLED))
                 {
                     lwmsg_peer_call_cancel_incoming(call);
+                    did_work = LWMSG_TRUE;
                 }
             }
         }
