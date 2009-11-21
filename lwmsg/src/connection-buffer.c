@@ -46,12 +46,11 @@ lwmsg_connection_buffer_construct(ConnectionBuffer* buffer)
 
     memset(buffer, 0, sizeof(*buffer));
 
-    lwmsg_ring_init(&buffer->pending);
-    lwmsg_ring_init(&buffer->unused);
+    lwmsg_ring_init(&buffer->fragments);
 
     buffer->fd_capacity = MAX_FD_PAYLOAD;
     buffer->fd_length = 0;
-    buffer->fd = malloc(buffer->fd_capacity);
+    buffer->fd = malloc(sizeof(int) * buffer->fd_capacity);
 
     if (!buffer->fd)
     {
@@ -73,25 +72,37 @@ error:
 }
 
 void
-lwmsg_connection_buffer_destruct(ConnectionBuffer* buffer)
+lwmsg_connection_buffer_empty(ConnectionBuffer* buffer)
 {
     LWMsgRing* ring, *next;
 
     if (buffer->fd)
     {
+        memset(buffer->fd, 0xFF, sizeof(int) * buffer->fd_capacity);
+    }
+
+    for (ring = buffer->fragments.next; ring != &buffer->fragments; ring = next)
+    {
+        next = ring->next;
+        lwmsg_ring_remove(ring);
+        free(LWMSG_OBJECT_FROM_MEMBER(ring, ConnectionFragment, ring));
+    }
+
+    if (buffer->current)
+    {
+        free(buffer->current);
+    }
+}
+
+
+void
+lwmsg_connection_buffer_destruct(ConnectionBuffer* buffer)
+{
+    lwmsg_connection_buffer_empty(buffer);
+
+    if (buffer->fd)
+    {
         free(buffer->fd);
-    }
-
-    for (ring = buffer->pending.next; ring != &buffer->pending; ring = next)
-    {
-        next = ring->next;
-        free(LWMSG_OBJECT_FROM_MEMBER(ring, ConnectionFragment, ring));
-    }
-
-    for (ring = buffer->unused.next; ring != &buffer->unused; ring = next)
-    {
-        next = ring->next;
-        free(LWMSG_OBJECT_FROM_MEMBER(ring, ConnectionFragment, ring));
     }
 
     memset(buffer, 0, sizeof(*buffer));
@@ -107,22 +118,14 @@ lwmsg_connection_buffer_create_fragment(
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     ConnectionFragment* frag = NULL;
 
-    if (buffer->unused.next != &buffer->unused)
+    frag = calloc(1, offsetof(ConnectionFragment, data) + length);
+
+    if (!frag)
     {
-        frag = LWMSG_OBJECT_FROM_MEMBER(buffer->unused.next, ConnectionFragment, ring);
-        lwmsg_ring_remove(buffer->unused.next);
-        buffer->num_unused--;
-        memset(frag->data, 0, length);
+        BAIL_ON_ERROR(status = LWMSG_STATUS_MEMORY);
     }
-    else
-    {
-        frag = calloc(1, offsetof(ConnectionFragment, data) + length);
-        if (!frag)
-        {
-            BAIL_ON_ERROR(status = LWMSG_STATUS_MEMORY);
-        }
-        lwmsg_ring_init(&frag->ring);
-    }
+
+    lwmsg_ring_init(&frag->ring);
 
     frag->cursor = frag->data;
 
@@ -139,8 +142,7 @@ lwmsg_connection_buffer_queue_fragment(
     ConnectionFragment* fragment
     )
 {
-    lwmsg_ring_insert_before(&buffer->pending, &fragment->ring);
-    buffer->num_pending++;
+    lwmsg_ring_insert_before(&buffer->fragments, &fragment->ring);
 }
 
 ConnectionFragment*
@@ -150,15 +152,14 @@ lwmsg_connection_buffer_dequeue_fragment(
 {
     LWMsgRing* ring = NULL;
 
-    if (buffer->pending.next == &buffer->pending)
+    if (buffer->fragments.next == &buffer->fragments)
     {
         return NULL;
     }
     else
     {
-        ring = buffer->pending.next;
+        ring = buffer->fragments.next;
         lwmsg_ring_remove(ring);
-        buffer->num_pending--;
         return LWMSG_OBJECT_FROM_MEMBER(ring, ConnectionFragment, ring);
     }
 }
@@ -168,9 +169,9 @@ lwmsg_connection_buffer_get_first_fragment(
     ConnectionBuffer* buffer
     )
 {
-    if (buffer->pending.next != &buffer->pending)
+    if (buffer->fragments.next != &buffer->fragments)
     {
-        return LWMSG_OBJECT_FROM_MEMBER(buffer->pending.next, ConnectionFragment, ring);
+        return LWMSG_OBJECT_FROM_MEMBER(buffer->fragments.next, ConnectionFragment, ring);
     }
     else
     {
@@ -183,9 +184,9 @@ lwmsg_connection_buffer_get_last_fragment(
     ConnectionBuffer* buffer
     )
 {
-    if (buffer->pending.prev != &buffer->pending)
+    if (buffer->fragments.prev != &buffer->fragments)
     {
-        return LWMSG_OBJECT_FROM_MEMBER(buffer->pending.prev, ConnectionFragment, ring);
+        return LWMSG_OBJECT_FROM_MEMBER(buffer->fragments.prev, ConnectionFragment, ring);
     }
     else
     {
@@ -199,8 +200,7 @@ lwmsg_connection_buffer_free_fragment(
     ConnectionFragment* fragment
     )
 {
-    lwmsg_ring_insert_after(&buffer->unused, &fragment->ring);
-    buffer->num_unused++;
+    free(fragment);
 }
 
 
@@ -209,25 +209,10 @@ lwmsg_connection_buffer_ensure_fd_capacity(ConnectionBuffer* buffer, size_t need
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
 
-    int* newfd = NULL;
-
-    if (buffer->fd_capacity < needed)
+    if (buffer->fd_capacity - buffer->fd_length < needed)
     {
-        buffer->fd_capacity = 256;
+        BAIL_ON_ERROR(status = LWMSG_STATUS_MALFORMED);
     }
-
-    while (buffer->fd_capacity - buffer->fd_length < needed)
-    {
-        buffer->fd_capacity *= 2;
-    }
-
-    newfd = realloc(buffer->fd, sizeof(*newfd) * needed);
-    if (!newfd)
-    {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_MEMORY);
-    }
-
-    buffer->fd = newfd;
 
 error:
     

@@ -304,7 +304,14 @@ lwmsg_data_print_graph_visit(
             break;
         case LWMSG_KIND_ARRAY:
         case LWMSG_KIND_POINTER:
-            prefix = iter->kind == LWMSG_KIND_ARRAY ? "<array>" : "<pointer> ->";
+            if (iter->attrs.promoted)
+            {
+                prefix = "";
+            }
+            else
+            {
+                prefix = iter->kind == LWMSG_KIND_ARRAY ? "<array> " : "<pointer> -> ";
+            }
 
             /* NULL case */
             if (iter->kind == LWMSG_KIND_POINTER && *(void**) object == NULL)
@@ -314,7 +321,7 @@ lwmsg_data_print_graph_visit(
             /* String case */
             else if (iter->info.kind_indirect.encoding != NULL)
             {
-                BAIL_ON_ERROR(status = print(info, "%s \"", prefix));
+                BAIL_ON_ERROR(status = print(info, "%s\"", prefix));
                 BAIL_ON_ERROR(status = lwmsg_data_print_string(iter, object, info));
                 BAIL_ON_ERROR(status = print(info, "\"", prefix));
             }
@@ -322,7 +329,7 @@ lwmsg_data_print_graph_visit(
             else if (iter->info.kind_indirect.term == LWMSG_TERM_STATIC &&
                      iter->info.kind_indirect.term_info.static_length == 1)
             {
-                BAIL_ON_ERROR(status = print(info, "%s ", prefix));
+                BAIL_ON_ERROR(status = print(info, "%s", prefix));
                 BAIL_ON_ERROR(status = lwmsg_data_visit_graph_children(
                                   iter,
                                   object,

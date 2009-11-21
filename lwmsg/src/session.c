@@ -132,8 +132,8 @@ lwmsg_session_manager_enter_session (
     LWMsgSessionManager* manager,
     const LWMsgSessionID* rsmid,
     LWMsgSecurityToken* rtoken,
-    LWMsgSessionConstructor construct,
-    LWMsgSessionDestructor destruct,
+    LWMsgSessionConstructFunction construct,
+    LWMsgSessionDestructFunction destruct,
     void* construct_data,
     LWMsgSession** session
     )
@@ -155,6 +155,15 @@ lwmsg_session_manager_leave_session (
     )
 {
     return manager->mclass->leave_session(manager, session);
+}
+
+void
+lwmsg_session_manager_retain_session (
+    LWMsgSessionManager* manager,
+    LWMsgSession* session
+    )
+{
+    manager->mclass->retain_session(manager, session);
 }
 
 LWMsgStatus

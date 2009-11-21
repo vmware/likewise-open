@@ -159,8 +159,6 @@ MU_TEST(marshal, basic_verify_marshal_failure)
     basic_struct basic;
     long longs[2];
 
-    MU_EXPECT(MU_STATUS_EXCEPTION);
-
     allocate_buffer(&buffer);
 
     basic.foo = (short) 12;
@@ -169,7 +167,10 @@ MU_TEST(marshal, basic_verify_marshal_failure)
     longs[0] = 1234;
     longs[1] = 4321;
 
-    MU_TRY_DCONTEXT(dcontext, lwmsg_data_marshal(dcontext, type, &basic, &buffer));
+    MU_ASSERT_EQUAL(
+        MU_TYPE_INTEGER,
+        lwmsg_data_marshal(dcontext, type, &basic, &buffer),
+        LWMSG_STATUS_MALFORMED);
 }
 
 MU_TEST(marshal, basic_verify_unmarshal_failure)
@@ -192,13 +193,13 @@ MU_TEST(marshal, basic_verify_unmarshal_failure)
     LWMsgBuffer buffer = {0};
     basic_struct *out;
 
-    MU_EXPECT(MU_STATUS_EXCEPTION);
-
     buffer.base = buffer.cursor = (void*) bytes;
     buffer.end = buffer.base + sizeof(bytes);
     
-
-    MU_TRY_DCONTEXT(dcontext, lwmsg_data_unmarshal(dcontext, type, &buffer, (void**) (void*) &out));
+    MU_ASSERT_EQUAL(
+        MU_TYPE_INTEGER,
+        lwmsg_data_unmarshal(dcontext, type, &buffer, (void**) (void*) &out),
+        LWMSG_STATUS_MALFORMED);
 }
 
 MU_TEST(marshal, basic_verify_range_failure)
@@ -221,13 +222,13 @@ MU_TEST(marshal, basic_verify_range_failure)
     LWMsgBuffer buffer = {0};
     basic_struct *out;
 
-    MU_EXPECT(MU_STATUS_EXCEPTION);
-
     buffer.base = buffer.cursor = (void*) bytes;
     buffer.end = buffer.base + sizeof(bytes);
     
-
-    MU_TRY_DCONTEXT(dcontext, lwmsg_data_unmarshal(dcontext, type, &buffer, (void**) (void*) &out));
+    MU_ASSERT_EQUAL(
+        MU_TYPE_INTEGER,
+        lwmsg_data_unmarshal(dcontext, type, &buffer, (void**) (void*) &out),
+        LWMSG_STATUS_MALFORMED);
 }
 
 MU_TEST(marshal, basic_verify_null_failure)
@@ -244,13 +245,13 @@ MU_TEST(marshal, basic_verify_null_failure)
     LWMsgBuffer buffer = {0};
     basic_struct *out;
 
-    MU_EXPECT(MU_STATUS_EXCEPTION);
-
     buffer.base = buffer.cursor = (void*) bytes;
     buffer.end = buffer.base + sizeof(bytes);
     
-
-    MU_TRY_DCONTEXT(dcontext, lwmsg_data_unmarshal(dcontext, type, &buffer, (void**) (void*) &out));
+    MU_ASSERT_EQUAL(
+        MU_TYPE_INTEGER,
+        lwmsg_data_unmarshal(dcontext, type, &buffer, (void**) (void*) &out),
+        LWMSG_STATUS_EOF);
 }
 
 typedef struct

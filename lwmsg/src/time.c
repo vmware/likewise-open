@@ -142,14 +142,6 @@ lwmsg_time_normalize(
     }
 }
 
-LWMsgBool
-lwmsg_time_is_positive(
-    LWMsgTime* time
-    )
-{
-    return (time->seconds >= 0 && time->microseconds >= 0);
-}
-
 void
 lwmsg_clock_init(
     LWMsgClock* clock

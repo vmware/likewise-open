@@ -145,8 +145,23 @@ typedef struct LWMsgCallClass
      *
      * This function must be present for all call handles
      */
-    LWMsgSession* (*get_session)(
+    LWMsgSession*
+    (*get_session)(
         LWMsgCall* call
+        );
+
+    /**
+     * @brief Get callback handle (virtual)
+     *
+     * Implements the exact semantics of #lwmsg_call_acquire_callback().
+     *
+     * This function may be NULL for call handles only inteded for
+     * user by callers.
+     */
+    LWMsgStatus
+    (*acquire_callback)(
+        LWMsgCall* call,
+        LWMsgCall** callback
         );
 } LWMsgCallClass;
 

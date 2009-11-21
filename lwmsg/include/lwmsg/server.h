@@ -38,522 +38,181 @@
 #ifndef __LWMSG_SERVER_H__
 #define __LWMSG_SERVER_H__
 
-#include <lwmsg/status.h>
-#include <lwmsg/protocol.h>
-#include <lwmsg/time.h>
-#include <lwmsg/assoc.h>
-#include <lwmsg/message.h>
-#include <lwmsg/call.h>
+#include <lwmsg/peer.h>
 
 /**
  * @file server.h
  * @brief Server API
  */
 
-/**
- * @defgroup server Servers
- * @ingroup public
- * @brief Multi-threaded server implementation
- *
- * The server API provided here automates the process of creating listening
- * servers which wait for incoming connections and can service multiple clients
- * simultaneously.  It uses a thread pool internally to service clients and a separate
- * listener thread to queue new connections for the pool, providing a completely
- * asynchronous external interface.
- *
- * Because this API requires threads, it is not available in <tt>liblwmsg_nothr</tt>.
- * Type definitions, function prototypes, and macros for this API may be disabled
- * by defining <tt>LWMSG_NO_THREADS</tt> before including <tt>&lt;lwmsg/lwmsg.h&gt;</tt>.
- *
- */
+#define LWMSG_SERVER_MODE_LOCAL LWMSG_ENDPOINT_LOCAL
 
-/*@{*/
+typedef struct LWMsgPeer LWMsgServer;
+typedef enum LWMsgEndpointType LWMsgServerMode;
+typedef LWMsgPeerCallFunction LWMsgServerCallFunction;
+typedef LWMsgPeerExceptionFunction LWMsgServerExceptionFunction;
 
-#ifndef DOXYGEN
-typedef enum LWMsgDispatchType
-{
-    LWMSG_DISPATCH_TYPE_END,
-    LWMSG_DISPATCH_TYPE_OLD,
-    LWMSG_DISPATCH_TYPE_BLOCK,
-    LWMSG_DISPATCH_TYPE_NONBLOCK
-} LWMsgDispatchType;
-#endif
-
-/**
- * @brief Dispatch specification
- *
- * This structure defines a table of dispatch functions
- * to handle incoming messages in a server.  It should
- * be constructed as a statically-initialized array
- * using #LWMSG_DISPATCH() and #LWMSG_DISPATCH_END macros.
- */
-typedef struct LWMsgDispatchSpec
-#ifndef DOXYGEN
-{
-    LWMsgDispatchType type;
-    LWMsgTag tag;
-    void* data;
-}
-#endif
-const LWMsgDispatchSpec;
-
-/**
- * @brief Define message handler in a dispatch table <b>(DEPRECATED)</b>
- *
- * This macro is used in dispatch table construction to
- * define the handler for a particular message type.
- * @param tag the message tag
- * @param func the callback to handle the specified message type
- * @hideinitializer
- * @deprecated use LWMSG_DISPATCH_BLOCK() or LWMSG_DISPATCH_NONBLOCK() instead
- */
-#define LWMSG_DISPATCH(tag, func) \
-    {LWMSG_DISPATCH_TYPE_OLD, (tag), (void*) (LWMsgAssocDispatchFunction) (func)}
-
-/**
- * @brief Define blocking message handler
- *
- * Defines a message handler function for the given message tag
- * within a dispatch specification.  The provided callback function
- * may block indefinitely in the process of servicing the request.
- * It may also opt to complete the request asynchronously with
- * #lwmsg_call_pend() and #lwmsg_call_complete().
- *
- * @param tag the message tag
- * @param func an #LWMsgServerCallFunction
- * @hideinitializer
- */
-#define LWMSG_DISPATCH_BLOCK(tag, func) \
-    {LWMSG_DISPATCH_TYPE_BLOCK, (tag), (void*) (LWMsgServerCallFunction) (func)}
-
-/**
- * @brief Define non-blocking message handler
- *
- * Defines a message handler function for the given message tag
- * within a dispatch specification.  The provided callback function
- * must not block indefinitely in the process of servicing the request.
- * If the request cannot be completed immediately, it must complete
- * it asynchronously.
- *
- * @param tag the message tag
- * @param func an #LWMsgServerCallFunction
- * @hideinitializer
- */
-#define LWMSG_DISPATCH_NONBLOCK(tag, func) \
-    {LWMSG_DISPATCH_TYPE_NONBLOCK, (tag), (void*) (LWMsgServerCallFunction) (func)}
-
-/**
- * @brief Terminate dispatch table
- *
- * This macro is used in dispatch table construction to
- * mark the end of the table
- * @hideinitializer
- */
-#define LWMSG_DISPATCH_END {LWMSG_DISPATCH_TYPE_END, -1, NULL}
-
-
-/**
- * @brief Opaque server object
- *
- * Opqaue server object which can be used to start a listening message server.
- */
-typedef struct LWMsgServer LWMsgServer;
-
-/**
- * @brief Server listening mode
- *
- * Specifies whether a server should listen on a local or remote socket
- */
-typedef enum LWMsgServerMode
-{
-    /** No server mode specified */
-    LWMSG_SERVER_MODE_NONE,
-    /** Server should be local only (listen on a local UNIX domain socket) */
-    LWMSG_SERVER_MODE_LOCAL,
-    /** Server should support remote connectiosn (listen on a TCP socket) */
-    LWMSG_SERVER_MODE_REMOTE
-} LWMsgServerMode;
-
-/**
- * @brief Call handler function
- *
- * A callback function which handles an incoming call request.  The function
- * may complete the call immediately by filling in the out params structure
- * and returning #LWMSG_STATUS_SUCCESS, or asynchronously by invoking
- * #lwmsg_call_pend() on the call handle, returning #LWMSG_STATUS_PENDING,
- * and completing the call later with #lwmsg_call_complete().  Returning
- * any other status code will cause the client session to be unceremoniously
- * terminated, and the status code will be propgated to the handler registered
- * on the server with #lwmsg_server_set_exception_function().
- *
- * The contents of the in params structure is defined only for the duration
- * of the function call and must not be referenced after the function returns.
- *
- * Data inserted into the out params structure must be allocated with the
- * same memory manager as the server -- by default, plain malloc().
- * Regardless of the status code returned, all such data will be automatically
- * freed by the server as long as the tag is set to a valid value
- * (i.e. not #LWMSG_TAG_INVALID).
- *
- * @param[in,out] call the call handle
- * @param[in] in the input parameters
- * @param[out] out the output parameters
- * @param[in] data the data pointer set by #lwmsg_server_set_dispatch_data()
- * @lwmsg_status
- * @lwmsg_success
- * @lwmsg_code{PENDING, the request will be completed asynchronously}
- * @lwmsg_etc{call-specific failure}
- * @lwmsg_endstatus
- * @see #lwmsg_context_set_memory_functions() and #lwmsg_server_new() for
- * customizing the server's memory manager.
- */
-typedef
-LWMsgStatus
-(*LWMsgServerCallFunction) (
-    LWMsgCall* call,
-    LWMsgParams* in,
-    LWMsgParams* out,
-    void* data
-    );
-
-/**
- * @brief Exception handler function
- *
- * A callback function which is invoked when an exception occurs within
- * the server.
- *
- * @param server the server handle
- * @param status the status code of the error
- * @param data a user data pointer
- */
-typedef
-void
-(*LWMsgServerExceptionFunction) (
-    LWMsgServer* server,
-    LWMsgStatus status,
-    void* data
-    );
-
-/**
- * @brief Create a new server object
- *
- * Creates a new server object
- *
- * @param[in] context an optional context
- * @param[in] protocol a protocol object which describes the protocol spoken by the server
- * @param[out] server the created server object
- * @lwmsg_status
- * @lwmsg_success
- * @lwmsg_memory
- * @lwmsg_code{INVALID_PARAMETER, protocol was <tt>NULL</tt>}
- * @lwmsg_endstatus
- */
+static inline
 LWMsgStatus
 lwmsg_server_new(
-    const LWMsgContext* context,
+    LWMsgContext* context,
     LWMsgProtocol* protocol,
     LWMsgServer** server
-    );
+    )
+{
+    return lwmsg_peer_new(context, protocol, server);
+}
 
-/**
- * @brief Delete a server object
- *
- * Deletes a server object.
- *
- * @warning Attempting to delete a server which has been started
- * but not stopped will block until the server stops
- *
- * @param server the server object to delete
- */
+static inline
 void
 lwmsg_server_delete(
     LWMsgServer* server
-    );
+    )
+{
+    lwmsg_peer_delete(server);
+}
 
-/**
- * @brief Set timeout
- *
- * Sets the specified timeout to the specified value.
- * See #lwmsg_assoc_set_timeout() for more information.
- *
- * @param server the server object
- * @param type the type of timeout to set
- * @param value the value, or NULL for no timeout
- * @lwmsg_status
- * @lwmsg_success
- * @lwmsg_code{UNSUPPORTED, the specified timeout type is not supported}
- * @lwmsg_code{INVALID_PARAMETER, the timeout was invalid}
- * @lwmsg_endstatus
- */
+static inline
 LWMsgStatus
 lwmsg_server_set_timeout(
     LWMsgServer* server,
     LWMsgTimeout type,
     LWMsgTime* value
-    );
+    )
+{
+    return lwmsg_peer_set_timeout(server, type, value);
+}
 
-/**
- * @brief Set maximum number of simultaneous active connections
- *
- * Sets the maximum numbers of connections which the server will track
- * simultaneously.  Connections beyond this will wait until a slot becomes
- * available.
- *
- * @param server the server object
- * @param max_clients the maximum number of simultaneous clients to support
- * @lwmsg_status
- * @lwmsg_success
- * @lwmsg_code{INVALID_STATE, the server is already active}
- * @lwmsg_endstatus
- */
+static inline
 LWMsgStatus
 lwmsg_server_set_max_clients(
     LWMsgServer* server,
     unsigned int max_clients
-    );
+    )
+{
+    return lwmsg_peer_set_max_listen_clients(server, max_clients);
+}
 
-
-/**
- * @brief Set maximum number of simultaneous dispatched messages
- *
- * Sets the maximum numbers of simultaneous messages which will be
- * handed off to dispatch functions.  Messages beyond this number
- * will be queued until another dispatch function finishes.
- *
- * @param server the server object
- * @param max_dispatch the maximum number of simultaneous messages to dispatch
- * @lwmsg_status
- * @lwmsg_success
- * @lwmsg_code{INVALID_STATE, the server is already active}
- * @lwmsg_endstatus
- */
+static inline
 LWMsgStatus
 lwmsg_server_set_max_dispatch(
     LWMsgServer* server,
     unsigned int max_dispatch
-    );
+    )
+{
+    return LWMSG_STATUS_SUCCESS;
+}
 
-/**
- * @brief Set maximum number of simultaneous IO operations
- *
- * Sets the maximum numbers of simultaneous IO operations which will be
- * performed.
- *
- * @param server the server object
- * @param max_io the maximum number of simultaneous IO operations
- * @lwmsg_status
- * @lwmsg_success
- * @lwmsg_code{INVALID_STATE, the server is already active}
- * @lwmsg_endstatus
- */
+static inline
 LWMsgStatus
 lwmsg_server_set_max_io(
     LWMsgServer* server,
     unsigned int max_io
-    );
+    )
+{
+    return LWMSG_STATUS_SUCCESS;
+}
 
-/**
- * @brief Set maximum number of backlogged connections
- *
- * Sets the maximum numbers of pending connections which the server will keep
- * waiting until a client slot becomes available.  Pending connections beyond
- * this value will be rejected outright.
- *
- * @param server the server object
- * @param max_backlog the maximum number of clients to queue
- * @lwmsg_status
- * @lwmsg_success
- * @lwmsg_code{INVALID_STATE, the server is already active}
- * @lwmsg_endstatus
- */
+static inline
 LWMsgStatus
 lwmsg_server_set_max_backlog(
     LWMsgServer* server,
-    unsigned int max_backlog
-    );
+    int max_backlog)
+{
+    return lwmsg_peer_set_max_listen_backlog(server, max_backlog);
+}
 
-/**
- * @brief Add a message dispatch specification
- *
- * Adds a set of message dispatch functions to the specified
- * server object.
- *
- * @param server the server object
- * @param spec the dispatch specification
- * @lwmsg_status
- * @lwmsg_success
- * @lwmsg_memory
- * @lwmsg_endstatus
- */
+static inline
 LWMsgStatus
 lwmsg_server_add_dispatch_spec(
     LWMsgServer* server,
     LWMsgDispatchSpec* spec
-    );
+    )
+{
+    return lwmsg_peer_add_dispatch_spec(server, spec);
+}
 
-/**
- * @brief Set listening socket
- *
- * Sets the socket on which the server will listen for connections.
- * This function must be passed a valid file descriptor which is socket
- * that matches the specified mode and is already listening (has had
- * listen() called on it).
- *
- * @param server the server object
- * @param mode the connection mode (local or remote)
- * @param fd the socket on which to listen
- * @lwmsg_status
- * @lwmsg_success
- * @lwmsg_code{INVALID_STATE, the server is already active}
- * @lwmsg_code{INVALID_PARAMETER, the file descriptor was invalid}
- * @lwmsg_endstatus
- */
+static inline
 LWMsgStatus
 lwmsg_server_set_fd(
     LWMsgServer* server,
-    LWMsgServerMode mode,
+    LWMsgEndpointType type,
     int fd
-    );
-    
-/**
- * @brief Set listening endpoint
- *
- * Sets the endpoint on which the server will listen for connections.
- * For local (UNIX domain) endpoints, this is the path of the socket file.
- * For remote (TCP) endpoints, this is the address and port to bind to.
- *
- * @param server the server object
- * @param mode the connection mode (local or remote)
- * @param endpoint the endpoint on which to listen
- * @param permissions permissions for the endpoint (only applicable to local mode)
- * @lwmsg_status
- * @lwmsg_success
- * @lwmsg_code{INVALID_STATE, the server is already active}
- * @lwmsg_code{INVALID_PARAMETER, the endpoint was invalid}
- * @lwmsg_endstatus
- */
+    )
+{
+    return lwmsg_peer_add_listen_fd(server, type, fd);
+}
+
+static inline
 LWMsgStatus
 lwmsg_server_set_endpoint(
     LWMsgServer* server,
-    LWMsgServerMode mode,
+    LWMsgEndpointType type,
     const char* endpoint,
-    mode_t      permissions
-    );
+    mode_t permissions
+    )
+{
+    return lwmsg_peer_add_listen_endpoint(server, type, endpoint, permissions);
+}
 
-/**
- * @brief Set session construct and destruct functions
- *
- * Sets functions which will be called when a new session
- * is established with a client.  The constructor function
- * may set up a session context which the destructor function
- * should clean up when the session is terminated.
- *
- * @param server the server handle
- * @param construct a session constructor function
- * @param destruct a session destructor function
- * @param data a user data pointer to be passed to both functions
- * @lwmsg_status
- * @lwmsg_success
- * @lwmsg_code{INVALID_STATE, the server is already active}
- * @lwmsg_endstatus
- */
+static inline
 LWMsgStatus
 lwmsg_server_set_session_functions(
     LWMsgServer* server,
-    LWMsgSessionConstructor construct,
-    LWMsgSessionDestructor destruct,
+    LWMsgSessionConstructFunction construct,
+    LWMsgSessionDestructFunction destruct,
     void* data
-    );
+    )
+{
+    return lwmsg_peer_set_listen_session_functions(server, construct, destruct, data);
+}
 
-/**
- * @brief Set dispatch data pointer
- *
- * Sets the user data pointer which is passed to dispatch functions.
- * This function may only be used while the server is stopped.
- *
- * @param server the server object
- * @param data the data pointer
- * @lwmsg_status
- * @lwmsg_success
- * @lwmsg_code{INVALID_STATE, the server is already running}
- * @lwmsg_endstatus
- */
-LWMsgStatus
+static inline
+void
 lwmsg_server_set_dispatch_data(
     LWMsgServer* server,
     void* data
-    );
+    )
+{
+    lwmsg_peer_set_dispatch_data(server, data);
+}
 
-/**
- * @brief Get dispatch data pointer
- *
- * Gets the user data pointer which is passed to dispatch functions.
- * If no pointer was explicitly set, the value defaults to NULL.
- *
- * @param server the server object
- * @return the data pointer
- */
+static inline
 void*
 lwmsg_server_get_dispatch_data(
     LWMsgServer* server
-    );
+    )
+{
+    return lwmsg_peer_get_dispatch_data(server);
+}
 
-/**
- * @brief Start accepting connections
- *
- * Starts listening for and servicing connections in a separate thread.
- * This function will not block, so the calling function should arrange
- * to do something afterwards while the server is running, such as handling
- * UNIX signals.
- *
- * @param server the server object
- * @return LWMSG_STATUS_SUCCESS on success, or an appropriate status code on failure
- */
+static inline
 LWMsgStatus
 lwmsg_server_start(
     LWMsgServer* server
-    );
+    )
+{
+    return lwmsg_peer_start_listen(server);
+}
 
-/**
- * @brief Aggressively stop server
- *
- * Stops the specified server accepting new connections and aggressively
- * terminates any connections in progress or queued for service.  After
- * this function returns successfully, the server may be safely deleted with
- * lwmsg_server_delete().
- *
- * @param server the server object
- * @return LWMSG_STATUS_SUCCESS on success, or an appropriate status code on failure
- */
+static inline
 LWMsgStatus
 lwmsg_server_stop(
     LWMsgServer* server
-    );
+    )
+{
+    return lwmsg_peer_stop_listen(server);
+}
 
-/**
- * @brief Set exception handler
- *
- * Sets a callback function which will be invoked when an error occurs
- * within the running server.  The function may take appropriate action depending
- * on the error, such as logging a warning or instructing the main application
- * thread to shut down.
- *
- * @warning Do not call #lwmsg_server_stop() from an exception handler
- *
- * @param server the server handle
- * @param except the handler function
- * @param except_data a user data pointer to pass to the handler function
- * @lwmsg_status
- * @lwmsg_success
- * @lwmsg_endstatus
- */
+static inline
 LWMsgStatus
 lwmsg_server_set_exception_function(
     LWMsgServer* server,
     LWMsgServerExceptionFunction except,
     void* except_data
-    );
-
-/*@}*/
+    )
+{
+    return lwmsg_peer_set_exception_function(server, except, except_data);
+}
 
 #endif

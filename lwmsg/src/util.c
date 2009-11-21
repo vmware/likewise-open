@@ -38,11 +38,22 @@
 
 #include <config.h>
 #include "util-private.h"
+#include "xnet-private.h"
 
+#ifdef HAVE_SYS_SELECT_H
+#  include <sys/select.h>
+#endif
+#include <sys/types.h>
+#include <sys/param.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <sys/stat.h>
+#include <errno.h>
+#include <string.h>
+#include <unistd.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <stdio.h>
-#include <unistd.h>
 #include <fcntl.h>
 #if HAVE_SYS_VARARGS_H
 #include <sys/varargs.h>
@@ -464,3 +475,132 @@ lwmsg_set_close_on_exec(
         return LWMSG_STATUS_SUCCESS;
     }
 }
+
+#if defined(__hpux__) || defined(__APPLE__) || defined(sun)
+ssize_t
+lwmsg_recvmsg_timeout(
+    int sock,
+    struct msghdr* msg,
+    int flags,
+    LWMsgTime* time
+    )
+{
+    struct timeval timeout;
+    fd_set fds;
+    int ret = 0;
+
+    if (time && lwmsg_time_is_positive(time))
+    {
+        timeout.tv_sec = time->seconds;
+        timeout.tv_usec = time->microseconds;
+
+        FD_ZERO(&fds);
+        FD_SET(sock, &fds);
+
+        ret = select(sock + 1, &fds, NULL, NULL, &timeout);
+        if (ret < 0)
+        {
+            return ret;
+        }
+        else if (ret == 0)
+        {
+            errno = EAGAIN;
+            return -1;
+        }
+    }
+
+    return recvmsg(sock, msg, flags);
+}
+
+ssize_t
+lwmsg_sendmsg_timeout(
+    int sock,
+    const struct msghdr* msg,
+    int flags,
+    LWMsgTime* time
+    )
+{
+    struct timeval timeout;
+    fd_set fds;
+    int ret = 0;
+
+    if (time && lwmsg_time_is_positive(time))
+    {
+        timeout.tv_sec = time->seconds;
+        timeout.tv_usec = time->microseconds;
+
+        FD_ZERO(&fds);
+        FD_SET(sock, &fds);
+
+        ret = select(sock + 1, NULL, &fds, NULL, &timeout);
+
+        if (ret < 0)
+        {
+            return ret;
+        }
+        else if (ret == 0)
+        {
+            errno = EAGAIN;
+            return -1;
+        }
+    }
+
+    return sendmsg(sock, msg, flags);
+}
+#else
+ssize_t
+lwmsg_recvmsg_timeout(
+    int sock,
+    struct msghdr* msg,
+    int flags,
+    LWMsgTime* time
+    )
+{
+    struct timeval timeout;
+
+    if (time && lwmsg_time_is_positive(time))
+    {
+        timeout.tv_sec = time->seconds;
+        timeout.tv_usec = time->microseconds;
+    }
+    else
+    {
+        memset(&timeout, 0, sizeof(timeout));
+    }
+
+    if (setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)))
+    {
+        return -1;
+    }
+
+    return recvmsg(sock, msg, flags);
+}
+
+ssize_t
+lwmsg_sendmsg_timeout(
+    int sock,
+    const struct msghdr* msg,
+    int flags,
+    LWMsgTime* time
+    )
+{
+    struct timeval timeout;
+
+    if (time && lwmsg_time_is_positive(time))
+    {
+        timeout.tv_sec = time->seconds;
+        timeout.tv_usec = time->microseconds;
+    }
+    else
+    {
+        memset(&timeout, 0, sizeof(timeout));
+    }
+
+    if (setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout)))
+    {
+        return -1;
+    }
+
+    return sendmsg(sock, msg, flags);
+}
+#endif

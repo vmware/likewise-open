@@ -61,7 +61,7 @@ typedef struct DefaultSession
     /* User data pointer */
     void* data;
     /* Destruct function */
-    LWMsgSessionDestructor destruct;
+    LWMsgSessionDestructFunction destruct;
 } DefaultSession;
 
 typedef struct DefaultHandle
@@ -236,8 +236,8 @@ default_enter_session(
     LWMsgSessionManager* manager,
     const LWMsgSessionID* rsmid,
     LWMsgSecurityToken* rtoken,
-    LWMsgSessionConstructor construct,
-    LWMsgSessionDestructor destruct,
+    LWMsgSessionConstructFunction construct,
+    LWMsgSessionDestructFunction destruct,
     void* construct_data,
     LWMsgSession** out_session
     )
@@ -344,6 +344,19 @@ default_leave_session(
 
     return status;
 }
+
+static
+void
+default_retain_session(
+    LWMsgSessionManager* manager,
+    LWMsgSession* session
+    )
+{
+    DefaultSession* my_session = DEFAULT_SESSION(session);
+
+    my_session->refs++;
+}
+
 
 static
 LWMsgSecurityToken*
@@ -706,6 +719,7 @@ static LWMsgSessionManagerClass default_class =
     .delete = default_delete,
     .enter_session = default_enter_session,
     .leave_session = default_leave_session,
+    .retain_session = default_retain_session,
     .register_handle_local = default_register_handle_local,
     .register_handle_remote = default_register_handle_remote,
     .retain_handle = default_retain_handle,

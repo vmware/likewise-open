@@ -35,6 +35,7 @@ AC_SUBST(LWMSG_LDFLAGS)
 AC_SUBST(LIB_DL)
 AC_SUBST(LIB_XNET)
 AC_SUBST(LIB_PTHREAD)
+AC_SUBST(LIB_RT)
 AC_SUBST(LIB_ICONV)
 AC_SUBST(MOD_EXT)
 AC_DEFINE_UNQUOTED([MOD_EXT], ["$MOD_EXT"], [Extension of dynamic shared modules])
@@ -66,6 +67,7 @@ AM_CONDITIONAL([HAVE_DOXYGEN_PDF], [$HAVE_DOXYGEN_PDF])
 
 # Checks for libraries.
 AC_CHECK_LIB(pthread, pthread_self, [LIB_PTHREAD="-lpthread"], [LIB_PTHREAD=""])
+AC_CHECK_LIB(rt, nanosleep, [LIB_RT="-lrt"], [LIB_RT=""])
 AC_CHECK_LIB(dl, dlopen, [LIB_DL="-ldl"], [LIB_DL=""])
 AC_CHECK_LIB(xnet, __xnet_connect, [LIB_XNET="-lxnet"], [LIB_XNET=""])
 AC_CHECK_LIB(iconv, iconv, [LIB_ICONV="-liconv"],

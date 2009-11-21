@@ -97,8 +97,8 @@ typedef struct LWMsgSessionManagerClass
         LWMsgSessionManager* manager,
         const LWMsgSessionID* rsmid,
         LWMsgSecurityToken* rtoken,
-        LWMsgSessionConstructor construct,
-        LWMsgSessionDestructor destruct,
+        LWMsgSessionConstructFunction construct,
+        LWMsgSessionDestructFunction destruct,
         void* construct_data,
         LWMsgSession** session
         );
@@ -118,6 +118,19 @@ typedef struct LWMsgSessionManagerClass
      */
     LWMsgStatus
     (*leave_session) (
+        LWMsgSessionManager* manager,
+        LWMsgSession* session
+        );
+
+    /**
+     * @brief Retain session
+     *
+     * Retains an additional reference to a session without
+     * indicating entry into it.  The reference is still
+     * released with leave_session
+     */
+    void
+    (*retain_session) (
         LWMsgSessionManager* manager,
         LWMsgSession* session
         );
@@ -386,14 +399,20 @@ lwmsg_session_manager_enter_session (
     LWMsgSessionManager* manager,
     const LWMsgSessionID* rsmid,
     LWMsgSecurityToken* rtoken,
-    LWMsgSessionConstructor construct,
-    LWMsgSessionDestructor destruct,
+    LWMsgSessionConstructFunction construct,
+    LWMsgSessionDestructFunction destruct,
     void* construct_data,
     LWMsgSession** session
     );
 
 LWMsgStatus 
 lwmsg_session_manager_leave_session (
+    LWMsgSessionManager* manager,
+    LWMsgSession* session
+    );
+
+void
+lwmsg_session_manager_retain_session (
     LWMsgSessionManager* manager,
     LWMsgSession* session
     );

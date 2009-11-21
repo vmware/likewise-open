@@ -487,10 +487,10 @@ static void*
 auth_sender(void* _assoc)
 {
     LWMsgAssoc* assoc = (LWMsgAssoc*) _assoc;
-    AuthRequest request;
-    AuthReply* reply;
-    LWMsgMessage request_msg;
-    LWMsgMessage reply_msg;
+    AuthRequest request = {0};
+    AuthReply* reply = NULL;
+    LWMsgMessage request_msg = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage reply_msg = LWMSG_MESSAGE_INITIALIZER;
     
     request.fortytwo = 42;
     request_msg.tag = AUTH_REQUEST;
@@ -504,8 +504,8 @@ auth_sender(void* _assoc)
 
     reply = reply_msg.data;
 
-    MU_INFO("uid = %u", (unsigned int) reply->uid);
-    MU_INFO("gid = %u", (unsigned int) reply->gid);
+    MU_VERBOSE("uid = %u", (unsigned int) reply->uid);
+    MU_VERBOSE("gid = %u", (unsigned int) reply->gid);
 
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, reply->uid, geteuid());
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, reply->gid, getegid());
@@ -524,8 +524,8 @@ auth_receiver(void* _assoc)
     LWMsgAssoc* assoc = (LWMsgAssoc*) _assoc;
     AuthRequest* request;
     AuthReply reply;
-    LWMsgMessage request_msg;
-    LWMsgMessage reply_msg;
+    LWMsgMessage request_msg = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage reply_msg = LWMSG_MESSAGE_INITIALIZER;
     LWMsgSecurityToken* token;
     
     MU_TRY_ASSOC(assoc, lwmsg_assoc_establish(assoc));
@@ -730,13 +730,13 @@ static void*
 handle_sender(void* _assoc)
 {
     LWMsgAssoc* assoc = (LWMsgAssoc*) _assoc;
-    Handle* handle;
-    HandleCreateRequest create_request;
-    HandleGetRequest get_request;
-    HandleGetReply* get_reply;
-    HandleDestroyReply* destroy_reply;
-    LWMsgMessage request_msg;
-    LWMsgMessage reply_msg;
+    Handle* handle = NULL;
+    HandleCreateRequest create_request = {0};
+    HandleGetRequest get_request = {0};
+    HandleGetReply* get_reply = NULL;
+    HandleDestroyReply* destroy_reply = NULL;
+    LWMsgMessage request_msg = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage reply_msg = LWMSG_MESSAGE_INITIALIZER;
     
     create_request.save_string = (char*) "Hello, world!";
     create_request.save_integer = 42;
@@ -1024,8 +1024,8 @@ fd_sender(void* _assoc)
     LWMsgAssoc* assoc = (LWMsgAssoc*) _assoc;
     LWMsgMessage request_msg = LWMSG_MESSAGE_INITIALIZER;
     LWMsgMessage reply_msg = LWMSG_MESSAGE_INITIALIZER;
-    FdRequest request;
-    FdReply* reply;
+    FdRequest request = {0};
+    FdReply* reply = NULL;
     int fds[2];
 
     if (pipe(fds))
@@ -1218,9 +1218,9 @@ recv_remote_send_back_success(LWMsgAssoc* assoc)
 static void
 send_local_recv_back_failure(LWMsgAssoc* assoc)
 {
-    int dummy;
-    int* dummy2;
-    LWMsgTag tag;
+    int dummy = 0;
+    int* dummy2 = NULL;
+    LWMsgTag tag = 0;
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
 
     /* The handle is being created by us, so it is REMOTE for the recvr */
@@ -1237,9 +1237,9 @@ send_local_recv_back_failure(LWMsgAssoc* assoc)
 static void
 recv_remote_send_back_failure(LWMsgAssoc* assoc)
 {
-    int* dummy;
-    int dummy2;
-    LWMsgTag tag;
+    int* dummy = NULL;
+    int dummy2 = 0;
+    LWMsgTag tag = 0;
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
 
     MU_TRY_ASSOC(assoc, lwmsg_assoc_recv(assoc, &tag, (void**) (void*) &dummy));
@@ -1255,8 +1255,8 @@ recv_remote_send_back_failure(LWMsgAssoc* assoc)
 static void
 send_null_recv_null_success(LWMsgAssoc* assoc)
 {
-    int* dummy2;
-    LWMsgTag tag;
+    int* dummy2 = NULL;
+    LWMsgTag tag = 0;
 
     MU_TRY_ASSOC(assoc, lwmsg_assoc_send(assoc, TRIVIAL_REMOTE, NULL));
     MU_TRY_ASSOC(assoc, lwmsg_assoc_recv(assoc, &tag, (void**) (void*) &dummy2));
@@ -1268,8 +1268,8 @@ send_null_recv_null_success(LWMsgAssoc* assoc)
 static void
 recv_null_send_null_success(LWMsgAssoc* assoc)
 {
-    int* dummy;
-    LWMsgTag tag;
+    int* dummy = NULL;
+    LWMsgTag tag = 0;
 
     MU_TRY_ASSOC(assoc, lwmsg_assoc_recv(assoc, &tag, (void**) (void*) &dummy));
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, tag, TRIVIAL_REMOTE);
@@ -1280,9 +1280,9 @@ recv_null_send_null_success(LWMsgAssoc* assoc)
 static void
 send_local_recv_back_send_back_success(LWMsgAssoc* assoc)
 {
-    int dummy;
-    int* dummy2;
-    LWMsgTag tag;
+    int dummy = 0;
+    int* dummy2 = NULL;
+    LWMsgTag tag = 0;
 
     /* The handle is being created by us, so it is REMOTE for the receiver */
     MU_TRY_ASSOC(assoc, lwmsg_assoc_register_handle(assoc, "AHandle", &dummy, NULL));
@@ -1298,9 +1298,9 @@ send_local_recv_back_send_back_success(LWMsgAssoc* assoc)
 static void
 recv_remote_send_back_recv_back_success(LWMsgAssoc* assoc)
 {
-    int* dummy;
-    int* dummy2;
-    LWMsgTag tag;
+    int* dummy = 0;
+    int* dummy2 = NULL;
+    LWMsgTag tag = 0;
 
     MU_TRY_ASSOC(assoc, lwmsg_assoc_recv(assoc, &tag, (void**) (void*) &dummy));
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, tag, TRIVIAL_REMOTE);
@@ -1309,6 +1309,92 @@ recv_remote_send_back_recv_back_success(LWMsgAssoc* assoc)
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, tag, TRIVIAL_REMOTE);
     MU_ASSERT_EQUAL(MU_TYPE_POINTER, dummy, dummy2);
 }
+
+static void
+recv_remote_send_back_remote_recv_failure(LWMsgAssoc* assoc)
+{
+    LWMsgMessage request_msg = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage reply_msg = LWMSG_MESSAGE_INITIALIZER;
+
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_recv_message(assoc, &request_msg));
+    MU_ASSERT_EQUAL(MU_TYPE_INTEGER, request_msg.tag, TRIVIAL_REMOTE);
+
+    reply_msg.tag = TRIVIAL_LOCAL;
+    reply_msg.data = request_msg.data;
+
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_send_message(assoc, &reply_msg));
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_recv_message(assoc, &reply_msg));
+
+    MU_ASSERT(reply_msg.flags & LWMSG_MESSAGE_FLAG_REPLY);
+    MU_ASSERT_EQUAL(MU_TYPE_INTEGER, reply_msg.status, LWMSG_STATUS_INVALID_HANDLE);
+}
+
+static void
+send_local_recv_back_local_send_failure(LWMsgAssoc* assoc)
+{
+    int dummy;
+    LWMsgMessage request_msg = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage reply_msg = LWMSG_MESSAGE_INITIALIZER;
+
+    request_msg.tag = TRIVIAL_REMOTE;
+    request_msg.data = &dummy;
+
+    /* The handle is being created by us, so it is REMOTE for the receiver */
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_register_handle(assoc, "AHandle", &dummy, NULL));
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_send_message(assoc, &request_msg));
+    /* Before receiving it back, we sabotage things by unregistering the handle */
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_unregister_handle(assoc, &dummy));
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_recv_message(assoc, &reply_msg));
+
+    MU_ASSERT(reply_msg.flags & LWMSG_MESSAGE_FLAG_SYNTHETIC);
+    MU_ASSERT_EQUAL(MU_TYPE_INTEGER, reply_msg.status, LWMSG_STATUS_INVALID_HANDLE);
+
+    reply_msg.flags = LWMSG_MESSAGE_FLAG_REPLY;
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_send_message(assoc, &reply_msg));
+}
+
+static void
+recv_remote_send_back_bogus(LWMsgAssoc* assoc)
+{
+    LWMsgMessage request_msg = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage reply_msg = LWMSG_MESSAGE_INITIALIZER;
+
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_recv_message(assoc, &request_msg));
+    MU_ASSERT_EQUAL(MU_TYPE_INTEGER, request_msg.tag, TRIVIAL_REMOTE);
+
+    reply_msg.tag = -42;
+    reply_msg.data = request_msg.data;
+
+    MU_ASSERT_EQUAL(MU_TYPE_INTEGER, lwmsg_assoc_send_message(assoc, &reply_msg),
+                    LWMSG_STATUS_MALFORMED);
+
+    reply_msg.flags = LWMSG_MESSAGE_FLAG_REPLY | LWMSG_MESSAGE_FLAG_SYNTHETIC;
+    reply_msg.status = LWMSG_STATUS_MALFORMED;
+    reply_msg.tag = LWMSG_TAG_INVALID;
+    reply_msg.data = NULL;
+
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_send_message(assoc, &reply_msg));
+}
+
+static void
+send_local_recv_back_bogus(LWMsgAssoc* assoc)
+{
+    int dummy;
+    LWMsgMessage request_msg = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage reply_msg = LWMSG_MESSAGE_INITIALIZER;
+
+    request_msg.tag = TRIVIAL_REMOTE;
+    request_msg.data = &dummy;
+
+    /* The handle is being created by us, so it is REMOTE for the receiver */
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_register_handle(assoc, "AHandle", &dummy, NULL));
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_send_message(assoc, &request_msg));
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_recv_message(assoc, &reply_msg));
+
+    MU_ASSERT(reply_msg.flags & LWMSG_MESSAGE_FLAG_SYNTHETIC);
+    MU_ASSERT_EQUAL(MU_TYPE_INTEGER, reply_msg.status, LWMSG_STATUS_MALFORMED);
+}
+
 
 MU_TEST(assoc, handle_enforce_locality_success)
 {
@@ -1343,5 +1429,23 @@ MU_TEST(assoc, handle_null_success)
         trivial_handle_spec,
         send_null_recv_null_success,
         recv_null_send_null_success
+        );
+}
+
+MU_TEST(assoc, handle_error_synthetic_message)
+{
+    lwmsg_test_assoc_pair(
+        trivial_handle_spec,
+        recv_remote_send_back_remote_recv_failure,
+        send_local_recv_back_local_send_failure
+        );
+}
+
+MU_TEST(assoc, malformed_synthetic_message)
+{
+    lwmsg_test_assoc_pair(
+        trivial_handle_spec,
+        recv_remote_send_back_bogus,
+        send_local_recv_back_bogus
         );
 }

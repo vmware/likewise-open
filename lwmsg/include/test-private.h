@@ -38,6 +38,8 @@
 #ifndef __LWMSG_TEST_PRIVATE_H__
 #define __LWMSG_TEST_PRIVATE_H__
 
+#include "status-private.h"
+
 #define MU_TRY_DCONTEXT(_dcontext_, _x_)                                \
     do                                                                  \
     {                                                                   \
@@ -86,7 +88,8 @@
                 __FILE__,                                               \
                 __LINE__,                                               \
                 MU_STATUS_EXCEPTION,                                    \
-                "Unexpected error");                                    \
+                "%s",                                                   \
+                lwmsg_error_name(__status__));                          \
     } while (0)
 
 #define TEST_ENDPOINT "/tmp/.lwmsg_server_test_socket"

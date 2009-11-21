@@ -137,10 +137,13 @@ lwmsg_archive_recv_msg(
 
 static LWMsgStatus
 lwmsg_archive_finish(
-    LWMsgAssoc* assoc
+    LWMsgAssoc* assoc,
+    LWMsgMessage** message
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+
+    *message = NULL;
 
     return status;
 }
@@ -262,8 +265,8 @@ static
 LWMsgStatus
 lwmsg_archive_establish(
     LWMsgAssoc* assoc,
-    LWMsgSessionConstructor construct,
-    LWMsgSessionDestructor destruct,
+    LWMsgSessionConstructFunction construct,
+    LWMsgSessionDestructFunction destruct,
     void* data
     )
 {

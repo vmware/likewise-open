@@ -134,7 +134,7 @@ typedef struct LWMsgAssocClass
      * @lwmsg_endstatus
      */
     LWMsgStatus (*reset)(LWMsgAssoc* assoc);
-    LWMsgStatus (*finish)(LWMsgAssoc* assoc);
+    LWMsgStatus (*finish)(LWMsgAssoc* assoc, LWMsgMessage** message);
     LWMsgStatus (*set_nonblock)(LWMsgAssoc* assoc, LWMsgBool nonblock);
     /**
      * @ingroup assoc_impl
@@ -220,8 +220,8 @@ typedef struct LWMsgAssocClass
     LWMsgStatus
     (*establish)(
         LWMsgAssoc* assoc,
-        LWMsgSessionConstructor construct,
-        LWMsgSessionDestructor destruct,
+        LWMsgSessionConstructFunction construct,
+        LWMsgSessionDestructFunction destruct,
         void* data
         );
 } LWMsgAssocClass;
@@ -238,8 +238,8 @@ struct LWMsgAssoc
     LWMsgAssocClass* aclass;
     LWMsgProtocol* prot;
     LWMsgSessionManager* manager;
-    LWMsgSessionConstructor construct;
-    LWMsgSessionDestructor destruct;
+    LWMsgSessionConstructFunction construct;
+    LWMsgSessionDestructFunction destruct;
     void* construct_data;
     AssocCall call;
 

@@ -39,6 +39,7 @@
 #define __LWMSG_MESSAGE_H__
 
 #include <lwmsg/status.h>
+#include <lwmsg/common.h>
 
 /**
  * @file message.h
@@ -52,7 +53,7 @@
  * in the context of a particular protocol.  Values less
  * than 0 are reserved for internal use by LWMsg.
  */
-typedef signed int LWMsgTag;
+typedef int16_t LWMsgTag;
 
 /**
  * @brief Message cookie
@@ -61,7 +62,14 @@ typedef signed int LWMsgTag;
  * correlated when multiple requests might be outstanding
  * simultaneously.
  */
-typedef unsigned int LWMsgCookie;
+typedef uint16_t LWMsgCookie;
+
+typedef enum LWMsgMessageFlags
+{
+    LWMSG_MESSAGE_FLAG_CONTROL   = 0x1,
+    LWMSG_MESSAGE_FLAG_SYNTHETIC = 0x2,
+    LWMSG_MESSAGE_FLAG_REPLY     = 0x4
+} LWMsgMessageFlags;
 
 /**
  * @brief Invalid message tag
@@ -73,16 +81,6 @@ typedef unsigned int LWMsgCookie;
 #define LWMSG_TAG_INVALID ((LWMsgTag) -1)
 
 /**
- * @brief Control message tag
- *
- * A message with this tag never contains data but
- * is still considered valid.  It may be used for
- * for sending control messages.
- * @hideinitializer
- */
-#define LWMSG_TAG_CONTROL ((LWMsgTag) -2)
-
-/**
  * @brief Message structure
  *
  * Encapsulates all the elements of a message
@@ -90,6 +88,7 @@ typedef unsigned int LWMsgCookie;
  */
 typedef struct LWMsgMessage
 {
+    LWMsgMessageFlags flags;
     /**
      * @brief Status code
      *
@@ -146,10 +145,10 @@ typedef struct LWMsgMessage
  */
 #ifdef LWMSG_DISABLE_DEPRECATED
 #define LWMSG_MESSAGE_INITIALIZER \
-    {LWMSG_STATUS_SUCCESS, 0, LWMSG_TAG_INVALID, NULL, 0}
+    {0, LWMSG_STATUS_SUCCESS, 0, LWMSG_TAG_INVALID, NULL, 0}
 #else
 #define LWMSG_MESSAGE_INITIALIZER \
-    {LWMSG_STATUS_SUCCESS, 0, LWMSG_TAG_INVALID, {.data = NULL}, 0}
+    {0, LWMSG_STATUS_SUCCESS, 0, LWMSG_TAG_INVALID, {.data = NULL}, 0}
 #endif
 
 /**

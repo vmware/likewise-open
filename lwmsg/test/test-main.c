@@ -160,7 +160,7 @@ lwmsg_test_log_function(
             mu_level = MU_LEVEL_WARNING;
             break;
         case LWMSG_LOGLEVEL_INFO:
-            mu_level = MU_LEVEL_INFO;
+            mu_level = MU_LEVEL_VERBOSE;
             break;
         case LWMSG_LOGLEVEL_VERBOSE:
             mu_level = MU_LEVEL_VERBOSE;

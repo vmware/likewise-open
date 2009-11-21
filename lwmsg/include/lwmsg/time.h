@@ -92,11 +92,6 @@ lwmsg_time_normalize(
     LWMsgTime* time
     );
 
-LWMsgBool
-lwmsg_time_is_positive(
-    LWMsgTime* time
-    );
-
 void
 lwmsg_clock_init(
     LWMsgClock* clock
@@ -113,5 +108,25 @@ lwmsg_clock_get_monotonic_time(
     LWMsgClock* clock,
     LWMsgTime* time
     );
+
+static inline
+LWMsgBool
+lwmsg_time_is_positive(
+    LWMsgTime* time
+    )
+{
+    return (time->seconds >= 0 && time->microseconds >= 0);
+}
+
+static inline
+LWMsgBool
+lwmsg_time_is_zero(
+    LWMsgTime* time
+    )
+{
+    return (time->seconds == 0 && time->microseconds == 0);
+}
+
+
 
 #endif

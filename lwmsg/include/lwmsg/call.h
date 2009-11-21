@@ -241,6 +241,26 @@ lwmsg_call_get_session(
     );
 
 /**
+ * @brief Acquire callback handle
+ *
+ * Returns a #LWMsgCall which can be used to make a call back
+ * to the initiator of the given call.  This function may
+ * only be used by callees.
+ *
+ * @param[in] call the call handle
+ * @param[out] callback the callback handle
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_memory
+ * @lwmsg_endstatus
+ */
+LWMsgStatus
+lwmsg_call_acquire_callback(
+    LWMsgCall* call,
+    LWMsgCall** callback
+    );
+
+/**
  * @brief Static initializer for #LWMsgParams
  *
  * A constant which may be used to initialize automatic variables

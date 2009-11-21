@@ -378,6 +378,7 @@ lwmsg_type_promote(
      iter->inner = spec;
      iter->size = sizeof(void*);
      iter->attrs.nonnull = LWMSG_TRUE;
+     iter->attrs.promoted = LWMSG_TRUE;
 }
 
 void

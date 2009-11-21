@@ -38,6 +38,8 @@
 #ifndef __LWMSG_COMMON_H__
 #define __LWMSG_COMMON_H__
 
+#include <inttypes.h>
+
 /**
  * @file common.h Common definitions
  * @brief Common definitions
@@ -80,6 +82,18 @@ typedef enum LWMsgBool
     /** True */
     LWMSG_TRUE = 1
 } LWMsgBool;
+
+/**
+ * @brief Endpoint type
+ *
+ * Represents the type of a client or server endpoint
+ */
+typedef enum LWMsgEndpointType
+{
+    LWMSG_ENDPOINT_NONE,
+    /** Machine-local (UNIX domain socket) */
+    LWMSG_ENDPOINT_LOCAL
+} LWMsgEndpointType;
 
 /* @} */
 
