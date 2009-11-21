@@ -35,7 +35,7 @@ namespace Likewise.LMC.LDAP.Interop
 {
     public class LdapAPI
     {
-#if MONO_DEVELOP
+#if !VSTUDIO_BUILD
         private const string LDAP_DLL_PATH = "libldap.dll";
 #else
 		private const string LDAP_DLL_PATH = "wldap32.dll";
