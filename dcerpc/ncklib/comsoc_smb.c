@@ -997,7 +997,9 @@ rpc__smb_socket_listen_thread(void* data)
         serr = NtStatusToErrno(
             LwIoCtxConnectNamedPipe(
                 smb->context,
-                smb->np));
+                smb->np,
+                NULL,
+                &status_block));
         if (serr)
         {
             SMB_SOCKET_LOCK(smb);
