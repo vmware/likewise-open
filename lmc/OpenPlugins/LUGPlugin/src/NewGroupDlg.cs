@@ -102,18 +102,25 @@ public partial class NewGroupDlg : EditDialog, IUIInitialize
     private bool ProcessMembers(CredentialEntry ce, string domain)
     {
         bool retVal = true;
+        uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
         
         for (int i = 0; i < lvMembers.Items.Count; i++)
         {
             try
             {
-                retVal = !Convert.ToBoolean(
-                    LUGAPI.NetAddGroupMember(
-                        _hn.hostName,
-                        this.GroupName,
-                        lvMembers.Items[i].Text
-                        )
+                result = LUGAPI.NetAddGroupMember(
+                    _hn.hostName,
+                    this.GroupName,
+                    lvMembers.Items[i].Text
                     );
+
+                if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                {
+                    container.ShowError(String.Format(
+                        "User \"{0}\" could not be added:\n{1}",
+                        lvMembers.Items[i].Text,
+                        ErrorCodes.WIN32String((int)result)));
+                }
             }
             catch (Exception)
             {
@@ -216,122 +223,14 @@ public partial class NewGroupDlg : EditDialog, IUIInitialize
     {
         try
         {
-            StringRequestDialog strDlg = new StringRequestDialog(
-            AddMember,
-            "Include users in new group",
-            "",
-            new string[]
-            {
-                "User: "
-            }
-            ,
-            new string[]
-            {
-                "e.g. myUserAcct"
-            }
-            ,
-            new string[]
-            {
-                ""
-            }
-            ,
-            null);
-            strDlg.ShowDialog();
+            AddMemberDlg addMemberDlg = new AddMemberDlg();
 
-            //string[] members = new string[] { string.Concat(System.Environment.UserDomainName, @"\", TokensDN[0].Substring(3)) };
-            //AddMember(members, null);
-
-            /*
-            string Domain = string.Empty;
-            if (this._hn.domainName == null)
+            if (addMemberDlg.ShowDialog() == DialogResult.OK)
             {
-                uint error = CNetlogon.GetCurrentDomain(out _hn.domainName);
-                if (error != 0 && String.IsNullOrEmpty(_hn.domainName))
-                {
-                    this._hn.domainName = Environment.UserDomainName;
-                }
+                string[] arr = new string[1];
+                arr[0] = addMemberDlg.Member;
+                AddMember(arr, null);
             }
-            Domain = this._hn.domainName;           
-            
-            string[] rootDNcom = Domain.Split('.');
-
-            string rootDN = ""; string errorMessage = "";
-            foreach (string str in rootDNcom)
-            {
-                string temp = string.Concat("dc=", str, ",");
-                rootDN = string.Concat(rootDN, temp);
-            }
-            rootDN = rootDN.Substring(0, rootDN.Length - 1);
-
-            //show DsPicker
-            if (DirectoryEntry.exisitngDirContext != null && DirectoryEntry.exisitngDirContext.Count > 0)
-            {
-                foreach (DirectoryContext dirContext in DirectoryEntry.exisitngDirContext)
-                {
-                    if (dirContext != null && dirContext.DistinguishedName.ToLower().Contains(rootDN.ToLower()))
-                    {
-                        DirectoryEntry.exisitngDirContext.Remove(dirContext);
-                        break;
-                    }
-                }
-            }
-            
-            DirectoryContext _adContext = DirectoryContext.CreateDirectoryContext(Domain,
-                                             rootDN,
-                                             _hn.creds.UserName,
-                                             _hn.creds.Password,
-                                             389,
-                                             _plugin._usingManualCreds,
-                                             out errorMessage);
-
-            DirectoryEntry.exisitngDirContext.Add(_adContext);
-
-            if (String.IsNullOrEmpty(errorMessage))
-            {
-                Logger.Log("LUGPlugin: Built directory context");
-            }
-            else
-            {
-                Logger.ShowUserError(errorMessage);
-                return;
-            }
-
-            if (_adContext != null)
-            {
-                Logger.Log("_adContext is not null");
-            }
-            else
-                return;
-
-            string sLdapPath = string.Format("LDAP://{0}/{1}", Domain, rootDN);
-            string sProtocol;
-            string sServer;
-            string sCNs;
-            string sDCs;
-
-            System.DirectoryServices.SDSUtils.CrackPath(sLdapPath, out sProtocol, out sServer, out sCNs, out sDCs);
-            System.DirectoryServices.Misc.DsPicker f = new System.DirectoryServices.Misc.DsPicker();
-            f.SetData(System.DirectoryServices.Misc.DsPicker.DialogType.SELECT_USERS_OR_GROUPS, sProtocol, sServer, sDCs, true);
-
-            if (f.waitForm != null && f.waitForm.bIsInterrupted)
-            {
-                return;
-            }
-           
-            if (f.ShowDialog(this) == DialogResult.OK)
-            {
-                if (f.ADobjectsArray != null && f.ADobjectsArray.Length != 0)
-                {
-                    foreach (System.DirectoryServices.Misc.ADObject ado in f.ADobjectsArray)
-                    {
-                        string sDN = ado.de.Properties["distinguishedName"].Value as string;
-                        string[] TokensDN = sDN.Split(',');
-                        string[] members = new string[] { string.Concat(System.Environment.UserDomainName, @"\", TokensDN[0].Substring(3)) };
-                        AddMember(members, null);
-                    }
-                }
-            }
-            */
         }
         catch (Exception exp)
         {
