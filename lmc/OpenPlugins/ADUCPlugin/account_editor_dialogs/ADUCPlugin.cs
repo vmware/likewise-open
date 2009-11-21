@@ -479,7 +479,7 @@ public class ADUCPlugin: IPlugIn
             }
             else
             {
-                break;
+                MessageBox.Show("Failed to connect to domain. Please use the alternate credentials");
             }
         }
     }
