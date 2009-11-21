@@ -1031,46 +1031,38 @@ lwmsg_peer_task_rundown(
     LWMsgRing* next = NULL;
     PeerCall* call = NULL;
     LWMsgMessage cancel = LWMSG_MESSAGE_INITIALIZER;
-    LWMsgBool did_work = LWMSG_FALSE;
 
     pthread_mutex_lock(&task->call_lock);
 
-    do
+    for (ring = task->calls.next; ring != &task->calls; ring = next)
     {
-        did_work = LWMSG_FALSE;
+        next = ring->next;
+        call = LWMSG_OBJECT_FROM_MEMBER(ring, PeerCall, ring);
 
-        for (ring = task->calls.next; ring != &task->calls; ring = next)
+        if (!call->is_outgoing && call->state & PEER_CALL_COMPLETED)
         {
-            next = ring->next;
-            call = LWMSG_OBJECT_FROM_MEMBER(ring, PeerCall, ring);
-
-            if (!call->is_outgoing && call->state & PEER_CALL_COMPLETED)
+            lwmsg_peer_call_delete(call);
+        }
+        else if (!(call->state & PEER_CALL_COMPLETED))
+        {
+            if (call->is_outgoing)
             {
-                lwmsg_peer_call_delete(call);
-            }
-            else if (!(call->state & PEER_CALL_COMPLETED))
-            {
-                if (call->is_outgoing)
+                if (task->status)
                 {
-                    if (task->status)
-                    {
-                        cancel.status = task->status;
-                    }
-                    else
-                    {
+                    cancel.status = task->status;
+                }
+                else
+                {
                         cancel.status = LWMSG_STATUS_CANCELLED;
-                    }
-                    lwmsg_peer_call_complete_outgoing(call, &cancel);
-                    did_work = LWMSG_TRUE;
                 }
-                else if (!(call->state & PEER_CALL_CANCELLED))
-                {
-                    lwmsg_peer_call_cancel_incoming(call);
-                    did_work = LWMSG_TRUE;
-                }
+                lwmsg_peer_call_complete_outgoing(call, &cancel);
+            }
+            else if (!(call->state & PEER_CALL_CANCELLED))
+            {
+                lwmsg_peer_call_cancel_incoming(call);
             }
         }
-    } while (did_work);
+    }
 
     if (!lwmsg_ring_is_empty(&task->calls))
     {
