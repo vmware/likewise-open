@@ -489,6 +489,10 @@ lwmsg_recvmsg_timeout(
     fd_set fds;
     int ret = 0;
 
+#ifdef MSG_NOSIGNAL
+    flags |= MSG_NOSIGNAL;
+#endif
+
     if (time && lwmsg_time_is_positive(time))
     {
         timeout.tv_sec = time->seconds;
@@ -524,6 +528,10 @@ lwmsg_sendmsg_timeout(
     fd_set fds;
     int ret = 0;
 
+#ifdef MSG_NOSIGNAL
+    flags |= MSG_NOSIGNAL;
+#endif
+
     if (time && lwmsg_time_is_positive(time))
     {
         timeout.tv_sec = time->seconds;
@@ -558,6 +566,10 @@ lwmsg_recvmsg_timeout(
 {
     struct timeval timeout;
 
+#ifdef MSG_NOSIGNAL
+    flags |= MSG_NOSIGNAL;
+#endif
+
     if (time && lwmsg_time_is_positive(time))
     {
         timeout.tv_sec = time->seconds;
@@ -585,6 +597,10 @@ lwmsg_sendmsg_timeout(
     )
 {
     struct timeval timeout;
+
+#ifdef MSG_NOSIGNAL
+    flags |= MSG_NOSIGNAL;
+#endif
 
     if (time && lwmsg_time_is_positive(time))
     {
