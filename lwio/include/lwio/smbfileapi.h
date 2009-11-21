@@ -69,7 +69,9 @@ LwIoCtxGetPeerAddress(
 LW_NTSTATUS
 LwIoCtxConnectNamedPipe(
     LW_PIO_CONTEXT pContext,
-    IO_FILE_HANDLE File
+    IO_FILE_HANDLE File,
+    PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    PIO_STATUS_BLOCK IoStatusBlock
     );
 
 #ifndef LW_NO_THREADS
@@ -96,7 +98,9 @@ LwIoGetPeerAddress(
 
 LW_NTSTATUS
 LwIoConnectNamedPipe(
-    IO_FILE_HANDLE File
+    IO_FILE_HANDLE File,
+    PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    PIO_STATUS_BLOCK IoStatusBlock
     );
 
 #endif /* !LW_NO_THREADS */
