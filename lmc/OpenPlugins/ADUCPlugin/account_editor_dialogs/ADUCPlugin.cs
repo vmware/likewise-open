@@ -476,10 +476,14 @@ public class ADUCPlugin: IPlugIn
                     else
                         break; // Connection dialog close on cancel
                 }
+                else
+                {
+                    MessageBox.Show("Failed to connect to domain. Please use the alternate credentials");
+                }
             }
             else
             {
-                MessageBox.Show("Failed to connect to domain. Please use the alternate credentials");
+                break;
             }
         }
     }
