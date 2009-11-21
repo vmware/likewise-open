@@ -169,7 +169,7 @@ lwmsg_call_dispatch(
  * function must only be used by callees.  It signifies the callee's
  * intent to complete the call asynchronously with #lwmsg_call_complete().
  * The callee must also cause #LWMSG_STATUS_PENDING to be returned from
- * #lwmsg_call_transact().
+ * #lwmsg_call_dispatch().
  *
  * @param call the call handle
  * @param cancel a mandatory call cancellation function
@@ -204,7 +204,7 @@ lwmsg_call_complete(
  * Cancels the given call.  The function must only be used by callers, and
  * only after #lwmsg_call_dispatch() has returned #LWMSG_STATUS_PENDING for the
  * call.  When successfully cancelled, the completion function passed to
- * #lwmsg_call_transact() will be invoked with a status of #LWMSG_STATUS_CANCELLED.
+ * #lwmsg_call_dispatch() will be invoked with a status of #LWMSG_STATUS_CANCELLED.
  *
  * @param call the call handle
  */

@@ -50,6 +50,42 @@
  * @brief Peer API
  */
 
+/**
+ * @defgroup peer Peers
+ * @ingroup public
+ * @brief Nexus for incoming and outgoing calls
+ *
+ * An #LWMsgPeer struct acts as a nexus for both incoming and outgoing calls,
+ * combining client and server functionality into a single abstraction.  A peer
+ * speaks a single protocol (#LWMsgProtocol) and may do any or all of the following
+ * simultaneously.
+ *
+ * - Listen for incoming calls on any number of endpoints: #lwmsg_peer_start_listen()
+ * - Connect to a single endpoint on another peer to make outgoing calls: #lwmsg_peer_connect()
+ *
+ * To use an #LWMsgPeer as a call server:
+ *
+ * -# Create and set up an #LWMsgProtocol and optionally an #LWMsgContext
+      to customize memory management and logging.
+ * -# Create a peer with #lwmsg_peer_new().
+ * -# Register one or more tables of dispatch functions to handle incoming calls
+ *    with #lwmsg_peer_add_dispatch_spec().
+ * -# Register one or more listening endpoints with #lwmsg_peer_add_listen_endpoint().
+ * -# Start listening for incoming requests with #lwmsg_peer_start_listen().
+ *
+ * To use an #LWMsgPeer as a call client:
+ *
+ * -# Create and set up an #LWMsgProtocol and optionally an #LWMsgContext
+ *    to customize memory management and logging.
+ * -# Create a peer with #lwmsg_peer_new().
+ * -# If the protocol makes use of callbacks, register one or more tables of dispatch
+ *    functions to handle incoming callbacks with #lwmsg_peer_add_dispatch_spec().
+ * -# Register one or more endpoints to connect to with #lwmsg_peer_add_connect_endpoint().
+ *    The first one which can be succefully connected to is the one which will be used.
+ * -# Connect with #lwmsg_peer_connect().
+ * -# Acquire a call handle with #lwmsg_peer_acquire_call() and call with #lwmsg_call_dispatch().
+ */
+
 /*@{*/
 
 #ifndef DOXYGEN
@@ -144,18 +180,19 @@ typedef struct LWMsgPeer LWMsgPeer;
  * and returning #LWMSG_STATUS_SUCCESS, or asynchronously by invoking
  * #lwmsg_call_pend() on the call handle, returning #LWMSG_STATUS_PENDING,
  * and completing the call later with #lwmsg_call_complete().  Returning
- * any other status code will cause the client session to be unceremoniously
- * terminated, and the status code will be propgated to the handler registered
- * on the peer with #lwmsg_peer_set_exception_function().
+ * any other status code will cause the client call to fail with the same
+ * status.
  *
  * The contents of the in params structure is defined only for the duration
- * of the function call and must not be referenced after the function returns.
+ * of the function call and must not be referenced after the function returns
+ * or modified during the course of the call.  The call handle is also only
+ * valid while the call is in progress and should not be referenced after
+ * completion.
  *
  * Data inserted into the out params structure must be allocated with the
- * same memory manager as the peer -- by default, plain malloc().
- * Regardless of the status code returned, all such data will be automatically
- * freed by the peer as long as the tag is set to a valid value
- * (i.e. not #LWMSG_TAG_INVALID).
+ * same memory manager as the #LWMsgPeer which dispatched the call.
+ * By default, this is plain malloc().  The caller assumes ownership of all
+ * such memory and the responsibility of freeing it.
  *
  * @param[in,out] call the call handle
  * @param[in] in the input parameters
@@ -181,8 +218,8 @@ LWMsgStatus
 /**
  * @brief Exception handler function
  *
- * A callback function which is invoked when an exception occurs within
- * the peer.
+ * A callback function which is invoked when an unexpected error occurs
+ * in the process of handling incoming calls.
  *
  * @param peer the peer handle
  * @param status the status code of the error
@@ -222,8 +259,10 @@ lwmsg_peer_new(
  *
  * Deletes a peer object.
  *
- * @warning Attempting to delete a peer which has been started
- * but not stopped will block until the peer stops
+ * @warning Attempting to delete a peer which has outstanding
+ * outgoing calls has undefined behavior.  Attempting to delete
+ * a peer which is listening for incoming calls will block
+ * until all outstanding incoming calls can be cancelled.
  *
  * @param peer the peer object to delete
  */
@@ -255,17 +294,17 @@ lwmsg_peer_set_timeout(
     );
 
 /**
- * @brief Set maximum number of simultaneous active connections
+ * @brief Set maximum number of simultaneous incoming associations
  *
- * Sets the maximum numbers of connections which the peer will track
- * simultaneously.  Connections beyond this will wait until a slot becomes
+ * Sets the maximum numbers of incoming associations which the peer will track
+ * simultaneously.  Associations beyond this will wait until a slot becomes
  * available.
  *
  * @param peer the peer object
- * @param max_clients the maximum number of simultaneous clients to support
+ * @param max_clients the maximum number of simultaneous associations to support
  * @lwmsg_status
  * @lwmsg_success
- * @lwmsg_code{INVALID_STATE, the peer is already active}
+ * @lwmsg_code{INVALID_STATE, the peer is already listening}
  * @lwmsg_endstatus
  */
 LWMsgStatus
@@ -275,10 +314,10 @@ lwmsg_peer_set_max_listen_clients(
     );
 
 /**
- * @brief Set maximum number of backlogged connections
+ * @brief Set maximum number of backlogged associations
  *
- * Sets the maximum numbers of pending connections which the peer will keep
- * waiting until a client slot becomes available.  Pending connections beyond
+ * Sets the maximum numbers of pending associations which the peer will keep
+ * waiting until a client slot becomes available.  Pending associations beyond
  * this value will be rejected outright.
  *
  * @param peer the peer object
@@ -314,15 +353,16 @@ lwmsg_peer_add_dispatch_spec(
     );
 
 /**
- * @brief Set listening socket
+ * @brief Add listen socket
  *
- * Sets the socket on which the peer will listen for connections.
+ * Adds a socket on which the peer will accept incoming associations.
  * This function must be passed a valid file descriptor which is socket
  * that matches the specified mode and is already listening (has had
- * listen() called on it).
+ * listen() called on it).  The peer will assume ownership of this
+ * fd.
  *
  * @param peer the peer object
- * @param mode the connection mode (local or remote)
+ * @param type the endpoint type
  * @param fd the socket on which to listen
  * @lwmsg_status
  * @lwmsg_success
@@ -338,16 +378,14 @@ lwmsg_peer_add_listen_fd(
     );
 
 /**
- * @brief Set listening endpoint
+ * @brief Add listening endpoint
  *
- * Sets the endpoint on which the peer will listen for connections.
- * For local (UNIX domain) endpoints, this is the path of the socket file.
- * For remote (TCP) endpoints, this is the address and port to bind to.
+ * Adds an endpoint on which the peer will listen for connections.
  *
  * @param peer the peer object
- * @param mode the connection mode (local or remote)
- * @param endpoint the endpoint on which to listen
- * @param permissions permissions for the endpoint (only applicable to local mode)
+ * @param type the type of endpoint
+ * @param endpoint the endpoint path on which to listen
+ * @param permissions permissions for the endpoint (only applicable to local endpoints)
  * @lwmsg_status
  * @lwmsg_success
  * @lwmsg_code{INVALID_STATE, the peer is already active}
@@ -363,10 +401,10 @@ lwmsg_peer_add_listen_endpoint(
     );
 
 /**
- * @brief Set session construct and destruct functions
+ * @brief Set session construct and destruct functions for incoming assocations
  *
  * Sets functions which will be called when a new session
- * is established with a client.  The constructor function
+ * is established through an incoming association.  The constructor function
  * may set up a session context which the destructor function
  * should clean up when the session is terminated.
  *
@@ -391,13 +429,13 @@ lwmsg_peer_set_listen_session_functions(
  * @brief Set dispatch data pointer
  *
  * Sets the user data pointer which is passed to dispatch functions.
- * This function may only be used while the peer is stopped.
+ * This function may only be used while the peer is inactive.
  *
  * @param peer the peer object
  * @param data the data pointer
  * @lwmsg_status
  * @lwmsg_success
- * @lwmsg_code{INVALID_STATE, the peer is already running}
+ * @lwmsg_code{INVALID_STATE, the peer is already active}
  * @lwmsg_endstatus
  */
 LWMsgStatus
@@ -421,15 +459,17 @@ lwmsg_peer_get_dispatch_data(
     );
 
 /**
- * @brief Start accepting connections
+ * @brief Start listening for incoming associations
  *
- * Starts listening for and servicing connections in a separate thread.
- * This function will not block, so the calling function should arrange
- * to do something afterwards while the peer is running, such as handling
- * UNIX signals.
+ * Starts listening for incoming associations from other peers on all
+ * endpoints registered with #lwmsg_peer_add_listen_endpoint().  This
+ * function returns once all endpoints are ready to accept incoming
+ * associations.
  *
  * @param peer the peer object
- * @return LWMSG_STATUS_SUCCESS on success, or an appropriate status code on failure
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_endstatus
  */
 LWMsgStatus
 lwmsg_peer_start_listen(
@@ -437,15 +477,18 @@ lwmsg_peer_start_listen(
     );
 
 /**
- * @brief Aggressively stop peer
+ * @brief Stop listening for incoming assocations
  *
- * Stops the specified peer accepting new connections and aggressively
- * terminates any connections in progress or queued for service.  After
- * this function returns successfully, the peer may be safely deleted with
- * lwmsg_peer_delete().
+ * Stops the specified peer accepting new associations and aggressively
+ * terminates any existing associations, including cancelling all outstanding
+ * incoming calls.  This function returns once all incoming associations have
+ * been terminated.
  *
  * @param peer the peer object
- * @return LWMSG_STATUS_SUCCESS on success, or an appropriate status code on failure
+ * @param peer the peer object
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_endstatus
  */
 LWMsgStatus
 lwmsg_peer_stop_listen(
@@ -456,11 +499,11 @@ lwmsg_peer_stop_listen(
  * @brief Set exception handler
  *
  * Sets a callback function which will be invoked when an error occurs
- * within the running peer.  The function may take appropriate action depending
- * on the error, such as logging a warning or instructing the main application
- * thread to shut down.
+ * during the course of servicing incoming or outgoing calls.  The function may
+ * take appropriate action depending on the error, such as logging a warning or
+ * instructing the main application thread to shut down.
  *
- * @warning Do not call #lwmsg_peer_stop() from an exception handler
+ * @warning Do not call #lwmsg_peer_stop_listen() from an exception handler
  *
  * @param peer the peer handle
  * @param except the handler function
@@ -476,6 +519,19 @@ lwmsg_peer_set_exception_function(
     void* except_data
     );
 
+/**
+ * @brief Add connection endpoint
+ *
+ * Adds an endpoint which will be used when establishing an outgoing association
+ * with #lwmsg_peer_connect().
+ *
+ * @param peer the peer handle
+ * @param type the type of endpoint
+ * @param endpoint the endpoint path
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_endstatus
+ */
 LWMsgStatus
 lwmsg_peer_add_connect_endpoint(
     LWMsgPeer* peer,
@@ -483,16 +539,61 @@ lwmsg_peer_add_connect_endpoint(
     const char* endpoint
     );
 
+/**
+ * @brief Establish outgoing association
+ *
+ * Establishes an outgoing association on one of the endpoints registered
+ * with #lwmsg_peer_add_connect_endpoint().  The endpoints will be tried
+ * in the order they were added until one succeeds.  If an outgoing
+ * association is already established, this function is a no-op.  If an
+ * outgoing association is in the process of being established, this
+ * function will block until it either succeeds or fails.
+ *
+ * @param peer the peer handle
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_code{CONNECTION_REFUSED, the connection was refused}
+ * @lwmsg_code{FILE_NOT_FOUND, the specified local endpoint was not found}
+ * @lwmsg_endstatus
+ */
 LWMsgStatus
 lwmsg_peer_connect(
     LWMsgPeer* peer
     );
 
+/**
+ * @brief Close outgoing association
+ *
+ * Closes any assocation established by #lwmsg_peer_connect().  All outstanding
+ * outgoing calls will be cancelled.  If no association is currently established,
+ * thus function is a no-op.  If the association is already being disconnected,
+ * this function will block until it either succeeds or fails.
+ *
+ * @param peer the peer handle
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_endstatus
+ */
 LWMsgStatus
 lwmsg_peer_disconnect(
     LWMsgPeer* peer
     );
 
+/**
+ * @brief Acquire outgoing call handle
+ *
+ * Acquire a call handle which can be used to make an outgoing call.  Peer
+ * call handles fully support asynchronous calls.  The handle may be reused
+ * after each call completes.  If the peer has not been connected with
+ * #lwmsg_peer_connect(), this function will do so implicitly.  The acquired
+ * call handle should be released with #lwmsg_call_release() when no longer needed.
+ *
+ * @param[in] peer the peer handle
+ * @param[out] call the acquired call handle
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_endstatus
+ */
 LWMsgStatus
 lwmsg_peer_acquire_call(
     LWMsgPeer* peer,

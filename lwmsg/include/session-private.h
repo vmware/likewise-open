@@ -318,7 +318,7 @@ typedef struct LWMsgSessionManagerClass
      * @param[out] ptr the handle pointer
      * @lwmsg_status
      * @lwmsg_success
-     * @lwmsg_code{INVALID_HANDLE, the given ID, type name, and type is not registered as a handle}
+     * @lwmsg_code{INVALID_HANDLE, the given ID\, type name\, and type is not registered as a handle}
      * @lwmsg_endstatus
      */
     LWMsgStatus
