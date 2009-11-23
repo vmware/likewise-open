@@ -82,7 +82,7 @@ SrvShareRegOpen(
     OUT PHANDLE phRepository
     )
 {
-    return RegOpenServer(phRepository);
+    return NtRegOpenServer(phRepository);
 }
 
 NTSTATUS
@@ -107,7 +107,7 @@ SrvShareRegFindByName(
     wchar16_t       wszSharesKey[]   = REG_KEY_PATH_SRV_SHARES_W;
     wchar16_t       wszShareSecKey[] = REG_KEY_PATH_SRV_SHARES_SECURITY_W;
 
-    ntStatus = RegOpenKeyExW(
+    ntStatus = NtRegOpenKeyExW(
                     hRepository,
                     NULL,
                     &wszHKTM[0],
@@ -116,7 +116,7 @@ SrvShareRegFindByName(
                     &hRootKey);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = RegOpenKeyExW(
+    ntStatus = NtRegOpenKeyExW(
                     hRepository,
                     hRootKey,
                     &wszSharesKey[0],
@@ -125,7 +125,7 @@ SrvShareRegFindByName(
                     &hKey);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = RegOpenKeyExW(
+    ntStatus = NtRegOpenKeyExW(
                     hRepository,
                     hRootKey,
                     &wszShareSecKey[0],
@@ -134,7 +134,7 @@ SrvShareRegFindByName(
                     &hSecKey);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = RegGetValueW(
+    ntStatus = NtRegGetValueW(
                     hRepository,
                     hKey,
                     NULL,
@@ -145,7 +145,7 @@ SrvShareRegFindByName(
                     &ulValueLen);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = RegGetValueW(
+    ntStatus = NtRegGetValueW(
                     hRepository,
                     hSecKey,
                     NULL,
@@ -173,15 +173,15 @@ cleanup:
 
     if (hRootKey)
     {
-        RegCloseKey(hRepository, hRootKey);
+        NtRegCloseKey(hRepository, hRootKey);
     }
     if (hKey)
     {
-        RegCloseKey(hRepository, hKey);
+	NtRegCloseKey(hRepository, hKey);
     }
     if (hSecKey)
     {
-        RegCloseKey(hRepository, hSecKey);
+	NtRegCloseKey(hRepository, hSecKey);
     }
 
     return ntStatus;
@@ -233,7 +233,7 @@ SrvShareRegAdd(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = RegOpenKeyExW(
+    ntStatus = NtRegOpenKeyExW(
                     hRepository,
                     NULL,
                     &wszHKTM[0],
@@ -242,7 +242,7 @@ SrvShareRegAdd(
                     &hRootKey);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = RegOpenKeyExW(
+    ntStatus = NtRegOpenKeyExW(
                     hRepository,
                     hRootKey,
                     &wszSharesKey[0],
@@ -305,10 +305,10 @@ SrvShareRegAdd(
                 wc16slen(pwszService) * sizeof(wchar16_t));
     }
 
-    ntStatus = RegMultiStrsToByteArrayW(ppwszValues, &pOutData, &cOutDataLen);
+    ntStatus = NtRegMultiStrsToByteArrayW(ppwszValues, &pOutData, &cOutDataLen);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = RegSetValueExW(
+    ntStatus = NtRegSetValueExW(
                     hRepository,
                     hKey,
                     pwszShareName,
@@ -324,7 +324,7 @@ SrvShareRegAdd(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = RegOpenKeyExW(
+    ntStatus = NtRegOpenKeyExW(
                     hRepository,
                     hRootKey,
                     &wszShareSecKey[0],
@@ -333,7 +333,7 @@ SrvShareRegAdd(
                     &hSecKey);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = RegSetValueExW(
+    ntStatus = NtRegSetValueExW(
                     hRepository,
                     hSecKey,
                     pwszShareName,
@@ -347,15 +347,15 @@ cleanup:
 
     if (hRootKey)
     {
-        RegCloseKey(hRepository, hRootKey);
+	NtRegCloseKey(hRepository, hRootKey);
     }
     if (hKey)
     {
-        RegCloseKey(hRepository, hKey);
+	NtRegCloseKey(hRepository, hKey);
     }
     if (hSecKey)
     {
-        RegCloseKey(hRepository, hSecKey);
+	NtRegCloseKey(hRepository, hSecKey);
     }
     if (ppwszValues)
     {
@@ -393,7 +393,7 @@ SrvShareRegBeginEnum(
                     (PVOID*)&pEnumContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = RegOpenKeyExW(
+    ntStatus = NtRegOpenKeyExW(
                     hRepository,
                     NULL,
                     &wszHKTM[0],
@@ -402,7 +402,7 @@ SrvShareRegBeginEnum(
                     &hRootKey);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = RegOpenKeyExW(
+    ntStatus = NtRegOpenKeyExW(
                     hRepository,
                     hRootKey,
                     &wszSharesKey[0],
@@ -411,7 +411,7 @@ SrvShareRegBeginEnum(
                     &hKey);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = RegQueryInfoKeyW(
+    ntStatus = NtRegQueryInfoKeyW(
                     hRepository,
                     hKey,
                     NULL,
@@ -442,11 +442,11 @@ cleanup:
 
     if (hRootKey)
     {
-        RegCloseKey(hRepository, hRootKey);
+	NtRegCloseKey(hRepository, hRootKey);
     }
     if (hKey)
     {
-        RegCloseKey(hRepository, hKey);
+	NtRegCloseKey(hRepository, hKey);
     }
 
     return ntStatus;
@@ -493,7 +493,7 @@ SrvShareRegEnum(
         goto cleanup;
     }
 
-    ntStatus = RegOpenKeyExW(
+    ntStatus = NtRegOpenKeyExW(
                     hRepository,
                     NULL,
                     &wszHKTM[0],
@@ -502,7 +502,7 @@ SrvShareRegEnum(
                     &hRootKey);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = RegOpenKeyExW(
+    ntStatus = NtRegOpenKeyExW(
                     hRepository,
                     hRootKey,
                     &wszSharesKey[0],
@@ -511,7 +511,7 @@ SrvShareRegEnum(
                     &hKey);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = RegOpenKeyExW(
+    ntStatus = NtRegOpenKeyExW(
                     hRepository,
                     hRootKey,
                     &wszShareSecKey[0],
@@ -550,7 +550,7 @@ SrvShareRegEnum(
             BAIL_ON_NT_STATUS(ntStatus);
         }
 
-        ntStatus = RegEnumValueW(
+        ntStatus = NtRegEnumValueW(
                       hRepository,
                       hKey,
                       ulIndex,
@@ -567,7 +567,7 @@ SrvShareRegEnum(
             continue;
         }
 
-        ntStatus = RegGetValueW(
+        ntStatus = NtRegGetValueW(
                         hRepository,
                         hSecKey,
                         NULL,
@@ -576,7 +576,7 @@ SrvShareRegEnum(
                         &dataSecType,
                         pSecData,
                         &ulMaxSecValueLen);
-        if (LW_ERROR_NO_SUCH_VALUENAME == ntStatus)
+        if (STATUS_OBJECT_NAME_NOT_FOUND == ntStatus)
         {
             ntStatus = 0;
             ulMaxSecValueLen = 0;
@@ -602,15 +602,15 @@ cleanup:
 
     if (hRootKey)
     {
-        RegCloseKey(hRepository, hRootKey);
+	NtRegCloseKey(hRepository, hRootKey);
     }
     if (hKey)
     {
-        RegCloseKey(hRepository, hKey);
+	NtRegCloseKey(hRepository, hKey);
     }
     if (hSecKey)
     {
-        RegCloseKey(hRepository, hSecKey);
+	NtRegCloseKey(hRepository, hSecKey);
     }
 
     SRV_SAFE_FREE_MEMORY(pwszValueName);
@@ -652,7 +652,7 @@ SrvShareRegDelete(
     wchar16_t wszSharesKey[]   = REG_KEY_PATH_SRV_SHARES_W;
     wchar16_t wszShareSecKey[] = REG_KEY_PATH_SRV_SHARES_SECURITY_W;
 
-    ntStatus = RegOpenKeyExW(
+    ntStatus = NtRegOpenKeyExW(
                     hRepository,
                     NULL,
                     &wszHKTM[0],
@@ -661,19 +661,19 @@ SrvShareRegDelete(
                     &hRootKey);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = RegDeleteKeyValueW(
+    ntStatus = NtRegDeleteKeyValueW(
                     hRepository,
                     hRootKey,
                     &wszSharesKey[0],
                     pwszShareName);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = RegDeleteKeyValueW(
+    ntStatus = NtRegDeleteKeyValueW(
                     hRepository,
                     hRootKey,
                     &wszShareSecKey[0],
                     pwszShareName);
-    if (LW_ERROR_NO_SUCH_VALUENAME == ntStatus)
+    if (STATUS_OBJECT_NAME_NOT_FOUND == ntStatus)
     {
         ntStatus = STATUS_SUCCESS;
     }
@@ -683,7 +683,7 @@ cleanup:
 
     if (hRootKey)
     {
-        RegCloseKey(hRepository, hRootKey);
+	NtRegCloseKey(hRepository, hRootKey);
     }
 
     return ntStatus;
@@ -706,7 +706,7 @@ SrvShareRegGetCount(
     wchar16_t wszHKTM[]        = HKEY_THIS_MACHINE_W;
     wchar16_t wszSharesKey[]   = REG_KEY_PATH_SRV_SHARES_W;
 
-    ntStatus = RegOpenKeyExW(
+    ntStatus = NtRegOpenKeyExW(
                     hRepository,
                     NULL,
                     &wszHKTM[0],
@@ -715,7 +715,7 @@ SrvShareRegGetCount(
                     &hRootKey);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = RegOpenKeyExW(
+    ntStatus = NtRegOpenKeyExW(
                     hRepository,
                     hRootKey,
                     &wszSharesKey[0],
@@ -724,7 +724,7 @@ SrvShareRegGetCount(
                     &hKey);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = RegQueryInfoKeyW(
+    ntStatus = NtRegQueryInfoKeyW(
                     hRepository,
                     hKey,
                     NULL,
@@ -746,11 +746,11 @@ cleanup:
 
     if (hRootKey)
     {
-        RegCloseKey(hRepository, hRootKey);
+	NtRegCloseKey(hRepository, hRootKey);
     }
     if (hKey)
     {
-        RegCloseKey(hRepository, hKey);
+	NtRegCloseKey(hRepository, hKey);
     }
 
     return ntStatus;
@@ -767,7 +767,7 @@ SrvShareRegClose(
     IN HANDLE hRepository
     )
 {
-    RegCloseServer(hRepository);
+	NtRegCloseServer(hRepository);
 }
 
 VOID
@@ -819,7 +819,7 @@ SrvShareRegWriteToShareInfo(
         ULONG     ulServicePrefixLen =
                             (sizeof(wszServicePrefix)/sizeof(wchar16_t)) - 1;
 
-        ntStatus = RegByteArrayToMultiStrs(pData, ulDataLen, &ppwszValues);
+        ntStatus = NtRegByteArrayToMultiStrs(pData, ulDataLen, &ppwszValues);
         BAIL_ON_NT_STATUS(ntStatus);
 
         for (; ppwszValues[iValue]; iValue++)

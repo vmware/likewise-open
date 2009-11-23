@@ -34,7 +34,7 @@
 #include <openssl/md5.h>
 #include <openssl/hmac.h>
 
-#include <reg/reg.h>
+#include <reg/lwntreg.h>
 
 #include "lwio/lwio.h"
 

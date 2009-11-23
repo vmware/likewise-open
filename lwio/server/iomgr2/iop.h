@@ -35,7 +35,7 @@
 #include "ioinit.h"
 #include <lw/rtlstring.h>
 #include <lw/rtlgoto.h>
-#include <reg/reg.h>
+#include <reg/lwntreg.h>
 
 #include "lwlist.h"
 #include "lwioutils.h"
