@@ -112,11 +112,11 @@ namespace Likewise.LMC.Registry
         {
             IntPtr pHandle;
 
-            Logger.Log("RegistryInterop.RegOpenServer(out pHandle) is getting called", Logger.RegistryViewerLoglevel);
+            Logger.Log("RegistryInterop.LwRegOpenServer(out pHandle) is getting called", Logger.RegistryViewerLoglevel);
 
-            int dwError = RegistryInterop.RegOpenServer(out pHandle);
+            int dwError = RegistryInterop.LwRegOpenServer(out pHandle);
 
-            Logger.Log(string.Format("RegistryInterop.RegOpenServer(out pHandle = {0}) is called ", (pHandle == IntPtr.Zero) ? "zero" : pHandle.ToInt32().ToString()), Logger.RegistryViewerLoglevel);
+            Logger.Log(string.Format("RegistryInterop.LwRegOpenServer(out pHandle = {0}) is called ", (pHandle == IntPtr.Zero) ? "zero" : pHandle.ToInt32().ToString()), Logger.RegistryViewerLoglevel);
 
             if (dwError != 0)
             {
@@ -132,7 +132,7 @@ namespace Likewise.LMC.Registry
         {
             IntPtr handle_t = IntPtr.Zero;
 
-            int iResult = RegistryInterop.RegOpenServer(out handle_t);
+            int iResult = RegistryInterop.LwRegOpenServer(out handle_t);
             if (iResult != 0)
             {
                 hRegConnection = IntPtr.Zero;
@@ -152,7 +152,7 @@ namespace Likewise.LMC.Registry
         {
             hRegConnection = IntPtr.Zero;
 
-            int iResult = RegistryInterop.RegCloseServer(hRegConnection);
+            int iResult = RegistryInterop.LwRegCloseServer(hRegConnection);
             if (iResult != 0)
             {
                 Logger.Log(string.Format("RegistryInteropWrapper.RegCloseServer(hRegConnection={0}) :ret = {1}", hRegConnection.ToInt32().ToString(), iResult.ToString()), Logger.RegistryViewerLoglevel);
@@ -173,7 +173,7 @@ namespace Likewise.LMC.Registry
 
             Logger.Log("RegistryInteropWrapper.ApiRegEnumRootKeysW(hRegConnection = " + hRegConnection.ToString(), Logger.RegistryViewerLoglevel);
 
-            iResult = RegistryInterop.RegEnumRootKeysW(hRegConnection, out pRootKeyEnum, out pRootKeyEnumCount);
+            iResult = RegistryInterop.LwRegEnumRootKeysW(hRegConnection, out pRootKeyEnum, out pRootKeyEnumCount);
 
             if (iResult != 0)
             {
@@ -204,7 +204,7 @@ namespace Likewise.LMC.Registry
                 Logger.Log(string.Format("RegistryInteropWrapper.RegOpenKeyExW(hRegConnection={0}, hKey={1} sSubkey={2}),  is called ",
                           hRegConnection.ToInt32().ToString(), hKey.ToInt32().ToString(), sKeyname, Logger.RegistryViewerLoglevel));
 
-                iResult = RegistryInterop.RegOpenKeyExW(hRegConnection,
+                iResult = RegistryInterop.LwRegOpenKeyExW(hRegConnection,
                                                 hKey,
                                                 sKeyname,
                                                 0,
@@ -218,7 +218,7 @@ namespace Likewise.LMC.Registry
 
 				phkResult = phResult;
 
-                Logger.Log(string.Format("RegistryInterop.RegOpenKeyExW() is returns iResult={0}, \n" +
+                Logger.Log(string.Format("RegistryInterop.LwRegOpenKeyExW() is returns iResult={0}, \n" +
                                 "out phkResult={1}", iResult.ToString(), phkResult.ToInt32().ToString()), Logger.RegistryViewerLoglevel);
             }
             catch (Exception ex)
@@ -265,7 +265,7 @@ namespace Likewise.LMC.Registry
                     Logger.Log(string.Format("RegistryInteropWrapper.RegEnumKeyExW: keyname.Length={0}",
                         MAX_KEY_LENGTH.ToString(), Logger.RegistryViewerLoglevel));
 
-                    iResult = RegistryInterop.RegEnumKeyExW(
+                    iResult = RegistryInterop.LwRegEnumKeyExW(
                                             handle_t,
                                             pParentKey,
                                             idx,
@@ -334,7 +334,7 @@ namespace Likewise.LMC.Registry
 
                 Logger.Log(string.Format("RegistryInteropWrapper.RegEnumValueW(hRegConnection={0}, pParentKey={1}) is called ", handle_t.ToInt32().ToString(), pParentKey.ToInt32().ToString()));
 
-                iResult = RegistryInterop.RegEnumValueW(
+                iResult = RegistryInterop.LwRegEnumValueW(
                                     handle_t,
                                     pParentKey,
                                     idx,
@@ -395,7 +395,7 @@ namespace Likewise.LMC.Registry
                 Logger.Log(string.Format("RegistryInteropWrapper.RegQueryInfoExW(hRegConnection={0}, hKey={1}) is called ",
                                          hRegConnection.ToInt32().ToString(), hKey.ToInt32().ToString()), Logger.RegistryViewerLoglevel);
 
-                iResult = RegistryInterop.RegQueryInfoKeyW(hRegConnection,
+                iResult = RegistryInterop.LwRegQueryInfoKeyW(hRegConnection,
                                                 hKey,
                                                 out pClass,
                                                 ref pcClass,
@@ -411,9 +411,9 @@ namespace Likewise.LMC.Registry
                 if (iResult != 0)
                 {
                     Logger.Log(string.Format("RegistryInteropWrapper.RegQueryInfoExW is returns ret={0}", iResult), Logger.RegistryViewerLoglevel);
-                }                
+                }
 
-                Logger.Log(string.Format("RegistryInterop.RegQueryInfoKeyW() is returns iResult={0}, \n" +
+                Logger.Log(string.Format("RegistryInterop.LwRegQueryInfoKeyW() is returns iResult={0}, \n" +
                                 "out pClass={1},\n ref pcClass={2},\n" +
                                 "out dwSubKeyCount={3},\n out dwMaxSubKeyLen={4}" +
                                 "out lpcbMaxClassLen={5},\n out dwValueCount={6},\n" +
@@ -453,7 +453,7 @@ namespace Likewise.LMC.Registry
                     return iResult;
                 }
 
-                iResult = RegistryInterop.RegCreateKeyExW(hRegConnection,
+                iResult = RegistryInterop.LwRegCreateKeyExW(hRegConnection,
                                                 hKey,
                                                 pSubkey,
                                                 0,
@@ -468,7 +468,7 @@ namespace Likewise.LMC.Registry
                     Logger.Log(string.Format("RegistryInteropWrapper.RegCreateKeyExW is returns ret={0}", iResult), Logger.RegistryViewerLoglevel);
                 }
 
-                Logger.Log(string.Format("RegistryInterop.RegCreateKeyExW() is returns iResult={0}, \n" +
+                Logger.Log(string.Format("RegistryInterop.LwRegCreateKeyExW() is returns iResult={0}, \n" +
                                 "out phkResult={1}, out pdwDisposition={1}", iResult.ToString(), phkResult.ToInt32().ToString(), pdwDisposition.ToString()), Logger.RegistryViewerLoglevel);
             }
             catch (Exception ex)
@@ -497,7 +497,7 @@ namespace Likewise.LMC.Registry
 
                 Logger.Log(string.Format("RegistryInteropWrapper.RegSetValueExW(hRegConnection={0}, hKey={1} sValuename={2}),  is called ", hRegConnection.ToInt32().ToString(), hKey.ToInt32().ToString(), String.IsNullOrEmpty(sValuename) ? "" : sValuename), Logger.RegistryViewerLoglevel);
 
-                iResult = RegistryInterop.RegSetValueExW(hRegConnection,
+                iResult = RegistryInterop.LwRegSetValueExW(hRegConnection,
                                                 hKey,
                                                 sValuename.Trim(),
                                                 0,
@@ -507,9 +507,9 @@ namespace Likewise.LMC.Registry
                 if (iResult != 0)
                 {
                     Logger.Log(string.Format("RegistryInteropWrapper.RegSetValueExW is returns ret={0}", iResult), Logger.RegistryViewerLoglevel);
-                }             
+                }
 
-                Logger.Log(string.Format("RegistryInterop.RegSetValueExW() is returns iResult={0}, \n" +
+                Logger.Log(string.Format("RegistryInterop.LwRegSetValueExW() is returns iResult={0}, \n" +
                                 "ref pcData={1}", iResult.ToString(), pcData.ToString()), Logger.RegistryViewerLoglevel);
             }
             catch (Exception ex)
@@ -541,10 +541,10 @@ namespace Likewise.LMC.Registry
 
                 Logger.Log(string.Format("RegistryInteropWrapper.RegSetValueExW(hRegConnection={0}, hKey={1} sValuename={2}),  is called ", hRegConnection.ToInt32().ToString(), hKey.ToInt32().ToString(), sValuename), Logger.RegistryViewerLoglevel);
 
-                iResult = RegistryInterop.RegSetKeyValueW(hRegConnection,
+                iResult = RegistryInterop.LwRegSetKeyValueW(hRegConnection,
                                                 hKey,
                                                 sbKeyname,
-                                                sbValuename,                                               
+                                                sbValuename,
                                                 dwType,
                                                 pData,
                                                 pcData);
@@ -553,7 +553,7 @@ namespace Likewise.LMC.Registry
                     Logger.Log(string.Format("RegistryInteropWrapper.RegSetValueExW is returns ret={0}", iResult), Logger.RegistryViewerLoglevel);
                 }
 
-                Logger.Log(string.Format("RegistryInterop.RegSetValueExW() is returns iResult={0}, \n" +
+                Logger.Log(string.Format("RegistryInterop.LwRegSetValueExW() is returns iResult={0}, \n" +
                                 "ref pcData={1}", iResult.ToString(), pcData.ToString()), Logger.RegistryViewerLoglevel);
             }
             catch (Exception ex)
@@ -579,7 +579,7 @@ namespace Likewise.LMC.Registry
                 Logger.Log(string.Format("RegistryInteropWrapper.RegGetValueW(hRegConnection={0}, hKey={1}, sValue={2}),  is called ",
                     hRegConnection.ToInt32().ToString(), valueInfo.pParentKey.ToInt32().ToString(), valueInfo.pValueName), Logger.RegistryViewerLoglevel);
 
-                iResult = RegistryInterop.RegGetValueW(hRegConnection,
+                iResult = RegistryInterop.LwRegGetValueW(hRegConnection,
                                                 valueInfo.pParentKey,
                                                 null,
                                                 valueInfo.pValueName,
@@ -614,7 +614,7 @@ namespace Likewise.LMC.Registry
                 }
                 pbData = pData;
 
-                Logger.Log(string.Format("RegistryInterop.RegGetValueW() is returns iResult={0}, \n" +
+                Logger.Log(string.Format("RegistryInterop.LwRegGetValueW() is returns iResult={0}, \n" +
                                 "ref dwValueLen={1}", iResult.ToString(), dwValueLen.ToString()), Logger.RegistryViewerLoglevel);
             }
             catch (Exception ex)
@@ -641,8 +641,8 @@ namespace Likewise.LMC.Registry
             {
                 Logger.Log(string.Format("RegistryInteropWrapper.RegQueryMultipleValuesW(hRegConnection={0}, hKey={1}),  is called ",
                     hRegConnection.ToInt32().ToString(), hKey.ToInt32().ToString()), Logger.RegistryViewerLoglevel);
-         
-                iResult = RegistryInterop.RegQueryMultipleValuesW(
+
+                iResult = RegistryInterop.LwRegQueryMultipleValuesW(
                                                 hRegConnection,
                                                 hKey,
                                                 pVal_list,
@@ -671,7 +671,7 @@ namespace Likewise.LMC.Registry
                     }
                 }
 
-                Logger.Log(string.Format("RegistryInterop.RegQueryMultipleValuesW() is returns iResult={0}",
+                Logger.Log(string.Format("RegistryInterop.LwRegQueryMultipleValuesW() is returns iResult={0}",
                                 iResult.ToString()), Logger.RegistryViewerLoglevel);
 
                 pbData = valueList;
@@ -700,7 +700,7 @@ namespace Likewise.LMC.Registry
                 Logger.Log(string.Format("RegistryInteropWrapper.ApiRegQueryValueExW(hRegConnection={0}, hKey={1}),  is called ",
                     hRegConnection.ToInt32().ToString(), valueInfo.pParentKey.ToInt32().ToString()), Logger.RegistryViewerLoglevel);
 
-                iResult = RegistryInterop.RegQueryValueExW(hRegConnection,
+                iResult = RegistryInterop.LwRegQueryValueExW(hRegConnection,
                                     valueInfo.pParentKey,
                                     valueInfo.pValueName,
                                     0,
@@ -747,7 +747,7 @@ namespace Likewise.LMC.Registry
 
                 if (ApiRegCloseKey(hRegConnection, hKey) == 0)
                 {
-                    iResult = RegistryInterop.RegDeleteTreeW(hRegConnection,
+                    iResult = RegistryInterop.LwRegDeleteTreeW(hRegConnection,
                                                     pParentKey,
                                                     sSubkey);
                 }
@@ -757,7 +757,7 @@ namespace Likewise.LMC.Registry
                     Logger.Log(string.Format("RegistryInteropWrapper.RegDeleteTreeW is returns ret={0}", iResult), Logger.RegistryViewerLoglevel);
                 }
 
-                Logger.Log(string.Format("RegistryInterop.RegDeleteTreeW() is returns iResult={0}",
+                Logger.Log(string.Format("RegistryInterop.LwRegDeleteTreeW() is returns iResult={0}",
                                 iResult.ToString()), Logger.RegistryViewerLoglevel);
             }
             catch (Exception ex)
@@ -780,10 +780,10 @@ namespace Likewise.LMC.Registry
             {
                 Logger.Log(string.Format("RegistryInteropWrapper.RegDeleteKeyW(hRegConnection={0}, pParentKey= {1}, hKey={2} sSubkey={3}),  is called ",
                     hRegConnection.ToInt32().ToString(), pParentKey.ToInt32().ToString(), hKey.ToInt32().ToString(), sSubkey != null ? sSubkey : ""), Logger.RegistryViewerLoglevel);
-              
+
                 if (ApiRegCloseKey(hRegConnection, hKey) == 0)
                 {
-                    iResult = RegistryInterop.RegDeleteKeyW(hRegConnection,
+                    iResult = RegistryInterop.LwRegDeleteKeyW(hRegConnection,
                                                     pParentKey,
                                                     sSubkey);
                 }
@@ -791,9 +791,9 @@ namespace Likewise.LMC.Registry
                 if (iResult != 0)
                 {
                     Logger.Log(string.Format("RegistryInteropWrapper.RegDeleteKeyW is returns ret={0}", iResult.ToString()), Logger.RegistryViewerLoglevel);
-                }                
+                }
 
-                Logger.Log(string.Format("RegistryInterop.RegDeleteKeyW() is returns iResult={0}\n",
+                Logger.Log(string.Format("RegistryInterop.LwRegDeleteKeyW() is returns iResult={0}\n",
                                 iResult.ToString()), Logger.RegistryViewerLoglevel);
             }
             catch (Exception ex)
@@ -815,7 +815,7 @@ namespace Likewise.LMC.Registry
                 Logger.Log(string.Format("RegistryInteropWrapper.ApiRegCloseKey(hRegConnection={0}, hKey={1} is called ",
                     hRegConnection.ToInt32().ToString(), hKey.ToInt32().ToString()), Logger.RegistryViewerLoglevel);
 
-                iResult = RegistryInterop.RegCloseKey(hRegConnection,
+                iResult = RegistryInterop.LwRegCloseKey(hRegConnection,
                                                 hKey);                                                
                 if (iResult != 0)
                 {
@@ -850,7 +850,7 @@ namespace Likewise.LMC.Registry
                 Logger.Log(string.Format("RegistryInteropWrapper.RegDeleteKeyValueW(hRegConnection={0}, hKey={1} sSubkey={2}),  is called ",
                     hRegConnection.ToInt32().ToString(), hKey.ToInt32().ToString(), sSubkey != null ? sSubkey : ""), Logger.RegistryViewerLoglevel);
 
-                iResult = RegistryInterop.RegDeleteKeyValueW(hRegConnection,
+                iResult = RegistryInterop.LwRegDeleteKeyValueW(hRegConnection,
                                                 hKey,
                                                 sbKeyname,
                                                 sValuename);
@@ -859,7 +859,7 @@ namespace Likewise.LMC.Registry
                     Logger.Log(string.Format("RegistryInteropWrapper.RegDeleteKeyValueW is returns ret={0}", iResult), Logger.RegistryViewerLoglevel);
                 }
 
-                Logger.Log(string.Format("RegistryInterop.RegDeleteKeyValueW() is returns iResult={0}",
+                Logger.Log(string.Format("RegistryInterop.LwRegDeleteKeyValueW() is returns iResult={0}",
                                 iResult.ToString()), Logger.RegistryViewerLoglevel);
             }
             catch (Exception ex)
@@ -882,7 +882,7 @@ namespace Likewise.LMC.Registry
                 Logger.Log(string.Format("RegistryInteropWrapper.ApiRegDeleteValueW(hRegConnection={0}, hKey={1} sValuename={2}),  is called ",
                     hRegConnection.ToInt32().ToString(), hKey.ToInt32().ToString(), sValuename != null ? sValuename : ""), Logger.RegistryViewerLoglevel);
 
-                iResult = RegistryInterop.RegDeleteValueW(hRegConnection,
+                iResult = RegistryInterop.LwRegDeleteValueW(hRegConnection,
                                                 hKey,
                                                 sValuename);
                 if (iResult != 0)
@@ -915,7 +915,7 @@ namespace Likewise.LMC.Registry
 					byte[] pData = new byte[MAX_VALUE_LENGTH];
 					ulong dwType = RegistryApi.REG_UNKNOWN;
 
-					RegistryInterop.RegGetValueW(hRegConnection,
+					RegistryInterop.LwRegGetValueW(hRegConnection,
 		                             valueinfo.pParentKey,
 						 null,
 						 valueinfo.pValueName,
