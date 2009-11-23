@@ -104,7 +104,7 @@ LwNtStatusToWin32Error(
     )
 {
     struct table_entry *e = find(match_status, &ntStatus);
-    return e ? e->werror : -1;
+    return e ? e->werror : (LW_WINERROR)-1;
 }
 
 /* Converting Unix errors */
