@@ -43,7 +43,6 @@
  *
  */
 #include "includes.h"
-#include "reg/reg.h"
 
 struct __EVT_CONFIG_REG
 {

@@ -1,8 +1,12 @@
-#include "config.h"
+#include <config.h>
 
-#include "eventsys.h"
-#include "eventlog.h"
-#include "eventdefs.h"
+#include <eventsys.h>
+
+#include <reg/lwreg.h>
+
+#include <eventdefs.h>
+#include <eventlog.h>
+
 
 #include "eventutils.h"
 
