@@ -55,8 +55,8 @@ namespace Likewise.LMC.Plugins.FileBrowser
         private Icon FolderOpenIcon = new Icon(Resources.FolderOpen, 32, 32);
         private Icon FileIcon = new Icon(Resources.Document, 32, 32);
         private string PathSeparator = Configurations.currentPlatform == LikewiseTargetPlatform.Windows ? "\\" : "/";
-        private int FOLDER_INDEX = 0;
-        private int FILE_INDEX = 1;
+        private int FOLDER_INDEX = Configurations.currentPlatform == LikewiseTargetPlatform.Windows ? 0 : 2;
+        private int FILE_INDEX = Configurations.currentPlatform == LikewiseTargetPlatform.Windows ? 1 : 3;
 
         #endregion
 

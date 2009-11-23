@@ -181,6 +181,8 @@ namespace Likewise.LMC.Plugins.FileBrowser
             this.fbLargeImageList.TransparentColor = System.Drawing.Color.Transparent;
             this.fbLargeImageList.Images.SetKeyName(0, "Folder.ico");
             this.fbLargeImageList.Images.SetKeyName(1, "Document.ico");
+            this.fbLargeImageList.Images.SetKeyName(2, "Folder_NoAlpha.ico");
+            this.fbLargeImageList.Images.SetKeyName(3, "Document_NoAlpha.ico");
             //
             // fbSmallImageList
             //
@@ -188,6 +190,8 @@ namespace Likewise.LMC.Plugins.FileBrowser
             this.fbSmallImageList.TransparentColor = System.Drawing.Color.Transparent;
             this.fbSmallImageList.Images.SetKeyName(0, "Folder.ico");
             this.fbSmallImageList.Images.SetKeyName(1, "Document.ico");
+            this.fbSmallImageList.Images.SetKeyName(2, "Folder_NoAlpha.ico");
+            this.fbSmallImageList.Images.SetKeyName(3, "Document_NoAlpha.ico");
             //
             // contextMenuStrip
             //
