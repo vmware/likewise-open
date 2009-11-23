@@ -264,8 +264,16 @@ lwmsg_peer_call_complete_incoming(
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     PeerCall* pcall = PEER_CALL(call);
+    LWMsgMessage message = LWMSG_MESSAGE_INITIALIZER;
 
     pthread_mutex_lock(&pcall->task->call_lock);
+
+    /* Destroy parameters to call */
+    message.tag = pcall->params.incoming.in.tag;
+    message.data = pcall->params.incoming.in.data;
+
+    lwmsg_assoc_destroy_message(pcall->task->assoc, &message);
+
     pcall->status = call_status;
     pcall->state |= PEER_CALL_COMPLETED;
     lwmsg_task_wake(pcall->task->event_task);
