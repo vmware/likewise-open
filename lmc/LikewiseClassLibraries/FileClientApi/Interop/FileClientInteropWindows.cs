@@ -39,12 +39,6 @@ namespace Likewise.LMC.FileClient
             string lpDirectoryName
             );
 
-        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-        public static extern bool Rename(
-            string lpOldName,
-            string lpNewName
-            );
-
         #endregion
 
         #region Local and Connected Share File Enumeration APIs

@@ -55,6 +55,8 @@ namespace Likewise.LMC.Plugins.FileBrowser
         private Icon FolderOpenIcon = new Icon(Resources.FolderOpen, 32, 32);
         private Icon FileIcon = new Icon(Resources.Document, 32, 32);
         private string PathSeparator = Configurations.currentPlatform == LikewiseTargetPlatform.Windows ? "\\" : "/";
+        private int FOLDER_INDEX = 0;
+        private int FILE_INDEX = 1;
 
         #endregion
 
@@ -129,10 +131,12 @@ namespace Likewise.LMC.Plugins.FileBrowser
                 string modified = "";
                 string size = "";
                 string type = "Directory";
+                int imageIndex = FOLDER_INDEX;
 
                 if (!File.IsDirectory)
                 {
                     type = "File";
+                    imageIndex = FILE_INDEX;
                 }
 
                 if (File.CreationTime != new DateTime())
@@ -148,9 +152,12 @@ namespace Likewise.LMC.Plugins.FileBrowser
                 size = File.FileSize.ToString() + " KB";
                 string[] file = { File.FileName, creation, modified, type, size };
 
-                ListViewItem lvItem = new ListViewItem(file);
+                ListViewItem lvItem = new ListViewItem(file, imageIndex);
                 lvFilePage.Items.Add(lvItem);
             }
+
+            lvFilePage.Sort();
+            lvFilePage.View = plugin.GetCurrentViewStyle();
         }
 
         #endregion

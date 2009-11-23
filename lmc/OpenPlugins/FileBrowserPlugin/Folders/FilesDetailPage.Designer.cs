@@ -61,6 +61,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(FilesDetailPage));
             this.panel1 = new System.Windows.Forms.Panel();
             this.panel3 = new System.Windows.Forms.Panel();
             this.panel4 = new System.Windows.Forms.Panel();
@@ -71,6 +72,8 @@ namespace Likewise.LMC.Plugins.FileBrowser
             this.DateModified = new System.Windows.Forms.ColumnHeader();
             this.Type = new System.Windows.Forms.ColumnHeader();
             this.FileSize = new System.Windows.Forms.ColumnHeader();
+            this.fbLargeImageList = new System.Windows.Forms.ImageList(this.components);
+            this.fbSmallImageList = new System.Windows.Forms.ImageList(this.components);
             this.contextMenuStrip = new System.Windows.Forms.ContextMenuStrip(this.components);
             ((System.ComponentModel.ISupportInitialize)(this.picture)).BeginInit();
             this.pnlHeader.SuspendLayout();
@@ -130,11 +133,13 @@ namespace Likewise.LMC.Plugins.FileBrowser
             this.lvFilePage.Dock = System.Windows.Forms.DockStyle.Fill;
             this.lvFilePage.FullRowSelect = true;
             this.lvFilePage.HideSelection = false;
+            this.lvFilePage.LargeImageList = this.fbLargeImageList;
             this.lvFilePage.Location = new System.Drawing.Point(139, 67);
             this.lvFilePage.MultiSelect = false;
             this.lvFilePage.Name = "lvFilePage";
             this.lvFilePage.RightToLeft = System.Windows.Forms.RightToLeft.No;
             this.lvFilePage.Size = new System.Drawing.Size(400, 235);
+            this.lvFilePage.SmallImageList = this.fbSmallImageList;
             this.lvFilePage.TabIndex = 6;
             this.lvFilePage.TileSize = new System.Drawing.Size(48, 48);
             this.lvFilePage.UseCompatibleStateImageBehavior = false;
@@ -148,7 +153,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
             // ObjectName
             //
             this.ObjectName.Text = "Name";
-            this.ObjectName.Width = 151;
+            this.ObjectName.Width = 200;
             //
             // DateCreated
             //
@@ -169,6 +174,20 @@ namespace Likewise.LMC.Plugins.FileBrowser
             //
             this.FileSize.Text = "Size";
             this.FileSize.Width = 35;
+            //
+            // fbLargeImageList
+            //
+            this.fbLargeImageList.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("fbLargeImageList.ImageStream")));
+            this.fbLargeImageList.TransparentColor = System.Drawing.Color.Transparent;
+            this.fbLargeImageList.Images.SetKeyName(0, "Folder.ico");
+            this.fbLargeImageList.Images.SetKeyName(1, "Document.ico");
+            //
+            // fbSmallImageList
+            //
+            this.fbSmallImageList.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("fbSmallImageList.ImageStream")));
+            this.fbSmallImageList.TransparentColor = System.Drawing.Color.Transparent;
+            this.fbSmallImageList.Images.SetKeyName(0, "Folder.ico");
+            this.fbSmallImageList.Images.SetKeyName(1, "Document.ico");
             //
             // contextMenuStrip
             //
@@ -214,5 +233,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
         private System.Windows.Forms.ColumnHeader FileSize;
         private System.Windows.Forms.ColumnHeader DateCreated;
         private System.Windows.Forms.ContextMenuStrip contextMenuStrip;
+        private System.Windows.Forms.ImageList fbLargeImageList;
+        private System.Windows.Forms.ImageList fbSmallImageList;
     }
 }

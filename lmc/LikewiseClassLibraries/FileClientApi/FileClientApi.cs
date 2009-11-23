@@ -837,40 +837,6 @@ namespace Likewise.LMC.FileClient
             return error;
         }
 
-        /*
-         * Rename - Rename a file or directory on a local or remote file system. New name
-         * can be a new directory path and file name (on the same volume).
-         */
-        public static WinError Rename(
-            string lpOldName,
-            string lpNewName
-            )
-        {
-            bool renamed = false;
-            WinError error = 0;
-
-            if (useWindowsDlls)
-            {
-                renamed = InteropWindows.Rename(lpOldName, lpNewName);
-
-                if (!renamed)
-                {
-                    error = (WinError)Marshal.GetLastWin32Error();
-                }
-            }
-            else
-            {
-                renamed = InteropLikewise.Rename(lpOldName, lpNewName);
-
-                if (!renamed)
-                {
-                    error = (WinError)InteropLikewise.GetLastError();
-                }
-            }
-
-            return error;
-        }
-
         #endregion
 
         #region Local and Connected Share File Enumeration APIs

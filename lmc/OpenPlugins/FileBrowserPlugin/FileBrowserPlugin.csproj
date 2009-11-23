@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -52,6 +52,12 @@
     <Compile Include="src\ConnectToShareDialog.Designer.cs">
       <DependentUpon>ConnectToShareDialog.cs</DependentUpon>
     </Compile>
+    <Compile Include="src\RenameDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="src\RenameDialog.Designer.cs">
+      <DependentUpon>RenameDialog.cs</DependentUpon>
+    </Compile>
     <Compile Include="src\PropertiesDialog.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -81,6 +87,10 @@
     </EmbeddedResource>
     <EmbeddedResource Include="src\ConnectToShareDialog.resx">
       <DependentUpon>ConnectToShareDialog.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\RenameDialog.resx">
+      <DependentUpon>RenameDialog.cs</DependentUpon>
       <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="src\PropertiesDialog.resx">
@@ -144,5 +154,6 @@
         </Policies>
       </Properties>
     </MonoDevelop>
+    <VisualStudio />
   </ProjectExtensions>
 </Project>
