@@ -43,7 +43,7 @@
 #include <lsa/ad.h>
 #include <lwnet.h>
 #include <eventlog.h>
-#include "reg/reg.h"
+#include <reg/lwreg.h>
 
 #define DOMAINJOIN_EVENT_CATEGORY   "Domain join"
 
