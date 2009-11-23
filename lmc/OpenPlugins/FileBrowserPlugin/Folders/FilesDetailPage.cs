@@ -194,6 +194,11 @@ namespace Likewise.LMC.Plugins.FileBrowser
                     lvFilePage.EndUpdate();
                     Refresh();
                 }
+                else
+                {
+                    string message = "Delete file operation failed. Error: " + error.ToString();
+                    MessageBox.Show(message, "Could not remove file", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }
         }
 

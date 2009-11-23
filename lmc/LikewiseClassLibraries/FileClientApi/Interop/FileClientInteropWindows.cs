@@ -9,11 +9,6 @@ namespace Likewise.LMC.FileClient
     {
         #region Copy/Delete/Move File APIs
 
-        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-        public static extern bool CreateDirectory(
-            string lpDirectoryName,
-            IntPtr lpSecurityAttributes
-            );
 
         [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
         public static extern bool CopyFile(
@@ -31,6 +26,12 @@ namespace Likewise.LMC.FileClient
         public static extern bool MoveFile(
             string lpExistingFileName,
             string lpNewFileName
+            );
+
+        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+        public static extern bool CreateDirectory(
+            string lpDirectoryName,
+            IntPtr lpSecurityAttributes
             );
 
         [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]

@@ -165,6 +165,10 @@ namespace Likewise.LMC.FileClient
         {
         }
 
+        /*
+         * SetWindowsPlatform - Tells this library class to use Windows specific interop calls,
+         * default is to call Likewise functions.
+         */
         public static void SetWindowsPlatform(
             )
         {
@@ -173,9 +177,12 @@ namespace Likewise.LMC.FileClient
 
         #region Copy/Delete/Move File APIs
 
+        /*
+         * CreateDirectory - Creates a new directory file on a local or remote file system.
+         */
         public static WinError CreateDirectory(
-               string lpDirectoryName
-               )
+            string lpDirectoryName
+            )
         {
             bool created = false;
             WinError error = 0;
@@ -184,20 +191,28 @@ namespace Likewise.LMC.FileClient
             if (useWindowsDlls)
             {
                 created = InteropWindows.CreateDirectory(lpDirectoryName, securityDescriptor);
+
+                if (!created)
+                {
+                    error = (WinError)Marshal.GetLastWin32Error();
+                }
             }
             else
             {
-                created = InteropLikewise.CreateDirectory(lpDirectoryName, securityDescriptor);
-            }
+                created = InteropLikewise.CreateDirectory(lpDirectoryName);
 
-            if (!created)
-            {
-                error = (WinError)Marshal.GetLastWin32Error();
+                if (!created)
+                {
+                    error = (WinError)InteropLikewise.GetLastError();
+                }
             }
 
             return error;
         }
 
+        /*
+         * RemoveDirectory - Removes an empty directory file from a local or remote file system.
+         */
         public static WinError RemoveDirectory(
             string lpDirectoryName
             )
@@ -208,20 +223,29 @@ namespace Likewise.LMC.FileClient
             if (useWindowsDlls)
             {
                 deleted = InteropWindows.RemoveDirectory(lpDirectoryName);
+
+                if (!deleted)
+                {
+                    error = (WinError)Marshal.GetLastWin32Error();
+                }
             }
             else
             {
                 deleted = InteropLikewise.RemoveDirectory(lpDirectoryName);
-            }
 
-            if (!deleted)
-            {
-                error = (WinError)Marshal.GetLastWin32Error();
+                if (!deleted)
+                {
+                    error = (WinError)InteropLikewise.GetLastError();
+                }
             }
 
             return error;
         }
 
+        /*
+         * CopyDirectory - Copies full file directory contents to and from a local or
+         * remote file system (via recursive create folder/copy file).
+         */
         public static WinError CopyDirectory(
             string lpSourceParentPath,
             string lpDestParentPath,
@@ -388,6 +412,10 @@ namespace Likewise.LMC.FileClient
             goto cleanup;
         }
 
+        /*
+         * MoveDirectory - Moves the full file directory contents to and from a local or
+         * remote file system (via recursive create folder/copy file/delete original).
+         */
         public static WinError MoveDirectory(
             string lpSourceParentPath,
             string lpDestParentPath,
@@ -560,6 +588,10 @@ namespace Likewise.LMC.FileClient
             goto cleanup;
         }
 
+        /*
+         * DeleteDirectory - Deletes a directory and it's contents from a local or
+         * remote file system (via recusive delete file/directory).
+         */
         public static WinError DeleteDirectory(
             string lpDirectoryPath
             )
@@ -706,6 +738,9 @@ namespace Likewise.LMC.FileClient
             goto cleanup;
         }
 
+        /*
+         * DeleteFile - Deletes a file from a local or remote file system.
+         */
         public static WinError DeleteFile(
             string lpFileName
             )
@@ -716,20 +751,28 @@ namespace Likewise.LMC.FileClient
             if (useWindowsDlls)
             {
                 deleted = InteropWindows.DeleteFile(lpFileName);
+
+                if (!deleted)
+                {
+                    error = (WinError)Marshal.GetLastWin32Error();
+                }
             }
             else
             {
                 deleted = InteropLikewise.DeleteFile(lpFileName);
-            }
 
-            if (!deleted)
-            {
-                error = (WinError)Marshal.GetLastWin32Error();
+                if (!deleted)
+                {
+                    error = (WinError)InteropLikewise.GetLastError();
+                }
             }
 
             return error;
         }
 
+        /*
+         * CopyFile - Copy a file to/from a local or remote file system.
+         */
         public static WinError CopyFile(
             string lpExistingFileName,
             string lpNewFileName,
@@ -742,20 +785,28 @@ namespace Likewise.LMC.FileClient
             if (useWindowsDlls)
             {
                 copied = InteropWindows.CopyFile(lpExistingFileName, lpNewFileName, bFailIfExists);
+
+                if (!copied)
+                {
+                    error = (WinError)Marshal.GetLastWin32Error();
+                }
             }
             else
             {
                 copied = InteropLikewise.CopyFile(lpExistingFileName, lpNewFileName, bFailIfExists);
-            }
 
-            if (!copied)
-            {
-                error = (WinError)Marshal.GetLastWin32Error();
+                if (!copied)
+                {
+                    error = (WinError)InteropLikewise.GetLastError();
+                }
             }
 
             return error;
         }
 
+        /*
+         * MoveFile - Move a file to/from a local or remote file system.
+         */
         public static WinError MoveFile(
             string lpExistingFileName,
             string lpNewFileName
@@ -767,20 +818,29 @@ namespace Likewise.LMC.FileClient
             if (useWindowsDlls)
             {
                 moved = InteropWindows.MoveFile(lpExistingFileName, lpNewFileName);
+
+                if (!moved)
+                {
+                    error = (WinError)Marshal.GetLastWin32Error();
+                }
             }
             else
             {
                 moved = InteropLikewise.MoveFile(lpExistingFileName, lpNewFileName);
-            }
 
-            if (!moved)
-            {
-                error = (WinError)Marshal.GetLastWin32Error();
+                if (!moved)
+                {
+                    error = (WinError)InteropLikewise.GetLastError();
+                }
             }
 
             return error;
         }
 
+        /*
+         * Rename - Rename a file or directory on a local or remote file system. New name
+         * can be a new directory path and file name (on the same volume).
+         */
         public static WinError Rename(
             string lpOldName,
             string lpNewName
@@ -792,15 +852,20 @@ namespace Likewise.LMC.FileClient
             if (useWindowsDlls)
             {
                 renamed = InteropWindows.Rename(lpOldName, lpNewName);
+
+                if (!renamed)
+                {
+                    error = (WinError)Marshal.GetLastWin32Error();
+                }
             }
             else
             {
                 renamed = InteropLikewise.Rename(lpOldName, lpNewName);
-            }
 
-            if (!renamed)
-            {
-                error = (WinError)Marshal.GetLastWin32Error();
+                if (!renamed)
+                {
+                    error = (WinError)InteropLikewise.GetLastError();
+                }
             }
 
             return error;
@@ -810,6 +875,11 @@ namespace Likewise.LMC.FileClient
 
         #region Local and Connected Share File Enumeration APIs
 
+        /*
+         * EnumFiles - Lists all files and directories under a given path location for a local or
+         * remote file system (one level). FileItem list returned details each file type, name,
+         * size, created/modified/accessed times.
+         */
         public static List<FileItem> EnumFiles(
             string filepath,
             bool showHiddenFiles
@@ -1001,6 +1071,10 @@ namespace Likewise.LMC.FileClient
 
         #region Remote File Resource Enumeration APIs
 
+        /*
+         * CreateConnection - Adds a connection to a network SMB file share. Optional credentials
+         * can be passed, otherwise default will be used for connection.
+         */
         public static WinError CreateConnection(
             string networkName,
             string username,
@@ -1028,6 +1102,9 @@ namespace Likewise.LMC.FileClient
             return error;
         }
 
+        /*
+         * DeleteConnection - Cancel a connection to a network SMB file share.
+         */
         public static WinError DeleteConnection(
             string networkName
             )
@@ -1046,6 +1123,9 @@ namespace Likewise.LMC.FileClient
             return error;
         }
 
+        /*
+         * BeginEnumNetResources - Begin search for connections. Options to find connected, connectable, remembered locations.
+         */
         public static WinError BeginEnumNetResources(
             ResourceScope dwScope,
             ResourceType dwType,
@@ -1074,6 +1154,9 @@ namespace Likewise.LMC.FileClient
             return error;
         }
 
+        /*
+         * EnumNetResources - Continue search for connections.
+         */
         public static WinError EnumNetResources(
             IntPtr enumHandle,
             out List<NETRESOURCE> NetResources
@@ -1125,6 +1208,9 @@ namespace Likewise.LMC.FileClient
             return error;
         }
 
+        /*
+         * EndEnumNetResources - End search for connections.
+         */
         public static WinError EndEnumNetResources(
             IntPtr enumHandle
             )

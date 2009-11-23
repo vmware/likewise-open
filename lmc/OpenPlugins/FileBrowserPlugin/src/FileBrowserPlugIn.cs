@@ -392,6 +392,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
             }
 
             fileBrowserContextMenu = new ContextMenu();
+
             menuItem = new MenuItem("Expand", cm_OnExpand);
             fileBrowserContextMenu.MenuItems.Add(0, menuItem);
 
@@ -409,6 +410,9 @@ namespace Likewise.LMC.Plugins.FileBrowser
             if (node.FBNodeType == FileBrowserNode.FileBrowserNopeType.SHARE ||
                 node.FBNodeType == FileBrowserNode.FileBrowserNopeType.DIRECTORY)
             {
+                menuItem = new MenuItem("Refresh", cm_OnRefresh);
+                fileBrowserContextMenu.MenuItems.Add(menuItem);
+
                 menuItem = new MenuItem("Copy", new EventHandler(cm_OnCopy));
                 fileBrowserContextMenu.MenuItems.Add(menuItem);
             }
@@ -644,6 +648,16 @@ namespace Likewise.LMC.Plugins.FileBrowser
             }
         }
 
+        private void cm_OnRefresh(object sender, EventArgs e)
+        {
+            if (_currentNode != null)
+            {
+                _currentNode.Nodes.Clear();
+                EnumChildren(_currentNode);
+                _currentNode.Expand();
+            }
+        }
+
         private void cm_OnExpand(object sender, EventArgs e)
         {
             if (_currentNode != null)
@@ -677,7 +691,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
                         error = FileClient.FileClient.CopyDirectory(parent.Path,
                                                                     destinationDialog.GetPath(),
                                                                     node.Name,
-                                                                    "Copy of" + node.Name,
+                                                                    "Copy of " + node.Name,
                                                                     true);
                     }
 
@@ -714,7 +728,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
                         error = FileClient.FileClient.MoveDirectory(parent.Path,
                                                                     destinationDialog.GetPath(),
                                                                     node.Name,
-                                                                    "Copy of" + node.Name,
+                                                                    "Copy of " + node.Name,
                                                                     true);
                     }
 

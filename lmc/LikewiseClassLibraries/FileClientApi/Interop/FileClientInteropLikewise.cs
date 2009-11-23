@@ -10,9 +10,7 @@ namespace Likewise.LMC.FileClient
         #region Copy/Delete/Move File APIs
 
         [DllImport("liblwfileclient.so", SetLastError = true, CharSet = CharSet.Unicode)]
-        public static extern bool CreateDirectory(
-            string lpDirectoryName,
-            IntPtr lpSecurityAttributes
+        public static extern UInt32 GetLastError(
             );
 
         [DllImport("liblwfileclient.so", SetLastError = true, CharSet = CharSet.Unicode)]
@@ -31,6 +29,11 @@ namespace Likewise.LMC.FileClient
         public static extern bool MoveFile(
             string lpExistingFileName,
             string lpNewFileName
+            );
+
+        [DllImport("liblwfileclient.so", SetLastError = true, CharSet = CharSet.Unicode)]
+        public static extern bool CreateDirectory(
+            string lpDirectoryName
             );
 
         [DllImport("liblwfileclient.so", SetLastError = true, CharSet = CharSet.Unicode)]
