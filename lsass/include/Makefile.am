@@ -1,6 +1,6 @@
 lsaincludedir = $(includedir)/lsa
 
-lsainclude_HEADERS = lsa/lsa.h lsa/join.h lsa/ad.h
+lsainclude_HEADERS = lsa/lsa.h lsa/join.h lsa/ad.h lsa/lsa2.h
 
 ntlmincludedir = $(includedir)/ntlm
 ntlminclude_HEADERS = ntlm/gssntlm.h ntlm/sspintlm.h

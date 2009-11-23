@@ -51,6 +51,7 @@
 #include "lsasystem.h"
 #include "lsadef.h"
 #include "lsa/lsa.h"
+#include "lsa/lsa2.h"
 #include "lsa/join.h"
 
 #include <openssl/md4.h>
@@ -74,6 +75,7 @@
 #include "lsaunistr.h"
 #include "lsaipc.h"
 #include "lsaprovider.h"
+#include "lsaprovider2.h"
 #include "lsasrvapi.h"
 #include "lsaadprovider.h"
 
