@@ -44,30 +44,31 @@
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  *          Marc Guy (mguy@likewisesoftware.com)
+ *          Wei Fu (wfu@likewise.com)
  */
 #include "api.h"
 
 static
-DWORD
+NTSTATUS
 RegSrvIpcCheckPermissions(
     LWMsgSecurityToken* token,
     uid_t* puid,
     gid_t* pgid
     )
 {
-    DWORD dwError = 0;
+	NTSTATUS status = 0;
     uid_t euid;
     gid_t egid;
 
     if (strcmp(lwmsg_security_token_get_type(token), "local"))
     {
         REG_LOG_WARNING("Unsupported authentication type");
-        dwError = LW_ERROR_NOT_HANDLED;
-        BAIL_ON_REG_ERROR(dwError);
+        status = STATUS_UNHANDLED_EXCEPTION;
+        BAIL_ON_NT_STATUS(status);
     }
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_local_token_get_eid(token, &euid, &egid));
-    BAIL_ON_REG_ERROR(dwError);
+    status = MAP_LWMSG_ERROR(lwmsg_local_token_get_eid(token, &euid, &egid));
+    BAIL_ON_NT_STATUS(status);
 
     REG_LOG_VERBOSE("Permission granted for (uid = %i, gid = %i) to open RegIpcServer",
                     (int) euid,
@@ -77,11 +78,11 @@ RegSrvIpcCheckPermissions(
     *pgid = egid;
 
 error:
-    return dwError;
+    return status;
 }
 
 static
-DWORD
+NTSTATUS
 RegSrvIpcRegisterHandle(
     LWMsgCall* pCall,
     PCSTR pszHandleType,
@@ -89,33 +90,33 @@ RegSrvIpcRegisterHandle(
     LWMsgHandleCleanupFunction pfnCleanup
     )
 {
-    DWORD dwError = 0;
+	NTSTATUS status = 0;
     LWMsgSession* pSession = lwmsg_call_get_session(pCall);
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_session_register_handle(pSession, pszHandleType, pHandle, pfnCleanup));
-    BAIL_ON_REG_ERROR(dwError);
+    status = MAP_LWMSG_ERROR(lwmsg_session_register_handle(pSession, pszHandleType, pHandle, pfnCleanup));
+    BAIL_ON_NT_STATUS(status);
 
 error:
 
-    return dwError;
+    return status;
 }
 
 static
-DWORD
+NTSTATUS
 RegSrvIpcRetainHandle(
     LWMsgCall* pCall,
     PVOID pHandle
     )
 {
-    DWORD dwError = 0;
+	NTSTATUS status = 0;
     LWMsgSession* pSession = lwmsg_call_get_session(pCall);
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_session_retain_handle(pSession, pHandle));
-    BAIL_ON_REG_ERROR(dwError);
+    status = MAP_LWMSG_ERROR(lwmsg_session_retain_handle(pSession, pHandle));
+    BAIL_ON_NT_STATUS(status);
 
 error:
 
-    return dwError;
+    return status;
 }
 
 static
@@ -128,21 +129,21 @@ RegSrvIpcCloseHandle(
 }
 
 static
-DWORD
+NTSTATUS
 RegSrvIpcUnregisterHandle(
     LWMsgCall* pCall,
     PVOID pHandle
     )
 {
-    DWORD dwError = 0;
+	NTSTATUS status = 0;
     LWMsgSession* pSession = lwmsg_call_get_session(pCall);
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_session_unregister_handle(pSession, pHandle));
-    BAIL_ON_REG_ERROR(dwError);
+    status = MAP_LWMSG_ERROR(lwmsg_session_unregister_handle(pSession, pHandle));
+    BAIL_ON_NT_STATUS(status);
 
 error:
 
-    return dwError;
+    return status;
 }
 
 
@@ -173,42 +174,40 @@ RegSrvIpcConstructSession(
     void** ppSessionData
     )
 {
-    DWORD dwError = 0;
+	NTSTATUS status = 0;
     HANDLE Handle = (HANDLE)NULL;
     uid_t UID;
     gid_t GID;
 
-    dwError = RegSrvIpcCheckPermissions(pToken, &UID, &GID);
-    BAIL_ON_REG_ERROR(dwError);
+    status = RegSrvIpcCheckPermissions(pToken, &UID, &GID);
+    BAIL_ON_NT_STATUS(status);
 
-    dwError = RegSrvOpenServer(UID, GID, &Handle);
-    BAIL_ON_REG_ERROR(dwError);
+    status = RegSrvOpenServer(UID, GID, &Handle);
+    BAIL_ON_NT_STATUS(status);
 
     *ppSessionData = Handle;
 
 cleanup:
 
-    return MAP_REG_ERROR_IPC(dwError);
+    return MAP_REG_ERROR_IPC(status);
 
 error:
 
     goto cleanup;
 }
 
-DWORD
+NTSTATUS
 RegSrvOpenServer(
     uid_t peerUID,
     gid_t peerGID,
     PHANDLE phServer
     )
 {
-    DWORD dwError = 0;
+	NTSTATUS status = 0;
     PREG_SRV_API_STATE pServerState = NULL;
 
-    dwError = LwAllocateMemory(
-                    sizeof(*pServerState),
-                    (PVOID*)&pServerState);
-    BAIL_ON_REG_ERROR(dwError);
+    status = LW_RTL_ALLOCATE((PVOID*)&pServerState, REG_SRV_API_STATE, sizeof(*pServerState));
+    BAIL_ON_NT_STATUS(status);
 
     pServerState->peerUID = peerUID;
     pServerState->peerGID = peerGID;
@@ -217,7 +216,7 @@ RegSrvOpenServer(
 
 cleanup:
 
-    return dwError;
+    return status;
 
 error:
 
@@ -242,27 +241,27 @@ RegSrvCloseServer(
        //RegSrvCloseEventLog(pServerState->hEventLog);
     }
 
-    LwFreeMemory(pServerState);
+    LwRtlMemoryFree(pServerState);
 }
 
-DWORD
+NTSTATUS
 RegSrvIpcCreateError(
-    DWORD dwErrorCode,
-    PREG_IPC_ERROR* ppError
+    DWORD statusCode,
+    PREG_IPC_STATUS* ppStatus
     )
 {
-    DWORD dwError = 0;
-    PREG_IPC_ERROR pError = NULL;
+	NTSTATUS status = 0;
+    PREG_IPC_STATUS pStatus = NULL;
 
-    dwError = LwAllocateMemory(sizeof(*pError), (void**) (void*) &pError);
-    BAIL_ON_REG_ERROR(dwError);
+    status = LW_RTL_ALLOCATE((PVOID*)&pStatus, REG_IPC_STATUS, sizeof(*pStatus));
+    BAIL_ON_NT_STATUS(status);
 
-    pError->dwError = dwErrorCode;
+    pStatus->status = statusCode;
 
-    *ppError = pError;
+    *ppStatus = pStatus;
 
 error:
-    return dwError;
+    return status;
 }
 
 LWMsgStatus
@@ -273,25 +272,23 @@ RegSrvIpcEnumRootKeysW(
     void* data
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS status = 0;
     PREG_IPC_ENUM_ROOTKEYS_RESPONSE pRegResp = NULL;
-    PREG_IPC_ERROR pError = NULL;
+    PREG_IPC_STATUS pStatus = NULL;
     PWSTR* ppwszRootKeyNames = NULL;
     DWORD dwNumRootKeys = 0;
     int iCount = 0;
 
-    dwError = RegSrvEnumRootKeysW(
+    status = RegSrvEnumRootKeysW(
         RegSrvIpcGetSessionData(pCall),
         &ppwszRootKeyNames,
         &dwNumRootKeys
         );
 
-    if (!dwError)
+    if (!status)
     {
-        dwError = LwAllocateMemory(
-            sizeof(*pRegResp),
-            OUT_PPVOID(&pRegResp));
-        BAIL_ON_REG_ERROR(dwError);
+        status = LW_RTL_ALLOCATE((PVOID*)&pRegResp, REG_IPC_ENUM_ROOTKEYS_RESPONSE, sizeof(*pRegResp));
+        BAIL_ON_NT_STATUS(status);
 
         pRegResp->ppwszRootKeyNames = ppwszRootKeyNames;
         ppwszRootKeyNames = NULL;
@@ -302,11 +299,11 @@ RegSrvIpcEnumRootKeysW(
     }
     else
     {
-        dwError = RegSrvIpcCreateError(dwError, &pError);
-        BAIL_ON_REG_ERROR(dwError);
+        status = RegSrvIpcCreateError(status, &pStatus);
+        BAIL_ON_NT_STATUS(status);
 
         pOut->tag = REG_R_ERROR;
-        pOut->data = pError;
+        pOut->data = pStatus;
     }
 
 cleanup:
@@ -314,12 +311,12 @@ cleanup:
     {
         for (iCount=0; iCount<dwNumRootKeys; iCount++)
         {
-            LW_SAFE_FREE_MEMORY(ppwszRootKeyNames[iCount]);
+		LWREG_SAFE_FREE_MEMORY(ppwszRootKeyNames[iCount]);
         }
         ppwszRootKeyNames = NULL;
     }
 
-    return MAP_REG_ERROR_IPC(dwError);
+    return MAP_REG_ERROR_IPC(status);
 
 error:
     goto cleanup;
@@ -333,14 +330,14 @@ RegSrvIpcCreateKeyEx(
     void* data
     )
 {
-    DWORD dwError = 0;
+	NTSTATUS status = 0;
     PREG_IPC_CREATE_KEY_EX_REQ pReq = pIn->data;
     PREG_IPC_CREATE_KEY_EX_RESPONSE pRegResp = NULL;
-    PREG_IPC_ERROR pError = NULL;
+    PREG_IPC_STATUS pStatus = NULL;
     HKEY hkResult = NULL;
     DWORD dwDisposition = 0;
 
-    dwError = RegSrvCreateKeyEx(
+    status = RegSrvCreateKeyEx(
         RegSrvIpcGetSessionData(pCall),
         pReq->hKey,
         pReq->pSubKey,
@@ -353,43 +350,41 @@ RegSrvIpcCreateKeyEx(
         &dwDisposition
         );
 
-    if (!dwError)
+    if (!status)
     {
-        dwError = LwAllocateMemory(
-            sizeof(*pRegResp),
-            OUT_PPVOID(&pRegResp));
-        BAIL_ON_REG_ERROR(dwError);
+        status = LW_RTL_ALLOCATE((PVOID*)&pRegResp, REG_IPC_CREATE_KEY_EX_RESPONSE, sizeof(*pRegResp));
+        BAIL_ON_NT_STATUS(status);
 
         pRegResp->dwDisposition= dwDisposition;
         pRegResp->hkResult = hkResult;
         hkResult = NULL;
 
-        dwError = RegSrvIpcRegisterHandle(
+        status = RegSrvIpcRegisterHandle(
                                       pCall,
                                       "HKEY",
                                       (PVOID)pRegResp->hkResult,
                                       RegSrvIpcCloseHandle);
-        BAIL_ON_REG_ERROR(dwError);
+        BAIL_ON_NT_STATUS(status);
 
         pOut->tag = REG_R_CREATE_KEY_EX;
         pOut->data = pRegResp;
 
-        dwError = RegSrvIpcRetainHandle(pCall, pRegResp->hkResult);
-        BAIL_ON_REG_ERROR(dwError);
+        status = RegSrvIpcRetainHandle(pCall, pRegResp->hkResult);
+        BAIL_ON_NT_STATUS(status);
     }
     else
     {
-        dwError = RegSrvIpcCreateError(dwError, &pError);
-        BAIL_ON_REG_ERROR(dwError);
+        status = RegSrvIpcCreateError(status, &pStatus);
+        BAIL_ON_NT_STATUS(status);
 
         pOut->tag = REG_R_ERROR;
-        pOut->data = pError;
+        pOut->data = pStatus;
     }
 
 cleanup:
     RegSrvIpcCloseHandle((PVOID)hkResult);
 
-    return MAP_REG_ERROR_IPC(dwError);
+    return MAP_REG_ERROR_IPC(status);
 
 error:
     goto cleanup;
@@ -403,13 +398,13 @@ RegSrvIpcOpenKeyExW(
     void* data
     )
 {
-    DWORD dwError = 0;
+	NTSTATUS status = 0;
     PREG_IPC_OPEN_KEY_EX_REQ pReq = pIn->data;
     PREG_IPC_OPEN_KEY_EX_RESPONSE pRegResp = NULL;
-    PREG_IPC_ERROR pError = NULL;
+    PREG_IPC_STATUS pStatus = NULL;
     HKEY hkResult = NULL;
 
-    dwError = RegSrvOpenKeyExW(
+    status = RegSrvOpenKeyExW(
         RegSrvIpcGetSessionData(pCall),
         pReq->hKey,
         pReq->pSubKey,
@@ -418,40 +413,40 @@ RegSrvIpcOpenKeyExW(
         &hkResult
         );
 
-    if (!dwError)
+    if (!status)
     {
-        dwError = LwAllocateMemory(sizeof(*pRegResp), OUT_PPVOID(&pRegResp));
-        BAIL_ON_REG_ERROR(dwError);
+        status = LW_RTL_ALLOCATE((PVOID*)&pRegResp, REG_IPC_OPEN_KEY_EX_RESPONSE, sizeof(*pRegResp));
+        BAIL_ON_NT_STATUS(status);
 
         pRegResp->hkResult = hkResult;
         hkResult = NULL;
 
-        dwError = RegSrvIpcRegisterHandle(
+        status = RegSrvIpcRegisterHandle(
                                       pCall,
                                       "HKEY",
                                       (PVOID)pRegResp->hkResult,
                                       RegSrvIpcCloseHandle);
-        BAIL_ON_REG_ERROR(dwError);
+        BAIL_ON_NT_STATUS(status);
 
         pOut->tag = REG_R_OPEN_KEYW_EX;
         pOut->data = pRegResp;
 
-        dwError = RegSrvIpcRetainHandle(pCall, pRegResp->hkResult);
-        BAIL_ON_REG_ERROR(dwError);
+        status = RegSrvIpcRetainHandle(pCall, pRegResp->hkResult);
+        BAIL_ON_NT_STATUS(status);
     }
     else
     {
-        dwError = RegSrvIpcCreateError(dwError, &pError);
-        BAIL_ON_REG_ERROR(dwError);
+        status = RegSrvIpcCreateError(status, &pStatus);
+        BAIL_ON_NT_STATUS(status);
 
         pOut->tag = REG_R_ERROR;
-        pOut->data = pError;
+        pOut->data = pStatus;
     }
 
 cleanup:
     RegSrvIpcCloseHandle((PVOID)hkResult);
 
-    return MAP_REG_ERROR_IPC(dwError);
+    return MAP_REG_ERROR_IPC(status);
 
 error:
     goto cleanup;
@@ -465,27 +460,27 @@ RegSrvIpcCloseKey(
     void* data
     )
 {
-    DWORD dwError = 0;
+	NTSTATUS status = 0;
     PREG_IPC_CLOSE_KEY_REQ pReq = pIn->data;
-    PREG_IPC_ERROR pError = NULL;
+    PREG_IPC_STATUS pStatus = NULL;
 
-    dwError = RegSrvIpcUnregisterHandle(pCall, pReq->hKey);
-    if (!dwError)
+    status = RegSrvIpcUnregisterHandle(pCall, pReq->hKey);
+    if (!status)
     {
         pOut->tag = REG_R_CLOSE_KEY;
         pOut->data = NULL;
     }
     else
     {
-        dwError = RegSrvIpcCreateError(dwError, &pError);
-        BAIL_ON_REG_ERROR(dwError);
+        status = RegSrvIpcCreateError(status, &pStatus);
+        BAIL_ON_NT_STATUS(status);
 
         pOut->tag = REG_R_ERROR;
-        pOut->data = pError;
+        pOut->data = pStatus;
     }
 
 cleanup:
-    return MAP_REG_ERROR_IPC(dwError);
+    return MAP_REG_ERROR_IPC(status);
 
 error:
     goto cleanup;
@@ -499,32 +494,32 @@ RegSrvIpcDeleteKey(
     void* data
     )
 {
-    DWORD dwError = 0;
+	NTSTATUS status = 0;
     PREG_IPC_DELETE_KEY_REQ pReq = pIn->data;
-    PREG_IPC_ERROR pError = NULL;
+    PREG_IPC_STATUS pStatus = NULL;
 
-    dwError = RegSrvDeleteKey(
+    status = RegSrvDeleteKey(
         RegSrvIpcGetSessionData(pCall),
         pReq->hKey,
         pReq->pSubKey
         );
 
-    if (!dwError)
+    if (!status)
     {
         pOut->tag = REG_R_DELETE_KEY;
         pOut->data = NULL;
     }
     else
     {
-        dwError = RegSrvIpcCreateError(dwError, &pError);
-        BAIL_ON_REG_ERROR(dwError);
+        status = RegSrvIpcCreateError(status, &pStatus);
+        BAIL_ON_NT_STATUS(status);
 
         pOut->tag = REG_R_ERROR;
-        pOut->data = pError;
+        pOut->data = pStatus;
     }
 
 cleanup:
-    return MAP_REG_ERROR_IPC(dwError);
+    return MAP_REG_ERROR_IPC(status);
 
 error:
     goto cleanup;
@@ -538,12 +533,12 @@ RegSrvIpcEnumKeyExW(
     void* data
     )
 {
-    DWORD dwError = 0;
+	NTSTATUS status = 0;
     PREG_IPC_ENUM_KEY_EX_REQ pReq = pIn->data;
     PREG_IPC_ENUM_KEY_EX_RESPONSE pRegResp = NULL;
-    PREG_IPC_ERROR pError = NULL;
+    PREG_IPC_STATUS pStatus = NULL;
 
-    dwError = RegSrvEnumKeyExW(
+    status = RegSrvEnumKeyExW(
         RegSrvIpcGetSessionData(pCall),
         pReq->hKey,
         pReq->dwIndex,
@@ -554,12 +549,10 @@ RegSrvIpcEnumKeyExW(
         pReq->pcClass,
         NULL
         );
-    if (!dwError)
+    if (!status)
     {
-        dwError = LwAllocateMemory(
-            sizeof(*pRegResp),
-            OUT_PPVOID(&pRegResp));
-        BAIL_ON_REG_ERROR(dwError);
+        status = LW_RTL_ALLOCATE((PVOID*)&pRegResp, REG_IPC_ENUM_KEY_EX_RESPONSE, sizeof(*pRegResp));
+        BAIL_ON_NT_STATUS(status);
 
         pRegResp->pName= pReq->pName;
         pRegResp->cName = pReq->cName;
@@ -569,17 +562,17 @@ RegSrvIpcEnumKeyExW(
     }
     else
     {
-        dwError = RegSrvIpcCreateError(dwError, &pError);
-        BAIL_ON_REG_ERROR(dwError);
+        status = RegSrvIpcCreateError(status, &pStatus);
+        BAIL_ON_NT_STATUS(status);
 
         pOut->tag = REG_R_ERROR;
-        pOut->data = pError;
+        pOut->data = pStatus;
     }
 
     pReq->pName = NULL;
 
 cleanup:
-    return MAP_REG_ERROR_IPC(dwError);
+    return MAP_REG_ERROR_IPC(status);
 
 error:
     goto cleanup;
@@ -593,17 +586,17 @@ RegSrvIpcQueryInfoKeyW(
     void* data
     )
 {
-    DWORD dwError = 0;
+	NTSTATUS status = 0;
     PREG_IPC_QUERY_INFO_KEY_REQ pReq = pIn->data;
     PREG_IPC_QUERY_INFO_KEY_RESPONSE pRegResp = NULL;
-    PREG_IPC_ERROR pError = NULL;
+    PREG_IPC_STATUS pStatus = NULL;
     DWORD dwSubKeyCount = 0;
     DWORD dwMaxKeyLength = 0;
     DWORD dwValueCount = 0;
     DWORD dwMaxValueNameLen = 0;
     DWORD dwMaxValueLen = 0;
 
-    dwError = RegSrvQueryInfoKeyW(
+    status = RegSrvQueryInfoKeyW(
         RegSrvIpcGetSessionData(pCall),
         pReq->hKey,
         NULL,
@@ -618,10 +611,10 @@ RegSrvIpcQueryInfoKeyW(
         NULL,
         NULL
         );
-    if (!dwError)
+    if (!status)
     {
-        dwError = LwAllocateMemory(sizeof(*pRegResp), OUT_PPVOID(&pRegResp));
-        BAIL_ON_REG_ERROR(dwError);
+        status = LW_RTL_ALLOCATE((PVOID*)&pRegResp, REG_IPC_QUERY_INFO_KEY_RESPONSE, sizeof(*pRegResp));
+        BAIL_ON_NT_STATUS(status);
 
         pRegResp->cSubKeys = dwSubKeyCount;
         pRegResp->cMaxSubKeyLen = dwMaxKeyLength;
@@ -634,15 +627,15 @@ RegSrvIpcQueryInfoKeyW(
     }
     else
     {
-        dwError = RegSrvIpcCreateError(dwError, &pError);
-        BAIL_ON_REG_ERROR(dwError);
+        status = RegSrvIpcCreateError(status, &pStatus);
+        BAIL_ON_NT_STATUS(status);
 
         pOut->tag = REG_R_ERROR;
-        pOut->data = pError;
+        pOut->data = pStatus;
     }
 
 cleanup:
-    return MAP_REG_ERROR_IPC(dwError);
+    return MAP_REG_ERROR_IPC(status);
 
 error:
     goto cleanup;
@@ -656,13 +649,13 @@ RegSrvIpcGetValueW(
     void* data
     )
 {
-    DWORD dwError = 0;
+	NTSTATUS status = 0;
     PREG_IPC_GET_VALUE_REQ pReq = pIn->data;
     PREG_IPC_GET_VALUE_RESPONSE pRegResp = NULL;
-    PREG_IPC_ERROR pError = NULL;
+    PREG_IPC_STATUS pStatus = NULL;
     DWORD dwType = 0;
 
-    dwError = RegSrvGetValueW(
+    status = RegSrvGetValueW(
         RegSrvIpcGetSessionData(pCall),
         pReq->hKey,
         pReq->pSubKey,
@@ -673,12 +666,10 @@ RegSrvIpcGetValueW(
         &pReq->cbData
         );
 
-    if (!dwError)
+    if (!status)
     {
-        dwError = LwAllocateMemory(
-            sizeof(*pRegResp),
-            OUT_PPVOID(&pRegResp));
-        BAIL_ON_REG_ERROR(dwError);
+        status = LW_RTL_ALLOCATE((PVOID*)&pRegResp, REG_IPC_GET_VALUE_RESPONSE, sizeof(*pRegResp));
+        BAIL_ON_NT_STATUS(status);
 
         pRegResp->cbData = pReq->cbData;
         pRegResp->pvData = pReq->pData;
@@ -689,16 +680,16 @@ RegSrvIpcGetValueW(
     }
     else
     {
-        dwError = RegSrvIpcCreateError(dwError, &pError);
-        BAIL_ON_REG_ERROR(dwError);
+        status = RegSrvIpcCreateError(status, &pStatus);
+        BAIL_ON_NT_STATUS(status);
 
         pOut->tag = REG_R_ERROR;
-        pOut->data = pError;
+        pOut->data = pStatus;
     }
     pReq->pData = NULL;
 
 cleanup:
-    return MAP_REG_ERROR_IPC(dwError);
+    return MAP_REG_ERROR_IPC(status);
 
 error:
     goto cleanup;
@@ -712,33 +703,33 @@ RegSrvIpcDeleteKeyValue(
     void* data
     )
 {
-    DWORD dwError = 0;
+	NTSTATUS status = 0;
     PREG_IPC_DELETE_KEY_VALUE_REQ pReq = pIn->data;
-    PREG_IPC_ERROR pError = NULL;
+    PREG_IPC_STATUS pStatus = NULL;
 
-    dwError = RegSrvDeleteKeyValue(
+    status = RegSrvDeleteKeyValue(
         RegSrvIpcGetSessionData(pCall),
         pReq->hKey,
         pReq->pSubKey,
         pReq->pValueName
         );
 
-    if (!dwError)
+    if (!status)
     {
         pOut->tag = REG_R_DELETE_KEY_VALUE;
         pOut->data = NULL;
     }
     else
     {
-        dwError = RegSrvIpcCreateError(dwError, &pError);
-        BAIL_ON_REG_ERROR(dwError);
+        status = RegSrvIpcCreateError(status, &pStatus);
+        BAIL_ON_NT_STATUS(status);
 
         pOut->tag = REG_R_ERROR;
-        pOut->data = pError;
+        pOut->data = pStatus;
     }
 
 cleanup:
-    return MAP_REG_ERROR_IPC(dwError);
+    return MAP_REG_ERROR_IPC(status);
 
 error:
     goto cleanup;
@@ -752,31 +743,31 @@ RegSrvIpcDeleteTree(
     void* data
     )
 {
-    DWORD dwError = 0;
+	NTSTATUS status = 0;
     PREG_IPC_DELETE_TREE_REQ pReq = pIn->data;
-    PREG_IPC_ERROR pError = NULL;
+    PREG_IPC_STATUS pStatus = NULL;
 
-    dwError = RegSrvDeleteTree(
+    status = RegSrvDeleteTree(
         RegSrvIpcGetSessionData(pCall),
         pReq->hKey,
         pReq->pSubKey
         );
-    if (!dwError)
+    if (!status)
     {
         pOut->tag = REG_R_DELETE_TREE;
         pOut->data = NULL;
     }
     else
     {
-        dwError = RegSrvIpcCreateError(dwError, &pError);
-        BAIL_ON_REG_ERROR(dwError);
+        status = RegSrvIpcCreateError(status, &pStatus);
+        BAIL_ON_NT_STATUS(status);
 
         pOut->tag = REG_R_ERROR;
-        pOut->data = pError;
+        pOut->data = pStatus;
     }
 
 cleanup:
-    return MAP_REG_ERROR_IPC(dwError);
+    return MAP_REG_ERROR_IPC(status);
 
 error:
     goto cleanup;
@@ -791,32 +782,32 @@ RegSrvIpcDeleteValue(
     void* data
     )
 {
-    DWORD dwError = 0;
+	NTSTATUS status = 0;
     PREG_IPC_DELETE_VALUE_REQ pReq = pIn->data;
-    PREG_IPC_ERROR pError = NULL;
+    PREG_IPC_STATUS pStatus = NULL;
 
-    dwError = RegSrvDeleteValue(
+    status = RegSrvDeleteValue(
         RegSrvIpcGetSessionData(pCall),
         pReq->hKey,
         pReq->pValueName
         );
 
-    if (!dwError)
+    if (!status)
     {
         pOut->tag = REG_R_DELETE_VALUE;
         pOut->data = NULL;
     }
     else
     {
-        dwError = RegSrvIpcCreateError(dwError, &pError);
-        BAIL_ON_REG_ERROR(dwError);
+        status = RegSrvIpcCreateError(status, &pStatus);
+        BAIL_ON_NT_STATUS(status);
 
         pOut->tag = REG_R_ERROR;
-        pOut->data = pError;
+        pOut->data = pStatus;
     }
 
 cleanup:
-    return MAP_REG_ERROR_IPC(dwError);
+    return MAP_REG_ERROR_IPC(status);
 
 error:
     goto cleanup;
@@ -830,13 +821,13 @@ RegSrvIpcEnumValueW(
     void* data
     )
 {
-    DWORD dwError = 0;
+	NTSTATUS status = 0;
     PREG_IPC_ENUM_VALUE_REQ pReq = pIn->data;
     PREG_IPC_ENUM_VALUE_RESPONSE pRegResp = NULL;
-    PREG_IPC_ERROR pError = NULL;
+    PREG_IPC_STATUS pStatus = NULL;
     REG_DATA_TYPE type = REG_UNKNOWN;
 
-    dwError = RegSrvEnumValueW(
+    status = RegSrvEnumValueW(
         RegSrvIpcGetSessionData(pCall),
         pReq->hKey,
         pReq->dwIndex,
@@ -847,12 +838,10 @@ RegSrvIpcEnumValueW(
         pReq->pValue,
         &pReq->cValue);
 
-    if (!dwError)
+    if (!status)
     {
-        dwError = LwAllocateMemory(
-            sizeof(*pRegResp),
-            OUT_PPVOID(&pRegResp));
-        BAIL_ON_REG_ERROR(dwError);
+        status = LW_RTL_ALLOCATE((PVOID*)&pRegResp, REG_IPC_ENUM_VALUE_RESPONSE, sizeof(*pRegResp));
+        BAIL_ON_NT_STATUS(status);
 
         pRegResp->pName= pReq->pName;
         pRegResp->cName = pReq->cName;
@@ -865,18 +854,18 @@ RegSrvIpcEnumValueW(
     }
     else
     {
-        dwError = RegSrvIpcCreateError(dwError, &pError);
-        BAIL_ON_REG_ERROR(dwError);
+        status = RegSrvIpcCreateError(status, &pStatus);
+        BAIL_ON_NT_STATUS(status);
 
         pOut->tag = REG_R_ERROR;
-        pOut->data = pError;
+        pOut->data = pStatus;
     }
 
     pReq->pName = NULL;
     pReq->pValue = NULL;
 
 cleanup:
-    return MAP_REG_ERROR_IPC(dwError);
+    return MAP_REG_ERROR_IPC(status);
 
 error:
     goto cleanup;
@@ -890,12 +879,12 @@ RegSrvIpcQueryMultipleValues(
     void* data
     )
 {
-    DWORD dwError = 0;
+	NTSTATUS status = 0;
     PREG_IPC_QUERY_MULTIPLE_VALUES_REQ pReq = pIn->data;
     PREG_IPC_QUERY_MULTIPLE_VALUES_RESPONSE pRegResp = NULL;
-    PREG_IPC_ERROR pError = NULL;
+    PREG_IPC_STATUS pStatus = NULL;
 
-    dwError = RegSrvQueryMultipleValues(
+    status = RegSrvQueryMultipleValues(
         RegSrvIpcGetSessionData(pCall),
         pReq->hKey,
         pReq->val_list,
@@ -904,10 +893,10 @@ RegSrvIpcQueryMultipleValues(
         &pReq->dwTotalsize
         );
 
-    if (!dwError)
+    if (!status)
     {
-        dwError = LwAllocateMemory(sizeof(*pRegResp), OUT_PPVOID(&pRegResp));
-        BAIL_ON_REG_ERROR(dwError);
+        status = LW_RTL_ALLOCATE((PVOID*)&pRegResp, REG_IPC_QUERY_MULTIPLE_VALUES_RESPONSE, sizeof(*pRegResp));
+        BAIL_ON_NT_STATUS(status);
 
         pRegResp->dwTotalsize = pReq->dwTotalsize;
         pRegResp->num_vals = pReq->num_vals;
@@ -922,16 +911,16 @@ RegSrvIpcQueryMultipleValues(
     }
     else
     {
-        dwError = RegSrvIpcCreateError(dwError, &pError);
-        BAIL_ON_REG_ERROR(dwError);
+        status = RegSrvIpcCreateError(status, &pStatus);
+        BAIL_ON_NT_STATUS(status);
 
         pOut->tag = REG_R_ERROR;
-        pOut->data = pError;
+        pOut->data = pStatus;
     }
 
 cleanup:
 
-    return MAP_REG_ERROR_IPC(dwError);
+    return MAP_REG_ERROR_IPC(status);
 
 error:
     goto cleanup;
@@ -945,11 +934,11 @@ RegSrvIpcSetValueExW(
     void* data
     )
 {
-    DWORD dwError = 0;
+	NTSTATUS status = 0;
     PREG_IPC_SET_VALUE_EX_REQ pReq = pIn->data;
-    PREG_IPC_ERROR pError = NULL;
+    PREG_IPC_STATUS pStatus = NULL;
 
-    dwError = RegSrvSetValueExW(
+    status = RegSrvSetValueExW(
         RegSrvIpcGetSessionData(pCall),
         pReq->hKey,
         pReq->pValueName,
@@ -959,22 +948,22 @@ RegSrvIpcSetValueExW(
         pReq->cbData
         );
 
-    if (!dwError)
+    if (!status)
     {
         pOut->tag = REG_R_SET_VALUEW_EX;
         pOut->data = NULL;
     }
     else
     {
-        dwError = RegSrvIpcCreateError(dwError, &pError);
-        BAIL_ON_REG_ERROR(dwError);
+        status = RegSrvIpcCreateError(status, &pStatus);
+        BAIL_ON_NT_STATUS(status);
 
         pOut->tag = REG_R_ERROR;
-        pOut->data = pError;
+        pOut->data = pStatus;
     }
 
 cleanup:
-    return MAP_REG_ERROR_IPC(dwError);
+    return MAP_REG_ERROR_IPC(status);
 
 error:
     goto cleanup;

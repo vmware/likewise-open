@@ -59,9 +59,7 @@ RegOpenConsoleLog(
     DWORD dwError = 0;
     PREG_CONSOLE_LOG pConsoleLog = NULL;
 
-    dwError = LwAllocateMemory(
-                    sizeof(REG_CONSOLE_LOG),
-                    (PVOID*)&pConsoleLog);
+    dwError = RegAllocateMemory(sizeof(*pConsoleLog), (PVOID*)&pConsoleLog);
     if (dwError)
     {
         goto error;
@@ -203,5 +201,5 @@ RegFreeConsoleLogInfo(
     PREG_CONSOLE_LOG pConsoleLog
     )
 {
-    LwFreeMemory(pConsoleLog);
+	RegMemoryFree(pConsoleLog);
 }

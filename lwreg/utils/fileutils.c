@@ -47,6 +47,17 @@
 
 #include "includes.h"
 
+static
+DWORD
+RegCreateDirectoryRecursive(
+    PSTR pszCurDirPath,
+    PSTR pszTmpPath,
+    PSTR *ppszTmp,
+    DWORD dwFileMode,
+    DWORD dwWorkingFileMode,
+    int  iPart
+    );
+
 DWORD
 RegRemoveFile(
     PCSTR pszPath
@@ -133,100 +144,6 @@ RegCheckSockExists(
     }
 
 error:
-
-    return dwError;
-}
-
-DWORD
-RegCheckLinkExists(
-    PSTR pszPath,
-    PBOOLEAN pbLinkExists
-    )
-{
-    DWORD dwError = 0;
-    BOOLEAN bExists = FALSE;
-
-    struct stat statbuf;
-
-    memset(&statbuf, 0, sizeof(struct stat));
-
-    while (1)
-    {
-        if (stat(pszPath, &statbuf) < 0)
-        {
-           if (errno == EINTR)
-           {
-              continue;
-           }
-           else if (errno == ENOENT || errno == ENOTDIR)
-           {
-             *pbLinkExists = 0;
-             break;
-           }
-
-           dwError = errno;
-           BAIL_ON_REG_ERROR(dwError);
-        }
-        else
-        {
-           if (((statbuf.st_mode & S_IFMT) == S_IFLNK))
-           {
-               bExists = TRUE;
-           }
-          break;
-        }
-    }
-
-error:
-
-    *pbLinkExists = bExists;
-
-    return dwError;
-}
-
-DWORD
-RegCheckFileOrLinkExists(
-    PSTR pszPath,
-    PBOOLEAN pbExists
-    )
-{
-    DWORD dwError = 0;
-    BOOLEAN bExists = FALSE;
-
-    struct stat statbuf;
-
-    memset(&statbuf, 0, sizeof(struct stat));
-
-    while (1)
-    {
-        if (stat(pszPath, &statbuf) < 0)
-        {
-           if (errno == EINTR)
-           {
-              continue;
-           }
-           else if (errno == ENOENT || errno == ENOTDIR)
-           {
-             break;
-           }
-
-           dwError = errno;
-           BAIL_ON_REG_ERROR(dwError);
-        }
-        else
-        {
-          if (((statbuf.st_mode & S_IFMT) == S_IFLNK) ||
-              ((statbuf.st_mode & S_IFMT) == S_IFREG))
-          {
-              bExists = TRUE;
-          }
-          break;
-        }
-    }
-
-error:
-
-    *pbExists = bExists;
 
     return dwError;
 }
@@ -447,7 +364,7 @@ RegGetCurrentDirectoryPath(
         BAIL_ON_REG_ERROR(dwError);
     }
 
-    dwError = LwAllocateString(szBuf, &pszPath);
+    dwError = RegCStringDuplicate(&pszPath, szBuf);
     BAIL_ON_REG_ERROR(dwError);
 
     *ppszPath = pszPath;
@@ -456,88 +373,7 @@ RegGetCurrentDirectoryPath(
 
 error:
 
-    if (pszPath) {
-        LwFreeString(pszPath);
-    }
-
-    return dwError;
-}
-
-static
-DWORD
-RegCreateDirectoryRecursive(
-    PSTR pszCurDirPath,
-    PSTR pszTmpPath,
-    PSTR *ppszTmp,
-    DWORD dwFileMode,
-    DWORD dwWorkingFileMode,
-    int  iPart
-    )
-{
-    DWORD dwError = 0;
-    PSTR pszDirPath = NULL;
-    BOOLEAN bDirCreated = FALSE;
-    BOOLEAN bDirExists = FALSE;
-    CHAR szDelimiters[] = "/";
-
-    PSTR pszToken = strtok_r((iPart ? NULL : pszTmpPath), szDelimiters, ppszTmp);
-
-    if (pszToken != NULL) {
-
-        dwError = LwAllocateMemory(strlen(pszCurDirPath)+strlen(pszToken)+2,
-                                   (PVOID*)&pszDirPath);
-        BAIL_ON_REG_ERROR(dwError);
-
-        sprintf(pszDirPath,
-                "%s/%s",
-                (!strcmp(pszCurDirPath, "/") ? "" : pszCurDirPath),
-                pszToken);
-
-
-        dwError = RegCheckDirectoryExists(pszDirPath, &bDirExists);
-        BAIL_ON_REG_ERROR(dwError);
-
-        if (!bDirExists) {
-            if (mkdir(pszDirPath, dwWorkingFileMode) < 0) {
-                dwError = errno;
-                BAIL_ON_REG_ERROR(dwError);
-            }
-            bDirCreated = TRUE;
-        }
-
-        dwError = RegChangeDirectory(pszDirPath);
-        BAIL_ON_REG_ERROR(dwError);
-
-        dwError = RegCreateDirectoryRecursive(
-            pszDirPath,
-            pszTmpPath,
-            ppszTmp,
-            dwFileMode,
-            dwWorkingFileMode,
-            iPart+1
-            );
-        BAIL_ON_REG_ERROR(dwError);
-    }
-
-    if (bDirCreated && (dwFileMode != dwWorkingFileMode)) {
-        dwError = RegChangePermissions(pszDirPath, dwFileMode);
-        BAIL_ON_REG_ERROR(dwError);
-    }
-    if (pszDirPath) {
-        LwFreeMemory(pszDirPath);
-    }
-
-    return dwError;
-
-error:
-
-    if (bDirCreated) {
-        RegRemoveDirectory(pszDirPath);
-    }
-
-    if (pszDirPath) {
-        LwFreeMemory(pszDirPath);
-    }
+    LWREG_SAFE_FREE_STRING(pszPath);
 
     return dwError;
 }
@@ -571,7 +407,7 @@ RegCreateDirectory(
     dwError = RegGetCurrentDirectoryPath(&pszCurDirPath);
     BAIL_ON_REG_ERROR(dwError);
 
-    dwError = LwAllocateString(pszPath, &pszTmpPath);
+    dwError = RegCStringDuplicate(&pszTmpPath, pszPath);
     BAIL_ON_REG_ERROR(dwError);
 
     if (*pszPath == '/') {
@@ -594,12 +430,12 @@ error:
 
         RegChangeDirectory(pszCurDirPath);
 
-        LwFreeMemory(pszCurDirPath);
+        RegMemoryFree(pszCurDirPath);
 
     }
 
     if (pszTmpPath) {
-        LwFreeMemory(pszTmpPath);
+        RegMemoryFree(pszTmpPath);
     }
 
     return dwError;
@@ -626,14 +462,13 @@ RegGetDirectoryFromPath(
 
     if (pszLastSlash == NULL)
     {
-        dwError = LwAllocateString(
-                        ".",
-                        &pszDir);
+        dwError = RegCStringDuplicate(
+                        &pszDir, ".");
         BAIL_ON_REG_ERROR(dwError);
     }
     else
     {
-        dwError = LwStrndup(
+        dwError = RegStrndup(
                         pszPath,
                         pszLastSlash - pszPath,
                         &pszDir);
@@ -648,7 +483,7 @@ cleanup:
 
 error:
 
-    LW_SAFE_FREE_STRING(pszDir);
+    LWREG_SAFE_FREE_STRING(pszDir);
     *ppszDir = NULL;
     goto cleanup;
 }
@@ -702,8 +537,7 @@ RegCopyFileWithPerms(
         BAIL_ON_REG_ERROR(dwError);
     }
 
-    dwError = LwAllocateMemory(strlen(pszDstPath)+strlen(pszTmpSuffix)+2,
-                               (PVOID*)&pszTmpPath);
+    dwError = RegAllocateMemory(strlen(pszDstPath)+strlen(pszTmpSuffix)+2, (PVOID*)&pszTmpPath);
     BAIL_ON_REG_ERROR(dwError);
 
     strcpy(pszTmpPath, pszDstPath);
@@ -770,7 +604,7 @@ error:
         RegRemoveFile(pszTmpPath);
     }
 
-    LW_SAFE_FREE_STRING (pszTmpPath);
+    LWREG_SAFE_FREE_STRING(pszTmpPath);
 
     return dwError;
 }
@@ -884,9 +718,9 @@ RegGetSymlinkTarget(
        break;
     }
 
-    dwError = LwAllocateString(
-                    szBuf,
-                    &pszTargetPath);
+    dwError = RegCStringDuplicate(
+                    &pszTargetPath,
+                    szBuf);
     BAIL_ON_REG_ERROR(dwError);
 
     *ppszTargetPath = pszTargetPath;
@@ -899,7 +733,7 @@ error:
 
     *ppszTargetPath = NULL;
 
-    LW_SAFE_FREE_STRING(pszTargetPath);
+    LWREG_SAFE_FREE_STRING(pszTargetPath);
 
     goto cleanup;
 }
@@ -1011,7 +845,7 @@ cleanup:
         closedir(pDir);
     }
 
-    LW_SAFE_FREE_STRING(pszTargetPath);
+    LWREG_SAFE_FREE_STRING(pszTargetPath);
 
     return dwError;
 
@@ -1059,12 +893,12 @@ RegGetMatchingFilePathsInFolder(
     }
 
     if (regcomp(&rx, pszFileNameRegExp, REG_EXTENDED) != 0) {
-        dwError = LW_ERROR_REGEX_COMPILE_FAILED;
+        dwError = LWREG_ERROR_REGEX_COMPILE_FAILED;
         BAIL_ON_REG_ERROR(dwError);
     }
     rxAllocated = TRUE;
 
-    dwError = LwAllocateMemory(sizeof(regmatch_t), (PVOID*)&pResult);
+    dwError = RegAllocateMemory(sizeof(*pResult), (PVOID*)&pResult);
     BAIL_ON_REG_ERROR(dwError);
 
     pDir = opendir(pszDirPath);
@@ -1109,10 +943,10 @@ RegGetMatchingFilePathsInFolder(
             (regexec(&rx, pDirEntry->d_name, nMatch, pResult, 0) == 0)) {
             dwNPaths++;
 
-            dwError = LwAllocateMemory(sizeof(PATHNODE), (PVOID*)&pPathNode);
+            dwError = RegAllocateMemory(sizeof(*pPathNode), (PVOID*)&pPathNode);
             BAIL_ON_REG_ERROR(dwError);
 
-            dwError = LwAllocateString(szBuf, &pPathNode->pszPath);
+            dwError = RegCStringDuplicate(&pPathNode->pszPath, szBuf);
             BAIL_ON_REG_ERROR(dwError);
 
             pPathNode->pNext = pPathList;
@@ -1122,8 +956,8 @@ RegGetMatchingFilePathsInFolder(
     }
 
     if (pPathList) {
-        dwError = LwAllocateMemory(sizeof(PSTR)*dwNPaths,
-                                    (PVOID*)&ppszHostFilePaths);
+
+        dwError = RegAllocateMemory(sizeof(*ppszHostFilePaths)*dwNPaths, (PVOID*)&ppszHostFilePaths);
         BAIL_ON_REG_ERROR(dwError);
         /*
          *  The linked list is in reverse.
@@ -1145,22 +979,22 @@ RegGetMatchingFilePathsInFolder(
 cleanup:
 
     if (pPathNode) {
-        LW_SAFE_FREE_STRING(pPathNode->pszPath);
-        LwFreeMemory(pPathNode);
+	LWREG_SAFE_FREE_STRING(pPathNode->pszPath);
+        RegMemoryFree(pPathNode);
     }
 
     while(pPathList) {
         pPathNode = pPathList;
         pPathList = pPathList->pNext;
-        LW_SAFE_FREE_STRING(pPathNode->pszPath);
-        LwFreeMemory(pPathNode);
+        LWREG_SAFE_FREE_STRING(pPathNode->pszPath);
+        RegMemoryFree(pPathNode);
     }
 
     if (rxAllocated) {
         regfree(&rx);
     }
 
-    LW_SAFE_FREE_MEMORY(pResult);
+    LWREG_SAFE_FREE_MEMORY(pResult);
 
     if (pDir) {
         closedir(pDir);
@@ -1171,8 +1005,180 @@ cleanup:
 error:
 
     if (ppszHostFilePaths) {
-       LwFreeStringArray(ppszHostFilePaths, dwNPaths);
+	RegFreeStringArray(ppszHostFilePaths, dwNPaths);
     }
 
     goto cleanup;
+}
+
+DWORD
+RegCheckLinkExists(
+    PSTR pszPath,
+    PBOOLEAN pbLinkExists
+    )
+{
+    DWORD dwError = 0;
+    BOOLEAN bExists = FALSE;
+
+    struct stat statbuf;
+
+    memset(&statbuf, 0, sizeof(struct stat));
+
+    while (1)
+    {
+        if (stat(pszPath, &statbuf) < 0)
+        {
+           if (errno == EINTR)
+           {
+              continue;
+           }
+           else if (errno == ENOENT || errno == ENOTDIR)
+           {
+             *pbLinkExists = 0;
+             break;
+           }
+
+           dwError = errno;
+           BAIL_ON_REG_ERROR(dwError);
+        }
+        else
+        {
+           if (((statbuf.st_mode & S_IFMT) == S_IFLNK))
+           {
+               bExists = TRUE;
+           }
+          break;
+        }
+    }
+
+error:
+
+    *pbLinkExists = bExists;
+
+    return dwError;
+}
+
+DWORD
+RegCheckFileOrLinkExists(
+    PSTR pszPath,
+    PBOOLEAN pbExists
+    )
+{
+    DWORD dwError = 0;
+    BOOLEAN bExists = FALSE;
+
+    struct stat statbuf;
+
+    memset(&statbuf, 0, sizeof(struct stat));
+
+    while (1)
+    {
+        if (stat(pszPath, &statbuf) < 0)
+        {
+           if (errno == EINTR)
+           {
+              continue;
+           }
+           else if (errno == ENOENT || errno == ENOTDIR)
+           {
+             break;
+           }
+
+           dwError = errno;
+           BAIL_ON_REG_ERROR(dwError);
+        }
+        else
+        {
+          if (((statbuf.st_mode & S_IFMT) == S_IFLNK) ||
+              ((statbuf.st_mode & S_IFMT) == S_IFREG))
+          {
+              bExists = TRUE;
+          }
+          break;
+        }
+    }
+
+error:
+
+    *pbExists = bExists;
+
+    return dwError;
+}
+
+static
+DWORD
+RegCreateDirectoryRecursive(
+    PSTR pszCurDirPath,
+    PSTR pszTmpPath,
+    PSTR *ppszTmp,
+    DWORD dwFileMode,
+    DWORD dwWorkingFileMode,
+    int  iPart
+    )
+{
+    DWORD dwError = 0;
+    PSTR pszDirPath = NULL;
+    BOOLEAN bDirCreated = FALSE;
+    BOOLEAN bDirExists = FALSE;
+    CHAR szDelimiters[] = "/";
+
+    PSTR pszToken = strtok_r((iPart ? NULL : pszTmpPath), szDelimiters, ppszTmp);
+
+    if (pszToken != NULL) {
+
+        dwError = RegAllocateMemory(strlen(pszCurDirPath)+strlen(pszToken)+2, (PVOID*)&pszDirPath);
+        BAIL_ON_REG_ERROR(dwError);
+
+        sprintf(pszDirPath,
+                "%s/%s",
+                (!strcmp(pszCurDirPath, "/") ? "" : pszCurDirPath),
+                pszToken);
+
+
+        dwError = RegCheckDirectoryExists(pszDirPath, &bDirExists);
+        BAIL_ON_REG_ERROR(dwError);
+
+        if (!bDirExists) {
+            if (mkdir(pszDirPath, dwWorkingFileMode) < 0) {
+                dwError = errno;
+                BAIL_ON_REG_ERROR(dwError);
+            }
+            bDirCreated = TRUE;
+        }
+
+        dwError = RegChangeDirectory(pszDirPath);
+        BAIL_ON_REG_ERROR(dwError);
+
+        dwError = RegCreateDirectoryRecursive(
+            pszDirPath,
+            pszTmpPath,
+            ppszTmp,
+            dwFileMode,
+            dwWorkingFileMode,
+            iPart+1
+            );
+        BAIL_ON_REG_ERROR(dwError);
+    }
+
+    if (bDirCreated && (dwFileMode != dwWorkingFileMode)) {
+        dwError = RegChangePermissions(pszDirPath, dwFileMode);
+        BAIL_ON_REG_ERROR(dwError);
+    }
+    if (pszDirPath) {
+        RegMemoryFree(pszDirPath);
+    }
+
+    return dwError;
+
+error:
+
+    if (bDirCreated) {
+        RegRemoveDirectory(pszDirPath);
+    }
+
+    if (pszDirPath) {
+        RegMemoryFree(pszDirPath);
+    }
+
+    return dwError;
 }

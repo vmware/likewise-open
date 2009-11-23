@@ -61,15 +61,17 @@
 		goto error;                                   \
 	}
 
+
 #ifndef BAIL_ON_NT_STATUS
-#define BAIL_ON_NT_STATUS(err)                            \
-    do {                                                  \
-        if ((err) != STATUS_SUCCESS) {                    \
-            REG_LOG_DEBUG("Error at %s:%d [code: %d]",    \
-                            __FILE__, __LINE__, dwError); \
-		    goto error;                                   \
-	    }                                                 \
-    } while (0);
+#define BAIL_ON_NT_STATUS(status)                \
+    if ((status) != STATUS_SUCCESS) {                              \
+       REG_LOG_DEBUG("Error at %s:%d [status: %s = 0x%08X (%d)]", \
+                     __FILE__,                     \
+                     __LINE__,                     \
+                     RegNtStatusToName(status), \
+                     status, status);          \
+       goto error;                                 \
+    }
 #endif
 
 #define BAIL_ON_REG_ERROR(dwError)                                              \
@@ -90,38 +92,69 @@
 
 #define BAIL_ON_INVALID_STRING(pszParam)          \
         if (IsNullOrEmptyString(pszParam)) {      \
-           dwError = LW_ERROR_INVALID_PARAMETER; \
+           dwError = ERROR_INVALID_PARAMETER; \
            BAIL_ON_REG_ERROR(dwError);            \
         }
 
+#define BAIL_ON_NT_INVALID_STRING(pszParam)          \
+        if (IsNullOrEmptyString(pszParam)) {      \
+           status = STATUS_INVALID_PARAMETER; \
+           BAIL_ON_NT_STATUS(status);            \
+        }
 
 #define BAIL_ON_INVALID_HANDLE(hParam)            \
         if (hParam == (HANDLE)NULL) {             \
-           dwError = LW_ERROR_INVALID_PARAMETER; \
+           dwError = ERROR_INVALID_PARAMETER; \
            BAIL_ON_REG_ERROR(dwError);            \
         }
 
 #define BAIL_ON_INVALID_POINTER(p)                \
         if (NULL == p) {                          \
-           dwError = LW_ERROR_INVALID_PARAMETER; \
+           dwError = ERROR_INVALID_PARAMETER; \
            BAIL_ON_REG_ERROR(dwError);            \
         }
 
+#define BAIL_ON_NT_INVALID_POINTER(p)                \
+        if (NULL == p) {                          \
+           status = STATUS_INVALID_PARAMETER; \
+           BAIL_ON_NT_STATUS(status);            \
+        }
+
 #define BAIL_ON_INVALID_KEY(pKey)                 \
-        BAIL_ON_INVALID_POINTER(pKey);            \
+        BAIL_ON_NT_INVALID_POINTER(pKey);            \
         if (LW_IS_NULL_OR_EMPTY_STR(pKey->pszKeyName)) \
         { \
-            dwError = LW_ERROR_INVALID_PARAMETER; \
-            BAIL_ON_REG_ERROR(dwError); \
+            status = STATUS_INVALID_PARAMETER; \
+            BAIL_ON_NT_STATUS(status); \
         }
 
 #define BAIL_ON_INVALID_REG_ENTRY(pRegEntry)                 \
-        BAIL_ON_INVALID_POINTER(pRegEntry);            \
+        BAIL_ON_NT_INVALID_POINTER(pRegEntry);            \
         if (LW_IS_NULL_OR_EMPTY_STR(pRegEntry->pszKeyName)) \
         { \
-            dwError = LW_ERROR_INVALID_PARAMETER; \
-            BAIL_ON_REG_ERROR(dwError); \
+            status = STATUS_INVALID_PARAMETER; \
+            BAIL_ON_NT_STATUS(status); \
         }
+
+#define LWREG_SAFE_FREE_MEMORY(mem) \
+    do { \
+        if (mem) \
+        { \
+            RegMemoryFree(mem); \
+            (mem) = NULL; \
+        } \
+    } while (0)
+
+#define LWREG_SAFE_FREE_STRING(str) \
+    do { \
+        if (str) \
+        { \
+            RegFreeString(str); \
+            (str) = NULL; \
+        } \
+    } while (0)
+
+#define LW_IS_NULL_OR_EMPTY_STR(str) (!(str) || !(*(str)))
 
 typedef struct __REG_BIT_VECTOR
 {
@@ -173,7 +206,7 @@ typedef struct __REG_HASH_ITERATOR
 
 #define _LW_REG_ASSERT_OR_BAIL(Expression, dwError, Action) \
     _LW_REG_ASSERT(Expression,                              \
-                (dwError) = LW_ERROR_INTERNAL;          \
+                (dwError) = ERROR_INTERNAL_ERROR;          \
                 Action ;                                 \
                 BAIL_ON_REG_ERROR(dwError))
 
@@ -539,11 +572,6 @@ RegLogGetInfo(
     PREG_LOG_INFO* ppLogInfo
     );
 
-DWORD
-RegLogSetInfo(
-    PREG_LOG_INFO pLogInfo
-    );
-
 void
 reg_vsyslog(
     int priority,
@@ -601,7 +629,7 @@ RegDLinkedListFree(
     PDLINKEDLIST pList
     );
 
-DWORD
+NTSTATUS
 RegHashCreate(
     size_t sTableSize,
     REG_HASH_KEY_COMPARE fnComparator,
@@ -621,7 +649,7 @@ RegHashSafeFree(
     REG_HASH_TABLE** ppResult
     );
 
-DWORD
+NTSTATUS
 RegHashSetValue(
     REG_HASH_TABLE *pTable,
     PVOID  pKey,
@@ -629,7 +657,7 @@ RegHashSetValue(
     );
 
 //Returns ENOENT if pKey is not in the table
-DWORD
+NTSTATUS
 RegHashGetValue(
     REG_HASH_TABLE *pTable,
     PCVOID  pKey,
@@ -642,14 +670,14 @@ RegHashExists(
     IN PCVOID pKey
     );
 
-DWORD
+NTSTATUS
 RegHashCopy(
     IN  REG_HASH_TABLE *pTable,
     OUT REG_HASH_TABLE **ppResult
     );
 
 //Invalidates all iterators
-DWORD
+NTSTATUS
 RegHashResize(
     REG_HASH_TABLE *pTable,
     size_t sTableSize
@@ -667,7 +695,7 @@ RegHashNext(
     REG_HASH_ITERATOR *pIterator
     );
 
-DWORD
+NTSTATUS
 RegHashRemoveKey(
     REG_HASH_TABLE *pTable,
     PVOID  pKey
@@ -700,13 +728,13 @@ RegHashFreeStringKey(
     IN OUT const REG_HASH_ENTRY *pEntry
     );
 
-DWORD
+NTSTATUS
 RegInitializeStringBuffer(
     REG_STRING_BUFFER *pBuffer,
     size_t sCapacity
     );
 
-DWORD
+NTSTATUS
 RegAppendStringBuffer(
     REG_STRING_BUFFER *pBuffer,
     PCSTR pszAppend
@@ -721,6 +749,126 @@ VOID
 RegPrintError(
     IN OPTIONAL PCSTR pszErrorPrefix,
     IN DWORD dwError
+    );
+
+DWORD
+RegMapErrnoToLwRegError(
+    DWORD dwErrno
+    );
+
+DWORD
+RegNtStatusToWin32Error(
+    NTSTATUS ntStatus
+    );
+
+PCSTR
+RegNtStatusToName(
+    IN NTSTATUS status
+    );
+
+DWORD
+RegReallocMemory(
+    IN PVOID pMemory,
+    OUT PVOID* ppNewMemory,
+    IN DWORD dwSize
+    );
+
+NTSTATUS
+NtRegReallocMemory(
+    IN PVOID pMemory,
+    OUT PVOID* ppNewMemory,
+    IN DWORD dwSize
+    );
+
+void
+RegFreeString(
+    PSTR pszString
+    );
+
+void
+RegFreeStringArray(
+    PSTR * ppStringArray,
+    DWORD dwCount
+    );
+
+DWORD
+RegStrndup(
+    PCSTR pszInputString,
+    size_t size,
+    PSTR * ppszOutputString
+    );
+
+NTSTATUS
+RegHexStrToByteArray(
+    IN PCSTR pszHexString,
+    IN OPTIONAL DWORD* pdwHexStringLength,
+    OUT UCHAR** ppucByteArray,
+    OUT DWORD*  pdwByteArrayLength
+    );
+
+NTSTATUS
+RegByteArrayToHexStr(
+    IN UCHAR* pucByteArray,
+    IN DWORD dwByteArrayLength,
+    OUT PSTR* ppszHexString
+    );
+
+NTSTATUS
+RegStrDupOrNull(
+    PCSTR pszInputString,
+    PSTR *ppszOutputString
+    );
+
+void
+RegStripWhitespace(
+    PSTR pszString,
+    BOOLEAN bLeading,
+    BOOLEAN bTrailing
+    );
+
+NTSTATUS
+RegGetValueAsBytes(
+    IN REG_DATA_TYPE type,
+    IN PCSTR pszValue,
+    IN BOOLEAN bDoAnsi,
+    OUT OPTIONAL PBYTE pData,
+    IN OUT OPTIONAL PDWORD pcbData
+    );
+
+DWORD
+RegAllocateMemory(
+    size_t Size,
+    LW_PVOID * ppMemory
+    );
+
+DWORD
+RegCStringDuplicate(
+    OUT PSTR* ppszNewString,
+    IN PCSTR pszOriginalString
+    );
+
+void
+RegMemoryFree(
+	IN OUT LW_PVOID pMemory
+	);
+
+DWORD
+RegWC16StringAllocateFromCString(
+    OUT PWSTR* ppszNewString,
+    IN PCSTR pszOriginalString
+    );
+
+DWORD
+RegCStringAllocateFromWC16String(
+    OUT PSTR* ppszNewString,
+    IN PCWSTR pszOriginalString
+    );
+
+DWORD
+RegCStringAllocatePrintf(
+    OUT PSTR* ppszString,
+    IN PCSTR pszFormat,
+    IN ...
     );
 
 #endif /* __REG_UTILS_H__ */

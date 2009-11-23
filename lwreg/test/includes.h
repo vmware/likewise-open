@@ -51,14 +51,12 @@
 
 #include <iconv.h>
 
-#include <reg/reg.h>
+#include <reg/lwreg.h>
 
 #include <lw/base.h>
-#include <lwerror.h>
-#include <lwstr.h>
-#include <lwmem.h>
-#include <lwfile.h>
-#include <lwdef.h>
+#include <lw/ntstatus.h>
+#include <lw/rtlstring.h>
+#include <lw/rtlmemory.h>
 
 #include <regdef.h>
 #include <regutils.h>

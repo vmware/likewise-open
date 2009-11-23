@@ -70,32 +70,190 @@ typedef struct _REG_DB_CONNECTION
 
 } REG_DB_CONNECTION, *PREG_DB_CONNECTION;
 
-DWORD
+
+NTSTATUS
 RegDbUnpackCacheInfo(
     sqlite3_stmt *pstQuery,
     int *piColumnPos,
     PREG_ENTRY_VERSION_INFO pResult
     );
 
-DWORD
+NTSTATUS
 RegDbUnpackRegEntryInfo(
     IN sqlite3_stmt* pstQuery,
     IN OUT int* piColumnPos,
     IN OUT PREG_ENTRY pResult
     );
 
-DWORD
+NTSTATUS
 RegDbUnpackSubKeysCountInfo(
     sqlite3_stmt *pstQuery,
     int *piColumnPos,
     PDWORD pdwCount
     );
 
-DWORD
+NTSTATUS
 RegDbUnpackKeyValuesCountInfo(
     sqlite3_stmt *pstQuery,
     int *piColumnPos,
     PDWORD pdwCount
+    );
+
+void
+RegDbSafeFreeEntry(
+    PREG_ENTRY* ppEntry
+    );
+
+void
+RegDbSafeFreeEntryList(
+    size_t sCount,
+    PREG_ENTRY** pppEntries
+    );
+
+NTSTATUS
+RegDbSafeRecordSubKeysInfo_inlock(
+    IN size_t sCount,
+    IN size_t sCacheCount,
+    IN PREG_ENTRY* ppRegEntries,
+    IN OUT PREG_KEY_CONTEXT pKeyResult,
+    IN BOOLEAN bDoAnsi
+    );
+
+NTSTATUS
+RegDbSafeRecordSubKeysInfo(
+    IN size_t sCount,
+    IN size_t sCacheCount,
+    IN PREG_ENTRY* ppRegEntries,
+    IN OUT PREG_KEY_CONTEXT pKeyResult,
+    IN BOOLEAN bDoAnsi
+    );
+
+NTSTATUS
+RegDbSafeRecordValuesInfo_inlock(
+    IN size_t sCount,
+    IN size_t sCacheCount,
+    IN PREG_ENTRY* ppRegEntries,
+    IN OUT PREG_KEY_CONTEXT pKeyResult,
+    IN BOOLEAN bDoAnsi
+    );
+
+NTSTATUS
+RegDbSafeRecordValuesInfo(
+    IN size_t sCount,
+    IN size_t sCacheCount,
+    IN PREG_ENTRY* ppRegEntries,
+    IN OUT PREG_KEY_CONTEXT pKeyResult,
+    IN BOOLEAN bDoAnsi
+    );
+
+NTSTATUS
+RegDbOpen(
+    IN PCSTR pszDbPath,
+    OUT PREG_DB_HANDLE phDb
+    );
+
+NTSTATUS
+RegDbStoreKeyObjectEntries(
+    REG_DB_HANDLE hDb,
+    size_t  sEntryCount,
+    PREG_ENTRY* ppEntries
+    );
+
+NTSTATUS
+RegDbStoreObjectEntries(
+    REG_DB_HANDLE hDb,
+    size_t  sEntryCount,
+    PREG_ENTRY* ppEntries
+    );
+
+NTSTATUS
+RegDbCreateKey(
+    IN REG_DB_HANDLE hDb,
+    IN PSTR pszKeyName,
+    OUT PREG_ENTRY* ppRegEntry
+    );
+
+NTSTATUS
+RegDbOpenKey(
+    IN REG_DB_HANDLE hDb,
+    IN PCSTR pszKeyName,
+    OUT OPTIONAL PREG_ENTRY* ppRegEntry
+    );
+
+NTSTATUS
+RegDbDeleteKey(
+    IN REG_DB_HANDLE hDb,
+    IN PCSTR pszKeyName
+    );
+
+NTSTATUS
+RegDbQueryInfoKey(
+    IN REG_DB_HANDLE hDb,
+    IN PCSTR pszKeyName,
+    IN QueryKeyInfoOption queryType,
+    IN DWORD dwLimit,
+    IN DWORD dwOffset,
+    OUT size_t* psCount,
+    OUT OPTIONAL PREG_ENTRY** pppRegEntries
+    );
+
+NTSTATUS
+RegDbQueryInfoKeyCount(
+    IN REG_DB_HANDLE hDb,
+    IN PCSTR pszKeyName,
+    IN QueryKeyInfoOption queryType,
+    OUT size_t* psSubKeyCount
+    );
+
+NTSTATUS
+RegDbCreateKeyValue(
+    IN REG_DB_HANDLE hDb,
+    IN PSTR pszKeyName,
+    IN PSTR pszValueName,
+    IN PSTR pszValue,
+    IN REG_DATA_TYPE valueType,
+    OUT OPTIONAL PREG_ENTRY* ppRegEntry
+    );
+
+NTSTATUS
+RegDbGetKeyValue(
+    IN REG_DB_HANDLE hDb,
+    IN PSTR pszKeyName,
+    IN PSTR pszValueName,
+    IN REG_DATA_TYPE valueType,
+    IN OPTIONAL PBOOLEAN pbIsWrongType,
+    OUT OPTIONAL PREG_ENTRY* ppRegEntry
+    );
+
+NTSTATUS
+RegDbDeleteKeyValue(
+    IN REG_DB_HANDLE hDb,
+    IN PCSTR pszKeyName,
+    IN PCSTR pszValueName
+    );
+
+NTSTATUS
+RegDbGetMultiKeyValues(
+    IN REG_DB_HANDLE hDb,
+    IN PSTR pszKeyName,
+    IN DWORD dwNumValuesRequest,
+    OUT size_t* psCount,
+    OUT PREG_ENTRY** pppRegEntry
+    );
+
+void
+RegDbSafeClose(
+    PREG_DB_HANDLE phDb
+    );
+
+NTSTATUS
+RegDbEmptyCache(
+    IN REG_DB_HANDLE hDb
+    );
+
+NTSTATUS
+RegDbFlushNOP(
+    REG_DB_HANDLE hDb
     );
 
 #endif /* __SQLCACHE_P_H__ */

@@ -109,7 +109,7 @@ RegParseDateString(
                 break;
 
             default:
-                dwError = LW_ERROR_INVALID_PARAMETER;
+                dwError = ERROR_INVALID_PARAMETER;
                 BAIL_ON_LSA_ERROR(dwError);
                 break;
         }
@@ -272,8 +272,6 @@ RegGetCurrentTimeSeconds(
     DWORD dwError = 0;
     struct timeval current_tv;
 
-    // ISSUE-2008/10/30-dalmeida -- Is gettimeofday() any better worse than time()?
-    // Preserve gettimeofday() since the code we are replacing currently uses that.
     if (gettimeofday(&current_tv, NULL) < 0)
     {
         dwError = errno;

@@ -46,17 +46,18 @@
 #include <config.h>
 #include <regsystem.h>
 
-#include <reg/reg.h>
+#include <reg/lwreg.h>
 
-#include <lw/base.h>
-#include <lw/swab.h>
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <lwstr.h>
-#include <lwmem.h>
-#include <lwerror.h>
+
+#include <lw/base.h>
+#include <lw/swab.h>
+#include <lw/ntstatus.h>
+#include <lw/rtlstring.h>
+#include <lw/rtlmemory.h>
 
 #include <regutils.h>
 #include <regdef.h>

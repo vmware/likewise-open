@@ -90,10 +90,10 @@ typedef enum __REG_IPC_TAG
 /* Opaque type -- actual definition in state_p.h - LSA_SRV_ENUM_STATE */
 
 /******************************************************************************/
-typedef struct __REG_IPC_ERROR
+typedef struct __REG_IPC_STATUS
 {
-    DWORD dwError;
-} REG_IPC_ERROR, *PREG_IPC_ERROR;
+	NTSTATUS status;
+} REG_IPC_STATUS, *PREG_IPC_STATUS;
 
 /******************************************************************************/
 
@@ -444,9 +444,9 @@ RegCloseServer(
     HANDLE hConnection
     );
 
-DWORD
+NTSTATUS
 RegIpcAcquireCall(
-    HANDLE hServer,
+    HANDLE hConnection,
     LWMsgCall** ppCall
     );
 
@@ -463,7 +463,7 @@ RegReadData(
     DWORD  dwBytesToRead,
     PDWORD pdwBytesRead);
 
-DWORD
+NTSTATUS
 RegMapLwmsgStatus(
     LWMsgStatus status
     );

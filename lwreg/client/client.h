@@ -49,13 +49,13 @@
 
 #include <regsystem.h>
 
-
+#include <lw/rtlstring.h>
+#include <lw/rtlmemory.h>
+#include <lw/ntstatus.h>
 #include <lwmsg/lwmsg.h>
-#include <lwstr.h>
-#include <lwmem.h>
-#include <lwerror.h>
 
-#include <reg/reg.h>
+#include <reg/lwntreg.h>
+#include <reg/lwreg.h>
 #include <regdef.h>
 
 #include "regclient.h"

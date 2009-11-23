@@ -33,13 +33,14 @@
  *
  * Module Name:
  *
- *        sqlcache.c
+ *        sqldb.c
  *
  * Abstract:
  *
- *        Sqlite3 Caching backend for AD Provider Database Interface
+ *        Sqlite3 backend for Registry Database Interface
  *
  * Authors: Kyle Stemen (kstemen@likewisesoftware.com)
+ *          Wei Fu (wfu@likewise.com)
  *
  */
 #include "includes.h"
@@ -58,199 +59,199 @@ RegDbGetObjectFieldList(
         REG_DB_TABLE_NAME_ENTRIES ".Value";
 }
 
-DWORD
+NTSTATUS
 RegDbUnpackCacheInfo(
     sqlite3_stmt *pstQuery,
     int *piColumnPos,
     PREG_ENTRY_VERSION_INFO pResult
     )
 {
-    DWORD dwError = LW_ERROR_SUCCESS;
+	NTSTATUS status = STATUS_SUCCESS;
 
-    dwError = RegSqliteReadInt64(
+    status = RegSqliteReadInt64(
         pstQuery,
         piColumnPos,
         "CacheId",
         &pResult->qwDbId);
-    BAIL_ON_REG_ERROR(dwError);
+    BAIL_ON_NT_STATUS(status);
 
-    dwError = RegSqliteReadTimeT(
+    status = RegSqliteReadTimeT(
         pstQuery,
         piColumnPos,
         "LastUpdated",
         &pResult->tLastUpdated);
-    BAIL_ON_REG_ERROR(dwError);
+    BAIL_ON_NT_STATUS(status);
 
 error:
-    return dwError;
+    return status;
 }
 
-DWORD
+NTSTATUS
 RegDbUnpackRegEntryInfo(
     IN sqlite3_stmt* pstQuery,
     IN OUT int* piColumnPos,
     IN OUT PREG_ENTRY pResult
     )
 {
-    DWORD dwError = LW_ERROR_SUCCESS;
+	NTSTATUS status = STATUS_SUCCESS;
 
-    dwError = RegSqliteReadString(
+    status = RegSqliteReadString(
         pstQuery,
         piColumnPos,
         "KeyName",
         &pResult->pszKeyName);
-    BAIL_ON_REG_ERROR(dwError);
+    BAIL_ON_NT_STATUS(status);
 
-    dwError = RegSqliteReadString(
+    status = RegSqliteReadString(
         pstQuery,
         piColumnPos,
         "ValueName",
         &pResult->pszValueName);
-    BAIL_ON_REG_ERROR(dwError);
+    BAIL_ON_NT_STATUS(status);
 
-    dwError = RegSqliteReadUInt32(
+    status = RegSqliteReadUInt32(
         pstQuery,
         piColumnPos,
         "Type",
         &pResult->type);
-    BAIL_ON_REG_ERROR(dwError);
+    BAIL_ON_NT_STATUS(status);
 
-    dwError = RegSqliteReadString(
+    status = RegSqliteReadString(
         pstQuery,
         piColumnPos,
         "Value",
         &pResult->pszValue);
-    BAIL_ON_REG_ERROR(dwError);
+    BAIL_ON_NT_STATUS(status);
 
     if (pResult->type != REG_KEY && !pResult->pszValueName)
     {
-        dwError = LW_ERROR_INVALID_VALUENAME;
-        BAIL_ON_REG_ERROR(dwError);
+	status = STATUS_OBJECT_NAME_INVALID;
+        BAIL_ON_NT_STATUS(status);
     }
 
 error:
-    return dwError;
+    return status;
 }
 
-DWORD
+NTSTATUS
 RegDbUnpackSubKeysCountInfo(
     sqlite3_stmt *pstQuery,
     int *piColumnPos,
     PDWORD pdwCount
     )
 {
-    DWORD dwError = LW_ERROR_SUCCESS;
+	NTSTATUS status = STATUS_SUCCESS;
 
-    dwError = RegSqliteReadUInt32(
+    status = RegSqliteReadUInt32(
         pstQuery,
         piColumnPos,
         "subkeyCount",
         pdwCount);
-    BAIL_ON_REG_ERROR(dwError);
+    BAIL_ON_NT_STATUS(status);
 
 error:
-    return dwError;
+    return status;
 }
 
-DWORD
+NTSTATUS
 RegDbUnpackKeyValuesCountInfo(
     sqlite3_stmt *pstQuery,
     int *piColumnPos,
     PDWORD pdwCount
     )
 {
-    DWORD dwError = LW_ERROR_SUCCESS;
+	NTSTATUS status = STATUS_SUCCESS;
 
-    dwError = RegSqliteReadUInt32(
+    status = RegSqliteReadUInt32(
         pstQuery,
         piColumnPos,
         "valueCount",
         pdwCount);
-    BAIL_ON_REG_ERROR(dwError);
+    BAIL_ON_NT_STATUS(status);
 
 error:
-    return dwError;
+    return status;
 }
 
-DWORD
+NTSTATUS
 RegDbSetup(
     IN sqlite3* pSqlHandle
     )
 {
-    DWORD dwError = 0;
+	NTSTATUS status = STATUS_SUCCESS;
     PSTR pszError = NULL;
 
-    dwError = RegSqliteExec(pSqlHandle,
+    status = RegSqliteExec(pSqlHandle,
                             REG_DB_CREATE_TABLES,
                             &pszError);
-    if (dwError)
+    if (status)
     {
         REG_LOG_DEBUG("SQL failed: code = %d, message = '%s'\nSQL =\n%s",
-                      dwError, pszError, REG_DB_CREATE_TABLES);
+                      status, pszError, REG_DB_CREATE_TABLES);
     }
-    BAIL_ON_SQLITE3_ERROR(dwError, pszError);
+    BAIL_ON_SQLITE3_ERROR(status, pszError);
 
 cleanup:
     SQLITE3_SAFE_FREE_STRING(pszError);
-    return dwError;
+    return status;
 
 error:
     goto cleanup;
 }
 
-DWORD
+NTSTATUS
 RegDbOpen(
     IN PCSTR pszDbPath,
     OUT PREG_DB_HANDLE phDb
     )
 {
-    DWORD dwError = 0;
+	NTSTATUS status = 0;
     BOOLEAN bLockCreated = FALSE;
     PREG_DB_CONNECTION pConn = NULL;
     PSTR pszError = NULL;
     BOOLEAN bExists = FALSE;
     PSTR pszDbDir = NULL;
 
-    dwError = RegGetDirectoryFromPath(
+    status = RegGetDirectoryFromPath(
                     pszDbPath,
                     &pszDbDir);
-    BAIL_ON_REG_ERROR(dwError);
+    BAIL_ON_NT_STATUS(status);
 
-    dwError = LwAllocateMemory(
-                    sizeof(REG_DB_CONNECTION),
-                    (PVOID*)&pConn);
-    BAIL_ON_REG_ERROR(dwError);
+    status = LW_RTL_ALLOCATE((PVOID*)&pConn, REG_DB_CONNECTION, sizeof(*pConn));
+    BAIL_ON_NT_STATUS(status);
 
-    dwError = pthread_rwlock_init(&pConn->lock, NULL);
-    BAIL_ON_REG_ERROR(dwError);
+    memset(pConn, 0, sizeof(*pConn));
+
+    status = pthread_rwlock_init(&pConn->lock, NULL);
+    BAIL_ON_NT_STATUS(status);
     bLockCreated = TRUE;
 
-    dwError = RegCheckDirectoryExists(pszDbDir, &bExists);
-    BAIL_ON_REG_ERROR(dwError);
+    status = RegCheckDirectoryExists(pszDbDir, &bExists);
+    BAIL_ON_NT_STATUS(status);
 
     if (!bExists)
     {
         mode_t cacheDirMode = S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH;
 
-        dwError = RegCreateDirectory(pszDbDir, cacheDirMode);
-        BAIL_ON_REG_ERROR(dwError);
+        status = RegCreateDirectory(pszDbDir, cacheDirMode);
+        BAIL_ON_NT_STATUS(status);
     }
 
     /* restrict access to u+rwx to the db folder */
-    dwError = RegChangeOwnerAndPermissions(pszDbDir, 0, 0, S_IRWXU);
-    BAIL_ON_REG_ERROR(dwError);
+    status = RegChangeOwnerAndPermissions(pszDbDir, 0, 0, S_IRWXU);
+    BAIL_ON_NT_STATUS(status);
 
-    dwError = sqlite3_open(pszDbPath, &pConn->pDb);
-    BAIL_ON_REG_ERROR(dwError);
+    status = sqlite3_open(pszDbPath, &pConn->pDb);
+    BAIL_ON_NT_STATUS(status);
 
-    dwError = RegChangeOwnerAndPermissions(pszDbPath, 0, 0, S_IRWXU);
-    BAIL_ON_REG_ERROR(dwError);
+    status = RegChangeOwnerAndPermissions(pszDbPath, 0, 0, S_IRWXU);
+    BAIL_ON_NT_STATUS(status);
 
-    dwError = RegDbSetup(pConn->pDb);
-    BAIL_ON_REG_ERROR(dwError);
+    status = RegDbSetup(pConn->pDb);
+    BAIL_ON_NT_STATUS(status);
 
     /*pstOpenKeyEx*/
-    dwError = sqlite3_prepare_v2(
+    status = sqlite3_prepare_v2(
             pConn->pDb,
             "select "
             REG_DB_TABLE_NAME_CACHE_TAGS ".CacheId, "
@@ -266,20 +267,20 @@ RegDbOpen(
             -1, //search for null termination in szQuery to get length
             &pConn->pstOpenKeyEx,
             NULL);
-    BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
+    BAIL_ON_SQLITE3_ERROR(status, sqlite3_errmsg(pConn->pDb));
 
     /*pstDeleteKey (delete the key and all of its associated values)*/
-    dwError = sqlite3_prepare_v2(
+    status = sqlite3_prepare_v2(
             pConn->pDb,
             "delete from "  REG_DB_TABLE_NAME_ENTRIES " "
             "where " REG_DB_TABLE_NAME_ENTRIES ".KeyName = ?1",
             -1, //search for null termination in szQuery to get length
             &pConn->pstDeleteKey,
             NULL);
-    BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
+    BAIL_ON_SQLITE3_ERROR(status, sqlite3_errmsg(pConn->pDb));
 
     /*pstDeleteKeyValue*/
-    dwError = sqlite3_prepare_v2(
+    status = sqlite3_prepare_v2(
             pConn->pDb,
             "delete from "  REG_DB_TABLE_NAME_ENTRIES " "
             "where " REG_DB_TABLE_NAME_ENTRIES ".KeyName = ?1"
@@ -287,10 +288,10 @@ RegDbOpen(
             -1, //search for null termination in szQuery to get length
             &pConn->pstDeleteKeyValue,
             NULL);
-    BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
+    BAIL_ON_SQLITE3_ERROR(status, sqlite3_errmsg(pConn->pDb));
 
     /*pstQuerySubKeys*/
-    dwError = sqlite3_prepare_v2(
+    status = sqlite3_prepare_v2(
             pConn->pDb,
             "select "
             REG_DB_TABLE_NAME_CACHE_TAGS ".CacheId, "
@@ -308,10 +309,10 @@ RegDbOpen(
             -1, //search for null termination in szQuery to get length
             &pConn->pstQuerySubKeys,
             NULL);
-    BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
+    BAIL_ON_SQLITE3_ERROR(status, sqlite3_errmsg(pConn->pDb));
 
     /*pstQuerySubKeysCount*/
-        dwError = sqlite3_prepare_v2(
+        status = sqlite3_prepare_v2(
                 pConn->pDb,
                 "select COUNT (*) as subkeyCount "
                 "from " REG_DB_TABLE_NAME_CACHE_TAGS ", " REG_DB_TABLE_NAME_ENTRIES " "
@@ -322,10 +323,10 @@ RegDbOpen(
                 -1, //search for null termination in szQuery to get length
                 &pConn->pstQuerySubKeysCount,
                 NULL);
-        BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
+        BAIL_ON_SQLITE3_ERROR(status, sqlite3_errmsg(pConn->pDb));
 
     /*pstQueryValues*/
-    dwError = sqlite3_prepare_v2(
+    status = sqlite3_prepare_v2(
             pConn->pDb,
             "select "
             REG_DB_TABLE_NAME_CACHE_TAGS ".CacheId, "
@@ -342,10 +343,10 @@ RegDbOpen(
             -1, //search for null termination in szQuery to get length
             &pConn->pstQueryValues,
             NULL);
-    BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
+    BAIL_ON_SQLITE3_ERROR(status, sqlite3_errmsg(pConn->pDb));
 
     /*pstQueryValuesCount*/
-        dwError = sqlite3_prepare_v2(
+        status = sqlite3_prepare_v2(
                 pConn->pDb,
                 "select COUNT (*) as valueCount "
                 "from " REG_DB_TABLE_NAME_CACHE_TAGS ", " REG_DB_TABLE_NAME_ENTRIES " "
@@ -355,10 +356,10 @@ RegDbOpen(
                 -1, //search for null termination in szQuery to get length
                 &pConn->pstQueryValuesCount,
                 NULL);
-        BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
+        BAIL_ON_SQLITE3_ERROR(status, sqlite3_errmsg(pConn->pDb));
 
     /*pstQueryKeyValueWithType*/
-    dwError = sqlite3_prepare_v2(
+    status = sqlite3_prepare_v2(
             pConn->pDb,
             "select "
             REG_DB_TABLE_NAME_CACHE_TAGS ".CacheId, "
@@ -375,10 +376,10 @@ RegDbOpen(
             -1, //search for null termination in szQuery to get length
             &pConn->pstQueryKeyValueWithType,
             NULL);
-    BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
+    BAIL_ON_SQLITE3_ERROR(status, sqlite3_errmsg(pConn->pDb));
 
     /*pstQueryKeyValueWithWrongType*/
-        dwError = sqlite3_prepare_v2(
+        status = sqlite3_prepare_v2(
                 pConn->pDb,
                 "select "
                 REG_DB_TABLE_NAME_CACHE_TAGS ".CacheId, "
@@ -395,10 +396,10 @@ RegDbOpen(
                 -1, //search for null termination in szQuery to get length
                 &pConn->pstQueryKeyValueWithWrongType,
                 NULL);
-        BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
+        BAIL_ON_SQLITE3_ERROR(status, sqlite3_errmsg(pConn->pDb));
 
     /*pstQueryKeyValue*/
-    dwError = sqlite3_prepare_v2(
+    status = sqlite3_prepare_v2(
             pConn->pDb,
             "select "
             REG_DB_TABLE_NAME_CACHE_TAGS ".CacheId, "
@@ -415,7 +416,7 @@ RegDbOpen(
             -1, //search for null termination in szQuery to get length
             &pConn->pstQueryKeyValue,
             NULL);
-    BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
+    BAIL_ON_SQLITE3_ERROR(status, sqlite3_errmsg(pConn->pDb));
 
     *phDb = pConn;
 
@@ -425,9 +426,9 @@ cleanup:
     {
         sqlite3_free(pszError);
     }
-    LW_SAFE_FREE_STRING(pszDbDir);
+    LWREG_SAFE_FREE_STRING(pszDbDir);
 
-    return dwError;
+    return status;
 
 error:
     if (pConn != NULL)
@@ -441,14 +442,14 @@ error:
         {
             sqlite3_close(pConn->pDb);
         }
-        LW_SAFE_FREE_MEMORY(pConn);
+        LWREG_SAFE_FREE_MEMORY(pConn);
     }
     *phDb = (HANDLE)NULL;
 
     goto cleanup;
 }
 
-DWORD
+NTSTATUS
 RegDbStoreKeyObjectEntries(
     REG_DB_HANDLE hDb,
     size_t  sEntryCount,
@@ -456,7 +457,7 @@ RegDbStoreKeyObjectEntries(
     )
 {
     PREG_DB_CONNECTION pConn = (PREG_DB_CONNECTION)hDb;
-    DWORD dwError = LW_ERROR_SUCCESS;
+    NTSTATUS status = STATUS_SUCCESS;
     size_t sIndex = 0;
     //Free with sqlite3_free
     char *pszError = NULL;
@@ -467,15 +468,15 @@ RegDbStoreKeyObjectEntries(
     time_t now = 0;
 
 
-    dwError = RegInitializeStringBuffer(
+    status = RegInitializeStringBuffer(
             &buffer,
             sEntryCount * 200);
-    BAIL_ON_REG_ERROR(dwError);
+    BAIL_ON_NT_STATUS(status);
 
-    dwError = RegAppendStringBuffer(
+    status = RegAppendStringBuffer(
             &buffer,
             "begin");
-    BAIL_ON_REG_ERROR(dwError);
+    BAIL_ON_NT_STATUS(status);
 
     for (sIndex = 0; sIndex < sEntryCount; sIndex++)
     {
@@ -488,8 +489,8 @@ RegDbStoreKeyObjectEntries(
         {
             if (!bGotNow)
             {
-                dwError = RegGetCurrentTimeSeconds(&now);
-                BAIL_ON_REG_ERROR(dwError);
+                status = RegGetCurrentTimeSeconds(&now);
+                BAIL_ON_NT_STATUS(status);
 
                 bGotNow = TRUE;
             }
@@ -526,41 +527,41 @@ RegDbStoreKeyObjectEntries(
 
         if (pszNewStatement == NULL)
         {
-            dwError = LW_ERROR_OUT_OF_MEMORY;
-            BAIL_ON_REG_ERROR(dwError);
+            status = STATUS_NO_MEMORY;
+            BAIL_ON_NT_STATUS(status);
         }
 
-        dwError = RegAppendStringBuffer(
+        status = RegAppendStringBuffer(
                 &buffer,
                 pszNewStatement);
-        BAIL_ON_REG_ERROR(dwError);
+        BAIL_ON_NT_STATUS(status);
         SQLITE3_SAFE_FREE_STRING(pszNewStatement);
     }
 
-    dwError = RegAppendStringBuffer(
+    status = RegAppendStringBuffer(
             &buffer,
             ";\nend");
-    BAIL_ON_REG_ERROR(dwError);
+    BAIL_ON_NT_STATUS(status);
 
-    dwError = RegSqliteExecWithRetry(
+    status = RegSqliteExecWithRetry(
         pConn->pDb,
         &pConn->lock,
         buffer.pszBuffer);
-    BAIL_ON_REG_ERROR(dwError);
+    BAIL_ON_NT_STATUS(status);
 
 cleanup:
     SQLITE3_SAFE_FREE_STRING(pszNewStatement);
     SQLITE3_SAFE_FREE_STRING(pszError);
     RegFreeStringBufferContents(&buffer);
 
-    return dwError;
+    return status;
 
 error:
 
     goto cleanup;
 }
 
-DWORD
+NTSTATUS
 RegDbStoreObjectEntries(
     REG_DB_HANDLE hDb,
     size_t  sEntryCount,
@@ -568,7 +569,7 @@ RegDbStoreObjectEntries(
     )
 {
     PREG_DB_CONNECTION pConn = (PREG_DB_CONNECTION)hDb;
-    DWORD dwError = LW_ERROR_SUCCESS;
+    NTSTATUS status = STATUS_SUCCESS;
     size_t sIndex = 0;
     //Free with sqlite3_free
     char *pszError = NULL;
@@ -585,15 +586,15 @@ RegDbStoreObjectEntries(
      *    " REG_DB_TABLE_NAME_ENTRIES ".
      */
 
-    dwError = RegInitializeStringBuffer(
+    status = RegInitializeStringBuffer(
             &buffer,
             sEntryCount * 200);
-    BAIL_ON_REG_ERROR(dwError);
+    BAIL_ON_NT_STATUS(status);
 
-    dwError = RegAppendStringBuffer(
+    status = RegAppendStringBuffer(
             &buffer,
             "begin");
-    BAIL_ON_REG_ERROR(dwError);
+    BAIL_ON_NT_STATUS(status);
 
     for (sIndex = 0; sIndex < sEntryCount; sIndex++)
     {
@@ -612,14 +613,14 @@ RegDbStoreObjectEntries(
 
             if (pszNewStatement == NULL)
             {
-                dwError = LW_ERROR_OUT_OF_MEMORY;
-                BAIL_ON_REG_ERROR(dwError);
+                status = STATUS_NO_MEMORY;
+                BAIL_ON_NT_STATUS(status);
             }
 
-            dwError = RegAppendStringBuffer(
+            status = RegAppendStringBuffer(
                     &buffer,
                     pszNewStatement);
-            BAIL_ON_REG_ERROR(dwError);
+            BAIL_ON_NT_STATUS(status);
             SQLITE3_SAFE_FREE_STRING(pszNewStatement);
         }
     }
@@ -635,8 +636,8 @@ RegDbStoreObjectEntries(
         {
             if (!bGotNow)
             {
-                dwError = RegGetCurrentTimeSeconds(&now);
-                BAIL_ON_REG_ERROR(dwError);
+                status = RegGetCurrentTimeSeconds(&now);
+                BAIL_ON_NT_STATUS(status);
 
                 bGotNow = TRUE;
             }
@@ -697,82 +698,82 @@ RegDbStoreObjectEntries(
 
         if (pszNewStatement == NULL)
         {
-            dwError = LW_ERROR_OUT_OF_MEMORY;
-            BAIL_ON_REG_ERROR(dwError);
+            status = STATUS_NO_MEMORY;
+            BAIL_ON_NT_STATUS(status);
         }
 
-        dwError = RegAppendStringBuffer(
+        status = RegAppendStringBuffer(
                 &buffer,
                 pszNewStatement);
-        BAIL_ON_REG_ERROR(dwError);
+        BAIL_ON_NT_STATUS(status);
         SQLITE3_SAFE_FREE_STRING(pszNewStatement);
     }
 
-    dwError = RegAppendStringBuffer(
+    status = RegAppendStringBuffer(
             &buffer,
             ";\nend");
-    BAIL_ON_REG_ERROR(dwError);
+    BAIL_ON_NT_STATUS(status);
 
-    dwError = RegSqliteExecWithRetry(
+    status = RegSqliteExecWithRetry(
         pConn->pDb,
         &pConn->lock,
         buffer.pszBuffer);
-    BAIL_ON_REG_ERROR(dwError);
+    BAIL_ON_NT_STATUS(status);
 
 cleanup:
     SQLITE3_SAFE_FREE_STRING(pszNewStatement);
     SQLITE3_SAFE_FREE_STRING(pszError);
     RegFreeStringBufferContents(&buffer);
 
-    return dwError;
+    return status;
 
 error:
 
     goto cleanup;
 }
 
-DWORD
+NTSTATUS
 RegDbCreateKey(
     IN REG_DB_HANDLE hDb,
     IN PSTR pszKeyName,
     OUT PREG_ENTRY* ppRegEntry
     )
 {
-    DWORD dwError = 0;
+	NTSTATUS status = STATUS_SUCCESS;
     PREG_ENTRY pRegEntry = NULL;
     PREG_ENTRY pRegEntryDefaultValue = NULL;
 
     /*Create key*/
-    dwError = LwAllocateMemory(sizeof(*pRegEntry), (PVOID*)&pRegEntry);
-    BAIL_ON_REG_ERROR(dwError);
+    status = LW_RTL_ALLOCATE((PVOID*)&pRegEntry, REG_ENTRY, sizeof(*pRegEntry));
+    BAIL_ON_NT_STATUS(status);
 
-    dwError = LwAllocateString(pszKeyName, &pRegEntry->pszKeyName);
-    BAIL_ON_REG_ERROR(dwError);
+    status = LwRtlCStringDuplicate(&pRegEntry->pszKeyName, pszKeyName);
+    BAIL_ON_NT_STATUS(status);
 
     pRegEntry->type = REG_KEY;
     pRegEntry->version.qwDbId = -1;
 
-    dwError = RegDbStoreKeyObjectEntries(
+    status = RegDbStoreKeyObjectEntries(
                  hDb,
                  1,
                  &pRegEntry);
-    BAIL_ON_REG_ERROR(dwError);
+    BAIL_ON_NT_STATUS(status);
 
     *ppRegEntry = pRegEntry;
 
 cleanup:
-    RegCacheSafeFreeEntry(&pRegEntryDefaultValue);
+    RegDbSafeFreeEntry(&pRegEntryDefaultValue);
 
-    return dwError;
+    return status;
 
 error:
-    RegCacheSafeFreeEntry(&pRegEntry);
+    RegDbSafeFreeEntry(&pRegEntry);
     *ppRegEntry = NULL;
 
     goto cleanup;
 }
 
-DWORD
+NTSTATUS
 RegDbCreateKeyValue(
     IN REG_DB_HANDLE hDb,
     IN PSTR pszKeyName,
@@ -782,32 +783,32 @@ RegDbCreateKeyValue(
     OUT OPTIONAL PREG_ENTRY* ppRegEntry
     )
 {
-    DWORD dwError = 0;
+	NTSTATUS status = STATUS_SUCCESS;
     PREG_ENTRY pRegEntry = NULL;
 
-    dwError = LwAllocateMemory(sizeof(REG_ENTRY), (PVOID*)&pRegEntry);
-    BAIL_ON_REG_ERROR(dwError);
+    status = LW_RTL_ALLOCATE((PVOID*)&pRegEntry, REG_ENTRY, sizeof(*pRegEntry));
+    BAIL_ON_NT_STATUS(status);
 
-    dwError = LwAllocateString(pszKeyName, &pRegEntry->pszKeyName);
-    BAIL_ON_REG_ERROR(dwError);
+    status = LwRtlCStringDuplicate(&pRegEntry->pszKeyName, pszKeyName);
+    BAIL_ON_NT_STATUS(status);
 
-    dwError = LwAllocateString(pszValueName, &pRegEntry->pszValueName);
-    BAIL_ON_REG_ERROR(dwError);
+    status = LwRtlCStringDuplicate(&pRegEntry->pszValueName, pszValueName);
+    BAIL_ON_NT_STATUS(status);
 
     if (pszValue)
     {
-        dwError = LwAllocateString(pszValue, &pRegEntry->pszValue);
-        BAIL_ON_REG_ERROR(dwError);
+        status = LwRtlCStringDuplicate(&pRegEntry->pszValue, pszValue);
+        BAIL_ON_NT_STATUS(status);
     }
 
     pRegEntry->type = valueType;
     pRegEntry->version.qwDbId = -1;
 
-    dwError = RegDbStoreObjectEntries(
+    status = RegDbStoreObjectEntries(
                  hDb,
                  1,
                  &pRegEntry);
-    BAIL_ON_REG_ERROR(dwError);
+    BAIL_ON_NT_STATUS(status);
 
     if (ppRegEntry)
     {
@@ -817,19 +818,19 @@ RegDbCreateKeyValue(
 cleanup:
     if (!ppRegEntry)
     {
-        RegCacheSafeFreeEntry(&pRegEntry);
+        RegDbSafeFreeEntry(&pRegEntry);
     }
 
-    return dwError;
+    return status;
 
 error:
-    RegCacheSafeFreeEntry(&pRegEntry);
+    RegDbSafeFreeEntry(&pRegEntry);
     *ppRegEntry = NULL;
 
     goto cleanup;
 }
 
-DWORD
+NTSTATUS
 RegDbGetKeyValue(
     IN REG_DB_HANDLE hDb,
     IN PSTR pszKeyName,
@@ -839,7 +840,7 @@ RegDbGetKeyValue(
     OUT OPTIONAL PREG_ENTRY* ppRegEntry
     )
 {
-    DWORD dwError = LW_ERROR_SUCCESS;
+    NTSTATUS status = STATUS_SUCCESS;
     PREG_DB_CONNECTION pConn = (PREG_DB_CONNECTION)hDb;
     BOOLEAN bInLock = FALSE;
     // do not free
@@ -850,8 +851,8 @@ RegDbGetKeyValue(
     int nGotColumns = 0;
     PREG_ENTRY pRegEntry = NULL;
 
-    BAIL_ON_INVALID_STRING(pszKeyName);
-    BAIL_ON_INVALID_STRING(pszValueName);
+    BAIL_ON_NT_INVALID_STRING(pszKeyName);
+    BAIL_ON_NT_INVALID_STRING(pszValueName);
 
 
     ENTER_SQLITE_LOCK(&pConn->lock, bInLock);
@@ -860,11 +861,11 @@ RegDbGetKeyValue(
     {
         pstQuery = pConn->pstQueryKeyValue;
 
-        dwError = RegSqliteBindString(pstQuery, 1, pszKeyName);
-        BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
+        status = (NTSTATUS)RegSqliteBindString(pstQuery, 1, pszKeyName);
+        BAIL_ON_SQLITE3_ERROR_STMT(status, pstQuery);
 
-        dwError = RegSqliteBindString(pstQuery, 2, pszValueName);
-        BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
+        status = (NTSTATUS)RegSqliteBindString(pstQuery, 2, pszValueName);
+        BAIL_ON_SQLITE3_ERROR_STMT(status, pstQuery);
     }
     else
     {
@@ -877,76 +878,74 @@ RegDbGetKeyValue(
             pstQuery = pConn->pstQueryKeyValueWithWrongType;
         }
 
-        dwError = RegSqliteBindString(pstQuery, 1, pszKeyName);
-        BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
+        status = RegSqliteBindString(pstQuery, 1, pszKeyName);
+        BAIL_ON_SQLITE3_ERROR_STMT(status, pstQuery);
 
-        dwError = RegSqliteBindString(pstQuery, 2, pszValueName);
-        BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
+        status = RegSqliteBindString(pstQuery, 2, pszValueName);
+        BAIL_ON_SQLITE3_ERROR_STMT(status, pstQuery);
 
-        dwError = RegSqliteBindInt32(pstQuery, 3, (int)valueType);
-        BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
+        status = RegSqliteBindInt32(pstQuery, 3, (int)valueType);
+        BAIL_ON_SQLITE3_ERROR_STMT(status, pstQuery);
     }
 
-    while ((dwError = (DWORD)sqlite3_step(pstQuery)) == SQLITE_ROW)
+    while ((status = (DWORD)sqlite3_step(pstQuery)) == SQLITE_ROW)
     {
         nGotColumns = sqlite3_column_count(pstQuery);
         if (nGotColumns != nExpectedCols)
         {
-            dwError = LW_ERROR_DATA_ERROR;
-            BAIL_ON_REG_ERROR(dwError);
+		status = STATUS_DATA_ERROR;
+            BAIL_ON_NT_STATUS(status);
         }
 
         if (sResultCount >= 1)
         {
             //Duplicate key value records are found
-            dwError = LW_ERROR_DUPLICATE_KEYVALUENAME;
-            BAIL_ON_REG_ERROR(dwError);
+		status = STATUS_DUPLICATE_NAME;
+            BAIL_ON_NT_STATUS(status);
         }
 
-        dwError = LwAllocateMemory(
-                        sizeof(*pRegEntry),
-                        (PVOID*)&pRegEntry);
-        BAIL_ON_REG_ERROR(dwError);
+        status = LW_RTL_ALLOCATE((PVOID*)&pRegEntry, REG_ENTRY, sizeof(*pRegEntry));
+        BAIL_ON_NT_STATUS(status);
 
         iColumnPos = 0;
 
-        dwError = RegDbUnpackCacheInfo(pstQuery,
+        status = RegDbUnpackCacheInfo(pstQuery,
                         &iColumnPos,
                         &pRegEntry->version);
-        BAIL_ON_REG_ERROR(dwError);
+        BAIL_ON_NT_STATUS(status);
 
-        dwError = RegDbUnpackRegEntryInfo(pstQuery,
+        status = RegDbUnpackRegEntryInfo(pstQuery,
                                           &iColumnPos,
                                           pRegEntry);
-        BAIL_ON_REG_ERROR(dwError);
+        BAIL_ON_NT_STATUS(status);
 
         sResultCount++;
     }
 
-    if (dwError == SQLITE_DONE)
+    if (status == SQLITE_DONE)
     {
         // No more results found
-        dwError = LW_ERROR_SUCCESS;
+	status = STATUS_SUCCESS;
     }
-    BAIL_ON_SQLITE3_ERROR_DB(dwError, pConn->pDb);
+    BAIL_ON_SQLITE3_ERROR_DB(status, pConn->pDb);
 
-    dwError = (DWORD)sqlite3_reset(pstQuery);
-    BAIL_ON_SQLITE3_ERROR_DB(dwError, pConn->pDb);
+    status = (DWORD)sqlite3_reset(pstQuery);
+    BAIL_ON_SQLITE3_ERROR_DB(status, pConn->pDb);
 
     if (!sResultCount)
     {
-        dwError = LW_ERROR_NO_SUCH_VALUENAME;
-        BAIL_ON_REG_ERROR(dwError);
+	status = STATUS_OBJECT_NAME_NOT_FOUND;
+        BAIL_ON_NT_STATUS(status);
     }
 
 cleanup:
-    if (!dwError && ppRegEntry)
+    if (!status && ppRegEntry)
     {
         *ppRegEntry = pRegEntry;
     }
     else
     {
-        RegCacheSafeFreeEntry(&pRegEntry);
+        RegDbSafeFreeEntry(&pRegEntry);
         if (ppRegEntry)
             *ppRegEntry = NULL;
     }
@@ -954,7 +953,7 @@ cleanup:
     LEAVE_SQLITE_LOCK(&pConn->lock, bInLock);
 
 
-    return dwError;
+    return status;
 
 error:
     if (pstQuery != NULL)
@@ -965,14 +964,14 @@ error:
     goto cleanup;
 }
 
-DWORD
+NTSTATUS
 RegDbOpenKey(
     IN REG_DB_HANDLE hDb,
     IN PCSTR pszKeyName,
     OUT OPTIONAL PREG_ENTRY* ppRegEntry
     )
 {
-    DWORD dwError = LW_ERROR_SUCCESS;
+    NTSTATUS status = STATUS_SUCCESS;
     PREG_DB_CONNECTION pConn = (PREG_DB_CONNECTION)hDb;
     BOOLEAN bInLock = FALSE;
     // do not free
@@ -986,69 +985,67 @@ RegDbOpenKey(
     ENTER_SQLITE_LOCK(&pConn->lock, bInLock);
 
     pstQuery = pConn->pstOpenKeyEx;
-    dwError = RegSqliteBindString(pstQuery, 1, pszKeyName);
-    BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
+    status = RegSqliteBindString(pstQuery, 1, pszKeyName);
+    BAIL_ON_SQLITE3_ERROR_STMT(status, pstQuery);
 
-    while ((dwError = (DWORD)sqlite3_step(pstQuery)) == SQLITE_ROW)
+    while ((status = (DWORD)sqlite3_step(pstQuery)) == SQLITE_ROW)
     {
         nGotColumns = sqlite3_column_count(pstQuery);
         if (nGotColumns != nExpectedCols)
         {
-            dwError = LW_ERROR_DATA_ERROR;
-            BAIL_ON_REG_ERROR(dwError);
+		status = STATUS_DATA_ERROR;
+            BAIL_ON_NT_STATUS(status);
         }
 
         if (sResultCount >= 1)
         {
             //Duplicate keys are found
-            dwError = LW_ERROR_DUPLICATE_KEYNAME;
-            BAIL_ON_REG_ERROR(dwError);
+		status = STATUS_DUPLICATE_NAME;
+            BAIL_ON_NT_STATUS(status);
         }
 
-        dwError = LwAllocateMemory(
-                        sizeof(*pRegEntry),
-                        (PVOID*)&pRegEntry);
-        BAIL_ON_REG_ERROR(dwError);
+        status = LW_RTL_ALLOCATE((PVOID*)&pRegEntry, REG_ENTRY, sizeof(*pRegEntry));
+        BAIL_ON_NT_STATUS(status);
 
         iColumnPos = 0;
 
-        dwError = RegDbUnpackCacheInfo(pstQuery,
+        status = RegDbUnpackCacheInfo(pstQuery,
                         &iColumnPos,
                         &pRegEntry->version);
-        BAIL_ON_REG_ERROR(dwError);
+        BAIL_ON_NT_STATUS(status);
 
-        dwError = RegDbUnpackRegEntryInfo(pstQuery,
+        status = RegDbUnpackRegEntryInfo(pstQuery,
                                           &iColumnPos,
                                           pRegEntry);
-        BAIL_ON_REG_ERROR(dwError);
+        BAIL_ON_NT_STATUS(status);
 
         sResultCount++;
     }
 
-    if (dwError == SQLITE_DONE)
+    if (status == SQLITE_DONE)
     {
         // No more results found
-        dwError = LW_ERROR_SUCCESS;
+	status = STATUS_SUCCESS;
     }
-    BAIL_ON_SQLITE3_ERROR_DB(dwError, pConn->pDb);
+    BAIL_ON_SQLITE3_ERROR_DB(status, pConn->pDb);
 
-    dwError = (DWORD)sqlite3_reset(pstQuery);
-    BAIL_ON_SQLITE3_ERROR_DB(dwError, pConn->pDb);
+    status = (NTSTATUS)sqlite3_reset(pstQuery);
+    BAIL_ON_SQLITE3_ERROR_DB(status, pConn->pDb);
 
     if (!sResultCount)
     {
-        dwError = LW_ERROR_NO_SUCH_KEY;
-        BAIL_ON_REG_ERROR(dwError);
+	status = STATUS_OBJECT_NAME_NOT_FOUND;
+        BAIL_ON_NT_STATUS(status);
     }
 
 cleanup:
-    if (!dwError && ppRegEntry)
+    if (!status && ppRegEntry)
     {
         *ppRegEntry = pRegEntry;
     }
     else
     {
-        RegCacheSafeFreeEntry(&pRegEntry);
+        RegDbSafeFreeEntry(&pRegEntry);
         if (ppRegEntry)
             *ppRegEntry = NULL;
     }
@@ -1056,7 +1053,7 @@ cleanup:
     LEAVE_SQLITE_LOCK(&pConn->lock, bInLock);
 
 
-    return dwError;
+    return status;
 
 error:
     if (pstQuery != NULL)
@@ -1067,13 +1064,13 @@ error:
     goto cleanup;
 }
 
-DWORD
+NTSTATUS
 RegDbDeleteKey(
     IN REG_DB_HANDLE hDb,
     IN PCSTR pszKeyName
     )
 {
-    DWORD dwError = LW_ERROR_SUCCESS;
+	NTSTATUS status = STATUS_SUCCESS;
     BOOLEAN bInLock = FALSE;
     PREG_DB_CONNECTION pConn = (PREG_DB_CONNECTION)hDb;
     // Do not free
@@ -1081,24 +1078,24 @@ RegDbDeleteKey(
 
     ENTER_SQLITE_LOCK(&pConn->lock, bInLock);
 
-    dwError = RegSqliteBindString(pstQuery, 1, pszKeyName);
-    BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
+    status = RegSqliteBindString(pstQuery, 1, pszKeyName);
+    BAIL_ON_SQLITE3_ERROR_STMT(status, pstQuery);
 
-    dwError = (DWORD)sqlite3_step(pstQuery);
-    if (dwError == SQLITE_DONE)
+    status = (DWORD)sqlite3_step(pstQuery);
+    if (status == SQLITE_DONE)
     {
-        dwError = LW_ERROR_SUCCESS;
+        status = STATUS_SUCCESS;
     }
-    BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
+    BAIL_ON_SQLITE3_ERROR_STMT(status, pstQuery);
 
-    dwError = (DWORD)sqlite3_reset(pstQuery);
-    BAIL_ON_SQLITE3_ERROR_DB(dwError, pConn->pDb);
+    status = (DWORD)sqlite3_reset(pstQuery);
+    BAIL_ON_SQLITE3_ERROR_DB(status, pConn->pDb);
 
 cleanup:
 
     LEAVE_SQLITE_LOCK(&pConn->lock, bInLock);
 
-    return dwError;
+    return status;
 
 error:
 
@@ -1110,7 +1107,7 @@ error:
     goto cleanup;
 }
 
-DWORD
+NTSTATUS
 RegDbQueryInfoKeyCount(
     IN REG_DB_HANDLE hDb,
     IN PCSTR pszKeyName,
@@ -1118,7 +1115,7 @@ RegDbQueryInfoKeyCount(
     OUT size_t* psCount
     )
 {
-    DWORD dwError = LW_ERROR_SUCCESS;
+	NTSTATUS status = STATUS_SUCCESS;
     PREG_DB_CONNECTION pConn = (PREG_DB_CONNECTION)hDb;
     BOOLEAN bInLock = FALSE;
     // do not free
@@ -1142,26 +1139,26 @@ RegDbQueryInfoKeyCount(
             break;
 
         default:
-            dwError = LW_ERROR_INVALID_PARAMETER;
-            BAIL_ON_REG_ERROR(dwError);
+            status = STATUS_INVALID_PARAMETER;
+            BAIL_ON_NT_STATUS(status);
     }
 
-    dwError = RegSqliteBindString(pstQuery, 1, pszKeyName);
-    BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
+    status = RegSqliteBindString(pstQuery, 1, pszKeyName);
+    BAIL_ON_SQLITE3_ERROR_STMT(status, pstQuery);
 
-    while ((dwError = (DWORD)sqlite3_step(pstQuery)) == SQLITE_ROW)
+    while ((status = (DWORD)sqlite3_step(pstQuery)) == SQLITE_ROW)
     {
         nGotColumns = sqlite3_column_count(pstQuery);
         if (nGotColumns != nExpectedCols)
         {
-            dwError = LW_ERROR_DATA_ERROR;
-            BAIL_ON_REG_ERROR(dwError);
+            status = STATUS_DATA_ERROR;
+            BAIL_ON_NT_STATUS(status);
         }
 
         if (sResultCount >= 1)
         {
-            dwError = LW_ERROR_INTERNAL;
-            BAIL_ON_REG_ERROR(dwError);
+            status = STATUS_INTERNAL_ERROR;
+            BAIL_ON_NT_STATUS(status);
         }
 
         iColumnPos = 0;
@@ -1169,43 +1166,43 @@ RegDbQueryInfoKeyCount(
         switch (queryType)
         {
             case QuerySubKeys:
-                dwError = RegDbUnpackSubKeysCountInfo(pstQuery,
+                status = RegDbUnpackSubKeysCountInfo(pstQuery,
                                                       &iColumnPos,
                                                       &dwCount);
-                BAIL_ON_REG_ERROR(dwError);
+                BAIL_ON_NT_STATUS(status);
 
                 break;
 
             case QueryValues:
-                dwError = RegDbUnpackKeyValuesCountInfo(pstQuery,
+                status = RegDbUnpackKeyValuesCountInfo(pstQuery,
                                                       &iColumnPos,
                                                       &dwCount);
-                BAIL_ON_REG_ERROR(dwError);
+                BAIL_ON_NT_STATUS(status);
 
                 break;
 
             default:
-                dwError = LW_ERROR_INVALID_PARAMETER;
-                BAIL_ON_REG_ERROR(dwError);
+                status = STATUS_INVALID_PARAMETER;
+                BAIL_ON_NT_STATUS(status);
         }
 
         sResultCount++;
     }
 
-    if (dwError == SQLITE_DONE)
+    if (status == SQLITE_DONE)
     {
         // No more results found
-        dwError = LW_ERROR_SUCCESS;
+        status = STATUS_SUCCESS;
     }
-    BAIL_ON_SQLITE3_ERROR_DB(dwError, pConn->pDb);
+    BAIL_ON_SQLITE3_ERROR_DB(status, pConn->pDb);
 
-    dwError = (DWORD)sqlite3_reset(pstQuery);
-    BAIL_ON_SQLITE3_ERROR_DB(dwError, pConn->pDb);
+    status = (DWORD)sqlite3_reset(pstQuery);
+    BAIL_ON_SQLITE3_ERROR_DB(status, pConn->pDb);
 
     if (!sResultCount)
     {
-        dwError = LW_ERROR_DATA_ERROR;
-        BAIL_ON_REG_ERROR(dwError);
+        status = STATUS_DATA_ERROR;
+        BAIL_ON_NT_STATUS(status);
     }
 
     *psCount = (size_t)dwCount;
@@ -1213,7 +1210,7 @@ RegDbQueryInfoKeyCount(
 cleanup:
     LEAVE_SQLITE_LOCK(&pConn->lock, bInLock);
 
-    return dwError;
+    return status;
 
 error:
     if (pstQuery != NULL)
@@ -1226,7 +1223,7 @@ error:
     goto cleanup;
 }
 
-DWORD
+NTSTATUS
 RegDbQueryInfoKey(
     IN REG_DB_HANDLE hDb,
     IN PCSTR pszKeyName,
@@ -1237,7 +1234,7 @@ RegDbQueryInfoKey(
     OUT OPTIONAL PREG_ENTRY** pppRegEntries
     )
 {
-    DWORD dwError = LW_ERROR_SUCCESS;
+	NTSTATUS status = STATUS_SUCCESS;
     PREG_DB_CONNECTION pConn = (PREG_DB_CONNECTION)hDb;
     BOOLEAN bInLock = FALSE;
     // do not free
@@ -1263,73 +1260,71 @@ RegDbQueryInfoKey(
             break;
 
         default:
-            dwError = LW_ERROR_INVALID_PARAMETER;
-            BAIL_ON_REG_ERROR(dwError);
+            status = STATUS_INVALID_PARAMETER;
+            BAIL_ON_NT_STATUS(status);
     }
 
-    dwError = RegSqliteBindString(pstQuery, 1, pszKeyName);
-    BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
+    status = RegSqliteBindString(pstQuery, 1, pszKeyName);
+    BAIL_ON_SQLITE3_ERROR_STMT(status, pstQuery);
 
-    dwError = RegSqliteBindInt64(pstQuery, 2, dwLimit);
-    BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
+    status = RegSqliteBindInt64(pstQuery, 2, dwLimit);
+    BAIL_ON_SQLITE3_ERROR_STMT(status, pstQuery);
 
-    dwError = RegSqliteBindInt64(pstQuery, 3, dwOffset);
-    BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
+    status = RegSqliteBindInt64(pstQuery, 3, dwOffset);
+    BAIL_ON_SQLITE3_ERROR_STMT(status, pstQuery);
 
-    while ((dwError = (DWORD)sqlite3_step(pstQuery)) == SQLITE_ROW)
+    while ((status = (DWORD)sqlite3_step(pstQuery)) == SQLITE_ROW)
     {
         nGotColumns = sqlite3_column_count(pstQuery);
         if (nGotColumns != nExpectedCols)
         {
-            dwError = LW_ERROR_DATA_ERROR;
-            BAIL_ON_REG_ERROR(dwError);
+            status = STATUS_DATA_ERROR;
+            BAIL_ON_NT_STATUS(status);
         }
 
         if (sResultCount >= sResultCapacity)
         {
             sResultCapacity *= 2;
             sResultCapacity += 10;
-            dwError = LwReallocMemory(
+            status = RegReallocMemory(
                             ppRegEntries,
                             (PVOID*)&ppRegEntries,
                             sizeof(PREG_ENTRY) * sResultCapacity);
-            BAIL_ON_REG_ERROR(dwError);
+            BAIL_ON_NT_STATUS(status);
         }
 
-        dwError = LwAllocateMemory(
-                        sizeof(*pRegEntry),
-                        (PVOID*)&pRegEntry);
-        BAIL_ON_REG_ERROR(dwError);
+        status = LW_RTL_ALLOCATE((PVOID*)&pRegEntry, REG_ENTRY, sizeof(*pRegEntry));
+        BAIL_ON_NT_STATUS(status);
 
         iColumnPos = 0;
 
-        dwError = RegDbUnpackCacheInfo(pstQuery,
+        status = RegDbUnpackCacheInfo(pstQuery,
                         &iColumnPos,
                         &pRegEntry->version);
-        BAIL_ON_REG_ERROR(dwError);
+        BAIL_ON_NT_STATUS(status);
 
-        dwError = RegDbUnpackRegEntryInfo(pstQuery,
+        status = RegDbUnpackRegEntryInfo(pstQuery,
                                           &iColumnPos,
                                           pRegEntry);
-        BAIL_ON_REG_ERROR(dwError);
+        BAIL_ON_NT_STATUS(status);
 
         ppRegEntries[sResultCount] = pRegEntry;
         pRegEntry = NULL;
         sResultCount++;
     }
 
-    if (dwError == SQLITE_DONE)
+    if (status == SQLITE_DONE)
     {
         // No more results found
-        dwError = LW_ERROR_SUCCESS;
+        status = STATUS_SUCCESS;
     }
-    BAIL_ON_SQLITE3_ERROR_DB(dwError, pConn->pDb);
+    BAIL_ON_SQLITE3_ERROR_DB(status, pConn->pDb);
 
-    dwError = (DWORD)sqlite3_reset(pstQuery);
-    BAIL_ON_SQLITE3_ERROR_DB(dwError, pConn->pDb);
+    status = (DWORD)sqlite3_reset(pstQuery);
+    BAIL_ON_SQLITE3_ERROR_DB(status, pConn->pDb);
 
 cleanup:
-    if (!dwError)
+    if (!status)
     {
         if (pppRegEntries)
         {
@@ -1339,8 +1334,8 @@ cleanup:
     }
     else
     {
-        RegCacheSafeFreeEntry(&pRegEntry);
-        RegCacheSafeFreeEntryList(sResultCount, &ppRegEntries);
+        RegDbSafeFreeEntry(&pRegEntry);
+        RegDbSafeFreeEntryList(sResultCount, &ppRegEntries);
         if (pppRegEntries)
         {
             *pppRegEntries = NULL;
@@ -1351,7 +1346,7 @@ cleanup:
     LEAVE_SQLITE_LOCK(&pConn->lock, bInLock);
 
 
-    return dwError;
+    return status;
 
 error:
     if (pstQuery != NULL)
@@ -1362,14 +1357,14 @@ error:
     goto cleanup;
 }
 
-DWORD
+NTSTATUS
 RegDbDeleteKeyValue(
     IN REG_DB_HANDLE hDb,
     IN PCSTR pszKeyName,
     IN PCSTR pszValueName
     )
 {
-    DWORD dwError = LW_ERROR_SUCCESS;
+	NTSTATUS status = STATUS_SUCCESS;
     BOOLEAN bInLock = FALSE;
     PREG_DB_CONNECTION pConn = (PREG_DB_CONNECTION)hDb;
     // Do not free
@@ -1377,27 +1372,27 @@ RegDbDeleteKeyValue(
 
     ENTER_SQLITE_LOCK(&pConn->lock, bInLock);
 
-    dwError = RegSqliteBindString(pstQuery, 1, pszKeyName);
-    BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
+    status = RegSqliteBindString(pstQuery, 1, pszKeyName);
+    BAIL_ON_SQLITE3_ERROR_STMT(status, pstQuery);
 
-    dwError = RegSqliteBindString(pstQuery, 2, pszValueName);
-    BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
+    status = RegSqliteBindString(pstQuery, 2, pszValueName);
+    BAIL_ON_SQLITE3_ERROR_STMT(status, pstQuery);
 
-    dwError = (DWORD)sqlite3_step(pstQuery);
-    if (dwError == SQLITE_DONE)
+    status = (DWORD)sqlite3_step(pstQuery);
+    if (status == SQLITE_DONE)
     {
-        dwError = LW_ERROR_SUCCESS;
+        status = STATUS_SUCCESS;
     }
-    BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
+    BAIL_ON_SQLITE3_ERROR_STMT(status, pstQuery);
 
-    dwError = (DWORD)sqlite3_reset(pstQuery);
-    BAIL_ON_SQLITE3_ERROR_DB(dwError, pConn->pDb);
+    status = (DWORD)sqlite3_reset(pstQuery);
+    BAIL_ON_SQLITE3_ERROR_DB(status, pConn->pDb);
 
 cleanup:
 
     LEAVE_SQLITE_LOCK(&pConn->lock, bInLock);
 
-    return dwError;
+    return status;
 
 error:
 
@@ -1410,13 +1405,13 @@ error:
 }
 
 static
-DWORD
+NTSTATUS
 RegDbFreePreparedStatements(
     IN OUT PREG_DB_CONNECTION pConn
     )
 {
+    NTSTATUS status = STATUS_SUCCESS;
     int i;
-    DWORD dwError = LW_ERROR_SUCCESS;
     sqlite3_stmt * * const pppstFreeList[] = {
         &pConn->pstDeleteKey,
         &pConn->pstDeleteKeyValue,
@@ -1433,14 +1428,14 @@ RegDbFreePreparedStatements(
     {
         if (*pppstFreeList[i] != NULL)
         {
-            dwError = sqlite3_finalize(*pppstFreeList[i]);
-            BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
+            status = sqlite3_finalize(*pppstFreeList[i]);
+            BAIL_ON_SQLITE3_ERROR(status, sqlite3_errmsg(pConn->pDb));
             *pppstFreeList[i] = NULL;
         }
     }
 
 cleanup:
-    return dwError;
+    return status;
 
 error:
     goto cleanup;
@@ -1453,7 +1448,7 @@ RegDbSafeClose(
 {
     // This function cannot return an error, only log errors that occur
     // along the way
-    DWORD dwError = LW_ERROR_SUCCESS;
+    DWORD status = STATUS_SUCCESS;
     PREG_DB_CONNECTION pConn = NULL;
 
     if (phDb == NULL)
@@ -1468,11 +1463,11 @@ RegDbSafeClose(
         goto cleanup;
     }
 
-    dwError = RegDbFreePreparedStatements(pConn);
-    if (dwError != LW_ERROR_SUCCESS)
+    status = RegDbFreePreparedStatements(pConn);
+    if (status != STATUS_SUCCESS)
     {
-        REG_LOG_ERROR("Error freeing prepared statements [%d]", dwError);
-        dwError = LW_ERROR_SUCCESS;
+        REG_LOG_ERROR("Error freeing prepared statements [%d]", status);
+        status = STATUS_SUCCESS;
     }
 
     if (pConn->pDb != NULL)
@@ -1481,13 +1476,13 @@ RegDbSafeClose(
         pConn->pDb = NULL;
     }
 
-    dwError = pthread_rwlock_destroy(&pConn->lock);
-    if (dwError != LW_ERROR_SUCCESS)
+    status = pthread_rwlock_destroy(&pConn->lock);
+    if (status != STATUS_SUCCESS)
     {
-        REG_LOG_ERROR("Error destroying lock [%d]", dwError);
-        dwError = LW_ERROR_SUCCESS;
+        REG_LOG_ERROR("Error destroying lock [%d]", status);
+        status = STATUS_SUCCESS;
     }
-    LW_SAFE_FREE_MEMORY(pConn);
+    LWREG_SAFE_FREE_MEMORY(pConn);
 
     *phDb = (HANDLE)0;
 
@@ -1495,12 +1490,12 @@ cleanup:
     return;
 }
 
-DWORD
+NTSTATUS
 RegDbEmptyCache(
     IN REG_DB_HANDLE hDb
     )
 {
-    DWORD dwError = LW_ERROR_SUCCESS;
+	NTSTATUS status = STATUS_SUCCESS;
     PREG_DB_CONNECTION pConn = (PREG_DB_CONNECTION)hDb;
     PCSTR pszEmptyCache =
         "begin;\n"
@@ -1508,22 +1503,22 @@ RegDbEmptyCache(
         "delete from " REG_DB_TABLE_NAME_ENTRIES ";\n"
         "end";
 
-    dwError = RegSqliteExecWithRetry(
+    status = RegSqliteExecWithRetry(
         pConn->pDb,
         &pConn->lock,
         pszEmptyCache);
-    BAIL_ON_REG_ERROR(dwError);
+    BAIL_ON_NT_STATUS(status);
 
 cleanup:
 
-    return dwError;
+    return status;
 
 error:
 
     goto cleanup;
 }
 
-DWORD
+NTSTATUS
 RegDbFlushNOP(
     REG_DB_HANDLE hDb
     )
@@ -1532,7 +1527,7 @@ RegDbFlushNOP(
 }
 
 void
-RegCacheSafeFreeEntryList(
+RegDbSafeFreeEntryList(
     size_t sCount,
     PREG_ENTRY** pppEntries
     )
@@ -1542,14 +1537,14 @@ RegCacheSafeFreeEntryList(
         size_t iEntry;
         for (iEntry = 0; iEntry < sCount; iEntry++)
         {
-            RegCacheSafeFreeEntry(&(*pppEntries)[iEntry]);
+            RegDbSafeFreeEntry(&(*pppEntries)[iEntry]);
         }
-        LW_SAFE_FREE_MEMORY(*pppEntries);
+        LWREG_SAFE_FREE_MEMORY(*pppEntries);
     }
 }
 
 void
-RegCacheSafeFreeEntry(
+RegDbSafeFreeEntry(
     PREG_ENTRY* ppEntry
     )
 {
@@ -1558,17 +1553,17 @@ RegCacheSafeFreeEntry(
     {
         pEntry = *ppEntry;
 
-        LW_SAFE_FREE_STRING(pEntry->pszKeyName);
-        LW_SAFE_FREE_STRING(pEntry->pszValueName);
-        LW_SAFE_FREE_STRING(pEntry->pszValue);
+        LWREG_SAFE_FREE_STRING(pEntry->pszKeyName);
+        LWREG_SAFE_FREE_STRING(pEntry->pszValueName);
+        LWREG_SAFE_FREE_STRING(pEntry->pszValue);
 
-        LW_SAFE_FREE_MEMORY(pEntry);
+        LWREG_SAFE_FREE_MEMORY(pEntry);
         *ppEntry = NULL;
     }
 }
 
-DWORD
-RegCacheSafeRecordSubKeysInfo_inlock(
+NTSTATUS
+RegDbSafeRecordSubKeysInfo_inlock(
     IN size_t sCount,
     IN size_t sCacheCount,
     IN PREG_ENTRY* ppRegEntries,
@@ -1576,29 +1571,28 @@ RegCacheSafeRecordSubKeysInfo_inlock(
     IN BOOLEAN bDoAnsi
     )
 {
-    DWORD dwError = LW_ERROR_SUCCESS;
+	NTSTATUS status = STATUS_SUCCESS;
     int iCount = 0;
     size_t sSubKeyLen = 0;
     PWSTR pSubKey = NULL;
 
-    BAIL_ON_INVALID_POINTER(pKeyResult);
+    BAIL_ON_NT_INVALID_POINTER(pKeyResult);
 
     //Remove previous subKey information if there is any
-    LwFreeStringArray(pKeyResult->ppszSubKeyNames, pKeyResult->dwNumCacheSubKeys);
+    RegFreeStringArray(pKeyResult->ppszSubKeyNames, pKeyResult->dwNumCacheSubKeys);
 
     if (!sCacheCount)
     {
         goto cleanup;
     }
 
-    dwError = LwAllocateMemory(sizeof(*(pKeyResult->ppszSubKeyNames)) * sCacheCount,
-                               (PVOID*)&pKeyResult->ppszSubKeyNames);
-    BAIL_ON_REG_ERROR(dwError);
+    status = LW_RTL_ALLOCATE((PVOID*)&pKeyResult->ppszSubKeyNames, PSTR, sizeof(*(pKeyResult->ppszSubKeyNames)) * sCacheCount);
+    BAIL_ON_NT_STATUS(status);
 
     for (iCount = 0; iCount < (DWORD)sCacheCount; iCount++)
     {
-        dwError = LwAllocateString(ppRegEntries[iCount]->pszKeyName, &pKeyResult->ppszSubKeyNames[iCount]);
-        BAIL_ON_REG_ERROR(dwError);
+        status = LwRtlCStringDuplicate(&pKeyResult->ppszSubKeyNames[iCount], ppRegEntries[iCount]->pszKeyName);
+        BAIL_ON_NT_STATUS(status);
 
         if (bDoAnsi)
         {
@@ -1609,17 +1603,19 @@ RegCacheSafeRecordSubKeysInfo_inlock(
         }
         else
         {
-            dwError = LwMbsToWc16s(ppRegEntries[iCount]->pszKeyName, &pSubKey);
-            BAIL_ON_REG_ERROR(dwError);
+		status = LwRtlWC16StringAllocateFromCString(&pSubKey, ppRegEntries[iCount]->pszKeyName);
+		BAIL_ON_NT_STATUS(status);
 
-            dwError = LwWc16sLen((PCWSTR)pSubKey,&sSubKeyLen);
-            BAIL_ON_REG_ERROR(dwError);
+            if (pSubKey)
+            {
+		sSubKeyLen = RtlWC16StringNumChars(pSubKey);
+            }
 
             if (pKeyResult->sMaxSubKeyLen < sSubKeyLen)
                 pKeyResult->sMaxSubKeyLen = sSubKeyLen;
         }
 
-        LW_SAFE_FREE_MEMORY(pSubKey);
+        LWREG_SAFE_FREE_MEMORY(pSubKey);
         sSubKeyLen = 0;
     }
 
@@ -1635,15 +1631,15 @@ cleanup:
         pKeyResult->bHasSubKeyInfo = TRUE;
     }
 
-    LW_SAFE_FREE_MEMORY(pSubKey);
-    return dwError;
+    LWREG_SAFE_FREE_MEMORY(pSubKey);
+    return status;
 
 error:
     goto cleanup;
 }
 
-DWORD
-RegCacheSafeRecordSubKeysInfo(
+NTSTATUS
+RegDbSafeRecordSubKeysInfo(
     IN size_t sCount,
     IN size_t sCacheCount,
     IN PREG_ENTRY* ppRegEntries,
@@ -1651,31 +1647,31 @@ RegCacheSafeRecordSubKeysInfo(
     IN BOOLEAN bDoAnsi
     )
 {
-    DWORD dwError = LW_ERROR_SUCCESS;
+	NTSTATUS status = STATUS_SUCCESS;
     BOOLEAN bInLock = FALSE;
 
-    BAIL_ON_INVALID_POINTER(pKeyResult);
+    BAIL_ON_NT_INVALID_POINTER(pKeyResult);
 
     LWREG_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pKeyResult->mutex);
 
-    dwError = RegCacheSafeRecordSubKeysInfo_inlock(sCount,
+    status = RegDbSafeRecordSubKeysInfo_inlock(sCount,
                                                    sCacheCount,
                                                    ppRegEntries,
                                                    pKeyResult,
                                                    bDoAnsi);
-    BAIL_ON_REG_ERROR(dwError);
+    BAIL_ON_NT_STATUS(status);
 
 cleanup:
     LWREG_UNLOCK_RWMUTEX(bInLock, &pKeyResult->mutex);
 
-    return dwError;
+    return status;
 
 error:
     goto cleanup;
 }
 
-DWORD
-RegCacheSafeRecordValuesInfo_inlock(
+NTSTATUS
+RegDbSafeRecordValuesInfo_inlock(
     IN size_t sCount,
     IN size_t sCacheCount,
     IN PREG_ENTRY* ppRegEntries,
@@ -1683,47 +1679,47 @@ RegCacheSafeRecordValuesInfo_inlock(
     IN BOOLEAN bDoAnsi
     )
 {
-    DWORD dwError = LW_ERROR_SUCCESS;
+	NTSTATUS status = STATUS_SUCCESS;
     int iCount = 0;
     size_t sValueNameLen = 0;
     PWSTR pValueName = NULL;
     DWORD dwValueLen = 0;
 
-    BAIL_ON_INVALID_POINTER(pKeyResult);
+    BAIL_ON_NT_INVALID_POINTER(pKeyResult);
 
     //Remove previous subKey information if there is any
-    LwFreeStringArray(pKeyResult->ppszValueNames, pKeyResult->dwNumCacheValues);
-    LwFreeStringArray(pKeyResult->ppszValues, pKeyResult->dwNumCacheValues);
-    LW_SAFE_FREE_MEMORY(pKeyResult->pTypes);
+    RegFreeStringArray(pKeyResult->ppszValueNames, pKeyResult->dwNumCacheValues);
+    RegFreeStringArray(pKeyResult->ppszValues, pKeyResult->dwNumCacheValues);
+    LWREG_SAFE_FREE_MEMORY(pKeyResult->pTypes);
 
     if (!sCacheCount)
     {
         goto cleanup;
     }
 
-    dwError = LwAllocateMemory(sizeof(*(pKeyResult->ppszValueNames)) * sCacheCount,
-                               (PVOID*)&pKeyResult->ppszValueNames);
-    BAIL_ON_REG_ERROR(dwError);
+    status = LW_RTL_ALLOCATE((PVOID*)&pKeyResult->ppszValueNames, PSTR,
+		                  sizeof(*(pKeyResult->ppszValueNames))* sCacheCount);
+    BAIL_ON_NT_STATUS(status);
 
-    dwError = LwAllocateMemory(sizeof(*(pKeyResult->ppszValues)) * sCacheCount,
-                               (PVOID*)&pKeyResult->ppszValues);
-    BAIL_ON_REG_ERROR(dwError);
+    status = LW_RTL_ALLOCATE((PVOID*)&pKeyResult->ppszValues, PSTR,
+		                  sizeof(*(pKeyResult->ppszValues))* sCacheCount);
+    BAIL_ON_NT_STATUS(status);
 
-    dwError = LwAllocateMemory(sizeof(*(pKeyResult->pTypes)) * sCacheCount,
-                               (PVOID*)&pKeyResult->pTypes);
-    BAIL_ON_REG_ERROR(dwError);
+    status = LW_RTL_ALLOCATE((PVOID*)&pKeyResult->pTypes, REG_DATA_TYPE,
+		                  sizeof(*(pKeyResult->pTypes))* sCacheCount);
+    BAIL_ON_NT_STATUS(status);
 
     for (iCount = 0; iCount < (DWORD)sCacheCount; iCount++)
     {
-        dwError = LwAllocateString(ppRegEntries[iCount]->pszValueName,
-                                   &pKeyResult->ppszValueNames[iCount]);
-        BAIL_ON_REG_ERROR(dwError);
+        status = LwRtlCStringDuplicate(&pKeyResult->ppszValueNames[iCount],
+			                        ppRegEntries[iCount]->pszValueName);
+        BAIL_ON_NT_STATUS(status);
 
         if (ppRegEntries[iCount]->pszValue)
         {
-            dwError = LwAllocateString(ppRegEntries[iCount]->pszValue,
-                                       &pKeyResult->ppszValues[iCount]);
-            BAIL_ON_REG_ERROR(dwError);
+            status = LwRtlCStringDuplicate(&pKeyResult->ppszValues[iCount],
+			                        ppRegEntries[iCount]->pszValue);
+            BAIL_ON_NT_STATUS(status);
         }
 
         pKeyResult->pTypes[iCount] = ppRegEntries[iCount]->type;
@@ -1737,22 +1733,25 @@ RegCacheSafeRecordValuesInfo_inlock(
         }
         else
         {
-            dwError = LwMbsToWc16s(pKeyResult->ppszValueNames[iCount], &pValueName);
-            BAIL_ON_REG_ERROR(dwError);
+		status = LwRtlWC16StringAllocateFromCString(&pValueName,
+				                                     pKeyResult->ppszValueNames[iCount]);
+		BAIL_ON_NT_STATUS(status);
 
-            dwError = LwWc16sLen((PCWSTR)pValueName,&sValueNameLen);
-            BAIL_ON_REG_ERROR(dwError);
+            if (pValueName)
+            {
+		sValueNameLen = RtlWC16StringNumChars(pValueName);
+            }
 
             if (pKeyResult->sMaxValueNameLen < sValueNameLen)
                 pKeyResult->sMaxValueNameLen = sValueNameLen;
         }
 
-        dwError = GetValueAsBytes(ppRegEntries[iCount]->type,
+        status = RegGetValueAsBytes(ppRegEntries[iCount]->type,
                                   (PCSTR)ppRegEntries[iCount]->pszValue,
                                   bDoAnsi,
                                   NULL,
                                   &dwValueLen);
-        BAIL_ON_REG_ERROR(dwError);
+        BAIL_ON_NT_STATUS(status);
 
         if (bDoAnsi)
         {
@@ -1765,7 +1764,7 @@ RegCacheSafeRecordValuesInfo_inlock(
                 pKeyResult->sMaxValueLen = (size_t)dwValueLen;
         }
 
-        LW_SAFE_FREE_MEMORY(pValueName);
+        LWREG_SAFE_FREE_MEMORY(pValueName);
         sValueNameLen = 0;
         dwValueLen = 0;
     }
@@ -1783,15 +1782,15 @@ cleanup:
         pKeyResult->bHasValueInfo = TRUE;
     }
 
-    LW_SAFE_FREE_MEMORY(pValueName);
-    return dwError;
+    LWREG_SAFE_FREE_MEMORY(pValueName);
+    return status;
 
 error:
     goto cleanup;
 }
 
-DWORD
-RegCacheSafeRecordValuesInfo(
+NTSTATUS
+RegDbSafeRecordValuesInfo(
     IN size_t sCount,
     IN size_t sCacheCount,
     IN PREG_ENTRY* ppRegEntries,
@@ -1799,24 +1798,24 @@ RegCacheSafeRecordValuesInfo(
     IN BOOLEAN bDoAnsi
     )
 {
-    DWORD dwError = LW_ERROR_SUCCESS;
+	NTSTATUS status = STATUS_SUCCESS;
     BOOLEAN bInLock = FALSE;
 
-    BAIL_ON_INVALID_POINTER(pKeyResult);
+    BAIL_ON_NT_INVALID_POINTER(pKeyResult);
 
     LWREG_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pKeyResult->mutex);
 
-    dwError = RegCacheSafeRecordValuesInfo_inlock(sCount,
+    status = RegDbSafeRecordValuesInfo_inlock(sCount,
                                            sCacheCount,
                                            ppRegEntries,
                                            pKeyResult,
                                            bDoAnsi);
-    BAIL_ON_REG_ERROR(dwError);
+    BAIL_ON_NT_STATUS(status);
 
 cleanup:
     LWREG_UNLOCK_RWMUTEX(bInLock, &pKeyResult->mutex);
 
-    return dwError;
+    return status;
 
 error:
     goto cleanup;

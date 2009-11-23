@@ -139,7 +139,7 @@ RegSrvStartListenThread(
     }
 
 
-    dwError = LwAllocateStringPrintf(&pszCommPath, "%s/%s",
+    dwError = LwRtlCStringAllocatePrintf(&pszCommPath, "%s/%s",
                                       pszCachePath, REG_SERVER_FILENAME);
     BAIL_ON_REG_ERROR(dwError);
 
@@ -205,8 +205,8 @@ RegSrvStartListenThread(
 
 error:
 
-    LW_SAFE_FREE_STRING(pszCachePath);
-    LW_SAFE_FREE_STRING(pszCommPath);
+    LWREG_SAFE_FREE_STRING(pszCachePath);
+    LWREG_SAFE_FREE_STRING(pszCommPath);
 
     if (dwError)
     {

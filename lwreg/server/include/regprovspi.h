@@ -48,7 +48,7 @@
 #define __REGPROVSPI_H__
 
 typedef
-DWORD
+NTSTATUS
 (*PFNRegSrvCreateKeyEx)(
     HANDLE Handle,
     HKEY hKey,
@@ -69,7 +69,7 @@ VOID
     );
 
 typedef
-DWORD
+NTSTATUS
 (*PFNRegSrvDeleteKey)(
     HANDLE Handle,
     HKEY hKey,
@@ -77,7 +77,7 @@ DWORD
     );
 
 typedef
-DWORD
+NTSTATUS
 (*PFNRegSrvDeleteKeyValue)(
     HANDLE Handle,
     HKEY hKey,
@@ -86,7 +86,7 @@ DWORD
     );
 
 typedef
-DWORD
+NTSTATUS
 (*PFNRegSrvDeleteValue)(
     HANDLE Handle,
     HKEY hKey,
@@ -94,7 +94,7 @@ DWORD
     );
 
 typedef
-DWORD
+NTSTATUS
 (*PFNRegSrvDeleteTree)(
     HANDLE Handle,
     HKEY hKey,
@@ -102,7 +102,7 @@ DWORD
     );
 
 typedef
-DWORD
+NTSTATUS
 (*PFNRegSrvEnumKeyExW)(
     HANDLE Handle,
     HKEY hKey,
@@ -116,7 +116,7 @@ DWORD
     );
 
 typedef
-DWORD
+NTSTATUS
 (*PFNRegSrvEnumValueW)(
     HANDLE Handle,
     HKEY hKey,
@@ -130,7 +130,7 @@ DWORD
     );
 
 typedef
-DWORD
+NTSTATUS
 (*PFNRegSrvGetValueW)(
     HANDLE Handle,
     HKEY hKey,
@@ -143,7 +143,7 @@ DWORD
     );
 
 typedef
-DWORD
+NTSTATUS
 (*PFNRegSrvOpenKeyExW)(
     HANDLE Handle,
     HKEY hKey,
@@ -154,7 +154,7 @@ DWORD
     );
 
 typedef
-DWORD
+NTSTATUS
 (*PFNRegSrvQueryInfoKeyW)(
     HANDLE Handle,
     HKEY hKey,
@@ -172,7 +172,7 @@ DWORD
     );
 
 typedef
-DWORD
+NTSTATUS
 (*PFNRegSrvQueryMultipleValues)(
     HANDLE Handle,
     HKEY hKey,
@@ -183,7 +183,7 @@ DWORD
     );
 
 typedef
-DWORD
+NTSTATUS
 (*PFNRegSrvSetValueExW)(
     HANDLE Handle,
     HKEY hKey,

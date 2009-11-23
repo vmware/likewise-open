@@ -89,7 +89,7 @@ RegInitLogging(
 
             if (IsNullOrEmptyString(pszPath))
             {
-                dwError = LW_ERROR_INVALID_PARAMETER;
+                dwError = ERROR_INVALID_PARAMETER;
                 BAIL_ON_REG_ERROR(dwError);
             }
 
@@ -103,7 +103,7 @@ RegInitLogging(
 
         default:
 
-            dwError = LW_ERROR_INVALID_PARAMETER;
+            dwError = ERROR_INVALID_PARAMETER;
             BAIL_ON_REG_ERROR(dwError);
     }
 
@@ -137,9 +137,7 @@ RegLogGetInfo(
         case REG_LOG_TARGET_CONSOLE:
         case REG_LOG_TARGET_SYSLOG:
 
-            dwError = LwAllocateMemory(
-                            sizeof(REG_LOG_INFO),
-                            (PVOID*)&pLogInfo);
+            dwError = RegAllocateMemory(sizeof(*pLogInfo), (PVOID*)&pLogInfo);
             BAIL_ON_REG_ERROR(dwError);
 
             pLogInfo->logTarget = gRegLogTarget;
@@ -157,7 +155,7 @@ RegLogGetInfo(
             break;
 
         default:
-            dwError = LW_ERROR_INVALID_PARAMETER;
+            dwError = ERROR_INVALID_PARAMETER;
             BAIL_ON_REG_ERROR(dwError);
     }
 
@@ -175,43 +173,6 @@ error:
     {
         RegFreeLogInfo(pLogInfo);
     }
-
-    goto cleanup;
-}
-
-DWORD
-RegLogSetInfo(
-    PREG_LOG_INFO pLogInfo
-    )
-{
-    DWORD dwError = 0;
-
-    BAIL_ON_INVALID_POINTER(pLogInfo);
-
-    // The only information that is allowed
-    // to be set after the log is initialized
-    // is the log level
-
-    gRegMaxLogLevel = pLogInfo->maxAllowedLogLevel;
-
-    switch (gRegLogTarget)
-    {
-        case REG_LOG_TARGET_SYSLOG:
-
-            RegSetSyslogMask(gRegMaxLogLevel);
-
-            break;
-
-        default:
-
-            break;
-    }
-
-cleanup:
-
-    return dwError;
-
-error:
 
     goto cleanup;
 }
@@ -259,7 +220,7 @@ RegSetupLogging(
 	if ((hLog == (HANDLE)NULL) ||
 		!pfnLogger)
 	{
-		dwError = LW_ERROR_INVALID_PARAMETER;
+		dwError = ERROR_INVALID_PARAMETER;
 		goto error;
 	}
 
@@ -318,7 +279,7 @@ RegValidateLogLevel(
             dwError = 0;
             break;
         default:
-            dwError = LW_ERROR_INVALID_LOG_LEVEL;
+            dwError = LWREG_ERROR_INVALID_LOG_LEVEL;
             break;
     }
 

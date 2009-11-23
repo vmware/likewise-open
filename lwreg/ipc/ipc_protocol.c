@@ -109,10 +109,10 @@ static LWMsgTypeSpec gRegSecAttrSpec[] =
 
 static LWMsgTypeSpec gRegIPCErrorSpec[] =
 {
-    // DWORD dwError;
+    //NTSTATUS status;
 
-    LWMSG_STRUCT_BEGIN(REG_IPC_ERROR),
-    LWMSG_MEMBER_UINT32(REG_IPC_ERROR, dwError),
+    LWMSG_STRUCT_BEGIN(REG_IPC_STATUS),
+    LWMSG_MEMBER_UINT32(REG_IPC_STATUS, status),
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END
 };
@@ -679,7 +679,7 @@ RegIPCGetProtocolSpec(
     return gRegIPCSpec;
 }
 
-DWORD
+NTSTATUS
 RegMapLwmsgStatus(
     LWMsgStatus status
     )
@@ -687,42 +687,54 @@ RegMapLwmsgStatus(
     switch (status)
     {
     default:
-        return LW_ERROR_INTERNAL;
+        return STATUS_INTERNAL_ERROR;
+
     case LWMSG_STATUS_SUCCESS:
-        return LW_ERROR_SUCCESS;
+        return STATUS_SUCCESS;
+
     case LWMSG_STATUS_ERROR:
-        return LW_ERROR_INTERNAL;
+    case LWMSG_STATUS_SYSTEM:
+        return STATUS_INTERNAL_ERROR;
+
     case LWMSG_STATUS_MEMORY:
-        return LW_ERROR_OUT_OF_MEMORY;
+        return STATUS_NO_MEMORY;
+
     case LWMSG_STATUS_MALFORMED:
     case LWMSG_STATUS_OVERFLOW:
     case LWMSG_STATUS_UNDERFLOW:
     case LWMSG_STATUS_EOF:
-        return LW_ERROR_INVALID_MESSAGE;
+        return STATUS_INVALID_NETWORK_RESPONSE;
+
     case LWMSG_STATUS_INVALID_PARAMETER:
-        return EINVAL;
     case LWMSG_STATUS_INVALID_STATE:
-        return EINVAL;
+        return STATUS_INVALID_PARAMETER;
+
     case LWMSG_STATUS_UNIMPLEMENTED:
-        return LW_ERROR_NOT_IMPLEMENTED;
-    case LWMSG_STATUS_SYSTEM:
-        return LW_ERROR_INTERNAL;
+        return STATUS_NOT_IMPLEMENTED;
+
     case LWMSG_STATUS_SECURITY:
-        return EACCES;
+        return STATUS_ACCESS_DENIED;
+
     case LWMSG_STATUS_CANCELLED:
-        return EINTR;
+        return STATUS_MORE_PROCESSING_REQUIRED;
+
     case LWMSG_STATUS_FILE_NOT_FOUND:
-        return ENOENT;
+        return LwErrnoToNtStatus(ENOENT);
+
     case LWMSG_STATUS_CONNECTION_REFUSED:
-        return ECONNREFUSED;
+        return LwErrnoToNtStatus(ECONNREFUSED);
+
     case LWMSG_STATUS_PEER_RESET:
-        return ECONNRESET;
+        return LwErrnoToNtStatus(ECONNRESET);
+
     case LWMSG_STATUS_PEER_ABORT:
-        return ECONNABORTED;
+        return LwErrnoToNtStatus(ECONNABORTED);
+
     case LWMSG_STATUS_PEER_CLOSE:
-        return EPIPE;
+        return LwErrnoToNtStatus(EPIPE);
+
     case LWMSG_STATUS_SESSION_LOST:
-        return EPIPE;
+        return LwErrnoToNtStatus(EPIPE);
     }
 }
 

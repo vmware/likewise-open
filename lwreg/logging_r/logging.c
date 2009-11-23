@@ -89,22 +89,6 @@ RegLogGetInfo_r(
 }
 
 DWORD
-RegLogSetInfo_r(
-    PREG_LOG_INFO pLogInfo
-    )
-{
-    DWORD dwError = 0;
-
-    REG_LOCK_LOGGER;
-
-    dwError = RegLogSetInfo(pLogInfo);
-
-    REG_UNLOCK_LOGGER;
-
-    return dwError;
-}
-
-DWORD
 RegShutdownLogging_r(
     VOID
     )

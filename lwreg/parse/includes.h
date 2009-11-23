@@ -54,14 +54,14 @@
 #include <regsystem.h>
 #include <iconv.h>
 
-#include <reg/reg.h>
+#include <reg/lwreg.h>
 #include <lwmsg/lwmsg.h>
 
 #include <lw/base.h>
 #include <lw/swab.h>
-#include <lwstr.h>
-#include <lwmem.h>
-#include <lwerror.h>
+#include <lw/ntstatus.h>
+#include <lw/rtlstring.h>
+#include <lw/rtlmemory.h>
 
 #include <regdef.h>
 #include <regutils.h>

@@ -86,7 +86,7 @@ RegSrvApiInit(
     // make sure gpRegProvider is not NULL
     if (!gpRegProvider)
     {
-        dwError = LW_ERROR_INTERNAL;
+        dwError = ERROR_INTERNAL_ERROR;
         BAIL_ON_REG_ERROR(dwError);
     }
 
