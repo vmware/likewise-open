@@ -752,7 +752,7 @@ LwSmPopulateTable(
     dwError = LwSmRegistryEnumServices(hReg, &ppwszNames);
     switch (dwError)
     {
-    case LW_ERROR_NO_SUCH_KEY:
+    case LWREG_ERROR_NO_SUCH_KEY_OR_VALUE:
         /* No services in registry */
         dwError = 0;
         goto cleanup;
@@ -766,7 +766,7 @@ LwSmPopulateTable(
         dwError = LwSmRegistryReadServiceInfo(hReg, pwszName, &pInfo);
         switch (dwError)
         {
-        case LW_ERROR_NO_SUCH_VALUENAME:
+        case LWREG_ERROR_NO_SUCH_KEY_OR_VALUE:
             dwError = 0;
             continue;
         default:

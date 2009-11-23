@@ -58,7 +58,7 @@
 #include <lwerror.h>
 #include <lwmem.h>
 #include <lwstr.h>
-#include <reg/reg.h>
+#include <reg/lwreg.h>
 #include <lwmsg/lwmsg.h>
 #include <lwio/lwio.h>
 #include <wc16printf.h>
