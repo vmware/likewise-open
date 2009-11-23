@@ -580,43 +580,6 @@ error:
     goto cleanup;
 }
 
-#if 0
-static
-DWORD
-LwiAllocateMachineAccountName(
-    PTDB_CONTEXT pTdb,
-    PCSTR pszDomain,
-    PSTR *ppszName)
-{
-    DWORD dwError = 0;
-    PSTR pszKey = NULL;
-    PSTR pszName = NULL;
-    DWORD dwSize = 0;
-
-    dwError = LwAllocateStringPrintf(
-                &pszKey,
-                "%s/%s",
-                "SECRETS/SECRETS_MACHINE_TRUST_ACCOUNT_NAME",
-                pszDomain);
-    BAIL_ON_UP_ERROR(dwError);
-
-    strupr(pszKey);
-
-    dwError = LwiTdbAllocateFetch(pTdb, pszKey, (PVOID*)&pszName, &dwSize);
-    BAIL_ON_UP_ERROR(dwError);
-
-    *ppszName = pszName;
-
-cleanup:
-    LW_SAFE_FREE_STRING(pszKey);
-    return dwError;
-
-error:
-    LW_SAFE_FREE_STRING(pszName);
-    goto cleanup;
-}
-#endif
-
 static
 DWORD
 strupr(
@@ -634,59 +597,3 @@ strupr(
     return 0;
 }
 
-#if 0
-DWORD
-MovePassword(
-    PSTR pszDomainName
-    )
-{
-    DWORD dwError = 0;
-    HANDLE hStore = NULL;
-    PLWPS_PASSWORD_INFO pInfo = NULL;
-
-    dwError = LwpsOpenPasswordStore(LWPS_PASSWORD_STORE_TDB, &hStore);
-    BAIL_ON_UP_ERROR(dwError);
-
-    dwError = LwpsGetPasswordByDomainName(hStore, pszDomainName, &pInfo);
-    BAIL_ON_UP_ERROR(dwError);
-
-    dwError = LwpsClosePasswordStore(hStore);
-    BAIL_ON_UP_ERROR(dwError);
-    hStore = NULL;
-
-    dwError = LwiDnsGetHostInfo(&pszHostname, NULL, &pszHostDnsDomain);
-    BAIL_ON_UP_ERROR(dwError);
-
-    if (!pInfo->pwszHostname)
-    {
-        dwError = LwMbsToWc16s(pszHostname, &pInfo->pwszHostname);
-        BAIL_ON_UP_ERROR(dwError);
-    }
-
-    if (!pInfo->pwszHostDnsDomain)
-    {
-        dwError = LwMbsToWc16s(pszHostDnsDomain, &pInfo->pwszHostDnsDomain);
-        BAIL_ON_UP_ERROR(dwError);
-    }
-
-    if (!pInfo->pwszMachineAccount)
-    {
-        dwError = LwAllocateStringPrintf(
-                    &pszMachineAccount,
-                    "%s$",
-                    pszHostname);
-        BAIL_ON_UP_ERROR(dwError);
-
-        dwError = LwMbsToWc16s(pszMachineAccount, &pInfo->pwszMachineAccount);
-        BAIL_ON_UP_ERROR(dwERror);
-    }
-
-    dwError = LwpsWritePasswordToAllStores(pInfo);
-    BAIL_ON_UP_ERROR(dwError);
-
-cleanup:
-    return dwError;
-error:
-    goto cleanup;
-}
-#endif
