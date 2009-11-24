@@ -230,6 +230,8 @@ LsaSrvInitAuthProvider(
                     &pProvider->pFnTable);
     BAIL_ON_LSA_ERROR(dwError);
 
+    pProvider->pFnTable2 = pProvider->pFnTable->pFnTable2;
+
     dwError = LsaSrvValidateProvider(pProvider);
     BAIL_ON_LSA_ERROR(dwError);
 
