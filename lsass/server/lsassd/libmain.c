@@ -88,13 +88,6 @@ pid_t
 LsaSrvGetPidFromPidFile(
     VOID
     );
-
-static
-VOID
-LsaSrvRemovePidFile(
-    VOID
-    );
-
 #endif
 
 int
@@ -225,10 +218,6 @@ cleanup:
     LsaShutdownLogging_r();
 
     LsaShutdownTracing_r();
-
-#ifdef ENABLE_PIDFILE
-    LsaSrvRemovePidFile();
-#endif
 
     return dwError;
 
@@ -1014,19 +1003,6 @@ LsaSrvGetPidFromPidFile(
 
     return pid;
 }
-
-static
-VOID
-LsaSrvRemovePidFile(
-    VOID
-    )
-{
-    if (LsaSrvGetPidFromPidFile() == getpid())
-    {
-        unlink(PID_FILE);
-    }
-}
-
 #endif
 
 DWORD

@@ -123,38 +123,4 @@ typedef struct __LSA_DB_SECURITY_OBJECT
 
 typedef const LSA_SECURITY_OBJECT * PCLSA_SECURITY_OBJECT;
 
-typedef UINT8 LSA_QUERY_TYPE, *PLSA_QUERY_TYPE;
-#define LSA_QUERY_TYPE_UNDEFINED      0
-#define LSA_QUERY_TYPE_BY_DN          1
-#define LSA_QUERY_TYPE_BY_SID         2
-#define LSA_QUERY_TYPE_BY_NT4         3
-#define LSA_QUERY_TYPE_BY_USER_ALIAS  4
-#define LSA_QUERY_TYPE_BY_GROUP_ALIAS 5
-#define LSA_QUERY_TYPE_BY_UID         6
-#define LSA_QUERY_TYPE_BY_GID         7
-
-//
-// 2009/11/13-dalmeida -- Can use ADAccountType for now instead?
-// Easy to convert, though...
-//
-typedef UINT8 LSA_OBJECT_TYPE, *PLSA_OBJECT_TYPE;
-#define LSA_OBJECT_TYPE_UNDEFINED 0
-#define LSA_OBJECT_TYPE_USER      1
-#define LSA_OBJECT_TYPE_GROUP     2
-#if 0
-// See SID_NAME_USE -- See that WKG is different type...
-#define LSA_OBJECT_TYPE_DOMAIN    4
-#define LSA_OBJECT_TYPE_COMPUTER  3
-#endif
-
-typedef union _LSA_QUERY_ITEM {
-    PCSTR pszString;
-    DWORD dwId;
-} LSA_QUERY_ITEM, *PLSA_QUERY_ITEM;
-
-typedef union _LSA_QUERY_LIST {
-    PCSTR* ppszStrings;
-    PDWORD pdwIds;
-} LSA_QUERY_LIST, *PLSA_QUERY_LIST;
-
 #endif

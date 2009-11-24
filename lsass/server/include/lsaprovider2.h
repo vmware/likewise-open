@@ -55,6 +55,40 @@
 // New Interfaces
 //
 
+typedef UINT8 LSA_QUERY_TYPE, *PLSA_QUERY_TYPE;
+#define LSA_QUERY_TYPE_UNDEFINED      0
+#define LSA_QUERY_TYPE_BY_DN          1
+#define LSA_QUERY_TYPE_BY_SID         2
+#define LSA_QUERY_TYPE_BY_NT4         3
+#define LSA_QUERY_TYPE_BY_USER_ALIAS  4
+#define LSA_QUERY_TYPE_BY_GROUP_ALIAS 5
+#define LSA_QUERY_TYPE_BY_UID         6
+#define LSA_QUERY_TYPE_BY_GID         7
+
+//
+// 2009/11/13-dalmeida -- Can use ADAccountType for now instead?
+// Easy to convert, though...
+//
+typedef UINT8 LSA_OBJECT_TYPE, *PLSA_OBJECT_TYPE;
+#define LSA_OBJECT_TYPE_UNDEFINED 0
+#define LSA_OBJECT_TYPE_USER      1
+#define LSA_OBJECT_TYPE_GROUP     2
+#if 0
+// See SID_NAME_USE -- See that WKG is different type...
+#define LSA_OBJECT_TYPE_DOMAIN    4
+#define LSA_OBJECT_TYPE_COMPUTER  3
+#endif
+
+typedef union _LSA_QUERY_ITEM {
+    PCSTR pszString;
+    DWORD pdwId;
+} LSA_QUERY_ITEM, *PLSA_QUERY_ITEM;
+
+typedef union _LSA_QUERY_LIST {
+    PCSTR* ppszStrings;
+    PDWORD pdwIds;
+} LSA_QUERY_LIST, *PLSA_QUERY_LIST;
+
 //
 // Lookup objects.
 //
@@ -103,28 +137,43 @@ typedef DWORD (*PFN_LSA_PROVIDER_OPEN_ENUM_MEMBERS)(
     IN HANDLE hProvider,
     OUT PHANDLE phEnum,
     IN LSA_FIND_FLAGS FindFlags,
-    IN PCSTR pszSid
+    IN PLSA_SECURITY_OBJECT pGroup
     );
 
 typedef DWORD (*PFN_LSA_PROVIDER_ENUM_MEMBERS)(
     IN HANDLE hEnum,
-    IN DWORD dwMaxMemberSidCount,
-    OUT PDWORD pdwMemberSidCount,
-    OUT PSTR** pppszMemberSids
+    IN DWORD dwMaxObjectsCount,
+    OUT PDWORD pdwObjectsCount,
+    OUT PSTR** pppszMember
     );
 
-typedef DWORD (*PFN_LSA_PROVIDER_QUERY_MEMBER_OF)(
+//
+// Enumerate groups that users/groups belong to.
+//
+// NOTE: It probably makes most sense to remove paging
+// from this interface.  Note that AD already has to deal
+// with this being non-paged in that the PAC returns
+// all this information in one shot.
+//
+typedef DWORD (*PFN_LSA_PROVIDER_OPEN_ENUM_MEMBER_OF)(
     IN HANDLE hProvider,
+    OUT PHANDLE phEnum,
     IN LSA_FIND_FLAGS FindFlags,
-    IN PSTR* ppszSids,
-    OUT PDWORD pdwGroupSidCount,
-    OUT PSTR** pppszGroupSids
+    IN DWORD dwCount,
+    IN PSTR* ppszSids
+    );
+
+typedef DWORD (*PFN_LSA_PROVIDER_ENUM_MEMBER_OF)(
+    IN HANDLE hEnum,
+    IN DWORD dwMaxObjectsCount,
+    OUT PDWORD pdwObjectsCount,
+    OUT PSTR** pppszSids
     );
 
 //
 // Close any enumeration handle.
 //
-typedef VOID (*PFN_LSA_PROVIDER_CLOSE_ENUM)(
+typedef DWORD (*PFN_LSA_PROVIDER_CLOSE_ENUM)(
     IN OUT HANDLE hEnum
     );
 
@@ -157,6 +206,7 @@ typedef struct _LSA_PROVIDER_FUNCTION_TABLE_2 {
     //
 
     PFN_LSA_PROVIDER_OPEN_ENUM_MEMBERS pfnOpenEnumGroupMembers;
+    PFN_LSA_PROVIDER_OPEN_ENUM_MEMBER_OF pfnOpenEnumMemberOf;
     //
     // Adds:
     //
@@ -179,7 +229,7 @@ typedef struct _LSA_PROVIDER_FUNCTION_TABLE_2 {
 
     PFN_LSA_PROVIDER_ENUM_OBJECTS pfnEnumObjects;
     PFN_LSA_PROVIDER_ENUM_MEMBERS pfnEnumGroupMembers;
-    PFN_LSA_PROVIDER_QUERY_MEMBER_OF pfnQueryMemberOf;
+    PFN_LSA_PROVIDER_ENUM_MEMBER_OF pfnEnumMemberOf;
     //
     // Deprecates:
     //
