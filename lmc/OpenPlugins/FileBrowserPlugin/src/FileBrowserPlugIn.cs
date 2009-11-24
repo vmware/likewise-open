@@ -511,6 +511,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
                 if (_pluginNode.Nodes.Find(Resources.String_Computer, false).Length == 0)
                 {
                     FileBrowserNode computerNode = new FileBrowserNode(Resources.String_Computer, iconComputer, typeof(FilesDetailPage), this);
+                    computerNode.Path = "";
                     computerNode.FBNodeType = FileBrowserNode.FileBrowserNopeType.CATEGORY;
                     _pluginNode.Nodes.Add(computerNode);
 
@@ -519,39 +520,39 @@ namespace Likewise.LMC.Plugins.FileBrowser
                     localDiskRootNode.FBNodeType = FileBrowserNode.FileBrowserNopeType.DIRECTORY;
                     computerNode.Nodes.Add(localDiskRootNode);
 
+                    /* Disabled for now - These could be suitable common local user paths that are worth browsing.
                     if (platform != LikewiseTargetPlatform.Windows)
                     {
                         FileBrowserNode homeNode = new FileBrowserNode(Resources.String_Home, iconHome, typeof(FilesDetailPage), this);
                         computerNode.Path = "~/";
                         homeNode.FBNodeType = FileBrowserNode.FileBrowserNopeType.CATEGORY;
                         computerNode.Nodes.Add(homeNode);
+
+                        FileBrowserNode deskNode = new FileBrowserNode(Resources.String_Desktop, iconFolder, typeof(FilesDetailPage), this);
+                        deskNode.Path = "~/Desktop/";
+                        deskNode.FBNodeType = FileBrowserNode.FileBrowserNopeType.CATEGORY;
+                        computerNode.Nodes.Add(deskNode);
+
+                        FileBrowserNode docNode = new FileBrowserNode(Resources.String_Documents, iconFolder, typeof(FilesDetailPage), this);
+                        docNode.Path = "~/Documents/";
+                        docNode.FBNodeType = FileBrowserNode.FileBrowserNopeType.CATEGORY;
+                        computerNode.Nodes.Add(docNode);
+
+                        FileBrowserNode musicNode = new FileBrowserNode(Resources.String_Music, iconFolder, typeof(FilesDetailPage), this);
+                        musicNode.Path = "~/Music/";
+                        musicNode.FBNodeType = FileBrowserNode.FileBrowserNopeType.CATEGORY;
+                        computerNode.Nodes.Add(musicNode);
+
+                        FileBrowserNode pictNode = new FileBrowserNode(Resources.String_Pictures, iconFolder, typeof(FilesDetailPage), this);
+                        pictNode.Path = "~/Photos/";
+                        pictNode.FBNodeType = FileBrowserNode.FileBrowserNopeType.CATEGORY;
+                        computerNode.Nodes.Add(pictNode);
+
+                        FileBrowserNode videoNode = new FileBrowserNode(Resources.String_Videos, iconFolder, typeof(FilesDetailPage), this);
+                        videoNode.Path = "~/Movies/";
+                        videoNode.FBNodeType = FileBrowserNode.FileBrowserNopeType.CATEGORY;
+                        computerNode.Nodes.Add(videoNode);
                     }
-
-                    /* Disabled for now - These could be suitable common local user paths that are worth browsing.
-                    FileBrowserNode deskNode = new FileBrowserNode(Resources.String_Desktop, iconFolder, typeof(FilesDetailPage), this);
-                    deskNode.Path = "~/Desktop/";
-                    deskNode.FBNodeType = FileBrowserNode.FileBrowserNopeType.CATEGORY;
-                    computerNode.Nodes.Add(deskNode);
-
-                    FileBrowserNode docNode = new FileBrowserNode(Resources.String_Documents, iconFolder, typeof(FilesDetailPage), this);
-                    docNode.Path = "~/Documents/";
-                    docNode.FBNodeType = FileBrowserNode.FileBrowserNopeType.CATEGORY;
-                    computerNode.Nodes.Add(docNode);
-
-                    FileBrowserNode musicNode = new FileBrowserNode(Resources.String_Music, iconFolder, typeof(FilesDetailPage), this);
-                    musicNode.Path = "~/Music/";
-                    musicNode.FBNodeType = FileBrowserNode.FileBrowserNopeType.CATEGORY;
-                    computerNode.Nodes.Add(musicNode);
-
-                    FileBrowserNode pictNode = new FileBrowserNode(Resources.String_Pictures, iconFolder, typeof(FilesDetailPage), this);
-                    pictNode.Path = "~/Photos/";
-                    pictNode.FBNodeType = FileBrowserNode.FileBrowserNopeType.CATEGORY;
-                    computerNode.Nodes.Add(pictNode);
-
-                    FileBrowserNode videoNode = new FileBrowserNode(Resources.String_Videos, iconFolder, typeof(FilesDetailPage), this);
-                    videoNode.Path = "~/Movies/";
-                    videoNode.FBNodeType = FileBrowserNode.FileBrowserNopeType.CATEGORY;
-                    computerNode.Nodes.Add(videoNode);
                   */
                 }
             }
