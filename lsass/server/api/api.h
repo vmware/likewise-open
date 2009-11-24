@@ -49,6 +49,7 @@
 
 #include "lsasystem.h"
 #include <lsa/lsa.h>
+#include <lsa/lsa2.h>
 #include <lwmsg/lwmsg.h>
 
 #include <dce/rpc.h>
@@ -72,6 +73,7 @@
 #include "lsasrvutils.h"
 #include "lsaserver.h"
 #include "lsaprovider.h"
+#include "lsaprovider2.h"
 #include "lsarpcsrv.h"
 #include "rpcctl.h"
 #include "directory.h"
@@ -89,6 +91,7 @@
 #include "event_p.h"
 
 #include "lsasrvapi.h"
+#include "lsasrvapi2.h"
 
 #include "lsaipc.h"
 

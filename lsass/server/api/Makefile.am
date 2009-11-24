@@ -19,6 +19,7 @@ ADDITIONAL_LIBS += $(NOINST_DEP_LIBS)
 endif
 
 liblsaserverapi_la_SOURCES = \
+       api2.c          \
        artefacts.c     \
        auth.c          \
        auth_provider.c \
