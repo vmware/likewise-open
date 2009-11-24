@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -114,6 +114,10 @@
     <ProjectReference Include="..\..\LikewiseClassLibraries\NetApi\NetApi.csproj">
       <Project>{978100A9-9BF2-49A9-8E2B-57DB61907526}</Project>
       <Name>NetApi</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\LikewiseClassLibraries\Services\services.csproj">
+      <Project>{2D29BF46-464C-481E-8CE0-FF502A8102E3}</Project>
+      <Name>services</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\LMCUtilities\LMCUtilities.csproj">
       <Project>{812CAFA6-B428-4565-A839-A2E1B68096E3}</Project>

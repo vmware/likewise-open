@@ -19,7 +19,8 @@ namespace Likewise.LMC.Plugins.FileBrowser
         public enum RENAME_OPERATION
         {
             RENAME_FILE,
-            RENAME_DIRECTORY
+            RENAME_DIRECTORY,
+            NEW_FOLDER_NAME
         }
 
         public RenameDialog()
@@ -38,6 +39,11 @@ namespace Likewise.LMC.Plugins.FileBrowser
 
             if (op == RENAME_OPERATION.RENAME_DIRECTORY)
                 operation = "Rename directory";
+            else if (op == RENAME_OPERATION.NEW_FOLDER_NAME)
+            {
+                lblEnterName.Text = "Enter new folder name:";
+                operation = "Create directory";
+            }
 
             this.tbNewName.Text = filename;
             this.tbNewName.SelectAll();

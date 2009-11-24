@@ -31,7 +31,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
             this.CancelBtn = new System.Windows.Forms.Button();
             this.OKBtn = new System.Windows.Forms.Button();
             this.tbNewName = new System.Windows.Forms.TextBox();
-            this.label1 = new System.Windows.Forms.Label();
+            this.lblEnterName = new System.Windows.Forms.Label();
             this.SuspendLayout();
             //
             // CancelBtn
@@ -61,20 +61,20 @@ namespace Likewise.LMC.Plugins.FileBrowser
             this.tbNewName.Size = new System.Drawing.Size(316, 20);
             this.tbNewName.TabIndex = 1;
             //
-            // label1
+            // lblEnterName
             //
-            this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(9, 19);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(87, 13);
-            this.label1.TabIndex = 5;
-            this.label1.Text = "Enter new name:";
+            this.lblEnterName.AutoSize = true;
+            this.lblEnterName.Location = new System.Drawing.Point(9, 19);
+            this.lblEnterName.Name = "lblEnterName";
+            this.lblEnterName.Size = new System.Drawing.Size(87, 13);
+            this.lblEnterName.TabIndex = 5;
+            this.lblEnterName.Text = "Enter new name:";
             //
             // RenameDialog
             //
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.ClientSize = new System.Drawing.Size(340, 129);
-            this.Controls.Add(this.label1);
+            this.Controls.Add(this.lblEnterName);
             this.Controls.Add(this.tbNewName);
             this.Controls.Add(this.OKBtn);
             this.Controls.Add(this.CancelBtn);
@@ -91,6 +91,6 @@ namespace Likewise.LMC.Plugins.FileBrowser
         private System.Windows.Forms.Button CancelBtn;
         private System.Windows.Forms.Button OKBtn;
         private System.Windows.Forms.TextBox tbNewName;
-        private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.Label lblEnterName;
     }
 }

@@ -132,6 +132,39 @@ namespace Likewise.LMC.Plugins.FileBrowser
                 FileClient.FileClient.SetWindowsPlatform();
                 PathSeparator = "\\";
             }
+            else
+            {
+                Services.ServiceManagerApi.LW_SERVICE_STATUS status;
+
+                string[] LWISServices = Services.ServiceManagerInteropWrapper.ApiLwSmEnumerateServices();
+
+                foreach (string service in LWISServices)
+                    Console.Write(service);
+
+                IntPtr lwio = Services.ServiceManagerInteropWrapper.ApiLwSmAcquireServiceHandle("lwio");
+                status = Services.ServiceManagerInteropWrapper.ApiLwSmQueryServiceStatus(lwio);
+                if (status.state != Likewise.LMC.Services.ServiceManagerApi.LW_SERVICE_STATE.LW_SERVICE_STATE_RUNNING)
+                {
+                    Services.ServiceManagerInteropWrapper.ApiLwSmStartService(lwio);
+                }
+                Services.ServiceManagerInteropWrapper.ApiLwSmReleaseServiceHandle(lwio);
+
+                IntPtr rdr = Services.ServiceManagerInteropWrapper.ApiLwSmAcquireServiceHandle("rdr");
+                status = Services.ServiceManagerInteropWrapper.ApiLwSmQueryServiceStatus(rdr);
+                if (status.state != Likewise.LMC.Services.ServiceManagerApi.LW_SERVICE_STATE.LW_SERVICE_STATE_RUNNING)
+                {
+                    Services.ServiceManagerInteropWrapper.ApiLwSmStartService(rdr);
+                }
+                Services.ServiceManagerInteropWrapper.ApiLwSmReleaseServiceHandle(rdr);
+
+                IntPtr pvfs = Services.ServiceManagerInteropWrapper.ApiLwSmAcquireServiceHandle("pvfs");
+                status = Services.ServiceManagerInteropWrapper.ApiLwSmQueryServiceStatus(pvfs);
+                if (status.state != Likewise.LMC.Services.ServiceManagerApi.LW_SERVICE_STATE.LW_SERVICE_STATE_RUNNING)
+                {
+                    Services.ServiceManagerInteropWrapper.ApiLwSmStartService(pvfs);
+                }
+                Services.ServiceManagerInteropWrapper.ApiLwSmReleaseServiceHandle(pvfs);
+            }
 
             _container = container;
         }
@@ -441,6 +474,9 @@ namespace Likewise.LMC.Plugins.FileBrowser
                 node.FBNodeType == FileBrowserNode.FileBrowserNopeType.DIRECTORY)
             {
                 menuItem = new MenuItem("Refresh", cm_OnRefresh);
+                fileBrowserContextMenu.MenuItems.Add(menuItem);
+
+                menuItem = new MenuItem("New folder", new EventHandler(cm_OnCreateFolder));
                 fileBrowserContextMenu.MenuItems.Add(menuItem);
 
                 menuItem = new MenuItem("Copy", new EventHandler(cm_OnCopy));
@@ -827,7 +863,8 @@ namespace Likewise.LMC.Plugins.FileBrowser
                 FileBrowserNode parent = _currentNode.Parent as FileBrowserNode;
                 string newName = "";
 
-                if (parent != null)
+                if (node != null &&
+                    parent != null)
                 {
                     // Determine destingation to copy to
                     RenameDialog renameDialog = new RenameDialog(node.Name, RenameDialog.RENAME_OPERATION.RENAME_DIRECTORY, this);
@@ -842,6 +879,36 @@ namespace Likewise.LMC.Plugins.FileBrowser
                         {
                             string message = "Rename directory operation failed. Error: " + error.ToString();
                             MessageBox.Show(message, "Could not rename directory", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        }
+                    }
+                }
+            }
+        }
+
+        private void cm_OnCreateFolder(object sender, EventArgs e)
+        {
+            if (_currentNode != null &&
+                _selectedNode != null &&
+                _currentNode == _selectedNode)
+            {
+                FileBrowserNode node = _currentNode as FileBrowserNode;
+                string newName = "";
+
+                if (node != null)
+                {
+                    // Determine destingation to copy to
+                    RenameDialog renameDialog = new RenameDialog("New Folder", RenameDialog.RENAME_OPERATION.NEW_FOLDER_NAME, this);
+
+                    if (renameDialog.ShowDialog() == DialogResult.OK)
+                    {
+                        newName = node.Path + PathSeparator + renameDialog.GetName();
+
+                        WinError error = FileClient.FileClient.CreateDirectory(newName);
+
+                        if (error != WinError.NO_ERROR)
+                        {
+                            string message = "Create directory operation failed. Error: " + error.ToString();
+                            MessageBox.Show(message, "Could not create new directory", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         }
                     }
                 }
