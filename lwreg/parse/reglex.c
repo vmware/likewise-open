@@ -892,7 +892,6 @@ RegLexGetToken(
         lexHandle->isToken = FALSE;
         lexHandle->curToken.token = REGLEX_FIRST;
         lexHandle->curToken.valueCursor = 0;
-        lexHandle->curToken.pszValue[0] = '\0';
     }
 
     /* Return pushed back token, if one is present */
