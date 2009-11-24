@@ -461,7 +461,7 @@ RegShellImportBinaryString(
     BAIL_ON_INVALID_POINTER(ppBinaryValue);
     BAIL_ON_INVALID_POINTER(pBinaryValueLen);
 
-    dwError = RegAllocateMemory(sizeof(UCHAR) * strlen(pszHexString) / 2, (PVOID*)&binaryValue);
+    dwError = RegAllocateMemory(sizeof(UCHAR) * (strlen(pszHexString) / 2+1), (PVOID*)&binaryValue);
     BAIL_ON_REG_ERROR(dwError);
 
     dwError = RegShellHexStringExtentLen(
