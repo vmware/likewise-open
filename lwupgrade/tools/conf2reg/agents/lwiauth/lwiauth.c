@@ -227,7 +227,7 @@ LwiauthConfFileToRegFile(
     fprintf(stdout, "SchannelType:%lu\n", (unsigned long)PassInfoA.dwSchannelType);
 #endif
 
-    dwError = LwiAllocateMachineInformationContentsW(
+    dwError = UpAllocateMachineInformationContentsW(
                 &PassInfoA,
                 &PassInfoW);
     BAIL_ON_UP_ERROR(dwError);
@@ -253,8 +253,8 @@ cleanup:
     }
 
     LwiConfigFreeContents(&Config);
-    LwiFreeMachineInformationContentsA(&PassInfoA);
-    LwiFreeMachineInformationContentsW(&PassInfoW);
+    UpFreeMachineInformationContentsA(&PassInfoA);
+    UpFreeMachineInformationContentsW(&PassInfoW);
 
     return dwError;
 

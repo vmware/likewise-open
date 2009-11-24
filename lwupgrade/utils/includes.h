@@ -35,8 +35,8 @@
 
 #include "config.h"
 #include "upsys.h"
-#include "upgradeutils.h"
 #include "updefs.h"
+#include "upgradeutils.h"
 
 #include <lwerror.h>
 #include <lwstr.h>

@@ -78,6 +78,12 @@ LwioConfFileToRegFile(
 
 extern
 DWORD
+SqliteMachineAccountToPstore(
+    PCSTR pszSqlDb
+    );
+
+extern
+DWORD
 TestParseConfFileToRegFile(
     PCSTR pszConfFile,
     PCSTR pszRegFile
@@ -170,6 +176,18 @@ main(
         }
         goto cleanup;
     }
+    if (!strcmp(argv[1], "--pstore-sqlite"))
+    {
+        if (argc < 3)
+        {
+            PrintUsage("--pstore-sqlite requires one argument.");
+        }
+        else
+        {
+            dwError = SqliteMachineAccountToPstore(argv[2]);
+        }
+        goto cleanup;
+    }
     PrintUsage(NULL);
 
 cleanup:
@@ -208,10 +226,15 @@ PrintUsage(
 "  import file.\n"
 "\n"
 "--lwiauth CONF TDB REG\n"
-"  Convert 4.1 machine account to 5.4 (and greater)\n"
-"  using lwiauthd.conf and secrets.tdb file. Also\n"
-"  generates registry file with some settings for\n"
-"  import.\n", stderr);
+"  Import 4.1 machine account into pstore using\n"
+"  lwiauthd.conf and secrets.tdb file. Also generates\n"
+"  registry file with some settings for import.\n"
+"\n"
+"--pstore-sqlite SQLDB\n"
+"  Import machine account stored in sqlite database\n"
+"  into pstore.\n"
+
+, stderr);
 
    if (pszAdditionalMessage)
    {

@@ -1,9 +1,9 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software    2004-2009
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -29,28 +29,17 @@
  */
 
 /*
- * Copyright (C) Likewise Software 2007
- * All rights reserved.
- *
- * Authors:
+ * Copyright (C) Likewise Software. All rights reserved.
  *
  */
 
-typedef struct _LWISERVERINFO
-{
-    PSTR pszWorkgroup;
-    PSTR pszRealm;
-    PSTR pszShellTemplate;
-    PSTR pszHomeDirTemplate;
+#include "config.h"
+#include "upsys.h"
+#include "upgradeutils.h"
+#include "updefs.h"
 
-} LWISERVERINFO, *PLWISERVERINFO;
-
-// Used in SAMBA for secrets database.
-typedef struct _DOM_SID
-{
-    unsigned char sid_rev_num;
-    unsigned char num_auths;
-    unsigned char id_auth[6];
-    unsigned int sub_auths[15];
-} DOM_SID, *PDOM_SID;
+#include <lwerror.h>
+#include <lwstr.h>
+#include <lwmem.h>
+#include <lw/base.h>
 
