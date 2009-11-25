@@ -310,7 +310,7 @@ NtlmCreateNegotiateMessage(
     IN PCSTR pWorkstation,
     IN PBYTE pOsVersion,
     OUT PDWORD pdwSize,
-    OUT PNTLM_NEGOTIATE_MESSAGE *ppNegMsg
+    OUT PNTLM_NEGOTIATE_MESSAGE_V1* ppNegMsg
     );
 
 VOID
@@ -324,7 +324,7 @@ NtlmCopyStringToSecBuffer(
 
 DWORD
 NtlmCreateChallengeMessage(
-    IN const NTLM_NEGOTIATE_MESSAGE* pNegMsg,
+    IN const NTLM_NEGOTIATE_MESSAGE_V1* pNegMsg,
     IN PCSTR pServerName,
     IN PCSTR pDomainName,
     IN PCSTR pDnsHostName,
@@ -445,7 +445,7 @@ NtlmCreateNegotiateContext(
 
 DWORD
 NtlmCreateChallengeContext(
-    IN const NTLM_NEGOTIATE_MESSAGE* pNtlmNegMsg,
+    IN const NTLM_NEGOTIATE_MESSAGE_V1* pNtlmNegMsg,
     IN NTLM_CRED_HANDLE hCred,
     OUT PNTLM_CONTEXT *ppNtlmContext,
     OUT PSecBuffer pOutput

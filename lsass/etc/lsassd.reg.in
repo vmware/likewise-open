@@ -14,6 +14,7 @@
 
 [HKEY_THIS_MACHINE\Services\lsass\Parameters\NTLM]
 "SendNTLMv2"=dword:00000000
+"SupportUnicode"=dword:00000001
 
 [HKEY_THIS_MACHINE\Services\lsass\Parameters\PAM]
 "LogLevel"="error"

@@ -270,11 +270,11 @@ NtlmCreateNegotiateMessage(
     IN PCSTR pWorkstation,
     IN PBYTE pOsVersion,
     OUT PDWORD pdwSize,
-    OUT PNTLM_NEGOTIATE_MESSAGE* ppNegMsg
+    OUT PNTLM_NEGOTIATE_MESSAGE_V1* ppNegMsg
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
-    PNTLM_NEGOTIATE_MESSAGE pMessage = NULL;
+    PNTLM_NEGOTIATE_MESSAGE_V1 pMessage = NULL;
     DWORD dwSize = 0;
     // The following pointers point into pMessage and will not be freed on error
     PNTLM_SEC_BUFFER pDomainSecBuffer = NULL;
@@ -317,7 +317,7 @@ NtlmCreateNegotiateMessage(
         }
     }
 
-    dwSize += sizeof(NTLM_NEGOTIATE_MESSAGE);
+    dwSize += sizeof(NTLM_NEGOTIATE_MESSAGE_V1);
 
     // There is no flag to indicate if there is OS version information added
     // to the packet... if we have OS information, we will need to allocate
@@ -353,7 +353,7 @@ NtlmCreateNegotiateMessage(
     pMessage->NtlmFlags = dwOptions;
 
     // Start writing optional information (if there is any) after the structure
-    pBuffer = (PBYTE)pMessage + sizeof(NTLM_NEGOTIATE_MESSAGE);
+    pBuffer = (PBYTE)pMessage + sizeof(NTLM_NEGOTIATE_MESSAGE_V1);
 
     // If you have OS info, you HAVE to at least adjust the pointers past the
     // domain secbuffer (even if you don't fill it in with data).
@@ -427,7 +427,7 @@ error:
 /******************************************************************************/
 DWORD
 NtlmCreateChallengeMessage(
-    IN const NTLM_NEGOTIATE_MESSAGE* pNegMsg,
+    IN const NTLM_NEGOTIATE_MESSAGE_V1* pNegMsg,
     IN PCSTR pServerName,
     IN PCSTR pDomainName,
     IN PCSTR pDnsServerName,
@@ -449,6 +449,7 @@ NtlmCreateChallengeMessage(
     PBYTE pBuffer = NULL;
     PNTLM_SEC_BUFFER pTargetInfoSecBuffer= NULL;
     PNTLM_TARGET_INFO_BLOCK pTargetInfoBlock = NULL;
+    NTLM_CONFIG config;
 
     // sanity checks
     if (!pNegMsg || !ppChlngMsg)
@@ -459,6 +460,9 @@ NtlmCreateChallengeMessage(
 
     *ppChlngMsg = NULL;
     *pdwSize = 0;
+
+    dwError = NtlmReadRegistry(&config);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwSize = sizeof(NTLM_CHALLENGE_MESSAGE);
 
@@ -471,9 +475,10 @@ NtlmCreateChallengeMessage(
     }
 
     // We need to build up the challenge options based on the negotiate options.
-    // We *must* have either unicode or ansii string set
+    // We *must* have either unicode or ansi string set
     //
-    if (pNegMsg->NtlmFlags & NTLM_FLAG_UNICODE)
+    if ((pNegMsg->NtlmFlags & NTLM_FLAG_UNICODE) &&
+            config.bSupportUnicode)
     {
         dwOptions |= NTLM_FLAG_UNICODE;
     }

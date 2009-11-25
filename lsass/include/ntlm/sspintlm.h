@@ -225,9 +225,10 @@ typedef struct _NTLM_SIGNATURE
     NTLM_FLAG_NTLM                  | \
     NTLM_FLAG_DOMAIN                | \
     NTLM_FLAG_56                    | \
-    NTLM_FLAG_128                   )
+    NTLM_FLAG_128                   | \
+    NTLM_FLAG_UNICODE               | \
+    0 )
     //NTLM_FLAG_NTLM2                 |
-    //NTLM_FLAG_UNICODE               |
 
 #define NTLM_FLAG_SRV_SUPPORTS ( \
     NTLM_FLAG_OEM              | \

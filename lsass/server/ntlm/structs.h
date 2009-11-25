@@ -45,18 +45,65 @@
 #ifndef __STRUCTS_H__
 #define __STRUCTS_H__
 
-// We're only going to list the non-optional members of these structures so that
-// optional members will just hang off the end
-typedef struct _NTLM_NEGOTIATE_MESSAGE
+typedef struct _NTLM_OS_VERSION
+{
+    BYTE MajorVersion;
+    BYTE MinorVersion;
+    WORD BuildNumber;
+    DWORD Unknown; // Must be 0x0000000F
+} NTLM_OS_VERSION, *PNTLM_OS_VERSION;
+
+typedef struct _NTLM_NEGOTIATE_MESSAGE_V1
 {
     UCHAR NtlmSignature[NTLM_NETWORK_SIGNATURE_SIZE];
     DWORD MessageType;
     DWORD NtlmFlags;
-    // Optional Supplied Domain NTLM_SEC_BUFFER
-    // Optional Supplied Workstation NTLM_SEC_BUFFER
-    // Optional OS Version 8 bytes
+} NTLM_NEGOTIATE_MESSAGE_V1, *PNTLM_NEGOTIATE_MESSAGE_V1;
+
+typedef struct _NTLM_NEGOTIATE_MESSAGE_V2
+{
+    union
+    {
+        NTLM_NEGOTIATE_MESSAGE_V1 V1;
+        struct
+        {
+            UCHAR NtlmSignature[NTLM_NETWORK_SIGNATURE_SIZE];
+            DWORD MessageType;
+            DWORD NtlmFlags;
+        };
+    };
+    // These refer to the machine the client is using, not the account they
+    // want to authenticate with.
+    NTLM_SEC_BUFFER ClientDomain;
+    NTLM_SEC_BUFFER ClientWorkstation;
+} NTLM_NEGOTIATE_MESSAGE_V2, *PNTLM_NEGOTIATE_MESSAGE_V2;
+
+struct _NTLM_NEGOTIATE_MESSAGE_V3
+{
+    union
+    {
+        NTLM_NEGOTIATE_MESSAGE_V2 V2;
+        struct
+        {
+            union
+            {
+                NTLM_NEGOTIATE_MESSAGE_V1 V1;
+                struct
+                {
+                    UCHAR NtlmSignature[NTLM_NETWORK_SIGNATURE_SIZE];
+                    DWORD MessageType;
+                    DWORD NtlmFlags;
+                };
+            };
+            // These refer to the machine the client is using, not the account
+            // they want to authenticate with.
+            NTLM_SEC_BUFFER ClientDomain;
+            NTLM_SEC_BUFFER ClientWorkstation;
+        };
+    };
+    NTLM_OS_VERSION Version;
     // Optional Data
-} NTLM_NEGOTIATE_MESSAGE, *PNTLM_NEGOTIATE_MESSAGE;
+} NTLM_NEGOTIATE_MESSAGE_V3, *PNTLM_NEGOTIATE_MESSAGE_V3;
 
 typedef struct _NTLM_CHALLENGE_MESSAGE
 {
@@ -70,14 +117,6 @@ typedef struct _NTLM_CHALLENGE_MESSAGE
     // Optional OS Version 8 bytes
     // Optional Data
 } NTLM_CHALLENGE_MESSAGE, *PNTLM_CHALLENGE_MESSAGE;
-
-typedef struct _NTLM_OS_VERSION
-{
-    BYTE MajorVersion;
-    BYTE MinorVersion;
-    WORD BuildNumber;
-    DWORD Unknown; // Must be 0x0000000F
-} NTLM_OS_VERSION, *PNTLM_OS_VERSION;
 
 typedef struct _NTLM_RESPONSE_MESSAGE_V1
 {
