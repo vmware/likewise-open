@@ -502,15 +502,12 @@ NtlmCreateChallengeMessage(
             sizeof(NTLM_SEC_BUFFER) +   // For target information block
             NTLM_WIN_SPOOF_SIZE;        // Win version info
 
-        if (gbUseNtlmV2)
-        {
-            // This is for the terminating target info block
-            dwTargetInfoSize += sizeof(NTLM_TARGET_INFO_BLOCK);
+        // This is for the terminating target info block
+        dwTargetInfoSize += sizeof(NTLM_TARGET_INFO_BLOCK);
 
-            dwOptions |= NTLM_FLAG_TARGET_INFO;
-        }
+        dwOptions |= NTLM_FLAG_TARGET_INFO;
     }
-    else if (gbUseNtlmV2)
+    else
     {
         // This is the same as the 'if' statement above, minus accounting for
         // space for the OS version spoof.
@@ -524,32 +521,29 @@ NtlmCreateChallengeMessage(
 
     // Allocate space in the target information block for each piece of target
     // information we have.
-    if (gbUseNtlmV2)
+    // Target information block info is always in unicode format.
+    if (!LW_IS_NULL_OR_EMPTY_STR(pServerName))
     {
-        // Target information block info is always in unicode format.
-        if (!LW_IS_NULL_OR_EMPTY_STR(pServerName))
-        {
-            dwTargetInfoSize += sizeof(NTLM_TARGET_INFO_BLOCK);
-            dwTargetInfoSize += strlen(pServerName) * sizeof(WCHAR);
-        }
-        if (!LW_IS_NULL_OR_EMPTY_STR(pDomainName))
-        {
-            dwTargetInfoSize += sizeof(NTLM_TARGET_INFO_BLOCK);
-            dwTargetInfoSize += strlen(pDomainName) * sizeof(WCHAR);
-        }
-        if (!LW_IS_NULL_OR_EMPTY_STR(pDnsServerName))
-        {
-            dwTargetInfoSize += sizeof(NTLM_TARGET_INFO_BLOCK);
-            dwTargetInfoSize += strlen(pDnsServerName) * sizeof(WCHAR);
-        }
-        if (!LW_IS_NULL_OR_EMPTY_STR(pDnsDomainName))
-        {
-            dwTargetInfoSize += sizeof(NTLM_TARGET_INFO_BLOCK);
-            dwTargetInfoSize += strlen(pDnsDomainName) * sizeof(WCHAR);
-        }
-
-        dwSize += dwTargetInfoSize;
+        dwTargetInfoSize += sizeof(NTLM_TARGET_INFO_BLOCK);
+        dwTargetInfoSize += strlen(pServerName) * sizeof(WCHAR);
     }
+    if (!LW_IS_NULL_OR_EMPTY_STR(pDomainName))
+    {
+        dwTargetInfoSize += sizeof(NTLM_TARGET_INFO_BLOCK);
+        dwTargetInfoSize += strlen(pDomainName) * sizeof(WCHAR);
+    }
+    if (!LW_IS_NULL_OR_EMPTY_STR(pDnsServerName))
+    {
+        dwTargetInfoSize += sizeof(NTLM_TARGET_INFO_BLOCK);
+        dwTargetInfoSize += strlen(pDnsServerName) * sizeof(WCHAR);
+    }
+    if (!LW_IS_NULL_OR_EMPTY_STR(pDnsDomainName))
+    {
+        dwTargetInfoSize += sizeof(NTLM_TARGET_INFO_BLOCK);
+        dwTargetInfoSize += strlen(pDnsDomainName) * sizeof(WCHAR);
+    }
+
+    dwSize += dwTargetInfoSize;
 
     if (pNegMsg->NtlmFlags & NTLM_FLAG_REQUEST_TARGET)
     {
