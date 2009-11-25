@@ -99,6 +99,7 @@ LsaSrvQueryMemberOf(
     IN HANDLE hServer,
     IN PCSTR pszTargetProvider,
     IN LSA_FIND_FLAGS FindFlags,
+    IN DWORD dwSidCount,
     IN PSTR* ppszSids,
     OUT PDWORD pdwObjectsCount,
     OUT PSTR** pppszGroupSids

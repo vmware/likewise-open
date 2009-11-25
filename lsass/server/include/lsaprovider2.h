@@ -116,6 +116,7 @@ typedef DWORD (*PFN_LSA_PROVIDER_ENUM_MEMBERS)(
 typedef DWORD (*PFN_LSA_PROVIDER_QUERY_MEMBER_OF)(
     IN HANDLE hProvider,
     IN LSA_FIND_FLAGS FindFlags,
+    IN DWORD dwSidCount,
     IN PSTR* ppszSids,
     OUT PDWORD pdwGroupSidCount,
     OUT PSTR** pppszGroupSids

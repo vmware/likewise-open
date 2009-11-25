@@ -739,6 +739,7 @@ LsaSrvQueryMemberOf(
     IN HANDLE hServer,
     IN OPTIONAL PCSTR pszTargetProvider,
     IN LSA_FIND_FLAGS FindFlags,
+    IN DWORD dwSidCount,
     IN PSTR* ppszSids,
     OUT PDWORD pdwObjectsCount,
     OUT PSTR** pppszGroupSids
@@ -783,6 +784,7 @@ LsaSrvQueryMemberOf(
         dwError = pProvider->pFnTable2->pfnQueryMemberOf(
             hProvider,
             FindFlags,
+            dwSidCount,
             ppszSids,
             &dwPartialCount,
             &ppszPartialSids);
