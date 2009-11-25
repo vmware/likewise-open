@@ -115,12 +115,23 @@ FillMissingPassword(
 {
     CENTERROR ceError = CENTERROR_SUCCESS;
     PSTR pszPassword = NULL;
+    PCSTR pszEnvPassword = NULL;
 
-    fprintf(stdout, "%s's password: ",username);
-    fflush(stdout);
-    ceError = GetPassword(&pszPassword);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-    fprintf(stdout, "\n");
+    pszEnvPassword = getenv("PASSWORD");
+    if (pszEnvPassword == NULL)
+    {
+        fprintf(stdout, "%s's password: ",username);
+        fflush(stdout);
+        ceError = GetPassword(&pszPassword);
+        BAIL_ON_CENTERIS_ERROR(ceError);
+        fprintf(stdout, "\n");
+    }
+    else
+    {
+        DJ_LOG_WARNING("Retrieved password from envionmental variable");
+        ceError = CTStrdup(pszEnvPassword, &pszPassword);
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
 
     if (!IsNullOrEmptyString(pszPassword)) {
         *ppszPassword = pszPassword;
