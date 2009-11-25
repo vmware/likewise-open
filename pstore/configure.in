@@ -107,8 +107,8 @@ AC_SUBST(TDB_LIBS)
 
 # providers
 
-AC_ARG_WITH([providers], [AC_HELP_STRING([--with-providers], [list of providers to build (sqldb tdb filedb)])],
-                       [], [with_providers="sqldb tdb"])
+AC_ARG_WITH([providers], [AC_HELP_STRING([--with-providers], [list of providers to build (sqldb tdb filedb regdb)])],
+                       [], [with_providers="sqldb tdb regdb"])
 
 _IFS="${IFS}"
 IFS=" ,"
@@ -134,6 +134,12 @@ AM_CONDITIONAL(ENABLE_FILEDB, test x"$enable_filedb" = x"yes")
 if test x"$enable_filedb" = x"yes"
 then
         AC_DEFINE([ENABLE_FILEDB], [], [Define if filedb provider should be built])
+fi
+
+AM_CONDITIONAL(ENABLE_REGDB, test x"$enable_regdb" = x"yes")
+if test x"$enable_regdb" = x"yes"
+then
+        AC_DEFINE([ENABLE_REGDB], [], [Define if regdb provider should be built])
 fi
 
 # Boolean settings
@@ -287,6 +293,35 @@ AC_SUBST(LWMSG_LDFLAGS)
 AC_SUBST(LWMSG_NOTHR_LIBS)
 AC_SUBST(LWMSG_LIBS)
 
+
+# lwreg
+
+AC_ARG_WITH([lwreg],
+        [AC_HELP_STRING([--with-lwreg=<dir>], [use lwreg located in prefix <dir>])],
+        [
+                LWREG_INCLUDES="-I$withval/include"
+        LWREG_LDFLAGS="-L$withval/lib"
+        ])
+
+AC_ARG_WITH([lwreg-includes],
+        [AC_HELP_STRING([--with-lwreg-includes=<dir>], [use lwreg includes located in <dir>])],
+        [
+                LWREG_INCLUDES="-I$withval"
+        ])
+
+AC_ARG_WITH([lwreg-libs],
+        [AC_HELP_STRING([--with-lwreg-libs=<dir>], [use lwreg libs located in <dir>])],
+        [
+                LWREG_LDFLAGS="-L$withval"
+        ])
+
+LWREG_LIBS="-lrsutils -lregclient"
+
+#AC_CHECK_HEADER([reg/reg.h],,[AC_MSG_ERROR([Could not find lwreg headers])])
+AC_SUBST(LWREG_INCLUDES)
+AC_SUBST(LWREG_LDFLAGS)
+AC_SUBST(LWREG_LIBS)
+
 # Check for external libraries
 AC_CHECK_LIB([unistr], [mbstowc16s], [LIBUNISTR_LIBS="-lunistr"],
     AC_MSG_ERROR([Could not find libunistr; please use --with-libunistr]),
@@ -315,6 +350,7 @@ AC_CONFIG_FILES([Makefile
                  providers/sqldb/Makefile
                  providers/tdb/Makefile
                  providers/filedb/Makefile
+                 providers/regdb/Makefile
 		 tools/Makefile
 		 tools/dump_machine_account/Makefile
                  ])

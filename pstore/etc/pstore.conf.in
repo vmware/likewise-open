@@ -6,6 +6,10 @@
     type = sqldb 
     path = @providerdir@/liblwps-sqldb@MOD_EXT@
     default = yes 
+#[password storage:reg-db]
+#    type = regdb
+#    path = @providerdir@/liblwps-regdb@MOD_EXT@
+#    default = yes
 #[password storage:tdb]
 #    type = tdb
 #    path = @providerdir@/liblwps-tdb@MOD_EXT@
